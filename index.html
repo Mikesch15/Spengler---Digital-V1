@@ -1781,7 +1781,7 @@ ${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze 
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
 }
-</script>
+<\/script>
 </body></html>`);
  win.document.close();
  const doPrint=()=>{try{win.focus();win.print()}catch(e){}};
