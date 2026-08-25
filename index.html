@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1769aa">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Spengler-DIGITAL">
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./icons/icon-192.png">
-<meta name="theme-color" content="#1769aa">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spengler-Digital">
 <title>Spengler-DIGITAL · Regierapport</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
@@ -121,7 +121,7 @@ td input,td select{min-height:34px;font-size:12px}
 #fsPanFloating.active{background:var(--blue)}
 #fsSketchDone{font-size:14px;font-weight:900;padding:10px 20px;box-shadow:0 3px 10px #16845c66}
 .sketch-viewport{flex:1 1 auto;overflow:auto;background:#dbe1e5;display:flex;align-items:flex-start;justify-content:center;padding:14px;touch-action:pan-x pan-y}
-#fsSketchCanvas{background:#fff;box-shadow:0 2px 14px #0002;flex:0 0 auto}
+#fsSketchCanvas{background:#fff;box-shadow:0 2px 14px #0002;flex:0 0 auto;touch-action:none}
 .sketch-gallery{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0}
 .sketch-thumb-wrap{position:relative;width:84px;height:118px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
 .sketch-thumb{width:100%;height:100%;object-fit:contain}
@@ -202,6 +202,8 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:7pt}
  color:#68737d!important;
 }
 #printCompany{font-size:8pt!important;color:#17202a!important}
+.search{display:none!important}
+#projectSelectedLabel button{display:none!important}
 
 /* Section cards become a compact report, not an app screenshot */
 .card{
@@ -605,6 +607,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 
 <div class="bar">
 <button id="saveMeasurement" class="green">💾 Speichern</button>
+<button id="printMeasurementBtn" class="gray" hidden>🖨️ Als PDF</button>
 <button id="cancelMeasurement" class="gray">Abbrechen</button>
 </div>
 </div>
@@ -712,7 +715,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button type="button" class="green" id="fsSketchDone">✓ Übernehmen</button>
 </div>
 </div>
-<div class="small no-print" style="padding:4px 10px;background:#f8fafb;color:var(--muted)">Zeichenfläche entspricht immer einem A4-Blatt – Zoomen ändert nur die Ansicht, nicht das gespeicherte Format.</div>
+<div class="small no-print" style="padding:4px 10px;background:#f8fafb;color:var(--muted)">Ein Finger zeichnet, zwei Finger zoomen &amp; verschieben. Die Zeichenfläche entspricht immer einem A4-Blatt – Zoomen ändert nur die Ansicht, nicht das gespeicherte Format.</div>
 <div id="sketchViewport" class="sketch-viewport">
 <canvas id="fsSketchCanvas"></canvas>
 </div>
@@ -1438,12 +1441,10 @@ function setPanMode(on){
  sketchPanMode=on;
  $("fsPanFloating").classList.toggle("active",on);
  $("fsPanFloating").textContent=on?"✋ Verschieben":"✏️ Zeichnen";
- $("fsSketchCanvas").style.touchAction=on?"pan-x pan-y":"none";
- $("fsSketchCanvas").style.cursor=on?"grab":"crosshair";
 }
+$("fsPanFloating").onclick=()=>setPanMode(!sketchPanMode);
 $("fsZoomIn").onclick=()=>{sketchZoom=Math.min(4,+(sketchZoom+0.25).toFixed(2));applySketchZoom()};
 $("fsZoomOut").onclick=()=>{sketchZoom=Math.max(0.5,+(sketchZoom-0.25).toFixed(2));applySketchZoom()};
-$("fsPanFloating").onclick=()=>setPanMode(!sketchPanMode);
 
 // Verhindert, dass ein Zwei-Finger-Pinch auf der Zeichenfläche die ganze Seite zoomt
 // (Sicherheitsnetz zusätzlich zu touch-action, da sich v.a. Safari nicht immer daran hält).
@@ -1483,27 +1484,81 @@ function openSketchFullscreen(bgSrc,editIndex){
  });
 }
 (function initFsSketchDrawing(){
- const canvas=$("fsSketchCanvas");
+ const canvas=$("fsSketchCanvas"),viewport=$("sketchViewport");
  let drawing=false,lastX=0,lastY=0;
+ const activePointers=new Map(); // pointerId -> {x,y} in Bildschirmkoordinaten
+ let pinchStartDist=0,pinchStartZoom=1,pinchStartMid=null,pinchStartScroll=null;
+ let panStart=null; // {x,y,scrollLeft,scrollTop}
+
  function pos(e){
   const r=canvas.getBoundingClientRect();
   return {x:(e.clientX-r.left)*(canvas.width/r.width),y:(e.clientY-r.top)*(canvas.height/r.height)};
  }
+ function dist(p1,p2){return Math.hypot(p1.x-p2.x,p1.y-p2.y)}
+ function mid(p1,p2){return {x:(p1.x+p2.x)/2,y:(p1.y+p2.y)/2}}
+
  canvas.addEventListener("pointerdown",e=>{
-  if(sketchPanMode)return;
-  drawing=true;const p=pos(e);lastX=p.x;lastY=p.y;canvas.setPointerCapture(e.pointerId);e.preventDefault();
- });
- canvas.addEventListener("pointermove",e=>{
-  if(sketchPanMode||!drawing||!fsCtx)return;
-  const p=pos(e);
-  fsCtx.strokeStyle=$("fsSketchColor").value;
-  fsCtx.lineWidth=Number($("fsSketchWidth").value);
-  fsCtx.beginPath();fsCtx.moveTo(lastX,lastY);fsCtx.lineTo(p.x,p.y);fsCtx.stroke();
-  lastX=p.x;lastY=p.y;
+  canvas.setPointerCapture(e.pointerId);
+  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activePointers.size===2){
+   drawing=false;
+   const pts=[...activePointers.values()];
+   pinchStartDist=dist(pts[0],pts[1]);
+   pinchStartZoom=sketchZoom;
+   pinchStartMid=mid(pts[0],pts[1]);
+   pinchStartScroll={left:viewport.scrollLeft,top:viewport.scrollTop};
+   panStart=null;
+  }else if(activePointers.size===1){
+   if(sketchPanMode){
+    panStart={x:e.clientX,y:e.clientY,scrollLeft:viewport.scrollLeft,scrollTop:viewport.scrollTop};
+   }else{
+    drawing=true;const p=pos(e);lastX=p.x;lastY=p.y;
+   }
+  }
   e.preventDefault();
  });
- canvas.addEventListener("pointerup",()=>{drawing=false});
- canvas.addEventListener("pointercancel",()=>{drawing=false});
+ canvas.addEventListener("pointermove",e=>{
+  if(!activePointers.has(e.pointerId))return;
+  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activePointers.size===2){
+   const pts=[...activePointers.values()];
+   const d=dist(pts[0],pts[1]);
+   if(pinchStartDist>0){
+    sketchZoom=Math.max(0.5,Math.min(4,+(pinchStartZoom*(d/pinchStartDist)).toFixed(3)));
+    applySketchZoom();
+   }
+   if(pinchStartMid){
+    const m=mid(pts[0],pts[1]);
+    viewport.scrollLeft=pinchStartScroll.left-(m.x-pinchStartMid.x);
+    viewport.scrollTop=pinchStartScroll.top-(m.y-pinchStartMid.y);
+   }
+   e.preventDefault();
+   return;
+  }
+  if(panStart){
+   viewport.scrollLeft=panStart.scrollLeft-(e.clientX-panStart.x);
+   viewport.scrollTop=panStart.scrollTop-(e.clientY-panStart.y);
+   e.preventDefault();
+   return;
+  }
+  if(drawing&&fsCtx){
+   const p=pos(e);
+   fsCtx.strokeStyle=$("fsSketchColor").value;
+   fsCtx.lineWidth=Number($("fsSketchWidth").value);
+   fsCtx.beginPath();fsCtx.moveTo(lastX,lastY);fsCtx.lineTo(p.x,p.y);fsCtx.stroke();
+   lastX=p.x;lastY=p.y;
+   e.preventDefault();
+  }
+ });
+ function endPointer(e){
+  activePointers.delete(e.pointerId);
+  drawing=false;
+  panStart=null;
+  pinchStartDist=0;
+  pinchStartMid=null;
+ }
+ canvas.addEventListener("pointerup",endPointer);
+ canvas.addEventListener("pointercancel",endPointer);
 })();
 $("fsSketchClear").onclick=()=>{
  if(!fsCtx)return;
@@ -1605,6 +1660,7 @@ $("measProjectResults").addEventListener("click",e=>{
 
 $("newMeasurement").onclick=()=>{
  currentMeasurementId=null;
+ $("printMeasurementBtn").hidden=false;
  $("measTitle").value="";
  $("measNote").value="";
  $("measDate").value=new Date().toISOString().slice(0,10);
@@ -1623,6 +1679,7 @@ $("newMeasurement").onclick=()=>{
 };
 function openMeasurement(m){
  currentMeasurementId=m.id;
+ $("printMeasurementBtn").hidden=false;
  $("measTitle").value=m.title||"";
  $("measNote").value=m.note||"";
  $("measDate").value=m.date||new Date().toISOString().slice(0,10);
@@ -1640,6 +1697,18 @@ function openMeasurement(m){
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
 }
+function buildMeasurementFromForm(){
+ return {
+  title:$("measTitle").value,
+  note:$("measNote").value,
+  date:$("measDate").value,
+  type:$("measType").value,
+  project_id:measSelectedProjectId,
+  photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,
+  sketch_paths:measSketches,
+ };
+}
+$("printMeasurementBtn").onclick=()=>printMeasurement(buildMeasurementFromForm());
 $("cancelMeasurement").onclick=()=>{$("measurementEditModal").hidden=true;$("measurementsModal").hidden=false};
 
 $("saveMeasurement").onclick=async()=>{
@@ -1699,7 +1768,6 @@ ${thumb?`<img class="meas-thumb" src="${thumb}" loading="lazy">`:'<div class="me
 <div class="meas-row-info"><b>${esc(m.title||"Ohne Titel")}</b><span>${esc(proj?proj.name:"Kein Projekt")} · ${esc(m.date||"–")} · ${esc(typeLabels[m.type]||m.type)}</span></div>
 <div class="meas-row-actions">
 <button class="blue" data-open-measurement="${m.id}" title="Öffnen">✏️</button>
-<button class="gray" data-print-measurement="${m.id}" title="Als PDF">🖨️</button>
 <button class="red" data-del-measurement="${m.id}" title="Löschen">×</button>
 </div>
 </div>`;
@@ -1734,8 +1802,6 @@ $("measurementTypeFilter").addEventListener("change",renderMeasurementList);
 $("measurementList").addEventListener("click",e=>{
  const o=e.target.closest("[data-open-measurement]");
  if(o){const m=measurementsCache.find(x=>x.id===Number(o.dataset.openMeasurement));if(m)openMeasurement(m);return}
- const p=e.target.closest("[data-print-measurement]");
- if(p){const m=measurementsCache.find(x=>x.id===Number(p.dataset.printMeasurement));if(m)printMeasurement(m);return}
  const d=e.target.closest("[data-del-measurement]");
  if(d){
   if(!confirm("Diese Massaufnahme wirklich löschen?"))return;
@@ -1776,12 +1842,6 @@ function printMeasurement(m){
 ${m.photo_path?`<img class="photo" src="${esc(m.photo_path)}">`:""}
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}
 ${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze ${i+1} von ${sketches.length}</h2>`:""}<img class="sketch" src="${esc(s)}"></div>`).join("")}
-
-<script>
-if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
-}
-<\/script>
 </body></html>`);
  win.document.close();
  const doPrint=()=>{try{win.focus();win.print()}catch(e){}};
@@ -1796,6 +1856,13 @@ $("closeMeasurements").onclick=()=>{$("measurementsModal").hidden=true};
  const {data:{session}}=await sb.auth.getSession();
  if(session)await afterLogin();
 })();
+
+// ---- Service Worker registrieren (macht die App installierbar) ----
+if("serviceWorker" in navigator){
+ window.addEventListener("load",()=>{
+  navigator.serviceWorker.register("./sw.js").catch(()=>{});
+ });
+}
 </script>
 
 

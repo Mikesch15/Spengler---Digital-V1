@@ -1,19 +1,44 @@
-const CACHE="spengler-digital-v45";
-const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
-self.addEventListener("install",event=>{
-  event.waitUntil(caches.open(CACHE).then(c=>c.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
+// Spengler-Digital – Service Worker
+// Zweck: macht die App "installierbar" (Add-to-Homescreen / Desktop-Installation)
+// und lässt die Hülle der App auch bei kurzzeitig fehlendem Netz noch laden.
+// Die eigentlichen Daten kommen weiterhin live von Supabase – dafür wird
+// zwingend eine Internetverbindung benötigt, das cacht dieser Worker bewusst nicht.
+
+const CACHE_NAME = "spengler-digital-v1";
+const APP_SHELL = ["./", "./index.html", "./manifest.json"];
+
+self.addEventListener("install", (e) => {
+  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(APP_SHELL)));
+  self.skipWaiting();
 });
-self.addEventListener("activate",event=>{
-  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+
+self.addEventListener("activate", (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
 });
-self.addEventListener("fetch",event=>{
-  const req=event.request;
-  if(req.method!=="GET") return;
-  const url=new URL(req.url);
-  if(url.origin!==self.location.origin) return;
-  if(req.mode==="navigate" || url.pathname.endsWith("/index.html") || url.pathname.endsWith("/")){
-    event.respondWith(fetch(req).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy));return res;}).catch(()=>caches.match(req).then(r=>r||caches.match("./index.html"))));
-  } else {
-    event.respondWith(caches.match(req).then(cached=>cached||fetch(req).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy));return res;})));
-  }
+
+self.addEventListener("fetch", (e) => {
+  // Nur eigene, einfache GET-Anfragen für die App-Hülle behandeln.
+  // Alle Supabase-/API-Aufrufe laufen normal übers Netz (nicht abgefangen).
+  if (e.request.method !== "GET") return;
+  const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  e.respondWith(
+    caches.match(e.request).then(
+      (cached) =>
+        cached ||
+        fetch(e.request)
+          .then((res) => {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(e.request, copy));
+            return res;
+          })
+          .catch(() => caches.match("./index.html"))
+    )
+  );
 });
