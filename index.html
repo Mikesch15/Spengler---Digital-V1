@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1769aa">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Spengler-Digital">
@@ -99,6 +99,17 @@ td input,td select{min-height:34px;font-size:12px}
 .report-row button{padding:5px 8px;font-size:11px}
 
 .meas-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.eb-table{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}
+.eb-diagram-box{background:#f8fafb;border:1px solid var(--line);border-radius:10px;padding:8px;margin:8px 0}
+.eb-table col.eb-col-pos{width:14%}
+.eb-table col.eb-col-len{width:32%}
+.eb-table col.eb-col-massa{width:26%}
+.eb-table col.eb-col-side{width:28%}
+.eb-table th{background:#f2f6f8;text-align:left;font-size:9px;padding:6px 5px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+.eb-table td{border-top:1px solid var(--line);padding:5px;font-size:12px}
+.eb-table td:first-child{text-align:center;color:var(--muted)}
+.eb-table td:nth-child(2),.eb-table td:nth-child(3){text-align:right;font-variant-numeric:tabular-nums}
+.eb-rest-row td{background:var(--blue-light);font-weight:800}
 .start-nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px}
 .start-nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:26px 10px;border-radius:14px;font-size:14px;font-weight:800;text-align:center;line-height:1.3}
 .start-nav-btn small{font-weight:600;font-size:10px;opacity:.85}
@@ -560,7 +571,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div class="search"><input id="measurementProjectSearch" placeholder="Suchen: Projektname, Auftrags-Nr., Auftraggeber, Objekt …" autocomplete="off"><div id="measurementProjectResults" class="suggest"></div></div>
 <div class="small" id="measurementProjectLabel"><span style="color:var(--muted)">Alle Projekte</span></div>
 </div>
-<div><label>Funktion</label><select id="measurementTypeFilter"><option value="">Alle</option><option value="skizze_foto">Skizze/Foto</option></select></div>
+<div><label>Funktion</label><select id="measurementTypeFilter"><option value="">Alle</option><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option></select></div>
 </div>
 <div class="bar"><button id="newMeasurement" class="blue">＋ Neue Massaufnahme</button></div>
 <div id="measurementList"></div>
@@ -575,7 +586,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div class="card">
 <h2>📐 Neue Massaufnahme</h2>
 <div class="grid" style="margin-bottom:8px">
-<div><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option></select></div>
+<div><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
 <div class="wide"><label>Projekt (Pflichtfeld)</label>
@@ -584,6 +595,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 </div>
 </div>
 
+<div id="measTypeFoto">
 <div class="meas-columns">
 <div>
 <label>Foto</label>
@@ -599,6 +611,32 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div id="measSketchGallery" class="sketch-gallery"></div>
 <button type="button" class="blue" id="addSketch">➕ Neue Skizze</button>
 </div>
+</div>
+</div>
+
+<div id="measTypeEinlaufblech" hidden>
+<div class="info">Bleche werden leicht konisch gebogen, damit sie ineinandergesteckt werden können; die weite Seite wird angereift. Werte für Länge Stoss bis Stoss, Überlappung und Abwicklung stammen aus Einstellungen → Massaufnahmen.
+<button type="button" class="gray" id="openEinlaufblechSettings" style="margin-left:8px;padding:3px 9px;font-size:11px">⚙️ Werte anpassen</button>
+</div>
+<div id="eb_diagram" class="eb-diagram-box"></div>
+<div class="grid">
+<div><label>Gesamtlänge (mm)</label><input id="eb_gesamtlaenge" type="number" step="1"></div>
+<div><label>Mass A (mm)</label><input id="eb_massA" type="number" step="1"></div>
+<div><label>Winkel (°)</label><input id="eb_winkel" type="number" step="0.1"></div>
+<div><label>Montage</label><select id="eb_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
+<div><label>Gehrung links</label><select id="eb_gehrungLinks"><option value="nein">Nein</option><option value="ja">Ja</option></select></div>
+<div><label>Gehrung rechts</label><select id="eb_gehrungRechts"><option value="nein">Nein</option><option value="ja">Ja</option></select></div>
+<div><label>Abwicklung (mm)</label><select id="eb_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
+</div>
+<h2 style="margin-top:14px">Zuschnitt- &amp; Biegeliste</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col class="eb-col-pos"><col class="eb-col-len"><col class="eb-col-massa"><col class="eb-col-side"></colgroup>
+<thead><tr><th>Pos.</th><th>Zuschnittlänge (mm)</th><th>Mass A eng (mm)</th><th>Enge Seite</th></tr></thead>
+<tbody id="eb_resultBody"></tbody>
+</table>
+</div>
+<div class="small" id="eb_summary"></div>
 </div>
 
 <div class="grid" style="margin-top:8px">
@@ -672,7 +710,18 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="measurements" hidden>
-<div class="empty">Für Massaufnahmen gibt es aktuell noch keine eigenen Einstellungen. Kommt in einer der nächsten Versionen.</div>
+<div class="settings-section open" data-section="einlaufblech">
+<div class="settings-section-head" data-toggle-section="einlaufblech"><h2>Einlaufblech gerade</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Diese Werte gelten firmenweit für alle Berechnungen bei "Einlaufblech gerade".</div>
+<div class="grid">
+<div><label>Länge Stoss bis Stoss (mm)</label><input id="eb_stossLaenge" type="number" step="1"></div>
+<div><label>Überlappung (mm)</label><input id="eb_ueberlappung" type="number" step="1"></div>
+<div><label>Gehrungszugabe (mm)</label><input id="eb_gehrungszugabe" type="number" step="1"></div>
+</div>
+<div class="bar"><button id="saveEinlaufblechSettings" class="green">💾 Speichern</button></div>
+</div>
+</div>
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="ausmass" hidden>
@@ -746,6 +795,7 @@ let settings={employees:[],rates:[],materials:[]};
 let employeeIds=[],rateIds=[],materialIds=[];
 let currentProfile=null;
 let companyName="PETER KÜNZI AG";
+let einlaufblechSettings={stoss_laenge:2000,ueberlappung:40,gehrungszugabe:0};
 let isMike=false;
 let allProjects=[],currentProjectId=null,currentReportId=null;
 let works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:"",rateName:"",hours:0}];
@@ -830,12 +880,13 @@ $("navBackFromReport").onclick=()=>{showStart()};
 
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,ebSettingsRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
   sb.from("projects").select("*").order("name"),
   sb.from("app_settings").select("*").eq("id",1).maybeSingle(),
+  sb.from("einlaufblech_settings").select("*").eq("id",1).maybeSingle(),
  ]);
  const rates=ratesRes.data||[];
  const materials=materialsRes.data||[];
@@ -848,12 +899,19 @@ async function loadAllData(){
  employeeIds=profiles.map(p=>p.id);
  allProjects=projectsRes.data||[];
  if(appSettingsRes.data&&appSettingsRes.data.company_name)companyName=appSettingsRes.data.company_name;
+ if(ebSettingsRes.data)einlaufblechSettings=ebSettingsRes.data;
  applyCompanyName();
+ applyEinlaufblechSettings();
 }
 function applyCompanyName(){
  document.querySelectorAll(".js-company-name").forEach(el=>el.textContent=companyName);
  const label=$("startCompanyLine");if(label)label.textContent="bei "+companyName;
  const input=$("companyNameInput");if(input&&document.activeElement!==input)input.value=companyName;
+}
+function applyEinlaufblechSettings(){
+ if(document.activeElement!==$("eb_stossLaenge"))$("eb_stossLaenge").value=einlaufblechSettings.stoss_laenge;
+ if(document.activeElement!==$("eb_ueberlappung"))$("eb_ueberlappung").value=einlaufblechSettings.ueberlappung;
+ if(document.activeElement!==$("eb_gehrungszugabe"))$("eb_gehrungszugabe").value=einlaufblechSettings.gehrungszugabe;
 }
 
 function esc(v){return String(v??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
@@ -1043,8 +1101,19 @@ $("addWork").onclick=()=>{works.push({date:new Date().toISOString().slice(0,10),
 $("addMat").onclick=()=>{mats.push({date:new Date().toISOString().slice(0,10),no:"",qty:0});renderMain()};
 $("vat").addEventListener("input",updateTotals);
 
-$("settings").onclick=()=>{renderSettings();applyCompanyName();$("settingsModal").hidden=false};
-$("closeSettings").onclick=()=>{$("settingsModal").hidden=true;renderMain()};
+let settingsReturnToMeasurement=false;
+$("settings").onclick=()=>{renderSettings();applyCompanyName();applyEinlaufblechSettings();$("settingsModal").hidden=false};
+$("closeSettings").onclick=()=>{
+ $("settingsModal").hidden=true;
+ if(settingsReturnToMeasurement){
+  settingsReturnToMeasurement=false;
+  applyEinlaufblechSettings();
+  if($("measType").value==="einlaufblech_gerade")renderEinlaufblechResult();
+  $("measurementEditModal").hidden=false;
+ }else{
+  renderMain();
+ }
+};
 $("settingsModal").addEventListener("click",e=>{
  const h=e.target.closest("[data-toggle-section]");
  if(h){h.closest(".settings-section").classList.toggle("open");return}
@@ -1064,6 +1133,22 @@ $("saveCompanyName").onclick=async()=>{
  companyName=name;
  applyCompanyName();
  alert("Firmenname gespeichert.");
+};
+$("saveEinlaufblechSettings").onclick=async()=>{
+ const stossLaenge=Number($("eb_stossLaenge").value);
+ const ueberlappung=Number($("eb_ueberlappung").value);
+ const gehrungszugabe=Number($("eb_gehrungszugabe").value)||0;
+ if(!stossLaenge||stossLaenge<=0){alert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
+ if(ueberlappung<0){alert("Überlappung darf nicht negativ sein.");return}
+ if(gehrungszugabe<0){alert("Gehrungszugabe darf nicht negativ sein.");return}
+ $("saveEinlaufblechSettings").disabled=true;
+ const {error}=await sb.from("einlaufblech_settings").update({
+  stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,updated_at:new Date().toISOString()
+ }).eq("id",1);
+ $("saveEinlaufblechSettings").disabled=false;
+ if(error){alert("Fehler: "+error.message);return}
+ einlaufblechSettings={...einlaufblechSettings,stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe};
+ alert("Einstellungen gespeichert.");
 };
 
 let materialPage=0, materialFilter="", materialExpanded=new Set();
@@ -1661,6 +1746,8 @@ $("measProjectResults").addEventListener("click",e=>{
 $("newMeasurement").onclick=()=>{
  currentMeasurementId=null;
  $("printMeasurementBtn").hidden=false;
+ $("measType").value="skizze_foto";
+ showMeasTypeSection("skizze_foto");
  $("measTitle").value="";
  $("measNote").value="";
  $("measDate").value=new Date().toISOString().slice(0,10);
@@ -1671,6 +1758,14 @@ $("newMeasurement").onclick=()=>{
  measPhotoDataUrl=null;measExistingPhotoUrl=null;
  measSketches=[];
  renderSketchGallery();
+ $("eb_gesamtlaenge").value="";
+ $("eb_massA").value="";
+ $("eb_winkel").value="";
+ $("eb_gehrungLinks").value="nein";
+ $("eb_gehrungRechts").value="nein";
+ $("eb_abwicklung").value="250";
+ $("eb_montage").value="links";
+ renderEinlaufblechResult();
  measSelectedProjectId=currentProjectId||null;
  const proj=allProjects.find(x=>x.id===measSelectedProjectId);
  $("measProjectSelectedLabel").textContent=proj?("Projekt: "+proj.name):"Kein Projekt ausgewählt";
@@ -1684,6 +1779,7 @@ function openMeasurement(m){
  $("measNote").value=m.note||"";
  $("measDate").value=m.date||new Date().toISOString().slice(0,10);
  $("measType").value=m.type||"skizze_foto";
+ showMeasTypeSection($("measType").value);
  measSelectedProjectId=m.project_id||null;
  const proj=allProjects.find(x=>x.id===measSelectedProjectId);
  $("measProjectSelectedLabel").textContent=proj?("Projekt: "+proj.name):"Kein Projekt ausgewählt";
@@ -1694,45 +1790,171 @@ function openMeasurement(m){
  else{$("measPhotoPreview").hidden=true;$("measPhotoPreview").src="";$("measPhotoRemove").hidden=true;$("drawOnPhoto").hidden=true}
  measSketches=(m.sketch_paths&&m.sketch_paths.length)?[...m.sketch_paths]:(m.sketch_path?[m.sketch_path]:[]);
  renderSketchGallery();
+ const d=m.data||{};
+ $("eb_gesamtlaenge").value=d.gesamtlaenge||"";
+ $("eb_massA").value=d.massA||"";
+ $("eb_winkel").value=d.winkel||"";
+ $("eb_gehrungLinks").value=d.gehrungLinks?"ja":"nein";
+ $("eb_gehrungRechts").value=d.gehrungRechts?"ja":"nein";
+ $("eb_abwicklung").value=d.abwicklung||"250";
+ $("eb_montage").value=d.montage||"links";
+ if(m.type==="einlaufblech_gerade")renderEinlaufblechResult();
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
 }
+// ---- Einlaufblech gerade ---------------------------------------
+// Schnittzeichnung: zeigt, was mit "Mass A" und "Winkel" gemeint ist.
+// Eigenständiges SVG (feste Farben statt CSS-Variablen), damit es identisch
+// in der App und im PDF-Druckfenster (eigenes Dokument, ohne Zugriff auf die
+// Haupt-Stylesheet-Variablen) angezeigt wird.
+function einlaufblechDiagramSvg(winkel){
+ const cx=80, cy=170;
+ const theta0Up=52.66*Math.PI/180; // Standard-Diagonalwinkel von "oben" (nur für Rotation der Zeichnung)
+ const w=Number(winkel)>0?Number(winkel):null;
+ // Eingabe "winkel" = Winkel von der senkrechten A-Linie (nach unten) zur Dachschräge.
+ const thetaUp=w?(180-w)*Math.PI/180:theta0Up; // gleicher Winkel, aber von "oben" aus gerechnet (für die Rotation)
+ const phi=thetaUp-theta0Up;
+ const cosP=Math.cos(phi), sinP=Math.sin(phi);
+ const rot=(px,py)=>{const dx=px-cx,dy=py-cy;return [cx+dx*cosP-dy*sinP,cy+dx*sinP+dy*cosP]};
+ const [dx1,dy1]=rot(219,64), [p1x,p1y]=rot(231.6,54.7), [vx,vy]=rot(238,50), [p2x,p2y]=rot(230.2,48.4), [ex,ey]=rot(213,45);
+ const R=34;
+ const arcStartX=cx, arcStartY=cy+R; // Bogenstart: senkrecht nach unten, entlang der A-Linie
+ const arcEndX=cx+R*Math.sin(thetaUp), arcEndY=cy-R*Math.cos(thetaUp);
+ const bisector=(thetaUp+Math.PI)/2;
+ const labelX=cx+(R+16)*Math.sin(bisector), labelY=cy-(R+16)*Math.cos(bisector);
+ const label=w?`${w}°`:"Winkel";
+ return `<svg viewBox="0 0 300 330" style="width:100%;max-width:220px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 80,170 L 80,300 Q 80,308 86.1,302.8 L 102,289" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 80,170 L ${dx1.toFixed(1)},${dy1.toFixed(1)} L ${p1x.toFixed(1)},${p1y.toFixed(1)} Q ${vx.toFixed(1)},${vy.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)} L ${ex.toFixed(1)},${ey.toFixed(1)}" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="45" y1="170" x2="45" y2="308" stroke="#1769aa" stroke-width="3" stroke-linecap="round"/>
+  <path d="M38,179 L45,170 L52,179" fill="none" stroke="#1769aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M38,299 L45,308 L52,299" fill="none" stroke="#1769aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="18" y="242" font-size="16" font-weight="700" fill="#1769aa" font-family="Arial,Helvetica,sans-serif">A</text>
+  <path d="M ${arcStartX.toFixed(1)},${arcStartY.toFixed(1)} A ${R},${R} 0 0,0 ${arcEndX.toFixed(1)},${arcEndY.toFixed(1)}" fill="none" stroke="#68737d" stroke-width="1.5"/>
+  <text x="${labelX.toFixed(1)}" y="${labelY.toFixed(1)}" font-size="13" fill="#68737d" font-family="Arial,Helvetica,sans-serif">${label}</text>
+ </svg>`;
+}
+function calcEinlaufblech(gesamtlaenge,montage,massA,gehrungLinks,gehrungRechts,abwicklung){
+ const stossLaenge=Number(einlaufblechSettings.stoss_laenge)||1;
+ const ueberlappung=Number(einlaufblechSettings.ueberlappung)||0;
+ const gehrungszugabe=Number(einlaufblechSettings.gehrungszugabe)||0;
+ gesamtlaenge=Number(gesamtlaenge)||0;
+ massA=Number(massA)||0;
+ const massAEng=Math.max(0,massA-2); // enges Mass: 2mm kürzer, damit die Stücke ineinandergesteckt werden können
+ const zugabeGesamt=(gehrungLinks?gehrungszugabe:0)+(gehrungRechts?gehrungszugabe:0);
+ const effLaenge=gesamtlaenge>0?gesamtlaenge+zugabeGesamt:0;
+ const anzahl=effLaenge>0?Math.max(1,Math.ceil(effLaenge/stossLaenge)):0;
+ const zuschnittlaenge=stossLaenge+ueberlappung; // Standardlänge für alle vollen Stücke
+ const rest=effLaenge-(anzahl-1)*stossLaenge; // Restlänge des letzten Stücks (<=stossLaenge)
+ const restZuschnittlaenge=Math.max(0,rest); // Restblech: KEINE Stosszugabe, da kein weiteres Stück folgt
+ const engeSeite=montage==="links"?"rechts":"links";
+ const pieces=[];
+ for(let i=1;i<=anzahl;i++){
+  const istLetztes=(i===anzahl);
+  pieces.push({
+   pos:i,
+   zuschnittlaenge:istLetztes?restZuschnittlaenge:zuschnittlaenge,
+   massA,
+   massAEng,
+   engeSeite,
+   rest:istLetztes&&rest<stossLaenge
+  });
+ }
+ return {anzahl,zuschnittlaenge,restZuschnittlaenge,rest,massA,massAEng,engeSeite,abwicklung,stossLaenge,ueberlappung,gehrungszugabe,zugabeGesamt,effLaenge,pieces};
+}
+function renderEinlaufblechResult(){
+ const gesamtlaenge=Number($("eb_gesamtlaenge").value)||0;
+ const montage=$("eb_montage").value;
+ const massA=Number($("eb_massA").value)||0;
+ const winkel=Number($("eb_winkel").value)||0;
+ const gehrungLinks=$("eb_gehrungLinks").value==="ja";
+ const gehrungRechts=$("eb_gehrungRechts").value==="ja";
+ const abwicklung=Number($("eb_abwicklung").value);
+ $("eb_diagram").innerHTML=einlaufblechDiagramSvg(winkel);
+ const r=calcEinlaufblech(gesamtlaenge,montage,massA,gehrungLinks,gehrungRechts,abwicklung);
+ $("eb_resultBody").innerHTML=r.pieces.map(p=>`<tr${p.rest?' class="eb-rest-row"':''}><td>${p.pos}${p.rest?' <span class="small">(Rest)</span>':''}</td><td>${p.zuschnittlaenge}</td><td>${p.massAEng}</td><td>${esc(p.engeSeite)}</td></tr>`).join("")||'<tr><td colspan="4" class="small">Bitte Gesamtlänge eingeben.</td></tr>';
+ $("eb_summary").textContent=gesamtlaenge>0?`${r.anzahl} Stück · Abwicklung ${r.abwicklung} mm · Länge Stoss bis Stoss ${r.stossLaenge} mm · Überlappung ${r.ueberlappung} mm`+(r.rest<r.stossLaenge?` · letztes Stück Rest ${r.rest} mm`:"")+(r.zugabeGesamt>0?` · Gehrungszugabe ${r.zugabeGesamt} mm · effektive Länge ${r.effLaenge} mm`:""):"";
+}
+$("eb_gesamtlaenge").addEventListener("input",renderEinlaufblechResult);
+$("eb_montage").addEventListener("change",renderEinlaufblechResult);
+$("eb_massA").addEventListener("input",renderEinlaufblechResult);
+$("eb_winkel").addEventListener("input",renderEinlaufblechResult);
+$("eb_gehrungLinks").addEventListener("change",renderEinlaufblechResult);
+$("eb_gehrungRechts").addEventListener("change",renderEinlaufblechResult);
+$("eb_abwicklung").addEventListener("change",renderEinlaufblechResult);
+
+function showMeasTypeSection(type){
+ $("measTypeFoto").hidden=(type!=="skizze_foto");
+ $("measTypeEinlaufblech").hidden=(type!=="einlaufblech_gerade");
+ if(type==="einlaufblech_gerade")renderEinlaufblechResult();
+}
+$("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
+$("openEinlaufblechSettings").onclick=()=>{
+ settingsReturnToMeasurement=true;
+ $("measurementEditModal").hidden=true;
+ renderSettings();
+ applyCompanyName();
+ applyEinlaufblechSettings();
+ document.querySelectorAll(".settings-tab").forEach(b=>b.classList.toggle("active",b.dataset.settingsTab==="measurements"));
+ document.querySelectorAll(".settings-tab-panel").forEach(p=>{p.hidden=(p.dataset.settingsPanel!=="measurements")});
+ const sec=document.querySelector('.settings-section[data-section="einlaufblech"]');
+ if(sec)sec.classList.add("open");
+ $("settingsModal").hidden=false;
+};
+
 function buildMeasurementFromForm(){
- return {
+ const type=$("measType").value;
+ const base={
   title:$("measTitle").value,
   note:$("measNote").value,
   date:$("measDate").value,
-  type:$("measType").value,
+  type,
   project_id:measSelectedProjectId,
-  photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,
-  sketch_paths:measSketches,
  };
+ if(type==="einlaufblech_gerade"){
+  const gesamtlaenge=Number($("eb_gesamtlaenge").value)||0;
+  const massA=Number($("eb_massA").value)||0;
+  const winkel=Number($("eb_winkel").value)||0;
+  const montage=$("eb_montage").value;
+  const gehrungLinks=$("eb_gehrungLinks").value==="ja";
+  const gehrungRechts=$("eb_gehrungRechts").value==="ja";
+  const abwicklung=Number($("eb_abwicklung").value);
+  const r=calcEinlaufblech(gesamtlaenge,montage,massA,gehrungLinks,gehrungRechts,abwicklung);
+  return {...base,photo_path:null,sketch_paths:[],data:{gesamtlaenge,massA,winkel,montage,gehrungLinks,gehrungRechts,...r}};
+ }
+ return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(buildMeasurementFromForm());
 $("cancelMeasurement").onclick=()=>{$("measurementEditModal").hidden=true;$("measurementsModal").hidden=false};
 
 $("saveMeasurement").onclick=async()=>{
  const title=$("measTitle").value.trim();
+ const type=$("measType").value;
  if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
  if(!measSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. Eine Massaufnahme kann nur einem Projekt zugeordnet gespeichert werden.");return}
- if(!measPhotoDataUrl&&!measExistingPhotoUrl&&measSketches.length===0){alert("Bitte ein Foto aufnehmen oder mindestens eine Skizze zeichnen.");return}
+ if(type==="skizze_foto"&&!measPhotoDataUrl&&!measExistingPhotoUrl&&measSketches.length===0){alert("Bitte ein Foto aufnehmen oder mindestens eine Skizze zeichnen.");return}
+ if(type==="einlaufblech_gerade"&&(!Number($("eb_gesamtlaenge").value)||Number($("eb_gesamtlaenge").value)<=0)){alert("Bitte eine gültige Gesamtlänge eingeben.");return}
  $("saveMeasurement").disabled=true;
  try{
-  let photoUrl=measExistingPhotoUrl;
-  if(measPhotoDataUrl)photoUrl=await uploadMeasurementImage(measPhotoDataUrl,"photo");
-  const sketchUrls=[];
-  for(const s of measSketches){
-   sketchUrls.push(s.startsWith("data:")?await uploadMeasurementImage(s,"sketch"):s);
+  const form=buildMeasurementFromForm();
+  let photoUrl=null,sketchUrls=[];
+  if(type==="skizze_foto"){
+   photoUrl=measExistingPhotoUrl;
+   if(measPhotoDataUrl)photoUrl=await uploadMeasurementImage(measPhotoDataUrl,"photo");
+   for(const s of measSketches){
+    sketchUrls.push(s.startsWith("data:")?await uploadMeasurementImage(s,"sketch"):s);
+   }
   }
   const payload={
    project_id:measSelectedProjectId||null,
-   type:$("measType").value,
+   type,
    title,
    note:$("measNote").value,
    date:$("measDate").value||new Date().toISOString().slice(0,10),
    photo_path:photoUrl,
    sketch_path:sketchUrls[0]||null,
    sketch_paths:sketchUrls,
+   data:form.data||{},
    created_by:currentProfile?currentProfile.id:null,
    updated_at:new Date().toISOString()
   };
@@ -1759,12 +1981,19 @@ async function renderMeasurementList(){
  if(error){$("measurementList").innerHTML=`<div class="empty">Fehler: ${esc(error.message)}</div>`;return}
  let rows=data||[];
  measurementsCache=rows;
- const typeLabels={skizze_foto:"Skizze/Foto"};
+ const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade"};
  $("measurementList").innerHTML=rows.length?rows.map(m=>{
   const proj=allProjects.find(p=>p.id===m.project_id);
-  const thumb=m.photo_path||(m.sketch_paths&&m.sketch_paths[0])||m.sketch_path;
+  let thumbHtml;
+  if(m.type==="einlaufblech_gerade"){
+   const d=m.data||{};
+   thumbHtml=`<div class="meas-thumb meas-thumb-empty" style="font-size:10px;line-height:1.2;padding:2px">${d.anzahl||0}×<br>${d.zuschnittlaenge||0}mm</div>`;
+  }else{
+   const thumb=m.photo_path||(m.sketch_paths&&m.sketch_paths[0])||m.sketch_path;
+   thumbHtml=thumb?`<img class="meas-thumb" src="${thumb}" loading="lazy">`:'<div class="meas-thumb meas-thumb-empty">–</div>';
+  }
   return `<div class="meas-row">
-${thumb?`<img class="meas-thumb" src="${thumb}" loading="lazy">`:'<div class="meas-thumb meas-thumb-empty">–</div>'}
+${thumbHtml}
 <div class="meas-row-info"><b>${esc(m.title||"Ohne Titel")}</b><span>${esc(proj?proj.name:"Kein Projekt")} · ${esc(m.date||"–")} · ${esc(typeLabels[m.type]||m.type)}</span></div>
 <div class="meas-row-actions">
 <button class="blue" data-open-measurement="${m.id}" title="Öffnen">✏️</button>
@@ -1814,10 +2043,59 @@ $("measurementList").addEventListener("click",e=>{
 
 function printMeasurement(m){
  const proj=allProjects.find(p=>p.id===m.project_id);
- const typeLabels={skizze_foto:"Skizze/Foto"};
- const sketches=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
+ const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade"};
  const win=window.open("","_blank");
  if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
+ const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
+ const metaCommon=`
+<div><b>Projekt:</b> ${esc(proj?proj.name:"–")}</div>
+<div><b>Datum:</b> ${esc(m.date||"–")}</div>
+<div><b>Funktion:</b> ${esc(typeLabels[m.type]||m.type)}</div>
+<div><b>Sachbearbeiter:</b> ${sachbearbeiter}</div>`;
+
+ let bodyHtml, extraCss="";
+ if(m.type==="einlaufblech_gerade"){
+  const d=m.data||{};
+  const pieces=d.pieces||[];
+  extraCss=`
+ .eb-summary-box{background:#eaf4fa;border-left:3px solid #1769aa;border-radius:4px;padding:3mm 4mm;margin:4mm 0;font-size:9.5pt;color:#17202a}
+ .eb-summary-box b{color:#0f5288}
+ .eb-diagram{text-align:center;margin:2mm 0 5mm}
+ table{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
+ tbody tr:nth-child(even) td{background:#f7fafc}
+ tr.rest td{background:#eaf4fa!important;font-weight:700}
+ td:first-child{text-align:center;color:#68737d;width:14%}
+ td:nth-child(2),td:nth-child(3){text-align:right;font-variant-numeric:tabular-nums;width:28%}`;
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="meta">${metaCommon}</div>
+<div class="eb-diagram">${einlaufblechDiagramSvg(d.winkel)}</div>
+<div class="eb-summary-box">
+<div><b>Gesamtlänge:</b> ${esc(d.gesamtlaenge||0)} mm &nbsp;·&nbsp; <b>Mass A:</b> ${esc(d.massA||0)} mm &nbsp;·&nbsp; <b>Winkel:</b> ${esc(d.winkel||0)}° &nbsp;·&nbsp; <b>Montage:</b> von ${esc(d.montage||"–")}</div>
+<div style="margin-top:1mm"><b>Gehrung links:</b> ${d.gehrungLinks?"Ja":"Nein"} &nbsp;·&nbsp; <b>Gehrung rechts:</b> ${d.gehrungRechts?"Ja":"Nein"}${d.zugabeGesamt?` &nbsp;·&nbsp; Gehrungszugabe ${esc(d.zugabeGesamt)} mm &nbsp;·&nbsp; effektive Länge ${esc(d.effLaenge)} mm`:""}</div>
+<div style="margin-top:1mm">${esc(d.anzahl||0)} Stück &nbsp;·&nbsp; Abwicklung ${esc(d.abwicklung||"–")} mm &nbsp;·&nbsp; Länge Stoss bis Stoss ${esc(d.stossLaenge||"–")} mm &nbsp;·&nbsp; Überlappung ${esc(d.ueberlappung||"–")} mm</div>
+</div>
+<table>
+<thead><tr><th>Pos.</th><th>Zuschnittlänge (mm)</th><th>Mass A eng (mm)</th><th>Enge Seite</th></tr></thead>
+<tbody>${pieces.map(p=>`<tr${p.rest?' class="rest"':''}><td>${esc(p.pos)}${p.rest?" ★":""}</td><td>${esc(p.zuschnittlaenge)}</td><td>${esc(p.massAEng)}</td><td>${esc(p.engeSeite)}</td></tr>`).join("")}</tbody>
+</table>
+${pieces.some(p=>p.rest)?'<div class="note" style="margin-top:2mm">★ Restlänge – kürzer als die übrigen Stücke.</div>':""}
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else{
+  const sketches=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
+  extraCss=`
+ img{max-width:100%;display:block;margin:0 auto 8mm;border:1px solid #ccc}
+ img.photo{max-height:130mm}
+ img.sketch{max-height:255mm}
+ .sketch-page{page-break-before:always}`;
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="meta">${metaCommon}</div>
+${m.photo_path?`<img class="photo" src="${esc(m.photo_path)}">`:""}
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}
+${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze ${i+1} von ${sketches.length}</h2>`:""}<img class="sketch" src="${esc(s)}"></div>`).join("")}`;
+ }
+
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(m.title||"Massaufnahme")}</title>
 <style>
  body{font-family:Arial,Helvetica,sans-serif;color:#17202a;margin:14mm}
@@ -1825,23 +2103,11 @@ function printMeasurement(m){
  h2{font-size:11pt;color:#68737d;margin:0 0 3mm;font-weight:700}
  .meta{font-size:9pt;color:#68737d;margin-bottom:6mm;line-height:1.6}
  .meta b{color:#17202a}
- img{max-width:100%;display:block;margin:0 auto 8mm;border:1px solid #ccc}
- img.photo{max-height:130mm}
- img.sketch{max-height:255mm}
- .sketch-page{page-break-before:always}
  .note{font-size:10pt;white-space:pre-wrap;margin-top:4mm}
  @page{size:A4 portrait;margin:12mm}
+${extraCss}
 </style></head><body>
-<h1>${esc(m.title||"Massaufnahme")}</h1>
-<div class="meta">
-<div><b>Projekt:</b> ${esc(proj?proj.name:"–")}</div>
-<div><b>Datum:</b> ${esc(m.date||"–")}</div>
-<div><b>Funktion:</b> ${esc(typeLabels[m.type]||m.type)}</div>
-<div><b>Sachbearbeiter:</b> ${esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–")}</div>
-</div>
-${m.photo_path?`<img class="photo" src="${esc(m.photo_path)}">`:""}
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}
-${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze ${i+1} von ${sketches.length}</h2>`:""}<img class="sketch" src="${esc(s)}"></div>`).join("")}
+${bodyHtml}
 </body></html>`);
  win.document.close();
  const doPrint=()=>{try{win.focus();win.print()}catch(e){}};
