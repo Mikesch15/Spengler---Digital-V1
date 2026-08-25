@@ -503,6 +503,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 </div>
 
 <div class="report-topnav no-print">
+<button id="closeReportEdit" class="gray">✓ Fertig</button>
 <button id="navBackFromReport" class="gray">🏠 Start</button>
 </div>
 
@@ -590,6 +591,19 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div class="bar"><button id="addProject" class="blue">＋ Projekt anlegen</button></div>
 <div id="projectList"></div>
 <div class="bar"><button id="closeProjects" class="green">✓ Fertig</button><button id="startFromProjects" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- REGIERAPPORT: UEBERSICHT -->
+<div id="reportsModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📋 Regierapport</h2>
+<div class="bar"><button id="newReport" class="blue">＋ Neuer Regierapport</button></div>
+<div id="recentReportsList"></div>
+<div class="small" style="margin-top:6px;color:var(--muted)">Ältere Rapporte findest du über 📁 Projekte.</div>
+<div class="bar"><button id="closeReports" class="green">✓ Fertig</button><button id="startFromReports" class="gray">🏠 Start</button></div>
 </div>
 </div>
 </div>
@@ -950,6 +964,7 @@ let allProjects=[],currentProjectId=null,currentReportId=null;
 let projectMeasurementsCache=[];
 let projectAusmassCache=[];
 let recentMeasurementsCache=[];
+let recentReportsCache=[];
 let recentAusmassCache=[];
 let measEditReturnTo="measurementsModal";
 let works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:"",rateName:"",hours:0}];
@@ -1029,6 +1044,7 @@ function showStart(){
  $("reportScreen").hidden=true;
 }
 function goToStart(){
+ $("reportsModal").hidden=true;
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=true;
  $("projectsModal").hidden=true;
@@ -1042,8 +1058,54 @@ function goToStart(){
  amEditReturnTo="ausmassModal";
  showStart();
 }
-$("navReport").onclick=()=>{$("startScreen").hidden=true;$("reportScreen").hidden=false};
-$("navBackFromReport").onclick=()=>{showStart()};
+$("navReport").onclick=async()=>{$("reportsModal").hidden=false;await renderReportsOverview()};
+$("navBackFromReport").onclick=()=>{goToStart()};
+$("closeReportEdit").onclick=()=>{$("reportScreen").hidden=true;$("reportsModal").hidden=false;renderReportsOverview()};
+$("newReport").onclick=()=>{
+ currentProjectId=null;currentReportId=null;
+ works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:settings.rates[0]?.[0]||"",hours:0}];
+ mats=[];
+ $("date").value=new Date().toISOString().slice(0,10);
+ $("orderNo").value="";
+ $("customer").value="";
+ $("object").value="";
+ $("vat").value="8.1 %";
+ renderProjectSelect();
+ renderMain();
+ $("reportsModal").hidden=true;
+ $("reportScreen").hidden=false;
+};
+async function renderReportsOverview(){
+ const {data,error}=await sb.from("reports").select("*").order("created_at",{ascending:false}).limit(recentCount);
+ if(error){$("recentReportsList").innerHTML=`<div class="empty">Fehler: ${esc(error.message)}</div>`;return}
+ const rows=data||[];
+ recentReportsCache=rows;
+ $("recentReportsList").innerHTML=rows.length?rows.map(r=>{
+  const proj=allProjects.find(p=>p.id===r.project_id);
+  return `<div class="meas-row">
+<div class="meas-row-info"><b>${esc(proj?proj.name:(r.customer||"Ohne Projekt"))}</b><span>${esc(r.date||"–")} · ${esc(r.order_no||"–")}</span></div>
+<div class="meas-row-actions">
+<button class="blue" data-open-report-overview="${r.id}" title="Öffnen">✏️</button>
+<button class="red" data-del-report-overview="${r.id}" title="Löschen">×</button>
+</div>
+</div>`;
+ }).join(""):'<div class="empty">Noch keine Rapporte vorhanden.</div>';
+}
+$("recentReportsList").addEventListener("click",e=>{
+ const o=e.target.closest("[data-open-report-overview]");
+ if(o){const r=recentReportsCache.find(x=>x.id===Number(o.dataset.openReportOverview));if(r)openReport(r);return}
+ const d=e.target.closest("[data-del-report-overview]");
+ if(d){
+  if(!confirm("Diesen Rapport wirklich löschen?"))return;
+  sb.from("reports").delete().eq("id",Number(d.dataset.delReportOverview)).then(({error})=>{
+   if(error){alert("Fehler: "+error.message);return}
+   if(currentReportId===Number(d.dataset.delReportOverview))currentReportId=null;
+   renderReportsOverview();
+  });
+ }
+});
+$("closeReports").onclick=()=>{$("reportsModal").hidden=true};
+$("startFromReports").onclick=()=>goToStart();
 $("startFromProjects").onclick=()=>{goToStart()};
 $("startFromMeasurements").onclick=()=>{goToStart()};
 $("startFromMeasurementEdit").onclick=()=>{goToStart()};
@@ -1727,6 +1789,9 @@ function openReport(r){
  $("object").value=r.object||"";
  $("vat").value=r.vat||"8.1 %";
  $("projectsModal").hidden=true;
+ $("reportsModal").hidden=true;
+ $("startScreen").hidden=true;
+ $("reportScreen").hidden=false;
  renderProjectSelect();
  renderMain();
 }
