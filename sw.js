@@ -4,7 +4,7 @@
 // Die eigentlichen Daten kommen weiterhin live von Supabase – dafür wird
 // zwingend eine Internetverbindung benötigt, das cacht dieser Worker bewusst nicht.
 
-const CACHE_NAME = "spengler-digital-v1";
+const CACHE_NAME = "spengler-digital-v2";
 const APP_SHELL = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -28,17 +28,17 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;
 
+  // "Netzwerk zuerst": solange Internet da ist, kommt immer die aktuelle
+  // Version - der Cache dient nur als Rückfalloption, wenn kurzzeitig kein
+  // Netz verfügbar ist. So kommen Updates sofort an, statt hinter einer
+  // veralteten, fest gecachten Version verborgen zu bleiben.
   e.respondWith(
-    caches.match(e.request).then(
-      (cached) =>
-        cached ||
-        fetch(e.request)
-          .then((res) => {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(e.request, copy));
-            return res;
-          })
-          .catch(() => caches.match("./index.html"))
-    )
+    fetch(e.request)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(e.request, copy));
+        return res;
+      })
+      .catch(() => caches.match(e.request).then((cached) => cached || caches.match("./index.html")))
   );
 });
