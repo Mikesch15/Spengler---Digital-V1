@@ -42,7 +42,7 @@ table{width:100%;border-collapse:collapse;min-width:1000px;table-layout:fixed}
    Pos. wird unten für den Bildschirm zusätzlich fix auf 23mm gesetzt (gleich wie im PDF). */
 .work-table col.c-pos{width:7%}.work-table col.c-desc{width:54%}.work-table col.c-emp{width:5.5%}.work-table col.c-func{width:8.5%}.work-table col.c-std{width:5%}.work-table col.c-rate{width:7%}.work-table col.c-total{width:8.5%}.work-table col.c-del{width:4.5%}
 .mat-table col.m-pos{width:7%}.mat-table col.m-edv{width:11%}.mat-table col.m-material{width:43%}.mat-table col.m-dim{width:6.5%}.mat-table col.m-unit{width:6%}.mat-table col.m-qty{width:6%}.mat-table col.m-price{width:7.5%}.mat-table col.m-total{width:8%}.mat-table col.m-del{width:5%}
-.work-table td:last-child,.work-table th:last-child,.mat-table td:last-child,.mat-table th:last-child{text-align:center}
+.work-table td:last-child,.work-table th:last-child,.mat-table td:last-child,.mat-table th:last-child{text-align:left}
 .work-table td:last-child button,.mat-table td:last-child button{padding:6px 9px}
 input[type=date]{font-size:11px;padding-left:4px;padding-right:2px;width:100%;min-width:0}
 #workBody input[type=date],#matBody input[type=date]{width:100%;display:block;box-sizing:border-box}
@@ -50,7 +50,7 @@ th{background:#f2f6f8;text-align:left;font-size:9px;padding:9px 6px;color:var(--
 td{border-top:1px solid var(--line);padding:6px;font-size:12px;vertical-align:middle}
 tbody tr:hover td{background:#f7fafc}
 td input,td select{min-height:34px;font-size:12px}
-.money{text-align:right;font-variant-numeric:tabular-nums}
+.money{text-align:left;font-variant-numeric:tabular-nums}
 .total{text-align:right;font-size:20px;font-weight:900;margin-top:10px;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px}
 .small{font-size:11px;color:var(--muted);margin-top:7px}
 .search{position:relative}.suggest{position:fixed;z-index:1000;min-width:320px;max-width:min(92vw,560px);background:#fff;border:1px solid #bcc9d0;border-radius:10px;box-shadow:0 14px 28px #17242d26;max-height:260px;overflow:auto}
@@ -107,8 +107,8 @@ td input,td select{min-height:34px;font-size:12px}
 .eb-table col.eb-col-side{width:28%}
 .eb-table th{background:#f2f6f8;text-align:left;font-size:9px;padding:6px 5px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
 .eb-table td{border-top:1px solid var(--line);padding:5px;font-size:12px}
-.eb-table td:first-child{text-align:center;color:var(--muted)}
-.eb-table td:nth-child(2),.eb-table td:nth-child(3){text-align:right;font-variant-numeric:tabular-nums}
+.eb-table td:first-child{text-align:left;color:var(--muted)}
+.eb-table td:nth-child(2),.eb-table td:nth-child(3){text-align:left;font-variant-numeric:tabular-nums}
 .eb-rest-row td{background:var(--blue-light);font-weight:800}
 .start-nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px}
 .start-nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:26px 10px;border-radius:14px;font-size:14px;font-weight:800;text-align:center;line-height:1.3}
@@ -453,10 +453,45 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div class="start-nav">
 <button type="button" class="start-nav-btn blue" id="navReport"><span class="start-nav-icon">📋</span><span>Regierapport</span></button>
 <button type="button" class="start-nav-btn blue" id="navMeasurements"><span class="start-nav-icon">📐</span><span>Massaufnahme</span></button>
-<button type="button" class="start-nav-btn gray" id="navAusmass" disabled title="Kommt in einer der nächsten Versionen"><span class="start-nav-icon">📏</span><span>Ausmass<br><small>(bald verfügbar)</small></span></button>
+<button type="button" class="start-nav-btn blue" id="navAusmass"><span class="start-nav-icon">📏</span><span>Ausmass</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
+<button id="startOpenProjects" class="gray">📁 Projekte</button>
 <button id="settings" class="gray">⚙️ Einstellungen</button>
+</div>
+</div>
+</div>
+
+<!-- Funktion waehlen: Massaufnahme -->
+<div id="measTypeChooserModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📐 Neue Massaufnahme</h2>
+<div class="info">Welche Funktion?</div>
+<div class="start-nav">
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="skizze_foto"><span class="start-nav-icon">📷</span><span>Skizze/Foto</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="einlaufblech_gerade"><span class="start-nav-icon">📐</span><span>Einlaufblech gerade</span></button>
+</div>
+<div class="bar" style="margin-top:14px;justify-content:center">
+<button id="cancelMeasTypeChooser" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Funktion waehlen: Ausmass -->
+<div id="amTypeChooserModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📏 Neues Ausmass</h2>
+<div class="info">Welche Funktion?</div>
+<div class="start-nav">
+<button type="button" class="start-nav-btn blue" data-choose-am-type="offerte_erfassen"><span class="start-nav-icon">📄</span><span>Offerte erfassen</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-am-type="blitzschutz_ausmass"><span class="start-nav-icon">⚡</span><span>Blitzschutzausmass</span></button>
+</div>
+<div class="bar" style="margin-top:14px;justify-content:center">
+<button id="cancelAmTypeChooser" class="gray">Abbrechen</button>
+</div>
 </div>
 </div>
 </div>
@@ -469,7 +504,6 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 
 <div class="report-topnav no-print">
 <button id="navBackFromReport" class="gray">🏠 Start</button>
-<button id="openProjects" class="gray">📁 Projekte</button>
 </div>
 
 <div class="brand">SPENGLER-DIGITAL</div>
@@ -478,7 +512,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div class="card">
 <h2>Regieauftrag</h2>
 <div class="grid">
-<div class="wide"><label>Projekt</label>
+<div class="wide"><label>Projekt (Pflichtfeld)</label>
 <div class="search"><input id="projectSearch" placeholder="Suchen: Projektname, Auftrags-Nr., Auftraggeber, Objekt …" autocomplete="off"><div id="projectResults" class="suggest"></div></div>
 <div class="small" id="projectSelectedLabel"></div>
 </div>
@@ -555,7 +589,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 </div>
 <div class="bar"><button id="addProject" class="blue">＋ Projekt anlegen</button></div>
 <div id="projectList"></div>
-<div class="bar"><button id="closeProjects" class="green">✓ Fertig</button></div>
+<div class="bar"><button id="closeProjects" class="green">✓ Fertig</button><button id="startFromProjects" class="gray">🏠 Start</button></div>
 </div>
 </div>
 </div>
@@ -565,17 +599,10 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div class="modalbox">
 <div class="card">
 <h2>📐 Massaufnahme</h2>
-<div class="info">Massaufnahmen werden zentral gespeichert und sind auf allen Geräten sichtbar. Aktuell verfügbare Funktion: Skizze/Foto – weitere folgen.</div>
-<div class="grid" style="margin-bottom:8px">
-<div class="wide"><label>Projekt</label>
-<div class="search"><input id="measurementProjectSearch" placeholder="Suchen: Projektname, Auftrags-Nr., Auftraggeber, Objekt …" autocomplete="off"><div id="measurementProjectResults" class="suggest"></div></div>
-<div class="small" id="measurementProjectLabel"><span style="color:var(--muted)">Alle Projekte</span></div>
-</div>
-<div><label>Funktion</label><select id="measurementTypeFilter"><option value="">Alle</option><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option></select></div>
-</div>
 <div class="bar"><button id="newMeasurement" class="blue">＋ Neue Massaufnahme</button></div>
-<div id="measurementList"></div>
-<div class="bar"><button id="closeMeasurements" class="green">✓ Fertig</button></div>
+<div id="recentMeasurementsList"></div>
+<div class="small" style="margin-top:6px;color:var(--muted)">Ältere Massaufnahmen findest du über 📁 Projekte.</div>
+<div class="bar"><button id="closeMeasurements" class="green">✓ Fertig</button><button id="startFromMeasurements" class="gray">🏠 Start</button></div>
 </div>
 </div>
 </div>
@@ -586,7 +613,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div class="card">
 <h2>📐 Neue Massaufnahme</h2>
 <div class="grid" style="margin-bottom:8px">
-<div><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option></select></div>
+<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
 <div class="wide"><label>Projekt (Pflichtfeld)</label>
@@ -647,6 +674,84 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="saveMeasurement" class="green">💾 Speichern</button>
 <button id="printMeasurementBtn" class="gray" hidden>🖨️ Als PDF</button>
 <button id="cancelMeasurement" class="gray">Abbrechen</button>
+<button id="startFromMeasurementEdit" class="gray">🏠 Start</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- AUSMASS: LISTE / SUCHE -->
+<div id="ausmassModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📏 Ausmass</h2>
+<div class="bar"><button id="newAusmass" class="blue">＋ Neues Ausmass</button></div>
+<div id="recentAusmassList"></div>
+<div class="small" style="margin-top:6px;color:var(--muted)">Ältere Ausmasse findest du über 📁 Projekte.</div>
+<div class="bar"><button id="closeAusmass" class="green">✓ Fertig</button><button id="startFromAusmass" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- AUSMASS: ERFASSEN (Offerte erfassen) -->
+<div id="ausmassEditModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📏 Neues Ausmass</h2>
+<div class="grid" style="margin-bottom:8px">
+<div hidden><label>Funktion</label><select id="amType"><option value="offerte_erfassen">Offerte erfassen</option><option value="blitzschutz_ausmass">Blitzschutzausmass</option></select></div>
+<div><label>Datum</label><input type="date" id="amDate"></div>
+<div class="wide"><label>Bezeichnung</label><input id="amTitle" placeholder="z. B. Offerte Muster AG"></div>
+<div class="wide"><label>Projekt (Pflichtfeld)</label>
+<div class="search"><input id="amProjectSearch" placeholder="Projekt suchen …" autocomplete="off"><div id="amProjectResults" class="suggest"></div></div>
+<div class="small" id="amProjectSelectedLabel">Kein Projekt ausgewählt</div>
+</div>
+</div>
+
+<div id="amTypeOfferte">
+<label>Fotos der Offerte (mehrere Seiten möglich)</label>
+<input type="file" id="amPhotoInput" accept="image/*" capture="environment" multiple>
+<div id="amPhotoGallery" class="sketch-gallery"></div>
+<div class="bar" style="margin-top:6px">
+<button type="button" class="blue" id="amRecognizeAll" hidden>🔎 Alle Fotos erkennen</button>
+</div>
+<div class="small" id="amRecognizeStatus"></div>
+
+<h2 style="margin-top:14px">Erkannte Positionen</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:10%"><col style="width:34%"><col style="width:12%"><col style="width:12%"><col style="width:16%"><col style="width:16%"></colgroup>
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Preis/E</th><th>Total</th></tr></thead>
+<tbody id="amPositionsBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="amAddPosition">＋ Position hinzufügen</button></div>
+<div class="small" id="amPositionsSummary"></div>
+</div>
+
+<div id="amTypeBlitzschutz" hidden>
+<label>Material aus dem Blitzschutz-Katalog</label>
+<div class="search"><input id="bzPositionSearch" placeholder="Artikel-Nr. oder Bezeichnung suchen …" autocomplete="off"><div id="bzPositionResults" class="suggest"></div></div>
+<h2 style="margin-top:14px">Erfasste Positionen</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:15%"><col style="width:35%"><col style="width:14%"><col style="width:14%"><col style="width:16%"><col style="width:6%"></colgroup>
+<thead><tr><th>Artikel-Nr.</th><th>Bezeichnung</th><th>Material</th><th>Einheit</th><th>Menge</th><th></th></tr></thead>
+<tbody id="bzPositionsBody"></tbody>
+</table>
+</div>
+<div class="small" id="bzPositionsSummary"></div>
+</div>
+
+<div class="grid" style="margin-top:8px">
+<div class="wide"><label>Notiz</label><textarea id="amNote" placeholder="Hinweise …"></textarea></div>
+</div>
+
+<div class="bar">
+<button id="saveAusmass" class="green">💾 Speichern</button>
+<button id="printAusmassBtn" class="gray" hidden>🖨️ Als PDF</button>
+<button id="cancelAusmass" class="gray">Abbrechen</button>
+<button id="startFromAusmassEdit" class="gray">🏠 Start</button>
 </div>
 </div>
 </div>
@@ -660,21 +765,62 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 
 <div class="settings-tabs">
 <button type="button" class="settings-tab active" data-settings-tab="general">Allgemein</button>
-<button type="button" class="settings-tab" data-settings-tab="report">Regierapport</button>
 <button type="button" class="settings-tab" data-settings-tab="measurements">Massaufnahmen</button>
 <button type="button" class="settings-tab" data-settings-tab="ausmass">Ausmass</button>
+<button type="button" class="settings-tab" data-settings-tab="protected">🔒 Geschützt</button>
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="general">
+<div class="info">Diese Anzeige-Einstellung gilt nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
+<div class="grid">
+<div><label>Anzahl "Letzte Einträge" auf dem Startbildschirm</label><input id="recentCountInput" type="number" min="1" max="20" step="1"></div>
+</div>
+<div class="bar"><button id="saveRecentCount" class="green">💾 Speichern</button></div>
+</div>
+
+<div class="settings-tab-panel" data-settings-panel="measurements" hidden>
+<div class="settings-section open" data-section="einlaufblech">
+<div class="settings-section-head" data-toggle-section="einlaufblech"><h2>Einlaufblech gerade</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Diese Werte gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
+<div class="grid">
+<div><label>Länge Stoss bis Stoss (mm)</label><input id="eb_stossLaenge" type="number" step="1"></div>
+<div><label>Überlappung (mm)</label><input id="eb_ueberlappung" type="number" step="1"></div>
+<div><label>Gehrungszugabe (mm)</label><input id="eb_gehrungszugabe" type="number" step="1"></div>
+<div><label>Umschlagbreite oben (mm)</label><input id="eb_umschlagOben" type="number" step="1"></div>
+<div><label>Umschlagbreite unten (mm)</label><input id="eb_umschlagUnten" type="number" step="1"></div>
+<div><label>Restschwelle (mm)</label><input id="eb_restSchwelle" type="number" step="1"></div>
+</div>
+<div class="bar"><button id="saveEinlaufblechSettings" class="green">💾 Speichern</button></div>
+</div>
+</div>
+</div>
+
+<div class="settings-tab-panel" data-settings-panel="ausmass" hidden>
+<div class="empty">Der Blitzschutzausmass-Materialkatalog findet sich jetzt im Register "🔒 Geschützt".</div>
+</div>
+
+<div class="settings-tab-panel" data-settings-panel="protected" hidden>
+<div id="protectedLocked">
+<div class="info">Dieser Bereich enthält Funktionen/Stundenansätze und Materialkataloge. Bitte Passwort eingeben.</div>
+<div class="grid">
+<div class="wide"><label>Passwort</label><input id="protectedPasswordInput" type="password" placeholder="Passwort"></div>
+</div>
+<div class="bar"><button id="unlockProtected" class="green">🔓 Entsperren</button></div>
+<div class="small" id="protectedError" style="color:var(--red)"></div>
+</div>
+
+<div id="protectedContent" hidden>
+<div class="settings-section open" data-section="company">
+<div class="settings-section-head" data-toggle-section="company"><h2>Firmenname</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div class="info">Der Firmenname erscheint auf dem Startbildschirm und im Briefkopf der ausgedruckten Rapporte/PDFs. Änderungen gelten sofort für alle Mitarbeiter auf allen Geräten.</div>
 <div class="grid">
 <div class="wide"><label>Firmenname</label><input id="companyNameInput" placeholder="z. B. PETER KÜNZI AG"></div>
 </div>
 <div class="bar"><button id="saveCompanyName" class="green">💾 Firmenname speichern</button></div>
 </div>
-
-<div class="settings-tab-panel" data-settings-panel="report" hidden>
-<div class="info">Hier können Mitarbeiter, Funktionen/Stundenansätze und Material jederzeit geändert oder ergänzt werden. Die Einstellungen werden zentral gespeichert und gelten für alle angemeldeten Mitarbeiter auf allen Geräten.</div>
+</div>
 
 <div class="settings-section" data-section="employees">
 <div class="settings-section-head" data-toggle-section="employees"><h2>Mitarbeiter</h2><span class="settings-section-chevron">›</span></div>
@@ -693,7 +839,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 </div>
 
 <div class="settings-section" data-section="materials">
-<div class="settings-section-head" data-toggle-section="materials"><h2>Material</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="materials"><h2>Material (Regierapport)</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="grid" style="margin-bottom:8px">
 <div class="wide"><label>Material suchen</label><input id="materialSettingsSearch" placeholder="EDV-Nr. oder Materialbezeichnung"></div>
@@ -707,28 +853,27 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 </div>
 </div>
 </div>
-</div>
 
-<div class="settings-tab-panel" data-settings-panel="measurements" hidden>
-<div class="settings-section open" data-section="einlaufblech">
-<div class="settings-section-head" data-toggle-section="einlaufblech"><h2>Einlaufblech gerade</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section" data-section="blitzschutz">
+<div class="settings-section-head" data-toggle-section="blitzschutz"><h2>Blitzschutzausmass – Materialkatalog (Arthur Flury AG)</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Diese Werte gelten firmenweit für alle Berechnungen bei "Einlaufblech gerade".</div>
-<div class="grid">
-<div><label>Länge Stoss bis Stoss (mm)</label><input id="eb_stossLaenge" type="number" step="1"></div>
-<div><label>Überlappung (mm)</label><input id="eb_ueberlappung" type="number" step="1"></div>
-<div><label>Gehrungszugabe (mm)</label><input id="eb_gehrungszugabe" type="number" step="1"></div>
+<div class="info">Katalog für die Funktion "Blitzschutzausmass". Wird ohne Preise geführt, es werden dort nur Mengen erfasst.</div>
+<div class="grid" style="margin-bottom:8px">
+<div class="wide"><label>Material suchen</label><input id="bzMaterialSearch" placeholder="Artikel-Nr. oder Bezeichnung"></div>
 </div>
-<div class="bar"><button id="saveEinlaufblechSettings" class="green">💾 Speichern</button></div>
+<div class="small" id="bzMaterialCount"></div>
+<div id="bzMaterialSettings"></div>
+<div class="bar">
+<button id="bzMaterialPrev" class="gray">‹ Zurück</button>
+<button id="bzMaterialNext" class="gray">Weiter ›</button>
+<button id="newBzMaterial" class="blue">＋ Material hinzufügen</button>
+</div>
+</div>
 </div>
 </div>
 </div>
 
-<div class="settings-tab-panel" data-settings-panel="ausmass" hidden>
-<div class="empty">Ausmass ist noch nicht verfügbar.</div>
-</div>
-
-<div class="bar"><button id="closeSettings" class="green">✓ Fertig</button></div>
+<div class="bar"><button id="closeSettings" class="green">✓ Fertig</button><button id="startFromSettings" class="gray">🏠 Start</button></div>
 </div>
 </div>
 </div>
@@ -745,7 +890,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div id="cuts"></div>
 <div class="bar"><button id="addCut" class="gray">＋ Zuschnitt hinzufügen</button></div>
 <div class="total">Gesamt <span id="sheetTotal">0.00</span> m²</div>
-<div class="bar"><button id="takeOver" class="green">✓ Ins Material übernehmen</button><button id="closeSheet" class="red">Abbrechen</button></div>
+<div class="bar"><button id="takeOver" class="green">✓ Ins Material übernehmen</button><button id="closeSheet" class="red">Abbrechen</button><button id="startFromSheet" class="gray">🏠 Start</button></div>
 </div></div></div>
 
 <!-- VOLLBILD-ZEICHENFLÄCHE für Skizzen -->
@@ -795,9 +940,18 @@ let settings={employees:[],rates:[],materials:[]};
 let employeeIds=[],rateIds=[],materialIds=[];
 let currentProfile=null;
 let companyName="PETER KÜNZI AG";
-let einlaufblechSettings={stoss_laenge:2000,ueberlappung:40,gehrungszugabe:0};
+let recentCount=Number(localStorage.getItem("sd_recentCount"))||5;
+let einlaufblechSettings=JSON.parse(localStorage.getItem("sd_einlaufblechSettings")||"null")||{stoss_laenge:2000,ueberlappung:40,gehrungszugabe:0,umschlag_oben:0,umschlag_unten:0,rest_schwelle:500};
+let blitzschutzMaterials=[];
 let isMike=false;
+let protectedUnlocked=false;
+const PROTECTED_PASSWORD="Rinnen_ml95";
 let allProjects=[],currentProjectId=null,currentReportId=null;
+let projectMeasurementsCache=[];
+let projectAusmassCache=[];
+let recentMeasurementsCache=[];
+let recentAusmassCache=[];
+let measEditReturnTo="measurementsModal";
 let works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:"",rateName:"",hours:0}];
 let mats=[];
 let selectedSheet=null,cuts=[{l:"",b:"",q:1}];
@@ -874,19 +1028,37 @@ function showStart(){
  $("startScreen").hidden=false;
  $("reportScreen").hidden=true;
 }
+function goToStart(){
+ $("measurementsModal").hidden=true;
+ $("measurementEditModal").hidden=true;
+ $("projectsModal").hidden=true;
+ $("settingsModal").hidden=true;
+ $("sheetModal").hidden=true;
+ $("ausmassModal").hidden=true;
+ $("ausmassEditModal").hidden=true;
+ $("measTypeChooserModal").hidden=true;
+ $("amTypeChooserModal").hidden=true;
+ measEditReturnTo="measurementsModal";
+ amEditReturnTo="ausmassModal";
+ showStart();
+}
 $("navReport").onclick=()=>{$("startScreen").hidden=true;$("reportScreen").hidden=false};
-$("navMeasurements").onclick=async()=>{$("measurementsModal").hidden=false;await renderMeasurementList()};
 $("navBackFromReport").onclick=()=>{showStart()};
+$("startFromProjects").onclick=()=>{goToStart()};
+$("startFromMeasurements").onclick=()=>{goToStart()};
+$("startFromMeasurementEdit").onclick=()=>{goToStart()};
+$("startFromSettings").onclick=()=>{goToStart()};
+$("startFromSheet").onclick=()=>{goToStart()};
 
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,ebSettingsRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
   sb.from("projects").select("*").order("name"),
   sb.from("app_settings").select("*").eq("id",1).maybeSingle(),
-  sb.from("einlaufblech_settings").select("*").eq("id",1).maybeSingle(),
+  sb.from("blitzschutz_materials").select("*").order("bezeichnung"),
  ]);
  const rates=ratesRes.data||[];
  const materials=materialsRes.data||[];
@@ -899,7 +1071,7 @@ async function loadAllData(){
  employeeIds=profiles.map(p=>p.id);
  allProjects=projectsRes.data||[];
  if(appSettingsRes.data&&appSettingsRes.data.company_name)companyName=appSettingsRes.data.company_name;
- if(ebSettingsRes.data)einlaufblechSettings=ebSettingsRes.data;
+ blitzschutzMaterials=bzRes.data||[];
  applyCompanyName();
  applyEinlaufblechSettings();
 }
@@ -907,11 +1079,15 @@ function applyCompanyName(){
  document.querySelectorAll(".js-company-name").forEach(el=>el.textContent=companyName);
  const label=$("startCompanyLine");if(label)label.textContent="bei "+companyName;
  const input=$("companyNameInput");if(input&&document.activeElement!==input)input.value=companyName;
+ const rcInput=$("recentCountInput");if(rcInput&&document.activeElement!==rcInput)rcInput.value=recentCount;
 }
 function applyEinlaufblechSettings(){
  if(document.activeElement!==$("eb_stossLaenge"))$("eb_stossLaenge").value=einlaufblechSettings.stoss_laenge;
  if(document.activeElement!==$("eb_ueberlappung"))$("eb_ueberlappung").value=einlaufblechSettings.ueberlappung;
  if(document.activeElement!==$("eb_gehrungszugabe"))$("eb_gehrungszugabe").value=einlaufblechSettings.gehrungszugabe;
+ if(document.activeElement!==$("eb_umschlagOben"))$("eb_umschlagOben").value=einlaufblechSettings.umschlag_oben;
+ if(document.activeElement!==$("eb_umschlagUnten"))$("eb_umschlagUnten").value=einlaufblechSettings.umschlag_unten;
+ if(document.activeElement!==$("eb_restSchwelle"))$("eb_restSchwelle").value=einlaufblechSettings.rest_schwelle;
 }
 
 function esc(v){return String(v??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
@@ -1059,6 +1235,9 @@ function repositionAllSuggests(){
   else if(box.id==="projectResults")input=$("projectSearch");
   else if(box.id==="measProjectResults")input=$("measProjectSearch");
   else if(box.id==="measurementProjectResults")input=$("measurementProjectSearch");
+  else if(box.id==="amProjectResults")input=$("amProjectSearch");
+  else if(box.id==="bzPositionResults")input=$("bzPositionSearch");
+  else if(box.id==="ausmassProjectResults")input=$("ausmassProjectSearch");
   else input=document.querySelector(`[data-mat-search="${box.id.slice(6)}"]`);
   if(input)positionSuggest(input,box);
  });
@@ -1121,8 +1300,28 @@ $("settingsModal").addEventListener("click",e=>{
  if(tab){
   document.querySelectorAll(".settings-tab").forEach(b=>b.classList.toggle("active",b===tab));
   document.querySelectorAll(".settings-tab-panel").forEach(p=>{p.hidden=(p.dataset.settingsPanel!==tab.dataset.settingsTab)});
+  if(tab.dataset.settingsTab==="protected"){
+   $("protectedPasswordInput").value="";
+   $("protectedError").textContent="";
+   $("protectedLocked").hidden=protectedUnlocked;
+   $("protectedContent").hidden=!protectedUnlocked;
+  }
  }
 });
+function tryUnlockProtected(){
+ const pw=$("protectedPasswordInput").value;
+ if(pw===PROTECTED_PASSWORD){
+  protectedUnlocked=true;
+  $("protectedLocked").hidden=true;
+  $("protectedContent").hidden=false;
+  $("protectedError").textContent="";
+  renderSettings();
+ }else{
+  $("protectedError").textContent="Falsches Passwort.";
+ }
+}
+$("unlockProtected").onclick=tryUnlockProtected;
+$("protectedPasswordInput").addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlockProtected()});
 $("saveCompanyName").onclick=async()=>{
  const name=$("companyNameInput").value.trim();
  if(!name){alert("Bitte einen Firmennamen eingeben.");return}
@@ -1134,21 +1333,30 @@ $("saveCompanyName").onclick=async()=>{
  applyCompanyName();
  alert("Firmenname gespeichert.");
 };
-$("saveEinlaufblechSettings").onclick=async()=>{
+$("saveRecentCount").onclick=async()=>{
+ const n=Number($("recentCountInput").value);
+ if(!n||n<1||n>20){alert("Bitte eine Zahl zwischen 1 und 20 eingeben.");return}
+ localStorage.setItem("sd_recentCount",String(n));
+ recentCount=n;
+ if(!$("measurementsModal").hidden)await renderMeasurementsOverview();
+ if(!$("ausmassModal").hidden)await renderAusmassOverview();
+ alert("Gespeichert (gilt nur für dieses Gerät).");
+};
+$("saveEinlaufblechSettings").onclick=()=>{
  const stossLaenge=Number($("eb_stossLaenge").value);
  const ueberlappung=Number($("eb_ueberlappung").value);
  const gehrungszugabe=Number($("eb_gehrungszugabe").value)||0;
+ const umschlagOben=Number($("eb_umschlagOben").value)||0;
+ const umschlagUnten=Number($("eb_umschlagUnten").value)||0;
+ const restSchwelle=Number($("eb_restSchwelle").value)||0;
  if(!stossLaenge||stossLaenge<=0){alert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
  if(ueberlappung<0){alert("Überlappung darf nicht negativ sein.");return}
  if(gehrungszugabe<0){alert("Gehrungszugabe darf nicht negativ sein.");return}
- $("saveEinlaufblechSettings").disabled=true;
- const {error}=await sb.from("einlaufblech_settings").update({
-  stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,updated_at:new Date().toISOString()
- }).eq("id",1);
- $("saveEinlaufblechSettings").disabled=false;
- if(error){alert("Fehler: "+error.message);return}
- einlaufblechSettings={...einlaufblechSettings,stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe};
- alert("Einstellungen gespeichert.");
+ if(umschlagOben<0||umschlagUnten<0){alert("Umschlagbreiten dürfen nicht negativ sein.");return}
+ if(restSchwelle<0){alert("Restschwelle darf nicht negativ sein.");return}
+ einlaufblechSettings={stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,umschlag_oben:umschlagOben,umschlag_unten:umschlagUnten,rest_schwelle:restSchwelle};
+ localStorage.setItem("sd_einlaufblechSettings",JSON.stringify(einlaufblechSettings));
+ alert("Gespeichert (gilt nur für dieses Gerät).");
 };
 
 let materialPage=0, materialFilter="", materialExpanded=new Set();
@@ -1159,8 +1367,8 @@ function renderMaterialSettings(){
  const pages=Math.max(1,Math.ceil(filtered.length/MATERIAL_PAGE_SIZE));
  if(materialPage>=pages)materialPage=pages-1;
  const start=materialPage*MATERIAL_PAGE_SIZE, rows=filtered.slice(start,start+MATERIAL_PAGE_SIZE);
- const ro=isMike?"":"disabled";
- $("materialCount").textContent=`${filtered.length} Positionen · Seite ${materialPage+1} / ${pages}`+(isMike?"":" · 🔒 nur Mike Ledermann darf bearbeiten");
+ const ro=protectedUnlocked?"":"disabled";
+ $("materialCount").textContent=`${filtered.length} Positionen · Seite ${materialPage+1} / ${pages}`;
  $("materialSettings").innerHTML=rows.map(o=>{const m=o.m,i=o.i,open=materialExpanded.has(i);return `<div class="settingrow-mat${open?" open":""}">
 <div class="mat-row-head" data-toggle-mat="${i}">
 <input data-set-mno="${i}" value="${esc(m[0])}" placeholder="EDV-Nr." class="mat-nr" ${ro}>
@@ -1171,10 +1379,10 @@ function renderMaterialSettings(){
 <div><label>Dim.</label><input data-set-mdim="${i}" value="${esc(m[2])}" placeholder="Dim." ${ro}></div>
 <div><label>Einheit</label><input data-set-munit="${i}" value="${esc(m[3])}" placeholder="Einheit" ${ro}></div>
 <div><label>Preis</label><input data-set-mprice="${i}" type="number" step=".01" value="${m[4]}" placeholder="Preis" ${ro}></div>
-${isMike?`<button class="red" data-del-material="${i}">Löschen</button>`:""}
+${protectedUnlocked?`<button class="red" data-del-material="${i}">Löschen</button>`:""}
 </div>
 </div>`}).join("")||'<div class="empty">Keine Materialien gefunden.</div>';
- $("newMaterial").hidden=!isMike;
+ $("newMaterial").hidden=!protectedUnlocked;
  $("materialPrev").disabled=materialPage===0;
  $("materialNext").disabled=materialPage>=pages-1;
 }
@@ -1182,6 +1390,78 @@ function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f
 const debouncedRateUpdate=debounce((id,patch)=>sb.from("rates").update(patch).eq("id",id),500);
 const debouncedMaterialUpdate=debounce((id,patch)=>sb.from("materials").update(patch).eq("id",id),500);
 const debouncedProfileUpdate=debounce((id,patch)=>sb.from("profiles").update(patch).eq("id",id),500);
+const debouncedBzMaterialUpdate=debounce((id,patch)=>sb.from("blitzschutz_materials").update(patch).eq("id",id),500);
+
+// ---- Blitzschutz-Materialkatalog (Einstellungen) ----------------
+let bzMaterialPage=0, bzMaterialFilter="", bzMaterialExpanded=new Set();
+const BZ_MATERIAL_PAGE_SIZE=20;
+function renderBzMaterialSettings(){
+ const q=bzMaterialFilter.trim().toLowerCase();
+ const filtered=blitzschutzMaterials.map((m,i)=>({m,i})).filter(o=>!q||String(o.m.artikel_nr||"").toLowerCase().includes(q)||String(o.m.bezeichnung||"").toLowerCase().includes(q));
+ const pages=Math.max(1,Math.ceil(filtered.length/BZ_MATERIAL_PAGE_SIZE));
+ if(bzMaterialPage>=pages)bzMaterialPage=pages-1;
+ const start=bzMaterialPage*BZ_MATERIAL_PAGE_SIZE, rows=filtered.slice(start,start+BZ_MATERIAL_PAGE_SIZE);
+ $("bzMaterialCount").textContent=`${filtered.length} Positionen · Seite ${bzMaterialPage+1} / ${pages}`;
+ $("bzMaterialSettings").innerHTML=rows.map(o=>{const m=o.m,i=o.i,open=bzMaterialExpanded.has(i);return `<div class="settingrow-mat${open?" open":""}">
+<div class="mat-row-head" data-toggle-bz-mat="${i}">
+<input data-set-bz-artikel="${i}" value="${esc(m.artikel_nr||"")}" placeholder="Artikel-Nr." class="mat-nr">
+<input data-set-bz-bezeichnung="${i}" value="${esc(m.bezeichnung||"")}" placeholder="Bezeichnung" class="mat-name">
+<span class="mat-chevron">›</span>
+</div>
+<div class="mat-row-body">
+<div><label>Material</label><input data-set-bz-material="${i}" value="${esc(m.material||"")}" placeholder="z.B. Cu, Inox A2"></div>
+<div><label>Einheit</label><input data-set-bz-einheit="${i}" value="${esc(m.einheit||"")}" placeholder="Einheit"></div>
+<button class="red" data-del-bz-mat="${i}">Löschen</button>
+</div>
+</div>`}).join("")||'<div class="empty">Keine Materialien gefunden.</div>';
+ $("bzMaterialPrev").disabled=bzMaterialPage===0;
+ $("bzMaterialNext").disabled=bzMaterialPage>=pages-1;
+}
+$("bzMaterialSearch").addEventListener("input",e=>{bzMaterialFilter=e.target.value;bzMaterialPage=0;renderBzMaterialSettings()});
+$("bzMaterialPrev").onclick=()=>{if(bzMaterialPage>0){bzMaterialPage--;renderBzMaterialSettings()}};
+$("bzMaterialNext").onclick=()=>{bzMaterialPage++;renderBzMaterialSettings()};
+$("newBzMaterial").onclick=async()=>{
+ const {error}=await sb.from("blitzschutz_materials").insert({artikel_nr:"",bezeichnung:"Neues Material",einheit:"Stk"});
+ if(error){alert("Fehler: "+error.message);return}
+ const {data}=await sb.from("blitzschutz_materials").select("*").order("bezeichnung");
+ blitzschutzMaterials=data||[];
+ bzMaterialExpanded.add(blitzschutzMaterials.length-1);
+ bzMaterialPage=Math.floor((blitzschutzMaterials.length-1)/BZ_MATERIAL_PAGE_SIZE);
+ renderBzMaterialSettings();
+};
+$("bzMaterialSettings").addEventListener("click",e=>{
+ const del=e.target.closest("[data-del-bz-mat]");
+ if(del){
+  if(!confirm("Dieses Material wirklich löschen?"))return;
+  const i=Number(del.dataset.delBzMat);
+  sb.from("blitzschutz_materials").delete().eq("id",blitzschutzMaterials[i].id).then(async({error})=>{
+   if(error){alert("Fehler: "+error.message);return}
+   const {data}=await sb.from("blitzschutz_materials").select("*").order("bezeichnung");
+   blitzschutzMaterials=data||[];
+   renderBzMaterialSettings();
+  });
+  return;
+ }
+ const head=e.target.closest("[data-toggle-bz-mat]");
+ if(head&&e.target.tagName!=="INPUT"){
+  const i=Number(head.dataset.toggleBzMat);
+  bzMaterialExpanded.has(i)?bzMaterialExpanded.delete(i):bzMaterialExpanded.add(i);
+  renderBzMaterialSettings();
+ }
+});
+$("bzMaterialSettings").addEventListener("input",e=>{
+ const i=Number(e.target.dataset.setBzArtikel??e.target.dataset.setBzBezeichnung??e.target.dataset.setBzMaterial??e.target.dataset.setBzEinheit);
+ if(Number.isNaN(i)||!blitzschutzMaterials[i])return;
+ const id=blitzschutzMaterials[i].id;
+ if(e.target.dataset.setBzArtikel!==undefined){blitzschutzMaterials[i].artikel_nr=e.target.value;debouncedBzMaterialUpdate(id,{artikel_nr:e.target.value,updated_at:new Date().toISOString()})}
+ else if(e.target.dataset.setBzBezeichnung!==undefined){blitzschutzMaterials[i].bezeichnung=e.target.value;debouncedBzMaterialUpdate(id,{bezeichnung:e.target.value,updated_at:new Date().toISOString()})}
+ else if(e.target.dataset.setBzMaterial!==undefined){blitzschutzMaterials[i].material=e.target.value;debouncedBzMaterialUpdate(id,{material:e.target.value,updated_at:new Date().toISOString()})}
+ else if(e.target.dataset.setBzEinheit!==undefined){blitzschutzMaterials[i].einheit=e.target.value;debouncedBzMaterialUpdate(id,{einheit:e.target.value,updated_at:new Date().toISOString()})}
+});
+function searchBlitzschutzMaterials(q){
+ q=(q||"").trim().toLowerCase();
+ return (!q?blitzschutzMaterials:blitzschutzMaterials.filter(m=>String(m.artikel_nr||"").toLowerCase().includes(q)||String(m.bezeichnung||"").toLowerCase().includes(q))).slice(0,15);
+}
 
 async function registerEmployee(vor,nach){
  vor=(vor||"").trim();nach=(nach||"").trim();
@@ -1196,11 +1476,11 @@ async function registerEmployee(vor,nach){
 
 function renderSettings(){
  $("employeeSettings").innerHTML=settings.employees.map((e,i)=>`<div class="settingrow emp-row"><input data-set-emp="${i}" value="${esc(e)}"><button class="red" data-del-emp="${i}">Löschen</button></div>`).join("")||'<div class="empty">Noch keine Mitarbeiter.</div>';
- const ro=isMike?"":"disabled";
- $("rateSettings").innerHTML=(isMike?"":'<div class="small" style="margin-bottom:6px">🔒 Nur Mike Ledermann darf Funktionen/Stundenansätze ändern.</div>')
-  +settings.rates.map((r,i)=>`<div class="settingrow"><input data-set-rate-name="${i}" value="${esc(r[0])}" ${ro}><input data-set-rate-value="${i}" type="number" step=".01" value="${r[1]}" ${ro}>${isMike?`<button class="red" data-del-rate="${i}">Löschen</button>`:'<span></span>'}</div>`).join("");
- $("newRate").hidden=!isMike;
+ const ro=protectedUnlocked?"":"disabled";
+ $("rateSettings").innerHTML=settings.rates.map((r,i)=>`<div class="settingrow"><input data-set-rate-name="${i}" value="${esc(r[0])}" ${ro}><input data-set-rate-value="${i}" type="number" step=".01" value="${r[1]}" ${ro}>${protectedUnlocked?`<button class="red" data-del-rate="${i}">Löschen</button>`:'<span></span>'}</div>`).join("");
+ $("newRate").hidden=!protectedUnlocked;
  renderMaterialSettings();
+ renderBzMaterialSettings();
 }
 $("materialSettingsSearch").addEventListener("input",e=>{materialFilter=e.target.value;materialPage=0;renderMaterialSettings()});
 $("materialPrev").onclick=()=>{if(materialPage>0){materialPage--;renderMaterialSettings()}};
@@ -1321,9 +1601,10 @@ window.addEventListener("beforeprint",()=>{
  if(el)el.textContent="Ausgedruckt am "+new Date().toLocaleString("de-CH",{dateStyle:"medium",timeStyle:"short"});
 });
 $("save").onclick=async()=>{
+ if(!currentProjectId){alert("Bitte zuerst ein Projekt auswählen. Ein Rapport kann nur einem Projekt zugeordnet gespeichert werden.");return}
  $("save").disabled=true;
  const payload={
-  project_id:currentProjectId||null,
+  project_id:currentProjectId,
   date:$("date").value||null,
   order_no:$("orderNo").value,
   customer:$("customer").value,
@@ -1340,7 +1621,7 @@ $("save").onclick=async()=>{
  $("save").disabled=false;
  if(res.error){alert("Fehler beim Speichern: "+res.error.message);return}
  if(res.data)currentReportId=res.data.id;
- alert("Rapport gespeichert"+(currentProjectId?" und dem Projekt zugeordnet.":" (ohne Projekt)."));
+ alert("Rapport gespeichert und dem Projekt zugeordnet.");
 };
 $("clear").onclick=()=>{if(confirm("Wirklich alle Rapportdaten löschen?")){works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:settings.rates[0]?.[0]||"",hours:0}];mats=[];currentReportId=null;renderMain()}};
 
@@ -1357,9 +1638,8 @@ function searchProjects(q){
 }
 function renderProjectSelect(){
  const p=allProjects.find(x=>x.id===currentProjectId);
- $("projectSelectedLabel").innerHTML=p
-  ?`Ausgewählt: <b>${esc(p.name)}</b>${p.order_no?" · "+esc(p.order_no):""} <button type="button" id="clearProject" class="gray" style="padding:2px 8px;font-size:10px;margin-left:6px">✕ entfernen</button>`
-  :'<span style="color:var(--muted)">Kein Projekt ausgewählt</span>';
+ $("projectSearch").value=p?p.name:"";
+ $("projectSelectedLabel").textContent=p?"":"Kein Projekt ausgewählt";
 }
 function renderProjectSuggest(q){
  const box=$("projectResults");
@@ -1371,6 +1651,7 @@ $("projectSearch").addEventListener("input",e=>{
  if(box.innerHTML)positionSuggest(e.target,box);
 });
 $("projectSearch").addEventListener("focus",e=>{
+ e.target.select();
  const box=renderProjectSuggest(e.target.value);
  if(box.innerHTML)positionSuggest(e.target,box);
 });
@@ -1384,36 +1665,56 @@ $("projectResults").addEventListener("click",e=>{
   if(proj.customer&&!$("customer").value)$("customer").value=proj.customer;
   if(proj.object&&!$("object").value)$("object").value=proj.object;
  }
- $("projectSearch").value="";
  $("projectResults").innerHTML="";
- renderProjectSelect();
-});
-$("projectSelectedLabel").addEventListener("click",e=>{
- if(e.target.id!=="clearProject")return;
- currentProjectId=null;currentReportId=null;
  renderProjectSelect();
 });
 function renderProjectList(){
  $("projectList").innerHTML=allProjects.map(p=>`<div class="project-row">
 <div class="project-row-top"><b>${esc(p.name)}</b><button class="red" data-del-project="${p.id}">Löschen</button></div>
 <div class="small">${esc(p.order_no||"–")} · ${esc(p.customer||"–")} · ${esc(p.object||"–")}</div>
-<div class="project-row-actions"><button class="gray" data-toggle-reports="${p.id}">📋 Rapporte anzeigen</button></div>
+<div class="project-row-actions">
+<button class="gray" data-toggle-reports="${p.id}">📋 Rapporte anzeigen</button>
+<button class="gray" data-toggle-measurements="${p.id}">📐 Massaufnahmen anzeigen</button>
+<button class="gray" data-toggle-ausmass="${p.id}">📏 Ausmasse anzeigen</button>
+</div>
 <div class="report-list" data-reports-body="${p.id}"></div>
+<div class="report-list" data-measurements-body="${p.id}"></div>
+<div class="report-list" data-ausmass-body="${p.id}"></div>
 </div>`).join("")||'<div class="empty">Noch keine Projekte angelegt.</div>';
 }
-async function loadProjectReports(projectId){
- const box=document.querySelector(`[data-reports-body="${projectId}"]`);
+async function loadProjectAusmass(projectId){
+ const box=document.querySelector(`[data-ausmass-body="${projectId}"]`);
  box.innerHTML='<div class="small">Lädt…</div>';
- const {data,error}=await sb.from("reports").select("*").eq("project_id",projectId).order("date",{ascending:false});
+ const {data,error}=await sb.from("ausmass").select("*").eq("project_id",projectId).order("date",{ascending:false});
  if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
- const reports=data||[];
- box.innerHTML=reports.length?reports.map(r=>`<div class="report-row">
-<div class="report-row-info"><b>${esc(r.date||"ohne Datum")}</b><span>${esc(r.order_no||"–")} · ${esc(r.customer||"–")} · ${esc(r.object||"–")}</span></div>
+ const list=data||[];
+ const typeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
+ projectAusmassCache=list;
+ box.innerHTML=list.length?list.map(a=>`<div class="report-row">
+<div class="report-row-info"><b>${esc(a.title||"Ohne Titel")}</b><span>${esc(a.date||"ohne Datum")} · ${esc(typeLabels[a.type]||a.type)}</span></div>
 <div class="report-row-actions">
-<button class="blue" data-open-report="${r.id}">Öffnen</button>
-<button class="red" data-del-report="${r.id}">×</button>
+<button class="blue" data-open-project-ausmass="${a.id}">Öffnen</button>
+<button class="gray" data-print-project-ausmass="${a.id}">🖨️</button>
+<button class="red" data-del-project-ausmass="${a.id}">×</button>
 </div>
-</div>`).join(""):'<div class="small">Noch keine Rapporte zu diesem Projekt gespeichert.</div>';
+</div>`).join(""):'<div class="small">Noch keine Ausmasse zu diesem Projekt gespeichert.</div>';
+}
+async function loadProjectMeasurements(projectId){
+ const box=document.querySelector(`[data-measurements-body="${projectId}"]`);
+ box.innerHTML='<div class="small">Lädt…</div>';
+ const {data,error}=await sb.from("measurements").select("*").eq("project_id",projectId).order("date",{ascending:false});
+ if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
+ const list=data||[];
+ const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade"};
+ projectMeasurementsCache=list;
+ box.innerHTML=list.length?list.map(m=>`<div class="report-row">
+<div class="report-row-info"><b>${esc(m.title||"Ohne Titel")}</b><span>${esc(m.date||"ohne Datum")} · ${esc(typeLabels[m.type]||m.type)}</span></div>
+<div class="report-row-actions">
+<button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>
+<button class="gray" data-print-project-measurement="${m.id}">🖨️</button>
+<button class="red" data-del-project-measurement="${m.id}">×</button>
+</div>
+</div>`).join(""):'<div class="small">Noch keine Massaufnahmen zu diesem Projekt gespeichert.</div>';
 }
 function openReport(r){
  currentProjectId=r.project_id;
@@ -1429,7 +1730,25 @@ function openReport(r){
  renderProjectSelect();
  renderMain();
 }
-$("openProjects").onclick=()=>{renderProjectList();$("projectsModal").hidden=false};
+$("startOpenProjects").onclick=()=>{renderProjectList();$("projectsModal").hidden=false};
+$("navMeasurements").onclick=async()=>{$("measurementsModal").hidden=false;await renderMeasurementsOverview()};
+$("newMeasurement").onclick=()=>{$("measurementsModal").hidden=true;$("measTypeChooserModal").hidden=false};
+$("cancelMeasTypeChooser").onclick=()=>{$("measTypeChooserModal").hidden=true;$("measurementsModal").hidden=false};
+$("measTypeChooserModal").addEventListener("click",e=>{
+ const b=e.target.closest("[data-choose-meas-type]");
+ if(!b)return;
+ $("measTypeChooserModal").hidden=true;
+ newMeasurementWithType(b.dataset.chooseMeasType);
+});
+$("navAusmass").onclick=async()=>{$("ausmassModal").hidden=false;await renderAusmassOverview()};
+$("newAusmass").onclick=()=>{$("ausmassModal").hidden=true;$("amTypeChooserModal").hidden=false};
+$("cancelAmTypeChooser").onclick=()=>{$("amTypeChooserModal").hidden=true;$("ausmassModal").hidden=false};
+$("amTypeChooserModal").addEventListener("click",e=>{
+ const b=e.target.closest("[data-choose-am-type]");
+ if(!b)return;
+ $("amTypeChooserModal").hidden=true;
+ newAusmassWithType(b.dataset.chooseAmType);
+});
 $("closeProjects").onclick=()=>{$("projectsModal").hidden=true};
 $("addProject").onclick=async()=>{
  const name=$("newProjectName").value.trim();
@@ -1466,12 +1785,88 @@ $("projectList").addEventListener("click",async e=>{
   if(willOpen)await loadProjectReports(id);
   return;
  }
+ const toggleM=e.target.closest("[data-toggle-measurements]");
+ if(toggleM){
+  const id=Number(toggleM.dataset.toggleMeasurements);
+  const box=document.querySelector(`[data-measurements-body="${id}"]`);
+  const willOpen=!box.classList.contains("open");
+  box.classList.toggle("open");
+  toggleM.textContent=willOpen?"📐 Massaufnahmen ausblenden":"📐 Massaufnahmen anzeigen";
+  if(willOpen)await loadProjectMeasurements(id);
+  return;
+ }
+ const toggleA=e.target.closest("[data-toggle-ausmass]");
+ if(toggleA){
+  const id=Number(toggleA.dataset.toggleAusmass);
+  const box=document.querySelector(`[data-ausmass-body="${id}"]`);
+  const willOpen=!box.classList.contains("open");
+  box.classList.toggle("open");
+  toggleA.textContent=willOpen?"📏 Ausmasse ausblenden":"📏 Ausmasse anzeigen";
+  if(willOpen)await loadProjectAusmass(id);
+  return;
+ }
  const open=e.target.closest("[data-open-report]");
  if(open){
   const id=Number(open.dataset.openReport);
   const {data,error}=await sb.from("reports").select("*").eq("id",id).maybeSingle();
   if(error||!data){alert("Fehler beim Laden: "+(error?error.message:"Rapport nicht gefunden"));return}
   openReport(data);
+  return;
+ }
+ const openM=e.target.closest("[data-open-project-measurement]");
+ if(openM){
+  const id=Number(openM.dataset.openProjectMeasurement);
+  const m=projectMeasurementsCache.find(x=>x.id===id);
+  if(m){
+   measEditReturnTo="projectsModal";
+   $("projectsModal").hidden=true;
+   openMeasurement(m);
+  }
+  return;
+ }
+ const printM=e.target.closest("[data-print-project-measurement]");
+ if(printM){
+  const id=Number(printM.dataset.printProjectMeasurement);
+  const m=projectMeasurementsCache.find(x=>x.id===id);
+  if(m)printMeasurement(m);
+  return;
+ }
+ const delM=e.target.closest("[data-del-project-measurement]");
+ if(delM){
+  if(!confirm("Diese Massaufnahme wirklich löschen?"))return;
+  const id=Number(delM.dataset.delProjectMeasurement);
+  await sb.from("measurements").delete().eq("id",id);
+  const projRow=delM.closest(".project-row");
+  const projId=Number(projRow.querySelector("[data-toggle-measurements]").dataset.toggleMeasurements);
+  await loadProjectMeasurements(projId);
+  return;
+ }
+ const openA=e.target.closest("[data-open-project-ausmass]");
+ if(openA){
+  const id=Number(openA.dataset.openProjectAusmass);
+  const a=projectAusmassCache.find(x=>x.id===id);
+  if(a){
+   amEditReturnTo="projectsModal";
+   $("projectsModal").hidden=true;
+   openAusmass(a);
+  }
+  return;
+ }
+ const printA=e.target.closest("[data-print-project-ausmass]");
+ if(printA){
+  const id=Number(printA.dataset.printProjectAusmass);
+  const a=projectAusmassCache.find(x=>x.id===id);
+  if(a)printAusmass(a);
+  return;
+ }
+ const delA=e.target.closest("[data-del-project-ausmass]");
+ if(delA){
+  if(!confirm("Dieses Ausmass wirklich löschen?"))return;
+  const id=Number(delA.dataset.delProjectAusmass);
+  await sb.from("ausmass").delete().eq("id",id);
+  const projRow=delA.closest(".project-row");
+  const projId=Number(projRow.querySelector("[data-toggle-ausmass]").dataset.toggleAusmass);
+  await loadProjectAusmass(projId);
   return;
  }
  const delRep=e.target.closest("[data-del-report]");
@@ -1730,24 +2125,29 @@ $("measProjectSearch").addEventListener("input",e=>{
  if(box.innerHTML)positionSuggest(e.target,box);
 });
 $("measProjectSearch").addEventListener("focus",e=>{
+ e.target.select();
  const box=$("measProjectResults");
  box.innerHTML=searchProjects(e.target.value).map(p=>`<div class="item" data-pick-meas-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.customer||"–")}</span></div>`).join("");
  if(box.innerHTML)positionSuggest(e.target,box);
 });
+function setMeasProjectField(projId){
+ measSelectedProjectId=projId||null;
+ const proj=allProjects.find(x=>x.id===measSelectedProjectId);
+ $("measProjectSearch").value=proj?proj.name:"";
+ $("measProjectSelectedLabel").textContent=proj?"":"Kein Projekt ausgewählt";
+}
 $("measProjectResults").addEventListener("click",e=>{
  const it=e.target.closest("[data-pick-meas-project]");if(!it)return;
- measSelectedProjectId=Number(it.dataset.pickMeasProject);
- const proj=allProjects.find(x=>x.id===measSelectedProjectId);
- $("measProjectSelectedLabel").textContent=proj?("Projekt: "+proj.name):"Kein Projekt ausgewählt";
- $("measProjectSearch").value="";
+ setMeasProjectField(Number(it.dataset.pickMeasProject));
  $("measProjectResults").innerHTML="";
 });
 
-$("newMeasurement").onclick=()=>{
+function newMeasurementWithType(type){
+ measEditReturnTo="measurementsModal";
  currentMeasurementId=null;
  $("printMeasurementBtn").hidden=false;
- $("measType").value="skizze_foto";
- showMeasTypeSection("skizze_foto");
+ $("measType").value=type;
+ showMeasTypeSection(type);
  $("measTitle").value="";
  $("measNote").value="";
  $("measDate").value=new Date().toISOString().slice(0,10);
@@ -1766,12 +2166,16 @@ $("newMeasurement").onclick=()=>{
  $("eb_abwicklung").value="250";
  $("eb_montage").value="links";
  renderEinlaufblechResult();
- measSelectedProjectId=currentProjectId||null;
- const proj=allProjects.find(x=>x.id===measSelectedProjectId);
- $("measProjectSelectedLabel").textContent=proj?("Projekt: "+proj.name):"Kein Projekt ausgewählt";
+ setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
-};
+ updateMeasFormTitle();
+}
+function updateMeasFormTitle(){
+ const labels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade"};
+ const h2=document.querySelector("#measurementEditModal h2");
+ if(h2)h2.textContent=`📐 Massaufnahme – ${labels[$("measType").value]||""}`;
+}
 function openMeasurement(m){
  currentMeasurementId=m.id;
  $("printMeasurementBtn").hidden=false;
@@ -1780,9 +2184,7 @@ function openMeasurement(m){
  $("measDate").value=m.date||new Date().toISOString().slice(0,10);
  $("measType").value=m.type||"skizze_foto";
  showMeasTypeSection($("measType").value);
- measSelectedProjectId=m.project_id||null;
- const proj=allProjects.find(x=>x.id===measSelectedProjectId);
- $("measProjectSelectedLabel").textContent=proj?("Projekt: "+proj.name):"Kein Projekt ausgewählt";
+ setMeasProjectField(m.project_id);
  measPhotoDataUrl=null;
  measExistingPhotoUrl=m.photo_path||null;
  $("measPhotoInput").value="";
@@ -1801,51 +2203,93 @@ function openMeasurement(m){
  if(m.type==="einlaufblech_gerade")renderEinlaufblechResult();
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
+ updateMeasFormTitle();
 }
 // ---- Einlaufblech gerade ---------------------------------------
 // Schnittzeichnung: zeigt, was mit "Mass A" und "Winkel" gemeint ist.
 // Eigenständiges SVG (feste Farben statt CSS-Variablen), damit es identisch
 // in der App und im PDF-Druckfenster (eigenes Dokument, ohne Zugriff auf die
 // Haupt-Stylesheet-Variablen) angezeigt wird.
-function einlaufblechDiagramSvg(winkel){
- const cx=80, cy=170;
- const theta0Up=52.66*Math.PI/180; // Standard-Diagonalwinkel von "oben" (nur für Rotation der Zeichnung)
+function einlaufblechDiagramSvg(winkel,massA,restBreite,umschlagOben,umschlagUnten){
+ const cx=90, cy=100;
  const w=Number(winkel)>0?Number(winkel):null;
- // Eingabe "winkel" = Winkel von der senkrechten A-Linie (nach unten) zur Dachschräge.
- const thetaUp=w?(180-w)*Math.PI/180:theta0Up; // gleicher Winkel, aber von "oben" aus gerechnet (für die Rotation)
- const phi=thetaUp-theta0Up;
- const cosP=Math.cos(phi), sinP=Math.sin(phi);
- const rot=(px,py)=>{const dx=px-cx,dy=py-cy;return [cx+dx*cosP-dy*sinP,cy+dx*sinP+dy*cosP]};
- const [dx1,dy1]=rot(219,64), [p1x,p1y]=rot(231.6,54.7), [vx,vy]=rot(238,50), [p2x,p2y]=rot(230.2,48.4), [ex,ey]=rot(213,45);
- const R=34;
- const arcStartX=cx, arcStartY=cy+R; // Bogenstart: senkrecht nach unten, entlang der A-Linie
- const arcEndX=cx+R*Math.sin(thetaUp), arcEndY=cy-R*Math.cos(thetaUp);
+ const thetaUpDeg=w?(180-w):52.66; // Winkel von "oben" gemessen (für die Zeichnung), Eingabe ist von A aus gemessen
+ const thetaUp=thetaUpDeg*Math.PI/180;
+
+ const dirVec=deg=>{const r=deg*Math.PI/180;return [Math.sin(r),-Math.cos(r)]};
+ const addV=(p,v,d)=>[p[0]+v[0]*d,p[1]+v[1]*d];
+ const fmt=p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+ function hairpin(origin,inAngleDeg,length){
+  const turn=-131;
+  const apex=addV(origin,dirVec(inAngleDeg),length*0.6);
+  const tip=addV(apex,dirVec(inAngleDeg+turn),length*0.55);
+  const rr=Math.min(5,length*0.18);
+  const p1=addV(apex,dirVec(inAngleDeg+180),rr);
+  const p2=addV(apex,dirVec(inAngleDeg+turn),rr);
+  return {apex,tip,p1,p2};
+ }
+
+ // Reelle Masse (mm) - mit Platzhalterwerten, solange noch nichts eingegeben ist
+ const mA=Number(massA)>0?Number(massA):120;
+ const rB=Number(restBreite)>0?Number(restBreite):90;
+ const uO=Number(umschlagOben)>0?Number(umschlagOben):15;
+ const uU=Number(umschlagUnten)>0?Number(umschlagUnten):15;
+
+ const scale=150/Math.max(mA,rB,1);
+ const aLen=Math.max(30,mA*scale);
+ const rLen=Math.max(30,rB*scale);
+ const foldU=Math.max(14,uU*scale);
+ const foldO=Math.max(14,uO*scale);
+
+ const aEnd=addV([cx,cy],dirVec(180),aLen);
+ const hU=hairpin(aEnd,180,foldU);
+ const dEnd=addV([cx,cy],dirVec(thetaUpDeg),rLen);
+ const hO=hairpin(dEnd,thetaUpDeg,foldO);
+
+ const R=28;
+ const arcStart=[cx,cy+R];
+ const arcEnd=[cx+R*Math.sin(thetaUp),cy-R*Math.cos(thetaUp)];
  const bisector=(thetaUp+Math.PI)/2;
- const labelX=cx+(R+16)*Math.sin(bisector), labelY=cy-(R+16)*Math.cos(bisector);
+ const labelPt=[cx+(R+16)*Math.sin(bisector),cy-(R+16)*Math.cos(bisector)];
  const label=w?`${w}°`:"Winkel";
+
+ const Ax=cx-35, Ay1=cy, Ay2=hU.apex[1];
+
  return `<svg viewBox="0 0 300 330" style="width:100%;max-width:220px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">
-  <path d="M 80,170 L 80,300 Q 80,308 86.1,302.8 L 102,289" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M 80,170 L ${dx1.toFixed(1)},${dy1.toFixed(1)} L ${p1x.toFixed(1)},${p1y.toFixed(1)} Q ${vx.toFixed(1)},${vy.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)} L ${ex.toFixed(1)},${ey.toFixed(1)}" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="45" y1="170" x2="45" y2="308" stroke="#1769aa" stroke-width="3" stroke-linecap="round"/>
-  <path d="M38,179 L45,170 L52,179" fill="none" stroke="#1769aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M38,299 L45,308 L52,299" fill="none" stroke="#1769aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="18" y="242" font-size="16" font-weight="700" fill="#1769aa" font-family="Arial,Helvetica,sans-serif">A</text>
-  <path d="M ${arcStartX.toFixed(1)},${arcStartY.toFixed(1)} A ${R},${R} 0 0,0 ${arcEndX.toFixed(1)},${arcEndY.toFixed(1)}" fill="none" stroke="#68737d" stroke-width="1.5"/>
-  <text x="${labelX.toFixed(1)}" y="${labelY.toFixed(1)}" font-size="13" fill="#68737d" font-family="Arial,Helvetica,sans-serif">${label}</text>
+  <path d="M ${fmt([cx,cy])} L ${fmt(aEnd)} L ${fmt(hU.p1)} Q ${fmt(hU.apex)} ${fmt(hU.p2)} L ${fmt(hU.tip)}" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M ${fmt([cx,cy])} L ${fmt(dEnd)} L ${fmt(hO.p1)} Q ${fmt(hO.apex)} ${fmt(hO.p2)} L ${fmt(hO.tip)}" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="${Ax}" y1="${Ay1}" x2="${Ax}" y2="${Ay2.toFixed(1)}" stroke="#1769aa" stroke-width="3" stroke-linecap="round"/>
+  <path d="M${Ax-7},${Ay1+9} L${Ax},${Ay1} L${Ax+7},${Ay1+9}" fill="none" stroke="#1769aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M${Ax-7},${(Ay2-9).toFixed(1)} L${Ax},${Ay2.toFixed(1)} L${Ax+7},${(Ay2-9).toFixed(1)}" fill="none" stroke="#1769aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="${Ax-25}" y="${((Ay1+Ay2)/2).toFixed(1)}" font-size="16" font-weight="700" fill="#1769aa" font-family="Arial,Helvetica,sans-serif">A</text>
+  <path d="M ${fmt(arcStart)} A ${R},${R} 0 0,0 ${fmt(arcEnd)}" fill="none" stroke="#68737d" stroke-width="1.5"/>
+  <text x="${labelPt[0].toFixed(1)}" y="${labelPt[1].toFixed(1)}" font-size="13" fill="#68737d" font-family="Arial,Helvetica,sans-serif">${label}</text>
  </svg>`;
 }
 function calcEinlaufblech(gesamtlaenge,montage,massA,gehrungLinks,gehrungRechts,abwicklung){
  const stossLaenge=Number(einlaufblechSettings.stoss_laenge)||1;
  const ueberlappung=Number(einlaufblechSettings.ueberlappung)||0;
  const gehrungszugabe=Number(einlaufblechSettings.gehrungszugabe)||0;
+ const umschlagOben=Number(einlaufblechSettings.umschlag_oben)||0;
+ const umschlagUnten=Number(einlaufblechSettings.umschlag_unten)||0;
+ const restSchwelle=Number(einlaufblechSettings.rest_schwelle)||0;
  gesamtlaenge=Number(gesamtlaenge)||0;
  massA=Number(massA)||0;
  const massAEng=Math.max(0,massA-2); // enges Mass: 2mm kürzer, damit die Stücke ineinandergesteckt werden können
+ const restBreite=Number(abwicklung)-massA-umschlagOben-umschlagUnten; // verbleibende Blechbreite (Dachschräge)
  const zugabeGesamt=(gehrungLinks?gehrungszugabe:0)+(gehrungRechts?gehrungszugabe:0);
  const effLaenge=gesamtlaenge>0?gesamtlaenge+zugabeGesamt:0;
- const anzahl=effLaenge>0?Math.max(1,Math.ceil(effLaenge/stossLaenge)):0;
+ let anzahl=effLaenge>0?Math.max(1,Math.ceil(effLaenge/stossLaenge)):0;
  const zuschnittlaenge=stossLaenge+ueberlappung; // Standardlänge für alle vollen Stücke
- const rest=effLaenge-(anzahl-1)*stossLaenge; // Restlänge des letzten Stücks (<=stossLaenge)
+ let rest=effLaenge-(anzahl-1)*stossLaenge; // Restlänge des letzten Stücks (<=stossLaenge)
+ // Ist das Reststück kleiner als die Restschwelle, wird es ans letzte reguläre
+ // Stück angehängt, statt ein eigenes kurzes Stück zu erzeugen.
+ let restAngehaengt=false;
+ if(anzahl>1&&rest>0&&rest<restSchwelle){
+  anzahl=anzahl-1;
+  rest=stossLaenge+rest;
+  restAngehaengt=true;
+ }
  const restZuschnittlaenge=Math.max(0,rest); // Restblech: KEINE Stosszugabe, da kein weiteres Stück folgt
  const engeSeite=montage==="links"?"rechts":"links";
  const pieces=[];
@@ -1857,10 +2301,11 @@ function calcEinlaufblech(gesamtlaenge,montage,massA,gehrungLinks,gehrungRechts,
    massA,
    massAEng,
    engeSeite,
-   rest:istLetztes&&rest<stossLaenge
+   rest:istLetztes&&!restAngehaengt&&rest<stossLaenge,
+   restAngehaengt:istLetztes&&restAngehaengt
   });
  }
- return {anzahl,zuschnittlaenge,restZuschnittlaenge,rest,massA,massAEng,engeSeite,abwicklung,stossLaenge,ueberlappung,gehrungszugabe,zugabeGesamt,effLaenge,pieces};
+ return {anzahl,zuschnittlaenge,restZuschnittlaenge,rest,massA,massAEng,engeSeite,abwicklung,stossLaenge,ueberlappung,gehrungszugabe,zugabeGesamt,effLaenge,umschlagOben,umschlagUnten,restBreite,restSchwelle,restAngehaengt,pieces};
 }
 function renderEinlaufblechResult(){
  const gesamtlaenge=Number($("eb_gesamtlaenge").value)||0;
@@ -1870,10 +2315,11 @@ function renderEinlaufblechResult(){
  const gehrungLinks=$("eb_gehrungLinks").value==="ja";
  const gehrungRechts=$("eb_gehrungRechts").value==="ja";
  const abwicklung=Number($("eb_abwicklung").value);
- $("eb_diagram").innerHTML=einlaufblechDiagramSvg(winkel);
  const r=calcEinlaufblech(gesamtlaenge,montage,massA,gehrungLinks,gehrungRechts,abwicklung);
- $("eb_resultBody").innerHTML=r.pieces.map(p=>`<tr${p.rest?' class="eb-rest-row"':''}><td>${p.pos}${p.rest?' <span class="small">(Rest)</span>':''}</td><td>${p.zuschnittlaenge}</td><td>${p.massAEng}</td><td>${esc(p.engeSeite)}</td></tr>`).join("")||'<tr><td colspan="4" class="small">Bitte Gesamtlänge eingeben.</td></tr>';
- $("eb_summary").textContent=gesamtlaenge>0?`${r.anzahl} Stück · Abwicklung ${r.abwicklung} mm · Länge Stoss bis Stoss ${r.stossLaenge} mm · Überlappung ${r.ueberlappung} mm`+(r.rest<r.stossLaenge?` · letztes Stück Rest ${r.rest} mm`:"")+(r.zugabeGesamt>0?` · Gehrungszugabe ${r.zugabeGesamt} mm · effektive Länge ${r.effLaenge} mm`:""):"";
+ $("eb_diagram").innerHTML=einlaufblechDiagramSvg(winkel,massA,r.restBreite,r.umschlagOben,r.umschlagUnten);
+ $("eb_resultBody").innerHTML=r.pieces.map(p=>`<tr${(p.rest||p.restAngehaengt)?' class="eb-rest-row"':''}><td>${p.pos}${p.rest?' <span class="small">(Rest)</span>':''}${p.restAngehaengt?' <span class="small">(inkl. Rest)</span>':''}</td><td>${p.zuschnittlaenge}</td><td>${p.massAEng}</td><td>${esc(p.engeSeite)}</td></tr>`).join("")||'<tr><td colspan="4" class="small">Bitte Gesamtlänge eingeben.</td></tr>';
+ const restBreiteText=r.restBreite<0?`⚠️ Restbreite ${r.restBreite} mm (Mass A + Umschläge grösser als Abwicklung!)`:`Restbreite (Dachschräge) ${r.restBreite} mm`;
+ $("eb_summary").textContent=gesamtlaenge>0?`${r.anzahl} Stück · Abwicklung ${r.abwicklung} mm · Länge Stoss bis Stoss ${r.stossLaenge} mm · Überlappung ${r.ueberlappung} mm · ${restBreiteText}`+(r.restAngehaengt?` · Restlänge < ${r.restSchwelle} mm, ans letzte Stück angehängt`:(r.rest<r.stossLaenge?` · letztes Stück Rest ${r.rest} mm`:""))+(r.zugabeGesamt>0?` · Gehrungszugabe ${r.zugabeGesamt} mm · effektive Länge ${r.effLaenge} mm`:""):"";
 }
 $("eb_gesamtlaenge").addEventListener("input",renderEinlaufblechResult);
 $("eb_montage").addEventListener("change",renderEinlaufblechResult);
@@ -1925,7 +2371,12 @@ function buildMeasurementFromForm(){
  return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(buildMeasurementFromForm());
-$("cancelMeasurement").onclick=()=>{$("measurementEditModal").hidden=true;$("measurementsModal").hidden=false};
+$("cancelMeasurement").onclick=()=>{
+ $("measurementEditModal").hidden=true;
+ if(measEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
+ else{$("measurementsModal").hidden=false;renderMeasurementsOverview()}
+ measEditReturnTo="measurementsModal";
+};
 
 $("saveMeasurement").onclick=async()=>{
  const title=$("measTitle").value.trim();
@@ -1963,8 +2414,9 @@ $("saveMeasurement").onclick=async()=>{
    :await sb.from("measurements").insert(payload);
   if(error)throw error;
   $("measurementEditModal").hidden=true;
-  $("measurementsModal").hidden=false;
-  await renderMeasurementList();
+  if(measEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
+  else{$("measurementsModal").hidden=false;await renderMeasurementsOverview()}
+  measEditReturnTo="measurementsModal";
  }catch(err){
   alert("Fehler beim Speichern: "+(err.message||err));
  }
@@ -1972,17 +2424,13 @@ $("saveMeasurement").onclick=async()=>{
 };
 
 let measurementListProjectId=null;
-async function renderMeasurementList(){
- const typeFilter=$("measurementTypeFilter").value;
- let query=sb.from("measurements").select("*").order("date",{ascending:false});
- if(typeFilter)query=query.eq("type",typeFilter);
- if(measurementListProjectId)query=query.eq("project_id",measurementListProjectId);
- const {data,error}=await query;
- if(error){$("measurementList").innerHTML=`<div class="empty">Fehler: ${esc(error.message)}</div>`;return}
- let rows=data||[];
+async function renderMeasurementsOverview(){
+ const {data,error}=await sb.from("measurements").select("*").order("created_at",{ascending:false}).limit(recentCount);
+ if(error){$("recentMeasurementsList").innerHTML=`<div class="empty">Fehler: ${esc(error.message)}</div>`;return}
+ const rows=data||[];
  measurementsCache=rows;
  const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade"};
- $("measurementList").innerHTML=rows.length?rows.map(m=>{
+ $("recentMeasurementsList").innerHTML=rows.length?rows.map(m=>{
   const proj=allProjects.find(p=>p.id===m.project_id);
   let thumbHtml;
   if(m.type==="einlaufblech_gerade"){
@@ -2000,35 +2448,9 @@ ${thumbHtml}
 <button class="red" data-del-measurement="${m.id}" title="Löschen">×</button>
 </div>
 </div>`;
- }).join(""):'<div class="empty">Keine Massaufnahmen gefunden.</div>';
+ }).join(""):'<div class="empty">Noch keine Massaufnahmen vorhanden.</div>';
 }
-$("measurementProjectSearch").addEventListener("input",e=>{
- const box=$("measurementProjectResults");
- box.innerHTML=searchProjects(e.target.value).map(p=>`<div class="item" data-pick-meas-list-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.customer||"–")} · ${esc(p.object||"–")}</span></div>`).join("");
- if(box.innerHTML)positionSuggest(e.target,box);
-});
-$("measurementProjectSearch").addEventListener("focus",e=>{
- const box=$("measurementProjectResults");
- box.innerHTML=searchProjects(e.target.value).map(p=>`<div class="item" data-pick-meas-list-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.customer||"–")} · ${esc(p.object||"–")}</span></div>`).join("");
- if(box.innerHTML)positionSuggest(e.target,box);
-});
-$("measurementProjectResults").addEventListener("click",e=>{
- const it=e.target.closest("[data-pick-meas-list-project]");if(!it)return;
- measurementListProjectId=Number(it.dataset.pickMeasListProject);
- const proj=allProjects.find(x=>x.id===measurementListProjectId);
- $("measurementProjectLabel").innerHTML=proj?`Projekt: <b>${esc(proj.name)}</b> <button type="button" id="clearMeasProjectFilter" class="gray" style="padding:2px 8px;font-size:10px;margin-left:6px">✕ entfernen</button>`:'<span style="color:var(--muted)">Alle Projekte</span>';
- $("measurementProjectSearch").value="";
- $("measurementProjectResults").innerHTML="";
- renderMeasurementList();
-});
-$("measurementProjectLabel").addEventListener("click",e=>{
- if(e.target.id!=="clearMeasProjectFilter")return;
- measurementListProjectId=null;
- $("measurementProjectLabel").innerHTML='<span style="color:var(--muted)">Alle Projekte</span>';
- renderMeasurementList();
-});
-$("measurementTypeFilter").addEventListener("change",renderMeasurementList);
-$("measurementList").addEventListener("click",e=>{
+$("recentMeasurementsList").addEventListener("click",e=>{
  const o=e.target.closest("[data-open-measurement]");
  if(o){const m=measurementsCache.find(x=>x.id===Number(o.dataset.openMeasurement));if(m)openMeasurement(m);return}
  const d=e.target.closest("[data-del-measurement]");
@@ -2036,7 +2458,7 @@ $("measurementList").addEventListener("click",e=>{
   if(!confirm("Diese Massaufnahme wirklich löschen?"))return;
   sb.from("measurements").delete().eq("id",Number(d.dataset.delMeasurement)).then(({error})=>{
    if(error){alert("Fehler: "+error.message);return}
-   renderMeasurementList();
+   renderMeasurementsOverview();
   });
  }
 });
@@ -2058,29 +2480,45 @@ function printMeasurement(m){
   const d=m.data||{};
   const pieces=d.pieces||[];
   extraCss=`
- .eb-summary-box{background:#eaf4fa;border-left:3px solid #1769aa;border-radius:4px;padding:3mm 4mm;margin:4mm 0;font-size:9.5pt;color:#17202a}
- .eb-summary-box b{color:#0f5288}
- .eb-diagram{text-align:center;margin:2mm 0 5mm}
- table{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
- td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
- tbody tr:nth-child(even) td{background:#f7fafc}
- tr.rest td{background:#eaf4fa!important;font-weight:700}
- td:first-child{text-align:center;color:#68737d;width:14%}
- td:nth-child(2),td:nth-child(3){text-align:right;font-variant-numeric:tabular-nums;width:28%}`;
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .eb-info-table.cols4 td{width:25%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ .eb-restbox{margin-top:3mm;background:#eaf4fa;border-left:3px solid #1769aa;border-radius:4px;padding:2.5mm 3.5mm;font-size:9pt}
+ .eb-restbox b{color:#0f5288}
+ .eb-restbox.warn{background:#fff0ef;border-left-color:#b42318}
+ .eb-diagram{text-align:center;margin:4mm 0}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
+ .eb-cutlist tr.rest td{background:#eaf4fa!important;font-weight:700}
+ .eb-cutlist td:first-child{text-align:left;color:#68737d;width:14%}
+ .eb-cutlist td:nth-child(2),.eb-cutlist td:nth-child(3){text-align:left;font-variant-numeric:tabular-nums;width:28%}`;
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
-<div class="meta">${metaCommon}</div>
-<div class="eb-diagram">${einlaufblechDiagramSvg(d.winkel)}</div>
-<div class="eb-summary-box">
-<div><b>Gesamtlänge:</b> ${esc(d.gesamtlaenge||0)} mm &nbsp;·&nbsp; <b>Mass A:</b> ${esc(d.massA||0)} mm &nbsp;·&nbsp; <b>Winkel:</b> ${esc(d.winkel||0)}° &nbsp;·&nbsp; <b>Montage:</b> von ${esc(d.montage||"–")}</div>
-<div style="margin-top:1mm"><b>Gehrung links:</b> ${d.gehrungLinks?"Ja":"Nein"} &nbsp;·&nbsp; <b>Gehrung rechts:</b> ${d.gehrungRechts?"Ja":"Nein"}${d.zugabeGesamt?` &nbsp;·&nbsp; Gehrungszugabe ${esc(d.zugabeGesamt)} mm &nbsp;·&nbsp; effektive Länge ${esc(d.effLaenge)} mm`:""}</div>
-<div style="margin-top:1mm">${esc(d.anzahl||0)} Stück &nbsp;·&nbsp; Abwicklung ${esc(d.abwicklung||"–")} mm &nbsp;·&nbsp; Länge Stoss bis Stoss ${esc(d.stossLaenge||"–")} mm &nbsp;·&nbsp; Überlappung ${esc(d.ueberlappung||"–")} mm</div>
-</div>
-<table>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table cols2">
+<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
+<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+</table>
+<div class="eb-diagram">${einlaufblechDiagramSvg(d.winkel,d.massA,d.restBreite,d.umschlagOben,d.umschlagUnten)}</div>
+<div class="eb-section-head">Masse &amp; Einstellungen</div>
+<table class="eb-info-table cols4">
+<tr>${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}${cell("Mass A",esc(d.massA||0)+" mm")}${cell("Winkel",esc(d.winkel||0)+"°")}${cell("Montage",'von '+esc(d.montage||"–"))}</tr>
+<tr>${cell("Gehrung links",d.gehrungLinks?"Ja":"Nein")}${cell("Gehrung rechts",d.gehrungRechts?"Ja":"Nein")}${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Anzahl Stück",esc(d.anzahl||0))}</tr>
+<tr>${cell("Länge Stoss bis Stoss",esc(d.stossLaenge||"–")+" mm")}${cell("Überlappung",esc(d.ueberlappung||"–")+" mm")}${cell("Umschlag oben",esc(d.umschlagOben||0)+" mm")}${cell("Umschlag unten",esc(d.umschlagUnten||0)+" mm")}</tr>
+</table>
+<div class="eb-restbox${d.restBreite<0?" warn":""}"><b>Restbreite (Dachschräge):</b> ${esc(d.restBreite)} mm${d.restBreite<0?" ⚠️ Mass A + Umschläge grösser als Abwicklung!":""}${d.zugabeGesamt?` &nbsp;·&nbsp; <b>Gehrungszugabe:</b> ${esc(d.zugabeGesamt)} mm &nbsp;·&nbsp; <b>effektive Länge:</b> ${esc(d.effLaenge)} mm`:""}</div>
+<div class="eb-section-head">Zuschnitt- &amp; Biegeliste</div>
+<table class="eb-cutlist">
 <thead><tr><th>Pos.</th><th>Zuschnittlänge (mm)</th><th>Mass A eng (mm)</th><th>Enge Seite</th></tr></thead>
-<tbody>${pieces.map(p=>`<tr${p.rest?' class="rest"':''}><td>${esc(p.pos)}${p.rest?" ★":""}</td><td>${esc(p.zuschnittlaenge)}</td><td>${esc(p.massAEng)}</td><td>${esc(p.engeSeite)}</td></tr>`).join("")}</tbody>
+<tbody>${pieces.map(p=>`<tr${(p.rest||p.restAngehaengt)?' class="rest"':''}><td>${esc(p.pos)}${p.rest?" ★":""}${p.restAngehaengt?" ✦":""}</td><td>${esc(p.zuschnittlaenge)}</td><td>${esc(p.massAEng)}</td><td>${esc(p.engeSeite)}</td></tr>`).join("")}</tbody>
 </table>
 ${pieces.some(p=>p.rest)?'<div class="note" style="margin-top:2mm">★ Restlänge – kürzer als die übrigen Stücke.</div>':""}
+${pieces.some(p=>p.restAngehaengt)?'<div class="note" style="margin-top:2mm">✦ Enthält die Restlänge – ans letzte reguläre Stück angehängt.</div>':""}
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else{
   const sketches=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
@@ -2116,6 +2554,423 @@ ${bodyHtml}
 }
 
 $("closeMeasurements").onclick=()=>{$("measurementsModal").hidden=true};
+
+// ---- Ausmass: Offerte erfassen ---------------------------------
+let amSelectedProjectId=null;
+let amPhotos=[]; // Einträge: "data:..." (neu, noch nicht hochgeladen) oder "https://..." (bereits gespeichert)
+let amPositions=[];
+let amBzPositions=[];
+let currentAusmassId=null;
+let amEditReturnTo="ausmassModal";
+let ausmassListProjectId=null;
+let ausmassCache=[];
+
+function renderAmPositionsTable(){
+ $("amPositionsBody").innerHTML=amPositions.map((p,i)=>`<tr>
+<td><input data-am-pos="${i}" value="${esc(p.pos||"")}"></td>
+<td><input data-am-desc="${i}" value="${esc(p.description||"")}"></td>
+<td><input data-am-qty="${i}" type="number" step=".01" value="${p.quantity||0}"></td>
+<td><input data-am-unit="${i}" value="${esc(p.unit||"")}"></td>
+<td><input data-am-price="${i}" type="number" step=".01" value="${p.unit_price||0}"></td>
+<td style="display:flex;gap:4px;align-items:center"><input data-am-total="${i}" type="number" step=".01" value="${p.total||0}" style="flex:1"><button type="button" class="red" data-am-del="${i}" style="padding:6px 8px;flex:0 0 auto">×</button></td>
+</tr>`).join("")||'<tr><td colspan="6" class="small">Noch keine Positionen. Foto aufnehmen und "Positionen erkennen" klicken, oder manuell hinzufügen.</td></tr>';
+ const total=amPositions.reduce((s,p)=>s+(Number(p.total)||0),0);
+ $("amPositionsSummary").textContent=amPositions.length?`${amPositions.length} Positionen · Total CHF ${money(total)}`:"";
+}
+function showAmTypeSection(type){
+ $("amTypeOfferte").hidden=(type!=="offerte_erfassen");
+ $("amTypeBlitzschutz").hidden=(type!=="blitzschutz_ausmass");
+}
+$("amType").addEventListener("change",e=>showAmTypeSection(e.target.value));
+
+function renderBzPositionsTable(){
+ $("bzPositionsBody").innerHTML=amBzPositions.map((p,i)=>`<tr>
+<td>${esc(p.artikel_nr||"")}</td>
+<td>${esc(p.bezeichnung||"")}</td>
+<td>${esc(p.material||"")}</td>
+<td>${esc(p.einheit||"")}</td>
+<td><input data-bz-menge="${i}" type="number" step=".01" value="${p.menge||0}"></td>
+<td><button type="button" class="red" data-bz-del="${i}" style="padding:6px 8px">×</button></td>
+</tr>`).join("")||'<tr><td colspan="6" class="small">Noch keine Positionen. Oben nach Material suchen und auswählen.</td></tr>';
+ $("bzPositionsSummary").textContent=amBzPositions.length?`${amBzPositions.length} Positionen`:"";
+}
+$("bzPositionsBody").addEventListener("input",e=>{
+ const i=Number(e.target.dataset.bzMenge);
+ if(Number.isNaN(i)||!amBzPositions[i])return;
+ amBzPositions[i].menge=Number(e.target.value)||0;
+});
+$("bzPositionsBody").addEventListener("click",e=>{
+ const del=e.target.closest("[data-bz-del]");
+ if(del){amBzPositions.splice(Number(del.dataset.bzDel),1);renderBzPositionsTable();}
+});
+$("bzPositionSearch").addEventListener("input",e=>{
+ const box=$("bzPositionResults");
+ box.innerHTML=searchBlitzschutzMaterials(e.target.value).map(m=>`<div class="item" data-pick-bz-material="${m.id}"><b>${esc(m.bezeichnung)}</b><span>${esc(m.artikel_nr||"–")} · ${esc(m.material||"")} · ${esc(m.einheit||"")}</span></div>`).join("");
+ if(box.innerHTML)positionSuggest(e.target,box);
+});
+$("bzPositionSearch").addEventListener("focus",e=>{
+ const box=$("bzPositionResults");
+ box.innerHTML=searchBlitzschutzMaterials(e.target.value).map(m=>`<div class="item" data-pick-bz-material="${m.id}"><b>${esc(m.bezeichnung)}</b><span>${esc(m.artikel_nr||"–")} · ${esc(m.material||"")} · ${esc(m.einheit||"")}</span></div>`).join("");
+ if(box.innerHTML)positionSuggest(e.target,box);
+});
+$("bzPositionResults").addEventListener("click",e=>{
+ const it=e.target.closest("[data-pick-bz-material]");if(!it)return;
+ const mat=blitzschutzMaterials.find(m=>m.id===Number(it.dataset.pickBzMaterial));
+ if(mat)amBzPositions.push({artikel_nr:mat.artikel_nr||"",bezeichnung:mat.bezeichnung||"",material:mat.material||"",einheit:mat.einheit||"",menge:1});
+ renderBzPositionsTable();
+ $("bzPositionSearch").value="";
+ $("bzPositionResults").innerHTML="";
+});
+$("amPositionsBody").addEventListener("input",e=>{
+ const row=e.target.closest("tr");
+ if(!row)return;
+ const i=Number(e.target.dataset.amPos??e.target.dataset.amDesc??e.target.dataset.amQty??e.target.dataset.amUnit??e.target.dataset.amPrice??e.target.dataset.amTotal);
+ if(Number.isNaN(i)||!amPositions[i])return;
+ if(e.target.dataset.amPos!==undefined)amPositions[i].pos=e.target.value;
+ else if(e.target.dataset.amDesc!==undefined)amPositions[i].description=e.target.value;
+ else if(e.target.dataset.amUnit!==undefined)amPositions[i].unit=e.target.value;
+ else if(e.target.dataset.amQty!==undefined){
+  amPositions[i].quantity=Number(e.target.value)||0;
+  amPositions[i].total=Math.round(amPositions[i].quantity*(amPositions[i].unit_price||0)*100)/100;
+  const totalInput=row.querySelector(`[data-am-total="${i}"]`);
+  if(totalInput)totalInput.value=amPositions[i].total;
+ }else if(e.target.dataset.amPrice!==undefined){
+  amPositions[i].unit_price=Number(e.target.value)||0;
+  amPositions[i].total=Math.round((amPositions[i].quantity||0)*amPositions[i].unit_price*100)/100;
+  const totalInput=row.querySelector(`[data-am-total="${i}"]`);
+  if(totalInput)totalInput.value=amPositions[i].total;
+ }else if(e.target.dataset.amTotal!==undefined){
+  amPositions[i].total=Number(e.target.value)||0;
+ }
+ const total=amPositions.reduce((s,p)=>s+(Number(p.total)||0),0);
+ $("amPositionsSummary").textContent=`${amPositions.length} Positionen · Total CHF ${money(total)}`;
+});
+$("amPositionsBody").addEventListener("click",e=>{
+ const del=e.target.closest("[data-am-del]");
+ if(del){amPositions.splice(Number(del.dataset.amDel),1);renderAmPositionsTable();}
+});
+$("amAddPosition").onclick=()=>{
+ amPositions.push({pos:"",description:"",quantity:0,unit:"",unit_price:0,total:0});
+ renderAmPositionsTable();
+};
+
+function renderAmPhotoGallery(){
+ $("amPhotoGallery").innerHTML=amPhotos.map((src,i)=>`<div class="sketch-thumb-wrap">
+<img class="sketch-thumb" src="${src}">
+<div class="sketch-thumb-actions">
+<button type="button" class="gray" data-recognize-photo="${i}" title="Nur dieses Foto erkennen">🔎</button>
+<button type="button" class="red" data-remove-photo="${i}">✕</button>
+</div>
+</div>`).join("")||'<div class="small" style="color:var(--muted)">Noch kein Foto</div>';
+ $("amRecognizeAll").hidden=amPhotos.length===0;
+}
+async function recognizePhoto(src){
+ const res=await fetch(`${SUPABASE_URL}/functions/v1/extract-offer-positions`,{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   "Authorization":`Bearer ${SUPABASE_ANON_KEY}`,
+   "apikey":SUPABASE_ANON_KEY
+  },
+  body:JSON.stringify({image_base64:src})
+ });
+ const text=await res.text();
+ let data=null;
+ try{data=JSON.parse(text)}catch{}
+ if(!res.ok)throw new Error(`Server antwortete mit Status ${res.status}: ${(data&&data.error)||text.slice(0,300)||"unbekannter Fehler"}`);
+ if(!data?.ok)throw new Error((data&&data.error)||"Erkennung fehlgeschlagen.");
+ return (data.positions||[]).map(p=>({
+  pos:p.pos||"",
+  description:p.description||"",
+  quantity:Number(p.quantity)||0,
+  unit:p.unit||"",
+  unit_price:Number(p.unit_price)||0,
+  total:Number(p.total)||0
+ }));
+}
+
+$("amPhotoInput").addEventListener("change",async e=>{
+ const files=Array.from(e.target.files||[]);
+ if(!files.length)return;
+ for(const file of files){
+  try{
+   const dataUrl=await resizeImageFile(file,1600,0.85);
+   amPhotos.push(dataUrl);
+  }catch(err){alert("Foto konnte nicht geladen werden: "+err.message)}
+ }
+ $("amPhotoInput").value="";
+ renderAmPhotoGallery();
+});
+$("amPhotoGallery").addEventListener("click",async e=>{
+ const rm=e.target.closest("[data-remove-photo]");
+ if(rm){amPhotos.splice(Number(rm.dataset.removePhoto),1);renderAmPhotoGallery();return}
+ const rec=e.target.closest("[data-recognize-photo]");
+ if(rec){
+  const i=Number(rec.dataset.recognizePhoto);
+  const src=amPhotos[i];
+  if(!src)return;
+  rec.disabled=true;
+  $("amRecognizeStatus").textContent=`Erkenne Foto ${i+1} … das kann einige Sekunden dauern.`;
+  try{
+   const found=await recognizePhoto(src);
+   amPositions=amPositions.concat(found);
+   renderAmPositionsTable();
+   $("amRecognizeStatus").textContent=`${found.length} Position(en) aus Foto ${i+1} erkannt. Bitte prüfen.`;
+  }catch(err){
+   $("amRecognizeStatus").textContent="";
+   alert("Fehler bei der Erkennung: "+(err.message||err));
+  }
+  rec.disabled=false;
+ }
+});
+$("amRecognizeAll").onclick=async()=>{
+ if(!amPhotos.length){alert("Bitte zuerst mindestens ein Foto hinzufügen.");return}
+ $("amRecognizeAll").disabled=true;
+ let totalFound=0;
+ for(let i=0;i<amPhotos.length;i++){
+  $("amRecognizeStatus").textContent=`Erkenne Foto ${i+1} von ${amPhotos.length} … das kann einige Sekunden dauern.`;
+  try{
+   const found=await recognizePhoto(amPhotos[i]);
+   amPositions=amPositions.concat(found);
+   renderAmPositionsTable();
+   totalFound+=found.length;
+  }catch(err){
+   alert(`Fehler bei Foto ${i+1}: `+(err.message||err));
+  }
+ }
+ $("amRecognizeStatus").textContent=`${totalFound} Position(en) aus ${amPhotos.length} Foto(s) erkannt. Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.`;
+ $("amRecognizeAll").disabled=false;
+};
+
+$("amProjectSearch").addEventListener("input",e=>{
+ const box=$("amProjectResults");
+ box.innerHTML=searchProjects(e.target.value).map(p=>`<div class="item" data-pick-am-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.customer||"–")}</span></div>`).join("");
+ if(box.innerHTML)positionSuggest(e.target,box);
+});
+$("amProjectSearch").addEventListener("focus",e=>{
+ e.target.select();
+ const box=$("amProjectResults");
+ box.innerHTML=searchProjects(e.target.value).map(p=>`<div class="item" data-pick-am-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.customer||"–")}</span></div>`).join("");
+ if(box.innerHTML)positionSuggest(e.target,box);
+});
+function setAmProjectField(projId){
+ amSelectedProjectId=projId||null;
+ const proj=allProjects.find(x=>x.id===amSelectedProjectId);
+ $("amProjectSearch").value=proj?proj.name:"";
+ $("amProjectSelectedLabel").textContent=proj?"":"Kein Projekt ausgewählt";
+}
+$("amProjectResults").addEventListener("click",e=>{
+ const it=e.target.closest("[data-pick-am-project]");if(!it)return;
+ setAmProjectField(Number(it.dataset.pickAmProject));
+ $("amProjectResults").innerHTML="";
+});
+
+function newAusmassWithType(type){
+ amEditReturnTo="ausmassModal";
+ currentAusmassId=null;
+ $("printAusmassBtn").hidden=false;
+ $("amType").value=type;
+ showAmTypeSection(type);
+ $("amTitle").value="";
+ $("amNote").value="";
+ $("amDate").value=new Date().toISOString().slice(0,10);
+ $("amPhotoInput").value="";
+ $("amRecognizeStatus").textContent="";
+ amPhotos=[];
+ renderAmPhotoGallery();
+ amPositions=[];
+ renderAmPositionsTable();
+ amBzPositions=[];
+ renderBzPositionsTable();
+ setAmProjectField(currentProjectId);
+ $("ausmassModal").hidden=true;
+ $("ausmassEditModal").hidden=false;
+ updateAmFormTitle();
+}
+function updateAmFormTitle(){
+ const labels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
+ const h2=document.querySelector("#ausmassEditModal h2");
+ if(h2)h2.textContent=`📏 Ausmass – ${labels[$("amType").value]||""}`;
+}
+function openAusmass(a){
+ currentAusmassId=a.id;
+ $("printAusmassBtn").hidden=false;
+ $("amTitle").value=a.title||"";
+ $("amNote").value=a.note||"";
+ $("amDate").value=a.date||new Date().toISOString().slice(0,10);
+ $("amType").value=a.type||"offerte_erfassen";
+ showAmTypeSection($("amType").value);
+ setAmProjectField(a.project_id);
+ $("amPhotoInput").value="";
+ amPhotos=(a.photo_paths&&a.photo_paths.length)?[...a.photo_paths]:(a.photo_path?[a.photo_path]:[]);
+ renderAmPhotoGallery();
+ if(a.type==="blitzschutz_ausmass"){
+  amBzPositions=Array.isArray(a.positions)?a.positions.map(p=>({...p})):[];
+  renderBzPositionsTable();
+  amPositions=[];
+ }else{
+  amPositions=Array.isArray(a.positions)?a.positions.map(p=>({...p})):[];
+  renderAmPositionsTable();
+  amBzPositions=[];
+ }
+ $("amRecognizeStatus").textContent="";
+ $("ausmassModal").hidden=true;
+ $("ausmassEditModal").hidden=false;
+ updateAmFormTitle();
+}
+$("cancelAusmass").onclick=()=>{
+ $("ausmassEditModal").hidden=true;
+ if(amEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
+ else{$("ausmassModal").hidden=false;renderAusmassOverview()}
+ amEditReturnTo="ausmassModal";
+};
+function buildAusmassFromForm(){
+ const type=$("amType").value;
+ return {
+  title:$("amTitle").value,
+  note:$("amNote").value,
+  date:$("amDate").value,
+  type,
+  project_id:amSelectedProjectId,
+  photo_path:amPhotos[0]||null,
+  photo_paths:amPhotos,
+  positions:type==="blitzschutz_ausmass"?amBzPositions:amPositions,
+ };
+}
+$("printAusmassBtn").onclick=()=>printAusmass(buildAusmassFromForm());
+$("saveAusmass").onclick=async()=>{
+ const title=$("amTitle").value.trim();
+ if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
+ if(!amSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. Ein Ausmass kann nur einem Projekt zugeordnet gespeichert werden.");return}
+ $("saveAusmass").disabled=true;
+ try{
+  const photoUrls=[];
+  for(const p of amPhotos){
+   photoUrls.push(p.startsWith("data:")?await uploadMeasurementImage(p,"ausmass-photo"):p);
+  }
+  const payload={
+   project_id:amSelectedProjectId,
+   type:$("amType").value,
+   title,
+   note:$("amNote").value,
+   date:$("amDate").value||new Date().toISOString().slice(0,10),
+   photo_path:photoUrls[0]||null,
+   photo_paths:photoUrls,
+   positions:$("amType").value==="blitzschutz_ausmass"?amBzPositions:amPositions,
+   created_by:currentProfile?currentProfile.id:null,
+   updated_at:new Date().toISOString()
+  };
+  const {error}=currentAusmassId
+   ?await sb.from("ausmass").update(payload).eq("id",currentAusmassId)
+   :await sb.from("ausmass").insert(payload);
+  if(error)throw error;
+  $("ausmassEditModal").hidden=true;
+  if(amEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
+  else{$("ausmassModal").hidden=false;await renderAusmassOverview()}
+  amEditReturnTo="ausmassModal";
+ }catch(err){
+  alert("Fehler beim Speichern: "+(err.message||err));
+ }
+ $("saveAusmass").disabled=false;
+};
+
+async function renderAusmassOverview(){
+ const {data,error}=await sb.from("ausmass").select("*").order("created_at",{ascending:false}).limit(recentCount);
+ if(error){$("recentAusmassList").innerHTML=`<div class="empty">Fehler: ${esc(error.message)}</div>`;return}
+ const list=data||[];
+ ausmassCache=list;
+ const typeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
+ $("recentAusmassList").innerHTML=list.length?list.map(a=>{
+  const proj=allProjects.find(p=>p.id===a.project_id);
+  const posCount=Array.isArray(a.positions)?a.positions.length:0;
+  const thumb=(a.photo_paths&&a.photo_paths[0])||a.photo_path;
+  const thumbHtml=thumb?`<img class="meas-thumb" src="${thumb}" loading="lazy">`:`<div class="meas-thumb meas-thumb-empty" style="font-size:10px">${posCount} Pos.</div>`;
+  return `<div class="meas-row">
+${thumbHtml}
+<div class="meas-row-info"><b>${esc(a.title||"Ohne Titel")}</b><span>${esc(proj?proj.name:"Kein Projekt")} · ${esc(a.date||"–")} · ${esc(typeLabels[a.type]||a.type)}</span></div>
+<div class="meas-row-actions">
+<button class="blue" data-open-ausmass="${a.id}" title="Öffnen">✏️</button>
+<button class="gray" data-print-ausmass="${a.id}" title="Als PDF">🖨️</button>
+<button class="red" data-del-ausmass="${a.id}" title="Löschen">×</button>
+</div>
+</div>`;
+ }).join(""):'<div class="empty">Noch keine Ausmasse vorhanden.</div>';
+}
+$("recentAusmassList").addEventListener("click",e=>{
+ const openA=e.target.closest("[data-open-ausmass]");
+ if(openA){const a=ausmassCache.find(x=>x.id===Number(openA.dataset.openAusmass));if(a)openAusmass(a);return}
+ const printA=e.target.closest("[data-print-ausmass]");
+ if(printA){const a=ausmassCache.find(x=>x.id===Number(printA.dataset.printAusmass));if(a)printAusmass(a);return}
+ const delA=e.target.closest("[data-del-ausmass]");
+ if(delA){
+  if(!confirm("Dieses Ausmass wirklich löschen?"))return;
+  sb.from("ausmass").delete().eq("id",Number(delA.dataset.delAusmass)).then(({error})=>{
+   if(error){alert("Fehler: "+error.message);return}
+   renderAusmassOverview();
+  });
+ }
+});
+
+$("closeAusmass").onclick=()=>{$("ausmassModal").hidden=true};
+$("startFromAusmass").onclick=()=>goToStart();
+$("startFromAusmassEdit").onclick=()=>goToStart();
+
+function printAusmass(a){
+ const proj=allProjects.find(p=>p.id===a.project_id);
+ const typeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
+ const win=window.open("","_blank");
+ if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
+ const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
+ const positions=Array.isArray(a.positions)?a.positions:[];
+ const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+ let positionsHtml;
+ if(a.type==="blitzschutz_ausmass"){
+  positionsHtml=`<table class="am-cutlist">
+<thead><tr><th>Artikel-Nr.</th><th>Bezeichnung</th><th>Material</th><th>Einheit</th><th>Menge</th></tr></thead>
+<tbody>${positions.map(p=>`<tr><td>${esc(p.artikel_nr||"")}</td><td>${esc(p.bezeichnung||"")}</td><td>${esc(p.material||"")}</td><td>${esc(p.einheit||"")}</td><td>${esc(p.menge||0)}</td></tr>`).join("")}</tbody>
+</table>`;
+ }else{
+  const total=positions.reduce((s,p)=>s+(Number(p.total)||0),0);
+  positionsHtml=`<table class="am-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Preis/E</th><th>Total</th></tr></thead>
+<tbody>${positions.map(p=>`<tr><td>${esc(p.pos||"")}</td><td>${esc(p.description||"")}</td><td>${esc(p.quantity||0)}</td><td>${esc(p.unit||"")}</td><td>${money(p.unit_price||0)}</td><td>${money(p.total||0)}</td></tr>`).join("")}</tbody>
+<tfoot><tr><td colspan="5" style="text-align:left;font-weight:800">Total</td><td style="font-weight:800">${money(total)}</td></tr></tfoot>
+</table>`;
+ }
+ const bodyHtml=`<h1>${esc(a.title||"Ausmass")}</h1>
+<div class="am-section-head">Angaben</div>
+<table class="am-info-table cols2">
+<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(a.date||"–"))}</tr>
+<tr>${cell("Funktion",esc(typeLabels[a.type]||a.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+</table>
+<div class="am-section-head">Positionen</div>
+${positionsHtml}
+${a.note?`<div class="note">${esc(a.note)}</div>`:""}`;
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(a.title||"Ausmass")}</title>
+<style>
+ body{font-family:Arial,Helvetica,sans-serif;color:#17202a;margin:14mm}
+ h1{font-size:16pt;margin:0 0 2mm}
+ .note{font-size:10pt;white-space:pre-wrap;margin-top:4mm}
+ @page{size:A4 portrait;margin:12mm}
+ .am-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .am-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .am-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .am-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .am-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ table.am-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .am-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.4mm 2.6mm;text-transform:uppercase;letter-spacing:.02em}
+ .am-cutlist td{padding:2.2mm 2.6mm;border-bottom:.5pt solid #e2e8ec;font-size:9pt}
+ .am-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
+ .am-cutlist td:nth-child(3),.am-cutlist td:nth-child(5),.am-cutlist td:nth-child(6){text-align:left;font-variant-numeric:tabular-nums}
+ .am-cutlist tfoot td{border-top:1pt solid #17202a;padding:2.4mm 2.6mm;font-size:9.5pt}
+</style></head><body>
+${bodyHtml}
+</body></html>`);
+ win.document.close();
+ const doPrint=()=>{try{win.focus();win.print()}catch(e){}};
+ win.onload=doPrint;
+ setTimeout(doPrint,800);
+}
 
 // ---- Start: bestehende Sitzung prüfen -------------------------
 (async()=>{
