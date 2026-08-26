@@ -472,7 +472,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="settings" class="gray">⚙️ Einstellungen</button>
 </div>
 </div>
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.18</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.24</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -728,29 +728,37 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 </div>
 
 <div id="measTypeEinlaufblechKonisch" hidden>
-<div class="info">Wie "Einlaufblech gerade", aber Mass links und rechts sind unabhängig wählbar (konischer Verlauf). Werte für Überlappung und Abwicklung stammen aus Einstellungen → Massaufnahmen.</div>
-<div class="settings-section" data-section="ebk-uebernahme" style="margin:0 0 10px">
-<div class="settings-section-head" data-toggle-section="ebk-uebernahme"><h2 style="font-size:12px">↩️ Masse aus Rinne Halbrund übernehmen</h2><span class="settings-section-chevron">›</span></div>
-<div class="settings-section-body">
-<div class="small" id="ebk_rinneHint">Bitte zuerst oben ein Projekt auswählen.</div>
-<div class="grid" id="ebk_rinneAuswahl" hidden>
-<div><label>Rinnen-Massaufnahme</label><select id="ebk_rinneSelect"></select></div>
-<div><label>Segment</label><select id="ebk_segmentSelect"></select></div>
-</div>
-<div class="bar" id="ebk_rinneUebernehmenBar" hidden><button type="button" class="gray" id="ebk_uebernehmen">↩️ Länge &amp; Winkel übernehmen</button></div>
-</div>
-</div>
-<div id="ebk_diagram" class="eb-diagram-box"></div>
+<div class="info">Jedes Stück ist max. 2m lang (inkl. Überlappung/Reststück). Mass links und rechts sind pro Stück frei wählbar (konischer Verlauf). Werte für Stoss-Länge, Überlappung, Restschwelle und Umschläge stammen aus Einstellungen → Massaufnahmen → "Einlaufblech konisch" (eigene Werte, unabhängig von "Einlaufblech gerade").</div>
 <div class="grid">
-<div><label>Gesamtlänge (mm)</label><input id="ebk_gesamtlaenge" type="number" step="1"></div>
-<div><label>Winkel (°)</label><input id="ebk_winkel" type="number" step="0.1"></div>
-<div><label>Mass links (mm)</label><input id="ebk_massLinks" type="number" step="1"></div>
-<div><label>Mass rechts (mm)</label><input id="ebk_massRechts" type="number" step="1"></div>
-<div><label>Gehrung links</label><select id="ebk_gehrungLinks"><option value="nein">Nein</option><option value="ja">Ja</option></select></div>
-<div><label>Gehrung rechts</label><select id="ebk_gehrungRechts"><option value="nein">Nein</option><option value="ja">Ja</option></select></div>
+<div><label>Dachneigung / Winkel (°)</label><input id="ebk_dachneigung" type="number" step="0.1"></div>
+<div><label>Montage</label><select id="ebk_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
 <div><label>Abwicklung (mm)</label><select id="ebk_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
 </div>
+
+<div class="settings-section" data-section="ebk-uebernahme" style="margin:8px 0 10px">
+<div class="settings-section-head" data-toggle-section="ebk-uebernahme"><h2 style="font-size:12px">↩️ Stücke aus Rinne Halbrund übernehmen</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="small" id="ebk_rinneHint">Bitte zuerst oben ein Projekt auswählen.</div>
+<div id="ebk_rinneList" hidden></div>
+</div>
+</div>
+
+<div id="ebk_diagram" class="eb-diagram-box" style="margin-top:18px"></div>
+
+<h2 style="margin-top:14px">Stücke</h2>
+<div class="small" id="ebk_engeSeiteHint" style="margin-bottom:4px"></div>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:7%"><col style="width:13%"><col style="width:9%"><col style="width:9%"><col style="width:13%"><col style="width:14%"><col style="width:13%"><col style="width:14%"><col style="width:8%"></colgroup>
+<thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Winkel (°)</th><th>Mass links (mm)</th><th>Mass rechts (mm)</th><th id="ebk_engHeader">Eng (mm)</th><th></th></tr></thead>
+<tbody id="ebk_piecesBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="ebk_addPiece">＋ Stück hinzufügen</button></div>
 <div class="small" id="ebk_summary"></div>
+<h2 style="margin-top:14px">Grundriss</h2>
+<div class="info">Winkel = Richtungsänderung nach diesem Stück (positiv/negativ für beide Richtungen möglich, 0 = keine Ecke).</div>
+<div id="ebk_grundriss" class="eb-diagram-box"></div>
 </div>
 
 <div class="grid" style="margin-top:8px">
@@ -884,6 +892,22 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div><label>Restschwelle (mm)</label><input id="eb_restSchwelle" type="number" step="1"></div>
 </div>
 <div class="bar"><button id="saveEinlaufblechSettings" class="green">💾 Speichern</button></div>
+</div>
+</div>
+
+<div class="settings-section" data-section="einlaufblech-konisch">
+<div class="settings-section-head" data-toggle-section="einlaufblech-konisch"><h2>Einlaufblech konisch</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Eigene Werte für "Einlaufblech konisch", unabhängig von "Einlaufblech gerade". Gilt nur für dieses Gerät/diesen Browser.</div>
+<div class="grid">
+<div><label>Länge Stoss bis Stoss (mm)</label><input id="ebks_stossLaenge" type="number" step="1"></div>
+<div><label>Überlappung (mm)</label><input id="ebks_ueberlappung" type="number" step="1"></div>
+<div><label>Gehrungszugabe (mm)</label><input id="ebks_gehrungszugabe" type="number" step="1"></div>
+<div><label>Restschwelle (mm)</label><input id="ebks_restSchwelle" type="number" step="1"></div>
+<div><label>Umschlagbreite oben (mm)</label><input id="ebks_umschlagOben" type="number" step="1"></div>
+<div><label>Umschlagbreite unten (mm)</label><input id="ebks_umschlagUnten" type="number" step="1"></div>
+</div>
+<div class="bar"><button id="saveEbkSettings" class="green">💾 Speichern</button></div>
 </div>
 </div>
 
@@ -1066,6 +1090,7 @@ function photoQualitySettings(){
  return photoQuality==="hoch"?{maxDim:2200,quality:0.9}:{maxDim:1400,quality:0.75};
 }
 let einlaufblechSettings=JSON.parse(localStorage.getItem("sd_einlaufblechSettings")||"null")||{stoss_laenge:2000,ueberlappung:40,gehrungszugabe:0,umschlag_oben:0,umschlag_unten:0,rest_schwelle:500};
+let einlaufblechKonischSettings=JSON.parse(localStorage.getItem("sd_einlaufblechKonischSettings")||"null")||{stoss_laenge:2000,ueberlappung:40,gehrungszugabe:0,umschlag_oben:0,umschlag_unten:0,rest_schwelle:500};
 let blitzschutzMaterials=[];
 let rinneFittingTypes=[];
 let isMike=false;
@@ -1392,6 +1417,12 @@ function applyEinlaufblechSettings(){
  if(document.activeElement!==$("eb_umschlagOben"))$("eb_umschlagOben").value=einlaufblechSettings.umschlag_oben;
  if(document.activeElement!==$("eb_umschlagUnten"))$("eb_umschlagUnten").value=einlaufblechSettings.umschlag_unten;
  if(document.activeElement!==$("eb_restSchwelle"))$("eb_restSchwelle").value=einlaufblechSettings.rest_schwelle;
+ if(document.activeElement!==$("ebks_stossLaenge"))$("ebks_stossLaenge").value=einlaufblechKonischSettings.stoss_laenge;
+ if(document.activeElement!==$("ebks_ueberlappung"))$("ebks_ueberlappung").value=einlaufblechKonischSettings.ueberlappung;
+ if(document.activeElement!==$("ebks_gehrungszugabe"))$("ebks_gehrungszugabe").value=einlaufblechKonischSettings.gehrungszugabe;
+ if(document.activeElement!==$("ebks_umschlagOben"))$("ebks_umschlagOben").value=einlaufblechKonischSettings.umschlag_oben;
+ if(document.activeElement!==$("ebks_umschlagUnten"))$("ebks_umschlagUnten").value=einlaufblechKonischSettings.umschlag_unten;
+ if(document.activeElement!==$("ebks_restSchwelle"))$("ebks_restSchwelle").value=einlaufblechKonischSettings.rest_schwelle;
 }
 
 function esc(v){return String(v??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
@@ -1623,9 +1654,11 @@ $("closeSettings").onclick=()=>{
   renderMain();
  }
 };
-$("settingsModal").addEventListener("click",e=>{
+document.addEventListener("click",e=>{
  const h=e.target.closest("[data-toggle-section]");
- if(h){h.closest(".settings-section").classList.toggle("open");return}
+ if(h){h.closest(".settings-section").classList.toggle("open");}
+});
+$("settingsModal").addEventListener("click",e=>{
  const tab=e.target.closest("[data-settings-tab]");
  if(tab){
   document.querySelectorAll(".settings-tab").forEach(b=>b.classList.toggle("active",b===tab));
@@ -1726,6 +1759,22 @@ $("saveEinlaufblechSettings").onclick=()=>{
  if(restSchwelle<0){alert("Restschwelle darf nicht negativ sein.");return}
  einlaufblechSettings={stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,umschlag_oben:umschlagOben,umschlag_unten:umschlagUnten,rest_schwelle:restSchwelle};
  localStorage.setItem("sd_einlaufblechSettings",JSON.stringify(einlaufblechSettings));
+ alert("Gespeichert (gilt nur für dieses Gerät).");
+};
+$("saveEbkSettings").onclick=()=>{
+ const stossLaenge=Number($("ebks_stossLaenge").value);
+ const ueberlappung=Number($("ebks_ueberlappung").value);
+ const gehrungszugabe=Number($("ebks_gehrungszugabe").value)||0;
+ const umschlagOben=Number($("ebks_umschlagOben").value)||0;
+ const umschlagUnten=Number($("ebks_umschlagUnten").value)||0;
+ const restSchwelle=Number($("ebks_restSchwelle").value)||0;
+ if(!stossLaenge||stossLaenge<=0){alert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
+ if(ueberlappung<0){alert("Überlappung darf nicht negativ sein.");return}
+ if(gehrungszugabe<0){alert("Gehrungszugabe darf nicht negativ sein.");return}
+ if(umschlagOben<0||umschlagUnten<0){alert("Umschlagbreiten dürfen nicht negativ sein.");return}
+ if(restSchwelle<0){alert("Restschwelle darf nicht negativ sein.");return}
+ einlaufblechKonischSettings={stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,umschlag_oben:umschlagOben,umschlag_unten:umschlagUnten,rest_schwelle:restSchwelle};
+ localStorage.setItem("sd_einlaufblechKonischSettings",JSON.stringify(einlaufblechKonischSettings));
  alert("Gespeichert (gilt nur für dieses Gerät).");
 };
 
@@ -2609,7 +2658,7 @@ function setMeasProjectField(projId){
  const proj=allProjects.find(x=>x.id===measSelectedProjectId);
  $("measProjectSearch").value=proj?proj.name:"";
  $("measProjectSelectedLabel").textContent=proj?"":"Kein Projekt ausgewählt";
- if($("measType").value==="einlaufblech_konisch")refreshEbkRinneAuswahl();
+ if($("measType").value==="einlaufblech_konisch")refreshEbkRinneList();
 }
 $("measProjectResults").addEventListener("click",e=>{
  const it=e.target.closest("[data-pick-meas-project]");if(!it)return;
@@ -2645,13 +2694,11 @@ function newMeasurementWithType(type){
  rinneSegments=[];
  $("rinne_abwicklung").value="250";
  renderRinneResult();
- $("ebk_gesamtlaenge").value="";
- $("ebk_winkel").value="";
- $("ebk_massLinks").value="";
- $("ebk_massRechts").value="";
- $("ebk_gehrungLinks").value="nein";
- $("ebk_gehrungRechts").value="nein";
+ ebkPieces=[];
  $("ebk_abwicklung").value="250";
+ $("ebk_dachneigung").value="";
+ $("ebk_montage").value="links";
+ renderEbkPiecesTable();
  setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
@@ -2691,14 +2738,11 @@ function openMeasurement(m){
  rinneSegments=(m.type==="rinne_halbrund"&&Array.isArray(d.segments))?d.segments.map(s=>({...s})):[];
  $("rinne_abwicklung").value=d.rinneAbwicklung||"250";
  if(m.type==="rinne_halbrund")renderRinneResult();
- $("ebk_gesamtlaenge").value=d.gesamtlaenge||"";
- $("ebk_winkel").value=d.winkel||"";
- $("ebk_massLinks").value=d.massLinks||"";
- $("ebk_massRechts").value=d.massRechts||"";
- $("ebk_gehrungLinks").value=d.gehrungLinks?"ja":"nein";
- $("ebk_gehrungRechts").value=d.gehrungRechts?"ja":"nein";
+ ebkPieces=(m.type==="einlaufblech_konisch"&&Array.isArray(d.pieces))?d.pieces.map(p=>({...p})):[];
  $("ebk_abwicklung").value=d.abwicklung||"250";
- if(m.type==="einlaufblech_konisch"){renderEinlaufblechKonischResult();refreshEbkRinneAuswahl();}
+ $("ebk_dachneigung").value=d.dachneigung||"";
+ $("ebk_montage").value=d.montage||"links";
+ if(m.type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
  updateMeasFormTitle();
@@ -2753,7 +2797,17 @@ function einlaufblechDiagramSvg(winkel,massA,restBreite,umschlagOben,umschlagUnt
 
  const Ax=cx-35, Ay1=cy, Ay2=hU.apex[1];
 
- return `<svg viewBox="0 0 300 330" style="width:100%;max-width:220px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">
+ // viewBox dynamisch aus allen tatsächlich gezeichneten Punkten berechnen,
+ // damit die Zeichnung bei jedem Winkel/Mass zentriert bleibt, ohne Leerraum
+ // und ohne Gefahr des Abschneidens.
+ const allPts=[[cx,cy],aEnd,hU.p1,hU.apex,hU.p2,hU.tip,dEnd,hO.p1,hO.apex,hO.p2,hO.tip,[Ax-25,Ay1],[Ax,Ay2],arcStart,arcEnd,labelPt];
+ const padTextRight=70, padTextLeft=14, padY=20;
+ const xs=allPts.map(p=>p[0]), ys=allPts.map(p=>p[1]);
+ const minX=Math.min(...xs)-padTextLeft, maxX=Math.max(...xs)+padTextRight;
+ const minY=Math.min(...ys)-padY, maxY=Math.max(...ys)+padY;
+ const vbW=maxX-minX, vbH=maxY-minY;
+
+ return `<svg viewBox="${minX.toFixed(0)} ${minY.toFixed(0)} ${vbW.toFixed(0)} ${vbH.toFixed(0)}" style="width:100%;max-width:220px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">
   <path d="M ${fmt([cx,cy])} L ${fmt(aEnd)} L ${fmt(hU.p1)} Q ${fmt(hU.apex)} ${fmt(hU.p2)} L ${fmt(hU.tip)}" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M ${fmt([cx,cy])} L ${fmt(dEnd)} L ${fmt(hO.p1)} Q ${fmt(hO.apex)} ${fmt(hO.p2)} L ${fmt(hO.tip)}" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   <line x1="${Ax}" y1="${Ay1}" x2="${Ax}" y2="${Ay2.toFixed(1)}" stroke="#1769aa" stroke-width="3" stroke-linecap="round"/>
@@ -2879,97 +2933,227 @@ $("rinne_segmentsBody").addEventListener("click",e=>{
 });
 $("rinne_abwicklung").addEventListener("change",renderRinneResult);
 
-// ---- Einlaufblech konisch ----------------------------------------
-function calcEinlaufblechKonisch(gesamtlaenge,winkel,massLinks,massRechts,gehrungLinks,gehrungRechts,abwicklung){
- const umschlagOben=Number(einlaufblechSettings.umschlag_oben)||0;
- const umschlagUnten=Number(einlaufblechSettings.umschlag_unten)||0;
- const gehrungszugabe=Number(einlaufblechSettings.gehrungszugabe)||0;
- gesamtlaenge=Number(gesamtlaenge)||0;
- massLinks=Number(massLinks)||0;
- massRechts=Number(massRechts)||0;
- const massLinksEng=Math.max(0,massLinks-2);
- const massRechtsEng=Math.max(0,massRechts-2);
- const restBreiteLinks=Number(abwicklung)-massLinks-umschlagOben-umschlagUnten;
- const restBreiteRechts=Number(abwicklung)-massRechts-umschlagOben-umschlagUnten;
- const zugabeGesamt=(gehrungLinks?gehrungszugabe:0)+(gehrungRechts?gehrungszugabe:0);
- const zuschnittlaenge=gesamtlaenge>0?gesamtlaenge+zugabeGesamt:0;
- return {gesamtlaenge,winkel,massLinks,massRechts,massLinksEng,massRechtsEng,gehrungLinks,gehrungRechts,abwicklung,umschlagOben,umschlagUnten,restBreiteLinks,restBreiteRechts,zugabeGesamt,zuschnittlaenge};
+// ---- Einlaufblech konisch (Stueckliste, max. 2m pro Stueck) ------
+let ebkPieces=[];
+function splitLengthIntoPieces(effLaenge){
+ const stossLaenge=Number(einlaufblechKonischSettings.stoss_laenge)||1;
+ const ueberlappung=Number(einlaufblechKonischSettings.ueberlappung)||0;
+ const restSchwelle=Number(einlaufblechKonischSettings.rest_schwelle)||0;
+ let anzahl=effLaenge>0?Math.max(1,Math.ceil(effLaenge/stossLaenge)):0;
+ const zuschnittlaenge=stossLaenge+ueberlappung;
+ let rest=effLaenge-(anzahl-1)*stossLaenge;
+ if(anzahl>1&&rest>0&&rest<restSchwelle){anzahl=anzahl-1;rest=stossLaenge+rest;}
+ const restZuschnittlaenge=Math.max(0,rest);
+ const lengths=[];
+ for(let i=1;i<=anzahl;i++)lengths.push(i===anzahl?restZuschnittlaenge:zuschnittlaenge);
+ return lengths;
 }
-function einlaufblechKonischDiagramSvg(gesamtlaenge,massLinks,massRechts){
- gesamtlaenge=Number(gesamtlaenge)||0;massLinks=Number(massLinks)||0;massRechts=Number(massRechts)||0;
- const pad=34,w=280,h=170;
- const maxMass=Math.max(massLinks,massRechts,1);
- const scaleH=(h-2*pad)/maxMass;
- const hl=massLinks*scaleH,hr=massRechts*scaleH;
- const baseY=h-pad,x1=pad,x2=w-pad;
- const topLeftY=baseY-hl,topRightY=baseY-hr;
- return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;max-width:280px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">
-<line x1="${x1}" y1="${baseY}" x2="${x2}" y2="${baseY}" stroke="#17202a" stroke-width="3"/>
-<line x1="${x1}" y1="${baseY}" x2="${x1}" y2="${topLeftY.toFixed(1)}" stroke="#1769aa" stroke-width="3"/>
-<line x1="${x2}" y1="${baseY}" x2="${x2}" y2="${topRightY.toFixed(1)}" stroke="#1769aa" stroke-width="3"/>
-<line x1="${x1}" y1="${topLeftY.toFixed(1)}" x2="${x2}" y2="${topRightY.toFixed(1)}" stroke="#17202a" stroke-width="3" stroke-dasharray="4,3"/>
-<text x="${(x1+x2)/2}" y="${baseY+18}" font-size="12" text-anchor="middle" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" font-weight="700">${esc(gesamtlaenge)} mm</text>
-<text x="${x1-6}" y="${((baseY+topLeftY)/2).toFixed(1)}" font-size="12" text-anchor="end" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" font-weight="700">${esc(massLinks)}</text>
-<text x="${x2+6}" y="${((baseY+topRightY)/2).toFixed(1)}" font-size="12" text-anchor="start" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" font-weight="700">${esc(massRechts)}</text>
-</svg>`;
+function generateEbkGrundriss(pieces){
+ if(!pieces.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Stücke für den Grundriss.</div>';
+ let x=0,y=0,dir=0;
+ const pts=[{x,y}];
+ for(const p of pieces){
+  const rad=dir*Math.PI/180;
+  x+=(Number(p.laenge)||0)*Math.cos(rad);
+  y+=(Number(p.laenge)||0)*Math.sin(rad);
+  pts.push({x,y});
+  dir+=Number(p.winkel)||0;
+ }
+ const xs=pts.map(pt=>pt.x),ys=pts.map(pt=>pt.y);
+ const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+ const w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+ const pad=44,target=280;
+ const scale=Math.min(target/w,target/h);
+ const toSvg=pt=>[pad+(pt.x-minX)*scale,pad+(pt.y-minY)*scale];
+ const svgW=target+2*pad,svgH=target+2*pad;
+ let lines="",joints="",labels="",arrows="";
+
+ for(let i=0;i<pieces.length;i++){
+  const [x1,y1]=toSvg(pts[i]),[x2,y2]=toSvg(pts[i+1]);
+
+  lines+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
+
+  // Blechstoss: bei Winkel in der Winkelhalbierenden.
+  if(i<pieces.length-1){
+   const dx1=x2-x1,dy1=y2-y1,len1=Math.hypot(dx1,dy1)||1;
+   const dx2=pts[i+2].x-pts[i+1].x,dy2=pts[i+2].y-pts[i+1].y,len2=Math.hypot(dx2,dy2)||1;
+   const ux1=dx1/len1,uy1=dy1/len1;
+   const ux2=dx2/len2,uy2=dy2/len2;
+   let bx=ux1+ux2,by=uy1+uy2;
+   const bl=Math.hypot(bx,by)||1;
+   bx/=bl;by/=bl;
+   const nx=-by,ny=bx;
+   const jointLength=7;
+   joints+=`<line x1="${(x2-nx*jointLength).toFixed(1)}" y1="${(y2-ny*jointLength).toFixed(1)}" x2="${(x2+nx*jointLength).toFixed(1)}" y2="${(y2+ny*jointLength).toFixed(1)}" stroke="#17202a" stroke-width="3" stroke-linecap="round"/>`;
+  }
+
+  const mx=(x1+x2)/2,my=(y1+y2)/2;
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1;
+  const ux=dx/len,uy=dy/len;
+  const px=-uy,py=ux,off=15;
+
+  const lx=mx-px*off,ly=my-py*off;
+  labels+=`<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="10" fill="#1769aa"/><text x="${lx.toFixed(1)}" y="${(ly+3.5).toFixed(1)}" font-size="10" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
+
+  // EXAKT WIE IM RINNENMODUL: roter Blickrichtungs-Pfeil
+  const shaftFar=24,headLen=9,headWidth=5;
+  const farX=mx+px*shaftFar,farY=my+py*shaftFar;
+  const shaftEndX=mx+px*headLen,shaftEndY=my+py*headLen;
+  arrows+=`<line x1="${farX.toFixed(1)}" y1="${farY.toFixed(1)}" x2="${shaftEndX.toFixed(1)}" y2="${shaftEndY.toFixed(1)}" stroke="#b42318" stroke-width="2.2" stroke-linecap="round"/>`;
+  const p2x=shaftEndX+ux*headWidth,p2y=shaftEndY+uy*headWidth;
+  const p3x=shaftEndX-ux*headWidth,p3y=shaftEndY-uy*headWidth;
+  arrows+=`<polygon points="${mx.toFixed(1)},${my.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)} ${p3x.toFixed(1)},${p3y.toFixed(1)}" fill="#b42318"/>`;
+ }
+
+ return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${joints}${labels}</svg>`;
 }
-function renderEinlaufblechKonischResult(){
- const gesamtlaenge=$("ebk_gesamtlaenge").value;
- const winkel=$("ebk_winkel").value;
- const massLinks=$("ebk_massLinks").value;
- const massRechts=$("ebk_massRechts").value;
- const gehrungLinks=$("ebk_gehrungLinks").value==="ja";
- const gehrungRechts=$("ebk_gehrungRechts").value==="ja";
+function calcEbkPiece(p){
+ return {
+  massLinksEng:Math.max(0,(Number(p.massLinks)||0)-2),
+  massRechtsEng:Math.max(0,(Number(p.massRechts)||0)-2)
+ };
+}
+function ebkRestbreite(mass,abwicklung){
+ const umschlagOben=Number(einlaufblechKonischSettings.umschlag_oben)||0;
+ const umschlagUnten=Number(einlaufblechKonischSettings.umschlag_unten)||0;
+ return Number(abwicklung)-(Number(mass)||0)-umschlagOben-umschlagUnten;
+}
+function ebkEngeSeite(){
+ return $("ebk_montage").value==="links"?"rechts":"links";
+}
+function renderEbkDiagram(){
+ const winkel=$("ebk_dachneigung").value;
  const abwicklung=$("ebk_abwicklung").value;
- $("ebk_diagram").innerHTML=einlaufblechKonischDiagramSvg(gesamtlaenge,massLinks,massRechts);
- const r=calcEinlaufblechKonisch(gesamtlaenge,winkel,massLinks,massRechts,gehrungLinks,gehrungRechts,abwicklung);
- const warn=(r.restBreiteLinks<0||r.restBreiteRechts<0)?" ⚠️":"";
- $("ebk_summary").textContent=Number(gesamtlaenge)>0?`Zuschnittlänge ${r.zuschnittlaenge} mm · Mass links eng ${r.massLinksEng} mm · Mass rechts eng ${r.massRechtsEng} mm · Restbreite links ${r.restBreiteLinks} mm · Restbreite rechts ${r.restBreiteRechts} mm${warn}`+(r.zugabeGesamt>0?` · Gehrungszugabe ${r.zugabeGesamt} mm`:""):"";
+ const engeSeite=ebkEngeSeite();
+ const masseAufEngerSeite=ebkPieces.map(p=>Number(engeSeite==="links"?p.massLinks:p.massRechts)||0).filter(v=>v>0);
+ const repMass=masseAufEngerSeite.length?masseAufEngerSeite.reduce((a,b)=>a+b,0)/masseAufEngerSeite.length:null;
+ const restBreite=repMass?(Number(abwicklung)-repMass-(Number(einlaufblechKonischSettings.umschlag_oben)||0)-(Number(einlaufblechKonischSettings.umschlag_unten)||0)):null;
+ $("ebk_diagram").innerHTML=einlaufblechDiagramSvg(winkel,repMass,restBreite,einlaufblechKonischSettings.umschlag_oben,einlaufblechKonischSettings.umschlag_unten);
 }
-["ebk_gesamtlaenge","ebk_winkel","ebk_massLinks","ebk_massRechts","ebk_gehrungLinks","ebk_gehrungRechts","ebk_abwicklung"].forEach(id=>{
- $(id).addEventListener("input",renderEinlaufblechKonischResult);
- $(id).addEventListener("change",renderEinlaufblechKonischResult);
+function renderEbkPiecesTable(){
+ const abwicklung=$("ebk_abwicklung").value;
+ const engeSeite=ebkEngeSeite();
+ $("ebk_engHeader").textContent=`Eng ${engeSeite} (mm)`;
+ $("ebk_engeSeiteHint").textContent=`Enges Mass wird bei Montage "von ${$("ebk_montage").value}" auf der ${engeSeite}en Seite jedes Stücks berechnet.`;
+ $("ebk_piecesBody").innerHTML=ebkPieces.map((p,i)=>{
+  const c=calcEbkPiece(p);
+  const engWert=engeSeite==="links"?c.massLinksEng:c.massRechtsEng;
+  const rbEng=ebkRestbreite(engeSeite==="links"?p.massLinks:p.massRechts,abwicklung);
+  const warn=rbEng<0?' style="color:var(--red)"':"";
+  return `<tr>
+<td>${i+1}</td>
+<td><input data-ebk-laenge="${i}" type="number" step="1" value="${p.laenge||0}"></td>
+<td><input data-ebk-gl="${i}" type="checkbox" ${p.gehrungLinks?"checked":""}></td>
+<td><input data-ebk-gr="${i}" type="checkbox" ${p.gehrungRechts?"checked":""}></td>
+<td><input data-ebk-winkel="${i}" type="number" step="1" value="${p.winkel||0}"></td>
+<td><input data-ebk-ml="${i}" type="number" step="1" value="${p.massLinks||0}"></td>
+<td><input data-ebk-mr="${i}" type="number" step="1" value="${p.massRechts||0}"></td>
+<td${warn}>${engWert}${rbEng<0?" ⚠️":""}</td>
+<td><button type="button" class="red" data-ebk-del="${i}" style="padding:6px 8px">×</button></td>
+</tr>`;
+ }).join("")||'<tr><td colspan="9" class="small">Noch keine Stücke. "+ Stück hinzufügen" oder Stücke aus einer Rinne-Massaufnahme übernehmen.</td></tr>';
+ const gesamtlaenge=ebkPieces.reduce((s,p)=>s+(Number(p.laenge)||0),0);
+ const anyWarn=ebkPieces.some(p=>ebkRestbreite(engeSeite==="links"?p.massLinks:p.massRechts,abwicklung)<0);
+ $("ebk_summary").textContent=ebkPieces.length?`${ebkPieces.length} Stück(e) · Gesamtlänge ${gesamtlaenge} mm · Abwicklung ${abwicklung} mm${anyWarn?" · ⚠️ Restbreite bei mind. einem Stück negativ":""}`:"";
+ renderEbkDiagram();
+ $("ebk_grundriss").innerHTML=generateEbkGrundriss(ebkPieces);
+}
+$("ebk_montage").addEventListener("change",renderEbkPiecesTable);
+$("ebk_dachneigung").addEventListener("input",renderEbkDiagram);
+$("ebk_addPiece").onclick=()=>{
+ const defaultLen=(Number(einlaufblechKonischSettings.stoss_laenge)||2000)+(Number(einlaufblechKonischSettings.ueberlappung)||0);
+ ebkPieces.push({laenge:defaultLen,gehrungLinks:false,gehrungRechts:false,winkel:0,massLinks:0,massRechts:0});
+ renderEbkPiecesTable();
+};
+$("ebk_piecesBody").addEventListener("input",e=>{
+ const i=Number(e.target.dataset.ebkLaenge??e.target.dataset.ebkWinkel??e.target.dataset.ebkMl??e.target.dataset.ebkMr);
+ if(Number.isNaN(i)||!ebkPieces[i])return;
+ if(e.target.dataset.ebkLaenge!==undefined)ebkPieces[i].laenge=Number(e.target.value)||0;
+ else if(e.target.dataset.ebkWinkel!==undefined)ebkPieces[i].winkel=Number(e.target.value)||0;
+ else if(e.target.dataset.ebkMl!==undefined)ebkPieces[i].massLinks=Number(e.target.value)||0;
+ else if(e.target.dataset.ebkMr!==undefined)ebkPieces[i].massRechts=Number(e.target.value)||0;
+ const row=e.target.closest("tr");
+ if(row&&row.children[7]){
+  const c=calcEbkPiece(ebkPieces[i]);
+  const engeSeite=ebkEngeSeite();
+  const engWert=engeSeite==="links"?c.massLinksEng:c.massRechtsEng;
+  const rbEng=ebkRestbreite(engeSeite==="links"?ebkPieces[i].massLinks:ebkPieces[i].massRechts,$("ebk_abwicklung").value);
+  row.children[7].textContent=`${engWert}${rbEng<0?" ⚠️":""}`;
+  row.children[7].style.color=rbEng<0?"var(--red)":"";
+ }
+ const gesamtlaenge=ebkPieces.reduce((s,p)=>s+(Number(p.laenge)||0),0);
+ $("ebk_summary").textContent=`${ebkPieces.length} Stück(e) · Gesamtlänge ${gesamtlaenge} mm · Abwicklung ${$("ebk_abwicklung").value} mm`;
+ if(e.target.dataset.ebkMl!==undefined||e.target.dataset.ebkMr!==undefined)renderEbkDiagram();
+ if(e.target.dataset.ebkLaenge!==undefined||e.target.dataset.ebkWinkel!==undefined)$("ebk_grundriss").innerHTML=generateEbkGrundriss(ebkPieces);
 });
+$("ebk_piecesBody").addEventListener("change",e=>{
+ const i=Number(e.target.dataset.ebkGl??e.target.dataset.ebkGr);
+ if(Number.isNaN(i)||!ebkPieces[i])return;
+ if(e.target.dataset.ebkGl!==undefined)ebkPieces[i].gehrungLinks=e.target.checked;
+ else if(e.target.dataset.ebkGr!==undefined)ebkPieces[i].gehrungRechts=e.target.checked;
+});
+$("ebk_piecesBody").addEventListener("click",e=>{
+ const del=e.target.closest("[data-ebk-del]");
+ if(del){ebkPieces.splice(Number(del.dataset.ebkDel),1);renderEbkPiecesTable();}
+});
+$("ebk_abwicklung").addEventListener("change",renderEbkPiecesTable);
+
 let ebkRinneCache=[];
-async function refreshEbkRinneAuswahl(){
+async function refreshEbkRinneList(){
  if(!measSelectedProjectId){
   $("ebk_rinneHint").hidden=false;
   $("ebk_rinneHint").textContent="Bitte zuerst oben ein Projekt auswählen.";
-  $("ebk_rinneAuswahl").hidden=true;
-  $("ebk_rinneUebernehmenBar").hidden=true;
+  $("ebk_rinneList").hidden=true;
   return;
  }
  const {data,error}=await sb.from("measurements").select("*").eq("project_id",measSelectedProjectId).eq("type","rinne_halbrund").order("date",{ascending:false});
- if(error){$("ebk_rinneHint").hidden=false;$("ebk_rinneHint").textContent="Fehler beim Laden: "+error.message;$("ebk_rinneAuswahl").hidden=true;$("ebk_rinneUebernehmenBar").hidden=true;return}
+ if(error){$("ebk_rinneHint").hidden=false;$("ebk_rinneHint").textContent="Fehler beim Laden: "+error.message;$("ebk_rinneList").hidden=true;return}
  ebkRinneCache=data||[];
  if(!ebkRinneCache.length){
   $("ebk_rinneHint").hidden=false;
   $("ebk_rinneHint").textContent="Für dieses Projekt sind noch keine Rinne-Halbrund-Massaufnahmen gespeichert.";
-  $("ebk_rinneAuswahl").hidden=true;
-  $("ebk_rinneUebernehmenBar").hidden=true;
+  $("ebk_rinneList").hidden=true;
   return;
  }
  $("ebk_rinneHint").hidden=true;
- $("ebk_rinneAuswahl").hidden=false;
- $("ebk_rinneUebernehmenBar").hidden=false;
- $("ebk_rinneSelect").innerHTML=ebkRinneCache.map(m=>`<option value="${m.id}">${esc(m.title||"Ohne Titel")} (${esc(m.date||"–")})</option>`).join("");
- renderEbkSegmentSelect();
+ $("ebk_rinneList").hidden=false;
+ $("ebk_rinneList").innerHTML=ebkRinneCache.map(m=>{
+  const segCount=(m.data&&m.data.segments&&m.data.segments.length)||0;
+  return `<div class="meas-row">
+<div class="meas-row-info"><b>${esc(m.title||"Ohne Titel")}</b><span>${esc(m.date||"–")} · ${segCount} Segment(e)</span></div>
+<div class="meas-row-actions"><button type="button" class="blue" data-pick-ebk-rinne="${m.id}">↩️ Übernehmen</button></div>
+</div>`;
+ }).join("");
 }
-function renderEbkSegmentSelect(){
- const m=ebkRinneCache.find(x=>x.id===Number($("ebk_rinneSelect").value));
+$("ebk_rinneList").addEventListener("click",e=>{
+ const btn=e.target.closest("[data-pick-ebk-rinne]");
+ if(!btn)return;
+ const m=ebkRinneCache.find(x=>x.id===Number(btn.dataset.pickEbkRinne));
  const segs=(m&&m.data&&m.data.segments)||[];
- $("ebk_segmentSelect").innerHTML=segs.map((s,i)=>`<option value="${i}">Segment ${i+1}: ${esc(s.laenge||0)} mm, ${esc(s.winkel??0)}°</option>`).join("")||'<option value="">Keine Segmente</option>';
-}
-$("ebk_rinneSelect").addEventListener("change",renderEbkSegmentSelect);
-$("ebk_uebernehmen").onclick=()=>{
- const m=ebkRinneCache.find(x=>x.id===Number($("ebk_rinneSelect").value));
- const segs=(m&&m.data&&m.data.segments)||[];
- const seg=segs[Number($("ebk_segmentSelect").value)];
- if(!seg){alert("Bitte ein Segment auswählen.");return}
- $("ebk_gesamtlaenge").value=seg.laenge||0;
- $("ebk_winkel").value=seg.winkel??0;
- renderEinlaufblechKonischResult();
-};
+ if(!segs.length){alert("Diese Rinnen-Massaufnahme hat keine Segmente.");return}
+ if(ebkPieces.length&&!confirm("Vorhandene Stücke werden durch die aus dieser Rinne erzeugten Stücke ersetzt. Fortfahren?"))return;
+ const gehrungszugabe=Number(einlaufblechKonischSettings.gehrungszugabe)||0;
+ const neuePieces=[];
+ segs.forEach((seg,i)=>{
+  const gehrungLinks=i>0&&Number(segs[i-1].winkel||0)!==0;
+  const gehrungRechts=Number(seg.winkel||0)!==0;
+  const zugabe=(gehrungLinks?gehrungszugabe:0)+(gehrungRechts?gehrungszugabe:0);
+  const effLaenge=(Number(seg.laenge)||0)+zugabe;
+  const lengths=splitLengthIntoPieces(effLaenge);
+  lengths.forEach((len,j)=>{
+   neuePieces.push({
+    laenge:len,
+    gehrungLinks:j===0?gehrungLinks:false,
+    gehrungRechts:j===lengths.length-1?gehrungRechts:false,
+    winkel:j===lengths.length-1?(Number(seg.winkel)||0):0,
+    massLinks:0,massRechts:0
+   });
+  });
+ });
+ ebkPieces=neuePieces;
+ renderEbkPiecesTable();
+ alert(`${neuePieces.length} Stück(e) aus ${segs.length} Segment(en) übernommen. Bitte jetzt pro Stück Mass links/rechts eintragen.`);
+});
 
 function calcEinlaufblech(gesamtlaenge,montage,massA,gehrungLinks,gehrungRechts,abwicklung){
  const stossLaenge=Number(einlaufblechSettings.stoss_laenge)||1;
@@ -3041,7 +3225,7 @@ function showMeasTypeSection(type){
  $("measTypeEinlaufblechKonisch").hidden=(type!=="einlaufblech_konisch");
  if(type==="einlaufblech_gerade")renderEinlaufblechResult();
  if(type==="rinne_halbrund")renderRinneResult();
- if(type==="einlaufblech_konisch"){renderEinlaufblechKonischResult();refreshEbkRinneAuswahl();}
+ if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
 }
 $("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
 $("openEinlaufblechSettings").onclick=()=>{
@@ -3083,15 +3267,13 @@ function buildMeasurementFromForm(){
   return {...base,photo_path:null,sketch_paths:[],data:{rinneAbwicklung:$("rinne_abwicklung").value,segments:segmentsWithZuschnitt,gesamtlaenge}};
  }
  if(type==="einlaufblech_konisch"){
-  const gesamtlaenge=Number($("ebk_gesamtlaenge").value)||0;
-  const winkel=Number($("ebk_winkel").value)||0;
-  const massLinks=Number($("ebk_massLinks").value)||0;
-  const massRechts=Number($("ebk_massRechts").value)||0;
-  const gehrungLinks=$("ebk_gehrungLinks").value==="ja";
-  const gehrungRechts=$("ebk_gehrungRechts").value==="ja";
   const abwicklung=Number($("ebk_abwicklung").value);
-  const r=calcEinlaufblechKonisch(gesamtlaenge,winkel,massLinks,massRechts,gehrungLinks,gehrungRechts,abwicklung);
-  return {...base,photo_path:null,sketch_paths:[],data:{...r}};
+  const dachneigung=Number($("ebk_dachneigung").value)||0;
+  const montage=$("ebk_montage").value;
+  const engeSeite=ebkEngeSeite();
+  const gesamtlaenge=ebkPieces.reduce((s,p)=>s+(Number(p.laenge)||0),0);
+  const piecesWithEng=ebkPieces.map(p=>({...p,...calcEbkPiece(p)}));
+  return {...base,photo_path:null,sketch_paths:[],data:{abwicklung,dachneigung,montage,engeSeite,pieces:piecesWithEng,gesamtlaenge}};
  }
  return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{}};
 }
@@ -3112,7 +3294,7 @@ $("saveMeasurement").onclick=async()=>{
  if(type==="skizze_foto"&&!measPhotoDataUrl&&!measExistingPhotoUrl&&measSketches.length===0){alert("Bitte ein Foto aufnehmen oder mindestens eine Skizze zeichnen.");return}
  if(type==="einlaufblech_gerade"&&(!Number($("eb_gesamtlaenge").value)||Number($("eb_gesamtlaenge").value)<=0)){alert("Bitte eine gültige Gesamtlänge eingeben.");return}
  if(type==="rinne_halbrund"&&(!rinneSegments.length||!rinneSegments.some(s=>Number(s.laenge)>0))){alert("Bitte mindestens ein Segment mit einer gültigen Länge eingeben.");return}
- if(type==="einlaufblech_konisch"&&(!Number($("ebk_gesamtlaenge").value)||Number($("ebk_gesamtlaenge").value)<=0)){alert("Bitte eine gültige Gesamtlänge eingeben.");return}
+ if(type==="einlaufblech_konisch"&&(!ebkPieces.length||!ebkPieces.some(p=>Number(p.laenge)>0))){alert("Bitte mindestens ein Stück mit einer gültigen Länge erfassen.");return}
  $("saveMeasurement").disabled=true;
  try{
   const form=buildMeasurementFromForm();
@@ -3282,31 +3464,55 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="einlaufblech_konisch"){
   const d=m.data||{};
+  const pieces=d.pieces||[];
+  const engeSeite=d.engeSeite||"rechts";
   extraCss=`
  .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
  .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
  .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
- .eb-info-table.cols4 td{width:25%}
  .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
  .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- .eb-restbox{margin-top:3mm;background:#eaf4fa;border-left:3px solid #1769aa;border-radius:4px;padding:2.5mm 3.5mm;font-size:9pt}
- .eb-restbox b{color:#0f5288}
- .eb-restbox.warn{background:#fff0ef;border-left-color:#b42318}
- .eb-diagram{text-align:center;margin:4mm 0}`;
+ .eb-diagram{text-align:center;margin:4mm 0}
+ .eb-diagram-row{display:flex;justify-content:center;align-items:flex-start;gap:10mm;margin:4mm 0}
+ .eb-diagram-row .eb-diagram{flex:1;min-width:0;margin:0}
+ .eb-diagram-row .eb-diagram-title{font-size:7pt;font-weight:700;color:#68737d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2mm}
+ .eb-diagram-row svg{max-width:100%!important;height:auto}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:9.5pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
+ .eb-cutlist td.warn{color:#b42318;font-weight:700}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  const masseEngeSeite=pieces.map(p=>Number(engeSeite==="links"?p.massLinks:p.massRechts)||0).filter(v=>v>0);
+  const repMass=masseEngeSeite.length?masseEngeSeite.reduce((a,b)=>a+b,0)/masseEngeSeite.length:null;
+  const restBreite=repMass?(Number(d.abwicklung)-repMass-(Number(einlaufblechKonischSettings.umschlag_oben)||0)-(Number(einlaufblechKonischSettings.umschlag_unten)||0)):null;
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
 <tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
 <tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+<tr>${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
+<tr>${cell("Dachneigung / Winkel",esc(d.dachneigung||0)+"°")}${cell("Montage",'von '+esc(d.montage||"–")+` (eng ${esc(engeSeite)})`)}</tr>
 </table>
-<div class="eb-diagram">${einlaufblechKonischDiagramSvg(d.gesamtlaenge,d.massLinks,d.massRechts)}</div>
-<div class="eb-section-head">Masse &amp; Einstellungen</div>
-<table class="eb-info-table cols4">
-<tr>${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}${cell("Winkel",esc(d.winkel||0)+"°")}${cell("Mass links",esc(d.massLinks||0)+" mm")}${cell("Mass rechts",esc(d.massRechts||0)+" mm")}</tr>
-<tr>${cell("Gehrung links",d.gehrungLinks?"Ja":"Nein")}${cell("Gehrung rechts",d.gehrungRechts?"Ja":"Nein")}${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Zuschnittlänge",esc(d.zuschnittlaenge||0)+" mm")}</tr>
+<div class="eb-diagram-row">
+ <div class="eb-diagram">
+  <div class="eb-diagram-title">Schnittskizze</div>
+  ${einlaufblechDiagramSvg(d.dachneigung,repMass,restBreite,einlaufblechKonischSettings.umschlag_oben,einlaufblechKonischSettings.umschlag_unten)}
+ </div>
+ <div class="eb-diagram">
+  <div class="eb-diagram-title">Grundriss</div>
+  ${generateEbkGrundriss(pieces)}
+ </div>
+</div>
+<div class="eb-section-head">Stücke</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Winkel (°)</th><th>Mass links (mm)</th><th>Mass rechts (mm)</th><th>Eng ${esc(engeSeite)} (mm)</th></tr></thead>
+<tbody>${pieces.map((p,i)=>{
+ const engWert=engeSeite==="links"?p.massLinksEng:p.massRechtsEng;
+ const warn=ebkRestbreite(engeSeite==="links"?p.massLinks:p.massRechts,d.abwicklung)<0;
+ return `<tr><td>${i+1}</td><td>${esc(p.laenge||0)}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td><td>${esc(p.winkel||0)}</td><td>${esc(p.massLinks||0)}</td><td>${esc(p.massRechts||0)}</td><td${warn?' class="warn"':""}>${esc(engWert??0)}${warn?" ⚠️":""}</td></tr>`;
+}).join("")}</tbody>
 </table>
-<div class="eb-restbox${(d.restBreiteLinks<0||d.restBreiteRechts<0)?" warn":""}"><b>Mass links eng:</b> ${esc(d.massLinksEng)} mm &nbsp;·&nbsp; <b>Mass rechts eng:</b> ${esc(d.massRechtsEng)} mm &nbsp;·&nbsp; <b>Restbreite links:</b> ${esc(d.restBreiteLinks)} mm &nbsp;·&nbsp; <b>Restbreite rechts:</b> ${esc(d.restBreiteRechts)} mm${(d.restBreiteLinks<0||d.restBreiteRechts<0)?" ⚠️":""}${d.zugabeGesamt?` &nbsp;·&nbsp; <b>Gehrungszugabe:</b> ${esc(d.zugabeGesamt)} mm`:""}</div>
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else{
   const sketches=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
