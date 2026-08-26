@@ -462,7 +462,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="settings" class="gray">⚙️ Einstellungen</button>
 </div>
 </div>
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.04</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.05</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -734,8 +734,8 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <h2 style="margin-top:14px">Erkannte Positionen</h2>
 <div class="scroll">
 <table class="eb-table">
-<colgroup><col style="width:10%"><col style="width:34%"><col style="width:12%"><col style="width:12%"><col style="width:16%"><col style="width:16%"></colgroup>
-<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Preis/E</th><th>Total</th></tr></thead>
+<colgroup><col style="width:14%"><col style="width:50%"><col style="width:16%"><col style="width:14%"><col style="width:6%"></colgroup>
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th></th></tr></thead>
 <tbody id="amPositionsBody"></tbody>
 </table>
 </div>
@@ -2641,11 +2641,9 @@ function renderAmPositionsTable(){
 <td><input data-am-desc="${i}" value="${esc(p.description||"")}"></td>
 <td><input data-am-qty="${i}" type="number" step=".01" value="${p.quantity||0}"></td>
 <td><input data-am-unit="${i}" value="${esc(p.unit||"")}"></td>
-<td><input data-am-price="${i}" type="number" step=".01" value="${p.unit_price||0}"></td>
-<td style="display:flex;gap:4px;align-items:center"><input data-am-total="${i}" type="number" step=".01" value="${p.total||0}" style="flex:1"><button type="button" class="red" data-am-del="${i}" style="padding:6px 8px;flex:0 0 auto">×</button></td>
-</tr>`).join("")||'<tr><td colspan="6" class="small">Noch keine Positionen. Foto aufnehmen und "Positionen erkennen" klicken, oder manuell hinzufügen.</td></tr>';
- const total=amPositions.reduce((s,p)=>s+(Number(p.total)||0),0);
- $("amPositionsSummary").textContent=amPositions.length?`${amPositions.length} Positionen · Total CHF ${money(total)}`:"";
+<td><button type="button" class="red" data-am-del="${i}" style="padding:6px 8px">×</button></td>
+</tr>`).join("")||'<tr><td colspan="5" class="small">Noch keine Positionen. Foto aufnehmen und "Positionen erkennen" klicken, oder manuell hinzufügen.</td></tr>';
+ $("amPositionsSummary").textContent=amPositions.length?`${amPositions.length} Positionen`:"";
 }
 function showAmTypeSection(type){
  $("amTypeOfferte").hidden=(type!=="offerte_erfassen");
@@ -2692,35 +2690,19 @@ $("bzPositionResults").addEventListener("click",e=>{
  $("bzPositionResults").innerHTML="";
 });
 $("amPositionsBody").addEventListener("input",e=>{
- const row=e.target.closest("tr");
- if(!row)return;
- const i=Number(e.target.dataset.amPos??e.target.dataset.amDesc??e.target.dataset.amQty??e.target.dataset.amUnit??e.target.dataset.amPrice??e.target.dataset.amTotal);
+ const i=Number(e.target.dataset.amPos??e.target.dataset.amDesc??e.target.dataset.amQty??e.target.dataset.amUnit);
  if(Number.isNaN(i)||!amPositions[i])return;
  if(e.target.dataset.amPos!==undefined)amPositions[i].pos=e.target.value;
  else if(e.target.dataset.amDesc!==undefined)amPositions[i].description=e.target.value;
  else if(e.target.dataset.amUnit!==undefined)amPositions[i].unit=e.target.value;
- else if(e.target.dataset.amQty!==undefined){
-  amPositions[i].quantity=Number(e.target.value)||0;
-  amPositions[i].total=Math.round(amPositions[i].quantity*(amPositions[i].unit_price||0)*100)/100;
-  const totalInput=row.querySelector(`[data-am-total="${i}"]`);
-  if(totalInput)totalInput.value=amPositions[i].total;
- }else if(e.target.dataset.amPrice!==undefined){
-  amPositions[i].unit_price=Number(e.target.value)||0;
-  amPositions[i].total=Math.round((amPositions[i].quantity||0)*amPositions[i].unit_price*100)/100;
-  const totalInput=row.querySelector(`[data-am-total="${i}"]`);
-  if(totalInput)totalInput.value=amPositions[i].total;
- }else if(e.target.dataset.amTotal!==undefined){
-  amPositions[i].total=Number(e.target.value)||0;
- }
- const total=amPositions.reduce((s,p)=>s+(Number(p.total)||0),0);
- $("amPositionsSummary").textContent=`${amPositions.length} Positionen · Total CHF ${money(total)}`;
+ else if(e.target.dataset.amQty!==undefined)amPositions[i].quantity=Number(e.target.value)||0;
 });
 $("amPositionsBody").addEventListener("click",e=>{
  const del=e.target.closest("[data-am-del]");
  if(del){amPositions.splice(Number(del.dataset.amDel),1);renderAmPositionsTable();}
 });
 $("amAddPosition").onclick=()=>{
- amPositions.push({pos:"",description:"",quantity:0,unit:"",unit_price:0,total:0});
+ amPositions.push({pos:"",description:"",quantity:0,unit:""});
  renderAmPositionsTable();
 };
 
@@ -2753,9 +2735,7 @@ async function recognizePhoto(src){
   pos:p.pos||"",
   description:p.description||"",
   quantity:Number(p.quantity)||0,
-  unit:p.unit||"",
-  unit_price:Number(p.unit_price)||0,
-  total:Number(p.total)||0
+  unit:p.unit||""
  }));
 }
 
@@ -3000,11 +2980,9 @@ function printAusmass(a){
 <tbody>${positions.map(p=>`<tr><td>${esc(p.artikel_nr||"")}</td><td>${esc(p.bezeichnung||"")}</td><td>${esc(p.material||"")}</td><td>${esc(p.einheit||"")}</td><td>${esc(p.menge||0)}</td></tr>`).join("")}</tbody>
 </table>`;
  }else{
-  const total=positions.reduce((s,p)=>s+(Number(p.total)||0),0);
   positionsHtml=`<table class="am-cutlist">
-<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Preis/E</th><th>Total</th></tr></thead>
-<tbody>${positions.map(p=>`<tr><td>${esc(p.pos||"")}</td><td>${esc(p.description||"")}</td><td>${esc(p.quantity||0)}</td><td>${esc(p.unit||"")}</td><td>${money(p.unit_price||0)}</td><td>${money(p.total||0)}</td></tr>`).join("")}</tbody>
-<tfoot><tr><td colspan="5" style="text-align:left;font-weight:800">Total</td><td style="font-weight:800">${money(total)}</td></tr></tfoot>
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${positions.map(p=>`<tr><td>${esc(p.pos||"")}</td><td>${esc(p.description||"")}</td><td>${esc(p.quantity||0)}</td><td>${esc(p.unit||"")}</td></tr>`).join("")}</tbody>
 </table>`;
  }
  const bodyHtml=`<h1>${esc(a.title||"Ausmass")}</h1>
