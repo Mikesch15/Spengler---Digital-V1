@@ -51,6 +51,7 @@ td{border-top:1px solid var(--line);padding:6px;font-size:12px;vertical-align:mi
 tbody tr:hover td{background:#f7fafc}
 td input,td select{min-height:34px;font-size:12px}
 .money{text-align:left;font-variant-numeric:tabular-nums}
+.print-only{display:none}
 .total{text-align:right;font-size:20px;font-weight:900;margin-top:10px;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px}
 .small{font-size:11px;color:var(--muted);margin-top:7px}
 .search{position:relative}.suggest{position:fixed;z-index:1000;min-width:320px;max-width:min(92vw,560px);background:#fff;border:1px solid #bcc9d0;border-radius:10px;box-shadow:0 14px 28px #17242d26;max-height:260px;overflow:auto}
@@ -215,6 +216,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:7pt}
 #printCompany{font-size:8pt!important;color:#17202a!important}
 .search{display:none!important}
 #projectSelectedLabel button{display:none!important}
+.print-only{display:block!important;font-weight:700;margin-top:2px}
 
 /* Section cards become a compact report, not an app screenshot */
 .card{
@@ -460,7 +462,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="settings" class="gray">⚙️ Einstellungen</button>
 </div>
 </div>
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.01</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.04</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -503,20 +505,16 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
   <div style="text-align:right"><b class="js-company-name" id="printCompany">PETER KÜNZI AG</b><br><span id="printAddress"></span></div>
 </div>
 
-<div class="report-topnav no-print">
-<button id="closeReportEdit" class="gray">✓ Fertig</button>
-<button id="navBackFromReport" class="gray">🏠 Start</button>
-</div>
-
 <div class="brand">SPENGLER-DIGITAL</div>
 <h1>Regierapport</h1>
 
 <div class="card">
 <h2>Regieauftrag</h2>
 <div class="grid">
-<div class="wide"><label>Projekt (Pflichtfeld)</label>
+<div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
 <div class="search"><input id="projectSearch" placeholder="Suchen: Projektname, Auftrags-Nr., Auftraggeber, Objekt …" autocomplete="off"><div id="projectResults" class="suggest"></div></div>
 <div class="small" id="projectSelectedLabel"></div>
+<div class="print-only" id="printProjectLine"></div>
 </div>
 <div><label>Datum</label><input id="date" type="date"></div>
 <div><label>Auftrags-Nr.</label><input id="orderNo" placeholder="z. B. 176712"></div>
@@ -573,6 +571,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="print" class="blue">🖨️ PDF / Drucken</button>
 <button id="save" class="green">💾 Speichern</button>
 <button id="clear" class="red">Alles löschen</button>
+<button id="startFromReportEdit" class="gray">🏠 Start</button>
 </div>
 </div>
 </div>
@@ -584,10 +583,10 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <h2>📁 Projekte</h2>
 <div class="info">Projekte werden zentral gespeichert und sind auf allen Geräten sichtbar, mit denen sich Mitarbeiter anmelden.</div>
 <div class="grid" style="margin-bottom:8px">
-<div><label>Projektname</label><input id="newProjectName" placeholder="z. B. Neubau Muster"></div>
-<div><label>Auftrags-Nr.</label><input id="newProjectOrderNo" placeholder="optional"></div>
+<div><label>Projektname (Pflichtfeld)</label><input id="newProjectName" placeholder="z. B. Neubau Muster"></div>
+<div><label>Auftrags-Nr. (Pflichtfeld)</label><input id="newProjectOrderNo" placeholder="z. B. 176712"></div>
+<div><label>Adresse (Pflichtfeld)</label><input id="newProjectObject" placeholder="z. B. Musterstrasse 1, 3000 Bern"></div>
 <div><label>Auftraggeber</label><input id="newProjectCustomer" placeholder="optional"></div>
-<div><label>Objekt</label><input id="newProjectObject" placeholder="optional"></div>
 </div>
 <div class="bar"><button id="addProject" class="blue">＋ Projekt anlegen</button></div>
 <div id="projectList"></div>
@@ -631,7 +630,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
-<div class="wide"><label>Projekt (Pflichtfeld)</label>
+<div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
 <div class="search"><input id="measProjectSearch" placeholder="Projekt suchen …" autocomplete="off"><div id="measProjectResults" class="suggest"></div></div>
 <div class="small" id="measProjectSelectedLabel">Kein Projekt ausgewählt</div>
 </div>
@@ -717,7 +716,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div hidden><label>Funktion</label><select id="amType"><option value="offerte_erfassen">Offerte erfassen</option><option value="blitzschutz_ausmass">Blitzschutzausmass</option></select></div>
 <div><label>Datum</label><input type="date" id="amDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="amTitle" placeholder="z. B. Offerte Muster AG"></div>
-<div class="wide"><label>Projekt (Pflichtfeld)</label>
+<div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
 <div class="search"><input id="amProjectSearch" placeholder="Projekt suchen …" autocomplete="off"><div id="amProjectResults" class="suggest"></div></div>
 <div class="small" id="amProjectSelectedLabel">Kein Projekt ausgewählt</div>
 </div>
@@ -1060,8 +1059,7 @@ function goToStart(){
  showStart();
 }
 $("navReport").onclick=async()=>{$("reportsModal").hidden=false;await renderReportsOverview()};
-$("navBackFromReport").onclick=()=>{goToStart()};
-$("closeReportEdit").onclick=()=>{$("reportScreen").hidden=true;$("reportsModal").hidden=false;renderReportsOverview()};
+$("startFromReportEdit").onclick=()=>{goToStart()};
 $("newReport").onclick=()=>{
  currentProjectId=null;currentReportId=null;
  works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:settings.rates[0]?.[0]||"",hours:0}];
@@ -1704,10 +1702,11 @@ function renderProjectSelect(){
  const p=allProjects.find(x=>x.id===currentProjectId);
  $("projectSearch").value=p?p.name:"";
  $("projectSelectedLabel").textContent=p?"":"Kein Projekt ausgewählt";
+ $("printProjectLine").textContent=p?p.name:"";
 }
 function renderProjectSuggest(q){
  const box=$("projectResults");
- box.innerHTML=searchProjects(q).map(p=>`<div class="item" data-pick-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.customer||"–")} · ${esc(p.object||"–")}</span></div>`).join("");
+ box.innerHTML=searchProjects(q).map(p=>`<div class="item" data-pick-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.object||"–")} · ${esc(p.customer||"–")}</span></div>`).join("");
  return box;
 }
 $("projectSearch").addEventListener("input",e=>{
@@ -1735,7 +1734,7 @@ $("projectResults").addEventListener("click",e=>{
 function renderProjectList(){
  $("projectList").innerHTML=allProjects.map(p=>`<div class="project-row">
 <div class="project-row-top"><b>${esc(p.name)}</b><button class="red" data-del-project="${p.id}">Löschen</button></div>
-<div class="small">${esc(p.order_no||"–")} · ${esc(p.customer||"–")} · ${esc(p.object||"–")}</div>
+<div class="small">${esc(p.order_no||"–")} · ${esc(p.object||"–")} · ${esc(p.customer||"–")}</div>
 <div class="project-row-actions">
 <button class="gray" data-toggle-reports="${p.id}">📋 Rapporte anzeigen</button>
 <button class="gray" data-toggle-measurements="${p.id}">📐 Massaufnahmen anzeigen</button>
@@ -1819,12 +1818,16 @@ $("amTypeChooserModal").addEventListener("click",e=>{
 $("closeProjects").onclick=()=>{$("projectsModal").hidden=true};
 $("addProject").onclick=async()=>{
  const name=$("newProjectName").value.trim();
+ const orderNo=$("newProjectOrderNo").value.trim();
+ const address=$("newProjectObject").value.trim();
  if(!name){alert("Bitte einen Projektnamen eingeben.");return}
+ if(!orderNo){alert("Bitte eine Auftrags-Nr. eingeben.");return}
+ if(!address){alert("Bitte eine Adresse eingeben.");return}
  const {error}=await sb.from("projects").insert({
   name,
-  order_no:$("newProjectOrderNo").value.trim(),
+  order_no:orderNo,
   customer:$("newProjectCustomer").value.trim(),
-  object:$("newProjectObject").value.trim()
+  object:address
  });
  if(error){alert("Fehler: "+error.message);return}
  $("newProjectName").value="";$("newProjectOrderNo").value="";$("newProjectCustomer").value="";$("newProjectObject").value="";
