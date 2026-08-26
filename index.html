@@ -472,7 +472,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="settings" class="gray">⚙️ Einstellungen</button>
 </div>
 </div>
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.15</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.17</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -582,6 +582,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="print" class="blue">🖨️ PDF / Drucken</button>
 <button id="save" class="green">💾 Speichern</button>
 <button id="clear" class="red">Alles löschen</button>
+<button id="reportEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
 <button id="startFromReportEdit" class="gray">🏠 Start</button>
 </div>
 </div>
@@ -733,6 +734,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="saveMeasurement" class="green">💾 Speichern</button>
 <button id="printMeasurementBtn" class="gray" hidden>🖨️ Als PDF</button>
 <button id="cancelMeasurement" class="gray">Abbrechen</button>
+<button id="measurementEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
 <button id="startFromMeasurementEdit" class="gray">🏠 Start</button>
 </div>
 </div>
@@ -810,6 +812,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="saveAusmass" class="green">💾 Speichern</button>
 <button id="printAusmassBtn" class="gray" hidden>🖨️ Als PDF</button>
 <button id="cancelAusmass" class="gray">Abbrechen</button>
+<button id="ausmassEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
 <button id="startFromAusmassEdit" class="gray">🏠 Start</button>
 </div>
 </div>
@@ -1042,6 +1045,7 @@ let isMike=false;
 let protectedUnlocked=false;
 const PROTECTED_PASSWORD="Rinnen_ml95";
 let allProjects=[],currentProjectId=null,currentReportId=null;
+let projectReportsCache=[];
 let projectMeasurementsCache=[];
 let projectAusmassCache=[];
 let recentMeasurementsCache=[];
@@ -1189,9 +1193,9 @@ const debouncedGlobalSearch=debounce(async(q)=>{
  $("globalSearchResults").innerHTML=results.length?results.map((r,i)=>{
   const proj=allProjects.find(p=>p.id===r.data.project_id);
   let label,sub,icon;
-  if(r.kind==="report"){icon="📋";label=proj?proj.name:(r.data.customer||"Ohne Projekt");sub=`${r.data.date||"–"} · ${r.data.order_no||"–"} · Regierapport`}
-  else if(r.kind==="measurement"){icon="📐";label=r.data.title||"Ohne Titel";sub=`${proj?proj.name:"Kein Projekt"} · ${r.data.date||"–"} · ${measTypeLabels[r.data.type]||r.data.type}`}
-  else{icon="📏";label=r.data.title||"Ohne Titel";sub=`${proj?proj.name:"Kein Projekt"} · ${r.data.date||"–"} · ${amTypeLabels[r.data.type]||r.data.type}`}
+  if(r.kind==="report"){icon="📋";label="Regierapport";sub=`${proj?proj.name:(r.data.customer||"Ohne Projekt")} · ${r.data.date||"–"} · ${r.data.order_no||"–"}`}
+  else if(r.kind==="measurement"){icon="📐";label=`Massaufnahme (${measTypeLabels[r.data.type]||r.data.type})`;sub=`${r.data.title||"Ohne Titel"} · ${proj?proj.name:"Kein Projekt"} · ${r.data.date||"–"}`}
+  else{icon="📏";label=`Ausmass (${amTypeLabels[r.data.type]||r.data.type})`;sub=`${r.data.title||"Ohne Titel"} · ${proj?proj.name:"Kein Projekt"} · ${r.data.date||"–"}`}
   return `<div class="meas-row">
 <div class="meas-row-info"><b>${icon} ${esc(label)}</b><span>${esc(sub)}</span></div>
 <div class="meas-row-actions"><button class="blue" data-open-search-result="${i}" title="Öffnen">✏️</button></div>
@@ -1211,6 +1215,7 @@ $("globalSearchResults").addEventListener("click",e=>{
 });
 $("navReport").onclick=async()=>{$("reportsModal").hidden=false;await renderReportsOverview()};
 $("startFromReportEdit").onclick=()=>{goToStart()};
+$("reportEditSettingsShortcut").onclick=()=>openSettingsTo("protected","rates");
 $("newReport").onclick=()=>{
  isDirty=false;
  currentProjectId=null;currentReportId=null;
@@ -1235,7 +1240,7 @@ async function renderReportsOverview(){
  $("recentReportsList").innerHTML=rows.length?rows.map(r=>{
   const proj=allProjects.find(p=>p.id===r.project_id);
   return `<div class="meas-row">
-<div class="meas-row-info"><b>${esc(proj?proj.name:(r.customer||"Ohne Projekt"))}</b><span>${esc(r.date||"–")} · ${esc(r.order_no||"–")}</span></div>
+<div class="meas-row-info"><b>Regierapport</b><span>${esc(proj?proj.name:(r.customer||"Ohne Projekt"))} · ${esc(r.date||"–")} · ${esc(r.order_no||"–")}</span></div>
 <div class="meas-row-actions">
 <button class="blue" data-open-report-overview="${r.id}" title="Öffnen">✏️</button>
 <button class="red" data-del-report-overview="${r.id}" title="Löschen">×</button>
@@ -1291,6 +1296,12 @@ $("startFromProjects").onclick=()=>{goToStart()};
 $("startFromMeasurements").onclick=()=>{goToStart()};
 $("measurementSettingsShortcut").onclick=()=>openSettingsTo("measurements");
 $("startFromMeasurementEdit").onclick=()=>{goToStart()};
+$("measurementEditSettingsShortcut").onclick=()=>{
+ const type=$("measType").value;
+ if(type==="rinne_halbrund")openSettingsTo("measurements","rinne");
+ else if(type==="einlaufblech_gerade")openSettingsTo("measurements","einlaufblech");
+ else openSettingsTo("measurements");
+};
 $("startFromSettings").onclick=()=>{goToStart()};
 $("startFromSheet").onclick=()=>{goToStart()};
 
@@ -2087,13 +2098,28 @@ async function loadProjectAusmass(projectId){
  const typeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
  projectAusmassCache=list;
  box.innerHTML=list.length?list.map(a=>`<div class="report-row">
-<div class="report-row-info"><b>${esc(a.title||"Ohne Titel")}</b><span>${esc(a.date||"ohne Datum")} · ${esc(typeLabels[a.type]||a.type)}</span></div>
+<div class="report-row-info"><b>Ausmass (${esc(typeLabels[a.type]||a.type)})</b><span>${esc(a.title||"Ohne Titel")} · ${esc(a.date||"ohne Datum")}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-ausmass="${a.id}">Öffnen</button>
 <button class="gray" data-print-project-ausmass="${a.id}">🖨️</button>
 <button class="red" data-del-project-ausmass="${a.id}">×</button>
 </div>
 </div>`).join(""):'<div class="small">Noch keine Ausmasse zu diesem Projekt gespeichert.</div>';
+}
+async function loadProjectReports(projectId){
+ const box=document.querySelector(`[data-reports-body="${projectId}"]`);
+ box.innerHTML='<div class="small">Lädt…</div>';
+ const {data,error}=await sb.from("reports").select("*").eq("project_id",projectId).order("date",{ascending:false});
+ if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
+ const list=data||[];
+ projectReportsCache=list;
+ box.innerHTML=list.length?list.map(r=>`<div class="report-row">
+<div class="report-row-info"><b>Regierapport</b><span>${esc(r.date||"ohne Datum")} · ${esc(r.order_no||"–")}</span></div>
+<div class="report-row-actions">
+<button class="blue" data-open-report="${r.id}">Öffnen</button>
+<button class="red" data-del-report="${r.id}">×</button>
+</div>
+</div>`).join(""):'<div class="small">Noch keine Rapporte zu diesem Projekt gespeichert.</div>';
 }
 async function loadProjectMeasurements(projectId){
  const box=document.querySelector(`[data-measurements-body="${projectId}"]`);
@@ -2104,7 +2130,7 @@ async function loadProjectMeasurements(projectId){
  const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund"};
  projectMeasurementsCache=list;
  box.innerHTML=list.length?list.map(m=>`<div class="report-row">
-<div class="report-row-info"><b>${esc(m.title||"Ohne Titel")}</b><span>${esc(m.date||"ohne Datum")} · ${esc(typeLabels[m.type]||m.type)}</span></div>
+<div class="report-row-info"><b>Massaufnahme (${esc(typeLabels[m.type]||m.type)})</b><span>${esc(m.title||"Ohne Titel")} · ${esc(m.date||"ohne Datum")}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>
 <button class="gray" data-print-project-measurement="${m.id}">🖨️</button>
@@ -2996,7 +3022,7 @@ async function renderMeasurementsOverview(){
   }
   return `<div class="meas-row">
 ${thumbHtml}
-<div class="meas-row-info"><b>${esc(m.title||"Ohne Titel")}</b><span>${esc(proj?proj.name:"Kein Projekt")} · ${esc(m.date||"–")} · ${esc(typeLabels[m.type]||m.type)}</span></div>
+<div class="meas-row-info"><b>Massaufnahme (${esc(typeLabels[m.type]||m.type)})</b><span>${esc(m.title||"Ohne Titel")} · ${esc(proj?proj.name:"Kein Projekt")} · ${esc(m.date||"–")}</span></div>
 <div class="meas-row-actions">
 <button class="blue" data-open-measurement="${m.id}" title="Öffnen">✏️</button>
 <button class="red" data-del-measurement="${m.id}" title="Löschen">×</button>
@@ -3456,7 +3482,7 @@ async function renderAusmassOverview(){
   const thumbHtml=thumb?`<img class="meas-thumb" src="${thumb}" loading="lazy">`:`<div class="meas-thumb meas-thumb-empty" style="font-size:10px">${posCount} Pos.</div>`;
   return `<div class="meas-row">
 ${thumbHtml}
-<div class="meas-row-info"><b>${esc(a.title||"Ohne Titel")}</b><span>${esc(proj?proj.name:"Kein Projekt")} · ${esc(a.date||"–")} · ${esc(typeLabels[a.type]||a.type)}</span></div>
+<div class="meas-row-info"><b>Ausmass (${esc(typeLabels[a.type]||a.type)})</b><span>${esc(a.title||"Ohne Titel")} · ${esc(proj?proj.name:"Kein Projekt")} · ${esc(a.date||"–")}</span></div>
 <div class="meas-row-actions">
 <button class="blue" data-open-ausmass="${a.id}" title="Öffnen">✏️</button>
 <button class="gray" data-print-ausmass="${a.id}" title="Als PDF">🖨️</button>
@@ -3484,6 +3510,10 @@ $("closeAusmass").onclick=()=>{$("ausmassModal").hidden=true};
 $("ausmassSettingsShortcut").onclick=()=>openSettingsTo("protected","blitzschutz");
 $("startFromAusmass").onclick=()=>goToStart();
 $("startFromAusmassEdit").onclick=()=>goToStart();
+$("ausmassEditSettingsShortcut").onclick=()=>{
+ if($("amType").value==="blitzschutz_ausmass")openSettingsTo("protected","blitzschutz");
+ else openSettingsTo("protected");
+};
 
 function printAusmass(a){
  const proj=allProjects.find(p=>p.id===a.project_id);
