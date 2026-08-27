@@ -471,8 +471,11 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="openGlobalSearch" class="gray">🔍 Suche</button>
 <button id="settings" class="gray">⚙️ Einstellungen</button>
 </div>
+<div class="bar" style="margin-top:6px;justify-content:center">
+<button id="openFeedback" class="gray">💬 Feedback geben</button>
 </div>
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.39</div>
+</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.47</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -486,6 +489,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="einlaufblech_gerade"><span class="start-nav-icon">📐</span><span>Einlaufblech gerade</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="rinne_halbrund"><span class="start-nav-icon">🏠</span><span>Rinne Halbrund</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="einlaufblech_konisch"><span class="start-nav-icon">📐</span><span>Einlaufblech konisch</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="freies_profil"><span class="start-nav-icon">📐</span><span>Freies Profil</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
 <button id="cancelMeasTypeChooser" class="gray">Abbrechen</button>
@@ -577,6 +581,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div class="sig-block"><div class="sig-line"></div><div class="sig-label">Ort, Datum · Unterschrift Auftraggeber</div></div>
 <div class="sig-block"><div class="sig-line"></div><div class="sig-label">Unterschrift ausführender Mitarbeiter</div></div>
 <div class="sig-timestamp" id="printTimestamp"></div>
+<div class="small" id="printMeta" style="color:var(--muted);margin-top:4px"></div>
 </div>
 
 <div class="bar no-print">
@@ -637,6 +642,33 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 </div>
 </div>
 
+<!-- FEEDBACK -->
+<div id="feedbackModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>💬 Feedback geben</h2>
+<div class="info">Dein Feedback geht direkt an den Entwickler der App. Bitte möglichst konkret beschreiben.</div>
+<div class="grid">
+<div><label>Modul</label><select id="feedbackModul">
+<option value="Allgemein">Allgemein</option>
+<option value="Regierapport">Regierapport</option>
+<option value="Massaufnahme – Skizze/Foto">Massaufnahme – Skizze/Foto</option>
+<option value="Massaufnahme – Einlaufblech gerade">Massaufnahme – Einlaufblech gerade</option>
+<option value="Massaufnahme – Einlaufblech konisch">Massaufnahme – Einlaufblech konisch</option>
+<option value="Massaufnahme – Rinne Halbrund">Massaufnahme – Rinne Halbrund</option>
+<option value="Ausmass – Offerte erfassen">Ausmass – Offerte erfassen</option>
+<option value="Ausmass – Blitzschutzausmass">Ausmass – Blitzschutzausmass</option>
+<option value="Projekte">Projekte</option>
+<option value="Einstellungen">Einstellungen</option>
+<option value="Sonstiges">Sonstiges</option>
+</select></div>
+<div class="wide"><label>Dein Feedback</label><textarea id="feedbackMessage" placeholder="Was ist dir aufgefallen? Was fehlt? Was funktioniert nicht wie erwartet?" rows="5"></textarea></div>
+</div>
+<div class="bar"><button id="saveFeedback" class="green">Absenden</button><button id="cancelFeedback" class="gray">Abbrechen</button></div>
+</div>
+</div>
+</div>
+
 <!-- MASSAUFNAHME: LISTE / SUCHE -->
 <div id="measurementsModal" class="modal" hidden>
 <div class="modalbox">
@@ -656,7 +688,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div class="card">
 <h2>📐 Neue Massaufnahme</h2>
 <div class="grid" style="margin-bottom:8px">
-<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option></select></div>
+<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
 <div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
@@ -791,6 +823,29 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div id="ebk_grundriss" class="eb-diagram-box"></div>
 </div>
 
+<div id="measTypeFreiesProfil" hidden>
+<div class="info">Zuerst das Blechprofil Schenkel für Schenkel festlegen (Länge + Winkel zum vorherigen Schenkel; 180° = Umschlag). Danach unten die Segmente mit den tatsächlichen Massen erfassen.</div>
+<h2>Profil (Schenkel)</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:10%"><col style="width:24%"><col style="width:52%"><col style="width:14%"></colgroup>
+<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th><th></th></tr></thead>
+<tbody id="fp_schenkelBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="fp_addSchenkel">＋ Schenkel hinzufügen</button></div>
+<div id="fp_profilDiagram" class="eb-diagram-box"></div>
+
+<div class="grid" style="margin-top:10px">
+<div><label>Konisch (Mass links/rechts pro Schenkel)</label><select id="fp_konisch"><option value="nein">Nein</option><option value="ja">Ja</option></select></div>
+</div>
+
+<h2 style="margin-top:14px">Segmente</h2>
+<div id="fp_segmenteList"></div>
+<div class="bar"><button type="button" class="gray" id="fp_addSegment">＋ Segment hinzufügen</button></div>
+<div class="small" id="fp_summary"></div>
+</div>
+
 <div class="grid" style="margin-top:8px">
 <div class="wide"><label>Notiz / Masse</label><textarea id="measNote" placeholder="Masse, Hinweise …"></textarea></div>
 </div>
@@ -895,6 +950,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button type="button" class="settings-tab" data-settings-tab="measurements">Massaufnahmen</button>
 <button type="button" class="settings-tab" data-settings-tab="ausmass">Ausmass</button>
 <button type="button" class="settings-tab" data-settings-tab="protected">🔒 Geschützt</button>
+<button type="button" class="settings-tab" data-settings-tab="feedback" id="feedbackTabBtn" hidden>💬 Feedback</button>
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="general">
@@ -1041,6 +1097,11 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 </div>
 </div>
 
+<div class="settings-tab-panel" data-settings-panel="feedback" hidden>
+<div class="info">Nur für dich als Admin sichtbar. Zeigt alle Feedback-Meldungen, die über den "💬 Feedback"-Button in der App eingereicht wurden.</div>
+<div id="feedbackList"></div>
+</div>
+
 <div class="bar"><button id="closeSettings" class="green">✓ Fertig</button><button id="startFromSettings" class="gray">🏠 Start</button></div>
 </div>
 </div>
@@ -1107,6 +1168,34 @@ const COMPANY_CODE="kuenzi-intern";
 let settings={employees:[],rates:[],materials:[]};
 let employeeIds=[],rateIds=[],materialIds=[];
 let currentProfile=null;
+let allProfiles=[];
+function profileName(id){
+ if(!id)return null;
+ const p=allProfiles.find(x=>x.id===id);
+ return p?`${p.first_name} ${p.last_name}`:null;
+}
+function isAdmin(){
+ return !!(currentProfile&&currentProfile.first_name==="Mike"&&currentProfile.last_name==="Ledermann");
+}
+async function renderFeedbackList(){
+ if(!isAdmin())return;
+ $("feedbackList").innerHTML='<div class="small">Lädt…</div>';
+ const {data,error}=await sb.from("feedback").select("*,profiles(first_name,last_name)").order("resolved",{ascending:true}).order("created_at",{ascending:false});
+ if(error){$("feedbackList").innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
+ const list=data||[];
+ $("feedbackList").innerHTML=list.length?list.map(f=>{
+  const wer=f.profiles?`${f.profiles.first_name} ${f.profiles.last_name}`:"Unbekannt";
+  const wann=f.created_at?new Date(f.created_at).toLocaleString("de-CH"):"–";
+  return `<div class="settingrow" style="display:block;padding:10px${f.resolved?";opacity:.55":""}">
+<div class="small" style="color:var(--muted)"><b>${esc(f.module)}</b> · ${esc(wer)} · ${esc(wann)}${f.resolved?" · ✓ erledigt":""}</div>
+<div style="margin-top:4px;white-space:pre-wrap${f.resolved?";text-decoration:line-through":""}">${esc(f.message)}</div>
+<div class="bar" style="margin-top:6px">
+<button type="button" class="gray" data-feedback-toggle="${f.id}" data-resolved="${f.resolved?"1":"0"}">${f.resolved?"↩️ Als offen markieren":"✓ Als erledigt markieren"}</button>
+<button type="button" class="red" data-feedback-del="${f.id}">Löschen</button>
+</div>
+</div>`;
+ }).join(""):'<div class="empty">Noch kein Feedback vorhanden.</div>';
+}
 let companyName="PETER KÜNZI AG";
 let companyAddress="";
 let logoUrl="";
@@ -1131,6 +1220,7 @@ let isMike=false;
 let protectedUnlocked=false;
 const PROTECTED_PASSWORD="Rinnen_ml95";
 let allProjects=[],currentProjectId=null,currentReportId=null;
+let currentReportMeta={};
 let projectReportsCache=[];
 let projectMeasurementsCache=[];
 let projectAusmassCache=[];
@@ -1144,6 +1234,44 @@ let mats=[];
 let selectedSheet=null,cuts=[{l:"",b:"",q:1}];
 
 const $=id=>document.getElementById(id);
+$("openFeedback").onclick=()=>{
+ $("feedbackModul").value="Allgemein";
+ $("feedbackMessage").value="";
+ $("feedbackModal").hidden=false;
+};
+$("cancelFeedback").onclick=()=>{$("feedbackModal").hidden=true};
+$("feedbackList").addEventListener("click",async e=>{
+ const toggle=e.target.closest("[data-feedback-toggle]");
+ if(toggle){
+  const id=Number(toggle.dataset.feedbackToggle);
+  const neuerStatus=toggle.dataset.resolved!=="1";
+  const {error}=await sb.from("feedback").update({resolved:neuerStatus}).eq("id",id);
+  if(error){alert("Fehler: "+error.message);return}
+  renderFeedbackList();
+  return;
+ }
+ const del=e.target.closest("[data-feedback-del]");
+ if(del){
+  if(!confirm("Dieses Feedback wirklich löschen?"))return;
+  const {error}=await sb.from("feedback").delete().eq("id",Number(del.dataset.feedbackDel));
+  if(error){alert("Fehler: "+error.message);return}
+  renderFeedbackList();
+ }
+});
+$("saveFeedback").onclick=async()=>{
+ const message=$("feedbackMessage").value.trim();
+ if(!message){alert("Bitte ein Feedback eingeben.");return}
+ $("saveFeedback").disabled=true;
+ const {error}=await sb.from("feedback").insert({
+  module:$("feedbackModul").value,
+  message,
+  created_by:currentProfile?currentProfile.id:null
+ });
+ $("saveFeedback").disabled=false;
+ if(error){alert("Fehler beim Senden: "+error.message);return}
+ $("feedbackModal").hidden=true;
+ alert("Danke für dein Feedback!");
+};
 const money=n=>Number(n||0).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
 function esc(v){return String(v??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 function initials(name){
@@ -1273,7 +1401,7 @@ const debouncedGlobalSearch=debounce(async(q)=>{
   ...ausmasse.map(a=>({kind:"ausmass",data:a})),
  ];
  globalSearchCache=results;
- const measTypeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch"};
+ const measTypeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil"};
  const amTypeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
  $("globalSearchStatus").textContent=`${results.length} Treffer`;
  $("globalSearchResults").innerHTML=results.length?results.map((r,i)=>{
@@ -1305,6 +1433,7 @@ $("reportEditSettingsShortcut").onclick=()=>openSettingsTo("protected","rates");
 $("newReport").onclick=()=>{
  isDirty=false;
  currentProjectId=null;currentReportId=null;
+ currentReportMeta={};
  works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0}];
  mats=[];
  $("date").value=new Date().toISOString().slice(0,10);
@@ -1411,6 +1540,7 @@ async function loadAllData(){
  materialIds=materials.map(m=>m.id);
  settings.employees=profiles.map(p=>`${p.first_name} ${p.last_name}`);
  employeeIds=profiles.map(p=>p.id);
+ allProfiles=profiles;
  allProjects=projectsRes.data||[];
  if(appSettingsRes.data&&appSettingsRes.data.company_name)companyName=appSettingsRes.data.company_name;
  if(appSettingsRes.data){
@@ -1492,7 +1622,7 @@ function renderMain(){
  return `<tr><td><input data-mat-date="${i}" type="date" value="${esc(m.date||"")}"></td><td><div class="search"><input data-mat-search="${i}" value="${esc(m.no)}" placeholder="EDV-Nr." autocomplete="off"><div id="matSug${i}" class="suggest"></div></div></td>
  <td>${x?esc(x[1]):"—"}</td><td>${x?esc(x[2]):"—"}</td><td>${x?esc(x[3]):"—"}</td>
  <td><input data-mat-qty="${i}" type="number" step=".01" min="0" value="${m.qty}"></td>
- <td class="money">${x?money(Number(String(x[4]).replace(",","."))):"—"}</td><td class="money">${x?money(Number(String(x[4]).replace(",","."))*Number(m.qty||0)):"0.00"}</td>
+ <td class="money">${x?money(Number(String(x[4]).replace(",","."))):"—"}</td><td class="money" data-mat-total="${i}">${x?money(Number(String(x[4]).replace(",","."))*Number(m.qty||0)):"0.00"}</td>
  <td class="no-print"><button class="red" data-del-mat="${i}">×</button></td></tr>`
  }).join(""):'<tr><td colspan="9" class="empty">Noch kein Material erfasst.</td></tr>';
 
@@ -1631,10 +1761,11 @@ $("matBody").addEventListener("input",e=>{
   const box=$("matSug"+n);
   box.innerHTML=searchMaterials(e.target.value).map(x=>`<div class="item" data-pick-mat="${n}" data-no="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])} · CHF ${money(x[4])}</span></div>`).join("");
   if(box.innerHTML)positionSuggest(e.target,box);
- }else{
+  }else{
    mats[n].qty=Number(e.target.value)||0;
-   sortMaterialsLive();
-   renderMain();
+   const x=materialFor(mats[n].no);
+   const totalCell=document.querySelector(`[data-mat-total="${n}"]`);
+   if(totalCell)totalCell.textContent=x?money(Number(String(x[4]).replace(",","."))*Number(mats[n].qty||0)):"0.00";
    updateTotals();
 }
 });
@@ -1694,6 +1825,20 @@ document.addEventListener("click",e=>{
  const h=e.target.closest("[data-toggle-section]");
  if(h){h.closest(".settings-section").classList.toggle("open");}
 });
+// Bei Klick/Fokus in ein Eingabefeld den gesamten Inhalt markieren (ausser Checkbox/Radio/Datei)
+document.addEventListener("focus",e=>{
+ const t=e.target;
+ if(t.tagName==="INPUT"&&!["checkbox","radio","file","button","submit"].includes(t.type)){
+  t.select();
+ }else if(t.tagName==="TEXTAREA"){
+  t.select();
+ }
+},true);
+// Sucht-Dropdowns schliessen, wenn ausserhalb geklickt wird
+document.addEventListener("click",e=>{
+ if(e.target.closest(".search"))return;
+ document.querySelectorAll(".suggest").forEach(box=>{if(box.innerHTML.trim())box.innerHTML="";});
+});
 $("settingsModal").addEventListener("click",e=>{
  const tab=e.target.closest("[data-settings-tab]");
  if(tab){
@@ -1705,6 +1850,7 @@ $("settingsModal").addEventListener("click",e=>{
    $("protectedLocked").hidden=protectedUnlocked;
    $("protectedContent").hidden=!protectedUnlocked;
   }
+  if(tab.dataset.settingsTab==="feedback")renderFeedbackList();
  }
 });
 function tryUnlockProtected(){
@@ -2002,6 +2148,7 @@ async function registerEmployee(vor,nach){
 }
 
 function renderSettings(){
+ $("feedbackTabBtn").hidden=!isAdmin();
  $("employeeSettings").innerHTML=settings.employees.map((e,i)=>`<div class="settingrow emp-row"><input data-set-emp="${i}" value="${esc(e)}"><button class="red" data-del-emp="${i}">Löschen</button></div>`).join("")||'<div class="empty">Noch keine Mitarbeiter.</div>';
  const ro=protectedUnlocked?"":"disabled";
  $("rateSettings").innerHTML=settings.rates.map((r,i)=>`<div class="settingrow"><input data-set-rate-name="${i}" value="${esc(r[0])}" ${ro}><input data-set-rate-value="${i}" type="number" step=".01" value="${r[1]}" ${ro}>${protectedUnlocked?`<button class="red" data-del-rate="${i}">Löschen</button>`:'<span></span>'}</div>`).join("");
@@ -2126,10 +2273,27 @@ $("takeOver").onclick=()=>{
  mats.push({date:new Date().toISOString().slice(0,10),no:selectedSheet[0],qty:Number(total.toFixed(4))});renderMain();$("sheetModal").hidden=true;
 };
 
-$("print").onclick=()=>window.print();
+$("print").onclick=()=>{
+ const proj=allProjects.find(p=>p.id===currentProjectId);
+ const alterTitel=document.title;
+ document.title=pdfDateiname(proj?proj.name:"",proj?proj.object:"","Regierapport",$("orderNo")?$("orderNo").value:"");
+ window.print();
+ setTimeout(()=>{document.title=alterTitel;},1000);
+};
 window.addEventListener("beforeprint",()=>{
  const el=$("printTimestamp");
  if(el)el.textContent="Ausgedruckt am "+new Date().toLocaleString("de-CH",{dateStyle:"medium",timeStyle:"short"});
+ const metaEl=$("printMeta");
+ if(metaEl){
+  const erstelltName=profileName(currentReportMeta.created_by);
+  const erstelltZeit=formatDatumZeit(currentReportMeta.created_at);
+  const geaendertName=profileName(currentReportMeta.updated_by);
+  const geaendertZeit=formatDatumZeit(currentReportMeta.updated_at);
+  const teile=[];
+  if(erstelltName||erstelltZeit)teile.push(`Erstellt von ${erstelltName||"–"}${erstelltZeit?" am "+erstelltZeit:""}`);
+  if(geaendertName||geaendertZeit)teile.push(`Zuletzt geändert von ${geaendertName||"–"}${geaendertZeit?" am "+geaendertZeit:""}`);
+  metaEl.textContent=teile.join(" · ");
+ }
 });
 $("save").onclick=async()=>{
  if(!currentProjectId){alert("Bitte zuerst ein Projekt auswählen. Ein Rapport kann nur einem Projekt zugeordnet gespeichert werden.");return}
@@ -2143,15 +2307,15 @@ $("save").onclick=async()=>{
   vat:$("vat").value,
   work_entries:works,
   material_entries:mats,
-  created_by:currentProfile?currentProfile.id:null,
+  updated_by:currentProfile?currentProfile.id:null,
   updated_at:new Date().toISOString()
  };
  let res;
  if(currentReportId)res=await sb.from("reports").update(payload).eq("id",currentReportId).select().maybeSingle();
- else res=await sb.from("reports").insert(payload).select().maybeSingle();
+ else res=await sb.from("reports").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:new Date().toISOString()}).select().maybeSingle();
  $("save").disabled=false;
  if(res.error){alert("Fehler beim Speichern: "+res.error.message);return}
- if(res.data)currentReportId=res.data.id;
+ if(res.data){currentReportId=res.data.id;currentReportMeta={created_by:res.data.created_by,created_at:res.data.created_at,updated_by:res.data.updated_by,updated_at:res.data.updated_at};}
  isDirty=false;
  alert("Rapport gespeichert und dem Projekt zugeordnet.");
 };
@@ -2257,7 +2421,7 @@ async function loadProjectMeasurements(projectId){
  const {data,error}=await sb.from("measurements").select("*").eq("project_id",projectId).order("date",{ascending:false});
  if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
  const list=data||[];
- const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch"};
+ const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil"};
  projectMeasurementsCache=list;
  box.innerHTML=list.length?list.map(m=>`<div class="report-row">
 <div class="report-row-info"><b>Massaufnahme (${esc(typeLabels[m.type]||m.type)})</b><span>${esc(m.title||"Ohne Titel")} · ${esc(m.date||"ohne Datum")}</span></div>
@@ -2272,6 +2436,7 @@ function openReport(r){
  isDirty=false;
  currentProjectId=r.project_id;
  currentReportId=r.id;
+ currentReportMeta={created_by:r.created_by,created_at:r.created_at,updated_by:r.updated_by,updated_at:r.updated_at};
  works=(r.work_entries&&r.work_entries.length)?r.work_entries:[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0}];
  mats=r.material_entries||[];
  $("date").value=r.date||"";
@@ -2754,6 +2919,11 @@ function newMeasurementWithType(type){
  $("ebk_dachneigung").value="";
  $("ebk_montage").value="links";
  renderEbkPiecesTable();
+ fpSchenkel=[];
+ fpSegmente=[];
+ $("fp_konisch").value="nein";
+ renderFpSchenkelTable();
+ renderFpSegmenteList();
  setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
@@ -2799,6 +2969,10 @@ function openMeasurement(m){
  $("ebk_dachneigung").value=d.dachneigung||"";
  $("ebk_montage").value=d.montage||"links";
  if(m.type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
+ fpSchenkel=(m.type==="freies_profil"&&Array.isArray(d.schenkel))?d.schenkel.map(s=>({...s})):[];
+ fpSegmente=(m.type==="freies_profil"&&Array.isArray(d.segmente))?d.segmente.map(s=>({...s,massen:(s.massen||[]).map(mm=>({...mm}))})):[];
+ $("fp_konisch").value=d.konisch?"ja":"nein";
+ if(m.type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
  updateMeasFormTitle();
@@ -2901,9 +3075,14 @@ function calcDilaPositionsInStretch(L,leftMax,rightMax,middleMax){
  let n=1;
  while(leftMax+(n-1)*middleMax+rightMax<L-1e-6)n++;
  if(n===1){
-  const lowBound=Math.max(0,L-rightMax);
-  const highBound=Math.min(leftMax,L);
-  return[(lowBound+highBound)/2];
+  // Möglichst in der Mitte der Strecke platzieren; nur wenn das eine der beiden
+  // Maximaldistanzen verletzen würde, so weit wie nötig zu dieser Grenze hin verschieben.
+  const ideal=L/2;
+  let pos;
+  if(ideal>leftMax)pos=leftMax;
+  else if(L-ideal>rightMax)pos=L-rightMax;
+  else pos=ideal;
+  return[pos];
  }
  const remaining=L-leftMax-rightMax;
  const gapSize=remaining/(n-1);
@@ -2926,29 +3105,35 @@ function computeRinneBoundaries(segments){
  // "fix" = Fixpunkt (strengere Regel), "schiebe" = Schiebestutzen (ersetzt funktional eine Dila,
  // dort gilt die grosszügigere "Mit Dehnungselement"-Regel und es wird KEINE zusätzliche Dila platziert).
  if(!segments.length)return{boundaries:[],gesamtlaenge:0};
- function grenzTyp(typId){
-  if(isRinneFixpunkt(typId))return"fix";
-  if(isRinneSchiebestutzen(typId))return"schiebe";
+ function grenzInfo(typId){
+  if(!typId)return null;
+  const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+  if(!f)return null;
+  if(f.is_fixpunkt)return{typ:"fix",name:f.name,symbol:f.symbol};
+  if(f.is_schiebestutzen)return{typ:"schiebe",name:f.name,symbol:f.symbol};
   return null;
  }
  function kombiniere(a,b){
-  if(a==="fix"||b==="fix")return"fix";
-  if(a==="schiebe"||b==="schiebe")return"schiebe";
+  if(a&&a.typ==="fix")return a;
+  if(b&&b.typ==="fix")return b;
+  if(a&&a.typ==="schiebe")return a;
+  if(b&&b.typ==="schiebe")return b;
   return null;
  }
  const grenzen=[];
  let cum=0;
- grenzen.push({pos:0,typ:grenzTyp(segments[0].linksTyp)});
+ grenzen.push({pos:0,info:grenzInfo(segments[0].linksTyp)});
  for(let i=0;i<segments.length;i++){
   cum+=Number(segments[i].laenge)||0;
   const istLetzte=i===segments.length-1;
-  const typ=istLetzte?grenzTyp(segments[i].rechtsTyp):kombiniere(grenzTyp(segments[i].rechtsTyp),grenzTyp(segments[i+1].linksTyp));
-  grenzen.push({pos:cum,typ});
+  const info=istLetzte?grenzInfo(segments[i].rechtsTyp):kombiniere(grenzInfo(segments[i].rechtsTyp),grenzInfo(segments[i+1].linksTyp));
+  grenzen.push({pos:cum,info});
  }
  const gesamtlaenge=cum;
- const boundaries=[{pos:0,typ:grenzen[0].typ}];
- for(let i=1;i<grenzen.length-1;i++)if(grenzen[i].typ)boundaries.push(grenzen[i]);
- boundaries.push({pos:gesamtlaenge,typ:grenzen[grenzen.length-1].typ});
+ const boundaries=[{pos:0,typ:grenzen[0].info?grenzen[0].info.typ:null,name:grenzen[0].info?grenzen[0].info.name:null}];
+ for(let i=1;i<grenzen.length-1;i++)if(grenzen[i].info)boundaries.push({pos:grenzen[i].pos,typ:grenzen[i].info.typ,name:grenzen[i].info.name});
+ const letzte=grenzen[grenzen.length-1];
+ boundaries.push({pos:gesamtlaenge,typ:letzte.info?letzte.info.typ:null,name:letzte.info?letzte.info.name:null});
  return{boundaries,gesamtlaenge};
 }
 function calcRinneDilas(segments,material){
@@ -2966,40 +3151,46 @@ function calcRinneDilas(segments,material){
  }
  return{dilas,tabelle:tab,gesamtlaenge,boundaries};
 }
-const RINNE_GRENZ_LABEL={fix:"Fixpunkt",schiebe:"Schiebestutzen"};
 function renderRinneDilasList(){
  const material=$("rinne_material").value;
- const {boundaries,gesamtlaenge}=computeRinneBoundaries(rinneSegments);
- // Kombinierte, sortierte Punktliste aus Grenzen (Start/Fixpunkt/Schiebestutzen/Ende) und Dilas
+ const {boundaries}=computeRinneBoundaries(rinneSegments);
+ // Alle Segmentgrenzen (auch ohne Fixpunkt/Schiebestutzen-Kennzeichen) als eigene Punkte,
+ // damit die Nummerierung hier exakt der im Grundriss entspricht (jedes tatsächliche Stück
+ // zählt, egal ob durch eine Ecke oder durch eine Dila entstanden).
+ const segGrenzen=[0];
+ let cAcc=0;
+ rinneSegments.forEach(s=>{cAcc+=Number(s.laenge)||0;segGrenzen.push(cAcc);});
+ const gesamtlaenge=cAcc;
  const punkte=[];
- boundaries.forEach((b,i)=>{
+ segGrenzen.forEach((pos,i)=>{
+  const b=boundaries.find(x=>Math.round(x.pos)===Math.round(pos));
   let label;
-  if(i===0)label=b.typ?RINNE_GRENZ_LABEL[b.typ]:"Start";
-  else if(i===boundaries.length-1)label=b.typ?RINNE_GRENZ_LABEL[b.typ]:"Ende";
-  else label=RINNE_GRENZ_LABEL[b.typ]||"Grenze";
-  punkte.push({pos:b.pos,art:"grenze",label});
+  if(b&&b.name)label=b.name;
+  else if(i===0)label="Start";
+  else if(i===segGrenzen.length-1)label="Ende";
+  else label="Segmentgrenze";
+  punkte.push({pos,art:"grenze",label});
  });
  rinneDilas.forEach((d,i)=>punkte.push({pos:Number(d.posAbStart)||0,art:"dila",dilaIndex:i}));
  punkte.sort((a,b)=>a.pos-b.pos);
- let dilaNr=0;
  const rows=[];
  for(let i=1;i<punkte.length;i++){
   const prev=punkte[i-1],cur=punkte[i];
   const abstand=cur.pos-prev.pos;
   const vonLabel=prev.art==="grenze"?prev.label:`Dila ${punkte.slice(0,i).filter(p=>p.art==="dila").length}`;
+  const bisLabel=cur.art==="dila"?`Dila ${punkte.slice(0,i+1).filter(p=>p.art==="dila").length}`:cur.label;
   if(cur.art==="dila"){
-   dilaNr++;
    rows.push(`<tr>
-<td>${dilaNr}</td>
-<td>${esc(vonLabel)} → Dila ${dilaNr}</td>
+<td>${i}</td>
+<td>${esc(vonLabel)} → ${esc(bisLabel)}</td>
 <td><input data-rinne-dila-abstand="${cur.dilaIndex}" data-rinne-dila-prev="${prev.pos}" type="number" step="1" value="${abstand}"></td>
 <td>${Math.round(cur.pos)}</td>
 <td><button type="button" class="red" data-rinne-dila-del="${cur.dilaIndex}" style="padding:6px 8px">×</button></td>
 </tr>`);
   }else{
    rows.push(`<tr style="background:var(--card-bg,#f7fafc)">
-<td>–</td>
-<td>${esc(vonLabel)} → ${esc(cur.label)}</td>
+<td>${i}</td>
+<td>${esc(vonLabel)} → ${esc(bisLabel)}</td>
 <td class="small" style="color:var(--muted)">${Math.round(abstand)}</td>
 <td>${Math.round(cur.pos)}</td>
 <td></td>
@@ -3065,7 +3256,7 @@ function generateRinneGrundriss(segments,dilas,boundaries){
  const scale=Math.min(target/w,target/h);
  const toSvg=p=>[pad+(p.x-minX)*scale,pad+(p.y-minY)*scale];
  const svgW=target+2*pad,svgH=target+2*pad;
- let lines="",labels="",arrows="",posNummern="";
+ let lines="",labels="",arrows="";
  for(let i=0;i<segments.length;i++){
   const [x1,y1]=toSvg(pts[i]),[x2,y2]=toSvg(pts[i+1]);
   lines+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
@@ -3077,9 +3268,6 @@ function generateRinneGrundriss(segments,dilas,boundaries){
   let angleDeg=Math.atan2(dy,dx)*180/Math.PI;
   if(angleDeg>90||angleDeg<-90)angleDeg+=180;
   labels+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="12" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(segments[i].laenge||0)}</text>`;
-  // Positionsnummer bei 25% der Segmentlänge, direkt auf der Linie (eigener Punkt, kein Überlapp mit Mass/Pfeil)
-  const qx=x1+dx*0.25,qy=y1+dy*0.25;
-  posNummern+=`<circle cx="${qx.toFixed(1)}" cy="${qy.toFixed(1)}" r="9" fill="#1769aa"/><text x="${qx.toFixed(1)}" y="${(qy+3.2).toFixed(1)}" font-size="9" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
   // Blickrichtungs-Pfeil auf der Gegenseite der Massbeschriftung: Spitze beruehrt das Segment
   const shaftFar=24,headLen=9,headWidth=5;
   const farX=mx+px*shaftFar,farY=my+py*shaftFar;
@@ -3110,6 +3298,23 @@ function generateRinneGrundriss(segments,dilas,boundaries){
   const [sx1,sy1]=toSvg(pts[segIdx]),[sx2,sy2]=toSvg(pts[segIdx+1]);
   const dx=sx2-sx1,dy=sy2-sy1,len=Math.hypot(dx,dy)||1;
   return {x:sx1+dx*frac,y:sy1+dy*frac,ux:dx/len,uy:dy/len};
+ }
+ // Positionsnummern: nummeriert ALLE tatsächlichen Stücke, also sowohl die Hauptsegmente als
+ // auch die durch Dilas entstehenden Zwischenstücke (jede Segmentgrenze + jede Dila-Position
+ // gilt als eigener Schnittpunkt).
+ let posNummern="";
+ {
+  const segGrenzen=[0];
+  let cAcc=0;
+  segments.forEach(s=>{cAcc+=Number(s.laenge)||0;segGrenzen.push(cAcc);});
+  const volleKette=[...new Set([...segGrenzen,...dilas.map(d=>Math.round(Number(d.posAbStart)||0))])].sort((a,b)=>a-b);
+  for(let i=0;i<volleKette.length-1;i++){
+   const mid=(volleKette[i]+volleKette[i+1])/2;
+   const p=svgPosAt(mid);
+   const nx=-p.uy,ny=p.ux,off=13;
+   const qx=p.x-nx*off,qy=p.y-ny*off;
+   posNummern+=`<circle cx="${qx.toFixed(1)}" cy="${qy.toFixed(1)}" r="9" fill="#1769aa"/><text x="${qx.toFixed(1)}" y="${(qy+3.2).toFixed(1)}" font-size="9" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
+  }
  }
  // Dilas als kleine orange Rauten entlang des Verlaufs zeichnen
  let dilaMarks="";
@@ -3270,16 +3475,14 @@ function generateEbkGrundriss(pieces){
    const dx0=x2-x1,dy0=y2-y1,len0=Math.hypot(dx0,dy0)||1;
    const ux0=dx0/len0,uy0=dy0/len0;
    const nx0=-uy0,ny0=ux0;
-   const tickGap=13;
-   const tx=x1+ux0*tickGap,ty=y1+uy0*tickGap;
+   const tx=x1,ty=y1;
    endzugaben+=`<line x1="${(tx-nx0*9).toFixed(1)}" y1="${(ty-ny0*9).toFixed(1)}" x2="${(tx+nx0*9).toFixed(1)}" y2="${(ty+ny0*9).toFixed(1)}" stroke="#b42318" stroke-width="2.5" stroke-linecap="round"/>`;
   }
   if(i===pieces.length-1&&Number(pieces[i].endzugabeEnd)>0){
    const dx0=x2-x1,dy0=y2-y1,len0=Math.hypot(dx0,dy0)||1;
    const ux0=dx0/len0,uy0=dy0/len0;
    const nx0=-uy0,ny0=ux0;
-   const tickGap=13;
-   const tx=x2-ux0*tickGap,ty=y2-uy0*tickGap;
+   const tx=x2,ty=y2;
    endzugaben+=`<line x1="${(tx-nx0*9).toFixed(1)}" y1="${(ty-ny0*9).toFixed(1)}" x2="${(tx+nx0*9).toFixed(1)}" y2="${(ty+ny0*9).toFixed(1)}" stroke="#b42318" stroke-width="2.5" stroke-linecap="round"/>`;
   }
 
@@ -3304,6 +3507,129 @@ function generateEbkGrundriss(pieces){
 
  return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${joints}${endzugaben}${labels}</svg>`;
 }
+// ---- Freies Profil ------------------------------------------------
+let fpSchenkel=[];
+let fpSegmente=[];
+function generateProfilDiagramSvg(schenkel){
+ if(!schenkel.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Schenkel für die Zeichnung.</div>';
+ let x=0,y=0,dir=0;
+ const pts=[{x,y}];
+ for(let i=0;i<schenkel.length;i++){
+  const s=schenkel[i];
+  if(i>0)dir+=Number(s.winkel)||0;
+  const rad=dir*Math.PI/180;
+  x+=(Number(s.laenge)||0)*Math.cos(rad);
+  y+=(Number(s.laenge)||0)*Math.sin(rad);
+  pts.push({x,y});
+ }
+ const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+ const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+ const w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+ const pad=30,target=240;
+ const scale=Math.min(target/w,target/h);
+ const toSvg=p=>[pad+(p.x-minX)*scale,pad+(p.y-minY)*scale];
+ const svgW=target+2*pad,svgH=target+2*pad;
+ let lines="",labels="",nums="";
+ for(let i=0;i<schenkel.length;i++){
+  const [x1,y1]=toSvg(pts[i]),[x2,y2]=toSvg(pts[i+1]);
+  lines+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
+  const mx=(x1+x2)/2,my=(y1+y2)/2;
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1;
+  const nx=-dy/len,ny=dx/len;
+  const lx=mx-nx*14,ly=my-ny*14;
+  let angleDeg=Math.atan2(dy,dx)*180/Math.PI;
+  if(angleDeg>90||angleDeg<-90)angleDeg+=180;
+  labels+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(schenkel[i].laenge||0)}</text>`;
+  const numx=mx+nx*14,numy=my+ny*14;
+  nums+=`<circle cx="${numx.toFixed(1)}" cy="${numy.toFixed(1)}" r="9" fill="#e07a1f"/><text x="${numx.toFixed(1)}" y="${(numy+3.2).toFixed(1)}" font-size="9" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
+ }
+ return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:280px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${labels}${nums}</svg>`;
+}
+function renderFpSchenkelTable(){
+ $("fp_schenkelBody").innerHTML=fpSchenkel.map((s,i)=>`<tr>
+<td>${i+1}</td>
+<td><input data-fp-schenkel-laenge="${i}" type="number" step="1" value="${s.laenge||0}"></td>
+<td style="display:flex;gap:4px;align-items:center">
+<input data-fp-schenkel-winkel="${i}" type="number" step="1" value="${s.winkel||0}" style="flex:1">
+<button type="button" class="gray" data-fp-schenkel-flip="${i}" title="Winkel umkehren" style="padding:4px 6px">🔄</button>
+<button type="button" class="gray" data-fp-schenkel-umschlag="${i}" title="Umschlag: Winkel auf 180° setzen" style="padding:4px 6px;font-size:10px;white-space:nowrap">180°</button>
+</td>
+<td><button type="button" class="red" data-fp-schenkel-del="${i}" style="padding:6px 8px">×</button></td>
+</tr>`).join("")||'<tr><td colspan="4" class="small">Noch keine Schenkel. "+ Schenkel hinzufügen" klicken.</td></tr>';
+ $("fp_profilDiagram").innerHTML=generateProfilDiagramSvg(fpSchenkel);
+}
+$("fp_addSchenkel").onclick=()=>{
+ fpSchenkel.push({laenge:0,winkel:0});
+ renderFpSchenkelTable();
+ renderFpSegmenteList();
+};
+$("fp_schenkelBody").addEventListener("input",e=>{
+ const i=Number(e.target.dataset.fpSchenkelLaenge??e.target.dataset.fpSchenkelWinkel);
+ if(Number.isNaN(i)||!fpSchenkel[i])return;
+ if(e.target.dataset.fpSchenkelLaenge!==undefined)fpSchenkel[i].laenge=Number(e.target.value)||0;
+ else if(e.target.dataset.fpSchenkelWinkel!==undefined)fpSchenkel[i].winkel=Number(e.target.value)||0;
+ $("fp_profilDiagram").innerHTML=generateProfilDiagramSvg(fpSchenkel);
+});
+$("fp_schenkelBody").addEventListener("click",e=>{
+ const del=e.target.closest("[data-fp-schenkel-del]");
+ if(del){fpSchenkel.splice(Number(del.dataset.fpSchenkelDel),1);renderFpSchenkelTable();renderFpSegmenteList();return}
+ const flip=e.target.closest("[data-fp-schenkel-flip]");
+ if(flip){const i=Number(flip.dataset.fpSchenkelFlip);if(fpSchenkel[i]){fpSchenkel[i].winkel=-(Number(fpSchenkel[i].winkel)||0);renderFpSchenkelTable();}return}
+ const umschlag=e.target.closest("[data-fp-schenkel-umschlag]");
+ if(umschlag){const i=Number(umschlag.dataset.fpSchenkelUmschlag);if(fpSchenkel[i]){fpSchenkel[i].winkel=180;renderFpSchenkelTable();}}
+});
+$("fp_konisch").addEventListener("change",renderFpSegmenteList);
+function renderFpSegmenteList(){
+ const konisch=$("fp_konisch").value==="ja";
+ $("fp_segmenteList").innerHTML=fpSegmente.map((seg,i)=>{
+  if(!seg.massen)seg.massen=[];
+  const zeilen=fpSchenkel.map((s,j)=>{
+   const m=seg.massen[j]||{};
+   if(konisch){
+    return `<tr><td>${j+1}</td><td><input data-fp-seg-mass-links="${i}_${j}" type="number" step="1" value="${m.links||0}"></td><td><input data-fp-seg-mass-rechts="${i}_${j}" type="number" step="1" value="${m.rechts||0}"></td></tr>`;
+   }
+   return `<tr><td>${j+1}</td><td><input data-fp-seg-mass="${i}_${j}" type="number" step="1" value="${m.mass||0}"></td></tr>`;
+  }).join("");
+  return `<div class="settings-section open" data-section="fp-seg-${i}" style="margin-bottom:10px">
+<div class="settings-section-head" data-toggle-section="fp-seg-${i}"><h2>Segment ${i+1}</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="grid">
+<div><label>Länge (mm)</label><input data-fp-seg-laenge="${i}" type="number" step="1" value="${seg.laenge||0}"></div>
+</div>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:20%"><col style="width:40%">${konisch?'<col style="width:40%">':""}</colgroup>
+<thead><tr><th>Schenkel</th><th>${konisch?"Mass links (mm)":"Mass (mm)"}</th>${konisch?"<th>Mass rechts (mm)</th>":""}</tr></thead>
+<tbody>${zeilen||'<tr><td colspan="3" class="small">Noch keine Schenkel im Profil definiert.</td></tr>'}</tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="red" data-fp-seg-del="${i}">Segment löschen</button></div>
+</div>
+</div>`;
+ }).join("")||'<div class="empty">Noch keine Segmente. "+ Segment hinzufügen" klicken.</div>';
+ $("fp_summary").textContent=fpSegmente.length?`${fpSegmente.length} Segment(e) · ${fpSchenkel.length} Schenkel im Profil`:"";
+}
+$("fp_addSegment").onclick=()=>{
+ fpSegmente.push({laenge:0,massen:fpSchenkel.map(()=>({mass:0,links:0,rechts:0}))});
+ renderFpSegmenteList();
+};
+$("fp_segmenteList").addEventListener("input",e=>{
+ const laengeIdx=e.target.dataset.fpSegLaenge;
+ if(laengeIdx!==undefined){fpSegmente[Number(laengeIdx)].laenge=Number(e.target.value)||0;return}
+ const massKey=e.target.dataset.fpSegMass,linksKey=e.target.dataset.fpSegMassLinks,rechtsKey=e.target.dataset.fpSegMassRechts;
+ const key=massKey??linksKey??rechtsKey;
+ if(key===undefined)return;
+ const [segIdx,schenkelIdx]=key.split("_").map(Number);
+ if(!fpSegmente[segIdx])return;
+ if(!fpSegmente[segIdx].massen[schenkelIdx])fpSegmente[segIdx].massen[schenkelIdx]={mass:0,links:0,rechts:0};
+ if(massKey!==undefined)fpSegmente[segIdx].massen[schenkelIdx].mass=Number(e.target.value)||0;
+ else if(linksKey!==undefined)fpSegmente[segIdx].massen[schenkelIdx].links=Number(e.target.value)||0;
+ else if(rechtsKey!==undefined)fpSegmente[segIdx].massen[schenkelIdx].rechts=Number(e.target.value)||0;
+});
+$("fp_segmenteList").addEventListener("click",e=>{
+ const del=e.target.closest("[data-fp-seg-del]");
+ if(del){fpSegmente.splice(Number(del.dataset.fpSegDel),1);renderFpSegmenteList();}
+});
 function calcEbkPiece(p){
  return {
   massLinksEng:Math.max(0,(Number(p.massLinks)||0)-2),
@@ -3641,6 +3967,15 @@ $("eb_resultBody").addEventListener("input",e=>{
  $("eb_summary").textContent=`${ebPieces.length} Stück(e) · Gesamtlänge ${gesamtlaenge} mm · Abwicklung ${$("eb_abwicklung").value} mm · ${restBreiteText}`;
  $("eb_grundriss").innerHTML=generateEbkGrundriss(ebPieces);
 });
+function applyEbGehrung(piece,side){
+ const zugabe=Number(einlaufblechSettings.gehrungszugabe)||0;
+ const key=side==="links"?"gehrungLinks":"gehrungRechts";
+ if(!piece[key]){
+  piece[key]=true;
+  piece.laenge=(Number(piece.laenge)||0)+zugabe;
+  piece.winkel=90;
+ }
+}
 $("eb_resultBody").addEventListener("change",e=>{
  const i=Number(e.target.dataset.ebGl??e.target.dataset.ebGr);
  if(Number.isNaN(i)||!ebPieces[i])return;
@@ -3648,12 +3983,24 @@ $("eb_resultBody").addEventListener("change",e=>{
  if(e.target.dataset.ebGl!==undefined){
   const war=ebPieces[i].gehrungLinks;
   ebPieces[i].gehrungLinks=e.target.checked;
-  if(e.target.checked&&!war){ebPieces[i].laenge=(Number(ebPieces[i].laenge)||0)+zugabe;ebPieces[i].winkel=90;}
+  if(e.target.checked&&!war){
+   ebPieces[i].laenge=(Number(ebPieces[i].laenge)||0)+zugabe;
+   ebPieces[i].winkel=90;
+   // Vorheriges Stück: gleiche physische Ecke, Gehrung rechts automatisch mitsetzen
+   const prev=ebPieces[i-1];
+   if(prev)applyEbGehrung(prev,"rechts");
+  }
   else if(!e.target.checked&&war)ebPieces[i].laenge=Math.max(0,(Number(ebPieces[i].laenge)||0)-zugabe);
  }else if(e.target.dataset.ebGr!==undefined){
   const war=ebPieces[i].gehrungRechts;
   ebPieces[i].gehrungRechts=e.target.checked;
-  if(e.target.checked&&!war){ebPieces[i].laenge=(Number(ebPieces[i].laenge)||0)+zugabe;ebPieces[i].winkel=90;}
+  if(e.target.checked&&!war){
+   ebPieces[i].laenge=(Number(ebPieces[i].laenge)||0)+zugabe;
+   ebPieces[i].winkel=90;
+   // Folgestück: gleiche physische Ecke, Gehrung links automatisch mitsetzen
+   const next=ebPieces[i+1];
+   if(next)applyEbGehrung(next,"links");
+  }
   else if(!e.target.checked&&war)ebPieces[i].laenge=Math.max(0,(Number(ebPieces[i].laenge)||0)-zugabe);
  }
  if(!ebPieces[i].gehrungLinks&&!ebPieces[i].gehrungRechts)ebPieces[i].winkel=0;
@@ -3680,9 +4027,11 @@ function showMeasTypeSection(type){
  $("measTypeEinlaufblech").hidden=(type!=="einlaufblech_gerade");
  $("measTypeRinne").hidden=(type!=="rinne_halbrund");
  $("measTypeEinlaufblechKonisch").hidden=(type!=="einlaufblech_konisch");
+ $("measTypeFreiesProfil").hidden=(type!=="freies_profil");
  if(type==="einlaufblech_gerade")renderEbPiecesTable();
  if(type==="rinne_halbrund")renderRinneResult();
  if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
+ if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
 }
 $("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
 $("openEinlaufblechSettings").onclick=()=>{
@@ -3734,6 +4083,10 @@ function buildMeasurementFromForm(){
   const piecesWithEng=ebkPieces.map(p=>({...p,...calcEbkPiece(p)}));
   return {...base,photo_path:null,sketch_paths:[],data:{abwicklung,dachneigung,montage,engeSeite,pieces:piecesWithEng,gesamtlaenge}};
  }
+ if(type==="freies_profil"){
+  const konisch=$("fp_konisch").value==="ja";
+  return {...base,photo_path:null,sketch_paths:[],data:{schenkel:fpSchenkel,konisch,segmente:fpSegmente}};
+ }
  return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(buildMeasurementFromForm());
@@ -3762,6 +4115,10 @@ $("saveMeasurement").onclick=async()=>{
   if($("ebk_dachneigung").value===""||$("ebk_dachneigung").value===null){alert("Bitte Dachneigung / Winkel eingeben (Pflichtfeld).");return}
   if(ebkPieces.some(p=>!Number(p.massLinks)||!Number(p.massRechts))){alert("Bitte bei jedem Stück Mass links und Mass rechts eingeben (Pflichtfelder).");return}
  }
+ if(type==="freies_profil"){
+  if(!fpSchenkel.length){alert("Bitte mindestens einen Schenkel im Profil erfassen.");return}
+  if(!fpSegmente.length){alert("Bitte mindestens ein Segment erfassen.");return}
+ }
  $("saveMeasurement").disabled=true;
  try{
   const form=buildMeasurementFromForm();
@@ -3783,12 +4140,12 @@ $("saveMeasurement").onclick=async()=>{
    sketch_path:sketchUrls[0]||null,
    sketch_paths:sketchUrls,
    data:form.data||{},
-   created_by:currentProfile?currentProfile.id:null,
+   updated_by:currentProfile?currentProfile.id:null,
    updated_at:new Date().toISOString()
   };
   const {error}=currentMeasurementId
    ?await sb.from("measurements").update(payload).eq("id",currentMeasurementId)
-   :await sb.from("measurements").insert(payload);
+   :await sb.from("measurements").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:new Date().toISOString()});
   if(error)throw error;
   $("measurementEditModal").hidden=true;
   if(measEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
@@ -3807,7 +4164,7 @@ async function renderMeasurementsOverview(){
  if(error){$("recentMeasurementsList").innerHTML=`<div class="empty">Fehler: ${esc(error.message)}</div>`;return}
  const rows=data||[];
  measurementsCache=rows;
- const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch"};
+ const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil"};
  $("recentMeasurementsList").innerHTML=rows.length?rows.map(m=>{
   const proj=allProjects.find(p=>p.id===m.project_id);
   let thumbHtml;
@@ -3842,9 +4199,30 @@ $("recentMeasurementsList").addEventListener("click",e=>{
  }
 });
 
+function pdfDateiname(...teile){
+ const bereinigt=teile.map(s=>String(s||"").trim()).filter(Boolean);
+ return bereinigt.join(" – ")||"Dokument";
+}
+function formatDatumZeit(iso){
+ if(!iso)return null;
+ const d=new Date(iso);
+ if(isNaN(d.getTime()))return null;
+ return d.toLocaleString("de-CH",{dateStyle:"medium",timeStyle:"short"});
+}
+function erstelltGeaendertHtml(record){
+ const erstelltName=profileName(record.created_by);
+ const erstelltZeit=formatDatumZeit(record.created_at);
+ const geaendertName=profileName(record.updated_by);
+ const geaendertZeit=formatDatumZeit(record.updated_at);
+ const teile=[];
+ if(erstelltName||erstelltZeit)teile.push(`Erstellt von ${esc(erstelltName||"–")}${erstelltZeit?" am "+esc(erstelltZeit):""}`);
+ if(geaendertName||geaendertZeit)teile.push(`Zuletzt geändert von ${esc(geaendertName||"–")}${geaendertZeit?" am "+esc(geaendertZeit):""}`);
+ if(!teile.length)return"";
+ return `<div class="small" style="color:var(--muted);margin-top:6mm;padding-top:2mm;border-top:.5pt solid #dfe6ea">${teile.join(" · ")}</div>`;
+}
 function printMeasurement(m){
  const proj=allProjects.find(p=>p.id===m.project_id);
- const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch"};
+ const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil"};
  const win=window.open("","_blank");
  if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
@@ -3929,7 +4307,37 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 </table>
 <div class="eb-section-head">Grundriss</div>
 <div class="eb-diagram">${generateRinneGrundriss(segs,dilas,d.boundaries||[])}</div>
-${dilas.length?`<div class="note">Dila-Positionen ab Start: ${dilas.map((dd,i)=>`Nr. ${i+1}: ${(dd.posAbStart/1000).toFixed(2)} m`).join(" · ")}</div>`:""}
+<div class="eb-section-head">Dilatationselemente</div>
+${(()=>{
+ if(!segs.length)return '<div class="note">Keine Segmente vorhanden.</div>';
+ const segGrenzen=[0];let cAcc=0;
+ segs.forEach(s=>{cAcc+=Number(s.laenge)||0;segGrenzen.push(cAcc);});
+ const boundaries=d.boundaries||[];
+ const punkte=[];
+ segGrenzen.forEach((pos,i)=>{
+  const b=boundaries.find(x=>Math.round(x.pos)===Math.round(pos));
+  let label;
+  if(b&&b.name)label=b.name;
+  else if(i===0)label="Start";
+  else if(i===segGrenzen.length-1)label="Ende";
+  else label="Segmentgrenze";
+  punkte.push({pos,art:"grenze",label});
+ });
+ dilas.forEach(dd=>punkte.push({pos:Number(dd.posAbStart)||0,art:"dila"}));
+ punkte.sort((a,b)=>a.pos-b.pos);
+ const zeilen=[];
+ for(let i=1;i<punkte.length;i++){
+  const prev=punkte[i-1],cur=punkte[i];
+  const abstand=cur.pos-prev.pos;
+  const vonLabel=prev.art==="grenze"?prev.label:`Dila ${punkte.slice(0,i).filter(p=>p.art==="dila").length}`;
+  const bisLabel=cur.art==="dila"?`Dila ${punkte.slice(0,i+1).filter(p=>p.art==="dila").length}`:cur.label;
+  zeilen.push(`<tr><td>${i}</td><td>${esc(vonLabel)} → ${esc(bisLabel)}</td><td>${Math.round(abstand)}</td><td>${Math.round(cur.pos)}</td></tr>`);
+ }
+ return `<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Position ab Start (mm)</th></tr></thead>
+<tbody>${zeilen.join("")}</tbody>
+</table>`;
+})()}
 <div class="eb-section-head">Segmente</div>
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Links</th><th>Rechts</th><th>Winkel (°)</th><th>Zuschnitt (mm)</th></tr></thead>
@@ -3989,6 +4397,48 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 }).join("")}</tbody>
 </table>
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="freies_profil"){
+  const d=m.data||{};
+  const schenkel=d.schenkel||[];
+  const segmente=d.segmente||[];
+  const konisch=!!d.konisch;
+  extraCss=`
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ .eb-diagram{text-align:center;margin:4mm 0}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:9.5pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
+<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+<tr>${cell("Anzahl Schenkel",esc(schenkel.length))}${cell("Konisch",konisch?"Ja":"Nein")}</tr>
+</table>
+<div class="eb-section-head">Profil</div>
+<div class="eb-diagram">${generateProfilDiagramSvg(schenkel)}</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th></tr></thead>
+<tbody>${schenkel.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(s.winkel||0)}</td></tr>`).join("")}</tbody>
+</table>
+<div class="eb-section-head">Segmente</div>
+${segmente.map((seg,i)=>`<div style="margin-top:3mm">
+<b>Segment ${i+1}</b> · Länge ${esc(seg.laenge||0)} mm
+<table class="eb-cutlist">
+<thead><tr><th>Schenkel</th>${konisch?"<th>Mass links (mm)</th><th>Mass rechts (mm)</th>":"<th>Mass (mm)</th>"}</tr></thead>
+<tbody>${schenkel.map((s,j)=>{
+ const mm=(seg.massen&&seg.massen[j])||{};
+ return konisch?`<tr><td>${j+1}</td><td>${esc(mm.links||0)}</td><td>${esc(mm.rechts||0)}</td></tr>`:`<tr><td>${j+1}</td><td>${esc(mm.mass||0)}</td></tr>`;
+}).join("")}</tbody>
+</table>
+</div>`).join("")}
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else{
   const sketches=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
   extraCss=`
@@ -4003,7 +4453,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}
 ${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze ${i+1} von ${sketches.length}</h2>`:""}<img class="sketch" src="${esc(s)}"></div>`).join("")}`;
  }
 
- win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(m.title||"Massaufnahme")}</title>
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(pdfDateiname(proj?proj.name:"",proj?proj.object:"",typeLabels[m.type]||m.type,m.title))}</title>
 <style>
  body{font-family:Arial,Helvetica,sans-serif;color:#17202a;margin:14mm}
  h1{font-size:16pt;margin:0 0 2mm}
@@ -4015,6 +4465,7 @@ ${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze 
 ${extraCss}
 </style></head><body>
 ${bodyHtml}
+${erstelltGeaendertHtml(m)}
 </body></html>`);
  win.document.close();
  const doPrint=()=>{try{win.focus();win.print()}catch(e){}};
@@ -4309,12 +4760,12 @@ $("saveAusmass").onclick=async()=>{
    photo_path:photoUrls[0]||null,
    photo_paths:photoUrls,
    positions:$("amType").value==="blitzschutz_ausmass"?amBzPositions:amPositions,
-   created_by:currentProfile?currentProfile.id:null,
+   updated_by:currentProfile?currentProfile.id:null,
    updated_at:new Date().toISOString()
   };
   const {error}=currentAusmassId
    ?await sb.from("ausmass").update(payload).eq("id",currentAusmassId)
-   :await sb.from("ausmass").insert(payload);
+   :await sb.from("ausmass").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:new Date().toISOString()});
   if(error)throw error;
   $("ausmassEditModal").hidden=true;
   if(amEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
@@ -4402,7 +4853,7 @@ function printAusmass(a){
 <div class="am-section-head">Positionen</div>
 ${positionsHtml}
 ${a.note?`<div class="note">${esc(a.note)}</div>`:""}`;
- win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(a.title||"Ausmass")}</title>
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(pdfDateiname(proj?proj.name:"",proj?proj.object:"",typeLabels[a.type]||a.type,a.title))}</title>
 <style>
  body{font-family:Arial,Helvetica,sans-serif;color:#17202a;margin:14mm}
  h1{font-size:16pt;margin:0 0 2mm}
@@ -4421,6 +4872,7 @@ ${a.note?`<div class="note">${esc(a.note)}</div>`:""}`;
  .am-cutlist tfoot td{border-top:1pt solid #17202a;padding:2.4mm 2.6mm;font-size:9.5pt}
 </style></head><body>
 ${bodyHtml}
+${erstelltGeaendertHtml(a)}
 </body></html>`);
  win.document.close();
  const doPrint=()=>{try{win.focus();win.print()}catch(e){}};
