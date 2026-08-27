@@ -475,7 +475,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="openFeedback" class="gray">💬 Feedback geben</button>
 </div>
 </div>
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.47</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.49</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -833,7 +833,14 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <tbody id="fp_schenkelBody"></tbody>
 </table>
 </div>
-<div class="bar"><button type="button" class="gray" id="fp_addSchenkel">＋ Schenkel hinzufügen</button></div>
+<div class="bar">
+<button type="button" class="gray" id="fp_addSchenkel">＋ Schenkel hinzufügen</button>
+<button type="button" class="gray" id="fp_sketchRecognize">✏️ Profil skizzieren &amp; erkennen</button>
+</div>
+<div class="small" id="fp_sketchStatus" style="margin:2px 0 8px"></div>
+<div id="fp_sketchPreviewBox" hidden style="margin-bottom:8px">
+<img id="fp_sketchPreview" style="max-width:200px;display:block;margin:0 auto;border:1px solid var(--line);border-radius:8px">
+</div>
 <div id="fp_profilDiagram" class="eb-diagram-box"></div>
 
 <div class="grid" style="margin-top:10px">
@@ -2676,8 +2683,10 @@ document.addEventListener("gesturestart",e=>{
  if(!$("sketchFullscreen").hidden)e.preventDefault();
 });
 
-function openSketchFullscreen(bgSrc,editIndex){
+let sketchDoneCallback=null;
+function openSketchFullscreen(bgSrc,editIndex,doneCallback){
  sketchEditIndex=(typeof editIndex==="number")?editIndex:null;
+ sketchDoneCallback=doneCallback||null;
  const overlay=$("sketchFullscreen"),canvas=$("fsSketchCanvas"),viewport=$("sketchViewport");
  overlay.hidden=false;
  canvas.width=SKETCH_W;canvas.height=SKETCH_H;
@@ -2785,9 +2794,16 @@ $("fsSketchClear").onclick=()=>{
  if(!fsCtx)return;
  fsCtx.fillStyle="#fff";fsCtx.fillRect(0,0,SKETCH_W,SKETCH_H);
 };
-$("fsSketchCancel").onclick=()=>{$("sketchFullscreen").hidden=true};
+$("fsSketchCancel").onclick=()=>{sketchDoneCallback=null;$("sketchFullscreen").hidden=true};
 $("fsSketchDone").onclick=()=>{
  const dataUrl=$("fsSketchCanvas").toDataURL("image/png");
+ if(sketchDoneCallback){
+  const cb=sketchDoneCallback;
+  sketchDoneCallback=null;
+  $("sketchFullscreen").hidden=true;
+  cb(dataUrl);
+  return;
+ }
  if(sketchEditIndex!==null&&measSketches[sketchEditIndex]!==undefined)measSketches[sketchEditIndex]=dataUrl;
  else measSketches.push(dataUrl);
  renderSketchGallery();
@@ -3514,9 +3530,11 @@ function generateProfilDiagramSvg(schenkel){
  if(!schenkel.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Schenkel für die Zeichnung.</div>';
  let x=0,y=0,dir=0;
  const pts=[{x,y}];
+ const dirs=[0];
  for(let i=0;i<schenkel.length;i++){
   const s=schenkel[i];
   if(i>0)dir+=Number(s.winkel)||0;
+  dirs.push(dir);
   const rad=dir*Math.PI/180;
   x+=(Number(s.laenge)||0)*Math.cos(rad);
   y+=(Number(s.laenge)||0)*Math.sin(rad);
@@ -3529,10 +3547,47 @@ function generateProfilDiagramSvg(schenkel){
  const scale=Math.min(target/w,target/h);
  const toSvg=p=>[pad+(p.x-minX)*scale,pad+(p.y-minY)*scale];
  const svgW=target+2*pad,svgH=target+2*pad;
- let lines="",labels="",nums="";
+ const svgPtsRaw=pts.map(toSvg);
+ // Ist Schenkel i ein Umschlag (180°)? Der wird als eigene, kurze, parallel versetzte Linie
+ // mit kleinem Abstand gezeichnet, statt sich exakt mit dem vorherigen Schenkel zu decken.
+ const GAP=6;
+ function istUmschlag(i){
+  if(i===0)return false;
+  const winkelNorm=((Number(schenkel[i].winkel)||0)%360+360)%360;
+  return Math.abs(winkelNorm-180)<0.5;
+ }
+ // Für jeden Schenkel die tatsächlich gezeichneten Endpunkte bestimmen (versetzt bei Umschlag)
+ const drawEnds=schenkel.map((s,i)=>{
+  const [x1,y1]=svgPtsRaw[i],[x2,y2]=svgPtsRaw[i+1];
+  if(!istUmschlag(i))return[[x1,y1],[x2,y2]];
+  const radDir=dirs[i+1]*Math.PI/180;
+  const nx=-Math.sin(radDir),ny=Math.cos(radDir);
+  return[[x1+nx*GAP,y1+ny*GAP],[x2+nx*GAP,y2+ny*GAP]];
+ });
+ // Zusammenhängende Abschnitte (ohne Umschlag-Schenkel) als je eine Polyline mit runden Ecken;
+ // Umschlag-Schenkel werden als eigene kurze Linie gezeichnet (dadurch entsteht der Abstand).
+ let lines="";
+ let aktuellerPfad=[svgPtsRaw[0]];
  for(let i=0;i<schenkel.length;i++){
-  const [x1,y1]=toSvg(pts[i]),[x2,y2]=toSvg(pts[i+1]);
-  lines+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
+  if(istUmschlag(i)){
+   if(aktuellerPfad.length>1){
+    const pfadStr=aktuellerPfad.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+    lines+=`<polyline points="${pfadStr}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+   }
+   const [[ux1,uy1],[ux2,uy2]]=drawEnds[i];
+   lines+=`<line x1="${ux1.toFixed(1)}" y1="${uy1.toFixed(1)}" x2="${ux2.toFixed(1)}" y2="${uy2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
+   aktuellerPfad=[svgPtsRaw[i+1]];
+  }else{
+   aktuellerPfad.push(svgPtsRaw[i+1]);
+  }
+ }
+ if(aktuellerPfad.length>1){
+  const pfadStr=aktuellerPfad.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  lines+=`<polyline points="${pfadStr}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+ }
+ let labels="",nums="";
+ for(let i=0;i<schenkel.length;i++){
+  const [[x1,y1],[x2,y2]]=drawEnds[i];
   const mx=(x1+x2)/2,my=(y1+y2)/2;
   const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1;
   const nx=-dy/len,ny=dx/len;
@@ -3563,6 +3618,41 @@ $("fp_addSchenkel").onclick=()=>{
  renderFpSchenkelTable();
  renderFpSegmenteList();
 };
+$("fp_sketchRecognize").onclick=()=>{
+ openSketchFullscreen(null,null,async(dataUrl)=>{
+  $("fp_sketchPreview").src=dataUrl;
+  $("fp_sketchPreviewBox").hidden=false;
+  $("fp_sketchStatus").textContent="🔄 Form wird erkannt …";
+  try{
+   const erkannt=await recognizeProfileSketch(dataUrl);
+   if(!erkannt.length){$("fp_sketchStatus").textContent="⚠️ Keine Form erkannt. Bitte deutlicher skizzieren oder Schenkel manuell erfassen.";return}
+   if(fpSchenkel.length&&!confirm(`${erkannt.length} Schenkel erkannt. Vorhandenes Profil ersetzen?`)){$("fp_sketchStatus").textContent="";return}
+   fpSchenkel=erkannt;
+   renderFpSchenkelTable();
+   renderFpSegmenteList();
+   $("fp_sketchStatus").textContent=`✓ ${erkannt.length} Schenkel übernommen. Bitte Längen und Winkel prüfen und mit den tatsächlichen Massen ergänzen – die Skizze liefert nur eine grobe Vorlage, keine echten Masse.`;
+  }catch(err){
+   $("fp_sketchStatus").textContent="Fehler bei der Erkennung: "+err.message;
+  }
+ });
+};
+async function recognizeProfileSketch(dataUrl){
+ const res=await fetch(`${SUPABASE_URL}/functions/v1/extract-profile-shape`,{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   "Authorization":`Bearer ${SUPABASE_ANON_KEY}`,
+   "apikey":SUPABASE_ANON_KEY
+  },
+  body:JSON.stringify({image_base64:dataUrl})
+ });
+ const text=await res.text();
+ let data=null;
+ try{data=JSON.parse(text)}catch{}
+ if(!res.ok)throw new Error(`Server antwortete mit Status ${res.status}: ${(data&&data.error)||text.slice(0,300)||"unbekannter Fehler"}`);
+ if(!data?.ok)throw new Error((data&&data.error)||"Erkennung fehlgeschlagen.");
+ return (data.schenkel||[]).map((s,i)=>({laenge:Math.round(Number(s.laenge))||0,winkel:i===0?0:Math.round(Number(s.winkel))||0}));
+}
 $("fp_schenkelBody").addEventListener("input",e=>{
  const i=Number(e.target.dataset.fpSchenkelLaenge??e.target.dataset.fpSchenkelWinkel);
  if(Number.isNaN(i)||!fpSchenkel[i])return;
