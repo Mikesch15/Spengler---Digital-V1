@@ -472,7 +472,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="settings" class="gray">⚙️ Einstellungen</button>
 </div>
 </div>
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.30</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.31</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -695,7 +695,11 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div><label>Montage</label><select id="eb_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
 <div><label>Abwicklung (mm)</label><select id="eb_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
 </div>
-<div class="bar"><button type="button" class="gray" id="eb_regenerate">🔄 Stücke aus Gesamtlänge berechnen</button></div>
+<div class="bar">
+<button type="button" class="gray" id="eb_regenerate">🔄 Stücke aus Gesamtlänge berechnen</button>
+<button type="button" class="gray" id="eb_appendGesamtlaenge">➕ Weitere Länge anfügen</button>
+</div>
+<div class="small" style="margin:2px 0 8px;color:var(--muted)">"Anfügen" ergänzt Stücke aus der Gesamtlänge oben ans Ende der Liste, z. B. um nach einer Gehrung in eine andere Richtung weiterzufahren.</div>
 <div id="eb_diagram" class="eb-diagram-box" style="margin-top:12px"></div>
 
 <h2 style="margin-top:14px">Stücke</h2>
@@ -3335,10 +3339,7 @@ function toggleEbEndzugabe(position){
 }
 $("eb_toggleEndzugabeStart").onclick=()=>toggleEbEndzugabe("start");
 $("eb_toggleEndzugabeEnd").onclick=()=>toggleEbEndzugabe("end");
-$("eb_regenerate").onclick=()=>{
- const gesamtlaenge=Number($("eb_gesamtlaenge").value)||0;
- if(!gesamtlaenge||gesamtlaenge<=0){alert("Bitte zuerst eine gültige Gesamtlänge eingeben.");return}
- if(ebPieces.length&&!confirm("Vorhandene Stücke werden ersetzt. Fortfahren?"))return;
+function buildEbPiecesFromGesamtlaenge(gesamtlaenge){
  const stossLaenge=Number(einlaufblechSettings.stoss_laenge)||1;
  const ueberlappung=Number(einlaufblechSettings.ueberlappung)||0;
  const restSchwelle=Number(einlaufblechSettings.rest_schwelle)||0;
@@ -3347,18 +3348,32 @@ $("eb_regenerate").onclick=()=>{
  let rest=gesamtlaenge-(anzahl-1)*stossLaenge;
  if(anzahl>1&&rest>0&&rest<restSchwelle){anzahl=anzahl-1;rest=stossLaenge+rest;}
  const restZuschnittlaenge=Math.max(0,rest);
- ebPieces=[];
+ const neue=[];
  for(let i=1;i<=anzahl;i++){
-  ebPieces.push({laenge:i===anzahl?restZuschnittlaenge:zuschnittlaenge,stossStoss:stossLaenge,gehrungLinks:false,gehrungRechts:false,winkel:0});
+  neue.push({laenge:i===anzahl?restZuschnittlaenge:zuschnittlaenge,stossStoss:stossLaenge,gehrungLinks:false,gehrungRechts:false,winkel:0});
  }
+ return neue;
+}
+$("eb_regenerate").onclick=()=>{
+ const gesamtlaenge=Number($("eb_gesamtlaenge").value)||0;
+ if(!gesamtlaenge||gesamtlaenge<=0){alert("Bitte zuerst eine gültige Gesamtlänge eingeben.");return}
+ if(ebPieces.length&&!confirm("Vorhandene Stücke werden ersetzt. Fortfahren?"))return;
+ ebPieces=buildEbPiecesFromGesamtlaenge(gesamtlaenge);
  const endZugabe=Number(einlaufblechSettings.end_zugabe)||0;
  if(endZugabe>0&&confirm(`Endzugabe von ${endZugabe} mm je Ende (Anfang + Ende) zum Reststück hinzufügen?`)){
   const rest=ebPieces[ebPieces.length-1];
-  rest.laenge+=endZugabe;
   rest.endzugabeStart=endZugabe;
   rest.laenge+=endZugabe;
   rest.endzugabeEnd=endZugabe;
+  rest.laenge+=endZugabe;
  }
+ renderEbPiecesTable();
+};
+$("eb_appendGesamtlaenge").onclick=()=>{
+ const gesamtlaenge=Number($("eb_gesamtlaenge").value)||0;
+ if(!gesamtlaenge||gesamtlaenge<=0){alert("Bitte eine gültige Gesamtlänge eingeben.");return}
+ const neue=buildEbPiecesFromGesamtlaenge(gesamtlaenge);
+ ebPieces=ebPieces.concat(neue);
  renderEbPiecesTable();
 };
 $("eb_addPiece").onclick=()=>{
