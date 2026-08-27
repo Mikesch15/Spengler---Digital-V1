@@ -472,7 +472,7 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <button id="settings" class="gray">⚙️ Einstellungen</button>
 </div>
 </div>
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.31</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.39</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -723,6 +723,14 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 <div class="info">Jedes Segment ist ein gerades Rinnenstück. Winkel = Richtungsänderung zum nächsten Segment (90° = normale Gebäudeecke). Anschlusstypen und deren Masse werden in Einstellungen → Massaufnahmen verwaltet.</div>
 <div class="grid">
 <div><label>Rinnenabwicklung (mm)</label><select id="rinne_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
+<div><label>Material</label><select id="rinne_material">
+<option value="aluminium">Aluminium</option>
+<option value="titanzink" selected>Titanzink</option>
+<option value="kupfer">Kupfer</option>
+<option value="crni_stahl">CrNi-Stahl</option>
+<option value="chromstahl_verzinnt">Chromstahl, verzinnt</option>
+<option value="stahl_verzinkt">Stahl, verzinkt</option>
+</select></div>
 </div>
 <div id="rinne_diagram" class="eb-diagram-box"></div>
 <h2 style="margin-top:14px">Segmente</h2>
@@ -735,6 +743,17 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 </div>
 <div class="bar"><button type="button" class="gray" id="rinne_addSegment">＋ Segment hinzufügen</button></div>
 <div class="small" id="rinne_summary"></div>
+<h2 style="margin-top:14px">Dilatationselemente (Dilas)</h2>
+<div class="info">Automatisch nach SPI-Richtwerten platziert (Anschlusstypen mit Fixpunkt- oder Schiebestutzen-Kennzeichen wirken sich auf den Abstand aus). Einstellbar in Einstellungen → Massaufnahmen → Anschlusstypen. Abstände unten bei Bedarf manuell anpassen.</div>
+<div class="bar"><button type="button" class="gray" id="rinne_calcDilas">🔄 Dilas automatisch berechnen</button><button type="button" class="gray" id="rinne_addDila">＋ Dila manuell hinzufügen</button></div>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:12%"><col style="width:38%"><col style="width:20%"><col style="width:22%"><col style="width:8%"></colgroup>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Position ab Start (mm)</th><th></th></tr></thead>
+<tbody id="rinne_dilasBody"></tbody>
+</table>
+</div>
+<div class="small" id="rinne_dilasSummary"></div>
 </div>
 
 <div id="measTypeEinlaufblechKonisch" hidden>
@@ -1911,11 +1930,13 @@ function renderRinneFittingSettings(){
 <input data-set-rinne-name="${i}" value="${esc(f.name||"")}" placeholder="Bezeichnung">
 <input data-set-rinne-mass="${i}" type="number" step="1" value="${f.mass_mm||0}" placeholder="Mass mm" style="max-width:90px">
 <input data-set-rinne-angle="${i}" type="number" step="1" value="${f.angle_deg||0}" placeholder="Winkel °" style="max-width:90px">
+<label class="small" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input data-set-rinne-fixpunkt="${i}" type="checkbox" ${f.is_fixpunkt?"checked":""}> Fixpunkt?</label>
+<label class="small" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input data-set-rinne-schiebestutzen="${i}" type="checkbox" ${f.is_schiebestutzen?"checked":""}> Schiebestutzen?</label>
 <button class="red" data-del-rinne-fitting="${i}">Löschen</button>
 </div>`).join("")||'<div class="empty">Noch keine Anschlusstypen.</div>';
 }
 $("newRinneFitting").onclick=async()=>{
- const {error}=await sb.from("rinne_fitting_types").insert({name:"Neuer Typ",mass_mm:0,symbol:"",angle_deg:0});
+ const {error}=await sb.from("rinne_fitting_types").insert({name:"Neuer Typ",mass_mm:0,symbol:"",angle_deg:0,is_fixpunkt:false,is_schiebestutzen:false});
  if(error){alert("Fehler: "+error.message);return}
  const {data}=await sb.from("rinne_fitting_types").select("*").order("name");
  rinneFittingTypes=data||[];
@@ -1942,11 +1963,23 @@ $("rinneFittingSettings").addEventListener("input",e=>{
  else if(e.target.dataset.setRinneMass!==undefined){rinneFittingTypes[i].mass_mm=Number(e.target.value)||0;debouncedRinneFittingUpdate(id,{mass_mm:Number(e.target.value)||0,updated_at:new Date().toISOString()})}
  else if(e.target.dataset.setRinneAngle!==undefined){rinneFittingTypes[i].angle_deg=Number(e.target.value)||0;debouncedRinneFittingUpdate(id,{angle_deg:Number(e.target.value)||0,updated_at:new Date().toISOString()})}
 });
+$("rinneFittingSettings").addEventListener("change",e=>{
+ const i=Number(e.target.dataset.setRinneFixpunkt??e.target.dataset.setRinneSchiebestutzen);
+ if(Number.isNaN(i)||!rinneFittingTypes[i])return;
+ const id=rinneFittingTypes[i].id;
+ if(e.target.dataset.setRinneFixpunkt!==undefined){
+  rinneFittingTypes[i].is_fixpunkt=e.target.checked;
+  debouncedRinneFittingUpdate(id,{is_fixpunkt:e.target.checked,updated_at:new Date().toISOString()});
+ }else if(e.target.dataset.setRinneSchiebestutzen!==undefined){
+  rinneFittingTypes[i].is_schiebestutzen=e.target.checked;
+  debouncedRinneFittingUpdate(id,{is_schiebestutzen:e.target.checked,updated_at:new Date().toISOString()});
+ }
+});
 $("saveRinneFittings").onclick=async()=>{
  $("saveRinneFittings").disabled=true;
  try{
   const results=await Promise.all(rinneFittingTypes.map(f=>sb.from("rinne_fitting_types").update({
-   symbol:f.symbol,name:f.name,mass_mm:Number(f.mass_mm)||0,angle_deg:Number(f.angle_deg)||0,updated_at:new Date().toISOString()
+   symbol:f.symbol,name:f.name,mass_mm:Number(f.mass_mm)||0,angle_deg:Number(f.angle_deg)||0,is_fixpunkt:!!f.is_fixpunkt,is_schiebestutzen:!!f.is_schiebestutzen,updated_at:new Date().toISOString()
   }).eq("id",f.id)));
   const err=results.find(r=>r.error);
   if(err)throw err.error;
@@ -2712,7 +2745,9 @@ function newMeasurementWithType(type){
  ebPieces=[];
  renderEbPiecesTable();
  rinneSegments=[];
+ rinneDilas=[];
  $("rinne_abwicklung").value="250";
+ $("rinne_material").value="titanzink";
  renderRinneResult();
  ebkPieces=[];
  $("ebk_abwicklung").value="250";
@@ -2755,7 +2790,9 @@ function openMeasurement(m){
  ebPieces=(m.type==="einlaufblech_gerade"&&Array.isArray(d.pieces))?d.pieces.map(p=>({...p})):[];
  if(m.type==="einlaufblech_gerade")renderEbPiecesTable();
  rinneSegments=(m.type==="rinne_halbrund"&&Array.isArray(d.segments))?d.segments.map(s=>({...s})):[];
+ rinneDilas=(m.type==="rinne_halbrund"&&Array.isArray(d.dilas))?d.dilas.map(dd=>({...dd})):[];
  $("rinne_abwicklung").value=d.rinneAbwicklung||"250";
+ $("rinne_material").value=d.material||"titanzink";
  if(m.type==="rinne_halbrund")renderRinneResult();
  ebkPieces=(m.type==="einlaufblech_konisch"&&Array.isArray(d.pieces))?d.pieces.map(p=>({...p})):[];
  $("ebk_abwicklung").value=d.abwicklung||"250";
@@ -2839,6 +2876,7 @@ function einlaufblechDiagramSvg(winkel,massA,restBreite,umschlagOben,umschlagUnt
 }
 // ---- Rinne Halbrund ---------------------------------------------
 let rinneSegments=[];
+let rinneDilas=[];
 function calcRinneSegment(seg){
  const laenge=Number(seg.laenge)||0;
  const linksF=rinneFittingTypes.find(f=>f.id===Number(seg.linksTyp));
@@ -2847,7 +2885,169 @@ function calcRinneSegment(seg){
  const rechtsMass=rechtsF?Number(rechtsF.mass_mm)||0:0;
  return laenge+linksMass+rechtsMass;
 }
-function generateRinneGrundriss(segments){
+// ---- Rinne Halbrund: automatische Dilatationselement-Platzierung ----
+// Werte gemäss Fachliteratur "Spenglerarbeiten", Kap. 4.1.5 "Ausdehnung".
+const RINNE_AUSDEHNUNG_TABELLE={
+ aluminium:{label:"Aluminium",mitDehnungselement:4000,abFixpunkten:2000,freiEnden:8000,ausdehnungProM:2.4},
+ titanzink:{label:"Titanzink",mitDehnungselement:5000,abFixpunkten:2500,freiEnden:10000,ausdehnungProM:2.1},
+ kupfer:{label:"Kupfer",mitDehnungselement:6000,abFixpunkten:3000,freiEnden:12000,ausdehnungProM:1.7},
+ crni_stahl:{label:"CrNi-Stahl",mitDehnungselement:6000,abFixpunkten:3000,freiEnden:12000,ausdehnungProM:1.6},
+ chromstahl_verzinnt:{label:"Chromstahl, verzinnt",mitDehnungselement:8000,abFixpunkten:4000,freiEnden:16000,ausdehnungProM:1.1},
+ stahl_verzinkt:{label:"Stahl, verzinkt",mitDehnungselement:8000,abFixpunkten:4000,freiEnden:16000,ausdehnungProM:1.2},
+};
+function calcDilaPositionsInStretch(L,leftMax,rightMax,middleMax){
+ if(L<=0)return[];
+ if(L<=Math.min(leftMax,rightMax))return[];
+ let n=1;
+ while(leftMax+(n-1)*middleMax+rightMax<L-1e-6)n++;
+ if(n===1){
+  const lowBound=Math.max(0,L-rightMax);
+  const highBound=Math.min(leftMax,L);
+  return[(lowBound+highBound)/2];
+ }
+ const remaining=L-leftMax-rightMax;
+ const gapSize=remaining/(n-1);
+ const positions=[leftMax];
+ for(let i=1;i<n;i++)positions.push(positions[i-1]+gapSize);
+ return positions;
+}
+function isRinneFixpunkt(typId){
+ if(!typId)return false;
+ const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+ return !!(f&&f.is_fixpunkt);
+}
+function isRinneSchiebestutzen(typId){
+ if(!typId)return false;
+ const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+ return !!(f&&f.is_schiebestutzen);
+}
+function computeRinneBoundaries(segments){
+ // Grenzpunkte entlang des ganzen Verlaufs: 0 = Start von Segment 0, ..., N = Ende des letzten Segments.
+ // "fix" = Fixpunkt (strengere Regel), "schiebe" = Schiebestutzen (ersetzt funktional eine Dila,
+ // dort gilt die grosszügigere "Mit Dehnungselement"-Regel und es wird KEINE zusätzliche Dila platziert).
+ if(!segments.length)return{boundaries:[],gesamtlaenge:0};
+ function grenzTyp(typId){
+  if(isRinneFixpunkt(typId))return"fix";
+  if(isRinneSchiebestutzen(typId))return"schiebe";
+  return null;
+ }
+ function kombiniere(a,b){
+  if(a==="fix"||b==="fix")return"fix";
+  if(a==="schiebe"||b==="schiebe")return"schiebe";
+  return null;
+ }
+ const grenzen=[];
+ let cum=0;
+ grenzen.push({pos:0,typ:grenzTyp(segments[0].linksTyp)});
+ for(let i=0;i<segments.length;i++){
+  cum+=Number(segments[i].laenge)||0;
+  const istLetzte=i===segments.length-1;
+  const typ=istLetzte?grenzTyp(segments[i].rechtsTyp):kombiniere(grenzTyp(segments[i].rechtsTyp),grenzTyp(segments[i+1].linksTyp));
+  grenzen.push({pos:cum,typ});
+ }
+ const gesamtlaenge=cum;
+ const boundaries=[{pos:0,typ:grenzen[0].typ}];
+ for(let i=1;i<grenzen.length-1;i++)if(grenzen[i].typ)boundaries.push(grenzen[i]);
+ boundaries.push({pos:gesamtlaenge,typ:grenzen[grenzen.length-1].typ});
+ return{boundaries,gesamtlaenge};
+}
+function calcRinneDilas(segments,material){
+ const tab=RINNE_AUSDEHNUNG_TABELLE[material]||RINNE_AUSDEHNUNG_TABELLE.titanzink;
+ if(!segments.length)return{dilas:[],tabelle:tab,boundaries:[]};
+ const {boundaries,gesamtlaenge}=computeRinneBoundaries(segments);
+ const dilas=[];
+ for(let i=0;i<boundaries.length-1;i++){
+  const left=boundaries[i],right=boundaries[i+1];
+  const L=right.pos-left.pos;
+  const leftMax=left.typ==="fix"?tab.abFixpunkten:tab.mitDehnungselement;
+  const rightMax=right.typ==="fix"?tab.abFixpunkten:tab.mitDehnungselement;
+  const relPositions=calcDilaPositionsInStretch(L,leftMax,rightMax,tab.mitDehnungselement);
+  relPositions.forEach(rp=>dilas.push({posAbStart:left.pos+rp}));
+ }
+ return{dilas,tabelle:tab,gesamtlaenge,boundaries};
+}
+const RINNE_GRENZ_LABEL={fix:"Fixpunkt",schiebe:"Schiebestutzen"};
+function renderRinneDilasList(){
+ const material=$("rinne_material").value;
+ const {boundaries,gesamtlaenge}=computeRinneBoundaries(rinneSegments);
+ // Kombinierte, sortierte Punktliste aus Grenzen (Start/Fixpunkt/Schiebestutzen/Ende) und Dilas
+ const punkte=[];
+ boundaries.forEach((b,i)=>{
+  let label;
+  if(i===0)label=b.typ?RINNE_GRENZ_LABEL[b.typ]:"Start";
+  else if(i===boundaries.length-1)label=b.typ?RINNE_GRENZ_LABEL[b.typ]:"Ende";
+  else label=RINNE_GRENZ_LABEL[b.typ]||"Grenze";
+  punkte.push({pos:b.pos,art:"grenze",label});
+ });
+ rinneDilas.forEach((d,i)=>punkte.push({pos:Number(d.posAbStart)||0,art:"dila",dilaIndex:i}));
+ punkte.sort((a,b)=>a.pos-b.pos);
+ let dilaNr=0;
+ const rows=[];
+ for(let i=1;i<punkte.length;i++){
+  const prev=punkte[i-1],cur=punkte[i];
+  const abstand=cur.pos-prev.pos;
+  const vonLabel=prev.art==="grenze"?prev.label:`Dila ${punkte.slice(0,i).filter(p=>p.art==="dila").length}`;
+  if(cur.art==="dila"){
+   dilaNr++;
+   rows.push(`<tr>
+<td>${dilaNr}</td>
+<td>${esc(vonLabel)} → Dila ${dilaNr}</td>
+<td><input data-rinne-dila-abstand="${cur.dilaIndex}" data-rinne-dila-prev="${prev.pos}" type="number" step="1" value="${abstand}"></td>
+<td>${Math.round(cur.pos)}</td>
+<td><button type="button" class="red" data-rinne-dila-del="${cur.dilaIndex}" style="padding:6px 8px">×</button></td>
+</tr>`);
+  }else{
+   rows.push(`<tr style="background:var(--card-bg,#f7fafc)">
+<td>–</td>
+<td>${esc(vonLabel)} → ${esc(cur.label)}</td>
+<td class="small" style="color:var(--muted)">${Math.round(abstand)}</td>
+<td>${Math.round(cur.pos)}</td>
+<td></td>
+</tr>`);
+  }
+ }
+ $("rinne_dilasBody").innerHTML=rows.join("")||'<tr><td colspan="5" class="small">Noch keine Segmente/Dilas vorhanden.</td></tr>';
+ if(!rinneSegments.length){
+  $("rinne_dilasSummary").textContent="";
+ }else{
+  const tab=RINNE_AUSDEHNUNG_TABELLE[material]||RINNE_AUSDEHNUNG_TABELLE.titanzink;
+  $("rinne_dilasSummary").textContent=rinneDilas.length?`${rinneDilas.length} Dila(s) (${tab.label}).`:`Keine Dila nötig (${tab.label}: max. ${tab.mitDehnungselement/1000} m mit Dehnungselement, ${tab.abFixpunkten/1000} m ab Fixpunkten).`;
+ }
+}
+$("rinne_calcDilas").onclick=()=>{
+ if(!rinneSegments.length){alert("Bitte zuerst Segmente erfassen.");return}
+ if(rinneDilas.length&&!confirm("Vorhandene Dilas werden ersetzt. Fortfahren?"))return;
+ const material=$("rinne_material").value;
+ const {dilas}=calcRinneDilas(rinneSegments,material);
+ rinneDilas=dilas;
+ renderRinneDilasList();
+ updateRinneDiagramAndSummary();
+};
+$("rinne_addDila").onclick=()=>{
+ const {gesamtlaenge}=computeRinneBoundaries(rinneSegments);
+ rinneDilas.push({posAbStart:Math.round(gesamtlaenge/2)});
+ renderRinneDilasList();
+ updateRinneDiagramAndSummary();
+};
+$("rinne_dilasBody").addEventListener("change",e=>{
+ const i=Number(e.target.dataset.rinneDilaAbstand);
+ if(Number.isNaN(i)||!rinneDilas[i])return;
+ const prevPos=Number(e.target.dataset.rinneDilaPrev)||0;
+ const neuerAbstand=Number(e.target.value)||0;
+ rinneDilas[i].posAbStart=prevPos+neuerAbstand;
+ renderRinneDilasList();
+ updateRinneDiagramAndSummary();
+});
+$("rinne_dilasBody").addEventListener("click",e=>{
+ const del=e.target.closest("[data-rinne-dila-del]");
+ if(!del)return;
+ rinneDilas.splice(Number(del.dataset.rinneDilaDel),1);
+ renderRinneDilasList();
+ updateRinneDiagramAndSummary();
+});
+function generateRinneGrundriss(segments,dilas,boundaries){
+ dilas=dilas||[];
+ boundaries=boundaries||[];
  if(!segments.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Segmente für den Grundriss.</div>';
  let x=0,y=0,dir=0;
  const pts=[{x,y}];
@@ -2865,7 +3065,7 @@ function generateRinneGrundriss(segments){
  const scale=Math.min(target/w,target/h);
  const toSvg=p=>[pad+(p.x-minX)*scale,pad+(p.y-minY)*scale];
  const svgW=target+2*pad,svgH=target+2*pad;
- let lines="",labels="",arrows="";
+ let lines="",labels="",arrows="",posNummern="";
  for(let i=0;i<segments.length;i++){
   const [x1,y1]=toSvg(pts[i]),[x2,y2]=toSvg(pts[i+1]);
   lines+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
@@ -2877,6 +3077,9 @@ function generateRinneGrundriss(segments){
   let angleDeg=Math.atan2(dy,dx)*180/Math.PI;
   if(angleDeg>90||angleDeg<-90)angleDeg+=180;
   labels+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="12" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(segments[i].laenge||0)}</text>`;
+  // Positionsnummer bei 25% der Segmentlänge, direkt auf der Linie (eigener Punkt, kein Überlapp mit Mass/Pfeil)
+  const qx=x1+dx*0.25,qy=y1+dy*0.25;
+  posNummern+=`<circle cx="${qx.toFixed(1)}" cy="${qy.toFixed(1)}" r="9" fill="#1769aa"/><text x="${qx.toFixed(1)}" y="${(qy+3.2).toFixed(1)}" font-size="9" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
   // Blickrichtungs-Pfeil auf der Gegenseite der Massbeschriftung: Spitze beruehrt das Segment
   const shaftFar=24,headLen=9,headWidth=5;
   const farX=mx+px*shaftFar,farY=my+py*shaftFar;
@@ -2894,7 +3097,47 @@ function generateRinneGrundriss(segments){
   if(linksF&&linksF.symbol)symbols+=`<circle cx="${sp[0].toFixed(1)}" cy="${sp[1].toFixed(1)}" r="11" fill="#fff" stroke="#68737d" stroke-width="1.5"/><text x="${sp[0].toFixed(1)}" y="${(sp[1]+3).toFixed(1)}" font-size="8" fill="#17202a" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${esc(linksF.symbol)}</text>`;
   if(rechtsF&&rechtsF.symbol)symbols+=`<circle cx="${ep[0].toFixed(1)}" cy="${ep[1].toFixed(1)}" r="11" fill="#fff" stroke="#68737d" stroke-width="1.5"/><text x="${ep[0].toFixed(1)}" y="${(ep[1]+3).toFixed(1)}" font-size="8" fill="#17202a" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${esc(rechtsF.symbol)}</text>`;
  }
- return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${labels}${symbols}</svg>`;
+ // Hilfsfunktion: SVG-Koordinaten (und lokale Segmentrichtung) für eine Position entlang des ganzen Verlaufs
+ function svgPosAt(posAbStart){
+  let remaining=posAbStart,segIdx=0;
+  while(segIdx<segments.length&&remaining>(Number(segments[segIdx].laenge)||0)){
+   remaining-=Number(segments[segIdx].laenge)||0;
+   segIdx++;
+  }
+  if(segIdx>=segments.length)segIdx=segments.length-1;
+  const segLen=Number(segments[segIdx].laenge)||1;
+  const frac=Math.max(0,Math.min(1,remaining/segLen));
+  const [sx1,sy1]=toSvg(pts[segIdx]),[sx2,sy2]=toSvg(pts[segIdx+1]);
+  const dx=sx2-sx1,dy=sy2-sy1,len=Math.hypot(dx,dy)||1;
+  return {x:sx1+dx*frac,y:sy1+dy*frac,ux:dx/len,uy:dy/len};
+ }
+ // Dilas als kleine orange Rauten entlang des Verlaufs zeichnen
+ let dilaMarks="";
+ for(const d of dilas){
+  const p=svgPosAt(d.posAbStart);
+  const r=7;
+  dilaMarks+=`<polygon points="${p.x.toFixed(1)},${(p.y-r).toFixed(1)} ${(p.x+r).toFixed(1)},${p.y.toFixed(1)} ${p.x.toFixed(1)},${(p.y+r).toFixed(1)} ${(p.x-r).toFixed(1)},${p.y.toFixed(1)}" fill="#e07a1f" stroke="#8a4a0f" stroke-width="1"/>`;
+ }
+ // Vermassung: Abstände zwischen Start, Fixpunkten/Schiebestutzen, den Dilas und dem Ende beschriften
+ // (orange, parallel zur jeweiligen Linienrichtung).
+ let dilaMasse="";
+ if(dilas.length||boundaries.length>2){
+  const gesamtlaenge=segments.reduce((s,seg)=>s+(Number(seg.laenge)||0),0);
+  const kettePositionen=[0,...boundaries.map(b=>b.pos),...dilas.map(d=>d.posAbStart),gesamtlaenge];
+  const kette=[...new Set(kettePositionen.map(p=>Math.round(p)))].sort((a,b)=>a-b);
+  for(let i=0;i<kette.length-1;i++){
+   const gap=kette[i+1]-kette[i];
+   if(gap<=0)continue;
+   const mid=(kette[i]+kette[i+1])/2;
+   const pMid=svgPosAt(mid);
+   const nx=-pMid.uy,ny=pMid.ux,off=13;
+   const lx=pMid.x+nx*off,ly=pMid.y+ny*off;
+   let angleDeg=Math.atan2(pMid.uy,pMid.ux)*180/Math.PI;
+   if(angleDeg>90||angleDeg<-90)angleDeg+=180;
+   dilaMasse+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="9.5" fill="#b45a09" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(gap)}</text>`;
+  }
+ }
+ return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${labels}${posNummern}${symbols}${dilaMarks}${dilaMasse}</svg>`;
 }
 function renderRinneSegmentsTable(){
  const options=rinneFittingTypes.map(f=>`<option value="${f.id}">${esc(f.symbol?f.symbol+" – ":"")}${esc(f.name)}</option>`).join("");
@@ -2918,11 +3161,18 @@ function renderRinneResult(){
  renderRinneSegmentsTable();
  updateRinneDiagramAndSummary();
 }
+function renderRinneResult(){
+ renderRinneSegmentsTable();
+ updateRinneDiagramAndSummary();
+ renderRinneDilasList();
+}
 function updateRinneDiagramAndSummary(){
- $("rinne_diagram").innerHTML=generateRinneGrundriss(rinneSegments);
+ const {boundaries}=computeRinneBoundaries(rinneSegments);
+ $("rinne_diagram").innerHTML=generateRinneGrundriss(rinneSegments,rinneDilas,boundaries);
  const totalLen=rinneSegments.reduce((s,seg)=>s+(Number(seg.laenge)||0),0);
  $("rinne_summary").textContent=rinneSegments.length?`${rinneSegments.length} Segmente · Gesamtlänge ${totalLen} mm · Abwicklung ${$("rinne_abwicklung").value} mm`:"";
 }
+$("rinne_material").addEventListener("change",()=>{renderRinneDilasList();updateRinneDiagramAndSummary();});
 $("rinne_addSegment").onclick=()=>{
  const prev=rinneSegments[rinneSegments.length-1];
  rinneSegments.push({laenge:0,linksTyp:prev?prev.rechtsTyp:"",rechtsTyp:"",winkel:0});
@@ -2936,6 +3186,7 @@ $("rinne_segmentsBody").addEventListener("input",e=>{
  const row=e.target.closest("tr");
  if(row&&row.children[5])row.children[5].textContent=calcRinneSegment(rinneSegments[i]);
  updateRinneDiagramAndSummary();
+ renderRinneDilasList();
 });
 $("rinne_segmentsBody").addEventListener("change",e=>{
  const i=Number(e.target.dataset.rinneLinks??e.target.dataset.rinneRechts);
@@ -3008,26 +3259,30 @@ function generateEbkGrundriss(pieces){
    joints+=`<line x1="${(x2-nx*jointLength).toFixed(1)}" y1="${(y2-ny*jointLength).toFixed(1)}" x2="${(x2+nx*jointLength).toFixed(1)}" y2="${(y2+ny*jointLength).toFixed(1)}" stroke="#17202a" stroke-width="3" stroke-linecap="round"/>`;
   }
 
-  // Endzugaben: am letzten Stück, als kurzer roter Strich markiert, wo die Zugabe beginnt.
+  // Endzugaben: als kurzer roter Strich markiert, wo die Zugabe beginnt.
+  // Die Erstes-Stück-Zugabe erscheint am Anfang der Linie, die Letztes-Stück-Zugabe am Ende
+  // (auch wenn beide rechnerisch am Reststück angehängt werden, da nur das Reststück von der
+  // Standardlänge abweichen darf).
   // Fester, gut sichtbarer Pixel-Abstand statt massstabsgetreuer Position, da die Endzugabe
   // (typischerweise 10mm) bei diesem Massstab sonst nicht erkennbar wäre.
-  if(i===pieces.length-1&&(pieces[i].endzugabeStart||pieces[i].endzugabeEnd)){
+  const restStueck=pieces[pieces.length-1];
+  if(i===0&&restStueck&&Number(restStueck.endzugabeStart)>0){
    const dx0=x2-x1,dy0=y2-y1,len0=Math.hypot(dx0,dy0)||1;
    const ux0=dx0/len0,uy0=dy0/len0;
    const nx0=-uy0,ny0=ux0;
    const tickGap=13;
-   let offsetFromEnd=0;
-   if(Number(pieces[i].endzugabeEnd)>0){
-    offsetFromEnd=tickGap;
-    const tx=x2-ux0*offsetFromEnd,ty=y2-uy0*offsetFromEnd;
-    endzugaben+=`<line x1="${(tx-nx0*9).toFixed(1)}" y1="${(ty-ny0*9).toFixed(1)}" x2="${(tx+nx0*9).toFixed(1)}" y2="${(ty+ny0*9).toFixed(1)}" stroke="#b42318" stroke-width="2.5" stroke-linecap="round"/>`;
-   }
-   if(Number(pieces[i].endzugabeStart)>0){
-    const offset2=offsetFromEnd+tickGap;
-    const tx=x2-ux0*offset2,ty=y2-uy0*offset2;
-    endzugaben+=`<line x1="${(tx-nx0*9).toFixed(1)}" y1="${(ty-ny0*9).toFixed(1)}" x2="${(tx+nx0*9).toFixed(1)}" y2="${(ty+ny0*9).toFixed(1)}" stroke="#b42318" stroke-width="2.5" stroke-linecap="round"/>`;
-   }
+   const tx=x1+ux0*tickGap,ty=y1+uy0*tickGap;
+   endzugaben+=`<line x1="${(tx-nx0*9).toFixed(1)}" y1="${(ty-ny0*9).toFixed(1)}" x2="${(tx+nx0*9).toFixed(1)}" y2="${(ty+ny0*9).toFixed(1)}" stroke="#b42318" stroke-width="2.5" stroke-linecap="round"/>`;
   }
+  if(i===pieces.length-1&&Number(pieces[i].endzugabeEnd)>0){
+   const dx0=x2-x1,dy0=y2-y1,len0=Math.hypot(dx0,dy0)||1;
+   const ux0=dx0/len0,uy0=dy0/len0;
+   const nx0=-uy0,ny0=ux0;
+   const tickGap=13;
+   const tx=x2-ux0*tickGap,ty=y2-uy0*tickGap;
+   endzugaben+=`<line x1="${(tx-nx0*9).toFixed(1)}" y1="${(ty-ny0*9).toFixed(1)}" x2="${(tx+nx0*9).toFixed(1)}" y2="${(ty+ny0*9).toFixed(1)}" stroke="#b42318" stroke-width="2.5" stroke-linecap="round"/>`;
+  }
+
 
   const mx=(x1+x2)/2,my=(y1+y2)/2;
   const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1;
@@ -3255,7 +3510,7 @@ $("ebk_rinneList").addEventListener("click",e=>{
    const istLetztes=j===lengths.length-1;
    neuePieces.push({
     laenge:len,
-    stossStoss:Number(einlaufblechKonischSettings.stoss_laenge)||0,
+    stossStoss:istLetztes?len:(Number(einlaufblechKonischSettings.stoss_laenge)||0),
     gehrungLinks:j===0?gehrungLinks:false,
     gehrungRechts:istLetztes?gehrungRechts:false,
     winkel:istLetztes?(Number(seg.winkel)||0):0,
@@ -3264,14 +3519,6 @@ $("ebk_rinneList").addEventListener("click",e=>{
   });
  });
  ebkPieces=neuePieces;
- const endZugabe=Number(einlaufblechKonischSettings.end_zugabe)||0;
- if(endZugabe>0&&ebkPieces.length&&confirm(`Endzugabe von ${endZugabe} mm je Ende (Anfang + Ende des ganzen Verlaufs) zum letzten Stück hinzufügen?`)){
-  const rest=ebkPieces[ebkPieces.length-1];
-  rest.laenge+=endZugabe;
-  rest.endzugabeStart=endZugabe;
-  rest.laenge+=endZugabe;
-  rest.endzugabeEnd=endZugabe;
- }
  renderEbkPiecesTable();
  alert(`${neuePieces.length} Stück(e) aus ${segs.length} Segment(en) übernommen. Bitte jetzt pro Stück Mass links/rechts eintragen.`);
 });
@@ -3350,7 +3597,8 @@ function buildEbPiecesFromGesamtlaenge(gesamtlaenge){
  const restZuschnittlaenge=Math.max(0,rest);
  const neue=[];
  for(let i=1;i<=anzahl;i++){
-  neue.push({laenge:i===anzahl?restZuschnittlaenge:zuschnittlaenge,stossStoss:stossLaenge,gehrungLinks:false,gehrungRechts:false,winkel:0});
+  const istLetztes=i===anzahl;
+  neue.push({laenge:istLetztes?restZuschnittlaenge:zuschnittlaenge,stossStoss:istLetztes?restZuschnittlaenge:stossLaenge,gehrungLinks:false,gehrungRechts:false,winkel:0});
  }
  return neue;
 }
@@ -3359,14 +3607,6 @@ $("eb_regenerate").onclick=()=>{
  if(!gesamtlaenge||gesamtlaenge<=0){alert("Bitte zuerst eine gültige Gesamtlänge eingeben.");return}
  if(ebPieces.length&&!confirm("Vorhandene Stücke werden ersetzt. Fortfahren?"))return;
  ebPieces=buildEbPiecesFromGesamtlaenge(gesamtlaenge);
- const endZugabe=Number(einlaufblechSettings.end_zugabe)||0;
- if(endZugabe>0&&confirm(`Endzugabe von ${endZugabe} mm je Ende (Anfang + Ende) zum Reststück hinzufügen?`)){
-  const rest=ebPieces[ebPieces.length-1];
-  rest.endzugabeStart=endZugabe;
-  rest.laenge+=endZugabe;
-  rest.endzugabeEnd=endZugabe;
-  rest.laenge+=endZugabe;
- }
  renderEbPiecesTable();
 };
 $("eb_appendGesamtlaenge").onclick=()=>{
@@ -3481,7 +3721,9 @@ function buildMeasurementFromForm(){
  if(type==="rinne_halbrund"){
   const segmentsWithZuschnitt=rinneSegments.map(s=>({...s,zuschnittlaenge:calcRinneSegment(s)}));
   const gesamtlaenge=rinneSegments.reduce((s,seg)=>s+(Number(seg.laenge)||0),0);
-  return {...base,photo_path:null,sketch_paths:[],data:{rinneAbwicklung:$("rinne_abwicklung").value,segments:segmentsWithZuschnitt,gesamtlaenge}};
+  const material=$("rinne_material").value;
+  const {boundaries}=computeRinneBoundaries(rinneSegments);
+  return {...base,photo_path:null,sketch_paths:[],data:{rinneAbwicklung:$("rinne_abwicklung").value,material,segments:segmentsWithZuschnitt,gesamtlaenge,dilas:rinneDilas,boundaries}};
  }
  if(type==="einlaufblech_konisch"){
   const abwicklung=Number($("ebk_abwicklung").value);
@@ -3641,7 +3883,7 @@ function printMeasurement(m){
 <tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
 <tr>${cell("Dachneigung / Winkel",esc(d.winkel||0)+"°")}${cell("Montage",'von '+esc(d.montage||"–")+` (eng ${esc(engeSeite)})`)}</tr>
-<tr>${cell("Mass A",esc(d.massA||0)+` mm (${esc(d.massAEng||0)} mm eng ${esc(engeSeite)})`)}${cell("Anzahl Stück",esc((pieces&&pieces.length)||0))}</tr>
+<tr>${cell("Mass A",esc(d.massAEng||0)+` mm eng ${esc(engeSeite)} (${esc(d.massA||0)} mm)`)}${cell("Anzahl Stück",esc((pieces&&pieces.length)||0))}</tr>
 </table>
 <div class="eb-diagram-row">
  <div class="eb-diagram">
@@ -3675,15 +3917,19 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const fittingLabel=id=>{const f=rinneFittingTypes.find(x=>x.id===Number(id));return f?`${f.symbol?f.symbol+" – ":""}${f.name}`:"–"};
+  const dilas=d.dilas||[];
+  const matTab=RINNE_AUSDEHNUNG_TABELLE[d.material]||RINNE_AUSDEHNUNG_TABELLE.titanzink;
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
 <tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
 <tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Rinnenabwicklung",esc(d.rinneAbwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
+<tr>${cell("Material",esc(matTab.label))}${cell("Dilatationselemente",dilas.length?esc(dilas.length)+" Stück":"Keine nötig")}</tr>
 </table>
 <div class="eb-section-head">Grundriss</div>
-<div class="eb-diagram">${generateRinneGrundriss(segs)}</div>
+<div class="eb-diagram">${generateRinneGrundriss(segs,dilas,d.boundaries||[])}</div>
+${dilas.length?`<div class="note">Dila-Positionen ab Start: ${dilas.map((dd,i)=>`Nr. ${i+1}: ${(dd.posAbStart/1000).toFixed(2)} m`).join(" · ")}</div>`:""}
 <div class="eb-section-head">Segmente</div>
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Links</th><th>Rechts</th><th>Winkel (°)</th><th>Zuschnitt (mm)</th></tr></thead>
@@ -3737,8 +3983,8 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Mass links (mm)</th><th>Mass rechts (mm)</th></tr></thead>
 <tbody>${pieces.map((p,i)=>{
  const warn=ebkRestbreite(engeSeite==="links"?p.massLinks:p.massRechts,d.abwicklung)<0;
- const linksTxt=engeSeite==="links"?`${esc(p.massLinks||0)} (${esc(p.massLinksEng??0)})`:esc(p.massLinks||0);
- const rechtsTxt=engeSeite==="rechts"?`${esc(p.massRechts||0)} (${esc(p.massRechtsEng??0)})`:esc(p.massRechts||0);
+ const linksTxt=engeSeite==="links"?`${esc(p.massLinksEng??0)} (${esc(p.massLinks||0)})`:esc(p.massLinks||0);
+ const rechtsTxt=engeSeite==="rechts"?`${esc(p.massRechtsEng??0)} (${esc(p.massRechts||0)})`:esc(p.massRechts||0);
  return `<tr><td>${i+1}</td><td>${esc(p.laenge||0)}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td><td${warn&&engeSeite==="links"?' class="warn"':""}>${linksTxt}${warn&&engeSeite==="links"?" ⚠️":""}</td><td${warn&&engeSeite==="rechts"?' class="warn"':""}>${rechtsTxt}${warn&&engeSeite==="rechts"?" ⚠️":""}</td></tr>`;
 }).join("")}</tbody>
 </table>
