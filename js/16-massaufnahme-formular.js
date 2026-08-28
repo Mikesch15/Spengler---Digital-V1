@@ -49,7 +49,10 @@ function buildMeasurementFromForm(){
   const gesamtlaenge=rinneSegments.reduce((s,seg)=>s+(Number(seg.laenge)||0),0);
   const material=$("rinne_material").value;
   const {boundaries}=computeRinneBoundaries(rinneSegments);
-  return {...base,photo_path:null,sketch_paths:[],data:{rinneAbwicklung:$("rinne_abwicklung").value,material,segments:segmentsWithZuschnitt,gesamtlaenge,dilas:rinneDilas,boundaries}};
+  // Stückliste mitspeichern, damit ein späterer Ausdruck dieselben Zahlen
+  // zeigt, auch wenn Anschluss- oder Dila-Masse zwischenzeitlich geändert werden.
+  const stueckliste=berechneRinneStueckliste(rinneSegments,rinneDilas,boundaries,rinneDilaMass);
+  return {...base,photo_path:null,sketch_paths:[],data:{rinneAbwicklung:$("rinne_abwicklung").value,material,segments:segmentsWithZuschnitt,gesamtlaenge,dilas:rinneDilas,boundaries,stueckliste,dilaMass:rinneDilaMass}};
  }
  if(type==="einlaufblech_konisch"){
   const abwicklung=Number($("ebk_abwicklung").value);
@@ -287,31 +290,14 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <div class="eb-section-head">Dilatationselemente</div>
 ${(()=>{
  if(!segs.length)return '<div class="note">Keine Segmente vorhanden.</div>';
- const segGrenzen=[0];let cAcc=0;
- segs.forEach(s=>{cAcc+=Number(s.laenge)||0;segGrenzen.push(cAcc);});
- const boundaries=d.boundaries||[];
- const punkte=[];
- segGrenzen.forEach((pos,i)=>{
-  const b=boundaries.find(x=>Math.round(x.pos)===Math.round(pos));
-  let label;
-  if(b&&b.name)label=b.name;
-  else if(i===0)label="Start";
-  else if(i===segGrenzen.length-1)label="Ende";
-  else label="Segmentgrenze";
-  punkte.push({pos,art:"grenze",label});
- });
- dilas.forEach(dd=>punkte.push({pos:Number(dd.posAbStart)||0,art:"dila"}));
- punkte.sort((a,b)=>a.pos-b.pos);
- const zeilen=[];
- for(let i=1;i<punkte.length;i++){
-  const prev=punkte[i-1],cur=punkte[i];
-  const abstand=cur.pos-prev.pos;
-  const vonLabel=prev.art==="grenze"?prev.label:`Dila ${punkte.slice(0,i).filter(p=>p.art==="dila").length}`;
-  const bisLabel=cur.art==="dila"?`Dila ${punkte.slice(0,i+1).filter(p=>p.art==="dila").length}`:cur.label;
-  zeilen.push(`<tr><td>${i}</td><td>${esc(vonLabel)} → ${esc(bisLabel)}</td><td>${Math.round(abstand)}</td><td>${Math.round(cur.pos)}</td></tr>`);
- }
+ // Beim Speichern abgelegte Stückliste bevorzugen – so bleibt ein einmal
+ // gedrucktes PDF unverändert, auch wenn Masse später angepasst werden.
+ const stuecke=(Array.isArray(d.stueckliste)&&d.stueckliste.length)
+  ? d.stueckliste
+  : berechneRinneStueckliste(segs,dilas,d.boundaries||[],d.dilaMass!==undefined?d.dilaMass:rinneDilaMass);
+ const zeilen=stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${Math.round(st.zuschnitt)}</td><td>${Math.round(st.pos)}</td></tr>`);
  return `<table class="eb-cutlist">
-<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Position ab Start (mm)</th></tr></thead>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th>Position ab Start (mm)</th></tr></thead>
 <tbody>${zeilen.join("")}</tbody>
 </table>`;
 })()}

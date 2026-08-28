@@ -102,32 +102,26 @@ function calcRinneDilas(segments,material){
  }
  return{dilas,tabelle:tab,gesamtlaenge,boundaries};
 }
-function renderRinneDilasList(){
- const material=$("rinne_material").value;
- const {boundaries}=computeRinneBoundaries(rinneSegments);
- // Alle Segmentgrenzen (auch ohne Fixpunkt/Schiebestutzen-Kennzeichen) als eigene Punkte,
- // damit die Nummerierung hier exakt der im Grundriss entspricht (jedes tatsächliche Stück
- // zählt, egal ob durch eine Ecke oder durch eine Dila entstanden).
+// Berechnet die Stückliste zwischen allen Grenzpunkten und Dilas.
+// Wird von der Anzeige, vom Speichern und vom PDF gleichermassen benutzt,
+// damit alle drei dieselben Zahlen zeigen.
+function berechneRinneStueckliste(segments,dilas,boundaries,dilaMass){
  const segGrenzen=[0];
- let cAcc=0;
- rinneSegments.forEach(s=>{cAcc+=Number(s.laenge)||0;segGrenzen.push(cAcc);});
- const gesamtlaenge=cAcc;
- // Mass eines Anschlusstyps aus dem Katalog
+ let acc=0;
+ (segments||[]).forEach(s=>{acc+=Number(s.laenge)||0;segGrenzen.push(acc)});
  const massVon=typId=>{
   const f=rinneFittingTypes.find(x=>x.id===Number(typId));
   return f?Number(f.mass_mm)||0:0;
  };
- // Je Grenzpunkt das Zuschlagsmass für das Stück links bzw. rechts davon.
- // Gleiche Rechenweise wie in der Segmenttabelle: jedes Stück bekommt an
- // seinem eigenen Ende das Mass des dort sitzenden Anschlusstyps.
+ // Je Grenzpunkt das Zuschlagsmass für das Stück links bzw. rechts davon
  const massLinksSeite=[],massRechtsSeite=[];
  segGrenzen.forEach((pos,i)=>{
-  massLinksSeite[i] =i>0?massVon(rinneSegments[i-1].rechtsTyp):0;
-  massRechtsSeite[i]=i<rinneSegments.length?massVon(rinneSegments[i].linksTyp):0;
+  massLinksSeite[i] =i>0?massVon(segments[i-1].rechtsTyp):0;
+  massRechtsSeite[i]=i<segments.length?massVon(segments[i].linksTyp):0;
  });
  const punkte=[];
  segGrenzen.forEach((pos,i)=>{
-  const b=boundaries.find(x=>Math.round(x.pos)===Math.round(pos));
+  const b=(boundaries||[]).find(x=>Math.round(x.pos)===Math.round(pos));
   let label;
   if(b&&b.name)label=b.name;
   else if(i===0)label="Start";
@@ -135,39 +129,52 @@ function renderRinneDilasList(){
   else label="Segmentgrenze";
   punkte.push({pos,art:"grenze",label,grenzIndex:i});
  });
- rinneDilas.forEach((d,i)=>punkte.push({pos:Number(d.posAbStart)||0,art:"dila",dilaIndex:i}));
+ (dilas||[]).forEach((d,i)=>punkte.push({pos:Number(d.posAbStart)||0,art:"dila",dilaIndex:i}));
  punkte.sort((a,b)=>a.pos-b.pos);
- const rows=[];
+ const dm=Number(dilaMass)||0;
+ const stuecke=[];
  for(let i=1;i<punkte.length;i++){
   const prev=punkte[i-1],cur=punkte[i];
   const abstand=cur.pos-prev.pos;
-  // Zuschnittlänge: Abstand plus die Anschlussmasse an den eigenen Enden.
-  // An einer Dila wird nichts dazugerechnet.
-  const zugabeLinks =prev.art==="grenze"?massRechtsSeite[prev.grenzIndex]:rinneDilaMass;
-  const zugabeRechts=cur.art==="grenze"?massLinksSeite[cur.grenzIndex]:rinneDilaMass;
-  const zuschnitt=abstand+zugabeLinks+zugabeRechts;
-  const vonLabel=prev.art==="grenze"?prev.label:`Dila ${punkte.slice(0,i).filter(p=>p.art==="dila").length}`;
-  const bisLabel=cur.art==="dila"?`Dila ${punkte.slice(0,i+1).filter(p=>p.art==="dila").length}`:cur.label;
-  if(cur.art==="dila"){
-   rows.push(`<tr>
-<td>${i}</td>
-<td>${esc(vonLabel)} → ${esc(bisLabel)}</td>
-<td><input data-rinne-dila-abstand="${cur.dilaIndex}" data-rinne-dila-prev="${prev.pos}" type="number" step="1" value="${abstand}"></td>
-<td><b>${Math.round(zuschnitt)}</b></td>
-<td>${Math.round(cur.pos)}</td>
-<td><button type="button" class="red" data-rinne-dila-del="${cur.dilaIndex}" style="padding:6px 8px">×</button></td>
-</tr>`);
-  }else{
-   rows.push(`<tr style="background:var(--card-bg,#f7fafc)">
-<td>${i}</td>
-<td>${esc(vonLabel)} → ${esc(bisLabel)}</td>
-<td class="small" style="color:var(--muted)">${Math.round(abstand)}</td>
-<td><b>${Math.round(zuschnitt)}</b></td>
-<td>${Math.round(cur.pos)}</td>
-<td></td>
-</tr>`);
-  }
+  const zugabeLinks =prev.art==="grenze"?massRechtsSeite[prev.grenzIndex]:dm;
+  const zugabeRechts=cur.art==="grenze"?massLinksSeite[cur.grenzIndex]:dm;
+  stuecke.push({
+   nr:i,
+   von:prev.art==="grenze"?prev.label:`Dila ${punkte.slice(0,i).filter(p=>p.art==="dila").length}`,
+   bis:cur.art==="dila"?`Dila ${punkte.slice(0,i+1).filter(p=>p.art==="dila").length}`:cur.label,
+   abstand,
+   zuschnitt:abstand+zugabeLinks+zugabeRechts,
+   pos:cur.pos,
+   prevPos:prev.pos,
+   dilaIndex:cur.art==="dila"?cur.dilaIndex:null
+  });
  }
+ return stuecke;
+}
+function renderRinneDilasList(){
+ const material=$("rinne_material").value;
+ const {boundaries}=computeRinneBoundaries(rinneSegments);
+ const stuecke=berechneRinneStueckliste(rinneSegments,rinneDilas,boundaries,rinneDilaMass);
+ const rows=stuecke.map(st=>{
+  if(st.dilaIndex!==null){
+   return `<tr>
+<td>${st.nr}</td>
+<td>${esc(st.von)} → ${esc(st.bis)}</td>
+<td><input data-rinne-dila-abstand="${st.dilaIndex}" data-rinne-dila-prev="${st.prevPos}" type="number" step="1" value="${st.abstand}"></td>
+<td><b>${Math.round(st.zuschnitt)}</b></td>
+<td>${Math.round(st.pos)}</td>
+<td><button type="button" class="red" data-rinne-dila-del="${st.dilaIndex}" style="padding:6px 8px">×</button></td>
+</tr>`;
+  }
+  return `<tr style="background:var(--card-bg,#f7fafc)">
+<td>${st.nr}</td>
+<td>${esc(st.von)} → ${esc(st.bis)}</td>
+<td class="small" style="color:var(--muted)">${Math.round(st.abstand)}</td>
+<td><b>${Math.round(st.zuschnitt)}</b></td>
+<td>${Math.round(st.pos)}</td>
+<td></td>
+</tr>`;
+ });
  $("rinne_dilasBody").innerHTML=rows.join("")||'<tr><td colspan="6" class="small">Noch keine Segmente/Dilas vorhanden.</td></tr>';
  if(!rinneSegments.length){
   $("rinne_dilasSummary").textContent="";
