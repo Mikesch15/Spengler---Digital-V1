@@ -82,7 +82,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.65</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.68</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -396,8 +396,21 @@
 <option value="titanzink" selected>Titanzink</option>
 <option value="aluminium">Aluminium (Aluman)</option>
 </select></div>
-<div><label>Abwicklung (mm)</label><input id="mad_abwicklung" type="number" step="1" value="0"></div>
 </div>
+<h2 style="margin-top:14px">Profil (Querschnitt)</h2>
+<div class="grid">
+<div><label>Mauerbreite (mm)</label><input id="mad_mauerbreite" type="number" step="1" value="250"></div>
+<div><label>Gefälle nach rechts (°)</label><input id="mad_gefaelle" type="number" step="1" value="5"></div>
+<div><label>Überstand links (mm, min. 30)</label><input id="mad_uebLinks" type="number" step="1" value="30"></div>
+<div><label>Überstand rechts (mm, min. 30)</label><input id="mad_uebRechts" type="number" step="1" value="30"></div>
+<div><label>Höhe Schenkel links (mm, min. 50)</label><input id="mad_hoeheLinks" type="number" step="1" value="50"></div>
+<div><label>Umschlag links (mm)</label><input id="mad_umschlagLinks" type="number" step="1" value="15"></div>
+<div><label>Umschlag rechts (mm)</label><input id="mad_umschlagRechts" type="number" step="1" value="15"></div>
+<div><label>Abwicklung</label><div id="mad_abwicklungOut" style="font-weight:800;padding:9px 0">–</div></div>
+</div>
+<label class="rechte-schalter"><input type="checkbox" id="mad_windexponiert"> Windexponierte Lage (Aufkantung min. 100 mm)</label>
+<div id="mad_profilHinweis" class="small" style="margin:6px 0"></div>
+<div id="mad_profil" class="eb-diagram-box"></div>
 <h2 style="margin-top:14px">Segmente</h2>
 <div class="scroll">
 <table class="eb-table">
