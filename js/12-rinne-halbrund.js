@@ -112,6 +112,19 @@ function renderRinneDilasList(){
  let cAcc=0;
  rinneSegments.forEach(s=>{cAcc+=Number(s.laenge)||0;segGrenzen.push(cAcc);});
  const gesamtlaenge=cAcc;
+ // Mass eines Anschlusstyps aus dem Katalog
+ const massVon=typId=>{
+  const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+  return f?Number(f.mass_mm)||0:0;
+ };
+ // Je Grenzpunkt das Zuschlagsmass für das Stück links bzw. rechts davon.
+ // Gleiche Rechenweise wie in der Segmenttabelle: jedes Stück bekommt an
+ // seinem eigenen Ende das Mass des dort sitzenden Anschlusstyps.
+ const massLinksSeite=[],massRechtsSeite=[];
+ segGrenzen.forEach((pos,i)=>{
+  massLinksSeite[i] =i>0?massVon(rinneSegments[i-1].rechtsTyp):0;
+  massRechtsSeite[i]=i<rinneSegments.length?massVon(rinneSegments[i].linksTyp):0;
+ });
  const punkte=[];
  segGrenzen.forEach((pos,i)=>{
   const b=boundaries.find(x=>Math.round(x.pos)===Math.round(pos));
@@ -120,7 +133,7 @@ function renderRinneDilasList(){
   else if(i===0)label="Start";
   else if(i===segGrenzen.length-1)label="Ende";
   else label="Segmentgrenze";
-  punkte.push({pos,art:"grenze",label});
+  punkte.push({pos,art:"grenze",label,grenzIndex:i});
  });
  rinneDilas.forEach((d,i)=>punkte.push({pos:Number(d.posAbStart)||0,art:"dila",dilaIndex:i}));
  punkte.sort((a,b)=>a.pos-b.pos);
@@ -128,6 +141,11 @@ function renderRinneDilasList(){
  for(let i=1;i<punkte.length;i++){
   const prev=punkte[i-1],cur=punkte[i];
   const abstand=cur.pos-prev.pos;
+  // Zuschnittlänge: Abstand plus die Anschlussmasse an den eigenen Enden.
+  // An einer Dila wird nichts dazugerechnet.
+  const zugabeLinks =prev.art==="grenze"?massRechtsSeite[prev.grenzIndex]:0;
+  const zugabeRechts=cur.art==="grenze"?massLinksSeite[cur.grenzIndex]:0;
+  const zuschnitt=abstand+zugabeLinks+zugabeRechts;
   const vonLabel=prev.art==="grenze"?prev.label:`Dila ${punkte.slice(0,i).filter(p=>p.art==="dila").length}`;
   const bisLabel=cur.art==="dila"?`Dila ${punkte.slice(0,i+1).filter(p=>p.art==="dila").length}`:cur.label;
   if(cur.art==="dila"){
@@ -135,6 +153,7 @@ function renderRinneDilasList(){
 <td>${i}</td>
 <td>${esc(vonLabel)} → ${esc(bisLabel)}</td>
 <td><input data-rinne-dila-abstand="${cur.dilaIndex}" data-rinne-dila-prev="${prev.pos}" type="number" step="1" value="${abstand}"></td>
+<td><b>${Math.round(zuschnitt)}</b></td>
 <td>${Math.round(cur.pos)}</td>
 <td><button type="button" class="red" data-rinne-dila-del="${cur.dilaIndex}" style="padding:6px 8px">×</button></td>
 </tr>`);
@@ -143,12 +162,13 @@ function renderRinneDilasList(){
 <td>${i}</td>
 <td>${esc(vonLabel)} → ${esc(bisLabel)}</td>
 <td class="small" style="color:var(--muted)">${Math.round(abstand)}</td>
+<td><b>${Math.round(zuschnitt)}</b></td>
 <td>${Math.round(cur.pos)}</td>
 <td></td>
 </tr>`);
   }
  }
- $("rinne_dilasBody").innerHTML=rows.join("")||'<tr><td colspan="5" class="small">Noch keine Segmente/Dilas vorhanden.</td></tr>';
+ $("rinne_dilasBody").innerHTML=rows.join("")||'<tr><td colspan="6" class="small">Noch keine Segmente/Dilas vorhanden.</td></tr>';
  if(!rinneSegments.length){
   $("rinne_dilasSummary").textContent="";
  }else{
