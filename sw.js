@@ -5,7 +5,7 @@
    WICHTIG: Bei jeder Änderung an den Dateien unten die CACHE-Version
    hochzählen (v1 → v2 → v3 …). Sonst zeigen Handys weiter die alte App. */
 
-const CACHE = "spengler-digital-v4";
+const CACHE = "spengler-digital-v6";
 
 const SHELL = [
   "./",
