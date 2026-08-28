@@ -65,7 +65,7 @@ function generateProfilDiagramSvg(schenkel){
  // mit kleinem Abstand gezeichnet, statt sich exakt mit dem vorherigen Schenkel zu decken.
  const GAP=9;
  // Zeichnerischer Biegeradius in Bildpunkten
- const BIEGERADIUS=16;
+ const BIEGERADIUS=5;
  function istUmschlag(i){
   if(i===0)return false;
   const winkelNorm=((Number(schenkel[i].winkel)||0)%360+360)%360;
