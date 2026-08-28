@@ -63,7 +63,7 @@ function generateProfilDiagramSvg(schenkel){
  const svgPtsRaw=pts.map(toSvg);
  // Ist Schenkel i ein Umschlag (180°)? Der wird als eigene, kurze, parallel versetzte Linie
  // mit kleinem Abstand gezeichnet, statt sich exakt mit dem vorherigen Schenkel zu decken.
- const GAP=6;
+ const GAP=9;
  // Zeichnerischer Biegeradius in Bildpunkten
  const BIEGERADIUS=16;
  function istUmschlag(i){
@@ -89,7 +89,15 @@ function generateProfilDiagramSvg(schenkel){
     lines+=`<path d="${abgerundeterPfad(aktuellerPfad,BIEGERADIUS)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
    }
    const [[ux1,uy1],[ux2,uy2]]=drawEnds[i];
-   lines+=`<line x1="${ux1.toFixed(1)}" y1="${uy1.toFixed(1)}" x2="${ux2.toFixed(1)}" y2="${uy2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
+   // Die Kehre des Umschlags als Halbkreis zeichnen: vom Ende des vorherigen
+   // Schenkels um die Spitze herum auf die versetzte Rücklaufl inie.
+   const [sx,sy]=svgPtsRaw[i];
+   const radVor=dirs[i]*Math.PI/180;
+   const dvx=Math.cos(radVor),dvy=Math.sin(radVor);   // Laufrichtung davor
+   const nx2=(ux1-sx)/GAP,ny2=(uy1-sy)/GAP;          // Versatzrichtung, Länge 1
+   const kreuzU=nx2*dvy-ny2*dvx;                      // Kehre nach aussen wölben
+   const sweepU=kreuzU>0?0:1;
+   lines+=`<path d="M ${sx.toFixed(1)} ${sy.toFixed(1)} A ${(GAP/2).toFixed(1)} ${(GAP/2).toFixed(1)} 0 0 ${sweepU} ${ux1.toFixed(1)} ${uy1.toFixed(1)} L ${ux2.toFixed(1)} ${uy2.toFixed(1)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
    aktuellerPfad=[svgPtsRaw[i+1]];
   }else{
    aktuellerPfad.push(svgPtsRaw[i+1]);
