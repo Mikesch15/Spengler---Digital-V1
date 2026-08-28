@@ -314,13 +314,13 @@ function newMeasurementWithType(type){
  madSegments=[];
  madSchieber=[];
  $("mad_material").value="titanzink";
- $("mad_mauerbreite").value=250;
+ $("mad_breite").value=310;
  $("mad_gefaelle").value=5;
- $("mad_uebLinks").value=30;
- $("mad_uebRechts").value=30;
  $("mad_hoeheLinks").value=50;
+ $("mad_hoeheRechts").value=50;
  $("mad_umschlagLinks").value=15;
  $("mad_umschlagRechts").value=15;
+ $("mad_saum").value=10;
  $("mad_windexponiert").checked=false;
  $("mad_manuell").checked=false;
  renderMadResult();
@@ -379,13 +379,13 @@ function openMeasurement(m){
  if(m.type==="mauerabdeckung"){
   $("mad_material").value=d.material||"titanzink";
   const pr=d.profil||{};
-  $("mad_mauerbreite").value=pr.mauer??250;
+  $("mad_breite").value=pr.breite??310;
   $("mad_gefaelle").value=pr.gef??5;
-  $("mad_uebLinks").value=pr.uebL??30;
-  $("mad_uebRechts").value=pr.uebR??30;
   $("mad_hoeheLinks").value=pr.hL??50;
+  $("mad_hoeheRechts").value=pr.hR??50;
   $("mad_umschlagLinks").value=pr.umL??15;
   $("mad_umschlagRechts").value=pr.umR??15;
+  $("mad_saum").value=pr.saum??10;
   $("mad_windexponiert").checked=!!pr.wind;
   $("mad_manuell").checked=true; // gespeicherte Schieber nicht überschreiben
   renderMadResult();

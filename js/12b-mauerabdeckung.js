@@ -103,84 +103,106 @@ function berechneMadStueckliste(segments,schieber,boundaries,bodenMass,schieberM
 
 
 // ---- Querschnitt (Profil) ------------------------------------------
-// Aufbau von links nach rechts, Blechlauf:
-//   Umschlag links → Schenkel links hoch → Deckfläche mit Gefälle nach
-//   rechts → Schenkel rechts runter → Umschlag rechts.
-// Alle Masse kommen aus den Eingabefeldern, nichts ist fest verdrahtet.
-function madProfilMasse(){
- const z=id=>Number($(id).value)||0;
- const mauer=z("mad_mauerbreite");
- const uebL=z("mad_uebLinks"), uebR=z("mad_uebRechts");
- const hL=z("mad_hoeheLinks");
- const umL=z("mad_umschlagLinks"), umR=z("mad_umschlagRechts");
- const gef=z("mad_gefaelle");
- const deck=mauer+uebL+uebR;
- const rad=gef*Math.PI/180;
- const dy=deck*Math.tan(rad);        // Höhenunterschied durch das Gefälle
- const hR=Math.max(0,hL-dy);         // rechter Schenkel wird um das Gefälle kürzer
- const schraeg=gef?deck/Math.cos(rad):deck;
- const wind=$("mad_windexponiert").checked;
- return {mauer,uebL,uebR,hL,hR,umL,umR,gef,deck,dy,schraeg,wind,
-         abwicklung:umL+hL+schraeg+hR+umR};
-}
+// Blechlauf von links nach rechts:
+//   Saum 180° → Umschlag links (135°) → Schenkel links hoch →
+//   Deckfläche mit Gefälle nach rechts → Schenkel rechts runter →
+//   Umschlag rechts (90°) → Saum 180°
+// Alle Masse kommen aus den Eingabefeldern.
+const MAD_BIEGERADIUS=5;   // Bildpunkte
+const MAD_SAUM_LUFT=4;     // mm Abstand zwischen Blech und zurückgelegtem Saum
 
 // Mindestmasse nach SIA 271, Dachrand:
-//   Aufkantung  >= 50 mm, bei windexponierter Lage >= 100 mm
-//   Überstand   >= 30 mm
-const MAD_MIN_HOEHE=50, MAD_MIN_HOEHE_WIND=100, MAD_MIN_UEBERSTAND=30;
+//   Aufkantung >= 50 mm, bei windexponierter Lage >= 100 mm
+const MAD_MIN_HOEHE=50, MAD_MIN_HOEHE_WIND=100;
 
-function madNormHinweise(){
- const m=madProfilMasse();
- const minH=$("mad_windexponiert").checked?MAD_MIN_HOEHE_WIND:MAD_MIN_HOEHE;
+function madProfilMasse(){
+ const z=id=>Number($(id).value)||0;
+ const breite=z("mad_breite");
+ const hL=z("mad_hoeheLinks"), hR=z("mad_hoeheRechts");
+ const umL=z("mad_umschlagLinks"), umR=z("mad_umschlagRechts");
+ const saum=z("mad_saum");
+ const gef=z("mad_gefaelle");
+ const wind=$("mad_windexponiert").checked;
+ const rad=gef*Math.PI/180;
+ const dy=breite*Math.tan(rad);
+ const schraeg=gef?breite/Math.cos(rad):breite;
+ return {breite,hL,hR,umL,umR,saum,gef,wind,dy,schraeg,
+         abwicklung:saum+umL+hL+schraeg+hR+umR+saum};
+}
+
+function madNormHinweise(m){
+ const minH=m.wind?MAD_MIN_HOEHE_WIND:MAD_MIN_HOEHE;
  const h=[];
  if(m.hL&&m.hL<minH)h.push(`Schenkel links ${m.hL} mm – die Norm verlangt mindestens ${minH} mm.`);
- if(m.hR&&m.hR<minH)h.push(`Schenkel rechts ergibt ${Math.round(m.hR)} mm – die Norm verlangt mindestens ${minH} mm. Gefälle oder linke Höhe anpassen.`);
- if(m.uebL&&m.uebL<MAD_MIN_UEBERSTAND)h.push(`Überstand links ${m.uebL} mm – mindestens ${MAD_MIN_UEBERSTAND} mm.`);
- if(m.uebR&&m.uebR<MAD_MIN_UEBERSTAND)h.push(`Überstand rechts ${m.uebR} mm – mindestens ${MAD_MIN_UEBERSTAND} mm.`);
+ if(m.hR&&m.hR<minH)h.push(`Schenkel rechts ${m.hR} mm – die Norm verlangt mindestens ${minH} mm.`);
  return h;
 }
-function zeigeMadProfil(){
- $("mad_profil").innerHTML=generateMadProfilSvg();
- $("mad_abwicklungOut").textContent=Math.round(madProfilMasse().abwicklung)+" mm";
- const h=madNormHinweise();
- const box=$("mad_profilHinweis");
- box.innerHTML=h.length?h.map(t=>`⚠️ ${esc(t)}`).join("<br>"):"Masse entsprechen den Mindestwerten der Norm.";
- box.style.color=h.length?"#b45309":"var(--muted)";
-}
+
 function generateMadProfilSvg(){
  return madProfilSvgAus(madProfilMasse());
 }
+
 // Zeichnet den Querschnitt aus einem Masse-Objekt – so kann auch ein
 // gespeichertes Profil im PDF unverändert dargestellt werden.
 function madProfilSvgAus(m){
- if(!m)return "";
- if(!m.deck||!m.hL)return '<div class="small" style="padding:10px">Bitte Mauerbreite und Höhe eingeben.</div>';
+ if(!m||!m.breite||!m.hL)return '<div class="small" style="padding:10px">Bitte Gesamtbreite und Höhe eingeben.</div>';
+ const w=Math.SQRT1_2; // cos/sin von 45°
  // Punkte in mm, x nach rechts, y nach unten
- const pts=[
-  [m.umL, m.hL],
-  [0, m.hL],
-  [0, 0],
-  [m.deck, m.dy],
-  [m.deck, m.dy+m.hR],
-  [m.deck-m.umR, m.dy+m.hR]
- ];
- const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]);
+ const pLinksUnten=[0,m.hL];
+ const pLinksEnde=[m.umL*w, m.hL-m.umL*w];        // Umschlag links, 135°
+ const pRechtsUnten=[m.breite, m.dy+m.hR];
+ const pRechtsEnde=[m.breite-m.umR, m.dy+m.hR];   // Umschlag rechts, 90°
+ const punkte=[pLinksEnde,pLinksUnten,[0,0],[m.breite,m.dy],pRechtsUnten,pRechtsEnde];
+
+ // Säume: 180° zurückgelegt, mit etwas Luft, damit man sie sieht
+ const saeume=[];
+ if(m.saum>0){
+  saeume.push({von:pLinksEnde, richtung:[w,-w]});          // Laufrichtung am linken Ende
+  saeume.push({von:pRechtsEnde, richtung:[-1,0]});         // Laufrichtung am rechten Ende
+ }
+ const saumPunkte=saeume.map(s=>{
+  const [dx,dy2]=s.richtung;
+  const nx=-dy2, ny=dx;                                    // senkrecht dazu
+  const start=s.von;
+  const kehre=[start[0]+nx*MAD_SAUM_LUFT, start[1]+ny*MAD_SAUM_LUFT];
+  const ende=[kehre[0]-dx*m.saum, kehre[1]-dy2*m.saum];
+  return {start,kehre,ende,richtung:s.richtung};
+ });
+
+ const alle=punkte.concat(saumPunkte.flatMap(s=>[s.kehre,s.ende]));
+ const xs=alle.map(p=>p[0]), ys=alle.map(p=>p[1]);
  const minX=Math.min(...xs), maxX=Math.max(...xs);
  const minY=Math.min(...ys), maxY=Math.max(...ys);
- const breite=Math.max(1,maxX-minX), hoehe=Math.max(1,maxY-minY);
- const W=380,H=200,rand=18;
- const f=Math.min((W-2*rand)/breite,(H-2*rand)/hoehe);
- const ox=(W-breite*f)/2-minX*f, oy=(H-hoehe*f)/2-minY*f;
- const svgPts=pts.map(p=>[p[0]*f+ox, p[1]*f+oy]);
- const d=abgerundeterPfad(svgPts,Math.min(10,Math.max(4,f*6)));
- // Mauer als angedeutete Fläche unter der Abdeckung
- const mx1=(m.uebL)*f+ox, mx2=(m.uebL+m.mauer)*f+ox;
- const my1=(m.dy>0?m.dy:0)*f+oy+2;
- const my2=oy+(Math.max(m.hL,m.dy+m.hR))*f;
+ const bw=Math.max(1,maxX-minX), bh=Math.max(1,maxY-minY);
+ const W=380,H=210,rand=18;
+ const f=Math.min((W-2*rand)/bw,(H-2*rand)/bh);
+ const ox=(W-bw*f)/2-minX*f, oy=(H-bh*f)/2-minY*f;
+ const s2=p=>[p[0]*f+ox, p[1]*f+oy];
+ const P=p=>`${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
+
+ const d=abgerundeterPfad(punkte.map(s2),MAD_BIEGERADIUS);
+ const saumPfade=saumPunkte.map(s=>{
+  const a=s2(s.start), b=s2(s.kehre), c=s2(s.ende);
+  const r=Math.hypot(b[0]-a[0],b[1]-a[1])/2;
+  const kreuz=(b[0]-a[0])*s.richtung[1]-(b[1]-a[1])*s.richtung[0];
+  const sweep=kreuz>0?0:1;
+  return `<path d="M ${P(a)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 ${sweep} ${P(b)} L ${P(c)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+ }).join("");
+
  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
-<rect x="${mx1.toFixed(1)}" y="${my1.toFixed(1)}" width="${Math.max(0,mx2-mx1).toFixed(1)}" height="${Math.max(0,my2-my1).toFixed(1)}" fill="#e6ebf0" stroke="#c3ccd4" stroke-width="1"/>
 <path d="${d}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+${saumPfade}
 </svg>`;
+}
+
+function zeigeMadProfil(){
+ const m=madProfilMasse();
+ $("mad_profil").innerHTML=madProfilSvgAus(m);
+ $("mad_abwicklungOut").textContent=Math.round(m.abwicklung)+" mm";
+ const h=madNormHinweise(m);
+ const box=$("mad_profilHinweis");
+ box.innerHTML=h.length?h.map(t=>`⚠️ ${esc(t)}`).join("<br>"):"Höhen entsprechen den Mindestwerten der Norm.";
+ box.style.color=h.length?"#b45309":"var(--muted)";
 }
 
 // ---- Anzeige ----
@@ -248,7 +270,7 @@ $("mad_segmentsBody").addEventListener("click",e=>{
  const del=e.target.closest("[data-mad-seg-del]");
  if(del){madSegments.splice(Number(del.dataset.madSegDel),1);renderMadResult();}
 });
-["mad_mauerbreite","mad_uebLinks","mad_uebRechts","mad_hoeheLinks","mad_umschlagLinks","mad_umschlagRechts","mad_gefaelle"].forEach(id=>{
+["mad_breite","mad_hoeheLinks","mad_hoeheRechts","mad_umschlagLinks","mad_umschlagRechts","mad_saum","mad_gefaelle"].forEach(id=>{
  $(id).addEventListener("input",zeigeMadProfil);
 });
 $("mad_windexponiert").addEventListener("change",zeigeMadProfil);
