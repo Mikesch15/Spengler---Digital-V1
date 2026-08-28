@@ -5,10 +5,12 @@ function showMeasTypeSection(type){
  $("measTypeRinne").hidden=(type!=="rinne_halbrund");
  $("measTypeEinlaufblechKonisch").hidden=(type!=="einlaufblech_konisch");
  $("measTypeFreiesProfil").hidden=(type!=="freies_profil");
+ $("measTypeMauerabdeckung").hidden=(type!=="mauerabdeckung");
  if(type==="einlaufblech_gerade")renderEbPiecesTable();
  if(type==="rinne_halbrund")renderRinneResult();
  if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
  if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
+ if(type==="mauerabdeckung")renderMadResult();
 }
 $("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
 $("openEinlaufblechSettings").onclick=()=>{
@@ -67,6 +69,22 @@ function buildMeasurementFromForm(){
   const konisch=$("fp_konisch").value==="ja";
   return {...base,photo_path:null,sketch_paths:[],data:{schenkel:fpSchenkel,konisch,segmente:fpSegmente}};
  }
+ if(type==="mauerabdeckung"){
+  const material=$("mad_material").value;
+  const {boundaries,gesamtlaenge}=computeMadBoundaries(madSegments);
+  const stueckliste=berechneMadStueckliste(madSegments,madSchieber,boundaries,madBodenMass,madSchieberMass);
+  return {...base,photo_path:null,sketch_paths:[],data:{
+   material,
+   abwicklung:Number($("mad_abwicklung").value)||0,
+   segments:madSegments,
+   schieber:madSchieber,
+   boundaries,
+   gesamtlaenge,
+   stueckliste,
+   bodenMass:madBodenMass,
+   schieberMass:madSchieberMass
+  }};
+ }
  return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(buildMeasurementFromForm());
@@ -98,6 +116,10 @@ $("saveMeasurement").onclick=async()=>{
  if(type==="freies_profil"){
   if(!fpSchenkel.length){alert("Bitte mindestens einen Schenkel im Profil erfassen.");return}
   if(!fpSegmente.length){alert("Bitte mindestens ein Segment erfassen.");return}
+ }
+ if(type==="mauerabdeckung"){
+  if(!madSegments.length){alert("Bitte mindestens ein Segment erfassen.");return}
+  if(madSegments.some(s=>!Number(s.laenge))){alert("Bitte bei jedem Segment eine Länge eingeben.");return}
  }
  $("saveMeasurement").disabled=true;
  try{
@@ -144,7 +166,7 @@ async function renderMeasurementsOverview(){
  if(error){$("recentMeasurementsList").innerHTML=`<div class="empty">Fehler: ${esc(error.message)}</div>`;return}
  const rows=data||[];
  measurementsCache=rows;
- const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil"};
+ const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil",mauerabdeckung:"Mauerabdeckung"};
  $("recentMeasurementsList").innerHTML=rows.length?rows.map(m=>{
   const proj=allProjects.find(p=>p.id===m.project_id);
   let thumbHtml;
@@ -202,7 +224,7 @@ function erstelltGeaendertHtml(record){
 }
 function printMeasurement(m){
  const proj=allProjects.find(p=>p.id===m.project_id);
- const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil"};
+ const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil",mauerabdeckung:"Mauerabdeckung"};
  const win=window.open("","_blank");
  if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
@@ -305,6 +327,31 @@ ${(()=>{
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Links</th><th>Rechts</th><th>Winkel (°)</th><th>Zuschnitt (mm)</th></tr></thead>
 <tbody>${segs.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(fittingLabel(s.linksTyp))}</td><td>${esc(fittingLabel(s.rechtsTyp))}</td><td>${esc(s.winkel??0)}</td><td>${esc(s.zuschnittlaenge??calcRinneSegment(s))}</td></tr>`).join("")}</tbody>
+</table>
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="mauerabdeckung"){
+  const d=m.data||{};
+  const segs=d.segments||[];
+  const tab=MAD_AUSDEHNUNG_TABELLE[d.material]||MAD_AUSDEHNUNG_TABELLE.titanzink;
+  const stuecke=(Array.isArray(d.stueckliste)&&d.stueckliste.length)
+   ? d.stueckliste
+   : berechneMadStueckliste(segs,d.schieber||[],d.boundaries||[],d.bodenMass??madBodenMass,d.schieberMass??madSchieberMass);
+  inner=`
+<table class="eb-meta">
+<tr>${cell("Material",esc(tab.label))}${cell("Gesamtlänge",esc(Math.round(d.gesamtlaenge||0))+" mm")}</tr>
+<tr>${cell("Abwicklung",esc(d.abwicklung||0)+" mm")}${cell("Schieber",(d.schieber||[]).length?esc((d.schieber||[]).length)+" Stück":"Keine nötig")}</tr>
+</table>
+<div class="eb-section-head">Grundriss</div>
+<div class="eb-diagram">${generateRinneGrundriss(segs,d.schieber||[],d.boundaries||[])}</div>
+<div class="eb-section-head">Segmente</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th><th>Boden Anfang</th><th>Boden Ende</th></tr></thead>
+<tbody>${segs.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(s.winkel??0)}</td><td>${s.bodenLinks?"ja":"–"}</td><td>${s.bodenRechts?"ja":"–"}</td></tr>`).join("")}</tbody>
+</table>
+<div class="eb-section-head">Schieber und Zuschnitt</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th>Position ab Start (mm)</th></tr></thead>
+<tbody>${stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${Math.round(st.zuschnitt)}</td><td>${Math.round(st.pos)}</td></tr>`).join("")}</tbody>
 </table>
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="einlaufblech_konisch"){

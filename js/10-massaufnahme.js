@@ -361,6 +361,14 @@ function openMeasurement(m){
  fpSegmente=(m.type==="freies_profil"&&Array.isArray(d.segmente))?d.segmente.map(s=>({...s,massen:(s.massen||[]).map(mm=>({...mm}))})):[];
  $("fp_konisch").value=d.konisch?"ja":"nein";
  if(m.type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
+ madSegments=(m.type==="mauerabdeckung"&&Array.isArray(d.segments))?d.segments.map(x=>({...x})):[];
+ madSchieber=(m.type==="mauerabdeckung"&&Array.isArray(d.schieber))?d.schieber.map(x=>({...x})):[];
+ if(m.type==="mauerabdeckung"){
+  $("mad_material").value=d.material||"titanzink";
+  $("mad_abwicklung").value=d.abwicklung||0;
+  $("mad_manuell").checked=true; // gespeicherte Schieber nicht überschreiben
+  renderMadResult();
+ }
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
  updateMeasFormTitle();
