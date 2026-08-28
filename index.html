@@ -82,7 +82,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.58</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.59</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -609,6 +609,11 @@
 <div class="settings-section-head" data-toggle-section="rinne"><h2>Rinne Halbrund – Anschlusstypen</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Diese Anschlusstypen stehen bei "Rinne Halbrund" links/rechts pro Segment zur Auswahl. Das Mass wird zur eingegebenen Länge dazugerechnet (positiv) oder abgezogen (negativ). Der Winkel wird beim Auswählen als "rechter" Anschlusstyp eines Segments automatisch ins Winkel-Feld übernommen (z. B. Innenecke 90° → 90). Gilt firmenweit für alle.</div>
+<div class="grid" style="margin-bottom:10px">
+<div><label>Mass Dilatationselement (mm)</label><input id="rinneDilaMassInput" type="number" step="1"></div>
+</div>
+<div class="small" style="margin-bottom:8px">Wird jedem Rinnenstück abgezogen, das an eine Dila grenzt. Negativer Wert = Abzug.</div>
+<div class="bar" style="margin-bottom:14px"><button id="saveRinneDilaMass" class="green">💾 Dila-Mass speichern</button></div>
 <div id="rinneFittingSettings"></div>
 <div class="bar">
 <button id="newRinneFitting" class="gray">＋ Anschlusstyp hinzufügen</button>
