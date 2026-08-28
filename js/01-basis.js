@@ -63,9 +63,12 @@ document.documentElement.classList.toggle("dark",darkMode);
 function photoQualitySettings(){
  return photoQuality==="hoch"?{maxDim:2200,quality:0.9}:{maxDim:1400,quality:0.75};
 }
-let einlaufblechSettings=JSON.parse(localStorage.getItem("sd_einlaufblechSettings")||"null")||{stoss_laenge:2000,ueberlappung:40,gehrungszugabe:0,umschlag_oben:0,umschlag_unten:0,rest_schwelle:500,end_zugabe:10};
+const EINLAUFBLECH_STANDARD=Object.freeze({stoss_laenge:2000,ueberlappung:70,gehrungszugabe:100,umschlag_oben:12,umschlag_unten:12,rest_schwelle:500,end_zugabe:10});
+// Standardwerte für beide Einlaufblech-Typen. Gespeicherte Werte des Geräts
+// haben Vorrang – zurücksetzen geht über den Knopf in den Einstellungen.
+let einlaufblechSettings=JSON.parse(localStorage.getItem("sd_einlaufblechSettings")||"null")||{...EINLAUFBLECH_STANDARD};
 if(einlaufblechSettings.end_zugabe===undefined)einlaufblechSettings.end_zugabe=10;
-let einlaufblechKonischSettings=JSON.parse(localStorage.getItem("sd_einlaufblechKonischSettings")||"null")||{stoss_laenge:2000,ueberlappung:40,gehrungszugabe:0,umschlag_oben:0,umschlag_unten:0,rest_schwelle:500,end_zugabe:10};
+let einlaufblechKonischSettings=JSON.parse(localStorage.getItem("sd_einlaufblechKonischSettings")||"null")||{...EINLAUFBLECH_STANDARD};
 if(einlaufblechKonischSettings.end_zugabe===undefined)einlaufblechKonischSettings.end_zugabe=10;
 let blitzschutzMaterials=[];
 let rinneFittingTypes=[];

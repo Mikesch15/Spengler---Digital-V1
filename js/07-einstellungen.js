@@ -181,6 +181,24 @@ $("saveEbkSettings").onclick=()=>{
  alert("Gespeichert (gilt nur für dieses Gerät).");
 };
 
+// Setzt die Werte eines Einlaufblech-Typs auf die Standardwerte zurück.
+function einlaufblechZuruecksetzen(praefix,speicherSchluessel,zuweisen){
+ if(!confirm("Alle Werte auf die Standardwerte zurücksetzen?"))return;
+ const w={...EINLAUFBLECH_STANDARD};
+ zuweisen(w);
+ localStorage.setItem(speicherSchluessel,JSON.stringify(w));
+ $(praefix+"stossLaenge").value=w.stoss_laenge;
+ $(praefix+"ueberlappung").value=w.ueberlappung;
+ $(praefix+"gehrungszugabe").value=w.gehrungszugabe;
+ $(praefix+"umschlagOben").value=w.umschlag_oben;
+ $(praefix+"umschlagUnten").value=w.umschlag_unten;
+ $(praefix+"restSchwelle").value=w.rest_schwelle;
+ $(praefix+"endzugabe").value=w.end_zugabe;
+ alert("Auf Standardwerte zurückgesetzt.");
+}
+$("resetEinlaufblechSettings").onclick=()=>einlaufblechZuruecksetzen("eb_","sd_einlaufblechSettings",w=>{einlaufblechSettings=w});
+$("resetEbkSettings").onclick=()=>einlaufblechZuruecksetzen("ebks_","sd_einlaufblechKonischSettings",w=>{einlaufblechKonischSettings=w});
+
 let materialPage=0, materialFilter="", materialExpanded=new Set();
 const MATERIAL_PAGE_SIZE=20;
 function renderMaterialSettings(){
