@@ -1,0 +1,327 @@
+/* Spengler Digital V1.49 – extracted module; logic unchanged */
+async function renderMeasurementsOverview(){
+ const {data,error}=await sb.from("measurements").select("*").order("created_at",{ascending:false}).limit(recentCount);
+ if(error){$("recentMeasurementsList").innerHTML=`<div class="empty">Fehler: ${esc(error.message)}</div>`;return}
+ const rows=data||[];
+ measurementsCache=rows;
+ const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil"};
+ $("recentMeasurementsList").innerHTML=rows.length?rows.map(m=>{
+  const proj=allProjects.find(p=>p.id===m.project_id);
+  let thumbHtml;
+  if(m.type==="einlaufblech_gerade"){
+   const d=m.data||{};
+   const anzahl=(d.pieces&&d.pieces.length)||0;
+   thumbHtml=`<div class="meas-thumb meas-thumb-empty" style="font-size:10px;line-height:1.2;padding:2px">${anzahl}×<br>${d.massA||0}mm</div>`;
+  }else{
+   const thumb=m.photo_path||(m.sketch_paths&&m.sketch_paths[0])||m.sketch_path;
+   thumbHtml=thumb?`<img class="meas-thumb" src="${thumb}" loading="lazy">`:'<div class="meas-thumb meas-thumb-empty">–</div>';
+  }
+  return `<div class="meas-row">
+${thumbHtml}
+<div class="meas-row-info"><b>Massaufnahme (${esc(typeLabels[m.type]||m.type)})</b><span>${esc(m.title||"Ohne Titel")} · ${esc(proj?proj.name:"Kein Projekt")} · ${esc(m.date||"–")}</span></div>
+<div class="meas-row-actions">
+<button class="blue" data-open-measurement="${m.id}" title="Öffnen">✏️</button>
+<button class="red" data-del-measurement="${m.id}" title="Löschen">×</button>
+</div>
+</div>`;
+ }).join(""):'<div class="empty">Noch keine Massaufnahmen vorhanden.</div>';
+}
+$("recentMeasurementsList").addEventListener("click",e=>{
+ const o=e.target.closest("[data-open-measurement]");
+ if(o){const m=measurementsCache.find(x=>x.id===Number(o.dataset.openMeasurement));if(m)openMeasurement(m);return}
+ const d=e.target.closest("[data-del-measurement]");
+ if(d){
+  if(!confirm("Diese Massaufnahme wirklich löschen?"))return;
+  sb.from("measurements").delete().eq("id",Number(d.dataset.delMeasurement)).then(({error})=>{
+   if(error){alert("Fehler: "+error.message);return}
+   renderMeasurementsOverview();
+  });
+ }
+});
+
+function pdfDateiname(...teile){
+ const bereinigt=teile.map(s=>String(s||"").trim()).filter(Boolean);
+ return bereinigt.join(" – ")||"Dokument";
+}
+function formatDatumZeit(iso){
+ if(!iso)return null;
+ const d=new Date(iso);
+ if(isNaN(d.getTime()))return null;
+ return d.toLocaleString("de-CH",{dateStyle:"medium",timeStyle:"short"});
+}
+function erstelltGeaendertHtml(record){
+ const erstelltName=profileName(record.created_by);
+ const erstelltZeit=formatDatumZeit(record.created_at);
+ const geaendertName=profileName(record.updated_by);
+ const geaendertZeit=formatDatumZeit(record.updated_at);
+ const teile=[];
+ if(erstelltName||erstelltZeit)teile.push(`Erstellt von ${esc(erstelltName||"–")}${erstelltZeit?" am "+esc(erstelltZeit):""}`);
+ if(geaendertName||geaendertZeit)teile.push(`Zuletzt geändert von ${esc(geaendertName||"–")}${geaendertZeit?" am "+esc(geaendertZeit):""}`);
+ if(!teile.length)return"";
+ return `<div class="small" style="color:var(--muted);margin-top:6mm;padding-top:2mm;border-top:.5pt solid #dfe6ea">${teile.join(" · ")}</div>`;
+}
+function printMeasurement(m){
+ const proj=allProjects.find(p=>p.id===m.project_id);
+ const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil"};
+ const win=window.open("","_blank");
+ if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
+ const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
+ const metaCommon=`
+<div><b>Projekt:</b> ${esc(proj?proj.name:"–")}</div>
+<div><b>Datum:</b> ${esc(m.date||"–")}</div>
+<div><b>Funktion:</b> ${esc(typeLabels[m.type]||m.type)}</div>
+<div><b>Sachbearbeiter:</b> ${sachbearbeiter}</div>`;
+
+ let bodyHtml, extraCss="";
+ if(m.type==="einlaufblech_gerade"){
+  const d=m.data||{};
+  const pieces=d.pieces||[];
+  const engeSeite=d.engeSeite||"rechts";
+  extraCss=`
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ .eb-diagram{text-align:center;margin:4mm 0}
+ .eb-diagram-row{display:flex;justify-content:center;align-items:flex-start;gap:10mm;margin:4mm 0}
+ .eb-diagram-row .eb-diagram{flex:1;min-width:0;margin:0}
+ .eb-diagram-row .eb-diagram-title{font-size:7pt;font-weight:700;color:#68737d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2mm}
+ .eb-diagram-row svg{max-width:100%!important;height:auto}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:9.5pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
+ .eb-cutlist td.warn{color:#b42318;font-weight:700}`;
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
+<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+<tr>${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
+<tr>${cell("Dachneigung / Winkel",esc(d.winkel||0)+"°")}${cell("Montage",'von '+esc(d.montage||"–")+` (eng ${esc(engeSeite)})`)}</tr>
+<tr>${cell("Mass A",esc(d.massAEng||0)+` mm eng ${esc(engeSeite)} (${esc(d.massA||0)} mm)`)}${cell("Anzahl Stück",esc((pieces&&pieces.length)||0))}</tr>
+</table>
+<div class="eb-diagram-row">
+ <div class="eb-diagram">
+  <div class="eb-diagram-title">Schnittskizze</div>
+  ${einlaufblechDiagramSvg(d.winkel,d.massA,d.restBreite,einlaufblechSettings.umschlag_oben,einlaufblechSettings.umschlag_unten)}
+ </div>
+ <div class="eb-diagram">
+  <div class="eb-diagram-title">Grundriss</div>
+  ${generateEbkGrundriss(pieces)}
+ </div>
+</div>
+<div class="eb-section-head">Stücke</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th></tr></thead>
+<tbody>${pieces.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.laenge||0)}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td></tr>`).join("")}</tbody>
+</table>
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="rinne_halbrund"){
+  const d=m.data||{};
+  const segs=d.segments||[];
+  extraCss=`
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ .eb-diagram{text-align:center;margin:4mm 0}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  const fittingLabel=id=>{const f=rinneFittingTypes.find(x=>x.id===Number(id));return f?`${f.symbol?f.symbol+" – ":""}${f.name}`:"–"};
+  const dilas=d.dilas||[];
+  const matTab=RINNE_AUSDEHNUNG_TABELLE[d.material]||RINNE_AUSDEHNUNG_TABELLE.titanzink;
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
+<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+<tr>${cell("Rinnenabwicklung",esc(d.rinneAbwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
+<tr>${cell("Material",esc(matTab.label))}${cell("Dilatationselemente",dilas.length?esc(dilas.length)+" Stück":"Keine nötig")}</tr>
+</table>
+<div class="eb-section-head">Grundriss</div>
+<div class="eb-diagram">${generateRinneGrundriss(segs,dilas,d.boundaries||[])}</div>
+<div class="eb-section-head">Dilatationselemente</div>
+${(()=>{
+ if(!segs.length)return '<div class="note">Keine Segmente vorhanden.</div>';
+ const segGrenzen=[0];let cAcc=0;
+ segs.forEach(s=>{cAcc+=Number(s.laenge)||0;segGrenzen.push(cAcc);});
+ const boundaries=d.boundaries||[];
+ const punkte=[];
+ segGrenzen.forEach((pos,i)=>{
+  const b=boundaries.find(x=>Math.round(x.pos)===Math.round(pos));
+  let label;
+  if(b&&b.name)label=b.name;
+  else if(i===0)label="Start";
+  else if(i===segGrenzen.length-1)label="Ende";
+  else label="Segmentgrenze";
+  punkte.push({pos,art:"grenze",label});
+ });
+ dilas.forEach(dd=>punkte.push({pos:Number(dd.posAbStart)||0,art:"dila"}));
+ punkte.sort((a,b)=>a.pos-b.pos);
+ const zeilen=[];
+ for(let i=1;i<punkte.length;i++){
+  const prev=punkte[i-1],cur=punkte[i];
+  const abstand=cur.pos-prev.pos;
+  const vonLabel=prev.art==="grenze"?prev.label:`Dila ${punkte.slice(0,i).filter(p=>p.art==="dila").length}`;
+  const bisLabel=cur.art==="dila"?`Dila ${punkte.slice(0,i+1).filter(p=>p.art==="dila").length}`:cur.label;
+  zeilen.push(`<tr><td>${i}</td><td>${esc(vonLabel)} → ${esc(bisLabel)}</td><td>${Math.round(abstand)}</td><td>${Math.round(cur.pos)}</td></tr>`);
+ }
+ return `<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Position ab Start (mm)</th></tr></thead>
+<tbody>${zeilen.join("")}</tbody>
+</table>`;
+})()}
+<div class="eb-section-head">Segmente</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Links</th><th>Rechts</th><th>Winkel (°)</th><th>Zuschnitt (mm)</th></tr></thead>
+<tbody>${segs.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(fittingLabel(s.linksTyp))}</td><td>${esc(fittingLabel(s.rechtsTyp))}</td><td>${esc(s.winkel??0)}</td><td>${esc(s.zuschnittlaenge??calcRinneSegment(s))}</td></tr>`).join("")}</tbody>
+</table>
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="einlaufblech_konisch"){
+  const d=m.data||{};
+  const pieces=d.pieces||[];
+  const engeSeite=d.engeSeite||"rechts";
+  extraCss=`
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ .eb-diagram{text-align:center;margin:4mm 0}
+ .eb-diagram-row{display:flex;justify-content:center;align-items:flex-start;gap:10mm;margin:4mm 0}
+ .eb-diagram-row .eb-diagram{flex:1;min-width:0;margin:0}
+ .eb-diagram-row .eb-diagram-title{font-size:7pt;font-weight:700;color:#68737d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2mm}
+ .eb-diagram-row svg{max-width:100%!important;height:auto}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:9.5pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
+ .eb-cutlist td.warn{color:#b42318;font-weight:700}`;
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  const masseEngeSeite=pieces.map(p=>Number(engeSeite==="links"?p.massLinks:p.massRechts)||0).filter(v=>v>0);
+  const repMass=masseEngeSeite.length?masseEngeSeite.reduce((a,b)=>a+b,0)/masseEngeSeite.length:null;
+  const restBreite=repMass?(Number(d.abwicklung)-repMass-(Number(einlaufblechKonischSettings.umschlag_oben)||0)-(Number(einlaufblechKonischSettings.umschlag_unten)||0)):null;
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
+<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+<tr>${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
+<tr>${cell("Dachneigung / Winkel",esc(d.dachneigung||0)+"°")}${cell("Montage",'von '+esc(d.montage||"–")+` (eng ${esc(engeSeite)})`)}</tr>
+</table>
+<div class="eb-diagram-row">
+ <div class="eb-diagram">
+  <div class="eb-diagram-title">Schnittskizze</div>
+  ${einlaufblechDiagramSvg(d.dachneigung,repMass,restBreite,einlaufblechKonischSettings.umschlag_oben,einlaufblechKonischSettings.umschlag_unten)}
+ </div>
+ <div class="eb-diagram">
+  <div class="eb-diagram-title">Grundriss</div>
+  ${generateEbkGrundriss(pieces)}
+ </div>
+</div>
+<div class="eb-section-head">Stücke</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Mass links (mm)</th><th>Mass rechts (mm)</th></tr></thead>
+<tbody>${pieces.map((p,i)=>{
+ const warn=ebkRestbreite(engeSeite==="links"?p.massLinks:p.massRechts,d.abwicklung)<0;
+ const linksTxt=engeSeite==="links"?`${esc(p.massLinksEng??0)} (${esc(p.massLinks||0)})`:esc(p.massLinks||0);
+ const rechtsTxt=engeSeite==="rechts"?`${esc(p.massRechtsEng??0)} (${esc(p.massRechts||0)})`:esc(p.massRechts||0);
+ return `<tr><td>${i+1}</td><td>${esc(p.laenge||0)}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td><td${warn&&engeSeite==="links"?' class="warn"':""}>${linksTxt}${warn&&engeSeite==="links"?" ⚠️":""}</td><td${warn&&engeSeite==="rechts"?' class="warn"':""}>${rechtsTxt}${warn&&engeSeite==="rechts"?" ⚠️":""}</td></tr>`;
+}).join("")}</tbody>
+</table>
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="freies_profil"){
+  const d=m.data||{};
+  const schenkel=d.schenkel||[];
+  const segmente=d.segmente||[];
+  const konisch=!!d.konisch;
+  extraCss=`
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ .eb-diagram{text-align:center;margin:4mm 0}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:9.5pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
+<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+<tr>${cell("Anzahl Schenkel",esc(schenkel.length))}${cell("Konisch",konisch?"Ja":"Nein")}</tr>
+</table>
+<div class="eb-section-head">Profil</div>
+<div class="eb-diagram">${generateProfilDiagramSvg(schenkel)}</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th></tr></thead>
+<tbody>${schenkel.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(s.winkel||0)}</td></tr>`).join("")}</tbody>
+</table>
+<div class="eb-section-head">Segmente</div>
+${segmente.map((seg,i)=>`<div style="margin-top:3mm">
+<b>Segment ${i+1}</b> · Länge ${esc(seg.laenge||0)} mm
+<table class="eb-cutlist">
+<thead><tr><th>Schenkel</th>${konisch?"<th>Mass links (mm)</th><th>Mass rechts (mm)</th>":"<th>Mass (mm)</th>"}</tr></thead>
+<tbody>${schenkel.map((s,j)=>{
+ const mm=(seg.massen&&seg.massen[j])||{};
+ return konisch?`<tr><td>${j+1}</td><td>${esc(mm.links||0)}</td><td>${esc(mm.rechts||0)}</td></tr>`:`<tr><td>${j+1}</td><td>${esc(mm.mass||0)}</td></tr>`;
+}).join("")}</tbody>
+</table>
+</div>`).join("")}
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else{
+  const sketches=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
+  extraCss=`
+ img{max-width:100%;display:block;margin:0 auto 8mm;border:1px solid #ccc}
+ img.photo{max-height:130mm}
+ img.sketch{max-height:255mm}
+ .sketch-page{page-break-before:always}`;
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="meta">${metaCommon}</div>
+${m.photo_path?`<img class="photo" src="${esc(m.photo_path)}">`:""}
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}
+${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze ${i+1} von ${sketches.length}</h2>`:""}<img class="sketch" src="${esc(s)}"></div>`).join("")}`;
+ }
+
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(pdfDateiname(proj?proj.name:"",proj?proj.object:"",typeLabels[m.type]||m.type,m.title))}</title>
+<style>
+ body{font-family:Arial,Helvetica,sans-serif;color:#17202a;margin:14mm}
+ h1{font-size:16pt;margin:0 0 2mm}
+ h2{font-size:11pt;color:#68737d;margin:0 0 3mm;font-weight:700}
+ .meta{font-size:9pt;color:#68737d;margin-bottom:6mm;line-height:1.6}
+ .meta b{color:#17202a}
+ .note{font-size:10pt;white-space:pre-wrap;margin-top:4mm}
+ @page{size:A4 portrait;margin:12mm}
+${extraCss}
+</style></head><body>
+${bodyHtml}
+${erstelltGeaendertHtml(m)}
+</body></html>`);
+ win.document.close();
+ const doPrint=()=>{try{win.focus();win.print()}catch(e){}};
+ win.onload=doPrint;
+ setTimeout(doPrint,800);
+}
+
+$("closeMeasurements").onclick=()=>{$("measurementsModal").hidden=true};
+
+// ---- Ausmass: Offerte erfassen ---------------------------------
+let amSelectedProjectId=null;
+let amPhotos=[]; // Einträge: "data:..." (neu, noch nicht hochgeladen) oder "https://..." (bereits gespeichert)
+let amPositions=[];
+let amBzPositions=[];
+let currentAusmassId=null;
+let amEditReturnTo="ausmassModal";
+let ausmassListProjectId=null;
+let ausmassCache=[];
+
