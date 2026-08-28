@@ -72,6 +72,9 @@ let einlaufblechKonischSettings=JSON.parse(localStorage.getItem("sd_einlaufblech
 if(einlaufblechKonischSettings.end_zugabe===undefined)einlaufblechKonischSettings.end_zugabe=10;
 let blitzschutzMaterials=[];
 let rinneFittingTypes=[];
+// Mass des Dilatationselements (Rinne Halbrund), je angrenzendem Stück.
+// Negativ = wird abgezogen. Firmenweit, kommt aus app_settings.
+let rinneDilaMass=-165;
 let isMike=false;
 let protectedUnlocked=false;
 const PROTECTED_PASSWORD="Rinnen_ml95";

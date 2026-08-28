@@ -100,6 +100,16 @@ $("logoRemove").onclick=()=>{
  $("logoInput").value="";
  $("logoRemove").hidden=true;
 };
+$("saveRinneDilaMass").onclick=async()=>{
+ const wert=Number($("rinneDilaMassInput").value)||0;
+ $("saveRinneDilaMass").disabled=true;
+ const {error}=await sb.from("app_settings").update({rinne_dila_mass_mm:wert,updated_at:new Date().toISOString()}).eq("id",1);
+ $("saveRinneDilaMass").disabled=false;
+ if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
+ rinneDilaMass=wert;
+ if(typeof renderRinneResult==="function"&&rinneSegments.length)renderRinneResult();
+ alert("Gespeichert (gilt für alle).");
+};
 $("saveCompanyName").onclick=async()=>{
  const name=$("companyNameInput").value.trim();
  if(!name){alert("Bitte einen Firmennamen eingeben.");return}

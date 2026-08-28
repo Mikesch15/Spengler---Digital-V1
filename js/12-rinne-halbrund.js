@@ -143,8 +143,8 @@ function renderRinneDilasList(){
   const abstand=cur.pos-prev.pos;
   // Zuschnittlänge: Abstand plus die Anschlussmasse an den eigenen Enden.
   // An einer Dila wird nichts dazugerechnet.
-  const zugabeLinks =prev.art==="grenze"?massRechtsSeite[prev.grenzIndex]:0;
-  const zugabeRechts=cur.art==="grenze"?massLinksSeite[cur.grenzIndex]:0;
+  const zugabeLinks =prev.art==="grenze"?massRechtsSeite[prev.grenzIndex]:rinneDilaMass;
+  const zugabeRechts=cur.art==="grenze"?massLinksSeite[cur.grenzIndex]:rinneDilaMass;
   const zuschnitt=abstand+zugabeLinks+zugabeRechts;
   const vonLabel=prev.art==="grenze"?prev.label:`Dila ${punkte.slice(0,i).filter(p=>p.art==="dila").length}`;
   const bisLabel=cur.art==="dila"?`Dila ${punkte.slice(0,i+1).filter(p=>p.art==="dila").length}`:cur.label;

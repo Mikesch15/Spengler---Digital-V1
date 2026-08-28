@@ -26,6 +26,7 @@ async function loadAllData(){
   companyAddress=appSettingsRes.data.company_address||"";
   logoUrl=appSettingsRes.data.logo_url||"";
   defaultVat=appSettingsRes.data.default_vat||"8.1 %";
+  if(appSettingsRes.data.rinne_dila_mass_mm!==null&&appSettingsRes.data.rinne_dila_mass_mm!==undefined)rinneDilaMass=Number(appSettingsRes.data.rinne_dila_mass_mm)||0;
  }
  blitzschutzMaterials=bzRes.data||[];
  rinneFittingTypes=rinneRes.data||[];
