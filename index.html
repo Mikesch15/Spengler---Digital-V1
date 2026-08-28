@@ -81,7 +81,8 @@
 <button id="openFeedback" class="gray">💬 Feedback geben</button>
 </div>
 </div>
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.49</div>
+<!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.50</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -255,19 +256,11 @@
 <h2>💬 Feedback geben</h2>
 <div class="info">Dein Feedback geht direkt an den Entwickler der App. Bitte möglichst konkret beschreiben.</div>
 <div class="grid">
-<div><label>Modul</label><select id="feedbackModul">
-<option value="Allgemein">Allgemein</option>
-<option value="Regierapport">Regierapport</option>
-<option value="Massaufnahme – Skizze/Foto">Massaufnahme – Skizze/Foto</option>
-<option value="Massaufnahme – Einlaufblech gerade">Massaufnahme – Einlaufblech gerade</option>
-<option value="Massaufnahme – Einlaufblech konisch">Massaufnahme – Einlaufblech konisch</option>
-<option value="Massaufnahme – Rinne Halbrund">Massaufnahme – Rinne Halbrund</option>
-<option value="Ausmass – Offerte erfassen">Ausmass – Offerte erfassen</option>
-<option value="Ausmass – Blitzschutzausmass">Ausmass – Blitzschutzausmass</option>
-<option value="Projekte">Projekte</option>
-<option value="Einstellungen">Einstellungen</option>
-<option value="Sonstiges">Sonstiges</option>
-</select></div>
+<div><label>Modul</label>
+<!-- Die Auswahl wird beim Öffnen aus den vorhandenen Funktionen der App
+     zusammengestellt (siehe js/02-feedback.js). Neue Massaufnahme- oder
+     Ausmass-Arten erscheinen dadurch automatisch. -->
+<select id="feedbackModul"></select></div>
 <div class="wide"><label>Dein Feedback</label><textarea id="feedbackMessage" placeholder="Was ist dir aufgefallen? Was fehlt? Was funktioniert nicht wie erwartet?" rows="5"></textarea></div>
 </div>
 <div class="bar"><button id="saveFeedback" class="green">Absenden</button><button id="cancelFeedback" class="gray">Abbrechen</button></div>
