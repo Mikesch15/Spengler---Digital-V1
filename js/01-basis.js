@@ -1,4 +1,34 @@
 "use strict";
+// ---- Fehleranzeige -------------------------------------------------
+// Zeigt Programmfehler unten am Bildschirm an. Ohne das bleibt am Handy
+// jeder Fehler unsichtbar und die App wirkt einfach "kaputt".
+(function(){
+ function zeige(text){
+  let box=document.getElementById("fehlerBanner");
+  if(!box){
+   box=document.createElement("div");
+   box.id="fehlerBanner";
+   box.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#7f1d1d;color:#fff;font:12px/1.4 system-ui,sans-serif;padding:10px 40px 10px 12px;white-space:pre-wrap;word-break:break-word;max-height:45vh;overflow:auto";
+   const zu=document.createElement("button");
+   zu.textContent="×";
+   zu.style.cssText="position:absolute;top:6px;right:8px;background:transparent;color:#fff;border:0;font-size:20px;line-height:1;padding:0;width:auto;min-height:0";
+   zu.onclick=()=>box.remove();
+   box.appendChild(zu);
+   const p=document.createElement("div");
+   p.id="fehlerBannerText";
+   box.appendChild(p);
+   (document.body||document.documentElement).appendChild(box);
+  }
+  const ziel=document.getElementById("fehlerBannerText");
+  ziel.textContent=(ziel.textContent?ziel.textContent+"\n\n":"")+text;
+ }
+ window.addEventListener("error",e=>{
+  zeige("Fehler: "+(e.message||"unbekannt")+"\n"+(e.filename||"").split("/").pop()+" Zeile "+(e.lineno||"?"));
+ });
+ window.addEventListener("unhandledrejection",e=>{
+  zeige("Fehler (unerledigt): "+((e.reason&&e.reason.message)||e.reason||"unbekannt"));
+ });
+})();
 // ============================================================
 // Supabase-Anbindung
 // WICHTIG: Vor dem Einsatz die beiden Werte unten eintragen
@@ -75,6 +105,9 @@ let rinneFittingTypes=[];
 // Mass des Dilatationselements (Rinne Halbrund), je angrenzendem Stück.
 // Negativ = wird abgezogen. Firmenweit, kommt aus app_settings.
 let rinneDilaMass=-165;
+// Masse für die Mauerabdeckung, firmenweit aus app_settings.
+let madBodenMass=0;
+let madSchieberMass=0;
 let isMike=false;
 let protectedUnlocked=false;
 const PROTECTED_PASSWORD="Rinnen_ml95";
