@@ -331,6 +331,7 @@ ${(()=>{
 </table>
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="mauerabdeckung"){
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const d=m.data||{};
   const segs=d.segments||[];
   const tab=MAD_AUSDEHNUNG_TABELLE[d.material]||MAD_AUSDEHNUNG_TABELLE.titanzink;

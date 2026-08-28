@@ -45,10 +45,12 @@ function ansichtsPfeilSvg(seite,breite,hoehe){
  if(!seite||seite==="keiner")return "";
  const laenge=26, kopf=9, halb=5, luft=4;
  let sx,sy,ex,ey,k1x,k1y,k2x,k2y;
- if(seite==="links"){      ex=luft;          ey=hoehe/2; sx=ex-laenge; sy=ey; }
- else if(seite==="rechts"){ex=breite-luft;   ey=hoehe/2; sx=ex+laenge; sy=ey; }
- else if(seite==="oben"){  ex=breite/2;      ey=luft;    sx=ex; sy=ey-laenge; }
- else{                     ex=breite/2;      ey=hoehe-luft; sx=ex; sy=ey+laenge; }
+ // Der Pfeil liegt vollständig innerhalb des Bildes: Schaft aussen am Rand,
+ // Spitze nach innen zur Zeichnung hin.
+ if(seite==="links"){      sx=luft;          sy=hoehe/2; ex=sx+laenge; ey=sy; }
+ else if(seite==="rechts"){sx=breite-luft;   sy=hoehe/2; ex=sx-laenge; ey=sy; }
+ else if(seite==="oben"){  sx=breite/2;      sy=luft;    ex=sx; ey=sy+laenge; }
+ else{                     sx=breite/2;      sy=hoehe-luft; ex=sx; ey=sy-laenge; }
  const dx=ex-sx, dy=ey-sy, len=Math.hypot(dx,dy)||1;
  const ux=dx/len, uy=dy/len, px=-uy, py=ux;
  const bx=ex-ux*kopf, by=ey-uy*kopf;
@@ -63,7 +65,8 @@ function generateProfilDiagramSvg(schenkel){
  const dirs=[0];
  for(let i=0;i<schenkel.length;i++){
   const s=schenkel[i];
-  if(i>0)dir+=Number(s.winkel)||0;
+  // Auch der erste Schenkel wird gedreht: 0° = waagerecht.
+  dir+=Number(s.winkel)||0;
   dirs.push(dir);
   const rad=dir*Math.PI/180;
   x+=(Number(s.laenge)||0)*Math.cos(rad);
@@ -82,7 +85,7 @@ function generateProfilDiagramSvg(schenkel){
  // mit kleinem Abstand gezeichnet, statt sich exakt mit dem vorherigen Schenkel zu decken.
  const GAP=9;
  // Zeichnerischer Biegeradius in Bildpunkten
- const BIEGERADIUS=16;
+ const BIEGERADIUS=5;
  function istUmschlag(i){
   if(i===0)return false;
   const winkelNorm=((Number(schenkel[i].winkel)||0)%360+360)%360;
