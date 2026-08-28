@@ -6,7 +6,7 @@
    hochzählen (v1 → v2 → v3 …). Sonst zeigen Handys weiter die alte App. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-1.55";
+const CACHE = "spengler-digital-1.56";
 
 const SHELL = [
   "./",
@@ -43,7 +43,10 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE)
       // einzeln ablegen: eine fehlende Datei bricht nicht die ganze Installation ab
-      .then(cache => Promise.all(SHELL.map(url => cache.add(url).catch(() => null))))
+      .then(cache => Promise.all(SHELL.map(url =>
+        fetch(new Request(url, { cache: "reload" }))
+          .then(res => res.ok ? cache.put(url, res) : null)
+          .catch(() => null))))
       .then(() => self.skipWaiting())
   );
 });
@@ -63,8 +66,11 @@ self.addEventListener("fetch", event => {
   if (req.method !== "GET") return;
   if (new URL(req.url).origin !== self.location.origin) return;
 
+  // cache: "reload" umgeht den Zwischenspeicher des Browsers. Ohne das
+  // liefert GitHub Pages bis zu zehn Minuten lang die alte Fassung einer
+  // gerade hochgeladenen Datei.
   event.respondWith(
-    fetch(req)
+    fetch(new Request(req, { cache: "reload" }))
       .then(res => {
         const kopie = res.clone();
         caches.open(CACHE).then(cache => cache.put(req, kopie)).catch(() => {});
