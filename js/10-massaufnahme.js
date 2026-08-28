@@ -314,7 +314,14 @@ function newMeasurementWithType(type){
  madSegments=[];
  madSchieber=[];
  $("mad_material").value="titanzink";
- $("mad_abwicklung").value=0;
+ $("mad_mauerbreite").value=250;
+ $("mad_gefaelle").value=5;
+ $("mad_uebLinks").value=30;
+ $("mad_uebRechts").value=30;
+ $("mad_hoeheLinks").value=50;
+ $("mad_umschlagLinks").value=15;
+ $("mad_umschlagRechts").value=15;
+ $("mad_windexponiert").checked=false;
  $("mad_manuell").checked=false;
  renderMadResult();
  setMeasProjectField(currentProjectId);
@@ -371,7 +378,15 @@ function openMeasurement(m){
  madSchieber=(m.type==="mauerabdeckung"&&Array.isArray(d.schieber))?d.schieber.map(x=>({...x})):[];
  if(m.type==="mauerabdeckung"){
   $("mad_material").value=d.material||"titanzink";
-  $("mad_abwicklung").value=d.abwicklung||0;
+  const pr=d.profil||{};
+  $("mad_mauerbreite").value=pr.mauer??250;
+  $("mad_gefaelle").value=pr.gef??5;
+  $("mad_uebLinks").value=pr.uebL??30;
+  $("mad_uebRechts").value=pr.uebR??30;
+  $("mad_hoeheLinks").value=pr.hL??50;
+  $("mad_umschlagLinks").value=pr.umL??15;
+  $("mad_umschlagRechts").value=pr.umR??15;
+  $("mad_windexponiert").checked=!!pr.wind;
   $("mad_manuell").checked=true; // gespeicherte Schieber nicht überschreiben
   renderMadResult();
  }
