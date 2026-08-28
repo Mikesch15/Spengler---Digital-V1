@@ -331,6 +331,17 @@ ${(()=>{
 </table>
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="mauerabdeckung"){
+  extraCss=`
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ .eb-diagram{text-align:center;margin:4mm 0}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const d=m.data||{};
   const segs=d.segments||[];
@@ -338,8 +349,9 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
   const stuecke=(Array.isArray(d.stueckliste)&&d.stueckliste.length)
    ? d.stueckliste
    : berechneMadStueckliste(segs,d.schieber||[],d.boundaries||[],d.bodenMass??madBodenMass,d.schieberMass??madSchieberMass);
-  inner=`
-<table class="eb-meta">
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
 <tr>${cell("Material",esc(tab.label))}${cell("Gesamtlänge",esc(Math.round(d.gesamtlaenge||0))+" mm")}</tr>
 <tr>${cell("Abwicklung",esc(d.abwicklung||0)+" mm")}${cell("Schieber",(d.schieber||[]).length?esc((d.schieber||[]).length)+" Stück":"Keine nötig")}</tr>
 </table>

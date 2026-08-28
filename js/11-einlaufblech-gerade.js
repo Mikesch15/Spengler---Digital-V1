@@ -53,13 +53,14 @@ function einlaufblechDiagramSvg(winkel,massA,restBreite,umschlagOben,umschlagUnt
  // damit die Zeichnung bei jedem Winkel/Mass zentriert bleibt, ohne Leerraum
  // und ohne Gefahr des Abschneidens.
  const allPts=[[cx,cy],aEnd,hU.p1,hU.apex,hU.p2,hU.tip,dEnd,hO.p1,hO.apex,hO.p2,hO.tip,[Ax-25,Ay1],[Ax,Ay2],arcStart,arcEnd,labelPt];
- const padTextRight=70, padTextLeft=14, padY=20;
+ const padTextRight=70, padTextLeft=52, padY=20; // links Platz für den Ansichtspfeil
  const xs=allPts.map(p=>p[0]), ys=allPts.map(p=>p[1]);
  const minX=Math.min(...xs)-padTextLeft, maxX=Math.max(...xs)+padTextRight;
  const minY=Math.min(...ys)-padY, maxY=Math.max(...ys)+padY;
  const vbW=maxX-minX, vbH=maxY-minY;
 
- return `<svg viewBox="${minX.toFixed(0)} ${minY.toFixed(0)} ${vbW.toFixed(0)} ${vbH.toFixed(0)}" style="width:100%;max-width:220px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">
+ const ansichtsPfeil=ansichtsPfeilSvg("links",vbW,vbH,minX,minY);
+ return `<svg viewBox="${minX.toFixed(0)} ${minY.toFixed(0)} ${vbW.toFixed(0)} ${vbH.toFixed(0)}" style="width:100%;max-width:220px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${ansichtsPfeil}
   <path d="M ${fmt([cx,cy])} L ${fmt(aEnd)} L ${fmt(hU.p1)} Q ${fmt(hU.apex)} ${fmt(hU.p2)} L ${fmt(hU.tip)}" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M ${fmt([cx,cy])} L ${fmt(dEnd)} L ${fmt(hO.p1)} Q ${fmt(hO.apex)} ${fmt(hO.p2)} L ${fmt(hO.tip)}" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   <line x1="${Ax}" y1="${Ay1}" x2="${Ax}" y2="${Ay2.toFixed(1)}" stroke="#1769aa" stroke-width="3" stroke-linecap="round"/>

@@ -41,7 +41,8 @@ function abgerundeterPfad(punkte,radius){
 
 // Blickrichtungs-Pfeil am Rand einer Schnittskizze. Gleiche Darstellung
 // wie die Ansichtspfeile im Grundriss. seite: links | oben | rechts | unten
-function ansichtsPfeilSvg(seite,breite,hoehe){
+function ansichtsPfeilSvg(seite,breite,hoehe,ox,oy){
+ ox=ox||0; oy=oy||0;
  if(!seite||seite==="keiner")return "";
  const laenge=26, kopf=9, halb=5, luft=4;
  let sx,sy,ex,ey,k1x,k1y,k2x,k2y;
@@ -55,8 +56,8 @@ function ansichtsPfeilSvg(seite,breite,hoehe){
  const ux=dx/len, uy=dy/len, px=-uy, py=ux;
  const bx=ex-ux*kopf, by=ey-uy*kopf;
  k1x=bx+px*halb; k1y=by+py*halb; k2x=bx-px*halb; k2y=by-py*halb;
- return `<line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}" stroke="#b42318" stroke-width="2.2" stroke-linecap="round"/>`
-  +`<polygon points="${ex.toFixed(1)},${ey.toFixed(1)} ${k1x.toFixed(1)},${k1y.toFixed(1)} ${k2x.toFixed(1)},${k2y.toFixed(1)}" fill="#b42318"/>`;
+ return `<line x1="${(sx+ox).toFixed(1)}" y1="${(sy+oy).toFixed(1)}" x2="${(bx+ox).toFixed(1)}" y2="${(by+oy).toFixed(1)}" stroke="#b42318" stroke-width="2.2" stroke-linecap="round"/>`
+  +`<polygon points="${(ex+ox).toFixed(1)},${(ey+oy).toFixed(1)} ${(k1x+ox).toFixed(1)},${(k1y+oy).toFixed(1)} ${(k2x+ox).toFixed(1)},${(k2y+oy).toFixed(1)}" fill="#b42318"/>`;
 }
 function generateProfilDiagramSvg(schenkel){
  if(!schenkel.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Schenkel für die Zeichnung.</div>';
