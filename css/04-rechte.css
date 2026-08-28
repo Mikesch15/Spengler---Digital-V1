@@ -77,14 +77,16 @@ body.recht-einstellungen-ansehen #settingsModal textarea{
 body.recht-einstellungen-ansehen #darkModeInput,
 body.recht-einstellungen-ansehen #photoQualityInput,
 body.recht-einstellungen-ansehen #defaultRateInput,
-body.recht-einstellungen-ansehen #recentCountInput{
+body.recht-einstellungen-ansehen #recentCountInput,
+/* Einlaufblech-Werte gelten nur für das eigene Gerät und sind deshalb
+   für jeden bedienbar, unabhängig von den Katalog-Rechten. */
+body.recht-einstellungen-ansehen #settingsModal [id^="eb_"],
+body.recht-einstellungen-ansehen #settingsModal [id^="ebks_"]{
   pointer-events:auto;
   background:#fff;
   color:var(--ink);
 }
 body.recht-einstellungen-ansehen #saveCompanyName,
-body.recht-einstellungen-ansehen #saveEinlaufblechSettings,
-body.recht-einstellungen-ansehen #saveEbkSettings,
 body.recht-einstellungen-ansehen #newEmployee,
 body.recht-einstellungen-ansehen #newRate,
 body.recht-einstellungen-ansehen #newMaterial,
