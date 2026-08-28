@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="css/01-basis.css">
 <link rel="stylesheet" href="css/02-responsive.css">
 <link rel="stylesheet" href="css/03-druck.css">
+<link rel="stylesheet" href="css/04-rechte.css">
 <!-- v38: Mitarbeiter-Registrierung über Supabase Edge Function create-employee. -->
 </head>
 <body>
@@ -254,19 +255,11 @@
 <h2>💬 Feedback geben</h2>
 <div class="info">Dein Feedback geht direkt an den Entwickler der App. Bitte möglichst konkret beschreiben.</div>
 <div class="grid">
-<div><label>Modul</label><select id="feedbackModul">
-<option value="Allgemein">Allgemein</option>
-<option value="Regierapport">Regierapport</option>
-<option value="Massaufnahme – Skizze/Foto">Massaufnahme – Skizze/Foto</option>
-<option value="Massaufnahme – Einlaufblech gerade">Massaufnahme – Einlaufblech gerade</option>
-<option value="Massaufnahme – Einlaufblech konisch">Massaufnahme – Einlaufblech konisch</option>
-<option value="Massaufnahme – Rinne Halbrund">Massaufnahme – Rinne Halbrund</option>
-<option value="Ausmass – Offerte erfassen">Ausmass – Offerte erfassen</option>
-<option value="Ausmass – Blitzschutzausmass">Ausmass – Blitzschutzausmass</option>
-<option value="Projekte">Projekte</option>
-<option value="Einstellungen">Einstellungen</option>
-<option value="Sonstiges">Sonstiges</option>
-</select></div>
+<div><label>Modul</label>
+<!-- Die Auswahl wird beim Öffnen aus den vorhandenen Funktionen der App
+     zusammengestellt (siehe js/02-feedback.js). Neue Massaufnahme- oder
+     Ausmass-Arten erscheinen dadurch automatisch. -->
+<select id="feedbackModul"></select></div>
 <div class="wide"><label>Dein Feedback</label><textarea id="feedbackMessage" placeholder="Was ist dir aufgefallen? Was fehlt? Was funktioniert nicht wie erwartet?" rows="5"></textarea></div>
 </div>
 <div class="bar"><button id="saveFeedback" class="green">Absenden</button><button id="cancelFeedback" class="gray">Abbrechen</button></div>
@@ -764,6 +757,7 @@
 <script src="js/03-login.js"></script>
 <script src="js/04-start-suche.js"></script>
 <script src="js/05-daten-laden.js"></script>
+<script src="js/05a-rechte.js"></script>
 <script src="js/06-rapport.js"></script>
 <script src="js/07-einstellungen.js"></script>
 <script src="js/08-katalog-blitzschutz.js"></script>

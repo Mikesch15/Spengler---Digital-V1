@@ -5,7 +5,7 @@
    WICHTIG: Bei jeder Änderung an den Dateien unten die CACHE-Version
    hochzählen (v1 → v2 → v3 …). Sonst zeigen Handys weiter die alte App. */
 
-const CACHE = "spengler-digital-v1";
+const CACHE = "spengler-digital-v5";
 
 const SHELL = [
   "./",
@@ -16,11 +16,13 @@ const SHELL = [
   "./css/01-basis.css",
   "./css/02-responsive.css",
   "./css/03-druck.css",
+  "./css/04-rechte.css",
   "./js/01-basis.js",
   "./js/02-feedback.js",
   "./js/03-login.js",
   "./js/04-start-suche.js",
   "./js/05-daten-laden.js",
+  "./js/05a-rechte.js",
   "./js/06-rapport.js",
   "./js/07-einstellungen.js",
   "./js/08-katalog-blitzschutz.js",

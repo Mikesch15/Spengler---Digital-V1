@@ -190,6 +190,7 @@ $("amProjectResults").addEventListener("click",e=>{
 });
 
 function newAusmassWithType(type){
+ sperreFuerEintrag("ausmass",null);
  isDirty=false;
  amEditReturnTo="ausmassModal";
  currentAusmassId=null;
@@ -218,6 +219,7 @@ function updateAmFormTitle(){
  if(h2)h2.textContent=`📏 Ausmass – ${labels[$("amType").value]||""}`;
 }
 function openAusmass(a){
+ sperreFuerEintrag("ausmass",a&&a.created_by);
  isDirty=false;
  currentAusmassId=a.id;
  $("printAusmassBtn").hidden=false;

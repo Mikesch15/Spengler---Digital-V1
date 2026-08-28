@@ -27,7 +27,8 @@ function profileName(id){
  return p?`${p.first_name} ${p.last_name}`:null;
 }
 function isAdmin(){
- return !!(currentProfile&&currentProfile.first_name==="Mike"&&currentProfile.last_name==="Ledermann");
+ // Administrator ist, wer das Recht "admin" hat (siehe 05a-rechte.js).
+ return !!(currentProfile&&currentProfile.role==="admin");
 }
 async function renderFeedbackList(){
  if(!isAdmin())return;

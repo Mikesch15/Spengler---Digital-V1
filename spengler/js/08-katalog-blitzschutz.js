@@ -151,7 +151,7 @@ async function registerEmployee(vor,nach){
 
 function renderSettings(){
  $("feedbackTabBtn").hidden=!isAdmin();
- $("employeeSettings").innerHTML=settings.employees.map((e,i)=>`<div class="settingrow emp-row"><input data-set-emp="${i}" value="${esc(e)}"><button class="red" data-del-emp="${i}">Löschen</button></div>`).join("")||'<div class="empty">Noch keine Mitarbeiter.</div>';
+ renderMitarbeiterSettings();
  const ro=protectedUnlocked?"":"disabled";
  $("rateSettings").innerHTML=settings.rates.map((r,i)=>`<div class="settingrow"><input data-set-rate-name="${i}" value="${esc(r[0])}" ${ro}><input data-set-rate-value="${i}" type="number" step=".01" value="${r[1]}" ${ro}>${protectedUnlocked?`<button class="red" data-del-rate="${i}">Löschen</button>`:'<span></span>'}</div>`).join("");
  $("newRate").hidden=!protectedUnlocked;

@@ -272,6 +272,7 @@ $("measProjectResults").addEventListener("click",e=>{
 });
 
 function newMeasurementWithType(type){
+ sperreFuerEintrag("massaufnahme",null);
  isDirty=false;
  measEditReturnTo="measurementsModal";
  currentMeasurementId=null;
@@ -321,6 +322,7 @@ function updateMeasFormTitle(){
  if(h2)h2.textContent=`📐 Massaufnahme – ${labels[$("measType").value]||""}`;
 }
 function openMeasurement(m){
+ sperreFuerEintrag("massaufnahme",m&&m.created_by);
  isDirty=false;
  currentMeasurementId=m.id;
  $("printMeasurementBtn").hidden=false;

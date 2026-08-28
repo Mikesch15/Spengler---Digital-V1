@@ -64,6 +64,7 @@ async function afterLogin(){
  $("date").value=new Date().toISOString().slice(0,10);
  renderProjectSelect();
  renderMain();
+ await applyRechte();
  showStart();
 }
 function showStart(){

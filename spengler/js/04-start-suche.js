@@ -71,6 +71,7 @@ $("navReport").onclick=async()=>{$("reportsModal").hidden=false;await renderRepo
 $("startFromReportEdit").onclick=()=>{goToStart()};
 $("reportEditSettingsShortcut").onclick=()=>openSettingsTo("protected","rates");
 $("newReport").onclick=()=>{
+ sperreFuerEintrag("rapport",null);
  isDirty=false;
  currentProjectId=null;currentReportId=null;
  currentReportMeta={};

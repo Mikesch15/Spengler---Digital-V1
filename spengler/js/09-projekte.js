@@ -111,6 +111,7 @@ async function loadProjectMeasurements(projectId){
 </div>`).join(""):'<div class="small">Noch keine Massaufnahmen zu diesem Projekt gespeichert.</div>';
 }
 function openReport(r){
+ sperreFuerEintrag("rapport",r&&r.created_by);
  isDirty=false;
  currentProjectId=r.project_id;
  currentReportId=r.id;
