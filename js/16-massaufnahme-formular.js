@@ -67,7 +67,7 @@ function buildMeasurementFromForm(){
  }
  if(type==="freies_profil"){
   const konisch=$("fp_konisch").value==="ja";
-  return {...base,photo_path:null,sketch_paths:[],data:{schenkel:fpSchenkel,konisch,segmente:fpSegmente}};
+  return {...base,photo_path:null,sketch_paths:[],data:{schenkel:fpSchenkel,konisch,segmente:fpSegmente,ansicht:$("fp_ansicht").value}};
  }
  if(type==="mauerabdeckung"){
   const material=$("mad_material").value;
@@ -75,7 +75,8 @@ function buildMeasurementFromForm(){
   const stueckliste=berechneMadStueckliste(madSegments,madSchieber,boundaries,madBodenMass,madSchieberMass);
   return {...base,photo_path:null,sketch_paths:[],data:{
    material,
-   abwicklung:Number($("mad_abwicklung").value)||0,
+   profil:madProfilMasse(),
+   abwicklung:Math.round(madProfilMasse().abwicklung),
    segments:madSegments,
    schieber:madSchieber,
    boundaries,
@@ -341,6 +342,8 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <tr>${cell("Material",esc(tab.label))}${cell("Gesamtlänge",esc(Math.round(d.gesamtlaenge||0))+" mm")}</tr>
 <tr>${cell("Abwicklung",esc(d.abwicklung||0)+" mm")}${cell("Schieber",(d.schieber||[]).length?esc((d.schieber||[]).length)+" Stück":"Keine nötig")}</tr>
 </table>
+<div class="eb-section-head">Profil (Querschnitt)</div>
+<div class="eb-diagram">${madProfilSvgAus(d.profil)}</div>
 <div class="eb-section-head">Grundriss</div>
 <div class="eb-diagram">${generateRinneGrundriss(segs,d.schieber||[],d.boundaries||[])}</div>
 <div class="eb-section-head">Segmente</div>

@@ -178,9 +178,9 @@ function madProfilSvgAus(m){
  const minX=Math.min(...xs), maxX=Math.max(...xs);
  const minY=Math.min(...ys), maxY=Math.max(...ys);
  const bw=Math.max(1,maxX-minX), bh=Math.max(1,maxY-minY);
- const W=380,H=210,rand=18;
- const f=Math.min((W-2*rand)/bw,(H-2*rand)/bh);
- const ox=(W-bw*f)/2-minX*f, oy=(H-bh*f)/2-minY*f;
+ const W=380,H=210,rand=18,randRechts=44;
+ const f=Math.min((W-randRechts-rand)/bw,(H-2*rand)/bh);
+ const ox=rand-minX*f, oy=(H-bh*f)/2-minY*f;
  const s2=p=>[p[0]*f+ox, p[1]*f+oy];
  const P=p=>`${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
 
@@ -193,9 +193,13 @@ function madProfilSvgAus(m){
   return `<path d="M ${P(a)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 ${sweep} ${P(b)} L ${P(c)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
  }).join("");
 
+ // Blickrichtungs-Pfeil, damit klar ist, aus welcher Richtung der Schnitt
+ // gesehen wird – gleiche Darstellung wie die Pfeile im Grundriss.
+ const pfeil=ansichtsPfeilSvg("rechts",W,H);
  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
 <path d="${d}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 ${saumPfade}
+${pfeil}
 </svg>`;
 }
 
@@ -214,7 +218,7 @@ function renderMadSegmentsTable(){
  const rows=madSegments.map((s,i)=>`<tr>
 <td>${i+1}</td>
 <td><input data-mad-laenge="${i}" type="number" step="1" value="${s.laenge||0}"></td>
-<td><input data-mad-winkel="${i}" type="number" step="1" value="${s.winkel??0}"${i===madSegments.length-1?" disabled":""}></td>
+<td style="display:flex;gap:4px;align-items:center"><input data-mad-winkel="${i}" type="number" step="1" value="${s.winkel??0}"${i===madSegments.length-1?" disabled":""} style="flex:1"><button type="button" class="gray" data-mad-flip="${i}" title="Winkel umkehren" style="padding:4px 8px"${i===madSegments.length-1?" disabled":""}>🔄</button></td>
 <td style="text-align:center">${i===0?`<input type="checkbox" data-mad-boden-links="${i}"${s.bodenLinks?" checked":""} style="width:auto;min-height:0">`:"–"}</td>
 <td style="text-align:center">${i===madSegments.length-1?`<input type="checkbox" data-mad-boden-rechts="${i}"${s.bodenRechts?" checked":""} style="width:auto;min-height:0">`:"–"}</td>
 <td><button type="button" class="red" data-mad-seg-del="${i}" style="padding:6px 8px">×</button></td>
@@ -271,6 +275,12 @@ $("mad_segmentsBody").addEventListener("change",e=>{
  renderMadResult();
 });
 $("mad_segmentsBody").addEventListener("click",e=>{
+ const flip=e.target.closest("[data-mad-flip]");
+ if(flip){
+  const i=Number(flip.dataset.madFlip);
+  if(madSegments[i]){madSegments[i].winkel=-(Number(madSegments[i].winkel)||0);renderMadResult();}
+  return;
+ }
  const del=e.target.closest("[data-mad-seg-del]");
  if(del){madSegments.splice(Number(del.dataset.madSegDel),1);renderMadResult();}
 });

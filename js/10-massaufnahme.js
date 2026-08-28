@@ -309,6 +309,7 @@ function newMeasurementWithType(type){
  fpSchenkel=[];
  fpSegmente=[];
  $("fp_konisch").value="nein";
+ $("fp_ansicht").value="links";
  renderFpSchenkelTable();
  renderFpSegmenteList();
  madSegments=[];
@@ -373,6 +374,7 @@ function openMeasurement(m){
  fpSchenkel=(m.type==="freies_profil"&&Array.isArray(d.schenkel))?d.schenkel.map(s=>({...s})):[];
  fpSegmente=(m.type==="freies_profil"&&Array.isArray(d.segmente))?d.segmente.map(s=>({...s,massen:(s.massen||[]).map(mm=>({...mm}))})):[];
  $("fp_konisch").value=d.konisch?"ja":"nein";
+ $("fp_ansicht").value=d.ansicht||"links";
  if(m.type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
  madSegments=(m.type==="mauerabdeckung"&&Array.isArray(d.segments))?d.segments.map(x=>({...x})):[];
  madSchieber=(m.type==="mauerabdeckung"&&Array.isArray(d.schieber))?d.schieber.map(x=>({...x})):[];

@@ -39,6 +39,23 @@ function abgerundeterPfad(punkte,radius){
  return d;
 }
 
+// Blickrichtungs-Pfeil am Rand einer Schnittskizze. Gleiche Darstellung
+// wie die Ansichtspfeile im Grundriss. seite: links | oben | rechts | unten
+function ansichtsPfeilSvg(seite,breite,hoehe){
+ if(!seite||seite==="keiner")return "";
+ const laenge=26, kopf=9, halb=5, luft=4;
+ let sx,sy,ex,ey,k1x,k1y,k2x,k2y;
+ if(seite==="links"){      ex=luft;          ey=hoehe/2; sx=ex-laenge; sy=ey; }
+ else if(seite==="rechts"){ex=breite-luft;   ey=hoehe/2; sx=ex+laenge; sy=ey; }
+ else if(seite==="oben"){  ex=breite/2;      ey=luft;    sx=ex; sy=ey-laenge; }
+ else{                     ex=breite/2;      ey=hoehe-luft; sx=ex; sy=ey+laenge; }
+ const dx=ex-sx, dy=ey-sy, len=Math.hypot(dx,dy)||1;
+ const ux=dx/len, uy=dy/len, px=-uy, py=ux;
+ const bx=ex-ux*kopf, by=ey-uy*kopf;
+ k1x=bx+px*halb; k1y=by+py*halb; k2x=bx-px*halb; k2y=by-py*halb;
+ return `<line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}" stroke="#b42318" stroke-width="2.2" stroke-linecap="round"/>`
+  +`<polygon points="${ex.toFixed(1)},${ey.toFixed(1)} ${k1x.toFixed(1)},${k1y.toFixed(1)} ${k2x.toFixed(1)},${k2y.toFixed(1)}" fill="#b42318"/>`;
+}
 function generateProfilDiagramSvg(schenkel){
  if(!schenkel.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Schenkel für die Zeichnung.</div>';
  let x=0,y=0,dir=0;
@@ -119,7 +136,8 @@ function generateProfilDiagramSvg(schenkel){
   const numx=mx+nx*14,numy=my+ny*14;
   nums+=`<circle cx="${numx.toFixed(1)}" cy="${numy.toFixed(1)}" r="9" fill="#e07a1f"/><text x="${numx.toFixed(1)}" y="${(numy+3.2).toFixed(1)}" font-size="9" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
  }
- return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:280px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${labels}${nums}</svg>`;
+ const pfeil=ansichtsPfeilSvg($("fp_ansicht")?$("fp_ansicht").value:"keiner",svgW,svgH);
+ return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:280px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${labels}${nums}${pfeil}</svg>`;
 }
 function renderFpSchenkelTable(){
  $("fp_schenkelBody").innerHTML=fpSchenkel.map((s,i)=>`<tr>
@@ -206,6 +224,7 @@ $("fp_schenkelBody").addEventListener("click",e=>{
  if(umschlag){const i=Number(umschlag.dataset.fpSchenkelUmschlag);if(fpSchenkel[i]){fpSchenkel[i].winkel=180;renderFpSchenkelTable();}}
 });
 $("fp_konisch").addEventListener("change",renderFpSegmenteList);
+$("fp_ansicht").addEventListener("change",()=>{$("fp_profilDiagram").innerHTML=generateProfilDiagramSvg(fpSchenkel)});
 function renderFpSegmenteList(){
  const konisch=$("fp_konisch").value==="ja";
  $("fp_segmenteList").innerHTML=fpSegmente.map((seg,i)=>{
