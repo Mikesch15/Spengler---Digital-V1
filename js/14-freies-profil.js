@@ -150,11 +150,15 @@ function renderFpSegmenteList(){
  $("fp_segmenteList").innerHTML=fpSegmente.map((seg,i)=>{
   if(!seg.massen)seg.massen=[];
   const zeilen=fpSchenkel.map((s,j)=>{
-   const m=seg.massen[j]||{};
+   if(!seg.massen[j])seg.massen[j]={mass:0,links:0,rechts:0};
+   const m=seg.massen[j];
    if(konisch){
     return `<tr><td>${j+1}</td><td><input data-fp-seg-mass-links="${i}_${j}" type="number" step="1" value="${m.links||0}"></td><td><input data-fp-seg-mass-rechts="${i}_${j}" type="number" step="1" value="${m.rechts||0}"></td></tr>`;
    }
-   return `<tr><td>${j+1}</td><td><input data-fp-seg-mass="${i}_${j}" type="number" step="1" value="${m.mass||0}"></td></tr>`;
+   // Nicht konisch: das Mass ist über die ganze Länge gleich der Schenkellänge
+   // aus dem Profil. Leere Felder werden deshalb direkt daraus gefüllt.
+   if(!m.mass)m.mass=Number(s.laenge)||0;
+   return `<tr><td>${j+1}</td><td><input data-fp-seg-mass="${i}_${j}" type="number" step="1" value="${m.mass}"></td></tr>`;
   }).join("");
   return `<div class="settings-section open" data-section="fp-seg-${i}" style="margin-bottom:10px">
 <div class="settings-section-head" data-toggle-section="fp-seg-${i}"><h2>Segment ${i+1}</h2><span class="settings-section-chevron">›</span></div>
@@ -169,14 +173,14 @@ function renderFpSegmenteList(){
 <tbody>${zeilen||'<tr><td colspan="3" class="small">Noch keine Schenkel im Profil definiert.</td></tr>'}</tbody>
 </table>
 </div>
-<div class="bar"><button type="button" class="red" data-fp-seg-del="${i}">Segment löschen</button></div>
+<div class="bar">${konisch?"":`<button type="button" class="gray" data-fp-seg-uebernehmen="${i}">↩️ Masse aus Profil übernehmen</button>`}<button type="button" class="red" data-fp-seg-del="${i}">Segment löschen</button></div>
 </div>
 </div>`;
  }).join("")||'<div class="empty">Noch keine Segmente. "+ Segment hinzufügen" klicken.</div>';
  $("fp_summary").textContent=fpSegmente.length?`${fpSegmente.length} Segment(e) · ${fpSchenkel.length} Schenkel im Profil`:"";
 }
 $("fp_addSegment").onclick=()=>{
- fpSegmente.push({laenge:0,massen:fpSchenkel.map(()=>({mass:0,links:0,rechts:0}))});
+ fpSegmente.push({laenge:0,massen:fpSchenkel.map(s=>({mass:Number(s.laenge)||0,links:0,rechts:0}))});
  renderFpSegmenteList();
 };
 $("fp_segmenteList").addEventListener("input",e=>{
@@ -193,6 +197,19 @@ $("fp_segmenteList").addEventListener("input",e=>{
  else if(rechtsKey!==undefined)fpSegmente[segIdx].massen[schenkelIdx].rechts=Number(e.target.value)||0;
 });
 $("fp_segmenteList").addEventListener("click",e=>{
+ const uebernehmen=e.target.closest("[data-fp-seg-uebernehmen]");
+ if(uebernehmen){
+  const seg=fpSegmente[Number(uebernehmen.dataset.fpSegUebernehmen)];
+  if(seg){
+   seg.massen=fpSchenkel.map((s,j)=>({
+    mass:Number(s.laenge)||0,
+    links:(seg.massen[j]&&seg.massen[j].links)||0,
+    rechts:(seg.massen[j]&&seg.massen[j].rechts)||0
+   }));
+   renderFpSegmenteList();
+  }
+  return;
+ }
  const del=e.target.closest("[data-fp-seg-del]");
  if(del){fpSegmente.splice(Number(del.dataset.fpSegDel),1);renderFpSegmenteList();}
 });
