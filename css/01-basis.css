@@ -47,7 +47,11 @@ td input,td select{min-height:34px;font-size:12px}
 .print-only{display:none}
 .total{text-align:right;font-size:20px;font-weight:900;margin-top:10px;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px}
 .small{font-size:11px;color:var(--muted);margin-top:7px}
-.search{position:relative}.suggest{position:fixed;z-index:1000;min-width:320px;max-width:min(92vw,560px);background:#fff;border:1px solid #bcc9d0;border-radius:10px;box-shadow:0 14px 28px #17242d26;max-height:260px;overflow:auto}
+.search{position:relative}
+/* Leere Vorschlagsbox ausblenden – sonst bleibt ihr Rahmen als feiner
+   Strich quer über dem Bildschirm stehen. */
+.suggest:empty{display:none}
+.suggest{position:fixed;z-index:1000;min-width:320px;max-width:min(92vw,560px);background:#fff;border:1px solid #bcc9d0;border-radius:10px;box-shadow:0 14px 28px #17242d26;max-height:260px;overflow:auto}
 .item{white-space:normal;line-height:1.25}
 .item{padding:10px;border-bottom:1px solid #edf0f2;cursor:pointer;transition:background .1s}.item:last-child{border-bottom:0}.item:hover{background:var(--blue-light)}.item b{display:block}.item span{font-size:11px;color:var(--muted)}
 .empty{text-align:center;color:var(--muted);padding:20px;font-size:12px;border:1px dashed var(--line);border-radius:10px;background:#fbfcfd}
