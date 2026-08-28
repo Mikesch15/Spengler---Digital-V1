@@ -132,7 +132,23 @@ async function recognizeProfileSketch(dataUrl){
 $("fp_schenkelBody").addEventListener("input",e=>{
  const i=Number(e.target.dataset.fpSchenkelLaenge??e.target.dataset.fpSchenkelWinkel);
  if(Number.isNaN(i)||!fpSchenkel[i])return;
- if(e.target.dataset.fpSchenkelLaenge!==undefined)fpSchenkel[i].laenge=Number(e.target.value)||0;
+ if(e.target.dataset.fpSchenkelLaenge!==undefined){
+  const alteLaenge=Number(fpSchenkel[i].laenge)||0;
+  const neueLaenge=Number(e.target.value)||0;
+  fpSchenkel[i].laenge=neueLaenge;
+  // Nicht konisches Profil: das Mass entspricht der Schenkellänge. Übernehmen,
+  // solange im Segment noch nichts oder noch der alte Wert steht – ein von Hand
+  // abweichend eingetragenes Mass bleibt stehen.
+  if($("fp_konisch").value!=="ja"){
+   fpSegmente.forEach(seg=>{
+    if(!seg.massen)seg.massen=[];
+    if(!seg.massen[i])seg.massen[i]={mass:0,links:0,rechts:0};
+    const jetzt=Number(seg.massen[i].mass)||0;
+    if(jetzt===0||jetzt===alteLaenge)seg.massen[i].mass=neueLaenge;
+   });
+   renderFpSegmenteList();
+  }
+ }
  else if(e.target.dataset.fpSchenkelWinkel!==undefined)fpSchenkel[i].winkel=Number(e.target.value)||0;
  $("fp_profilDiagram").innerHTML=generateProfilDiagramSvg(fpSchenkel);
 });
