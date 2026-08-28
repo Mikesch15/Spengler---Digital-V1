@@ -2,6 +2,43 @@
 // ---- Freies Profil ------------------------------------------------
 let fpSchenkel=[];
 let fpSegmente=[];
+// Baut aus einer Punktfolge einen Pfad mit abgerundeten Ecken.
+// An jeder Ecke werden beide Schenkel um "radius" gekürzt und mit einem
+// Bogen verbunden. Der Radius wird automatisch verkleinert, wenn ein
+// Schenkel dafür zu kurz ist. Rein zeichnerisch – an den Massen ändert
+// sich nichts.
+function abgerundeterPfad(punkte,radius){
+ if(punkte.length<2)return "";
+ const P=(pt)=>`${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`;
+ if(punkte.length===2)return `M ${P(punkte[0])} L ${P(punkte[1])}`;
+ let d=`M ${P(punkte[0])}`;
+ for(let i=1;i<punkte.length-1;i++){
+  const [vx,vy]=punkte[i];
+  const [ax,ay]=punkte[i-1];
+  const [bx,by]=punkte[i+1];
+  // Richtungen von der Ecke weg, jeweils auf Länge 1
+  const ux=ax-vx, uy=ay-vy, wx=bx-vx, wy=by-vy;
+  const lenU=Math.hypot(ux,uy)||1, lenW=Math.hypot(wx,wy)||1;
+  const unx=ux/lenU, uny=uy/lenU, wnx=wx/lenW, wny=wy/lenW;
+  let cos=unx*wnx+uny*wny;
+  cos=Math.max(-1,Math.min(1,cos));
+  const phi=Math.acos(cos); // Innenwinkel an der Biegung
+  // Fast gerade oder vollständige Umkehr: nichts zu runden
+  if(phi>Math.PI-0.03||phi<0.03){d+=` L ${P(punkte[i])}`;continue}
+  // Tangentenabstand, begrenzt durch die kürzere der beiden Schenkellängen
+  const t=Math.min(radius,lenU*0.45,lenW*0.45);
+  const r=t*Math.tan(phi/2); // Radius des Kreisbogens
+  const p1=[vx+unx*t, vy+uny*t];
+  const p2=[vx+wnx*t, vy+wny*t];
+  // Drehrichtung aus dem Kreuzprodukt (Bildkoordinaten: y zeigt nach unten)
+  const kreuz=(vx-ax)*(by-vy)-(vy-ay)*(bx-vx);
+  const sweep=kreuz>0?1:0;
+  d+=` L ${P(p1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 ${sweep} ${P(p2)}`;
+ }
+ d+=` L ${P(punkte[punkte.length-1])}`;
+ return d;
+}
+
 function generateProfilDiagramSvg(schenkel){
  if(!schenkel.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Schenkel für die Zeichnung.</div>';
  let x=0,y=0,dir=0;
@@ -27,6 +64,8 @@ function generateProfilDiagramSvg(schenkel){
  // Ist Schenkel i ein Umschlag (180°)? Der wird als eigene, kurze, parallel versetzte Linie
  // mit kleinem Abstand gezeichnet, statt sich exakt mit dem vorherigen Schenkel zu decken.
  const GAP=6;
+ // Zeichnerischer Biegeradius in Bildpunkten
+ const BIEGERADIUS=16;
  function istUmschlag(i){
   if(i===0)return false;
   const winkelNorm=((Number(schenkel[i].winkel)||0)%360+360)%360;
@@ -47,8 +86,7 @@ function generateProfilDiagramSvg(schenkel){
  for(let i=0;i<schenkel.length;i++){
   if(istUmschlag(i)){
    if(aktuellerPfad.length>1){
-    const pfadStr=aktuellerPfad.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-    lines+=`<polyline points="${pfadStr}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+    lines+=`<path d="${abgerundeterPfad(aktuellerPfad,BIEGERADIUS)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
    }
    const [[ux1,uy1],[ux2,uy2]]=drawEnds[i];
    lines+=`<line x1="${ux1.toFixed(1)}" y1="${uy1.toFixed(1)}" x2="${ux2.toFixed(1)}" y2="${uy2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
@@ -58,8 +96,7 @@ function generateProfilDiagramSvg(schenkel){
   }
  }
  if(aktuellerPfad.length>1){
-  const pfadStr=aktuellerPfad.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-  lines+=`<polyline points="${pfadStr}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+  lines+=`<path d="${abgerundeterPfad(aktuellerPfad,BIEGERADIUS)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
  }
  let labels="",nums="";
  for(let i=0;i<schenkel.length;i++){
