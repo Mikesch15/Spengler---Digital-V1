@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1769aa">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spengler-Digital">
+<title>Spengler-DIGITAL · Regierapport</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- Stylesheets: Reihenfolge ist wichtig (Grundlayout → Bildschirmgrössen → Druck) -->
+<link rel="stylesheet" href="css/01-basis.css">
+<link rel="stylesheet" href="css/02-responsive.css">
+<link rel="stylesheet" href="css/03-druck.css">
+<link rel="stylesheet" href="css/04-rechte.css">
+<!-- v38: Mitarbeiter-Registrierung über Supabase Edge Function create-employee. -->
+</head>
+<body>
+
+<!-- LOGIN / REGISTRIERUNG -->
+<div id="authScreen" class="modal">
+<div class="modalbox">
+<div class="card">
+<div class="brand">SPENGLER-DIGITAL</div>
+<h1>Anmelden</h1>
+<div class="grid">
+<div class="wide"><label>Benutzername (Vorname.Nachname)</label><input id="loginUser" placeholder="max.muster" autocomplete="username"></div>
+<div class="wide"><label>Passwort</label><input id="loginPass" type="password" autocomplete="current-password"></div>
+</div>
+<div class="bar">
+<button id="loginBtn" class="blue">Anmelden</button>
+<button id="showRegister" class="gray">Neuer Mitarbeiter</button>
+</div>
+<div class="small" id="loginError" style="color:var(--red)"></div>
+</div>
+
+<div class="card" id="registerCard" hidden>
+<h2>Neuen Mitarbeiter anlegen</h2>
+<div class="info">Benutzername und Passwort werden automatisch nach dem Schema <b>Vorname.Nachname</b> und <b>Rinnen_Initialien</b> erzeugt und dir am Schluss angezeigt.</div>
+<div class="grid">
+<div><label>Vorname</label><input id="regVor"></div>
+<div><label>Nachname</label><input id="regNach"></div>
+<div class="wide"><label>Firmen-Code</label><input id="regCode" placeholder="von der Geschäftsleitung erhalten" autocomplete="off"></div>
+</div>
+<div class="bar">
+<button id="registerBtn" class="green">Konto erstellen</button>
+<button id="cancelRegister" class="gray">Abbrechen</button>
+</div>
+<div class="small" id="registerError" style="color:var(--red)"></div>
+</div>
+</div>
+</div>
+
+<div class="app" id="appRoot" hidden>
+
+<div class="small no-print" id="topUserBar">Angemeldet als <b id="currentUserLabel">–</b> <button id="logout" class="red" style="padding:3px 9px;font-size:11px;margin-left:8px">🔓 Abmelden</button></div>
+
+<!-- STARTBILDSCHIRM -->
+<div id="startScreen" hidden>
+<img id="startLogo" hidden style="max-height:70px;max-width:260px;display:block;margin:0 0 8px">
+<div class="brand" id="startBrandText">SPENGLER-DIGITAL</div>
+<h1>Willkommen</h1>
+<div class="small" id="startCompanyLine" style="margin:-8px 0 10px"></div>
+<div class="card">
+<h2>Was möchtest du tun?</h2>
+<div class="start-nav">
+<button type="button" class="start-nav-btn blue" id="navReport"><span class="start-nav-icon">📋</span><span>Regierapport</span></button>
+<button type="button" class="start-nav-btn blue" id="navMeasurements"><span class="start-nav-icon">📐</span><span>Massaufnahme</span></button>
+<button type="button" class="start-nav-btn blue" id="navAusmass"><span class="start-nav-icon">📏</span><span>Ausmass</span></button>
+</div>
+<div class="bar" style="margin-top:14px;justify-content:center">
+<button id="startOpenProjects" class="gray">📁 Projekte</button>
+<button id="openGlobalSearch" class="gray">🔍 Suche</button>
+<button id="settings" class="gray">⚙️ Einstellungen</button>
+</div>
+<div class="bar" style="margin-top:6px;justify-content:center">
+<button id="openFeedback" class="gray">💬 Feedback geben</button>
+</div>
+</div>
+<!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.75</div>
+</div>
+
+<!-- Funktion waehlen: Massaufnahme -->
+<div id="measTypeChooserModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📐 Neue Massaufnahme</h2>
+<div class="info">Welche Funktion?</div>
+<div class="start-nav">
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="skizze_foto"><span class="start-nav-icon">📷</span><span>Skizze/Foto</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="einlaufblech_gerade"><span class="start-nav-icon">📐</span><span>Einlaufblech gerade</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="rinne_halbrund"><span class="start-nav-icon">🏠</span><span>Rinne Halbrund</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="einlaufblech_konisch"><span class="start-nav-icon">📐</span><span>Einlaufblech konisch</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="freies_profil"><span class="start-nav-icon">📐</span><span>Freies Profil</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="mauerabdeckung"><span class="start-nav-icon">🧱</span><span>Mauerabdeckung</span></button>
+</div>
+<div class="bar" style="margin-top:14px;justify-content:center">
+<button id="cancelMeasTypeChooser" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Funktion waehlen: Ausmass -->
+<div id="amTypeChooserModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📏 Neues Ausmass</h2>
+<div class="info">Welche Funktion?</div>
+<div class="start-nav">
+<button type="button" class="start-nav-btn blue" data-choose-am-type="offerte_erfassen"><span class="start-nav-icon">📄</span><span>Offerte erfassen</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-am-type="blitzschutz_ausmass"><span class="start-nav-icon">⚡</span><span>Blitzschutzausmass</span></button>
+</div>
+<div class="bar" style="margin-top:14px;justify-content:center">
+<button id="cancelAmTypeChooser" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
+<div id="reportScreen" hidden>
+<div class="report-head">
+  <div><div class="logo" id="printLogo">PETER KÜNZI AG</div><div class="sub">Regierapport · Arbeiten nach Aufwand</div></div>
+  <div style="text-align:right"><b class="js-company-name" id="printCompany">PETER KÜNZI AG</b><br><span id="printAddress" style="white-space:pre-line"></span></div>
+</div>
+
+<div class="brand">SPENGLER-DIGITAL</div>
+<h1>Regierapport</h1>
+
+<div class="card">
+<h2>Regieauftrag</h2>
+<div class="grid">
+<div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
+<div class="search"><input id="projectSearch" placeholder="Suchen: Projektname, Auftrags-Nr., Auftraggeber, Objekt …" autocomplete="off"><div id="projectResults" class="suggest"></div></div>
+<div class="small" id="projectSelectedLabel"></div>
+<div class="print-only" id="printProjectLine"></div>
+</div>
+<div><label>Datum</label><input id="date" type="date"></div>
+<div><label>Auftrags-Nr.</label><input id="orderNo" placeholder="z. B. 176712"></div>
+<div><label>Auftraggeber</label><textarea id="customer" placeholder="Name / Adresse"></textarea></div>
+<div><label>Objekt / Gebäudeteil</label><textarea id="object" placeholder="z. B. Wetterschutz · Kinderzimmer"></textarea></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Ausführende Arbeiten</h2>
+<div class="scroll">
+<table class="work-table">
+<colgroup><col class="c-pos"><col class="c-desc"><col class="c-emp"><col class="c-func"><col class="c-std"><col class="c-rate"><col class="c-total"><col class="c-del"></colgroup>
+<thead><tr><th>Pos.</th><th>Beschreibung</th><th>MA</th><th>Funktion</th><th>Std.</th><th>Ansatz</th><th>Total</th><th class="no-print"></th></tr></thead>
+<tbody id="workBody"></tbody>
+</table>
+</div>
+<div class="bar no-print"><button id="addWork" class="gray">＋ Arbeitsposition</button></div>
+<div class="total">Total Arbeit CHF <span id="workTotal">0.00</span></div>
+</div>
+
+<div class="card">
+<h2>Material</h2>
+<div class="scroll">
+<table class="mat-table">
+<colgroup><col class="m-pos"><col class="m-edv"><col class="m-material"><col class="m-dim"><col class="m-unit"><col class="m-qty"><col class="m-price"><col class="m-total"><col class="m-del"></colgroup>
+<thead><tr><th>Pos.</th><th>EDV-Nr.</th><th>Material</th><th>Dim.</th><th>Einheit</th><th>Menge</th><th>Fr./E</th><th>Total</th><th class="no-print"></th></tr></thead>
+<tbody id="matBody"></tbody>
+</table>
+</div>
+<div class="bar no-print">
+<button id="addMat" class="gray">＋ Material</button>
+<button id="openSheet" class="blue">📐 Blechverbrauch</button>
+</div>
+<div class="total">Total Material CHF <span id="matTotal">0.00</span></div>
+</div>
+
+<div class="card">
+<div class="grid">
+<div><label>Sachbearbeiter</label><input id="employee" readonly></div>
+<div><label>Total exkl. MWST</label><input id="netTotal" readonly></div>
+<div><label>MWST</label><input id="vat" value="8.1 %"></div>
+<div><label>Total inkl. MWST</label><input id="grossTotal" readonly></div>
+</div>
+</div>
+
+<div class="report-foot">
+<div class="sig-block"><div class="sig-line"></div><div class="sig-label">Ort, Datum · Unterschrift Auftraggeber</div></div>
+<div class="sig-block"><div class="sig-line"></div><div class="sig-label">Unterschrift ausführender Mitarbeiter</div></div>
+<div class="sig-timestamp" id="printTimestamp"></div>
+<div class="small" id="printMeta" style="color:var(--muted);margin-top:4px"></div>
+</div>
+
+<div class="bar no-print">
+<button id="print" class="blue">🖨️ PDF / Drucken</button>
+<button id="save" class="green">💾 Speichern</button>
+<button id="clear" class="red">Alles löschen</button>
+<button id="reportEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
+<button id="startFromReportEdit" class="gray">🏠 Start</button>
+</div>
+</div>
+</div>
+
+<!-- PROJEKTE -->
+<div id="projectsModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📁 Projekte</h2>
+<div class="info">Projekte werden zentral gespeichert und sind auf allen Geräten sichtbar, mit denen sich Mitarbeiter anmelden.</div>
+<div class="grid" style="margin-bottom:8px">
+<div><label>Projektname (Pflichtfeld)</label><input id="newProjectName" placeholder="z. B. Neubau Muster"></div>
+<div><label>Auftrags-Nr. (Pflichtfeld)</label><input id="newProjectOrderNo" placeholder="z. B. 176712"></div>
+<div><label>Adresse (Pflichtfeld)</label><input id="newProjectObject" placeholder="z. B. Musterstrasse 1, 3000 Bern"></div>
+<div><label>Auftraggeber</label><input id="newProjectCustomer" placeholder="optional"></div>
+</div>
+<div class="bar"><button id="addProject" class="blue">＋ Projekt anlegen</button><button type="button" id="toggleArchivedProjects" class="gray">📦 Archivierte anzeigen</button></div>
+<div id="projectList"></div>
+<div class="bar"><button id="closeProjects" class="green">✓ Fertig</button><button id="startFromProjects" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- REGIERAPPORT: UEBERSICHT -->
+<div id="reportsModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📋 Regierapport</h2>
+<div class="bar"><button id="newReport" class="blue">＋ Neuer Regierapport</button><button id="exportReportsCsv" class="gray">📤 Als CSV exportieren</button><button id="reportSettingsShortcut" class="gray">⚙️ Einstellungen</button></div>
+<div id="recentReportsList"></div>
+<div class="small" style="margin-top:6px;color:var(--muted)">Ältere Rapporte findest du über 📁 Projekte.</div>
+<div class="bar"><button id="closeReports" class="green">✓ Fertig</button><button id="startFromReports" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- GLOBALE SUCHE -->
+<div id="globalSearchModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>🔍 Suche</h2>
+<div class="info">Durchsucht alle Rapporte, Massaufnahmen und Ausmasse – nicht nur die letzten Einträge.</div>
+<div class="grid" style="margin-bottom:8px">
+<div class="wide"><label>Suchbegriff</label><input id="globalSearchInput" placeholder="Projekt, Kunde, Adresse, Auftrags-Nr., Titel …"></div>
+</div>
+<div class="small" id="globalSearchStatus"></div>
+<div id="globalSearchResults"></div>
+<div class="bar"><button id="closeGlobalSearch" class="green">✓ Fertig</button><button id="startFromGlobalSearch" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- FEEDBACK -->
+<div id="feedbackModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>💬 Feedback geben</h2>
+<div class="info">Dein Feedback geht direkt an den Entwickler der App. Bitte möglichst konkret beschreiben.</div>
+<div class="grid">
+<div><label>Modul</label>
+<!-- Die Auswahl wird beim Öffnen aus den vorhandenen Funktionen der App
+     zusammengestellt (siehe js/02-feedback.js). Neue Massaufnahme- oder
+     Ausmass-Arten erscheinen dadurch automatisch. -->
+<select id="feedbackModul"></select></div>
+<div class="wide"><label>Dein Feedback</label><textarea id="feedbackMessage" placeholder="Was ist dir aufgefallen? Was fehlt? Was funktioniert nicht wie erwartet?" rows="5"></textarea></div>
+</div>
+<div class="bar"><button id="saveFeedback" class="green">Absenden</button><button id="cancelFeedback" class="gray">Abbrechen</button></div>
+</div>
+</div>
+</div>
+
+<!-- MASSAUFNAHME: LISTE / SUCHE -->
+<div id="measurementsModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📐 Massaufnahme</h2>
+<div class="bar"><button id="newMeasurement" class="blue">＋ Neue Massaufnahme</button><button id="measurementSettingsShortcut" class="gray">⚙️ Einstellungen</button></div>
+<div id="recentMeasurementsList"></div>
+<div class="small" style="margin-top:6px;color:var(--muted)">Ältere Massaufnahmen findest du über 📁 Projekte.</div>
+<div class="bar"><button id="closeMeasurements" class="green">✓ Fertig</button><button id="startFromMeasurements" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- MASSAUFNAHME: ERFASSEN (Skizze/Foto) -->
+<div id="measurementEditModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📐 Neue Massaufnahme</h2>
+<div class="grid" style="margin-bottom:8px">
+<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option></select></div>
+<div><label>Datum</label><input type="date" id="measDate"></div>
+<div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
+<div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
+<div class="search"><input id="measProjectSearch" placeholder="Projekt suchen …" autocomplete="off"><div id="measProjectResults" class="suggest"></div></div>
+<div class="small" id="measProjectSelectedLabel">Kein Projekt ausgewählt</div>
+</div>
+</div>
+
+<div id="measTypeFoto">
+<div class="meas-columns">
+<div>
+<label>Foto</label>
+<input type="file" id="measPhotoInput" accept="image/*" capture="environment">
+<img id="measPhotoPreview" class="meas-preview" hidden>
+<div class="bar" style="margin-top:6px">
+<button type="button" class="blue" id="drawOnPhoto" hidden>✏️ Auf Foto zeichnen</button>
+<button type="button" class="gray" id="measPhotoRemove" hidden>✕ Foto entfernen</button>
+</div>
+</div>
+<div>
+<label>Skizzen (mehrere möglich)</label>
+<div id="measSketchGallery" class="sketch-gallery"></div>
+<button type="button" class="blue" id="addSketch">➕ Neue Skizze</button>
+</div>
+</div>
+</div>
+
+<div id="measTypeEinlaufblech" hidden>
+<div class="info">Bleche werden leicht konisch gebogen, damit sie ineinandergesteckt werden können; die weite Seite wird angereift. Werte für Länge Stoss bis Stoss, Überlappung und Abwicklung stammen aus Einstellungen → Massaufnahmen.
+<button type="button" class="gray" id="openEinlaufblechSettings" style="margin-left:8px;padding:3px 9px;font-size:11px">⚙️ Werte anpassen</button>
+</div>
+<div class="grid">
+<div><label>Gesamtlänge (mm) (Pflichtfeld)</label><input id="eb_gesamtlaenge" type="number" step="1"></div>
+<div><label>Mass A (mm) (Pflichtfeld)</label><input id="eb_massA" type="number" step="1"></div>
+<div><label>Dachneigung / Winkel (°) (Pflichtfeld)</label><input id="eb_winkel" type="number" step="0.1"></div>
+<div><label>Montage</label><select id="eb_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
+<div><label>Abwicklung (mm)</label><select id="eb_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
+</div>
+<div class="bar">
+<button type="button" class="gray" id="eb_regenerate">🔄 Stücke aus Gesamtlänge berechnen</button>
+<button type="button" class="gray" id="eb_appendGesamtlaenge">➕ Weitere Länge anfügen</button>
+</div>
+<div class="small" style="margin:2px 0 8px;color:var(--muted)">"Anfügen" ergänzt Stücke aus der Gesamtlänge oben ans Ende der Liste, z. B. um nach einer Gehrung in eine andere Richtung weiterzufahren.</div>
+<div id="eb_diagram" class="eb-diagram-box" style="margin-top:12px"></div>
+
+<h2 style="margin-top:14px">Stücke</h2>
+<div class="small" id="eb_engeSeiteHint" style="margin-bottom:4px"></div>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:6%"><col style="width:14%"><col style="width:14%"><col style="width:9%"><col style="width:9%"><col style="width:17%"><col style="width:14%"><col style="width:7%"></colgroup>
+<thead><tr><th>Nr.</th><th>Länge Stoss/Stoss (mm)</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Winkel (°)</th><th id="eb_engHeader">Eng (mm)</th><th></th></tr></thead>
+<tbody id="eb_resultBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="eb_addPiece">＋ Stück hinzufügen</button></div>
+<div class="bar"><button type="button" class="gray" id="eb_toggleEndzugabeStart">Endzugabe erstes Stück: aus</button><button type="button" class="gray" id="eb_toggleEndzugabeEnd">Endzugabe letztes Stück: aus</button></div>
+<div class="small" id="eb_summary"></div>
+<h2 style="margin-top:14px">Grundriss</h2>
+<div class="info">Winkel = Richtungsänderung nach diesem Stück (positiv/negativ für beide Richtungen möglich, 0 = keine Ecke).</div>
+<div id="eb_grundriss" class="eb-diagram-box"></div>
+</div>
+
+<div id="measTypeRinne" hidden>
+<div class="info">Jedes Segment ist ein gerades Rinnenstück. Winkel = Richtungsänderung zum nächsten Segment (90° = normale Gebäudeecke). Anschlusstypen und deren Masse werden in Einstellungen → Massaufnahmen verwaltet.</div>
+<div class="grid">
+<div><label>Rinnenabwicklung (mm)</label><select id="rinne_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
+<div><label>Material</label><select id="rinne_material">
+<option value="aluminium">Aluminium</option>
+<option value="titanzink" selected>Titanzink</option>
+<option value="kupfer">Kupfer</option>
+<option value="crni_stahl">CrNi-Stahl</option>
+<option value="chromstahl_verzinnt">Chromstahl, verzinnt</option>
+<option value="stahl_verzinkt">Stahl, verzinkt</option>
+</select></div>
+</div>
+<div id="rinne_diagram" class="eb-diagram-box"></div>
+<h2 style="margin-top:14px">Segmente</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:8%"><col style="width:16%"><col style="width:20%"><col style="width:20%"><col style="width:14%"><col style="width:16%"><col style="width:6%"></colgroup>
+<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Links</th><th>Rechts</th><th>Winkel (°)</th><th>Zuschnitt (mm)</th><th></th></tr></thead>
+<tbody id="rinne_segmentsBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="rinne_addSegment">＋ Segment hinzufügen</button></div>
+<div class="small" id="rinne_summary"></div>
+<h2 style="margin-top:14px">Dilatationselemente (Dilas)</h2>
+<div class="info">Automatisch nach SPI-Richtwerten platziert (Anschlusstypen mit Fixpunkt- oder Schiebestutzen-Kennzeichen wirken sich auf den Abstand aus). Einstellbar in Einstellungen → Massaufnahmen → Anschlusstypen. Abstände unten bei Bedarf manuell anpassen.</div>
+<div class="bar"><button type="button" class="gray" id="rinne_calcDilas">🔄 Dilas automatisch berechnen</button><button type="button" class="gray" id="rinne_addDila">＋ Dila manuell hinzufügen</button></div>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:12%"><col style="width:38%"><col style="width:20%"><col style="width:22%"><col style="width:8%"></colgroup>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th>Position ab Start (mm)</th><th></th></tr></thead>
+<tbody id="rinne_dilasBody"></tbody>
+</table>
+</div>
+<div class="small" id="rinne_dilasSummary"></div>
+</div>
+
+<div id="measTypeMauerabdeckung" hidden>
+<div class="info">Jedes Segment ist ein gerades Stück Mauerabdeckung. Winkel = Richtungsänderung zum nächsten Segment (90° = normale Ecke). Schieber werden nach SIA 271 automatisch gesetzt; ab einer Ecke gilt der halbe Abstand. Die Masse für Boden und Schieber stehen in Einstellungen → Massaufnahmen.</div>
+<div class="grid">
+<div><label>Material</label><select id="mad_material">
+<option value="kupfer_crni">Kupfer / CrNi-Stahl / Chromstahl verzinnt</option>
+<option value="titanzink" selected>Titanzink</option>
+<option value="aluminium">Aluminium (Aluman)</option>
+</select></div>
+</div>
+<h2 style="margin-top:14px">Profil (Querschnitt)</h2>
+<div class="grid">
+<div><label>Gesamtbreite (mm)</label><input id="mad_breite" type="number" step="1" value="310"></div>
+<div><label>Gefälle nach rechts (°)</label><input id="mad_gefaelle" type="number" step="1" value="5"></div>
+<div><label>Höhe Schenkel links (mm, min. 50)</label><input id="mad_hoeheLinks" type="number" step="1" value="50"></div>
+<div><label>Höhe Schenkel rechts (mm, min. 50)</label><input id="mad_hoeheRechts" type="number" step="1" value="50"></div>
+<div><label>Umschlag links (mm, 135°)</label><input id="mad_umschlagLinks" type="number" step="1" value="15"></div>
+<div><label>Umschlag rechts (mm, 90°)</label><input id="mad_umschlagRechts" type="number" step="1" value="15"></div>
+<div><label>Saum 180° beidseitig (mm)</label><input id="mad_saum" type="number" step="1" value="10"></div>
+<div><label>Abwicklung</label><div id="mad_abwicklungOut" style="font-weight:800;padding:9px 0">–</div></div>
+</div>
+<label class="rechte-schalter"><input type="checkbox" id="mad_windexponiert"> Windexponierte Lage (Aufkantung min. 100 mm)</label>
+<div id="mad_profilHinweis" class="small" style="margin:6px 0"></div>
+<div id="mad_profil" class="eb-diagram-box"></div>
+<h2 style="margin-top:14px">Segmente</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:8%"><col style="width:26%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:8%"></colgroup>
+<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th><th>Boden Anfang</th><th>Boden Ende</th><th></th></tr></thead>
+<tbody id="mad_segmentsBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="mad_addSegment">＋ Segment hinzufügen</button></div>
+<div id="mad_grundriss" class="eb-diagram-box"></div>
+<h2 style="margin-top:14px">Schieber und Zuschnitt</h2>
+<label class="rechte-schalter"><input type="checkbox" id="mad_manuell"> Schieber von Hand setzen (sonst automatisch nach SIA 271)</label>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:8%"><col style="width:30%"><col style="width:20%"><col style="width:18%"><col style="width:16%"><col style="width:8%"></colgroup>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th>Position ab Start (mm)</th><th></th></tr></thead>
+<tbody id="mad_stuecklisteBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="mad_addSchieber">＋ Schieber von Hand</button></div>
+<div id="mad_summary" class="small" style="margin-top:6px"></div>
+</div>
+
+<div id="measTypeEinlaufblechKonisch" hidden>
+<div class="info">Jedes Stück ist max. 2m lang (inkl. Überlappung/Reststück). Mass links und rechts sind pro Stück frei wählbar (konischer Verlauf). Werte für Stoss-Länge, Überlappung, Restschwelle und Umschläge stammen aus Einstellungen → Massaufnahmen → "Einlaufblech konisch" (eigene Werte, unabhängig von "Einlaufblech gerade").</div>
+<div class="grid">
+<div><label>Dachneigung / Winkel (°)</label><input id="ebk_dachneigung" type="number" step="0.1"></div>
+<div><label>Montage</label><select id="ebk_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
+<div><label>Abwicklung (mm)</label><select id="ebk_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
+</div>
+
+<div class="settings-section" data-section="ebk-uebernahme" style="margin:8px 0 10px">
+<div class="settings-section-head" data-toggle-section="ebk-uebernahme"><h2 style="font-size:12px">↩️ Stücke aus Rinne Halbrund übernehmen</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="small" id="ebk_rinneHint">Bitte zuerst oben ein Projekt auswählen.</div>
+<div id="ebk_rinneList" hidden></div>
+</div>
+</div>
+
+<div id="ebk_diagram" class="eb-diagram-box" style="margin-top:18px"></div>
+
+<h2 style="margin-top:14px">Stücke</h2>
+<div class="small" id="ebk_engeSeiteHint" style="margin-bottom:4px"></div>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:6%"><col style="width:11%"><col style="width:13%"><col style="width:8%"><col style="width:8%"><col style="width:12%"><col style="width:13%"><col style="width:12%"><col style="width:12%"><col style="width:7%"></colgroup>
+<thead><tr><th>Nr.</th><th>Länge Stoss/Stoss (mm)</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Winkel (°)</th><th>Mass links (mm)</th><th>Mass rechts (mm)</th><th id="ebk_engHeader">Eng (mm)</th><th></th></tr></thead>
+<tbody id="ebk_piecesBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="ebk_addPiece">＋ Stück hinzufügen</button></div>
+<div class="bar"><button type="button" class="gray" id="ebk_toggleEndzugabeStart">Endzugabe erstes Stück: aus</button><button type="button" class="gray" id="ebk_toggleEndzugabeEnd">Endzugabe letztes Stück: aus</button></div>
+<div class="small" id="ebk_summary"></div>
+<h2 style="margin-top:14px">Grundriss</h2>
+<div class="info">Winkel = Richtungsänderung nach diesem Stück (positiv/negativ für beide Richtungen möglich, 0 = keine Ecke).</div>
+<div id="ebk_grundriss" class="eb-diagram-box"></div>
+</div>
+
+<div id="measTypeFreiesProfil" hidden>
+<div class="info">Zuerst das Blechprofil Schenkel für Schenkel festlegen (Länge + Winkel zum vorherigen Schenkel; 180° = Umschlag). Danach unten die Segmente mit den tatsächlichen Massen erfassen.</div>
+<h2>Profil (Schenkel)</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:10%"><col style="width:24%"><col style="width:52%"><col style="width:14%"></colgroup>
+<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th><th></th></tr></thead>
+<tbody id="fp_schenkelBody"></tbody>
+</table>
+</div>
+<div class="bar">
+<button type="button" class="gray" id="fp_addSchenkel">＋ Schenkel hinzufügen</button>
+<button type="button" class="gray" id="fp_sketchRecognize">✏️ Profil skizzieren &amp; erkennen</button>
+</div>
+<div class="small" id="fp_sketchStatus" style="margin:2px 0 8px"></div>
+<div id="fp_sketchPreviewBox" hidden style="margin-bottom:8px">
+<img id="fp_sketchPreview" style="max-width:200px;display:block;margin:0 auto;border:1px solid var(--line);border-radius:8px">
+</div>
+<div id="fp_profilDiagram" class="eb-diagram-box"></div>
+
+<div class="grid" style="margin-top:10px">
+<div><label>Konisch (Mass links/rechts pro Schenkel)</label><select id="fp_konisch"><option value="nein">Nein</option><option value="ja">Ja</option></select></div>
+<div><label>Ansichtspfeil</label><select id="fp_ansicht"><option value="keiner">kein Pfeil</option><option value="links" selected>von links</option><option value="oben">von oben</option><option value="rechts">von rechts</option><option value="unten">von unten</option></select></div>
+</div>
+
+<h2 style="margin-top:14px">Segmente</h2>
+<div id="fp_segmenteList"></div>
+<div class="bar"><button type="button" class="gray" id="fp_addSegment">＋ Segment hinzufügen</button></div>
+<div class="small" id="fp_summary"></div>
+</div>
+
+<div class="grid" style="margin-top:8px">
+<div class="wide"><label>Notiz / Masse</label><textarea id="measNote" placeholder="Masse, Hinweise …"></textarea></div>
+</div>
+
+<div class="bar">
+<button id="saveMeasurement" class="green">💾 Speichern</button>
+<button id="printMeasurementBtn" class="gray" hidden>🖨️ Als PDF</button>
+<button id="cancelMeasurement" class="gray">Abbrechen</button>
+<button id="measurementEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
+<button id="startFromMeasurementEdit" class="gray">🏠 Start</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- AUSMASS: LISTE / SUCHE -->
+<div id="ausmassModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📏 Ausmass</h2>
+<div class="bar"><button id="newAusmass" class="blue">＋ Neues Ausmass</button><button id="ausmassSettingsShortcut" class="gray">⚙️ Einstellungen</button></div>
+<div id="recentAusmassList"></div>
+<div class="small" style="margin-top:6px;color:var(--muted)">Ältere Ausmasse findest du über 📁 Projekte.</div>
+<div class="bar"><button id="closeAusmass" class="green">✓ Fertig</button><button id="startFromAusmass" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- AUSMASS: ERFASSEN (Offerte erfassen) -->
+<div id="ausmassEditModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📏 Neues Ausmass</h2>
+<div class="grid" style="margin-bottom:8px">
+<div hidden><label>Funktion</label><select id="amType"><option value="offerte_erfassen">Offerte erfassen</option><option value="blitzschutz_ausmass">Blitzschutzausmass</option></select></div>
+<div><label>Datum</label><input type="date" id="amDate"></div>
+<div class="wide"><label>Bezeichnung</label><input id="amTitle" placeholder="z. B. Offerte Muster AG"></div>
+<div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
+<div class="search"><input id="amProjectSearch" placeholder="Projekt suchen …" autocomplete="off"><div id="amProjectResults" class="suggest"></div></div>
+<div class="small" id="amProjectSelectedLabel">Kein Projekt ausgewählt</div>
+</div>
+</div>
+
+<div id="amTypeOfferte">
+<label>Fotos der Offerte (mehrere Seiten möglich)</label>
+<input type="file" id="amPhotoInput" accept="image/*" capture="environment" multiple>
+<div id="amPhotoGallery" class="sketch-gallery"></div>
+<div class="bar" style="margin-top:6px">
+<button type="button" class="blue" id="amRecognizeAll" hidden>🔎 Alle Fotos erkennen</button>
+</div>
+<div class="small" id="amRecognizeStatus"></div>
+
+<h2 style="margin-top:14px">Erkannte Positionen</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:14%"><col style="width:50%"><col style="width:16%"><col style="width:14%"><col style="width:6%"></colgroup>
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th></th></tr></thead>
+<tbody id="amPositionsBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="amAddPosition">＋ Position hinzufügen</button></div>
+<div class="small" id="amPositionsSummary"></div>
+</div>
+
+<div id="amTypeBlitzschutz" hidden>
+<label>Material aus dem Blitzschutz-Katalog</label>
+<div class="search"><input id="bzPositionSearch" placeholder="Artikel-Nr. oder Bezeichnung suchen …" autocomplete="off"><div id="bzPositionResults" class="suggest"></div></div>
+<h2 style="margin-top:14px">Erfasste Positionen</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:15%"><col style="width:35%"><col style="width:14%"><col style="width:14%"><col style="width:16%"><col style="width:6%"></colgroup>
+<thead><tr><th>Artikel-Nr.</th><th>Bezeichnung</th><th>Material</th><th>Einheit</th><th>Menge</th><th></th></tr></thead>
+<tbody id="bzPositionsBody"></tbody>
+</table>
+</div>
+<div class="small" id="bzPositionsSummary"></div>
+</div>
+
+<div class="grid" style="margin-top:8px">
+<div class="wide"><label>Notiz</label><textarea id="amNote" placeholder="Hinweise …"></textarea></div>
+</div>
+
+<div class="bar">
+<button id="saveAusmass" class="green">💾 Speichern</button>
+<button id="printAusmassBtn" class="gray" hidden>🖨️ Als PDF</button>
+<button id="cancelAusmass" class="gray">Abbrechen</button>
+<button id="ausmassEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
+<button id="startFromAusmassEdit" class="gray">🏠 Start</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settingsModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>⚙️ Einstellungen</h2>
+
+<div class="settings-tabs">
+<button type="button" class="settings-tab active" data-settings-tab="general">Allgemein</button>
+<button type="button" class="settings-tab" data-settings-tab="measurements">Massaufnahmen</button>
+<button type="button" class="settings-tab" data-settings-tab="ausmass">Ausmass</button>
+<button type="button" class="settings-tab" data-settings-tab="protected">🔒 Geschützt</button>
+<button type="button" class="settings-tab" data-settings-tab="feedback" id="feedbackTabBtn" hidden>💬 Feedback</button>
+</div>
+
+<div class="settings-tab-panel" data-settings-panel="general">
+<div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
+<div class="grid">
+<div><label>Anzahl "Letzte Einträge" auf dem Startbildschirm</label><input id="recentCountInput" type="number" min="1" max="20" step="1"></div>
+<div><label>Dunkler Modus</label><select id="darkModeInput"><option value="nein">Aus</option><option value="ja">An</option></select></div>
+<div><label>Standard-Funktion (neue Arbeitsposition)</label><select id="defaultRateInput"></select></div>
+<div><label>Foto-Qualität</label><select id="photoQualityInput"><option value="schnell">Schnell (kleinere Dateien)</option><option value="hoch">Hoch (grössere Dateien)</option></select></div>
+</div>
+<div class="bar"><button id="saveRecentCount" class="green">💾 Speichern</button></div>
+</div>
+
+<div class="settings-tab-panel" data-settings-panel="measurements" hidden>
+<div class="settings-section open" data-section="einlaufblech">
+<div class="settings-section-head" data-toggle-section="einlaufblech"><h2>Einlaufblech gerade</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Diese Werte gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
+<div class="grid">
+<div><label>Länge Stoss bis Stoss (mm)</label><input id="eb_stossLaenge" type="number" step="1"></div>
+<div><label>Überlappung (mm)</label><input id="eb_ueberlappung" type="number" step="1"></div>
+<div><label>Gehrungszugabe (mm)</label><input id="eb_gehrungszugabe" type="number" step="1"></div>
+<div><label>Umschlagbreite oben (mm)</label><input id="eb_umschlagOben" type="number" step="1"></div>
+<div><label>Umschlagbreite unten (mm)</label><input id="eb_umschlagUnten" type="number" step="1"></div>
+<div><label>Restschwelle (mm)</label><input id="eb_restSchwelle" type="number" step="1"></div>
+<div><label>Endzugabe (mm)</label><input id="eb_endzugabe" type="number" step="1"></div>
+</div>
+<div class="bar"><button id="saveEinlaufblechSettings" class="green">💾 Speichern</button><button type="button" id="resetEinlaufblechSettings" class="gray">↩️ Standardwerte</button></div>
+</div>
+</div>
+
+<div class="settings-section" data-section="einlaufblech-konisch">
+<div class="settings-section-head" data-toggle-section="einlaufblech-konisch"><h2>Einlaufblech konisch</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Eigene Werte für "Einlaufblech konisch", unabhängig von "Einlaufblech gerade". Gilt nur für dieses Gerät/diesen Browser.</div>
+<div class="grid">
+<div><label>Länge Stoss bis Stoss (mm)</label><input id="ebks_stossLaenge" type="number" step="1"></div>
+<div><label>Überlappung (mm)</label><input id="ebks_ueberlappung" type="number" step="1"></div>
+<div><label>Gehrungszugabe (mm)</label><input id="ebks_gehrungszugabe" type="number" step="1"></div>
+<div><label>Restschwelle (mm)</label><input id="ebks_restSchwelle" type="number" step="1"></div>
+<div><label>Umschlagbreite oben (mm)</label><input id="ebks_umschlagOben" type="number" step="1"></div>
+<div><label>Umschlagbreite unten (mm)</label><input id="ebks_umschlagUnten" type="number" step="1"></div>
+<div><label>Endzugabe (mm)</label><input id="ebks_endzugabe" type="number" step="1"></div>
+</div>
+<div class="bar"><button id="saveEbkSettings" class="green">💾 Speichern</button><button type="button" id="resetEbkSettings" class="gray">↩️ Standardwerte</button></div>
+</div>
+</div>
+
+<div class="settings-section" data-section="mauerabdeckung">
+<div class="settings-section-head" data-toggle-section="mauerabdeckung"><h2>Mauerabdeckung</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Diese Masse gelten für alle Mitarbeiter. Sie werden jedem Stück zugerechnet, das an einen Boden oder einen Schieber grenzt. Negativer Wert = Abzug.</div>
+<div class="grid" style="margin-bottom:10px">
+<div><label>Mass Boden (mm)</label><input id="madBodenMassInput" type="number" step="1"></div>
+<div><label>Mass Schieber (mm)</label><input id="madSchieberMassInput" type="number" step="1"></div>
+</div>
+<div class="bar" style="margin-bottom:14px"><button id="saveMadMasse" class="green">💾 Masse speichern</button></div>
+</div>
+</div>
+
+<div class="settings-section" data-section="rinne">
+<div class="settings-section-head" data-toggle-section="rinne"><h2>Rinne Halbrund – Anschlusstypen</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Diese Anschlusstypen stehen bei "Rinne Halbrund" links/rechts pro Segment zur Auswahl. Das Mass wird zur eingegebenen Länge dazugerechnet (positiv) oder abgezogen (negativ). Der Winkel wird beim Auswählen als "rechter" Anschlusstyp eines Segments automatisch ins Winkel-Feld übernommen (z. B. Innenecke 90° → 90). Gilt firmenweit für alle.</div>
+<div class="grid" style="margin-bottom:10px">
+<div><label>Mass Dilatationselement (mm)</label><input id="rinneDilaMassInput" type="number" step="1"></div>
+</div>
+<div class="small" style="margin-bottom:8px">Wird jedem Rinnenstück abgezogen, das an eine Dila grenzt. Negativer Wert = Abzug.</div>
+<div class="bar" style="margin-bottom:14px"><button id="saveRinneDilaMass" class="green">💾 Dila-Mass speichern</button></div>
+
+<div id="rinneFittingSettings"></div>
+<div class="bar">
+<button id="newRinneFitting" class="gray">＋ Anschlusstyp hinzufügen</button>
+<button id="saveRinneFittings" class="green">💾 Speichern</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="settings-tab-panel" data-settings-panel="ausmass" hidden>
+<div class="empty">Der Blitzschutzausmass-Materialkatalog findet sich jetzt im Register "🔒 Geschützt".</div>
+</div>
+
+<div class="settings-tab-panel" data-settings-panel="protected" hidden>
+<div id="protectedLocked">
+<div class="info">Dieser Bereich enthält Funktionen/Stundenansätze und Materialkataloge. Bitte Passwort eingeben.</div>
+<div class="grid">
+<div class="wide"><label>Passwort</label><input id="protectedPasswordInput" type="password" placeholder="Passwort"></div>
+</div>
+<div class="bar"><button id="unlockProtected" class="green">🔓 Entsperren</button></div>
+<div class="small" id="protectedError" style="color:var(--red)"></div>
+</div>
+
+<div id="protectedContent" hidden>
+<div class="settings-section open" data-section="company">
+<div class="settings-section-head" data-toggle-section="company"><h2>Firma</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Diese Angaben erscheinen auf dem Startbildschirm und im Briefkopf der ausgedruckten Rapporte/PDFs. Änderungen gelten sofort für alle Mitarbeiter auf allen Geräten.</div>
+<div class="grid">
+<div class="wide"><label>Firmenname</label><input id="companyNameInput" placeholder="z. B. PETER KÜNZI AG"></div>
+<div class="wide"><label>Firmenadresse</label><textarea id="companyAddressInput" placeholder="Strasse, PLZ Ort, Telefon"></textarea></div>
+<div><label>Standard-MWST</label><input id="defaultVatInput" placeholder="z. B. 8.1 %"></div>
+</div>
+<label>Firmenlogo</label>
+<input type="file" id="logoInput" accept="image/*">
+<img id="logoPreview" class="meas-preview" style="max-height:80px" hidden>
+<div class="bar" style="margin-top:6px">
+<button type="button" class="gray" id="logoRemove" hidden>✕ Logo entfernen</button>
+</div>
+<div class="bar" style="margin-top:8px"><button id="saveCompanyName" class="green">💾 Speichern</button></div>
+</div>
+</div>
+
+<div class="settings-section" data-section="employees">
+<div class="settings-section-head" data-toggle-section="employees"><h2>Mitarbeiter</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div id="employeeSettings"></div>
+<button id="newEmployee" class="gray">＋ Mitarbeiter hinzufügen</button>
+</div>
+</div>
+
+<div class="settings-section" data-section="rates">
+<div class="settings-section-head" data-toggle-section="rates"><h2>Funktionen / Stundenansätze</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div id="rateSettings"></div>
+<button id="newRate" class="gray">＋ Funktion hinzufügen</button>
+</div>
+</div>
+
+<div class="settings-section" data-section="materials">
+<div class="settings-section-head" data-toggle-section="materials"><h2>Material (Regierapport)</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="grid" style="margin-bottom:8px">
+<div class="wide"><label>Material suchen</label><input id="materialSettingsSearch" placeholder="EDV-Nr. oder Materialbezeichnung"></div>
+</div>
+<div class="small" id="materialCount"></div>
+<div id="materialSettings"></div>
+<div class="bar">
+<button id="materialPrev" class="gray">‹ Zurück</button>
+<button id="materialNext" class="gray">Weiter ›</button>
+<button id="newMaterial" class="blue">＋ Material hinzufügen</button>
+</div>
+</div>
+</div>
+
+<div class="settings-section" data-section="blitzschutz">
+<div class="settings-section-head" data-toggle-section="blitzschutz"><h2>Blitzschutzausmass – Materialkatalog (Arthur Flury AG)</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Katalog für die Funktion "Blitzschutzausmass". Wird ohne Preise geführt, es werden dort nur Mengen erfasst.</div>
+<div class="grid" style="margin-bottom:8px">
+<div class="wide"><label>Material suchen</label><input id="bzMaterialSearch" placeholder="Artikel-Nr. oder Bezeichnung"></div>
+</div>
+<div class="small" id="bzMaterialCount"></div>
+<div id="bzMaterialSettings"></div>
+<div class="bar">
+<button id="bzMaterialPrev" class="gray">‹ Zurück</button>
+<button id="bzMaterialNext" class="gray">Weiter ›</button>
+<button id="newBzMaterial" class="blue">＋ Material hinzufügen</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="settings-tab-panel" data-settings-panel="feedback" hidden>
+<div class="info">Nur für dich als Admin sichtbar. Zeigt alle Feedback-Meldungen, die über den "💬 Feedback"-Button in der App eingereicht wurden.</div>
+<div id="feedbackList"></div>
+</div>
+
+<div class="bar"><button id="closeSettings" class="green">✓ Fertig</button><button id="startFromSettings" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- SHEET -->
+<div id="sheetModal" class="modal" hidden>
+<div class="modalbox"><div class="card">
+<h2>📐 Blechverbrauch</h2>
+<div class="info">Material auswählen und danach beliebig viele Zuschnitte erfassen. Länge und Breite in mm. Die Gesamtfläche wird direkt als m² in den Regierapport übernommen.</div>
+<div class="grid" style="margin-top:10px">
+<div><label>Material suchen</label><div class="search"><input id="sheetSearch" placeholder="EDV-Nr. oder Bezeichnung" autocomplete="off"><div id="sheetResults" class="suggest"></div></div></div>
+<div><label>Ausgewähltes Material</label><input id="sheetMaterial" readonly placeholder="Noch kein Material"></div>
+</div>
+<div id="cuts"></div>
+<div class="bar"><button id="addCut" class="gray">＋ Zuschnitt hinzufügen</button></div>
+<div class="total">Gesamt <span id="sheetTotal">0.00</span> m²</div>
+<div class="bar"><button id="takeOver" class="green">✓ Ins Material übernehmen</button><button id="closeSheet" class="red">Abbrechen</button><button id="startFromSheet" class="gray">🏠 Start</button></div>
+</div></div></div>
+
+<!-- VOLLBILD-ZEICHENFLÄCHE für Skizzen -->
+<div id="sketchFullscreen" class="sketch-fullscreen" hidden>
+<div class="sketch-fs-toolbar">
+<div class="sketch-fs-tools">
+<input type="color" id="fsSketchColor" value="#17202a" title="Farbe">
+<select id="fsSketchWidth" title="Strichstärke"><option value="2">dünn</option><option value="4" selected>mittel</option><option value="8">dick</option><option value="16">sehr dick</option></select>
+<button type="button" class="gray" id="fsSketchClear">Löschen</button>
+<button type="button" class="gray" id="fsZoomOut" title="Verkleinern">－</button>
+<span id="fsZoomLabel" class="sketch-zoom-label">100%</span>
+<button type="button" class="gray" id="fsZoomIn" title="Vergrössern">＋</button>
+</div>
+<div class="sketch-fs-actions">
+<button type="button" class="gray" id="fsSketchCancel">Abbrechen</button>
+<button type="button" class="green" id="fsSketchDone">✓ Übernehmen</button>
+</div>
+</div>
+<div class="small no-print" style="padding:4px 10px;background:#f8fafb;color:var(--muted)">Ein Finger zeichnet, zwei Finger zoomen &amp; verschieben. Die Zeichenfläche entspricht immer einem A4-Blatt – Zoomen ändert nur die Ansicht, nicht das gespeicherte Format.</div>
+<div id="sketchViewport" class="sketch-viewport">
+<canvas id="fsSketchCanvas"></canvas>
+</div>
+<button type="button" id="fsPanFloating" title="Zeichnen / Verschieben umschalten">✏️ Zeichnen</button>
+</div>
+
+
+<!-- Programmteile: Reihenfolge NICHT ändern – spätere Dateien bauen auf früheren auf. -->
+<script src="js/01-basis.js"></script>
+<script src="js/02-feedback.js"></script>
+<script src="js/03-login.js"></script>
+<script src="js/04-start-suche.js"></script>
+<script src="js/05-daten-laden.js"></script>
+<script src="js/05a-rechte.js"></script>
+<script src="js/06-rapport.js"></script>
+<script src="js/07-einstellungen.js"></script>
+<script src="js/08-katalog-blitzschutz.js"></script>
+<script src="js/09-projekte.js"></script>
+<script src="js/10-massaufnahme.js"></script>
+<script src="js/11-einlaufblech-gerade.js"></script>
+<script src="js/12-rinne-halbrund.js"></script>
+<script src="js/12b-mauerabdeckung.js"></script>
+<script src="js/13-einlaufblech-konisch.js"></script>
+<script src="js/14-freies-profil.js"></script>
+<script src="js/15-einlaufblech-stueckliste.js"></script>
+<script src="js/16-massaufnahme-formular.js"></script>
+<script src="js/17-ausmass.js"></script>
+<script src="js/18-app-start.js"></script>
+</body>
+</html>
