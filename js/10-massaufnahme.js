@@ -311,6 +311,12 @@ function newMeasurementWithType(type){
  $("fp_konisch").value="nein";
  renderFpSchenkelTable();
  renderFpSegmenteList();
+ madSegments=[];
+ madSchieber=[];
+ $("mad_material").value="titanzink";
+ $("mad_abwicklung").value=0;
+ $("mad_manuell").checked=false;
+ renderMadResult();
  setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
