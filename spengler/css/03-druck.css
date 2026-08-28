@@ -1,0 +1,223 @@
+@media print{
+@page{size:A4 portrait;margin:8mm}
+html,body{margin:0!important;padding:0!important;background:#fff!important;color:#17202a!important;color-scheme:light!important}
+body{font-family:Arial,Helvetica,sans-serif;font-size:7pt}
+.app{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;background:#fff!important}
+.no-print,.modal,.bar,.brand,.app>h1{display:none!important}
+
+/* Clean, professional report header */
+.report-head{
+ display:grid!important;
+ grid-template-columns:1fr auto;
+ align-items:end;
+ border-bottom:3px solid #17202a!important;
+ background:#fff!important;
+ margin:0 0 4mm 0!important;
+ padding:0 0 3mm 0!important;
+}
+.report-head .logo{
+ font-size:19pt!important;
+ font-weight:900!important;
+ letter-spacing:.06em!important;
+ line-height:1!important;
+ color:#17202a!important;
+}
+.report-head .sub{
+ margin-top:1.5mm!important;
+ font-size:7pt!important;
+ color:#68737d!important;
+}
+.report-head>div:last-child{
+ text-align:right!important;
+ font-size:7pt!important;
+ color:#68737d!important;
+}
+#printCompany{font-size:8pt!important;color:#17202a!important}
+.search{display:none!important}
+#projectSelectedLabel button{display:none!important}
+.print-only{display:block!important;font-weight:700;margin-top:2px}
+
+/* Section cards become a compact report, not an app screenshot */
+.card{
+ display:block!important;
+ background:#fff!important;
+ border:0!important;
+ border-radius:0!important;
+ box-shadow:none!important;
+ padding:0!important;
+ margin:0 0 3.5mm 0!important;
+ page-break-inside:avoid!important;
+}
+.card>h2{
+ margin:0!important;
+ padding:1.8mm 2.2mm!important;
+ font-size:8pt!important;
+ font-weight:800!important;
+ letter-spacing:.02em!important;
+ line-height:1.1!important;
+ color:#fff!important;
+ background:#17202a!important;
+ border:0!important;
+}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0!important;border:1px solid #aeb7bf;border-top:0!important}
+.grid>div{
+ padding:2mm 2.5mm!important;
+ min-height:8.5mm!important;
+ border-right:1px solid #c5cbd0!important;
+ border-bottom:1px solid #c5cbd0!important;
+ background:#fff!important;
+}
+.grid>div:nth-child(2n){border-right:0!important}
+.grid>div:nth-last-child(-n+2){border-bottom:0!important}
+label{
+ display:block!important;
+ font-size:5.5pt!important;
+ font-weight:700!important;
+ text-transform:uppercase!important;
+ letter-spacing:.04em!important;
+ color:#68737d!important;
+ margin:0 0 .7mm!important;
+}
+input,select,textarea{
+ appearance:none!important;-webkit-appearance:none!important;
+ border:0!important;
+ border-radius:0!important;
+ background:#fff!important;
+ color:#17202a!important;
+ color-scheme:light!important;
+ padding:0!important;
+ margin:0!important;
+ min-height:0!important;
+ height:auto!important;
+ box-shadow:none!important;
+ font-size:7.2pt!important;
+ font-weight:600!important;
+}
+textarea{min-height:10mm!important;line-height:1.2!important}
+select::-ms-expand{display:none!important}
+input[type=date]::-webkit-calendar-picker-indicator{display:none!important}
+
+/* Tables */
+.scroll{overflow:visible!important;border:0!important}
+table{
+ width:100%!important;
+ min-width:0!important;
+ table-layout:fixed!important;
+ border-collapse:collapse!important;
+ background:#fff!important;
+}
+th{
+ background:#edf0f2!important;
+ color:#17202a!important;
+ border:1px solid #8e989f!important;
+ font-size:5.4pt!important;
+ font-weight:800!important;
+ line-height:1.05!important;
+ padding:1.5mm .8mm!important;
+ text-transform:uppercase!important;
+ letter-spacing:.02em!important;
+}
+td{
+ background:#fff!important;
+ color:#17202a!important;
+ border:1px solid #b9c0c5!important;
+ font-size:6.5pt!important;
+ line-height:1.15!important;
+ padding:1.2mm .8mm!important;
+ vertical-align:middle!important;
+}
+tbody tr:nth-child(even) td{background:#f7f8f9!important}
+td input,td select{width:100%!important;font-size:6.5pt!important}
+.work-table col.c-pos{width:23mm!important}
+.work-table col.c-desc{width:113mm!important}
+.work-table col.c-emp{width:8mm!important}
+.work-table col.c-func{width:15mm!important}
+.work-table col.c-std{width:9mm!important}
+.work-table col.c-rate{width:14mm!important}
+.work-table col.c-total{width:16mm!important}
+.work-table col.c-del{width:0!important}
+.mat-table col.m-pos{width:23mm!important}
+.mat-table col.m-edv{width:23mm!important}
+.mat-table col.m-material{width:91mm!important}
+.mat-table col.m-dim{width:10mm!important}
+.mat-table col.m-unit{width:10mm!important}
+.mat-table col.m-qty{width:12mm!important}
+.mat-table col.m-price{width:13mm!important}
+.mat-table col.m-total{width:12mm!important}
+.mat-table col.m-del{width:0!important}
+
+/* Totals */
+.total{
+ display:flex!important;
+ justify-content:flex-end!important;
+ align-items:center!important;
+ background:#f5f6f7!important;
+ color:#17202a!important;
+ font-size:8pt!important;
+ font-weight:800!important;
+ text-align:right!important;
+ padding:2mm 2.5mm!important;
+ border:1px solid #aeb7bf!important;
+ border-top:0!important;
+}
+.print-rate-block{
+ display:block!important;
+ margin:-1mm 0 3.5mm 0!important;
+ page-break-inside:avoid!important;
+}
+.print-rate-table{width:100%!important;border-collapse:collapse!important;table-layout:fixed!important}
+.print-rate-table th{
+ font-size:5.2pt!important;
+ padding:1mm .5mm!important;
+ background:#f5f6f7!important;
+}
+.print-rate-table td{
+ font-size:6pt!important;
+ padding:1mm .5mm!important;
+ text-align:center!important;
+}
+.print-rate-total{
+ text-align:right!important;
+ font-size:7.5pt!important;
+ font-weight:800!important;
+ padding:1.5mm 2mm!important;
+ border:1px solid #aeb7bf!important;
+ border-top:0!important;
+ background:#f5f6f7!important;
+}
+#workTotal,#matTotal,#printRateWorkTotal{font-variant-numeric:tabular-nums}
+
+.report-foot{
+ display:grid!important;
+ grid-template-columns:1fr 1fr!important;
+ column-gap:14mm!important;
+ margin-top:9mm!important;
+ page-break-inside:avoid!important;
+}
+.sig-block .sig-line{border-top:.5pt solid #17202a!important;margin-top:15mm!important}
+.sig-block .sig-label{font-size:6pt!important;color:#68737d!important;margin-top:1mm!important;text-transform:uppercase!important;letter-spacing:.03em!important}
+.sig-timestamp{grid-column:1/-1!important;text-align:right!important;font-size:5.5pt!important;color:#9aa4ab!important;margin-top:6mm!important}
+}
+
+
+
+
+/* V20: Pos.-Spalten in der App gleich breit wie im PDF */
+@media screen {
+  .work-table col.c-pos,
+  .mat-table col.m-pos {
+    width: 23mm !important;
+    min-width: 23mm !important;
+  }
+}
+
+/* V22: Stundenansatz-Block nicht im Rapport anzeigen */
+@media print {
+  .print-rate-block,
+  .print-rate-table,
+  #printRateBlock,
+  #printRates,
+  .rate-block {
+    display:none !important;
+  }
+}
