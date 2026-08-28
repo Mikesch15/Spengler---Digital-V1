@@ -82,7 +82,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.71</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.73</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -288,7 +288,7 @@
 <div class="card">
 <h2>📐 Neue Massaufnahme</h2>
 <div class="grid" style="margin-bottom:8px">
-<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option></select></div>
+<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
 <div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
@@ -491,6 +491,7 @@
 
 <div class="grid" style="margin-top:10px">
 <div><label>Konisch (Mass links/rechts pro Schenkel)</label><select id="fp_konisch"><option value="nein">Nein</option><option value="ja">Ja</option></select></div>
+<div><label>Ansichtspfeil</label><select id="fp_ansicht"><option value="keiner">kein Pfeil</option><option value="links" selected>von links</option><option value="oben">von oben</option><option value="rechts">von rechts</option><option value="unten">von unten</option></select></div>
 </div>
 
 <h2 style="margin-top:14px">Segmente</h2>
@@ -652,6 +653,13 @@
 </div>
 </div>
 
+<div class="settings-section" data-section="mauerabdeckung">
+<div class="settings-section-head" data-toggle-section="mauerabdeckung"><h2>Mauerabdeckung</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Diese Masse gelten für alle Mitarbeiter. Sie werden jedem Stück zugerechnet, das an einen Boden oder einen Schieber grenzt. Negativer Wert = Abzug.
+</div>
+</div>
+
 <div class="settings-section" data-section="rinne">
 <div class="settings-section-head" data-toggle-section="rinne"><h2>Rinne Halbrund – Anschlusstypen</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
@@ -661,13 +669,7 @@
 </div>
 <div class="small" style="margin-bottom:8px">Wird jedem Rinnenstück abgezogen, das an eine Dila grenzt. Negativer Wert = Abzug.</div>
 <div class="bar" style="margin-bottom:14px"><button id="saveRinneDilaMass" class="green">💾 Dila-Mass speichern</button></div>
-<h2 style="margin-top:16px">Mauerabdeckung</h2>
-<div class="grid" style="margin-bottom:10px">
-<div><label>Mass Boden (mm)</label><input id="madBodenMassInput" type="number" step="1"></div>
-<div><label>Mass Schieber (mm)</label><input id="madSchieberMassInput" type="number" step="1"></div>
-</div>
-<div class="small" style="margin-bottom:8px">Wird jedem angrenzenden Stück zugerechnet. Negativer Wert = Abzug.</div>
-<div class="bar" style="margin-bottom:14px"><button id="saveMadMasse" class="green">💾 Masse speichern</button></div>
+
 <div id="rinneFittingSettings"></div>
 <div class="bar">
 <button id="newRinneFitting" class="gray">＋ Anschlusstyp hinzufügen</button>
