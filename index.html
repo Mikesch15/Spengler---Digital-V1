@@ -82,7 +82,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.62</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.63</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -97,6 +97,7 @@
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="rinne_halbrund"><span class="start-nav-icon">🏠</span><span>Rinne Halbrund</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="einlaufblech_konisch"><span class="start-nav-icon">📐</span><span>Einlaufblech konisch</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="freies_profil"><span class="start-nav-icon">📐</span><span>Freies Profil</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="mauerabdeckung"><span class="start-nav-icon">🧱</span><span>Mauerabdeckung</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
 <button id="cancelMeasTypeChooser" class="gray">Abbrechen</button>
@@ -387,6 +388,39 @@
 <div class="small" id="rinne_dilasSummary"></div>
 </div>
 
+<div id="measTypeMauerabdeckung" hidden>
+<div class="info">Jedes Segment ist ein gerades Stück Mauerabdeckung. Winkel = Richtungsänderung zum nächsten Segment (90° = normale Ecke). Schieber werden nach SIA 271 automatisch gesetzt; ab einer Ecke gilt der halbe Abstand. Die Masse für Boden und Schieber stehen in Einstellungen → Massaufnahmen.</div>
+<div class="grid">
+<div><label>Material</label><select id="mad_material">
+<option value="kupfer_crni">Kupfer / CrNi-Stahl / Chromstahl verzinnt</option>
+<option value="titanzink" selected>Titanzink</option>
+<option value="aluminium">Aluminium (Aluman)</option>
+</select></div>
+<div><label>Abwicklung (mm)</label><input id="mad_abwicklung" type="number" step="1" value="0"></div>
+</div>
+<h2 style="margin-top:14px">Segmente</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:8%"><col style="width:26%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:8%"></colgroup>
+<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th><th>Boden Anfang</th><th>Boden Ende</th><th></th></tr></thead>
+<tbody id="mad_segmentsBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="mad_addSegment">＋ Segment hinzufügen</button></div>
+<div id="mad_grundriss" class="eb-diagram-box"></div>
+<h2 style="margin-top:14px">Schieber und Zuschnitt</h2>
+<label class="rechte-schalter"><input type="checkbox" id="mad_manuell"> Schieber von Hand setzen (sonst automatisch nach SIA 271)</label>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:8%"><col style="width:30%"><col style="width:20%"><col style="width:18%"><col style="width:16%"><col style="width:8%"></colgroup>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th>Position ab Start (mm)</th><th></th></tr></thead>
+<tbody id="mad_stuecklisteBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="mad_addSchieber">＋ Schieber von Hand</button></div>
+<div id="mad_summary" class="small" style="margin-top:6px"></div>
+</div>
+
 <div id="measTypeEinlaufblechKonisch" hidden>
 <div class="info">Jedes Stück ist max. 2m lang (inkl. Überlappung/Reststück). Mass links und rechts sind pro Stück frei wählbar (konischer Verlauf). Werte für Stoss-Länge, Überlappung, Restschwelle und Umschläge stammen aus Einstellungen → Massaufnahmen → "Einlaufblech konisch" (eigene Werte, unabhängig von "Einlaufblech gerade").</div>
 <div class="grid">
@@ -614,6 +648,13 @@
 </div>
 <div class="small" style="margin-bottom:8px">Wird jedem Rinnenstück abgezogen, das an eine Dila grenzt. Negativer Wert = Abzug.</div>
 <div class="bar" style="margin-bottom:14px"><button id="saveRinneDilaMass" class="green">💾 Dila-Mass speichern</button></div>
+<h2 style="margin-top:16px">Mauerabdeckung</h2>
+<div class="grid" style="margin-bottom:10px">
+<div><label>Mass Boden (mm)</label><input id="madBodenMassInput" type="number" step="1"></div>
+<div><label>Mass Schieber (mm)</label><input id="madSchieberMassInput" type="number" step="1"></div>
+</div>
+<div class="small" style="margin-bottom:8px">Wird jedem angrenzenden Stück zugerechnet. Negativer Wert = Abzug.</div>
+<div class="bar" style="margin-bottom:14px"><button id="saveMadMasse" class="green">💾 Masse speichern</button></div>
 <div id="rinneFittingSettings"></div>
 <div class="bar">
 <button id="newRinneFitting" class="gray">＋ Anschlusstyp hinzufügen</button>
@@ -771,6 +812,7 @@
 <script src="js/10-massaufnahme.js"></script>
 <script src="js/11-einlaufblech-gerade.js"></script>
 <script src="js/12-rinne-halbrund.js"></script>
+<script src="js/12b-mauerabdeckung.js"></script>
 <script src="js/13-einlaufblech-konisch.js"></script>
 <script src="js/14-freies-profil.js"></script>
 <script src="js/15-einlaufblech-stueckliste.js"></script>
