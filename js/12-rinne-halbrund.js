@@ -23,22 +23,41 @@ const RINNE_AUSDEHNUNG_TABELLE={
 function calcDilaPositionsInStretch(L,leftMax,rightMax,middleMax){
  if(L<=0)return[];
  if(L<=Math.min(leftMax,rightMax))return[];
+ // Kleinste Anzahl Elemente, mit der die Strecke überhaupt aufgeht
  let n=1;
  while(leftMax+(n-1)*middleMax+rightMax<L-1e-6)n++;
- if(n===1){
-  // Möglichst in der Mitte der Strecke platzieren; nur wenn das eine der beiden
-  // Maximaldistanzen verletzen würde, so weit wie nötig zu dieser Grenze hin verschieben.
-  const ideal=L/2;
-  let pos;
-  if(ideal>leftMax)pos=leftMax;
-  else if(L-ideal>rightMax)pos=L-rightMax;
-  else pos=ideal;
-  return[pos];
+ const anzahl=n+1;
+ // Grenze je Stück: aussen gilt an Ecken und Fixpunkten der halbe Abstand
+ const grenzen=[];
+ for(let i=0;i<anzahl;i++){
+  if(i===0)grenzen.push(leftMax);
+  else if(i===anzahl-1)grenzen.push(rightMax);
+  else grenzen.push(middleMax);
  }
- const remaining=L-leftMax-rightMax;
- const gapSize=remaining/(n-1);
- const positions=[leftMax];
- for(let i=1;i<n;i++)positions.push(positions[i-1]+gapSize);
+ // Alle Stücke gleich lang. Wer über seiner Grenze liegt, wird darauf
+ // festgesetzt; die übrige Länge verteilt sich gleichmässig auf die
+ // restlichen Stücke. Das wiederholt sich, bis nichts mehr anschlägt.
+ const laengen=new Array(anzahl).fill(0);
+ const fest=new Array(anzahl).fill(false);
+ for(let runde=0;runde<anzahl;runde++){
+  let restLaenge=L, frei=0;
+  for(let i=0;i<anzahl;i++){
+   if(fest[i])restLaenge-=laengen[i];
+   else frei++;
+  }
+  if(!frei)break;
+  const ziel=restLaenge/frei;
+  let neuFestgesetzt=false;
+  for(let i=0;i<anzahl;i++){
+   if(fest[i])continue;
+   if(ziel>grenzen[i]+1e-6){laengen[i]=grenzen[i];fest[i]=true;neuFestgesetzt=true;}
+   else laengen[i]=ziel;
+  }
+  if(!neuFestgesetzt)break;
+ }
+ const positions=[];
+ let pos=0;
+ for(let i=0;i<anzahl-1;i++){pos+=laengen[i];positions.push(pos);}
  return positions;
 }
 function isRinneFixpunkt(typId){
@@ -339,10 +358,6 @@ function renderRinneSegmentsTable(){
   if(linksSel)linksSel.value=s.linksTyp||"";
   if(rechtsSel)rechtsSel.value=s.rechtsTyp||"";
  });
-}
-function renderRinneResult(){
- renderRinneSegmentsTable();
- updateRinneDiagramAndSummary();
 }
 function renderRinneResult(){
  renderRinneSegmentsTable();

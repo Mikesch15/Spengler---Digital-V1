@@ -29,12 +29,13 @@ let madSchieber=[];   // {posAbStart}
 function computeMadBoundaries(segments){
  if(!segments.length)return{boundaries:[],gesamtlaenge:0};
  let cum=0;
- const boundaries=[{pos:0,typ:"ende",name:segments[0].bodenLinks?"Boden":"Start"}];
+ const boundaries=[{pos:0,typ:segments[0].bodenLinks?"ecke":"ende",name:segments[0].bodenLinks?"Boden":"Start"}];
  for(let i=0;i<segments.length;i++){
   cum+=Number(segments[i].laenge)||0;
   const istLetzte=i===segments.length-1;
   if(istLetzte){
-   boundaries.push({pos:cum,typ:"ende",name:segments[i].bodenRechts?"Boden":"Ende"});
+   // Ein Boden wirkt wie ein Fixpunkt: ab dort gilt der halbe Abstand.
+   boundaries.push({pos:cum,typ:segments[i].bodenRechts?"ecke":"ende",name:segments[i].bodenRechts?"Boden":"Ende"});
   }else{
    const winkel=Number(segments[i].winkel)||0;
    if(winkel!==0)boundaries.push({pos:cum,typ:"ecke",name:`Ecke ${winkel}°`});
@@ -125,7 +126,9 @@ function madProfilMasse(){
  const wind=$("mad_windexponiert").checked;
  const rad=gef*Math.PI/180;
  const dy=breite*Math.tan(rad);
- const schraeg=gef?breite/Math.cos(rad):breite;
+ // Gesamtbreite wird so verwendet, wie sie eingegeben ist – nicht über
+ // die Schräge verlängert.
+ const schraeg=breite;
  return {breite,hL,hR,umL,umR,saum,gef,wind,dy,schraeg,
          abwicklung:saum+umL+hL+schraeg+hR+umR+saum};
 }
@@ -157,16 +160,17 @@ function madProfilSvgAus(m){
  // Säume: 180° zurückgelegt, mit etwas Luft, damit man sie sieht
  const saeume=[];
  if(m.saum>0){
-  saeume.push({von:pLinksEnde, richtung:[w,-w]});          // Laufrichtung am linken Ende
-  saeume.push({von:pRechtsEnde, richtung:[-1,0]});         // Laufrichtung am rechten Ende
+  saeume.push({von:pLinksEnde, richtung:[w,-w], drehung:-1});  // linkes Ende, Kehre nach aussen
+  saeume.push({von:pRechtsEnde, richtung:[-1,0], drehung:1});  // rechtes Ende
  }
  const saumPunkte=saeume.map(s=>{
   const [dx,dy2]=s.richtung;
-  const nx=-dy2, ny=dx;                                    // senkrecht dazu
+  const dreh=s.drehung||1;
+  const nx=-dy2*dreh, ny=dx*dreh;                          // senkrecht dazu
   const start=s.von;
   const kehre=[start[0]+nx*MAD_SAUM_LUFT, start[1]+ny*MAD_SAUM_LUFT];
   const ende=[kehre[0]-dx*m.saum, kehre[1]-dy2*m.saum];
-  return {start,kehre,ende,richtung:s.richtung};
+  return {start,kehre,ende,richtung:s.richtung,drehung:dreh};
  });
 
  const alle=punkte.concat(saumPunkte.flatMap(s=>[s.kehre,s.ende]));
