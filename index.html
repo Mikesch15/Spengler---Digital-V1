@@ -82,7 +82,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.81</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.82</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -689,6 +689,15 @@
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="protected" hidden>
+<div class="settings-section" data-section="module-test">
+<div class="settings-section-head" data-toggle-section="module-test"><h2>Module in Entwicklung</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Angehakte Module sind nur für Administratoren sichtbar. Alle anderen sehen den Knopf gar nicht erst. Gedacht für Funktionen, die noch nicht fertig sind.</div>
+<div id="moduleTestListe"></div>
+<div class="bar" style="margin-bottom:14px"><button id="saveModuleTest" class="green">💾 Speichern</button></div>
+</div>
+</div>
+
 <div id="protectedLocked">
 <div class="info">Dieser Bereich enthält Funktionen/Stundenansätze und Materialkataloge. Bitte Passwort eingeben.</div>
 <div class="grid">
