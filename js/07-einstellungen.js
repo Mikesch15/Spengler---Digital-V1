@@ -100,6 +100,17 @@ $("logoRemove").onclick=()=>{
  $("logoInput").value="";
  $("logoRemove").hidden=true;
 };
+$("saveMadMasse").onclick=async()=>{
+ const boden=Number($("madBodenMassInput").value)||0;
+ const schieber=Number($("madSchieberMassInput").value)||0;
+ $("saveMadMasse").disabled=true;
+ const {error}=await sb.from("app_settings").update({mad_boden_mass_mm:boden,mad_schieber_mass_mm:schieber,updated_at:new Date().toISOString()}).eq("id",1);
+ $("saveMadMasse").disabled=false;
+ if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
+ madBodenMass=boden;madSchieberMass=schieber;
+ if(typeof renderMadResult==="function"&&madSegments.length)renderMadResult();
+ alert("Gespeichert (gilt für alle).");
+};
 $("saveRinneDilaMass").onclick=async()=>{
  const wert=Number($("rinneDilaMassInput").value)||0;
  $("saveRinneDilaMass").disabled=true;
