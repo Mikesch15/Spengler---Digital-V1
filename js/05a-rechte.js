@@ -165,6 +165,7 @@ function renderMitarbeiterSettings(){
   return `<div class="rechte-zeile">
    <div class="rechte-kopf">
     <input data-set-emp="${i}" value="${esc(e)}">
+    ${darfVergeben?`<button type="button" class="gray" data-pw-reset="${i}" title="Passwort zurücksetzen">🔑</button>`:""}
     <button class="red" data-del-emp="${i}">Löschen</button>
    </div>
    <details class="rechte-details">

@@ -362,3 +362,37 @@ $("datenSichern").addEventListener("click",async()=>{
   knopf.disabled=false;
  }
 });
+
+// ---- Passwort eines Mitarbeiters zurücksetzen ----------------
+// Das eigentliche Setzen macht die Edge Function "reset-password";
+// aus dem Browser heraus ginge es nicht, dafür braucht es den geheimen
+// Service-Role-Schlüssel, der nur auf dem Server liegen darf.
+function neuesStartpasswort(){
+ const zeichen="abcdefghijkmnpqrstuvwxyzACDEFGHJKLMNPQRSTUVWXYZ23456789";
+ let p="";
+ const zufall=crypto.getRandomValues(new Uint32Array(8));
+ for(let i=0;i<8;i++)p+=zeichen[zufall[i]%zeichen.length];
+ return "Start-"+p;
+}
+$("employeeSettings").addEventListener("click",async e=>{
+ const knopf=e.target.closest("[data-pw-reset]");
+ if(!knopf)return;
+ if(!meineRechte.admin){alert("Nur ein Administrator kann Passwörter zurücksetzen.");return}
+ const i=Number(knopf.dataset.pwReset);
+ const id=employeeIds[i];
+ const name=settings.employees[i]||"diesen Mitarbeiter";
+ if(!id){alert("Zu diesem Eintrag gibt es kein Konto.");return}
+ if(!confirm("Passwort von "+name+" wirklich zurücksetzen?\n\nDas bisherige Passwort wird ungültig."))return;
+ const neu=neuesStartpasswort();
+ knopf.disabled=true;
+ try{
+  const {data,error}=await sb.functions.invoke("reset-password",{body:{profile_id:id,password:neu}});
+  if(error){alert("Fehler: "+(error.message||"Passwort konnte nicht zurückgesetzt werden."));return}
+  if(!data?.ok){alert("Fehler: "+(data?.error||"Passwort konnte nicht zurückgesetzt werden."));return}
+  alert("Neues Startpasswort für "+name+":\n\n"+neu+"\n\nBitte weitergeben. Bei der nächsten Anmeldung muss ein eigenes Passwort vergeben werden.");
+ }catch(err){
+  alert("Fehler: "+((err&&err.message)||err));
+ }finally{
+  knopf.disabled=false;
+ }
+});
