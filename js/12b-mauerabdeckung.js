@@ -195,7 +195,6 @@ function madProfilSvgAus(m){
 
  // Blickrichtungs-Pfeil, damit klar ist, aus welcher Richtung der Schnitt
  // gesehen wird – gleiche Darstellung wie die Pfeile im Grundriss.
- const pfeil=ansichtsPfeilSvg("rechts",W,H);
 
  // ---- Vermassung ----
  // Jedes Mass steht neben seinem Schenkel und ist mit einer feinen Linie
@@ -220,26 +219,34 @@ function madProfilSvgAus(m){
   const dx=b2[0]-a2[0], dy2=b2[1]-a2[1], len=Math.hypot(dx,dy2)||1;
   let nx=-dy2/len, ny=dx/len;
   if((mx-mitteX)*nx+(my-mitteY)*ny<0){nx=-nx;ny=-ny}
-  // kurze Schenkel: Mass weiter weg, sonst klebt es auf der Ecke
-  let abstand=len<44?26:14;
-  let lx=mx+nx*abstand, ly=my+ny*abstand;
-  // Überschneidungen vermeiden
-  for(let versuch=0;versuch<6;versuch++){
-   const kollision=gesetzt.some(g=>Math.hypot(g[0]-lx,g[1]-ly)<20);
-   if(!kollision)break;
-   abstand+=12;
-   lx=mx+nx*abstand; ly=my+ny*abstand;
+  // Grundabstand vom Schenkel; kurze Schenkel etwas weiter weg
+  const abstand=len<44?24:15;
+  const ux=dx/len, uy=dy2/len;
+  // Bei einer Überschneidung zuerst dem Schenkel entlang ausweichen – so
+  // bleiben die Hilfslinien senkrecht und kreuzen sich nicht. Erst wenn das
+  // nicht reicht, wird das Mass weiter nach aussen geschoben.
+  const versuche=[[0,0],[0.3,0],[-0.3,0],[0,12],[0.3,12],[-0.3,12],[0,26]];
+  let lx=0,ly=0;
+  for(let k=0;k<versuche.length;k++){
+   const [entlang,extra]=versuche[k];
+   lx=mx+ux*len*entlang+nx*(abstand+extra);
+   ly=my+uy*len*entlang+ny*(abstand+extra);
+   if(!gesetzt.some(g=>Math.hypot(g[0]-lx,g[1]-ly)<22))break;
   }
   gesetzt.push([lx,ly]);
   let winkel=Math.atan2(dy2,dx)*180/Math.PI;
   if(winkel>90||winkel<-90)winkel+=180;
   // feine Hilfslinie vom Schenkel zum Mass
-  masse+=`<line x1="${mx.toFixed(1)}" y1="${my.toFixed(1)}" x2="${(lx-nx*8).toFixed(1)}" y2="${(ly-ny*8).toFixed(1)}" stroke="#9bb0c1" stroke-width="0.8" stroke-dasharray="2 2"/>`;
+  // Fusspunkt der Hilfslinie liegt senkrecht unter der Beschriftung
+  const fussT=(lx-mx)*ux+(ly-my)*uy;
+  const fx=mx+ux*fussT, fy=my+uy*fussT;
+  masse+=`<line x1="${fx.toFixed(1)}" y1="${fy.toFixed(1)}" x2="${(lx-nx*8).toFixed(1)}" y2="${(ly-ny*8).toFixed(1)}" stroke="#9bb0c1" stroke-width="0.8" stroke-dasharray="2 2"/>`;
   masse+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${winkel.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${Math.round(st.mass)}</text>`;
  });
 
  // ---- Biegewinkel: nur die beiden Ecken an der Deckfläche ----
  let winkelTexte="";
+ const winkelPunkte=[];
  [2,3].forEach((i,nr)=>{
   if(!punkte[i-1]||!punkte[i+1])return;
   const v=s2(punkte[i]), a2=s2(punkte[i-1]), b2=s2(punkte[i+1]);
@@ -253,10 +260,19 @@ function madProfilSvgAus(m){
   let hx=ux/lu+wx/lw, hy=uy/lu+wy/lw;
   const hl=Math.hypot(hx,hy)||1;
   const tx=v[0]+(hx/hl)*24, ty=v[1]+(hy/hl)*24;
+  winkelPunkte.push([tx-16,ty-9],[tx+16,ty+9]);
   winkelTexte+=`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-size="11" fill="#e07a1f" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">${anderer}°</text>`;
  });
 
- return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+ // Bildausschnitt so wählen, dass Blech, Masse und Winkel sicher hineinpassen
+ const eckpunkte=alle.map(s2).concat(gesetzt.map(g=>[g[0]-24,g[1]-10]),gesetzt.map(g=>[g[0]+24,g[1]+10]),winkelPunkte);
+ const exs=eckpunkte.map(p=>p[0]), eys=eckpunkte.map(p=>p[1]);
+ const vbMinX=Math.min(...exs)-8, vbMaxX=Math.max(...exs)+8;
+ const vbMinY=Math.min(...eys)-8, vbMaxY=Math.max(...eys)+8;
+ const pfeilBreite=34;
+ const vbW=(vbMaxX-vbMinX)+pfeilBreite, vbH=vbMaxY-vbMinY;
+ const pfeil=ansichtsPfeilSvg("rechts",vbW,vbH,vbMinX,vbMinY);
+ return `<svg viewBox="${vbMinX.toFixed(1)} ${vbMinY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
 <path d="${d}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 ${saumPfade}
 ${masse}
