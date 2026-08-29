@@ -56,6 +56,13 @@ async function afterLogin(){
  currentProfile=profile;
  isMike=!!(profile&&String(profile.first_name).trim().toLowerCase()==="mike"&&String(profile.last_name).trim().toLowerCase()==="ledermann");
  $("currentUserLabel").textContent=profile?`${profile.first_name} ${profile.last_name}`:session.user.email;
+ // Wer sein Passwort noch nie selbst gesetzt hat, muss das zuerst tun.
+ if(profile&&profile.passwort_gesetzt===false){
+  $("authScreen").hidden=true;
+  $("passwortModal").hidden=false;
+  $("pwNeu").value="";$("pwNeu2").value="";$("pwFehler").textContent="";
+  return;
+ }
  $("authScreen").hidden=true;
  $("appRoot").hidden=false;
  await loadAllData();
@@ -87,3 +94,29 @@ function goToStart(){
  amEditReturnTo="ausmassModal";
  showStart();
 }
+
+// ---- Eigenes Passwort festlegen ----------------------------
+$("pwAbmelden").onclick=async()=>{
+ await sb.auth.signOut();
+ location.reload();
+};
+$("pwSpeichern").onclick=async()=>{
+ const p1=$("pwNeu").value, p2=$("pwNeu2").value;
+ $("pwFehler").textContent="";
+ if(p1.length<8){$("pwFehler").textContent="Mindestens 8 Zeichen.";return}
+ if(p1!==p2){$("pwFehler").textContent="Die beiden Eingaben stimmen nicht überein.";return}
+ $("pwSpeichern").disabled=true;
+ try{
+  const {error}=await sb.auth.updateUser({password:p1});
+  if(error){$("pwFehler").textContent=error.message||"Passwort konnte nicht gesetzt werden.";return}
+  const {error:e2}=await sb.from("profiles").update({passwort_gesetzt:true}).eq("id",currentProfile.id);
+  if(e2){$("pwFehler").textContent=e2.message;return}
+  currentProfile.passwort_gesetzt=true;
+  $("passwortModal").hidden=true;
+  await afterLogin();
+ }catch(err){
+  $("pwFehler").textContent=(err&&err.message)?err.message:String(err);
+ }finally{
+  $("pwSpeichern").disabled=false;
+ }
+};

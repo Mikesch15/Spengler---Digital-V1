@@ -300,3 +300,65 @@ const debouncedRateUpdate=debounce((id,patch)=>sb.from("rates").update(patch).eq
 const debouncedMaterialUpdate=debounce((id,patch)=>sb.from("materials").update(patch).eq("id",id),500);
 const debouncedProfileUpdate=debounce((id,patch)=>sb.from("profiles").update(patch).eq("id",id),500);
 const debouncedBzMaterialUpdate=debounce((id,patch)=>sb.from("blitzschutz_materials").update(patch).eq("id",id),500);
+
+// ---- Mitarbeiterkonto anlegen (nur Administrator) ------------
+$("mitarbeiterAnlegen").addEventListener("click",async()=>{
+ if(!meineRechte.admin){alert("Nur ein Administrator kann Konten anlegen.");return}
+ const vor=$("neuMitarbeiterVor").value.trim();
+ const nach=$("neuMitarbeiterNach").value.trim();
+ if(!vor||!nach){alert("Bitte Vor- und Nachname eingeben.");return}
+ const knopf=$("mitarbeiterAnlegen");
+ knopf.disabled=true;
+ try{
+  const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach,company_code:COMPANY_CODE}});
+  if(error){alert(error.message||"Konto konnte nicht angelegt werden.");return}
+  if(!data?.ok){alert(data?.error||"Konto konnte nicht angelegt werden.");return}
+  const username=data?.user?.username||data?.username||(vor.toLowerCase()+"."+nach.toLowerCase());
+  const passwort=data?.password||"(vom Server vergeben)";
+  alert("Konto angelegt.\n\nBenutzername: "+username+"\nStartpasswort: "+passwort+"\n\nBitte dem Mitarbeiter weitergeben. Er muss bei der ersten Anmeldung ein eigenes Passwort vergeben.");
+  $("neuMitarbeiterVor").value="";
+  $("neuMitarbeiterNach").value="";
+  await loadAllData();
+  renderSettings();
+ }catch(err){
+  alert("Fehler: "+((err&&err.message)||err));
+ }finally{
+  knopf.disabled=false;
+ }
+});
+
+// ---- Datensicherung -----------------------------------------
+$("datenSichern").addEventListener("click",async()=>{
+ const knopf=$("datenSichern");
+ const info=$("sicherungInfo");
+ const tabellen=["profiles","projects","reports","measurements","ausmass","materials","rates",
+                 "blitzschutz_materials","rinne_fitting_types","app_settings","permission_settings",
+                 "permission_overrides","feedback"];
+ knopf.disabled=true;
+ info.textContent="Sicherung wird erstellt …";
+ try{
+  const sicherung={erstellt:new Date().toISOString(),version:$("appVersion")?$("appVersion").textContent:"",daten:{}};
+  const fehler=[];
+  for(const t of tabellen){
+   const {data,error}=await sb.from(t).select("*");
+   if(error){fehler.push(t+": "+error.message);continue}
+   sicherung.daten[t]=data||[];
+  }
+  const text=JSON.stringify(sicherung,null,1);
+  const blob=new Blob([text],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="spengler-sicherung-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  const anzahl=Object.entries(sicherung.daten).map(([t,v])=>t+": "+v.length).join(" · ");
+  info.textContent="Gesichert – "+anzahl+(fehler.length?(" · Nicht lesbar: "+fehler.join(", ")):"");
+ }catch(err){
+  info.textContent="Fehler: "+((err&&err.message)||err);
+ }finally{
+  knopf.disabled=false;
+ }
+});
