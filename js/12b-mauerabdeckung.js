@@ -203,13 +203,15 @@ function madProfilSvgAus(m){
  const mitteX=alle.reduce((a2,p)=>a2+p[0],0)/alle.length;
  const mitteY=alle.reduce((a2,p)=>a2+p[1],0)/alle.length;
  const strecken=[
-  {von:pLinksEnde, bis:pLinksUnten, mass:m.umL},
+  {von:pLinksEnde, bis:pLinksUnten, mass:m.umL, andereSeite:true},
   {von:pLinksUnten, bis:[0,0],      mass:m.hL},
   {von:[0,0], bis:[m.breite,m.dy],  mass:m.breite},
   {von:[m.breite,m.dy], bis:pRechtsUnten, mass:m.hR},
   {von:pRechtsUnten, bis:pRechtsEnde, mass:m.umR}
  ];
- saumPunkte.forEach(sp=>strecken.push({von:sp.kehre, bis:sp.ende, mass:m.saum}));
+ // Am linken Ende stehen Saum und Umschlag auf der anderen Blechseite,
+ // dort ist mehr Platz und sie geraten sich nicht gegenseitig ins Gehege.
+ saumPunkte.forEach((sp,i)=>strecken.push({von:sp.kehre, bis:sp.ende, mass:m.saum, andereSeite:i===0}));
  const gesetzt=[];
  let masse="";
  strecken.forEach(st=>{
@@ -219,6 +221,7 @@ function madProfilSvgAus(m){
   const dx=b2[0]-a2[0], dy2=b2[1]-a2[1], len=Math.hypot(dx,dy2)||1;
   let nx=-dy2/len, ny=dx/len;
   if((mx-mitteX)*nx+(my-mitteY)*ny<0){nx=-nx;ny=-ny}
+  if(st.andereSeite){nx=-nx;ny=-ny}
   // Grundabstand vom Schenkel; kurze Schenkel etwas weiter weg
   const abstand=len<44?24:15;
   const ux=dx/len, uy=dy2/len;
