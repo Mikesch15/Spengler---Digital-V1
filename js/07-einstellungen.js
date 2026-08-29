@@ -33,6 +33,7 @@ $("closeSettings").onclick=()=>{
   settingsReturnToMeasurement=false;
   applyEinlaufblechSettings();
   if($("measType").value==="einlaufblech_gerade")renderEbPiecesTable();
+  if($("measType").value==="lukarne"&&typeof renderLukResult==="function")renderLukResult();
   $("measurementEditModal").hidden=false;
  }else{
   renderMain();
@@ -155,6 +156,28 @@ $("saveMadMasse").addEventListener("click",async()=>{
   alert("Gespeichert (gilt für alle).");
  }catch(err){
   // Ohne das bliebe der Knopf nach einem Fehler dauerhaft gesperrt
+  alert("Fehler beim Speichern: "+(err&&err.message?err.message:err));
+ }finally{
+  knopf.disabled=false;
+ }
+});
+$("saveLukMasse").addEventListener("click",async()=>{
+ const knopf=$("saveLukMasse");
+ const achs=Number($("lukAchsabstandInput").value)||0;
+ const hr=Number($("lukHilfsrissInput").value)||0;
+ const zb=Number($("lukZugabeBreiteInput").value)||0;
+ const zl=Number($("lukZugabeLaengeInput").value)||0;
+ if(achs<=0){alert("Der Achsabstand muss grösser als 0 sein.");return}
+ knopf.disabled=true;
+ try{
+  const {error}=await sb.from("app_settings")
+   .update({luk_achsabstand_mm:achs,luk_hilfsriss_mm:hr,luk_zugabe_breite_mm:zb,luk_zugabe_laenge_mm:zl,updated_at:new Date().toISOString()})
+   .eq("id",1);
+  if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
+  lukAchsabstand=achs;lukHilfsriss=hr;lukZugabeBreite=zb;lukZugabeLaenge=zl;
+  if(typeof renderLukResult==="function"&&$("measType").value==="lukarne")renderLukResult();
+  alert("Gespeichert (gilt für alle).");
+ }catch(err){
   alert("Fehler beim Speichern: "+(err&&err.message?err.message:err));
  }finally{
   knopf.disabled=false;

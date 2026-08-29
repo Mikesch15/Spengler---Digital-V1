@@ -99,7 +99,7 @@ async function loadProjectMeasurements(projectId){
  const {data,error}=await sb.from("measurements").select("*").eq("project_id",projectId).order("date",{ascending:false});
  if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
  const list=data||[];
- const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil"};
+ const typeLabels=MEAS_TYPE_LABELS;
  projectMeasurementsCache=list;
  box.innerHTML=list.length?list.map(m=>`<div class="report-row">
 <div class="report-row-info"><b>Massaufnahme (${esc(typeLabels[m.type]||m.type)})</b><span>${esc(m.title||"Ohne Titel")} · ${esc(m.date||"ohne Datum")}</span></div>

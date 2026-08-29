@@ -41,7 +41,7 @@ const debouncedGlobalSearch=debounce(async(q)=>{
   ...ausmasse.map(a=>({kind:"ausmass",data:a})),
  ];
  globalSearchCache=results;
- const measTypeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil"};
+ const measTypeLabels=MEAS_TYPE_LABELS;
  const amTypeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
  $("globalSearchStatus").textContent=`${results.length} Treffer`;
  $("globalSearchResults").innerHTML=results.length?results.map((r,i)=>{

@@ -6,11 +6,13 @@ function showMeasTypeSection(type){
  $("measTypeEinlaufblechKonisch").hidden=(type!=="einlaufblech_konisch");
  $("measTypeFreiesProfil").hidden=(type!=="freies_profil");
  $("measTypeMauerabdeckung").hidden=(type!=="mauerabdeckung");
+ $("measTypeLukarne").hidden=(type!=="lukarne");
  if(type==="einlaufblech_gerade")renderEbPiecesTable();
  if(type==="rinne_halbrund")renderRinneResult();
  if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
  if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
  if(type==="mauerabdeckung")renderMadResult();
+ if(type==="lukarne")renderLukResult();
 }
 $("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
 $("openEinlaufblechSettings").onclick=()=>{
@@ -86,6 +88,29 @@ function buildMeasurementFromForm(){
    schieberMass:madSchieberMass
   }};
  }
+ if(type==="lukarne"){
+  const g=berechneLukarne(lukEingabenAusFeldern());
+  if(!g)return {...base,photo_path:null,sketch_paths:[],data:{}};
+  // Scharenliste mitspeichern: ein einmal gedrucktes PDF bleibt dadurch
+  // gleich, auch wenn eine Zugabe später geändert wird.
+  return {...base,photo_path:null,sketch_paths:[],data:{
+   hoehe:g.H,
+   laengeOben:g.L,
+   winkel:g.alpha,
+   achsabstand:g.p,
+   hilfsrissWunsch:g.hilfsrissWunsch,
+   hilfsriss:g.hilfsriss,
+   seite:g.seite,
+   breite:g.W,
+   spitzeVersatz:g.dy,
+   schraege:g.A,
+   anzahl:g.anzahl,
+   flaeche:g.flaeche,
+   zugabeBreite:g.zugabeBreite,
+   zugabeLaenge:g.zugabeLaenge,
+   scharen:g.scharen
+  }};
+ }
  return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(buildMeasurementFromForm());
@@ -121,6 +146,9 @@ $("saveMeasurement").onclick=async()=>{
  if(type==="mauerabdeckung"){
   if(!madSegments.length){alert("Bitte mindestens ein Segment erfassen.");return}
   if(madSegments.some(s=>!Number(s.laenge))){alert("Bitte bei jedem Segment eine Länge eingeben.");return}
+ }
+ if(type==="lukarne"){
+  if(!berechneLukarne(lukEingabenAusFeldern())){alert("Bitte Höhe, obere Länge, Winkel und Achsabstand eingeben. Der obere Innenwinkel muss zwischen 90° und 180° liegen.");return}
  }
  $("saveMeasurement").disabled=true;
  try{
@@ -167,7 +195,7 @@ async function renderMeasurementsOverview(){
  if(error){$("recentMeasurementsList").innerHTML=`<div class="empty">Fehler: ${esc(error.message)}</div>`;return}
  const rows=data||[];
  measurementsCache=rows;
- const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil",mauerabdeckung:"Mauerabdeckung"};
+ const typeLabels=MEAS_TYPE_LABELS;
  $("recentMeasurementsList").innerHTML=rows.length?rows.map(m=>{
   const proj=allProjects.find(p=>p.id===m.project_id);
   let thumbHtml;
@@ -225,7 +253,7 @@ function erstelltGeaendertHtml(record){
 }
 function printMeasurement(m){
  const proj=allProjects.find(p=>p.id===m.project_id);
- const typeLabels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade",rinne_halbrund:"Rinne Halbrund",einlaufblech_konisch:"Einlaufblech konisch",freies_profil:"Freies Profil",mauerabdeckung:"Mauerabdeckung"};
+ const typeLabels=MEAS_TYPE_LABELS;
  const win=window.open("","_blank");
  if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
@@ -369,6 +397,50 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th></tr></thead>
 <tbody>${stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${Math.round(st.zuschnitt)}</td></tr>`).join("")}</tbody>
 </table>
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="lukarne"){
+  const d=m.data||{};
+  const g=berechneLukarne({hoehe:d.hoehe,laengeOben:d.laengeOben,winkel:d.winkel,
+   achsabstand:d.achsabstand,hilfsrissWunsch:d.hilfsrissWunsch!==undefined?d.hilfsrissWunsch:d.hilfsriss,
+   seite:d.seite,zugabeLaenge:d.zugabeLaenge,zugabeBreite:d.zugabeBreite});
+  const scharen=(Array.isArray(d.scharen)&&d.scharen.length)?d.scharen:(g?g.scharen:[]);
+  extraCss=`
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ .eb-diagram{text-align:center;margin:4mm 0}
+ .eb-diagram svg{max-width:100%;height:auto}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:right;font-size:7pt;padding:2mm 1.6mm;text-transform:uppercase;letter-spacing:.02em}
+ .eb-cutlist th:first-child,.eb-cutlist td:first-child{text-align:center}
+ .eb-cutlist td{padding:2mm 1.6mm;border-bottom:.5pt solid #e2e8ec;font-size:8.5pt;text-align:right}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  const zugabeTxt=(d.zugabeBreite||d.zugabeLaenge)
+   ? `${esc(Math.round(d.zugabeBreite||0))} mm Breite / ${esc(Math.round(d.zugabeLaenge||0))} mm Länge`
+   : "keine";
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
+<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+<tr>${cell("Seite",d.seite==="links"?"Linke Seite":"Rechte Seite")}${cell("Anzahl Scharen",esc(d.anzahl||scharen.length||0))}</tr>
+<tr>${cell("Vordere Höhe H",esc(Math.round(d.hoehe||0))+" mm")}${cell("Obere Länge L",esc(Math.round(d.laengeOben||0))+" mm")}</tr>
+<tr>${cell("Oberer Innenwinkel",esc(d.winkel||0)+"°")}${cell("Schräge A (Dach)",esc(Math.round(d.schraege||0))+" mm")}</tr>
+<tr>${cell("Waagerechte Breite",esc(Math.round(d.breite||0))+" mm")}${cell("Achsabstand Scharen",esc(Math.round(d.achsabstand||0))+" mm")}</tr>
+<tr>${cell("Hilfsriss unter Oberkante",esc(Math.round(d.hilfsriss||0))+" mm")}${cell("Fläche",esc((Math.round((d.flaeche||0)*100)/100).toFixed(2))+" m²")}</tr>
+<tr>${cell("Zugabe Zuschnitt",zugabeTxt)}${cell("Letzte Schar (Restbreite)",esc(Math.round(scharen.length?scharen[scharen.length-1].breite:0))+" mm")}</tr>
+</table>
+<div class="eb-section-head">Plan</div>
+<div class="eb-diagram">${lukPlanSvg(g,{fuerDruck:true})}</div>
+<div class="eb-section-head">Scharen</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Ab Front</th><th>Breite</th><th>Länge vorne</th><th>Länge hinten</th><th>Zuschnitt B × L</th><th>&#8593; vorne</th><th>&#8595; vorne</th><th>&#8593; hinten</th><th>&#8595; hinten</th></tr></thead>
+<tbody>${lukScharenZeilen(scharen,d.zugabeLaenge,d.zugabeBreite)}</tbody>
+</table>
+<div class="note" style="font-size:8pt;color:#68737d">Alle Masse in mm. &#8593; / &#8595; = Mass ab Hilfsriss nach oben bzw. nach unten. &#8222;Vorne&#8220; ist die Kante Richtung Lukarnenfront, &#8222;hinten&#8220; die Kante Richtung Spitze.</div>
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="einlaufblech_konisch"){
   const d=m.data||{};

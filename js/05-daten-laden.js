@@ -29,6 +29,10 @@ async function loadAllData(){
   if(appSettingsRes.data.rinne_dila_mass_mm!==null&&appSettingsRes.data.rinne_dila_mass_mm!==undefined)rinneDilaMass=Number(appSettingsRes.data.rinne_dila_mass_mm)||0;
   if(appSettingsRes.data.mad_boden_mass_mm!==null&&appSettingsRes.data.mad_boden_mass_mm!==undefined)madBodenMass=Number(appSettingsRes.data.mad_boden_mass_mm)||0;
   if(appSettingsRes.data.mad_schieber_mass_mm!==null&&appSettingsRes.data.mad_schieber_mass_mm!==undefined)madSchieberMass=Number(appSettingsRes.data.mad_schieber_mass_mm)||0;
+  if(appSettingsRes.data.luk_achsabstand_mm!==null&&appSettingsRes.data.luk_achsabstand_mm!==undefined)lukAchsabstand=Number(appSettingsRes.data.luk_achsabstand_mm)||500;
+  if(appSettingsRes.data.luk_hilfsriss_mm!==null&&appSettingsRes.data.luk_hilfsriss_mm!==undefined)lukHilfsriss=Number(appSettingsRes.data.luk_hilfsriss_mm)||0;
+  if(appSettingsRes.data.luk_zugabe_breite_mm!==null&&appSettingsRes.data.luk_zugabe_breite_mm!==undefined)lukZugabeBreite=Number(appSettingsRes.data.luk_zugabe_breite_mm)||0;
+  if(appSettingsRes.data.luk_zugabe_laenge_mm!==null&&appSettingsRes.data.luk_zugabe_laenge_mm!==undefined)lukZugabeLaenge=Number(appSettingsRes.data.luk_zugabe_laenge_mm)||0;
   moduleImTest=appSettingsRes.data.module_test||{};
  }
  blitzschutzMaterials=bzRes.data||[];

@@ -108,6 +108,24 @@ let rinneDilaMass=-165;
 // Masse für die Mauerabdeckung, firmenweit aus app_settings.
 let madBodenMass=0;
 let madSchieberMass=0;
+// Lukarne Seitenverkleidung, firmenweit aus app_settings.
+// Achsabstand und Hilfsriss sind Vorschlagswerte für eine neue Massaufnahme,
+// die Zugaben werden dem Zuschnitt jeder Schar zugerechnet.
+let lukAchsabstand=500;
+let lukHilfsriss=600;
+let lukZugabeBreite=0;
+let lukZugabeLaenge=0;
+// Bezeichnungen der Massaufnahme-Arten – an einer einzigen Stelle, damit
+// eine neue Art nicht in fünf Dateien nachgetragen werden muss.
+const MEAS_TYPE_LABELS=Object.freeze({
+ skizze_foto:"Skizze/Foto",
+ einlaufblech_gerade:"Einlaufblech gerade",
+ rinne_halbrund:"Rinne Halbrund",
+ einlaufblech_konisch:"Einlaufblech konisch",
+ freies_profil:"Freies Profil",
+ mauerabdeckung:"Mauerabdeckung",
+ lukarne:"Lukarne Seitenverkleidung"
+});
 // Module in Entwicklung: nur für Administratoren sichtbar.
 // Schlüssel: "meas:<art>" bzw. "am:<art>" -> true = versteckt für alle anderen.
 let moduleImTest={};

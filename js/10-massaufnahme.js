@@ -326,15 +326,21 @@ function newMeasurementWithType(type){
  $("mad_windexponiert").checked=false;
  $("mad_manuell").checked=false;
  renderMadResult();
+ $("luk_hoehe").value="";
+ $("luk_laengeOben").value="";
+ $("luk_winkel").value="95";
+ $("luk_achsabstand").value=lukAchsabstand;
+ $("luk_hilfsriss").value=lukHilfsriss;
+ $("luk_seite").value="rechts";
+ renderLukResult();
  setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
  updateMeasFormTitle();
 }
 function updateMeasFormTitle(){
- const labels={skizze_foto:"Skizze/Foto",einlaufblech_gerade:"Einlaufblech gerade"};
  const h2=document.querySelector("#measurementEditModal h2");
- if(h2)h2.textContent=`📐 Massaufnahme – ${labels[$("measType").value]||""}`;
+ if(h2)h2.textContent=`📐 Massaufnahme – ${MEAS_TYPE_LABELS[$("measType").value]||""}`;
 }
 function openMeasurement(m){
  sperreFuerEintrag("massaufnahme",m&&m.created_by);
@@ -392,6 +398,15 @@ function openMeasurement(m){
   $("mad_windexponiert").checked=!!pr.wind;
   $("mad_manuell").checked=true; // gespeicherte Schieber nicht überschreiben
   renderMadResult();
+ }
+ if(m.type==="lukarne"){
+  $("luk_hoehe").value=d.hoehe??"";
+  $("luk_laengeOben").value=d.laengeOben??"";
+  $("luk_winkel").value=d.winkel??95;
+  $("luk_achsabstand").value=d.achsabstand??lukAchsabstand;
+  $("luk_hilfsriss").value=d.hilfsrissWunsch??d.hilfsriss??lukHilfsriss;
+  $("luk_seite").value=d.seite==="links"?"links":"rechts";
+  renderLukResult();
  }
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;

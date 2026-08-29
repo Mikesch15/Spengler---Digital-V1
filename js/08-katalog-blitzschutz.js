@@ -156,6 +156,11 @@ function renderSettings(){
  const madBoden=$("madBodenMassInput"),madSchieber=$("madSchieberMassInput");
  if(madBoden)madBoden.value=madBodenMass;
  if(madSchieber)madSchieber.value=madSchieberMass;
+ const lukA=$("lukAchsabstandInput"),lukH=$("lukHilfsrissInput"),lukB=$("lukZugabeBreiteInput"),lukL=$("lukZugabeLaengeInput");
+ if(lukA)lukA.value=lukAchsabstand;
+ if(lukH)lukH.value=lukHilfsriss;
+ if(lukB)lukB.value=lukZugabeBreite;
+ if(lukL)lukL.value=lukZugabeLaenge;
  if(typeof renderModuleTestListe==="function")renderModuleTestListe();
  renderMitarbeiterSettings();
  const ro=protectedUnlocked?"":"disabled";
