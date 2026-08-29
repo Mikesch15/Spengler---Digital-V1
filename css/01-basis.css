@@ -99,6 +99,8 @@ td input,td select{min-height:34px;font-size:12px}
 .meas-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
 .eb-table{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}
 .eb-diagram-box{background:#f8fafb;border:1px solid var(--line);border-radius:10px;padding:8px;margin:8px 0}
+.eb-diagram-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.eb-diagram-scroll svg{display:block}
 .eb-table col.eb-col-pos{width:14%}
 .eb-table col.eb-col-len{width:32%}
 .eb-table col.eb-col-massa{width:26%}
