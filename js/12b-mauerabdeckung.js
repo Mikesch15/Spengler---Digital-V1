@@ -178,7 +178,7 @@ function madProfilSvgAus(m){
  const minX=Math.min(...xs), maxX=Math.max(...xs);
  const minY=Math.min(...ys), maxY=Math.max(...ys);
  const bw=Math.max(1,maxX-minX), bh=Math.max(1,maxY-minY);
- const W=380,H=210,rand=18,randRechts=44;
+ const W=380,H=240,rand=34,randRechts=52;
  const f=Math.min((W-randRechts-rand)/bw,(H-2*rand)/bh);
  const ox=rand-minX*f, oy=(H-bh*f)/2-minY*f;
  const s2=p=>[p[0]*f+ox, p[1]*f+oy];
@@ -196,9 +196,65 @@ function madProfilSvgAus(m){
  // Blickrichtungs-Pfeil, damit klar ist, aus welcher Richtung der Schnitt
  // gesehen wird – gleiche Darstellung wie die Pfeile im Grundriss.
  const pfeil=ansichtsPfeilSvg("rechts",W,H);
+
+ // ---- Vermassung ----
+ // Mitte der Zeichnung, um Beschriftungen nach aussen zu schieben
+ const mitteX=alle.reduce((a2,p)=>a2+p[0],0)/alle.length;
+ const mitteY=alle.reduce((a2,p)=>a2+p[1],0)/alle.length;
+ const strecken=[
+  {von:pLinksEnde, bis:pLinksUnten, mass:m.umL},
+  {von:pLinksUnten, bis:[0,0],      mass:m.hL},
+  {von:[0,0], bis:[m.breite,m.dy],  mass:m.breite},
+  {von:[m.breite,m.dy], bis:pRechtsUnten, mass:m.hR},
+  {von:pRechtsUnten, bis:pRechtsEnde, mass:m.umR}
+ ];
+ saumPunkte.forEach(sp=>strecken.push({von:sp.kehre, bis:sp.ende, mass:m.saum}));
+ let masse="";
+ strecken.forEach(st=>{
+  if(!st.mass)return;
+  const a2=s2(st.von), b2=s2(st.bis);
+  const mx=(a2[0]+b2[0])/2, my=(a2[1]+b2[1])/2;
+  const dx=b2[0]-a2[0], dy2=b2[1]-a2[1], len=Math.hypot(dx,dy2)||1;
+  let nx=-dy2/len, ny=dx/len;
+  // nach aussen kippen, weg von der Mitte
+  if((mx-mitteX)*nx+(my-mitteY)*ny<0){nx=-nx;ny=-ny}
+  const lx=mx+nx*13, ly=my+ny*13;
+  let winkel=Math.atan2(dy2,dx)*180/Math.PI;
+  if(winkel>90||winkel<-90)winkel+=180;
+  masse+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${winkel.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${Math.round(st.mass)}</text>`;
+ });
+
+ // ---- Biegewinkel an den Ecken ----
+ let winkelTexte="";
+ for(let i=1;i<punkte.length-1;i++){
+  const v=s2(punkte[i]), a2=s2(punkte[i-1]), b2=s2(punkte[i+1]);
+  const ux=a2[0]-v[0], uy=a2[1]-v[1], wx=b2[0]-v[0], wy=b2[1]-v[1];
+  const lu=Math.hypot(ux,uy)||1, lw=Math.hypot(wx,wy)||1;
+  let cos=(ux*wx+uy*wy)/(lu*lw);
+  cos=Math.max(-1,Math.min(1,cos));
+  // Winkel innen am Blech, so wie er an der Abkantbank abgelesen wird
+  const biege=Math.round(Math.acos(cos)*180/Math.PI);
+  if(biege>=180)continue; // gerade Stelle, keine Biegung
+  // Beschriftung auf die Winkelhalbierende, also in die Biegung hinein
+  let hx=ux/lu+wx/lw, hy=uy/lu+wy/lw;
+  const hl=Math.hypot(hx,hy)||1;
+  const tx=v[0]+(hx/hl)*22, ty=v[1]+(hy/hl)*22;
+  winkelTexte+=`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-size="10" fill="#e07a1f" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">${biege}°</text>`;
+ }
+ // Säume sind immer 180°
+ saumPunkte.forEach(sp=>{
+  const k=s2(sp.kehre), st2=s2(sp.start);
+  const tx=(k[0]+st2[0])/2, ty=(k[1]+st2[1])/2;
+  let rx=tx-mitteX, ry=ty-mitteY;
+  const rl=Math.hypot(rx,ry)||1;
+  winkelTexte+=`<text x="${(tx+rx/rl*16).toFixed(1)}" y="${(ty+ry/rl*16).toFixed(1)}" font-size="10" fill="#e07a1f" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">180°</text>`;
+ });
+
  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
 <path d="${d}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 ${saumPfade}
+${masse}
+${winkelTexte}
 ${pfeil}
 </svg>`;
 }
