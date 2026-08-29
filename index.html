@@ -33,7 +33,8 @@
 </div>
 <div class="bar">
 <button id="loginBtn" class="blue">Anmelden</button>
-<button id="showRegister" class="gray">Neuer Mitarbeiter</button>
+<!-- Selbstregistrierung entfernt: Konten legt neu ein Administrator in den Einstellungen an. -->
+<button id="showRegister" class="gray" hidden>Neuer Mitarbeiter</button>
 </div>
 <div class="small" id="loginError" style="color:var(--red)"></div>
 </div>
@@ -82,7 +83,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.83</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.84</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -251,6 +252,17 @@
 </div>
 
 <!-- FEEDBACK -->
+<div id="passwortModal" class="modal" hidden>
+<div class="modal-card">
+<h2>Eigenes Passwort festlegen</h2>
+<div class="info">Bitte vergib ein eigenes Passwort. Mindestens 8 Zeichen. Ohne diesen Schritt geht es nicht weiter.</div>
+<div><label>Neues Passwort</label><input id="pwNeu" type="password" autocomplete="new-password"></div>
+<div><label>Nochmals eingeben</label><input id="pwNeu2" type="password" autocomplete="new-password"></div>
+<div id="pwFehler" class="small" style="color:#b42318;margin-top:6px"></div>
+<div class="bar" style="margin-top:10px"><button id="pwSpeichern" class="green">Passwort speichern</button><button type="button" id="pwAbmelden" class="gray">Abmelden</button></div>
+</div>
+</div>
+
 <div id="feedbackModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
@@ -689,6 +701,15 @@
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="protected" hidden>
+<div class="settings-section" data-section="sicherung">
+<div class="settings-section-head" data-toggle-section="sicherung"><h2>Datensicherung</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Lädt alle Daten als eine Datei auf dieses Gerät. Sinnvoll einmal im Monat und immer vor einer Änderung an der Datenbank.</div>
+<div class="bar" style="margin-bottom:14px"><button id="datenSichern" class="green">⬇️ Sicherung herunterladen</button></div>
+<div id="sicherungInfo" class="small"></div>
+</div>
+</div>
+
 <div class="settings-section" data-section="module-test">
 <div class="settings-section-head" data-toggle-section="module-test"><h2>Module in Entwicklung</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
@@ -730,6 +751,11 @@
 <div class="settings-section" data-section="employees">
 <div class="settings-section-head" data-toggle-section="employees"><h2>Mitarbeiter</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
+<div class="grid" style="margin-bottom:8px">
+<div><label>Vorname</label><input id="neuMitarbeiterVor" placeholder="Vorname"></div>
+<div><label>Nachname</label><input id="neuMitarbeiterNach" placeholder="Nachname"></div>
+</div>
+<div class="bar" style="margin-bottom:12px"><button id="mitarbeiterAnlegen" class="green">＋ Mitarbeiterkonto anlegen</button></div>
 <div id="employeeSettings"></div>
 <button id="newEmployee" class="gray">＋ Mitarbeiter hinzufügen</button>
 </div>
