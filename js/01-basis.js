@@ -108,6 +108,9 @@ let rinneDilaMass=-165;
 // Masse für die Mauerabdeckung, firmenweit aus app_settings.
 let madBodenMass=0;
 let madSchieberMass=0;
+// Module in Entwicklung: nur für Administratoren sichtbar.
+// Schlüssel: "meas:<art>" bzw. "am:<art>" -> true = versteckt für alle anderen.
+let moduleImTest={};
 let isMike=false;
 let protectedUnlocked=false;
 const PROTECTED_PASSWORD="Rinnen_ml95";

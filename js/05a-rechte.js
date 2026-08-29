@@ -100,6 +100,26 @@ async function applyRechte(){
  });
  b.classList.toggle("recht-einstellungen-ansehen",!meineRechte.kataloge);
  b.classList.toggle("ist-admin",!!meineRechte.admin);
+ applyModuleTest();
+}
+
+// ---- Module in Entwicklung ----
+// Ein Modul im Testbetrieb erscheint nur bei Administratoren. So kann eine
+// Funktion fertig gebaut werden, ohne dass jemand mit halbfertigen Zahlen
+// arbeitet.
+function modulImTest(schluessel){
+ return !!(moduleImTest&&moduleImTest[schluessel]);
+}
+function modulGesperrt(schluessel){
+ return modulImTest(schluessel)&&!meineRechte.admin;
+}
+function applyModuleTest(){
+ document.querySelectorAll("[data-choose-meas-type]").forEach(b=>{
+  b.hidden=modulGesperrt("meas:"+b.dataset.chooseMeasType);
+ });
+ document.querySelectorAll("[data-choose-am-type]").forEach(b=>{
+  b.hidden=modulGesperrt("am:"+b.dataset.chooseAmType);
+ });
 }
 
 // Sperrt das Formular, wenn der geöffnete Eintrag jemand anderem gehört.

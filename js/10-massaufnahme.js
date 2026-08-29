@@ -272,6 +272,7 @@ $("measProjectResults").addEventListener("click",e=>{
 });
 
 function newMeasurementWithType(type){
+ if(modulGesperrt("meas:"+type)){alert("Dieses Modul ist noch in Entwicklung und steht vorerst nur Administratoren zur Verfügung.");return}
  sperreFuerEintrag("massaufnahme",null);
  isDirty=false;
  measEditReturnTo="measurementsModal";

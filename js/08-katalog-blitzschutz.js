@@ -153,6 +153,10 @@ function renderSettings(){
  $("feedbackTabBtn").hidden=!isAdmin();
  const dilaFeld=$("rinneDilaMassInput");
  if(dilaFeld)dilaFeld.value=rinneDilaMass;
+ const madBoden=$("madBodenMassInput"),madSchieber=$("madSchieberMassInput");
+ if(madBoden)madBoden.value=madBodenMass;
+ if(madSchieber)madSchieber.value=madSchieberMass;
+ if(typeof renderModuleTestListe==="function")renderModuleTestListe();
  renderMitarbeiterSettings();
  const ro=protectedUnlocked?"":"disabled";
  $("rateSettings").innerHTML=settings.rates.map((r,i)=>`<div class="settingrow"><input data-set-rate-name="${i}" value="${esc(r[0])}" ${ro}><input data-set-rate-value="${i}" type="number" step=".01" value="${r[1]}" ${ro}>${protectedUnlocked?`<button class="red" data-del-rate="${i}">Löschen</button>`:'<span></span>'}</div>`).join("");

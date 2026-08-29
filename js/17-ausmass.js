@@ -190,6 +190,7 @@ $("amProjectResults").addEventListener("click",e=>{
 });
 
 function newAusmassWithType(type){
+ if(modulGesperrt("am:"+type)){alert("Dieses Modul ist noch in Entwicklung und steht vorerst nur Administratoren zur Verfügung.");return}
  sperreFuerEintrag("ausmass",null);
  isDirty=false;
  amEditReturnTo="ausmassModal";

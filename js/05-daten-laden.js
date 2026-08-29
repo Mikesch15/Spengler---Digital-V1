@@ -27,6 +27,9 @@ async function loadAllData(){
   logoUrl=appSettingsRes.data.logo_url||"";
   defaultVat=appSettingsRes.data.default_vat||"8.1 %";
   if(appSettingsRes.data.rinne_dila_mass_mm!==null&&appSettingsRes.data.rinne_dila_mass_mm!==undefined)rinneDilaMass=Number(appSettingsRes.data.rinne_dila_mass_mm)||0;
+  if(appSettingsRes.data.mad_boden_mass_mm!==null&&appSettingsRes.data.mad_boden_mass_mm!==undefined)madBodenMass=Number(appSettingsRes.data.mad_boden_mass_mm)||0;
+  if(appSettingsRes.data.mad_schieber_mass_mm!==null&&appSettingsRes.data.mad_schieber_mass_mm!==undefined)madSchieberMass=Number(appSettingsRes.data.mad_schieber_mass_mm)||0;
+  moduleImTest=appSettingsRes.data.module_test||{};
  }
  blitzschutzMaterials=bzRes.data||[];
  rinneFittingTypes=rinneRes.data||[];
