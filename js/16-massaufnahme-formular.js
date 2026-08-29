@@ -358,7 +358,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <div class="eb-section-head">Profil (Querschnitt)</div>
 <div class="eb-diagram">${madProfilSvgAus(d.profil)}</div>
 <div class="eb-section-head">Grundriss</div>
-<div class="eb-diagram">${generateRinneGrundriss(segs,d.schieber||[],d.boundaries||[])}</div>
+<div class="eb-diagram">${generateRinneGrundriss(segs,d.schieber||[],d.boundaries||[],{anfang:!!(segs[0]&&segs[0].bodenLinks),ende:!!(segs[segs.length-1]&&segs[segs.length-1].bodenRechts)})}</div>
 <div class="eb-section-head">Segmente</div>
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th><th>Boden Anfang</th><th>Boden Ende</th></tr></thead>
@@ -366,8 +366,8 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 </table>
 <div class="eb-section-head">Schieber und Zuschnitt</div>
 <table class="eb-cutlist">
-<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th>Position ab Start (mm)</th></tr></thead>
-<tbody>${stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${Math.round(st.zuschnitt)}</td><td>${Math.round(st.pos)}</td></tr>`).join("")}</tbody>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th></tr></thead>
+<tbody>${stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${Math.round(st.zuschnitt)}</td></tr>`).join("")}</tbody>
 </table>
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="einlaufblech_konisch"){

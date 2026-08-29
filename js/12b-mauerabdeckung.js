@@ -320,7 +320,11 @@ function renderMadAuswertung(){
  if(!$("mad_manuell").checked)madSchieber=schieber;
  const stuecke=berechneMadStueckliste(madSegments,madSchieber,boundaries,madBodenMass,madSchieberMass);
  zeigeMadProfil();
- $("mad_grundriss").innerHTML=madSegments.length?generateRinneGrundriss(madSegments,madSchieber.map(s=>({posAbStart:s.posAbStart})),boundaries):"";
+ const endenMitBoden={
+  anfang:!!(madSegments[0]&&madSegments[0].bodenLinks),
+  ende:!!(madSegments[madSegments.length-1]&&madSegments[madSegments.length-1].bodenRechts)
+ };
+ $("mad_grundriss").innerHTML=madSegments.length?generateRinneGrundriss(madSegments,madSchieber.map(s=>({posAbStart:s.posAbStart})),boundaries,endenMitBoden):"";
  $("mad_stuecklisteBody").innerHTML=stuecke.map(st=>`<tr${st.schieberIndex===null?' style="background:var(--card-bg,#f7fafc)"':""}>
 <td>${st.nr}</td>
 <td>${esc(st.von)} → ${esc(st.bis)}</td>
@@ -383,7 +387,10 @@ $("mad_stuecklisteBody").addEventListener("input",e=>{
  $("mad_manuell").checked=true;
  madSchieber[i].posAbStart=prev+(Number(t.value)||0);
  const {boundaries}=computeMadBoundaries(madSegments);
- $("mad_grundriss").innerHTML=madSegments.length?generateRinneGrundriss(madSegments,madSchieber,boundaries):"";
+ $("mad_grundriss").innerHTML=madSegments.length?generateRinneGrundriss(madSegments,madSchieber,boundaries,{
+  anfang:!!(madSegments[0]&&madSegments[0].bodenLinks),
+  ende:!!(madSegments[madSegments.length-1]&&madSegments[madSegments.length-1].bodenRechts)
+ }):"";
 });
 $("mad_stuecklisteBody").addEventListener("change",e=>{
  if(e.target.dataset.madSchieberAbstand===undefined)return;

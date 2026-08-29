@@ -233,9 +233,12 @@ $("rinne_dilasBody").addEventListener("click",e=>{
  renderRinneDilasList();
  updateRinneDiagramAndSummary();
 });
-function generateRinneGrundriss(segments,dilas,boundaries){
+function generateRinneGrundriss(segments,dilas,boundaries,enden){
  dilas=dilas||[];
  boundaries=boundaries||[];
+ // enden: {anfang:true,ende:true} – setzt bei der Mauerabdeckung ein
+ // Bodenzeichen an das jeweilige Ende der Linie.
+ enden=enden||{};
  if(!segments.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Segmente für den Grundriss.</div>';
  let x=0,y=0,dir=0;
  const pts=[{x,y}];
@@ -274,6 +277,18 @@ function generateRinneGrundriss(segments,dilas,boundaries){
   const p3x=shaftEndX-ux*headWidth,p3y=shaftEndY-uy*headWidth;
   arrows+=`<polygon points="${mx.toFixed(1)},${my.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)} ${p3x.toFixed(1)},${p3y.toFixed(1)}" fill="#b42318"/>`;
  }
+ let boeden="";
+ const bodenZeichen=(punkt,nachbar,text)=>{
+  const [px1,py1]=toSvg(punkt), [px2,py2]=toSvg(nachbar);
+  const dx=px2-px1, dy=py2-py1, len=Math.hypot(dx,dy)||1;
+  const ux=dx/len, uy=dy/len;      // zeigt ins Innere der Linie
+  const nx=-uy, ny=ux;             // quer dazu
+  const halb=11;
+  return `<line x1="${(px1+nx*halb).toFixed(1)}" y1="${(py1+ny*halb).toFixed(1)}" x2="${(px1-nx*halb).toFixed(1)}" y2="${(py1-ny*halb).toFixed(1)}" stroke="#0f766e" stroke-width="5" stroke-linecap="round"/>`
+   +`<text x="${(px1-ux*16).toFixed(1)}" y="${(py1-uy*16).toFixed(1)}" font-size="11" fill="#0f766e" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">${esc(text)}</text>`;
+ };
+ if(enden.anfang&&pts.length>1)boeden+=bodenZeichen(pts[0],pts[1],"Boden");
+ if(enden.ende&&pts.length>1)boeden+=bodenZeichen(pts[pts.length-1],pts[pts.length-2],"Boden");
  let symbols="";
  for(let i=0;i<segments.length;i++){
   const sp=toSvg(pts[i]),ep=toSvg(pts[i+1]);
@@ -339,7 +354,7 @@ function generateRinneGrundriss(segments,dilas,boundaries){
    dilaMasse+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="9.5" fill="#b45a09" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(gap)}</text>`;
   }
  }
- return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${labels}${posNummern}${symbols}${dilaMarks}${dilaMasse}</svg>`;
+ return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${labels}${posNummern}${symbols}${boeden}${dilaMarks}${dilaMasse}</svg>`;
 }
 function renderRinneSegmentsTable(){
  const options=rinneFittingTypes.map(f=>`<option value="${f.id}">${esc(f.symbol?f.symbol+" – ":"")}${esc(f.name)}</option>`).join("");
