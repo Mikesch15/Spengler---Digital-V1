@@ -198,7 +198,9 @@ function madProfilSvgAus(m){
  const pfeil=ansichtsPfeilSvg("rechts",W,H);
 
  // ---- Vermassung ----
- // Mitte der Zeichnung, um Beschriftungen nach aussen zu schieben
+ // Jedes Mass steht neben seinem Schenkel und ist mit einer feinen Linie
+ // damit verbunden. Kurze Schenkel bekommen mehr Abstand, und Beschriftungen,
+ // die einander zu nahe kommen, werden weiter nach aussen geschoben.
  const mitteX=alle.reduce((a2,p)=>a2+p[0],0)/alle.length;
  const mitteY=alle.reduce((a2,p)=>a2+p[1],0)/alle.length;
  const strecken=[
@@ -209,6 +211,7 @@ function madProfilSvgAus(m){
   {von:pRechtsUnten, bis:pRechtsEnde, mass:m.umR}
  ];
  saumPunkte.forEach(sp=>strecken.push({von:sp.kehre, bis:sp.ende, mass:m.saum}));
+ const gesetzt=[];
  let masse="";
  strecken.forEach(st=>{
   if(!st.mass)return;
@@ -216,38 +219,41 @@ function madProfilSvgAus(m){
   const mx=(a2[0]+b2[0])/2, my=(a2[1]+b2[1])/2;
   const dx=b2[0]-a2[0], dy2=b2[1]-a2[1], len=Math.hypot(dx,dy2)||1;
   let nx=-dy2/len, ny=dx/len;
-  // nach aussen kippen, weg von der Mitte
   if((mx-mitteX)*nx+(my-mitteY)*ny<0){nx=-nx;ny=-ny}
-  const lx=mx+nx*13, ly=my+ny*13;
+  // kurze Schenkel: Mass weiter weg, sonst klebt es auf der Ecke
+  let abstand=len<44?26:14;
+  let lx=mx+nx*abstand, ly=my+ny*abstand;
+  // Überschneidungen vermeiden
+  for(let versuch=0;versuch<6;versuch++){
+   const kollision=gesetzt.some(g=>Math.hypot(g[0]-lx,g[1]-ly)<20);
+   if(!kollision)break;
+   abstand+=12;
+   lx=mx+nx*abstand; ly=my+ny*abstand;
+  }
+  gesetzt.push([lx,ly]);
   let winkel=Math.atan2(dy2,dx)*180/Math.PI;
   if(winkel>90||winkel<-90)winkel+=180;
+  // feine Hilfslinie vom Schenkel zum Mass
+  masse+=`<line x1="${mx.toFixed(1)}" y1="${my.toFixed(1)}" x2="${(lx-nx*8).toFixed(1)}" y2="${(ly-ny*8).toFixed(1)}" stroke="#9bb0c1" stroke-width="0.8" stroke-dasharray="2 2"/>`;
   masse+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${winkel.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${Math.round(st.mass)}</text>`;
  });
 
- // ---- Biegewinkel an den Ecken ----
+ // ---- Biegewinkel: nur die beiden Ecken an der Deckfläche ----
  let winkelTexte="";
- for(let i=1;i<punkte.length-1;i++){
+ [2,3].forEach((i,nr)=>{
+  if(!punkte[i-1]||!punkte[i+1])return;
   const v=s2(punkte[i]), a2=s2(punkte[i-1]), b2=s2(punkte[i+1]);
   const ux=a2[0]-v[0], uy=a2[1]-v[1], wx=b2[0]-v[0], wy=b2[1]-v[1];
   const lu=Math.hypot(ux,uy)||1, lw=Math.hypot(wx,wy)||1;
   let cos=(ux*wx+uy*wy)/(lu*lw);
   cos=Math.max(-1,Math.min(1,cos));
-  // Winkel innen am Blech, so wie er an der Abkantbank abgelesen wird
-  const biege=Math.round(Math.acos(cos)*180/Math.PI);
-  if(biege>=180)continue; // gerade Stelle, keine Biegung
-  // Beschriftung auf die Winkelhalbierende, also in die Biegung hinein
+  const eigener=Math.round(Math.acos(cos)*180/Math.PI);
+  // Die beiden Werte werden über Kreuz angeschrieben
+  const anderer=180-eigener;
   let hx=ux/lu+wx/lw, hy=uy/lu+wy/lw;
   const hl=Math.hypot(hx,hy)||1;
-  const tx=v[0]+(hx/hl)*22, ty=v[1]+(hy/hl)*22;
-  winkelTexte+=`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-size="10" fill="#e07a1f" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">${biege}°</text>`;
- }
- // Säume sind immer 180°
- saumPunkte.forEach(sp=>{
-  const k=s2(sp.kehre), st2=s2(sp.start);
-  const tx=(k[0]+st2[0])/2, ty=(k[1]+st2[1])/2;
-  let rx=tx-mitteX, ry=ty-mitteY;
-  const rl=Math.hypot(rx,ry)||1;
-  winkelTexte+=`<text x="${(tx+rx/rl*16).toFixed(1)}" y="${(ty+ry/rl*16).toFixed(1)}" font-size="10" fill="#e07a1f" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">180°</text>`;
+  const tx=v[0]+(hx/hl)*24, ty=v[1]+(hy/hl)*24;
+  winkelTexte+=`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-size="11" fill="#e07a1f" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">${anderer}°</text>`;
  });
 
  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
