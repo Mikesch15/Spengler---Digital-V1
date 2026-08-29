@@ -83,7 +83,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.85</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.86</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -99,6 +99,7 @@
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="einlaufblech_konisch"><span class="start-nav-icon">📐</span><span>Einlaufblech konisch</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="freies_profil"><span class="start-nav-icon">📐</span><span>Freies Profil</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="mauerabdeckung"><span class="start-nav-icon">🧱</span><span>Mauerabdeckung</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="lukarne"><span class="start-nav-icon">🏚️</span><span>Lukarne Seitenverkleidung</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
 <button id="cancelMeasTypeChooser" class="gray">Abbrechen</button>
@@ -300,7 +301,7 @@
 <div class="card">
 <h2>📐 Neue Massaufnahme</h2>
 <div class="grid" style="margin-bottom:8px">
-<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option></select></div>
+<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
 <div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
@@ -444,6 +445,38 @@
 </div>
 <div class="bar"><button type="button" class="gray" id="mad_addSchieber">＋ Schieber von Hand</button></div>
 <div id="mad_summary" class="small" style="margin-top:6px"></div>
+</div>
+
+<div id="measTypeLukarne" hidden>
+<div class="info">Dreieckige Seitenwange einer Lukarne: vordere Kante senkrecht, obere Kante im Innenwinkel α dazu, beide treffen sich hinten in der Spitze. Die Scharen stehen senkrecht, Achsabstand und Scharbreite werden waagerecht gemessen; die letzte Schar bekommt die Restbreite. Der Hilfsriss ist die waagerechte Reisslinie, ab der jede Schar nach oben und unten abgemessen wird. Standardwerte und Zugaben stehen in Einstellungen → Massaufnahmen → "Lukarne Seitenverkleidung".</div>
+<div class="grid">
+<div><label>Vordere Höhe H (mm)</label><input id="luk_hoehe" type="number" step="1" inputmode="numeric"></div>
+<div><label>Obere Länge L (mm)</label><input id="luk_laengeOben" type="number" step="1" inputmode="numeric"></div>
+<div><label>Oberer Innenwinkel α (°)</label><input id="luk_winkel" type="number" step="0.1" inputmode="decimal"></div>
+<div><label>Achsabstand Scharen (mm)</label><input id="luk_achsabstand" type="number" step="1" inputmode="numeric"></div>
+<div><label>Hilfsriss unter Oberkante (mm)</label><input id="luk_hilfsriss" type="number" step="1" inputmode="numeric"></div>
+<div><label>Seite</label><select id="luk_seite"><option value="rechts">Rechte Seite</option><option value="links">Linke Seite</option></select></div>
+</div>
+<div class="bar" style="margin-top:6px"><button type="button" class="gray" id="openLukarneSettings">⚙️ Standardwerte und Zugaben</button></div>
+<div id="luk_hinweis" class="small" style="margin:6px 0"></div>
+<h2 style="margin-top:14px">Berechnete Geometrie</h2>
+<div class="grid">
+<div><label>Schräge A (Dach)</label><div id="luk_schraegeOut" style="font-weight:800;padding:9px 0">–</div></div>
+<div><label>Waagerechte Breite</label><div id="luk_breiteOut" style="font-weight:800;padding:9px 0">–</div></div>
+<div><label>Anzahl Scharen</label><div id="luk_anzahlOut" style="font-weight:800;padding:9px 0">–</div></div>
+<div><label>Verwendeter Hilfsriss</label><div id="luk_hilfsrissOut" style="font-weight:800;padding:9px 0">–</div></div>
+<div><label>Fläche</label><div id="luk_flaecheOut" style="font-weight:800;padding:9px 0">–</div></div>
+</div>
+<div id="luk_plan" class="eb-diagram-box eb-diagram-scroll"></div>
+<div class="small" style="color:var(--muted);margin-top:-4px">Der Plan lässt sich seitlich verschieben.</div>
+<h2 style="margin-top:14px">Scharen</h2>
+<div class="scroll">
+<table class="eb-table" style="table-layout:auto;min-width:640px">
+<thead><tr><th>Nr.</th><th>Ab Front</th><th>Breite</th><th>Länge vorne</th><th>Länge hinten</th><th>Zuschnitt B × L</th><th>↑ vorne</th><th>↓ vorne</th><th>↑ hinten</th><th>↓ hinten</th></tr></thead>
+<tbody id="luk_scharenBody"></tbody>
+</table>
+</div>
+<div id="luk_summary" class="small" style="margin-top:6px"></div>
 </div>
 
 <div id="measTypeEinlaufblechKonisch" hidden>
@@ -677,6 +710,20 @@
 </div>
 </div>
 
+<div class="settings-section" data-section="lukarne">
+<div class="settings-section-head" data-toggle-section="lukarne"><h2>Lukarne Seitenverkleidung</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Diese Werte gelten für alle Mitarbeiter. Achsabstand und Hilfsriss werden bei einer neuen Massaufnahme vorgeschlagen und lassen sich dort jederzeit überschreiben. Die Zugaben werden dem Zuschnitt jeder Schar zugerechnet – 0 = Zuschnitt entspricht dem gemessenen Mass. Negativer Wert = Abzug.</div>
+<div class="grid" style="margin-bottom:10px">
+<div><label>Standard-Achsabstand (mm)</label><input id="lukAchsabstandInput" type="number" step="1"></div>
+<div><label>Standard-Hilfsriss (mm)</label><input id="lukHilfsrissInput" type="number" step="1"></div>
+<div><label>Zugabe Scharbreite / Falz (mm)</label><input id="lukZugabeBreiteInput" type="number" step="1"></div>
+<div><label>Zugabe Scharlänge (mm)</label><input id="lukZugabeLaengeInput" type="number" step="1"></div>
+</div>
+<div class="bar" style="margin-bottom:14px"><button id="saveLukMasse" class="green">💾 Werte speichern</button></div>
+</div>
+</div>
+
 <div class="settings-section" data-section="rinne">
 <div class="settings-section-head" data-toggle-section="rinne"><h2>Rinne Halbrund – Anschlusstypen</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
@@ -873,6 +920,7 @@
 <script src="js/15-einlaufblech-stueckliste.js"></script>
 <script src="js/16-massaufnahme-formular.js"></script>
 <script src="js/17-ausmass.js"></script>
+<script src="js/19-lukarne.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>
 </html>
