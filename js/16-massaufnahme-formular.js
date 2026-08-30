@@ -304,6 +304,7 @@ function printMeasurement(m){
  .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
  .eb-cutlist td.warn{color:#b42318;font-weight:700}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
@@ -312,6 +313,7 @@ function printMeasurement(m){
 <tr>${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
 <tr>${cell("Dachneigung / Winkel",esc(d.winkel||0)+"°")}${cell("Montage",'von '+esc(d.montage||"–")+` (eng ${esc(engeSeite)})`)}</tr>
 <tr>${cell("Mass A",esc(d.massAEng||0)+` mm eng ${esc(engeSeite)} (${esc(d.massA||0)} mm)`)}${cell("Anzahl Stück",esc((pieces&&pieces.length)||0))}</tr>
+<tr>${cell("Material",matName)}</tr>
 </table>
 <div class="eb-diagram-row">
  <div class="eb-diagram">
@@ -440,6 +442,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
   const zugabeTxt=(d.zugabeBreite||d.zugabeLaenge)
    ? `${esc(Math.round(d.zugabeBreite||0))} mm Breite / ${esc(Math.round(d.zugabeLaenge||0))} mm Länge`
    : "keine";
+  const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
@@ -451,6 +454,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <tr>${cell("Waagerechte Breite",esc(Math.round(d.breite||0))+" mm")}${cell("Achsabstand Scharen",esc(Math.round(d.achsabstand||0))+" mm")}</tr>
 <tr>${cell("Hilfsriss unter Oberkante",esc(Math.round(d.hilfsriss||0))+" mm")}${cell("Fläche",esc((Math.round((d.flaeche||0)*100)/100).toFixed(2))+" m²")}</tr>
 <tr>${cell("Zugabe Zuschnitt",zugabeTxt)}${cell("Letzte Schar (Restbreite)",esc(Math.round(scharen.length?scharen[scharen.length-1].breite:0))+" mm")}</tr>
+<tr>${cell("Material",matName)}</tr>
 </table>
 <div class="eb-section-head">Plan</div>
 <div class="eb-diagram">${lukPlanSvg(g,{fuerDruck:true})}</div>
@@ -483,6 +487,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const deckName=(ANB_DECKUNGEN[d.deckung]||{}).name||"–";
+  const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
   const massZeilen=Object.keys((ANB_ARTEN[d.art]||{masse:{}}).masse)
    .map(k=>`<tr><td>${esc(k)}</td><td>${esc(ANB_ARTEN[d.art].masse[k].text||"")}</td><td>${esc(Math.round(Number(d[k])||0))} mm</td><td>${(()=>{const mi=anbMindestmass(d.art,k,d.deckung);return mi!==null?"mind. "+mi+" mm":"–"})()}</td></tr>`).join("");
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
@@ -492,6 +497,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Anschluss",esc(anbTitel(d)))}${cell("Deckmaterial",esc(deckName))}</tr>
 <tr>${cell("Zuschnittbreite",esc(Math.round(abw))+" mm")}${cell("Gesamtlänge",esc(Math.round(d.laenge||0))+" mm")}</tr>
+<tr>${cell("Material",matName)}</tr>
 </table>
 <div class="eb-section-head">Schnitt</div>
 <div class="eb-diagram">${anbZeichnung(d)}</div>
@@ -542,6 +548,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
   const masseEngeSeite=pieces.map(p=>Number(engeSeite==="links"?p.massLinks:p.massRechts)||0).filter(v=>v>0);
   const repMass=masseEngeSeite.length?masseEngeSeite.reduce((a,b)=>a+b,0)/masseEngeSeite.length:null;
   const restBreite=repMass?(Number(d.abwicklung)-repMass-(Number(einlaufblechKonischSettings.umschlag_oben)||0)-(Number(einlaufblechKonischSettings.umschlag_unten)||0)):null;
+  const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
@@ -549,6 +556,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
 <tr>${cell("Dachneigung / Winkel",esc(d.dachneigung||0)+"°")}${cell("Montage",'von '+esc(d.montage||"–")+` (eng ${esc(engeSeite)})`)}</tr>
+<tr>${cell("Material",matName)}</tr>
 </table>
 <div class="eb-diagram-row">
  <div class="eb-diagram">
@@ -588,12 +596,14 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:9.5pt}
  .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
 <tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
 <tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Anzahl Schenkel",esc(schenkel.length))}${cell("Konisch",konisch?"Ja":"Nein")}</tr>
+<tr>${cell("Material",matName)}</tr>
 </table>
 <div class="eb-section-head">Profil</div>
 <div class="eb-diagram">${generateProfilDiagramSvg(schenkel)}</div>
@@ -614,14 +624,16 @@ ${segmente.map((seg,i)=>`<div style="margin-top:3mm">
 </div>`).join("")}
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else{
+  const d=m.data||{};
   const sketches=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
+  const matName=(findMeasurementMaterial(d.material)||{}).name;
   extraCss=`
  img{max-width:100%;display:block;margin:0 auto 8mm;border:1px solid #ccc}
  img.photo{max-height:130mm}
  img.sketch{max-height:255mm}
  .sketch-page{page-break-before:always}`;
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
-<div class="meta">${metaCommon}</div>
+<div class="meta">${metaCommon}${matName?`<div><b>Material:</b> ${esc(matName)}</div>`:""}</div>
 ${m.photo_path?`<img class="photo" src="${esc(m.photo_path)}">`:""}
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}
 ${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze ${i+1} von ${sketches.length}</h2>`:""}<img class="sketch" src="${esc(s)}"></div>`).join("")}`;
