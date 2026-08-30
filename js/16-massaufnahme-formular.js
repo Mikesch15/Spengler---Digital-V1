@@ -515,6 +515,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <tbody>${teile.map(t=>`<tr><td>${esc(t.name)}</td><td>${esc(Math.round(t.abwicklung))}</td></tr>`).join("")}</tbody>
 </table>
 ${(erg&&erg.ohneZuschnitt&&erg.ohneZuschnitt.length)?`<div class="note">${erg.ohneZuschnitt.map(n=>esc(n)).join(" und ")} nicht im Zuschnitt enthalten – eigenes Material.</div>`:""}
+${(erg&&erg.anzahlBleilappen!==null)?`<div class="note"><b>Anzahl Bleilappen:</b> ${esc(erg.anzahlBleilappen)} (Lattenabstand ${esc(Math.round(d.lattenabstand||0))} mm)</div>`:""}
 ${stuecke.length?`<div class="eb-section-head">Stückliste</div>
 <table class="eb-cutlist">
 <thead><tr><th>Stück</th><th>Zuschnitt Länge (mm)</th><th>Zuschnitt Breite (mm)</th></tr></thead>

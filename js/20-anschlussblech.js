@@ -551,6 +551,14 @@ function berechneAnschlussblech(e) {
   const abwGesamt = teile.reduce((s, t) => s + t.abwicklung, 0);
   const flaeche = laenge > 0 ? (abwGesamt / 1000) * (laenge / 1000) : 0;
 
+  // Anzahl Bleilappen: je Dachlatte entlang der Gesamtlänge einer, auf
+  // ganze Latten aufgerundet.
+  let anzahlBleilappen = null;
+  if (e.art === "bleilappen") {
+    const lattenabstand = Math.max(1, Number(e.lattenabstand) || 0);
+    anzahlBleilappen = laenge > 0 ? Math.ceil(laenge / lattenabstand) : 0;
+  }
+
   return {
     teile: teile,
     ohneZuschnitt: ohneZuschnitt,
@@ -559,6 +567,7 @@ function berechneAnschlussblech(e) {
     laenge: Math.round(laenge),
     stuecke: stuecke,
     flaeche: Math.round(flaeche * 100) / 100,
+    anzahlBleilappen: anzahlBleilappen,
     profil: p
   };
 }
@@ -583,7 +592,8 @@ const ANSCHLUSSBLECH_STANDARD = Object.freeze({
   ort_aufkantung: 60,         // Ortblech: Höhe über Dach
   ort_oben: 80,               // Ortblech: Übergriff über das Ortbrett
   ort_stirn: 120,             // Ortblech: Höhe der Stirnseite
-  ort_nase: 20                // Ortblech: Wassernase
+  ort_nase: 20,               // Ortblech: Wassernase
+  lattenabstand: 330          // Bleilappen: Abstand der Dachlatten, für Anzahl Bleilappen
 });
 const ANB_EINSTELLUNGEN = "sd_anschlussblechSettings";
 
@@ -617,7 +627,8 @@ function anbVorgabe() {
     ortStirn: s.ort_stirn, ortNase: s.ort_nase,
     laenge: 0, stossLaenge: s.stoss_laenge, ueberlappung: s.ueberlappung,
     restSchwelle: s.rest_schwelle, gehrungszugabe: s.gehrungszugabe,
-    firstgehrung: false
+    firstgehrung: false,
+    lattenabstand: s.lattenabstand
   };
   return Object.assign(w, anbStandardwerte(art, deckung, {}));
 }
@@ -648,6 +659,7 @@ function anbEingabenAusFeldern() {
     laenge: zahl("anb_laenge"),
     stossLaenge: zahl("anb_stossLaenge"),
     ueberlappung: zahl("anb_ueberlappung"),
+    lattenabstand: zahl("anb_lattenabstand"),
     firstgehrung: $("anb_firstgehrung") ? !!$("anb_firstgehrung").checked : false
   };
   document.querySelectorAll("#anb_masse [data-anb],#anb_abschluss [data-anb]")
@@ -672,6 +684,8 @@ function anbFesteFelderFuellen(w) {
   $("anb_laenge").value = w.laenge ? Math.round(w.laenge) : "";
   $("anb_stossLaenge").value = Math.round(w.stossLaenge);
   $("anb_ueberlappung").value = Math.round(w.ueberlappung);
+  $("anb_lattenabstand").value = Math.round(w.lattenabstand || 0);
+  $("anb_lattenabstandField").hidden = w.art !== "bleilappen";
   if ($("anb_firstgehrung")) $("anb_firstgehrung").checked = !!w.firstgehrung;
 }
 
@@ -732,7 +746,8 @@ function renderAnbResult() {
     kasten("Zuschnittbreite", erg.abwicklung + " mm")
     + erg.teile.map(t => kasten("Abwicklung " + t.name, t.abwicklung + " mm")).join("")
     + kasten("Anzahl Stücke", erg.stuecke.length || "–")
-    + kasten("Materialfläche", erg.flaeche ? erg.flaeche.toFixed(2) + " m²" : "–");
+    + kasten("Materialfläche", erg.flaeche ? erg.flaeche.toFixed(2) + " m²" : "–")
+    + (erg.anzahlBleilappen !== null ? kasten("Anzahl Bleilappen", erg.anzahlBleilappen || "–") : "");
 
   $("anb_stuecklisteBody").innerHTML = erg.stuecke.length
     ? erg.stuecke.map(s => `<tr><td>${s.nr}${s.gehrung ? " · First" : ""}</td><td>${s.laenge}</td><td>${erg.abwicklung}</td></tr>`).join("")
@@ -747,9 +762,10 @@ function renderAnbResult() {
     const ohneTxt = erg.ohneZuschnitt.length
       ? ` ${erg.ohneZuschnitt.join(" und ")} nicht im Zuschnitt – eigenes Material.`
       : "";
+    const bleilappenTxt = erg.anzahlBleilappen !== null ? ` ${erg.anzahlBleilappen} Bleilappen.` : "";
     zus.textContent = (erg.stuecke.length
       ? `${anbTitel(e)} · ${erg.stuecke.length} Stück, Zuschnitt ${erg.abwicklung} mm breit.${gehrungTxt}`
-      : `${anbTitel(e)} · Zuschnittbreite ${erg.abwicklung} mm.`) + ohneTxt;
+      : `${anbTitel(e)} · Zuschnittbreite ${erg.abwicklung} mm.`) + ohneTxt + bleilappenTxt;
   }
 }
 
@@ -789,6 +805,7 @@ function applyAnschlussblechSettings() {
   setzen("anbsOrtOben", s.ort_oben);
   setzen("anbsOrtStirn", s.ort_stirn);
   setzen("anbsOrtNase", s.ort_nase);
+  setzen("anbsLattenabstand", s.lattenabstand);
 }
 
 // ---- 8. Bedienung ------------------------------------------------
@@ -815,7 +832,7 @@ function applyAnschlussblechSettings() {
     anbMassfelderZeichnen(anbEingabenAusFeldern());
     renderAnbResult();
   };
-  ["anb_saum", "anb_laenge", "anb_stossLaenge", "anb_ueberlappung"]
+  ["anb_saum", "anb_laenge", "anb_stossLaenge", "anb_ueberlappung", "anb_lattenabstand"]
     .forEach(id => { const el = $(id); if (el) el.addEventListener("input", renderAnbResult); });
   if ($("anb_firstgehrung")) $("anb_firstgehrung").addEventListener("change", renderAnbResult);
 
@@ -858,12 +875,13 @@ function applyAnschlussblechSettings() {
       ort_aufkantung: zahl("anbsOrtAufkantung") || 0,
       ort_oben: zahl("anbsOrtOben") || 0,
       ort_stirn: zahl("anbsOrtStirn") || 0,
-      ort_nase: zahl("anbsOrtNase") || 0
+      ort_nase: zahl("anbsOrtNase") || 0,
+      lattenabstand: zahl("anbsLattenabstand") || 0
     };
     if (!ANB_DECKUNGEN[w.deckung]) { alert("Bitte ein Deckmaterial wählen."); return; }
     if (!(w.stoss_laenge > 0)) { alert("Bitte eine gültige Stücklänge eingeben."); return; }
     if (w.ueberlappung >= w.stoss_laenge) { alert("Die Überlappung muss kleiner sein als die Stücklänge."); return; }
-    const negativ = ["saum", "ueberlappung", "rest_schwelle", "gehrungszugabe", "wand_aufkantung", "ort_aufkantung", "ort_oben", "ort_stirn", "ort_nase"]
+    const negativ = ["saum", "ueberlappung", "rest_schwelle", "gehrungszugabe", "wand_aufkantung", "ort_aufkantung", "ort_oben", "ort_stirn", "ort_nase", "lattenabstand"]
       .some(k => w[k] < 0);
     if (negativ) { alert("Diese Werte dürfen nicht negativ sein."); return; }
     anbEinstellungenSichern(w);
