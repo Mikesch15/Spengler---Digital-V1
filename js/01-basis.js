@@ -102,6 +102,39 @@ let einlaufblechKonischSettings=JSON.parse(localStorage.getItem("sd_einlaufblech
 if(einlaufblechKonischSettings.end_zugabe===undefined)einlaufblechKonischSettings.end_zugabe=10;
 let blitzschutzMaterials=[];
 let rinneFittingTypes=[];
+// Material-Katalog für die Dropdowns bei jeder Massaufnahme-Art (Einstellungen
+// → Massaufnahmen → "Material"). max_abstand_mm/ab_fixpunkt_mm werden nur von
+// Rinne Halbrund und Mauerabdeckung für die SIA-271-Dila-/Schieber-Berechnung
+// benutzt, bei den übrigen Arten ist das Dropdown rein informativ.
+let measurementMaterials=[];
+// Findet einen Material-Eintrag anhand der neuen ID oder eines alten, vor der
+// Umstellung fest gespeicherten Schlüssels (z. B. "titanzink") – so bleiben
+// bereits gespeicherte Massaufnahmen lesbar. Ohne Treffer ein fester
+// Rückfallwert, damit die Dila-Berechnung nie abbricht.
+const MEASUREMENT_MATERIAL_FALLBACK={id:null,name:"Titanzink (Standard)",legacy_key:"titanzink",max_abstand_mm:5000,ab_fixpunkt_mm:2500};
+function findMeasurementMaterial(value){
+ if(value===undefined||value===null||value==="")return null;
+ return measurementMaterials.find(m=>String(m.id)===String(value))
+  ||measurementMaterials.find(m=>m.legacy_key===value)
+  ||null;
+}
+function measurementMaterialOrFallback(value){
+ return findMeasurementMaterial(value)||measurementMaterials.find(m=>m.legacy_key==="titanzink")||MEASUREMENT_MATERIAL_FALLBACK;
+}
+// Füllt alle Material-Dropdowns (Klasse "meas-material-select") mit dem
+// aktuellen Katalog, ohne die laufende Auswahl zu verlieren.
+function renderMeasMaterialOptions(){
+ document.querySelectorAll(".meas-material-select").forEach(sel=>{
+  const bisher=sel.value;
+  const pflicht=sel.dataset.measMaterialRequired==="1";
+  const optionen=measurementMaterials.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join("");
+  sel.innerHTML=(pflicht?"":'<option value="">– keine Auswahl –</option>')+optionen;
+  const treffer=findMeasurementMaterial(bisher);
+  if(treffer)sel.value=String(treffer.id);
+  else if(pflicht&&measurementMaterials.length)sel.value=String(measurementMaterialOrFallback(null).id||measurementMaterials[0].id);
+  else sel.value=bisher&&!pflicht?"":sel.value;
+ });
+}
 // Mass des Dilatationselements (Rinne Halbrund), je angrenzendem Stück.
 // Negativ = wird abgezogen. Firmenweit, kommt aus app_settings.
 let rinneDilaMass=-165;

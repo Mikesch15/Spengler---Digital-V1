@@ -1,7 +1,7 @@
 "use strict";
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
@@ -9,6 +9,7 @@ async function loadAllData(){
   sb.from("app_settings").select("*").eq("id",1).maybeSingle(),
   sb.from("blitzschutz_materials").select("*").order("bezeichnung"),
   sb.from("rinne_fitting_types").select("*").order("name"),
+  sb.from("measurement_materials").select("*").order("name"),
  ]);
  const rates=ratesRes.data||[];
  const materials=materialsRes.data||[];
@@ -37,8 +38,10 @@ async function loadAllData(){
  }
  blitzschutzMaterials=bzRes.data||[];
  rinneFittingTypes=rinneRes.data||[];
+ measurementMaterials=measMaterialsRes.data||[];
  applyCompanyName();
  applyEinlaufblechSettings();
+ renderMeasMaterialOptions();
 }
 function applyCompanyName(){
  document.querySelectorAll(".js-company-name").forEach(el=>el.textContent=companyName);

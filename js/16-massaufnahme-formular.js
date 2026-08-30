@@ -48,7 +48,7 @@ function buildMeasurementFromForm(){
   const massAEng=Math.max(0,massA-2);
   const restBreite=ebRestbreite();
   const gesamtlaenge=ebPieces.reduce((s,p)=>s+(Number(p.laenge)||0),0);
-  return {...base,photo_path:null,sketch_paths:[],data:{gesamtlaenge,massA,massAEng,winkel,montage,abwicklung,engeSeite,restBreite,pieces:ebPieces}};
+  return {...base,photo_path:null,sketch_paths:[],data:{gesamtlaenge,massA,massAEng,winkel,montage,abwicklung,engeSeite,restBreite,pieces:ebPieces,material:$("eb_material").value}};
  }
  if(type==="rinne_halbrund"){
   const segmentsWithZuschnitt=rinneSegments.map(s=>({...s,zuschnittlaenge:calcRinneSegment(s)}));
@@ -67,11 +67,11 @@ function buildMeasurementFromForm(){
   const engeSeite=ebkEngeSeite();
   const gesamtlaenge=ebkPieces.reduce((s,p)=>s+(Number(p.laenge)||0),0);
   const piecesWithEng=ebkPieces.map(p=>({...p,...calcEbkPiece(p)}));
-  return {...base,photo_path:null,sketch_paths:[],data:{abwicklung,dachneigung,montage,engeSeite,pieces:piecesWithEng,gesamtlaenge}};
+  return {...base,photo_path:null,sketch_paths:[],data:{abwicklung,dachneigung,montage,engeSeite,pieces:piecesWithEng,gesamtlaenge,material:$("ebk_material").value}};
  }
  if(type==="freies_profil"){
   const konisch=$("fp_konisch").value==="ja";
-  return {...base,photo_path:null,sketch_paths:[],data:{schenkel:fpSchenkel,konisch,segmente:fpSegmente,ansicht:$("fp_ansicht").value}};
+  return {...base,photo_path:null,sketch_paths:[],data:{schenkel:fpSchenkel,konisch,segmente:fpSegmente,ansicht:$("fp_ansicht").value,material:$("fp_material").value}};
  }
  if(type==="mauerabdeckung"){
   const material=$("mad_material").value;
@@ -110,7 +110,8 @@ function buildMeasurementFromForm(){
    flaeche:g.flaeche,
    zugabeBreite:g.zugabeBreite,
    zugabeLaenge:g.zugabeLaenge,
-   scharen:g.scharen
+   scharen:g.scharen,
+   material:$("luk_material").value
   }};
  }
  if(type==="anschlussblech"){
@@ -121,10 +122,11 @@ function buildMeasurementFromForm(){
    abwicklung:g?g.abwicklung:0,
    teile:g?g.teile:[],
    stueckliste:g?g.stuecke:[],
-   flaeche:g?g.flaeche:0
+   flaeche:g?g.flaeche:0,
+   material:$("anb_material").value
   }};
  }
- return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{}};
+ return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{material:$("foto_material")?$("foto_material").value:""}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(buildMeasurementFromForm());
 $("cancelMeasurement").onclick=()=>{
@@ -344,7 +346,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const fittingLabel=id=>{const f=rinneFittingTypes.find(x=>x.id===Number(id));return f?`${f.symbol?f.symbol+" – ":""}${f.name}`:"–"};
   const dilas=d.dilas||[];
-  const matTab=RINNE_AUSDEHNUNG_TABELLE[d.material]||RINNE_AUSDEHNUNG_TABELLE.titanzink;
+  const matTab=rinneMaterialTabelle(d.material);
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
@@ -390,7 +392,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const d=m.data||{};
   const segs=d.segments||[];
-  const tab=MAD_AUSDEHNUNG_TABELLE[d.material]||MAD_AUSDEHNUNG_TABELLE.titanzink;
+  const tab=madMaterialTabelle(d.material);
   const stuecke=(Array.isArray(d.stueckliste)&&d.stueckliste.length)
    ? d.stueckliste
    : berechneMadStueckliste(segs,d.schieber||[],d.boundaries||[],d.bodenMass??madBodenMass,d.schieberMass??madSchieberMass);

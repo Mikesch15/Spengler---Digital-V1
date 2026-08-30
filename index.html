@@ -83,7 +83,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.90</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.91</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -312,6 +312,9 @@
 </div>
 
 <div id="measTypeFoto">
+<div class="grid" style="margin-bottom:8px">
+<div><label>Material</label><select id="foto_material" class="meas-material-select"></select></div>
+</div>
 <div class="meas-columns">
 <div>
 <label>Foto</label>
@@ -340,6 +343,7 @@
 <div><label>Dachneigung / Winkel (°) (Pflichtfeld)</label><input id="eb_winkel" type="number" step="0.1"></div>
 <div><label>Montage</label><select id="eb_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
 <div><label>Abwicklung (mm)</label><select id="eb_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
+<div><label>Material</label><select id="eb_material" class="meas-material-select"></select></div>
 </div>
 <div class="bar">
 <button type="button" class="gray" id="eb_regenerate">🔄 Stücke aus Gesamtlänge berechnen</button>
@@ -369,14 +373,7 @@
 <div class="info">Jedes Segment ist ein gerades Rinnenstück. Winkel = Richtungsänderung zum nächsten Segment (90° = normale Gebäudeecke). Anschlusstypen und deren Masse werden in Einstellungen → Massaufnahmen verwaltet.</div>
 <div class="grid">
 <div><label>Rinnenabwicklung (mm)</label><select id="rinne_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
-<div><label>Material</label><select id="rinne_material">
-<option value="aluminium">Aluminium</option>
-<option value="titanzink" selected>Titanzink</option>
-<option value="kupfer">Kupfer</option>
-<option value="crni_stahl">CrNi-Stahl</option>
-<option value="chromstahl_verzinnt">Chromstahl, verzinnt</option>
-<option value="stahl_verzinkt">Stahl, verzinkt</option>
-</select></div>
+<div><label>Material</label><select id="rinne_material" class="meas-material-select" data-meas-material-required="1"></select></div>
 </div>
 <div id="rinne_diagram" class="eb-diagram-box"></div>
 <h2 style="margin-top:14px">Segmente</h2>
@@ -405,11 +402,7 @@
 <div id="measTypeMauerabdeckung" hidden>
 <div class="info">Jedes Segment ist ein gerades Stück Mauerabdeckung. Winkel = Richtungsänderung zum nächsten Segment (90° = normale Ecke). Schieber werden nach SIA 271 automatisch gesetzt; ab einer Ecke gilt der halbe Abstand. Die Masse für Boden und Schieber stehen in Einstellungen → Massaufnahmen.</div>
 <div class="grid">
-<div><label>Material</label><select id="mad_material">
-<option value="kupfer_crni">Kupfer / CrNi-Stahl / Chromstahl verzinnt</option>
-<option value="titanzink" selected>Titanzink</option>
-<option value="aluminium">Aluminium (Aluman)</option>
-</select></div>
+<div><label>Material</label><select id="mad_material" class="meas-material-select" data-meas-material-required="1"></select></div>
 </div>
 <h2 style="margin-top:14px">Profil (Querschnitt)</h2>
 <div class="grid">
@@ -457,6 +450,7 @@
 <div><label>Achsabstand Scharen (mm)</label><input id="luk_achsabstand" type="number" step="1" inputmode="numeric"></div>
 <div><label>Hilfsriss unter Oberkante (mm)</label><input id="luk_hilfsriss" type="number" step="1" inputmode="numeric"></div>
 <div><label>Seite</label><select id="luk_seite"><option value="rechts">Rechte Seite</option><option value="links">Linke Seite</option></select></div>
+<div><label>Material</label><select id="luk_material" class="meas-material-select"></select></div>
 </div>
 <div class="bar" style="margin-top:6px"><button type="button" class="gray" id="openLukarneSettings">⚙️ Standardwerte und Zugaben</button></div>
 <div id="luk_hinweis" class="small" style="margin:6px 0"></div>
@@ -490,6 +484,7 @@
 <div><label>Anschlussart</label><select id="anb_art"></select></div>
 <div><label>Ausf&uuml;hrung</label><select id="anb_ausfuehrung"><option value="seite">Seitenblech (Wand)</option><option value="ort">Ortblech (Giebel)</option></select></div>
 <div><label>H&ouml;he Deckmaterial (mm)</label><input id="anb_deckHoehe" type="number" step="1" inputmode="numeric"></div>
+<div><label>Material</label><select id="anb_material" class="meas-material-select"></select></div>
 </div>
 <h2 style="margin-top:14px">Masse des Schnitts</h2>
 <div class="grid" id="anb_masse"></div>
@@ -528,6 +523,7 @@
 <div><label>Dachneigung / Winkel (°)</label><input id="ebk_dachneigung" type="number" step="0.1"></div>
 <div><label>Montage</label><select id="ebk_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
 <div><label>Abwicklung (mm)</label><select id="ebk_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
+<div><label>Material</label><select id="ebk_material" class="meas-material-select"></select></div>
 </div>
 
 <div class="settings-section" data-section="ebk-uebernahme" style="margin:8px 0 10px">
@@ -580,6 +576,7 @@
 <div class="grid" style="margin-top:10px">
 <div><label>Konisch (Mass links/rechts pro Schenkel)</label><select id="fp_konisch"><option value="nein">Nein</option><option value="ja">Ja</option></select></div>
 <div><label>Ansichtspfeil</label><select id="fp_ansicht"><option value="keiner">kein Pfeil</option><option value="links" selected>von links</option><option value="oben">von oben</option><option value="rechts">von rechts</option><option value="unten">von unten</option></select></div>
+<div><label>Material</label><select id="fp_material" class="meas-material-select"></select></div>
 </div>
 
 <h2 style="margin-top:14px">Segmente</h2>
@@ -707,6 +704,14 @@
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="measurements" hidden>
+<div class="settings-section" data-section="material">
+<div class="settings-section-head" data-toggle-section="material"><h2>Material</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt firmenweit für alle. Die beiden Zahlenfelder werden nur bei "Rinne Halbrund" und "Mauerabdeckung" für die Dehnungsabstände nach SIA 271 gebraucht – bei allen anderen Arten leer lassen.</div>
+<div id="measMaterialSettings"></div>
+<div class="bar" style="margin-bottom:14px"><button id="newMeasMaterial" class="gray">＋ Material hinzufügen</button></div>
+</div>
+</div>
 <div class="settings-section open" data-section="einlaufblech">
 <div class="settings-section-head" data-toggle-section="einlaufblech"><h2>Einlaufblech gerade</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">

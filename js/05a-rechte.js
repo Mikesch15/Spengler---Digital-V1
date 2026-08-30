@@ -19,7 +19,7 @@ const RECHTE_BEREICHE=[
  {key:"massaufnahme", resource:"measurements", label:"Massaufnahme"},
  {key:"ausmass",      resource:"ausmass",      label:"Ausmass"}
 ];
-const RECHTE_KATALOGE=["materials","rates","blitzschutz_materials","rinne_fitting_types"];
+const RECHTE_KATALOGE=["materials","rates","blitzschutz_materials","rinne_fitting_types","measurement_materials"];
 
 const SEHEN_OPTIONEN=[
  {wert:"keine",  text:"gar nicht"},
@@ -159,7 +159,7 @@ function renderMitarbeiterSettings(){
    ${felder}
    <div class="rechte-bereich">
     <div class="rechte-bereich-titel">Kataloge</div>
-    <label class="rechte-schalter"><input type="checkbox" data-recht-kataloge="${i}"${r.kataloge?" checked":""}${istAdmin?" disabled":""}> darf Material, Stundenansätze, Blitzschutz und Rinnenteile ändern</label>
+    <label class="rechte-schalter"><input type="checkbox" data-recht-kataloge="${i}"${r.kataloge?" checked":""}${istAdmin?" disabled":""}> darf Material, Stundenansätze, Blitzschutz, Rinnenteile und Massaufnahme-Materialien ändern</label>
    </div>`
    :'<div class="small">Rechte kann nur ein Administrator ändern.</div>';
   return `<div class="rechte-zeile">

@@ -16,11 +16,12 @@
 // Die Eckenregel gilt für innere wie äussere Ecken gleichermassen.
 // ============================================================
 
-const MAD_AUSDEHNUNG_TABELLE={
- kupfer_crni:{label:"Kupfer / CrNi-Stahl / Chromstahl verzinnt",maxAbstand:6000,abEcke:3000},
- titanzink:  {label:"Titanzink",                                maxAbstand:5000,abEcke:2500},
- aluminium:  {label:"Aluminium (Aluman)",                       maxAbstand:4000,abEcke:2000}
-};
+// Werte kommen aus dem Material-Katalog (Einstellungen → Massaufnahmen →
+// "Material", Tabelle measurement_materials), gepflegt in 01-basis.js.
+function madMaterialTabelle(material){
+ const m=measurementMaterialOrFallback(material);
+ return {label:m.name,maxAbstand:Number(m.max_abstand_mm)||5000,abEcke:Number(m.ab_fixpunkt_mm)||2500};
+}
 
 let madSegments=[];   // {laenge,winkel,bodenLinks,bodenRechts}
 let madSchieber=[];   // {posAbStart}
@@ -47,7 +48,7 @@ function computeMadBoundaries(segments){
 
 // ---- Schieber automatisch setzen ----
 function calcMadSchieber(segments,material){
- const tab=MAD_AUSDEHNUNG_TABELLE[material]||MAD_AUSDEHNUNG_TABELLE.titanzink;
+ const tab=madMaterialTabelle(material);
  if(!segments.length)return{schieber:[],tabelle:tab,boundaries:[],gesamtlaenge:0};
  const {boundaries,gesamtlaenge}=computeMadBoundaries(segments);
  const schieber=[];

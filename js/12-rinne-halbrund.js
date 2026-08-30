@@ -12,14 +12,12 @@ function calcRinneSegment(seg){
 }
 // ---- Rinne Halbrund: automatische Dilatationselement-Platzierung ----
 // Werte gemäss Fachliteratur "Spenglerarbeiten", Kap. 4.1.5 "Ausdehnung".
-const RINNE_AUSDEHNUNG_TABELLE={
- aluminium:{label:"Aluminium",mitDehnungselement:4000,abFixpunkten:2000,freiEnden:8000,ausdehnungProM:2.4},
- titanzink:{label:"Titanzink",mitDehnungselement:5000,abFixpunkten:2500,freiEnden:10000,ausdehnungProM:2.1},
- kupfer:{label:"Kupfer",mitDehnungselement:6000,abFixpunkten:3000,freiEnden:12000,ausdehnungProM:1.7},
- crni_stahl:{label:"CrNi-Stahl",mitDehnungselement:6000,abFixpunkten:3000,freiEnden:12000,ausdehnungProM:1.6},
- chromstahl_verzinnt:{label:"Chromstahl, verzinnt",mitDehnungselement:8000,abFixpunkten:4000,freiEnden:16000,ausdehnungProM:1.1},
- stahl_verzinkt:{label:"Stahl, verzinkt",mitDehnungselement:8000,abFixpunkten:4000,freiEnden:16000,ausdehnungProM:1.2},
-};
+// Werte kommen aus dem Material-Katalog (Einstellungen → Massaufnahmen →
+// "Material", Tabelle measurement_materials), gepflegt in 01-basis.js.
+function rinneMaterialTabelle(material){
+ const m=measurementMaterialOrFallback(material);
+ return {label:m.name,mitDehnungselement:Number(m.max_abstand_mm)||5000,abFixpunkten:Number(m.ab_fixpunkt_mm)||2500};
+}
 function calcDilaPositionsInStretch(L,leftMax,rightMax,middleMax){
  if(L<=0)return[];
  if(L<=Math.min(leftMax,rightMax))return[];
@@ -107,7 +105,7 @@ function computeRinneBoundaries(segments){
  return{boundaries,gesamtlaenge};
 }
 function calcRinneDilas(segments,material){
- const tab=RINNE_AUSDEHNUNG_TABELLE[material]||RINNE_AUSDEHNUNG_TABELLE.titanzink;
+ const tab=rinneMaterialTabelle(material);
  if(!segments.length)return{dilas:[],tabelle:tab,boundaries:[]};
  const {boundaries,gesamtlaenge}=computeRinneBoundaries(segments);
  const dilas=[];
@@ -198,7 +196,7 @@ function renderRinneDilasList(){
  if(!rinneSegments.length){
   $("rinne_dilasSummary").textContent="";
  }else{
-  const tab=RINNE_AUSDEHNUNG_TABELLE[material]||RINNE_AUSDEHNUNG_TABELLE.titanzink;
+  const tab=rinneMaterialTabelle(material);
   $("rinne_dilasSummary").textContent=rinneDilas.length?`${rinneDilas.length} Dila(s) (${tab.label}).`:`Keine Dila nötig (${tab.label}: max. ${tab.mitDehnungselement/1000} m mit Dehnungselement, ${tab.abFixpunkten/1000} m ab Fixpunkten).`;
  }
 }

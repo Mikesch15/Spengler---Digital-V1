@@ -138,6 +138,58 @@ $("saveRinneFittings").onclick=async()=>{
  $("saveRinneFittings").disabled=false;
 };
 
+// ---- Material-Katalog für Massaufnahmen (Einstellungen) ----------
+const debouncedMeasMaterialUpdate=debounce((id,patch)=>sb.from("measurement_materials").update(patch).eq("id",id),500);
+function renderMeasMaterialSettings(){
+ const box=$("measMaterialSettings");
+ if(!box)return;
+ box.innerHTML=measurementMaterials.map((m,i)=>`<div class="settingrow">
+<input data-set-meas-material-name="${i}" value="${esc(m.name||"")}" placeholder="Bezeichnung">
+<input data-set-meas-material-abstand="${i}" type="number" step="1" value="${m.max_abstand_mm??""}" placeholder="Abstand zwischen zwei (mm)">
+<input data-set-meas-material-fixpunkt="${i}" type="number" step="1" value="${m.ab_fixpunkt_mm??""}" placeholder="Abstand ab Fixpunkt (mm)">
+<button class="red" data-del-meas-material="${i}">Löschen</button>
+</div>`).join("")||'<div class="empty">Noch kein Material vorhanden.</div>';
+}
+$("newMeasMaterial").onclick=async()=>{
+ const {error}=await sb.from("measurement_materials").insert({name:"Neues Material"});
+ if(error){alert("Fehler: "+error.message);return}
+ const {data}=await sb.from("measurement_materials").select("*").order("name");
+ measurementMaterials=data||[];
+ renderMeasMaterialSettings();
+ renderMeasMaterialOptions();
+};
+$("measMaterialSettings").addEventListener("click",e=>{
+ const del=e.target.closest("[data-del-meas-material]");
+ if(!del)return;
+ if(!confirm("Dieses Material wirklich löschen?"))return;
+ const i=Number(del.dataset.delMeasMaterial);
+ sb.from("measurement_materials").delete().eq("id",measurementMaterials[i].id).then(async({error})=>{
+  if(error){alert("Fehler: "+error.message);return}
+  const {data}=await sb.from("measurement_materials").select("*").order("name");
+  measurementMaterials=data||[];
+  renderMeasMaterialSettings();
+  renderMeasMaterialOptions();
+ });
+});
+$("measMaterialSettings").addEventListener("input",e=>{
+ const i=Number(e.target.dataset.setMeasMaterialName??e.target.dataset.setMeasMaterialAbstand??e.target.dataset.setMeasMaterialFixpunkt);
+ if(Number.isNaN(i)||!measurementMaterials[i])return;
+ const id=measurementMaterials[i].id;
+ if(e.target.dataset.setMeasMaterialName!==undefined){
+  measurementMaterials[i].name=e.target.value;
+  debouncedMeasMaterialUpdate(id,{name:e.target.value,updated_at:new Date().toISOString()});
+  renderMeasMaterialOptions();
+ }else if(e.target.dataset.setMeasMaterialAbstand!==undefined){
+  const v=e.target.value===""?null:Number(e.target.value)||0;
+  measurementMaterials[i].max_abstand_mm=v;
+  debouncedMeasMaterialUpdate(id,{max_abstand_mm:v,updated_at:new Date().toISOString()});
+ }else if(e.target.dataset.setMeasMaterialFixpunkt!==undefined){
+  const v=e.target.value===""?null:Number(e.target.value)||0;
+  measurementMaterials[i].ab_fixpunkt_mm=v;
+  debouncedMeasMaterialUpdate(id,{ab_fixpunkt_mm:v,updated_at:new Date().toISOString()});
+ }
+});
+
 async function registerEmployee(vor,nach){
  vor=(vor||"").trim();nach=(nach||"").trim();
  if(!vor||!nach)return false;
@@ -169,6 +221,7 @@ function renderSettings(){
  renderMaterialSettings();
  renderBzMaterialSettings();
  renderRinneFittingSettings();
+ renderMeasMaterialSettings();
  $("darkModeInput").value=darkMode?"ja":"nein";
  $("photoQualityInput").value=photoQuality;
  $("defaultRateInput").innerHTML='<option value="">Kein Standard</option>'+settings.rates.map(r=>`<option value="${esc(r[0])}"${r[0]===defaultRate?" selected":""}>${esc(r[0])}</option>`).join("");
