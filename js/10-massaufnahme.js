@@ -333,6 +333,7 @@ function newMeasurementWithType(type){
  $("luk_hilfsriss").value=lukHilfsriss;
  $("luk_seite").value="rechts";
  renderLukResult();
+ anbFormularZuruecksetzen();
  setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
@@ -408,6 +409,7 @@ function openMeasurement(m){
   $("luk_seite").value=d.seite==="links"?"links":"rechts";
   renderLukResult();
  }
+ anbFormularFuellen(m.type==="anschlussblech"?d:null);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
  updateMeasFormTitle();

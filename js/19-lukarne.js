@@ -91,44 +91,76 @@ function lukPlanSvg(g,optionen){
  const gespiegelt=g.seite==="links";
  const sgn=gespiegelt?-1:1;
  const modelH=H-Math.min(0,dy);
- const randL=100,randR=100,randO=104,randU=146;
+ const randL=100,randR=100,randO=126,randU=178;
  const zielB=Math.max(520,Math.min(1600,anzahl*135+180));
- const zielH=330;
+ const zielH=560;
  const sc=Math.min(zielB/W,zielH/modelH);
  const bildB=W*sc, bildH=modelH*sc;
  const ox=randL, oy=randO-Math.min(0,dy)*sc;
  const X=x=>ox+(gespiegelt?(W-x):x)*sc;
  const Y=y=>oy+y*sc;
- const svgW=randL+bildB+randR, svgH=randO+bildH+randU;
+ const svgW=Math.max(380,randL+bildB+randR), svgH=randO+bildH+randU;
  const N=v=>Number(v).toFixed(1);
+
+ // ---- Belegte Flächen ----------------------------------------
+ // Jede gesetzte Zahl merkt sich ihren Platz. Die grossen Masslinien
+ // suchen sich danach eine Bahn, die noch frei ist – so überdeckt im
+ // Plan nichts das andere, auch bei sehr schmalen oder steilen Wangen.
+ const belegt=[];
+ const kasten=(x,y,text,size,rot,anchor)=>{
+  const br=String(text).length*size*0.58, ho=size*1.15;
+  if(rot){
+   const r=rot*Math.PI/180, c=Math.abs(Math.cos(r)), si=Math.abs(Math.sin(r));
+   const bx=(br*c+ho*si)/2, by=(br*si+ho*c)/2;
+   return [x-bx,x+bx,y-by,y+by];
+  }
+  const x1=anchor==="start"?x:(anchor==="end"?x-br:x-br/2);
+  return [x1,x1+br,y-ho/2,y+ho/2];
+ };
+ const frei=k=>!belegt.some(b=>k[0]<b[1]&&b[0]<k[1]&&k[2]<b[3]&&b[2]<k[3]);
 
  const T=(x,y,t,o)=>{
   o=o||{};
   const size=o.size||13, anchor=o.anchor||"middle", weight=o.weight||700;
   const fill=o.fill||"#1769aa", rot=o.rot||0;
+  if(o.merken!==false)belegt.push(kasten(x,y,t,size,rot,anchor));
   return `<text x="${N(x)}" y="${N(y)}" font-family="Arial,Helvetica,sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}" dominant-baseline="middle" paint-order="stroke" stroke="#ffffff" stroke-width="3.4" stroke-linejoin="round"${rot?` transform="rotate(${N(rot)} ${N(x)} ${N(y)})"`:""}>${esc(t)}</text>`;
  };
  const linie=(x1,y1,x2,y2,farbe,breite,dash)=>
   `<line x1="${N(x1)}" y1="${N(y1)}" x2="${N(x2)}" y2="${N(y2)}" stroke="${farbe}" stroke-width="${breite}"${dash?` stroke-dasharray="${dash}"`:""} stroke-linecap="round"/>`;
 
- // Massline zwischen zwei Bildpunkten, um "off" senkrecht versetzt.
+ // Masslinie zwischen zwei Bildpunkten, um "off" senkrecht versetzt.
+ // "off" darf eine Liste sein: dann wird die erste freie Bahn genommen.
  const massLinie=(ax,ay,bx,by,off,label,o)=>{
   o=o||{};
+  const size=o.size||13;
   const dx=bx-ax, dyy=by-ay, len=Math.hypot(dx,dyy)||1;
-  const ux=dx/len, uy=dyy/len;
-  const nx=-uy, ny=ux;
-  const a2x=ax+nx*off, a2y=ay+ny*off, b2x=bx+nx*off, b2y=by+ny*off;
+  const ux=dx/len, uy=dyy/len, nx=-uy, ny=ux;
+  let w=Math.atan2(dyy,dx)*180/Math.PI;
+  if(w>=90)w-=180; if(w<-90)w+=180;
+  // Freie Stelle suchen: erst weiter nach aussen, dann der Masslinie
+  // entlang verschieben. Die Linie selbst bleibt, nur die Zahl rutscht.
+  const bahnenListe=Array.isArray(off)?off:[off];
+  let gewaehlt=bahnenListe[bahnenListe.length-1], anteil=0.5, gefunden=false;
+  for(const kandidat of bahnenListe){
+   for(const t of [0.5,0.34,0.66,0.2,0.8]){
+    const mx=ax+dx*t+nx*kandidat, my=ay+dyy*t+ny*kandidat;
+    if(frei(kasten(mx,my,label,size,w,"middle"))){gewaehlt=kandidat;anteil=t;gefunden=true;break}
+   }
+   if(gefunden)break;
+  }
+  const a2x=ax+nx*gewaehlt, a2y=ay+ny*gewaehlt, b2x=bx+nx*gewaehlt, b2y=by+ny*gewaehlt;
   let s="";
   s+=linie(ax+nx*4,ay+ny*4,a2x+nx*6,a2y+ny*6,"#c8d2da",0.9);
   s+=linie(bx+nx*4,by+ny*4,b2x+nx*6,b2y+ny*6,"#c8d2da",0.9);
   s+=linie(a2x,a2y,b2x,b2y,"#7b8a97",1.1);
   s+=linie(a2x-nx*4,a2y-ny*4,a2x+nx*4,a2y+ny*4,"#7b8a97",1.1);
   s+=linie(b2x-nx*4,b2y-ny*4,b2x+nx*4,b2y+ny*4,"#7b8a97",1.1);
-  let w=Math.atan2(dyy,dx)*180/Math.PI;
-  if(w>=90)w-=180; if(w<-90)w+=180;
-  s+=T((a2x+b2x)/2,(a2y+b2y)/2,label,{size:o.size||13,rot:w,fill:o.fill});
+  s+=T(ax+dx*anteil+nx*gewaehlt,ay+dyy*anteil+ny*gewaehlt,label,{size,rot:w,fill:o.fill});
   return s;
  };
+ // Mehrere Bahnen in beide Richtungen, ausgehend vom Wunschabstand
+ const bahnenAb=(start,schritt)=>[0,1,2,3,4].map(i=>start+i*schritt);
 
  let s="";
  s+=`<rect x="0" y="0" width="${N(svgW)}" height="${N(svgH)}" fill="#ffffff"/>`;
@@ -141,34 +173,62 @@ function lukPlanSvg(g,optionen){
  const hrEndeX=bottomSlope!==0?Math.max(0,Math.min(W,(hilfsriss-H)/bottomSlope)):W;
  s+=linie(X(0),Y(hilfsriss),X(hrEndeX),Y(hilfsriss),"#2563eb",2.2,"11 7");
 
- // ---- Scharen ----
+ // ---- Scharen mit den Massen ab Hilfsriss ----
+ // Die beiden Zahlen stehen direkt am Kreuzungspunkt der Scharlinie mit
+ // dem Hilfsriss – dort werden sie auf der Baustelle auch abgemessen.
  const pxBreite=breiten.map(b=>b*sc);
+ const richtung=gespiegelt?-1:1;                 // zur Spitze hin
+ const schmalste=Math.min(...pxBreite);
+ const eng=schmalste<62;
+ // Je enger die Scharen stehen, auf desto mehr Bahnen werden die Zahlen
+ // verteilt. Sonst schieben sie sich bei zehn Scharen übereinander.
+ const bahnen=schmalste<40?3:(eng?2:1);
  achsen.forEach((x,i)=>{
-  const xr=x+breiten[i];
   const obenV=topSlope*x, untenV=H+bottomSlope*x;
-  const obenH=topSlope*xr, untenH=H+bottomSlope*xr;
   if(untenV-obenV>0.5)s+=linie(X(x),Y(obenV),X(x),Y(untenV),"#17202a",2);
-  // Nummer in der Mitte der Schar
-  const xm=(x+xr)/2, ym=(obenV+untenV+obenH+untenH)/4;
-  if(pxBreite[i]>26&&(untenV-obenV)*sc>34){
-   s+=`<circle cx="${N(X(xm))}" cy="${N(Y(ym))}" r="13" fill="#ffffff" stroke="#17202a" stroke-width="1.4"/>`;
-   s+=T(X(xm),Y(ym),String(i+1),{size:14,fill:"#17202a"});
-  }
-  // Masse ab Hilfsriss – dort, wo sie abgemessen werden
+  const versatz=(i%bahnen)*15;
   const oben=hilfsriss-obenV, unten=untenV-hilfsriss;
-  // Der Text steht hochkant auf der Scharlinie und braucht seine Länge als Höhe.
-  const passt=(wert,platz)=>wert>0.5&&platz*sc>(String(Math.round(wert)).length+1)*6.6+6;
-  if(pxBreite[i]>30||i===0){
-   if(passt(oben,oben))s+=T(X(x),(Y(obenV)+Y(hilfsriss))/2,"↑"+Math.round(oben),{size:11,rot:-90});
-   if(passt(unten,unten))s+=T(X(x),(Y(hilfsriss)+Y(untenV))/2,"↓"+Math.round(unten),{size:11,rot:-90});
-  }
+  const anker=gespiegelt?"end":"start";
+  if(oben>0.5)s+=T(X(x)+6*richtung,Y(hilfsriss)-11-versatz,"↑"+Math.round(oben),{size:11,anchor:anker});
+  if(unten>0.5)s+=T(X(x)+6*richtung,Y(hilfsriss)+11+versatz,"↓"+Math.round(unten),{size:11,anchor:anker});
  });
 
+ // ---- Scharbreiten und Positionsnummern unterhalb ----
+ const yBasis=Y(H);
+ achsen.forEach((x,i)=>{
+  const xr=x+breiten[i];
+  const yl=yBasis+(eng&&i%2?62:36);
+  const a=Math.min(X(x),X(xr)), b=Math.max(X(x),X(xr));
+  const platz=(b-a)>30;
+  s+=linie(X(x),Y(H+bottomSlope*x)+3,X(x),yl-4,"#c8d2da",0.9,"3 3");
+  s+=linie(X(xr),Y(H+bottomSlope*xr)+3,X(xr),yl-4,"#c8d2da",0.9,"3 3");
+  s+=linie(a,yl,b,yl,"#7b8a97",1.1);
+  s+=linie(a,yl-4,a,yl+4,"#7b8a97",1.1);
+  s+=linie(b,yl-4,b,yl+4,"#7b8a97",1.1);
+  // Bei sehr engen Scharen sind alle Breiten gleich – dann genügen die
+  // erste und die letzte, sonst überlagern sich die Zahlen.
+  if(platz||i===0||i===achsen.length-1)
+   s+=T((a+b)/2,yl+13,String(Math.round(breiten[i])),{size:11});
+  // Positionsnummer unter der Schar: dort hat sie immer Platz und verdeckt
+  // kein Mass in der Fläche.
+  if(platz){
+   s+=`<circle cx="${N((a+b)/2)}" cy="${N(yl-17)}" r="12.5" fill="#ffffff" stroke="#17202a" stroke-width="1.4"/>`;
+   s+=T((a+b)/2,yl-17,String(i+1),{size:14,fill:"#17202a"});
+  }else{
+   s+=T((a+b)/2,yl-17-(i%2)*15,String(i+1),{size:12,fill:"#17202a"});
+  }
+ });
+ const wY=yBasis+100;
+ s+=linie(Math.min(X(0),X(W)),wY,Math.max(X(0),X(W)),wY,"#7b8a97",1.1);
+ s+=linie(X(0),wY-5,X(0),wY+5,"#7b8a97",1.1);
+ s+=linie(X(W),wY-5,X(W),wY+5,"#7b8a97",1.1);
+ s+=T((X(0)+X(W))/2,wY-11,`waagerechte Breite = ${Math.round(W)}`,{size:12});
+
  // ---- Gesamtmasse ----
- s+=massLinie(X(0),Y(0),X(0),Y(H),52*sgn,`H = ${Math.round(H)}`);
- if(hilfsriss>0.5)s+=massLinie(X(0),Y(0),X(0),Y(hilfsriss),24*sgn,`HR ${Math.round(hilfsriss)}`,{size:11,fill:"#2563eb"});
- s+=massLinie(X(0),Y(0),X(W),Y(dy),-34*sgn,`L = ${Math.round(L)}`);
- s+=massLinie(X(0),Y(H),X(W),Y(dy),34*sgn,`A = ${Math.round(A)}`);
+ if(hilfsriss*sc>26)s+=massLinie(X(0),Y(0),X(0),Y(hilfsriss),bahnenAb(24*sgn,20*sgn),`HR ${Math.round(hilfsriss)}`,{size:11,fill:"#2563eb"});
+ s+=massLinie(X(0),Y(0),X(0),Y(H),bahnenAb(52*sgn,22*sgn),`H = ${Math.round(H)}`);
+ s+=massLinie(X(0),Y(0),X(W),Y(dy),bahnenAb(-58*sgn,-22*sgn),`L = ${Math.round(L)}`);
+ s+=massLinie(X(0),Y(H),X(W),Y(dy),bahnenAb(54*sgn,22*sgn),`A = ${Math.round(A)}`);
 
  // ---- Winkel α an der vorderen oberen Ecke ----
  (function(){
@@ -183,35 +243,32 @@ function lukPlanSvg(g,optionen){
   const p1=[cx+r*Math.cos(a1),cy+r*Math.sin(a1)];
   const p2=[cx+r*Math.cos(a2),cy+r*Math.sin(a2)];
   s+=`<path d="M ${N(p1[0])} ${N(p1[1])} A ${r} ${r} 0 0 ${sweep} ${N(p2[0])} ${N(p2[1])}" fill="none" stroke="#e07a1f" stroke-width="1.4"/>`;
-  const am=a1+delta/2;
-  s+=T(cx+(r+18)*Math.cos(am),cy+(r+18)*Math.sin(am),`${Math.round(alpha*10)/10}°`,{size:12,fill:"#e07a1f"});
+  // Die Zahl sitzt aussen an der oberen Kante: innen liegen die Masse ab
+  // Hilfsriss, an der Ecke selbst die Masskette der Frontkante.
+  const lT=Math.hypot(X(W)-X(0),Y(dy)-Y(0))||1;
+  const uTx=(X(W)-X(0))/lT, uTy=(Y(dy)-Y(0))/lT;
+  const nTx=uTy*sgn, nTy=-uTx*sgn;   // aus der Fläche heraus
+  const text=`${Math.round(alpha*10)/10}°`;
+  let px=0,py=0,gefunden=false;
+  for(const entlang of [0.45,0.62,0.3,0.75]){
+   for(const weg of [16,32,48]){
+    const st=Math.min(90,lT*entlang);
+    px=cx+uTx*st+nTx*weg; py=cy+uTy*st+nTy*weg;
+    if(frei(kasten(px,py,text,12,0,"middle"))){gefunden=true;break}
+   }
+   if(gefunden)break;
+  }
+  s+=T(px,py,text,{size:12,fill:"#e07a1f"});
  })();
 
- // ---- Scharbreiten unterhalb ----
- const eng=pxBreite.some(b=>b<58);
- const yBasis=Y(H);
- achsen.forEach((x,i)=>{
-  const xr=x+breiten[i];
-  const yl=yBasis+(eng&&i%2?62:36);
-  const a=Math.min(X(x),X(xr)), b=Math.max(X(x),X(xr));
-  s+=linie(X(x),Y(H+bottomSlope*x)+3,X(x),yl-4,"#c8d2da",0.9,"3 3");
-  s+=linie(X(xr),Y(H+bottomSlope*xr)+3,X(xr),yl-4,"#c8d2da",0.9,"3 3");
-  s+=linie(a,yl,b,yl,"#7b8a97",1.1);
-  s+=linie(a,yl-4,a,yl+4,"#7b8a97",1.1);
-  s+=linie(b,yl-4,b,yl+4,"#7b8a97",1.1);
-  s+=T((a+b)/2,yl-10,String(Math.round(breiten[i])),{size:11});
- });
- const wY=yBasis+100;
- s+=linie(Math.min(X(0),X(W)),wY,Math.max(X(0),X(W)),wY,"#7b8a97",1.1);
- s+=linie(X(0),wY-5,X(0),wY+5,"#7b8a97",1.1);
- s+=linie(X(W),wY-5,X(W),wY+5,"#7b8a97",1.1);
- s+=T((X(0)+X(W))/2,wY-11,`waagerechte Breite = ${Math.round(W)}`,{size:12});
-
  // ---- Legende ----
- s+=T(10,yBasis+118,"① = Schar-Nr.   – – – = Hilfsriss (HR)   ↑ ↓ = Mass ab HR nach oben / unten",
-   {size:10,anchor:"start",weight:600,fill:"#68737d"});
- s+=T(10,yBasis+134,`Alle Masse in mm · ${gespiegelt?"linke":"rechte"} Seite, von aussen gesehen`,
-   {size:10,anchor:"start",weight:600,fill:"#68737d"});
+ const legende=["① = Pos.-Nr.   – – – = Hilfsriss (HR)",
+   "↑ ↓ = Mass ab HR nach oben / unten",
+   `Alle Masse in mm · ${gespiegelt?"linke":"rechte"} Seite`,
+   "von aussen gesehen"];
+ legende.forEach((zeile,i)=>{
+  s+=T(10,yBasis+112+i*15,zeile,{size:10,anchor:"start",weight:600,fill:"#68737d",merken:false});
+ });
 
  const stil=optionen.fuerDruck
   ?'style="width:100%;height:auto"'
@@ -231,20 +288,26 @@ function lukEingabenAusFeldern(){
  };
 }
 
-function lukScharenZeilen(scharen,zugabeLaenge,zugabeBreite){
- const zu=(Number(zugabeLaenge)||0)!==0||(Number(zugabeBreite)||0)!==0;
- return (scharen||[]).map(s=>`<tr>
+// Gerechnet wird mit "vorne" (Front) und "hinten" (Spitze) – das bleibt bei
+// beiden Wangen gleich. Angeschrieben wird links/rechts, so wie es im Plan
+// steht: bei der linken Seite ist die Front rechts, also drehen sich die
+// beiden Spalten um.
+function lukScharenZeilen(scharen,seite){
+ const gespiegelt=seite==="links";
+ return (scharen||[]).map(s=>{
+  const li=gespiegelt?"Hinten":"Vorne", re=gespiegelt?"Vorne":"Hinten";
+  const w=(art,kante)=>s[art+kante];
+  return `<tr>
 <td>${s.nr}</td>
-<td>${Math.round(s.abFront)}</td>
-<td>${Math.round(s.breite)}</td>
-<td>${lukMass(s.laengeVorne)}</td>
-<td>${lukMass(s.laengeHinten)}</td>
-<td${zu?' style="font-weight:700"':""}>${Math.round(s.zuschnittBreite)} × ${Math.round(s.zuschnittLaenge)}</td>
-<td>${lukMass(s.hrObenVorne)}</td>
-<td>${lukMass(s.hrUntenVorne)}</td>
-<td>${lukMass(s.hrObenHinten)}</td>
-<td>${lukMass(s.hrUntenHinten)}</td>
-</tr>`).join("");
+<td>${lukMass(w("hrOben",li))}</td>
+<td>${lukMass(w("hrUnten",li))}</td>
+<td>${lukMass(w("laenge",li))}</td>
+<td>${lukMass(w("hrOben",re))}</td>
+<td>${lukMass(w("hrUnten",re))}</td>
+<td>${lukMass(w("laenge",re))}</td>
+<td><b>${Math.round(s.zuschnittBreite)} × ${Math.round(s.zuschnittLaenge)}</b></td>
+</tr>`;
+ }).join("");
 }
 
 function renderLukResult(){
@@ -258,7 +321,7 @@ function renderLukResult(){
   setzen("luk_hilfsrissOut","–");
   setzen("luk_flaecheOut","–");
   $("luk_plan").innerHTML=lukPlanSvg(null);
-  $("luk_scharenBody").innerHTML='<tr><td colspan="10" class="small">Bitte alle Masse eingeben. Der Winkel muss zwischen 90° und 180° liegen.</td></tr>';
+  $("luk_scharenBody").innerHTML='<tr><td colspan="8" class="small">Bitte alle Masse eingeben. Der Winkel muss zwischen 90° und 180° liegen.</td></tr>';
   $("luk_hinweis").innerHTML="";
   $("luk_summary").textContent="";
   return;
@@ -277,7 +340,7 @@ function renderLukResult(){
   box.style.color="var(--muted)";
  }
  $("luk_plan").innerHTML=lukPlanSvg(g);
- $("luk_scharenBody").innerHTML=lukScharenZeilen(g.scharen,g.zugabeLaenge,g.zugabeBreite);
+ $("luk_scharenBody").innerHTML=lukScharenZeilen(g.scharen,g.seite);
  const zugabeTxt=(g.zugabeLaenge||g.zugabeBreite)
   ? ` · Zuschnitt inkl. Zugabe ${Math.round(g.zugabeBreite)} mm Breite / ${Math.round(g.zugabeLaenge)} mm Länge`
   : " · Zuschnitt ohne Zugabe (Einstellungen)";

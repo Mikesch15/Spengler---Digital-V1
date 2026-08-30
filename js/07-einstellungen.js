@@ -1,10 +1,16 @@
 "use strict";
 let settingsReturnToMeasurement=false;
-$("settings").onclick=()=>{renderSettings();applyCompanyName();applyEinlaufblechSettings();$("settingsModal").hidden=false};
+// Das Anschlussblech bringt seine Einstellungen selbst mit (js/20).
+// Diese Hülle macht den Aufruf unabhängig von der Ladereihenfolge.
+function anbEinstellungenAnzeigen(){
+ if(typeof applyAnschlussblechSettings==="function")applyAnschlussblechSettings();
+}
+$("settings").onclick=()=>{renderSettings();applyCompanyName();applyEinlaufblechSettings();anbEinstellungenAnzeigen();$("settingsModal").hidden=false};
 function openSettingsTo(tabName,sectionName){
  renderSettings();
  applyCompanyName();
  applyEinlaufblechSettings();
+ anbEinstellungenAnzeigen();
  $("settingsModal").hidden=false;
  const tabBtn=document.querySelector(`[data-settings-tab="${tabName}"]`);
  if(tabBtn){
@@ -32,8 +38,10 @@ $("closeSettings").onclick=()=>{
  if(settingsReturnToMeasurement){
   settingsReturnToMeasurement=false;
   applyEinlaufblechSettings();
+  anbEinstellungenAnzeigen();
   if($("measType").value==="einlaufblech_gerade")renderEbPiecesTable();
   if($("measType").value==="lukarne"&&typeof renderLukResult==="function")renderLukResult();
+  if($("measType").value==="anschlussblech"&&typeof renderAnbResult==="function")renderAnbResult();
   $("measurementEditModal").hidden=false;
  }else{
   renderMain();

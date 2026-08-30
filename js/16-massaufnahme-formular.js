@@ -7,12 +7,14 @@ function showMeasTypeSection(type){
  $("measTypeFreiesProfil").hidden=(type!=="freies_profil");
  $("measTypeMauerabdeckung").hidden=(type!=="mauerabdeckung");
  $("measTypeLukarne").hidden=(type!=="lukarne");
+ $("measTypeAnschlussblech").hidden=(type!=="anschlussblech");
  if(type==="einlaufblech_gerade")renderEbPiecesTable();
  if(type==="rinne_halbrund")renderRinneResult();
  if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
  if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
  if(type==="mauerabdeckung")renderMadResult();
  if(type==="lukarne")renderLukResult();
+ if(type==="anschlussblech")renderAnbResult();
 }
 $("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
 $("openEinlaufblechSettings").onclick=()=>{
@@ -111,6 +113,17 @@ function buildMeasurementFromForm(){
    scharen:g.scharen
   }};
  }
+ if(type==="anschlussblech"){
+  const e=anbEingabenAusFeldern();
+  const g=berechneAnschlussblech(e);
+  // Ergebnis mitspeichern, damit ein gedrucktes PDF gleich bleibt.
+  return {...base,photo_path:null,sketch_paths:[],data:{...e,
+   abwicklung:g?g.abwicklung:0,
+   teile:g?g.teile:[],
+   stueckliste:g?g.stuecke:[],
+   flaeche:g?g.flaeche:0
+  }};
+ }
  return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(buildMeasurementFromForm());
@@ -149,6 +162,10 @@ $("saveMeasurement").onclick=async()=>{
  }
  if(type==="lukarne"){
   if(!berechneLukarne(lukEingabenAusFeldern())){alert("Bitte Höhe, obere Länge, Winkel und Achsabstand eingeben. Der obere Innenwinkel muss zwischen 90° und 180° liegen.");return}
+ }
+ if(type==="anschlussblech"){
+  const e=anbEingabenAusFeldern();
+  if(!(Number(e.a)>0)){alert("Bitte mindestens das Mass a eingeben.");return}
  }
  $("saveMeasurement").disabled=true;
  try{
@@ -437,10 +454,65 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <div class="eb-diagram">${lukPlanSvg(g,{fuerDruck:true})}</div>
 <div class="eb-section-head">Scharen</div>
 <table class="eb-cutlist">
-<thead><tr><th>Nr.</th><th>Ab Front</th><th>Breite</th><th>Länge vorne</th><th>Länge hinten</th><th>Zuschnitt B × L</th><th>&#8593; vorne</th><th>&#8595; vorne</th><th>&#8593; hinten</th><th>&#8595; hinten</th></tr></thead>
-<tbody>${lukScharenZeilen(scharen,d.zugabeLaenge,d.zugabeBreite)}</tbody>
+<thead><tr><th rowspan="2">Pos.</th><th colspan="3">Linke Kante</th><th colspan="3">Rechte Kante</th><th rowspan="2">Zuschnitt B &#215; L</th></tr><tr><th>&#8593; ab HR</th><th>&#8595; ab HR</th><th>H&#246;he</th><th>&#8593; ab HR</th><th>&#8595; ab HR</th><th>H&#246;he</th></tr></thead>
+<tbody>${lukScharenZeilen(scharen,d.seite)}</tbody>
 </table>
-<div class="note" style="font-size:8pt;color:#68737d">Alle Masse in mm. &#8593; / &#8595; = Mass ab Hilfsriss nach oben bzw. nach unten. &#8222;Vorne&#8220; ist die Kante Richtung Lukarnenfront, &#8222;hinten&#8220; die Kante Richtung Spitze.</div>
+<div class="note" style="font-size:8pt;color:#68737d">Alle Masse in mm. &#8593; / &#8595; = Mass ab Hilfsriss (HR) nach oben bzw. nach unten, &#8222;H&#246;he&#8220; = ganze Scharkante. Links und rechts wie im Plan; bei der linken Wange liegt die Front rechts.</div>
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="anschlussblech"){
+  const d=m.data||{};
+  const erg=berechneAnschlussblech(d);
+  const teile=(Array.isArray(d.teile)&&d.teile.length)?d.teile:(erg?erg.teile:[]);
+  // Beim Speichern abgelegte Stückliste bevorzugen – ein einmal gedrucktes
+  // PDF bleibt dadurch gleich, auch wenn später ein Mass geändert wird.
+  const stuecke=(Array.isArray(d.stueckliste)&&d.stueckliste.length)?d.stueckliste:(erg?erg.stuecke:[]);
+  const abw=d.abwicklung||(erg?erg.abwicklung:0);
+  extraCss=`
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ .eb-diagram{text-align:center;margin:4mm 0}
+ .eb-diagram svg{max-width:100%;height:auto}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  const deckName=(ANB_DECKUNGEN[d.deckung]||{}).name||"–";
+  const massZeilen=Object.keys((ANB_ARTEN[d.art]||{masse:{}}).masse)
+   .map(k=>`<tr><td>${esc(k)}</td><td>${esc(ANB_ARTEN[d.art].masse[k].text||"")}</td><td>${esc(Math.round(Number(d[k])||0))} mm</td><td>${(()=>{const mi=anbMindestmass(d.art,k,d.deckung);return mi!==null?"mind. "+mi+" mm":"–"})()}</td></tr>`).join("");
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
+<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+<tr>${cell("Anschluss",esc(anbTitel(d)))}${cell("Deckmaterial",esc(deckName))}</tr>
+<tr>${cell("Zuschnittbreite",esc(Math.round(abw))+" mm")}${cell("Gesamtlänge",esc(Math.round(d.laenge||0))+" mm")}</tr>
+</table>
+<div class="eb-section-head">Schnitt</div>
+<div class="eb-diagram">${anbZeichnung(d)}</div>
+<div class="eb-section-head">Masse</div>
+<table class="eb-cutlist">
+<thead><tr><th>Mass</th><th>Bedeutung</th><th>Wert</th><th>Vorgabe</th></tr></thead>
+<tbody>${massZeilen}
+<tr><td>–</td><td>Höhe Deckmaterial</td><td>${esc(Math.round(d.deckHoehe||0))} mm</td><td>nachmessen</td></tr>
+<tr><td>–</td><td>${d.ausfuehrung==="ort"?"Aufkantung über Dach":"Aufkantung an der Wand"}</td><td>${esc(Math.round(d.ausfuehrung==="ort"?(d.ortAufkantung||0):(d.wandAufkantung||0)))} mm</td><td>–</td></tr>
+<tr><td>–</td><td>Saum am Blechende</td><td>${esc(Math.round(d.saum||0))} mm</td><td>–</td></tr>
+</tbody>
+</table>
+<div class="eb-section-head">Abwicklung</div>
+<table class="eb-cutlist">
+<thead><tr><th>Teil</th><th>Abwicklung (mm)</th></tr></thead>
+<tbody>${teile.map(t=>`<tr><td>${esc(t.name)}</td><td>${esc(Math.round(t.abwicklung))}</td></tr>`).join("")}</tbody>
+</table>
+${stuecke.length?`<div class="eb-section-head">Stückliste</div>
+<table class="eb-cutlist">
+<thead><tr><th>Stück</th><th>Zuschnitt Länge (mm)</th><th>Zuschnitt Breite (mm)</th><th>Stoss</th></tr></thead>
+<tbody>${stuecke.map(s=>`<tr><td>${esc(s.nr)}</td><td>${esc(Math.round(s.laenge))}</td><td>${esc(Math.round(abw))}</td><td>${s.stoss?"ja":"–"}</td></tr>`).join("")}</tbody>
+</table>`:""}
+${(erg&&erg.warnungen.length)?`<div class="note" style="color:#b42318">${erg.warnungen.map(w=>esc(w)).join("<br>")}</div>`:""}
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="einlaufblech_konisch"){
   const d=m.data||{};
