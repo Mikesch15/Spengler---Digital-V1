@@ -106,7 +106,7 @@ function anbMindestmass(art, schluessel, deckung) {
 // Anwenders haben Vorrang – deshalb "vorhanden" als zweites Argument.
 function anbStandardwerte(art, deckung, vorhanden) {
   const e = { art: art, deckung: deckung };
-  const masse = (ANB_ARTEN[art] || ANB_ARTEN.bleilappen).masse;
+  const masse = (ANB_ARTEN[art] || ANB_ARTEN.rinne).masse;
   Object.keys(masse).forEach(k => {
     const min = anbMindestmass(art, k, deckung);
     e[k] = (vorhanden && vorhanden[k] !== undefined && vorhanden[k] !== "")
@@ -164,7 +164,9 @@ function anbProfil(e) {
     // eigenes Stück und wird über das Deckmaterial gelegt.
     pts.push([a + b, 0]);
     teile.push({ name: "Grundblech", pts: pts, saumEnde: true });
-    teile.push({ name: "Bleilappen", pts: [[a, 0], [a, hd], [a + b, hd], [a + b + 22, hd - 16]] });
+    // Der Bleilappen wird gezeichnet und bemasst, zählt aber nicht zum
+    // Zuschnitt: er ist aus Blei und wird nicht mit dem Blech gekantet.
+    teile.push({ name: "Bleilappen", pts: [[a, 0], [a, hd], [a + b, hd], [a + b + 22, hd - 16]], ohneZuschnitt: true });
     deckAb = a + 8; lattungAb = a;
   } else if (art === "rinne") {
     pts.push([a + c, 0]);
@@ -241,20 +243,42 @@ function anbZeichnung(e) {
   const a = Number(e.a) || 0, b = Number(e.b) || 0, c = Number(e.c) || 0;
   const hd = p.deckHoehe, basis = p.basis;
 
-  // Ausdehnung bestimmen. Die Aufkantung darf oben aus dem Bild laufen –
-  // genau so ist es in der Vorlage gezeichnet.
-  let xMin = 0, xMax = 0, yMin = 0;
+  // Ausdehnung bestimmen. Das ganze Blech ist im Bild – auch die
+  // Aufkantung, denn sie wird jetzt mit bemasst.
+  let xMin = 0, xMax = 0, yMin = 0, yTeil = 0;
   p.teile.forEach(t => t.pts.forEach(q => {
     xMin = Math.min(xMin, q[0]); xMax = Math.max(xMax, q[0]);
-    yMin = Math.min(yMin, q[1]);
+    yMin = Math.min(yMin, q[1]); yTeil = Math.max(yTeil, q[1]);
   }));
   const deckBis = xMax + 200;                       // Deckmaterial läuft weiter
   const deckOben = e.art === "steck" ? 2 * hd + 4 : basis + hd;
-  const yMass = deckOben + 42;                      // Höhe der oberen Masslinie
-  xMin -= 22;
+
+  // Senkrechte Masse am linken Rand einsammeln. Jedes bekommt eine
+  // eigene Spalte, damit sich zwei Massketten nie überlagern.
+  const hW = Math.max(20, Number(e.wandAufkantung) || 0);
+  const hO = Math.max(20, Number(e.ortAufkantung) || 0);
+  const bO = Math.max(20, Number(e.ortOben) || 0);
+  const vO = Math.max(20, Number(e.ortStirn) || 0);
+  const nO = Math.max(0, Number(e.ortNase) || 0);
+  const zahl = v => String(Math.round(Number(v) || 0));
+  const senkListe = [];
+  if (e.art === "rinne" || e.art === "rinne_steg") senkListe.push([0, basis, "d = " + zahl(basis)]);
+  if (e.art === "steg") senkListe.push([0, hd, "c = " + zahl(hd)]);
+  if (e.art === "welle") senkListe.push([0, b, "b = " + zahl(b)]);
+  if (e.art !== "steck") {
+    if (p.ort) {
+      senkListe.push([0, hO, "Aufkantung " + zahl(hO)]);
+      senkListe.push([hO - vO, hO, "Stirn " + zahl(vO)]);
+    } else {
+      senkListe.push([0, hW, "Aufkantung " + zahl(hW)]);
+    }
+  }
+
   const schalung = 26;
+  xMin -= 18 + senkListe.length * 30;
+  const yMass = Math.max(deckOben, yTeil) + 42;     // Höhe der oberen Masslinie
   yMin = Math.min(yMin, -schalung) - 42;
-  const yMax = yMass + 30;
+  const yMax = yMass + (p.ort ? 58 : 30);
 
   const breitePx = 680, rand = 12;
   let s = (breitePx - 2 * rand) / (deckBis - xMin);
@@ -287,35 +311,53 @@ function anbZeichnung(e) {
   }
 
   // --- Blech ----------------------------------------------------
+  const saumStellen = [];
   p.teile.forEach(t => {
     const dd = t.pts.map((q, i) => (i ? "L" : "M") + X(q[0]) + " " + Y(q[1])).join(" ");
     g += `<path d="${dd}" fill="none" stroke="${ANB_FARBE.blech}" stroke-width="3.4"
           stroke-linejoin="round" stroke-linecap="round"/>`;
-    if (t.saumEnde && saum > 0) g += anbSaum(t.pts[t.pts.length - 2], t.pts[t.pts.length - 1], saum, X, Y);
-    if (t.saumStart && saum > 0) g += anbSaum(t.pts[1], t.pts[0], saum, X, Y);
+    if (t.saumEnde && saum > 0) {
+      g += anbSaum(t.pts[t.pts.length - 2], t.pts[t.pts.length - 1], saum, X, Y);
+      saumStellen.push(t.pts[t.pts.length - 1]);
+    }
+    if (t.saumStart && saum > 0) {
+      g += anbSaum(t.pts[1], t.pts[0], saum, X, Y);
+      saumStellen.push(t.pts[0]);
+    }
   });
 
   // --- Bemassung ------------------------------------------------
+  // Buchstabe und Wert stehen zusammen, damit Zeichnung und Masstabelle
+  // im PDF nicht auseinanderlaufen.
   const waag = (x1, x2, txt) => anbMassWaag(x1, x2, yMass, txt, X, Y);
-  const senk = (y1, y2, txt) => anbMassSenk(y1, y2, xMin + 24, txt, X, Y);
+  let spalte = 0;
+  const senk = eintrag => anbMassSenk(eintrag[0], eintrag[1], xMin + 16 + (spalte++) * 30, eintrag[2], X, Y);
 
   if (e.art === "bleilappen") {
-    g += waag(0, a, "a") + waag(a, a + b, "b");
+    g += waag(0, a, "a = " + zahl(a)) + waag(a, a + b, "b = " + zahl(b));
   } else if (e.art === "rinne") {
-    g += waag(0, a, "a") + waag(a, a + b, "b");
-    g += anbMassWaag(a, a + c, -schalung - 16, "c", X, Y, true);
-    g += senk(0, basis, "d");
-  } else if (e.art === "steg") {
-    g += waag(0, a, "a") + waag(a, a + b, "b");
-    g += senk(0, hd, "c");
-  } else if (e.art === "rinne_steg") {
-    g += waag(0, a, "a") + waag(a, a + b, "b");
-    g += senk(0, basis, "d");
+    g += waag(0, a, "a = " + zahl(a)) + waag(a, a + b, "b = " + zahl(b));
+    g += anbMassWaag(a, a + c, -schalung - 16, "c = " + zahl(c), X, Y, true);
+  } else if (e.art === "steg" || e.art === "rinne_steg") {
+    g += waag(0, a, "a = " + zahl(a)) + waag(a, a + b, "b = " + zahl(b));
   } else if (e.art === "steck") {
-    g += waag(0, a, "a");
+    g += waag(0, a, "a = " + zahl(a));
   } else if (e.art === "welle") {
-    g += waag(0, a, "a");
-    g += senk(0, b, "b");
+    g += waag(0, a, "a = " + zahl(a));
+  }
+  if (p.ort) g += anbMassWaag(-bO, 0, yMass + 26, "Übergriff " + zahl(bO), X, Y);
+  senkListe.forEach(eintrag => { g += senk(eintrag); });
+
+  // Wassernase und Saum als kurze Fahne – dafür lohnt keine Masskette.
+  if (p.ort && nO > 0) {
+    g += anbFahne(-bO - 10 + nO * 0.75, hO - vO + nO * 0.75, 34, 26, "Nase " + zahl(nO), X, Y);
+  }
+  if (saum > 0 && saumStellen.length) {
+    const q = saumStellen[0];
+    g += anbFahne(q[0], q[1], 30, -30, "Saum " + zahl(saum), X, Y);
+  }
+  if (e.art !== "steck") {
+    g += anbFahne(deckBis - 30, basis + hd, -30, -28, "Deckmaterial " + zahl(hd), X, Y);
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${breitePx} ${hoehePx}"
@@ -380,7 +422,7 @@ function anbSaum(pVor, pEnde, laenge, X, Y) {
   const dx = pEnde[0] - pVor[0], dy = pEnde[1] - pVor[1];
   const l = Math.hypot(dx, dy) || 1;
   const ux = dx / l, uy = dy / l;
-  const nx = uy, ny = -ux;                          // rechts der Laufrichtung
+  const nx = -uy, ny = ux;                          // links der Laufrichtung
   const t = 5.5;
   const p1 = [pEnde[0] + ux * 4 + nx * 2, pEnde[1] + uy * 4 + ny * 2];
   const p2 = [pEnde[0] + nx * t, pEnde[1] + ny * t];
@@ -405,19 +447,39 @@ function anbMassWaag(x1, x2, y, text, X, Y, unten) {
       paint-order="stroke" stroke="#fff" stroke-width="3">${text}</text>`;
 }
 
-// Senkrechtes Mass am linken Rand.
+// Senkrechtes Mass am linken Rand. Die Zahl steht hochkant auf der
+// Masslinie – daneben hätte eine Beschriftung wie "Aufkantung 150"
+// keinen Platz und liefe aus dem Bild.
 function anbMassSenk(y1, y2, x, text, X, Y) {
   if (Math.abs(y2 - y1) < 0.5) return "";
-  const px = X(x);
+  const px = X(x), pm = (Y(y1) + Y(y2)) / 2;
   return `<g stroke="${ANB_FARBE.mass}" stroke-width="1" fill="none">
-    <line x1="${px - 9}" y1="${Y(y1)}" x2="${px + 30}" y2="${Y(y1)}"/>
-    <line x1="${px - 9}" y1="${Y(y2)}" x2="${px + 30}" y2="${Y(y2)}"/>
+    <line x1="${px - 7}" y1="${Y(y1)}" x2="${px + 26}" y2="${Y(y1)}"/>
+    <line x1="${px - 7}" y1="${Y(y2)}" x2="${px + 26}" y2="${Y(y2)}"/>
     <line x1="${px}" y1="${Y(y1)}" x2="${px}" y2="${Y(y2)}"/></g>
     <path d="M${px} ${Y(y1)} l-3 -7 l6 0 Z" fill="${ANB_FARBE.mass}"/>
     <path d="M${px} ${Y(y2)} l-3 7 l6 0 Z" fill="${ANB_FARBE.mass}"/>
-    <text x="${px - 7}" y="${(Y(y1) + Y(y2)) / 2 + 5}" text-anchor="end"
+    <text x="${px}" y="${pm}" text-anchor="middle" dominant-baseline="middle"
+      transform="rotate(-90 ${px} ${pm})"
       font-size="15" font-weight="700" fill="${ANB_FARBE.mass}"
-      paint-order="stroke" stroke="#fff" stroke-width="3">${text}</text>`;
+      paint-order="stroke" stroke="#fff" stroke-width="3.5"
+      stroke-linejoin="round">${text}</text>`;
+}
+
+// Kurze Fahne mit Beschriftung, für Masse, die keine ganze Masskette
+// wert sind: Wassernase, Saum, Höhe des Deckmaterials.
+// dx und dy sind Bildpunkte, dy positiv zeigt nach unten.
+function anbFahne(x, y, dx, dy, text, X, Y) {
+  const x0 = X(x), y0 = Y(y), x1 = x0 + dx, y1 = y0 + dy;
+  const anker = dx < 0 ? "end" : (dx > 0 ? "start" : "middle");
+  const versatz = dx < 0 ? -4 : (dx > 0 ? 4 : 0);
+  return `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}"
+      stroke="${ANB_FARBE.mass}" stroke-width="1"/>
+    <circle cx="${x0}" cy="${y0}" r="2.4" fill="${ANB_FARBE.mass}"/>
+    <text x="${x1 + versatz}" y="${y1 + (dy > 0 ? 12 : -5)}" text-anchor="${anker}"
+      font-size="13" font-weight="700" fill="${ANB_FARBE.mass}"
+      paint-order="stroke" stroke="#fff" stroke-width="3.5"
+      stroke-linejoin="round">${text}</text>`;
 }
 
 function anbEsc(t) {
@@ -434,11 +496,14 @@ function berechneAnschlussblech(e) {
   const saum = Math.max(0, Number(e.saum) || 0);
   const zugabe = Number(e.zugabe) || 0;
 
-  const teile = p.teile.map(t => ({
+  // Nur was aus dem Blech gekantet wird, kommt in den Zuschnitt. Der
+  // Bleilappen ist eigenes Material und wird deshalb übersprungen.
+  const teile = p.teile.filter(t => !t.ohneZuschnitt).map(t => ({
     name: t.name,
     abwicklung: Math.round(anbAbwicklungTeil(t, saum) + zugabe),
     schenkel: t.pts.length - 1
   }));
+  const ohneZuschnitt = p.teile.filter(t => t.ohneZuschnitt).map(t => t.name);
 
   // Mindestmasse prüfen
   const warnungen = [];
@@ -457,17 +522,32 @@ function berechneAnschlussblech(e) {
     warnungen.push("Höhe Deckmaterial fehlt – der Steg wird so hoch wie das Deckmaterial.");
   }
 
-  // Länge, Stösse, Stückliste
+  // Länge, Stösse, Stückliste – dieselbe Regel wie beim Einlaufblech:
+  // volle Stücke zur eingestellten Stücklänge, am Schluss das Reststück.
+  // Die Überlappung kommt beim vollen Stück auf den Zuschnitt; das
+  // Reststück braucht keine, weil das Stück davor darüber greift.
+  // Ein Reststück unter der Schwelle wird dem vorherigen zugeschlagen.
   const laenge = Math.max(0, Number(e.laenge) || 0);
   const stoss = Math.max(200, Number(e.stossLaenge) || 2000);
   const lap = Math.max(0, Number(e.ueberlappung) || 0);
+  const schwelle = Math.max(0, Number(e.restSchwelle) || 0);
+  const gehrungZugabe = Math.max(0, Number(e.gehrungszugabe) || 0);
+  const mitGehrung = !!e.firstgehrung;
   const stuecke = [];
   if (laenge > 0) {
-    const anzahl = Math.max(1, Math.ceil((laenge - lap) / (stoss - lap)));
-    const nutz = anzahl > 1 ? (laenge - lap) / anzahl : laenge;
+    let anzahl = Math.max(1, Math.ceil(laenge / stoss));
+    let rest = laenge - (anzahl - 1) * stoss;
+    if (anzahl > 1 && rest > 0 && rest < schwelle) { anzahl -= 1; rest = stoss + rest; }
     for (let i = 0; i < anzahl; i++) {
-      const zuschnitt = Math.round(nutz + (anzahl > 1 ? lap : 0));
-      stuecke.push({ nr: i + 1, laenge: zuschnitt, stoss: i < anzahl - 1 });
+      const letztes = i === anzahl - 1;
+      const grund = Math.round(letztes ? rest : stoss + lap);
+      const st = { nr: i + 1, laenge: grund, gehrung: false };
+      if (letztes && mitGehrung && gehrungZugabe > 0) {
+        st.gehrung = true;
+        st.laengeOhneGehrung = grund;
+        st.laenge = grund + gehrungZugabe;
+      }
+      stuecke.push(st);
     }
   }
   const abwGesamt = teile.reduce((s, t) => s + t.abwicklung, 0);
@@ -475,6 +555,7 @@ function berechneAnschlussblech(e) {
 
   return {
     teile: teile,
+    ohneZuschnitt: ohneZuschnitt,
     abwicklung: abwGesamt,
     warnungen: warnungen,
     laenge: Math.round(laenge),
@@ -497,8 +578,10 @@ const ANSCHLUSSBLECH_STANDARD = Object.freeze({
   deckung: "pfanne",          // Vorschlag für eine neue Massaufnahme
   saum: 15,                   // Umschlag am freien Blechende
   zugabe: 0,                  // Zuschlag je Teil auf die Abwicklung
-  stoss_laenge: 2000,         // längstes Stück
+  stoss_laenge: 2000,         // volles Stück
   ueberlappung: 70,           // Überlappung am Stoss
+  rest_schwelle: 300,         // kürzeres Reststück wird angehängt
+  gehrungszugabe: 100,        // Zuschlag für die Firstgehrung am Endstück
   wand_aufkantung: 150,       // Seitenblech: Höhe an der Wand
   ort_aufkantung: 60,         // Ortblech: Höhe über Dach
   ort_oben: 80,               // Ortblech: Übergriff über das Ortbrett
@@ -535,7 +618,9 @@ function anbVorgabe() {
     wandAufkantung: s.wand_aufkantung,
     ortAufkantung: s.ort_aufkantung, ortOben: s.ort_oben,
     ortStirn: s.ort_stirn, ortNase: s.ort_nase,
-    laenge: 0, stossLaenge: s.stoss_laenge, ueberlappung: s.ueberlappung
+    laenge: 0, stossLaenge: s.stoss_laenge, ueberlappung: s.ueberlappung,
+    restSchwelle: s.rest_schwelle, gehrungszugabe: s.gehrungszugabe,
+    firstgehrung: false
   };
   return Object.assign(w, anbStandardwerte(art, deckung, {}));
 }
@@ -564,7 +649,8 @@ function anbEingabenAusFeldern() {
     zugabe: zahl("anb_zugabe"),
     laenge: zahl("anb_laenge"),
     stossLaenge: zahl("anb_stossLaenge"),
-    ueberlappung: zahl("anb_ueberlappung")
+    ueberlappung: zahl("anb_ueberlappung"),
+    firstgehrung: $("anb_firstgehrung") ? !!$("anb_firstgehrung").checked : false
   };
   document.querySelectorAll("#anb_masse [data-anb],#anb_abschluss [data-anb]")
     .forEach(el => { e[el.dataset.anb] = Number(el.value) || 0; });
@@ -590,6 +676,7 @@ function anbFesteFelderFuellen(w) {
   $("anb_laenge").value = w.laenge ? Math.round(w.laenge) : "";
   $("anb_stossLaenge").value = Math.round(w.stossLaenge);
   $("anb_ueberlappung").value = Math.round(w.ueberlappung);
+  if ($("anb_firstgehrung")) $("anb_firstgehrung").checked = !!w.firstgehrung;
 }
 
 // Die Massfelder der gewählten Anschlussart und den linken Abschluss
@@ -652,14 +739,21 @@ function renderAnbResult() {
     + kasten("Materialfläche", erg.flaeche ? erg.flaeche.toFixed(2) + " m²" : "–");
 
   $("anb_stuecklisteBody").innerHTML = erg.stuecke.length
-    ? erg.stuecke.map(s => `<tr><td>${s.nr}</td><td>${s.laenge}</td><td>${erg.abwicklung}</td><td>${s.stoss ? "ja" : "–"}</td></tr>`).join("")
-    : '<tr><td colspan="4" class="small">Keine Gesamtlänge eingegeben – ohne Länge gibt es keine Stückliste.</td></tr>';
+    ? erg.stuecke.map(s => `<tr><td>${s.nr}${s.gehrung ? " · First" : ""}</td><td>${s.laenge}</td><td>${erg.abwicklung}</td></tr>`).join("")
+    : '<tr><td colspan="3" class="small">Keine Gesamtlänge eingegeben – ohne Länge gibt es keine Stückliste.</td></tr>';
 
   const zus = $("anb_summary");
   if (zus) {
-    zus.textContent = erg.stuecke.length
-      ? `${anbTitel(e)} · ${erg.stuecke.length} Stück, Zuschnitt ${erg.abwicklung} mm breit.`
-      : `${anbTitel(e)} · Zuschnittbreite ${erg.abwicklung} mm.`;
+    const letztes = erg.stuecke[erg.stuecke.length - 1];
+    const gehrungTxt = (letztes && letztes.gehrung)
+      ? ` Endstück mit Firstgehrung: ${letztes.laengeOhneGehrung} mm plus ${letztes.laenge - letztes.laengeOhneGehrung} mm Gehrungszugabe.`
+      : "";
+    const ohneTxt = erg.ohneZuschnitt.length
+      ? ` ${erg.ohneZuschnitt.join(" und ")} nicht im Zuschnitt – eigenes Material.`
+      : "";
+    zus.textContent = (erg.stuecke.length
+      ? `${anbTitel(e)} · ${erg.stuecke.length} Stück, Zuschnitt ${erg.abwicklung} mm breit.${gehrungTxt}`
+      : `${anbTitel(e)} · Zuschnittbreite ${erg.abwicklung} mm.`) + ohneTxt;
   }
 }
 
@@ -692,6 +786,8 @@ function applyAnschlussblechSettings() {
   setzen("anbsSaum", s.saum);
   setzen("anbsStossLaenge", s.stoss_laenge);
   setzen("anbsUeberlappung", s.ueberlappung);
+  setzen("anbsRestSchwelle", s.rest_schwelle);
+  setzen("anbsGehrungszugabe", s.gehrungszugabe);
   setzen("anbsZugabe", s.zugabe);
   setzen("anbsWandAufkantung", s.wand_aufkantung);
   setzen("anbsOrtAufkantung", s.ort_aufkantung);
@@ -727,6 +823,7 @@ function applyAnschlussblechSettings() {
   };
   ["anb_deckHoehe", "anb_saum", "anb_zugabe", "anb_laenge", "anb_stossLaenge", "anb_ueberlappung"]
     .forEach(id => { const el = $(id); if (el) el.addEventListener("input", renderAnbResult); });
+  if ($("anb_firstgehrung")) $("anb_firstgehrung").addEventListener("change", renderAnbResult);
 
   // Sprung in die Einstellungen, gleich wie bei der Lukarne.
   const knopf = $("openAnschlussblechSettings");
@@ -762,6 +859,8 @@ function applyAnschlussblechSettings() {
       zugabe: zahl("anbsZugabe") || 0,
       stoss_laenge: zahl("anbsStossLaenge"),
       ueberlappung: zahl("anbsUeberlappung") || 0,
+      rest_schwelle: zahl("anbsRestSchwelle") || 0,
+      gehrungszugabe: zahl("anbsGehrungszugabe") || 0,
       wand_aufkantung: zahl("anbsWandAufkantung") || 0,
       ort_aufkantung: zahl("anbsOrtAufkantung") || 0,
       ort_oben: zahl("anbsOrtOben") || 0,
@@ -771,7 +870,7 @@ function applyAnschlussblechSettings() {
     if (!ANB_DECKUNGEN[w.deckung]) { alert("Bitte ein Deckmaterial wählen."); return; }
     if (!(w.stoss_laenge > 0)) { alert("Bitte eine gültige Stücklänge eingeben."); return; }
     if (w.ueberlappung >= w.stoss_laenge) { alert("Die Überlappung muss kleiner sein als die Stücklänge."); return; }
-    const negativ = ["saum", "ueberlappung", "wand_aufkantung", "ort_aufkantung", "ort_oben", "ort_stirn", "ort_nase"]
+    const negativ = ["saum", "ueberlappung", "rest_schwelle", "gehrungszugabe", "wand_aufkantung", "ort_aufkantung", "ort_oben", "ort_stirn", "ort_nase"]
       .some(k => w[k] < 0);
     if (negativ) { alert("Nur die Zugabe darf negativ sein."); return; }
     anbEinstellungenSichern(w);

@@ -125,7 +125,7 @@ const MEAS_TYPE_LABELS=Object.freeze({
  freies_profil:"Freies Profil",
  mauerabdeckung:"Mauerabdeckung",
  lukarne:"Lukarne Seitenverkleidung",
- anschlussblech:"Anschlussblech"
+ anschlussblech:"Ort- und Seitenbleche"
 });
 // Module in Entwicklung: nur für Administratoren sichtbar.
 // Schlüssel: "meas:<art>" bzw. "am:<art>" -> true = versteckt für alle anderen.

@@ -507,11 +507,13 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <thead><tr><th>Teil</th><th>Abwicklung (mm)</th></tr></thead>
 <tbody>${teile.map(t=>`<tr><td>${esc(t.name)}</td><td>${esc(Math.round(t.abwicklung))}</td></tr>`).join("")}</tbody>
 </table>
+${(erg&&erg.ohneZuschnitt&&erg.ohneZuschnitt.length)?`<div class="note">${erg.ohneZuschnitt.map(n=>esc(n)).join(" und ")} nicht im Zuschnitt enthalten – eigenes Material.</div>`:""}
 ${stuecke.length?`<div class="eb-section-head">Stückliste</div>
 <table class="eb-cutlist">
-<thead><tr><th>Stück</th><th>Zuschnitt Länge (mm)</th><th>Zuschnitt Breite (mm)</th><th>Stoss</th></tr></thead>
-<tbody>${stuecke.map(s=>`<tr><td>${esc(s.nr)}</td><td>${esc(Math.round(s.laenge))}</td><td>${esc(Math.round(abw))}</td><td>${s.stoss?"ja":"–"}</td></tr>`).join("")}</tbody>
-</table>`:""}
+<thead><tr><th>Stück</th><th>Zuschnitt Länge (mm)</th><th>Zuschnitt Breite (mm)</th></tr></thead>
+<tbody>${stuecke.map(s=>`<tr><td>${esc(s.nr)}${s.gehrung?" · First":""}</td><td>${esc(Math.round(s.laenge))}</td><td>${esc(Math.round(abw))}</td></tr>`).join("")}</tbody>
+</table>
+${(()=>{const l=stuecke[stuecke.length-1];return (l&&l.gehrung)?`<div class="note">Endstück mit Firstgehrung: ${esc(Math.round(l.laengeOhneGehrung))} mm plus ${esc(Math.round(l.laenge-l.laengeOhneGehrung))} mm Gehrungszugabe.</div>`:""})()}`:""}
 ${(erg&&erg.warnungen.length)?`<div class="note" style="color:#b42318">${erg.warnungen.map(w=>esc(w)).join("<br>")}</div>`:""}
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="einlaufblech_konisch"){
