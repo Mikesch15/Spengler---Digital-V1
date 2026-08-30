@@ -1,7 +1,7 @@
 # Spengler-DIGITAL · Projektnotizen
 
 Kurze Gebrauchsanleitung für alle, die später an dieser App arbeiten –
-auch für mich selbst in einem halben Jahr. Stand: Version 1.86.
+auch für mich selbst in einem halben Jahr. Stand: Version 1.90.
 
 ---
 
@@ -14,7 +14,7 @@ mit Supabase als Backend. Sie läuft als installierbare App auf dem Handy
 - **Regierapport** – Zeit- und Materialrapport mit PDF-Ausdruck
 - **Massaufnahme** – Skizze/Foto, Einlaufblech gerade und konisch,
   Rinne Halbrund, Freies Profil, Mauerabdeckung,
-  Lukarne Seitenverkleidung
+  Lukarne Seitenverkleidung, Ort- und Seitenbleche
 - **Ausmass** – Offerte erfassen, Blitzschutzausmass
 - **Projekte** – klammert Rapporte, Massaufnahmen und Ausmasse zusammen
 
@@ -33,7 +33,7 @@ css/01-basis.css    Grundlayout und Bausteine
 css/02-responsive   Bildschirmgrössen
 css/03-druck.css    alles fürs PDF
 css/04-rechte.css   Darstellung eingeschränkter Rechte
-js/01 … js/19       Programmteile, siehe unten
+js/01 … js/20       Programmteile, siehe unten
 sql/                Datenbankschritte, einzeln nummeriert
 supabase/           Edge Functions zum Einfügen ins Dashboard
 ```
@@ -62,6 +62,7 @@ supabase/           Edge Functions zum Einfügen ins Dashboard
 | `16-massaufnahme-formular.js` | Formular, Speichern, **alle PDF-Ausdrucke** |
 | `17-ausmass.js` | Ausmass |
 | `19-lukarne.js` | Lukarne Seitenverkleidung, Plan und Scharenliste |
+| `20-anschlussblech.js` | Ort- und Seitenbleche, Schnittzeichnung, Abwicklung, Stückliste, eigene Einstellungen |
 | `18-app-start.js` | Sitzung prüfen, Service Worker anmelden — **bleibt die letzte Zeile** |
 
 ### Zwei Regeln, die man nicht brechen darf
@@ -71,7 +72,8 @@ ist.** Es sind gewöhnliche Skripte, keine Module. Sie teilen sich einen
 Namensraum, und spätere Dateien bauen auf früheren auf. Neues hinten
 anhängen — aber **vor** `18-app-start.js`. Diese Datei prüft beim Laden
 sofort die Sitzung; was danach steht, ist unter Umständen noch nicht da.
-Deshalb steht `19-lukarne.js` in der Liste vor `18-app-start.js`.
+Deshalb stehen `19-lukarne.js` und `20-anschlussblech.js` in der Liste
+vor `18-app-start.js`.
 
 **Wer eine Funktion beim Laden aufruft, muss sie vorher definiert haben.**
 Innerhalb einer Datei sorgt JavaScript selbst dafür, über Dateigrenzen
@@ -214,6 +216,75 @@ Gefälle nach rechts → Schenkel rechts → Umschlag rechts 90° → Saum 180°
 Die Abwicklung nimmt die Gesamtbreite so, wie sie eingegeben wurde –
 sie wird **nicht** über die Schräge verlängert.
 
+**Ort- und Seitenbleche nach [7.3.37].** Sechs Anschlussarten, jede als
+Seiten- oder Ortblech. Der Schlüssel im Programm heisst weiterhin
+`anschlussblech` – nur die Beschriftung wurde geändert, damit
+gespeicherte Massaufnahmen weiter gefunden werden:
+
+| Art | Masse | Mindestmasse |
+|---|---|---|
+| mit Bleilappen | a, b | a 50, b 50 |
+| mit Rinne | a, b, c, d | a 40, b 80, c ca. 10, d = Ziegellattendicke |
+| mit Steg | a, b, c | a 50 (mehr bei viel Wasser), b 70, c = Höhe Deckmaterial |
+| mit Rinne und Steg | a, b, d | a 50, b 70, d = Ziegellattendicke |
+| Steckblech | a | a 80 |
+| für gewellte Deckung | a, b | a 50, b 30 |
+
+Beim **Biberschwanzziegel** ist b beim Steg 60 statt 70 mm; das rechnet
+`anbMindestmass()` selbst um. Die App warnt bei Unterschreitung, sperrt
+aber nicht – die Abmessungen sind den örtlichen Gegebenheiten anzupassen.
+
+Die Zeichnung ist kein festes Bild, sondern Geometrie: Nullpunkt ist die
+Wandflucht beziehungsweise der Dachrand, `y = 0` die Oberkante Schalung,
+`y` zeigt nach oben, alles in Millimetern. Bei den Rinnenausführungen
+liegt der Rinnenboden auf der Schalung und die Fläche unter dem
+Deckmaterial um die Ziegellattendicke `d` höher; deshalb wird die
+Lattung mitgezeichnet. Die **Abwicklung kommt aus derselben Punktfolge
+wie die Zeichnung** und kann deshalb nicht auseinanderlaufen. Wer eine
+Anschlussart ändert, fasst nur `anbProfil()` und die Tabelle am Anfang
+der Datei an.
+
+**Der Bleilappen zählt nicht zum Zuschnitt.** Gezeichnet und bemasst wird
+er wie jede andere Art, aber er ist aus Blei und wird nicht mit dem Blech
+gekantet. Sein Teil trägt in `anbProfil()` das Kennzeichen
+`ohneZuschnitt: true`; `berechneAnschlussblech()` filtert solche Teile aus
+der Abwicklung, aus der Zuschnittbreite, aus der Materialfläche und aus
+der Stückliste und gibt ihre Namen als `ohneZuschnitt` zurück. Zeichnung
+und Stückliste sagen es an. Über dasselbe Kennzeichen lässt sich jedes
+weitere Teil aus einem anderen Material aus dem Zuschnitt nehmen.
+
+Das ganze Blech ist im Bild und **voll vermasst**: a bis d, die
+Aufkantung, beim Ortblech Übergriff, Stirnhöhe und Wassernase, dazu Saum
+und Höhe des Deckmaterials. Die senkrechten Masse stehen hochkant auf
+ihrer Masslinie und bekommen je eine eigene Spalte links – daneben hätte
+eine Beschriftung wie „Aufkantung 150" keinen Platz. Der linke Rand
+wächst deshalb mit der Anzahl der senkrechten Masse mit.
+
+Der **Saum** wird nach links der Laufrichtung umgeschlagen, also bei
+allen Ausführungen zur gleichen Seite. Das steckt in einer einzigen
+Zeile in `anbSaum()` (`nx`/`ny`) – wer die Richtung wieder drehen will,
+kehrt dort die Vorzeichen um.
+
+Die **Stückliste** folgt derselben Regel wie beim Einlaufblech: volle
+Stücke zur eingestellten Stücklänge, die Überlappung kommt beim vollen
+Stück auf den Zuschnitt, am Schluss das Reststück ohne Überlappung. Ein
+Reststück unterhalb der Schwelle wird dem vorherigen zugeschlagen. Ist
+die **Firstgehrung am Endstück** angehakt, bekommt das letzte Stück die
+Gehrungszugabe aus den Einstellungen zusätzlich; die Liste zeigt es als
+„· First" und nennt beide Werte darunter.
+
+Das Modul hat **eigene Einstellungen** unter Einstellungen → Massaufnahmen
+→ „Ort- und Seitenbleche": Standard-Deckmaterial, Saum, Stücklänge,
+Überlappung, Reststück-Schwelle, Gehrungszugabe, Zugabe, Wandaufkantung
+und die vier Ortmasse. Sie stehen in
+`ANSCHLUSSBLECH_STANDARD` und `anschlussblechSettings` in
+`20-anschlussblech.js` und hängen am Gerät (`sd_anschlussblechSettings`).
+Bewusst nichts davon kommt vom Einlaufblech oder von der Lukarne – wer
+hier etwas ändert, ändert nur das Anschlussblech. `anbVorgabe()` baut
+daraus die Vorschlagswerte einer neuen Massaufnahme; die Masse a bis d
+kommen weiterhin aus den Mindestmassen der Anschlussart.
+
+
 **Lukarne Seitenverkleidung.** Die Wange ist ein Dreieck: vordere Kante
 senkrecht (Höhe H), obere Kante (Länge L) im Innenwinkel α dazu, beide
 treffen sich hinten in der Spitze. Mit β = α − 90° gilt
@@ -234,9 +305,23 @@ gewünschter Wert von 600 mm kann dadurch auf wenige Zentimeter
 zusammenschrumpfen; die App sagt dann, warum. Das ist keine Panne,
 sondern die Geometrie.
 
-In der Tabelle heissen die beiden Scharkanten **vorne** (Richtung Front)
-und **hinten** (Richtung Spitze) statt links/rechts. So bleiben die Zahlen
-für beide Wangen gleich; nur die Zeichnung wird gespiegelt.
+Gerechnet wird intern mit **vorne** (Richtung Front) und **hinten**
+(Richtung Spitze) – so bleiben die gespeicherten Zahlen bei beiden Wangen
+gleich. Angeschrieben wird **links / rechts**, wie es im Plan steht: bei
+der linken Wange liegt die Front rechts, dort drehen sich die beiden
+Spaltenpaare also um. Das erledigt `lukScharenZeilen()`; die gespeicherten
+Daten selbst werden nie gespiegelt.
+
+Die Scharenliste zeigt bewusst nur, was in der Werkstatt gebraucht wird:
+Positionsnummer, je Kante das Mass ab Hilfsriss nach oben und unten sowie
+die Gesamthöhe, dazu der Zuschnitt als Breite × Länge.
+
+Im Plan setzt sich jede Zahl in eine Liste belegter Flächen ein. Die vier
+grossen Masslinien (H, HR, L, A) und die Winkelzahl suchen sich danach
+eine freie Bahn – erst weiter nach aussen, dann der Masslinie entlang.
+Wer dort etwas ändert: die Zahlen der Scharen und die Breitenkette müssen
+**vor** den grossen Massen gezeichnet werden, sonst weichen die falschen
+aus.
 
 **Zuschnitt:** Jedes Stück bekommt an seinen eigenen Enden das Mass des
 dort sitzenden Teils zugerechnet. Negative Masse ziehen ab, etwa −165 mm
@@ -255,11 +340,21 @@ PDF bleibt dadurch gleich, auch wenn später ein Katalogmass geändert wird.
   steht lesbar in `index.html`. Die Selbstregistrierung ist zwar aus der
   App entfernt, aber `smart-action` liesse sich mit dem Code weiterhin
   direkt aufrufen. Sauber wird es erst, wenn die Funktion die Rolle prüft.
-- **Einlaufblech-Einstellungen** hängen am Gerät (localStorage), nicht am
+- **Einlaufblech- und Anschlussblech-Einstellungen** hängen am Gerät (localStorage), nicht am
   Konto. Bewusst so: jeder soll eigene Werte haben. Nachteil: Wer das
   Gerät wechselt, fängt bei den Standardwerten an.
 - **Module in Entwicklung** verstecken nur das Anlegen. Bereits
   gespeicherte Einträge bleiben für alle sichtbar.
+- **Ort- und Seitenbleche:** Für den Bleilappen selbst gibt es keine
+  Zuschnittmasse – wie viel Blei gebraucht wird, steht nirgends.
+  Die Stückliste kennt keine Ecken oder Fixpunkte wie
+  `calcDilaPositionsInStretch`, und die Firstgehrung ist ein fester
+  Zuschlag in Millimetern, kein gerechneter Winkel – gleich wie beim
+  Einlaufblech. Dehnungselemente fehlen. Die Höhe des
+  Deckmaterials ist ein Erfahrungswert je Deckung und muss am Bau
+  nachgemessen werden. Die eigenen Einstellungen hängen am Gerät; wer sie
+  firmenweit will, muss sie wie `rinneDilaMass` nach `app_settings`
+  verlegen.
 - **Datensicherung** läuft von Hand über den Knopf in den Einstellungen.
   Ein automatischer Ablauf existiert nicht.
 - Der **Ansichtspfeil** ist bei der Mauerabdeckung fest auf rechts, beim

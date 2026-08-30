@@ -83,7 +83,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.87</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.90</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -100,7 +100,7 @@
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="freies_profil"><span class="start-nav-icon">📐</span><span>Freies Profil</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="mauerabdeckung"><span class="start-nav-icon">🧱</span><span>Mauerabdeckung</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="lukarne"><span class="start-nav-icon">🏚️</span><span>Lukarne Seitenverkleidung</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="anschlussblech"><span class="start-nav-icon">📐</span><span>Anschlussblech</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="anschlussblech"><span class="start-nav-icon">📐</span><span>Ort- und Seitenbleche</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
 <button id="cancelMeasTypeChooser" class="gray">Abbrechen</button>
@@ -302,7 +302,7 @@
 <div class="card">
 <h2>📐 Neue Massaufnahme</h2>
 <div class="grid" style="margin-bottom:8px">
-<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="anschlussblech">Anschlussblech</option></select></div>
+<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="anschlussblech">Ort- und Seitenbleche</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
 <div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
@@ -484,7 +484,7 @@
 </div>
 
 <div id="measTypeAnschlussblech" hidden>
-<div class="info">Seiten- und Ortbleche nach [7.3.37]. Zeichnung und Abwicklung stammen aus derselben Linie, können also nicht auseinanderlaufen. Die Mindestmasse werden geprüft; beim Biberschwanzziegel gilt beim Steg b = 60 mm statt 70 mm.</div>
+<div class="info">Ort- und Seitenbleche nach [7.3.37]. Zeichnung und Abwicklung stammen aus derselben Linie, können also nicht auseinanderlaufen. Die Mindestmasse werden geprüft; beim Biberschwanzziegel gilt beim Steg b = 60 mm statt 70 mm. Der Bleilappen wird gezeichnet und bemasst, z&auml;hlt aber nicht zum Zuschnitt &ndash; er ist aus Blei und wird nicht mit dem Blech gekantet.</div>
 <div class="grid">
 <div><label>Deckmaterial</label><select id="anb_deckung"></select></div>
 <div><label>Anschlussart</label><select id="anb_art"></select></div>
@@ -508,12 +508,13 @@
 <div><label>St&uuml;ckl&auml;nge (mm)</label><input id="anb_stossLaenge" type="number" step="1" inputmode="numeric"></div>
 <div><label>&Uuml;berlappung am Stoss (mm)</label><input id="anb_ueberlappung" type="number" step="1" inputmode="numeric"></div>
 </div>
+<label class="rechte-schalter"><input type="checkbox" id="anb_firstgehrung"> Endst&uuml;ck mit Firstgehrung (Zuschlag aus den Einstellungen)</label>
 <h2 style="margin-top:14px">Ergebnis</h2>
 <div class="grid" id="anb_ergebnis"></div>
 <div class="scroll" style="margin-top:8px">
 <table class="eb-table">
-<colgroup><col style="width:14%"><col style="width:30%"><col style="width:30%"><col style="width:26%"></colgroup>
-<thead><tr><th>St&uuml;ck</th><th>Zuschnitt L&auml;nge (mm)</th><th>Zuschnitt Breite (mm)</th><th>Stoss</th></tr></thead>
+<colgroup><col style="width:20%"><col style="width:42%"><col style="width:38%"></colgroup>
+<thead><tr><th>St&uuml;ck</th><th>Zuschnitt L&auml;nge (mm)</th><th>Zuschnitt Breite (mm)</th></tr></thead>
 <tbody id="anb_stuecklisteBody"></tbody>
 </table>
 </div>
@@ -767,14 +768,16 @@
 </div>
 
 <div class="settings-section" data-section="anschlussblech">
-<div class="settings-section-head" data-toggle-section="anschlussblech"><h2>Anschlussblech</h2><span class="settings-section-chevron">&rsaquo;</span></div>
+<div class="settings-section-head" data-toggle-section="anschlussblech"><h2>Ort- und Seitenbleche</h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
-<div class="info">Eigene Werte des Moduls &bdquo;Anschlussblech&ldquo; &ndash; unabh&auml;ngig von den Einlaufblechen. Sie werden bei einer neuen Massaufnahme vorgeschlagen und lassen sich dort jederzeit &uuml;berschreiben. Die Anschlussmasse a bis d kommen aus den Mindestmassen der gew&auml;hlten Anschlussart und stehen deshalb nicht hier. Gilt nur f&uuml;r dieses Ger&auml;t.</div>
+<div class="info">Eigene Werte des Moduls &bdquo;Ort- und Seitenbleche&ldquo; &ndash; unabh&auml;ngig von den Einlaufblechen. Sie werden bei einer neuen Massaufnahme vorgeschlagen und lassen sich dort jederzeit &uuml;berschreiben. Die Anschlussmasse a bis d kommen aus den Mindestmassen der gew&auml;hlten Anschlussart und stehen deshalb nicht hier. Gilt nur f&uuml;r dieses Ger&auml;t.</div>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="anbsDeckung"></select></div>
 <div><label>Saum am Blechende (mm)</label><input id="anbsSaum" type="number" step="1"></div>
 <div><label>St&uuml;ckl&auml;nge (mm)</label><input id="anbsStossLaenge" type="number" step="1"></div>
 <div><label>&Uuml;berlappung am Stoss (mm)</label><input id="anbsUeberlappung" type="number" step="1"></div>
+<div><label>Rest&shy;st&uuml;ck-Schwelle (mm)</label><input id="anbsRestSchwelle" type="number" step="1"></div>
+<div><label>Gehrungszugabe First (mm)</label><input id="anbsGehrungszugabe" type="number" step="1"></div>
 <div><label>Zugabe je Teil (mm)</label><input id="anbsZugabe" type="number" step="1"></div>
 <div><label>Aufkantung an der Wand (mm)</label><input id="anbsWandAufkantung" type="number" step="1"></div>
 </div>
