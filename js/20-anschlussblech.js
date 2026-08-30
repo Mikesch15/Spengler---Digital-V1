@@ -129,7 +129,9 @@ function anbStandardwerte(art, deckung, vorhanden) {
 function anbProfil(e) {
   const z = v => Number(v) || 0;
   const a = z(e.a), b = z(e.b), c = z(e.c), d = z(e.d);
-  const hd = Math.max(5, z(e.deckHoehe));           // Höhe Deckmaterial
+  // Höhe Deckmaterial: fester Wert aus dem Deckmaterial-Katalog, kein
+  // eigenes Eingabefeld mehr.
+  const hd = Math.max(5, (ANB_DECKUNGEN[e.deckung] || {}).hoehe || 0);
   const art = e.art;
   const ort = e.ausfuehrung === "ort" && art !== "steck";
   const basis = (art === "rinne" || art === "rinne_steg") ? d : 0;
@@ -348,13 +350,13 @@ function anbZeichnung(e) {
   if (p.ort) g += anbMassWaag(-bO, 0, yMass + 26, "Übergriff " + zahl(bO), X, Y);
   senkListe.forEach(eintrag => { g += senk(eintrag); });
 
-  // Wassernase und Saum als kurze Fahne – dafür lohnt keine Masskette.
+  // Wassernase und Umschlag als kurze Fahne – dafür lohnt keine Masskette.
   if (p.ort && nO > 0) {
     g += anbFahne(-bO - 10 + nO * 0.75, hO - vO + nO * 0.75, 34, 26, "Nase " + zahl(nO), X, Y);
   }
   if (saum > 0 && saumStellen.length) {
     const q = saumStellen[0];
-    g += anbFahne(q[0], q[1], 30, -30, "Saum " + zahl(saum), X, Y);
+    g += anbFahne(q[0], q[1], 30, -30, "Umschlag " + zahl(saum), X, Y);
   }
   if (e.art !== "steck") {
     g += anbFahne(deckBis - 30, basis + hd, -30, -28, "Deckmaterial " + zahl(hd), X, Y);
@@ -467,7 +469,7 @@ function anbMassSenk(y1, y2, x, text, X, Y) {
 }
 
 // Kurze Fahne mit Beschriftung, für Masse, die keine ganze Masskette
-// wert sind: Wassernase, Saum, Höhe des Deckmaterials.
+// wert sind: Wassernase, Umschlag.
 // dx und dy sind Bildpunkte, dy positiv zeigt nach unten.
 function anbFahne(x, y, dx, dy, text, X, Y) {
   const x0 = X(x), y0 = Y(y), x1 = x0 + dx, y1 = y0 + dy;
@@ -489,18 +491,17 @@ function anbEsc(t) {
 // ---- 4. Rechnen --------------------------------------------------
 // e: {ausfuehrung, deckung, art, a,b,c,d, deckHoehe, saum,
 //     wandAufkantung, ortAufkantung, ortOben, ortStirn, ortNase,
-//     laenge, stossLaenge, ueberlappung, zugabe}
+//     laenge, stossLaenge, ueberlappung}
 function berechneAnschlussblech(e) {
   if (!e || !ANB_ARTEN[e.art]) return null;
   const p = anbProfil(e);
   const saum = Math.max(0, Number(e.saum) || 0);
-  const zugabe = Number(e.zugabe) || 0;
 
   // Nur was aus dem Blech gekantet wird, kommt in den Zuschnitt. Der
   // Bleilappen ist eigenes Material und wird deshalb übersprungen.
   const teile = p.teile.filter(t => !t.ohneZuschnitt).map(t => ({
     name: t.name,
-    abwicklung: Math.round(anbAbwicklungTeil(t, saum) + zugabe),
+    abwicklung: Math.round(anbAbwicklungTeil(t, saum)),
     schenkel: t.pts.length - 1
   }));
   const ohneZuschnitt = p.teile.filter(t => t.ohneZuschnitt).map(t => t.name);
@@ -517,9 +518,6 @@ function berechneAnschlussblech(e) {
   });
   if (e.art === "rinne" && (Number(e.b) || 0) <= (Number(e.c) || 0)) {
     warnungen.push("b muss grösser sein als c, sonst endet das Blech vor der Aufkantung.");
-  }
-  if ((e.art === "steg" || e.art === "rinne_steg") && !(Number(e.deckHoehe) > 0)) {
-    warnungen.push("Höhe Deckmaterial fehlt – der Steg wird so hoch wie das Deckmaterial.");
   }
 
   // Länge, Stösse, Stückliste – dieselbe Regel wie beim Einlaufblech:
@@ -577,7 +575,6 @@ function berechneAnschlussblech(e) {
 const ANSCHLUSSBLECH_STANDARD = Object.freeze({
   deckung: "pfanne",          // Vorschlag für eine neue Massaufnahme
   saum: 15,                   // Umschlag am freien Blechende
-  zugabe: 0,                  // Zuschlag je Teil auf die Abwicklung
   stoss_laenge: 2000,         // volles Stück
   ueberlappung: 70,           // Überlappung am Stoss
   rest_schwelle: 300,         // kürzeres Reststück wird angehängt
@@ -614,7 +611,7 @@ function anbVorgabe() {
     ausfuehrung: "seite", deckung: deckung, art: art,
     deckHoehe: ANB_DECKUNGEN[deckung].hoehe,
     a: 50, b: 50, c: 10, d: 30,
-    saum: s.saum, zugabe: s.zugabe,
+    saum: s.saum,
     wandAufkantung: s.wand_aufkantung,
     ortAufkantung: s.ort_aufkantung, ortOben: s.ort_oben,
     ortStirn: s.ort_stirn, ortNase: s.ort_nase,
@@ -640,13 +637,14 @@ function anbEingabenAusFeldern() {
   const vorgabe = anbVorgabe();
   if (!$("anb_deckung")) return vorgabe;
   const zahl = id => Number(($(id) || {}).value) || 0;
+  const deckung = $("anb_deckung").value || vorgabe.deckung;
   const e = {
-    deckung: $("anb_deckung").value || vorgabe.deckung,
+    deckung: deckung,
     art: $("anb_art").value || vorgabe.art,
     ausfuehrung: $("anb_ausfuehrung").value || "seite",
-    deckHoehe: zahl("anb_deckHoehe"),
+    // Höhe Deckmaterial: fester Wert aus dem Deckmaterial-Katalog.
+    deckHoehe: (ANB_DECKUNGEN[deckung] || {}).hoehe || 0,
     saum: zahl("anb_saum"),
-    zugabe: zahl("anb_zugabe"),
     laenge: zahl("anb_laenge"),
     stossLaenge: zahl("anb_stossLaenge"),
     ueberlappung: zahl("anb_ueberlappung"),
@@ -670,9 +668,7 @@ function anbFesteFelderFuellen(w) {
     .map(k => `<option value="${k}"${k === w.art ? " selected" : ""}>${anbEsc(ANB_ARTEN[k].name)}</option>`).join("");
   $("anb_ausfuehrung").value = w.ausfuehrung === "ort" ? "ort" : "seite";
   $("anb_ausfuehrung").disabled = w.art === "steck";
-  $("anb_deckHoehe").value = Math.round(w.deckHoehe);
   $("anb_saum").value = Math.round(w.saum);
-  $("anb_zugabe").value = Math.round(w.zugabe);
   $("anb_laenge").value = w.laenge ? Math.round(w.laenge) : "";
   $("anb_stossLaenge").value = Math.round(w.stossLaenge);
   $("anb_ueberlappung").value = Math.round(w.ueberlappung);
@@ -788,7 +784,6 @@ function applyAnschlussblechSettings() {
   setzen("anbsUeberlappung", s.ueberlappung);
   setzen("anbsRestSchwelle", s.rest_schwelle);
   setzen("anbsGehrungszugabe", s.gehrungszugabe);
-  setzen("anbsZugabe", s.zugabe);
   setzen("anbsWandAufkantung", s.wand_aufkantung);
   setzen("anbsOrtAufkantung", s.ort_aufkantung);
   setzen("anbsOrtOben", s.ort_oben);
@@ -804,7 +799,6 @@ function applyAnschlussblechSettings() {
 
   $("anb_deckung").onchange = () => {
     const w = anbEingabenAusFeldern();
-    w.deckHoehe = ANB_DECKUNGEN[w.deckung].hoehe;
     Object.assign(w, anbStandardwerte(w.art, w.deckung, {}));
     anbFesteFelderFuellen(w);
     anbMassfelderZeichnen(w);
@@ -821,7 +815,7 @@ function applyAnschlussblechSettings() {
     anbMassfelderZeichnen(anbEingabenAusFeldern());
     renderAnbResult();
   };
-  ["anb_deckHoehe", "anb_saum", "anb_zugabe", "anb_laenge", "anb_stossLaenge", "anb_ueberlappung"]
+  ["anb_saum", "anb_laenge", "anb_stossLaenge", "anb_ueberlappung"]
     .forEach(id => { const el = $(id); if (el) el.addEventListener("input", renderAnbResult); });
   if ($("anb_firstgehrung")) $("anb_firstgehrung").addEventListener("change", renderAnbResult);
 
@@ -856,7 +850,6 @@ function applyAnschlussblechSettings() {
     const w = {
       deckung: $("anbsDeckung").value,
       saum: zahl("anbsSaum") || 0,
-      zugabe: zahl("anbsZugabe") || 0,
       stoss_laenge: zahl("anbsStossLaenge"),
       ueberlappung: zahl("anbsUeberlappung") || 0,
       rest_schwelle: zahl("anbsRestSchwelle") || 0,
@@ -872,7 +865,7 @@ function applyAnschlussblechSettings() {
     if (w.ueberlappung >= w.stoss_laenge) { alert("Die Überlappung muss kleiner sein als die Stücklänge."); return; }
     const negativ = ["saum", "ueberlappung", "rest_schwelle", "gehrungszugabe", "wand_aufkantung", "ort_aufkantung", "ort_oben", "ort_stirn", "ort_nase"]
       .some(k => w[k] < 0);
-    if (negativ) { alert("Nur die Zugabe darf negativ sein."); return; }
+    if (negativ) { alert("Diese Werte dürfen nicht negativ sein."); return; }
     anbEinstellungenSichern(w);
     applyAnschlussblechSettings();
     alert("Gespeichert (gilt nur für dieses Gerät).");

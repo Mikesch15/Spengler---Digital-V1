@@ -505,9 +505,8 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <table class="eb-cutlist">
 <thead><tr><th>Mass</th><th>Bedeutung</th><th>Wert</th><th>Vorgabe</th></tr></thead>
 <tbody>${massZeilen}
-<tr><td>–</td><td>Höhe Deckmaterial</td><td>${esc(Math.round(d.deckHoehe||0))} mm</td><td>nachmessen</td></tr>
 <tr><td>–</td><td>${d.ausfuehrung==="ort"?"Aufkantung über Dach":"Aufkantung an der Wand"}</td><td>${esc(Math.round(d.ausfuehrung==="ort"?(d.ortAufkantung||0):(d.wandAufkantung||0)))} mm</td><td>–</td></tr>
-<tr><td>–</td><td>Saum am Blechende</td><td>${esc(Math.round(d.saum||0))} mm</td><td>–</td></tr>
+<tr><td>–</td><td>Umschlag am Blechende</td><td>${esc(Math.round(d.saum||0))} mm</td><td>–</td></tr>
 </tbody>
 </table>
 <div class="eb-section-head">Abwicklung</div>

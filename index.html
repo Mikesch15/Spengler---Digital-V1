@@ -83,7 +83,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.92</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.93</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -483,15 +483,13 @@
 <div><label>Deckmaterial</label><select id="anb_deckung"></select></div>
 <div><label>Anschlussart</label><select id="anb_art"></select></div>
 <div><label>Ausf&uuml;hrung</label><select id="anb_ausfuehrung"><option value="seite">Seitenblech (Wand)</option><option value="ort">Ortblech (Giebel)</option></select></div>
-<div><label>H&ouml;he Deckmaterial (mm)</label><input id="anb_deckHoehe" type="number" step="1" inputmode="numeric"></div>
 <div><label>Material</label><select id="anb_material" class="meas-material-select"></select></div>
 </div>
 <h2 style="margin-top:14px">Masse des Schnitts</h2>
 <div class="grid" id="anb_masse"></div>
 <div class="grid" id="anb_abschluss" style="margin-top:8px"></div>
 <div class="grid" style="margin-top:8px">
-<div><label>Saum am Blechende (mm)</label><input id="anb_saum" type="number" step="1" inputmode="numeric"></div>
-<div><label>Zugabe je Teil (mm)</label><input id="anb_zugabe" type="number" step="1" inputmode="numeric"></div>
+<div><label>Umschlag am Blechende (mm)</label><input id="anb_saum" type="number" step="1" inputmode="numeric"></div>
 </div>
 <div class="bar" style="margin-top:6px"><button type="button" class="gray" id="openAnschlussblechSettings">⚙️ Standardwerte</button></div>
 <h2 style="margin-top:14px">Schnitt</h2>
@@ -778,12 +776,11 @@
 <div class="info">Eigene Werte des Moduls &bdquo;Ort- und Seitenbleche&ldquo; &ndash; unabh&auml;ngig von den Einlaufblechen. Sie werden bei einer neuen Massaufnahme vorgeschlagen und lassen sich dort jederzeit &uuml;berschreiben. Die Anschlussmasse a bis d kommen aus den Mindestmassen der gew&auml;hlten Anschlussart und stehen deshalb nicht hier. Gilt nur f&uuml;r dieses Ger&auml;t.</div>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="anbsDeckung"></select></div>
-<div><label>Saum am Blechende (mm)</label><input id="anbsSaum" type="number" step="1"></div>
+<div><label>Umschlag am Blechende (mm)</label><input id="anbsSaum" type="number" step="1"></div>
 <div><label>St&uuml;ckl&auml;nge (mm)</label><input id="anbsStossLaenge" type="number" step="1"></div>
 <div><label>&Uuml;berlappung am Stoss (mm)</label><input id="anbsUeberlappung" type="number" step="1"></div>
 <div><label>Rest&shy;st&uuml;ck-Schwelle (mm)</label><input id="anbsRestSchwelle" type="number" step="1"></div>
 <div><label>Gehrungszugabe First (mm)</label><input id="anbsGehrungszugabe" type="number" step="1"></div>
-<div><label>Zugabe je Teil (mm)</label><input id="anbsZugabe" type="number" step="1"></div>
 <div><label>Aufkantung an der Wand (mm)</label><input id="anbsWandAufkantung" type="number" step="1"></div>
 </div>
 <div class="small" style="margin-bottom:8px">Ortblech &ndash; Abkantung &uuml;ber den Ort:</div>
