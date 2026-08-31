@@ -54,11 +54,13 @@ function renderProjectList(){
 <button class="gray" data-toggle-reports="${p.id}">📋 Rapporte anzeigen</button>
 <button class="gray" data-toggle-measurements="${p.id}">📐 Massaufnahmen anzeigen</button>
 <button class="gray" data-toggle-ausmass="${p.id}">📏 Ausmasse anzeigen</button>
+<button class="gray" data-toggle-files="${p.id}">📎 Dateien anzeigen</button>
 <button class="gray" data-archive-project="${p.id}">${p.archived?"↩️ Reaktivieren":"📦 Archivieren"}</button>
 </div>
 <div class="report-list" data-reports-body="${p.id}"></div>
 <div class="report-list" data-measurements-body="${p.id}"></div>
 <div class="report-list" data-ausmass-body="${p.id}"></div>
+<div class="report-list" data-files-body="${p.id}"></div>
 </div>`).join("")||'<div class="empty">Noch keine Projekte angelegt.</div>';
 }
 async function loadProjectAusmass(projectId){
@@ -110,6 +112,62 @@ async function loadProjectMeasurements(projectId){
 </div>
 </div>`).join(""):'<div class="small">Noch keine Massaufnahmen zu diesem Projekt gespeichert.</div>';
 }
+
+// ---- Dateien je Projekt (PDF, Word, Excel, Fotos, …) --------------
+// Liegen im selben Storage-Bucket wie die Massaufnahme-Fotos, nur unter
+// einem eigenen Pfad "project-files/<projectId>/…", damit dieselben,
+// bereits eingerichteten Zugriffsregeln gelten.
+function formatFileSize(bytes){
+ bytes=Number(bytes)||0;
+ if(bytes<1024)return bytes+" B";
+ if(bytes<1024*1024)return (bytes/1024).toFixed(1)+" KB";
+ return (bytes/1024/1024).toFixed(1)+" MB";
+}
+function projectFileIcon(mime,name){
+ mime=mime||"";
+ const ext=String(name||"").split(".").pop().toLowerCase();
+ if(mime.includes("pdf")||ext==="pdf")return "📕";
+ if(mime.includes("image")||["jpg","jpeg","png","gif","heic","webp"].includes(ext))return "🖼️";
+ if(mime.includes("word")||["doc","docx"].includes(ext))return "📄";
+ if(mime.includes("sheet")||mime.includes("excel")||["xls","xlsx","csv"].includes(ext))return "📊";
+ return "📎";
+}
+async function uploadProjectFile(projectId,file){
+ const ext=(file.name.split(".").pop()||"").toLowerCase();
+ const path=`project-files/${projectId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}${ext?"."+ext:""}`;
+ const {error}=await sb.storage.from("measurements").upload(path,file,{contentType:file.type||undefined,upsert:false});
+ if(error)throw error;
+ const {error:e2}=await sb.from("project_files").insert({
+  project_id:projectId,
+  name:file.name,
+  file_path:path,
+  size_bytes:file.size,
+  mime_type:file.type||null,
+  created_by:currentProfile?currentProfile.id:null
+ });
+ if(e2)throw e2;
+}
+async function loadProjectFiles(projectId){
+ const box=document.querySelector(`[data-files-body="${projectId}"]`);
+ box.innerHTML='<div class="small">Lädt…</div>';
+ const {data,error}=await sb.from("project_files").select("*").eq("project_id",projectId).order("created_at",{ascending:false});
+ if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
+ const list=data||[];
+ projectFilesCache=list;
+ const zeilen=list.length?list.map(f=>{
+  const wer=profileName(f.created_by)||"–";
+  const wann=f.created_at?new Date(f.created_at).toLocaleDateString("de-CH"):"–";
+  return `<div class="report-row">
+<div class="report-row-info"><b>${projectFileIcon(f.mime_type,f.name)} ${esc(f.name)}</b><span>${formatFileSize(f.size_bytes)} · ${esc(wer)} · ${esc(wann)}</span></div>
+<div class="report-row-actions">
+<button class="blue" data-open-project-file="${f.id}">Öffnen</button>
+<button class="red" data-del-project-file="${f.id}">×</button>
+</div>
+</div>`;
+ }).join(""):'<div class="small">Noch keine Dateien zu diesem Projekt hochgeladen.</div>';
+ box.innerHTML=`<div class="bar" style="margin-bottom:6px"><input type="file" multiple data-upload-file="${projectId}"></div>${zeilen}`;
+}
+
 function openReport(r){
  sperreFuerEintrag("rapport",r&&r.created_by);
  isDirty=false;
@@ -225,6 +283,35 @@ $("projectList").addEventListener("click",async e=>{
   if(willOpen)await loadProjectAusmass(id);
   return;
  }
+ const toggleF=e.target.closest("[data-toggle-files]");
+ if(toggleF){
+  const id=Number(toggleF.dataset.toggleFiles);
+  const box=document.querySelector(`[data-files-body="${id}"]`);
+  const willOpen=!box.classList.contains("open");
+  box.classList.toggle("open");
+  toggleF.textContent=willOpen?"📎 Dateien ausblenden":"📎 Dateien anzeigen";
+  if(willOpen)await loadProjectFiles(id);
+  return;
+ }
+ const openF=e.target.closest("[data-open-project-file]");
+ if(openF){
+  const id=Number(openF.dataset.openProjectFile);
+  const f=projectFilesCache.find(x=>x.id===id);
+  if(f)window.open(sb.storage.from("measurements").getPublicUrl(f.file_path).data.publicUrl,"_blank");
+  return;
+ }
+ const delF=e.target.closest("[data-del-project-file]");
+ if(delF){
+  if(!confirm("Diese Datei wirklich löschen?"))return;
+  const id=Number(delF.dataset.delProjectFile);
+  const f=projectFilesCache.find(x=>x.id===id);
+  await sb.from("project_files").delete().eq("id",id);
+  if(f&&f.file_path)await sb.storage.from("measurements").remove([f.file_path]);
+  const projRow=delF.closest(".project-row");
+  const projId=Number(projRow.querySelector("[data-toggle-files]").dataset.toggleFiles);
+  await loadProjectFiles(projId);
+  return;
+ }
  const open=e.target.closest("[data-open-report]");
  if(open){
   const id=Number(open.dataset.openReport);
@@ -299,4 +386,18 @@ $("projectList").addEventListener("click",async e=>{
   const projId=Number(projRow.querySelector("[data-toggle-reports]").dataset.toggleReports);
   await loadProjectReports(projId);
  }
+});
+$("projectList").addEventListener("change",async e=>{
+ const inp=e.target.closest("[data-upload-file]");
+ if(!inp)return;
+ const projectId=Number(inp.dataset.uploadFile);
+ const files=Array.from(inp.files||[]);
+ if(!files.length)return;
+ inp.disabled=true;
+ try{
+  for(const file of files)await uploadProjectFile(projectId,file);
+ }catch(err){
+  alert("Fehler beim Hochladen: "+(err.message||err));
+ }
+ await loadProjectFiles(projectId);
 });

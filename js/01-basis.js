@@ -177,6 +177,7 @@ let currentAusmassMeta={};
 let projectReportsCache=[];
 let projectMeasurementsCache=[];
 let projectAusmassCache=[];
+let projectFilesCache=[];
 let recentMeasurementsCache=[];
 let recentReportsCache=[];
 let globalSearchCache=[];
