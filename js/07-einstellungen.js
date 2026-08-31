@@ -1,16 +1,21 @@
 "use strict";
 let settingsReturnToMeasurement=false;
-// Das Anschlussblech bringt seine Einstellungen selbst mit (js/20).
-// Diese Hülle macht den Aufruf unabhängig von der Ladereihenfolge.
+// Das Anschlussblech und die Einfassung Rund bringen ihre Einstellungen
+// selbst mit (js/20 bzw. js/21). Diese Hüllen machen den Aufruf
+// unabhängig von der Ladereihenfolge.
 function anbEinstellungenAnzeigen(){
  if(typeof applyAnschlussblechSettings==="function")applyAnschlussblechSettings();
 }
-$("settings").onclick=()=>{renderSettings();applyCompanyName();applyEinlaufblechSettings();anbEinstellungenAnzeigen();$("settingsModal").hidden=false};
+function einfEinstellungenAnzeigen(){
+ if(typeof applyEinfassungSettings==="function")applyEinfassungSettings();
+}
+$("settings").onclick=()=>{renderSettings();applyCompanyName();applyEinlaufblechSettings();anbEinstellungenAnzeigen();einfEinstellungenAnzeigen();$("settingsModal").hidden=false};
 function openSettingsTo(tabName,sectionName){
  renderSettings();
  applyCompanyName();
  applyEinlaufblechSettings();
  anbEinstellungenAnzeigen();
+ einfEinstellungenAnzeigen();
  $("settingsModal").hidden=false;
  const tabBtn=document.querySelector(`[data-settings-tab="${tabName}"]`);
  if(tabBtn){
@@ -39,9 +44,11 @@ $("closeSettings").onclick=()=>{
   settingsReturnToMeasurement=false;
   applyEinlaufblechSettings();
   anbEinstellungenAnzeigen();
+  einfEinstellungenAnzeigen();
   if($("measType").value==="einlaufblech_gerade")renderEbPiecesTable();
   if($("measType").value==="lukarne"&&typeof renderLukResult==="function")renderLukResult();
   if($("measType").value==="anschlussblech"&&typeof renderAnbResult==="function")renderAnbResult();
+  if($("measType").value==="einfassung_rund"&&typeof renderEinfResult==="function")renderEinfResult();
   $("measurementEditModal").hidden=false;
  }else{
   renderMain();

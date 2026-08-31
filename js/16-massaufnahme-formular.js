@@ -8,6 +8,7 @@ function showMeasTypeSection(type){
  $("measTypeMauerabdeckung").hidden=(type!=="mauerabdeckung");
  $("measTypeLukarne").hidden=(type!=="lukarne");
  $("measTypeAnschlussblech").hidden=(type!=="anschlussblech");
+ $("measTypeEinfassungRund").hidden=(type!=="einfassung_rund");
  if(type==="einlaufblech_gerade")renderEbPiecesTable();
  if(type==="rinne_halbrund")renderRinneResult();
  if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
@@ -15,6 +16,7 @@ function showMeasTypeSection(type){
  if(type==="mauerabdeckung")renderMadResult();
  if(type==="lukarne")renderLukResult();
  if(type==="anschlussblech")renderAnbResult();
+ if(type==="einfassung_rund")renderEinfResult();
 }
 $("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
 $("openEinlaufblechSettings").onclick=()=>{
@@ -126,6 +128,16 @@ function buildMeasurementFromForm(){
    material:$("anb_material").value
   }};
  }
+ if(type==="einfassung_rund"){
+  const e=einfEingabenAusFeldern();
+  const g=einfBerechnen(e);
+  return {...base,photo_path:null,sketch_paths:[],data:{...e,
+   abwicklung:g?g.abwicklung:0,
+   breiteGesamt:g?g.breiteGesamt:null,
+   anzahlBleilappen:g?g.anzahlBleilappen:null,
+   material:$("einf_material").value
+  }};
+ }
  return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{material:$("foto_material")?$("foto_material").value:""}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(Object.assign(buildMeasurementFromForm(),currentMeasurementMeta));
@@ -168,6 +180,11 @@ $("saveMeasurement").onclick=async()=>{
  if(type==="anschlussblech"){
   const e=anbEingabenAusFeldern();
   if(!(Number(e.a)>0)){alert("Bitte mindestens das Mass a eingeben.");return}
+ }
+ if(type==="einfassung_rund"){
+  const e=einfEingabenAusFeldern();
+  if(!(Number(e.durchmesser)>0)){alert("Bitte den Rohrdurchmesser eingeben.");return}
+  if(!(Number(e.a)>0)||!(Number(e.c)>0)){alert("Bitte mindestens die Masse a und c eingeben.");return}
  }
  $("saveMeasurement").disabled=true;
  try{
@@ -557,6 +574,50 @@ ${stuecke.length?`<div class="eb-section-head">Stückliste</div>
 <tbody>${stuecke.map(s=>`<tr><td>${esc(s.nr)}${s.gehrung?" · First":""}</td><td>${esc(Math.round(s.laenge))}</td><td>${esc(Math.round(abw))}</td></tr>`).join("")}</tbody>
 </table>
 ${(()=>{const l=stuecke[stuecke.length-1];return (l&&l.gehrung)?`<div class="note">Endstück mit Firstgehrung: ${esc(Math.round(l.laengeOhneGehrung))} mm plus ${esc(Math.round(l.laenge-l.laengeOhneGehrung))} mm Gehrungszugabe.</div>`:""})()}`:""}
+${(erg&&erg.warnungen.length)?`<div class="note" style="color:#b42318">${erg.warnungen.map(w=>esc(w)).join("<br>")}</div>`:""}
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="einfassung_rund"){
+  const d=m.data||{};
+  const erg=einfBerechnen(d);
+  const abw=d.abwicklung||(erg?erg.abwicklung:0);
+  const breiteGesamt=d.breiteGesamt!==undefined&&d.breiteGesamt!==null?d.breiteGesamt:(erg?erg.breiteGesamt:null);
+  const anzahlBleilappen=d.anzahlBleilappen!==undefined&&d.anzahlBleilappen!==null?d.anzahlBleilappen:(erg?erg.anzahlBleilappen:null);
+  extraCss=`
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ .eb-diagram{text-align:center;margin:4mm 0}
+ .eb-diagram svg{max-width:100%;height:auto}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  const deckName=(EINF_DECKUNGEN[d.deckung]||{}).name||"–";
+  const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
+<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
+<tr>${cell("Eindeckungsart",esc(deckName))}${cell("&Oslash; Standrohr",esc(Math.round(d.durchmesser||0))+" mm")}</tr>
+<tr>${cell("Winkel / Dachneigung",esc(d.winkel||0)+"°")}${cell("Material",matName)}</tr>
+<tr>${cell("Zuschnittbreite (Querschnitt)",esc(Math.round(abw))+" mm")}${cell("Breite der gesamten Einfassung",breiteGesamt?esc(Math.round(breiteGesamt))+" mm":"–")}</tr>
+<tr>${cell("Anzahl Bleilappen",anzahlBleilappen!==null?esc(anzahlBleilappen):"–")}${cell("Lattenabstand",esc(Math.round(d.lattenabstand||0))+" mm")}</tr>
+</table>
+<div class="eb-section-head">Schnitt</div>
+<div class="eb-diagram">${einfZeichnung(d)}</div>
+<div class="eb-section-head">Masse</div>
+<table class="eb-cutlist">
+<thead><tr><th>Mass</th><th>Bedeutung</th><th>Wert</th></tr></thead>
+<tbody>
+<tr><td>a</td><td>Vorne auf Deckmaterial bis Mitte Rohr</td><td>${esc(Math.round(d.a||0))} mm</td></tr>
+<tr><td>b</td><td>Ab Mitte Rohr bis hinten, unter Deckmaterial</td><td>${esc(Math.round(d.b||0))} mm</td></tr>
+<tr><td>c</td><td>Aufbug 90°, oben Umschlag 135°</td><td>${esc(Math.round(d.c||0))} mm</td></tr>
+</tbody>
+</table>
 ${(erg&&erg.warnungen.length)?`<div class="note" style="color:#b42318">${erg.warnungen.map(w=>esc(w)).join("<br>")}</div>`:""}
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="einlaufblech_konisch"){
