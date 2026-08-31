@@ -184,6 +184,7 @@ async function loadProjectFiles(projectId){
 <div class="report-row-info"><b>${projectFileIcon(f.mime_type,f.name)} ${esc(f.name)}</b><span>${formatFileSize(f.size_bytes)} · ${esc(wer)} · ${esc(wann)}${geaendert}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-file="${f.id}">Öffnen</button>
+<button class="gray" data-rename-project-file="${f.id}">✏️ Umbenennen</button>
 <button class="gray" data-replace-project-file="${f.id}">🔄 Ersetzen</button>
 <input type="file" data-replace-file-input="${f.id}" hidden>
 <button class="red" data-del-project-file="${f.id}">×</button>
@@ -323,6 +324,22 @@ $("projectList").addEventListener("click",async e=>{
   const id=Number(openF.dataset.openProjectFile);
   const f=projectFilesCache.find(x=>x.id===id);
   if(f)window.open(sb.storage.from("measurements").getPublicUrl(f.file_path).data.publicUrl,"_blank");
+  return;
+ }
+ const renameF=e.target.closest("[data-rename-project-file]");
+ if(renameF){
+  const id=Number(renameF.dataset.renameProjectFile);
+  const f=projectFilesCache.find(x=>x.id===id);
+  if(!f)return;
+  const neuerName=prompt("Neuer Dateiname:",f.name);
+  if(neuerName===null)return;
+  const trimmed=neuerName.trim();
+  if(!trimmed){alert("Bitte einen Namen eingeben.");return}
+  const {error}=await sb.from("project_files").update({name:trimmed}).eq("id",id);
+  if(error){alert("Fehler: "+error.message);return}
+  const projRow=renameF.closest(".project-row");
+  const projId=Number(projRow.querySelector("[data-toggle-files]").dataset.toggleFiles);
+  await loadProjectFiles(projId);
   return;
  }
  const replaceF=e.target.closest("[data-replace-project-file]");
