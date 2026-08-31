@@ -519,6 +519,7 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
   const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
   const massZeilen=Object.keys((ANB_ARTEN[d.art]||{masse:{}}).masse)
    .map(k=>`<tr><td>${esc(k)}</td><td>${esc(ANB_ARTEN[d.art].masse[k].text||"")}</td><td>${esc(Math.round(Number(d[k])||0))} mm</td><td>${(()=>{const mi=anbMindestmass(d.art,k,d.deckung);return mi!==null?"mind. "+mi+" mm":"–"})()}</td></tr>`).join("");
+  const segmente=Array.isArray(d.segmente)?d.segmente:[];
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
@@ -530,6 +531,11 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 </table>
 <div class="eb-section-head">Schnitt</div>
 <div class="eb-diagram">${anbZeichnung(d)}</div>
+${segmente.length?`<div class="eb-section-head">Segmente</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Segmentlänge (mm)</th><th>Knick</th></tr></thead>
+<tbody>${segmente.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(Math.round(s.laenge||0))}</td><td>${s.knick?`${esc(s.knickWinkel||0)}° · ${esc(Math.round(s.knickMass||0))} mm ab Vorderkante`:"–"}</td></tr>`).join("")}</tbody>
+</table>`:""}
 <div class="eb-section-head">Masse</div>
 <table class="eb-cutlist">
 <thead><tr><th>Mass</th><th>Bedeutung</th><th>Wert</th><th>Vorgabe</th></tr></thead>

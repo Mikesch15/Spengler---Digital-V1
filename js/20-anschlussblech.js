@@ -491,7 +491,7 @@ function anbEsc(t) {
 // ---- 4. Rechnen --------------------------------------------------
 // e: {ausfuehrung, deckung, art, a,b,c,d, deckHoehe, saum,
 //     wandAufkantung, ortAufkantung, ortOben, ortStirn, ortNase,
-//     laenge, stossLaenge, ueberlappung}
+//     laenge (Summe der Segmente), segmente, stossLaenge, ueberlappung}
 function berechneAnschlussblech(e) {
   if (!e || !ANB_ARTEN[e.art]) return null;
   const p = anbProfil(e);
@@ -633,6 +633,59 @@ function anbVorgabe() {
   return Object.assign(w, anbStandardwerte(art, deckung, {}));
 }
 
+// ---- 5b. Segmente -------------------------------------------------
+// Der Verlauf wird aus einzelnen Segmenten erfasst, gleich wie beim
+// Einlaufblech. Statt einer Gehrung kann ein Segment einen Knick
+// haben: Winkel und Mass ab Vorderkante sind rein informativ (Zeichnung/
+// PDF), sie verändern Zuschnitt und Abwicklung nicht.
+let anbSegmente = []; // {laenge, knick, knickWinkel, knickMass}
+
+function anbGesamtlaenge() {
+  return anbSegmente.reduce((s, seg) => s + (Number(seg.laenge) || 0), 0);
+}
+function renderAnbSegmenteTable() {
+  if (!$("anb_segmenteBody")) return;
+  $("anb_segmenteBody").innerHTML = anbSegmente.map((s, i) => `<tr>
+<td>${i + 1}</td>
+<td><input data-anbseg-laenge="${i}" type="number" step="1" inputmode="numeric" value="${s.laenge || 0}"></td>
+<td style="text-align:center"><input data-anbseg-knick="${i}" type="checkbox" ${s.knick ? "checked" : ""}></td>
+<td><input data-anbseg-winkel="${i}" type="number" step="1" inputmode="numeric" value="${s.knickWinkel || 0}"${s.knick ? "" : " hidden"}></td>
+<td><input data-anbseg-mass="${i}" type="number" step="1" inputmode="numeric" value="${s.knickMass || 0}"${s.knick ? "" : " hidden"}></td>
+<td><button type="button" class="red" data-anbseg-del="${i}" style="padding:6px 8px">×</button></td>
+</tr>`).join("") || '<tr><td colspan="6" class="small">Noch keine Segmente. "＋ Segment hinzufügen".</td></tr>';
+  const sumEl = $("anb_segmenteSummary");
+  if (sumEl) sumEl.textContent = anbSegmente.length ? `${anbSegmente.length} Segment(e) · Gesamtlänge ${anbGesamtlaenge()} mm` : "";
+  renderAnbResult();
+}
+if ($("anb_addSegment")) $("anb_addSegment").onclick = () => {
+  anbSegmente.push({ laenge: 0, knick: false, knickWinkel: 0, knickMass: 0 });
+  renderAnbSegmenteTable();
+};
+if ($("anb_segmenteBody")) {
+  $("anb_segmenteBody").addEventListener("input", e => {
+    const i = Number(e.target.dataset.anbsegLaenge ?? e.target.dataset.anbsegWinkel ?? e.target.dataset.anbsegMass);
+    if (Number.isNaN(i) || !anbSegmente[i]) return;
+    if (e.target.dataset.anbsegLaenge !== undefined) anbSegmente[i].laenge = Number(e.target.value) || 0;
+    else if (e.target.dataset.anbsegWinkel !== undefined) anbSegmente[i].knickWinkel = Number(e.target.value) || 0;
+    else if (e.target.dataset.anbsegMass !== undefined) anbSegmente[i].knickMass = Number(e.target.value) || 0;
+    const sumEl = $("anb_segmenteSummary");
+    if (sumEl) sumEl.textContent = `${anbSegmente.length} Segment(e) · Gesamtlänge ${anbGesamtlaenge()} mm`;
+    renderAnbResult();
+  });
+  $("anb_segmenteBody").addEventListener("change", e => {
+    const i = Number(e.target.dataset.anbsegKnick);
+    if (Number.isNaN(i) || !anbSegmente[i]) return;
+    anbSegmente[i].knick = e.target.checked;
+    renderAnbSegmenteTable();
+  });
+  $("anb_segmenteBody").addEventListener("click", e => {
+    const del = e.target.closest("[data-anbseg-del]");
+    if (!del) return;
+    anbSegmente.splice(Number(del.dataset.anbsegDel), 1);
+    renderAnbSegmenteTable();
+  });
+}
+
 // ---- 6. Oberfläche -----------------------------------------------
 // Bedient den Abschnitt "measTypeAnschlussblech" im
 // Massaufnahme-Formular. Dieselben Feld-Ids stehen in
@@ -656,7 +709,8 @@ function anbEingabenAusFeldern() {
     // Höhe Deckmaterial: fester Wert aus dem Deckmaterial-Katalog.
     deckHoehe: (ANB_DECKUNGEN[deckung] || {}).hoehe || 0,
     saum: zahl("anb_saum"),
-    laenge: zahl("anb_laenge"),
+    laenge: anbGesamtlaenge(),
+    segmente: anbSegmente.map(s => ({ ...s })),
     stossLaenge: zahl("anb_stossLaenge"),
     ueberlappung: zahl("anb_ueberlappung"),
     lattenabstand: zahl("anb_lattenabstand"),
@@ -681,7 +735,6 @@ function anbFesteFelderFuellen(w) {
   $("anb_ausfuehrung").value = w.ausfuehrung === "ort" ? "ort" : "seite";
   $("anb_ausfuehrung").disabled = w.art === "steck";
   $("anb_saum").value = Math.round(w.saum);
-  $("anb_laenge").value = w.laenge ? Math.round(w.laenge) : "";
   $("anb_stossLaenge").value = Math.round(w.stossLaenge);
   $("anb_ueberlappung").value = Math.round(w.ueberlappung);
   $("anb_lattenabstand").value = Math.round(w.lattenabstand || 0);
@@ -774,9 +827,14 @@ function renderAnbResult() {
 function anbFormularFuellen(d) {
   if (!$("anb_deckung")) return;
   const w = Object.assign(anbVorgabe(), d || {});
+  // Ältere, vor den Segmenten gespeicherte Massaufnahmen kennen nur eine
+  // Gesamtlänge – daraus wird dann ein einzelnes Segment gebildet.
+  anbSegmente = (d && Array.isArray(d.segmente)) ? d.segmente.map(s => ({ ...s }))
+    : (d && Number(d.laenge) > 0) ? [{ laenge: Math.round(Number(d.laenge)), knick: false, knickWinkel: 0, knickMass: 0 }]
+    : [];
   anbFesteFelderFuellen(w);
   anbMassfelderZeichnen(w);
-  renderAnbResult();
+  renderAnbSegmenteTable();
 }
 // Neue Massaufnahme.
 function anbFormularZuruecksetzen() { anbFormularFuellen(null); }
@@ -832,7 +890,7 @@ function applyAnschlussblechSettings() {
     anbMassfelderZeichnen(anbEingabenAusFeldern());
     renderAnbResult();
   };
-  ["anb_saum", "anb_laenge", "anb_stossLaenge", "anb_ueberlappung", "anb_lattenabstand"]
+  ["anb_saum", "anb_stossLaenge", "anb_ueberlappung", "anb_lattenabstand"]
     .forEach(id => { const el = $(id); if (el) el.addEventListener("input", renderAnbResult); });
   if ($("anb_firstgehrung")) $("anb_firstgehrung").addEventListener("change", renderAnbResult);
 

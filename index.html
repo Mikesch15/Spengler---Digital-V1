@@ -83,7 +83,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.96</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 1.97</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -494,9 +494,19 @@
 <h2 style="margin-top:14px">Schnitt</h2>
 <div id="anb_zeichnung" class="eb-diagram-box"></div>
 <div id="anb_warnung" class="small"></div>
-<h2 style="margin-top:14px">L&auml;nge und St&uuml;ckliste</h2>
+<h2 style="margin-top:14px">Segmente</h2>
+<div class="info">Jedes Segment ist ein gerades St&uuml;ck. Ein Knick unterbricht ein Segment; Winkel und Mass ab Vorderkante sind nur zur Dokumentation und &auml;ndern Zuschnitt und Abwicklung nicht.</div>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:8%"><col style="width:22%"><col style="width:12%"><col style="width:20%"><col style="width:26%"><col style="width:12%"></colgroup>
+<thead><tr><th>Nr.</th><th>Segmentl&auml;nge (mm)</th><th>Knick?</th><th>Winkel (&deg;)</th><th>Mass ab Vorderkante (mm)</th><th></th></tr></thead>
+<tbody id="anb_segmenteBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="anb_addSegment">＋ Segment hinzuf&uuml;gen</button></div>
+<div id="anb_segmenteSummary" class="small" style="margin-top:6px"></div>
+<h2 style="margin-top:14px">St&uuml;ckliste</h2>
 <div class="grid">
-<div><label>Gesamtl&auml;nge (mm)</label><input id="anb_laenge" type="number" step="1" inputmode="numeric"></div>
 <div><label>St&uuml;ckl&auml;nge (mm)</label><input id="anb_stossLaenge" type="number" step="1" inputmode="numeric"></div>
 <div><label>&Uuml;berlappung am Stoss (mm)</label><input id="anb_ueberlappung" type="number" step="1" inputmode="numeric"></div>
 <div id="anb_lattenabstandField"><label>Lattenabstand (mm)</label><input id="anb_lattenabstand" type="number" step="1" inputmode="numeric"></div>
