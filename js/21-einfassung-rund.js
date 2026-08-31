@@ -3,37 +3,46 @@
 // Einfassung Rund · Dunstrohr-/Standrohreinfassung
 //
 // Nach Handskizze: seitlicher Schnitt durch die runde Einfassung.
-//   x = 0   Vorderkante (auf dem Deckmaterial, mit 180°-Umschlag)
-//   y = 0   Oberkante Deckmaterial/Schalung
-// Nur der Querschnitt wird gezeichnet – der Umfang um das Rohr wird
-// nicht als Abwicklung um das Rohr herum modelliert (Rückmeldung des
-// Anwenders). "Breite der gesamten Einfassung" ist eine eigenständige,
-// vom Querschnitt unabhängige Zahl aus Rohrdurchmesser + 2× Umschlag +
-// 2× Mass seitlich neben Rohr.
+// Nur der Querschnitt wird gezeichnet, ohne Deckmaterial und ohne
+// Unterkonstruktion (Wunsch des Anwenders) – und nur die Profillinie
+// selbst, kein Umfang um das Rohr herum (das Rohr wird nicht als
+// Abwicklung um sich selbst modelliert). "Breite der gesamten
+// Einfassung" ist eine eigenständige, vom Querschnitt unabhängige
+// Zahl aus Rohrdurchmesser + 2× Umschlag + 2× Mass seitlich neben Rohr.
 //
-// Geometrie (bestes Verständnis der Handskizze, siehe Rückmeldung an
-// den Anwender nach dem Einbau):
-//   vorne  180°-Umschlag (Anreiss ca. 20°, nicht eigens gezeichnet)
-//   a      Vorderkante auf Deckmaterial bis Mitte Rohr
-//   b      ab Mitte Rohr bis hinten, unter das Deckmaterial
-//   c      90°-Aufbug (senkrecht) an der Rückseite
+// Geometrie:
+//   vorne  Anreiss (fest 20° steiler als die Dachschräge, kurzes
+//          festes Stück) mit anschliessendem 180°-Umschlag
+//   a      Vorderkante auf Deckmaterial bis Mitte Rohr – liegt in der
+//          Dachschräge (Winkel)
+//   b      ab Mitte Rohr bis hinten, unter das Deckmaterial – liegt
+//          ebenfalls in der Dachschräge
+//   c      90°-Aufbug, läuft immer exakt senkrecht (das Rohr steht
+//          immer im Lot, unabhängig vom Winkel)
 //   oben   135°-Umschlag am Kopf des Aufbugs
 //
 // Zeichnung nutzt bewusst die vorhandenen, zustandslosen Bausteine aus
-// js/20-anschlussblech.js (anbSaum, anbMassWaag, anbMassSenk, anbFahne,
-// anbDeckPfad, ANB_FARBE, anbEsc) – siehe NOTIZEN.md "Geteilte
-// Bausteine". Deshalb muss diese Datei nach 20-anschlussblech.js laden.
+// js/20-anschlussblech.js (anbSaum, anbMassSenk, anbFahne, ANB_FARBE,
+// anbEsc) – siehe NOTIZEN.md "Geteilte Bausteine". Deshalb muss diese
+// Datei nach 20-anschlussblech.js laden.
 // ============================================================
 
 // ---- 1. Tabellen ---------------------------------------------------
+// Nur der Name wird gebraucht: Deckmaterial und Unterkonstruktion
+// werden in der Zeichnung nicht dargestellt (Wunsch des Anwenders).
 const EINF_DECKUNGEN = Object.freeze({
-  biber_einfach: { name: "Biberschwanz einfach",       art: "flach",  hoehe: 35 },
-  biber_doppel:  { name: "Biberschwanz doppeldeckung", art: "flach",  hoehe: 40 },
-  schiebeziegel: { name: "Schiebeziegel",              art: "pfanne", hoehe: 55 },
-  muldenziegel:  { name: "Muldenziegel",               art: "pfanne", hoehe: 50 },
-  eternit:       { name: "Eternit",                    art: "flach",  hoehe: 16 },
-  naturschiefer: { name: "Naturschiefer",               art: "flach",  hoehe: 14 }
+  biber_einfach: { name: "Biberschwanz einfach" },
+  biber_doppel:  { name: "Biberschwanz doppeldeckung" },
+  schiebeziegel: { name: "Schiebeziegel" },
+  muldenziegel:  { name: "Muldenziegel" },
+  eternit:       { name: "Eternit" },
+  naturschiefer: { name: "Naturschiefer" }
 });
+
+// Anreiss vorne: fixer Winkel und eine kleine, feste Länge – kein
+// eigenes Eingabefeld, siehe Rückmeldung an den Anwender.
+const EINF_ANREISS_WINKEL = 20;
+const EINF_ANREISS_LAENGE = 18;
 
 // ---- 2. Eigene Einstellungen ---------------------------------------
 // "Umschlag" und "Mass seitlich neben Rohr" gelten nur für die Breite
@@ -67,58 +76,68 @@ function einfVorgabe() {
   const deckung = EINF_DECKUNGEN[s.deckung] ? s.deckung : "biber_einfach";
   return {
     deckung: deckung,
-    durchmesser: 110, winkel: 0, a: 60, b: 60, c: 100,
+    durchmesser: 110, winkel: 30, a: 60, b: 60, c: 100,
     lattenabstand: s.lattenabstand
   };
 }
 
 // ---- 3. Profil und Zeichnung ----------------------------------------
-// Rückgabe: pts (Punktfolge in mm), deckAb, deckHoehe, foldLen (Länge
-// des vorderen wie des oberen Umschlags, aus den Einstellungen).
+// Das Rohr steht immer senkrecht (Lot) – der Aufbug c läuft deshalb
+// immer exakt senkrecht nach oben, unabhängig vom Winkel. a und b
+// liegen dagegen in der Dachschräge und werden deshalb um den Winkel
+// gedreht. Ganz vorne kommt vor dem 180°-Umschlag noch die Anreiss-
+// Kante: ein kurzes, festes Stück, das um EINF_ANREISS_WINKEL steiler
+// steht als die Dachschräge.
+// Rückgabe: pts (Punktfolge in mm, vorne → oben), foldLen (Länge des
+// vorderen wie des oberen Umschlags, aus den Einstellungen), aMid/bMid
+// (Mittelpunkte von a und b, für die Bemassung entlang der Schräge).
 function einfProfil(e) {
   const z = v => Number(v) || 0;
   const a = z(e.a), b = z(e.b), c = z(e.c);
+  const winkel = z(e.winkel);
   const s = einfassungSettings || EINFASSUNG_STANDARD;
   const foldLen = Math.max(0, Number(s.umschlag) || 0);
-  const theta = 135 * Math.PI / 180;           // 135°-Umschlag am Kopf des Aufbugs
-  const dirx = -Math.sin(theta), diry = Math.cos(theta);
+
+  const rot = (v, grad) => {
+    const r = grad * Math.PI / 180;
+    return [v[0] * Math.cos(r) - v[1] * Math.sin(r), v[0] * Math.sin(r) + v[1] * Math.cos(r)];
+  };
+  const u = rot([1, 0], winkel);                         // Dachschräge, bergwärts
+  const kickDir = rot(u, EINF_ANREISS_WINKEL);            // Anreiss: steiler als die Dachschräge
+
   const p0 = [0, 0];
-  const p1 = [a, 0];
-  const p2 = [a + b, 0];
-  const p3 = [a + b, c];
-  const p4 = [p3[0] + foldLen * dirx, p3[1] + foldLen * diry];
+  const p1 = [p0[0] + kickDir[0] * EINF_ANREISS_LAENGE, p0[1] + kickDir[1] * EINF_ANREISS_LAENGE];
+  const p2 = [p1[0] + u[0] * a, p1[1] + u[1] * a];
+  const p3 = [p2[0] + u[0] * b, p2[1] + u[1] * b];
+  const p4 = [p3[0], p3[1] + c];                         // Rohr steht senkrecht
+  const foldTheta = 135 * Math.PI / 180;                 // 135°-Umschlag am Kopf des Aufbugs
+  const p5 = [p4[0] - foldLen * Math.sin(foldTheta), p4[1] + foldLen * Math.cos(foldTheta)];
+
   return {
-    pts: [p0, p1, p2, p3, p4],
-    deckAb: a,
-    deckHoehe: Math.max(5, (EINF_DECKUNGEN[e.deckung] || {}).hoehe || 0),
-    foldLen: foldLen
+    pts: [p0, p1, p2, p3, p4, p5],
+    foldLen: foldLen,
+    aMid: [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2],
+    bMid: [(p2[0] + p3[0]) / 2, (p2[1] + p3[1]) / 2]
   };
 }
 
 function einfZeichnung(e) {
   const p = einfProfil(e);
-  const dk = EINF_DECKUNGEN[e.deckung] || EINF_DECKUNGEN.biber_einfach;
   const a = Number(e.a) || 0, b = Number(e.b) || 0, c = Number(e.c) || 0;
-  const hd = p.deckHoehe, foldLen = p.foldLen;
+  const foldLen = p.foldLen;
   const zahl = v => String(Math.round(Number(v) || 0));
 
-  let xMin = 0, xMax = 0, yMin = 0, yTeil = 0;
+  let xMin = 0, xMax = 0, yMin = 0, yMax = 0;
   p.pts.forEach(q => {
     xMin = Math.min(xMin, q[0]); xMax = Math.max(xMax, q[0]);
-    yMin = Math.min(yMin, q[1]); yTeil = Math.max(yTeil, q[1]);
+    yMin = Math.min(yMin, q[1]); yMax = Math.max(yMax, q[1]);
   });
-  const deckBis = xMax + 160;
-  const deckOben = c + hd;
-
-  const schalung = 26;
-  xMin -= 48;                                   // Platz für die Masskette "c" am linken Rand
-  const yMass = Math.max(deckOben, yTeil) + 42;
-  yMin = Math.min(yMin, -schalung) - 42;
-  const yMax = yMass + 30;
+  xMin -= 48;                                    // Platz für die Masskette "c" am linken Rand
+  xMax += 40; yMin -= 34; yMax += 34;
 
   const breitePx = 680, rand = 12;
-  let s = (breitePx - 2 * rand) / (deckBis - xMin);
-  if (s > 1.6) s = 1.6;
+  let s = (breitePx - 2 * rand) / (xMax - xMin);
+  if (s > 1.8) s = 1.8;
   const hoehePx = Math.round((yMax - yMin) * s + 2 * rand);
   const ox = rand - xMin * s;
   const oy = rand + yMax * s;
@@ -126,31 +145,25 @@ function einfZeichnung(e) {
   const Y = y => Math.round((oy - y * s) * 10) / 10;
 
   let g = "";
-  g += `<path d="M${X(xMin + 8)} ${Y(0)} L${X(deckBis)} ${Y(0)} L${X(deckBis)} ${Y(-schalung)} L${X(xMin + 8)} ${Y(-schalung)} Z"
-        fill="#fff" stroke="${ANB_FARBE.bau}" stroke-width="1"/>`;
-  g += anbDeckPfad(p.deckAb, deckBis, hd, dk.art, X, Y, 0);
-
   const dd = p.pts.map((q, i) => (i ? "L" : "M") + X(q[0]) + " " + Y(q[1])).join(" ");
   g += `<path d="${dd}" fill="none" stroke="${ANB_FARBE.blech}" stroke-width="3.4"
         stroke-linejoin="round" stroke-linecap="round"/>`;
   if (foldLen > 0) g += anbSaum(p.pts[1], p.pts[0], foldLen, X, Y);
 
-  const waag = (x1, x2, txt) => anbMassWaag(x1, x2, yMass, txt, X, Y);
-  g += waag(0, a, "a = " + zahl(a)) + waag(a, a + b, "b = " + zahl(b));
-  g += anbMassSenk(0, c, xMin + 16, "c = " + zahl(c), X, Y);
-
+  g += anbFahne(p.aMid[0], p.aMid[1], 0, -26, "a = " + zahl(a), X, Y);
+  g += anbFahne(p.bMid[0], p.bMid[1], 0, -26, "b = " + zahl(b), X, Y);
+  g += anbMassSenk(p.pts[3][1], p.pts[4][1], xMin + 16, "c = " + zahl(c), X, Y);
   if (foldLen > 0) {
-    g += anbFahne(p.pts[0][0], p.pts[0][1], -28, 22, "Umschlag 180° · Anreiss ca. 20°", X, Y);
-    g += anbFahne(p.pts[4][0], p.pts[4][1], 24, -16, "Umschlag oben 135° · " + zahl(foldLen), X, Y);
+    g += anbFahne(p.pts[0][0], p.pts[0][1], -30, -8, "180° · Anreiss 20°", X, Y);
+    g += anbFahne(p.pts[5][0], p.pts[5][1], 22, -18, "Umschlag oben 135°", X, Y);
   }
-  g += anbFahne(deckBis - 26, 0, -26, -26, "Deckmaterial " + zahl(hd), X, Y);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${breitePx} ${hoehePx}"
     width="100%" style="display:block;height:auto" font-family="Arial,Helvetica,sans-serif">
     <rect width="${breitePx}" height="${hoehePx}" fill="#fff"/>
     ${g}
     <text x="${breitePx - 8}" y="${hoehePx - 7}" text-anchor="end" font-size="11"
-      fill="#8b969e">Einfassung Rund · Schnitt (Umfang nicht dargestellt)</text>
+      fill="#8b969e">Einfassung Rund · Schnitt (Umfang nicht dargestellt) · Rohr senkrecht</text>
   </svg>`;
 }
 
