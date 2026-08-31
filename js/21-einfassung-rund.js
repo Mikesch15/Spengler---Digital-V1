@@ -17,14 +17,19 @@
 //          Dachschräge (Winkel)
 //   b      ab Mitte Rohr bis hinten, unter das Deckmaterial – liegt
 //          ebenfalls in der Dachschräge
-//   c      90°-Aufbug, läuft immer exakt senkrecht (das Rohr steht
-//          immer im Lot, unabhängig vom Winkel)
-//   oben   135°-Umschlag am Kopf des Aufbugs
+//   c      90°-Aufbug, immer im rechten Winkel zur Dachschräge davor
+//          (wie jede andere Kantung – keine eigene Vertikale)
+//   oben   135°-Umschlag am Kopf des Aufbugs, relativ zu c
+//
+// Nicht der Aufbug steht senkrecht, sondern das Rohr selbst: es wird
+// separat, echt im Lot, an der Mitte zwischen a und b eingezeichnet
+// (Querschnitt als zwei senkrechte Linien im Rohrdurchmesser
+// auseinander, ohne Umfang).
 //
 // Zeichnung nutzt bewusst die vorhandenen, zustandslosen Bausteine aus
-// js/20-anschlussblech.js (anbSaum, anbMassSenk, anbFahne, ANB_FARBE,
-// anbEsc) – siehe NOTIZEN.md "Geteilte Bausteine". Deshalb muss diese
-// Datei nach 20-anschlussblech.js laden.
+// js/20-anschlussblech.js (anbSaum, anbMassWaag, anbMassSenk, anbFahne,
+// ANB_FARBE, anbEsc) – siehe NOTIZEN.md "Geteilte Bausteine". Deshalb
+// muss diese Datei nach 20-anschlussblech.js laden.
 // ============================================================
 
 // ---- 1. Tabellen ---------------------------------------------------
@@ -82,15 +87,16 @@ function einfVorgabe() {
 }
 
 // ---- 3. Profil und Zeichnung ----------------------------------------
-// Das Rohr steht immer senkrecht (Lot) – der Aufbug c läuft deshalb
-// immer exakt senkrecht nach oben, unabhängig vom Winkel. a und b
-// liegen dagegen in der Dachschräge und werden deshalb um den Winkel
-// gedreht. Ganz vorne kommt vor dem 180°-Umschlag noch die Anreiss-
-// Kante: ein kurzes, festes Stück, das um EINF_ANREISS_WINKEL steiler
-// steht als die Dachschräge.
+// Nicht der Aufbug c steht senkrecht, sondern das Rohr selbst – c ist
+// wie jede andere Kantung ein fester 90°-Winkel zur Dachschräge davor.
+// a und b liegen in der Dachschräge und werden um den Winkel gedreht;
+// der 135°-Umschlag oben ist wiederum relativ zu c. Das Rohr (Mitte
+// zwischen a und b) wird separat, echt senkrecht, eingezeichnet – nur
+// als Querschnitt (zwei senkrechte Linien im Rohrdurchmesser
+// auseinander), kein Umfang.
 // Rückgabe: pts (Punktfolge in mm, vorne → oben), foldLen (Länge des
-// vorderen wie des oberen Umschlags, aus den Einstellungen), aMid/bMid
-// (Mittelpunkte von a und b, für die Bemassung entlang der Schräge).
+// vorderen wie des oberen Umschlags), aMid/bMid (Mittelpunkte von a
+// und b) und rohrMitte (Punkt zwischen a und b, dort steht das Rohr).
 function einfProfil(e) {
   const z = v => Number(v) || 0;
   const a = z(e.a), b = z(e.b), c = z(e.c);
@@ -104,34 +110,45 @@ function einfProfil(e) {
   };
   const u = rot([1, 0], winkel);                         // Dachschräge, bergwärts
   const kickDir = rot(u, EINF_ANREISS_WINKEL);            // Anreiss: steiler als die Dachschräge
+  const cDir = rot(u, 90);                                // Aufbug: immer 90° zur Dachschräge
 
   const p0 = [0, 0];
   const p1 = [p0[0] + kickDir[0] * EINF_ANREISS_LAENGE, p0[1] + kickDir[1] * EINF_ANREISS_LAENGE];
-  const p2 = [p1[0] + u[0] * a, p1[1] + u[1] * a];
+  const p2 = [p1[0] + u[0] * a, p1[1] + u[1] * a];        // Mitte Rohr
   const p3 = [p2[0] + u[0] * b, p2[1] + u[1] * b];
-  const p4 = [p3[0], p3[1] + c];                         // Rohr steht senkrecht
-  const foldTheta = 135 * Math.PI / 180;                 // 135°-Umschlag am Kopf des Aufbugs
-  const p5 = [p4[0] - foldLen * Math.sin(foldTheta), p4[1] + foldLen * Math.cos(foldTheta)];
+  const p4 = [p3[0] + cDir[0] * c, p3[1] + cDir[1] * c];
+  const foldDir = rot(cDir, 135);                         // 135°-Umschlag, relativ zu c
+  const p5 = [p4[0] + foldDir[0] * foldLen, p4[1] + foldDir[1] * foldLen];
 
   return {
     pts: [p0, p1, p2, p3, p4, p5],
     foldLen: foldLen,
     aMid: [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2],
-    bMid: [(p2[0] + p3[0]) / 2, (p2[1] + p3[1]) / 2]
+    bMid: [(p2[0] + p3[0]) / 2, (p2[1] + p3[1]) / 2],
+    rohrMitte: p2
   };
 }
 
 function einfZeichnung(e) {
   const p = einfProfil(e);
   const a = Number(e.a) || 0, b = Number(e.b) || 0, c = Number(e.c) || 0;
+  const durchmesser = Math.max(0, Number(e.durchmesser) || 0);
   const foldLen = p.foldLen;
   const zahl = v => String(Math.round(Number(v) || 0));
+
+  const rM = p.rohrMitte, rHalb = durchmesser / 2;
+  const rOben = Math.max(p.pts[3][1], p.pts[4][1], p.pts[5][1]) + 36;
+  const rUnten = rM[1] - 36;
 
   let xMin = 0, xMax = 0, yMin = 0, yMax = 0;
   p.pts.forEach(q => {
     xMin = Math.min(xMin, q[0]); xMax = Math.max(xMax, q[0]);
     yMin = Math.min(yMin, q[1]); yMax = Math.max(yMax, q[1]);
   });
+  if (durchmesser > 0) {
+    xMin = Math.min(xMin, rM[0] - rHalb); xMax = Math.max(xMax, rM[0] + rHalb);
+    yMin = Math.min(yMin, rUnten - 20); yMax = Math.max(yMax, rOben);
+  }
   xMin -= 48;                                    // Platz für die Masskette "c" am linken Rand
   xMax += 40; yMin -= 34; yMax += 34;
 
@@ -145,6 +162,13 @@ function einfZeichnung(e) {
   const Y = y => Math.round((oy - y * s) * 10) / 10;
 
   let g = "";
+  if (durchmesser > 0) {
+    g += `<rect x="${X(rM[0] - rHalb)}" y="${Y(rOben)}" width="${(X(rM[0] + rHalb) - X(rM[0] - rHalb)).toFixed(1)}"
+          height="${(Y(rUnten) - Y(rOben)).toFixed(1)}" fill="#eef1f3" stroke="${ANB_FARBE.bau}"
+          stroke-width="1" stroke-dasharray="4 3"/>`;
+    g += anbMassWaag(rM[0] - rHalb, rM[0] + rHalb, rUnten - 20, "Ø " + zahl(durchmesser), X, Y, true);
+  }
+
   const dd = p.pts.map((q, i) => (i ? "L" : "M") + X(q[0]) + " " + Y(q[1])).join(" ");
   g += `<path d="${dd}" fill="none" stroke="${ANB_FARBE.blech}" stroke-width="3.4"
         stroke-linejoin="round" stroke-linecap="round"/>`;
@@ -152,7 +176,8 @@ function einfZeichnung(e) {
 
   g += anbFahne(p.aMid[0], p.aMid[1], 0, -26, "a = " + zahl(a), X, Y);
   g += anbFahne(p.bMid[0], p.bMid[1], 0, -26, "b = " + zahl(b), X, Y);
-  g += anbMassSenk(p.pts[3][1], p.pts[4][1], xMin + 16, "c = " + zahl(c), X, Y);
+  const cMid = [(p.pts[3][0] + p.pts[4][0]) / 2, (p.pts[3][1] + p.pts[4][1]) / 2];
+  g += anbFahne(cMid[0], cMid[1], 26, 0, "c = " + zahl(c) + " · 90°", X, Y);
   if (foldLen > 0) {
     g += anbFahne(p.pts[0][0], p.pts[0][1], -30, -8, "180° · Anreiss 20°", X, Y);
     g += anbFahne(p.pts[5][0], p.pts[5][1], 22, -18, "Umschlag oben 135°", X, Y);
