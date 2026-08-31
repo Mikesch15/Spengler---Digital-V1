@@ -147,6 +147,28 @@ async function uploadProjectFile(projectId,file){
  });
  if(e2)throw e2;
 }
+// Ersetzt den Inhalt einer bestehenden Datei (gleicher Eintrag, gleiche
+// Stelle in der Liste). Neue Datei zuerst hochladen und den Datenbank-
+// Eintrag erst danach umbiegen – erst wenn das sicher geklappt hat, wird
+// die alte Datei aus dem Speicher gelöscht.
+async function replaceProjectFile(fileId,file){
+ const alt=projectFilesCache.find(x=>x.id===fileId);
+ if(!alt)throw new Error("Datei nicht gefunden.");
+ const ext=(file.name.split(".").pop()||"").toLowerCase();
+ const path=`project-files/${alt.project_id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}${ext?"."+ext:""}`;
+ const {error}=await sb.storage.from("measurements").upload(path,file,{contentType:file.type||undefined,upsert:false});
+ if(error)throw error;
+ const {error:e2}=await sb.from("project_files").update({
+  name:file.name,
+  file_path:path,
+  size_bytes:file.size,
+  mime_type:file.type||null,
+  updated_by:currentProfile?currentProfile.id:null,
+  updated_at:new Date().toISOString()
+ }).eq("id",fileId);
+ if(e2)throw e2;
+ await sb.storage.from("measurements").remove([alt.file_path]);
+}
 async function loadProjectFiles(projectId){
  const box=document.querySelector(`[data-files-body="${projectId}"]`);
  box.innerHTML='<div class="small">Lädt…</div>';
@@ -157,10 +179,13 @@ async function loadProjectFiles(projectId){
  const zeilen=list.length?list.map(f=>{
   const wer=profileName(f.created_by)||"–";
   const wann=f.created_at?new Date(f.created_at).toLocaleDateString("de-CH"):"–";
+  const geaendert=f.updated_at?` · ersetzt am ${esc(new Date(f.updated_at).toLocaleDateString("de-CH"))}${f.updated_by?" von "+esc(profileName(f.updated_by)||"–"):""}`:"";
   return `<div class="report-row">
-<div class="report-row-info"><b>${projectFileIcon(f.mime_type,f.name)} ${esc(f.name)}</b><span>${formatFileSize(f.size_bytes)} · ${esc(wer)} · ${esc(wann)}</span></div>
+<div class="report-row-info"><b>${projectFileIcon(f.mime_type,f.name)} ${esc(f.name)}</b><span>${formatFileSize(f.size_bytes)} · ${esc(wer)} · ${esc(wann)}${geaendert}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-file="${f.id}">Öffnen</button>
+<button class="gray" data-replace-project-file="${f.id}">🔄 Ersetzen</button>
+<input type="file" data-replace-file-input="${f.id}" hidden>
 <button class="red" data-del-project-file="${f.id}">×</button>
 </div>
 </div>`;
@@ -300,6 +325,12 @@ $("projectList").addEventListener("click",async e=>{
   if(f)window.open(sb.storage.from("measurements").getPublicUrl(f.file_path).data.publicUrl,"_blank");
   return;
  }
+ const replaceF=e.target.closest("[data-replace-project-file]");
+ if(replaceF){
+  const inp=replaceF.parentElement.querySelector(`[data-replace-file-input="${replaceF.dataset.replaceProjectFile}"]`);
+  if(inp)inp.click();
+  return;
+ }
  const delF=e.target.closest("[data-del-project-file]");
  if(delF){
   if(!confirm("Diese Datei wirklich löschen?"))return;
@@ -389,15 +420,32 @@ $("projectList").addEventListener("click",async e=>{
 });
 $("projectList").addEventListener("change",async e=>{
  const inp=e.target.closest("[data-upload-file]");
- if(!inp)return;
- const projectId=Number(inp.dataset.uploadFile);
- const files=Array.from(inp.files||[]);
- if(!files.length)return;
- inp.disabled=true;
- try{
-  for(const file of files)await uploadProjectFile(projectId,file);
- }catch(err){
-  alert("Fehler beim Hochladen: "+(err.message||err));
+ if(inp){
+  const projectId=Number(inp.dataset.uploadFile);
+  const files=Array.from(inp.files||[]);
+  if(!files.length)return;
+  inp.disabled=true;
+  try{
+   for(const file of files)await uploadProjectFile(projectId,file);
+  }catch(err){
+   alert("Fehler beim Hochladen: "+(err.message||err));
+  }
+  await loadProjectFiles(projectId);
+  return;
  }
- await loadProjectFiles(projectId);
+ const replaceInp=e.target.closest("[data-replace-file-input]");
+ if(replaceInp){
+  const id=Number(replaceInp.dataset.replaceFileInput);
+  const file=replaceInp.files&&replaceInp.files[0];
+  if(!file)return;
+  const box=replaceInp.closest("[data-files-body]");
+  const projectId=box?Number(box.dataset.filesBody):null;
+  replaceInp.disabled=true;
+  try{
+   await replaceProjectFile(id,file);
+  }catch(err){
+   alert("Fehler beim Ersetzen: "+(err.message||err));
+  }
+  if(projectId)await loadProjectFiles(projectId);
+ }
 });
