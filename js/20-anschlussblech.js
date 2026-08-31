@@ -84,14 +84,16 @@ const ANB_ARTEN = Object.freeze({
     }
   },
   pv_seite: {
-    // Kein Wandanschluss: senkrechter Schenkel an der PV-Schiene (mit
-    // Umschlag oben), dann waagerecht frei unter das Deckmaterial durch.
+    // Kein Wandanschluss: senkrechter Schenkel an der PV-Schiene, oben
+    // zwei Umschläge nacheinander (erst d, dann e), dann waagerecht frei
+    // unter das Deckmaterial durch.
     name: "PV-Seitenanschluss",
     masse: {
       a: { std: 50, min: 50, text: "Blech bis Deckmaterial" },
       b: { std: 50, min: 50, text: "Überdeckung des Bleilappens" },
       c: { std: 80, min: null, text: "Höhe senkrechter Schenkel bis PV-Schiene" },
-      d: { std: 20, min: null, text: "Umschlag oben am Schenkel" }
+      d: { std: 20, min: null, text: "Erster Umschlag oben am Schenkel" },
+      e: { std: 20, min: null, text: "Zweiter Umschlag oben am Schenkel" }
     }
   }
 });
@@ -139,7 +141,7 @@ function anbStandardwerte(art, deckung, vorhanden) {
 //   lattungAb ab welchem x die Ziegellattung liegt (nur wenn basis > 0)
 function anbProfil(e) {
   const z = v => Number(v) || 0;
-  const a = z(e.a), b = z(e.b), c = z(e.c), d = z(e.d);
+  const a = z(e.a), b = z(e.b), c = z(e.c), d = z(e.d), eMass = z(e.e);
   // Höhe Deckmaterial: fester Wert aus dem Deckmaterial-Katalog, kein
   // eigenes Eingabefeld mehr.
   const hd = Math.max(5, (ANB_DECKUNGEN[e.deckung] || {}).hoehe || 0);
@@ -216,12 +218,22 @@ function anbProfil(e) {
     teile.push({ name: "Seitenblech", pts: pts });   // Aufkantung ohne Saum
     deckAb = a - 28; lattungAb = a;
   } else if (art === "pv_seite") {
-    // Senkrechter Schenkel bei x=0 (PV-Schienen-Seite) mit eigenem
-    // Umschlag oben (Mass d, unabhängig vom allgemeinen Umschlag-Wert),
-    // dann waagerecht unter das Deckmaterial durch. Kein Umschlag am
-    // deckmaterialseitigen Ende – das Blech läuft frei unter die Ziegel.
-    pts = [[0, c], [0, 0], [a + b, 0]];
-    teile.push({ name: "Seitenblech", pts: pts, saumStart: true, saumStartMass: d });
+    // Senkrechter Schenkel bei x=0 (PV-Schienen-Seite), oben zwei echte
+    // Umschläge nacheinander (erst d, dann e) – als eigene Geometrie
+    // gezeichnet, gleich wie der doppelt gekantete Steg. Der kleine
+    // seitliche Versatz (steg) ist nur damit sich die beiden Falze in
+    // der Zeichnung nicht überdecken. Danach waagerecht unter das
+    // Deckmaterial durch, dort ohne Umschlag.
+    pts = [
+      [2 * steg, c - d + eMass],
+      [2 * steg, c - d],
+      [steg, c - d],
+      [steg, c],
+      [0, c],
+      [0, 0],
+      [a + b, 0]
+    ];
+    teile.push({ name: "Seitenblech", pts: pts });
     deckAb = a; lattungAb = a;
   }
 
@@ -230,16 +242,13 @@ function anbProfil(e) {
 }
 
 // Abwicklung eines Teils: Summe aller Schenkel plus Säume.
-// saumStartMass/saumEndeMass: eigene Umschlaglänge für dieses Stück statt
-// des allgemeinen "Umschlag am Blechende"-Werts (z. B. Mass d beim
-// PV-Seitenanschluss).
 function anbAbwicklungTeil(teil, saum) {
   let l = 0;
   for (let i = 1; i < teil.pts.length; i++) {
     l += Math.hypot(teil.pts[i][0] - teil.pts[i - 1][0], teil.pts[i][1] - teil.pts[i - 1][1]);
   }
-  if (teil.saumStart) l += teil.saumStartMass !== undefined ? teil.saumStartMass : saum;
-  if (teil.saumEnde) l += teil.saumEndeMass !== undefined ? teil.saumEndeMass : saum;
+  if (teil.saumStart) l += saum;
+  if (teil.saumEnde) l += saum;
   return l;
 }
 
@@ -267,7 +276,7 @@ function anbZeichnung(e) {
   const p = anbProfil(e);
   const saum = Math.max(0, Number(e.saum) || 0);
   const dk = ANB_DECKUNGEN[e.deckung] || ANB_DECKUNGEN.pfanne;
-  const a = Number(e.a) || 0, b = Number(e.b) || 0, c = Number(e.c) || 0, d = Number(e.d) || 0;
+  const a = Number(e.a) || 0, b = Number(e.b) || 0, c = Number(e.c) || 0, d = Number(e.d) || 0, eMass = Number(e.e) || 0;
   const hd = p.deckHoehe, basis = p.basis;
 
   // Ausdehnung bestimmen. Das ganze Blech ist im Bild – auch die
@@ -277,10 +286,6 @@ function anbZeichnung(e) {
     xMin = Math.min(xMin, q[0]); xMax = Math.max(xMax, q[0]);
     yMin = Math.min(yMin, q[1]); yTeil = Math.max(yTeil, q[1]);
   }));
-  // Der Umschlag oben am Schenkel (Mass d) ragt über den letzten Punkt
-  // der Punktfolge hinaus – beim Ausmessen des Bilds mitzählen, sonst
-  // wird er am oberen Rand abgeschnitten.
-  if (e.art === "pv_seite") yTeil = Math.max(yTeil, c + d);
   const deckBis = xMax + 200;                       // Deckmaterial läuft weiter
   const deckOben = e.art === "steck" ? 2 * hd + 4 : basis + hd;
 
@@ -343,24 +348,18 @@ function anbZeichnung(e) {
   }
 
   // --- Blech ----------------------------------------------------
-  // saumStellen sammelt nur Falze mit dem allgemeinen Umschlag-Wert für
-  // die gemeinsame "Umschlag"-Beschriftung unten; Falze mit eigener
-  // Länge (saumEndeMass/saumStartMass, z. B. Mass d) beschriften die
-  // einzelnen Anschlussarten selbst weiter unten.
   const saumStellen = [];
   p.teile.forEach(t => {
     const dd = t.pts.map((q, i) => (i ? "L" : "M") + X(q[0]) + " " + Y(q[1])).join(" ");
     g += `<path d="${dd}" fill="none" stroke="${ANB_FARBE.blech}" stroke-width="3.4"
           stroke-linejoin="round" stroke-linecap="round"/>`;
-    if (t.saumEnde) {
-      const laenge = t.saumEndeMass !== undefined ? t.saumEndeMass : saum;
-      if (laenge > 0) g += anbSaum(t.pts[t.pts.length - 2], t.pts[t.pts.length - 1], laenge, X, Y);
-      if (t.saumEndeMass === undefined && saum > 0) saumStellen.push(t.pts[t.pts.length - 1]);
+    if (t.saumEnde && saum > 0) {
+      g += anbSaum(t.pts[t.pts.length - 2], t.pts[t.pts.length - 1], saum, X, Y);
+      saumStellen.push(t.pts[t.pts.length - 1]);
     }
-    if (t.saumStart) {
-      const laenge = t.saumStartMass !== undefined ? t.saumStartMass : saum;
-      if (laenge > 0) g += anbSaum(t.pts[1], t.pts[0], laenge, X, Y);
-      if (t.saumStartMass === undefined && saum > 0) saumStellen.push(t.pts[0]);
+    if (t.saumStart && saum > 0) {
+      g += anbSaum(t.pts[1], t.pts[0], saum, X, Y);
+      saumStellen.push(t.pts[0]);
     }
   });
 
@@ -384,7 +383,8 @@ function anbZeichnung(e) {
     g += waag(0, a, "a = " + zahl(a));
   } else if (e.art === "pv_seite") {
     g += waag(0, a, "a = " + zahl(a)) + waag(a, a + b, "b = " + zahl(b));
-    g += anbFahne(0, c + d, -30, -20, "d = " + zahl(d), X, Y);
+    g += anbFahne(0, c, -26, -8, "d = " + zahl(d), X, Y);
+    g += anbFahne(0, c - d, -50, 16, "e = " + zahl(eMass), X, Y);
   }
   if (p.ort) g += anbMassWaag(-bO, 0, yMass + 26, "Übergriff " + zahl(bO), X, Y);
   senkListe.forEach(eintrag => { g += senk(eintrag); });
