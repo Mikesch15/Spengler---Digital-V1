@@ -128,7 +128,7 @@ function buildMeasurementFromForm(){
  }
  return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{material:$("foto_material")?$("foto_material").value:""}};
 }
-$("printMeasurementBtn").onclick=()=>printMeasurement(buildMeasurementFromForm());
+$("printMeasurementBtn").onclick=()=>printMeasurement(Object.assign(buildMeasurementFromForm(),currentMeasurementMeta));
 $("cancelMeasurement").onclick=()=>{
  $("measurementEditModal").hidden=true;
  if(measEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
@@ -180,6 +180,7 @@ $("saveMeasurement").onclick=async()=>{
     sketchUrls.push(s.startsWith("data:")?await uploadMeasurementImage(s,"sketch"):s);
    }
   }
+  const jetzt=new Date().toISOString();
   const payload={
    project_id:measSelectedProjectId||null,
    type,
@@ -191,12 +192,15 @@ $("saveMeasurement").onclick=async()=>{
    sketch_paths:sketchUrls,
    data:form.data||{},
    updated_by:currentProfile?currentProfile.id:null,
-   updated_at:new Date().toISOString()
+   updated_at:jetzt
   };
   const {error}=currentMeasurementId
    ?await sb.from("measurements").update(payload).eq("id",currentMeasurementId)
-   :await sb.from("measurements").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:new Date().toISOString()});
+   :await sb.from("measurements").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:jetzt});
   if(error)throw error;
+  currentMeasurementMeta=currentMeasurementId
+   ?{...currentMeasurementMeta,updated_by:payload.updated_by,updated_at:jetzt}
+   :{created_by:currentProfile?currentProfile.id:null,created_at:jetzt,updated_by:null,updated_at:null};
   $("measurementEditModal").hidden=true;
   if(measEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
   else{$("measurementsModal").hidden=false;await renderMeasurementsOverview()}

@@ -168,6 +168,12 @@ let protectedUnlocked=false;
 const PROTECTED_PASSWORD="Rinnen_ml95";
 let allProjects=[],currentProjectId=null,currentReportId=null;
 let currentReportMeta={};
+// Wer eine Massaufnahme/ein Ausmass erstellt/zuletzt geändert hat – für die
+// Fusszeile im PDF. Gleiches Prinzip wie currentReportMeta beim Regierapport,
+// weil buildMeasurementFromForm()/buildAusmassFromForm() diese Angaben nicht
+// aus den Formularfeldern kennen.
+let currentMeasurementMeta={};
+let currentAusmassMeta={};
 let projectReportsCache=[];
 let projectMeasurementsCache=[];
 let projectAusmassCache=[];

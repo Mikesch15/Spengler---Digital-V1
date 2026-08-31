@@ -195,6 +195,7 @@ function newAusmassWithType(type){
  isDirty=false;
  amEditReturnTo="ausmassModal";
  currentAusmassId=null;
+ currentAusmassMeta={};
  $("printAusmassBtn").hidden=false;
  $("amType").value=type;
  showAmTypeSection(type);
@@ -223,6 +224,7 @@ function openAusmass(a){
  sperreFuerEintrag("ausmass",a&&a.created_by);
  isDirty=false;
  currentAusmassId=a.id;
+ currentAusmassMeta={created_by:a.created_by,created_at:a.created_at,updated_by:a.updated_by,updated_at:a.updated_at};
  $("printAusmassBtn").hidden=false;
  $("amTitle").value=a.title||"";
  $("amNote").value=a.note||"";
@@ -267,7 +269,7 @@ function buildAusmassFromForm(){
   positions:type==="blitzschutz_ausmass"?amBzPositions:amPositions,
  };
 }
-$("printAusmassBtn").onclick=()=>printAusmass(buildAusmassFromForm());
+$("printAusmassBtn").onclick=()=>printAusmass(Object.assign(buildAusmassFromForm(),currentAusmassMeta));
 $("saveAusmass").onclick=async()=>{
  const title=$("amTitle").value.trim();
  if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
@@ -278,6 +280,7 @@ $("saveAusmass").onclick=async()=>{
   for(const p of amPhotos){
    photoUrls.push(p.startsWith("data:")?await uploadMeasurementImage(p,"ausmass-photo"):p);
   }
+  const jetzt=new Date().toISOString();
   const payload={
    project_id:amSelectedProjectId,
    type:$("amType").value,
@@ -288,12 +291,15 @@ $("saveAusmass").onclick=async()=>{
    photo_paths:photoUrls,
    positions:$("amType").value==="blitzschutz_ausmass"?amBzPositions:amPositions,
    updated_by:currentProfile?currentProfile.id:null,
-   updated_at:new Date().toISOString()
+   updated_at:jetzt
   };
   const {error}=currentAusmassId
    ?await sb.from("ausmass").update(payload).eq("id",currentAusmassId)
-   :await sb.from("ausmass").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:new Date().toISOString()});
+   :await sb.from("ausmass").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:jetzt});
   if(error)throw error;
+  currentAusmassMeta=currentAusmassId
+   ?{...currentAusmassMeta,updated_by:payload.updated_by,updated_at:jetzt}
+   :{created_by:currentProfile?currentProfile.id:null,created_at:jetzt,updated_by:null,updated_at:null};
   $("ausmassEditModal").hidden=true;
   if(amEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
   else{$("ausmassModal").hidden=false;await renderAusmassOverview()}

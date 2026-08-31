@@ -277,6 +277,7 @@ function newMeasurementWithType(type){
  isDirty=false;
  measEditReturnTo="measurementsModal";
  currentMeasurementId=null;
+ currentMeasurementMeta={};
  $("printMeasurementBtn").hidden=false;
  $("measType").value=type;
  showMeasTypeSection(type);
@@ -353,6 +354,7 @@ function openMeasurement(m){
  sperreFuerEintrag("massaufnahme",m&&m.created_by);
  isDirty=false;
  currentMeasurementId=m.id;
+ currentMeasurementMeta={created_by:m.created_by,created_at:m.created_at,updated_by:m.updated_by,updated_at:m.updated_at};
  $("printMeasurementBtn").hidden=false;
  $("measTitle").value=m.title||"";
  $("measNote").value=m.note||"";
