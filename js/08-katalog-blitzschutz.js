@@ -347,19 +347,13 @@ $("print").onclick=()=>{
  setTimeout(()=>{document.title=alterTitel;},1000);
 };
 window.addEventListener("beforeprint",()=>{
- const el=$("printTimestamp");
- if(el)el.textContent="Ausgedruckt am "+new Date().toLocaleString("de-CH",{dateStyle:"medium",timeStyle:"short"});
- const metaEl=$("printMeta");
- if(metaEl){
-  const erstelltName=profileName(currentReportMeta.created_by);
-  const erstelltZeit=formatDatumZeit(currentReportMeta.created_at);
-  const geaendertName=profileName(currentReportMeta.updated_by);
-  const geaendertZeit=formatDatumZeit(currentReportMeta.updated_at);
-  const teile=[];
-  if(erstelltName||erstelltZeit)teile.push(`Erstellt von ${erstelltName||"–"}${erstelltZeit?" am "+erstelltZeit:""}`);
-  if(geaendertName||geaendertZeit)teile.push(`Zuletzt geändert von ${geaendertName||"–"}${geaendertZeit?" am "+geaendertZeit:""}`);
-  metaEl.textContent=teile.join(" · ");
- }
+ const bar=$("reportFooterBar");
+ if(!bar)return;
+ const teile=[companyName];
+ const info=erstelltGeaendertText(currentReportMeta);
+ if(info)teile.push(info);
+ teile.push("Gedruckt am "+new Date().toLocaleString("de-CH",{dateStyle:"medium",timeStyle:"short"}));
+ bar.textContent=teile.join(" · ");
 });
 $("save").onclick=async()=>{
  if(!currentProjectId){alert("Bitte zuerst ein Projekt auswählen. Ein Rapport kann nur einem Projekt zugeordnet gespeichert werden.");return}

@@ -259,7 +259,11 @@ function formatDatumZeit(iso){
  if(isNaN(d.getTime()))return null;
  return d.toLocaleString("de-CH",{dateStyle:"medium",timeStyle:"short"});
 }
-function erstelltGeaendertHtml(record){
+// ---- Gemeinsamer PDF-Briefkopf und Fusszeile ----------------------
+// Wird von printMeasurement (hier) und printAusmass (17-ausmass.js)
+// benutzt, damit alle Ausdrucke gleich aussehen wie der Regierapport:
+// Firmenlogo/-anschrift oben, "Erstellt/Geändert von" klein unten.
+function erstelltGeaendertText(record){
  const erstelltName=profileName(record.created_by);
  const erstelltZeit=formatDatumZeit(record.created_at);
  const geaendertName=profileName(record.updated_by);
@@ -267,9 +271,30 @@ function erstelltGeaendertHtml(record){
  const teile=[];
  if(erstelltName||erstelltZeit)teile.push(`Erstellt von ${esc(erstelltName||"–")}${erstelltZeit?" am "+esc(erstelltZeit):""}`);
  if(geaendertName||geaendertZeit)teile.push(`Zuletzt geändert von ${esc(geaendertName||"–")}${geaendertZeit?" am "+esc(geaendertZeit):""}`);
- if(!teile.length)return"";
- return `<div class="small" style="color:var(--muted);margin-top:6mm;padding-top:2mm;border-top:.5pt solid #dfe6ea">${teile.join(" · ")}</div>`;
+ return teile.join(" · ");
 }
+function pdfLetterheadHtml(subtitle){
+ const logo=logoUrl?`<img src="${esc(logoUrl)}" style="max-height:15mm;max-width:70mm;display:block">`:esc(companyName);
+ return `<div class="pdf-head">
+<div><div class="pdf-logo">${logo}</div><div class="pdf-sub">${esc(subtitle)}</div></div>
+<div class="pdf-head-right"><b>${esc(companyName)}</b>${companyAddress?`<br><span style="white-space:pre-line">${esc(companyAddress)}</span>`:""}</div>
+</div>`;
+}
+function pdfFooterHtml(record){
+ const teile=[esc(companyName)];
+ const info=erstelltGeaendertText(record);
+ if(info)teile.push(info);
+ teile.push("Gedruckt am "+esc(new Date().toLocaleString("de-CH",{dateStyle:"medium",timeStyle:"short"})));
+ return `<div class="pdf-foot">${teile.join(" · ")}</div>`;
+}
+const PDF_HEAD_FOOT_CSS=`
+ .pdf-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #17202a;margin:0 0 6mm 0;padding:0 0 3mm 0}
+ .pdf-logo{font-size:16pt;font-weight:900;letter-spacing:.05em;color:#17202a;line-height:1}
+ .pdf-sub{margin-top:1.5mm;font-size:7pt;color:#68737d;text-transform:uppercase;letter-spacing:.03em}
+ .pdf-head-right{text-align:right;font-size:7.5pt;color:#68737d;line-height:1.5;white-space:nowrap}
+ .pdf-head-right b{color:#17202a;font-size:8.5pt}
+ .pdf-foot{position:fixed;left:12mm;right:12mm;bottom:4mm;font-size:6pt;color:#9aa4ab;text-align:center;padding-top:1.5mm;border-top:.5pt solid #dfe6ea;background:#fff}
+ body{padding-bottom:14mm}`;
 function printMeasurement(m){
  const proj=allProjects.find(p=>p.id===m.project_id);
  const typeLabels=MEAS_TYPE_LABELS;
@@ -648,10 +673,12 @@ ${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze 
  .meta b{color:#17202a}
  .note{font-size:10pt;white-space:pre-wrap;margin-top:4mm}
  @page{size:A4 portrait;margin:12mm}
+${PDF_HEAD_FOOT_CSS}
 ${extraCss}
 </style></head><body>
+${pdfLetterheadHtml("Massaufnahme · "+(typeLabels[m.type]||m.type))}
 ${bodyHtml}
-${erstelltGeaendertHtml(m)}
+${pdfFooterHtml(m)}
 </body></html>`);
  win.document.close();
  const doPrint=()=>{try{win.focus();win.print()}catch(e){}};

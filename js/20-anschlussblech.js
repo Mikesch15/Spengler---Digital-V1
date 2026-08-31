@@ -556,7 +556,7 @@ function berechneAnschlussblech(e) {
   let anzahlBleilappen = null;
   if (e.art === "bleilappen") {
     const lattenabstand = Math.max(1, Number(e.lattenabstand) || 0);
-    anzahlBleilappen = laenge > 0 ? Math.ceil(laenge / lattenabstand) : 0;
+    anzahlBleilappen = laenge > 0 ? Math.floor(laenge / lattenabstand) : 0;
   }
 
   return {

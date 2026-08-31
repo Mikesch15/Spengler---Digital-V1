@@ -397,9 +397,11 @@ ${a.note?`<div class="note">${esc(a.note)}</div>`:""}`;
  .am-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
  .am-cutlist td:nth-child(3),.am-cutlist td:nth-child(5),.am-cutlist td:nth-child(6){text-align:left;font-variant-numeric:tabular-nums}
  .am-cutlist tfoot td{border-top:1pt solid #17202a;padding:2.4mm 2.6mm;font-size:9.5pt}
+${PDF_HEAD_FOOT_CSS}
 </style></head><body>
+${pdfLetterheadHtml("Ausmass · "+(typeLabels[a.type]||a.type))}
 ${bodyHtml}
-${erstelltGeaendertHtml(a)}
+${pdfFooterHtml(a)}
 </body></html>`);
  win.document.close();
  const doPrint=()=>{try{win.focus();win.print()}catch(e){}};

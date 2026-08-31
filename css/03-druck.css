@@ -196,7 +196,20 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 }
 .sig-block .sig-line{border-top:.5pt solid #17202a!important;margin-top:15mm!important}
 .sig-block .sig-label{font-size:6pt!important;color:#68737d!important;margin-top:1mm!important;text-transform:uppercase!important;letter-spacing:.03em!important}
-.sig-timestamp{grid-column:1/-1!important;text-align:right!important;font-size:5.5pt!important;color:#9aa4ab!important;margin-top:6mm!important}
+
+/* Kleine Fusszeile ganz unten auf jeder Seite: Firma, erstellt/geändert von,
+   Druckdatum. Gleiche Darstellung wie bei Massaufnahme- und Ausmass-PDFs. */
+.pdf-foot{
+ display:block!important;
+ position:fixed!important;
+ left:8mm!important;right:8mm!important;bottom:3mm!important;
+ font-size:6pt!important;
+ color:#9aa4ab!important;
+ text-align:center!important;
+ padding-top:1.5mm!important;
+ border-top:.5pt solid #dfe6ea!important;
+ background:#fff!important;
+}
 }
 
 

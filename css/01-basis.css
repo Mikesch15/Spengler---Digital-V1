@@ -151,5 +151,6 @@ td input,td select{min-height:34px;font-size:12px}
 .info{background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:9px;border-left:3px solid var(--blue)}
 .report-head{display:none}
 .report-foot{display:none}
+.pdf-foot{display:none}
 .print-rate-block{display:none}
 
