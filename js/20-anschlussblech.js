@@ -84,9 +84,8 @@ const ANB_ARTEN = Object.freeze({
     }
   },
   pv_seite: {
-    // Kein Wandanschluss: das Blech liegt frei unter dem Deckmaterial und
-    // steht auf der anderen Seite senkrecht hoch bis zur PV-Schiene.
-    // Umschlag an beiden Enden (freies Ende und oben am Schenkel).
+    // Kein Wandanschluss: senkrechter Schenkel an der PV-Schiene (mit
+    // Umschlag oben), dann waagerecht frei unter das Deckmaterial durch.
     name: "PV-Seitenanschluss",
     masse: {
       a: { std: 50, min: 50, text: "Blech bis Deckmaterial" },
@@ -216,11 +215,11 @@ function anbProfil(e) {
     teile.push({ name: "Seitenblech", pts: pts });   // Aufkantung ohne Saum
     deckAb = a - 28; lattungAb = a;
   } else if (art === "pv_seite") {
-    // Frei liegendes Blech: waagerecht unter dem Deckmaterial durch,
-    // dann senkrecht hoch bis zur PV-Schiene. Umschlag am freien Ende
-    // links UND oben am Schenkel (beides über den einen Saum-Wert).
-    pts = [[0, 0], [a + b, 0], [a + b, c]];
-    teile.push({ name: "Seitenblech", pts: pts, saumStart: true, saumEnde: true });
+    // Senkrechter Schenkel bei x=0 (PV-Schienen-Seite) mit Umschlag oben,
+    // dann waagerecht unter das Deckmaterial durch. Kein Umschlag am
+    // deckmaterialseitigen Ende – das Blech läuft frei unter die Ziegel.
+    pts = [[0, c], [0, 0], [a + b, 0]];
+    teile.push({ name: "Seitenblech", pts: pts, saumStart: true });
     deckAb = a; lattungAb = a;
   }
 
