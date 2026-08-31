@@ -82,6 +82,17 @@ const ANB_ARTEN = Object.freeze({
       a: { std: 50, min: 50, text: "Blech bis Aufkantung" },
       b: { std: 30, min: 30, text: "Höhe der Aufkantung" }
     }
+  },
+  pv_seite: {
+    // Kein Wandanschluss: das Blech liegt frei unter dem Deckmaterial und
+    // steht auf der anderen Seite senkrecht hoch bis zur PV-Schiene.
+    // Umschlag an beiden Enden (freies Ende und oben am Schenkel).
+    name: "PV-Seitenanschluss",
+    masse: {
+      a: { std: 50, min: 50, text: "Blech bis Deckmaterial" },
+      b: { std: 50, min: 50, text: "Überdeckung des Bleilappens" },
+      c: { std: 80, min: null, text: "Höhe senkrechter Schenkel bis PV-Schiene" }
+    }
   }
 });
 
@@ -89,7 +100,7 @@ const ANB_ARTEN = Object.freeze({
 function anbArtenFuer(deckung) {
   const dk = ANB_DECKUNGEN[deckung] || ANB_DECKUNGEN.pfanne;
   if (dk.nur) return dk.nur.slice();
-  return ["bleilappen", "rinne", "steg", "rinne_steg", "steck"];
+  return ["bleilappen", "rinne", "steg", "rinne_steg", "steck", "pv_seite"];
 }
 
 // Mindestmass eines Masses, Sonderfälle der Deckung eingerechnet.
@@ -133,14 +144,16 @@ function anbProfil(e) {
   // eigenes Eingabefeld mehr.
   const hd = Math.max(5, (ANB_DECKUNGEN[e.deckung] || {}).hoehe || 0);
   const art = e.art;
-  const ort = e.ausfuehrung === "ort" && art !== "steck";
+  const ort = e.ausfuehrung === "ort" && art !== "steck" && art !== "pv_seite";
   const basis = (art === "rinne" || art === "rinne_steg") ? d : 0;
   const steg = 4;                                   // doppelt gekanteter Steg
   const teile = [];
 
   // linker Abschluss – endet immer auf Oberkante Schalung [0,0]
+  // (Steckblech und PV-Seitenanschluss haben keinen Wand-/Ortanschluss,
+  // beide Enden sind bei ihnen freie, gesäumte Blechkanten.)
   const anfang = [];
-  if (art !== "steck") {
+  if (art !== "steck" && art !== "pv_seite") {
     if (ort) {
       const hO = Math.max(20, z(e.ortAufkantung));
       const bO = Math.max(20, z(e.ortOben));
@@ -202,6 +215,13 @@ function anbProfil(e) {
     pts.push([a, b]);
     teile.push({ name: "Seitenblech", pts: pts });   // Aufkantung ohne Saum
     deckAb = a - 28; lattungAb = a;
+  } else if (art === "pv_seite") {
+    // Frei liegendes Blech: waagerecht unter dem Deckmaterial durch,
+    // dann senkrecht hoch bis zur PV-Schiene. Umschlag am freien Ende
+    // links UND oben am Schenkel (beides über den einen Saum-Wert).
+    pts = [[0, 0], [a + b, 0], [a + b, c]];
+    teile.push({ name: "Seitenblech", pts: pts, saumStart: true, saumEnde: true });
+    deckAb = a; lattungAb = a;
   }
 
   return { teile: teile, basis: basis, deckAb: deckAb, lattungAb: lattungAb,
@@ -233,6 +253,7 @@ const ANB_FARBE = Object.freeze({
 // Überschrift einer Anschlussart, z. B. "Ortblech mit Rinne".
 function anbTitel(e) {
   if (e.art === "steck") return "Steckblech";
+  if (e.art === "pv_seite") return "PV-Seitenanschluss";
   const rumpf = (ANB_ARTEN[e.art] || {}).name || "";
   return (e.ausfuehrung === "ort" ? "Ortblech" : "Seitenblech") + rumpf.replace(/^Anschluss/, "");
 }
@@ -267,7 +288,8 @@ function anbZeichnung(e) {
   if (e.art === "rinne" || e.art === "rinne_steg") senkListe.push([0, basis, "d = " + zahl(basis)]);
   if (e.art === "steg") senkListe.push([0, hd, "c = " + zahl(hd)]);
   if (e.art === "welle") senkListe.push([0, b, "b = " + zahl(b)]);
-  if (e.art !== "steck") {
+  if (e.art === "pv_seite") senkListe.push([0, c, "c = " + zahl(c)]);
+  if (e.art !== "steck" && e.art !== "pv_seite") {
     if (p.ort) {
       senkListe.push([0, hO, "Aufkantung " + zahl(hO)]);
       senkListe.push([hO - vO, hO, "Stirn " + zahl(vO)]);
@@ -346,6 +368,8 @@ function anbZeichnung(e) {
     g += waag(0, a, "a = " + zahl(a));
   } else if (e.art === "welle") {
     g += waag(0, a, "a = " + zahl(a));
+  } else if (e.art === "pv_seite") {
+    g += waag(0, a, "a = " + zahl(a)) + waag(a, a + b, "b = " + zahl(b));
   }
   if (p.ort) g += anbMassWaag(-bO, 0, yMass + 26, "Übergriff " + zahl(bO), X, Y);
   senkListe.forEach(eintrag => { g += senk(eintrag); });
@@ -732,7 +756,7 @@ function anbFesteFelderFuellen(w) {
   $("anb_art").innerHTML = arten
     .map(k => `<option value="${k}"${k === w.art ? " selected" : ""}>${anbEsc(ANB_ARTEN[k].name)}</option>`).join("");
   $("anb_ausfuehrung").value = w.ausfuehrung === "ort" ? "ort" : "seite";
-  $("anb_ausfuehrung").disabled = w.art === "steck";
+  $("anb_ausfuehrung").disabled = w.art === "steck" || w.art === "pv_seite";
   $("anb_saum").value = Math.round(w.saum);
   $("anb_stossLaenge").value = Math.round(w.stossLaenge);
   $("anb_ueberlappung").value = Math.round(w.ueberlappung);
@@ -755,12 +779,14 @@ function anbMassfelderZeichnen(w) {
   });
   $("anb_masse").innerHTML = h;
 
-  const ort = w.ausfuehrung === "ort" && w.art !== "steck";
+  const ort = w.ausfuehrung === "ort" && w.art !== "steck" && w.art !== "pv_seite";
   const feld = (id, label, wert) => `<div><label>${label} (mm)</label>
 <input type="number" step="1" inputmode="numeric" data-anb="${id}" value="${Math.round(Number(wert) || 0)}"></div>`;
   let f;
   if (w.art === "steck") {
     f = `<div class="wide small">Das Steckblech wird beidseitig gesäumt eingeschoben – es hat weder Wand- noch Ortabkantung.</div>`;
+  } else if (w.art === "pv_seite") {
+    f = `<div class="wide small">Das Blech liegt frei unter dem Deckmaterial und steht senkrecht bis zur PV-Schiene hoch – es hat weder Wand- noch Ortabkantung.</div>`;
   } else if (ort) {
     f = feld("ortAufkantung", "Aufkantung über Dach", w.ortAufkantung)
       + feld("ortOben", "Übergriff Ortbrett", w.ortOben)
