@@ -520,34 +520,34 @@ function berechneAnschlussblech(e) {
     warnungen.push("b muss grösser sein als c, sonst endet das Blech vor der Aufkantung.");
   }
 
-  // Länge, Stösse, Stückliste – dieselbe Regel wie beim Einlaufblech:
-  // volle Stücke zur eingestellten Stücklänge, am Schluss das Reststück.
-  // Die Überlappung kommt beim vollen Stück auf den Zuschnitt; das
-  // Reststück braucht keine, weil das Stück davor darüber greift.
-  // Ein Reststück unter der Schwelle wird dem vorherigen zugeschlagen.
+  // Stückliste – jedes Segment ist ein eigenes Blech, keine Aufteilung
+  // nach Stücklänge mehr. Die Überlappung kommt auf jedes Stück, dem noch
+  // ein weiteres folgt (also alle ausser dem letzten); das letzte Stück
+  // braucht keine, weil das Stück davor darüber greift.
   const laenge = Math.max(0, Number(e.laenge) || 0);
   const stoss = Math.max(200, Number(e.stossLaenge) || 2000);
   const lap = Math.max(0, Number(e.ueberlappung) || 0);
-  const schwelle = Math.max(0, Number(e.restSchwelle) || 0);
   const gehrungZugabe = Math.max(0, Number(e.gehrungszugabe) || 0);
   const mitGehrung = !!e.firstgehrung;
+  const segmenteGueltig = (Array.isArray(e.segmente) ? e.segmente : [])
+    .map((seg, i) => ({ seg, i }))
+    .filter(x => (Number(x.seg.laenge) || 0) > 0);
   const stuecke = [];
-  if (laenge > 0) {
-    let anzahl = Math.max(1, Math.ceil(laenge / stoss));
-    let rest = laenge - (anzahl - 1) * stoss;
-    if (anzahl > 1 && rest > 0 && rest < schwelle) { anzahl -= 1; rest = stoss + rest; }
-    for (let i = 0; i < anzahl; i++) {
-      const letztes = i === anzahl - 1;
-      const grund = Math.round(letztes ? rest : stoss + lap);
-      const st = { nr: i + 1, laenge: grund, gehrung: false };
-      if (letztes && mitGehrung && gehrungZugabe > 0) {
-        st.gehrung = true;
-        st.laengeOhneGehrung = grund;
-        st.laenge = grund + gehrungZugabe;
-      }
-      stuecke.push(st);
+  segmenteGueltig.forEach((eintrag, idx) => {
+    const segLaenge = Number(eintrag.seg.laenge) || 0;
+    const letztes = idx === segmenteGueltig.length - 1;
+    const grund = Math.round(letztes ? segLaenge : segLaenge + lap);
+    const st = { nr: idx + 1, laenge: grund, gehrung: false };
+    if (letztes && mitGehrung && gehrungZugabe > 0) {
+      st.gehrung = true;
+      st.laengeOhneGehrung = grund;
+      st.laenge = grund + gehrungZugabe;
     }
-  }
+    if (grund > stoss) {
+      warnungen.push(`Segment ${eintrag.i + 1}: Zuschnittlänge ${grund} mm ist länger als die eingestellte Stücklänge von ${stoss} mm.`);
+    }
+    stuecke.push(st);
+  });
   const abwGesamt = teile.reduce((s, t) => s + t.abwicklung, 0);
   const flaeche = laenge > 0 ? (abwGesamt / 1000) * (laenge / 1000) : 0;
 
@@ -586,7 +586,6 @@ const ANSCHLUSSBLECH_STANDARD = Object.freeze({
   saum: 15,                   // Umschlag am freien Blechende
   stoss_laenge: 2000,         // volles Stück
   ueberlappung: 70,           // Überlappung am Stoss
-  rest_schwelle: 300,         // kürzeres Reststück wird angehängt
   gehrungszugabe: 100,        // Zuschlag für die Firstgehrung am Endstück
   wand_aufkantung: 150,       // Seitenblech: Höhe an der Wand
   ort_aufkantung: 60,         // Ortblech: Höhe über Dach
@@ -626,7 +625,7 @@ function anbVorgabe() {
     ortAufkantung: s.ort_aufkantung, ortOben: s.ort_oben,
     ortStirn: s.ort_stirn, ortNase: s.ort_nase,
     laenge: 0, stossLaenge: s.stoss_laenge, ueberlappung: s.ueberlappung,
-    restSchwelle: s.rest_schwelle, gehrungszugabe: s.gehrungszugabe,
+    gehrungszugabe: s.gehrungszugabe,
     firstgehrung: false,
     lattenabstand: s.lattenabstand
   };
@@ -856,7 +855,6 @@ function applyAnschlussblechSettings() {
   setzen("anbsSaum", s.saum);
   setzen("anbsStossLaenge", s.stoss_laenge);
   setzen("anbsUeberlappung", s.ueberlappung);
-  setzen("anbsRestSchwelle", s.rest_schwelle);
   setzen("anbsGehrungszugabe", s.gehrungszugabe);
   setzen("anbsWandAufkantung", s.wand_aufkantung);
   setzen("anbsOrtAufkantung", s.ort_aufkantung);
@@ -927,7 +925,6 @@ function applyAnschlussblechSettings() {
       saum: zahl("anbsSaum") || 0,
       stoss_laenge: zahl("anbsStossLaenge"),
       ueberlappung: zahl("anbsUeberlappung") || 0,
-      rest_schwelle: zahl("anbsRestSchwelle") || 0,
       gehrungszugabe: zahl("anbsGehrungszugabe") || 0,
       wand_aufkantung: zahl("anbsWandAufkantung") || 0,
       ort_aufkantung: zahl("anbsOrtAufkantung") || 0,
@@ -939,7 +936,7 @@ function applyAnschlussblechSettings() {
     if (!ANB_DECKUNGEN[w.deckung]) { alert("Bitte ein Deckmaterial wählen."); return; }
     if (!(w.stoss_laenge > 0)) { alert("Bitte eine gültige Stücklänge eingeben."); return; }
     if (w.ueberlappung >= w.stoss_laenge) { alert("Die Überlappung muss kleiner sein als die Stücklänge."); return; }
-    const negativ = ["saum", "ueberlappung", "rest_schwelle", "gehrungszugabe", "wand_aufkantung", "ort_aufkantung", "ort_oben", "ort_stirn", "ort_nase", "lattenabstand"]
+    const negativ = ["saum", "ueberlappung", "gehrungszugabe", "wand_aufkantung", "ort_aufkantung", "ort_oben", "ort_stirn", "ort_nase", "lattenabstand"]
       .some(k => w[k] < 0);
     if (negativ) { alert("Diese Werte dürfen nicht negativ sein."); return; }
     anbEinstellungenSichern(w);
