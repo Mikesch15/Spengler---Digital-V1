@@ -17,15 +17,18 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
+**AKTUELLER REFERENZSTAND: Version 2.27, Branch `main`.**
+
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.22**
+- sichtbare App-Version: **2.27**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
 Die aktuelle `main`-Version enthält unter anderem:
 - Supabase-Anbindung
-- Login
+- Login (Mitarbeiter-Benutzername sowie echte E-Mail für selbst
+  registrierte Firmenadmins)
 - Mitarbeiter-/Rechteverwaltung
 - Projekte
 - Regierapport
@@ -38,6 +41,27 @@ Die aktuelle `main`-Version enthält unter anderem:
 - Feedback
 - Einstellungen
 - mehrere spezialisierte Massaufnahme-Module
+- **Multi-Tenant-Firmentrennung** (`companies`/`company_id`, RLS auf
+  allen relevanten Tabellen und im Storage-Bucket, siehe Abschnitt 20)
+- **System-Administration** für den Betreiber (Firmenliste, Trial-/
+  Statusverwaltung, Firmenregistrierung, vollständige Firmenlöschung –
+  ausschliesslich für eingetragene System-Admins, siehe Abschnitt 25/34)
+- **Trial-/Firmenstatus-Lifecycle** (abgelaufene/deaktivierte Firmen
+  verlieren serverseitig den normalen Zugriff, ohne dass Daten gelöscht
+  werden, siehe Abschnitt 35)
+
+Mindestens ein Betreiber-System-Admin ist für die System-Administration
+aktiviert (Tabelle `system_admins` ist nicht leer) – Details siehe
+Abschnitt 25.5.
+
+Für den aktuellen Multi-Tenant-/Security-/Storage-/Lifecycle-Stand
+**immer Abschnitt 20 UND die Abschnitte 31–35 lesen, nicht nur einen
+davon** – der Stand wurde über mehrere Aufträge hinweg schrittweise
+korrigiert und erweitert (u. a. Storage-Sicherheit in Abschnitt 20.5–20.7
+durch Abschnitt 32 abgelöst, Firmenregistrierung in Abschnitt 21 durch
+Abschnitt 28 abgelöst, Trial-Wirkung in Abschnitt 21.4 durch Abschnitt 35
+abgelöst). Die jeweils höchste Abschnittsnummer zu einem Thema ist
+massgeblich.
 
 Bestehende Funktionen dürfen bei Änderungen nicht einfach entfernt oder durch vereinfachte Platzhalter ersetzt werden.
 
@@ -576,6 +600,24 @@ Struktur geprüft und zwei konkrete Lücken behoben). Supabase-Projekt-ID:
 Abschnitt lesen, nicht nur Abschnitt 8 (dort steht nur das Ziel, hier der
 tatsächliche Stand).
 
+**Wichtig – dieser Abschnitt ist der Stand von September 2026 (kurz nach
+der ursprünglichen Migration) und in zwei Punkten seither überholt, siehe
+die jeweils genannten späteren Abschnitte:**
+- Die in 20.5–20.7 beschriebene Storage-Policy (`my_company_id() is not
+  null`, keine echte Objekt-Firmen-Zuordnung) wurde in Version 2.24
+  durch eine echte, objektgenaue Tenant-Trennung ersetzt – aktueller
+  Stand: **Abschnitt 32**.
+- `rinne_fitting_types` fehlte in 20.6 zunächst nur `company_id`/eine
+  Tenant-Policy; die dort ergänzte Policy hatte danach selbst noch eine
+  Sicherheitslücke (permissiv statt restriktiv), behoben in Version 2.23
+  – siehe **Abschnitt 31.2**.
+
+Ausserdem gilt seit Version 2.27 (**Abschnitt 35**): `my_company_id()`
+liefert für eine Firma mit abgelaufenem Trial oder deaktiviertem Status
+`NULL` statt der echten `company_id` – jede restriktive
+`tenant_boundary_*`-Policy in diesem Abschnitt greift dadurch automatisch
+auch als Zugriffssperre, nicht nur als Firmentrennung.
+
 ### 20.1 Firmenmodell
 
 Tabelle `companies`: `id` (uuid), `name`, `slug` (unique), `is_active`,
@@ -713,31 +755,40 @@ Start-/Menübildschirm, Projektdatei öffnen.
 
 ### 20.7 Noch im Frontend umzusetzen / offene Fragen
 
-- Echte objektgenaue Storage-**RLS**-Trennung für Fotos/Skizzen/
-  Projektdateien fehlt noch – der Pfad trägt jetzt zwar Projekt-/
-  Massaufnahme-Bezug (20.5), aber die Policy prüft weiterhin nur
-  "eingeloggtes Mitglied irgendeiner Firma", nicht ob genau dieses
-  Projekt zur eigenen Firma gehört. Für eine spätere Runde: Policy auf
-  `storage.foldername(name)` (des Objekts selbst, nicht von
-  `projects.name` – siehe der oben behobene Bug) und einen Join auf
-  `projects.company_id` umstellen.
+- ~~Echte objektgenaue Storage-**RLS**-Trennung für Fotos/Skizzen/
+  Projektdateien fehlt noch~~ – **behoben in Version 2.24, siehe
+  Abschnitt 32.** Storage-Objekte werden seither dynamisch anhand von
+  Pfad (projektbezogene Kategorien) bzw. tatsächlicher DB-Referenz
+  (Firmenlogo/Ausmass-Foto und ältere flache Pfade) der eigenen Firma
+  zugeordnet.
 - Firmenlogo/Ausmass-Foto liegen weiterhin unter dem alten, flachen
   Pfadschema ohne Projekt-/Firmenbezug (Firmenlogo ist auch fachlich kein
-  Projektdatum). Signierte URLs funktionieren dafür bereits.
-- Keine Firmenverwaltung im Frontend (Firma anlegen/wechseln) – für
-  Phase 1 nicht vorgesehen.
+  Projektdatum). Signierte URLs funktionieren dafür bereits. Die
+  Firmenzuordnung läuft für diese Kategorie seit Version 2.24 über den
+  tatsächlichen `app_settings`-/`ausmass`-Referenzwert (Abschnitt 32),
+  nicht über den Pfad.
+- ~~Keine Firmenverwaltung im Frontend (Firma anlegen/wechseln) – für
+  Phase 1 nicht vorgesehen.~~ – **seit Version 2.17 vorhanden**
+  (System-Administration für den Betreiber, siehe Abschnitt 25/34;
+  betrifft weiterhin nicht den einzelnen Firmenadmin, der seine eigene
+  Firma nicht wechseln kann).
 
 ### 20.8 Bekannte Altlasten
 
 - `permission_settings` bewusst ohne `company_id` (gemeinsame
   Rollen-Standardwerte) – falls jede Firma eigene Standardrechte braucht,
-  ist das eine spätere, bewusste Migration, kein Bug.
-- Trigger-Funktion `enforce_permission_override_company()` ist laut
+  ist das eine spätere, bewusste Migration, kein Bug. Weiterhin
+  unverändert (Stand v2.27).
+- ~~Trigger-Funktion `enforce_permission_override_company()` ist laut
   Supabase-Security-Advisor direkt per RPC aufrufbar (`anon` und
-  `authenticated`). Vermutlich harmlos (reiner `BEFORE INSERT/UPDATE`-
-  Trigger), aber nicht geprüft/aufgeräumt.
+  `authenticated`). Vermutlich harmlos..., aber nicht geprüft/
+  aufgeräumt.~~ – **geprüft und aufgeräumt in Version 2.25** (Abschnitt
+  33.2): tatsächlich ungefährlich (reine Trigger-Funktion, ausserhalb
+  eines Trigger-Kontexts nicht direkt aufrufbar), die unnötigen
+  `anon`/`PUBLIC`-Grants wurden trotzdem aus Hygiene-Gründen entzogen.
 - Leaked-Password-Protection ist in Supabase Auth deaktiviert – generelle
-  Auth-Härtung, unabhängig vom Multi-Tenant-Thema.
+  Auth-Härtung, unabhängig vom Multi-Tenant-Thema. Weiterhin unverändert
+  (Stand v2.27), nicht Teil eines der bisherigen Aufträge.
 
 ### 20.9 Funktionen, die nicht verändert werden dürfen
 
@@ -756,9 +807,29 @@ selbst eine neue Firma anzulegen. Läuft unter der bestehenden
 GitHub-Pages-Adresse, keine eigene Domain, kein Firmen-Code, keine
 Kreditkarte.
 
+**Wichtig – dieser Abschnitt beschreibt den ursprünglichen Phase-1-Stand
+und ist in zwei Punkten seither überholt:**
+- Der Einstiegspunkt in 21.1 ("Login-Bildschirm → Knopf") gilt **nicht
+  mehr**. Seit Version 2.20 ist die Registrierung ausschliesslich über
+  den System-Admin-Bereich erreichbar, kein öffentlicher Knopf mehr am
+  Login – siehe **Abschnitt 28.2** für den aktuellen Stand und die
+  Begründung. Der automatische Login direkt nach der Registrierung
+  (letzter Absatz von 21.1) entfällt dadurch ebenfalls: der auslösende
+  Benutzer ist bereits als System-Admin eingeloggt, ein automatischer
+  Login in die neue Firma würde diese Sitzung ersetzen.
+- Die Aussage in 21.4 ("kein Code prüft `trial_ends_at`/Zugriff") gilt
+  **nicht mehr** seit Version 2.27 – siehe **Abschnitt 35** für den
+  aktuellen Trial-/Firmenstatus-Lifecycle.
+
+Die eigentliche Anlage-Logik dieses Abschnitts (Auth-User/Firma/Profil/
+`app_settings` atomar anlegen, Rollback bei Fehler, `company_id`
+ausschliesslich serverseitig) ist weiterhin unverändert aktuell.
+
 ### 21.1 Ablauf
 
-Login-Bildschirm → Knopf "🏢 Neue Firma registrieren" → Formular
+~~Login-Bildschirm → Knopf "🏢 Neue Firma registrieren"~~ → **seit
+Version 2.20: System-Admin-Bereich → Knopf "🏢 Neue Firma registrieren"
+(siehe Abschnitt 28.2)** → Formular
 (Firmenname, Vorname, Nachname, E-Mail, Passwort, Passwort bestätigen) →
 Edge Function `register-company` (`service_role`, läuft serverseitig,
 niemals im Browser) legt atomar an:
@@ -781,11 +852,13 @@ Angelegte in umgekehrter Reihenfolge wieder ab (erst `app_settings`/
 `profiles`, dann `companies`, zuletzt der Auth-User) – keine
 Karteileichen, siehe `supabase/functions/register-company`.
 
-Nach erfolgreicher Registrierung meldet der Client sich mit der gerade
-eingegebenen E-Mail/Passwort-Kombination selbst an
-(`signInWithPassword`). Klappt das aus irgendeinem Grund nicht (Konto
-steht trotzdem), wird stattdessen verständlich zum normalen Login
-weitergeleitet.
+~~Nach erfolgreicher Registrierung meldet der Client sich mit der gerade
+eingegebenen E-Mail/Passwort-Kombination selbst an (`signInWithPassword`).
+Klappt das aus irgendeinem Grund nicht (Konto steht trotzdem), wird
+stattdessen verständlich zum normalen Login weitergeleitet.~~ – **gilt
+nicht mehr seit Version 2.20**: der aufrufende Benutzer ist bereits als
+System-Admin eingeloggt, es findet kein automatischer Login mehr statt
+(siehe Abschnitt 28.2 für den aktuellen Ablauf und die Begründung).
 
 ### 21.2 Login mit echter E-Mail statt Benutzername
 
@@ -830,26 +903,41 @@ wird aber von keiner Stelle im Client gelesen oder geschrieben
 - `trial_days` ist pro Firma einstellbar (Default 30, Check 0–3650) –
   in dieser Phase setzt die Registrierung immer den Standardwert 30,
   ein UI zum Ändern gibt es noch nicht.
-- **Kein automatisches Sperren oder Löschen.** Ein abgelaufener Trial
-  (`trial_ends_at` in der Vergangenheit) bleibt unverändert nutzbar und
-  gespeichert – es gibt in dieser Phase keinerlei Code, der
-  `subscription_status`/Zugriff anhand von `trial_ends_at` prüft oder
-  einschränkt. Das ist bewusst so; automatische Sperrung ist eine
-  spätere, eigene Aufgabe.
-- Vollständige Firmenlöschung kommt später als geschützte
+- ~~**Kein automatisches Sperren oder Löschen.** ... es gibt in dieser
+  Phase keinerlei Code, der `subscription_status`/Zugriff anhand von
+  `trial_ends_at` prüft oder einschränkt.~~ – **gilt nicht mehr seit
+  Version 2.27**: `my_company_id()` prüft `trial_ends_at`/
+  `subscription_status` serverseitig und sperrt den normalen Zugriff bei
+  Ablauf – siehe **Abschnitt 35**. Weiterhin richtig und unverändert:
+  **keine automatische Löschung**, ein abgelaufener Trial bleibt
+  vollständig gespeichert und reversibel.
+- ~~Vollständige Firmenlöschung kommt später als geschützte
   System-Admin-Funktion. Die Tabelle `system_admins` und die Funktion
   `is_system_admin()` existieren in Supabase bereits (leer/ungenutzt),
-  es gibt aber noch keine Oberfläche und keinen Aufruf dafür im Client.
+  es gibt aber noch keine Oberfläche und keinen Aufruf dafür im Client.~~
+  – **umgesetzt seit Version 2.17 (System-Admin-Oberfläche, Abschnitt
+  25) bzw. Version 2.19 (vollständige Firmenlöschung, Abschnitt 27)**,
+  seither mehrfach korrigiert (Abschnitt 29/30). `system_admins` ist
+  seit Version 2.17.1 nicht mehr leer (Abschnitt 25.5).
 
 ### 21.5 Was diese Phase NICHT enthält
 
-- Keine automatische Trial-Sperrung/-Löschung (siehe 21.4).
-- Keine System-Admin-Oberfläche.
+Stand zum Zeitpunkt dieses Abschnitts (Phase 1) – für den aktuellen
+Stand siehe die oben verlinkten späteren Abschnitte:
+
+- ~~Keine automatische Trial-Sperrung/-Löschung~~ – Zugriffssperre bei
+  Ablauf seit Version 2.27 (Abschnitt 35) vorhanden, automatische
+  **Löschung** gibt es weiterhin nicht und ist auch für die Zukunft
+  nicht vorgesehen.
+- ~~Keine System-Admin-Oberfläche.~~ – seit Version 2.17 vorhanden
+  (Abschnitt 25/34).
 - Keine Mitarbeiter-Einladungen (Mitarbeiter legt weiterhin nur ein
-  Admin in den Einstellungen an, unverändert seit Abschnitt 20).
-- Kein Zahlungsanbieter, keine Abos/Rechnungen.
+  Admin in den Einstellungen an, unverändert seit Abschnitt 20) –
+  **weiterhin aktueller Stand, nicht überholt**.
+- Kein Zahlungsanbieter, keine Abos/Rechnungen – **weiterhin aktueller
+  Stand, nicht überholt**.
 - Keine eigene Domain – weiterhin unter der bestehenden GitHub-Pages-
-  Adresse.
+  Adresse – **weiterhin aktueller Stand, nicht überholt**.
 
 ## 22. GESCHÜTZTER BEREICH OHNE PASSWORT + MITARBEITERANLAGE REPARIERT – VERSION 2.14
 
