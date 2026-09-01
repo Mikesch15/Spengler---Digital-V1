@@ -2299,3 +2299,310 @@ löschen) bleiben bewusst beim Service-Role-Key, wie zuvor.
   Mitarbeiteranlage, Passwort-Erstsetzungsflow, `rates`, Trial-
   Verwaltung, geschützter Einstellungsbereich, System-Admin-Bereich
   ausserhalb der Löschfunktion, Firmenregistrierung: nicht angefasst.
+
+## 31. MULTI-TENANT SECURITY AUDIT — VERSION 2.23
+
+Vollständiger Cross-Tenant-Sicherheitsaudit über das gesamte Produktivschema
+(`nfgryuzkpwjfmdlmevuy`), alle RLS-Policies, alle `SECURITY DEFINER`-
+Funktionen, alle Edge Functions und den Storage-Bucket. Zentrale Frage:
+"Kann Firma A mit bekannten IDs oder manipulierten Requests Daten von
+Firma B erreichen?" Ausschliesslich per direktem SQL gegen das echte
+Produktivschema geprüft (kein Live-Browser-Test möglich, siehe wie in
+allen vorherigen Sitzungen: Sandbox blockiert ausgehende HTTPS-
+Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`). Testfirma war zu
+Beginn dieses Audits bereits real gelöscht (echter Einsatz der in Version
+2.19–2.22 gebauten Firmenlöschung ausserhalb dieser Sitzung, siehe 31.7)
+– es existierte nur noch PETER KÜNZI AG. Alle destruktiven Tests liefen
+deshalb entweder in `begin;…rollback;`-Transaktionen mit einer temporär
+angelegten, nie committeten Wegwerf-Firma B (UUID
+`99999999-9999-9999-9999-999999999999`) oder als reiner Code-Review ohne
+DB-Zugriff.
+
+### 31.1 Methodik: `polpermissive` statt nur `pg_policies`
+
+Wichtigste methodische Erkenntnis dieses Audits: Postgres kombiniert
+mehrere **permissive** Policies für denselben Befehl mit ODER, aber
+**restriktive** Policies zusätzlich mit UND darüber. Die Standard-View
+`pg_policies` zeigt das nicht übersichtlich an – massgeblich ist
+`pg_policy.polpermissive`, direkt abgefragt:
+
+```sql
+select relname, polname, polpermissive, polcmd,
+  pg_get_expr(polqual, polrelid) as qual,
+  pg_get_expr(polwithcheck, polrelid) as with_check
+from pg_policy join pg_class on pg_class.oid = pg_policy.polrelid
+where relnamespace = 'public'::regnamespace
+order by relname, polname;
+```
+
+Ergebnis: **jede** `tenant_boundary_<tabelle>`-Policy auf jeder
+company_id-tragenden bzw. projekt-indirekten Tabelle
+(`app_settings`, `ausmass`, `blitzschutz_materials`,
+`einlaufblech_settings`, `feedback`, `materials`,
+`measurement_materials`, `measurements`, `permission_overrides`,
+`profiles`, `project_files`, `projects`, `rates`, `reports`) ist
+**restriktiv** (`polpermissive:false`) – mit einer einzigen Ausnahme,
+siehe 31.2. Dadurch sind mehrere auf den ersten Blick verdächtige,
+company-agnostische permissive Policies (`app_settings_select_
+authenticated` mit `qual:"true"`, `permission_overrides_select` mit
+`qual:"true"`, `permission_overrides_admin` als firmenunabhängige
+Admin-ALL-Policy) tatsächlich sicher: die restriktive Tenant-Boundary-
+Policy verlangt zusätzlich immer `company_id = my_company_id()`, egal
+was die permissiven Policies erlauben. Empirisch bestätigt (siehe
+31.4): ein Testversuch, über `permission_overrides_admin` als Admin
+einer fremden Firma eine `permission_overrides`-Zeile für einen
+PETER-KÜNZI-AG-Mitarbeiter anzulegen, wurde korrekt mit "new row
+violates row-level security policy" abgelehnt.
+
+### 31.2 KRITISCH (behoben): `rinne_fitting_types` – vollständiger
+Cross-Tenant-Lese-/Schreib-/Löschzugriff
+
+**Tabelle**: `rinne_fitting_types` (Dilatationselement-/Fitting-Katalog
+für Rinne Halbrund, siehe Abschnitt 3.3).
+
+**Ursache**: `tenant_boundary_rinne_fitting_types` war als **einzige**
+Tenant-Boundary-Policy im gesamten Schema **permissiv** statt restriktiv
+angelegt (Rest aus der Nachrüstung in Version 20.6 – vermutlich beim
+damaligen `CREATE POLICY` schlicht `as restrictive` vergessen). Die vier
+`rinne_<x>_permission`-Policies prüfen nur `has_permission('rinne_
+fitting_types', …)` – eine reine, firmenunabhängige Rollen-Berechtigung
+(admin/employee), ohne jeden `company_id`-Bezug. Weil die Tenant-
+Boundary-Policy hier ausnahmsweise permissiv statt restriktiv war,
+kombinierte Postgres beide Policy-Gruppen mit ODER statt UND – die
+Rollen-Policy allein reichte damit für vollen Zugriff, unabhängig von
+`company_id`.
+
+**Angriffsszenario / Beweis** (Firma A = PETER KÜNZI AG,
+Firma B = temporäre Audit-Wegwerf-Firma, Aufrufer = ein zu Firma B
+umgehängter Admin-Account, alles in `begin;…rollback;`, danach verifiziert
+dass Produktivdaten unverändert sind): in **einer** Transaktion, ohne
+jeden RLS-Fehler,
+1. `SELECT … FROM rinne_fitting_types WHERE company_id = '<Firma A>'` –
+   lieferte Firma-A-Zeilen.
+2. `INSERT INTO rinne_fitting_types (…, company_id) VALUES (…, '<Firma A>')`
+   – legte eine neue Zeile mit fremder `company_id` an.
+3. `UPDATE rinne_fitting_types SET name='AUDIT-HACKED' WHERE id=5` (echte
+   Firma-A-Zeile "Boden") – änderte sie.
+4. `DELETE FROM rinne_fitting_types WHERE id=7` (echte Firma-A-Zeile
+   "Schiebestutzen") – löschte sie.
+
+Alle vier Schritte liefen ohne RLS-Fehler durch die Transaktion. Nach
+`ROLLBACK` erneut geprüft: alle 7 Original-Zeilen unverändert vorhanden,
+"Boden" weiterhin "Boden", keine `AUDIT-CROSS-TENANT-INSERT`-Zeile –
+**kein** Produktivdatensatz wurde real verändert, aber der Angriffsweg
+war eindeutig offen: jeder Firmenadmin (bzw. jeder Mitarbeiter mit
+`can_view`, für den Lesezugriff reicht das) hätte den Fitting-Katalog
+**jeder anderen Firma** lesen, verändern, fremde Zeilen einschleusen und
+löschen können – mit trivial erratbaren fortlaufenden `bigint`-IDs.
+
+**Auswirkung**: Vollständiger Cross-Tenant-Lese-/Schreib-/Löschzugriff auf
+Referenzdaten, die direkt in die Rinne-Halbrund-Dilatationsberechnung
+einfliessen (Abschnitt 3.3) – eine fremde Firma hätte die
+Berechnungsgrundlage einer anderen Firma stillschweigend verfälschen oder
+zerstören können.
+
+**Fix** (Migration `fix_rinne_fitting_types_tenant_boundary_restrictive`):
+Policy gedroppt und identisch, aber `as restrictive`, neu angelegt –
+exakt das Muster jeder anderen Tenant-Boundary-Policy im Schema:
+
+```sql
+drop policy tenant_boundary_rinne_fitting_types on public.rinne_fitting_types;
+create policy tenant_boundary_rinne_fitting_types on public.rinne_fitting_types
+  as restrictive for all
+  using (company_id = my_company_id())
+  with check (company_id = my_company_id());
+```
+
+**Re-Test nach dem Fix** (gleicher Angriff, gleiche Firma-B-Simulation):
+SELECT auf Firma-A-Zeilen liefert 0 Zeilen; INSERT mit fremder
+`company_id` wird mit `42501: new row violates row-level security
+policy "tenant_boundary_rinne_fitting_types"` abgelehnt; Produktivdaten
+(`id=5` weiterhin "Boden", `id=7` weiterhin vorhanden, 7 Zeilen gesamt)
+nach dem gesamten Testlauf erneut bestätigt unverändert. Positive
+Gegenprobe: eigene Firma bleibt uneingeschränkt lesbar (strukturell
+identisch zu `materials`/`rates`/`blitzschutz_materials`, die immer schon
+korrekt restriktiv waren).
+
+### 31.3 KRITISCH (behoben): Edge Function `reset-password` –
+Cross-Tenant-Account-Übernahme
+
+**Fund nur per Code-Review möglich** (Edge Functions sind keine
+RLS-geprüften Tabellenzugriffe, sondern eigener Code) – genau der im
+Auftrag verlangte Blick über die bereits dokumentierten Funktionen hinaus:
+`list_edge_functions` zeigte zwei bisher in diesem CLAUDE.md nie
+erwähnte, aktive Funktionen (`reset-password`, Version 1;
+`extract-offer-positions`/`extract-profile-shape`, reine Gemini-
+Bilderkennungs-Helfer ohne jeden Datenbankzugriff, siehe 31.5).
+
+**Funktion**: `reset-password` (`supabase/functions/reset-password`),
+aufgerufen von `js/07-einstellungen.js:406`
+(`sb.functions.invoke("reset-password",{body:{profile_id,password}})`) –
+der tatsächlich verwendete Weg für "Mitarbeiter-Passwort zurücksetzen"
+im geschützten Bereich. (`smart-action` behandelt in der aktuell
+deployten Version 10 nur die Mitarbeiteranlage, keinen Passwort-Reset –
+frühere CLAUDE.md-Formulierungen dazu waren ungenau.)
+
+**Ursache**: Die Funktion prüfte per `admin.auth.getUser(jwt)` korrekt
+den echten Aufrufer und per `profiles.role==="admin"`, dass er
+**irgendein** Firmenadmin ist – aber **nie**, ob die vom Client
+mitgeschickte `profile_id` überhaupt zur selben Firma wie der Aufrufer
+gehört. `admin.auth.admin.updateUserById(profile_id,{password})` läuft
+mit dem Service-Role-Key, also ausserhalb jeder RLS-Prüfung.
+
+**Angriffsszenario**: Admin von Firma B kennt (oder errät/beobachtet
+irgendwo, z. B. über `created_by`-Felder in gemeinsam sichtbaren
+Zusammenhängen) die `profile_id` eines Mitarbeiters oder Admins von
+Firma A. Aufruf von `reset-password` mit
+`{profile_id:"<Firma-A-User>", password:"beliebig12345"}` – die Funktion
+prüfte nur "ist der Aufrufer irgendwo Admin", nicht "gehört das Ziel zur
+selben Firma". Das Passwort von Firma A's Konto wird auf einen vom
+Angreifer gewählten Wert gesetzt; der Angreifer kann sich danach direkt
+als dieser Firma-A-Benutzer anmelden – **vollständige Kontoübernahme
+über die Firmengrenze hinweg**, mit Zugriff auf sämtliche Daten von
+Firma A, die dieses Konto sehen darf.
+
+**Klassifikation**: KRITISCH – schwerwiegendster Fund dieses Audits
+(vollständige Authentifizierungs-Umgehung in ein fremdes Konto, nicht nur
+Daten-Lese-/Schreibzugriff).
+
+**Fix** (Edge Function auf Version 2 redeployt): nach der bestehenden
+Admin-Prüfung wird jetzt zusätzlich das Zielprofil geladen und sein
+`company_id` exakt gegen das des Aufrufers geprüft, bevor das Passwort
+gesetzt wird:
+
+```ts
+const { data: zielProfil } = await admin.from("profiles")
+  .select("id, company_id").eq("id", profile_id).maybeSingle();
+if (!zielProfil || zielProfil.company_id !== profil.company_id) {
+  return antwort({ ok: false, error: "Dieser Benutzer gehört nicht zu Ihrer Firma." }, 403);
+}
+```
+
+Kein Live-HTTP-Test möglich (Sandbox-Netzwerksperre, wie in jeder
+vorherigen Sitzung) – Korrektur ausschliesslich per Code-Review
+verifiziert. Bestehendes, korrektes Verhalten (eigene Firma, Mindest-
+Passwortlänge, `passwort_gesetzt=false` danach) unverändert.
+
+### 31.4 Systematische Cross-Tenant-Tests (alle in `begin;…rollback;`,
+Produktivdaten danach jeweils erneut bestätigt unverändert)
+
+| Test | Ergebnis |
+|---|---|
+| `permission_overrides` INSERT für fremden Mitarbeiter (über die firmenunabhängige `permission_overrides_admin`-Policy) | abgelehnt (restriktive Tenant-Boundary greift) |
+| `profiles` – Mitarbeiter setzt eigenen `company_id` auf fremde Firma | RLS blockiert still (0 Zeilen geändert, `has_permission('profiles','edit')=false` für employee) |
+| `profiles` – Mitarbeiter befördert sich selbst zu `role='admin'` | RLS blockiert still, gleicher Grund |
+| `companies` – Fremd-Admin ändert `name`/`is_active` einer anderen Firma per bekannter UUID | RLS blockiert (`company admins can update their company` scoped auf `p.company_id=id`) |
+| `system_admin_set_trial(...)` durch Nicht-System-Admin | abgelehnt, `"Nur für System-Administratoren."` |
+| `measurements`/`ausmass`/`reports`/`project_files` SELECT über bekannte fremde `project_id` | je 0 sichtbare Zeilen (restriktive `tenant_boundary_*` via `EXISTS(...projects p WHERE p.company_id=my_company_id())`) |
+| `rinne_fitting_types` SELECT/INSERT/UPDATE/DELETE fremder Firma | **vor Fix: alle vier erfolgreich (KRITISCH, siehe 31.2) → nach Fix: alle vier abgelehnt/leer** |
+
+### 31.5 Storage – bestätigte, bereits dokumentierte Lücke (nicht neu,
+in dieser Runde bewusst nicht behoben)
+
+`storage.objects`-Policies (`company <read/upload/update/delete>
+measurement files`) prüfen weiterhin ausschliesslich
+`bucket_id='measurements' AND my_company_id() IS NOT NULL` – **keine**
+tatsächliche Objekt-zu-Firma-Zuordnung. Jeder eingeloggte Mitarbeiter
+irgendeiner Firma kann damit grundsätzlich jeden Pfad im Bucket lesen/
+überschreiben/löschen, sofern er ihn kennt oder errät (Pfad ist kein
+Geheimnis). Das ist **keine neue Erkenntnis dieses Audits** – bereits in
+Abschnitt 20.5–20.7 exakt so dokumentiert und aus gutem Grund
+zurückgestellt: eine korrekte Policy müsste `storage.foldername(name)`
+gegen `projects.company_id` joinen, aber ältere, vor der
+Pfadumstellung gespeicherte Dateien (Firmenlogo, Ausmass-Fotos, u. a.)
+liegen unter flachen Pfaden ganz ohne Projekt-/Firmenbezug und würden
+von einer strengen Pfad-Policy fälschlich mit ausgesperrt. Klassifikation
+in diesem Audit: **HOCH** (bestätigter Cross-Tenant-Dateizugriff über
+erratene/bekannte Pfade), aber bewusst nicht in dieser Runde behoben –
+eine echte Lösung braucht eine dedizierte, sorgfältig getestete
+Migration inkl. Altlasten-Pfaden, kein "smallest safe fix" innerhalb
+dieses Audits. Bleibt offen für eine eigene Aufgabe.
+
+### 31.6 Edge Functions – Gesamtbild
+
+- **`smart-action`** (v10, Mitarbeiteranlage): `company_id` kommt
+  ausschliesslich aus dem echten, per `/auth/v1/user` verifizierten
+  Aufrufer-Profil, nie vom Client – korrekt, keine Änderung nötig.
+- **`register-company`** (v3) und **`system-admin-delete-company`** (v4):
+  bereits in Version 2.20–2.22 auf genau das im Auftrag benannte Muster
+  geprüft und korrigiert (Service-Role-JWT hat keinen `sub`-Claim,
+  `auth.uid()` wäre `NULL` – beide rufen ihre `is_system_admin()`-
+  abhängigen Pfade seither mit dem echten, weitergereichten Aufrufer-JWT
+  auf). Code erneut vollständig gelesen: keine Regression, unverändert
+  korrekt.
+- **`reset-password`** (v1→v2): KRITISCH, siehe 31.3, behoben.
+- **`extract-offer-positions`**, **`extract-profile-shape`**: reine
+  Bild-zu-JSON-Funktionen (Gemini-Vision, gemeinsamer Server-API-Key),
+  greifen auf **keine** Tabelle zu, kein `company_id`, kein Profil-Bezug
+  – kein Multi-Tenant-Risiko, daher **kein Fehler** im Sinne dieses
+  Audits. (Nebenbefund ausserhalb des Auftragsumfangs:
+  `extract-offer-positions` lädt serverseitig eine vom Client
+  übergebene beliebige `http(s)://`-Bild-URL nach – ein generisches
+  SSRF-Muster, aber kein Cross-Tenant-Datenzugriff und explizit nicht
+  Gegenstand dieses Audits; nicht verändert.)
+
+### 31.7 Anmerkung: Testfirma real gelöscht
+
+Zu Beginn dieses Audits existierte nur noch **eine** Firma
+(PETER KÜNZI AG) in der Produktivdatenbank – Testfirma war nicht mehr
+vorhanden. Das ist die reale, ausserhalb dieser Sitzung erfolgte Nutzung
+der in Version 2.19–2.22 gebauten und in Version 2.22 endgültig
+korrigierten Firmenlöschung (vorher schon an den sich ändernden
+Testfirma-Werten in Version 2.20 vermutet). Alle Cross-Tenant-Tests
+dieses Audits liefen deshalb gegen eine innerhalb einer
+`begin;…rollback;`-Transaktion neu angelegte, temporäre Wegwerf-Firma
+(nie committet) statt gegen eine echte zweite Firma – inhaltlich
+gleichwertig, da RLS keinen Unterschied zwischen "Testfirma" und einer
+frisch angelegten Firma macht.
+
+### 31.8 Klassifikation der Funde
+
+- **KRITISCH**: `rinne_fitting_types` Cross-Tenant CRUD (31.2, behoben);
+  Edge Function `reset-password` Cross-Tenant-Passwort-Reset /
+  Kontoübernahme (31.3, behoben).
+- **HOCH**: Storage-Bucket ohne echte Objekt-Firmen-Zuordnung (31.5,
+  bereits bekannt, bewusst nicht in dieser Runde behoben).
+- **KEIN FEHLER**: alle System-Admin-Funktionen (bewusst global, korrekt
+  gegen `is_system_admin()` abgesichert); `permission_settings` ohne
+  `company_id` (bewusst geteilte Rollen-Standardwerte, siehe 20.8);
+  company-agnostische, aber durch restriktive Tenant-Boundary-Policies
+  neutralisierte permissive Policies auf `app_settings`/
+  `permission_overrides` (siehe 31.1); `extract-offer-positions`/
+  `extract-profile-shape` (kein Tabellenzugriff).
+
+### 31.9 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: unverändert ausgeglichen
+  (594/594 – in dieser Runde wurde nur der Versionstext geändert, keine
+  Struktur).
+- Produktivdaten nach jedem einzelnen Transaktionstest UND nach
+  Abschluss des gesamten Audits erneut per SQL gezählt: 1 Firma, 12
+  Profile, 4 Projekte, 13 Massaufnahmen, 7 `rinne_fitting_types`-Zeilen,
+  11 `rates`, 371 `materials`, 1 `system_admins`-Eintrag – exakt wie vor
+  Beginn dieser Aufgabe, keine Abweichung.
+- Kein Frontend-Code (`js/*.js`, `index.html`-Struktur) in dieser Runde
+  verändert – nur der Versionstext in `index.html`/`sw.js` sowie eine
+  DB-Policy und eine Edge Function. Massaufnahme, Ausmass, Regierapport,
+  Materialverwaltung, Login, Firmenregistrierung, System-Admin-Bereich,
+  Passwort-Erstsetzungsflow, Trial-/Statusverwaltung, Firmenlöschung:
+  keine Codeänderung, daher kein eigenständiger Funktionstest dieser
+  Bereiche in dieser Runde nötig – ihre RLS-Grundlage wurde aber als Teil
+  des systematischen `polpermissive`-Audits (31.1) mitgeprüft und für
+  sicher befunden.
+- Live-Klicktest im Browser weiterhin nicht möglich (Sandbox-
+  Netzwerksperre zu `nfgryuzkpwjfmdlmevuy.supabase.co`) – wie in jeder
+  vorherigen Sitzung ausdrücklich nicht als getestet behauptet.
+
+### 31.10 Offene Punkte
+
+- Storage-RLS auf echte Objekt-Firmen-Zuordnung umstellen (31.5) – eigene,
+  sorgfältig zu planende Aufgabe wegen der Altlasten-Pfade ohne
+  Projekt-/Firmenbezug.
+- SSRF-Nebenbefund in `extract-offer-positions` (31.6) – ausserhalb des
+  Auftragsumfangs, nicht behoben, für eine spätere, eigene
+  Sicherheitsrunde vormerken.
+- Kein Live-Klicktest der beiden Fixes im Browser möglich (siehe 31.9).
+- `permission_settings`/`permission_overrides`-Modell, System-Admin-
+  Grundlogik, Firmenlöschung, Trial-/Statusverwaltung: erneut prüfend
+  gelesen, keine neuen Probleme gefunden, nicht verändert.
