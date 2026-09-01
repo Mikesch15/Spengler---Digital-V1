@@ -3551,3 +3551,183 @@ temporären Wegwerf-Testfirma, nie PETER KÜNZI AG selbst)
 - Automatische Statusänderung, Mahnungen, Zahlungssystem, Abos,
   Rechnungen, Impersonation, Kundenportal: wie im Auftrag ausdrücklich
   gefordert **nicht** gebaut.
+
+## 36. PROJEKT-/MASSAUFNAHME-ERSTELLER UND ZEITSTEMPEL — VERSION 2.28
+
+Erste, bewusst kleine Grundlage für nachvollziehbare Zusammenarbeit
+mehrerer Mitarbeiter an Projekten und Massaufnahmen: wer hat einen
+Datensatz erstellt und wann, wer hat ihn zuletzt geändert und wann.
+**Kein vollständiger Änderungsverlauf** (keine Feldhistorie, keine
+alten/neuen Werte, kein Undo/Wiederherstellen) – das bleibt bewusst
+einem späteren, eigenen Auftrag vorbehalten.
+
+### 36.1 Bestandsaufnahme (vor jeder Änderung, direkt am Schema geprüft)
+
+`measurements` hatte bereits alle vier Spalten (`created_by`,
+`created_at`, `updated_by`, `updated_at`) **und** bereits Frontend-Code,
+der sie beim Speichern befüllt (`js/16-massaufnahme-formular.js`).
+`projects` hatte `created_by`/`created_at`/`updated_at`, aber **keine**
+`updated_by`-Spalte – die Frontend-Annahme, dass sie bereits existiere,
+war falsch (erst beim Anlegen des Fremdschlüssels aufgefallen). Keine
+der beiden Tabellen hatte diese Felder jemals serverseitig durchgesetzt:
+`created_by`/`updated_by` kamen ausschliesslich aus `currentProfile.id`
+im Browser, `created_at`/`updated_at` aus `new Date().toISOString()` im
+Browser – ein manipulierter Request hätte einen beliebigen Benutzer/
+Zeitpunkt eintragen können. Für `projects` wurde `created_by`/
+`updated_by` bisher nirgends überhaupt gesetzt (immer `NULL`), die
+einzige bestehende Änderungsroute (Archivieren) aktualisierte
+`updated_at` nicht.
+
+**Zusätzlich entdeckt und mitbehoben**: alle vier bestehenden/neuen
+`created_by`/`updated_by`-Fremdschlüssel verwendeten `ON DELETE NO
+ACTION`. Live nachgewiesen (`begin;…rollback;`): ein Mitarbeiter, der
+jemals eine Massaufnahme bearbeitet hat, konnte mit dem bestehenden
+"Mitarbeiter entfernen"-Feature (`js/08-katalog-blitzschutz.js`, direktes
+`DELETE` auf `profiles`) **nicht mehr gelöscht werden** – die Löschung
+schlug mit einem Fremdschlüsselfehler (`measurements_updated_by_fkey`)
+fehl. Kein Datenverlust, aber ein echter, bereits vorhandener Blocker für
+die Mitarbeiterverwaltung, der mit diesem Auftrag zusammenhängt und
+deshalb mitbehoben wurde (nicht nur als separater Fund gemeldet).
+
+### 36.2 Datenmodell (Migration `project_measurement_creator_editor_v2_28`)
+
+- `projects`: fehlende Spalte `updated_by uuid` ergänzt.
+- Alle vier Fremdschlüssel auf `ON DELETE SET NULL` umgestellt:
+  `projects_created_by_fkey`/`measurements_created_by_fkey` →
+  `auth.users(id)` (unverändertes Ziel, nur die Löschregel geändert),
+  `projects_updated_by_fkey` (neu) / `measurements_updated_by_fkey` →
+  `public.profiles(id)` (gleiches Muster, das `measurements.updated_by`
+  bereits vorher hatte). Ergebnis: wird ein Mitarbeiter entfernt, bleiben
+  alle historischen Projekte/Massaufnahmen **vollständig erhalten** –
+  nur die Personenreferenz wird `NULL`, die Löschung selbst wird nicht
+  mehr blockiert.
+
+### 36.3 Serverseitige Durchsetzung: ein Trigger, zwei Tabellen
+
+Neue Funktion `set_creator_editor_meta()` (`plpgsql`, kein `SECURITY
+DEFINER` nötig – keine erhöhten Rechte, `auth.uid()` ist überall lesbar),
+als `BEFORE INSERT OR UPDATE`-Trigger auf `projects` **und**
+`measurements` angehängt:
+
+```sql
+if tg_op = 'INSERT' then
+  new.created_by := auth.uid();  new.created_at := now();
+  new.updated_by := auth.uid();  new.updated_at := now();
+elsif tg_op = 'UPDATE' then
+  new.created_by := old.created_by;  new.created_at := old.created_at;
+  new.updated_by := auth.uid();      new.updated_at := now();
+end if;
+```
+
+Überschreibt `created_by`/`created_at`/`updated_by`/`updated_at`
+**immer** mit dem echten, serverseitig aufgelösten Aufrufer und der
+echten Server-Uhrzeit – unabhängig davon, was der Client im Request
+mitschickt (der bestehende Frontend-Code schickt weiterhin
+`currentProfile.id`/eigene Zeitstempel mit, das wird jetzt einfach
+ignoriert/überschrieben, kein Fehler). Bei `UPDATE` bleiben
+`created_by`/`created_at` zwingend auf dem ursprünglichen Wert (`OLD`) –
+ein Client kann die Erstellungs-Herkunft nachträglich nicht umschreiben,
+auch nicht als Admin. Der Trigger prüft **nicht** selbst, ob ein
+Schreibzugriff erlaubt ist – das entscheidet weiterhin ausschliesslich
+die bestehende RLS (`tenant_boundary_projects`/`tenant_boundary_
+measurements`, `has_permission()`), unverändert. Der Trigger setzt nur
+WER/WANN, **nachdem** RLS den Zugriff bereits erlaubt hat. Feuert
+ausschliesslich bei echten `INSERT`/`UPDATE`-Anweisungen, nie bei einem
+blossen `SELECT`/Seitenaufruf.
+
+**Live nachgewiesen** (`begin;…rollback;`, gegen echte Firmendaten):
+- Mitarbeiter versucht beim Anlegen eines Projekts, `created_by` auf
+  einen fremden Benutzer (Mike) und `created_at` auf das Jahr 2000 zu
+  fälschen → Trigger überschreibt beides korrekt mit dem echten
+  Aufrufer/der echten Uhrzeit.
+- Mike bearbeitet ein von einem Mitarbeiter erstelltes Projekt und
+  versucht, `created_by`/`created_at` nachträglich auf sich selbst/das
+  Jahr 2000 umzuschreiben → `created_by`/`created_at` bleiben unverändert
+  beim ursprünglichen Ersteller/Zeitpunkt, nur `updated_by`/`updated_at`
+  wechseln korrekt auf Mike/jetzt.
+- Dieselben Tests für `measurements` mit identischem Ergebnis.
+- Mitarbeiter einer (simulierten) fremden Firma versucht, `updated_by`/
+  `name` eines echten PETER-KÜNZI-AG-Projekts zu ändern → 0 Zeilen
+  geändert (RLS blockiert wie gehabt, unabhängig vom neuen Trigger) –
+  Produktivwert nach dem Test erneut direkt geprüft: unverändert.
+- Mitarbeiterentfernung (Test aus 36.1) nach der Migration erneut
+  durchgeführt: läuft jetzt ohne Fehler durch, `updated_by` der
+  betroffenen Massaufnahme korrekt `NULL`, die Zeile selbst weiterhin
+  vorhanden.
+
+### 36.4 Anzeige im Frontend
+
+Keine neue Namenslogik – beide Stellen nutzen die **bereits
+vorhandene** `profileName()`-Auflösung (`js/01-basis.js`, liest aus dem
+schon geladenen `allProfiles`, keine zusätzliche Abfrage) über die
+**bereits vorhandene** `erstelltGeaendertText()`-Funktion
+(`js/16-massaufnahme-formular.js`, bisher nur für die PDF-Fusszeile
+verwendet) – jetzt zusätzlich für die Bildschirmanzeige wiederverwendet,
+keine doppelte Formatierlogik:
+
+- **Massaufnahme-Formular** (`#measMetaInfo`, `js/10-massaufnahme.js`
+  `updateMeasFormTitle()`): dezente Zeile direkt unter dem Titel,
+  z. B. "Erstellt von Max Muster am 01.09.2026, 14:32 · Zuletzt geändert
+  von Anna Beispiel am 01.09.2026, 16:05". Bei einer neuen, noch nie
+  gespeicherten Massaufnahme bleibt die Zeile ausgeblendet (`hidden`,
+  nichts anzuzeigen).
+- **Projektliste** (`renderProjectList()`, `js/09-projekte.js`): dieselbe
+  Zeile direkt unter den bestehenden Projektangaben (Auftrags-Nr./
+  Adresse/Auftraggeber), pro Projekt-Karte.
+- **Fallback für gelöschte Benutzer**: `erstelltGeaendertText()` zeigt
+  jetzt „Unbekannter Benutzer" statt eines blossen „–", wenn ein
+  Zeitpunkt vorhanden, aber das referenzierte Profil nicht mehr auflösbar
+  ist (z. B. nach einer Mitarbeiterentfernung, siehe 36.1/36.2) – gilt
+  einheitlich für Bildschirmanzeige **und** PDF-Fusszeile (dieselbe
+  Funktion), keine neue Fallunterscheidung nötig.
+
+**Keine zusätzliche Abfrage nötig** (Auftrag Abschnitt 14, Performance):
+`allProjects` bzw. der geladene Massaufnahme-Datensatz enthalten die vier
+Felder bereits über das bestehende `select("*")` – die Anzeige liest
+ausschliesslich bereits geladene Daten.
+
+### 36.5 Was diese Version NICHT enthält
+
+Wie im Auftrag ausdrücklich gefordert **nicht** gebaut: eine vollständige
+Audit-Tabelle, Protokollierung jeder Feldänderung, Speicherung alter/
+neuer Werte, Wiederherstellung, Undo, Versionsvergleich. Diese Version
+schafft ausschliesslich die Grundlage (wer/wann zuletzt), keinen
+vollständigen Änderungsverlauf.
+
+### 36.6 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: ausgeglichen (607/607, vorher
+  606/606 – Differenz durch das eine neue `#measMetaInfo`-Element).
+- `git diff --stat`: nur `index.html`, `js/09-projekte.js`,
+  `js/10-massaufnahme.js`, `js/16-massaufnahme-formular.js` verändert –
+  **keine** der neun Massaufnahme-Fachfunktionen (`js/11-…` bis
+  `js/21-…`, ausser der gemeinsamen Speicherhülle in `16`), keine
+  Berechnungslogik, keine Ausmass-/Regierapport-/Storage-/System-Admin-/
+  Trial-Dateien angefasst.
+- Produktivdaten vor/während/nach allen Tests geprüft: 1 Firma, 12
+  Profile, 4 Projekte, 13 Massaufnahmen – exakt wie vor Beginn dieser
+  Aufgabe, keine `AUDIT%`-Test-Reste.
+- PETER KÜNZI AG nach allen Tests erneut geprüft: unverändert.
+- Live-Klicktest im Browser (Projekt anlegen/ändern, Massaufnahme aller
+  neun Typen anlegen/ändern, Anzeige prüfen, Mitarbeiter entfernen, der
+  zuvor eine Massaufnahme geändert hat) **in dieser Sitzung technisch
+  nicht möglich** – Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co` direkt, wie in jeder vorherigen
+  Sitzung. **Das wird hier ausdrücklich nicht als getestet behauptet.**
+  Alle in 36.3 dokumentierten Ergebnisse sind direkte Trigger-/RLS-
+  Simulationen gegen das echte Produktivschema.
+
+### 36.7 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 36.6).
+- Vollständiger Änderungsverlauf (Feldhistorie, alte/neue Werte, Undo,
+  Versionsvergleich) wie im Auftrag ausdrücklich vorgesehen **nicht**
+  Teil dieser Version – eigener, späterer Auftrag.
+- Dieselbe Ersteller-/Bearbeiter-Grundlage existiert bereits für
+  `ausmass` und `reports` (gleiches Muster, clientseitig gesetzt, siehe
+  `js/17-ausmass.js`/`js/08-katalog-blitzschutz.js`) – nicht Teil dieses
+  Auftrags (nur `projects`/`measurements` waren gefordert), aber
+  dieselbe fehlende serverseitige Durchsetzung und dieselbe `ON DELETE
+  NO ACTION`-FK-Problematik dürfte dort ebenfalls bestehen. Für eine
+  spätere, eigene Aufgabe vormerken.

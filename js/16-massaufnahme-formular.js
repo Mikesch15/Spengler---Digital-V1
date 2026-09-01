@@ -309,13 +309,17 @@ function formatDatumZeit(iso){
 // benutzt, damit alle Ausdrucke gleich aussehen wie der Regierapport:
 // Firmenlogo/-anschrift oben, "Erstellt/Geändert von" klein unten.
 function erstelltGeaendertText(record){
+ record=record||{};
  const erstelltName=profileName(record.created_by);
  const erstelltZeit=formatDatumZeit(record.created_at);
  const geaendertName=profileName(record.updated_by);
  const geaendertZeit=formatDatumZeit(record.updated_at);
  const teile=[];
- if(erstelltName||erstelltZeit)teile.push(`Erstellt von ${esc(erstelltName||"–")}${erstelltZeit?" am "+esc(erstelltZeit):""}`);
- if(geaendertName||geaendertZeit)teile.push(`Zuletzt geändert von ${esc(geaendertName||"–")}${geaendertZeit?" am "+esc(geaendertZeit):""}`);
+ // "Unbekannter Benutzer": das ursprüngliche Profil existiert nicht mehr
+ // (z. B. Mitarbeiter entfernt) - das Ereignis selbst (Zeitpunkt) bleibt
+ // trotzdem erhalten, siehe CLAUDE.md 36.
+ if(erstelltName||erstelltZeit)teile.push(`Erstellt von ${esc(erstelltName||"Unbekannter Benutzer")}${erstelltZeit?" am "+esc(erstelltZeit):""}`);
+ if(geaendertName||geaendertZeit)teile.push(`Zuletzt geändert von ${esc(geaendertName||"Unbekannter Benutzer")}${geaendertZeit?" am "+esc(geaendertZeit):""}`);
  return teile.join(" · ");
 }
 function pdfLetterheadHtml(subtitle,logoSrc){

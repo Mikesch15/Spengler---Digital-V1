@@ -392,6 +392,12 @@ function newMeasurementWithType(type){
 function updateMeasFormTitle(){
  const h2=document.querySelector("#measurementEditModal h2");
  if(h2)h2.textContent=`📐 Massaufnahme – ${MEAS_TYPE_LABELS[$("measType").value]||""}`;
+ // Dezente Ersteller-/Bearbeiter-Anzeige, wiederverwendet dieselbe Logik
+ // wie der PDF-Briefkopf (erstelltGeaendertText(), js/16-massaufnahme-
+ // formular.js) - siehe CLAUDE.md 36.
+ const meta=erstelltGeaendertText(currentMeasurementMeta);
+ $("measMetaInfo").textContent=meta;
+ $("measMetaInfo").hidden=!meta;
 }
 function openMeasurement(m){
  sperreFuerEintrag("massaufnahme",m&&m.created_by);

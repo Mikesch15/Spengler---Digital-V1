@@ -47,9 +47,15 @@ $("projectResults").addEventListener("click",e=>{
 let showArchivedProjects=false;
 function renderProjectList(){
  const list=showArchivedProjects?allProjects:allProjects.filter(p=>!p.archived);
- $("projectList").innerHTML=list.map(p=>`<div class="project-row"${p.archived?' style="opacity:.6"':''}>
+ $("projectList").innerHTML=list.map(p=>{
+  // Dezente Ersteller-/Bearbeiter-Anzeige, dieselbe Logik wie bei
+  // Massaufnahmen (erstelltGeaendertText(), js/16-massaufnahme-
+  // formular.js) - siehe CLAUDE.md 36.
+  const meta=erstelltGeaendertText(p);
+  return `<div class="project-row"${p.archived?' style="opacity:.6"':''}>
 <div class="project-row-top"><b>${esc(p.name)}${p.archived?' <span class="small">(archiviert)</span>':''}</b><button class="red" data-del-project="${p.id}">Löschen</button></div>
 <div class="small">${esc(p.order_no||"–")} · ${esc(p.object||"–")} · ${esc(p.customer||"–")}</div>
+${meta?`<div class="small" style="color:var(--muted)">${meta}</div>`:""}
 <div class="project-row-actions">
 <button class="gray" data-toggle-reports="${p.id}">📋 Rapporte anzeigen</button>
 <button class="gray" data-toggle-measurements="${p.id}">📐 Massaufnahmen anzeigen</button>
@@ -61,7 +67,8 @@ function renderProjectList(){
 <div class="report-list" data-measurements-body="${p.id}"></div>
 <div class="report-list" data-ausmass-body="${p.id}"></div>
 <div class="report-list" data-files-body="${p.id}"></div>
-</div>`).join("")||'<div class="empty">Noch keine Projekte angelegt.</div>';
+</div>`;
+ }).join("")||'<div class="empty">Noch keine Projekte angelegt.</div>';
 }
 async function loadProjectAusmass(projectId){
  const box=document.querySelector(`[data-ausmass-body="${projectId}"]`);
