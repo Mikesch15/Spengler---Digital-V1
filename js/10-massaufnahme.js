@@ -398,6 +398,7 @@ function updateMeasFormTitle(){
  const meta=erstelltGeaendertText(currentMeasurementMeta);
  $("measMetaInfo").textContent=meta;
  $("measMetaInfo").hidden=!meta;
+ updateVerlaufToggleVisibility($("measVerlaufToggle"),$("measVerlaufBody"),currentMeasurementId);
 }
 function openMeasurement(m){
  sperreFuerEintrag("massaufnahme",m&&m.created_by);

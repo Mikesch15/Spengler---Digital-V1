@@ -226,6 +226,7 @@ function updateAmFormTitle(){
  const meta=erstelltGeaendertText(currentAusmassMeta);
  $("amMetaInfo").textContent=meta;
  $("amMetaInfo").hidden=!meta;
+ updateVerlaufToggleVisibility($("amVerlaufToggle"),$("amVerlaufBody"),currentAusmassId);
 }
 function openAusmass(a){
  sperreFuerEintrag("ausmass",a&&a.created_by);

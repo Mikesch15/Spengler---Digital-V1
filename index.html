@@ -91,7 +91,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.30</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.31</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -202,6 +202,11 @@
 <div class="sig-block"><div class="sig-line"></div><div class="sig-label">Unterschrift ausführender Mitarbeiter</div></div>
 </div>
 <div class="pdf-foot" id="reportFooterBar"></div>
+
+<div class="no-print">
+<button type="button" id="reportVerlaufToggle" class="gray" style="margin-bottom:8px" hidden>🕒 Verlauf anzeigen</button>
+<div id="reportVerlaufBody" class="report-list"></div>
+</div>
 
 <div class="bar no-print">
 <button id="print" class="blue">🖨️ PDF / Drucken</button>
@@ -470,6 +475,8 @@ Diese Aktion löscht unwiderruflich:
 <div class="card">
 <h2>📐 Neue Massaufnahme</h2>
 <div id="measMetaInfo" class="small" style="color:var(--muted);margin-bottom:6px" hidden></div>
+<button type="button" id="measVerlaufToggle" class="gray" style="margin-bottom:8px" hidden>🕒 Verlauf anzeigen</button>
+<div id="measVerlaufBody" class="report-list"></div>
 <div class="grid" style="margin-bottom:8px">
 <div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="anschlussblech">Ort- und Seitenbleche</option><option value="einfassung_rund">Einfassung Rund</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
@@ -820,6 +827,8 @@ Diese Aktion löscht unwiderruflich:
 <div class="card">
 <h2>📏 Neues Ausmass</h2>
 <div id="amMetaInfo" class="small" style="color:var(--muted);margin-bottom:6px" hidden></div>
+<button type="button" id="amVerlaufToggle" class="gray" style="margin-bottom:8px" hidden>🕒 Verlauf anzeigen</button>
+<div id="amVerlaufBody" class="report-list"></div>
 <div class="grid" style="margin-bottom:8px">
 <div hidden><label>Funktion</label><select id="amType"><option value="offerte_erfassen">Offerte erfassen</option><option value="blitzschutz_ausmass">Blitzschutzausmass</option></select></div>
 <div><label>Datum</label><input type="date" id="amDate"></div>
@@ -1240,6 +1249,7 @@ Diese Aktion löscht unwiderruflich:
 <script src="js/20-anschlussblech.js"></script>
 <script src="js/21-einfassung-rund.js"></script>
 <script src="js/22-system-admin.js"></script>
+<script src="js/23-verlauf.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>
 </html>

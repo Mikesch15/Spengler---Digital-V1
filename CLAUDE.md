@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.30, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.31, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.30**
+- sichtbare App-Version: **2.31**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -4164,3 +4164,240 @@ Aufgabe.
 - Beschreibungstexte (`description`) sind einfache, kurze Strings ohne
   Mehrsprachigkeit/Formatierung – für eine spätere UI ausreichend als
   Rohdaten, aber noch nicht als fertiger Anzeige-Text gedacht.
+
+## 39. ÄNDERUNGSVERLAUF – BENUTZEROBERFLÄCHE — VERSION 2.31
+
+Baut auf der in v2.30 (Abschnitt 38) fertiggestellten `audit_log`-
+Grundlage auf. Reine Leseoberfläche – keine einzige Zeile Datenbank-
+Sicherheit aus v2.30 wurde angefasst.
+
+### 39.1 Bestandsaufnahme (frisch geprüft, nicht aus v2.30 übernommen)
+
+- `audit_log`-Schema live erneut abgefragt: `id bigint`, `company_id
+  uuid not null`, `user_id uuid`, `entity_type text`, `entity_id
+  bigint`, `action text`, `description text`, `created_at timestamptz`
+  – unverändert identisch zu Abschnitt 38.3.
+- Produktivstand zu Beginn dieser Aufgabe: **0 Zeilen** in `audit_log`
+  (Tabelle existiert seit v2.30, noch keine reale Nutzung seit Deploy).
+  Die in Abschnitt 38.6 dokumentierte Platzhalterzeilen-Häufung war
+  daher zu diesem Zeitpunkt nirgends real vorhanden – die UI ist
+  trotzdem so gebaut, dass sie mehrere Einträge pro Datensatz einfach
+  chronologisch untereinander zeigt, ohne sie fälschlich zu einem
+  Eintrag zusammenzufassen (Auftrag Abschnitt 17: keine nachträgliche
+  Umdeutung/Deduplizierung).
+- Projekte haben **keine** eigene Detailansicht/kein eigenes Edit-Modal
+  – sie werden ausschliesslich als Karten (`project-row`,
+  `js/09-projekte.js`) mit auf-/zuklappbaren Listen für Rapporte/
+  Massaufnahmen/Ausmasse/Dateien direkt in `#projectsModal` verwaltet.
+  Massaufnahme/Ausmass haben je ein eigenes Bearbeiten-Modal
+  (`#measurementEditModal`/`#ausmassEditModal`) mit einer bereits
+  vorhandenen dezenten Ersteller-/Bearbeiter-Zeile (`#measMetaInfo`/
+  `#amMetaInfo`, aus Abschnitt 36/37). Regierapport ist kein Modal,
+  sondern ein eigener Vollbild-Screen (`#reportScreen`).
+- **Wichtiger Fund für Abschnitt 3/4 des Auftrags:** `audit_log` speichert
+  für `entity_type` ∈ {`measurement`,`ausmass`,`report`} **keine**
+  `project_id` – nur `entity_type`+`entity_id` der jeweiligen Zeile
+  selbst. Eine "Verlauf des Projekts inkl. seiner Massaufnahmen"-Ansicht
+  liesse sich nur für **noch existierende** Massaufnahmen sauber
+  herleiten (Join `measurements.id = audit_log.entity_id` und
+  `measurements.project_id = <Projekt>`) – für bereits **gelöschte**
+  Massaufnahmen (`action='deleted'`) ist die Projektzugehörigkeit aus
+  `audit_log` allein **nicht mehr rekonstruierbar**, da weder ein
+  `project_id`-Feld noch ein Fremdschlüssel auf die (nicht mehr
+  existierende) Zeile vorhanden ist. Ein Join, der nur die noch
+  existierenden Massaufnahmen einschliesst, wäre eine **unsaubere,
+  irreführende Teil-Verknüpfung** (sieht wie eine vollständige Historie
+  aus, verschluckt aber lautlos gelöschte Massaufnahmen) – genau das
+  soll laut Auftrag Abschnitt 3 vermieden werden ("Wenn nicht: nur den
+  direkten Projektverlauf anzeigen und im Report dokumentieren").
+  **Entscheidung**: Der Projekt-Verlauf zeigt ausschliesslich die
+  direkten `entity_type='project'`-Einträge dieses einen Projekts.
+  Dieselbe Prüfung gilt identisch für Ausmass/Report (Abschnitt 39.5).
+
+### 39.2 Architektur: eine wiederverwendbare Komponente statt vier Kopien
+
+Neue Datei `js/23-verlauf.js` (in `index.html`/`sw.js` eingebunden,
+lädt nach den Fachmodulen, vor `js/18-app-start.js`). Kernfunktionen:
+
+- `loadVerlauf(box, entityType, entityId)` – lädt `audit_log` für genau
+  einen Datensatz (`select("*").eq("entity_type",…).eq("entity_id",…)
+  .order("created_at",{ascending:false}).limit(50)`) und rendert die
+  Filterleiste + Liste in `box`.
+- `toggleVerlaufBox(box, btn, entityType, entityId)` – öffnet/schliesst
+  den Container nach demselben Auf-/Zuklapp-Muster wie die bereits
+  vorhandenen Massaufnahmen-/Ausmass-/Rapporte-/Dateien-Listen im
+  Projekt (`.report-list.open`), lädt beim ersten Öffnen einmalig nach.
+- `updateVerlaufToggleVisibility(btn, box, entityId)` – blendet den
+  Verlauf-Knopf aus, solange kein gespeicherter Datensatz existiert
+  (neue, ungespeicherte Massaufnahme/Ausmass/Rapport hat noch keine
+  Historie), und schliesst/leert einen evtl. noch offenen Verlauf des
+  vorherigen Datensatzes beim Wechsel.
+- Ein einziger, global delegierter Klick-Handler für die Filter-Knöpfe
+  (`[data-verlauf-filter]`) statt vier separater Listener – der Filter
+  arbeitet rein clientseitig auf den bereits geladenen 50 Zeilen (siehe
+  39.4), keine erneute Abfrage pro Klick.
+
+**Vier Aufrufstellen, keine kopierte Logik:**
+- `js/09-projekte.js`: neuer Knopf „🕒 Verlauf anzeigen" in
+  `project-row-actions` + neuer `data-verlauf-body`-Container, im
+  bestehenden, bereits delegierten Klick-Handler von `#projectList`
+  behandelt wie `data-toggle-measurements`/`-ausmass`/`-files`.
+- `js/10-massaufnahme.js`: Knopf/Container direkt unter `#measMetaInfo`
+  in `#measurementEditModal`, Sichtbarkeit über den bereits bestehenden
+  `updateMeasFormTitle()`-Hook (läuft sowohl beim Öffnen als auch beim
+  Neuanlegen, siehe Abschnitt 36).
+- `js/17-ausmass.js`: identisches Muster über `updateAmFormTitle()` in
+  `#ausmassEditModal`.
+- `js/08-katalog-blitzschutz.js`/`js/09-projekte.js`/
+  `js/04-start-suche.js`: Knopf/Container im Aktionsbereich von
+  `#reportScreen`, Sichtbarkeit an den vier Stellen aktualisiert, an
+  denen sich `currentReportId` ändert (Rapport öffnen, neuer Rapport,
+  nach erfolgreichem Speichern, "Alles löschen").
+
+### 39.3 Darstellung (Auftrag Abschnitt 5/6/7/8)
+
+Neueste Einträge oben (`order("created_at",{ascending:false})`).
+Pro Eintrag: Datum/Uhrzeit im Format `01.09.2026 · 21:15` (eigene
+`verlaufFormatWann()`, Schweizer Datumsformat), 👤 Mitarbeitername
+prominent, deutsche Aktionsbezeichnung als kleines Badge:
+
+| technisch | UI |
+|---|---|
+| `created` | Erstellt |
+| `updated` | Geändert |
+| `deleted` | Gelöscht |
+| `status_changed` | Status geändert |
+
+Beschreibung: vorhandene `description` wird angezeigt; ist sie leer
+(z. B. ein Report ganz ohne Auftrags-Nr./Kunde), erzeugt
+`verlaufEntryText()` einen verständlichen Ersatztext aus Entität+Aktion
+(„Regierapport gelöscht" usw.) – **nie** rohe Metadaten, **nie** ein
+Versuch, den (evtl. gelöschten) Originaldatensatz nachzuladen (Auftrag
+Abschnitt 8: „Massaufnahme gelöscht" bleibt verständlich, auch wenn die
+Massaufnahme selbst nicht mehr existiert – `entity_id` wird dafür nie
+nachgeschlagen, nur `description` bzw. der Fallback verwendet).
+
+### 39.4 Benutzer, gelöschte Mitarbeiter, Performance (Auftrag Abschnitt 9/10)
+
+Benutzer werden über die **bereits geladene** `allProfiles`-Liste
+(`profileName()`, `js/01-basis.js`, seit Version 2.28 in Gebrauch)
+aufgelöst – **keine** zusätzliche Auth-/Profile-Abfrage aus der neuen
+Datei heraus. `user_id = NULL` (gelöschter Mitarbeiter, siehe Abschnitt
+38.3/38.7) und ein `user_id`, das `profileName()` nicht auflösen kann,
+führen beide einheitlich zu „Unbekannter Benutzer".
+
+Performance: eine einzige Abfrage pro Öffnen (`limit(50)`, wie im
+Auftrag empfohlen), keine N+1-Abfragen (keine Profile-Einzelabfrage pro
+Zeile, kein Nachladen des Originaldatensatzes). Es existierte keine
+bestehende Paging-Infrastruktur für "einzelner Datensatz, chronologisch"
+(die vorhandenen `recentCount`/`.limit(30)`-Muster gelten für
+"neueste N über alle Datensätze", ein anderes Konzept) – deshalb bewusst
+ein fester Deckel von 50 statt einer neu gebauten Paginierung, wie vom
+Auftrag als Fallback vorgesehen ("Wenn es bereits eine passende
+Paging-Infrastruktur gibt: diese verwenden" – gab es hier nicht).
+
+### 39.5 Massaufnahmen/Ausmass/Reports im Projekt-Verlauf – bewusst NICHT integriert
+
+Siehe 39.1: `audit_log` speichert für Massaufnahme/Ausmass/Report keine
+`project_id`, ein Join wäre nur für noch existierende Zeilen möglich und
+damit bei gelöschten Massaufnahmen/Ausmassen/Reports lückenhaft und
+irreführend. Der Projekt-Verlauf zeigt deshalb ausschliesslich die
+direkten `entity_type='project'`-Einträge. Massaufnahme/Ausmass/Report
+haben stattdessen **je ihren eigenen** Verlauf-Knopf direkt in ihrem
+eigenen Bearbeiten-Kontext (39.2) – wer wissen will, was an einer
+bestimmten Massaufnahme geschah, öffnet sie und schaut dort nach, statt
+sich auf eine unvollständige Projekt-Gesamtansicht zu verlassen. Keine
+komplexe rekursive Historie gebaut, wie vom Auftrag ausdrücklich
+untersagt.
+
+### 39.6 Filter, leere Historie, Fehlerbehandlung (Auftrag Abschnitt 11/12/13)
+
+Fünf Filter-Knöpfe (Alle/Erstellt/Geändert/Gelöscht/Status geändert),
+rein clientseitig über die bereits geladenen 50 Zeilen – kein
+zusätzliches Such-/Filtersystem. Keine Einträge → „Noch keine
+Aktivitäten vorhanden." (keine Fehlermeldung). Schlägt die Abfrage selbst
+fehl (Netzwerk/RLS/sonstiger Fehler) → eigene, rot hervorgehobene
+Meldung „Verlauf konnte nicht geladen werden: …" **innerhalb** des
+Verlauf-Containers – die umgebende Projekt-/Massaufnahme-/Ausmass-/
+Rapport-Ansicht bleibt vollständig bedienbar, der Verlauf ist eine reine
+Zusatzfunktion und kann sie nicht blockieren.
+
+### 39.7 Sicherheitsmodell (Auftrag Abschnitt 14/15) – unverändert v2.30
+
+Die UI liest ausschliesslich über `sb.from("audit_log").select(...)` –
+**kein** `service_role`, **kein** RLS-Bypass, **kein** vom Client
+mitgeschickter `company_id`-Filter (die restriktive
+`tenant_boundary_audit_log`-Policy aus Abschnitt 38.4 filtert das
+automatisch, unabhängig davon, wonach die UI fragt – bewusst so gebaut,
+damit `entity_id` niemals als Ersatz für echte Tenant-Sicherheit
+missverstanden werden kann, siehe 39.8). Keine einzige Zeile der in
+v2.30 eingerichteten RLS-Policy oder der `write_audit_log()`-Funktion
+wurde für diese Aufgabe angefasst – reine Leseoberfläche.
+
+### 39.8 Tests (alle in `begin;…rollback;`, zwei temporäre Wegwerf-Firmen,
+nie PETER KÜNZI AG, per SQL exakt denselben Abfragepfad simuliert, den
+die UI über PostgREST auch verwendet)
+
+| Test | Ergebnis |
+|---|---|
+| Mike (Firma A) erstellt+ändert Projekt, liest danach mit der exakten UI-Abfrage (`entity_type='project', entity_id=…`) | 2 Zeilen sichtbar (created+updated) |
+| Phillipp (Firma B) versucht dieselbe `entity_id` zu lesen (Cross-Tenant über bekannte fremde ID) | 0 Zeilen |
+| Phillipp versucht nach `company_id` von Firma A zu filtern | 0 Zeilen |
+| Phillipp versucht mit einer bekannten, echten `entity_id` von PETER KÜNZI AG (`project id=1`, "Home") zu lesen | 0 Zeilen |
+| Direkter `INSERT` in `audit_log` (Fälschungsversuch) | weiterhin `insufficient_privilege` – unverändert blockiert seit v2.30 |
+| Mike liest real (kein Rollback nötig, reiner `SELECT`) `audit_log` für das echte PETER-KÜNZI-Projekt `id=1` mit der exakten UI-Abfrage | läuft fehlerfrei durch (0 Zeilen, da `audit_log` aktuell noch leer, siehe 39.1) – bestätigt, dass die UI-Abfrage gegen echte Produktivdaten funktioniert |
+
+Nach der gesamten Transaktion erneut geprüft: keine Wegwerf-Firmen, keine
+Test-Projekte, keine Test-Zeilen in `audit_log`, `audit_log` weiterhin
+insgesamt leer, PETER KÜNZI AG (`updated_at`) unverändert.
+
+### 39.9 Regressionstest
+
+- `node --check` über alle `js/*.js` (inkl. neuer `js/23-verlauf.js`)
+  und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: ausgeglichen (612/612,
+  vorher 608/608).
+- Keine Datenbank-Migration in dieser Aufgabe (rein lesende Oberfläche
+  auf der bestehenden v2.30-Struktur) – `get_advisors(type:'security')`
+  nach Abschluss erneut geprüft: identisch zum Stand nach v2.30, keine
+  neue Warnung.
+- Login, Projektliste, Projekt öffnen/bearbeiten, Massaufnahme öffnen,
+  Ausmass, Regierapport, System-Admin, Mitarbeiterverwaltung: keine
+  dieser Dateien/Funktionen inhaltlich verändert (nur je ein neuer
+  Knopf/Container ergänzt und ein bestehender Hook um einen zusätzlichen
+  Funktionsaufruf erweitert) – kein eigenständiger Fachfunktionstest
+  dieser Bereiche nötig, ihre RLS-/Berechtigungsgrundlage ist unverändert
+  und war bereits Gegenstand der Audits in Abschnitt 31/33.
+- Nebenbefund während dieser Aufgabe entdeckt und mitkorrigiert:
+  `js/22-system-admin.js` fehlte seit Version 2.17 in der
+  Service-Worker-Offline-Liste (`sw.js`, `SHELL`-Array) – der
+  System-Admin-Bereich wäre offline/im PWA-Cache nicht verfügbar
+  gewesen. Ergänzt, zusammen mit der neuen `js/23-verlauf.js`.
+- Live-Klicktest im Browser (Verlauf öffnen/schliessen, Filter, leere
+  Historie, mehrere Mitarbeiter, gelöschter Mitarbeiter, gelöschter
+  Datensatz, Cross-Tenant über die echte UI statt SQL-Simulation)
+  **in dieser Sitzung technisch nicht möglich** – Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`
+  direkt, wie in jeder vorherigen Sitzung. **Das wird hier ausdrücklich
+  nicht als getestet behauptet.** Alle in 39.8 dokumentierten Ergebnisse
+  sind direkte RLS-Simulationen gegen das echte Produktivschema mit der
+  exakt gleichen Abfrage, die die neue UI verwendet.
+
+### 39.10 Offene Punkte für v2.32
+
+- Kein Live-Klicktest im Browser möglich (siehe 39.9).
+- Kein Feld-Diffing (alte/neue Werte) – wie im Auftrag ausdrücklich
+  ausgeschlossen, weiterhin nur Wer/Wann/Aktion/Beschreibung.
+- Projekt-Verlauf zeigt bewusst nicht die Aktivitäten zugehöriger
+  Massaufnahmen/Ausmasse/Reports (siehe 39.1/39.5) – falls das später
+  gewünscht wird, müsste `audit_log` dafür zusätzlich `project_id`
+  mitführen (eigene, bewusste Schema-Erweiterung, kein UI-Thema).
+  Bis dahin: je eigener Verlauf-Knopf pro Massaufnahme/Ausmass/Report.
+  direkt in deren eigenem Bearbeiten-Kontext.
+- Fester Deckel von 50 Einträgen ohne "mehr laden" – für die aktuelle
+  Nutzungsgrösse ausreichend, bei Bedarf später um echte Paginierung
+  erweiterbar.
+- Die in Abschnitt 38.6 dokumentierte Platzhalterzeilen-Häufung bei
+  neuen Foto-Massaufnahmen ist weiterhin nicht bereinigt – die UI zeigt
+  vorhandene `audit_log`-Einträge unverändert korrekt an, ohne sie
+  automatisch umzudeuten (wie vom Auftrag verlangt).

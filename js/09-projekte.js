@@ -61,12 +61,14 @@ ${meta?`<div class="small" style="color:var(--muted)">${meta}</div>`:""}
 <button class="gray" data-toggle-measurements="${p.id}">📐 Massaufnahmen anzeigen</button>
 <button class="gray" data-toggle-ausmass="${p.id}">📏 Ausmasse anzeigen</button>
 <button class="gray" data-toggle-files="${p.id}">📎 Dateien anzeigen</button>
+<button class="gray" data-toggle-verlauf="${p.id}">🕒 Verlauf anzeigen</button>
 <button class="gray" data-archive-project="${p.id}">${p.archived?"↩️ Reaktivieren":"📦 Archivieren"}</button>
 </div>
 <div class="report-list" data-reports-body="${p.id}"></div>
 <div class="report-list" data-measurements-body="${p.id}"></div>
 <div class="report-list" data-ausmass-body="${p.id}"></div>
 <div class="report-list" data-files-body="${p.id}"></div>
+<div class="report-list" data-verlauf-body="${p.id}"></div>
 </div>`;
  }).join("")||'<div class="empty">Noch keine Projekte angelegt.</div>';
 }
@@ -207,6 +209,7 @@ function openReport(r){
  currentProjectId=r.project_id;
  currentReportId=r.id;
  currentReportMeta={created_by:r.created_by,created_at:r.created_at,updated_by:r.updated_by,updated_at:r.updated_at};
+ updateVerlaufToggleVisibility($("reportVerlaufToggle"),$("reportVerlaufBody"),currentReportId);
  works=(r.work_entries&&r.work_entries.length)?r.work_entries:[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0}];
  mats=r.material_entries||[];
  $("date").value=r.date||"";
@@ -314,6 +317,13 @@ $("projectList").addEventListener("click",async e=>{
   box.classList.toggle("open");
   toggleA.textContent=willOpen?"📏 Ausmasse ausblenden":"📏 Ausmasse anzeigen";
   if(willOpen)await loadProjectAusmass(id);
+  return;
+ }
+ const toggleV=e.target.closest("[data-toggle-verlauf]");
+ if(toggleV){
+  const id=Number(toggleV.dataset.toggleVerlauf);
+  const box=document.querySelector(`[data-verlauf-body="${id}"]`);
+  await toggleVerlaufBox(box,toggleV,"project",id);
   return;
  }
  const toggleF=e.target.closest("[data-toggle-files]");

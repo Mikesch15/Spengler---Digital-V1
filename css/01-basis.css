@@ -92,6 +92,15 @@ td input,td select{min-height:34px;font-size:12px}
 .report-list.open{display:block}
 .report-row{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--blue-light);border-radius:8px;padding:7px 9px;margin:5px 0}
 .report-row .report-row-info b{display:block;font-size:12px}
+.verlauf-filters button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark)}
+.verlauf-filters button.active{background:var(--blue);color:#fff}
+.verlauf-entry{border-bottom:1px solid var(--line);padding:7px 2px}
+.verlauf-entry:last-child{border-bottom:0}
+.verlauf-entry-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.verlauf-entry-when{font-size:11px;color:var(--muted);font-weight:700}
+.verlauf-entry-action{font-size:10.5px;font-weight:800;color:var(--blue-dark);background:var(--blue-light);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.verlauf-entry-who{font-size:12px;font-weight:700;margin-top:2px}
+.verlauf-entry-desc{font-size:11px;color:var(--muted)}
 .report-row .report-row-info span{font-size:11px;color:var(--muted)}
 .report-row .report-row-actions{display:flex;gap:6px;flex:0 0 auto}
 .report-row button{padding:5px 8px;font-size:11px}

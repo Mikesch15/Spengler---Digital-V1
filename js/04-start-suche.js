@@ -75,6 +75,7 @@ $("newReport").onclick=()=>{
  isDirty=false;
  currentProjectId=null;currentReportId=null;
  currentReportMeta={};
+ updateVerlaufToggleVisibility($("reportVerlaufToggle"),$("reportVerlaufBody"),null);
  works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0}];
  mats=[];
  $("date").value=new Date().toISOString().slice(0,10);
