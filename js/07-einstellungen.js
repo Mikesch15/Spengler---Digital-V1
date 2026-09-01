@@ -22,10 +22,8 @@ function openSettingsTo(tabName,sectionName){
   document.querySelectorAll(".settings-tab").forEach(b=>b.classList.toggle("active",b===tabBtn));
   document.querySelectorAll(".settings-tab-panel").forEach(p=>{p.hidden=(p.dataset.settingsPanel!==tabName)});
   if(tabName==="protected"){
-   $("protectedPasswordInput").value="";
-   $("protectedError").textContent="";
-   $("protectedLocked").hidden=protectedUnlocked;
-   $("protectedContent").hidden=!protectedUnlocked;
+   $("protectedDenied").hidden=isAdmin();
+   $("protectedContent").hidden=!isAdmin();
   }
  }
  if(sectionName){
@@ -78,28 +76,12 @@ $("settingsModal").addEventListener("click",e=>{
   document.querySelectorAll(".settings-tab").forEach(b=>b.classList.toggle("active",b===tab));
   document.querySelectorAll(".settings-tab-panel").forEach(p=>{p.hidden=(p.dataset.settingsPanel!==tab.dataset.settingsTab)});
   if(tab.dataset.settingsTab==="protected"){
-   $("protectedPasswordInput").value="";
-   $("protectedError").textContent="";
-   $("protectedLocked").hidden=protectedUnlocked;
-   $("protectedContent").hidden=!protectedUnlocked;
+   $("protectedDenied").hidden=isAdmin();
+   $("protectedContent").hidden=!isAdmin();
   }
   if(tab.dataset.settingsTab==="feedback")renderFeedbackList();
  }
 });
-function tryUnlockProtected(){
- const pw=$("protectedPasswordInput").value;
- if(pw===PROTECTED_PASSWORD){
-  protectedUnlocked=true;
-  $("protectedLocked").hidden=true;
-  $("protectedContent").hidden=false;
-  $("protectedError").textContent="";
-  renderSettings();
- }else{
-  $("protectedError").textContent="Falsches Passwort.";
- }
-}
-$("unlockProtected").onclick=tryUnlockProtected;
-$("protectedPasswordInput").addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlockProtected()});
 $("logoInput").addEventListener("change",async e=>{
  const file=e.target.files[0];
  if(!file)return;
@@ -312,7 +294,7 @@ function renderMaterialSettings(){
  const pages=Math.max(1,Math.ceil(filtered.length/MATERIAL_PAGE_SIZE));
  if(materialPage>=pages)materialPage=pages-1;
  const start=materialPage*MATERIAL_PAGE_SIZE, rows=filtered.slice(start,start+MATERIAL_PAGE_SIZE);
- const ro=protectedUnlocked?"":"disabled";
+ const ro=isAdmin()?"":"disabled";
  $("materialCount").textContent=`${filtered.length} Positionen · Seite ${materialPage+1} / ${pages}`;
  $("materialSettings").innerHTML=rows.map(o=>{const m=o.m,i=o.i,open=materialExpanded.has(i);return `<div class="settingrow-mat${open?" open":""}">
 <div class="mat-row-head" data-toggle-mat="${i}">
@@ -324,10 +306,10 @@ function renderMaterialSettings(){
 <div><label>Dim.</label><input data-set-mdim="${i}" value="${esc(m[2])}" placeholder="Dim." ${ro}></div>
 <div><label>Einheit</label><input data-set-munit="${i}" value="${esc(m[3])}" placeholder="Einheit" ${ro}></div>
 <div><label>Preis</label><input data-set-mprice="${i}" type="number" step=".01" value="${m[4]}" placeholder="Preis" ${ro}></div>
-${protectedUnlocked?`<button class="red" data-del-material="${i}">Löschen</button>`:""}
+${isAdmin()?`<button class="red" data-del-material="${i}">Löschen</button>`:""}
 </div>
 </div>`}).join("")||'<div class="empty">Keine Materialien gefunden.</div>';
- $("newMaterial").hidden=!protectedUnlocked;
+ $("newMaterial").hidden=!isAdmin();
  $("materialPrev").disabled=materialPage===0;
  $("materialNext").disabled=materialPage>=pages-1;
 }
@@ -346,7 +328,7 @@ $("mitarbeiterAnlegen").addEventListener("click",async()=>{
  knopf.disabled=true;
  try{
   const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach}});
-  if(error){alert(error.message||"Konto konnte nicht angelegt werden.");return}
+  if(error){alert(await edgeFunctionErrorMessage(error,"Konto konnte nicht angelegt werden."));return}
   if(!data?.ok){alert(data?.error||"Konto konnte nicht angelegt werden.");return}
   const username=data?.user?.username||data?.username||(vor.toLowerCase()+"."+nach.toLowerCase());
   const passwort=data?.password||"(vom Server vergeben)";
@@ -422,7 +404,7 @@ $("employeeSettings").addEventListener("click",async e=>{
  knopf.disabled=true;
  try{
   const {data,error}=await sb.functions.invoke("reset-password",{body:{profile_id:id,password:neu}});
-  if(error){alert("Fehler: "+(error.message||"Passwort konnte nicht zurückgesetzt werden."));return}
+  if(error){alert("Fehler: "+(await edgeFunctionErrorMessage(error,"Passwort konnte nicht zurückgesetzt werden.")));return}
   if(!data?.ok){alert("Fehler: "+(data?.error||"Passwort konnte nicht zurückgesetzt werden."));return}
   alert("Neues Startpasswort für "+name+":\n\n"+neu+"\n\nBitte weitergeben. Bei der nächsten Anmeldung muss ein eigenes Passwort vergeben werden.");
  }catch(err){

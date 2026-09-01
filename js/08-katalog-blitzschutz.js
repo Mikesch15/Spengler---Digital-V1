@@ -286,7 +286,8 @@ async function registerEmployee(vor,nach){
  vor=(vor||"").trim();nach=(nach||"").trim();
  if(!vor||!nach)return false;
  const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach}});
- if(error||!data?.ok){alert("Fehler: "+(error?.message||data?.error||"Mitarbeiter konnte nicht angelegt werden."));return false}
+ if(error){alert("Fehler: "+(await edgeFunctionErrorMessage(error,"Mitarbeiter konnte nicht angelegt werden.")));return false}
+ if(!data?.ok){alert("Fehler: "+(data?.error||"Mitarbeiter konnte nicht angelegt werden."));return false}
  alert("Konto erstellt.\n\nBenutzername: "+data.username+"\nPasswort: "+data.password+"\n\nBitte notieren.");
  return true;
 }
@@ -305,9 +306,9 @@ function renderSettings(){
  if(lukL)lukL.value=lukZugabeLaenge;
  if(typeof renderModuleTestListe==="function")renderModuleTestListe();
  renderMitarbeiterSettings();
- const ro=protectedUnlocked?"":"disabled";
- $("rateSettings").innerHTML=settings.rates.map((r,i)=>`<div class="settingrow"><input data-set-rate-name="${i}" value="${esc(r[0])}" ${ro}><input data-set-rate-value="${i}" type="number" step=".01" value="${r[1]}" ${ro}>${protectedUnlocked?`<button class="red" data-del-rate="${i}">Löschen</button>`:'<span></span>'}</div>`).join("");
- $("newRate").hidden=!protectedUnlocked;
+ const ro=isAdmin()?"":"disabled";
+ $("rateSettings").innerHTML=settings.rates.map((r,i)=>`<div class="settingrow"><input data-set-rate-name="${i}" value="${esc(r[0])}" ${ro}><input data-set-rate-value="${i}" type="number" step=".01" value="${r[1]}" ${ro}>${isAdmin()?`<button class="red" data-del-rate="${i}">Löschen</button>`:'<span></span>'}</div>`).join("");
+ $("newRate").hidden=!isAdmin();
  renderMaterialSettings();
  renderBzMaterialSettings();
  renderRinneFittingSettings();

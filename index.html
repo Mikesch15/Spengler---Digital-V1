@@ -91,7 +91,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.13</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.14</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -899,14 +899,7 @@
 </div>
 </div>
 
-<div id="protectedLocked">
-<div class="info">Dieser Bereich enthält Funktionen/Stundenansätze und Materialkataloge. Bitte Passwort eingeben.</div>
-<div class="grid">
-<div class="wide"><label>Passwort</label><input id="protectedPasswordInput" type="password" placeholder="Passwort"></div>
-</div>
-<div class="bar"><button id="unlockProtected" class="green">🔓 Entsperren</button></div>
-<div class="small" id="protectedError" style="color:var(--red)"></div>
-</div>
+<div id="protectedDenied" class="info">Dieser Bereich (Funktionen/Stundenansätze, Materialkataloge, Firma, Mitarbeiter) ist nur für Administratoren zugänglich.</div>
 
 <div id="protectedContent" hidden>
 <div class="settings-section open" data-section="company">

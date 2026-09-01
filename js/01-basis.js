@@ -159,8 +159,6 @@ const MEAS_TYPE_LABELS=Object.freeze({
 // Schlüssel: "meas:<art>" bzw. "am:<art>" -> true = versteckt für alle anderen.
 let moduleImTest={};
 let isMike=false;
-let protectedUnlocked=false;
-const PROTECTED_PASSWORD="Rinnen_ml95";
 let allProjects=[],currentProjectId=null,currentReportId=null;
 let currentReportMeta={};
 // Wer eine Massaufnahme/ein Ausmass erstellt/zuletzt geändert hat – für die
@@ -185,3 +183,16 @@ let selectedSheet=null,cuts=[{l:"",b:"",q:1}];
 const $=id=>document.getElementById(id);
 // Verzögert wiederholte Aufrufe (Suchfelder, Auto-Speichern).
 function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+// supabase-js liefert bei einer Edge Function mit Nicht-2xx-Status nur die
+// generische Meldung "Edge Function returned a non-2xx status code" in
+// error.message – die eigentliche, vom Server gesendete Meldung steckt im
+// Response-Objekt unter error.context und muss dort extra ausgelesen werden.
+async function edgeFunctionErrorMessage(error,fallback){
+ if(error&&error.context&&typeof error.context.json==="function"){
+  try{
+   const body=await error.context.json();
+   if(body&&body.error)return body.error;
+  }catch(e){/* Antwort war kein JSON */}
+ }
+ return (error&&error.message)||fallback||"Unbekannter Fehler.";
+}

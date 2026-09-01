@@ -850,3 +850,127 @@ wird aber von keiner Stelle im Client gelesen oder geschrieben
 - Kein Zahlungsanbieter, keine Abos/Rechnungen.
 - Keine eigene Domain – weiterhin unter der bestehenden GitHub-Pages-
   Adresse.
+
+## 22. GESCHÜTZTER BEREICH OHNE PASSWORT + MITARBEITERANLAGE REPARIERT – VERSION 2.14
+
+### 22.1 Zusätzliches Passwort für den geschützten Bereich entfernt
+
+Der frühere zweite Passwortschutz (`PROTECTED_PASSWORD`, Eingabefeld
+`protectedPasswordInput`, Funktion `tryUnlockProtected()`, Merker
+`protectedUnlocked`) ist vollständig entfernt – client- und
+HTML-seitig. Der Tab "🔒 Geschützt" (Firma, Mitarbeiter, Funktionen/
+Stundenansätze, Materialkataloge, Datensicherung, Module in
+Entwicklung) zeigt stattdessen abhängig von `isAdmin()` entweder
+`#protectedContent` oder den Hinweis `#protectedDenied` ("nur für
+Administratoren zugänglich").
+
+**Wichtig: Das ist reine UI-Führung, keine Sicherheitsgrenze.** Die
+eigentliche Absicherung war schon vor dieser Änderung die Datenbank,
+nicht das alte Passwort:
+
+- Alle schreibenden Operationen im geschützten Bereich (`app_settings`,
+  `materials`, `rates`, `blitzschutz_materials`,
+  `einlaufblech_settings`, `rinne_fitting_types`, `profiles`) laufen
+  über RLS-Policies, die serverseitig `is_admin()` bzw.
+  `has_permission()` prüfen (siehe 20.3/20.4) – rein auf `auth.uid()`
+  basierend, vom Client nicht beeinflussbar.
+- `permission_settings` hat für `role='employee'` bereits vor dieser
+  Änderung `can_edit:false` auf allen betroffenen Ressourcen.
+- Ein Mitarbeiter mit manipuliertem Frontend (z. B. `isAdmin()` im
+  Browser auf `true` gefälscht) sieht dadurch höchstens die
+  Formulare – jeder tatsächliche Schreibversuch wird von der RLS-Policy
+  abgelehnt, unabhängig vom Frontend-Zustand.
+- Die zwei Unterabschnitte "Datensicherung" und "Module in
+  Entwicklung" liegen strukturell ausserhalb von `#protectedContent`
+  (unverändert seit vor dieser Migration) und sind daher für
+  eingeloggte Mitarbeiter sichtbar, sobald sie den Tab öffnen – auch
+  das folgenlos, da jeder Speichern-Klick dort ebenfalls über
+  `app_settings`-RLS (`is_admin()`) läuft und für einen Mitarbeiter
+  serverseitig abgelehnt wird. Bewusst nicht angepasst, um keine
+  unbeteiligten Struktur-/UI-Änderungen einzuführen.
+
+### 22.2 Mitarbeiteranlage repariert (`smart-action`, jetzt Version 10)
+
+**Ursache des gemeldeten Fehlers:** supabase-js liefert bei einer Edge
+Function mit Nicht-2xx-Status in `error.message` ausschliesslich die
+feste generische Meldung "Edge Function returned a non-2xx status
+code" – die eigentliche, vom Server gesendete Fehlermeldung (`{error:
+"..."}`) steckt nur in `error.context` (einem `Response`-Objekt) und
+muss dort per `await error.context.json()` extra ausgelesen werden.
+Das Frontend zeigte deshalb bei jedem tatsächlichen Fehler (Namens-
+konflikt, fehlende Berechtigung, Server-/DB-Fehler) nur die
+nichtssagende generische Meldung, nie den wirklichen Grund. Betraf
+gleichermassen `smart-action` (Mitarbeiteranlage, Passwort-Reset) und
+`register-company`.
+
+Behoben mit einer gemeinsamen Hilfsfunktion `edgeFunctionErrorMessage()`
+(`js/01-basis.js`), die `error.context.json()` ausliest und nur bei
+Fehlschlag auf `error.message`/einen Fallback-Text zurückfällt –
+eingebaut an allen vier `sb.functions.invoke(...)`-Aufrufstellen
+(`js/03-login.js`, `js/07-einstellungen.js` ×2, `js/08-katalog-
+blitzschutz.js`).
+
+**Zusätzlich in der Edge Function selbst überarbeitet** (Vorher:
+Version 8, jetzt Version 10, `supabase/functions/smart-action`):
+
+- Namensteile werden über `toNamePart()` normalisiert: ä/ö/ü/ß (inkl.
+  Grossschreibung) werden lesbar transliteriert (ä→ae, ö→oe, ü→ue,
+  ß→ss), danach NFKD-Diakritika entfernt und alles ausser `a-z`
+  gestrichen – Leerzeichen, Bindestriche, Apostrophe fallen weg
+  ("von der Heide" → "vonderheide"). Sind Vor- oder Nachname danach
+  leer (z. B. nur Sonderzeichen eingegeben), bricht die Funktion mit
+  einer verständlichen 400-Meldung ab, bevor überhaupt ein Auth-User
+  angelegt wird.
+- **Namenskonflikte brechen nicht mehr sofort ab.** E-Mail/Benutzername
+  sind über alle Firmen hinweg dieselbe Pseudo-Domain
+  (`@nfgryuzkpwjfmdlmevuy.supabase.co`) und damit in `auth.users`
+  global eindeutig, nicht nur innerhalb einer Firma. Bei einer Kollision
+  (Supabase Admin-API meldet 422/"already registered") probiert die
+  Funktion automatisch `vorname.nachname2`, `vorname.nachname3`, … bis
+  zu 30 Versuche, statt mit HTTP 400 abzubrechen. Erst wenn alle 30
+  Versuche kollidieren, kommt eine verständliche Fehlermeldung.
+  **Es gibt keine `profiles.username`-Spalte** (geprüft via
+  `information_schema.columns`) – die Eindeutigkeitsprüfung läuft
+  bewusst ausschliesslich über die Auth-API-Antwort, nicht über eine
+  zusätzliche DB-Abfrage auf eine nicht existierende Spalte.
+- **Rollback bleibt wie vorher, jetzt zusätzlich mit try/catch um die
+  ganze Funktion:** Kann nach erfolgreichem Auth-User das Profil nicht
+  angelegt werden, wird der Auth-User sofort wieder gelöscht
+  (`adminDeleteAuthUser`) – kein halbfertiges Konto. Jeder unerwartete
+  Fehler (auch ausserhalb des Auth/Profile-Ablaufs) wird jetzt
+  serverseitig mit `console.error` protokolliert und liefert dem
+  Client nur die feste, unverfängliche Meldung "Das Mitarbeiterkonto
+  konnte nicht erstellt werden." – keine internen Fehlerdetails mehr
+  im Frontend.
+- `company_id` kam schon vorher ausschliesslich aus dem
+  Profil des aufrufenden Admins (`getCallerProfile()`), nie vom
+  Client – daran wurde nichts geändert, nur zusätzlich abgesichert
+  (Admin-Rolle und `company_id`-Vorhandensein werden weiterhin vor
+  jeder weiteren Aktion geprüft).
+
+### 22.3 Tests
+
+Live-Endpunkttests (echter Login, echter Klick auf "Mitarbeiterkonto
+anlegen") waren in dieser Sitzung technisch nicht möglich – die
+Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co` direkt. Stattdessen geprüft:
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: 539/539, ausgeglichen.
+- Repo-weite Suche: keine Reste von `protectedUnlocked`,
+  `PROTECTED_PASSWORD`, `protectedPasswordInput`, `protectedLocked`,
+  `protectedError`, `tryUnlockProtected`, `unlockProtected`.
+- `information_schema.columns` für `profiles` und
+  `pg_constraint` für `profiles` direkt per SQL geprüft, um
+  sicherzustellen, dass die neue Edge-Function-Version keine nicht
+  existierenden Spalten anspricht (erste Deploy-Version tat das
+  fälschlich mit einer angenommenen `username`-Spalte – in einer
+  zweiten Version vor dem endgültigen Deploy korrigiert).
+- `smart-action` erfolgreich auf Version 10 deployt (`status: ACTIVE`).
+- Rollenlogik (`isAdmin()`/`#protectedContent`/`#protectedDenied`) und
+  die Aufrufstellen im Formular (`mitarbeiterAnlegen`-Button) per
+  Code-Review gegen die tatsächliche Antwortstruktur der Edge Function
+  (`data.ok`, `data.user.username`, `data.password`) abgeglichen.
+- Massaufnahme, Ausmass, Regierapport, PDF/Druck, Self-Service-
+  Firmenregistrierung, Trial-System: nicht angefasst, keine
+  Berechnungslogik verändert.

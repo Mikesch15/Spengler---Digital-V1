@@ -63,7 +63,7 @@ $("companyRegisterBtn").onclick=async()=>{
   const {data,error}=await sb.functions.invoke("register-company",{body:{
    company_name:companyName,first_name:vor,last_name:nach,email,password:pw1
   }});
-  if(error){showCompanyRegisterErr(error.message||"Registrierung fehlgeschlagen.");return}
+  if(error){showCompanyRegisterErr(await edgeFunctionErrorMessage(error,"Registrierung fehlgeschlagen."));return}
   if(!data?.ok){showCompanyRegisterErr(data?.error||"Registrierung fehlgeschlagen.");return}
   const {error:loginErr}=await sb.auth.signInWithPassword({email,password:pw1});
   if(loginErr){
