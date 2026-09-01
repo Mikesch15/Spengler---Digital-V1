@@ -17,6 +17,18 @@ const SYS_ADMIN_STATUS_LABELS={trial:"Testphase",active:"Aktiv",expired:"Abgelau
 function sysAdminFmtDate(v){
  return v?new Date(v).toLocaleDateString("de-CH"):"–";
 }
+// Dezente Erfolgsbestätigung direkt im System-Admin-Bereich (kein Alert/
+// Popup) - wird ausschliesslich NACH einem bereits erfolgreichen
+// Speichervorgang aufgerufen, nie vorab. Verschwindet nach ein paar
+// Sekunden automatisch wieder.
+let sysAdminSuccessTimer=null;
+function sysAdminShowSuccess(msg){
+ clearTimeout(sysAdminSuccessTimer);
+ const el=$("sysAdminActionSuccess");
+ el.textContent="✓ "+msg;
+ el.hidden=false;
+ sysAdminSuccessTimer=setTimeout(()=>{el.hidden=true},4000);
+}
 
 async function checkSystemAdmin(){
  const {data,error}=await sb.rpc("is_system_admin");
@@ -59,6 +71,8 @@ function openSystemAdminCompany(id){
  if(!c)return;
  sysAdminCurrentCompanyId=id;
  $("sysAdminActionError").textContent="";
+ clearTimeout(sysAdminSuccessTimer);
+ $("sysAdminActionSuccess").hidden=true;
  $("systemAdminCompanyName").textContent=c.name;
  $("systemAdminCompanyStatus").textContent=SYS_ADMIN_STATUS_LABELS[c.subscription_status]||c.subscription_status;
  $("systemAdminCompanyCreated").textContent=sysAdminFmtDate(c.created_at);
@@ -98,6 +112,7 @@ $("sysAdminSaveTrial").onclick=async()=>{
   if(error){$("sysAdminActionError").textContent="Trial konnte nicht gespeichert werden: "+error.message;return}
   await renderSystemAdminList();
   openSystemAdminCompany(sysAdminCurrentCompanyId);
+  sysAdminShowSuccess("Trial-Dauer erfolgreich auf "+days+" Tage gesetzt.");
  }catch(err){
   $("sysAdminActionError").textContent=(err&&err.message)?err.message:String(err);
  }finally{
@@ -114,6 +129,7 @@ $("sysAdminSaveStatus").onclick=async()=>{
   if(error){$("sysAdminActionError").textContent="Status konnte nicht geändert werden: "+error.message;return}
   await renderSystemAdminList();
   openSystemAdminCompany(sysAdminCurrentCompanyId);
+  sysAdminShowSuccess("Firmenstatus erfolgreich auf „"+(SYS_ADMIN_STATUS_LABELS[status]||status)+"“ gesetzt.");
  }catch(err){
   $("sysAdminActionError").textContent=(err&&err.message)?err.message:String(err);
  }finally{

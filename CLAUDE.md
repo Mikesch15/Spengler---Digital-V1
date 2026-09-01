@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.17**
+- sichtbare App-Version: **2.18**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -1520,8 +1520,10 @@ künftig nötig sein – kein UI dafür in dieser Phase, siehe 25.6.
 
 ### 25.8 Offene Punkte
 
-- Kein Live-Klicktest möglich (siehe 25.7) – zusätzlich blockiert dadurch,
-  dass noch niemand in `system_admins` eingetragen ist.
+- Kein Live-Klicktest im Browser möglich (siehe 25.7) – bei Gelegenheit
+  in einer Umgebung mit Netzwerkzugriff auf das Supabase-Projekt
+  nachholen (seit Version 2.17.1 gibt es mit Mike Ledermann ein echtes
+  System-Admin-Konto zum Testen, siehe 25.5).
 - "Letzter relevanter Aktivitätszeitpunkt" (Auftrag Abschnitt 3, "falls
   bereits vorhanden") wurde **nicht** eingebaut – es gibt in der App
   aktuell keine vorhandene, bereits berechnete Kennzahl dafür (nur
@@ -1529,4 +1531,68 @@ künftig nötig sein – kein UI dafür in dieser Phase, siehe 25.6.
   Firmen-Aggregation). Eine neue Tracking-Logik dafür einzuführen wäre
   über die "kleinste sichere Änderung" hinausgegangen – bewusst
   ausgelassen statt geraten/improvisiert.
-- Erster System-Admin muss manuell eingetragen werden (siehe 25.5).
+
+## 26. BESTÄTIGUNG NACH ERFOLGREICHEN SYSTEM-ADMIN-ÄNDERUNGEN – VERSION 2.18
+
+Reine UI-Ergänzung im bestehenden System-Admin-Bereich (Abschnitt 25) –
+keine neue Speicherlogik, keine Änderung an RLS/`SECURITY DEFINER`-
+Funktionen/`system_admins`/`is_system_admin()`.
+
+### 26.1 Was geändert wurde
+
+- Neues Element `#sysAdminActionSuccess` (`index.html`, im
+  `#systemAdminCompanyModal`, direkt über dem bereits vorhandenen
+  `#sysAdminActionError`) – standardmässig `hidden`, dezenter grüner
+  Text (`color:var(--green)`, gleiche Formatierung wie die bestehende
+  Fehleranzeige), **kein** Alert/Popup und **kein** neues Toast-System.
+  Ein separates Toast-Framework existierte in der App nicht – ein
+  einzelnes verstecktes `<div>` war die kleinste passende Lösung.
+- Neue Hilfsfunktion `sysAdminShowSuccess(msg)` (`js/22-system-admin.js`):
+  setzt den Text (mit "✓ " vorangestellt), blendet das Element ein und
+  lässt es nach 4 Sekunden automatisch wieder verschwinden
+  (`setTimeout`). Wird `openSystemAdminCompany()` erneut aufgerufen
+  (Firma wechseln, neu öffnen), wird die Meldung sofort mit ausgeblendet
+  – wie schon zuvor bei der Fehlermeldung.
+- `$("sysAdminSaveTrial").onclick` und `$("sysAdminSaveStatus").onclick`
+  rufen `sysAdminShowSuccess(...)` **ausschliesslich** nach der
+  bestehenden, unveränderten Erfolgs-Verzweigung auf (`if(error){...
+  return}` bleibt unverändert davor) – die eigentliche Speicherung
+  (`sb.rpc("system_admin_set_trial"/"system_admin_set_status")`) wird
+  dadurch **nicht** zusätzlich oder doppelt aufgerufen, nur eine
+  UI-Zeile nach dem bereits vorhandenen Erfolgspfad ergänzt:
+  - Trial: „✓ Trial-Dauer erfolgreich auf **N** Tage gesetzt."
+  - Status: „✓ Firmenstatus erfolgreich auf „**Label**" gesetzt." (mit
+    der bereits vorhandenen deutschen Status-Bezeichnung aus
+    `SYS_ADMIN_STATUS_LABELS`, z. B. „Aktiv" statt `active`).
+- Fehlerfall unverändert: `$("sysAdminActionError")` zeigt weiterhin die
+  bestehende Meldung, `sysAdminShowSuccess()` wird in diesem Zweig nicht
+  erreicht (frühes `return` bzw. `catch`-Block).
+
+### 26.2 Tests
+
+- Code-Review der Aufrufreihenfolge in beiden Speichern-Handlern: die
+  Erfolgsmeldung steht strukturell **nach** der bestehenden
+  Fehlerprüfung (`if(error){...;return}`) und nach dem bestehenden
+  Neuladen/Wiederöffnen (`renderSystemAdminList()` +
+  `openSystemAdminCompany(...)`) – kann also nicht vor einer
+  tatsächlich fehlgeschlagenen Speicherung erscheinen.
+- `node --check js/22-system-admin.js` (und alle übrigen `js/*.js` sowie
+  `sw.js`): fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: ausgeglichen (578/578, vorher
+  577/577 – Differenz durch das eine neue Element).
+- `#sysAdminActionSuccess` gegen `index.html` geprüft: genau einmal
+  vorhanden.
+- Diff bewusst minimal gehalten (nur `index.html` + `js/22-system-
+  admin.js`, keine sonstigen Dateien) – bestätigt, dass keine der unter
+  "Nicht verändern" gelisteten Funktionen (System-Admin-Berechtigungen,
+  `system_admins`, `is_system_admin()`, RLS, `SECURITY DEFINER`-
+  Funktionen, Trial-Datenmodell, Firmenregistrierung, Mitarbeiteranlage,
+  Passwort-Erstsetzungsflow, `rates`, Massaufnahme, Ausmass,
+  Regierapport, Materialverwaltung, Excel-Import, PDF/Druck, PWA,
+  Storage, Tenant-RLS) berührt wurde.
+- Live-Klicktest im Browser (Trial ändern → Bestätigung sehen → Status
+  ändern → Bestätigung sehen → absichtlichen Fehler auslösen → keine
+  Bestätigung) in dieser Sitzung technisch nicht möglich – Sandbox
+  blockiert ausgehende HTTPS-Verbindungen zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co` direkt. **Das wird hier
+  ausdrücklich nicht als getestet behauptet.**

@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.17</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.18</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -353,6 +353,10 @@
 </div>
 </div>
 
+<!-- Dezente Bestätigung nach erfolgreichem Speichern (Trial/Status),
+     verschwindet nach ein paar Sekunden automatisch, siehe
+     sysAdminShowSuccess() in js/22-system-admin.js. -->
+<div id="sysAdminActionSuccess" class="small" style="color:var(--green)" hidden></div>
 <div id="sysAdminActionError" class="small" style="color:var(--red)"></div>
 <div class="bar" style="margin-top:10px"><button id="closeSystemAdminCompany" class="gray">← Zurück zur Übersicht</button></div>
 </div>
