@@ -3724,10 +3724,135 @@ vollständigen Änderungsverlauf.
 - Vollständiger Änderungsverlauf (Feldhistorie, alte/neue Werte, Undo,
   Versionsvergleich) wie im Auftrag ausdrücklich vorgesehen **nicht**
   Teil dieser Version – eigener, späterer Auftrag.
-- Dieselbe Ersteller-/Bearbeiter-Grundlage existiert bereits für
-  `ausmass` und `reports` (gleiches Muster, clientseitig gesetzt, siehe
-  `js/17-ausmass.js`/`js/08-katalog-blitzschutz.js`) – nicht Teil dieses
-  Auftrags (nur `projects`/`measurements` waren gefordert), aber
-  dieselbe fehlende serverseitige Durchsetzung und dieselbe `ON DELETE
-  NO ACTION`-FK-Problematik dürfte dort ebenfalls bestehen. Für eine
-  spätere, eigene Aufgabe vormerken.
+- ~~Dieselbe Ersteller-/Bearbeiter-Grundlage existiert bereits für
+  `ausmass` und `reports`... dieselbe fehlende serverseitige
+  Durchsetzung und dieselbe `ON DELETE NO ACTION`-FK-Problematik dürfte
+  dort ebenfalls bestehen. Für eine spätere, eigene Aufgabe
+  vormerken.~~ – **behoben in Version 2.29, siehe Abschnitt 37.**
+
+## 37. AUSMASS-/REPORTS-ERSTELLER UND ZEITSTEMPEL — VERSION 2.29
+
+Überträgt die in Version 2.28 (Abschnitt 36) für `projects`/
+`measurements` behobene Ersteller-/Bearbeiter-Sicherheit jetzt auf
+`ausmass` und `reports` – exakt dieselbe Problematik, unabhängig
+bestätigt statt aus dem v2.28-Bericht übernommen.
+
+### 37.1 Bestandsaufnahme (direkt am Schema geprüft)
+
+Anders als `projects` in Version 2.28 hatten **beide** Tabellen bereits
+**alle vier** Spalten (`created_by`, `created_at`, `updated_by`,
+`updated_at`) – keine Schema-Ergänzung nötig, nur die serverseitige
+Durchsetzung fehlte. Beide Speicherstellen
+(`js/17-ausmass.js $("saveAusmass")`, `js/08-katalog-blitzschutz.js
+$("save")`) setzten diese Felder bislang ausschliesslich clientseitig
+(`currentProfile.id`/`new Date()`) – exakt dasselbe Muster wie
+`measurements` vor Version 2.28. Beide Tabellen hatten bereits FKs
+(`created_by → auth.users`, `updated_by → profiles`), aber – wie
+vermutet – mit `ON DELETE NO ACTION`. Live nachgewiesen: ein Mitarbeiter,
+der jemals ein Ausmass oder einen Report bearbeitet hat, konnte mit dem
+bestehenden "Mitarbeiter entfernen"-Feature nicht gelöscht werden.
+
+`reports` hatte zusätzlich bereits eine funktionierende Anzeige:
+`$("save").onclick` liest nach dem Speichern über `.select()` die
+tatsächliche, serverseitig gesetzte Zeile zurück in `currentReportMeta`
+(nicht nur eine clientseitige Vermutung wie bei `measurements`/`ausmass`
+vor dieser Änderung) – der PDF-Fusszeilen-Text
+(`erstelltGeaendertText(currentReportMeta)`, `window.addEventListener
+("beforeprint",...)`) zeigt dadurch bereits vor dieser Aufgabe die real
+gespeicherten Werte.
+
+### 37.2 Migration `ausmass_reports_creator_editor_v2_29`
+
+- Alle vier bestehenden FKs (`ausmass_created_by_fkey`,
+  `ausmass_updated_by_fkey`, `reports_created_by_fkey`,
+  `reports_updated_by_fkey`) auf `ON DELETE SET NULL` umgestellt –
+  identisches Muster wie in 36.2.
+- **Kein neuer Trigger-Funktionskörper** – `set_creator_editor_meta()`
+  aus Version 2.28 ist bereits generisch (referenziert nur
+  `NEW.created_by`/`NEW.created_at`/`NEW.updated_by`/`NEW.updated_at`,
+  keinen Tabellennamen) und wurde nur als zusätzlicher `BEFORE INSERT OR
+  UPDATE`-Trigger an `ausmass` und `reports` angehängt
+  (`set_creator_editor_meta_ausmass`/`set_creator_editor_meta_reports`).
+  Verhalten identisch zu 36.3: `created_by`/`created_at` bleiben bei
+  `UPDATE` zwingend auf dem ursprünglichen Wert, `updated_by`/
+  `updated_at` werden bei jedem echten `INSERT`/`UPDATE` auf
+  `auth.uid()`/`now()` gesetzt.
+- RLS (`tenant_boundary_ausmass`/`tenant_boundary_reports`, beide
+  bereits restriktiv über `EXISTS(...projects.company_id=
+  my_company_id())`) **nicht verändert** – bereits korrekt, siehe
+  Abschnitt 31/33.
+
+### 37.3 Tests (alle `begin;…rollback;` gegen die echte Produktivdatenbank)
+
+| Test | Ergebnis |
+|---|---|
+| `ausmass` INSERT mit gefälschtem `created_by`/`created_at` | vom Trigger überschrieben (echter Aufrufer/echte Zeit) |
+| `ausmass` UPDATE, Fälschungsversuch von `created_by`/`created_at` durch einen anderen Benutzer | `created_by`/`created_at` unverändert (Original-Ersteller), `updated_by`/`updated_at` korrekt auf den echten Bearbeiter |
+| `reports` INSERT mit gefälschtem `created_by`/`created_at` | vom Trigger überschrieben |
+| `reports` UPDATE, Fälschungsversuch von `created_by`/`created_at` | `created_by`/`created_at` unverändert, `updated_by`/`updated_at` korrekt |
+| Cross-Tenant: simulierte Fremdfirma ändert ein echtes `ausmass`/`report` von PETER KÜNZI AG | 0 Zeilen geändert (RLS blockiert, gegen Produktivwert nach dem Test erneut bestätigt unverändert) |
+| Mitarbeiterentfernung nach `ausmass`- **und** `reports`-Bearbeitung durch denselben Mitarbeiter | Löschung läuft ohne Fehler durch, `updated_by` in beiden Tabellen korrekt `NULL`, beide Zeilen weiterhin vorhanden |
+
+### 37.4 Anzeige im Frontend
+
+- **Ausmass** (`#amMetaInfo`, `js/17-ausmass.js` `updateAmFormTitle()`):
+  neue, dezente Zeile analog zu `#measMetaInfo` aus Version 2.28 –
+  identische Wiederverwendung von `erstelltGeaendertText()`, keine neue
+  Logik.
+- **Reports**: **keine neue Bildschirmanzeige ergänzt** – bewusste
+  Entscheidung, siehe 37.5. Die bereits bestehende PDF-Fusszeile
+  profitiert automatisch vom "Unbekannter Benutzer"-Fallback aus Version
+  2.28 (gleiche `erstelltGeaendertText()`-Funktion), ohne dass
+  `js/08-katalog-blitzschutz.js` geändert werden musste.
+- Keine zusätzliche Abfrage nötig – beide Tabellen werden bereits über
+  `select("*")`/`.select()` vollständig geladen.
+
+### 37.5 Bewusst nicht verändert: Regierapport-Bildschirm
+
+Der Auftrag verlangt für Reports ausdrücklich besondere Vorsicht
+("NICHT verändern: Berechnungen, Positionen, Summen, Material, Preise,
+Layout, bestehende PDF-Fachlogik... Außer es existiert bereits eine
+passende Anzeige und diese muss wegen NULL lediglich robust gemacht
+werden"). Da genau das schon der Fall war (37.1/37.4), wurde bewusst
+**keine neue** Anzeige auf dem Haupt-Regierapport-Bildschirm ergänzt –
+anders als bei Ausmass/Massaufnahme ist das hier keine modale
+Detailansicht, sondern der zentrale Arbeitsbildschirm für die tägliche
+Rapport-Erfassung; eine zusätzliche Zeile dort wäre über das im Auftrag
+geforderte Minimum hinausgegangen. Keine Zeile des bestehenden
+Speicher-/Berechnungs-/PDF-Codes wurde verändert, ausser der bereits in
+Version 2.28 angepassten, gemeinsam genutzten `erstelltGeaendertText()`.
+
+### 37.6 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: ausgeglichen (608/608,
+  vorher 607/607 – Differenz durch das eine neue `#amMetaInfo`-Element).
+- `git diff --stat`: nur `index.html` und `js/17-ausmass.js` verändert –
+  `js/08-katalog-blitzschutz.js` (Regierapport-Fachlogik/PDF),
+  Massaufnahme, Projekte, Storage, System-Admin, Trial/Status,
+  Firmenlöschung: keine Codeänderung.
+- Produktivdaten vor/während/nach allen Tests geprüft: 1 Firma, 12
+  Profile, 2 Ausmasse, 4 Regierapporte – exakt wie vor Beginn dieser
+  Aufgabe, keine `AUDIT%`-Test-Reste.
+- PETER KÜNZI AG nach allen Tests erneut geprüft: unverändert.
+- Live-Klicktest im Browser (Ausmass/Report anlegen/ändern, Anzeige
+  prüfen, Mitarbeiter entfernen, der zuvor ein Ausmass/einen Report
+  geändert hat) **in dieser Sitzung technisch nicht möglich** – Sandbox
+  blockiert ausgehende HTTPS-Verbindungen zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co` direkt, wie in jeder vorherigen
+  Sitzung. **Das wird hier ausdrücklich nicht als getestet behauptet.**
+  Alle in 37.3 dokumentierten Ergebnisse sind direkte Trigger-/RLS-
+  Simulationen gegen das echte Produktivschema.
+
+### 37.7 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 37.6).
+- Vollständiger Änderungsverlauf weiterhin **nicht** Teil dieser Version
+  (wie im Auftrag ausdrücklich ausgeschlossen) – gilt jetzt einheitlich
+  für `projects`, `measurements`, `ausmass` und `reports`.
+- Damit ist die in Abschnitt 36.7 offengelegte Lücke vollständig
+  geschlossen – alle vier company_id-indirekten Tabellen mit
+  Personenreferenzen (`projects`, `measurements`, `ausmass`, `reports`)
+  haben jetzt identisches Verhalten: serverseitig erzwungene
+  Ersteller-/Bearbeiter-Metadaten, `ON DELETE SET NULL`, RLS
+  unverändert korrekt.

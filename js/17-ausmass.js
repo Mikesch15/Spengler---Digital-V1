@@ -220,6 +220,12 @@ function updateAmFormTitle(){
  const labels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
  const h2=document.querySelector("#ausmassEditModal h2");
  if(h2)h2.textContent=`📏 Ausmass – ${labels[$("amType").value]||""}`;
+ // Dezente Ersteller-/Bearbeiter-Anzeige, wiederverwendet dieselbe Logik
+ // wie bei Massaufnahmen (erstelltGeaendertText(), js/16-massaufnahme-
+ // formular.js) - siehe CLAUDE.md 36/37.
+ const meta=erstelltGeaendertText(currentAusmassMeta);
+ $("amMetaInfo").textContent=meta;
+ $("amMetaInfo").hidden=!meta;
 }
 function openAusmass(a){
  sperreFuerEintrag("ausmass",a&&a.created_by);
