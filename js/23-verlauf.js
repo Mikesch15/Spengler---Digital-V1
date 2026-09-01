@@ -17,12 +17,55 @@
 const VERLAUF_ACTION_LABELS={created:"Erstellt",updated:"Geändert",deleted:"Gelöscht",status_changed:"Status geändert"};
 const VERLAUF_ENTITY_LABELS={project:"Projekt",measurement:"Massaufnahme",ausmass:"Ausmass",report:"Regierapport"};
 
+// v2.33: Feld-Diffing. Bewusst nur dasselbe kleine, zuverlässige Feld-Set,
+// das write_audit_log() serverseitig vergleicht (siehe CLAUDE.md
+// Abschnitt 41) - reine Anzeige-/Übersetzungslogik, keine eigene
+// Diff-Berechnung im Frontend (der Diff selbst kommt immer aus der DB).
+const VERLAUF_FIELD_LABELS={
+ project:{name:"Projektname",order_no:"Auftrags-Nr.",customer:"Auftraggeber",object:"Adresse"},
+ measurement:{title:"Bezeichnung",date:"Datum",note:"Notiz / Masse"},
+ ausmass:{title:"Bezeichnung",date:"Datum",note:"Notiz"},
+ report:{date:"Datum",order_no:"Auftrags-Nr.",customer:"Auftraggeber",object:"Objekt / Gebäudeteil",vat:"MWST"}
+};
+
 function verlaufFormatWann(iso){
  if(!iso)return "–";
  const d=new Date(iso);
  const datum=d.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
  const zeit=d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
  return `${datum} · ${zeit}`;
+}
+
+// Werte benutzerfreundlich darstellen: NULL/leer → "–", Datumsfelder im
+// Schweizer Format, alles andere als reiner Text (unsere Whitelist enthält
+// ausschliesslich Text-/Datumsfelder, siehe 41.2 - keine Zahlen/Booleans
+// ausser dem separat behandelten "archived").
+function verlaufFormatDiffValue(field,v){
+ if(v===null||v===undefined||v==="")return "–";
+ if(field==="date"){
+  const d=new Date(v);
+  return isNaN(d)?String(v):d.toLocaleDateString("de-CH");
+ }
+ return String(v);
+}
+
+// Rendert die Feldänderungen eines UPDATE-Eintrags (leer, wenn keine
+// Whitelist-Felder betroffen waren - dann bleibt nur der Aktionstext).
+// archived wird bei action=status_changed nicht generisch, sondern als
+// "Aktiv → Archiviert" dargestellt (Auftrag Abschnitt 18) - nie gemischt
+// mit anderen Feldänderungen, da write_audit_log() bei einer echten
+// Statusänderung ausschliesslich den archived-Diff schreibt.
+function verlaufChangesHtml(row){
+ if(!Array.isArray(row.changes)||!row.changes.length)return "";
+ const labels=VERLAUF_FIELD_LABELS[row.entity_type]||{};
+ const lines=row.changes.map(c=>{
+  if(row.action==="status_changed"&&c.field==="archived"){
+   return `${esc(c.old?"Archiviert":"Aktiv")} → ${esc(c.new?"Archiviert":"Aktiv")}`;
+  }
+  const label=labels[c.field]||c.field;
+  return `${esc(label)}: ${esc(verlaufFormatDiffValue(c.field,c.old))} → ${esc(verlaufFormatDiffValue(c.field,c.new))}`;
+ });
+ return `<div class="verlauf-entry-changes">${lines.map(l=>`<div>${l}</div>`).join("")}</div>`;
 }
 
 // Beschreibung: vorhandene description anzeigen, sonst aus Entität+Aktion
@@ -47,6 +90,7 @@ function verlaufEntryHtml(row,withEntityBadge){
 <div class="verlauf-entry-top"><span class="verlauf-entry-when">${esc(verlaufFormatWann(row.created_at))}</span><span class="verlauf-entry-badges">${entityBadge}<span class="verlauf-entry-action">${esc(aktion)}</span></span></div>
 <div class="verlauf-entry-who">👤 ${esc(wer)}</div>
 <div class="verlauf-entry-desc">${verlaufEntryText(row)}</div>
+${verlaufChangesHtml(row)}
 </div>`;
 }
 

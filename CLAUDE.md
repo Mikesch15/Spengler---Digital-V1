@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.32, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.33, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.32**
+- sichtbare App-Version: **2.33**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -4610,3 +4610,269 @@ weiterhin leer, PETER KÜNZI AG (`updated_at`) unverändert.
   dokumentieren – falls künftig eine fünfte auditierte Entität ohne
   eindeutige Projektbeziehung hinzukäme, müsste das analog zu Abschnitt
   7 des Auftrags neu geprüft und ggf. offen gemeldet werden.
+
+## 41. ÄNDERUNGSVERLAUF – FELD-DIFFING — VERSION 2.33
+
+Der Verlauf zeigt erstmals konkrete Feldänderungen statt nur "X geändert"
+– bewusst nur für ein kleines, zuverlässiges Feld-Set, nicht für jede
+Spalte. Reine Erweiterung von `write_audit_log()`/`js/23-verlauf.js`,
+keine Änderung an Fachlogik, Berechnungen oder PDF.
+
+### 41.1 Bestandsaufnahme (frisch geprüft, nicht aus v2.30–v2.32 übernommen)
+
+Alle vier Tabellen live per `information_schema.columns` erneut geprüft.
+**Zentraler Befund, der die gesamte Auftrags-Auslegung bestimmt:**
+`projects` besteht ausschliesslich aus flachen Text-/Boolean-Spalten
+(`name`, `order_no`, `customer`, `object`, `archived`) – **keine**
+versteckte JSONB-Struktur. `measurements`, `ausmass` und `reports`
+haben dagegen je ein oder zwei grosse `jsonb`-Felder, in denen die
+eigentlichen fachlichen Werte liegen:
+
+- `measurements.data` – die kompletten Masswerte **aller neun**
+  Massaufnahme-Funktionen (Stücke, Winkel, Segmente, Materialien, …),
+  Struktur unterscheidet sich pro `type` fundamental (z. B. `pieces`-Array
+  bei Einlaufblech gerade vs. Segmentliste bei Mauerabdeckung).
+- `ausmass.positions` – Positionsliste (Array), Struktur variiert nach
+  `type` (Offerte erfassen/Blitzschutzausmass).
+- `reports.work_entries`/`reports.material_entries` – Arbeits-/
+  Materialpositionen als Arrays.
+
+Ein generischer, typübergreifender Feld-Diff **innerhalb** dieser
+JSONB-Werte wäre nur mit tiefem, pro-Typ-spezifischem Wissen über neun
+verschiedene Massaufnahme-Strukturen (bzw. die Ausmass-/Report-
+Positionsformate) möglich – genau das verlangt der Auftrag ausdrücklich
+NICHT ("Feld-Diffing muss sich in die vorhandene Speicherung
+integrieren", "NICHT pauschal jedes Feld erfassen", "Keine Fachlogik
+umbauen"). **Entscheidung**: Feld-Diffing beschränkt sich auf die
+flachen, für alle Typen gleich aufgebauten Spalten jeder Tabelle – die
+strukturierten JSONB-Werte werden bewusst **nicht** gedifft (siehe
+41.7 für die vollständige, offen dokumentierte Begründung).
+
+`write_audit_log()` (v2.30–v2.32) erneut vollständig gelesen: `OLD`/`NEW`
+liegen im AFTER-UPDATE-Trigger bereits vollständig vor – exakt wie vom
+Auftrag in Abschnitt 3 vermutet, keine Erweiterung der Trigger-Ereignisse
+nötig, nur eine zusätzliche Vergleichslogik innerhalb des bestehenden
+UPDATE-Zweigs.
+
+### 41.2 Ausgewähltes Feld-Set
+
+| Entität | Felder | Begründung |
+|---|---|---|
+| `project` | `name` (Projektname), `order_no` (Auftrags-Nr.), `customer` (Auftraggeber), `object` (Adresse) | die vollständige editierbare Oberfläche eines Projekts ausserhalb von `archived` (das separat über `status_changed` läuft) – keine Auslassung, keine Übererfassung |
+| `measurement` | `title` (Bezeichnung), `date` (Datum), `note` (Notiz / Masse) | einzige typübergreifend gleich aufgebauten, flachen Fachfelder; `data` bewusst ausgeschlossen (41.1) |
+| `ausmass` | `title` (Bezeichnung), `date` (Datum), `note` (Notiz) | analog measurement; `positions` bewusst ausgeschlossen |
+| `report` | `date` (Datum), `order_no` (Auftrags-Nr.), `customer` (Auftraggeber), `object` (Objekt / Gebäudeteil), `vat` (MWST) | einzige flachen Kopfdaten-Felder; `work_entries`/`material_entries` bewusst ausgeschlossen |
+
+Bewusst **nicht** aufgenommen (technische Metadaten, Auftrag Abschnitt
+2 verbietet das ausdrücklich): `id`, `company_id`, `project_id`,
+`created_by`/`created_at`, `updated_by`/`updated_at`, `type` (fachliche
+Kategorie, ändert sich in der Praxis nie nach dem Anlegen),
+`photo_path`/`sketch_path`/`sketch_paths`/`photo_paths` (Speicherpfade,
+kein sinnvoller lesbarer Diff, siehe auch 41.7 zur Platzhalterzeilen-
+Problematik).
+
+Deutsche Feldbezeichnungen stammen 1:1 aus den bestehenden Formular-
+Labels in `index.html` (z. B. `#newProjectObject`→„Adresse",
+`#amNote`→„Notiz", `#measNote`→„Notiz / Masse"), nicht neu erfunden.
+
+### 41.3 Architekturentscheidung: `audit_log.changes jsonb` statt separater Tabelle
+
+Migration `audit_log_field_diffing_v2_33`: eine neue, nullable Spalte
+`audit_log.changes jsonb` statt einer zweiten Tabelle
+`audit_log_changes` (Auftrag Abschnitt 4, Variante A vs. B). Begründung,
+anhand des bestehenden Modells bewertet statt blind übernommen:
+
+- `audit_log` wird bereits jetzt ausschliesslich als **eine** Zeile pro
+  Ereignis gelesen (`select("*")`, nie mit einem Join) – die Diffs
+  gehören immer und ausschliesslich zu genau diesem einen Ereignis,
+  nie eigenständig abgefragt. Eine Kind-Tabelle bräuchte entweder einen
+  Join oder eine zweite Abfrage pro Zeile (N+1, Auftrag Abschnitt 21
+  ausdrücklich verboten) oder eine aggregierte Subquery – beides
+  unnötige Komplexität gegenüber einer eingebetteten Spalte.
+- JSONB für "ein paar strukturierte Zusatzwerte an einer Zeile" ist
+  bereits durchgehender Stil dieses Schemas (`measurements.data`,
+  `ausmass.positions`, `reports.work_entries`, `companies.settings`) –
+  passt zur bestehenden Konvention (Auftrag Abschnitt 4: "Bewerten
+  anhand des bestehenden audit_log-Modells").
+- Erweiterbar: neue Felder pro Entität brauchen keine Schema-Änderung,
+  nur eine Anpassung der Whitelist in `write_audit_log()` – erfüllt
+  "Die Lösung soll später erweiterbar sein" ohne Migration.
+- RLS bleibt unverändert vollständig ausreichend: die bestehende
+  restriktive `tenant_boundary_audit_log`-Policy deckt die neue Spalte
+  automatisch mit ab (eine Zeile, eine Policy) – bei einer Kind-Tabelle
+  hätte eine **eigene** RLS-Policy neu aufgebaut und getestet werden
+  müssen, zusätzliches Sicherheitsrisiko ohne Gegenwert.
+
+**Format**: `changes` ist entweder `NULL` (created/deleted/status_changed
+ohne betroffenes Feld, oder ein UPDATE ohne Whitelist-Änderung, siehe
+41.5) oder ein JSON-Array `[{"field":"name","old":"...","new":"..."}]` –
+**ausschliesslich Rohwerte, keine deutschen Labels, keine Formatierung**
+in der Datenbank. Übersetzung/Formatierung (Feldname→Label,
+NULL→„–", Datum→Schweizer Format) passiert bewusst ausschliesslich im
+Frontend (`js/23-verlauf.js`), exakt demselben Muster wie
+`VERLAUF_ACTION_LABELS`/`VERLAUF_ENTITY_LABELS` seit v2.30/v2.31 – eine
+zentrale Übersetzungsstelle statt in der Datenbank eingefrorener Texte.
+
+### 41.4 Serverseitige Ermittlung (Auftrag Abschnitt 3/19)
+
+`write_audit_log()` erweitert: im bestehenden `UPDATE`-Zweig (nach der
+schon vorhandenen `created`/`deleted`/`status_changed`-Ermittlung)
+vergleicht die Funktion **ausschliesslich** `OLD.<feld> IS DISTINCT FROM
+NEW.<feld>` für die in 41.2 festgelegte Whitelist je `entity_type` –
+verschachtelte `IF`-Blöcke pro Entitätstyp (kein zusammengesetzter
+Ausdruck), aus demselben, bereits in v2.30 gefundenen Grund: `OLD`/`NEW`
+sind in dieser einen, über vier Tabellen wiederverwendeten
+Trigger-Funktion generische `record`-Werte, ein Feldzugriff auf eine bei
+der aktuellen Tabelle nicht existierende Spalte (z. B. `NEW.title` bei
+einem `projects`-Update) wird nur dann nie ausgewertet, wenn er
+strukturell in einem eigenen `IF`-Zweig für genau diesen Entitätstyp
+steht.
+
+`IS DISTINCT FROM` (statt `<>`/`=`) behandelt `NULL` korrekt als
+vergleichbaren Wert (zwei `NULL` gelten als nicht verschieden) – erfüllt
+Auftrag Abschnitt 12 direkt, ohne eigene NULL-Sonderfälle im Code.
+Abschnitt 13 (Zahlen-/Typ-Präzision, z. B. „1200 vs. 1200.0") betrifft
+das gewählte Feld-Set nicht: alle Whitelist-Felder sind `text` oder
+`date`, keine Zahlen – ein zusätzlicher, in dieser Version bewusst nicht
+gebrauchter Vorteil der Entscheidung aus 41.1/41.2.
+
+**Kein Client-Feld beteiligt**: `OLD`/`NEW` sind die tatsächlich
+geschriebene Datenbankzeile, kein vom Client separat mitgeschickter Wert
+– ein Client kann nicht behaupten "ich habe Adresse X→Y geändert", ohne
+dass die Zeile das tatsächlich zeigt (empirisch verifiziert, 41.6).
+
+### 41.5 Wann wird geloggt/gedifft? (Auftrag Abschnitt 10–12)
+
+- **Mehrere Feldänderungen in einem UPDATE** → ein einziges
+  `audit_log`-Ereignis mit mehreren Einträgen in `changes` (Array),
+  **nicht** mehrere separate „geändert"-Zeilen – empirisch bestätigt
+  (41.6, Test „mehrere Felder gleichzeitig").
+- **Kein Whitelist-Feld geändert** (z. B. ein UPDATE, das nur
+  `updated_at`/`updated_by` oder ein nicht gedifftes JSONB-Feld
+  betrifft) → `changes = NULL`, der Eintrag selbst (`action='updated'`)
+  bleibt **weiterhin bestehen**, wie bisher seit v2.30. **Bewusste
+  Abweichung von der wörtlichen Auslegung des Auftrags** ("keinen
+  sinnlosen 'geändert'-Eintrag erzeugen"): der Auftrag selbst schränkt
+  das ausdrücklich ein ("sofern das mit der bestehenden Audit-Logik
+  sauber möglich ist" / "Bestehende v2.30/v2.31-Semantik nicht ungewollt
+  brechen"). Da `measurements`/`ausmass`/`reports` grosse, bewusst nicht
+  gedifftete JSONB-Felder besitzen (41.1), kann aus "kein Whitelist-Feld
+  geändert" **nicht** zuverlässig gefolgert werden, dass fachlich
+  wirklich nichts passiert ist – ein Benutzer könnte z. B. nur die Länge
+  einer Einlaufblech-Position geändert haben, ohne Titel/Datum/Notiz
+  anzufassen. Den Log-Eintrag in diesem Fall zu unterdrücken, würde eine
+  echte, reale Änderung lautlos aus der Historie verschwinden lassen –
+  ein deutlich schwerwiegenderer Fehler als ein gelegentlicher Eintrag
+  ohne sichtbaren Diff. Für `projects` (keine ungediffte JSONB-Struktur,
+  41.1) wäre eine Unterdrückung zwar sicher möglich gewesen, wurde aber
+  aus Konsistenzgründen **einheitlich für alle vier Entitäten** nicht
+  gebaut – ein UPDATE erzeugt immer einen Eintrag, der Eintrag zeigt nur
+  zusätzlich einen Diff, wenn tatsächlich ein Whitelist-Feld betroffen
+  war. Empirisch verifiziert (41.6, Test „keine Änderung").
+- **`created`/`deleted`** → `changes` immer `NULL`, kein Diffing (Auftrag
+  Abschnitt 17) – der bestehende Beschreibungstext/Fallback aus
+  v2.30/v2.31 bleibt unverändert der einzige Kontext.
+
+### 41.6 Tests (Auftrag Abschnitt 25–27, alle in `begin;…rollback;` mit
+Wegwerf-Firmen, nie PETER KÜNZI AG)
+
+| Test | Ergebnis |
+|---|---|
+| Projekt: ein Feld ändern (`object`) | `changes=[{field:"object",old:"Adresse A",new:"Adresse B"}]` |
+| Projekt: zwei Felder gleichzeitig (`name`+`order_no`) | ein Eintrag, `changes` mit **beiden** Diffs |
+| Projekt: Feld auf `NULL` setzen (`customer`) | `changes=[{field:"customer",old:"Kunde X",new:null}]` |
+| Projekt: `NULL` wieder auf Wert | `changes=[{field:"customer",old:null,new:"Kunde Y"}]` |
+| Projekt: `UPDATE ... SET name=name` (keine echte Änderung) | `action='updated'` weiterhin vorhanden, `changes=NULL` (kein Fake-Diff) |
+| Projekt: `archived` false→true, dann true→false | je `action='status_changed'`, `changes=[{field:"archived",old:false,new:true}]` bzw. umgekehrt – **nie** gemischt mit anderen Feldern |
+| Massaufnahme: `title`+`date`+`note` gleichzeitig ändern | ein Eintrag, alle drei Diffs enthalten |
+| Ausmass: `note` ändern | Diff korrekt |
+| Report: `customer`+`vat` gleichzeitig ändern | ein Eintrag, beide Diffs enthalten |
+| Cross-Tenant: Firma B kennt `entity_id`/`project_id` von Firma A | 0 sichtbare Zeilen (unverändert seit v2.30/v2.32) |
+| Client-Manipulation: direkter `INSERT` mit erfundenem `changes` (`[{"field":"object","old":"X","new":"FAKE"}]`) | weiterhin `insufficient_privilege` – `changes` ist genauso ungeschützt gegen Client-Schreibzugriff wie jede andere Spalte, da überhaupt keine INSERT-Policy für `authenticated` existiert |
+| Echter Diff nach dem Fälschungsversuch erneut gelesen | zeigt weiterhin ausschliesslich den echten, serverseitig ermittelten Wert, unbeeinflusst vom Fälschungsversuch |
+
+Nach jeder Transaktion erneut geprüft: keine Wegwerf-Firmen, keine
+Test-Zeilen, `audit_log` insgesamt weiterhin 0 Zeilen (weiterhin keine
+reale Nutzung seit Deploy), PETER KÜNZI AG (`updated_at`) unverändert.
+
+### 41.7 Bewusst nicht unterstützte Felder (offen dokumentiert statt improvisiert)
+
+Wie in 41.1 begründet, bleiben folgende Felder **ohne** Feld-Diffing,
+weil ein zuverlässiger, generischer Diff ohne Fachlogik-Umbau nicht
+möglich ist:
+
+- `measurements.data` (alle neun Massaufnahme-Fachwerte)
+- `ausmass.positions`
+- `reports.work_entries`/`reports.material_entries`
+- Foto-/Skizzenpfade aller Tabellen (kein sinnvoller lesbarer Diff eines
+  Speicherpfads, ausserdem bereits von der in v2.30/v2.31 dokumentierten
+  Platzhalterzeilen-Häufung betroffen – ein Pfad-Diff dort wäre ohnehin
+  irreführend)
+
+Dasselbe gilt unverändert für die in Abschnitt 38.6 dokumentierte
+Platzhalterzeilen-Häufung bei neuen Foto-Massaufnahmen: **nicht**
+automatisch bereinigt oder rückwirkend verändert (Auftrag Abschnitt 22),
+findet dort aber ohnehin keinen künstlichen Diff, da `data`/Fotopfade
+nicht gedifft werden.
+
+### 41.8 Frontend (`js/23-verlauf.js`)
+
+- `VERLAUF_FIELD_LABELS` – deutsche Feldbezeichnungen je `entity_type`,
+  1:1 aus den bestehenden Formular-Labels übernommen (41.2).
+- `verlaufFormatDiffValue(field, v)` – `NULL`/leer → „–", `date`-Felder
+  im Schweizer Format, alles andere als Text (kein Zahlen-/Boolean-
+  Formatierungsbedarf, siehe 41.4).
+- `verlaufChangesHtml(row)` – rendert `row.changes` als kompakte Zeilen
+  unterhalb der bestehenden Beschreibung; bei `action='status_changed'`
+  und `field='archived'` bewusst **nicht** generisch
+  ("archived: false → true"), sondern als "Aktiv → Archiviert"/
+  "Archiviert → Aktiv" (Auftrag Abschnitt 18) – einzige Sonderbehandlung,
+  alle anderen Felder laufen über denselben generischen Pfad
+  ("Label: alt → neu").
+- Kein Eintrag ohne `changes` → keine zusätzliche Zeile, weiterhin nur
+  der bestehende Aktions-Badge + Beschreibungstext aus v2.30/v2.31
+  (Auftrag Abschnitt 14, zweiter Fall).
+- Sowohl der kombinierte Projekt-Verlauf als auch alle drei direkten
+  Einzel-Verläufe (Massaufnahme/Ausmass/Report) nutzen dieselbe
+  `verlaufEntryHtml()`/`verlaufChangesHtml()`-Rendering-Funktion – keine
+  vierfach kopierte Anzeige-Logik.
+
+### 41.9 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: unverändert ausgeglichen
+  (612/612 – kein HTML in dieser Aufgabe verändert, nur
+  `js/23-verlauf.js` und `css/01-basis.css`).
+- `get_advisors(type:'security')` nach der Migration erneut geprüft:
+  identisch zum Stand nach v2.32, keine neue Warnung durch
+  `audit_log.changes`/`write_audit_log()`.
+- Massaufnahme-Berechnungen (alle neun Fachfunktionen), Ausmass-/
+  Regierapport-Fachlogik, PDF-Layout, Materialkataloge,
+  Projektberechnungen: keine dieser Dateien in dieser Aufgabe verändert.
+- Mitarbeiterlöschung/Datensatzlöschung: unverändert (kein Code dort
+  angefasst) – `deleted`-Einträge, `entity_id`, `project_id` bleiben wie
+  in v2.30/v2.32 dokumentiert erhalten.
+- PETER KÜNZI AG vor/nach der Aufgabe erneut geprüft: unverändert,
+  `audit_log` weiterhin insgesamt 0 Zeilen.
+- Live-Klicktest im Browser weiterhin nicht möglich – Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`
+  direkt, wie in jeder vorherigen Sitzung. **Das wird hier ausdrücklich
+  nicht als getestet behauptet.** Alle in 41.6 dokumentierten Ergebnisse
+  sind direkte Trigger-/RLS-Simulationen gegen das echte Produktivschema.
+
+### 41.10 Offene Punkte für v2.34
+
+- Kein Live-Klicktest im Browser möglich (siehe 41.9).
+- Kein Diffing innerhalb `measurements.data`/`ausmass.positions`/
+  `reports.work_entries`/`material_entries` – bewusst, siehe 41.1/41.7.
+  Eine spätere Version könnte pro Massaufnahme-Typ eine eigene,
+  sorgfältig geprüfte Diff-Logik ergänzen, das wäre aber ein
+  eigenständiger, deutlich grösserer Auftrag (neun verschiedene
+  Strukturen).
+- Die in Abschnitt 38.6 dokumentierte Platzhalterzeilen-Häufung bleibt
+  unverändert offen.
+- `changes` ist bewusst ungeschützt gegen künftige weitere Whitelist-
+  Erweiterungen ohne erneute Sicherheitsprüfung – jedes neu
+  hinzugefügte Feld muss weiterhin ausschliesslich über `OLD`/`NEW`
+  innerhalb von `write_audit_log()` ermittelt werden, nie über einen
+  Client-Wert.
