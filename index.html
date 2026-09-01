@@ -88,10 +88,14 @@
 </div>
 <div class="bar" style="margin-top:6px;justify-content:center">
 <button id="openFeedback" class="gray">💬 Feedback geben</button>
+<!-- Nur für Benutzer in system_admins sichtbar, siehe js/22-system-admin.js.
+     Reine UI-Führung - abgesichert ist das ausschliesslich serverseitig
+     über is_system_admin() in RLS/den system_admin_*-Funktionen. -->
+<button id="navSystemAdmin" class="gray" hidden>⚙️ System-Administration</button>
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.16</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.17</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -287,6 +291,70 @@
 <div class="wide"><label>Dein Feedback</label><textarea id="feedbackMessage" placeholder="Was ist dir aufgefallen? Was fehlt? Was funktioniert nicht wie erwartet?" rows="5"></textarea></div>
 </div>
 <div class="bar"><button id="saveFeedback" class="green">Absenden</button><button id="cancelFeedback" class="gray">Abbrechen</button></div>
+</div>
+</div>
+</div>
+
+<!-- SYSTEM-ADMINISTRATION: nur für Benutzer in system_admins erreichbar
+     (is_system_admin()). Verwaltet ausschliesslich companies (Trial/
+     Status) - keine Projekt-/Massaufnahme-/Fotodaten. Getrennt von der
+     normalen Firmenadmin-Rolle, siehe js/22-system-admin.js. -->
+<div id="systemAdminModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>⚙️ Spengler-DIGITAL Administration</h2>
+<div class="info">Firmenverwaltung für den Betreiber von Spengler-DIGITAL. Unabhängig von der normalen Firmenadmin-Rolle.</div>
+<div id="systemAdminCompanyList"></div>
+<div class="bar"><button id="closeSystemAdmin" class="green">✓ Fertig</button></div>
+</div>
+</div>
+</div>
+
+<div id="systemAdminCompanyModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2 id="systemAdminCompanyName">Firma</h2>
+<div class="grid" style="margin-bottom:10px">
+<div><label>Status</label><div id="systemAdminCompanyStatus" class="small"></div></div>
+<div><label>Registriert am</label><div id="systemAdminCompanyCreated" class="small"></div></div>
+<div><label>Trial-Dauer</label><div id="systemAdminCompanyTrialDays" class="small"></div></div>
+<div><label>Trial-Beginn</label><div id="systemAdminCompanyTrialStart" class="small"></div></div>
+<div><label>Trial-Ende</label><div id="systemAdminCompanyTrialEnd" class="small"></div></div>
+<div><label>Benutzer</label><div id="systemAdminCompanyUsers" class="small"></div></div>
+</div>
+
+<div class="settings-section" data-section="sysadmin-trial">
+<div class="settings-section-head" data-toggle-section="sysadmin-trial"><h2>Trial bearbeiten</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="grid">
+<div><label>Trial-Dauer (Tage)</label><input id="sysAdminTrialDaysInput" type="number" min="0" max="3650"></div>
+<div><label>Trial-Beginn</label><input id="sysAdminTrialStartInput" type="date"></div>
+</div>
+<div class="small" style="margin:6px 0">Trial-Ende wird automatisch aus Beginn + Dauer berechnet.</div>
+<div class="bar"><button id="sysAdminSaveTrial" class="green">💾 Trial speichern</button></div>
+</div>
+</div>
+
+<div class="settings-section" data-section="sysadmin-status">
+<div class="settings-section-head" data-toggle-section="sysadmin-status"><h2>Status ändern</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="grid">
+<div><label>Status</label>
+<select id="sysAdminStatusInput">
+<option value="trial">trial</option>
+<option value="active">active</option>
+<option value="expired">expired</option>
+<option value="cancelled">cancelled</option>
+<option value="suspended">suspended</option>
+</select>
+</div>
+</div>
+<div class="bar"><button id="sysAdminSaveStatus" class="green">💾 Status speichern</button></div>
+</div>
+</div>
+
+<div id="sysAdminActionError" class="small" style="color:var(--red)"></div>
+<div class="bar" style="margin-top:10px"><button id="closeSystemAdminCompany" class="gray">← Zurück zur Übersicht</button></div>
 </div>
 </div>
 </div>
@@ -1077,6 +1145,7 @@
 <script src="js/19-lukarne.js"></script>
 <script src="js/20-anschlussblech.js"></script>
 <script src="js/21-einfassung-rund.js"></script>
+<script src="js/22-system-admin.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>
 </html>

@@ -104,6 +104,7 @@ async function afterLogin(){
  }
  $("authScreen").hidden=true;
  $("appRoot").hidden=false;
+ if(typeof checkSystemAdmin==="function")await checkSystemAdmin();
  await loadAllData();
  works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0}];
  mats=[];
@@ -129,6 +130,8 @@ function goToStart(){
  $("measTypeChooserModal").hidden=true;
  $("amTypeChooserModal").hidden=true;
  $("globalSearchModal").hidden=true;
+ $("systemAdminModal").hidden=true;
+ $("systemAdminCompanyModal").hidden=true;
  measEditReturnTo="measurementsModal";
  amEditReturnTo="ausmassModal";
  showStart();

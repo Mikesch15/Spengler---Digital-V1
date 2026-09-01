@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.16**
+- sichtbare App-Version: **2.17**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -1303,3 +1303,190 @@ tatsächlich nicht gesetzt werden konnte. Technische Details landen nur in
   pauschal `has_permission('profiles','edit')` für Mitarbeiter auf `true`
   setzen, das würde die ursprünglich gewollte Einschränkung (kein
   Selbst-Ändern von Rolle/`company_id`) wieder aufheben.
+
+## 25. SYSTEM-ADMIN-BEREICH FÜR DEN BETREIBER – VERSION 2.17
+
+Erster geschützter Bereich für den **Betreiber** von Spengler-DIGITAL,
+strikt getrennt vom bestehenden Firmenadmin (`profiles.role='admin'`).
+Ein Firmenadmin verwaltet weiterhin ausschliesslich seine eigene Firma;
+ein System-Admin verwaltet die Firmenliste von Spengler-DIGITAL selbst.
+
+### 25.1 Modell
+
+Verwendet ausschliesslich die bereits vorhandene Struktur:
+
+- Tabelle `system_admins` (`user_id`, `created_at`) – **weiterhin leer**,
+  siehe 25.5.
+- Funktion `is_system_admin()` (`SECURITY DEFINER`, prüft
+  `system_admins.user_id = auth.uid()`) – unverändert übernommen.
+
+Keine neue parallele Admin-Tabelle, keine Änderung an `profiles.role`
+oder `company_id` als Ersatz.
+
+### 25.2 Datenbank (Migrationen `system_admin_company_management`,
+`system_admin_functions_revoke_anon`)
+
+- **Neue RLS-Policy** `system_admin_select_all_companies` auf `companies`
+  (`SELECT`, `USING (is_system_admin())`). Additiv zur bestehenden
+  `company_member_select_own_company`-Policy (Postgres kombiniert
+  mehrere permissive SELECT-Policies mit OR) – ein normaler
+  Firmenmitarbeiter/-admin sieht weiterhin nur die eigene Firma, ein
+  System-Admin zusätzlich alle. Keine bestehende Policy verändert.
+- **Drei neue, eng gefasste `SECURITY DEFINER`-Funktionen** (gleiches
+  Muster wie `is_admin()`/`mark_own_password_set()`, Owner `postgres`
+  mit `BYPASSRLS`), jede prüft `is_system_admin()` selbst als erste
+  Zeile und bricht sonst mit `raise exception ... errcode 42501` ab:
+  - `system_admin_company_user_counts()` – liefert **nur** `company_id`
+    + Anzahl (`count(*)`) je Firma aus `profiles`, bewusst **keine**
+    Namen/E-Mails/sonstigen personenbezogenen Daten.
+  - `system_admin_set_trial(company_id, trial_days, trial_started_at,
+    trial_ends_at)` – ändert **ausschliesslich** diese drei Felder
+    (+ `updated_at`) einer einzelnen Firma.
+  - `system_admin_set_status(company_id, status)` – ändert
+    **ausschliesslich** `subscription_status` (+ `updated_at`).
+    `companies_subscription_status_check` erzwingt weiterhin serverseitig
+    die gültigen Werte (`trial`/`active`/`expired`/`cancelled`/
+    `suspended`).
+  - Bewusst **keine** RLS-`UPDATE`-Policy für System-Admins auf
+    `companies` (das würde die ganze Zeile inkl. `name`/`slug`/
+    `is_active` freigeben) – stattdessen wie bei `mark_own_password_set()`
+    präzise Funktionen, die nur die vom Auftrag vorgesehenen Felder
+    anfassen.
+  - `EXECUTE` nur an `authenticated` (Supabase vergibt bei neuen
+    Funktionen zusätzlich automatisch an `anon` – explizit entzogen, wie
+    schon bei `mark_own_password_set()`).
+
+### 25.3 Frontend (`js/22-system-admin.js`, neuer Menüpunkt in
+`index.html`)
+
+- Neuer, standardmässig **`hidden`** Knopf `#navSystemAdmin`
+  ("⚙️ System-Administration") auf dem Startbildschirm, neben "💬
+  Feedback geben". `checkSystemAdmin()` (aufgerufen in `afterLogin()`,
+  `js/03-login.js`) ruft `sb.rpc("is_system_admin")` auf und blendet den
+  Knopf nur ein, wenn das `true` ergibt. **Reine UI-Führung** – die
+  eigentliche Absicherung ist ausschliesslich die RLS-Policy/die drei
+  Funktionen aus 25.2, die bei jedem Aufruf serverseitig erneut prüfen,
+  unabhängig vom Frontend-Zustand (siehe 25.4 für den Beleg).
+- `#systemAdminModal` – Firmenliste (Name, Status, Test-bis-Datum,
+  Benutzeranzahl) als Karten, Klick öffnet `#systemAdminCompanyModal`.
+- `#systemAdminCompanyModal` – Detailansicht (Status, Registriert am,
+  Trial-Dauer, Trial-Beginn, Trial-Ende, Benutzeranzahl) plus zwei
+  Aktionen:
+  - **Trial bearbeiten**: Trial-Dauer (Tage) und Trial-Beginn editierbar,
+    Trial-Ende wird im Frontend automatisch aus Beginn + Dauer berechnet
+    und mitgeschickt – deckt "Trial-Dauer ändern"/"verlängern"/
+    "verkürzen"/"auf einen gewünschten Zeitraum setzen" aus dem Auftrag
+    ab, ohne eine zweite parallele Trial-Logik einzuführen (nutzt exakt
+    `trial_days`/`trial_started_at`/`trial_ends_at`).
+  - **Status ändern**: Dropdown mit den fünf bestehenden
+    `subscription_status`-Werten.
+  - Beide Aktionen rufen `sb.rpc(...)` auf; schlägt der Server-Check
+    fehl (z. B. weil `system_admins` leer ist, siehe 25.5), erscheint
+    eine Fehlermeldung in `#sysAdminActionError` statt eines stillen
+    Erfolgs.
+- Keine Löschfunktion, keine Anzeige von Projekten/Massaufnahmen/Fotos
+  einzelner Firmen – bewusst nur die in dieser Phase vorgesehene
+  Firmenverwaltung (siehe 25.6).
+- `goToStart()` schliesst beide neuen Modals mit, wie alle bestehenden
+  Modals.
+
+### 25.4 Sicherheit – direkt gegen die Produktivdatenbank verifiziert
+
+Alle Tests in einer Transaktion mit anschliessendem `ROLLBACK` (keine
+echte Datenänderung), simuliert über `set local role authenticated` +
+`request.jwt.claims`:
+
+- Ein normaler Firmenadmin **ohne** System-Admin-Eintrag (Max
+  Mustermann, Admin der Firma "Testfirma") sieht über
+  `select * from companies` weiterhin **nur seine eigene Firma** (1
+  Zeile) und `is_system_admin()` liefert `false`.
+- **Derselbe Admin von PETER KÜNZI AG** (Mike Ledermann) bekommt bei
+  `system_admin_set_trial(...)` auf die eigene Firma den Fehler „Nur
+  für System-Administratoren." – ein Firmenadmin kann also nicht einmal
+  seine eigene Firma über den neuen Weg ändern.
+- Nach einem **temporären** Test-Eintrag in `system_admins` (innerhalb
+  derselben, zurückgerollten Transaktion) sieht derselbe Benutzer
+  plötzlich **beide** Firmen, `system_admin_company_user_counts()`
+  liefert korrekte Zähler (2 bzw. 12 Benutzer), und
+  `system_admin_set_status(...)`/`system_admin_set_trial(...)` liefern
+  die aktualisierte Zeile zurück.
+- Nach jedem `ROLLBACK` erneut per SQL geprüft: `system_admins` weiterhin
+  leer (`count = 0`), PETER KÜNZI AG und Testfirma exakt im
+  ursprünglichen Zustand (`subscription_status`, `trial_days`
+  unverändert) – kein Test hat echte Daten verändert.
+- Grants der drei neuen Funktionen geprüft: `authenticated`/
+  `service_role`/`postgres` haben `EXECUTE`, `anon` nicht.
+- Supabase-Security-Advisor nach den Migrationen erneut geprüft: die
+  drei neuen Funktionen erscheinen dort nur mit der bereits für
+  `is_admin()`/`mark_own_password_set()` akzeptierten, erwarteten
+  Warnung ("von `authenticated` aufrufbar, Prüfung liegt in der
+  Funktion") – keine neue, andersartige Auffälligkeit, kein
+  `anon`-Zugriff.
+
+### 25.5 System-Admin-Benutzer
+
+`system_admins` ist **weiterhin leer** – es wurde bewusst **niemand**
+automatisch eingetragen (kein Raten einer User-ID). Damit ist der neue
+Bereich aktuell für **niemanden** sichtbar/nutzbar, bis der Projektinhaber
+gezielt eine konkrete `auth.users.id` einträgt, z. B.:
+
+```sql
+insert into public.system_admins(user_id) values ('<eigene auth-user-id>');
+```
+
+Die eigene `auth.users.id` findet sich z. B. über die Supabase-Tabelle
+`auth.users` (Spalte `id`) anhand der Login-E-Mail.
+
+### 25.6 Was diese Phase NICHT enthält
+
+- Keine vollständige Firmenlöschung (auch nicht für Testfirmen).
+- Keine Impersonation/kein Support-Zugriff auf Projekte, Massaufnahmen,
+  Fotos oder sonstige Firmendaten einzelner Kunden.
+- Kein Zahlungsanbieter, keine Abrechnung.
+- Keine eigene Domain.
+- Keine automatische Trial-Sperrung/-Löschung – ein abgelaufener Trial
+  bleibt weiterhin unverändert nutzbar, wie schon in 21.4 dokumentiert.
+  Der System-Admin kann den Status **manuell** ändern, es passiert
+  nichts automatisch.
+
+### 25.7 Tests
+
+- Direkt gegen die Produktivdatenbank verifiziert, siehe 25.4 (RLS-
+  Trennung, Server-Ablehnung für Nicht-System-Admins, korrekte
+  Firmenliste/Benutzerzähler/Schreibzugriff für einen simulierten
+  System-Admin, keine Datenänderung an PETER KÜNZI AG/Testfirma).
+- `node --check` über alle `js/*.js` (inkl. neuer `js/22-system-admin.js`)
+  und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: ausgeglichen (577/577, vorher
+  539/539 – Differenz durch die zwei neuen Modals).
+- Jede in `js/22-system-admin.js` verwendete Element-ID einzeln gegen
+  `index.html` geprüft: jede genau einmal vorhanden, keine
+  Tippfehler/Duplikate.
+- Wiederverwendete CSS-Klassen (`settingrow`, `settings-section`, `card`,
+  `modal`, …) sind bereits in `css/01-basis.css`/`css/02-responsive.css`
+  definiert und dort bereits für Tablet/Mobile ausgelegt – keine neue,
+  ungetestete Layout-Logik eingeführt.
+- Live-Klicktest im Browser (Login als eingetragener System-Admin,
+  Firmenliste öffnen, Trial/Status ändern) in dieser Sitzung technisch
+  nicht möglich – Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co` direkt, und `system_admins` ist
+  ohnehin leer (siehe 25.5), es gibt also aktuell noch gar kein echtes
+  System-Admin-Konto zum Testen. **Das wird hier ausdrücklich nicht als
+  getestet behauptet.**
+- Massaufnahme, Ausmass, Regierapport, Materialverwaltung, Excel-Import,
+  PDF/Druck, PWA, Storage-Struktur, Tenant-RLS, Firmenregistrierung,
+  Mitarbeiteranlage, Passwort-Erstsetzungsflow, `rates`, bestehender
+  Login: nicht angefasst, keine bestehende Policy/Funktion verändert.
+
+### 25.8 Offene Punkte
+
+- Kein Live-Klicktest möglich (siehe 25.7) – zusätzlich blockiert dadurch,
+  dass noch niemand in `system_admins` eingetragen ist.
+- "Letzter relevanter Aktivitätszeitpunkt" (Auftrag Abschnitt 3, "falls
+  bereits vorhanden") wurde **nicht** eingebaut – es gibt in der App
+  aktuell keine vorhandene, bereits berechnete Kennzahl dafür (nur
+  `auth.users.last_sign_in_at` pro einzelnem Benutzer, keine
+  Firmen-Aggregation). Eine neue Tracking-Logik dafür einzuführen wäre
+  über die "kleinste sichere Änderung" hinausgegangen – bewusst
+  ausgelassen statt geraten/improvisiert.
+- Erster System-Admin muss manuell eingetragen werden (siehe 25.5).
