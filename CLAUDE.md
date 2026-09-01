@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.12**
+- sichtbare App-Version: **2.13**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -748,3 +748,105 @@ Start-/Menübildschirm, Projektdatei öffnen.
 - PDF-Layout und Berechnungstabellen – in dieser Migrationsphase
   ausdrücklich kein UI-Redesign, keine Änderungen an Navigation, Buttons,
   Farben, Layout.
+
+## 21. SELF-SERVICE-FIRMENREGISTRIERUNG – PHASE 1
+
+Erste echte Möglichkeit, sich ohne Mitwirkung eines bestehenden Admins
+selbst eine neue Firma anzulegen. Läuft unter der bestehenden
+GitHub-Pages-Adresse, keine eigene Domain, kein Firmen-Code, keine
+Kreditkarte.
+
+### 21.1 Ablauf
+
+Login-Bildschirm → Knopf "🏢 Neue Firma registrieren" → Formular
+(Firmenname, Vorname, Nachname, E-Mail, Passwort, Passwort bestätigen) →
+Edge Function `register-company` (`service_role`, läuft serverseitig,
+niemals im Browser) legt atomar an:
+
+1. Auth-User (`email_confirm:true`, kein Bestätigungs-Mail-Versand nötig)
+2. `companies`-Zeile: `slug` aus dem Firmennamen abgeleitet (Umlaute/
+   Akzente entfernt, Kleinschreibung, Bindestriche; bei Kollision mit
+   `-2`, `-3`, … bis zu 30 Versuchen eindeutig gemacht), `created_by` =
+   neuer User, `subscription_status:"trial"`, `trial_days:30`,
+   `trial_started_at` = jetzt, `trial_ends_at` = jetzt + 30 Tage
+3. `profiles`-Zeile: `role:"admin"`, `company_id` = neue Firma,
+   `passwort_gesetzt:true` (die Person hat ihr Passwort gerade selbst
+   gewählt, anders als bei einem vom Admin angelegten Mitarbeiterkonto)
+4. `app_settings`-Zeile für die neue Firma, direkt mit dem eingegebenen
+   Firmennamen vorbefüllt
+
+`company_id` kommt ausschliesslich aus Schritt 2/3 der Funktion, nie vom
+Client. Schlägt ein Schritt fehl, räumt die Funktion alles bereits
+Angelegte in umgekehrter Reihenfolge wieder ab (erst `app_settings`/
+`profiles`, dann `companies`, zuletzt der Auth-User) – keine
+Karteileichen, siehe `supabase/functions/register-company`.
+
+Nach erfolgreicher Registrierung meldet der Client sich mit der gerade
+eingegebenen E-Mail/Passwort-Kombination selbst an
+(`signInWithPassword`). Klappt das aus irgendeinem Grund nicht (Konto
+steht trotzdem), wird stattdessen verständlich zum normalen Login
+weitergeleitet.
+
+### 21.2 Login mit echter E-Mail statt Benutzername
+
+Bestehende Mitarbeiterkonten melden sich weiterhin mit
+`Vorname.Nachname` an, das intern auf eine Pseudo-E-Mail-Domain
+(`@nfgryuzkpwjfmdlmevuy.supabase.co`) abgebildet wird (siehe
+`smart-action`). Selbst registrierte Firmen-Admins haben dagegen eine
+echte E-Mail als Login-Adresse. `usernameToEmail()` (`js/03-login.js`)
+unterscheidet beide Fälle rein an einem "@" im Eingabefeld – bestehender
+Login unverändert, keine UI-Änderung nötig ausser dem Feldlabel
+("Benutzername oder E-Mail").
+
+### 21.3 `app_settings`: von System-Singleton zu einer Zeile je Firma
+
+`app_settings` hatte trotz vorhandener `company_id` noch einen
+`CHECK (id = 1)`-Constraint aus der Zeit vor Multi-Tenant – die ganze
+Tabelle konnte nie mehr als eine einzige Zeile im gesamten System
+enthalten. Für eine zweite Firma wäre das komplett kaputt gewesen
+(weder eigener Firmenname/Logo möglich, noch hätte sie die bestehende
+Zeile sehen können). In dieser Session behoben:
+
+- Migration `app_settings_per_company`: `CHECK (id = 1)` entfernt, `id`
+  auf echte Identity-Spalte umgestellt, `UNIQUE (company_id)` ergänzt.
+  Bestehende Zeile (PETER KÜNZI AG) unverändert erhalten.
+- Alle `.eq("id",1)`-Stellen im Client (`js/05-daten-laden.js`,
+  `js/07-einstellungen.js`) entfernt – RLS (`tenant_boundary_app_settings`)
+  grenzt Select/Update automatisch auf die eigene Firma ein, dafür
+  reicht `.select("*").maybeSingle()` bzw. `.update({...})` ohne
+  `.eq()`.
+- `register-company` legt die Zeile der neuen Firma gleich mit an
+  (siehe 21.1), damit niemand ohne eigene Einstellungen dasteht.
+
+`einlaufblech_settings` hat denselben `id=1`-Singleton-Constraint,
+wird aber von keiner Stelle im Client gelesen oder geschrieben
+(Einlaufblech-/Anschlussblech-Werte liegen im `localStorage`, siehe
+20.8) – deshalb bewusst NICHT angefasst, kein aktiver Bug.
+
+### 21.4 Trial-Status
+
+- Gültige `subscription_status`-Werte: `trial`, `active`, `expired`,
+  `cancelled`, `suspended`. Neue Firmen starten immer bei `trial`.
+- `trial_days` ist pro Firma einstellbar (Default 30, Check 0–3650) –
+  in dieser Phase setzt die Registrierung immer den Standardwert 30,
+  ein UI zum Ändern gibt es noch nicht.
+- **Kein automatisches Sperren oder Löschen.** Ein abgelaufener Trial
+  (`trial_ends_at` in der Vergangenheit) bleibt unverändert nutzbar und
+  gespeichert – es gibt in dieser Phase keinerlei Code, der
+  `subscription_status`/Zugriff anhand von `trial_ends_at` prüft oder
+  einschränkt. Das ist bewusst so; automatische Sperrung ist eine
+  spätere, eigene Aufgabe.
+- Vollständige Firmenlöschung kommt später als geschützte
+  System-Admin-Funktion. Die Tabelle `system_admins` und die Funktion
+  `is_system_admin()` existieren in Supabase bereits (leer/ungenutzt),
+  es gibt aber noch keine Oberfläche und keinen Aufruf dafür im Client.
+
+### 21.5 Was diese Phase NICHT enthält
+
+- Keine automatische Trial-Sperrung/-Löschung (siehe 21.4).
+- Keine System-Admin-Oberfläche.
+- Keine Mitarbeiter-Einladungen (Mitarbeiter legt weiterhin nur ein
+  Admin in den Einstellungen an, unverändert seit Abschnitt 20).
+- Kein Zahlungsanbieter, keine Abos/Rechnungen.
+- Keine eigene Domain – weiterhin unter der bestehenden GitHub-Pages-
+  Adresse.

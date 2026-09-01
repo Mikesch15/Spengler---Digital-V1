@@ -6,7 +6,7 @@ async function loadAllData(){
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
   sb.from("projects").select("*").order("name"),
-  sb.from("app_settings").select("*").eq("id",1).maybeSingle(),
+  sb.from("app_settings").select("*").maybeSingle(), // eine Zeile je Firma, RLS grenzt automatisch ein
   sb.from("blitzschutz_materials").select("*").order("bezeichnung"),
   sb.from("rinne_fitting_types").select("*").order("name"),
   sb.from("measurement_materials").select("*").order("name"),

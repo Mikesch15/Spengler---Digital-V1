@@ -29,15 +29,37 @@
 <div class="brand">SPENGLER-DIGITAL</div>
 <h1>Anmelden</h1>
 <div class="grid">
-<div class="wide"><label>Benutzername (Vorname.Nachname)</label><input id="loginUser" placeholder="max.muster" autocomplete="username"></div>
+<div class="wide"><label>Benutzername oder E-Mail</label><input id="loginUser" placeholder="max.muster" autocomplete="username"></div>
 <div class="wide"><label>Passwort</label><input id="loginPass" type="password" autocomplete="current-password"></div>
 </div>
 <div class="bar">
 <button id="loginBtn" class="blue">Anmelden</button>
 </div>
 <div class="small" id="loginError" style="color:var(--red)"></div>
-<!-- Selbstregistrierung entfernt: Konten legt ausschliesslich ein Administrator in den Einstellungen an,
-     die Firma wird dabei serverseitig aus dessen eigenem Konto bestimmt (kein Firmen-Code mehr). -->
+<!-- Mitarbeiter legt weiterhin nur ein Administrator in den Einstellungen an
+     (Firma kommt dabei serverseitig aus dessen eigenem Konto, kein Firmen-Code).
+     Diese Registrierung hier ist etwas anderes: eine komplett neue Firma. -->
+<div class="bar" style="margin-top:10px;justify-content:center">
+<button type="button" id="showCompanyRegister" class="gray" style="font-size:12px">🏢 Neue Firma registrieren</button>
+</div>
+</div>
+
+<div class="card" id="companyRegisterCard" hidden>
+<h2>Neue Firma registrieren</h2>
+<div class="info">30 Tage kostenlos testen – keine Kreditkarte erforderlich.</div>
+<div class="grid">
+<div class="wide"><label>Firmenname</label><input id="regCompanyName" autocomplete="organization"></div>
+<div><label>Vorname</label><input id="regFirstName" autocomplete="given-name"></div>
+<div><label>Nachname</label><input id="regLastName" autocomplete="family-name"></div>
+<div class="wide"><label>E-Mail</label><input id="regEmail" type="email" autocomplete="email"></div>
+<div><label>Passwort</label><input id="regPassword" type="password" autocomplete="new-password"></div>
+<div><label>Passwort bestätigen</label><input id="regPassword2" type="password" autocomplete="new-password"></div>
+</div>
+<div class="bar">
+<button id="companyRegisterBtn" class="green">Firma registrieren</button>
+<button id="cancelCompanyRegister" class="gray">Abbrechen</button>
+</div>
+<div class="small" id="companyRegisterError" style="color:var(--red)"></div>
 </div>
 </div>
 </div>
@@ -69,7 +91,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.12</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.13</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->

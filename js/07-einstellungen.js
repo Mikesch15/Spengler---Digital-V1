@@ -144,8 +144,7 @@ $("saveModuleTest").addEventListener("click",async()=>{
  knopf.disabled=true;
  try{
   const {error}=await sb.from("app_settings")
-   .update({module_test:neu,updated_at:new Date().toISOString()})
-   .eq("id",1);
+   .update({module_test:neu,updated_at:new Date().toISOString()}); // eine Zeile je Firma, RLS grenzt automatisch ein
   if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
   moduleImTest=neu;
   applyModuleTest();
@@ -163,8 +162,7 @@ $("saveMadMasse").addEventListener("click",async()=>{
  knopf.disabled=true;
  try{
   const {error}=await sb.from("app_settings")
-   .update({mad_boden_mass_mm:boden,mad_schieber_mass_mm:schieber,updated_at:new Date().toISOString()})
-   .eq("id",1);
+   .update({mad_boden_mass_mm:boden,mad_schieber_mass_mm:schieber,updated_at:new Date().toISOString()}); // eine Zeile je Firma, RLS grenzt automatisch ein
   if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
   madBodenMass=boden;madSchieberMass=schieber;
   if(typeof renderMadResult==="function"&&madSegments.length)renderMadResult();
@@ -186,8 +184,7 @@ $("saveLukMasse").addEventListener("click",async()=>{
  knopf.disabled=true;
  try{
   const {error}=await sb.from("app_settings")
-   .update({luk_achsabstand_mm:achs,luk_hilfsriss_mm:hr,luk_zugabe_breite_mm:zb,luk_zugabe_laenge_mm:zl,updated_at:new Date().toISOString()})
-   .eq("id",1);
+   .update({luk_achsabstand_mm:achs,luk_hilfsriss_mm:hr,luk_zugabe_breite_mm:zb,luk_zugabe_laenge_mm:zl,updated_at:new Date().toISOString()}); // eine Zeile je Firma, RLS grenzt automatisch ein
   if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
   lukAchsabstand=achs;lukHilfsriss=hr;lukZugabeBreite=zb;lukZugabeLaenge=zl;
   if(typeof renderLukResult==="function"&&$("measType").value==="lukarne")renderLukResult();
@@ -201,7 +198,7 @@ $("saveLukMasse").addEventListener("click",async()=>{
 $("saveRinneDilaMass").onclick=async()=>{
  const wert=Number($("rinneDilaMassInput").value)||0;
  $("saveRinneDilaMass").disabled=true;
- const {error}=await sb.from("app_settings").update({rinne_dila_mass_mm:wert,updated_at:new Date().toISOString()}).eq("id",1);
+ const {error}=await sb.from("app_settings").update({rinne_dila_mass_mm:wert,updated_at:new Date().toISOString()}); // eine Zeile je Firma, RLS grenzt automatisch ein
  $("saveRinneDilaMass").disabled=false;
  if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
  rinneDilaMass=wert;
@@ -221,7 +218,7 @@ $("saveCompanyName").onclick=async()=>{
    default_vat:$("defaultVatInput").value.trim()||"8.1 %",
    logo_url:newLogoUrl,
    updated_at:new Date().toISOString()
-  }).eq("id",1);
+  }); // eine Zeile je Firma, RLS grenzt automatisch ein
   if(error)throw error;
   companyName=name;
   companyAddress=$("companyAddressInput").value;

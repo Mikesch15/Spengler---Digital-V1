@@ -7,7 +7,16 @@ function initials(name){
 }
 
 // ---- Login --------------------------------------------------
-function usernameToEmail(u){return u.trim().toLowerCase().replace(/\s+/g,"")+"@nfgryuzkpwjfmdlmevuy.supabase.co"}
+// Mitarbeiter melden sich mit "Vorname.Nachname" an (keine echte
+// E-Mail-Adresse, siehe smart-action) – wer sich selbst eine Firma
+// registriert hat, hat dagegen eine echte E-Mail als Login. Ein "@" im
+// Eingabefeld wird deshalb als echte E-Mail erkannt und unverändert
+// verwendet, alles andere weiterhin auf die interne Pseudo-Domain gemappt.
+function usernameToEmail(u){
+ u=u.trim();
+ if(u.includes("@"))return u.toLowerCase();
+ return u.toLowerCase().replace(/\s+/g,"")+"@nfgryuzkpwjfmdlmevuy.supabase.co";
+}
 function showLoginErr(msg){$("loginError").textContent=msg||""}
 
 $("loginBtn").onclick=async()=>{
@@ -24,6 +33,55 @@ $("loginBtn").onclick=async()=>{
 $("logout").onclick=async()=>{
  await sb.auth.signOut();
  location.reload();
+};
+
+// ---- Self-Service-Firmenregistrierung ------------------------
+// Legt per Edge Function (service_role, siehe supabase/register-company)
+// atomar Auth-User + neue Firma (30 Tage Trial) + Admin-Profil an. Die
+// company_id kommt dabei ausschliesslich vom Server, nie vom Browser.
+function showCompanyRegisterErr(msg){$("companyRegisterError").textContent=msg||""}
+$("showCompanyRegister").onclick=()=>{$("companyRegisterCard").hidden=false;showLoginErr("")};
+$("cancelCompanyRegister").onclick=()=>{
+ $("companyRegisterCard").hidden=true;showCompanyRegisterErr("");
+ $("regCompanyName").value="";$("regFirstName").value="";$("regLastName").value="";
+ $("regEmail").value="";$("regPassword").value="";$("regPassword2").value="";
+};
+$("companyRegisterBtn").onclick=async()=>{
+ showCompanyRegisterErr("");
+ const companyName=$("regCompanyName").value.trim();
+ const vor=$("regFirstName").value.trim();
+ const nach=$("regLastName").value.trim();
+ const email=$("regEmail").value.trim();
+ const pw1=$("regPassword").value,pw2=$("regPassword2").value;
+ if(!companyName){showCompanyRegisterErr("Bitte einen Firmennamen eingeben.");return}
+ if(!vor||!nach){showCompanyRegisterErr("Bitte Vor- und Nachname eingeben.");return}
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showCompanyRegisterErr("Bitte eine gültige E-Mail-Adresse eingeben.");return}
+ if(pw1.length<8){showCompanyRegisterErr("Das Passwort muss mindestens 8 Zeichen haben.");return}
+ if(pw1!==pw2){showCompanyRegisterErr("Die beiden Passwort-Eingaben stimmen nicht überein.");return}
+ $("companyRegisterBtn").disabled=true;
+ try{
+  const {data,error}=await sb.functions.invoke("register-company",{body:{
+   company_name:companyName,first_name:vor,last_name:nach,email,password:pw1
+  }});
+  if(error){showCompanyRegisterErr(error.message||"Registrierung fehlgeschlagen.");return}
+  if(!data?.ok){showCompanyRegisterErr(data?.error||"Registrierung fehlgeschlagen.");return}
+  const {error:loginErr}=await sb.auth.signInWithPassword({email,password:pw1});
+  if(loginErr){
+   // Firma/Konto stehen – nur das automatische Anmelden hat aus
+   // irgendeinem Grund nicht geklappt. Nichts verloren, nur normal
+   // anmelden statt automatisch.
+   $("companyRegisterCard").hidden=true;
+   $("loginUser").value=email;
+   showLoginErr("Firma registriert. Bitte jetzt mit E-Mail und Passwort anmelden.");
+   return;
+  }
+  $("companyRegisterCard").hidden=true;
+  await afterLogin();
+ }catch(err){
+  showCompanyRegisterErr((err&&err.message)?err.message:String(err));
+ }finally{
+  $("companyRegisterBtn").disabled=false;
+ }
 };
 
 async function afterLogin(){
