@@ -148,8 +148,18 @@ $("pwSpeichern").onclick=async()=>{
  try{
   const {error}=await sb.auth.updateUser({password:p1});
   if(error){$("pwFehler").textContent=error.message||"Passwort konnte nicht gesetzt werden.";return}
-  const {error:e2}=await sb.from("profiles").update({passwort_gesetzt:true}).eq("id",currentProfile.id);
-  if(e2){$("pwFehler").textContent=e2.message;return}
+  // profiles.passwort_gesetzt darf ein Mitarbeiter laut permission_settings
+  // (role=employee, resource=profiles, can_edit=false) nicht per normalem
+  // UPDATE ändern – auch nicht am eigenen Profil. mark_own_password_set()
+  // ist eine eng gefasste, serverseitige Ausnahme genau für dieses eine
+  // Feld am eigenen Profil (siehe Supabase-Migration) und meldet per
+  // Rückgabewert zuverlässig, ob wirklich eine Zeile aktualisiert wurde.
+  const {data:gesetzt,error:e2}=await sb.rpc("mark_own_password_set");
+  if(e2||!gesetzt){
+   if(e2)console.error("mark_own_password_set fehlgeschlagen:",e2);
+   $("pwFehler").textContent="Passwort wurde geändert, aber die Konto-Einrichtung konnte nicht abgeschlossen werden. Bitte erneut versuchen.";
+   return;
+  }
   currentProfile.passwort_gesetzt=true;
   $("passwortModal").hidden=true;
   await afterLogin();

@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.15**
+- sichtbare App-Version: **2.16**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -1147,3 +1147,159 @@ automatischen Login direkt nach der Self-Service-Registrierung.
   seltenen Fällen kurzzeitig weitere, sogar korrekte Versuche blockieren
   – das ist eine Supabase-Auth-Grundeinstellung, keine App-Änderung,
   und wurde in dieser Runde nicht angepasst.
+
+## 24. MITARBEITER BLIEB IM „NEUES PASSWORT FESTLEGEN“-DIALOG GEFANGEN – VERSION 2.16
+
+### 24.1 Ursache
+
+`permission_settings` hat für `role='employee'`, `resource='profiles'`
+bereits seit der Einführung des Permission-Modells `can_edit:false`
+(bewusst so – ein Mitarbeiter soll z. B. nicht selbst seine Rolle oder
+`company_id` ändern können). Die RLS-Policy `profiles_update_permission`
+verknüpft das per UND mit der Eigentümer-Prüfung:
+
+```
+has_permission('profiles','edit') AND (id = auth.uid() OR is_admin())
+```
+
+Weil `has_permission('profiles','edit')` für einen Mitarbeiter immer
+`false` ist, blockiert diese Policy **auch das Aktualisieren des eigenen
+Profils** – unabhängig davon, dass `id = auth.uid()` zutrifft. Betroffen
+war u. a. genau das eine Feld, das der erzwungene Erstpasswort-Flow selbst
+setzen muss: `profiles.passwort_gesetzt`.
+
+Der bisherige Code (`js/03-login.js`, `$("pwSpeichern").onclick`):
+
+```js
+const {error:e2}=await sb.from("profiles").update({passwort_gesetzt:true}).eq("id",currentProfile.id);
+```
+
+Eine von RLS blockierte UPDATE-Anweisung wirft in PostgREST **keinen
+Fehler**, wenn dabei keine sonstige Constraint verletzt wird – sie betrifft
+einfach still und ohne Meldung 0 Zeilen. `e2` war deshalb immer `null`, der
+Code lief in den Erfolgspfad, setzte `currentProfile.passwort_gesetzt=true`
+nur lokal im Browser und rief `afterLogin()` auf. `afterLogin()` lädt das
+Profil aber frisch aus der Datenbank – dort stand weiterhin `false`, also
+erschien der Passwort-Dialog erneut. Endlosschleife.
+
+**Direkt gegen die Produktivdatenbank verifiziert** (in einer
+Transaktion mit anschliessendem `ROLLBACK`, also ohne echte
+Datenänderung, simuliert als eingeloggter Mitarbeiter über
+`set local role authenticated; set local request.jwt.claims ...`):
+Ein direktes `UPDATE ... WHERE id = auth.uid()` auf das eigene Profil
+läuft tatsächlich ohne SQL-Fehler durch, ändert `passwort_gesetzt` aber
+nachweislich nicht – exakt der beschriebene stille Fehlschlag.
+
+### 24.2 Behoben
+
+**Datenbank** (Supabase-Migrationen `mark_own_password_set_function`,
+`mark_own_password_set_returns_boolean`, `mark_own_password_set_revoke_anon`):
+neue, eng gefasste `SECURITY DEFINER`-Funktion
+
+```sql
+create function public.mark_own_password_set()
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  affected integer;
+begin
+  update public.profiles
+  set passwort_gesetzt = true, updated_at = now()
+  where id = auth.uid();
+  get diagnostics affected = row_count;
+  return affected > 0;
+end;
+$$;
+```
+
+Gleiches Muster wie `is_admin()`/`my_company_id()`/`has_permission()`:
+Owner `postgres` hat `BYPASSRLS`, die Funktion umgeht damit gezielt **nur**
+die eine blockierende Policy, für **nur** dieses eine Feld, auf **nur**
+dem eigenen Profil (`auth.uid()` fest verdrahtet, kein Parameter für eine
+fremde `id` – ein Mitarbeiter kann darüber unmöglich `role`, `company_id`
+oder das Profil einer anderen Person ändern). RLS wurde nicht abgeschaltet
+und keine bestehende Policy verändert. `EXECUTE` ist nur an `authenticated`
+vergeben (Supabase vergibt bei neuen Funktionen im `public`-Schema per
+Default-Privileges zusätzlich automatisch an `anon`/`service_role` – der
+`anon`-Zugriff wurde explizit wieder entzogen; `anon` hätte ohnehin nie
+einen `auth.uid()` und würde die Funktion folgenlos ins Leere laufen
+lassen, aber "minimal notwendige Berechtigung" heisst hier auch: kein
+unnötiger Grant).
+
+Der Rückgabewert ist bewusst `boolean` (nicht `void`): der Client kann so
+zuverlässig unterscheiden, ob wirklich eine Zeile aktualisiert wurde,
+statt bei „kein Fehler“ automatisch Erfolg anzunehmen – exakt der Fehler,
+der den Loop verursacht hat.
+
+**Frontend** (`js/03-login.js`, `$("pwSpeichern").onclick`): ruft jetzt
+`sb.rpc("mark_own_password_set")` statt des direkten `.update()` auf und
+prüft sowohl `error` als auch den Rückgabewert:
+
+```js
+const {data:gesetzt,error:e2}=await sb.rpc("mark_own_password_set");
+if(e2||!gesetzt){
+ if(e2)console.error("mark_own_password_set fehlgeschlagen:",e2);
+ $("pwFehler").textContent="Passwort wurde geändert, aber die Konto-Einrichtung konnte nicht abgeschlossen werden. Bitte erneut versuchen.";
+ return;
+}
+```
+
+Schlägt der Schritt fehl, bleibt der Dialog offen und zeigt die
+verständliche Meldung aus dem Auftrag – die App tut nicht so, als sei die
+Einrichtung abgeschlossen, wenn `passwort_gesetzt` in der Datenbank
+tatsächlich nicht gesetzt werden konnte. Technische Details landen nur in
+`console.error`.
+
+### 24.3 Tests
+
+- **Direkt gegen die Produktivdatenbank verifiziert** (jeweils in einer
+  Transaktion mit `ROLLBACK`, keine echte Datenänderung, simuliert als
+  eingeloggter Mitarbeiter über `set local role authenticated` +
+  `request.jwt.claims`, am bereits vorhandenen Test-Mitarbeiterkonto
+  „Test Test“ der Firma „Testfirma“):
+  - altes Verhalten reproduziert: direktes `UPDATE profiles SET
+    passwort_gesetzt=true WHERE id=auth.uid()` läuft ohne SQL-Fehler
+    durch, ändert die Zeile aber nachweislich nicht (RLS blockiert
+    still).
+  - neues Verhalten verifiziert: `select public.mark_own_password_set()`
+    liefert `true` **und** die Zeile zeigt danach tatsächlich
+    `passwort_gesetzt=true` – korrekt aktualisiert, nicht nur ein
+    Rückgabewert ohne echte Wirkung.
+  - Grants der Funktion geprüft: `authenticated`/`service_role`/`postgres`
+    haben `EXECUTE`, `anon` nicht (explizit entzogen).
+  - Owner/`rolbypassrls` der Funktion geprüft: `postgres`, `true` –
+    gleiches Muster wie die bestehenden Helper-Funktionen.
+- `node --check js/03-login.js`: fehlerfrei.
+- Admin-Pfad per Code-Review bestätigt unverändert: Admin-Konten haben
+  `passwort_gesetzt=true` bereits ab Anlage (Self-Service-Registrierung)
+  bzw. werden von dieser Änderung gar nicht berührt (kein
+  Erstpasswort-Dialog für Admins).
+- Andere `profiles`-Update-Stellen im Code (`js/05a-rechte.js` Rollen­
+  änderung, `js/07-einstellungen.js` `debouncedProfileUpdate`) geprüft:
+  beide ausschliesslich admin-gesteuert, laufen über `is_admin()` in
+  derselben Policy und sind von diesem Fehler nicht betroffen – keine
+  Änderung nötig.
+- Live-Klicktest im Browser (Mitarbeiteranlage → Login → Passwortdialog
+  → Speichern → App → Logout → erneuter Login) in dieser Sitzung technisch
+  nicht möglich – Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co` direkt. **Das wird hier ausdrücklich
+  nicht als getestet behauptet** – die SQL-Simulation deckt exakt denselben
+  RLS-/Funktionspfad ab, den der Browser über PostgREST auslösen würde,
+  ersetzt aber keinen echten Klicktest.
+- Massaufnahme, Ausmass, Regierapport, Materialverwaltung, Excel-Import,
+  PDF/Druck, PWA, Storage-Struktur, Tenant-RLS, Firmenregistrierung,
+  Trial-System, rates, Admin-Bereich ohne zusätzliches Passwort: nicht
+  angefasst.
+
+### 24.4 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 24.3).
+- Sollten künftig weitere Selbst-Service-Felder am eigenen Profil nötig
+  werden (z. B. eigener Vor-/Nachname ändern), braucht das jeweils eine
+  eigene, ebenso eng gefasste `SECURITY DEFINER`-Funktion – nicht
+  pauschal `has_permission('profiles','edit')` für Mitarbeiter auf `true`
+  setzen, das würde die ursprünglich gewollte Einschränkung (kein
+  Selbst-Ändern von Rolle/`company_id`) wieder aufheben.
