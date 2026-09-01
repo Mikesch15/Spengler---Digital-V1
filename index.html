@@ -45,6 +45,21 @@
 </div>
 </div>
 
+<!-- Firmenstatus-Sperre (Version 2.27): wird gezeigt, wenn is_company_access_allowed()
+     nach dem Login false liefert (Trial abgelaufen oder Firma deaktiviert). Reine
+     UI-Anzeige - die eigentliche Sperre sitzt serverseitig in my_company_id(),
+     siehe js/03-login.js showCompanyLocked(). System-Admins sehen diesen
+     Bildschirm nie, siehe afterLogin(). -->
+<div id="companyLockedScreen" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>Zugriff eingeschränkt</h2>
+<div id="companyLockedMessage" class="info"></div>
+<div class="bar" style="margin-top:10px"><button type="button" id="companyLockedLogout" class="gray">🔓 Abmelden</button></div>
+</div>
+</div>
+</div>
+
 <div class="app" id="appRoot" hidden>
 
 <div class="small no-print" id="topUserBar">Angemeldet als <b id="currentUserLabel">–</b> <button id="logout" class="red" style="padding:3px 9px;font-size:11px;margin-left:8px">🔓 Abmelden</button></div>
@@ -76,7 +91,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.26</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.27</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -295,7 +310,7 @@
 <option value="active">Aktiv</option>
 <option value="expired">Abgelaufen</option>
 <option value="cancelled">Gekündigt</option>
-<option value="suspended">Gesperrt</option>
+<option value="suspended">Deaktiviert</option>
 </select>
 </div>
 </div>
@@ -368,11 +383,11 @@
 <div class="grid">
 <div><label>Status</label>
 <select id="sysAdminStatusInput">
-<option value="trial">trial</option>
-<option value="active">active</option>
-<option value="expired">expired</option>
-<option value="cancelled">cancelled</option>
-<option value="suspended">suspended</option>
+<option value="trial">Testphase</option>
+<option value="active">Aktiv</option>
+<option value="expired">Abgelaufen</option>
+<option value="cancelled">Gekündigt</option>
+<option value="suspended">Deaktiviert</option>
 </select>
 </div>
 </div>

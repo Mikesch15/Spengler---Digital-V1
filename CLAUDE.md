@@ -3221,3 +3221,245 @@ Mitarbeiterzahlen, lehnt einen Nicht-System-Admin weiterhin korrekt ab.
   Beobachtung in `extract-offer-positions` (31.6) und der
   `permission_settings`-Sonderfall (20.8) bleiben unverändert offen,
   nicht Teil dieser Aufgabe.
+
+## 35. TRIAL-/FIRMENSTATUS-LIFECYCLE — VERSION 2.27
+
+Der System-Admin konnte Trial-Dauer und Firmenstatus bereits verwalten
+(Abschnitt 25/34) – diese Werte hatten aber bisher **keinerlei Wirkung**
+auf den tatsächlichen App-Zugriff. Diese Aufgabe setzt den Lifecycle um:
+eine abgelaufene oder deaktivierte Firma verliert den normalen Zugriff,
+ohne dass irgendetwas gelöscht wird.
+
+### 35.1 Statusmodell – keine neuen Werte
+
+Geprüft, welche `subscription_status`-Werte tatsächlich existieren:
+`trial`, `active`, `expired`, `cancelled`, `suspended` (unverändert seit
+Abschnitt 21.4, `companies_subscription_status_check`). Das Zielkonzept
+aus dem Auftrag deckt sich exakt damit – **kein neuer Statuswert
+nötig**:
+
+| Auftrag | bestehender Wert | Bedingung |
+|---|---|---|
+| TRIAL (läuft) | `trial` | `trial_ends_at > now()` |
+| ABGELAUFEN | `trial` mit `trial_ends_at <= now()` (abgeleitet) **oder** `expired` | – |
+| AKTIV | `active` | – |
+| DEAKTIVIERT | `suspended` (im Frontend seit Version 2.17 bereits als „Gesperrt" beschriftet – exakt dieselbe Bedeutung) | – |
+
+`cancelled` (bestand bereits, „Gekündigt") sperrt ebenfalls den Zugriff –
+kein separater neuer Fall. Die UI-Beschriftung von `suspended` wurde von
+„Gesperrt" auf „Deaktiviert" umbenannt (reiner Anzeigetext, der
+gespeicherte Wert bleibt `suspended`), um exakt die Begriffe aus dem
+Auftrag zu verwenden.
+
+**Zugriffsregel** (einmal definiert, an einer einzigen Stelle
+durchgesetzt, siehe 35.2): Zugriff erlaubt, wenn `subscription_status =
+'active'` **oder** (`subscription_status = 'trial'` **und**
+`trial_ends_at > now()`). Alle anderen Fälle (`expired`, `cancelled`,
+`suspended`, oder `trial` mit abgelaufenem `trial_ends_at`) sperren den
+normalen Zugriff.
+
+### 35.2 Zentrale Durchsetzung: `my_company_id()`
+
+Analyse vor der Änderung: praktisch jede `tenant_boundary_*`-RESTRICTIVE-
+Policy im Schema (elf Tabellen, siehe Abschnitt 31/33) und beide
+Storage-Funktionen (`storage_object_is_own_company()`/
+`storage_object_insert_allowed()`, Abschnitt 32) rufen ausschliesslich
+**eine einzige** Funktion auf, um die eigene Firma zu bestimmen:
+`my_company_id()`. Das ist genau die im Auftrag gesuchte "zentrale
+Stelle" (Abschnitt 14).
+
+**Umsetzung** (Migration `company_access_lifecycle_v2_27`):
+`my_company_id()` liefert jetzt nur noch dann die echte `company_id`,
+wenn die Firma laut 35.1 Zugriff hat – sonst `NULL`. Da `company_id =
+NULL` in SQL nie wahr ist, blockiert das automatisch **jede** der elf
+bestehenden restriktiven Tenant-Boundary-Policies UND beide
+Storage-Funktionen, **ohne eine einzige davon anzufassen** – kein
+pauschaler Policy-Umbau, sondern eine einzige, zentrale Änderung.
+Zeitvergleich (`now()`) läuft in Postgres, nicht auf der Browser-Uhr.
+
+```sql
+create or replace function public.my_company_id()
+returns uuid language sql stable security definer set search_path = 'public'
+as $$
+  select p.company_id from public.profiles p
+  join public.companies c on c.id = p.company_id
+  where p.id = auth.uid()
+    and (c.subscription_status = 'active'
+         or (c.subscription_status = 'trial' and c.trial_ends_at > now()));
+$$;
+```
+
+Neue, klar benannte Hilfsfunktion fürs Frontend (Auftrag Abschnitt 14):
+`is_company_access_allowed()` – prüft exakt dieselbe Bedingung
+(`my_company_id() is not null`), keine doppelte Logik.
+
+### 35.3 Zwei eng gefasste Ausnahmen für die Sperr-Meldung
+
+Ohne Ausnahme könnte ein gesperrter Benutzer nicht einmal mehr sein
+eigenes Profil oder den Namen/Status seiner eigenen Firma lesen – die
+im Auftrag geforderte "klare Meldung" wäre unmöglich. Zwei bewusst
+minimale Ausnahmen:
+
+1. **`profiles`**: die bisherige einzelne `for all`-Policy
+   (`tenant_boundary_profiles`) wurde durch vier befehlsspezifische
+   ersetzt (Postgres erlaubt pro Policy nur `ALL` oder genau einen
+   Befehl). Nur die neue `tenant_boundary_profiles_select` erlaubt
+   zusätzlich `id = auth.uid()` (eigene Zeile immer lesbar).
+   `tenant_boundary_profiles_insert/update/delete` bleiben unverändert
+   ausschliesslich über `company_id = my_company_id()` geprüft – ein
+   gesperrter Benutzer kann also **nichts** an seinem Profil ändern,
+   insbesondere nicht sein eigenes `company_id` per Update umgehen
+   (empirisch geprüft, siehe 35.5).
+2. **`companies`**: `company_member_select_own_company` verwendet jetzt
+   `my_company_id_raw()` (neue Funktion – exakt der bisherige,
+   ungegatete Funktionskörper von `my_company_id()`, nur umbenannt)
+   statt der jetzt gesperrten `my_company_id()`. Die eigene Firmenzeile
+   (Name/Status/Trial-Ende) bleibt dadurch immer sichtbar, auch
+   gesperrt. Das UPDATE dieser Zeile (`company admins can update their
+   company`, Name/Adresse/Logo) wurde **bewusst nicht zusätzlich
+   gesperrt** – siehe 35.8 für die Begründung.
+
+### 35.4 Edge Functions: `smart-action` und `reset-password`
+
+Beide laufen komplett mit dem `service_role`-Key (bewusst, um
+firmenübergreifend eindeutige Benutzernamen zu prüfen bzw. das
+Zielprofil zu lesen) und **umgehen RLS damit vollständig** – die
+zentrale `my_company_id()`-Sperre aus 35.2 greift hier **nicht von
+selbst**. Beide sind laut Auftrag "normale" Firmenfunktionen
+(Mitarbeiteranlage, Passwort-Reset) und müssen deshalb bei gesperrter
+Firma ebenfalls blockiert werden – explizit ergänzt:
+
+- **`smart-action`** (v10→v11): neue Funktion `isCompanyAccessAllowed(companyId)`
+  (Service-Role-REST-Abfrage auf `companies`, spiegelt exakt dieselbe
+  Regel wie 35.1), aufgerufen direkt nach der bestehenden Admin-/
+  `company_id`-Prüfung. Kein Mitarbeiter mehr anlegbar, wenn die eigene
+  Firma des aufrufenden Admins gesperrt ist.
+- **`reset-password`** (v2→v3): dieselbe Prüfung (`istFirmaZugriffErlaubt()`)
+  ergänzt, direkt nach der bestehenden Admin-Prüfung, vor dem
+  Firmenvergleich mit dem Zielprofil aus Version 2.23.
+
+**Bewusst nicht verändert**: `register-company` (legt eine **neue**
+Firma an, hat mit dem Sperrzustand einer bestehenden Firma nichts zu
+tun) und `system-admin-delete-company` (muss laut Auftrag Abschnitt 6
+ausdrücklich **auch** bei gesperrter Zielfirma funktionieren – beide
+prüfen ausschliesslich `is_system_admin()`, das hängt an keiner Stelle
+von `my_company_id()` ab, also automatisch unberührt).
+`extract-offer-positions`/`extract-profile-shape` (reine Bild-zu-JSON-
+Funktionen ohne Tabellenzugriff, siehe 31.6/33.3) ebenfalls nicht
+angefasst – siehe 35.8 für die Begründung.
+
+### 35.5 Login-Flow (`js/03-login.js`)
+
+`afterLogin()` ruft `checkSystemAdmin()` jetzt **vor** der bisherigen
+Passwort-Erstsetzungs-Prüfung auf (vorher erst nach dem Aufbau von
+`#appRoot`) – wird für die folgende Sperr-Prüfung gebraucht, keine
+doppelte RPC. Nach der bestehenden `passwort_gesetzt`-Prüfung neu:
+
+```js
+if(!isSystemAdmin){
+ const {data:zugriffErlaubt}=await sb.rpc("is_company_access_allowed");
+ if(!zugriffErlaubt){ await showCompanyLocked(); return; }
+}
+```
+
+System-Admins überspringen die Prüfung komplett (Auftrag Abschnitt 6:
+"System-Admin darf nicht durch den Status der Firma ausgesperrt
+werden") – unabhängig davon, ob ihre eigene Firma zufällig gesperrt
+wäre. Neue Funktion `showCompanyLocked()`: liest die eigene Firmenzeile
+(über die Ausnahme aus 35.3 weiterhin lesbar) und zeigt eine konkrete,
+auf den tatsächlichen Status zugeschnittene Meldung im neuen
+`#companyLockedScreen` (z. B. „Die Testphase von „Testfirma" ist am
+01.10.2026 abgelaufen. Bitte wenden Sie sich an Ihren Administrator.")
+– **kein** irreführender Passwortfehler bei einem reinen
+Statusproblem, wie im Auftrag gefordert. Der Bildschirm hat nur einen
+Abmelden-Knopf, kein anderer Weg zurück in die App.
+
+### 35.6 System-Admin-UI (`js/22-system-admin.js`)
+
+Neue Funktion `sysAdminZugriffHinweis(c)`: zeigt direkt neben dem
+Firmennamen in der Liste einen roten Hinweis, wenn der normale Zugriff
+gesperrt ist – „Abgelaufen seit N Tagen" (abgeleiteter Fall: `trial`
+mit vergangenem `trial_ends_at`), „Abgelaufen" (`expired`),
+„Deaktiviert" (`suspended`) oder „Gekündigt" (`cancelled`). Verwendet
+dieselbe Regel wie 35.1, rein clientseitig auf bereits geladenen Daten
+berechnet (keine zusätzliche Abfrage). Bestehende Suche/Filter aus
+Version 2.26 unverändert weiterverwendet, nicht neu gebaut.
+
+### 35.7 Empirische Tests (alle in `begin;…rollback;`, mit einer
+temporären Wegwerf-Testfirma, nie PETER KÜNZI AG selbst)
+
+| Test | Ergebnis |
+|---|---|
+| Trial noch gültig (`trial`, `trial_ends_at` in Zukunft) | `my_company_id()` liefert echte ID, `is_company_access_allowed()=true` |
+| Trial künstlich abgelaufen (`trial_ends_at` in Vergangenheit) | `my_company_id()=NULL`, `is_company_access_allowed()=false`, `materials`/`projects` 0 sichtbare Zeilen, Storage 0 sichtbare Objekte |
+| Status auf `active` gesetzt | Zugriff sofort wieder erlaubt |
+| Status auf `suspended` gesetzt | Zugriff sofort wieder gesperrt (auch Storage: 0 Objekte) |
+| `system_admin_set_trial(...)` verlängert ein abgelaufenes Trial (Status bleibt `trial`) | Zugriff sofort wieder erlaubt, `subscription_status` unverändert `trial` – keine widersprüchlichen Zustände |
+| Gesperrter Mitarbeiter versucht, eigenes `profiles.company_id` per UPDATE auf eine andere (nicht gesperrte) Firma zu ändern | RLS blockiert still (0 Zeilen geändert) – die Selbst-Sichtbarkeits-Ausnahme aus 35.3 lässt sich nicht für Schreibzugriffe missbrauchen |
+| System-Admin (Mike), dessen **eigene** Firma testweise auf `suspended` gesetzt wurde | `my_company_id()=NULL` (korrekt, normaler Zugriff auch für ihn gesperrt), aber `is_system_admin()=true` und `system_admin_company_user_counts()` funktioniert weiterhin uneingeschränkt |
+| Reale, unveränderte PETER KÜNZI AG (Status `active`) | `my_company_id()` liefert echte ID, `is_company_access_allowed()=true`, alle 4 Projekte und 5 referenzierten Storage-Dateien weiterhin sichtbar – keine Regression am Normalfall |
+
+### 35.8 Bewusste Grenzen dieser Runde (offengelegt, nicht verschwiegen)
+
+- **`company admins can update their company`** (Firmenname/-adresse/
+  -logo ändern) bleibt ungegatet – ein Admin einer gesperrten Firma
+  kann diese kosmetischen Einstellungen weiterhin ändern. Bewusste
+  Entscheidung: betrifft keine Tenant-/Geschäftsdaten, ist von Trial/
+  Status (ausschliesslich System-Admin-Sache, unverändert) getrennt,
+  und die zehn im Auftrag genannten Testfälle prüfen dieses Verhalten
+  nicht. Für eine spätere, eigene Aufgabe vormerken, falls gewünscht.
+- **`extract-offer-positions`/`extract-profile-shape`** bleiben
+  ungegatet – reine Bild-zu-JSON-Hilfsfunktionen ohne Tabellenzugriff
+  und ohne `company_id`-Bezug im Request; das eigentliche **Speichern**
+  ihres Ergebnisses (in `measurements`/`ausmass`) ist über die zentrale
+  `my_company_id()`-Sperre bereits blockiert – ein gesperrter Benutzer
+  könnte höchstens ein KI-Ergebnis abrufen, aber nirgends ablegen.
+- **Keine automatische Statusänderung**: ein Trial, dessen `trial_ends_at`
+  verstreicht, bleibt in der Datenbank weiterhin `subscription_status =
+  'trial'` – nur der abgeleitete Zugriff ändert sich. Es gibt keinen
+  Cron/Trigger, der den Status automatisch auf `expired` umstellt (wie
+  im Auftrag ausdrücklich verlangt: "Nicht automatisch Statuswerte
+  ändern").
+- **Keine automatische Löschung, kein Datenverlust**: durch diese
+  Aufgabe wird keine einzige Zeile gelöscht – ausschliesslich
+  Sichtbarkeit/Schreibrechte werden bedingt eingeschränkt. Ein
+  gesperrter Zustand ist jederzeit vollständig reversibel (Status
+  zurücksetzen oder Trial verlängern), Daten bleiben währenddessen
+  unangetastet in der Datenbank.
+- Kein Live-Klicktest im Browser möglich (Sandbox blockiert weiterhin
+  jede ausgehende HTTPS-Verbindung zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co` direkt, wie in jeder vorherigen
+  Sitzung) – **ausdrücklich nicht als getestet behauptet**. Alle in
+  35.7 dokumentierten Ergebnisse sind direkte RLS-/Funktions-
+  Simulationen gegen das echte Produktivschema.
+
+### 35.9 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: ausgeglichen (606/606,
+  vorher 601/601 – Differenz durch den neuen `#companyLockedScreen`).
+- `git diff --stat`: nur `index.html`, `js/03-login.js`,
+  `js/22-system-admin.js` verändert (plus die SQL-Migration und die
+  beiden Edge-Function-Redeploys) – Mitarbeiteranlage-Formular selbst
+  (`js/07-einstellungen.js`), Massaufnahme, Materialverwaltung,
+  Firmenlöschung, Firmenregistrierung: keine Codeänderung.
+- PETER KÜNZI AG nach allen Tests erneut geprüft: unverändert (`status
+  ="active"`, `trial_days`, `updated_at` identisch zum Stand vor dieser
+  Aufgabe), normaler Zugriff für einen echten Mitarbeiter weiterhin
+  uneingeschränkt funktionsfähig (siehe 35.7, letzte Zeile).
+- Live-Klicktest im Browser (Login mit abgelaufener/deaktivierter
+  Testfirma, Sperr-Meldung sehen, System-Admin reaktiviert, erneuter
+  Login funktioniert wieder, Mitarbeiter-Login zeigt dieselbe Sperre,
+  Mitarbeiteranlage/Passwort-Reset bei gesperrter Firma abgelehnt)
+  **in dieser Sitzung technisch nicht möglich** – Sandbox-
+  Netzwerksperre, siehe 35.8.
+
+### 35.10 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 35.9).
+- Companies-UPDATE-Policy für Firmenmetadaten bei gesperrter Firma
+  weiterhin ungegatet (siehe 35.8) – bewusste, dokumentierte
+  Entscheidung, keine spätere Pflichtaufgabe.
+- Automatische Statusänderung, Mahnungen, Zahlungssystem, Abos,
+  Rechnungen, Impersonation, Kundenportal: wie im Auftrag ausdrücklich
+  gefordert **nicht** gebaut.

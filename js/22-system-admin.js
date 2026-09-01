@@ -13,7 +13,7 @@ let sysAdminCompanies=[];
 let sysAdminUserCounts={};
 let sysAdminCurrentCompanyId=null;
 
-const SYS_ADMIN_STATUS_LABELS={trial:"Testphase",active:"Aktiv",expired:"Abgelaufen",cancelled:"Gekündigt",suspended:"Gesperrt"};
+const SYS_ADMIN_STATUS_LABELS={trial:"Testphase",active:"Aktiv",expired:"Abgelaufen",cancelled:"Gekündigt",suspended:"Deaktiviert"};
 function sysAdminFmtDate(v){
  return v?new Date(v).toLocaleDateString("de-CH"):"–";
 }
@@ -87,10 +87,26 @@ function sysAdminRenderFilteredList(){
  box.innerHTML=liste.map(c=>{
   const counts=sysAdminUserCounts[c.id]||{};
   return `<div class="settingrow" style="display:block;padding:10px;cursor:pointer" data-sysadmin-company="${c.id}">
-<div style="font-weight:600">${esc(c.name)}</div>
+<div style="font-weight:600">${esc(c.name)}${sysAdminZugriffHinweis(c)}</div>
 <div class="small" style="color:var(--muted)">Status: ${esc(SYS_ADMIN_STATUS_LABELS[c.subscription_status]||c.subscription_status)} · Trial: ${esc(c.trial_days)} Tage · Test bis: ${sysAdminFmtDate(c.trial_ends_at)} · ${counts.user_count||0} Benutzer · Registriert: ${sysAdminFmtDate(c.created_at)}</div>
 </div>`;
  }).join("");
+}
+
+// Version 2.27: kurzer, farblich hervorgehobener Hinweis direkt neben dem
+// Firmennamen, wenn der normale App-Zugriff dieser Firma gesperrt ist
+// (abgelaufenes Trial oder deaktiviert) - deckt sich mit derselben Regel
+// wie is_company_access_allowed()/my_company_id() in der Datenbank.
+function sysAdminZugriffHinweis(c){
+ const abgelaufen=c.trial_ends_at&&new Date(c.trial_ends_at).getTime()<=Date.now();
+ if(c.subscription_status==="trial"&&abgelaufen){
+  const tage=Math.floor((Date.now()-new Date(c.trial_ends_at).getTime())/(24*60*60*1000));
+  return ` <span class="small" style="color:var(--red);font-weight:600">Abgelaufen seit ${tage} Tag${tage===1?"":"en"}</span>`;
+ }
+ if(c.subscription_status==="expired")return ' <span class="small" style="color:var(--red);font-weight:600">Abgelaufen</span>';
+ if(c.subscription_status==="suspended")return ' <span class="small" style="color:var(--red);font-weight:600">Deaktiviert</span>';
+ if(c.subscription_status==="cancelled")return ' <span class="small" style="color:var(--red);font-weight:600">Gekündigt</span>';
+ return "";
 }
 
 $("sysAdminSearchInput").addEventListener("input",sysAdminRenderFilteredList);
