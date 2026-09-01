@@ -326,7 +326,15 @@ $("newEmployee").onclick=async()=>{
  if(await registerEmployee(vor,nach)){await loadAllData();renderSettings();renderMain()}
 };
 $("newRate").onclick=async()=>{
- const {error}=await sb.from("rates").insert({name:"Neue Funktion",value:0});
+ // UNIQUE(company_id,name) verhindert einen zweiten Eintrag mit demselben
+ // Namen in derselben Firma – bei bereits vorhandener "Neue Funktion"
+ // (z. B. noch nicht umbenannt) automatisch durchnummerieren statt mit
+ // einem Datenbankfehler abzubrechen. company_id kommt weiterhin
+ // ausschliesslich aus dem serverseitigen Spalten-Default (my_company_id()),
+ // nicht aus einem Clientwert.
+ let name="Neue Funktion",n=2;
+ while(settings.rates.some(r=>r[0]===name)){name=`Neue Funktion ${n}`;n++}
+ const {error}=await sb.from("rates").insert({name,value:0});
  if(error){alert("Fehler: "+error.message);return}
  await loadAllData();renderSettings();
 };

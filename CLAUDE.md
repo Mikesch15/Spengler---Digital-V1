@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.13**
+- sichtbare App-Version: **2.14**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -974,3 +974,64 @@ Sandbox blockiert ausgehende HTTPS-Verbindungen zu
 - Massaufnahme, Ausmass, Regierapport, PDF/Druck, Self-Service-
   Firmenregistrierung, Trial-System: nicht angefasst, keine
   Berechnungslogik verändert.
+
+### 22.4 Fehler „＋ Funktion hinzufügen" behoben
+
+**Ursache:** Die alte, globale Constraint `UNIQUE(name)` auf `rates` war
+bereits vor dieser Änderung durch `rates_company_name_key
+UNIQUE(company_id, name)` ersetzt (per SQL direkt geprüft – die alte
+Constraint existiert nicht mehr). Der eigentliche, weiterhin
+reproduzierbare Fehler kam von etwas anderem: Der Knopf fügt seit je her
+immer denselben festen Namen `"Neue Funktion"` ein. In der Firma
+PETER KÜNZI AG existiert bereits eine Zeile mit genau diesem Namen
+(vermutlich aus einem früheren Testklick, nie umbenannt) – jeder weitere
+Klick kollidierte dadurch weiterhin mit der (jetzt firmenbezogenen)
+Unique-Constraint.
+
+**Behoben** in `js/08-katalog-blitzschutz.js`
+(`$("newRate").onclick`): Vor dem Insert wird der bereits im Speicher
+geladene `settings.rates`-Katalog (firmenbezogen, kommt aus
+tenant-RLS-gefiltertem `select`) auf Namenskollisionen geprüft und bei
+Bedarf automatisch durchnummeriert (`Neue Funktion`, `Neue Funktion 2`,
+`Neue Funktion 3`, …) statt mit einem Datenbankfehler abzubrechen. Die
+bestehende Zeile "Neue Funktion" wurde **nicht** angetastet/umbenannt/
+gelöscht (keine bestehenden Daten verändern).
+
+**Firmenzuordnung (`company_id`):** bleibt unverändert, wie schon vor
+dieser Änderung sicher gelöst – der Insert übergibt bewusst **keinen**
+`company_id`-Wert vom Client. Die Spalte `rates.company_id` hat serverseitig
+`DEFAULT my_company_id()` (siehe 20.2), zusätzlich erzwingt die Policy
+`tenant_boundary_rates` (`company_id = my_company_id()`, `WITH CHECK`
+identisch) dieselbe Zuordnung nochmals auf Datenbankebene. Ein
+manipulierter Client könnte hier gar keinen abweichenden Wert einschleusen,
+selbst wenn er es versuchen würde – das ist bereits die "saubere
+serverseitige Lösung", eine zusätzliche Änderung war nicht nötig.
+
+**Rates vollständig geprüft** (Laden/Bearbeiten/Löschen, alle in
+`js/05-daten-laden.js` bzw. `js/07-einstellungen.js`/`js/08-katalog-
+blitzschutz.js`): keine dieser Stellen filtert selbst nach `company_id` –
+das ist beabsichtigt, da `tenant_boundary_rates` (Policy für `ALL`-Befehle)
+und die vier `rates_<x>_permission`-Policies (`has_permission('rates',...)`)
+das bereits auf DB-Ebene erzwingen. Per SQL bestätigt: Firma A kann keine
+`rates` einer anderen Firma sehen/ändern/löschen, und zwei Firmen können
+denselben Funktionsnamen unabhängig voneinander verwenden
+(`UNIQUE(company_id, name)` statt global).
+
+**Tests:**
+- SQL direkt gegen das Supabase-Projekt: `rates`-Spalten/-Constraints
+  (`company_id` mit `DEFAULT my_company_id()`, `UNIQUE(company_id,name)`,
+  keine alte `rates_name_key` mehr) und alle fünf RLS-Policies auf `rates`
+  geprüft.
+- `node --check js/08-katalog-blitzschutz.js`: fehlerfrei.
+- Geschützter Bereich (Passwortentfernung aus 22.1) erneut per Grep
+  bestätigt: keine Reste von `PROTECTED_PASSWORD`/`protectedUnlocked`/
+  `tryUnlockProtected` – diese Änderung war in dieser Runde bereits
+  vollständig vorhanden, nicht erneut nötig.
+- Live-Klicktest ("＋ Funktion hinzufügen" im Browser, Login als Admin/
+  Mitarbeiter zweier verschiedener Firmen) in dieser Sitzung technisch
+  nicht möglich (Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co`) – stattdessen per SQL/Code-Review
+  verifiziert.
+- Massaufnahme, Ausmass, Regierapport, Materialverwaltung, Excel-Import,
+  PDF/Druck, PWA, Self-Service-Firmenregistrierung, Trial-System,
+  Storage-Struktur: nicht angefasst.
