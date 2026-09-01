@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.09**
+- sichtbare App-Version: **2.11**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -567,3 +567,148 @@ Wenn eine Aufgabe klar ist:
 Keine unnötigen langen Erklärungen oder Rückfragen, wenn die Anforderung bereits eindeutig ist.
 
 Bei Konflikten zwischen einer schnellen Lösung und der langfristigen Architektur die Lösung wählen, die bestehende Funktionalität erhält und die spätere Multi-Firmen-Web-App nicht verbaut.
+
+## 20. AKTUELLER MULTI-TENANT-STAND – SEPTEMBER 2026
+
+Ergebnis der Migration Phase 1 (Firmen-Code entfernt, bestehende Supabase-
+Struktur geprüft und zwei konkrete Lücken behoben). Supabase-Projekt-ID:
+`nfgryuzkpwjfmdlmevuy`. Vor jeder weiteren Multi-Tenant-Arbeit diesen
+Abschnitt lesen, nicht nur Abschnitt 8 (dort steht nur das Ziel, hier der
+tatsächliche Stand).
+
+### 20.1 Firmenmodell
+
+Tabelle `companies`: `id` (uuid), `name`, `slug` (unique), `is_active`,
+`created_by`, `settings` (jsonb), `created_at`/`updated_at`. Aktuell genau
+eine Firma: **PETER KÜNZI AG**. Keine Frontend-UI zum Anlegen weiterer
+Firmen – bewusst so in Phase 1.
+
+### 20.2 Firmenzuordnung (`company_id`)
+
+Fester Weg, niemals vom Client umgehbar:
+
+    auth.uid() → profiles.id → profiles.company_id → companies
+
+`profiles.company_id` wird ausschliesslich serverseitig gesetzt (Edge
+Function `smart-action`, aus dem Profil des aufrufenden Admins). Der
+Browser übergibt nirgends eine `company_id` als Sicherheitsquelle.
+
+`company_id` (uuid, nullable, Default `my_company_id()`) existiert auf:
+`profiles` (kein Default, wird von `smart-action` gesetzt), `projects`,
+`materials`, `rates`, `app_settings`, `einlaufblech_settings`,
+`blitzschutz_materials`, `measurement_materials`, `feedback`,
+`permission_overrides`, `rinne_fitting_types`.
+
+Tabellen ohne eigene `company_id`, dafür per Join über `projects.company_id`
+tenant-getrennt: `measurements`, `reports`, `ausmass`, `project_files`.
+
+### 20.3 RLS (Row Level Security)
+
+Auf allen public-Tabellen aktiv, zwei Schichten pro Tabelle:
+
+1. **Tenant-Grenze** – Policy `tenant_boundary_<tabelle>`, meist
+   `company_id = my_company_id()`, bei den join-basierten Tabellen ein
+   `EXISTS (... projects p WHERE p.id = ... AND p.company_id = my_company_id())`.
+2. **Rechte innerhalb der Firma** – eigene `*_select/insert/update/delete_permission`-
+   Policies über `has_permission()`/`is_admin()` bzw. Eigentümer-Scope
+   (`created_by = auth.uid()`), siehe Abschnitt 20.4.
+
+Helper-Funktionen (alle `SECURITY DEFINER`, rein auf `auth.uid()` basierend,
+kein Client-Input): `my_company_id()`, `is_admin()`,
+`has_permission(resource, action)`, `permission_scope(resource)`,
+`permission_edit_scope(resource)`.
+
+### 20.4 Permission-Modell
+
+- `profiles.role` ∈ `admin` / `employee`.
+- `permission_settings` – **firmenübergreifend geteilte** Standardrechte
+  je Rolle × Bereich (`can_view`/`can_edit`/`scope`/`edit_scope`). Bewusst
+  ohne `company_id`: gemeinsame Grundeinstellung für alle Firmen.
+- `permission_overrides` – Ausnahme je Mitarbeiter, **mit** `company_id`
+  (per Trigger `enforce_permission_override_company()` erzwungen). Das ist
+  der Anpassungspunkt pro Firma.
+- Admin (`role='admin'` UND `company_id = my_company_id()`) darf immer
+  alles, unabhängig von Overrides/Settings.
+- `js/05a-rechte.js` bildet dieselbe Logik im Browser nur zum Ausblenden
+  von Knöpfen nach – wirksam ist ausschliesslich die Datenbank.
+
+### 20.5 Storage-Modell
+
+Bucket `measurements`, **privat** (`public: false`). Vier
+`storage.objects`-Policies `company <read/upload/update/delete> measurement
+files`, Bedingung: `bucket_id = 'measurements' AND my_company_id() is not null`.
+
+**Storage-Pfade** (kein Firmen-/Projektbezug im Pfad selbst):
+- Foto/Skizze/Firmenlogo/Ausmass-Foto: `<art>/<zeit>_<zufall>.<ext>`
+  (`art` ∈ `photo`, `sketch`, `company-logo`, `ausmass-photo`)
+- Projektdatei: `project-files/<projectId>/<zeit>_<zufall>.<ext>`
+
+Das bedeutet: Storage-RLS kann aktuell nur "eingeloggtes Mitglied
+irgendeiner Firma" prüfen, nicht "gehört zu genau diesem Projekt/dieser
+Firma" – siehe 20.6.
+
+### 20.6 Bereits in Supabase umgesetzt
+
+- `companies` + `is_active`/`created_by`/`settings`
+- `company_id` + Tenant-RLS auf allen in 20.2 genannten Tabellen
+- `permission_overrides.company_id` + Enforcement-Trigger
+- Privater Storage-Bucket `measurements`
+- Edge Function `smart-action`: prüft Admin-Rolle serverseitig, leitet
+  Firma ausschliesslich aus dem Aufrufer-Profil ab, kein Firmen-Code mehr
+- **In dieser Session zusätzlich behoben:**
+  - `rinne_fitting_types` hatte weder `company_id` noch Tenant-Policy
+    (einzige "firmenbezogene" Katalogtabelle, die das noch fehlte) –
+    Spalte ergänzt, bestehende 7 Zeilen der einzigen Firma zugeordnet,
+    `tenant_boundary_rinne_fitting_types`-Policy ergänzt.
+  - Die vier Storage-Policies riefen `storage.foldername(p.name)` auf,
+    wobei `p` die `projects`-Tabelle ist – das wertete den **Projektnamen**
+    aus (z. B. "Steildachsanierung"), nicht den Speicherpfad. Da
+    Projektnamen keine "/" enthalten, war die Bedingung immer falsch:
+    der Bucket war für **alle** Benutzer komplett gesperrt (kein Foto-,
+    Skizzen- oder Projektdatei-Zugriff mehr möglich). Auf die in 20.5
+    beschriebene Interims-Regel (`my_company_id() is not null`)
+    korrigiert – Zugriff funktioniert wieder, aber noch ohne echte
+    objektgenaue Firmentrennung.
+
+### 20.7 Noch im Frontend umzusetzen / offene Fragen
+
+- **Fotos/Skizzen/Firmenlogo/Projektdateien lassen sich seit der
+  Umstellung auf den privaten Bucket vermutlich nicht mehr anzeigen.**
+  Der Code benutzt überall `sb.storage.from("measurements").getPublicUrl(path)`
+  (`js/10-massaufnahme.js: uploadMeasurementImage`,
+  `js/09-projekte.js: uploadProjectFile/replaceProjectFile`, PDF-Druck in
+  `js/16-massaufnahme-formular.js` bettet `photo_path`/`sketch_paths`
+  direkt als `<img src>` ein). `getPublicUrl()` liefert für einen privaten
+  Bucket eine URL, die der öffentliche Objekt-Endpunkt grundsätzlich
+  ablehnt – unabhängig von RLS. Muss auf `createSignedUrl()` (oder
+  Download+Blob-URL) umgestellt werden. **Nicht ungefragt umgebaut**,
+  weil das mehrere Stellen betrifft (Upload-Funktionen, Galerie-Anzeige,
+  PDF-Druck, Firmenlogo) und eine bewusste Entscheidung braucht (z. B. wie
+  lange ein Link gültig sein soll). Vor der nächsten Multi-Tenant-Runde
+  mit dem Projektinhaber klären.
+- Echte objektgenaue Storage-Trennung (Pfad oder Objekt-Metadaten mit
+  `company_id`) fehlt noch – aktuell nur grob firmenweit über 20.5.
+- Keine Firmenverwaltung im Frontend (Firma anlegen/wechseln) – für
+  Phase 1 nicht vorgesehen.
+
+### 20.8 Bekannte Altlasten
+
+- `permission_settings` bewusst ohne `company_id` (gemeinsame
+  Rollen-Standardwerte) – falls jede Firma eigene Standardrechte braucht,
+  ist das eine spätere, bewusste Migration, kein Bug.
+- Trigger-Funktion `enforce_permission_override_company()` ist laut
+  Supabase-Security-Advisor direkt per RPC aufrufbar (`anon` und
+  `authenticated`). Vermutlich harmlos (reiner `BEFORE INSERT/UPDATE`-
+  Trigger), aber nicht geprüft/aufgeräumt.
+- Leaked-Password-Protection ist in Supabase Auth deaktiviert – generelle
+  Auth-Härtung, unabhängig vom Multi-Tenant-Thema.
+
+### 20.9 Funktionen, die nicht verändert werden dürfen
+
+- Alle neun Massaufnahme-Fachfunktionen aus Abschnitt 3, inklusive ihrer
+  Berechnungslogik.
+- Ausmass (Offerte erfassen, Blitzschutzausmass).
+- Regierapport-Berechnungen (Stunden, Ansätze, MWST, Blechverbrauch).
+- PDF-Layout und Berechnungstabellen – in dieser Migrationsphase
+  ausdrücklich kein UI-Redesign, keine Änderungen an Navigation, Buttons,
+  Farben, Layout.
