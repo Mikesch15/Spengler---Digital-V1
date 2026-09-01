@@ -51,7 +51,11 @@ $("companyRegisterBtn").onclick=async()=>{
  const companyName=$("regCompanyName").value.trim();
  const vor=$("regFirstName").value.trim();
  const nach=$("regLastName").value.trim();
- const email=$("regEmail").value.trim();
+ // Muss exakt so normalisiert werden wie in register-company
+ // (clean(...).toLowerCase()) – sonst kann der automatische Login direkt
+ // nach der Registrierung an Gross-/Kleinschreibung scheitern, obwohl die
+ // Firma/das Konto korrekt angelegt wurden.
+ const email=$("regEmail").value.trim().toLowerCase();
  const pw1=$("regPassword").value,pw2=$("regPassword2").value;
  if(!companyName){showCompanyRegisterErr("Bitte einen Firmennamen eingeben.");return}
  if(!vor||!nach){showCompanyRegisterErr("Bitte Vor- und Nachname eingeben.");return}

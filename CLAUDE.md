@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.14**
+- sichtbare App-Version: **2.15**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -1035,3 +1035,115 @@ denselben Funktionsnamen unabhängig voneinander verwenden
 - Massaufnahme, Ausmass, Regierapport, Materialverwaltung, Excel-Import,
   PDF/Druck, PWA, Self-Service-Firmenregistrierung, Trial-System,
   Storage-Struktur: nicht angefasst.
+
+## 23. NEUE FIRMA KONNTE SICH NACH REGISTRIERUNG NICHT EINLOGGEN – VERSION 2.15
+
+### 23.1 Ursache
+
+Kein grundsätzlich kaputter Auth-Ablauf: `register-company` legt Auth-User,
+Firma und Admin-Profil korrekt an (per SQL direkt an einer echten, im
+Betrieb registrierten Firma geprüft – Auth-User mit korrekt gesetztem
+Passwort-Hash, bestätigter E-Mail, passender `auth.identities`-Zeile;
+Profil mit `role:"admin"`, richtiger `company_id`, `passwort_gesetzt:true`;
+mindestens ein erfolgreicher Login war für dieses Konto sogar bereits
+protokolliert). Der Fehler lag stattdessen in einer Normalisierungs-
+Inkonsistenz zwischen Registrierung und dem **automatischen** Login direkt
+danach:
+
+- `register-company` speichert die E-Mail immer klein geschrieben
+  (`clean(body.email).toLowerCase()`).
+- Der normale Login (`usernameToEmail()`) macht dasselbe
+  (`u.toLowerCase()`) – für Mitarbeiter wie für Firmenadmins mit echter
+  E-Mail zuverlässig korrekt.
+- Der **automatische** Login direkt nach der Registrierung
+  (`$("companyRegisterBtn").onclick` in `js/03-login.js`) verwendete
+  dagegen bislang die rohe, nur getrimmte Eingabe aus dem Formularfeld
+  (`$("regEmail").value.trim()`) – ohne `.toLowerCase()`.
+
+Enthielt die eingegebene E-Mail auch nur einen Grossbuchstaben (von Hand
+getippt, per Autovervollständigung/Passwortmanager übernommen oder von
+manchen Tastaturen automatisch grossgeschrieben), schlug dieser eine
+automatische Anmeldeversuch mit „Invalid login credentials" fehl – im
+Frontend als generisches „Benutzername oder Passwort falsch." angezeigt
+(dieselbe Meldung für jeden `signInWithPassword`-Fehler, siehe
+`js/03-login.js` Zeile 29). Das Konto selbst war zu diesem Zeitpunkt
+bereits vollständig und korrekt angelegt; nur dieser eine automatische
+Anmeldeversuch scheiterte an der Gross-/Kleinschreibung.
+
+### 23.2 Behoben
+
+Eine Zeile in `js/03-login.js`, `$("companyRegisterBtn").onclick`:
+
+```js
+const email=$("regEmail").value.trim().toLowerCase();
+```
+
+(vorher ohne `.toLowerCase()`). Diese eine Variable wird sowohl für den
+Aufruf von `register-company` als auch für den anschliessenden
+automatischen `sb.auth.signInWithPassword({email,...})`-Aufruf verwendet
+– beide sind dadurch jetzt garantiert identisch normalisiert, unabhängig
+davon, wie die E-Mail eingegeben wurde. Betrifft ausschliesslich den
+automatischen Login direkt nach der Self-Service-Registrierung.
+
+### 23.3 Auth-Flow (zur Klarheit dokumentiert)
+
+- **Firmenadmin (Self-Service-Registrierung):** loggt sich mit seiner
+  echten, immer klein geschriebenen E-Mail-Adresse ein. Erkennung über
+  ein „@" im Eingabefeld (`usernameToEmail()`), danach `.toLowerCase()`.
+  Registrierung und jeder Login (automatisch wie manuell) verwenden ab
+  jetzt exakt dieselbe Normalisierung.
+- **Mitarbeiter (von einem Admin angelegt):** loggen sich weiterhin mit
+  `Vorname.Nachname` an, ohne „@", intern auf die Pseudo-E-Mail-Domain
+  `@nfgryuzkpwjfmdlmevuy.supabase.co` abgebildet (unverändert, von dieser
+  Änderung nicht berührt).
+- `profiles.passwort_gesetzt`: bei der Self-Service-Registrierung von
+  Anfang an `true` (die Person hat ihr Passwort selbst gewählt), bei
+  einem von einem Admin angelegten Mitarbeiterkonto `false` (erzwingt
+  beim ersten Login das Setzen eines eigenen Passworts). Diese beiden
+  Fälle waren bereits vor dieser Änderung korrekt getrennt und wurden
+  nicht angefasst.
+
+### 23.4 Tests
+
+- Live-Endpunkttest (echte Registrierung → automatischer Login → Logout
+  → Seite neu laden → manueller Login im Browser) war in dieser Sitzung
+  technisch nicht möglich – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co` direkt.
+  **Das wird hier ausdrücklich nicht als getestet behauptet.**
+- Stattdessen per SQL direkt gegen die Produktivdatenbank geprüft, anhand
+  einer bereits real registrierten Firma:
+  - genau ein `auth.users`-Eintrag für die verwendete E-Mail, kein
+    Duplikat aus einem vorherigen, fehlgeschlagenen Versuch.
+  - `encrypted_password` vorhanden, korrektes bcrypt-Format.
+  - `email_confirmed_at`/`confirmed_at` gesetzt (kein Bestätigungs-Mail-
+    Hindernis).
+  - passende `auth.identities`-Zeile (`provider:"email"`) mit
+    übereinstimmender E-Mail.
+  - `banned_until`/`deleted_at` leer, kein SSO-Nutzer.
+  - zugehöriges `profiles`: `role:"admin"`, korrekte `company_id`,
+    `passwort_gesetzt:true`.
+  - `last_sign_in_at` zeigt einen bereits erfolgten, tatsächlichen Login
+    für genau dieses Konto – die Auth-Grundfunktion war also nicht
+    generell kaputt, sondern nur der eine automatische Anmeldeversuch
+    direkt nach der Registrierung.
+- `node --check js/03-login.js`: fehlerfrei.
+- `sb.functions.invoke`-Fehleranzeige (`edgeFunctionErrorMessage()`, aus
+  Version 2.14) und die Formularvalidierung von `register-company`
+  (E-Mail-Format, Passwortlänge, Passwort-Wiederholung) per Code-Review
+  gegengeprüft – unverändert korrekt.
+- Bestehender Mitarbeiter-Login (`usernameToEmail()` ohne „@") und der
+  bestehende Login der Firma PETER KÜNZI AG: nicht angefasst, per
+  Code-Review bestätigt unverändert.
+
+### 23.5 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 23.4) – bei Gelegenheit
+  in einer Umgebung mit Netzwerkzugriff auf das Supabase-Projekt
+  nachholen (genau die in Auftragsabschnitt 4 beschriebene Testfirma
+  mit Wegwerf-E-Mail).
+- Auth-Ratenbegrenzung (Brute-Force-Schutz von Supabase Auth) wurde
+  nicht geprüft. Mehrere fehlgeschlagene Anmeldeversuche mit derselben
+  E-Mail (z. B. durch den hier behobenen Bug ausgelöst) könnten in
+  seltenen Fällen kurzzeitig weitere, sogar korrekte Versuche blockieren
+  – das ist eine Supabase-Auth-Grundeinstellung, keine App-Änderung,
+  und wurde in dieser Runde nicht angepasst.
