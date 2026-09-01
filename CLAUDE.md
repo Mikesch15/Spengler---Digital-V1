@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.21**
+- sichtbare App-Version: **2.22**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -2162,3 +2162,140 @@ zurückgegeben) – entspricht jetzt genau der Vorgabe „Erfolg nur wenn DB
   anlage, Passwort-Erstsetzungsflow, `rates`, Trial-Verwaltung,
   geschützter Einstellungsbereich, System-Admin-Grundmodell,
   Firmenregistrierung: nicht angefasst.
+
+## 30. FEHLERBEHEBUNG FIRMENLÖSCHUNG: PREFLIGHT LEHNTE ECHTEN SYSTEM-ADMIN AB – VERSION 2.22
+
+Nach der Korrektur in Version 2.21 (falscher `Prefer`-Header) meldete der
+echte System-Admin beim nächsten Löschversuch (Testfirma, korrekter
+Firmenname eingegeben): „Prüfung vor dem Löschen fehlgeschlagen … Nur für
+System-Administratoren." – obwohl der aufrufende Benutzer nachweislich in
+`system_admins` eingetragen ist und der übrige System-Admin-Bereich
+bereits funktioniert.
+
+### 30.1 Exakte Ursache – direkt per SQL nachgewiesen
+
+```sql
+begin;
+set local role service_role;
+set local request.jwt.claims to '{"role":"service_role"}';
+select auth.uid(), public.is_system_admin();
+-- Ergebnis: auth.uid() = NULL, is_system_admin() = false
+rollback;
+```
+
+`is_system_admin()` prüft `system_admins.user_id = auth.uid()`, und
+`auth.uid()` liest `request.jwt.claim.sub` aus dem für den jeweiligen
+Aufruf verwendeten JWT. Die Edge Function `system-admin-delete-company`
+rief `system_admin_delete_company_data_dryrun(...)` (und danach auch
+`system_admin_delete_company_data(...)`) bislang **mit dem
+Service-Role-Key als Authorization-Header** auf (`svcHeaders`, dieselbe
+Variable, die für die firmenübergreifenden Lese-/Storage-/Auth-Admin-
+Aufrufe absichtlich verwendet wird). Ein Service-Role-JWT hat aber keinen
+`sub`-Claim, der auf einen echten Benutzer zeigt – deshalb war
+`auth.uid()` innerhalb dieser beiden RPC-Aufrufe immer `NULL`, und
+`is_system_admin()` lieferte (korrekt gemäss seiner eigenen, unveränderten
+Logik) immer `false` – unabhängig davon, wer tatsächlich aufgerufen hatte.
+Zum Vergleich, mit dem echten Nutzer-JWT:
+
+```sql
+begin;
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"665e202d-...","role":"authenticated"}';
+select auth.uid(), public.is_system_admin();
+-- Ergebnis: auth.uid() = 665e202d-..., is_system_admin() = true
+rollback;
+```
+
+**Warum das in Version 2.19/2.21 nicht auffiel**: Alle bisherigen
+SQL-Tests dieser Funktionen in dieser Sitzung simulierten bewusst einen
+echten Nutzer-JWT-Kontext (`role authenticated` + `sub=<User-ID>`), um
+RLS/`is_system_admin()` realistisch zu prüfen – das ist exakt der Kontext,
+den `sb.rpc(...)` vom Frontend aus verwendet (z. B. bei
+`system_admin_set_trial`/`system_admin_set_status`, die deshalb bereits
+in der echten Nutzung korrekt funktionierten, siehe 25.4/25.7). Die
+Firmenlöschung ist aber die einzige Stelle, an der diese Funktionen über
+eine **Edge Function mit Service-Role-Key** statt direkt vom Frontend aus
+aufgerufen werden – dieser abweichende Aufrufweg wurde in den bisherigen
+SQL-Simulationen nie nachgebildet, deshalb blieb der Fehler unentdeckt,
+bis der echte Klicktest ihn zeigte.
+
+### 30.2 Korrektur
+
+In `system-admin-delete-company`: für **ausschliesslich** die beiden
+`is_system_admin()`-abhängigen RPC-Aufrufe
+(`system_admin_delete_company_data_dryrun`,
+`system_admin_delete_company_data`) wird jetzt **der bereits vom Client
+mitgesendete, über `/auth/v1/user` bereits verifizierte JWT des echten
+Aufrufers** als `Authorization`-Header verwendet (`apikey` bleibt der
+Service-Role-Key, das ist eine separate, unabhängige Kopfzeile) – exakt
+dieselbe Kombination, die `getCaller()` in derselben Datei bereits vorher
+für `/auth/v1/user` verwendet hat. Damit funktionieren jetzt tatsächlich
+**zwei unabhängige Sicherheitsebenen**, wie im Auftrag gefordert:
+
+1. Edge Function: `isSystemAdmin(caller.id)` – direkte
+   `service_role`-Tabellenabfrage gegen `system_admins` mit expliziter
+   `user_id`, unabhängig von `auth.uid()` (unverändert, war nie
+   betroffen).
+2. Innerhalb der beiden SQL-Funktionen: `is_system_admin()` – prüft jetzt
+   tatsächlich denselben echten Aufrufer, weil `auth.uid()` durch das
+   weitergereichte Nutzer-JWT korrekt aufgelöst wird.
+
+**Keine Sicherheitsprüfung entfernt oder geschwächt**: `is_system_admin()`
+selbst, `SECURITY DEFINER`, das Sicherheitsnetz gegen einen versehentlich
+mitgelöschten System-Admin, die exakte Firmennamen-Bestätigung – alles
+unverändert. Die Funktionen bleiben `SECURITY DEFINER` mit `BYPASSRLS`
+(Owner `postgres`) – das verwendete JWT entscheidet nur, wie `auth.uid()`
+innerhalb der Funktion aufgelöst wird, nicht die Ausführungsrechte selbst
+(die weiterhin über `GRANT EXECUTE … TO authenticated` laufen). Alle
+anderen Aufrufe (Firma/Profile/Projekte lesen, Storage löschen, Auth-User
+löschen) bleiben bewusst beim Service-Role-Key, wie zuvor.
+
+### 30.3 Tests
+
+**Direkt gegen die Produktivdatenbank verifiziert** (Transaktionen mit
+`ROLLBACK`, keine echte Datenänderung):
+- `auth.uid()`/`is_system_admin()` unter simuliertem
+  `service_role`-Kontext: `NULL`/`false` – bestätigt die Fehlerursache.
+- Dieselbe Abfrage unter simuliertem echtem Nutzer-JWT (Mike Ledermann):
+  `665e202d-…`/`true` – bestätigt, dass der jetzt verwendete Aufrufweg
+  korrekt funktioniert.
+- `system_admin_delete_company_data_dryrun(...)` mit Mike Ledermanns
+  JWT-Kontext gegen Testfirma: lief bis zum `DRYRUN_OK`-Marker durch.
+- `system_admin_delete_company_data_dryrun(...)` mit „Test Test"
+  (Mitarbeiter der Testfirma, kein System-Admin): korrekt mit „Nur für
+  System-Administratoren." abgelehnt.
+- `system_admin_delete_company_data_dryrun(...)` mit Max Mustermann
+  (Firmenadmin der Testfirma, kein System-Admin, siehe bereits Version
+  2.19): weiterhin korrekt abgelehnt.
+- **Vollständige Kettenprobe**: sowohl der Dry-Run als auch danach die
+  echte Löschfunktion `system_admin_delete_company_data(...)` einzeln mit
+  Mike Ledermanns JWT-Kontext gegen Testfirma aufgerufen (je eigene
+  Transaktion mit `ROLLBACK`) – beide liefen erfolgreich durch
+  (`deleted_profiles:2, deleted_projects:1`), exakt dieselben Zahlen wie
+  in 27.4.
+- Nach allen Tests erneut geprüft: Testfirma unverändert (1 Firma, 2
+  Profile, 1 Projekt), PETER KÜNZI AG unverändert (`updated_at`
+  identisch), Storage-Bucket weiterhin 14 Objekte.
+- `system-admin-delete-company` erfolgreich auf Version 4 redeployt.
+- Keine Frontend-Änderung in dieser Runde nötig (Fehler und Korrektur
+  lagen ausschliesslich in der Edge Function), trotzdem sicherheitshalber
+  `node --check` über alle `js/*.js` und `<div>`-Balance in `index.html`
+  erneut laufen lassen: fehlerfrei/ausgeglichen.
+- **Ein vollständiger Live-Löschtest über den echten Browser war in
+  dieser Sitzung technisch nicht möglich** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`
+  direkt. **Das wird hier ausdrücklich nicht als getestet behauptet.**
+  Die Korrektur ist per Code-Review und per direkter SQL-Simulation
+  desselben Auth-Kontexts verifiziert, den die Edge Function jetzt real
+  verwendet (nicht mehr nur eines abweichenden, zu optimistischen
+  Testkontexts wie in Version 2.19/2.21).
+
+### 30.4 Offene Punkte
+
+- Kein Live-Klicktest möglich (siehe 30.3) – Testfirma ist weiterhin
+  intakt und kann dafür verwendet werden, sobald ein Netzwerkzugriff auf
+  das Supabase-Projekt zur Verfügung steht.
+- Massaufnahme, Ausmass, Regierapport, Materialverwaltung,
+  Mitarbeiteranlage, Passwort-Erstsetzungsflow, `rates`, Trial-
+  Verwaltung, geschützter Einstellungsbereich, System-Admin-Bereich
+  ausserhalb der Löschfunktion, Firmenregistrierung: nicht angefasst.
