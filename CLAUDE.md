@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.34, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.35, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.34**
+- sichtbare App-Version: **2.35**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -5122,3 +5122,173 @@ reale Nutzung seit Deploy), PETER KÜNZI AG (`updated_at`) unverändert.
 - `ausmass.positions`/`reports.work_entries`/`material_entries` bleiben
   unverändert ohne Detail-Diff (Auftrag Abschnitt 20 – ausserhalb des
   Umfangs dieser Version).
+
+## 43. ÄNDERUNGSVERLAUF – ANSCHLUSSBLECH-PRÜFUNG + UI-VERBESSERUNG — VERSION 2.35
+
+Zwei eng begrenzte Prüfungen: (1) ob die in v2.34 als Klasse B
+zurückgestellten Ort-/Seitenblech-Varianten-Felder inzwischen sicher
+diffbar sind, (2) eine übersichtlichere Darstellung der bestehenden
+Verlauf-Oberfläche. **Keine Datenbank-Migration in dieser Version** –
+`write_audit_log()` unverändert seit v2.34, ausschliesslich
+`js/23-verlauf.js`/`css/01-basis.css` angepasst.
+
+### 43.1 Anschlussblech-Klasse-B erneut geprüft – Ergebnis: weiterhin
+nicht sicher diffbar, jetzt mit konkretem Code-Beleg statt Vermutung
+
+v2.34 hatte die variantenabhängigen `a`/`b`/`c`/`d`/`wandAufkantung`/
+`ortAufkantung`/`ortOben`/`ortStirn`/`ortNase`/`restSchwelle`/
+`gehrungszugabe`-Felder als Klasse B eingestuft, mit der Vermutung
+"Vorgabewert-Rückfall könnte falschen Diff erzeugen". Für v2.35 wurde
+das anhand des tatsächlichen Codes in `js/20-anschlussblech.js`
+nachvollzogen, nicht nur vermutet:
+
+- **Mass-Felder (`a`/`b`/`c`/`d`/…)**: `$("anb_art").onchange` und
+  `$("anb_deckung").onchange` rufen beide
+  `Object.assign(w, anbStandardwerte(w.art, w.deckung, {}))` auf – der
+  dritte Parameter `vorhanden` ist dabei **immer ein leeres Objekt
+  `{}`**. Innerhalb `anbStandardwerte()` (Zeile 120–130) bedeutet das:
+  `vorhanden[k]` ist für jedes Mass-Feld `k` immer `undefined`, die
+  Funktion liefert deshalb **immer** den berechneten Mindestwert bzw.
+  Standardwert (`masse[k].std`) zurück – **nie** den Wert, den der
+  Benutzer gerade für dieses Feld eingegeben hatte, selbst wenn das
+  Feld nach dem Varianten-/Deckungswechsel weiterhin sichtbar bleibt.
+  **Konkret nachvollzogen**: Firma wählt Art "Rinne" mit Mass a = 300 mm,
+  wechselt anschliessend nur die Deckung (Mass a bleibt bei der neuen
+  Deckung weiterhin ein sichtbares Feld) → Mass a wird durch den
+  Deckungswechsel **automatisch auf den neuen Mindestwert
+  zurückgesetzt**, ohne dass der Benutzer das Feld angefasst hat. Ein
+  Speichern in diesem Zustand würde im Audit-Log einen technisch
+  korrekten, aber fachlich **irreführenden** Diff erzeugen ("Mass a:
+  300 → 50" liest sich wie eine bewusste Neumessung, ist tatsächlich
+  aber nur eine Nebenwirkung des Deckungswechsels) – genau der in
+  Abschnitt 3 des Auftrags beschriebene Fall, der ausdrücklich **nicht**
+  gedifft werden soll.
+- **Abschluss-Felder (`wandAufkantung`/`ortAufkantung`/`ortOben`/
+  `ortStirn`/`ortNase`)**: `$("anb_ausfuehrung").onchange` ruft
+  `anbMassfelderZeichnen(anbEingabenAusFeldern())` auf – `anbEingabenAus
+  Feldern()` liest nur die **aktuell im DOM sichtbaren** `data-anb`-
+  Felder aus (`document.querySelectorAll("#anb_masse [data-anb],#anb_
+  abschluss [data-anb]")`); die beim Wechsel von "Seitenblech (Wand)"
+  auf "Ortblech (Giebel)" neu erscheinenden Felder (`ortAufkantung` usw.)
+  waren vor dem Wechsel nicht im DOM und werden deshalb nicht gelesen –
+  ihr Wert fällt auf `anbVorgabe()`s frisch aus den **Firmeneinstellungen**
+  berechneten Basiswert zurück, nicht auf einen zuvor für **diese**
+  Massaufnahme tatsächlich erfassten Wert. Beim erneuten Zurückwechseln
+  auf "Seitenblech" träfe dasselbe auf `wandAufkantung` zu. Dieselbe
+  Kategorie Risiko wie bei den Mass-Feldern.
+- **`restSchwelle`/`gehrungszugabe`**: kommen ausschliesslich aus
+  `anbVorgabe()` (Firmeneinstellungswerte `s.rest_schwelle`/
+  `s.gehrungszugabe`), **keine** zugehörigen `data-anb`-Formularfelder
+  im aktuellen `index.html` gefunden – diese zwei Werte sind aktuell gar
+  keine direkte Benutzereingabe dieser einzelnen Massaufnahme, sondern
+  ausschliesslich ein globaler Firmen-Standardwert (dieselbe Kategorie
+  wie `mauerabdeckung.bodenMass`/`schieberMass`, bereits in v2.34
+  Abschnitt 42.2 als Klasse C eingestuft) – erneut bestätigt: nicht
+  diffbar, aus demselben Grund.
+
+**Entscheidung**: Keines der geprüften Klasse-B-Felder wird in v2.35
+freigegeben. Der Auftrag lässt dieses Ergebnis ausdrücklich zu ("Wenn
+ein sauberer Test nicht möglich ist: → Feld nicht freigeben") – der
+Nachweis über den tatsächlichen `{}`-Aufruf in `anbStandardwerte()` und
+den DOM-Selektor in `anbEingabenAusFeldern()` bestätigt, dass hier kein
+Grenzfall vorliegt, sondern ein **strukturell garantierter** Reset bei
+jedem Varianten-/Deckungswechsel. Eine sichere Lösung würde entweder (a)
+`anbStandardwerte()` den tatsächlich zuvor gespeicherten Wert als
+`vorhanden` übergeben (Fachlogik-Änderung, vom Auftrag Abschnitt 4
+ausdrücklich untersagt), oder (b) im Trigger eine "war dieses Feld über
+den gesamten Bearbeitungszeitraum durchgängig sichtbar"-Prüfung
+ergänzen (technisch aus der Datenbank heraus nicht feststellbar, da nur
+der End-Zustand von `OLD`/`NEW` bekannt ist, nicht die Zwischenschritte
+innerhalb der Bearbeitungssitzung). Keine der beiden Optionen wird
+umgesetzt. `deckung`/`art`/`ausfuehrung`/`saum`/`stossLaenge`/
+`ueberlappung`/`lattenabstand`/`firstgehrung` (bereits seit v2.34 Klasse
+A, da nachweislich **nicht** von diesem Reset-Mechanismus betroffen)
+bleiben unverändert diffbar.
+
+**Keine Fachlogik verändert**: `anbStandardwerte()`,
+`anbMassfelderZeichnen()`, `anbEingabenAusFeldern()`,
+`anbFesteFelderFuellen()` – kein Zeichen in diesen Funktionen angefasst,
+ausschliesslich lesend analysiert.
+
+### 43.2 Verlauf-UI überarbeitet (`js/23-verlauf.js`, `css/01-basis.css`)
+
+- **Wer+Wann auf einer Zeile**: bisher zwei Zeilen (Zeitpunkt oben,
+  „👤 Name" darunter) – jetzt eine Zeile „🕒 Max Muster · 01.09.2026
+  21:42" (Auftrag Abschnitt 8), spart eine ganze Zeile pro Eintrag ohne
+  Informationsverlust.
+- **Entität dezent kennzeichnen**: das bestehende Entitäts-Badge im
+  kombinierten Projekt-Verlauf zeigt jetzt zusätzlich dasselbe Symbol,
+  das der jeweilige Hauptbereich der App bereits verwendet („📁
+  Projekt", „📐 Massaufnahme", „📏 Ausmass", „📋 Regierapport" – identisch
+  zu den Überschriften in `index.html`, keine neue Symbolsprache
+  erfunden). Weiterhin dezenter grauer Rahmen statt Farbcodierung
+  (Auftrag Abschnitt 9: "keine übertriebene Farbgestaltung").
+  Technischer `entity_type`-Rohwert war und ist nirgends sichtbar.
+- **Feldänderungen als Zeilenpaar statt Fliesstext**: bisher
+  `"Label: alt → neu"` als ein Textstrang, jetzt eine Flex-Zeile mit
+  Label links (fett, in der Blau-Akzentfarbe) und Wert rechts (`"alt →
+  neu"`), die auf schmalen Bildschirmen automatisch untereinander
+  umbricht (`flex-wrap:wrap`, `word-break:break-word`) statt horizontal
+  zu scrollen (Auftrag Abschnitt 15). Mehrere Änderungen bleiben
+  weiterhin **ein** Eintrag mit mehreren solchen Zeilen (Auftrag
+  Abschnitt 11) – keine Änderung an dieser bereits in v2.33 korrekten
+  Gruppierung.
+- **50er-Limit dezent kommuniziert**: liefert eine Abfrage genau 50
+  Zeilen (das bestehende `.limit(50)`), erscheint unterhalb der Liste
+  der kleine Hinweis „Zeigt die letzten 50 Einträge." – rein
+  clientseitig anhand der bereits geladenen Zeilenanzahl entschieden,
+  keine zusätzliche Abfrage (Auftrag Abschnitt 16/25). Bei weniger als
+  50 Zeilen erscheint kein Hinweis.
+- **Unverändert**: Action-Übersetzung (`created`/`updated`/`deleted`/
+  `status_changed`), Aktions- und Entitäts-Filter (weiterhin frei
+  kombinierbar, siehe v2.32), NULL-Darstellung („–"), Zahlenformatierung
+  (`1'200`), Boolean-Darstellung (Ja/Nein), Fehlermeldung bei
+  fehlgeschlagener Abfrage, „Noch keine Aktivitäten vorhanden."-Text bei
+  leerer Historie, `archived`-Sonderdarstellung ("Aktiv → Archiviert").
+
+### 43.3 Sicherheit erneut verifiziert (Auftrag Abschnitt 21, keine Code-Änderung serverseitig)
+
+Da `write_audit_log()`/die RLS-Policy in dieser Version nicht verändert
+wurden, war kein neuer Sicherheitsmechanismus zu bauen – trotzdem erneut
+per SQL-Simulation (Wegwerf-Firmen, `begin;…rollback;`) bestätigt:
+Firma B sieht über eine bekannte `project_id` von Firma A weiterhin 0
+Zeilen; ein direkter `INSERT` in `audit_log` mit gefälschtem `changes`
+weiterhin `insufficient_privilege`. Keine Regression seit v2.30/v2.33.
+
+### 43.4 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: unverändert ausgeglichen
+  (612/612 – kein HTML in dieser Aufgabe verändert, nur
+  `js/23-verlauf.js`/`css/01-basis.css`).
+- `js/20-anschlussblech.js` und alle übrigen acht Massaufnahme-Fach-
+  Dateien: nicht verändert, nur lesend analysiert (43.1).
+- Cross-Tenant/Fälschungstest erneut erfolgreich (43.3).
+- PETER KÜNZI AG vor/nach der Aufgabe erneut geprüft: unverändert,
+  `audit_log` weiterhin insgesamt 0 Zeilen (keine reale Nutzung seit
+  Deploy, keine Testdaten dort erzeugt).
+- Live-Klicktest im Browser (neue Verlauf-Darstellung, Anschlussblech-
+  Varianten wechseln, Mobile-Ansicht) weiterhin nicht möglich – Sandbox
+  blockiert ausgehende HTTPS-Verbindungen zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co` direkt, wie in jeder vorherigen
+  Sitzung. **Das wird hier ausdrücklich nicht als getestet behauptet.**
+  Die CSS-Umbruch-Regeln (`flex-wrap:wrap`, `word-break:break-word`,
+  keine festen Breiten) wurden per Code-Review gegen die bestehenden,
+  bereits mobil erprobten Klassen (`.report-list`, `.bar`) abgeglichen,
+  kein eigenständiger Geräte-Test.
+
+### 43.5 Offene Punkte für v2.36
+
+- Kein Live-Klicktest im Browser möglich (siehe 43.4).
+- Anschlussblech-Varianten-Felder bleiben vollständig Klasse B – eine
+  sichere Lösung bräuchte entweder eine Fachlogik-Änderung (Vorgabewert-
+  Rückfall soll den zuletzt gespeicherten Wert statt einen berechneten
+  Mindestwert berücksichtigen) oder ein Session-übergreifendes
+  Sichtbarkeits-Tracking – beides ausserhalb des für v2.35 zulässigen
+  Rahmens.
+- Klasse C (alle Array-Strukturen, `mauerabdeckung.bodenMass`/
+  `schieberMass`, `anschlussblech.restSchwelle`/`gehrungszugabe`) bleibt
+  unverändert ohne Detail-Diff.
+- Feste 50er-Obergrenze weiterhin ohne echte Paginierung.
+- Die in Abschnitt 38.6 dokumentierte Platzhalterzeilen-Häufung bleibt
+  unverändert offen.

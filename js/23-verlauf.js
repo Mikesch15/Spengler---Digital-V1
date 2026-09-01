@@ -16,6 +16,11 @@
 
 const VERLAUF_ACTION_LABELS={created:"Erstellt",updated:"Geändert",deleted:"Gelöscht",status_changed:"Status geändert"};
 const VERLAUF_ENTITY_LABELS={project:"Projekt",measurement:"Massaufnahme",ausmass:"Ausmass",report:"Regierapport"};
+// v2.35: dieselben Symbole, die bereits in den jeweiligen Hauptbereichen
+// verwendet werden (index.html: "📁 Projekte", "📐 Massaufnahme",
+// "📏 Ausmass", "📋 Regierapport") - keine neue Symbolsprache, dezente
+// Kennzeichnung der Entität statt Farbcodierung (Auftrag Abschnitt 9).
+const VERLAUF_ENTITY_ICONS={project:"📁",measurement:"📐",ausmass:"📏",report:"📋"};
 
 // v2.33: Feld-Diffing. Bewusst nur dasselbe kleine, zuverlässige Feld-Set,
 // das write_audit_log() serverseitig vergleicht (siehe CLAUDE.md
@@ -113,17 +118,24 @@ function verlaufFormatDiffValue(field,v){
 // "Aktiv → Archiviert" dargestellt (Auftrag Abschnitt 18) - nie gemischt
 // mit anderen Feldänderungen, da write_audit_log() bei einer echten
 // Statusänderung ausschliesslich den archived-Diff schreibt.
+// v2.35: Label und Wert als eigene Zeile in einer Flex-Reihe statt reinem
+// Fliesstext - bleibt auf Smartphone/Tablet umbruchfähig (Auftrag
+// Abschnitt 15: kein horizontales Scrollen), liest sich auf breiteren
+// Bildschirmen tabellenartig wie im Auftragsbeispiel (Abschnitt 8).
 function verlaufChangesHtml(row){
  if(!Array.isArray(row.changes)||!row.changes.length)return "";
  const labels=VERLAUF_FIELD_LABELS[row.entity_type]||{};
  const lines=row.changes.map(c=>{
+  let wert;
   if(row.action==="status_changed"&&c.field==="archived"){
-   return `${esc(c.old?"Archiviert":"Aktiv")} → ${esc(c.new?"Archiviert":"Aktiv")}`;
+   wert=`${esc(c.old?"Archiviert":"Aktiv")} → ${esc(c.new?"Archiviert":"Aktiv")}`;
+  }else{
+   wert=`${esc(verlaufFormatDiffValue(c.field,c.old))} → ${esc(verlaufFormatDiffValue(c.field,c.new))}`;
   }
   const label=labels[c.field]||c.field;
-  return `${esc(label)}: ${esc(verlaufFormatDiffValue(c.field,c.old))} → ${esc(verlaufFormatDiffValue(c.field,c.new))}`;
+  return `<div class="verlauf-change-row"><span class="verlauf-change-label">${esc(label)}</span><span class="verlauf-change-value">${wert}</span></div>`;
  });
- return `<div class="verlauf-entry-changes">${lines.map(l=>`<div>${l}</div>`).join("")}</div>`;
+ return `<div class="verlauf-entry-changes">${lines.join("")}</div>`;
 }
 
 // Beschreibung: vorhandene description anzeigen, sonst aus Entität+Aktion
@@ -139,14 +151,18 @@ function verlaufEntryText(row){
 // withEntityBadge: im kombinierten Projekt-Verlauf (mehrere Entitäts-
 // typen in einer Liste) zusätzlich anzeigen, um WAS es sich handelt -
 // im direkten Einzel-Verlauf (immer derselbe Typ) unnötig, deshalb dort
-// weiterhin weggelassen wie in v2.31.
+// weiterhin weggelassen wie in v2.31. v2.35: Wer+Wann auf einer Zeile
+// mit 🕒 zusammengefasst (Auftrag Abschnitt 8), Entität als kleines,
+// dezentes Icon+Label-Badge statt Farbcodierung (Abschnitt 9).
 function verlaufEntryHtml(row,withEntityBadge){
  const wer=row.user_id?(profileName(row.user_id)||"Unbekannter Benutzer"):"Unbekannter Benutzer";
  const aktion=VERLAUF_ACTION_LABELS[row.action]||row.action;
- const entityBadge=withEntityBadge?`<span class="verlauf-entry-entity">${esc(VERLAUF_ENTITY_LABELS[row.entity_type]||row.entity_type)}</span>`:"";
+ const entityBadge=withEntityBadge?`<span class="verlauf-entry-entity">${VERLAUF_ENTITY_ICONS[row.entity_type]||""} ${esc(VERLAUF_ENTITY_LABELS[row.entity_type]||row.entity_type)}</span>`:"";
  return `<div class="verlauf-entry">
-<div class="verlauf-entry-top"><span class="verlauf-entry-when">${esc(verlaufFormatWann(row.created_at))}</span><span class="verlauf-entry-badges">${entityBadge}<span class="verlauf-entry-action">${esc(aktion)}</span></span></div>
-<div class="verlauf-entry-who">👤 ${esc(wer)}</div>
+<div class="verlauf-entry-top">
+<span class="verlauf-entry-who">🕒 ${esc(wer)} · ${esc(verlaufFormatWann(row.created_at))}</span>
+<span class="verlauf-entry-badges">${entityBadge}<span class="verlauf-entry-action">${esc(aktion)}</span></span>
+</div>
 <div class="verlauf-entry-desc">${verlaufEntryText(row)}</div>
 ${verlaufChangesHtml(row)}
 </div>`;
@@ -202,6 +218,20 @@ async function runVerlaufQuery(box,query,combined){
   return;
  }
  renderVerlaufFiltered(box);
+ // Auftrag Abschnitt 16: Limit von 50 bleibt bestehen, aber dezent
+ // kommunizieren, falls dadurch tatsächlich etwas fehlen könnte.
+ let hint=box.querySelector(".verlauf-limit-hint");
+ if(data.length>=50){
+  if(!hint){
+   hint=document.createElement("div");
+   hint.className="small verlauf-limit-hint";
+   hint.style.marginTop="4px";
+   box.appendChild(hint);
+  }
+  hint.textContent="Zeigt die letzten 50 Einträge.";
+ }else if(hint){
+  hint.remove();
+ }
 }
 
 // Direkter Verlauf genau eines Datensatzes (Massaufnahme/Ausmass/Report/
