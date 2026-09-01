@@ -1425,17 +1425,57 @@ echte Datenänderung), simuliert über `set local role authenticated` +
 
 ### 25.5 System-Admin-Benutzer
 
-`system_admins` ist **weiterhin leer** – es wurde bewusst **niemand**
-automatisch eingetragen (kein Raten einer User-ID). Damit ist der neue
-Bereich aktuell für **niemanden** sichtbar/nutzbar, bis der Projektinhaber
-gezielt eine konkrete `auth.users.id` einträgt, z. B.:
+**Seit Version 2.17.1 aktiviert.** `system_admins` enthält genau einen
+Eintrag: den bereits vorhandenen Betreiber-Account **Mike Ledermann**
+(Login `mike.ledermann`, Profil-`id` `665e202d-5fae-42e9-8d8f-677348931e82`).
+
+**Identifikation (Migration `activate_first_system_admin`):** Das
+tatsächliche `profiles`-Schema wurde zuerst per SQL geprüft – die Spalten
+heissen `first_name`/`last_name`, nicht `vorname`/`nachname`. Danach alle
+`profiles` mit `role='admin'` systemweit aufgelistet (Join über
+`companies` und `auth.users`, nur `id`/Name/Firma/`created_at`/E-Mail,
+keine weiteren personenbezogenen Daten): es existierten zu diesem
+Zeitpunkt **genau zwei** Admin-Konten im gesamten System –
+1. Mike Ledermann, einziger Admin der ursprünglichen Firma
+   PETER KÜNZI AG, ältestes Konto im System (`created_at` 2026-08-24,
+   vor der gesamten Multi-Tenant-/Self-Service-Migration angelegt),
+   aktives Auth-Konto mit bereits erfolgtem Login
+   (`last_sign_in_at` gesetzt, nicht gesperrt/gelöscht).
+2. Max Mustermann, Admin der Firma "Testfirma" – nachweislich Testdaten
+   aus einer vorherigen Session (Self-Service-Registrierung am
+   2026-09-01 zum Testen der Firmenregistrierung/des Login-Bugfixes),
+   erkennbar am Platzhalternamen und Firmennamen.
+
+Eindeutig identifiziert über Rolle + Firmenzugehörigkeit + `created_at` +
+Auth-Status – keine geratene UUID, kein Namensraten bei mehreren
+möglichen Treffern (PETER KÜNZI AG hat nachweislich nur diesen einen
+Admin). Zusätzlich bestätigt der Nutzername "Mike Ledermann" den
+bestehenden Kontext dieser Session (Projektinhaber). Max Mustermann/
+Testfirma wurde **nicht** eingetragen.
+
+**Eingetragen:**
 
 ```sql
-insert into public.system_admins(user_id) values ('<eigene auth-user-id>');
+insert into public.system_admins(user_id)
+values ('665e202d-5fae-42e9-8d8f-677348931e82')
+on conflict (user_id) do nothing;
 ```
 
-Die eigene `auth.users.id` findet sich z. B. über die Supabase-Tabelle
-`auth.users` (Spalte `id`) anhand der Login-E-Mail.
+**Verifiziert** (direkt gegen die Produktivdatenbank, `is_system_admin()`
+in einer per `request.jwt.claims` simulierten Sitzung aufgerufen):
+- `system_admins` enthält genau diese eine Zeile, keine Duplikate
+  (`user_id` ist Primärschlüssel).
+- `is_system_admin()` liefert für Mike Ledermann `true`, für Max
+  Mustermann weiterhin `false`.
+- `profiles` (beide Admin-Zeilen) und `companies` (PETER KÜNZI AG,
+  Testfirma) vor und nach dem Eintrag unverändert (`updated_at` beider
+  Firmen liegt vor diesem Auftrag) – ausschliesslich `system_admins`
+  wurde geschrieben.
+- Kein Code geändert, deshalb **keine Versionserhöhung** – die
+  System-Admin-Oberfläche selbst bleibt Version 2.17.
+
+Ein weiterer System-Admin wird auf demselben Weg eingetragen, sollte das
+künftig nötig sein – kein UI dafür in dieser Phase, siehe 25.6.
 
 ### 25.6 Was diese Phase NICHT enthält
 
