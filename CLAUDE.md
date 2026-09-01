@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.20**
+- sichtbare App-Version: **2.21**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -1996,3 +1996,169 @@ ausdrücklich gefordert.
   Handler in `js/22-system-admin.js` entsprechend anpassen (automatischer
   Login müsste dann für den anonymen Fall wieder ergänzt werden) – nicht
   automatisch in dieser Aufgabe vorbereitet, da nicht verlangt.
+
+## 29. FEHLERBEHEBUNG FIRMENLÖSCHUNG: FALSCHER RPC-HEADER + PREFLIGHT-VALIDIERUNG – VERSION 2.21
+
+Der erste echte Löschversuch (Testfirma, über den in Version 2.19 gebauten
+System-Admin-Bereich) schlug fehl: „Die Datenbank-Löschung ist
+fehlgeschlagen, nachdem Storage-Dateien bereits entfernt wurden."
+
+### 29.1 Sofortige Bestandsaufnahme (vor jeder Änderung)
+
+Direkt gegen die Produktivdatenbank geprüft, **nichts verändert**:
+
+- `companies`: Testfirma-Zeile **existiert weiterhin** unverändert.
+- `profiles`: weiterhin 2 (Max Mustermann, Test Test).
+- `projects`: weiterhin 1 ("Testprojekt").
+- `app_settings`/`rates`/`materials`/`permission_overrides`/`feedback`:
+  exakt wie vor dem Löschversuch.
+- `storage.objects` (Bucket `measurements`): weiterhin genau die 14
+  bekannten, alle PETER KÜNZI AG zuzuordnenden Objekte, keine
+  unerklärlichen zusätzlichen oder fehlenden Einträge – Testfirma hatte
+  zu diesem Zeitpunkt ohnehin keine eigenen Storage-Dateien (kein Logo,
+  keine Foto-/Skizzenpfade auf der einen Massaufnahme), siehe 27.4.
+- **Ergebnis**: Die Datenbank war zu **keinem Zeitpunkt** teilweise
+  gelöscht – `system_admin_delete_company_data()` ist wie geplant atomar
+  zurückgerollt (siehe 29.2, warum). Auch Storage war für Testfirma
+  faktisch nicht betroffen, da nichts zu löschen vorhanden war – die
+  damalige Fehlermeldung „Storage-Dateien wurden bereits entfernt" war
+  in diesem konkreten Fall **irreführend formuliert** (siehe 29.4).
+- PETER KÜNZI AG: vollständig unverändert (`updated_at` identisch zum
+  bisherigen Stand).
+
+### 29.2 Exakte Ursache
+
+`system-admin-delete-company` rief die Datenbank-Funktion so auf:
+
+```ts
+const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/system_admin_delete_company_data`, {
+  method: "POST",
+  headers: { ...svcHeaders, "Content-Type": "application/json", Prefer: "params=single-object" },
+  body: JSON.stringify({ p_company_id: companyId }),
+});
+```
+
+Der Header `Prefer: params=single-object` weist PostgREST an, den
+**kompletten JSON-Body als einen einzigen Parameterwert** zu
+interpretieren – sinnvoll für eine Funktion mit einem `json`/`jsonb`-
+Parameter. `system_admin_delete_company_data(p_company_id uuid)` hat
+aber einen einzelnen **skalaren `uuid`-Parameter** (per SQL geprüft:
+`proargtypes::regtype[] = {uuid}`). Mit diesem Header versuchte PostgREST,
+das gesamte JSON-Objekt `{"p_company_id":"..."}` in den Typ `uuid` zu
+casten – das schlägt fehl, **bevor** die Funktion überhaupt aufgerufen
+wird. Deshalb war die Datenbank nie tatsächlich betroffen: der
+`DELETE`-Block im Funktionskörper wurde nie erreicht.
+
+**Behoben**: Header ersatzlos entfernt. PostgRESTs Standardverhalten
+(JSON-Keys direkt auf gleichnamige benannte Parameter mappen) ist für
+eine Funktion mit benannten Parametern korrekt und war schon immer die
+richtige Wahl – der Header war ein Implementierungsfehler beim
+ursprünglichen Bau der Edge Function, keine grundsätzliche
+Architekturschwäche. Die Datenbank-Funktion selbst war die ganze Zeit
+korrekt (in Version 2.19 direkt per SQL mehrfach erfolgreich gegen echte
+Daten getestet, siehe 27.4) – nur der HTTP-Aufruf dorthin war falsch.
+
+**Verifiziert**: `system_admin_delete_company_data_dryrun(...)` (siehe
+29.3) direkt per SQL für Testfirma aufgerufen – läuft ohne Fehler bis zum
+absichtlichen `DRYRUN_OK`-Abbruch durch, bestätigt also, dass die exakt
+gleiche Löschsequenz ohne Fremdschlüsselfehler funktioniert. Die
+Korrektur betraf ausschliesslich die HTTP-Aufrufkonvention, keine
+SQL-Logik.
+
+### 29.3 Neu: Preflight-Validierung
+
+Neue Migration `system_admin_delete_company_data_dryrun`: eine zweite
+`SECURITY DEFINER`-Funktion, die **exakt dieselbe** Löschsequenz wie
+`system_admin_delete_company_data()` ausführt, aber **niemals committet**
+– am Ende steht ein unbedingtes `raise exception 'DRYRUN_OK';`, das
+Postgres die gesamte Funktion (samt aller `DELETE`s) automatisch
+zurückrollen lässt. `system-admin-delete-company` ruft diese Funktion
+jetzt **vor jeder Storage-Löschung** auf:
+
+- Fehlermeldung enthält `DRYRUN_OK` → Datenbank-Teil würde ohne
+  Fremdschlüssel-/Berechtigungsfehler durchlaufen, Storage-Löschung darf
+  beginnen.
+- jede andere Fehlermeldung → echter Fehler, der auch beim tatsächlichen
+  Löschen aufgetreten wäre. Abbruch **vor** jeder Storage-Änderung, mit
+  der echten Fehlermeldung im Report statt eines nichtssagenden „DB-
+  Löschung fehlgeschlagen".
+
+Damit ist der im vorherigen Löschversuch aufgetretene Zustand
+(„Storage weg, DB-Löschung schlägt danach fehl") für jeden Fehler
+ausgeschlossen, der sich im Preflight bereits zeigen würde – inklusive
+des ursprünglichen Bugs selbst, hätte der Preflight schon vor Version
+2.19 existiert. Das **Sicherheitsnetz** (kein System-Admin unter den
+Firmenmitgliedern) wird zusätzlich schon **vor** dem Preflight direkt in
+der Edge Function geprüft, nicht erst wenn Storage schon weg wäre.
+
+**Grenzen des Preflight, offengelegt statt verschwiegen**: Zwischen dem
+erfolgreichen Preflight-Aufruf und dem echten Löschaufruf liegt eine
+kurze Zeitspanne (weitere Selects für die Storage-Pfade, die
+Storage-Löschung selbst) – in dieser Zeit könnte sich der Zustand der
+Datenbank theoretisch nochmals ändern (z. B. ein neuer Mitarbeiter wird
+in der Firma angelegt). Das ist ein bewusst akzeptiertes, sehr kleines
+Restrisiko (keine echte Transaktion über beide Aufrufe hinweg möglich,
+da Storage dazwischenliegt) – deutlich kleiner als vorher, aber nicht
+vollständig ausgeschlossen.
+
+### 29.4 Fehlermeldung präzisiert
+
+Die alte, fest formulierte Meldung „…, nachdem Storage-Dateien bereits
+entfernt wurden" wurde durch eine Fallunterscheidung ersetzt: nur wenn
+tatsächlich Storage-Pfade zum Löschen vorhanden waren
+(`storageActuallyDeleted`), wird das auch so gemeldet; gab es keine zu
+löschenden Dateien, sagt die Meldung das ebenfalls korrekt. Ausserdem:
+ein fehlgeschlagenes Auth-User-Löschen gilt jetzt **nicht mehr** als
+Erfolg (`auth_delete_failures` wurde vorher zusammen mit `ok:true`
+zurückgegeben) – entspricht jetzt genau der Vorgabe „Erfolg nur wenn DB
+**und** Auth-User **und** Storage erfolgreich".
+
+### 29.5 Tests
+
+- **Bestandsaufnahme der teilweise bearbeiteten Testfirma**: siehe 29.1 –
+  vollständig intakt, keine Reparatur nötig.
+- `system_admin_delete_company_data_dryrun(...)` direkt per SQL
+  aufgerufen (als Mike Ledermann, ohne umschliessendes `ROLLBACK` nötig,
+  da die Funktion sich selbst immer zurückrollt): lief bis zum
+  `DRYRUN_OK`-Marker durch. Anschliessend `companies`/`profiles`/
+  `projects` für Testfirma erneut gezählt: exakt unverändert (1/2/1).
+- Derselbe Aufruf **ohne** Systemadmin-Kontext (kein `request.jwt.claims`
+  gesetzt): korrekt mit „Nur für System-Administratoren." abgelehnt,
+  ebenfalls ohne jede Datenänderung.
+- Grants der neuen Funktion geprüft: `authenticated`/`service_role`/
+  `postgres` haben `EXECUTE`, `anon` nicht.
+- `system-admin-delete-company` erfolgreich auf Version 3 redeployt
+  (vorheriger Bug behoben + Preflight-Aufruf ergänzt).
+- Storage-Bestand (`storage.objects`, Bucket `measurements`) erneut
+  geprüft: weiterhin genau 14 Objekte, alle einem bekannten Pfadmuster
+  zuordenbar – keine verwaisten Reste von fehlgeschlagenen
+  Löschversuchen.
+- PETER KÜNZI AG nach Abschluss dieser Korrektur erneut geprüft:
+  unverändert.
+- `node --check`/`<div>`-Balance: keine Frontend-Änderung in dieser
+  Runde nötig (der Fehler und die Korrektur lagen ausschliesslich in der
+  Edge Function und einer neuen SQL-Funktion), trotzdem zur Sicherheit
+  erneut über alle `js/*.js` und `index.html` laufen lassen: fehlerfrei/
+  ausgeglichen.
+- **Ein vollständiger Live-Löschtest mit einer neuen Wegwerf-Testfirma
+  (wie im Auftrag als Testablauf vorgegeben) war in dieser Sitzung
+  technisch nicht möglich** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co` direkt.
+  **Das wird hier ausdrücklich nicht als getestet behauptet.** Die
+  Korrektur ist per Code-Review (der fehlerhafte Header ist nachweislich
+  entfernt, die Funktionssignatur nachweislich ein skalarer Parameter)
+  und per direkter SQL-Simulation der jetzt aufgerufenen Funktionen
+  verifiziert, nicht per echtem Klicktest.
+
+### 29.6 Offene Punkte
+
+- Kein Live-Klicktest der korrigierten Löschung möglich (siehe 29.5) –
+  bei Gelegenheit mit einer neuen Wegwerf-Testfirma nachholen (Testfirma
+  selbst ist weiterhin intakt und kann dafür verwendet werden, oder eine
+  frische Firma über den System-Admin-Bereich registrieren).
+- Die in 29.3 beschriebene kurze Zeitspanne zwischen Preflight und
+  echtem Löschen bleibt ein kleines, bewusst akzeptiertes Restrisiko.
+- Massaufnahme, Ausmass, Regierapport, Materialverwaltung, Mitarbeiter-
+  anlage, Passwort-Erstsetzungsflow, `rates`, Trial-Verwaltung,
+  geschützter Einstellungsbereich, System-Admin-Grundmodell,
+  Firmenregistrierung: nicht angefasst.
