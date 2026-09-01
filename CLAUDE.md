@@ -2832,3 +2832,248 @@ Abschnitt 20.5/20.6).
   unbekannte/verwaiste Datei behandelt (kein Zugriff für niemanden, bis
   eine erste Referenz existiert – sicher, aber ggf. zunächst
   unbeabsichtigt restriktiv für eine neue Funktion).
+
+## 33. FINALER SECURITY-AUDIT — VERSION 2.25
+
+Zweiter, gezielter Security-Durchgang nach v2.23 (Multi-Tenant-Audit) und
+v2.24 (Storage-Fix). Fokus laut Auftrag: Berechtigungen, alle Edge
+Functions, Mitarbeiter, Passwortfunktionen, Firmenregistrierung,
+System-Admin, Firmenlöschung, IDOR. Ausschliesslich per direktem SQL
+gegen das echte Produktivschema geprüft (Sandbox blockiert weiterhin
+jede ausgehende HTTPS-Verbindung zu `nfgryuzkpwjfmdlmevuy.supabase.co`
+direkt – kein Live-Browser-/HTTP-Test möglich, wie in jeder vorherigen
+Sitzung). Alle destruktiven Tests liefen in `begin;…rollback;` mit einer
+temporären Wegwerf-Firma B (`99999999-9999-9999-9999-999999999999`) oder
+als reiner Code-Review.
+
+### 33.1 Vollständiger Re-Audit aller RLS-Policies (`polpermissive`)
+
+Erneut die komplette `pg_policy`-Tabelle für `public` **und** `storage`
+ausgelesen (nicht nur `public` wie in 31.1 – der Auftrag verlangt
+ausdrücklich "nach dem v2.23-Fund bei `rinne_fitting_types` besonders
+nach weiteren permissiven Tenant-Policies suchen"). Ergebnis: **keine
+weitere permissive Tenant-Boundary-Policy gefunden.** Jede
+`tenant_boundary_<tabelle>`-Policy auf allen elf `company_id`-tragenden
+Tabellen (`app_settings`, `blitzschutz_materials`,
+`einlaufblech_settings`, `feedback`, `materials`,
+`measurement_materials`, `permission_overrides`, `profiles`, `projects`,
+`rates`, `rinne_fitting_types`) ist weiterhin korrekt **restriktiv**
+(`polpermissive:false`) – der v2.23-Fix an `rinne_fitting_types` ist
+weiterhin aktiv, keine Regression. Die vier neuen Storage-Policies aus
+v2.24 (`tenant read/upload/update/delete own storage files`) sind
+strukturell absichtlich permissiv, aber durch die aufrufenden Funktionen
+(`storage_object_is_own_company()`/`storage_object_insert_allowed()`)
+selbst bereits vollständig firmengetrennt – kein Policy-Kombinationsrisiko,
+da es pro Befehl nur je eine einzige Policy gibt.
+
+### 33.2 Neuer Fund (NIEDRIG, behoben): unnötiger `anon`/`PUBLIC`-Grant auf
+Trigger-Funktion
+
+Bereits in Abschnitt 20.8 als bekannter, nicht aufgeräumter Punkt
+dokumentiert: `enforce_permission_override_company()` hatte `EXECUTE`
+für `anon` **und** `PUBLIC` (Supabase vergibt das bei neuen Funktionen
+automatisch, wenn nicht explizit entzogen). Geprüft, ob das tatsächlich
+ausnutzbar ist: die Funktion ist eine reine Trigger-Funktion (0
+Parameter, referenziert `NEW`/`new.company_id` direkt im Funktionskörper)
+– ein direkter RPC-Aufruf ausserhalb eines Trigger-Kontexts schlägt bei
+Postgres **immer** mit einem eigenen Fehler fehl ("trigger functions can
+only be called as triggers"), unabhängig von Grants. **Kein
+ausnutzbares Risiko**, aber als kleinste sichere Korrektur trotzdem
+aufgeräumt (Migration `revoke_unnecessary_trigger_function_grants_v2_25`):
+`EXECUTE` für `anon` und `PUBLIC` entzogen, `authenticated` (für den
+echten Trigger-Betrieb nicht einmal nötig, aber unverändert gelassen, um
+keine bestehende Berechtigung ohne Not zu ändern) bleibt unangetastet.
+Keine Verhaltensänderung für den bestehenden `BEFORE INSERT/UPDATE`-
+Trigger auf `permission_overrides`.
+
+### 33.3 Edge Functions – erneute vollständige Prüfung
+
+`list_edge_functions` erneut abgefragt: weiterhin genau sechs Funktionen,
+keine neue seit v2.23/2.24 (`smart-action` v10, `extract-offer-positions`
+v10, `extract-profile-shape` v3, `reset-password` v2, `register-company`
+v3, `system-admin-delete-company` v4). Vollständiger Quellcode von
+`reset-password` und `register-company` erneut gelesen (nicht nur aus
+altem Report übernommen):
+
+- **`reset-password`** (v2, seit v2.23 unverändert): echter Aufrufer via
+  `admin.auth.getUser(jwt)` (nicht `service_role`-JWT), Admin-Prüfung,
+  **und** der in v2.23 ergänzte Firmenvergleich (`zielProfil.company_id
+  !== profil.company_id` → 403) sind weiterhin vorhanden – keine
+  Regression.
+- **`register-company`** (v3, seit v2.20 unverändert): `isSystemAdmin(
+  caller.id)` prüft direkt per `service_role`-REST-Abfrage gegen
+  `system_admins` (nicht die RLS-beschränkte `is_system_admin()`-RPC) –
+  weiterhin korrekt. `company_id` für Firma/Profil/`app_settings` kommt
+  ausschliesslich aus serverseitig frisch angelegten Zeilen, nie vom
+  Client (`RegisterBody` enthält gar kein `company_id`-Feld).
+- **`smart-action`** (v10, seit v2.20 unverändert): `CreateEmployeeBody`
+  enthält strukturell **nur** `first_name`/`last_name` – kein
+  `company_id`-Feld existiert im akzeptierten Request überhaupt, ein
+  Firmenadmin kann also gar nicht versuchen, eines mitzuschicken.
+  `company_id` kommt ausschliesslich aus `getCallerProfile(caller.id)`
+  (echter, per `/auth/v1/user` verifizierter Aufrufer).
+- **`system-admin-delete-company`** (v4, seit v2.22 unverändert): echtes
+  Nutzer-JWT für die beiden `is_system_admin()`-abhängigen RPC-Aufrufe
+  (Bugfix aus v2.22), `service_role` nur für firmenübergreifende
+  Lese-/Storage-/Auth-Admin-Operationen – unverändert korrekt.
+- **`extract-offer-positions`**/**`extract-profile-shape`**: weiterhin
+  keinerlei Tabellenzugriff, kein `company_id`-Bezug – kein
+  Multi-Tenant-Risiko.
+
+### 33.4 System-Admin-Funktionen – frisch empirisch getestet
+
+Als **Nicht-System-Admin** (Phillipp Wegmueller, `db6d1224-…`, normaler
+Mitarbeiter von PETER KÜNZI AG) in einer Transaktion alle fünf
+sicherheitsrelevanten Funktionen aufgerufen:
+
+| Funktion | Ergebnis |
+|---|---|
+| `system_admin_set_trial(<eigene Firma>, 999, …)` | abgelehnt: „Nur für System-Administratoren." |
+| `system_admin_set_status(<eigene Firma>, 'active')` | abgelehnt, gleicher Grund |
+| `system_admin_company_user_counts()` | abgelehnt, gleicher Grund |
+| `system_admin_delete_company_data_dryrun(<eigene Firma>)` | abgelehnt, gleicher Grund |
+| `system_admin_delete_company_data(<eigene Firma>)` | abgelehnt, gleicher Grund |
+| `is_system_admin()` | `false` |
+
+Als **echter System-Admin** (Mike Ledermann) erneut bestätigt:
+`is_system_admin()` liefert `true` (identisch zu den bereits in 25.4
+dokumentierten Tests – keine Regression).
+
+**System-Admin-Schutz bei der Firmenlöschung** (Auftragspunkt 13,
+konkret getestet statt nur angenommen): Mike Ledermann selbst hat
+versucht, **seine eigene Firma** (PETER KÜNZI AG, die ihn selbst als
+System-Admin enthält) über `system_admin_delete_company_data_dryrun(...)`
+zu löschen – korrekt abgelehnt: „Abbruch: Ein Mitglied dieser Firma ist
+als System-Administrator eingetragen." Per Code-Lesung bestätigt: dieser
+Schutz sitzt **direkt in der SQL-Funktion selbst** (nicht nur in der
+aufrufenden Edge Function) – zwei unabhängige Schutzebenen, wie im
+Auftrag gefordert.
+
+### 33.5 Company_id-Injection – systematisch für alle elf Tabellen
+
+Alle Tabellen mit `company_id`-Spalte (per `information_schema.columns`
+frisch ermittelt, nicht aus alter Doku übernommen: `app_settings`,
+`blitzschutz_materials`, `einlaufblech_settings`, `feedback`,
+`materials`, `measurement_materials`, `permission_overrides`, `profiles`,
+`projects`, `rates`, `rinne_fitting_types`) einzeln mit einem INSERT
+getestet, das explizit `company_id = <PETER KÜNZI AG>` setzt, während der
+Aufrufer (Mike Ledermann) temporär einer Wegwerf-Firma B zugeordnet war.
+**Alle elf** wurden von der jeweiligen restriktiven
+`tenant_boundary_*`-Policy korrekt abgelehnt (`42501: new row violates
+row-level security policy`) – kein einziges `DEFAULT
+my_company_id()` wurde als alleinige Sicherheit vertraut, `WITH CHECK`
+tatsächlich geprüft, wie im Auftrag gefordert.
+
+### 33.6 IDOR mit bekannten fremden IDs – UPDATE/DELETE
+
+Ergänzend zu den bereits in v2.23 getesteten SELECT-IDOR-Fällen (siehe
+31.4) diesmal gezielt UPDATE/DELETE mit **bekannten, echten IDs**
+PETER-KÜNZI-AG-eigener Zeilen, wieder aus der Sicht der temporär
+umgehängten Wegwerf-Firma B:
+
+| Tabelle | Operation | Bekannte ID | Ergebnis |
+|---|---|---|---|
+| `materials` | UPDATE | `id=2` | 0 Zeilen geändert (RLS blockiert still) |
+| `rates` | UPDATE | `id=1` | 0 Zeilen geändert |
+| `measurements` | UPDATE | `id=12` | 0 Zeilen geändert |
+| `ausmass` | DELETE | `id=1` | 0 Zeilen gelöscht |
+| `reports` | DELETE | `id=5` | 0 Zeilen gelöscht |
+| `project_files` | DELETE | `id=1` | 0 Zeilen gelöscht |
+| `app_settings` | UPDATE | `id=1` | 0 Zeilen geändert |
+| `profiles` | INSERT (neues Profil mit fremder `company_id`) | – | abgelehnt (RLS-Fehler) |
+
+Nach Abschluss aller Tests per SQL erneut bestätigt: `materials.id=2`
+weiterhin „Stahlblech svz / evz / dek", `rates.id=1` weiterhin
+„Meister" – keine echte Änderung, alle Tests liefen entweder in
+`rollback;` oder wurden von RLS mit 0 betroffenen Zeilen abgewiesen.
+
+### 33.7 Profile Escalation – erneut bestätigt
+
+Mitarbeiter (Phillipp Wegmueller) hat innerhalb einer Transaktion
+versucht, sein eigenes Profil auf `company_id = <Wegwerf-Firma B>` zu
+ändern **und** `role='admin'` zu setzen – beides blockiert (0 Zeilen
+geändert, `has_permission('profiles','edit')=false` für `role=employee`
+laut `permission_settings`). Nach `reset role`/Rollback direkt gegen die
+echten Daten geprüft: Profil weiterhin `company_id=<PETER KÜNZI AG>`,
+`role='employee'` – exakt wie in Abschnitt 24 bereits für das
+strukturell identische `passwort_gesetzt`-Feld dokumentiert, hier erneut
+für `company_id`/`role` bestätigt.
+
+### 33.8 Testmatrix
+
+| Bereich | Mitarbeiter A→A | Mitarbeiter A→B | Admin A→A | Admin A→B | System-Admin |
+|---|---|---|---|---|---|
+| Profiles | eigenes/laut Scope sichtbar | blockiert | volle Verwaltung eigener Firma | blockiert (33.6) | kein direkter Zugriff |
+| Companies | eigene Firma sichtbar | blockiert | Name/Adresse eigener Firma änderbar | blockiert (31.4) | global via `system_admin_*` |
+| Projects | laut Permission-Scope | blockiert (33.5 Injection) | voll | blockiert | kein direkter Zugriff |
+| Measurements | laut Scope | blockiert (31.4 SELECT, 33.6 UPDATE) | voll | blockiert | kein direkter Zugriff |
+| Measurement Materials | laut Permission | blockiert (33.5) | voll | blockiert | kein direkter Zugriff |
+| Ausmass | laut Scope | blockiert (31.4 SELECT, 33.6 DELETE) | voll | blockiert | kein direkter Zugriff |
+| Reports | laut Scope | blockiert (31.4 SELECT, 33.6 DELETE) | voll | blockiert | kein direkter Zugriff |
+| Project Files | laut Permission | blockiert (31.4, 33.6, Storage 32.4) | voll | blockiert | kein direkter Zugriff |
+| Materials | laut Permission | blockiert (33.5 Injection, 33.6 UPDATE) | voll | blockiert | kein direkter Zugriff |
+| Rates | laut Permission | blockiert (33.5, 33.6) | voll | blockiert | kein direkter Zugriff |
+| Rinne Fitting Types | laut Permission | **war KRITISCH (31.2), seit v2.23 blockiert**, 2.25 reaudit clean | voll | blockiert | kein direkter Zugriff |
+| Blitzschutz Materials | laut Permission | blockiert (33.5) | voll | blockiert | kein direkter Zugriff |
+| App Settings | eigene Firma sichtbar | blockiert (33.5, 33.6) | änderbar (eigene Firma) | blockiert | kein direkter Zugriff |
+| Permissions (overrides) | eigene Overrides wirksam | blockiert (31.4, restriktive Policy) | verwaltbar (eigene Firma) | blockiert | kein direkter Zugriff |
+| Feedback | eigenes sichtbar/erstellbar | blockiert (33.5 Injection) | alle der eigenen Firma | blockiert | kein direkter Zugriff |
+| Storage | eigene referenzierte Dateien | **war HOCH (31.5), seit v2.24 blockiert** | eigene referenzierte Dateien | blockiert | Firmenlöschung via `service_role` (RLS-unabhängig, legitim) |
+| Passwortfunktionen | eigenes Passwort setzen (`mark_own_password_set`, nur `auth.uid()`) | n/a (kein Fremdzugriff möglich) | eigene Mitarbeiter zurücksetzen | **war KRITISCH (31.3), seit v2.23 blockiert** | n/a |
+| Mitarbeiteranlage | n/a (nicht berechtigt) | n/a | eigene Firma (kein `company_id`-Feld im Request) | strukturell unmöglich | n/a |
+| Firmenregistrierung | abgelehnt | n/a | abgelehnt (403) | n/a | erlaubt |
+| Trial | n/a | n/a | abgelehnt (33.4) | n/a | erlaubt |
+| Status | n/a | n/a | abgelehnt (33.4) | n/a | erlaubt |
+| Firmenlöschung | n/a | n/a | abgelehnt (33.4) | n/a | erlaubt, aber Selbstschutz bei System-Admin-Mitgliedschaft (33.4) |
+
+### 33.9 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: unverändert ausgeglichen
+  (594/594 – nur der Versionstext geändert).
+- Produktivdaten vor/während/nach allen Tests wiederholt geprüft: 1
+  Firma, 12 Profile, 4 Projekte, 13 Massaufnahmen, 2 Ausmass, 4
+  Regierapporte, 1 Projektdatei, 371 Materialien, 11 `rates`, 7
+  `rinne_fitting_types`, 486 `blitzschutz_materials`, 1
+  `einlaufblech_settings`, 6 `measurement_materials`, 1 `app_settings`,
+  12 `feedback`, 1 `system_admins`-Eintrag, 14 Storage-Objekte – exakt
+  wie vor Beginn dieser Aufgabe und identisch zu den in v2.23/2.24
+  dokumentierten Werten.
+- Kein Frontend-Code verändert (nur Versionstext) – Massaufnahme (alle
+  neun Funktionen), Ausmass, Regierapport, Materialverwaltung,
+  Excel-Import, Login, Firmenregistrierung, System-Admin, Firmenadmin,
+  Mitarbeiter, Passwort-Erstsetzung, Passwort-Reset, geschützte
+  Einstellungen, Trial, Status, Firmenlöschung, Storage: keine
+  Codeänderung in dieser Runde, daher kein eigenständiger
+  Funktionstest dieser Bereiche nötig – ihre RLS-/Funktionsgrundlage
+  wurde aber vollständig als Teil dieses Audits erneut geprüft.
+- Live-Klicktest im Browser weiterhin nicht möglich (Sandbox-
+  Netzwerksperre zu `nfgryuzkpwjfmdlmevuy.supabase.co`) – wie in jeder
+  vorherigen Sitzung ausdrücklich nicht als getestet behauptet. Alle
+  oben dokumentierten Ergebnisse sind direkte RLS-/Funktions-
+  Simulationen gegen das echte Produktivschema.
+
+### 33.10 Ergebnis
+
+**Keine neue KRITISCHE oder HOHE Sicherheitslücke gefunden.** Die beiden
+in v2.23 gefundenen KRITISCH-Lücken (`rinne_fitting_types`,
+`reset-password`) und die in v2.23 gefundene, in v2.24 behobene
+HOCH-Lücke (Storage) sind weiterhin korrekt geschlossen, ohne
+Regression. Einziger neuer Fund dieser Runde: der bereits seit v2.17
+dokumentierte, tatsächlich ungefährliche `anon`/`PUBLIC`-Grant auf eine
+reine Trigger-Funktion (NIEDRIG, aus Hygiene-Gründen dennoch entzogen,
+siehe 33.2). Alle systematischen Company_id-Injection-, IDOR- und
+Profile-Escalation-Tests sowie die Re-Prüfung aller Edge Functions und
+System-Admin-Funktionen bestätigen: RLS, `SECURITY DEFINER`-Funktionen
+und Edge-Function-Aufrufer-Prüfungen greifen konsistent über das gesamte
+Schema.
+
+### 33.11 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 33.9).
+- Die 9 verwaisten Storage-Objekte aus Abschnitt 32.1 bleiben unverändert
+  isoliert (nicht Gegenstand dieser Runde).
+- SSRF-Nebenbefund in `extract-offer-positions` (31.6) weiterhin
+  ausserhalb des Auftragsumfangs, nicht behoben.
+- `permission_settings` weiterhin bewusst ohne `company_id` (geteilte
+  Rollen-Standardwerte, siehe 20.8) – kein Fehler.
