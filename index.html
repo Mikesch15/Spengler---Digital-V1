@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Spengler-Digital">
 <title>Spengler-DIGITAL · Regierapport</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <!-- Stylesheets: Reihenfolge ist wichtig (Grundlayout → Bildschirmgrössen → Druck) -->
 <link rel="stylesheet" href="css/01-basis.css">
 <link rel="stylesheet" href="css/02-responsive.css">
@@ -83,7 +84,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.09</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.10</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -954,6 +955,20 @@
 <button id="materialNext" class="gray">Weiter ›</button>
 <button id="newMaterial" class="blue">＋ Material hinzufügen</button>
 </div>
+<div class="bar" style="margin-top:10px">
+<input type="file" id="materialExcelInput" accept=".xlsx,.xls,.csv" hidden>
+<button type="button" class="gray" id="materialExcelBtn">📥 Aus Excel importieren</button>
+</div>
+<div id="materialExcelPreview" hidden style="margin-top:10px">
+<div class="info">Erwartete Spaltenreihenfolge: EDV-Nr. · Material · Dim. · Einheit · Preis. Die Zeilen werden der bestehenden Liste hinzugefügt, nichts wird gelöscht oder überschrieben.</div>
+<label class="rechte-schalter"><input type="checkbox" id="materialExcelHeader" checked> Erste Zeile ist eine Kopfzeile (wird übersprungen)</label>
+<div class="small" id="materialExcelCount" style="margin:6px 0"></div>
+<div class="scroll" style="max-height:260px"><table class="eb-table" id="materialExcelTable"></table></div>
+<div class="bar" style="margin-top:10px">
+<button type="button" class="green" id="materialExcelConfirm">✅ Import bestätigen</button>
+<button type="button" class="gray" id="materialExcelCancel">Abbrechen</button>
+</div>
+</div>
 </div>
 </div>
 
@@ -970,6 +985,20 @@
 <button id="bzMaterialPrev" class="gray">‹ Zurück</button>
 <button id="bzMaterialNext" class="gray">Weiter ›</button>
 <button id="newBzMaterial" class="blue">＋ Material hinzufügen</button>
+</div>
+<div class="bar" style="margin-top:10px">
+<input type="file" id="bzMaterialExcelInput" accept=".xlsx,.xls,.csv" hidden>
+<button type="button" class="gray" id="bzMaterialExcelBtn">📥 Aus Excel importieren</button>
+</div>
+<div id="bzMaterialExcelPreview" hidden style="margin-top:10px">
+<div class="info">Erwartete Spaltenreihenfolge: Artikel-Nr. · Bezeichnung · Material · Einheit. Die Zeilen werden der bestehenden Liste hinzugefügt, nichts wird gelöscht oder überschrieben.</div>
+<label class="rechte-schalter"><input type="checkbox" id="bzMaterialExcelHeader" checked> Erste Zeile ist eine Kopfzeile (wird übersprungen)</label>
+<div class="small" id="bzMaterialExcelCount" style="margin:6px 0"></div>
+<div class="scroll" style="max-height:260px"><table class="eb-table" id="bzMaterialExcelTable"></table></div>
+<div class="bar" style="margin-top:10px">
+<button type="button" class="green" id="bzMaterialExcelConfirm">✅ Import bestätigen</button>
+<button type="button" class="gray" id="bzMaterialExcelCancel">Abbrechen</button>
+</div>
 </div>
 </div>
 </div>

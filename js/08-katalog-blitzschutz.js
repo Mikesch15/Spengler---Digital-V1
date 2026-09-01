@@ -70,6 +70,98 @@ function searchBlitzschutzMaterials(q){
  return (!q?blitzschutzMaterials:blitzschutzMaterials.filter(m=>String(m.artikel_nr||"").toLowerCase().includes(q)||String(m.bezeichnung||"").toLowerCase().includes(q))).slice(0,15);
 }
 
+// ---- Materialkataloge aus Excel importieren -----------------------
+// Liest die erste Tabelle einer hochgeladenen Excel-/CSV-Datei ein und
+// zeigt sie vor dem Speichern zur Kontrolle an – so lässt sich das
+// bisherige Abtippen nach Foto durch einen echten Import ersetzen,
+// ohne dass unbemerkt falsche Spalten landen. Ergänzt die bestehende
+// Liste nur, löscht oder überschreibt nichts.
+async function excelZeilenLesen(file){
+ const buf=await file.arrayBuffer();
+ const wb=XLSX.read(buf,{type:"array"});
+ const blatt=wb.Sheets[wb.SheetNames[0]];
+ return XLSX.utils.sheet_to_json(blatt,{header:1,defval:"",raw:false});
+}
+function excelZahlLesen(wert){
+ return Number(String(wert??"").replace(/['\s]/g,"").replace(",","."))||0;
+}
+function initExcelImport(cfg){
+ // cfg: {inputId,buttonId,previewId,headerCheckId,countId,tableId,
+ //       confirmId,cancelId,tableName,felder:[{key,label,zahl}],nachImport}
+ const input=$(cfg.inputId),btn=$(cfg.buttonId);
+ if(!input||!btn)return;
+ let zeilen=[];
+ btn.onclick=()=>input.click();
+ input.addEventListener("change",async()=>{
+  const file=input.files[0];
+  if(!file)return;
+  try{ zeilen=await excelZeilenLesen(file); }
+  catch(err){ alert("Die Datei konnte nicht gelesen werden: "+(err.message||err)); input.value=""; return; }
+  $(cfg.previewId).hidden=false;
+  zeichneVorschau();
+ });
+ function datenZeilen(){
+  const mitKopf=$(cfg.headerCheckId).checked;
+  return (mitKopf?zeilen.slice(1):zeilen).filter(z=>z.some(w=>String(w||"").trim()!==""));
+ }
+ function zeichneVorschau(){
+  const daten=datenZeilen();
+  $(cfg.countId).textContent=`${daten.length} Positionen erkannt (von ${zeilen.length} Zeilen in der Datei).`;
+  const kopf="<tr>"+cfg.felder.map(f=>`<th>${esc(f.label)}</th>`).join("")+"</tr>";
+  const rumpf=daten.slice(0,200).map(z=>"<tr>"+cfg.felder.map((f,i)=>`<td>${esc(String(z[i]??""))}</td>`).join("")+"</tr>").join("");
+  $(cfg.tableId).innerHTML=kopf+rumpf;
+ }
+ $(cfg.headerCheckId).addEventListener("change",zeichneVorschau);
+ $(cfg.cancelId).onclick=()=>{ zeilen=[]; input.value=""; $(cfg.previewId).hidden=true; };
+ $(cfg.confirmId).onclick=async()=>{
+  const daten=datenZeilen();
+  if(!daten.length){ alert("Keine Zeilen zum Importieren gefunden."); return; }
+  const eintraege=daten.map(z=>{
+   const o={};
+   cfg.felder.forEach((f,i)=>{ o[f.key]=f.zahl?excelZahlLesen(z[i]):String(z[i]??"").trim(); });
+   return o;
+  });
+  $(cfg.confirmId).disabled=true;
+  const {error}=await sb.from(cfg.tableName).insert(eintraege);
+  $(cfg.confirmId).disabled=false;
+  if(error){ alert("Fehler beim Import: "+error.message); return; }
+  alert(`${eintraege.length} Positionen importiert.`);
+  zeilen=[]; input.value=""; $(cfg.previewId).hidden=true;
+  await cfg.nachImport();
+ };
+}
+initExcelImport({
+ inputId:"materialExcelInput",buttonId:"materialExcelBtn",previewId:"materialExcelPreview",
+ headerCheckId:"materialExcelHeader",countId:"materialExcelCount",tableId:"materialExcelTable",
+ confirmId:"materialExcelConfirm",cancelId:"materialExcelCancel",
+ tableName:"materials",
+ felder:[
+  {key:"edv_nr",label:"EDV-Nr."},
+  {key:"name",label:"Material"},
+  {key:"dim",label:"Dim."},
+  {key:"unit",label:"Einheit"},
+  {key:"price",label:"Preis",zahl:true}
+ ],
+ nachImport:async()=>{ await loadAllData(); renderSettings(); }
+});
+initExcelImport({
+ inputId:"bzMaterialExcelInput",buttonId:"bzMaterialExcelBtn",previewId:"bzMaterialExcelPreview",
+ headerCheckId:"bzMaterialExcelHeader",countId:"bzMaterialExcelCount",tableId:"bzMaterialExcelTable",
+ confirmId:"bzMaterialExcelConfirm",cancelId:"bzMaterialExcelCancel",
+ tableName:"blitzschutz_materials",
+ felder:[
+  {key:"artikel_nr",label:"Artikel-Nr."},
+  {key:"bezeichnung",label:"Bezeichnung"},
+  {key:"material",label:"Material"},
+  {key:"einheit",label:"Einheit"}
+ ],
+ nachImport:async()=>{
+  const {data}=await sb.from("blitzschutz_materials").select("*").order("bezeichnung");
+  blitzschutzMaterials=data||[];
+  renderBzMaterialSettings();
+ }
+});
+
 // ---- Rinne Halbrund: Anschlusstypen-Katalog (Einstellungen) -----
 const debouncedRinneFittingUpdate=debounce((id,patch)=>sb.from("rinne_fitting_types").update(patch).eq("id",id),500);
 function renderRinneFittingSettings(){
