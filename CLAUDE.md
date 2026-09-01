@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.18**
+- sichtbare App-Version: **2.19**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -1596,3 +1596,243 @@ Funktionen/`system_admins`/`is_system_admin()`.
   blockiert ausgehende HTTPS-Verbindungen zu
   `nfgryuzkpwjfmdlmevuy.supabase.co` direkt. **Das wird hier
   ausdrücklich nicht als getestet behauptet.**
+
+## 27. VOLLSTÄNDIGE, MANUELLE FIRMENLÖSCHUNG – VERSION 2.19
+
+Erste und einzige Möglichkeit, eine Firma inklusive aller Daten
+unwiderruflich zu entfernen. Ausschliesslich eine manuell vom System-Admin
+ausgelöste Aktion – **keine** automatische Löschung bei Trial-Ablauf, wie
+bereits in 21.4/25.6 festgelegt.
+
+### 27.1 Schema-/Abhängigkeitsanalyse (vor der Implementierung, per SQL
+gegen das tatsächliche Schema geprüft, nicht aus alter Doku übernommen)
+
+Alle Fremdschlüssel in `public` direkt über `pg_constraint` ausgelesen
+(nicht nur `information_schema` – das übersieht das schemaübergreifende
+`profiles.id → auth.users.id`). Ergebnis:
+
+**Direkt firmenbezogen** (`company_id`, `ON DELETE NO ACTION`, müssen vor
+`companies` explizit geleert werden): `app_settings`, `blitzschutz_materials`,
+`einlaufblech_settings`, `feedback`, `materials`, `measurement_materials`,
+`permission_overrides`, `profiles`, `projects`, `rates`,
+`rinne_fitting_types`.
+
+**Indirekt über `project_id`** (`ausmass`, `measurements`, `reports` – alle
+`ON DELETE SET NULL`): würden bei blossem Löschen der `projects`-Zeile nur
+verwaisen (kein `company_id` auf diesen Tabellen, siehe 20.2) statt
+wirklich zu verschwinden – deshalb **explizit** vor `projects` gelöscht,
+nicht der SET-NULL-Regel überlassen.
+
+**`project_files.project_id → projects`**: `ON DELETE CASCADE` – löscht
+sich beim Löschen von `projects` automatisch mit, kein separater Schritt
+nötig.
+
+**`created_by`/`updated_by` auf `auth.users(id)`** (`ON DELETE NO ACTION`,
+u. a. auf `ausmass`, `measurements`, `project_files`, `projects`,
+`reports`, **und `companies.created_by` selbst**): erzwingen zusammen
+folgende Reihenfolge – alle firmenbezogenen Zeilen (inkl. `companies`
+selbst) müssen weg sein, **bevor** ein Auth-User gelöscht wird, sonst
+schlägt das Löschen des Auth-Users mit einem Fremdschlüsselfehler fehl.
+
+**`profiles.id → auth.users.id`**: `ON DELETE CASCADE` (umgekehrte
+Richtung – wird hier nicht genutzt, da `profiles` ohnehin explizit vor
+dem Auth-User gelöscht wird).
+
+**Storage**: ein einziger Bucket (`measurements`, privat). Keine
+verlässliche Pfad-Konvention pro Firma (alte Pfade wie `photo/…`,
+`company-logo/…` tragen gar keinen Firmen-/Projektbezug im Pfad selbst,
+siehe 20.5/20.6) – die einzig korrekte Quelle sind die tatsächlich
+gespeicherten Werte in `app_settings.logo_url`,
+`measurements.photo_path`/`sketch_path`/`sketch_paths`,
+`ausmass.photo_path`/`photo_paths`, `project_files.file_path`. Per SQL
+gegen die echten Werte von PETER KÜNZI AG geprüft (rein lesend, nichts
+verändert): alle fünf vorhandenen Werte (altes `.../object/public/…`-
+Format wie neuer reiner Pfad) normalisieren exakt auf die tatsächlichen
+`storage.objects.name`-Einträge – die Normalisierung entspricht 1:1
+`measStoragePathFromValue()` aus `js/10-massaufnahme.js`.
+
+### 27.2 Löschreihenfolge (final, aus 27.1 abgeleitet)
+
+1. **Storage-Dateien zuerst** (alle oben genannten Pfad-Quellen für die
+   Projekte/die Firma sammeln, normalisieren, über die Storage-API
+   löschen). Schlägt das fehl: **abbrechen, keine einzige Datenbankzeile
+   wird angefasst** – eine Postgres-Transaktion kann eine bereits
+   erfolgte Storage-Löschung nicht zurückrollen, aber umgekehrt genauso
+   wenig eine noch nicht erfolgte Datenbankänderung vor einem
+   fehlgeschlagenen Storage-Schritt „vorsorglich" rückgängig machen.
+   Deshalb: Storage-Erfolg ist Voraussetzung, nicht Nachgang.
+2. `ausmass`, `measurements`, `reports` (über `project_id`)
+3. `feedback`, `permission_overrides` (über `company_id`)
+4. `rinne_fitting_types`, `measurement_materials`, `blitzschutz_materials`,
+   `materials`, `rates`, `einlaufblech_settings`, `app_settings` (über
+   `company_id`)
+5. `projects` (über `company_id`) – `project_files` kaskadiert automatisch
+6. `profiles` (über `company_id`)
+7. `companies` (über `id`)
+8. **Erst jetzt** die Auth-User der ehemaligen Mitarbeiter über die
+   offizielle Admin-API löschen (kein direktes `DELETE FROM auth.users` –
+   das würde interne Auth-Tabellen/Sessions umgehen, die die Admin-API
+   korrekt mit aufräumt)
+9. Verifikation (Firma/Profile/Projekte existieren nicht mehr)
+
+Schritte 2–7 laufen als **eine einzige** `SECURITY DEFINER`-Funktion
+(`system_admin_delete_company_data`, gleiches Muster wie `is_admin()`/
+`mark_own_password_set()`) – das ist eine implizite Postgres-Transaktion:
+entweder gehen alle sieben Schritte durch, oder (bei einer Exception,
+z. B. `is_system_admin()` falsch oder Firma nicht gefunden) **keiner** von
+ihnen. Damit ist genau der im Auftrag geforderte Fall „keine halbe,
+unbemerkte Löschung" für den Datenbank-Anteil ausgeschlossen. Schritt 1
+(Storage) und Schritt 8 (Auth-User) laufen dagegen zwangsläufig über
+HTTP-APIs ausserhalb dieser Transaktion – das wird hier bewusst nicht als
+atomar behauptet (siehe 27.5 für die verbleibende, offengelegte Lücke).
+
+### 27.3 Implementierung
+
+**Datenbank** (Migration `system_admin_delete_company_data`): eine
+`SECURITY DEFINER`-Funktion, Owner `postgres` (`BYPASSRLS`, gleiches
+Muster wie alle bisherigen `system_admin_*`-Funktionen). Nimmt
+ausschliesslich `p_company_id` entgegen – welche Projekte/Profile/etc.
+dazugehören, ermittelt die Funktion **selbst** per Live-Abfrage, nichts
+davon kommt vom Client. Prüft `is_system_admin()` als erste Zeile.
+**Zusätzliches Sicherheitsnetz**: bricht mit einer eigenen Meldung ab,
+falls unter den zu löschenden Profilen ein Eintrag in `system_admins`
+wäre (kann bei korrekt getrennten Konten nicht vorkommen, wird aber nicht
+nur angenommen). `EXECUTE` nur an `authenticated` (Supabase vergibt neue
+Funktionen automatisch zusätzlich an `anon` – wie bei den bisherigen
+`system_admin_*`-Funktionen explizit entzogen).
+
+**Edge Function** `system-admin-delete-company` (`supabase/functions`,
+`service_role` ausschliesslich serverseitig): orchestriert den
+kompletten Ablauf aus 27.2.
+- Ruft `/auth/v1/user` mit dem mitgesendeten JWT auf, um den echten
+  Aufrufer zu bestimmen (keine Client-Angabe einer Nutzer-ID).
+- Prüft `system_admins` direkt per REST (service_role, umgeht damit
+  RLS) – nicht über die RLS-beschränkte `is_system_admin()`-RPC, weil
+  die Funktion generell (nicht nur „bin ich selbst") wissen muss, ob
+  der Aufrufer System-Admin ist.
+- Lädt die Firma anhand `company_id`, vergleicht `confirm_name` **exakt**
+  gegen den tatsächlichen, gerade aus der Datenbank gelesenen
+  Firmennamen – die `company_id` allein zählt nicht als Autorisierung,
+  wie im Auftrag gefordert.
+- Sammelt alle Storage-Pfade (siehe 27.1), normalisiert sie
+  (`storagePathFromValue()`, Server-Äquivalent von
+  `measStoragePathFromValue()`), löscht sie batch-weise (100 pro
+  Aufruf, wegen „beliebig viele/über 1000 Dateien") über
+  `POST /storage/v1/object/remove/measurements`.
+- Ruft danach `system_admin_delete_company_data` per RPC auf.
+- Löscht danach die Auth-User über `DELETE /auth/v1/admin/users/{id}` –
+  einzeln, mit Sammlung fehlgeschlagener IDs statt Abbruch beim ersten
+  Fehler (siehe 27.5).
+- Verifiziert abschliessend per erneuter Abfrage, dass Firma/Profile/
+  Projekte nicht mehr existieren.
+- Antwortet mit `{ok:true, company, deleted:{users,projects,
+  storage_files}, auth_delete_failures?}` bzw. einer verständlichen
+  deutschen Fehlermeldung, technische Details nur in `console.error`.
+
+**Frontend** (`js/22-system-admin.js`, `index.html`): im bestehenden
+`#systemAdminCompanyModal` ein rot hervorgehobener „⚠️ Firma endgültig
+löschen"-Abschnitt mit Warntext. Klick öffnet `#systemAdminDeleteModal`
+(zweite, eigenständige Sicherheitsabfrage): Warnliste aller betroffenen
+Datenarten, Eingabefeld für den exakten Firmennamen, „ENDGÜLTIG LÖSCHEN"
+bleibt `disabled`, bis die Eingabe exakt (zeichengenau) mit dem
+Firmennamen übereinstimmt. Reine UI-Führung – die eigentliche Prüfung
+läuft serverseitig nochmals in der Edge Function (siehe oben). Bei Erfolg
+Rücksprung zur Firmenliste mit Bestätigung „✓ Firma … wurde vollständig
+gelöscht (N Benutzer, N Projekte, N Storage-Dateien)."; bei Fehler
+verständliche Meldung im Dialog, keine Löschung angenommen.
+
+### 27.4 Tests
+
+Ausschliesslich an **Testfirma** getestet, nie an PETER KÜNZI AG – vorher
+dokumentierter Stand: 1 Firma-Zeile, 2 Profile (Max Mustermann/Admin,
+Test Test/Mitarbeiter, beide **kein** Eintrag in `system_admins`),
+1 Projekt ("Testprojekt", 1 Massaufnahme ohne Foto/Skizze), 1
+`app_settings`-Zeile (`logo_url` leer), 0 Storage-Dateien.
+
+**Direkt gegen die Produktivdatenbank verifiziert** (Transaktionen mit
+`ROLLBACK`, keine echte Datenänderung):
+- `system_admin_delete_company_data(...)` mit Max Mustermann (Testfirmas
+  eigenem Admin, kein System-Admin) als Aufrufer → korrekt abgelehnt
+  („Nur für System-Administratoren.").
+- Derselbe Aufruf mit dem echten System-Admin (Mike Ledermann) als
+  Aufrufer → lief vollständig durch, lieferte `deleted_profiles:2,
+  deleted_projects:1` – exakt die vorher dokumentierten Zahlen.
+- **Eigener Test des Sicherheitsnetzes**: ein Versuch, Max Mustermann
+  selbst temporär als System-Admin einzutragen und ihn seine eigene
+  Firma löschen zu lassen, wurde korrekt vom eingebauten Schutz
+  abgelehnt („Ein Mitglied dieser Firma ist als System-Administrator
+  eingetragen.") – bestätigt, dass dieses Sicherheitsnetz tatsächlich
+  greift, nicht nur im Code steht.
+- Nach jedem `ROLLBACK`: `companies`/`profiles`/`projects`/`measurements`/
+  `system_admins` exakt auf dem Stand von vorher (2 Firmen, 14 Profile,
+  4 Projekte, 14 Massaufnahmen, 1 System-Admin) – kein Test hat echte
+  Daten verändert.
+- **Storage-Pfad-Normalisierung** (`storagePathFromValue()`-Logik) rein
+  lesend gegen die tatsächlichen, weiterhin unveränderten Werte von
+  PETER KÜNZI AG geprüft: alle fünf vorhandenen Storage-Referenzen
+  (`app_settings.logo_url`, 2× `measurements.sketch_path`,
+  `ausmass.photo_path`, `project_files.file_path` – sowohl im alten
+  vollen `.../object/public/measurements/…`-Format als auch als bereits
+  reiner Pfad) normalisieren von Hand nachgerechnet exakt auf die
+  tatsächlichen `storage.objects.name`-Einträge im Bucket. Nichts davon
+  wurde gelöscht.
+- `PETER KÜNZI AG` nach Abschluss aller Tests erneut geprüft:
+  `updated_at` identisch zum Stand vor Beginn dieser Aufgabe, 14 Profile,
+  Storage-Bucket weiterhin 14 Objekte – unverändert.
+- `node --check` über alle `js/*.js` (inkl. `js/22-system-admin.js`) und
+  `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: ausgeglichen (592/592, vorher
+  578/578 – Differenz durch den neuen Löschabschnitt + das neue
+  Bestätigungs-Modal).
+- Jede neue Element-ID einzeln gegen `index.html` geprüft: genau einmal
+  vorhanden.
+- **Live-Test der kompletten Kette (echter Klick auf „ENDGÜLTIG
+  LÖSCHEN" im Browser, echte Storage-/Auth-API-Aufrufe über die
+  deployte Edge Function) war in dieser Sitzung technisch nicht
+  möglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co` direkt. **Das wird hier
+  ausdrücklich nicht als getestet behauptet.** Getestet wurde
+  ausschliesslich der Datenbank-Teil (per SQL-Simulation identisch zum
+  tatsächlichen RLS-/Funktionspfad) und die Storage-Pfad-Logik (rein
+  lesend, von Hand nachgerechnet).
+
+### 27.5 Bekannte Grenzen (bewusst offengelegt, nicht verschwiegen)
+
+- **Storage-Löschung ist nicht transaktional mit der Datenbank.** Falls
+  die Storage-Löschung selbst erfolgreich zurückmeldet, aber danach der
+  RPC-Aufruf für die Datenbank unerwartet fehlschlägt (z. B. durch einen
+  zu diesem Zeitpunkt noch nicht bekannten, in dieser Analyse übersehenen
+  Fremdschlüssel), wären die Storage-Dateien bereits weg, während die
+  Datenbankzeilen noch stehen. Die Edge Function meldet diesen Fall
+  ausdrücklich als eigene Fehlermeldung („Datenbank-Löschung
+  fehlgeschlagen, nachdem Storage-Dateien bereits entfernt wurden") statt
+  ihn zu verschleiern – der Datenbank-Teil selbst ist dank der einen
+  atomaren Funktion (27.2) aber in sich konsistent (entweder ganz oder
+  gar nicht), das Risiko ist also auf „Storage weg, DB unverändert"
+  begrenzt, nicht „DB halb gelöscht".
+- **Auth-User-Löschung läuft nach der Datenbank-Löschung, einzeln, ohne
+  Rollback.** Schlägt das Löschen eines einzelnen Auth-Users fehl
+  (Netzwerk, Supabase-Auth-Fehler), werden die übrigen trotzdem versucht;
+  die fehlgeschlagenen IDs kommen in der Antwort zurück
+  (`auth_delete_failures`) und landen im Server-Log. Zu diesem Zeitpunkt
+  sind Firma/Projekte/Massaufnahmen/etc. bereits vollständig weg – ein
+  übrig gebliebener Auth-User ohne jedes zugehörige Profil ist der
+  denkbar harmloseste Rest-Zustand (kein Zugriff auf irgendwelche Daten
+  mehr möglich, da `profiles`/`company_id` nicht mehr existieren), aber
+  kein automatischer zweiter Versuch ist eingebaut.
+- **Storage-„Erfolg" wird anhand des HTTP-Status der Remove-API
+  bewertet, nicht Objekt für Objekt bestätigt.** Die Supabase-Storage-
+  Remove-API meldet keine verlässliche Einzel-Objekt-Bestätigung
+  zurück; ein bereits nicht mehr vorhandener Pfad (z. B. eine veraltete
+  Referenz auf eine längst gelöschte Datei) führt nicht zu einem Fehler.
+  Das ist normal und kein Blocker, bedeutet aber: die Funktion kann nicht
+  hundertprozentig unterscheiden zwischen „Datei erfolgreich gelöscht"
+  und „Datei war ohnehin schon nicht mehr da".
+- Kein Wiederherstellen nach der Löschung – wie im Auftrag gefordert
+  („unwiderruflich"), keine Papierkorb-/Soft-Delete-Funktion.
+- Für den eigentlichen Storage-/Auth-Löschpfad gibt es in dieser Sitzung
+  keinen Live-Test mit echten hochgeladenen Dateien, da Testfirma aktuell
+  keine besitzt (siehe 27.4) und ein Live-Aufruf ohnehin nicht möglich
+  war. Die Pfad-**Ermittlung/Normalisierung** wurde stattdessen anhand
+  der echten, unverändert gebliebenen Daten von PETER KÜNZI AG
+  verifiziert (27.4).

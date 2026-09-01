@@ -136,3 +136,58 @@ $("sysAdminSaveStatus").onclick=async()=>{
   $("sysAdminSaveStatus").disabled=false;
  }
 };
+
+// ---- Firma endgültig löschen ---------------------------------------
+// Zweistufige Sicherheitsbestätigung (Firma auswählen -> exakten Namen
+// eintippen), die serverseitige Prüfung (system-admin-delete-company)
+// vergleicht den Bestätigungsnamen zusätzlich nochmals gegen den
+// tatsächlichen, aktuellen Firmennamen - der Client-Vergleich hier ist
+// nur UI-Komfort (Knopf erst aktiv, wenn der Name exakt passt).
+let sysAdminDeleteCompanyName="";
+let sysAdminListSuccessTimer=null;
+
+$("sysAdminOpenDelete").onclick=()=>{
+ const c=sysAdminCompanies.find(x=>x.id===sysAdminCurrentCompanyId);
+ if(!c)return;
+ sysAdminDeleteCompanyName=c.name;
+ $("sysAdminDeleteCompanyLine").textContent="Firma: "+c.name;
+ $("sysAdminDeleteConfirmInput").value="";
+ $("sysAdminDeleteError").textContent="";
+ $("sysAdminConfirmDelete").disabled=true;
+ $("sysAdminConfirmDelete").textContent="ENDGÜLTIG LÖSCHEN";
+ $("systemAdminDeleteModal").hidden=false;
+};
+$("sysAdminCancelDelete").onclick=()=>{$("systemAdminDeleteModal").hidden=true};
+$("sysAdminDeleteConfirmInput").addEventListener("input",()=>{
+ $("sysAdminConfirmDelete").disabled=$("sysAdminDeleteConfirmInput").value!==sysAdminDeleteCompanyName;
+});
+$("sysAdminConfirmDelete").onclick=async()=>{
+ if($("sysAdminDeleteConfirmInput").value!==sysAdminDeleteCompanyName)return;
+ $("sysAdminDeleteError").textContent="";
+ $("sysAdminConfirmDelete").disabled=true;
+ $("sysAdminCancelDelete").disabled=true;
+ $("sysAdminConfirmDelete").textContent="Wird gelöscht…";
+ try{
+  const {data,error}=await sb.functions.invoke("system-admin-delete-company",{body:{
+   company_id:sysAdminCurrentCompanyId,
+   confirm_name:$("sysAdminDeleteConfirmInput").value
+  }});
+  if(error){$("sysAdminDeleteError").textContent=await edgeFunctionErrorMessage(error,"Firma konnte nicht gelöscht werden.");return}
+  if(!data?.ok){$("sysAdminDeleteError").textContent=data?.error||"Firma konnte nicht gelöscht werden.";return}
+  $("systemAdminDeleteModal").hidden=true;
+  $("systemAdminCompanyModal").hidden=true;
+  $("systemAdminModal").hidden=false;
+  await renderSystemAdminList();
+  clearTimeout(sysAdminListSuccessTimer);
+  const el=$("sysAdminListSuccess");
+  el.textContent="✓ Firma "+data.company.name+" wurde vollständig gelöscht ("+data.deleted.users+" Benutzer, "+data.deleted.projects+" Projekte, "+data.deleted.storage_files+" Storage-Dateien).";
+  el.hidden=false;
+  sysAdminListSuccessTimer=setTimeout(()=>{el.hidden=true},8000);
+ }catch(err){
+  $("sysAdminDeleteError").textContent=(err&&err.message)?err.message:String(err);
+ }finally{
+  $("sysAdminConfirmDelete").disabled=($("sysAdminDeleteConfirmInput").value!==sysAdminDeleteCompanyName);
+  $("sysAdminCancelDelete").disabled=false;
+  $("sysAdminConfirmDelete").textContent="ENDGÜLTIG LÖSCHEN";
+ }
+};

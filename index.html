@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.18</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.19</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -304,6 +304,7 @@
 <div class="card">
 <h2>⚙️ Spengler-DIGITAL Administration</h2>
 <div class="info">Firmenverwaltung für den Betreiber von Spengler-DIGITAL. Unabhängig von der normalen Firmenadmin-Rolle.</div>
+<div id="sysAdminListSuccess" class="small" style="color:var(--green)" hidden></div>
 <div id="systemAdminCompanyList"></div>
 <div class="bar"><button id="closeSystemAdmin" class="green">✓ Fertig</button></div>
 </div>
@@ -353,12 +354,58 @@
 </div>
 </div>
 
+<div class="settings-section" data-section="sysadmin-delete">
+<div class="settings-section-head" data-toggle-section="sysadmin-delete"><h2 style="color:var(--red)">⚠️ Firma endgültig löschen</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info" style="color:var(--red)">Löscht diese Firma unwiderruflich, inklusive aller Benutzer, Projekte, Massaufnahmen, Ausmasse, Rapporte, Dateien, Fotos/Skizzen, Einstellungen, Materiallisten und Funktionen. Es gibt kein Zurück.</div>
+<button type="button" id="sysAdminOpenDelete" class="red">🗑️ Firma endgültig löschen…</button>
+</div>
+</div>
+
 <!-- Dezente Bestätigung nach erfolgreichem Speichern (Trial/Status),
      verschwindet nach ein paar Sekunden automatisch, siehe
      sysAdminShowSuccess() in js/22-system-admin.js. -->
 <div id="sysAdminActionSuccess" class="small" style="color:var(--green)" hidden></div>
 <div id="sysAdminActionError" class="small" style="color:var(--red)"></div>
 <div class="bar" style="margin-top:10px"><button id="closeSystemAdminCompany" class="gray">← Zurück zur Übersicht</button></div>
+</div>
+</div>
+</div>
+
+<!-- Zweite, ausdrückliche Sicherheitsbestätigung für die Firmenlöschung:
+     der Firmenname muss exakt eingetippt werden, bevor der Löschen-Knopf
+     aktiv wird. Reine UI-Führung - serverseitig prüft die Edge Function
+     system-admin-delete-company den Bestätigungsnamen zusätzlich nochmals
+     gegen den aktuellen Firmennamen, bevor irgendetwas gelöscht wird. -->
+<div id="systemAdminDeleteModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2 style="color:var(--red)">⚠️ Firma endgültig löschen</h2>
+<div class="info" id="sysAdminDeleteCompanyLine" style="font-weight:600"></div>
+<div class="info" style="color:var(--red)">
+Diese Aktion löscht unwiderruflich:
+<ul style="margin:8px 0 0 20px;padding:0">
+<li>Benutzer</li>
+<li>Projekte</li>
+<li>Massaufnahmen</li>
+<li>Ausmasse</li>
+<li>Rapporte</li>
+<li>Dateien</li>
+<li>Fotos/Skizzen</li>
+<li>Einstellungen</li>
+<li>Materiallisten</li>
+<li>Funktionen</li>
+<li>alle weiteren Firmendaten</li>
+</ul>
+</div>
+<div class="grid" style="margin-top:10px">
+<div class="wide"><label>Zur Bestätigung exakten Firmennamen eingeben</label><input id="sysAdminDeleteConfirmInput" autocomplete="off"></div>
+</div>
+<div class="small" id="sysAdminDeleteError" style="color:var(--red)"></div>
+<div class="bar" style="margin-top:10px">
+<button type="button" id="sysAdminCancelDelete" class="gray">Abbrechen</button>
+<button type="button" id="sysAdminConfirmDelete" class="red" disabled>ENDGÜLTIG LÖSCHEN</button>
+</div>
 </div>
 </div>
 </div>

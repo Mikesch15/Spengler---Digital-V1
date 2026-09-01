@@ -132,6 +132,7 @@ function goToStart(){
  $("globalSearchModal").hidden=true;
  $("systemAdminModal").hidden=true;
  $("systemAdminCompanyModal").hidden=true;
+ $("systemAdminDeleteModal").hidden=true;
  measEditReturnTo="measurementsModal";
  amEditReturnTo="ausmassModal";
  showStart();
