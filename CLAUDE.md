@@ -2606,3 +2606,229 @@ frisch angelegten Firma macht.
 - `permission_settings`/`permission_overrides`-Modell, System-Admin-
   Grundlogik, Firmenlöschung, Trial-/Statusverwaltung: erneut prüfend
   gelesen, keine neuen Probleme gefunden, nicht verändert.
+
+## 32. STORAGE CROSS-TENANT SECURITY FIX — VERSION 2.24
+
+Schliesst die in Abschnitt 31.5 als HOCH eingestufte, bewusst
+zurückgestellte Storage-Lücke: die vier `storage.objects`-Policies
+prüften bisher nur `bucket_id='measurements' AND my_company_id() IS NOT
+NULL` – jedes eingeloggte Mitglied irgendeiner Firma konnte damit jeden
+Dateipfad im gemeinsamen, privaten Bucket lesen, hochladen, überschreiben
+und löschen, sofern der Pfad bekannt war oder erraten wurde.
+
+### 32.1 Bestandsaufnahme (vor jeder Änderung, gegen das echte Schema)
+
+Der Bucket `measurements` enthielt zum Zeitpunkt dieser Aufgabe genau
+**14 Objekte** (kein zweiter Bucket vorhanden). Klassifiziert nach
+tatsächlichem Pfadmuster:
+
+- **5 Objekte, projektbezogen** (`project-files/<projectId>/…`) – trägt
+  die Firmenzugehörigkeit bereits fest im Pfad selbst.
+- **9 Objekte, flach/ohne Projekt- oder Firmenbezug im Pfad**
+  (`company-logo/…` ×6, `photo/…` ×2, `sketch/…` ×4 – letztere mit dem
+  bisher nirgends dokumentierten Namen `sketch/`, nicht `sketches/`).
+
+Alle 8 tatsächlich noch **referenzierten** Storage-Werte im gesamten
+Schema (`app_settings.logo_url`, `measurements.photo_path`/
+`sketch_path`/`sketch_paths`, `ausmass.photo_path`/`photo_paths`,
+`project_files.file_path`) wurden einzeln normalisiert (alte volle
+"öffentliche" URLs → reiner Pfad, wie `measStoragePathFromValue()`) und
+gegen die 14 echten Objekte abgeglichen. Ergebnis: **nur 5 der 14
+Objekte werden überhaupt noch von irgendeiner DB-Zeile referenziert**
+(1 Firmenlogo, 1 Ausmass-Foto, 2 Skizzen, 1 Projektdatei) – alle fünf
+eindeutig PETER KÜNZI AG zuzuordnen, da aktuell nur diese eine Firma
+existiert. Die übrigen **9 Objekte sind bereits jetzt vollständig
+verwaist** (keine einzige DB-Zeile zeigt noch darauf) – u. a. 5 ältere,
+seither ersetzte Firmenlogos (das Einstellungen-Formular lädt beim
+Logo-Wechsel ein neues Bild hoch und biegt `app_settings.logo_url` um,
+löscht das alte Blob aber bewusst nie, siehe `js/07-einstellungen.js`)
+sowie 2 alte Fotos und 2 alte Skizzen aus der Zeit vor der
+Pfad-Umstellung in Version 20.6.
+
+**Wichtige Einschränkung, ehrlich offengelegt**: Für diese 9 verwaisten
+Objekte ist die Firmenzugehörigkeit **nicht mehr eindeutig nachweisbar**
+– sie könnten von PETER KÜNZI AG selbst stammen (mehrfacher Logo-Wechsel)
+oder Reste der im August 2026 real gelöschten Testfirma sein (deren
+Firmenlöschung, Abschnitt 27, räumt nur Storage-Pfade weg, die zum
+Löschzeitpunkt noch in einer DB-Zeile referenziert waren – ein bereits
+vorher verwaistes altes Logo/Foto wäre auch dabei übersehen worden).
+Gemäss Auftrag ("Keine Datei einer Firma zuordnen, wenn das nicht
+eindeutig nachweisbar ist") wurden sie **keiner Firma zugeordnet**.
+
+### 32.2 Warum keine physische Pfad-Migration (`companies/<companyId>/…`)
+
+Eine echte Migration bestehender Dateien auf ein neues Pfadschema
+erfordert einen tatsächlichen Kopiervorgang über die Storage-**API**
+(reines SQL kann nur die Metadatenzeile in `storage.objects` verschieben,
+nicht die eigentlichen Datei-Bytes im dahinterliegenden Objektspeicher –
+ein blosses `UPDATE storage.objects SET name=…` würde eine Metadatenzeile
+ohne passende Datei erzeugen und jede `createSignedUrl()` würde ins Leere
+laufen). Die Sandbox dieser Sitzung blockiert weiterhin jede ausgehende
+HTTPS-Verbindung zu `nfgryuzkpwjfmdlmevuy.supabase.co` direkt (wie in
+jeder vorherigen Sitzung dokumentiert) – die Storage-API war damit nicht
+erreichbar, eine physische Migration technisch nicht durchführbar.
+
+Der Auftrag selbst sieht das als möglichen, aber nicht zwingenden Weg vor
+("*Falls* alte Dateien migriert werden müssen") und nennt als
+gleichwertige Alternative ausdrücklich "sicher isolieren". Genau das
+leistet der unten beschriebene Fix **ohne jede Migration**: die
+Firmenzugehörigkeit wird nicht mehr aus dem Pfad geraten, sondern bei
+jedem Zugriff aus den tatsächlich vorhandenen DB-Referenzen der
+aufrufenden Firma live bestimmt – das ist robuster als eine einmalige
+Migration (funktioniert unabhängig vom jeweiligen Pfadschema, alt wie
+neu) und verändert keine einzige Datei oder deren Pfad.
+
+### 32.3 Neue Policy-Architektur
+
+Migration `storage_tenant_boundary_v2_24`. Drei neue Funktionen, alle
+`SET search_path` implizit über `public`-Schema-Qualifizierung, `EXECUTE`
+nur an `authenticated` (nicht `anon`, ausser der reinen Pfad-Normalisierung
+ohne Tabellenzugriff):
+
+- **`storage_path_from_value(v text)`** – reine Normalisierung (alte
+  volle URL → Pfad), 1:1-SQL-Äquivalent von `measStoragePathFromValue()`
+  (Frontend) bzw. `storagePathFromValue()` (Edge Function
+  `system-admin-delete-company`).
+- **`storage_object_is_own_company(object_name text)`** – für
+  SELECT/UPDATE/DELETE: gehört dieses Objekt zur Firma des Aufrufers?
+  - Projektbezogene Pfade (`measurements/<projectId>/…`,
+    `project-files/<projectId>/…`): rein über den im Pfad **fest
+    eingebetteten** `projectId` gegen `projects.company_id` geprüft –
+    bleibt korrekt, auch wenn die aktuelle DB-Zeile inzwischen auf ein
+    anderes Objekt zeigt (z. B. nach dem Ersetzen einer Projektdatei
+    bleibt die *alte* Datei über ihren eigenen, unveränderlichen Pfad
+    weiterhin durch die ursprünglich hochladende Firma löschbar).
+  - Alte, flache Pfade: nur über eine **tatsächlich vorhandene**
+    Referenz der eigenen Firma (`app_settings.logo_url`,
+    `measurements.photo_path`/`sketch_path`/`sketch_paths`,
+    `ausmass.photo_path`/`photo_paths`, normalisiert). Kein Treffer →
+    kein Zugriff, für **niemanden** – das isoliert die 9 verwaisten
+    Objekte automatisch, ohne sie zu verschieben oder zu löschen.
+- **`storage_object_insert_allowed(object_name text)`** – für INSERT
+  (und den `with_check`-Teil von UPDATE): beim allerersten Hochladen
+  existiert per Definition noch **keine** DB-Zeile, die auf das neue
+  Objekt zeigt (der App-Ablauf lädt immer zuerst hoch, verknüpft danach
+  – siehe `uploadMeasurementImage()`/`uploadProjectFile()` in
+  `js/10-massaufnahme.js`/`js/09-projekte.js`). Projektbezogene Pfade
+  bleiben strikt pfadbasiert geprüft (der `projectId` existiert zu
+  diesem Zeitpunkt bereits real). Für Firmenlogo/Ausmass-Foto (noch nicht
+  projektbezogen) reicht "gehört überhaupt einer Firma an" – die
+  eigentliche Firmenzuordnung entsteht erst beim anschliessenden
+  Verknüpfen mit `app_settings`/`ausmass`, dort greift deren eigene,
+  bereits firmengetrennte, restriktive Tenant-Boundary-Policy
+  (`tenant_boundary_app_settings`/`tenant_boundary_ausmass`, siehe
+  Abschnitt 31.1) – ein Mitarbeiter von Firma B könnte durch das Hochladen
+  allein bestenfalls ein für ihn selbst nutzloses, weil nirgends
+  verknüpfbares Objekt erzeugen, niemals eine fremde Firmenzeile
+  überschreiben.
+
+Alte, zu weite Policies (`company read/upload/update/delete measurement
+files`) gedroppt, vier neue (`tenant read/upload/update/delete own
+storage files`) ersetzen sie 1:1 nach Befehl.
+
+**Keine einzige Datei wurde verschoben, umbenannt oder gelöscht.** Alle
+bestehenden Frontend-Aufrufstellen (`storageSignedUrl()`,
+`uploadMeasurementImage()`, `uploadProjectFile()`,
+`replaceProjectFile()`, `sb.storage.from("measurements").remove(...)` in
+`js/09-projekte.js`/`js/10-massaufnahme.js`) funktionieren unverändert
+weiter, da sich an den tatsächlichen Pfaden nichts ändert – **kein
+Frontend-Code wurde für diese Aufgabe angepasst.**
+
+### 32.4 Cross-Tenant-Test (Firma A = PETER KÜNZI AG, Firma B =
+temporäre Audit-Wegwerf-Firma, wie in Abschnitt 31 – Testfirma war zu
+Beginn bereits real gelöscht)
+
+Alle Tests in `begin;…rollback;`, Produktivdaten davor/danach identisch
+verifiziert (14 Objekte, 1 Firma, keine Test-Reste).
+
+| Test | Vorher (bis v2.23) | Nachher (v2.24) |
+|---|---|---|
+| Firma B: `SELECT * FROM storage.objects` (alle 14 Objekte) | alle 14 sichtbar | **0 sichtbar** |
+| Firma B: SELECT eines bekannten, referenzierten Firma-A-Pfads (`company-logo/…`) | sichtbar | **0 sichtbar** |
+| Firma B: SELECT eines bekannten, projektbezogenen Firma-A-Pfads (`project-files/4/…`) | sichtbar | **0 sichtbar** |
+| Firma B: INSERT unter Firma A's bekanntem `project-files/4/…`-Pfad (IDOR, bekannte fremde `projectId`) | erfolgreich | **abgelehnt** (`42501: new row violates row-level security policy`) |
+| Firma A (eigene, unveränderte Firma): SELECT der 5 tatsächlich referenzierten eigenen Objekte | sichtbar | **weiterhin sichtbar** (alle 5: Logo, Ausmass-Foto, 2 Skizzen, 1 Projektdatei) |
+| Firma A: SELECT dreier verwaister Objekte (auch wenn ursprünglich von ihr selbst) | sichtbar | **0 sichtbar** (bewusst isoliert, siehe 32.1) |
+| Firma A: INSERT unter eigenem, projektbezogenem Pfad (`project-files/4/…`) | erfolgreich | **weiterhin erfolgreich** |
+| Firma A: INSERT unter `company-logo/…` (Firmenlogo neu hochladen) | erfolgreich | **weiterhin erfolgreich** |
+
+DELETE liess sich nicht per rohem SQL testen – `storage.objects` hat
+einen eingebauten Schutz-Trigger (`protect_objects_delete`, ruft
+`storage.protect_delete()`), der **jedes** direkte SQL-`DELETE` auf
+dieser Tabelle kategorisch verweigert ("Direct deletion from storage
+tables is not allowed. Use the Storage API instead."), unabhängig von
+RLS – Löschungen müssen zwingend über die Storage-API laufen (die dort
+intern dieselbe `USING`-Klausel wie SELECT auswertet). Da die
+DELETE-Policy exakt dieselbe Prüffunktion (`storage_object_is_own_company`)
+wie die bereits erfolgreich getestete SELECT-Policy verwendet, ist das
+Verhalten durch die SELECT-Tests bereits mit abgedeckt – ein zusätzlicher
+Live-API-Test war wie gehabt wegen der Sandbox-Netzwerksperre nicht
+möglich.
+
+### 32.5 Signed URLs
+
+Abschnitt 5 des Auftrags ("Vor `createSignedUrl` muss die Datei zur
+eigenen Firma gehören") ist **automatisch** durch die neue SELECT-Policy
+erfüllt: `createSignedUrl()` prüft intern dieselbe RLS-SELECT-Policy auf
+`storage.objects`, bevor überhaupt eine signierte URL erzeugt wird – ohne
+sichtbare Objektzeile keine signierte URL. Keine gesonderte Änderung an
+`storageSignedUrl()` (`js/10-massaufnahme.js`) nötig. Erneut per Grep
+bestätigt: kein `getPublicUrl()` mehr irgendwo im Code (bereits seit
+Version 2.14 vollständig durch `storageSignedUrl()` ersetzt, siehe
+Abschnitt 20.5/20.6).
+
+### 32.6 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: unverändert ausgeglichen
+  (594/594 – nur der Versionstext geändert).
+- Produktivdaten vor/nach jedem Test und nach Abschluss erneut geprüft:
+  1 Firma, 14 Storage-Objekte, keine Test-Reste (`AUDIT%`-Namen: 0
+  Treffer) – exakt wie vor Beginn dieser Aufgabe.
+- **Kein Frontend-Code verändert** (siehe 32.3) – Massaufnahme (alle neun
+  Funktionen inkl. Foto/Skizze), Ausmass, Regierapport,
+  Materialverwaltung, Excel-Import, Login, Mitarbeiteranlage,
+  Passwort-Erstsetzung, Trial-Verwaltung, System-Admin ausserhalb der
+  Storage-Policy, Firmenregistrierung: keine Codeänderung, daher kein
+  eigenständiger Funktionstest dieser Bereiche nötig.
+- **Firmenlöschung** (`system-admin-delete-company`): verwendet für ihre
+  Storage-Löschung durchgehend den Service-Role-Key (`svcHeaders`), der
+  RLS grundsätzlich umgeht (`BYPASSRLS`) – von den neuen, nur für
+  `authenticated` geltenden Policies **nicht betroffen**, keine Änderung
+  nötig oder vorgenommen. Code erneut gelesen, keine Regression.
+- Live-Klicktest im Browser (Logo hochladen, Foto/Skizze in einer
+  Massaufnahme speichern und wieder öffnen, Projektdatei hochladen/
+  öffnen/ersetzen/löschen) weiterhin nicht möglich – Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`
+  direkt. **Das wird hier ausdrücklich nicht als getestet behauptet.**
+  Alle oben dokumentierten Tests liefen als direkte RLS-Simulation gegen
+  das echte Produktivschema (derselbe Mechanismus, den PostgREST/Storage-
+  API im Hintergrund ebenfalls verwenden), kein Ersatz für einen echten
+  Klicktest.
+
+### 32.7 Verbleibende Risiken / offene Punkte
+
+- **9 verwaiste Storage-Objekte bleiben unangetastet in der Datenbank
+  liegen**, für niemanden mehr regulär erreichbar (siehe 32.1/32.3) –
+  bewusst nicht gelöscht (keine stillen Datenverluste) und bewusst
+  keiner Firma zugeordnet (nicht eindeutig nachweisbar). Eine spätere,
+  eigene Aufgabe könnte sie einem System-Admin sichtbar machen (z. B.
+  eine neue, eng gefasste `SECURITY DEFINER`-Funktion nach dem Muster
+  von `system_admin_company_user_counts()`) und eine informierte
+  Entscheidung (löschen/manuell zuordnen) ermöglichen – für diese Aufgabe
+  ausserhalb des Auftragsumfangs ("System-Admin außerhalb notwendiger
+  Storage-Anpassungen" nicht verändern).
+- **Keine physische Pfad-Migration durchgeführt** (siehe 32.2) – bewusste
+  Entscheidung, kein technisches Versäumnis: die Storage-API war nicht
+  erreichbar, und die gewählte Referenz-basierte Lösung ist der
+  Migration in Robustheit mindestens gleichwertig (funktioniert für jedes
+  Pfadschema, alt wie neu, ohne jedes Migrationsrisiko).
+- Kein Live-Klicktest im Browser möglich (siehe 32.6).
+- Bei zukünftigen neuen Speicherorten (weitere Kategorien ausserhalb von
+  `measurements/`, `project-files/`, `company-logo/`, `ausmass-photo/`,
+  `photo/`, `sketch/`) muss `storage_object_is_own_company()`/
+  `storage_object_insert_allowed()` entsprechend erweitert werden – sonst
+  werden neue flache Kategorien standardmässig wie jede andere
+  unbekannte/verwaiste Datei behandelt (kein Zugriff für niemanden, bis
+  eine erste Referenz existiert – sicher, aber ggf. zunächst
+  unbeabsichtigt restriktiv für eine neue Funktion).
