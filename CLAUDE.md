@@ -1,443 +1,569 @@
-# Spengler-DIGITAL – Claude Code Project Instructions
+# Spengler-DIGITAL – Claude Code Projektanweisungen
 
-## 1. Project identity
+## 1. Projektziel
 
-**Spengler-DIGITAL** is a German-language web application for Swiss plumbing/sheet-metal businesses (Spenglerbetriebe).
+Spengler-DIGITAL ist eine deutschsprachige **Web-App / PWA für Schweizer Spenglerbetriebe**.
 
-The product is intended to become a professional **multi-company SaaS web app / PWA**. It is NOT primarily an Android/iOS native app. The browser/PWA is the main product.
+Das langfristige Ziel ist ein professionelles, kommerzielles **Multi-Tenant-SaaS-System** für mehrere unabhängige Firmen.
 
-Repository: `Mikesch15/Spengler---Digital-V1`
-Current development branch at the time this file was created: `refactor/safe-split-v1-49`
-Current app version visible in the UI: `1.49`
+Wichtig:
+- Die **Web-App im Browser ist das Hauptprodukt**.
+- Android/iOS sind keine separaten nativen Hauptapps.
+- Die App soll später als PWA installierbar sein.
+- Eine eigene Domain wie `spengler-digital.ch` bzw. `app.spengler-digital.ch` ist vorgesehen.
+- GitHub ist Entwicklungs-/Versionsverwaltung und nicht die Produktidentität.
 
-## 2. Current technical state
+## 2. Aktueller Referenzstand
 
-The current application is a browser-based HTML/CSS/JavaScript app using Supabase.
+Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-Current root application structure includes:
-- `index.html` – application shell/UI
-- `css/style.css` – styles
-- `js/core.js`
-- `js/auth.js`
-- `js/data.js`
-- `js/work-report.js`
-- `js/settings.js`
-- `js/sheet.js`
-- `js/projects.js`
-- `js/reports.js`
-- `js/image-tools.js`
-- `js/measurements.js`
-- `js/measurements-overview.js`
-- `js/ausmass.js`
-- `manifest.json` / `manifest.webmanifest` – PWA configuration
-- `sw.js` – service worker
-- `icon-192.png`, `icon-512.png` – PWA icons
-- `sql/` – Supabase database migrations
+Aktueller Hauptstand:
+- Branch: `main`
+- sichtbare App-Version: **2.09**
+- aktuelle Struktur ist bereits modularisiert.
+- Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
-The codebase has recently been split from the previous monolithic implementation into modules. Preserve this modular direction. Do not casually merge everything back into `index.html`.
-
-The current app already contains, among other things:
-- Login using username/password
+Die aktuelle `main`-Version enthält unter anderem:
+- Supabase-Anbindung
+- Login
+- Mitarbeiter-/Rechteverwaltung
+- Projekte
 - Regierapport
-- Projects
-- Global search
-- Feedback
-- Massaufnahme overview and editor
-- Massaufnahme: Skizze/Foto
-- Multiple sketches per measurement
-- Photo capture and drawing tools
-- Einlaufblech gerade
-- Rinne Halbrund
-- Einlaufblech konisch
-- Freies Profil
+- Massaufnahme
 - Ausmass
-- Offerte erfassen
-- Blitzschutzausmass
-- Material catalogues
-- Employee/rate settings
-- Company settings
-- Permissions
-- Blechverbrauch / sheet-cut calculation
-- PDF/print workflows
-- CSV export in relevant areas
+- Materialverwaltung
+- PWA-Unterstützung
+- PDF/Druck
+- Suche
+- Feedback
+- Einstellungen
+- mehrere spezialisierte Massaufnahme-Module
 
-Do not remove existing functionality just to simplify implementation.
+Bestehende Funktionen dürfen bei Änderungen nicht einfach entfernt oder durch vereinfachte Platzhalter ersetzt werden.
 
-## 3. Product direction – this is the most important instruction
+## 3. MASSAUFNAHME – vollständige aktuelle Funktionsliste
 
-The long-term product is a **commercial web app/PWA for multiple independent companies**.
+Die **Massaufnahme besteht aktuell aus NEUN Funktionen**:
 
-The architecture must therefore evolve from the current internal single-company prototype into a secure multi-tenant system.
+1. **Skizze / Foto**
+2. **Einlaufblech gerade**
+3. **Rinne Halbrund**
+4. **Einlaufblech konisch**
+5. **Freies Profil**
+6. **Mauerabdeckung**
+7. **Lukarne Seitenverkleidung**
+8. **Ort- und Seitenbleche**
+9. **Einfassung Rund**
 
-Target model:
+Diese neun Funktionen müssen bei Refactorings, Tests, Berechtigungen, PDF-Ausgabe, Speichern/Laden und zukünftiger Weiterentwicklung berücksichtigt werden.
+
+Die Auswahl wird im aktuellen `main` über `data-choose-meas-type` abgebildet. Die zugehörigen Typen sind:
+
+- `skizze_foto`
+- `einlaufblech_gerade`
+- `rinne_halbrund`
+- `einlaufblech_konisch`
+- `freies_profil`
+- `mauerabdeckung`
+- `lukarne`
+- `anschlussblech`
+- `einfassung_rund`
+
+### 3.1 Skizze / Foto
+
+Bestehende Kernfunktion:
+- Foto aufnehmen
+- Foto anzeigen/löschen
+- auf Foto zeichnen
+- Skizzen erstellen
+- mehrere Skizzen pro Massaufnahme
+- Skizzen speichern
+- Projektzuordnung
+- Druck/PDF
+
+### 3.2 Einlaufblech gerade
+
+Bestehende Kernfunktion:
+- Mass A
+- Winkel / Dachneigung
+- Abwicklung
+- Montage links/rechts
+- Material
+- Stücke einzeln erfassen
+- automatische Stück-/Längenberechnung
+- enge Seite / Restbreite
+- End-/Umschlagzugaben
+- Stückliste
+- Grundriss bzw. Schnittdarstellung
+- weitere Stücke hinzufügen
+- Speichern/Laden
+- PDF/Druck
+
+Berechnungslogik nicht ohne Prüfung verändern.
+
+### 3.3 Rinne Halbrund
+
+Bestehende Kernfunktion:
+- einzelne gerade Rinnen-Segmente
+- Länge pro Segment
+- Anschluss/Fitting links
+- Anschluss/Fitting rechts
+- Zuschnittlänge
+- Material
+- Abwicklung
+- Dilatationselemente
+- automatische Dilatationsberechnung
+- manuelle Dilatation
+- Grenzen/Bereiche der Dilatation
+- Stückliste
+- Grundriss
+- Speichern/Laden
+- PDF/Druck
+
+Die vorhandenen Fachberechnungen müssen erhalten bleiben.
+
+### 3.4 Einlaufblech konisch
+
+Bestehende Kernfunktion:
+- einzelne Stücke
+- Länge
+- Mass links
+- Mass rechts
+- Dachneigung/Winkel
+- Abwicklung
+- Montage links/rechts
+- Material
+- enge Seite
+- Stückberechnung
+- Stückliste
+- Rinnen-/Projektbezug, soweit bereits vorhanden
+- Speichern/Laden
+- PDF/Druck
+
+### 3.5 Freies Profil
+
+Bestehende Kernfunktion:
+- Profil aus mehreren Schenkeln
+- Schenkellängen
+- Winkel
+- konisch ja/nein
+- Segmente
+- Massen pro Segment
+- Ansicht
+- Material
+- Profil-/Geometrieberechnung
+- Speichern/Laden
+- PDF/Druck
+
+### 3.6 Mauerabdeckung
+
+Bestehende Kernfunktion:
+- mehrere gerade Segmente
+- Winkel zwischen Segmenten
+- Segmentlängen
+- Material
+- Profil-/Abwicklungsmasse
+- Boden-/Ansetzmasse
+- Schieber
+- Schieber-/Dilatationslogik
+- automatische Grenzen
+- Stückliste
+- Grundriss
+- Speichern/Laden
+- PDF/Druck
+
+Mauerabdeckung hat eigene Fachlogik und darf nicht einfach wie Rinne Halbrund behandelt werden.
+
+### 3.7 Lukarne Seitenverkleidung
+
+Bestehende Kernfunktion:
+- Höhe
+- obere Länge
+- Winkel
+- Achsabstand
+- Seite
+- Breite
+- Spitz-/Versatzmasse
+- Schräge
+- Anzahl
+- Fläche
+- Zugaben
+- Scharenberechnung
+- Hilfsriss
+- Material
+- Speichern/Laden
+- PDF/Druck
+
+Berechnungslogik nicht vereinfachen oder ersetzen.
+
+### 3.8 Ort- und Seitenbleche
+
+Interner Typ: `anschlussblech`
+
+Bestehende Kernfunktion:
+- Eingabemasse gemäss aktuellem Formular
+- Abwicklungsberechnung
+- Teile
+- Stückliste
+- Fläche
+- Material
+- Speichern/Laden
+- PDF/Druck
+
+Vor Änderungen immer die aktuelle Berechnungslogik im Repo prüfen.
+
+### 3.9 Einfassung Rund
+
+Interner Typ: `einfassung_rund`
+
+Bestehende Kernfunktion:
+- Rohrdurchmesser
+- Masse a
+- Masse c
+- weitere Eingabewerte gemäss aktuellem Formular
+- Abwicklung
+- Gesamtbreite
+- Bleilappen-/Lappenanzahl
+- Material
+- Speichern/Laden
+- PDF/Druck
+
+Vor Änderungen immer die aktuelle Berechnungslogik im Repo prüfen.
+
+## 4. AUSMASS – separater Bereich
+
+**Ausmass ist nicht Teil der Massaufnahme.**
+
+Aktuelle Ausmass-Funktionen:
+
+1. **Offerte erfassen**
+2. **Blitzschutzausmass**
+
+Diese Funktionen ebenfalls erhalten und bei Refactorings berücksichtigen.
+
+## 5. Regierapport
+
+Der Regierapport ist ein eigener Hauptbereich.
+
+Bestehende Funktionen unter anderem:
+- Projekt auswählen
+- Datum
+- Auftragsnummer
+- Auftraggeber
+- Objekt/Gebäudeteil
+- Arbeitspositionen
+- Mitarbeiter
+- Funktion
+- Stunden
+- Ansätze
+- Materialpositionen
+- Materialkatalog
+- Blechverbrauch
+- Total exkl./inkl. MWST
+- PDF/Druck
+- Speichern
+- CSV/relevante Exporte
+
+## 6. Projekte
+
+Projekte sind zentrale Objekte.
+
+Bestehende Konzepte:
+- Projektname
+- Auftragsnummer
+- Adresse/Objekt
+- Auftraggeber
+- Archiv
+- Zuordnung von Massaufnahmen
+- Zuordnung von Regierapporten
+
+Projekte sollen später von mehreren Mitarbeitern derselben Firma gemeinsam genutzt werden.
+
+## 7. Material & Excel-Import
+
+Der Materialbereich soll langfristig einen **generischen Excel-Import** unterstützen.
+
+Ziel:
+Andere Firmen bzw. Lieferanten sollen ihre Materiallisten importieren können.
+
+Der Import soll langfristig:
+- Datei validieren
+- Pflichtspalten prüfen
+- Vorschau zeigen
+- Spalten zuordnen
+- Fehler verständlich anzeigen
+- unterschiedliche Listenformate unterstützen
+- keine bestehenden Daten unkontrolliert überschreiben
+
+Kein harter Import nur für einen einzigen Lieferanten, wenn eine generische Lösung sinnvoll möglich ist.
+
+## 8. Langfristige Multi-Firmen-Architektur
+
+Spengler-DIGITAL soll später mehrere unabhängige Firmen sicher trennen:
 
     Spengler-DIGITAL
-        |
-        +-- Company A
-        |     +-- Admin
-        |     +-- Employees
-        |     +-- Projects
-        |     +-- Measurements
-        |     +-- Reports
-        |     +-- Materials
-        |
-        +-- Company B
-        |     +-- Admin
-        |     +-- Employees
-        |     +-- Projects
-        |
-        +-- Company C ...
+    ├── Firma A
+    │   ├── Admin
+    │   ├── Mitarbeiter
+    │   └── Projekte / Daten
+    ├── Firma B
+    │   ├── Admin
+    │   ├── Mitarbeiter
+    │   └── Projekte / Daten
+    └── Firma C ...
 
-A user must only be able to access data belonging to their company/tenant.
+Eine Firma darf niemals Daten einer anderen Firma sehen.
 
-This separation must be enforced at the database/security level, not merely hidden in the UI.
+Die Trennung muss **auf Datenbank-/Backend-Ebene** abgesichert sein und darf nicht nur durch versteckte UI-Elemente erfolgen.
 
-## 4. Important architectural goals
+Für relevante Daten soll eine eindeutige Firmen-/Tenant-Zuordnung vorgesehen werden, typischerweise `company_id`.
 
-### Multi-tenancy
+Das betrifft unter anderem:
+- Benutzer/Profile
+- Projekte
+- Massaufnahmen
+- Regierapporte
+- Materialien
+- Einstellungen
+- Fotos
+- Dateien
+- Feedback
+- zukünftige Angebote/Aufträge/Dokumente
 
-Design data so that company ownership is explicit and consistent, normally via a stable `company_id` / tenant ID.
+## 9. Benutzer, Rollen und Historie
 
-Relevant records should have an unambiguous company relationship, including:
-- projects
-- reports
-- measurements
-- employees/profiles
-- company settings
-- company-specific materials/rates where applicable
-- uploaded files/photos
-- feedback
-- future documents/orders/etc.
+Jeder Mitarbeiter soll später einen eigenen Login besitzen.
 
-Never rely on a client-side company code as the real security boundary.
+Geplante Rollen:
+- Firmenadministrator
+- Mitarbeiter
+- später eventuell weitere Rollen
 
-### Users and roles
+Wichtige Datensätze sollen möglichst speichern:
+- `created_by`
+- `created_at`
+- `updated_by`
+- `updated_at`
 
-The planned product supports multiple employees per company and individual logins.
+Langfristig ist ein Änderungsverlauf/Audit-Log vorgesehen.
 
-Future/target concepts:
-- company administrator
-- normal employee
-- possibly additional roles later
+## 10. Supabase
 
-Users should have stable IDs. Important records should retain who created/changed them where technically appropriate.
+Supabase ist als zentrale Backend-Lösung vorgesehen für:
+- Authentifizierung
+- PostgreSQL-Datenbank
+- Storage
+- Zugriffsrechte/RLS
 
-### Audit/history
+**Niemals** einen `service_role`-Key in Browsercode einbauen.
 
-The product should be prepared for:
-- created by
-- created at
-- updated by
-- updated at
-- future change history / audit log
+Bei Datenbankänderungen:
+- SQL-Migrationen sauber dokumentieren
+- RLS prüfen
+- bestehende Daten berücksichtigen
+- keine rein manuellen, undokumentierten Änderungen als dauerhafte Lösung
 
-Do not destroy this information when refactoring data structures.
+## 11. Fotos und Dateien
 
-### Cloud data
+Fotos sind wichtiger Bestandteil der Baustellen-/Massaufnahme.
 
-Supabase is the planned central backend/database/storage solution.
+Darauf achten:
+- korrekte Projekt-/Firmenzuordnung
+- mehrere Fotos/Skizzen
+- Upload
+- Löschen
+- Komprimierung
+- sinnvolle Dateigrössen
+- späterer Export
+- Speicherkosten
 
-Use Supabase for:
-- authentication
-- PostgreSQL data
-- file storage
-- secure access policies
+Keine unnötig grossen Originaldateien dauerhaft speichern, wenn das keinen klaren Mehrwert bietet.
 
-Never put a Supabase `service_role` key in browser code.
+## 12. PWA / Web-App
 
-The public/anon key may be present in a browser app only when the database/storage policies are correctly secured.
-
-## 5. PWA / web-app direction
-
-The main product is a web app.
-
-It must work well on:
-- Android tablets
+Die App soll auf:
+- Android-Tablets
 - iPad
-- smartphones
-- desktop PCs/laptops
+- Smartphones
+- Desktop
+- Laptop
 
-PWA support should be preserved and improved:
+gut funktionieren.
+
+PWA-Funktionen erhalten/verbessern:
+- Manifest
+- Icons
+- Service Worker
+- Installierbarkeit
 - HTTPS
-- manifest
-- icons
-- service worker
-- installability
-- sensible caching
-- app-like mobile UI
+- sinnvolles Caching
+- App-artige Bedienung
 
-The app should eventually be accessible via a custom domain such as:
-- `spengler-digital.ch` for the public website
-- `app.spengler-digital.ch` for the application
+Die Tablet-Bedienung ist besonders wichtig, weil die App auch direkt auf der Baustelle genutzt werden soll.
 
-Do not hard-code GitHub Pages URLs into application logic.
+## 13. UX-Grundsätze
 
-GitHub is the development/source-control platform; it is not the product identity.
+Prioritäten:
+1. schnelle Dateneingabe
+2. grosse Touch-Flächen
+3. möglichst wenige Klicks
+4. klare deutsche Bezeichnungen
+5. gute Tablet-Bedienung
+6. brauchbares Smartphone-Layout
+7. zuverlässige Berechnungen
+8. verständliche Fehlermeldungen
+9. sichere Bestätigungen bei destruktiven Aktionen
 
-## 6. UX principles
+Keine unnötig komplizierten SaaS-Oberflächen einbauen.
 
-This is a professional tool for people working in the Spengler trade, often on a tablet and sometimes directly on site.
+Die App soll sich wie ein praktisches Spengler-Werkzeug anfühlen.
 
-Priorities:
-1. Fast data entry
-2. Large, touch-friendly controls
-3. Minimal unnecessary clicks
-4. Clear German labels
-5. Good tablet layout
-6. Sensible smartphone behavior
-7. Reliable calculations
-8. Clear error messages
-9. No destructive action without confirmation where appropriate
+## 14. Entwicklungs-Roadmap
 
-Do not introduce generic SaaS UI patterns that make the app slower for field work.
+### Phase 1 – Bestehende App stabilisieren
+- bestehende Funktionen testen
+- Berechnungen prüfen
+- Massaufnahme vollständig erhalten
+- Excel-Import fertigstellen/verbessern
+- Tablet-/Mobile-UX verbessern
+- PWA erhalten
 
-Keep existing terminology unless there is a strong reason to change it.
+### Phase 2 – Multi-Firmen-Grundlage
+- Company/Tenant-Modell
+- Benutzer-Firmen-Zuordnung
+- Rollen
+- RLS
+- sichere Firmendatentrennung
+- Eigentümer von Fotos/Dateien
+- Ersteller-/Änderungsdaten
 
-## 7. Existing domain functionality must be preserved
+### Phase 3 – PWA & Produktidentität
+- eigene Domain
+- öffentliche Website
+- App-Domain
+- Branding
+- Logo/Favicon
+- Installierbarkeit
 
-### Regierapport
+### Phase 4 – Sicherheit & Daten
+- RLS vollständig prüfen
+- Passwort-/Accountverwaltung
+- Backup
+- Wiederherstellung
+- Datenexport
+- Datenlöschung
+- Foto-/Dateispeicher optimieren
 
-The current report supports:
-- project selection
-- date/order/customer/object information
-- work positions
-- employees/functions/hours/rates
-- material positions
-- sheet consumption
-- totals excluding/including VAT
-- print/PDF
-- saving
+### Phase 5 – Pilotbetriebe
+- einige echte Spenglerbetriebe testen lassen
+- Feedback sammeln
+- reale Arbeitsabläufe beobachten
+- Fehler und unnötige Schritte beseitigen
 
-### Projects
+### Phase 6 – Kommerzieller Betrieb
+Erst dann:
+- Datenschutz
+- Impressum
+- AGB
+- Support
+- Preise
+- Abos
+- Rechnungen/Zahlungen
+- geschäftliche Struktur
 
-Projects are central objects shared by employees of the same company.
+Eine GmbH ist nicht sofort Voraussetzung. Die technische Architektur soll aber für einen späteren professionellen kommerziellen Betrieb vorbereitet sein.
 
-Existing project concepts include:
-- project name
-- order number
-- address/object
-- customer
-- archive state
+### Phase 7 – Erweiterungen
+Mögliche spätere Funktionen:
+- Materialbestellung
+- Lieferantenkataloge
+- Offerten
+- Dokumente
+- Bestellungen
+- weitere Projektprozesse
+- Integrationen
+- erweiterter Änderungsverlauf
 
-### Massaufnahme
+## 15. Sicherheitsregeln
 
-Current functions include:
+Niemals:
+- Secrets in Frontend-Code
+- Service-Role-Key im Browser
+- Daten nur durch UI verstecken
+- Tenant-Trennung nur clientseitig
+- fremde Firmendaten ausgeben
+- unnötig sensible Daten in localStorage speichern
+
+Immer:
+- Eingaben validieren
+- Datenbankrechte prüfen
+- RLS verwenden, wo sinnvoll
+- Datei-Uploads validieren
+- User-Inhalte gegen XSS absichern
+- Authentifizierungsfehler sauber behandeln
+
+## 16. Regeln bei Änderungen
+
+Vor einer grösseren Änderung:
+
+1. Zuerst `main` und den aktuellen Code prüfen.
+2. Die zuständigen Dateien/Module identifizieren.
+3. Bei Datenänderungen Supabase-Schema und SQL prüfen.
+4. Bestehendes Verhalten erhalten.
+5. Kleinste sinnvolle Änderung durchführen.
+6. Betroffene Funktion testen.
+7. Bei Berechnungen konkrete Beispielwerte prüfen.
+
+**Nicht einfach alte oder vereinfachte Versionen aus anderen Branches übernehmen.**
+
+Insbesondere bei Massaufnahmen immer prüfen, ob alle neun Funktionen noch funktionieren:
+
 - Skizze/Foto
 - Einlaufblech gerade
 - Rinne Halbrund
 - Einlaufblech konisch
 - Freies Profil
+- Mauerabdeckung
+- Lukarne Seitenverkleidung
+- Ort- und Seitenbleche
+- Einfassung Rund
 
-Multiple sketches per measurement are supported.
+## 17. Git-Regeln
 
-### Rinne Halbrund
+`main` ist der aktuelle Referenzstand, sofern keine konkrete Aufgabe einen anderen Branch vorgibt.
 
-Segments are individually entered.
-Each segment is a separate straight gutter section.
-Connections/fittings and dimensions are configurable.
-Dilatation elements can be calculated automatically or entered manually.
+Vor grösseren Änderungen:
+- aktuellen Branch prüfen
+- aktuelle Commits prüfen
+- relevante Dateien aus genau diesem Stand lesen
 
-### Einlaufblech
+Keine destruktiven History-Rewrites.
 
-The calculations and existing settings are domain-specific and must not be casually rewritten.
-If changing a calculation, first understand and preserve the existing intended behavior.
+Commits klein und nachvollziehbar halten.
 
-### Material import
+## 18. Aktuelle Priorität
 
-A major future requirement is importing material lists from different companies/suppliers via Excel.
-The import system should be generic rather than hard-coded to one supplier where possible.
+**Nicht** zuerst native Apps bauen.
 
-Import functionality should eventually:
-- validate the file
-- show clear errors
-- preview imported rows
-- map required columns
-- allow different suppliers/companies to use compatible material lists
-- avoid silently corrupting existing material data
+**Nicht** zuerst Abos/Zahlungen bauen.
 
-## 8. Development roadmap
+**Nicht** vorschnell eine GmbH voraussetzen.
 
-Implement in roughly this order unless a concrete task requires otherwise:
+Das aktuelle Hauptziel lautet:
 
-### Phase 1 – Core application
-- Stabilize existing functions
-- Finish calculation correctness
-- Improve project and measurement workflows
-- Finish generic material import
-- Improve tablet/mobile UX
-- Preserve PWA behavior
+> Die bestehende Spengler-DIGITAL-Anwendung zu einer stabilen, modularen, tabletfreundlichen Web-App/PWA weiterentwickeln, ohne die vorhandenen Fachfunktionen zu verlieren, und gleichzeitig die technische Grundlage für eine sichere Multi-Firmen-SaaS schaffen.
 
-### Phase 2 – Multi-company foundation
-- Proper company/tenant model
-- User/company relationships
-- Secure tenant isolation
-- Roles/permissions
-- Company-specific settings
-- Correct ownership of files/photos
-- Created/updated metadata
+## 19. Arbeitsweise mit dem Projektinhaber
 
-### Phase 3 – PWA + product identity
-- Custom domain support
-- Public landing page
-- Application domain
-- Installable PWA
-- Branding/logo/favicon
+Der Projektinhaber bevorzugt direkte Umsetzung.
 
-### Phase 4 – Security/data reliability
-- RLS/security policies
-- password/account management
-- backups/recovery strategy
-- data export
-- deletion flows
-- photo/file storage strategy
-- file size/compression handling
+Wenn eine Aufgabe klar ist:
+1. Repo prüfen
+2. aktuelle Implementierung verstehen
+3. Änderung durchführen
+4. testen
+5. kurz und konkret berichten
 
-### Phase 5 – Pilot companies
-- Test with several real Spenglerbetriebe
-- collect feedback
-- fix workflow problems
-- prioritize real-world value over feature count
+Keine unnötigen langen Erklärungen oder Rückfragen, wenn die Anforderung bereits eindeutig ist.
 
-### Phase 6 – Commercial product
-- legal pages and terms
-- privacy documentation
-- support/contact
-- pricing
-- billing/subscriptions
-- onboarding
-
-### Phase 7 – Growth
-
-Potential future areas:
-- material ordering
-- supplier catalogs
-- quotations
-- reports/documents
-- deeper project workflow
-- integrations
-- advanced audit/history
-
-Do not implement commercial billing prematurely unless explicitly requested.
-
-## 9. Legal/business direction
-
-The owner intends to start lean and does not need a GmbH immediately.
-The application should be technically prepared for commercial B2B use, but legal/company formation work is a later product phase.
-
-Do not hard-code legal assumptions into the application.
-Keep privacy, terms, billing, and company information configurable where practical.
-
-## 10. Security rules
-
-Never:
-- expose service-role secrets
-- hard-code private credentials
-- trust client-side company IDs without server/database enforcement
-- allow one tenant to query another tenant's data
-- assume hiding a button is a permission system
-- store sensitive data unnecessarily in localStorage
-
-Always:
-- validate inputs
-- use database policies/RLS where appropriate
-- scope queries by authenticated company/user context
-- validate file uploads
-- avoid XSS through unescaped user content
-- handle authentication errors cleanly
-
-When changing Supabase schema/policies, update the appropriate SQL migration/documentation rather than relying only on manual dashboard changes.
-
-## 11. Photos and files
-
-Photos are important to the field workflow.
-
-The system should support:
-- camera capture
-- multiple images where appropriate
-- sketches
-- image compression/quality settings
-- storage linked to the correct company and project/measurement
-- deletion
-- future export
-
-Storage costs must be considered.
-Do not automatically keep huge camera originals unless there is a clear product reason.
-
-## 12. Coding rules for Claude Code
-
-Before making a significant change:
-1. Inspect the existing code and data flow.
-2. Identify which module owns the behavior.
-3. Check existing Supabase tables/policies/migrations if relevant.
-4. Preserve existing working functionality.
-5. Make the smallest coherent change.
-6. Test the affected workflow.
-
-Prefer modular code over adding large blocks to `index.html`.
-
-Do not create duplicate implementations of existing functionality.
-Do not rename IDs, database columns, functions, or storage paths casually; existing UI and modules may depend on them.
-
-When refactoring:
-- preserve behavior first
-- improve structure second
-- do not change calculation formulas without verifying expected results
-
-When adding a new database field:
-- choose a clear stable name
-- consider tenant ownership
-- consider null/default behavior
-- update SQL migration(s)
-- update application reads/writes
-
-When adding a feature that will eventually be multi-company:
-- design it tenant-aware immediately
-- do not build a single-company shortcut that must later be rewritten
-
-## 13. Testing expectations
-
-After changes, check at least:
-- login/authentication
-- project creation/selection
-- saving/loading
-- affected calculation
-- affected mobile/tablet UI
-- permissions if applicable
-- no console errors
-
-For calculation changes, use concrete example values and compare before/after results.
-
-For security-sensitive changes, verify both:
-- authorized user can access intended data
-- unauthorized company/user cannot access it
-
-## 14. Git workflow
-
-The repository currently contains active refactoring work on:
-`refactor/safe-split-v1-49`
-
-Do not assume `main` contains the newest development state.
-Always inspect the current branch/ref and recent commits before significant work.
-
-Keep commits focused and descriptive.
-Avoid destructive history rewrites.
-
-## 15. Current priority
-
-The immediate goal is NOT to build a native mobile app and NOT to rush into subscriptions.
-
-The immediate goal is:
-
-**Turn the existing Spengler-DIGITAL prototype into a stable, modular, tablet-friendly web app that can safely evolve into a multi-company SaaS/PWA.**
-
-The most important architectural principle is:
-
-> Build today's features so they do not block tomorrow's multi-company, cloud-based, commercial product.
-
-## 16. Communication / implementation style
-
-The project owner prefers direct execution over long explanations.
-When asked to implement something, inspect the repo, make the change, test it, and report exactly what was changed.
-Avoid unnecessary back-and-forth when the requirement is already clear.
-
-If a requested change conflicts with existing architecture, explain the conflict briefly and choose the safest implementation that preserves the long-term product direction.
+Bei Konflikten zwischen einer schnellen Lösung und der langfristigen Architektur die Lösung wählen, die bestehende Funktionalität erhält und die spätere Multi-Firmen-Web-App nicht verbaut.
