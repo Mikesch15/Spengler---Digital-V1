@@ -3077,3 +3077,147 @@ Schema.
   ausserhalb des Auftragsumfangs, nicht behoben.
 - `permission_settings` weiterhin bewusst ohne `company_id` (geteilte
   Rollen-Standardwerte, siehe 20.8) – kein Fehler.
+
+## 34. SYSTEM-ADMIN FIRMENVERWALTUNG AUSGEBAUT — VERSION 2.26
+
+Der bestehende System-Admin-Bereich (Abschnitt 25–30) wurde zu einer
+übersichtlicheren Firmenverwaltung ausgebaut – **keine neue
+Sicherheitsarchitektur**, ausschliesslich vorhandene Trial-/Status-/
+Registrierungs-/Löschfunktionen sauber zusammengeführt, wie im Auftrag
+gefordert. Alle bestehenden `SECURITY DEFINER`-Sicherheitsprüfungen,
+RLS-Policies und `is_system_admin()` unverändert.
+
+### 34.1 Was geändert wurde
+
+- **Firmenliste** (`renderSystemAdminList()`, `js/22-system-admin.js`):
+  sortiert jetzt nach `created_at` **absteigend** (neueste Firma zuerst)
+  statt alphabetisch. Jede Zeile zeigt zusätzlich zu Status und
+  Test-Ende jetzt auch **Trial-Dauer** (Tage) und **Registrierungsdatum**
+  – beides war in der Firma bereits als Feld vorhanden
+  (`companies.trial_days`/`companies.created_at`), nur nicht in der
+  Übersicht angezeigt.
+- **Suche/Filter** (`#sysAdminSearchInput`, `#sysAdminFilterStatus`,
+  neue Funktion `sysAdminRenderFilteredList()`): reine
+  Client-seitige Filterung der bereits geladenen `sysAdminCompanies` –
+  **keine zusätzliche Datenbankabfrage** pro Tastenanschlag/Filterwechsel,
+  wie im Auftrag ausdrücklich gefordert ("keine unnötigen
+  N+1-Abfragen"). Wird beim Öffnen des Bereichs zurückgesetzt, bleibt
+  aber beim Zurückkehren aus der Detailansicht (Trial/Status
+  gespeichert, Firma gelöscht) erhalten, da nur `renderSystemAdminList()`
+  (Neuladen der Daten) aufgerufen wird, nicht die Eingabefelder selbst
+  geleert werden.
+- **Detailansicht** (`openSystemAdminCompany()`): zwei neue Felder
+  „Admins" und „Mitarbeiter" neben dem bereits vorhandenen „Benutzer"
+  (Gesamtzahl).
+- **Leerzustände**: „Keine Firmen gefunden." (keine einzige Firma
+  existiert) und „Keine Firmen entsprechen der Suche/dem Filter."
+  (Firmen vorhanden, aber der aktuelle Filter trifft keine) sind jetzt
+  zwei unterschiedliche Meldungen statt einer einzigen.
+- **Unverändert wiederverwendet, nicht neu gebaut**: Trial bearbeiten
+  (`system_admin_set_trial`), Status ändern (`system_admin_set_status`),
+  Firma registrieren (`register-company`-Edge-Function, exakt derselbe
+  Formular-/Handler-Code wie seit Version 2.20), Firma löschen
+  (`system-admin-delete-company`-Edge-Function, exakt derselbe
+  zweistufige Bestätigungsdialog wie seit Version 2.19/2.20) – an all
+  diesen Stellen wurde kein Code verändert, nur die bereits vorhandenen
+  Erfolgsmeldungen (`sysAdminShowSuccess()`/`sysAdminShowListSuccess()`)
+  weiterhin genutzt.
+
+### 34.2 Minimale SQL-Erweiterung: Admin-/Mitarbeiterzahl
+
+Die Detailansicht brauchte laut Auftrag getrennte Admin-/
+Mitarbeiterzahlen, die bestehende Funktion
+`system_admin_company_user_counts()` lieferte bisher nur die
+Gesamtzahl. Statt einer zweiten Funktion (die dieselbe Tabelle ein
+zweites Mal abfragen würde) wurde die **bestehende** Funktion minimal
+erweitert (Migration
+`system_admin_company_user_counts_role_breakdown`): liefert jetzt
+`(company_id, user_count, admin_count, employee_count)` statt nur
+`(company_id, user_count)` – weiterhin **eine einzige** Abfrage über
+alle Firmen (`count(*) filter (where p.role = 'admin'/'employee')`),
+kein zusätzlicher Query pro Firma. Rückgabetyp hat sich geändert, daher
+`DROP FUNCTION` + `CREATE FUNCTION` statt `CREATE OR REPLACE` (Postgres
+erlaubt bei einer Typänderung kein `REPLACE`). Sicherheitsprüfung
+(`is_system_admin()`, `SECURITY DEFINER`, `search_path` fest auf
+`public`) und Grants (`authenticated`/`service_role`, **nicht** `anon`)
+identisch zur vorherigen Version übernommen – keine Sicherheitsänderung,
+nur zusätzliche Rückgabespalten.
+
+**Verifiziert** (direkt gegen die Produktivdatenbank, `begin;…rollback;`):
+- Als Mike Ledermann (System-Admin) aufgerufen: liefert für PETER KÜNZI
+  AG korrekt `user_count=12, admin_count=1, employee_count=11`.
+- Als Phillipp Wegmueller (normaler Mitarbeiter, kein System-Admin)
+  aufgerufen: weiterhin korrekt abgelehnt mit „Nur für
+  System-Administratoren." – keine Regression durch die Erweiterung.
+
+### 34.3 Sicherheit – nichts Neues gebaut, nur wiederverwendet
+
+- Der System-Admin-Bereich bleibt ausschliesslich für Benutzer sichtbar/
+  nutzbar, für die `is_system_admin()` `true` liefert – reine
+  UI-Führung (`checkSystemAdmin()`, unverändert), die eigentliche
+  Absicherung bleibt serverseitig (RLS-Policy
+  `system_admin_select_all_companies`, alle `system_admin_*`-Funktionen
+  prüfen sich selbst).
+- Keine neue clientseitige `company_id`-Vertrauensquelle eingeführt –
+  Suche/Filter arbeiten ausschliesslich auf bereits vom Server
+  gelieferten, RLS-gefilterten Daten (`sysAdminCompanies`), nicht auf
+  einer vom Client konstruierten Abfrage.
+- **Keine Impersonation gebaut** (wie im Auftrag ausdrücklich verlangt):
+  kein "als Firma anmelden", kein "als Mitarbeiter anmelden", kein
+  Öffnen einer fremden Firma im normalen App-Kontext – die
+  Firmenverwaltung zeigt ausschliesslich Firma/Trial/Status/Benutzerzahl
+  an und verwendet die bestehende, bereits geprüfte Lösch-/
+  Registrierungs-Funktion.
+- `RLS`, `system_admins`, `is_system_admin()` und alle bestehenden
+  `SECURITY DEFINER`-Sicherheitsprüfungen wurden **nicht** verändert –
+  einzige DB-Änderung ist die Rückgabespalten-Erweiterung aus 34.2,
+  mit identischer Zugriffsprüfung.
+
+### 34.4 Tests
+
+**Direkt gegen die Produktivdatenbank verifiziert** (siehe 34.2): neue
+Funktion liefert für den echten System-Admin korrekte Admin-/
+Mitarbeiterzahlen, lehnt einen Nicht-System-Admin weiterhin korrekt ab.
+
+- `node --check` über alle `js/*.js` (inkl. `js/22-system-admin.js`) und
+  `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: ausgeglichen (601/601,
+  vorher 594/594 – Differenz durch die 7 neuen `<div>`s: Suche/Filter-
+  Zeile in der Firmenliste, zwei neue Detailfelder Admins/Mitarbeiter).
+- Jede neue Element-ID (`sysAdminSearchInput`, `sysAdminFilterStatus`,
+  `systemAdminCompanyAdmins`, `systemAdminCompanyEmployees`) einzeln
+  gegen `index.html` geprüft: genau einmal vorhanden.
+- `git diff --stat` nach Abschluss geprüft: ausschliesslich
+  `index.html` und `js/22-system-admin.js` verändert – kein anderer
+  Bereich (Login, Mitarbeiteranlage, Passwort-Erstsetzung, geschützter
+  Einstellungsbereich, Storage, Massaufnahme, Firmenlöschungs-Edge-
+  Function) berührt, daher kein eigenständiger Funktionstest dieser
+  Bereiche nötig – ihre zugrunde liegende Sicherheits-/Datenlogik wurde
+  bereits im Audit v2.25 vollständig geprüft und ist durch diese
+  Aufgabe unverändert.
+- **PETER KÜNZI AG nach allen Änderungen erneut geprüft**: unverändert
+  (1 Firma, 12 Profile, 1 System-Admin-Eintrag, `subscription_status`/
+  `trial_days`/`updated_at` identisch zum Stand vor dieser Aufgabe) –
+  weder durch die SQL-Migration noch durch einen Test verändert.
+- Live-Klicktest im Browser (Firmenliste öffnen, suchen/filtern,
+  Detailansicht mit Admin-/Mitarbeiterzahl öffnen, Trial/Status ändern,
+  neue Testfirma registrieren, wieder löschen, eigener System-Admin
+  bleibt bestehen; als Firmenadmin/Mitarbeiter: Bereich nicht sichtbar)
+  **in dieser Sitzung technisch nicht möglich** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`
+  direkt, wie in jeder vorherigen Sitzung. **Das wird hier ausdrücklich
+  nicht als getestet behauptet.** Die Erfolgsmeldungen, der
+  Registrierungs-/Löschablauf und die Sichtbarkeitssteuerung
+  (`checkSystemAdmin()`) selbst wurden in dieser Aufgabe nicht
+  verändert und sind bereits in den Versionen 2.17–2.23 einzeln per
+  Code-Review/SQL-Simulation geprüft.
+
+### 34.5 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 34.4).
+- Impersonation/Support-Zugriff auf einzelne Firmendaten weiterhin nicht
+  gebaut (bewusst, siehe 34.3 und bereits in 25.6 so festgelegt).
+- Die 9 verwaisten Storage-Objekte (Abschnitt 32.1), die SSRF-
+  Beobachtung in `extract-offer-positions` (31.6) und der
+  `permission_settings`-Sonderfall (20.8) bleiben unverändert offen,
+  nicht Teil dieser Aufgabe.

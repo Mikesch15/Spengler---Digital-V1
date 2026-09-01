@@ -50,6 +50,8 @@ async function checkSystemAdmin(){
 
 $("navSystemAdmin").onclick=async()=>{
  $("systemAdminModal").hidden=false;
+ $("sysAdminSearchInput").value="";
+ $("sysAdminFilterStatus").value="";
  await renderSystemAdminList();
 };
 $("closeSystemAdmin").onclick=()=>{$("systemAdminModal").hidden=true};
@@ -58,19 +60,41 @@ async function renderSystemAdminList(){
  const box=$("systemAdminCompanyList");
  box.innerHTML='<div class="small">Lädt…</div>';
  const [companiesRes,countsRes]=await Promise.all([
-  sb.from("companies").select("*").order("name"),
+  // Neueste Firmen zuerst.
+  sb.from("companies").select("*").order("created_at",{ascending:false}),
   sb.rpc("system_admin_company_user_counts")
  ]);
  if(companiesRes.error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(companiesRes.error.message)}</div>`;return}
  sysAdminCompanies=companiesRes.data||[];
  sysAdminUserCounts={};
- (countsRes.data||[]).forEach(r=>{sysAdminUserCounts[r.company_id]=r.user_count});
- box.innerHTML=sysAdminCompanies.length?sysAdminCompanies.map(c=>`
-<div class="settingrow" style="display:block;padding:10px;cursor:pointer" data-sysadmin-company="${c.id}">
-<div style="font-weight:600">${esc(c.name)}</div>
-<div class="small" style="color:var(--muted)">Status: ${esc(SYS_ADMIN_STATUS_LABELS[c.subscription_status]||c.subscription_status)} · Test bis: ${sysAdminFmtDate(c.trial_ends_at)} · ${sysAdminUserCounts[c.id]||0} Benutzer</div>
-</div>`).join(""):'<div class="empty">Keine Firmen gefunden.</div>';
+ // Eine einzige Abfrage für alle Firmen (keine N+1-Abfragen), liefert
+ // seit Version 2.26 zusätzlich zur Gesamtzahl auch Admin-/
+ // Mitarbeiterzahl getrennt für die Detailansicht.
+ (countsRes.data||[]).forEach(r=>{sysAdminUserCounts[r.company_id]={user_count:r.user_count,admin_count:r.admin_count,employee_count:r.employee_count}});
+ sysAdminRenderFilteredList();
 }
+
+function sysAdminRenderFilteredList(){
+ const box=$("systemAdminCompanyList");
+ if(!sysAdminCompanies.length){box.innerHTML='<div class="empty">Keine Firmen gefunden.</div>';return}
+ const suche=$("sysAdminSearchInput").value.trim().toLowerCase();
+ const statusFilter=$("sysAdminFilterStatus").value;
+ const liste=sysAdminCompanies.filter(c=>
+  (!suche||c.name.toLowerCase().includes(suche))&&
+  (!statusFilter||c.subscription_status===statusFilter)
+ );
+ if(!liste.length){box.innerHTML='<div class="empty">Keine Firmen entsprechen der Suche/dem Filter.</div>';return}
+ box.innerHTML=liste.map(c=>{
+  const counts=sysAdminUserCounts[c.id]||{};
+  return `<div class="settingrow" style="display:block;padding:10px;cursor:pointer" data-sysadmin-company="${c.id}">
+<div style="font-weight:600">${esc(c.name)}</div>
+<div class="small" style="color:var(--muted)">Status: ${esc(SYS_ADMIN_STATUS_LABELS[c.subscription_status]||c.subscription_status)} · Trial: ${esc(c.trial_days)} Tage · Test bis: ${sysAdminFmtDate(c.trial_ends_at)} · ${counts.user_count||0} Benutzer · Registriert: ${sysAdminFmtDate(c.created_at)}</div>
+</div>`;
+ }).join("");
+}
+
+$("sysAdminSearchInput").addEventListener("input",sysAdminRenderFilteredList);
+$("sysAdminFilterStatus").addEventListener("change",sysAdminRenderFilteredList);
 
 $("systemAdminCompanyList").addEventListener("click",e=>{
  const row=e.target.closest("[data-sysadmin-company]");
@@ -91,7 +115,10 @@ function openSystemAdminCompany(id){
  $("systemAdminCompanyTrialDays").textContent=c.trial_days+" Tage";
  $("systemAdminCompanyTrialStart").textContent=sysAdminFmtDate(c.trial_started_at);
  $("systemAdminCompanyTrialEnd").textContent=sysAdminFmtDate(c.trial_ends_at);
- $("systemAdminCompanyUsers").textContent=String(sysAdminUserCounts[id]||0);
+ const counts=sysAdminUserCounts[id]||{};
+ $("systemAdminCompanyUsers").textContent=String(counts.user_count||0);
+ $("systemAdminCompanyAdmins").textContent=String(counts.admin_count||0);
+ $("systemAdminCompanyEmployees").textContent=String(counts.employee_count||0);
  $("sysAdminTrialDaysInput").value=c.trial_days;
  $("sysAdminTrialStartInput").value=c.trial_started_at?c.trial_started_at.slice(0,10):"";
  $("sysAdminStatusInput").value=c.subscription_status;

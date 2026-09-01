@@ -76,7 +76,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.25</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.26</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -286,6 +286,19 @@
 <h2>⚙️ Spengler-DIGITAL Administration</h2>
 <div class="info">Firmenverwaltung für den Betreiber von Spengler-DIGITAL. Unabhängig von der normalen Firmenadmin-Rolle.</div>
 <div class="bar" style="margin-bottom:10px"><button type="button" id="sysAdminOpenRegister" class="green">🏢 Neue Firma registrieren</button></div>
+<div class="grid" style="margin-bottom:10px">
+<div class="wide"><label>Suche (Firmenname)</label><input id="sysAdminSearchInput" placeholder="Firmenname…"></div>
+<div><label>Status</label>
+<select id="sysAdminFilterStatus">
+<option value="">Alle</option>
+<option value="trial">Testphase</option>
+<option value="active">Aktiv</option>
+<option value="expired">Abgelaufen</option>
+<option value="cancelled">Gekündigt</option>
+<option value="suspended">Gesperrt</option>
+</select>
+</div>
+</div>
 <div id="sysAdminListSuccess" class="small" style="color:var(--green)" hidden></div>
 <div id="systemAdminCompanyList"></div>
 <div class="bar"><button id="closeSystemAdmin" class="green">✓ Fertig</button></div>
@@ -333,6 +346,8 @@
 <div><label>Trial-Beginn</label><div id="systemAdminCompanyTrialStart" class="small"></div></div>
 <div><label>Trial-Ende</label><div id="systemAdminCompanyTrialEnd" class="small"></div></div>
 <div><label>Benutzer</label><div id="systemAdminCompanyUsers" class="small"></div></div>
+<div><label>Admins</label><div id="systemAdminCompanyAdmins" class="small"></div></div>
+<div><label>Mitarbeiter</label><div id="systemAdminCompanyEmployees" class="small"></div></div>
 </div>
 
 <div class="settings-section" data-section="sysadmin-trial">
