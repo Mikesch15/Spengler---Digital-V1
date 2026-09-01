@@ -323,7 +323,16 @@ $("projectList").addEventListener("click",async e=>{
  if(openF){
   const id=Number(openF.dataset.openProjectFile);
   const f=projectFilesCache.find(x=>x.id===id);
-  if(f)window.open(sb.storage.from("measurements").getPublicUrl(f.file_path).data.publicUrl,"_blank");
+  if(f){
+   // Bucket ist privat: window.open() muss synchron im Klick bleiben,
+   // sonst blockieren Popup-Blocker – deshalb sofort ein leeres Fenster
+   // öffnen und erst danach die signierte URL nachladen.
+   const fenster=window.open("","_blank");
+   const url=await storageSignedUrl(f.file_path);
+   if(url&&fenster)fenster.location.href=url;
+   else if(fenster)fenster.close();
+   if(!url)alert("Datei konnte nicht geöffnet werden.");
+  }
   return;
  }
  const renameF=e.target.closest("[data-rename-project-file]");

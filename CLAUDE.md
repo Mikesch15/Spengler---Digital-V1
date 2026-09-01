@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.11**
+- sichtbare App-Version: **2.12**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -638,14 +638,44 @@ Bucket `measurements`, **privat** (`public: false`). Vier
 `storage.objects`-Policies `company <read/upload/update/delete> measurement
 files`, Bedingung: `bucket_id = 'measurements' AND my_company_id() is not null`.
 
-**Storage-Pfade** (kein Firmen-/Projektbezug im Pfad selbst):
-- Foto/Skizze/Firmenlogo/Ausmass-Foto: `<art>/<zeit>_<zufall>.<ext>`
-  (`art` ∈ `photo`, `sketch`, `company-logo`, `ausmass-photo`)
-- Projektdatei: `project-files/<projectId>/<zeit>_<zufall>.<ext>`
+**Storage-Pfade** (Stand nach der Migration in dieser Session):
+- Foto/Skizze einer Massaufnahme (Typ `skizze_foto`):
+  `measurements/<projectId>/<measurementId>/photo/<zeit>_<zufall>.<ext>`
+  bzw. `.../sketches/<zeit>_<zufall>.<ext>` – eindeutig Projekt **und**
+  Massaufnahme zugeordnet. Bei einer neuen Massaufnahme mit neuen Fotos/
+  Skizzen legt `$("saveMeasurement").onclick`
+  (`js/16-massaufnahme-formular.js`) dafür zuerst eine Platzhalterzeile in
+  `measurements` an, um die echte ID zu bekommen, bevor hochgeladen wird
+  (bei Fehler danach wird die Platzhalterzeile wieder gelöscht).
+- Firmenlogo/Ausmass-Foto: weiterhin `<art>/<zeit>_<zufall>.<ext>`
+  (`art` ∈ `company-logo`, `ausmass-photo`) – bewusst nicht umgestellt:
+  das Firmenlogo gehört zu keinem Projekt, Ausmass-Fotos waren nicht Teil
+  des Auftrags für diese Runde.
+- Projektdatei: unverändert `project-files/<projectId>/<zeit>_<zufall>.<ext>`
+  (bereits eindeutig projektbezogen, so vom Auftrag als korrekt bestätigt).
+- **Alte, vor dieser Migration hochgeladene Fotos/Skizzen/Dateien bleiben
+  unter ihrem ursprünglichen Pfad liegen** (u. a. das alte, flache
+  `<art>/<zeit>_<zufall>.<ext>`-Schema ohne Projekt-/Massaufnahme-Bezug) –
+  nichts wurde verschoben, umbenannt oder gelöscht. Anzeige/Zugriff
+  funktioniert für sie weiterhin, siehe `storageSignedUrl()` unten.
 
-Das bedeutet: Storage-RLS kann aktuell nur "eingeloggtes Mitglied
-irgendeiner Firma" prüfen, nicht "gehört zu genau diesem Projekt/dieser
-Firma" – siehe 20.6.
+Storage-RLS prüft weiterhin nur "eingeloggtes Mitglied irgendeiner
+Firma" (`my_company_id() is not null`), nicht "gehört zu genau diesem
+Projekt/dieser Firma" – der Pfad allein reicht für eine echte,
+serverseitig erzwungene Trennung nicht aus (RLS kann keinen Pfad
+"parsen" und mit `projects.company_id` abgleichen, ohne denselben Bug wie
+in 20.6 zu riskieren). Bleibt bewusst offen, siehe 20.7.
+
+**Anzeige (privater Bucket):** `getPublicUrl()` funktioniert für einen
+privaten Bucket grundsätzlich nicht. Alle Anzeige-Stellen lösen einen
+gespeicherten Wert deshalb über `storageSignedUrl(value)`
+(`js/10-massaufnahme.js`) zu einer eine Stunde gültigen, bei jedem
+Rendern frisch erzeugten `createSignedUrl()`-URL auf – erkennt dabei auch
+alte, vollständige "öffentliche" URLs aus der Zeit vor der Umstellung und
+zieht daraus den reinen Pfad. Betrifft: Foto-/Skizzenvorschau und
+-Galerie, Massaufnahme-/Ausmass-Übersichtslisten (Thumbnails), PDF-Druck
+(Massaufnahme und Ausmass, inkl. Firmenlogo im Briefkopf), Firmenlogo im
+Start-/Menübildschirm, Projektdatei öffnen.
 
 ### 20.6 Bereits in Supabase umgesetzt
 
@@ -669,25 +699,31 @@ Firma" – siehe 20.6.
     beschriebene Interims-Regel (`my_company_id() is not null`)
     korrigiert – Zugriff funktioniert wieder, aber noch ohne echte
     objektgenaue Firmentrennung.
+  - `getPublicUrl()` (funktioniert grundsätzlich nicht für einen privaten
+    Bucket) an jeder Stelle durch `storageSignedUrl()`/`createSignedUrl()`
+    ersetzt: Foto-/Skizzenvorschau und -galerie im Formular, Massaufnahme-
+    und Ausmass-Übersichtslisten, PDF-Druck (inkl. Firmenlogo), Firmenlogo
+    im Start-/Menübildschirm, Projektdatei öffnen. Alte, vor der
+    Umstellung gespeicherte volle "öffentliche" URLs werden dabei erkannt
+    und bleiben nutzbar (`measStoragePathFromValue()`).
+  - Foto-/Skizzen-Upload einer Massaufnahme auf
+    `measurements/<projectId>/<measurementId>/photo|sketches/…`
+    umgestellt (siehe 20.5) – vorher lag im Pfad selbst weder Projekt-
+    noch Massaufnahme-Bezug.
 
 ### 20.7 Noch im Frontend umzusetzen / offene Fragen
 
-- **Fotos/Skizzen/Firmenlogo/Projektdateien lassen sich seit der
-  Umstellung auf den privaten Bucket vermutlich nicht mehr anzeigen.**
-  Der Code benutzt überall `sb.storage.from("measurements").getPublicUrl(path)`
-  (`js/10-massaufnahme.js: uploadMeasurementImage`,
-  `js/09-projekte.js: uploadProjectFile/replaceProjectFile`, PDF-Druck in
-  `js/16-massaufnahme-formular.js` bettet `photo_path`/`sketch_paths`
-  direkt als `<img src>` ein). `getPublicUrl()` liefert für einen privaten
-  Bucket eine URL, die der öffentliche Objekt-Endpunkt grundsätzlich
-  ablehnt – unabhängig von RLS. Muss auf `createSignedUrl()` (oder
-  Download+Blob-URL) umgestellt werden. **Nicht ungefragt umgebaut**,
-  weil das mehrere Stellen betrifft (Upload-Funktionen, Galerie-Anzeige,
-  PDF-Druck, Firmenlogo) und eine bewusste Entscheidung braucht (z. B. wie
-  lange ein Link gültig sein soll). Vor der nächsten Multi-Tenant-Runde
-  mit dem Projektinhaber klären.
-- Echte objektgenaue Storage-Trennung (Pfad oder Objekt-Metadaten mit
-  `company_id`) fehlt noch – aktuell nur grob firmenweit über 20.5.
+- Echte objektgenaue Storage-**RLS**-Trennung für Fotos/Skizzen/
+  Projektdateien fehlt noch – der Pfad trägt jetzt zwar Projekt-/
+  Massaufnahme-Bezug (20.5), aber die Policy prüft weiterhin nur
+  "eingeloggtes Mitglied irgendeiner Firma", nicht ob genau dieses
+  Projekt zur eigenen Firma gehört. Für eine spätere Runde: Policy auf
+  `storage.foldername(name)` (des Objekts selbst, nicht von
+  `projects.name` – siehe der oben behobene Bug) und einen Join auf
+  `projects.company_id` umstellen.
+- Firmenlogo/Ausmass-Foto liegen weiterhin unter dem alten, flachen
+  Pfadschema ohne Projekt-/Firmenbezug (Firmenlogo ist auch fachlich kein
+  Projektdatum). Signierte URLs funktionieren dafür bereits.
 - Keine Firmenverwaltung im Frontend (Firma anlegen/wechseln) – für
   Phase 1 nicht vorgesehen.
 

@@ -52,16 +52,21 @@ function applyCompanyName(){
  const vatInput=$("defaultVatInput");if(vatInput&&document.activeElement!==vatInput)vatInput.value=defaultVat;
  const printAddr=$("printAddress");if(printAddr)printAddr.textContent=companyAddress;
  const logoEl=$("printLogo");
- if(logoEl)logoEl.innerHTML=logoUrl?`<img src="${logoUrl}" style="max-height:60px;max-width:280px;display:block">`:esc(companyName);
  const logoPrev=$("logoPreview");
- if(logoPrev&&!logoDataUrl){
-  if(logoUrl){logoPrev.src=logoUrl;logoPrev.hidden=false;$("logoRemove").hidden=false;}
-  else{logoPrev.hidden=true;logoPrev.src="";$("logoRemove").hidden=true;}
- }
  const startLogo=$("startLogo");
- if(startLogo){
-  if(logoUrl){startLogo.src=logoUrl;startLogo.hidden=false;}
-  else{startLogo.hidden=true;startLogo.src="";}
+ if(!logoUrl){
+  if(logoEl)logoEl.innerHTML=esc(companyName);
+  if(logoPrev&&!logoDataUrl){logoPrev.hidden=true;logoPrev.src="";if($("logoRemove"))$("logoRemove").hidden=true;}
+  if(startLogo){startLogo.hidden=true;startLogo.src="";}
+ }else{
+  // Bucket ist privat: der gespeicherte Pfad/die alte URL muss erst zu
+  // einer signierten URL aufgelöst werden, bevor sie als <img> lädt.
+  storageSignedUrl(logoUrl).then(url=>{
+   if(!url)return;
+   if(logoEl)logoEl.innerHTML=`<img src="${esc(url)}" style="max-height:60px;max-width:280px;display:block">`;
+   if(logoPrev&&!logoDataUrl){logoPrev.src=url;logoPrev.hidden=false;if($("logoRemove"))$("logoRemove").hidden=false;}
+   if(startLogo){startLogo.src=url;startLogo.hidden=false;}
+  });
  }
 }
 function applyEinlaufblechSettings(){

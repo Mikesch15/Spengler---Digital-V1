@@ -187,14 +187,35 @@ $("saveMeasurement").onclick=async()=>{
   if(!(Number(e.a)>0)||!(Number(e.c)>0)){alert("Bitte mindestens die Masse a und c eingeben.");return}
  }
  $("saveMeasurement").disabled=true;
+ let platzhalterId=null; // falls hier eine Zeile nur für die Ordner-ID angelegt wird
  try{
   const form=buildMeasurementFromForm();
-  let photoUrl=null,sketchUrls=[];
+  const warNeu=!currentMeasurementId;
+  let workingId=currentMeasurementId;
+  let photoUrl=measExistingPhotoUrl,sketchUrls=measSketches.slice();
   if(type==="skizze_foto"){
+   // Fotos/Skizzen sollen eindeutig unter measurements/<projectId>/<measurementId>/…
+   // abgelegt werden – bei einer neuen Massaufnahme gibt es diese ID aber
+   // erst nach dem ersten Speichern. Deshalb bei neuen Foto-/Skizzen-Uploads
+   // zuerst eine Platzhalterzeile anlegen, um die echte ID zu bekommen.
+   const hatNeueDateien=!!measPhotoDataUrl||measSketches.some(s=>s.startsWith("data:"));
+   if(!workingId&&hatNeueDateien){
+    const {data:neu,error:eNeu}=await sb.from("measurements").insert({
+     project_id:measSelectedProjectId||null,type,title,note:$("measNote").value,
+     date:$("measDate").value||new Date().toISOString().slice(0,10),
+     data:form.data||{},
+     created_by:currentProfile?currentProfile.id:null,created_at:new Date().toISOString()
+    }).select().maybeSingle();
+    if(eNeu)throw eNeu;
+    workingId=neu.id;
+    platzhalterId=neu.id;
+   }
+   const ordner=`measurements/${measSelectedProjectId}/${workingId}`;
    photoUrl=measExistingPhotoUrl;
-   if(measPhotoDataUrl)photoUrl=await uploadMeasurementImage(measPhotoDataUrl,"photo");
+   if(measPhotoDataUrl)photoUrl=await uploadMeasurementImage(measPhotoDataUrl,`${ordner}/photo`);
+   sketchUrls=[];
    for(const s of measSketches){
-    sketchUrls.push(s.startsWith("data:")?await uploadMeasurementImage(s,"sketch"):s);
+    sketchUrls.push(s.startsWith("data:")?await uploadMeasurementImage(s,`${ordner}/sketches`):s);
    }
   }
   const jetzt=new Date().toISOString();
@@ -211,19 +232,21 @@ $("saveMeasurement").onclick=async()=>{
    updated_by:currentProfile?currentProfile.id:null,
    updated_at:jetzt
   };
-  const {error}=currentMeasurementId
-   ?await sb.from("measurements").update(payload).eq("id",currentMeasurementId)
+  const {error}=workingId
+   ?await sb.from("measurements").update(payload).eq("id",workingId)
    :await sb.from("measurements").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:jetzt});
   if(error)throw error;
-  currentMeasurementMeta=currentMeasurementId
-   ?{...currentMeasurementMeta,updated_by:payload.updated_by,updated_at:jetzt}
-   :{created_by:currentProfile?currentProfile.id:null,created_at:jetzt,updated_by:null,updated_at:null};
+  currentMeasurementId=workingId;
+  currentMeasurementMeta=warNeu
+   ?{created_by:currentProfile?currentProfile.id:null,created_at:jetzt,updated_by:null,updated_at:null}
+   :{...currentMeasurementMeta,updated_by:payload.updated_by,updated_at:jetzt};
   $("measurementEditModal").hidden=true;
   if(measEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
   else{$("measurementsModal").hidden=false;await renderMeasurementsOverview()}
   measEditReturnTo="measurementsModal";
   isDirty=false;
  }catch(err){
+  if(platzhalterId)await sb.from("measurements").delete().eq("id",platzhalterId).then(()=>{},()=>{});
   alert("Fehler beim Speichern: "+(err.message||err));
  }
  $("saveMeasurement").disabled=false;
@@ -245,7 +268,7 @@ async function renderMeasurementsOverview(){
    thumbHtml=`<div class="meas-thumb meas-thumb-empty" style="font-size:10px;line-height:1.2;padding:2px">${anzahl}×<br>${d.massA||0}mm</div>`;
   }else{
    const thumb=m.photo_path||(m.sketch_paths&&m.sketch_paths[0])||m.sketch_path;
-   thumbHtml=thumb?`<img class="meas-thumb" src="${thumb}" loading="lazy">`:'<div class="meas-thumb meas-thumb-empty">–</div>';
+   thumbHtml=thumb?`<img class="meas-thumb" data-signed-src="${esc(thumb)}" loading="lazy">`:'<div class="meas-thumb meas-thumb-empty">–</div>';
   }
   return `<div class="meas-row">
 ${thumbHtml}
@@ -256,6 +279,7 @@ ${thumbHtml}
 </div>
 </div>`;
  }).join(""):'<div class="empty">Noch keine Massaufnahmen vorhanden.</div>';
+ resolveSignedThumbnails($("recentMeasurementsList"));
 }
 $("recentMeasurementsList").addEventListener("click",e=>{
  const o=e.target.closest("[data-open-measurement]");
@@ -294,8 +318,9 @@ function erstelltGeaendertText(record){
  if(geaendertName||geaendertZeit)teile.push(`Zuletzt geändert von ${esc(geaendertName||"–")}${geaendertZeit?" am "+esc(geaendertZeit):""}`);
  return teile.join(" · ");
 }
-function pdfLetterheadHtml(subtitle){
- const logo=logoUrl?`<img src="${esc(logoUrl)}" style="max-height:15mm;max-width:70mm;display:block">`:esc(companyName);
+function pdfLetterheadHtml(subtitle,logoSrc){
+ const src=logoSrc!==undefined?logoSrc:logoUrl;
+ const logo=src?`<img src="${esc(src)}" style="max-height:15mm;max-width:70mm;display:block">`:esc(companyName);
  return `<div class="pdf-head">
 <div><div class="pdf-logo">${logo}</div><div class="pdf-sub">${esc(subtitle)}</div></div>
 <div class="pdf-head-right"><b>${esc(companyName)}</b>${companyAddress?`<br><span style="white-space:pre-line">${esc(companyAddress)}</span>`:""}</div>
@@ -316,11 +341,22 @@ const PDF_HEAD_FOOT_CSS=`
  .pdf-head-right b{color:#17202a;font-size:8.5pt}
  .pdf-foot{position:fixed;left:12mm;right:12mm;bottom:4mm;font-size:6pt;color:#9aa4ab;text-align:center;padding-top:1.5mm;border-top:.5pt solid #dfe6ea;background:#fff}
  body{padding-bottom:14mm}`;
-function printMeasurement(m){
+async function printMeasurement(m){
  const proj=allProjects.find(p=>p.id===m.project_id);
  const typeLabels=MEAS_TYPE_LABELS;
+ // window.open() muss synchron im Klick-Handler passieren, sonst blockiert
+ // der Browser das Popup – deshalb ganz am Anfang, vor jedem await.
  const win=window.open("","_blank");
  if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
+ // Bucket ist privat: Firmenlogo sowie Foto/Skizzen (nur beim Typ
+ // "skizze_foto") brauchen eine signierte URL statt des gespeicherten Pfads.
+ const logoSrc=await storageSignedUrl(logoUrl);
+ let photoSrc=null,sketchSrcs=[];
+ if(m.type==="skizze_foto"){
+  photoSrc=await storageSignedUrl(m.photo_path);
+  const sketchQuellen=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
+  sketchSrcs=await Promise.all(sketchQuellen.map(storageSignedUrl));
+ }
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
  const metaCommon=`
 <div><b>Projekt:</b> ${esc(proj?proj.name:"–")}</div>
@@ -721,7 +757,6 @@ ${segmente.map((seg,i)=>`<div style="margin-top:3mm">
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else{
   const d=m.data||{};
-  const sketches=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
   const matName=(findMeasurementMaterial(d.material)||{}).name;
   extraCss=`
  img{max-width:100%;display:block;margin:0 auto 8mm;border:1px solid #ccc}
@@ -730,9 +765,9 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  .sketch-page{page-break-before:always}`;
   bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
 <div class="meta">${metaCommon}${matName?`<div><b>Material:</b> ${esc(matName)}</div>`:""}</div>
-${m.photo_path?`<img class="photo" src="${esc(m.photo_path)}">`:""}
+${photoSrc?`<img class="photo" src="${esc(photoSrc)}">`:""}
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}
-${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze ${i+1} von ${sketches.length}</h2>`:""}<img class="sketch" src="${esc(s)}"></div>`).join("")}`;
+${sketchSrcs.filter(Boolean).map((s,i)=>`<div class="sketch-page">${sketchSrcs.length>1?`<h2>Skizze ${i+1} von ${sketchSrcs.length}</h2>`:""}<img class="sketch" src="${esc(s)}"></div>`).join("")}`;
  }
 
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(pdfDateiname(proj?proj.name:"",proj?proj.object:"",typeLabels[m.type]||m.type,m.title))}</title>
@@ -747,7 +782,7 @@ ${sketches.map((s,i)=>`<div class="sketch-page">${sketches.length>1?`<h2>Skizze 
 ${PDF_HEAD_FOOT_CSS}
 ${extraCss}
 </style></head><body>
-${pdfLetterheadHtml("Massaufnahme · "+(typeLabels[m.type]||m.type))}
+${pdfLetterheadHtml("Massaufnahme · "+(typeLabels[m.type]||m.type),logoSrc)}
 ${bodyHtml}
 ${pdfFooterHtml(m)}
 </body></html>`);

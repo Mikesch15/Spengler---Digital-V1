@@ -12,14 +12,49 @@ let fsCtx=null;
 const SKETCH_W=1000,SKETCH_H=1414; // festes A4-Hochformat-Seitenverhältnis, unabhängig vom Zoom
 let sketchFitScale=1,sketchZoom=1,sketchPanMode=false;
 
+// ---- Private Storage-Dateien anzeigen --------------------------
+// Der Bucket "measurements" ist privat: ein gespeicherter Pfad lässt sich
+// nicht mehr direkt als <img src> verwenden, dafür braucht es eine kurz
+// gültige signierte URL. Alte, vor der Umstellung gespeicherte Werte sind
+// noch vollständige "öffentliche" URLs – die werden hier erkannt und der
+// reine Pfad daraus extrahiert, damit auch bestehende Fotos/Skizzen ohne
+// Migration weiter funktionieren.
+function measStoragePathFromValue(v){
+ if(!v)return null;
+ if(v.startsWith("data:"))return v;
+ const marker="/object/public/measurements/";
+ let i=v.indexOf(marker);
+ if(i>=0)return decodeURIComponent(v.slice(i+marker.length));
+ const marker2="/object/sign/measurements/";
+ i=v.indexOf(marker2);
+ if(i>=0)return decodeURIComponent(v.slice(i+marker2.length).split("?")[0]);
+ return v; // schon ein reiner Speicherpfad
+}
+async function storageSignedUrl(value){
+ const path=measStoragePathFromValue(value);
+ if(!path)return null;
+ if(path.startsWith("data:"))return path;
+ const {data,error}=await sb.storage.from("measurements").createSignedUrl(path,3600);
+ return error?null:data.signedUrl;
+}
+// Löst alle <img data-signed-src="…"> innerhalb eines Containers auf,
+// nachdem eine Liste mit Foto-/Skizzenvorschauen neu gezeichnet wurde.
+function resolveSignedThumbnails(container){
+ if(!container)return;
+ container.querySelectorAll("img[data-signed-src]").forEach(img=>{
+  storageSignedUrl(img.dataset.signedSrc).then(url=>{if(url)img.src=url});
+ });
+}
+
 function renderSketchGallery(){
  $("measSketchGallery").innerHTML=measSketches.map((src,i)=>`<div class="sketch-thumb-wrap">
-<img class="sketch-thumb" src="${src}">
+<img class="sketch-thumb" data-signed-src="${esc(src)}">
 <div class="sketch-thumb-actions">
 <button type="button" class="gray" data-edit-sketch="${i}">✏️</button>
 <button type="button" class="red" data-remove-sketch="${i}">✕</button>
 </div>
 </div>`).join("")||'<div class="small" style="color:var(--muted)">Noch keine Skizze</div>';
+ resolveSignedThumbnails($("measSketchGallery"));
 }
 $("measSketchGallery").addEventListener("click",e=>{
  const ed=e.target.closest("[data-edit-sketch]");
@@ -54,13 +89,16 @@ document.addEventListener("gesturestart",e=>{
 });
 
 let sketchDoneCallback=null;
-function openSketchFullscreen(bgSrc,editIndex,doneCallback){
+async function openSketchFullscreen(bgSrc,editIndex,doneCallback){
  sketchEditIndex=(typeof editIndex==="number")?editIndex:null;
  sketchDoneCallback=doneCallback||null;
  const overlay=$("sketchFullscreen"),canvas=$("fsSketchCanvas"),viewport=$("sketchViewport");
  overlay.hidden=false;
  canvas.width=SKETCH_W;canvas.height=SKETCH_H;
  setPanMode(false);
+ // Vor requestAnimationFrame auflösen: ein gespeicherter Pfad/eine alte
+ // URL ist im privaten Bucket erst nach dem Signieren als <img> ladbar.
+ const resolvedBg=(typeof bgSrc==="string"&&bgSrc)?await storageSignedUrl(bgSrc):null;
  requestAnimationFrame(()=>{
   const vw=viewport.clientWidth-28,vh=viewport.clientHeight-28;
   sketchFitScale=Math.max(0.1,Math.min(vw/SKETCH_W,vh/SKETCH_H));
@@ -71,7 +109,7 @@ function openSketchFullscreen(bgSrc,editIndex,doneCallback){
   ctx.fillStyle="#fff";ctx.fillRect(0,0,SKETCH_W,SKETCH_H);
   ctx.lineCap="round";ctx.lineJoin="round";
   fsCtx=ctx;
-  if(typeof bgSrc==="string"&&bgSrc){
+  if(resolvedBg){
    const img=new Image();
    img.crossOrigin="anonymous";
    img.onload=()=>{
@@ -79,7 +117,7 @@ function openSketchFullscreen(bgSrc,editIndex,doneCallback){
     const w=img.width*scale,h=img.height*scale;
     ctx.drawImage(img,(SKETCH_W-w)/2,(SKETCH_H-h)/2,w,h);
    };
-   img.src=bgSrc;
+   img.src=resolvedBg;
   }
  });
 }
@@ -237,14 +275,17 @@ function dataUrlToBlob(dataUrl){
  for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
  return new Blob([arr],{type:mime});
 }
-async function uploadMeasurementImage(dataUrl,kind){
+// "folder" ist der vollständige Ordnerpfad im Bucket (z. B.
+// "measurements/<projectId>/<measurementId>/photo" oder "company-logo").
+// Gibt nur noch den Speicherpfad zurück, keine öffentliche URL mehr –
+// der Bucket ist privat, angezeigt wird über storageSignedUrl().
+async function uploadMeasurementImage(dataUrl,folder){
  const blob=dataUrlToBlob(dataUrl);
  const ext=blob.type==="image/png"?"png":"jpg";
- const path=`${kind}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+ const path=`${folder}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
  const {error}=await sb.storage.from("measurements").upload(path,blob,{contentType:blob.type,upsert:false});
  if(error)throw error;
- const {data}=sb.storage.from("measurements").getPublicUrl(path);
- return data.publicUrl;
+ return path;
 }
 
 $("measProjectSearch").addEventListener("input",e=>{
@@ -367,7 +408,10 @@ function openMeasurement(m){
  measPhotoDataUrl=null;
  measExistingPhotoUrl=m.photo_path||null;
  $("measPhotoInput").value="";
- if(measExistingPhotoUrl){$("measPhotoPreview").src=measExistingPhotoUrl;$("measPhotoPreview").hidden=false;$("measPhotoRemove").hidden=false;$("drawOnPhoto").hidden=false}
+ if(measExistingPhotoUrl){
+  $("measPhotoPreview").src="";$("measPhotoPreview").hidden=false;$("measPhotoRemove").hidden=false;$("drawOnPhoto").hidden=false;
+  storageSignedUrl(measExistingPhotoUrl).then(url=>{if(url&&measExistingPhotoUrl)$("measPhotoPreview").src=url});
+ }
  else{$("measPhotoPreview").hidden=true;$("measPhotoPreview").src="";$("measPhotoRemove").hidden=true;$("drawOnPhoto").hidden=true}
  measSketches=(m.sketch_paths&&m.sketch_paths.length)?[...m.sketch_paths]:(m.sketch_path?[m.sketch_path]:[]);
  renderSketchGallery();

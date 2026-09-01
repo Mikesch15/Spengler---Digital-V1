@@ -82,12 +82,13 @@ $("amAddPosition").onclick=()=>{
 
 function renderAmPhotoGallery(){
  $("amPhotoGallery").innerHTML=amPhotos.map((src,i)=>`<div class="sketch-thumb-wrap">
-<img class="sketch-thumb" src="${src}">
+<img class="sketch-thumb" data-signed-src="${esc(src)}">
 <div class="sketch-thumb-actions">
 <button type="button" class="gray" data-recognize-photo="${i}" title="Nur dieses Foto erkennen">🔎</button>
 <button type="button" class="red" data-remove-photo="${i}">✕</button>
 </div>
 </div>`).join("")||'<div class="small" style="color:var(--muted)">Noch kein Foto</div>';
+ resolveSignedThumbnails($("amPhotoGallery"));
  $("amRecognizeAll").hidden=amPhotos.length===0;
 }
 async function recognizePhoto(src){
@@ -321,7 +322,7 @@ async function renderAusmassOverview(){
   const proj=allProjects.find(p=>p.id===a.project_id);
   const posCount=Array.isArray(a.positions)?a.positions.length:0;
   const thumb=(a.photo_paths&&a.photo_paths[0])||a.photo_path;
-  const thumbHtml=thumb?`<img class="meas-thumb" src="${thumb}" loading="lazy">`:`<div class="meas-thumb meas-thumb-empty" style="font-size:10px">${posCount} Pos.</div>`;
+  const thumbHtml=thumb?`<img class="meas-thumb" data-signed-src="${esc(thumb)}" loading="lazy">`:`<div class="meas-thumb meas-thumb-empty" style="font-size:10px">${posCount} Pos.</div>`;
   return `<div class="meas-row">
 ${thumbHtml}
 <div class="meas-row-info"><b>Ausmass (${esc(typeLabels[a.type]||a.type)})</b><span>${esc(a.title||"Ohne Titel")} · ${esc(proj?proj.name:"Kein Projekt")} · ${esc(a.date||"–")}</span></div>
@@ -332,6 +333,7 @@ ${thumbHtml}
 </div>
 </div>`;
  }).join(""):'<div class="empty">Noch keine Ausmasse vorhanden.</div>';
+ resolveSignedThumbnails($("recentAusmassList"));
 }
 $("recentAusmassList").addEventListener("click",e=>{
  const openA=e.target.closest("[data-open-ausmass]");
@@ -357,11 +359,14 @@ $("ausmassEditSettingsShortcut").onclick=()=>{
  else openSettingsTo("protected");
 };
 
-function printAusmass(a){
+async function printAusmass(a){
  const proj=allProjects.find(p=>p.id===a.project_id);
  const typeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
+ // window.open() muss synchron im Klick-Handler passieren, sonst blockiert
+ // der Browser das Popup – deshalb ganz am Anfang, vor jedem await.
  const win=window.open("","_blank");
  if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
+ const logoSrc=await storageSignedUrl(logoUrl);
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
  const positions=Array.isArray(a.positions)?a.positions:[];
  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
@@ -405,7 +410,7 @@ ${a.note?`<div class="note">${esc(a.note)}</div>`:""}`;
  .am-cutlist tfoot td{border-top:1pt solid #17202a;padding:2.4mm 2.6mm;font-size:9.5pt}
 ${PDF_HEAD_FOOT_CSS}
 </style></head><body>
-${pdfLetterheadHtml("Ausmass · "+(typeLabels[a.type]||a.type))}
+${pdfLetterheadHtml("Ausmass · "+(typeLabels[a.type]||a.type),logoSrc)}
 ${bodyHtml}
 ${pdfFooterHtml(a)}
 </body></html>`);
