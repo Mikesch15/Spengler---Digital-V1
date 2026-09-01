@@ -34,25 +34,10 @@
 </div>
 <div class="bar">
 <button id="loginBtn" class="blue">Anmelden</button>
-<!-- Selbstregistrierung entfernt: Konten legt neu ein Administrator in den Einstellungen an. -->
-<button id="showRegister" class="gray" hidden>Neuer Mitarbeiter</button>
 </div>
 <div class="small" id="loginError" style="color:var(--red)"></div>
-</div>
-
-<div class="card" id="registerCard" hidden>
-<h2>Neuen Mitarbeiter anlegen</h2>
-<div class="info">Benutzername und Passwort werden automatisch nach dem Schema <b>Vorname.Nachname</b> und <b>Rinnen_Initialien</b> erzeugt und dir am Schluss angezeigt.</div>
-<div class="grid">
-<div><label>Vorname</label><input id="regVor"></div>
-<div><label>Nachname</label><input id="regNach"></div>
-<div class="wide"><label>Firmen-Code</label><input id="regCode" placeholder="von der Geschäftsleitung erhalten" autocomplete="off"></div>
-</div>
-<div class="bar">
-<button id="registerBtn" class="green">Konto erstellen</button>
-<button id="cancelRegister" class="gray">Abbrechen</button>
-</div>
-<div class="small" id="registerError" style="color:var(--red)"></div>
+<!-- Selbstregistrierung entfernt: Konten legt ausschliesslich ein Administrator in den Einstellungen an,
+     die Firma wird dabei serverseitig aus dessen eigenem Konto bestimmt (kein Firmen-Code mehr). -->
 </div>
 </div>
 </div>
@@ -84,7 +69,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.10</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.11</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->

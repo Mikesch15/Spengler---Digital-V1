@@ -285,9 +285,7 @@ $("measMaterialSettings").addEventListener("input",e=>{
 async function registerEmployee(vor,nach){
  vor=(vor||"").trim();nach=(nach||"").trim();
  if(!vor||!nach)return false;
- const code=prompt("Firmen-Code?");
- if(!code)return false;
- const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach,company_code:code}});
+ const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach}});
  if(error||!data?.ok){alert("Fehler: "+(error?.message||data?.error||"Mitarbeiter konnte nicht angelegt werden."));return false}
  alert("Konto erstellt.\n\nBenutzername: "+data.username+"\nPasswort: "+data.password+"\n\nBitte notieren.");
  return true;

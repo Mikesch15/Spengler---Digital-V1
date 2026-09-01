@@ -6,13 +6,9 @@ function initials(name){
  return parts.map(p=>p.replace(/[^A-Za-zÄÖÜäöüÉéÀàÈè]/g,"").slice(0,1)).join("").toUpperCase();
 }
 
-// ---- Login/Registrierung -----------------------------------
+// ---- Login --------------------------------------------------
 function usernameToEmail(u){return u.trim().toLowerCase().replace(/\s+/g,"")+"@nfgryuzkpwjfmdlmevuy.supabase.co"}
 function showLoginErr(msg){$("loginError").textContent=msg||""}
-function showRegErr(msg){$("registerError").textContent=msg||""}
-
-$("showRegister").onclick=()=>{$("registerCard").hidden=false;showLoginErr("")};
-$("cancelRegister").onclick=()=>{$("registerCard").hidden=true;showRegErr("");$("regVor").value="";$("regNach").value="";$("regCode").value=""};
 
 $("loginBtn").onclick=async()=>{
  showLoginErr("");
@@ -23,25 +19,6 @@ $("loginBtn").onclick=async()=>{
  $("loginBtn").disabled=false;
  if(error){showLoginErr("Benutzername oder Passwort falsch.");return}
  await afterLogin();
-};
-
-$("registerBtn").onclick=async()=>{
- showRegErr("");
- const vor=$("regVor").value.trim(), nach=$("regNach").value.trim(), code=$("regCode").value.trim();
- if(!vor||!nach){showRegErr("Bitte Vor- und Nachname eingeben.");return}
- if(code!==COMPANY_CODE){showRegErr("Firmen-Code falsch. Bitte bei der Geschäftsleitung erfragen.");return}
- $("registerBtn").disabled=true;
- const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach,company_code:code}});
- $("registerBtn").disabled=false;
- if(error){showRegErr(error.message||"Mitarbeiter konnte nicht angelegt werden.");return}
- if(!data?.ok){showRegErr(data?.error||"Mitarbeiter konnte nicht angelegt werden.");return}
- const username=data?.user?.username||data?.username||vor.trim().toLowerCase()+"."+nach.trim().toLowerCase();
- const password=data?.password||("Rinnen_"+((vor.trim()[0]||"")+(nach.trim()[0]||"")).toUpperCase());
- alert("Konto erstellt.\n\nBenutzername: "+username+"\nPasswort: "+password+"\n\nBitte notieren.");
- $("registerCard").hidden=true;
- $("loginUser").value=username;
- $("loginPass").value=password;
- showLoginErr("Konto erstellt. Du kannst dich jetzt anmelden.");
 };
 
 $("logout").onclick=async()=>{

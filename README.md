@@ -37,9 +37,10 @@ const SUPABASE_URL = "https://DEIN-PROJEKT.supabase.co";
 const SUPABASE_ANON_KEY = "DEIN-ANON-KEY";
 ```
 
-Ausserdem den Firmen-Code für die Mitarbeiter-Selbstregistrierung auf einen
-eigenen Wert setzen (Suche nach `COMPANY_CODE` in `index.html`) und **nur
-intern** (mündlich/Firmen-Chat) an die Mitarbeiter weitergeben.
+Neue Mitarbeiterkonten legt ausschliesslich ein Administrator in den
+Einstellungen der App an (Firmen-Code/Selbstregistrierung gibt es nicht mehr –
+die Firma wird dabei serverseitig aus dem Konto des angemeldeten
+Administrators bestimmt).
 
 ## 3. Auf GitHub Pages veröffentlichen
 
@@ -84,9 +85,6 @@ immer eine Internetverbindung benötigt.
   E-Mail-Adressen verwendet werden, kann Supabase keine Passwort-Reset-Mail
   verschicken. Ein neues Passwort muss ein Administrator im
   Supabase-Dashboard unter Authentication → Users manuell vergeben.
-- **Der Firmen-Code ist kein starker Schutz** – er steht im Quelltext.
-  Er verhindert zufällige/automatisierte Registrierungen, nicht eine gezielte
-  Attacke. Zusätzlich empfehlenswert: die URL nicht öffentlich bewerben.
 - **Mitarbeiter-Konten lassen sich aus der App heraus nicht vollständig
   löschen** – nur das Profil. Das Login-Konto selbst muss ein Administrator
   im Supabase-Dashboard entfernen. Das ist Absicht (Schutz vor versehentlichem

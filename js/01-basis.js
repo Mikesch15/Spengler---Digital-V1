@@ -41,12 +41,6 @@ const SUPABASE_URL="https://nfgryuzkpwjfmdlmevuy.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_U1YsWEdl4X9U94JO4sL5Lg_7_dU0erM";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
-// Firmen-Code für die öffentliche "Neuer Mitarbeiter"-Registrierung auf der Login-Seite.
-// Kein starker Schutz (steht im Quelltext), aber verhindert zufällige/automatisierte
-// Registrierungen durch Aussenstehende, die zufällig auf die URL stossen.
-// UNBEDINGT vor dem Einsatz auf einen eigenen Wert ändern und intern kommunizieren.
-const COMPANY_CODE="kuenzi-intern";
-
 let settings={employees:[],rates:[],materials:[]};
 let employeeIds=[],rateIds=[],materialIds=[];
 let currentProfile=null;

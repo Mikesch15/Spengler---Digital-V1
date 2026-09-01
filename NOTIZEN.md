@@ -152,9 +152,10 @@ Ausblenden von Knöpfen**. Wirksam ist allein die Datenbank. Wer etwas
 
 ### Edge Functions
 
-- `smart-action` – legt Mitarbeiterkonten an. Verlangt bisher den
-  Firmen-Code. **Offen:** sollte stattdessen prüfen, ob der Aufrufer
-  Administrator ist.
+- `smart-action` – legt Mitarbeiterkonten an. Prüft serverseitig, ob
+  der Aufrufer eingeloggt und Administrator ist, und übernimmt die
+  Firma ausschliesslich aus dessen eigenem `profiles.company_id`. Kein
+  Firmen-Code mehr, weder serverseitig noch im Browser.
 - `reset-password` – setzt ein Passwort zurück, Vorlage in
   `supabase/reset-password.ts`. Prüft die Rolle selbst.
 
@@ -336,10 +337,6 @@ PDF bleibt dadurch gleich, auch wenn später ein Katalogmass geändert wird.
 
 ## 7. Was offen ist
 
-- **Firmen-Code und Registrierung.** Das Repo ist öffentlich, der Code
-  steht lesbar in `index.html`. Die Selbstregistrierung ist zwar aus der
-  App entfernt, aber `smart-action` liesse sich mit dem Code weiterhin
-  direkt aufrufen. Sauber wird es erst, wenn die Funktion die Rolle prüft.
 - **Einlaufblech- und Anschlussblech-Einstellungen** hängen am Gerät (localStorage), nicht am
   Konto. Bewusst so: jeder soll eigene Werte haben. Nachteil: Wer das
   Gerät wechselt, fängt bei den Standardwerten an.

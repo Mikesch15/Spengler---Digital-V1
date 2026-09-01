@@ -348,7 +348,7 @@ $("mitarbeiterAnlegen").addEventListener("click",async()=>{
  const knopf=$("mitarbeiterAnlegen");
  knopf.disabled=true;
  try{
-  const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach,company_code:COMPANY_CODE}});
+  const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach}});
   if(error){alert(error.message||"Konto konnte nicht angelegt werden.");return}
   if(!data?.ok){alert(data?.error||"Konto konnte nicht angelegt werden.");return}
   const username=data?.user?.username||data?.username||(vor.toLowerCase()+"."+nach.toLowerCase());
