@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.27, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.30, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.27**
+- sichtbare App-Version: **2.30**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -3856,3 +3856,311 @@ Version 2.28 angepassten, gemeinsam genutzten `erstelltGeaendertText()`.
   haben jetzt identisches Verhalten: serverseitig erzwungene
   Ersteller-/Bearbeiter-Metadaten, `ON DELETE SET NULL`, RLS
   unverändert korrekt.
+
+## 38. ÄNDERUNGSVERLAUF – KONZEPT UND TECHNISCHE GRUNDLAGE — VERSION 2.30
+
+Technische Grundlage für einen späteren, vollständigen Änderungsverlauf.
+**Ausdrücklich kein fertiges Feature und keine UI** – Auftrag Abschnitt 14
+lässt eine Oberfläche bewusst offen für einen eigenen, späteren Schritt.
+Ziel dieser Version war laut Auftrag ausdrücklich, "eine SAUBERE
+GRUNDLAGE zu schaffen, nicht möglichst viel zu bauen".
+
+### 38.1 Bestandsaufnahme (frisch geprüft, nicht aus v2.28/v2.29 übernommen)
+
+- `projects`/`measurements`/`ausmass`/`reports`: `created_by`/`created_at`/
+  `updated_by`/`updated_at` wie in Abschnitt 36/37 dokumentiert, alle vier
+  Tabellen haben den `set_creator_editor_meta()`-Trigger (BEFORE
+  INSERT/UPDATE) – unverändert bestätigt, keine Regression.
+- Keine vorhandene `audit_log`-/`change_log`-/History-Tabelle im Schema
+  (per `information_schema.tables`-Suche nach `%audit%`/`%log%`/
+  `%history%`/`%verlauf%` geprüft: 0 Treffer) – echte Neuentwicklung, kein
+  bestehendes System zu erweitern.
+- `projects` hat ein einziges echtes Statusfeld: `archived boolean`
+  (Archivieren/Reaktivieren über den bestehenden Knopf
+  `[data-archive-project]`, `js/09-projekte.js`). `measurements`/
+  `ausmass`/`reports` haben **kein** eigenes Statusfeld – nur `type`
+  (fachliche Kategorie, keine Statusgrösse).
+- **Wichtiger, bisher nicht dokumentierter Fund:** `measurements.
+  project_id`/`ausmass.project_id`/`reports.project_id` sind `ON DELETE
+  SET NULL` (nicht CASCADE) – ein gelöschtes Projekt löscht seine
+  Massaufnahmen/Ausmasse/Reports **nicht** automatisch mit, es hängt sie
+  nur ab (`project_id → NULL`). Der bestehende Lösch-Dialog sagt das
+  bereits korrekt ("Gespeicherte Rapporte bleiben erhalten, verlieren
+  aber die Projekt-Zuordnung."). Für v2.30 relevant: die vier
+  Löschaktionen im Frontend (`js/09-projekte.js`,
+  `js/16-massaufnahme-formular.js`, `js/17-ausmass.js`,
+  `js/04-start-suche.js`) sind vier unabhängige, echte `DELETE`-
+  Anweisungen – kein Kaskadeneffekt, der mehrfach geloggt werden müsste.
+- Alle vier Tabellen: bestätigte, unveränderte restriktive
+  `tenant_boundary_*`-RLS-Policies (siehe Abschnitt 31/33), `projects`
+  direkt über `company_id`, die anderen drei über
+  `EXISTS(...projects p WHERE p.id = project_id AND p.company_id =
+  my_company_id())`.
+- Berechtigungen (`permission_settings`): sowohl `admin` als auch
+  `employee` haben aktuell für alle vier Ressourcen `can_edit:true,
+  edit_scope:'all'` – für die Tests in 38.7 relevant (beide Testrollen
+  konnten uneingeschränkt anlegen/ändern/löschen).
+
+### 38.2 Konzept: welche Aktionen sind tatsächlich relevant? (Auftrag Abschnitt 4)
+
+| Bereich | Aktion | In v2.30 geloggt? | Begründung |
+|---|---|---|---|
+| Projekt | erstellen | ✅ `created` | echte, seltene Fachaktion |
+| Projekt | ändern (Name/Adresse/Auftraggeber/…) | ✅ `updated` | echte Fachaktion |
+| Projekt | archivieren/reaktivieren | ✅ `status_changed` | einziges echtes Statusfeld, klar abgrenzbar (`archived` alt≠neu) |
+| Projekt | löschen | ✅ `deleted` | Auftrag Abschnitt 17 verlangt das ausdrücklich |
+| Massaufnahme | erstellen/ändern/löschen | ✅ `created`/`updated`/`deleted` | echte Fachaktion, analog Projekt |
+| Massaufnahme | Foto/Skizze hinzufügen/löschen | ⏸ nicht separat, siehe 38.6 | fällt bereits als `updated` an (Foto-/Skizzenpfade sind Spalten derselben Zeile), eigene Aktion bräuchte Feld-Diffing – laut Abschnitt 10 für v2.30 ausdrücklich nicht vorgesehen |
+| Massaufnahme | Status | – nicht vorhanden | kein Statusfeld auf `measurements` |
+| Ausmass | erstellen/ändern/löschen | ✅ `created`/`updated`/`deleted` | echte Fachaktion, analog Projekt |
+| Report | erstellen/ändern/löschen | ✅ `created`/`updated`/`deleted` | echte Fachaktion, analog Projekt |
+| jede Tabelle | reines Lesen/Öffnen/Tab-Wechsel/Suche/Filter | ❌ nie | Auftrag Abschnitt 3 schliesst das ausdrücklich aus – kein Trigger auf SELECT |
+| Firmen/Profile/System-Admin | jede Aktion | ❌ nicht Teil von v2.30 | ausserhalb des im Auftrag benannten Umfangs (Abschnitt 4: nur Projekte/Massaufnahmen/Ausmass/Reports) |
+
+### 38.3 Architekturentscheidung: eine zentrale `audit_log`-Tabelle
+
+Migration `audit_log_foundation_v2_30` (plus zwei kleine Korrekturen,
+siehe 38.5):
+
+```sql
+create table public.audit_log (
+  id bigint generated always as identity primary key,
+  company_id uuid not null references public.companies(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete set null,
+  entity_type text not null check (entity_type in ('project','measurement','ausmass','report')),
+  entity_id bigint not null,          -- bewusst KEIN Fremdschlüssel, siehe unten
+  action text not null check (action in ('created','updated','deleted','status_changed')),
+  description text,
+  created_at timestamptz not null default now()
+);
+```
+
+Abweichungen vom Beispielschema aus dem Auftrag, jeweils anhand der
+tatsächlichen DB-Konvention entschieden (Auftrag Abschnitt 5 verlangt
+das ausdrücklich):
+
+- `id bigint` statt `uuid` – `projects`/`measurements`/`ausmass`/
+  `reports` verwenden durchgehend `bigint`-Identity-Spalten, kein
+  einziges dieser vier Tabellen nutzt `uuid` als Primärschlüssel (nur
+  `companies`/`profiles` tun das). `entity_id` ist deshalb ebenfalls
+  `bigint`, passend zu den tatsächlichen Fremdtabellen (Abschnitt 8 des
+  Auftrags: "aktuelle Struktur verwenden").
+- **`entity_id` ist absichtlich kein Fremdschlüssel** auf `projects`/
+  `measurements`/`ausmass`/`reports` – sonst würde entweder `ON DELETE
+  CASCADE` den gerade dokumentierten Verlauf mitlöschen (widerspricht
+  Abschnitt 17: "Ja, Historie bleibt") oder `ON DELETE RESTRICT`/`NO
+  ACTION` das Löschen des Datensatzes blockieren (derselbe Fehler wie in
+  Abschnitt 36.1 für `created_by`/`updated_by` bereits einmal gefunden
+  und behoben). `entity_type` + `entity_id` identifizieren den
+  Datensatz eindeutig, ohne referenzielle Integrität mit Löschsperre zu
+  erzwingen.
+- `user_id → profiles(id) on delete set null` – exakt dasselbe Muster
+  wie `updated_by` auf den vier Fachtabellen (Abschnitt 36/37): ein
+  gelöschter Mitarbeiter darf den Verlauf nicht sperren, nur die
+  Personenreferenz wird `NULL` (Auftrag Abschnitt 7).
+- `company_id → companies(id) on delete cascade` – anders als bei
+  Mitarbeitern ist eine gelöschte **Firma** (echte, vom System-Admin
+  ausgelöste Firmenlöschung, Abschnitt 27) der einzige Fall, in dem
+  Verlaufseinträge tatsächlich mitgelöscht werden sollen: die Firma
+  selbst inklusive aller Daten verschwindet dabei ohnehin vollständig
+  und unwiderruflich, ein verwaister Verlaufseintrag ohne zugehörige
+  Firma wäre wertlos und ein Datenschutz-Rest. Kein Widerspruch zu
+  Abschnitt 17 (der sich auf einzelne Datensätze bezieht, nicht auf eine
+  vollständige Firmenlöschung).
+- Zwei Indizes: `(company_id, created_at desc)` für eine spätere,
+  performante "neueste zuerst"-Historienansicht pro Firma, `(entity_type,
+  entity_id)` für eine spätere "Verlauf dieses einen Datensatzes"-Ansicht
+  – beide ohne zusätzliche Abfragen in v2.30 selbst nötig, siehe 38.6.
+
+### 38.4 Serverseitige Durchsetzung (Auftrag Abschnitt 12/13 – "wichtigste Architekturfrage")
+
+**RLS**: `audit_log` hat RLS aktiv, eine einzige restriktive
+`tenant_boundary_audit_log`-Policy (`company_id = my_company_id()`,
+gleiches Muster wie alle anderen `tenant_boundary_*`-Policies, bewusst
+restriktiv statt permissiv – Lehre aus dem `rinne_fitting_types`-Fund in
+Abschnitt 31.2: eine künftige, versehentlich zu weite permissive Policy
+würde trotzdem von dieser restriktiven Grenze eingefangen). Eine
+zusätzliche permissive `audit_log_select`-Policy (`using(true)`) regelt
+nur *welche Zeilen unter der bereits gesetzten Firmengrenze* sichtbar
+sind (praktisch: alle der eigenen Firma) – **keine INSERT/UPDATE/
+DELETE-Policy für `authenticated` existiert überhaupt**, wie vom Auftrag
+ausdrücklich verlangt ("Nicht einfach eine offene INSERT-RLS-Policy auf
+audit_log bauen"). Zusätzlich `REVOKE ALL ... FROM anon, authenticated,
+public` und nur `GRANT SELECT ... TO authenticated` – doppelte
+Absicherung unabhängig von RLS.
+
+**Schreiben ausschliesslich über eine generische `SECURITY DEFINER`-
+Trigger-Funktion** `write_audit_log()` (Owner `postgres`, `BYPASSRLS`,
+`EXECUTE` von `authenticated`/`anon` entzogen – Trigger-Aufruf braucht
+ohnehin kein direktes `EXECUTE`-Recht des auslösenden Benutzers), als
+**AFTER INSERT OR UPDATE OR DELETE**-Trigger (nicht BEFORE!) auf allen
+vier Tabellen angehängt, parametrisiert über `TG_ARGV[0]`
+(`'project'`/`'measurement'`/`'ausmass'`/`'report'`):
+
+```sql
+create trigger write_audit_log_projects
+  after insert or update or delete on public.projects
+  for each row execute function public.write_audit_log('project');
+-- analog für measurements/ausmass/reports
+```
+
+**AFTER statt BEFORE ist die zentrale Entscheidung für Abschnitt 12**:
+ein AFTER-Trigger feuert nur, nachdem die eigentliche INSERT/UPDATE/
+DELETE-Anweisung innerhalb derselben Transaktion bereits tatsächlich
+angewendet wurde. Schlägt die Anweisung fehl (RLS blockiert, Constraint-
+Verletzung, Anwendungsfehler) oder wird die Transaktion zurückgerollt,
+feuert der Trigger gar nicht bzw. wird sein Effekt mit zurückgerollt –
+ein falscher Verlaufseintrag zu einer nie erfolgten Änderung ist
+dadurch strukturell ausgeschlossen, nicht nur per Konvention vermieden.
+
+`user_id` kommt in der Funktion ausschliesslich aus `auth.uid()`
+(serverseitig aus dem echten JWT der Datenbankverbindung aufgelöst,
+niemals aus einem vom Client mitgeschickten Feld – der Trigger hat
+gar keinen Zugriff auf den ursprünglichen REST-Request-Body, nur auf die
+tatsächlich geschriebene Zeile). `company_id` kommt bei `projects`
+direkt aus der Zeile selbst (deren `company_id` wiederum durch die
+bestehende, unveränderte `tenant_boundary_projects`-RLS-Policy bereits
+korrekt erzwungen ist), bei den anderen drei Tabellen aus einem
+serverseitigen Nachschlag `select company_id from projects where id =
+<project_id der Zeile>` – nie aus einem Client-Feld. Kann die Firma
+nicht ermittelt werden (seltener Randfall: `project_id` ist bereits
+`NULL`, siehe 38.1), wird **kein** Log-Eintrag geschrieben, statt einer
+falschen oder leeren Firmenzuordnung.
+
+### 38.5 Zwei Korrekturen während der Implementierung
+
+Zwei generische `record`-Feldzugriffe in `write_audit_log()` schlugen
+beim ersten Test fehl, weil Postgres einen zusammengesetzten SQL-
+Ausdruck mit einem `record`-Feld auch dann vollständig auszuwerten
+versucht, wenn die Spalte auf der tatsächlichen Zeile gar nicht
+existiert (z. B. `new.archived` bei einer `reports`-Zeile). Behoben durch
+echte, verschachtelte `IF`-Blöcke pro `entity_type` statt eines
+einzelnen zusammengesetzten `CASE`/`AND`-Ausdrucks (Migrationen
+`audit_log_write_function_record_fix_v2_30` und
+`audit_log_write_function_status_change_fix_v2_30`) – reine
+Implementierungskorrektur während des Testens dieser Aufgabe, keine
+nachträgliche Änderung an bereits ausgeliefertem Verhalten.
+
+### 38.6 Was v2.30 bewusst NICHT tut (Auftrag Abschnitt 3/10/11/14/16/20)
+
+- **Kein Feld-Diffing, keine alten/neuen Werte.** `description` ist ein
+  einzelner, kurzer Textwert (Projektname / Massaufnahme-Titel-oder-Typ /
+  Ausmass-Titel-oder-Typ / Auftragsnummer-oder-Kunde des Reports) –
+  keine JSON-Momentaufnahme der ganzen Zeile, keine Passwörter/Tokens/
+  vollständigen Formulardaten (Abschnitt 11).
+- **Kein Foto-/Skizzen-spezifisches Logging.** Ein Foto/eine Skizze
+  hinzuzufügen ist technisch ein `UPDATE` auf dieselbe `measurements`-
+  Zeile (die Pfade liegen als Spalten/JSON-Array in derselben Zeile) –
+  das erzeugt automatisch einen `updated`-Eintrag, ohne dass der Trigger
+  dafür zwischen "Foto geändert" und "Titel geändert" unterscheiden
+  müsste. Eine solche Unterscheidung würde Feld-Diffing voraussetzen,
+  das für v2.30 ausdrücklich nicht vorgesehen ist.
+- **Kein UI.** Kein neuer Menüpunkt, kein Verlaufsbildschirm, keine
+  Anzeige irgendwo in `index.html`/`js/*.js` – ausschliesslich
+  Datenbank-Änderungen in dieser Version (Auftrag Abschnitt 14: "Die
+  eigentliche komfortable Historienansicht kommt danach").
+- **Keine zusätzlichen Abfragen im normalen Betrieb.** Der komplette
+  Mechanismus läuft ausschliesslich serverseitig innerhalb der ohnehin
+  bereits stattfindenden INSERT/UPDATE/DELETE-Transaktion – kein
+  zusätzlicher Round-Trip vom Client, kein N+1 (Abschnitt 16).
+- **Bekannte, akzeptierte Häufungs-Randfälle** (dokumentiert statt
+  verschwiegen): (1) Der Foto-/Skizzen-Upload-Ablauf einer neuen
+  Massaufnahme legt zuerst eine Platzhalterzeile an und aktualisiert sie
+  danach (`js/16-massaufnahme-formular.js`) – das erzeugt für einen
+  einzigen, aus Nutzersicht einmaligen Speichervorgang zwei Einträge
+  (`created` + `updated`). (2) Schlägt dieser Ablauf fehl, wird die
+  Platzhalterzeile wieder gelöscht – das erzeugt `created` + `deleted`
+  für einen fehlgeschlagenen Versuch. Beides ist funktional korrekt
+  (die Aktionen sind real passiert), aber nicht "schön" – eine spätere
+  Version könnte das mit einer minimalen Karenzzeit/Deduplizierung
+  glätten, für v2.30 bewusst nicht gebaut (kein Diffing/keine
+  Sonderlogik pro Aufrufmuster, siehe Wichtigster-Punkt des Auftrags).
+
+### 38.7 Tests (Auftrag Abschnitt 19, alle in `begin;…rollback;` mit
+temporärer Wegwerf-Firma `99999999-9999-9999-9999-999999999999`, real
+committete Mitarbeiter Mike Ledermann/Phillipp Wegmueller nur innerhalb
+der Transaktion temporär umgehängt, danach automatisch zurückgerollt)
+
+| Test | Ergebnis |
+|---|---|
+| A: Mike erstellt Projekt (mit gefälschtem `created_by`/`created_at` im Insert-Payload) | `audit_log`-Eintrag `action='created'`, `user_id`=Mike (echter `auth.uid()`, nicht die gefälschte UUID aus dem Payload) |
+| B: Phillipp ändert dasselbe Projekt | `action='updated'`, `user_id`=Phillipp |
+| Status: Mike archiviert das Projekt | `action='status_changed'` (nicht `updated`) – `archived` alt≠neu korrekt erkannt |
+| C: Phillipp erstellt Massaufnahme, Mike ändert sie | `created` (Phillipp) + `updated` (Mike) |
+| D: Mike erstellt Ausmass, Phillipp ändert es | `created` (Mike) + `updated` (Phillipp) |
+| E: Phillipp erstellt Report, Mike ändert ihn | `created` (Phillipp) + `updated` (Mike) |
+| F: Cross-Tenant – Phillipp (Wegwerf-Firma) liest `audit_log` gefiltert auf die echte `company_id` von PETER KÜNZI AG | 0 sichtbare Zeilen |
+| F: Phillipp liest `audit_log` der eigenen (Wegwerf-)Firma | alle 9 bis dahin erzeugten Zeilen sichtbar |
+| G: Phillipp versucht einen direkten `INSERT` in `audit_log` (fremde `company_id`=PETER KÜNZI AG, fremder `user_id`=Mike) | `insufficient_privilege` – abgelehnt, kein Log-Eintrag entstanden |
+| I: Mike löscht den zuvor erstellten Report | `action='deleted'`-Eintrag existiert für genau diese `entity_id`, obwohl die `reports`-Zeile selbst weg ist |
+| H: Phillipp (Mitarbeiter) wird über `DELETE FROM profiles` entfernt | Löschung erfolgreich; genau die 4 `audit_log`-Zeilen, in denen Phillipp Akteur war, haben danach `user_id=NULL`; die anderen 5 (Mike) bleiben unverändert zugeordnet; `measurements.created_by` (zeigt auf `auth.users`, nicht `profiles`) bleibt unverändert gesetzt – konsistent mit dem in Abschnitt 36 dokumentierten Verhalten der Mitarbeiterentfernung |
+| I: Mike löscht das Projekt selbst (am Ende) | `action='deleted'`-Eintrag mit korrektem Projektnamen in `description` existiert, obwohl die `projects`-Zeile selbst weg ist |
+
+Nach der gesamten Transaktion (ohne `COMMIT`) erneut geprüft: keine
+Wegwerf-Firma, kein Test-Projekt, kein `audit_log`-Rest, Phillipp
+Wegmueller weiterhin real vorhanden, PETER KÜNZI AG unverändert
+(`subscription_status`/`updated_at` identisch zum Stand vor dieser
+Aufgabe) – die gesamte Testreihe hat keine einzige echte Datenänderung
+hinterlassen.
+
+**Zusätzlich real festgestellt (nicht Teil dieser Aufgabe, hier nur
+dokumentiert):** zum Zeitpunkt dieser Prüfung existiert neben PETER
+KÜNZI AG inzwischen eine zweite, echte Firma ("Testfirma", `subscription_
+status:'trial'`, `created_at` 2026-09-01) – eine reale, ausserhalb dieser
+Sitzung über die Self-Service-/System-Admin-Registrierung erfolgte
+Nutzung, keine Test-Altlast dieser oder einer früheren Aufgabe. Nicht
+verändert, nicht für die Tests verwendet (alle Tests liefen wie oben
+beschrieben gegen eine eigene, nie committete Wegwerf-Firma).
+
+`get_advisors(type:'security')` nach Abschluss erneut geprüft: keine neue
+Warnung durch `audit_log`/`write_audit_log()` – die Funktion taucht
+korrekt **nicht** unter "von `authenticated` per RPC aufrufbar" auf
+(anders als z. B. `my_company_id()`, das als eigenständige RPC-Funktion
+absichtlich aufrufbar ist). Alle übrigen Warnungen sind bereits aus
+früheren Versionen bekannt (`search_path`-Hinweise auf ältere
+Funktionen, deaktivierter Leaked-Password-Schutz) und nicht Teil dieser
+Aufgabe.
+
+### 38.8 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei (kein
+  Frontend-Code in dieser Version verändert).
+- `<div>`/`</div>`-Zählung in `index.html`: unverändert ausgeglichen
+  (608/608 – keine Struktur-/UI-Änderung).
+- `git diff --stat`: **kein** JS/HTML in dieser Version geändert, nur
+  `CLAUDE.md` und drei SQL-Migrationen. Massaufnahme (alle neun
+  Fachfunktionen), Ausmass-/Regierapport-Berechnungen, PDF-Layout,
+  Storage, System-Admin, Trial/Status, Firmenlöschung, Mitarbeiter-
+  anlage/-entfernung, Login: keine Codeänderung, daher kein
+  eigenständiger Funktionstest dieser Bereiche nötig.
+- Produktivdaten vor/während/nach der gesamten Aufgabe geprüft: 1 Firma
+  (PETER KÜNZI AG) + 1 real ausserhalb dieser Sitzung entstandene
+  Testfirma (siehe 38.7), 13 Profile, 4 Projekte, 13 Massaufnahmen, 2
+  Ausmasse, 4 Reports, **0** `audit_log`-Zeilen (Tabelle ist neu, noch
+  keine reale Nutzung seit Deploy) – exakt der erwartete Zustand.
+- PETER KÜNZI AG erneut geprüft: unverändert.
+- Live-Klicktest im Browser (Projekt/Massaufnahme/Ausmass/Report anlegen/
+  ändern/löschen und `audit_log` danach per SQL einsehen) **in dieser
+  Sitzung technisch nicht möglich** – Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co` direkt, wie in
+  jeder vorherigen Sitzung. **Das wird hier ausdrücklich nicht als
+  getestet behauptet.** Alle in 38.7 dokumentierten Ergebnisse sind
+  direkte Trigger-/RLS-Simulationen gegen das echte Produktivschema.
+
+### 38.9 Offene Punkte für v2.31
+
+- Kein Live-Klicktest im Browser möglich (siehe 38.8).
+- **Keine Oberfläche.** Eine tatsächliche Änderungsverlauf-Ansicht (pro
+  Datensatz oder pro Firma, mit Benutzername/Zeit/Aktion) ist bewusst
+  nicht Teil von v2.30 und folgt als eigener, späterer Auftrag (Auftrag
+  Abschnitt 14).
+- Die in 38.6 dokumentierten Häufungs-Randfälle (Platzhalterzeile bei
+  neuen Foto-/Skizzen-Massaufnahmen erzeugt zwei statt einem Eintrag)
+  sind bewusst nicht geglättet.
+- `audit_log` deckt ausschliesslich `projects`/`measurements`/`ausmass`/
+  `reports` ab – Firmen-, Profil- und System-Admin-Aktionen (Trial/
+  Status/Firmenlöschung/Mitarbeiteranlage) sind bewusst **nicht**
+  Teil dieser Grundlage, wie im Auftrag Abschnitt 4 abgegrenzt.
+- Beschreibungstexte (`description`) sind einfache, kurze Strings ohne
+  Mehrsprachigkeit/Formatierung – für eine spätere UI ausreichend als
+  Rohdaten, aber noch nicht als fertiger Anzeige-Text gedacht.
