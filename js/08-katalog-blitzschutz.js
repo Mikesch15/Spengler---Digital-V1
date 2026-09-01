@@ -294,6 +294,7 @@ async function registerEmployee(vor,nach){
 
 function renderSettings(){
  $("feedbackTabBtn").hidden=!isAdmin();
+ $("protectedTabBtn").hidden=!isAdmin();
  const dilaFeld=$("rinneDilaMassInput");
  if(dilaFeld)dilaFeld.value=rinneDilaMass;
  const madBoden=$("madBodenMassInput"),madSchieber=$("madSchieberMassInput");

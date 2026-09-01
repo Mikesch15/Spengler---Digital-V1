@@ -35,59 +35,6 @@ $("logout").onclick=async()=>{
  location.reload();
 };
 
-// ---- Self-Service-Firmenregistrierung ------------------------
-// Legt per Edge Function (service_role, siehe supabase/register-company)
-// atomar Auth-User + neue Firma (30 Tage Trial) + Admin-Profil an. Die
-// company_id kommt dabei ausschliesslich vom Server, nie vom Browser.
-function showCompanyRegisterErr(msg){$("companyRegisterError").textContent=msg||""}
-$("showCompanyRegister").onclick=()=>{$("companyRegisterCard").hidden=false;showLoginErr("")};
-$("cancelCompanyRegister").onclick=()=>{
- $("companyRegisterCard").hidden=true;showCompanyRegisterErr("");
- $("regCompanyName").value="";$("regFirstName").value="";$("regLastName").value="";
- $("regEmail").value="";$("regPassword").value="";$("regPassword2").value="";
-};
-$("companyRegisterBtn").onclick=async()=>{
- showCompanyRegisterErr("");
- const companyName=$("regCompanyName").value.trim();
- const vor=$("regFirstName").value.trim();
- const nach=$("regLastName").value.trim();
- // Muss exakt so normalisiert werden wie in register-company
- // (clean(...).toLowerCase()) – sonst kann der automatische Login direkt
- // nach der Registrierung an Gross-/Kleinschreibung scheitern, obwohl die
- // Firma/das Konto korrekt angelegt wurden.
- const email=$("regEmail").value.trim().toLowerCase();
- const pw1=$("regPassword").value,pw2=$("regPassword2").value;
- if(!companyName){showCompanyRegisterErr("Bitte einen Firmennamen eingeben.");return}
- if(!vor||!nach){showCompanyRegisterErr("Bitte Vor- und Nachname eingeben.");return}
- if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showCompanyRegisterErr("Bitte eine gültige E-Mail-Adresse eingeben.");return}
- if(pw1.length<8){showCompanyRegisterErr("Das Passwort muss mindestens 8 Zeichen haben.");return}
- if(pw1!==pw2){showCompanyRegisterErr("Die beiden Passwort-Eingaben stimmen nicht überein.");return}
- $("companyRegisterBtn").disabled=true;
- try{
-  const {data,error}=await sb.functions.invoke("register-company",{body:{
-   company_name:companyName,first_name:vor,last_name:nach,email,password:pw1
-  }});
-  if(error){showCompanyRegisterErr(await edgeFunctionErrorMessage(error,"Registrierung fehlgeschlagen."));return}
-  if(!data?.ok){showCompanyRegisterErr(data?.error||"Registrierung fehlgeschlagen.");return}
-  const {error:loginErr}=await sb.auth.signInWithPassword({email,password:pw1});
-  if(loginErr){
-   // Firma/Konto stehen – nur das automatische Anmelden hat aus
-   // irgendeinem Grund nicht geklappt. Nichts verloren, nur normal
-   // anmelden statt automatisch.
-   $("companyRegisterCard").hidden=true;
-   $("loginUser").value=email;
-   showLoginErr("Firma registriert. Bitte jetzt mit E-Mail und Passwort anmelden.");
-   return;
-  }
-  $("companyRegisterCard").hidden=true;
-  await afterLogin();
- }catch(err){
-  showCompanyRegisterErr((err&&err.message)?err.message:String(err));
- }finally{
-  $("companyRegisterBtn").disabled=false;
- }
-};
-
 async function afterLogin(){
  const {data:{session}}=await sb.auth.getSession();
  if(!session){showLoginErr("Anmeldung fehlgeschlagen.");return}
@@ -133,6 +80,7 @@ function goToStart(){
  $("systemAdminModal").hidden=true;
  $("systemAdminCompanyModal").hidden=true;
  $("systemAdminDeleteModal").hidden=true;
+ $("systemAdminRegisterModal").hidden=true;
  measEditReturnTo="measurementsModal";
  amEditReturnTo="ausmassModal";
  showStart();

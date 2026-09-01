@@ -29,6 +29,18 @@ function sysAdminShowSuccess(msg){
  el.hidden=false;
  sysAdminSuccessTimer=setTimeout(()=>{el.hidden=true},4000);
 }
+// Gleiches Prinzip, aber in der Firmenliste (#systemAdminModal) statt in
+// der Detailansicht - für Aktionen, nach denen die Detailansicht selbst
+// nicht mehr sinnvoll ist (Firma gelöscht) oder noch gar nicht existiert
+// (neue Firma registriert).
+let sysAdminListSuccessTimer=null;
+function sysAdminShowListSuccess(msg){
+ clearTimeout(sysAdminListSuccessTimer);
+ const el=$("sysAdminListSuccess");
+ el.textContent="✓ "+msg;
+ el.hidden=false;
+ sysAdminListSuccessTimer=setTimeout(()=>{el.hidden=true},8000);
+}
 
 async function checkSystemAdmin(){
  const {data,error}=await sb.rpc("is_system_admin");
@@ -144,7 +156,6 @@ $("sysAdminSaveStatus").onclick=async()=>{
 // tatsächlichen, aktuellen Firmennamen - der Client-Vergleich hier ist
 // nur UI-Komfort (Knopf erst aktiv, wenn der Name exakt passt).
 let sysAdminDeleteCompanyName="";
-let sysAdminListSuccessTimer=null;
 
 $("sysAdminOpenDelete").onclick=()=>{
  const c=sysAdminCompanies.find(x=>x.id===sysAdminCurrentCompanyId);
@@ -178,16 +189,64 @@ $("sysAdminConfirmDelete").onclick=async()=>{
   $("systemAdminCompanyModal").hidden=true;
   $("systemAdminModal").hidden=false;
   await renderSystemAdminList();
-  clearTimeout(sysAdminListSuccessTimer);
-  const el=$("sysAdminListSuccess");
-  el.textContent="✓ Firma "+data.company.name+" wurde vollständig gelöscht ("+data.deleted.users+" Benutzer, "+data.deleted.projects+" Projekte, "+data.deleted.storage_files+" Storage-Dateien).";
-  el.hidden=false;
-  sysAdminListSuccessTimer=setTimeout(()=>{el.hidden=true},8000);
+  sysAdminShowListSuccess("Firma "+data.company.name+" wurde vollständig gelöscht ("+data.deleted.users+" Benutzer, "+data.deleted.projects+" Projekte, "+data.deleted.storage_files+" Storage-Dateien).");
  }catch(err){
   $("sysAdminDeleteError").textContent=(err&&err.message)?err.message:String(err);
  }finally{
   $("sysAdminConfirmDelete").disabled=($("sysAdminDeleteConfirmInput").value!==sysAdminDeleteCompanyName);
   $("sysAdminCancelDelete").disabled=false;
   $("sysAdminConfirmDelete").textContent="ENDGÜLTIG LÖSCHEN";
+ }
+};
+
+// ---- Neue Firma registrieren ----------------------------------------
+// Verwendet dieselbe register-company Edge Function wie zuvor der
+// öffentliche Login-Flow (jetzt serverseitig auf System-Admins
+// beschränkt, siehe register-company selbst). Wichtig: hier NICHT wie
+// beim alten Login-Flow automatisch anmelden - der bereits eingeloggte
+// System-Admin würde sonst durch die neue Firma ersetzt/ausgeloggt. Der
+// System-Admin bleibt nach dem Registrieren einfach eingeloggt, wie er
+// war; es gibt nur eine Bestätigung in der Firmenliste.
+function sysAdminResetRegisterForm(){
+ $("companyRegisterError").textContent="";
+ $("regCompanyName").value="";$("regFirstName").value="";$("regLastName").value="";
+ $("regEmail").value="";$("regPassword").value="";$("regPassword2").value="";
+}
+$("sysAdminOpenRegister").onclick=()=>{
+ sysAdminResetRegisterForm();
+ $("systemAdminModal").hidden=true;
+ $("systemAdminRegisterModal").hidden=false;
+};
+$("cancelCompanyRegister").onclick=()=>{
+ $("systemAdminRegisterModal").hidden=true;
+ $("systemAdminModal").hidden=false;
+};
+$("companyRegisterBtn").onclick=async()=>{
+ $("companyRegisterError").textContent="";
+ const companyName=$("regCompanyName").value.trim();
+ const vor=$("regFirstName").value.trim();
+ const nach=$("regLastName").value.trim();
+ const email=$("regEmail").value.trim().toLowerCase();
+ const pw1=$("regPassword").value,pw2=$("regPassword2").value;
+ if(!companyName){$("companyRegisterError").textContent="Bitte einen Firmennamen eingeben.";return}
+ if(!vor||!nach){$("companyRegisterError").textContent="Bitte Vor- und Nachname eingeben.";return}
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$("companyRegisterError").textContent="Bitte eine gültige E-Mail-Adresse eingeben.";return}
+ if(pw1.length<8){$("companyRegisterError").textContent="Das Passwort muss mindestens 8 Zeichen haben.";return}
+ if(pw1!==pw2){$("companyRegisterError").textContent="Die beiden Passwort-Eingaben stimmen nicht überein.";return}
+ $("companyRegisterBtn").disabled=true;
+ try{
+  const {data,error}=await sb.functions.invoke("register-company",{body:{
+   company_name:companyName,first_name:vor,last_name:nach,email,password:pw1
+  }});
+  if(error){$("companyRegisterError").textContent=await edgeFunctionErrorMessage(error,"Registrierung fehlgeschlagen.");return}
+  if(!data?.ok){$("companyRegisterError").textContent=data?.error||"Registrierung fehlgeschlagen.";return}
+  $("systemAdminRegisterModal").hidden=true;
+  $("systemAdminModal").hidden=false;
+  await renderSystemAdminList();
+  sysAdminShowListSuccess("Firma "+data.company.name+" wurde registriert (Admin: "+data.user.email+").");
+ }catch(err){
+  $("companyRegisterError").textContent=(err&&err.message)?err.message:String(err);
+ }finally{
+  $("companyRegisterBtn").disabled=false;
  }
 };

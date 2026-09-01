@@ -19,7 +19,7 @@ Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** pr�
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.19**
+- sichtbare App-Version: **2.20**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -1836,3 +1836,163 @@ Test Test/Mitarbeiter, beide **kein** Eintrag in `system_admins`),
   war. Die Pfad-**Ermittlung/Normalisierung** wurde stattdessen anhand
   der echten, unverändert gebliebenen Daten von PETER KÜNZI AG
   verifiziert (27.4).
+
+## 28. GESCHÜTZTER EINSTELLUNGSBEREICH NUR FÜR FIRMENADMINS + FIRMENREGISTRIERUNG VORERST NUR ÜBER SYSTEM-ADMIN – VERSION 2.20
+
+Zwei getrennte, kleine Korrekturen an bestehenden Bereichen – keine neue
+Fachlogik, keine Änderung an Massaufnahme/Ausmass/Regierapport/Mitarbeiter-
+anlage/Passwort-Erstsetzung/`rates`/Trial-Verwaltung/System-Admin-
+Grundmodell/Firmenlöschung.
+
+### 28.1 Geschützter Einstellungsbereich: Tab selbst jetzt auch ausgeblendet
+
+Der Tab „🔒 Geschützt" zeigte für Mitarbeiter zwar schon seit Version 2.14
+nur den Hinweistext „nur für Administratoren zugänglich" statt echter
+Inhalte (`#protectedDenied` vs. `#protectedContent`, gesteuert über
+`isAdmin()`) – der Tab-**Knopf** in der Tab-Leiste selbst war aber
+weiterhin für jeden sichtbar, ein Mitarbeiter konnte ihn also sehen und
+anklicken. Jetzt zusätzlich: `#protectedTabBtn` (neue ID auf dem
+bestehenden Knopf) startet `hidden` und wird in `renderSettings()`
+(`js/08-katalog-blitzschutz.js`) direkt neben dem bereits vorhandenen
+`$("feedbackTabBtn").hidden=!isAdmin();` genauso gesetzt – ein Mitarbeiter
+sieht den Bereich jetzt überhaupt nicht mehr, nicht nur eine Denied-
+Meldung darin.
+
+**Weiterhin reine UI-Führung, keine neue Sicherheitsgrenze**: alle
+Schreiboperationen im geschützten Bereich liefen schon vorher über RLS/
+`is_admin()`/`has_permission()` (siehe 22.1) – daran wurde nichts
+verändert. Kein Passwortfeld, kein `PROTECTED_PASSWORD`, kein
+`tryUnlockProtected()` wieder eingeführt.
+
+Bestehende Deep-Links auf den Tab (`openSettingsTo("protected",...)` aus
+den Regierapport-/Ausmass-Verknüpfungen `reportEditSettingsShortcut`,
+`reportSettingsShortcut`, `ausmassSettingsShortcut`) funktionieren
+unverändert weiter – sie schalten die Panels direkt um, unabhängig davon,
+ob der zugehörige Tab-Knopf in der Leiste sichtbar ist; für einen
+Mitarbeiter landen sie weiterhin korrekt auf der Denied-Meldung.
+
+### 28.2 „Neue Firma registrieren" vom Login-Bildschirm in den System-Admin-Bereich verschoben
+
+**Nicht** die zuvor (fälschlich auf den falschen Bereich bezogene)
+Anforderung „Registrierung nur für nicht eingeloggte Benutzer" umgesetzt –
+dieser Auftrag war ausdrücklich ein Korrekturauftrag dazu und bezieht sich
+auf den geschützten Einstellungsbereich (28.1) und den Registrierungs-
+Einstiegspunkt (dieser Abschnitt).
+
+- `#showCompanyRegister`-Knopf und `#companyRegisterCard`-Formular
+  vollständig aus `#authScreen` (Login-Bildschirm) entfernt.
+- Dieselben Formularfelder (`regCompanyName`, `regFirstName`,
+  `regLastName`, `regEmail`, `regPassword`, `regPassword2`) sowie
+  `companyRegisterBtn`/`cancelCompanyRegister`/`companyRegisterError`
+  **eins zu eins wiederverwendet**, jetzt als neues
+  `#systemAdminRegisterModal`, erreichbar über einen neuen Knopf „🏢 Neue
+  Firma registrieren" (`#sysAdminOpenRegister`) direkt in der
+  System-Admin-Firmenliste (`#systemAdminModal`) – bewusst keine
+  zweite, parallele Formular-Implementierung.
+- Die Handler dafür liegen jetzt in `js/22-system-admin.js` statt
+  `js/03-login.js` (dort komplett entfernt), rufen unverändert dieselbe
+  `register-company`-Edge-Function auf – **kein** zweiter
+  Registrierungsflow, keine Änderung an deren Kernlogik (Auth-User/
+  Firma/Slug/Trial/Admin-Profil/`app_settings`/Rollback, siehe 21.1).
+
+**Der eine tatsächliche Verhaltensunterschied**: nach erfolgreicher
+Registrierung meldet sich das Frontend jetzt **nicht mehr automatisch**
+mit den neuen Zugangsdaten an (kein `sb.auth.signInWithPassword(...)`
+mehr in diesem Pfad). Grund: der auslösende Benutzer ist als System-Admin
+bereits eingeloggt – ein automatischer Login mit den neuen Firmendaten
+hätte dessen eigene Sitzung ersetzt/ihn ausgeloggt (im Auftrag
+ausdrücklich als zu vermeidendes Risiko benannt). Der neue Handler
+(`$("companyRegisterBtn").onclick` in `js/22-system-admin.js`) ruft nach
+Erfolg stattdessen nur `renderSystemAdminList()` und zeigt „✓ Firma …
+wurde registriert (Admin: …)" in der Firmenliste – die aktuelle
+Session bleibt vollständig unangetastet, weil der neue Code überhaupt
+keine `sb.auth.*`-Methode mehr aufruft.
+
+### 28.3 Serverseitige Absicherung von `register-company` (Version 3)
+
+Vorher prüfte `register-company` den Aufrufer überhaupt nicht (jeder mit
+gültigem Anon-Key – also auch ohne Login – konnte die Funktion aufrufen,
+das war für den bisherigen öffentlichen Flow so gewollt). Jetzt zusätzlich
+ganz am Anfang der Funktion, **bevor** irgendetwas angelegt wird:
+
+```ts
+const caller = await getCaller(req);            // /auth/v1/user mit dem
+                                                  // mitgesendeten JWT
+if (!caller?.id) return jsonResponse({ error: "Nicht angemeldet." }, 401);
+if (!(await isSystemAdmin(caller.id)))
+  return jsonResponse({ error: "Nur für System-Administratoren." }, 403);
+```
+
+`isSystemAdmin()` fragt `system_admins` direkt per `service_role`-REST ab
+(gleiches Muster wie in `system-admin-delete-company`) – nicht die
+RLS-beschränkte `is_system_admin()`-RPC, weil die Funktion generischer
+prüfen muss („ist *dieser* Aufrufer System-Admin", nicht nur „bin ich
+selbst"). Keine frei übergebene Admin-ID als Vertrauensquelle: die
+Benutzer-ID kommt ausschliesslich aus dem verifizierten JWT
+(`/auth/v1/user`), nie aus dem Request-Body.
+
+Als **einziger, klar markierter Block** eingebaut (Kommentar im Code:
+„ZEITLICH BEGRENZTE EINSCHRÄNKUNG … um die öffentliche Registrierung
+später wieder freizugeben, GENAU DIESEN Block entfernen") – der Rest der
+Funktion (Auth-User/Firma/Slug/Profil/`app_settings`/Rollback) ist
+unverändert und bleibt für eine spätere Rückverlagerung auf den
+Login-Bildschirm ohne weitere Anpassung wiederverwendbar, wie im Auftrag
+ausdrücklich gefordert.
+
+### 28.4 Tests
+
+**Direkt gegen die Produktivdatenbank verifiziert** (dieselbe Abfrage, die
+`register-company`s neuer `isSystemAdmin()`-Check intern ausführt):
+- Max Mustermann (Firmenadmin der Testfirma, **kein** System-Admin) →
+  `false` – würde von `register-company` korrekt mit 403 „Nur für
+  System-Administratoren." abgelehnt.
+- Mike Ledermann (eingetragener System-Admin) → `true` – würde
+  `register-company` korrekt passieren lassen.
+- (Dieselbe Prüfung, dasselbe REST-Muster, wurde bereits für
+  `system-admin-delete-company` mehrfach erfolgreich gegen echte
+  RLS-simulierte Sitzungen verifiziert, siehe 27.4 – hier nur die
+  zugrunde liegende Datenlage erneut bestätigt, da ein echter
+  HTTP-Aufruf der Edge Function in dieser Sitzung nicht möglich ist.)
+- `companies`/`profiles` von PETER KÜNZI AG und Testfirma vor und nach
+  dieser Aufgabe erneut geprüft: PETER KÜNZI AG exakt unverändert
+  (`updated_at` identisch zum bisherigen Stand). Testfirmas
+  `subscription_status`/`trial_days` haben sich zwischenzeitlich
+  geändert (`expired`, 15 Tage) – das ist **keine** Auswirkung dieser
+  Aufgabe, sondern eine reale, ausserhalb dieser Sitzung erfolgte
+  Nutzung des in Version 2.17/2.18 gebauten System-Admin-Bereichs
+  (Trial/Status wurden dort offensichtlich bereits echt getestet).
+- `node --check` über alle `js/*.js` (inkl. `js/03-login.js` und
+  `js/22-system-admin.js`) und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: ausgeglichen (594/594, vorher
+  592/592 – Differenz durch das neue `#systemAdminRegisterModal` abzüglich
+  des entfernten `#companyRegisterCard`).
+- Jede verschobene/neue Element-ID einzeln gegen `index.html` geprüft:
+  `showCompanyRegister`/`companyRegisterCard` kommen nicht mehr vor;
+  `regCompanyName`/`regFirstName`/`regLastName`/`regEmail`/`regPassword`/
+  `regPassword2`/`companyRegisterBtn`/`cancelCompanyRegister`/
+  `companyRegisterError` weiterhin genau je einmal (verschoben, nicht
+  dupliziert); `sysAdminOpenRegister`/`systemAdminRegisterModal`/
+  `protectedTabBtn` neu und je genau einmal vorhanden.
+- Grep-Kontrolle: keine verbliebenen JS-Referenzen auf
+  `showCompanyRegister`/`companyRegisterCard`; `companyRegisterBtn`/
+  `cancelCompanyRegister` sind jetzt ausschliesslich in
+  `js/22-system-admin.js` gebunden (vorher `js/03-login.js`), keine
+  doppelte Bindung.
+- **Live-Klicktest im Browser** (Test A–E aus dem Auftrag: Mitarbeiter
+  sieht den Tab nicht, Firmenadmin sieht ihn aber nicht die Registrierung,
+  System-Admin sieht beides und kann erfolgreich eine Testfirma anlegen,
+  ohne die eigene Sitzung zu verlieren) **war in dieser Sitzung technisch
+  nicht möglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co` direkt. **Das wird hier ausdrücklich
+  nicht als getestet behauptet.**
+
+### 28.5 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 28.4).
+- Die künftige Rückverlagerung auf den Login-Bildschirm (falls gewünscht)
+  ist bewusst auf zwei klar benannte Stellen begrenzt: den einen
+  Sicherheits-Block in `register-company` (28.3) entfernen/anpassen, plus
+  das Formular-Markup wieder auf den Login-Bildschirm verschieben und die
+  Handler in `js/22-system-admin.js` entsprechend anpassen (automatischer
+  Login müsste dann für den anonymen Fall wieder ergänzt werden) – nicht
+  automatisch in dieser Aufgabe vorbereitet, da nicht verlangt.
