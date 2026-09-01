@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.31, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.32, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.31**
+- sichtbare App-Version: **2.32**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -4401,3 +4401,212 @@ insgesamt leer, PETER KÜNZI AG (`updated_at`) unverändert.
   neuen Foto-Massaufnahmen ist weiterhin nicht bereinigt – die UI zeigt
   vorhandene `audit_log`-Einträge unverändert korrekt an, ohne sie
   automatisch umzudeuten (wie vom Auftrag verlangt).
+
+## 40. AUDIT-LOG: SAUBERER PROJEKTBEZUG — VERSION 2.32
+
+Schliesst die in Abschnitt 39.1/39.5 offengelegte Lücke: `audit_log`
+speicherte keine `project_id`, der Projekt-Verlauf aus v2.31 zeigte
+deshalb nur die direkten Projekt-Einträge, nicht die seiner
+Massaufnahmen/Ausmasse/Reports.
+
+### 40.1 Bestandsaufnahme (frisch geprüft, nicht aus v2.31 übernommen)
+
+- `measurements.project_id`, `ausmass.project_id`, `reports.project_id`
+  – alle drei live erneut per `information_schema.columns` geprüft:
+  **jede der drei Tabellen hat bereits eine eigene, direkte
+  `project_id bigint`-Spalte** (nullable, `ON DELETE SET NULL` auf den
+  Fremdschlüssel zu `projects`, seit v2.20/Storage-Migration
+  unverändert). Es musste **keine** neue oder indirekte Relation
+  gefunden werden – die in Abschnitt 39.1 vermutete Schwierigkeit lag
+  ausschliesslich in `audit_log` selbst (das dieses bereits vorhandene
+  Feld bisher nicht mitschrieb), nicht in der Fachdatenstruktur.
+  Ergebnis für den Auftrag ("wenn eine Tabelle keine eindeutige
+  Projektbeziehung besitzt, offen melden"): **alle vier Entitätstypen
+  haben eine eindeutige, direkte Projektbeziehung** – keine Entität
+  musste unintegriert bleiben.
+- `write_audit_log()` (v2.30/v2.31, unverändert vor dieser Aufgabe)
+  erneut vollständig gelesen: `v_row` (das `NEW`/`OLD` der jeweiligen
+  Zeile) liegt im Trigger bereits vollständig vor – `v_row.project_id`
+  war für measurement/ausmass/report also schon die ganze Zeit lesbar,
+  wurde nur nicht in `audit_log` mitgeschrieben.
+- Produktivstand zu Beginn dieser Aufgabe: **weiterhin 0 Zeilen** in
+  `audit_log` (unverändert seit v2.30/v2.31 – unter „22. Bestehende
+  Audit-Einträge" des Auftrags entsprechend trivial: nichts zu
+  migrieren, nichts zu erfinden).
+
+### 40.2 Schema-Erweiterung (Migration `audit_log_project_id_v2_32`)
+
+```sql
+alter table public.audit_log add column project_id bigint;
+create index audit_log_project_created_idx on public.audit_log (project_id, created_at desc);
+```
+
+**`project_id` ist bewusst kein Fremdschlüssel** – exakt dieselbe
+Begründung wie bei `entity_id` in Abschnitt 38.3: ein Fremdschlüssel mit
+`ON DELETE CASCADE` würde die Audit-Historie beim Löschen des Projekts
+mitlöschen (widerspricht Auftrag Abschnitt 9 ausdrücklich), ein
+Fremdschlüssel mit `RESTRICT`/`NO ACTION` würde das Löschen des
+Projekts selbst blockieren (derselbe Fehlertyp wie in Abschnitt 36.1
+bereits einmal gefunden und behoben). `entity_id`+`project_id` bleiben
+beide reine, ungeschützte Wertespalten – die referenzielle Integrität
+wird stattdessen ausschliesslich serverseitig zum Schreibzeitpunkt
+sichergestellt (40.3), nicht nachträglich per Fremdschlüssel erzwungen.
+
+### 40.3 Serverseitige Ermittlung je Entitätstyp (Auftrag Abschnitt 3–7)
+
+`write_audit_log()` erweitert (`v_project_id bigint` zusätzlich zu den
+bestehenden Variablen), Zuweisung ausschliesslich aus der bereits im
+Trigger vorliegenden Zeile, **nie** aus einem separaten Client-Feld:
+
+| `entity_type` | `project_id`-Quelle |
+|---|---|
+| `project` | `v_row.id` (die eigene Projekt-ID) |
+| `measurement` | `v_row.project_id` (Spalte der betroffenen Zeile) |
+| `ausmass` | `v_row.project_id` (Spalte der betroffenen Zeile) |
+| `report` | `v_row.project_id` (Spalte der betroffenen Zeile) |
+
+Bei `entity_type='project'` ist `project_id` bewusst die **eigene**
+`id` (nicht `NULL`) – dadurch liefert eine einzige Abfrage
+`where project_id = X` sowohl die Projekt-Einträge selbst als auch die
+seiner Massaufnahmen/Ausmasse/Reports, ohne zwei separate Abfragen oder
+einen `OR`-Ausdruck im Frontend (Auftrag Abschnitt 15: „eine
+Audit-Abfrage mit project_id").
+
+**Kein Client-Feld beteiligt**: der Trigger liest `v_row` (also
+`NEW`/`OLD`) direkt aus der tatsächlich geschriebenen Datenbankzeile –
+ein Client kann über den REST-Request kein zusätzliches `project_id`-Feld
+an `audit_log` selbst übergeben, weil dort (wie seit v2.30) überhaupt
+keine INSERT-Policy für `authenticated` existiert (40.6). Empirisch
+verifiziert (40.7, Fälschungstest).
+
+### 40.4 DELETE-Ereignisse (Auftrag Abschnitt 8)
+
+Der bestehende Trigger ist bereits **AFTER** INSERT/UPDATE/**DELETE**
+(seit v2.30, unverändert) – bei `DELETE` ist `v_row := old`, die Zeile
+existiert zu diesem Zeitpunkt zwar nicht mehr in der Fachtabelle, aber
+`OLD` liegt im Trigger noch vollständig vor. `v_row.project_id` (bzw.
+`v_row.id` bei einem gelöschten Projekt selbst) wird deshalb korrekt aus
+`OLD` ermittelt, **bevor** die Zeile endgültig weg ist – exakt wie vom
+Auftrag verlangt. Kein neuer Trigger-Typ nötig, das AFTER-DELETE-Verhalten
+war strukturell schon vorhanden.
+
+### 40.5 Projektlöschung (Auftrag Abschnitt 9)
+
+Da `project_id` **kein** Fremdschlüssel ist (40.2), hat das Löschen
+eines Projekts **keinerlei** Auswirkung auf bereits vorhandene
+`audit_log`-Zeilen – weder die des Projekts selbst noch die seiner
+Massaufnahmen/Ausmasse/Reports. Alle bleiben mit ihrem ursprünglichen
+`project_id`-Wert (der jetzt auf ein nicht mehr existierendes Projekt
+zeigt) unverändert bestehen. Empirisch bestätigt (40.7, Test K): nach
+dem Löschen eines Test-Projekts waren weiterhin **alle** zuvor erzeugten
+Audit-Zeilen (Projekt + Massaufnahme + Ausmass + Report) mit korrektem
+`project_id` auffindbar, inklusive des eigenen `deleted`-Eintrags des
+Projekts selbst.
+
+### 40.6 RLS – unverändert, keine Abschwächung
+
+Die restriktive `tenant_boundary_audit_log`-Policy aus v2.30
+(`company_id = my_company_id()`) wurde **nicht angefasst**. `project_id`
+ist ausschliesslich ein zusätzliches, für die neue Abfrage nützliches
+Feld – die eigentliche Tenant-Grenze bleibt weiterhin `company_id`,
+serverseitig in `write_audit_log()` gesetzt (unverändert seit v2.30).
+`project_id` dient nirgends als Ersatz für diese Prüfung: eine Firma B,
+die eine `project_id` von Firma A kennt, sieht über
+`select … where project_id = X` trotzdem 0 Zeilen, weil die restriktive
+Policy zusätzlich `company_id = my_company_id()` verlangt – empirisch
+bestätigt (40.7, Cross-Tenant-Test).
+
+### 40.7 Tests (Auftrag Abschnitt 19/20/21, alle in `begin;…rollback;`
+mit zwei temporären Wegwerf-Firmen, nie PETER KÜNZI AG)
+
+| Test | Ergebnis |
+|---|---|
+| A: Projekt erstellen | Audit-Eintrag `entity_type='project'`, `project_id` = eigene Projekt-ID |
+| B: Massaufnahme erstellen | `project_id` identisch zum Projekt |
+| C: Massaufnahme ändern | `project_id` weiterhin korrekt |
+| D: Ausmass erstellen + ändern | `project_id` in beiden Einträgen korrekt |
+| E: Report erstellen + ändern | `project_id` in beiden Einträgen korrekt |
+| F: Projekt ändern | `project_id` = eigene Projekt-ID (nicht `NULL`) |
+| G: Projekt-Verlauf (eine Abfrage `where project_id=X`) | alle 8 bis dahin erzeugten Einträge (Projekt ×2, Massaufnahme ×2, Ausmass ×2, Report ×2) korrekt in einer einzigen Abfrage |
+| H/I/J: direkte Massaufnahme-/Ausmass-/Report-Verläufe (`entity_type`+`entity_id`, unverändert seit v2.31) | weiterhin exakt nur die eigenen Einträge, keine Regression |
+| L: Report löschen | `deleted`-Eintrag existiert, `project_id` weiterhin korrekt gesetzt |
+| K: Projekt löschen | alle 10 bis dahin erzeugten Einträge (inkl. des Projekts eigenem `deleted`-Eintrag) weiterhin mit korrektem `project_id` auffindbar |
+| Cross-Tenant: Firma B kennt `project_id` von Firma A, filtert direkt danach | 0 Zeilen |
+| Client-Manipulation: direkter `INSERT` in `audit_log` mit fremder `company_id`+`project_id` | weiterhin `insufficient_privilege` – unverändert blockiert seit v2.30 |
+
+Nach der gesamten Transaktion erneut geprüft: keine Wegwerf-Firmen, keine
+Test-Projekte, keine Test-Zeilen in `audit_log`, `audit_log` insgesamt
+weiterhin leer, PETER KÜNZI AG (`updated_at`) unverändert.
+
+### 40.8 Frontend (`js/23-verlauf.js`)
+
+- Neue Funktion `loadProjectVerlauf(box, projectId)` – eine Abfrage
+  `select("*").eq("project_id", projectId)`, ersetzt im Projekt-Kontext
+  (`js/09-projekte.js`, Knopf „🕒 Verlauf anzeigen" je Projekt-Karte) die
+  bisherige `loadVerlauf(box,"project",projectId)`-Abfrage aus v2.31, die
+  nur die direkten Projekt-Einträge zeigte.
+- Neue Funktion `toggleProjectVerlaufBox(box, btn, projectId)` – gleiches
+  Auf-/Zuklapp-Muster wie `toggleVerlaufBox()`, aber für den kombinierten
+  Verlauf.
+- **`loadVerlauf(box, entityType, entityId)` (direkter Einzel-Verlauf für
+  Massaufnahme/Ausmass/Report) bewusst unverändert** – eigener Codepfad,
+  keine gemeinsame Query mit dem Projekt-Verlauf, dadurch strukturell
+  ausgeschlossen, dass die project_id-Erweiterung diese drei bestehenden
+  Verläufe verändert (Auftrag Abschnitt 16, empirisch bestätigt in 40.7
+  Test H/I/J).
+- Neuer Entitäts-Filter (Alle/Projekt/Massaufnahme/Ausmass/Regierapport),
+  nur im kombinierten Projekt-Verlauf sichtbar (im direkten
+  Einzel-Verlauf unnötig, da dort ohnehin immer derselbe Typ). Mit dem
+  bestehenden Aktions-Filter aus v2.31 (Alle/Erstellt/Geändert/Gelöscht/
+  Status geändert) frei kombinierbar – beide sind unabhängige Zustände
+  (`actionFilter`/`entityFilter`), rein clientseitig auf den bereits
+  geladenen ≤50 Zeilen angewendet, keine zusätzliche Abfrage pro Klick.
+- Jeder Eintrag im kombinierten Projekt-Verlauf zeigt zusätzlich ein
+  kleines Entitäts-Badge (z. B. „Massaufnahme"), damit erkennbar bleibt,
+  worauf sich ein Eintrag bezieht – im direkten Einzel-Verlauf weiterhin
+  weggelassen (dort redundant).
+- **Keine Duplikate innerhalb einer Ansicht** (Auftrag Abschnitt 17): der
+  kombinierte Projekt-Verlauf lädt jede `audit_log`-Zeile genau einmal
+  (eine Abfrage, kein Zusammenführen mehrerer Abfragen) – strukturell
+  keine Duplizierung möglich. Dass derselbe historische Eintrag sowohl im
+  Projekt-Verlauf als auch im direkten Verlauf der jeweiligen
+  Massaufnahme/des Ausmasses/Reports sichtbar ist, ist wie im Auftrag
+  ausdrücklich festgehalten kein Fehler.
+- Limit weiterhin 50 (unverändert aus v2.31, wie vom Auftrag
+  vorgegeben), keine neue Paginierung.
+
+### 40.9 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: unverändert ausgeglichen
+  (612/612 – keine HTML-Struktur in dieser Aufgabe verändert, nur
+  `js/23-verlauf.js`, `js/09-projekte.js` und `css/01-basis.css`).
+- `get_advisors(type:'security')` nach der Migration erneut geprüft:
+  identisch zum Stand nach v2.31, keine neue Warnung durch
+  `audit_log.project_id`/`write_audit_log()`.
+- Massaufnahme-/Ausmass-/Regierapport-Berechnungen, PDF-Layout,
+  Materialkataloge, Projektberechnungen: keine dieser Dateien in dieser
+  Aufgabe verändert.
+- PETER KÜNZI AG vor/nach der Aufgabe erneut geprüft: unverändert
+  (`updated_at` identisch), `audit_log` weiterhin insgesamt 0 Zeilen.
+- Live-Klicktest im Browser weiterhin nicht möglich – Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`
+  direkt, wie in jeder vorherigen Sitzung. **Das wird hier ausdrücklich
+  nicht als getestet behauptet.** Alle in 40.7 dokumentierten Ergebnisse
+  sind direkte Trigger-/RLS-Simulationen gegen das echte Produktivschema
+  mit derselben Abfrage, die die neue UI verwendet.
+
+### 40.10 Offene Punkte für v2.33
+
+- Kein Live-Klicktest im Browser möglich (siehe 40.9).
+- Kein Feld-Diffing – wie im Auftrag ausdrücklich ausgeschlossen,
+  weiterhin nur Wer/Wann/Aktion/Beschreibung/Entität/Projekt.
+- Feste 50er-Obergrenze weiterhin ohne echte Paginierung (unverändert
+  aus v2.31, für den Auftrag ausdrücklich nicht gefordert).
+- Die in Abschnitt 38.6 dokumentierte Platzhalterzeilen-Häufung bei
+  neuen Foto-Massaufnahmen bleibt unverändert offen.
+- Da alle vier Entitätstypen bereits eine direkte `project_id`-Spalte
+  hatten (40.1), gibt es keine offene "unklare Beziehung" mehr zu
+  dokumentieren – falls künftig eine fünfte auditierte Entität ohne
+  eindeutige Projektbeziehung hinzukäme, müsste das analog zu Abschnitt
+  7 des Auftrags neu geprüft und ggf. offen gemeldet werden.

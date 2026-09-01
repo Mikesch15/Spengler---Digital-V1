@@ -98,6 +98,8 @@ td input,td select{min-height:34px;font-size:12px}
 .verlauf-entry:last-child{border-bottom:0}
 .verlauf-entry-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 .verlauf-entry-when{font-size:11px;color:var(--muted);font-weight:700}
+.verlauf-entry-badges{display:flex;gap:5px;flex-wrap:wrap}
+.verlauf-entry-entity{font-size:10.5px;font-weight:800;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
 .verlauf-entry-action{font-size:10.5px;font-weight:800;color:var(--blue-dark);background:var(--blue-light);border-radius:6px;padding:2px 7px;white-space:nowrap}
 .verlauf-entry-who{font-size:12px;font-weight:700;margin-top:2px}
 .verlauf-entry-desc{font-size:11px;color:var(--muted)}

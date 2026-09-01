@@ -323,7 +323,10 @@ $("projectList").addEventListener("click",async e=>{
  if(toggleV){
   const id=Number(toggleV.dataset.toggleVerlauf);
   const box=document.querySelector(`[data-verlauf-body="${id}"]`);
-  await toggleVerlaufBox(box,toggleV,"project",id);
+  // Kombinierter Projekt-Verlauf (v2.32): zeigt das Projekt selbst UND
+  // seine Massaufnahmen/Ausmasse/Reports in einer einzigen, nach
+  // project_id gefilterten Abfrage - siehe CLAUDE.md Abschnitt 40.
+  await toggleProjectVerlaufBox(box,toggleV,id);
   return;
  }
  const toggleF=e.target.closest("[data-toggle-files]");
