@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.33, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.34, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.33**
+- sichtbare App-Version: **2.34**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -4876,3 +4876,249 @@ nicht gedifft werden.
   hinzugefügte Feld muss weiterhin ausschliesslich über `OLD`/`NEW`
   innerhalb von `write_audit_log()` ermittelt werden, nie über einen
   Client-Wert.
+
+## 42. ÄNDERUNGSVERLAUF – DETAIL-DIFF FÜR measurements.data — VERSION 2.34
+
+Erweitert das in v2.33 eingeführte Feld-Diffing um die eigentlichen
+Fachwerte der neun Massaufnahme-Funktionen, die bisher nur als
+pauschales „Massaufnahme geändert" sichtbar waren. Reine Erweiterung
+von `write_audit_log()`/`js/23-verlauf.js` – keine einzige Zeile
+Berechnungslogik, Speichermodell oder PDF-Code der neun Funktionen
+verändert.
+
+### 42.1 Die neun Funktionen und ihre `data`-Struktur (frisch aus
+`js/16-massaufnahme-formular.js buildMeasurementFromForm()` sowie den
+jeweiligen Fach-Dateien ermittelt, nicht aus früheren Reports übernommen)
+
+| Typ (`measurements.type`) | Datei(en) | `data`-Struktur (Kurzfassung) |
+|---|---|---|
+| `einlaufblech_gerade` | `js/11-…`, `js/15-einlaufblech-stueckliste.js` | flach: `massA`,`winkel`,`montage`,`abwicklung`,`material` (+ abgeleitet `gesamtlaenge`,`massAEng`,`engeSeite`,`restBreite`); Array `pieces` (Stücke) |
+| `rinne_halbrund` | `js/12-rinne-halbrund.js` | flach: `rinneAbwicklung`,`material` (+ abgeleitet `gesamtlaenge`,`boundaries`,`stueckliste`); Arrays `segments`,`dilas` |
+| `einlaufblech_konisch` | `js/13-…`, `js/15-…` | flach: `abwicklung`,`dachneigung`,`montage`,`material` (+ abgeleitet `gesamtlaenge`,`engeSeite`); Array `pieces` |
+| `freies_profil` | `js/14-freies-profil.js` | flach: `konisch`,`ansicht`,`material`; Arrays `schenkel`,`segmente` (Segmente enthalten selbst ein `massen`-Array je Schenkel) |
+| `mauerabdeckung` | `js/12b-mauerabdeckung.js` | flach: `material` (+ firmenweite Einstellungswerte `bodenMass`/`schieberMass`, kein Mess-Eingabefeld dieser Massaufnahme); Arrays `segments`,`schieber`; Objekte `profil`,`boundaries`,`stueckliste` |
+| `lukarne` | `js/19-lukarne.js` | flach: `hoehe`,`laengeOben`,`winkel`,`achsabstand`,`hilfsrissWunsch`,`seite`,`material` (+ abgeleitet `breite`,`spitzeVersatz`,`schraege`,`anzahl`,`flaeche`,`zugabeBreite`,`zugabeLaenge`,`hilfsriss`); Array `scharen` |
+| `anschlussblech` | `js/20-anschlussblech.js` | flach, immer vorhanden: `deckung`,`art`,`ausfuehrung`,`saum`,`stossLaenge`,`ueberlappung`,`lattenabstand`,`firstgehrung` (+ abgeleitet `deckHoehe`,`laenge`); **variantenabhängig** ein-/ausgeblendete `data-anb`-Felder (`a`,`b`,`c`,`d`,`wandAufkantung`,`ortAufkantung`,`ortOben`,`ortStirn`,`ortNase`,`restSchwelle`,`gehrungszugabe`); Array `segmente` |
+| `einfassung_rund` | `js/21-einfassung-rund.js` | flach, immer vorhanden: `deckung`,`durchmesser`,`winkel`,`a`,`b`,`c`,`lattenabstand`,`material` (+ abgeleitet `abwicklung`,`breiteGesamt`,`anzahlBleilappen`) |
+| `skizze_foto` | `js/10-massaufnahme.js` | flach: nur `material`; kein Mass, reine Foto-/Skizzenerfassung |
+
+**Keine der neun Array-Strukturen (`pieces`/`segments`/`segmente`/
+`schenkel`/`schieber`/`dilas`/`scharen`) besitzt ein `id`-Feld** –
+direkt in den jeweiligen `*.push({...})`-Aufrufen aller neun Dateien
+verifiziert (z. B. `ebPieces.push({laenge,stossStoss,…})`,
+`rinneSegments.push({laenge,linksTyp,…})`) – rein positions-/
+index-basiert.
+
+### 42.2 Machbarkeitsbewertung (Auftrag Abschnitt 3)
+
+- **Klasse A (implementiert)**: alle oben als „flach, immer vorhanden"
+  gelisteten Felder – direkt einem einzelnen, immer sichtbaren
+  Formularfeld entsprechend (z. B. `#eb_massA`, `#einf_durchmesser`),
+  ohne Array, ohne Varianten-Abhängigkeit.
+- **Klasse B (diffbar, aber nicht in v2.34)**: `anschlussblech`s
+  variantenabhängige `data-anb`-Felder (`a`,`b`,`c`,`d`,
+  `wandAufkantung`, …). Grund: ihr Wert fällt beim Verstecken (anderer
+  `art`/`ausfuehrung`) auf einen bei jedem Aufruf **neu aus den
+  Firmeneinstellungen berechneten** Vorgabewert zurück
+  (`anbVorgabe()`), nicht auf den zuletzt tatsächlich gespeicherten Wert
+  dieser Massaufnahme – ein Diff könnte dadurch einen Feldwechsel
+  zeigen, der nur eine Nebenwirkung des Varianten-Wechsels ist, keine
+  echte Neumessung. Mit spezieller Logik (z. B. Diff nur, wenn die
+  Feld-ID in **beiden** Speicherständen tatsächlich sichtbar/aktiv war)
+  wäre das lösbar, aber bewusst nicht Teil dieser Version (Auftrag
+  Abschnitt 3: „B … im Abschlussreport dokumentieren").
+- **Klasse C (vorerst nicht diffen)**: alle Array-Strukturen aller neun
+  Typen (siehe 42.1) – keine stabile ID, ein Index-basierter Vergleich
+  wäre bei Einfügen/Löschen/Umsortieren irreführend (Auftrag Abschnitt
+  7 verlangt explizit "NICHT" in diesem Fall). Ebenso `mauerabdeckung`s
+  `bodenMass`/`schieberMass` (Klasse C, siehe 42.1 – keine
+  Mess-Eingabe dieser einen Massaufnahme, sondern ein globaler
+  Firmeneinstellungswert) und alle abgeleiteten/berechneten
+  Zusatzfelder (`gesamtlaenge`, `engeSeite`, `restBreite`, `boundaries`,
+  `stueckliste`, `profil`, `scharen`, `breite`, `anzahl`, `flaeche`, …)
+  – bewusst nicht Teil der Whitelist, weil sie kein direktes
+  Formularfeld sind, sondern ein Rechenergebnis aus den (nicht
+  gedifften) Array-Werten; ein Diff dieser Werte allein ohne den
+  zugrundeliegenden Array-Diff wäre unvollständig und potenziell
+  irreführend.
+
+### 42.3 Implementiertes Feld-Set je Typ (Klasse A)
+
+| Typ | Felder | Einheit |
+|---|---|---|
+| `einlaufblech_gerade` | `massA`,`winkel`,`montage`,`abwicklung`,`material` | mm, °, –, mm, – |
+| `rinne_halbrund` | `rinneAbwicklung`,`material` | mm, – |
+| `einlaufblech_konisch` | `abwicklung`,`dachneigung`,`montage`,`material` | mm, °, –, – |
+| `freies_profil` | `konisch`,`ansicht`,`material` | –, –, – |
+| `mauerabdeckung` | `material` | – |
+| `lukarne` | `hoehe`,`laengeOben`,`winkel`,`achsabstand`,`hilfsrissWunsch`,`seite`,`material` | mm, mm, °, mm, mm, –, – |
+| `anschlussblech` | `deckung`,`art`,`ausfuehrung`,`saum`,`stossLaenge`,`ueberlappung`,`lattenabstand`,`firstgehrung` | –, –, –, mm, mm, mm, mm, – |
+| `einfassung_rund` | `deckung`,`durchmesser`,`winkel`,`a`,`b`,`c`,`lattenabstand`,`material` | –, mm, °, mm, mm, mm, mm, – |
+| `skizze_foto` | `material` | – |
+
+Deutsche Feldbezeichnungen 1:1 aus den bestehenden Formular-Labels in
+`index.html` übernommen (z. B. `#einf_durchmesser`→„Ø Standrohr" hier
+als „Rohrdurchmesser" leicht vereinheitlicht, `#anb_saum`→„Umschlag am
+Blechende"). Auflösung von Katalog-IDs auf lesbare Namen über bereits
+geladene, bestehende Kataloge (keine neue Abfrage, Auftrag Abschnitt 25):
+`material` → `findMeasurementMaterial()` (`js/01-basis.js`, seit
+längerem in Gebrauch), `deckung` → `ANB_DECKUNGEN`/`EINF_DECKUNGEN`
+(beide bereits als globale `const` in `js/20-anschlussblech.js`/
+`js/21-einfassung-rund.js` geladen) zu einer Nachschlagetabelle
+zusammengeführt – geprüft: beide Kataloge haben **disjunkte**
+Schlüsselmengen (`pfanne`/`falzziegel`/`biber`/`schiefer`/
+`faserzement`/`welle` vs. `biber_einfach`/`biber_doppel`/
+`schiebeziegel`/`muldenziegel`/`eternit`/`naturschiefer`), eine
+Zusammenführung ist deshalb kollisionsfrei möglich.
+
+### 42.4 Serverseitige Ermittlung (Auftrag Abschnitt 16)
+
+`write_audit_log()` erweitert: im bereits bestehenden
+`entity_type='measurement'`-Zweig des `UPDATE`-Falls, **nur wenn
+`NEW.type IS NOT DISTINCT FROM OLD.type`** (Struktur sonst nicht
+vergleichbar – in der Praxis ändert sich `type` nach dem Anlegen ohnehin
+nie, siehe v2.33 41.2), ein eigener, nach Typ verschachtelter `IF`-Block
+je Feld:
+
+```sql
+if new.type = 'einlaufblech_gerade' then
+  if new.data->'massA' is distinct from old.data->'massA' then
+    v_changes := v_changes || jsonb_build_array(
+      jsonb_build_object('field','massA','old',old.data->'massA','new',new.data->'massA'));
+  end if;
+  … -- winkel, montage, abwicklung, material
+elsif new.type = 'rinne_halbrund' then
+  …
+```
+
+`data->'feld'` (Pfeil-Operator, **nicht** `->>`) liefert den echten
+jsonb-Wert statt Text – dadurch vergleicht `IS DISTINCT FROM` typsicher
+auf Wertebene (Postgres normalisiert jsonb-Zahlen nach Wert, nicht nach
+Text: `1200` und `1200.0` gelten als gleich, empirisch bestätigt, siehe
+42.6) und das Frontend bekommt beim Lesen über PostgREST den nativen
+JS-Typ (`number`/`string`/`boolean`/`null`) zurück, keine Zeichenketten.
+Dasselbe verschachtelte-`IF`-Muster (kein zusammengesetzter Ausdruck)
+wie bereits in v2.30/v2.33 – aus demselben, dort empirisch gefundenen
+Grund: `write_audit_log()` ist eine einzige, über vier Tabellen
+wiederverwendete Funktion, `NEW`/`OLD` sind generische `record`-Werte.
+
+Der bestehende `title`/`date`/`note`-Diff aus v2.33 bleibt unverändert
+bestehen und ergänzt sich additiv mit dem neuen Detail-Diff im selben
+`changes`-Array (Auftrag Abschnitt 13: dasselbe Format weiterverwendet,
+kein zweites Diff-Format).
+
+### 42.5 Arrays, NULL/Fehlend, mehrere Änderungen (Auftrag Abschnitt 7–9,22)
+
+- **Arrays**: wie in 42.2 begründet grundsätzlich nicht gedifft – ein
+  UPDATE, das nur ein Array-Feld (`pieces`/`segments`/…) ändert, aber
+  keines der Klasse-A-Felder, erzeugt weiterhin einen `changes=NULL`
+  „Massaufnahme geändert"-Eintrag ohne Detail (Fortsetzung des in v2.33
+  Abschnitt 41.5 begründeten Verhaltens: kein Log-Eintrag wird
+  unterdrückt, da sonst reale Änderungen lautlos verschwinden könnten).
+- **NULL/Fehlend**: `data->'feld'` liefert echtes SQL-`NULL`, wenn der
+  Schlüssel nicht existiert, und jsonb-`null`, wenn er mit dem Wert
+  `null` existiert – `IS DISTINCT FROM` behandelt beide korrekt. Da
+  `buildMeasurementFromForm()` für jeden Typ immer dieselbe feste
+  Feldmenge erzeugt (nie ein Feld nachträglich weglässt), ist dieser
+  Randfall für das gewählte Feld-Set praktisch nicht relevant.
+- **Mehrere Änderungen**: wie in v2.33 – ein UPDATE mit mehreren
+  geänderten Detailfeldern erzeugt **einen** Audit-Eintrag mit mehreren
+  Einträgen im `changes`-Array, keine separaten Zeilen (empirisch
+  bestätigt, 42.6).
+
+### 42.6 Tests (Auftrag Abschnitt 28, alle in `begin;…rollback;` mit
+Wegwerf-Firmen, nie PETER KÜNZI AG)
+
+Für jede der neun Funktionen: Testdatensatz mit typischer `data`
+angelegt, genau ein Klasse-A-Feld geändert, Audit-Eintrag geprüft.
+
+| Typ | geändertes Feld | `old`→`new` | Ergebnis |
+|---|---|---|---|
+| `einlaufblech_gerade` | `massA` | `1200`→`1350` | korrekt, `number` |
+| `rinne_halbrund` | `rinneAbwicklung` | `"333"`→`"400"` | korrekt, `string` |
+| `einlaufblech_konisch` | `dachneigung` | `30`→`32` | korrekt, `number` |
+| `freies_profil` | `konisch` | `"nein"`→`"ja"` | korrekt, `string` |
+| `mauerabdeckung` | `material` | `"zink"`→`"kupfer"` | korrekt, `string` |
+| `lukarne` | `hoehe` | `1000`→`1100` | korrekt, `number` |
+| `anschlussblech` | `saum` | `20`→`25` | korrekt, `number` |
+| `einfassung_rund` | `durchmesser` | `110`→`125` | korrekt, `number` |
+| `skizze_foto` | `material` | `"zink"`→`"titanzink"` | korrekt, `string` |
+
+Zusätzlich: `massA` `1200`→`1200.0` (semantisch identisch) →
+`changes=NULL`, **kein** Fake-Diff – bestätigt Auftrag Abschnitt 10
+(Typsicherheit) direkt am gewählten Feld-Set, nicht nur theoretisch.
+Cross-Tenant (Firma B kennt `entity_id`/`project_id` von Firma A) → 0
+sichtbare Zeilen. Direkter `INSERT` mit erfundenem Detail-Diff
+(`{"field":"massA","old":1200,"new":9999}`) → weiterhin
+`insufficient_privilege`, unverändert seit v2.30/v2.33.
+
+Nach jeder Transaktion erneut geprüft: keine Wegwerf-Firmen, keine
+Test-Zeilen, `audit_log` insgesamt weiterhin 0 Zeilen (weiterhin keine
+reale Nutzung seit Deploy), PETER KÜNZI AG (`updated_at`) unverändert.
+
+### 42.7 Frontend (`js/23-verlauf.js`)
+
+- `VERLAUF_FIELD_LABELS.measurement` um alle Klasse-A-Detailfelder
+  ergänzt (deutsche Bezeichnung je Feld, kollisionsfrei über alle neun
+  Typen hinweg geprüft, siehe 42.3).
+- `VERLAUF_MEAS_FIELD_UNITS` – Einheit je Feld, nur wo eindeutig bekannt.
+- `VERLAUF_MEAS_VALUE_LABELS` – Wert-Übersetzung für Auswahlfelder
+  (`montage`, `konisch`, `ansicht`, `seite`, `ausfuehrung`), 1:1 aus den
+  tatsächlichen `<option>`-Texten in `index.html` übernommen, keine
+  erfundenen Bezeichnungen.
+- `verlaufDeckungNamen()` – führt `ANB_DECKUNGEN`/`EINF_DECKUNGEN` zu
+  einer Nachschlagetabelle zusammen (42.3).
+- `verlaufFormatDiffValue()` erweitert: `material`/`deckung` über die
+  jeweilige Katalog-Auflösung, Zahlen mit Schweizer
+  Tausendertrennzeichen (`toLocaleString("de-CH")`) + bekannter Einheit,
+  Booleans als „Ja"/„Nein", Auswahlfelder über `VERLAUF_MEAS_VALUE_LABELS`,
+  alles andere unverändert als Text – **eine** Funktion für alle
+  Entitäten/Typen, keine typspezifischen Render-Pfade.
+- Kein neues HTML, keine neue CSS-Klasse nötig – nutzt die bestehende
+  `.verlauf-entry-changes`-Darstellung aus v2.33 unverändert weiter.
+
+### 42.8 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: unverändert ausgeglichen
+  (612/612 – kein HTML in dieser Aufgabe verändert, nur
+  `js/23-verlauf.js`).
+- `get_advisors(type:'security')` nach der Migration erneut geprüft:
+  identisch zum Stand nach v2.33, keine neue Warnung.
+- Alle neun Massaufnahme-Berechnungsdateien (`js/11-…` bis `js/21-…`)
+  in dieser Aufgabe **nicht** verändert – Zuschnitt-, Abwicklungs-,
+  Winkel-, Material- und Stücklistenlogik, Speichermodell
+  (`buildMeasurementFromForm()`), PDF-Berechnung: unangetastet.
+  `git diff --stat` bestätigt: nur `js/23-verlauf.js` (Frontend) +
+  eine SQL-Migration geändert.
+- PETER KÜNZI AG vor/nach der Aufgabe erneut geprüft: unverändert,
+  `audit_log` weiterhin insgesamt 0 Zeilen.
+- Live-Klicktest im Browser (alle neun Funktionen öffnen/laden/
+  speichern/berechnen) weiterhin nicht möglich – Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`
+  direkt, wie in jeder vorherigen Sitzung. **Das wird hier ausdrücklich
+  nicht als getestet behauptet.** Alle in 42.6 dokumentierten Ergebnisse
+  sind direkte Trigger-/RLS-Simulationen gegen das echte
+  Produktivschema; da an den neun Fach-Dateien selbst nichts geändert
+  wurde, besteht auch kein Regressionsrisiko für deren Berechnungen.
+
+### 42.9 Offene Punkte für v2.35
+
+- Kein Live-Klicktest im Browser möglich (siehe 42.8).
+- Klasse B (`anschlussblech`s variantenabhängige `data-anb`-Felder,
+  siehe 42.2) bewusst nicht implementiert – bräuchte eine zusätzliche
+  „war dieses Feld in beiden Versionen sichtbar/aktiv"-Prüfung, um
+  keine falschen Diffs durch reine Varianten-Wechsel zu erzeugen.
+- Klasse C (alle Array-Strukturen aller neun Typen) bleibt bewusst ohne
+  Detail-Diff – ein UPDATE, das nur Stücke/Segmente/Schienen/Scharen
+  ändert, zeigt weiterhin nur „Massaufnahme geändert" ohne Detail. Eine
+  spätere Version könnte das lösen, falls den Array-Elementen
+  nachträglich eine stabile ID hinzugefügt wird (eigener, grösserer
+  Auftrag – berührt das bestehende Speichermodell).
+- Die in Abschnitt 38.6 dokumentierte Platzhalterzeilen-Häufung bleibt
+  unverändert offen; ein reiner Foto-/Skizzenwechsel ohne Änderung an
+  einem Klasse-A-Feld erzeugt weiterhin `changes=NULL` (Auftrag
+  Abschnitt 19 – keine künstliche „Foto geändert"-Aussage).
+- `ausmass.positions`/`reports.work_entries`/`material_entries` bleiben
+  unverändert ohne Detail-Diff (Auftrag Abschnitt 20 – ausserhalb des
+  Umfangs dieser Version).

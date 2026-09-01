@@ -23,9 +23,55 @@ const VERLAUF_ENTITY_LABELS={project:"Projekt",measurement:"Massaufnahme",ausmas
 // Diff-Berechnung im Frontend (der Diff selbst kommt immer aus der DB).
 const VERLAUF_FIELD_LABELS={
  project:{name:"Projektname",order_no:"Auftrags-Nr.",customer:"Auftraggeber",object:"Adresse"},
- measurement:{title:"Bezeichnung",date:"Datum",note:"Notiz / Masse"},
+ measurement:{
+  title:"Bezeichnung",date:"Datum",note:"Notiz / Masse",
+  // v2.34: Detail-Diff innerhalb measurements.data (siehe CLAUDE.md
+  // Abschnitt 42) - nur die dort als Klasse A eingestuften, flachen,
+  // typübergreifend eindeutigen Felder. Kollisionsfreie Feldnamen über
+  // alle neun Massaufnahme-Typen hinweg geprüft (a/b/c nur bei
+  // Einfassung Rund, deckung/lattenabstand bei Ort-/Seitenblech UND
+  // Einfassung Rund mit gleicher Bedeutung, nur pro Typ andere Katalog-
+  // Werte - siehe VERLAUF_DECKUNG_NAMES).
+  massA:"Mass A",winkel:"Winkel",montage:"Montage",abwicklung:"Abwicklung",material:"Material",
+  dachneigung:"Dachneigung",rinneAbwicklung:"Abwicklung",
+  konisch:"Konisch",ansicht:"Ansichtspfeil",
+  hoehe:"Höhe",laengeOben:"Länge oben",achsabstand:"Achsabstand",hilfsrissWunsch:"Hilfsriss unter Oberkante",seite:"Seite",
+  deckung:"Eindeckung / Deckmaterial",art:"Anschlussart",ausfuehrung:"Ausführung",saum:"Umschlag am Blechende",
+  stossLaenge:"Stücklänge",ueberlappung:"Überlappung am Stoss",lattenabstand:"Lattenabstand",firstgehrung:"Firstgehrung",
+  durchmesser:"Rohrdurchmesser",a:"Mass a",b:"Mass b",c:"Mass c"
+ },
  ausmass:{title:"Bezeichnung",date:"Datum",note:"Notiz"},
  report:{date:"Datum",order_no:"Auftrags-Nr.",customer:"Auftraggeber",object:"Objekt / Gebäudeteil",vat:"MWST"}
+};
+
+// Einheiten für die v2.34-Detailfelder - nur wo eine Einheit tatsächlich
+// eindeutig bekannt ist (Auftrag Abschnitt 11: "keine Einheit erfinden").
+const VERLAUF_MEAS_FIELD_UNITS={
+ massA:"mm",winkel:"°",abwicklung:"mm",dachneigung:"°",
+ hoehe:"mm",laengeOben:"mm",achsabstand:"mm",hilfsrissWunsch:"mm",
+ saum:"mm",stossLaenge:"mm",ueberlappung:"mm",lattenabstand:"mm",durchmesser:"mm",a:"mm",b:"mm",c:"mm",
+ rinneAbwicklung:"mm"
+};
+
+// Werte, die als Katalog-Schlüssel gespeichert sind (nie als lesbarer Name
+// im UI anzeigen, Auftrag Abschnitt 12) - über die bereits vorhandenen,
+// clientseitig geladenen Kataloge aufgelöst statt neu abgefragt. deckung
+// kommt sowohl bei Ort-/Seitenblech (ANB_DECKUNGEN) als auch bei
+// Einfassung Rund (EINF_DECKUNGEN) vor, mit disjunkten Schlüsseln
+// (geprüft: kein gemeinsamer Schlüsselname) - deshalb sicher zu einer
+// einzigen Nachschlagetabelle zusammengeführt.
+function verlaufDeckungNamen(){
+ const namen={};
+ if(typeof ANB_DECKUNGEN!=="undefined")Object.keys(ANB_DECKUNGEN).forEach(k=>namen[k]=ANB_DECKUNGEN[k].name);
+ if(typeof EINF_DECKUNGEN!=="undefined")Object.keys(EINF_DECKUNGEN).forEach(k=>namen[k]=EINF_DECKUNGEN[k].name);
+ return namen;
+}
+const VERLAUF_MEAS_VALUE_LABELS={
+ montage:{links:"von links",rechts:"von rechts"},
+ konisch:{ja:"Ja",nein:"Nein"},
+ ansicht:{keiner:"kein Pfeil",links:"von links",oben:"von oben",rechts:"von rechts",unten:"von unten"},
+ seite:{rechts:"Rechte Seite",links:"Linke Seite"},
+ ausfuehrung:{seite:"Seitenblech (Wand)",ort:"Ortblech (Giebel)"}
 };
 
 function verlaufFormatWann(iso){
@@ -37,14 +83,26 @@ function verlaufFormatWann(iso){
 }
 
 // Werte benutzerfreundlich darstellen: NULL/leer → "–", Datumsfelder im
-// Schweizer Format, alles andere als reiner Text (unsere Whitelist enthält
-// ausschliesslich Text-/Datumsfelder, siehe 41.2 - keine Zahlen/Booleans
-// ausser dem separat behandelten "archived").
+// Schweizer Format, Kataloge (material/deckung) über bestehende, bereits
+// geladene Nachschlagelisten aufgelöst statt einer neuen Abfrage
+// (Auftrag Abschnitt 25), Zahlen mit Schweizer Tausendertrennzeichen +
+// bekannter Einheit, Booleans als Ja/Nein, alles andere als reiner Text.
 function verlaufFormatDiffValue(field,v){
  if(v===null||v===undefined||v==="")return "–";
  if(field==="date"){
   const d=new Date(v);
   return isNaN(d)?String(v):d.toLocaleDateString("de-CH");
+ }
+ if(field==="material"){
+  const m=typeof findMeasurementMaterial==="function"?findMeasurementMaterial(v):null;
+  return m?m.name:String(v);
+ }
+ if(field==="deckung")return verlaufDeckungNamen()[v]||String(v);
+ if(VERLAUF_MEAS_VALUE_LABELS[field]&&Object.prototype.hasOwnProperty.call(VERLAUF_MEAS_VALUE_LABELS[field],v))return VERLAUF_MEAS_VALUE_LABELS[field][v];
+ if(typeof v==="boolean")return v?"Ja":"Nein";
+ if(typeof v==="number"){
+  const einheit=VERLAUF_MEAS_FIELD_UNITS[field];
+  return v.toLocaleString("de-CH")+(einheit?" "+einheit:"");
  }
  return String(v);
 }
