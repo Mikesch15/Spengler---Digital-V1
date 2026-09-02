@@ -1,14 +1,16 @@
 "use strict";
 // ---- Projekte ------------------------------------------------
+// Ein einziger Vergleich fuer beide Projektsuchen (v2.47): das
+// Vorschlagsfeld der Erfassung und die lokale Suche der Projektliste.
+// Durchsucht Adresse, Projektname, Auftrags-Nr. und Auftraggeber.
+function projektPasstZuSuche(p,q){
+ q=String(q||"").trim().toLowerCase();
+ if(!q)return true;
+ return [p.object,p.name,p.order_no,p.customer]
+  .some(v=>String(v||"").toLowerCase().includes(q));
+}
 function searchProjects(q){
- q=(q||"").trim().toLowerCase();
- const active=allProjects.filter(p=>!p.archived);
- const base=!q?active:active.filter(p=>
-   String(p.name||"").toLowerCase().includes(q)||
-   String(p.order_no||"").toLowerCase().includes(q)||
-   String(p.customer||"").toLowerCase().includes(q)||
-   String(p.object||"").toLowerCase().includes(q)
- );
+ const base=allProjects.filter(p=>!p.archived&&projektPasstZuSuche(p,q));
  return base.slice(0,15);
 }
 function renderProjectSelect(){
@@ -172,15 +174,27 @@ function renderProjectStatusFilter(list){
  const knopf=(wert,text)=>`<button type="button" data-project-status-filter="${wert}"${projectStatusFilter===wert?' class="aktiv"':""}>${esc(text)}</button>`;
  box.innerHTML=knopf("alle","Alle")+PROJEKT_STATUS.map(s=>knopf(s.wert,s.icon+" "+s.label)).join("");
 }
+// Lokale Suche der Projektliste (v2.47) - rein clientseitig auf dem
+// bereits geladenen, RLS-gefilterten allProjects, keine Abfrage.
+let projectSucheText="";
 function renderProjectList(){
  // Schnellzugriff mit auffrischen (v2.41). Bewusst ohne await - die
  // Projektliste selbst soll nicht auf die Abfragen warten.
  renderRecentProjects().catch(err=>console.error("Schnellzugriff:",err));
- // Archiv zuerst: der Statusfilter arbeitet innerhalb der jeweils
- // gezeigten Menge, das bestehende Archivverhalten bleibt unberuehrt.
- const sichtbar=showArchivedProjects?allProjects:allProjects.filter(p=>!p.archived);
- renderProjectStatusFilter(sichtbar);
- const list=projectStatusFilter==="alle"?sichtbar:sichtbar.filter(p=>projektStatusInfo(p).wert===projectStatusFilter);
+ // v2.47: Aktive und archivierte Projekte sind zwei getrennte Ansichten.
+ // Archivierte tauchen nicht mehr zwischen den aktiven auf; umgeschaltet
+ // wird bewusst ueber den Knopf. archived und Geschaeftsstatus bleiben
+ // dabei zwei unabhaengige Werte - es wird nichts automatisch archiviert.
+ const sichtbar=allProjects.filter(p=>!!p.archived===showArchivedProjects);
+ const ueberschrift=$("projectListTitle");
+ if(ueberschrift)ueberschrift.textContent=showArchivedProjects?"🗄 Archivierte Projekte":"📁 Projekte";
+ // Anlegen-Formular nur in der aktiven Ansicht - ein neues Projekt
+ // gehoert nie ins Archiv.
+ const anlegen=$("projectCreateBox");
+ if(anlegen)anlegen.hidden=showArchivedProjects;
+ const gefunden=sichtbar.filter(p=>projektPasstZuSuche(p,projectSucheText));
+ renderProjectStatusFilter(gefunden);
+ const list=projectStatusFilter==="alle"?gefunden:gefunden.filter(p=>projektStatusInfo(p).wert===projectStatusFilter);
  $("projectList").innerHTML=list.map(p=>{
   // Dezente Ersteller-/Bearbeiter-Anzeige, dieselbe Logik wie bei
   // Massaufnahmen (erstelltGeaendertText(), js/16-massaufnahme-
@@ -191,17 +205,34 @@ function renderProjectList(){
   // nichts wird geloescht, nur anders gewichtet.
   const titel=projektTitel(p);
   const zusatz=infoZeileOhne(titel,p.name,p.order_no,p.customer)||"Keine weiteren Angaben";
-  return `<div class="project-row"${p.archived?' style="opacity:.6"':''}>
-<div class="project-row-top"><b>${esc(titel)}${p.archived?' <span class="small">(archiviert)</span>':''}</b><button class="red" data-del-project="${p.id}">Löschen</button></div>
-<div class="small">${projektStatusBadge(p)} ${esc(zusatz)}</div>
+  // v2.47: Reihenfolge Adresse -> Status -> Projektname/Nr./Auftraggeber,
+  // danach die Hauptaktion ueber die volle Breite und erst darunter die
+  // Nebenaktionen. Der Loeschen-Knopf steht nicht mehr neben dem Titel,
+  // damit eine lange Adresse ihn nicht verdraengt.
+  return `<div class="project-row${p.archived?" project-row-archiviert":""}">
+<div class="project-row-top"><b>${esc(titel)}</b></div>
+<div class="project-row-status">${projektStatusBadge(p)}${p.archived?'<span class="pstatus pstatus-archiv">🗄 Archiviert</span>':""}</div>
+<div class="small">${esc(zusatz)}</div>
 ${meta?`<div class="small" style="color:var(--muted)">${meta}</div>`:""}
+<button class="blue project-row-main" data-open-cockpit="${p.id}">📂 Projekt öffnen</button>
 <div class="project-row-actions">
-<button class="blue" data-open-cockpit="${p.id}">📂 Projekt öffnen</button>
+<button class="gray" data-edit-project="${p.id}">✏️ Bearbeiten</button>
 <button class="gray" data-archive-project="${p.id}">${p.archived?"↩️ Reaktivieren":"📦 Archivieren"}</button>
+<button class="red" data-del-project="${p.id}">🗑 Löschen</button>
 </div>
 </div>`;
- }).join("")||`<div class="empty">${projectStatusFilter==="alle"?"Noch keine Projekte angelegt.":"Kein Projekt mit diesem Status."}</div>`;
+ }).join("")||`<div class="empty">${projektListeLeerText(sichtbar.length)}</div>`;
 }
+// Verstaendlicher Leerzustand statt einer pauschalen Meldung.
+function projektListeLeerText(anzahlInAnsicht){
+ if(!anzahlInAnsicht)return showArchivedProjects?"Keine archivierten Projekte.":"Noch keine Projekte angelegt.";
+ if(projectSucheText.trim())return "Kein Projekt passt zur Suche.";
+ return "Kein Projekt mit diesem Status.";
+}
+$("projectSearchInput").addEventListener("input",e=>{
+ projectSucheText=e.target.value;
+ renderProjectList();
+});
 $("projectStatusFilter").addEventListener("click",e=>{
  const b=e.target.closest("[data-project-status-filter]");
  if(!b)return;
@@ -459,7 +490,16 @@ $("measProjectResults").addEventListener("click",e=>{
 $("amProjectResults").addEventListener("click",e=>{
  if(e.target.closest("[data-pick-am-project]"))updateAmFormTitle();
 });
-$("startOpenProjects").onclick=()=>{projectStatusFilter="alle";renderProjectList();$("projectsModal").hidden=false};
+$("startOpenProjects").onclick=()=>{
+ // Immer mit der aktiven Ansicht, ohne Filter und ohne Suchtext starten.
+ showArchivedProjects=false;
+ $("toggleArchivedProjects").textContent="🗄 Archivierte Projekte anzeigen";
+ projectStatusFilter="alle";
+ projectSucheText="";
+ $("projectSearchInput").value="";
+ renderProjectList();
+ $("projectsModal").hidden=false;
+};
 $("newMeasurement").onclick=()=>{$("measurementsModal").hidden=true;$("measTypeChooserModal").hidden=false};
 $("cancelMeasTypeChooser").onclick=()=>{$("measTypeChooserModal").hidden=true;$("measurementsModal").hidden=false};
 $("measTypeChooserModal").addEventListener("click",e=>{
@@ -498,7 +538,12 @@ $("addProject").onclick=async()=>{
 };
 $("toggleArchivedProjects").onclick=()=>{
  showArchivedProjects=!showArchivedProjects;
- $("toggleArchivedProjects").textContent=showArchivedProjects?"📦 Nur aktive anzeigen":"📦 Archivierte anzeigen";
+ $("toggleArchivedProjects").textContent=showArchivedProjects?"📁 Aktive Projekte anzeigen":"🗄 Archivierte Projekte anzeigen";
+ // Filter und Suche gelten je Ansicht neu - sonst waere nach dem
+ // Umschalten unklar, warum die Liste leer ist.
+ projectStatusFilter="alle";
+ projectSucheText="";
+ $("projectSearchInput").value="";
  renderProjectList();
 };// ---- Projektliste: nur noch Projekt-Aktionen -------------------
 // Seit v2.38 ist die Projektübersicht ausschliesslich zur Auswahl eines
@@ -510,6 +555,13 @@ $("projectList").addEventListener("click",async e=>{
  const cockpit=e.target.closest("[data-open-cockpit]");
  if(cockpit){
   await openProjectCockpit(Number(cockpit.dataset.openCockpit));
+  return;
+ }
+ // v2.47: "Bearbeiten" ist kein zweites Formular, sondern derselbe
+ // Cockpit-Stammdatenbereich - nur gleich aufgeklappt geoeffnet.
+ const bearb=e.target.closest("[data-edit-project]");
+ if(bearb){
+  await openProjectCockpitZumBearbeiten(Number(bearb.dataset.editProject));
   return;
  }
  const arch=e.target.closest("[data-archive-project]");

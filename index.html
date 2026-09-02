@@ -92,7 +92,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.46</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.47</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -236,15 +236,24 @@
 </div>
 
 <div class="card">
-<h2>📁 Projekte</h2>
+<h2 id="projectListTitle">📁 Projekte</h2>
 <div class="info">Projekte werden zentral gespeichert und sind auf allen Geräten sichtbar, mit denen sich Mitarbeiter anmelden.</div>
+<!-- Anlegen-Formular (v2.47): nur in der aktiven Ansicht sichtbar - ein
+     neues Projekt gehoert nie ins Archiv. -->
+<div id="projectCreateBox">
 <div class="grid" style="margin-bottom:8px">
 <div><label>Projektname (Pflichtfeld)</label><input id="newProjectName" placeholder="z. B. Neubau Muster"></div>
 <div><label>Auftrags-Nr. (Pflichtfeld)</label><input id="newProjectOrderNo" placeholder="z. B. 176712"></div>
 <div><label>Adresse (Pflichtfeld)</label><input id="newProjectObject" placeholder="z. B. Musterstrasse 1, 3000 Bern"></div>
 <div><label>Auftraggeber</label><input id="newProjectCustomer" placeholder="optional"></div>
 </div>
-<div class="bar"><button id="addProject" class="blue">＋ Projekt anlegen</button><button type="button" id="toggleArchivedProjects" class="gray">📦 Archivierte anzeigen</button></div>
+<div class="bar"><button id="addProject" class="blue">＋ Projekt anlegen</button></div>
+</div>
+<!-- Lokale Projektsuche (v2.47): durchsucht Adresse, Projektname,
+     Auftrags-Nr. und Auftraggeber der gerade gezeigten Ansicht.
+     Rein clientseitig, keine zusaetzliche Abfrage. -->
+<div style="margin-bottom:8px"><label>Projekt suchen</label><input id="projectSearchInput" placeholder="Adresse, Projektname, Auftrags-Nr. oder Auftraggeber"></div>
+<div class="bar"><button type="button" id="toggleArchivedProjects" class="gray">🗄 Archivierte Projekte anzeigen</button></div>
 <!-- Statusfilter (v2.46): erscheint nur, wenn in der aktuellen Ansicht
      mehr als ein Status vorkommt oder ein Filter aktiv ist - siehe
      renderProjectStatusFilter() in js/09-projekte.js. -->

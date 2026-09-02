@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.46, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.47, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.46**
+- sichtbare App-Version: **2.47**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -7602,3 +7602,229 @@ Storage-Regel, kein Arbeitsstand berührt.
 - Aus v2.45 weiterhin offen: die drei Projekt-Auswahlfelder zeigen im
   Vorschlag weiterhin den Projektnamen fett (zwei davon in geschützten
   Fachdateien).
+
+## 55. PROJEKTVERWALTUNG V2 — VERSION 2.47
+
+Die Projektübersicht ist der Einstiegspunkt in die Arbeit. Diese Runde
+räumt sie auf: aktive und archivierte Projekte sind zwei getrennte
+Ansichten, die Projektkarte priorisiert klar, und eine lokale Suche
+findet ein Projekt über Adresse, Name, Auftrags-Nr. oder Auftraggeber.
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung,
+keine geschützte Fachdatei angefasst.**
+
+### 55.1 Aktive und archivierte Projekte getrennt
+
+Vorher zeigte der Knopf „📦 Archivierte anzeigen" **alle** Projekte –
+archivierte standen also zwischen den aktiven. Jetzt sind es zwei
+Ansichten:
+
+```
+const sichtbar=allProjects.filter(p=>!!p.archived===showArchivedProjects);
+```
+
+- Standard ist die aktive Ansicht, Überschrift „📁 Projekte".
+- „🗄 Archivierte Projekte anzeigen" schaltet auf die Archivansicht um,
+  Überschrift „🗄 Archivierte Projekte", Rückweg „📁 Aktive Projekte
+  anzeigen".
+- Das Anlegen-Formular (`#projectCreateBox`) ist in der Archivansicht
+  ausgeblendet – ein neues Projekt gehört nie ins Archiv.
+- Statusfilter und Suchtext werden beim Umschalten und beim Öffnen der
+  Übersicht zurückgesetzt; sonst wäre unklar, warum die Liste leer ist.
+- Eigene Leermeldungen: „Noch keine Projekte angelegt." / „Keine
+  archivierten Projekte." / „Kein Projekt passt zur Suche." / „Kein
+  Projekt mit diesem Status.".
+
+**`archived` und `status` bleiben zwei unabhängige Werte.** Es wird
+nichts automatisch archiviert – „abgeschlossen" und „storniert" bleiben
+sichtbar, bis sie jemand bewusst archiviert. Der Archivknopf schreibt
+weiterhin ausschliesslich `archived` (`update({archived:!p.archived})`),
+der Geschäftsstatus bleibt dabei unverändert; das Audit-Log protokolliert
+das wie bisher über die `status_changed`-Sonderlogik für `archived`
+(v2.30/v2.46). Alle Kombinationen (offen+aktiv, abgeschlossen+aktiv,
+abgeschlossen+archiviert, storniert+archiviert, in_arbeit+archiviert)
+bleiben gültig und werden korrekt dargestellt.
+
+### 55.2 Projektkarte neu geordnet
+
+| Zeile | Inhalt |
+|---|---|
+| 1 | Adresse als Haupttitel (`projektTitel(p)`, v2.45) – jetzt über die volle Breite |
+| 2 | Status-Badge (v2.46), in der Archivansicht zusätzlich „🗄 Archiviert" |
+| 3 | Projektname · Auftrags-Nr. · Auftraggeber |
+| 4 | dezente Ersteller-/Bearbeiter-Zeile (v2.28, unverändert) |
+| 5 | Hauptaktion „📂 Projekt öffnen" über die volle Breite |
+| 6 | Nebenaktionen: „✏️ Bearbeiten", „📦 Archivieren"/„↩️ Reaktivieren", „🗑 Löschen" |
+
+Der Löschen-Knopf stand bisher **neben dem Titel** und konnte von einer
+langen Adresse verdrängt werden – er sitzt jetzt bei den Nebenaktionen.
+Das Archiv-Kennzeichen ist vom „(archiviert)"-Text im Titel zu einem
+eigenen Badge neben dem Status geworden; die frühere Inline-Opazität
+`style="opacity:.6"` ist durch die Klasse `.project-row-archiviert`
+ersetzt.
+
+**„✏️ Bearbeiten" ist kein zweites Formular.** Es öffnet dasselbe
+Cockpit und klappt dort den bestehenden Stammdatenbereich auf
+(`openProjectCockpitZumBearbeiten()`, `js/24-projekt-cockpit.js`) –
+eine einzige Bearbeitungsstelle, eine einzige Speicherlogik inklusive
+der 0-Zeilen-Prüfung aus v2.37. Bei einer fremden oder manipulierten
+Projekt-ID passiert nichts (`cockpitProject()` findet sie in dem bereits
+RLS-gefilterten `allProjects` nicht).
+
+Der Geschäftsstatus bleibt wie in v2.46 beschlossen **ausserhalb** des
+eingeklappten Stammdatenbereichs – es gibt weiterhin genau ein
+Status-Bedienelement.
+
+### 55.3 Lokale Projektsuche
+
+Neues Feld `#projectSearchInput` über der Liste. Ein einziger Vergleich
+für beide Projektsuchen der App:
+
+```js
+function projektPasstZuSuche(p,q){ … [p.object,p.name,p.order_no,p.customer] … }
+```
+
+- `searchProjects()` (das Vorschlagsfeld der Erfassung, unverändert im
+  Verhalten: nur aktive Projekte, höchstens 15 Treffer) nutzt jetzt
+  denselben Vergleich – vorher stand die Feldliste dort ein zweites Mal.
+- Die Listensuche filtert die **gerade gezeigte** Ansicht, sucht in der
+  aktiven Ansicht also nie ein archiviertes Projekt hervor.
+- Rein clientseitig auf dem bereits geladenen, RLS-gefilterten
+  `allProjects` – **keine zusätzliche Abfrage**.
+
+Die **globale Suche** (`js/04-start-suche.js`) wurde nicht angefasst:
+Projekt-Treffer aus v2.45 und der Weg „📂 Öffnen" ins Cockpit sind
+unverändert.
+
+### 55.4 Unverändert erhalten
+
+- **Schnellzugriff „Zuletzt bearbeitet"** (v2.41/v2.42): dieselbe
+  Bestimmung des spätesten echten Bearbeitungszeitpunkts über Projekt +
+  Massaufnahme + Ausmass + Rapport + Dateien, vier gebündelte Abfragen,
+  archivierte Projekte weiterhin ausgeschlossen, keine N+1-Abfragen.
+  Kein Zeichen daran geändert.
+- **Projekt anlegen**: derselbe Insert ohne `company_id` und ohne
+  `status`; der Default `'offen'` und `archived=false` kommen aus der
+  Datenbank, die Ersteller-/Zeitstempel aus dem Trigger (v2.28).
+  Pflichtfelder unverändert.
+- **Löschen**: kein Zeichen der Löschlogik verändert – nur die
+  Beschriftung des Knopfes („🗑 Löschen") und seine Position.
+- **Cockpit**: Projektkopf, Arbeitsstand, die vier Arbeitsbereiche,
+  Verlauf und letzte Aktivität unverändert; es wurde keine parallele
+  Liste gebaut.
+
+### 55.5 Mobile / Tablet
+
+- Hauptaktion „📂 Projekt öffnen": eigene Zeile, volle Breite,
+  `min-height:44px`.
+- Nebenaktionen: `flex:1 1 auto`, `min-height:38px`, umbruchfähig.
+- Titel `flex:1 1 auto; min-width:0; word-break:break-word` und ohne
+  Knopf daneben – eine lange Adresse bricht um, statt etwas zu
+  verdrängen.
+- Status auf eigener Zeile (`.project-row-status`, `flex-wrap:wrap`) –
+  das Badge kann den Titel nicht mehr verdrängen.
+- Keine Animationen, keine festen Breiten, kein horizontales Scrollen.
+
+### 55.6 Datenbank / Sicherheit
+
+**Keine Migration, keine neue Spalte, keine Policy geändert.**
+Verwendet werden ausschliesslich `projects.status`, `projects.archived`,
+`projects.object`, `projects.name`, `projects.order_no`,
+`projects.customer` und die bestehenden Trigger/RLS/Audit-Logik.
+
+Erneut empirisch bestätigt (`begin; … rollback;`, Wegwerf-Firma
+`99999999-…`, PETER KÜNZI AG nur gelesen): ein Benutzer einer fremden
+Firma erreicht mit den vier echten, bekannten Projekt-IDs **nichts** –
+Statusänderung, Archivieren, Umbenennen und Löschen betreffen je 0
+Zeilen, die Projekte bleiben unsichtbar, es entsteht kein Audit-Eintrag.
+Die Projekt-ID aus dem Frontend ist weiterhin nirgends für sich allein
+eine Berechtigung. Rechte-Modell, `permission_settings`/
+`permission_overrides` und das System-Admin-Verhalten wurden nicht
+berührt.
+
+### 55.7 Tests
+
+Neuer Prüfstand `projekte47` (37/37) gegen die echten Funktionen aus
+`js/09-projekte.js` und `js/24-projekt-cockpit.js`:
+aktive Ansicht (nur aktive Projekte, Adresse als Haupttitel, Projektname
+als Zusatz, Status-Badge, Überschrift, Anlegen-Formular sichtbar,
+Hauptaktion und vier Aktionen je Karte), Archivansicht (nur archivierte,
+eigene Überschrift, Anlegen-Formular ausgeblendet, Archiv-Badge,
+Geschäftsstatus weiterhin sichtbar, „Reaktivieren" statt „Archivieren"),
+lokale Suche (Adresse/Projektname/Auftrags-Nr./Auftraggeber, eigene
+Meldung ohne Treffer, findet in der aktiven Ansicht nichts
+Archiviertes, im Archiv dagegen schon), Statusfilter aus v2.46
+weiterhin, beide Leerzustände, geteilter Suchvergleich mit dem
+Vorschlagsfeld, „Bearbeiten" öffnet das Cockpit mit aufgeklappten
+Stammdaten und tut bei fremder ID nichts.
+
+Regression: nav 23/23, suche40 7/7, treffer40 7/7, recent41 12/12,
+stand42 17/17, dateien43 27/27, adresse45 39/39, kopf45 8/8, suche45
+13/13, status46 35/35, ui39 (9 Fälle, rein darstellend).
+`node --check` über alle `js/*.js` und `sw.js` fehlerfrei,
+`<div>`/`</div>` in `index.html` ausgeglichen (654/654, vorher 651/651).
+
+Angepasste Prüfstände (fachlich überholte Erwartungen, **keine**
+Code-Korrekturen): `adresse45` und `status46` prüften bisher, dass die
+Archivumschaltung aktive **und** archivierte Projekte zeigt – seit v2.47
+sind das zwei Ansichten. Beide laden ihren Ausschnitt aus
+`js/09-projekte.js` jetzt ab `projektPasstZuSuche` (statt ab
+`recentZeitText`) und setzen `showArchivedProjects` über einen Setter,
+weil die Variable im ausgewerteten Ausschnitt deklariert ist.
+
+**Live-Klicktest im Browser war in dieser Sitzung technisch nicht
+möglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird hier ausdrücklich nicht
+als getestet behauptet.** Alle Ergebnisse stammen aus SQL-Simulationen
+gegen das echte Produktivschema und aus Prüfständen gegen den echten
+Code.
+
+### 55.8 PETER KÜNZI AG
+
+2 Firmen, 13 Profile, 4 Projekte, 13 Massaufnahmen, 1 Projektdatei,
+70 `permission_overrides`, `companies.updated_at`
+(`2026-09-01 07:40:15.844647+00`) unverändert, keine Wegwerf-Firma
+übrig, der Testmitarbeiter wieder in seiner echten Firma. **Kein Test
+dieser Runde hat Produktivdaten verändert** – alle Schreibversuche
+liefen in `begin; … rollback;`.
+
+**Beobachtung ausserhalb dieser Aufgabe** (nur dokumentiert, nicht
+verursacht und nicht rückgängig gemacht): `audit_log` enthält seit
+02.09.2026, 08:52 **vier echte Einträge** – Mike Ledermann hat die in
+v2.46 ausgelieferte Statusfunktion im Browser real benutzt
+(Projekt 4 „Steildachsanierung" offen→in_arbeit→offen→in_arbeit,
+Projekt 6 „Brandschaden" offen→in_arbeit). Die Einträge zeigen korrekt
+`action='status_changed'`, den richtigen Diff, den richtigen Benutzer
+und die richtige `project_id`. Damit ist der v2.46-Statusweg erstmals
+auch **real im Browser** bestätigt – ausserhalb dieser Sandbox, nicht
+durch einen Test hier. Projekt 4 und 6 stehen dadurch echt auf
+`in_arbeit`; das sind Nutzdaten und bleiben unangetastet.
+
+### 55.9 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/09-projekte.js` | getrennte Aktiv-/Archivansicht, lokale Suche, geteilter Suchvergleich, neue Kartenstruktur, „Bearbeiten"-Aktion, Leerzustände |
+| `js/24-projekt-cockpit.js` | `openProjectCockpitZumBearbeiten()` – öffnet das bestehende Cockpit mit aufgeklappten Stammdaten |
+| `index.html` | Anlegen-Formular als eigener Block, Suchfeld, Überschrift mit ID, neue Knopfbeschriftung, Version 2.47 |
+| `css/01-basis.css` | Statuszeile, Hauptaktion über volle Breite, grössere Trefferflächen, Archiv-Darstellung |
+| `sw.js` | Cache-Version 2.47 |
+
+**Nicht angefasst**: alle zwölf geschützten Fachdateien (`js/10`–`js/17`,
+`js/19`–`js/21`), `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`js/04-start-suche.js`, `js/23-verlauf.js`, `js/22-system-admin.js`,
+`js/05a-rechte.js`, `js/03-login.js`, `js/01-basis.js` – per `git diff`
+bestätigt. Keine Berechnung, keine Stückliste, kein Zuschnitt, kein
+Speicher-Payload, keine PDF-/Drucklogik berührt.
+
+### 55.10 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 55.7).
+- Aus v2.43 weiterhin offen: maximale Projekt-Dateigrösse (Empfehlung
+  25–50 MB je Datei) und die flache Storage-Upload-Erlaubnis als eigene
+  spätere Sicherheitsaufgabe.
+- Aus v2.45 weiterhin offen: die drei Projekt-Auswahlfelder der
+  Erfassung zeigen im Vorschlag weiterhin den Projektnamen fett (zwei
+  davon liegen in geschützten Fachdateien); gesucht wird dort seit v2.47
+  über denselben geteilten Vergleich.
+- Kein Massenbearbeiten (mehrere Projekte gleichzeitig archivieren o. ä.)
+  – war nicht verlangt und hätte ein neues Auswahlkonzept gebraucht.

@@ -373,6 +373,17 @@ function cockpitStammdatenEinklappen(){
  $("cockpitStammdaten").hidden=true;
  $("cockpitToggleStammdaten").textContent="✏️ Stammdaten bearbeiten";
 }
+// v2.47: Aus der Projektuebersicht heraus direkt in die Stammdaten -
+// dasselbe Cockpit, derselbe eine Bearbeitungsbereich, nur bereits
+// aufgeklappt. Kein zweites Formular, keine zweite Speicherlogik.
+async function openProjectCockpitZumBearbeiten(projectId){
+ await openProjectCockpit(projectId);
+ if(!cockpitProject())return;          // fremde/manipulierte ID: nichts tun
+ $("cockpitStammdaten").hidden=false;
+ $("cockpitToggleStammdaten").textContent="▲ Stammdaten schliessen";
+ renderCockpitStammdaten();
+ $("cockpitName").focus();
+}
 $("cockpitToggleStammdaten").onclick=()=>{
  const offen=$("cockpitStammdaten").hidden;
  $("cockpitStammdaten").hidden=!offen;

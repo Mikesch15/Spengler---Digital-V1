@@ -84,11 +84,17 @@ td input,td select{min-height:34px;font-size:12px}
 .cutgrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}.area{background:var(--blue-light);color:var(--blue-dark);border-radius:9px;padding:9px;font-weight:800}
 .project-row{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:6px 0}
 .project-row .project-row-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.project-row .project-row-top b{font-size:14px;flex:1 1 auto;min-width:0;word-break:break-word}
-.project-row .project-row-top button{flex:0 0 auto}
+.project-row .project-row-top b{font-size:15px;flex:1 1 auto;min-width:0;word-break:break-word}
 .project-row .small{margin-top:3px;word-break:break-word}
-.project-row-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.project-row-actions button{padding:6px 10px;font-size:11px}
+/* v2.47: Status auf eigener Zeile - so verdraengt das Badge nie den
+   Titel und die Karte laeuft auf dem Handy nicht seitlich hinaus. */
+.project-row-status{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.pstatus-archiv{color:var(--muted)}
+.project-row-archiviert{opacity:.72}
+/* Hauptaktion: volle Breite, gross genug fuer den Daumen. */
+.project-row-main{display:block;width:100%;min-height:44px;margin-top:9px;text-align:center;font-size:13px}
+.project-row-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.project-row-actions button{flex:1 1 auto;min-height:38px;padding:6px 10px;font-size:11px}
 .report-list{margin-top:8px;border-top:1px solid var(--line);padding-top:8px;display:none}
 .report-list.open{display:block}
 .report-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:var(--blue-light);border-radius:8px;padding:7px 9px;margin:5px 0}
