@@ -135,9 +135,13 @@ async function renderRecentProjects(){
   // gesetzt aber nicht aufloesbar (geloeschter Mitarbeiter) -> wie ueberall
   // sonst "Unbekannter Benutzer".
   const wer=e.wer?(profileName(e.wer)||"Unbekannter Benutzer"):"";
-  const zeile=[e.p.order_no,recentZeitText(e.zeit),wer].map(x=>String(x||"").trim()).filter(Boolean).join(" · ");
+  // v2.45: Adresse ist der Haupttitel, der Projektname bleibt als erste
+  // Zusatzangabe erhalten (und faellt weg, wenn er mangels Adresse
+  // bereits der Haupttitel ist).
+  const titel=projektTitel(e.p);
+  const zeile=infoZeileOhne(titel,e.p.name,e.p.order_no,recentZeitText(e.zeit),wer);
   return `<button type="button" class="recent-project" data-open-recent="${e.p.id}">
-<span class="recent-project-info"><b>📁 ${esc(e.p.name)}</b><span>${esc(zeile)}</span></span>
+<span class="recent-project-info"><b>📁 ${esc(titel)}</b><span>${esc(zeile)}</span></span>
 <span class="recent-project-arrow">›</span>
 </button>`;
  }).join(""):'<div class="empty">Noch keine zuletzt bearbeiteten Projekte.</div>';
@@ -159,9 +163,14 @@ function renderProjectList(){
   // Massaufnahmen (erstelltGeaendertText(), js/16-massaufnahme-
   // formular.js) - siehe CLAUDE.md 36.
   const meta=erstelltGeaendertText(p);
+  // v2.45: Die Adresse ist die Hauptanzeige eines Projekts. Projektname,
+  // Auftrags-Nr. und Auftraggeber bleiben als Zusatzangaben erhalten -
+  // nichts wird geloescht, nur anders gewichtet.
+  const titel=projektTitel(p);
+  const zusatz=infoZeileOhne(titel,p.name,p.order_no,p.customer)||"Keine weiteren Angaben";
   return `<div class="project-row"${p.archived?' style="opacity:.6"':''}>
-<div class="project-row-top"><b>${esc(p.name)}${p.archived?' <span class="small">(archiviert)</span>':''}</b><button class="red" data-del-project="${p.id}">Löschen</button></div>
-<div class="small">${esc(p.order_no||"–")} · ${esc(p.object||"–")} · ${esc(p.customer||"–")}</div>
+<div class="project-row-top"><b>${esc(titel)}${p.archived?' <span class="small">(archiviert)</span>':''}</b><button class="red" data-del-project="${p.id}">Löschen</button></div>
+<div class="small">${esc(zusatz)}</div>
 ${meta?`<div class="small" style="color:var(--muted)">${meta}</div>`:""}
 <div class="project-row-actions">
 <button class="blue" data-open-cockpit="${p.id}">📂 Projekt öffnen</button>
@@ -180,14 +189,17 @@ function datumCH(d){
 }
 // Datum des Eintrags plus, falls vorhanden, wann er zuletzt geaendert
 // wurde (updated_at ist bereits Teil der geladenen Zeile).
-function eintragZusatz(x,ohneDatum){
+// Liefert seit v2.45 die einzelnen Teile, damit die Zusatzzeile zusammen
+// mit den uebrigen Angaben ueber infoZeile() gebaut werden kann - sonst
+// stuende dort ein fuehrendes " · ", wenn ein Eintrag keinen Titel hat.
+function eintragZusatzTeile(x,ohneDatum){
  const teile=[];
  if(!ohneDatum&&x.date)teile.push(datumCH(x.date));
  if(x.updated_at){
   const u=datumCH(x.updated_at);
   if(u&&u!==datumCH(x.date))teile.push("zuletzt geändert "+u);
  }
- return teile.length?" · "+esc(teile.join(" · ")):"";
+ return teile;
 }
 async function loadProjectAusmass(projectId){
  const box=$("cockpitAmBody");
@@ -197,14 +209,20 @@ async function loadProjectAusmass(projectId){
  const list=data||[];
  const typeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
  projectAusmassCache=list;
- box.innerHTML=list.length?list.map(a=>`<div class="report-row">
-<div class="report-row-info"><b>${esc(eintragAdresse(a,a.title))}</b><span>${esc(infoZeileOhne(eintragAdresse(a,a.title),typeLabels[a.type]||a.type,a.title))}${eintragZusatz(a)}</span></div>
+ // v2.45: Im Cockpit steht die Projektadresse einmal oben im Kopf. Die
+ // einzelnen Zeilen zeigen deshalb ihre eigene Art und ihren Titel,
+ // statt dieselbe Adresse bei jedem Eintrag zu wiederholen.
+ box.innerHTML=list.length?list.map(a=>{
+  const art=typeLabels[a.type]||a.type||"Ausmass";
+  return `<div class="report-row">
+<div class="report-row-info"><b>${esc(art)}</b><span>${esc(infoZeileOhne(art,a.title,...eintragZusatzTeile(a))||"Keine weiteren Angaben")}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-ausmass="${a.id}">Öffnen</button>
 <button class="gray" data-print-project-ausmass="${a.id}" title="Drucken">🖨️</button>
 <button class="red" data-del-project-ausmass="${a.id}" title="Löschen">×</button>
 </div>
-</div>`).join(""):'<div class="empty">Noch kein Ausmass zu diesem Projekt.</div>';
+</div>`;
+ }).join(""):'<div class="empty">Noch kein Ausmass zu diesem Projekt.</div>';
  return list.length;
 }
 async function loadProjectReports(projectId){
@@ -217,10 +235,13 @@ async function loadProjectReports(projectId){
  // Kopfdaten, die im Rapport ohnehin schon gespeichert sind (v2.39):
  // Datum als Titelzeile, darunter Auftrags-Nr./Auftraggeber/Objekt.
  box.innerHTML=list.length?list.map(r=>{
-  // Adresse als Haupttitel (v2.44), Kopfdaten des Rapports darunter.
-  const kopf=infoZeileOhne(eintragAdresse(r,r.object),datumCH(r.date),r.order_no,r.customer,r.object);
+  // v2.45: Adresse steht einmal oben im Projektkopf. Der Rapport zeigt
+  // hier seine eigenen Kopfdaten: Datum und Auftrags-Nr. als Titel,
+  // Auftraggeber und Objekt/Gebaeudeteil darunter.
+  const titel=infoZeile(datumCH(r.date),r.order_no)||"Ohne Kopfdaten";
+  const kopf=infoZeileOhne(titel,r.customer,r.object,...eintragZusatzTeile(r,true));
   return `<div class="report-row">
-<div class="report-row-info"><b>${esc(eintragAdresse(r,r.object))}</b><span>${esc(kopf||"Ohne Kopfdaten")}${eintragZusatz(r,true)}</span></div>
+<div class="report-row-info"><b>${esc(titel)}</b><span>${esc(kopf||"Keine weiteren Angaben")}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-report="${r.id}">Öffnen</button>
 <button class="red" data-del-report="${r.id}" title="Löschen">×</button>
@@ -237,16 +258,20 @@ async function loadProjectMeasurements(projectId){
  const list=data||[];
  const typeLabels=MEAS_TYPE_LABELS;
  projectMeasurementsCache=list;
- // Titel zuerst - der Abschnitt heisst bereits "Massaufnahmen", die
- // Wiederholung in der Kopfzeile war verschenkter Platz (v2.39).
- box.innerHTML=list.length?list.map(m=>`<div class="report-row">
-<div class="report-row-info"><b>${esc(eintragAdresse(m,m.title))}</b><span>${esc(infoZeileOhne(eintragAdresse(m,m.title),typeLabels[m.type]||m.type,m.title))}${eintragZusatz(m)}</span></div>
+ // v2.45: Die Projektadresse steht einmal oben im Kopf. Hier ist die
+ // Fachart der Massaufnahme der Haupttitel - sie unterscheidet die neun
+ // Funktionen voneinander; der bisherige Titel bleibt darunter stehen.
+ box.innerHTML=list.length?list.map(m=>{
+  const art=typeLabels[m.type]||m.type||"Massaufnahme";
+  return `<div class="report-row">
+<div class="report-row-info"><b>${esc(art)}</b><span>${esc(infoZeileOhne(art,m.title,...eintragZusatzTeile(m))||"Keine weiteren Angaben")}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>
 <button class="gray" data-print-project-measurement="${m.id}" title="Drucken">🖨️</button>
 <button class="red" data-del-project-measurement="${m.id}" title="Löschen">×</button>
 </div>
-</div>`).join(""):'<div class="empty">Noch keine Massaufnahme zu diesem Projekt.</div>';
+</div>`;
+ }).join(""):'<div class="empty">Noch keine Massaufnahme zu diesem Projekt.</div>';
  return list.length;
 }
 

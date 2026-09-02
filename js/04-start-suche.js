@@ -19,7 +19,13 @@ const debouncedGlobalSearch=debounce(async(q)=>{
   sb.from("ausmass").select("*").ilike("title",like).order("date",{ascending:false}).limit(30),
  ]);
  const qLower=q.toLowerCase();
- const projMatches=allProjects.filter(p=>String(p.name||"").toLowerCase().includes(qLower));
+ // v2.45: Ein Projekt wird ueber seine Adresse erkannt - deshalb wird
+ // jetzt auch danach (und nach Auftrags-Nr./Auftraggeber) gesucht, nicht
+ // nur nach dem Projektnamen. Laeuft weiterhin rein clientseitig auf dem
+ // bereits geladenen, RLS-gefilterten allProjects: keine zusaetzliche
+ // Abfrage, keine neue Datenquelle.
+ const projMatches=allProjects.filter(p=>
+  [p.name,p.object,p.order_no,p.customer].some(v=>String(v||"").toLowerCase().includes(qLower)));
  const projIds=new Set(projMatches.map(p=>p.id));
  let reports=repRes.data||[];
  let measurements=measRes.data||[];
@@ -36,6 +42,8 @@ const debouncedGlobalSearch=debounce(async(q)=>{
   ausmasse=mergeById(ausmasse,a2.data);
  }
  const results=[
+  // Projekte zuerst: sie sind der Einstieg in alles Uebrige (v2.45).
+  ...projMatches.map(p=>({kind:"project",data:p})),
   ...reports.map(r=>({kind:"report",data:r})),
   ...measurements.map(m=>({kind:"measurement",data:m})),
   ...ausmasse.map(a=>({kind:"ausmass",data:a})),
@@ -50,6 +58,17 @@ const debouncedGlobalSearch=debounce(async(q)=>{
  // dafuer ist keine zusaetzliche Abfrage noetig.
  $("globalSearchResults").innerHTML=results.length?results.map((r,i)=>{
   const proj=allProjects.find(p=>p.id===r.data.project_id);
+  // Das Projekt selbst: Adresse als Haupttitel, Name/Auftrags-Nr./
+  // Auftraggeber darunter. Kein Direktweg - ein Projekt wird immer im
+  // Cockpit geoeffnet.
+  if(r.kind==="project"){
+   const titel=projektTitel(r.data);
+   const sub=infoZeileOhne(titel,"Projekt",r.data.name,r.data.order_no,r.data.customer);
+   return `<div class="meas-row">
+<div class="meas-row-info"><b>📁 ${esc(titel)}</b><span>${esc(sub)}</span></div>
+<div class="meas-row-actions"><button class="blue" data-open-search-cockpit="${i}">📂 Öffnen</button></div>
+</div>`;
+  }
   let treffer,art,icon,ersatz;
   if(r.kind==="report"){
    icon="📋";art="Regierapport";
@@ -90,16 +109,19 @@ $("globalSearchResults").addEventListener("click",e=>{
  const c=e.target.closest("[data-open-search-cockpit]");
  if(c){
   const t=globalSearchCache[Number(c.dataset.openSearchCockpit)];
-  if(!t||!t.data.project_id)return;
+  if(!t)return;
+  // Beim Projekt selbst gibt es keinen einzelnen Treffer zum Hervorheben.
+  const pid=t.kind==="project"?t.data.id:t.data.project_id;
+  if(!pid)return;
   $("globalSearchModal").hidden=true;
-  openProjectCockpit(t.data.project_id,{kind:t.kind,id:t.data.id});
+  openProjectCockpit(pid,t.kind==="project"?null:{kind:t.kind,id:t.data.id});
   return;
  }
  // Bisheriger Direktweg - unveraendert.
  const b=e.target.closest("[data-open-search-result]");
  if(!b)return;
  const r=globalSearchCache[Number(b.dataset.openSearchResult)];
- if(!r)return;
+ if(!r||r.kind==="project")return;   // Projekte werden nur im Cockpit geoeffnet
  $("globalSearchModal").hidden=true;
  if(r.kind==="report")openReport(r.data);
  else if(r.kind==="measurement")openMeasurement(r.data);

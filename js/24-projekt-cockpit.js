@@ -67,8 +67,13 @@ async function reportZurueck(){
 function renderCockpitStammdaten(){
  const p=cockpitProject();
  if(!p)return;
- $("cockpitTitle").textContent="📁 "+p.name;
- $("cockpitSubline").textContent=[p.order_no||"–",p.object||"–",p.customer||"–"].join(" · ")+(p.archived?" · archiviert":"");
+ // v2.45: Die Adresse identifiziert das Projekt und steht deshalb genau
+ // einmal - hier oben - als Haupttitel. Die Arbeitszeilen darunter
+ // wiederholen sie nicht mehr. Projektname, Auftrags-Nr. und
+ // Auftraggeber bleiben als Zusatzangaben erhalten.
+ const titel=projektTitel(p);
+ $("cockpitTitle").textContent="📁 "+titel;
+ $("cockpitSubline").textContent=infoZeileOhne(titel,p.name,p.order_no,p.customer,p.archived?"archiviert":"");
  $("cockpitName").value=p.name||"";
  $("cockpitOrderNo").value=p.order_no||"";
  $("cockpitObject").value=p.object||"";

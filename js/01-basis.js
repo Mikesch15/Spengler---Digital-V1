@@ -203,6 +203,19 @@ function eintragAdresse(row,ersatz){
  const e=String(ersatz==null?"":ersatz).trim();
  return e||"Ohne Adresse";
 }
+// Haupttitel eines Projekts (v2.45). Ein Projekt wird ueber seine
+// Adresse erkannt - dieselbe Quelle (projects.object) und dieselbe
+// dreistufige Fallback-Regel wie bei den Arbeitsdatensaetzen, nur ist
+// Stufe 2 hier die eigene Bezeichnung des Projekts (der Projektname).
+// Der Projektname geht dadurch nicht verloren: er bleibt ueberall als
+// Zusatzangabe stehen.
+function projektTitel(p){
+ if(!p)return "Ohne Adresse";
+ const adr=String(p.object||"").trim();
+ if(adr)return adr;
+ const name=String(p.name||"").trim();
+ return name||"Ohne Adresse";
+}
 // Zusatzzeile aus mehreren echten Angaben, leere Teile fallen weg.
 function infoZeile(...teile){
  return teile.map(x=>String(x==null?"":x).trim()).filter(Boolean).join(" · ");
