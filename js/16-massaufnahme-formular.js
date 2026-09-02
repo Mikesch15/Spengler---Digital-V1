@@ -10,6 +10,7 @@ function showMeasTypeSection(type){
  $("measTypeAnschlussblech").hidden=(type!=="anschlussblech");
  $("measTypeEinfassungRund").hidden=(type!=="einfassung_rund");
  $("measTypeKehle").hidden=(type!=="kehle");
+ $("measTypeRinneProfil").hidden=(type!=="rinne");
  if(type==="einlaufblech_gerade")renderEbPiecesTable();
  if(type==="rinne_halbrund")renderRinneResult();
  if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
@@ -19,6 +20,7 @@ function showMeasTypeSection(type){
  if(type==="anschlussblech")renderAnbResult();
  if(type==="einfassung_rund")renderEinfResult();
  if(type==="kehle")renderKehleResult();
+ if(type==="rinne")renderRinneResult();
 }
 $("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
 $("openEinlaufblechSettings").onclick=()=>{
@@ -156,6 +158,30 @@ function buildMeasurementFromForm(){
    ...werte
   }};
  }
+ if(type==="rinne"){
+  // Die Zusatzmasse und Ansetztypen werden als Momentaufnahme
+  // mitgespeichert. Eine spaetere Aenderung in den Einstellungen
+  // veraendert dadurch gespeicherte Rinnenstuecke nicht rueckwirkend.
+  const w=rinneWerte(rinneAktiveWerte);
+  const stuecke=rinneStuecke.map(st=>{
+   const g=rinneStueckRechnen(st,w);
+   const z=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+   return {
+    links:{a:z((st.links||{}).a),b:z((st.links||{}).b),c:z((st.links||{}).c)},
+    rechts:{a:z((st.rechts||{}).a),b:z((st.rechts||{}).b),c:z((st.rechts||{}).c)},
+    laenge:z(st.laenge),ansetzL:st.ansetzL,ansetzR:st.ansetzR,
+    abwicklungLinks:g.abwicklungLinks,abwicklungRechts:g.abwicklungRechts,
+    zuschnitt:g.zuschnitt
+   };
+  });
+  return {...base,photo_path:null,sketch_paths:[],data:{
+   zusatz:w.zusatz,ansetz:w.ansetz,
+   zusatzSumme:rinneZusatzSumme(w.zusatz),
+   rest:rinneRest(w.zusatz),
+   stuecke,
+   material:$("rp_material")?$("rp_material").value:""
+  }};
+ }
  return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{material:$("foto_material")?$("foto_material").value:""}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(Object.assign(buildMeasurementFromForm(),currentMeasurementMeta));
@@ -205,6 +231,10 @@ $("saveMeasurement").onclick=async()=>{
  if(type==="kehle"){
   const g=kehleBerechnen(kehleEingabenAusFeldern());
   if(!g.ok){alert(g.fehler.join("\n"));return}
+ }
+ if(type==="rinne"){
+  if(!rinneStuecke.length){alert("Bitte mindestens ein Rinnenstück erfassen.");return}
+  if(!rinneStuecke.some(st=>Number(st.laenge)>0)){alert("Bitte bei mindestens einem Rinnenstück eine Länge M/M eingeben.");return}
  }
  $("saveMeasurement").disabled=true;
  let platzhalterId=null; // falls hier eine Zeile nur für die Ordner-ID angelegt wird
@@ -846,6 +876,53 @@ ${segmente.map((seg,i)=>`<div style="margin-top:3mm">
 }).join("")}</tbody>
 </table>
 </div>`).join("")}
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="rinne"){
+  // Nutzt den zentralen PDF-Kopf und die bestehenden Drucktabellen.
+  // Gerechnet wird nur mit den im Datensatz gespeicherten Werten,
+  // damit ein spaeter gedrucktes PDF unveraendert bleibt.
+  const d=m.data||{};
+  const w=rinneWerte({zusatz:d.zusatz,ansetz:d.ansetz});
+  const stuecke=Array.isArray(d.stuecke)?d.stuecke:[];
+  const matName=(findMeasurementMaterial(d.material)||{}).name;
+  const mm=v=>{const n=Number(v);return Number.isFinite(n)?(Math.round(n*10)/10).toLocaleString("de-CH"):"\u2013"};
+  const abc=o=>{const q=o||{};return `${mm(q.a)} / ${mm(q.b)} / ${mm(q.c)}`};
+  const wert=st=>{
+   // Gespeicherte Ergebnisse bevorzugen, sonst aus den mitgespeicherten
+   // Werten neu rechnen (aeltere Datensaetze ohne Ergebnisfelder).
+   const g=rinneStueckRechnen(st,w);
+   return {
+    l:st.abwicklungLinks!==undefined&&st.abwicklungLinks!==null?st.abwicklungLinks:g.abwicklungLinks,
+    r:st.abwicklungRechts!==undefined&&st.abwicklungRechts!==null?st.abwicklungRechts:g.abwicklungRechts,
+    z:st.zuschnitt!==undefined&&st.zuschnitt!==null?st.zuschnitt:g.zuschnitt
+   };
+  };
+  const summeZuschnitt=stuecke.reduce((s2,st)=>s2+Number(wert(st).z||0),0);
+  const erstes=stuecke[0];
+  const skizze=rinneSvg(erstes?erstes.links:{a:"",b:"",c:""},w,null);
+  bodyHtml=`${kopfHtml}
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell2("Material",esc(matName||"\u2013"))}${cell2("Zusatzmasse (Summe)",esc(mm(rinneZusatzSumme(w.zusatz))+" mm"))}</tr>
+<tr>${cell2("Dachanschluss",esc(mm(w.zusatz.anschluss_flachdach)+" mm"))}${cell2("Keil links / rechts",esc(mm(w.zusatz.keil_links)+" / "+mm(w.zusatz.keil_rechts)+" mm"))}</tr>
+<tr>${cell2("Rest",esc(mm(rinneRest(w.zusatz))+" mm"))}${cell2("St\u00fccke",esc(String(stuecke.length)))}</tr>
+</table>
+<div class="eb-section-head">Profilskizze</div>
+<div class="eb-diagram">${skizze}</div>
+<div class="eb-section-head">Rinnenst\u00fccke</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Links A/B/C</th><th>L\u00e4nge M/M</th><th>Rechts A/B/C</th><th>Ansetzen L</th><th>Ansetzen R</th><th>Abw. L</th><th>Abw. R</th><th>Zuschnitt</th></tr></thead>
+<tbody>${stuecke.map((st,i)=>{
+ const g=wert(st);
+ return `<tr><td>${i+1}</td><td>${esc(abc(st.links))}</td><td>${esc(mm(st.laenge))}</td><td>${esc(abc(st.rechts))}</td>`
+  +`<td>${esc(RINNE_ANSETZ_LABELS[st.ansetzL]||st.ansetzL||"")}</td><td>${esc(RINNE_ANSETZ_LABELS[st.ansetzR]||st.ansetzR||"")}</td>`
+  +`<td>${esc(mm(g.l))}</td><td>${esc(mm(g.r))}</td><td>${esc(mm(g.z))}</td></tr>`;
+}).join("")}</tbody>
+</table>
+<table class="eb-info-table" style="margin-top:2mm">
+<tr>${cell2("Zuschnittl\u00e4nge gesamt",esc(mm(summeZuschnitt)+" mm"))}<td></td></tr>
+</table>
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="kehle"){

@@ -385,6 +385,8 @@ function newMeasurementWithType(type){
  einfFormularZuruecksetzen();
  $("einf_material").value="";
  kehleFormularZuruecksetzen();
+ rinneFormularZuruecksetzen();
+ $("rp_material").value="";
  setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
@@ -484,6 +486,8 @@ function openMeasurement(m){
  einfFormularFuellen(m.type==="einfassung_rund"?d:null);
  $("einf_material").value=(m.type==="einfassung_rund"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
  kehleFormularFuellen(m.type==="kehle"?d:null);
+ rinneFormularFuellen(m.type==="rinne"?d:null);
+ $("rp_material").value=(m.type==="rinne"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
  updateMeasFormTitle();

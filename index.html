@@ -92,7 +92,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.55</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.56</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -112,6 +112,7 @@
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="anschlussblech"><span class="start-nav-icon">📐</span><span>Ort- und Seitenbleche</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="einfassung_rund"><span class="start-nav-icon">⭕</span><span>Einfassung Rund</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="kehle"><span class="start-nav-icon">📏</span><span>Kehle</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="rinne"><span class="start-nav-icon">🚰</span><span>Rinne</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
 <button id="cancelMeasTypeChooser" class="gray">Abbrechen</button>
@@ -614,7 +615,7 @@ Diese Aktion löscht unwiderruflich:
 <button type="button" id="measVerlaufToggle" class="gray" style="margin-bottom:8px" hidden>🕒 Verlauf anzeigen</button>
 <div id="measVerlaufBody" class="report-list"></div>
 <div class="grid" style="margin-bottom:8px">
-<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="anschlussblech">Ort- und Seitenbleche</option><option value="einfassung_rund">Einfassung Rund</option><option value="kehle">Kehle</option></select></div>
+<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="anschlussblech">Ort- und Seitenbleche</option><option value="einfassung_rund">Einfassung Rund</option><option value="kehle">Kehle</option><option value="rinne">Rinne</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
 <div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
@@ -858,6 +859,29 @@ Diese Aktion löscht unwiderruflich:
 <div id="einf_warnung" class="small"></div>
 <h2 style="margin-top:14px">Ergebnis</h2>
 <div class="grid" id="einf_ergebnis"></div>
+</div>
+
+<div id="measTypeRinneProfil" hidden>
+<div class="info">Zuschnittliste f&uuml;r Rinnen. Die Berechnung entspricht exakt der Vorlage &bdquo;Zuschnittliste Rinnen&ldquo;:
+<b>Abwicklung = A + B + C + Summe der Zusatzmasse</b>, <b>Zuschnittl&auml;nge = L&auml;nge M/M + Ansetzen links + Ansetzen rechts</b>.
+Beim Anlegen eines neuen St&uuml;cks werden A/B/C rechts des vorherigen St&uuml;cks als links &uuml;bernommen und bleiben frei &auml;nderbar.</div>
+<div class="grid">
+<div><label>Material</label><select id="rp_material" class="meas-material-select"></select></div>
+</div>
+<div class="small" id="rp_zusatzHint" style="margin:6px 0"></div>
+<div class="bar" style="margin-bottom:10px"><button id="openRinneProfilSettings" class="gray">&#9881;&#65039; Zusatzmasse &amp; Ansetztypen</button></div>
+
+<div id="rp_diagram" class="eb-diagram-box" style="margin-top:10px"></div>
+
+<h2 style="margin-top:14px">Rinnenst&uuml;cke</h2>
+<div class="small" id="rp_summary" style="margin-bottom:4px"></div>
+<div class="scroll">
+<table class="rp-table">
+<thead><tr><th>Nr.</th><th>Links A / B / C (mm)</th><th>L&auml;nge M/M (mm)</th><th>Rechts A / B / C (mm)</th><th>Ansetzen L</th><th>Ansetzen R</th><th>Abw. L (mm)</th><th>Abw. R (mm)</th><th>Zuschnitt (mm)</th><th></th></tr></thead>
+<tbody id="rp_stueckeBody"></tbody>
+</table>
+</div>
+<div class="bar" style="margin-top:8px"><button id="rp_addStueck" class="blue">&#65291; Neues Rinnenst&uuml;ck</button></div>
 </div>
 
 <div id="measTypeKehle" hidden>
@@ -1178,6 +1202,35 @@ Diese Aktion löscht unwiderruflich:
 </div>
 </div>
 
+<div class="settings-section" data-section="rinne-profil">
+<div class="settings-section-head" data-toggle-section="rinne-profil"><h2>Rinne &ndash; Zusatzmasse &amp; Ansetztypen</h2><span class="settings-section-chevron">&rsaquo;</span></div>
+<div class="settings-section-body">
+<div class="info">Werte der Vorlage &bdquo;Zuschnittliste Rinnen&ldquo;. Die sechs Zusatzmasse werden zu jeder Abwicklung dazugez&auml;hlt (Excel: <b>Abw. = A + B + C + Summe</b>). Die Ansetztypen werden zur L&auml;nge M/M addiert bzw. davon abgezogen (Excel: <b>Zuschnitt = L&auml;nge + Ansetzen L + Ansetzen R</b>). Gilt nur f&uuml;r dieses Ger&auml;t. <b>Bereits gespeicherte Rinnen-Massaufnahmen bleiben unver&auml;ndert</b> &ndash; sie behalten die Werte, die beim Speichern gegolten haben.</div>
+<h2 style="font-size:12px;margin-top:6px">Zusatzmasse (Summe: <span id="rpsSumme">510 mm</span>)</h2>
+<div class="grid" style="margin-bottom:10px">
+<div><label>Umschlag Flachdachseite (mm)</label><input id="rpsUmschlagFlachdach" type="number" step="1"></div>
+<div><label>Anschl. Flachdach (mm)</label><input id="rpsAnschlussFlachdach" type="number" step="1"></div>
+<div><label>Keil links (mm)</label><input id="rpsKeilLinks" type="number" step="1"></div>
+<div><label>Keil rechts (mm)</label><input id="rpsKeilRechts" type="number" step="1"></div>
+<div><label>Anschl. Unterdach (mm)</label><input id="rpsAnschlussUnterdach" type="number" step="1"></div>
+<div><label>Umschlag Unterdachseite (mm)</label><input id="rpsUmschlagUnterdach" type="number" step="1"></div>
+</div>
+<h2 style="font-size:12px">Ansetztypen (Zugabe + / Abzug &minus;)</h2>
+<div class="grid" style="margin-bottom:10px">
+<div><label>Dila (mm) &middot; 1/2 Dila inkl. Naht</label><input id="rpsDila" type="number" step="1"></div>
+<div><label>Boden (mm)</label><input id="rpsBoden" type="number" step="1"></div>
+<div><label>Ablauf (mm) &middot; Zugabe/Abzug bei Ablauf</label><input id="rpsAblauf" type="number" step="1"></div>
+<div><label>Gehrung (mm) &middot; Zugabe bei Gehrung</label><input id="rpsGehrung" type="number" step="1"></div>
+<div><label>Naht (mm) &middot; Nahtzugabe</label><input id="rpsNaht" type="number" step="1"></div>
+<div><label>Nichts (mm)</label><input id="rpsNichts" type="number" step="1"></div>
+</div>
+<div class="bar" style="margin-bottom:14px">
+<button id="saveRinneProfilSettings" class="green">&#128190; Werte speichern</button>
+<button id="resetRinneProfilSettings" class="gray">Auf Excel-Standardwerte zur&uuml;cksetzen</button>
+</div>
+</div>
+</div>
+
 <div class="settings-section" data-section="rinne">
 <div class="settings-section-head" data-toggle-section="rinne"><h2>Rinne Halbrund – Anschlusstypen</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
@@ -1402,6 +1455,7 @@ Diese Aktion löscht unwiderruflich:
 <script src="js/23-verlauf.js"></script>
 <script src="js/24-projekt-cockpit.js"></script>
 <script src="js/25-kehle.js"></script>
+<script src="js/26-rinne.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>
 </html>

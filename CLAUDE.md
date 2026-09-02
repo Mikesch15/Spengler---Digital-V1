@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.55, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.56, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.55**
+- sichtbare App-Version: **2.56**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -67,7 +67,7 @@ Bestehende Funktionen dürfen bei Änderungen nicht einfach entfernt oder durch 
 
 ## 3. MASSAUFNAHME – vollständige aktuelle Funktionsliste
 
-Die **Massaufnahme besteht aktuell aus ZEHN Funktionen**:
+Die **Massaufnahme besteht aktuell aus ELF Funktionen**:
 
 1. **Skizze / Foto**
 2. **Einlaufblech gerade**
@@ -79,8 +79,9 @@ Die **Massaufnahme besteht aktuell aus ZEHN Funktionen**:
 8. **Ort- und Seitenbleche**
 9. **Einfassung Rund**
 10. **Kehle**
+11. **Rinne**
 
-Diese zehn Funktionen müssen bei Refactorings, Tests, Berechtigungen, PDF-Ausgabe, Speichern/Laden und zukünftiger Weiterentwicklung berücksichtigt werden.
+Diese elf Funktionen müssen bei Refactorings, Tests, Berechtigungen, PDF-Ausgabe, Speichern/Laden und zukünftiger Weiterentwicklung berücksichtigt werden.
 
 Die Auswahl wird im aktuellen `main` über `data-choose-meas-type` abgebildet. Die zugehörigen Typen sind:
 
@@ -94,6 +95,7 @@ Die Auswahl wird im aktuellen `main` über `data-choose-meas-type` abgebildet. D
 - `anschlussblech`
 - `einfassung_rund`
 - `kehle`
+- `rinne`
 
 ### 3.1 Skizze / Foto
 
@@ -279,6 +281,31 @@ Bestehende Kernfunktion:
 **Die Formeln dürfen nur gegen die Excel-Vorlage geändert werden, nie
 gegen eine Nacherzählung davon** – siehe Abschnitt 60.2, wo vier
 Abweichungen zwischen dem Auftragstext und der Excel dokumentiert sind.
+
+### 3.11 Rinne
+
+Interner Typ: `rinne`
+
+Zuschnittliste für Rinnen, neu in Version 2.56 (Abschnitt 64). Fachliche
+Referenz ist ausschliesslich die Vorlage „Zuschnittliste Rinnen.xlsx",
+Blatt „Tabelle1".
+
+Bestehende Kernfunktion:
+- mehrere Rinnenstücke je Massaufnahme
+- je Stück: links A/B/C, rechts A/B/C, Länge M/M, Ansetzen links/rechts
+- automatische Verkettung: rechts des Stücks N wird links des Stücks N+1
+  (nur beim Anlegen, danach frei änderbar, nie rückwirkend)
+- Abwicklung links/rechts, finale Zuschnittlänge
+- dynamische SVG-Profilskizze
+- Zusatzmasse und Ansetztypen zentral in den Einstellungen
+- Material
+- Speichern/Laden
+- PDF/Druck
+
+**Die drei Formeln dürfen nur gegen die Excel geändert werden:**
+`Abw. L = A + B + C + Summe der Zusatzmasse`,
+`Abw. R = A + B + C + Summe der Zusatzmasse`,
+`Zuschnitt = Länge M/M + Ansetzen L + Ansetzen R`.
 
 ## 4. AUSMASS – separater Bereich
 
@@ -566,7 +593,7 @@ Vor einer grösseren Änderung:
 
 **Nicht einfach alte oder vereinfachte Versionen aus anderen Branches übernehmen.**
 
-Insbesondere bei Massaufnahmen immer prüfen, ob alle zehn Funktionen noch funktionieren:
+Insbesondere bei Massaufnahmen immer prüfen, ob alle elf Funktionen noch funktionieren:
 
 - Skizze/Foto
 - Einlaufblech gerade
@@ -578,6 +605,7 @@ Insbesondere bei Massaufnahmen immer prüfen, ob alle zehn Funktionen noch funkt
 - Ort- und Seitenbleche
 - Einfassung Rund
 - Kehle
+- Rinne
 
 ## 17. Git-Regeln
 
@@ -9287,3 +9315,306 @@ jedes `.eb-diagram svg` auf die gemessene Inhalts-Bounding-Box
 zuschneidet). **Bewusst nicht umgesetzt**: der Auftrag listet
 „Fotos, Skizzen" ausdrücklich unter „nicht verändern" und betrifft den
 Kopf. Für eine eigene, bewusste Entscheidung vorgemerkt.
+
+## 64. NEUE MASSAUFNAHME „RINNE" (ZUSCHNITTLISTE) — VERSION 2.56
+
+Elfte Massaufnahme-Funktion: Zuschnittliste für Rinnen. **Keine
+Schemaänderung, keine Migration, keine RLS-/Storage-Änderung** und keine
+Zeile an einer der bestehenden zehn Berechnungen.
+
+### 64.1 Excel vollständig ausgelesen und nachgerechnet
+
+Die Vorlage wurde ausgepackt und Zelle für Zelle gelesen
+(`xl/worksheets/sheet1.xml`, ein Blatt „Tabelle1", Datenzeilen 7–41).
+Anschliessend wurde **jede der 35 Datenzeilen** gegen die hier
+umgesetzten Formeln nachgerechnet: **105 Werte, keine einzige
+Abweichung.**
+
+Formeln (wörtlich aus der Excel):
+
+| Excel | Formel | Bedeutung |
+|---|---|---|
+| `N7` | `B7+C7+D7+$R$14` | Abw. L = Links A + B + C + Summe |
+| `O7` | `E7+F7+G7+$R$14` | Abw. R = Rechts A + B + C + Summe |
+| `M7` | `L7+IFERROR(VLOOKUP(I7,$U$8:$V$13,2,FALSE),0)+IFERROR(VLOOKUP(K7,$U$8:$V$13,2,FALSE),0)` | Zuschnitt = Länge M/M + Ansetzen L + Ansetzen R |
+| `R14` | `SUM(R8:R13)` = **510** | Summe der Zusatzmasse |
+| `B8/C8/D8` | `=E7 / =F7 / =G7` | Verkettung rechts → links |
+
+Es wird **nichts gerundet** – alle Excel-Werte sind ganzzahlige
+Millimeter, die Summe einer Summe bleibt exakt.
+
+**Zusatzmasse (Excel R8:S13):**
+
+| Zeile | Bezeichnung (Spalte S) | mm |
+|---|---|---|
+| R8 | Umschlag | 15 |
+| R9 | Anschl. Flachdach | 150 |
+| R10 | Keil | 40 |
+| R11 | Keil | 40 |
+| R12 | Anschl. Unterdach | 250 |
+| R13 | Umschlag | 15 |
+| **R14** | **Summe** | **510** |
+
+**Ansetztypen (Excel U8:V13, Dropdown `I7:I41` und `K7:K41` über
+`$U$8:$U$13`):**
+
+| Dropdown | mm | Beschreibung (Spalte W) |
+|---|---|---|
+| Dila | −165 | 1/2 Dila inkl. Naht |
+| Boden | 0 | – |
+| Ablauf | −230 | Zugabe/Abzug bei Ablauf |
+| Gehrung | +250 | Zugabe bei Gehrung |
+| Naht | +15 | Nahtzugabe |
+| Nichts | (V13 leer) | von `IFERROR` als 0 gefangen |
+
+### 64.2 Drei Abweichungen zwischen Auftragstext und Excel
+
+Abschnitt 9 des Auftrags nennt eine vorläufige Werteliste und verlangt
+ausdrücklich, sie vor der Umsetzung gegen die Excel zu prüfen. Dabei
+zeigten sich drei Punkte – massgeblich ist jeweils die Excel:
+
+1. **„Naht 15 mm" ist kein Zusatzmass.** Die Excel führt Naht +15
+   ausschliesslich als **Ansetztyp** (V12), nicht in der Zusatzmass-
+   Tabelle R8:R13. Wäre Naht dort mitgezählt worden, ergäbe die Summe
+   525 statt 510 und **jede** Abwicklung wäre um 15 mm zu gross.
+2. **Umschlag und Keil kommen je zweimal vor.** Die Auftragsliste nennt
+   beide einmal; in der Excel stehen Umschlag 15 in R8 **und** R13 und
+   Keil 40 in R10 **und** R11. Nur mit je zwei Einträgen kommt die
+   Summe 510 zustande (15+150+40+40+250+15).
+3. **Die Reihenfolge R8..R13 ist zugleich der Profilverlauf.** Die
+   beiden Keil-Zeilen (R10/R11) stehen genau dort, wo A/B/C liegen.
+   Daraus ergibt sich der Verlauf
+   `Umschlag – Anschl. Flachdach – Keil – A – B – C – Keil – Anschl.
+   Unterdach – Umschlag`. Das ist die Grundlage der Skizze; für die
+   Rechnung selbst ist die Reihenfolge ohne Bedeutung (reine Addition).
+
+### 64.3 Fix, dynamisch und „Rest"
+
+| Auftrag | Umsetzung |
+|---|---|
+| 40 mm Kante links | `keil_links` (Excel R10) |
+| 40 mm Kante rechts | `keil_rechts` (Excel R11) |
+| 150 mm Dachanschluss | `anschluss_flachdach` (Excel R9) |
+| A, B, C | je Stück und je Seite erfasst |
+| Rest | `umschlag_flachdach + anschluss_unterdach + umschlag_unterdach` = 15+250+15 = **280** |
+
+„Rest" ist **nirgends als Zahl hart codiert**, sondern wird immer aus
+`RINNE_REST_TEILE` über dieselbe Wertetabelle gebildet – ebenso die
+Summe 510. Der Prüfstand kontrolliert das ausdrücklich: die Zahlen
+`510` und `280` kommen im Code gar nicht vor, `150` genau einmal (in
+der Standardtabelle), `40` genau zweimal.
+
+### 64.4 Verkettung
+
+`rinneNeuesStueck()` übernimmt beim **Anlegen** eines neuen Stücks
+A/B/C der rechten Seite des letzten Stücks als linke Seite. Danach ist
+der Wert eine gewöhnliche, frei änderbare Eingabe. Es gibt keinerlei
+Rückkopplung: eine spätere Änderung an Stück 1 lässt Stück 2 und 3
+unberührt.
+
+Das entspricht auch der Excel: nur die Zeilen 8 und 9 tragen noch die
+Formel `=E7` usw.; ab Zeile 10 sind es getippte Werte, und in vier
+Fällen weicht der übernommene Wert bewusst ab – `C36` trägt sogar die
+Formel `=F35+5`. Die Verkettung ist dort also ebenfalls eine Vorgabe,
+die überschrieben werden darf.
+
+### 64.5 Einstellungen ändern nichts rückwirkend
+
+Zusatzmasse und Ansetztypen liegen zentral in den Einstellungen
+(Massaufnahmen → „Rinne – Zusatzmasse & Ansetztypen"), pro Gerät im
+`localStorage` – dasselbe Muster wie Anschlussblech und Einfassung Rund.
+
+Beim Speichern legt `buildMeasurementFromForm()` eine **Momentaufnahme**
+der gerade gültigen Werte mit in `measurements.data` ab (`data.zusatz`,
+`data.ansetz`). Beim Öffnen rechnet die App mit dieser Kopie, nicht mit
+den aktuellen Einstellungen. Eine spätere Änderung in den Einstellungen
+verändert deshalb kein gespeichertes Rinnenstück – im Prüfstand
+ausdrücklich nachgewiesen (Abschnitt 7 von `rinne56`).
+
+### 64.6 Datenstruktur – keine Migration
+
+`measurements.data` ist `jsonb NOT NULL` (direkt am Schema geprüft) und
+`measurements.type` hat **keine CHECK-Constraint** (nur vier
+Fremdschlüssel/Primärschlüssel). Ein neuer Typ und eine neue
+Datenstruktur brauchen deshalb **weder eine neue Tabelle noch eine neue
+Spalte noch eine Migration**.
+
+```
+data = {
+  zusatz: {umschlag_flachdach, anschluss_flachdach, keil_links,
+           keil_rechts, anschluss_unterdach, umschlag_unterdach},
+  ansetz: {dila, boden, ablauf, gehrung, naht, nichts},
+  zusatzSumme, rest, material,
+  stuecke: [{links:{a,b,c}, rechts:{a,b,c}, laenge,
+             ansetzL, ansetzR,
+             abwicklungLinks, abwicklungRechts, zuschnitt}]
+}
+```
+
+Die Ergebnisse werden mitgespeichert, damit ein später gedrucktes PDF
+unverändert bleibt – gleiches Vorgehen wie bei Anschlussblech,
+Einfassung Rund und Kehle.
+
+Tenant-Trennung, RLS, Ersteller-/Bearbeiter-Trigger (v2.28) und das
+Audit-Log (v2.30) gelten unverändert und ohne eine Zeile neuen Code:
+in der rollbacked SQL-Probe wurde `created_by` korrekt aus `auth.uid()`
+gesetzt und ein `created`-Eintrag im `audit_log` geschrieben.
+
+### 64.7 SVG-Skizze
+
+`rinneSvg()` zeichnet den Profilschnitt aus `RINNE_PROFIL` – einer
+einzigen Tabelle, die je Segment Quelle (fix/dynamisch), Knickwinkel und
+die Seite der Beschriftung festlegt. Die Skizze **rechnet nichts**, sie
+stellt nur die Eingaben dar.
+
+- gleicher Massstab in x und y → keine Verzerrung
+- die viewBox wird **nach** dem Zeichnen exakt um alles Gezeichnete
+  gelegt, einschliesslich der geschätzten Textkästen jeder Beschriftung.
+  Ohne das liefen die beiden Umschlag-Fahnen aus dem Bild – im visuellen
+  PDF-Prüfstand tatsächlich gemessen und dort behoben.
+- Beschriftungen zeigen nach aussen. Für den Boden B ist das die
+  Gegenseite (`seite: -1`), sonst zeigte die Beschriftung in die Wanne.
+- Die zwei Umschlag-Fahnen zeigen nach unten aussen, weil ihre
+  Nachbarsegmente nach oben beschriftet sind – sonst überdeckten sich
+  die Texte.
+- Fusszeile mit Rest und Abwicklungsformel bekommt eigenen Platz unter
+  der Zeichnung.
+- Alle Sonderfälle liefern eine gültige SVG ohne `NaN`/`Infinity`:
+  leere Felder, Text statt Zahl, `NaN`, `±Infinity`, 0, negative Werte,
+  sehr grosse und sehr kleine Profile.
+
+### 64.8 PDF
+
+Verwendet den **zentralen** Kopf `pdfKopfHtml()` und die bestehenden
+Drucktabellen aus v2.53/v2.54 – **kein eigener Kopf**. Ausgegeben
+werden Adresse/Projekt, Dokumenttyp Massaufnahme · Rinne,
+Bearbeiter/Datum, die Angaben (Material, Zusatzmasse-Summe,
+Dachanschluss, Keil links/rechts, Rest, Stückzahl), die Profilskizze,
+die vollständige Stückliste mit Abwicklung links/rechts und
+Zuschnittlänge, die Gesamtsumme und die Notiz.
+
+Gerechnet wird beim Druck ausschliesslich mit den **im Datensatz
+gespeicherten** Werten.
+
+### 64.9 Tests
+
+**`rinne56` – 317/317** (Excel gegen JavaScript):
+- alle sechs Zusatzmasse und alle sechs Ansetztypen gegen die Excel,
+  Summe 510, Dropdown-Reihenfolge, Rest 280
+- **alle 35 Datenzeilen** der Excel: Abw. L, Abw. R und Zuschnittlänge,
+  Toleranz 1e-9 (rein technische Floating-Point-Toleranz)
+- alle 36 Kombinationen der sechs Ansetztypen links × rechts
+- Standardfall, kurze Rinne (500 mm), lange Rinne (12 000 mm),
+  unterschiedliche A/B/C, alle Masse 0, leere Felder, Text statt Zahl,
+  negativer Zuschnitt, unbekannter Ansetztyp (`IFERROR` → 0)
+- geänderte Einstellungen, teilweise gesetzte Werte (Rückfall auf den
+  Excel-Standard)
+- Verkettung: Stück 1 → 2 → 3, Übernahme editierbar, Änderung an Stück 1
+  verändert Stück 2 und 3 **nicht**
+- gespeicherte Stücke bleiben von Einstellungsänderungen unberührt
+- neun SVG-Fälle inkl. NaN/Infinity/negativ/sehr gross
+- Integration (Katalog, Knopf, Option, Formular, Einstellungen, Script,
+  Service Worker, Version, alle fünf Stellen in js/16 und js/10)
+- Kontrolle, dass 510/280/150/40 nicht mehrfach hart codiert sind
+
+**Gegenprobe:** mit einem absichtlich um 1 mm verfälschten Ablauf-Wert
+meldet der Prüfstand 15 Fehlschläge – er kann also wirklich fehlschlagen.
+
+**`breite56` – 40/40** (echtes Chromium, fünf Gerätebreiten 320/360/412/
+768/1280 px): nichts läuft seitlich hinaus, Seite und Modal scrollen
+nicht horizontal, die Skizze passt in die Breite, kein NaN, und die
+angezeigten Zuschnitt-/Abwicklungswerte stimmen mit der Excel überein.
+
+**`pdf52` – 460/460** (vorher 416/416): zwei neue Rinnen-Dokumente
+(sieben Stücke und ein Stück) werden wirklich als PDF gerendert; geprüft
+werden Kopfgleichheit, Typografie, Umbruchregeln, kein NaN, kein
+Bildschirm-UI und dass nichts über die Druckbreite läuft.
+
+**Datenbank** (Wegwerf-Firma, `begin; … rollback;`): Rinnen-Datensatz
+gespeichert, `created_by` aus `auth.uid()`, `audit_log`-Eintrag
+`created`, Verkettung im gespeicherten JSON nachweisbar, Werte 976 und
+1280 unverändert – und mit den vier echten Projekt-IDs der
+PETER KÜNZI AG als fremde Firma **je 0 Zeilen** sichtbar.
+
+**Regression** – alle bestehenden Prüfstände grün: nav, suche40,
+treffer40, recent41, stand42, dateien43, ui39, adresse45 39/39,
+kopf45 8/8, suche45 13/13, status46 35/35, projekte47 37/37,
+auswahl48 32/32, dateien49 38/38, medien50 42/42, hidden51 7/7,
+kehle52 698/698, kehleintegration52 76/76, breite52 52/52,
+pfade55 37/37, pdf52 460/460.
+
+Zwei Prüfstände hatten eine **fachlich überholte Erwartung** („genau
+zehn Massaufnahme-Arten") und wurden auf elf angepasst – das ist keine
+Regression, sondern der Zweck dieser Version.
+
+`node --check` über alle 28 `js/*.js` und `sw.js` fehlerfrei,
+`<div>`/`</div>` in `index.html` ausgeglichen (701/701, vorher 672/672),
+keine doppelten Element-IDs.
+
+**Live-Klicktest im Browser gegen Supabase war nicht möglich** – die
+Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird hier ausdrücklich nicht
+als getestet behauptet.** Geprüft sind die Rechenlogik gegen die echten
+Excel-Werte, Formular und Skizze live in echtem Chromium, die
+PDF-Ausgabe als wirklich gerendertes PDF und die Datenbankseite als
+RLS-/Trigger-Simulation gegen das echte Produktivschema.
+
+### 64.10 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/26-rinne.js` | **neu** – Konstanten, Einstellungen, Berechnung, SVG, Stückliste, Formular |
+| `index.html` | Auswahlknopf, `<option>`, Formularblock, Einstellungsblock, Script-Tag, Version 2.56 |
+| `js/16-massaufnahme-formular.js` | **+77 Zeilen, 0 gelöscht** – Sektion, Render, Payload, Pflichtprüfung, Druckzweig |
+| `js/10-massaufnahme.js` | **+4 Zeilen, 0 gelöscht** – zurücksetzen und füllen |
+| `js/01-basis.js` | eine Zeile: `rinne:"Rinne"` im Typkatalog |
+| `css/01-basis.css` | Stile der Stückliste (mit ausdrücklichem `min-width`, siehe Abschnitt 60.5) |
+| `sw.js` | Cache-Version 2.56, neue Datei im SHELL |
+
+**Nicht angefasst** (per `git diff` einzeln bestätigt): `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js`, `css/03-druck.css` (Regierapport), sowie
+`js/11`–`js/15`, `js/17`, `js/19`–`js/21`, `js/25` und alle übrigen
+Fach-, Login-, Rechte-, Cockpit-, Such-, Verlaufs- und
+System-Admin-Dateien. Keine Berechnung, keine Stückliste, kein
+Zuschnitt, keine Abwicklung, kein Speicher-Payload und keine
+PDF-/Drucklogik einer bestehenden Art berührt.
+
+### 64.11 PETER KÜNZI AG
+
+Vor und nach allen Tests identisch: 2 Firmen, 13 Profile, 4 Projekte,
+15 Massaufnahmen, 2 Ausmasse, 4 Rapporte, 1 Projektdatei, 10
+`audit_log`-Zeilen, `companies.updated_at` unverändert
+(`2026-09-01 07:40:15.844647+00`), Mike Ledermann wieder in seiner
+echten Firma, keine Wegwerf-Firma und kein Testdatensatz übrig. Alle
+schreibenden Tests liefen in `begin; … rollback;`.
+
+**Beobachtung ausserhalb dieser Aufgabe** (nur dokumentiert, nicht
+verursacht): seit der letzten Runde sind aus 13 Massaufnahmen 15 und aus
+4 `audit_log`-Zeilen 10 geworden – reale Nutzung der App durch den
+Betreiber. Nicht angetastet.
+
+### 64.12 Offene Punkte
+
+- Kein Live-Klicktest im Browser gegen Supabase möglich (siehe 64.9).
+- **Der Profilverlauf der Skizze** (Reihenfolge und Knickwinkel) folgt
+  der Zeilenreihenfolge R8..R13 der Excel und der Beschreibung im
+  Auftrag. Die Excel selbst enthält **keine Winkel und keine Geometrie**
+  – nur die sechs additiven Werte. Die Zuordnung „A = hintere
+  Aufkantung, B = Boden, C = vordere Aufkantung" ist deshalb eine
+  Darstellungsannahme aus den Wertebereichen der Excel (B ist durchweg
+  der grösste Wert) und beeinflusst **keine** Berechnung.
+- Die Spalten `H`, `J` und `P` der Excel (Wahr/Falsch-Schalter) speisen
+  ausschliesslich einen Zählblock `S18:S23`, der nur die Zeilen 7–35 von
+  41 erfasst und dessen Zellen `S20:S23` gar keine Formel mehr tragen
+  (eingefrorene Werte). Der Block ist in sich unstimmig und wurde
+  bewusst **nicht** übernommen. Stattdessen zählt die App die tatsächlich
+  verwendeten Ansetztypen über **alle** erfassten Stücke und zeigt das
+  als Zusammenfassung an.
+- Kein Detail-Diff der Rinnenstücke im Änderungsverlauf – wie bei den
+  Array-Strukturen der übrigen Arten (Klasse C, siehe 42.2). Ein
+  `updated`-Eintrag entsteht, aber ohne Feldvergleich innerhalb der
+  Stückliste.
+- Aus v2.55 weiterhin offen: der Leerraum in den viewBox-Ausgaben der
+  **bestehenden** Zeichenfunktionen (Abschnitt 63.6). Die neue
+  Rinnen-Skizze ist davon nicht betroffen, sie schneidet ihre viewBox
+  selbst zu.
