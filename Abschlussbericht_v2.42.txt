@@ -1,0 +1,282 @@
+================================================================
+SPENGLER-DIGITAL - ABSCHLUSSBERICHT
+Version: v2.42
+Titel:   Projekt-Cockpit - Arbeitsstand / Projektuebersicht
+Commit:  986ab93
+Branch:  claude/v1-49-analysis-rk5csc -> nach main gemergt
+Datum:   02.09.2026
+================================================================
+
+
+1. WELCHE DATEN FUER DEN ARBEITSSTAND VERWENDET WURDEN
+----------------------------------------------------------------
+Ausschliesslich Zahlen, die beim Oeffnen des Cockpits ohnehin schon
+ermittelt werden:
+
+  Massaufnahmen   Rueckgabewert von loadProjectMeasurements()
+  Ausmass         Rueckgabewert von loadProjectAusmass()
+  Regierapporte   Rueckgabewert von loadProjectReports()
+  Dateien/Fotos   Rueckgabewert von loadProjectFiles()
+  Letzte Aktiv.   die bereits vorhandene audit_log-Abfrage aus
+                  cockpitAktivitaetLaden() (v2.37/v2.39)
+
+Diese vier Funktionen liefern seit v2.39 ihre Trefferzahl zurueck. Die
+Datengrundlage war also bereits vollstaendig vorhanden - es fehlte nur
+die Zusammenfassung. Vorher standen die vier Zahlen verteilt ueber vier
+Karten, die letzte Aktivitaet ganz unten in der Verlaufskarte; auf dem
+Handy musste man scrollen, um zu sehen, was ueberhaupt da ist.
+
+Es wurde KEIN Projektstatus eingefuehrt. Angezeigt wird nur:
+  Anzahl > 0  ->  "✓" und die Zahl
+  Anzahl = 0  ->  "○" und "Noch keine ..."
+Nirgends steht "fehlt", "nicht erledigt" oder "muss gemacht werden".
+
+
+2. WIEDERVERWENDETE FUNKTIONEN
+----------------------------------------------------------------
+  loadProjectMeasurements() / loadProjectAusmass() /
+  loadProjectReports() / loadProjectFiles()   (js/09-projekte.js)
+  cockpitZeigeAnzahl()                        (bestehende Anzeigestelle)
+  cockpitBereichAktualisieren()               (Einzelbereich, v2.39)
+  cockpitAktivitaetLaden()                    (v2.37/v2.39, unveraendert)
+  verlaufFormatWann()                         (v2.31, Zeitformat)
+
+cockpitZeigeAnzahl() bleibt die EINZIGE Stelle, die eine Anzahl
+anzeigt - sie schreibt denselben Wert jetzt an zwei Orte (Badge in der
+Abschnittsueberschrift und Arbeitsstand-Zeile). Keine zweite Quelle,
+keine zweite Aktivitaetslogik.
+
+
+3. GEAENDERTE UI
+----------------------------------------------------------------
+In der Kopfkarte des Cockpits, direkt unter Projektname und
+Auftrags-Nr./Adresse/Auftraggeber:
+
+    ARBEITSSTAND
+    ✓  📐 Massaufnahmen        5
+    ✓  📏 Ausmass              2
+    ○  📋 Regierapporte        Noch keine
+    ○  📎 Dateien/Fotos        Noch keine
+    🕘 Letzte Aktivitaet       Noch keine Aktivitaet
+
+Die Arbeitsbereich-Karten aus v2.39/v2.40 bleiben unveraendert darunter
+stehen und voll interaktiv. Der Arbeitsstand ersetzt sie nicht, er
+fasst sie zusammen.
+
+Die Projektuebersicht und der Schnellzugriff "Zuletzt bearbeitet"
+(v2.41) wurden nicht angefasst - es gibt keinen zweiten Arbeitsstand
+in der Projektliste.
+
+
+4. ZUSAETZLICHE ABFRAGEN
+----------------------------------------------------------------
+KEINE. Nicht eine einzige.
+
+Beim Oeffnen eines Projekts laufen weiterhin genau fuenf Abfragen in
+einem Promise.all - exakt wie in v2.41. Der Arbeitsstand verwendet die
+Werte, die diese Abfragen ohnehin liefern. Die Tabellen werden nicht
+ein zweites Mal nur zum Zaehlen abgefragt.
+
+Im Pruefstand gemessen: beim Oeffnen eines Projekts genau 1 Abfrage
+ueber sb.from() zusaetzlich zu den vier Ladefunktionen - das ist die
+schon vorher vorhandene Aktivitaetsabfrage.
+
+Die v2.39-Regel gilt unveraendert: nach der Rueckkehr ins Cockpit laedt
+cockpitBereichAktualisieren(bereich) nur den betroffenen Bereich neu -
+der Arbeitsstand folgt automatisch, weil er an derselben Funktion
+haengt.
+
+
+5. SQL / MIGRATION
+----------------------------------------------------------------
+Keine. Weder Schemaaenderung noch Migration noch eine geaenderte
+Abfrage.
+
+
+6. FEHLERFALL-VERHALTEN
+----------------------------------------------------------------
+Liefert eine Ladefunktion undefined (Abfrage fehlgeschlagen), steht in
+Badge UND Arbeitsstand "?" - niemals eine falsche 0.
+
+Betroffen ist nur der fehlgeschlagene Bereich. Die uebrigen zeigen
+weiterhin ihre korrekten Zahlen; das Projekt wird nicht faelschlich als
+leer dargestellt.
+
+Schlaegt die Aktivitaetsabfrage fehl, steht im Arbeitsstand "?" und in
+der Verlaufskarte wie bisher die verstaendliche Fehlermeldung.
+
+Waehrend des Ladens steht ueberall "..." - es wird nichts behauptet,
+solange nichts bekannt ist.
+
+
+7. NAVIGATION
+----------------------------------------------------------------
+Jede Arbeitsstand-Zeile ist anklickbar und scrollt zur bereits
+vorhandenen Karte des jeweiligen Bereichs (scrollIntoView). Keine
+zweite Navigation, kein Nachladen, keine neue Abfrage - ein einziger
+delegierter Handler auf #projectCockpitModal.
+
+Die Zeile "Letzte Aktivitaet" ist bewusst nicht anklickbar (reine
+Information).
+
+Der Rueckweg aus einem Arbeitsbereich fuehrt unveraendert ins Cockpit
+(v2.38-Logik, im Navigations-Pruefstand mit 23/23 bestaetigt).
+
+
+8. MOBILE-ANPASSUNGEN
+----------------------------------------------------------------
+  - kompakte Zeilen, min-height 38px
+  - Aufbau Marke / Name / Wert ueber flex mit min-width:0 und
+    word-break:break-word -> lange Namen brechen um, kein
+    horizontales Scrollen
+  - grosse Touchflaeche nur bei den interaktiven Zeilen
+  - flacher Block statt hoher Karte, damit die Arbeitsbereiche
+    darunter nicht verdraengt werden
+  - bestehende CSS-Optik (Farben, Radien, Schriftgroessen) uebernommen
+
+
+9. SICHERHEITSPRUEFUNG
+----------------------------------------------------------------
+Keine Sicherheitsaenderung. Es wurde keine Abfrage ergaenzt oder
+veraendert; der Arbeitsstand zeigt ausschliesslich Werte, die die
+bestehenden, RLS-gebundenen Ladefunktionen bereits geliefert haben.
+project_id ist weiterhin nie eine Berechtigung.
+
+Empirisch erneut bestaetigt (begin; ... rollback; mit Wegwerf-Firma,
+PETER KUENZI AG nur gelesen): als Benutzer einer fremden Firma liefern
+mit den echten bekannten Projekt-IDs (1, 3, 4, 6)
+
+  measurements    0 Zeilen
+  ausmass         0 Zeilen
+  reports         0 Zeilen
+  project_files   0 Zeilen
+  audit_log       0 Zeilen
+  projects        0 Zeilen
+
+
+10. TESTS
+----------------------------------------------------------------
+Pruefstand gegen die echten Cockpit-Funktionen - 17 Pruefungen, alle
+bestanden:
+
+  A/C) 5 / 2 / 0 / 0        "✓ 5", "✓ 2", "○ Noch keine",
+                            "○ Noch keine" - exakt diese Werte
+  A)   Letzte Aktivitaet    "31.08.2026 09:01" im Arbeitsstand,
+                            voller Satz in der Verlaufskarte
+  A)   Zusatzabfragen       keine (siehe Punkt 4)
+  B)   Projekt ohne Daten   ueberall "○ Noch keine ...",
+                            "Noch keine Aktivitaet";
+                            keine Statusbehauptung
+                            (Regex-Pruefung auf
+                            fehlt/erledigt/muss: kein Treffer)
+  D)   Fehler in einem      dieser Bereich "?", die uebrigen
+       Bereich              weiterhin korrekt (5 bzw. 1)
+  D2)  Fehler bei der       Arbeitsstand "?", Bereiche
+       Aktivitaet           unbeeinflusst
+  E)   Navigation           Klick scrollt zur passenden Karte
+  F)   Projektwechsel A->B  keine vermischten Zahlen,
+                            Projekt B korrekt (3 / Noch keine)
+  -    Einzel-Aktualisier.  nach Loeschen folgt der Arbeitsstand
+                            dem neuen Wert
+
+Reale Gegenprobe als eingeloggter Benutzer (rein lesend), stimmt exakt
+mit dem Admin-Blick ueberein:
+
+  Projekt 1 "Home"               5 / 2 / 0 / 0   audit_log 0
+  Projekt 3 "Test Strasse 11"    5 / 0 / 1 / 0   audit_log 0
+  Projekt 4 "Steildachsanierung" 0 / 0 / 3 / 1   audit_log 0
+  Projekt 6 "Brandschaden"       0 / 0 / 0 / 0   audit_log 0
+
+Projekt 1 ist damit genau der Testfall C aus dem Auftrag, Projekt 6
+genau der Testfall B.
+
+G) Regression - alle bisherigen Pruefstaende erneut gelaufen:
+  Navigation (v2.38/2.39)      23 OK,  0 Fehler
+  Suche (v2.40)                 7 OK,  0 Fehler
+  Treffer-Hervorhebung (v2.40)  7 OK,  0 Fehler
+  Schnellzugriff (v2.41)       12 OK,  0 Fehler
+  Listenrendering (v2.39)       9 Faelle unveraendert
+  node --check ueber alle js/*.js und sw.js: fehlerfrei
+  <div>/</div> in index.html ausgeglichen: 647/647 (vorher 644/644)
+  alle neuen Element-IDs genau einmal vorhanden
+
+EINSCHRAENKUNG - LIVE-TEST:
+Ein Klicktest im echten Browser war in dieser Sitzung technisch nicht
+moeglich; die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+nfgryuzkpwjfmdlmevuy.supabase.co. Das wird hier ausdruecklich NICHT als
+getestet behauptet. Insbesondere die Darstellung auf einem echten
+Handy/Tablet wurde nicht visuell geprueft, sondern ueber die CSS-Regeln
+gegen die bereits erprobten bestehenden Klassen abgeglichen.
+
+
+11. PETER KUENZI AG UNVERAENDERT?
+----------------------------------------------------------------
+Ja. Vor und nach allen Tests identisch geprueft:
+
+  2 Firmen, 4 Projekte, 13 Massaufnahmen, 2 Ausmasse, 4 Rapporte,
+  1 Datei, 0 audit_log-Zeilen
+  alle vier projects.updated_at unveraendert
+  companies.updated_at unveraendert (2026-09-01 07:40:15.844647+00)
+  Mike Ledermann weiterhin in PETER KUENZI AG
+  keine Wegwerf-Firma uebrig
+
+Alle Schreibtests liefen ausschliesslich in zurueckgerollten
+Transaktionen gegen eine Wegwerf-Firma.
+
+
+12. FACHLOGIK UNANGETASTET?
+----------------------------------------------------------------
+Ja. Per git diff einzeln bestaetigt - unveraendert geblieben sind:
+
+  js/10-massaufnahme.js          js/16-massaufnahme-formular.js
+  js/11-einlaufblech-gerade.js   js/17-ausmass.js
+  js/12-rinne-halbrund.js        js/19-lukarne.js
+  js/12b-mauerabdeckung.js       js/20-anschlussblech.js
+  js/13-einlaufblech-konisch.js  js/21-einfassung-rund.js
+  js/14-freies-profil.js         js/06-rapport.js
+  js/15-einlaufblech-stueckliste.js
+  js/08-katalog-blitzschutz.js   js/23-verlauf.js
+  js/22-system-admin.js          js/05a-rechte.js
+  js/03-login.js                 js/04-start-suche.js
+  js/09-projekte.js
+
+Keine Berechnung, keine Stueckliste, kein Zuschnitt, keine PDF-Logik,
+kein Blitzschutzkatalog, keine Datei-, Verlaufs-, Login-, Rechte- oder
+System-Admin-Logik beruehrt.
+
+
+13. GEAENDERTE DATEIEN
+----------------------------------------------------------------
+  index.html                Arbeitsstand-Block in der Kopfkarte,
+                            IDs auf den vier Bereichskarten als
+                            Sprungziel, Versionstext 2.42
+  js/24-projekt-cockpit.js  cockpitZeigeAnzahl() schreibt zusaetzlich
+                            in den Arbeitsstand, cockpitStandLaedt(),
+                            Zeitpunkt aus der bereits geladenen
+                            Aktivitaetszeile, Sprung-Handler
+  css/01-basis.css          .arbeitsstand-Stile
+  sw.js                     Cache-Version 2.42
+  CLAUDE.md                 neuer Abschnitt 50
+
+Umfang: 5 Dateien, 238 Einfuegungen, 17 Loeschungen.
+
+
+14. COMMIT / PUSH / MERGE
+----------------------------------------------------------------
+  Commit-ID:    986ab93
+  Beschreibung: "Version 2.42: Projekt-Cockpit zeigt den Arbeitsstand"
+  Push:         claude/v1-49-analysis-rk5csc  4e141ed..986ab93  OK
+  Merge:        nach main gemergt und gepusht  4e141ed..986ab93  OK
+  Arbeitsverzeichnis sauber, wieder auf dem Feature-Branch.
+
+
+15. OFFENE PUNKTE FUER v2.43
+----------------------------------------------------------------
+  - Kein Live-Klicktest im Browser moeglich (siehe Punkt 10).
+  - "Letzte Aktivitaet" bleibt leer, solange audit_log leer ist. Das
+    ist die ehrliche Anzeige, keine Luecke im Code - siehe CLAUDE.md
+    Abschnitt 49.2.
+  - Kein Projektstatus und keine fachliche Bewertung des
+    Arbeitsstands, wie im Auftrag ausdruecklich gefordert.
+
+================================================================
