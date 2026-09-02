@@ -91,7 +91,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.38</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.39</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -243,10 +243,16 @@
      Siehe js/24-projekt-cockpit.js. -->
 <div id="projectCockpitModal" class="modal" hidden>
 <div class="modalbox">
+
+<!-- Kopf: Projekt auf einen Blick. Die Stammdaten-Felder sind
+     eingeklappt, damit die Arbeitsbereiche oben auf dem Bildschirm
+     stehen - im Alltag wird gearbeitet, nicht umbenannt. -->
 <div class="card">
 <h2 id="cockpitTitle">📁 Projekt</h2>
 <div class="small" id="cockpitSubline"></div>
-<div class="grid" style="margin-top:10px">
+<div class="bar"><button id="cockpitToggleStammdaten" class="gray">✏️ Stammdaten bearbeiten</button></div>
+<div id="cockpitStammdaten" hidden>
+<div class="grid">
 <div><label>Projektname (Pflichtfeld)</label><input id="cockpitName"></div>
 <div><label>Auftrags-Nr. (Pflichtfeld)</label><input id="cockpitOrderNo"></div>
 <div><label>Adresse (Pflichtfeld)</label><input id="cockpitObject"></div>
@@ -255,29 +261,31 @@
 <div class="bar"><button id="cockpitSaveStammdaten" class="blue">✓ Stammdaten speichern</button></div>
 <div class="small" id="cockpitStammdatenMsg" hidden></div>
 </div>
-<div class="card" id="cockpitWorkArea">
-<h2>🔧 Arbeit</h2>
-<div class="cockpit-section">
-<div class="cockpit-section-head"><b>📐 Massaufnahmen</b><span id="cockpitMeasCount" class="cockpit-count">–</span></div>
-<div class="bar"><button class="blue" data-cockpit-open="meas">Öffnen</button><button class="gray" data-cockpit-new="meas">＋ Neu</button></div>
-<div class="report-list" id="cockpitMeasBody"></div>
 </div>
-<div class="cockpit-section">
-<div class="cockpit-section-head"><b>📏 Ausmass</b><span id="cockpitAmCount" class="cockpit-count">–</span></div>
-<div class="bar"><button class="blue" data-cockpit-open="am">Öffnen</button><button class="gray" data-cockpit-new="am">＋ Neu</button></div>
-<div class="report-list" id="cockpitAmBody"></div>
+
+<!-- Arbeitsbereiche: je ein Abschnitt, Liste immer sichtbar. -->
+<div id="cockpitWorkArea">
+<div class="card">
+<h2>📐 Massaufnahmen<span id="cockpitMeasCount" class="cockpit-count">–</span></h2>
+<div class="bar"><button class="blue cockpit-new" data-cockpit-new="meas">＋ Neue Massaufnahme</button></div>
+<div id="cockpitMeasBody"></div>
 </div>
-<div class="cockpit-section">
-<div class="cockpit-section-head"><b>📋 Regierapport</b><span id="cockpitRepCount" class="cockpit-count">–</span></div>
-<div class="bar"><button class="blue" data-cockpit-open="rep">Öffnen</button><button class="gray" data-cockpit-new="rep">＋ Neu</button></div>
-<div class="report-list" id="cockpitRepBody"></div>
+<div class="card">
+<h2>📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span></h2>
+<div class="bar"><button class="blue cockpit-new" data-cockpit-new="am">＋ Neues Ausmass</button></div>
+<div id="cockpitAmBody"></div>
 </div>
-<div class="cockpit-section">
-<div class="cockpit-section-head"><b>📎 Dateien/Fotos</b><span id="cockpitFilesCount" class="cockpit-count">–</span></div>
-<div class="bar"><button class="blue" data-cockpit-open="files">Öffnen</button></div>
-<div class="report-list" id="cockpitFilesBody"></div>
+<div class="card">
+<h2>📋 Regierapport<span id="cockpitRepCount" class="cockpit-count">–</span></h2>
+<div class="bar"><button class="blue cockpit-new" data-cockpit-new="rep">＋ Neuer Regierapport</button></div>
+<div id="cockpitRepBody"></div>
+</div>
+<div class="card">
+<h2>📎 Dateien/Fotos<span id="cockpitFilesCount" class="cockpit-count">–</span></h2>
+<div id="cockpitFilesBody"></div>
 </div>
 </div>
+
 <div class="card">
 <h2>🕒 Verlauf</h2>
 <div class="small" id="cockpitLastActivity"></div>
@@ -285,6 +293,7 @@
 <div class="report-list" id="cockpitVerlaufBody"></div>
 <div class="bar"><button id="cockpitBack" class="green">↩️ Zurück zur Projektübersicht</button><button id="cockpitStart" class="gray">🏠 Start</button></div>
 </div>
+
 </div>
 </div>
 

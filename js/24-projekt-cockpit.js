@@ -36,30 +36,26 @@ function cockpitProject(){return allProjects.find(p=>p.id===cockpitProjectId)||n
 // Genau eine Stelle je Arbeitsbereich entscheidet, wohin "Zurück" führt.
 // Die geschützten Erfassungsdateien rufen nur noch diese Funktionen auf,
 // statt das Ziel selbst zu kennen.
-async function zurueckInsCockpit(){
+// Nach der Rückkehr wird nur der Bereich neu geladen, in dem gearbeitet
+// wurde, plus die Zeile "letzte Aktivität" - nicht das ganze Cockpit.
+async function zurueckInsCockpit(bereich){
  $("projectCockpitModal").hidden=false;
  window.scrollTo(0,0);
- await loadProjectCockpitData();
- // Bereiche, die beim Verlassen offen waren, mit dem neuen Stand
- // nachladen - sonst zeigt die Liste noch den Stand von vorher.
- for(const key of Object.keys(COCKPIT_BEREICHE)){
-  const b=COCKPIT_BEREICHE[key];
-  if($(b.body).classList.contains("open"))await b.load();
- }
+ await Promise.all([cockpitBereichAktualisieren(bereich),cockpitAktivitaetLaden()]);
 }
 async function measEditZurueck(){
- if(measEditReturnTo==="projectCockpit"&&cockpitProjectId)await zurueckInsCockpit();
+ if(measEditReturnTo==="projectCockpit"&&cockpitProjectId)await zurueckInsCockpit("meas");
  else{$("measurementsModal").hidden=false;await renderMeasurementsOverview()}
  measEditReturnTo="measurementsModal";
 }
 async function amEditZurueck(){
- if(amEditReturnTo==="projectCockpit"&&cockpitProjectId)await zurueckInsCockpit();
+ if(amEditReturnTo==="projectCockpit"&&cockpitProjectId)await zurueckInsCockpit("am");
  else{$("ausmassModal").hidden=false;await renderAusmassOverview()}
  amEditReturnTo="ausmassModal";
 }
 async function reportZurueck(){
  $("reportScreen").hidden=true;
- if(reportReturnTo==="projectCockpit"&&cockpitProjectId)await zurueckInsCockpit();
+ if(reportReturnTo==="projectCockpit"&&cockpitProjectId)await zurueckInsCockpit("rep");
  else{$("reportsModal").hidden=false;await renderReportsOverview()}
  reportReturnTo="reportsModal";
  isDirty=false;
@@ -102,56 +98,62 @@ function cockpitAktivitaetText(row){
  return `${ent} · ${was} · ${wer} · ${verlaufFormatWann(row.created_at)}`;
 }
 
-// Alle Bereiche in EINEM Rutsch laden (Promise.all), nicht eine Abfrage
-// pro Kachel nacheinander. Für Massaufnahmen/Ausmasse werden die Zeilen
-// selbst geholt (Titel werden angezeigt), für Rapporte/Dateien genügt die
-// reine id-Spalte.
+// ---- Arbeitsbereiche --------------------------------------------
+// Ein Eintrag je Bereich. Gefüllt werden die Listen von genau den
+// bestehenden Funktionen aus js/09-projekte.js; sie liefern seit v2.39
+// zusätzlich die Anzahl zurück, damit dafür keine zweite Abfrage nötig
+// ist. Die Listen sind immer sichtbar - kein Aufklappen mehr, das war
+// ein Klick je Bereich ohne Gegenwert.
+const COCKPIT_BEREICHE={
+ meas :{count:"cockpitMeasCount" ,body:"cockpitMeasBody" ,load:id=>loadProjectMeasurements(id)},
+ am   :{count:"cockpitAmCount"   ,body:"cockpitAmBody"   ,load:id=>loadProjectAusmass(id)},
+ rep  :{count:"cockpitRepCount"  ,body:"cockpitRepBody"  ,load:id=>loadProjectReports(id)},
+ files:{count:"cockpitFilesCount",body:"cockpitFilesBody",load:id=>loadProjectFiles(id)}
+};
+function cockpitZeigeAnzahl(key,n){
+ $(COCKPIT_BEREICHE[key].count).textContent=(n===undefined||n===null)?"?":String(n);
+}
+// Einzelnen Bereich neu laden (nach Rückkehr, Anlegen oder Löschen).
+async function cockpitBereichAktualisieren(key){
+ if(!key||!cockpitProjectId||!COCKPIT_BEREICHE[key])return;
+ cockpitZeigeAnzahl(key,await COCKPIT_BEREICHE[key].load(cockpitProjectId));
+}
+async function cockpitAktivitaetLaden(){
+ const id=cockpitProjectId;
+ if(!id)return;
+ const {data,error}=await sb.from("audit_log")
+  .select("user_id,action,entity_type,created_at")
+  .eq("project_id",id).order("created_at",{ascending:false}).limit(1);
+ if(cockpitProjectId!==id)return;
+ $("cockpitLastActivity").textContent=error
+  ? "Verlauf konnte nicht geladen werden: "+error.message
+  : cockpitAktivitaetText((data||[])[0]);
+}
+
+// Beim Öffnen eines Projekts: alle vier Bereiche plus die letzte
+// Aktivität in EINEM Promise.all - fünf Abfragen wie bisher, aber die
+// Listen sind damit schon fertig und werden beim Ansehen nicht erneut
+// geladen.
 async function loadProjectCockpitData(){
  const id=cockpitProjectId;
- ["cockpitMeasCount","cockpitAmCount","cockpitRepCount","cockpitFilesCount"].forEach(k=>{$(k).textContent="…"});
+ const keys=Object.keys(COCKPIT_BEREICHE);
+ keys.forEach(k=>{$(COCKPIT_BEREICHE[k].count).textContent="…"});
  $("cockpitLastActivity").textContent="Lädt…";
- const [mRes,aRes,rRes,fRes,vRes]=await Promise.all([
-  sb.from("measurements").select("id,title,type,date").eq("project_id",id).order("date",{ascending:false}),
-  sb.from("ausmass").select("id,title,type,date").eq("project_id",id).order("date",{ascending:false}),
-  sb.from("reports").select("id").eq("project_id",id),
-  sb.from("project_files").select("id").eq("project_id",id),
-  sb.from("audit_log").select("user_id,action,entity_type,created_at").eq("project_id",id).order("created_at",{ascending:false}).limit(1)
- ]);
+ const ergebnisse=await Promise.all(keys.map(k=>COCKPIT_BEREICHE[k].load(id)).concat([cockpitAktivitaetLaden()]));
  // Zwischenzeitlich anderes Projekt geöffnet oder Cockpit geschlossen:
  // Ergebnis verwerfen statt eine fremde Übersicht zu zeichnen.
  if(cockpitProjectId!==id||$("projectCockpitModal").hidden)return;
- const fehler=[mRes,aRes,rRes,fRes,vRes].find(x=>x.error);
- if(fehler){
-  ["cockpitMeasCount","cockpitAmCount","cockpitRepCount","cockpitFilesCount"].forEach(k=>{$(k).textContent="?"});
-  $("cockpitLastActivity").textContent="Übersicht konnte nicht geladen werden: "+fehler.error.message;
-  return;
- }
- const meas=mRes.data||[],am=aRes.data||[],rep=rRes.data||[],files=fRes.data||[];
- const measTitel=cockpitTitelListe(meas,MEAS_TYPE_LABELS);
- const amTitel=cockpitTitelListe(am,COCKPIT_AM_TYPE_LABELS);
- $("cockpitMeasCount").textContent=cockpitAnzahlText(meas.length,"Noch keine Massaufnahme")+(measTitel?" · "+measTitel:"");
- $("cockpitAmCount").textContent=cockpitAnzahlText(am.length,"Noch kein Ausmass")+(amTitel?" · "+amTitel:"");
- $("cockpitRepCount").textContent=cockpitAnzahlText(rep.length,"Noch kein Regierapport");
- $("cockpitFilesCount").textContent=cockpitAnzahlText(files.length,"Noch keine Datei");
- $("cockpitLastActivity").textContent=cockpitAktivitaetText((vRes.data||[])[0]);
-}
-// Nach Anlegen/Löschen innerhalb des Cockpits: nur die Zahlen auffrischen.
-function refreshCockpitCounts(){return cockpitProjectId?loadProjectCockpitData():Promise.resolve()}
-
-// Alle offenen Arbeitslisten zuklappen (beim Öffnen eines Projekts bzw.
-// beim Wechsel), damit nie die Liste des vorherigen Projekts stehen bleibt.
-function cockpitListenSchliessen(){
- ["cockpitMeasBody","cockpitAmBody","cockpitRepBody","cockpitFilesBody"].forEach(k=>{
-  const box=$(k);box.classList.remove("open");box.innerHTML="";
- });
- document.querySelectorAll("[data-cockpit-open]").forEach(b=>{b.textContent="Öffnen"});
+ keys.forEach((k,i)=>cockpitZeigeAnzahl(k,ergebnisse[i]));
 }
 
 async function openProjectCockpit(projectId){
  cockpitProjectId=Number(projectId);
  if(!cockpitProject())return;
  renderCockpitStammdaten();
- cockpitListenSchliessen();
+ cockpitStammdatenEinklappen();
+ // Listen des vorherigen Projekts sofort leeren, damit nie kurz die
+ // falschen Einträge stehen bleiben.
+ Object.keys(COCKPIT_BEREICHE).forEach(k=>{$(COCKPIT_BEREICHE[k].body).innerHTML=""});
  // Verlauf-Container zurücksetzen (bestehende Hilfsfunktion aus v2.31).
  updateVerlaufToggleVisibility($("cockpitVerlaufToggle"),$("cockpitVerlaufBody"),cockpitProjectId);
  $("projectsModal").hidden=true;
@@ -160,24 +162,6 @@ async function openProjectCockpit(projectId){
  await loadProjectCockpitData();
 }
 
-// ---- Arbeitsbereiche öffnen -------------------------------------
-// "Öffnen" klappt die Liste des jeweiligen Bereichs auf/zu - gefüllt von
-// genau den bestehenden Lade-Funktionen aus js/09-projekte.js.
-const COCKPIT_BEREICHE={
- meas :{body:"cockpitMeasBody" ,load:()=>loadProjectMeasurements(cockpitProjectId)},
- am   :{body:"cockpitAmBody"   ,load:()=>loadProjectAusmass(cockpitProjectId)},
- rep  :{body:"cockpitRepBody"  ,load:()=>loadProjectReports(cockpitProjectId)},
- files:{body:"cockpitFilesBody",load:()=>loadProjectFiles(cockpitProjectId)}
-};
-async function cockpitBereichOeffnen(key,btn){
- const b=COCKPIT_BEREICHE[key];
- if(!b||!cockpitProjectId)return;
- const box=$(b.body);
- const willOpen=!box.classList.contains("open");
- box.classList.toggle("open",willOpen);
- btn.textContent=willOpen?"Schliessen":"Öffnen";
- if(willOpen)await b.load();
-}
 
 // ---- Neu anlegen aus dem Cockpit --------------------------------
 // Das Cockpit erzeugt selbst nichts. Es startet den bestehenden
@@ -220,8 +204,6 @@ $("newReport").addEventListener("click",()=>{
 });
 
 $("cockpitWorkArea").addEventListener("click",async e=>{
- const o=e.target.closest("[data-cockpit-open]");
- if(o){await cockpitBereichOeffnen(o.dataset.cockpitOpen,o);return}
  const n=e.target.closest("[data-cockpit-new]");
  if(!n)return;
  if(!cockpitProjectId)return;
@@ -269,6 +251,20 @@ $("cancelAmTypeChooser").addEventListener("click",()=>{
 // ---- Verlauf ----------------------------------------------------
 // Kombinierter Projekt-Verlauf aus v2.32, unverändert wiederverwendet.
 $("cockpitVerlaufToggle").onclick=()=>toggleProjectVerlaufBox($("cockpitVerlaufBody"),$("cockpitVerlaufToggle"),cockpitProjectId);
+
+// ---- Stammdaten ein-/ausklappen ---------------------------------
+// Im Alltag wird gearbeitet, nicht umbenannt - deshalb steht der
+// Arbeitsbereich oben und die Felder erscheinen nur auf Wunsch.
+function cockpitStammdatenEinklappen(){
+ $("cockpitStammdaten").hidden=true;
+ $("cockpitToggleStammdaten").textContent="✏️ Stammdaten bearbeiten";
+}
+$("cockpitToggleStammdaten").onclick=()=>{
+ const offen=$("cockpitStammdaten").hidden;
+ $("cockpitStammdaten").hidden=!offen;
+ $("cockpitToggleStammdaten").textContent=offen?"▲ Stammdaten schliessen":"✏️ Stammdaten bearbeiten";
+ if(offen)renderCockpitStammdaten();
+};
 
 // ---- Cockpit verlassen ------------------------------------------
 $("cockpitBack").onclick=()=>{

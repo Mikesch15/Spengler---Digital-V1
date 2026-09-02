@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.38, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.39, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.38**
+- sichtbare App-Version: **2.39**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -5933,3 +5933,209 @@ Navigationsergebnisse stammen aus dem Prüfstand gegen den echten Code.
 - Beim Öffnen eines Arbeitsbereichs bleibt die Liste innerhalb des
   Cockpits (Aufklappen), es gibt bewusst keinen eigenen Vollbild-Screen
   je Bereich – das hätte einen zweiten Rückweg gebraucht.
+
+## 47. PROJEKT-COCKPIT UX / ARBEITSABLAUF — VERSION 2.39
+
+Reine UI-/UX-Runde auf dem Cockpit aus v2.38. **Keine Schemaänderung,
+keine Migration, keine geänderte Sicherheitslogik, keine Fachdatei
+angefasst** – geändert wurden nur `index.html`, `css/01-basis.css`,
+`js/09-projekte.js` (Listen-Darstellung), `js/24-projekt-cockpit.js`
+und `sw.js`.
+
+### 47.1 Bestandsaufnahme des v2.38-Cockpits
+
+Der tatsächliche Aufbau vor dieser Runde (im Code nachgelesen, nicht aus
+dem v2.38-Bericht übernommen):
+
+1. **Karte 1 – Stammdaten**: vier Eingabefelder plus Speichern-Knopf,
+   immer aufgeklappt, ganz oben.
+2. **Karte 2 – „🔧 Arbeit"**: vier Abschnitte, je Abschnitt eine
+   Kopfzeile mit Anzahl + Titelvorschau, ein Knopf „Öffnen", ein Knopf
+   „＋ Neu" und ein zugeklappter Listen-Container.
+3. **Karte 3 – Verlauf**: letzte Aktivität, „🕒 Verlauf anzeigen",
+   Ausstiegsknöpfe.
+
+Daraus die konkreten Schwachstellen für den Alltag:
+
+| Befund | Auswirkung |
+|---|---|
+| Stammdaten-Formular ganz oben, immer offen | auf dem Handy stand vor dem ersten Arbeitsbereich ein ganzer Bildschirm Formular – bearbeitet wird im Alltag aber selten |
+| „Öffnen" je Abschnitt | ein zusätzlicher Klick **pro Bereich**, nur um zu sehen, was da ist; ein Projekt zu überblicken kostete vier Klicks |
+| Öffnen löste eine **zweite** Abfrage aus | die Anzahl kam schon aus der Startabfrage, die Liste holte dieselben Daten nochmals |
+| Zeilenkopf „Massaufnahme (Skizze/Foto)" | wiederholte den Abschnittsnamen; der eigentliche Titel stand klein in der zweiten Zeile |
+| Rapport-Zeile zeigte nur Datum + Auftrags-Nr. | Auftraggeber und Objekt waren gespeichert, aber unsichtbar |
+| `.report-row` ohne `flex-wrap`, Aktionen `flex:0 0 auto` | bei langen Titeln und vier Dateiknöpfen („✏️ Umbenennen", „🔄 Ersetzen") lief die Zeile auf schmalen Handys seitlich aus dem Bild |
+| Dateien: nacktes `<input type="file">` | winzige Trefferfläche, kein erkennbarer Knopf |
+| Rückkehr ins Cockpit lud **alle** Bereiche neu | fünf Abfragen, obwohl nur einer betroffen war |
+
+### 47.2 Umgesetzte Änderungen
+
+**Stammdaten eingeklappt.** Der Kopf zeigt Projektname und die Zeile
+Auftrags-Nr. · Adresse · Auftraggeber. Die vier Felder erscheinen erst
+über „✏️ Stammdaten bearbeiten" und werden beim Öffnen eines Projekts
+immer wieder eingeklappt. Die Speicherlogik selbst ist unverändert
+(inklusive der Prüfung auf 0 geänderte Zeilen aus Abschnitt 45.5).
+Dadurch stehen die Arbeitsbereiche sofort oben im Bild.
+
+**Listen immer sichtbar, „Öffnen" je Abschnitt entfernt.** Das entspricht
+genau der im Auftrag skizzierten Struktur (Abschnittstitel, Anzahl,
+Neu-Knopf, dann direkt die Einträge). Ein Bereich kostet damit **null**
+statt einem Klick, ein Eintrag ist ab dem geöffneten Projekt mit **einem**
+Klick erreichbar statt mit zweien.
+
+**Gleich viele Abfragen, aber ohne Doppelung.** Die vier bestehenden
+Lade-Funktionen `loadProjectMeasurements()`, `loadProjectAusmass()`,
+`loadProjectReports()`, `loadProjectFiles()` liefern seit v2.39
+zusätzlich ihre Trefferzahl zurück. `loadProjectCockpitData()` ruft sie
+gebündelt in **einem** `Promise.all` zusammen mit der Abfrage der letzten
+Aktivität auf – fünf Abfragen wie in v2.37/v2.38, aber die vorher
+separaten Zähl-Abfragen entfallen und beim Ansehen einer Liste wird
+nichts mehr nachgeladen.
+
+**Nach der Rückkehr nur noch der betroffene Bereich.**
+`zurueckInsCockpit(bereich)` lädt gezielt „meas", „am" bzw. „rep" plus
+die Zeile „letzte Aktivität" – zwei Abfragen statt fünf. Dasselbe gilt
+nach Anlegen/Löschen innerhalb des Cockpits: die Handler in
+`js/09-projekte.js` rufen jetzt `cockpitBereichAktualisieren(<bereich>)`
+statt „Liste laden **und** ganzes Cockpit neu zählen".
+
+**Zeilen neu aufgebaut** – ausschliesslich aus Feldern, die ohnehin schon
+geladen sind (per `information_schema` gegengeprüft, siehe 47.4):
+
+| Bereich | Titelzeile | zweite Zeile |
+|---|---|---|
+| Massaufnahme | `title` (sonst „Ohne Titel") | `MEAS_TYPE_LABELS[type]` · Datum · „zuletzt geändert …" |
+| Ausmass | `title` (sonst „Ohne Titel") | Ausmass-Art · Datum · „zuletzt geändert …" |
+| Regierapport | Datum | Auftrags-Nr. · Auftraggeber · Objekt (sonst „Ohne Kopfdaten") · „zuletzt geändert …" |
+| Datei | Symbol + Dateiname | Grösse · Ersteller · Datum · „ersetzt am …" |
+
+„zuletzt geändert" erscheint nur, wenn `updated_at` vorhanden **und**
+von `date` verschieden ist – kein erfundener Status, keine zusätzliche
+Abfrage. Die Typbezeichnung kommt weiterhin aus dem bestehenden
+`MEAS_TYPE_LABELS`-Katalog.
+
+**Mobile/Tablet.** `.report-row` bricht jetzt um (`flex-wrap:wrap`), der
+Infoblock ist `flex:1 1 190px; min-width:0` mit `word-break:break-word`,
+die Zeilenknöpfe haben `min-height:34px`. Bei den Dateien sind
+„Umbenennen" und „Ersetzen" auf ihre Symbole mit `title`-Tooltip
+verkürzt. Damit passt auch eine Zeile mit langem Titel und vier Knöpfen
+auf ein schmales Handy, ohne seitliches Scrollen. Die „＋ Neu"-Knöpfe
+sind über die volle Breite und mindestens 44 px hoch, klar beschriftet
+(„＋ Neue Massaufnahme" statt „＋ Neu"). Der Datei-Upload ist ein
+gleichwertig aussehender Knopf „＋ Datei/Foto hinzufügen" (ein `<label>`
+mit dem unveränderten, versteckten Dateifeld dahinter) statt eines
+nackten `<input type="file">`.
+
+**Anzahl als Zähler-Badge** rechts in der Abschnittsüberschrift statt als
+Fliesstext mit Titelvorschau – die Titel stehen jetzt ohnehin in der
+Liste darunter.
+
+**Struktur entschachtelt.** Statt „Karte → vier Abschnitte" ist jeder
+Arbeitsbereich eine eigene Karte mit eigener `h2`-Überschrift, wie überall
+sonst in der App. Das spart eine Verschachtelungsebene und gibt jedem
+Bereich eine klare Trennlinie.
+
+### 47.3 Was bewusst NICHT geändert wurde
+
+- **Keine Vollbild-Screens je Bereich** (Auftrag Abschnitt 9) – alles
+  bleibt im Cockpit, der Benutzer sieht durchgehend Projektkopf und
+  Rückkehrknopf.
+- **Kein Projektstatus** – `projects` hat ausser `archived` weiterhin
+  keine Statusinformation.
+- **Verlauf unverändert** – weiterhin das System aus v2.31/v2.32/v2.36,
+  weiterhin aufklappbar innerhalb des Cockpits.
+- **Projektübersicht unverändert** – die Aufräumung aus v2.38 bleibt, es
+  kamen keine Arbeitsknöpfe auf die Projektkarten zurück.
+- **Keine Fachdatei angefasst.** Anders als in v2.38 waren diesmal
+  **keinerlei** Änderungen an `js/16-massaufnahme-formular.js`,
+  `js/17-ausmass.js` oder irgendeiner anderen Fach-/Login-/Rechte-Datei
+  nötig – per `git diff` einzeln bestätigt.
+
+### 47.4 Tests
+
+**Feldprüfung gegen das echte Schema** (`information_schema.columns`):
+jedes in den neuen Zeilen angezeigte Feld existiert wirklich –
+`measurements`/`ausmass` haben `title`, `type`, `date`, `updated_at`;
+`reports` hat `date`, `order_no`, `customer`, `object`, `updated_at`
+(und weder `title` noch `type`, weshalb dort das Datum die Titelzeile
+bildet); `project_files` hat `name`, `size_bytes`, `mime_type`,
+`created_by`, `created_at`, `updated_at`.
+
+**Render-Prüfstand** (Node, gegen die echten Renderer aus
+`js/09-projekte.js` mit gestellten Daten):
+
+| Fall | Ergebnis |
+|---|---|
+| 5 Massaufnahmen, sehr langer Titel, ein leerer Titel | Titel zuerst, leerer Titel → „Ohne Titel", Typ/Datum/„zuletzt geändert" darunter, Rückgabe 5 |
+| 2 Ausmasse | korrekt, Rückgabe 2 |
+| 2 Rapporte, einer ganz ohne Kopfdaten | Datum als Titelzeile, „176712 · Muster AG · Steildach Nord" bzw. „Ohne Kopfdaten", Rückgabe 2 |
+| 1 Datei | Upload-Knopf, Symbol, Grösse/Ersteller/Datum, Rückgabe 1 |
+| leeres Projekt (alle vier Bereiche) | „Noch keine Massaufnahme/kein Ausmass/kein Regierapport/keine Datei zu diesem Projekt.", Neu-Knöpfe sichtbar, Rückgabe 0 |
+| Ladefehler | Fehlermeldung in der Liste, Rückgabe `undefined` → Zähler zeigt „?" statt einer falschen 0 |
+
+**Navigations-Prüfstand** (Node, echte Funktionen, Ereignisreihenfolge
+wie im Browser) – 23 Prüfungen, alle bestanden, u. a.:
+- Projekt öffnen lädt alle vier Listen in einem Rutsch
+- Massaufnahme → Zurück → **Cockpit**, dabei wird **nur** der
+  Massaufnahme-Bereich neu geladen
+- Ausmass und Regierapport ebenso
+- Neuer Rapport aus dem Cockpit übernimmt `project_id`, zeigt den
+  Zurück-Knopf, kehrt ins Cockpit zurück
+- Neue Massaufnahme aus dem Cockpit setzt Rückziel und Projekt
+- Projektwechsel A → B lädt B, spätere Rückkehr zeigt weiterhin B
+- der Normalweg ohne Cockpit kehrt unverändert in die jeweilige Übersicht
+  zurück
+
+**Sicherheit** (`begin; … rollback;`, Wegwerf-Firma, PETER KÜNZI AG nur
+gelesen): mit den vier echten, bekannten Projekt-IDs einer fremden Firma
+liefern Projektzeile sowie alle vier Listen-Abfragen (jetzt `select("*")`)
+und die Verlaufsabfrage **je 0 Zeilen**. Die Firmengrenze erzwingt
+weiterhin ausschliesslich die restriktive `tenant_boundary_*`-RLS;
+`project_id` ist nach wie vor keine Berechtigung.
+
+**Reale Zahlen** als eingeloggter Benutzer gegengeprüft: Projekt 1
+„Home" 5/2/0/0, Projekt 3 „Test Strasse 11" 5/0/1/0, Projekt 4
+„Steildachsanierung" 0/0/3/1, Projekt 6 „Brandschaden" 0/0/0/0 –
+identisch zum Admin-Blick.
+
+**Regression**: `node --check` über alle `js/*.js` und `sw.js`
+fehlerfrei; `<div>`/`</div>` in `index.html` ausgeglichen (642/642,
+vorher 645/645 – weniger, weil die vier Abschnitts-Wrapper und die
+Öffnen-Leisten entfielen); jede Cockpit-Element-ID genau einmal
+vorhanden; keine verwaisten Verweise auf `data-cockpit-open`,
+`cockpit-tile`, `cockpit-section`, `cockpitBereichOeffnen`,
+`cockpitListenSchliessen` oder `refreshCockpitCounts`; Produktivdaten vor
+und nach allen Tests identisch (2 Firmen, 4 Projekte, 13 Massaufnahmen,
+2 Ausmasse, 4 Rapporte, 1 Datei, 0 `audit_log`-Zeilen), Mike Ledermann
+weiterhin in PETER KÜNZI AG, deren `updated_at` unverändert
+(`2026-09-01 07:40:15.844647+00`), Projekt 1 unverändert
+(„Home / 1234 / Hjj / Ppp").
+
+**Live-Klicktest im Browser war in dieser Sitzung technisch nicht
+möglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird hier ausdrücklich nicht
+als getestet behauptet.** Insbesondere die Darstellung auf einem echten
+Handy/Tablet wurde nicht visuell geprüft, sondern über die CSS-Regeln
+(Umbruch, `min-width:0`, `word-break`, Mindesthöhen) gegen die bereits
+erprobten bestehenden Klassen abgeglichen.
+
+### 47.5 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `index.html` | Cockpit neu aufgebaut: eingeklappte Stammdaten, vier eigenständige Bereichskarten, Zähler-Badge, klare Neu-Knöpfe, Version 2.39 |
+| `js/24-projekt-cockpit.js` | gebündeltes Laden über die bestehenden Lade-Funktionen, Auf-/Zuklappen entfernt, gezielte Bereichs-Aktualisierung, Stammdaten-Umschalter |
+| `js/09-projekte.js` | Listen-Zeilen neu aufgebaut (Titel zuerst, echte Kurzinfos), Rückgabe der Anzahl, kompakte Dateiliste mit Upload-Knopf, Handler nutzen die gezielte Aktualisierung |
+| `css/01-basis.css` | umbruchfähige Zeilen, grössere Trefferflächen, Zähler-Badge, Neu-/Upload-Knopf über volle Breite |
+| `sw.js` | Cache-Version 2.39 |
+
+### 47.6 Offene Punkte für v2.40
+
+- Kein Live-Klicktest im Browser möglich (siehe 47.4).
+- Bei sehr vielen Einträgen in einem einzelnen Projekt wird die Liste
+  ungekürzt angezeigt (keine Begrenzung, kein „mehr laden") – bei den
+  realen Datenmengen (höchstens einstellige Anzahl je Projekt) bewusst
+  nicht gebaut, wäre bei Bedarf eine eigene, kleine Erweiterung.
+- Kein Projektstatus, keine Sortier-/Filtermöglichkeit innerhalb der
+  Cockpit-Listen – beides war nicht verlangt und hätte neue Konzepte
+  eingeführt.

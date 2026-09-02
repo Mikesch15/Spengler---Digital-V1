@@ -63,6 +63,25 @@ ${meta?`<div class="small" style="color:var(--muted)">${meta}</div>`:""}
 </div>`;
  }).join("")||'<div class="empty">Noch keine Projekte angelegt.</div>';
 }
+// ---- Kurzinfos fuer die Cockpit-Listen (v2.39) -----------------
+// Verwenden ausschliesslich Felder, die ohnehin schon geladen sind -
+// keine zusaetzliche Abfrage, keine erfundene Statusinformation.
+function datumCH(d){
+ if(!d)return "";
+ const t=new Date(d);
+ return isNaN(t)?String(d):t.toLocaleDateString("de-CH");
+}
+// Datum des Eintrags plus, falls vorhanden, wann er zuletzt geaendert
+// wurde (updated_at ist bereits Teil der geladenen Zeile).
+function eintragZusatz(x,ohneDatum){
+ const teile=[];
+ if(!ohneDatum&&x.date)teile.push(datumCH(x.date));
+ if(x.updated_at){
+  const u=datumCH(x.updated_at);
+  if(u&&u!==datumCH(x.date))teile.push("zuletzt geändert "+u);
+ }
+ return teile.length?" · "+esc(teile.join(" · ")):"";
+}
 async function loadProjectAusmass(projectId){
  const box=$("cockpitAmBody");
  box.innerHTML='<div class="small">Lädt…</div>';
@@ -72,13 +91,14 @@ async function loadProjectAusmass(projectId){
  const typeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
  projectAusmassCache=list;
  box.innerHTML=list.length?list.map(a=>`<div class="report-row">
-<div class="report-row-info"><b>Ausmass (${esc(typeLabels[a.type]||a.type)})</b><span>${esc(a.title||"Ohne Titel")} · ${esc(a.date||"ohne Datum")}</span></div>
+<div class="report-row-info"><b>${esc(a.title||"Ohne Titel")}</b><span>${esc(typeLabels[a.type]||a.type)}${eintragZusatz(a)}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-ausmass="${a.id}">Öffnen</button>
-<button class="gray" data-print-project-ausmass="${a.id}">🖨️</button>
-<button class="red" data-del-project-ausmass="${a.id}">×</button>
+<button class="gray" data-print-project-ausmass="${a.id}" title="Drucken">🖨️</button>
+<button class="red" data-del-project-ausmass="${a.id}" title="Löschen">×</button>
 </div>
-</div>`).join(""):'<div class="small">Noch keine Ausmasse zu diesem Projekt gespeichert.</div>';
+</div>`).join(""):'<div class="empty">Noch kein Ausmass zu diesem Projekt.</div>';
+ return list.length;
 }
 async function loadProjectReports(projectId){
  const box=$("cockpitRepBody");
@@ -87,13 +107,19 @@ async function loadProjectReports(projectId){
  if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
  const list=data||[];
  projectReportsCache=list;
- box.innerHTML=list.length?list.map(r=>`<div class="report-row">
-<div class="report-row-info"><b>Regierapport</b><span>${esc(r.date||"ohne Datum")} · ${esc(r.order_no||"–")}</span></div>
+ // Kopfdaten, die im Rapport ohnehin schon gespeichert sind (v2.39):
+ // Datum als Titelzeile, darunter Auftrags-Nr./Auftraggeber/Objekt.
+ box.innerHTML=list.length?list.map(r=>{
+  const kopf=[r.order_no,r.customer,r.object].map(x=>String(x||"").trim()).filter(Boolean).join(" · ");
+  return `<div class="report-row">
+<div class="report-row-info"><b>${esc(datumCH(r.date)||"Ohne Datum")}</b><span>${esc(kopf||"Ohne Kopfdaten")}${eintragZusatz(r,true)}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-report="${r.id}">Öffnen</button>
-<button class="red" data-del-report="${r.id}">×</button>
+<button class="red" data-del-report="${r.id}" title="Löschen">×</button>
 </div>
-</div>`).join(""):'<div class="small">Noch keine Rapporte zu diesem Projekt gespeichert.</div>';
+</div>`;
+ }).join(""):'<div class="empty">Noch kein Regierapport zu diesem Projekt.</div>';
+ return list.length;
 }
 async function loadProjectMeasurements(projectId){
  const box=$("cockpitMeasBody");
@@ -103,14 +129,17 @@ async function loadProjectMeasurements(projectId){
  const list=data||[];
  const typeLabels=MEAS_TYPE_LABELS;
  projectMeasurementsCache=list;
+ // Titel zuerst - der Abschnitt heisst bereits "Massaufnahmen", die
+ // Wiederholung in der Kopfzeile war verschenkter Platz (v2.39).
  box.innerHTML=list.length?list.map(m=>`<div class="report-row">
-<div class="report-row-info"><b>Massaufnahme (${esc(typeLabels[m.type]||m.type)})</b><span>${esc(m.title||"Ohne Titel")} · ${esc(m.date||"ohne Datum")}</span></div>
+<div class="report-row-info"><b>${esc(m.title||"Ohne Titel")}</b><span>${esc(typeLabels[m.type]||m.type)}${eintragZusatz(m)}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>
-<button class="gray" data-print-project-measurement="${m.id}">🖨️</button>
-<button class="red" data-del-project-measurement="${m.id}">×</button>
+<button class="gray" data-print-project-measurement="${m.id}" title="Drucken">🖨️</button>
+<button class="red" data-del-project-measurement="${m.id}" title="Löschen">×</button>
 </div>
-</div>`).join(""):'<div class="small">Noch keine Massaufnahmen zu diesem Projekt gespeichert.</div>';
+</div>`).join(""):'<div class="empty">Noch keine Massaufnahme zu diesem Projekt.</div>';
+ return list.length;
 }
 
 // ---- Dateien je Projekt (PDF, Word, Excel, Fotos, …) --------------
@@ -178,20 +207,23 @@ async function loadProjectFiles(projectId){
  projectFilesCache=list;
  const zeilen=list.length?list.map(f=>{
   const wer=profileName(f.created_by)||"–";
-  const wann=f.created_at?new Date(f.created_at).toLocaleDateString("de-CH"):"–";
-  const geaendert=f.updated_at?` · ersetzt am ${esc(new Date(f.updated_at).toLocaleDateString("de-CH"))}${f.updated_by?" von "+esc(profileName(f.updated_by)||"–"):""}`:"";
+  const wann=datumCH(f.created_at)||"–";
+  const geaendert=f.updated_at?` · ersetzt am ${esc(datumCH(f.updated_at))}`:"";
   return `<div class="report-row">
 <div class="report-row-info"><b>${projectFileIcon(f.mime_type,f.name)} ${esc(f.name)}</b><span>${formatFileSize(f.size_bytes)} · ${esc(wer)} · ${esc(wann)}${geaendert}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-file="${f.id}">Öffnen</button>
-<button class="gray" data-rename-project-file="${f.id}">✏️ Umbenennen</button>
-<button class="gray" data-replace-project-file="${f.id}">🔄 Ersetzen</button>
+<button class="gray" data-rename-project-file="${f.id}" title="Umbenennen">✏️</button>
+<button class="gray" data-replace-project-file="${f.id}" title="Ersetzen">🔄</button>
 <input type="file" data-replace-file-input="${f.id}" hidden>
-<button class="red" data-del-project-file="${f.id}">×</button>
+<button class="red" data-del-project-file="${f.id}" title="Löschen">×</button>
 </div>
 </div>`;
- }).join(""):'<div class="small">Noch keine Dateien zu diesem Projekt hochgeladen.</div>';
- box.innerHTML=`<div class="bar" style="margin-bottom:6px"><input type="file" multiple data-upload-file="${projectId}"></div>${zeilen}`;
+ }).join(""):'<div class="empty">Noch keine Datei zu diesem Projekt.</div>';
+ // Klar beschriftete, volle Trefferflaeche statt eines nackten
+ // Datei-Feldes (v2.39) - das Feld selbst bleibt unveraendert dahinter.
+ box.innerHTML=`<div class="bar"><label class="cockpit-new blue cockpit-upload">＋ Datei/Foto hinzufügen<input type="file" multiple data-upload-file="${projectId}" hidden></label></div>${zeilen}`;
+ return list.length;
 }
 
 // returnTo (v2.38): wohin fuehrt "Zurueck" aus dem Regierapport?
@@ -329,7 +361,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
   if(!trimmed){alert("Bitte einen Namen eingeben.");return}
   const {error}=await sb.from("project_files").update({name:trimmed}).eq("id",id);
   if(error){alert("Fehler: "+error.message);return}
-  await loadProjectFiles(cockpitProjectId);
+  await cockpitBereichAktualisieren("files");
   return;
  }
  const replaceF=e.target.closest("[data-replace-project-file]");
@@ -345,8 +377,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
   const f=projectFilesCache.find(x=>x.id===id);
   await sb.from("project_files").delete().eq("id",id);
   if(f&&f.file_path)await sb.storage.from("measurements").remove([f.file_path]);
-  await loadProjectFiles(cockpitProjectId);
-  await refreshCockpitCounts();
+  await cockpitBereichAktualisieren("files");
   return;
  }
  const open=e.target.closest("[data-open-report]");
@@ -380,8 +411,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
   if(!confirm("Diese Massaufnahme wirklich löschen?"))return;
   const id=Number(delM.dataset.delProjectMeasurement);
   await sb.from("measurements").delete().eq("id",id);
-  await loadProjectMeasurements(cockpitProjectId);
-  await refreshCockpitCounts();
+  await cockpitBereichAktualisieren("meas");
   return;
  }
  const openA=e.target.closest("[data-open-project-ausmass]");
@@ -407,8 +437,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
   if(!confirm("Dieses Ausmass wirklich löschen?"))return;
   const id=Number(delA.dataset.delProjectAusmass);
   await sb.from("ausmass").delete().eq("id",id);
-  await loadProjectAusmass(cockpitProjectId);
-  await refreshCockpitCounts();
+  await cockpitBereichAktualisieren("am");
   return;
  }
  const delRep=e.target.closest("[data-del-report]");
@@ -417,8 +446,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
   const id=Number(delRep.dataset.delReport);
   await sb.from("reports").delete().eq("id",id);
   if(currentReportId===id)currentReportId=null;
-  await loadProjectReports(cockpitProjectId);
-  await refreshCockpitCounts();
+  await cockpitBereichAktualisieren("rep");
  }
 });
 $("cockpitWorkArea").addEventListener("change",async e=>{
@@ -433,8 +461,7 @@ $("cockpitWorkArea").addEventListener("change",async e=>{
   }catch(err){
    alert("Fehler beim Hochladen: "+(err.message||err));
   }
-  await loadProjectFiles(projectId);
-  await refreshCockpitCounts();
+  await cockpitBereichAktualisieren("files");
   return;
  }
  const replaceInp=e.target.closest("[data-replace-file-input]");
@@ -448,6 +475,6 @@ $("cockpitWorkArea").addEventListener("change",async e=>{
   }catch(err){
    alert("Fehler beim Ersetzen: "+(err.message||err));
   }
-  await loadProjectFiles(cockpitProjectId);
+  await cockpitBereichAktualisieren("files");
  }
 });

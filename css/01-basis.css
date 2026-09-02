@@ -90,19 +90,14 @@ td input,td select{min-height:34px;font-size:12px}
 .project-row-actions button{padding:6px 10px;font-size:11px}
 .report-list{margin-top:8px;border-top:1px solid var(--line);padding-top:8px;display:none}
 .report-list.open{display:block}
-.report-row{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--blue-light);border-radius:8px;padding:7px 9px;margin:5px 0}
-.report-row .report-row-info b{display:block;font-size:12px}
-/* Projekt-Cockpit (v2.38): Arbeitsabschnitte mit grossen Knoepfen */
-.cockpit-section{border:1px solid var(--line);border-radius:12px;padding:10px 11px;margin:8px 0;background:#fff}
-.cockpit-section-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
-.cockpit-section-head b{font-size:14px}
-.cockpit-count{font-size:11px;color:var(--muted);font-weight:700;text-align:right;word-break:break-word}
-.cockpit-section .bar button{flex:1 1 auto;min-height:42px}
-/* Projekt-Cockpit (v2.37): grosse, gut treffbare Bereichskacheln */
-.cockpit-tile{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:11px 12px;margin:6px 0}
-.cockpit-tile b{display:block;font-size:13px}
-.cockpit-tile .cockpit-tile-info span{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:3px;word-break:break-word}
-.cockpit-tile-arrow{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--blue)}
+.report-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:var(--blue-light);border-radius:8px;padding:7px 9px;margin:5px 0}
+.report-row .report-row-info{flex:1 1 190px;min-width:0}
+.report-row .report-row-info b{display:block;font-size:12px;word-break:break-word}
+/* Projekt-Cockpit (v2.39): Abschnittsueberschrift mit Anzahl rechts,
+   klar beschriftete Neu-Knoepfe ueber voller Breite. */
+.cockpit-count{float:right;font-size:11px;font-weight:900;color:var(--blue);background:var(--blue-light);border-radius:999px;padding:1px 9px;min-width:20px;text-align:center}
+.cockpit-new{display:block;width:100%;min-height:44px;text-align:center;line-height:24px}
+label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-weight:800;font-size:12px}
 .verlauf-filters button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark)}
 .verlauf-filters button.active{background:var(--blue);color:#fff}
 .verlauf-entry{border-bottom:1px solid var(--line);padding:7px 2px}
@@ -118,9 +113,9 @@ td input,td select{min-height:34px;font-size:12px}
 .verlauf-change-label{font-weight:700;color:var(--blue-dark);white-space:nowrap}
 .verlauf-change-value{word-break:break-word}
 .verlauf-limit-hint{color:var(--muted);text-align:center}
-.report-row .report-row-info span{font-size:11px;color:var(--muted)}
+.report-row .report-row-info span{display:block;font-size:11px;color:var(--muted);word-break:break-word}
 .report-row .report-row-actions{display:flex;gap:6px;flex:0 0 auto}
-.report-row button{padding:5px 8px;font-size:11px}
+.report-row button{padding:7px 10px;font-size:11px;min-height:34px}
 
 .meas-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
 .eb-table{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}
