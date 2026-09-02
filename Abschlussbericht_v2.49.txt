@@ -1,0 +1,300 @@
+SPENGLER-DIGITAL - ABSCHLUSSBERICHT VERSION 2.49
+Projekt-Dateien / Fotos im Projekt-Cockpit verbessern
+Datum: 02.09.2026
+
+
+VERSION
+==================================================================
+2.49
+
+
+VOLLSTAENDIGE LISTE GEAENDERTER DATEIEN
+==================================================================
+
+  js/09-projekte.js      neue Zeilendarstellung der Dateiliste,
+                         dateiTypText(), Sortierung nach zuletzt
+                         geaendert, Leerzustand, Upload-Erfolgsmeldung
+  css/01-basis.css       .datei-row (Knopfgroessen, Umbruch)
+  index.html             nur Versionstext 2.49
+  sw.js                  Cache-Version 2.49
+  CLAUDE.md              Abschnitt 57
+
+  4 Code-/Style-Dateien, 68 Zeilen ergaenzt, 19 entfernt.
+
+  KEINE Datenbankaenderung, KEINE Migration, KEINE Storage-/RLS-
+  Aenderung. Keine der zwoelf geschuetzten Fachdateien angefasst -
+  js/24-projekt-cockpit.js ebenfalls nicht.
+
+
+DATEI-/FOTOFUNKTIONEN
+==================================================================
+
+1. NEUE ZEILENDARSTELLUNG
+
+  Vorher stand alles in einer einzigen Zusatzzeile:
+    "2.3 MB · Mike Ledermann · 10.8.2026 · geaendert am 20.8.2026"
+
+  Jetzt die im Auftrag vorgegebene Hierarchie:
+
+    [Vorschau/Symbol]  Objekt Nordseite.jpg
+                       Bild (JPG) · 2.3 MB
+                       10.8.2026 · Mike Ledermann
+                       [Oeffnen]
+                       [Umbenennen] [Ersetzen] [Loeschen]
+
+  - Dateiname als Haupttitel, 13px, mit word-break - lange Namen
+    brechen um statt abgeschnitten oder seitlich hinauszulaufen.
+  - Typ und Groesse als zweite Zeile. Neue Funktion dateiTypText()
+    uebersetzt MIME/Endung in etwas Lesbares:
+      PDF, Word, Excel, CSV, PowerPoint, Archiv, Text,
+      "Bild (JPG)" / "Bild (PNG)" / "Bild (HEIC)"
+    Unbekannter Typ -> Endung in Grossbuchstaben (z. B. "DWG"),
+    ganz ohne Endung -> "Datei". Nie ein erfundener Typ.
+  - Datum als dritte Zeile: Erstelldatum, Ersteller und - nur wenn
+    abweichend - "geaendert am ...". Leere Angaben fallen weg; der
+    frueher sichtbare Rest "· – ·" bei fehlendem Ersteller ist damit
+    verschwunden.
+
+2. SORTIERUNG
+
+  Neu "zuletzt geaendert zuerst": clientseitig auf den BEREITS
+  GELADENEN Daten (updated_at, sonst created_at), absteigend.
+  Keine zweite Abfrage, keine geaenderte SQL-Abfrage, keine N+1.
+
+3. VORSCHAUBILDER
+
+  Unveraendert ueber data-signed-src + resolveSignedThumbnails() ->
+  storageSignedUrl() -> createSignedUrl().
+  - Bucket bleibt PRIVAT, es wurde KEINE oeffentliche URL eingefuehrt.
+  - Keine zusaetzliche Abfrage pro Bild: eine gebuendelte Aufloesung
+    nach dem Zeichnen, dasselbe Muster wie bei den Skizzen.
+  - .datei-thumb hat weiterhin object-fit:cover bei fixen 44x44 px -
+    das Seitenverhaeltnis wird nicht verzerrt.
+  - Nicht-Bilder bekommen ein neutrales Dateisymbol in gleicher Groesse.
+
+4. AKTIONEN
+
+  Beschriftet statt nur Symbole:
+    "Oeffnen"          eigene Zeile, volle Breite, 44 px
+    "Umbenennen"       40 px
+    "Ersetzen"         40 px
+    "Loeschen"         40 px
+  Vorher: vier 34-px-Icon-Knoepfe eng nebeneinander.
+
+  "Ersetzen" wurde BEWUSST BEIBEHALTEN, obwohl die Beispielhierarchie
+  im Auftrag (Abschnitt 2) nur Oeffnen/Umbenennen/Loeschen nennt: die
+  Funktion existiert seit v2.43, funktioniert und ist getestet - sie zu
+  entfernen waere ein Funktionsverlust, der nicht verlangt war.
+
+  Oeffnen, Umbenennen und Loeschen selbst sind unveraendert:
+  - Oeffnen ueber die bestehende signierte URL, Bucket privat.
+  - Umbenennen prueft Fehler UND die Zahl betroffener Zeilen
+    (ein von RLS blockiertes UPDATE meldet keinen Fehler).
+  - Loeschen mit Bestaetigung inklusive Dateiname, danach dieselbe
+    0-Zeilen-Pruefung, danach erst die Storage-Loeschung.
+  - Nach Erfolg wird die Liste jeweils neu geladen.
+
+5. LEERZUSTAND
+
+    📁 Noch keine Dateien oder Fotos vorhanden.
+    Hier koennen Plaene, Fotos, PDFs und weitere Projektunterlagen
+    gespeichert werden.
+    [＋ Datei/Foto hinzufuegen]
+    Hoechstens 50 MB pro Datei.
+
+  Reihenfolge exakt wie im Auftrag Abschnitt 6: erst die Erklaerung,
+  dann der Knopf. Bei vorhandenen Dateien steht der Knopf wie bisher
+  oben.
+
+6. MULTI-UPLOAD
+
+  Mehrfachauswahl, Reihenfolge und die Per-Datei-Fehlerbehandlung aus
+  v2.43 sind unveraendert: jede Datei einzeln, ein Fehler bei einer
+  Datei verhindert die uebrigen nicht, am Ende ein Sammel-Alert mit
+  der Liste der nicht gespeicherten Dateien.
+
+  NEU: ein Erfolg wird jetzt auch bestaetigt - dezent als Zeile ueber
+  der Liste ("✓ 3 Dateien gespeichert."), nicht als Popup. Dafuer
+  genuegt eine Modulvariable, die loadProjectFiles() einmalig anzeigt
+  und dabei leert. Kein Upload-Framework.
+
+7. DATEIGROESSE
+
+  Hinweis "Hoechstens 50 MB pro Datei." unveraendert vorhanden.
+  Die technische Grenze wurde NICHT veraendert: clientseitig
+  MAX_DATEI_BYTES = 52428800 in uploadProjectFile() und
+  replaceProjectFile(), serverseitig weiterhin
+  storage.buckets.file_size_limit = 52428800.
+
+8. MOBILE UX
+
+  - Hauptaktion 44 px, Nebenaktionen 40 px, alle umbruchfaehig.
+  - Dateiname und beide Infozeilen mit word-break:break-word.
+  - Keine festen Breiten, keine horizontale Scrollleiste.
+  - Desktop unveraendert nutzbar (dieselbe Flex-Struktur wie bisher).
+
+
+SECURITY
+==================================================================
+
+NICHT VERAENDERT - alles aus v2.48 unangetastet:
+  - privater Bucket (public = false)
+  - file_size_limit = 52428800 (50 MB)
+  - storage_object_insert_allowed() mit der geschlossenen Positivliste
+  - Tenant-Pruefung
+  - project_files RLS
+  - Storage Read/Update/Delete Policies
+  - signierte URLs
+  - 0-Zeilen-Pruefung bei Umbenennen und Loeschen
+
+ERNEUT EMPIRISCH BESTAETIGT (begin; ... rollback;, Wegwerf-Firma,
+PETER KUENZI AG nur gelesen):
+
+  fremde project_files sichtbar                     0
+  fremde project_files ueber bekannte project_id    0
+  fremde Storage-Objekte sichtbar                   0
+  Upload project-files/4/hack.pdf (fremde Firma)    blockiert
+  Upload misc/x/y.txt (flacher Pfad)                blockiert
+  Upload project-files/<eigenes>/ok.pdf             erlaubt
+  Upload measurements/<eigenes>/<eigene>/photo/...  erlaubt
+  Bucket                                            privat, 50 MB
+
+Die neue UI verwendet ausschliesslich RLS-sichtbare Daten: dieselbe
+Abfrage wie bisher (select * from project_files where project_id = ...),
+nur die Sortierung geschieht danach im Browser.
+
+
+FACHLOGIK
+==================================================================
+
+AUSDRUECKLICH BESTAETIGT: es wurde KEINE Massaufnahme-Fachlogik
+geaendert.
+
+  Keine der zwoelf geschuetzten Fachdateien wurde angefasst
+  (js/10 bis js/17, js/19, js/20, js/21) - anders als in v2.48 war
+  diesmal keine einzige Zeile dort noetig.
+
+  Nicht beruehrt: Berechnungen, Stuecklisten, Zuschnitt, Abwicklungen,
+  Speicher-Payloads, PDF-/Drucklogik. Ebenfalls unveraendert:
+  js/24-projekt-cockpit.js, js/04-start-suche.js, js/23-verlauf.js,
+  js/22-system-admin.js, js/05a-rechte.js, js/03-login.js,
+  js/01-basis.js, js/06-rapport.js, js/08-katalog-blitzschutz.js.
+
+
+NEUE TESTS UND REGRESSIONEN
+==================================================================
+
+NEUER PRUEFSTAND dateien49: 38/38 OK
+
+   1. alle Dateien werden angezeigt
+   2. neueste Aenderung zuerst, danach nach Erstelldatum absteigend
+   3. Bild bekommt Thumbnail; Quelle ist die signierte Referenz,
+      im Markup steht kein http-Link
+   4. Nicht-Bild bekommt Dateisymbol
+   5. Dateiname korrekt als Haupttitel
+   6. Dateigroesse korrekt (Typ · Groesse als zweite Zeile)
+   7. Datum korrekt als dritte Zeile, Aenderungsdatum nur wenn
+      abweichend, gelaeschter Benutzer als "Unbekannter Benutzer",
+      fehlender Ersteller ohne leeren Trenner
+   8. Oeffnen je Zeile vorhanden
+   9. Umbenennen je Zeile vorhanden
+  10. Loeschen je Zeile vorhanden, Ersetzen weiterhin vorhanden,
+      Knoepfe beschriftet
+  11. Leerzustand: beide Texte, Knopf danach, Groessenhinweis
+  13. 48 MB erlaubt
+  14. genau 50 MB erlaubt
+  15. 51 MB clientseitig blockiert
+  16./17. Serverantwort "exceeded the maximum allowed size" wird
+      verstaendlich uebersetzt
+  plus neun Typbezeichnungen (PDF, Word, Excel, CSV, Archiv, Text,
+  Bild (PNG), "Datei" ohne Endung, "DWG" als unbekannte Endung)
+
+  Punkt 12 (Multi-Upload) und 17 (Fehler pro Datei) sind unveraendert
+  aus v2.43 und dort weiterhin abgedeckt; Punkte 18-20 (fremde Dateien
+  unsichtbar, fremder Upload blockiert, v2.48-Storagetests) siehe
+  Abschnitt SECURITY.
+
+ANGEPASSTER PRUEFSTAND dateien43: 27/27 OK
+  Nicht geloescht, sondern sauber angepasst - zwei Erwartungen sind
+  durch die neue UI fachlich ueberholt:
+    "kein created_by -> Strich"        -> jetzt: kein leerer Trenner
+    Text des Leerzustands              -> neuer Text aus Abschnitt 6
+  Ausserdem laedt der Pruefstand die Helfer aus js/01-basis.js jetzt
+  direkt, statt sie nachzubauen.
+
+REGRESSION (alle bestanden):
+  Navigation             23/23
+  Suche (v2.40)            7/7
+  Treffer-Hervorhebung     7/7
+  Schnellzugriff          12/12
+  Arbeitsstand            17/17
+  Dateien (v2.43)         27/27
+  Adresse (v2.45)         39/39
+  Projektkopf (v2.45)      8/8
+  Projekt-Suche (v2.45)   13/13
+  Projektstatus (v2.46)   35/35
+  Projektverwaltung 2.47  37/37
+  Projektauswahl 2.48     32/32
+  Listenrendering          9 Faelle, rein darstellend
+  node --check             alle js/*.js und sw.js fehlerfrei
+  div-Balance              654/654, unveraendert
+
+KEINE LIVE-BROWSER-TESTS GEGEN SUPABASE MOEGLICH; SQL/RLS-, CODE- UND
+REGRESSIONSTESTS DURCHGEFUEHRT. Die Sandbox blockiert weiterhin
+ausgehende HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co.
+Ein echter Upload, ein echtes Vorschaubild und ein echtes Oeffnen ueber
+eine signierte URL wurden NICHT ausgefuehrt und werden nicht als
+getestet behauptet.
+
+
+DATEN
+==================================================================
+
+  PETER KUENZI AG nach allen Tests unveraendert:
+    Firmen                  2
+    Profile                13
+    Projekte                4   (Status und updated_at identisch)
+    Massaufnahmen          13
+    Projektdateien          1
+    Storage-Objekte        14
+    audit_log-Zeilen        4
+    companies.updated_at    2026-09-01 07:40:15.844647+00
+    Bucket                  privat, file_size_limit 52428800
+
+  Nur lesend geprueft, keine mutierenden Tests in PETER KUENZI AG.
+
+  Testdaten bereinigt: keine Wegwerf-Firma, kein Testprojekt, keine
+  Test-Massaufnahme, kein Test-Storage-Objekt uebrig. Alle mutierenden
+  Tests liefen in begin; ... rollback;.
+
+
+GIT
+==================================================================
+
+  Commit-SHA:  b5254c8
+  Titel:       Version 2.49: Datei-/Fotoliste im Projekt-Cockpit
+               uebersichtlicher
+  Branch:      claude/v1-49-analysis-rk5csc  -> gepusht
+  main:        gemergt (fast-forward) und gepusht
+  Arbeitsverzeichnis: sauber
+
+
+KEINE UNGEFRAGTEN FEATURES
+==================================================================
+
+  Bewusst NICHT gebaut: Ordner, Kategorien, Tags, Favoriten,
+  Dateiversionierung, Freigaben, oeffentliche Dateien, automatische
+  Archivierung, neue Status, Massenbearbeitung, Cloud-Sync, neue
+  Fachlogik.
+
+
+OFFENE PUNKTE
+==================================================================
+
+  - Kein Live-Klicktest im Browser moeglich (siehe Tests).
+  - Aus v2.48 unveraendert offen: leere allowed_mime_types des Buckets
+    (bewusst, damit Projektdateien nicht unnoetig eingeschraenkt
+    werden); eine Massaufnahme ohne Projekt kann weiterhin kein Foto
+    speichern; fehlender fester search_path bei
+    storage_object_is_own_company() und storage_path_from_value();
+    9 verwaiste Storage-Objekte aus v2.24 bleiben isoliert.
