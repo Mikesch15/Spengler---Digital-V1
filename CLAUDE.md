@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.45, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.46, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.45**
+- sichtbare App-Version: **2.46**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -7308,3 +7308,297 @@ weiterhin unverändert den Projektnamen.
   spätere Sicherheitsaufgabe.
 - Kein Projektstatus – `projects` hat ausser `archived` weiterhin keine
   Statusinformation, ein erfundener bleibt ausgeschlossen.
+
+## 54. PROJEKTSTATUS (GESCHÄFTSSTATUS) — VERSION 2.46
+
+Erster echter Projektlebenszyklus. Bewusst klein gehalten: **vier
+Werte, manuell gesetzt**, streng getrennt vom automatischen Arbeitsstand
+(v2.42) und vom Archiv (`archived`).
+
+### 54.1 Bestandsanalyse (vor der Umsetzung, gegen Code und Schema)
+
+Repo-weite Suche nach `status`/`state`/`offen`/`in arbeit`/`fertig`/
+`abgeschlossen`/`storniert`/`pausiert`: **es gab keinerlei Projekt-
+Statuskonzept**. Die Treffer sind ausschliesslich
+- `companies.subscription_status` (Firmen-/Trial-Lifecycle des System-
+  Admins, Abschnitt 35) – eine andere Ebene,
+- `feedback.resolved` (Boolean „erledigt"),
+- `audit_log.action='status_changed'` (seit v2.30, bisher **nur** für
+  `projects.archived`),
+- HTTP-Statustexte in Fehlermeldungen.
+
+`projects` hatte: `id`, `name`, `order_no`, `customer`, `object`,
+`archived`, `company_id`, `created_by/at`, `updated_by/at` – **kein**
+Statusfeld. Einzige „Zustands"-Information war `archived`.
+
+### 54.2 Empfohlene und umgesetzte Status
+
+| Wert (DB) | Anzeige | Zeichen | Bedeutung im Betrieb |
+|---|---|---|---|
+| `offen` | Offen | ○ | angelegt, noch nicht in Ausführung (Default) |
+| `in_arbeit` | In Arbeit | ◐ | Baustelle läuft |
+| `abgeschlossen` | Abgeschlossen | ✓ | Arbeit fertig |
+| `storniert` | Storniert | × | kommt nicht zustande / abgebrochen |
+
+**Bewusst NICHT aufgenommen** (Auftrag Abschnitt 2 verlangt die
+Prüfung):
+- **Pausiert** – im Spengleralltag ist eine Unterbrechung (Wetter,
+  Material, Bauherr) der Normalfall und geht ohne Informationsverlust in
+  „Offen"/„In Arbeit" auf. Ein eigener Wert erzeugt vor allem
+  Pflegeaufwand und die Frage, wann man ihn wieder wegnimmt.
+- **Angebot / Auftrag / Abrechnung** – das wäre eine
+  Offert-/Rechnungs-Pipeline. Die App kennt weder ein Offert- noch ein
+  Rechnungsobjekt (Ausmass → „Offerte erfassen" ist eine Massaufnahme-
+  Art, kein Angebotsdatensatz), Zahlungen/Abos sind ausdrücklich Phase 6
+  der Roadmap. Solche Werte wären heute leere Etiketten.
+- **Archiviert** – existiert bereits als `archived` und ist etwas
+  anderes, siehe 54.5.
+
+### 54.3 Manuell, nicht automatisch
+
+**Entscheidung: Geschäftsstatus = manuell, Arbeitsstand = automatisch.**
+
+Der Arbeitsstand (v2.42) beantwortet „was ist erfasst?" und wird
+ausschliesslich aus den vorhandenen Daten gebildet (Anzahl
+Massaufnahmen/Ausmasse/Rapporte/Dateien, letzte Aktivität). Er kann den
+Geschäftsstatus grundsätzlich nicht kennen:
+
+- Ein Projekt mit fünf Massaufnahmen kann geschäftlich weiterhin
+  **offen** sein (Ausmass vor Auftragserteilung).
+- Ein Projekt mit Rapporten kann **storniert** worden sein – die
+  erfassten Stunden bleiben trotzdem stehen.
+- Ein Projekt **ohne jede** Arbeitsdatei kann längst **abgeschlossen**
+  sein (Kleinauftrag, nur mündlich abgerechnet).
+
+Ein automatisch abgeleiteter „Status" wäre also regelmässig falsch und
+würde genau das tun, was v2.45 ausdrücklich ausgeschlossen hat: einen
+Zustand behaupten, den die Daten nicht hergeben. Beide Anzeigen stehen
+deshalb im Cockpit nebeneinander, klar getrennt: Status oben im
+Projektkopf, Arbeitsstand darunter.
+
+### 54.4 Datenmodell (Migration `project_status_v2_46`)
+
+```sql
+alter table public.projects add column status text not null default 'offen';
+alter table public.projects add constraint projects_status_check
+  check (status in ('offen','in_arbeit','abgeschlossen','storniert'));
+```
+
+Bewusste Entscheidungen:
+- **Eine Spalte auf `projects`, keine eigene Tabelle** – ein Projekt hat
+  genau einen aktuellen Status; die Historie liegt bereits im
+  `audit_log` (54.7).
+- **NOT NULL + Default `'offen'`** statt nullable: kein „unbekannter"
+  dritter Zustand, und alle bestehenden Zeilen bekommen denselben klaren
+  Startwert.
+- **CHECK statt Enum** – dasselbe Muster wie
+  `companies_subscription_status_check` (Abschnitt 21.4); ein weiterer
+  Wert ist später eine einzeilige Migration statt einer Typänderung.
+- **`text`** statt eines eigenen Typs, konsistent mit dem übrigen Schema.
+
+**Migration des Altbestands** (Auftrag Abschnitt 12): Alle vier real
+vorhandenen Projekte von PETER KÜNZI AG haben durch den Spalten-Default
+den Wert **`offen`** bekommen. Es wurde **nicht** versucht, aus
+Massaufnahmen/Ausmassen/Rapporten einen Status zu erraten. Direkt
+nachgeprüft: alle vier auf `offen`, `updated_at` **unverändert**
+(ein `ALTER TABLE … ADD COLUMN` löst keine Zeilentrigger aus, also weder
+`set_creator_editor_meta()` noch `write_audit_log()`), `audit_log`
+weiterhin 0 Zeilen. Das ist die einzige Datenänderung an PETER KÜNZI AG
+in dieser Runde und war für die NOT-NULL-Spalte zwingend.
+
+### 54.5 Status und Archiv bleiben getrennt
+
+`archived` ist **unverändert** und beschreibt die Sichtbarkeit in der
+Projektliste; `status` beschreibt den Geschäftszustand. Alle vier
+Kombinationen sind zulässig und werden korrekt dargestellt – ein
+abgeschlossenes Projekt bleibt sichtbar, bis es jemand zusätzlich
+archiviert; ein offenes Projekt lässt sich archivieren, ohne dass sich
+sein Status ändert. Der Archivieren-/Reaktivieren-Knopf schreibt
+weiterhin ausschliesslich `archived` (`update({archived:!p.archived})`),
+rührt `status` also nicht an. Der neue Statusfilter arbeitet **innerhalb**
+der jeweils gezeigten Menge (mit oder ohne Archiv) – die bestehende
+Archivumschaltung bleibt unberührt.
+
+### 54.6 Oberfläche
+
+| Ort | Darstellung |
+|---|---|
+| Projektkarte | Status-Badge als erste Angabe der Zusatzzeile, unter der Adresse |
+| Projekt-Cockpit, Kopf | Badge **und** Auswahlfeld, direkt unter der Adresszeile, über dem Arbeitsstand |
+| Schnellzugriff „Zuletzt bearbeitet" | Status als erste Angabe der Zusatzzeile (nur Text + Zeichen, kein zusätzliches Element – die Karte soll nicht überladen wirken) |
+| Projektliste | Statusfilter (54.8) |
+| Globale Suche | **bewusst nicht** – die Trefferliste mischt vier Datenarten und ist bereits dicht; der Auftrag stellt das ausdrücklich frei |
+
+**Eine einzige Bedienstelle**: das Auswahlfeld sitzt im Projektkopf und
+speichert sofort bei Auswahl. Es wurde bewusst **nicht** zusätzlich ins
+eingeklappte Stammdaten-Formular gelegt – zwei Bedienelemente für
+denselben Wert wären eine unnötige Fehlerquelle. Fachliche Begründung
+für die Platzierung: den Status stellt man im Alltag oft um,
+Name/Adresse fast nie; deshalb liegt er ausserhalb des eingeklappten
+Bereichs.
+
+**Farben** (Auftrag Abschnitt 7): jeder Status trägt **Zeichen + Text +
+Farbe**, nie die Farbe allein – grau (Offen), blau (In Arbeit), grün
+(Abgeschlossen), rot (Storniert), als Umriss-Badge mit `currentColor`.
+Für den Dunkelmodus sind Grün und Rot aufgehellt. Ein unbekannter oder
+fehlender Wert fällt im Frontend auf „Offen" zurück, damit die
+Oberfläche auch dann heil bleibt, wenn später ein Wert dazukommt, den
+eine ältere installierte PWA-Version noch nicht kennt.
+
+### 54.7 Audit-Log
+
+Keine neue Infrastruktur: `write_audit_log()` (Migration
+`audit_log_project_status_v2_46`) setzt bei einer Statusänderung
+dieselbe Aktion **`status_changed`**, die seit v2.30 für
+`projects.archived` verwendet wird, und schreibt den Diff
+`{field:"status", old:…, new:…}` – mit Benutzer (`auth.uid()`),
+Zeitpunkt und `project_id` wie bei jedem anderen Eintrag. Der Verlauf
+(`js/23-verlauf.js`) zeigt „Status: ○ Offen → ◐ In Arbeit" mit den
+deutschen Bezeichnungen statt der Rohwerte; die Sonderdarstellung
+„Aktiv → Archiviert" für `archived` bleibt unverändert.
+
+**Dabei mitbehoben**: Bisher standen die vier Stammdaten-Diffs
+(`name`/`order_no`/`customer`/`object`) im `else`-Zweig – wurden also
+**verschluckt**, wenn im selben UPDATE auch `archived` betroffen war.
+Jetzt werden alle sechs Felder immer erfasst; nur der Aktionsname hängt
+noch davon ab, ob `archived` oder `status` betroffen ist. In der Praxis
+ändert sich am Archiv-Fall nichts (der Archivknopf schreibt nur
+`archived`), aber eine kombinierte Änderung geht nicht mehr verloren.
+
+### 54.8 Statusfilter – Empfehlung und Umsetzung
+
+Umgesetzt, aber **selbstverbergend**: Die Filterzeile (Alle | ○ Offen |
+◐ In Arbeit | ✓ Abgeschlossen | × Storniert) erscheint nur, wenn in der
+aktuellen Ansicht **mehr als ein Status** vorkommt oder gerade ein
+Filter aktiv ist. Bei den heutigen vier gleichartigen Projekten bleibt
+die Liste damit exakt so schlicht wie bisher; sobald ein Betrieb
+gemischte Projekte hat, ist der Filter da.
+
+Empfehlung dahinter: ein Statusfilter ist die halbe Daseinsberechtigung
+eines Status, sobald eine Firma mehr Projekte hat als auf einen
+Bildschirm passen – aber er darf die kleine Firma nicht mit einer
+Bedienleiste belasten, die nichts filtert. Die Umsetzung kostet nichts:
+rein clientseitig auf dem bereits geladenen, RLS-gefilterten
+`allProjects`, **keine zusätzliche Abfrage**, gleiches Chip-Muster wie
+die Verlauf-Filter (v2.31). Beim Öffnen der Projektübersicht wird der
+Filter auf „Alle" zurückgesetzt.
+
+### 54.9 Rechte und Sicherheit
+
+**Keine neue Policy, keine gelockerte Regel.** Die Statusänderung ist
+ein gewöhnliches `UPDATE` auf `projects` und läuft dadurch durch
+- die restriktive `tenant_boundary_projects`
+  (`company_id = my_company_id()`, seit v2.27 auch die Trial-/
+  Statussperre der Firma) **und**
+- `projects_update_permission` (`has_permission('projects','edit')`).
+
+Der Client schickt **kein** `company_id` mit. Laut
+`permission_settings` hat auch `role='employee'` standardmässig
+`projects.can_edit = true` – ein Mitarbeiter darf den Status also
+bewusst setzen (auf der Baustelle „In Arbeit"); ein Firmenadmin kann das
+pro Person über `permission_overrides` entziehen, dann greift die
+Sperre serverseitig. Empirisch bestätigt (54.10).
+
+Wie bei „Stammdaten speichern" (v2.37) wird das Ergebnis geprüft statt
+Erfolg angenommen: ein von RLS blockiertes UPDATE meldet in PostgREST
+keinen Fehler, es betrifft still 0 Zeilen (CLAUDE.md 24.1). Bei 0 Zeilen
+springt die Auswahl auf den echten Wert zurück und es erscheint „Der
+Status konnte nicht geändert werden. Fehlt die nötige Berechtigung?" –
+**kein vorgetäuschter Erfolg**. Ein eigenes UI-Ausblenden wurde
+bewusst nicht eingeführt: das Projektmodul hat auch sonst keine
+clientseitige Rechte-Kulisse, die Absicherung liegt in der Datenbank.
+
+### 54.10 Tests
+
+**Datenbank** (alle Schreibtests in `begin; … rollback;` mit der
+Wegwerf-Firma `99999999-…`, PETER KÜNZI AG nur gelesen):
+
+| Test | Ergebnis |
+|---|---|
+| Default beim Anlegen | `offen` (per Diff `old:"offen"` im Audit-Eintrag belegt) |
+| gültiger Wert | `abgeschlossen` wird gesetzt |
+| ungültiger Wert `'quatsch'` | abgewiesen: `23514 … violates check constraint "projects_status_check"` |
+| Altbestand migriert | alle vier realen Projekte `offen`, `updated_at` unverändert |
+| Mitarbeiter mit Standardrechten | darf den Status setzen |
+| Mitarbeiter mit `permission_overrides.can_edit=false` | Status bleibt `offen` (0 Zeilen), Projekt weiterhin **sichtbar**, **kein** Audit-Eintrag |
+| Cross-Tenant: fremde Firma sieht Projekte 1/3/4/6 | 0 Zeilen |
+| Cross-Tenant: fremde Firma ändert deren Status per bekannter ID | 0 Zeilen, Werte danach unverändert |
+| Audit | `status_changed`, `changes=[{field:"status",old:"offen",new:"in_arbeit"}]`, korrekte `user_id`, `project_id`, `entity_type='project'` |
+
+`get_advisors(type:'security')` nach beiden Migrationen: identisch zum
+Stand nach v2.45, keine neue Warnung.
+
+**Oberfläche** – neuer Prüfstand `status46` (35/35), gegen die echten
+Funktionen aus `js/01`, `js/09`, `js/23`, `js/24`: vier Werte und
+Fallback bei unbekanntem/fehlendem Wert, Badge trägt Zeichen **und**
+Text, Status je Projektkarte, Filterzeile erscheint/verschwindet
+regelgerecht, Filter greift, eigene Leermeldung „Kein Projekt mit diesem
+Status.", Archiv bleibt getrennt, Badge und Auswahlfeld im Cockpit,
+erfolgreiche Änderung (Badge folgt, `allProjects` aktualisiert,
+Bestätigung), still blockiertes UPDATE (Auswahl springt zurück, kein
+vorgetäuschter Erfolg), echter Fehler, Auswahl desselben Werts löst
+nichts aus, Verlaufsdarstellung deutsch, Archiv-Sonderfall unverändert,
+kombinierte Änderung verliert die Stammdaten nicht mehr.
+
+**Regression**: nav 23/23, suche40 7/7, treffer40 7/7, recent41 12/12,
+stand42 17/17, dateien43 27/27, adresse45 37/37, kopf45 8/8, suche45
+13/13, ui39 (9 Fälle, rein darstellend). `node --check` über alle
+`js/*.js` und `sw.js` fehlerfrei, `<div>`/`</div>` in `index.html`
+ausgeglichen (651/651, vorher 648/648 – Differenz durch Filterzeile und
+Statuszeile im Projektkopf).
+
+Anpassungen an Prüfständen (Stub-Lücken, **keine** Code-Korrekturen):
+`nav`, `treffer40`, `recent41`, `stand42`, `kopf45` laden die
+Adress-/Status-Helfer jetzt direkt aus `js/01-basis.js`, statt sie
+nachzubauen; `adresse45` exportiert sie mit und extrahiert die
+Zusatzzeile der Projektkarte tag-unabhängig (dort steht seit v2.46 das
+Badge drin).
+
+**Live-Klicktest im Browser war in dieser Sitzung technisch nicht
+möglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird hier ausdrücklich nicht
+als getestet behauptet.** Alle DB-Ergebnisse sind direkte RLS-/
+Trigger-Simulationen gegen das echte Produktivschema.
+
+**PETER KÜNZI AG**: 2 Firmen, 13 Profile, 4 Projekte, 0 `audit_log`-
+Zeilen, 70 `permission_overrides`, `companies.updated_at`
+(`2026-09-01 07:40:15.844647+00`) unverändert, keine Wegwerf-Firma
+übrig, der Testmitarbeiter wieder in seiner echten Firma. Einzige
+Datenänderung: die vier Projekte tragen jetzt `status='offen'` (54.4).
+
+### 54.11 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| Migration `project_status_v2_46` | Spalte + CHECK |
+| Migration `audit_log_project_status_v2_46` | `status_changed` für den Geschäftsstatus, Stammdaten-Diffs nicht mehr verschluckt |
+| `js/01-basis.js` | `PROJEKT_STATUS`, `projektStatusInfo/Text/Badge` |
+| `js/09-projekte.js` | Badge auf der Projektkarte, Status im Schnellzugriff, Statusfilter |
+| `js/24-projekt-cockpit.js` | Badge + Auswahlfeld im Projektkopf, Speichern mit Ergebnisprüfung |
+| `js/23-verlauf.js` | deutsche Labels/Werte für `status` und `archived` |
+| `index.html` | Filterzeile, Statuszeile im Projektkopf, Version 2.46 |
+| `css/01-basis.css` | Badge-, Statuszeilen- und Filter-Stile inkl. Dunkelmodus |
+| `sw.js` | Cache-Version 2.46 |
+
+**Nicht angefasst**: alle zwölf geschützten Fachdateien,
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`js/22-system-admin.js`, `js/05a-rechte.js`, `js/03-login.js`,
+`js/04-start-suche.js` – per `git diff` bestätigt. Keine Berechnung,
+kein Speicher-Payload, keine PDF-/Drucklogik, keine RLS-Policy, keine
+Storage-Regel, kein Arbeitsstand berührt.
+
+### 54.12 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 54.10).
+- Kein Status in der globalen Suche (bewusst, 54.6).
+- Keine Statusautomatik und keine Erinnerungen („seit 30 Tagen in
+  Arbeit") – wäre eine eigene, später zu entscheidende Funktion.
+- Kein Statusfeld auf Massaufnahme/Ausmass/Rapport – der Status gehört
+  zum Projekt, die einzelnen Arbeitsdatensätze haben ihren eigenen
+  Ersteller-/Bearbeiterstand (v2.28/v2.29).
+- Aus v2.43 weiterhin offen: maximale Projekt-Dateigrösse (Empfehlung
+  25–50 MB je Datei) und die flache Storage-Upload-Erlaubnis als eigene
+  spätere Sicherheitsaufgabe.
+- Aus v2.45 weiterhin offen: die drei Projekt-Auswahlfelder zeigen im
+  Vorschlag weiterhin den Projektnamen fett (zwei davon in geschützten
+  Fachdateien).

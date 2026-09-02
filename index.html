@@ -92,7 +92,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.45</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.46</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -245,6 +245,10 @@
 <div><label>Auftraggeber</label><input id="newProjectCustomer" placeholder="optional"></div>
 </div>
 <div class="bar"><button id="addProject" class="blue">＋ Projekt anlegen</button><button type="button" id="toggleArchivedProjects" class="gray">📦 Archivierte anzeigen</button></div>
+<!-- Statusfilter (v2.46): erscheint nur, wenn in der aktuellen Ansicht
+     mehr als ein Status vorkommt oder ein Filter aktiv ist - siehe
+     renderProjectStatusFilter() in js/09-projekte.js. -->
+<div id="projectStatusFilter" class="status-filter" hidden></div>
 <div id="projectList"></div>
 <div class="bar"><button id="closeProjects" class="green">✓ Fertig</button><button id="startFromProjects" class="gray">🏠 Start</button></div>
 </div>
@@ -263,6 +267,17 @@
 <div class="card">
 <h2 id="cockpitTitle">📁 Projekt</h2>
 <div class="small" id="cockpitSubline"></div>
+
+<!-- Geschaeftsstatus (v2.46): getrennt vom Arbeitsstand darunter. Der
+     Arbeitsstand sagt, was erfasst ist; der Status sagt, wie das Projekt
+     geschaeftlich steht - und wird ausschliesslich von Hand gesetzt.
+     Eine einzige Bedienstelle, direkt hier: Status aendert man oft,
+     Stammdaten fast nie. -->
+<div class="projekt-status-zeile">
+<span class="projekt-status-anzeige" id="cockpitStatusBadge"></span>
+<select id="cockpitStatus" aria-label="Projektstatus"></select>
+</div>
+<div class="small" id="cockpitStatusMsg" hidden></div>
 
 <!-- Arbeitsstand (v2.42): fasst nur zusammen, was tatsaechlich vorhanden
      ist. Die Zahlen stammen aus denselben Ladefunktionen, die die

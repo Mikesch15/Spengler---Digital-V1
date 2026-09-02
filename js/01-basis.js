@@ -216,6 +216,36 @@ function projektTitel(p){
  const name=String(p.name||"").trim();
  return name||"Ohne Adresse";
 }
+// ---- Geschaeftsstatus eines Projekts (v2.46) --------------------
+// Vier Werte, gespeichert in projects.status (NOT NULL, Default 'offen',
+// CHECK auf genau diese Menge). Bewusst getrennt vom Arbeitsstand aus
+// v2.42: der Arbeitsstand sagt, WAS ERFASST IST (automatisch aus den
+// vorhandenen Daten), der Status sagt, WIE ES GESCHAEFTLICH STEHT (nur
+// von einem Menschen gesetzt). Ebenso getrennt von 'archived' - das ist
+// eine reine Sichtbarkeitsfrage und bleibt unveraendert bestehen.
+// Nie nur die Farbe traegt die Information: jeder Status hat zusaetzlich
+// Zeichen und Text.
+const PROJEKT_STATUS=[
+ {wert:"offen",         label:"Offen",         icon:"○"},
+ {wert:"in_arbeit",     label:"In Arbeit",     icon:"◐"},
+ {wert:"abgeschlossen", label:"Abgeschlossen", icon:"✓"},
+ {wert:"storniert",     label:"Storniert",     icon:"×"}
+];
+// Unbekannter oder fehlender Wert faellt auf "Offen" zurueck - so bleibt
+// die Oberflaeche auch dann heil, wenn spaeter ein Wert dazukommt, den
+// diese Programmversion noch nicht kennt.
+function projektStatusInfo(wertOderProjekt){
+ const wert=wertOderProjekt&&typeof wertOderProjekt==="object"?wertOderProjekt.status:wertOderProjekt;
+ return PROJEKT_STATUS.find(x=>x.wert===wert)||PROJEKT_STATUS[0];
+}
+function projektStatusText(wertOderProjekt){
+ const s=projektStatusInfo(wertOderProjekt);
+ return s.icon+" "+s.label;
+}
+function projektStatusBadge(wertOderProjekt){
+ const s=projektStatusInfo(wertOderProjekt);
+ return `<span class="pstatus pstatus-${s.wert}">${s.icon} ${esc(s.label)}</span>`;
+}
 // Zusatzzeile aus mehreren echten Angaben, leere Teile fallen weg.
 function infoZeile(...teile){
  return teile.map(x=>String(x==null?"":x).trim()).filter(Boolean).join(" · ");

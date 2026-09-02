@@ -115,6 +115,25 @@ button.arbeitsstand-zeile:hover{background:var(--blue-light)}
 .recent-project-info b{display:block;font-size:13px;word-break:break-word}
 .recent-project-info span{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:3px;word-break:break-word}
 .recent-project-arrow{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--blue)}
+/* Projektstatus (v2.46): Zeichen + Text + Farbe - nie die Farbe allein.
+   Kompakt genug fuer die Projektkarte, gut lesbar auf dem Handy. */
+.pstatus{display:inline-block;font-size:11px;font-weight:900;line-height:1.5;
+ border:1px solid currentColor;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.pstatus-offen{color:var(--muted)}
+.pstatus-in_arbeit{color:var(--blue)}
+.pstatus-abgeschlossen{color:var(--green)}
+.pstatus-storniert{color:var(--red)}
+html.dark .pstatus-abgeschlossen{color:#4cc79a}
+html.dark .pstatus-storniert{color:#f08b80}
+/* Statuszeile im Projektkopf: Anzeige und Auswahlfeld nebeneinander,
+   auf schmalen Geraeten untereinander. */
+.projekt-status-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 4px}
+.projekt-status-zeile select{flex:0 1 200px;min-height:38px}
+.projekt-status-anzeige{flex:0 0 auto}
+/* Statusfilter der Projektliste: gleiche Chips wie im Verlauf (v2.31). */
+.status-filter{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.status-filter button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark);min-height:30px}
+.status-filter button.aktiv{background:var(--blue);color:#fff}
 /* Projektkopf im Cockpit (v2.45): die Adresse ist der Haupttitel und
    darf auf schmalen Geraeten umbrechen, statt seitlich hinauszulaufen. */
 #cockpitTitle{word-break:break-word}

@@ -34,7 +34,10 @@ const VERLAUF_ENTITY_ICONS={project:"📁",measurement:"📐",ausmass:"📏",rep
 // Abschnitt 41) - reine Anzeige-/Übersetzungslogik, keine eigene
 // Diff-Berechnung im Frontend (der Diff selbst kommt immer aus der DB).
 const VERLAUF_FIELD_LABELS={
- project:{name:"Projektname",order_no:"Auftrags-Nr.",customer:"Auftraggeber",object:"Adresse"},
+ // v2.46: status = Geschaeftsstatus (offen/in_arbeit/…), archived = das
+ // davon getrennte Archiv. Beide erscheinen als action "status_changed".
+ project:{name:"Projektname",order_no:"Auftrags-Nr.",customer:"Auftraggeber",object:"Adresse",
+          status:"Status",archived:"Archiv"},
  measurement:{
   title:"Bezeichnung",date:"Datum",note:"Notiz / Masse",
   // v2.34: Detail-Diff innerhalb measurements.data (siehe CLAUDE.md
@@ -125,9 +128,11 @@ function verlaufFormatDiffValue(field,v){
 // Rendert die Feldänderungen eines UPDATE-Eintrags (leer, wenn keine
 // Whitelist-Felder betroffen waren - dann bleibt nur der Aktionstext).
 // archived wird bei action=status_changed nicht generisch, sondern als
-// "Aktiv → Archiviert" dargestellt (Auftrag Abschnitt 18) - nie gemischt
-// mit anderen Feldänderungen, da write_audit_log() bei einer echten
-// Statusänderung ausschliesslich den archived-Diff schreibt.
+// "Aktiv → Archiviert" dargestellt (Auftrag v2.33 Abschnitt 18), der
+// Geschäftsstatus (v2.46) mit seinen deutschen Bezeichnungen. Seit v2.46
+// erfasst write_audit_log() bei einer Statusänderung zusätzlich auch
+// gleichzeitig geänderte Stammdatenfelder, statt sie zu verschlucken -
+// mehrere Zeilen in einem Eintrag sind also möglich.
 // v2.35: Label und Wert als eigene Zeile in einer Flex-Reihe statt reinem
 // Fliesstext - bleibt auf Smartphone/Tablet umbruchfähig (Auftrag
 // Abschnitt 15: kein horizontales Scrollen), liest sich auf breiteren
@@ -163,6 +168,9 @@ function verlaufChangesHtml(row){
   let wert;
   if(row.action==="status_changed"&&c.field==="archived"){
    wert=`${esc(c.old?"Archiviert":"Aktiv")} → ${esc(c.new?"Archiviert":"Aktiv")}`;
+  }else if(row.entity_type==="project"&&c.field==="status"){
+   // Deutsche Bezeichnung statt des gespeicherten Rohwerts (v2.46).
+   wert=`${esc(projektStatusText(c.old))} → ${esc(projektStatusText(c.new))}`;
   }else if(row.entity_type==="measurement"&&(c.field==="photo"||c.field==="sketches")){
    const text=verlaufBildWert(row,c);
    if(text===null)return;

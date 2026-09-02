@@ -139,7 +139,9 @@ async function renderRecentProjects(){
   // Zusatzangabe erhalten (und faellt weg, wenn er mangels Adresse
   // bereits der Haupttitel ist).
   const titel=projektTitel(e.p);
-  const zeile=infoZeileOhne(titel,e.p.name,e.p.order_no,recentZeitText(e.zeit),wer);
+  // Status als erste Angabe der Zusatzzeile - eine kurze Angabe mehr,
+  // kein zusaetzliches Element, damit die Karte nicht ueberladen wirkt.
+  const zeile=infoZeileOhne(titel,projektStatusText(e.p),e.p.name,e.p.order_no,recentZeitText(e.zeit),wer);
   return `<button type="button" class="recent-project" data-open-recent="${e.p.id}">
 <span class="recent-project-info"><b>📁 ${esc(titel)}</b><span>${esc(zeile)}</span></span>
 <span class="recent-project-arrow">›</span>
@@ -153,11 +155,32 @@ $("recentProjectsList").addEventListener("click",async e=>{
  // Projekt-Oeffnungssystem.
  if(b)await openProjectCockpit(Number(b.dataset.openRecent));
 });
+// Statusfilter (v2.46): rein clientseitig auf dem bereits geladenen,
+// RLS-gefilterten allProjects - keine zusaetzliche Abfrage. Die Filter-
+// zeile erscheint nur, wenn sie etwas nuetzt: sobald in der aktuellen
+// Ansicht mehr als ein Status vorkommt oder ein Filter aktiv ist. Bei
+// wenigen, gleichartigen Projekten bleibt die Liste damit so schlicht
+// wie bisher.
+let projectStatusFilter="alle";
+function renderProjectStatusFilter(list){
+ const box=$("projectStatusFilter");
+ if(!box)return;
+ const vorhanden=new Set(list.map(p=>projektStatusInfo(p).wert));
+ const zeigen=vorhanden.size>1||projectStatusFilter!=="alle";
+ box.hidden=!zeigen;
+ if(!zeigen){box.innerHTML="";return}
+ const knopf=(wert,text)=>`<button type="button" data-project-status-filter="${wert}"${projectStatusFilter===wert?' class="aktiv"':""}>${esc(text)}</button>`;
+ box.innerHTML=knopf("alle","Alle")+PROJEKT_STATUS.map(s=>knopf(s.wert,s.icon+" "+s.label)).join("");
+}
 function renderProjectList(){
  // Schnellzugriff mit auffrischen (v2.41). Bewusst ohne await - die
  // Projektliste selbst soll nicht auf die Abfragen warten.
  renderRecentProjects().catch(err=>console.error("Schnellzugriff:",err));
- const list=showArchivedProjects?allProjects:allProjects.filter(p=>!p.archived);
+ // Archiv zuerst: der Statusfilter arbeitet innerhalb der jeweils
+ // gezeigten Menge, das bestehende Archivverhalten bleibt unberuehrt.
+ const sichtbar=showArchivedProjects?allProjects:allProjects.filter(p=>!p.archived);
+ renderProjectStatusFilter(sichtbar);
+ const list=projectStatusFilter==="alle"?sichtbar:sichtbar.filter(p=>projektStatusInfo(p).wert===projectStatusFilter);
  $("projectList").innerHTML=list.map(p=>{
   // Dezente Ersteller-/Bearbeiter-Anzeige, dieselbe Logik wie bei
   // Massaufnahmen (erstelltGeaendertText(), js/16-massaufnahme-
@@ -170,15 +193,21 @@ function renderProjectList(){
   const zusatz=infoZeileOhne(titel,p.name,p.order_no,p.customer)||"Keine weiteren Angaben";
   return `<div class="project-row"${p.archived?' style="opacity:.6"':''}>
 <div class="project-row-top"><b>${esc(titel)}${p.archived?' <span class="small">(archiviert)</span>':''}</b><button class="red" data-del-project="${p.id}">Löschen</button></div>
-<div class="small">${esc(zusatz)}</div>
+<div class="small">${projektStatusBadge(p)} ${esc(zusatz)}</div>
 ${meta?`<div class="small" style="color:var(--muted)">${meta}</div>`:""}
 <div class="project-row-actions">
 <button class="blue" data-open-cockpit="${p.id}">📂 Projekt öffnen</button>
 <button class="gray" data-archive-project="${p.id}">${p.archived?"↩️ Reaktivieren":"📦 Archivieren"}</button>
 </div>
 </div>`;
- }).join("")||'<div class="empty">Noch keine Projekte angelegt.</div>';
+ }).join("")||`<div class="empty">${projectStatusFilter==="alle"?"Noch keine Projekte angelegt.":"Kein Projekt mit diesem Status."}</div>`;
 }
+$("projectStatusFilter").addEventListener("click",e=>{
+ const b=e.target.closest("[data-project-status-filter]");
+ if(!b)return;
+ projectStatusFilter=b.dataset.projectStatusFilter;
+ renderProjectList();
+});
 // ---- Kurzinfos fuer die Cockpit-Listen (v2.39) -----------------
 // Verwenden ausschliesslich Felder, die ohnehin schon geladen sind -
 // keine zusaetzliche Abfrage, keine erfundene Statusinformation.
@@ -430,7 +459,7 @@ $("measProjectResults").addEventListener("click",e=>{
 $("amProjectResults").addEventListener("click",e=>{
  if(e.target.closest("[data-pick-am-project]"))updateAmFormTitle();
 });
-$("startOpenProjects").onclick=()=>{renderProjectList();$("projectsModal").hidden=false};
+$("startOpenProjects").onclick=()=>{projectStatusFilter="alle";renderProjectList();$("projectsModal").hidden=false};
 $("newMeasurement").onclick=()=>{$("measurementsModal").hidden=true;$("measTypeChooserModal").hidden=false};
 $("cancelMeasTypeChooser").onclick=()=>{$("measTypeChooserModal").hidden=true;$("measurementsModal").hidden=false};
 $("measTypeChooserModal").addEventListener("click",e=>{

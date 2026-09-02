@@ -74,12 +74,60 @@ function renderCockpitStammdaten(){
  const titel=projektTitel(p);
  $("cockpitTitle").textContent="📁 "+titel;
  $("cockpitSubline").textContent=infoZeileOhne(titel,p.name,p.order_no,p.customer,p.archived?"archiviert":"");
+ renderCockpitStatus();
  $("cockpitName").value=p.name||"";
  $("cockpitOrderNo").value=p.order_no||"";
  $("cockpitObject").value=p.object||"";
  $("cockpitCustomer").value=p.customer||"";
  $("cockpitStammdatenMsg").hidden=true;
 }
+
+// ---- Geschäftsstatus (v2.46) ------------------------------------
+// Genau eine Bedienstelle: Anzeige und Auswahlfeld hier im Projektkopf.
+// Bewusst NICHT zusätzlich im Stammdaten-Formular - zwei Bedienelemente
+// für denselben Wert wären eine unnötige Fehlerquelle. Der Status wird
+// im Alltag oft umgestellt, Name/Adresse fast nie; deshalb liegt er
+// ausserhalb des eingeklappten Stammdaten-Bereichs.
+function renderCockpitStatus(){
+ const p=cockpitProject();
+ if(!p)return;
+ const info=projektStatusInfo(p);
+ $("cockpitStatusBadge").innerHTML=projektStatusBadge(p);
+ const sel=$("cockpitStatus");
+ sel.innerHTML=PROJEKT_STATUS.map(x=>`<option value="${x.wert}"${x.wert===info.wert?" selected":""}>${esc(x.icon+" "+x.label)}</option>`).join("");
+ sel.value=info.wert;
+ $("cockpitStatusMsg").hidden=true;
+}
+$("cockpitStatus").addEventListener("change",async e=>{
+ const p=cockpitProject();
+ if(!p)return;
+ const neu=e.target.value;
+ const alt=projektStatusInfo(p).wert;
+ if(neu===alt)return;
+ const msg=$("cockpitStatusMsg");
+ const zeige=(text,farbe)=>{msg.textContent=text;msg.style.color=farbe;msg.hidden=false};
+ // Kein company_id vom Client: die restriktive tenant_boundary_projects
+ // und projects_update_permission (has_permission('projects','edit'))
+ // entscheiden serverseitig. Ein von RLS blockiertes UPDATE meldet in
+ // PostgREST keinen Fehler, es betrifft still 0 Zeilen (CLAUDE.md 24.1)
+ // - deshalb das Ergebnis prüfen, statt Erfolg anzunehmen.
+ const {data,error}=await sb.from("projects").update({status:neu}).eq("id",p.id).select("*");
+ if(error||!data||!data.length){
+  e.target.value=alt;                 // Auswahl auf den echten Wert zurück
+  $("cockpitStatusBadge").innerHTML=projektStatusBadge(p);
+  zeige(error?"Fehler: "+error.message
+             :"Der Status konnte nicht geändert werden. Fehlt die nötige Berechtigung?","var(--red)");
+  return;
+ }
+ const idx=allProjects.findIndex(x=>x.id===p.id);
+ if(idx>=0)allProjects[idx]=data[0];
+ $("cockpitStatusBadge").innerHTML=projektStatusBadge(data[0]);
+ zeige("✓ Status auf \u201E"+projektStatusInfo(data[0]).label+"\u201C gesetzt.","var(--green)");
+ // Die Statusänderung ist eine Projektänderung: Zeile "letzte Aktivität"
+ // auffrischen, damit sie sofort stimmt. Der bestehende audit_log-Trigger
+ // schreibt sie serverseitig als 'status_changed'.
+ cockpitAktivitaetLaden().catch(err=>console.error("Aktivität:",err));
+});
 
 // "3 vorhanden" / "Noch keine …" - niemals ein erfundener Status.
 function cockpitAnzahlText(n,leerText){
