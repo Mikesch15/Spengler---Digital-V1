@@ -1,0 +1,332 @@
+================================================================
+SPENGLER-DIGITAL – ABSCHLUSSBERICHT VERSION 2.52
+Neue Massaufnahme-Funktion "Kehle"
+Commit 0ee907f · main gepusht · 2. September 2026
+================================================================
+
+
+1. VORWEG: VERSIONSNUMMER
+-------------------------
+Der Auftrag verlangte "Version auf 2.51 erhöhen". 2.51 war zu diesem
+Zeitpunkt aber schon vergeben – an den Hotfix von heute Morgen (die
+unsichtbare Ebene über dem Startbildschirm). Diese Arbeit ist deshalb
+Version 2.52 geworden. 2.51 bleibt der Hotfix.
+
+
+2. WICHTIGSTER BEFUND: VIER FORMELN IM AUFTRAGSTEXT SIND FALSCH
+---------------------------------------------------------------
+Ich habe die Excel-Vorlage ausgepackt und Zelle für Zelle ausgelesen,
+statt mich auf die Abschrift im Auftrag zu verlassen. Dabei zeigte
+sich, dass der Auftragstext an vier Stellen auf die falsche Zelle
+zeigt:
+
+   Wert  Excel-Zelle  Excel rechnet        Auftragstext sagt
+   ----  -----------  -------------------  -----------------
+   Y     C18          A / cos(b)           A / cos(m)
+   AA    C20          A · tan(b)           A · tan(m)
+   AC    C22          Q / cos(e)           Q / cos(n/2)
+   f     C31          l + 90               o + 90
+
+Der Grund ist immer derselbe: C27 ist b (nicht m), C30 ist e (nicht
+n/2), C36 ist l (nicht o).
+
+Das ist nicht Haarspalterei. d hängt über AA und AC an zwei dieser
+Formeln:
+
+   mit den Excel-Formeln:      d = 47.46°   <- Ihr Sollwert
+   mit dem Auftragstext:       d = 104.68°  <- falsch
+   (und f wäre 122.77° statt 147.23°)
+
+Umgesetzt ist die Excel – genau wie Sie es vorgegeben haben ("Die
+Excel-Datei ist die fachliche Referenz"). Nur so kommt der von Ihnen
+selbst genannte Regressionswert d = 47.46° heraus.
+
+Falls die Excel an einer dieser vier Stellen einen Fehler enthalten
+sollte und Ihr Auftragstext das Richtige beschreibt, sagen Sie mir
+bitte Bescheid – dann ändere ich es. Nach dem Zahlenbild spricht aber
+alles für die Excel.
+
+
+3. BERECHNUNG – WAS UMGESETZT IST
+---------------------------------
+Verwendet wird ausschliesslich Spalte C des Blattes "Winkelberechnung
+Kehle  Grat" (Kehle). Die Grat-Variante in Spalte D/E ist nicht
+umgesetzt.
+
+Eingaben: genau drei, nicht mehr.
+   NH  Neigung Hauptdach (°)
+   NL  Neigung Lukarne (°)
+   GL  Gefällslänge Lukarne (mm)
+
+Reihenfolge der Auswertung (Excel rechnet zellweise, der Code braucht
+eine zirkelfreie Kette):
+
+   Q,R,S,T -> tanU,tanV -> U,V -> U+90,V+90 -> W -> A -> e
+           -> l,m -> n,o,p -> b,c -> X,Y,Z,AA -> AB -> AC
+           -> AD,AE -> h,i,k -> d -> f,g
+
+Jede einzelne Zeile im Code trägt ihre Excel-Zelle als Kommentar, z.B.
+
+   w.Q = Math.sin(r(NL)) * GL;      // C6  = SIN(C4/180*PI())*C5
+   w.AC = w.Q / Math.cos(r(w.e));   // C22 = C6/COS(C30/180*PI())  -> C30 = e
+
+Nichts vereinfacht, nichts umgestellt, nichts durch eigene Geometrie
+ersetzt.
+
+Intern wird durchgehend mit voller JS-Genauigkeit gerechnet; erst die
+Anzeige rundet auf zwei Nachkommastellen und hängt die Einheit an
+(Winkel °, Längen mm).
+
+
+4. b / c / d – IHR BEISPIEL
+---------------------------
+   NH = 42.5°   NL = 23.5°   GL = 100
+
+   b = 66.48°    Winkel First zu Kehle an Lukarne in Dachfläche
+   c = 122.77°   Winkel Winkelhalbierende zu Kehle an Hauptdach
+   d = 47.46°    Biegewinkel Kehlblech
+
+Alle drei stimmen. Und nicht nur die drei: ich habe alle 35 Werte
+gegen die in Ihrer Vorlage gespeicherten Excel-Ergebnisse verglichen –
+Q, R, S, T, tanU, tanV, U, V, U+90, V+90, W, X, Y, Z, AA, AB, AC, AD,
+AE, A, b, c, d, e, f, g, h, i, Innenwinkel, k, l, m, n, o, p.
+
+Alle 35 identisch. Grösste Abweichung 2.8e-14 (bei AD), das ist reine
+Gleitkomma-Rundung, keine fachliche Differenz.
+
+
+5. DARSTELLUNG
+--------------
+Oben die drei Eingaben, darunter direkt:
+
+   +-------------------------------------------+
+   |  HAUPTRESULTATE KEHLE                     |
+   |  b    66.48°   Winkel First zu Kehle ...  |
+   |  c   122.77°   Winkel Winkelhalbierende...|
+   |  d    47.46°   Biegewinkel Kehlblech      |
+   +-------------------------------------------+
+
+Eigene blau umrandete Box, Zahl in 26 px – die drei dominieren klar.
+
+Darunter "Weitere Resultate" als Tabelle Zeichen / Bezeichnung / Wert:
+A, e, f, g, h, i, k, l, m, n, o, p.
+
+Ganz unten die Zwischenergebnisse Q bis AE plus "Innenwinkel zu
+Mittelrippe", eingeklappt hinter "Zwischenergebnisse der
+Excel-Berechnung anzeigen". Vorhanden für die Kontrolle, aber bewusst
+untergeordnet.
+
+Damit sind alle Resultate der Excel sichtbar – auch die beiden
+unbeschrifteten Grundriss-Winkel (C14/C15) und die Hilfsquotienten
+(C10/C11).
+
+Die Beschriftungen habe ich wörtlich aus Spalte A der Excel
+übernommen. Nur bei n und p führt die Excel für die Kehle gar keine
+Zeilenbeschriftung – dort steht Ihr Text aus dem Auftrag, bei p
+ergänzt um "(Gegenwinkel, 180° − o)", weil o und p sonst identisch
+beschriftet wären.
+
+Berechnet wird bei jeder Eingabe sofort, ohne "Berechnen"-Knopf –
+gleiches Verhalten wie bei Lukarne, Anschlussblech und Einfassung
+Rund.
+
+
+6. FEHLERPRÜFUNG
+----------------
+Geprüft wird vor jeder Berechnung: NH > 0, NL > 0, GL > 0.
+
+Zusätzlich NH < 90 und NL < 90. Grund: tan(90°) liefert im Rechner
+einen sinnlosen Riesenwert, und aus einer 90°-"Dachneigung" entsteht
+ohnehin keine Kehle.
+
+Fehlt ein Wert, ist er leer, 0, negativ, Text, NaN oder Infinity, wird
+gar nicht erst gerechnet. Stattdessen steht in der Hauptbox "–" und in
+Rot, was fehlt – z.B. "Neigung Lukarne (NL) muss grösser als 0° sein."
+
+Zwei zusätzliche Sicherungen gegen NaN/Infinity:
+ - die Wurzeln von AD und AE werden vorher auf negative Werte geprüft
+   (über 31 684 Kombinationen nachgerechnet: kommt im gültigen Bereich
+   nie vor, die Prüfung ist reine Vorsicht)
+ - am Schluss wird jeder der 35 Werte auf Endlichkeit geprüft
+
+Es kann also nichts "NaN" oder "Infinity" auf dem Bildschirm landen.
+
+
+7. INTEGRATION – MINIMAL GEHALTEN
+---------------------------------
+measurements.type hat keine CHECK-Constraint (direkt am Schema
+geprüft). Ein neuer Typ braucht deshalb KEINE Migration, KEINE
+Schemaänderung und KEINE RLS-Änderung.
+
+Geänderte Dateien:
+
+   js/25-kehle.js              NEU – gesamte Fachlogik + Darstellung
+   js/01-basis.js              1 Zeile: kehle:"Kehle" in den Labels
+   index.html                  Auswahlknopf, Option, Formularblock,
+                               Script-Tag, Versionstext
+   js/16-…-formular.js        +66 Zeilen, 0 gelöscht
+   js/10-massaufnahme.js       +2 Zeilen, 0 gelöscht
+   css/01-basis.css            Stile der Ergebnisdarstellung
+   sw.js                       Cache 2.52 + neue Datei im SHELL
+   CLAUDE.md                   Abschnitt 60, Funktionsliste auf ZEHN
+
+Die beiden Eingriffe in geschützte Dateien sind rein additiv – per
+git diff --numstat belegt: 66/0 und 2/0. Keine bestehende Zeile
+geändert oder entfernt. Keine Berechnung, keine Stückliste, kein
+Zuschnitt, keine Abwicklung, kein bestehender Druckzweig angefasst.
+
+Automatisch mitbenutzt, ohne eine Zeile eigenen Code: Projektzuordnung,
+Bezeichnung, Notiz, Datum, Speichern, Öffnen/Bearbeiten, Anzeige im
+Projekt-Cockpit, Verlauf, Ersteller-/Bearbeiter-Logik und die
+Tenant-Trennung.
+
+Drucken: Ich habe einen eigenen Druckzweig ergänzt. Ohne ihn wäre die
+Kehle in den allgemeinen Foto-Zweig gefallen und hätte ein Blatt ganz
+ohne Zahlen gedruckt – bei einer reinen Rechenfunktion wäre das ein
+Defekt. Der Zweig ist additiv (Angaben, b/c/d gross, Tabelle der
+weiteren Resultate); die neun bestehenden Druckzweige sind unverändert.
+
+Kein Material und keine Fotos/Skizzen bei der Kehle – wie beim
+Anschlussblech und der Einfassung Rund. Die Medienfunktion aus v2.50
+erkennt das korrekt und zeigt bei einer Kehle weder Hinweis noch Knopf.
+
+Gespeichert werden die drei Eingaben plus alle 35 Ergebnisse in voller
+Genauigkeit, damit ein später gedrucktes PDF gleich bleibt.
+
+
+8. TESTS
+--------
+Prüfstand "kehle52" – 552 von 552 bestanden:
+ - Ihr Excel-Beispiel: b=66.48 / c=122.77 / d=47.46
+ - alle 35 Werte gegen die gespeicherten Excel-Ergebnisse
+ - acht weitere Eingabekombinationen (30/20/100, 45/45/1000,
+   60/15/2500, 15/60/800, 42.5/23.5/3200, 89/1/50, 1/89/5000,
+   22.5/35/1234.5) – jeweils alle Werte gegen eine unabhängig aus den
+   Excel-Formeln nachgebaute Referenz
+ - Skalierungsprobe: GL verdoppeln lässt alle 19 Winkel unverändert
+   und verdoppelt alle 14 Längen exakt
+ - 21 Eingabefehler: leer, einzeln leer, 0, negativ, 90, über 90,
+   "abc", nur Leerzeichen, null, undefined, fehlendes Objekt, NaN,
+   Infinity – jeder führt zu keiner Berechnung und einer
+   verständlichen Meldung
+ - kein NaN/Infinity: 3 481 Kombinationen über das ganze gültige Feld,
+   über 100 000 Einzelwerte geprüft
+ - 35 Beschriftungen vorhanden und fachlich (kein "Ergebnis 1")
+ - Darstellung: Hauptbox genau b/c/d, weitere Resultate genau 12
+   Zeilen, Zwischenergebnisse genau 20 Zeilen und eingeklappt
+
+Prüfstand "kehleintegration52" – 76 von 76 bestanden:
+ - Speichern: Typ, Titel, Notiz, Datum, Projekt-ID, die drei Eingaben
+   als Zahlen, alle 35 Ergebnisse in voller Genauigkeit
+ - Öffnen: Felder werden gefüllt, es wird identisch nachgerechnet
+ - nochmaliges Speichern ergibt exakt dieselben Werte
+ - Cockpit kennt "Kehle" (jetzt zehn Arten)
+ - Medienfunktion v2.50: Kehle ohne Medien, Skizze/Foto inklusive
+   Legacy-Feld unverändert
+ - der Payload setzt Ersteller/Bearbeiter nicht selbst
+ - der Skizze/Foto-Zweig ist unverändert
+
+Datenbank – 13 von 13, ausschliesslich in BEGIN … ROLLBACK mit einer
+Wegwerf-Firma:
+ - Kehle-Massaufnahme wird gespeichert
+ - ein bewusst gefälschtes created_by / created_at (fremder Benutzer,
+   Jahr 2000) wird vom Trigger überschrieben
+ - updated_by/updated_at werden gesetzt, created_by/created_at bleiben
+   beim Ändern erhalten
+ - Verlauf schreibt "created" mit Projekt- und Benutzerbezug, beim
+   Ändern "updated" mit Titel-Diff, beim Löschen "deleted"
+ - b/c/d stehen unverändert in der Datenbank
+ - Cross-Tenant: fremde Firma sieht mit den echten Projekt-IDs von
+   PETER KÜNZI AG je 0 Zeilen
+
+Anmerkung dazu: der Detail-Diff aus v2.34 kennt den Typ "kehle" nicht.
+Das ist kein Fehler – die typspezifischen Zweige greifen einfach nicht,
+der Verlauf schreibt weiterhin Titel/Datum/Notiz. Ein Detail-Diff der
+drei Kehle-Eingaben wäre eine eigene, spätere Erweiterung.
+
+
+9. REGRESSION
+-------------
+Alle bestehenden Prüfstände vollständig gelaufen, alle grün:
+
+   nav          23/23     adresse45    39/39
+   suche40       7/7      kopf45        8/8
+   treffer40     7/7      suche45      13/13
+   recent41     12/12     status46     35/35
+   stand42      17/17     projekte47   37/37
+   dateien43    27/27     auswahl48    32/32
+   ui39         9 Darstellungsfälle
+                          dateien49    38/38
+                          medien50     42/42
+                          hidden51      7/7
+
+Zusätzlich geprüft:
+ - node --check über alle 27 js-Dateien und sw.js: fehlerfrei
+ - div-Balance in index.html: 672/672 (vorher 662/662)
+ - doppelte IDs: keine; jede neue ID genau einmal vorhanden
+ - doppelte Event-Handler: keine, die drei Eingabefelder werden genau
+   einmal gebunden
+ - Service Worker: alle 36 SHELL-Einträge existieren, keine js-Datei
+   fehlt darin, Cache-Version passt zum Versionstext
+ - keine bestehenden globalen Namen überschrieben (alle 13 neuen Namen
+   einzeln gegen sämtliche Dateien geprüft)
+
+Der Wächter-Prüfstand hidden51 aus dem heutigen Hotfix bleibt grün –
+der neue Formularblock startet wie die neun bestehenden ohne eigene
+Klasse, und keine der neuen CSS-Klassen wird je versteckt. Der Fehler
+von heute Morgen kann sich hier also nicht wiederholen.
+
+
+10. PETER KÜNZI AG
+------------------
+Vor und nach allen Tests identisch:
+   2 Firmen, 13 Profile, 4 Projekte, 13 Massaufnahmen, 2 Ausmasse,
+   4 Rapporte, 1 Projektdatei, 4 audit_log-Zeilen,
+   companies.updated_at = 2026-09-01 07:40:15.844647+00
+
+Keine Wegwerf-Firma, kein Testprojekt und keine Test-Massaufnahme
+übrig geblieben. Sämtliche schreibenden Tests liefen in
+BEGIN … ROLLBACK. Es wurde kein bestehendes Projekt, keine
+Massaufnahme und kein Statuswert verändert.
+
+
+11. GIT
+-------
+   Commit:  0ee907f  "Version 2.52: Neue Massaufnahme-Funktion Kehle"
+   Branch:  claude/v1-49-analysis-rk5csc  – gepusht
+   main:    aktualisiert und gepusht (Fast-Forward)
+   Arbeitsverzeichnis: sauber
+   Diff geprüft: nur v2.52-relevante Änderungen, 8 Dateien
+
+
+12. OFFENE PUNKTE
+-----------------
+ - Kein Live-Klicktest im Browser möglich: die Sandbox lässt weiterhin
+   keine HTTPS-Verbindung zu Supabase zu. Das behaupte ich
+   ausdrücklich nicht als getestet. Geprüft sind die Rechenlogik gegen
+   die echten Excel-Werte, die Darstellung gegen den echten Renderer,
+   der Speicher-/Öffnen-Weg gegen den echten Formularcode und die
+   Datenbankseite gegen das echte Produktivschema.
+ - Kein Feld-Diff der drei Kehle-Eingaben im Verlauf (siehe Punkt 8).
+ - Keine Zeichnung/Skizze der Kehle – der Auftrag verlangt Zahlen,
+   eine massstäbliche Darstellung wäre eine eigene Aufgabe.
+ - Die Grat-Variante Ihrer Vorlage (Spalte D/E, "Winkelberechnung für
+   Gratbleche") ist NICHT umgesetzt. Sie nutzt dieselben
+   Zwischenwerte, aber teils andere Beschriftungen und einen
+   zusätzlichen Wert. Wenn Sie die auch wollen, wäre das eine elfte
+   Massaufnahme-Art nach demselben Muster – sagen Sie einfach Bescheid.
+ - Aus früheren Runden weiterhin offen: leere allowed_mime_types am
+   Storage-Bucket, Massaufnahme ohne Projekt kann kein Foto speichern,
+   fehlender search_path bei zwei Storage-Hilfsfunktionen, 9 verwaiste
+   Storage-Objekte aus v2.24.
+
+
+13. BITTE PRÜFEN SIE AM GERÄT
+-----------------------------
+ - App neu laden (Version 2.52 muss unten stehen)
+ - Projekt öffnen -> Neue Massaufnahme -> "Kehle"
+ - 42.5 / 23.5 / 100 eingeben: b=66.48 / c=122.77 / d=47.46
+ - speichern, schliessen, wieder öffnen: gleiche Zahlen
+ - drucken
+ - eine bestehende Massaufnahme eines anderen Typs öffnen: unverändert
+================================================================
