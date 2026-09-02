@@ -122,6 +122,7 @@ function goToStart(){
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=true;
  $("projectsModal").hidden=true;
+ $("projectCockpitModal").hidden=true;
  $("settingsModal").hidden=true;
  $("sheetModal").hidden=true;
  $("ausmassModal").hidden=true;

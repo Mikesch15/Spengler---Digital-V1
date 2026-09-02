@@ -57,6 +57,7 @@ function renderProjectList(){
 <div class="small">${esc(p.order_no||"–")} · ${esc(p.object||"–")} · ${esc(p.customer||"–")}</div>
 ${meta?`<div class="small" style="color:var(--muted)">${meta}</div>`:""}
 <div class="project-row-actions">
+<button class="blue" data-open-cockpit="${p.id}">📂 Projekt öffnen</button>
 <button class="gray" data-toggle-reports="${p.id}">📋 Rapporte anzeigen</button>
 <button class="gray" data-toggle-measurements="${p.id}">📐 Massaufnahmen anzeigen</button>
 <button class="gray" data-toggle-ausmass="${p.id}">📏 Ausmasse anzeigen</button>
@@ -269,6 +270,13 @@ $("toggleArchivedProjects").onclick=()=>{
  renderProjectList();
 };
 $("projectList").addEventListener("click",async e=>{
+ // Projekt-Cockpit (v2.37): kompakte Arbeitsuebersicht zu diesem Projekt,
+ // siehe js/24-projekt-cockpit.js.
+ const cockpit=e.target.closest("[data-open-cockpit]");
+ if(cockpit){
+  await openProjectCockpit(Number(cockpit.dataset.openCockpit));
+  return;
+ }
  const arch=e.target.closest("[data-archive-project]");
  if(arch){
   const id=Number(arch.dataset.archiveProject);

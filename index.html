@@ -91,7 +91,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.36</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.37</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -233,6 +233,37 @@
 <div class="bar"><button id="addProject" class="blue">＋ Projekt anlegen</button><button type="button" id="toggleArchivedProjects" class="gray">📦 Archivierte anzeigen</button></div>
 <div id="projectList"></div>
 <div class="bar"><button id="closeProjects" class="green">✓ Fertig</button><button id="startFromProjects" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- PROJEKT-COCKPIT: Arbeitsuebersicht zu einem geoeffneten Projekt (v2.37).
+     Zeigt nur tatsaechlich vorhandene Daten - kein erfundener Projektstatus.
+     Siehe js/24-projekt-cockpit.js. -->
+<div id="projectCockpitModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2 id="cockpitTitle">📁 Projekt</h2>
+<div class="small" id="cockpitSubline"></div>
+<div class="grid" style="margin-top:10px">
+<div><label>Projektname (Pflichtfeld)</label><input id="cockpitName"></div>
+<div><label>Auftrags-Nr. (Pflichtfeld)</label><input id="cockpitOrderNo"></div>
+<div><label>Adresse (Pflichtfeld)</label><input id="cockpitObject"></div>
+<div><label>Auftraggeber</label><input id="cockpitCustomer"></div>
+</div>
+<div class="bar"><button id="cockpitSaveStammdaten" class="blue">✓ Stammdaten speichern</button></div>
+<div class="small" id="cockpitStammdatenMsg" hidden></div>
+</div>
+<div class="card">
+<h2>🔧 Arbeit</h2>
+<div id="cockpitWork"></div>
+</div>
+<div class="card">
+<h2>🕒 Verlauf</h2>
+<div class="small" id="cockpitLastActivity"></div>
+<div class="bar"><button id="cockpitVerlaufToggle" class="gray">🕒 Verlauf anzeigen</button></div>
+<div class="report-list" id="cockpitVerlaufBody"></div>
+<div class="bar"><button id="cockpitBack" class="green">✓ Fertig</button><button id="cockpitStart" class="gray">🏠 Start</button></div>
 </div>
 </div>
 </div>
@@ -1250,6 +1281,7 @@ Diese Aktion löscht unwiderruflich:
 <script src="js/21-einfassung-rund.js"></script>
 <script src="js/22-system-admin.js"></script>
 <script src="js/23-verlauf.js"></script>
+<script src="js/24-projekt-cockpit.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>
 </html>

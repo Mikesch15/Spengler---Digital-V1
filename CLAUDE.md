@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.36, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.37, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.36**
+- sichtbare App-Version: **2.37**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -5482,3 +5482,227 @@ wieder vorhanden, PETER KÜNZI AG (`updated_at`) unverändert.
   Massaufnahmen; eine analoge Foto-Erkennung für Ausmasse wäre technisch
   möglich, war aber nicht Teil dieses Auftrags (dort ist bisher nur der
   Kopfdaten-Diff aus v2.33 aktiv).
+
+## 45. PROJEKT-COCKPIT / ARBEITSÜBERSICHT — VERSION 2.37
+
+Ein Projekt wird zum Einstiegspunkt in die Arbeit: eine kompakte
+Übersicht zeigt Stammdaten, was bereits vorhanden ist und die letzte
+Aktivität, und springt von dort direkt in die bestehenden Bereiche.
+**Keine Schemaänderung, keine Migration, keine Fachlogik-Änderung** –
+ausschliesslich Frontend.
+
+### 45.1 Bestandsaufnahme (frisch gegen Code und Schema geprüft)
+
+`projects` hat genau diese Spalten: `id`, `name`, `order_no`,
+`customer`, `object`, `archived`, `company_id`, `created_by`/`_at`,
+`updated_by`/`_at`. **Das einzige Statusfeld ist `archived`** – es gibt
+kein „offen/in Arbeit/fertig", weder als Spalte noch abgeleitet. Ein
+solcher Status wird deshalb im Cockpit auch nicht angezeigt oder
+erfunden (Auftrag Abschnitt 1).
+
+Verknüpfungen, alle bereits vorhanden und direkt nutzbar:
+
+| Bereich | Verknüpfung |
+|---|---|
+| Massaufnahmen | `measurements.project_id` |
+| Ausmass | `ausmass.project_id` |
+| Regierapport | `reports.project_id` |
+| Dateien/Fotos | `project_files.project_id` (zuverlässige Projektzuordnung, deshalb im Cockpit enthalten) |
+| Verlauf | `audit_log.project_id` (kombiniert Projekt + seine Massaufnahmen/Ausmasse/Rapporte, seit v2.32) |
+
+Bestehende Oberfläche: Projekte werden als Karten (`.project-row`) in
+`#projectsModal` gezeigt, mit auf-/zuklappbaren Listen je Bereich.
+Eine eigene Projekt-Detailansicht gab es bisher **nicht**, und ebenso
+**keine Möglichkeit, die Stammdaten eines bestehenden Projekts zu
+ändern** (nur Anlegen, Archivieren, Löschen) – obwohl das
+Feld-Diffing aus v2.33 (`name`/`order_no`/`customer`/`object`) genau
+darauf ausgelegt ist.
+
+### 45.2 Umgesetzt
+
+Neue Datei **`js/24-projekt-cockpit.js`** und ein neues Modal
+`#projectCockpitModal`, erreichbar über den neuen Knopf
+„📂 Projekt öffnen" auf jeder Projektkarte:
+
+- **Stammdaten** – Projektname, Auftrags-Nr., Adresse, Auftraggeber aus
+  dem bereits geladenen `allProjects` (keine zusätzliche Abfrage), als
+  bearbeitbare Felder mit „✓ Stammdaten speichern". Dieselben
+  Pflichtfelder wie beim Anlegen. Archivierte Projekte sind als solche
+  gekennzeichnet.
+- **Arbeit** – vier grosse, volle Breite einnehmende Kacheln
+  (`.cockpit-tile`) mit Anzahl bzw. „Noch keine …":
+  „📐 Massaufnahmen", „📏 Ausmass", „📋 Regierapport",
+  „📎 Dateien/Fotos". Bei Massaufnahmen/Ausmassen zusätzlich die ersten
+  drei Titel (ohne Titel: die Fachart aus dem bestehenden
+  `MEAS_TYPE_LABELS`-Katalog).
+- **Verlauf** – „Letzte Aktivität" als eine Zeile
+  (Entität · Aktion · Benutzer · Zeitpunkt) sowie der Knopf
+  „🕒 Verlauf anzeigen", der den **bestehenden** kombinierten
+  Projekt-Verlauf aus v2.32 öffnet (`toggleProjectVerlaufBox()`).
+  Ohne Eintrag: „Noch keine Aktivität".
+
+### 45.3 Wiederverwendung statt Parallelsystem (Auftrag Abschnitt 4/6)
+
+- Der **Verlauf** ist unverändert der aus `js/23-verlauf.js`
+  (`toggleProjectVerlaufBox()`, `updateVerlaufToggleVisibility()`,
+  `verlaufFormatWann()`, `VERLAUF_*_LABELS`) – kein zweites
+  Aktivitätssystem, keine zweite Abfragelogik.
+- Die **Sprünge** in einen Bereich lösen den echten, bereits
+  vorhandenen Umschaltknopf der Projektkarte per `btn.click()` aus
+  (`data-toggle-measurements`/`-ausmass`/`-reports`/`-files`). Dadurch
+  gibt es weiterhin **genau eine** Auf-/Zuklapp- und Ladelogik
+  (`loadProjectMeasurements()` usw. in `js/09-projekte.js`), keine
+  Kopie davon im Cockpit. Ist das Projekt archiviert, schaltet der
+  Sprung vorher die Archiv-Ansicht ein, damit die Karte auffindbar ist.
+- Benutzernamen über das bestehende `profileName()` aus dem bereits
+  geladenen `allProfiles` – keine zusätzliche Profil-Abfrage.
+
+### 45.4 Datenbank / Performance
+
+**Keine Migration, keine Schemaänderung** – das Cockpit kommt
+vollständig mit dem bestehenden Schema aus (Auftrag Abschnitt 7).
+
+Beim Öffnen eines Projekts laufen **fünf Abfragen in einem einzigen
+`Promise.all`**, nicht eine pro Kachel nacheinander:
+
+| Abfrage | Zweck |
+|---|---|
+| `measurements.select("id,title,type,date")` | Anzahl + Titel |
+| `ausmass.select("id,title,type,date")` | Anzahl + Titel |
+| `reports.select("id")` | nur Anzahl |
+| `project_files.select("id")` | nur Anzahl |
+| `audit_log … order(created_at desc).limit(1)` | letzte Aktivität |
+
+Die „letzte Aktivität" wird bewusst **pro geöffnetem Projekt** exakt
+mit `limit(1)` geholt und nicht aus einem gemeinsamen Zeitfenster über
+alle Projekte geschätzt – ein Projekt, dessen letzte Aktivität ausserhalb
+eines solchen Fensters läge, würde sonst fälschlich „Noch keine
+Aktivität" zeigen. Kein Neuladen der Projektliste beim Öffnen, keine
+Schleifen, keine Abfrage pro Projektkarte.
+
+Wechselt der Benutzer währenddessen das Projekt oder schliesst das
+Cockpit, wird ein verspätet eintreffendes Ergebnis verworfen, statt eine
+fremde Übersicht zu zeichnen.
+
+### 45.5 Tenant-Sicherheit (Auftrag Abschnitt 8)
+
+Alle fünf Abfragen filtern **nur** nach `project_id`. Die Firmengrenze
+erzwingt weiterhin ausschliesslich die Datenbank: alle beteiligten
+Tabellen haben eine **restriktive** `tenant_boundary_*`-Policy
+(`projects`/`audit_log` direkt über `company_id`, `measurements`/
+`ausmass`/`reports`/`project_files` über
+`EXISTS(... projects p WHERE p.id = project_id AND p.company_id =
+my_company_id())`) – frisch per `pg_policy` nachgeprüft. Eine im
+Frontend manipulierte Projekt-ID liefert deshalb serverseitig 0 Zeilen;
+die ID ist nie für sich allein eine Berechtigung.
+
+Das Stammdaten-`UPDATE` schickt **kein** `company_id` mit und läuft
+über dieselbe restriktive Policy. Da ein von RLS blockiertes `UPDATE`
+in PostgREST **keinen Fehler** meldet, sondern still 0 Zeilen betrifft
+(Lehre aus Abschnitt 24.1), prüft der Client das Ergebnis von
+`.select("*")` und zeigt bei 0 Zeilen eine verständliche Meldung statt
+eines vorgetäuschten Erfolgs.
+
+System-Admin-Konzept (`system_admins`, `is_system_admin()`, alle
+`system_admin_*`-Funktionen) unverändert – das Cockpit ist eine reine
+Firmenbenutzer-Funktion.
+
+### 45.6 Tests
+
+**A) Bestehendes Projekt** – die exakten Cockpit-Abfragen als echter,
+angemeldeter Benutzer von PETER KÜNZI AG (rein lesend) gegen die
+tatsächlichen Zahlen der Datenbank abgeglichen:
+
+| Projekt | Massaufnahmen | Ausmass | Rapporte | Dateien |
+|---|---|---|---|---|
+| 1 „Home" | 5 | 2 | 0 | 0 |
+| 3 „Test Strasse 11" | 5 | 0 | 1 | 0 |
+| 4 „Steildachsanierung" | 0 | 0 | 3 | 1 |
+| 6 „Brandschaden" | 0 | 0 | 0 | 0 |
+
+Alle vier Zeilen stimmen exakt mit dem Admin-Blick auf die Tabellen
+überein – keine Über- oder Untererfassung.
+
+**B) Projekt ohne Daten** – Projekt 6 „Brandschaden" ist real leer und
+liefert korrekt überall 0; die Oberfläche zeigt dafür „Noch keine
+Massaufnahme/Ausmass/Regierapport/Datei" und „Noch keine Aktivität",
+keine falsche „vorhanden"-Meldung. Zusätzlich im Render-Prüfstand
+abgesichert (siehe unten).
+
+**C) Sicherheit** (`begin; … rollback;`, Wegwerf-Firma
+`99999999-…`, PETER KÜNZI AG nur gelesen):
+
+| Test | Ergebnis |
+|---|---|
+| Benutzer der Wegwerf-Firma ruft das Cockpit mit den vier echten, bekannten Projekt-IDs von PETER KÜNZI AG auf | Projektzeile **und** alle fünf Abfragen: je **0 Zeilen** |
+| Stammdaten-`UPDATE` auf das fremde Projekt `id=1` | **0 geänderte Zeilen**, kein Audit-Eintrag, kein „GEKAPERT" irgendwo sichtbar |
+| Stammdaten-`UPDATE` auf das eigene Projekt | erfolgreich, und der **bestehende** Audit-Trigger schreibt automatisch `action='updated'` mit `user_id` des echten Aufrufers und allen vier Feld-Diffs (`name`, `order_no`, `customer`, `object`) – ohne eine Zeile neuen Audit-Code |
+
+**D) Render-Prüfstand** (Node, gegen die echten Funktionen aus
+`js/24-projekt-cockpit.js` mit gestellten Abfrageantworten): Projekt mit
+Daten (Anzahl + Titel, Titel-Kürzung ab vier Einträgen, leerer Titel
+fällt korrekt auf die Fachart zurück), leeres Projekt (keine falschen
+„vorhanden"-Texte), Einzahl „1 vorhanden", archiviertes Projekt,
+gelöschter Mitarbeiter → „Unbekannter Benutzer", sowie ein
+Abfragefehler → verständliche Fehlermeldung statt vorgetäuschter
+Übersicht.
+
+**E) Regression** – nach allen Tests erneut geprüft: 2 Firmen,
+4 Projekte, 13 Massaufnahmen, 2 Ausmasse, 4 Rapporte, 1 Datei,
+0 `audit_log`-Zeilen, Mike Ledermann wieder in PETER KÜNZI AG,
+`PETER KÜNZI AG.updated_at` unverändert (`2026-09-01 07:40:15.844647+00`),
+Projekt 1 unverändert („Home / 1234 / Hjj / Ppp"), keine Wegwerf-Firma
+und kein Testprojekt übrig.
+
+`node --check` über alle `js/*.js` (inkl. der neuen Datei) und `sw.js`:
+fehlerfrei. `<div>`/`</div>`-Zählung in `index.html`: ausgeglichen
+(630/630, vorher 612/612 – Differenz durch die 18 neuen `<div>`s des
+Cockpit-Modals).
+
+**Live-Klicktest im Browser war in dieser Sitzung technisch nicht
+möglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co` direkt, wie in jeder vorherigen
+Sitzung. **Das wird hier ausdrücklich nicht als getestet behauptet.**
+Alle oben dokumentierten Datenbank-Ergebnisse sind direkte
+RLS-Simulationen gegen das echte Produktivschema mit exakt den
+Abfragen, die das Cockpit verwendet.
+
+### 45.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/24-projekt-cockpit.js` | **neu** – gesamtes Cockpit |
+| `index.html` | neues `#projectCockpitModal`, Script-Einbindung, Versionstext 2.37 |
+| `js/09-projekte.js` | Knopf „📂 Projekt öffnen" je Projektkarte + eine Verzweigung im bereits vorhandenen, delegierten Klick-Handler |
+| `js/03-login.js` | eine Zeile: neues Modal in `goToStart()` mit schliessen (wie jedes andere Modal) |
+| `css/01-basis.css` | `.cockpit-tile`-Stile; zusätzlich `flex-wrap:wrap` auf `.project-row-actions`, damit die jetzt sieben Knöpfe je Projektkarte auf Handy/Tablet sauber untereinander umbrechen |
+| `sw.js` | Cache-Version 2.37, neue Datei in der SHELL-Liste |
+
+**Nicht verändert**: alle neun Massaufnahme-Fachdateien (`js/10`,
+`js/11`, `js/12`, `js/12b`, `js/13`, `js/14`, `js/15`, `js/16`,
+`js/19`, `js/20`, `js/21`), `js/17-ausmass.js`, `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js` (Regierapport-Fachlogik/PDF),
+`js/23-verlauf.js`, `js/22-system-admin.js` – per `git diff` einzeln
+bestätigt. Keine Berechnung, keine Stückliste, kein Zuschnitt, keine
+PDF-Logik, kein Speichermodell berührt.
+
+### 45.8 Offene Punkte für v2.38
+
+- Kein Live-Klicktest im Browser möglich (siehe 45.6).
+- **Kein Projektstatus** („offen/in Arbeit/fertig") – dafür gibt es kein
+  Datenmodell, und ein erfundener Status war ausdrücklich unerwünscht.
+  Falls das später gewünscht wird, wäre es eine eigene, bewusste
+  Schema-Erweiterung auf `projects`.
+- Aus dem Cockpit heraus lässt sich noch **nichts neu anlegen**
+  (Massaufnahme/Ausmass/Rapport) – das läuft weiterhin über die
+  bestehenden Bereiche, in die das Cockpit springt. Ein „＋ Neu"-Weg
+  direkt aus dem Cockpit würde in die geschützten Erfassungs-Dateien
+  eingreifen (Projektvorauswahl) und war für diese Runde bewusst
+  ausgeschlossen.
+- Nach dem Sprung in einen Bereich landet man beim Zurückgehen in der
+  Projektliste, nicht wieder im Cockpit – der Rückweg ist in den
+  geschützten Erfassungs-Dateien verdrahtet (`measEditReturnTo`/
+  `amEditReturnTo`) und wurde deshalb nicht angefasst.
+- Die Projektliste selbst zeigt weiterhin keine Anzahlen je Karte; das
+  wäre nur mit Sammelabfragen über alle Projekte sinnvoll und war für
+  diese Runde nicht verlangt.
