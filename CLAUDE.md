@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.52, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.53, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.52**
+- sichtbare App-Version: **2.53**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -8798,3 +8798,226 @@ seiner echten Firma. Sämtliche schreibenden Tests liefen in
   Bucket, Massaufnahme ohne Projekt kann kein Foto speichern,
   fehlender `search_path` bei zwei Storage-Hilfsfunktionen, 9
   verwaiste Storage-Objekte aus v2.24.
+
+## 61. PROFESSIONELLES PDF-LAYOUT — VERSION 2.53
+
+Alle PDF-Ausgaben ausser dem Regierapport wurden auf ein gemeinsames,
+professionelles Dokumentlayout umgestellt. **Keine Schemaänderung,
+keine Migration, keine RLS-/Storage-Änderung, keine Berechnung, keine
+Stückliste, kein Zuschnitt und kein Speicher-Payload verändert.**
+
+### 61.1 Bestandsaufnahme: es gibt genau drei Druckwege
+
+Nicht angenommen, sondern gesucht (`window.open`, `.print()`,
+`beforeprint`, gemeinsame PDF-Bausteine):
+
+| Weg | Mechanismus | Betroffen |
+|---|---|---|
+| `printMeasurement()` (js/16) | eigenes `window.open()`-Dokument mit Inline-CSS, zehn Typ-Zweige | **ja** |
+| `printAusmass()` (js/17) | eigenes `window.open()`-Dokument mit Inline-CSS | **ja** |
+| Regierapport (js/08 + `css/03-druck.css`) | `window.print()` auf der **App-Seite selbst**, `@media print` | **nein – geschützt** |
+
+Zwei weitere Treffer sind keine PDF-Ausgaben: `js/09-projekte.js:670`
+öffnet eine Projektdatei über eine signierte URL, und
+`js/20-anschlussblech.js:962` hängt an einem Knopf `anb_drucken`, den es
+in `index.html` gar nicht gibt (Rest einer eigenständigen Testfassung).
+
+**Entscheidende Trennung:** `css/03-druck.css` gilt ausschliesslich für
+den Regierapport. Die beiden anderen PDFs sind eigenständige Dokumente
+und teilen keine Zeile CSS mit ihm. Deshalb war ein vollständiger
+Umbau ihres Layouts ohne jedes Risiko für den Regierapport möglich.
+
+### 61.2 Vorher: elfmal fast dasselbe CSS
+
+Jeder der zehn Massaufnahme-Zweige definierte ein eigenes `extraCss`
+mit denselben Klassen (`.eb-section-head`, `.eb-info-table`,
+`.eb-cutlist`, `.eb-diagram`) – zusammen 10 Blöcke mit nur drei echten
+Abweichungen (Schriftgrösse 9.5/10/8.5 pt, eine rechtsbündige Tabelle,
+eine dreispaltige Angabentabelle). Das Ausmass-PDF wiederholte
+dieselben Regeln nochmals unter `.am-*`. Dazu kam ein doppelter Rand
+(`body{margin:14mm}` **und** `@page{margin:12mm}` = 26 mm), sehr
+gemischte Schriftgrössen von 5.5 bis 16 pt und in jedem Zweig eine
+Kopfzeile aus `<h1>Bezeichnung</h1>` plus vier wiederholten Feldern
+(Projekt/Datum/Funktion/Sachbearbeiter).
+
+### 61.3 Nachher: ein Layout, eine Stelle
+
+Die bereits vorhandenen gemeinsamen Bausteine in js/16 wurden an Ort
+und Stelle ausgebaut, statt eine neue Datei einzuführen:
+
+- **`PDF_LAYOUT_CSS`** (ersetzt `PDF_HEAD_FOOT_CSS`) – ein einziges
+  Stylesheet für beide Dokumentarten, inklusive aller vorher
+  duplizierten Klassen. Alle zehn `extraCss`-Blöcke sind entfallen.
+- **`pdfLetterheadHtml()`** – Briefkopf: Logo (oder Firmenname als
+  Ersatz), Dokumenttyp, Firmenanschrift rechts, kräftige Trennlinie.
+  Ohne Logo steht der Firmenname nur links, nicht doppelt.
+- **`pdfDokumentKopf()`** (neu) – Objektadresse gross als Dokumenttitel
+  über die **bestehende** zentrale Adresslogik (`eintragAdresse`,
+  js/01-basis.js – keine zweite Adressquelle), darunter die
+  Bezeichnung und ein dreispaltiges Raster mit Projekt, Auftrags-Nr.,
+  Auftraggeber, Datum, Art und Sachbearbeiter. **Leere Werte fallen
+  weg**, das Raster wird auf ein Vielfaches von drei aufgefüllt, damit
+  keine angebrochene Zeile mit hängendem Rand entsteht.
+- **`pdfZahlenRechts()`** (neu) – setzt Spalten rechtsbündig, deren
+  Werte durchgehend Zahlen sind. Arbeitet auf dem fertigen HTML und
+  fasst nur einfache Zellen ohne verschachtelte Elemente an; die
+  Inhalte der einzelnen Druckzweige bleiben dadurch unangetastet.
+  Rechtsbündige Spalten bekommen zusätzlich `width:1%;white-space:
+  nowrap`, sodass Zahlenspalten nur so breit sind wie nötig und
+  Textspalten den Rest erhalten.
+- **`pdfFooterHtml()`** – Firma · Erstellt/Geändert · Druckdatum.
+
+Typografie: durchgehend 8.5 pt Grundschrift, 14 pt Dokumenttitel,
+9.5 pt Bezeichnung, 6.9 pt Abschnittsbalken, 8 pt Tabellenwerte,
+6.5 pt Tabellenköpfe, 6.2 pt Fusszeile. Farben monochrom
+(#17202a / Grautöne) – schwarz/weiss druckbar, keine App-Optik.
+Ränder nur noch über `@page` (14 mm, unten 17 mm), kein doppelter Rand
+mehr.
+
+### 61.4 Seitenumbrüche
+
+- `thead{display:table-header-group}` – Tabellenkopf wiederholt sich
+  auf jeder Folgeseite.
+- `tr{break-inside:avoid}` – keine geteilte Tabellenzeile.
+- `.eb-section-head{break-after:avoid}` – keine Überschrift allein am
+  Seitenende.
+- `.eb-info-table`, `.pdf-meta`, `.eb-diagram`, `.note`,
+  `.kehle-print-haupt` jeweils `break-inside:avoid`.
+- Skizzen behalten `page-break-before:always` (eine Skizze je Seite).
+
+**Seitenzahlen**: `@page{@bottom-right{content:"Seite " counter(page)
+" von " counter(pages)}}`. Ob das überhaupt zuverlässig geht, wurde
+gemessen statt vermutet: in Chromium wächst der Inhaltsstrom jeder
+Seite mit gesetzter Randbox um ~330 Bytes, ohne sie nicht – die Randbox
+wird also gerendert. Firefox und Safari unterstützen `@page`-Randboxen
+nicht; dort fehlt die Seitenzahl ersatzlos, ohne dass etwas kaputt
+aussieht. Die übrige Fusszeile ist ein `position:fixed`-Element und
+funktioniert überall.
+
+### 61.5 Kehle
+
+b, c und d bleiben in einer eigenen, kräftig umrandeten Box mit 15 pt
+Zahlen deutlich hervorgehoben – jetzt monochrom statt farbig, damit sie
+auch im Schwarz-Weiss-Druck dominiert. Alle weiteren Resultate und die
+Excel-Berechnung selbst sind unverändert; der Abschnitt mit NH/NL/GL
+heisst jetzt „Eingaben" statt „Angaben", damit Eingaben und Resultate
+klar getrennt sind (Auftrag Abschnitt „Massaufnahmen").
+
+### 61.6 Fotos und Skizzen
+
+`max-width`/`max-height` ohne feste Breite – das Seitenverhältnis
+bleibt immer erhalten (im Prüfstand mit 16:9- und 9:16-Bildern
+nachgemessen). Foto und jede Skizze bekommen einen eigenen
+Abschnittsbalken; die Skizzen behalten ihren Seitenumbruch. Die
+private Storage-/Signed-URL-Logik (`storageSignedUrl`) ist
+unverändert, es entstehen keine öffentlichen URLs.
+
+Zeichnungen (SVG) sind auf 95 mm Höhe begrenzt (im Zweispalter 72 mm)
+und bekommen 5 mm seitlichen Freiraum: einzelne Zeichnungen setzen
+Beschriftungen bis an den Rand ihrer viewBox, ohne diesen Abstand
+würde ein Text am Blattrand abgeschnitten. Die Zeichenfunktionen
+selbst wurden nicht angefasst.
+
+### 61.7 Ausmass
+
+Gleicher Dokumentkopf und dieselben Tabellen wie bei den
+Massaufnahmen. Positionen mit Anzahl im Abschnittstitel. **Preise,
+Beträge, Summen und MwSt. gibt es im Ausmass-Datenmodell nicht**
+(`positions` enthält bei „Offerte erfassen" nur pos/description/
+quantity/unit, beim Blitzschutzausmass artikel_nr/bezeichnung/
+material/einheit/menge) – es wurde deshalb nichts dergleichen
+erfunden. Ausmass-Fotos waren bisher nicht im PDF und wurden nicht
+neu aufgenommen (siehe 61.11).
+
+### 61.8 Regierapport – nachweislich unverändert
+
+- `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+  `css/03-druck.css` sind **nicht im Diff**.
+- Der Regierapport nutzt **keinen** der geänderten Bausteine (per Grep
+  über `pdfLetterheadHtml`/`pdfFooterHtml`/`PDF_LAYOUT_CSS`/
+  `pdfDokumentKopf`/`pdfZahlenRechts`/`eb-*`: null Treffer).
+- Die zwei Funktionen, die er aus js/16 mitbenutzt
+  (`erstelltGeaendertText`, `pdfDateiname`, dazu `formatDatumZeit`),
+  sind bytegleich geblieben – einzeln per Prüfsumme gegen `HEAD`
+  verglichen.
+- **Pixelvergleich**: der Regierapport-Bildschirm wurde in echtem
+  Chromium unter `media:print` mit ausgelöstem `beforeprint` gerendert,
+  einmal auf dem Stand v2.52 und einmal mit den Änderungen. Bild und
+  DOM sind **identisch** (`cmp` ohne Unterschied, 121 600 Bytes,
+  gleicher SHA-256).
+
+### 61.9 Tests
+
+**Visueller PDF-Prüfstand `pdf52` – 240/240**, im echten Chromium
+(playwright-core, im Container vorhanden): 17 Dokumente – alle zehn
+Massaufnahme-Arten, Kehle mit langem Text, Massaufnahme ohne Projekt,
+Foto mit vier Skizzen, Ausmass Offerte, Ausmass Blitzschutz, leeres
+Ausmass und ein Ausmass mit 70 Positionen. Je Dokument geprüft:
+
+- der Druck läuft ohne Fehler und erzeugt HTML
+- **kein NaN, Infinity oder undefined**
+- kein Bildschirm-UI (keine Buttons, Modals, Karten)
+- gemeinsames Stylesheet aktiv
+- genau ein Briefkopf, genau eine Fusszeile
+- **die Objektadresse ist der Haupttitel**
+- nichts läuft seitlich hinaus – gemessen in echter Druckbreite
+  (A4 minus 14 mm Rand = 182 mm ≈ 688 px) unter `media:print`
+- jedes Bild unverzerrt (Soll- gegen Ist-Seitenverhältnis)
+- die Umbruchregeln sind wirksam (`table-header-group`,
+  `break-inside:avoid`, `break-after:avoid` als *computed style*)
+- das PDF wird tatsächlich erzeugt; Seitenzahlen 1 bis 5
+
+Zusätzlich vier Dokumente einzeln als Bild angesehen und daraufhin
+nachgebessert: doppelter Firmenname im Briefkopf entfernt, Zeichnungen
+in der Höhe begrenzt, Zahlenspalten auf Inhaltsbreite, Notiz als
+eigener Abschnitt.
+
+**Ehrlichkeitshinweis zu den Testdaten:** Drei Zweige zeigten zunächst
+NaN in den Zeichnungen und in der Scharen-Tabelle. Gegenprobe auf dem
+Stand **vor** der Änderung: identisches Verhalten – es waren Lücken in
+meinen Testdaten (`dilas`/`schieber` brauchen `posAbStart`, die
+Scharen kommen aus der Fachberechnung), keine Regression. Nach
+Korrektur der Testdaten sind alle Ausgaben sauber.
+
+**Regression** – alle bestehenden Prüfstände grün: nav 23/23,
+suche40 7/7, treffer40 7/7, recent41 12/12, stand42 17/17,
+dateien43 27/27, ui39 (9 Fälle), adresse45 39/39, kopf45 8/8,
+suche45 13/13, status46 35/35, projekte47 37/37, auswahl48 32/32,
+dateien49 38/38, medien50 42/42, hidden51 7/7, kehle52 698/698,
+kehleintegration52 76/76, breite52 52/52.
+
+`node --check` über alle 27 `js/*.js` und `sw.js` fehlerfrei,
+`<div>`-Balance unverändert 672/672, keine doppelten IDs, keine Reste
+von `PDF_HEAD_FOOT_CSS`.
+
+### 61.10 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/16-massaufnahme-formular.js` | gemeinsame PDF-Bausteine ausgebaut, 10 duplizierte `extraCss`-Blöcke entfernt, Dokumentkopf zentralisiert, Foto-/Skizzen-Zweig neu aufgebaut |
+| `js/17-ausmass.js` | Ausmass-PDF auf dieselben Bausteine umgestellt, eigenes CSS entfallen |
+| `index.html` | nur Versionstext 2.53 |
+| `sw.js` | Cache-Version 2.53 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css`, `css/01-basis.css`, alle Zeichen- und
+Berechnungsdateien (`js/11`–`js/15`, `js/19`–`js/21`, `js/25`),
+`js/09`, `js/23`, `js/24`, `js/22`, `js/05a`, `js/03`, `js/01`.
+
+### 61.11 Offene Punkte
+
+- Die Prüfung erfolgte in headless Chromium über `page.pdf()`. Ein
+  Ausdruck aus dem echten Browser-Druckdialog des Betreibers (und
+  damit die Seitenzahl in dessen Browser) wurde **nicht** getestet.
+- Seitenzahlen erscheinen nur in Chromium-basierten Browsern
+  (siehe 61.4).
+- Dass sich der Tabellenkopf auf Seite 2 tatsächlich wiederholt, ist
+  über den *computed style* `table-header-group` belegt, nicht durch
+  Betrachten einer gerasterten zweiten PDF-Seite – im Container fehlt
+  ein PDF-Rasterer.
+- Ausmass-Fotos (`ausmass.photo_path`/`photo_paths`) sind weiterhin
+  nicht im PDF. Sie waren es vorher auch nicht; das wäre neuer Inhalt
+  und nicht Teil dieses Auftrags.
+- Die Zeichnungen enthalten intern viel Leerraum (eigene viewBox der
+  Fachdateien). Eine engere Beschneidung wäre eine Änderung an den
+  geschützten Zeichenfunktionen und wurde bewusst unterlassen.

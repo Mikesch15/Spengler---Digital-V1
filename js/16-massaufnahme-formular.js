@@ -340,13 +340,43 @@ function erstelltGeaendertText(record){
  if(geaendertName||geaendertZeit)teile.push(`Zuletzt geändert von ${esc(geaendertName||"Unbekannter Benutzer")}${geaendertZeit?" am "+esc(geaendertZeit):""}`);
  return teile.join(" · ");
 }
+// ---- Gemeinsame professionelle PDF-Bausteine (v2.53) --------------
+// Wird von printMeasurement (hier) und printAusmass (17-ausmass.js)
+// benutzt. Ein einziges Layout fuer alle Ausdrucke ausser dem
+// Regierapport - der druckt weiterhin ueber css/03-druck.css die
+// App-Seite selbst und ist von diesen Bausteinen nicht betroffen.
 function pdfLetterheadHtml(subtitle,logoSrc){
  const src=logoSrc!==undefined?logoSrc:logoUrl;
- const logo=src?`<img src="${esc(src)}" style="max-height:15mm;max-width:70mm;display:block">`:esc(companyName);
+ // Ohne Logo tritt der Firmenname links an dessen Stelle - dann steht er
+ // rechts nicht noch einmal, sonst stuende er doppelt im Briefkopf.
+ const logo=src
+  ? `<img src="${esc(src)}" alt="">`
+  : `<div class="pdf-logo-text">${esc(companyName)}</div>`;
+ const rechts=src
+  ? `<b>${esc(companyName)}</b>${companyAddress?esc(companyAddress):""}`
+  : (companyAddress?esc(companyAddress):"");
  return `<div class="pdf-head">
-<div><div class="pdf-logo">${logo}</div><div class="pdf-sub">${esc(subtitle)}</div></div>
-<div class="pdf-head-right"><b>${esc(companyName)}</b>${companyAddress?`<br><span style="white-space:pre-line">${esc(companyAddress)}</span>`:""}</div>
+<div class="pdf-head-left"><div class="pdf-logo">${logo}</div><div class="pdf-doktyp">${esc(subtitle)}</div></div>
+<div class="pdf-firma">${rechts}</div>
 </div>`;
+}
+// Dokumentkopf: Objektadresse gross (dieselbe zentrale Adresslogik wie
+// im Bildschirm, siehe eintragAdresse in js/01-basis.js), darunter die
+// Bezeichnung und ein Raster mit den Kopfdaten. Leere Werte werden
+// weggelassen - keine leeren Etiketten, keine Platzhalterzeilen.
+function pdfDokumentKopf(datensatz,projekt,bezeichnung,paare){
+ const adresse=eintragAdresse({project_id:datensatz?datensatz.project_id:null},bezeichnung||"");
+ const bez=String(bezeichnung||"").trim();
+ const zellen=(paare||[]).filter(x=>x&&x[1]!==null&&x[1]!==undefined&&String(x[1]).trim()!==""&&String(x[1]).trim()!=="–");
+ // Raster auf ein Vielfaches von 3 auffuellen, damit keine angebrochene
+ // Zeile mit haengendem Rand entsteht.
+ const rest=zellen.length%3;
+ const voll=zellen.concat(rest?new Array(3-rest).fill(null):[]);
+ const raster=voll.length?`<div class="pdf-meta">${voll.map(z=>z
+  ? `<div><label>${esc(z[0])}</label><div class="v">${esc(z[1])}</div></div>`
+  : `<div class="leer"></div>`).join("")}</div>`:"";
+ return `<div class="pdf-titel"><h1>${esc(adresse)}</h1>${
+  (bez&&bez!==adresse)?`<div class="bez">${esc(bez)}</div>`:""}</div>${raster}`;
 }
 function pdfFooterHtml(record){
  const teile=[esc(companyName)];
@@ -355,14 +385,137 @@ function pdfFooterHtml(record){
  teile.push("Gedruckt am "+esc(new Date().toLocaleString("de-CH",{dateStyle:"medium",timeStyle:"short"})));
  return `<div class="pdf-foot">${teile.join(" · ")}</div>`;
 }
-const PDF_HEAD_FOOT_CSS=`
- .pdf-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #17202a;margin:0 0 6mm 0;padding:0 0 3mm 0}
- .pdf-logo{font-size:16pt;font-weight:900;letter-spacing:.05em;color:#17202a;line-height:1}
- .pdf-sub{margin-top:1.5mm;font-size:7pt;color:#68737d;text-transform:uppercase;letter-spacing:.03em}
- .pdf-head-right{text-align:right;font-size:7.5pt;color:#68737d;line-height:1.5;white-space:nowrap}
- .pdf-head-right b{color:#17202a;font-size:8.5pt}
- .pdf-foot{position:fixed;left:12mm;right:12mm;bottom:4mm;font-size:6pt;color:#9aa4ab;text-align:center;padding-top:1.5mm;border-top:.5pt solid #dfe6ea;background:#fff}
- body{padding-bottom:14mm}`;
+// Spalten, deren Werte durchgehend Zahlen sind, rechtsbuendig setzen -
+// ohne die Inhalte der einzelnen Druckzweige anzufassen. Bearbeitet
+// werden ausschliesslich einfache Zellen ohne verschachtelte Elemente;
+// alles andere bleibt unveraendert.
+const PDF_ZAHL_MUSTER=/^-?[\d'’.,]+(\s*(mm|cm|m|m²|m2|°|%|kg|Stk\.?|St\.))?$|^[–-]$/;
+function pdfZahlenRechts(html){
+ return String(html).replace(/<table class="(eb-cutlist|am-cutlist)"[^>]*>[\s\S]*?<\/table>/g,tab=>{
+  const koepfe=[...tab.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map(m=>m[1]);
+  const zeilen=[...tab.matchAll(/<tr\b[^>]*>((?:\s*<td\b[^>]*>[\s\S]*?<\/td>\s*)+)<\/tr>/g)]
+   .map(m=>[...m[1].matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/g)].map(x=>x[1]));
+  if(!koepfe.length||!zeilen.length)return tab;
+  const spalten=koepfe.length;
+  const rechts=[];
+  for(let i=0;i<spalten;i++){
+   const werte=zeilen.filter(z=>z.length===spalten).map(z=>z[i]);
+   rechts[i]=werte.length>0&&werte.every(v=>!/</.test(v)&&PDF_ZAHL_MUSTER.test(v.trim()));
+  }
+  if(!rechts.some(Boolean))return tab;
+  let kopfNr=-1;
+  tab=tab.replace(/<th\b([^>]*)>/g,(m,attr)=>{kopfNr++;return rechts[kopfNr]?`<th${attr} class="r">`:m});
+  return tab.replace(/<tr\b([^>]*)>((?:\s*<td\b[^>]*>[\s\S]*?<\/td>\s*)+)<\/tr>/g,(m,attr,inhalt)=>{
+   const zellen=[...inhalt.matchAll(/<td\b[^>]*>[\s\S]*?<\/td>/g)].map(x=>x[0]);
+   if(zellen.length!==spalten)return m;
+   let nr=-1;
+   const neu=inhalt.replace(/<td\b([^>]*)>/g,(mm,a)=>{nr++;return rechts[nr]?`<td${a} class="r">`:mm});
+   return `<tr${attr}>${neu}</tr>`;
+  });
+ });
+}
+// Ein einziges Stylesheet fuer alle diese PDFs. Zurueckhaltend,
+// schwarz/weiss druckbar, ohne App-Optik.
+const PDF_LAYOUT_CSS=`
+ @page{size:A4 portrait;margin:14mm 14mm 17mm;
+  @bottom-right{content:"Seite " counter(page) " von " counter(pages);
+   font-family:Arial,Helvetica,sans-serif;font-size:6.5pt;color:#7b858c}}
+ *{box-sizing:border-box}
+ body{font-family:Arial,Helvetica,sans-serif;color:#17202a;margin:0;font-size:8.5pt;line-height:1.35;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;padding-bottom:9mm}
+ /* Briefkopf */
+ .pdf-head{display:flex;justify-content:space-between;align-items:flex-end;gap:8mm;
+  border-bottom:2.4pt solid #17202a;padding:0 0 2.4mm;margin:0 0 5mm}
+ .pdf-head-left{min-width:0}
+ .pdf-logo img{max-height:16mm;max-width:64mm;display:block}
+ .pdf-logo-text{font-size:15pt;font-weight:900;letter-spacing:.05em;line-height:1;color:#17202a}
+ .pdf-doktyp{margin-top:1.8mm;font-size:6.4pt;font-weight:700;text-transform:uppercase;
+  letter-spacing:.14em;color:#5b666e}
+ .pdf-firma{text-align:right;font-size:7pt;color:#5b666e;line-height:1.45;white-space:pre-line;flex:0 0 auto}
+ .pdf-firma b{display:block;color:#17202a;font-size:8.2pt;letter-spacing:.02em;white-space:normal}
+ /* Dokumentkopf */
+ .pdf-titel{margin:0 0 3.5mm}
+ .pdf-titel h1{font-size:14pt;font-weight:800;margin:0;line-height:1.15;letter-spacing:-.01em;color:#17202a}
+ .pdf-titel .bez{margin-top:1.2mm;font-size:9.5pt;font-weight:600;color:#3d4850}
+ .pdf-meta{display:grid;grid-template-columns:repeat(3,1fr);border:.5pt solid #b3bcc2;margin:0 0 5mm;
+  page-break-inside:avoid;break-inside:avoid}
+ .pdf-meta>div{padding:1.7mm 2.4mm;border-right:.5pt solid #cfd6db;border-bottom:.5pt solid #cfd6db;min-width:0}
+ .pdf-meta>div:nth-child(3n){border-right:0}
+ .pdf-meta>div:nth-last-child(-n+3){border-bottom:0}
+ .pdf-meta label{display:block;font-size:5.6pt;font-weight:700;text-transform:uppercase;
+  letter-spacing:.07em;color:#6b757c;margin:0 0 .6mm}
+ .pdf-meta .v{font-size:8pt;font-weight:700;word-break:break-word}
+ /* Abschnitte */
+ .eb-section-head,.am-section-head{background:#17202a;color:#fff;font-size:6.9pt;font-weight:800;
+  text-transform:uppercase;letter-spacing:.11em;padding:1.6mm 2.4mm;margin:5mm 0 0;
+  page-break-after:avoid;break-after:avoid}
+ .eb-section-head:first-of-type,.am-section-head:first-of-type{margin-top:0}
+ /* Angaben-Raster */
+ .eb-info-table,.am-info-table{width:100%;border-collapse:collapse;border:.5pt solid #b3bcc2;
+  border-top:0;table-layout:fixed;page-break-inside:avoid;break-inside:avoid}
+ .eb-info-table td,.am-info-table td{border-right:.5pt solid #cfd6db;border-bottom:.5pt solid #cfd6db;
+  padding:1.7mm 2.4mm;vertical-align:top}
+ .eb-info-table tr td:last-child,.am-info-table tr td:last-child{border-right:0}
+ .eb-info-table tr:last-child td,.am-info-table tr:last-child td{border-bottom:0}
+ .eb-info-table label,.am-info-table label{display:block;font-size:5.6pt;font-weight:700;
+  text-transform:uppercase;letter-spacing:.07em;color:#6b757c;margin:0 0 .6mm}
+ .eb-info-table .val,.am-info-table .val{font-size:8pt;font-weight:700;color:#17202a;
+  font-variant-numeric:tabular-nums;word-break:break-word}
+ /* Technische Tabellen */
+ table.eb-cutlist,table.am-cutlist{width:100%;border-collapse:collapse;margin:0;
+  border:.5pt solid #b3bcc2;border-top:0}
+ .eb-cutlist thead,.am-cutlist thead{display:table-header-group}
+ .eb-cutlist tr,.am-cutlist tr{page-break-inside:avoid;break-inside:avoid}
+ .eb-cutlist th,.am-cutlist th{background:#e9edf0;color:#17202a;text-align:left;font-size:6.5pt;
+  font-weight:800;padding:1.6mm 2.2mm;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:.5pt solid #9aa4ab;border-right:.5pt solid #cfd6db}
+ .eb-cutlist td,.am-cutlist td{padding:1.5mm 2.2mm;border-bottom:.5pt solid #dde3e7;
+  border-right:.5pt solid #eef1f3;font-size:8pt;font-variant-numeric:tabular-nums;vertical-align:top}
+ .eb-cutlist th:last-child,.am-cutlist th:last-child,
+ .eb-cutlist td:last-child,.am-cutlist td:last-child{border-right:0}
+ .eb-cutlist tbody tr:nth-child(even) td,.am-cutlist tbody tr:nth-child(even) td{background:#f7f9fa}
+ .eb-cutlist tbody tr:last-child td,.am-cutlist tbody tr:last-child td{border-bottom:0}
+ .eb-cutlist th.r,.eb-cutlist td.r,.am-cutlist th.r,.am-cutlist td.r{text-align:right;
+  white-space:nowrap;width:1%}
+ .eb-cutlist td.warn{color:#17202a;font-weight:800}
+ .am-cutlist tfoot td{border-top:1pt solid #17202a;padding:1.8mm 2.2mm;font-size:8.5pt;font-weight:800}
+ /* Zeichnungen */
+ /* Seitlicher Freiraum: einzelne Zeichnungen setzen Beschriftungen bis an
+    den Rand ihrer viewBox - ohne diesen Abstand wuerde ein Text am
+    Blattrand abgeschnitten. Die Zeichnungen selbst bleiben unveraendert. */
+ .eb-diagram{text-align:center;margin:3mm 0 0;padding:0 5mm;page-break-inside:avoid;break-inside:avoid}
+ .eb-diagram svg{max-width:100%;max-height:95mm;width:auto;height:auto}
+ .eb-diagram-row{display:flex;justify-content:center;align-items:flex-start;gap:8mm;margin:3mm 0 0;
+  page-break-inside:avoid;break-inside:avoid}
+ .eb-diagram-row .eb-diagram{flex:1;min-width:0;margin:0;padding:0 2mm}
+ .eb-diagram-title{font-size:6.4pt;font-weight:700;color:#6b757c;text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:1.6mm}
+ .eb-diagram-row svg{max-width:100%!important;max-height:72mm;width:auto;height:auto}
+ /* Kehle: b/c/d bleiben deutlich hervorgehoben, aber schwarz/weiss tauglich */
+ .kehle-print-haupt{border:1.2pt solid #17202a;border-top:0;padding:2.5mm 3mm;margin:0;
+  page-break-inside:avoid;break-inside:avoid}
+ .kehle-print-haupt div{display:flex;align-items:baseline;gap:3mm;padding:1.4mm 0;
+  border-top:.5pt solid #dde3e7}
+ .kehle-print-haupt div:first-child{border-top:0}
+ .kehle-print-haupt .bu{font-size:12pt;font-weight:800;width:6mm;flex:0 0 6mm}
+ .kehle-print-haupt .wert{font-size:15pt;font-weight:800;width:24mm;flex:0 0 24mm;text-align:right;
+  font-variant-numeric:tabular-nums}
+ .kehle-print-haupt .txt{font-size:7.4pt;color:#5b666e;flex:1 1 auto;min-width:0}
+ /* Notiz */
+ .note{font-size:8pt;white-space:pre-wrap;margin:3mm 0 0;padding:2mm 2.6mm;
+  border-left:2pt solid #b3bcc2;background:#f7f9fa;page-break-inside:avoid;break-inside:avoid}
+ /* Fotos und Skizzen: nie verzerrt, nie abgeschnitten */
+ .pdf-bild{margin:3mm 0 0;text-align:center;page-break-inside:avoid;break-inside:avoid}
+ .pdf-bild img{max-width:100%;height:auto;display:block;margin:0 auto;border:.5pt solid #cfd6db}
+ .pdf-bild .pdf-bild-titel{font-size:6.4pt;font-weight:700;color:#6b757c;text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:1.6mm}
+ img.photo{max-height:150mm;width:auto}
+ img.sketch{max-height:225mm;width:auto}
+ .sketch-page{page-break-before:always;break-before:page}
+ /* Fusszeile */
+ .pdf-foot{position:fixed;left:0;right:0;bottom:0;font-size:6.2pt;color:#7b858c;text-align:center;
+  padding-top:1.2mm;border-top:.5pt solid #d9e0e4;background:#fff}`;
+
 async function printMeasurement(m){
  const proj=allProjects.find(p=>p.id===m.project_id);
  const typeLabels=MEAS_TYPE_LABELS;
@@ -380,44 +533,32 @@ async function printMeasurement(m){
   sketchSrcs=await Promise.all(sketchQuellen.map(storageSignedUrl));
  }
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
- const metaCommon=`
-<div><b>Projekt:</b> ${esc(proj?proj.name:"–")}</div>
-<div><b>Datum:</b> ${esc(m.date||"–")}</div>
-<div><b>Funktion:</b> ${esc(typeLabels[m.type]||m.type)}</div>
-<div><b>Sachbearbeiter:</b> ${sachbearbeiter}</div>`;
+ // Ein Dokumentkopf fuer alle Massaufnahme-Arten: Objektadresse gross,
+ // darunter die Bezeichnung und die Kopfdaten. Leere Werte fallen weg.
+ const cell2=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+ const kopfHtml=pdfDokumentKopf(m,proj,m.title,[
+  ["Projekt",proj?proj.name:""],
+  ["Auftrags-Nr.",proj?proj.order_no:""],
+  ["Auftraggeber",proj?proj.customer:""],
+  ["Datum",m.date||""],
+  ["Massaufnahme-Art",typeLabels[m.type]||m.type],
+  ["Sachbearbeiter",currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:""]
+ ]);
 
- let bodyHtml, extraCss="";
+ let bodyHtml;
  if(m.type==="einlaufblech_gerade"){
   const d=m.data||{};
   const pieces=d.pieces||[];
   const engeSeite=d.engeSeite||"rechts";
-  extraCss=`
- .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
- .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
- .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
- .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
- .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- .eb-diagram{text-align:center;margin:4mm 0}
- .eb-diagram-row{display:flex;justify-content:center;align-items:flex-start;gap:10mm;margin:4mm 0}
- .eb-diagram-row .eb-diagram{flex:1;min-width:0;margin:0}
- .eb-diagram-row .eb-diagram-title{font-size:7pt;font-weight:700;color:#68737d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2mm}
- .eb-diagram-row svg{max-width:100%!important;height:auto}
- table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
- .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:9.5pt}
- .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
- .eb-cutlist td.warn{color:#b42318;font-weight:700}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
-  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+  bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
-<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
 <tr>${cell("Dachneigung / Winkel",esc(d.winkel||0)+"°")}${cell("Montage",'von '+esc(d.montage||"–")+` (eng ${esc(engeSeite)})`)}</tr>
 <tr>${cell("Mass A",esc(d.massAEng||0)+` mm eng ${esc(engeSeite)} (${esc(d.massA||0)} mm)`)}${cell("Anzahl Stück",esc((pieces&&pieces.length)||0))}</tr>
-<tr>${cell("Material",matName)}</tr>
+<tr>${cell("Material",matName)}<td></td></tr>
 </table>
 <div class="eb-diagram-row">
  <div class="eb-diagram">
@@ -434,32 +575,20 @@ async function printMeasurement(m){
 <thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th></tr></thead>
 <tbody>${pieces.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.laenge||0)}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td></tr>`).join("")}</tbody>
 </table>
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="rinne_halbrund"){
   const d=m.data||{};
   const segs=d.segments||[];
-  extraCss=`
- .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
- .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
- .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
- .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
- .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- .eb-diagram{text-align:center;margin:4mm 0}
- table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
- .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
- .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const fittingLabel=id=>{const f=rinneFittingTypes.find(x=>x.id===Number(id));return f?`${f.symbol?f.symbol+" – ":""}${f.name}`:"–"};
   const dilas=d.dilas||[];
   const matTab=rinneMaterialTabelle(d.material);
-  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+  bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
-<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Rinnenabwicklung",esc(d.rinneAbwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
-<tr>${cell("Material",esc(matTab.label))}${cell("Dilatationselemente",dilas.length?esc(dilas.length)+" Stück":"Keine nötig")}</tr>
+<tr>${cell("Material",esc(matTab.label))}${cell("Dilatationselemente",dilas.length?esc(dilas.length)+" Stück":"Keine nötig")}<td></td></tr>
 </table>
 <div class="eb-section-head">Grundriss</div>
 <div class="eb-diagram">${generateRinneGrundriss(segs,dilas,d.boundaries||[])}</div>
@@ -482,19 +611,9 @@ ${(()=>{
 <thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Links</th><th>Rechts</th><th>Winkel (°)</th><th>Zuschnitt (mm)</th></tr></thead>
 <tbody>${segs.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(fittingLabel(s.linksTyp))}</td><td>${esc(fittingLabel(s.rechtsTyp))}</td><td>${esc(s.winkel??0)}</td><td>${esc(s.zuschnittlaenge??calcRinneSegment(s))}</td></tr>`).join("")}</tbody>
 </table>
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="mauerabdeckung"){
-  extraCss=`
- .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
- .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
- .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
- .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
- .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- .eb-diagram{text-align:center;margin:4mm 0}
- table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
- .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
- .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const d=m.data||{};
   const segs=d.segments||[];
@@ -502,10 +621,10 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
   const stuecke=(Array.isArray(d.stueckliste)&&d.stueckliste.length)
    ? d.stueckliste
    : berechneMadStueckliste(segs,d.schieber||[],d.boundaries||[],d.bodenMass??madBodenMass,d.schieberMass??madSchieberMass);
-  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+  bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Material",esc(tab.label))}${cell("Gesamtlänge",esc(Math.round(d.gesamtlaenge||0))+" mm")}</tr>
+<tr>${cell("Material",esc(tab.label))}${cell("Gesamtlänge",esc(Math.round(d.gesamtlaenge||0))+" mm")}<td></td></tr>
 <tr>${cell("Abwicklung",esc(d.abwicklung||0)+" mm")}${cell("Schieber",(d.schieber||[]).length?esc((d.schieber||[]).length)+" Stück":"Keine nötig")}</tr>
 </table>
 <div class="eb-section-head">Profil (Querschnitt)</div>
@@ -522,43 +641,29 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th></tr></thead>
 <tbody>${stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${Math.round(st.zuschnitt)}</td></tr>`).join("")}</tbody>
 </table>
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="lukarne"){
   const d=m.data||{};
   const g=berechneLukarne({hoehe:d.hoehe,laengeOben:d.laengeOben,winkel:d.winkel,
    achsabstand:d.achsabstand,hilfsrissWunsch:d.hilfsrissWunsch!==undefined?d.hilfsrissWunsch:d.hilfsriss,
    seite:d.seite,zugabeLaenge:d.zugabeLaenge,zugabeBreite:d.zugabeBreite});
   const scharen=(Array.isArray(d.scharen)&&d.scharen.length)?d.scharen:(g?g.scharen:[]);
-  extraCss=`
- .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
- .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
- .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
- .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
- .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- .eb-diagram{text-align:center;margin:4mm 0}
- .eb-diagram svg{max-width:100%;height:auto}
- table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- .eb-cutlist th{background:#17202a;color:#fff;text-align:right;font-size:7pt;padding:2mm 1.6mm;text-transform:uppercase;letter-spacing:.02em}
- .eb-cutlist th:first-child,.eb-cutlist td:first-child{text-align:center}
- .eb-cutlist td{padding:2mm 1.6mm;border-bottom:.5pt solid #e2e8ec;font-size:8.5pt;text-align:right}
- .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const zugabeTxt=(d.zugabeBreite||d.zugabeLaenge)
    ? `${esc(Math.round(d.zugabeBreite||0))} mm Breite / ${esc(Math.round(d.zugabeLaenge||0))} mm Länge`
    : "keine";
   const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
-  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+  bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
-<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Seite",d.seite==="links"?"Linke Seite":"Rechte Seite")}${cell("Anzahl Scharen",esc(d.anzahl||scharen.length||0))}</tr>
 <tr>${cell("Vordere Höhe H",esc(Math.round(d.hoehe||0))+" mm")}${cell("Obere Länge L",esc(Math.round(d.laengeOben||0))+" mm")}</tr>
 <tr>${cell("Oberer Innenwinkel",esc(d.winkel||0)+"°")}${cell("Schräge A (Dach)",esc(Math.round(d.schraege||0))+" mm")}</tr>
 <tr>${cell("Waagerechte Breite",esc(Math.round(d.breite||0))+" mm")}${cell("Achsabstand Scharen",esc(Math.round(d.achsabstand||0))+" mm")}</tr>
 <tr>${cell("Hilfsriss unter Oberkante",esc(Math.round(d.hilfsriss||0))+" mm")}${cell("Fläche",esc((Math.round((d.flaeche||0)*100)/100).toFixed(2))+" m²")}</tr>
 <tr>${cell("Zugabe Zuschnitt",zugabeTxt)}${cell("Letzte Schar (Restbreite)",esc(Math.round(scharen.length?scharen[scharen.length-1].breite:0))+" mm")}</tr>
-<tr>${cell("Material",matName)}</tr>
+<tr>${cell("Material",matName)}<td></td></tr>
 </table>
 <div class="eb-section-head">Plan</div>
 <div class="eb-diagram">${lukPlanSvg(g,{fuerDruck:true})}</div>
@@ -568,7 +673,8 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 <tbody>${lukScharenZeilen(scharen,d.seite)}</tbody>
 </table>
 <div class="note" style="font-size:8pt;color:#68737d">Alle Masse in mm. &#8593; / &#8595; = Mass ab Hilfsriss (HR) nach oben bzw. nach unten, &#8222;H&#246;he&#8220; = ganze Scharkante. Links und rechts wie im Plan; bei der linken Wange liegt die Front rechts.</div>
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="anschlussblech"){
   const d=m.data||{};
   const erg=berechneAnschlussblech(d);
@@ -577,32 +683,18 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
   // PDF bleibt dadurch gleich, auch wenn später ein Mass geändert wird.
   const stuecke=(Array.isArray(d.stueckliste)&&d.stueckliste.length)?d.stueckliste:(erg?erg.stuecke:[]);
   const abw=d.abwicklung||(erg?erg.abwicklung:0);
-  extraCss=`
- .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
- .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
- .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
- .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
- .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- .eb-diagram{text-align:center;margin:4mm 0}
- .eb-diagram svg{max-width:100%;height:auto}
- table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
- .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
- .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const deckName=(ANB_DECKUNGEN[d.deckung]||{}).name||"–";
   const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
   const massZeilen=Object.keys((ANB_ARTEN[d.art]||{masse:{}}).masse)
    .map(k=>`<tr><td>${esc(k)}</td><td>${esc(ANB_ARTEN[d.art].masse[k].text||"")}</td><td>${esc(Math.round(Number(d[k])||0))} mm</td><td>${(()=>{const mi=anbMindestmass(d.art,k,d.deckung);return mi!==null?"mind. "+mi+" mm":"–"})()}</td></tr>`).join("");
   const segmente=Array.isArray(d.segmente)?d.segmente:[];
-  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+  bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
-<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Anschluss",esc(anbTitel(d)))}${cell("Deckmaterial",esc(deckName))}</tr>
 <tr>${cell("Zuschnittbreite",esc(Math.round(abw))+" mm")}${cell("Gesamtlänge",esc(Math.round(d.laenge||0))+" mm")}</tr>
-<tr>${cell("Material",matName)}</tr>
+<tr>${cell("Material",matName)}<td></td></tr>
 </table>
 <div class="eb-section-head">Schnitt</div>
 <div class="eb-diagram">${anbZeichnung(d)}</div>
@@ -633,33 +725,20 @@ ${stuecke.length?`<div class="eb-section-head">Stückliste</div>
 </table>
 ${(()=>{const l=stuecke[stuecke.length-1];return (l&&l.gehrung)?`<div class="note">Endstück mit Firstgehrung: ${esc(Math.round(l.laengeOhneGehrung))} mm plus ${esc(Math.round(l.laenge-l.laengeOhneGehrung))} mm Gehrungszugabe.</div>`:""})()}`:""}
 ${(erg&&erg.warnungen.length)?`<div class="note" style="color:#b42318">${erg.warnungen.map(w=>esc(w)).join("<br>")}</div>`:""}
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="einfassung_rund"){
   const d=m.data||{};
   const erg=einfBerechnen(d);
   const abw=d.abwicklung||(erg?erg.abwicklung:0);
   const breiteGesamt=d.breiteGesamt!==undefined&&d.breiteGesamt!==null?d.breiteGesamt:(erg?erg.breiteGesamt:null);
   const anzahlBleilappen=d.anzahlBleilappen!==undefined&&d.anzahlBleilappen!==null?d.anzahlBleilappen:(erg?erg.anzahlBleilappen:null);
-  extraCss=`
- .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
- .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
- .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
- .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
- .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- .eb-diagram{text-align:center;margin:4mm 0}
- .eb-diagram svg{max-width:100%;height:auto}
- table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
- .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
- .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const deckName=(EINF_DECKUNGEN[d.deckung]||{}).name||"–";
   const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
-  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+  bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
-<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Eindeckungsart",esc(deckName))}${cell("&Oslash; Standrohr",esc(Math.round(d.durchmesser||0))+" mm")}</tr>
 <tr>${cell("Winkel / Dachneigung",esc(d.winkel||0)+"°")}${cell("Material",matName)}</tr>
 <tr>${cell("Zuschnittbreite (Querschnitt)",esc(Math.round(abw))+" mm")}${cell("Breite der gesamten Einfassung",breiteGesamt?esc(Math.round(breiteGesamt))+" mm":"–")}</tr>
@@ -677,40 +756,23 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
 </tbody>
 </table>
 ${(erg&&erg.warnungen.length)?`<div class="note" style="color:#b42318">${erg.warnungen.map(w=>esc(w)).join("<br>")}</div>`:""}
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="einlaufblech_konisch"){
   const d=m.data||{};
   const pieces=d.pieces||[];
   const engeSeite=d.engeSeite||"rechts";
-  extraCss=`
- .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
- .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
- .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
- .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
- .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- .eb-diagram{text-align:center;margin:4mm 0}
- .eb-diagram-row{display:flex;justify-content:center;align-items:flex-start;gap:10mm;margin:4mm 0}
- .eb-diagram-row .eb-diagram{flex:1;min-width:0;margin:0}
- .eb-diagram-row .eb-diagram-title{font-size:7pt;font-weight:700;color:#68737d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2mm}
- .eb-diagram-row svg{max-width:100%!important;height:auto}
- table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
- .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:9.5pt}
- .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
- .eb-cutlist td.warn{color:#b42318;font-weight:700}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const masseEngeSeite=pieces.map(p=>Number(engeSeite==="links"?p.massLinks:p.massRechts)||0).filter(v=>v>0);
   const repMass=masseEngeSeite.length?masseEngeSeite.reduce((a,b)=>a+b,0)/masseEngeSeite.length:null;
   const restBreite=repMass?(Number(d.abwicklung)-repMass-(Number(einlaufblechKonischSettings.umschlag_oben)||0)-(Number(einlaufblechKonischSettings.umschlag_unten)||0)):null;
   const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
-  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+  bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
-<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
 <tr>${cell("Dachneigung / Winkel",esc(d.dachneigung||0)+"°")}${cell("Montage",'von '+esc(d.montage||"–")+` (eng ${esc(engeSeite)})`)}</tr>
-<tr>${cell("Material",matName)}</tr>
+<tr>${cell("Material",matName)}<td></td></tr>
 </table>
 <div class="eb-diagram-row">
  <div class="eb-diagram">
@@ -732,32 +794,20 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  return `<tr><td>${i+1}</td><td>${esc(p.laenge||0)}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td><td${warn&&engeSeite==="links"?' class="warn"':""}>${linksTxt}${warn&&engeSeite==="links"?" ⚠️":""}</td><td${warn&&engeSeite==="rechts"?' class="warn"':""}>${rechtsTxt}${warn&&engeSeite==="rechts"?" ⚠️":""}</td></tr>`;
 }).join("")}</tbody>
 </table>
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="freies_profil"){
   const d=m.data||{};
   const schenkel=d.schenkel||[];
   const segmente=d.segmente||[];
   const konisch=!!d.konisch;
-  extraCss=`
- .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
- .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
- .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
- .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
- .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- .eb-diagram{text-align:center;margin:4mm 0}
- table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
- .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:9.5pt}
- .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
-  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+  bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(m.date||"–"))}</tr>
-<tr>${cell("Funktion",esc(typeLabels[m.type]||m.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
 <tr>${cell("Anzahl Schenkel",esc(schenkel.length))}${cell("Konisch",konisch?"Ja":"Nein")}</tr>
-<tr>${cell("Material",matName)}</tr>
+<tr>${cell("Material",matName)}<td></td></tr>
 </table>
 <div class="eb-section-head">Profil</div>
 <div class="eb-diagram">${generateProfilDiagramSvg(schenkel)}</div>
@@ -776,7 +826,8 @@ ${segmente.map((seg,i)=>`<div style="margin-top:3mm">
 }).join("")}</tbody>
 </table>
 </div>`).join("")}
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="kehle"){
   // Ohne eigenen Zweig faende die Kehle in den allgemeinen Foto-Zweig
   // und wuerde ein Blatt ganz ohne Zahlen drucken. Deshalb hier eine
@@ -788,28 +839,11 @@ ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
    const v=(d[k]!==undefined&&d[k]!==null)?d[k]:(erg&&erg.ok?erg[k]:null);
    return esc(kehleWert(k,Number(v)));
   };
-  extraCss=`
- .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
- .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
- .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:33.33%}
- .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
- .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
- .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
- .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
- .kehle-print-haupt{border:1.2pt solid #17202a;border-radius:2mm;padding:3mm 4mm;margin:3mm 0}
- .kehle-print-haupt div{display:flex;align-items:baseline;gap:3mm;padding:1.2mm 0}
- .kehle-print-haupt .bu{font-size:14pt;font-weight:800;width:8mm}
- .kehle-print-haupt .wert{font-size:16pt;font-weight:800;width:26mm;text-align:right}
- .kehle-print-haupt .txt{font-size:8pt;color:#68737d}`;
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
-  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
-<div class="eb-section-head">Angaben</div>
+  bodyHtml=`${kopfHtml}
+<div class="eb-section-head">Eingaben</div>
 <table class="eb-info-table">
-<tr>${cell("Projekt",esc(proj?proj.name:"\u2013"))}${cell("Datum",esc(m.date||"\u2013"))}${cell("Funktion",esc(typeLabels[m.type]||m.type))}</tr>
 <tr>${cell("Neigung Hauptdach (NH)",esc(d.nh!==undefined&&d.nh!==null?d.nh+"\u00b0":"\u2013"))}${cell("Neigung Lukarne (NL)",esc(d.nl!==undefined&&d.nl!==null?d.nl+"\u00b0":"\u2013"))}${cell("Gef\u00e4llsl\u00e4nge Lukarne (GL)",esc(d.gl!==undefined&&d.gl!==null?d.gl+" mm":"\u2013"))}</tr>
-<tr>${cell("Sachbearbeiter",sachbearbeiter)}${cell("","")}${cell("","")}</tr>
 </table>
 <div class="eb-section-head">Hauptresultate</div>
 <div class="kehle-print-haupt">
@@ -820,36 +854,29 @@ ${["b","c","d"].map(k=>`<div><span class="bu">${k}</span><span class="wert">${we
 <thead><tr><th style="width:10%">Zeichen</th><th>Bezeichnung</th><th style="width:22%">Wert</th></tr></thead>
 <tbody>${["A","e","f","g","h","i","k","l","m","n","o","p"].map(k=>`<tr><td>${k}</td><td>${esc(KEHLE_LABELS[k])}</td><td>${wert(k)}</td></tr>`).join("")}</tbody>
 </table>
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
  }else{
   const d=m.data||{};
   const matName=(findMeasurementMaterial(d.material)||{}).name;
-  extraCss=`
- img{max-width:100%;display:block;margin:0 auto 8mm;border:1px solid #ccc}
- img.photo{max-height:130mm}
- img.sketch{max-height:255mm}
- .sketch-page{page-break-before:always}`;
-  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
-<div class="meta">${metaCommon}${matName?`<div><b>Material:</b> ${esc(matName)}</div>`:""}</div>
-${photoSrc?`<img class="photo" src="${esc(photoSrc)}">`:""}
-${m.note?`<div class="note">${esc(m.note)}</div>`:""}
-${sketchSrcs.filter(Boolean).map((s,i)=>`<div class="sketch-page">${sketchSrcs.length>1?`<h2>Skizze ${i+1} von ${sketchSrcs.length}</h2>`:""}<img class="sketch" src="${esc(s)}"></div>`).join("")}`;
+  const skizzen=sketchSrcs.filter(Boolean);
+  bodyHtml=`${kopfHtml}
+${matName?`<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table"><tr>${cell2("Material",esc(matName))}<td></td></tr></table>`:""}
+${photoSrc?`<div class="eb-section-head">Foto</div>
+<div class="pdf-bild"><img class="photo" src="${esc(photoSrc)}"></div>`:""}
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}
+${skizzen.map((s,i)=>`<div class="sketch-page"><div class="eb-section-head">Skizze${skizzen.length>1?` ${i+1} von ${skizzen.length}`:""}</div>
+<div class="pdf-bild"><img class="sketch" src="${esc(s)}"></div></div>`).join("")}`;
  }
 
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(pdfDateiname(proj?proj.name:"",proj?proj.object:"",typeLabels[m.type]||m.type,m.title))}</title>
 <style>
- body{font-family:Arial,Helvetica,sans-serif;color:#17202a;margin:14mm}
- h1{font-size:16pt;margin:0 0 2mm}
- h2{font-size:11pt;color:#68737d;margin:0 0 3mm;font-weight:700}
- .meta{font-size:9pt;color:#68737d;margin-bottom:6mm;line-height:1.6}
- .meta b{color:#17202a}
- .note{font-size:10pt;white-space:pre-wrap;margin-top:4mm}
- @page{size:A4 portrait;margin:12mm}
-${PDF_HEAD_FOOT_CSS}
-${extraCss}
+${PDF_LAYOUT_CSS}
 </style></head><body>
 ${pdfLetterheadHtml("Massaufnahme · "+(typeLabels[m.type]||m.type),logoSrc)}
-${bodyHtml}
+${pdfZahlenRechts(bodyHtml)}
 ${pdfFooterHtml(m)}
 </body></html>`);
  win.document.close();

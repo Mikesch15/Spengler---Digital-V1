@@ -375,7 +375,6 @@ async function printAusmass(a){
  const logoSrc=await storageSignedUrl(logoUrl);
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
  const positions=Array.isArray(a.positions)?a.positions:[];
- const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
  let positionsHtml;
  if(a.type==="blitzschutz_ausmass"){
   positionsHtml=`<table class="am-cutlist">
@@ -388,36 +387,27 @@ async function printAusmass(a){
 <tbody>${positions.map(p=>`<tr><td>${esc(p.pos||"")}</td><td>${esc(p.description||"")}</td><td>${esc(p.quantity||0)}</td><td>${esc(p.unit||"")}</td></tr>`).join("")}</tbody>
 </table>`;
  }
- const bodyHtml=`<h1>${esc(a.title||"Ausmass")}</h1>
-<div class="am-section-head">Angaben</div>
-<table class="am-info-table cols2">
-<tr>${cell("Projekt",esc(proj?proj.name:"–"))}${cell("Datum",esc(a.date||"–"))}</tr>
-<tr>${cell("Funktion",esc(typeLabels[a.type]||a.type))}${cell("Sachbearbeiter",sachbearbeiter)}</tr>
-</table>
-<div class="am-section-head">Positionen</div>
+ // Gleicher Dokumentkopf wie bei den Massaufnahmen (js/16): Objektadresse
+ // gross, darunter Bezeichnung und Kopfdaten. Leere Werte fallen weg.
+ const kopfHtml=pdfDokumentKopf(a,proj,a.title,[
+  ["Projekt",proj?proj.name:""],
+  ["Auftrags-Nr.",proj?proj.order_no:""],
+  ["Auftraggeber",proj?proj.customer:""],
+  ["Datum",a.date||""],
+  ["Ausmass-Art",typeLabels[a.type]||a.type],
+  ["Sachbearbeiter",currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:""]
+ ]);
+ const bodyHtml=`${kopfHtml}
+<div class="am-section-head">Positionen${positions.length?` (${positions.length})`:""}</div>
 ${positionsHtml}
-${a.note?`<div class="note">${esc(a.note)}</div>`:""}`;
+${a.note?`<div class="am-section-head">Notiz</div>
+<div class="note">${esc(a.note)}</div>`:""}`;
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(pdfDateiname(proj?proj.name:"",proj?proj.object:"",typeLabels[a.type]||a.type,a.title))}</title>
 <style>
- body{font-family:Arial,Helvetica,sans-serif;color:#17202a;margin:14mm}
- h1{font-size:16pt;margin:0 0 2mm}
- .note{font-size:10pt;white-space:pre-wrap;margin-top:4mm}
- @page{size:A4 portrait;margin:12mm}
- .am-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
- .am-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
- .am-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:50%}
- .am-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
- .am-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
- table.am-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
- .am-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.4mm 2.6mm;text-transform:uppercase;letter-spacing:.02em}
- .am-cutlist td{padding:2.2mm 2.6mm;border-bottom:.5pt solid #e2e8ec;font-size:9pt}
- .am-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
- .am-cutlist td:nth-child(3),.am-cutlist td:nth-child(5),.am-cutlist td:nth-child(6){text-align:left;font-variant-numeric:tabular-nums}
- .am-cutlist tfoot td{border-top:1pt solid #17202a;padding:2.4mm 2.6mm;font-size:9.5pt}
-${PDF_HEAD_FOOT_CSS}
+${PDF_LAYOUT_CSS}
 </style></head><body>
 ${pdfLetterheadHtml("Ausmass · "+(typeLabels[a.type]||a.type),logoSrc)}
-${bodyHtml}
+${pdfZahlenRechts(bodyHtml)}
 ${pdfFooterHtml(a)}
 </body></html>`);
  win.document.close();
