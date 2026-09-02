@@ -1,0 +1,152 @@
+================================================================================
+SPENGLER-DIGITAL – ABSCHLUSSBERICHT VERSION 2.59
+UMSCHLAG UMKEHRBAR + RUNDE ECKEN IN DER PROFILSKIZZE
+Commit 01f5ec2 · Branch claude/v1-49-analysis-rk5csc · gemergt nach main
+================================================================================
+
+
+1. DER UMKEHREN-KNOPF WIRKTE BEIM UMSCHLAG NICHT
+--------------------------------------------------------------------------------
+
+URSACHE
+Ein Umschlag läuft geometrisch EXAKT auf dem vorherigen Segment zurück.
++180° und −180° sind damit dieselbe Linie. Der Knopf 🔄 setzte den Wert zwar
+korrekt um, es war aber nichts zu sehen – die Zeichnung war identisch.
+
+LÖSUNG
+Über die Zeichnung statt über die Geometrie: rinneProfilPunkte() merkt sich
+pro Segment zusätzlich
+
+    seite = winkel < 0 ? −1 : +1
+
+Der parallele Versatz, mit dem ein Umschlag überhaupt sichtbar gemacht wird
+(er läge sonst unsichtbar auf dem Nachbarsegment), klappt damit auf die andere
+Seite.
+
+Ergebnis: 🔄 am Umschlag klappt ihn auf die Gegenseite, nochmal drücken führt
+zurück.
+
+WICHTIG: Die RECHNUNG bleibt unberührt. Im Prüfstand ausdrücklich abgesichert:
+  - "Endpunkt identisch (Geometrie unverändert)"
+  - "Umkehren ändert die Fixsumme nicht"
+  - live im Browser: Abwicklung bleibt 981 mm vor und nach dem Umkehren
+
+
+2. RUNDE ECKEN WIE BEIM FREIEN PROFIL
+--------------------------------------------------------------------------------
+
+Die Skizze zeichnete bisher jedes Segment als eigene gerade Linie. Jetzt gilt
+dasselbe Muster wie in generateProfilDiagramSvg() des Freien Profils:
+
+  - zusammenhängende Abschnitte werden als EINE Polyline mit abgerundeten
+    Ecken gezeichnet
+  - Umschlag-Segmente bekommen eine eigene, leicht versetzte Linie mit einer
+    KEHRE (Halbkreis) um die Spitze
+
+Dafür wird die BESTEHENDE Funktion abgerundeterPfad() aus
+js/14-freies-profil.js benutzt – dieselbe Rundung wie dort, keine zweite
+Implementierung.
+
+  - js/14-freies-profil.js wurde NICHT verändert (per git diff bestätigt)
+  - der Aufruf ist mit typeof abgerundeterPfad === "function" abgesichert
+    und fällt sonst auf gerade Linien zurück
+
+Der Prüfstand lädt für seine Tests die ECHTE Funktion aus js/14 (Quelltext-
+Ausschnitt in den Testkontext geladen). Geprüft wird damit die tatsächliche
+Zusammenarbeit, nicht ein Ersatz.
+
+Zusätzlich stehen die Beschriftungen etwas weiter aussen
+(38 + (i % 2) * 26 statt 34 + (i % 2) * 20), damit sie nicht mehr auf der
+Profillinie liegen.
+
+
+3. TESTS
+--------------------------------------------------------------------------------
+
+PRÜFSTAND "rinne57" – 373 von 373 bestanden (vorher 359)
+  neu geprüft:
+    - abgerundeterPfad aus js/14 ist verfügbar
+    - Profil als durchgehender Pfad gezeichnet
+    - Ecken sind abgerundet (Bogen-Befehle im Pfad, hier 3 Bögen)
+    - ohne abgerundeterPfad weiterhin gültige SVG, dann ohne Bögen
+    - +180 UND −180 werden beide als Umschlag erkannt
+    - +180 zeichnet auf Seite +1, −180 auf Seite −1
+    - Endpunkt identisch (Geometrie unverändert)
+    - Umkehren verändert die Zeichnung sichtbar
+    - beide Zeichnungen gültig, kein NaN
+    - Umkehren ändert die Fixsumme nicht
+  unverändert weiterhin geprüft:
+    - ALLE 35 DATENZEILEN der Excel-Vorlage
+    - Standardprofil nach Ihrer Vorlage (Fixmasse 460, Richtungsfolge,
+      Bezeichnungen, gezeichnete Längen)
+    - freies Profil, Winkel, Verkettung, Altformat, elf SVG-Fälle
+
+PRÜFSTAND "breite57" – 84 von 84 bestanden (vorher 77), echtes Chromium
+  neuer Block C2 (live bedient):
+    - Umschlag steht auf 180
+    - Umkehren setzt −180 UND ändert die Zeichnung sichtbar
+    - nochmal umkehren führt zurück auf 180
+    - Rechnung unverändert (981 = 127+192+202+460)
+    - kein NaN
+    - Ecken sind abgerundet (3 Bögen im Pfad)
+  unverändert weiterhin geprüft:
+    - echte Auswahl (selectOption) für fix/variabel, hin und zurück
+    - echtes Tippen Zeichen für Zeichen mit Fokusprüfung
+    - Segment hinzufügen/verschieben/löschen, Abbrechen löscht nichts
+    - Profil ohne variable Masse
+    - fünf Gerätebreiten 320/360/412/768/1280 px
+
+GEGENPROBE
+  Mit fest eingebauter Umschlagseite (Fehler wieder eingebaut) meldet
+  breite57 korrekt:
+      >> FEHLER: C2 Umkehren aendert die Zeichnung sichtbar
+  Der Prüfstand kann also wirklich fehlschlagen.
+
+PRÜFSTAND "pdf52" – 504 von 504 bestanden
+
+REGRESSION – alle bestehenden Prüfstände grün
+  adresse45 39/39, kopf45 8/8, suche45 13/13, status46 35/35,
+  projekte47 37/37, auswahl48 32/32, dateien49 38/38, medien50 42/42,
+  hidden51 7/7, kehle52 698/698, kehleintegration52 76/76, breite52 52/52,
+  pfade55 37/37, nav, suche40, treffer40, recent41, stand42, dateien43, ui39
+
+STRUKTUR
+  node --check über alle 28 js/*.js und sw.js: fehlerfrei
+  <div>/</div> in index.html ausgeglichen: 697/697
+  Regierapport (js/06, js/08, css/03-druck.css) UND js/14-freies-profil.js
+  nicht im Diff
+
+WAS NICHT GETESTET WURDE
+  Ein Live-Klicktest gegen Supabase war nicht möglich – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co.
+  DAS WIRD HIER AUSDRÜCKLICH NICHT ALS GETESTET BEHAUPTET.
+  Das Formular selbst wurde live in echtem Chromium bedient.
+
+
+4. GEÄNDERTE DATEIEN
+--------------------------------------------------------------------------------
+
+  js/26-rinne.js   Umschlagseite aus dem Vorzeichen des Winkels,
+                   Zeichnung mit abgerundeten Ecken und Kehre,
+                   Beschriftungen weiter aussen
+  index.html       Version 2.59
+  sw.js            Cache-Version 2.59
+  CLAUDE.md        Abschnitt 67
+
+Sonst nichts. Keine Datenbankänderung, keine Migration, keine RLS- oder
+Storage-Änderung, kein anderes Modul angefasst.
+
+
+5. ABSCHLUSS
+--------------------------------------------------------------------------------
+
+  Version              2.59
+  Commit-Hash          01f5ec2
+  Entwicklungsbranch   claude/v1-49-analysis-rk5csc  (gepusht)
+  Push auf main        erfolgt, main steht auf 01f5ec2
+  Arbeitsverzeichnis   sauber
+  Regierapport         unverändert
+  js/14-freies-profil  unverändert (nur benutzt)
+  PETER KÜNZI AG       nicht berührt (kein Datenbankzugriff in dieser Runde)
+
+================================================================================
