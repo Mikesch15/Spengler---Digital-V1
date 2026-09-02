@@ -387,16 +387,15 @@ async function printAusmass(a){
 <tbody>${positions.map(p=>`<tr><td>${esc(p.pos||"")}</td><td>${esc(p.description||"")}</td><td>${esc(p.quantity||0)}</td><td>${esc(p.unit||"")}</td></tr>`).join("")}</tbody>
 </table>`;
  }
- // Gleicher Dokumentkopf wie bei den Massaufnahmen (js/16): Objektadresse
- // gross, darunter Bezeichnung und Kopfdaten. Leere Werte fallen weg.
- const kopfHtml=pdfDokumentKopf(a,proj,a.title,[
-  ["Projekt",proj?proj.name:""],
-  ["Auftrags-Nr.",proj?proj.order_no:""],
-  ["Auftraggeber",proj?proj.customer:""],
-  ["Datum",a.date||""],
-  ["Ausmass-Art",typeLabels[a.type]||a.type],
-  ["Sachbearbeiter",currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:""]
- ]);
+ // Exakt derselbe zentrale Kopf wie beim jeweils anderen Dokumenttyp
+ // (pdfKopfHtml, js/16) - nur Dokumenttyp und Unterart unterscheiden sich.
+ const kopfHtml=pdfKopfHtml({
+  datensatz:a,projekt:proj,bezeichnung:a.title,
+  dokumenttyp:"Ausmass",unterart:typeLabels[a.type]||a.type,
+  datum:a.date||"",
+  bearbeiter:currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"",
+  logoSrc
+ });
  const bodyHtml=`${kopfHtml}
 <div class="am-section-head">Positionen${positions.length?` (${positions.length})`:""}</div>
 ${positionsHtml}
@@ -406,7 +405,6 @@ ${a.note?`<div class="am-section-head">Notiz</div>
 <style>
 ${PDF_LAYOUT_CSS}
 </style></head><body>
-${pdfLetterheadHtml("Ausmass · "+(typeLabels[a.type]||a.type),logoSrc)}
 ${pdfZahlenRechts(bodyHtml)}
 ${pdfFooterHtml(a)}
 </body></html>`);

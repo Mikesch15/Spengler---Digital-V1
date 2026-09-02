@@ -340,43 +340,68 @@ function erstelltGeaendertText(record){
  if(geaendertName||geaendertZeit)teile.push(`Zuletzt geändert von ${esc(geaendertName||"Unbekannter Benutzer")}${geaendertZeit?" am "+esc(geaendertZeit):""}`);
  return teile.join(" · ");
 }
-// ---- Gemeinsame professionelle PDF-Bausteine (v2.53) --------------
+// ---- Gemeinsame professionelle PDF-Bausteine ---------------------
 // Wird von printMeasurement (hier) und printAusmass (17-ausmass.js)
 // benutzt. Ein einziges Layout fuer alle Ausdrucke ausser dem
 // Regierapport - der druckt weiterhin ueber css/03-druck.css die
 // App-Seite selbst und ist von diesen Bausteinen nicht betroffen.
-function pdfLetterheadHtml(subtitle,logoSrc){
- const src=logoSrc!==undefined?logoSrc:logoUrl;
- // Ohne Logo tritt der Firmenname links an dessen Stelle - dann steht er
- // rechts nicht noch einmal, sonst stuende er doppelt im Briefkopf.
+// Ein einziger Kopf fuer alle PDFs ausser dem Regierapport (v2.54).
+// Frueher zwei Bausteine (Briefkopf + Datenraster) - jetzt eine
+// Komponente, damit Massaufnahme und Ausmass zwingend identisch
+// aussehen. Kein Tabellenraster, keine Kaestchen, keine Kartenoptik:
+// ruhiges Firmenbriefpapier.
+//
+//   [Logo/Firmenname]                        MASSAUFNAHME
+//   Firmenanschrift klein                    02.09.2026
+//
+//   ADRESSE ALS GROSSER HAUPTTITEL
+//   Projektname · Auftrag 2026-123 · Auftraggeber
+//
+//   Massaufnahme: Kehle
+//   Bezeichnung:  Kehle Lukarne Nord
+//   Bearbeiter:   Mike Ledermann
+//   ------------------------------------------------------------
+function pdfDatumKurz(wert){
+ const s=String(wert||"").trim();
+ if(!s)return "";
+ const t=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+ return t?`${t[3]}.${t[2]}.${t[1]}`:s;
+}
+function pdfKopfHtml(opt){
+ const o=opt||{};
+ const src=o.logoSrc!==undefined?o.logoSrc:logoUrl;
  const logo=src
   ? `<img src="${esc(src)}" alt="">`
   : `<div class="pdf-logo-text">${esc(companyName)}</div>`;
- const rechts=src
-  ? `<b>${esc(companyName)}</b>${companyAddress?esc(companyAddress):""}`
-  : (companyAddress?esc(companyAddress):"");
+ // Ohne Logo tritt der Firmenname an dessen Stelle - dann steht er
+ // darunter nicht noch einmal.
+ const firmaUnten=[src?companyName:"",companyAddress||""].filter(x=>String(x).trim()).join("\n");
+ // Objektadresse ueber die bestehende zentrale Logik, keine zweite Quelle.
+ const adresse=eintragAdresse({project_id:o.datensatz?o.datensatz.project_id:null},o.bezeichnung||"");
+ const p=o.projekt||{};
+ // Ruhige Informationszeile statt Tabelle - nur vorhandene Werte.
+ const projektzeile=[
+  String(p.name||"").trim(),
+  String(p.order_no||"").trim()?"Auftrag "+String(p.order_no).trim():"",
+  String(p.customer||"").trim()
+ ].filter(Boolean).join(" · ");
+ const bez=String(o.bezeichnung||"").trim();
+ const zeilen=[];
+ if(o.unterart)zeilen.push([o.dokumenttyp,o.unterart]);
+ if(bez&&bez!==adresse)zeilen.push(["Bezeichnung",bez]);
+ if(o.bearbeiter)zeilen.push(["Bearbeiter",o.bearbeiter]);
+ const datum=pdfDatumKurz(o.datum);
  return `<div class="pdf-head">
-<div class="pdf-head-left"><div class="pdf-logo">${logo}</div><div class="pdf-doktyp">${esc(subtitle)}</div></div>
-<div class="pdf-firma">${rechts}</div>
-</div>`;
-}
-// Dokumentkopf: Objektadresse gross (dieselbe zentrale Adresslogik wie
-// im Bildschirm, siehe eintragAdresse in js/01-basis.js), darunter die
-// Bezeichnung und ein Raster mit den Kopfdaten. Leere Werte werden
-// weggelassen - keine leeren Etiketten, keine Platzhalterzeilen.
-function pdfDokumentKopf(datensatz,projekt,bezeichnung,paare){
- const adresse=eintragAdresse({project_id:datensatz?datensatz.project_id:null},bezeichnung||"");
- const bez=String(bezeichnung||"").trim();
- const zellen=(paare||[]).filter(x=>x&&x[1]!==null&&x[1]!==undefined&&String(x[1]).trim()!==""&&String(x[1]).trim()!=="–");
- // Raster auf ein Vielfaches von 3 auffuellen, damit keine angebrochene
- // Zeile mit haengendem Rand entsteht.
- const rest=zellen.length%3;
- const voll=zellen.concat(rest?new Array(3-rest).fill(null):[]);
- const raster=voll.length?`<div class="pdf-meta">${voll.map(z=>z
-  ? `<div><label>${esc(z[0])}</label><div class="v">${esc(z[1])}</div></div>`
-  : `<div class="leer"></div>`).join("")}</div>`:"";
- return `<div class="pdf-titel"><h1>${esc(adresse)}</h1>${
-  (bez&&bez!==adresse)?`<div class="bez">${esc(bez)}</div>`:""}</div>${raster}`;
+<div class="pdf-head-firma"><div class="pdf-logo">${logo}</div>${
+ firmaUnten?`<div class="pdf-firma">${esc(firmaUnten)}</div>`:""}</div>
+<div class="pdf-head-typ"><div class="pdf-doktyp">${esc(String(o.dokumenttyp||"").toUpperCase())}</div>${
+ datum?`<div class="pdf-datum">${esc(datum)}</div>`:""}</div>
+</div>
+<div class="pdf-titel"><h1>${esc(adresse)}</h1>${
+ projektzeile?`<div class="pdf-projekt">${esc(projektzeile)}</div>`:""}</div>${
+ zeilen.length?`<div class="pdf-info">${zeilen.map(z=>
+  `<div><span>${esc(z[0])}:</span> ${esc(z[1])}</div>`).join("")}</div>`:""}
+<div class="pdf-trenner"></div>`;
 }
 function pdfFooterHtml(record){
  const teile=[esc(companyName)];
@@ -423,28 +448,24 @@ const PDF_LAYOUT_CSS=`
  *{box-sizing:border-box}
  body{font-family:Arial,Helvetica,sans-serif;color:#17202a;margin:0;font-size:8.5pt;line-height:1.35;
   -webkit-print-color-adjust:exact;print-color-adjust:exact;padding-bottom:9mm}
- /* Briefkopf */
- .pdf-head{display:flex;justify-content:space-between;align-items:flex-end;gap:8mm;
-  border-bottom:2.4pt solid #17202a;padding:0 0 2.4mm;margin:0 0 5mm}
- .pdf-head-left{min-width:0}
+ /* Kopf: ruhiges Firmenbriefpapier, kein Raster und keine Kaestchen */
+ .pdf-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10mm;margin:0}
+ .pdf-head-firma{min-width:0}
  .pdf-logo img{max-height:16mm;max-width:64mm;display:block}
- .pdf-logo-text{font-size:15pt;font-weight:900;letter-spacing:.05em;line-height:1;color:#17202a}
- .pdf-doktyp{margin-top:1.8mm;font-size:6.4pt;font-weight:700;text-transform:uppercase;
-  letter-spacing:.14em;color:#5b666e}
- .pdf-firma{text-align:right;font-size:7pt;color:#5b666e;line-height:1.45;white-space:pre-line;flex:0 0 auto}
- .pdf-firma b{display:block;color:#17202a;font-size:8.2pt;letter-spacing:.02em;white-space:normal}
- /* Dokumentkopf */
- .pdf-titel{margin:0 0 3.5mm}
- .pdf-titel h1{font-size:14pt;font-weight:800;margin:0;line-height:1.15;letter-spacing:-.01em;color:#17202a}
- .pdf-titel .bez{margin-top:1.2mm;font-size:9.5pt;font-weight:600;color:#3d4850}
- .pdf-meta{display:grid;grid-template-columns:repeat(3,1fr);border:.5pt solid #b3bcc2;margin:0 0 5mm;
-  page-break-inside:avoid;break-inside:avoid}
- .pdf-meta>div{padding:1.7mm 2.4mm;border-right:.5pt solid #cfd6db;border-bottom:.5pt solid #cfd6db;min-width:0}
- .pdf-meta>div:nth-child(3n){border-right:0}
- .pdf-meta>div:nth-last-child(-n+3){border-bottom:0}
- .pdf-meta label{display:block;font-size:5.6pt;font-weight:700;text-transform:uppercase;
-  letter-spacing:.07em;color:#6b757c;margin:0 0 .6mm}
- .pdf-meta .v{font-size:8pt;font-weight:700;word-break:break-word}
+ .pdf-logo-text{font-size:13pt;font-weight:800;letter-spacing:.04em;line-height:1.1;color:#17202a}
+ .pdf-firma{margin-top:1.4mm;font-size:6.6pt;color:#5b666e;line-height:1.45;white-space:pre-line}
+ .pdf-head-typ{text-align:right;flex:0 0 auto;padding-top:.5mm}
+ .pdf-doktyp{font-size:9.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.2em;color:#17202a;
+  white-space:nowrap}
+ .pdf-datum{margin-top:1.2mm;font-size:8pt;color:#5b666e;white-space:nowrap}
+ /* Dokumenttitel: Objektadresse gross, darunter eine ruhige Projektzeile */
+ .pdf-titel{margin:7mm 0 0}
+ .pdf-titel h1{font-size:15pt;font-weight:800;margin:0;line-height:1.18;letter-spacing:-.01em;color:#17202a;
+  word-break:break-word}
+ .pdf-projekt{margin-top:1.5mm;font-size:8.5pt;color:#3d4850;word-break:break-word}
+ .pdf-info{margin-top:3.5mm;font-size:8pt;color:#17202a;line-height:1.55}
+ .pdf-info span{display:inline-block;min-width:24mm;color:#6b757c}
+ .pdf-trenner{border-top:1.2pt solid #17202a;margin:4mm 0 5mm}
  /* Abschnitte */
  .eb-section-head,.am-section-head{background:#17202a;color:#fff;font-size:6.9pt;font-weight:800;
   text-transform:uppercase;letter-spacing:.11em;padding:1.6mm 2.4mm;margin:5mm 0 0;
@@ -533,17 +554,16 @@ async function printMeasurement(m){
   sketchSrcs=await Promise.all(sketchQuellen.map(storageSignedUrl));
  }
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
- // Ein Dokumentkopf fuer alle Massaufnahme-Arten: Objektadresse gross,
- // darunter die Bezeichnung und die Kopfdaten. Leere Werte fallen weg.
  const cell2=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
- const kopfHtml=pdfDokumentKopf(m,proj,m.title,[
-  ["Projekt",proj?proj.name:""],
-  ["Auftrags-Nr.",proj?proj.order_no:""],
-  ["Auftraggeber",proj?proj.customer:""],
-  ["Datum",m.date||""],
-  ["Massaufnahme-Art",typeLabels[m.type]||m.type],
-  ["Sachbearbeiter",currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:""]
- ]);
+ // Exakt derselbe zentrale Kopf wie beim jeweils anderen Dokumenttyp
+ // (pdfKopfHtml, js/16) - nur Dokumenttyp und Unterart unterscheiden sich.
+ const kopfHtml=pdfKopfHtml({
+  datensatz:m,projekt:proj,bezeichnung:m.title,
+  dokumenttyp:"Massaufnahme",unterart:typeLabels[m.type]||m.type,
+  datum:m.date||"",
+  bearbeiter:currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"",
+  logoSrc
+ });
 
  let bodyHtml;
  if(m.type==="einlaufblech_gerade"){
@@ -875,7 +895,6 @@ ${skizzen.map((s,i)=>`<div class="sketch-page"><div class="eb-section-head">Skiz
 <style>
 ${PDF_LAYOUT_CSS}
 </style></head><body>
-${pdfLetterheadHtml("Massaufnahme · "+(typeLabels[m.type]||m.type),logoSrc)}
 ${pdfZahlenRechts(bodyHtml)}
 ${pdfFooterHtml(m)}
 </body></html>`);

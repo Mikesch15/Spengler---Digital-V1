@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.53, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.54, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.53**
+- sichtbare App-Version: **2.54**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -9021,3 +9021,155 @@ Berechnungsdateien (`js/11`–`js/15`, `js/19`–`js/21`, `js/25`),
 - Die Zeichnungen enthalten intern viel Leerraum (eigene viewBox der
   Fachdateien). Eine engere Beschneidung wäre eine Änderung an den
   geschützten Zeichenfunktionen und wurde bewusst unterlassen.
+
+## 62. EINHEITLICHER PROFESSIONELLER PDF-KOPF — VERSION 2.54
+
+Der in v2.53 eingeführte Kopf war ein sichtbares 3-Spalten-Raster mit
+umrandeten Kästchen je Kopfdatum – korrekt, aber formularhaft. Er ist
+jetzt durch einen ruhigen Briefkopf ersetzt. **Nur der Kopf wurde
+umgebaut**; Tabellen, Seitenumbrüche, Fotos/Skizzen, Kehle-Ergebnisse
+und Fusszeile aus v2.53 sind unverändert.
+
+### 62.1 Zwei Bausteine wurden zu einem
+
+Vorher gab es zwei getrennte Funktionen, die jedes PDF nacheinander
+aufrief: `pdfLetterheadHtml()` (Briefkopf) und `pdfDokumentKopf()`
+(Titel + Datenraster). Dadurch konnten Massaufnahme und Ausmass
+theoretisch auseinanderlaufen.
+
+Jetzt gibt es **genau eine** Komponente `pdfKopfHtml(opt)`
+(js/16-massaufnahme-formular.js). Beide Druckwege rufen sie mit
+demselben Objekt auf; unterschiedlich sind nur zwei Werte:
+
+```js
+pdfKopfHtml({datensatz:m, projekt:proj, bezeichnung:m.title,
+  dokumenttyp:"Massaufnahme", unterart:typeLabels[m.type]||m.type,
+  datum:m.date||"", bearbeiter:…, logoSrc});
+```
+
+`pdfLetterheadHtml` und `pdfDokumentKopf` existieren nicht mehr (per
+Grep bestätigt), der separate Briefkopf-Aufruf im Dokumentgerüst ist
+entfallen. Es gibt keine zweite Kopfvariante und keinen duplizierten
+CSS-Block.
+
+### 62.2 Aufbau
+
+```
+Peter Künzi AG                                  MASSAUFNAHME
+Spenglerei & Bedachungen                          02.09.2026
+Industriestrasse 8
+3006 Bern
+
+Bahnhofstrasse 12, 3011 Bern
+Sanierung Dach Nord · Auftrag 2026-123 · Muster Immobilien AG
+
+Massaufnahme:  Kehle
+Bezeichnung:   Kehle Lukarne Nord
+Bearbeiter:    Mike Ledermann
+────────────────────────────────────────────────────────────
+```
+
+- **Dokumenttyp** oben rechts, rechtsbündig, immer an derselben Kante
+  (`MASSAUFNAHME` bzw. `AUSMASS`), darunter das Datum im Schweizer
+  Format (`pdfDatumKurz()` wandelt `2026-09-02` → `02.09.2026`).
+- **Firmenblock** oben links: Logo, sonst der Firmenname an dessen
+  Stelle; darunter die Firmenanschrift klein. Mit Logo steht der
+  Firmenname darunter, ohne Logo nicht doppelt.
+- **Objektadresse** als grosser Haupttitel über die **bestehende**
+  zentrale `eintragAdresse()`-Logik – keine zweite Adressquelle.
+- **Projektzeile** als ruhiger Fliesstext `Projektname · Auftrag Nr. ·
+  Auftraggeber`, nicht als Tabelle; nur vorhandene Werte.
+- **Info-Zeilen** im Stil `Etikett: Wert` mit ausgerichteter
+  Etikettenspalte (`min-width:24mm`), ohne Rahmen.
+- **Eine** Trennlinie unter dem ganzen Kopf.
+
+Kein `<table>`, keine `.pdf-meta`, keine Kästchen, keine Kartenoptik –
+im Prüfstand ausdrücklich abgesichert.
+
+**Die Bezeichnung bleibt erhalten.** Der Auftragsentwurf zeigt sie
+nicht, sie ist aber eine echte Benutzereingabe – sie steht deshalb als
+eigene Info-Zeile und entfällt nur, wenn sie mangels Projekt ohnehin
+schon der Haupttitel ist (dann stünde sie doppelt).
+
+### 62.3 Nachweis der Gleichheit
+
+Der Prüfstand `pdf52` misst je Dokument im echten Chromium:
+
+- **Pflichtteile** (Firmenblock, Dokumenttyp, Adresstitel, Trennlinie)
+  als Struktur-Skelett ohne Textinhalte → müssen in **jedem** der 19
+  Dokumente identisch sein.
+- **Typografie** (Schriftgrösse, -stärke, Laufweite, Farbe von
+  Dokumenttyp, Datum, Titel, Projektzeile, Info, Trennlinie, Logo,
+  Firmenblock) → identisch, verglichen über alle Elemente, die im
+  jeweiligen Dokument vorkommen.
+- **Lage**: rechte Kante und Oberkante des Dokumenttyp-Blocks, linke
+  Kante und Oberkante des Firmenblocks, linke und rechte Kante der
+  Trennlinie → identisch. Die *Breite* des Dokumenttyps unterscheidet
+  sich naturgemäss („MASSAUFNAHME" ist länger als „AUSMASS"); geprüft
+  wird deshalb die rechtsbündige Kante, nicht die linke.
+- **Vollständiger Kopf**: 16 der 19 Dokumente haben alle optionalen
+  Daten – ihr komplettes Kopf-Skelett ist **byteidentisch**.
+- Die drei übrigen (Massaufnahme ohne Projekt, Ausmass ohne
+  Kopfdaten, leeres Ausmass) lassen genau die Blöcke weg, deren Daten
+  fehlen – auch das wird geprüft: Datum genau dann, wenn ein Datum
+  vorhanden ist; Projektzeile genau dann, wenn ein Projekt vorhanden
+  ist.
+
+Zusätzliche Fälle in dieser Runde: sehr lange Adresse, sehr langer
+Projektname, sehr lange Auftrags-Nr. und Auftraggeber (eigenes
+Testprojekt) sowie ein Dokument ganz ohne optionale Daten.
+
+**pdf52: 416/416** über 19 Dokumente (v2.53: 240/240 über 17).
+
+### 62.4 Regierapport – erneut pixelgleich
+
+Wie in v2.53 geprüft, diesmal gegen den v2.53-Stand: der
+Regierapport-Bildschirm wurde in echtem Chromium unter `media:print`
+mit ausgelöstem `beforeprint` gerendert, einmal auf v2.53 und einmal
+mit den v2.54-Änderungen. Bild und DOM sind **identisch** (gleicher
+SHA-256, 122 696 Bytes). `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im
+Diff.
+
+### 62.5 Fachlogik und v2.53-Inhalt unverändert
+
+Einzeln gegen `HEAD` gezählt und identisch geblieben: alle 14
+Berechnungs- und Zeichenaufrufe (`einfBerechnen`,
+`berechneAnschlussblech`, `berechneLukarne`, `berechneRinneStueckliste`,
+`berechneMadStueckliste`, `kehleBerechnen`, `einlaufblechDiagramSvg`,
+`generateEbkGrundriss`, `generateRinneGrundriss`, `madProfilSvgAus`,
+`lukScharenZeilen`, `rinneMaterialTabelle`, `madMaterialTabelle`,
+`calcRinneSegment`) sowie `pdfZahlenRechts`, `pdfFooterHtml` und
+`PDF_LAYOUT_CSS`.
+
+Ebenso unverändert: `eb-section-head`, `eb-info-table`, `eb-cutlist`,
+`eb-diagram`, `kehle-print-haupt`, `pdf-bild`, `sketch-page`,
+`pdf-foot`, `table-header-group` – jeweils identische Trefferzahl.
+
+Kehle: b, c und d bleiben in ihrer hervorgehobenen Box, alle weiteren
+Ergebnisse vollständig, Berechnung nicht angefasst.
+
+### 62.6 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/16-massaufnahme-formular.js` | `pdfLetterheadHtml`+`pdfDokumentKopf` → eine `pdfKopfHtml`, neues Kopf-CSS, `pdfDatumKurz` |
+| `js/17-ausmass.js` | nutzt dieselbe Komponente, separater Briefkopf-Aufruf entfallen |
+| `index.html` | nur Versionstext 2.54 |
+| `sw.js` | Cache-Version 2.54 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css`, `css/01-basis.css`, alle Zeichen- und
+Berechnungsdateien, `js/09`, `js/22`–`js/25`, `js/05a`, `js/03`,
+`js/01`.
+
+### 62.7 Offene Punkte
+
+- Wie in v2.53: geprüft in headless Chromium, nicht im echten
+  Browser-Druckdialog des Betreibers.
+- Seitenzahlen weiterhin nur in Chromium-basierten Browsern
+  (Abschnitt 61.4, unverändert).
+- Die Höhe des Kopfblocks hängt naturgemäss vom Inhalt ab (Anzahl
+  Info-Zeilen, Umbruch einer langen Adresse). Geprüft wird deshalb die
+  Gleichheit von Aufbau, Typografie und seitlicher Lage – nicht eine
+  identische absolute Höhe.
