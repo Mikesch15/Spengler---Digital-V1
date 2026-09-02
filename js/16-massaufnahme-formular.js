@@ -159,25 +159,26 @@ function buildMeasurementFromForm(){
   }};
  }
  if(type==="rinne"){
-  // Die Zusatzmasse und Ansetztypen werden als Momentaufnahme
-  // mitgespeichert. Eine spaetere Aenderung in den Einstellungen
-  // veraendert dadurch gespeicherte Rinnenstuecke nicht rueckwirkend.
-  const w=rinneWerte(rinneAktiveWerte);
+  // Profil und Ansetztypen werden als Momentaufnahme mitgespeichert.
+  // Eine spaetere Aenderung der Vorgaben veraendert dadurch gespeicherte
+  // Rinnenstuecke nicht rueckwirkend.
+  const w=rinneWerte(rinneAktiveWerte());
+  const anzahl=rinneVariable(w.profil).length;
+  const z=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+  const seite=q=>{const l=[];for(let i=0;i<anzahl;i++)l.push(z(Array.isArray(q)?q[i]:undefined));return l};
   const stuecke=rinneStuecke.map(st=>{
    const g=rinneStueckRechnen(st,w);
-   const z=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
    return {
-    links:{a:z((st.links||{}).a),b:z((st.links||{}).b),c:z((st.links||{}).c)},
-    rechts:{a:z((st.rechts||{}).a),b:z((st.rechts||{}).b),c:z((st.rechts||{}).c)},
+    links:seite(st.links),rechts:seite(st.rechts),
     laenge:z(st.laenge),ansetzL:st.ansetzL,ansetzR:st.ansetzR,
     abwicklungLinks:g.abwicklungLinks,abwicklungRechts:g.abwicklungRechts,
     zuschnitt:g.zuschnitt
    };
   });
   return {...base,photo_path:null,sketch_paths:[],data:{
-   zusatz:w.zusatz,ansetz:w.ansetz,
-   zusatzSumme:rinneZusatzSumme(w.zusatz),
-   rest:rinneRest(w.zusatz),
+   profil:w.profil,ansetz:w.ansetz,
+   fixSumme:rinneFixSumme(w.profil),
+   varMasse:rinneVariable(w.profil).map(v=>({buchstabe:v.buchstabe,name:v.name})),
    stuecke,
    material:$("rp_material")?$("rp_material").value:""
   }};
@@ -233,6 +234,7 @@ $("saveMeasurement").onclick=async()=>{
   if(!g.ok){alert(g.fehler.join("\n"));return}
  }
  if(type==="rinne"){
+  if(!rinneProfil.length){alert("Bitte zuerst das Rinnenprofil festlegen (mindestens ein Segment).");return}
   if(!rinneStuecke.length){alert("Bitte mindestens ein Rinnenstück erfassen.");return}
   if(!rinneStuecke.some(st=>Number(st.laenge)>0)){alert("Bitte bei mindestens einem Rinnenstück eine Länge M/M eingeben.");return}
  }
@@ -883,14 +885,19 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   // Gerechnet wird nur mit den im Datensatz gespeicherten Werten,
   // damit ein spaeter gedrucktes PDF unveraendert bleibt.
   const d=m.data||{};
-  const w=rinneWerte({zusatz:d.zusatz,ansetz:d.ansetz});
+  const w=rinneWerte(d);
+  const varListe=rinneVariable(w.profil);
+  const fix=rinneFixSumme(w.profil);
   const stuecke=Array.isArray(d.stuecke)?d.stuecke:[];
   const matName=(findMeasurementMaterial(d.material)||{}).name;
   const mm=v=>{const n=Number(v);return Number.isFinite(n)?(Math.round(n*10)/10).toLocaleString("de-CH"):"\u2013"};
-  const abc=o=>{const q=o||{};return `${mm(q.a)} / ${mm(q.b)} / ${mm(q.c)}`};
+  const seiteText=q=>{
+   const l=Array.isArray(q)?q:(q?[q.a,q.b,q.c]:[]);
+   return varListe.length?varListe.map((v,j)=>mm(l[j])).join(" / "):"\u2013";
+  };
   const wert=st=>{
-   // Gespeicherte Ergebnisse bevorzugen, sonst aus den mitgespeicherten
-   // Werten neu rechnen (aeltere Datensaetze ohne Ergebnisfelder).
+   // Gespeicherte Ergebnisse bevorzugen, sonst aus dem mitgespeicherten
+   // Profil neu rechnen (aeltere Datensaetze ohne Ergebnisfelder).
    const g=rinneStueckRechnen(st,w);
    return {
     l:st.abwicklungLinks!==undefined&&st.abwicklungLinks!==null?st.abwicklungLinks:g.abwicklungLinks,
@@ -900,22 +907,34 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   };
   const summeZuschnitt=stuecke.reduce((s2,st)=>s2+Number(wert(st).z||0),0);
   const erstes=stuecke[0];
-  const skizze=rinneSvg(erstes?erstes.links:{a:"",b:"",c:""},w,null);
+  const skizze=rinneSvg(w.profil,erstes?erstes.links:null,null);
+  const kopfMasse=varListe.length?varListe.map(v=>v.buchstabe).join(" / "):"\u2013";
+  const formel=(varListe.length?varListe.map(v=>v.buchstabe).join(" + ")+" + ":"")+mm(fix)+" mm";
   bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell2("Material",esc(matName||"\u2013"))}${cell2("Zusatzmasse (Summe)",esc(mm(rinneZusatzSumme(w.zusatz))+" mm"))}</tr>
-<tr>${cell2("Dachanschluss",esc(mm(w.zusatz.anschluss_flachdach)+" mm"))}${cell2("Keil links / rechts",esc(mm(w.zusatz.keil_links)+" / "+mm(w.zusatz.keil_rechts)+" mm"))}</tr>
-<tr>${cell2("Rest",esc(mm(rinneRest(w.zusatz))+" mm"))}${cell2("St\u00fccke",esc(String(stuecke.length)))}</tr>
+<tr>${cell2("Material",esc(matName||"\u2013"))}${cell2("Fixmasse gesamt",esc(mm(fix)+" mm"))}</tr>
+<tr>${cell2("Variable Masse",esc(kopfMasse))}${cell2("Abwicklung",esc(formel))}</tr>
+<tr>${cell2("St\u00fccke",esc(String(stuecke.length)))}<td></td></tr>
+</table>
+<div class="eb-section-head">Profil</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Art</th><th>L\u00e4nge</th><th>Winkel</th></tr></thead>
+<tbody>${w.profil.map((seg,i)=>{
+ const v=varListe.find(x=>x.index===i);
+ return `<tr><td>${v?esc(v.buchstabe):(i+1)}</td><td>${esc(seg.name||"")}</td>`
+  +`<td>${v?"variabel":"fix"}</td><td>${v?"je St\u00fcck":esc(mm(seg.laenge))}</td>`
+  +`<td>${esc(mm(seg.winkel))}\u00b0</td></tr>`;
+}).join("")}</tbody>
 </table>
 <div class="eb-section-head">Profilskizze</div>
 <div class="eb-diagram">${skizze}</div>
 <div class="eb-section-head">Rinnenst\u00fccke</div>
 <table class="eb-cutlist">
-<thead><tr><th>Nr.</th><th>Links A/B/C</th><th>L\u00e4nge M/M</th><th>Rechts A/B/C</th><th>Ansetzen L</th><th>Ansetzen R</th><th>Abw. L</th><th>Abw. R</th><th>Zuschnitt</th></tr></thead>
+<thead><tr><th>Nr.</th><th>Links${varListe.length?" "+esc(varListe.map(v=>v.buchstabe).join("/")):""}</th><th>L\u00e4nge M/M</th><th>Rechts${varListe.length?" "+esc(varListe.map(v=>v.buchstabe).join("/")):""}</th><th>Ansetzen L</th><th>Ansetzen R</th><th>Abw. L</th><th>Abw. R</th><th>Zuschnitt</th></tr></thead>
 <tbody>${stuecke.map((st,i)=>{
  const g=wert(st);
- return `<tr><td>${i+1}</td><td>${esc(abc(st.links))}</td><td>${esc(mm(st.laenge))}</td><td>${esc(abc(st.rechts))}</td>`
+ return `<tr><td>${i+1}</td><td>${esc(seiteText(st.links))}</td><td>${esc(mm(st.laenge))}</td><td>${esc(seiteText(st.rechts))}</td>`
   +`<td>${esc(RINNE_ANSETZ_LABELS[st.ansetzL]||st.ansetzL||"")}</td><td>${esc(RINNE_ANSETZ_LABELS[st.ansetzR]||st.ansetzR||"")}</td>`
   +`<td>${esc(mm(g.l))}</td><td>${esc(mm(g.r))}</td><td>${esc(mm(g.z))}</td></tr>`;
 }).join("")}</tbody>

@@ -300,39 +300,39 @@ details.kehle-zwischen[open] summary{margin-bottom:2px}
  .kehle-tabelle th{width:30px}
 }
 
-/* ---- Rinne · Zuschnittliste (v2.56) --------------------------------
-   Die Tabelle steht wie die uebrigen Stuecklisten in einem
-   <div class="scroll"> und darf deshalb breiter als der Bildschirm
-   sein. min-width wird hier trotzdem ausdruecklich gesetzt, damit die
-   globale Regel (Zeile 33: min-width:1000px) nicht unbemerkt eine
-   groessere Breite erzwingt als die Spalten brauchen. */
-table.rp-table{width:100%;min-width:880px;border-collapse:collapse;margin-top:6px;table-layout:fixed}
-.rp-table th{background:#f2f6f8;text-align:left;font-size:9px;padding:6px 5px;color:var(--muted);
- text-transform:uppercase;letter-spacing:.02em;white-space:normal}
-.rp-table td{border-top:1px solid var(--line);padding:4px 5px;font-size:12px;vertical-align:middle}
-.rp-table td:first-child{color:var(--muted);text-align:left}
-.rp-table th:nth-child(1),.rp-table td:nth-child(1){width:34px}
-.rp-table th:nth-child(2),.rp-table td:nth-child(2),
-.rp-table th:nth-child(4),.rp-table td:nth-child(4){width:186px}
-.rp-table th:nth-child(3),.rp-table td:nth-child(3){width:86px}
-.rp-table th:nth-child(5),.rp-table td:nth-child(5),
-.rp-table th:nth-child(6),.rp-table td:nth-child(6){width:88px}
-.rp-table th:nth-child(7),.rp-table td:nth-child(7),
-.rp-table th:nth-child(8),.rp-table td:nth-child(8),
-.rp-table th:nth-child(9),.rp-table td:nth-child(9){width:76px}
-.rp-table th:nth-child(10),.rp-table td:nth-child(10){width:38px}
-.rp-table input[type=number],.rp-table select{width:100%;min-width:0;padding:5px 4px;font-size:12px;
- min-height:32px;border:1px solid var(--line);border-radius:7px;background:#fff;color:inherit}
-/* Die drei Masse A/B/C stehen nebeneinander in einer Zelle. Die
-   Spezifitaet muss die Regel oben schlagen (Attributselektor), sonst
-   bleiben die Felder auf width:100% und stapeln sich. */
-.rp-table td.rp-abc{white-space:nowrap}
-.rp-table td.rp-abc input[type=number]{display:inline-block;width:31.5%;margin-right:2%;padding:5px 3px;text-align:center}
-.rp-table td.rp-abc input[type=number]:last-child{margin-right:0}
+/* ---- Rinne · frei definierbares Profil + Zuschnittliste (v2.57) ----
+   Beide Tabellen stehen wie die uebrigen Stuecklisten in einem
+   <div class="scroll"> und duerfen breiter als der Bildschirm sein.
+   min-width und table-layout werden hier ausdruecklich gesetzt: die
+   globale Regel (Zeile 33) gibt jeder Tabelle min-width:1000px und
+   table-layout:fixed - bei einer Tabelle mit dynamisch vielen Spalten
+   waere beides falsch. */
+table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:collapse;
+ margin-top:6px;table-layout:auto}
+.rp-profiltabelle th,.rp-table th{background:#f2f6f8;text-align:left;font-size:9px;padding:6px 5px;
+ color:var(--muted);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+.rp-profiltabelle td,.rp-table td{border-top:1px solid var(--line);padding:4px 5px;font-size:12px;
+ vertical-align:middle;white-space:nowrap}
+.rp-profiltabelle td:first-child,.rp-table td:first-child{color:var(--muted);text-align:left}
+.rp-profiltabelle input,.rp-profiltabelle select,
+.rp-table input[type=number],.rp-table select{padding:5px 4px;font-size:12px;min-height:34px;
+ border:1px solid var(--line);border-radius:7px;background:#fff;color:inherit;min-width:0}
+.rp-profiltabelle input[type=text]{width:150px}
+.rp-profiltabelle input[type=number]{width:76px;text-align:right}
+.rp-profiltabelle select{width:92px}
+.rp-table input[type=number]{width:72px;text-align:right}
+.rp-table select{width:92px}
+.rp-varzelle input[type=number]{width:62px}
+/* display:flex auf einem <td> sprengt das Tabellenlayout - die Knoepfe
+   liefen in die Nachbarspalte. Deshalb ein innerer Flex-Container. */
+.rp-winkel > div{display:flex;gap:3px;align-items:center}
+.rp-winkel button,.rp-segbtn button,.rp-table button{min-height:32px;min-width:32px;padding:2px 6px;font-size:12px}
+.rp-segbtn{white-space:nowrap}
+.rp-segbtn button{margin-right:2px}
+.rp-var{color:var(--blue-dark);font-weight:800}
 .rp-erg{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
 .rp-zuschnitt{color:var(--blue-dark)}
-.rp-table button{min-height:32px;min-width:32px;padding:2px 6px;font-size:13px}
 @media(max-width:600px){
- .rp-table td,.rp-table input[type=number],.rp-table select{font-size:11.5px}
- .rp-table input[type=number],.rp-table select{min-height:34px}
+ .rp-profiltabelle td,.rp-table td{font-size:11.5px}
+ .rp-profiltabelle input[type=text]{width:120px}
 }

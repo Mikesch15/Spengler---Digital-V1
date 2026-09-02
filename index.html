@@ -92,7 +92,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.56</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.57</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -862,27 +862,45 @@ Diese Aktion löscht unwiderruflich:
 </div>
 
 <div id="measTypeRinneProfil" hidden>
-<div class="info">Zuschnittliste f&uuml;r Rinnen. Die Berechnung entspricht exakt der Vorlage &bdquo;Zuschnittliste Rinnen&ldquo;:
-<b>Abwicklung = A + B + C + Summe der Zusatzmasse</b>, <b>Zuschnittl&auml;nge = L&auml;nge M/M + Ansetzen links + Ansetzen rechts</b>.
-Beim Anlegen eines neuen St&uuml;cks werden A/B/C rechts des vorherigen St&uuml;cks als links &uuml;bernommen und bleiben frei &auml;nderbar.</div>
+<div class="info">Zuschnittliste f&uuml;r Rinnen. Zuerst das <b>Profil</b> festlegen, danach die Rinnenst&uuml;cke erfassen.
+Jedes Profilsegment ist entweder <b>fix</b> (bei jedem St&uuml;ck gleich, eigene L&auml;nge) oder <b>variabel</b>
+(je St&uuml;ck links/rechts eigener Wert, erscheint in der St&uuml;ckliste als A, B, C &hellip;).
+Der Winkel ist &ndash; wie beim Freien Profil &ndash; die Richtungs&auml;nderung gegen&uuml;ber dem vorherigen Segment; 180&deg; ist ein Umschlag.
+Es gilt: <b>Abwicklung = Summe der variablen Masse + Summe aller Fixmasse</b>,
+<b>Zuschnittl&auml;nge = L&auml;nge M/M + Ansetzen links + Ansetzen rechts</b>.
+Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&uuml;cks als links &uuml;bernommen und bleiben frei &auml;nderbar.</div>
 <div class="grid">
 <div><label>Material</label><select id="rp_material" class="meas-material-select"></select></div>
 </div>
-<div class="small" id="rp_zusatzHint" style="margin:6px 0"></div>
-<div class="bar" style="margin-bottom:10px"><button id="openRinneProfilSettings" class="gray">&#9881;&#65039; Zusatzmasse &amp; Ansetztypen</button></div>
 
-<div id="rp_diagram" class="eb-diagram-box" style="margin-top:10px"></div>
+<h2 style="margin-top:14px">Profil</h2>
+<div class="small" id="rp_profilInfo" style="margin-bottom:4px"></div>
+<div class="scroll">
+<table class="rp-profiltabelle">
+<thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Art</th><th>L&auml;nge (mm)</th><th>Winkel (&deg;)</th><th></th></tr></thead>
+<tbody id="rp_profilBody"></tbody>
+</table>
+</div>
+<div class="bar" style="margin-top:8px">
+<button id="rp_addSegment" class="blue">&#65291; Segment hinzuf&uuml;gen</button>
+<button id="rp_resetProfil" class="gray">Standardprofil</button>
+<button id="rp_profilAlsStandard" class="gray">Als Vorgabe speichern</button>
+<button id="openRinneProfilSettings" class="gray">&#9881;&#65039; Ansetztypen</button>
+</div>
+
+<div id="rp_diagram" class="eb-diagram-box" style="margin-top:12px"></div>
 
 <h2 style="margin-top:14px">Rinnenst&uuml;cke</h2>
 <div class="small" id="rp_summary" style="margin-bottom:4px"></div>
 <div class="scroll">
 <table class="rp-table">
-<thead><tr><th>Nr.</th><th>Links A / B / C (mm)</th><th>L&auml;nge M/M (mm)</th><th>Rechts A / B / C (mm)</th><th>Ansetzen L</th><th>Ansetzen R</th><th>Abw. L (mm)</th><th>Abw. R (mm)</th><th>Zuschnitt (mm)</th><th></th></tr></thead>
+<thead id="rp_stueckeHead"></thead>
 <tbody id="rp_stueckeBody"></tbody>
 </table>
 </div>
 <div class="bar" style="margin-top:8px"><button id="rp_addStueck" class="blue">&#65291; Neues Rinnenst&uuml;ck</button></div>
 </div>
+
 
 <div id="measTypeKehle" hidden>
 <div class="info">Winkelberechnung f&uuml;r Kehlen an Lukarnen. Die Berechnung entspricht exakt der Vorlage &bdquo;Winkel zu Kehlen Lukarne MA&ldquo; &ndash; es werden nur die drei Eingaben unten ben&ouml;tigt. Winkel in &deg;, L&auml;ngen in mm.</div>
@@ -1203,18 +1221,12 @@ Beim Anlegen eines neuen St&uuml;cks werden A/B/C rechts des vorherigen St&uuml;
 </div>
 
 <div class="settings-section" data-section="rinne-profil">
-<div class="settings-section-head" data-toggle-section="rinne-profil"><h2>Rinne &ndash; Zusatzmasse &amp; Ansetztypen</h2><span class="settings-section-chevron">&rsaquo;</span></div>
+<div class="settings-section-head" data-toggle-section="rinne-profil"><h2>Rinne &ndash; Standardprofil &amp; Ansetztypen</h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
-<div class="info">Werte der Vorlage &bdquo;Zuschnittliste Rinnen&ldquo;. Die sechs Zusatzmasse werden zu jeder Abwicklung dazugez&auml;hlt (Excel: <b>Abw. = A + B + C + Summe</b>). Die Ansetztypen werden zur L&auml;nge M/M addiert bzw. davon abgezogen (Excel: <b>Zuschnitt = L&auml;nge + Ansetzen L + Ansetzen R</b>). Gilt nur f&uuml;r dieses Ger&auml;t. <b>Bereits gespeicherte Rinnen-Massaufnahmen bleiben unver&auml;ndert</b> &ndash; sie behalten die Werte, die beim Speichern gegolten haben.</div>
-<h2 style="font-size:12px;margin-top:6px">Zusatzmasse (Summe: <span id="rpsSumme">510 mm</span>)</h2>
-<div class="grid" style="margin-bottom:10px">
-<div><label>Umschlag Flachdachseite (mm)</label><input id="rpsUmschlagFlachdach" type="number" step="1"></div>
-<div><label>Anschl. Flachdach (mm)</label><input id="rpsAnschlussFlachdach" type="number" step="1"></div>
-<div><label>Keil links (mm)</label><input id="rpsKeilLinks" type="number" step="1"></div>
-<div><label>Keil rechts (mm)</label><input id="rpsKeilRechts" type="number" step="1"></div>
-<div><label>Anschl. Unterdach (mm)</label><input id="rpsAnschlussUnterdach" type="number" step="1"></div>
-<div><label>Umschlag Unterdachseite (mm)</label><input id="rpsUmschlagUnterdach" type="number" step="1"></div>
-</div>
+<div class="info">Werte der Vorlage &bdquo;Zuschnittliste Rinnen&ldquo;. Die Ansetztypen werden zur L&auml;nge M/M addiert bzw. davon abgezogen (<b>Zuschnitt = L&auml;nge + Ansetzen L + Ansetzen R</b>). Gilt nur f&uuml;r dieses Ger&auml;t. <b>Bereits gespeicherte Rinnen-Massaufnahmen bleiben unver&auml;ndert</b> &ndash; sie behalten Profil und Werte, die beim Speichern gegolten haben.</div>
+<h2 style="font-size:12px;margin-top:6px">Standardprofil f&uuml;r neue Massaufnahmen</h2>
+<div class="small" id="rpsProfilInfo" style="margin-bottom:10px"></div>
+<div class="info" style="margin-bottom:10px">Das Profil selbst wird direkt in der Massaufnahme bearbeitet. Dort legt der Knopf &bdquo;Als Vorgabe speichern&ldquo; das aktuelle Profil als Vorgabe f&uuml;r neue Rinnen fest.</div>
 <h2 style="font-size:12px">Ansetztypen (Zugabe + / Abzug &minus;)</h2>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Dila (mm) &middot; 1/2 Dila inkl. Naht</label><input id="rpsDila" type="number" step="1"></div>
