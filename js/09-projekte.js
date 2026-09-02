@@ -325,10 +325,17 @@ async function loadProjectMeasurements(projectId){
  // Funktionen voneinander; der bisherige Titel bleibt darunter stehen.
  box.innerHTML=list.length?list.map(m=>{
   const art=typeLabels[m.type]||m.type||"Massaufnahme";
+  // v2.50: Medien-Hinweis und Medien-Knopf nur, wenn tatsaechlich ein
+  // Foto oder eine Skizze gespeichert ist - kein Platzhalter sonst.
+  // Die Angaben stammen aus der bereits geladenen Zeile, keine
+  // zusaetzliche Abfrage je Massaufnahme.
+  const medien=measMedienText(m);
   return `<div class="report-row">
-<div class="report-row-info"><b>${esc(art)}</b><span>${esc(infoZeileOhne(art,m.title,...eintragZusatzTeile(m))||"Keine weiteren Angaben")}</span></div>
+<div class="report-row-info"><b>${esc(art)}</b><span>${esc(infoZeileOhne(art,m.title,...eintragZusatzTeile(m))||"Keine weiteren Angaben")}</span>`
+   +(medien?`<span class="meas-medien-hinweis">${esc(medien)}</span>`:"")+`</div>
 <div class="report-row-actions">
-<button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>
+<button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>`
+   +(medien?`<button class="gray" data-meas-medien="${m.id}">📷 Fotos/Skizzen</button>`:"")+`
 <button class="gray" data-print-project-measurement="${m.id}" title="Drucken">🖨️</button>
 <button class="red" data-del-project-measurement="${m.id}" title="Löschen">×</button>
 </div>
@@ -645,6 +652,13 @@ $("projectList").addEventListener("click",async e=>{
 // (js/24-projekt-cockpit.js) statt aus der umgebenden Projektkarte - es
 // ist immer genau ein Projekt geöffnet.
 $("cockpitWorkArea").addEventListener("click",async e=>{
+ // v2.50: Fotos/Skizzen einer Massaufnahme nur ansehen - der
+ // Bearbeitungszustand wird dabei nicht angefasst.
+ const medien=e.target.closest("[data-meas-medien]");
+ if(medien){
+  openMeasMedien(Number(medien.dataset.measMedien));
+  return;
+ }
  const openF=e.target.closest("[data-open-project-file]");
  if(openF){
   const id=Number(openF.dataset.openProjectFile);

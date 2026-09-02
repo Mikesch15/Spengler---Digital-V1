@@ -391,6 +391,109 @@ $("cockpitToggleStammdaten").onclick=()=>{
  if(offen)renderCockpitStammdaten();
 };
 
+// ---- Fotos/Skizzen einer Massaufnahme ansehen (v2.50) -----------
+// Reine Anzeige: das bestehende Bearbeiten-Vollbild aus
+// js/10-massaufnahme.js (openSketchFullscreen) ist eine Zeichenflaeche
+// und wuerde den Bearbeitungszustand anfassen - deshalb hier eine
+// eigene, kleine Nur-Ansicht. Die Storage-Logik bleibt dieselbe:
+// measStoragePathFromValue()/storageSignedUrl() aus js/10, privater
+// Bucket, ausschliesslich signierte URLs, keine oeffentliche URL.
+//
+// Es wird KEINE zusaetzliche Abfrage gemacht: photo_path/sketch_paths
+// stammen aus den bereits geladenen Zeilen in projectMeasurementsCache.
+
+// Foto- und Skizzenpfade einer Massaufnahme, nach den Regeln aus dem
+// Datenmodell: sketch_paths (Array), sonst ersatzweise das alte
+// Einzelfeld sketch_path. Es wird nichts erfunden und nichts gezaehlt,
+// was nicht wirklich gespeichert ist.
+function measMedienPfade(m){
+ const foto=m&&m.photo_path&&String(m.photo_path).trim()?String(m.photo_path):null;
+ let skizzen=[];
+ if(m&&Array.isArray(m.sketch_paths)&&m.sketch_paths.length){
+  skizzen=m.sketch_paths.filter(x=>x&&String(x).trim()).map(String);
+ }else if(m&&m.sketch_path&&String(m.sketch_path).trim()){
+  skizzen=[String(m.sketch_path)];
+ }
+ return {foto,skizzen};
+}
+function measHatMedien(m){
+ const x=measMedienPfade(m);
+ return !!x.foto||x.skizzen.length>0;
+}
+// "📷 1 Foto · ✏️ 2 Skizzen" - leer, wenn nichts vorhanden ist.
+function measMedienText(m){
+ const {foto,skizzen}=measMedienPfade(m);
+ const teile=[];
+ if(foto)teile.push("📷 1 Foto");
+ if(skizzen.length)teile.push(`✏️ ${skizzen.length} ${skizzen.length===1?"Skizze":"Skizzen"}`);
+ return teile.join(" · ");
+}
+
+// Loest die Vorschaubilder der Medienansicht auf. Eigene Variante statt
+// resolveSignedThumbnails(), weil hier ein einzelnes fehlgeschlagenes
+// Bild nur seine eigene Kachel als "nicht verfuegbar" markieren soll -
+// die uebrigen Kacheln und die Liste dahinter bleiben heil.
+function medienThumbsAufloesen(container){
+ if(!container)return;
+ container.querySelectorAll("img[data-signed-src]").forEach(img=>{
+  const kachel=img.closest(".medien-kachel");
+  Promise.resolve()
+   .then(()=>storageSignedUrl(img.dataset.signedSrc))
+   .then(url=>{
+    if(url){img.src=url;if(kachel)kachel.dataset.bereit="1";return}
+    throw new Error("keine URL");
+   })
+   .catch(()=>{
+    if(!kachel)return;
+    kachel.dataset.bereit="";
+    kachel.innerHTML=`<div class="medien-fehler">Vorschau nicht verfügbar</div>`
+     +(kachel.dataset.label?`<div class="medien-label">${esc(kachel.dataset.label)}</div>`:"");
+   });
+ });
+}
+
+function openMeasMedien(measurementId){
+ const m=projectMeasurementsCache.find(x=>x.id===measurementId);
+ if(!m)return;                     // fremde/manipulierte ID: nichts tun
+ const {foto,skizzen}=measMedienPfade(m);
+ if(!foto&&!skizzen.length)return;
+ const art=(typeof MEAS_TYPE_LABELS!=="undefined"&&MEAS_TYPE_LABELS[m.type])||m.type||"Massaufnahme";
+ $("measMediaTitle").textContent="📷 "+art;
+ $("measMediaSub").textContent=infoZeileOhne(art,m.title,measMedienText(m));
+ const kachel=(pfad,label)=>`<button type="button" class="medien-kachel" data-label="${esc(label)}" data-medien-gross>`
+  +`<img data-signed-src="${esc(pfad)}" alt="${esc(label)}">`
+  +`<span class="medien-label">${esc(label)}</span></button>`;
+ const teile=[];
+ if(foto)teile.push(kachel(foto,"Foto"));
+ skizzen.forEach((s,i)=>teile.push(kachel(s,skizzen.length>1?`Skizze ${i+1}`:"Skizze")));
+ $("measMediaBody").innerHTML=teile.join("");
+ $("measMediaModal").hidden=false;
+ window.scrollTo(0,0);
+ medienThumbsAufloesen($("measMediaBody"));
+}
+
+// Grosse Ansicht eines einzelnen Bildes. Nimmt die bereits aufgeloeste,
+// signierte URL der Kachel - es wird keine zweite URL erzeugt.
+$("measMediaBody").addEventListener("click",e=>{
+ const k=e.target.closest("[data-medien-gross]");
+ if(!k||k.dataset.bereit!=="1")return;
+ const img=k.querySelector("img");
+ if(!img||!img.src)return;
+ $("measMediaViewerImg").src=img.src;
+ $("measMediaViewerLabel").textContent=k.dataset.label||"";
+ $("measMediaViewer").hidden=false;
+});
+$("measMediaViewerClose").onclick=()=>{$("measMediaViewer").hidden=true;$("measMediaViewerImg").removeAttribute("src")};
+$("measMediaViewer").addEventListener("click",e=>{
+ if(e.target===$("measMediaViewer"))$("measMediaViewerClose").click();
+});
+$("measMediaClose").onclick=()=>{
+ $("measMediaViewer").hidden=true;
+ $("measMediaViewerImg").removeAttribute("src");
+ $("measMediaBody").innerHTML="";
+ $("measMediaModal").hidden=true;
+};
+
 // ---- Cockpit verlassen ------------------------------------------
 $("cockpitBack").onclick=()=>{
  $("projectCockpitModal").hidden=true;

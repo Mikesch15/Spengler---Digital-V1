@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.49, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.50, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.49**
+- sichtbare App-Version: **2.50**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -8200,3 +8200,163 @@ liefen in `begin; … rollback;`.
   `allowed_mime_types`, Massaufnahme ohne Projekt kann kein Foto
   speichern, fehlender `search_path` bei zwei Storage-Hilfsfunktionen,
   9 verwaiste Storage-Objekte aus v2.24.
+
+## 58. FOTOS/SKIZZEN DIREKT BEI DER MASSAUFNAHME — VERSION 2.50
+
+Im Projekt-Cockpit ist jetzt auf einen Blick erkennbar, ob eine
+Massaufnahme Fotos oder Skizzen hat, und sie lassen sich ansehen, ohne
+in den Bearbeitungsmodus zu wechseln. **Keine DB-Änderung, keine
+Storage-/RLS-Änderung, keine Massaufnahme-Fachlogik angefasst.**
+
+### 58.1 Medien-Hinweis in der Massaufnahme-Zeile
+
+`loadProjectMeasurements()` (js/09-projekte.js) ergänzt je Zeile – **nur
+wenn wirklich etwas gespeichert ist** – eine dritte Infozeile und einen
+Knopf:
+
+```
+Rinne Halbrund
+Dachrinne Nord · 2.9.2026
+📷 1 Foto · ✏️ 2 Skizzen
+[Öffnen] [📷 Fotos/Skizzen] [🖨️] [×]
+```
+
+Ohne Medien erscheint weder Hinweis noch Knopf – kein Platzhalter.
+Öffnen, Drucken und Löschen sind unverändert.
+
+**Keine zusätzliche Abfrage je Massaufnahme**: `photo_path`,
+`sketch_paths` und `sketch_path` stammen aus den ohnehin geladenen
+Zeilen (`select("*")`, `projectMeasurementsCache`).
+
+### 58.2 Zählregeln (js/24, `measMedienPfade()`)
+
+- Foto vorhanden, wenn `photo_path` gesetzt und nicht nur Leerzeichen.
+- Skizzen: `sketch_paths`, sofern ein Array mit Einträgen; sonst
+  ersatzweise das alte Einzelfeld `sketch_path` (Legacy aus der Zeit vor
+  `sketch_paths`). Leere Einträge im Array werden herausgefiltert.
+- Es wird nichts erfunden und nichts gezählt, was nicht gespeichert ist.
+- Text: „📷 1 Foto", „✏️ 1 Skizze", „✏️ 3 Skizzen", kombiniert
+  „📷 1 Foto · ✏️ 2 Skizzen"; ohne Medien leerer String.
+
+Realer Bestand zum Zeitpunkt dieser Runde (rein lesend geprüft): 13
+Massaufnahmen, davon 0 mit Foto, 2 mit `sketch_paths`, 0 nur mit dem
+Legacy-Feld – bei 11 Zeilen erscheint also weiterhin nichts Zusätzliches.
+
+### 58.3 Medienansicht (reine Anzeige)
+
+Neues `#measMediaModal` mit einer Kachelgalerie: Foto zuerst (Label
+„Foto"), danach die Skizzen („Skizze 1", „Skizze 2", … bzw. „Skizze" bei
+nur einer). Tippen auf eine Kachel öffnet `#measMediaViewer` – eine
+schlichte Vollbildansicht mit dem grossen Bild und einem
+Schliessen-Knopf; ein Klick auf den Hintergrund schliesst ebenfalls.
+
+**Warum eine eigene Ansicht statt der vorhandenen Vollbildfunktion:**
+`openSketchFullscreen()` (js/10-massaufnahme.js) ist die Zeichenfläche
+des Bearbeitungsformulars – sie würde den Bearbeitungszustand anfassen.
+Der Auftrag sieht für diesen Fall ausdrücklich eine kleine separate
+Nur-Anzeige-Funktion vor. Sie liegt vollständig in
+`js/24-projekt-cockpit.js`; **js/10 und js/16 wurden nicht verändert**
+und kennen die neue Ansicht nicht.
+
+**Storage-Logik unverändert wiederverwendet**: `storageSignedUrl()` →
+`measStoragePathFromValue()` → `createSignedUrl()` aus js/10. Der Bucket
+bleibt privat, es wird **keine öffentliche URL** eingeführt und keine
+zweite Storage-Logik gebaut. Rohe Pfade erscheinen nirgends als
+sichtbarer Text (nur als Attribut).
+
+### 58.4 Fehlerverhalten je Medium
+
+`medienThumbsAufloesen()` ist eine eigene, kleine Variante von
+`resolveSignedThumbnails()`: schlägt eine einzelne signierte URL fehl,
+wird **nur diese Kachel** durch „Vorschau nicht verfügbar" ersetzt (das
+Label bleibt stehen); die übrigen Kacheln laden normal weiter und die
+Massaufnahme-Liste dahinter bleibt heil. Eine nicht aufgelöste Kachel
+lässt sich auch nicht gross öffnen (`data-bereit` wird nur bei Erfolg
+gesetzt).
+
+### 58.5 Bearbeiten unverändert
+
+Die Medienansicht liest ausschliesslich aus
+`projectMeasurementsCache` und ruft weder `openMeasurement()` noch
+Speicher-/Upload-/Löschfunktionen auf. Eine unbekannte oder manipulierte
+Massaufnahme-ID findet keinen Eintrag im (RLS-gefilterten) Cache und
+öffnet nichts. `goToStart()` schliesst beide neuen Ebenen mit.
+
+### 58.6 Mobile
+
+Kacheln `flex:1 1 140px`, max. 200 px breit, mind. 130 px hoch mit
+110 px Bildfläche (`object-fit:cover`, kein verzerrtes
+Seitenverhältnis) – gross antippbar, umbruchfähig, kein horizontales
+Scrollen. Der Schliessen-Knopf der Vollbildansicht hat 44 px, das Bild
+`max-height:80vh` mit `object-fit:contain`.
+
+### 58.7 Tests
+
+Neuer Prüfstand `medien50` (42/42): Zählregeln für 0 Medien, nur Foto,
+1 Skizze (Einzahl), 3 Skizzen (Mehrzahl), Foto + Skizzen, Legacy
+`sketch_path` ohne `sketch_paths`, `sketch_paths = null`, leere
+Array-Einträge, Leerzeichen-Foto; Zeile im Cockpit (Hinweis und Knopf
+nur bei Medien, Öffnen/Drucken/Löschen unverändert, **keine zusätzliche
+Storage-Abfrage je Zeile**, kein `http`-Link im Markup); Medienansicht
+(Titel, Untertitel, 3 Kacheln, Beschriftungen, keine rohen Pfade als
+Text, genau eine signierte URL je Medium); Fehlerfall (nur die betroffene
+Kachel fällt aus, Platzhalter, Label bleibt, übrige Kacheln geladen);
+Legacy-Einzahl; ohne Medien und mit fremder ID öffnet nichts; js/10 und
+js/16 kennen die Medienansicht nicht.
+
+Regression, alle bestanden: nav 23/23, suche40 7/7, treffer40 7/7,
+recent41 12/12, stand42 17/17, dateien43 27/27, adresse45 39/39, kopf45
+8/8, suche45 13/13, status46 35/35, projekte47 37/37, auswahl48 32/32,
+dateien49 38/38, ui39 (9 Fälle). `node --check` über alle `js/*.js` und
+`sw.js` fehlerfrei, `<div>`/`</div>` in `index.html` ausgeglichen
+(662/662, vorher 654/654 – Differenz durch die zwei neuen Ebenen), keine
+doppelten Element-IDs, jede neue ID genau einmal vorhanden, kein
+doppelter Event-Handler, `js/24-projekt-cockpit.js` war bereits in der
+Service-Worker-SHELL (keine neue Datei).
+
+`ui39` und `adresse45` laden die Medien-Helfer jetzt direkt aus
+`js/24-projekt-cockpit.js` (Stub-Lücke, keine Code-Korrektur) – im
+Browser sind es globale Funktionen.
+
+**Keine Live-Browser-Tests gegen Supabase möglich** – die Sandbox
+blockiert weiterhin ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. Ein echtes Vorschaubild und eine
+echte signierte URL wurden **nicht** im Browser geprüft und werden nicht
+als getestet behauptet.
+
+### 58.8 Sicherheit
+
+Keine Änderung an Storage-RLS, Tenant-RLS, dem privaten Bucket, dem
+50-MB-Limit oder `storage_object_insert_allowed()`. Erneut bestätigt
+(`begin; … rollback;`, Wegwerf-Firma): fremde Massaufnahmen 0 sichtbar,
+fremde Storage-Objekte 0 sichtbar, `project-files/4/hack.pdf` und
+`misc/x/y.txt` weiterhin abgelehnt, Bucket weiterhin privat mit
+52428800 Bytes.
+
+### 58.9 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/24-projekt-cockpit.js` | `measMedienPfade/measHatMedien/measMedienText`, `openMeasMedien()`, `medienThumbsAufloesen()`, Vollbild-Handler |
+| `js/09-projekte.js` | Medien-Hinweis und Medien-Knopf in der Massaufnahme-Zeile, ein Zweig im bestehenden Klick-Handler |
+| `js/03-login.js` | zwei Zeilen: `goToStart()` schliesst die neuen Ebenen mit |
+| `index.html` | `#measMediaModal`, `#measMediaViewer`, Version 2.50 |
+| `css/01-basis.css` | Medien-Hinweis, Kachelgalerie, Vollbildansicht |
+| `sw.js` | Cache-Version 2.50 |
+
+**Nicht angefasst**: alle zwölf geschützten Fachdateien (`js/10`–`js/17`,
+`js/19`–`js/21`), `js/01-basis.js`, `js/04-start-suche.js`,
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js`, `js/23-verlauf.js`,
+`js/22-system-admin.js`, `js/05a-rechte.js`. Keine Berechnung, keine
+Stückliste, kein Zuschnitt, keine Abwicklung, kein Speicher-Payload,
+keine PDF-/Drucklogik.
+
+### 58.10 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 58.7).
+- Bewusst nicht gebaut: Zoom/Wischen in der Vollbildansicht, Herunterladen
+  einzelner Medien, Bearbeiten aus der Medienansicht heraus.
+- Die aus v2.48/v2.49 offenen Punkte bleiben unverändert (leere
+  `allowed_mime_types`, Massaufnahme ohne Projekt kann kein Foto
+  speichern, fehlender `search_path` bei zwei Storage-Hilfsfunktionen,
+  9 verwaiste Storage-Objekte aus v2.24).

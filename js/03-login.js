@@ -123,6 +123,8 @@ function goToStart(){
  $("measurementEditModal").hidden=true;
  $("projectsModal").hidden=true;
  $("projectCockpitModal").hidden=true;
+ $("measMediaModal").hidden=true;          // v2.50
+ $("measMediaViewer").hidden=true;
  $("settingsModal").hidden=true;
  $("sheetModal").hidden=true;
  $("ausmassModal").hidden=true;

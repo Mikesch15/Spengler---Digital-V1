@@ -92,7 +92,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.49</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.50</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -346,6 +346,30 @@
 </div>
 
 </div>
+</div>
+
+<!-- FOTOS/SKIZZEN EINER MASSAUFNAHME - reine Ansicht (v2.50).
+     Laedt ausschliesslich ueber signierte URLs (privater Bucket) und
+     veraendert den Bearbeitungszustand der Massaufnahme nicht.
+     Siehe js/24-projekt-cockpit.js, openMeasMedien(). -->
+<div id="measMediaModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2 id="measMediaTitle">📷 Fotos/Skizzen</h2>
+<div class="small" id="measMediaSub"></div>
+<div class="medien-galerie" id="measMediaBody"></div>
+<div class="bar"><button id="measMediaClose" class="green">✓ Fertig</button></div>
+</div>
+</div>
+</div>
+
+<!-- Grosse Ansicht eines einzelnen Bildes (v2.50) -->
+<div id="measMediaViewer" class="medien-viewer" hidden>
+<div class="medien-viewer-bar">
+<span id="measMediaViewerLabel"></span>
+<button type="button" id="measMediaViewerClose" class="gray">✕ Schliessen</button>
+</div>
+<img id="measMediaViewerImg" alt="">
 </div>
 
 <!-- REGIERAPPORT: UEBERSICHT -->
