@@ -1,0 +1,240 @@
+================================================================================
+SPENGLER-DIGITAL – ABSCHLUSSBERICHT VERSION 2.58
+ZWEI BEDIENFEHLER BEHOBEN + STANDARDPROFIL NACH VORLAGE
+Commit ec60e42 · Branch claude/v1-49-analysis-rk5csc · gemergt nach main
+================================================================================
+
+
+1. DIE ZWEI GEMELDETEN FEHLER – EINE GEMEINSAME URSACHE
+--------------------------------------------------------------------------------
+
+Gemeldet:
+  a) "kann fix und variabel nicht ändern"
+  b) "die Eingabefelder verlieren den Fokus nach erster Eingabe"
+
+Beides kam aus DERSELBEN Zeile im input-Handler der Profiltabelle:
+
+    if ($("rp_profilInfo")) renderRinneProfilTabelle();   // bei JEDEM input
+
+renderRinneProfilTabelle() setzt rp_profilBody.innerHTML komplett neu.
+Daraus folgt:
+
+  FOKUSVERLUST
+  Nach dem ersten Zeichen wird das gerade bearbeitete Eingabefeld durch ein
+  neues ersetzt. Fokus und Cursor sind weg, es bleibt genau ein Zeichen stehen.
+
+  FIX/VARIABEL NICHT ÄNDERBAR
+  Ein <select> feuert erst "input", dann "change". Der input-Handler zeichnete
+  die Tabelle neu und ersetzte dabei das Auswahlfeld durch ein neues mit dem
+  ALTEN Wert. Das anschliessende "change" erreichte den delegierten Handler
+  nicht mehr, weil das ursprüngliche Element nicht mehr im Dokument hing.
+
+BEHOBEN
+  - Die Info-Zeile ist als eigene Funktion renderRinneProfilInfo()
+    herausgelöst.
+  - Der input-Handler zeichnet die Profiltabelle NIE neu. Er aktualisiert nur
+    die Info-Zeile, die Skizze und – bei einer Längenänderung – die Stückliste.
+  - "art" wird im input-Handler ausdrücklich übersprungen und allein im
+    change-Handler behandelt.
+
+
+2. WARUM DIE PRÜFSTÄNDE DAS NICHT GEFUNDEN HATTEN
+--------------------------------------------------------------------------------
+
+Der v2.57-Prüfstand setzte die Werte synthetisch:
+
+    w.value="120";   w.dispatchEvent(new Event("input"));     // ein Ereignis
+    sel.value="var"; sel.dispatchEvent(new Event("change"));  // ohne input
+
+Ein einzelnes Ereignis kann keinen Fokusverlust zeigen, und ein "change" ohne
+vorangehendes "input" umgeht den fehlerhaften Pfad vollständig.
+
+Der Prüfstand bedient das Formular jetzt WIE EIN MENSCH:
+  - page.selectOption()  feuert input UND change, wie ein echter Klick
+  - keyboard.type()      tippt Zeichen für Zeichen
+
+Geprüft wird zusätzlich, dass das Feld den Fokus behält und der vollständige
+Text ankommt – für Länge, Winkel, Bezeichnung und die Masse in der Stückliste.
+
+GEGENPROBE: mit wieder eingebautem Fehler meldet der Prüfstand 17 Fehlschläge,
+darunter
+    >> FEHLER: B2 Laenge vollstaendig getippt  [1]
+    >> FEHLER: B Auswahl bleibt auf 'variabel' stehen  [fix]
+also exakt die beiden gemeldeten Symptome.
+
+
+3. NEUES STANDARDPROFIL NACH IHRER VORLAGE
+--------------------------------------------------------------------------------
+
+Aus der Handskizze übernommen, gelesen vom rechten Ende her, damit die
+variablen Masse in der Reihenfolge der Vorlage A – B – C heissen:
+
+  Nr.  Bezeichnung          Art        Länge      Winkel
+   1   Umschlag             fix         15 mm        0°
+   2   Anschl. Flachdach    fix        150 mm      180°
+   A   (leer)               variabel   je Stück     70°
+   4   Keil                 fix         40 mm      -25°
+   B   (leer)               variabel   je Stück    -45°
+   6   Keil                 fix         40 mm      -45°
+   C   (leer)               variabel   je Stück    -45°
+   8   Rest                 fix        200 mm       56°
+   9   Umschlag             fix         15 mm      180°
+
+  FIXMASSE GESAMT: 460 mm
+
+Die Winkel ergeben genau die Geometrie Ihrer Vorlage:
+  - Anschl. Flachdach waagerecht
+  - A fällt mit 70° steil ab
+  - beide Keil sind 45°-Faschen
+  - B waagerecht
+  - C senkrecht
+  - der Rest steigt mit 34° an
+
+Im Prüfstand gegen die Richtungsfolge 0/180/250/225/180/135/90/146/326
+abgesichert, ebenso die gezeichneten Segmentlängen.
+
+
+4. WICHTIG: DIE ABWICKLUNG ÄNDERT SICH GEGENÜBER DER EXCEL
+--------------------------------------------------------------------------------
+
+Die Excel rechnet mit 510 mm Fixmass (dort steht "Anschl. Unterdach 250"),
+Ihre Vorlage mit 460 mm (dort steht "Rest, Max 200").
+
+Dieselben Masse ergeben deshalb eine um 50 mm KLEINERE Abwicklung:
+
+  Beispiel A=127, B=192, C=202
+    nach Ihrer Vorlage:  127 + 192 + 202 + 460  =   981 mm
+    nach der Excel:      127 + 192 + 202 + 510  = 1'031 mm
+
+Das ist die Folge Ihrer Vorlage, kein Rechenfehler. Die Zuschnittlänge bleibt
+davon unberührt (sie hängt nur an Länge M/M und den Ansetztypen).
+
+Falls die 250 mm doch richtig sind, ist es ein Feld im Formular: die Länge des
+Segments "Rest" ändern.
+
+
+5. DREI STELLEN, AN DENEN DIE VORLAGE NICHTS HERGIBT
+--------------------------------------------------------------------------------
+
+Diese habe ich offen gelassen statt zu raten:
+
+  - Die beiden UMSCHLÄGE sind in der Vorlage nicht bemasst.
+    -> 15 mm aus der Excel übernommen.
+
+  - A, B und C sind in der Vorlage nicht benannt (nur "Mass A/B/C").
+    -> Die Bezeichnungen bleiben leer. In der Skizze stehen sie als
+       schlichtes A, B, C – genau wie in Ihrer Zeichnung.
+
+  - "Rest (Max 200)" ist eine OBERGRENZE, kein rechenbarer Wert.
+    -> Das Segment heisst "Rest" und ist mit 200 mm vorbelegt.
+       Hiesse es "Rest (max. 200)", stünde in der Skizze
+       "Rest (max. 200) 200" – Name und Wert doppelt.
+
+Alles davon ist im Formular frei änderbar.
+
+
+6. DER EXCEL-VERGLEICH BLEIBT VOLLSTÄNDIG ERHALTEN
+--------------------------------------------------------------------------------
+
+Der Prüfstand baut sein Vergleichsprofil jetzt AUS DER EXCEL SELBST – die sechs
+Fixmasse aus R8..R13 plus drei variable Masse –, nicht mehr aus einer Konstante
+der App. Damit hängt der Excel-Test an den echten Werten der Vorlage und bleibt
+gültig, obwohl das ausgelieferte Standardprofil ein anderes ist.
+
+ALLE 35 DATENZEILEN DER EXCEL STIMMEN WEITERHIN EXAKT.
+
+Gespeicherte v2.56-Daten werden weiterhin auf das EXCEL-Profil abgebildet
+(nicht auf das neue Standardprofil), sonst würde sich ihre Abwicklung
+nachträglich ändern. Die sechs Excel-Fixmasse stehen dafür als eigene benannte
+Tabelle RINNE_EXCEL_FIXMASSE im Code.
+
+
+7. TESTS
+--------------------------------------------------------------------------------
+
+PRÜFSTAND "rinne57" – 359 von 359 bestanden
+   1. Excel-Profil und ausgeliefertes Standardprofil
+      - Excel-Profil: Fixmasse-Summe = R14, drei variable Masse
+      - Standardprofil: neun Segmente, Fixmasse 460, Fixwerte
+        15/150/40/40/200/15, Bezeichnungen der Vorlage, A/B/C ohne
+        erfundene Bezeichnung, variable Masse an Position 3/5/7
+      - Geometrie: Richtungsfolge, Flachdach waagerecht, B waagerecht,
+        C senkrecht, beide Keil 45°, A fällt steil ab, Rest steigt an,
+        Fixlängen und variable Längen korrekt gezeichnet
+      - Beispielrechnung der Vorlage: Abw. 981, Zuschnitt 1'280
+   2. ALLE 35 DATENZEILEN der Excel
+   3. alle 36 Kombinationen der Ansetztypen
+   4. Grenzwerte
+   5. freies Profil (nur fix, ein/fünf variable Masse, Buchstaben über Z,
+      Umschalten fix<->variabel, geänderte Fixlängen, leeres Profil)
+   6. Winkel (Geometrie folgt, 180°/-180° als Umschlag, Winkel ändert die
+      Rechnung nicht)
+   7. Verkettung
+   8. Stückliste passt sich dem Profil an
+   9. v2.56-Altformat
+  10. gespeicherte Stücke bleiben unberührt
+  11. elf SVG-Fälle
+  12. Integration, keine mehrfach hart codierten Werte
+
+PRÜFSTAND "breite57" – 77 von 77 bestanden (echtes Chromium)
+  A   Standardprofil: neun Segmente, Spalten A/B/C, Abw. 926, Fixmasse 460,
+      Bezeichnungen der Vorlage, Rest 200
+  B   ECHTE Auswahl über selectOption: Auswahl bleibt stehen, Modell folgt,
+      vier Spalten A..D, Längenfeld verschwindet, Fixmasse 310,
+      Abwicklung folgt sofort – und zurück auf fix funktioniert ebenso
+  B2  ECHTES TIPPEN Zeichen für Zeichen: Länge "175", Winkel "-62",
+      Bezeichnung "Aufkantung", Stücklistenwert "1234" – jeweils
+      vollständig angekommen UND Feld behält den Fokus
+  C   Winkel ändern, 180°-Knopf, Flip, Winkel ändert die Rechnung nicht
+  D   Segment hinzufügen/verschieben/löschen, Rinnenstück hinzufügen/löschen
+  D2  Abbrechen löscht nichts
+  E   Profil ohne variable Masse
+  F   fünf Gerätebreiten 320/360/412/768/1280 px
+
+PRÜFSTAND "pdf52" – 504 von 504 bestanden
+
+REGRESSION – alle bestehenden Prüfstände grün
+  adresse45 39/39, kopf45 8/8, suche45 13/13, status46 35/35,
+  projekte47 37/37, auswahl48 32/32, dateien49 38/38, medien50 42/42,
+  hidden51 7/7, kehle52 698/698, kehleintegration52 76/76, breite52 52/52,
+  pfade55 37/37, nav, suche40, treffer40, recent41, stand42, dateien43, ui39
+
+STRUKTUR
+  node --check über alle 28 js/*.js und sw.js: fehlerfrei
+  <div>/</div> in index.html ausgeglichen: 697/697
+  keine doppelten Element-IDs
+  Regierapport (js/06, js/08, css/03-druck.css) nicht im Diff
+
+WAS NICHT GETESTET WURDE
+  Ein Live-Klicktest gegen Supabase war nicht möglich – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co.
+  DAS WIRD HIER AUSDRÜCKLICH NICHT ALS GETESTET BEHAUPTET.
+  Das Formular selbst wurde live in echtem Chromium bedient – mit echtem
+  Tippen und echter Auswahl.
+
+
+8. GEÄNDERTE DATEIEN
+--------------------------------------------------------------------------------
+
+  js/26-rinne.js   input-Handler, renderRinneProfilInfo(), neues
+                   Standardprofil, RINNE_EXCEL_FIXMASSE, Altformat-Abbildung
+  index.html       Version 2.58
+  sw.js            Cache-Version 2.58
+  CLAUDE.md        Abschnitt 66
+
+Sonst nichts. Keine Datenbankänderung, keine Migration, keine RLS- oder
+Storage-Änderung.
+
+
+9. ABSCHLUSS
+--------------------------------------------------------------------------------
+
+  Version              2.58
+  Commit-Hash          ec60e42
+  Entwicklungsbranch   claude/v1-49-analysis-rk5csc  (gepusht)
+  Push auf main        erfolgt, main steht auf ec60e42
+  Arbeitsverzeichnis   sauber
+  Regierapport         unverändert
+  PETER KÜNZI AG       nicht berührt (kein Datenbankzugriff in dieser Runde)
+
+================================================================================
