@@ -286,11 +286,17 @@ function rinneProfilPunkte(profil, masse) {
     const l = wert(i);
     const rad = richtung * Math.PI / 180;
     const q = [p[0] + Math.cos(rad) * l, p[1] + Math.sin(rad) * l];
-    const umschlag = Math.abs(((rinneZahl(seg.winkel) % 360) + 360) % 360 - 180) < 0.5;
+    const w = rinneZahl(seg.winkel);
+    const umschlag = Math.abs(((w % 360) + 360) % 360 - 180) < 0.5;
     segmente.push({
       index: i, name: seg.name, art: seg.art, laenge: l, echteLaenge: seg.art === "fix" ? rinneZahl(seg.laenge) : null,
       buchstabe: seg.art === "var" ? (varListe.find(v => v.index === i) || {}).buchstabe : null,
-      von: p, bis: q, richtung, umschlag
+      von: p, bis: q, richtung, umschlag,
+      // Ein Umschlag laeuft geometrisch exakt auf dem vorherigen Segment
+      // zurueck - +180° und -180° sind dieselbe Linie. Damit der
+      // Umkehren-Knopf trotzdem etwas bewirkt, entscheidet das Vorzeichen,
+      // auf welcher Seite der Umschlag gezeichnet wird.
+      seite: w < 0 ? -1 : 1
     });
     pts.push(q);
     p = q;
@@ -340,43 +346,58 @@ function rinneSvg(profil, masse, titel) {
     if (y0 < by0) by0 = y0; if (y1 > by1) by1 = y1;
   };
 
-  // Ein Umschlag (180°) deckt sich exakt mit dem vorherigen Segment.
-  // Er wird deshalb - wie beim Freien Profil - leicht parallel versetzt
-  // gezeichnet, damit er sichtbar bleibt.
-  const VERSATZ = 7;
-  const gezeichnet = p.segmente.map(seg => {
-    let a = [X(seg.von[0]), Y(seg.von[1])], b = [X(seg.bis[0]), Y(seg.bis[1])];
-    if (seg.umschlag) {
-      const rad = seg.richtung * Math.PI / 180;
-      const nx = -Math.sin(rad) * VERSATZ, ny = -Math.cos(rad) * VERSATZ;
-      a = [a[0] + nx, a[1] + ny]; b = [b[0] + nx, b[1] + ny];
-    }
-    merken(Math.min(a[0], b[0]) - 3, Math.min(a[1], b[1]) - 3,
-           Math.max(a[0], b[0]) + 3, Math.max(a[1], b[1]) + 3);
-    return { a, b, seg };
+  // Zeichnung nach demselben Muster wie beim Freien Profil:
+  // zusammenhaengende Abschnitte als eine Polyline mit abgerundeten Ecken,
+  // Umschlag-Segmente als eigene, leicht versetzte Linie mit einer Kehre
+  // um die Spitze. abgerundeterPfad() stammt aus js/14-freies-profil.js
+  // und wird hier nur benutzt, nicht veraendert.
+  const GAP = 9, BIEGERADIUS = 5;
+  const roh = p.pts.map(q => [X(q[0]), Y(q[1])]);
+  const pfad = (pts) => (typeof abgerundeterPfad === "function")
+    ? abgerundeterPfad(pts, BIEGERADIUS)
+    : pts.map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" ");
+
+  // Tatsaechlich gezeichnete Enden je Segment (bei Umschlag versetzt)
+  const enden = p.segmente.map((seg, i) => {
+    const a0 = roh[i], b0 = roh[i + 1];
+    if (!seg.umschlag) return [a0, b0];
+    const rad = seg.richtung * Math.PI / 180;
+    const nx = -Math.sin(rad) * GAP * seg.seite, ny = -Math.cos(rad) * GAP * seg.seite;
+    return [[a0[0] + nx, a0[1] + ny], [b0[0] + nx, b0[1] + ny]];
   });
+  enden.forEach(([a0, b0]) => merken(Math.min(a0[0], b0[0]) - 3, Math.min(a0[1], b0[1]) - 3,
+    Math.max(a0[0], b0[0]) + 3, Math.max(a0[1], b0[1]) + 3));
 
   let g = "";
-  gezeichnet.forEach((z, i) => {
-    const vor = gezeichnet[i - 1];
-    if (vor && (z.seg.umschlag || (p.segmente[i - 1] && p.segmente[i - 1].umschlag))) {
-      // Verbindungsstrich zwischen versetztem und normalem Teil
-      g += `<line x1="${vor.b[0].toFixed(1)}" y1="${vor.b[1].toFixed(1)}"
-            x2="${z.a[0].toFixed(1)}" y2="${z.a[1].toFixed(1)}"
-            stroke="${farbe.blech}" stroke-width="3.4" stroke-linecap="round"/>`;
-    }
-    g += `<line x1="${z.a[0].toFixed(1)}" y1="${z.a[1].toFixed(1)}"
-          x2="${z.b[0].toFixed(1)}" y2="${z.b[1].toFixed(1)}"
-          stroke="${farbe.blech}" stroke-width="3.4" stroke-linecap="round"/>`;
+  const strich = (d) => `<path d="${d}" fill="none" stroke="${farbe.blech}" stroke-width="3.4"
+    stroke-linecap="round" stroke-linejoin="round"/>`;
+  let lauf = [roh[0]];
+  p.segmente.forEach((seg, i) => {
+    if (!seg.umschlag) { lauf.push(roh[i + 1]); return; }
+    if (lauf.length > 1) g += strich(pfad(lauf));
+    // Kehre des Umschlags als Halbkreis um die Spitze, danach die
+    // versetzte Ruecklauflinie.
+    const [u1, u2] = enden[i];
+    const sp = roh[i];
+    const radVor = (p.segmente[i - 1] ? p.segmente[i - 1].richtung : 0) * Math.PI / 180;
+    const dvx = Math.cos(radVor), dvy = -Math.sin(radVor);   // Bildkoordinaten: y nach unten
+    const nx = (u1[0] - sp[0]) / GAP, ny = (u1[1] - sp[1]) / GAP;
+    const sweep = (nx * dvy - ny * dvx) > 0 ? 0 : 1;
+    g += strich(`M ${sp[0].toFixed(1)} ${sp[1].toFixed(1)}`
+      + ` A ${(GAP / 2).toFixed(1)} ${(GAP / 2).toFixed(1)} 0 0 ${sweep} ${u1[0].toFixed(1)} ${u1[1].toFixed(1)}`
+      + ` L ${u2[0].toFixed(1)} ${u2[1].toFixed(1)}`);
+    lauf = [roh[i + 1]];
   });
+  if (lauf.length > 1) g += strich(pfad(lauf));
 
   // Beschriftung je Segment, abwechselnd nach aussen versetzt, damit sich
   // benachbarte Texte nicht ueberdecken.
-  gezeichnet.forEach((z, i) => {
-    const seg = z.seg;
-    const mx = (z.a[0] + z.b[0]) / 2, my = (z.a[1] + z.b[1]) / 2;
+  p.segmente.forEach((seg, i) => {
+    if (!(Math.abs(seg.laenge) > 0.01)) return;
+    const [a0, b0] = enden[i];
+    const mx = (a0[0] + b0[0]) / 2, my = (a0[1] + b0[1]) / 2;
     const rad = seg.richtung * Math.PI / 180;
-    const stufe = 34 + (i % 2) * 20;
+    const stufe = 38 + (i % 2) * 26;
     const nx = Math.sin(rad) * stufe, ny = -Math.cos(rad) * stufe;
     const beschriftung = seg.art === "var"
       ? (seg.buchstabe + (seg.name ? " · " + seg.name : ""))

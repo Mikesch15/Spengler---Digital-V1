@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.58, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.59, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.58**
+- sichtbare App-Version: **2.59**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -9978,3 +9978,67 @@ blockiert HTTPS dorthin) – **das wird nicht als getestet behauptet.**
 `js/26-rinne.js` (Handler, Standardprofil, `RINNE_EXCEL_FIXMASSE`,
 `renderRinneProfilInfo`), `index.html` und `sw.js` (Version 2.58),
 `CLAUDE.md`. Sonst nichts.
+
+## 67. RINNE – UMSCHLAG UMKEHRBAR + RUNDE ECKEN — VERSION 2.59
+
+Zwei gemeldete Punkte an der Profilskizze. **Nur `js/26-rinne.js`,
+Versionstext und Cache-Version geändert** – keine Datenbank, kein
+anderes Modul, `js/14-freies-profil.js` nur gelesen, nicht verändert.
+
+### 67.1 Der Umkehren-Knopf wirkte beim Umschlag nicht
+
+Ein Umschlag läuft geometrisch **exakt** auf dem vorherigen Segment
+zurück. `+180°` und `−180°` sind deshalb dieselbe Linie – der
+Umkehren-Knopf setzte zwar den Wert um, aber es war nichts zu sehen.
+
+Gelöst über die **Zeichnung**: `rinneProfilPunkte()` merkt sich pro
+Segment zusätzlich `seite = winkel < 0 ? −1 : +1`. Der parallele Versatz,
+mit dem ein Umschlag sichtbar gemacht wird, klappt damit auf die andere
+Seite. Die Rechnung bleibt unberührt – im Prüfstand ausdrücklich
+abgesichert (`Umkehren ändert die Fixsumme nicht`, `Endpunkt identisch`).
+
+Ergebnis: 🔄 am Umschlag klappt ihn auf die Gegenseite, nochmal drücken
+führt zurück. Live im Browser geprüft (Prüfstand `breite57`, Block C2).
+
+### 67.2 Runde Ecken wie beim Freien Profil
+
+Die Skizze zeichnete jedes Segment als eigene gerade Linie. Jetzt
+dasselbe Muster wie `generateProfilDiagramSvg()` im Freien Profil:
+
+- zusammenhängende Abschnitte werden als **eine** Polyline mit
+  abgerundeten Ecken gezeichnet
+- Umschlag-Segmente bekommen eine eigene, leicht versetzte Linie mit
+  einer **Kehre** (Halbkreis) um die Spitze
+
+Dafür wird die **bestehende** Funktion `abgerundeterPfad()` aus
+`js/14-freies-profil.js` benutzt – dieselbe Rundung wie dort, keine
+zweite Implementierung. `js/14` wurde dabei **nicht** verändert (per
+`git diff` bestätigt); der Aufruf ist mit
+`typeof abgerundeterPfad === "function"` abgesichert und fällt sonst auf
+gerade Linien zurück.
+
+Der Prüfstand lädt für seine Tests die **echte** Funktion aus `js/14`
+(Quelltext-Ausschnitt in den Kontext geladen), prüft also die
+tatsächliche Zusammenarbeit und nicht einen Ersatz. Getestet wird: Bögen
+im Pfad vorhanden, ein durchgehender Zug, und der Rückfallweg ohne die
+Funktion liefert weiterhin eine gültige SVG ohne Bögen.
+
+Zusätzlich stehen die Beschriftungen etwas weiter aussen
+(`38 + (i % 2) * 26` statt `34 + (i % 2) * 20`), damit sie nicht mehr auf
+der Profillinie liegen.
+
+### 67.3 Tests
+
+- **`rinne57` 373/373** (vorher 359) – neu: Bögen im Pfad, durchgehender
+  Zug, Rückfallweg ohne `abgerundeterPfad`, `+180`/`−180` beide als
+  Umschlag erkannt und auf verschiedene Seiten gezeichnet, Endpunkt und
+  Fixsumme dabei identisch
+- **`breite57` 84/84** (vorher 77) – neuer Block C2: Umschlag steht auf
+  180, Umkehren setzt −180 **und ändert die Zeichnung sichtbar**,
+  nochmal umkehren führt zurück, Rechnung unverändert (981), kein NaN,
+  Ecken abgerundet
+- **Gegenprobe**: mit fester Umschlagseite meldet `breite57`
+  „Umkehren ändert die Zeichnung sichtbar" als Fehler
+- `pdf52` 504/504, volle Regression aller übrigen Prüfstände grün
+- `node --check` fehlerfrei, `<div>` 697/697
+- Regierapport und `js/14-freies-profil.js` nicht im Diff
