@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.54, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.55, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.54**
+- sichtbare App-Version: **2.55**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -9173,3 +9173,117 @@ Berechnungsdateien, `js/09`, `js/22`–`js/25`, `js/05a`, `js/03`,
   Info-Zeilen, Umbruch einer langen Adresse). Geprüft wird deshalb die
   Gleichheit von Aufbau, Typografie und seitlicher Lage – nicht eine
   identische absolute Höhe.
+
+## 63. VOLLSTÄNDIGE DRUCKPFAD-BESTANDSAUFNAHME — VERSION 2.55
+
+Der Auftrag verlangte, das **gesamte Repository** nach Druck-/PDF-Pfaden
+zu durchsuchen und alle Nicht-Regierapport-PDFs auf einen gemeinsamen
+Kopf zu bringen. Die Kopf-Vereinheitlichung war bereits mit Version
+2.54 erledigt (Abschnitt 62); der eigentliche Beitrag dieser Runde ist
+die **lückenlose Bestandsaufnahme** und ihr dauerhafter Wächter.
+
+### 63.1 Vollständige Suche
+
+Gesucht wurde über **alle** `.js`-, `.html`- und `.css`-Dateien nach:
+`window.open`, `.print()`, `@media print`, `media="print"`, `@page`,
+`document.write`, PDF-Bibliotheken (jsPDF, html2pdf, pdfmake, pdf-lib,
+printJS, html2canvas), `<iframe>`/dynamisch erzeugte iframes sowie
+Blob-/Download-Ausgaben.
+
+**Ergebnis: keine PDF-Bibliothek, kein iframe-Druck.** Druckdokumente
+werden an genau **zwei** Stellen erzeugt.
+
+### 63.2 Die drei Kategorien
+
+**A – Nicht-Regierapport-Druckwege (verwenden den gemeinsamen Kopf):**
+
+| Pfad | Deckt ab |
+|---|---|
+| `printMeasurement()` js/16 | alle **zehn** Massaufnahme-Arten (je eigener Zweig, `skizze_foto` über den generischen Zweig) |
+| `printAusmass()` js/17 | beide Ausmass-Arten (Offerte erfassen, Blitzschutzausmass) |
+
+Alle vier Druck-Auslöser der App münden in genau diese zwei Funktionen:
+`#printMeasurementBtn` (js/16), `#printAusmassBtn` (js/17),
+`[data-print-project-measurement]` und `[data-print-project-ausmass]`
+(js/09), `[data-print-ausmass]` (js/17).
+
+**B – Regierapport (unberührt):** `js/08-katalog-blitzschutz.js`
+(`window.print()` auf der App-Seite + `beforeprint`-Aufbereitung),
+`js/06-rapport.js`, `css/03-druck.css`. Nutzt **keinen** der
+gemeinsamen Bausteine – per Prüfstand abgesichert.
+
+**C – Kein echter Druckpfad (dokumentiert, damit es niemand dafür hält):**
+
+| Fund | Was es wirklich ist |
+|---|---|
+| `js/09-projekte.js:670` `window.open` | öffnet eine Projektdatei über eine signierte URL |
+| `js/07-einstellungen.js` `createObjectURL` | JSON-Datensicherung als Download |
+| `js/04-start-suche.js` `createObjectURL` | CSV-Export als Download |
+| `js/20-anschlussblech.js:962` `anb_drucken` | **toter Pfad** – der Knopf existiert 0× in `index.html` (Rest einer eigenständigen Testfassung). Er würde die App-Seite drucken; da er nicht existiert, kann er nie auslösen. Bewusst nicht entfernt, um die geschützte Fachdatei nicht anzufassen. |
+| `spengler-digital-regierapport-v47.html` | **1 Byte grosse, leere Restdatei** im Wurzelverzeichnis, ohne jede Druckmechanik, nirgends verlinkt |
+| `js/15-einlaufblech-stueckliste.js` | reine Berechnungs-/Renderdatei, kein eigener Druckpfad |
+
+### 63.3 Neuer Prüfstand `pfade55` (36/36)
+
+Sichert die Bestandsaufnahme dauerhaft ab und schlägt fehl, sobald ein
+neuer Druckpfad entsteht, der den zentralen Kopf nicht verwendet – oder
+der Regierapport ihn versehentlich doch:
+
+- keine PDF-Bibliothek, kein iframe-Druck
+- `document.write` nur in js/16 und js/17
+- beide nutzen `pdfKopfHtml`, `PDF_LAYOUT_CSS` und `pdfFooterHtml` und
+  bauen **keinen** eigenen Kopf
+- `pdfKopfHtml` und `PDF_LAYOUT_CSS` sind je **genau einmal** definiert
+- js/06, js/08 und css/03-druck.css enthalten keinen der Bausteine
+- `css/03-druck.css` ist die einzige `@media print`-Datei der App-Seite
+- die vier C-Funde sind als solche verifiziert (inkl. „Knopf existiert
+  nicht im HTML" und „Restdatei ist leer und nirgends verlinkt")
+- jede der zehn Arten aus `MEAS_TYPE_LABELS` hat einen Druckzweig, und
+  die Auswahlknöpfe im HTML decken genau diese zehn Arten ab
+
+### 63.4 Einzige Designänderung: dezente Trennlinie
+
+Der Auftrag verlangt unter „DANN" eine **dezente** horizontale
+Trennlinie. Sie war seit v2.54 mit `1.2pt solid #17202a` kräftig
+(fast schwarz). Jetzt `.75pt solid #a7b1b8`.
+
+Das ist der **gesamte Code-Diff** dieser Runde – eine einzige Zeile in
+`PDF_LAYOUT_CSS`. Dass danach **alle 19 geprüften Dokumente** die neue
+Linie tragen, ist zugleich der geforderte Nachweis, dass der Kopf
+wirklich zentral ist: `pdf52` vergleicht die Typografie inklusive
+`.pdf-trenner` über alle Dokumente und bleibt bei 416/416.
+
+### 63.5 Tests
+
+- **`pfade55` 36/36** – statische Bestandsaufnahme (Auftragspunkt 12A)
+- **`pdf52` 416/416** – 19 Dokumente in echtem Chromium erzeugt: alle
+  zehn Massaufnahme-Arten, Kehle mit langem Text, Massaufnahme ohne
+  Projekt, Foto mit vier Skizzen, Ausmass Offerte, Ausmass Blitzschutz,
+  leeres Ausmass, Ausmass mit 70 Positionen, sehr lange Adresse/
+  Projekt/Auftrags-Nr./Kunde, Dokument ohne optionale Daten
+- **Regierapport**: Druckbild und DOM v2.54 gegen v2.55 identisch
+  (gleicher SHA-256, 122 548 Bytes); js/06, js/08 und css/03-druck.css
+  nicht im Diff
+- **Visuell geprüft** (Auftragspunkt 12E, mindestens vier):
+  Rinne halbrund, Lukarne, Ausmass Blitzschutz, Massaufnahme mit sehr
+  langen Werten – alle mit identischem Kopf
+- Regression: alle 19 bestehenden Prüfstände grün, `node --check` über
+  alle 27 `js/*.js` und `sw.js` fehlerfrei, div-Balance 672/672, keine
+  doppelten IDs
+- Fachlogik: alle Berechnungs- und Zeichenaufrufe sowie `pdfKopfHtml`/
+  `pdfZahlenRechts`/`pdfFooterHtml` mit identischer Trefferzahl
+- PETER KÜNZI AG: kein Schreibzugriff in dieser Runde
+
+### 63.6 Offener Punkt mit konkreter Zahl
+
+Die Zeichnungen enthalten viel Leerraum, weil die Zeichenfunktionen
+eine feste, oft quadratische `viewBox` ausgeben. **Gemessen** am
+Rinne-Grundriss: `viewBox="0 0 368 368"`, der tatsächliche Inhalt
+belegt nur `y=21..77` – **291 von 368 Einheiten (79 %) sind leer.**
+
+Das liesse sich im Druckdokument beheben, ohne die Zeichenfunktionen
+anzufassen (ein kleines Skript im erzeugten Fenster, das die `viewBox`
+jedes `.eb-diagram svg` auf die gemessene Inhalts-Bounding-Box
+zuschneidet). **Bewusst nicht umgesetzt**: der Auftrag listet
+„Fotos, Skizzen" ausdrücklich unter „nicht verändern" und betrifft den
+Kopf. Für eine eigene, bewusste Entscheidung vorgemerkt.

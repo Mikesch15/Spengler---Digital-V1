@@ -465,7 +465,7 @@ const PDF_LAYOUT_CSS=`
  .pdf-projekt{margin-top:1.5mm;font-size:8.5pt;color:#3d4850;word-break:break-word}
  .pdf-info{margin-top:3.5mm;font-size:8pt;color:#17202a;line-height:1.55}
  .pdf-info span{display:inline-block;min-width:24mm;color:#6b757c}
- .pdf-trenner{border-top:1.2pt solid #17202a;margin:4mm 0 5mm}
+ .pdf-trenner{border-top:.75pt solid #a7b1b8;margin:4.5mm 0 5mm}
  /* Abschnitte */
  .eb-section-head,.am-section-head{background:#17202a;color:#fff;font-size:6.9pt;font-weight:800;
   text-transform:uppercase;letter-spacing:.11em;padding:1.6mm 2.4mm;margin:5mm 0 0;
