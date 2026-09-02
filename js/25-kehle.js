@@ -69,6 +69,50 @@ const KEHLE_LABELS = Object.freeze({
   mitte: "Innenwinkel zu Mittelrippe (k / 2)"
 });
 
+// Kurzform fuer den Bildschirm: die Excel-Bezeichnungen sind fuer eine
+// Tabelle auf dem Handy zu lang. Der volle Wortlaut aus KEHLE_LABELS
+// bleibt als Tooltip an der Zeile und steht unveraendert im PDF - hier
+// wird nur gekuerzt, nichts umbenannt oder erfunden.
+const KEHLE_HAUPT_KURZ = Object.freeze({
+  b: "First \u2013 Kehle an Lukarne",
+  c: "Winkelhalbierende \u2013 Kehle an Hauptdach",
+  d: "Biegewinkel Kehlblech"
+});
+const KEHLE_KURZ = Object.freeze({
+  A:  "L\u00e4nge Kehle (scharf)",
+  e:  "Neigung Kehle",
+  f:  "Traufe\u2013Kehle Hauptdach",
+  g:  "Traufe\u2013Kehle Lukarne",
+  h:  "Hauptdach zu senkr. Ebene",
+  i:  "Lukarne zu senkr. Ebene",
+  k:  "Total Lukarne\u2013Hauptdach",
+  l:  "Gef\u00e4llslinie\u2013Kehle Hauptdach",
+  m:  "Gef\u00e4llslinie\u2013Kehle Lukarne",
+  n:  "2 \u00d7 Gef\u00e4llsl.\u2013Kehle Lukarne",
+  o:  "Waagrechte\u2013Kehle Hauptdach",
+  p:  "Waagrechte\u2013Kehle (Gegenwinkel)",
+  Q:  "Gef\u00e4llsh\u00f6he",
+  R:  "Gef\u00e4llsl\u00e4nge Hauptdach",
+  S:  "Ausladung Hauptdach",
+  T:  "Ausladung Lukarne",
+  tanU: "tan Ausl. Lukarne / Hauptdach",
+  tanV: "tan Ausl. Hauptdach / Lukarne",
+  U:  "Gef\u00e4llsl.\u2013Kehle Hauptdach, Grundr.",
+  V:  "Gef\u00e4llsl.\u2013Kehle Lukarne, Grundr.",
+  U90: "Traufe\u2013Kehle Hauptdach, Grundr.",
+  V90: "Traufe\u2013Kehle Lukarne, Grundr.",
+  W:  "L\u00e4nge Kehle, Grundriss",
+  X:  "waagr. L\u00e4nge bis wahre L. Hauptdach",
+  Y:  "waagr. L\u00e4nge bis wahre L. Lukarne",
+  Z:  "wahre L\u00e4nge Hauptdach",
+  AA: "wahre L\u00e4nge Lukarne",
+  AB: "Gesamtl\u00e4nge Teilstrecken",
+  AC: "schiefe H\u00f6he Traufpunkt",
+  AD: "Teilstrecke Hauptdach",
+  AE: "Teilstrecke Lukarne",
+  mitte: "Innenwinkel Mittelrippe (k/2)"
+});
+
 // Welche Werte sind Winkel (°) und welche Längen (mm)? Reine
 // Verhältniszahlen (tanU/tanV) stehen in keiner der beiden Listen.
 const KEHLE_WINKEL = Object.freeze(["b","c","d","e","f","g","h","i","k","l","m","n","o","p","U","V","U90","V90","mitte"]);
@@ -174,7 +218,10 @@ function kehleEingabenAusFeldern() {
 }
 
 function kehleZeile(schluessel, wert) {
-  return `<tr><th>${anbEsc(schluessel)}</th><td>${anbEsc(KEHLE_LABELS[schluessel] || schluessel)}</td>`
+  const voll = KEHLE_LABELS[schluessel] || schluessel;
+  const kurz = KEHLE_KURZ[schluessel] || voll;
+  return `<tr title="${anbEsc(voll)}"><th>${anbEsc(schluessel)}</th>`
+    + `<td>${anbEsc(kurz)}</td>`
     + `<td class="kehle-zahl">${anbEsc(kehleWert(schluessel, wert))}</td></tr>`;
 }
 
@@ -209,7 +256,7 @@ function renderKehleResult() {
       `<div class="kehle-haupt-zeile">`
       + `<span class="kehle-haupt-buchstabe">${s}</span>`
       + `<span class="kehle-haupt-wert">${anbEsc(kehleWert(s, erg[s]))}</span>`
-      + `<span class="kehle-haupt-text">${anbEsc(KEHLE_LABELS[s])}</span>`
+      + `<span class="kehle-haupt-text" title="${anbEsc(KEHLE_LABELS[s])}">${anbEsc(KEHLE_HAUPT_KURZ[s])}</span>`
       + `</div>`).join("");
 
   $("kehle_weitere").innerHTML =

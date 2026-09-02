@@ -270,20 +270,26 @@ label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-wei
    dezent. Kein Element hier startet versteckt; sollte das je nötig
    werden, braucht die Klasse zusätzlich eine eigene
    .klasse[hidden]{display:none}-Regel (siehe CLAUDE.md 59). */
-.kehle-haupt{background:var(--blue-light);border:2px solid var(--blue);border-radius:12px;padding:12px 14px;margin:14px 0 4px}
-.kehle-haupt-titel{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--blue-dark);margin-bottom:8px}
-.kehle-haupt-zeile{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;padding:5px 0;border-top:1px solid #ffffff80}
+.kehle-haupt{background:var(--blue-light);border:2px solid var(--blue);border-radius:12px;padding:10px 12px;margin:12px 0 4px}
+.kehle-haupt-titel{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--blue-dark);margin-bottom:6px}
+.kehle-haupt-zeile{display:flex;flex-wrap:nowrap;align-items:baseline;gap:8px;padding:4px 0;border-top:1px solid #ffffff80}
 .kehle-haupt-zeile:first-of-type{border-top:0}
-.kehle-haupt-buchstabe{font-size:22px;font-weight:800;color:var(--blue-dark);flex:0 0 26px}
-.kehle-haupt-wert{font-size:26px;font-weight:800;color:var(--blue-dark);flex:0 0 auto;min-width:112px;text-align:right}
-.kehle-haupt-text{flex:1 1 180px;min-width:0;font-size:11px;color:var(--blue-dark);word-break:break-word}
-table.kehle-tabelle{width:100%;border-collapse:collapse;font-size:12px}
-.kehle-tabelle th{width:44px;text-align:left;font-weight:800;color:var(--blue-dark);padding:5px 6px 5px 0;border-bottom:1px solid var(--line);vertical-align:top}
-.kehle-tabelle td{padding:5px 6px 5px 0;border-bottom:1px solid var(--line);vertical-align:top;word-break:break-word}
-.kehle-tabelle td.kehle-zahl{width:96px;text-align:right;font-weight:700;white-space:nowrap;padding-right:0}
-details.kehle-zwischen summary{cursor:pointer;font-size:12px;color:var(--muted);padding:8px 0;min-height:34px}
-details.kehle-zwischen[open] summary{margin-bottom:4px}
+.kehle-haupt-buchstabe{font-size:20px;font-weight:800;color:var(--blue-dark);flex:0 0 20px}
+.kehle-haupt-wert{font-size:24px;font-weight:800;color:var(--blue-dark);flex:0 0 auto;min-width:96px;text-align:right;white-space:nowrap}
+.kehle-haupt-text{flex:1 1 0;min-width:0;font-size:11px;line-height:1.25;color:var(--blue-dark);overflow-wrap:anywhere}
+/* Zusatzwerte bewusst schmal: Kurzbezeichnung auf dem Bildschirm, der
+   volle Excel-Wortlaut haengt als Tooltip an der Zeile und steht
+   ungekuerzt im PDF. */
+table.kehle-tabelle{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:fixed}
+.kehle-tabelle th{width:22px;text-align:left;font-weight:800;color:var(--blue-dark);padding:3px 4px 3px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.kehle-tabelle td{padding:3px 4px 3px 0;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.3;overflow-wrap:anywhere}
+.kehle-tabelle td.kehle-zahl{width:74px;text-align:right;font-weight:700;white-space:nowrap;padding-right:0}
+details.kehle-zwischen summary{cursor:pointer;font-size:11.5px;color:var(--muted);padding:7px 0;min-height:32px}
+details.kehle-zwischen[open] summary{margin-bottom:2px}
 @media(max-width:600px){
- .kehle-haupt-wert{font-size:22px;min-width:92px}
- .kehle-haupt-buchstabe{font-size:18px}
+ .kehle-haupt-wert{font-size:21px;min-width:84px}
+ .kehle-haupt-buchstabe{font-size:17px;flex:0 0 16px}
+ .kehle-haupt-text{font-size:10.5px}
+ table.kehle-tabelle{font-size:11px}
+ .kehle-tabelle td.kehle-zahl{width:68px}
 }

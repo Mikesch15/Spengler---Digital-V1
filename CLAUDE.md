@@ -8582,6 +8582,21 @@ die Bezeichnung aus dem Auftrag übernommen; bei p ergänzt um den
 Zusatz „(Gegenwinkel, 180° − o)", weil o und p in der Excel dieselbe
 Beschriftung teilen würden.
 
+**Kurzbezeichnungen auf dem Bildschirm (nachgereicht auf Rückmeldung
+des Betreibers, gleiche Version):** Die vollen Excel-Bezeichnungen sind
+für eine Tabelle auf dem Handy zu lang – „Total Winkel Dachfläche
+Lukarne zu Dachfläche Hauptdach in Ebene senkrecht zu Kehllinie" allein
+füllt mehrere Zeilen. `KEHLE_KURZ`/`KEHLE_HAUPT_KURZ` liefern deshalb
+eine gekürzte Fassung für die Anzeige (längste 30 Zeichen bei den
+weiteren Resultaten, 35 bei den Zwischenergebnissen), sodass jede Zeile
+einzeilig bleibt. Der **volle Excel-Wortlaut geht nirgends verloren**:
+er hängt als `title`-Tooltip an jeder Tabellenzeile und an den drei
+Hauptresultaten und steht im **PDF unverändert und ungekürzt** (der
+Druckzweig verwendet weiterhin `KEHLE_LABELS`). Gekürzt wird nur, nichts
+umbenannt oder erfunden. Dazu engere Spalten (Zeichen 22 px, Wert
+74 px, `table-layout:fixed`) und 11.5 px Schrift; b/c/d bleiben mit
+24 px unverändert dominant.
+
 Live-Berechnung bei jeder Eingabe (`input`-Listener auf den drei
 Feldern), wie bei Lukarne/Anschlussblech/Einfassung Rund – kein
 zusätzlicher „Berechnen"-Knopf.
@@ -8655,6 +8670,14 @@ der echten Datei):
 - Darstellung: Hauptbox enthält genau b/c/d, weitere Resultate genau
   12 Zeilen, Zwischenergebnisse genau 20 Zeilen und eingeklappt,
   ungültige Eingabe zeigt „–" statt Zahlen und keine NaN.
+
+Nach der Kürzung (siehe 60.5) auf **698/698** erweitert: jede der 32
+angezeigten Kurzbezeichnungen existiert, ist höchstens so lang wie die
+Excel-Bezeichnung, bleibt fachlich (kein „Ergebnis 1") und passt mit
+höchstens 38 Zeichen in die schmale Spalte; jede Tabellenzeile trägt
+den vollen Excel-Wortlaut als Tooltip; die lange Excel-Bezeichnung
+steht nicht mehr im Zellentext; Zeilenzahlen (12/20/3) und die Werte
+b/c/d sind unverändert.
 
 **`kehleintegration52` – 76/76** (Speichern/Öffnen/Cockpit/Medien gegen
 `buildMeasurementFromForm()` aus js/16 und die Medien-Helfer aus js/24):
