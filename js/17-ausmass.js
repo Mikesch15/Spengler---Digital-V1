@@ -259,9 +259,7 @@ function openAusmass(a){
 }
 $("cancelAusmass").onclick=()=>{
  $("ausmassEditModal").hidden=true;
- if(amEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
- else{$("ausmassModal").hidden=false;renderAusmassOverview()}
- amEditReturnTo="ausmassModal";
+ amEditZurueck();   // zentrale Rueckkehr, siehe js/24-projekt-cockpit.js
  isDirty=false;
 };
 function buildAusmassFromForm(){
@@ -309,9 +307,7 @@ $("saveAusmass").onclick=async()=>{
    ?{...currentAusmassMeta,updated_by:payload.updated_by,updated_at:jetzt}
    :{created_by:currentProfile?currentProfile.id:null,created_at:jetzt,updated_by:null,updated_at:null};
   $("ausmassEditModal").hidden=true;
-  if(amEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
-  else{$("ausmassModal").hidden=false;await renderAusmassOverview()}
-  amEditReturnTo="ausmassModal";
+  await amEditZurueck();   // zentrale Rueckkehr, siehe js/24-projekt-cockpit.js
   isDirty=false;
  }catch(err){
   alert("Fehler beim Speichern: "+(err.message||err));

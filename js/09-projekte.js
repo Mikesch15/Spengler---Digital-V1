@@ -58,23 +58,13 @@ function renderProjectList(){
 ${meta?`<div class="small" style="color:var(--muted)">${meta}</div>`:""}
 <div class="project-row-actions">
 <button class="blue" data-open-cockpit="${p.id}">📂 Projekt öffnen</button>
-<button class="gray" data-toggle-reports="${p.id}">📋 Rapporte anzeigen</button>
-<button class="gray" data-toggle-measurements="${p.id}">📐 Massaufnahmen anzeigen</button>
-<button class="gray" data-toggle-ausmass="${p.id}">📏 Ausmasse anzeigen</button>
-<button class="gray" data-toggle-files="${p.id}">📎 Dateien anzeigen</button>
-<button class="gray" data-toggle-verlauf="${p.id}">🕒 Verlauf anzeigen</button>
 <button class="gray" data-archive-project="${p.id}">${p.archived?"↩️ Reaktivieren":"📦 Archivieren"}</button>
 </div>
-<div class="report-list" data-reports-body="${p.id}"></div>
-<div class="report-list" data-measurements-body="${p.id}"></div>
-<div class="report-list" data-ausmass-body="${p.id}"></div>
-<div class="report-list" data-files-body="${p.id}"></div>
-<div class="report-list" data-verlauf-body="${p.id}"></div>
 </div>`;
  }).join("")||'<div class="empty">Noch keine Projekte angelegt.</div>';
 }
 async function loadProjectAusmass(projectId){
- const box=document.querySelector(`[data-ausmass-body="${projectId}"]`);
+ const box=$("cockpitAmBody");
  box.innerHTML='<div class="small">Lädt…</div>';
  const {data,error}=await sb.from("ausmass").select("*").eq("project_id",projectId).order("date",{ascending:false});
  if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
@@ -91,7 +81,7 @@ async function loadProjectAusmass(projectId){
 </div>`).join(""):'<div class="small">Noch keine Ausmasse zu diesem Projekt gespeichert.</div>';
 }
 async function loadProjectReports(projectId){
- const box=document.querySelector(`[data-reports-body="${projectId}"]`);
+ const box=$("cockpitRepBody");
  box.innerHTML='<div class="small">Lädt…</div>';
  const {data,error}=await sb.from("reports").select("*").eq("project_id",projectId).order("date",{ascending:false});
  if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
@@ -106,7 +96,7 @@ async function loadProjectReports(projectId){
 </div>`).join(""):'<div class="small">Noch keine Rapporte zu diesem Projekt gespeichert.</div>';
 }
 async function loadProjectMeasurements(projectId){
- const box=document.querySelector(`[data-measurements-body="${projectId}"]`);
+ const box=$("cockpitMeasBody");
  box.innerHTML='<div class="small">Lädt…</div>';
  const {data,error}=await sb.from("measurements").select("*").eq("project_id",projectId).order("date",{ascending:false});
  if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
@@ -180,7 +170,7 @@ async function replaceProjectFile(fileId,file){
  await sb.storage.from("measurements").remove([alt.file_path]);
 }
 async function loadProjectFiles(projectId){
- const box=document.querySelector(`[data-files-body="${projectId}"]`);
+ const box=$("cockpitFilesBody");
  box.innerHTML='<div class="small">Lädt…</div>';
  const {data,error}=await sb.from("project_files").select("*").eq("project_id",projectId).order("created_at",{ascending:false});
  if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
@@ -204,7 +194,11 @@ async function loadProjectFiles(projectId){
  box.innerHTML=`<div class="bar" style="margin-bottom:6px"><input type="file" multiple data-upload-file="${projectId}"></div>${zeilen}`;
 }
 
-function openReport(r){
+// returnTo (v2.38): wohin fuehrt "Zurueck" aus dem Regierapport?
+// Ohne Angabe wie bisher zurueck in die Rapport-Uebersicht.
+function openReport(r,returnTo){
+ reportReturnTo=returnTo||"reportsModal";
+ $("backFromReportEdit").hidden=(reportReturnTo!=="projectCockpit");
  sperreFuerEintrag("rapport",r&&r.created_by);
  isDirty=false;
  currentProjectId=r.project_id;
@@ -219,6 +213,7 @@ function openReport(r){
  $("object").value=r.object||"";
  $("vat").value=r.vat||"8.1 %";
  $("projectsModal").hidden=true;
+ $("projectCockpitModal").hidden=true;
  $("reportsModal").hidden=true;
  $("startScreen").hidden=true;
  $("reportScreen").hidden=false;
@@ -268,10 +263,13 @@ $("toggleArchivedProjects").onclick=()=>{
  showArchivedProjects=!showArchivedProjects;
  $("toggleArchivedProjects").textContent=showArchivedProjects?"📦 Nur aktive anzeigen":"📦 Archivierte anzeigen";
  renderProjectList();
-};
+};// ---- Projektliste: nur noch Projekt-Aktionen -------------------
+// Seit v2.38 ist die Projektübersicht ausschliesslich zur Auswahl eines
+// Projekts da. Alle Arbeitsbereiche (Massaufnahmen/Ausmass/Rapporte/
+// Dateien/Verlauf) liegen im Projekt-Cockpit, siehe js/24-projekt-
+// cockpit.js. Die Lade-Funktionen oben sind dieselben geblieben, sie
+// schreiben nur in die Cockpit-Container statt in die Projektkarte.
 $("projectList").addEventListener("click",async e=>{
- // Projekt-Cockpit (v2.37): kompakte Arbeitsuebersicht zu diesem Projekt,
- // siehe js/24-projekt-cockpit.js.
  const cockpit=e.target.closest("[data-open-cockpit]");
  if(cockpit){
   await openProjectCockpit(Number(cockpit.dataset.openCockpit));
@@ -295,58 +293,15 @@ $("projectList").addEventListener("click",async e=>{
   const {data}=await sb.from("projects").select("*").order("name");
   allProjects=data||[];
   renderProjectList();renderProjectSelect();
-  return;
  }
- const toggle=e.target.closest("[data-toggle-reports]");
- if(toggle){
-  const id=Number(toggle.dataset.toggleReports);
-  const box=document.querySelector(`[data-reports-body="${id}"]`);
-  const willOpen=!box.classList.contains("open");
-  box.classList.toggle("open");
-  toggle.textContent=willOpen?"📋 Rapporte ausblenden":"📋 Rapporte anzeigen";
-  if(willOpen)await loadProjectReports(id);
-  return;
- }
- const toggleM=e.target.closest("[data-toggle-measurements]");
- if(toggleM){
-  const id=Number(toggleM.dataset.toggleMeasurements);
-  const box=document.querySelector(`[data-measurements-body="${id}"]`);
-  const willOpen=!box.classList.contains("open");
-  box.classList.toggle("open");
-  toggleM.textContent=willOpen?"📐 Massaufnahmen ausblenden":"📐 Massaufnahmen anzeigen";
-  if(willOpen)await loadProjectMeasurements(id);
-  return;
- }
- const toggleA=e.target.closest("[data-toggle-ausmass]");
- if(toggleA){
-  const id=Number(toggleA.dataset.toggleAusmass);
-  const box=document.querySelector(`[data-ausmass-body="${id}"]`);
-  const willOpen=!box.classList.contains("open");
-  box.classList.toggle("open");
-  toggleA.textContent=willOpen?"📏 Ausmasse ausblenden":"📏 Ausmasse anzeigen";
-  if(willOpen)await loadProjectAusmass(id);
-  return;
- }
- const toggleV=e.target.closest("[data-toggle-verlauf]");
- if(toggleV){
-  const id=Number(toggleV.dataset.toggleVerlauf);
-  const box=document.querySelector(`[data-verlauf-body="${id}"]`);
-  // Kombinierter Projekt-Verlauf (v2.32): zeigt das Projekt selbst UND
-  // seine Massaufnahmen/Ausmasse/Reports in einer einzigen, nach
-  // project_id gefilterten Abfrage - siehe CLAUDE.md Abschnitt 40.
-  await toggleProjectVerlaufBox(box,toggleV,id);
-  return;
- }
- const toggleF=e.target.closest("[data-toggle-files]");
- if(toggleF){
-  const id=Number(toggleF.dataset.toggleFiles);
-  const box=document.querySelector(`[data-files-body="${id}"]`);
-  const willOpen=!box.classList.contains("open");
-  box.classList.toggle("open");
-  toggleF.textContent=willOpen?"📎 Dateien ausblenden":"📎 Dateien anzeigen";
-  if(willOpen)await loadProjectFiles(id);
-  return;
- }
+});
+
+// ---- Arbeitslisten im Projekt-Cockpit --------------------------
+// Genau dieselben Aktionen wie bisher auf der Projektkarte, nur jetzt im
+// Cockpit. Die Projekt-Zugehörigkeit kommt aus cockpitProjectId
+// (js/24-projekt-cockpit.js) statt aus der umgebenden Projektkarte - es
+// ist immer genau ein Projekt geöffnet.
+$("cockpitWorkArea").addEventListener("click",async e=>{
  const openF=e.target.closest("[data-open-project-file]");
  if(openF){
   const id=Number(openF.dataset.openProjectFile);
@@ -374,9 +329,7 @@ $("projectList").addEventListener("click",async e=>{
   if(!trimmed){alert("Bitte einen Namen eingeben.");return}
   const {error}=await sb.from("project_files").update({name:trimmed}).eq("id",id);
   if(error){alert("Fehler: "+error.message);return}
-  const projRow=renameF.closest(".project-row");
-  const projId=Number(projRow.querySelector("[data-toggle-files]").dataset.toggleFiles);
-  await loadProjectFiles(projId);
+  await loadProjectFiles(cockpitProjectId);
   return;
  }
  const replaceF=e.target.closest("[data-replace-project-file]");
@@ -392,9 +345,8 @@ $("projectList").addEventListener("click",async e=>{
   const f=projectFilesCache.find(x=>x.id===id);
   await sb.from("project_files").delete().eq("id",id);
   if(f&&f.file_path)await sb.storage.from("measurements").remove([f.file_path]);
-  const projRow=delF.closest(".project-row");
-  const projId=Number(projRow.querySelector("[data-toggle-files]").dataset.toggleFiles);
-  await loadProjectFiles(projId);
+  await loadProjectFiles(cockpitProjectId);
+  await refreshCockpitCounts();
   return;
  }
  const open=e.target.closest("[data-open-report]");
@@ -402,7 +354,7 @@ $("projectList").addEventListener("click",async e=>{
   const id=Number(open.dataset.openReport);
   const {data,error}=await sb.from("reports").select("*").eq("id",id).maybeSingle();
   if(error||!data){alert("Fehler beim Laden: "+(error?error.message:"Rapport nicht gefunden"));return}
-  openReport(data);
+  openReport(data,"projectCockpit");
   return;
  }
  const openM=e.target.closest("[data-open-project-measurement]");
@@ -410,8 +362,8 @@ $("projectList").addEventListener("click",async e=>{
   const id=Number(openM.dataset.openProjectMeasurement);
   const m=projectMeasurementsCache.find(x=>x.id===id);
   if(m){
-   measEditReturnTo="projectsModal";
-   $("projectsModal").hidden=true;
+   measEditReturnTo="projectCockpit";
+   $("projectCockpitModal").hidden=true;
    openMeasurement(m);
   }
   return;
@@ -428,9 +380,8 @@ $("projectList").addEventListener("click",async e=>{
   if(!confirm("Diese Massaufnahme wirklich löschen?"))return;
   const id=Number(delM.dataset.delProjectMeasurement);
   await sb.from("measurements").delete().eq("id",id);
-  const projRow=delM.closest(".project-row");
-  const projId=Number(projRow.querySelector("[data-toggle-measurements]").dataset.toggleMeasurements);
-  await loadProjectMeasurements(projId);
+  await loadProjectMeasurements(cockpitProjectId);
+  await refreshCockpitCounts();
   return;
  }
  const openA=e.target.closest("[data-open-project-ausmass]");
@@ -438,8 +389,8 @@ $("projectList").addEventListener("click",async e=>{
   const id=Number(openA.dataset.openProjectAusmass);
   const a=projectAusmassCache.find(x=>x.id===id);
   if(a){
-   amEditReturnTo="projectsModal";
-   $("projectsModal").hidden=true;
+   amEditReturnTo="projectCockpit";
+   $("projectCockpitModal").hidden=true;
    openAusmass(a);
   }
   return;
@@ -456,9 +407,8 @@ $("projectList").addEventListener("click",async e=>{
   if(!confirm("Dieses Ausmass wirklich löschen?"))return;
   const id=Number(delA.dataset.delProjectAusmass);
   await sb.from("ausmass").delete().eq("id",id);
-  const projRow=delA.closest(".project-row");
-  const projId=Number(projRow.querySelector("[data-toggle-ausmass]").dataset.toggleAusmass);
-  await loadProjectAusmass(projId);
+  await loadProjectAusmass(cockpitProjectId);
+  await refreshCockpitCounts();
   return;
  }
  const delRep=e.target.closest("[data-del-report]");
@@ -467,12 +417,11 @@ $("projectList").addEventListener("click",async e=>{
   const id=Number(delRep.dataset.delReport);
   await sb.from("reports").delete().eq("id",id);
   if(currentReportId===id)currentReportId=null;
-  const projRow=delRep.closest(".project-row");
-  const projId=Number(projRow.querySelector("[data-toggle-reports]").dataset.toggleReports);
-  await loadProjectReports(projId);
+  await loadProjectReports(cockpitProjectId);
+  await refreshCockpitCounts();
  }
 });
-$("projectList").addEventListener("change",async e=>{
+$("cockpitWorkArea").addEventListener("change",async e=>{
  const inp=e.target.closest("[data-upload-file]");
  if(inp){
   const projectId=Number(inp.dataset.uploadFile);
@@ -485,6 +434,7 @@ $("projectList").addEventListener("change",async e=>{
    alert("Fehler beim Hochladen: "+(err.message||err));
   }
   await loadProjectFiles(projectId);
+  await refreshCockpitCounts();
   return;
  }
  const replaceInp=e.target.closest("[data-replace-file-input]");
@@ -492,14 +442,12 @@ $("projectList").addEventListener("change",async e=>{
   const id=Number(replaceInp.dataset.replaceFileInput);
   const file=replaceInp.files&&replaceInp.files[0];
   if(!file)return;
-  const box=replaceInp.closest("[data-files-body]");
-  const projectId=box?Number(box.dataset.filesBody):null;
   replaceInp.disabled=true;
   try{
    await replaceProjectFile(id,file);
   }catch(err){
    alert("Fehler beim Ersetzen: "+(err.message||err));
   }
-  if(projectId)await loadProjectFiles(projectId);
+  await loadProjectFiles(cockpitProjectId);
  }
 });

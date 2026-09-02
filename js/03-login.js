@@ -136,6 +136,8 @@ function goToStart(){
  $("systemAdminRegisterModal").hidden=true;
  measEditReturnTo="measurementsModal";
  amEditReturnTo="ausmassModal";
+ reportReturnTo="reportsModal";
+ $("backFromReportEdit").hidden=true;
  showStart();
 }
 

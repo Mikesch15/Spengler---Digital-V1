@@ -92,6 +92,12 @@ td input,td select{min-height:34px;font-size:12px}
 .report-list.open{display:block}
 .report-row{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--blue-light);border-radius:8px;padding:7px 9px;margin:5px 0}
 .report-row .report-row-info b{display:block;font-size:12px}
+/* Projekt-Cockpit (v2.38): Arbeitsabschnitte mit grossen Knoepfen */
+.cockpit-section{border:1px solid var(--line);border-radius:12px;padding:10px 11px;margin:8px 0;background:#fff}
+.cockpit-section-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.cockpit-section-head b{font-size:14px}
+.cockpit-count{font-size:11px;color:var(--muted);font-weight:700;text-align:right;word-break:break-word}
+.cockpit-section .bar button{flex:1 1 auto;min-height:42px}
 /* Projekt-Cockpit (v2.37): grosse, gut treffbare Bereichskacheln */
 .cockpit-tile{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:11px 12px;margin:6px 0}
 .cockpit-tile b{display:block;font-size:13px}

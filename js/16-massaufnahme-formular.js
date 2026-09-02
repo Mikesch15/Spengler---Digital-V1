@@ -143,9 +143,7 @@ function buildMeasurementFromForm(){
 $("printMeasurementBtn").onclick=()=>printMeasurement(Object.assign(buildMeasurementFromForm(),currentMeasurementMeta));
 $("cancelMeasurement").onclick=()=>{
  $("measurementEditModal").hidden=true;
- if(measEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
- else{$("measurementsModal").hidden=false;renderMeasurementsOverview()}
- measEditReturnTo="measurementsModal";
+ measEditZurueck();   // zentrale Rueckkehr, siehe js/24-projekt-cockpit.js
  isDirty=false;
 };
 
@@ -241,9 +239,7 @@ $("saveMeasurement").onclick=async()=>{
    ?{created_by:currentProfile?currentProfile.id:null,created_at:jetzt,updated_by:null,updated_at:null}
    :{...currentMeasurementMeta,updated_by:payload.updated_by,updated_at:jetzt};
   $("measurementEditModal").hidden=true;
-  if(measEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
-  else{$("measurementsModal").hidden=false;await renderMeasurementsOverview()}
-  measEditReturnTo="measurementsModal";
+  await measEditZurueck();   // zentrale Rueckkehr, siehe js/24-projekt-cockpit.js
   isDirty=false;
  }catch(err){
   if(platzhalterId)await sb.from("measurements").delete().eq("id",platzhalterId).then(()=>{},()=>{});

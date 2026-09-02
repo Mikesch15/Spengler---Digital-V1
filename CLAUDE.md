@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.37, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.38, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.37**
+- sichtbare App-Version: **2.38**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -5706,3 +5706,230 @@ PDF-Logik, kein Speichermodell berührt.
 - Die Projektliste selbst zeigt weiterhin keine Anzahlen je Karte; das
   wäre nur mit Sammelabfragen über alle Projekte sinnvoll und war für
   diese Runde nicht verlangt.
+
+## 46. PROJEKT-COCKPIT ALS ZENTRALER ARBEITS-HUB — VERSION 2.38
+
+Baut das Cockpit aus v2.37 (Abschnitt 45) vom reinen Überblick zum
+tatsächlichen Arbeitsplatz eines Projekts aus. Ein Projekt wird einmal
+geöffnet; danach bleibt der Benutzer darin, bis er bewusst zur
+Projektübersicht zurückgeht.
+
+    Projektübersicht → 📂 Projekt öffnen → Cockpit
+                     → Massaufnahme / Ausmass / Rapport / Datei / Verlauf
+                     → Zurück → wieder Cockpit
+
+**Keine Schemaänderung, keine Migration** – reine Navigation und
+Oberfläche.
+
+### 46.1 Projektübersicht aufgeräumt
+
+Vorher trug jede Projektkarte sieben Knöpfe: Löschen, 📂 Projekt öffnen,
+📋 Rapporte / 📐 Massaufnahmen / 📏 Ausmasse / 📎 Dateien / 🕒 Verlauf
+anzeigen, 📦 Archivieren – plus fünf aufklappbare Listen-Container je
+Karte. Die fünf Arbeitsknöpfe und ihre Container sind **entfernt**; sie
+werden vollständig durch das Cockpit ersetzt, das jetzt der einzige Ort
+für diese Listen ist.
+
+**Keine Funktion ging verloren** – die Aktionen sind alle vorhanden,
+nur an einer Stelle statt an zwei:
+
+| Aktion | vorher | jetzt |
+|---|---|---|
+| Rapporte/Massaufnahmen/Ausmasse/Dateien/Verlauf anzeigen | Projektkarte | Cockpit |
+| Öffnen/Drucken/Löschen einzelner Einträge | Projektkarte | Cockpit |
+| Datei hochladen/umbenennen/ersetzen/löschen | Projektkarte | Cockpit |
+| Projekt öffnen / Archivieren / Reaktivieren / Löschen | Projektkarte | **unverändert** Projektkarte |
+| Projekt anlegen, Archiv-Umschaltung, Suche | Projektübersicht | **unverändert** |
+
+Die vier Lade-Funktionen `loadProjectMeasurements()`,
+`loadProjectAusmass()`, `loadProjectReports()`, `loadProjectFiles()`
+(js/09-projekte.js) sind inhaltlich unverändert geblieben – sie
+schreiben nur statt in `[data-…-body="<id>"]` der Projektkarte in die
+festen Cockpit-Container (`#cockpitMeasBody` usw.). Feste IDs genügen,
+weil im Cockpit immer genau **ein** Projekt geöffnet ist.
+
+Der delegierte Klick-Handler wurde entsprechend geteilt: `#projectList`
+behandelt nur noch Projekt-Aktionen (Cockpit öffnen, Archivieren,
+Löschen), `#cockpitWorkArea` die Aktionen an einzelnen Einträgen. Die
+bisherigen `closest(".project-row")`-Umwege zur Ermittlung des Projekts
+entfallen – die Projektzugehörigkeit kommt jetzt aus `cockpitProjectId`.
+
+### 46.2 Cockpit-Abschnitte
+
+Aus den vier Kacheln von v2.37 wurden vier Arbeitsabschnitte mit grossen,
+gut treffbaren Knöpfen (Mindesthöhe 42 px, volle Breite auf dem Handy):
+
+| Abschnitt | Knöpfe | Zusatzinfo (aus v2.37 erhalten) |
+|---|---|---|
+| 📐 Massaufnahmen | Öffnen · ＋ Neu | Anzahl + erste drei Titel |
+| 📏 Ausmass | Öffnen · ＋ Neu | Anzahl + erste drei Titel |
+| 📋 Regierapport | Öffnen · ＋ Neu | Anzahl |
+| 📎 Dateien/Fotos | Öffnen | Anzahl |
+| 🕒 Verlauf | Verlauf anzeigen | letzte Aktivität |
+
+„Öffnen" klappt die Liste innerhalb des Cockpits auf (Knopf wechselt auf
+„Schliessen") und füllt sie über die bestehende Lade-Funktion. Die
+Stammdaten-Bearbeitung aus v2.37 bleibt unverändert.
+
+### 46.3 Zentrale Rückkehr – der Kern von v2.38
+
+Bisher kannte jede Erfassungsdatei ihr Rückziel selbst, in vier
+identischen Blöcken:
+
+```js
+if(measEditReturnTo==="projectsModal"){$("projectsModal").hidden=false;renderProjectList()}
+else{$("measurementsModal").hidden=false;renderMeasurementsOverview()}
+measEditReturnTo="measurementsModal";
+```
+
+Diese vier Blöcke sind durch **einen Aufruf** je Stelle ersetzt; die
+Entscheidung liegt jetzt an genau einer Stelle je Arbeitsbereich
+(`js/24-projekt-cockpit.js`):
+
+- `measEditZurueck()` – Massaufnahme
+- `amEditZurueck()` – Ausmass
+- `reportZurueck()` – Regierapport
+- `zurueckInsCockpit()` – gemeinsame Rückkehr; blendet das Cockpit ein,
+  lädt die Kennzahlen neu **und** frischt die Bereiche auf, die beim
+  Verlassen offen waren (sonst zeigte die Liste noch den alten Stand).
+
+Rückziele: `"projectCockpit"` (neu) oder die jeweilige Übersicht wie
+bisher. `"projectsModal"` wird nicht mehr gesetzt – die Projektübersicht
+öffnet keine Arbeitsbereiche mehr.
+
+Der Regierapport hatte bisher **gar keinen** Zurück-Knopf, nur „🏠
+Start". Neu gibt es `#backFromReportEdit` („↩️ Zurück zum Projekt"),
+standardmässig ausgeblendet und nur sichtbar, wenn der Rapport aus dem
+Cockpit geöffnet oder angelegt wurde. `openReport(r, returnTo)` nimmt das
+Rückziel jetzt als optionalen zweiten Parameter (ohne Angabe wie bisher
+die Rapport-Übersicht) – alle bestehenden Aufrufer (Suche,
+Rapport-Übersicht) bleiben dadurch unverändert.
+
+### 46.4 Änderungen an geschützten Fachdateien (offen benannt)
+
+Zwei Dateien aus der Schutzliste mussten angefasst werden, ausschliesslich
+für die Rückkehr-Navigation:
+
+| Datei | Änderung | Warum |
+|---|---|---|
+| `js/16-massaufnahme-formular.js` | 2 × drei Zeilen Rückweg → `measEditZurueck()` | Das Ziel darf nicht mehr in der Erfassungsdatei stehen, sonst gäbe es zwei konkurrierende Routing-Systeme |
+| `js/17-ausmass.js` | 2 × drei Zeilen Rückweg → `amEditZurueck()` | dito |
+
+Netto −8 Zeilen. **Keine** Berechnung, keine Stückliste, kein Zuschnitt,
+kein Speicher-Payload, keine PDF-Logik, keine Validierung berührt – per
+`git diff` im Abschlussbericht Zeile für Zeile belegt. Die übrigen
+Fachdateien (`js/10`, `js/11`, `js/12`, `js/12b`, `js/13`, `js/14`,
+`js/15`, `js/19`, `js/20`, `js/21`, `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js`, `js/23-verlauf.js`,
+`js/22-system-admin.js`, `js/05a-rechte.js`) sind unverändert.
+
+### 46.5 Neu anlegen aus dem Cockpit
+
+Das Cockpit erzeugt selbst **nichts** – es startet den bestehenden
+Erfassungsprozess und gibt ihm das Projekt mit:
+
+- **Massaufnahme/Ausmass**: dieselbe Typ-Auswahl wie überall
+  (`#measTypeChooserModal`/`#amTypeChooserModal`). Der bestehende Handler
+  in `js/09-projekte.js` läuft unverändert zuerst und ruft
+  `newMeasurementWithType()`/`newAusmassWithType()` auf; ein zusätzlicher
+  Listener in `js/24` setzt danach Rückziel und Projekt über die bereits
+  vorhandenen Setter `setMeasProjectField()`/`setAmProjectField()`.
+  Wichtig: **danach**, weil die Neu-Funktionen ihr Rückziel selbst auf
+  die jeweilige Übersicht setzen. Abbrechen in der Typ-Auswahl führt
+  zurück ins Cockpit statt in die Übersicht.
+- **Regierapport**: `cockpitNeuerRapport()` löst den bestehenden Knopf
+  `#newReport` (js/04-start-suche.js) aus. Ein Listener auf demselben
+  Knopf ergänzt danach `currentProjectId`, Rückziel und dieselbe
+  Vorbefüllung (Auftrags-Nr./Auftraggeber/Objekt), die auch das Auswählen
+  eines Projekts im Rapport vornimmt. Wird derselbe Knopf normal
+  angeklickt, setzt der Listener das Rückziel wieder auf die
+  Rapport-Übersicht – `js/04-start-suche.js` blieb dadurch unverändert.
+
+Die Reihenfolge funktioniert, weil `.onclick`-Zuweisungen beim Laden
+registriert werden und `js/04`/`js/09` vor `js/24` geladen werden.
+
+### 46.6 Verlauf und Datenbank
+
+Der Verlauf ist unverändert der kombinierte Projekt-Verlauf aus v2.32
+(`toggleProjectVerlaufBox()`, `js/23-verlauf.js`) und klappt **innerhalb**
+des Cockpits auf – er verlässt den Projektkontext gar nicht, ein Rückweg
+ist deshalb nicht nötig. Kein zweites Verlaufssystem.
+
+**Keine Migration, keine Schemaänderung, keine geänderte Abfrage** – die
+fünf Cockpit-Abfragen sind dieselben wie in v2.37.
+
+### 46.7 Tenant-Sicherheit
+
+Unverändert: alle Abfragen filtern nur nach `project_id`, die
+Firmengrenze erzwingt ausschliesslich die restriktive
+`tenant_boundary_*`-RLS jeder Tabelle. Erneut empirisch bestätigt
+(`begin; … rollback;`, Wegwerf-Firma, PETER KÜNZI AG nur gelesen): mit
+den vier echten, bekannten Projekt-IDs einer fremden Firma liefern
+Projektzeile, Massaufnahmen-, Ausmass-, Rapport-, Datei- und
+Verlaufsabfrage **je 0 Zeilen**; das Stammdaten-`UPDATE` ändert **0
+Zeilen**; die vier Löschpfade des Cockpits (Massaufnahme, Ausmass,
+Rapport, Datei) löschen **0 Zeilen**. Eine manipulierte Projekt-ID im
+Frontend öffnet nichts.
+
+### 46.8 Tests
+
+**Navigations-Prüfstand** (Node, gegen die echten Funktionen aus
+`js/24-projekt-cockpit.js`, Ereignisreihenfolge wie im Browser) – 23
+Prüfungen, alle bestanden:
+
+| Testfall | Ergebnis |
+|---|---|
+| Projekt öffnen → Cockpit | Cockpit sichtbar, richtige `project_id` |
+| Cockpit → Massaufnahmen → Liste | `loadProjectMeasurements(7)` mit richtigem Projekt |
+| Massaufnahme → Zurück | **Cockpit** (nicht Projektübersicht), offene Liste neu geladen, Rückziel zurückgesetzt |
+| Ausmass → Zurück | **Cockpit** |
+| Neuer Regierapport aus Cockpit → Zurück | Rapport-Bildschirm mit `project_id` 7, Zurück-Knopf sichtbar, Zurück → **Cockpit** |
+| Neue Massaufnahme aus Cockpit | Typ-Auswahl, danach Rückziel `projectCockpit` + `setMeasProjectField(7)` |
+| Projektwechsel A → B | lädt Projekt B, Rückkehr zeigt weiterhin B – kein Vermischen |
+| Normalweg ohne Cockpit | Massaufnahme/Ausmass/Rapport kehren unverändert in ihre Übersicht zurück |
+
+Verlauf: klappt im Cockpit auf und zu, verlässt es nicht – ein
+Rückweg-Test entfällt.
+
+**Regression**: `node --check` über alle `js/*.js` und `sw.js`
+fehlerfrei; `<div>`/`</div>` in `index.html` ausgeglichen (645/645,
+vorher 630/630 – Differenz durch die vier Arbeitsabschnitte); keine
+verwaisten Verweise auf die entfernten `data-toggle-*`-/`data-…-body`-
+Attribute; Produktivdaten vor und nach allen Tests identisch (2 Firmen,
+4 Projekte, 13 Massaufnahmen, 2 Ausmasse, 4 Rapporte, 1 Datei, 0
+`audit_log`-Zeilen), Mike Ledermann wieder in PETER KÜNZI AG, deren
+`updated_at` unverändert (`2026-09-01 07:40:15.844647+00`), Projekt 1
+unverändert („Home / 1234 / Hjj / Ppp"), keine Wegwerf-Firma übrig.
+
+**Live-Klicktest im Browser war in dieser Sitzung technisch nicht
+möglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird hier ausdrücklich nicht
+als getestet behauptet.** Alle Datenbank-Ergebnisse sind direkte
+RLS-Simulationen gegen das echte Produktivschema, alle
+Navigationsergebnisse stammen aus dem Prüfstand gegen den echten Code.
+
+### 46.9 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/24-projekt-cockpit.js` | Cockpit als Arbeits-Hub, zentrale Rückkehr, Neu-Anlegen mit Projektkontext |
+| `js/09-projekte.js` | Projektkarte aufgeräumt, Listen in die Cockpit-Container, Handler geteilt, `openReport()` mit Rückziel |
+| `index.html` | vier Arbeitsabschnitte, `#cockpitWorkArea`, `#backFromReportEdit`, Ausstiegs-Beschriftung, Version 2.38 |
+| `js/16-massaufnahme-formular.js` | **nur Navigation**: 2 × Rückweg zentralisiert (46.4) |
+| `js/17-ausmass.js` | **nur Navigation**: 2 × Rückweg zentralisiert (46.4) |
+| `js/03-login.js` | `goToStart()` setzt zusätzlich das Rapport-Rückziel zurück und blendet den Zurück-Knopf aus |
+| `css/01-basis.css` | Stile der Arbeitsabschnitte |
+| `sw.js` | Cache-Version 2.38 |
+
+### 46.10 Offene Punkte für v2.39
+
+- Kein Live-Klicktest im Browser möglich (siehe 46.8).
+- Kein Projektstatus – unverändert, `projects` hat ausser `archived`
+  keine Statusinformation, ein erfundener bleibt ausgeschlossen.
+- Die globale Suche und die Übersichten (Massaufnahmen/Ausmass/
+  Rapporte) öffnen Einträge weiterhin ohne Projektkontext und kehren
+  in ihre jeweilige Übersicht zurück – das ist gewollt, sie sind kein
+  Projekt-Einstieg.
+- Beim Öffnen eines Arbeitsbereichs bleibt die Liste innerhalb des
+  Cockpits (Aufklappen), es gibt bewusst keinen eigenen Vollbild-Screen
+  je Bereich – das hätte einen zweiten Rückweg gebraucht.

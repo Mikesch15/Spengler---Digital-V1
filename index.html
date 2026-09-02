@@ -91,7 +91,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.37</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.38</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -213,6 +213,7 @@
 <button id="save" class="green">💾 Speichern</button>
 <button id="clear" class="red">Alles löschen</button>
 <button id="reportEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
+<button id="backFromReportEdit" class="gray" hidden>↩️ Zurück zum Projekt</button>
 <button id="startFromReportEdit" class="gray">🏠 Start</button>
 </div>
 </div>
@@ -254,16 +255,35 @@
 <div class="bar"><button id="cockpitSaveStammdaten" class="blue">✓ Stammdaten speichern</button></div>
 <div class="small" id="cockpitStammdatenMsg" hidden></div>
 </div>
-<div class="card">
+<div class="card" id="cockpitWorkArea">
 <h2>🔧 Arbeit</h2>
-<div id="cockpitWork"></div>
+<div class="cockpit-section">
+<div class="cockpit-section-head"><b>📐 Massaufnahmen</b><span id="cockpitMeasCount" class="cockpit-count">–</span></div>
+<div class="bar"><button class="blue" data-cockpit-open="meas">Öffnen</button><button class="gray" data-cockpit-new="meas">＋ Neu</button></div>
+<div class="report-list" id="cockpitMeasBody"></div>
+</div>
+<div class="cockpit-section">
+<div class="cockpit-section-head"><b>📏 Ausmass</b><span id="cockpitAmCount" class="cockpit-count">–</span></div>
+<div class="bar"><button class="blue" data-cockpit-open="am">Öffnen</button><button class="gray" data-cockpit-new="am">＋ Neu</button></div>
+<div class="report-list" id="cockpitAmBody"></div>
+</div>
+<div class="cockpit-section">
+<div class="cockpit-section-head"><b>📋 Regierapport</b><span id="cockpitRepCount" class="cockpit-count">–</span></div>
+<div class="bar"><button class="blue" data-cockpit-open="rep">Öffnen</button><button class="gray" data-cockpit-new="rep">＋ Neu</button></div>
+<div class="report-list" id="cockpitRepBody"></div>
+</div>
+<div class="cockpit-section">
+<div class="cockpit-section-head"><b>📎 Dateien/Fotos</b><span id="cockpitFilesCount" class="cockpit-count">–</span></div>
+<div class="bar"><button class="blue" data-cockpit-open="files">Öffnen</button></div>
+<div class="report-list" id="cockpitFilesBody"></div>
+</div>
 </div>
 <div class="card">
 <h2>🕒 Verlauf</h2>
 <div class="small" id="cockpitLastActivity"></div>
 <div class="bar"><button id="cockpitVerlaufToggle" class="gray">🕒 Verlauf anzeigen</button></div>
 <div class="report-list" id="cockpitVerlaufBody"></div>
-<div class="bar"><button id="cockpitBack" class="green">✓ Fertig</button><button id="cockpitStart" class="gray">🏠 Start</button></div>
+<div class="bar"><button id="cockpitBack" class="green">↩️ Zurück zur Projektübersicht</button><button id="cockpitStart" class="gray">🏠 Start</button></div>
 </div>
 </div>
 </div>
