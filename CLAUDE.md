@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.35, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.36, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.35**
+- sichtbare App-Version: **2.36**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -5292,3 +5292,193 @@ weiterhin `insufficient_privilege`. Keine Regression seit v2.30/v2.33.
 - Feste 50er-Obergrenze weiterhin ohne echte Paginierung.
 - Die in Abschnitt 38.6 dokumentierte Platzhalterzeilen-Häufung bleibt
   unverändert offen.
+
+## 44. ÄNDERUNGSVERLAUF – FOTO-/SKIZZEN-AKTIONEN — VERSION 2.36
+
+Schliesst den seit Abschnitt 38.6 offenen Punkt: Foto- und Skizzen-
+Aktionen erzeugten bisher nur unspezifische „Massaufnahme geändert"-
+Einträge. Sie werden jetzt als eigene, fachlich verständliche Aktionen
+protokolliert – **ausschliesslich aus der tatsächlichen Spaltenänderung
+abgeleitet**, nicht aus UI-Klicks.
+
+### 44.1 Tatsächlicher Speicherablauf (frisch aus dem Code ermittelt)
+
+Fotos und Skizzen liegen **nicht** in `measurements.data` und **nicht**
+in einer eigenen Tabelle, sondern als Storage-Referenzen in drei Spalten
+der `measurements`-Zeile selbst:
+
+| Spalte | Typ | Inhalt |
+|---|---|---|
+| `photo_path` | `text`, nullable | Speicherpfad des einen Fotos, `NULL` = kein Foto |
+| `sketch_paths` | `jsonb`, NOT NULL, Default `'[]'` | Array aller Skizzenpfade |
+| `sketch_path` | `text`, nullable | Altfeld: erste Skizze, aus der Zeit vor `sketch_paths` |
+
+Ablauf beim Speichern (`js/16-massaufnahme-formular.js`,
+`$("saveMeasurement").onclick`): zuerst werden neue Bilder in den
+Storage hochgeladen (`uploadMeasurementImage()`), danach wird **eine
+einzige** `measurements`-Zeile geschrieben, deren `photo_path`/
+`sketch_path`/`sketch_paths` die Pfade enthalten. Per Grep bestätigt:
+`from("measurements").update(...)` existiert genau **einmal** im ganzen
+Projekt – es gibt keinen zweiten Schreibweg, der diese Spalten
+verändern könnte.
+
+Löschen im Formular ändert nur den Client-Zustand
+(`$("measPhotoRemove")` setzt `measPhotoDataUrl`/`measExistingPhotoUrl`
+auf `null`, `[data-remove-sketch]` entfernt den Eintrag aus
+`measSketches`); wirksam wird es erst mit demselben einen UPDATE.
+
+### 44.2 Erkennungslogik (serverseitig, in `write_audit_log()`)
+
+Migration `audit_log_photo_sketch_actions_v2_36`. Im bestehenden
+AFTER-UPDATE-Zweig für `entity_type='measurement'`:
+
+- **Foto**: `nullif(new.photo_path,'')` gegen `nullif(old.photo_path,'')`.
+  `0→1` = hinzugefügt, `1→0` = gelöscht, sonst (anderer Pfad bei
+  vorhandenem Foto) = ersetzt. Leerstring und `NULL` gelten bewusst als
+  dasselbe, damit ein `''→NULL` keinen Scheineintrag erzeugt.
+- **Skizzen**: verglichen wird nicht `sketch_paths` roh, sondern die
+  **effektive** Liste nach exakt derselben Ersatzregel, die auch der
+  Client beim Öffnen verwendet (`js/10-massaufnahme.js`: `sketch_paths`,
+  sonst ersatzweise `[sketch_path]`, sonst leer). Ohne diese Regel würde
+  das blosse Neuspeichern einer alten Massaufnahme, bei der nur das
+  Altfeld `sketch_path` gefüllt war, fälschlich als „Skizze
+  hinzugefügt" erscheinen – **empirisch als Testfall abgesichert**
+  (44.4, Fall „Legacy").
+
+### 44.3 Neue Aktionen – nur bei Eindeutigkeit
+
+`audit_log_action_check` erweitert um `photo_added`, `photo_deleted`,
+`sketch_added`, `sketch_deleted`. Die bestehenden vier Werte
+(`created`/`updated`/`deleted`/`status_changed`) sind unverändert.
+
+Eine spezifische Aktion wird **nur** gesetzt, wenn `v_changes` genau
+einen Eintrag enthält – das bedeutet zugleich: kein anderes Fachfeld und
+nicht auch noch die jeweils andere Bildart war betroffen. Sonst bleibt
+es bei `updated`, und das Ereignis erscheint als Detailzeile. Damit ist
+der im Auftrag (Abschnitt 26 F) geforderte Mischfall
+„Foto + Massänderung" nachvollziehbar statt irreführend:
+
+| Situation | action | changes |
+|---|---|---|
+| nur Foto neu | `photo_added` | `[{photo,0,1}]` |
+| nur Foto weg | `photo_deleted` | `[{photo,1,0}]` |
+| nur Skizze(n) dazu | `sketch_added` | `[{sketches,alt,neu}]` |
+| nur Skizze(n) weg | `sketch_deleted` | `[{sketches,alt,neu}]` |
+| Foto ersetzt | `updated` | `[{photo,1,1}]` |
+| Skizze bearbeitet (gleiche Anzahl) | `updated` | `[{sketches,n,n}]` |
+| Foto + Massänderung | `updated` | beide Einträge |
+
+`changes` enthält ausschliesslich **Anwesenheit (0/1) bzw. Anzahl** –
+niemals einen Speicherpfad, keine URL, keinen Dateinamen (Auftrag
+Abschnitt 16). Dateinamen werden fachlich gar nicht gespeichert, es gibt
+also keinen anzeigbaren Namen; das ist bewusst so belassen.
+
+### 44.4 Atomarität und Grenzen (offen dokumentiert)
+
+Der Audit-Eintrag entsteht wie seit v2.30 im **AFTER**-Trigger derselben
+Transaktion wie die Zeilenänderung: kein Eintrag ohne erfolgreiche
+Datenänderung. Der Storage-Upload liegt davor und ist bewusst **nicht**
+Audit-Quelle (Auftrag Abschnitt 8/9) – eine hochgeladene, aber nie
+verknüpfte Datei erzeugt korrekterweise keinen Eintrag.
+
+Bewusste Grenzen:
+- **Ersetzen/Bearbeiten** bekommt keine eigene Aktion (der Auftrag nennt
+  nur vier Namen); es bleibt `updated` mit der Detailzeile
+  „Foto: ersetzt" bzw. „Skizzen: bearbeitet (n)".
+- **Foto und Skizzen im selben Speichervorgang** (beim ersten Speichern
+  einer neuen Skizze/Foto-Massaufnahme häufig) ergeben bewusst
+  `updated` mit beiden Detailzeilen, weil keine der vier Aktionen den
+  Fall allein korrekt beschreibt.
+- Die **Anzahl** ist nur für Skizzen aussagekräftig (`sketch_paths` ist
+  eine Liste); `photo_path` ist ein Einzelwert, deshalb gibt es kein
+  „3 Fotos hinzugefügt".
+
+### 44.5 Platzhalterzeilen (Abschnitt 38.6) – deutlich verbessert
+
+Beim ersten Speichern einer neuen Foto-/Skizzen-Massaufnahme legt
+`js/16-massaufnahme-formular.js` zuerst eine Platzhalterzeile an (um die
+ID für den Storage-Pfad zu bekommen) und aktualisiert sie danach. Das
+ergab bisher `created` + ein nichtssagendes `updated`. Der zweite
+Eintrag ist jetzt `photo_added` bzw. `sketch_added` (oder, bei Foto und
+Skizze gleichzeitig, `updated` **mit** beiden Detailzeilen) – die
+Häufung bleibt zahlenmässig bestehen, ist aber inhaltlich verständlich.
+**Keine rückwirkende Änderung oder Löschung alter `audit_log`-Daten**
+(Auftrag Abschnitt 10/30): alte Einträge bleiben exakt wie sie sind, nur
+neue Einträge ab v2.36 sind spezifischer.
+
+### 44.6 Frontend (`js/23-verlauf.js`)
+
+- Vier neue Übersetzungen in `VERLAUF_ACTION_LABELS`
+  („Foto hinzugefügt"/„Foto gelöscht"/„Skizze hinzugefügt"/
+  „Skizze gelöscht").
+- `verlaufBildWert()` formuliert die Detailzeile fachlich statt „0 → 1";
+  sie wird **weggelassen**, wenn der Aktions-Badge bereits exakt dasselbe
+  aussagt (z. B. `photo_added` + `{photo,0,1}`), und bleibt erhalten,
+  wo sie zusätzliche Information trägt („3 hinzugefügt (0 → 3)",
+  „ersetzt", „bearbeitet (2)").
+- Neuer Filter-Knopf „Foto/Skizze" fasst die vier Aktionen zusammen
+  (`VERLAUF_BILD_ACTIONS`), damit sie nicht nur unter „Alle" auffindbar
+  sind. Die bestehenden Filter (Aktion/Entität, frei kombinierbar) sind
+  unverändert.
+- Zeitformat: Datum und Uhrzeit ohne eigenen Mittelpunkt, weil der
+  Trenner jetzt zwischen Name und Zeitpunkt steht
+  („🕒 Max Muster · 01.09.2026 19:42", Auftrag Abschnitt 22).
+
+### 44.7 Tests (alle in `begin;…rollback;`, Wegwerf-Firmen, nie PETER KÜNZI AG)
+
+| Fall | Ergebnis |
+|---|---|
+| A Foto hinzufügen | `photo_added`, `[{photo,0,1}]` |
+| B Foto löschen | `photo_deleted`, `[{photo,1,0}]` |
+| C eine Skizze hinzufügen | `sketch_added`, `[{sketches,0,1}]` |
+| D eine Skizze löschen | `sketch_deleted`, `[{sketches,2,1}]` |
+| E normale Massänderung | unverändert `updated` + `[{massA,1200,1350}]` |
+| F Foto + Massänderung | `updated` + **beide** Einträge |
+| G drei Skizzen auf einmal | `sketch_added`, `[{sketches,0,3}]` → UI „3 hinzugefügt (0 → 3)" |
+| Legacy `sketch_path`→`sketch_paths` | `changes=NULL`, **kein** Scheinereignis |
+| Foto ersetzt (anderer Pfad) | `updated`, `[{photo,1,1}]` → UI „ersetzt" |
+| H Cross-Tenant (Firma B kennt project_id/entity_id) | 0 sichtbare Zeilen |
+| I Client fälscht `photo_added` direkt in `audit_log` | `insufficient_privilege` |
+| J Mitarbeiter gelöscht | Skizzen-Ereignis bleibt erhalten, `user_id` wird `NULL` → UI „Unbekannter Benutzer" |
+
+Zusätzlich per Node-Harness gegen exakt diese Datenbank-Payloads
+geprüft, dass die UI daraus die richtigen Texte erzeugt (Badge +
+Detailzeile, keine redundante Doppelaussage, keine Pfade).
+
+Nach allen Transaktionen erneut geprüft: keine Wegwerf-Firmen, keine
+Testdatensätze, `audit_log` weiterhin insgesamt 0 Zeilen, Mitarbeiter
+wieder vorhanden, PETER KÜNZI AG (`updated_at`) unverändert.
+
+### 44.8 Regressionstest
+
+- `node --check` über alle `js/*.js` und `sw.js`: fehlerfrei.
+- `<div>`/`</div>`-Zählung in `index.html`: unverändert 612/612 (kein
+  HTML geändert).
+- `git diff --stat`: nur `js/23-verlauf.js`, `index.html` (Versionstext),
+  `sw.js` (Cache-Version) und `CLAUDE.md` – **keine** der neun
+  Massaufnahme-Fachdateien (`js/11-…` bis `js/21-…`), keine Berechnung,
+  kein Speichermodell, keine PDF-Logik angefasst.
+- Service Worker: `js/23-verlauf.js` ist seit v2.31 in der SHELL-Liste,
+  keine neue Datei – nur die Cache-Version hochgezählt.
+- RLS/Grants unverändert; die vier neuen Aktionen können ausschliesslich
+  vom `SECURITY DEFINER`-Trigger geschrieben werden.
+- Live-Klicktest im Browser weiterhin nicht möglich (Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`).
+  **Das wird hier ausdrücklich nicht als getestet behauptet.** Alle
+  Ergebnisse stammen aus direkten Trigger-/RLS-Simulationen gegen das
+  echte Produktivschema plus dem UI-Harness.
+
+### 44.9 Offene Punkte für v2.37
+
+- Kein Live-Klicktest im Browser möglich (siehe 44.8).
+- Kein eigener Ereignisname für „Foto ersetzt" / „Skizze bearbeitet"
+  und für den Mischfall Foto+Skizze (bewusst, siehe 44.4).
+- Dateinamen werden weiterhin nicht gespeichert und deshalb nicht
+  angezeigt; dafür müsste das Speichermodell erweitert werden.
+- Array-Strukturen der Massaufnahme (Stücke/Segmente/Scharen) bleiben
+  unverändert ohne Detail-Diff (v2.34, Klasse C), ebenso die
+  Anschlussblech-Varianten (v2.35, Klasse B).
+- `ausmass.photo_path`/`photo_paths` haben dieselbe Struktur wie bei den
+  Massaufnahmen; eine analoge Foto-Erkennung für Ausmasse wäre technisch
+  möglich, war aber nicht Teil dieses Auftrags (dort ist bisher nur der
+  Kopfdaten-Diff aus v2.33 aktiv).

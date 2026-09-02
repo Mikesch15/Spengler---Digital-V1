@@ -14,7 +14,14 @@
 // Report gemeinsam zeigt; die bestehenden direkten Einzel-Verläufe
 // (entity_type+entity_id) bleiben davon unberührt und unverändert.
 
-const VERLAUF_ACTION_LABELS={created:"Erstellt",updated:"Geändert",deleted:"Gelöscht",status_changed:"Status geändert"};
+const VERLAUF_ACTION_LABELS={created:"Erstellt",updated:"Geändert",deleted:"Gelöscht",status_changed:"Status geändert",
+ // v2.36: eigene Aktionen für eindeutige Foto-/Skizzen-Ereignisse (siehe
+ // CLAUDE.md Abschnitt 44) - serverseitig aus der tatsächlichen
+ // Spaltenänderung abgeleitet, nie vom Client gesetzt.
+ photo_added:"Foto hinzugefügt",photo_deleted:"Foto gelöscht",
+ sketch_added:"Skizze hinzugefügt",sketch_deleted:"Skizze gelöscht"};
+// Aktionen, die der Filter "Foto/Skizze" zusammenfasst.
+const VERLAUF_BILD_ACTIONS=["photo_added","photo_deleted","sketch_added","sketch_deleted"];
 const VERLAUF_ENTITY_LABELS={project:"Projekt",measurement:"Massaufnahme",ausmass:"Ausmass",report:"Regierapport"};
 // v2.35: dieselben Symbole, die bereits in den jeweiligen Hauptbereichen
 // verwendet werden (index.html: "📁 Projekte", "📐 Massaufnahme",
@@ -43,7 +50,10 @@ const VERLAUF_FIELD_LABELS={
   hoehe:"Höhe",laengeOben:"Länge oben",achsabstand:"Achsabstand",hilfsrissWunsch:"Hilfsriss unter Oberkante",seite:"Seite",
   deckung:"Eindeckung / Deckmaterial",art:"Anschlussart",ausfuehrung:"Ausführung",saum:"Umschlag am Blechende",
   stossLaenge:"Stücklänge",ueberlappung:"Überlappung am Stoss",lattenabstand:"Lattenabstand",firstgehrung:"Firstgehrung",
-  durchmesser:"Rohrdurchmesser",a:"Mass a",b:"Mass b",c:"Mass c"
+  durchmesser:"Rohrdurchmesser",a:"Mass a",b:"Mass b",c:"Mass c",
+  // v2.36: Foto/Skizzen - die Werte sind bewusst nur Anwesenheit (0/1)
+  // bzw. Anzahl, nie ein Speicherpfad (Auftrag Abschnitt 16).
+  photo:"Foto",sketches:"Skizzen"
  },
  ausmass:{title:"Bezeichnung",date:"Datum",note:"Notiz"},
  report:{date:"Datum",order_no:"Auftrags-Nr.",customer:"Auftraggeber",object:"Objekt / Gebäudeteil",vat:"MWST"}
@@ -84,7 +94,7 @@ function verlaufFormatWann(iso){
  const d=new Date(iso);
  const datum=d.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
  const zeit=d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
- return `${datum} · ${zeit}`;
+ return `${datum} ${zeit}`;
 }
 
 // Werte benutzerfreundlich darstellen: NULL/leer → "–", Datumsfelder im
@@ -122,19 +132,48 @@ function verlaufFormatDiffValue(field,v){
 // Fliesstext - bleibt auf Smartphone/Tablet umbruchfähig (Auftrag
 // Abschnitt 15: kein horizontales Scrollen), liest sich auf breiteren
 // Bildschirmen tabellenartig wie im Auftragsbeispiel (Abschnitt 8).
+// v2.36: Foto-/Skizzen-Einträge fachlich formulieren statt "0 → 1".
+// Ein solcher Eintrag existiert nur, wenn sich tatsächlich etwas geändert
+// hat - deshalb bedeutet Foto 1→1 eindeutig "ersetzt" und Skizzen n→n
+// "bearbeitet". Rückgabe null = Zeile weglassen, weil der Aktionstext
+// (Badge) bereits exakt dasselbe aussagt.
+function verlaufBildWert(row,c){
+ if(c.field==="photo"){
+  if(c.old===0&&c.new===1)return (row.action==="photo_added")?null:"hinzugefügt";
+  if(c.old===1&&c.new===0)return (row.action==="photo_deleted")?null:"gelöscht";
+  return "ersetzt";
+ }
+ const alt=Number(c.old)||0,neu=Number(c.new)||0,d=Math.abs(neu-alt);
+ if(neu>alt){
+  if(d===1&&row.action==="sketch_added")return null;
+  return `${d} hinzugefügt (${alt} → ${neu})`;
+ }
+ if(neu<alt){
+  if(d===1&&row.action==="sketch_deleted")return null;
+  return `${d} gelöscht (${alt} → ${neu})`;
+ }
+ return `bearbeitet (${neu})`;
+}
+
 function verlaufChangesHtml(row){
  if(!Array.isArray(row.changes)||!row.changes.length)return "";
  const labels=VERLAUF_FIELD_LABELS[row.entity_type]||{};
- const lines=row.changes.map(c=>{
+ const lines=[];
+ row.changes.forEach(c=>{
   let wert;
   if(row.action==="status_changed"&&c.field==="archived"){
    wert=`${esc(c.old?"Archiviert":"Aktiv")} → ${esc(c.new?"Archiviert":"Aktiv")}`;
+  }else if(row.entity_type==="measurement"&&(c.field==="photo"||c.field==="sketches")){
+   const text=verlaufBildWert(row,c);
+   if(text===null)return;
+   wert=esc(text);
   }else{
    wert=`${esc(verlaufFormatDiffValue(c.field,c.old))} → ${esc(verlaufFormatDiffValue(c.field,c.new))}`;
   }
   const label=labels[c.field]||c.field;
-  return `<div class="verlauf-change-row"><span class="verlauf-change-label">${esc(label)}</span><span class="verlauf-change-value">${wert}</span></div>`;
+  lines.push(`<div class="verlauf-change-row"><span class="verlauf-change-label">${esc(label)}</span><span class="verlauf-change-value">${wert}</span></div>`);
  });
+ if(!lines.length)return "";
  return `<div class="verlauf-entry-changes">${lines.join("")}</div>`;
 }
 
@@ -177,7 +216,10 @@ function renderVerlaufFiltered(box){
  const list=box.querySelector(".verlauf-entries");
  if(!st||!list)return;
  let rows=st.rows;
- if(st.actionFilter!=="alle")rows=rows.filter(r=>r.action===st.actionFilter);
+ // "bild" fasst die vier v2.36-Foto-/Skizzen-Aktionen zusammen, damit sie
+ // nicht nur unter "Alle" auffindbar sind (Auftrag Abschnitt 23).
+ if(st.actionFilter==="bild")rows=rows.filter(r=>VERLAUF_BILD_ACTIONS.indexOf(r.action)>=0);
+ else if(st.actionFilter!=="alle")rows=rows.filter(r=>r.action===st.actionFilter);
  if(st.entityFilter&&st.entityFilter!=="alle")rows=rows.filter(r=>r.entity_type===st.entityFilter);
  list.innerHTML=rows.length?rows.map(r=>verlaufEntryHtml(r,st.combined)).join(""):'<div class="empty">Keine Einträge für diesen Filter.</div>';
 }
@@ -197,6 +239,7 @@ function verlaufFiltersHtml(withEntityFilter){
 <button type="button" class="gray" data-verlauf-filter="updated">Geändert</button>
 <button type="button" class="gray" data-verlauf-filter="deleted">Gelöscht</button>
 <button type="button" class="gray" data-verlauf-filter="status_changed">Status geändert</button>
+<button type="button" class="gray" data-verlauf-filter="bild">Foto/Skizze</button>
 </div>`;
 }
 
