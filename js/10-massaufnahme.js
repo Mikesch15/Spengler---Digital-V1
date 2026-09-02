@@ -384,6 +384,7 @@ function newMeasurementWithType(type){
  $("anb_material").value="";
  einfFormularZuruecksetzen();
  $("einf_material").value="";
+ kehleFormularZuruecksetzen();
  setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
@@ -482,6 +483,7 @@ function openMeasurement(m){
  $("anb_material").value=(m.type==="anschlussblech"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
  einfFormularFuellen(m.type==="einfassung_rund"?d:null);
  $("einf_material").value=(m.type==="einfassung_rund"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
+ kehleFormularFuellen(m.type==="kehle"?d:null);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
  updateMeasFormTitle();

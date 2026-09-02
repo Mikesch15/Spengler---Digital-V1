@@ -9,6 +9,7 @@ function showMeasTypeSection(type){
  $("measTypeLukarne").hidden=(type!=="lukarne");
  $("measTypeAnschlussblech").hidden=(type!=="anschlussblech");
  $("measTypeEinfassungRund").hidden=(type!=="einfassung_rund");
+ $("measTypeKehle").hidden=(type!=="kehle");
  if(type==="einlaufblech_gerade")renderEbPiecesTable();
  if(type==="rinne_halbrund")renderRinneResult();
  if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
@@ -17,6 +18,7 @@ function showMeasTypeSection(type){
  if(type==="lukarne")renderLukResult();
  if(type==="anschlussblech")renderAnbResult();
  if(type==="einfassung_rund")renderEinfResult();
+ if(type==="kehle")renderKehleResult();
 }
 $("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
 $("openEinlaufblechSettings").onclick=()=>{
@@ -138,6 +140,22 @@ function buildMeasurementFromForm(){
    material:$("einf_material").value
   }};
  }
+ if(type==="kehle"){
+  // Nur die drei Eingaben sind Nutzereingabe; die Excel-Resultate werden
+  // mitgespeichert, damit ein spaeter gedrucktes PDF unveraendert bleibt
+  // (gleiches Vorgehen wie bei Anschlussblech/Einfassung Rund).
+  const e=kehleEingabenAusFeldern();
+  const g=kehleBerechnen(e);
+  const werte={};
+  if(g&&g.ok)["Q","R","S","T","tanU","tanV","U","V","U90","V90","W","A","X","Y","Z","AA","AB","AC","AD","AE",
+   "b","c","d","e","f","g","h","i","k","l","m","n","o","p","mitte"].forEach(k=>{werte[k]=g[k]});
+  return {...base,photo_path:null,sketch_paths:[],data:{
+   nh:e.nh===""?null:Number(e.nh),
+   nl:e.nl===""?null:Number(e.nl),
+   gl:e.gl===""?null:Number(e.gl),
+   ...werte
+  }};
+ }
  return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{material:$("foto_material")?$("foto_material").value:""}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(Object.assign(buildMeasurementFromForm(),currentMeasurementMeta));
@@ -183,6 +201,10 @@ $("saveMeasurement").onclick=async()=>{
   const e=einfEingabenAusFeldern();
   if(!(Number(e.durchmesser)>0)){alert("Bitte den Rohrdurchmesser eingeben.");return}
   if(!(Number(e.a)>0)||!(Number(e.c)>0)){alert("Bitte mindestens die Masse a und c eingeben.");return}
+ }
+ if(type==="kehle"){
+  const g=kehleBerechnen(kehleEingabenAusFeldern());
+  if(!g.ok){alert(g.fehler.join("\n"));return}
  }
  $("saveMeasurement").disabled=true;
  let platzhalterId=null; // falls hier eine Zeile nur für die Ordner-ID angelegt wird
@@ -754,6 +776,50 @@ ${segmente.map((seg,i)=>`<div style="margin-top:3mm">
 }).join("")}</tbody>
 </table>
 </div>`).join("")}
+${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="kehle"){
+  // Ohne eigenen Zweig faende die Kehle in den allgemeinen Foto-Zweig
+  // und wuerde ein Blatt ganz ohne Zahlen drucken. Deshalb hier eine
+  // reine Ausgabe der bereits berechneten Werte - keine Aenderung an
+  // einem der neun bestehenden Druckzweige.
+  const d=m.data||{};
+  const erg=kehleBerechnen(d);
+  const wert=k=>{
+   const v=(d[k]!==undefined&&d[k]!==null)?d[k]:(erg&&erg.ok?erg[k]:null);
+   return esc(kehleWert(k,Number(v)));
+  };
+  extraCss=`
+ .eb-section-head{background:#17202a;color:#fff;font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2mm 3mm;margin:4mm 0 0}
+ .eb-info-table{width:100%;border-collapse:collapse;border:.5pt solid #aeb7bf;table-layout:fixed}
+ .eb-info-table td{border:.5pt solid #c5cbd0;padding:2mm 2.5mm;vertical-align:top;width:33.33%}
+ .eb-info-table label{display:block;font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#68737d;margin:0 0 .7mm}
+ .eb-info-table .val{font-size:7.5pt;font-weight:700;color:#17202a}
+ table.eb-cutlist{width:100%;border-collapse:collapse;margin-top:2mm;border:.5pt solid #cbd4d9}
+ .eb-cutlist th{background:#17202a;color:#fff;text-align:left;font-size:8.5pt;padding:2.8mm 3mm;text-transform:uppercase;letter-spacing:.03em}
+ .eb-cutlist td{padding:2.6mm 3mm;border-bottom:.5pt solid #e2e8ec;font-size:10pt}
+ .eb-cutlist tbody tr:nth-child(even) td{background:#f7fafc}
+ .kehle-print-haupt{border:1.2pt solid #17202a;border-radius:2mm;padding:3mm 4mm;margin:3mm 0}
+ .kehle-print-haupt div{display:flex;align-items:baseline;gap:3mm;padding:1.2mm 0}
+ .kehle-print-haupt .bu{font-size:14pt;font-weight:800;width:8mm}
+ .kehle-print-haupt .wert{font-size:16pt;font-weight:800;width:26mm;text-align:right}
+ .kehle-print-haupt .txt{font-size:8pt;color:#68737d}`;
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  bodyHtml=`<h1>${esc(m.title||"Massaufnahme")}</h1>
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Projekt",esc(proj?proj.name:"\u2013"))}${cell("Datum",esc(m.date||"\u2013"))}${cell("Funktion",esc(typeLabels[m.type]||m.type))}</tr>
+<tr>${cell("Neigung Hauptdach (NH)",esc(d.nh!==undefined&&d.nh!==null?d.nh+"\u00b0":"\u2013"))}${cell("Neigung Lukarne (NL)",esc(d.nl!==undefined&&d.nl!==null?d.nl+"\u00b0":"\u2013"))}${cell("Gef\u00e4llsl\u00e4nge Lukarne (GL)",esc(d.gl!==undefined&&d.gl!==null?d.gl+" mm":"\u2013"))}</tr>
+<tr>${cell("Sachbearbeiter",sachbearbeiter)}${cell("","")}${cell("","")}</tr>
+</table>
+<div class="eb-section-head">Hauptresultate</div>
+<div class="kehle-print-haupt">
+${["b","c","d"].map(k=>`<div><span class="bu">${k}</span><span class="wert">${wert(k)}</span><span class="txt">${esc(KEHLE_LABELS[k])}</span></div>`).join("")}
+</div>
+<div class="eb-section-head">Weitere Resultate</div>
+<table class="eb-cutlist">
+<thead><tr><th style="width:10%">Zeichen</th><th>Bezeichnung</th><th style="width:22%">Wert</th></tr></thead>
+<tbody>${["A","e","f","g","h","i","k","l","m","n","o","p"].map(k=>`<tr><td>${k}</td><td>${esc(KEHLE_LABELS[k])}</td><td>${wert(k)}</td></tr>`).join("")}</tbody>
+</table>
 ${m.note?`<div class="note">${esc(m.note)}</div>`:""}`;
  }else{
   const d=m.data||{};

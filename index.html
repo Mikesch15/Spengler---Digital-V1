@@ -92,7 +92,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.51</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.52</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -111,6 +111,7 @@
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="lukarne"><span class="start-nav-icon">🏚️</span><span>Lukarne Seitenverkleidung</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="anschlussblech"><span class="start-nav-icon">📐</span><span>Ort- und Seitenbleche</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="einfassung_rund"><span class="start-nav-icon">⭕</span><span>Einfassung Rund</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="kehle"><span class="start-nav-icon">📏</span><span>Kehle</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
 <button id="cancelMeasTypeChooser" class="gray">Abbrechen</button>
@@ -613,7 +614,7 @@ Diese Aktion löscht unwiderruflich:
 <button type="button" id="measVerlaufToggle" class="gray" style="margin-bottom:8px" hidden>🕒 Verlauf anzeigen</button>
 <div id="measVerlaufBody" class="report-list"></div>
 <div class="grid" style="margin-bottom:8px">
-<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="anschlussblech">Ort- und Seitenbleche</option><option value="einfassung_rund">Einfassung Rund</option></select></div>
+<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="anschlussblech">Ort- und Seitenbleche</option><option value="einfassung_rund">Einfassung Rund</option><option value="kehle">Kehle</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
 <div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
@@ -857,6 +858,20 @@ Diese Aktion löscht unwiderruflich:
 <div id="einf_warnung" class="small"></div>
 <h2 style="margin-top:14px">Ergebnis</h2>
 <div class="grid" id="einf_ergebnis"></div>
+</div>
+
+<div id="measTypeKehle" hidden>
+<div class="info">Winkelberechnung f&uuml;r Kehlen an Lukarnen. Die Berechnung entspricht exakt der Vorlage &bdquo;Winkel zu Kehlen Lukarne MA&ldquo; &ndash; es werden nur die drei Eingaben unten ben&ouml;tigt. Winkel in &deg;, L&auml;ngen in mm.</div>
+<div class="grid">
+<div><label>Neigung Hauptdach &middot; NH (&deg;)</label><input id="kehle_nh" type="number" step="0.1" inputmode="decimal"></div>
+<div><label>Neigung Lukarne &middot; NL (&deg;)</label><input id="kehle_nl" type="number" step="0.1" inputmode="decimal"></div>
+<div><label>Gef&auml;llsl&auml;nge Lukarne &middot; GL (mm)</label><input id="kehle_gl" type="number" step="1" inputmode="decimal"></div>
+</div>
+<div id="kehle_hinweis" class="small" style="margin-top:6px"></div>
+<div id="kehle_haupt" class="kehle-haupt"></div>
+<h2 style="margin-top:14px">Weitere Resultate</h2>
+<div id="kehle_weitere"></div>
+<div id="kehle_zwischen" style="margin-top:10px"></div>
 </div>
 
 
@@ -1386,6 +1401,7 @@ Diese Aktion löscht unwiderruflich:
 <script src="js/22-system-admin.js"></script>
 <script src="js/23-verlauf.js"></script>
 <script src="js/24-projekt-cockpit.js"></script>
+<script src="js/25-kehle.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>
 </html>
