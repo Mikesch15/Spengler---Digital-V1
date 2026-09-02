@@ -72,13 +72,14 @@
 <div class="small" id="startCompanyLine" style="margin:-8px 0 10px"></div>
 <div class="card">
 <h2>Was möchtest du tun?</h2>
+<!-- v2.44: Regierapport/Massaufnahme/Ausmass sind keine eigenen
+     Starteinstiege mehr. Diese Arbeiten gehoeren zu einem Projekt und
+     werden ueber Projekte -> Projekt oeffnen -> Cockpit gestartet.
+     Die Module selbst und ihre Uebersichts-Modals bleiben unveraendert. -->
 <div class="start-nav">
-<button type="button" class="start-nav-btn blue" id="navReport"><span class="start-nav-icon">📋</span><span>Regierapport</span></button>
-<button type="button" class="start-nav-btn blue" id="navMeasurements"><span class="start-nav-icon">📐</span><span>Massaufnahme</span></button>
-<button type="button" class="start-nav-btn blue" id="navAusmass"><span class="start-nav-icon">📏</span><span>Ausmass</span></button>
+<button type="button" class="start-nav-btn blue" id="startOpenProjects"><span class="start-nav-icon">📁</span><span>Projekte</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
-<button id="startOpenProjects" class="gray">📁 Projekte</button>
 <button id="openGlobalSearch" class="gray">🔍 Suche</button>
 <button id="settings" class="gray">⚙️ Einstellungen</button>
 </div>
@@ -91,7 +92,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.43</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.44</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -143,6 +144,9 @@
 
 <div class="brand">SPENGLER-DIGITAL</div>
 <h1>Regierapport</h1>
+<!-- Objektadresse als Haupttitel am Bildschirm (v2.44). Bewusst
+     .no-print: die gedruckte Kopfzeile bleibt unveraendert. -->
+<div class="no-print report-adresse" id="reportAddressLine"></div>
 
 <div class="card">
 <h2>Regieauftrag</h2>

@@ -180,6 +180,41 @@ let works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:"",rateNa
 let mats=[];
 let selectedSheet=null,cuts=[{l:"",b:"",q:1}];
 
+// ---- Objektadresse eines Arbeitsdatensatzes (v2.44) -------------
+// Einzige Quelle ist projects.object - das Pflichtfeld "Adresse" des
+// Projekts. Weder measurements noch ausmass haben ein eigenes
+// Adressfeld, und reports.object ist "Objekt / Gebaeudeteil" und damit
+// etwas anderes. Es wird deshalb keine Adresse dupliziert und keine
+// neue Spalte gebraucht.
+function projektAdresse(projectId){
+ if(!projectId)return "";
+ const p=allProjects.find(x=>x.id===projectId);
+ return p?String(p.object||"").trim():"";
+}
+// Fallback-Regel (Auftrag v2.44, Abschnitt 4):
+//  1. Adresse des zugehoerigen Projekts
+//  2. vorhandene eigene Bezeichnung des Datensatzes (Massaufnahme/
+//     Ausmass: Titel, Regierapport: Objekt/Gebaeudeteil)
+//  3. "Ohne Adresse"
+// Erfunden wird nichts - Stufe 2 zeigt nur, was wirklich gespeichert ist.
+function eintragAdresse(row,ersatz){
+ const adr=projektAdresse(row&&row.project_id);
+ if(adr)return adr;
+ const e=String(ersatz==null?"":ersatz).trim();
+ return e||"Ohne Adresse";
+}
+// Zusatzzeile aus mehreren echten Angaben, leere Teile fallen weg.
+function infoZeile(...teile){
+ return teile.map(x=>String(x==null?"":x).trim()).filter(Boolean).join(" · ");
+}
+// Wie infoZeile(), laesst aber Angaben weg, die bereits der Haupttitel
+// sind - sonst stuende bei fehlender Projektadresse der Ersatztitel
+// zweimal untereinander (v2.44).
+function infoZeileOhne(haupttitel,...teile){
+ const h=String(haupttitel==null?"":haupttitel).trim();
+ return infoZeile(...teile.filter(x=>String(x==null?"":x).trim()!==h));
+}
+
 const $=id=>document.getElementById(id);
 // Verzögert wiederholte Aufrufe (Suchfelder, Auto-Speichern).
 function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}

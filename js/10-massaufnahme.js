@@ -391,7 +391,10 @@ function newMeasurementWithType(type){
 }
 function updateMeasFormTitle(){
  const h2=document.querySelector("#measurementEditModal h2");
- if(h2)h2.textContent=`📐 Massaufnahme – ${MEAS_TYPE_LABELS[$("measType").value]||""}`;
+ // v2.44: Objektadresse als Haupttitel, Massaufnahme-Art direkt
+ // dahinter. Modals sind im Druck ausgeblendet (css/03-druck.css), die
+ // PDF-Ausgabe ist davon nicht betroffen.
+ if(h2)h2.textContent=`📐 ${eintragAdresse({project_id:measSelectedProjectId},$("measTitle").value)} · ${MEAS_TYPE_LABELS[$("measType").value]||""}`;
  // Dezente Ersteller-/Bearbeiter-Anzeige, wiederverwendet dieselbe Logik
  // wie der PDF-Briefkopf (erstelltGeaendertText(), js/16-massaufnahme-
  // formular.js) - siehe CLAUDE.md 36.

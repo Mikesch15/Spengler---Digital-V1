@@ -219,7 +219,10 @@ function newAusmassWithType(type){
 function updateAmFormTitle(){
  const labels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
  const h2=document.querySelector("#ausmassEditModal h2");
- if(h2)h2.textContent=`📏 Ausmass – ${labels[$("amType").value]||""}`;
+ // v2.44: Objektadresse als Haupttitel, Ausmass-Art direkt dahinter.
+ // Modals sind im Druck ausgeblendet (css/03-druck.css), die PDF-Ausgabe
+ // ist davon nicht betroffen.
+ if(h2)h2.textContent=`📏 ${eintragAdresse({project_id:amSelectedProjectId},$("amTitle").value)} · ${labels[$("amType").value]||""}`;
  // Dezente Ersteller-/Bearbeiter-Anzeige, wiederverwendet dieselbe Logik
  // wie bei Massaufnahmen (erstelltGeaendertText(), js/16-massaufnahme-
  // formular.js) - siehe CLAUDE.md 36/37.
@@ -328,7 +331,7 @@ async function renderAusmassOverview(){
   const thumbHtml=thumb?`<img class="meas-thumb" data-signed-src="${esc(thumb)}" loading="lazy">`:`<div class="meas-thumb meas-thumb-empty" style="font-size:10px">${posCount} Pos.</div>`;
   return `<div class="meas-row">
 ${thumbHtml}
-<div class="meas-row-info"><b>Ausmass (${esc(typeLabels[a.type]||a.type)})</b><span>${esc(a.title||"Ohne Titel")} · ${esc(proj?proj.name:"Kein Projekt")} · ${esc(a.date||"–")}</span></div>
+<div class="meas-row-info"><b>${esc(eintragAdresse(a,a.title))}</b><span>${esc(infoZeileOhne(eintragAdresse(a,a.title),typeLabels[a.type]||a.type,a.title,proj?proj.name:"Kein Projekt",a.date))}</span></div>
 <div class="meas-row-actions">
 <button class="blue" data-open-ausmass="${a.id}" title="Öffnen">✏️</button>
 <button class="gray" data-print-ausmass="${a.id}" title="Als PDF">🖨️</button>

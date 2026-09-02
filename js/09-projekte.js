@@ -16,6 +16,10 @@ function renderProjectSelect(){
  $("projectSearch").value=p?p.name:"";
  $("projectSelectedLabel").textContent=p?"":"Kein Projekt ausgewählt";
  $("printProjectLine").textContent=p?p.name:"";
+ // Objektadresse als Haupttitel am Bildschirm (v2.44). Die gedruckte
+ // Kopfzeile bleibt unveraendert - die Zeile ist .no-print.
+ const adr=$("reportAddressLine");
+ if(adr)adr.textContent=p?eintragAdresse({project_id:p.id},$("object")?$("object").value:""):"";
 }
 function renderProjectSuggest(q){
  const box=$("projectResults");
@@ -194,7 +198,7 @@ async function loadProjectAusmass(projectId){
  const typeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
  projectAusmassCache=list;
  box.innerHTML=list.length?list.map(a=>`<div class="report-row">
-<div class="report-row-info"><b>${esc(a.title||"Ohne Titel")}</b><span>${esc(typeLabels[a.type]||a.type)}${eintragZusatz(a)}</span></div>
+<div class="report-row-info"><b>${esc(eintragAdresse(a,a.title))}</b><span>${esc(infoZeileOhne(eintragAdresse(a,a.title),typeLabels[a.type]||a.type,a.title))}${eintragZusatz(a)}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-ausmass="${a.id}">Öffnen</button>
 <button class="gray" data-print-project-ausmass="${a.id}" title="Drucken">🖨️</button>
@@ -213,9 +217,10 @@ async function loadProjectReports(projectId){
  // Kopfdaten, die im Rapport ohnehin schon gespeichert sind (v2.39):
  // Datum als Titelzeile, darunter Auftrags-Nr./Auftraggeber/Objekt.
  box.innerHTML=list.length?list.map(r=>{
-  const kopf=[r.order_no,r.customer,r.object].map(x=>String(x||"").trim()).filter(Boolean).join(" · ");
+  // Adresse als Haupttitel (v2.44), Kopfdaten des Rapports darunter.
+  const kopf=infoZeileOhne(eintragAdresse(r,r.object),datumCH(r.date),r.order_no,r.customer,r.object);
   return `<div class="report-row">
-<div class="report-row-info"><b>${esc(datumCH(r.date)||"Ohne Datum")}</b><span>${esc(kopf||"Ohne Kopfdaten")}${eintragZusatz(r,true)}</span></div>
+<div class="report-row-info"><b>${esc(eintragAdresse(r,r.object))}</b><span>${esc(kopf||"Ohne Kopfdaten")}${eintragZusatz(r,true)}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-report="${r.id}">Öffnen</button>
 <button class="red" data-del-report="${r.id}" title="Löschen">×</button>
@@ -235,7 +240,7 @@ async function loadProjectMeasurements(projectId){
  // Titel zuerst - der Abschnitt heisst bereits "Massaufnahmen", die
  // Wiederholung in der Kopfzeile war verschenkter Platz (v2.39).
  box.innerHTML=list.length?list.map(m=>`<div class="report-row">
-<div class="report-row-info"><b>${esc(m.title||"Ohne Titel")}</b><span>${esc(typeLabels[m.type]||m.type)}${eintragZusatz(m)}</span></div>
+<div class="report-row-info"><b>${esc(eintragAdresse(m,m.title))}</b><span>${esc(infoZeileOhne(eintragAdresse(m,m.title),typeLabels[m.type]||m.type,m.title))}${eintragZusatz(m)}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>
 <button class="gray" data-print-project-measurement="${m.id}" title="Drucken">🖨️</button>
@@ -390,8 +395,17 @@ function openReport(r,returnTo){
  renderProjectSelect();
  renderMain();
 }
+// v2.44: Wird im Massaufnahme-/Ausmass-Formular interaktiv ein anderes
+// Projekt gewaehlt, muss der Haupttitel (die Objektadresse) mitwandern.
+// Diese Listener laufen nach den bestehenden Handlern in js/10 bzw.
+// js/17 - so bleibt die Aenderung ausserhalb der geschuetzten Fachdateien.
+$("measProjectResults").addEventListener("click",e=>{
+ if(e.target.closest("[data-pick-meas-project]"))updateMeasFormTitle();
+});
+$("amProjectResults").addEventListener("click",e=>{
+ if(e.target.closest("[data-pick-am-project]"))updateAmFormTitle();
+});
 $("startOpenProjects").onclick=()=>{renderProjectList();$("projectsModal").hidden=false};
-$("navMeasurements").onclick=async()=>{$("measurementsModal").hidden=false;await renderMeasurementsOverview()};
 $("newMeasurement").onclick=()=>{$("measurementsModal").hidden=true;$("measTypeChooserModal").hidden=false};
 $("cancelMeasTypeChooser").onclick=()=>{$("measTypeChooserModal").hidden=true;$("measurementsModal").hidden=false};
 $("measTypeChooserModal").addEventListener("click",e=>{
@@ -400,7 +414,6 @@ $("measTypeChooserModal").addEventListener("click",e=>{
  $("measTypeChooserModal").hidden=true;
  newMeasurementWithType(b.dataset.chooseMeasType);
 });
-$("navAusmass").onclick=async()=>{$("ausmassModal").hidden=false;await renderAusmassOverview()};
 $("newAusmass").onclick=()=>{$("ausmassModal").hidden=true;$("amTypeChooserModal").hidden=false};
 $("cancelAmTypeChooser").onclick=()=>{$("amTypeChooserModal").hidden=true;$("ausmassModal").hidden=false};
 $("amTypeChooserModal").addEventListener("click",e=>{

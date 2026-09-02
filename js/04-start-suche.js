@@ -50,23 +50,33 @@ const debouncedGlobalSearch=debounce(async(q)=>{
  // dafuer ist keine zusaetzliche Abfrage noetig.
  $("globalSearchResults").innerHTML=results.length?results.map((r,i)=>{
   const proj=allProjects.find(p=>p.id===r.data.project_id);
-  let treffer,art,icon;
+  let treffer,art,icon,ersatz;
   if(r.kind==="report"){
    icon="📋";art="Regierapport";
    treffer=[r.data.order_no,r.data.customer,r.data.object].map(x=>String(x||"").trim()).filter(Boolean).join(" · ")||(r.data.date||"Ohne Kopfdaten");
+   // Fallback-Stufe 2 ist beim Rapport die Objektbezeichnung
+   // (Objekt/Gebaeudeteil), nicht der zusammengesetzte Treffertext.
+   ersatz=r.data.object;
   }else if(r.kind==="measurement"){
    icon="📐";art=`Massaufnahme · ${measTypeLabels[r.data.type]||r.data.type}`;
    treffer=r.data.title||"Ohne Titel";
+   ersatz=r.data.title;
   }else{
    icon="📏";art=`Ausmass · ${amTypeLabels[r.data.type]||r.data.type}`;
    treffer=r.data.title||"Ohne Titel";
+   ersatz=r.data.title;
   }
-  const sub=`${art} · ${proj?"📁 "+proj.name:"Kein Projekt"} · ${r.data.date||"–"}`;
+  // v2.44: Adresse ist der Haupttitel, der gefundene Eintrag steht als
+  // erste Zusatzangabe direkt darunter - sonst waere nicht mehr sichtbar,
+  // warum der Treffer erschienen ist.
+  const adresse=eintragAdresse(r.data,ersatz);
+  // Den Treffer nicht doppelt zeigen, wenn er bereits der Haupttitel ist.
+  const sub=infoZeileOhne(adresse,art,treffer,proj?"📁 "+proj.name:"Kein Projekt",r.data.date);
   // Der Cockpit-Weg nur, wenn der Treffer wirklich zu einem Projekt der
   // eigenen Firma gehoert - sonst bleibt es beim bisherigen Verhalten.
   const cockpitBtn=proj?`<button class="blue" data-open-search-cockpit="${i}">📂 Projekt</button>`:"";
   return `<div class="meas-row">
-<div class="meas-row-info"><b>${icon} ${esc(treffer)}</b><span>${esc(sub)}</span></div>
+<div class="meas-row-info"><b>${icon} ${esc(adresse)}</b><span>${esc(sub)}</span></div>
 <div class="meas-row-actions">${cockpitBtn}<button class="gray" data-open-search-result="${i}" title="Direkt öffnen">✏️</button></div>
 </div>`;
  }).join(""):"<div class=\"empty\">Keine Treffer.</div>";
@@ -95,7 +105,6 @@ $("globalSearchResults").addEventListener("click",e=>{
  else if(r.kind==="measurement")openMeasurement(r.data);
  else openAusmass(r.data);
 });
-$("navReport").onclick=async()=>{$("reportsModal").hidden=false;await renderReportsOverview()};
 $("startFromReportEdit").onclick=()=>{goToStart()};
 $("reportEditSettingsShortcut").onclick=()=>openSettingsTo("protected","rates");
 $("newReport").onclick=()=>{
@@ -125,7 +134,7 @@ async function renderReportsOverview(){
  $("recentReportsList").innerHTML=rows.length?rows.map(r=>{
   const proj=allProjects.find(p=>p.id===r.project_id);
   return `<div class="meas-row">
-<div class="meas-row-info"><b>Regierapport</b><span>${esc(proj?proj.name:(r.customer||"Ohne Projekt"))} · ${esc(r.date||"–")} · ${esc(r.order_no||"–")}</span></div>
+<div class="meas-row-info"><b>${esc(eintragAdresse(r,r.object))}</b><span>${esc(infoZeileOhne(eintragAdresse(r,r.object),"Regierapport",proj?proj.name:null,r.date,r.order_no,r.customer))}</span></div>
 <div class="meas-row-actions">
 <button class="blue" data-open-report-overview="${r.id}" title="Öffnen">✏️</button>
 <button class="red" data-del-report-overview="${r.id}" title="Löschen">×</button>

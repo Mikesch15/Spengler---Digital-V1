@@ -1,0 +1,289 @@
+================================================================
+SPENGLER-DIGITAL - ABSCHLUSSBERICHT
+Version: v2.44
+Titel:   Startseite bereinigen + Adresse als Haupttitel
+Datum:   02.09.2026
+================================================================
+
+
+1. ENTFERNTE STARTSEITEN-ELEMENTE
+----------------------------------------------------------------
+Entfernt wurden die drei Haupteinstiege auf dem Startbildschirm:
+
+  #navReport         "Regierapport"
+  #navMeasurements   "Massaufnahme"
+  #navAusmass        "Ausmass"
+
+samt ihrer drei onclick-Handler:
+  js/04-start-suche.js   $("navReport").onclick
+  js/09-projekte.js      $("navMeasurements").onclick
+  js/09-projekte.js      $("navAusmass").onclick
+
+An ihre Stelle tritt "Projekte" als einziger grosser Arbeitseinstieg.
+Suche, Einstellungen, Feedback und System-Administration stehen
+unveraendert darunter.
+
+NICHTS FACHLICHES ENTFERNT. Die Uebersichts-Modals
+#measurementsModal, #ausmassModal und #reportsModal sowie ihre
+Render-Funktionen bleiben vollstaendig erhalten - sie werden weiterhin
+gebraucht:
+  - als Rueckziel von measEditZurueck() / amEditZurueck() /
+    reportZurueck(), wenn ein Eintrag NICHT aus dem Cockpit geoeffnet
+    wurde (z.B. ueber den Direktweg der globalen Suche)
+  - #newReport liegt in #reportsModal und wird von
+    cockpitNeuerRapport() programmatisch ausgeloest
+
+Alle drei Modals haben eigene "Fertig"/"Start"-Ausstiege - es entsteht
+keine Sackgasse.
+
+KEINE TOTEN VERWEISE (per Grep geprueft). Der einzige verbliebene
+Verweis steht in js/05a-rechte.js (applyRechte(), blendet die Knoepfe
+je nach Recht aus) und ist dort bereits mit if(btn) abgesichert. Diese
+Datei gehoert zu Login/Rechte und wurde deshalb NICHT angefasst - der
+Zweig laeuft folgenlos ins Leere. Der Einstieg ist jetzt fuer alle
+entfernt, also strenger als vorher, nicht lockerer.
+
+
+2. WOHER DIE ADRESSE TATSAECHLICH STAMMT
+----------------------------------------------------------------
+Geprueft, nicht angenommen:
+
+  projects.object      Label "Adresse (Pflichtfeld)", Platzhalter
+                       "z. B. Musterstrasse 1, 3000 Bern"
+                       -> DAS IST die Objektadresse
+
+  reports.object       Label "Objekt / Gebaeudeteil", Platzhalter
+                       "z. B. Wetterschutz . Kinderzimmer"
+                       -> etwas ANDERES, keine Adresse
+
+  measurements         kein eigenes Adress- oder Objektfeld
+  ausmass              kein eigenes Adress- oder Objektfeld
+
+Reale Werte bestaetigen das:
+  Projekt 4  "Alpeneggstrasse 22, Bern"
+  Projekt 6  "Ostermundigenstrasse 33"
+  Projekt 1  "Ppp"          (aelterer Platzhalter, echte Daten)
+  Projekt 3  "Strasse1"     (aelterer Platzhalter, echte Daten)
+
+EINZIGE QUELLE ist deshalb projects.object ueber project_id.
+Keine neue Spalte, keine Migration, keine kopierte Adresse.
+
+
+3. VERWENDETE FALLBACK-REGEL
+----------------------------------------------------------------
+Zentral in js/01-basis.js, Funktion eintragAdresse(row, ersatz):
+
+  Stufe 1   Adresse des zugehoerigen Projekts (projects.object)
+  Stufe 2   vorhandene eigene Bezeichnung des Datensatzes
+              Massaufnahme / Ausmass : title
+              Regierapport           : object (Objekt/Gebaeudeteil)
+  Stufe 3   "Ohne Adresse"
+
+Stufe 2 zeigt ausschliesslich, was wirklich im Datensatz gespeichert
+ist - es wird nichts erfunden.
+
+Der Fall ist real: 3 von 13 Massaufnahmen haben project_id = NULL, ihr
+Projekt wurde geloescht (ON DELETE SET NULL). Ebenfalls abgedeckt: ein
+Projekt ohne Adresse und eine nicht mehr aufloesbare Projekt-ID.
+
+Zusaetzlich infoZeileOhne(haupttitel, ...): laesst Angaben in der
+Zusatzzeile weg, die bereits der Haupttitel sind - sonst stuende bei
+fehlender Adresse der Ersatztitel zweimal untereinander.
+
+
+4. UMGESTELLTE LISTEN UND ANSICHTEN
+----------------------------------------------------------------
+  Cockpit Massaufnahmen      js/09  Adresse | Typ . Titel . Datum .
+                                            zuletzt geaendert
+  Cockpit Ausmass            js/09  Adresse | Art . Titel . Datum .
+                                            zuletzt geaendert
+  Cockpit Regierapport       js/09  Adresse | Datum . Auftrags-Nr. .
+                                            Auftraggeber . Objekt
+  Massaufnahmen-Uebersicht   js/16  Adresse | Typ . Titel . Projekt .
+                                            Datum
+  Ausmass-Uebersicht         js/17  Adresse | Art . Titel . Projekt .
+                                            Datum
+  Rapport-Uebersicht         js/04  Adresse | Regierapport . Projekt .
+                                            Datum . Nr. . Kunde
+  Globale Suche              js/04  Adresse | Art . Treffer .
+                                            Projekt . Datum
+  Massaufnahme-Formular      js/10  Titel: "Adresse . Typ"
+  Ausmass-Formular           js/17  Titel: "Adresse . Art"
+  Regierapport-Bildschirm    js/09  neue Zeile #reportAddressLine
+                                    unter der Ueberschrift
+
+PDF/DRUCK UNVERAENDERT - zwei Gruende, beide geprueft:
+  - css/03-druck.css blendet mit .no-print,.modal,...{display:none}
+    alle Modals im Druck aus. Die beiden Formulartitel sind damit reine
+    Bildschirmanzeige.
+  - die Adresszeile im Regierapport-Bildschirm ist bewusst .no-print,
+    damit die gedruckte Kopfzeile ("Regierapport . Arbeiten nach
+    Aufwand") exakt so bleibt wie bisher.
+
+Der Verlauf zeigt keinen Datensatz-Haupttitel, sondern Aktionen - dort
+war nichts umzustellen.
+
+
+5. WIE MASSAUFNAHME-TYP UND TITEL SICHTBAR BLEIBEN
+----------------------------------------------------------------
+Der Typ steht in jeder Liste als ERSTE Angabe der Zusatzzeile und im
+Formulartitel direkt hinter der Adresse. Er kommt weiterhin aus dem
+bestehenden MEAS_TYPE_LABELS-Katalog. Der bisherige Titel bleibt als
+zweite Angabe erhalten.
+
+Beispiel aus dem Pruefstand:
+
+  Alpeneggstrasse 22, Bern
+  Rinne Halbrund . Dachrinne Nord . 2.9.2026
+
+  Alpeneggstrasse 22, Bern
+  Skizze/Foto . 1.9.2026            (Eintrag ohne Titel)
+
+  Altbestand ohne Projekt           (Fallback Stufe 2)
+  Skizze/Foto . 1.7.2026
+
+ANMERKUNG: Innerhalb eines Cockpits haben alle Eintraege dieselbe
+Adresse, die fette Zeile wiederholt sich dort also. Das entspricht der
+im Auftrag unter Abschnitt 6 vorgegebenen Zeilenstruktur. Falls die
+Wiederholung im Cockpit spaeter stoert, waere es dort ein Einzeiler,
+wieder auf Titel/Typ als Haupttitel umzustellen - die uebrigen Listen
+blieben davon unberuehrt.
+
+
+6. GEAENDERTE DATEIEN
+----------------------------------------------------------------
+  index.html                 drei Startknoepfe entfernt, "Projekte" als
+                             Haupteinstieg, #reportAddressLine,
+                             Version 2.44
+  js/01-basis.js             zentrale Helfer projektAdresse(),
+                             eintragAdresse(), infoZeile(),
+                             infoZeileOhne()
+  js/09-projekte.js          zwei Startknopf-Handler entfernt, drei
+                             Cockpit-Listen, Adresszeile im Rapport,
+                             Titel-Auffrischung bei Projektwahl
+  js/04-start-suche.js       ein Startknopf-Handler entfernt,
+                             Rapport-Uebersicht, globale Suche
+  js/24-projekt-cockpit.js   Titel-Auffrischung nach Projektuebernahme
+  css/01-basis.css           .report-adresse
+  sw.js                      Cache-Version 2.44
+  CLAUDE.md                  neuer Abschnitt 52
+
+GESCHUETZTE FACHDATEIEN - vier reine Anzeigezeilen, nichts sonst:
+  js/10-massaufnahme.js           1 Zeile  h2.textContent des Formulars
+  js/16-massaufnahme-formular.js  1 Zeile  <b>/<span> einer Listenzeile
+  js/17-ausmass.js                2 Zeilen h2.textContent + Listenzeile
+
+BEGRUENDUNG (Auftrag Abschnitt 9): Zuerst geprueft, ob es zentral
+ausserhalb geht. Die beiden Formulartitel liessen sich nur per
+Monkey-Patch von aussen ueberschreiben, was schwerer nachvollziehbar
+waere als eine geaenderte Anzeigezeile. Die Listenzeilen liegen als
+Template-String mitten in der Render-Funktion und sind von aussen gar
+nicht erreichbar. Keine Berechnung, keine Stueckliste, kein Zuschnitt,
+kein Speicher-Payload, keine PDF-Logik beruehrt - der vollstaendige
+git diff dieser drei Dateien umfasst 10 Einfuegungen und 4 Loeschungen,
+davon 6 Kommentarzeilen.
+
+AUSSERHALB GELOEST wurden dagegen zwei Auffrischungen: nach dem
+Uebernehmen des Projekts aus dem Cockpit (js/24) und nach interaktiver
+Projektwahl im Formular (js/09) wird der Titel neu aufgebaut - sonst
+haette er die Adresse des vorherigen Projekts behalten.
+
+Die uebrigen neun geschuetzten Dateien (js/11, 12, 12b, 13, 14, 15, 19,
+20, 21) sowie js/06-rapport.js, js/08-katalog-blitzschutz.js,
+js/23-verlauf.js, js/22-system-admin.js, js/05a-rechte.js,
+js/03-login.js, js/05-daten-laden.js und js/07-einstellungen.js sind
+unveraendert.
+
+
+7. WAR EINE DB-AENDERUNG NOETIG?
+----------------------------------------------------------------
+NEIN. Keine Migration, keine neue Spalte, keine Policy-Aenderung, keine
+Datenkopie. Die bestehende Projektinformation reicht vollstaendig aus.
+Der in v2.43 ergaenzte project_files-Trigger ist unveraendert vorhanden.
+
+
+8. DURCHGEFUEHRTE TESTS
+----------------------------------------------------------------
+ADRESS-PRUEFSTAND (Node, gegen die echten Funktionen) - 16 Pruefungen,
+alle bestanden:
+  alle drei Fallback-Stufen einzeln
+  Projekt ohne Adresse            -> Stufe 2
+  Datensatz ohne Projekt          -> Stufe 2
+  nicht aufloesbare Projekt-ID    -> Stufe 2
+  weder Adresse noch Titel        -> "Ohne Adresse"
+  Cockpit Massaufnahmen: Adresse als Haupttitel, Typ und Titel als
+    Zusatz, Eintrag ohne Titel zeigt nur den Typ, Altbestand faellt
+    korrekt auf den Titel zurueck
+  Cockpit Ausmass: Adresse als Haupttitel, Art und Titel als Zusatz
+  Cockpit Regierapport: Adresse als Haupttitel, Datum/Auftrags-Nr./
+    Auftraggeber/Objekt bleiben vollstaendig sichtbar; ohne Projekt
+    faellt der Titel auf Objekt/Gebaeudeteil zurueck
+
+REGRESSION (bestehende Pruefstaende erneut gelaufen):
+  Navigation           23 OK, 0 Fehler
+  Suche                 7 OK, 0 Fehler
+  Treffer-Hervorhebung  7 OK, 0 Fehler
+  Schnellzugriff       12 OK, 0 Fehler
+  Arbeitsstand         17 OK, 0 Fehler
+  Dateien              27 OK, 0 Fehler
+  Listenrendering       9 Faelle unveraendert
+  node --check ueber alle js/*.js und sw.js: fehlerfrei
+  <div>-Balance in index.html: 648/648 (vorher 647/647, Differenz durch
+    die neue Adresszeile)
+  keine toten Verweise auf die entfernten Knoepfe
+
+Der Regressionslauf hat dabei einen echten Fehler aufgedeckt: in der
+globalen Suche wurde beim Regierapport der zusammengesetzte Treffertext
+als Fallback verwendet statt der Objektbezeichnung, wodurch derselbe
+Text zweimal erschien. Korrigiert und erneut geprueft.
+
+SICHERHEIT:
+  keine RLS-, Policy- oder Schemaaenderung in dieser Runde
+  die Adresse stammt aus allProjects, das bereits RLS-gefiltert ist -
+  ein Datensatz einer fremden Firma erscheint gar nicht erst
+
+EINSCHRAENKUNG - LIVE-TEST:
+Ein Klicktest im echten Browser war in dieser Sitzung technisch nicht
+moeglich; die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+nfgryuzkpwjfmdlmevuy.supabase.co. Das wird hier ausdruecklich NICHT als
+getestet behauptet.
+
+
+9. ERGEBNIS DER PETER-KUENZI-AG-PRUEFUNG
+----------------------------------------------------------------
+Unveraendert, nur lesend geprueft. Vor und nach allen Tests identisch:
+
+  2 Firmen, 4 Projekte, 13 Massaufnahmen (davon 3 ohne Projekt),
+  2 Ausmasse, 4 Rapporte, 1 Projektdatei, 0 audit_log-Zeilen
+  alle vier Projektadressen unveraendert
+    1:Ppp | 3:Strasse1 | 4:Alpeneggstrasse 22, Bern |
+    6:Ostermundigenstrasse 33
+  companies.updated_at unveraendert (2026-09-01 07:40:15.844647+00)
+  der v2.43-Trigger auf project_files weiterhin vorhanden
+
+In dieser Runde waren keine Schreibtests noetig.
+
+
+10. EINSCHRAENKUNGEN UND OFFENE PUNKTE
+----------------------------------------------------------------
+  - Kein Live-Klicktest im Browser moeglich (siehe Punkt 8).
+  - Die Wiederholung der Adresse innerhalb eines Cockpits ist bewusst
+    so umgesetzt (siehe Punkt 5) und waere bei Bedarf ein Einzeiler.
+  - Der Verweis auf die entfernten Knoepfe in js/05a-rechte.js bleibt
+    als folgenloser, abgesicherter Zweig stehen - Login/Rechte wurde
+    bewusst nicht angefasst.
+  - AUS v2.43 WEITERHIN OFFEN, bewusst nicht mit dieser UI-Aufgabe
+    vermischt:
+      maximale Projekt-Dateigroesse (Empfehlung 25-50 MB je Datei)
+      flache Storage-Upload-Erlaubnis als eigene spaetere
+        Sicherheitsaufgabe
+    Beide Punkte stehen unveraendert in CLAUDE.md.
+
+
+11. COMMIT UND PUSH-STATUS
+----------------------------------------------------------------
+  Commit-Hash:  5561158
+  Push:         claude/v1-49-analysis-rk5csc
+  Merge:        nach main
+
+================================================================

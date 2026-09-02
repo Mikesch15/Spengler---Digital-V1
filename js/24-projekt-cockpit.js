@@ -283,6 +283,9 @@ $("measTypeChooserModal").addEventListener("click",e=>{
  cockpitTypWahl=null;
  measEditReturnTo="projectCockpit";
  setMeasProjectField(cockpitProjectId);
+ // Der Titel wurde von newMeasurementWithType() bereits gesetzt, damals
+ // noch ohne Projekt - jetzt mit Adresse neu aufbauen (v2.44).
+ updateMeasFormTitle();
 });
 $("amTypeChooserModal").addEventListener("click",e=>{
  const b=e.target.closest("[data-choose-am-type]");
@@ -290,6 +293,7 @@ $("amTypeChooserModal").addEventListener("click",e=>{
  cockpitTypWahl=null;
  amEditReturnTo="projectCockpit";
  setAmProjectField(cockpitProjectId);
+ updateAmFormTitle();
 });
 // Abbrechen in der Typ-Auswahl: zurück ins Cockpit statt in die Übersicht.
 $("cancelMeasTypeChooser").addEventListener("click",()=>{

@@ -268,7 +268,7 @@ async function renderMeasurementsOverview(){
   }
   return `<div class="meas-row">
 ${thumbHtml}
-<div class="meas-row-info"><b>Massaufnahme (${esc(typeLabels[m.type]||m.type)})</b><span>${esc(m.title||"Ohne Titel")} · ${esc(proj?proj.name:"Kein Projekt")} · ${esc(m.date||"–")}</span></div>
+<div class="meas-row-info"><b>${esc(eintragAdresse(m,m.title))}</b><span>${esc(infoZeileOhne(eintragAdresse(m,m.title),typeLabels[m.type]||m.type,m.title,proj?proj.name:"Kein Projekt",m.date))}</span></div>
 <div class="meas-row-actions">
 <button class="blue" data-open-measurement="${m.id}" title="Öffnen">✏️</button>
 <button class="red" data-del-measurement="${m.id}" title="Löschen">×</button>

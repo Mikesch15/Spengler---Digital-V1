@@ -93,6 +93,8 @@ td input,td select{min-height:34px;font-size:12px}
 .report-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:var(--blue-light);border-radius:8px;padding:7px 9px;margin:5px 0}
 .report-row .report-row-info{flex:1 1 190px;min-width:0}
 .report-row .report-row-info b{display:block;font-size:12px;word-break:break-word}
+/* Objektadresse als Haupttitel im Regierapport-Bildschirm (v2.44) */
+.report-adresse{font-size:15px;font-weight:800;color:var(--ink);margin:-6px 0 10px;word-break:break-word}
 /* Projektdateien (v2.43): Bildvorschau bzw. Typ-Symbol vor der Zeile */
 .datei-thumb{flex:0 0 auto;width:44px;height:44px;border-radius:8px;object-fit:cover;background:#fff;border:1px solid var(--line)}
 .datei-icon{flex:0 0 auto;width:44px;height:44px;border-radius:8px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:20px}
