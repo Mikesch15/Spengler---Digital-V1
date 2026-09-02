@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.48, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.49, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.48**
+- sichtbare App-Version: **2.49**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -8051,3 +8051,152 @@ Testprojekt, kein Test-Storage-Objekt übrig.
   haben weiterhin keinen festen `search_path` (bekannte Advisor-Warnung,
   bewusst nicht in dieser Runde mitgeändert).
 - Die 9 verwaisten Storage-Objekte aus 32.1 bleiben unverändert isoliert.
+
+## 57. PROJEKT-DATEIEN / FOTOS ÜBERSICHTLICHER — VERSION 2.49
+
+Reine UX-Runde am bestehenden Bereich „📎 Dateien/Fotos" im
+Projekt-Cockpit. **Keine DB-Änderung, keine Storage-/RLS-Änderung, keine
+geschützte Fachdatei angefasst.** Geändert wurden nur
+`js/09-projekte.js`, `css/01-basis.css`, der Versionstext und `sw.js`.
+
+### 57.1 Neue Zeilendarstellung
+
+Vorher stand alles in einer einzigen Zusatzzeile („2.3 MB · Mike
+Ledermann · 10.8.2026 · geändert am …"). Jetzt die im Auftrag
+vorgegebene Hierarchie:
+
+```
+[Vorschau/Symbol]  Objekt Nordseite.jpg
+                   Bild (JPG) · 2.3 MB
+                   10.8.2026 · Mike Ledermann
+                   [Öffnen] [✏️ Umbenennen] [🔄 Ersetzen] [🗑 Löschen]
+```
+
+- **Dateiname** als Haupttitel (13px, `word-break:break-word` – lange
+  Namen brechen um).
+- **Typ · Grösse**: neue Funktion `dateiTypText(mime,name)` übersetzt
+  MIME/Endung in etwas Lesbares (PDF, Word, Excel, CSV, PowerPoint,
+  Archiv, Text, „Bild (JPG)"). Unbekannt → Endung in Grossbuchstaben,
+  ganz ohne Endung → „Datei". Nie ein erfundener Typ.
+- **Datum**: Erstelldatum, dazu der Ersteller und – nur wenn abweichend –
+  „geändert am …". Leere Angaben fallen über `infoZeile()` weg, es
+  entsteht kein „· –  ·"-Rest mehr (vorher stand dort ein Strich).
+- **Aktionen beschriftet** statt nur mit Symbolen: „Öffnen" über die
+  volle Breite (44 px), darunter Umbenennen/Ersetzen/Löschen (je 40 px,
+  umbruchfähig). Vorher waren es 34 px hohe Icon-Knöpfe in einer Zeile.
+
+**„🔄 Ersetzen" wurde bewusst beibehalten**, obwohl der Auftrag in der
+Beispielhierarchie nur Öffnen/Umbenennen/Löschen nennt: die Funktion
+existiert seit v2.43, funktioniert und ist getestet – sie zu entfernen
+wäre ein Funktionsverlust, der nicht verlangt war.
+
+### 57.2 Sortierung
+
+Neu „zuletzt geändert zuerst": clientseitig auf den **bereits geladenen**
+Daten (`updated_at`, sonst `created_at`), absteigend – keine zweite
+Abfrage, keine geänderte SQL-Abfrage.
+
+### 57.3 Vorschaubilder
+
+Unverändert über `data-signed-src` + `resolveSignedThumbnails()`
+(js/10-massaufnahme.js) → `storageSignedUrl()` → `createSignedUrl()`.
+Der Bucket bleibt privat, es wird **keine öffentliche URL** eingeführt
+und **keine zusätzliche Abfrage pro Bild** ausgelöst (eine gebündelte
+Auflösung nach dem Zeichnen, wie bei den Skizzen). `.datei-thumb` hat
+weiterhin `object-fit:cover` bei fixen 44×44 px – kein verzerrtes
+Seitenverhältnis.
+
+### 57.4 Leerzustand
+
+```
+📁 Noch keine Dateien oder Fotos vorhanden.
+Hier können Pläne, Fotos, PDFs und weitere Projektunterlagen
+gespeichert werden.
+[＋ Datei/Foto hinzufügen]
+Höchstens 50 MB pro Datei.
+```
+
+Reihenfolge exakt wie im Auftrag (Abschnitt 6): erst die Erklärung, dann
+der Knopf. Bei vorhandenen Dateien steht der Knopf wie bisher oben.
+
+### 57.5 Multi-Upload
+
+Mehrfachauswahl, Reihenfolge und die Per-Datei-Fehlerbehandlung aus
+v2.43 sind unverändert. **Neu**: ein Erfolg wird jetzt auch bestätigt –
+dezent als Zeile über der Liste („✓ 3 Dateien gespeichert."), nicht als
+Popup. Dafür genügt eine Modulvariable `projectFilesStatus`, die
+`loadProjectFiles()` einmalig anzeigt und dabei leert – kein
+Upload-Framework. Bei Fehlern bleibt es beim bestehenden Sammel-Alert
+mit der Liste der nicht gespeicherten Dateien.
+
+### 57.6 Sicherheit und Grenzen unverändert
+
+Nicht angefasst: privater Bucket, `file_size_limit` 50 MB,
+`storage_object_insert_allowed()` mit der geschlossenen Positivliste aus
+v2.48, Tenant-Prüfung, `project_files`-RLS, die Storage-Policies für
+Read/Update/Delete, signierte URLs, die 0-Zeilen-Prüfung bei
+Umbenennen/Löschen und die clientseitige 50-MB-Prüfung.
+
+Erneut empirisch bestätigt (`begin; … rollback;`, Wegwerf-Firma):
+fremde `project_files` 0 sichtbar (auch über bekannte `project_id`),
+fremde Storage-Objekte 0 sichtbar, `project-files/4/hack.pdf` und
+`misc/x/y.txt` weiterhin abgelehnt, eigener Projektdatei- und
+Massaufnahme-Foto-Pfad weiterhin erlaubt, Bucket weiterhin privat mit
+52428800 Bytes.
+
+### 57.7 Tests
+
+Neuer Prüfstand `dateien49` (38/38): alle Dateien angezeigt, neueste
+Änderung zuerst und danach nach Erstelldatum, Thumbnail für Bilder mit
+signierter Quelle (kein `http`-Link im Markup), Symbol für Nicht-Bilder,
+Dateiname/Typ/Grösse/Datum je in der richtigen Zeile, Änderungsdatum,
+gelöschter Benutzer, fehlender Ersteller ohne leeren Trenner, alle vier
+Aktionen je Zeile und beschriftet, Leerzustand mit beiden Texten und
+Knopf danach, Grössengrenze 48/50/51 MB, Server-Rohmeldung übersetzt,
+neun Typbezeichnungen.
+
+`dateien43` (27/27) wurde **angepasst statt gelöscht**: die Erwartung
+„kein `created_by` → Strich" ist durch die neue Zeilenstruktur überholt
+(jetzt: kein leerer Trenner), ebenso der Text des Leerzustands. Der
+Prüfstand lädt die Helfer aus `js/01-basis.js` jetzt direkt, statt sie
+nachzubauen.
+
+Regression, alle bestanden: nav 23/23, suche40 7/7, treffer40 7/7,
+recent41 12/12, stand42 17/17, dateien43 27/27, adresse45 39/39, kopf45
+8/8, suche45 13/13, status46 35/35, projekte47 37/37, auswahl48 32/32,
+ui39 (9 Fälle). `node --check` über alle `js/*.js` und `sw.js`
+fehlerfrei, `<div>`/`</div>` in `index.html` unverändert ausgeglichen
+(654/654 – nur der Versionstext geändert).
+
+**Keine Live-Browser-Tests gegen Supabase möglich** – die Sandbox
+blockiert weiterhin ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. Ein echter Upload, ein echtes
+Vorschaubild und ein echtes Öffnen über eine signierte URL wurden
+**nicht** ausgeführt und werden nicht als getestet behauptet; geprüft
+sind die Renderlogik, die Clientlogik und die Datenbankseite.
+
+### 57.8 Fachlogik
+
+Unverändert. Keine der zwölf geschützten Fachdateien wurde angefasst –
+keine Berechnung, keine Stückliste, kein Zuschnitt, keine Abwicklung,
+kein Speicher-Payload, keine PDF-/Drucklogik.
+
+### 57.9 PETER KÜNZI AG
+
+Nach allen Tests unverändert: 2 Firmen, 13 Profile, 4 Projekte (Status
+und `updated_at` identisch), 13 Massaufnahmen, 1 Projektdatei, 14
+Storage-Objekte, 4 `audit_log`-Zeilen, `companies.updated_at`
+(`2026-09-01 07:40:15.844647+00`). Keine Wegwerf-Firma, kein
+Testprojekt, keine Test-Massaufnahme übrig; alle mutierenden Tests
+liefen in `begin; … rollback;`.
+
+### 57.10 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 57.7).
+- Bewusst **nicht** gebaut (Auftrag Abschnitt 18): Ordner/Kategorien/
+  Tags, Favoriten, Versionierung, Freigaben, öffentliche Dateien,
+  automatische Archivierung, Massenbearbeitung.
+- Die aus v2.48 offenen Punkte bleiben unverändert: leere
+  `allowed_mime_types`, Massaufnahme ohne Projekt kann kein Foto
+  speichern, fehlender `search_path` bei zwei Storage-Hilfsfunktionen,
+  9 verwaiste Storage-Objekte aus v2.24.

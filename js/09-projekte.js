@@ -372,10 +372,30 @@ function dateiFehlerText(err){
   return "Keine Verbindung zum Server. Bitte die Internetverbindung prüfen.";
  return m||"Unbekannter Fehler.";
 }
+// Ergebnis des letzten Uploads, wird von loadProjectFiles() einmalig
+// angezeigt und dabei geleert (v2.49).
+let projectFilesStatus="";
 const DATEI_BILD_ENDUNGEN=["jpg","jpeg","png","gif","heic","heif","webp","bmp"];
 function istBilddatei(mime,name){
  if(String(mime||"").startsWith("image/"))return true;
  return DATEI_BILD_ENDUNGEN.includes(String(name||"").split(".").pop().toLowerCase());
+}
+// Verstaendlicher Typ statt des rohen MIME-Strings (v2.49). Faellt auf
+// die Dateiendung in Grossbuchstaben zurueck, wenn der Typ unbekannt ist -
+// nie ein erfundener Text.
+function dateiTypText(mime,name){
+ const m=String(mime||"").toLowerCase();
+ const ext=String(name||"").split(".").pop().toLowerCase();
+ if(m.includes("pdf")||ext==="pdf")return "PDF";
+ if(["doc","docx"].includes(ext)||m.includes("word"))return "Word";
+ if(["xls","xlsx"].includes(ext)||m.includes("sheet")||m.includes("excel"))return "Excel";
+ if(ext==="csv")return "CSV";
+ if(["ppt","pptx"].includes(ext)||m.includes("presentation"))return "PowerPoint";
+ if(["zip","rar","7z"].includes(ext))return "Archiv";
+ if(["txt","md"].includes(ext))return "Text";
+ if(istBilddatei(mime,name))return ext?"Bild ("+ext.toUpperCase()+")":"Bild";
+ if(ext&&ext!==String(name||"").toLowerCase())return ext.toUpperCase();
+ return "Datei";
 }
 function projectFileIcon(mime,name){
  mime=mime||"";
@@ -430,38 +450,56 @@ async function loadProjectFiles(projectId){
  box.innerHTML='<div class="small">Lädt…</div>';
  const {data,error}=await sb.from("project_files").select("*").eq("project_id",projectId).order("created_at",{ascending:false});
  if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
- const list=data||[];
+ // v2.49: zuletzt geaendert zuerst. Sortiert wird auf den bereits
+ // geladenen Daten (updated_at, sonst created_at) - keine zweite Abfrage.
+ const list=(data||[]).slice().sort((a,b)=>
+  new Date(b.updated_at||b.created_at||0)-new Date(a.updated_at||a.created_at||0));
  projectFilesCache=list;
- const zeilen=list.length?list.map(f=>{
+ const knopf=`<div class="bar"><label class="cockpit-new blue cockpit-upload">＋ Datei/Foto hinzufügen<input type="file" multiple data-upload-file="${projectId}" hidden></label></div>`;
+ const grenze=`<div class="small" style="color:var(--muted);margin:-2px 0 6px">Höchstens ${MAX_DATEI_TEXT} pro Datei.</div>`;
+ // Ergebnis des letzten Uploads, einmalig anzeigen (v2.49).
+ const status=projectFilesStatus
+  ? `<div class="small" style="color:var(--green);margin:-2px 0 6px">${esc(projectFilesStatus)}</div>`
+  : "";
+ projectFilesStatus="";
+ if(!list.length){
+  // Leerzustand (Auftrag v2.49 Abschnitt 6): erst die Erklaerung,
+  // danach der Knopf.
+  box.innerHTML=`<div class="empty">📁 Noch keine Dateien oder Fotos vorhanden.`
+   +`<div class="small" style="margin-top:6px">Hier können Pläne, Fotos, PDFs und weitere Projektunterlagen gespeichert werden.</div></div>`
+   +status+knopf+grenze;
+  return 0;
+ }
+ const zeilen=list.map(f=>{
   // Gelöschter Mitarbeiter: dieselbe Formulierung wie überall sonst.
-  const wer=f.created_by?(profileName(f.created_by)||"Unbekannter Benutzer"):"–";
+  const wer=f.created_by?(profileName(f.created_by)||"Unbekannter Benutzer"):"";
   const wann=datumCH(f.created_at)||"–";
   // Seit v2.43 setzt der Trigger updated_at bei JEDER Änderung (auch beim
   // Umbenennen) - deshalb neutral "geändert", nicht mehr "ersetzt".
-  const geaendert=(f.updated_at&&datumCH(f.updated_at)!==wann)?` · geändert am ${esc(datumCH(f.updated_at))}`:"";
+  const geaendert=(f.updated_at&&datumCH(f.updated_at)!==wann)?"geändert am "+datumCH(f.updated_at):"";
   // Bilder bekommen eine kleine Vorschau. Die signierte URL wird nach dem
   // Zeichnen über die bestehende resolveSignedThumbnails()-Logik
   // (js/10-massaufnahme.js) nachgeladen - dasselbe Muster wie bei den
-  // Skizzen-Vorschauen.
+  // Skizzen-Vorschauen. Der Bucket bleibt privat, keine oeffentliche URL.
   const vorschau=istBilddatei(f.mime_type,f.name)
    ? `<img class="datei-thumb" data-signed-src="${esc(f.file_path)}" alt="">`
    : `<span class="datei-icon">${projectFileIcon(f.mime_type,f.name)}</span>`;
-  return `<div class="report-row">
+  // v2.49: Dateiname, darunter Typ · Groesse, darunter Datum.
+  return `<div class="report-row datei-row">
 ${vorschau}
-<div class="report-row-info"><b>${esc(f.name)}</b><span>${formatFileSize(f.size_bytes)} · ${esc(wer)} · ${esc(wann)}${geaendert}</span></div>
+<div class="report-row-info"><b>${esc(f.name)}</b>`
+   +`<span>${esc(infoZeile(dateiTypText(f.mime_type,f.name),formatFileSize(f.size_bytes)))}</span>`
+   +`<span>${esc(infoZeile(wann,wer,geaendert))}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-file="${f.id}">Öffnen</button>
-<button class="gray" data-rename-project-file="${f.id}" title="Umbenennen">✏️</button>
-<button class="gray" data-replace-project-file="${f.id}" title="Ersetzen">🔄</button>
+<button class="gray" data-rename-project-file="${f.id}">✏️ Umbenennen</button>
+<button class="gray" data-replace-project-file="${f.id}">🔄 Ersetzen</button>
 <input type="file" data-replace-file-input="${f.id}" hidden>
-<button class="red" data-del-project-file="${f.id}" title="Löschen">×</button>
+<button class="red" data-del-project-file="${f.id}">🗑 Löschen</button>
 </div>
 </div>`;
- }).join(""):'<div class="empty">Noch keine Datei zu diesem Projekt.</div>';
- // Klar beschriftete, volle Trefferflaeche statt eines nackten
- // Datei-Feldes (v2.39) - das Feld selbst bleibt unveraendert dahinter.
- box.innerHTML=`<div class="bar"><label class="cockpit-new blue cockpit-upload">＋ Datei/Foto hinzufügen<input type="file" multiple data-upload-file="${projectId}" hidden></label></div>`
-  +`<div class="small" style="color:var(--muted);margin:-2px 0 6px">Höchstens ${MAX_DATEI_TEXT} pro Datei.</div>${zeilen}`;
+ }).join("");
+ box.innerHTML=knopf+grenze+status+zeilen;
  // Vorschaubilder nachladen. Absichtlich abgesichert: die Dateiliste
  // soll auch dann funktionieren, wenn die Hilfsfunktion aus
  // js/10-massaufnahme.js einmal nicht verfuegbar sein sollte -
@@ -742,10 +780,14 @@ $("cockpitWorkArea").addEventListener("change",async e=>{
    try{ await uploadProjectFile(projectId,file); }
    catch(err){ fehler.push(`• ${file.name}: ${dateiFehlerText(err)}`); }
   }
+  const gespeichert=files.length-fehler.length;
   if(fehler.length){
-   const ok=files.length-fehler.length;
-   alert(`${ok} von ${files.length} Datei(en) gespeichert.\n\nNicht gespeichert:\n${fehler.join("\n")}`);
+   alert(`${gespeichert} von ${files.length} Datei(en) gespeichert.\n\nNicht gespeichert:\n${fehler.join("\n")}`);
   }
+  // Erfolg dezent in der Liste bestaetigen statt mit einem Popup (v2.49).
+  projectFilesStatus=gespeichert
+   ? `✓ ${gespeichert} ${gespeichert===1?"Datei":"Dateien"} gespeichert.`
+   : "";
   await cockpitBereichAktualisieren("files");
   return;
  }
