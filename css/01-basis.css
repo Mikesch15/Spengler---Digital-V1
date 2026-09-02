@@ -136,6 +136,11 @@ td input,td select{min-height:34px;font-size:12px}
  width:100%;max-width:920px;color:#fff;font-size:12px;font-weight:800}
 .medien-viewer-bar button{min-height:44px}
 .medien-viewer img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:10px;background:#fff}
+/* WICHTIG: Eine Klasse mit display:… schlaegt die Browserregel
+   [hidden]{display:none}. Ohne diese Zeile bleibt die Vollbildansicht
+   dauerhaft ueber der ganzen App liegen (Fehler aus v2.50).
+   Gleiches Muster wie .sketch-fullscreen[hidden] weiter unten. */
+.medien-viewer[hidden]{display:none}
 /* Arbeitsstand im Projekt-Cockpit (v2.42): kompakte Zeilen, nur Fakten */
 .arbeitsstand{border:1px solid var(--line);border-radius:10px;margin-top:10px;overflow:hidden;background:#fff}
 .arbeitsstand-titel{font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px 4px}
@@ -171,6 +176,7 @@ html.dark .pstatus-storniert{color:#f08b80}
 .status-filter{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
 .status-filter button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark);min-height:30px}
 .status-filter button.aktiv{background:var(--blue);color:#fff}
+.status-filter[hidden]{display:none}
 /* Projektkopf im Cockpit (v2.45): die Adresse ist der Haupttitel und
    darf auf schmalen Geraeten umbrechen, statt seitlich hinauszulaufen. */
 #cockpitTitle{word-break:break-word}

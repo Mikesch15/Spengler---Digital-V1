@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.50, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.51, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.50**
+- sichtbare App-Version: **2.51**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -8360,3 +8360,87 @@ keine PDF-/Drucklogik.
   `allowed_mime_types`, Massaufnahme ohne Projekt kann kein Foto
   speichern, fehlender `search_path` bei zwei Storage-Hilfsfunktionen,
   9 verwaiste Storage-Objekte aus v2.24).
+
+## 59. HOTFIX: APP NACH DEM START BLOCKIERT — VERSION 2.51
+
+**Fehler aus v2.50, im Betrieb sofort aufgefallen:** Nach dem Anmelden lag
+eine dunkle Ebene mit einem einzelnen Knopf „✕ Schliessen" über dem
+gesamten Startbildschirm; die App war nicht mehr bedienbar.
+
+### 59.1 Ursache
+
+Die in v2.50 neu eingeführte Vollbildansicht `#measMediaViewer` steht im
+HTML mit `hidden`. Ihre Klasse setzt aber ein eigenes `display`:
+
+```css
+.medien-viewer{position:fixed;inset:0;z-index:900;background:#0d141aee;display:flex;…}
+```
+
+Die Browserregel `[hidden]{display:none}` hat dieselbe Spezifität wie ein
+Klassenselektor und steht im User-Agent-Stylesheet – eine Autorenregel mit
+`display:flex` schlägt sie deshalb. Das Element war damit **immer**
+sichtbar: `position:fixed; inset:0` legte es über die ganze Seite, der
+halbtransparente Hintergrund verdunkelte alles darunter, und `z-index:900`
+fing jeden Klick ab.
+
+Genau deshalb hat das Projekt für solche Ebenen bereits eine feste
+Konvention, die ich in v2.50 schlicht vergessen habe:
+
+```css
+.sketch-fullscreen[hidden]{display:none}
+.meas-preview[hidden]{display:none}
+```
+
+### 59.2 Korrektur
+
+Zwei Zeilen in `css/01-basis.css`:
+
+```css
+.medien-viewer[hidden]{display:none}
+.status-filter[hidden]{display:none}
+```
+
+Die zweite betrifft denselben Fehlertyp aus v2.46 (`.status-filter` setzt
+ebenfalls `display:flex` und steht im HTML auf `hidden`). Dort blieb er
+folgenlos, weil die Zeile im versteckten Zustand ohne Inhalt gerendert
+wird und deshalb nichts sichtbar war – trotzdem korrigiert.
+
+**Kein JavaScript geändert, keine Funktion entfernt.** Die Medienansicht
+aus v2.50 funktioniert unverändert; sie ist jetzt nur wieder versteckt,
+solange sie niemand öffnet.
+
+### 59.3 Damit das nicht wieder passiert
+
+Neuer Prüfstand `hidden51`: liest alle Elemente mit `hidden`-Attribut aus
+`index.html` (aktuell 71) und prüft für jede ihrer Klassen, ob eine
+CSS-Regel dafür ein `display` setzt – und falls ja, ob es die zugehörige
+`[hidden]`-Regel gibt. Fehlt sie, schlägt der Prüfstand mit dem Namen des
+betroffenen Elements fehl.
+
+Gegenprobe durchgeführt: mit entfernter Korrekturzeile meldet der
+Prüfstand `>> ohne [hidden]-Regel: measMediaViewer (.medien-viewer)` und
+schlägt fehl; mit der Zeile ist er grün. Er fängt den Fehler also
+tatsächlich und ist nicht bloss dekorativ.
+
+### 59.4 Versionssprung
+
+Version und Service-Worker-Cache auf **2.51** – ohne neue Cache-Version
+würde die installierte PWA die alte, kaputte `css/01-basis.css` weiter
+aus dem Offline-Cache laden und der Fehler bliebe auf dem Gerät bestehen.
+
+### 59.5 Tests
+
+- `hidden51` 7/7, inklusive Gegenprobe.
+- Regression: nav 23/23, suche40 7/7, treffer40 7/7, recent41 12/12,
+  stand42 17/17, dateien43 27/27, adresse45 39/39, kopf45 8/8, suche45
+  13/13, status46 35/35, projekte47 37/37, auswahl48 32/32, dateien49
+  38/38, medien50 42/42, ui39 (9 Fälle).
+- `node --check` über alle `js/*.js` und `sw.js` fehlerfrei,
+  `<div>`/`</div>` unverändert 662/662.
+- `git diff`: nur `css/01-basis.css` (zwei Regeln plus Kommentar),
+  `index.html` (Versionstext) und `sw.js` (Cache-Version).
+- Keine Datenbank-, RLS- oder Storage-Änderung; PETER KÜNZI AG nicht
+  berührt.
+- Kein Live-Browser-Test möglich (Sandbox blockiert HTTPS zu Supabase) –
+  die Ursache ist aber reines CSS und im Screenshot des Betreibers
+  eindeutig zu sehen.
