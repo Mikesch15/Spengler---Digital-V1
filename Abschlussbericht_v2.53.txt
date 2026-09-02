@@ -1,0 +1,284 @@
+================================================================
+SPENGLER-DIGITAL – ABSCHLUSSBERICHT VERSION 2.53
+Professionelles PDF-Layout (alle PDFs ausser Regierapport)
+Commit b9775ad · main gepusht · 2. September 2026
+================================================================
+
+
+1. BESTANDSAUFNAHME – DREI DRUCKWEGE, NICHT ZWEI
+------------------------------------------------
+Ich habe nicht angenommen, welche PDFs es gibt, sondern gesucht
+(window.open, .print(), beforeprint, gemeinsame Bausteine):
+
+  printMeasurement (js/16)  eigenes Druckfenster, ZEHN Typ-Zweige   -> geändert
+  printAusmass (js/17)      eigenes Druckfenster                    -> geändert
+  Regierapport (js/08)      druckt die App-Seite selbst             -> UNBERÜHRT
+
+Zwei weitere Treffer sind keine PDF-Ausgaben:
+ - js/09-projekte.js öffnet eine Projektdatei über eine signierte URL
+ - js/20-anschlussblech.js hängt an einem Knopf "anb_drucken", den es
+   in index.html gar nicht gibt (Rest einer alten Testfassung)
+
+WICHTIGSTE ERKENNTNIS: css/03-druck.css gilt ausschliesslich für den
+Regierapport. Die beiden anderen PDFs sind eigenständige Dokumente und
+teilen keine einzige Zeile CSS mit ihm. Deshalb konnte ich ihr Layout
+vollständig umbauen, ohne den Regierapport auch nur zu berühren.
+
+
+2. WAS VORHER DAS PROBLEM WAR
+-----------------------------
+ - Jeder der zehn Massaufnahme-Zweige hatte sein EIGENES CSS mit
+   denselben Klassen – zehn fast identische Blöcke. Das Ausmass-PDF
+   wiederholte dieselben Regeln nochmals.
+ - Doppelter Rand: body 14mm PLUS @page 12mm = 26mm. Deshalb wirkte
+   alles gedrängt und der Textblock war unnötig schmal.
+ - Schriftgrössen von 5.5 bis 16pt wild gemischt.
+ - Jeder Zweig begann mit "<h1>Bezeichnung</h1>" und wiederholte dann
+   Projekt/Datum/Funktion/Sachbearbeiter in einer Tabelle.
+ - Die Objektadresse – seit v2.44 überall sonst die Hauptinformation –
+   kam im PDF gar nicht vor.
+
+
+3. WAS JETZT DA IST
+-------------------
+Ein einziges Dokumentlayout für beide Druckwege, ausgebaut an der
+Stelle, wo die gemeinsamen Bausteine schon vorher lagen (js/16) – kein
+neues Parallelsystem.
+
+BRIEFKOPF
+  Logo (oder Firmenname als Ersatz), darunter der Dokumenttyp, rechts
+  die Firmenanschrift, kräftige Trennlinie. Ohne Logo steht der
+  Firmenname nur links – vorher stand er doppelt.
+
+DOKUMENTKOPF (neu)
+  Objektadresse gross als Titel – über die BESTEHENDE zentrale
+  Adresslogik (eintragAdresse, js/01-basis.js). Keine zweite
+  Adressquelle. Darunter die Bezeichnung und ein dreispaltiges Raster:
+
+     PROJEKT              AUFTRAGS-NR.        AUFTRAGGEBER
+     Sanierung Dach Nord  2026-123            Muster Immobilien AG
+     DATUM                MASSAUFNAHME-ART    SACHBEARBEITER
+     2026-08-28           Einlaufblech gerade Mike Ledermann
+
+  Leere Werte fallen weg – keine leeren Etiketten. Das Raster wird auf
+  ein Vielfaches von drei aufgefüllt, damit keine angebrochene Zeile
+  mit hängendem Rand entsteht.
+
+TABELLEN
+  Helle Kopfzeile mit kräftiger Unterlinie unter dunklem
+  Abschnittsbalken, dezente Linien, Zebrastreifen.
+  Zahlenspalten automatisch rechtsbündig und nur so breit wie nötig –
+  Textspalten bekommen den Rest. Das macht eine neue Hilfsfunktion auf
+  dem fertigen HTML; die Inhalte der einzelnen Druckzweige sind dabei
+  unangetastet geblieben.
+
+TYPOGRAFIE
+  Durchgehend: 14pt Dokumenttitel, 9.5pt Bezeichnung, 8.5pt Grundtext,
+  8pt Tabellenwerte, 6.9pt Abschnittsbalken, 6.5pt Tabellenköpfe,
+  6.2pt Fusszeile. Ränder nur noch über @page (14mm, unten 17mm).
+
+FARBEN
+  Monochrom (Anthrazit und Grautöne). Schwarz/weiss druckbar, keine
+  App-Optik, keine Buttons oder Karten im PDF.
+
+
+4. SEITENUMBRÜCHE
+-----------------
+ - Tabellenkopf wiederholt sich auf jeder Folgeseite
+   (thead: table-header-group)
+ - keine geteilte Tabellenzeile (break-inside: avoid)
+ - keine Überschrift allein am Seitenende (break-after: avoid)
+ - Angabenraster, Zeichnungen, Notizen und die Kehle-Ergebnisbox
+   bleiben je zusammen
+ - Skizzen behalten eine Seite je Skizze
+
+SEITENZAHL "Seite X von Y": Ob das überhaupt zuverlässig geht, habe
+ich gemessen statt vermutet. In Chromium wächst der Inhaltsstrom jeder
+Seite mit gesetzter @page-Randbox um rund 330 Bytes, ohne sie nicht –
+die Randbox wird also wirklich gerendert. Firefox und Safari
+unterstützen das nicht; dort fehlt die Seitenzahl ersatzlos, ohne dass
+etwas kaputt aussieht. Die übrige Fusszeile funktioniert überall.
+
+
+5. KEHLE
+--------
+b, c und d stehen weiterhin in einer eigenen, kräftig umrandeten Box
+mit 15pt-Zahlen und dominieren klar – jetzt monochrom statt blau,
+damit sie auch im Schwarz-Weiss-Druck heraussticht.
+Alle weiteren Resultate sind vollständig vorhanden.
+Der Abschnitt mit NH/NL/GL heisst jetzt "Eingaben" statt "Angaben",
+damit Eingaben und Resultate klar getrennt sind.
+An der Excel-Berechnung wurde nichts geändert.
+
+Regressionswert im PDF geprüft: NH=42.5 / NL=23.5 / GL=100 ->
+b=66.48° · c=122.77° · d=47.46°
+
+
+6. FOTOS UND SKIZZEN
+--------------------
+ - nie verzerrt: nur max-width/max-height, keine feste Breite.
+   Mit einem 16:9-Foto und 9:16-Skizzen nachgemessen – Soll- und
+   Ist-Seitenverhältnis stimmen auf drei Stellen überein.
+ - Foto und jede Skizze bekommen einen eigenen Abschnittsbalken
+ - Skizzen weiterhin je eine Seite
+ - die private Storage-/Signed-URL-Logik ist unverändert,
+   es entstehen keine öffentlichen URLs
+
+Zeichnungen (SVG) sind auf 95mm Höhe begrenzt (im Zweispalter 72mm)
+und bekommen 5mm seitlichen Freiraum. Grund: einzelne Zeichnungen
+setzen Beschriftungen bis an den Rand ihrer viewBox – ohne diesen
+Abstand wurde ein Text am Blattrand abgeschnitten. Die Zeichen-
+funktionen selbst habe ich nicht angefasst.
+
+
+7. AUSMASS
+----------
+Gleicher Dokumentkopf und dieselben Tabellen wie bei den
+Massaufnahmen. Positionen mit Anzahl im Abschnittstitel.
+
+Zu "Preise/Beträge/Summen/MwSt.": Die gibt es im Ausmass-Datenmodell
+nicht. "Offerte erfassen" speichert pos/description/quantity/unit, das
+Blitzschutzausmass artikel_nr/bezeichnung/material/einheit/menge.
+Ich habe deshalb nichts dergleichen erfunden.
+
+
+8. REGIERAPPORT – NACHWEISLICH UNVERÄNDERT
+------------------------------------------
+Vier unabhängige Belege:
+
+ 1. js/06-rapport.js, js/08-katalog-blitzschutz.js und
+    css/03-druck.css sind NICHT im Diff.
+ 2. Der Regierapport nutzt keinen der geänderten Bausteine –
+    Grep über pdfLetterheadHtml / pdfFooterHtml / PDF_LAYOUT_CSS /
+    pdfDokumentKopf / pdfZahlenRechts / eb-*: null Treffer.
+ 3. Die drei Funktionen, die er aus js/16 mitbenutzt
+    (erstelltGeaendertText, pdfDateiname, formatDatumZeit), sind
+    bytegleich – einzeln per Prüfsumme gegen HEAD verglichen.
+ 4. PIXELVERGLEICH: Ich habe den Regierapport-Bildschirm in echtem
+    Chromium unter media:print mit ausgelöstem beforeprint gerendert –
+    einmal auf dem Stand v2.52, einmal mit den Änderungen.
+    Bild und DOM sind IDENTISCH (cmp ohne Unterschied, 121'600 Bytes,
+    gleicher SHA-256).
+
+
+9. TESTS
+--------
+VISUELLER PDF-PRÜFSTAND "pdf52" – 240 von 240 bestanden.
+Läuft in echtem Chromium und erzeugt 17 Dokumente wirklich als PDF:
+alle zehn Massaufnahme-Arten, Kehle mit sehr langem Text, Massaufnahme
+ohne Projekt, Foto mit vier Skizzen, Ausmass Offerte (22 Positionen),
+Ausmass Blitzschutz, leeres Ausmass, Ausmass mit 70 Positionen.
+
+Je Dokument geprüft:
+ - der Druck läuft ohne Fehler und erzeugt HTML
+ - kein NaN, kein Infinity, kein undefined
+ - kein Bildschirm-UI im PDF (keine Buttons, Modals, Karten)
+ - gemeinsames Stylesheet aktiv
+ - genau ein Briefkopf, genau eine Fusszeile
+ - die Objektadresse ist der Haupttitel
+ - nichts läuft seitlich hinaus – gemessen in ECHTER Druckbreite
+   (A4 minus 14mm Rand = 182mm) unter media:print
+ - jedes Bild unverzerrt
+ - die Umbruchregeln sind wirklich wirksam (computed style)
+ - das PDF entsteht tatsächlich; Umfang 1 bis 5 Seiten
+
+VISUELLER CHECK: Vier Dokumente habe ich einzeln als Bild angesehen
+und daraufhin nachgebessert:
+ - doppelter Firmenname im Briefkopf entfernt
+ - Zeichnungen in der Höhe begrenzt (sie füllten eine halbe Seite)
+ - Zahlenspalten auf Inhaltsbreite statt übermässig breit
+ - Notiz als eigener Abschnitt statt lose angehängt
+
+EHRLICHKEITSHINWEIS ZU DEN TESTDATEN: Drei Zweige zeigten zuerst NaN
+in den Zeichnungen und in der Scharen-Tabelle. Gegenprobe auf dem
+Stand VOR meiner Änderung: identisches Verhalten. Es waren Lücken in
+meinen Testdaten (dilas/schieber brauchen posAbStart, die Scharen
+kommen aus der Fachberechnung), keine Regression. Nach Korrektur der
+Testdaten sind alle Ausgaben sauber.
+
+REGRESSION – alle 19 bestehenden Prüfstände grün:
+  nav 23/23, suche40 7/7, treffer40 7/7, recent41 12/12,
+  stand42 17/17, dateien43 27/27, ui39 (9 Fälle), adresse45 39/39,
+  kopf45 8/8, suche45 13/13, status46 35/35, projekte47 37/37,
+  auswahl48 32/32, dateien49 38/38, medien50 42/42, hidden51 7/7,
+  kehle52 698/698, kehleintegration52 76/76, breite52 52/52
+
+STRUKTUR: node --check über alle 27 js-Dateien und sw.js fehlerfrei,
+div-Balance unverändert 672/672, keine doppelten IDs, keine Reste des
+alten PDF_HEAD_FOOT_CSS.
+
+FACHLOGIK: Alle 14 Berechnungs- und Zeichenaufrufe in js/16 sind in
+unveränderter Anzahl vorhanden (einzeln gegen HEAD gezählt). Die
+gelöschten Zeilen im Diff sind ausschliesslich CSS-, Kopf- und
+Notizzeilen. Keine Berechnung, keine Stückliste, kein Zuschnitt, keine
+Abwicklung, kein Speicher-Payload verändert.
+
+
+10. PETER KÜNZI AG
+------------------
+Ausschliesslich gelesen, kein einziger Schreibzugriff in dieser Runde.
+
+  vorher/nachher: 2 Firmen, 13 Profile, 4 Projekte, 2 Ausmasse,
+  4 Rapporte, 1 Projektdatei, companies.updated_at unverändert
+  (2026-09-01 07:40:15.844647+00)
+
+NEBENBEFUND (nicht von mir): Es sind seit gestern 2 Massaufnahmen
+dazugekommen (13 -> 15) und 6 Audit-Zeilen (4 -> 10). Das sind Ihre
+eigenen Eingaben von heute Mittag: eine Kehle-Massaufnahme "Test"
+(11:41 Uhr, b=74.06 / c=137.16 / d=74.64) und ein "Gava-Blech
+Einlegerinne" (11:59 Uhr). Damit ist v2.52 erstmals auch im echten
+Betrieb bestätigt. Diese Daten habe ich nicht angefasst.
+
+
+11. GEÄNDERTE DATEIEN
+---------------------
+  js/16-massaufnahme-formular.js  gemeinsame PDF-Bausteine ausgebaut,
+                                  10 duplizierte CSS-Blöcke entfernt,
+                                  Dokumentkopf zentralisiert,
+                                  Foto-/Skizzen-Zweig neu aufgebaut
+  js/17-ausmass.js                auf dieselben Bausteine umgestellt
+  index.html                      nur Versionstext 2.53
+  sw.js                           Cache-Version 2.53
+  CLAUDE.md                       Abschnitt 61
+
+NICHT ANGEFASST: js/06-rapport.js, js/08-katalog-blitzschutz.js,
+css/03-druck.css, css/01-basis.css, alle Zeichen- und
+Berechnungsdateien (js/11–js/15, js/19–js/21, js/25), js/09, js/22,
+js/23, js/24, js/05a, js/03, js/01.
+
+
+12. GIT
+-------
+  Commit:  b9775ad  "Version 2.53: Professionelles PDF-Layout"
+  Branch:  claude/v1-49-analysis-rk5csc – gepusht
+  main:    aktualisiert und gepusht (Fast-Forward)
+  Arbeitsverzeichnis: sauber
+
+
+13. OFFENE PUNKTE
+-----------------
+ - Geprüft wurde in headless Chromium über dessen PDF-Ausgabe. Ein
+   Ausdruck aus IHREM Browser-Druckdialog wurde nicht getestet – das
+   behaupte ich ausdrücklich nicht.
+ - Seitenzahlen erscheinen nur in Chrome/Edge (siehe Punkt 4).
+ - Dass sich der Tabellenkopf auf Seite 2 wiederholt, ist über den
+   computed style "table-header-group" belegt, nicht durch Betrachten
+   einer gerasterten zweiten PDF-Seite – im Container fehlt ein
+   PDF-Rasterer.
+ - Ausmass-Fotos sind weiterhin nicht im PDF. Sie waren es vorher auch
+   nicht; das wäre neuer Inhalt gewesen.
+ - Die Zeichnungen enthalten intern viel Leerraum (eigene viewBox der
+   geschützten Fachdateien). Enger zu beschneiden hiesse, diese
+   Zeichenfunktionen zu ändern – bewusst unterlassen.
+
+
+14. BITTE PRÜFEN SIE AM GERÄT
+-----------------------------
+ - App neu laden (Version 2.53 muss unten stehen)
+ - eine Massaufnahme öffnen -> Drucken: Adresse als Titel, Kopfdaten,
+   Abschnitte, Zahlen rechtsbündig, Fusszeile
+ - die Kehle drucken: b/c/d gross hervorgehoben
+ - eine Massaufnahme mit Foto/Skizzen drucken
+ - ein Ausmass drucken
+ - EINEN REGIERAPPORT DRUCKEN: der muss exakt aussehen wie bisher
+================================================================
