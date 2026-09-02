@@ -1,0 +1,356 @@
+================================================================================
+SPENGLER-DIGITAL – ABSCHLUSSBERICHT VERSION 2.57
+RINNENPROFIL FREI DEFINIERBAR
+Commit ed152a1 · Branch claude/v1-49-analysis-rk5csc · gemergt nach main
+================================================================================
+
+
+1. WAS SICH GEÄNDERT HAT
+--------------------------------------------------------------------------------
+
+In v2.56 war das Rinnenprofil eine feste Tabelle mit neun Segmenten. Es wird
+jetzt im Formular selbst aufgebaut – nach demselben Muster wie das Freie Profil.
+
+Ablauf in der App:
+  1. Profil festlegen (Segmente, Art, Länge, Winkel)
+  2. Rinnenstücke erfassen – die Stückliste richtet sich nach dem Profil
+
+
+2. AUFBAU EINES PROFILSEGMENTS
+--------------------------------------------------------------------------------
+
+  Feld           Bedeutung
+  Bezeichnung    freier Text, z. B. "Anschl. Flachdach"
+  Art            fix       = bei jedem Rinnenstück gleich, mit eigener Länge
+                 variabel  = je Stück links/rechts eigener Wert
+  Länge          nur bei fix; bei variabel steht dort "je Stück"
+  Winkel         Richtungsänderung gegenüber dem vorherigen Segment in Grad.
+                 Exakt dieselbe Bedeutung wie beim Freien Profil.
+                 180° ist ein Umschlag.
+
+Variable Segmente bekommen ihren Buchstaben AUTOMATISCH aus ihrer Position:
+das erste heisst A, das zweite B, das dritte C – über Z hinaus AA, AB usw.
+
+Die Stückliste zeigt genau so viele Spalten, wie das Profil variable Masse hat.
+Kein variables Mass im Profil bedeutet: keine A/B/C-Spalten in der Liste.
+
+
+3. WAS IM FORMULAR MÖGLICH IST
+--------------------------------------------------------------------------------
+
+  - Segment hinzufügen
+  - Segment nach oben / nach unten verschieben
+  - Segment löschen (mit Rückfrage; Abbrechen löscht nichts)
+  - Bezeichnung frei eintippen
+  - zwischen fix und variabel umschalten
+      -> beim Umschalten auf variabel verschwindet das Längenfeld,
+         die Buchstaben werden neu vergeben und die Stückliste bekommt
+         sofort eine Spalte mehr bzw. weniger
+  - Winkel frei eintippen
+  - Knopf 🔄  kehrt den Winkel um
+  - Knopf 180°  macht das Segment zum Umschlag
+  - Knopf "Standardprofil"  setzt auf das Profil der Excel-Vorlage zurück
+  - Knopf "Als Vorgabe speichern"  macht das aktuelle Profil zur Vorgabe
+    für neue Rinnen-Massaufnahmen (nur auf diesem Gerät)
+
+Ändert sich die Anzahl variabler Masse, werden bereits erfasste Rinnenstücke
+angepasst: vorhandene Werte bleiben stehen, fehlende werden leer ergänzt,
+überzählige entfallen.
+
+
+4. DIE RECHNUNG – VERALLGEMEINERT, ABER UNVERÄNDERT
+--------------------------------------------------------------------------------
+
+  Abwicklung links   = Summe der variablen Masse links  + Summe aller Fixmasse
+  Abwicklung rechts  = Summe der variablen Masse rechts + Summe aller Fixmasse
+  Zuschnittlänge     = Länge M/M + Ansetzen links + Ansetzen rechts
+
+Das ist die direkte Verallgemeinerung der Excel-Formeln. Dort war die
+"Summe aller Fixmasse" die Konstante $R$14 = 510 und es gab genau drei
+variable Masse A/B/C.
+
+MITGELIEFERTES STANDARDPROFIL (entspricht exakt der Excel-Vorlage)
+
+  Nr.  Bezeichnung          Art       Länge   Winkel
+   1   Umschlag             fix        15 mm   180°
+   2   Anschl. Flachdach    fix       150 mm   180°
+   3   Keil                 fix        40 mm   -45°
+   A   Aufkantung hinten    variabel  je Stück -45°
+   B   Boden                variabel  je Stück  90°
+   C   Aufkantung vorne     variabel  je Stück  90°
+   7   Keil                 fix        40 mm   -45°
+   8   Anschl. Unterdach    fix       250 mm   -45°
+   9   Umschlag             fix        15 mm   180°
+                            Fixmasse gesamt: 510 mm
+
+Damit ist die Rechnung identisch mit der Excel. Der Prüfstand rechnet
+weiterhin ALLE 35 DATENZEILEN der Vorlage dagegen – 105 Werte, keine
+Abweichung.
+
+WICHTIG: Der Winkel beeinflusst die Rechnung NICHT. Er bestimmt
+ausschliesslich die Zeichnung. Das ist im Prüfstand ausdrücklich abgesichert.
+
+Die Ansetztypen sind unverändert (Dila −165, Boden 0, Ablauf −230,
+Gehrung +250, Naht +15, Nichts 0) und weiterhin zentral in den Einstellungen.
+
+
+5. "REST" IST ENTFALLEN
+--------------------------------------------------------------------------------
+
+Der Begriff "Rest" aus v2.56 war definiert als "Summe minus die drei benannten
+Fixmasse". Bei einem frei definierbaren Profil ergibt das keinen Sinn mehr.
+
+An seine Stelle tritt FIXMASSE GESAMT – die Summe aller als fix markierten
+Segmente. Angezeigt wird sie über der Profiltabelle, in der Fusszeile der
+Skizze und im PDF.
+
+
+6. DATENSTRUKTUR – WEITERHIN KEINE DATENBANKÄNDERUNG
+--------------------------------------------------------------------------------
+
+Erneut direkt am Schema geprüft:
+  measurements.data   ist  jsonb NOT NULL
+  measurements.type   hat  KEINE CHECK-Constraint
+
+Es braucht weiterhin KEINE neue Tabelle, KEINE neue Spalte, KEINE Migration,
+KEINE RLS-Änderung, KEINE Storage-Änderung.
+
+  data = {
+    profil:  [ {name, art:"fix"|"var", laenge, winkel} ],
+    ansetz:  {dila, boden, ablauf, gehrung, naht, nichts},
+    fixSumme,
+    varMasse: [{buchstabe, name}],
+    material,
+    stuecke: [ {links:[…], rechts:[…], laenge, ansetzL, ansetzR,
+                abwicklungLinks, abwicklungRechts, zuschnitt} ]
+  }
+
+links und rechts sind jetzt ARRAYS in der Reihenfolge der variablen Masse
+(vorher feste Objekte {a,b,c}).
+
+Profil und Ansetzwerte werden weiterhin als Momentaufnahme mitgespeichert:
+eine spätere Änderung der Vorgaben verändert kein gespeichertes Rinnenstück.
+
+
+7. GESPEICHERTE v2.56-DATEN
+--------------------------------------------------------------------------------
+
+Werden beim Öffnen automatisch übernommen:
+  - eine alte "zusatz"-Tabelle wird auf das entsprechende Profil abgebildet
+    (abweichende alte Werte werden dabei mit übernommen)
+  - alte {a,b,c}-Objekte werden zu einem dreielementigen Array
+
+Im Prüfstand nachgewiesen: ein v2.56-Datensatz liefert danach weiterhin exakt
+976 / 1006 / 1280. Es wird nichts umgeschrieben – die Umsetzung geschieht beim
+Lesen.
+
+
+8. EIN GEFUNDENER FEHLER, DEN DER PRÜFSTAND AUFGEDECKT HAT
+--------------------------------------------------------------------------------
+
+Beim ersten Entwurf fiel ein AUSDRÜCKLICH GELEERTES Profil still auf das
+Standardprofil zurück. Die App hätte also etwas gezeichnet und gerechnet, was
+der Benutzer gerade gelöscht hatte.
+
+Jetzt gilt: nur ein FEHLENDES Profil (alte Datensätze) fällt auf den Standard
+zurück. Ein leeres bleibt leer, die Skizze sagt "Noch kein Profil definiert",
+und das Speichern verlangt mindestens ein Segment.
+
+
+9. SKIZZE
+--------------------------------------------------------------------------------
+
+Wird vollständig aus dem definierten Profil erzeugt.
+
+  - gleicher Massstab in x und y, also keine Verzerrung
+  - die viewBox wird nach dem Zeichnen exakt um alles Gezeichnete gelegt,
+    einschliesslich der geschätzten Textkästen jeder Beschriftung
+  - Segmente mit 180° werden – wie beim Freien Profil – leicht parallel
+    versetzt gezeichnet, sonst lägen sie unsichtbar auf dem Nachbarsegment
+  - Fixmasse mit Bezeichnung und Wert, variable Masse mit Buchstabe und
+    Bezeichnung in der Blechfarbe
+  - variable Segmente ohne erfasstes Mass werden mit einem neutralen
+    Beispielwert gezeichnet, damit das Profil auch vor der ersten Eingabe
+    erkennbar ist; sobald ein Stück Werte hat, wird mit diesen gezeichnet
+
+Zwei Darstellungsfehler wurden GEMESSEN und behoben, nicht vermutet:
+  a) display:flex auf einem <td> sprengte das Tabellenlayout – die
+     Winkel-Knöpfe liefen in die Nachbarspalte
+  b) der Führungsstrich einer Fahne lief mitten durch ihre eigene Beschriftung
+
+
+10. PDF
+--------------------------------------------------------------------------------
+
+Weiterhin über den bestehenden zentralen Kopf, KEIN eigener Kopf.
+
+Neu enthält das PDF zusätzlich eine PROFILTABELLE:
+  Nr. bzw. Buchstabe | Bezeichnung | Art | Länge | Winkel
+
+Die Stückliste zeigt die variablen Masse als "A / B / C"-Spalte in der
+Reihenfolge des Profils. Bei einem Profil ohne variable Masse entfallen diese
+Angaben sauber.
+
+Der Regierapport wurde nicht angefasst.
+
+
+11. TESTS
+--------------------------------------------------------------------------------
+
+PRÜFSTAND "rinne57" – 340 von 340 bestanden
+  1.  Standardprofil gegen die Excel-Zusatzmasse (Multiset, Summe 510,
+      genau drei variable Masse A/B/C, Ansetztypen, Dropdown-Reihenfolge)
+  2.  ALLE 35 DATENZEILEN der Vorlage, Toleranz 1e-9
+  3.  alle 36 Kombinationen der sechs Ansetztypen links x rechts
+  4.  Grenzwerte: 0, leer, Text, NaN, Infinity, negativ, unbekannter Typ
+  5.  FREIES PROFIL: nur fix, ein variables Mass, fünf variable Masse A–E,
+      Buchstaben über Z hinaus, Umschalten fix<->variabel, geänderte
+      Fixlängen, leeres Profil, überzählige Werte
+  6.  WINKEL: Geometrie folgt dem Winkel, 180° und −180° werden als
+      Umschlag erkannt, der Winkel ändert die Rechnung NICHT,
+      Segmentlängen entsprechen exakt den Massen
+  7.  Verkettung, auch bei anderer Anzahl variabler Masse
+  8.  Stückliste passt sich dem Profil an, vorhandene Werte bleiben erhalten
+  9.  v2.56-Altformat
+ 10.  gespeicherte Stücke bleiben von geänderten Vorgaben unberührt
+ 11.  elf SVG-Fälle
+ 12.  Integration und Kontrolle gegen mehrfach hart codierte Werte
+
+  GEGENPROBE: mit einem um 1 mm verfälschten Fixmass meldet der Prüfstand
+  95 Fehlschläge. Er kann also wirklich fehlschlagen.
+
+PRÜFSTAND "breite57" – 58 von 58 bestanden (echtes Chromium, live bedient)
+  A  Standardprofil: neun Segmente, Stückliste zeigt genau A/B/C,
+     Abw. L = 976 und Zuschnitt = 1'280 (Excel-Werte)
+  B  Segment auf variabel umschalten: Spalten A..D, Längenfeld verschwindet,
+     Fixmasse 510 -> 360, Abwicklung folgt sofort
+  C  Winkel ändern verändert die Zeichnung, 180°-Knopf, Flip,
+     der Winkel verändert die Rechnung NICHT
+  D  Segment hinzufügen / verschieben / löschen, Rinnenstück hinzufügen
+     und löschen, erstes Segment nicht nach oben verschiebbar
+  D2 Abbrechen löscht kein Segment
+  E  Profil ganz ohne variable Masse: keine A/B/C-Spalten,
+     Abwicklung = nur Fixmasse
+  F  fünf Gerätebreiten 320 / 360 / 412 / 768 / 1280 px: kein seitlicher
+     Überlauf, Skizze passt, kein NaN, Excel-Werte korrekt
+
+  Anmerkung: Playwright verwirft confirm()-Dialoge automatisch. Ohne
+  Dialog-Behandlung sah es aus wie ein Löschfehler, war aber ein
+  Prüfstand-Artefakt – nach Behandlung des Dialogs grün, plus ein
+  zusätzlicher Test, dass Abbrechen wirklich nichts löscht.
+
+PRÜFSTAND "pdf52" – 504 von 504 bestanden (vorher 460/460)
+  Vier Rinnen-Dokumente, darunter eines mit frei definiertem Profil
+  (vier Segmente, ein variables Mass) und eines ganz ohne variable Masse.
+  Ein Dokument wurde zusätzlich als Bild angesehen.
+
+DATENBANK (Wegwerf-Firma, begin ... rollback)
+  Datensatz mit eigenem Profil gespeichert: vier Segmente, ein variables
+  Mass, Winkel −90 und Art "var" korrekt abgelegt, Zuschnitt 2'665,
+  created_by aus auth.uid(), audit_log-Eintrag "created".
+  Cross-Tenant: mit den vier echten Projekt-IDs der PETER KÜNZI AG als
+  fremde Firma je 0 Zeilen sichtbar.
+
+REGRESSION – alle bestehenden Prüfstände grün
+  adresse45 39/39, kopf45 8/8, suche45 13/13, status46 35/35,
+  projekte47 37/37, auswahl48 32/32, dateien49 38/38, medien50 42/42,
+  hidden51 7/7, kehle52 698/698, kehleintegration52 76/76,
+  breite52 52/52, pfade55 37/37, nav, suche40, treffer40, recent41,
+  stand42, dateien43, ui39
+
+STRUKTUR
+  node --check über alle 28 js/*.js und sw.js: fehlerfrei
+  <div>/</div> in index.html ausgeglichen: 697/697
+  keine doppelten Element-IDs
+
+WAS NICHT GETESTET WURDE
+  Ein Live-Klicktest gegen Supabase war nicht möglich – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co.
+  DAS WIRD HIER AUSDRÜCKLICH NICHT ALS GETESTET BEHAUPTET.
+  Geprüft sind: die Rechenlogik gegen die echten Excel-Werte, das Formular
+  und die Skizze live bedient in echtem Chromium, die PDF-Ausgabe als
+  wirklich gerendertes PDF und die Datenbankseite als RLS- und
+  Trigger-Simulation gegen das echte Produktivschema.
+
+
+12. GEÄNDERTE DATEIEN
+--------------------------------------------------------------------------------
+
+  js/26-rinne.js                   vollständig überarbeitet: freies Profil,
+                                   dynamische Buchstaben, dynamische
+                                   Stückliste, neue Skizze
+  index.html                       Profil-Editor im Formular, dynamischer
+                                   Tabellenkopf, Einstellungsblock,
+                                   Version 2.57
+  js/16-massaufnahme-formular.js   Payload speichert das Profil,
+                                   Pflichtprüfung, Druckzweig um die
+                                   Profiltabelle erweitert
+  css/01-basis.css                 Stile für Profil- und Stücktabelle
+  sw.js                            Cache-Version 2.57
+  CLAUDE.md                        Abschnitt 3.11 aktualisiert, Abschnitt 65
+
+NICHT ANGEFASST, per git diff bestätigt:
+  js/06-rapport.js, js/08-katalog-blitzschutz.js, css/03-druck.css
+    -> Regierapport vollständig unverändert
+  js/10, js/11, js/12, js/12b, js/13, js/14, js/15, js/17, js/19, js/20,
+  js/21, js/25
+    -> alle zehn übrigen Massaufnahme-Arten und Ausmass unverändert
+  js/01, js/03, js/04, js/05a, js/07, js/09, js/22, js/23, js/24
+
+Keine Berechnung, keine Stückliste, kein Zuschnitt, keine Abwicklung und
+keine PDF-/Drucklogik einer bestehenden Art berührt.
+
+
+13. DATENBANK-ÄNDERUNGEN
+--------------------------------------------------------------------------------
+
+KEINE. Ausdrücklich keine Migration, keine neue Tabelle, keine neue Spalte,
+keine geänderte RLS-Policy, keine Storage-Änderung, keine Edge Function.
+
+
+14. PETER KÜNZI AG UNVERÄNDERT
+--------------------------------------------------------------------------------
+
+Vor und nach allen Tests identisch:
+  2 Firmen, 13 Profile, 4 Projekte, 15 Massaufnahmen, 10 audit_log-Zeilen,
+  companies.updated_at = 2026-09-01 07:40:15.844647+00,
+  Mike Ledermann wieder in seiner echten Firma,
+  keine Wegwerf-Firma und kein Testdatensatz übrig.
+
+Alle schreibenden Datenbanktests liefen ausschliesslich in
+begin ... rollback mit einer Wegwerf-Firma.
+
+
+15. OFFENE PUNKTE
+--------------------------------------------------------------------------------
+
+- Kein Live-Klicktest gegen Supabase möglich (siehe Abschnitt 11).
+
+- Die Buchstaben folgen der Reihenfolge im Profil. Wird ein Segment
+  verschoben, ändern sich dadurch die Buchstaben der variablen Masse – die
+  bereits erfassten Werte bleiben aber an ihrer Position in der Liste stehen
+  und wandern nicht mit. Das ist bewusst so: die App kann nicht wissen, ob
+  eine Verschiebung eine Umbenennung oder eine echte Umstellung sein soll.
+
+- Kein Detail-Diff der Rinnenstücke im Änderungsverlauf (unverändert
+  gegenüber v2.56).
+
+- Aus v2.55 weiterhin offen: der Leerraum in den viewBox-Ausgaben der
+  BESTEHENDEN Zeichenfunktionen. Die Rinnen-Skizze ist davon nicht
+  betroffen, sie schneidet ihre viewBox selbst zu.
+
+
+16. ABSCHLUSS
+--------------------------------------------------------------------------------
+
+  Version              2.57 (index.html, sw.js, CLAUDE.md)
+  Commit-Hash          ed152a1
+  Commit-Titel         Version 2.57: Rinnenprofil frei definierbar
+  Entwicklungsbranch   claude/v1-49-analysis-rk5csc  (gepusht)
+  Push auf main        erfolgt, main steht auf ed152a1 (Fast-Forward)
+  Arbeitsverzeichnis   sauber
+  Datenbank            keine Änderung
+  Regierapport         unverändert
+  PETER KÜNZI AG       unverändert
+
+================================================================================
