@@ -146,8 +146,14 @@ async function loadProjectCockpitData(){
  keys.forEach((k,i)=>cockpitZeigeAnzahl(k,ergebnisse[i]));
 }
 
-async function openProjectCockpit(projectId){
+// treffer (optional, v2.40): {kind:"measurement"|"ausmass"|"report", id}
+// - stammt aus der globalen Suche und wird nach dem Laden in der
+//   passenden Liste sichtbar gemacht. Reine Anzeigehilfe: welche Zeilen
+//   ueberhaupt geladen werden, entscheidet weiterhin allein die RLS.
+async function openProjectCockpit(projectId,treffer){
  cockpitProjectId=Number(projectId);
+ // Projekt nicht in allProjects (z. B. manipulierte ID aus einer fremden
+ // Firma): allProjects ist bereits RLS-gefiltert, hier passiert nichts.
  if(!cockpitProject())return;
  renderCockpitStammdaten();
  cockpitStammdatenEinklappen();
@@ -160,6 +166,22 @@ async function openProjectCockpit(projectId){
  $("projectCockpitModal").hidden=false;
  window.scrollTo(0,0);
  await loadProjectCockpitData();
+ if(treffer)cockpitTrefferHervorheben(treffer);
+}
+
+// Den aus der Suche kommenden Eintrag in der bereits geladenen Liste
+// finden, hinscrollen und kurz hervorheben. Seit v2.39 sind alle vier
+// Listen ohnehin sofort sichtbar - es ist also kein Aufklappen noetig.
+const COCKPIT_TREFFER_ATTR={measurement:"data-open-project-measurement",ausmass:"data-open-project-ausmass",report:"data-open-report"};
+function cockpitTrefferHervorheben(treffer){
+ const attr=COCKPIT_TREFFER_ATTR[treffer&&treffer.kind];
+ if(!attr||!treffer.id)return;
+ const knopf=$("cockpitWorkArea").querySelector(`[${attr}="${treffer.id}"]`);
+ const zeile=knopf&&knopf.closest(".report-row");
+ if(!zeile)return;
+ zeile.classList.add("treffer");
+ zeile.scrollIntoView({block:"center"});
+ setTimeout(()=>zeile.classList.remove("treffer"),5000);
 }
 
 

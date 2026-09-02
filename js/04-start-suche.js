@@ -44,20 +44,48 @@ const debouncedGlobalSearch=debounce(async(q)=>{
  const measTypeLabels=MEAS_TYPE_LABELS;
  const amTypeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
  $("globalSearchStatus").textContent=`${results.length} Treffer`;
+ // v2.40: Der gefundene Eintrag steht zuoberst, darunter Trefferart,
+ // Projekt und Datum. Dieselben Angaben wie bisher, nur klarer geordnet.
+ // project_id kommt aus der bereits geladenen Zeile (select("*")) -
+ // dafuer ist keine zusaetzliche Abfrage noetig.
  $("globalSearchResults").innerHTML=results.length?results.map((r,i)=>{
   const proj=allProjects.find(p=>p.id===r.data.project_id);
-  let label,sub,icon;
-  if(r.kind==="report"){icon="📋";label="Regierapport";sub=`${proj?proj.name:(r.data.customer||"Ohne Projekt")} · ${r.data.date||"–"} · ${r.data.order_no||"–"}`}
-  else if(r.kind==="measurement"){icon="📐";label=`Massaufnahme (${measTypeLabels[r.data.type]||r.data.type})`;sub=`${r.data.title||"Ohne Titel"} · ${proj?proj.name:"Kein Projekt"} · ${r.data.date||"–"}`}
-  else{icon="📏";label=`Ausmass (${amTypeLabels[r.data.type]||r.data.type})`;sub=`${r.data.title||"Ohne Titel"} · ${proj?proj.name:"Kein Projekt"} · ${r.data.date||"–"}`}
+  let treffer,art,icon;
+  if(r.kind==="report"){
+   icon="📋";art="Regierapport";
+   treffer=[r.data.order_no,r.data.customer,r.data.object].map(x=>String(x||"").trim()).filter(Boolean).join(" · ")||(r.data.date||"Ohne Kopfdaten");
+  }else if(r.kind==="measurement"){
+   icon="📐";art=`Massaufnahme · ${measTypeLabels[r.data.type]||r.data.type}`;
+   treffer=r.data.title||"Ohne Titel";
+  }else{
+   icon="📏";art=`Ausmass · ${amTypeLabels[r.data.type]||r.data.type}`;
+   treffer=r.data.title||"Ohne Titel";
+  }
+  const sub=`${art} · ${proj?"📁 "+proj.name:"Kein Projekt"} · ${r.data.date||"–"}`;
+  // Der Cockpit-Weg nur, wenn der Treffer wirklich zu einem Projekt der
+  // eigenen Firma gehoert - sonst bleibt es beim bisherigen Verhalten.
+  const cockpitBtn=proj?`<button class="blue" data-open-search-cockpit="${i}">📂 Projekt</button>`:"";
   return `<div class="meas-row">
-<div class="meas-row-info"><b>${icon} ${esc(label)}</b><span>${esc(sub)}</span></div>
-<div class="meas-row-actions"><button class="blue" data-open-search-result="${i}" title="Öffnen">✏️</button></div>
+<div class="meas-row-info"><b>${icon} ${esc(treffer)}</b><span>${esc(sub)}</span></div>
+<div class="meas-row-actions">${cockpitBtn}<button class="gray" data-open-search-result="${i}" title="Direkt öffnen">✏️</button></div>
 </div>`;
  }).join(""):"<div class=\"empty\">Keine Treffer.</div>";
 },400);
 $("globalSearchInput").addEventListener("input",e=>debouncedGlobalSearch(e.target.value));
 $("globalSearchResults").addEventListener("click",e=>{
+ // Neuer Weg (v2.40): ins Projekt-Cockpit, dort ist der passende
+ // Bereich seit v2.39 ohnehin geoeffnet - der Treffer wird nur noch
+ // sichtbar gemacht. Zurueck fuehrt von dort ins Cockpit, nicht in die
+ // Suche.
+ const c=e.target.closest("[data-open-search-cockpit]");
+ if(c){
+  const t=globalSearchCache[Number(c.dataset.openSearchCockpit)];
+  if(!t||!t.data.project_id)return;
+  $("globalSearchModal").hidden=true;
+  openProjectCockpit(t.data.project_id,{kind:t.kind,id:t.data.id});
+  return;
+ }
+ // Bisheriger Direktweg - unveraendert.
  const b=e.target.closest("[data-open-search-result]");
  if(!b)return;
  const r=globalSearchCache[Number(b.dataset.openSearchResult)];

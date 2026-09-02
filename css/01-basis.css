@@ -95,6 +95,8 @@ td input,td select{min-height:34px;font-size:12px}
 .report-row .report-row-info b{display:block;font-size:12px;word-break:break-word}
 /* Projekt-Cockpit (v2.39): Abschnittsueberschrift mit Anzahl rechts,
    klar beschriftete Neu-Knoepfe ueber voller Breite. */
+/* Aus der globalen Suche geoeffneter Treffer (v2.40): kurz hervorheben */
+.report-row.treffer{outline:2px solid var(--blue);outline-offset:1px;background:#fff}
 .cockpit-count{float:right;font-size:11px;font-weight:900;color:var(--blue);background:var(--blue-light);border-radius:999px;padding:1px 9px;min-width:20px;text-align:center}
 .cockpit-new{display:block;width:100%;min-height:44px;text-align:center;line-height:24px}
 label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-weight:800;font-size:12px}
@@ -159,14 +161,14 @@ label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-wei
 .sketch-thumb{width:100%;height:100%;object-fit:contain}
 .sketch-thumb-actions{position:absolute;inset:auto 0 0 0;display:flex;gap:2px;background:#17242dcc}
 .sketch-thumb-actions button{flex:1;padding:4px 0;font-size:11px;border-radius:0}
-.meas-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0}
+.meas-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0}
 .meas-thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:0 0 auto;background:#eef2f6}
 .meas-thumb-empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px}
-.meas-row-info{flex:1;min-width:0}
-.meas-row-info b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.meas-row-info span{font-size:11px;color:var(--muted)}
+.meas-row-info{flex:1 1 190px;min-width:0}
+.meas-row-info b{display:block;font-size:13px;word-break:break-word}
+.meas-row-info span{display:block;font-size:11px;color:var(--muted);word-break:break-word}
 .meas-row-actions{display:flex;gap:6px;flex:0 0 auto}
-.meas-row-actions button{padding:6px 9px;font-size:12px}
+.meas-row-actions button{padding:7px 10px;font-size:12px;min-height:34px}
 @media(max-width:600px){.meas-columns{grid-template-columns:1fr}}
 #authScreen .modalbox{max-width:420px}
 .info{background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:9px;border-left:3px solid var(--blue)}

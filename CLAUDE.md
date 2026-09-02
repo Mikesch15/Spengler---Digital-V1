@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.39, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.40, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.39**
+- sichtbare App-Version: **2.40**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -6139,3 +6139,193 @@ erprobten bestehenden Klassen abgeglichen.
 - Kein Projektstatus, keine Sortier-/Filtermöglichkeit innerhalb der
   Cockpit-Listen – beides war nicht verlangt und hätte neue Konzepte
   eingeführt.
+
+## 48. GLOBALE SUCHE → PROJEKT-COCKPIT — VERSION 2.40
+
+Die globale Suche nutzt jetzt den Projektkontext des Cockpits. **Keine
+Schemaänderung, keine Migration, keine geänderte Suchabfrage** – die
+drei Abfragen der Suche sind Zeile für Zeile unverändert (per `git diff`
+belegt), geändert wurden nur Trefferdarstellung und der Weg nach dem
+Klick.
+
+### 48.1 Suchaufbau vor der Änderung (aus dem echten v2.39-Code)
+
+`debouncedGlobalSearch()` (js/04-start-suche.js) sucht in **drei**
+Tabellen, dazu kommt eine vierte, clientseitige Erweiterung:
+
+| Suchart | Feld(er) | Abfrage |
+|---|---|---|
+| Regierapport | `customer`, `object`, `order_no` | `.or(...ilike...)`, `limit(30)` |
+| Massaufnahme | `title` | `.ilike("title",…)`, `limit(30)` |
+| Ausmass | `title` | `.ilike("title",…)`, `limit(30)` |
+| Projektname | `allProjects` clientseitig | danach je eine `.in("project_id",…)`-Nachladung für alle drei Tabellen, zusammengeführt über `mergeById()` |
+
+**`project_files` wird nicht durchsucht** – es gibt also keine
+Datei-Suche (Auftrag Abschnitt 15 D: „falls unterstützt"). Das wurde
+bewusst nicht neu gebaut, da es eine zusätzliche Suchart wäre und nicht
+verlangt war.
+
+Die Trefferzeile zeigte bisher `<b>📐 Massaufnahme (Typ)</b>` und
+darunter `Titel · Projekt · Datum` – der Abschnittsname stand also an
+der prominentesten Stelle, der eigentliche Treffer klein darunter. Ein
+einziger Knopf (✏️) öffnete den Eintrag direkt.
+
+### 48.2 Welche Sucharten eine `project_id` besitzen
+
+Direkt am Schema geprüft (`information_schema.columns`): `measurements`,
+`ausmass` und `reports` haben **alle drei** eine `project_id`-Spalte
+(nullable, `ON DELETE SET NULL`). Da die Suche mit `select("*")` lädt,
+**bringt jeder Treffer seine `project_id` bereits mit** – für den
+Projektkontext ist **keine einzige zusätzliche Abfrage** nötig (Auftrag
+Abschnitt 11). Die bestehende Renderfunktion nutzte `r.data.project_id`
+sogar schon, nur eben nicht für die Navigation.
+
+`project_id` kann echt `NULL` sein: in den Produktivdaten haben
+**3 von 13 Massaufnahmen** kein Projekt (das zugehörige Projekt wurde
+gelöscht, `ON DELETE SET NULL`). Dieser Fall ist also real erreichbar
+und behält exakt das bisherige Verhalten.
+
+### 48.3 Umgesetzt
+
+**Trefferdarstellung** – dieselben Angaben wie bisher, nur geordnet:
+
+| | vorher | jetzt |
+|---|---|---|
+| Titelzeile | „Massaufnahme (Skizze/Foto)" | **der gefundene Eintrag** („Dach Nord") |
+| Zweite Zeile | Titel · Projekt · Datum | Trefferart · **📁 Projektname** · Datum |
+| Rapport-Titelzeile | „Regierapport" | Auftrags-Nr. · Auftraggeber · Objekt (sonst Datum) |
+
+Kein Feld ging verloren; die Typbezeichnung kommt weiterhin aus
+`MEAS_TYPE_LABELS` bzw. dem Ausmass-Katalog.
+
+**Zwei Wege je Treffer:**
+- **„📂 Projekt"** – nur wenn der Treffer zu einem Projekt der eigenen
+  Firma gehört. Öffnet das Projekt-Cockpit und hebt den Treffer dort
+  hervor.
+- **„✏️"** – der bisherige Direktweg, unverändert
+  (`openReport`/`openMeasurement`/`openAusmass` wie zuvor). Treffer ohne
+  Projektbezug haben **nur** diesen Knopf, ihr Verhalten ist identisch
+  zu v2.39.
+
+**Treffer im Cockpit wiederfinden.** Seit v2.39 sind alle vier
+Arbeitslisten beim Öffnen des Cockpits ohnehin geladen und sichtbar –
+„der passende Abschnitt ist schon offen" ist also bereits erfüllt. Neu
+ist nur `cockpitTrefferHervorheben({kind,id})`: sucht innerhalb von
+`#cockpitWorkArea` den bereits gerenderten Knopf des Eintrags
+(`data-open-project-measurement` / `data-open-project-ausmass` /
+`data-open-report`), scrollt dessen Zeile in die Mitte und hebt sie
+fünf Sekunden mit einem blauen Rahmen hervor. Findet sich die Zeile
+nicht (z. B. inzwischen gelöscht), passiert nichts – kein Fehler.
+
+`openProjectCockpit(projectId, treffer)` hat dafür einen **optionalen
+zweiten Parameter** bekommen; alle bisherigen Aufrufer (Projektkarte)
+bleiben unverändert.
+
+### 48.4 Rückweg
+
+Aus dem Cockpit heraus geöffnete Einträge laufen über die bereits
+bestehenden Cockpit-Listen – deren Klick-Handler setzt seit v2.38
+`measEditReturnTo`/`amEditReturnTo`/`reportReturnTo` auf
+`"projectCockpit"`. Der Rückweg ist damit ohne eine Zeile neuen
+Routing-Codes: **Suche → Cockpit → Eintrag → Zurück → dasselbe
+Cockpit**, nicht zurück in die Suche. Der Direktweg (✏️) behält seinen
+bisherigen Rückweg in die jeweilige Übersicht.
+
+### 48.5 Tenant-Sicherheit
+
+`project_id` ist weiterhin ausschliesslich Navigationskontext, nie eine
+Berechtigung. Drei unabhängige Schichten:
+
+1. Die Suchabfragen selbst laufen über die restriktiven
+   `tenant_boundary_*`-Policies – fremde Treffer landen gar nicht erst
+   im `globalSearchCache`.
+2. `openProjectCockpit()` findet das Projekt nur in `allProjects`, und
+   das ist bereits RLS-gefiltert – eine manipulierte fremde Projekt-ID
+   öffnet nichts (empirisch geprüft, siehe 48.6).
+3. Jede Cockpit-Abfrage ist erneut RLS-gebunden (unverändert seit v2.37).
+
+Die Hervorhebung arbeitet ausschliesslich auf bereits gerenderten,
+RLS-gefilterten Zeilen – sie kann nichts sichtbar machen, was nicht
+ohnehin geladen wurde.
+
+### 48.6 Tests
+
+**Such-Prüfstand** (Node, gegen die echte `debouncedGlobalSearch()` mit
+gestellten Antworten): vier Treffer (Rapport, zwei Massaufnahmen – eine
+davon **ohne** Projekt – und ein Ausmass).
+
+| Prüfung | Ergebnis |
+|---|---|
+| Trefferzahl unverändert | 4 Treffer, keiner verloren |
+| Darstellung | „📐 Dach Nord / Massaufnahme · Skizze/Foto · 📁 Home · 2026-08-29" |
+| Cockpit-Knöpfe | genau 3 – nur bei Treffern **mit** Projekt |
+| Direkt-Knöpfe | 4 – bei **allen** Treffern |
+| Cockpit-Weg Massaufnahme | `openProjectCockpit(1, measurement#12)` |
+| Cockpit-Weg Rapport | `openProjectCockpit(3, report#5)` |
+| Cockpit-Weg Ausmass | `openProjectCockpit(1, ausmass#2)` |
+| Treffer ohne Projekt → Direktweg | `openMeasurement(13)` – identisch zu v2.39 |
+| Rapport-Direktweg | `openReport(5, undefined)` – identisch zu v2.39 |
+
+**Treffer-Prüfstand** (gegen die echten Cockpit-Funktionen): Zeile wird
+hervorgehoben und angescrollt, die Hervorhebung verschwindet nach
+Ablauf wieder; ein nicht (mehr) vorhandener Treffer, ein Aufruf ohne
+Treffer-Angabe und eine **fremde Projekt-ID** führen alle zu keinem
+Fehler – die fremde ID öffnet das Cockpit gar nicht erst.
+
+**Cross-Tenant** (`begin; … rollback;`, Wegwerf-Firma, PETER KÜNZI AG
+nur gelesen): als Benutzer einer fremden Firma liefern **alle vier**
+Suchabfragen (Rapporte, Massaufnahmen, Ausmasse, Projektnamen) sowie
+die drei `.in("project_id",…)`-Nachladungen mit den echten, bekannten
+Projekt-IDs **je 0 Zeilen**.
+
+**Eigene Firma** (rein lesend): dieselbe Abfrage liefert die echten
+Treffer inklusive ihrer `project_id` (z. B. Massaufnahme 3 → Projekt 1,
+Massaufnahme 10 → Projekt 3) – der Projektkontext steht also
+tatsächlich ohne Zusatzabfrage zur Verfügung.
+
+**Regression**: die Prüfstände aus v2.38/v2.39 erneut laufen lassen –
+23/23 Navigationsprüfungen bestanden, Listenrendering unverändert.
+`node --check` über alle `js/*.js` und `sw.js` fehlerfrei,
+`<div>`-Balance unverändert 642/642. Produktivdaten vor und nach allen
+Tests identisch (2 Firmen, 4 Projekte, 13 Massaufnahmen, 2 Ausmasse,
+4 Rapporte, 1 Datei, 0 `audit_log`-Zeilen), Mike Ledermann weiterhin in
+PETER KÜNZI AG, deren `updated_at` unverändert
+(`2026-09-01 07:40:15.844647+00`), Projekt 1 unverändert.
+
+**Live-Klicktest im Browser war in dieser Sitzung technisch nicht
+möglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird hier ausdrücklich nicht
+als getestet behauptet.**
+
+### 48.7 Mobile
+
+`.meas-row` (Suchtreffer und die drei Übersichten) bricht jetzt um
+statt seitlich zu scrollen; lange Titel werden umgebrochen statt mit
+`text-overflow:ellipsis` abgeschnitten (bisher gingen lange Titel dort
+verloren). Trefferflächen der Zeilenknöpfe auf mindestens 34 px erhöht,
+der Cockpit-Knopf ist beschriftet statt nur ein Symbol.
+
+### 48.8 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/04-start-suche.js` | Trefferdarstellung (Treffer zuerst, Projekt klar), neuer „📂 Projekt"-Knopf und dessen Handler. **Suchabfragen unverändert.** |
+| `js/24-projekt-cockpit.js` | `openProjectCockpit()` um optionalen Treffer-Parameter erweitert, `cockpitTrefferHervorheben()` ergänzt |
+| `css/01-basis.css` | Hervorhebung des Treffers, umbruchfähige Trefferzeilen, grössere Trefferflächen |
+| `index.html` | nur Versionstext 2.40 |
+| `sw.js` | Cache-Version 2.40 |
+
+**Nicht angefasst**: sämtliche Fach-, Login-, Rechte- und
+System-Admin-Dateien, `js/09-projekte.js`, `js/23-verlauf.js` – per
+`git diff` einzeln bestätigt.
+
+### 48.9 Offene Punkte für v2.41
+
+- Kein Live-Klicktest im Browser möglich (siehe 48.6).
+- **Keine Datei-Suche**: `project_files` wird von der globalen Suche
+  weiterhin nicht durchsucht (siehe 48.1) – wäre eine neue Suchart und
+  war nicht Teil dieses Auftrags.
+- Treffer ohne Projektbezug (real vorhanden: 3 Massaufnahmen) bekommen
+  bewusst keinen Cockpit-Weg – dafür gibt es kein Projekt.
+- Das `limit(30)` je Tabelle ist unverändert; bei sehr vielen Treffern
+  gibt es weiterhin keine Nachlade-Funktion.
