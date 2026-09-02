@@ -93,6 +93,16 @@ td input,td select{min-height:34px;font-size:12px}
 .report-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:var(--blue-light);border-radius:8px;padding:7px 9px;margin:5px 0}
 .report-row .report-row-info{flex:1 1 190px;min-width:0}
 .report-row .report-row-info b{display:block;font-size:12px;word-break:break-word}
+/* Arbeitsstand im Projekt-Cockpit (v2.42): kompakte Zeilen, nur Fakten */
+.arbeitsstand{border:1px solid var(--line);border-radius:10px;margin-top:10px;overflow:hidden;background:#fff}
+.arbeitsstand-titel{font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px 4px}
+.arbeitsstand-zeile{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;border-top:1px solid #eef1f3;border-radius:0;padding:9px 10px;min-height:38px;font-weight:600;color:var(--ink)}
+button.arbeitsstand-zeile{cursor:pointer}
+button.arbeitsstand-zeile:hover{background:var(--blue-light)}
+.arbeitsstand-marke{flex:0 0 auto;width:16px;text-align:center;font-size:12px;font-weight:900;color:var(--blue)}
+.arbeitsstand-name{flex:1 1 auto;min-width:0;font-size:12px;word-break:break-word}
+.arbeitsstand-wert{flex:0 0 auto;font-size:12px;font-weight:800;color:var(--blue-dark);text-align:right}
+.arbeitsstand-aktivitaet .arbeitsstand-wert{font-weight:600;color:var(--muted)}
 /* Schnellzugriff "Zuletzt bearbeitet" (v2.41): ganze Karte ist der Knopf */
 .recent-project{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:11px 12px;margin:6px 0;min-height:52px}
 .recent-project-info{flex:1 1 auto;min-width:0}

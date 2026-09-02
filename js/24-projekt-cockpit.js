@@ -105,14 +105,41 @@ function cockpitAktivitaetText(row){
 // ist. Die Listen sind immer sichtbar - kein Aufklappen mehr, das war
 // ein Klick je Bereich ohne Gegenwert.
 const COCKPIT_BEREICHE={
- meas :{count:"cockpitMeasCount" ,body:"cockpitMeasBody" ,load:id=>loadProjectMeasurements(id)},
- am   :{count:"cockpitAmCount"   ,body:"cockpitAmBody"   ,load:id=>loadProjectAusmass(id)},
- rep  :{count:"cockpitRepCount"  ,body:"cockpitRepBody"  ,load:id=>loadProjectReports(id)},
- files:{count:"cockpitFilesCount",body:"cockpitFilesBody",load:id=>loadProjectFiles(id)}
+ meas :{count:"cockpitMeasCount" ,body:"cockpitMeasBody" ,card:"cockpitMeasCard" ,mark:"cockpitMeasMark" ,stand:"cockpitMeasStand" ,leer:"Noch keine" ,load:id=>loadProjectMeasurements(id)},
+ am   :{count:"cockpitAmCount"   ,body:"cockpitAmBody"   ,card:"cockpitAmCard"   ,mark:"cockpitAmMark"   ,stand:"cockpitAmStand"   ,leer:"Noch keins",load:id=>loadProjectAusmass(id)},
+ rep  :{count:"cockpitRepCount"  ,body:"cockpitRepBody"  ,card:"cockpitRepCard"  ,mark:"cockpitRepMark"  ,stand:"cockpitRepStand"  ,leer:"Noch keine" ,load:id=>loadProjectReports(id)},
+ files:{count:"cockpitFilesCount",body:"cockpitFilesBody",card:"cockpitFilesCard",mark:"cockpitFilesMark",stand:"cockpitFilesStand",leer:"Noch keine" ,load:id=>loadProjectFiles(id)}
 };
+
+// Eine Stelle schreibt die Anzahl - in die Abschnittsüberschrift UND in
+// den Arbeitsstand oben. Dieselbe Zahl, keine zweite Quelle.
+// Wichtig (Auftrag Abschnitt 12): schlägt eine Abfrage fehl, liefert die
+// Ladefunktion undefined - dann steht überall "?" und niemals eine
+// falsche 0. Und es wird nur ausgesagt, was da ist: Anzahl bzw.
+// "Noch keine …" - keine Behauptung, dass etwas fehle.
 function cockpitZeigeAnzahl(key,n){
- $(COCKPIT_BEREICHE[key].count).textContent=(n===undefined||n===null)?"?":String(n);
+ const b=COCKPIT_BEREICHE[key];
+ const unbekannt=(n===undefined||n===null);
+ $(b.count).textContent=unbekannt?"?":String(n);
+ $(b.mark).textContent =unbekannt?"?":(n>0?"✓":"○");
+ $(b.stand).textContent=unbekannt?"?":(n>0?String(n):b.leer);
 }
+// Ladezustand: nichts behaupten, solange nichts bekannt ist.
+function cockpitStandLaedt(){
+ Object.keys(COCKPIT_BEREICHE).forEach(k=>{
+  const b=COCKPIT_BEREICHE[k];
+  $(b.count).textContent="…";$(b.mark).textContent="…";$(b.stand).textContent="…";
+ });
+ $("cockpitStandAktivitaet").textContent="…";
+}
+// Klick auf eine Arbeitsstand-Zeile springt zum bereits vorhandenen
+// Abschnitt weiter unten - keine zweite Navigation, kein Nachladen.
+$("projectCockpitModal").addEventListener("click",e=>{
+ const z=e.target.closest("[data-cockpit-goto]");
+ if(!z)return;
+ const b=COCKPIT_BEREICHE[z.dataset.cockpitGoto];
+ if(b)$(b.card).scrollIntoView({block:"start"});
+});
 // Einzelnen Bereich neu laden (nach Rückkehr, Anlegen oder Löschen).
 async function cockpitBereichAktualisieren(key){
  if(!key||!cockpitProjectId||!COCKPIT_BEREICHE[key])return;
@@ -125,9 +152,17 @@ async function cockpitAktivitaetLaden(){
   .select("user_id,action,entity_type,created_at")
   .eq("project_id",id).order("created_at",{ascending:false}).limit(1);
  if(cockpitProjectId!==id)return;
- $("cockpitLastActivity").textContent=error
-  ? "Verlauf konnte nicht geladen werden: "+error.message
-  : cockpitAktivitaetText((data||[])[0]);
+ if(error){
+  $("cockpitLastActivity").textContent="Verlauf konnte nicht geladen werden: "+error.message;
+  $("cockpitStandAktivitaet").textContent="?";
+  return;
+ }
+ // Dieselbe Zeile speist beide Anzeigen: oben im Arbeitsstand nur der
+ // Zeitpunkt, in der Verlaufskarte wie bisher der ganze Satz. Keine
+ // zweite Aktivitätslogik - verlaufFormatWann() stammt aus v2.31.
+ const zeile=(data||[])[0];
+ $("cockpitLastActivity").textContent=cockpitAktivitaetText(zeile);
+ $("cockpitStandAktivitaet").textContent=zeile?verlaufFormatWann(zeile.created_at):"Noch keine Aktivität";
 }
 
 // Beim Öffnen eines Projekts: alle vier Bereiche plus die letzte
@@ -137,7 +172,7 @@ async function cockpitAktivitaetLaden(){
 async function loadProjectCockpitData(){
  const id=cockpitProjectId;
  const keys=Object.keys(COCKPIT_BEREICHE);
- keys.forEach(k=>{$(COCKPIT_BEREICHE[k].count).textContent="…"});
+ cockpitStandLaedt();
  $("cockpitLastActivity").textContent="Lädt…";
  const ergebnisse=await Promise.all(keys.map(k=>COCKPIT_BEREICHE[k].load(id)).concat([cockpitAktivitaetLaden()]));
  // Zwischenzeitlich anderes Projekt geöffnet oder Cockpit geschlossen:

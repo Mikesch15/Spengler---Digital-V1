@@ -91,7 +91,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.41</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.42</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -259,6 +259,20 @@
 <div class="card">
 <h2 id="cockpitTitle">📁 Projekt</h2>
 <div class="small" id="cockpitSubline"></div>
+
+<!-- Arbeitsstand (v2.42): fasst nur zusammen, was tatsaechlich vorhanden
+     ist. Die Zahlen stammen aus denselben Ladefunktionen, die die
+     Arbeitsbereiche darunter fuellen - keine zusaetzliche Abfrage, kein
+     erfundener Projektstatus. -->
+<div class="arbeitsstand">
+<div class="arbeitsstand-titel">Arbeitsstand</div>
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="meas"><span class="arbeitsstand-marke" id="cockpitMeasMark">○</span><span class="arbeitsstand-name">📐 Massaufnahmen</span><span class="arbeitsstand-wert" id="cockpitMeasStand">–</span></button>
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="am"><span class="arbeitsstand-marke" id="cockpitAmMark">○</span><span class="arbeitsstand-name">📏 Ausmass</span><span class="arbeitsstand-wert" id="cockpitAmStand">–</span></button>
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="rep"><span class="arbeitsstand-marke" id="cockpitRepMark">○</span><span class="arbeitsstand-name">📋 Regierapporte</span><span class="arbeitsstand-wert" id="cockpitRepStand">–</span></button>
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="files"><span class="arbeitsstand-marke" id="cockpitFilesMark">○</span><span class="arbeitsstand-name">📎 Dateien/Fotos</span><span class="arbeitsstand-wert" id="cockpitFilesStand">–</span></button>
+<div class="arbeitsstand-zeile arbeitsstand-aktivitaet"><span class="arbeitsstand-marke">🕘</span><span class="arbeitsstand-name">Letzte Aktivität</span><span class="arbeitsstand-wert" id="cockpitStandAktivitaet">–</span></div>
+</div>
+
 <div class="bar"><button id="cockpitToggleStammdaten" class="gray">✏️ Stammdaten bearbeiten</button></div>
 <div id="cockpitStammdaten" hidden>
 <div class="grid">
@@ -274,22 +288,22 @@
 
 <!-- Arbeitsbereiche: je ein Abschnitt, Liste immer sichtbar. -->
 <div id="cockpitWorkArea">
-<div class="card">
+<div class="card" id="cockpitMeasCard">
 <h2>📐 Massaufnahmen<span id="cockpitMeasCount" class="cockpit-count">–</span></h2>
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="meas">＋ Neue Massaufnahme</button></div>
 <div id="cockpitMeasBody"></div>
 </div>
-<div class="card">
+<div class="card" id="cockpitAmCard">
 <h2>📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span></h2>
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="am">＋ Neues Ausmass</button></div>
 <div id="cockpitAmBody"></div>
 </div>
-<div class="card">
+<div class="card" id="cockpitRepCard">
 <h2>📋 Regierapport<span id="cockpitRepCount" class="cockpit-count">–</span></h2>
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="rep">＋ Neuer Regierapport</button></div>
 <div id="cockpitRepBody"></div>
 </div>
-<div class="card">
+<div class="card" id="cockpitFilesCard">
 <h2>📎 Dateien/Fotos<span id="cockpitFilesCount" class="cockpit-count">–</span></h2>
 <div id="cockpitFilesBody"></div>
 </div>

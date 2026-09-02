@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.41, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.42, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.41**
+- sichtbare App-Version: **2.42**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -6514,3 +6514,165 @@ Archiv-Umschaltung sind unverändert.
   Grenze (siehe 49.4).
 - Kein Projektstatus, keine Favoriten/Anheften – beides hätte ein neues
   Datenmodell gebraucht.
+
+## 50. PROJEKT-COCKPIT – ARBEITSSTAND — VERSION 2.42
+
+Das Cockpit beantwortet jetzt oben auf einen Blick: „Was ist bei diesem
+Projekt tatsächlich vorhanden?" **Keine Schemaänderung, keine Migration,
+keine einzige zusätzliche Abfrage** – geändert wurden nur `index.html`,
+`js/24-projekt-cockpit.js`, `css/01-basis.css` und `sw.js`.
+
+### 50.1 Bestandsaufnahme (frisch am v2.41-Code geprüft)
+
+`loadProjectCockpitData()` lädt beim Öffnen eines Projekts alle vier
+Arbeitsbereiche plus die letzte Aktivität in **einem** `Promise.all` –
+fünf Abfragen. Die vier Ladefunktionen aus `js/09-projekte.js`
+(`loadProjectMeasurements()` usw.) **liefern seit v2.39 ihre Trefferzahl
+zurück**; `cockpitZeigeAnzahl(key,n)` schreibt sie als Badge in die
+jeweilige Abschnittsüberschrift, `undefined` (Abfragefehler) wird bereits
+als „?" dargestellt.
+
+Damit war die eigentliche Datengrundlage für einen Arbeitsstand schon
+vollständig vorhanden. Was fehlte, war die Zusammenfassung: die vier
+Zahlen standen verteilt über vier Karten, die letzte Aktivität ganz unten
+in der Verlaufskarte. Auf dem Handy musste man scrollen, um zu sehen, was
+überhaupt da ist.
+
+### 50.2 Umgesetzt
+
+In der **Kopfkarte** (wo Projektname und Auftrags-Nr./Adresse/Auftraggeber
+bereits stehen) ein kompakter Block:
+
+```
+ARBEITSSTAND
+✓  📐 Massaufnahmen        5
+✓  📏 Ausmass              2
+○  📋 Regierapporte        Noch keine
+○  📎 Dateien/Fotos        Noch keine
+🕘 Letzte Aktivität        Noch keine Aktivität
+```
+
+- **Nur Fakten.** `n > 0` → „✓" und die Zahl; `n = 0` → „○" und
+  „Noch keine …". Es wird nirgends behauptet, etwas „fehle", sei „nicht
+  erledigt" oder „müsse gemacht werden" – aus dem Fehlen eines
+  Datensatzes folgt nicht, dass er fachlich nötig wäre. Kein
+  Projektstatus, keine neuen Zustände.
+- **Die Arbeitsbereich-Karten aus v2.39/v2.40 bleiben unverändert**
+  darunter stehen und voll interaktiv – der Arbeitsstand ersetzt sie
+  nicht, er fasst sie zusammen.
+
+### 50.3 Datenquellen – keine zusätzliche Abfrage
+
+`cockpitZeigeAnzahl(key,n)` ist weiterhin die **einzige** Stelle, die
+eine Anzahl anzeigt; sie schreibt denselben Wert jetzt an zwei Orte
+(Badge in der Abschnittsüberschrift **und** Arbeitsstand-Zeile). Es wird
+also exakt der Wert verwendet, den die bestehende Ladefunktion ohnehin
+zurückgibt – dieselben Tabellen werden **nicht** ein zweites Mal nur zum
+Zählen abgefragt.
+
+Die letzte Aktivität kommt aus der bereits vorhandenen, unveränderten
+Abfrage in `cockpitAktivitaetLaden()` (v2.37/v2.39). Dieselbe
+zurückgelieferte Zeile speist beide Anzeigen: im Arbeitsstand nur der
+Zeitpunkt über das bestehende `verlaufFormatWann()` (v2.31), in der
+Verlaufskarte wie bisher der ganze Satz. **Keine neue Audit-/
+Aktivitätslogik.** Ist `audit_log` leer – aktuell der Fall – steht dort
+weiterhin „Noch keine Aktivität".
+
+Damit gilt auch die v2.39-Regel unverändert weiter: nach der Rückkehr ins
+Cockpit lädt `cockpitBereichAktualisieren(bereich)` nur den betroffenen
+Bereich neu – der Arbeitsstand folgt automatisch, weil er an derselben
+Funktion hängt.
+
+### 50.4 Fehlerfälle
+
+Liefert eine Ladefunktion `undefined` (Abfrage fehlgeschlagen), steht in
+Badge **und** Arbeitsstand „?" – **niemals eine falsche 0**. Betroffen
+ist nur der fehlgeschlagene Bereich; die übrigen zeigen weiterhin ihre
+korrekten Zahlen, das Projekt wird nicht als leer dargestellt.
+Schlägt die Aktivitätsabfrage fehl, steht im Arbeitsstand „?" und in der
+Verlaufskarte wie bisher die verständliche Fehlermeldung.
+
+### 50.5 Navigation
+
+Jede Arbeitsstand-Zeile ist anklickbar und scrollt zur bereits
+vorhandenen Karte des Bereichs (`scrollIntoView`) – **keine zweite
+Navigation, kein Nachladen, keine neue Abfrage**. Ein einziger
+delegierter Handler auf `#projectCockpitModal` erledigt das. Die Zeile
+„Letzte Aktivität" ist bewusst nicht anklickbar (reine Information).
+
+### 50.6 Mobile
+
+Kompakte Zeilen mit `min-height:38px`, Zeilenaufbau Marke · Name · Wert
+mit `flex`, `min-width:0` und `word-break:break-word` – lange Namen
+brechen um, kein horizontales Scrollen. Der Block ist bewusst flach
+(keine hohe Karte), damit er die Arbeitsbereiche darunter nicht
+verdrängt.
+
+### 50.7 Sicherheit
+
+**Keine Sicherheitsänderung.** Es wurde keine einzige Abfrage ergänzt
+oder verändert; der Arbeitsstand zeigt ausschliesslich Werte, die die
+bestehenden, RLS-gebundenen Ladefunktionen bereits geliefert haben.
+Empirisch erneut bestätigt (`begin; … rollback;`, Wegwerf-Firma): als
+Benutzer einer fremden Firma liefern alle fünf Quellen (Massaufnahmen,
+Ausmasse, Rapporte, Dateien, `audit_log`) sowie die Projektzeile selbst
+mit den echten bekannten Projekt-IDs **je 0 Zeilen**.
+
+### 50.8 Tests
+
+**Prüfstand gegen die echten Cockpit-Funktionen** – 17 Prüfungen, alle
+bestanden:
+
+| Test | Ergebnis |
+|---|---|
+| A/C) 5 / 2 / 0 / 0 | „✓ 5", „✓ 2", „○ Noch keine", „○ Noch keine" – exakt diese Werte |
+| A) Letzte Aktivität | „31.08.2026 09:01" im Arbeitsstand, voller Satz in der Verlaufskarte |
+| A) Zusatzabfragen | **keine** – nur die schon vorher vorhandene Aktivitätsabfrage |
+| B) Projekt ohne Daten | überall „○ Noch keine …", „Noch keine Aktivität", keine Statusbehauptung („fehlt/erledigt/muss") |
+| D) Fehler in einem Bereich | dieser Bereich „?", die übrigen weiterhin korrekt (5 bzw. 1) |
+| D2) Fehler bei der Aktivität | Arbeitsstand „?", Bereiche unbeeinflusst |
+| E) Navigation | Klick auf eine Zeile scrollt zur passenden Karte |
+| F) Projektwechsel A→B | keine vermischten Zahlen |
+| Einzel-Aktualisierung | nach Löschen folgt der Arbeitsstand dem neuen Wert |
+
+**Reale Gegenprobe** als eingeloggter Benutzer (rein lesend): Projekt 1
+„Home" 5/2/0/0, Projekt 3 5/0/1/0, Projekt 4 0/0/3/1, Projekt 6
+„Brandschaden" 0/0/0/0, `audit_log` überall 0 – identisch zum
+Admin-Blick.
+
+**G) Regression**: alle bisherigen Prüfstände erneut gelaufen –
+Navigation 23/23, Suche 7/7, Treffer-Hervorhebung 7/7, Schnellzugriff
+12/12, Listenrendering unverändert. `node --check` über alle `js/*.js`
+und `sw.js` fehlerfrei, `<div>`/`</div>` in `index.html` ausgeglichen
+(647/647, vorher 644/644). Produktivdaten vor und nach allen Tests
+identisch (2 Firmen, 4 Projekte, 13 Massaufnahmen, 2 Ausmasse, 4
+Rapporte, 1 Datei, 0 `audit_log`-Zeilen), alle vier
+`projects.updated_at` unverändert, PETER KÜNZI AG `updated_at`
+unverändert (`2026-09-01 07:40:15.844647+00`).
+
+**Live-Klicktest im Browser war in dieser Sitzung technisch nicht
+möglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird hier ausdrücklich nicht
+als getestet behauptet.**
+
+### 50.9 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `index.html` | Arbeitsstand-Block in der Kopfkarte, IDs auf den vier Bereichskarten (Sprungziel), Version 2.42 |
+| `js/24-projekt-cockpit.js` | `cockpitZeigeAnzahl()` schreibt zusätzlich in den Arbeitsstand, `cockpitStandLaedt()`, Zeitpunkt aus der bereits geladenen Aktivitätszeile, Sprung-Handler |
+| `css/01-basis.css` | `.arbeitsstand`-Stile (kompakte Zeilen, umbruchfähig) |
+| `sw.js` | Cache-Version 2.42 |
+
+**Nicht angefasst**: `js/09-projekte.js` und sämtliche Fach-, Such-,
+Verlaufs-, Login-, Rechte- und System-Admin-Dateien – per `git diff`
+einzeln bestätigt. Projektübersicht und Schnellzugriff „Zuletzt
+bearbeitet" (v2.41) sind unverändert.
+
+### 50.10 Offene Punkte für v2.43
+
+- Kein Live-Klicktest im Browser möglich (siehe 50.8).
+- „Letzte Aktivität" bleibt leer, solange `audit_log` leer ist – das ist
+  die ehrliche Anzeige, keine Lücke im Code (siehe Abschnitt 49.2).
+- Kein Projektstatus, keine fachliche Bewertung des Arbeitsstands – wie
+  im Auftrag ausdrücklich gefordert.
