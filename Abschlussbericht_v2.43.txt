@@ -1,0 +1,345 @@
+================================================================
+SPENGLER-DIGITAL - ABSCHLUSSBERICHT
+Version: v2.43
+Titel:   Projekt-Dateien/Fotos - Analyse und Haertung
+Datum:   02.09.2026
+================================================================
+
+
+1. WAS AKTUELL VORHANDEN IST
+----------------------------------------------------------------
+
+TABELLE project_files
+  id           bigint, Primaerschluessel
+  project_id   bigint, NOT NULL, FK -> projects ON DELETE CASCADE
+  name         text, NOT NULL   (angezeigter Dateiname)
+  file_path    text, NOT NULL   (Schluessel im Storage)
+  size_bytes   bigint, nullable
+  mime_type    text, nullable
+  created_by   uuid -> auth.users(id)
+  created_at   timestamptz, NOT NULL, default now()
+  updated_by   uuid -> auth.users(id)
+  updated_at   timestamptz, nullable
+
+Kein company_id - die Firmenzuordnung laeuft ueber project_id, genau
+wie bei measurements/ausmass/reports.
+
+DATENBANK-RLS
+  tenant_boundary_project_files   RESTRICTIVE, fuer ALL
+      EXISTS(projects p WHERE p.id=project_id
+                          AND p.company_id=my_company_id())
+      mit identischem WITH CHECK
+  project_files_select_permission   has_permission('projects','view')
+  project_files_insert_permission   has_permission('projects','edit')
+  project_files_update_permission   has_permission('projects','edit')
+  project_files_delete_permission   has_permission('projects','edit')
+
+STORAGE
+  ein privater Bucket "measurements" (public=false)
+  Pfad: project-files/<projectId>/<zeitstempel>_<zufall>.<endung>
+  vier storage.objects-Policies rufen
+    storage_object_is_own_company(name)   fuer select/update/delete
+    storage_object_insert_allowed(name)   fuer insert
+  Fuer project-files/% wird das zweite Pfadsegment als Projekt-ID
+  gelesen, auf ^[0-9]+$ geprueft und gegen projects.company_id
+  verifiziert.
+
+FRONTEND (alles in js/09-projekte.js)
+  uploadProjectFile()    Upload + DB-Zeile
+  replaceProjectFile()   neue Datei hoch, DB umbiegen, alte loeschen
+  loadProjectFiles()     Liste im Cockpit-Abschnitt "Dateien/Fotos"
+  Handler: Oeffnen (signierte URL, 1 h), Umbenennen, Ersetzen,
+           Loeschen, Mehrfach-Upload
+  Anzeige: Symbol + Dateiname, Groesse, Ersteller, Datum
+
+REALER BESTAND
+  14 Storage-Objekte gesamt, davon 1 Projektdatei
+  1 DB-Zeile (Zuschnittliste Rinnen.xlsx)
+  0 verwaiste Storage-Objekte
+  0 DB-Zeilen ohne zugehoerige Datei
+  -> Bestand ist sauber, keine Altlasten
+
+
+2. GEFUNDENE PROBLEME UND VERBESSERUNGSPOTENZIALE
+----------------------------------------------------------------
+
+(1) ERSTELLER UND ZEITSTEMPEL WAREN FAELSCHBAR   [behoben]
+    projects, measurements, ausmass und reports bekamen in v2.28/v2.29
+    den serverseitigen Trigger set_creator_editor_meta(), der
+    created_by/created_at/updated_by/updated_at aus auth.uid()/now()
+    erzwingt. project_files wurde dabei uebersehen.
+
+    Empirisch bestaetigt: ein Benutzer konnte eine Datei einfuegen und
+    dabei einen ANDEREN Mitarbeiter als Ersteller sowie das Jahr 2000
+    als Datum eintragen - beides wurde akzeptiert.
+
+(2) LOESCHEN MELDETE STILLEN FEHLSCHLAG ALS ERFOLG   [behoben]
+    Das Ergebnis des DELETE wurde nicht geprueft. Ein von RLS
+    blockiertes DELETE meldet in PostgREST keinen Fehler, es betrifft
+    still 0 Zeilen (bekannt aus CLAUDE.md 24.1). Ein Mitarbeiter ohne
+    projects-Edit-Recht sah also keine Meldung, und die Datei stand
+    nach dem Neuladen weiterhin da.
+
+(3) ROHE ENGLISCHE FEHLERMELDUNGEN   [behoben]
+    z.B. "The object exceeded the maximum allowed size".
+
+(4) MEHRFACH-UPLOAD BRACH BEIM ERSTEN FEHLER AB   [behoben]
+    Bereits hochgeladene Dateien blieben, die Meldung nannte weder die
+    betroffene Datei noch die Zahl der erfolgreichen.
+
+(5) KEINE BILDVORSCHAU   [behoben]
+    Fotos waren nur an Dateiname und Symbol erkennbar - fuer einen
+    Spengler, der Objektfotos ablegt, der wichtigste Anwendungsfall.
+
+(6) GELOESCHTER MITARBEITER WURDE ALS "-" ANGEZEIGT   [behoben]
+    Ueberall sonst in der App heisst es "Unbekannter Benutzer".
+
+AUSDRUECKLICH KEIN FEHLER (Vermutung geprueft und widerlegt):
+    Das Entfernen eines Mitarbeiters wird durch project_files NICHT
+    blockiert. Anders als seinerzeit bei measurements (CLAUDE.md 36.1)
+    zeigen hier BEIDE Fremdschluessel auf auth.users, nicht auf
+    profiles. Das "Mitarbeiter entfernen"-Feature loescht nur die
+    profiles-Zeile. Empirisch bestaetigt: die Loeschung laeuft durch,
+    die Datei bleibt erhalten.
+    Ich hatte hier zunaechst denselben Fehler wie bei measurements
+    vermutet - der Test hat das widerlegt.
+
+
+3. SICHERHEITSPRUEFUNG
+----------------------------------------------------------------
+Alle Tests als Benutzer einer Wegwerf-Firma, in Transaktionen mit
+Rollback. PETER KUENZI AG nur gelesen.
+
+  fremde project_files-Zeilen lesen        0 Zeilen
+  Zeile in fremdes Projekt einschleusen    RLS-Fehler
+                                           tenant_boundary_project_files
+  fremde Zeilen aendern                    0 Zeilen
+  fremde Zeilen loeschen                   0 Zeilen
+  fremde Storage-Objekte lesen             0 Zeilen
+  is_own_company() auf echten fremden Pfad false
+  Upload nach project-files/4/... (fremd)  false
+  Upload ins eigene Projekt                true
+  nicht-numerisch: project-files/4x/...    false
+
+ERGEBNIS: Kein Cross-Tenant-Zugriff moeglich.
+  - Privater Bucket, ausschliesslich signierte URLs (1 Stunde)
+  - Datenbank-RLS und Storage-RLS greifen unabhaengig voneinander
+  - project_id ist nie fuer sich allein eine Berechtigung
+  - file_path wird beim Insert nicht validiert - unkritisch, weil die
+    Storage-Policy beim tatsaechlichen Zugriff nochmals prueft: eine
+    Zeile mit fremdem file_path liefert schlicht keine signierte URL
+
+BEKANNTE, BEWUSST BESTEHENDE GRENZE (nicht neu, aus v2.24):
+  storage_object_insert_allowed() liefert fuer Pfade ausserhalb von
+  measurements/ und project-files/ true. Ein angemeldeter Benutzer
+  einer aktiven Firma kann also unter beliebigen flachen Praefixen
+  Objekte ablegen.
+  Das ist KEIN Cross-Tenant-Leseleck (Zuruecklesen setzt eine
+  DB-Referenz der eigenen Firma voraus) und KEIN Pfad-Traversal
+  (Storage-Keys sind keine Dateisystempfade), sondern ein
+  Speicher-Missbrauchsvektor. Die Regel existiert bewusst, damit
+  Firmenlogo und Ausmass-Fotos - die zum Upload-Zeitpunkt kein Projekt
+  im Pfad haben - weiterhin funktionieren.
+  NICHT veraendert, siehe Punkt 9.
+
+Keine Sicherheitsregel wurde gelockert.
+
+
+4. WAS GEAENDERT WURDE
+----------------------------------------------------------------
+
+DATENBANK - eine Migration, ein Trigger, keine Spaltenaenderung:
+
+  create trigger set_creator_editor_meta_project_files
+    before insert or update on public.project_files
+    for each row execute function public.set_creator_editor_meta();
+
+  Kein neuer Funktionskoerper - set_creator_editor_meta() ist seit
+  v2.28 generisch und wurde in v2.29 bereits genauso an ausmass und
+  reports angehaengt.
+
+  Verifiziert: derselbe Faelschungsversuch wie oben wird jetzt
+  ueberschrieben (echter Aufrufer, echte Zeit); ein UPDATE kann
+  created_by/created_at nicht nachtraeglich umschreiben;
+  updated_by/updated_at werden korrekt gesetzt.
+
+  FOLGE FUER DIE ANZEIGE: updated_at wird nun bei JEDER Aenderung
+  gesetzt, also auch beim Umbenennen. Die bisherige Beschriftung
+  "ersetzt am" waere dadurch irrefuehrend geworden - sie heisst jetzt
+  neutral "geaendert am" und erscheint nur, wenn das Aenderungsdatum
+  vom Erstelldatum abweicht.
+
+FRONTEND:
+  - dateiFehlerText() uebersetzt die vier haeufigen Storage-/RLS-Fehler
+    in verstaendliches Deutsch (zu gross / Name existiert bereits /
+    keine Berechtigung / keine Verbindung); alles andere geht
+    unveraendert durch
+  - Upload verarbeitet jede Datei einzeln und meldet am Ende
+    "N von M Datei(en) gespeichert" mit Nennung der fehlgeschlagenen
+  - Loeschen und Umbenennen pruefen error UND die Zahl betroffener
+    Zeilen; bei 0 Zeilen erscheint "... Fehlt die noetige Berechtigung?"
+  - die Loeschabfrage nennt jetzt den Dateinamen
+  - Bilder (MIME image/* oder Endung jpg/jpeg/png/gif/heic/heif/
+    webp/bmp) bekommen eine 44 px grosse Vorschau, andere Typen ein
+    Typ-Symbol in gleicher Groesse
+  - die signierten URLs laedt die BESTEHENDE resolveSignedThumbnails()-
+    Logik nach (dasselbe Muster wie bei den Skizzen-Vorschauen)
+  - dieser Aufruf ist mit typeof ...==="function" abgesichert, damit
+    die Dateiliste auch ohne diese Hilfsfunktion funktioniert
+
+
+5. WELCHE DATEIEN GEAENDERT WURDEN
+----------------------------------------------------------------
+  js/09-projekte.js    Fehlermeldungen, Teilerfolg beim Upload, stille
+                       Fehlschlaege bei Loeschen/Umbenennen,
+                       Bildvorschau, Benutzername, "geaendert am"
+  css/01-basis.css     .datei-thumb / .datei-icon
+  index.html           nur Versionstext 2.43
+  sw.js                Cache-Version 2.43
+  CLAUDE.md            neuer Abschnitt 51
+
+NICHT ANGEFASST (per git diff einzeln bestaetigt):
+  alle zwoelf geschuetzten Massaufnahme-/Ausmass-Dateien
+  (js/10, 11, 12, 12b, 13, 14, 15, 16, 17, 19, 20, 21),
+  js/06-rapport.js, js/08-katalog-blitzschutz.js, js/23-verlauf.js,
+  js/22-system-admin.js, js/05a-rechte.js, js/03-login.js,
+  js/04-start-suche.js, js/24-projekt-cockpit.js
+
+
+6. DB-/STORAGE-AENDERUNGEN
+----------------------------------------------------------------
+  Datenbank: eine Migration
+             project_files_creator_editor_trigger_v2_43
+             (ein Trigger, kein neuer Funktionskoerper, keine
+             Spalten-, Tabellen- oder Policy-Aenderung)
+  Storage:   KEINE Aenderung - weder Bucket, noch Pfadschema, noch
+             Policies, noch bestehende Objekte
+  RLS:       KEINE Aenderung an bestehenden Policies
+
+
+7. DURCHGEFUEHRTE TESTS
+----------------------------------------------------------------
+DATEI-PRUEFSTAND (Node, gegen die echten Funktionen aus
+js/09-projekte.js) - 27 Pruefungen, alle bestanden:
+  gemischte Dateitypen (JPG, PDF, XLSX, HEIC ohne MIME)
+  Vorschau nur fuer Bilder, Typ-Symbol fuer den Rest
+  geloeschter Mitarbeiter -> "Unbekannter Benutzer"
+  fehlendes created_by -> "-"
+  "geaendert am" nur bei abweichendem Datum
+  leeres Projekt -> Leermeldung, Upload-Knopf trotzdem sichtbar
+  Ladefehler -> Rueckgabe undefined -> Zaehler "?"
+  alle fuenf Fehleruebersetzungen
+  Dateityp-Erkennung (6 Faelle)
+  Groessenformat (B / KB / MB)
+
+DATENBANK (Transaktionen mit Rollback, Wegwerf-Firma):
+  Faelschungstest vorher  -> fremder Ersteller und Jahr 2000 akzeptiert
+  Faelschungstest nachher -> beides vom Trigger ueberschrieben
+  UPDATE-Test             -> created_by/created_at bleiben unveraendert
+  Mitarbeiter entfernen   -> laeuft durch, Datei bleibt erhalten
+  Cross-Tenant            -> siehe Punkt 3, alles blockiert
+
+REGRESSION (bestehende Pruefstaende erneut gelaufen):
+  Navigation      23 OK, 0 Fehler
+  Suche           7 OK, 0 Fehler
+  Treffer         7 OK, 0 Fehler
+  Schnellzugriff  12 OK, 0 Fehler
+  Arbeitsstand    17 OK, 0 Fehler
+  Listenrendering 9 Faelle unveraendert
+  node --check ueber alle js/*.js und sw.js: fehlerfrei
+  <div>-Balance in index.html unveraendert 647/647
+
+Der Regressionslauf hat dabei eine echte Kopplung aufgedeckt: die
+Dateiliste haette ohne resolveSignedThumbnails() eine Ausnahme
+geworfen. Deshalb die Absicherung in Punkt 4.
+
+EINSCHRAENKUNG - LIVE-TEST:
+Ein Klicktest im echten Browser war in dieser Sitzung technisch nicht
+moeglich; die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+nfgryuzkpwjfmdlmevuy.supabase.co. Das wird hier ausdruecklich NICHT als
+getestet behauptet. Insbesondere ein echter Upload, das Oeffnen einer
+signierten URL und die Darstellung der Vorschaubilder wurden nicht im
+Browser geprueft.
+
+
+8. ERGEBNIS DER PETER-KUENZI-AG-PRUEFUNG
+----------------------------------------------------------------
+Unveraendert. Vor und nach allen Tests identisch:
+
+  2 Firmen, 4 Projekte, 13 Massaufnahmen, 2 Ausmasse, 4 Rapporte
+  1 Projektdatei, 14 Storage-Objekte, 0 audit_log-Zeilen
+  die eine reale Datei "Zuschnittliste Rinnen.xlsx" mit unveraendertem
+    Pfad, Ersteller und Zeitstempel
+  companies.updated_at unveraendert (2026-09-01 07:40:15.844647+00)
+  beide Testmitarbeiter wieder in ihrer echten Firma
+  keine Wegwerf-Firma, kein Testprojekt uebrig
+
+Alle Schreibtests liefen ausschliesslich in zurueckgerollten
+Transaktionen gegen eine Wegwerf-Firma.
+
+
+9. OFFENE ENTSCHEIDUNGEN
+----------------------------------------------------------------
+
+ENTSCHEIDUNG A - MAXIMALE DATEIGROESSE UND ERLAUBTE DATEITYPEN
+  Aktueller Stand: der Bucket hat file_size_limit = kein und
+  allowed_mime_types = alle; auch der Client prueft nichts. Ein
+  versehentlicher 500-MB-Upload vom Handy laeuft bis zum Server-Limit
+  durch.
+
+  Welche Grenze und welche Formate sinnvoll sind, ist eine
+  Betriebsentscheidung (Speicherkosten je Firma, benoetigte Formate).
+  Deshalb wurde bewusst KEINE Zahl geraten.
+
+  Moegliche Varianten:
+   A1) Nur eine Groessengrenze, alle Formate erlaubt.
+       Vorteil:   einfach, keine Ueberraschung bei exotischen Formaten
+       Nachteil:  beliebige Dateitypen im Speicher
+       Aufwand:   Bucket-Limit setzen + eine Pruefung im Client
+   A2) Groessengrenze plus Whitelist (Bilder, PDF, Office, CSV).
+       Vorteil:   sauberer Speicher, klare Erwartung
+       Nachteil:  ein vergessenes Format blockiert den Benutzer
+       Aufwand:   zusaetzlich allowed_mime_types am Bucket
+   A3) Alles lassen wie es ist.
+       Vorteil:   keine Arbeit
+       Nachteil:  ein einzelner Fehlgriff kann viel Speicher kosten
+
+  EMPFEHLUNG: A1 mit einer grosszuegigen Grenze (Groessenordnung
+  25-50 MB je Datei). Das deckt Objektfotos und Detailplaene sicher ab
+  und verhindert Ausreisser. Die passende Fehlermeldung ist bereits
+  eingebaut ("Die Datei ist zu gross fuer den Speicher.").
+  Benoetigt wird nur die gewuenschte Zahl.
+
+ENTSCHEIDUNG B - FLACHE UPLOAD-ERLAUBNIS
+  Die in Punkt 3 beschriebene Grenze zu schliessen wuerde den
+  Firmenlogo- und Ausmass-Foto-Upload brechen und braucht eine eigene,
+  sorgfaeltig geplante Runde (Pfadschema fuer diese beiden Kategorien
+  umstellen, Altbestand beruecksichtigen).
+  EMPFEHLUNG: als eigene Aufgabe einplanen, nicht nebenbei.
+
+
+10. KONKRETER NAECHSTER SCHRITT
+----------------------------------------------------------------
+Bewertung der Datenmodell-Frage aus dem Auftrag:
+
+  -> VARIANTE A: Die bestehende project_files-Struktur reicht aus.
+
+Begruendung: project_id, Dateiname, Pfad, Groesse, MIME-Typ sowie
+Ersteller- und Bearbeiterfelder sind vollstaendig vorhanden; die
+Tenant-Trennung ist auf Datenbank- UND Storage-Ebene unabhaengig
+abgesichert und empirisch bestaetigt. Es fehlte keine Spalte, sondern
+nur die serverseitige Durchsetzung der Ersteller-Felder - genau das
+wurde mit einem Trigger nachgezogen. Weder B (Datenmodell erweitern)
+noch C (Neustrukturierung) sind noetig.
+
+Naechster Schritt: Entscheidung A (Groessengrenze) treffen. Sobald die
+gewuenschte Zahl feststeht, ist die Umsetzung klein - Bucket-Limit plus
+eine Pruefung vor dem Upload, damit der Benutzer die Meldung sofort
+bekommt statt erst nach dem vollstaendigen Hochladen.
+
+Optional danach denkbar, aber bewusst nicht vorweggenommen:
+  - PDF-Vorschau (braucht pdf.js oder ein iframe, deutlich groesser)
+  - Sortier-/Filtermoeglichkeit bei vielen Dateien
+  - Mehrfachauswahl zum Loeschen
+
+================================================================

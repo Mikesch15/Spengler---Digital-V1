@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.42, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.43, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.42**
+- sichtbare App-Version: **2.43**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -6676,3 +6676,223 @@ bearbeitet" (v2.41) sind unverändert.
   die ehrliche Anzeige, keine Lücke im Code (siehe Abschnitt 49.2).
 - Kein Projektstatus, keine fachliche Bewertung des Arbeitsstands – wie
   im Auftrag ausdrücklich gefordert.
+
+## 51. PROJEKTDATEIEN – ANALYSE UND HAERTUNG — VERSION 2.43
+
+Vollstaendige Bestandsaufnahme der Projekt-Dateiverwaltung
+(`project_files` + Storage) mit anschliessender minimaler Haertung.
+**Eine Migration** (ein Trigger, keine Spalten-/Schemaaenderung), sonst
+nur Frontend.
+
+### 51.1 Was vorhanden war
+
+**Tabelle `project_files`**: `id` (bigint), `project_id` (bigint, NOT
+NULL, FK → `projects` ON DELETE CASCADE), `name`, `file_path`,
+`size_bytes`, `mime_type`, `created_by`/`created_at`,
+`updated_by`/`updated_at`. `created_by`/`updated_by` → `auth.users(id)`.
+**Kein `company_id`** – die Firmenzuordnung laeuft ueber `project_id`,
+wie bei `measurements`/`ausmass`/`reports`.
+
+**DB-RLS**: restriktive `tenant_boundary_project_files`
+(`EXISTS(projects p WHERE p.id=project_id AND p.company_id=my_company_id())`,
+mit identischem `WITH CHECK`) plus vier permissive
+`project_files_*_permission`-Policies ueber
+`has_permission('projects','view'/'edit')`. Sauber.
+
+**Storage**: ein privater Bucket `measurements`, Pfad
+`project-files/<projectId>/<zeit>_<zufall>.<ext>`. Die vier
+`storage.objects`-Policies rufen `storage_object_is_own_company(name)`
+bzw. `storage_object_insert_allowed(name)` auf (v2.24). Fuer
+`project-files/%` wird das zweite Pfadsegment als Projekt-ID gelesen,
+**auf `^[0-9]+$` geprueft** und gegen `projects.company_id` verifiziert.
+
+**Frontend** (alles in `js/09-projekte.js`): `uploadProjectFile()`,
+`replaceProjectFile()`, `loadProjectFiles()`, Handler fuer Oeffnen
+(ueber `storageSignedUrl()`), Umbenennen, Ersetzen, Loeschen; Anzeige im
+Cockpit-Abschnitt „📎 Dateien/Fotos".
+
+**Realer Bestand**: 14 Storage-Objekte gesamt, davon 1 Projektdatei
+(`project-files/4/…xlsx`), 1 DB-Zeile – **keine verwaisten Objekte,
+keine DB-Zeile ohne Datei**.
+
+### 51.2 Sicherheitspruefung – Ergebnis
+
+Empirisch geprueft (`begin; … rollback;`, Wegwerf-Firma, PETER KUENZI AG
+nur gelesen). Als Benutzer einer fremden Firma:
+
+| Angriff | Ergebnis |
+|---|---|
+| fremde `project_files`-Zeilen lesen | 0 Zeilen |
+| Zeile in fremdes Projekt einschleusen | RLS-Fehler `tenant_boundary_project_files` |
+| fremde Zeilen aendern / loeschen | je 0 Zeilen |
+| fremde Storage-Objekte lesen | 0 Zeilen |
+| `storage_object_is_own_company()` auf echten fremden Pfad | `false` |
+| Upload nach `project-files/4/…` (fremdes Projekt) | `false` |
+| Upload ins eigene Projekt | `true` |
+| nicht-numerisches Segment `project-files/4x/…` | `false` |
+
+**Kein Cross-Tenant-Zugriff moeglich.** Privater Bucket, signierte URLs
+(1 h), DB-RLS und Storage-RLS greifen unabhaengig voneinander.
+`file_path` wird beim Insert nicht validiert – das ist unkritisch, weil
+die Storage-Policy beim tatsaechlichen Zugriff nochmals prueft: eine
+Zeile mit fremdem `file_path` liefert schlicht keine signierte URL.
+
+**Bekannte, bewusst bestehende Grenze (nicht neu, aus v2.24/32.3):**
+`storage_object_insert_allowed()` liefert fuer Pfade ausserhalb von
+`measurements/` und `project-files/` `true`. Ein angemeldeter Benutzer
+einer aktiven Firma kann also unter beliebigen flachen Praefixen Objekte
+ablegen. Das ist **kein** Cross-Tenant-Leseleck (Zurueck­lesen setzt eine
+DB-Referenz der eigenen Firma voraus) und auch kein Pfad-Traversal
+(Storage-Keys sind keine Dateisystempfade), sondern ein
+Speicher-Missbrauchsvektor. Die Regel existiert bewusst, damit Firmenlogo
+und Ausmass-Fotos – die zum Upload-Zeitpunkt kein Projekt im Pfad haben –
+weiterhin funktionieren. **Nicht veraendert**, siehe 51.6.
+
+### 51.3 Gefundene Probleme
+
+**(1) Ersteller/Zeitstempel waren faelschbar – behoben.**
+`projects`, `measurements`, `ausmass` und `reports` bekamen in v2.28/
+v2.29 den serverseitigen Trigger `set_creator_editor_meta()`, der
+`created_by`/`created_at`/`updated_by`/`updated_at` aus `auth.uid()`/
+`now()` erzwingt. **`project_files` wurde dabei uebersehen** – die Werte
+kamen ausschliesslich vom Client. Empirisch bestaetigt: ein Benutzer
+konnte eine Datei einfuegen und dabei einen *anderen* Mitarbeiter als
+Ersteller und das Jahr 2000 als Datum eintragen; beides wurde akzeptiert.
+
+**(2) Loeschen meldete einen stillen Fehlschlag als Erfolg – behoben.**
+`await sb.from("project_files").delete().eq("id",id)` pruefte das
+Ergebnis nicht. Ein von RLS blockiertes DELETE meldet in PostgREST keinen
+Fehler, es betrifft still 0 Zeilen (CLAUDE.md 24.1). Ein Mitarbeiter ohne
+`projects`-Edit-Recht sah also keine Meldung, und die Datei stand nach
+dem Neuladen weiterhin da.
+
+**(3) Rohe englische Fehlermeldungen – behoben.**
+`alert("Fehler beim Hochladen: "+err.message)` zeigte z. B. „The object
+exceeded the maximum allowed size".
+
+**(4) Mehrfach-Upload brach beim ersten Fehler ab – behoben.**
+Bereits hochgeladene Dateien blieben, die Meldung nannte weder die
+betroffene Datei noch die Zahl der erfolgreichen.
+
+**(5) Keine Bildvorschau – behoben.** Fotos waren nur an Dateiname und
+Symbol erkennbar.
+
+**(6) Geloeschter Mitarbeiter wurde als „–" angezeigt – behoben**,
+jetzt „Unbekannter Benutzer" wie ueberall sonst.
+
+**Ausdruecklich KEIN Fehler** (geprueft, Vermutung widerlegt): Das
+Entfernen eines Mitarbeiters wird durch `project_files` **nicht**
+blockiert – anders als seinerzeit bei `measurements` (CLAUDE.md 36.1)
+zeigen hier **beide** Fremdschluessel auf `auth.users`, nicht auf
+`profiles`. Das „Mitarbeiter entfernen"-Feature loescht nur die
+`profiles`-Zeile; empirisch bestaetigt, dass das durchlaeuft und die
+Datei erhalten bleibt.
+
+### 51.4 Umgesetzt
+
+**Migration `project_files_creator_editor_trigger_v2_43`** – eine
+Anweisung, kein neuer Funktionskoerper:
+
+```sql
+create trigger set_creator_editor_meta_project_files
+  before insert or update on public.project_files
+  for each row execute function public.set_creator_editor_meta();
+```
+
+Verifiziert: derselbe Faelschungsversuch wie oben wird jetzt
+ueberschrieben (echter Aufrufer, echte Zeit); ein UPDATE kann
+`created_by`/`created_at` nicht nachtraeglich umschreiben;
+`updated_by`/`updated_at` werden korrekt gesetzt.
+
+**Folge fuer die Anzeige**: `updated_at` wird nun bei **jeder** Aenderung
+gesetzt, also auch beim Umbenennen. Die bisherige Beschriftung „ersetzt
+am" waere dadurch irrefuehrend geworden – sie heisst jetzt neutral
+„geaendert am" und erscheint nur, wenn das Aenderungsdatum vom
+Erstelldatum abweicht.
+
+**Frontend** (`js/09-projekte.js`):
+- `dateiFehlerText()` uebersetzt die vier haeufigen Storage-/RLS-Fehler
+  in verstaendliches Deutsch (zu gross, Name existiert, keine
+  Berechtigung, keine Verbindung) und laesst alles andere unveraendert
+  durch.
+- Upload verarbeitet jede Datei einzeln und meldet am Ende „N von M
+  Datei(en) gespeichert" mit Nennung der fehlgeschlagenen.
+- Loeschen und Umbenennen pruefen `error` **und** die Zahl betroffener
+  Zeilen; bei 0 Zeilen erscheint „… Fehlt die noetige Berechtigung?".
+- Die Loeschabfrage nennt jetzt den Dateinamen.
+- Bilder (MIME `image/*` oder Endung jpg/jpeg/png/gif/heic/heif/webp/bmp)
+  bekommen eine 44 px grosse Vorschau, andere Typen ein Typ-Symbol in
+  gleicher Groesse. Die signierten URLs laedt die **bestehende**
+  `resolveSignedThumbnails()`-Logik nach (dasselbe Muster wie bei den
+  Skizzen); der Aufruf ist bewusst mit `typeof …==="function"`
+  abgesichert, damit die Dateiliste auch ohne diese Hilfsfunktion
+  funktioniert.
+
+### 51.5 Tests
+
+**Datei-Pruefstand** (Node, gegen die echten Funktionen aus
+`js/09-projekte.js`) – 27 Pruefungen, alle bestanden: gemischte
+Dateitypen (JPG, PDF, XLSX, HEIC ohne MIME), Vorschau nur fuer Bilder,
+Typ-Symbol fuer den Rest, geloeschter Mitarbeiter → „Unbekannter
+Benutzer", fehlendes `created_by` → „–", „geaendert am" nur bei
+abweichendem Datum, leeres Projekt, Ladefehler → Rueckgabe `undefined`
+(Zaehler „?"), alle fuenf Fehlerübersetzungen, Dateityp-Erkennung,
+Groessenformat.
+
+**Regression**: Navigation 23/23, Suche 7/7, Treffer-Hervorhebung 7/7,
+Schnellzugriff 12/12, Arbeitsstand 17/17, Listenrendering 9/9 Faelle.
+`node --check` ueber alle `js/*.js` und `sw.js` fehlerfrei,
+`<div>`-Balance unveraendert 647/647.
+
+Der Regressionslauf hat dabei eine echte Kopplung aufgedeckt: die
+Dateiliste haette ohne `resolveSignedThumbnails()` eine Ausnahme
+geworfen. Deshalb die Absicherung in 51.4.
+
+**Sicherheit**: siehe 51.2, nach der Aenderung erneut geprueft – fremde
+Zeilen weiterhin 0 sichtbar/0 geaendert/0 geloescht, Einschleusen mit
+RLS-Fehler abgelehnt.
+
+**Live-Klicktest im Browser war in dieser Sitzung technisch nicht
+moeglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird hier ausdruecklich nicht
+als getestet behauptet.** Insbesondere ein echter Upload, das Oeffnen
+einer signierten URL und die Darstellung der Vorschaubilder wurden nicht
+im Browser geprueft.
+
+**PETER KUENZI AG**: vor und nach allen Tests identisch – 2 Firmen, 4
+Projekte, 13 Massaufnahmen, 2 Ausmasse, 4 Rapporte, 1 Projektdatei, 14
+Storage-Objekte, 0 `audit_log`-Zeilen; die eine reale Datei
+(`Zuschnittliste Rinnen.xlsx`) mit unveraendertem Pfad, Ersteller und
+Zeitstempel; beide Testmitarbeiter wieder in ihrer echten Firma.
+
+### 51.6 Offene Entscheidung (bewusst nicht selbst entschieden)
+
+**Maximale Dateigroesse und erlaubte Dateitypen.** Der Bucket hat
+`file_size_limit = kein` und `allowed_mime_types = alle`; auch der Client
+prueft nichts. Ein versehentlicher 500-MB-Upload vom Handy laeuft also
+bis zum Server-Limit durch. Welche Grenze und welche Formate sinnvoll
+sind, ist eine Betriebsentscheidung (Speicherkosten je Firma, benoetigte
+Formate) – deshalb wurde **keine Zahl geraten**. Die Fehlermeldung ist
+fuer diesen Fall bereits verstaendlich („Die Datei ist zu gross fuer den
+Speicher.").
+
+Ebenfalls offen gelassen: die in 51.2 beschriebene flache
+Upload-Erlaubnis. Sie zu schliessen wuerde Firmenlogo- und
+Ausmass-Foto-Upload brechen und braucht eine eigene, sorgfaeltig
+geplante Runde.
+
+### 51.7 Geaenderte Dateien
+
+| Datei | Warum |
+|---|---|
+| Migration `project_files_creator_editor_trigger_v2_43` | serverseitige Ersteller-/Bearbeiter-Durchsetzung |
+| `js/09-projekte.js` | Fehlermeldungen, Teilerfolg beim Upload, stille Fehlschlaege bei Loeschen/Umbenennen, Bildvorschau, Benutzername, „geaendert am" |
+| `css/01-basis.css` | `.datei-thumb` / `.datei-icon` |
+| `index.html` | Versionstext 2.43 |
+| `sw.js` | Cache-Version 2.43 |
+
+**Nicht angefasst**: alle zwoelf geschuetzten Massaufnahme-/Ausmass-
+Dateien, `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`js/23-verlauf.js`, `js/22-system-admin.js`, `js/05a-rechte.js`,
+`js/03-login.js`, `js/04-start-suche.js`, `js/24-projekt-cockpit.js` –
+per `git diff` einzeln bestaetigt.

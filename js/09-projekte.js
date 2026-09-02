@@ -255,6 +255,25 @@ function formatFileSize(bytes){
  if(bytes<1024*1024)return (bytes/1024).toFixed(1)+" KB";
  return (bytes/1024/1024).toFixed(1)+" MB";
 }
+// Verstaendliche deutsche Meldung statt der englischen Rohmeldung von
+// Storage/PostgREST (v2.43).
+function dateiFehlerText(err){
+ const m=String((err&&err.message)||err||"");
+ if(/maximum allowed size|Payload too large|exceeded|413/i.test(m))
+  return "Die Datei ist zu gross für den Speicher.";
+ if(/already exists|Duplicate|409/i.test(m))
+  return "Unter diesem Speichernamen existiert bereits eine Datei. Bitte erneut versuchen.";
+ if(/row-level security|not authorized|permission|403/i.test(m))
+  return "Keine Berechtigung, für dieses Projekt Dateien zu speichern.";
+ if(/Failed to fetch|NetworkError|network|timeout/i.test(m))
+  return "Keine Verbindung zum Server. Bitte die Internetverbindung prüfen.";
+ return m||"Unbekannter Fehler.";
+}
+const DATEI_BILD_ENDUNGEN=["jpg","jpeg","png","gif","heic","heif","webp","bmp"];
+function istBilddatei(mime,name){
+ if(String(mime||"").startsWith("image/"))return true;
+ return DATEI_BILD_ENDUNGEN.includes(String(name||"").split(".").pop().toLowerCase());
+}
 function projectFileIcon(mime,name){
  mime=mime||"";
  const ext=String(name||"").split(".").pop().toLowerCase();
@@ -309,11 +328,22 @@ async function loadProjectFiles(projectId){
  const list=data||[];
  projectFilesCache=list;
  const zeilen=list.length?list.map(f=>{
-  const wer=profileName(f.created_by)||"–";
+  // Gelöschter Mitarbeiter: dieselbe Formulierung wie überall sonst.
+  const wer=f.created_by?(profileName(f.created_by)||"Unbekannter Benutzer"):"–";
   const wann=datumCH(f.created_at)||"–";
-  const geaendert=f.updated_at?` · ersetzt am ${esc(datumCH(f.updated_at))}`:"";
+  // Seit v2.43 setzt der Trigger updated_at bei JEDER Änderung (auch beim
+  // Umbenennen) - deshalb neutral "geändert", nicht mehr "ersetzt".
+  const geaendert=(f.updated_at&&datumCH(f.updated_at)!==wann)?` · geändert am ${esc(datumCH(f.updated_at))}`:"";
+  // Bilder bekommen eine kleine Vorschau. Die signierte URL wird nach dem
+  // Zeichnen über die bestehende resolveSignedThumbnails()-Logik
+  // (js/10-massaufnahme.js) nachgeladen - dasselbe Muster wie bei den
+  // Skizzen-Vorschauen.
+  const vorschau=istBilddatei(f.mime_type,f.name)
+   ? `<img class="datei-thumb" data-signed-src="${esc(f.file_path)}" alt="">`
+   : `<span class="datei-icon">${projectFileIcon(f.mime_type,f.name)}</span>`;
   return `<div class="report-row">
-<div class="report-row-info"><b>${projectFileIcon(f.mime_type,f.name)} ${esc(f.name)}</b><span>${formatFileSize(f.size_bytes)} · ${esc(wer)} · ${esc(wann)}${geaendert}</span></div>
+${vorschau}
+<div class="report-row-info"><b>${esc(f.name)}</b><span>${formatFileSize(f.size_bytes)} · ${esc(wer)} · ${esc(wann)}${geaendert}</span></div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-file="${f.id}">Öffnen</button>
 <button class="gray" data-rename-project-file="${f.id}" title="Umbenennen">✏️</button>
@@ -326,6 +356,11 @@ async function loadProjectFiles(projectId){
  // Klar beschriftete, volle Trefferflaeche statt eines nackten
  // Datei-Feldes (v2.39) - das Feld selbst bleibt unveraendert dahinter.
  box.innerHTML=`<div class="bar"><label class="cockpit-new blue cockpit-upload">＋ Datei/Foto hinzufügen<input type="file" multiple data-upload-file="${projectId}" hidden></label></div>${zeilen}`;
+ // Vorschaubilder nachladen. Absichtlich abgesichert: die Dateiliste
+ // soll auch dann funktionieren, wenn die Hilfsfunktion aus
+ // js/10-massaufnahme.js einmal nicht verfuegbar sein sollte -
+ // dann bleiben nur die Vorschaubilder leer.
+ if(typeof resolveSignedThumbnails==="function")resolveSignedThumbnails(box);
  return list.length;
 }
 
@@ -462,8 +497,9 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
   if(neuerName===null)return;
   const trimmed=neuerName.trim();
   if(!trimmed){alert("Bitte einen Namen eingeben.");return}
-  const {error}=await sb.from("project_files").update({name:trimmed}).eq("id",id);
-  if(error){alert("Fehler: "+error.message);return}
+  const {data:neu,error}=await sb.from("project_files").update({name:trimmed}).eq("id",id).select("id");
+  if(error){alert("Fehler beim Umbenennen: "+dateiFehlerText(error));return}
+  if(!neu||!neu.length){alert("Die Datei konnte nicht umbenannt werden. Fehlt die nötige Berechtigung?");return}
   await cockpitBereichAktualisieren("files");
   return;
  }
@@ -475,10 +511,15 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
  }
  const delF=e.target.closest("[data-del-project-file]");
  if(delF){
-  if(!confirm("Diese Datei wirklich löschen?"))return;
   const id=Number(delF.dataset.delProjectFile);
   const f=projectFilesCache.find(x=>x.id===id);
-  await sb.from("project_files").delete().eq("id",id);
+  if(!confirm(`Datei „${f?f.name:"?"}" wirklich löschen?`))return;
+  // Ein von RLS blockiertes DELETE meldet keinen Fehler, es betrifft
+  // still 0 Zeilen (siehe CLAUDE.md 24.1) - deshalb das Ergebnis prüfen,
+  // statt Erfolg anzunehmen und die Datei danach trotzdem anzuzeigen.
+  const {data:weg,error}=await sb.from("project_files").delete().eq("id",id).select("id");
+  if(error){alert("Fehler beim Löschen: "+dateiFehlerText(error));return}
+  if(!weg||!weg.length){alert("Die Datei konnte nicht gelöscht werden. Fehlt die nötige Berechtigung?");return}
   if(f&&f.file_path)await sb.storage.from("measurements").remove([f.file_path]);
   await cockpitBereichAktualisieren("files");
   return;
@@ -559,10 +600,16 @@ $("cockpitWorkArea").addEventListener("change",async e=>{
   const files=Array.from(inp.files||[]);
   if(!files.length)return;
   inp.disabled=true;
-  try{
-   for(const file of files)await uploadProjectFile(projectId,file);
-  }catch(err){
-   alert("Fehler beim Hochladen: "+(err.message||err));
+  // Jede Datei einzeln: ein Fehler bei einer Datei darf die uebrigen
+  // nicht verhindern, und am Ende muss klar sein, was gespeichert wurde.
+  const fehler=[];
+  for(const file of files){
+   try{ await uploadProjectFile(projectId,file); }
+   catch(err){ fehler.push(`• ${file.name}: ${dateiFehlerText(err)}`); }
+  }
+  if(fehler.length){
+   const ok=files.length-fehler.length;
+   alert(`${ok} von ${files.length} Datei(en) gespeichert.\n\nNicht gespeichert:\n${fehler.join("\n")}`);
   }
   await cockpitBereichAktualisieren("files");
   return;
@@ -576,7 +623,7 @@ $("cockpitWorkArea").addEventListener("change",async e=>{
   try{
    await replaceProjectFile(id,file);
   }catch(err){
-   alert("Fehler beim Ersetzen: "+(err.message||err));
+   alert("Fehler beim Ersetzen: "+dateiFehlerText(err));
   }
   await cockpitBereichAktualisieren("files");
  }
