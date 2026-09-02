@@ -91,7 +91,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.40</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.41</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -222,6 +222,15 @@
 <!-- PROJEKTE -->
 <div id="projectsModal" class="modal" hidden>
 <div class="modalbox">
+
+<!-- Schnellzugriff (v2.41): die zuletzt bearbeiteten aktiven Projekte.
+     Datenquelle sind die echten Bearbeitungszeitpunkte der Projektdaten
+     selbst - siehe js/09-projekte.js, renderRecentProjects(). -->
+<div class="card">
+<h2>🕘 Zuletzt bearbeitet</h2>
+<div id="recentProjectsList"></div>
+</div>
+
 <div class="card">
 <h2>📁 Projekte</h2>
 <div class="info">Projekte werden zentral gespeichert und sind auf allen Geräten sichtbar, mit denen sich Mitarbeiter anmelden.</div>

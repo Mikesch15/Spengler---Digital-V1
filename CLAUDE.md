@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.40, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.41, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.40**
+- sichtbare App-Version: **2.41**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -6329,3 +6329,188 @@ System-Admin-Dateien, `js/09-projekte.js`, `js/23-verlauf.js` – per
   bewusst keinen Cockpit-Weg – dafür gibt es kein Projekt.
 - Das `limit(30)` je Tabelle ist unverändert; bei sehr vielen Treffern
   gibt es weiterhin keine Nachlade-Funktion.
+
+## 49. SCHNELLZUGRIFF „ZULETZT BEARBEITET" — VERSION 2.41
+
+Die Projektübersicht bekommt oben einen kompakten Schnellzugriff auf die
+zuletzt bearbeiteten aktiven Projekte. **Keine Schemaänderung, keine
+Migration** – geändert wurden nur `index.html`, `js/09-projekte.js`,
+`css/01-basis.css` und `sw.js`.
+
+### 49.1 Was `projects.updated_at` tatsächlich bedeutet
+
+Der Trigger `set_creator_editor_meta()` (v2.28) setzt `updated_at` bei
+jedem Schreiben **der Projektzeile selbst**. Im Client schreibt nur drei
+Stellen darauf: Projekt anlegen, Stammdaten im Cockpit speichern
+(v2.37) und Archivieren/Reaktivieren. **Arbeit am Projekt** –
+Massaufnahme, Ausmass, Rapport, Datei – fasst die Projektzeile
+**nicht** an.
+
+An den echten Produktivdaten nachgerechnet (rein lesend):
+
+| Projekt | `projects.updated_at` | jüngste echte Arbeit |
+|---|---|---|
+| 1 Home | 24.08. 14:44 | **31.08. 09:01** (Massaufnahme) |
+| 3 Test Strasse 11 | 27.08. 07:14 | **01.09. 10:07** (Rapport) |
+| 4 Steildachsanierung | 29.08. 20:37 | **01.09. 13:41** (Rapport) |
+| 6 Brandschaden | 01.09. 15:05 | keine – nur angelegt |
+
+`projects.updated_at` **allein** wäre damit nachweislich irreführend:
+„Home" stünde mit dem 24.08. ganz hinten, obwohl dort am 31.08.
+gearbeitet wurde. Variante A des Auftrags ist damit empirisch
+ausgeschlossen.
+
+### 49.2 Gewählte Datenquelle und Begründung
+
+Verwendet wird der **späteste echte Bearbeitungszeitpunkt über alle
+Projektdaten**: die Projektzeile selbst **und** die zugehörigen
+`measurements`, `ausmass`, `reports`, `project_files`. Deren
+`updated_at` setzt seit v2.28/v2.29 derselbe serverseitige Trigger –
+die Werte sind verlässlich und rückwirkend vorhanden.
+
+Damit zeigt „Home" jetzt korrekt den 31.08. statt den 24.08.
+
+**Warum nicht `audit_log`** (Variante B): fachlich die sauberste Quelle
+(es kennt auch Löschungen), aber die Tabelle ist bis heute **leer** –
+seit v2.30 gab es keine reale Nutzung. Ein audit_log-basierter
+Schnellzugriff wäre für alle Benutzer dauerhaft leer, bis neue Arbeit
+anfällt, und könnte die oben belegte zurückliegende Arbeit gar nicht
+abbilden. Er bleibt die naheliegende spätere Verfeinerung, sobald
+`audit_log` gefüllt ist.
+
+**Die Projektzeile bleibt bewusst mit in der Berechnung**: ein gerade
+angelegtes oder umbenanntes Projekt ist eine echte Bearbeitung dieses
+Projekts, und ein frisch angelegtes Projekt soll auffindbar sein, ohne
+die ganze Liste zu durchsuchen. Deshalb steht im Beispiel oben das
+leere „Brandschaden" zuoberst – mit seinem echten Zeitstempel, ohne
+erfundene Zusatzaussage. Es wird **kein** Status wie „in Arbeit"/
+„offen"/„fertig" erzeugt (Auftrag Abschnitt 9/15).
+
+### 49.3 Darstellung
+
+Eigene Karte **über** der bestehenden „📁 Projekte"-Karte:
+
+```
+🕘 Zuletzt bearbeitet
+📁 Steildachsanierung
+176712 · Gestern · 13:41 · Mike Ledermann          ›
+```
+
+- Die **ganze Karte ist der Knopf** (`min-height:52px`, volle Breite) –
+  ein Klick, grosse Trefferfläche auf Handy/Tablet.
+- Angezeigt werden ausschliesslich echte Felder: Projektname,
+  Auftrags-Nr., Zeitpunkt, Benutzer.
+- Zeitpunkt als „Heute · 07:32" / „Gestern · 14:05" / „24.8.2026 ·
+  14:44".
+- Benutzer über das bestehende `profileName()`. `updated_by` nicht
+  gesetzt (ältere Datensätze) → Benutzer wird weggelassen; gesetzt, aber
+  nicht auflösbar (gelöschter Mitarbeiter) → „Unbekannter Benutzer" wie
+  überall sonst.
+- Leerzustand: „Noch keine zuletzt bearbeiteten Projekte." – keine
+  Fehlermeldung.
+
+**Anzahl: 4** (`RECENT_PROJECT_ANZAHL`). Bewusst klein gewählt: es ist
+ein Schnellzugriff, keine zweite Projektliste; bei den realen
+Datenmengen (aktuell 4 aktive Projekte) deckt das den Alltag ab.
+
+**Archiv**: nur aktive Projekte. `allProjects` ist bereits
+RLS-gefiltert, `archived` wird zusätzlich ausgefiltert – die bestehende
+Archiv-Umschaltung der Projektliste bleibt davon unberührt, es wurde
+keine neue Archivlogik gebaut.
+
+**Öffnen**: `openProjectCockpit(projectId)` – exakt dieselbe Funktion
+wie die Projektkarte, kein zweites Öffnungssystem. Danach gilt
+vollständig der v2.38/v2.39-Projektkontext, der Rückweg aus dem Cockpit
+führt wie bisher in die Projektübersicht.
+
+### 49.4 Performance
+
+**Keine Abfrage pro Projekt.** Vier gebündelte, begrenzte Abfragen in
+einem `Promise.all` liefern die je 100 jüngsten Datensätze pro Art
+(`project_id`, `updated_at`, `updated_by` – drei Spalten); der Stand je
+Projekt wird daraus im Browser bestimmt. Der Projektstand selbst kommt
+aus dem bereits geladenen `allProjects`, dafür fällt gar keine Abfrage
+an.
+
+Bewusste Grenze: ein Projekt, dessen jüngster Datensatz nicht unter den
+100 jüngsten seiner Art ist, erscheint nicht über diese Quelle – dann
+sind aber mindestens 100 neuere Bearbeitungen erfolgt, es gehört also
+per Definition nicht zu den zuletzt bearbeiteten. Ein Zähler
+(`recentProjectsLauf`) verwirft das Ergebnis, wenn zwischenzeitlich
+eine neuere Aktualisierung gestartet wurde.
+
+Aufgefrischt wird der Schnellzugriff aus `renderProjectList()` heraus –
+also beim Öffnen der Übersicht, nach Anlegen/Archivieren/Löschen und
+bei der Rückkehr aus dem Cockpit. Der Aufruf läuft bewusst ohne
+`await`, damit die Projektliste selbst nicht auf die Abfragen wartet.
+
+### 49.5 Tenant-Sicherheit
+
+Unverändert: alle vier Abfragen laufen ohne jeden `company_id`-Filter
+im Client – die Firmengrenze erzwingt weiterhin ausschliesslich die
+restriktive `tenant_boundary_*`-RLS jeder Tabelle. `project_id`,
+`updated_by` und `audit_log` sind an keiner Stelle eine Berechtigung.
+Empirisch bestätigt (`begin; … rollback;`, Wegwerf-Firma): als Benutzer
+einer fremden Firma liefern alle vier Quellabfragen **und** die
+Projektliste **je 0 Zeilen**.
+
+### 49.6 Tests
+
+**Prüfstand gegen die echte `renderRecentProjects()`**, gespeist mit den
+tatsächlichen Produktivzeitstempeln:
+
+| Test | Ergebnis |
+|---|---|
+| A) Reihenfolge | 6, 4, 3, 1 – jüngste echte Bearbeitung zuerst |
+| A) Anzahl | auf 4 begrenzt |
+| A) Verbesserung belegt | „Home" zeigt **31.8.** (echte Arbeit) statt 24.8. (Zeilenänderung); „Test Strasse 11" 10:07 statt 27.8.; „Steildachsanierung" 13:41 statt 29.8. |
+| B) Öffnen | Klick ruft `openProjectCockpit(3)` |
+| D) Archiv | archiviertes Projekt verschwindet aus dem Schnellzugriff, übrige bleiben |
+| E) Kein Projekt | „Noch keine zuletzt bearbeiteten Projekte.", keine Fehlermeldung |
+| F) Benutzer | bekannt → „Mike Ledermann"; gelöscht → „Unbekannter Benutzer"; Feld leer → Benutzer weggelassen |
+| Ladefehler | verständliche Meldung statt leerer Liste |
+| Zeitformat | „Heute", „Gestern", sonst Datum |
+
+**H) Cross-Tenant**: siehe 49.5 – alle Quellabfragen 0 Zeilen.
+
+**I) Regression**: die Prüfstände aus v2.38/v2.39/v2.40 erneut gelaufen
+– Navigation 23/23, Suche 7/7, Treffer-Hervorhebung 7/7, Listenrendering
+unverändert. `node --check` über alle `js/*.js` und `sw.js` fehlerfrei,
+`<div>`/`</div>` in `index.html` ausgeglichen (644/644, vorher 642/642 –
+Differenz durch die neue Karte). Produktivdaten vor und nach allen Tests
+identisch (2 Firmen, 4 Projekte, 13 Massaufnahmen, 2 Ausmasse, 4
+Rapporte, 1 Datei, 0 `audit_log`-Zeilen), alle vier
+`projects.updated_at` unverändert, Mike Ledermann weiterhin in
+PETER KÜNZI AG, deren `updated_at` unverändert
+(`2026-09-01 07:40:15.844647+00`).
+
+**Live-Klicktest im Browser war in dieser Sitzung technisch nicht
+möglich** – die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird hier ausdrücklich nicht
+als getestet behauptet.**
+
+### 49.7 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/09-projekte.js` | `renderRecentProjects()`, Zeitformat, Klick-Handler; `renderProjectList()` frischt den Schnellzugriff mit auf |
+| `index.html` | neue Karte „🕘 Zuletzt bearbeitet" über der Projektkarte, Version 2.41 |
+| `css/01-basis.css` | `.recent-project`-Stile (ganze Karte als Knopf, umbruchfähig) |
+| `sw.js` | Cache-Version 2.41 |
+
+**Nicht angefasst**: sämtliche Fach-, Cockpit-, Such-, Verlaufs-,
+Login-, Rechte- und System-Admin-Dateien – per `git diff` einzeln
+bestätigt. Die bestehende Projektliste, das Anlegen-Formular und die
+Archiv-Umschaltung sind unverändert.
+
+### 49.8 Offene Punkte für v2.42
+
+- Kein Live-Klicktest im Browser möglich (siehe 49.6).
+- Sobald `audit_log` real gefüllt ist, wäre eine Umstellung auf
+  `audit_log.project_id` die sauberere Quelle (eine einzige Abfrage,
+  erfasst auch Löschungen). Das ist bewusst noch nicht gebaut, weil die
+  Tabelle heute leer ist – siehe 49.2.
+- Das Limit von 100 Datensätzen je Art ist eine bewusste, dokumentierte
+  Grenze (siehe 49.4).
+- Kein Projektstatus, keine Favoriten/Anheften – beides hätte ein neues
+  Datenmodell gebraucht.

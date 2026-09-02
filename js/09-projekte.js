@@ -45,7 +45,110 @@ $("projectResults").addEventListener("click",e=>{
  renderProjectSelect();
 });
 let showArchivedProjects=false;
+
+// ---- Schnellzugriff: zuletzt bearbeitete Projekte (v2.41) --------
+// WAS "zuletzt bearbeitet" HEISST:
+// projects.updated_at aendert sich nur, wenn die Projektzeile selbst
+// geschrieben wird - also beim Anlegen, beim Aendern der Stammdaten und
+// beim Archivieren. Arbeit AM Projekt (Massaufnahme, Ausmass, Rapport,
+// Datei) fasst diese Zeile nicht an. An den echten Daten nachgeprueft:
+// danach stuende ein leeres, gerade erst angelegtes Projekt zuoberst,
+// waehrend die beiden Projekte, an denen tatsaechlich zuletzt gearbeitet
+// wurde, weiter unten laegen. projects.updated_at allein waere also
+// irrefuehrend und wird NICHT als alleinige Quelle verwendet.
+//
+// Verwendet wird stattdessen der spaeteste echte Bearbeitungszeitpunkt
+// aus allen Projektdaten: die Projektzeile selbst UND die zugehoerigen
+// Massaufnahmen/Ausmasse/Rapporte/Dateien. Diese Zeitstempel setzt seit
+// v2.28/v2.29 ein Datenbank-Trigger serverseitig, sie sind also
+// verlaesslich und ruecckwirkend vorhanden. audit_log waere die
+// sauberste Quelle, ist aber bis heute leer (seit v2.30 noch keine
+// reale Nutzung) und koennte die zurueckliegende Arbeit nicht abbilden.
+//
+// Es wird KEINE Abfrage pro Projekt ausgefuehrt: vier gebuendelte,
+// begrenzte Abfragen liefern die juengsten Datensaetze je Art, daraus
+// wird der Stand je Projekt im Browser bestimmt.
+const RECENT_PROJECT_ANZAHL=4;   // Schnellzugriff, keine zweite Projektliste
+const RECENT_QUELLE_LIMIT=100;   // je Art; wer aelter ist, ist nicht "zuletzt"
+let recentProjectsLauf=0;
+
+// "Heute · 07:32" / "Gestern · 14:05" / "28.08.2026 · 09:11"
+function recentZeitText(iso){
+ const d=new Date(iso);
+ if(isNaN(d))return "";
+ const uhr=d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+ const tag=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+ const heute=new Date();const heute0=new Date(heute.getFullYear(),heute.getMonth(),heute.getDate());
+ const diff=Math.round((heute0-tag)/86400000);
+ if(diff===0)return "Heute · "+uhr;
+ if(diff===1)return "Gestern · "+uhr;
+ return d.toLocaleDateString("de-CH")+" · "+uhr;
+}
+
+async function renderRecentProjects(){
+ const box=$("recentProjectsList");
+ if(!box)return;
+ const lauf=++recentProjectsLauf;
+ const felder="project_id,updated_at,updated_by";
+ const [mRes,aRes,rRes,fRes]=await Promise.all([
+  sb.from("measurements").select(felder).order("updated_at",{ascending:false}).limit(RECENT_QUELLE_LIMIT),
+  sb.from("ausmass").select(felder).order("updated_at",{ascending:false}).limit(RECENT_QUELLE_LIMIT),
+  sb.from("reports").select(felder).order("updated_at",{ascending:false}).limit(RECENT_QUELLE_LIMIT),
+  sb.from("project_files").select("project_id,created_at,updated_at,created_by,updated_by").order("created_at",{ascending:false}).limit(RECENT_QUELLE_LIMIT)
+ ]);
+ if(lauf!==recentProjectsLauf)return;   // neuere Aktualisierung laeuft bereits
+ const fehler=[mRes,aRes,rRes,fRes].find(x=>x.error);
+ if(fehler){
+  box.innerHTML=`<div class="small" style="color:var(--red)">Schnellzugriff konnte nicht geladen werden: ${esc(fehler.error.message)}</div>`;
+  return;
+ }
+ // Spaetesten Zeitpunkt je Projekt bestimmen. Startwert ist die
+ // Projektzeile selbst (Anlegen/Stammdaten/Archivieren) - auch das ist
+ // eine echte Bearbeitung.
+ const stand=new Map();
+ const merke=(pid,zeit,wer)=>{
+  if(!pid||!zeit)return;
+  const alt=stand.get(pid);
+  if(!alt||new Date(zeit)>new Date(alt.zeit))stand.set(pid,{zeit,wer:wer||null});
+ };
+ allProjects.forEach(p=>merke(p.id,p.updated_at,p.updated_by));
+ (mRes.data||[]).forEach(x=>merke(x.project_id,x.updated_at,x.updated_by));
+ (aRes.data||[]).forEach(x=>merke(x.project_id,x.updated_at,x.updated_by));
+ (rRes.data||[]).forEach(x=>merke(x.project_id,x.updated_at,x.updated_by));
+ (fRes.data||[]).forEach(x=>merke(x.project_id,x.updated_at||x.created_at,x.updated_by||x.created_by));
+
+ // Nur aktive Projekte der eigenen Firma: allProjects ist bereits
+ // RLS-gefiltert, archivierte bleiben im Schnellzugriff aussen vor.
+ const liste=allProjects
+  .filter(p=>!p.archived&&stand.has(p.id))
+  .map(p=>({p,...stand.get(p.id)}))
+  .sort((x,y)=>new Date(y.zeit)-new Date(x.zeit))
+  .slice(0,RECENT_PROJECT_ANZAHL);
+
+ box.innerHTML=liste.length?liste.map(e=>{
+  // Nur echte Angaben: Auftrags-Nr., Zeitpunkt, Benutzer.
+  // updated_by nicht gesetzt (aeltere Datensaetze) -> Benutzer weglassen,
+  // gesetzt aber nicht aufloesbar (geloeschter Mitarbeiter) -> wie ueberall
+  // sonst "Unbekannter Benutzer".
+  const wer=e.wer?(profileName(e.wer)||"Unbekannter Benutzer"):"";
+  const zeile=[e.p.order_no,recentZeitText(e.zeit),wer].map(x=>String(x||"").trim()).filter(Boolean).join(" · ");
+  return `<button type="button" class="recent-project" data-open-recent="${e.p.id}">
+<span class="recent-project-info"><b>📁 ${esc(e.p.name)}</b><span>${esc(zeile)}</span></span>
+<span class="recent-project-arrow">›</span>
+</button>`;
+ }).join(""):'<div class="empty">Noch keine zuletzt bearbeiteten Projekte.</div>';
+}
+
+$("recentProjectsList").addEventListener("click",async e=>{
+ const b=e.target.closest("[data-open-recent]");
+ // Bewusst dieselbe Funktion wie die Projektkarte - kein zweites
+ // Projekt-Oeffnungssystem.
+ if(b)await openProjectCockpit(Number(b.dataset.openRecent));
+});
 function renderProjectList(){
+ // Schnellzugriff mit auffrischen (v2.41). Bewusst ohne await - die
+ // Projektliste selbst soll nicht auf die Abfragen warten.
+ renderRecentProjects().catch(err=>console.error("Schnellzugriff:",err));
  const list=showArchivedProjects?allProjects:allProjects.filter(p=>!p.archived);
  $("projectList").innerHTML=list.map(p=>{
   // Dezente Ersteller-/Bearbeiter-Anzeige, dieselbe Logik wie bei
