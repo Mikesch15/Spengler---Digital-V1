@@ -1,0 +1,247 @@
+SPENGLER-DIGITAL - ABSCHLUSSBERICHT VERSION 2.50
+Massaufnahme-Fotos und Skizzen direkt bei der Massaufnahme
+Datum: 02.09.2026
+
+
+GEAENDERTE DATEIEN
+==================================================================
+
+  js/24-projekt-cockpit.js   measMedienPfade(), measHatMedien(),
+                             measMedienText(), openMeasMedien(),
+                             medienThumbsAufloesen(),
+                             Vollbild-Handler
+  js/09-projekte.js          Medien-Hinweis und Medien-Knopf in der
+                             Massaufnahme-Zeile, ein zusaetzlicher
+                             Zweig im bestehenden Klick-Handler
+  js/03-login.js             zwei Zeilen: goToStart() schliesst die
+                             beiden neuen Ebenen mit
+  index.html                 #measMediaModal, #measMediaViewer,
+                             Version 2.50
+  css/01-basis.css           Medien-Hinweis, Kachelgalerie,
+                             Vollbildansicht
+  sw.js                      Cache-Version 2.50
+  CLAUDE.md                  Abschnitt 58
+
+  6 Code-/Style-Dateien, 166 Zeilen ergaenzt, 4 entfernt.
+
+  NICHT ANGEFASST: alle zwoelf geschuetzten Fachdateien
+  (js/10-massaufnahme.js, js/11 bis js/17, js/19, js/20, js/21),
+  ausserdem js/01-basis.js, js/04-start-suche.js, js/06-rapport.js,
+  js/08-katalog-blitzschutz.js, js/23-verlauf.js,
+  js/22-system-admin.js, js/05a-rechte.js.
+
+  KEINE Datenbankaenderung, KEINE Migration, KEINE Storage-/RLS-
+  Aenderung.
+
+
+UMGESETZTE FUNKTION
+==================================================================
+
+1. MEDIEN-HINWEIS IN DER MASSAUFNAHME-LISTE
+
+  Jede Zeile im Projekt-Cockpit zeigt jetzt - NUR wenn wirklich etwas
+  gespeichert ist - eine dritte Infozeile und einen zusaetzlichen Knopf:
+
+    Rinne Halbrund
+    Dachrinne Nord · 2.9.2026
+    📷 1 Foto · ✏️ 2 Skizzen
+    [Oeffnen] [📷 Fotos/Skizzen] [🖨️] [×]
+
+  Ohne Medien erscheint weder Hinweis noch Knopf - kein stoerender
+  Platzhalter. Oeffnen, Drucken und Loeschen sind unveraendert.
+
+  KEINE zusaetzliche Abfrage je Massaufnahme: photo_path, sketch_paths
+  und sketch_path stammen aus den ohnehin geladenen Zeilen
+  (projectMeasurementsCache).
+
+2. ZAEHLREGELN
+
+  - Foto vorhanden, wenn photo_path gesetzt und nicht nur Leerzeichen.
+  - Skizzen: sketch_paths, sofern ein Array mit Eintraegen; sonst
+    ersatzweise das alte Einzelfeld sketch_path (Legacy).
+  - Leere Eintraege im Array werden herausgefiltert.
+  - Texte: "📷 1 Foto", "✏️ 1 Skizze", "✏️ 3 Skizzen",
+    kombiniert "📷 1 Foto · ✏️ 2 Skizzen"; ohne Medien leer.
+  - Es wird nichts erfunden und nichts gezaehlt, was nicht gespeichert
+    ist.
+
+  Realer Bestand (rein lesend geprueft): 13 Massaufnahmen, davon 0 mit
+  Foto, 2 mit sketch_paths, 0 nur mit dem Legacy-Feld. Bei 11 Zeilen
+  erscheint also weiterhin nichts Zusaetzliches.
+
+3. MEDIENANSICHT - REINE ANZEIGE
+
+  Der Knopf oeffnet #measMediaModal mit einer Kachelgalerie:
+  zuerst das Foto (Label "Foto"), danach die Skizzen
+  ("Skizze 1", "Skizze 2", ... bzw. "Skizze" bei nur einer).
+  Tippen auf eine Kachel oeffnet #measMediaViewer - eine schlichte
+  Vollbildansicht mit dem grossen Bild und einem Schliessen-Knopf;
+  ein Klick auf den Hintergrund schliesst ebenfalls.
+
+  Kein Wechsel in den Bearbeitungsmodus noetig.
+
+  WARUM EINE EIGENE ANSICHT:
+  openSketchFullscreen() in js/10-massaufnahme.js ist die Zeichenflaeche
+  des Bearbeitungsformulars - sie wuerde den Bearbeitungszustand
+  anfassen. Der Auftrag sieht fuer genau diesen Fall eine kleine
+  separate Nur-Anzeige-Funktion vor. Sie liegt vollstaendig in
+  js/24-projekt-cockpit.js; js/10 und js/16 wurden NICHT veraendert und
+  kennen die neue Ansicht nicht.
+
+  STORAGE-LOGIK UNVERAENDERT WIEDERVERWENDET:
+  storageSignedUrl() -> measStoragePathFromValue() -> createSignedUrl()
+  aus js/10. Der Bucket bleibt privat, es wurde KEINE oeffentliche URL
+  eingefuehrt und keine zweite Storage-Logik gebaut. Rohe Pfade
+  erscheinen nirgends als sichtbarer Text (nur als Attribut).
+
+4. FEHLERVERHALTEN JE MEDIUM
+
+  medienThumbsAufloesen() ist eine kleine eigene Variante von
+  resolveSignedThumbnails(): schlaegt eine einzelne signierte URL fehl,
+  wird NUR diese Kachel durch "Vorschau nicht verfuegbar" ersetzt (das
+  Label bleibt stehen); die uebrigen Kacheln laden normal weiter und die
+  Massaufnahme-Liste dahinter bleibt heil. Eine nicht aufgeloeste Kachel
+  laesst sich auch nicht gross oeffnen.
+
+5. BEARBEITEN UNVERAENDERT
+
+  Die Medienansicht liest ausschliesslich aus projectMeasurementsCache
+  und ruft weder openMeasurement() noch Speicher-, Upload- oder
+  Loeschfunktionen auf. Eine unbekannte oder manipulierte
+  Massaufnahme-ID findet keinen Eintrag im (RLS-gefilterten) Cache und
+  oeffnet nichts. goToStart() schliesst beide neuen Ebenen mit.
+
+6. MOBILE
+
+  Kacheln flex:1 1 140px, max. 200 px breit, mind. 130 px hoch mit
+  110 px Bildflaeche (object-fit:cover, kein verzerrtes
+  Seitenverhaeltnis) - gross antippbar, umbruchfaehig, kein
+  horizontales Scrollen. Schliessen-Knopf der Vollbildansicht 44 px,
+  Bild max-height:80vh mit object-fit:contain.
+
+
+TESTS
+==================================================================
+
+NEUER PRUEFSTAND medien50: 42/42 OK
+
+  Zaehlregeln (13 Pruefungen)
+    0 Medien, nur Foto, 1 Skizze (Einzahl), 3 Skizzen (Mehrzahl),
+    Foto + mehrere Skizzen, legacy sketch_path ohne sketch_paths,
+    sketch_paths = null, leere Array-Eintraege, Leerzeichen-Foto
+
+  Zeile im Cockpit (7)
+    Hinweis nur bei Medien, Knopf nur bei Medien, Hinweistext korrekt,
+    kein Platzhalter ohne Medien, Oeffnen/Drucken/Loeschen unveraendert,
+    KEINE zusaetzliche Storage-Abfrage je Zeile, kein http-Link im
+    Markup
+
+  Medienansicht (10)
+    Modal offen, Titel mit Fachart, Untertitel, 3 Kacheln
+    (1 Foto + 2 Skizzen), Beschriftungen, nur signierte Referenzen,
+    kein roher Pfad als sichtbarer Text, genau eine signierte URL je
+    Medium, alle Kacheln bereit, Bild-URL gesetzt
+
+  Fehlerfall (4)
+    nur die betroffene Kachel faellt aus, Platzhalter statt kaputtem
+    Bild, Beschriftung bleibt, uebrige Kacheln weiterhin geladen
+
+  Grenzfaelle (4)
+    legacy eine Kachel mit Einzahl-Beschriftung, ohne Medien oeffnet
+    nichts, fremde/unbekannte ID oeffnet nichts
+
+  Bearbeiten (4)
+    js/10 unveraendert, js/10 und js/16 kennen die Medienansicht nicht,
+    die Medienansicht ruft kein Bearbeiten auf
+
+REGRESSION (alle bestanden):
+  Navigation             23/23
+  Suche (v2.40)            7/7
+  Treffer-Hervorhebung     7/7
+  Schnellzugriff          12/12
+  Arbeitsstand            17/17
+  Dateien (v2.43)         27/27
+  Adresse (v2.45)         39/39
+  Projektkopf (v2.45)      8/8
+  Projekt-Suche (v2.45)   13/13
+  Projektstatus (v2.46)   35/35
+  Projektverwaltung 2.47  37/37
+  Projektauswahl 2.48     32/32
+  Dateien 2.49            38/38
+  Listenrendering          9 Faelle, rein darstellend
+
+STRUKTURPRUEFUNGEN
+  node --check             alle js/*.js und sw.js fehlerfrei
+  div-Balance              662/662 (vorher 654/654 - Differenz durch
+                           die zwei neuen Ebenen)
+  doppelte Element-IDs     keine
+  neue IDs                 alle neun genau einmal vorhanden
+  doppelte Event-Handler   keine
+  Service Worker           js/24-projekt-cockpit.js war bereits in der
+                           SHELL-Liste, keine neue Datei
+  globale Namen            measMedienPfade/measHatMedien/
+                           measMedienText/openMeasMedien/
+                           medienThumbsAufloesen sind neu, keine
+                           bestehende Variable ueberschrieben
+
+  ui39 und adresse45 laden die Medien-Helfer jetzt direkt aus
+  js/24-projekt-cockpit.js (Stub-Luecke im Pruefstand, keine
+  Code-Korrektur) - im Browser sind es globale Funktionen.
+
+SICHERHEIT
+  Keine Aenderung an Storage-RLS, Tenant-RLS, privatem Bucket,
+  50-MB-Limit oder storage_object_insert_allowed().
+  Erneut bestaetigt (begin; ... rollback;, Wegwerf-Firma):
+    fremde Massaufnahmen sichtbar        0
+    fremde Storage-Objekte sichtbar      0
+    Upload project-files/4/hack.pdf      blockiert
+    Upload misc/x/y.txt                  blockiert
+    Bucket                               privat, 52428800 Bytes
+
+KEINE LIVE-BROWSER-TESTS GEGEN SUPABASE MOEGLICH; SQL/RLS-, CODE- UND
+REGRESSIONSTESTS DURCHGEFUEHRT. Die Sandbox blockiert weiterhin
+ausgehende HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co.
+Ein echtes Vorschaubild und eine echte signierte URL wurden NICHT im
+Browser geprueft und werden nicht als getestet behauptet.
+
+
+PETER KUENZI AG
+==================================================================
+
+  Unveraendert. Nur lesend geprueft:
+    Firmen                  2
+    Profile                13
+    Projekte                4   (Status und updated_at identisch)
+    Massaufnahmen          13   (0 mit Foto, 2 mit Skizzen)
+    Projektdateien          1
+    Storage-Objekte        14
+    audit_log-Zeilen        4
+    companies.updated_at    2026-09-01 07:40:15.844647+00
+    Bucket                  privat, file_size_limit 52428800
+
+  Alle mutierenden Tests liefen in begin; ... rollback; gegen eine
+  Wegwerf-Firma. Keine Testdaten zurueckgelassen.
+
+
+GIT
+==================================================================
+
+  Commit-SHA:  3af300a
+  Titel:       Version 2.50: Fotos/Skizzen direkt bei der Massaufnahme
+  Branch:      claude/v1-49-analysis-rk5csc  -> gepusht
+  main:        gemergt (fast-forward) und gepusht
+  Arbeitsverzeichnis: sauber
+
+
+OFFENE PUNKTE
+==================================================================
+
+  - Kein Live-Klicktest im Browser moeglich (siehe Tests).
+  - Bewusst nicht gebaut: Zoom/Wischen in der Vollbildansicht,
+    Herunterladen einzelner Medien, Bearbeiten aus der Medienansicht
+    heraus.
+  - Aus v2.48/v2.49 unveraendert offen: leere allowed_mime_types des
+    Buckets; eine Massaufnahme ohne Projekt kann kein Foto speichern;
+    fehlender fester search_path bei storage_object_is_own_company()
+    und storage_path_from_value(); 9 verwaiste Storage-Objekte aus
+    v2.24.
