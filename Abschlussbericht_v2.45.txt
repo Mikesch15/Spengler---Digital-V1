@@ -1,0 +1,385 @@
+SPENGLER-DIGITAL - ABSCHLUSSBERICHT VERSION 2.45
+Projektlisten auf Adresse umstellen + Cockpit-Darstellung aufraeumen
+Datum: 02.09.2026
+
+
+1. WIE DIE PROJEKTLISTEN GEAENDERT WURDEN
+==================================================================
+
+Die Adresse ist jetzt auch bei den Projekten selbst die fett
+dargestellte Hauptanzeige - genau wie seit v2.44 bei Massaufnahme,
+Ausmass und Regierapport.
+
+  Projektkarte (Projektuebersicht)
+    vorher:  Steildachsanierung
+             18191 · Alpeneggstrasse 22, Bern · Weyermann AG
+    jetzt:   Alpeneggstrasse 22, Bern
+             Steildachsanierung · 18191 · Weyermann AG
+
+  Schnellzugriff "Zuletzt bearbeitet"
+    vorher:  📁 Steildachsanierung
+             18191 · 29.8.2026 · 20:37 · Mike Ledermann
+    jetzt:   📁 Alpeneggstrasse 22, Bern
+             Steildachsanierung · 18191 · 29.8.2026 · 20:37 · Mike Ledermann
+
+  Projektkopf im Cockpit
+    vorher:  📁 Steildachsanierung
+             18191 · Alpeneggstrasse 22, Bern · Weyermann AG
+    jetzt:   📁 Alpeneggstrasse 22, Bern
+             Steildachsanierung · 18191 · Weyermann AG
+
+  Suchtreffer "Projekt" (neu, siehe Punkt 4)
+             📁 Alpeneggstrasse 22, Bern
+             Projekt · Steildachsanierung · 18191 · Weyermann AG
+
+WICHTIG: Der Projektname wurde NICHT geloescht. Er steht ueberall als
+erste Zusatzangabe und faellt nur dann weg, wenn er mangels Adresse
+bereits selbst der Haupttitel ist - sonst stuende derselbe Text zweimal
+untereinander.
+
+Sind ausser dem Haupttitel keine Angaben vorhanden, steht auf der
+Projektkarte "Keine weiteren Angaben" statt einer Zeile aus lauter
+"–"-Platzhaltern.
+
+
+2. WOHER DIE ADRESSE STAMMT
+==================================================================
+
+Unveraendert aus  projects.object  - dem Pflichtfeld "Adresse" des
+Projektformulars. Dieselbe einzige Quelle wie seit v2.44.
+
+  KEINE neue Spalte
+  KEINE Migration
+  KEINE kopierte oder redundante Adresse
+  KEINE Datenmodell-Aenderung
+
+Zur Erinnerung, warum das die richtige Quelle ist (in v2.44 geprueft,
+hier erneut bestaetigt):
+  projects.object   Label "Adresse (Pflichtfeld)", Platzhalter
+                    "z. B. Musterstrasse 1, 3000 Bern"  -> Objektadresse
+  reports.object    Label "Objekt / Gebaeudeteil"       -> etwas anderes
+  measurements/ausmass  haben gar kein Adressfeld
+
+
+3. FALLBACK-REGEL
+==================================================================
+
+Neue zentrale Funktion  projektTitel(p)  in js/01-basis.js:
+
+  Stufe 1:  projects.object   (die Adresse)
+  Stufe 2:  projects.name     (der Projektname)
+  Stufe 3:  "Ohne Adresse"
+
+Warum eine eigene Funktion und nicht das bestehende eintragAdresse()?
+Weil eintragAdresse(row, ersatz) ueber row.project_id aufloest - ein
+Projekt IST das Projekt und hat kein solches Feld. Die Regel ist
+dieselbe dreistufige, nur ist Stufe 2 hier die eigene Bezeichnung des
+Projekts statt des Datensatztitels.
+
+Die Fallback-Regel der Arbeitsdatensaetze (v2.44) ist unveraendert:
+  1. Adresse des zugehoerigen Projekts
+  2. eigene Bezeichnung (Massaufnahme/Ausmass: Titel, Rapport: Objekt)
+  3. "Ohne Adresse"
+
+Erfunden wird nichts - Stufe 2 zeigt nur, was wirklich gespeichert ist.
+
+ALTBESTAND (Auftrag Abschnitt 7):
+Alle vier realen Projekte haben ein gefuelltes object, zwei davon sind
+Platzhalterwerte ("Ppp", "Strasse1"). Diese werden UNVERAENDERT
+angezeigt - es ist ein echter, gespeicherter Wert. Es wurde nichts
+automatisch bereinigt, ersetzt oder geaendert. Ein Projekt ganz ohne
+Adresse faellt auf den Projektnamen zurueck, eines ohne beides auf
+"Ohne Adresse"; beide Faelle sind im Pruefstand abgedeckt.
+
+
+4. WIE DAS COCKPIT OPTISCH GEAENDERT WURDE
+==================================================================
+
+Bis v2.44 trug jede Massaufnahme-, Ausmass- und Rapportzeile im Cockpit
+dieselbe Projektadresse als fetten Titel. Innerhalb eines Projekts ist
+das per Definition immer derselbe Text - fuenf Massaufnahmen sahen
+optisch fast gleich aus.
+
+Jetzt steht die Adresse genau EINMAL oben im Projektkopf:
+
+  📁 Alpeneggstrasse 22, Bern
+     Steildachsanierung · 18191 · Weyermann AG
+
+  ARBEITSSTAND ... (unveraendert aus v2.42)
+
+  📐 MASSAUFNAHMEN  (3)
+     Rinne Halbrund
+     Dachrinne Nord · 2.9.2026
+     ------------------------------
+     Skizze/Foto
+     1.9.2026
+
+  📏 AUSMASS  (2)
+     Blitzschutzausmass
+     Blitzschutz Dach · 20.8.2026 · zuletzt geaendert 25.8.2026
+
+  📋 REGIERAPPORT  (1)
+     1.9.2026 · 18191
+     Weyermann AG · Steildach Nord
+
+  📎 DATEIEN/FOTOS  (1)      unveraendert (hatte nie eine Adresse)
+
+Hat ein Eintrag ausser seinem Haupttitel nichts (kein Titel, kein
+Datum), steht "Keine weiteren Angaben" - nie ein fuehrendes " · ".
+
+BEWUSSTE ABWEICHUNG VON DER BEISPIELSKIZZE (offen benannt):
+In der Skizze des Auftrags ist beim Ausmass der TITEL der fette
+Haupttitel ("Dachflaeche"), bei der Massaufnahme dagegen der TYP
+("Rinne Halbrund"). Beides zugleich waeren zwei verschiedene Regeln
+fuer zwei fast gleich aufgebaute Listen.
+
+Umgesetzt ist deshalb einheitlich die Logik aus Abschnitt 2 des
+Auftrags ("Adresse fett / Typ · Titel · Datum" bzw. "Adresse fett /
+Art · Titel · Datum"): faellt die Adresse weg, rueckt die jeweils erste
+Zusatzangabe - also Typ bzw. Art - nach oben.
+
+Das entspricht der Massaufnahme-Skizze exakt, haelt die neun
+Fachfunktionen sofort unterscheidbar (ausdrueckliche Vorgabe aus v2.44)
+und ist fuer beide Listen dieselbe Regel. Beim Ausmass steht der Titel
+dadurch eine Zeile tiefer als in der Skizze, geht aber nicht verloren.
+
+AUSSERHALB DES COCKPITS bleibt die Adresse der Haupttitel - in den
+Uebersichtslisten, in der globalen Suche und in den Kopfzeilen der
+geoeffneten Formulare (v2.44, unveraendert). Dort mischen sich Eintraege
+verschiedener Projekte, die Adresse ist dann die entscheidende
+Information.
+
+
+GLOBALE SUCHE: PROJEKTE SIND JETZT EIGENE TREFFER
+------------------------------------------------------------------
+Vorher konnte die Suche ein Projekt nur INDIREKT finden: ein Treffer im
+Projektnamen zog dessen Massaufnahmen/Ausmasse/Rapporte herein, das
+Projekt selbst erschien nie. Ein leeres Projekt war gar nicht
+auffindbar - und nach einer ADRESSE liess sich ueberhaupt nicht suchen,
+obwohl die Adresse seit v2.44 die Identifikation ist.
+
+Geaendert:
+  - Der bereits vorhandene, rein clientseitige Abgleich gegen
+    allProjects prueft jetzt name, object, order_no UND customer statt
+    nur name. allProjects ist bereits RLS-gefiltert - KEINE zusaetzliche
+    Abfrage, keine neue Datenquelle.
+  - Passende Projekte erscheinen als eigene Trefferart, ZUOBERST (sie
+    sind der Einstieg in alles Uebrige), mit der Adresse als Haupttitel.
+  - Ein Projekt-Treffer hat nur "📂 Oeffnen" (-> Projekt-Cockpit),
+    keinen Direktweg; ein Projekt wird immer im Cockpit geoeffnet. Bei
+    ihm gibt es keinen einzelnen Eintrag zum Hervorheben.
+  - Die Darstellung und beide Wege der bisherigen Arbeitsdatensatz-
+    Treffer ("📂 Projekt" + "✏️ Direkt oeffnen", Treffer-Hervorhebung)
+    sind unveraendert.
+
+
+5. GEAENDERTE DATEIEN
+==================================================================
+
+  js/01-basis.js             neue zentrale Funktion projektTitel()
+  js/09-projekte.js          Projektkarten und Schnellzugriff auf
+                             Adresse; drei Cockpit-Listen ohne
+                             wiederholte Adresse; eintragZusatz() ->
+                             eintragZusatzTeile()
+  js/24-projekt-cockpit.js   Projektkopf: Adresse als Haupttitel
+  js/04-start-suche.js       Projekte als eigene Suchtreffer, Suche
+                             zusaetzlich ueber Adresse/Nr./Auftraggeber
+  css/01-basis.css           Umbruch fuer lange Adressen
+  index.html                 nur Versionstext 2.45
+  sw.js                      Cache-Version 2.45
+
+  7 Dateien, 97 Zeilen ergaenzt, 27 entfernt.
+
+NICHT ANGEFASST - per git diff einzeln bestaetigt:
+  Alle zwoelf geschuetzten Fachdateien (js/10-massaufnahme.js,
+  js/11 bis js/17, js/19, js/20, js/21), js/06-rapport.js,
+  js/08-katalog-blitzschutz.js, js/23-verlauf.js,
+  js/22-system-admin.js, js/05a-rechte.js, js/03-login.js.
+
+  Keine Berechnung, keine Stueckliste, kein Zuschnitt, kein
+  Speicher-Payload, keine PDF-/Drucklogik beruehrt. #printProjectLine
+  (die gedruckte Kopfzeile) zeigt weiterhin unveraendert den
+  Projektnamen.
+
+  Anders als in v2.44 war diesmal KEINE einzige Aenderung in einer
+  geschuetzten Fachdatei noetig.
+
+MOBILE / TABLET:
+  .project-row-top b  bekommt flex:1 1 auto, min-width:0 und
+  word-break:break-word, der Loeschen-Knopf daneben flex:0 0 auto -
+  eine lange Adresse ("Ostermundigenstrasse 33") bricht damit um, statt
+  den Knopf aus dem Bild zu schieben. #cockpitTitle und #cockpitSubline
+  ebenfalls mit word-break. Die bereits umbruchfaehigen Klassen
+  .report-row, .meas-row und .recent-project sind unveraendert;
+  Trefferflaechen wurden nicht verkleinert.
+
+
+6. WAR EINE DB-AENDERUNG NOETIG?
+==================================================================
+
+NEIN.
+
+  keine Migration
+  keine neue Spalte
+  keine RLS-Policy geaendert
+  keine Storage-Regel geaendert
+  keine Edge Function geaendert
+
+Die bestehende projects.object-Adresse reicht vollstaendig aus.
+
+SICHERHEIT:
+Die Adresse kommt aus dem bereits geladenen, RLS-gefilterten
+allProjects bzw. aus den unveraenderten Cockpit-Abfragen. project_id
+ist weiterhin nirgends fuer sich allein eine Berechtigung.
+
+Erneut empirisch bestaetigt (begin; ... rollback;, Wegwerf-Firma
+99999999-..., PETER KUENZI AG nur gelesen): als Benutzer einer fremden
+Firma liefern mit den vier echten, bekannten Projekt-IDs die
+Projektzeile sowie die Massaufnahme-, Ausmass-, Rapport-, Datei- und
+Verlaufsabfrage JE 0 ZEILEN.
+
+
+7. WELCHE TESTS BESTANDEN WURDEN
+==================================================================
+
+NEUE PRUEFSTAENDE (gegen die echten Funktionen, gestellte Daten):
+
+  adresse45   37/37 OK
+    - Fallback-Regel Projekt (alle drei Stufen) und Arbeitsdatensatz
+    - Projektkarten: Adresse fett, Name/Nr./Kunde bleiben,
+      Platzhalterwert unveraendert angezeigt, leerer Auftraggeber
+      faellt weg, Projekt ohne Adresse, Projekt ganz ohne Angaben,
+      archiviertes Projekt weiterhin markiert
+    - Schnellzugriff: Adresse fett, Name als Zusatz, kein doppelter
+      Name bei fehlender Adresse
+    - Cockpit Massaufnahmen: Typ als Haupttitel, Titel+Datum darunter,
+      KEINE Adresse mehr in der Zeile, Eintrag ohne Titel, Eintrag
+      ohne Titel und Datum, Anzahl korrekt
+    - Cockpit Ausmass: Art als Haupttitel, Titel/Datum/"zuletzt
+      geaendert", keine Adresse mehr, Anzahl korrekt
+    - Cockpit Rapport: Datum+Auftrags-Nr. als Titel, Kunde+Objekt
+      darunter, keine Adresse mehr, Rapport ganz ohne Kopfdaten,
+      Anzahl korrekt
+    - Ladefehler liefert weiterhin undefined -> Zaehler zeigt "?",
+      niemals eine falsche 0
+
+  kopf45      8/8 OK
+    - Projektkopf: Adresse als Haupttitel, Name/Nr./Kunde darunter
+    - Projekt ohne Adresse -> Projektname, dann nicht doppelt
+    - Projekt ganz ohne Angaben -> "Ohne Adresse"
+    - archiviertes Projekt: "archiviert" als letzte Zusatzangabe
+    - manipulierte fremde Projekt-ID oeffnet nichts
+
+  suche45     13/13 OK
+    - Suche nach einer Adresse findet das Projekt
+    - Art/Name/Nr./Kunde als Zusatzzeile, Name nicht doppelt
+    - Projekt ohne Adresse -> Projektname als Titel
+    - Projekt steht zuoberst, Trefferzahl stimmt
+    - kein Direktweg beim Projekt, Cockpit-Weg ohne Hervorhebung
+    - Arbeitsdatensatz-Treffer (Cockpit-Weg mit Hervorhebung,
+      Direktweg) unveraendert
+    - Leerzustand
+
+REGRESSION (alle bestanden):
+  Navigation             23/23
+  Suche                    7/7
+  Treffer-Hervorhebung     7/7
+  Schnellzugriff          12/12
+  Arbeitsstand            17/17
+  Dateien                 27/27
+  Listenrendering          9 Faelle, rein darstellend
+  node --check             alle js/*.js und sw.js fehlerfrei
+  div-Balance              648/648, unveraendert
+
+ANPASSUNGEN AN PRUEFSTAENDEN (Stub-Luecken, KEINE Code-Korrekturen):
+  projektTitel() und infoZeileOhne() liegen in js/01-basis.js, das im
+  Browser vor js/09/js/24 geladen wird - in den Pruefstaenden muss es
+  einzeln gestubbt werden (nav, cockpit, treffer40, stand42, recent41).
+  ui39 exportierte eintragZusatz unter dem alten Namen.
+
+  Der Pruefstand cockpit.js (aus v2.37) war SCHON VOR v2.45 defekt - er
+  verwendet Element-IDs, die seit v2.39 nicht mehr existieren. Gegen
+  den v2.44-Stand gegengeprueft und bestaetigt. Er ist durch stand42
+  (17 Pruefungen) und nav (23 Pruefungen) vollstaendig abgeloest und
+  wurde nicht wiederbelebt.
+
+  Der v2.44-Pruefstand adresse44 wurde durch adresse45 abgeloest: seine
+  Erwartung "Adresse ist Haupttitel der Cockpit-Zeile" ist durch diese
+  Aufgabe fachlich ueberholt. Seine Fallback-Regel-Pruefungen sind in
+  adresse45 unveraendert enthalten und bestehen weiterhin.
+
+LIVE-KLICKTEST IM BROWSER WAR IN DIESER SITZUNG TECHNISCH NICHT
+MOEGLICH - die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+nfgryuzkpwjfmdlmevuy.supabase.co, wie in jeder vorherigen Sitzung.
+DAS WIRD HIER AUSDRUECKLICH NICHT ALS GETESTET BEHAUPTET.
+Insbesondere die Darstellung auf einem echten Handy/Tablet wurde nicht
+visuell geprueft, sondern ueber die CSS-Regeln gegen die bereits
+erprobten bestehenden Klassen abgeglichen.
+
+
+8. PETER-KUENZI-AG-PRUEFUNG
+==================================================================
+
+Nur lesend geprueft, vor und nach allen Tests identisch:
+
+  Firmen                    2
+  Profile                  13
+  Projekte                  4
+  Massaufnahmen            13
+  Ausmasse                  2
+  Regierapporte             4
+  Projektdateien            1
+  audit_log-Zeilen          0
+  companies.updated_at      2026-09-01 07:40:15.844647+00  (unveraendert)
+
+Alle vier Projektadressen unveraendert:
+  1 = Ppp / Home
+  3 = Strasse1 / Test Strasse 11
+  4 = Alpeneggstrasse 22, Bern / Steildachsanierung
+  6 = Ostermundigenstrasse 33 / Brandschaden
+
+Keine Wegwerf-Firma uebrig, Mike Ledermann wieder in seiner echten
+Firma. Alle Schreib-/Cross-Tenant-Tests liefen in
+begin; ... rollback; gegen die Wegwerf-Firma
+99999999-9999-9999-9999-999999999999.
+
+
+9. COMMIT-HASH UND MERGE-/PUSH-STATUS
+==================================================================
+
+  Commit:  4c1edbb
+  Titel:   Version 2.45: Projektlisten auf Adresse, Cockpit aufgeraeumt
+
+  Branch claude/v1-49-analysis-rk5csc  -> gepusht  (971e623..4c1edbb)
+  Branch main                          -> gemergt (fast-forward) und
+                                          gepusht
+
+  Arbeitsverzeichnis sauber, zurueck auf
+  claude/v1-49-analysis-rk5csc.
+
+
+10. OFFENE PUNKTE
+==================================================================
+
+  - Kein Live-Klicktest im Browser moeglich (siehe Punkt 7).
+
+  - Die drei Projekt-Auswahlfelder (Regierapport, Massaufnahme,
+    Ausmass) zeigen im Vorschlagsfeld weiterhin den PROJEKTNAMEN fett
+    und Adresse/Nr./Kunde darunter. Bewusst nicht umgestellt: zwei der
+    drei liegen in geschuetzten Fachdateien (js/10, js/17), zentral
+    nicht loesbar, und die Auswahlfelder sind Eingabe-Widgets, keine
+    Listen im Sinne des Auftrags. Gesucht wird dort ohnehin bereits
+    ueber die Adresse (searchProjects(), unveraendert).
+
+  - Aus v2.43 weiterhin offen und bewusst nicht mit dieser UI-Aufgabe
+    vermischt (Auftrag Abschnitt 10 verbietet Storage-Umbauten
+    nebenbei):
+      * maximale Projekt-Dateigroesse - Empfehlung 25-50 MB je Datei,
+        die verstaendliche Fehlermeldung ist bereits eingebaut; die
+        Zahl ist eine Betriebsentscheidung und wurde nicht geraten
+      * flache Storage-Upload-Erlaubnis als eigene spaetere
+        Sicherheitsaufgabe
+
+  - Kein Projektstatus ("offen / in Arbeit / fertig") - projects hat
+    ausser archived weiterhin keine Statusinformation. Ein erfundener
+    Status bleibt ausgeschlossen.
