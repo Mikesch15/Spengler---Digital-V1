@@ -8593,9 +8593,35 @@ einzeilig bleibt. Der **volle Excel-Wortlaut geht nirgends verloren**:
 er hängt als `title`-Tooltip an jeder Tabellenzeile und an den drei
 Hauptresultaten und steht im **PDF unverändert und ungekürzt** (der
 Druckzweig verwendet weiterhin `KEHLE_LABELS`). Gekürzt wird nur, nichts
-umbenannt oder erfunden. Dazu engere Spalten (Zeichen 22 px, Wert
+umbenannt oder erfunden. Dazu engere Spalten (Zeichen 32 px, Wert
 74 px, `table-layout:fixed`) und 11.5 px Schrift; b/c/d bleiben mit
 24 px unverändert dominant.
+
+**Der eigentliche Grund, warum zunächst alles rechts aus dem Bild lief
+– wichtig für jede künftige Tabelle:** `css/01-basis.css` setzt in
+Zeile 33 eine **globale** Regel
+
+```css
+table{width:100%;border-collapse:collapse;min-width:1000px;table-layout:fixed}
+```
+
+Das `min-width:1000px` gilt für **jede** Tabelle der App. Es ist
+Absicht: die Stücklisten-Tabellen sollen breit sein und stehen deshalb
+alle in einem `<div class="scroll">`, das seitwärts scrollt. Eine neue
+Tabelle, die sich in die Seitenbreite einfügen soll, muss dieses
+`min-width` deshalb ausdrücklich zurücksetzen – `width:100%` allein
+reicht nicht und wird wirkungslos überschrieben:
+
+```css
+table.kehle-tabelle{width:100%;min-width:0;…}
+```
+
+Ohne diese eine Zeile war die Kehle-Tabelle 1000 px breit, obwohl ihr
+Elternelement nur 312 px mass. Gefunden wurde das nicht durch Raten,
+sondern durch Messen im echten Chromium (siehe Prüfstand `breite52`
+in 60.7). Gleiche Kategorie Falle wie die `[hidden]`-Regel aus
+Abschnitt 59: eine globale Basisregel, die eine neue Komponente still
+überstimmt.
 
 Live-Berechnung bei jeder Eingabe (`input`-Listener auf den drei
 Feldern), wie bei Lukarne/Anschlussblech/Einfassung Rund – kein
@@ -8670,6 +8696,17 @@ der echten Datei):
 - Darstellung: Hauptbox enthält genau b/c/d, weitere Resultate genau
   12 Zeilen, Zwischenergebnisse genau 20 Zeilen und eingeklappt,
   ungültige Eingabe zeigt „–" statt Zahlen und keine NaN.
+
+**Breiten-Prüfstand `breite52` – 52/52** (echtes Chromium über
+playwright-core, das im Container bereits installiert ist): fünf
+Gerätebreiten (320, 360, 412, 768, 1280 px), jeweils mit
+eingeklappten und aufgeklappten Zwischenergebnissen. Geprüft wird,
+dass kein Element des Kehle-Formulars über den rechten Bildrand
+hinausragt, dass Modal und Seite nicht seitwärts scrollen, dass die
+Tabelle in ihr Elternelement passt und dass b/c/d dabei unverändert
+66.48° / 122.77° / 47.46° zeigen. Gegenprobe: die bestehenden
+Stücklisten-Tabellen behalten ihr `min-width:1000px` und stehen
+weiterhin in `.scroll`.
 
 Nach der Kürzung (siehe 60.5) auf **698/698** erweitert: jede der 32
 angezeigten Kurzbezeichnungen existiert, ist höchstens so lang wie die

@@ -280,8 +280,13 @@ label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-wei
 /* Zusatzwerte bewusst schmal: Kurzbezeichnung auf dem Bildschirm, der
    volle Excel-Wortlaut haengt als Tooltip an der Zeile und steht
    ungekuerzt im PDF. */
-table.kehle-tabelle{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:fixed}
-.kehle-tabelle th{width:22px;text-align:left;font-weight:800;color:var(--blue-dark);padding:3px 4px 3px 0;border-bottom:1px solid var(--line);vertical-align:top}
+/* min-width:0 ist hier zwingend: die globale Regel oben (Zeile 33)
+   setzt jeder Tabelle min-width:1000px, weil die Stuecklisten-Tabellen
+   der App in einem <div class="scroll"> stehen und breit sein duerfen.
+   Ohne diese Zeile waere auch die Kehle-Tabelle 1000px breit und wuerde
+   rechts aus dem Bildschirm laufen. */
+table.kehle-tabelle{width:100%;min-width:0;border-collapse:collapse;font-size:11.5px;table-layout:fixed}
+.kehle-tabelle th{width:32px;text-align:left;font-weight:800;color:var(--blue-dark);padding:3px 5px 3px 0;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
 .kehle-tabelle td{padding:3px 4px 3px 0;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.3;overflow-wrap:anywhere}
 .kehle-tabelle td.kehle-zahl{width:74px;text-align:right;font-weight:700;white-space:nowrap;padding-right:0}
 details.kehle-zwischen summary{cursor:pointer;font-size:11.5px;color:var(--muted);padding:7px 0;min-height:32px}
@@ -292,4 +297,5 @@ details.kehle-zwischen[open] summary{margin-bottom:2px}
  .kehle-haupt-text{font-size:10.5px}
  table.kehle-tabelle{font-size:11px}
  .kehle-tabelle td.kehle-zahl{width:68px}
+ .kehle-tabelle th{width:30px}
 }
