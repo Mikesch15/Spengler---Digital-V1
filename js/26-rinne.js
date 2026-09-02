@@ -32,17 +32,48 @@
 // (R10/R11) stehen dort genau da, wo A/B/C liegen. "winkel" ist die
 // Richtungsaenderung gegenueber dem vorherigen Segment in Grad -
 // dieselbe Bedeutung wie beim Freien Profil. 180° = Umschlag.
+// Standardprofil nach der Vorlage des Betreibers (Handskizze, v2.57).
+// Gelesen vom rechten Ende her, damit die variablen Masse in der
+// Reihenfolge der Vorlage A - B - C heissen:
+//
+//   Umschlag - Anschl. Flachdach 150 - [A] - Keil 40 - [B] - Keil 40 -
+//   [C] - Rest (max. 200) - Umschlag
+//                                   Fixmasse gesamt: 460 mm
+//
+// "winkel" ist die Richtungsaenderung gegenueber dem vorherigen Segment
+// in Grad - dieselbe Bedeutung wie beim Freien Profil. 180° = Umschlag.
+// Die Winkel sind aus der Vorlage abgegriffen: A faellt mit 70° steil ab,
+// die beiden Keil sind 45°-Faschen, C steht senkrecht, der Rest steigt
+// mit 34° an.
+//
+// Hinweise zur Vorlage:
+//  - Die beiden Umschlaege sind dort nicht bemasst; uebernommen sind
+//    die 15 mm aus der Excel.
+//  - A/B/C sind dort nicht benannt; die Bezeichnungen bleiben deshalb
+//    leer und koennen frei ausgefuellt werden.
+//  - "Rest (Max 200)" ist eine Obergrenze, kein rechenbarer Wert. Das
+//    Segment heisst deshalb schlicht "Rest" und ist mit 200 mm
+//    vorbelegt; im Formular ist es frei aenderbar.
+// Alles davon ist im Formular anpassbar.
 const RINNE_STANDARDPROFIL = Object.freeze([
-  { name: "Umschlag",          art: "fix", laenge:  15, winkel: 180 },
+  { name: "Umschlag",          art: "fix", laenge:  15, winkel:   0 },
   { name: "Anschl. Flachdach", art: "fix", laenge: 150, winkel: 180 },
+  { name: "",                  art: "var", laenge:   0, winkel:  70 },
+  { name: "Keil",              art: "fix", laenge:  40, winkel: -25 },
+  { name: "",                  art: "var", laenge:   0, winkel: -45 },
   { name: "Keil",              art: "fix", laenge:  40, winkel: -45 },
-  { name: "Aufkantung hinten", art: "var", laenge:   0, winkel: -45 },
-  { name: "Boden",             art: "var", laenge:   0, winkel:  90 },
-  { name: "Aufkantung vorne",  art: "var", laenge:   0, winkel:  90 },
-  { name: "Keil",              art: "fix", laenge:  40, winkel: -45 },
-  { name: "Anschl. Unterdach", art: "fix", laenge: 250, winkel: -45 },
+  { name: "",                  art: "var", laenge:   0, winkel: -45 },
+  { name: "Rest",              art: "fix", laenge: 200, winkel:  56 },
   { name: "Umschlag",          art: "fix", laenge:  15, winkel: 180 }
 ]);
+
+// Fixmasse der Excel-Vorlage (R8..R13). Werden nur noch gebraucht, um
+// gespeicherte v2.56-Daten zu uebernehmen, bei denen ein Wert fehlt -
+// nicht mehr als Vorgabe fuer neue Massaufnahmen.
+const RINNE_EXCEL_FIXMASSE = Object.freeze({
+  umschlag_flachdach: 15, anschluss_flachdach: 150, keil_links: 40,
+  keil_rechts: 40, anschluss_unterdach: 250, umschlag_unterdach: 15
+});
 
 // ---- 2. Ansetztypen (Excel U8:V13, Dropdown I7:I41 / K7:K41) -------
 // "Nichts" hat in der Excel eine leere Zelle V13; VLOOKUP liefert dort
@@ -123,20 +154,24 @@ function rinneWerte(quelle) {
   });
   return { profil, ansetz };
 }
-// v2.56 kannte sechs feste Zusatzmasse und genau drei variable Masse.
+// v2.56 kannte sechs feste Zusatzmasse und genau drei variable Masse in
+// der Reihenfolge der Excel-Vorlage. Ein solcher Datensatz wird auf genau
+// dieses Profil abgebildet - nicht auf das aktuelle Standardprofil, sonst
+// wuerde sich seine Abwicklung nachtraeglich aendern.
 function rinneProfilAusAltformat(zusatz) {
-  const z = k => rinneZahl(zusatz[k]);
-  const alt = RINNE_STANDARDPROFIL.map(rinneSegment);
-  const zuweisung = {
-    0: "umschlag_flachdach", 1: "anschluss_flachdach", 2: "keil_links",
-    6: "keil_rechts", 7: "anschluss_unterdach", 8: "umschlag_unterdach"
-  };
-  Object.keys(zuweisung).forEach(i => {
-    if (Object.prototype.hasOwnProperty.call(zusatz, zuweisung[i])) {
-      alt[i].laenge = z(zuweisung[i]);
-    }
-  });
-  return alt;
+  const z = k => Object.prototype.hasOwnProperty.call(zusatz, k)
+    ? rinneZahl(zusatz[k]) : RINNE_EXCEL_FIXMASSE[k];
+  return [
+    { name: "Umschlag",          art: "fix", laenge: z("umschlag_flachdach"),  winkel:   0 },
+    { name: "Anschl. Flachdach", art: "fix", laenge: z("anschluss_flachdach"), winkel: 180 },
+    { name: "Keil",              art: "fix", laenge: z("keil_links"),          winkel: -45 },
+    { name: "",                  art: "var", laenge: 0,                        winkel: -45 },
+    { name: "",                  art: "var", laenge: 0,                        winkel:  90 },
+    { name: "",                  art: "var", laenge: 0,                        winkel:  90 },
+    { name: "Keil",              art: "fix", laenge: z("keil_rechts"),         winkel: -45 },
+    { name: "Anschl. Unterdach", art: "fix", laenge: z("anschluss_unterdach"), winkel: -45 },
+    { name: "Umschlag",          art: "fix", laenge: z("umschlag_unterdach"),  winkel: 180 }
+  ].map(rinneSegment);
 }
 
 // ---- 5. Profil auswerten --------------------------------------------
@@ -428,14 +463,21 @@ function renderRinneProfilTabelle() {
 </tr>`;
   }).join("") || `<tr><td colspan="6" class="small">Noch kein Segment. „＋ Segment hinzufügen" klicken.</td></tr>`;
 
-  if ($("rp_profilInfo")) {
-    const fix = rinneFixSumme(rinneProfil);
-    $("rp_profilInfo").innerHTML = varListe.length
-      ? `<b>${varListe.length}</b> variable Masse (${varListe.map(v => rinneEsc(v.buchstabe)).join(", ")}) · `
-        + `Fixmasse gesamt <b>${rinneMm(fix)} mm</b> · Abwicklung = `
-        + varListe.map(v => rinneEsc(v.buchstabe)).join(" + ") + ` + ${rinneMm(fix)} mm`
-      : `Keine variablen Masse · Fixmasse gesamt <b>${rinneMm(fix)} mm</b> · Abwicklung = ${rinneMm(fix)} mm`;
-  }
+  renderRinneProfilInfo();
+}
+
+// Nur die Info-Zeile. Bewusst getrennt von der Tabelle: beim Tippen darf
+// die Tabelle NICHT neu gezeichnet werden, sonst verliert das gerade
+// bearbeitete Eingabefeld den Fokus und den Cursor.
+function renderRinneProfilInfo() {
+  if (!$("rp_profilInfo")) return;
+  const varListe = rinneVariable(rinneProfil);
+  const fix = rinneFixSumme(rinneProfil);
+  $("rp_profilInfo").innerHTML = varListe.length
+    ? `<b>${varListe.length}</b> variable Masse (${varListe.map(v => rinneEsc(v.buchstabe)).join(", ")}) · `
+      + `Fixmasse gesamt <b>${rinneMm(fix)} mm</b> · Abwicklung = `
+      + varListe.map(v => rinneEsc(v.buchstabe)).join(" + ") + ` + ${rinneMm(fix)} mm`
+    : `Keine variablen Masse · Fixmasse gesamt <b>${rinneMm(fix)} mm</b> · Abwicklung = ${rinneMm(fix)} mm`;
 }
 
 function renderRinneStueckTabelle() {
@@ -575,10 +617,17 @@ function applyRinneProfilSettings() {
       const i = Number(el.dataset.rpI), seg = rinneProfil[i];
       if (!seg) return;
       const feld = el.dataset.rpSeg;
-      if (feld === "name") { seg.name = el.value; renderRinneDiagramm(); dirty(); return; }
-      if (feld === "laenge") { seg.laenge = el.value; renderRinneStueckTabelle(); renderRinneDiagramm(); }
-      if (feld === "winkel") { seg.winkel = el.value; renderRinneDiagramm(); }
-      if ($("rp_profilInfo")) renderRinneProfilTabelle();
+      // WICHTIG: hier wird die Profiltabelle bewusst NICHT neu gezeichnet.
+      // Sonst verliert das gerade bearbeitete Feld nach dem ersten Zeichen
+      // den Fokus, und beim Auswahlfeld "Art" wuerde die eben getroffene
+      // Auswahl noch vor dem change-Ereignis wieder ueberschrieben.
+      // "art" gehoert allein in den change-Handler darunter.
+      if (feld === "art") return;
+      if (feld === "name") seg.name = el.value;
+      else if (feld === "laenge") { seg.laenge = el.value; renderRinneStueckTabelle(); }
+      else if (feld === "winkel") seg.winkel = el.value;
+      renderRinneProfilInfo();
+      renderRinneDiagramm();
       dirty();
     });
     pb.addEventListener("change", e => {

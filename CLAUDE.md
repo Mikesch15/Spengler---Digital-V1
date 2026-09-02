@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.57, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.58, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.57**
+- sichtbare App-Version: **2.58**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -9848,3 +9848,133 @@ als RLS-/Trigger-Simulation gegen das echte Produktivschema geprüft.
 - Die Skizze zeichnet variable Segmente ohne erfasstes Mass mit einem
   neutralen Beispielwert, damit das Profil auch vor der ersten Eingabe
   erkennbar ist. Sobald ein Stück Werte hat, wird mit diesen gezeichnet.
+
+## 66. RINNE – ZWEI BEDIENFEHLER BEHOBEN + NEUES STANDARDPROFIL — VERSION 2.58
+
+Zwei vom Betreiber gemeldete Fehler aus v2.57 und das Standardprofil nach
+seiner Vorlage. **Keine Schemaänderung, keine Migration.**
+
+### 66.1 Die zwei Fehler – eine gemeinsame Ursache
+
+Gemeldet wurde: „kann fix und variabel nicht ändern" und „die
+Eingabefelder verlieren den Fokus nach erster Eingabe".
+
+Beides kam aus **derselben Zeile** im `input`-Handler der Profiltabelle:
+
+```js
+if ($("rp_profilInfo")) renderRinneProfilTabelle();   // bei JEDEM input
+```
+
+`renderRinneProfilTabelle()` setzt `rp_profilBody.innerHTML` neu. Damit:
+
+- **Fokusverlust**: nach dem ersten Zeichen wird das gerade bearbeitete
+  Eingabefeld durch ein neues ersetzt – Fokus und Cursor sind weg, es
+  bleibt genau ein Zeichen stehen.
+- **fix/variabel nicht änderbar**: ein `<select>` feuert erst `input`,
+  dann `change`. Der `input`-Handler zeichnete die Tabelle neu und ersetzte
+  dabei das Auswahlfeld durch ein neues mit dem **alten** Wert; das
+  anschliessende `change` erreichte den delegierten Handler nicht mehr,
+  weil das ursprüngliche Element nicht mehr im Dokument hing.
+
+**Behoben**: Die Info-Zeile ist als eigene Funktion
+`renderRinneProfilInfo()` herausgelöst. Der `input`-Handler zeichnet die
+Profiltabelle **nie** neu, sondern nur die Info-Zeile, die Skizze und –
+bei einer Längenänderung – die Stückliste. `art` wird im `input`-Handler
+ausdrücklich übersprungen und allein im `change`-Handler behandelt.
+
+### 66.2 Warum die Prüfstände das nicht gefunden hatten
+
+Der v2.57-Prüfstand setzte Werte **synthetisch**:
+
+```js
+w.value="120"; w.dispatchEvent(new Event("input"));       // ein Ereignis
+sel.value="var"; sel.dispatchEvent(new Event("change"));  // ohne input
+```
+
+Ein einzelnes Ereignis kann keinen Fokusverlust zeigen, und ein `change`
+ohne vorangehendes `input` umgeht den fehlerhaften Pfad vollständig.
+
+Der Prüfstand `breite57` bedient das Formular jetzt **wie ein Mensch**:
+`page.selectOption()` (feuert input **und** change) und `keyboard.type()`
+Zeichen für Zeichen. Geprüft wird zusätzlich, dass das Feld den Fokus
+behält und der vollständige Text ankommt – für Länge, Winkel,
+Bezeichnung und die Masse in der Stückliste.
+
+**Gegenprobe**: mit wieder eingebautem Fehler meldet der Prüfstand 17
+Fehlschläge, darunter „Länge vollständig getippt [1]" und „Auswahl bleibt
+auf 'variabel' stehen [fix]" – also exakt die beiden gemeldeten Symptome.
+
+### 66.3 Neues Standardprofil nach der Vorlage des Betreibers
+
+Aus der Handskizze übernommen, gelesen vom rechten Ende her, damit die
+variablen Masse in der Reihenfolge der Vorlage A – B – C heissen:
+
+| Nr. | Bezeichnung | Art | Länge | Winkel |
+|---|---|---|---|---|
+| 1 | Umschlag | fix | 15 mm | 0° |
+| 2 | Anschl. Flachdach | fix | 150 mm | 180° |
+| A | *(leer)* | variabel | je Stück | 70° |
+| 4 | Keil | fix | 40 mm | −25° |
+| B | *(leer)* | variabel | je Stück | −45° |
+| 6 | Keil | fix | 40 mm | −45° |
+| C | *(leer)* | variabel | je Stück | −45° |
+| 8 | Rest | fix | 200 mm | 56° |
+| 9 | Umschlag | fix | 15 mm | 180° |
+
+**Fixmasse gesamt: 460 mm.**
+
+Die Winkel ergeben genau die Geometrie der Vorlage: Anschl. Flachdach
+waagerecht, A fällt mit 70° steil ab, beide Keil sind 45°-Faschen, B
+waagerecht, C senkrecht, der Rest steigt mit 34° an. Im Prüfstand gegen
+die Richtungsfolge `0/180/250/225/180/135/90/146/326` abgesichert.
+
+**Wichtig – die Abwicklung ändert sich gegenüber der Excel:** die Excel
+rechnet mit 510 mm Fixmass (Anschl. Unterdach 250 statt Rest 200), die
+Vorlage mit 460 mm. Dieselben Masse ergeben deshalb eine um 50 mm
+kleinere Abwicklung (Beispiel A=127/B=192/C=202: **981 mm** statt
+1031 mm). Das ist die Folge der Vorlage, kein Rechenfehler – die
+Zuschnittlänge bleibt unberührt.
+
+Drei Stellen, an denen die Vorlage nichts hergibt, sind offen gelassen
+statt geraten:
+- die beiden **Umschläge** sind nicht bemasst → 15 mm aus der Excel
+- **A/B/C** sind nicht benannt → Bezeichnungen bleiben leer
+- **„Rest (Max 200)"** ist eine Obergrenze, kein rechenbarer Wert → das
+  Segment heisst „Rest" und ist mit 200 mm vorbelegt
+
+Alles davon ist im Formular frei änderbar.
+
+### 66.4 Der Excel-Vergleich bleibt vollständig erhalten
+
+Der Prüfstand baut das Vergleichsprofil jetzt **aus der Excel selbst**
+(die sechs Fixmasse aus R8..R13 plus drei variable Masse), nicht mehr aus
+einer Konstante der App. Damit hängt der Excel-Test an den echten Werten
+der Vorlage und bleibt gültig, obwohl das ausgelieferte Standardprofil
+ein anderes ist. **Alle 35 Datenzeilen stimmen weiterhin exakt.**
+
+Gespeicherte v2.56-Daten werden weiterhin auf das **Excel**-Profil
+abgebildet (nicht auf das neue Standardprofil), sonst würde sich ihre
+Abwicklung nachträglich ändern. Die sechs Excel-Fixmasse stehen dafür als
+eigene benannte Tabelle `RINNE_EXCEL_FIXMASSE` im Code.
+
+### 66.5 Tests
+
+- **`rinne57` 359/359** – Excel-Profil (alle 35 Zeilen), neues
+  Standardprofil (Segmente, Fixmasse 460, Bezeichnungen, Richtungsfolge,
+  gezeichnete Längen, Beispielrechnung 981/1280), freies Profil, Winkel,
+  Verkettung, Altformat, SVG, Integration
+- **`breite57` 77/77** – echtes Chromium, echtes Tippen und echte
+  Auswahl (siehe 66.2), fünf Gerätebreiten
+- **`pdf52` 504/504**
+- volle Regression aller übrigen Prüfstände grün, `node --check`
+  fehlerfrei, `<div>` 697/697, keine doppelten IDs
+- Regierapport nicht im Diff
+
+**Live-Klicktest gegen Supabase weiterhin nicht möglich** (Sandbox
+blockiert HTTPS dorthin) – **das wird nicht als getestet behauptet.**
+
+### 66.6 Geänderte Dateien
+
+`js/26-rinne.js` (Handler, Standardprofil, `RINNE_EXCEL_FIXMASSE`,
+`renderRinneProfilInfo`), `index.html` und `sw.js` (Version 2.58),
+`CLAUDE.md`. Sonst nichts.
