@@ -1,0 +1,216 @@
+================================================================
+SPENGLER-DIGITAL – ABSCHLUSSBERICHT VERSION 2.54
+Einheitlicher professioneller PDF-Kopf
+Commit e501377 · main gepusht · 2. September 2026
+================================================================
+
+
+1. WAS GEÄNDERT WURDE
+---------------------
+Der v2.53-Kopf war ein sichtbares 3-Spalten-Raster mit umrandeten
+Kästchen um jedes Kopfdatum. Fachlich richtig, aber es sah aus wie ein
+ausgefülltes Formular. Ersetzt durch einen ruhigen Briefkopf.
+
+NUR DER KOPF wurde umgebaut. Tabellen, Seitenumbrüche, Fotos/Skizzen,
+Kehle-Ergebnisse und Fusszeile aus v2.53 sind unverändert.
+
+
+2. ZWEI BAUSTEINE WURDEN ZU EINEM
+---------------------------------
+Vorher rief jedes PDF zwei getrennte Funktionen nacheinander auf:
+  pdfLetterheadHtml()  – Briefkopf
+  pdfDokumentKopf()    – Titel + Datenraster
+Damit konnten Massaufnahme und Ausmass theoretisch auseinanderlaufen.
+
+Jetzt gibt es GENAU EINE Komponente: pdfKopfHtml(opt).
+Beide Druckwege rufen sie mit demselben Objekt auf – unterschiedlich
+sind nur zwei Werte:
+
+  Massaufnahme: dokumenttyp:"Massaufnahme", unterart:"Kehle"
+  Ausmass:      dokumenttyp:"Ausmass",      unterart:"Offerte erfassen"
+
+Die beiden alten Funktionen existieren nicht mehr (per Grep bestätigt),
+der separate Briefkopf-Aufruf im Dokumentgerüst ist entfallen. Es gibt
+keine zweite Kopfvariante und keinen duplizierten CSS-Block.
+
+
+3. DER NEUE KOPF
+----------------
+  Peter Künzi AG                                  MASSAUFNAHME
+  Spenglerei & Bedachungen                          02.09.2026
+  Industriestrasse 8
+  3006 Bern
+
+  Bahnhofstrasse 12, 3011 Bern
+  Sanierung Dach Nord · Auftrag 2026-123 · Muster Immobilien AG
+
+  Massaufnahme:  Kehle
+  Bezeichnung:   Kehle Lukarne Nord
+  Bearbeiter:    Mike Ledermann
+  ─────────────────────────────────────────────────────────────
+
+ - Dokumenttyp oben rechts, rechtsbündig an immer derselben Kante,
+   darunter das Datum im Schweizer Format (2026-09-02 -> 02.09.2026)
+ - Firmenblock oben links: Logo, sonst der Firmenname an dessen
+   Stelle, darunter die Firmenanschrift klein. Mit Logo steht der
+   Name darunter, ohne Logo nicht doppelt.
+ - Objektadresse als grosser Haupttitel – über die BESTEHENDE
+   zentrale eintragAdresse()-Logik. Keine zweite Adressquelle.
+ - Projektzeile als ruhiger Fliesstext, nicht als Tabelle. Nur
+   vorhandene Werte.
+ - Info-Zeilen im Stil "Etikett: Wert" mit ausgerichteter
+   Etikettenspalte, ohne Rahmen.
+ - EINE Trennlinie unter dem ganzen Kopf.
+
+Kein <table>, keine .pdf-meta, keine Kästchen, keine Kartenoptik –
+das wird im Prüfstand ausdrücklich geprüft.
+
+ZUR BEZEICHNUNG: Ihr Entwurf zeigt sie nicht. Sie ist aber eine echte
+Eingabe des Benutzers, und Daten wegzuwerfen wäre falsch. Sie steht
+deshalb als eigene Info-Zeile und entfällt nur dann, wenn sie mangels
+Projekt ohnehin schon der Haupttitel ist – sonst stünde sie doppelt.
+
+
+4. NACHWEIS, DASS ALLE PDFs DENSELBEN KOPF HABEN
+------------------------------------------------
+Nicht behauptet, sondern gemessen. Der Prüfstand pdf52 erzeugt 19
+Dokumente in echtem Chromium und vergleicht je Dokument:
+
+ a) PFLICHTTEILE als Struktur-Skelett OHNE Textinhalte
+    (Firmenblock, Dokumenttyp, Adresstitel, Trennlinie)
+    -> in jedem der 19 Dokumente identisch
+
+ b) TYPOGRAFIE: Schriftgrösse, -stärke, Laufweite und Farbe von
+    Dokumenttyp, Datum, Titel, Projektzeile, Info-Block, Trennlinie,
+    Logo und Firmenblock
+    -> identisch
+
+ c) LAGE: rechte Kante und Oberkante des Dokumenttyp-Blocks, linke
+    Kante und Oberkante des Firmenblocks, beide Kanten der Trennlinie
+    -> identisch
+    (Die BREITE des Dokumenttyps unterscheidet sich naturgemäss –
+    "MASSAUFNAHME" ist länger als "AUSMASS". Geprüft wird deshalb die
+    rechtsbündige Kante, nicht die linke.)
+
+ d) VOLLSTÄNDIGER KOPF: 16 der 19 Dokumente haben alle optionalen
+    Daten. Ihr komplettes Kopf-Skelett ist BYTEIDENTISCH.
+
+ e) Die übrigen drei (Massaufnahme ohne Projekt, Ausmass ohne
+    Kopfdaten, leeres Ausmass) lassen genau die Blöcke weg, deren
+    Daten fehlen. Auch das wird geprüft: Datum genau dann, wenn ein
+    Datum da ist; Projektzeile genau dann, wenn ein Projekt da ist.
+
+Geprüfte Dokumente: alle zehn Massaufnahme-Arten (inkl. Kehle),
+Massaufnahme mit Foto und vier Skizzen, Massaufnahme ohne Projekt,
+Kehle mit sehr langem Text, Ausmass Offerte, Ausmass Blitzschutz,
+leeres Ausmass, Ausmass mit 70 Positionen, sowie neu in dieser Runde:
+sehr lange Adresse/Projektname/Auftrags-Nr./Auftraggeber und ein
+Dokument ganz ohne optionale Daten.
+
+ERGEBNIS: pdf52 416/416 (v2.53: 240/240 über 17 Dokumente).
+
+Zusätzlich habe ich Kehle-PDF und Ausmass-PDF nebeneinander als Bild
+angesehen: gleicher Firmenblock links, gleicher Dokumenttyp-Block
+rechts, gleicher Adresstitel, gleiche Projektzeile, gleiche
+Info-Zeilen, gleiche Trennlinie. Nur "MASSAUFNAHME"/"AUSMASS" und die
+Unterart unterscheiden sich.
+
+
+5. REGIERAPPORT – ERNEUT PIXELGLEICH
+------------------------------------
+ - js/06-rapport.js, js/08-katalog-blitzschutz.js und
+   css/03-druck.css sind NICHT im Diff
+ - Druckbild und DOM des Regierapport-Bildschirms, in echtem Chromium
+   unter media:print mit ausgelöstem beforeprint gerendert, sind auf
+   v2.53 und v2.54 IDENTISCH (gleicher SHA-256, 122'696 Bytes)
+
+
+6. FACHLOGIK UND v2.53-INHALT UNVERÄNDERT
+-----------------------------------------
+Einzeln gegen den vorherigen Stand gezählt und identisch geblieben:
+
+ alle 14 Berechnungs- und Zeichenaufrufe – einfBerechnen,
+ berechneAnschlussblech, berechneLukarne, berechneRinneStueckliste,
+ berechneMadStueckliste, kehleBerechnen, einlaufblechDiagramSvg,
+ generateEbkGrundriss, generateRinneGrundriss, madProfilSvgAus,
+ lukScharenZeilen, rinneMaterialTabelle, madMaterialTabelle,
+ calcRinneSegment – sowie pdfZahlenRechts, pdfFooterHtml und
+ PDF_LAYOUT_CSS.
+
+ Ebenso: eb-section-head, eb-info-table, eb-cutlist, eb-diagram,
+ kehle-print-haupt, pdf-bild, sketch-page, pdf-foot,
+ table-header-group – jeweils identische Trefferzahl.
+
+KEHLE: b, c und d bleiben in ihrer hervorgehobenen Box, alle weiteren
+Ergebnisse vollständig, an der Berechnung wurde nichts geändert.
+Regressionswert erneut im PDF geprüft: NH=42.5 / NL=23.5 / GL=100 ->
+b=66.48° · c=122.77° · d=47.46°
+
+
+7. REGRESSION
+-------------
+Alle 19 bestehenden Prüfstände grün:
+  nav 23/23, suche40 7/7, treffer40 7/7, recent41 12/12,
+  stand42 17/17, dateien43 27/27, ui39 (9 Fälle), adresse45 39/39,
+  kopf45 8/8, suche45 13/13, status46 35/35, projekte47 37/37,
+  auswahl48 32/32, dateien49 38/38, medien50 42/42, hidden51 7/7,
+  kehle52 698/698, kehleintegration52 76/76, breite52 52/52
+  sowie pdf52 416/416
+
+node --check über alle 27 js-Dateien und sw.js fehlerfrei,
+div-Balance unverändert 672/672, keine doppelten IDs.
+
+
+8. PETER KÜNZI AG
+-----------------
+In dieser Runde KEIN EINZIGER Schreibzugriff – nur gelesen.
+Unverändert: 2 Firmen, 13 Profile, 4 Projekte, 15 Massaufnahmen,
+2 Ausmasse, 4 Rapporte, 1 Projektdatei, 10 audit_log-Zeilen,
+companies.updated_at = 2026-09-01 07:40:15.844647+00
+
+
+9. GEÄNDERTE DATEIEN
+--------------------
+  js/16-massaufnahme-formular.js  zwei Kopf-Funktionen zu einer
+                                  pdfKopfHtml zusammengefasst,
+                                  neues Kopf-CSS, pdfDatumKurz
+  js/17-ausmass.js                nutzt dieselbe Komponente,
+                                  separater Briefkopf-Aufruf entfallen
+  index.html                      nur Versionstext 2.54
+  sw.js                           Cache-Version 2.54
+  CLAUDE.md                       Abschnitt 62
+
+NICHT ANGEFASST: js/06-rapport.js, js/08-katalog-blitzschutz.js,
+css/03-druck.css, css/01-basis.css, alle Zeichen- und
+Berechnungsdateien, js/09, js/22–js/25, js/05a, js/03, js/01.
+
+
+10. GIT
+-------
+  Commit:  e501377  "Version 2.54: Einheitlicher professioneller PDF-Kopf"
+  Branch:  claude/v1-49-analysis-rk5csc – gepusht
+  main:    aktualisiert und gepusht (Fast-Forward)
+  Arbeitsverzeichnis: sauber
+
+
+11. OFFENE PUNKTE
+-----------------
+ - Wie in v2.53: geprüft in headless Chromium, nicht im echten
+   Browser-Druckdialog. Das behaupte ich ausdrücklich nicht.
+ - Seitenzahlen weiterhin nur in Chrome/Edge (unverändert aus v2.53).
+ - Die HÖHE des Kopfblocks hängt naturgemäss vom Inhalt ab (Anzahl
+   Info-Zeilen, Umbruch einer langen Adresse). Geprüft wird deshalb
+   Gleichheit von Aufbau, Typografie und seitlicher Lage – nicht eine
+   identische absolute Höhe. Das wäre nur mit erzwungener Mindesthöhe
+   möglich und würde bei kurzen Köpfen Leerraum erzeugen.
+
+
+12. BITTE PRÜFEN SIE AM GERÄT
+-----------------------------
+ - App neu laden (Version 2.54 muss unten stehen)
+ - eine Massaufnahme drucken, dann ein Ausmass drucken:
+   die Köpfe müssen bis auf MASSAUFNAHME/AUSMASS gleich aussehen
+ - die Kehle drucken: b/c/d weiterhin gross hervorgehoben
+ - eine Massaufnahme mit Foto/Skizzen drucken
+ - EINEN REGIERAPPORT DRUCKEN: muss exakt aussehen wie bisher
+================================================================
