@@ -169,13 +169,13 @@ $("amRecognizeAll").onclick=async()=>{
 
 $("amProjectSearch").addEventListener("input",e=>{
  const box=$("amProjectResults");
- box.innerHTML=searchProjects(e.target.value).map(p=>`<div class="item" data-pick-am-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.customer||"–")}</span></div>`).join("");
+ box.innerHTML=searchProjects(e.target.value).map(p=>projektVorschlagHtml(p,"data-pick-am-project")).join("");
  if(box.innerHTML)positionSuggest(e.target,box);
 });
 $("amProjectSearch").addEventListener("focus",e=>{
  e.target.select();
  const box=$("amProjectResults");
- box.innerHTML=searchProjects(e.target.value).map(p=>`<div class="item" data-pick-am-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.customer||"–")}</span></div>`).join("");
+ box.innerHTML=searchProjects(e.target.value).map(p=>projektVorschlagHtml(p,"data-pick-am-project")).join("");
  if(box.innerHTML)positionSuggest(e.target,box);
 });
 function setAmProjectField(projId){

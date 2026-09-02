@@ -54,6 +54,11 @@ td input,td select{min-height:34px;font-size:12px}
 .suggest{position:fixed;z-index:1000;min-width:320px;max-width:min(92vw,560px);background:#fff;border:1px solid #bcc9d0;border-radius:10px;box-shadow:0 14px 28px #17242d26;max-height:260px;overflow:auto}
 .item{white-space:normal;line-height:1.25}
 .item{padding:10px;border-bottom:1px solid #edf0f2;cursor:pointer;transition:background .1s}.item:last-child{border-bottom:0}.item:hover{background:var(--blue-light)}.item b{display:block}.item span{font-size:11px;color:var(--muted)}
+/* Projektvorschlag (v2.48): Adresse als Hauptinformation, darf ueber
+   mehrere Zeilen umbrechen; Trefferflaeche gross genug fuer den Daumen. */
+.projekt-vorschlag{min-height:48px;padding:9px 10px}
+.projekt-vorschlag b{font-size:13px;word-break:break-word}
+.projekt-vorschlag span{display:block;margin-top:2px;word-break:break-word}
 .empty{text-align:center;color:var(--muted);padding:20px;font-size:12px;border:1px dashed var(--line);border-radius:10px;background:#fbfcfd}
 .modal{position:fixed;inset:0;background:linear-gradient(180deg,#f2f5f8,#e8edf1 240px,var(--bg) 480px);background-attachment:fixed;z-index:500;padding:14px 9px 40px;overflow:auto;animation:fadeIn .15s ease-out}.modalbox{max-width:920px;margin:auto;padding:0}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}

@@ -246,6 +246,20 @@ function projektStatusBadge(wertOderProjekt){
  const s=projektStatusInfo(wertOderProjekt);
  return `<span class="pstatus pstatus-${s.wert}">${s.icon} ${esc(s.label)}</span>`;
 }
+// Ein Vorschlag im Projekt-Auswahlfeld (v2.48). Genau eine Stelle fuer
+// alle drei Auswahlfelder (Regierapport, Massaufnahme, Ausmass) statt
+// drei fast gleicher Kopien. Adresse ist die Hauptinformation, der
+// Projektname steht als Zusatz darunter - dieselbe Gewichtung wie in
+// Projektliste, Cockpit und Suche seit v2.44/v2.45.
+// Fehlt die Adresse, faellt projektTitel() auf den Projektnamen zurueck;
+// der Name wird dann nicht doppelt angezeigt. Es wird nie ein leerer
+// oder erfundener Text erzeugt.
+function projektVorschlagHtml(p,attribut){
+ const titel=projektTitel(p);
+ const zusatz=infoZeileOhne(titel,p.name,p.order_no,p.customer);
+ return `<div class="item projekt-vorschlag" ${attribut}="${p.id}"><b>${esc(titel)}</b>`
+  +(zusatz?`<span>${esc(zusatz)}</span>`:"")+`</div>`;
+}
 // Zusatzzeile aus mehreren echten Angaben, leere Teile fallen weg.
 function infoZeile(...teile){
  return teile.map(x=>String(x==null?"":x).trim()).filter(Boolean).join(" · ");

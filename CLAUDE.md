@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.47, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.48, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.47**
+- sichtbare App-Version: **2.48**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -7828,3 +7828,226 @@ Speicher-Payload, keine PDF-/Drucklogik berührt.
   über denselben geteilten Vergleich.
 - Kein Massenbearbeiten (mehrere Projekte gleichzeitig archivieren o. ä.)
   – war nicht verlangt und hätte ein neues Auswahlkonzept gebraucht.
+
+## 56. UPLOAD-HÄRTUNG + PROJEKTAUSWAHL AUF ADRESSE — VERSION 2.48
+
+Erledigt genau die zwei seit v2.43/v2.45 offenen Punkte. **Keine neue
+fachliche Tabelle oder Spalte, kein Projektstatus, keine Audit-Änderung,
+keine Berechnungslogik.**
+
+### 56.1 Teil A – Storage: geschlossene Positivliste statt „alles andere erlaubt"
+
+Bisher endete `storage_object_insert_allowed()` mit `return true` für
+jeden Pfad ausserhalb von `measurements/` und `project-files/` – ein
+angemeldetes Mitglied einer aktiven Firma konnte damit beliebige flache
+Ordner im Bucket anlegen (dokumentiert in 32.7 und 51.2/51.6).
+
+Migration `storage_upload_hardening_v2_48`: Erlaubt sind jetzt
+ausschliesslich die vier Pfadformen, die der Code tatsächlich erzeugt –
+alles andere ist blockiert:
+
+| Pfad | Prüfung |
+|---|---|
+| `project-files/<projectId>/<datei>` | genau 3 Segmente, `projectId` numerisch, Projekt gehört der eigenen Firma |
+| `measurements/<projectId>/<measurementId>/<photo\|sketches>/<datei>` | genau 5 Segmente, beide IDs numerisch, Ordner nur `photo` oder `sketches`, Massaufnahme gehört zu genau diesem Projekt und dieses der eigenen Firma |
+| `company-logo/<datei>` | genau 2 Segmente |
+| `ausmass-photo/<datei>` | genau 2 Segmente |
+
+Zusätzlich abgewiesen: führender `/`, leere Segmente (`//`), `..`
+irgendwo im Pfad, leerer Dateiname, leerer Pfad.
+
+**Die IDs werden serverseitig geprüft, nicht als Zeichenkette
+akzeptiert.** Die Funktion ist bewusst **nicht** `SECURITY DEFINER`: die
+`exists(...)`-Unterabfragen laufen unter der RLS des Aufrufers
+(`tenant_boundary_projects`/`tenant_boundary_measurements` plus
+`has_permission()`). Ein fremder oder erfundener `projectId`-/
+`measurementId`-Wert findet damit keine Zeile, und der Upload wird
+abgelehnt. Ein Benutzer ohne `projects.view` kann folgerichtig auch
+nicht hochladen.
+
+**Warum `company-logo` und `ausmass-photo` weiterhin ohne Projektbezug:**
+das Firmenlogo gehört fachlich zu keinem Projekt, und das Ausmass-Foto
+wird erst beim Speichern mit der `ausmass`-Zeile verknüpft – zum
+Upload-Zeitpunkt gibt es dort keine ID im Pfad. Für diese zwei
+Kategorien bleibt es bei „Mitglied einer aktiven Firma"; die
+Firmenzuordnung erzwingen weiterhin die restriktiven
+`tenant_boundary_app_settings`- bzw. `tenant_boundary_ausmass`-Policies
+beim Verknüpfen (unverändert seit 32.3). **Neu ist**, dass unter diesen
+beiden Präfixen keine tieferen Ordner mehr entstehen können.
+
+Die Funktion hat jetzt zusätzlich `set search_path = public` (eine der
+bekannten Advisor-Warnungen weniger). `storage_object_is_own_company()`
+und `storage_path_from_value()` blieben unverändert – auch ihre
+Advisor-Warnung besteht unverändert weiter.
+
+**Keine Policy geändert**: die Policy `tenant upload own storage files`
+ruft schon immer `storage_object_insert_allowed(name)` auf, der Austausch
+der Funktion genügt. Lese-, Update- und Delete-Policies, der private
+Bucket-Status, signierte URLs und die `project_files`-/`measurements`-RLS
+sind unangetastet.
+
+### 56.2 Teil A – maximale Dateigrösse: 50 MB
+
+- **Serverseitig durchgesetzt**: `storage.buckets.file_size_limit` des
+  Buckets `measurements` steht jetzt auf `52428800` (50 MB). Vorher
+  `null` = unbegrenzt. Die Storage-API weist grössere Dateien selbst ab,
+  ein manipuliertes Frontend kommt nicht daran vorbei.
+- **Konsequenz für die anderen Uploadarten geprüft**: es gibt genau
+  einen Bucket, also gilt die Grenze auch für Massaufnahme-Fotos/
+  Skizzen, Firmenlogo und Ausmass-Fotos. Alle vier entstehen aus
+  Kamera-/Canvas-Bildern (JPEG/PNG-Data-URLs) und liegen um
+  Grössenordnungen darunter; die einzige reale Projektdatei im Bestand
+  ist eine XLSX. Es wurde also keine bestehende, kleinere Grenze
+  angehoben und keine Uploadart eingeschränkt.
+- **Clientseitig** in `js/09-projekte.js`: `MAX_DATEI_BYTES` (50 MB),
+  geprüft in `uploadProjectFile()` **und** `replaceProjectFile()`, also
+  auf jedem Weg. Meldung z. B. „Die Datei ist zu gross (60.0 MB).
+  Erlaubt sind höchstens 50 MB pro Datei." Unter dem Upload-Knopf steht
+  der Hinweis „Höchstens 50 MB pro Datei."
+- `dateiFehlerText()` (v2.43) übersetzt die englische Storage-Meldung
+  jetzt mit Nennung der Grenze; die RLS-Ablehnung eines unzulässigen
+  Pfades landet in der bestehenden Berechtigungs-Meldung.
+
+### 56.3 Teil B – Projektauswahl: Adresse als Hauptinformation
+
+Neue zentrale Funktion `projektVorschlagHtml(p, attribut)`
+(`js/01-basis.js`) – **eine** Darstellung für alle drei
+Auswahlfelder statt drei fast gleicher Kopien:
+
+```
+<b>Bahnhofstrasse 12, 3011 Bern</b>
+<span>Sanierung Dach · 2026-123 · Muster AG</span>
+```
+
+- Haupttitel über `projektTitel(p)` (v2.45): Adresse → sonst
+  Projektname → sonst „Ohne Adresse". Nie leerer oder erfundener Text.
+- Zusatzzeile über `infoZeileOhne()`: Projektname · Auftrags-Nr. ·
+  Auftraggeber, leere Felder fallen weg; ist der Projektname mangels
+  Adresse bereits der Haupttitel, erscheint er nicht doppelt (dann gibt
+  es gar keine Zusatzzeile).
+- Die Suche ist unverändert `searchProjects()` → `projektPasstZuSuche()`
+  (v2.47): Adresse, Projektname, Auftrags-Nr., Auftraggeber, nur aktive
+  Projekte, höchstens 15 Treffer.
+- **Auswahl-Verhalten unverändert**: dieselben `data-pick-*`-Attribute,
+  dieselben Klick-Handler, dieselbe Übernahme von Projekt-ID,
+  Auftrags-Nr., Auftraggeber und Adresse.
+
+**Geschützte Fachdateien** (Auftrag Abschnitt 8, ausdrücklich zu
+dokumentieren): `js/10-massaufnahme.js` und `js/17-ausmass.js` je **zwei
+reine Anzeigezeilen** (die `input`- und die `focus`-Variante desselben
+Vorschlagsfelds), zusammen vier Zeilen. Der komplette Diff dieser beiden
+Dateien besteht aus genau diesen vier ersetzten `box.innerHTML=`-Zeilen.
+Zentral ausserhalb lösbar war das nicht: die Vorschlagsliste wird dort
+erzeugt. **Keine Berechnung, keine Stückliste, kein Zuschnitt, keine
+Abwicklung, kein Speicher-Payload, keine PDF-/Drucklogik berührt.**
+
+Mobile: `.projekt-vorschlag` mit `min-height:48px` und
+`word-break:break-word` auf Titel und Zusatzzeile – lange Adressen
+brechen um, kein horizontales Scrollen, keine festen Breiten; das
+bestehende `positionSuggest()` ist unverändert.
+
+### 56.4 Tests
+
+**Storage-Sicherheit** – alle in `begin; … rollback;` mit einer
+Wegwerf-Firma, Wegwerf-Projekt und Wegwerf-Massaufnahme; PETER KÜNZI AG
+ausschliesslich gelesen.
+
+Direkt gegen `storage_object_insert_allowed()` (20 Pfade):
+
+| Pfad | Ergebnis |
+|---|---|
+| `project-files/<eigenes>/x.pdf` | erlaubt |
+| `project-files/4/x.pdf` (fremde Firma) | blockiert |
+| `measurements/<eigenes>/<eigene>/photo/x.jpg` | erlaubt |
+| `measurements/<eigenes>/<eigene>/sketches/x.png` | erlaubt |
+| `measurements/1/3/photo/x.jpg` (fremd) | blockiert |
+| `misc/abc/test.txt` | blockiert |
+| `project-files/999999/x.pdf` (unbekannte ID) | blockiert |
+| `company-logo/x.png`, `ausmass-photo/x.jpg` | erlaubt |
+| `company-logo/unter/ordner/x.png` | blockiert |
+| `project-files/<eigenes>/unter/x.pdf` | blockiert |
+| `measurements/<eigenes>/<eigene>/andere/x.jpg` | blockiert |
+| `/project-files/…`, `project-files//…`, `project-files/<id>/` | blockiert |
+| `project-files/<id>/../../misc/x.txt` | blockiert |
+| `measurements/<eigenes>/999999/photo/x.jpg` (fremde Mess-ID) | blockiert |
+| `project-files/999100x/x.pdf`, `''`, `x.txt` | blockiert |
+
+Zusätzlich über die **echte RLS-Policy** (`insert into storage.objects`):
+eigener `project-files`-Upload, `company-logo` und `ausmass-photo` legen
+die Zeile tatsächlich an (nach `reset role` verifiziert); ein Upload nach
+`project-files/4/hack.pdf` (fremde Firma) und nach `misc/abc/test.txt`
+scheitert mit `42501: new row violates row-level security policy`.
+
+**Lesezugriff unverändert**: als echter Benutzer von PETER KÜNZI AG sind
+weiterhin genau die 5 referenzierten Storage-Objekte sichtbar (die 9
+verwaisten bleiben wie seit v2.24 isoliert) – keine Regression durch die
+Upload-Härtung.
+
+**Projektauswahl + Dateigrenze** – neuer Prüfstand `auswahl48` (32/32):
+Darstellung (Adresse fett, Name/Nr./Kunde als Zusatz, Reihenfolge),
+Fallback ohne Adresse, kein doppelter Name, leere Felder fallen weg,
+Suche über alle vier Felder, keine Archivprojekte, alle drei
+Auswahlfelder verwenden nachweislich `projektVorschlagHtml` (Quelltext
+geprüft, die alte `<b>${esc(p.name)}</b>`-Darstellung existiert nirgends
+mehr), Auswahl-Handler und Stammdatenübernahme unverändert, Grenzwerte
+48/50/51 MB, Meldung bei Upload und Ersetzen, Übersetzung der Server- und
+RLS-Rohmeldungen.
+
+**Regression** (alle bestanden): nav 23/23, suche40 7/7, treffer40 7/7,
+recent41 12/12, stand42 17/17, dateien43 27/27, adresse45 39/39, kopf45
+8/8, suche45 13/13, status46 35/35, projekte47 37/37, ui39 (9 Fälle).
+`node --check` über alle `js/*.js` und `sw.js` fehlerfrei,
+`<div>`/`</div>` in `index.html` unverändert ausgeglichen (654/654 – nur
+der Versionstext geändert).
+
+**Keine Live-Browser-Tests gegen Supabase möglich** – die Sandbox
+blockiert weiterhin ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. SQL-, Code- und Regressionstests
+durchgeführt; ein echter Datei-Upload über die Storage-API wurde
+**nicht** ausgeführt und wird nicht als getestet behauptet.
+
+### 56.5 PETER KÜNZI AG
+
+Nach allen Tests unverändert: 2 Firmen, 13 Profile, 4 Projekte (Status
+und `updated_at` identisch), 13 Massaufnahmen, 1 Projektdatei, 14
+Storage-Objekte, 4 `audit_log`-Zeilen (die echten Statusänderungen des
+Betreibers vom 02.09., siehe 55.8), `companies.updated_at`
+(`2026-09-01 07:40:15.844647+00`) unverändert. Keine Wegwerf-Firma, kein
+Testprojekt, kein Test-Storage-Objekt übrig.
+
+### 56.6 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| Migration `storage_upload_hardening_v2_48` | geschlossene Positivliste für Upload-Pfade |
+| `storage.buckets.file_size_limit` | 50 MB für den Bucket `measurements` |
+| `js/01-basis.js` | zentrale `projektVorschlagHtml()` |
+| `js/09-projekte.js` | `MAX_DATEI_BYTES`/`dateiZuGross()`, Grenzprüfung in Upload und Ersetzen, Hinweistext, Fehlermeldung mit Grenze, Vorschlagsfeld auf die zentrale Funktion |
+| `js/10-massaufnahme.js` | **2 reine Anzeigezeilen** (geschützt, siehe 56.3) |
+| `js/17-ausmass.js` | **2 reine Anzeigezeilen** (geschützt, siehe 56.3) |
+| `css/01-basis.css` | `.projekt-vorschlag` (Umbruch, Trefferfläche) |
+| `index.html` | nur Versionstext 2.48 |
+| `sw.js` | Cache-Version 2.48 |
+
+**Nicht angefasst**: `js/11`–`js/16`, `js/19`–`js/21`,
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`js/04-start-suche.js`, `js/23-verlauf.js`, `js/24-projekt-cockpit.js`,
+`js/22-system-admin.js`, `js/05a-rechte.js`, `js/03-login.js`,
+`js/07-einstellungen.js`.
+
+### 56.7 Offene Punkte
+
+- Kein Live-Klicktest im Browser möglich (siehe 56.4).
+- `allowed_mime_types` des Buckets bleibt bewusst leer (alle Typen): der
+  Auftrag verlangt nur eine Grössengrenze, und eine Typ-Positivliste
+  würde Projektdateien unnötig einschränken (Pläne, Offerten, Fotos in
+  wechselnden Formaten).
+- Eine Massaufnahme **ohne** Projekt kann weiterhin kein Foto/keine
+  Skizze speichern (der Pfad wäre `measurements/null/…`). Das ist
+  unverändertes Verhalten seit v2.24 und wurde durch diese Runde weder
+  verursacht noch behoben – für eine spätere, eigene Entscheidung
+  vorgemerkt.
+- `storage_object_is_own_company()` und `storage_path_from_value()`
+  haben weiterhin keinen festen `search_path` (bekannte Advisor-Warnung,
+  bewusst nicht in dieser Runde mitgeändert).
+- Die 9 verwaisten Storage-Objekte aus 32.1 bleiben unverändert isoliert.

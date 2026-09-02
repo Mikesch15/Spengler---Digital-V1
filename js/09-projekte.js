@@ -25,7 +25,9 @@ function renderProjectSelect(){
 }
 function renderProjectSuggest(q){
  const box=$("projectResults");
- box.innerHTML=searchProjects(q).map(p=>`<div class="item" data-pick-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.object||"–")} · ${esc(p.customer||"–")}</span></div>`).join("");
+ // v2.48: Adresse als Hauptinformation, gemeinsame Darstellung fuer
+ // alle drei Projekt-Auswahlfelder (js/01-basis.js).
+ box.innerHTML=searchProjects(q).map(p=>projektVorschlagHtml(p,"data-pick-project")).join("");
  return box;
 }
 $("projectSearch").addEventListener("input",e=>{
@@ -345,12 +347,23 @@ function formatFileSize(bytes){
  if(bytes<1024*1024)return (bytes/1024).toFixed(1)+" KB";
  return (bytes/1024/1024).toFixed(1)+" MB";
 }
+// Maximale Groesse einer einzelnen Projektdatei (v2.48).
+// Serverseitig durchgesetzt ueber storage.buckets.file_size_limit des
+// Buckets "measurements" (52428800 Bytes). Die Pruefung hier ist reine
+// Bequemlichkeit: sie meldet zu grosse Dateien sofort und verstaendlich,
+// statt sie erst hochzuladen. Ein manipuliertes Frontend kommt an der
+// Bucket-Grenze trotzdem nicht vorbei.
+const MAX_DATEI_BYTES=50*1024*1024;
+const MAX_DATEI_TEXT="50 MB";
+function dateiZuGross(file){
+ return !!file&&Number(file.size)>MAX_DATEI_BYTES;
+}
 // Verstaendliche deutsche Meldung statt der englischen Rohmeldung von
 // Storage/PostgREST (v2.43).
 function dateiFehlerText(err){
  const m=String((err&&err.message)||err||"");
  if(/maximum allowed size|Payload too large|exceeded|413/i.test(m))
-  return "Die Datei ist zu gross für den Speicher.";
+  return `Die Datei ist zu gross. Erlaubt sind höchstens ${MAX_DATEI_TEXT} pro Datei.`;
  if(/already exists|Duplicate|409/i.test(m))
   return "Unter diesem Speichernamen existiert bereits eine Datei. Bitte erneut versuchen.";
  if(/row-level security|not authorized|permission|403/i.test(m))
@@ -374,6 +387,7 @@ function projectFileIcon(mime,name){
  return "📎";
 }
 async function uploadProjectFile(projectId,file){
+ if(dateiZuGross(file))throw new Error(`Die Datei ist zu gross (${formatFileSize(file.size)}). Erlaubt sind höchstens ${MAX_DATEI_TEXT} pro Datei.`);
  const ext=(file.name.split(".").pop()||"").toLowerCase();
  const path=`project-files/${projectId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}${ext?"."+ext:""}`;
  const {error}=await sb.storage.from("measurements").upload(path,file,{contentType:file.type||undefined,upsert:false});
@@ -393,6 +407,7 @@ async function uploadProjectFile(projectId,file){
 // Eintrag erst danach umbiegen – erst wenn das sicher geklappt hat, wird
 // die alte Datei aus dem Speicher gelöscht.
 async function replaceProjectFile(fileId,file){
+ if(dateiZuGross(file))throw new Error(`Die Datei ist zu gross (${formatFileSize(file.size)}). Erlaubt sind höchstens ${MAX_DATEI_TEXT} pro Datei.`);
  const alt=projectFilesCache.find(x=>x.id===fileId);
  if(!alt)throw new Error("Datei nicht gefunden.");
  const ext=(file.name.split(".").pop()||"").toLowerCase();
@@ -445,7 +460,8 @@ ${vorschau}
  }).join(""):'<div class="empty">Noch keine Datei zu diesem Projekt.</div>';
  // Klar beschriftete, volle Trefferflaeche statt eines nackten
  // Datei-Feldes (v2.39) - das Feld selbst bleibt unveraendert dahinter.
- box.innerHTML=`<div class="bar"><label class="cockpit-new blue cockpit-upload">＋ Datei/Foto hinzufügen<input type="file" multiple data-upload-file="${projectId}" hidden></label></div>${zeilen}`;
+ box.innerHTML=`<div class="bar"><label class="cockpit-new blue cockpit-upload">＋ Datei/Foto hinzufügen<input type="file" multiple data-upload-file="${projectId}" hidden></label></div>`
+  +`<div class="small" style="color:var(--muted);margin:-2px 0 6px">Höchstens ${MAX_DATEI_TEXT} pro Datei.</div>${zeilen}`;
  // Vorschaubilder nachladen. Absichtlich abgesichert: die Dateiliste
  // soll auch dann funktionieren, wenn die Hilfsfunktion aus
  // js/10-massaufnahme.js einmal nicht verfuegbar sein sollte -

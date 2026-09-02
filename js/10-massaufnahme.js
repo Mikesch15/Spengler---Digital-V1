@@ -290,13 +290,13 @@ async function uploadMeasurementImage(dataUrl,folder){
 
 $("measProjectSearch").addEventListener("input",e=>{
  const box=$("measProjectResults");
- box.innerHTML=searchProjects(e.target.value).map(p=>`<div class="item" data-pick-meas-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.customer||"–")}</span></div>`).join("");
+ box.innerHTML=searchProjects(e.target.value).map(p=>projektVorschlagHtml(p,"data-pick-meas-project")).join("");
  if(box.innerHTML)positionSuggest(e.target,box);
 });
 $("measProjectSearch").addEventListener("focus",e=>{
  e.target.select();
  const box=$("measProjectResults");
- box.innerHTML=searchProjects(e.target.value).map(p=>`<div class="item" data-pick-meas-project="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.order_no||"–")} · ${esc(p.customer||"–")}</span></div>`).join("");
+ box.innerHTML=searchProjects(e.target.value).map(p=>projektVorschlagHtml(p,"data-pick-meas-project")).join("");
  if(box.innerHTML)positionSuggest(e.target,box);
 });
 function setMeasProjectField(projId){
