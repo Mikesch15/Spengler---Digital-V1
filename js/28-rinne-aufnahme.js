@@ -647,17 +647,31 @@ entweder eine Ecke oder ein Stutzen – und damit ab dem Abschnitt davor vermass
 </div>
 <div class="small" id="ra_summeL">Berechnete Gesamtlänge: <b>${L>0?esc(raMm(L))+" mm":"–"}</b>${L>0?` &nbsp;(${esc(raMeter(L))} m)`:""}</div>
 <div class="eb-diagram-box" id="ra_band">${raBandSvg(a)}</div>
+<div class="ra-legende">▲ Ecke (Fixpunkt) &nbsp;·&nbsp; ● E = Einhängestutzen (Fixpunkt) &nbsp;·&nbsp;
+■ S = Schiebestutzen (kein Fixpunkt, gilt als Dehnungselement) &nbsp;·&nbsp;
+<b>◆ berechnetes Dehnungselement</b><br>
+Im Grundriss: ABL = Einhängestutzen &nbsp;·&nbsp; SS = Schiebestutzen &nbsp;·&nbsp; AE90/IE90 = Aussen-/Innenwinkel</div>
 <div class="eb-diagram-box" id="ra_grundriss">${(()=>{const d=raDilas(a);
  return generateRinneGrundriss(d.segmente,d.dilas,d.boundaries||[])})()}</div>`;
 }
 
 function raKomponentenHtml(){
  const a=rinneA, L=raGesamtlaenge(a), vorschlag=raHalterVorschlag(a);
- const dila=raDilas(a);
  return `<div class="grid">
 ${raFeld("Halterabstand (mm)",`<input id="ra_halterAbstand" type="number" inputmode="numeric" step="10" value="${a.halter.abstand_mm||""}">`)}
 ${raFeld("Anzahl Halter",`<input id="ra_halterAnzahl" type="number" inputmode="numeric" step="1" value="${a.halter.anzahl??""}" placeholder="${vorschlag??""}">`)}
 ${raFeld("Haltertyp (optional)",`<input id="ra_halterTyp" value="${esc(a.halter.typ||"")}" placeholder="z. B. Aufschraubhalter">`,true)}
+</div>
+${vorschlag?`<div class="info">Vorschlag aus ${esc(raMeter(L))} m und ${esc(raMm(a.halter.abstand_mm))} mm Abstand: <b>${vorschlag} Stk.</b>${a.halter.anzahl?"":" – gilt, solange keine eigene Anzahl eingetragen ist."}
+<button type="button" class="gray" id="ra_halterUebernehmen" style="margin-left:6px">Vorschlag übernehmen</button></div>`:""}`;
+}
+
+// Rinnenboden und Dehnung stehen bewusst in einem eigenen Block: die
+// Dehnungselemente sollen nicht in einer Feldreihe untergehen, sondern dort
+// sichtbar sein, wo sie entstehen.
+function raDehnungHtml(){
+ const a=rinneA, dila=raDilas(a);
+ return `<div class="grid">
 ${raFeld("Rinnenboden links",`<label class="ra-schalter"><input type="checkbox" id="ra_bodenLinks"${a.rinnenboden.links?" checked":""}> vorhanden</label>`)}
 ${raFeld("Rinnenboden rechts",`<label class="ra-schalter"><input type="checkbox" id="ra_bodenRechts"${a.rinnenboden.rechts?" checked":""}> vorhanden</label>`)}
 ${raFeld("Dehnung",`<select id="ra_dehnungArt">
@@ -666,12 +680,36 @@ ${raFeld("Dehnung",`<select id="ra_dehnungArt">
 ${a.dehnung.art==="dehnungsstueck"?raFeld("Anzahl Dehnungsstücke",
   `<input id="ra_dehnungAnzahl" type="number" inputmode="numeric" step="1" value="${a.dehnung.anzahl||''}" placeholder="0">`):""}
 </div>
-${vorschlag?`<div class="info">Vorschlag aus ${esc(raMeter(L))} m und ${esc(raMm(a.halter.abstand_mm))} mm Abstand: <b>${vorschlag} Stk.</b>${a.halter.anzahl?"":" – gilt, solange keine eigene Anzahl eingetragen ist."}
-<button type="button" class="gray" id="ra_halterUebernehmen" style="margin-left:6px">Vorschlag übernehmen</button></div>`:""}
-<div class="info">Links und rechts beziehen sich auf START und ENDE des Verlaufs, nicht auf die Bildschirmdarstellung.
-Im Ausmass erscheinen sie als getrennte Positionen.
-${dila.dilas.length?` ${dila.automatisch?"Die Berechnung ergibt":"Von Hand festgelegt sind"} <b>${dila.dilas.length}</b> Dehnungselement(e) für ${esc(raMaterialText(a))}.`
- :` ${dila.automatisch?`Für ${esc(raMaterialText(a))} ist bei diesem Verlauf kein Dehnungselement nötig.`:"Von Hand auf kein Dehnungselement gesetzt."}`}</div>`;
+<div class="ra-dehnung">
+${dila.dilas.length
+ ?`<div class="ra-dehnung-zahl"><span>${dila.automatisch?"Berechnet":"Von Hand festgelegt"}</span><b>${dila.dilas.length}</b> Dehnungselement(e) für ${esc(raMaterialText(a))}</div>
+<ul class="ra-dehnung-liste">${dila.dilas.map((d,i)=>
+  `<li>Dehnungselement ${i+1} bei <b>${esc(raMm(Math.round(raZahl(d.posAbStart))))} mm</b> ab START</li>`).join("")}</ul>`
+ :`<div class="ra-dehnung-zahl"><span>${dila.automatisch?"Berechnet":"Von Hand festgelegt"}</span><b>0</b> ${dila.automatisch
+   ?`– für ${esc(raMaterialText(a))} ist bei diesem Verlauf kein zusätzliches Dehnungselement nötig.`
+   :"– von Hand auf kein Dehnungselement gesetzt."}</div>`}
+<div class="bar">
+${dila.dilas.length?`<button type="button" class="gray" id="ra_dehnungUebernehmen">Als Dehnungsstücke übernehmen</button>`:""}
+<button type="button" class="gray" data-ra-zu="6">Positionen anpassen (6 · Zuschnitt)</button>
+</div>
+<div class="ra-klein">${dila.automatisch
+ ? "Gerechnet nach dem bestehenden Modul (Material, Fixpunkte, Schiebestutzen). Die Abstände lassen sich in <b>6 · Zuschnitt</b> von Hand überschreiben."
+ : "<b>Von Hand angepasst</b> – es wird nicht mehr neu gerechnet, auch nicht bei geänderter Länge oder anderem Material."}</div>
+</div>
+<div class="ra-klein">Rinnenboden links und rechts beziehen sich auf START und ENDE des Verlaufs,
+nicht auf die Bildschirmdarstellung. Im Ausmass erscheinen sie als getrennte Positionen.</div>`;
+}
+
+// Stutzen werden im Verlauf erfasst; hier steht nur, wie viele es sind.
+function raStutzenHtml(){
+ const a=rinneA, v=raVerlauf(a);
+ const nEin=v.filter(e=>e.art==="einhaenge").length;
+ const nSch=v.filter(e=>e.art==="schiebe").length;
+ return `<div class="ra-klein">Einhänge- und Schiebestutzen werden in <b>2 · Rinnenverlauf</b> eingefügt –
+wie eine Ecke, an der Stelle, an der sie sitzen.</div>
+<div class="ra-dehnung-zahl"><span>Einhängestutzen (Fixpunkt)</span><b>${nEin}</b></div>
+<div class="ra-dehnung-zahl"><span>Schiebestutzen (Dehnungselement)</span><b>${nSch}</b></div>
+<div class="bar"><button type="button" class="gray" data-ra-zu="2">↩︎ Zum Rinnenverlauf</button></div>`;
 }
 
 function raKontrolleHtml(){
@@ -810,7 +848,9 @@ function raRegisterHtml(){
 function raSchrittInhalt(){
  if(raSchritt===1)return raKarte("1 · Grunddaten",raGrunddatenHtml());
  if(raSchritt===2)return raKarte("2 · Rinnenverlauf",raVerlaufHtml());
- if(raSchritt===3)return raKarte("3 · Halter, Rinnenboden und Dehnung",raKomponentenHtml());
+ if(raSchritt===3)return raKarte("3 · Rinnenhalter",raKomponentenHtml())
+      +raKarte("Rinnenboden und Dehnung",raDehnungHtml())
+      +raKarte("Stutzen",raStutzenHtml());
  if(raSchritt===4)return raKarte("4 · Kontrolle",raKontrolleHtml());
  if(raSchritt===5)return raKarte("5 · Ausmass und Material",raAusmassHtml());
  return raKarte("6 · Zuschnitt",raZuschnittHtml())
@@ -964,6 +1004,15 @@ function raVerdrahten(){
    renderRinneAufnahme();return;
   }
   if(t.id==="ra_halterUebernehmen"){a.halter.anzahl=raHalterVorschlag(a);renderRinneAufnahme();return}
+  // Die berechnete Anzahl als Dehnungsstuecke uebernehmen - dieselbe Zahl,
+  // nur damit sie im Ausmass als Position erscheint. Gerechnet wird nichts neu.
+  if(t.id==="ra_dehnungUebernehmen"){
+   a.dehnung.art="dehnungsstueck";
+   a.dehnung.anzahl=raDilas(a).dilas.length;
+   renderRinneAufnahme();return;
+  }
+  // Sprung in ein anderes Register (z. B. von der Dehnung zum Zuschnitt).
+  if(d.raZu!==undefined){raSetzeSchritt(d.raZu);return}
   if(t.id==="ra_dilaPlus"){
    const liste=raDilasVonHand(a);
    liste.push({posAbStart:Math.round(raGesamtlaenge(a)/2)});

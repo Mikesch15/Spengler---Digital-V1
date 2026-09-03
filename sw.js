@@ -2,11 +2,14 @@
    Aufgabe: die App-Hülle (HTML, CSS, JS, Icons) offline verfügbar halten.
    Die Daten selbst kommen weiterhin live von Supabase.
 
-   WICHTIG: Bei jeder Änderung an den Dateien unten die CACHE-Version
-   hochzählen (v1 → v2 → v3 …). Sonst zeigen Handys weiter die alte App. */
+   Der fetch-Handler unten fragt IMMER zuerst das Netz (cache: "reload") und
+   greift nur ohne Verbindung auf den Zwischenspeicher zurück. Eine alte
+   CACHE-Version liefert deshalb keine alte App aus. Sie wird trotzdem mit
+   der sichtbaren Versionsnummer in index.html mitgezählt, damit der
+   Offline-Bestand zur ausgelieferten Fassung passt. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-2.71";
+const CACHE = "spengler-digital-2.72";
 
 const SHELL = [
   "./",

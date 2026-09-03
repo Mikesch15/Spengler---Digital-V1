@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.71, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.72, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.71**
+- sichtbare App-Version: **2.72**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -12072,3 +12072,134 @@ gelesen.
 - Die alte Segmenttabelle ist aus der Oberfläche verschwunden, der
   unsichtbare `#rinneStummel` bleibt als Aufhänger für js/12 stehen. Ihn
   aufzulösen hiesse, js/12 anzufassen – bewusst nicht getan.
+
+## 80. RINNE HALBRUND: DEHNUNGSELEMENTE SICHTBAR — VERSION 2.72
+
+Rückmeldung des Betreibers: *"dilas werden nur im hintergrund berechnet,
+das ist nicht so wie in der testapp"*. Zutreffend – nachgemessen, nicht
+angenommen. **Keine Schemaänderung, keine Migration, keine Rechnung
+verändert**; `js/12-rinne-halbrund.js` ist weiterhin byteweise identisch.
+
+### 80.1 Was tatsächlich fehlte (im Browser gemessen)
+
+Register 3 und die Verlaufsdarstellung wurden gegen die Testapp
+verglichen. Die Rechnung war vorhanden und richtig, die **Anzeige** nicht:
+
+| Testapp | App vor v2.72 |
+|---|---|
+| Legende unter dem Verlaufsband, u. a. „◆ zusätzlich berechnetes Dehnungselement" | **fehlte** – die Rauten waren die einzige unbeschriftete Marke im Band (Ecke, E1/FIX und S1/DEHNT tragen alle eine Beschriftung) |
+| eigene Karte „Rinnenboden und Dehnung" | Dehnung lag als eines von sieben Feldern in einer Reihe, der Satz zur Anzahl stand am Ende eines Absatzes über links/rechts |
+| Knopf „Übernehmen" (Anzahl → Dehnungsstücke) | **fehlte** |
+| Verweis „die Positionen stehen in Schritt 6 · Zuschnitt" | **fehlte** |
+| eigene Karte „Stutzen" mit Anzahl und Rückweg | **fehlte** |
+
+Die anpassbaren Positionen in Register 6 (Feld je Dila-Zeile,
+„＋ Dehnungselement von Hand", „↻ Zurück zur Berechnung") gab es bereits
+seit v2.71 – nur wies nichts darauf hin.
+
+### 80.2 Umgesetzt
+
+- **Register 2**: Legende unter dem Verlaufsband, wörtlich wie in der
+  Testapp, mit dem Zeichen der Raute.
+- **Register 3** in drei Karten geteilt, wie in der Testapp:
+  „3 · Rinnenhalter", „Rinnenboden und Dehnung", „Stutzen".
+- Im Dehnungs-Block steht jetzt **jede berechnete Position einzeln**
+  („Dehnungselement 1 bei 4'667 mm ab START"), dazu die Anzahl und ob sie
+  gerechnet oder von Hand gesetzt ist. Das geht über die Testapp hinaus,
+  die dort nur die Anzahl nennt – die Positionen sind der eigentliche
+  Punkt der Rückmeldung.
+- Knopf **„Als Dehnungsstücke übernehmen"** (`ra_dehnungUebernehmen`)
+  setzt `dehnung.art` und `dehnung.anzahl` auf die berechnete Zahl –
+  dieselbe Zahl, nur damit sie im Ausmass als Position erscheint.
+  **Es wird nichts neu gerechnet.**
+- Knopf **„Positionen anpassen (6 · Zuschnitt)"** und im Stutzen-Block
+  **„↩︎ Zum Rinnenverlauf"** – ein gemeinsames `data-ra-zu="<n>"`, das
+  über das bestehende `raSetzeSchritt()` läuft.
+- Ohne Dehnungselement steht ausdrücklich „0 – für <Material> ist bei
+  diesem Verlauf kein zusätzliches Dehnungselement nötig", der
+  Übernehmen-Knopf fehlt dann, und es wird **keine Position erfunden**.
+
+### 80.3 Rechnung unverändert
+
+`raBruecke()` übergibt weiterhin dieselben Positionen an
+`js/12-rinne-halbrund.js`; im Prüfstand direkt gegen
+`raDilasGerechnet()` verglichen. Der Zuschnitt, die Fixpunkt-Logik, der
+Rinnenboden am äussersten Grenzpunkt und der Verschnitt sind nicht
+berührt.
+
+### 80.4 Getestet
+
+Neuer Prüfstand `pruefstaende/pruefstand-dila-sichtbar.js` (**57/57**),
+echtes Chromium gegen die echte `index.html`: Legende, die drei Karten,
+Anzahl und jede Position, Übernehmen (Art, Anzahl, Feld erscheint,
+Ausmass zieht nach), Sprung in Register 6, Anpassen von Hand → Register 3
+sagt „Von Hand festgelegt" und zeigt die neue Position, „Zurück zur
+Berechnung" stellt 4667/9333 wieder her, ehrliche Anzeige ohne
+Dehnungselement, Brücke zu js/12 unverändert, Stutzen-Zähler, keine
+JS-Fehler, fünf Bildschirmbreiten × drei Register ohne seitlichen
+Überlauf.
+
+**Fünf Gegenproben**, jede baut einen Fehler ein und wirft den Prüfstand
+um: Legende entfernt (3), Positionen nicht aufgelistet (3), Übernehmen
+schreibt die falsche Zahl (1), Sprungknöpfe wirkungslos (11), Register 3
+wieder als eine Karte (27).
+
+Zwei Prüfstand-Korrekturen, beides **überholte Erwartungen, keine
+Codefehler**:
+- Die App schreibt Überschriften und kleine Etiketten per CSS gross
+  (`text-transform:uppercase`), und `innerText` gibt genau das zurück.
+  Die neuen Prüfungen vergleichen deshalb den Inhalt, nicht die
+  Schreibweise. Erst im Browser gemessen (`getComputedStyle`), nicht
+  vermutet.
+- `pruefstand-rinne-app-v2-71.js` verlangte „höchstens zwei
+  Überschriften je Register" – eine Zahl als Behelf für „zeigt nur den
+  eigenen Inhalt". Register 3 hat jetzt drei Karten. Geprüft wird jetzt
+  die Eigenschaft: die erste Überschrift trägt die eigene
+  Registernummer, keine weitere trägt eine fremde. Mit einer Gegenprobe
+  bestätigt, dass die Prüfung „alle Register auf einmal" weiterhin
+  fängt.
+
+Volle Regression: rinneapp71 99/99, verschnitt-app 1578/1578, dazu alle
+bestehenden Prüfstände (kehle52 698/698, required70 359/359,
+rinne57 379/379, einf70 185/185, offline70 107/107, feedback63 108/108,
+freipos65 99/99, dila70 85/85, fotos70 88/88, fp70 83/83, breite57 84/84,
+kehleintegration52 76/76, feedback70 47/47, einstbrowser68 47/47,
+ebg70 49/49, mad70 45/45, module67 43/43, einst68 43/43, medien50 42/42,
+adresse45 39/39, pfade55 38/38, dateien49 38/38, projekte47 37/37,
+status46 35/35, auswahl48 32/32, breite52 52/52, modulebrowser67 16/16,
+suche45 13/13, kopf45 8/8, hidden51 7/7, abstand69 2/2 sowie nav,
+suche40, treffer40, recent41, stand42, dateien43, ui39) – ohne
+Fehlschlag. `node --check` über alle `js/*.js`, `sw.js` und die
+Prüfstände fehlerfrei, `<div>`/`</div>` ausgeglichen (721/721), keine
+doppelten Element-IDs, Version in `index.html` und `sw.js` gleich.
+
+Zwei Prüfstände geben eine Zeile aus, die nach einem Fehler aussieht und
+keiner ist – **vor und nach dieser Änderung identisch**: `ui39` druckt
+im eigenen Fehlerfall-Test „Fehler: permission denied" (das ist der
+geprüfte Fall), `recent41` enthält den Text „Leerzustand ohne Fehler".
+
+### 80.5 Service Worker
+
+Der Kommentar oben in `sw.js` behauptete, ohne hochgezählte
+CACHE-Version zeigten Handys die alte App. Seit der Umstellung auf
+„zuerst Netz" stimmt das nicht mehr (siehe Abschnitt 79 bzw. den
+Bericht zur Veröffentlichung). Der Kommentar ist jetzt richtig; die
+Version wird weiterhin mitgezählt, damit der Offline-Bestand zur
+ausgelieferten Fassung passt.
+
+### 80.6 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`.
+  **Das wird ausdrücklich nicht als getestet behauptet.** Geprüft ist
+  die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- Die Rauten im Verlaufsband tragen weiterhin **keine eigene
+  Beschriftung** – wie in der Testapp; erklärt werden sie über die
+  Legende. Eine Nummerierung (D1, D2) im Band wäre die naheliegende
+  nächste Stufe, ginge aber über die Testapp hinaus und wurde deshalb
+  nicht eigenmächtig gebaut.
+- Weiterhin offen, weil dafür die Zahlen des Betriebs fehlen:
+  Schnittfuge und Wiederverwendung von Reststücken im Verschnitt.
+- Eine frisch registrierte Firma hat weiterhin keinen
+  Anschlusstyp-Katalog (Abschnitt 79.9).
+

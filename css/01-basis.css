@@ -387,6 +387,18 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
 .ra-ok{background:#eff9f2;border-left:3px solid #2e7d4f;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#1f5c39}
 .ra-liste{margin:8px 0 0;padding-left:18px;font-size:12.5px;line-height:1.55}
 .ra-warn{background:#fdf6ec;color:#8a5312;border-left-color:#d9822b}
+/* Legende unter dem Verlaufsband - ohne sie waeren die berechneten
+   Dehnungselemente nur unbeschriftete Rauten. */
+.ra-legende{font-size:11px;color:var(--muted);line-height:1.5;margin:2px 0 8px;text-align:center}
+/* Rinnenboden und Dehnung stehen in einem eigenen, abgesetzten Block, damit
+   die berechneten Dehnungselemente sichtbar sind und nicht in einer
+   Feldreihe untergehen. */
+.ra-dehnung{background:#fdf8f2;border:1px solid #f0dcc3;border-radius:12px;padding:10px;margin:10px 0}
+.ra-dehnung-zahl{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12.5px;
+ color:var(--ink);margin-bottom:4px}
+.ra-dehnung-zahl span{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700}
+.ra-dehnung-zahl b{font-size:17px;color:#b4610a}
+.ra-dehnung-liste{margin:4px 0 0;padding-left:18px;font-size:12.5px;line-height:1.6}
 .ra-dila-zeile{background:var(--blue-light)}
 .ra-dila-feld{max-width:130px;text-align:right;font-variant-numeric:tabular-nums}
 .ra-rest{color:#b4610a;font-weight:700}

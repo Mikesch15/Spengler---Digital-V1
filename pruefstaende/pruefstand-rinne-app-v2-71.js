@@ -293,8 +293,12 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
      .filter(e=>e.classList.contains("aktiv")).map(e=>e.dataset.raSchritt),
    ueberschriften:Array.from(document.querySelectorAll("#rinneAufnahme h2")).map(h=>h.textContent.trim())}));
   p(st.aktiv.length===1&&Number(st.aktiv[0])===n,"Register "+n+" ist als einziges aktiv",st.aktiv);
-  p(st.ueberschriften.length>=1&&st.ueberschriften.length<=2,
-    "und zeigt nur seinen eigenen Inhalt",st.ueberschriften);
+  // "Nur der eigene Inhalt" ist keine Frage der Anzahl Karten (Register 3 und 6
+  // bestehen aus mehreren), sondern der Nummerierung: die erste Ueberschrift
+  // traegt die eigene Registernummer, und keine weitere traegt eine fremde.
+  const eigen=st.ueberschriften.length>=1&&new RegExp("^"+n+"\\s*·").test(st.ueberschriften[0]);
+  const fremd=st.ueberschriften.slice(1).some(h=>/^\d+\s*·/.test(h));
+  p(eigen&&!fremd,"und zeigt nur seinen eigenen Inhalt",st.ueberschriften);
  }
  // Auf schmalen Geraeten scrollt die Registerleiste - das aktive Register
  // muss darin sichtbar bleiben, sonst weiss man nicht, wo man ist.
