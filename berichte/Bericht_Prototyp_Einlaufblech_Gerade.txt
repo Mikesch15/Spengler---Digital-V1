@@ -1,0 +1,386 @@
+ABSCHLUSSBERICHT
+Prototyp Massaufnahme „Einlaufblech gerade“ · Spengler-DIGITAL
+Branch feature/prototype-einlaufblech-gerade · 03.09.2026
+
+================================================================
+0. ÖFFNEN
+================================================================
+Auf dem Tablet genügt EINE Datei:
+
+    prototyp-einlaufblech/einlaufblech-gerade-testapp.html
+
+Sie enthält Stile, Fachlogik und Prototyp. Kein Server, kein Internet,
+kein Login. Am Rechner alternativ als Ordner:
+prototyp-einlaufblech/einlaufblech-gerade.html
+
+NICHT in main eingebaut, wie verlangt.
+
+================================================================
+1. WELCHE BESTEHENDEN DATEIEN UND FUNKTIONEN WURDEN ANALYSIERT?
+================================================================
+Gelesen und vollständig durchgegangen:
+
+  js/11-einlaufblech-gerade.js
+     einlaufblechDiagramSvg(winkel, massA, restBreite,
+                            umschlagOben, umschlagUnten)
+     Die einzige Funktion der Datei. Zeichnet den Schnitt: zwei
+     Schenkel, die im Punkt (90/100) zusammenlaufen, jeder mit einem
+     Häkchen (Umschlag) am Ende, dazu die Masslinie A und der
+     Winkelbogen. Wichtig: der Eingabewinkel wird als 180° − Winkel
+     gezeichnet, und wo ein Wert ≤ 0 ist, setzt die Funktion einen
+     Platzhalter ein (Mass A 120, Restbreite 90, Umschläge 15).
+     Die viewBox wird dynamisch aus allen gezeichneten Punkten
+     bestimmt.
+
+  js/15-einlaufblech-stueckliste.js
+     ebEngeSeite()      enge Seite aus der Montage
+     ebRestbreite()     Abwicklung − Mass A − Umschlag oben − unten
+     renderEbDiagram()  Aufruf der Zeichnung
+     renderEbPiecesTable()  Stückliste, enges Mass = Mass A − 2
+     toggleEbEndzugabe()    Endzugabe immer auf dem Reststück
+     buildEbPiecesFromGesamtlaenge()
+     applyEbGehrung() + die change-/input-/click-Handler
+     refreshEbRinneList()   Stücke aus einer Rinne übernehmen
+     Diese Datei ist durchgehend an das Formular gebunden: sie liest
+     ihre Werte direkt mit $("eb_massA").value usw.
+
+  js/13-einlaufblech-konisch.js  (geteilte Bausteine)
+     teileLaengeInStuecke(effLaenge, settings)
+     generateEbkGrundriss(pieces)
+     baueEinlaufblechStueckeAusRinne(segs, settings, teile, mitMassen)
+
+  js/14-freies-profil.js
+     ansichtsPfeilSvg(seite, breite, hoehe, ox, oy)
+     – wird von der Schnittzeichnung gebraucht.
+
+  js/01-basis.js
+     EINLAUFBLECH_STANDARD = {stoss_laenge 2000, ueberlappung 70,
+     gehrungszugabe 100, umschlag_oben 12, umschlag_unten 12,
+     rest_schwelle 500, end_zugabe 10}
+     einlaufblechSettings (localStorage „sd_einlaufblechSettings“)
+     findMeasurementMaterial(), measurementMaterials
+
+  js/10-massaufnahme.js   Zeilen 336–344 und 438–444
+     Zurücksetzen und Füllen des Formulars – daraus ergibt sich, welche
+     Felder eine gespeicherte Aufnahme tatsächlich hat.
+
+  js/16-massaufnahme-formular.js
+     Zeile 55 ff.   Speicher-Payload für einlaufblech_gerade
+     Zeile 216 ff.  Pflichtprüfungen beim Speichern
+     Zeile 625 ff.  Druckzweig (Angaben, Schnitt, Grundriss, Stücke)
+
+  index.html, Abschnitt #measTypeEinlaufblech
+     alle Eingabefelder und der Tabellenkopf der Stückliste.
+
+Ergebnis der Analyse in einem Satz: die Fachlogik ist vorhanden und
+richtig, sie steckt aber grösstenteils mitten im Formularcode.
+
+================================================================
+2. WELCHE FACHLOGIK WURDE WIEDERVERWENDET?
+================================================================
+Fünf Funktionen sind ZEICHENGENAU aus der App übernommen. Das Skript
+prototyp-einlaufblech/uebernehmen.js schneidet sie als Text aus ihrer
+Quelldatei und prüft danach, dass der geschnittene Text unverändert in
+der Quelle vorkommt; weicht ein Zeichen ab, bricht es ab. bauen.js
+prüft dasselbe ein zweites Mal an der fertigen Einzeldatei.
+
+  einlaufblechDiagramSvg            4'023 Zeichen  js/11
+  teileLaengeInStuecke                631 Zeichen  js/13
+  generateEbkGrundriss              4'513 Zeichen  js/13
+  baueEinlaufblechStueckeAusRinne     931 Zeichen  js/13
+  ansichtsPfeilSvg                  1'194 Zeichen  js/14
+
+Drei Rechenregeln liessen sich nicht schneiden, weil sie in js/15
+mitten im Formularcode stehen und ihre Werte direkt aus den
+Eingabefeldern lesen. Sie sind unverändert als Formel notiert und im
+Kopf von prototyp-eb.js mit Herkunft dokumentiert:
+
+  enge Seite   = Montage „links“ -> „rechts“, sonst „links“
+  Restbreite   = Abwicklung − Mass A − Umschlag oben − Umschlag unten
+  enges Mass A = max(0, Mass A − 2)
+
+Ebenso übernommen, weil ebenfalls DOM-gebunden: die Gehrungsregel
+(Zugabe auf die Länge, Winkel 90°, Nachbarstück derselben Ecke
+mitsetzen), die Endzugabe-Regel (immer auf das Reststück) und die
+Kopplung „Zuschnittlänge = Länge Stoss/Stoss + Überlappung“.
+
+Es ist KEINE Spengler-Formel erfunden worden.
+
+================================================================
+3. WELCHE NEUEN PROTOTYP-DATEIEN WURDEN ERSTELLT?
+================================================================
+  prototyp-einlaufblech/bruecke.js                    2.5 KB
+  prototyp-einlaufblech/uebernehmen.js                3.1 KB
+  prototyp-einlaufblech/uebernommen.js               12.1 KB  (erzeugt)
+  prototyp-einlaufblech/prototyp-eb.js               37.5 KB
+  prototyp-einlaufblech/prototyp.css                  7.0 KB
+  prototyp-einlaufblech/einlaufblech-gerade.html      1.4 KB
+  prototyp-einlaufblech/einlaufblech-gerade-testapp.html  (erzeugt)
+  prototyp-einlaufblech/bauen.js                      4.0 KB
+  prototyp-einlaufblech/pruefstand.js                17 KB
+  prototyp-einlaufblech/README.md
+
+================================================================
+4. WELCHE PRODUKTIVEN DATEIEN WURDEN NICHT VERÄNDERT?
+================================================================
+KEINE EINZIGE. Per git diff gegen main belegt: der Diff über js/,
+css/, index.html, sw.js, CLAUDE.md, pruefstaende/ und prototyp/ ist
+leer. Zusätzlich einzeln per Prüfsumme bestätigt, dass
+js/11, js/13, js/14 und js/15 byteweise identisch zu main sind.
+
+Kein Supabase-Zugriff, keine Migration, keine Änderung an einem
+anderen Massaufnahme-Modul.
+
+Der Prototyp legt seine Daten unter eigenen Schlüsseln ab
+(„pebg_aufnahmen“, „pebg_einstellungen“) und kann die Einstellungen
+der App damit nicht überschreiben.
+
+================================================================
+5. WELCHE EINGABEN GIBT ES?
+================================================================
+Register 1 · Grunddaten
+  Bezeichnung, Datum, Objekt/Adresse (Freitext),
+  Material (Katalog), Abwicklung (200/250/330 mm wie in der App),
+  Montage (von links / von rechts)
+
+Register 2 · Geometrie
+  Mass A (mm)                – Pflichtfeld, wie in der App
+  Dachneigung / Winkel (°)   – Pflichtfeld, wie in der App
+
+Register 3 · Ausführung
+  Gesamtlänge (mm) zum Erzeugen der Stücke
+  je Stück: Länge Stoss/Stoss, Zuschnittlänge, Gehrung links,
+            Gehrung rechts, Winkel
+  Endzugabe erstes / letztes Stück (Schalter)
+
+Register 4 · Fotos & Skizze
+  Fotos aufnehmen oder wählen (mehrere), freie Skizze, Bemerkung
+
+Einstellungen (Zahnrad, geräteweit)
+  Länge Stoss/Stoss, Überlappung, Gehrungszugabe, Umschlag oben,
+  Umschlag unten, Reststück-Schwelle, Endzugabe
+  – dieselben sieben Felder wie in der App.
+
+Nicht eingegeben werden Restbreite, enges Mass und enge Seite: sie sind
+Ergebnisse. Genau so hält es die App auch.
+
+================================================================
+6. WELCHE BERECHNUNGEN WERDEN DURCHGEFÜHRT?
+================================================================
+  enge Seite    Montage „links“ -> rechts, „rechts“ -> links
+  Restbreite    Abwicklung − Mass A − Umschlag oben − Umschlag unten
+  enges Mass A  max(0, Mass A − 2)
+  Aufteilung    teileLaengeInStuecke(): Anzahl = ceil(L / Stoss),
+                Zuschnitt = Stoss + Überlappung, das letzte Stück ist
+                der Rest; liegt der Rest unter der Reststück-Schwelle,
+                wird er ins vorige Stück gezogen
+  Zuschnitt     Länge Stoss/Stoss + Überlappung
+  Gehrung       + Gehrungszugabe, Winkel 90°, Nachbarstück derselben
+                Ecke automatisch mit
+  Endzugabe     ± Endzugabe, immer auf dem Reststück
+  Gesamtlänge   Summe aller Zuschnittlängen
+  Schnitt       einlaufblechDiagramSvg() – unverändert aus js/11
+  Grundriss     generateEbkGrundriss() – unverändert aus js/13
+  aus Rinne     baueEinlaufblechStueckeAusRinne() – unverändert
+
+Beispiel, im Prüfstand festgehalten:
+  Abwicklung 250, Mass A 120, Umschläge 12/12
+     Restbreite 106 mm, enges Mass 118 mm, enge Seite rechts
+  Gesamtlänge 5'000 mm
+     3 Stücke: 2'070 + 2'070 + 1'000 = 5'140 mm Zuschnitt
+
+================================================================
+7. WIE ENTSTEHT DAS AUSMASS?
+================================================================
+Ausschliesslich aus der Aufnahme, ohne eine zweite Eingabe. Register 6
+zeigt es und aktualisiert sich mit jeder Änderung:
+
+  Pos. Bezeichnung                              Menge  Einheit
+   1   Einlaufblech gerade, Abwicklung 250 mm    5,14   m
+   2   Stücke (Zuschnitte)                          3   Stk.
+   3   Gehrungen                                    2   Stk.
+   4   Blechstösse                                  2   Stk.
+   5   Endzugabe letztes Stück                     10   mm
+
+Jede Zeile nennt ihre Herkunft (z. B. „Summe der Zuschnittlängen“).
+Die Länge kommt aus der Summe der Zuschnitte, nicht aus dem Feld
+Gesamtlänge – im Prüfstand ausdrücklich abgesichert (eine Gegenprobe,
+die das verwechselt, fällt durch).
+
+================================================================
+8. WIE ENTSTEHT DIE MATERIALÜBERSICHT?
+================================================================
+Ebenfalls nur aus der Aufnahme:
+
+  Bezeichnung                              Menge  Einheit  Material
+  Einlaufblech gerade, Abwicklung 330 mm    3,07  m        Titanzink
+
+Menge = Summe der Zuschnittlängen in Meter, Material = die Auswahl aus
+dem Katalog. Ohne Materialwahl steht dort ein Strich, und die Kontrolle
+weist darauf hin.
+
+KEINE Artikelnummern, KEINE Preise – im Prüfstand über die
+Tabellenzellen geprüft. Der Katalog in bruecke.js enthält nur id und
+Name; er ist bewusst so gebaut, dass später eine importierte,
+firmeneigene Materialliste an seine Stelle tritt.
+
+================================================================
+9./10. TESTS
+================================================================
+prototyp-einlaufblech/pruefstand.js läuft in echtem Chromium gegen die
+EINZELDATEI – also gegen genau das, was auf dem Tablet geöffnet wird.
+
+  Durchgeführt:  140
+  Erfolgreich:   140
+  Fehlgeschlagen:  0
+
+Die zehn geforderten Tests, jeweils mit Nachweis:
+
+   1 Gültige Standardaufnahme
+     Restbreite 106, enges Mass 118, enge Seite rechts, Zeichnung
+     gezeichnet, Winkel in der Zeichnung, Aufteilung identisch zu
+     teileLaengeInStuecke(), 2'070+2'070+1'000, Gesamtlänge 5'140,
+     Grundriss gezeichnet
+   2 Winkel ändern → Modell 45, Zeichnung geändert, zeigt 45°,
+     Zusammenfassung zeigt 45°, Feld behält den Fokus beim Tippen
+   3 Mass A ändern → Restbreite 76, enges Mass 148, Zeichnung geändert,
+     Register 2 zeigt beide Folgewerte, Fokus bleibt
+   4 Restbreite ändern (über die Abwicklung, denn sie ist ein Ergebnis)
+     → 330 mm ergibt 156 mm, Zeichnung geändert, Ausmass nennt 330 mm
+   5 Umschlag oben 12 → 30 mm → Restbreite 58 mm, Zeichnung geändert,
+     zurück auf 12 mm ergibt wieder 76 mm
+   6 Sieben ungültige Fälle, jeder mit verständlicher Meldung UND
+     Markierung am Register Kontrolle: Mass A fehlt, Mass A negativ,
+     Winkel fehlt, Winkel 0°, Winkel 200°, Restbreite negativ,
+     kein Stück. Gültige Aufnahme meldet keinen Fehler.
+   7 Speichern → alles vergessen → Laden: neun Kopffelder und die
+     komplette Stückliste erhalten, Folgewerte danach richtig gerechnet
+   8 Kopieren: eigene Kennung, „(Kopie)“ im Namen, das Original bleibt
+     bei Mass A 140 und behält sein erstes Stück, während die Kopie
+     999 trägt – beide liegen gespeichert vor
+   9 Ausmass: 5'140 mm erscheinen als 5,14 m, 3 Stücke, 2 Gehrungen,
+     2 Blechstösse; nach dem Anhängen eines Stücks folgt es automatisch
+     (6'640 mm / 6,64 m / 4 Stücke); keine Preise, keine Artikelnummern
+  10 Materialübersicht: eine Zeile, gewähltes Material, Abwicklung in
+     der Bezeichnung, Menge = Summe der Zuschnitte; ohne Materialwahl
+     ein Strich plus Hinweis in der Kontrolle
+
+Zusätzlich geprüft:
+   0  alle fünf Fachfunktionen der App sind geladen, Einstellungen
+      stimmen mit EINLAUFBLECH_STANDARD überein
+   1b Gehrung über das echte Kästchen: Zugabe kommt drauf, Winkel 90°,
+      Nachbarstück derselben Ecke wird mitgesetzt, Ausschalten stellt
+      die alten Längen wieder her; Endzugabe landet auf dem Reststück
+      und lässt die übrigen unverändert
+  11  Stücke aus zwei Rinnensegmenten inkl. Gehrung an der Ecke
+  11b Beschriftungen der Zeichnung: bei sieben Winkeln (10°, 30°, 45°,
+      60°, 80°, 120°, 170°) sind alle fünf vorhanden, überdecken
+      einander nicht und laufen nicht aus dem Bild – gemessen an den
+      echten Textrahmen im Browser
+  12  keine JS-Fehler
+  13  fünf Tablet-Breiten (600/768/800/1024/1280 px) × sechs Register:
+      nichts läuft seitlich hinaus
+
+ACHT GEGENPROBEN – jede baut einen echten Fehler ein und muss den
+Prüfstand umwerfen. Ergebnis (von 140 bzw. 119 Prüfungen):
+
+  Restbreite ohne Umschlag unten          104/111
+  enges Mass ohne die −2 mm               108/111
+  eigene Aufteilung statt teileLaenge...  106/111
+  Zeichnung reagiert nicht live           107/111
+  Kopie ohne eigene Kennung               108/111
+  Plausibilität abgeschaltet               96/111
+  Ausmass mit der falschen Menge          109/111
+  Gehrung ohne Nachbarstück               118/119
+
+Keine Gegenprobe blieb grün, keine brach ab.
+
+WAS NICHT GETESTET IST – ausdrücklich:
+  · Kein Test auf einem echten Android-Tablet mit Finger und Kamera.
+    Geprüft ist Chromium in Tablet-Grössen; Fotoaufnahme und
+    Skizzieren mit dem Finger sind NICHT auf einem Gerät erprobt.
+  · Kein Test gegen Supabase (die Sandbox erreicht es nicht) – der
+    Prototyp braucht es auch nicht.
+  · Kein echtes Einlaufblech nachgemessen. Die Zahlen stimmen mit den
+    Formeln der App überein; ob die Formeln fachlich stimmen, kann nur
+    ein Blechner am Objekt bestätigen.
+
+================================================================
+11. WELCHE FACHLICHEN UNKLARHEITEN BESTEHEN?
+================================================================
+Offen gelassen statt geraten – hier ist Ihre Auskunft nötig:
+
+ (1) Die 2 mm beim engen Mass. In der App steht
+     massAEng = Mass A − 2 fest im Code, ohne Erklärung und ohne
+     Einstellung. Woher kommen die 2 mm, und sollen sie einstellbar
+     sein? Übernommen wie vorgefunden.
+
+ (2) Grenzen für Mass A und die Abwicklung. Die App kennt keine.
+     Ein Mass A von 5 mm oder 5'000 mm wird nicht beanstandet, solange
+     die Restbreite nicht negativ wird. Es wurde KEINE Grenze
+     erfunden.
+
+ (3) Grenzen für den Winkel. Aus der Zeichnung ergibt sich zwingend
+     0° < Winkel < 180° (sie rechnet 180° − Winkel). Genau das prüft
+     der Prototyp. Ob es fachlich engere Grenzen gibt (etwa 5°–70°
+     Dachneigung), geht aus dem Modul nicht hervor.
+
+ (4) Umschlag 0 mm. Die App verbietet es nicht, die Zeichnung setzt
+     dann aber einen Platzhalter von 15 mm ein. Der Prototyp warnt und
+     rechnet mit 0 weiter. Soll 0 verboten sein?
+
+ (5) Abwicklung nur 200/250/330 mm. Das ist eine feste Auswahl im
+     Formular der App, keine Einstellung. Gibt es weitere Breiten?
+
+ (6) Restbreite genau 0 mm gilt hier als Warnung, nicht als Fehler –
+     rechnerisch möglich, fachlich vermutlich sinnlos. Bitte bestätigen.
+
+ (7) Was bedeutet „Winkel“ je Stück in der Stückliste? Bei einer
+     Gehrung setzt die App 90°; sonst 0. Ob damit die Richtungsänderung
+     im Grundriss gemeint ist (so verwendet es generateEbkGrundriss)
+     oder etwas anderes, ist im Modul nicht dokumentiert.
+
+ (8) Ausmass-Positionen. Es gibt im bestehenden Modul kein Ausmass –
+     die fünf Positionen (Länge in m, Stücke, Gehrungen, Blechstösse,
+     Endzugaben) sind ein Vorschlag aus den vorhandenen Daten. Welche
+     Positionen ein Ausmass wirklich braucht, entscheidet der Betrieb.
+
+ (9) Einheit der Länge im Ausmass: hier Meter mit zwei Stellen.
+     Üblich? Oder Laufmeter, Stück, m²?
+
+================================================================
+12. WAS MUSS VOR DER INTEGRATION GEPRÜFT WERDEN?
+================================================================
+Am echten Einlaufblech:
+  · Ein bereits erledigtes Blech nachrechnen: Mass A, Winkel,
+    Abwicklung eingeben und Restbreite, enges Mass und die
+    Zuschnittlängen mit dem tatsächlich zugeschnittenen Blech
+    vergleichen.
+  · Prüfen, ob die enge Seite bei Montage von links wirklich rechts
+    liegt – die Regel ist übernommen, aber nie am Objekt bestätigt.
+  · Gehrungszugabe 100 mm und Überlappung 70 mm an einem echten Stoss
+    kontrollieren.
+  · Die 2 mm des engen Masses (Punkt 11.1) klären.
+
+Auf dem Android-Tablet:
+  · Alle sechs Register mit dem Finger durchgehen, Zahlen mit der
+    Bildschirmtastatur eintippen: bleibt der Fokus, springt nichts?
+  · Foto mit der Kamera aufnehmen (der Prototyp verkleinert auf
+    1'280 px) und eine Skizze mit dem Finger zeichnen.
+  · Speichern, App schliessen, neu öffnen: ist die Aufnahme noch da?
+    Der Browser-Speicher fasst nur wenige Megabyte – mit mehreren
+    Fotos ist er schnell voll. Beim Einbau in die App gehen die Bilder
+    in den privaten Supabase-Speicher, dann entfällt das.
+  · Zeichnung im Sonnenlicht: sind die Beschriftungen lesbar?
+
+Vor dem Einbau in main:
+  · Projektzuordnung: der Prototyp hat ein freies Feld „Objekt“, die
+    App verlangt ein echtes Projekt.
+  · Die drei aus js/15 herausgezogenen Formeln gehören beim Einbau in
+    eine gemeinsame, testbare Funktion – damit Formular und Prototyp
+    nicht auseinanderlaufen können.
+  · Der Grundriss von generateEbkGrundriss() zeichnet auf eine feste
+    quadratische Fläche; bei einer geraden Linie bleibt viel Leerraum
+    (dasselbe ist bei den Zeichnungen der übrigen Module bekannt).
+  · PDF/Druck fehlt im Prototyp bewusst – die App hat dafür bereits
+    einen eigenen Zweig in js/16.
