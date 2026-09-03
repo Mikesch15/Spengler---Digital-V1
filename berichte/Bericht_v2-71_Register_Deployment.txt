@@ -1,0 +1,113 @@
+BERICHT — "Es gibt immer noch keine Register"
+Spengler-DIGITAL · Version 2.71 · 03.09.2026
+
+================================================================
+1. ANTWORT IN EINEM SATZ
+================================================================
+Der Code ist auf main und ist richtig - aber GitHub Pages hatte ihn
+zu dem Zeitpunkt, an dem Sie geschaut haben, noch nicht
+veroeffentlicht. Ausgeliefert wurde noch die Fassung davor, und das
+ist genau die Version, in der alles auf einer Seite steht.
+
+================================================================
+2. WAS ICH GEMESSEN HABE
+================================================================
+GitHub Actions, Workflow "pages build and deployment":
+
+  Commit    Start       Ende        Ergebnis
+  --------  ----------  ----------  ----------
+  b1c3986   12:27:23Z   12:36:37Z   erfolgreich   <- die Register
+  e7e0389   12:05:11Z   12:06:06Z   erfolgreich   <- alles auf einer Seite
+  4b12540   ...         ...         erfolgreich
+
+Ihre Rueckfrage kam, waehrend die Veroeffentlichung von b1c3986 noch
+lief (sie hat gut neun Minuten gebraucht, deutlich laenger als die
+knappe Minute der Lieferungen davor). Bis 12:36 Uhr hat die Seite
+deshalb weiterhin e7e0389 ausgeliefert.
+
+Seit 12:36:37 Uhr ist die Register-Fassung veroeffentlicht.
+
+================================================================
+3. WAS ZU TUN IST
+================================================================
+Die App neu laden. Ein normaler Reload genuegt - der Service Worker
+holt jede Datei zuerst aus dem Netz ("cache: reload") und faellt nur
+ohne Verbindung auf den Zwischenspeicher zurueck. Es ist also weder
+noetig, den Browserverlauf zu loeschen, noch die installierte
+PWA neu zu installieren.
+
+Zur Kontrolle: unten auf dem Startbildschirm muss "Version 2.71"
+stehen, und die Massaufnahme "Rinne Halbrund" muss oben eine
+Registerleiste zeigen:
+
+  1 Grunddaten | 2 Verlauf | 3 Komponenten | 4 Kontrolle |
+  5 Ausmass | 6 Zuschnitt
+
+================================================================
+4. KORREKTUR ZU MEINER VORHERIGEN ANTWORT
+================================================================
+Auf Ihre Frage "ist es auf main?" habe ich mit einem glatten Ja
+geantwortet. Das stimmte fuer das Repository - aber nicht fuer die
+Seite, die Sie tatsaechlich oeffnen. Den Zustand der Veroeffentlichung
+haette ich pruefen muessen, bevor ich geantwortet habe. Genau diese
+Luecke war die Ursache Ihrer Rueckfrage.
+
+Ausserdem: die Sandbox darf keine Verbindung zu
+mikesch15.github.io aufbauen (Verbindungsabbruch ueber den Proxy).
+Ich kann die veroeffentlichte Seite deshalb NICHT selbst abrufen.
+Meine Aussage stuetzt sich ausschliesslich auf den von GitHub
+gemeldeten Zustand der Veroeffentlichung, nicht auf einen eigenen
+Abruf der Live-Seite. Das wird hier ausdruecklich nicht als
+geprueft behauptet.
+
+================================================================
+5. WAS AUSGESCHLOSSEN WURDE
+================================================================
+Bevor ich auf die Veroeffentlichung gekommen bin, habe ich der Reihe
+nach ausgeschlossen:
+
+- Alter Zwischenspeicher im Handy.
+  Der Service Worker arbeitet seit Langem "zuerst Netz, dann Cache".
+  Ein unveraenderter Cache-Name kann deshalb keine alte Fassung
+  ausliefern. (Der Kommentar oben in sw.js behauptet noch das
+  Gegenteil - siehe Punkt 7.)
+
+- Fehler beim Laden von js/28-rinne-aufnahme.js.
+  Die Datei ist in der Datei-Liste des Service Workers und in
+  index.html eingebunden; sie wirft beim Laden nichts, auch nicht
+  bei leerem Anschlusstyp-Katalog.
+
+- Code fehlt auf main.
+  origin/main = b1c3986, RA_REGISTER ist enthalten, Version 2.71
+  steht in index.html (Zeile 98) und in sw.js.
+
+================================================================
+6. STAND DER ARBEIT (unveraendert)
+================================================================
+- js/12-rinne-halbrund.js ist byteweise unveraendert und bleibt die
+  einzige Fachquelle. Ebenso unangetastet: js/06-rapport.js,
+  css/03-druck.css.
+- Pruefstaende gruen: Rinne-App 99/99, Verschnitt 1578/1578, dazu die
+  volle Regression aller bestehenden Pruefstaende.
+- Datenbank: nur die eine additive Migration
+  (app_settings.rinne_normlaengen). PETER KUENZI AG unveraendert.
+
+================================================================
+7. OFFENE PUNKTE
+================================================================
+- sw.js traegt oben noch den Hinweis, man muesse bei jeder Aenderung
+  die Cache-Version hochzaehlen, "sonst zeigen Handys weiter die
+  alte App". Seit der Umstellung auf "zuerst Netz" stimmt das nicht
+  mehr. Ich habe den Kommentar bewusst JETZT NICHT geaendert: jede
+  Aenderung startet eine neue Veroeffentlichung, und die haette Sie
+  waehrend Ihrer Kontrolle erneut auf eine aeltere Fassung schauen
+  lassen. Wird bei der naechsten inhaltlichen Aenderung mit
+  korrigiert.
+
+- Weiterhin offen, weil dafuer Ihre Zahlen fehlen:
+  Schnittfuge (Scheren-/Saegebreite) und Wiederverwendung von
+  Reststuecken in der Verschnittrechnung.
+
+- Eine frisch registrierte Firma hat keinen Anschlusstyp-Katalog.
+  Das Formular meldet das ausdruecklich; ein Knopf
+  "Standardtypen anlegen" waere die naheliegende Ergaenzung.
