@@ -54,25 +54,9 @@ function isAdmin(){
  // Administrator ist, wer das Recht "admin" hat (siehe 05a-rechte.js).
  return !!(currentProfile&&currentProfile.role==="admin");
 }
-async function renderFeedbackList(){
- if(!isAdmin())return;
- $("feedbackList").innerHTML='<div class="small">Lädt…</div>';
- const {data,error}=await sb.from("feedback").select("*,profiles(first_name,last_name)").order("resolved",{ascending:true}).order("created_at",{ascending:false});
- if(error){$("feedbackList").innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
- const list=data||[];
- $("feedbackList").innerHTML=list.length?list.map(f=>{
-  const wer=f.profiles?`${f.profiles.first_name} ${f.profiles.last_name}`:"Unbekannt";
-  const wann=f.created_at?new Date(f.created_at).toLocaleString("de-CH"):"–";
-  return `<div class="settingrow" style="display:block;padding:10px${f.resolved?";opacity:.55":""}">
-<div class="small" style="color:var(--muted)"><b>${esc(f.module)}</b> · ${esc(wer)} · ${esc(wann)}${f.resolved?" · ✓ erledigt":""}</div>
-<div style="margin-top:4px;white-space:pre-wrap${f.resolved?";text-decoration:line-through":""}">${esc(f.message)}</div>
-<div class="bar" style="margin-top:6px">
-<button type="button" class="gray" data-feedback-toggle="${f.id}" data-resolved="${f.resolved?"1":"0"}">${f.resolved?"↩️ Als offen markieren":"✓ Als erledigt markieren"}</button>
-<button type="button" class="red" data-feedback-del="${f.id}">Löschen</button>
-</div>
-</div>`;
- }).join(""):'<div class="empty">Noch kein Feedback vorhanden.</div>';
-}
+// renderFeedbackList() liegt seit v2.63 in js/02-feedback.js, zusammen
+// mit Sortierung und Export. Aufgerufen wird sie erst durch einen Klick
+// (Einstellungen -> Feedback), also lange nachdem js/02 geladen ist.
 let companyName="PETER KÜNZI AG";
 let companyAddress="";
 let logoUrl="";

@@ -92,7 +92,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.62</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.63</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1393,6 +1393,18 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 
 <div class="settings-tab-panel" data-settings-panel="feedback" hidden>
 <div class="info">Nur für dich als Admin sichtbar. Zeigt alle Feedback-Meldungen, die über den "💬 Feedback"-Button in der App eingereicht wurden.</div>
+<div class="bar feedback-sort" id="feedbackSortBar" style="margin-top:9px" hidden>
+<button type="button" class="gray active" data-feedback-sort="offen">Offen zuerst</button>
+<button type="button" class="gray" data-feedback-sort="neu">Neueste zuerst</button>
+<button type="button" class="gray" data-feedback-sort="alt">Älteste zuerst</button>
+<button type="button" class="gray" data-feedback-sort="modul">Modul (A–Z)</button>
+<button type="button" class="gray" data-feedback-sort="person">Mitarbeiter (A–Z)</button>
+</div>
+<div class="bar" id="feedbackExportBar" style="margin-top:6px" hidden>
+<button type="button" id="feedbackExportXlsx" class="gray">📊 Als Excel herunterladen</button>
+<button type="button" id="feedbackExportTxt" class="gray">📄 Als Textdatei herunterladen</button>
+</div>
+<div class="small" id="feedbackCountInfo" style="color:var(--muted);margin-top:6px"></div>
 <div id="feedbackList"></div>
 </div>
 

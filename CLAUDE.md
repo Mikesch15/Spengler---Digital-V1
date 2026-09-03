@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.62, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.63, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.62**
+- sichtbare App-Version: **2.63**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -10266,3 +10266,199 @@ vergrössert angesehen.
 
 `js/26-rinne.js` (sechs Zeilen `sweep`-Berechnung), `index.html` und
 `sw.js` (Version 2.62), `CLAUDE.md`. Sonst nichts.
+
+## 71. FEEDBACK SORTIEREN + ALS EXCEL/TEXTDATEI HERUNTERLADEN — VERSION 2.63
+
+Die Feedback-Liste im geschützten Einstellungsbereich lässt sich jetzt
+nach fünf Kriterien sortieren und in der gewählten Reihenfolge als
+`.xlsx` und `.txt` herunterladen. **Keine Schemaänderung, keine
+Migration, keine RLS-/Storage-Änderung, keine Fachdatei angefasst.**
+
+### 71.1 Bestandsaufnahme
+
+`feedback` hat: `id`, `module`, `message`, `created_by`, `created_at`,
+`resolved`, `company_id`. Real vorhanden sind 14 Meldungen (4 erledigt,
+6 Module) – echte Nutzdaten, in dieser Runde ausschliesslich gelesen.
+
+`renderFeedbackList()` lag bisher in `js/01-basis.js`, obwohl es
+ausschliesslich Feedback betrifft; die Sortierung steckte fest in der
+Abfrage (`.order("resolved").order("created_at")`) und war deshalb nicht
+umstellbar. Es gab keinen Export.
+
+Die Excel-Bibliothek **SheetJS (xlsx 0.18.5) ist bereits im Kopf von
+`index.html` eingebunden** – sie wird seit langem für den Material-Import
+gebraucht (`js/08-katalog-blitzschutz.js`). Für den Export kommt also
+keine neue Abhängigkeit dazu, dieselbe Bibliothek schreibt jetzt auch.
+
+### 71.2 Sortierung
+
+Fünf Chips über der Liste, gleiche Optik wie die Verlauf-Filter (v2.31):
+
+| Chip | Reihenfolge |
+|---|---|
+| Offen zuerst (Standard) | offen vor erledigt, darin neueste zuerst |
+| Neueste zuerst | `created_at` absteigend |
+| Älteste zuerst | `created_at` aufsteigend |
+| Modul (A–Z) | Modulname, bei gleichem Modul neueste zuerst |
+| Mitarbeiter (A–Z) | Name, bei gleichem Namen neueste zuerst |
+
+Sortiert wird **clientseitig auf den bereits geladenen Zeilen** – wie
+überall sonst in der App (Verlauf-Filter, Statusfilter, Projektsuche).
+Ein Chip-Klick löst **keine** neue Abfrage aus; im Prüfstand
+ausdrücklich gezählt. Die Sortierfunktionen ändern `feedbackCache` nicht
+(`slice().sort(...)`).
+
+Ein unbekannter Sortierwert fällt auf „Offen zuerst" zurück, statt eine
+leere Liste zu zeigen. Namensvergleiche laufen über
+`localeCompare(...,"de")`, damit Umlaute richtig einsortiert werden.
+
+### 71.3 Downloads
+
+Beide Downloads speisen sich aus **einer** Funktion
+(`feedbackExportZeilen()`), damit Excel und Textdatei nie auseinander
+laufen, und übernehmen die **gerade gewählte Sortierung**.
+
+Spalten: `Nr.`, `Datum`, `Modul`, `Status`, `Mitarbeiter`, `Feedback`.
+
+- **Excel** (`Feedback_JJJJ-MM-TT.xlsx`): echtes `.xlsx` über SheetJS,
+  ein Blatt „Feedback", Kopfzeile, gesetzte Spaltenbreiten. Eine
+  mehrzeilige Meldung bleibt in **einer** Zelle.
+- **Textdatei** (`Feedback_JJJJ-MM-TT.txt`): Kopf mit Firmenname, Stand,
+  Zählung und **genannter Sortierung**, danach ein lesbarer Block je
+  Meldung. CRLF-Zeilenenden und BOM, damit die Datei auch im
+  Windows-Editor mit Umlauten sauber aussieht.
+
+`Status` steht auf Deutsch („Offen"/„Erledigt"), ein gelöschter
+Mitarbeiter erscheint wie überall sonst als „Unbekannter Benutzer",
+ein fehlendes oder unlesbares Datum als „–" statt `NaN`.
+
+Fehlt SheetJS einmal (CDN nicht erreichbar), sagt die App das
+verständlich und verweist auf den Textexport – statt eine kaputte Datei
+zu erzeugen.
+
+### 71.4 Leerer Zustand und Fehlerfall
+
+Sortierleiste und Export-Leiste starten `hidden` und erscheinen erst,
+wenn wirklich Feedback vorhanden ist. Schlägt das Laden fehl, bleiben
+beide weg und die Fehlermeldung steht wie bisher in der Liste – es gibt
+keinen Knopf, der dann eine leere Datei erzeugen würde.
+
+### 71.5 Wiedergefundene Falle: `.bar` schlug `[hidden]`
+
+`.bar{display:flex}` (`css/01-basis.css`) ist eine Autorenregel und
+schlägt damit das `[hidden]{display:none}` des Browsers – exakt der
+Fehler aus **Abschnitt 59**. Beide neuen Leisten tragen die Klasse
+`bar`, wären also trotz `hidden` sichtbar geblieben. Ergänzt wurde
+deshalb die **allgemeine** Regel
+
+```css
+.bar[hidden]{display:none}
+```
+
+die zugleich jede künftige versteckte Leiste schützt. Im echten Browser
+gemessen: ohne die Regel meldet der Prüfstand
+`{"hidden":true,"display":"flex","h":76}`, mit ihr `display:"none"`,
+Höhe 0.
+
+### 71.6 Sicherheit – unverändert
+
+Die Abfrage filtert weiterhin **nirgends** selbst nach `company_id`; die
+Firmengrenze erzwingt ausschliesslich die restriktive Policy
+`tenant_boundary_feedback` (`company_id = my_company_id()`), darüber die
+bestehenden Rollen-Policies (`is_admin()` / `has_permission('feedback',…)`).
+Keine Policy, kein Grant und keine Funktion wurde angefasst.
+
+Erneut empirisch bestätigt (`begin; … rollback;`, Wegwerf-Firma
+`99999999-…`): ein Benutzer einer fremden Firma sieht über exakt die
+Abfrage der Feedback-Liste **0 Zeilen**. Der Export kann folglich nur
+enthalten, was RLS ohnehin herausgibt.
+
+Der Export ist ein reiner Client-Download (`Blob` + `URL.createObjectURL`,
+dasselbe Muster wie der bestehende CSV-Export der Regierapporte) – es
+verlässt nichts das Gerät, es entsteht keine öffentliche URL.
+
+### 71.7 Tests
+
+**`feedback63` – 78/78** (echte Funktionen aus `js/02-feedback.js` in
+einem vm-Kontext): alle fünf Sortierungen mit Zweitkriterium, „neu" und
+„alt" exakt umgekehrt, Sortieren verändert die Daten nicht, Sortieren
+löst keine zweite Abfrage aus, aktiver Chip markiert, Anzeige, leerer
+Zustand, Fehlerfall, Excel-Aufbau (Kopfzeile, Zeilenzahl, Spaltenbreiten,
+Reihenfolge, deutscher Status), Textaufbau (Kopf, Sortierung genannt,
+CRLF, BOM, mehrzeilige Meldung), Dateinamen, fehlende Bibliothek,
+fehlendes/unlesbares Datum, unbekannte Sortierung, Einbindung.
+
+**`feedbackbrowser63` – 44/44** (echtes Chromium, **echte
+SheetJS-Bibliothek** aus `node_modules` statt einer Attrappe): die
+Chips werden wirklich geklickt und die Reihenfolge im DOM geprüft, beide
+Downloads werden wirklich ausgelöst und gespeichert – die `.xlsx` wird
+anschliessend **in Node wieder eingelesen** (17 496 Bytes, gültiges ZIP,
+ein Blatt „Feedback", Umlaute unbeschädigt, mehrzeilige Meldung in einer
+Zelle). Dazu: Sichtbarkeit als *computed style* gemessen, leerer
+Zustand, Ladefehler, vier Gerätebreiten (320/390/768/1280 px) ohne
+seitlichen Überlauf, keine JS-Fehler auf der Seite.
+
+**Zwei Gegenproben durchgeführt** – beide reproduzieren einen echten
+Fehler:
+- Sortierung ignoriert die Auswahl → `feedback63` 71/78, sieben
+  Fehlschläge (auch in den Export-Prüfungen).
+- `.bar[hidden]` entfernt → `feedbackbrowser63` 41/44, die Leisten
+  bleiben trotz `hidden` sichtbar.
+
+**Volle Regression grün**: rinne57 379/379, breite57 84/84,
+pdf52 504/504, breite52 52/52, kehle52 698/698,
+kehleintegration52 76/76, medien50 42/42, dateien49 38/38,
+adresse45 39/39, projekte47 37/37, pfade55 37/37, status46 35/35,
+auswahl48 32/32, dateien43 27/27, nav 23/23, stand42 17/17,
+suche45 13/13, recent41 12/12, kopf45 8/8, hidden51 7/7, suche40 7/7,
+treffer40 7/7, ui39 (9 Darstellungsfälle).
+
+`node --check` über alle 28 `js/*.js` und `sw.js` fehlerfrei,
+`<div>` 700/700, keine doppelten Element-IDs.
+
+**Nebenbei behoben**: `rinne57` und `feedback63` prüften die
+Versionsnummer als fest verdrahteten Text und schlugen deshalb bei jedem
+Versionssprung an. Sie prüfen jetzt, dass `index.html` und `sw.js`
+**dieselbe** Version tragen – inhaltlich strenger und ohne Pflege.
+
+**Nicht getestet – ausdrücklich**: ein Live-Klicktest gegen Supabase war
+wie in jeder vorherigen Sitzung nicht möglich (die Sandbox blockiert
+HTTPS zu `nfgryuzkpwjfmdlmevuy.supabase.co`). Das wird nicht behauptet.
+Die Downloads wurden dafür mit echter Bibliothek in echtem Chromium
+erzeugt und die Excel-Datei wieder eingelesen.
+
+### 71.8 PETER KÜNZI AG
+
+Vor und nach allen Tests identisch: 2 Firmen, 13 Profile, 14 Feedbacks
+(4 erledigt), `companies.updated_at` unverändert
+(`2026-09-01 07:40:15.844647+00`), Mike Ledermann wieder in seiner
+echten Firma, keine Wegwerf-Firma übrig. Der einzige Schreibversuch lief
+in `begin; … rollback;`.
+
+### 71.9 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/02-feedback.js` | Sortierung, Zählzeile, beide Exporte; `renderFeedbackList()` hierher verschoben |
+| `js/01-basis.js` | `renderFeedbackList()` entfernt (liegt jetzt im Feedback-Modul) |
+| `index.html` | Sortierleiste, Export-Leiste, Zählzeile, Version 2.63 |
+| `css/01-basis.css` | `.bar[hidden]` (allgemein, siehe 71.5) und die Sortier-Chips |
+| `sw.js` | Cache-Version 2.63 |
+
+**Nicht angefasst**: alle Massaufnahme-Fachdateien, `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js`, `css/03-druck.css` (Regierapport),
+`js/23-verlauf.js`, `js/24-projekt-cockpit.js`, `js/22-system-admin.js`,
+`js/05a-rechte.js`, `js/03-login.js`, `js/09-projekte.js`.
+
+### 71.10 Offene Punkte
+
+- Kein Live-Klicktest gegen Supabase möglich (siehe 71.7).
+- Die Liste lädt weiterhin **alle** Feedbacks einer Firma in einem Zug,
+  ohne Obergrenze – bei den realen Mengen (14) unproblematisch, aber
+  PostgREST liefert höchstens 1000 Zeilen je Anfrage. Sollte eine Firma
+  je darüber kommen, bräuchte es echtes Nachladen; das war hier nicht
+  verlangt und wurde bewusst nicht vorgebaut.
+- Kein Filter (nur Sortierung) – „nur offene anzeigen" wäre eine kleine
+  Erweiterung nach demselben Muster, war aber nicht Teil des Auftrags.
+- Der Export enthält keine `id` und keine `company_id` – bewusst, die
+  Datei ist für Menschen gedacht, nicht als Re-Import.

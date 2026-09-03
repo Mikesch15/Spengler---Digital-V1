@@ -29,6 +29,9 @@ button:disabled{opacity:.45;cursor:not-allowed;filter:none}
 .gray{background:#e8eef1;color:var(--ink)}.gray:hover{background:#dde6ea}
 .red{background:#fff0ef;color:var(--red)}.red:hover{background:#ffe3e1}
 .bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+/* Ohne diese Regel schlaegt .bar{display:flex} das [hidden] des Browsers
+   und eine versteckte Leiste bleibt sichtbar (Lehre aus Abschnitt 59). */
+.bar[hidden]{display:none}
 .scroll{overflow:auto;border:1px solid var(--line);border-radius:10px}
 table{width:100%;border-collapse:collapse;min-width:1000px;table-layout:fixed}
 /* Spaltenbreiten in der App, abgestimmt auf den tatsächlichen Inhalt je Spalte.
@@ -189,6 +192,9 @@ html.dark .pstatus-storniert{color:#f08b80}
 .cockpit-new{display:block;width:100%;min-height:44px;text-align:center;line-height:24px}
 label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-weight:800;font-size:12px}
 .verlauf-filters button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark)}
+/* Sortier-Chips der Feedback-Liste - gleiche Optik wie die Verlauf-Filter */
+.feedback-sort button{padding:6px 10px;font-size:11px;min-height:34px;background:var(--blue-light);color:var(--blue-dark)}
+.feedback-sort button.active{background:var(--blue);color:#fff}
 .verlauf-filters button.active{background:var(--blue);color:#fff}
 .verlauf-entry{border-bottom:1px solid var(--line);padding:7px 2px}
 .verlauf-entry:last-child{border-bottom:0}
