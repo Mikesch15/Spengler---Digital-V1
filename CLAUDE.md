@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.72, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.73, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.72**
+- sichtbare App-Version: **2.73**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -12202,4 +12202,81 @@ ausgelieferten Fassung passt.
   Schnittfuge und Wiederverwendung von Reststücken im Verschnitt.
 - Eine frisch registrierte Firma hat weiterhin keinen
   Anschlusstyp-Katalog (Abschnitt 79.9).
+
+## 81. RINNE HALBRUND: DER FERTIG-KNOPF TUT ETWAS — VERSION 2.73
+
+Rückmeldung: *"fertig button funktioniert nicht"*. Zutreffend, und zwar
+buchstäblich: auf dem letzten Register hiess der Knopf „Fertig" und war
+**gesperrt** (`disabled`) – er sah aus wie die Abschlussaktion und bewirkte
+nichts.
+
+### 81.1 Herkunft
+
+Aus dem Prototyp übernommen: dort ist derselbe Knopf am Ende ebenfalls
+gesperrt (`weiter.disabled=schritt>=SCHRITTE.length`). In der Testapp fällt
+das kaum auf, weil Speichern, Kopieren und PDF dort in einer festen Leiste
+ausserhalb der Schritte liegen. In der App ist das anders: unter den
+Registern folgen noch **Fotos/Skizzen, Notiz und der Speichern-Knopf** –
+der Ablauf geht also weiter, und ein toter Knopf steht mitten darin.
+
+### 81.2 Umgesetzt
+
+`ra_weiter` ist auf dem letzten Register nicht mehr gesperrt, heisst
+**„Fertig › Fotos und Speichern"** und führt über `raAbschluss()` zum Rest
+des Formulars: `#measMedienBereich` wird angescrollt und für 2,5 Sekunden
+umrandet (`.ra-ziel`), der Speichern-Knopf steht dann im selben Bild.
+
+**Es wird bewusst nicht selbst gespeichert.** `#saveMeasurement` bleibt der
+einzige Speicherweg – mit seiner Prüfung von Projekt und Pflichtfeldern.
+Automatisches Speichern würde ausserdem die Fotos übergehen, die erst
+darunter erfasst werden.
+
+„‹ Zurück" bleibt auf dem ersten Register gesperrt – dort gibt es
+tatsächlich nichts davor.
+
+### 81.3 Getestet
+
+`pruefstand-rinne-app-v2-71.js` **102/102** (vorher 99): der Knopf heisst
+auf dem letzten Register „Fertig", ist bedienbar, führt nachweislich zu
+Fotos/Notiz/Speichern (die Markierung sitzt auf `#measMedienBereich`) und
+blättert nicht ins Leere.
+
+Drei Gegenproben:
+
+| eingebauter Fehler | Ergebnis |
+|---|---|
+| „Fertig" wieder gesperrt | 100/102 |
+| `raAbschluss()` ohne Wirkung | 101/102 |
+| „Fertig" blättert auf Register 7 | 101/102 |
+
+Die erste Gegenprobe hat zunächst den **Prüfstand abstürzen** lassen:
+`page.click` auf einen gesperrten Knopf läuft in einen Timeout, und ein
+abgebrochener Prüfstand sieht aus wie „keine Fehler" – derselbe Fehlertyp
+wie in Abschnitt 78. Der Klick läuft jetzt über `evaluate` mit Prüfung,
+damit ein gesperrter Knopf einen sauberen Fehlschlag ergibt.
+
+Im echten Chromium nachgesehen (412 px): der Knopf ist 242 × 46 px gross,
+nach dem Klick steht der Fotoblock umrandet im Bild und „💾 Speichern"
+direkt darunter.
+
+Volle Regression grün: dila-sichtbar 57/57, verschnitt-app 1578/1578,
+kehle52 698/698, rinne57 379/379, required70 359/359, offline70 107/107,
+fotos70 88/88, breite57 84/84, kehleintegration52 76/76, breite52 52/52,
+einstbrowser68 47/47, module67 43/43, einst68 43/43, medien50 42/42,
+pfade55 38/38, modulebrowser67 16/16, hidden51 7/7, abstand69 2/2.
+`node --check` fehlerfrei, `<div>` 721/721, keine doppelten IDs, Version
+in `index.html` und `sw.js` gleich.
+
+### 81.4 Warum 2.73 und nicht 2.72
+
+Version 2.72 war zum Zeitpunkt dieser Korrektur bereits veröffentlicht
+(13:03 Uhr). Dieselbe Versionsnummer mit zwei verschiedenen Inhalten wäre
+nicht nachvollziehbar gewesen.
+
+### 81.5 Offene Punkte
+
+- Kein Live-Klicktest gegen Supabase möglich (Sandbox blockiert HTTPS
+  dorthin) – **wird nicht als getestet behauptet**.
+- Der Prototyp behält seinen gesperrten Knopf; er hat eine eigene
+  Speicherleiste und ist nicht Teil der App.
 

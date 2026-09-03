@@ -826,6 +826,16 @@ const RA_REGISTER=[
  {nr:6,titel:"Zuschnitt",      kurz:"Zuschnitt"}
 ];
 let raSchritt=1;
+// Das letzte Register ist nicht das Ende der Massaufnahme: darunter stehen
+// noch Fotos/Skizzen, Notiz und der Speichern-Knopf der App. "Fertig" fuehrt
+// dorthin - es speichert NICHT selbst, damit es nur einen Speicherweg gibt.
+function raAbschluss(){
+ const ziel=$("measMedienBereich")||$("measNote")||$("saveMeasurement");
+ if(!ziel)return;
+ if(ziel.scrollIntoView)ziel.scrollIntoView({block:"start",behavior:"smooth"});
+ ziel.classList.add("ra-ziel");
+ setTimeout(()=>ziel.classList.remove("ra-ziel"),2500);
+}
 function raSetzeSchritt(n){
  raSchritt=Math.max(1,Math.min(RA_REGISTER.length,Number(n)||1));
  renderRinneAufnahme();
@@ -869,8 +879,8 @@ function renderRinneAufnahme(){
  ziel.innerHTML=raRegisterHtml()+raSchrittInhalt()
   +`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="ra_zurueck"${raSchritt<=1?" disabled":""}>‹ Zurück</button>
-<button type="button" class="gray" id="ra_weiter"${raSchritt>=RA_REGISTER.length?" disabled":""}>${
- raSchritt>=RA_REGISTER.length?"Fertig":"Weiter › "+esc(RA_REGISTER[raSchritt].kurz)}</button>
+<button type="button" class="gray" id="ra_weiter">${
+ raSchritt>=RA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(RA_REGISTER[raSchritt].kurz)}</button>
 </div>`;
  // Die Registerleiste scrollt auf schmalen Geräten seitwärts. Das aktive
  // Register muss darin sichtbar sein - sonst weiss man nicht, wo man ist.
@@ -993,7 +1003,10 @@ function raVerdrahten(){
   const d=t.dataset||{}, a=rinneA;
   if(d.raSchritt!==undefined){raSetzeSchritt(d.raSchritt);return}
   if(t.id==="ra_zurueck"){raSetzeSchritt(raSchritt-1);return}
-  if(t.id==="ra_weiter"){raSetzeSchritt(raSchritt+1);return}
+  if(t.id==="ra_weiter"){
+   if(raSchritt>=RA_REGISTER.length){raAbschluss();return}
+   raSetzeSchritt(raSchritt+1);return;
+  }
   if(t.id==="ra_addSeg"){a.segmente.push(raNeuesSegment());renderRinneAufnahme();return}
   if(t.id==="ra_addEcke"){raAnhaengen("aussen");return}
   if(t.id==="ra_addEin"){raAnhaengen("einhaenge");return}

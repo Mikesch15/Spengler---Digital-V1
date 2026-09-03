@@ -399,6 +399,8 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
 .ra-dehnung-zahl span{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700}
 .ra-dehnung-zahl b{font-size:17px;color:#b4610a}
 .ra-dehnung-liste{margin:4px 0 0;padding-left:18px;font-size:12.5px;line-height:1.6}
+/* Kurz sichtbar machen, wohin "Fertig" gefuehrt hat. */
+.ra-ziel{outline:2px solid var(--blue);outline-offset:3px;border-radius:10px}
 .ra-dila-zeile{background:var(--blue-light)}
 .ra-dila-feld{max-width:130px;text-align:right;font-variant-numeric:tabular-nums}
 .ra-rest{color:#b4610a;font-weight:700}

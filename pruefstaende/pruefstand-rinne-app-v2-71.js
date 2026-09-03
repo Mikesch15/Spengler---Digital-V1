@@ -324,7 +324,28 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  await page.click("#ra_zurueck"); await page.waitForTimeout(180);
  p(await page.evaluate(()=>raSchritt)===1,"Zurueck blaettert zurueck");
  await reg(6);
- p(await page.locator("#ra_weiter").isDisabled(),"auf dem letzten Register ist Weiter aus");
+ // Auf dem letzten Register heisst der Knopf "Fertig" und MUSS etwas tun -
+ // ein Knopf, der wie eine Abschlussaktion aussieht und nichts bewirkt, ist
+ // schlimmer als keiner. Er fuehrt zum Rest des Formulars (Fotos, Notiz,
+ // Speichern), speichert aber nicht selbst.
+ const f=await page.evaluate(()=>{const b=document.getElementById("ra_weiter");
+  return {text:b.textContent.trim(),aus:b.disabled}});
+ p(/Fertig/i.test(f.text),"letztes Register: der Knopf heisst Fertig",f);
+ p(!f.aus,"und ist bedienbar",f);
+ await page.evaluate(()=>{const m=document.getElementById("measMedienBereich");
+  if(m)m.classList.remove("ra-ziel")});
+ // Ueber evaluate statt page.click: ein gesperrter Knopf wuerde page.click
+ // in einen Timeout laufen lassen, und ein abgebrochener Pruefstand sieht
+ // aus wie "keine Fehler".
+ await page.evaluate(()=>{const b=document.getElementById("ra_weiter");
+  if(b&&!b.disabled)b.click()});
+ await page.waitForTimeout(250);
+ const nachFertig=await page.evaluate(()=>({
+  schritt:raSchritt,
+  markiert:!!document.querySelector("#measMedienBereich.ra-ziel"),
+  gespeichert:false}));
+ p(nachFertig.markiert,"Fertig fuehrt zu Fotos/Notiz/Speichern",nachFertig);
+ p(nachFertig.schritt===6,"Fertig blaettert nicht ins Leere",nachFertig);
  // Der Registerwechsel darf nichts verlieren - die Daten liegen im Modell
  const vorher=await page.evaluate(()=>JSON.stringify(rinneA));
  for(const n of [1,4,2,6,3,5,2]) await reg(n);
