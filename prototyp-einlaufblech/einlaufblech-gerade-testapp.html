@@ -9,7 +9,7 @@
      Erzeugt von prototyp-einlaufblech/bauen.js – nicht von Hand bearbeiten.
      Änderungen gehören in prototyp-einlaufblech/prototyp-eb.js bzw.
      prototyp.css, danach "node prototyp-einlaufblech/bauen.js" laufen lassen.
-     Gebaut am 2026-09-03 18:16 UTC
+     Gebaut am 2026-09-03 18:21 UTC
      =================================================================== -->
 <style>
 /* ---- css/01-basis.css (unverändert aus der laufenden App) ---- */
@@ -1044,18 +1044,22 @@ function flaecheM2(a){
 // Rinne: zuerst eine gierige Lösung, danach der Versuch, mit weniger
 // Streifen auszukommen. Reicht das Suchbudget nicht, wird die gierige
 // Lösung zurückgegeben und ausdrücklich NICHT als beste ausgewiesen.
-function packeInStreifen(laengen,L,budget){
- const stuecke=laengen.filter(x=>x>0).slice().sort((a,b)=>b-a);
+function packeInStreifen(bleche,L,budget){
+ // bleche: [{nr, laenge}] - die Nummer reist mit, damit in der Liste jedes
+ // Blech mit SEINER genauen Länge steht und nicht nur eine nackte Zahl.
+ const stuecke=bleche.filter(x=>zahl(x.laenge)>0).slice()
+  .sort((a,b)=>zahl(b.laenge)-zahl(a.laenge));
  if(!stuecke.length)return {streifen:[],optimal:true};
- if(stuecke[0]>L)return {streifen:null,optimal:true,zuLang:stuecke.filter(x=>x>L)};
- // gierig: jedes Stück in den ersten Streifen, in den es noch passt
+ if(zahl(stuecke[0].laenge)>L)
+  return {streifen:null,optimal:true,zuLang:stuecke.filter(x=>zahl(x.laenge)>L)};
+ // gierig: jedes Blech in den ersten Streifen, in den es noch passt
  const gierig=[];
  stuecke.forEach(x=>{
-  const s=gierig.find(g=>g.rest>=x-1e-9);
-  if(s){s.stuecke.push(x);s.rest-=x}
-  else gierig.push({stuecke:[x],rest:L-x});
+  const s=gierig.find(g=>g.rest>=zahl(x.laenge)-1e-9);
+  if(s){s.stuecke.push(x);s.rest-=zahl(x.laenge)}
+  else gierig.push({stuecke:[x],rest:L-zahl(x.laenge)});
  });
- const summe=stuecke.reduce((a,b)=>a+b,0);
+ const summe=stuecke.reduce((a,b)=>a+zahl(b.laenge),0);
  const untergrenze=Math.ceil(summe/L-1e-9);
  let schritte=0, grenze=budget||200000;
  // Passen alle Stücke in k Streifen? Rückwärts füllen, gleiche Restlängen
@@ -1063,14 +1067,14 @@ function packeInStreifen(laengen,L,budget){
  function passt(i,reste){
   if(i>=stuecke.length)return true;
   if(++schritte>grenze)return null;
-  const gesehen=[];
+  const len=zahl(stuecke[i].laenge), gesehen=[];
   for(let j=0;j<reste.length;j++){
-   if(reste[j]<stuecke[i]-1e-9)continue;
+   if(reste[j]<len-1e-9)continue;
    if(gesehen.indexOf(reste[j])>=0)continue;
    gesehen.push(reste[j]);
-   reste[j]-=stuecke[i];
+   reste[j]-=len;
    const r=passt(i+1,reste);
-   reste[j]+=stuecke[i];
+   reste[j]+=len;
    if(r===null)return null;
    if(r)return true;
   }
@@ -1085,14 +1089,14 @@ function packeInStreifen(laengen,L,budget){
    const streifen=Array.from({length:k},()=>({stuecke:[],rest:L}));
    const setze=i=>{
     if(i>=stuecke.length)return true;
-    const gesehen=[];
+    const len=zahl(stuecke[i].laenge), gesehen=[];
     for(let j=0;j<streifen.length;j++){
-     if(streifen[j].rest<stuecke[i]-1e-9)continue;
+     if(streifen[j].rest<len-1e-9)continue;
      if(gesehen.indexOf(streifen[j].rest)>=0)continue;
      gesehen.push(streifen[j].rest);
-     streifen[j].stuecke.push(stuecke[i]); streifen[j].rest-=stuecke[i];
+     streifen[j].stuecke.push(stuecke[i]); streifen[j].rest-=len;
      if(setze(i+1))return true;
-     streifen[j].stuecke.pop(); streifen[j].rest+=stuecke[i];
+     streifen[j].stuecke.pop(); streifen[j].rest+=len;
     }
     return false;
    };
@@ -1108,12 +1112,13 @@ function tafelLaenge(a){
 }
 function rollenPlan(a){
  const A=zahl(a.abwicklung);
- const laengen=(a.stuecke||[]).map(p=>zahl(p.laenge)).filter(x=>x>0);
+ const bleche=(a.stuecke||[]).map((p,i)=>({nr:i+1,laenge:zahl(p.laenge)}))
+  .filter(x=>x.laenge>0);
  const L=tafelLaenge(a);
  const breiten=aktiveRollenbreiten();
- if(A<=0||!laengen.length||!breiten.length)
+ if(A<=0||!bleche.length||!breiten.length)
   return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,tafelLaenge:L};
- const verteilung=packeInStreifen(laengen,L);
+ const verteilung=packeInStreifen(bleche,L);
  const moeglich=[], zuSchmal=[];
  const netto=flaecheM2(a);
  breiten.forEach(B=>{
@@ -1574,6 +1579,14 @@ function schritt5(){
 <div class="p-zf-fuss">Fotos: <b>${(a.fotos||[]).length}</b> · Skizze: <b>${a.skizze?"vorhanden":"keine"}</b></div>`);
 }
 
+// Aus welchem Streifen kommt Blech Nr. n?
+function streifenVon(a,nr){
+ const r=rollenPlan(a);
+ const st=(r.verteilung&&r.verteilung.streifen)||[];
+ for(let i=0;i<st.length;i++)
+  if(st[i].stuecke.some(x=>x.nr===nr))return i+1;
+ return null;
+}
 function rollenKarte(a){
  const A=zahl(a.abwicklung);
  const r=rollenPlan(a);
@@ -1601,7 +1614,8 @@ ist breit genug für eine Abwicklung von ${mm(A)} mm. Der Bedarf wird deshalb
 <td class="p-num${x.anteil>25?" p-warnwert":""}">${x.verschnitt.toFixed(2).replace(".",",")} (${x.anteil.toFixed(1).replace(".",",")} %)</td></tr>`).join("");
  const streifenZeilen=(v.streifen||[]).map((st,i)=>`<tr>
 <td>${i+1}</td>
-<td>${st.stuecke.map(x=>mm(x)).join(" + ")||"–"}</td>
+<td>${st.stuecke.map(x=>`<b>Stück ${x.nr}</b> · ${mm(x.laenge)} mm`).join("<br>")||"–"}</td>
+<td class="p-num">${st.stuecke.reduce((s2,x)=>s2+zahl(x.laenge),0).toLocaleString("de-CH")} mm</td>
 <td class="p-num${st.rest>0?" p-rest":""}">${mm(st.rest)} mm</td></tr>`).join("");
  return karte("Rollenblech und Verschnitt",
 `<div class="p-hinweis">Von der Rolle wird eine <b>Tafel</b> abgeschnitten und quer
@@ -1625,8 +1639,8 @@ liegen, wie bei der Rinne aus einer Normlänge.</div>
 </div>
 <h3>So liegen die Stücke in den Streifen</h3>
 <div class="p-tabelle">
-<table><thead><tr><th>Streifen</th><th>Stücke (mm)</th><th>Rest</th></tr></thead>
-<tbody>${streifenZeilen||'<tr><td colspan="3" class="p-leer">–</td></tr>'}</tbody></table>
+<table><thead><tr><th>Streifen</th><th>Bleche mit ihrer Länge</th><th>belegt</th><th>Rest</th></tr></thead>
+<tbody>${streifenZeilen||'<tr><td colspan="4" class="p-leer">–</td></tr>'}</tbody></table>
 </div>
 <div class="p-klein-text">${v.optimal
  ?`Das ist die Verteilung mit den wenigsten Streifen.`
@@ -1655,12 +1669,20 @@ Nichts davon wird ein zweites Mal eingegeben – wird ein Mass geändert, änder
 <div class="p-hinweis">Artikelnummern und Preise stehen hier bewusst nicht.
 Sie kommen später aus der importierten, firmeneigenen Materialliste.</div>`)
 +rollenKarte(aufnahme)
-+karte("Zuschnittliste",`<div class="p-tabelle">
-<table><thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Winkel</th></tr></thead>
-<tbody>${(a.stuecke||[]).map((p,i)=>`<tr><td>${i+1}</td><td class="p-num">${mm(p.laenge)}</td>
++karte("Zuschnittliste",`<div class="p-hinweis">Jedes Blech mit seiner genauen
+Zuschnittlänge. Die Spalte „Streifen" sagt, aus welchem Streifen der Tafel es
+geschnitten wird.</div>
+<div class="p-tabelle">
+<table><thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Streifen</th><th>Ger. L</th><th>Ger. R</th><th>Winkel</th></tr></thead>
+<tbody>${(a.stuecke||[]).map((p,i)=>`<tr><td>${i+1}</td><td class="p-num"><b>${mm(p.laenge)}</b></td>
+<td class="p-mitte">${streifenVon(a,i+1)??"–"}</td>
 <td class="p-mitte">${p.gehrungLinks?"Ja":"–"}</td><td class="p-mitte">${p.gehrungRechts?"Ja":"–"}</td>
 <td class="p-num">${zahl(p.winkel)}°</td></tr>`).join("")
- ||'<tr><td colspan="5" class="p-leer">Noch keine Stücke.</td></tr>'}</tbody></table>
+ ||'<tr><td colspan="6" class="p-leer">Noch keine Stücke.</td></tr>'}</tbody></table>
+</div>
+<div class="p-zf-kopf">
+<div><span>Bleche</span><b>${(a.stuecke||[]).length}</b></div>
+<div><span>Summe der Zuschnitte</span><b>${mm(gesamtlaengeStuecke(a))} mm</b></div>
 </div>`);
 }
 

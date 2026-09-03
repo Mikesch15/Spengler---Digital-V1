@@ -54,7 +54,7 @@ hier unverändert als Formel notiert (Kopf von `prototyp-eb.js`):
 | `einlaufblech-gerade.html` | Mehrdatei-Fassung |
 | `einlaufblech-gerade-testapp.html` | **erzeugt** – eine Datei für das Tablet |
 | `bauen.js` | baut die Einzeldatei (mit Gegenprobe) |
-| `pruefstand.js` | 197 Prüfungen in echtem Chromium |
+| `pruefstand.js` | 203 Prüfungen in echtem Chromium |
 
 ## Register
 

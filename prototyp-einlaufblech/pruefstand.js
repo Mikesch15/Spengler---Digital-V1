@@ -518,8 +518,9 @@ const text=page=>page.evaluate(()=>document.getElementById("p-inhalt").innerText
  p(str.length===3,"2070 + 2070 + 1000 brauchen 3 Streifen à 2070 mm",str);
  // Defensiv: ohne den dritten Streifen darf der Pruefstand nicht abstuerzen,
  // sonst sieht eine Gegenprobe aus wie "keine Fehler".
- p(!!str[2]&&str[2].stuecke.join()==="1000"&&str[2].rest===1070,
-   "im dritten Streifen bleiben 1070 mm Rest",str[2]||null);
+ p(!!str[2]&&str[2].stuecke.length===1&&str[2].stuecke[0].nr===3
+   &&str[2].stuecke[0].laenge===1000&&str[2].rest===1070,
+   "im dritten Streifen liegt Blech 3 mit 1000 mm, Rest 1070 mm",str[2]||null);
  p(roll.plan.verteilung.optimal,"und das ist die Verteilung mit den wenigsten Streifen");
  const r1000=roll.plan.moeglich.find(x=>x.breite===1000);
  const r670=roll.plan.moeglich.find(x=>x.breite===670);
@@ -556,13 +557,53 @@ const text=page=>page.evaluate(()=>document.getElementById("p-inhalt").innerText
  p(serie2.str.some(x=>x.stuecke.length>1),"mindestens ein Streifen trägt zwei Stücke hintereinander",serie2.str.map(x=>x.stuecke));
  const gedeckt=await page.evaluate(()=>{
   const pl=rollenPlan(aufnahme);
-  const alle=[].concat.apply([],pl.verteilung.streifen.map(x=>x.stuecke)).sort((a,b)=>a-b);
-  const soll=aufnahme.stuecke.map(x=>x.laenge).sort((a,b)=>a-b);
+  const alle=[].concat.apply([],pl.verteilung.streifen.map(x=>x.stuecke))
+   .map(x=>x.nr+":"+x.laenge).sort();
+  const soll=aufnahme.stuecke.map((x,i)=>(i+1)+":"+x.laenge).sort();
   const zuLang=pl.verteilung.streifen.some(x=>x.rest<-1e-9);
-  return {alle,soll,zuLang};
+  const belegt=pl.verteilung.streifen.every(x=>
+    Math.abs(x.stuecke.reduce((s2,y)=>s2+y.laenge,0)+x.rest-pl.tafelLaenge)<1e-9);
+  return {alle,soll,zuLang,belegt};
  });
- p(gedeckt.alle.join()===gedeckt.soll.join(),"jedes Stück kommt genau einmal vor",gedeckt);
+ p(gedeckt.alle.join(" ")===gedeckt.soll.join(" "),
+   "jedes Blech kommt genau einmal vor - mit seiner Nummer und seiner genauen Länge",gedeckt);
  p(!gedeckt.zuLang,"kein Streifen ist überfüllt",gedeckt);
+ p(gedeckt.belegt,"belegt + Rest = Tafellänge, für jeden Streifen",gedeckt);
+
+ console.log("\n18d · Jedes Blech mit seiner genauen Länge in der Zuschnittliste");
+ const liste=await page.evaluate(()=>{
+  aufnahme.stuecke=[2070,2070,1000,1450].map(l=>({laenge:l,stossStoss:l,
+    gehrungLinks:false,gehrungRechts:false,winkel:0}));
+  aufnahme.abwicklung=250; setzeSchritt(6);
+  const tab=Array.from(document.querySelectorAll("#p-inhalt table"));
+  const zuschnitt=tab[tab.length-1];
+  const zeilen=Array.from(zuschnitt.querySelectorAll("tbody tr")).map(tr=>
+    Array.from(tr.querySelectorAll("td")).map(td=>td.innerText.trim()));
+  const streifenTab=tab[tab.length-2];
+  const streifenZeilen=Array.from(streifenTab.querySelectorAll("tbody tr")).map(tr=>
+    Array.from(tr.querySelectorAll("td")).map(td=>td.innerText.trim()));
+  return {zeilen,streifenZeilen,soll:aufnahme.stuecke.map(x=>x.laenge),
+          plan:rollenPlan(aufnahme)};
+ });
+ p(liste.zeilen.length===4,"vier Bleche, vier Zeilen",liste.zeilen.length);
+ const gelesen=liste.zeilen.map(z=>Number(String(z[1]).replace(/[^\d]/g,"")));
+ p(gelesen.join()===liste.soll.join(),
+   "jede Zeile zeigt die genaue Länge ihres Blechs",{gelesen,soll:liste.soll});
+ p(liste.zeilen.every(z=>/^[1-9]\d*$/.test(z[2])),
+   "und den Streifen, aus dem es geschnitten wird",liste.zeilen.map(z=>z[2]));
+ // dieselben Zahlen muessen in der Streifentabelle stehen
+ const ausStreifen=liste.streifenZeilen.map(z=>z[1]).join(" ");
+ p(liste.soll.every((l,i)=>new RegExp("Stück "+(i+1)+"[\\s\\S]{0,4}·[\\s\\S]{0,4}"+
+   l.toLocaleString("de-CH").replace(/[^\d]/g,".")).test(ausStreifen.replace(/\u2019/g,"."))),
+   "die Streifentabelle nennt jedes Blech mit Nummer und genauer Länge",ausStreifen);
+ // keine Laenge darf verschwinden oder zusammengefasst werden
+ const summe=await page.evaluate(()=>{
+  const pl=rollenPlan(aufnahme);
+  const inStreifen=[].concat.apply([],pl.verteilung.streifen.map(x=>x.stuecke))
+   .reduce((s2,x)=>s2+x.laenge,0);
+  return {inStreifen,soll:gesamtlaengeStuecke(aufnahme)};
+ });
+ p(summe.inStreifen===summe.soll,"die Summe der Streifeninhalte ist die Summe der Zuschnitte",summe);
 
  console.log("\n18c · Grenzfälle");
  const schmal=await page.evaluate(()=>{
