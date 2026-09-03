@@ -5,8 +5,23 @@ function materialFor(no){return settings.materials.find(x=>x[0]===no)}
 // Dim., Einheit und Preis werden dann direkt in der Zeile erfasst und im
 // Rapport selbst gespeichert (material_entries) - der Katalog bleibt
 // unberuehrt. Die Nummer ist frei: in keinem Katalog kommt 999.xx vor.
-const FREIE_POSITION_NR="999.99";
-function istFreiePosition(no){return String(no==null?"":no).trim()===FREIE_POSITION_NR}
+// Zehn gleichwertige Nummern: 999.90 bis 999.99. So kann ein Rapport
+// mehrere freie Positionen mit unterschiedlichen Nummern enthalten - alle
+// verhalten sich identisch. Keine davon kommt in einem Katalog vor.
+const FREIE_POSITION_NRN=Object.freeze(Array.from({length:10},(_,i)=>"999."+(90+i)));
+const FREIE_POSITION_NR=FREIE_POSITION_NRN[FREIE_POSITION_NRN.length-1];
+function istFreiePosition(no){
+ return FREIE_POSITION_NRN.indexOf(String(no==null?"":no).trim())>=0;
+}
+// Naechste in diesem Rapport noch nicht benutzte freie Nummer. Sind alle
+// belegt, wird die letzte der Auswahl erneut angeboten - doppelte Nummern
+// sind unschaedlich, jede Zeile traegt ihre eigenen Werte.
+function naechsteFreiePositionNr(kandidaten){
+ const liste=(kandidaten&&kandidaten.length)?kandidaten:FREIE_POSITION_NRN;
+ const zeilen=(typeof mats!=="undefined"&&mats)?mats:[];
+ const belegt=new Set(zeilen.map(m=>String(m&&m.no!=null?m.no:"").trim()));
+ return liste.find(nr=>!belegt.has(nr))||liste[liste.length-1];
+}
 function matZahl(v){return Number(String(v==null?"":v).replace(",","."))||0}
 // Preis je Einheit - aus der Zeile selbst (freie Position) oder aus dem Katalog.
 function matPreis(m){
@@ -146,15 +161,21 @@ $("workBody").addEventListener("change",e=>{
 });
 $("workBody").addEventListener("click",e=>{const b=e.target.closest("[data-del-work]");if(b){works.splice(Number(b.dataset.delWork),1);renderMain()}});
 
-// Eintrag "999.99 Freie Position" fuer die Vorschlagsliste einer
-// Materialzeile. Leere Eingabe zeigt ihn ebenfalls, damit er auffindbar ist.
+// Eintrag "Freie Position" fuer die Vorschlagsliste einer Materialzeile.
+// Getippte Nummer grenzt die Auswahl ein ("999.93" -> genau diese), sonst
+// wird die naechste noch freie Nummer angeboten. Leere Eingabe zeigt den
+// Eintrag ebenfalls, damit er auffindbar ist.
 function freiePositionVorschlag(q,n){
  const s=String(q==null?"":q).trim().toLowerCase();
- const passt=!s||FREIE_POSITION_NR.startsWith(s)||"freie position".startsWith(s)||"frei".startsWith(s);
- if(!passt)return "";
- return `<div class="item" data-pick-mat="${n}" data-no="${FREIE_POSITION_NR}">`
-  +`<b>${FREIE_POSITION_NR} · Freie Position</b>`
-  +`<span>Bezeichnung, Dim., Einheit und Preis frei eintragen</span></div>`;
+ const treffer=s?FREIE_POSITION_NRN.filter(nr=>nr.startsWith(s)):FREIE_POSITION_NRN.slice();
+ const wort=!s||"freie position".startsWith(s)||"frei".startsWith(s);
+ if(!treffer.length&&!wort)return "";
+ const auswahl=treffer.length?treffer:FREIE_POSITION_NRN.slice();
+ const nr=naechsteFreiePositionNr(auswahl);
+ const zusatz=auswahl.length>1?" · 999.90–999.99":"";
+ return `<div class="item" data-pick-mat="${n}" data-no="${nr}">`
+  +`<b>${nr} · Freie Position</b>`
+  +`<span>Bezeichnung, Dim., Einheit und Preis frei eintragen${zusatz}</span></div>`;
 }
 
 function positionSuggest(input,box){

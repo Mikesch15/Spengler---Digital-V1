@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.65, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.66, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.65**
+- sichtbare App-Version: **2.66**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -10823,3 +10823,133 @@ Kollisionsfreiheit von 999.99 zu prüfen.
   tragen dann alle dieselbe EDV-Nr.
 - Der Blechverbrauch kennt die freie Position nicht – dort wird ein
   echtes Katalogmaterial mit Abmessungen gebraucht.
+
+## 74. FREIE POSITIONEN 999.90 BIS 999.99 — VERSION 2.66
+
+Erweitert Abschnitt 73: statt einer einzigen freien Nummer gibt es
+jetzt **zehn gleichwertige** – 999.90, 999.91, … 999.99. Damit kann ein
+Rapport mehrere freie Positionen mit **unterschiedlichen** EDV-Nummern
+enthalten (die in 73.10 offengelegte Einschränkung). **Keine
+Schemaänderung, keine Migration, kein Katalogeintrag.** Geändert wurde
+nur `js/06-rapport.js`.
+
+### 74.1 Alle zehn verhalten sich identisch
+
+```js
+const FREIE_POSITION_NRN=Object.freeze(Array.from({length:10},(_,i)=>"999."+(90+i)));
+function istFreiePosition(no){
+ return FREIE_POSITION_NRN.indexOf(String(no==null?"":no).trim())>=0;
+}
+```
+
+`istFreiePosition()` ist die einzige Stelle, die entscheidet, ob eine
+Zeile frei ist – Preis, Zeilentotal, Darstellung, Umschalten und
+CSV-Export hängen alle daran. Es gibt deshalb keine Möglichkeit, dass
+sich eine der zehn Nummern anders verhält als die übrigen; der
+Prüfstand belegt das trotzdem ausdrücklich für alle zehn (Erkennung,
+Preis, Zeilentotal, `matBekannt`, gerenderte Eingabefelder).
+
+Weiterhin **nicht** erkannt: `999`, `999.9`, `999.89`, `999.100`,
+`999.990` – die Prüfung ist auf die zehn exakten Schreibweisen
+festgelegt.
+
+Kollisionsfreiheit erneut per SQL geprüft, diesmal für den ganzen
+Bereich: **0** Katalogzeilen mit `edv_nr like '999%'` (von 372) und
+**0** Zeilen in bestehenden Rapporten (`material_entries`) mit einer
+Nummer, die mit 999 beginnt.
+
+### 74.2 Der Vorschlag vergibt die nächste freie Nummer
+
+Zehn gleich aussehende Einträge in der Vorschlagsliste wären nur Lärm.
+Stattdessen zeigt die Liste **einen** Eintrag mit der nächsten in
+diesem Rapport noch unbenutzten Nummer:
+
+```
+999.91 · Freie Position
+Bezeichnung, Dim., Einheit und Preis frei eintragen · 999.90–999.99
+```
+
+- Die angebotene Nummer steht sichtbar im Eintrag – nichts passiert
+  im Verborgenen; der Zusatz nennt den ganzen Bereich.
+- Lücken werden genutzt: ist nur 999.92 belegt, kommt wieder 999.90.
+- Katalogzeilen im Rapport stören die Zählung nicht.
+- Wird eine **bestimmte** Nummer getippt (`999.93`), bietet die Liste
+  genau diese an – auch wenn sie schon belegt ist. Die Eingabe des
+  Benutzers schlägt die Automatik.
+- Sind alle zehn belegt, wird die letzte erneut angeboten. Doppelte
+  Nummern sind unschädlich: jede Zeile trägt ihre eigenen Werte.
+
+`naechsteFreiePositionNr()` liest dafür ausschliesslich das bereits im
+Speicher stehende `mats` – keine zusätzliche Abfrage.
+
+### 74.3 Unverändert aus v2.65
+
+Rechenweg (`matPreis`/`matZeileTotal` als einzige Quelle), Speicherung
+in `material_entries`, kein Neuzeichnen beim Tippen, Umschalten erst
+beim Verlassen des EDV-Feldes, `searchMaterials()` weiterhin
+unangetastet (Blechverbrauch), Druckdarstellung.
+
+Sortierung: mehrere freie Nummern sortieren numerisch untereinander und
+stehen weiterhin hinter den Katalognummern desselben Tages
+(`101.10, 999.90, 999.95`).
+
+### 74.4 Tests
+
+**`freipos65` – 99/99** (vorher 75): alle zehn Nummern einzeln bei
+Erkennung, Preis, Zeilentotal und gerenderten Eingabefeldern; die
+Nicht-Treffer (999, 999.9, 999.89, 999.100); neuer Abschnitt „nächste
+freie Nummer" (leer → 999.90, belegt → nächste, Lücken, Katalogzeilen
+stören nicht, alle belegt, getippte Nummer schlägt die Automatik);
+mehrere freie Nummern in der Sortierung.
+
+**`freiposbrowser65` – 33/33** (vorher 23, echtes Chromium): erster
+Vorschlag 999.90, nach dem Übernehmen bietet der zweite 999.91 an,
+beide Zeilen tragen eigene Nummern und eigene Werte, rechnen
+eigenständig (20.00 / 15.00 → 35.00), Wechsel auf 999.97 behält die
+erfassten Werte, Druckansicht unverändert.
+
+**Zwei Gegenproben, beide reproduzieren einen echten Fehler:**
+- nur 999.99 gilt → `freipos65` 5 Fehlschläge
+- nächste Nummer ignoriert die Belegung → `freipos65` 4 Fehlschläge
+
+Beim Anpassen der Prüfstände fielen fünf **veraltete Erwartungen**
+auf, die alle noch die feste 999.99 bzw. eine feste Zeilenreihenfolge
+annahmen. Da `sortMaterialsLive()` die Zeilen legitim umordnet, suchen
+die Browser-Prüfungen ihre Zeilen jetzt über den Inhalt statt über
+einen angenommenen Index.
+
+**Volle Regression grün**: feedback63 105/105,
+feedbackbrowser63 67/67, rinne57 379/379, breite57 84/84,
+pdf52 504/504, breite52 52/52, kehle52 698/698,
+kehleintegration52 76/76, medien50 42/42, dateien49 38/38,
+adresse45 39/39, projekte47 37/37, pfade55 37/37, status46 35/35,
+auswahl48 32/32, dateien43 27/27, nav 23/23, stand42 17/17,
+suche45 13/13, recent41 12/12, kopf45 8/8, hidden51 7/7,
+suche40 7/7, treffer40 7/7, ui39 (9 Darstellungsfälle).
+
+`node --check` über alle 28 `js/*.js` und `sw.js` fehlerfrei,
+`<div>` 701/701.
+
+**Nicht getestet – ausdrücklich**: kein Live-Klicktest gegen Supabase
+(Sandbox blockiert HTTPS dorthin). In dieser Runde wurde **nicht** in
+die Datenbank geschrieben – nur zwei lesende Abfragen zur
+Kollisionsprüfung.
+
+### 74.5 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/06-rapport.js` | zehn Nummern statt einer, `naechsteFreiePositionNr()`, Vorschlag |
+| `index.html` | nur Versionstext 2.66 |
+| `sw.js` | Cache-Version 2.66 |
+
+`js/08-katalog-blitzschutz.js`, `css/03-druck.css`, `js/04-start-suche.js`
+und `css/01-basis.css` sind in dieser Runde **nicht** im Diff.
+
+### 74.6 Offene Punkte
+
+- Die schmale **Dim.**-Spalte bleibt wie in 73.10 beschrieben.
+- Mehr als zehn freie Positionen in **einem** Rapport führen zu
+  doppelten Nummern (die Zeilen bleiben trotzdem eigenständig). Bei
+  Bedarf liesse sich der Bereich in einer Zeile erweitern
+  (`{length:10}`), solange er kollisionsfrei bleibt.
