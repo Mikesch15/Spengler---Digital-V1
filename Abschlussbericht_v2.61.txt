@@ -1,0 +1,135 @@
+================================================================================
+SPENGLER-DIGITAL – ABSCHLUSSBERICHT VERSION 2.61
+RUNDUNG ZURÜCKGENOMMEN + UMSCHLAG SAUBER GEZEICHNET
+Commit b9343b8 · Branch claude/v1-49-analysis-rk5csc · gemergt nach main
+================================================================================
+
+
+1. ZU RUND
+--------------------------------------------------------------------------------
+
+BIEGERADIUS von 14 auf 7 halbiert.
+
+14 px liessen aus einer Blechkantung eine weiche Kurve werden – besonders
+sichtbar an der 70°-Ecke zwischen "Anschl. Flachdach" und A.
+
+Gemessene Bogenradien im Profilzug:
+    vorher   20 / 64 / 34 / 34 / 34 / 26 px
+    nachher  10 / 32 / 17 / 17 / 17 / 13 px
+
+Zum Vergleich der Verhältnisse:
+    Freies Profil     5 px auf ~300 px Bildbreite  ≈ 1.7 %
+    Rinne (v2.60)    14 px auf  680 px Bildbreite  ≈ 2.1 %   zu rund
+    Rinne (v2.61)     7 px auf  680 px Bildbreite  ≈ 1.0 %   zurückhaltender
+
+(Der Radius im SVG-A-Befehl ist r = t·tan(φ/2), hängt also zusätzlich vom
+Eckwinkel ab – deshalb die unterschiedlichen Werte pro Ecke.)
+
+
+2. DER UMSCHLAG VERSCHMOLZ ZU EINEM BALKEN
+--------------------------------------------------------------------------------
+
+URSACHE
+Der Versatz zwischen den beiden Lagen war ein fester Wert (zuletzt 11 px, davor
+9 px). Ein 15-mm-Umschlag ist im Bild aber nur rund 13 px lang. Ein fester Wert
+ist dort zwangsläufig falsch:
+
+  - 11 px → fast so gross wie der Umschlag selbst, sieht wie ein Haken aus
+  - 4.6 px (heruntergerechnet) → bei 3.4 px Strichbreite bleiben 1.2 px Weiss,
+    die beiden Lagen verschmelzen zu einem Balken
+
+LÖSUNG
+Der Versatz hängt jetzt an der gezeichneten Umschlaglänge, mit BEIDEN Grenzen:
+
+    const umschlagVersatz = laengePx =>
+      Math.min(Math.max(7, Math.min(9, laengePx / 3)),
+               Math.max(3, laengePx * 0.8));
+
+  - Untergrenze 7 px    damit zwischen den Lagen sichtbar Weiss bleibt
+  - Obergrenze 80 % der Umschlaglänge   damit die Kehre bei einem sehr kurzen
+                                        Umschlag nicht breiter wird als er
+                                        lang ist
+  - der Kehrenradius folgt automatisch (Versatz / 2)
+
+Der Wert 7 wurde NICHT geraten: die Umschlag-Region wurde mit 4.6 / 6 / 7 / 8 px
+gerendert und verglichen. Erst ab 7 px sind die beiden Lagen und die Kehre klar
+als Umschlag erkennbar.
+
+
+3. TESTS
+--------------------------------------------------------------------------------
+
+PRÜFSTAND "rinne57" – 378 von 378 bestanden (vorher 377)
+
+  Die Rundungsprüfung ist von einer reinen UNTERGRENZE auf ein BAND
+  umgestellt, damit sie beide Richtungen fängt:
+
+    "Rundung sichtbar, aber nicht zu weich (6 <= r <= 45 px)"
+    "Umschlag-Kehre ist weit genug offen (>= 3 px Radius)"     (neu)
+
+  GEGENPROBEN – jede reproduziert genau einen der beiden Fehler:
+
+    Versatz zurück auf 4.6 px
+      >> FEHLER: Umschlag-Kehre ist weit genug offen (>= 3 px Radius)
+
+    BIEGERADIUS auf 20
+      >> FEHLER: Rundung sichtbar, aber nicht zu weich (6 <= r <= 45 px)
+
+  Unverändert weiterhin geprüft:
+    - ALLE 35 DATENZEILEN der Excel-Vorlage
+    - jede Innenecke des Profilzugs ist gerundet (6 Bögen)
+    - Kehren gehören zum kurzen Blech (nicht zum 150er)
+    - Standardprofil nach Ihrer Vorlage (Fixmasse 460, Richtungsfolge,
+      Beispielrechnung 981 / 1'280)
+    - Umschlag umkehren (+180/−180, Seite, Endpunkt identisch)
+    - freies Profil, Winkel, Verkettung, Altformat, elf SVG-Fälle
+
+PRÜFSTAND "breite57" – 84 von 84 bestanden (echtes Chromium)
+PRÜFSTAND "pdf52"    – 504 von 504 bestanden
+
+REGRESSION – alle bestehenden Prüfstände grün
+  adresse45 39/39, kopf45 8/8, suche45 13/13, status46 35/35,
+  projekte47 37/37, auswahl48 32/32, dateien49 38/38, medien50 42/42,
+  hidden51 7/7, kehle52 698/698, kehleintegration52 76/76, breite52 52/52,
+  pfade55 37/37, nav, suche40, treffer40, recent41, stand42, dateien43, ui39
+
+STRUKTUR
+  node --check über alle 28 js/*.js und sw.js: fehlerfrei
+  <div>/</div> in index.html ausgeglichen: 697/697
+  Regierapport (js/06, js/08, css/03-druck.css) UND js/14-freies-profil.js
+  nicht im Diff
+
+WAS NICHT GETESTET WURDE
+  Ein Live-Klicktest gegen Supabase war nicht möglich – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co.
+  DAS WIRD HIER AUSDRÜCKLICH NICHT ALS GETESTET BEHAUPTET.
+  Die Skizze wurde in echtem Chromium gerendert und visuell geprüft, auch
+  vergrössert.
+
+
+4. GEÄNDERTE DATEIEN
+--------------------------------------------------------------------------------
+
+  js/26-rinne.js   Biegeradius 14 -> 7, Umschlag-Versatz abhängig von der
+                   Umschlaglänge statt fest, Kehrenradius folgt daraus
+  index.html       Version 2.61
+  sw.js            Cache-Version 2.61
+  CLAUDE.md        Abschnitt 69
+
+Sonst nichts. Keine Datenbankänderung, keine Migration, keine RLS- oder
+Storage-Änderung, kein anderes Modul angefasst.
+
+
+5. ABSCHLUSS
+--------------------------------------------------------------------------------
+
+  Version              2.61
+  Commit-Hash          b9343b8
+  Entwicklungsbranch   claude/v1-49-analysis-rk5csc  (gepusht)
+  Push auf main        erfolgt, main steht auf b9343b8
+  Arbeitsverzeichnis   sauber
+  Regierapport         unverändert
+  js/14-freies-profil  unverändert (nur benutzt)
+  PETER KÜNZI AG       nicht berührt (kein Datenbankzugriff in dieser Runde)
+
+================================================================================
