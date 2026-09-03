@@ -1,0 +1,233 @@
+BERICHT — Dehnungselemente sichtbar statt nur gerechnet
+Spengler-DIGITAL · Version 2.72 · Rinne Halbrund · 03.09.2026
+
+================================================================
+1. DIE RUECKMELDUNG WAR RICHTIG
+================================================================
+"dilas werden nur im hintergrund berechnet, das ist nicht so wie in
+der testapp"
+
+Nachgemessen im Browser, nicht angenommen. Die Rechnung war vorhanden
+und richtig - die Anzeige nicht. Im Einzelnen fehlte gegenueber der
+Testapp:
+
+  Testapp                              App bis 2.71
+  -----------------------------------  ----------------------------
+  Legende unter dem Verlaufsband,      fehlte. Die orangen Rauten
+  u.a. "◆ berechnetes                  waren die EINZIGE Marke im
+  Dehnungselement"                     Band ohne Beschriftung -
+                                       Ecke, "E1 FIX" und
+                                       "S1 DEHNT" sind alle
+                                       beschriftet.
+
+  eigene Karte "Rinnenboden und        Dehnung lag als eines von
+  Dehnung"                             sieben Feldern in einer
+                                       Reihe; der Satz zur Anzahl
+                                       stand am Ende eines Absatzes
+                                       ueber links/rechts.
+
+  Knopf "Uebernehmen"                  fehlte
+  (Anzahl -> Dehnungsstuecke)
+
+  Verweis "die Positionen stehen       fehlte
+  in Schritt 6 · Zuschnitt"
+
+  eigene Karte "Stutzen" mit           fehlte
+  Anzahl und Rueckweg
+
+Die anpassbaren Positionen in Register 6 (Feld je Dila-Zeile,
+"＋ Dehnungselement von Hand", "↻ Zurueck zur Berechnung") gab es
+bereits seit 2.71 - nur wies nichts darauf hin, dass es sie gibt.
+
+================================================================
+2. WAS JETZT ZU SEHEN IST
+================================================================
+2 · RINNENVERLAUF
+  Unter dem Band steht die Legende, woertlich wie in der Testapp:
+  ▲ Ecke (Fixpunkt) · ● E = Einhaengestutzen (Fixpunkt) ·
+  ■ S = Schiebestutzen (kein Fixpunkt, gilt als Dehnungselement) ·
+  ◆ berechnetes Dehnungselement
+
+3 · KOMPONENTEN ist in drei Karten geteilt, wie in der Testapp:
+
+  3 · Rinnenhalter
+     Halterabstand, Anzahl, Haltertyp, Vorschlag uebernehmen
+
+  Rinnenboden und Dehnung
+     Boden links/rechts, Dehnung, Anzahl Dehnungsstuecke
+     ---------------------------------------------------------
+     BERECHNET   2   Dehnungselement(e) fuer Kupfer
+       · Dehnungselement 1 bei 4'667 mm ab START
+       · Dehnungselement 2 bei 9'333 mm ab START
+       [Als Dehnungsstuecke uebernehmen]
+       [Positionen anpassen (6 · Zuschnitt)]
+       Gerechnet nach dem bestehenden Modul (Material, Fixpunkte,
+       Schiebestutzen). Die Abstaende lassen sich in 6 · Zuschnitt
+       von Hand ueberschreiben.
+     ---------------------------------------------------------
+
+  Stutzen
+     Einhaengestutzen (Fixpunkt)        1
+     Schiebestutzen (Dehnungselement)   0
+     [↩︎ Zum Rinnenverlauf]
+
+Nach einer Anpassung von Hand steht dort "VON HAND FESTGELEGT",
+die geaenderte Position, und der Hinweis, dass nicht mehr neu
+gerechnet wird.
+
+Ist kein Dehnungselement noetig, steht das ausdruecklich da
+("0 - fuer Kupfer ist bei diesem Verlauf kein zusaetzliches
+Dehnungselement noetig"), der Uebernehmen-Knopf fehlt dann, und es
+wird KEINE Position erfunden.
+
+================================================================
+3. UEBER DIE TESTAPP HINAUS
+================================================================
+Ein Punkt geht bewusst weiter als die Vorlage: die Testapp nennt im
+Dehnungs-Block nur die ANZAHL, diese Fassung listet jede POSITION
+einzeln auf. Genau die Positionen sind der Kern der Rueckmeldung -
+eine blosse Zahl ist immer noch "im Hintergrund gerechnet".
+
+Nicht gebaut, weil es die Testapp auch nicht tut: eine Beschriftung
+der Rauten im Band selbst (D1, D2). Sie werden ueber die Legende
+erklaert. Waere die naheliegende naechste Stufe, wenn gewuenscht.
+
+================================================================
+4. DIE RECHNUNG IST NICHT ANGEFASST
+================================================================
+- js/12-rinne-halbrund.js ist byteweise identisch zum letzten Stand
+  (per Pruefsumme belegt).
+- raBruecke() uebergibt weiterhin exakt dieselben Positionen an das
+  bestehende Modul - im Pruefstand direkt gegen raDilasGerechnet()
+  verglichen.
+- "Als Dehnungsstuecke uebernehmen" schreibt nur die BEREITS
+  berechnete Zahl in das Feld, damit sie im Ausmass als Position
+  erscheint. Es wird nichts neu gerechnet.
+- Fixpunkt-Logik, Rinnenboden am aeussersten Grenzpunkt, Zuschnitt,
+  Normlaengen und Verschnitt: unveraendert.
+- Keine Schemaaenderung, keine Migration, kein Zugriff auf die
+  Datenbank. Regierapport (js/06, js/08, css/03-druck.css) nicht im
+  Diff.
+
+================================================================
+5. GETESTET
+================================================================
+Neuer Pruefstand pruefstaende/pruefstand-dila-sichtbar.js: 57/57,
+echtes Chromium gegen die echte index.html.
+
+  A  Rechnung: 2 Dehnungselemente bei 4667 / 9333
+  B  Legende vorhanden und nennt das Dehnungselement
+  C  drei Karten, Anzahl, beide Positionen, Verweis, drei Knoepfe
+  D  Uebernehmen: Art, Anzahl 2, Feld erscheint, Ausmass zieht nach
+  E  Sprung nach Register 6, zwei anpassbare Abstaende
+  F  von Hand auf 3000 -> "Von Hand festgelegt" mit neuer Position;
+     "Zurueck zur Berechnung" stellt 4667/9333 wieder her
+  G  ohne Dehnungselement: ehrliche Aussage, kein Knopf, keine
+     erfundene Position
+  H  Bruecke zu js/12 gibt dieselben Positionen
+  I  Stutzen-Zaehler und Rueckweg
+  J  keine JS-Fehler
+  K  fuenf Bildschirmbreiten (320/360/390/412/768) x drei Register,
+     nichts laeuft seitlich hinaus
+
+FUENF GEGENPROBEN - jede baut einen Fehler ein und muss den
+Pruefstand umwerfen:
+
+  Legende entfernt                    ->  3 Fehlschlaege
+  Positionen nicht aufgelistet        ->  3
+  Uebernehmen schreibt falsche Zahl   ->  1
+  Sprungknoepfe wirkungslos           -> 11
+  Register 3 wieder als eine Karte    -> 27
+
+Der Pruefstand wurde zusaetzlich so gebaut, dass er bei fehlenden
+Elementen NICHT abbricht, sondern einen Fehlschlag meldet - ein
+abgebrochener Pruefstand sieht sonst aus wie "keine Fehler".
+
+VOLLE REGRESSION, alles gruen:
+  rinneapp71 99/99 · verschnitt-app 1578/1578 · kehle52 698/698 ·
+  required70 359/359 · rinne57 379/379 · einf70 185/185 ·
+  offline70 107/107 · feedback63 108/108 · freipos65 99/99 ·
+  fotos70 88/88 · dila70 85/85 · breite57 84/84 · fp70 83/83 ·
+  kehleintegration52 76/76 · feedbackbrowser63 67/67 ·
+  breite52 52/52 · ebg70 49/49 · feedback70 47/47 ·
+  einstbrowser68 47/47 · mad70 45/45 · module67 43/43 ·
+  einst68 43/43 · medien50 42/42 · adresse45 39/39 ·
+  pfade55 38/38 · dateien49 38/38 · projekte47 37/37 ·
+  status46 35/35 · freiposbrowser65 33/33 · auswahl48 32/32 ·
+  modulebrowser67 16/16 · suche45 13/13 · kopf45 8/8 ·
+  hidden51 7/7 · abstand69 2/2 · nav · suche40 · treffer40 ·
+  recent41 · stand42 · dateien43 · ui39
+
+  node --check ueber alle js-Dateien, sw.js und alle Pruefstaende
+  fehlerfrei. <div>-Balance 721/721. Keine doppelten Element-IDs.
+  Version in index.html und sw.js gleich (2.72).
+
+================================================================
+6. ZWEI PRUEFSTAND-KORREKTUREN (keine Codefehler)
+================================================================
+(1) Die App schreibt Ueberschriften und kleine Etiketten per CSS
+    gross (text-transform:uppercase), und innerText gibt genau das
+    zurueck - aus "Von Hand festgelegt" wird "VON HAND FESTGELEGT".
+    Meine ersten Pruefungen verglichen die Schreibweise statt den
+    Inhalt. Erst im Browser gemessen (getComputedStyle), dann
+    korrigiert - nicht geraten.
+
+(2) pruefstand-rinne-app-v2-71.js verlangte "hoechstens zwei
+    Ueberschriften je Register" - eine Zahl als Behelf fuer "zeigt
+    nur den eigenen Inhalt". Register 3 hat jetzt drei Karten.
+    Geprueft wird jetzt die Eigenschaft: die erste Ueberschrift
+    traegt die eigene Registernummer, keine weitere eine fremde.
+    Mit einer Gegenprobe bestaetigt, dass "alle Register auf
+    einmal" weiterhin gefangen wird.
+
+Zwei Pruefstaende geben eine Zeile aus, die nach einem Fehler
+aussieht und keiner ist - vor und nach dieser Aenderung identisch:
+ui39 druckt im eigenen Fehlerfall-Test "Fehler: permission denied"
+(das ist der geprueffte Fall), recent41 enthaelt den Text
+"Leerzustand ohne Fehler".
+
+================================================================
+7. NEBENBEI: SERVICE WORKER
+================================================================
+Der Kommentar oben in sw.js behauptete, ohne hochgezaehlte
+CACHE-Version zeigten Handys die alte App. Seit der Umstellung auf
+"zuerst Netz" stimmt das nicht mehr - genau diese Annahme haette
+gestern bei der Register-Frage in die falsche Richtung gefuehrt.
+Der Kommentar ist jetzt richtig. Die Version wird weiterhin
+mitgezaehlt, damit der Offline-Bestand zur ausgelieferten Fassung
+passt.
+
+================================================================
+8. GEAENDERTE DATEIEN
+================================================================
+  js/28-rinne-aufnahme.js   Legende, drei Karten, Positionsliste,
+                            zwei neue Bedienungen
+  css/01-basis.css          .ra-legende, .ra-dehnung*
+  index.html                Version 2.72
+  sw.js                     Cache 2.72, Kommentar richtiggestellt
+  pruefstaende/…-dila-sichtbar.js   neu
+  pruefstaende/…-rinne-app-v2-71.js Pruefung umgestellt
+  CLAUDE.md                 Abschnitt 80
+
+Commit 7644fbe, auf main gepusht.
+
+================================================================
+9. OFFENE PUNKTE
+================================================================
+- KEIN Live-Klicktest gegen Supabase moeglich - die Sandbox
+  blockiert ausgehende HTTPS-Verbindungen zu
+  nfgryuzkpwjfmdlmevuy.supabase.co. Das wird ausdruecklich NICHT
+  als getestet behauptet. Geprueft ist die Oberflaeche in echtem
+  Chromium gegen die echte index.html.
+- Die Rauten im Band tragen weiterhin keine eigene Beschriftung
+  (wie in der Testapp), sie werden ueber die Legende erklaert.
+- Weiterhin offen, weil dafuer Ihre Zahlen fehlen: Schnittfuge
+  (Scheren-/Saegebreite) und Wiederverwendung von Reststuecken im
+  Verschnitt.
+- Eine frisch registrierte Firma hat weiterhin keinen
+  Anschlusstyp-Katalog; das Formular sagt das ausdruecklich.
+
+HINWEIS ZUM ANSCHAUEN: nach dem Push laeuft die Veroeffentlichung
+auf GitHub Pages (gestern hat sie neun Minuten gebraucht). Bis sie
+durch ist, liefert die Seite noch 2.71 aus. Unten auf dem
+Startbildschirm muss "Version 2.72" stehen.
