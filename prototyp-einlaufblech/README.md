@@ -54,7 +54,7 @@ hier unverändert als Formel notiert (Kopf von `prototyp-eb.js`):
 | `einlaufblech-gerade.html` | Mehrdatei-Fassung |
 | `einlaufblech-gerade-testapp.html` | **erzeugt** – eine Datei für das Tablet |
 | `bauen.js` | baut die Einzeldatei (mit Gegenprobe) |
-| `pruefstand.js` | 140 Prüfungen in echtem Chromium |
+| `pruefstand.js` | 185 Prüfungen in echtem Chromium |
 
 ## Register
 
@@ -62,10 +62,28 @@ hier unverändert als Formel notiert (Kopf von `prototyp-eb.js`):
 2. **Geometrie** – Mass A, Winkel, live beschriftete Schnittzeichnung,
    Restbreite / enges Mass / enge Seite
 3. **Ausführung** – Gesamtlänge → Stücke, Stückliste, Gehrungen,
-   Endzugaben, Grundriss
+   Endzugaben, Haltebleche („GAVA Blech“), Grundriss
 4. **Fotos & Skizze**
 5. **Kontrolle** – Plausibilität und Zusammenfassung
-6. **Ausmass** – Ausmass, Materialübersicht, Zuschnittliste
+6. **Ausmass** – Ausmass (inkl. m²), Materialübersicht,
+   Rollenblech und Verschnitt, Zuschnittliste
+
+## Nachgetragen (Rückmeldung vom 03.09.)
+
+* Restbreite und enges Mass laufen beim Tippen mit (vorher erst nach dem
+  nächsten vollen Zeichnen – es sah aus, als fehle Mass A in der Formel).
+* Der Blickrichtungspfeil am linken Rand ist aus dem **Grundriss**
+  entfernt. `js/13` zeichnet ihn weiterhin; der Prototyp nimmt genau
+  diesen einen Pfeil wieder heraus.
+* **Haltebleche („GAVA Blech“)**: Kästchen in Register 3. Angehakt gibt
+  es Abstand und Anzahl; gerechnet wird wie der Halterabstand bei Rinne
+  Halbrund in der App: `ganzzahlig(Länge ÷ Abstand) + 1`.
+* **Fläche in m²**: Gesamtlänge × Abwicklung, im Ausmass und in der
+  Materialübersicht.
+* **Rollenblech und Verschnitt**: aus einer Rolle der Breite B lassen
+  sich `ganzzahlig(B ÷ Abwicklung)` Streifen längs schneiden. Standard
+  sind 1'000 und 670 mm; 500/400/330/250/200 mm liegen bereit und lassen
+  sich in den Einstellungen dazuschalten.
 
 ## Nicht enthalten
 

@@ -28,8 +28,37 @@ function esc(v){
 // beeinflusst.
 const EB_STANDARD=Object.freeze({
  stoss_laenge:2000, ueberlappung:70, gehrungszugabe:100,
- umschlag_oben:12, umschlag_unten:12, rest_schwelle:500, end_zugabe:10
+ umschlag_oben:12, umschlag_unten:12, rest_schwelle:500, end_zugabe:10,
+ // Neu im Prototyp, in der App noch nicht vorhanden:
+ // Abstand der Haltebleche ("GAVA Blech"). 500 mm ist der Vorgabewert des
+ // Halterabstands bei Rinne Halbrund - fachlich NICHT bestätigt, siehe
+ // Bericht, offener Punkt.
+ gava_abstand:500
 });
+// Rollenbreiten für die Zuschnitt-Optimierung. 1000 und 670 mm sind die
+// Standardrollen; die übrigen liegen bereit und lassen sich in den
+// Einstellungen dazuschalten (auch für andere Massaufnahmen brauchbar).
+const ROLLEN_VORGABE=[
+ {breite:1000,aktiv:true},{breite:670,aktiv:true},
+ {breite:500,aktiv:false},{breite:400,aktiv:false},{breite:330,aktiv:false},
+ {breite:250,aktiv:false},{breite:200,aktiv:false}
+];
+const ROLLEN_SCHLUESSEL="pebg_rollenbreiten";
+let rollenbreiten=(function(){
+ try{
+  const g=JSON.parse(localStorage.getItem(ROLLEN_SCHLUESSEL)||"null");
+  if(!Array.isArray(g)||!g.length)return ROLLEN_VORGABE.map(r=>({...r}));
+  // Nur bekannte Breiten übernehmen, damit ein alter Eintrag nichts kaputt macht.
+  return ROLLEN_VORGABE.map(r=>{
+   const t=g.find(x=>Number(x&&x.breite)===r.breite);
+   return {breite:r.breite,aktiv:t?!!t.aktiv:r.aktiv};
+  });
+ }catch(e){return ROLLEN_VORGABE.map(r=>({...r}))}
+})();
+function aktiveRollenbreiten(){
+ return rollenbreiten.filter(r=>r.aktiv).map(r=>Number(r.breite))
+  .filter(b=>Number.isFinite(b)&&b>0).sort((a,b)=>b-a);
+}
 const EB_EINSTELLUNGEN_SCHLUESSEL="pebg_einstellungen";
 let einlaufblechSettings=(function(){
  try{

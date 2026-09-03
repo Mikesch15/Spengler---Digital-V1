@@ -135,3 +135,12 @@
 .p-lg-orange{color:#b4610a}
 /* Die farbigen Punkte an den beiden Geometriefeldern */
 .p-feld label{white-space:normal}
+
+/* Haltebleche und Rollenbreiten */
+.p-schalter{display:flex;align-items:center;gap:9px;min-height:46px;font-size:14px;
+ font-weight:700;color:var(--ink);text-transform:none;letter-spacing:0}
+.p-schalter input[type=checkbox]{width:auto;min-height:0;padding:0;border:0;transform:scale(1.4)}
+.p-rollen{display:flex;flex-wrap:wrap;gap:6px 16px}
+.p-rolle{flex:0 0 auto;min-height:42px}
+.p-tabelle tr.p-beste{background:#eff9f2}
+.p-tabelle tr.p-beste td:first-child{font-weight:700;color:#1f5c39}

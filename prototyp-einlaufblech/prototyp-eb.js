@@ -27,6 +27,7 @@ let schritt=1;
 
 // ---- 2. Modell ------------------------------------------------------------
 const SPEICHER="pebg_aufnahmen";
+const zahlSicher=(v,ersatz)=>{const n=Number(v);return Number.isFinite(n)&&n>0?n:ersatz};
 function leereAufnahme(){
  return {
   id:"eb"+Date.now().toString(36)+Math.random().toString(36).slice(2,7),
@@ -35,6 +36,7 @@ function leereAufnahme(){
   material:"", abwicklung:250, montage:"links",
   massA:0, winkel:0,
   gesamtlaenge:0, stuecke:[],
+  gava:{aktiv:false,abstand_mm:zahlSicher(einlaufblechSettings.gava_abstand,500),anzahl:null},
   fotos:[], skizze:null, bemerkung:""
  };
 }
@@ -52,7 +54,69 @@ function restbreite(a){
 }
 function massAEng(a){return Math.max(0,zahl(a.massA)-2)}
 function gesamtlaengeStuecke(a){return (a.stuecke||[]).reduce((s,p)=>s+zahl(p.laenge),0)}
+// Haltebleche ("GAVA Blech") - dieselbe Rechnung wie der Halterabstand bei
+// Rinne Halbrund in der laufenden App (js/28-rinne-aufnahme.js):
+//     Anzahl = floor(Länge / Abstand) + 1
+// Sie greift nur, wenn das Kästchen "GAVA Blech" angekreuzt ist.
+function gavaAnzahl(a){
+ if(!a.gava||!a.gava.aktiv)return null;
+ const L=gesamtlaengeStuecke(a), ab=zahl(a.gava.abstand_mm);
+ if(L<=0||ab<=0)return null;
+ if(a.gava.anzahl!==null&&a.gava.anzahl!==undefined&&a.gava.anzahl!=="")return Math.round(zahl(a.gava.anzahl));
+ return Math.floor(L/ab)+1;
+}
+function gavaVorschlag(a){
+ const L=gesamtlaengeStuecke(a), ab=zahl(a.gava&&a.gava.abstand_mm);
+ if(L<=0||ab<=0)return null;
+ return Math.floor(L/ab)+1;
+}
+function gavaText(a){
+ const n=gavaAnzahl(a);
+ return n===null?"–":(n+" Stk.");
+}
+
+// ---- Fläche und Rollenblech ----------------------------------------------
+// Blechfläche = Gesamtlänge x Abwicklung. Beides ist erfasst, es wird nichts
+// geschätzt.
+function flaecheM2(a){
+ return gesamtlaengeStuecke(a)*zahl(a.abwicklung)/1e6;
+}
+// Zuschnitt aus Rollenblech: aus einer Rolle der Breite B lassen sich
+// floor(B / Abwicklung) Streifen längs schneiden. Was übrig bleibt, ist
+// Verschnitt in der Breite. Je laufendem Meter Rolle entstehen so n Meter
+// Blech - die nötige Rollenlänge ist Gesamtlänge / n.
+function rollenPlan(a){
+ const A=zahl(a.abwicklung), L=gesamtlaengeStuecke(a);
+ const breiten=aktiveRollenbreiten();
+ if(A<=0||L<=0||!breiten.length)return {moeglich:[],zuSchmal:breiten.slice(),bestes:null};
+ const moeglich=[], zuSchmal=[];
+ breiten.forEach(B=>{
+  const n=Math.floor(B/A);
+  if(n<1){zuSchmal.push(B);return}
+  const rollenlaenge=L/n;                       // mm
+  const flaecheRolle=B*rollenlaenge/1e6;        // m²
+  const nutz=flaecheM2(a);
+  moeglich.push({breite:B,streifen:n,verschnittBreite:B-n*A,
+   rollenlaenge,flaecheRolle,verschnitt:flaecheRolle-nutz,
+   anteil:flaecheRolle>0?(flaecheRolle-nutz)/flaecheRolle*100:0});
+ });
+ moeglich.sort((x,y)=>x.verschnitt-y.verschnitt||x.breite-y.breite);
+ return {moeglich,zuSchmal,bestes:moeglich[0]||null};
+}
 function materialText(a){const m=findMeasurementMaterial(a.material);return m?m.name:"–"}
+
+// ---- 3b. Grundriss ohne den Blickrichtungspfeil am linken Rand -----------
+// generateEbkGrundriss() aus js/13 haengt immer ansichtsPfeilSvg("links",…)
+// an. Die Zeichenflaeche ist dort fest 368x368 (target 280 + 2x44 pad), der
+// Pfeil ist also zeichengenau vorhersagbar - so laesst er sich entfernen,
+// ohne js/13 anzufassen und ohne im SVG herumzuraten.
+const EBK_FLAECHE=368;
+function grundrissHtml(a){
+ const svg=generateEbkGrundriss((a&&a.stuecke)||[]);
+ const pfeil=(typeof ansichtsPfeilSvg==="function")
+   ?ansichtsPfeilSvg("links",EBK_FLAECHE,EBK_FLAECHE):"";
+ return (pfeil&&svg.indexOf(pfeil)>=0)?svg.replace(pfeil,""):svg;
+}
 
 // ---- 4. Stücke ------------------------------------------------------------
 // Aufteilung unverändert über teileLaengeInStuecke() aus js/13.
@@ -145,6 +209,11 @@ function ausmassZeilen(a){
  if(gehrungen)zeile("Gehrungen",gehrungen,"Stk.","Stückliste");
  const stoss=Math.max(0,(a.stuecke||[]).length-1);
  if(stoss)zeile("Blechstösse",stoss,"Stk.","je Übergang zwischen zwei Stücken");
+ if(L>0)zeile("Blechfläche","​"+flaecheM2(a).toFixed(2).replace(".",","),"m²",
+   "Gesamtlänge × Abwicklung");
+ const nG=gavaAnzahl(a);
+ if(nG!==null)zeile("Haltebleche (GAVA Blech)",nG,"Stk.",
+   (a.gava.anzahl?"Eingabe":"Länge ÷ Abstand "+mm(a.gava.abstand_mm)+" mm"));
  const letzte=(a.stuecke||[])[a.stuecke.length-1];
  if(letzte&&zahl(letzte.endzugabeStart))zeile("Endzugabe erstes Stück",mm(letzte.endzugabeStart),"mm","Einstellung Endzugabe");
  if(letzte&&zahl(letzte.endzugabeEnd))zeile("Endzugabe letztes Stück",mm(letzte.endzugabeEnd),"mm","Einstellung Endzugabe");
@@ -153,10 +222,15 @@ function ausmassZeilen(a){
 function materialUebersicht(a){
  const L=gesamtlaengeStuecke(a);
  if(L<=0)return [];
- return [{
+ const liste=[{
   bezeichnung:"Einlaufblech gerade, Abwicklung "+mm(a.abwicklung)+" mm",
-  menge:meter(L), einheit:"m", material:materialText(a)
+  menge:meter(L), einheit:"m", flaeche:flaecheM2(a).toFixed(2).replace(".",","),
+  material:materialText(a)
  }];
+ const nG=gavaAnzahl(a);
+ if(nG!==null)liste.push({bezeichnung:"Haltebleche (GAVA Blech)",
+  menge:nG, einheit:"Stk.", flaeche:"–", material:materialText(a)});
+ return liste;
 }
 
 // ---- 7. Ablage ------------------------------------------------------------
@@ -179,6 +253,8 @@ function oeffnen(id){
  const a=alleAufnahmen().find(x=>x.id===id);
  if(!a)return false;
  aufnahme=JSON.parse(JSON.stringify({...leereAufnahme(),...a}));
+ if(!aufnahme.gava||typeof aufnahme.gava!=="object")
+  aufnahme.gava={aktiv:false,abstand_mm:zahlSicher(einlaufblechSettings.gava_abstand,500),anzahl:null};
  schritt=1; zeichne(); return true;
 }
 // Kopieren: eine eigenständige Aufnahme mit eigener Kennung. Änderungen an
@@ -193,6 +269,8 @@ function kopieren(id){
  const liste=alleAufnahmen(); liste.unshift(k);
  localStorage.setItem(SPEICHER,JSON.stringify(liste));
  aufnahme=JSON.parse(JSON.stringify({...leereAufnahme(),...k}));
+ if(!aufnahme.gava||typeof aufnahme.gava!=="object")
+  aufnahme.gava={aktiv:false,abstand_mm:zahlSicher(einlaufblechSettings.gava_abstand,500),anzahl:null};
  schritt=1; zeichne(); return k.id;
 }
 function loeschen(id){
@@ -324,6 +402,13 @@ liegt das enge Mass auf der <b>${esc(engeSeite(a))}en</b> Seite jedes Stücks.
 Abwicklung und Umschläge bestimmen zusammen mit Mass A die Restbreite.</div>`);
 }
 
+function formelText(a){
+ return `Restbreite = Abwicklung − Mass A − Umschlag oben − Umschlag unten `
+  +`(${mm(a.abwicklung)} − ${mm(a.massA)} − ${mm(einlaufblechSettings.umschlag_oben)} `
+  +`− ${mm(einlaufblechSettings.umschlag_unten)} = ${mm(restbreite(a))} mm). `
+  +`Das enge Mass ist Mass A − 2 mm und gilt auf der ${esc(engeSeite(a))}en Seite. `
+  +`Beide Formeln stammen unverändert aus dem bestehenden Modul.`;
+}
 function schritt2(){
  const a=aufnahme, rb=restbreite(a);
  return karte("2 · Geometrie",`<div class="p-grid">
@@ -341,14 +426,11 @@ Restbreite und Umschläge sind keine Eingaben: die Restbreite folgt aus
 Abwicklung und Mass A, die Umschläge stehen in den Einstellungen.
 Der rote Pfeil links gibt die Blickrichtung an.</div>
 <div class="p-zf-kopf">
-<div><span>Restbreite (Dachschräge)</span><b class="${rb<0?"p-warnwert":""}">${mm(rb)} mm</b></div>
-<div><span>Enges Mass A</span><b>${mm(massAEng(a))} mm</b></div>
-<div><span>Enge Seite</span><b>${esc(engeSeite(a))}</b></div>
+<div><span>Restbreite (Dachschräge)</span><b id="p-wRest" class="${rb<0?"p-warnwert":""}">${mm(rb)} mm</b></div>
+<div><span>Enges Mass A</span><b id="p-wEng">${mm(massAEng(a))} mm</b></div>
+<div><span>Enge Seite</span><b id="p-wSeite">${esc(engeSeite(a))}</b></div>
 </div>
-<div class="p-hinweis">Restbreite = Abwicklung − Mass A − Umschlag oben − Umschlag unten
-(${mm(a.abwicklung)} − ${mm(a.massA)} − ${mm(einlaufblechSettings.umschlag_oben)} − ${mm(einlaufblechSettings.umschlag_unten)}).
-Das enge Mass ist Mass A − 2 mm und gilt auf der ${esc(engeSeite(a))}en Seite.
-Beide Formeln stammen unverändert aus dem bestehenden Modul.</div>`);
+<div class="p-hinweis" id="p-wFormel">${formelText(a)}</div>`);
 }
 
 function stueckZeilen(a){
@@ -388,9 +470,10 @@ zu und setzt den Winkel auf 90° – am Nachbarstück derselben Ecke automatisch
 <tbody id="p-stueckBody">${stueckZeilen(a)}</tbody></table>
 </div>
 <div class="p-zf-kopf">
-<div><span>Stücke</span><b>${(a.stuecke||[]).length}</b></div>
-<div><span>Gesamtlänge</span><b>${L>0?mm(L)+" mm":"–"}</b></div>
+<div><span>Stücke</span><b id="p-zfStueck">${(a.stuecke||[]).length}</b></div>
+<div><span>Gesamtlänge</span><b id="p-zfLaenge">${L>0?mm(L)+" mm":"–"}</b></div>
 <div><span>Abwicklung</span><b>${mm(a.abwicklung)} mm</b></div>
+<div><span>Haltebleche</span><b id="p-zfGava">${gavaText(a)}</b></div>
 </div>
 <div class="p-knopfreihe">
 <button type="button" class="p-grau" id="p-endStart">Endzugabe erstes Stück: ${letzte&&zahl(letzte.endzugabeStart)?"ein":"aus"}</button>
@@ -398,8 +481,25 @@ zu und setzt den Winkel auf 90° – am Nachbarstück derselben Ecke automatisch
 </div>
 <div class="p-klein-text">Die Endzugabe (${mm(s.end_zugabe)} mm) wird immer auf das Reststück gerechnet –
 kein reguläres Stück darf länger sein als Stoss/Stoss + Überlappung.</div>
+<h3>Haltebleche</h3>
+<label class="p-schalter"><input type="checkbox" id="p-gava"${a.gava&&a.gava.aktiv?" checked":""}> GAVA Blech</label>
+${a.gava&&a.gava.aktiv?`<div class="p-grid">
+${feld("Abstand (mm)",`<input class="p-gross" id="p-gavaAbstand" type="number" inputmode="numeric" step="10" value="${zahl(a.gava.abstand_mm)||""}">`)}
+${feld("Anzahl",`<input class="p-gross" id="p-gavaAnzahl" type="number" inputmode="numeric" step="1" value="${a.gava.anzahl??""}" placeholder="${gavaVorschlag(a)??""}">`)}
+</div>
+<div class="p-hinweis">${gavaVorschlag(a)!==null
+ ?`Vorschlag aus ${mm(L)} mm Länge und ${mm(a.gava.abstand_mm)} mm Abstand:
+<b>${gavaVorschlag(a)} Stk.</b>${a.gava.anzahl?"":" – gilt, solange keine eigene Anzahl eingetragen ist."}
+<button type="button" class="p-grau" id="p-gavaUebernehmen" style="margin-left:6px">Vorschlag übernehmen</button>`
+ :"Für einen Vorschlag braucht es Stücke mit einer Länge und einen Abstand grösser als 0 mm."}
+<br>Gerechnet wird wie der Halterabstand bei Rinne Halbrund in der laufenden App:
+Anzahl = ganzzahlig(Länge ÷ Abstand) + 1.</div>`
+ :`<div class="p-klein-text">Ohne Haken wird keine Anzahl gerechnet und im Ausmass
+erscheint keine Position dafür.</div>`}
 <h3>Grundriss</h3>
-<div class="p-grundriss" id="p-grundriss">${generateEbkGrundriss(a.stuecke||[])}</div>`);
+<div class="p-grundriss" id="p-grundriss">${grundrissHtml(a)}</div>
+<div class="p-klein-text">Die Nummern sind die Stücke, die kurzen Querstriche die
+Blechstösse. Rote Pfeile zeigen die Blickrichtung auf das jeweilige Stück.</div>`);
 }
 
 function schritt4(){
@@ -445,6 +545,52 @@ function schritt5(){
 <div class="p-zf-fuss">Fotos: <b>${(a.fotos||[]).length}</b> · Skizze: <b>${a.skizze?"vorhanden":"keine"}</b></div>`);
 }
 
+function rollenKarte(a){
+ const A=zahl(a.abwicklung), L=gesamtlaengeStuecke(a);
+ const r=rollenPlan(a);
+ const breiten=aktiveRollenbreiten();
+ if(!breiten.length)
+  return karte("Rollenblech und Verschnitt",
+   `<div class="p-warnung">Es ist keine Rollenbreite aktiv. In den Einstellungen
+mindestens eine anhaken – sonst wird der Materialbedarf <b>nicht</b> gerechnet.</div>`);
+ if(L<=0||A<=0)
+  return karte("Rollenblech und Verschnitt",`<div class="p-leer">Noch nichts zuzuschneiden.</div>`);
+ if(!r.moeglich.length)
+  return karte("Rollenblech und Verschnitt",
+   `<div class="p-warnung">Keine der aktiven Rollen (${breiten.map(b=>mm(b)+" mm").join(" · ")})
+ist breit genug für eine Abwicklung von ${mm(A)} mm. Der Bedarf wird deshalb
+<b>nicht</b> gerechnet – er würde sonst auf einer geratenen Breite beruhen.</div>`);
+ const b=r.bestes;
+ const zeilen=r.moeglich.map(x=>`<tr${x===b?' class="p-beste"':""}>
+<td>${mm(x.breite)} mm${x===b?" ★":""}</td>
+<td class="p-num">${x.streifen}</td>
+<td class="p-num">${mm(x.verschnittBreite)} mm</td>
+<td class="p-num">${meter(x.rollenlaenge)} m</td>
+<td class="p-num">${x.flaecheRolle.toFixed(2).replace(".",",")}</td>
+<td class="p-num${x.anteil>15?" p-warnwert":""}">${x.verschnitt.toFixed(2).replace(".",",")} (${x.anteil.toFixed(1).replace(".",",")} %)</td></tr>`).join("");
+ return karte("Rollenblech und Verschnitt",
+`<div class="p-hinweis">Aus einer Rolle der Breite B lassen sich
+ganzzahlig(B ÷ Abwicklung) Streifen längs schneiden; was in der Breite übrig
+bleibt, ist Verschnitt. Je laufendem Meter Rolle entstehen so <i>n</i> Meter
+Blech – nötige Rollenlänge = Gesamtlänge ÷ <i>n</i>.</div>
+<div class="p-zf-kopf">
+<div><span>Empfehlung</span><b>${mm(b.breite)} mm</b></div>
+<div><span>Streifen je Rolle</span><b>${b.streifen}</b></div>
+<div><span>Rollenlänge</span><b>${meter(b.rollenlaenge)} m</b></div>
+<div><span>Blechfläche</span><b>${flaecheM2(a).toFixed(2).replace(".",",")} m²</b></div>
+<div><span>Verschnitt</span><b class="${b.anteil>15?"p-warnwert":""}">${b.verschnitt.toFixed(2).replace(".",",")} m² (${b.anteil.toFixed(1).replace(".",",")} %)</b></div>
+</div>
+<div class="p-tabelle">
+<table><thead><tr><th>Rollenbreite</th><th>Streifen</th><th>Rest Breite</th>
+<th>Rollenlänge</th><th>Fläche m²</th><th>Verschnitt m²</th></tr></thead>
+<tbody>${zeilen}</tbody></table>
+</div>
+${r.zuSchmal.length?`<div class="p-klein-text">Zu schmal für ${mm(A)} mm Abwicklung und
+deshalb nicht aufgeführt: ${r.zuSchmal.map(x=>mm(x)+" mm").join(" · ")}.</div>`:""}
+<div class="p-klein-text">Gerechnet wird nur die Breite. Ein Längsverschnitt am
+Rollenende und die Schnittfuge sind nicht berücksichtigt – dafür fehlen die
+Werte des Betriebs.</div>`);
+}
 function schritt6(){
  const a=aufnahme, z=ausmassZeilen(a), mat=materialUebersicht(a);
  return karte("6 · Ausmass",`<div class="p-hinweis">Automatisch aus der Massaufnahme.
@@ -455,12 +601,13 @@ Nichts davon wird ein zweites Mal eingegeben – wird ein Mass geändert, änder
  ||'<tr><td colspan="5" class="p-leer">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
 </div>`)
 +karte("Materialübersicht",`<div class="p-tabelle">
-<table><thead><tr><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Material</th></tr></thead>
-<tbody>${mat.map(m=>`<tr><td>${esc(m.bezeichnung)}</td><td class="p-num">${esc(m.menge)}</td><td>${esc(m.einheit)}</td><td>${esc(m.material)}</td></tr>`).join("")
- ||'<tr><td colspan="4" class="p-leer">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
+<table><thead><tr><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Fläche m²</th><th>Material</th></tr></thead>
+<tbody>${mat.map(m=>`<tr><td>${esc(m.bezeichnung)}</td><td class="p-num">${esc(m.menge)}</td><td>${esc(m.einheit)}</td><td class="p-num">${esc(m.flaeche)}</td><td>${esc(m.material)}</td></tr>`).join("")
+ ||'<tr><td colspan="5" class="p-leer">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
 </div>
 <div class="p-hinweis">Artikelnummern und Preise stehen hier bewusst nicht.
 Sie kommen später aus der importierten, firmeneigenen Materialliste.</div>`)
++rollenKarte(aufnahme)
 +karte("Zuschnittliste",`<div class="p-tabelle">
 <table><thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Winkel</th></tr></thead>
 <tbody>${(a.stuecke||[]).map((p,i)=>`<tr><td>${i+1}</td><td class="p-num">${mm(p.laenge)}</td>
@@ -506,8 +653,21 @@ function setzeSchritt(n){
 // das Feld nach dem ersten Zeichen den Fokus. Aktualisiert werden nur die
 // abgeleiteten Anzeigen.
 function live(){
- const sch=$("p-schnitt"); if(sch)sch.innerHTML=schnittHtml(aufnahme);
- const gr=$("p-grundriss"); if(gr)gr.innerHTML=generateEbkGrundriss(aufnahme.stuecke||[]);
+ const a=aufnahme;
+ const sch=$("p-schnitt"); if(sch)sch.innerHTML=schnittHtml(a);
+ const gr=$("p-grundriss"); if(gr)gr.innerHTML=grundrissHtml(a);
+ // Die abgeleiteten Werte MÜSSEN hier mitlaufen: sie stehen ausserhalb der
+ // Zeichnung und wuerden sonst bis zum naechsten vollen Zeichnen alt bleiben.
+ const rb=restbreite(a);
+ const rest=$("p-wRest");
+ if(rest){rest.textContent=mm(rb)+" mm"; rest.classList.toggle("p-warnwert",rb<0)}
+ const eng=$("p-wEng"); if(eng)eng.textContent=mm(massAEng(a))+" mm";
+ const seite=$("p-wSeite"); if(seite)seite.textContent=engeSeite(a);
+ const formel=$("p-wFormel"); if(formel)formel.innerHTML=formelText(a);
+ const zf=$("p-zfStueck"); if(zf)zf.textContent=(a.stuecke||[]).length;
+ const zl=$("p-zfLaenge");
+ if(zl){const L=gesamtlaengeStuecke(a); zl.textContent=L>0?mm(L)+" mm":"–"}
+ const zg=$("p-zfGava"); if(zg)zg.textContent=gavaText(a);
 }
 
 function listeHtml(){
@@ -537,14 +697,26 @@ const EINST_FELDER=[
  {k:"umschlag_oben", t:"Umschlag oben (mm)"},
  {k:"umschlag_unten",t:"Umschlag unten (mm)"},
  {k:"rest_schwelle", t:"Reststück-Schwelle (mm)"},
- {k:"end_zugabe",    t:"Endzugabe (mm)"}
+ {k:"end_zugabe",    t:"Endzugabe (mm)"},
+ {k:"gava_abstand",  t:"Abstand Haltebleche (mm)"}
 ];
 function einstellungenHtml(){
+ const rollen=rollenbreiten.map(r=>`<label class="p-schalter p-rolle">
+<input type="checkbox" data-rolle="${r.breite}"${r.aktiv?" checked":""}> ${mm(r.breite)} mm</label>`).join("");
  return `<div class="p-grid">${EINST_FELDER.map(f=>feld(f.t,
   `<input class="p-gross" type="number" inputmode="numeric" step="1" data-einst="${f.k}" value="${zahl(einlaufblechSettings[f.k])}">`)).join("")}</div>
+<h3>Rollenbreiten für den Zuschnitt</h3>
+<div class="p-rollen">${rollen}</div>
+<div class="p-klein-text">1'000 mm und 670 mm sind die Standardrollen. Die übrigen
+Breiten liegen bereit und lassen sich hier dazuschalten – auch für andere
+Massaufnahmen brauchbar. Ist keine angehakt, wird der Materialbedarf nicht
+gerechnet.</div>
 <div class="p-knopfreihe"><button type="button" class="p-grau" id="p-einstZurueck">↻ Standardwerte</button></div>
 <div class="p-klein-text">Wie in der App gerätebezogen gespeichert. Vorgaben:
 ${EINST_FELDER.map(f=>esc(f.t.replace(/ \(mm\)$/,""))+" "+EB_STANDARD[f.k]).join(" · ")} mm.</div>`;
+}
+function rollenSpeichern(){
+ try{localStorage.setItem(ROLLEN_SCHLUESSEL,JSON.stringify(rollenbreiten))}catch(e){}
 }
 function einstellungenSpeichern(){
  try{localStorage.setItem(EB_EINSTELLUNGEN_SCHLUESSEL,JSON.stringify(einlaufblechSettings))}catch(e){}
@@ -637,6 +809,8 @@ function verdrahten(){
     nurLive=true;
    }
   }
+  else if(t.id==="p-gavaAbstand"){a.gava.abstand_mm=zahl(t.value);nurLive=true}
+  else if(t.id==="p-gavaAnzahl"){a.gava.anzahl=t.value===""?null:zahl(t.value);nurLive=true}
   else if(d.einst!==undefined){
    einlaufblechSettings[d.einst]=zahl(t.value);
    einstellungenSpeichern(); nurLive=true;
@@ -652,6 +826,16 @@ function verdrahten(){
   if(t.id==="p-abwicklung"){a.abwicklung=zahl(t.value);zeichne();return}
   if(t.id==="p-montage"){a.montage=t.value;zeichne();return}
   if(t.id==="p-fotoInput"){fotosAufnehmen(t.files);return}
+  if(t.id==="p-gava"){
+   a.gava.aktiv=t.checked;
+   if(!t.checked)a.gava.anzahl=null;
+   zeichne(); return;
+  }
+  if(d.rolle!==undefined){
+   const r=rollenbreiten.find(x=>String(x.breite)===String(d.rolle));
+   if(r)r.aktiv=t.checked;
+   rollenSpeichern(); zeichne(); return;
+  }
   if(d.gl!==undefined){gehrungSetzen(Number(d.gl),"links",t.checked);zeichne();return}
   if(d.gr!==undefined){gehrungSetzen(Number(d.gr),"rechts",t.checked);zeichne();return}
  });
@@ -681,7 +865,14 @@ function verdrahten(){
   if(t.id==="p-listeAuf"){listeOffen=!listeOffen;zeichne();return}
   if(t.id==="p-einstAuf"){einstellungenOffen=!einstellungenOffen;zeichne();return}
   if(t.id==="p-einstZurueck"){
-   einlaufblechSettings={...EB_STANDARD}; einstellungenSpeichern(); zeichne(); return;
+   einlaufblechSettings={...EB_STANDARD};
+   rollenbreiten=ROLLEN_VORGABE.map(x=>({...x}));
+   einstellungenSpeichern(); rollenSpeichern(); zeichne(); return;
+  }
+  if(t.id==="p-gavaUebernehmen"){
+   const v=gavaVorschlag(a);
+   if(v!==null)a.gava.anzahl=v;
+   zeichne(); return;
   }
   if(d.oeffnen!==undefined){oeffnen(d.oeffnen);return}
   if(d.kopieren!==undefined){kopieren(d.kopieren);return}

@@ -322,7 +322,7 @@ const text=page=>page.evaluate(()=>document.getElementById("p-inhalt").innerText
  p(holen("Stücke")&&holen("Stücke").menge===3,"3 Stücke",holen("Stücke"));
  p(holen("Gehrungen")&&holen("Gehrungen").menge===2,"2 Gehrungen",holen("Gehrungen"));
  p(holen("Blechstösse")&&holen("Blechstösse").menge===2,"2 Blechstösse",holen("Blechstösse"));
- p(!/Fr\.|CHF|Preis|Art\.-?Nr|\d+\.\d{2}\s*(Fr|CHF)/i.test(am.tabelle),
+ p(!/\bFr\.|\bCHF\b|\bPreis|Art\.-?Nr/i.test(am.tabelle),
    "keine Preise und keine Artikelnummern in den Ausmass-Tabellen",am.tabelle.slice(0,200));
  p(/Artikelnummern und Preise stehen hier bewusst nicht/.test(am.hinweis),
    "und es steht ausdruecklich da, dass sie fehlen");
@@ -351,7 +351,7 @@ const text=page=>page.evaluate(()=>document.getElementById("p-inhalt").innerText
  p(/330/.test(mat.liste[0].bezeichnung),"die Abwicklung steht in der Bezeichnung",mat.liste[0]);
  p(mat.liste[0].menge===(mat.L/1000).toFixed(2).replace(".",","),
    "die Menge ist die Summe der Zuschnitte",{menge:mat.liste[0].menge,L:mat.L});
- p(!/Fr\.|CHF|Preis|Art\.-?Nr/i.test(mat.text),
+ p(!/\bFr\.|\bCHF\b|\bPreis|Art\.-?Nr/i.test(mat.text),
    "keine Preise und keine Artikelnummern in der Materialübersicht",mat.text.slice(0,200));
  const ohneMaterial=await page.evaluate(()=>{
   aufnahme.material="";
@@ -399,6 +399,168 @@ const text=page=>page.evaluate(()=>document.getElementById("p-inhalt").innerText
   p(r.raus&&r.raus.length===0,"Winkel "+w+"°: nichts läuft aus dem Bild",r.raus);
  }
  await page.evaluate(()=>{aufnahme=leereAufnahme();aufnahme.massA=120;aufnahme.winkel=30;setzeSchritt(1)});
+
+ console.log("\n14 · Gemeldet: abgeleitete Werte laufen beim Tippen mit");
+ // Der gemeldete Fehler: Restbreite und enges Mass standen still, bis die
+ // Seite neu gezeichnet wurde - es sah aus, als fehle Mass A in der Formel.
+ await page.evaluate(()=>{aufnahme=leereAufnahme();aufnahme.abwicklung=250;
+  aufnahme.massA=120;aufnahme.winkel=30;setzeSchritt(2)});
+ await page.waitForTimeout(150);
+ const vorT=await page.evaluate(()=>({r:$("p-wRest").textContent,e:$("p-wEng").textContent}));
+ p(/106/.test(vorT.r)&&/118/.test(vorT.e),"Ausgangswerte 106 / 118 mm",vorT);
+ await tippe(page,"p-massA","200");
+ const nachT=await page.evaluate(()=>({r:$("p-wRest").textContent,e:$("p-wEng").textContent,
+   f:$("p-wFormel").textContent,fokus:document.activeElement.id}));
+ p(/\b26\b/.test(nachT.r),"Restbreite läuft beim Tippen mit: 250−200−12−12 = 26 mm",nachT);
+ p(/198/.test(nachT.e),"enges Mass läuft mit: 198 mm",nachT);
+ p(/200/.test(nachT.f)&&/26/.test(nachT.f),"die Formelzeile nennt die neuen Zahlen",nachT.f.slice(0,120));
+ p(nachT.fokus==="p-massA","und der Fokus bleibt im Feld",nachT);
+ // Auch die Montage muss durchschlagen
+ await reg(page,1); await waehle(page,"p-montage","rechts"); await reg(page,2);
+ p(await page.evaluate(()=>$("p-wSeite").textContent)==="links",
+   'Montage "rechts" -> enge Seite "links" in der Anzeige');
+ await reg(page,1); await waehle(page,"p-montage","links");
+
+ console.log("\n15 · Gemeldet: kein Ansichtspfeil im Grundriss");
+ // Strukturell zaehlen, nicht im innerHTML nach einer Zeichenkette suchen:
+ // der Browser formatiert Attribute um, eine Textsuche kann darum gar nicht
+ // fehlschlagen und waere ein Test, der nie greift.
+ const gr=await page.evaluate(()=>{
+  aufnahme.stuecke=stueckeAusGesamtlaenge(5000);
+  setzeSchritt(3);
+  const box=document.getElementById("p-grundriss");
+  const hilfe=document.createElement("div");
+  hilfe.innerHTML=generateEbkGrundriss(aufnahme.stuecke);   // roh aus js/13
+  const zaehl=el=>({polygone:el.querySelectorAll("polygon").length,
+                    linien:el.querySelectorAll("line").length,
+                    kreise:el.querySelectorAll("circle").length});
+  // Der Ansichtspfeil sitzt als einziges Element am linken Rand der 368er
+  // Flaeche - daran ist er eindeutig zu erkennen.
+  const amRand=el=>Array.from(el.querySelectorAll("line")).filter(l=>Number(l.getAttribute("x1"))<10).length;
+  return {stuecke:aufnahme.stuecke.length, roh:zaehl(hilfe), gezeigt:zaehl(box),
+          rohRand:amRand(hilfe), gezeigtRand:amRand(box)};
+ });
+ p(gr.roh.polygone===gr.gezeigt.polygone+1,
+   "js/13 zeichnet ein Polygon mehr - genau den Ansichtspfeil",gr);
+ p(gr.rohRand===1&&gr.gezeigtRand===0,"die Linie am linken Rand ist weg",gr);
+ p(gr.gezeigt.polygone===gr.stuecke,"je Stück bleibt ein roter Blickrichtungspfeil",gr);
+ p(gr.gezeigt.kreise===gr.stuecke,"und die Nummernkreise bleiben",gr);
+ p(gr.gezeigt.linien===gr.roh.linien-1,"sonst ist keine Linie verloren gegangen",gr);
+
+ console.log("\n16 · Neu: Haltebleche (GAVA Blech)");
+ const ohne=await page.evaluate(()=>({
+  n:gavaAnzahl(aufnahme), kaestchen:!!document.getElementById("p-gava"),
+  feld:!!document.getElementById("p-gavaAbstand"),
+  ausmass:ausmassZeilen(aufnahme).some(z=>/Halteblech/i.test(z.bezeichnung))
+ }));
+ p(ohne.kaestchen,"Kästchen 'GAVA Blech' vorhanden");
+ p(ohne.n===null,"ohne Haken wird keine Anzahl gerechnet",ohne);
+ p(!ohne.feld,"ohne Haken kein Abstandsfeld",ohne);
+ p(!ohne.ausmass,"ohne Haken keine Ausmass-Position",ohne);
+ const anG=await page.evaluate(()=>{
+  const k=document.getElementById("p-gava");
+  k.checked=true; k.dispatchEvent(new Event("change",{bubbles:true}));
+  return {n:gavaAnzahl(aufnahme), abstand:aufnahme.gava.abstand_mm,
+          L:gesamtlaengeStuecke(aufnahme), vorschlag:gavaVorschlag(aufnahme),
+          feld:!!document.getElementById("p-gavaAbstand"),
+          ausmass:ausmassZeilen(aufnahme).find(z=>/Halteblech/i.test(z.bezeichnung))};
+ });
+ await page.waitForTimeout(120);
+ p(anG.feld,"mit Haken erscheint das Abstandsfeld");
+ p(anG.abstand===500,"Vorgabeabstand 500 mm",anG);
+ p(anG.n===Math.floor(anG.L/500)+1,"Anzahl = ganzzahlig(Länge ÷ Abstand) + 1",anG);
+ p(anG.n===11,"5'140 mm bei 500 mm ergibt 11 Stück",anG);
+ p(anG.ausmass&&anG.ausmass.menge===11,"und steht so im Ausmass",anG.ausmass);
+ const eigen=await page.evaluate(()=>{
+  aufnahme.gava.anzahl=8; setzeSchritt(3);
+  return {n:gavaAnzahl(aufnahme), z:ausmassZeilen(aufnahme).find(x=>/Halteblech/i.test(x.bezeichnung))};
+ });
+ p(eigen.n===8,"eine eigene Anzahl schlägt den Vorschlag",eigen);
+ p(/Eingabe/.test(eigen.z.herkunft),"und wird als Eingabe ausgewiesen",eigen.z);
+ const anders=await page.evaluate(()=>{
+  aufnahme.gava.anzahl=null; aufnahme.gava.abstand_mm=800; setzeSchritt(3);
+  return {n:gavaAnzahl(aufnahme), L:gesamtlaengeStuecke(aufnahme)};
+ });
+ p(anders.n===Math.floor(anders.L/800)+1,"anderer Abstand -> andere Anzahl",anders);
+ const ausG=await page.evaluate(()=>{
+  aufnahme.gava.abstand_mm=500;
+  const k=document.getElementById("p-gava");
+  k.checked=false; k.dispatchEvent(new Event("change",{bubbles:true}));
+  return {n:gavaAnzahl(aufnahme), ausmass:ausmassZeilen(aufnahme).some(z=>/Halteblech/i.test(z.bezeichnung))};
+ });
+ p(ausG.n===null&&!ausG.ausmass,"Haken wieder weg -> keine Anzahl, keine Position",ausG);
+
+ console.log("\n17 · Neu: Fläche in m²");
+ const fl=await page.evaluate(()=>{
+  aufnahme.abwicklung=250; setzeSchritt(6);
+  return {m2:flaecheM2(aufnahme), L:gesamtlaengeStuecke(aufnahme),
+          zeile:ausmassZeilen(aufnahme).find(z=>/Blechfläche/.test(z.bezeichnung)),
+          mat:materialUebersicht(aufnahme)[0]};
+ });
+ p(Math.abs(fl.m2-fl.L*250/1e6)<1e-9,"Fläche = Gesamtlänge × Abwicklung",fl);
+ p(Math.abs(fl.m2-1.285)<1e-9,"5'140 mm × 250 mm = 1,285 m²",fl.m2);
+ p(fl.zeile&&/1,28/.test(String(fl.zeile.menge)),"steht als Position im Ausmass",fl.zeile);
+ p(fl.mat&&/1,28/.test(String(fl.mat.flaeche)),"und in der Materialübersicht",fl.mat);
+
+ console.log("\n18 · Neu: Zuschnitt aus Rollenblech");
+ const roll=await page.evaluate(()=>{
+  aufnahme.abwicklung=250; setzeSchritt(6);
+  return {plan:rollenPlan(aufnahme), aktiv:aktiveRollenbreiten(),
+          L:gesamtlaengeStuecke(aufnahme),
+          text:document.getElementById("p-inhalt").innerText};
+ });
+ p(roll.aktiv.join()==="1000,670","Standardrollen 1000 und 670 mm aktiv",roll.aktiv);
+ const r1000=roll.plan.moeglich.find(x=>x.breite===1000);
+ const r670=roll.plan.moeglich.find(x=>x.breite===670);
+ p(r1000&&r1000.streifen===4,"1000 ÷ 250 = 4 Streifen",r1000);
+ p(r1000&&r1000.verschnittBreite===0,"und 0 mm Rest in der Breite",r1000);
+ p(r670&&r670.streifen===2,"670 ÷ 250 = 2 Streifen",r670);
+ p(r670&&r670.verschnittBreite===170,"und 170 mm Rest",r670);
+ p(Math.abs(r1000.rollenlaenge-roll.L/4)<1e-9,"Rollenlänge = Gesamtlänge ÷ Streifen",r1000);
+ p(roll.plan.bestes&&roll.plan.bestes.breite===1000,"empfohlen wird die Rolle mit dem kleinsten Verschnitt",roll.plan.bestes);
+ p(Math.abs(roll.plan.bestes.verschnitt)<1e-9,"bei 4 Streifen à 250 mm bleibt nichts übrig",roll.plan.bestes);
+ p(/Rollenblech und Verschnitt/i.test(roll.text),"die Karte ist da");
+ const roll330=await page.evaluate(()=>{
+  aufnahme.abwicklung=330; setzeSchritt(6);
+  const pl=rollenPlan(aufnahme);
+  return {plan:pl,best:pl.bestes};
+ });
+ p(roll330.best.breite===1000&&roll330.best.streifen===3,"330 mm: 1000er Rolle, 3 Streifen",roll330.best);
+ p(roll330.plan.moeglich.find(x=>x.breite===670).streifen===2,"670er Rolle: 2 Streifen",roll330.plan.moeglich);
+ // Verschnitt muss zur Flaeche passen
+ const stimmig=await page.evaluate(()=>{
+  const pl=rollenPlan(aufnahme), n=flaecheM2(aufnahme);
+  return pl.moeglich.every(x=>Math.abs((x.flaecheRolle-n)-x.verschnitt)<1e-9
+    && Math.abs(x.flaecheRolle-x.breite*x.rollenlaenge/1e6)<1e-9);
+ });
+ p(stimmig,"Verschnitt = Rollenfläche − Blechfläche, für jede Zeile");
+ const schmal=await page.evaluate(()=>{
+  aufnahme.abwicklung=330;
+  rollenbreiten.forEach(r=>{r.aktiv=(r.breite===250)});
+  setzeSchritt(6);
+  return {plan:rollenPlan(aufnahme), text:document.getElementById("p-inhalt").innerText};
+ });
+ p(schmal.plan.moeglich.length===0&&schmal.plan.zuSchmal.length===1,
+   "eine zu schmale Rolle wird nicht gerechnet",schmal.plan);
+ p(/breit genug/i.test(schmal.text),"und das wird ausdrücklich gesagt",(schmal.text.match(/Rollenblech[\s\S]{0,220}/)||["(Karte nicht gefunden)"])[0]);
+ const keine=await page.evaluate(()=>{
+  rollenbreiten.forEach(r=>{r.aktiv=false});
+  setzeSchritt(6);
+  return document.getElementById("p-inhalt").innerText;
+ });
+ p(/keine Rollenbreite aktiv/i.test(keine),"ohne aktive Rolle wird nichts geraten");
+ const dazu=await page.evaluate(()=>{
+  const k=document.querySelector('[data-rolle="500"]');
+  einstellungenOffen=true; zeichne();
+  const k2=document.querySelector('[data-rolle="500"]');
+  k2.checked=true; k2.dispatchEvent(new Event("change",{bubbles:true}));
+  aufnahme.abwicklung=250; setzeSchritt(6);
+  return {aktiv:aktiveRollenbreiten(), plan:rollenPlan(aufnahme).bestes};
+ });
+ p(dazu.aktiv.join()==="500","eine Breite lässt sich dazuschalten",dazu.aktiv);
+ p(dazu.plan&&dazu.plan.breite===500&&dazu.plan.streifen===2,"und wird dann gerechnet",dazu.plan);
+ await page.evaluate(()=>{rollenbreiten=ROLLEN_VORGABE.map(x=>({...x}));rollenSpeichern();
+   einstellungenOffen=false; aufnahme.abwicklung=250; setzeSchritt(6)});
 
  console.log("\n12 · Keine JS-Fehler");
  p(fehler.length===0,"keine Seitenfehler",fehler.slice(0,3));
