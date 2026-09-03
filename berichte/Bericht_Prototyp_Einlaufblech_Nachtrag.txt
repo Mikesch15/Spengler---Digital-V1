@@ -1,0 +1,179 @@
+NACHTRAG · Prototyp Einlaufblech gerade
+Sechs Punkte aus Ihrer Rückmeldung · 03.09.2026
+Branch feature/prototype-einlaufblech-gerade · Commit 7e08d0d
+
+Die Testapp ist wieder eine einzige Datei:
+prototyp-einlaufblech/einlaufblech-gerade-testapp.html
+
+================================================================
+1. „BEI DER RESTBREITE WIRD MASS A NICHT MITEINBERECHNET“
+   und
+2. „ENGES MASS WIRD ERST BEI SEITEN-NEULADUNG AKTUALISIERT“
+================================================================
+Das ist EIN Fehler mit zwei Gesichtern – und Ihre zweite Beobachtung
+war der Schlüssel dazu.
+
+Nachgemessen im Browser: die Formel war richtig. Nach dem Tippen von
+Mass A 200 stand im Modell bereits Restbreite 26 mm und enges Mass
+198 mm. Angezeigt wurden aber weiterhin 106 und 118 – weil die
+Aktualisierung beim Tippen NUR die Zeichnung neu zeichnete. Die drei
+Kästchen darunter (Restbreite, enges Mass, enge Seite) und die
+Formelzeile blieben stehen, bis die Seite aus einem anderen Grund neu
+gezeichnet wurde. Von aussen sieht das genau so aus, als würde Mass A
+nicht in die Restbreite eingehen.
+
+Behoben: die Aktualisierung führt diese Werte jetzt mit. Sie werden
+einzeln nachgetragen, NICHT durch ein Neuzeichnen der Felder – sonst
+verlöre das Eingabefeld nach dem ersten Zeichen den Fokus.
+
+Gegenprobe im Prüfstand: mit abgeschalteter Nachführung fällt die
+Prüfung durch (183/185).
+
+Mitgeprüft: auch die Montage schlägt sofort durch („rechts“ → enge
+Seite „links“).
+
+================================================================
+3. „PFEIL VON LINKS IM GRUNDRISS MUSS WEG“
+================================================================
+Entfernt. Wichtig dabei: `generateEbkGrundriss()` gehört der laufenden
+App (js/13) und bleibt unverändert – sie zeichnet den Pfeil weiterhin.
+Der Prototyp erzeugt genau denselben Pfeil noch einmal (die
+Zeichenfläche ist dort fest 368 × 368) und nimmt ihn wieder heraus.
+Damit wird nicht im SVG herumgeraten.
+
+Was bleibt: die roten Blickrichtungspfeile je Stück, die Nummernkreise,
+die Blechstösse und die Endzugaben-Markierungen.
+
+Geprüft wird strukturell: js/13 liefert genau ein Polygon mehr als der
+Prototyp zeigt, und die Linie am linken Rand ist verschwunden, während
+je Stück ein Pfeil und ein Nummernkreis bleiben.
+
+EHRLICHKEITSHINWEIS: Meine erste Prüfung dazu suchte eine Zeichenkette
+im HTML der Zeichnung. Der Browser formatiert Attribute um – diese
+Suche konnte deshalb GAR NICHT fehlschlagen. Die Gegenprobe blieb grün
+und hat den Fehler in meiner Prüfung aufgedeckt. Jetzt wird gezählt,
+und die Gegenprobe fällt korrekt durch (181/185).
+
+================================================================
+4. HALTEBLECHE („GAVA BLECH“)
+================================================================
+Kästchen „GAVA Blech“ in Register 3 · Ausführung.
+
+  ohne Haken   keine Anzahl, kein Abstandsfeld, keine Ausmass-Position
+  mit Haken    Abstand (mm) und Anzahl erscheinen
+
+Gerechnet wird wie der Halterabstand bei Rinne Halbrund in der
+laufenden App:
+
+    Anzahl = ganzzahlig(Länge ÷ Abstand) + 1
+
+Beispiel: 5'140 mm bei 500 mm Abstand → 11 Stück.
+Eine von Hand eingetragene Anzahl schlägt den Vorschlag; im Ausmass
+steht dann „Eingabe“ statt „Länge ÷ Abstand“.
+
+Vorgabeabstand 500 mm, in den Einstellungen änderbar.
+
+OFFEN: Die 500 mm sind der Vorgabewert des Halterabstands bei Rinne
+Halbrund. Für Haltebleche am Einlaufblech habe ich KEINE Quelle in der
+App gefunden. Bitte den richtigen Wert nennen – ich habe ihn nicht
+erfunden, sondern den einzigen vorhandenen übernommen und das hier
+vermerkt.
+
+ZWEITER OFFENER PUNKT: In der laufenden App rechnet der Rinnen-Halter
+mit `ganzzahlig(L ÷ Abstand) + 1`, im Rinnen-Prototyp dagegen mit
+`aufgerundet(L ÷ Abstand) + 1`. Bei 5'100 mm und 500 mm sind das 11
+gegenüber 12 Stück – bei 11 Stück beträgt der Abstand dann 510 mm und
+überschreitet die 500. Ich habe die Fassung der laufenden App
+übernommen, damit die beiden Module dasselbe rechnen. Welche fachlich
+richtig ist, sollten Sie festlegen; das betrifft dann auch die Rinne.
+
+================================================================
+5. ZUSCHNITT-OPTIMIERUNG AUF ROLLENBLECH
+================================================================
+Neue Karte in Register 6.
+
+Rechenweg: aus einer Rolle der Breite B lassen sich
+`ganzzahlig(B ÷ Abwicklung)` Streifen längs schneiden. Was in der
+Breite übrig bleibt, ist Verschnitt. Je laufendem Meter Rolle entstehen
+so n Meter Blech – die nötige Rollenlänge ist Gesamtlänge ÷ n.
+
+Beispiel Abwicklung 250 mm, Gesamtlänge 5'140 mm:
+
+  Rolle    Streifen  Rest Breite  Rollenlänge  Fläche   Verschnitt
+  1'000 mm ★   4         0 mm       1,28 m     1,28 m²  0,00 (0,0 %)
+    670 mm     2       170 mm       2,57 m     1,72 m²  0,44 (25,4 %)
+
+Empfohlen wird die Rolle mit dem kleinsten Verschnitt (★).
+
+Rollenbreiten in den Einstellungen:
+  1'000 mm und 670 mm sind angehakt (Standardrollen)
+  500, 400, 330, 250, 200 mm liegen bereit und lassen sich dazuschalten
+  – auch für andere Massaufnahmen brauchbar, wie gewünscht.
+
+Ehrlich statt geraten:
+  · Ist keine aktive Rolle breit genug für die Abwicklung, wird der
+    Bedarf NICHT gerechnet, sondern gesagt, warum.
+  · Ist gar keine Rolle angehakt, ebenfalls nicht.
+  · Gerechnet wird nur die Breite. Ein Längsverschnitt am Rollenende
+    und die Schnittfuge sind NICHT berücksichtigt – dafür fehlen mir
+    Ihre Werte. Steht so auch in der App unter der Tabelle.
+
+================================================================
+6. FLÄCHE IN M²
+================================================================
+    Blechfläche = Gesamtlänge × Abwicklung
+
+5'140 mm × 250 mm = 1,285 m². Sie steht als eigene Position im Ausmass
+und als eigene Spalte in der Materialübersicht. In der Rollenkarte wird
+sie zusätzlich der Rollenfläche gegenübergestellt – die Differenz ist
+der Verschnitt.
+
+================================================================
+TESTS
+================================================================
+prueftstand: 185/185 (vorher 140/140), in echtem Chromium gegen die
+Einzeldatei, die auf dem Tablet geöffnet wird.
+
+Neu geprüft:
+  14  abgeleitete Werte laufen beim Tippen mit, Fokus bleibt,
+      Formelzeile nennt die neuen Zahlen, Montage schlägt durch
+  15  Ansichtspfeil weg, alles andere im Grundriss bleibt
+  16  GAVA: ohne Haken nichts, mit Haken 11 Stk. bei 500 mm,
+      eigene Anzahl schlägt den Vorschlag, anderer Abstand ändert die
+      Anzahl, Haken weg räumt die Position wieder aus dem Ausmass
+  17  Fläche = Länge × Abwicklung, 1,285 m², im Ausmass und im Material
+  18  Rollen: 1000÷250=4 Streifen ohne Rest, 670÷250=2 Streifen mit
+      170 mm Rest, Rollenlänge = Länge ÷ Streifen, Empfehlung nach
+      kleinstem Verschnitt, Verschnitt = Rollenfläche − Blechfläche für
+      JEDE Zeile, zu schmale Rolle wird nicht gerechnet, ohne aktive
+      Rolle wird nichts geraten, Dazuschalten wirkt
+
+SIEBEN GEGENPROBEN, jede baut einen echten Fehler ein:
+
+  Restbreite läuft nicht mit          183/185
+  Ansichtspfeil bleibt drin           181/185
+  GAVA-Anzahl ohne das +1             181/185
+  GAVA rechnet ohne Haken             180/184
+  Fläche aus dem Eingabefeld          179/184
+  Streifen aufgerundet statt ab       176/184
+  Empfehlung nach Breite statt Rest   181/184
+
+Keine blieb grün, keine brach ab.
+
+Bei zwei Gegenproben musste ich nachbessern, bevor sie etwas taugten:
+die Pfeil-Prüfung (siehe Punkt 3) und die GAVA-Prüfung, deren
+Code-Ersetzung zunächst zweimal zutraf und deshalb gar nicht lief.
+
+Ausserdem korrigiert: meine Preis-Prüfung schlug an, weil „CHF“ in
+„Ble**chf**läche“ steckt. Das war die Prüfung, nicht der Code.
+
+Unverändert grün: alle bestehenden Prüfungen des Prototyps sowie die
+Prüfstände der App (rinneapp71 102/102, verschnitt-app 1578/1578,
+rinne57 379/379, kehle52 698/698, pfade55 38/38, dila-sichtbar 57/57).
+
+Weiterhin KEINE produktive Datei angefasst – git diff gegen main über
+js/, css/, index.html, sw.js, CLAUDE.md ist leer.
+
+NICHT GETESTET, und das wird nicht behauptet: kein echtes
+Android-Tablet, keine Kamera, keine Fingerskizze, kein nachgemessenes
+Blech.

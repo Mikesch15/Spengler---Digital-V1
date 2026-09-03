@@ -1,0 +1,75 @@
+NACHTRAG · Zuschnittliste: jedes Blech mit seiner genauen Länge
+Prototyp Einlaufblech gerade · 03.09.2026 · Commit 35e3ae6
+
+================================================================
+1. WAS FEHLTE
+================================================================
+Zum Packen in die Streifen werden die Bleche nach Länge sortiert. Danach
+führte ich sie nur noch als nackte Zahlen mit – welche Zahl zu welchem
+Blech gehört, war nicht mehr erkennbar:
+
+    Streifen 1   2'070            Rest      0 mm
+    Streifen 2   2'070            Rest      0 mm
+    Streifen 3   1'000            Rest  1'070 mm
+
+Bei zwei gleich langen Blechen konnte man nicht sagen, welches wo liegt.
+
+================================================================
+2. WAS JETZT DA STEHT
+================================================================
+Die Nummer reist mit: die Packfunktion arbeitet mit {Nummer, Länge}
+statt mit blossen Längen.
+
+SO LIEGEN DIE STÜCKE IN DEN STREIFEN
+  Streifen  Bleche mit ihrer Länge      belegt     Rest
+     1      Stück 1 · 2'070 mm          2'070 mm      0 mm
+     2      Stück 2 · 2'070 mm          2'070 mm      0 mm
+     3      Stück 4 · 1'450 mm          1'450 mm    620 mm
+     4      Stück 3 · 1'000 mm          1'000 mm  1'070 mm
+
+ZUSCHNITTLISTE
+  Nr.  Zuschnittlänge  Streifen  Ger. L  Ger. R  Winkel
+   1       2'070 mm        1        –       –      0°
+   2       2'070 mm        2        –       –      0°
+   3       1'000 mm        4        –       –      0°
+   4       1'450 mm        3        –       –      0°
+                        Bleche 4 · Summe der Zuschnitte 6'590 mm
+
+Beide Tabellen lassen sich damit gegeneinander lesen: die Zuschnittliste
+sagt, welche Länge ein Blech hat und aus welchem Streifen es kommt; die
+Streifentabelle sagt, was in einem Streifen liegt und was übrig bleibt.
+
+Liegen mehrere Bleche hintereinander in einem Streifen, stehen sie dort
+einzeln untereinander – jedes mit seiner Nummer und seiner Länge.
+
+================================================================
+3. GEPRÜFT
+================================================================
+203/203 (vorher 197).
+
+Neu:
+  · vier Bleche 2'070 / 2'070 / 1'000 / 1'450 → vier Zeilen
+  · jede Zeile zeigt die genaue Länge ihres Blechs
+  · jede Zeile nennt den Streifen
+  · die Streifentabelle nennt jedes Blech mit Nummer UND Länge
+  · jedes Blech kommt genau einmal vor
+  · belegt + Rest = Tafellänge, für jeden Streifen
+  · die Summe der Streifeninhalte ist die Summe der Zuschnitte
+
+VIER GEGENPROBEN:
+  Liste zeigt die Tafellänge statt der Blechlänge     202/203
+  Streifentabelle ohne Blechnummer                    202/203
+  gleich lange Bleche zusammengefasst                 192/203
+  Zuschnittliste ohne Streifen-Zuordnung              202/203
+
+Keine blieb grün, keine brach ab.
+
+================================================================
+4. UNVERÄNDERT
+================================================================
+Keine produktive Datei angefasst. Die fünf aus js/11, js/13 und js/14
+übernommenen Fachfunktionen sind weiterhin zeichengenau – das Bauskript
+prüft es bei jedem Bauen.
+
+Nicht getestet und nicht behauptet: kein echtes Android-Tablet, kein
+nachgemessenes Blech.

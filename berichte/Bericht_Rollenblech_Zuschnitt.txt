@@ -1,0 +1,122 @@
+KORREKTUR · Rollenblech-Zuschnitt
+Prototyp Einlaufblech gerade · 03.09.2026 · Commit ac4c2aa
+Branch feature/prototype-einlaufblech-gerade
+
+================================================================
+1. WAS FALSCH WAR
+================================================================
+Meine erste Fassung nahm an, aus der Rolle liessen sich ENDLOS LANGE
+Streifen der Abwicklungsbreite längs schneiden. Daraus rechnete sie eine
+"nötige Rollenlänge" von Gesamtlänge ÷ Streifen.
+
+So wird nicht gearbeitet. Damit war die ganze Rechnung falsch, nicht nur
+ein Detail.
+
+================================================================
+2. WIE ES JETZT GERECHNET WIRD
+================================================================
+Von der Rolle wird eine TAFEL abgeschnitten und quer in Streifen von der
+Breite der Abwicklung geteilt. Die Tafel ist höchstens so lang wie das
+längste Einlaufblechstück – länger lässt sie sich nicht mehr handhaben.
+In einem Streifen dürfen mehrere Stücke HINTEREINANDER liegen, genau wie
+bei der Rinne mehrere Zuschnitte aus einer Normlänge kommen.
+
+    Streifen je Tafel = ganzzahlig(Rollenbreite ÷ Abwicklung)
+    Tafellänge        = längstes Einlaufblechstück
+    Streifen          = möglichst wenige, Stücke hintereinander gelegt
+    Tafeln            = aufgerundet(Streifen ÷ Streifen je Tafel)
+    Verschnitt        = Tafelfläche − Blechfläche
+
+Die Streifenverteilung ist dasselbe Problem wie die Normlängen bei der
+Rinne. Erst eine gierige Lösung, danach der Versuch, mit weniger
+Streifen auszukommen. Reicht das Suchbudget nicht, wird die gierige
+Lösung gezeigt und ausdrücklich NICHT als beste ausgewiesen.
+
+================================================================
+3. BEISPIEL
+================================================================
+Abwicklung 250 mm, Gesamtlänge 5'000 mm
+→ Stücke 2'070 + 2'070 + 1'000 mm, Blechfläche 1,28 m²
+→ Tafellänge 2'070 mm (das längste Stück)
+
+Streifen (so liegen die Stücke):
+    Streifen 1   2'070            Rest      0 mm
+    Streifen 2   2'070            Rest      0 mm
+    Streifen 3   1'000            Rest  1'070 mm
+
+  Rolle    Streifen/Tafel  Rest Breite  Tafeln  frei  Fläche  Verschnitt
+  1'000 ★        4             0 mm       1      1    2,07   0,78 (37,9 %)
+    670          2           170 mm       2      1    2,77   1,49 (53,7 %)
+
+Empfohlen wird die 1'000er Rolle: eine Tafel 1'000 × 2'070 mm reicht.
+Von ihren vier Streifen bleibt einer ganz übrig – er zählt hier als
+Verschnitt, lässt sich aber als Reststück weiterverwenden. Das steht so
+auch unter der Tabelle.
+
+Die Karte zeigt jetzt zusätzlich, wie die Stücke in den Streifen liegen –
+so ist die Zahl nachvollziehbar und nicht nur ein Ergebnis.
+
+================================================================
+4. UNVERÄNDERT EHRLICH
+================================================================
+ · Ist keine aktive Rolle breit genug für die Abwicklung, wird NICHT
+   gerechnet, sondern gesagt warum.
+ · Ist gar keine Rolle angehakt, ebenfalls nicht.
+ · Ohne Stücke: "Noch nichts zuzuschneiden."
+ · Ein Anschnitt am Rollenanfang und die Schnittfuge sind NICHT
+   berücksichtigt – dafür fehlen mir Ihre Werte.
+
+================================================================
+5. TESTS
+================================================================
+197/197 in echtem Chromium gegen die Einzeldatei (vorher 185).
+
+Neu geprüft:
+  · Tafellänge = längstes Stück (2'070 mm)
+  · 2'070 + 2'070 + 1'000 brauchen 3 Streifen, im dritten bleiben
+    1'070 mm Rest
+  · 1000 ÷ 250 = 4 Streifen je Tafel, 3 nötig → 1 Tafel, 1 Streifen frei
+  · Fläche = Tafeln × Breite × Tafellänge
+  · 670er Rolle: 2 Streifen je Tafel → 2 Tafeln
+  · Empfehlung nach kleinstem Materialeinsatz
+  · Verschnitt = Tafelfläche − Blechfläche
+  · vier Stücke 1'200/800/700/500: drei Streifen genügen, mindestens
+    einer trägt zwei Stücke hintereinander
+  · jedes Stück kommt genau einmal vor, kein Streifen ist überfüllt
+  · zu schmale Rolle, keine aktive Rolle, keine Stücke: je die ehrliche
+    Meldung
+  · Dazuschalten einer Breite wirkt (500 ÷ 250 = 2 Streifen → 2 Tafeln)
+
+FÜNF GEGENPROBEN:
+  Tafel = Summe statt Maximum         184/197
+  kein Hintereinanderlegen            195/197
+  Tafeln abgerundet statt auf         191/197
+  Fläche mit fester Länge             195/197
+  Empfehlung nach Breite              195/197
+
+ZWEI DAVON TAUGTEN ZUERST NICHTS, und das gehört gesagt:
+ · "Tafel = Summe" liess den Prüfstand ABSTÜRZEN statt melden – ein
+   abgestürzter Prüfstand sieht aus wie "keine Fehler". Die Stelle ist
+   jetzt defensiv, die Gegenprobe meldet 184/197.
+ · "kein Hintereinanderlegen" blieb GRÜN, weil sie nur die gierige
+   Lösung sabotierte – die anschliessende Suche reparierte das von
+   selbst. Sie setzt jetzt die Verteilung selbst ausser Kraft und
+   meldet 195/197.
+
+================================================================
+6. NEBENBEI BEHOBEN
+================================================================
+Beim Austausch des Rollen-Blocks hatte ich versehentlich die Funktion
+materialText() mitgelöscht – Register 6 warf dadurch einen Fehler.
+Wieder eingesetzt. Aufgefallen ist es beim Ansehen im Browser, nicht
+beim Lesen des Codes.
+
+================================================================
+7. UNVERÄNDERT
+================================================================
+Keine produktive Datei angefasst (git diff gegen main leer). Die fünf
+aus js/11, js/13 und js/14 übernommenen Fachfunktionen sind weiterhin
+zeichengenau; das Bauskript prüft das bei jedem Bauen.
+
+Nicht getestet und nicht behauptet: kein echtes Android-Tablet, kein
+nachgemessenes Blech, keine echte Rolle aufgeschnitten.

@@ -1,0 +1,141 @@
+NACHTRAG · Rinnenlängen aus einer Rinne-Massaufnahme übernehmen
+Prototyp Einlaufblech gerade · 03.09.2026 · Commit defeeeb
+Branch feature/prototype-einlaufblech-gerade · NICHT in main
+
+================================================================
+1. WAS VERLANGT WAR
+================================================================
+"jetzt müssen noch die rinnenlängen aus der rinnenmassaufnahme
+importiert werden können, genau so wie es in der hauptapp schon
+funktioniert"
+
+"genau so wie in der hauptapp" heisst hier wörtlich: dieselbe
+Umrechnung, nicht eine nachgebaute.
+
+================================================================
+2. WIE DIE LAUFENDE APP ES MACHT (zuerst nachgelesen)
+================================================================
+In der App (js/15-einlaufblech-stueckliste.js, Zeilen 90-112) läuft es
+in drei Schritten:
+
+  1. ladeRinneHalbrundMassaufnahmen(projectId)   -> js/13, holt aus
+     Supabase alle Massaufnahmen des Projekts mit type='rinne_halbrund'
+  2. zeigeRinneUebernahmeListe(...)              -> js/13, zeigt sie an
+  3. baueEinlaufblechStueckeAusRinne(segs, einlaufblechSettings,
+       l => teileLaengeInStuecke(l, einlaufblechSettings), false)
+
+Schritt 3 ist die eigentliche Fachrechnung:
+  - eine Ecke im Rinnenverlauf (Winkel != 0) wird zur Gehrung, links am
+    Folgestück und rechts am Stück davor,
+  - je Gehrung kommt die Gehrungszugabe aus den Einstellungen dazu,
+  - ist ein Segment länger als das Stossmass, wird es über
+    teileLaengeInStuecke() aufgeteilt; nur das letzte Teilstück trägt
+    Winkel und rechte Gehrung,
+  - bestehende Stücke werden nur nach einer Rückfrage ersetzt,
+  - danach eine Meldung "N Stück(e) aus M Segment(en) übernommen."
+
+================================================================
+3. WAS DER PROTOTYP JETZT TUT
+================================================================
+Register 3 "Ausführung" hat einen neuen Block
+"↩️ Aus einer Rinne-Massaufnahme übernehmen".
+
+Die Rechnung ist dieselbe Funktion, unverändert:
+
+    aufnahme.stuecke = baueEinlaufblechStueckeAusRinne(
+      segs, einlaufblechSettings,
+      l => teileLaengeInStuecke(l, einlaufblechSettings), false);
+
+Beide Funktionen liegen zeichengenau so im Prototyp wie in js/13 -
+uebernehmen.js schneidet sie als Text aus der Quelle und bauen.js prüft
+am fertigen Einzelfile nach, dass der Text wörtlich in js/13 steht. Es
+gibt also keine zweite Umrechnung, die auseinanderlaufen könnte.
+
+Gleich wie in der App:
+  - Ecke wird zur Gehrung, Gehrungszugabe aus den Einstellungen
+  - zu lange Segmente werden aufgeteilt
+  - Rückfrage, bevor vorhandene Stücke ersetzt werden (wortgleich)
+  - Meldung "N Stück(e) aus M Segment(en) übernommen."
+  - danach rechnen Ausmass, m2, Haltebleche und der Rollenplan sofort
+    mit den neuen Stücken weiter
+
+================================================================
+4. WOHER DIE MASSAUFNAHMEN KOMMEN
+================================================================
+Der Unterschied liegt nicht in der Rechnung, sondern in der Quelle -
+der Prototyp ist ein einzelnes HTML-File ohne Login und ohne Supabase:
+
+  App        Supabase, measurements des gewählten Projekts,
+             type='rinne_halbrund', RLS-gefiltert
+  Prototyp   localStorage-Schlüssel "sd_prototyp_rinne_halbrund",
+             also der Speicher des Rinnen-Prototyps auf demselben Gerät
+
+Liegt dort nichts, steht das ehrlich da ("Auf diesem Gerät ist keine
+Rinne-Halbrund-Massaufnahme gespeichert. In der laufenden App stehen
+hier die Massaufnahmen des Projekts.") - es wird keine Liste erfunden.
+
+Weil die beiden Testapps auf einem Tablet je nach Ablageort getrennte
+Speicher haben können, gibt es zusätzlich "📋 Massaufnahme als Text
+einfügen": ein Feld, in das die Massaufnahme als JSON eingefügt wird.
+Gelesen werden beide Formate, mehr als Länge und Winkel je Segment
+braucht die Umrechnung nicht:
+
+    segmente        (Rinnen-Prototyp)
+    data.segments   (laufende App)
+
+Segmente ohne Länge werden übersprungen; unlesbarer oder leerer Text
+ändert nichts und sagt das.
+
+================================================================
+5. GEPRÜFT
+================================================================
+pruefstand-einlaufblech: 220/220 (vorher 203), echtes Chromium gegen
+die gebaute Testapp. Abschnitt 19 ist neu, 17 Prüfungen:
+
+  - Block und Liste vorhanden, je Eintrag Name, Datum, Segmentzahl
+  - Rinne ohne Segmente: Knopf gesperrt
+  - erzeugte Stücke stimmen Feld für Feld mit dem überein, was die
+    Funktion der App aus denselben Segmenten erzeugt
+  - eine Ecke wird zur Gehrung
+  - Rückfrage abgelehnt -> vorhandene Stücke bleiben unverändert
+  - Rückfrage bestätigt -> ersetzt
+  - Ausmass, m2 und der Rollenplan rechnen danach weiter
+  - Einfügen im App-Format (data.segments) funktioniert
+  - unlesbarer Text, leerer Text, leere Liste: keine Wirkung, klare Ansage
+
+Vier Gegenproben, jede baut einen Fehler ein und muss den Prüfstand
+umwerfen:
+
+  eigene Umrechnung statt der App-Funktion   214/220
+  ohne Rückfrage ersetzen                    219/220
+  App-Format nicht gelesen                   219/220
+  Segmente ohne Länge mitgezählt             219/220
+
+================================================================
+6. WAS NICHT ANGEFASST WURDE
+================================================================
+git diff main -- js/ css/ index.html sw.js CLAUDE.md pruefstaende/
+prototyp/  ist leer.
+
+Prüfsumme der vier Fachdateien identisch mit main:
+  js/11-einlaufblech-gerade.js      67b9f9dd...
+  js/13-einlaufblech-konisch.js     f99ab1a0...
+  js/14-freies-profil.js            3842dfb6...
+  js/15-einlaufblech-stueckliste.js 011a1f93...
+
+Keine Supabase-Änderung, keine Migration, kein anderes
+Massaufnahme-Modul berührt. Der Prototyp ist weiterhin NICHT in main.
+
+================================================================
+7. OFFEN
+================================================================
+- Kein Live-Test gegen Supabase möglich (die Sandbox lässt keine
+  HTTPS-Verbindung dorthin zu). Das wird nicht als getestet behauptet.
+  Geprüft ist der Weg im Browser gegen die gebaute Testapp.
+- Auf einem echten Android-Tablet ist der Prototyp weiterhin nicht
+  getestet - insbesondere nicht, ob die beiden Testapps sich denselben
+  localStorage teilen. Genau dafür gibt es den Texteinfüge-Weg.
+- Weiterhin offen aus den früheren Nachträgen: die fest eingetragenen
+  2 mm beim engen Mass, der GAVA-Abstand von 500 mm, der Unterschied
+  floor+1 (App) gegen ceil+1 (Rinnen-Prototyp) bei der Halterzahl,
+  sowie Schnittfuge und Wiederverwendung von Reststücken beim Verschnitt.
