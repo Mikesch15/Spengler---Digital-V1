@@ -775,18 +775,73 @@ ${r.zuLang.length?`<div class="info ra-warn"><b>Achtung:</b> ${r.zuLang.length} 
 Im Plan oben sind sie <b>nicht</b> enthalten.</div>`:""}`;
 }
 
+// ---- Register: durch die Massaufnahme führen ------------------------------
+// Sechs Register wie in der Testapp. Immer nur eines ist sichtbar; die Daten
+// liegen ausschliesslich im Modell rinneA, nicht im Formular - ein Register
+// zu wechseln kann deshalb nichts verlieren.
+const RA_REGISTER=[
+ {nr:1,titel:"Grunddaten",     kurz:"Grunddaten"},
+ {nr:2,titel:"Rinnenverlauf",  kurz:"Verlauf"},
+ {nr:3,titel:"Komponenten",    kurz:"Komponenten"},
+ {nr:4,titel:"Kontrolle",      kurz:"Kontrolle"},
+ {nr:5,titel:"Ausmass",        kurz:"Ausmass"},
+ {nr:6,titel:"Zuschnitt",      kurz:"Zuschnitt"}
+];
+let raSchritt=1;
+function raSetzeSchritt(n){
+ raSchritt=Math.max(1,Math.min(RA_REGISTER.length,Number(n)||1));
+ renderRinneAufnahme();
+ const kopf=$("ra_register");
+ if(kopf&&kopf.scrollIntoView)kopf.scrollIntoView({block:"nearest"});
+}
+function raRegisterHtml(){
+ // Die Kontrolle bekommt einen Punkt, sobald es dort etwas zu sehen gibt -
+ // sonst müsste man das Register aufsuchen, um zu merken, dass etwas fehlt.
+ const p=raPruefungen(rinneA);
+ const fehler=p.filter(m=>m.art==="fehler").length;
+ const warn=p.length-fehler;
+ return `<div class="ra-register" id="ra_register">`+RA_REGISTER.map(r=>{
+  const marke=r.nr===4&&(fehler||warn)
+   ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
+  return `<button type="button" class="ra-register-knopf${r.nr===raSchritt?" aktiv":""}" data-ra-schritt="${r.nr}">`
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+ }).join("")+`</div>`;
+}
+function raSchrittInhalt(){
+ if(raSchritt===1)return raKarte("1 · Grunddaten",raGrunddatenHtml());
+ if(raSchritt===2)return raKarte("2 · Rinnenverlauf",raVerlaufHtml());
+ if(raSchritt===3)return raKarte("3 · Halter, Rinnenboden und Dehnung",raKomponentenHtml());
+ if(raSchritt===4)return raKarte("4 · Kontrolle",raKontrolleHtml());
+ if(raSchritt===5)return raKarte("5 · Ausmass und Material",raAusmassHtml());
+ return raKarte("6 · Zuschnitt",raZuschnittHtml())
+      +raKarte("Normlängen und Verschnitt",raNormHtml());
+}
 function renderRinneAufnahme(){
  const ziel=$("rinneAufnahme");
  if(!ziel)return;
+ // Hier verdrahten, nicht nur beim Zuruecksetzen/Fuellen: showMeasTypeSection()
+ // zeichnet das Formular auch, ohne vorher eines von beiden aufzurufen -
+ // ohne diese Zeile waere es dann sichtbar, aber tot. raVerdrahten() merkt
+ // sich, dass es schon lief, und kostet deshalb nichts.
+ raVerdrahten();
  raBruecke();
- ziel.innerHTML=
-   raKarte("Grunddaten",raGrunddatenHtml())
-  +raKarte("Rinnenverlauf",raVerlaufHtml())
-  +raKarte("Halter, Rinnenboden und Dehnung",raKomponentenHtml())
-  +raKarte("Kontrolle",raKontrolleHtml())
-  +raKarte("Ausmass",raAusmassHtml())
-  +raKarte("Zuschnitt",raZuschnittHtml())
-  +raKarte("Normlängen und Verschnitt",raNormHtml());
+ const r=RA_REGISTER[raSchritt-1]||RA_REGISTER[0];
+ ziel.innerHTML=raRegisterHtml()+raSchrittInhalt()
+  +`<div class="bar ra-blaettern">
+<button type="button" class="gray" id="ra_zurueck"${raSchritt<=1?" disabled":""}>‹ Zurück</button>
+<button type="button" class="gray" id="ra_weiter"${raSchritt>=RA_REGISTER.length?" disabled":""}>${
+ raSchritt>=RA_REGISTER.length?"Fertig":"Weiter › "+esc(RA_REGISTER[raSchritt].kurz)}</button>
+</div>`;
+ // Die Registerleiste scrollt auf schmalen Geräten seitwärts. Das aktive
+ // Register muss darin sichtbar sein - sonst weiss man nicht, wo man ist.
+ const strip=$("ra_register"), aktiv=strip&&strip.querySelector(".ra-register-knopf.aktiv");
+ if(strip&&aktiv){
+  // Ueber die tatsaechlichen Rechtecke, nicht ueber offsetLeft: das bezieht
+  // sich auf den offsetParent, und der ist nicht die Leiste.
+  const sr=strip.getBoundingClientRect(), ar=aktiv.getBoundingClientRect();
+  if(ar.left<sr.left)strip.scrollLeft-=(sr.left-ar.left)+12;
+  else if(ar.right>sr.right)strip.scrollLeft+=(ar.right-sr.right)+12;
+ }
 }
 // Nach einer Zifferneingabe wird NICHT alles neu gezeichnet – sonst verliert
 // das Feld nach dem ersten Zeichen den Fokus. Aktualisiert werden nur die
@@ -896,6 +951,9 @@ function raVerdrahten(){
   const t=e.target.closest("button");
   if(!t)return;
   const d=t.dataset||{}, a=rinneA;
+  if(d.raSchritt!==undefined){raSetzeSchritt(d.raSchritt);return}
+  if(t.id==="ra_zurueck"){raSetzeSchritt(raSchritt-1);return}
+  if(t.id==="ra_weiter"){raSetzeSchritt(raSchritt+1);return}
   if(t.id==="ra_addSeg"){a.segmente.push(raNeuesSegment());renderRinneAufnahme();return}
   if(t.id==="ra_addEcke"){raAnhaengen("aussen");return}
   if(t.id==="ra_addEin"){raAnhaengen("einhaenge");return}
@@ -923,11 +981,13 @@ function raVerdrahten(){
 // ---- Schnittstelle für js/10 und js/16 -------------------------------------
 function rinneAufnahmeZuruecksetzen(){
  rinneA=raLeer();
+ raSchritt=1;
  raVerdrahten();
  renderRinneAufnahme();
 }
 function rinneAufnahmeFuellen(d){
  rinneA=raAusData(d);
+ raSchritt=1;
  raVerdrahten();
  renderRinneAufnahme();
 }

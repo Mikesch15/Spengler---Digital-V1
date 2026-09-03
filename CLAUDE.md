@@ -11932,21 +11932,54 @@ Normlängen-Abschnitt druckt den **gespeicherten** Plan, damit ein einmal
 gedrucktes Blatt gleich bleibt, auch wenn die Normlängen später geändert
 werden.
 
-### 79.6 Warum kein Schritt-für-Schritt-Ablauf wie im Prototyp
+### 79.6 Register wie in der Testapp
 
-Der Prototyp führt durch sechs Schritte, weil er eine eigenständige Seite
-ist. In der App liegt die Erfassung im Massaufnahme-Formular, das für die
-zehn anderen Arten ein einziges scrollendes Formular ist. Ein Stepper nur
-für diese eine Art wäre ein zweites Bedienkonzept im selben Dialog.
-Umgesetzt sind deshalb dieselben Inhalte als gestapelte Abschnitte:
-Grunddaten · Rinnenverlauf · Halter/Rinnenboden/Dehnung · Kontrolle ·
-Ausmass · Zuschnitt · Normlängen. Fotos, Skizze, Bezeichnung, Datum,
-Projekt und PDF kommen weiterhin aus der App – der Prototyp brachte dafür
-eigene Lösungen mit, die hier bewusst nicht übernommen wurden.
+Die Erfassung führt durch **sechs Register**, wie die Testapp:
+
+| Nr. | Register | Inhalt |
+|---|---|---|
+| 1 | Grunddaten | Material, Rinnengrösse, gemessene Gesamtlänge |
+| 2 | Rinnenverlauf | Abschnitte und Übergänge, Verlaufsband, Grundriss |
+| 3 | Komponenten | Halter, Rinnenboden, Dehnung |
+| 4 | Kontrolle | Plausibilität und Zusammenfassung |
+| 5 | Ausmass | Ausmass und Materialübersicht |
+| 6 | Zuschnitt | Stückliste und Normlängen/Verschnitt |
+
+Immer nur ein Register ist sichtbar; dazu „‹ Zurück" und „Weiter › …".
+Die Daten liegen **ausschliesslich im Modell `rinneA`**, nicht im Formular –
+ein Registerwechsel kann deshalb nichts verlieren; im Prüfstand wird das
+ausdrücklich nachgemessen (durch alle Register blättern und danach das
+Modell vergleichen).
+
+Das Register **Kontrolle trägt einen Punkt**, sobald es dort etwas zu
+sehen gibt (rot bei einem Fehler, orange bei einem Hinweis) – sonst müsste
+man das Register aufsuchen, um zu merken, dass etwas fehlt.
+
+Die Registerleiste scrollt auf schmalen Geräten seitwärts; das aktive
+Register wird dabei in den sichtbaren Bereich gerückt. Gemessen wird das
+über die tatsächlichen Rechtecke (`getBoundingClientRect`), **nicht** über
+`offsetLeft` – das bezieht sich auf den `offsetParent` und nicht auf die
+Leiste; mit `offsetLeft` war die Rechnung falsch, und der Prüfstand hat es
+gefunden.
+
+Ein ursprünglich gestapelter Aufbau (alle Abschnitte untereinander, wie bei
+den zehn anderen Arten) war der erste Entwurf; der Betreiber hat die
+Register-Führung der Testapp ausdrücklich verlangt.
+
+Fotos, Skizze, Bezeichnung, Datum, Projekt und PDF kommen weiterhin aus der
+App – der Prototyp brachte dafür eigene Lösungen mit, die hier bewusst
+nicht übernommen wurden.
+
+**Verdrahtet wird aus `renderRinneAufnahme()` heraus**, nicht nur beim
+Zurücksetzen/Füllen: `showMeasTypeSection()` zeichnet das Formular auch,
+ohne vorher eines von beiden aufzurufen – auf diesem Weg war die Bedienung
+sichtbar, aber tot. `raVerdrahten()` merkt sich, dass es schon lief.
+Gefunden wurde das nicht durch Nachdenken, sondern weil ein Bildschirmfoto
+dem Prüfstand widersprach.
 
 ### 79.7 Getestet
 
-- **`pruefstaende/pruefstand-rinne-app-v2-71.js` – 70/70**, echtes Chromium
+- **`pruefstaende/pruefstand-rinne-app-v2-71.js` – 99/99**, echtes Chromium
   gegen die echte `index.html` mit den echten Katalogwerten der
   Produktivdatenbank: Modul verdrahtet, Brücke zu js/12 (Abschnitte,
   Fixpunkt-IDs, Rinnenboden an beiden Enden, Material/Grösse in den alten
@@ -11955,8 +11988,10 @@ eigene Lösungen mit, die hier bewusst nicht übernommen wurden.
   Speichern liefert alle acht bisherigen **und** alle acht neuen Felder,
   ein alter Datensatz öffnet unverändert, Dilas von Hand, fehlender Katalog
   wird gemeldet statt still falsch gerechnet, Speichern → Wiederöffnen
-  ergibt denselben Verlauf, fünf Bildschirmbreiten ohne seitliches Scrollen,
-  keine JS-Fehler.
+  ergibt denselben Verlauf, die sechs Register (nur eines sichtbar, Blättern,
+  nichts geht beim Wechseln verloren, Markierung der Kontrolle, aktives
+  Register bleibt sichtbar), fünf Bildschirmbreiten **je Register** ohne
+  seitliches Scrollen, keine JS-Fehler.
 - **`pruefstaende/pruefstand-verschnitt-app.js` – 1 578/1 578**: die
   Verschnitt-Rechnung der App gegen eine **unabhängige, vollständige
   Suche**, die stur alle Stangen-Kombinationen und Zuordnungen durchprobiert
@@ -11969,12 +12004,19 @@ eigene Lösungen mit, die hier bewusst nicht übernommen wurden.
   umwerfen): Brücke setzt `rinneSegments` nicht → Abbruch · Rinnenboden
   nicht an die Enden → 2 · Stutzen geht beim Speichern verloren → 5 ·
   Zusatzfelder werden nicht gespeichert → 18 · alter Datensatz erfindet
-  einen Rinnenboden → 2 · fehlender Katalog wird verschwiegen → Abbruch.
+  einen Rinnenboden → 2 · fehlender Katalog wird verschwiegen → Abbruch ·
+  alle Register auf einmal statt geführt → 7 · Registerwechsel setzt das
+  Modell zurück → Abbruch · Kontroll-Register wird nie markiert → 2 ·
+  geöffnete Aufnahme bleibt auf dem alten Register → 2 · Verdrahtung nur
+  beim Zurücksetzen → Abbruch · Registerleiste scrollt nicht mit → 3.
 - **Zwei echte Fehler kamen dabei heraus**, nicht aus dem Nachdenken:
   (1) die gespeicherten `segments` verloren das Feld `stutzen`, ein
   wiedergeöffneter Datensatz hätte seine Stutzen eingebüsst;
   (2) eine Sammelumbenennung hatte `raHalterAnzahl` zu `raHalterAnraZahl`
-  verstümmelt. Beides behoben und je mit einer Gegenprobe abgesichert.
+  verstümmelt; (3) nach `showMeasTypeSection()` allein war das Formular
+  sichtbar, aber nicht bedienbar; (4) die Registerleiste rückte das aktive
+  Register nicht ins Bild, weil `offsetLeft` sich nicht auf die Leiste
+  bezieht. Alle behoben und je mit einer Gegenprobe abgesichert.
 - **Volle App-Regression grün**: pfade55 38/38, required70 359/359,
   kehle52 698/698, kehleintegration52 76/76, rinne57 379/379,
   breite52 52/52, breite57 84/84, einf70 185/185, offline70 107/107,

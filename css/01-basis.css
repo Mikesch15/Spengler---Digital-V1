@@ -398,3 +398,22 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
    reicht nicht (siehe CLAUDE.md 60.5). */
 .eb-table.ra-tab{min-width:0;table-layout:auto}
 .eb-table.ra-tab td,.eb-table.ra-tab th{word-break:break-word}
+/* Register-Fuehrung durch die Rinnen-Massaufnahme (wie in der Testapp).
+   .ra-register-knopf setzt min-height/padding/width ausdruecklich zurueck -
+   die globale button-Regel wuerde sie sonst ueberschreiben. */
+.ra-register{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;
+ -webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.ra-register-knopf{flex:0 0 auto;width:auto;display:inline-flex;align-items:center;gap:6px;
+ background:#fff;border:1px solid var(--line);border-radius:22px;
+ min-height:42px;padding:0 13px;font-size:13px;font-weight:600;color:var(--ink);
+ white-space:nowrap;cursor:pointer;position:relative}
+.ra-register-knopf.aktiv{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:800}
+.ra-register-nr{display:inline-flex;align-items:center;justify-content:center;
+ width:20px;height:20px;border-radius:50%;background:#eef2f5;color:var(--ink);
+ font-size:11px;font-weight:800;flex:0 0 auto}
+.ra-register-knopf.aktiv .ra-register-nr{background:#fff;color:var(--blue)}
+.ra-register-punkt{width:8px;height:8px;border-radius:50%;background:#d9822b;flex:0 0 auto}
+.ra-register-punkt.fehler{background:#b42318}
+.ra-register-knopf.aktiv .ra-register-punkt{box-shadow:0 0 0 2px #fff}
+.ra-blaettern{justify-content:space-between;margin-top:14px}
+.ra-blaettern button{flex:1 1 46%;min-height:46px;font-weight:700}

@@ -74,6 +74,8 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(!(await page.locator("#rinneStummel").isVisible()),"die alten Felder sind unsichtbar");
 
  console.log("\nB · Verlauf erfassen wie draussen");
+ // Register wechseln - die Erfassung fuehrt seit v2.71 durch sechs Register.
+ const reg=async n=>{await page.click(`[data-ra-schritt="${n}"]`);await page.waitForTimeout(180)};
  const setzeVerlauf=async()=>{
   await page.evaluate(()=>{
    rinneA.material="3"; rinneA.groesse="330";
@@ -110,8 +112,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(plan.ok&&plan.optimal&&plan.gesamt===14000&&plan.verschnitt===1160,
    "Normlaengenplan: 14'000 mm, 1'160 mm Verschnitt, als bester ausgewiesen",
    {gesamt:plan.gesamt,verschnitt:plan.verschnitt,optimal:plan.optimal});
+ await reg(6);
  const txt=await page.locator("#rinneAufnahme").innerText();
- p(/Normlängen und Verschnitt/i.test(txt),"die Karte steht im Formular");
+ p(/Normlängen und Verschnitt/i.test(txt),"die Karte steht auf Register 6");
  p(/Kupfer/.test(txt)&&/330 mm/.test(txt),"Material und Groesse stehen dort",txt.slice(0,200));
 
  console.log("\nD · Speichern liefert die alten UND die neuen Felder");
@@ -158,11 +161,13 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(geladen.boden.links===false&&geladen.boden.rechts===false,
    "ein Rinnenboden wird NICHT erfunden - er war nie erfasst",geladen.boden);
  p(geladen.hand===null,"und die Dehnungselemente bleiben gerechnet",geladen.hand);
+ await reg(2);
  const txtAlt=await page.locator("#rinneAufnahme").innerText();
  p(/Aussenwinkel/i.test(txtAlt),"die Ecke erscheint im Verlauf",txtAlt.slice(0,300));
 
  console.log("\nF · Dehnungselemente von Hand");
  await setzeVerlauf();
+ await reg(6);
  const feld=page.locator("[data-ra-dila-abstand]").first();
  p(await page.locator("[data-ra-dila-abstand]").count()===2,"jede Dila-Zeile ist editierbar");
  await feld.fill("3000"); await feld.blur(); await page.waitForTimeout(250);
@@ -177,6 +182,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  console.log("\nG · Fehlender Katalog wird gemeldet, nicht still falsch gerechnet");
  await page.evaluate(()=>{rinneFittingTypes=[];renderRinneAufnahme()});
  await page.waitForTimeout(200);
+ await reg(1);
  const leer=await page.locator("#rinneAufnahme").innerText();
  p(/Anschlusstypen fehlen im Katalog/i.test(leer),"der Hinweis erscheint",leer.slice(0,300));
  // Bereits gesetzte Typ-IDs werden NICHT geloescht, nur weil der Katalog
@@ -250,6 +256,103 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(await page.evaluate(()=>raDilas(rinneA).automatisch)===false,
    "und die Dilas gelten weiterhin als von Hand gesetzt");
 
+ console.log("\nJ0 · Das Formular ist bedienbar, egal wie es gezeichnet wurde");
+ // showMeasTypeSection() zeichnet das Formular, ohne vorher zurueckzusetzen
+ // oder zu fuellen. Genau dieser Weg hatte die Bedienung tot gelassen.
+ await page.evaluate(()=>{
+  // Verdrahtung wegwerfen und das Formular NUR ueber showMeasTypeSection zeichnen
+  const w=document.getElementById("measTypeRinne");
+  const neu=w.cloneNode(true);
+  delete neu.dataset.raVerdrahtet;      // frisches Element, noch nie verdrahtet
+  w.parentNode.replaceChild(neu,w);
+  rinneA.segmente=[{laenge:4000,linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null}];
+  showMeasTypeSection("rinne_halbrund");
+ });
+ await page.waitForTimeout(200);
+ await page.click('[data-ra-schritt="3"]'); await page.waitForTimeout(200);
+ p(await page.evaluate(()=>raSchritt)===3,
+   "nach showMeasTypeSection allein ist das Register klickbar",await page.evaluate(()=>raSchritt));
+ await page.click('[data-ra-schritt="2"]'); await page.waitForTimeout(200);
+ await page.click("#ra_addSeg"); await page.waitForTimeout(200);
+ p(await page.evaluate(()=>rinneA.segmente.length)===2,
+   "und die Knoepfe der Erfassung wirken",await page.evaluate(()=>rinneA.segmente.length));
+ await page.evaluate(()=>rinneAufnahmeZuruecksetzen());
+
+ console.log("\nJ · Register fuehren durch die Massaufnahme");
+ await setzeVerlauf();
+ const rnamen=await page.$$eval("[data-ra-schritt]",els=>els.map(e=>e.textContent.trim()));
+ p(rnamen.length===6,"sechs Register",rnamen);
+ p(/Grunddaten/.test(rnamen[0])&&/Verlauf/.test(rnamen[1])&&/Komponenten/.test(rnamen[2])
+   &&/Kontrolle/.test(rnamen[3])&&/Ausmass/.test(rnamen[4])&&/Zuschnitt/.test(rnamen[5]),
+   "in der Reihenfolge der Massaufnahme",rnamen);
+ // Immer genau EINES ist sichtbar
+ for(let n=1;n<=6;n++){
+  await reg(n);
+  const st=await page.evaluate(()=>({
+   aktiv:Array.from(document.querySelectorAll("[data-ra-schritt]"))
+     .filter(e=>e.classList.contains("aktiv")).map(e=>e.dataset.raSchritt),
+   ueberschriften:Array.from(document.querySelectorAll("#rinneAufnahme h2")).map(h=>h.textContent.trim())}));
+  p(st.aktiv.length===1&&Number(st.aktiv[0])===n,"Register "+n+" ist als einziges aktiv",st.aktiv);
+  p(st.ueberschriften.length>=1&&st.ueberschriften.length<=2,
+    "und zeigt nur seinen eigenen Inhalt",st.ueberschriften);
+ }
+ // Auf schmalen Geraeten scrollt die Registerleiste - das aktive Register
+ // muss darin sichtbar bleiben, sonst weiss man nicht, wo man ist.
+ await page.setViewportSize({width:360,height:1400});
+ for(const n of [6,1,4]){
+  await reg(n);
+  const sicht=await page.evaluate(()=>{
+   const s=document.getElementById("ra_register");
+   const a=s&&s.querySelector(".ra-register-knopf.aktiv");
+   if(!s||!a)return null;
+   const sr=s.getBoundingClientRect(), ar=a.getBoundingClientRect();
+   return {links:ar.left>=sr.left-1,rechts:ar.right<=sr.right+1};
+  });
+  p(sicht&&sicht.links&&sicht.rechts,"360 px: das aktive Register "+n+" ist sichtbar",sicht);
+ }
+ await page.setViewportSize({width:412,height:1400});
+
+ // Blaettern
+ await reg(1);
+ p(await page.locator("#ra_zurueck").isDisabled(),"auf dem ersten Register ist Zurueck aus");
+ await page.click("#ra_weiter"); await page.waitForTimeout(180);
+ p(await page.evaluate(()=>raSchritt)===2,"Weiter blaettert vor");
+ await page.click("#ra_zurueck"); await page.waitForTimeout(180);
+ p(await page.evaluate(()=>raSchritt)===1,"Zurueck blaettert zurueck");
+ await reg(6);
+ p(await page.locator("#ra_weiter").isDisabled(),"auf dem letzten Register ist Weiter aus");
+ // Der Registerwechsel darf nichts verlieren - die Daten liegen im Modell
+ const vorher=await page.evaluate(()=>JSON.stringify(rinneA));
+ for(const n of [1,4,2,6,3,5,2]) await reg(n);
+ p(await page.evaluate(()=>JSON.stringify(rinneA))===vorher,
+   "durch alle Register blaettern aendert die Aufnahme nicht");
+ // Eine Eingabe auf Register 2 ueberlebt den Wechsel
+ await reg(2);
+ const lf=page.locator("[data-ra-seg-laenge]").first();
+ await lf.fill("8123"); await lf.dispatchEvent("input"); await page.waitForTimeout(150);
+ await reg(5); await reg(2);
+ p(await page.evaluate(()=>rinneA.segmente[0].laenge)===8123,
+   "eine Eingabe ueberlebt den Registerwechsel",await page.evaluate(()=>rinneA.segmente[0].laenge));
+ p(await page.locator("[data-ra-seg-laenge]").first().inputValue()==="8123",
+   "und steht danach wieder im Feld");
+ await page.evaluate(()=>{rinneA.segmente[0].laenge=7000;renderRinneAufnahme()});
+ // Die Kontrolle wird markiert, sobald es dort etwas gibt
+ await page.evaluate(()=>{rinneA.segmente[0].laenge=-5;renderRinneAufnahme()});
+ await page.waitForTimeout(150);
+ p(await page.locator('[data-ra-schritt="4"] .ra-register-punkt.fehler').count()===1,
+   "ein Fehler markiert das Kontroll-Register");
+ await page.evaluate(()=>{rinneA.segmente[0].laenge=7000;renderRinneAufnahme()});
+ await page.waitForTimeout(150);
+ p(await page.locator('[data-ra-schritt="4"] .ra-register-punkt.fehler').count()===0,
+   "und die Markierung verschwindet wieder");
+ // Beim Oeffnen einer Aufnahme faengt es vorne an
+ await reg(5);
+ await page.evaluate(()=>rinneAufnahmeFuellen({segments:[{laenge:1000}]}));
+ await page.waitForTimeout(150);
+ p(await page.evaluate(()=>raSchritt)===1,"eine geoeffnete Aufnahme startet auf Register 1");
+ await page.evaluate(()=>rinneAufnahmeZuruecksetzen());
+ await setzeVerlauf();
+
  console.log("\nH · Breiten");
  await page.evaluate(()=>{
   rinneFittingTypes=[
@@ -264,18 +367,25 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  for(const w of [320,360,412,768,1280]){
   await page.setViewportSize({width:w,height:1400});
   await page.waitForTimeout(150);
-  const u=await page.evaluate(()=>{
-   const br=document.documentElement.clientWidth,bad=[];
-   document.querySelectorAll("#rinneAufnahme *").forEach(el=>{
-    const r=el.getBoundingClientRect();
-    if(r.width>0&&r.right>br+1){
-     let par=el.parentElement,scroll=false;
-     while(par){const o=getComputedStyle(par).overflowX;if(o==="auto"||o==="scroll"){scroll=true;break}par=par.parentElement}
-     if(!scroll)bad.push((el.id||el.className||el.tagName)+" right="+Math.round(r.right));}
+  // JEDES Register einzeln messen - ein Ueberlauf koennte sonst auf einem
+  // gerade nicht sichtbaren Register unbemerkt bleiben.
+  let schlimm=null;
+  for(let n=1;n<=6;n++){
+   await reg(n);
+   const uu=await page.evaluate(()=>{
+    const br=document.documentElement.clientWidth,bad=[];
+    document.querySelectorAll("#rinneAufnahme *").forEach(el=>{
+     const r=el.getBoundingClientRect();
+     if(r.width>0&&r.right>br+1){
+      let par=el.parentElement,scroll=false;
+      while(par){const o=getComputedStyle(par).overflowX;if(o==="auto"||o==="scroll"){scroll=true;break}par=par.parentElement}
+      if(!scroll)bad.push((el.id||el.className||el.tagName)+" right="+Math.round(r.right));}
+    });
+    return {bad:bad.slice(0,3),scrollt:document.documentElement.scrollWidth>br+1};
    });
-   return {bad:bad.slice(0,4),scrollt:document.documentElement.scrollWidth>br+1};
-  });
-  p(u.bad.length===0&&!u.scrollt,w+" px: nichts laeuft seitlich hinaus",u);
+   if(uu.bad.length||uu.scrollt){schlimm={register:n,...uu};break}
+  }
+  p(schlimm===null,w+" px: kein Register laeuft seitlich hinaus",schlimm);
  }
  p(fehler.length===0,"keine JS-Fehler waehrend des ganzen Tests",fehler.slice(0,3));
 
