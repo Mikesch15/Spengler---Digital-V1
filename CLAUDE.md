@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.60, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.61, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.60**
+- sichtbare App-Version: **2.61**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -10098,6 +10098,64 @@ tatsächlich erzeugten Pfade gemessen statt nur auf Vorhandensein geprüft:
 - `BIEGERADIUS` zurück auf 5 → „Rundung ist sichtbar gross" schlägt fehl
 - immer das 180°-Segment versetzen → „jede Innenecke des Profilzugs ist
   gerundet" und „Kehren gehören zum kurzen Blech" schlagen fehl
+
+`breite57` 84/84, `pdf52` 504/504, volle Regression grün, `node --check`
+fehlerfrei, `<div>` 697/697. Regierapport und `js/14-freies-profil.js`
+nicht im Diff.
+
+## 69. RINNE – RUNDUNG ZURÜCKGENOMMEN + UMSCHLAG SAUBER — VERSION 2.61
+
+Zwei Korrekturen an der Skizze aus v2.60. **Nur `js/26-rinne.js`,
+Versionstext und Cache-Version geändert.**
+
+### 69.1 Zu rund
+
+`BIEGERADIUS` 14 → **7**. 14 liess aus einer Blechkantung eine weiche
+Kurve werden – besonders sichtbar an der 70°-Ecke zwischen „Anschl.
+Flachdach" und A. Gemessene Bogenradien jetzt 10/32/17/17/17/13 px statt
+20/64/34/34/34/26.
+
+Zum Vergleich: das Freie Profil verwendet 5 px auf rund 300 px Bildbreite
+(≈ 1,7 %); 7 px auf 680 px sind ≈ 1,0 % – also bewusst zurückhaltender.
+
+### 69.2 Der Umschlag verschmolz zu einem Balken
+
+Der Versatz war mit 11 bzw. 9 px fest. Ein 15-mm-Umschlag ist im Bild
+aber nur rund 13 px lang – ein fester Versatz ist dort entweder fast so
+gross wie der Umschlag selbst (sieht wie ein Haken aus) oder, nach dem
+Herunterrechnen auf 4,6 px, zu eng: bei 3,4 px Strichbreite bleiben dann
+1,2 px Weiss und die beiden Lagen verschmelzen zu einem Balken.
+
+Jetzt hängt der Versatz an der gezeichneten Umschlaglänge, mit beiden
+Grenzen:
+
+```js
+const umschlagVersatz = laengePx =>
+  Math.min(Math.max(7, Math.min(9, laengePx / 3)), Math.max(3, laengePx * 0.8));
+```
+
+- **Untergrenze 7 px**, damit zwischen den Lagen sichtbar Weiss bleibt
+- **Obergrenze 80 % der Umschlaglänge**, damit die Kehre bei einem sehr
+  kurzen Umschlag nicht breiter wird als er lang ist
+- der Kehrenradius folgt automatisch (Versatz/2)
+
+Der Wert 7 wurde nicht geraten: die Umschlag-Region wurde mit 4,6 / 6 /
+7 / 8 px gerendert und verglichen.
+
+### 69.3 Tests
+
+`rinne57` jetzt **378/378**. Die Rundungsprüfung ist von einer reinen
+Untergrenze auf ein **Band** umgestellt, damit sie beide Richtungen
+fängt:
+
+- „Rundung sichtbar, aber nicht zu weich (6 ≤ r ≤ 45 px)"
+- „Umschlag-Kehre ist weit genug offen (≥ 3 px Radius)" (neu)
+
+**Gegenproben** – jede reproduziert genau einen der beiden Fehler:
+- Versatz zurück auf 4,6 px → „Umschlag-Kehre ist weit genug offen"
+  schlägt fehl
+- `BIEGERADIUS` auf 20 → „Rundung sichtbar, aber nicht zu weich" schlägt
+  fehl
 
 `breite57` 84/84, `pdf52` 504/504, volle Regression grün, `node --check`
 fehlerfrei, `<div>` 697/697. Regierapport und `js/14-freies-profil.js`

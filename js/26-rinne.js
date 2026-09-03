@@ -351,13 +351,21 @@ function rinneSvg(profil, masse, titel) {
   // Umschlag-Segmente als eigene, leicht versetzte Linie mit einer Kehre
   // um die Spitze. abgerundeterPfad() stammt aus js/14-freies-profil.js
   // und wird hier nur benutzt, nicht veraendert.
-  // GAP = Versatz des Umschlags, BIEGERADIUS = zeichnerischer Biegeradius
-  // an jeder Ecke. Das Freie Profil zeichnet in ein rund 300 px breites
-  // Bild und kommt dort mit 5 px aus; diese Skizze ist 680 px breit,
-  // deshalb der proportional gleiche, absolut groessere Wert. Zu kleine
-  // Werte sehen aus wie gar keine Rundung. abgerundeterPfad() begrenzt
-  // den Radius bei kurzen Segmenten ohnehin selbst.
-  const GAP = 11, BIEGERADIUS = 14;
+  // Zeichnerischer Biegeradius an jeder Ecke. Bewusst klein - eine
+  // Blechkantung ist eine Kante, keine weiche Kurve. abgerundeterPfad()
+  // begrenzt den Wert bei kurzen Segmenten ohnehin selbst.
+  const BIEGERADIUS = 7;
+  // Versatz eines Umschlags. Ein fester Wert ist falsch: ein 15-mm-
+  // Umschlag ist im Bild nur rund 13 px lang - ein Versatz von 11 px
+  // waere fast so gross wie der Umschlag selbst und sieht wie ein Haken
+  // aus. Deshalb hoechstens ein Drittel der gezeichneten Umschlaglaenge,
+  // nach unten begrenzt, damit die beiden Lagen nicht verschmelzen.
+  // Untergrenze 7: bei 3.4 px Strichbreite bleiben sonst keine 2 px
+  // Weiss zwischen den beiden Lagen und der Umschlag verschmilzt zu
+  // einem Balken. Obergrenze 80 % der Umschlaglaenge: bei einem sehr
+  // kurzen Umschlag darf die Kehre nicht breiter werden als er lang ist.
+  const umschlagVersatz = laengePx =>
+    Math.min(Math.max(7, Math.min(9, laengePx / 3)), Math.max(3, laengePx * 0.8));
   const roh = p.pts.map(q => [X(q[0]), Y(q[1])]);
   const pfad = (pts) => (typeof abgerundeterPfad === "function")
     ? abgerundeterPfad(pts, BIEGERADIUS)
@@ -384,7 +392,8 @@ function rinneSvg(profil, masse, titel) {
     const v = versetzt[i];
     if (!v) return [a0, b0];
     const rad = v.richtung * Math.PI / 180;
-    const nx = -Math.sin(rad) * GAP * v.seite, ny = -Math.cos(rad) * GAP * v.seite;
+    const gap = umschlagVersatz(Math.hypot(b0[0] - a0[0], b0[1] - a0[1]));
+    const nx = -Math.sin(rad) * gap * v.seite, ny = -Math.cos(rad) * gap * v.seite;
     return [[a0[0] + nx, a0[1] + ny], [b0[0] + nx, b0[1] + ny]];
   });
   enden.forEach(([a0, b0]) => merken(Math.min(a0[0], b0[0]) - 3, Math.min(a0[1], b0[1]) - 3,
@@ -407,10 +416,11 @@ function rinneSvg(profil, masse, titel) {
     const nachbar = p.segmente[vorDemKnick ? v.knick : i - 1];
     const radNb = (nachbar ? nachbar.richtung : 0) * Math.PI / 180;
     const dvx = Math.cos(radNb), dvy = -Math.sin(radNb);   // Bildkoordinaten: y nach unten
-    const nx = (u1[0] - sp[0]) / GAP, ny = (u1[1] - sp[1]) / GAP;
+    const gap = Math.hypot(u1[0] - sp[0], u1[1] - sp[1]) || 1;
+    const nx = (u1[0] - sp[0]) / gap, ny = (u1[1] - sp[1]) / gap;
     const sweep = (nx * dvy - ny * dvx) > 0 ? 0 : 1;
     g += strich(`M ${sp[0].toFixed(1)} ${sp[1].toFixed(1)}`
-      + ` A ${(GAP / 2).toFixed(1)} ${(GAP / 2).toFixed(1)} 0 0 ${sweep} ${u1[0].toFixed(1)} ${u1[1].toFixed(1)}`
+      + ` A ${(gap / 2).toFixed(1)} ${(gap / 2).toFixed(1)} 0 0 ${sweep} ${u1[0].toFixed(1)} ${u1[1].toFixed(1)}`
       + ` L ${u2[0].toFixed(1)} ${u2[1].toFixed(1)}`);
     lauf = [roh[i + 1]];
   });
