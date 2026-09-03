@@ -1,0 +1,175 @@
+/* ===========================================================================
+   PROTOTYP · Massaufnahme Rinne Halbrund
+   ===========================================================================
+   Eigene Datei, damit css/01-basis.css der laufenden App unverändert bleibt.
+
+   ACHTUNG – Lehre aus mehreren Fehlern der App (CLAUDE.md 59, 60.5, 72.5,
+   77): css/01-basis.css setzt in den ersten Zeilen sehr breite Grundregeln
+   (input/select/textarea auf 100 % Breite und 40 px Höhe, label in
+   Grossbuchstaben, table mit min-width:1000px, .bar auf display:flex).
+   Jede Regel hier, die eines dieser Elemente betrifft, setzt die
+   betroffenen Eigenschaften deshalb ausdrücklich zurück.
+   =========================================================================== */
+
+body{background:#eef2f5;margin:0;padding:0 0 90px}
+
+/* ---- Kopf- und Fussleiste ---------------------------------------------- */
+.p-topbar{position:sticky;top:0;z-index:40;background:#17202a;color:#fff;
+ padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+ justify-content:space-between}
+.p-marke{font-size:13px;letter-spacing:.3px}
+.p-topknoepfe{display:flex;flex-wrap:wrap;gap:6px}
+.p-topknoepfe button{min-height:38px;padding:0 12px;font-size:13px}
+
+.p-fussleiste{position:sticky;bottom:0;z-index:35;background:#fff;
+ border-top:1px solid #cfd8de;padding:8px 12px;display:flex;gap:10px;
+ margin:14px -12px -90px;padding-bottom:14px}
+.p-fussleiste button{flex:1 1 0;min-height:52px;font-size:16px}
+.p-fussleiste button[disabled]{opacity:.4}
+
+/* ---- Grundbausteine ----------------------------------------------------- */
+#p-app{max-width:820px;margin:0 auto;padding:12px}
+.p-hinweisleiste{background:#eaf3fb;border:1px solid #b9d6ee;color:#17202a;
+ border-radius:10px;padding:9px 11px;font-size:12.5px;line-height:1.4;margin:0 0 12px}
+.p-karte{background:#fff;border:1px solid #d5dde3;border-radius:14px;
+ padding:14px;margin:0 0 12px}
+.p-karte h2{margin:0 0 10px;font-size:16px}
+.p-karte h3{margin:16px 0 6px;font-size:13px;color:#68737d;
+ text-transform:uppercase;letter-spacing:.5px}
+
+.p-kopf{background:#fff;border:1px solid #d5dde3;border-radius:14px;
+ padding:11px 14px;margin:0 0 10px}
+.p-kopf-titel{font-size:17px;font-weight:800;word-break:break-word}
+.p-kopf-zeile{font-size:12.5px;color:#68737d;margin-top:2px;word-break:break-word}
+.p-kopf-fehler{color:#b42318;font-weight:700}
+
+/* ---- Schrittleiste ------------------------------------------------------ */
+.p-schritte{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;
+ -webkit-overflow-scrolling:touch}
+.p-schritt{flex:0 0 auto;display:flex;align-items:center;gap:6px;
+ background:#fff;border:1px solid #cfd8de;border-radius:22px;
+ min-height:42px;padding:0 13px;font-size:13px;color:#17202a;width:auto}
+.p-schritt.aktiv{background:#1769aa;border-color:#1769aa;color:#fff;font-weight:700}
+.p-schritt-nr{display:inline-flex;align-items:center;justify-content:center;
+ width:20px;height:20px;border-radius:50%;background:#eef2f5;color:#17202a;
+ font-size:11px;font-weight:800;flex:0 0 auto}
+.p-schritt.aktiv .p-schritt-nr{background:#fff;color:#1769aa}
+.p-schritt-text{white-space:nowrap}
+
+/* ---- Felder ------------------------------------------------------------- */
+.p-grid{display:flex;flex-wrap:wrap;gap:10px}
+.p-feld{flex:1 1 170px;min-width:0}
+.p-feld.voll{flex:1 1 100%}
+/* label kommt aus der Grundregel in Grossbuchstaben und 9 px - hier nicht. */
+.p-feld > label{display:block;font-size:11.5px;font-weight:700;color:#68737d;
+ text-transform:none;letter-spacing:0;margin:0 0 4px}
+.p-feld input,.p-feld select,.p-feld textarea{width:100%;min-height:46px;font-size:15px}
+.p-gross{font-size:18px!important;font-weight:700}
+.p-wert{min-height:46px;display:flex;align-items:center;font-size:17px;font-weight:700}
+.p-karte textarea{width:100%;min-height:90px;font-size:15px}
+
+.p-schalter{display:flex;align-items:center;gap:8px;min-height:46px;
+ font-size:14px;font-weight:600;color:#17202a;text-transform:none;letter-spacing:0}
+/* Grundregel macht jede Checkbox 40 px hoch mit Rahmen – hier zurücksetzen. */
+.p-schalter input[type=checkbox]{width:24px;height:24px;min-height:0;
+ padding:0;border:0;margin:0;flex:0 0 auto}
+
+/* ---- Zeilen ------------------------------------------------------------- */
+.p-zeile{border:1px solid #dde4e9;border-radius:12px;padding:11px;margin:10px 0;
+ background:#fafcfd}
+.p-zeile-kopf{display:flex;align-items:center;justify-content:space-between;
+ gap:8px;margin:0 0 8px;font-size:13px}
+.p-klein-text{font-size:11.5px;color:#68737d;font-weight:400}
+.p-weg{background:#fff;border:1px solid #e3b5b0;color:#b42318;border-radius:9px;
+ min-height:36px;width:auto;padding:0 12px;font-size:14px;font-weight:700}
+.p-ecke{background:#f2faf8;border-color:#bfe0da}
+.p-ecke-aus{background:#f7f9fa;border-color:#e2e8ec}
+.p-fehler{background:#fdf3f2;border-color:#e8bcb6}
+
+.p-knopfreihe{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+.p-knopfreihe button{flex:1 1 auto;min-height:46px;font-size:14px}
+.p-blau{background:#1769aa;color:#fff;border:0;border-radius:11px;font-weight:700}
+.p-grau{background:#fff;color:#17202a;border:1px solid #c3ced6;border-radius:11px;font-weight:600}
+.p-klein{min-height:34px!important;font-size:12px!important;padding:0 10px;
+ width:auto;flex:0 0 auto;margin-left:8px}
+
+/* ---- Meldungen ---------------------------------------------------------- */
+.p-hinweis{background:#f4f7f9;border-left:3px solid #9bb0c1;border-radius:0 8px 8px 0;
+ padding:8px 10px;margin:10px 0 0;font-size:12.5px;line-height:1.45;color:#3b4750}
+.p-warn{background:#fff6e8;border-left:3px solid #e07a1f;border-radius:0 8px 8px 0;
+ padding:8px 10px;margin:8px 0 0;font-size:12.5px;color:#8a4a0f;font-weight:600}
+.p-leer{color:#8894a0;font-size:13px;padding:12px 2px;text-align:center}
+.p-ok{background:#effaf3;border:1px solid #b8e2c8;color:#146c43;border-radius:10px;
+ padding:11px;font-size:14px;font-weight:600}
+.p-pruefung{display:flex;flex-direction:column;gap:7px}
+.p-fehlerzeile{background:#fdf3f2;border:1px solid #e8bcb6;color:#b42318;
+ border-radius:10px;padding:10px;font-size:13.5px;line-height:1.4}
+.p-warnzeile{background:#fff6e8;border:1px solid #f0c48a;color:#8a5300;
+ border-radius:10px;padding:10px;font-size:13.5px;line-height:1.4}
+
+.p-summe{margin:12px 0 0;padding:11px;background:#eef4f9;border-radius:11px;
+ font-size:15px;text-align:center}
+.p-legende{font-size:11.5px;color:#68737d;text-align:center;margin:4px 0 0}
+.p-grundriss{display:flex;justify-content:center}
+
+/* ---- Zusammenfassung ---------------------------------------------------- */
+.p-zusammenfassung h2{border-bottom:2px solid #17202a;padding-bottom:6px}
+.p-zf-kopf{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 6px}
+.p-zf-kopf > div{flex:1 1 120px;background:#f4f7f9;border-radius:10px;padding:8px 10px}
+.p-zf-kopf span{display:block;font-size:10.5px;color:#68737d;text-transform:uppercase;
+ letter-spacing:.4px}
+.p-zf-kopf b{font-size:15px}
+.p-liste{margin:0;padding:0 0 0 20px;font-size:14px;line-height:1.65}
+.p-ecke-li{color:#0f766e;font-weight:700}
+.p-zf-fuss{font-size:13px;color:#3b4750}
+.p-bem{margin:6px 0 0;padding:8px 10px;background:#f4f7f9;border-radius:9px;
+ white-space:pre-wrap;word-break:break-word}
+
+/* ---- Tabellen ----------------------------------------------------------- */
+/* Grundregel setzt jede Tabelle auf min-width:1000px (CLAUDE.md 60.5). */
+.p-tabelle{overflow-x:auto}
+.p-tabelle table{width:100%;min-width:0;table-layout:auto;font-size:13px}
+.p-tabelle th{background:#f4f7f9;text-align:left;font-size:11px;
+ text-transform:uppercase;letter-spacing:.4px;color:#68737d;padding:7px 8px;
+ border-bottom:1px solid #d5dde3}
+.p-tabelle td{padding:8px;border-bottom:1px solid #eef2f5;word-break:break-word}
+.p-num{text-align:right;white-space:nowrap}
+.p-quelle{color:#68737d;font-size:11.5px}
+
+/* ---- Fotos und Skizze --------------------------------------------------- */
+.p-datei{display:flex;align-items:center;justify-content:center;
+ background:#1769aa;color:#fff;border-radius:11px;min-height:52px;
+ font-size:15px;font-weight:700;cursor:pointer;text-transform:none;
+ letter-spacing:0;padding:0 12px}
+.p-fotos{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 0}
+.p-foto{position:relative;flex:0 0 auto;width:130px}
+.p-foto.gross{width:100%;max-width:420px}
+.p-foto img{width:100%;height:auto;display:block;border-radius:10px;
+ border:1px solid #cfd8de}
+.p-foto .p-weg{position:absolute;top:6px;right:6px;min-height:32px;padding:0 10px}
+.p-fotos .p-leer{flex:1 1 100%}
+
+.p-skizzebox{position:fixed;inset:0;z-index:60;background:#eef2f5;
+ padding:12px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+/* Ohne diese Zeile bliebe die Fläche trotz hidden sichtbar (CLAUDE.md 59). */
+.p-skizzebox[hidden]{display:none}
+.p-skizze-kopf{font-size:16px;font-weight:800}
+.p-skizze-canvas{width:100%;background:#fff;border:1px solid #cfd8de;
+ border-radius:12px;touch-action:none;display:block}
+
+/* ---- Schmale Geräte ----------------------------------------------------- */
+.p-kurz{display:none}
+@media(max-width:520px){
+ /* Auf dem Handy muss die Kopfleiste EINE Zeile bleiben, sonst frisst sie
+    dauerhaft über 100 px Höhe. Deshalb kurze Beschriftungen und keine
+    Wortmarke – die Knöpfe bleiben aber beschriftet, nicht nur Symbole. */
+ .p-marke{display:none}
+ .p-topbar{padding:8px 10px}
+ .p-topknoepfe{width:100%;gap:5px;flex-wrap:nowrap}
+ .p-topknoepfe button{flex:1 1 0;min-width:0;padding:0 6px;font-size:12.5px;
+  min-height:42px;white-space:nowrap;overflow:hidden}
+ .p-lang{display:none}
+ .p-kurz{display:inline}
+ .p-feld{flex:1 1 100%}
+ .p-foto{width:calc(50% - 5px)}
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Prototyp · Massaufnahme Rinne Halbrund</title>
+<link rel="stylesheet" href="../css/01-basis.css">
+<link rel="stylesheet" href="prototyp.css">
+</head>
+<body>
+
+<!-- ===================================================================
+     PROTOTYP  ·  Massaufnahme "Rinne Halbrund"
+     ===================================================================
+     Eigenständige Seite. Sie verändert die laufende App NICHT und
+     spricht auch kein Supabase an. Gespeichert wird ausschliesslich im
+     lokalen Speicher dieses Browsers.
+
+     Die Fachrechnung kommt UNVERÄNDERT aus js/12-rinne-halbrund.js der
+     laufenden App. Damit diese Datei laden kann, braucht sie einige
+     Elemente, an die sie sich beim Laden hängt. Sie stehen weiter unten
+     im Block #p-stummel und sind für den Benutzer unsichtbar – sie
+     werden nie bedient, sondern nur bereitgestellt.
+     =================================================================== -->
+
+<header class="p-topbar">
+ <div class="p-marke">Spengler-DIGITAL · <b>Prototyp</b></div>
+ <div class="p-topknoepfe">
+  <button type="button" id="p-liste" class="p-grau">🗂 <span class="p-lang">Gespeicherte</span><span class="p-kurz">Liste</span></button>
+  <button type="button" id="p-neu" class="p-grau">＋ Neu</button>
+  <button type="button" id="p-kopieren" class="p-grau">📋 <span class="p-lang">Kopieren</span><span class="p-kurz">Kopie</span></button>
+  <button type="button" id="p-speichern" class="p-blau">💾 Speichern</button>
+ </div>
+</header>
+
+<div id="p-app">
+
+ <div class="p-hinweisleiste">
+  Prototyp der Massaufnahme <b>Rinne Halbrund</b>. Alle Eingaben bleiben nur in
+  diesem Browser. Die Rechnung (Dehnungselemente, Zuschnitt, Grundriss) ist
+  unverändert die der laufenden App.
+ </div>
+
+ <div id="p-listeBox" class="p-karte" hidden></div>
+
+ <div id="p-kopf" class="p-kopf"></div>
+ <div id="p-leiste"></div>
+ <div id="p-inhalt"></div>
+
+ <div class="p-fussleiste">
+  <button type="button" id="p-zurueck" class="p-grau">‹ Zurück</button>
+  <button type="button" id="p-weiter" class="p-blau">Weiter ›</button>
+ </div>
+
+ <!-- Skizzenfläche -->
+ <div id="p-skizzeBox" class="p-skizzebox" hidden>
+  <div class="p-skizze-kopf">Skizze zeichnen</div>
+  <canvas id="p-skizzeCanvas" class="p-skizze-canvas"></canvas>
+  <div class="p-knopfreihe">
+   <button type="button" id="p-skizzeSpeichern" class="p-blau">✓ Übernehmen</button>
+   <button type="button" id="p-skizzeLeeren" class="p-grau">Leeren</button>
+   <button type="button" id="p-skizzeAbbrechen" class="p-grau">Abbrechen</button>
+  </div>
+ </div>
+
+</div>
+
+<!-- Nur Aufhänger für js/12-rinne-halbrund.js. Nicht bedienbar, nicht sichtbar. -->
+<div id="p-stummel" hidden aria-hidden="true">
+ <select id="rinne_material"></select>
+ <input id="rinne_abwicklung" value="0">
+ <button type="button" id="rinne_addSegment"></button>
+ <button type="button" id="rinne_calcDilas"></button>
+ <button type="button" id="rinne_addDila"></button>
+ <table><tbody id="rinne_segmentsBody"></tbody></table>
+ <table><tbody id="rinne_dilasBody"></tbody></table>
+ <div id="rinne_dilasSummary"></div>
+ <div id="rinne_diagram"></div>
+ <div id="rinne_summary"></div>
+</div>
+
+<script src="bruecke.js"></script>
+<!-- unverändert aus der laufenden App -->
+<script src="../js/12-rinne-halbrund.js"></script>
+<script src="prototyp-rinne.js"></script>
+</body>
+</html>
