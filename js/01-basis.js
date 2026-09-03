@@ -144,6 +144,10 @@ const MEAS_TYPE_LABELS=Object.freeze({
 // Module in Entwicklung: nur für Administratoren sichtbar.
 // Schlüssel: "meas:<art>" bzw. "am:<art>" -> true = versteckt für alle anderen.
 let moduleImTest={};
+// ID der eigenen app_settings-Zeile. Wird beim Laden gesetzt und beim
+// Speichern als WHERE-Bedingung gebraucht - PostgREST weist ein UPDATE
+// ohne Filter ab ("UPDATE requires a WHERE clause").
+let appSettingsId=null;
 let isMike=false;
 let allProjects=[],currentProjectId=null,currentReportId=null;
 let currentReportMeta={};

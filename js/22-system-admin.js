@@ -52,6 +52,8 @@ $("navSystemAdmin").onclick=async()=>{
  $("systemAdminModal").hidden=false;
  $("sysAdminSearchInput").value="";
  $("sysAdminFilterStatus").value="";
+ renderModuleTestListe();
+ if(typeof moduleTestHinweis==="function")moduleTestHinweis("");
  await renderSystemAdminList();
 };
 $("closeSystemAdmin").onclick=()=>{$("systemAdminModal").hidden=true};
@@ -293,3 +295,70 @@ $("companyRegisterBtn").onclick=async()=>{
   $("companyRegisterBtn").disabled=false;
  }
 };
+
+// ---------------------------------------------------------------------------
+// Module in Entwicklung  (v2.67: aus den Firmeneinstellungen hierher gezogen)
+// ---------------------------------------------------------------------------
+// Ob eine Funktion fertig ist, entscheidet der Betreiber - nicht der einzelne
+// Firmenadmin. Der Wert steht deshalb EINMAL fuer das ganze System in
+// public.system_settings und gilt fuer alle Firmen. Geschrieben wird
+// ausschliesslich ueber system_admin_set_module_test() (SECURITY DEFINER,
+// prueft is_system_admin()); die Tabelle selbst hat fuer "authenticated" nur
+// Leserecht. Angehakte Module auszublenden ist reine UI-Fuehrung, keine
+// Sicherheitsgrenze - siehe CLAUDE.md 22.1.
+
+// Liste der Module aus den Auswahlfenstern zusammenstellen. Neue Arten
+// erscheinen dadurch automatisch, ohne dass hier etwas nachgetragen wird.
+function renderModuleTestListe(){
+ const box=$("moduleTestListe");
+ if(!box)return;
+ const zeilen=[];
+ const sammeln=(auswahl,praefix,attribut,titel)=>{
+  document.querySelectorAll(auswahl).forEach(btn=>{
+   const art=btn.dataset[attribut];
+   const spans=btn.querySelectorAll("span");
+   const text=(spans.length?spans[spans.length-1].textContent:btn.textContent).trim();
+   const schluessel=praefix+":"+art;
+   zeilen.push(`<label class="rechte-schalter"><input type="checkbox" data-modul-test="${esc(schluessel)}"${moduleImTest[schluessel]?" checked":""}> ${esc(titel)} – ${esc(text)}</label>`);
+  });
+ };
+ sammeln("[data-choose-meas-type]","meas","chooseMeasType","Massaufnahme");
+ sammeln("[data-choose-am-type]","am","chooseAmType","Ausmass");
+ box.innerHTML=zeilen.join("")||'<div class="small">Keine Module gefunden.</div>';
+}
+
+function moduleTestHinweis(text,fehler){
+ const el=$("moduleTestHinweis");
+ if(!el)return;
+ el.textContent=text||"";
+ el.style.color=fehler?"var(--red)":"var(--green)";
+ el.hidden=!text;
+}
+
+$("saveModuleTest").addEventListener("click",async()=>{
+ const knopf=$("saveModuleTest");
+ const neu={};
+ document.querySelectorAll("[data-modul-test]").forEach(cb=>{
+  if(cb.checked)neu[cb.dataset.modulTest]=true;
+ });
+ knopf.disabled=true;
+ moduleTestHinweis("");
+ try{
+  const {data,error}=await sb.rpc("system_admin_set_module_test",{p_module_test:neu});
+  if(error){moduleTestHinweis("Konnte nicht gespeichert werden: "+error.message,true);return}
+  // Die Funktion gibt die geschriebene Zeile zurueck - ohne sie waere nicht
+  // sicher, dass wirklich etwas gespeichert wurde (CLAUDE.md 24.1).
+  if(!data){moduleTestHinweis("Es wurde nichts gespeichert.",true);return}
+  moduleImTest=(data.module_test)||{};
+  applyModuleTest();
+  renderModuleTestListe();
+  const anzahl=Object.keys(moduleImTest).length;
+  moduleTestHinweis(anzahl
+   ?`✓ Gespeichert – ${anzahl} Modul${anzahl===1?"":"e"} in Entwicklung (gilt für alle Firmen).`
+   :"✓ Gespeichert – kein Modul in Entwicklung (gilt für alle Firmen).");
+ }catch(err){
+  moduleTestHinweis("Fehler beim Speichern: "+(err&&err.message?err.message:err),true);
+ }finally{
+  knopf.disabled=false;
+ }
+});

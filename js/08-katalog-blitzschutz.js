@@ -305,7 +305,6 @@ function renderSettings(){
  if(lukH)lukH.value=lukHilfsriss;
  if(lukB)lukB.value=lukZugabeBreite;
  if(lukL)lukL.value=lukZugabeLaenge;
- if(typeof renderModuleTestListe==="function")renderModuleTestListe();
  renderMitarbeiterSettings();
  const ro=isAdmin()?"":"disabled";
  $("rateSettings").innerHTML=settings.rates.map((r,i)=>`<div class="settingrow"><input data-set-rate-name="${i}" value="${esc(r[0])}" ${ro}><input data-set-rate-value="${i}" type="number" step=".01" value="${r[1]}" ${ro}>${isAdmin()?`<button class="red" data-del-rate="${i}">Löschen</button>`:'<span></span>'}</div>`).join("");

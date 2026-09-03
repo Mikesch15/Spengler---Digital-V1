@@ -1,7 +1,7 @@
 "use strict";
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
@@ -10,6 +10,9 @@ async function loadAllData(){
   sb.from("blitzschutz_materials").select("*").order("bezeichnung"),
   sb.from("rinne_fitting_types").select("*").order("name"),
   sb.from("measurement_materials").select("*").order("name"),
+  // "Module in Entwicklung" ist seit v2.67 eine Betreiber-Einstellung
+  // (eine Zeile fuer das ganze System), nicht mehr eine je Firma.
+  sb.from("system_settings").select("module_test").maybeSingle(),
  ]);
  const rates=ratesRes.data||[];
  const materials=materialsRes.data||[];
@@ -34,8 +37,11 @@ async function loadAllData(){
   if(appSettingsRes.data.luk_hilfsriss_mm!==null&&appSettingsRes.data.luk_hilfsriss_mm!==undefined)lukHilfsriss=Number(appSettingsRes.data.luk_hilfsriss_mm)||0;
   if(appSettingsRes.data.luk_zugabe_breite_mm!==null&&appSettingsRes.data.luk_zugabe_breite_mm!==undefined)lukZugabeBreite=Number(appSettingsRes.data.luk_zugabe_breite_mm)||0;
   if(appSettingsRes.data.luk_zugabe_laenge_mm!==null&&appSettingsRes.data.luk_zugabe_laenge_mm!==undefined)lukZugabeLaenge=Number(appSettingsRes.data.luk_zugabe_laenge_mm)||0;
-  moduleImTest=appSettingsRes.data.module_test||{};
  }
+ // Die ID der eigenen app_settings-Zeile wird zum Speichern gebraucht:
+ // PostgREST lehnt ein UPDATE ohne WHERE-Bedingung ab.
+ appSettingsId=(appSettingsRes.data&&appSettingsRes.data.id!=null)?appSettingsRes.data.id:null;
+ moduleImTest=(sysRes&&sysRes.data&&sysRes.data.module_test)||{};
  blitzschutzMaterials=bzRes.data||[];
  rinneFittingTypes=rinneRes.data||[];
  measurementMaterials=measMaterialsRes.data||[];

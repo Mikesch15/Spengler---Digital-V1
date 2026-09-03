@@ -98,54 +98,39 @@ $("logoRemove").onclick=()=>{
  $("logoInput").value="";
  $("logoRemove").hidden=true;
 };
-// Liste der Module aus den Auswahlfenstern zusammenstellen. Neue Arten
-// erscheinen dadurch automatisch, ohne dass hier etwas nachgetragen wird.
-function renderModuleTestListe(){
- const box=$("moduleTestListe");
- if(!box)return;
- const zeilen=[];
- const sammeln=(auswahl,praefix,attribut,titel)=>{
-  document.querySelectorAll(auswahl).forEach(btn=>{
-   const art=btn.dataset[attribut];
-   const spans=btn.querySelectorAll("span");
-   const text=(spans.length?spans[spans.length-1].textContent:btn.textContent).trim();
-   const schluessel=praefix+":"+art;
-   zeilen.push(`<label class="rechte-schalter"><input type="checkbox" data-modul-test="${esc(schluessel)}"${moduleImTest[schluessel]?" checked":""}> ${esc(titel)} – ${esc(text)}</label>`);
-  });
- };
- sammeln("[data-choose-meas-type]","meas","chooseMeasType","Massaufnahme");
- sammeln("[data-choose-am-type]","am","chooseAmType","Ausmass");
- box.innerHTML=zeilen.join("")||'<div class="small">Keine Module gefunden.</div>';
-}
-$("saveModuleTest").addEventListener("click",async()=>{
- const knopf=$("saveModuleTest");
- const neu={};
- document.querySelectorAll("[data-modul-test]").forEach(cb=>{
-  if(cb.checked)neu[cb.dataset.modulTest]=true;
- });
- knopf.disabled=true;
- try{
-  const {error}=await sb.from("app_settings")
-   .update({module_test:neu,updated_at:new Date().toISOString()}); // eine Zeile je Firma, RLS grenzt automatisch ein
-  if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
-  moduleImTest=neu;
-  applyModuleTest();
-  alert("Gespeichert (gilt für alle).");
- }catch(err){
-  alert("Fehler beim Speichern: "+(err&&err.message?err.message:err));
- }finally{
-  knopf.disabled=false;
+// Speichert Felder der eigenen app_settings-Zeile.
+// Zwei Fallen, die beide schon zugeschlagen haben:
+//  1. PostgREST lehnt ein UPDATE OHNE WHERE-Bedingung ab
+//     ("UPDATE requires a WHERE clause") - deshalb .eq("id", ...).
+//  2. Ein von RLS geblocktes UPDATE meldet KEINEN Fehler, es betrifft
+//     still 0 Zeilen (CLAUDE.md 24.1) - deshalb .select() und zaehlen.
+// Die Firmengrenze erzwingt weiterhin allein die restriktive RLS; die ID
+// ist nur die von PostgREST verlangte Bedingung, keine Berechtigung.
+async function speichereAppSettings(felder){
+ if(appSettingsId==null){
+  return {fehler:"Die Firmeneinstellungen wurden nicht geladen. Bitte die Seite neu laden."};
  }
-});
+ const {data,error}=await sb.from("app_settings")
+  .update({...felder,updated_at:new Date().toISOString()})
+  .eq("id",appSettingsId)
+  .select();
+ if(error)return {fehler:error.message};
+ if(!data||!data.length){
+  return {fehler:"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"};
+ }
+ return {fehler:null};
+}
+
+// "Module in Entwicklung" liegt seit v2.67 im System-Admin-Bereich
+// (js/22-system-admin.js) - es ist eine Betreiber-, keine Firmenfrage.
 $("saveMadMasse").addEventListener("click",async()=>{
  const knopf=$("saveMadMasse");
  const boden=Number($("madBodenMassInput").value)||0;
  const schieber=Number($("madSchieberMassInput").value)||0;
  knopf.disabled=true;
  try{
-  const {error}=await sb.from("app_settings")
-   .update({mad_boden_mass_mm:boden,mad_schieber_mass_mm:schieber,updated_at:new Date().toISOString()}); // eine Zeile je Firma, RLS grenzt automatisch ein
-  if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
+  const {fehler}=await speichereAppSettings({mad_boden_mass_mm:boden,mad_schieber_mass_mm:schieber});
+  if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
   madBodenMass=boden;madSchieberMass=schieber;
   if(typeof renderMadResult==="function"&&madSegments.length)renderMadResult();
   alert("Gespeichert (gilt für alle).");
@@ -165,9 +150,8 @@ $("saveLukMasse").addEventListener("click",async()=>{
  if(achs<=0){alert("Der Achsabstand muss grösser als 0 sein.");return}
  knopf.disabled=true;
  try{
-  const {error}=await sb.from("app_settings")
-   .update({luk_achsabstand_mm:achs,luk_hilfsriss_mm:hr,luk_zugabe_breite_mm:zb,luk_zugabe_laenge_mm:zl,updated_at:new Date().toISOString()}); // eine Zeile je Firma, RLS grenzt automatisch ein
-  if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
+  const {fehler}=await speichereAppSettings({luk_achsabstand_mm:achs,luk_hilfsriss_mm:hr,luk_zugabe_breite_mm:zb,luk_zugabe_laenge_mm:zl});
+  if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
   lukAchsabstand=achs;lukHilfsriss=hr;lukZugabeBreite=zb;lukZugabeLaenge=zl;
   if(typeof renderLukResult==="function"&&$("measType").value==="lukarne")renderLukResult();
   alert("Gespeichert (gilt für alle).");
@@ -180,9 +164,9 @@ $("saveLukMasse").addEventListener("click",async()=>{
 $("saveRinneDilaMass").onclick=async()=>{
  const wert=Number($("rinneDilaMassInput").value)||0;
  $("saveRinneDilaMass").disabled=true;
- const {error}=await sb.from("app_settings").update({rinne_dila_mass_mm:wert,updated_at:new Date().toISOString()}); // eine Zeile je Firma, RLS grenzt automatisch ein
+ const {fehler}=await speichereAppSettings({rinne_dila_mass_mm:wert});
  $("saveRinneDilaMass").disabled=false;
- if(error){alert("Konnte nicht gespeichert werden: "+error.message);return}
+ if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
  rinneDilaMass=wert;
  if(typeof renderRinneResult==="function"&&rinneSegments.length)renderRinneResult();
  alert("Gespeichert (gilt für alle).");
@@ -194,14 +178,13 @@ $("saveCompanyName").onclick=async()=>{
  try{
   let newLogoUrl=logoUrl;
   if(logoDataUrl)newLogoUrl=await uploadMeasurementImage(logoDataUrl,"company-logo");
-  const {error}=await sb.from("app_settings").update({
+  const {fehler}=await speichereAppSettings({
    company_name:name,
    company_address:$("companyAddressInput").value,
    default_vat:$("defaultVatInput").value.trim()||"8.1 %",
-   logo_url:newLogoUrl,
-   updated_at:new Date().toISOString()
-  }); // eine Zeile je Firma, RLS grenzt automatisch ein
-  if(error)throw error;
+   logo_url:newLogoUrl
+  });
+  if(fehler)throw new Error(fehler);
   companyName=name;
   companyAddress=$("companyAddressInput").value;
   defaultVat=$("defaultVatInput").value.trim()||"8.1 %";

@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.66, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.67, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.66**
+- sichtbare App-Version: **2.67**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -10953,3 +10953,215 @@ und `css/01-basis.css` sind in dieser Runde **nicht** im Diff.
   doppelten Nummern (die Zeilen bleiben trotzdem eigenständig). Bei
   Bedarf liesse sich der Bereich in einer Zeile erweitern
   (`{length:10}`), solange er kollisionsfrei bleibt.
+
+## 75. FEHLER: „UPDATE requires a WHERE clause" + MODULE IN ENTWICKLUNG IN DEN SYSTEM-ADMIN-BEREICH — VERSION 2.67
+
+Zwei Dinge in einer Runde: ein vom Betreiber gemeldeter Speicherfehler
+(der **fünf** Stellen betraf, nicht nur die gemeldete) und der Umzug von
+„Module in Entwicklung" aus den Firmeneinstellungen in den
+System-Admin-Bereich.
+
+### 75.1 Der Fehler und sein wahrer Umfang
+
+Gemeldet: „Module in Entwicklung" liess sich nicht mehr speichern,
+Meldung `Konnte nicht gespeichert werden: UPDATE requires a WHERE
+clause`.
+
+Ursache: Abschnitt 21.3 hatte alle `.eq("id",1)`-Filter aus den
+`app_settings`-Aufrufen entfernt, mit der Begründung „RLS grenzt
+automatisch ein". Das ist für die **Sichtbarkeit** richtig, aber
+PostgREST verweigert grundsätzlich ein `UPDATE` **ohne jede
+Filterbedingung** – unabhängig von RLS. Die damals dokumentierte
+Annahme war also falsch.
+
+**Betroffen waren fünf Stellen, nicht eine** (per Grep gefunden, nicht
+geraten):
+
+| Speichern-Knopf | Wirkung |
+|---|---|
+| Module in Entwicklung | gemeldet |
+| Mauerabdeckung: Boden-/Schiebermass | ebenso kaputt |
+| Lukarne: Achsabstand/Hilfsriss/Zugaben | ebenso kaputt |
+| Rinne Halbrund: Dilatationsmass | ebenso kaputt |
+| **Firma: Name/Adresse/MWST/Logo** | ebenso kaputt |
+
+Alle fünf hätten dieselbe Meldung gebracht. Der Betreiber hatte nur die
+erste ausprobiert.
+
+### 75.2 Ein Helfer statt fünf Kopien
+
+```js
+async function speichereAppSettings(felder){
+ if(appSettingsId==null) return {fehler:"… Bitte die Seite neu laden."};
+ const {data,error}=await sb.from("app_settings")
+  .update({...felder,updated_at:new Date().toISOString()})
+  .eq("id",appSettingsId)          // PostgREST verlangt eine Bedingung
+  .select();                        // 0 Zeilen = still gescheitert
+ if(error)          return {fehler:error.message};
+ if(!data||!data.length) return {fehler:"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"};
+ return {fehler:null};
+}
+```
+
+Zwei Fallen auf einmal geschlossen: die fehlende Bedingung **und** der
+stille Fehlschlag aus Abschnitt 24.1 (ein von RLS geblocktes UPDATE
+meldet keinen Fehler, es betrifft einfach 0 Zeilen). Ohne `.select()`
+hätte die App „gespeichert" gemeldet, obwohl nichts geschrieben wurde.
+
+`appSettingsId` wird beim Laden aus der eigenen Zeile gemerkt
+(`js/05-daten-laden.js`). Sie ist **keine Berechtigung** – die
+Firmengrenze erzwingt weiterhin allein die restriktive
+`tenant_boundary_app_settings`; die ID ist nur die von PostgREST
+verlangte Bedingung. Ein manipulierter Wert träfe eine fremde Zeile
+nicht, weil RLS sie gar nicht sichtbar macht.
+
+Nach dem Umzug (75.3) nutzen **vier** Stellen den Helfer; die fünfte
+läuft jetzt über eine RPC.
+
+### 75.3 „Module in Entwicklung" ist eine Betreiber-, keine Firmenfrage
+
+Ob eine Funktion fertig ist, entscheidet der Betreiber von
+Spengler-DIGITAL – nicht der Admin einer einzelnen Firma. Bisher stand
+der Wert in `app_settings.module_test`, also **je Firma**, und jeder
+Firmenadmin konnte ihn ändern. Beides passt nicht zum Zweck.
+
+**Neu: genau eine Zeile für das ganze System.**
+
+Migration `system_module_test_v2_67`:
+
+- Tabelle `public.system_settings` (`id smallint check (id=1)`,
+  `module_test jsonb not null default '{}'`, `updated_by`,
+  `updated_at`).
+- Der bestehende Wert wurde übernommen, damit sich nichts ändert:
+  `{"meas:anschlussblech":true,"meas:einfassung_rund":true}`.
+- RLS an. **SELECT für alle Angemeldeten** – `applyModuleTest()`
+  blendet damit Knöpfe aus; das ist reine UI-Führung, keine
+  Sicherheitsgrenze (22.1), und es steht nichts Schützenswertes drin.
+- **Keine** insert/update/delete-Policy, dazu
+  `revoke all … from anon, authenticated` und nur `grant select`.
+- Geschrieben wird ausschliesslich über
+  `system_admin_set_module_test(jsonb)` – `SECURITY DEFINER`, prüft
+  `is_system_admin()` als erste Zeile, weist einen Nicht-Objekt-Wert
+  ab, gibt die geschriebene Zeile zurück. Gleiches Muster wie alle
+  übrigen `system_admin_*`-Funktionen (25.2).
+
+`app_settings.module_test` bleibt als Spalte bestehen und wird nicht
+mehr gelesen – **nichts gelöscht**, der alte Wert steht unverändert da.
+
+### 75.4 Empirisch geprüft (alles in `begin; … rollback;`)
+
+| Test | Ergebnis |
+|---|---|
+| Mitarbeiter liest `system_settings` | 1 Zeile – nötig fürs Ausblenden |
+| Mitarbeiter: direktes `UPDATE` | `42501 permission denied for table system_settings` |
+| Mitarbeiter: `system_admin_set_module_test(...)` | „Nur für System-Administratoren." |
+| System-Admin: dieselbe Funktion | schreibt, setzt `updated_by` auf den echten Aufrufer |
+| System-Admin: ungültiger Wert (kein Objekt) | abgelehnt |
+| nach dem Rollback | Ursprungswert unverändert |
+
+`get_advisors(security)`: die neue Funktion erscheint mit **derselben**
+erwarteten Warnung wie jede andere `system_admin_*`-Funktion („von
+`authenticated` aufrufbar, die Prüfung liegt in der Funktion", siehe
+25.4). Keine RLS-Lücke für die neue Tabelle, keine neue Art von
+Warnung.
+
+### 75.5 Oberfläche
+
+Der Abschnitt liegt jetzt als eigene Karte „🧪 Module in Entwicklung"
+im System-Admin-Bereich, direkt unter der Firmenliste, mit dem Hinweis
+**„Gilt für alle Firmen"**. Er wird beim Öffnen des Bereichs gezeichnet.
+Statt eines `alert()` erscheint eine Zeile unter der Liste („✓
+Gespeichert – 2 Module in Entwicklung (gilt für alle Firmen)."), bei
+Ablehnung rot.
+
+Aus den Einstellungen ist er verschwunden – ein Firmenadmin sieht ihn
+nicht mehr. Der Zugang ist doppelt gesichert: der Menüpunkt
+`#navSystemAdmin` ist für Nicht-System-Admins ausgeblendet (UI), und
+die RPC lehnt sie serverseitig ab.
+
+**Folge, die bewusst in Kauf genommen wird:** die Einstellung gilt jetzt
+für alle Firmen gemeinsam. Für Testfirma (bisher `null`) sind die zwei
+Module dadurch neu ebenfalls nur für Administratoren sichtbar. Das ist
+genau der Zweck – eine unfertige Funktion soll nirgends bei
+Mitarbeitern auftauchen.
+
+### 75.6 Änderung an einer geschützten Datei
+
+Aus `js/08-katalog-blitzschutz.js` wurde **eine Zeile** entfernt:
+`if(typeof renderModuleTestListe==="function")renderModuleTestListe();`
+in `renderSettings()`. Das ist die Verdrahtung des umgezogenen
+Abschnitts, keine Regierapport-Logik. `js/06-rapport.js` und
+`css/03-druck.css` sind nicht im Diff.
+
+### 75.7 Tests
+
+**`module67` – 42/42**: Speicher-Helfer (WHERE-Bedingung, richtige
+Tabelle, `updated_at`, stiller Fehlschlag, echter Fehler, nicht
+geladene Zeile), alle vier Aufrufstellen umgestellt und **kein**
+UPDATE ohne Filter mehr im Code, Umzug (Liste und Knopf im
+System-Admin-Modal, nicht mehr in den Einstellungen, Logik aus js/07
+verschwunden, in js/22 vorhanden, kein Aufruf mehr aus js/08,
+`moduleImTest` kommt aus `system_settings`), Speichern über die RPC
+(nur angehakte Module, kein direkter Tabellenzugriff, Rückgabewert wird
+übernommen, Ablehnung rot, leere Antwort gilt nicht als Erfolg, leerer
+Fall).
+
+**`modulebrowser67` – 16/16** (echtes Chromium): der Abschnitt liegt
+wirklich im System-Admin-Modal und ist sichtbar, alle elf
+Massaufnahmen und beide Ausmasse werden gelistet, der bestehende Wert
+ist angehakt, Speichern setzt genau **einen** Aufruf ab und zwar die
+geschützte Funktion, die Knöpfe der Testmodule werden für Nicht-Admins
+ausgeblendet und für Admins wieder sichtbar, und „Firmenname
+speichern" setzt ein UPDATE **mit** `eq("id",…)` ab.
+
+**Zwei Gegenproben, beide reproduzieren den gemeldeten Fehler:**
+- `.eq("id",appSettingsId)` entfernt → `module67` 2 Fehlschläge
+- 0 betroffene Zeilen wieder als Erfolg werten → 3 Fehlschläge
+
+**Volle Regression grün**: freipos65 99/99, freiposbrowser65 33/33,
+feedback63 105/105, feedbackbrowser63 67/67, rinne57 379/379,
+breite57 84/84, pdf52 504/504, breite52 52/52, kehle52 698/698,
+kehleintegration52 76/76, medien50 42/42, dateien49 38/38,
+adresse45 39/39, projekte47 37/37, pfade55 37/37, status46 35/35,
+auswahl48 32/32, dateien43 27/27, nav 23/23, stand42 17/17,
+suche45 13/13, recent41 12/12, kopf45 8/8, hidden51 7/7, suche40 7/7,
+treffer40 7/7, ui39 (9 Darstellungsfälle).
+
+`node --check` über alle 28 `js/*.js` und `sw.js` fehlerfrei,
+`<div>` 701/701, keine doppelten Element-IDs.
+
+**Nicht getestet – ausdrücklich**: kein Live-Klicktest gegen Supabase
+(Sandbox blockiert HTTPS dorthin). Der eigentliche Speichervorgang
+gegen die echte API ist damit nicht im Browser bestätigt; geprüft sind
+die abgesetzten Aufrufe im Browser und die Datenbankseite per
+SQL-Simulation.
+
+### 75.8 PETER KÜNZI AG
+
+Unverändert: 2 Firmen, 13 Profile, 4 Rapporte, `companies.updated_at`
+(`2026-09-01 07:40:15.844647+00`), `app_settings.module_test`
+unverändert. Einziger Schreibzugriff dieser Runde: die Migration
+(neue Tabelle + Übernahme des bestehenden Werts).
+
+### 75.9 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| Migration `system_module_test_v2_67` | `system_settings` + `system_admin_set_module_test()` |
+| `js/07-einstellungen.js` | `speichereAppSettings()`, vier Aufrufstellen, Modul-Logik entfernt |
+| `js/22-system-admin.js` | Modul-Liste und Speichern über die RPC |
+| `js/05-daten-laden.js` | `appSettingsId` merken, `module_test` aus `system_settings` |
+| `js/01-basis.js` | `appSettingsId` deklariert |
+| `js/08-katalog-blitzschutz.js` | eine Zeile Verdrahtung entfernt (75.6) |
+| `index.html` | Abschnitt verschoben, Version 2.67 |
+| `sw.js` | Cache-Version 2.67 |
+
+### 75.10 Offene Punkte
+
+- Kein Live-Klicktest gegen Supabase möglich (75.7).
+- `app_settings.module_test` bleibt als ungenutzte Spalte bestehen –
+  bewusst nicht gelöscht (keine stillen Datenverluste). Ein späteres
+  Aufräumen wäre eine eigene, bewusste Migration.
+- Abschnitt 21.3 dieses Dokuments enthält die widerlegte Aussage,
+  ein `.update()` ohne `.eq()` sei ausreichend. Sie bleibt dort als
+  historischer Stand stehen, ist aber durch diesen Abschnitt überholt.
