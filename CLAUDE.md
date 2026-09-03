@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.59, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.60, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.59**
+- sichtbare App-Version: **2.60**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -10042,3 +10042,63 @@ der Profillinie liegen.
 - `pdf52` 504/504, volle Regression aller übrigen Prüfstände grün
 - `node --check` fehlerfrei, `<div>` 697/697
 - Regierapport und `js/14-freies-profil.js` nicht im Diff
+
+## 68. RINNE – ALLE BIEGUNGEN ABGERUNDET — VERSION 2.60
+
+Nachtrag zu v2.59: die Ecken waren zwar bereits in einem gerundeten Pfad,
+sichtbar gerundet war aber praktisch nichts. **Nur `js/26-rinne.js`,
+Versionstext und Cache-Version geändert.**
+
+### 68.1 Zwei Ursachen, beide gemessen
+
+**(1) Der Biegeradius war viel zu klein.** Ich hatte `BIEGERADIUS = 5`
+aus dem Freien Profil übernommen. Dort ist die Zeichnung rund 300 px
+breit, die Rinnen-Skizze dagegen 680 px – 5 px sind darauf optisch nichts.
+Jetzt `14`, also derselbe Anteil an der Bildbreite (5/300 ≈ 14/680).
+`abgerundeterPfad()` begrenzt den Radius bei kurzen Segmenten ohnehin
+selbst (`min(radius, len·0.45)`), grosse Werte sind also ungefährlich.
+
+**(2) Beim 180°-Knick wurde das falsche Blech versetzt gezeichnet.**
+Beim Nachmessen der erzeugten Pfade fiel auf: der Profilzug hatte nur
+**fünf** Bögen statt sechs – die Ecke zwischen „Anschl. Flachdach" und A
+fehlte. Grund: die Umschlag-Erkennung nahm immer das Segment, das den
+180°-Winkel trägt. Im Standardprofil trägt aber das **150er Blech** den
+180er und der eigentliche Umschlag ist das **15er Segment davor**. Also
+wurde das lange Blech aus dem Profilzug herausgenommen und versetzt
+gezeichnet – und seine Ecke zu A ging verloren.
+
+Jetzt wird bei einem 180°-Knick das **kürzere der beiden Bleche**
+versetzt gezeichnet, unabhängig davon, welches den Winkel trägt:
+
+```js
+const j = (!vor || seg.laenge <= vor.laenge) ? i : i - 1;
+versetzt[j] = { richtung: seg.richtung, seite: seg.seite, knick: i };
+```
+
+Versatzrichtung und -seite kommen weiterhin vom 180°-Segment selbst, die
+Kehre sitzt am Knickpunkt. Ergebnis: der Profilzug hat jetzt alle sechs
+Innenecken, jede gerundet.
+
+`GAP` von 9 auf 11 erhöht, damit der Umschlag etwas Luft hat.
+
+### 68.2 Tests
+
+Neu in `rinne57` (jetzt **377/377**, vorher 373), alle gegen die
+tatsächlich erzeugten Pfade gemessen statt nur auf Vorhandensein geprüft:
+
+- „jede Innenecke des Profilzugs ist gerundet" – Anzahl der Bögen im
+  längsten Pfad muss der Anzahl Innenecken entsprechen (6)
+- „Rundung ist sichtbar gross (Radius ≥ 10 px)" – die gemessenen Radien
+  liegen bei 20–63 px
+- „zwei Umschläge als eigene Kehre gezeichnet"
+- „Kehren gehören zum kurzen Blech (nicht zum 150er)" – die versetzte
+  Linie muss kurz sein
+
+**Gegenproben** (beide reproduzieren den alten Zustand):
+- `BIEGERADIUS` zurück auf 5 → „Rundung ist sichtbar gross" schlägt fehl
+- immer das 180°-Segment versetzen → „jede Innenecke des Profilzugs ist
+  gerundet" und „Kehren gehören zum kurzen Blech" schlagen fehl
+
+`breite57` 84/84, `pdf52` 504/504, volle Regression grün, `node --check`
+fehlerfrei, `<div>` 697/697. Regierapport und `js/14-freies-profil.js`
+nicht im Diff.

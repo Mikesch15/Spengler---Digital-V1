@@ -351,18 +351,40 @@ function rinneSvg(profil, masse, titel) {
   // Umschlag-Segmente als eigene, leicht versetzte Linie mit einer Kehre
   // um die Spitze. abgerundeterPfad() stammt aus js/14-freies-profil.js
   // und wird hier nur benutzt, nicht veraendert.
-  const GAP = 9, BIEGERADIUS = 5;
+  // GAP = Versatz des Umschlags, BIEGERADIUS = zeichnerischer Biegeradius
+  // an jeder Ecke. Das Freie Profil zeichnet in ein rund 300 px breites
+  // Bild und kommt dort mit 5 px aus; diese Skizze ist 680 px breit,
+  // deshalb der proportional gleiche, absolut groessere Wert. Zu kleine
+  // Werte sehen aus wie gar keine Rundung. abgerundeterPfad() begrenzt
+  // den Radius bei kurzen Segmenten ohnehin selbst.
+  const GAP = 11, BIEGERADIUS = 14;
   const roh = p.pts.map(q => [X(q[0]), Y(q[1])]);
   const pfad = (pts) => (typeof abgerundeterPfad === "function")
     ? abgerundeterPfad(pts, BIEGERADIUS)
     : pts.map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" ");
 
-  // Tatsaechlich gezeichnete Enden je Segment (bei Umschlag versetzt)
+  // Bei einem 180°-Knick liegen zwei Bleche aufeinander. Der eigentliche
+  // Umschlag ist das KUERZERE der beiden - es wird versetzt gezeichnet,
+  // damit es sichtbar bleibt. Der 180°-Winkel steht dabei je nach
+  // Profilaufbau am kurzen oder am langen Segment: im Standardprofil
+  // traegt das 150er Blech den 180er, versetzt gezeichnet gehoert aber
+  // der 15er Umschlag davor.
+  const versetzt = p.segmente.map(() => null);
+  p.segmente.forEach((seg, i) => {
+    if (!seg.umschlag) return;
+    const vor = p.segmente[i - 1];
+    const j = (!vor || seg.laenge <= vor.laenge) ? i : i - 1;
+    // Versatzrichtung und -seite kommen immer vom 180°-Segment selbst.
+    versetzt[j] = { richtung: seg.richtung, seite: seg.seite, knick: i };
+  });
+
+  // Tatsaechlich gezeichnete Enden je Segment
   const enden = p.segmente.map((seg, i) => {
     const a0 = roh[i], b0 = roh[i + 1];
-    if (!seg.umschlag) return [a0, b0];
-    const rad = seg.richtung * Math.PI / 180;
-    const nx = -Math.sin(rad) * GAP * seg.seite, ny = -Math.cos(rad) * GAP * seg.seite;
+    const v = versetzt[i];
+    if (!v) return [a0, b0];
+    const rad = v.richtung * Math.PI / 180;
+    const nx = -Math.sin(rad) * GAP * v.seite, ny = -Math.cos(rad) * GAP * v.seite;
     return [[a0[0] + nx, a0[1] + ny], [b0[0] + nx, b0[1] + ny]];
   });
   enden.forEach(([a0, b0]) => merken(Math.min(a0[0], b0[0]) - 3, Math.min(a0[1], b0[1]) - 3,
@@ -373,14 +395,18 @@ function rinneSvg(profil, masse, titel) {
     stroke-linecap="round" stroke-linejoin="round"/>`;
   let lauf = [roh[0]];
   p.segmente.forEach((seg, i) => {
-    if (!seg.umschlag) { lauf.push(roh[i + 1]); return; }
+    const v = versetzt[i];
+    if (!v) { lauf.push(roh[i + 1]); return; }
     if (lauf.length > 1) g += strich(pfad(lauf));
-    // Kehre des Umschlags als Halbkreis um die Spitze, danach die
-    // versetzte Ruecklauflinie.
-    const [u1, u2] = enden[i];
-    const sp = roh[i];
-    const radVor = (p.segmente[i - 1] ? p.segmente[i - 1].richtung : 0) * Math.PI / 180;
-    const dvx = Math.cos(radVor), dvy = -Math.sin(radVor);   // Bildkoordinaten: y nach unten
+    // Die Kehre sitzt am 180°-Knick. Liegt der Umschlag VOR dem Knick,
+    // ist sein versetztes Ende der Anschluss, sonst sein versetzter Anfang.
+    const vorDemKnick = v.knick === i + 1;
+    const sp = roh[v.knick];
+    const u1 = vorDemKnick ? enden[i][1] : enden[i][0];
+    const u2 = vorDemKnick ? enden[i][0] : enden[i][1];
+    const nachbar = p.segmente[vorDemKnick ? v.knick : i - 1];
+    const radNb = (nachbar ? nachbar.richtung : 0) * Math.PI / 180;
+    const dvx = Math.cos(radNb), dvy = -Math.sin(radNb);   // Bildkoordinaten: y nach unten
     const nx = (u1[0] - sp[0]) / GAP, ny = (u1[1] - sp[1]) / GAP;
     const sweep = (nx * dvy - ny * dvx) > 0 ? 0 : 1;
     g += strich(`M ${sp[0].toFixed(1)} ${sp[1].toFixed(1)}`
