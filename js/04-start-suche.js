@@ -195,7 +195,9 @@ $("exportReportsCsv").onclick=async()=>{
   const mats2=r.material_entries||[];
   const hours=works.reduce((s,w)=>s+(Number(w.hours)||0),0);
   const workTotal=works.reduce((s,w)=>s+(Number(w.hours)||0)*rateFor(w.rateName),0);
-  const matTotal=mats2.reduce((s,m)=>{const x=materialFor(m.no);return s+(x?Number(String(x[4]).replace(",","."))*Number(m.qty||0):0)},0);
+  // matZeileTotal (js/06) beruecksichtigt auch die freie Position 999.99,
+  // deren Preis im Rapport selbst steht statt im Katalog.
+  const matTotal=mats2.reduce((s,m)=>s+matZeileTotal(m),0);
   const vat=Number(String(r.vat||"0").replace(",",".").replace("%",""))||0;
   const gross=(workTotal+matTotal)*(1+vat/100);
   csvRows.push([r.date||"",proj?proj.name:"",r.order_no||"",r.customer||"",r.object||"",hours.toFixed(2),workTotal.toFixed(2),matTotal.toFixed(2),r.vat||"",gross.toFixed(2)]);

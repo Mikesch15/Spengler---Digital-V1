@@ -1,6 +1,24 @@
 "use strict";
 function rateFor(name){const r=settings.rates.find(x=>x[0]===name);return r?Number(String(r[1]).replace(",","."))||0:0}
 function materialFor(no){return settings.materials.find(x=>x[0]===no)}
+// Freie Position: EDV-Nr. 999.99 steht fuer "nicht im Katalog". Bezeichnung,
+// Dim., Einheit und Preis werden dann direkt in der Zeile erfasst und im
+// Rapport selbst gespeichert (material_entries) - der Katalog bleibt
+// unberuehrt. Die Nummer ist frei: in keinem Katalog kommt 999.xx vor.
+const FREIE_POSITION_NR="999.99";
+function istFreiePosition(no){return String(no==null?"":no).trim()===FREIE_POSITION_NR}
+function matZahl(v){return Number(String(v==null?"":v).replace(",","."))||0}
+// Preis je Einheit - aus der Zeile selbst (freie Position) oder aus dem Katalog.
+function matPreis(m){
+ if(!m)return 0;
+ if(istFreiePosition(m.no))return matZahl(m.price);
+ const x=materialFor(m.no);
+ return x?matZahl(x[4]):0;
+}
+// Zeilentotal. Eine unbekannte EDV-Nr. bleibt wie bisher ohne Betrag.
+function matZeileTotal(m){return matPreis(m)*(Number(m&&m.qty)||0)}
+// Hat die Zeile ueberhaupt einen Bezug (Katalog oder freie Position)?
+function matBekannt(m){return !!m&&(istFreiePosition(m.no)||!!materialFor(m.no))}
 function searchMaterials(q){
  q=(q||"").trim().toLowerCase();
  return (!q?settings.materials:settings.materials.filter(x=>String(x[0]).toLowerCase().startsWith(q)||String(x[1]).toLowerCase().includes(q))).slice(0,15)
@@ -22,10 +40,21 @@ function renderMain(){
 
  $("matBody").innerHTML=mats.length?mats.map((m,i)=>{
  const x=materialFor(m.no);
+ const frei=istFreiePosition(m.no);
+ // Bei der freien Position sind Bezeichnung, Dim., Einheit und Preis
+ // Eingabefelder statt Katalogtexte.
+ const beschreibung=frei
+  ?`<td><input data-mat-desc="${i}" value="${esc(m.desc||"")}" placeholder="Bezeichnung"></td>
+ <td><input data-mat-dim="${i}" value="${esc(m.dim||"")}" placeholder="Dim."></td>
+ <td><input data-mat-unit="${i}" value="${esc(m.unit||"")}" placeholder="Einheit"></td>`
+  :`<td>${x?esc(x[1]):"—"}</td><td>${x?esc(x[2]):"—"}</td><td>${x?esc(x[3]):"—"}</td>`;
+ const preis=frei
+  ?`<td class="money"><input data-mat-price="${i}" class="mat-preis" type="number" step=".01" min="0" value="${esc(m.price==null?"":m.price)}" placeholder="0.00"></td>`
+  :`<td class="money">${x?money(matZahl(x[4])):"—"}</td>`;
  return `<tr><td><input data-mat-date="${i}" type="date" value="${esc(m.date||"")}"></td><td><div class="search"><input data-mat-search="${i}" value="${esc(m.no)}" placeholder="EDV-Nr." autocomplete="off"><div id="matSug${i}" class="suggest"></div></div></td>
- <td>${x?esc(x[1]):"—"}</td><td>${x?esc(x[2]):"—"}</td><td>${x?esc(x[3]):"—"}</td>
+ ${beschreibung}
  <td><input data-mat-qty="${i}" type="number" step=".01" min="0" value="${m.qty}"></td>
- <td class="money">${x?money(Number(String(x[4]).replace(",","."))):"—"}</td><td class="money" data-mat-total="${i}">${x?money(Number(String(x[4]).replace(",","."))*Number(m.qty||0)):"0.00"}</td>
+ ${preis}<td class="money" data-mat-total="${i}">${matBekannt(m)?money(matZeileTotal(m)):"0.00"}</td>
  <td class="no-print"><button class="red" data-del-mat="${i}">×</button></td></tr>`
  }).join(""):'<tr><td colspan="9" class="empty">Noch kein Material erfasst.</td></tr>';
 
@@ -42,11 +71,10 @@ function updatePrintRates(wt){
 function updateMaterialRowTotal(i){
   const row=document.querySelector(`#matBody tr:nth-child(${i+1})`);
   if(!row)return;
-  const m=mats[i], x=materialFor(m.no);
+  const m=mats[i];
   const moneyCells=row.querySelectorAll(".money");
   if(moneyCells.length>=2){
-    const price=x?Number(String(x[4]).replace(",",".")):0;
-    moneyCells[moneyCells.length-1].textContent=money(price*(Number(m.qty)||0));
+    moneyCells[moneyCells.length-1].textContent=money(matZeileTotal(m));
   }
 }
 
@@ -82,7 +110,7 @@ function sortWorksLive(){
 
 function updateTotals(){
  const wt=works.reduce((s,w)=>s+(Number(w.hours)||0)*rateFor(w.rateName),0);
- const mt=mats.reduce((s,m)=>{const x=materialFor(m.no);return s+(x?Number(String(x[4]).replace(",","."))*Number(m.qty||0):0)},0);
+ const mt=mats.reduce((s,m)=>s+matZeileTotal(m),0);
  $("workTotal").textContent=money(wt);$("matTotal").textContent=money(mt);
  $("netTotal").value=money(wt+mt);
  const vat=Number(String($("vat").value).replace(",","." ).replace("%",""))||0;
@@ -117,6 +145,17 @@ $("workBody").addEventListener("change",e=>{
 
 });
 $("workBody").addEventListener("click",e=>{const b=e.target.closest("[data-del-work]");if(b){works.splice(Number(b.dataset.delWork),1);renderMain()}});
+
+// Eintrag "999.99 Freie Position" fuer die Vorschlagsliste einer
+// Materialzeile. Leere Eingabe zeigt ihn ebenfalls, damit er auffindbar ist.
+function freiePositionVorschlag(q,n){
+ const s=String(q==null?"":q).trim().toLowerCase();
+ const passt=!s||FREIE_POSITION_NR.startsWith(s)||"freie position".startsWith(s)||"frei".startsWith(s);
+ if(!passt)return "";
+ return `<div class="item" data-pick-mat="${n}" data-no="${FREIE_POSITION_NR}">`
+  +`<b>${FREIE_POSITION_NR} · Freie Position</b>`
+  +`<span>Bezeichnung, Dim., Einheit und Preis frei eintragen</span></div>`;
+}
 
 function positionSuggest(input,box){
  const r=input.getBoundingClientRect();
@@ -154,6 +193,20 @@ if(window.visualViewport){
 }
 
 $("matBody").addEventListener("input",e=>{
+ // Felder der freien Position: Modell und Zeilentotal auffrischen, aber die
+ // Tabelle NICHT neu zeichnen - sonst verliert das Feld beim Tippen den Fokus.
+ const frei=e.target.dataset.matDesc??e.target.dataset.matDim
+           ??e.target.dataset.matUnit??e.target.dataset.matPrice;
+ if(frei!==undefined){
+  const k=Number(frei);
+  if(e.target.dataset.matDesc!==undefined)mats[k].desc=e.target.value;
+  else if(e.target.dataset.matDim!==undefined)mats[k].dim=e.target.value;
+  else if(e.target.dataset.matUnit!==undefined)mats[k].unit=e.target.value;
+  else mats[k].price=e.target.value;
+  updateMaterialRowTotal(k);
+  updateTotals();
+  return;
+ }
  const i=e.target.dataset.matSearch??e.target.dataset.matQty??e.target.dataset.matDate;if(i===undefined)return;
  const n=Number(i);
  if(e.target.dataset.matDate!==undefined){
@@ -162,18 +215,30 @@ $("matBody").addEventListener("input",e=>{
  if(e.target.dataset.matSearch!==undefined){
   mats[n].no=e.target.value;
   const box=$("matSug"+n);
-  box.innerHTML=searchMaterials(e.target.value).map(x=>`<div class="item" data-pick-mat="${n}" data-no="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])} · CHF ${money(x[4])}</span></div>`).join("");
+  // Die freie Position steht zuoberst - sie gehoert nicht in den Katalog
+  // (searchMaterials wird auch vom Blechverbrauch benutzt) und wird deshalb
+  // nur hier ergaenzt.
+  box.innerHTML=freiePositionVorschlag(e.target.value,n)
+   +searchMaterials(e.target.value).map(x=>`<div class="item" data-pick-mat="${n}" data-no="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])} · CHF ${money(x[4])}</span></div>`).join("");
   if(box.innerHTML)positionSuggest(e.target,box);
   }else{
    mats[n].qty=Number(e.target.value)||0;
-   const x=materialFor(mats[n].no);
    const totalCell=document.querySelector(`[data-mat-total="${n}"]`);
-   if(totalCell)totalCell.textContent=x?money(Number(String(x[4]).replace(",","."))*Number(mats[n].qty||0)):"0.00";
+   if(totalCell)totalCell.textContent=matBekannt(mats[n])?money(matZeileTotal(mats[n])):"0.00";
    updateTotals();
 }
 });
 $("matBody").addEventListener("change",e=>{
- if(e.target.dataset.matDate!==undefined){sortMaterialsLive();renderMain()}
+ if(e.target.dataset.matDate!==undefined){sortMaterialsLive();renderMain();return}
+ // Wird 999.99 von Hand eingetippt (oder wieder ersetzt), muss die Zeile
+ // zwischen Katalogtext und Eingabefeldern umschalten. Das passiert beim
+ // Verlassen des Feldes, nicht schon beim Tippen.
+ if(e.target.dataset.matSearch!==undefined){
+  const n=Number(e.target.dataset.matSearch);
+  const jetztFrei=istFreiePosition(mats[n].no);
+  const zeigtFelder=!!document.querySelector(`[data-mat-desc="${n}"]`);
+  if(jetztFrei!==zeigtFelder)renderMain();
+ }
 });
 $("matBody").addEventListener("click",e=>{
  const p=e.target.closest("[data-pick-mat]"),d=e.target.closest("[data-del-mat]");

@@ -47,6 +47,7 @@ td{border-top:1px solid var(--line);padding:6px;font-size:12px;vertical-align:mi
 tbody tr:hover td{background:#f7fafc}
 td input,td select{min-height:34px;font-size:12px}
 .money{text-align:left;font-variant-numeric:tabular-nums}
+.money input.mat-preis{text-align:left;font-variant-numeric:tabular-nums}
 .print-only{display:none}
 .total{text-align:right;font-size:20px;font-weight:900;margin-top:10px;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px}
 .small{font-size:11px;color:var(--muted);margin-top:7px}

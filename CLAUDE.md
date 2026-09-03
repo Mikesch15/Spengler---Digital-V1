@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.64, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.65, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.64**
+- sichtbare App-Version: **2.65**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -10647,3 +10647,179 @@ Datenbank geschrieben – nur gelesen.
 - Keine Massenaktion auf der Auswahl (etwa „ausgewählte als erledigt
   markieren" oder „ausgewählte löschen") – bewusst nicht gebaut, der
   Auftrag betraf ausschliesslich den Export.
+
+## 73. REGIEMATERIAL: FREIE POSITION 999.99 — VERSION 2.65
+
+Im Regierapport lässt sich jetzt Material erfassen, das **nicht im
+Katalog steht**: EDV-Nr. `999.99`. Bezeichnung, Dim., Einheit und Preis
+werden dann direkt in der Zeile eingetragen. **Keine Schemaänderung,
+keine Migration, kein Katalogeintrag.**
+
+### 73.1 Änderung an einer geschützten Datei – offen benannt
+
+`js/06-rapport.js` steht seit dem v2.56-Auftrag auf der Liste
+„Regierapport absolut nicht ändern". Diese Runde ändert sie – der
+Auftrag verlangt ausdrücklich eine Erweiterung genau dieses Bereichs.
+Was **nicht** angefasst wurde:
+
+- `js/08-katalog-blitzschutz.js` (Speichern, PDF-Aufbereitung,
+  Blechverbrauch) und `css/03-druck.css` – nicht im Diff.
+- Arbeitspositionen, Stundenansätze, MWST-Rechnung, Summenstruktur,
+  Sortierung, Projektauswahl – unverändert.
+- Der Materialkatalog selbst (Tabelle `materials`) – kein Eintrag,
+  keine Migration.
+
+**Beweis, dass der Ausdruck unverändert ist:** der Regierapport-Druck
+(`window.print()` auf der App-Seite) wurde in echtem Chromium unter
+`media:print` mit ausgelöstem `beforeprint` gerendert, einmal auf dem
+v2.64-Stand und einmal mit den Änderungen. Der Druck-DOM ist
+**bytegleich** (Hash `a9da1681711b631a`). Die Bilder unterschieden
+sich zunächst – die Ursache wurde eingekreist, indem nur der
+Versionstext zurückgedreht wurde: danach war auch das Bild
+bytegleich (`7843254639d00fad`). Der gesamte Unterschied kam also
+allein aus der Versionsnummer, **nicht** aus dieser Änderung. Zwei
+Läufe desselben Codes liefern identische Bilder – der Vergleich ist
+also aussagekräftig und kein Rauschen.
+
+### 73.2 Warum 999.99 und nicht ein Katalogeintrag
+
+Ein Katalogeintrag hätte einen festen Preis und eine feste
+Bezeichnung – genau das, was hier frei sein soll. Ausserdem müsste er
+für **jede** Firma einzeln angelegt werden; eine neu registrierte
+Firma hätte ihn nicht.
+
+Die Nummer ist frei: über alle 372 Katalogzeilen hinweg gibt es
+**keine** mit `999.99` und keine, die mit `999` beginnt (per SQL
+geprüft). Eine Kollision ist damit ausgeschlossen.
+
+### 73.3 Wie es arbeitet
+
+```js
+const FREIE_POSITION_NR="999.99";
+function istFreiePosition(no){return String(no??"").trim()===FREIE_POSITION_NR}
+function matPreis(m){
+ if(istFreiePosition(m.no))return matZahl(m.price);   // aus der Zeile
+ const x=materialFor(m.no); return x?matZahl(x[4]):0; // aus dem Katalog
+}
+function matZeileTotal(m){return matPreis(m)*(Number(m&&m.qty)||0)}
+```
+
+`matZeileTotal()` ist ab sofort die **einzige** Stelle, an der ein
+Material-Zeilentotal entsteht – im Zeilentotal, im Materialtotal und
+im CSV-Export der Regierapporte (`js/04-start-suche.js`). Vorher
+stand dieselbe Rechnung dreimal ausgeschrieben da.
+
+Die Werte liegen in der Rapportzeile selbst
+(`m.desc`, `m.dim`, `m.unit`, `m.price`) und reisen über das
+bestehende `material_entries`-JSONB mit – deshalb keine Migration.
+
+### 73.4 Bedienung
+
+- In der Vorschlagsliste der EDV-Nr. steht **zuoberst**
+  „999.99 · Freie Position – Bezeichnung, Dim., Einheit und Preis
+  frei eintragen". Sie erscheint bei leerer Eingabe und bei „999",
+  „999.99", „frei", „Freie Pos" – nicht bei einer Katalogsuche.
+- Auswählen (oder die Nummer von Hand eintippen) macht Material,
+  Dim., Einheit und Fr./E zu Eingabefeldern. Menge und Total
+  verhalten sich wie immer.
+- Eine andere Nummer schaltet die Zeile wieder auf Katalogtext um.
+
+**`searchMaterials()` wurde bewusst NICHT erweitert** – diese Funktion
+speist auch den Blechverbrauch-Picker in `js/08`, der mit
+`selectedSheet=materialFor(...)` arbeitet und bei einer nicht im
+Katalog vorhandenen Nummer abstürzen würde. Die freie Position wird
+deshalb nur in der Materialzeile des Rapports ergänzt. Der Prüfstand
+sichert beides ab (Gegenprobe: die Nummer in `searchMaterials`
+schleusen → zwei Fehlschläge).
+
+### 73.5 Kein Fokusverlust beim Tippen
+
+Die vier neuen Felder aktualisieren beim Tippen nur das Modell, das
+Zeilentotal und die Summe – die Tabelle wird **nicht** neu gezeichnet.
+Sonst wiederholte sich der Fehler aus Abschnitt 66 (Fokusverlust nach
+dem ersten Zeichen). Umgeschaltet wird die Zeile erst beim **Verlassen**
+des EDV-Feldes (`change`), und auch dann nur, wenn sich die Art
+tatsächlich ändert.
+
+Im echten Browser geprüft: ganze Wörter werden getippt, das Feld
+behält den Fokus. Gegenprobe mit `renderMain()` im Eingabe-Handler
+schlägt fehl.
+
+### 73.6 Druck
+
+Der Regierapport druckt die Bildschirmseite selbst. `css/03-druck.css`
+stellt Eingabefelder rahmenlos dar (`border:0`, `padding:0`) – die
+neuen Felder drucken deshalb wie gewöhnlicher Text, ohne dass am
+Druck-Stylesheet etwas geändert werden musste. In echtem Chromium
+unter `media:print` gemessen: alle Felder `border-width: 0px`, keine
+Spalte läuft aus der Tabelle.
+
+### 73.7 Tests
+
+**`freipos65` – 75/75**: Erkennung (auch `999.9`, `999.990`, leer,
+Katalognummer), Preis und Zeilentotal (Komma, leer, Text, negativ,
+Katalogpreis unverändert, unbekannte Nummer 0), Zeilendarstellung
+(Katalogzeile ohne Felder, freie Zeile mit vier Feldern, neun Spalten,
+kein NaN), Gesamttotal gemischt, Eingabe in alle vier Felder inklusive
+„kein Neuzeichnen", Vorschlagsliste, Umschalten beim Verlassen des
+Feldes, Sortierung, Speichern/Wiederladen, alte Rapporte ohne die
+neuen Felder.
+
+**`freiposbrowser65` – 23/23** (echtes Chromium): Vorschlag wirklich
+angeklickt, alle vier Felder Zeichen für Zeichen getippt mit
+Fokus-Prüfung, Totale gerechnet, Katalog- und freie Zeile gemischt,
+von Hand eingetippte Nummer schaltet um und wieder zurück, Druckansicht
+(Werte vorhanden, rahmenlos, kein Überlauf), keine JS-Fehler.
+
+**Drei Gegenproben, jede reproduziert einen echten Fehler:**
+- freier Preis wird im Total ignoriert → `freipos65` 11 Fehlschläge
+- Eingabe-Handler zeichnet neu → `freipos65` 2 Fehlschläge
+  (u. a. „Tippen zeichnet die Tabelle NICHT neu")
+- freie Position in `searchMaterials` → `freipos65` 2 Fehlschläge
+
+**Volle Regression grün**: feedback63 105/105,
+feedbackbrowser63 67/67, rinne57 379/379, breite57 84/84,
+pdf52 504/504, breite52 52/52, kehle52 698/698,
+kehleintegration52 76/76, medien50 42/42, dateien49 38/38,
+adresse45 39/39, projekte47 37/37, pfade55 37/37, status46 35/35,
+auswahl48 32/32, dateien43 27/27, nav 23/23, stand42 17/17,
+suche45 13/13, recent41 12/12, kopf45 8/8, hidden51 7/7,
+suche40 7/7, treffer40 7/7, ui39 (9 Darstellungsfälle).
+
+`node --check` über alle 28 `js/*.js` und `sw.js` fehlerfrei,
+`<div>` 701/701, keine doppelten Element-IDs.
+
+**Nicht getestet – ausdrücklich**: ein Live-Klicktest gegen Supabase
+war wie immer nicht möglich (Sandbox blockiert HTTPS zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`). Das wird nicht behauptet.
+
+### 73.8 PETER KÜNZI AG
+
+In dieser Runde wurde **kein einziges Mal** in die Datenbank
+geschrieben – nur eine lesende Abfrage auf `materials`, um die
+Kollisionsfreiheit von 999.99 zu prüfen.
+
+### 73.9 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/06-rapport.js` | freie Position: Helfer, Zeilendarstellung, Eingabe-Handler, Vorschlag, Umschalten |
+| `js/04-start-suche.js` | CSV-Export nutzt `matZeileTotal()` statt einer eigenen Rechnung |
+| `css/01-basis.css` | eine Zeile für das Preisfeld in der `.money`-Zelle |
+| `index.html` | nur Versionstext 2.65 |
+| `sw.js` | Cache-Version 2.65 |
+
+### 73.10 Offene Punkte
+
+- Kein Live-Klicktest gegen Supabase möglich (siehe 73.7).
+- Die Spalte **Dim.** ist schmal (6.5 % am Bildschirm, 10 mm im
+  Druck) – sie war für Katalogwerte wie „0.7 mm" ausgelegt. Ein
+  langer freier Text wird darin optisch abgeschnitten (der Wert
+  bleibt vollständig gespeichert und gedruckt wird, was hineinpasst).
+  Die Spalte zu verbreitern würde das Druck-Layout des Regierapports
+  ändern – bewusst nicht getan.
+- Nur **eine** freie Nummer (999.99). Mehrere freie Positionen in
+  einem Rapport sind möglich (jede Zeile hat ihre eigenen Werte), sie
+  tragen dann alle dieselbe EDV-Nr.
+- Der Blechverbrauch kennt die freie Position nicht – dort wird ein
+  echtes Katalogmaterial mit Abmessungen gebraucht.
