@@ -413,12 +413,18 @@ function rinneSvg(profil, masse, titel) {
     const sp = roh[v.knick];
     const u1 = vorDemKnick ? enden[i][1] : enden[i][0];
     const u2 = vorDemKnick ? enden[i][0] : enden[i][1];
-    const nachbar = p.segmente[vorDemKnick ? v.knick : i - 1];
-    const radNb = (nachbar ? nachbar.richtung : 0) * Math.PI / 180;
-    const dvx = Math.cos(radNb), dvy = -Math.sin(radNb);   // Bildkoordinaten: y nach unten
+    // Die Kehre muss NACH AUSSEN woelben, also in Verlaengerung des
+    // Blechs, das auf den Knickpunkt zulaeuft. Woelbt sie nach innen,
+    // verschlingt sie sich mit den beiden Lagen zu einem S.
+    // Einlaufendes Blech: liegt der Umschlag vor dem Knick, ist es der
+    // Umschlag selbst, sonst das Segment davor.
+    const einlauf = vorDemKnick ? p.segmente[i] : p.segmente[i - 1];
+    const radE = (einlauf ? einlauf.richtung : seg.richtung + 180) * Math.PI / 180;
+    const ex = Math.cos(radE), ey = -Math.sin(radE);       // Bildkoordinaten: y nach unten
     const gap = Math.hypot(u1[0] - sp[0], u1[1] - sp[1]) || 1;
-    const nx = (u1[0] - sp[0]) / gap, ny = (u1[1] - sp[1]) / gap;
-    const sweep = (nx * dvy - ny * dvx) > 0 ? 0 : 1;
+    const dx0 = (u1[0] - sp[0]) / gap, dy0 = (u1[1] - sp[1]) / gap;
+    // Bei sweep=1 liegt der Bogenscheitel auf der Seite (dy, -dx).
+    const sweep = (dy0 * ex - dx0 * ey) > 0 ? 1 : 0;
     g += strich(`M ${sp[0].toFixed(1)} ${sp[1].toFixed(1)}`
       + ` A ${(gap / 2).toFixed(1)} ${(gap / 2).toFixed(1)} 0 0 ${sweep} ${u1[0].toFixed(1)} ${u1[1].toFixed(1)}`
       + ` L ${u2[0].toFixed(1)} ${u2[1].toFixed(1)}`);

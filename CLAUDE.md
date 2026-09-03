@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.61, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.62, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.61**
+- sichtbare App-Version: **2.62**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -10160,3 +10160,109 @@ fängt:
 `breite57` 84/84, `pdf52` 504/504, volle Regression grün, `node --check`
 fehlerfrei, `<div>` 697/697. Regierapport und `js/14-freies-profil.js`
 nicht im Diff.
+
+## 70. RINNE – UMSCHLAG-KEHRE WÖLBT NACH AUSSEN — VERSION 2.62
+
+Gemeldet: „umschlag ist noch immer falsch", mit einer vergrösserten
+Aufnahme des rechten Umschlags. **Nur `js/26-rinne.js` geändert** (sechs
+Zeilen in der Zeichenfunktion) – keine Datenbank, keine Berechnung,
+keine andere Datei.
+
+### 70.1 Ursache
+
+Ein Umschlag wird als zwei parallele Lagen mit einer halbkreisförmigen
+Kehre am Ende gezeichnet. Welche Seite der Halbkreis wölbt, bestimmt in
+SVG das `sweep`-Flag des `A`-Befehls. Die bisherige Formel bezog sich auf
+das **Nachbarsegment** und lieferte dadurch für die beiden Umschläge des
+Standardprofils **unterschiedliche** Ergebnisse:
+
+```
+rechts: M 610.0 242.8 A 3.5 3.5 0 0 0 610.0 249.8 L 596.7 249.8   ← sweep 0
+links:  M  70.0  70.0 A 3.5 3.5 0 0 1  73.9  64.2 L  84.9  71.7   ← sweep 1
+```
+
+Grund: der Codeweg unterscheidet, ob das versetzt gezeichnete Blech
+**vor** oder **nach** dem 180°-Knick liegt (seit v2.60 wird immer das
+kürzere Blech versetzt). In beiden Fällen wurde derselbe Ausdruck auf
+zwei verschiedene Nachbarsegmente angewandt – einmal traf er, einmal
+nicht. Beim rechten Umschlag wölbte die Kehre dadurch **nach innen**,
+zwischen die beiden Lagen hinein, und Bogen und Blech verschlangen sich
+zu der vom Betreiber fotografierten S-Form.
+
+### 70.2 Korrektur
+
+Statt eines Nachbarschafts-Vergleichs jetzt eine ausdrückliche
+geometrische Regel: die Kehre wölbt in Verlaufsrichtung des Blechs, das
+**auf den Knickpunkt zuläuft** – also nach aussen, weg von den beiden
+Lagen.
+
+```js
+const einlauf = vorDemKnick ? p.segmente[i] : p.segmente[i - 1];
+const radE = (einlauf ? einlauf.richtung : seg.richtung + 180) * Math.PI / 180;
+const ex = Math.cos(radE), ey = -Math.sin(radE);   // Bildkoordinaten: y nach unten
+const gap = Math.hypot(u1[0] - sp[0], u1[1] - sp[1]) || 1;
+const dx0 = (u1[0] - sp[0]) / gap, dy0 = (u1[1] - sp[1]) / gap;
+// Bei sweep=1 liegt der Bogenscheitel auf der Seite (dy, -dx).
+const sweep = (dy0 * ex - dx0 * ey) > 0 ? 1 : 0;
+```
+
+Beide Umschläge liefern jetzt `sweep 1` und zeichnen einen sauberen,
+nach aussen gewölbten Falz. Vergrössert nachgesehen (beide Umschläge
+nebeneinander, `viewBox` auf die jeweilige Region beschnitten): Blech
+läuft ein, kehrt am äusseren Ende um 180°, liegt parallel zurück – keine
+Überschneidung mehr.
+
+**Die Rechnung ist nicht betroffen.** Der Umschlag ist ein gewöhnliches
+Fixmass; `sweep` steuert ausschliesslich die Darstellung. Fixmasse 460,
+Abwicklung und Zuschnittlänge unverändert (im Prüfstand abgesichert).
+
+### 70.3 Warum es zweimal nicht auffiel
+
+v2.59 und v2.60 haben am Umschlag gearbeitet, ohne die **Wölbrichtung**
+zu prüfen – getestet wurden nur Radius, Öffnungsweite und die Zuordnung
+zum kürzeren Blech. Diese Lücke ist jetzt geschlossen: `rinne57` prüft
+die Richtung direkt am gezeichneten Pfad. Aus Startpunkt, Endpunkt,
+Radius und `sweep` wird der Scheitel des Halbkreises berechnet; er muss
+auf der **Gegenseite** der Laufrichtung des versetzten Blechs liegen:
+
+```js
+const s2 = sw ? 1 : -1;
+const sx = cx + s2*r*dy, sy = cy - s2*r*dx;
+return ((sx-cx)*(x3-x2) + (sy-cy)*(y3-y2)) < 0;
+```
+
+**Gegenprobe durchgeführt**: mit umgedrehtem `sweep` meldet der
+Prüfstand „FEHLGESCHLAGEN: Kehre woelbt nach aussen (kein S)" und
+378/379 – die Prüfung greift also wirklich und ist keine Zierde.
+
+### 70.4 Tests
+
+- **`rinne57` 379/379** (vorher 378) – neu: Wölbrichtung beider Kehren,
+  mit Gegenprobe. Unverändert bestanden: alle 35 Excel-Datenzeilen,
+  Standardprofil (Fixmasse 460, Richtungsfolge, Beispiel 981/1280),
+  freies Profil, Winkel, Verkettung, v2.56-Altformat, Rundungsband
+  6–45 px, Kehrenöffnung ≥ 3 px, Zuordnung zum kürzeren Blech.
+- **`breite57` 84/84** – echtes Chromium, echtes Tippen/Auswählen,
+  fünf Gerätebreiten, kein seitlicher Überlauf, kein NaN.
+- **`pdf52` 504/504** – vier Rinnen-Dokumente wirklich als PDF gerendert.
+- **Volle Regression grün**: nav 23/23, suche40 7/7, treffer40 7/7,
+  recent41 12/12, stand42 17/17, dateien43 27/27, ui39 (9 Fälle),
+  adresse45 39/39, kopf45 8/8, suche45 13/13, status46 35/35,
+  projekte47 37/37, auswahl48 32/32, dateien49 38/38, medien50 42/42,
+  hidden51 7/7, kehle52 698/698, kehleintegration52 76/76,
+  breite52 52/52, pfade55 37/37.
+- `node --check` über alle 28 `js/*.js` und `sw.js` fehlerfrei,
+  `<div>` 697/697, keine doppelten Element-IDs.
+- Regierapport (`js/06`, `js/08`, `css/03-druck.css`) und
+  `js/14-freies-profil.js` nicht im Diff.
+
+**Live-Klicktest gegen Supabase war weiterhin nicht möglich** – die
+Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird ausdrücklich nicht als
+getestet behauptet.** Die Skizze wurde in echtem Chromium gerendert und
+vergrössert angesehen.
+
+### 70.5 Geänderte Dateien
+
+`js/26-rinne.js` (sechs Zeilen `sweep`-Berechnung), `index.html` und
+`sw.js` (Version 2.62), `CLAUDE.md`. Sonst nichts.
