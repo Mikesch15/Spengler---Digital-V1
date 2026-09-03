@@ -1,0 +1,125 @@
+BERICHT — "fertig button funktioniert nicht"
+Spengler-DIGITAL · Version 2.73 · Rinne Halbrund · 03.09.2026
+
+================================================================
+1. DER BEFUND
+================================================================
+Die Rueckmeldung war woertlich richtig. Auf dem letzten Register
+(6 · Zuschnitt) hiess der Knopf "Fertig" und war GESPERRT
+(disabled) - er sah aus wie die Abschlussaktion und bewirkte
+nichts. Kein Aussetzer, sondern so gebaut:
+
+    <button id="ra_weiter" ${schritt>=6 ? " disabled" : ""}>
+      ${schritt>=6 ? "Fertig" : "Weiter › …"}
+
+================================================================
+2. WOHER DAS KAM
+================================================================
+Aus dem Prototyp uebernommen. Dort steht dieselbe Zeile:
+
+    weiter.disabled = schritt >= SCHRITTE.length;
+    weiter.textContent = schritt >= SCHRITTE.length ? "Fertig" : …
+
+In der Testapp faellt das kaum auf, weil Speichern, Kopieren und
+PDF dort in einer festen Leiste AUSSERHALB der Schritte liegen -
+am Ende der Schritte ist man dort wirklich fertig.
+
+In der App ist das anders: unter den Registern folgen noch
+
+    📷 Fotos und Skizzen
+    Notiz / Masse
+    💾 Speichern
+
+Der Ablauf geht also weiter, und mitten darin stand ein toter
+Knopf. Beim Uebernehmen der Register-Fuehrung habe ich diesen
+Unterschied nicht geprueft.
+
+================================================================
+3. WAS JETZT PASSIERT
+================================================================
+Der Knopf heisst auf dem letzten Register
+
+    Fertig › Fotos und Speichern
+
+ist bedienbar und fuehrt zum Rest des Formulars: der Fotoblock
+wird angescrollt und 2,5 Sekunden blau umrandet; "💾 Speichern"
+steht dann im selben Bild darunter.
+
+BEWUSST NICHT: der Knopf speichert nicht selbst.
+  - #saveMeasurement bleibt der einzige Speicherweg, mit seiner
+    Pruefung von Projekt und Pflichtfeldern. Zwei Speicherwege
+    waeren eine Fehlerquelle.
+  - Automatisches Speichern wuerde die Fotos uebergehen, die erst
+    unterhalb der Register erfasst werden.
+
+"‹ Zurueck" bleibt auf dem ersten Register gesperrt - dort gibt es
+tatsaechlich nichts davor.
+
+================================================================
+4. GETESTET
+================================================================
+pruefstand-rinne-app-v2-71.js: 102/102 (vorher 99). Neu geprueft:
+
+  · der Knopf heisst auf dem letzten Register "Fertig"
+  · er ist bedienbar (nicht disabled)
+  · er fuehrt nachweislich zu Fotos/Notiz/Speichern
+    (die Markierung sitzt auf #measMedienBereich)
+  · er blaettert nicht ins Leere (bleibt auf Register 6)
+
+DREI GEGENPROBEN - jede baut den Fehler wieder ein:
+
+  "Fertig" wieder gesperrt        ->  100/102
+  raAbschluss() ohne Wirkung      ->  101/102
+  "Fertig" blaettert auf Reg. 7   ->  101/102
+
+WICHTIG dabei: die erste Gegenprobe hat den Pruefstand zunaechst
+ABSTUERZEN lassen statt einen Fehlschlag zu melden - page.click
+auf einen gesperrten Knopf laeuft in einen Timeout. Ein
+abgebrochener Pruefstand sieht aus wie "keine Fehler". Genau
+dieser Fehlertyp ist mir in dieser Reihe schon einmal
+unterlaufen; der Klick laeuft jetzt ueber evaluate mit Pruefung,
+und die Gegenprobe meldet sauber 100/102.
+
+Im echten Chromium nachgesehen (412 px Breite): der Knopf ist
+242 x 46 px gross, nach dem Klick steht der Fotoblock umrandet im
+Bild und "💾 Speichern" direkt darunter.
+
+VOLLE REGRESSION, alles gruen:
+  dila-sichtbar 57/57 · verschnitt-app 1578/1578 ·
+  kehle52 698/698 · rinne57 379/379 · required70 359/359 ·
+  offline70 107/107 · fotos70 88/88 · breite57 84/84 ·
+  kehleintegration52 76/76 · breite52 52/52 ·
+  einstbrowser68 47/47 · module67 43/43 · einst68 43/43 ·
+  medien50 42/42 · pfade55 38/38 · modulebrowser67 16/16 ·
+  hidden51 7/7 · abstand69 2/2
+
+  node --check fehlerfrei, <div>-Balance 721/721, keine doppelten
+  Element-IDs, Version in index.html und sw.js gleich.
+
+Nicht angefasst: js/12-rinne-halbrund.js, js/06-rapport.js,
+js/08-katalog-blitzschutz.js, css/03-druck.css - per git diff
+bestaetigt. Keine Rechnung, keine Schemaaenderung, kein
+Datenbankzugriff.
+
+================================================================
+5. WARUM 2.73 UND NICHT 2.72
+================================================================
+Version 2.72 war zum Zeitpunkt dieser Korrektur bereits
+veroeffentlicht (13:03 Uhr). Dieselbe Versionsnummer mit zwei
+verschiedenen Inhalten waere nicht nachvollziehbar gewesen.
+
+Unten auf dem Startbildschirm muss also "Version 2.73" stehen.
+Nach dem Push laeuft die Veroeffentlichung auf GitHub Pages;
+bis sie durch ist, liefert die Seite noch 2.72 aus.
+
+================================================================
+6. OFFENE PUNKTE
+================================================================
+- KEIN Live-Klicktest gegen Supabase moeglich (die Sandbox
+  blockiert HTTPS dorthin). Das wird ausdruecklich NICHT als
+  getestet behauptet. Geprueft ist die Oberflaeche in echtem
+  Chromium gegen die echte index.html.
+- Der Prototyp behaelt seinen gesperrten Knopf; er hat eine
+  eigene Speicherleiste und ist nicht Teil der App.
+- Weiterhin offen, weil dafuer Ihre Zahlen fehlen: Schnittfuge
+  und Wiederverwendung von Reststuecken im Verschnitt.
