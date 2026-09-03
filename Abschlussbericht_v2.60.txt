@@ -1,0 +1,155 @@
+================================================================================
+SPENGLER-DIGITAL – ABSCHLUSSBERICHT VERSION 2.60
+ALLE BIEGUNGEN DER PROFILSKIZZE SICHTBAR ABGERUNDET
+Commit d307e1b · Branch claude/v1-49-analysis-rk5csc · gemergt nach main
+================================================================================
+
+
+1. AUSGANGSLAGE
+--------------------------------------------------------------------------------
+
+In v2.59 lagen die Ecken bereits in einem gerundeten Pfad – sichtbar gerundet
+war aber praktisch nichts ausser den Umschlägen. Beim Nachmessen der tatsächlich
+erzeugten SVG-Pfade zeigten sich ZWEI Ursachen.
+
+
+2. URSACHE 1 – DER BIEGERADIUS WAR ZU KLEIN
+--------------------------------------------------------------------------------
+
+Ich hatte BIEGERADIUS = 5 aus dem Freien Profil übernommen. Dort ist die
+Zeichnung rund 300 px breit, die Rinnen-Skizze dagegen 680 px. 5 px sind darauf
+optisch nichts.
+
+Jetzt 14 px – derselbe Anteil an der Bildbreite:
+    5 / 300 ≈ 1.7 %      14 / 680 ≈ 2.1 %
+
+Ungefährlich, weil abgerundeterPfad() den Radius bei kurzen Segmenten ohnehin
+selbst begrenzt: t = min(radius, lenU·0.45, lenW·0.45).
+
+
+3. URSACHE 2 – BEIM 180°-KNICK WURDE DAS FALSCHE BLECH VERSETZT
+--------------------------------------------------------------------------------
+
+Gemessen: der Profilzug hatte nur FÜNF Bögen statt sechs. Es fehlte die Ecke
+zwischen "Anschl. Flachdach" und A.
+
+Grund: Die Umschlag-Erkennung nahm immer das Segment, das den 180°-Winkel
+TRÄGT. Im Standardprofil trägt aber das 150er Blech den 180er – der eigentliche
+Umschlag ist das 15er Segment DAVOR.
+
+Folge: das lange 150er Blech wurde aus dem Profilzug herausgenommen und als
+versetzte "Umschlag"-Linie gezeichnet. Damit fiel auch seine Ecke zu A aus dem
+gerundeten Zug heraus.
+
+BEHOBEN: Bei einem 180°-Knick liegen immer zwei Bleche aufeinander. Versetzt
+gezeichnet wird jetzt das KÜRZERE der beiden – unabhängig davon, welches den
+Winkel trägt:
+
+    const j = (!vor || seg.laenge <= vor.laenge) ? i : i - 1;
+    versetzt[j] = { richtung: seg.richtung, seite: seg.seite, knick: i };
+
+Versatzrichtung und -seite kommen weiterhin vom 180°-Segment selbst (damit der
+Umkehren-Knopf aus v2.59 unverändert wirkt), die Kehre sitzt am Knickpunkt.
+
+Ergebnis: der Profilzug hat jetzt alle SECHS Innenecken, jede davon gerundet.
+
+Zusätzlich GAP von 9 auf 11 erhöht, damit der Umschlag etwas Luft hat.
+
+
+4. GEMESSENE WERTE
+--------------------------------------------------------------------------------
+
+Standardprofil mit A=127, B=192, C=202:
+
+  vorher    Pfad 0: 0 Bögen
+            Pfad 1: 1 Bogen  r=4.5          (Kehre)
+            Pfad 2: 5 Bögen  r=63/34/34/34/26
+            Pfad 3: 1 Bogen  r=4.5          (Kehre)
+
+  nachher   Pfad 0: 1 Bogen  r=5.5          (Kehre)
+            Pfad 1: 6 Bögen  r=20/63/34/34/34/26
+            Pfad 2: 1 Bogen  r=5.5          (Kehre)
+
+Der zusätzliche Bogen mit r=20 ist die vorher fehlende Ecke zwischen
+"Anschl. Flachdach" und A. (Der Radius im A-Befehl ist der Kreisradius
+r = t·tan(φ/2), deshalb grösser als der eingestellte Tangentenabstand.)
+
+
+5. TESTS
+--------------------------------------------------------------------------------
+
+PRÜFSTAND "rinne57" – 377 von 377 bestanden (vorher 373)
+
+  Neu, und bewusst MESSEND statt nur auf Vorhandensein prüfend:
+    - "jede Innenecke des Profilzugs ist gerundet"
+      Anzahl der Bögen im längsten Pfad muss der Anzahl Innenecken
+      entsprechen (6)
+    - "Rundung ist sichtbar gross (Radius >= 10 px)"
+      fängt einen zu kleinen Biegeradius
+    - "zwei Umschläge als eigene Kehre gezeichnet"
+    - "Kehren gehören zum kurzen Blech (nicht zum 150er)"
+      die versetzte Linie muss kurz sein
+
+  GEGENPROBEN – beide reproduzieren den alten Zustand:
+    BIEGERADIUS zurück auf 5
+      >> FEHLER: Rundung ist sichtbar gross (Radius >= 10 px)
+    immer das 180°-Segment versetzen
+      >> FEHLER: jede Innenecke des Profilzugs ist gerundet
+      >> FEHLER: Kehren gehoeren zum kurzen Blech (nicht zum 150er)
+
+  Unverändert weiterhin geprüft:
+    - ALLE 35 DATENZEILEN der Excel-Vorlage
+    - Standardprofil nach Ihrer Vorlage (Fixmasse 460, Richtungsfolge,
+      Bezeichnungen, gezeichnete Längen, Beispielrechnung 981/1'280)
+    - freies Profil, Winkel, Verkettung, Altformat, elf SVG-Fälle
+    - Umschlag umkehren (+180/−180, Seite, Endpunkt identisch)
+
+PRÜFSTAND "breite57" – 84 von 84 bestanden (echtes Chromium)
+PRÜFSTAND "pdf52"    – 504 von 504 bestanden
+
+REGRESSION – alle bestehenden Prüfstände grün
+  adresse45 39/39, kopf45 8/8, suche45 13/13, status46 35/35,
+  projekte47 37/37, auswahl48 32/32, dateien49 38/38, medien50 42/42,
+  hidden51 7/7, kehle52 698/698, kehleintegration52 76/76, breite52 52/52,
+  pfade55 37/37, nav, suche40, treffer40, recent41, stand42, dateien43, ui39
+
+STRUKTUR
+  node --check über alle 28 js/*.js und sw.js: fehlerfrei
+  <div>/</div> in index.html ausgeglichen: 697/697
+  Regierapport (js/06, js/08, css/03-druck.css) UND js/14-freies-profil.js
+  nicht im Diff
+
+WAS NICHT GETESTET WURDE
+  Ein Live-Klicktest gegen Supabase war nicht möglich – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co.
+  DAS WIRD HIER AUSDRÜCKLICH NICHT ALS GETESTET BEHAUPTET.
+  Das Formular selbst wurde live in echtem Chromium bedient und die Skizze
+  visuell geprüft.
+
+
+6. GEÄNDERTE DATEIEN
+--------------------------------------------------------------------------------
+
+  js/26-rinne.js   Biegeradius, Versatz des kürzeren Blechs beim 180°-Knick,
+                   GAP 9 -> 11
+  index.html       Version 2.60
+  sw.js            Cache-Version 2.60
+  CLAUDE.md        Abschnitt 68
+
+Sonst nichts. Keine Datenbankänderung, keine Migration, keine RLS- oder
+Storage-Änderung, kein anderes Modul angefasst.
+
+
+7. ABSCHLUSS
+--------------------------------------------------------------------------------
+
+  Version              2.60
+  Commit-Hash          d307e1b
+  Entwicklungsbranch   claude/v1-49-analysis-rk5csc  (gepusht)
+  Push auf main        erfolgt, main steht auf d307e1b
+  Arbeitsverzeichnis   sauber
+  Regierapport         unverändert
+  js/14-freies-profil  unverändert (nur benutzt)
+  PETER KÜNZI AG       nicht berührt (kein Datenbankzugriff in dieser Runde)
+
+================================================================================
