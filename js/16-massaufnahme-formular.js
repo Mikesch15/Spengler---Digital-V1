@@ -14,6 +14,7 @@ function showMeasTypeSection(type){
  if(type==="einlaufblech_gerade")renderEbPiecesTable();
  if(type==="rinne_halbrund")renderRinneResult();
  if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
+ if(type==="einlaufblech_gerade")refreshEbRinneList();
  if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
  if(type==="mauerabdeckung")renderMadResult();
  if(type==="lukarne")renderLukResult();
@@ -36,6 +37,12 @@ $("openEinlaufblechSettings").onclick=()=>{
  $("settingsModal").hidden=false;
 };
 
+// Fotos und Skizzen gehoeren seit v2.70 zu jeder Massaufnahme-Art.
+// Eine Stelle, ein Ergebnis - so kann keine Art vergessen gehen.
+function measMedienAusFormular(){
+ return {photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,
+         sketch_paths:measSketches.slice()};
+}
 function buildMeasurementFromForm(){
  const type=$("measType").value;
  const base={
@@ -54,7 +61,7 @@ function buildMeasurementFromForm(){
   const massAEng=Math.max(0,massA-2);
   const restBreite=ebRestbreite();
   const gesamtlaenge=ebPieces.reduce((s,p)=>s+(Number(p.laenge)||0),0);
-  return {...base,photo_path:null,sketch_paths:[],data:{gesamtlaenge,massA,massAEng,winkel,montage,abwicklung,engeSeite,restBreite,pieces:ebPieces,material:$("eb_material").value}};
+  return {...base,...measMedienAusFormular(),data:{gesamtlaenge,massA,massAEng,winkel,montage,abwicklung,engeSeite,restBreite,pieces:ebPieces,material:$("eb_material").value}};
  }
  if(type==="rinne_halbrund"){
   const segmentsWithZuschnitt=rinneSegments.map(s=>({...s,zuschnittlaenge:calcRinneSegment(s)}));
@@ -64,7 +71,7 @@ function buildMeasurementFromForm(){
   // Stückliste mitspeichern, damit ein späterer Ausdruck dieselben Zahlen
   // zeigt, auch wenn Anschluss- oder Dila-Masse zwischenzeitlich geändert werden.
   const stueckliste=berechneRinneStueckliste(rinneSegments,rinneDilas,boundaries,rinneDilaMass);
-  return {...base,photo_path:null,sketch_paths:[],data:{rinneAbwicklung:$("rinne_abwicklung").value,material,segments:segmentsWithZuschnitt,gesamtlaenge,dilas:rinneDilas,boundaries,stueckliste,dilaMass:rinneDilaMass}};
+  return {...base,...measMedienAusFormular(),data:{rinneAbwicklung:$("rinne_abwicklung").value,material,segments:segmentsWithZuschnitt,gesamtlaenge,dilas:rinneDilas,boundaries,stueckliste,dilaMass:rinneDilaMass}};
  }
  if(type==="einlaufblech_konisch"){
   const abwicklung=Number($("ebk_abwicklung").value);
@@ -73,17 +80,17 @@ function buildMeasurementFromForm(){
   const engeSeite=ebkEngeSeite();
   const gesamtlaenge=ebkPieces.reduce((s,p)=>s+(Number(p.laenge)||0),0);
   const piecesWithEng=ebkPieces.map(p=>({...p,...calcEbkPiece(p)}));
-  return {...base,photo_path:null,sketch_paths:[],data:{abwicklung,dachneigung,montage,engeSeite,pieces:piecesWithEng,gesamtlaenge,material:$("ebk_material").value}};
+  return {...base,...measMedienAusFormular(),data:{abwicklung,dachneigung,montage,engeSeite,pieces:piecesWithEng,gesamtlaenge,material:$("ebk_material").value}};
  }
  if(type==="freies_profil"){
   const konisch=$("fp_konisch").value==="ja";
-  return {...base,photo_path:null,sketch_paths:[],data:{schenkel:fpSchenkel,konisch,segmente:fpSegmente,ansicht:$("fp_ansicht").value,material:$("fp_material").value}};
+  return {...base,...measMedienAusFormular(),data:{schenkel:fpSchenkel,konisch,segmente:fpSegmente,ansicht:$("fp_ansicht").value,material:$("fp_material").value}};
  }
  if(type==="mauerabdeckung"){
   const material=$("mad_material").value;
   const {boundaries,gesamtlaenge}=computeMadBoundaries(madSegments);
   const stueckliste=berechneMadStueckliste(madSegments,madSchieber,boundaries,madBodenMass,madSchieberMass);
-  return {...base,photo_path:null,sketch_paths:[],data:{
+  return {...base,...measMedienAusFormular(),data:{
    material,
    profil:madProfilMasse(),
    abwicklung:Math.round(madProfilMasse().abwicklung),
@@ -98,10 +105,10 @@ function buildMeasurementFromForm(){
  }
  if(type==="lukarne"){
   const g=berechneLukarne(lukEingabenAusFeldern());
-  if(!g)return {...base,photo_path:null,sketch_paths:[],data:{}};
+  if(!g)return {...base,...measMedienAusFormular(),data:{}};
   // Scharenliste mitspeichern: ein einmal gedrucktes PDF bleibt dadurch
   // gleich, auch wenn eine Zugabe später geändert wird.
-  return {...base,photo_path:null,sketch_paths:[],data:{
+  return {...base,...measMedienAusFormular(),data:{
    hoehe:g.H,
    laengeOben:g.L,
    winkel:g.alpha,
@@ -124,7 +131,7 @@ function buildMeasurementFromForm(){
   const e=anbEingabenAusFeldern();
   const g=berechneAnschlussblech(e);
   // Ergebnis mitspeichern, damit ein gedrucktes PDF gleich bleibt.
-  return {...base,photo_path:null,sketch_paths:[],data:{...e,
+  return {...base,...measMedienAusFormular(),data:{...e,
    abwicklung:g?g.abwicklung:0,
    teile:g?g.teile:[],
    stueckliste:g?g.stuecke:[],
@@ -135,7 +142,7 @@ function buildMeasurementFromForm(){
  if(type==="einfassung_rund"){
   const e=einfEingabenAusFeldern();
   const g=einfBerechnen(e);
-  return {...base,photo_path:null,sketch_paths:[],data:{...e,
+  return {...base,...measMedienAusFormular(),data:{...e,
    abwicklung:g?g.abwicklung:0,
    breiteGesamt:g?g.breiteGesamt:null,
    anzahlBleilappen:g?g.anzahlBleilappen:null,
@@ -151,7 +158,7 @@ function buildMeasurementFromForm(){
   const werte={};
   if(g&&g.ok)["Q","R","S","T","tanU","tanV","U","V","U90","V90","W","A","X","Y","Z","AA","AB","AC","AD","AE",
    "b","c","d","e","f","g","h","i","k","l","m","n","o","p","mitte"].forEach(k=>{werte[k]=g[k]});
-  return {...base,photo_path:null,sketch_paths:[],data:{
+  return {...base,...measMedienAusFormular(),data:{
    nh:e.nh===""?null:Number(e.nh),
    nl:e.nl===""?null:Number(e.nl),
    gl:e.gl===""?null:Number(e.gl),
@@ -175,7 +182,7 @@ function buildMeasurementFromForm(){
     zuschnitt:g.zuschnitt
    };
   });
-  return {...base,photo_path:null,sketch_paths:[],data:{
+  return {...base,...measMedienAusFormular(),data:{
    profil:w.profil,ansetz:w.ansetz,
    fixSumme:rinneFixSumme(w.profil),
    varMasse:rinneVariable(w.profil).map(v=>({buchstabe:v.buchstabe,name:v.name})),
@@ -183,7 +190,7 @@ function buildMeasurementFromForm(){
    material:$("rp_material")?$("rp_material").value:""
   }};
  }
- return {...base,photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,sketch_paths:measSketches,data:{material:$("foto_material")?$("foto_material").value:""}};
+ return {...base,...measMedienAusFormular(),data:{material:$("foto_material")?$("foto_material").value:""}};
 }
 $("printMeasurementBtn").onclick=()=>printMeasurement(Object.assign(buildMeasurementFromForm(),currentMeasurementMeta));
 $("cancelMeasurement").onclick=()=>{
@@ -195,6 +202,8 @@ $("cancelMeasurement").onclick=()=>{
 $("saveMeasurement").onclick=async()=>{
  const title=$("measTitle").value.trim();
  const type=$("measType").value;
+ // Offline (v2.70): klare Absage statt kryptischer Netzwerkmeldung.
+ if(offlineSperrtSpeichern("Diese Massaufnahme"))return;
  if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
  if(!measSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. Eine Massaufnahme kann nur einem Projekt zugeordnet gespeichert werden.");return}
  if(type==="skizze_foto"&&!measPhotoDataUrl&&!measExistingPhotoUrl&&measSketches.length===0){alert("Bitte ein Foto aufnehmen oder mindestens eine Skizze zeichnen.");return}
@@ -245,7 +254,7 @@ $("saveMeasurement").onclick=async()=>{
   const warNeu=!currentMeasurementId;
   let workingId=currentMeasurementId;
   let photoUrl=measExistingPhotoUrl,sketchUrls=measSketches.slice();
-  if(type==="skizze_foto"){
+  {
    // Fotos/Skizzen sollen eindeutig unter measurements/<projectId>/<measurementId>/…
    // abgelegt werden – bei einer neuen Massaufnahme gibt es diese ID aber
    // erst nach dem ersten Speichern. Deshalb bei neuen Foto-/Skizzen-Uploads
@@ -579,12 +588,17 @@ async function printMeasurement(m){
  // Bucket ist privat: Firmenlogo sowie Foto/Skizzen (nur beim Typ
  // "skizze_foto") brauchen eine signierte URL statt des gespeicherten Pfads.
  const logoSrc=await storageSignedUrl(logoUrl);
- let photoSrc=null,sketchSrcs=[];
- if(m.type==="skizze_foto"){
-  photoSrc=await storageSignedUrl(m.photo_path);
-  const sketchQuellen=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
-  sketchSrcs=await Promise.all(sketchQuellen.map(storageSignedUrl));
- }
+ // Seit v2.70 kann JEDE Art Fotos und Skizzen haben.
+ const photoSrc=await storageSignedUrl(m.photo_path);
+ const sketchQuellen=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
+ const sketchSrcs=(await Promise.all(sketchQuellen.map(storageSignedUrl))).filter(Boolean);
+ // Gemeinsamer Anhang fuer alle Fach-Arten: Foto im Fluss, jede Skizze auf
+ // einer eigenen Seite - dieselbe Darstellung wie bei "Skizze / Foto".
+ const medienHtml=(photoSrc||sketchSrcs.length)?`
+${photoSrc?`<div class="eb-section-head">Foto</div>
+<div class="pdf-bild"><img class="photo" src="${esc(photoSrc)}"></div>`:""}
+${sketchSrcs.map((s2,i)=>`<div class="sketch-page"><div class="eb-section-head">Skizze${sketchSrcs.length>1?` ${i+1} von ${sketchSrcs.length}`:""}</div>
+<div class="pdf-bild"><img class="sketch" src="${esc(s2)}"></div></div>`).join("")}`:"";
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
  const cell2=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
  // Exakt derselbe zentrale Kopf wie beim jeweils anderen Dokumenttyp
@@ -678,6 +692,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <table class="eb-info-table">
 <tr>${cell("Material",esc(tab.label))}${cell("Gesamtlänge",esc(Math.round(d.gesamtlaenge||0))+" mm")}<td></td></tr>
 <tr>${cell("Abwicklung",esc(d.abwicklung||0)+" mm")}${cell("Schieber",(d.schieber||[]).length?esc((d.schieber||[]).length)+" Stück":"Keine nötig")}</tr>
+<tr>${(()=>{const pr=d.profil||{};const vg=(typeof madBiegeVorgabe==="function")?madBiegeVorgabe(pr.gef||0):{links:90,rechts:90};return cell("Biegewinkel links",esc(pr.wL??vg.links)+"°")+cell("Biegewinkel rechts",esc(pr.wR??vg.rechts)+"°");})()}</tr>
 </table>
 <div class="eb-section-head">Profil (Querschnitt)</div>
 <div class="eb-diagram">${madProfilSvgAus(d.profil)}</div>
@@ -975,17 +990,14 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
  }else{
   const d=m.data||{};
   const matName=(findMeasurementMaterial(d.material)||{}).name;
-  const skizzen=sketchSrcs.filter(Boolean);
   bodyHtml=`${kopfHtml}
 ${matName?`<div class="eb-section-head">Angaben</div>
 <table class="eb-info-table"><tr>${cell2("Material",esc(matName))}<td></td></tr></table>`:""}
-${photoSrc?`<div class="eb-section-head">Foto</div>
-<div class="pdf-bild"><img class="photo" src="${esc(photoSrc)}"></div>`:""}
 ${m.note?`<div class="eb-section-head">Notiz</div>
-<div class="note">${esc(m.note)}</div>`:""}
-${skizzen.map((s,i)=>`<div class="sketch-page"><div class="eb-section-head">Skizze${skizzen.length>1?` ${i+1} von ${skizzen.length}`:""}</div>
-<div class="pdf-bild"><img class="sketch" src="${esc(s)}"></div></div>`).join("")}`;
+<div class="note">${esc(m.note)}</div>`:""}`;
  }
+ // Fotos und Skizzen haengen bei JEDER Art am Ende des Dokuments.
+ bodyHtml+=medienHtml;
 
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(pdfDateiname(proj?proj.name:"",proj?proj.object:"",typeLabels[m.type]||m.type,m.title))}</title>
 <style>

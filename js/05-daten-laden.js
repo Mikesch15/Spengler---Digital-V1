@@ -14,9 +14,33 @@ async function loadAllData(){
   // (eine Zeile fuer das ganze System), nicht mehr eine je Firma.
   sb.from("system_settings").select("module_test").maybeSingle(),
  ]);
- const rates=ratesRes.data||[];
- const materials=materialsRes.data||[];
- const profiles=profilesRes.data||[];
+ // Offline (v2.70): schlaegt das Laden fehl, wird NICHT stillschweigend
+ // eine leere App gezeigt - dann kaeme jede Liste als "nichts vorhanden"
+ // daher. Stattdessen die zuletzt gesicherten Daten dieser Firma und ein
+ // deutlicher Hinweis.
+ const geladen={rates:ratesRes.data,materials:materialsRes.data,profiles:profilesRes.data,
+  projects:projectsRes.data,appSettings:appSettingsRes.data,bz:bzRes.data,
+  rinne:rinneRes.data,measMaterials:measMaterialsRes.data};
+ const fehlgeschlagen=[ratesRes,materialsRes,profilesRes,projectsRes,bzRes,rinneRes,measMaterialsRes]
+   .some(r=>r&&r.error);
+ const firmaId=currentProfile?currentProfile.company_id:null;
+ if(fehlgeschlagen||offlineIstOffline()){
+  const gesichert=offlineCacheLesen(firmaId);
+  if(gesichert&&gesichert.daten){
+   Object.keys(geladen).forEach(k=>{
+    if(geladen[k]===null||geladen[k]===undefined)geladen[k]=gesichert.daten[k];
+   });
+   offlineStand=gesichert.stand;
+  }
+  offlineHinweisZeigen(true,offlineStand);
+ }else{
+  offlineHinweisZeigen(false);
+  offlineStand=new Date().toISOString();
+  offlineCacheSchreiben(firmaId,geladen);
+ }
+ const rates=geladen.rates||[];
+ const materials=geladen.materials||[];
+ const profiles=geladen.profiles||[];
  settings.rates=rates.map(r=>[r.name,r.value]);
  rateIds=rates.map(r=>r.id);
  settings.materials=materials.map(m=>[m.edv_nr,m.name,m.dim,m.unit,m.price]);
@@ -24,27 +48,27 @@ async function loadAllData(){
  settings.employees=profiles.map(p=>`${p.first_name} ${p.last_name}`);
  employeeIds=profiles.map(p=>p.id);
  allProfiles=profiles;
- allProjects=projectsRes.data||[];
- if(appSettingsRes.data&&appSettingsRes.data.company_name)companyName=appSettingsRes.data.company_name;
- if(appSettingsRes.data){
-  companyAddress=appSettingsRes.data.company_address||"";
-  logoUrl=appSettingsRes.data.logo_url||"";
-  defaultVat=appSettingsRes.data.default_vat||"8.1 %";
-  if(appSettingsRes.data.rinne_dila_mass_mm!==null&&appSettingsRes.data.rinne_dila_mass_mm!==undefined)rinneDilaMass=Number(appSettingsRes.data.rinne_dila_mass_mm)||0;
-  if(appSettingsRes.data.mad_boden_mass_mm!==null&&appSettingsRes.data.mad_boden_mass_mm!==undefined)madBodenMass=Number(appSettingsRes.data.mad_boden_mass_mm)||0;
-  if(appSettingsRes.data.mad_schieber_mass_mm!==null&&appSettingsRes.data.mad_schieber_mass_mm!==undefined)madSchieberMass=Number(appSettingsRes.data.mad_schieber_mass_mm)||0;
-  if(appSettingsRes.data.luk_achsabstand_mm!==null&&appSettingsRes.data.luk_achsabstand_mm!==undefined)lukAchsabstand=Number(appSettingsRes.data.luk_achsabstand_mm)||500;
-  if(appSettingsRes.data.luk_hilfsriss_mm!==null&&appSettingsRes.data.luk_hilfsriss_mm!==undefined)lukHilfsriss=Number(appSettingsRes.data.luk_hilfsriss_mm)||0;
-  if(appSettingsRes.data.luk_zugabe_breite_mm!==null&&appSettingsRes.data.luk_zugabe_breite_mm!==undefined)lukZugabeBreite=Number(appSettingsRes.data.luk_zugabe_breite_mm)||0;
-  if(appSettingsRes.data.luk_zugabe_laenge_mm!==null&&appSettingsRes.data.luk_zugabe_laenge_mm!==undefined)lukZugabeLaenge=Number(appSettingsRes.data.luk_zugabe_laenge_mm)||0;
+ allProjects=geladen.projects||[];
+ if(geladen.appSettings&&geladen.appSettings.company_name)companyName=geladen.appSettings.company_name;
+ if(geladen.appSettings){
+  companyAddress=geladen.appSettings.company_address||"";
+  logoUrl=geladen.appSettings.logo_url||"";
+  defaultVat=geladen.appSettings.default_vat||"8.1 %";
+  if(geladen.appSettings.rinne_dila_mass_mm!==null&&geladen.appSettings.rinne_dila_mass_mm!==undefined)rinneDilaMass=Number(geladen.appSettings.rinne_dila_mass_mm)||0;
+  if(geladen.appSettings.mad_boden_mass_mm!==null&&geladen.appSettings.mad_boden_mass_mm!==undefined)madBodenMass=Number(geladen.appSettings.mad_boden_mass_mm)||0;
+  if(geladen.appSettings.mad_schieber_mass_mm!==null&&geladen.appSettings.mad_schieber_mass_mm!==undefined)madSchieberMass=Number(geladen.appSettings.mad_schieber_mass_mm)||0;
+  if(geladen.appSettings.luk_achsabstand_mm!==null&&geladen.appSettings.luk_achsabstand_mm!==undefined)lukAchsabstand=Number(geladen.appSettings.luk_achsabstand_mm)||500;
+  if(geladen.appSettings.luk_hilfsriss_mm!==null&&geladen.appSettings.luk_hilfsriss_mm!==undefined)lukHilfsriss=Number(geladen.appSettings.luk_hilfsriss_mm)||0;
+  if(geladen.appSettings.luk_zugabe_breite_mm!==null&&geladen.appSettings.luk_zugabe_breite_mm!==undefined)lukZugabeBreite=Number(geladen.appSettings.luk_zugabe_breite_mm)||0;
+  if(geladen.appSettings.luk_zugabe_laenge_mm!==null&&geladen.appSettings.luk_zugabe_laenge_mm!==undefined)lukZugabeLaenge=Number(geladen.appSettings.luk_zugabe_laenge_mm)||0;
  }
  // Die ID der eigenen app_settings-Zeile wird zum Speichern gebraucht:
  // PostgREST lehnt ein UPDATE ohne WHERE-Bedingung ab.
- appSettingsId=(appSettingsRes.data&&appSettingsRes.data.id!=null)?appSettingsRes.data.id:null;
+ appSettingsId=(geladen.appSettings&&geladen.appSettings.id!=null)?geladen.appSettings.id:null;
  moduleImTest=(sysRes&&sysRes.data&&sysRes.data.module_test)||{};
- blitzschutzMaterials=bzRes.data||[];
- rinneFittingTypes=rinneRes.data||[];
- measurementMaterials=measMaterialsRes.data||[];
+ blitzschutzMaterials=geladen.bz||[];
+ rinneFittingTypes=geladen.rinne||[];
+ measurementMaterials=geladen.measMaterials||[];
  applyCompanyName();
  applyEinlaufblechSettings();
  renderMeasMaterialOptions();

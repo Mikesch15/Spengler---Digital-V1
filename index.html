@@ -29,8 +29,8 @@
 <div class="brand">SPENGLER-DIGITAL</div>
 <h1>Anmelden</h1>
 <div class="grid">
-<div class="wide"><label>Benutzername oder E-Mail</label><input id="loginUser" placeholder="max.muster" autocomplete="username"></div>
-<div class="wide"><label>Passwort</label><input id="loginPass" type="password" autocomplete="current-password"></div>
+<div class="wide"><label>Benutzername oder E-Mail</label><input id="loginUser" data-pflicht="1" placeholder="max.muster" autocomplete="username"></div>
+<div class="wide"><label>Passwort</label><input id="loginPass" data-pflicht="1" type="password" autocomplete="current-password"></div>
 </div>
 <div class="bar">
 <button id="loginBtn" class="blue">Anmelden</button>
@@ -62,6 +62,9 @@
 
 <div class="app" id="appRoot" hidden>
 
+<!-- Offline-Hinweis (v2.70): erscheint, sobald keine Verbindung besteht. -->
+<div class="small no-print offline-hinweis" id="offlineHinweis" hidden></div>
+
 <div class="small no-print" id="topUserBar">Angemeldet als <b id="currentUserLabel">–</b> <button id="logout" class="red" style="padding:3px 9px;font-size:11px;margin-left:8px">🔓 Abmelden</button></div>
 
 <!-- STARTBILDSCHIRM -->
@@ -92,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.69</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.70</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -153,8 +156,8 @@
 <div class="card">
 <h2>Regieauftrag</h2>
 <div class="grid">
-<div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
-<div class="search"><input id="projectSearch" placeholder="Suchen: Projektname, Auftrags-Nr., Auftraggeber, Objekt …" autocomplete="off"><div id="projectResults" class="suggest"></div></div>
+<div class="wide"><label>Projekt</label>
+<div class="search"><input id="projectSearch" data-pflicht="1" placeholder="Suchen: Projektname, Auftrags-Nr., Auftraggeber, Objekt …" autocomplete="off"><div id="projectResults" class="suggest"></div></div>
 <div class="small" id="projectSelectedLabel"></div>
 <div class="print-only" id="printProjectLine"></div>
 </div>
@@ -244,9 +247,9 @@
      neues Projekt gehoert nie ins Archiv. -->
 <div id="projectCreateBox">
 <div class="grid" style="margin-bottom:8px">
-<div><label>Projektname (Pflichtfeld)</label><input id="newProjectName" placeholder="z. B. Neubau Muster"></div>
-<div><label>Auftrags-Nr. (Pflichtfeld)</label><input id="newProjectOrderNo" placeholder="z. B. 176712"></div>
-<div><label>Adresse (Pflichtfeld)</label><input id="newProjectObject" placeholder="z. B. Musterstrasse 1, 3000 Bern"></div>
+<div><label>Projektname</label><input id="newProjectName" data-pflicht="1" placeholder="z. B. Neubau Muster"></div>
+<div><label>Auftrags-Nr.</label><input id="newProjectOrderNo" data-pflicht="1" placeholder="z. B. 176712"></div>
+<div><label>Adresse</label><input id="newProjectObject" data-pflicht="1" placeholder="z. B. Musterstrasse 1, 3000 Bern"></div>
 <div><label>Auftraggeber</label><input id="newProjectCustomer" placeholder="optional"></div>
 </div>
 <div class="bar"><button id="addProject" class="blue">＋ Projekt anlegen</button></div>
@@ -307,9 +310,9 @@
 <div class="bar"><button id="cockpitToggleStammdaten" class="gray">✏️ Stammdaten bearbeiten</button></div>
 <div id="cockpitStammdaten" hidden>
 <div class="grid">
-<div><label>Projektname (Pflichtfeld)</label><input id="cockpitName"></div>
-<div><label>Auftrags-Nr. (Pflichtfeld)</label><input id="cockpitOrderNo"></div>
-<div><label>Adresse (Pflichtfeld)</label><input id="cockpitObject"></div>
+<div><label>Projektname</label><input id="cockpitName" data-pflicht="1"></div>
+<div><label>Auftrags-Nr.</label><input id="cockpitOrderNo" data-pflicht="1"></div>
+<div><label>Adresse</label><input id="cockpitObject" data-pflicht="1"></div>
 <div><label>Auftraggeber</label><input id="cockpitCustomer"></div>
 </div>
 <div class="bar"><button id="cockpitSaveStammdaten" class="blue">✓ Stammdaten speichern</button></div>
@@ -409,8 +412,8 @@
 <div class="modal-card">
 <h2>Eigenes Passwort festlegen</h2>
 <div class="info">Bitte vergib ein eigenes Passwort. Mindestens 8 Zeichen. Ohne diesen Schritt geht es nicht weiter.</div>
-<div><label>Neues Passwort</label><input id="pwNeu" type="password" autocomplete="new-password"></div>
-<div><label>Nochmals eingeben</label><input id="pwNeu2" type="password" autocomplete="new-password"></div>
+<div><label>Neues Passwort</label><input id="pwNeu" data-pflicht="1" type="password" autocomplete="new-password"></div>
+<div><label>Nochmals eingeben</label><input id="pwNeu2" data-pflicht="1" type="password" autocomplete="new-password"></div>
 <div id="pwFehler" class="small" style="color:#b42318;margin-top:6px"></div>
 <div class="bar" style="margin-top:10px"><button id="pwSpeichern" class="green">Passwort speichern</button><button type="button" id="pwAbmelden" class="gray">Abmelden</button></div>
 </div>
@@ -462,6 +465,30 @@
 </div>
 
 <div class="card">
+<h2>💬 Feedback aller Firmen</h2>
+<div class="info">Zeigt das Feedback <b>aller</b> Firmen, inklusive Firma und Absender. Sichtbar nur für System-Administratoren; die Prüfung läuft serverseitig. Löschen ist hier bewusst nicht möglich – das Feedback gehört der jeweiligen Firma.</div>
+<div class="bar feedback-sort" id="sysFeedbackSortBar" style="margin-top:9px" hidden>
+<button type="button" class="gray active" data-feedback-sort="offen">Offen zuerst</button>
+<button type="button" class="gray" data-feedback-sort="neu">Neueste zuerst</button>
+<button type="button" class="gray" data-feedback-sort="alt">Älteste zuerst</button>
+<button type="button" class="gray" data-feedback-sort="firma">Firma (A–Z)</button>
+<button type="button" class="gray" data-feedback-sort="modul">Modul (A–Z)</button>
+<button type="button" class="gray" data-feedback-sort="person">Mitarbeiter (A–Z)</button>
+</div>
+<div class="bar" id="sysFeedbackPickBar" style="margin-top:6px" hidden>
+<button type="button" class="gray" data-feedback-pickall="1">☑ Alle auswählen</button>
+<button type="button" class="gray" data-feedback-pickall="0">☐ Keine auswählen</button>
+<button type="button" class="gray" data-feedback-pickall="offen">Nur offene</button>
+</div>
+<div class="bar" id="sysFeedbackExportBar" style="margin-top:6px" hidden>
+<button type="button" id="sysFeedbackExportXlsx" class="gray">📊 Als Excel herunterladen</button>
+<button type="button" id="sysFeedbackExportTxt" class="gray">📄 Als Textdatei herunterladen</button>
+</div>
+<div class="small" id="sysFeedbackCountInfo" style="color:var(--muted);margin-top:6px"></div>
+<div id="sysFeedbackList"></div>
+</div>
+
+<div class="card">
 <h2>🧪 Module in Entwicklung</h2>
 <div class="info">Gilt für <b>alle Firmen</b>. Angehakte Module sind nur für Administratoren sichtbar – alle anderen sehen den Knopf gar nicht erst. Gedacht für Funktionen, die noch nicht fertig sind.</div>
 <div id="moduleTestListe"></div>
@@ -488,12 +515,12 @@
 <h2>🏢 Neue Firma registrieren</h2>
 <div class="info">Legt eine neue Firma mit 30 Tagen Testphase an. Der eigene System-Admin-Zugang bleibt dabei unverändert bestehen – es findet keine automatische Anmeldung als neue Firma statt.</div>
 <div class="grid">
-<div class="wide"><label>Firmenname</label><input id="regCompanyName" autocomplete="organization"></div>
-<div><label>Vorname</label><input id="regFirstName" autocomplete="given-name"></div>
-<div><label>Nachname</label><input id="regLastName" autocomplete="family-name"></div>
-<div class="wide"><label>E-Mail</label><input id="regEmail" type="email" autocomplete="email"></div>
-<div><label>Passwort</label><input id="regPassword" type="password" autocomplete="new-password"></div>
-<div><label>Passwort bestätigen</label><input id="regPassword2" type="password" autocomplete="new-password"></div>
+<div class="wide"><label>Firmenname</label><input id="regCompanyName" data-pflicht="1" autocomplete="organization"></div>
+<div><label>Vorname</label><input id="regFirstName" data-pflicht="1" autocomplete="given-name"></div>
+<div><label>Nachname</label><input id="regLastName" data-pflicht="1" autocomplete="family-name"></div>
+<div class="wide"><label>E-Mail</label><input id="regEmail" data-pflicht="1" type="email" autocomplete="email"></div>
+<div><label>Passwort</label><input id="regPassword" data-pflicht="1" type="password" autocomplete="new-password"></div>
+<div><label>Passwort bestätigen</label><input id="regPassword2" data-pflicht="1" type="password" autocomplete="new-password"></div>
 </div>
 <div class="bar">
 <button id="companyRegisterBtn" class="green">Firma registrieren</button>
@@ -629,9 +656,9 @@ Diese Aktion löscht unwiderruflich:
 <div class="grid" style="margin-bottom:8px">
 <div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="anschlussblech">Ort- und Seitenbleche</option><option value="einfassung_rund">Einfassung Rund</option><option value="kehle">Kehle</option><option value="rinne">Rinne</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
-<div class="wide"><label>Bezeichnung</label><input id="measTitle" placeholder="z. B. Kamineinfassung Nordseite"></div>
-<div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
-<div class="search"><input id="measProjectSearch" placeholder="Projekt suchen …" autocomplete="off"><div id="measProjectResults" class="suggest"></div></div>
+<div class="wide"><label>Bezeichnung</label><input id="measTitle" data-pflicht="1" placeholder="z. B. Kamineinfassung Nordseite"></div>
+<div class="wide"><label>Projekt</label>
+<div class="search"><input id="measProjectSearch" data-pflicht="1" placeholder="Projekt suchen …" autocomplete="off"><div id="measProjectResults" class="suggest"></div></div>
 <div class="small" id="measProjectSelectedLabel">Kein Projekt ausgewählt</div>
 </div>
 </div>
@@ -640,22 +667,6 @@ Diese Aktion löscht unwiderruflich:
 <div class="grid" style="margin-bottom:8px">
 <div><label>Material</label><select id="foto_material" class="meas-material-select"></select></div>
 </div>
-<div class="meas-columns">
-<div>
-<label>Foto</label>
-<input type="file" id="measPhotoInput" accept="image/*" capture="environment">
-<img id="measPhotoPreview" class="meas-preview" hidden>
-<div class="bar" style="margin-top:6px">
-<button type="button" class="blue" id="drawOnPhoto" hidden>✏️ Auf Foto zeichnen</button>
-<button type="button" class="gray" id="measPhotoRemove" hidden>✕ Foto entfernen</button>
-</div>
-</div>
-<div>
-<label>Skizzen (mehrere möglich)</label>
-<div id="measSketchGallery" class="sketch-gallery"></div>
-<button type="button" class="blue" id="addSketch">➕ Neue Skizze</button>
-</div>
-</div>
 </div>
 
 <div id="measTypeEinlaufblech" hidden>
@@ -663,9 +674,9 @@ Diese Aktion löscht unwiderruflich:
 <button type="button" class="gray" id="openEinlaufblechSettings" style="margin-left:8px;padding:3px 9px;font-size:11px">⚙️ Werte anpassen</button>
 </div>
 <div class="grid">
-<div><label>Gesamtlänge (mm) (Pflichtfeld)</label><input id="eb_gesamtlaenge" type="number" step="1"></div>
-<div><label>Mass A (mm) (Pflichtfeld)</label><input id="eb_massA" type="number" step="1"></div>
-<div><label>Dachneigung / Winkel (°) (Pflichtfeld)</label><input id="eb_winkel" type="number" step="0.1"></div>
+<div><label>Gesamtlänge (mm)</label><input id="eb_gesamtlaenge" type="number" step="1"></div>
+<div><label>Mass A (mm)</label><input id="eb_massA" data-pflicht="1" type="number" step="1"></div>
+<div><label>Dachneigung / Winkel (°)</label><input id="eb_winkel" data-pflicht="1" type="number" step="0.1"></div>
 <div><label>Montage</label><select id="eb_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
 <div><label>Abwicklung (mm)</label><select id="eb_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
 <div><label>Material</label><select id="eb_material" class="meas-material-select"></select></div>
@@ -675,6 +686,13 @@ Diese Aktion löscht unwiderruflich:
 <button type="button" class="gray" id="eb_appendGesamtlaenge">➕ Weitere Länge anfügen</button>
 </div>
 <div class="small" style="margin:2px 0 8px;color:var(--muted)">"Anfügen" ergänzt Stücke aus der Gesamtlänge oben ans Ende der Liste, z. B. um nach einer Gehrung in eine andere Richtung weiterzufahren.</div>
+<div class="settings-section" data-section="eb-uebernahme" style="margin:8px 0 10px">
+<div class="settings-section-head" data-toggle-section="eb-uebernahme"><h2 style="font-size:12px">↩️ Stücke aus Rinne Halbrund übernehmen</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="small" id="eb_rinneHint">Bitte zuerst oben ein Projekt auswählen.</div>
+<div id="eb_rinneList" hidden></div>
+</div>
+</div>
 <div id="eb_diagram" class="eb-diagram-box" style="margin-top:12px"></div>
 
 <h2 style="margin-top:14px">Stücke</h2>
@@ -737,6 +755,8 @@ Diese Aktion löscht unwiderruflich:
 <div><label>Höhe Schenkel rechts (mm, min. 50)</label><input id="mad_hoeheRechts" type="number" step="1" value="50"></div>
 <div><label>Umschlag links (mm, 135°)</label><input id="mad_umschlagLinks" type="number" step="1" value="15"></div>
 <div><label>Umschlag rechts (mm, 90°)</label><input id="mad_umschlagRechts" type="number" step="1" value="15"></div>
+<div><label>Biegewinkel links (°)</label><input id="mad_biegeLinks" type="number" step="1" value="95"></div>
+<div><label>Biegewinkel rechts (°)</label><input id="mad_biegeRechts" type="number" step="1" value="85"></div>
 <div><label>Saum 180° beidseitig (mm)</label><input id="mad_saum" type="number" step="1" value="10"></div>
 <div><label>Abwicklung</label><div id="mad_abwicklungOut" style="font-weight:800;padding:9px 0">–</div></div>
 </div>
@@ -769,10 +789,10 @@ Diese Aktion löscht unwiderruflich:
 <div id="measTypeLukarne" hidden>
 <div class="info">Dreieckige Seitenwange einer Lukarne: vordere Kante senkrecht, obere Kante im Innenwinkel α dazu, beide treffen sich hinten in der Spitze. Die Scharen stehen senkrecht, Achsabstand und Scharbreite werden waagerecht gemessen; die letzte Schar bekommt die Restbreite. Der Hilfsriss ist die waagerechte Reisslinie, ab der jede Schar nach oben und unten abgemessen wird. Standardwerte und Zugaben stehen in Einstellungen → Massaufnahmen → "Lukarne Seitenverkleidung".</div>
 <div class="grid">
-<div><label>Vordere Höhe H (mm)</label><input id="luk_hoehe" type="number" step="1" inputmode="numeric"></div>
-<div><label>Obere Länge L (mm)</label><input id="luk_laengeOben" type="number" step="1" inputmode="numeric"></div>
-<div><label>Oberer Innenwinkel α (°)</label><input id="luk_winkel" type="number" step="0.1" inputmode="decimal"></div>
-<div><label>Achsabstand Scharen (mm)</label><input id="luk_achsabstand" type="number" step="1" inputmode="numeric"></div>
+<div><label>Vordere Höhe H (mm)</label><input id="luk_hoehe" data-pflicht="1" type="number" step="1" inputmode="numeric"></div>
+<div><label>Obere Länge L (mm)</label><input id="luk_laengeOben" data-pflicht="1" type="number" step="1" inputmode="numeric"></div>
+<div><label>Oberer Innenwinkel α (°)</label><input id="luk_winkel" data-pflicht="1" type="number" step="0.1" inputmode="decimal"></div>
+<div><label>Achsabstand Scharen (mm)</label><input id="luk_achsabstand" data-pflicht="1" type="number" step="1" inputmode="numeric"></div>
 <div><label>Hilfsriss unter Oberkante (mm)</label><input id="luk_hilfsriss" type="number" step="1" inputmode="numeric"></div>
 <div><label>Seite</label><select id="luk_seite"><option value="rechts">Rechte Seite</option><option value="links">Linke Seite</option></select></div>
 <div><label>Material</label><select id="luk_material" class="meas-material-select"></select></div>
@@ -854,15 +874,15 @@ Diese Aktion löscht unwiderruflich:
 <div class="info">Einfassung f&uuml;r ein rundes Standrohr (Dunstrohreinfassung). Es wird nur der seitliche Querschnitt gezeichnet und bemessen &ndash; der Umfang um das Rohr wird nicht dargestellt. Die &bdquo;Breite der gesamten Einfassung&ldquo; ist eine eigenst&auml;ndige Zahl aus Rohrdurchmesser + 2&times; Umschlag + 2&times; Mass seitlich neben Rohr (Werte aus den Einstellungen).</div>
 <div class="grid">
 <div><label>Eindeckungsart</label><select id="einf_deckung"></select></div>
-<div><label>&Oslash; Standrohr (mm)</label><input id="einf_durchmesser" type="number" step="1" inputmode="numeric"></div>
+<div><label>&Oslash; Standrohr (mm)</label><input id="einf_durchmesser" data-pflicht="1" type="number" step="1" inputmode="numeric"></div>
 <div><label>Winkel / Dachneigung (&deg;)</label><input id="einf_winkel" type="number" step="0.1"></div>
 <div><label>Material</label><select id="einf_material" class="meas-material-select"></select></div>
 </div>
 <h2 style="margin-top:14px">Masse des Schnitts</h2>
 <div class="grid">
-<div><label>a &middot; vorne auf Deckmaterial bis Mitte Rohr (mm)</label><input type="number" step="1" inputmode="numeric" id="einf_a"></div>
+<div><label>a &middot; vorne auf Deckmaterial bis Mitte Rohr (mm)</label><input type="number" step="1" inputmode="numeric" id="einf_a" data-pflicht="1"></div>
 <div><label>b &middot; ab Mitte Rohr bis hinten unter Deckmaterial (mm)</label><input type="number" step="1" inputmode="numeric" id="einf_b"></div>
-<div><label>c &middot; Aufbug 90&deg;, oben Umschlag 135&deg; (mm)</label><input type="number" step="1" inputmode="numeric" id="einf_c"></div>
+<div><label>c &middot; Aufbug 90&deg;, oben Umschlag 135&deg; (mm)</label><input type="number" step="1" inputmode="numeric" id="einf_c" data-pflicht="1"></div>
 <div><label>Lattenabstand, f&uuml;r Anzahl Bleilappen (mm)</label><input type="number" step="1" inputmode="numeric" id="einf_lattenabstand"></div>
 </div>
 <div class="bar" style="margin-top:6px"><button type="button" class="gray" id="openEinfassungSettings">⚙️ Standardwerte</button></div>
@@ -917,9 +937,9 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div id="measTypeKehle" hidden>
 <div class="info">Winkelberechnung f&uuml;r Kehlen an Lukarnen. Die Berechnung entspricht exakt der Vorlage &bdquo;Winkel zu Kehlen Lukarne MA&ldquo; &ndash; es werden nur die drei Eingaben unten ben&ouml;tigt. Winkel in &deg;, L&auml;ngen in mm.</div>
 <div class="grid">
-<div><label>Neigung Hauptdach &middot; NH (&deg;)</label><input id="kehle_nh" type="number" step="0.1" inputmode="decimal"></div>
-<div><label>Neigung Lukarne &middot; NL (&deg;)</label><input id="kehle_nl" type="number" step="0.1" inputmode="decimal"></div>
-<div><label>Gef&auml;llsl&auml;nge Lukarne &middot; GL (mm)</label><input id="kehle_gl" type="number" step="1" inputmode="decimal"></div>
+<div><label>Neigung Hauptdach &middot; NH (&deg;)</label><input id="kehle_nh" data-pflicht="1" type="number" step="0.1" inputmode="decimal"></div>
+<div><label>Neigung Lukarne &middot; NL (&deg;)</label><input id="kehle_nl" data-pflicht="1" type="number" step="0.1" inputmode="decimal"></div>
+<div><label>Gef&auml;llsl&auml;nge Lukarne &middot; GL (mm)</label><input id="kehle_gl" data-pflicht="1" type="number" step="1" inputmode="decimal"></div>
 </div>
 <div id="kehle_hinweis" class="small" style="margin-top:6px"></div>
 <div id="kehle_haupt" class="kehle-haupt"></div>
@@ -932,7 +952,7 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div id="measTypeEinlaufblechKonisch" hidden>
 <div class="info">Jedes Stück ist max. 2m lang (inkl. Überlappung/Reststück). Mass links und rechts sind pro Stück frei wählbar (konischer Verlauf). Werte für Stoss-Länge, Überlappung, Restschwelle und Umschläge stammen aus Einstellungen → Massaufnahmen → "Einlaufblech konisch" (eigene Werte, unabhängig von "Einlaufblech gerade").</div>
 <div class="grid">
-<div><label>Dachneigung / Winkel (°)</label><input id="ebk_dachneigung" type="number" step="0.1"></div>
+<div><label>Dachneigung / Winkel (°)</label><input id="ebk_dachneigung" data-pflicht="1" type="number" step="0.1"></div>
 <div><label>Montage</label><select id="ebk_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
 <div><label>Abwicklung (mm)</label><select id="ebk_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
 <div><label>Material</label><select id="ebk_material" class="meas-material-select"></select></div>
@@ -983,6 +1003,25 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div id="fp_sketchPreviewBox" hidden style="margin-bottom:8px">
 <img id="fp_sketchPreview" style="max-width:200px;display:block;margin:0 auto;border:1px solid var(--line);border-radius:8px">
 </div>
+<!-- Vorschau der erkannten Form: wird seit v2.70 IMMER erst gezeigt und
+     muss ausdrücklich übernommen werden. Vorher ersetzte die Erkennung das
+     Profil sofort - auch wenn sie danebenlag. -->
+<div id="fp_sketchVorschau" class="card" hidden style="margin:8px 0;padding:10px">
+<h2 style="margin-top:0;font-size:12px">Erkannte Form – bitte prüfen</h2>
+<div class="small" id="fp_sketchVorschauHinweis" style="margin-bottom:6px"></div>
+<div id="fp_sketchVorschauDiagram" class="eb-diagram-box"></div>
+<div class="scroll" style="margin-top:6px">
+<table class="eb-table">
+<colgroup><col style="width:18%"><col style="width:41%"><col style="width:41%"></colgroup>
+<thead><tr><th>Nr.</th><th>Länge (relativ)</th><th>Winkel (°)</th></tr></thead>
+<tbody id="fp_sketchVorschauBody"></tbody>
+</table>
+</div>
+<div class="bar" style="margin-top:8px">
+<button type="button" class="green" id="fp_sketchUebernehmen">✓ Übernehmen</button>
+<button type="button" class="gray" id="fp_sketchVerwerfen">✕ Verwerfen</button>
+</div>
+</div>
 <div id="fp_profilDiagram" class="eb-diagram-box"></div>
 
 <div class="grid" style="margin-top:10px">
@@ -995,6 +1034,28 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div id="fp_segmenteList"></div>
 <div class="bar"><button type="button" class="gray" id="fp_addSegment">＋ Segment hinzufügen</button></div>
 <div class="small" id="fp_summary"></div>
+</div>
+
+<!-- Fotos und Skizzen: seit v2.70 fuer JEDE Massaufnahme-Art, nicht mehr
+     nur fuer "Skizze / Foto". Ein einziger Baustein, einmal im Markup. -->
+<div id="measMedienBereich" style="margin-top:10px">
+<h2 style="margin-top:4px">📷 Fotos und Skizzen</h2>
+<div class="meas-columns">
+<div>
+<label>Foto</label>
+<input type="file" id="measPhotoInput" accept="image/*" capture="environment">
+<img id="measPhotoPreview" class="meas-preview" hidden>
+<div class="bar" style="margin-top:6px">
+<button type="button" class="blue" id="drawOnPhoto" hidden>✏️ Auf Foto zeichnen</button>
+<button type="button" class="gray" id="measPhotoRemove" hidden>✕ Foto entfernen</button>
+</div>
+</div>
+<div>
+<label>Skizzen (mehrere möglich)</label>
+<div id="measSketchGallery" class="sketch-gallery"></div>
+<button type="button" class="blue" id="addSketch">➕ Neue Skizze</button>
+</div>
+</div>
 </div>
 
 <div class="grid" style="margin-top:8px">
@@ -1036,23 +1097,15 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div class="grid" style="margin-bottom:8px">
 <div hidden><label>Funktion</label><select id="amType"><option value="offerte_erfassen">Offerte erfassen</option><option value="blitzschutz_ausmass">Blitzschutzausmass</option></select></div>
 <div><label>Datum</label><input type="date" id="amDate"></div>
-<div class="wide"><label>Bezeichnung</label><input id="amTitle" placeholder="z. B. Offerte Muster AG"></div>
-<div class="wide"><label>Projekt <span class="no-print">(Pflichtfeld)</span></label>
-<div class="search"><input id="amProjectSearch" placeholder="Projekt suchen …" autocomplete="off"><div id="amProjectResults" class="suggest"></div></div>
+<div class="wide"><label>Bezeichnung</label><input id="amTitle" data-pflicht="1" placeholder="z. B. Offerte Muster AG"></div>
+<div class="wide"><label>Projekt</label>
+<div class="search"><input id="amProjectSearch" data-pflicht="1" placeholder="Projekt suchen …" autocomplete="off"><div id="amProjectResults" class="suggest"></div></div>
 <div class="small" id="amProjectSelectedLabel">Kein Projekt ausgewählt</div>
 </div>
 </div>
 
 <div id="amTypeOfferte">
-<label>Fotos der Offerte (mehrere Seiten möglich)</label>
-<input type="file" id="amPhotoInput" accept="image/*" capture="environment" multiple>
-<div id="amPhotoGallery" class="sketch-gallery"></div>
-<div class="bar" style="margin-top:6px">
-<button type="button" class="blue" id="amRecognizeAll" hidden>🔎 Alle Fotos erkennen</button>
-</div>
-<div class="small" id="amRecognizeStatus"></div>
-
-<h2 style="margin-top:14px">Erkannte Positionen</h2>
+<h2 style="margin-top:4px">Erkannte Positionen</h2>
 <div class="scroll">
 <table class="eb-table">
 <colgroup><col style="width:14%"><col style="width:50%"><col style="width:16%"><col style="width:14%"><col style="width:6%"></colgroup>
@@ -1076,6 +1129,19 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 </table>
 </div>
 <div class="small" id="bzPositionsSummary"></div>
+</div>
+
+<!-- Fotos: seit v2.70 fuer BEIDE Ausmass-Arten, nicht mehr nur fuer die
+     Offerte. Der Erkennen-Knopf bleibt der Offerte vorbehalten. -->
+<div id="amMedienBereich" style="margin-top:10px">
+<h2 style="margin-top:4px">📷 Fotos</h2>
+<label>Fotos (mehrere möglich)</label>
+<input type="file" id="amPhotoInput" accept="image/*" capture="environment" multiple>
+<div id="amPhotoGallery" class="sketch-gallery"></div>
+<div class="bar" style="margin-top:6px">
+<button type="button" class="blue" id="amRecognizeAll" hidden>🔎 Alle Fotos erkennen</button>
+</div>
+<div class="small" id="amRecognizeStatus"></div>
 </div>
 
 <div class="grid" style="margin-top:8px">
@@ -1296,7 +1362,7 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div class="settings-section-body">
 <div class="info">Diese Angaben erscheinen auf dem Startbildschirm und im Briefkopf der ausgedruckten Rapporte/PDFs. Änderungen gelten sofort für alle Mitarbeiter auf allen Geräten.</div>
 <div class="grid">
-<div class="wide"><label>Firmenname</label><input id="companyNameInput" placeholder="z. B. PETER KÜNZI AG"></div>
+<div class="wide"><label>Firmenname</label><input id="companyNameInput" data-pflicht="1" placeholder="z. B. PETER KÜNZI AG"></div>
 <div class="wide"><label>Firmenadresse</label><textarea id="companyAddressInput" placeholder="Strasse, PLZ Ort, Telefon"></textarea></div>
 <div><label>Standard-MWST</label><input id="defaultVatInput" placeholder="z. B. 8.1 %"></div>
 </div>
@@ -1314,8 +1380,8 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div class="settings-section-head" data-toggle-section="employees"><h2>Mitarbeiter</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="grid" style="margin-bottom:8px">
-<div><label>Vorname</label><input id="neuMitarbeiterVor" placeholder="Vorname"></div>
-<div><label>Nachname</label><input id="neuMitarbeiterNach" placeholder="Nachname"></div>
+<div><label>Vorname</label><input id="neuMitarbeiterVor" data-pflicht="1" placeholder="Vorname"></div>
+<div><label>Nachname</label><input id="neuMitarbeiterNach" data-pflicht="1" placeholder="Nachname"></div>
 </div>
 <div class="bar" style="margin-bottom:12px"><button id="mitarbeiterAnlegen" class="green">＋ Mitarbeiterkonto anlegen</button></div>
 <div id="employeeSettings"></div>
@@ -1488,6 +1554,7 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <script src="js/24-projekt-cockpit.js"></script>
 <script src="js/25-kehle.js"></script>
 <script src="js/26-rinne.js"></script>
+<script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>
 </html>

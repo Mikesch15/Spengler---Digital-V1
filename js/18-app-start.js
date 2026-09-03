@@ -1,4 +1,10 @@
 "use strict";
+// ---- Pflichtfelder markieren (v2.70) --------------------------
+// Einmal beim Start: das Formular-Markup ist statisch. Felder, die erst
+// zur Laufzeit entstehen (Ort-/Seitenbleche), rufen die Funktion selbst
+// nochmals fuer ihren Bereich auf.
+markierePflichtfelder();
+
 // ---- Start: bestehende Sitzung prüfen -------------------------
 (async()=>{
  const {data:{session}}=await sb.auth.getSession();

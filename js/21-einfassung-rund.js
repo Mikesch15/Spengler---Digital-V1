@@ -207,16 +207,24 @@ function einfBerechnen(e) {
   const massSeitlich = Math.max(0, Number(s.mass_seitlich) || 0);
   const breiteGesamt = durchmesser > 0 ? Math.round(durchmesser + 2 * umschlag + 2 * massSeitlich) : null;
 
+  // Anzahl Bleilappen = Umfang des Rohrs geteilt durch den Lattenabstand.
+  // AUFGERUNDET, nicht abgerundet: die Lappen muessen den ganzen Umfang
+  // abdecken. Abrunden liess einen Rest unbedeckt (bei einem 200er Rohr
+  // ergab es 1 Lappen fuer 628 mm Umfang) - das war der gemeldete Fehler.
+  // Ohne Lattenabstand ist die Zahl nicht bestimmbar; dann bleibt sie null
+  // und die Anzeige zeigt "-", statt eine erfundene Zahl zu nennen.
   let anzahlBleilappen = null;
-  if (durchmesser > 0) {
-    const lattenabstand = Math.max(1, Number(e.lattenabstand) || 0);
-    anzahlBleilappen = Math.max(1, Math.floor((Math.PI * durchmesser) / lattenabstand));
+  const lattenabstand = Number(e.lattenabstand) || 0;
+  if (Number.isFinite(durchmesser) && durchmesser > 0 && Number.isFinite(lattenabstand) && lattenabstand > 0) {
+    anzahlBleilappen = Math.max(1, Math.ceil((Math.PI * durchmesser) / lattenabstand));
   }
 
   const warnungen = [];
   if (!(Number(e.a) > 0)) warnungen.push("Mass a fehlt oder ist 0.");
   if (!(Number(e.c) > 0)) warnungen.push("Mass c (Aufbug) fehlt oder ist 0.");
   if (!(durchmesser > 0)) warnungen.push("Bitte den Rohrdurchmesser eingeben.");
+  if (durchmesser > 0 && !(lattenabstand > 0))
+    warnungen.push("Ohne Lattenabstand kann die Anzahl Bleilappen nicht berechnet werden.");
 
   return {
     abwicklung: Math.round(l),
@@ -271,7 +279,9 @@ function renderEinfResult() {
   $("einf_ergebnis").innerHTML =
     kasten("Zuschnittbreite (Querschnitt)", erg.abwicklung + " mm")
     + kasten("Breite der gesamten Einfassung", erg.breiteGesamt ? erg.breiteGesamt + " mm" : "–")
-    + (erg.anzahlBleilappen !== null ? kasten("Anzahl Bleilappen", erg.anzahlBleilappen) : "");
+    // Die Zeile bleibt immer stehen - verschwindet sie, sieht der Benutzer
+    // nicht, WARUM keine Zahl kommt.
+    + kasten("Anzahl Bleilappen", erg.anzahlBleilappen !== null ? String(erg.anzahlBleilappen) : "–");
 }
 
 function einfFormularFuellen(d) {

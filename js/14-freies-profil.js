@@ -161,40 +161,133 @@ $("fp_addSchenkel").onclick=()=>{
  renderFpSchenkelTable();
  renderFpSegmenteList();
 };
+// ---------------------------------------------------------------------
+// Profil aus einer Skizze erkennen  (v2.70, Feedback 3)
+// ---------------------------------------------------------------------
+// Grundsatz: die Erkennung liefert eine VORLAGE, nie fertige Masse. Das
+// Ergebnis wird deshalb erst als Vorschau gezeigt und nur auf
+// ausdrueckliche Bestaetigung uebernommen. Erkennt die KI nichts
+// Brauchbares, sagt die App das ehrlich, statt irgendein Profil zu
+// uebernehmen.
+const FP_ERKENNUNG_ZEITGRENZE_MS=30000;
+const FP_MAX_SCHENKEL=24;
+let fpErkanntesProfil=null;
+
+// Dieselbe Pruefung wie serverseitig - der Client vertraut der Antwort nicht.
+function fpPruefeErkannteSchenkel(roh){
+ if(!Array.isArray(roh))return [];
+ const gut=[];
+ for(const e of roh){
+  if(gut.length>=FP_MAX_SCHENKEL)break;
+  if(!e||typeof e!=="object")continue;
+  const l=Number(e.laenge);
+  let w=Number(e.winkel);
+  if(!Number.isFinite(l)||l<=0)continue;      // Laenge 0 ist keine Geometrie
+  if(!Number.isFinite(w))w=0;
+  w=Math.max(-180,Math.min(180,w));
+  gut.push({laenge:Math.round(l),winkel:gut.length===0?0:Math.round(w)});
+ }
+ return gut.length>=2?gut:[];                 // ein einzelner Schenkel ist kein Profil
+}
+
+function fpVorschauSchliessen(){
+ fpErkanntesProfil=null;
+ $("fp_sketchVorschau").hidden=true;
+ $("fp_sketchVorschauBody").innerHTML="";
+ $("fp_sketchVorschauDiagram").innerHTML="";
+}
+
+function fpVorschauZeigen(schenkel,verworfen){
+ fpErkanntesProfil=schenkel;
+ $("fp_sketchVorschauDiagram").innerHTML=generateProfilDiagramSvg(schenkel);
+ $("fp_sketchVorschauBody").innerHTML=schenkel.map((s,i)=>
+  `<tr><td>${i+1}</td><td>${esc(s.laenge)}</td><td>${esc(s.winkel)}</td></tr>`).join("");
+ $("fp_sketchVorschauHinweis").innerHTML=
+  `${schenkel.length} Schenkel erkannt`
+  +(verworfen?` · ${verworfen} unklare Angabe(n) verworfen`:"")
+  +". <b>Die Längen sind nur grobe Schätzwerte aus der Skizze</b> – eine Handskizze hat keinen Massstab."
+  +" Bitte nach dem Übernehmen mit den tatsächlichen Massen überschreiben.";
+ $("fp_sketchVorschau").hidden=false;
+}
+
+$("fp_sketchUebernehmen").onclick=()=>{
+ if(!fpErkanntesProfil||!fpErkanntesProfil.length)return;
+ if(fpSchenkel.length&&!confirm("Das vorhandene Profil wird durch die erkannte Form ersetzt. Fortfahren?"))return;
+ const anzahl=fpErkanntesProfil.length;
+ fpSchenkel=fpErkanntesProfil.map(s=>({...s}));
+ fpVorschauSchliessen();
+ renderFpSchenkelTable();
+ renderFpSegmenteList();
+ $("fp_sketchStatus").textContent=`✓ ${anzahl} Schenkel übernommen. Bitte Längen und Winkel prüfen und mit den tatsächlichen Massen ergänzen.`;
+};
+$("fp_sketchVerwerfen").onclick=()=>{
+ fpVorschauSchliessen();
+ $("fp_sketchStatus").textContent="Erkannte Form verworfen. Das bestehende Profil bleibt unverändert.";
+};
+
 $("fp_sketchRecognize").onclick=()=>{
  openSketchFullscreen(null,null,async(dataUrl)=>{
   $("fp_sketchPreview").src=dataUrl;
   $("fp_sketchPreviewBox").hidden=false;
+  fpVorschauSchliessen();
   $("fp_sketchStatus").textContent="🔄 Form wird erkannt …";
   try{
-   const erkannt=await recognizeProfileSketch(dataUrl);
-   if(!erkannt.length){$("fp_sketchStatus").textContent="⚠️ Keine Form erkannt. Bitte deutlicher skizzieren oder Schenkel manuell erfassen.";return}
-   if(fpSchenkel.length&&!confirm(`${erkannt.length} Schenkel erkannt. Vorhandenes Profil ersetzen?`)){$("fp_sketchStatus").textContent="";return}
-   fpSchenkel=erkannt;
-   renderFpSchenkelTable();
-   renderFpSegmenteList();
-   $("fp_sketchStatus").textContent=`✓ ${erkannt.length} Schenkel übernommen. Bitte Längen und Winkel prüfen und mit den tatsächlichen Massen ergänzen – die Skizze liefert nur eine grobe Vorlage, keine echten Masse.`;
+   const antwort=await recognizeProfileSketch(dataUrl);
+   const erkannt=fpPruefeErkannteSchenkel(antwort.schenkel);
+   if(!erkannt.length){
+    $("fp_sketchStatus").textContent="⚠️ Keine eindeutige Form erkannt – bitte manuell erfassen oder deutlicher skizzieren.";
+    return;
+   }
+   $("fp_sketchStatus").textContent="";
+   fpVorschauZeigen(erkannt,antwort.verworfen||0);
   }catch(err){
-   $("fp_sketchStatus").textContent="Fehler bei der Erkennung: "+err.message;
+   // Nie ein Profil uebernehmen, wenn etwas schiefging.
+   fpVorschauSchliessen();
+   $("fp_sketchStatus").textContent="⚠️ "+(err&&err.message?err.message:"Die Erkennung ist fehlgeschlagen.");
   }
  });
 };
+
 async function recognizeProfileSketch(dataUrl){
- const res=await fetch(`${SUPABASE_URL}/functions/v1/extract-profile-shape`,{
-  method:"POST",
-  headers:{
-   "Content-Type":"application/json",
-   "Authorization":`Bearer ${SUPABASE_ANON_KEY}`,
-   "apikey":SUPABASE_ANON_KEY
-  },
-  body:JSON.stringify({image_base64:dataUrl})
- });
+ // Zeitgrenze auch im Browser: sonst bleibt die Anzeige bei einer
+ // haengenden Verbindung endlos auf "wird erkannt".
+ const abbruch=("AbortController" in window)?new AbortController():null;
+ const uhr=abbruch?setTimeout(()=>abbruch.abort(),FP_ERKENNUNG_ZEITGRENZE_MS):null;
+ let res;
+ try{
+  res=await fetch(`${SUPABASE_URL}/functions/v1/extract-profile-shape`,{
+   method:"POST",
+   headers:{
+    "Content-Type":"application/json",
+    "Authorization":`Bearer ${SUPABASE_ANON_KEY}`,
+    "apikey":SUPABASE_ANON_KEY
+   },
+   body:JSON.stringify({image_base64:dataUrl}),
+   signal:abbruch?abbruch.signal:undefined
+  });
+ }catch(e){
+  if(uhr)clearTimeout(uhr);
+  throw new Error((e&&e.name==="AbortError")
+   ?"Die Erkennung hat zu lange gedauert. Bitte erneut versuchen oder das Profil von Hand erfassen."
+   :"Keine Verbindung zur Erkennung. Bitte die Internetverbindung prüfen.");
+ }
+ if(uhr)clearTimeout(uhr);
  const text=await res.text();
  let data=null;
  try{data=JSON.parse(text)}catch{}
- if(!res.ok)throw new Error(`Server antwortete mit Status ${res.status}: ${(data&&data.error)||text.slice(0,300)||"unbekannter Fehler"}`);
- if(!data?.ok)throw new Error((data&&data.error)||"Erkennung fehlgeschlagen.");
- return (data.schenkel||[]).map((s,i)=>({laenge:Math.round(Number(s.laenge))||0,winkel:i===0?0:Math.round(Number(s.winkel))||0}));
+ if(!data){
+  throw new Error("Die Antwort der Erkennung war unlesbar. Bitte erneut versuchen.");
+ }
+ if(!res.ok||!data.ok){
+  // Nur eine Meldung durchreichen, die auch fuer den Benutzer eine Aussage
+  // ist. Rohe Serverbrocken ("kaputt", ein Statuscode) helfen niemandem -
+  // die landen im Protokoll, angezeigt wird ein verstaendlicher Satz.
+  const m=String(data.error||"");
+  if(!(m.includes(" ")&&m.length>=15))console.error("extract-profile-shape:",res.status,data.error);
+  throw new Error((m.includes(" ")&&m.length>=15)
+   ?m:"Die Erkennung ist fehlgeschlagen. Bitte erneut versuchen oder das Profil von Hand erfassen.");
+ }
+ return {schenkel:data.schenkel||[],verworfen:Number(data.verworfen)||0};
 }
 $("fp_schenkelBody").addEventListener("input",e=>{
  const i=Number(e.target.dataset.fpSchenkelLaenge??e.target.dataset.fpSchenkelWinkel);
@@ -483,31 +576,12 @@ $("ebk_piecesBody").addEventListener("click",e=>{
 $("ebk_abwicklung").addEventListener("change",renderEbkPiecesTable);
 
 let ebkRinneCache=[];
+// Nutzt seit v2.70 dieselben Bausteine wie Einlaufblech gerade
+// (js/13-einlaufblech-konisch.js) - keine zweite Fassung.
 async function refreshEbkRinneList(){
- if(!measSelectedProjectId){
-  $("ebk_rinneHint").hidden=false;
-  $("ebk_rinneHint").textContent="Bitte zuerst oben ein Projekt auswählen.";
-  $("ebk_rinneList").hidden=true;
-  return;
- }
- const {data,error}=await sb.from("measurements").select("*").eq("project_id",measSelectedProjectId).eq("type","rinne_halbrund").order("date",{ascending:false});
- if(error){$("ebk_rinneHint").hidden=false;$("ebk_rinneHint").textContent="Fehler beim Laden: "+error.message;$("ebk_rinneList").hidden=true;return}
- ebkRinneCache=data||[];
- if(!ebkRinneCache.length){
-  $("ebk_rinneHint").hidden=false;
-  $("ebk_rinneHint").textContent="Für dieses Projekt sind noch keine Rinne-Halbrund-Massaufnahmen gespeichert.";
-  $("ebk_rinneList").hidden=true;
-  return;
- }
- $("ebk_rinneHint").hidden=true;
- $("ebk_rinneList").hidden=false;
- $("ebk_rinneList").innerHTML=ebkRinneCache.map(m=>{
-  const segCount=(m.data&&m.data.segments&&m.data.segments.length)||0;
-  return `<div class="meas-row">
-<div class="meas-row-info"><b>${esc(m.title||"Ohne Titel")}</b><span>${esc(m.date||"–")} · ${segCount} Segment(e)</span></div>
-<div class="meas-row-actions"><button type="button" class="blue" data-pick-ebk-rinne="${m.id}">↩️ Übernehmen</button></div>
-</div>`;
- }).join("");
+ const zustand=await ladeRinneHalbrundMassaufnahmen(measSelectedProjectId);
+ ebkRinneCache=zustand.liste||[];
+ zeigeRinneUebernahmeListe("ebk_rinneHint","ebk_rinneList",zustand,"pick-ebk-rinne");
 }
 $("ebk_rinneList").addEventListener("click",e=>{
  const btn=e.target.closest("[data-pick-ebk-rinne]");
@@ -516,28 +590,7 @@ $("ebk_rinneList").addEventListener("click",e=>{
  const segs=(m&&m.data&&m.data.segments)||[];
  if(!segs.length){alert("Diese Rinnen-Massaufnahme hat keine Segmente.");return}
  if(ebkPieces.length&&!confirm("Vorhandene Stücke werden durch die aus dieser Rinne erzeugten Stücke ersetzt. Fortfahren?"))return;
- const gehrungszugabe=Number(einlaufblechKonischSettings.gehrungszugabe)||0;
- const neuePieces=[];
- segs.forEach((seg,i)=>{
-  const gehrungLinks=i>0&&Number(segs[i-1].winkel||0)!==0;
-  const gehrungRechts=Number(seg.winkel||0)!==0;
-  const zugabe=(gehrungLinks?gehrungszugabe:0)+(gehrungRechts?gehrungszugabe:0);
-  const effLaenge=(Number(seg.laenge)||0)+zugabe;
-  const lengths=splitLengthIntoPieces(effLaenge);
-  lengths.forEach((len,j)=>{
-   const prev=neuePieces[neuePieces.length-1];
-   const istLetztes=j===lengths.length-1;
-   neuePieces.push({
-    laenge:len,
-    stossStoss:istLetztes?len:(Number(einlaufblechKonischSettings.stoss_laenge)||0),
-    gehrungLinks:j===0?gehrungLinks:false,
-    gehrungRechts:istLetztes?gehrungRechts:false,
-    winkel:istLetztes?(Number(seg.winkel)||0):0,
-    massLinks:prev?prev.massRechts:0,massRechts:0
-   });
-  });
- });
- ebkPieces=neuePieces;
+ ebkPieces=baueEinlaufblechStueckeAusRinne(segs,einlaufblechKonischSettings,splitLengthIntoPieces,true);
  renderEbkPiecesTable();
- alert(`${neuePieces.length} Stück(e) aus ${segs.length} Segment(en) übernommen. Bitte jetzt pro Stück Mass links/rechts eintragen.`);
+ alert(`${ebkPieces.length} Stück(e) aus ${segs.length} Segment(en) übernommen. Bitte jetzt pro Stück Mass links/rechts eintragen.`);
 });

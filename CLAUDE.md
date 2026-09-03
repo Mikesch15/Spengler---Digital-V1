@@ -11426,3 +11426,385 @@ App verschoben, ohne dass es irgendwo nötig wäre.
   weiteren Bedienung sichtbar werden (z. B. jede einzelne Cockpit-Liste
   in jedem Zustand), sind nicht erschöpfend durchgespielt – gemessen
   wurde der jeweils geöffnete Grundzustand jedes Bereichs.
+
+## 78. NEUN OFFENE FEEDBACKS ABGEARBEITET — VERSION 2.70
+
+Auftrag: das gesamte Repo prüfen und die neun am 03.09.2026 offenen
+Feedbacks der Firma PETER KÜNZI AG abarbeiten – jeden Punkt zuerst
+reproduzieren, dann die Ursache beheben und dauerhaft absichern.
+
+### 78.1 Versionsnummer
+
+Der Auftrag nennt „Version 2.69". Diese Nummer war zu diesem Zeitpunkt
+bereits vergeben – an die Knopfabstands-Runde (Abschnitt 77), die am
+selben Tag ausgeliefert wurde. Diese Arbeit ist deshalb **Version 2.70**.
+Gleicher Fall wie in Abschnitt 60.1 (2.51 → 2.52).
+
+### 78.2 Repo-Audit vor der Umsetzung
+
+Gesucht und gelesen: `index.html`, alle 29 `js/*.js`, alle vier
+`css/*.css`, `sw.js`, alle sechs Edge Functions, alle RLS-Policies der
+betroffenen Tabellen, das Storage-Modell, die 30 bestehenden Prüfstände
+und dieses Dokument. Ergebnis je Feedback in 78.3 bis 78.11.
+
+**Elf Massaufnahme-Arten** (unverändert): Skizze/Foto, Einlaufblech
+gerade, Rinne Halbrund, Einlaufblech konisch, Freies Profil,
+Mauerabdeckung, Lukarne, Ort-/Seitenbleche, Einfassung Rund, Kehle,
+Rinne. Keine ihrer Berechnungen wurde ersetzt oder vereinfacht.
+
+### 78.3 Feedback 1 · „Feedback funktioniert nicht mit anderer firma"
+
+**Zustand vorher, direkt gegen die Produktivdatenbank geprüft:** die
+Firmengrenze auf `feedback` ist **in Ordnung**. Als Admin der Testfirma
+liessen sich Feedback anlegen, lesen (inkl. Namens-Join), erledigen und
+löschen; PETER KÜNZI AG sah davon nichts und umgekehrt. Es gibt sogar
+ein echtes, ausserhalb dieser Sitzung geschriebenes Testfirma-Feedback
+(ID 21, „Testfeedback", 01.09.2026).
+
+**Ursache:** Genau diese korrekte Trennung ist die gemeldete Wirkung –
+der **Betreiber sieht das Feedback seiner Kundenfirmen nie**. Feedback
+ist der Weg, auf dem Pilotbetriebe Probleme melden; landet es nur in
+ihrer eigenen Firma, erreicht es niemanden.
+
+**Zweiter, unabhängig belegter Fehler:** `feedback_created_by_fkey` zeigte
+mit `ON DELETE NO ACTION` auf `profiles`. Ein Mitarbeiter, der je ein
+Feedback geschrieben hat, liess sich damit **nicht mehr entfernen** –
+dieselbe Lücke wie in Abschnitt 36.1/37/51, `feedback` war dabei
+übersehen worden.
+
+**Änderung** (Migration `feedback_operator_view_v2_70`):
+- Fremdschlüssel auf `ON DELETE SET NULL`. Live nachgewiesen: der
+  Mitarbeiter lässt sich löschen, das Feedback bleibt, `created_by`
+  wird `NULL`.
+- `system_admin_all_feedback()` – `SECURITY DEFINER`, prüft
+  `is_system_admin()` als erste Zeile, liefert Feedback aller Firmen
+  mit Firmenname und Absender. Gleiches Muster wie alle übrigen
+  `system_admin_*`-Funktionen.
+- `system_admin_set_feedback_resolved(id, boolean)` – ebenso geschützt,
+  ändert ausschliesslich `resolved`.
+- **Keine** zusätzliche RLS-Policy auf `feedback`, keine Lockerung der
+  Firmengrenze.
+
+**Frontend:** `js/02-feedback.js` kennt jetzt zwei Ansichten
+(`FEEDBACK_ANSICHTEN.firma` / `.betreiber`) mit **einer** Umsetzung –
+Sortierung, Auswahl, Zählzeile und beide Downloads sind derselbe Code.
+Unterschiedlich sind nur die Element-IDs, die Spalte „Firma", die
+zusätzliche Sortierung „Firma (A–Z)" und der Schreibweg. Die
+Betreiber-Ansicht hat **bewusst keinen Löschknopf**: das Feedback gehört
+der jeweiligen Firma.
+
+**Mitbehoben:** Erledigt-Schalter und Löschen prüfen jetzt die Zahl der
+betroffenen Zeilen (`.select()`). Ein von RLS blockiertes UPDATE/DELETE
+meldet in PostgREST keinen Fehler, es betrifft still 0 Zeilen
+(CLAUDE.md 24.1) – vorher wäre das als Erfolg durchgegangen.
+
+**Test:** `feedback70` (47/47), zwei Gegenproben. SQL-Nachweise wie oben.
+
+### 78.4 Feedback 2 · Mauerabdeckung „Winkel (95°) muss änderbar sein"
+
+**Ursache, im Code nachgerechnet:** 95° war kein fester Wert, sondern
+ein **Ergebnis**. Der linke Schenkel wurde immer senkrecht gezeichnet,
+die Deckfläche um das Gefälle geneigt – daraus folgt zwingend
+links `90° + Gefälle`, rechts `90° − Gefälle`, bei 5° Gefälle also
+95°/85°. Die beiden Winkel liessen sich also nur gemeinsam und nur
+indirekt über das Gefälle verstellen, nie einzeln.
+
+**Änderung:** zwei neue Eingaben „Biegewinkel links/rechts". Fehlen sie
+(ältere gespeicherte Massaufnahmen, leeres Feld), gilt exakt der frühere
+Wert – `madBiegeVorgabe(gef)`. Die Zeichnung leitet beide Schenkel- und
+Umschlagrichtungen daraus ab; **die Abwicklung bleibt die Summe der
+Schenkellängen und hängt nicht vom Winkel ab** (nachgemessen). Der PDF-
+Ausdruck nennt beide Winkel.
+
+**Test:** `mad70` (45/45): alte Daten zeichnen byteweise identisch, jeder
+Winkel wirkt sichtbar, „95" steht nirgends mehr fest im Code, Abwicklung
+bei jedem Winkel 460 mm, keine NaN bei leeren/negativen/Textwerten.
+Gegenprobe: Winkel fest verdrahtet → 9 Fehlschläge.
+
+### 78.5 Feedback 3 · Freies Profil „von ki nicht zuverlässig erkannt"
+
+**Ursache:** Die Edge Function reichte **jede** KI-Antwort ungeprüft
+durch (`return json({ok:true, schenkel})`). Der Client machte daraus
+`Math.round(Number(s.laenge))||0` – aus „keine Zahl" wurde also stumm
+ein Schenkel der **Länge 0**, und dieses ungültige Profil ersetzte nach
+einem einzigen `confirm()` sofort die bestehende Arbeit. Dazu: keine
+Zeitgrenze, keine Obergrenze für die Schenkelzahl, kein Weg, das
+Ergebnis vor der Übernahme anzusehen.
+
+**Änderung, Edge Function Version 4** (Quelle jetzt auch im Repo unter
+`supabase/functions/extract-profile-shape/`):
+- `pruefeSchenkel()`: nur endliche Längen > 0, Winkel auf ±180 begrenzt,
+  erster Winkel 0, höchstens 24 Schenkel, mindestens 2 – sonst
+  „Keine eindeutige Form erkannt – bitte manuell erfassen."
+- Der Prompt verlangt ein Objekt mit `"sicher": true|false`; meldet das
+  Modell Unsicherheit, wird **nichts** geliefert statt geraten.
+- 25 s Zeitgrenze über `AbortController`.
+
+**Änderung, Client:**
+- Dieselbe Prüfung nochmals im Browser – der Client vertraut der Antwort
+  nicht.
+- **Vorschau statt Sofortübernahme**: erkannte Form wird als Zeichnung
+  und Tabelle gezeigt und erst mit „✓ Übernehmen" wirksam; „✕ Verwerfen"
+  lässt das bestehende Profil unangetastet.
+- Eigene Zeitgrenze, verständliche Meldungen für Netzwerkfehler und
+  Abbruch. Rohe Serverbrocken landen im Protokoll, nicht am Bildschirm.
+
+**Test:** `fp70` (83/83) in echtem Chromium – elf schlechte Antworten
+(leer, ein Schenkel, Länge 0, negativ, Text, `null`, kein Array,
+Serverfehler, HTTP 500, unlesbar, leer) übernehmen ausnahmslos nichts
+und lassen das Profil stehen; Netzwerkfehler und Zeitüberschreitung
+ebenso. Gegenprobe (Sofortübernahme wie vorher): 15 Fehlschläge.
+
+### 78.6 Feedback 4 · Rinne Halbrund „Maximalmasse ausnutzen"
+
+**Zustand vorher:** `calcDilaPositionsInStretch()` sucht bereits die
+**kleinste** Anzahl Teilstrecken. Für 18 m bei 6 m Maximum: 3 Abschnitte
+à 6.0 m, 2 Dilas – exakt der geforderte Fall. **Keine Codeänderung
+nötig**, aber bisher durch keinen Test abgesichert.
+
+**Änderung:** neuer Prüfstand `dila70` (85/85). Er prüft den Pflichtfall
+und rechnet die minimale Dila-Zahl unabhängig nach
+(`lm + (k−2)·mm + rm ≥ L`), statt die Erwartung aus dem geprüften Code
+abzuschreiben. Dazu Fixpunkte, Schiebestutzen, mehrere Segmente, alle
+drei Materialien und Grenzfälle. Gegenprobe (eine Dila mehr): 33
+Fehlschläge.
+
+Beim Schreiben zeigten sechs meiner eigenen Erwartungen in Abschnitt C
+zu wenige Dilas – **der Code hatte recht, mein Testwert war falsch**;
+korrigiert und durch die unabhängige Nachrechnung ersetzt.
+
+### 78.7 Feedback 5 · Einlaufblech gerade: Längen aus Rinne Halbrund
+
+**Zustand vorher:** die Übernahme gab es nur bei Einlaufblech **konisch**
+(`js/14`, eigene Fassung).
+
+**Änderung:** die Bausteine liegen jetzt einmal in `js/13`
+(`ladeRinneHalbrundMassaufnahmen`, `baueEinlaufblechStueckeAusRinne`,
+`zeigeRinneUebernahmeListe`, `teileLaengeInStuecke`) und werden von
+**beiden** Arten benutzt. Einlaufblech gerade bekommt denselben
+Abschnitt „↩️ Stücke aus Rinne Halbrund übernehmen", mit **seinen
+eigenen** Einstellungen (Überlappung 30 statt 40). Bestehende Stücke
+werden nur nach ausdrücklicher Bestätigung ersetzt; eine spätere
+Änderung der Rinne verändert bereits übernommene Längen nicht.
+
+**Test:** `ebg70` (49/49). Die erste Gegenprobe blieb still grün – der
+Prüfstand rief die Bausteine direkt auf statt den Formularweg. Nach dem
+Nachschärfen („Formularweg nutzt die Einstellungen von gerade (2030)")
+schlägt sie korrekt fehl. **Zweiter Fall in dieser Sitzung, in dem ein
+Prüfstand nur seine eigene Annahme bestätigt hätte.**
+
+### 78.8 Feedback 6 · „Alle Pflichtfelder mit rotem Stern"
+
+**Inventar:** Pflicht ist ein Feld, wenn das Speichern ohne es abbricht.
+Aus allen Abbruchprüfungen ergeben sich **37 Felder** in 13 Bereichen
+(Anmeldung, Erstpasswort, Firmenregistrierung, Mitarbeiter, Projekt
+anlegen, Projekt-Stammdaten, Massaufnahme, Einlaufblech gerade/konisch,
+Lukarne, Ort-/Seitenbleche, Einfassung Rund, Kehle, Ausmass,
+Regierapport, Einstellungen). Optionale Felder bleiben unmarkiert.
+
+**Umsetzung:** die Felder tragen `data-pflicht="1"`; `markierePflicht­felder()`
+(`js/01-basis.js`) setzt zentral `required`, `aria-required` und hängt
+den roten Stern ins Label – nie in den Eingabewert, also vom Benutzer
+nicht eintippbar. Das Label bekommt zusätzlich ein ausgeschriebenes
+`aria-label` („… (Pflichtfeld)"), weil ein Stern einem Screenreader
+nichts sagt. Die Massfelder der Ort-/Seitenbleche entstehen erst zur
+Laufzeit und rufen die Funktion für ihren Bereich selbst nochmals auf.
+Die alten Texte „(Pflichtfeld)" sind entfallen.
+
+**Der Stern trägt `no-print`** – im gedruckten Regierapport hat er
+nichts verloren; dort stand vorher auch der Hinweistext schon als
+`.no-print`. Dadurch musste `css/03-druck.css` nicht angefasst werden.
+
+**Test:** `required70` (359/359) in echtem Chromium: je Feld wird
+gemessen, dass der Stern existiert, **rot** ist (R deutlich über G und B
+und anders als die Labelfarbe), fett, mindestens 12 px, dass `required`
+und `aria-required` gesetzt sind und dass nichts davon im Eingabewert
+steht. Elf optionale Felder als Gegenprobe. Die erste Fassung der
+Farbprüfung war zu lasch (eine graue Farbe wäre durchgegangen) – nach
+dem Nachschärfen meldet die Gegenprobe 72 Fehlschläge.
+
+### 78.9 Feedback 7 · Offline-Funktion
+
+**Zustand vorher, ehrlich geprüft:** der Service Worker hält nur die
+App-Hülle. Ohne Netz startete die App zwar, aber `loadAllData()` lieferte
+für jede Abfrage `null` – und der Code machte daraus stillschweigend
+leere Listen. **Ein Projekt, das es gibt, sah aus wie „keine Projekte".**
+Speichern brach mit einer rohen Netzwerkmeldung ab.
+
+**Umsetzung (klar abgegrenzt, neues Modul `js/27-offline.js`):**
+
+| Geht offline | Geht offline nicht |
+|---|---|
+| App starten und bedienen | Speichern (Projekt, Massaufnahme, Ausmass, Regierapport, Feedback) |
+| zuletzt geladene Stammdaten ansehen: Projekte, Material, Ansätze, Blitzschutz-Katalog, Massaufnahme-Materialien, Firmeneinstellungen | Fotos/Skizzen hochladen, PDF mit Fotos |
+| **alle** Rechenmodule (elf Arten, Kehle, Rinne, Lukarne, Einfassung, Anschlussblech) | Anmelden ohne bestehende Sitzung, Datenbanksuche, Verlauf, System-Administration |
+
+- Der lokale Zwischenspeicher gehört **genau einer Firma** und wird beim
+  Abmelden und bei jedem Firmenwechsel geleert. Fragt eine andere Firma
+  danach, wird nichts herausgegeben **und** der Rest sofort gelöscht.
+- Ein deutlicher Hinweis nennt die fehlende Verbindung und den Stand der
+  angezeigten Daten.
+- Eine zentrale Sperre `offlineSperrtSpeichern()` an allen fünf
+  Speicherwegen: klare Absage statt kryptischer Netzwerkmeldung, mit dem
+  Hinweis, dass die Eingaben im Formular stehen bleiben.
+
+**Bewusst NICHT gebaut:** Warteschlange, eigene IDs, Wiederholung,
+Konfliktlösung, Synchronisation. Halb umgesetzt wäre das gefährlicher
+als gar nicht – der Auftrag lässt diese Abgrenzung ausdrücklich zu.
+
+**Test:** `offline70` (105/105): App-Hülle vollständig im Cache (jede
+der 29 JS-Dateien, jede eingebundene Datei, Cache-Version = App-Version),
+Firmentrennung des Zwischenspeichers, Hinweis, Sperre an allen fünf
+Wegen, Rückfall beim Laden, und drei Rechnungen (Kehle, Dila, Einfassung)
+laufen offline weiter. Zwei Gegenproben (Fremdfirma lesbar / Sperre
+wirkungslos): 2 bzw. 4 Fehlschläge.
+
+### 78.10 Feedback 8 · „Zu jedem Modul die Möglichkeit Fotos einzufügen"
+
+**Zustand vorher:** Foto und Skizzen gab es nur bei „Skizze / Foto"; die
+zehn übrigen Arten schrieben fest `photo_path:null, sketch_paths:[]`.
+Beim Ausmass hingen die Fotos im Abschnitt „Offerte erfassen", das
+Blitzschutzausmass hatte keine.
+
+**Umsetzung – ein Baustein, keine elf Kopien:**
+- Der Foto-/Skizzenblock liegt jetzt **einmal** ausserhalb aller
+  Typ-Abschnitte (`#measMedienBereich`) und ist bei jeder Art sichtbar.
+- `measMedienAusFormular()` liefert die Medien; alle zwölf Rückgabe­
+  zweige nutzen sie.
+- Das Hochladen ist nicht mehr auf `skizze_foto` begrenzt.
+- Der PDF-Druck holt die signierten URLs für jede Art und hängt Foto und
+  Skizzen einheitlich ans Dokument.
+- Ausmass: Fotos für **beide** Arten (`#amMedienBereich`); die
+  KI-Positionserkennung bleibt der Offerte vorbehalten.
+
+**Sicherheit unverändert:** derselbe private Pfad
+`measurements/<projectId>/<measurementId>/photo|sketches`, dieselbe
+Storage-Positivliste aus v2.48, signierte URLs, kein `getPublicUrl`,
+kein `company_id` im Client.
+
+**Nicht umgesetzt:** Fotos im **Regierapport**. Dafür gibt es weder
+Spalten noch Storage-Anbindung; es wäre eine Schemaänderung plus ein
+Eingriff in die ausdrücklich geschützte Rapport-Drucklogik. Ebenso
+weiterhin **keine Fotos im Ausmass-PDF** – die gab es dort auch vorher
+nicht (Abschnitt 61.11).
+
+**Test:** `fotos70` (88/88): jede der elf Arten zeigt den Bereich und
+trägt Foto und beide Skizzen im Payload; ohne Medien bleibt es bei
+`null`/leer. Gegenprobe (Upload wieder auf `skizze_foto` begrenzt):
+1 Fehlschlag.
+
+### 78.11 Feedback 9 · Einfassung Rund: „Anzahl bleilappen nicht korrekt"
+
+**Ursache:** `Math.floor((π·D)/Lattenabstand)`. Abrunden lässt einen
+Rest des Umfangs **unbedeckt**: ein 200er Rohr hat 628 mm Umfang, bei
+330 mm Lattenabstand ergab die Rechnung **1** Lappen – ein Lappen kann
+628 mm nicht abdecken. Dazu verschwand die Zeile ganz, wenn der
+Durchmesser fehlte, und ein leerer Lattenabstand führte über
+`Math.max(1, 0)` zu absurden Zahlen.
+
+**Änderung:** `Math.ceil` statt `Math.floor` (eine Deckungszahl muss
+aufrunden), `Number.isFinite`-Schutz, und ohne Lattenabstand gibt es
+**keine erfundene Zahl**, sondern „–" plus einen Hinweis. Die Zeile
+bleibt immer stehen, damit sichtbar ist, *warum* keine Zahl kommt.
+
+**Test:** `einf70` (185/185): für zwölf Durchmesser × sechs
+Lattenabstände wird geprüft, dass die Lappen den Umfang decken **und**
+kein Lappen zu viel gerechnet wird; dazu fehlende Angaben, NaN/Infinity
+und die Gleichheit von Formular, Zusammenfassung und PDF (eine einzige
+Rechnung). Gegenprobe (`floor`): 63 Fehlschläge.
+
+### 78.12 Regression
+
+Alle 30 bestehenden Prüfstände grün, dazu die neun neuen:
+mad70 45/45, dila70 85/85, einf70 185/185, ebg70 49/49,
+feedback70 47/47, required70 359/359, fotos70 88/88, fp70 83/83,
+offline70 105/105. Ausserdem pdf52 504/504, rinne57 379/379,
+kehle52 698/698, feedback63 108/108, required-nahe Prüfstände
+einst68 43/43, module67 42/42, abstand69 2/2 und alle übrigen ohne
+Fehlschlag.
+
+`node --check` über alle 29 `js/*.js` und `sw.js`: fehlerfrei.
+`<div>`/`</div>` in `index.html`: ausgeglichen (724/724, vorher 702/702).
+Keine doppelten Element-IDs. Version 2.70 in `index.html` und `sw.js`.
+
+**Regierapport nachweislich unverändert:** der Druck wurde in echtem
+Chromium unter `media:print` gegen den v2.69-Stand gerendert. Der
+Druck-DOM unterscheidet sich in genau zwei Zeilen – dem Pflichtfeld-
+Kennzeichen des Projektfelds, beide Fassungen `no-print`. Das **Bild
+ist byteidentisch**, sobald die Versionsnummer angeglichen wird (gleiche
+Methode wie in Abschnitt 62.4).
+
+Drei überholte Erwartungen in bestehenden Prüfständen wurden angepasst,
+keine davon war ein Codefehler: `FEEDBACK_SPALTEN` heisst jetzt
+`feedbackSpalten()`, es gibt sechs statt fünf Sortierungen (Firma kam
+dazu) und zwei Sortierleisten statt einer.
+
+### 78.13 Datenbestand PETER KÜNZI AG
+
+Vor und nach der Arbeit: 2 Firmen, 13 Profile, 5 Projekte,
+16 Massaufnahmen, 2 Ausmasse, 4 Rapporte, 1 Projektdatei, 14 Feedbacks
+(4 erledigt), 21 `audit_log`-Zeilen, 14 Storage-Objekte, 1 System-Admin,
+`companies.updated_at` unverändert (`2026-09-01 07:40:15.844647+00`).
+Alle schreibenden Tests liefen in `begin; … rollback;` mit Wegwerf-Firmen.
+Einzige echte Schreibvorgänge: die Migration und der Edge-Function-Deploy.
+
+`get_advisors(security)` nach den Änderungen: die beiden neuen Funktionen
+erscheinen nur mit derselben erwarteten Warnung wie alle übrigen
+`system_admin_*`-Funktionen („von `authenticated` aufrufbar, Prüfung
+liegt in der Funktion"). Keine neue Art von Warnung, keine fehlende RLS.
+
+### 78.14 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| Migration `feedback_operator_view_v2_70` | FK auf SET NULL, zwei Betreiber-Funktionen |
+| Edge Function `extract-profile-shape` v4 | harte Prüfung, Zeitgrenze, ehrliche Absage |
+| `supabase/functions/extract-profile-shape/Index.ts` | **neu** – Quelle jetzt im Repo |
+| `js/27-offline.js` | **neu** – Offline-Modul |
+| `js/01-basis.js` | `markierePflichtfelder()` |
+| `js/02-feedback.js` | zwei Ansichten, Betreiber-Abfrage, Ergebnisprüfung |
+| `js/03-login.js` | Abmelden räumt den Zwischenspeicher |
+| `js/05-daten-laden.js` | Rückfall auf gesicherte Daten, Offline-Hinweis |
+| `js/08-katalog-blitzschutz.js` | **eine Zeile** Offline-Sperre |
+| `js/09-projekte.js` | Offline-Sperre |
+| `js/10-massaufnahme.js` | Biegewinkel laden/zurücksetzen, Rinnenliste |
+| `js/12b-mauerabdeckung.js` | Biegewinkel als Eingabe |
+| `js/13-einlaufblech-konisch.js` | gemeinsame Rinnen-Bausteine |
+| `js/14-freies-profil.js` | Vorschau und Härtung der Erkennung |
+| `js/15-einlaufblech-stueckliste.js` | Rinnen-Übernahme für gerade |
+| `js/16-massaufnahme-formular.js` | Medien für jede Art, PDF, Offline-Sperre |
+| `js/17-ausmass.js` | Fotos für beide Arten, Offline-Sperre |
+| `js/18-app-start.js` | Pflichtfelder markieren |
+| `js/20-anschlussblech.js` | Mass a als Pflichtfeld |
+| `js/21-einfassung-rund.js` | Bleilappen aufrunden, ehrliches „–" |
+| `js/22-system-admin.js` | Feedback aller Firmen einbinden |
+| `index.html`, `css/01-basis.css`, `sw.js` | Markup, Stile, Version 2.70 |
+
+**Nicht angefasst:** `js/06-rapport.js`, `css/03-druck.css`,
+`js/11`, `js/12`, `js/19`, `js/23`–`js/26`, `js/04`, `js/05a`, `js/07`.
+
+### 78.15 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Geprüft ist die Datenbankseite per SQL gegen das
+  echte Produktivschema und die Oberfläche in echtem Chromium.
+- **Die KI-Erkennung wurde nicht mit einer echten Skizze gegen Gemini
+  getestet** – dafür bräuchte es einen echten Aufruf der Edge Function.
+  Geprüft ist der gesamte Weg mit gestellten Antworten, inklusive elf
+  schlechter Fälle.
+- **Offline: keine Erfassung.** Neue Einträge brauchen weiterhin eine
+  Verbindung (78.9). Eine echte Warteschlange bleibt ein eigener,
+  grösserer Auftrag.
+- **Fotos im Regierapport** und **Fotos im Ausmass-PDF**: nicht gebaut,
+  Begründung in 78.10.
+- **Bleilappen:** korrigiert wurde das nachweisbar falsche Abrunden. Ob
+  der Umfang wirklich durch den **Lattenabstand** zu teilen ist (statt
+  durch eine Lappenbreite), ist eine fachliche Festlegung des Betriebs –
+  die Formel wurde nicht eigenmächtig ausgetauscht. Falls hier eine
+  andere Regel gilt, genügt eine Zeile in `einfBerechnen()`.
+- Aus früheren Runden unverändert offen: leere `allowed_mime_types` am
+  Bucket, Massaufnahme ohne Projekt kann kein Foto speichern, fehlender
+  `search_path` bei zwei Storage-Hilfsfunktionen, 9 verwaiste
+  Storage-Objekte (v2.24), Leaked-Password-Protection deaktiviert.

@@ -455,6 +455,8 @@ window.addEventListener("beforeprint",()=>{
  bar.textContent=teile.join(" · ");
 });
 $("save").onclick=async()=>{
+ // Offline (v2.70): klare Absage statt kryptischer Netzwerkmeldung.
+ if(offlineSperrtSpeichern("Dieser Regierapport"))return;
  if(!currentProjectId){alert("Bitte zuerst ein Projekt auswählen. Ein Rapport kann nur einem Projekt zugeordnet gespeichert werden.");return}
  $("save").disabled=true;
  const payload={

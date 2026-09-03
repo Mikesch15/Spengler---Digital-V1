@@ -22,6 +22,8 @@ function renderAmPositionsTable(){
 function showAmTypeSection(type){
  $("amTypeOfferte").hidden=(type!=="offerte_erfassen");
  $("amTypeBlitzschutz").hidden=(type!=="blitzschutz_ausmass");
+ // Erkennen-Knopf haengt an der Art - Fotos selbst nicht.
+ if($("amRecognizeAll"))$("amRecognizeAll").hidden=!amPhotos.length||type!=="offerte_erfassen";
 }
 $("amType").addEventListener("change",e=>showAmTypeSection(e.target.value));
 
@@ -89,7 +91,9 @@ function renderAmPhotoGallery(){
 </div>
 </div>`).join("")||'<div class="small" style="color:var(--muted)">Noch kein Foto</div>';
  resolveSignedThumbnails($("amPhotoGallery"));
- $("amRecognizeAll").hidden=amPhotos.length===0;
+ // Fotos gibt es seit v2.70 fuer beide Arten; die Positionserkennung
+ // bleibt der Offerte vorbehalten.
+ $("amRecognizeAll").hidden=amPhotos.length===0||$("amType").value!=="offerte_erfassen";
 }
 async function recognizePhoto(src){
  const res=await fetch(`${SUPABASE_URL}/functions/v1/extract-offer-positions`,{
@@ -281,6 +285,8 @@ function buildAusmassFromForm(){
 $("printAusmassBtn").onclick=()=>printAusmass(Object.assign(buildAusmassFromForm(),currentAusmassMeta));
 $("saveAusmass").onclick=async()=>{
  const title=$("amTitle").value.trim();
+ // Offline (v2.70): klare Absage statt kryptischer Netzwerkmeldung.
+ if(offlineSperrtSpeichern("Dieses Ausmass"))return;
  if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
  if(!amSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. Ein Ausmass kann nur einem Projekt zugeordnet gespeichert werden.");return}
  $("saveAusmass").disabled=true;

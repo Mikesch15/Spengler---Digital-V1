@@ -50,6 +50,48 @@ function profileName(id){
  const p=allProfiles.find(x=>x.id===id);
  return p?`${p.first_name} ${p.last_name}`:null;
 }
+// ---------------------------------------------------------------------------
+// Pflichtfelder (v2.70, Feedback 6)
+// ---------------------------------------------------------------------------
+// Ein Feld ist Pflicht, wenn das Speichern ohne es abbricht. Genau diese
+// Felder tragen im HTML data-pflicht="1". Der rote Stern wird hier zentral
+// ergaenzt - so kann er nicht an einer Stelle vergessen gehen, ist nie Teil
+// des Eingabewerts und laesst sich vom Benutzer nicht mit eintippen.
+// Zusaetzlich: required + aria-required fuer Tastatur und Screenreader.
+function markierePflichtfelder(wurzel){
+ const bereich=wurzel||document;
+ if(!bereich||!bereich.querySelectorAll)return 0;
+ let gesetzt=0;
+ bereich.querySelectorAll("[data-pflicht]").forEach(feld=>{
+  feld.setAttribute("required","");
+  feld.setAttribute("aria-required","true");
+  // Das zugehoerige Label ist das erste im umgebenden Block; bei den
+  // Projekt-Suchfeldern liegt noch ein .search-Container dazwischen.
+  let label=null,el=feld;
+  for(let i=0;i<4&&el&&!label;i++){
+   el=el.parentElement;
+   if(el&&el.querySelector)label=el.querySelector(":scope > label");
+  }
+  if(!label)return;
+  if(label.querySelector(".pflicht-stern"))return;
+  const stern=document.createElement("span");
+  // "no-print": der Stern ist eine Bedienhilfe am Bildschirm. Im
+  // gedruckten Regierapport hat er nichts verloren - dort stand vorher
+  // auch der Text "(Pflichtfeld)" schon als .no-print.
+  stern.className="pflicht-stern no-print";
+  stern.textContent="*";
+  stern.title="Pflichtfeld";
+  // Der Stern allein sagt einem Screenreader nichts - das Label bekommt
+  // deshalb zusaetzlich eine ausgeschriebene Beschriftung.
+  stern.setAttribute("aria-hidden","true");
+  const text=(label.textContent||"").trim();
+  label.appendChild(stern);
+  if(!label.getAttribute("aria-label"))label.setAttribute("aria-label",text+" (Pflichtfeld)");
+  gesetzt++;
+ });
+ return gesetzt;
+}
+
 function isAdmin(){
  // Administrator ist, wer das Recht "admin" hat (siehe 05a-rechte.js).
  return !!(currentProfile&&currentProfile.role==="admin");

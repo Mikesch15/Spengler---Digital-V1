@@ -582,6 +582,8 @@ $("addProject").onclick=async()=>{
  const name=$("newProjectName").value.trim();
  const orderNo=$("newProjectOrderNo").value.trim();
  const address=$("newProjectObject").value.trim();
+ // Offline (v2.70): klare Absage statt kryptischer Netzwerkmeldung.
+ if(offlineSperrtSpeichern("Dieses Projekt"))return;
  if(!name){alert("Bitte einen Projektnamen eingeben.");return}
  if(!orderNo){alert("Bitte eine Auftrags-Nr. eingeben.");return}
  if(!address){alert("Bitte eine Adresse eingeben.");return}

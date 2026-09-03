@@ -64,19 +64,14 @@ $("eb_toggleEndzugabeStart").onclick=()=>toggleEbEndzugabe("start");
 $("eb_toggleEndzugabeEnd").onclick=()=>toggleEbEndzugabe("end");
 function buildEbPiecesFromGesamtlaenge(gesamtlaenge){
  const stossLaenge=Number(einlaufblechSettings.stoss_laenge)||1;
- const ueberlappung=Number(einlaufblechSettings.ueberlappung)||0;
- const restSchwelle=Number(einlaufblechSettings.rest_schwelle)||0;
- let anzahl=Math.max(1,Math.ceil(gesamtlaenge/stossLaenge));
- const zuschnittlaenge=stossLaenge+ueberlappung;
- let rest=gesamtlaenge-(anzahl-1)*stossLaenge;
- if(anzahl>1&&rest>0&&rest<restSchwelle){anzahl=anzahl-1;rest=stossLaenge+rest;}
- const restZuschnittlaenge=Math.max(0,rest);
- const neue=[];
- for(let i=1;i<=anzahl;i++){
-  const istLetztes=i===anzahl;
-  neue.push({laenge:istLetztes?restZuschnittlaenge:zuschnittlaenge,stossStoss:istLetztes?restZuschnittlaenge:stossLaenge,gehrungLinks:false,gehrungRechts:false,winkel:0});
- }
- return neue;
+ // Dieselbe Aufteilung wie bei Einlaufblech konisch (js/13), nur mit den
+ // Einstellungen von Einlaufblech gerade.
+ const laengen=teileLaengeInStuecke(gesamtlaenge,einlaufblechSettings);
+ return laengen.map((len,i)=>{
+  const istLetztes=i===laengen.length-1;
+  return {laenge:len,stossStoss:istLetztes?len:stossLaenge,
+          gehrungLinks:false,gehrungRechts:false,winkel:0};
+ });
 }
 $("eb_regenerate").onclick=()=>{
  const gesamtlaenge=Number($("eb_gesamtlaenge").value)||0;
@@ -92,6 +87,29 @@ $("eb_appendGesamtlaenge").onclick=()=>{
  ebPieces=ebPieces.concat(neue);
  renderEbPiecesTable();
 };
+// ---- Stuecke aus einer Rinne-Halbrund-Massaufnahme uebernehmen -------
+// Genau dieselben Bausteine wie bei Einlaufblech konisch (js/13), nur mit
+// den Einstellungen von Einlaufblech gerade und ohne Mass links/rechts.
+let ebRinneCache=[];
+async function refreshEbRinneList(){
+ const zustand=await ladeRinneHalbrundMassaufnahmen(measSelectedProjectId);
+ ebRinneCache=zustand.liste||[];
+ zeigeRinneUebernahmeListe("eb_rinneHint","eb_rinneList",zustand,"pick-eb-rinne");
+}
+$("eb_rinneList").addEventListener("click",e=>{
+ const btn=e.target.closest("[data-pick-eb-rinne]");
+ if(!btn)return;
+ const m=ebRinneCache.find(x=>x.id===Number(btn.dataset.pickEbRinne));
+ const segs=(m&&m.data&&m.data.segments)||[];
+ if(!segs.length){alert("Diese Rinnen-Massaufnahme hat keine Segmente.");return}
+ // Bestehende Stuecke werden nur nach ausdruecklicher Bestaetigung ersetzt.
+ if(ebPieces.length&&!confirm("Vorhandene Stücke werden durch die aus dieser Rinne erzeugten Stücke ersetzt. Fortfahren?"))return;
+ ebPieces=baueEinlaufblechStueckeAusRinne(segs,einlaufblechSettings,
+  l=>teileLaengeInStuecke(l,einlaufblechSettings),false);
+ renderEbPiecesTable();
+ alert(`${ebPieces.length} Stück(e) aus ${segs.length} Segment(en) übernommen.`);
+});
+
 $("eb_addPiece").onclick=()=>{
  const stossStoss=Number(einlaufblechSettings.stoss_laenge)||2000;
  const defaultLen=stossStoss+(Number(einlaufblechSettings.ueberlappung)||0);

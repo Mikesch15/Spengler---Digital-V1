@@ -117,6 +117,15 @@ const MAD_SAUM_LUFT=4;     // mm Abstand zwischen Blech und zurückgelegtem Saum
 //   Aufkantung >= 50 mm, bei windexponierter Lage >= 100 mm
 const MAD_MIN_HOEHE=50, MAD_MIN_HOEHE_WIND=100;
 
+// Die beiden Biegewinkel zwischen Deckfläche und Schenkel sind seit v2.70
+// eigene Eingaben. Fehlen sie (ältere gespeicherte Massaufnahmen, leeres
+// Feld), gelten genau die Werte, die sich vorher zwangsläufig aus dem
+// Gefälle ergaben – die Schenkel standen damals immer senkrecht:
+//   links  90° + Gefälle      rechts 90° - Gefälle
+// Bei 5° Gefälle also 95° und 85°. Dadurch zeichnet und rechnet eine alte
+// Massaufnahme unverändert weiter.
+function madBiegeVorgabe(gef){return {links:90+(Number(gef)||0), rechts:90-(Number(gef)||0)}}
+
 function madProfilMasse(){
  const z=id=>Number($(id).value)||0;
  const breite=z("mad_breite");
@@ -125,12 +134,17 @@ function madProfilMasse(){
  const saum=z("mad_saum");
  const gef=z("mad_gefaelle");
  const wind=$("mad_windexponiert").checked;
+ const vorgabe=madBiegeVorgabe(gef);
+ const wL=z("mad_biegeLinks")||vorgabe.links;
+ const wR=z("mad_biegeRechts")||vorgabe.rechts;
  const rad=gef*Math.PI/180;
  const dy=breite*Math.tan(rad);
  // Gesamtbreite wird so verwendet, wie sie eingegeben ist – nicht über
  // die Schräge verlängert.
  const schraeg=breite;
- return {breite,hL,hR,umL,umR,saum,gef,wind,dy,schraeg,
+ // Die Abwicklung ist die Summe der Schenkellängen und hängt NICHT vom
+ // Biegewinkel ab – unverändert gegenüber früher.
+ return {breite,hL,hR,umL,umR,saum,gef,wind,dy,schraeg,wL,wR,
          abwicklung:saum+umL+hL+schraeg+hR+umR+saum};
 }
 
@@ -150,19 +164,32 @@ function generateMadProfilSvg(){
 // gespeichertes Profil im PDF unverändert dargestellt werden.
 function madProfilSvgAus(m){
  if(!m||!m.breite||!m.hL)return '<div class="small" style="padding:10px">Bitte Gesamtbreite und Höhe eingeben.</div>';
- const w=Math.SQRT1_2; // cos/sin von 45°
+ // Richtung der Deckfläche (x nach rechts, y nach unten), um das Gefälle
+ // geneigt. Die beiden Schenkel hängen daran mit ihrem jeweiligen
+ // Biegewinkel – bei 90°+Gefälle links und 90°-Gefälle rechts steht der
+ // Schenkel senkrecht, also genau wie vor v2.70.
+ const dreh=(v,grad)=>{const r=grad*Math.PI/180;
+  return [v[0]*Math.cos(r)-v[1]*Math.sin(r), v[0]*Math.sin(r)+v[1]*Math.cos(r)];};
+ const vg=madBiegeVorgabe(m.gef);
+ const wL=Number(m.wL)||vg.links, wR=Number(m.wR)||vg.rechts;
+ const u=dreh([1,0],m.gef);                       // Deckfläche nach rechts
+ const dirL=dreh(u,180-wL);                       // linker Schenkel, nach unten
+ const dirR=dreh([-u[0],-u[1]],-(180-wR));        // rechter Schenkel, nach unten
+ const umDirL=dreh(dirL,-135);                    // Umschlag links, 135°
+ const umDirR=dreh(dirR,90);                      // Umschlag rechts, 90°
+
  // Punkte in mm, x nach rechts, y nach unten
- const pLinksUnten=[0,m.hL];
- const pLinksEnde=[m.umL*w, m.hL-m.umL*w];        // Umschlag links, 135°
- const pRechtsUnten=[m.breite, m.dy+m.hR];
- const pRechtsEnde=[m.breite-m.umR, m.dy+m.hR];   // Umschlag rechts, 90°
+ const pLinksUnten=[dirL[0]*m.hL, dirL[1]*m.hL];
+ const pLinksEnde=[pLinksUnten[0]+umDirL[0]*m.umL, pLinksUnten[1]+umDirL[1]*m.umL];
+ const pRechtsUnten=[m.breite+dirR[0]*m.hR, m.dy+dirR[1]*m.hR];
+ const pRechtsEnde=[pRechtsUnten[0]+umDirR[0]*m.umR, pRechtsUnten[1]+umDirR[1]*m.umR];
  const punkte=[pLinksEnde,pLinksUnten,[0,0],[m.breite,m.dy],pRechtsUnten,pRechtsEnde];
 
  // Säume: 180° zurückgelegt, mit etwas Luft, damit man sie sieht
  const saeume=[];
  if(m.saum>0){
-  saeume.push({von:pLinksEnde, richtung:[w,-w], drehung:-1});  // linkes Ende, Kehre nach aussen
-  saeume.push({von:pRechtsEnde, richtung:[-1,0], drehung:1});  // rechtes Ende
+  saeume.push({von:pLinksEnde, richtung:umDirL, drehung:-1});  // linkes Ende, Kehre nach aussen
+  saeume.push({von:pRechtsEnde, richtung:umDirR, drehung:1});  // rechtes Ende
  }
  const saumPunkte=saeume.map(s=>{
   const [dx,dy2]=s.richtung;
@@ -370,7 +397,7 @@ $("mad_segmentsBody").addEventListener("click",e=>{
  const del=e.target.closest("[data-mad-seg-del]");
  if(del){madSegments.splice(Number(del.dataset.madSegDel),1);renderMadResult();}
 });
-["mad_breite","mad_hoeheLinks","mad_hoeheRechts","mad_umschlagLinks","mad_umschlagRechts","mad_saum","mad_gefaelle"].forEach(id=>{
+["mad_breite","mad_hoeheLinks","mad_hoeheRechts","mad_umschlagLinks","mad_umschlagRechts","mad_saum","mad_gefaelle","mad_biegeLinks","mad_biegeRechts"].forEach(id=>{
  $(id).addEventListener("input",zeigeMadProfil);
 });
 $("mad_windexponiert").addEventListener("change",zeigeMadProfil);

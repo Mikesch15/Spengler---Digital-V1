@@ -31,6 +31,9 @@ $("loginBtn").onclick=async()=>{
 };
 
 $("logout").onclick=async()=>{
+ // Abmelden raeumt den lokalen Zwischenspeicher weg: es darf nie eine
+ // Firma auf dem Geraet zurueckbleiben (v2.70).
+ offlineCacheLeeren();
  await sb.auth.signOut();
  location.reload();
 };

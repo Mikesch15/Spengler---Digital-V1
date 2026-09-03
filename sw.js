@@ -6,7 +6,7 @@
    hochzählen (v1 → v2 → v3 …). Sonst zeigen Handys weiter die alte App. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-2.69";
+const CACHE = "spengler-digital-2.70";
 
 const SHELL = [
   "./",
@@ -45,7 +45,8 @@ const SHELL = [
   "./js/23-verlauf.js",
   "./js/24-projekt-cockpit.js",
   "./js/25-kehle.js",
-  "./js/26-rinne.js"
+  "./js/26-rinne.js",
+  "./js/27-offline.js"
 ];
 
 self.addEventListener("install", event => {

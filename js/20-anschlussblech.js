@@ -797,10 +797,13 @@ function anbMassfelderZeichnen(w) {
     const min = anbMindestmass(w.art, k, w.deckung);
     const zusatz = (k === "a" && art.hinweisA) ? ", " + art.hinweisA : "";
     h += `<div><label>${k} · ${anbEsc(art.masse[k].text || "")}${zusatz} (mm)</label>
-<input type="number" step="1" inputmode="numeric" data-anb="${k}" value="${Math.round(Number(w[k]) || 0)}">
+<input type="number" step="1" inputmode="numeric" data-anb="${k}"${k === "a" ? ' data-pflicht="1"' : ""} value="${Math.round(Number(w[k]) || 0)}">
 <div class="small">${min !== null ? "mindestens " + min + " mm" : "Mass am Bau nehmen"}</div></div>`;
   });
   $("anb_masse").innerHTML = h;
+  // Die Massfelder entstehen erst zur Laufzeit - der rote Stern muss danach
+  // gesetzt werden (v2.70).
+  if (typeof markierePflichtfelder === "function") markierePflichtfelder($("anb_masse"));
 
   const ort = w.ausfuehrung === "ort" && w.art !== "steck" && w.art !== "pv_seite";
   const feld = (id, label, wert) => `<div><label>${label} (mm)</label>

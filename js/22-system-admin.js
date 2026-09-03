@@ -55,6 +55,9 @@ $("navSystemAdmin").onclick=async()=>{
  renderModuleTestListe();
  if(typeof moduleTestHinweis==="function")moduleTestHinweis("");
  await renderSystemAdminList();
+ // Feedback aller Firmen (v2.70): nutzt denselben Code wie die Firmenansicht
+ // in js/02-feedback.js, nur mit der geschuetzten Betreiber-Abfrage.
+ if(typeof renderFeedbackBetreiberListe==="function")await renderFeedbackBetreiberListe();
 };
 $("closeSystemAdmin").onclick=()=>{$("systemAdminModal").hidden=true};
 

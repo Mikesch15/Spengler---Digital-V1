@@ -305,6 +305,7 @@ function setMeasProjectField(projId){
  $("measProjectSearch").value=proj?proj.name:"";
  $("measProjectSelectedLabel").textContent=proj?"":"Kein Projekt ausgewählt";
  if($("measType").value==="einlaufblech_konisch")refreshEbkRinneList();
+ if($("measType").value==="einlaufblech_gerade")refreshEbRinneList();
 }
 $("measProjectResults").addEventListener("click",e=>{
  const it=e.target.closest("[data-pick-meas-project]");if(!it)return;
@@ -369,6 +370,9 @@ function newMeasurementWithType(type){
  $("mad_umschlagLinks").value=15;
  $("mad_umschlagRechts").value=15;
  $("mad_saum").value=10;
+ // Biegewinkel: Vorgabe passend zum Standard-Gefaelle von 5 Grad.
+ $("mad_biegeLinks").value=95;
+ $("mad_biegeRechts").value=85;
  $("mad_windexponiert").checked=false;
  $("mad_manuell").checked=false;
  renderMadResult();
@@ -437,7 +441,7 @@ function openMeasurement(m){
  $("eb_montage").value=d.montage||"links";
  $("eb_material").value=findMeasurementMaterial(d.material)?.id??"";
  ebPieces=(m.type==="einlaufblech_gerade"&&Array.isArray(d.pieces))?d.pieces.map(p=>({...p})):[];
- if(m.type==="einlaufblech_gerade")renderEbPiecesTable();
+ if(m.type==="einlaufblech_gerade"){renderEbPiecesTable();refreshEbRinneList();}
  rinneSegments=(m.type==="rinne_halbrund"&&Array.isArray(d.segments))?d.segments.map(s=>({...s})):[];
  rinneDilas=(m.type==="rinne_halbrund"&&Array.isArray(d.dilas))?d.dilas.map(dd=>({...dd})):[];
  $("rinne_abwicklung").value=d.rinneAbwicklung||"250";
@@ -467,6 +471,11 @@ function openMeasurement(m){
   $("mad_umschlagLinks").value=pr.umL??15;
   $("mad_umschlagRechts").value=pr.umR??15;
   $("mad_saum").value=pr.saum??10;
+  // Aeltere Massaufnahmen haben keine Biegewinkel gespeichert. Dann gilt
+  // genau das frueher zwangslaeufige Ergebnis (Schenkel senkrecht).
+  {const vg=madBiegeVorgabe(pr.gef??5);
+   $("mad_biegeLinks").value=pr.wL??vg.links;
+   $("mad_biegeRechts").value=pr.wR??vg.rechts;}
   $("mad_windexponiert").checked=!!pr.wind;
   $("mad_manuell").checked=true; // gespeicherte Schieber nicht überschreiben
   renderMadResult();

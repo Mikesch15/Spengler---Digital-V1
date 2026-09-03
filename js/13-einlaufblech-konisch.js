@@ -1,10 +1,84 @@
 "use strict";
 // ---- Einlaufblech konisch (Stueckliste, max. 2m pro Stueck) ------
 let ebkPieces=[];
-function splitLengthIntoPieces(effLaenge){
- const stossLaenge=Number(einlaufblechKonischSettings.stoss_laenge)||1;
- const ueberlappung=Number(einlaufblechKonischSettings.ueberlappung)||0;
- const restSchwelle=Number(einlaufblechKonischSettings.rest_schwelle)||0;
+// ---------------------------------------------------------------------
+// Gemeinsame Bausteine fuer die Uebernahme von Laengen aus einer
+// "Rinne Halbrund"-Massaufnahme. Seit v2.70 nutzen BEIDE Einlaufblech-
+// Arten (gerade wie konisch) genau diese Funktionen - es gibt keine
+// zweite, leicht abweichende Fassung.
+// ---------------------------------------------------------------------
+
+// Laedt die gespeicherten Rinne-Halbrund-Massaufnahmen eines Projekts.
+// Kein company_id-Filter im Client: die Firmengrenze erzwingt allein die
+// restriktive RLS auf "measurements" (ueber projects.company_id).
+async function ladeRinneHalbrundMassaufnahmen(projectId){
+ if(!projectId)return {fehler:null,liste:null};   // liste null = kein Projekt gewaehlt
+ const {data,error}=await sb.from("measurements").select("*")
+   .eq("project_id",projectId).eq("type","rinne_halbrund").order("date",{ascending:false});
+ if(error)return {fehler:error.message,liste:null};
+ return {fehler:null,liste:data||[]};
+}
+
+// Erzeugt aus den Segmenten einer Rinne die Stueckliste eines Einlaufblechs.
+// settings = einlaufblechSettings bzw. einlaufblechKonischSettings,
+// teile    = die zugehoerige Aufteilungsfunktion,
+// mitMassen= true bei konisch (Mass links/rechts je Stueck).
+function baueEinlaufblechStueckeAusRinne(segs,settings,teile,mitMassen){
+ const gehrungszugabe=Number(settings.gehrungszugabe)||0;
+ const neue=[];
+ (segs||[]).forEach((seg,i)=>{
+  const gehrungLinks=i>0&&Number(segs[i-1].winkel||0)!==0;
+  const gehrungRechts=Number(seg.winkel||0)!==0;
+  const zugabe=(gehrungLinks?gehrungszugabe:0)+(gehrungRechts?gehrungszugabe:0);
+  const effLaenge=(Number(seg.laenge)||0)+zugabe;
+  const laengen=teile(effLaenge);
+  laengen.forEach((len,j)=>{
+   const prev=neue[neue.length-1];
+   const istLetztes=j===laengen.length-1;
+   const stueck={
+    laenge:len,
+    stossStoss:istLetztes?len:(Number(settings.stoss_laenge)||0),
+    gehrungLinks:j===0?gehrungLinks:false,
+    gehrungRechts:istLetztes?gehrungRechts:false,
+    winkel:istLetztes?(Number(seg.winkel)||0):0
+   };
+   if(mitMassen){stueck.massLinks=prev?prev.massRechts:0;stueck.massRechts=0}
+   neue.push(stueck);
+  });
+ });
+ return neue;
+}
+
+// Zeigt die gefundenen Rinnen als anklickbare Liste an. Gleiche Darstellung
+// fuer beide Einlaufblech-Arten.
+function zeigeRinneUebernahmeListe(hintId,listId,zustand,attribut){
+ const hint=$(hintId), liste=$(listId);
+ if(!hint||!liste)return;
+ if(zustand.fehler){hint.hidden=false;hint.textContent="Fehler beim Laden: "+zustand.fehler;liste.hidden=true;return}
+ if(zustand.liste===null){
+  hint.hidden=false;hint.textContent="Bitte zuerst oben ein Projekt auswählen.";liste.hidden=true;return;
+ }
+ if(!zustand.liste.length){
+  hint.hidden=false;
+  hint.textContent="Für dieses Projekt sind noch keine Rinne-Halbrund-Massaufnahmen gespeichert.";
+  liste.hidden=true;return;
+ }
+ hint.hidden=true;liste.hidden=false;
+ liste.innerHTML=zustand.liste.map(m=>{
+  const segCount=(m.data&&m.data.segments&&m.data.segments.length)||0;
+  return `<div class="meas-row">
+<div class="meas-row-info"><b>${esc(m.title||"Ohne Titel")}</b><span>${esc(m.date||"–")} · ${segCount} Segment(e)</span></div>
+<div class="meas-row-actions"><button type="button" class="blue" data-${attribut}="${m.id}">↩️ Übernehmen</button></div>
+</div>`;
+ }).join("");
+}
+
+// Aufteilung einer Gesamtlaenge in Stuecke - eine einzige Rechnung fuer
+// beide Einlaufblech-Arten, nur mit den jeweils eigenen Einstellungen.
+function teileLaengeInStuecke(effLaenge,settings){
+ const stossLaenge=Number(settings.stoss_laenge)||1;
+ const ueberlappung=Number(settings.ueberlappung)||0;
+ const restSchwelle=Number(settings.rest_schwelle)||0;
  let anzahl=effLaenge>0?Math.max(1,Math.ceil(effLaenge/stossLaenge)):0;
  const zuschnittlaenge=stossLaenge+ueberlappung;
  let rest=effLaenge-(anzahl-1)*stossLaenge;
@@ -13,6 +87,9 @@ function splitLengthIntoPieces(effLaenge){
  const lengths=[];
  for(let i=1;i<=anzahl;i++)lengths.push(i===anzahl?restZuschnittlaenge:zuschnittlaenge);
  return lengths;
+}
+function splitLengthIntoPieces(effLaenge){
+ return teileLaengeInStuecke(effLaenge,einlaufblechKonischSettings);
 }
 function generateEbkGrundriss(pieces){
  if(!pieces.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Stücke für den Grundriss.</div>';
