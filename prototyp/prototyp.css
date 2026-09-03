@@ -284,3 +284,17 @@ body{background:#eef2f5;margin:0;padding:0 0 90px}
    Das Dokument wird dafür kurz ausserhalb des Bildes eingeblendet. */
 .p-druck-messen{display:block!important;position:absolute!important;
  left:-10000px!important;top:0;width:182mm}
+
+/* ---- Zuschnittmasse (Einstellungen) und Dila-Handanpassung -------------- */
+/* Die globale Grundregel input{width:100%;min-height:40px} gilt auch hier;
+   die Felder bleiben deshalb bewusst voll breit und gross antippbar, nur die
+   Spalte wird schmal gehalten. */
+.p-mass-feld,.p-dila-feld{max-width:120px;text-align:right;font-variant-numeric:tabular-nums}
+.p-mass-dila td{border-top:2px solid #dbe3e9}
+.p-dila-zeile{background:#f3f8fd}
+.p-dila-zeile td{vertical-align:middle}
+.p-dila-weg{min-height:34px;padding:0 10px}
+#p-massenBox[hidden]{display:none}
+@media (max-width:520px){
+ .p-mass-feld,.p-dila-feld{max-width:none}
+}

@@ -31,6 +31,22 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  const grenzen=()=>page.evaluate(()=>computeRinneBoundaries(segmenteFuerRechnung(aufnahme)).boundaries);
  const rechenSegmente=()=>page.evaluate(()=>segmenteFuerRechnung(aufnahme));
  const komp=()=>page.evaluate(()=>komponenten(aufnahme).map(k=>k.bezeichnung+" ="+k.menge));
+ // Zuschnitt so lesen, wie ihn Bildschirm und PDF verwenden.
+ const zuschnitt=()=>page.evaluate(()=>{const d=dilasEffektiv(aufnahme);
+  return berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass).map(s=>s.zuschnitt)});
+ // Zuschnittmasse setzen - ueber dieselbe Funktion, die auch die Oberflaeche
+ // benutzt, damit hier nichts an der Einstellung vorbei geschrieben wird.
+ const setzeMasse=async(fitting,dila)=>{
+  await page.evaluate(([f,dm])=>{masseSchreiben(f||{},dm);zeichne()},[fitting,dila]);
+  await page.waitForTimeout(40);
+ };
+ const masseZurueck=async()=>{await page.evaluate(()=>{masseZuruecksetzen();zeichne()});await page.waitForTimeout(40)};
+ // Alle Elemente ausdruecklich auf 0 - ein leeres Objekt hiesse "Vorgaben
+ // gelten weiter" und wuerde die Wirkung eines einzelnen Masses verdecken.
+ const alleMasseNull=async(zusatz,dila)=>{
+  const f=await page.evaluate(()=>{const o={};rinneFittingTypes.forEach(t=>{o[t.symbol||("id"+t.id)]=0});return o});
+  await setzeMasse(Object.assign(f,zusatz||{}),dila===undefined?0:dila);
+ };
 
  // Verlauf bauen: abwechselnd Laenge und Uebergang - genau so, wie er in der
  // Oberflaeche erfasst wird. Beispiel: verlauf(5000,"einhaenge",5000)
@@ -67,9 +83,19 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(d1.length===1&&d1[0]===5000,"ein Dehnungselement bei 5'000 mm (wie bisher)",d1);
  const b1=await grenzen();
  p(b1.length===2&&!b1[0].typ&&!b1[1].typ,"keine Fixpunkte im Verlauf",b1);
- const zs1=await page.evaluate(()=>{const d=dilasBerechnet(aufnahme);
-  return berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass).map(s=>s.zuschnitt)});
- p(zs1.join("/")==="5000/5000","Zuschnitt 2 × 5'000 mm",zs1);
+ // Der Zuschnitt haengt an den Einstellungen. Geprueft wird deshalb die
+ // REGEL "Zuschnitt = Abstand + Zugabe links + Zugabe rechts", nicht eine
+ // Zahl, die zufaellig zur aktuellen Vorgabe passt.
+ await alleMasseNull();                       // alle Masse neutral
+ const zs1=await zuschnitt();
+ p(zs1.join("/")==="5000/5000","ohne Zuschnittmasse: 2 × 5'000 mm",zs1);
+ await alleMasseNull({},-165);                // nur die Dila auf -165
+ const zs1b=await zuschnitt();
+ p(zs1b.join("/")==="4835/4835","Dila -165 mm: beide Stuecke 165 mm kuerzer",zs1b);
+ await alleMasseNull({},200);
+ const zs1c=await zuschnitt();
+ p(zs1c.join("/")==="5200/5200","Dila +200 mm: beide Stuecke 200 mm laenger",zs1c);
+ await masseZurueck();
 
  // ==================================================================
  console.log("\nTEST 2 · Einhängestutzen im Verlauf ist ein FIXPUNKT");
@@ -255,6 +281,141 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(!k10b.some(k=>k.startsWith("Rinnenboden links"))&&k10b.some(k=>k.startsWith("Rinnenboden rechts")),
    "links abwählbar, rechts bleibt – sie sind wirklich getrennt",k10b);
  await page.check("#p-bodenLinks"); await page.waitForTimeout(90);
+
+ // ==================================================================
+ console.log("\nTEST 11 · Zuschnittmasse je Element (Einstellungen)");
+ await masseZurueck();
+ await page.click("#p-massen"); await page.waitForTimeout(120);
+ const mt=await page.locator("#p-massenBox").innerText();
+ p(await page.locator("#p-massenBox").isVisible(),"die Einstellungen lassen sich oeffnen");
+ // Jedes Element aus dem Katalog bekommt ein Feld - nicht nur eine feste Auswahl.
+ const felder=await page.$$eval("[data-mass-fitting]",els=>els.map(e=>e.dataset.massFitting));
+ const katalog=await page.evaluate(()=>rinneFittingTypes.map(f=>f.symbol||("id"+f.id)));
+ p(felder.length===katalog.length&&katalog.every(k=>felder.includes(k)),
+   "je ein Massfeld fuer JEDEN Anschlusstyp des Katalogs",{felder,katalog});
+ p(await page.locator("#p-massDila").count()===1,"und ein Feld fuer das Dilatationselement");
+ for(const t of ["Aussenecke","Innenecke","Ablaufstutzen","Schiebestutzen","Boden"])
+  p(mt.includes(t),"Element in der Liste: "+t);
+ p(/abgezogen|zugerechnet/i.test(mt),"erklaert + und - im Zuschnitt");
+
+ // Wirkung: Aussenecke von -110 auf -300, das anschliessende Stueck wird kuerzer
+ await setze({...verlauf(4000,"aussen",4000)});
+ await alleMasseNull();
+ const zsA=await zuschnitt();
+ await alleMasseNull({AE90:-300});
+ const zsB=await zuschnitt();
+ p(zsA.length===zsB.length&&zsA.length>0,"gleiche Stueckzahl vor und nach der Aenderung",{zsA,zsB});
+ p(zsA.reduce((x,y)=>x+y,0)-zsB.reduce((x,y)=>x+y,0)===600,
+   "Aussenecke -300 statt 0: 2 x 300 mm weniger Zuschnitt",{zsA,zsB});
+ await alleMasseNull({AE90:250});
+ const zsC=await zuschnitt();
+ p(zsC.reduce((x,y)=>x+y,0)-zsA.reduce((x,y)=>x+y,0)===500,
+   "Aussenecke +250: 2 x 250 mm mehr Zuschnitt - das Vorzeichen wirkt",{zsA,zsC});
+
+ // Der Rinnenboden ist ein Element wie jedes andere und wirkt an den Enden
+ await setze({...verlauf(6000),rinnenboden:{links:true,rechts:true}});
+ await alleMasseNull();
+ const zsD=await zuschnitt();
+ await alleMasseNull({BD:60});
+ const zsE=await zuschnitt();
+ p(zsE[0]-zsD[0]===120,"Rinnenboden +60 mm wirkt an beiden Enden desselben Stuecks",{zsD,zsE});
+ await setze({...verlauf(6000),rinnenboden:{links:true,rechts:false}});
+ const zsF=await zuschnitt();
+ p(zsF[0]-zsD[0]===60,"nur links vorhanden: nur einmal +60 mm",{zsD,zsF});
+ await setze({...verlauf(6000),rinnenboden:{links:false,rechts:false}});
+ const zsG=await zuschnitt();
+ p(zsG[0]===zsD[0],"kein Rinnenboden: kein Zuschlag",{zsD,zsG});
+
+ // Die Masse aendern die Dila-Rechnung NICHT - sie sind reine Zuschlaege
+ await setze({...verlauf(10000),rinnenboden:{links:true,rechts:true}});
+ await alleMasseNull();
+ const dMassVor=await dilas();
+ await alleMasseNull({AE90:-900,IE90:-900,ABL:-900,SS:-900,BD:-900},-900);
+ const dMassNach=await dilas();
+ p(JSON.stringify(dMassVor)===JSON.stringify(dMassNach),
+   "geaenderte Zuschnittmasse verschieben kein Dehnungselement",{dMassVor,dMassNach});
+
+ // Zuruecksetzen bringt genau die Vorgaben zurueck
+ await masseZurueck();
+ const vorgaben=await page.evaluate(()=>({
+  fitting:rinneFittingTypes.map(f=>[f.symbol||("id"+f.id),f.mass_mm]),
+  soll:Object.entries(MASS_VORGABE),dila:rinneDilaMass,dilaSoll:DILA_MASS_VORGABE}));
+ p(JSON.stringify(vorgaben.fitting.sort())===JSON.stringify(vorgaben.soll.sort()),
+   "Zuruecksetzen stellt die Katalog-Vorgaben wieder her",vorgaben);
+ p(vorgaben.dila===vorgaben.dilaSoll,"und das Vorgabemass der Dila",vorgaben);
+ // Die Vorgabe ist die der laufenden App
+ p(vorgaben.dilaSoll===-165,"Dila-Vorgabe wie in der App (js/01-basis.js): -165 mm",vorgaben.dilaSoll);
+ await page.click("#p-masseSchliessen"); await page.waitForTimeout(100);
+ p(!(await page.locator("#p-massenBox").isVisible()),"Einstellungen lassen sich schliessen");
+
+ // ==================================================================
+ console.log("\nTEST 12 · Dehnungselemente von Hand anpassen");
+ await masseZurueck();
+ await setze({...verlauf(15000),rinnenboden:{links:false,rechts:false},dilasManuell:null});
+ await gehe(6);
+ const autoD=await dilas();
+ // Kupfer: hoechstens 6 m zwischen zwei Dehnungselementen -> bei 15 m zwei.
+ p(autoD.length===2&&autoD[0]===5000&&autoD[1]===10000,
+   "gerechnet: zwei Dehnungselemente bei 5'000 und 10'000 mm",autoD);
+ p(await page.locator("[data-dila-abstand]").count()===2,
+   "jede Dila-Zeile im Zuschnitt hat ein Eingabefeld",await page.locator("[data-dila-abstand]").count());
+ p(await page.locator("#p-dilaAuto").isDisabled(),
+   "solange gerechnet wird, ist 'Zurueck zur Berechnung' ausgegraut");
+
+ // Abstand von Hand ueberschreiben
+ const dilaFeld=page.locator("[data-dila-abstand]").first();
+ await dilaFeld.fill("3000"); await dilaFeld.blur(); await page.waitForTimeout(140);
+ const handD=await page.evaluate(()=>dilasEffektiv(aufnahme).dilas.map(d=>Math.round(d.posAbStart)));
+ p(handD[0]===3000,"der eingegebene Abstand gilt ab dem Punkt davor",handD);
+ p(await page.evaluate(()=>dilasEffektiv(aufnahme).automatisch)===false,
+   "ab jetzt gilt die Handeingabe, nicht mehr die Rechnung");
+ const zsH=await zuschnitt();
+ p(Math.round(zsH[0])===3000+(await page.evaluate(()=>Number(rinneDilaMass)||0)),
+   "der Zuschnitt des ersten Stuecks folgt dem neuen Abstand",zsH);
+
+ // Aendert sich die Laenge, bleibt die Handeingabe stehen
+ await page.evaluate(()=>{aufnahme.segmente[0].laenge=19000;zeichne()});
+ await page.waitForTimeout(120);
+ const handD2=await page.evaluate(()=>dilasEffektiv(aufnahme).dilas.map(d=>Math.round(d.posAbStart)));
+ p(handD2[0]===3000,"eine geaenderte Laenge ueberschreibt die Handeingabe nicht",handD2);
+ await page.evaluate(()=>{aufnahme.segmente[0].laenge=15000;zeichne()});
+ await page.waitForTimeout(120);
+
+ // Hinzufuegen und Loeschen
+ const vorher=await page.evaluate(()=>dilasEffektiv(aufnahme).dilas.length);
+ await page.click("#p-dilaPlus"); await page.waitForTimeout(140);
+ p(await page.evaluate(()=>dilasEffektiv(aufnahme).dilas.length)===vorher+1,
+   "'+ Dehnungselement von Hand' fuegt eines hinzu");
+ await page.locator("[data-dila-del]").first().click(); await page.waitForTimeout(140);
+ p(await page.evaluate(()=>dilasEffektiv(aufnahme).dilas.length)===vorher,
+   "die Zeile laesst sich wieder loeschen");
+
+ // Zurueck zur Berechnung
+ await page.click("#p-dilaAuto"); await page.waitForTimeout(140);
+ p(await page.evaluate(()=>aufnahme.dilasManuell)===null,"'Zurueck zur Berechnung' loescht die Handliste");
+ const autoD2=await dilas();
+ p(JSON.stringify(autoD2)===JSON.stringify(autoD),"und liefert wieder die gerechneten Positionen",autoD2);
+
+ // Warnung, wenn von Hand zu wenige gesetzt sind
+ await page.evaluate(()=>{aufnahme.dilasManuell=[];zeichne()});
+ await gehe(5); await page.waitForTimeout(120);
+ const w5=await page.locator("#p-inhalt").innerText();
+ p(/Von Hand/i.test(w5)&&/gerechnet/i.test(w5),"zu wenige von Hand: die Kontrolle sagt es",w5.slice(0,500));
+ // Und eine Position ausserhalb der Rinne ist ein Fehler, kein stiller Zurechtruecker
+ await page.evaluate(()=>{aufnahme.dilasManuell=[{posAbStart:99000}];zeichne()});
+ await page.waitForTimeout(120);
+ const w5b=await page.locator("#p-inhalt").innerText();
+ p(/ausserhalb der Rinne/i.test(w5b),"Dila ausserhalb der Rinne wird als Fehler gemeldet",w5b.slice(0,500));
+ await page.evaluate(()=>{aufnahme.dilasManuell=null;zeichne()});
+
+ // Von Hand gesetzte Dilas landen auch im gespeicherten Datensatz
+ await page.evaluate(()=>{aufnahme.dilasManuell=[{posAbStart:4321}];aufnahmeSpeichern()});
+ const gespeichert=await page.evaluate(id=>{
+  const l=JSON.parse(localStorage.getItem("sd_prototyp_rinne_halbrund")||"[]");
+  const t=l.find(x=>x.id===id); return t?t.dilasManuell:null;},await page.evaluate(()=>aufnahme.id));
+ p(Array.isArray(gespeichert)&&gespeichert.length===1&&gespeichert[0].posAbStart===4321,
+   "die Handanpassung wird mitgespeichert",gespeichert);
+ await page.evaluate(()=>{aufnahme.dilasManuell=null;aufnahmeSpeichern();zeichne()});
 
  // ==================================================================
  console.log("\nB · Plausibilität");

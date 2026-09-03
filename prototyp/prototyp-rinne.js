@@ -51,6 +51,54 @@ const EINHAENGE_FITTING_ID=4;
 // Fixpunkt"), und es wird an dieser Stelle KEINE zusätzliche Dila gesetzt.
 // Genau das ist der Unterschied zum Einhängestutzen.
 const SCHIEBE_FITTING_ID=7;
+// Der Rinnenboden sitzt am äussersten Ende des Verlaufs – und das IST der
+// erste bzw. letzte Grenzpunkt. Der bestehende Katalog führt dafür den
+// "Boden" (id 5, kein Fixpunkt). Wird er dort als Anschlusstyp gesetzt,
+// rechnet berechneRinneStueckliste() sein Mass ohne eine Zeile neuer
+// Fachlogik in den Zuschnitt des ersten/letzten Stücks ein.
+const BODEN_FITTING_ID=5;
+
+// ---- 1b. Zuschnittmasse (Einstellungen) -----------------------------------
+// Jedes Element kann ein Mass tragen, das dem Rinnenzuschnitt zugerechnet
+// (+) oder abgezogen (−) wird. Für Winkel, Stutzen, Schiebestutzen und
+// Rinnenboden ist das im bestehenden Modul bereits das Feld mass_mm des
+// Anschlusstyp-Katalogs; für das Dilatationselement die Firmeneinstellung
+// rinneDilaMass. Der Prototyp bearbeitet genau diese beiden Quellen – er
+// führt bewusst keine dritte ein, damit der Einbau in die App nichts
+// umrechnen muss.
+const MASSE_SPEICHER="sd_prototyp_rinne_massen";
+// Vorgaben wie in der laufenden App: der Katalog, wie er ausgeliefert wird,
+// und -165 mm an der Dila (Vorgabewert aus js/01-basis.js).
+const DILA_MASS_VORGABE=-165;
+const MASS_VORGABE={};
+rinneFittingTypes.forEach(f=>{MASS_VORGABE[f.symbol||("id"+f.id)]=Number(f.mass_mm)||0});
+function masseLesen(){
+ try{
+  const m=JSON.parse(localStorage.getItem(MASSE_SPEICHER)||"null");
+  if(!m||typeof m!=="object")return null;
+  return m;
+ }catch(e){return null}
+}
+function masseAnwenden(){
+ const m=masseLesen()||{};
+ const f=(m.fitting&&typeof m.fitting==="object")?m.fitting:{};
+ rinneFittingTypes.forEach(t=>{
+  const k=t.symbol||("id"+t.id);
+  const v=(f[k]===undefined||f[k]===null||f[k]==="")?MASS_VORGABE[k]:Number(f[k]);
+  t.mass_mm=Number.isFinite(v)?v:0;
+ });
+ const d=(m.dila===undefined||m.dila===null||m.dila==="")?DILA_MASS_VORGABE:Number(m.dila);
+ rinneDilaMass=Number.isFinite(d)?d:0;
+}
+function masseSchreiben(fitting,dila){
+ try{localStorage.setItem(MASSE_SPEICHER,JSON.stringify({fitting,dila}));}catch(e){}
+ masseAnwenden();
+}
+function masseZuruecksetzen(){
+ try{localStorage.removeItem(MASSE_SPEICHER);}catch(e){}
+ masseAnwenden();
+}
+masseAnwenden();
 
 function leereAufnahme(){
  return {
@@ -70,6 +118,9 @@ function leereAufnahme(){
   halter:{anzahl:null,abstand_mm:500,typ:""},
   rinnenboden:{links:true,rechts:true},
   dehnung:{art:"keine",anzahl:0},
+  // null = die Dilatationselemente werden gerechnet. Sobald jemand sie von
+  // Hand anpasst, steht hier die eigene Liste und wird nicht mehr überschrieben.
+  dilasManuell:null,
   fotos:[],
   skizze:null,
   bemerkung:""
@@ -130,6 +181,9 @@ function aufnahmeUmstellen(a){
  // leereAufnahme() schon an, die Uebernahme liefe sonst ins Leere.
  if(a.endstuecke)a.rinnenboden={links:!!a.endstuecke.links,rechts:!!a.endstuecke.rechts};
  if(!a.rinnenboden)a.rinnenboden={links:true,rechts:true};
+ if(a.dilasManuell!==null&&!Array.isArray(a.dilasManuell))a.dilasManuell=null;
+ if(Array.isArray(a.dilasManuell))
+  a.dilasManuell=a.dilasManuell.map(d=>({posAbStart:zahl(d&&d.posAbStart)}));
  ["ablaeufe","einhaengestutzen","schiebestutzen","verbinder","groesseFrei",
   "sonderteile","endstuecke"].forEach(f=>{delete a[f]});
  if(RG_ALT[a.groesse])a.groesse=RG_ALT[a.groesse];
@@ -298,11 +352,16 @@ function synchronisiereUebergaenge(a){
   }
  });
  // Am allerersten und allerletzten Ende darf kein Übergang stehen bleiben.
+ // Dort sitzt stattdessen der Rinnenboden, sofern einer erfasst ist – als
+ // Anschlusstyp, damit sein Zuschnittmass mitgerechnet wird.
  if(segs.length){
   const letzte=segs[segs.length-1];
-  if(bekannterUebergangsTyp(letzte.rechtsTyp))letzte.rechtsTyp="";
+  const b=a.rinnenboden||{};
   letzte.winkel=0; letzte.stutzen=null;
-  if(bekannterUebergangsTyp(segs[0].linksTyp))segs[0].linksTyp="";
+  if(bekannterUebergangsTyp(letzte.rechtsTyp)||Number(letzte.rechtsTyp)===BODEN_FITTING_ID)letzte.rechtsTyp="";
+  if(bekannterUebergangsTyp(segs[0].linksTyp)||Number(segs[0].linksTyp)===BODEN_FITTING_ID)segs[0].linksTyp="";
+  if(b.links)segs[0].linksTyp=BODEN_FITTING_ID;
+  if(b.rechts)letzte.rechtsTyp=BODEN_FITTING_ID;
  }
  return a;
 }
@@ -315,7 +374,8 @@ function bekannterUebergangsTyp(typId){
 // ist das eine reine Kopie mit gespiegelten Anschlusstypen – nichts wird
 // mehr geteilt oder umgerechnet.
 function segmenteFuerRechnung(a){
- const kopie={segmente:(a.segmente||[]).map(x=>({laenge:zahl(x.laenge),
+ const kopie={rinnenboden:a.rinnenboden||{},
+              segmente:(a.segmente||[]).map(x=>({laenge:zahl(x.laenge),
    linksTyp:x.linksTyp||"",rechtsTyp:x.rechtsTyp||"",winkel:zahl(x.winkel),
    stutzen:x.stutzen||null}))};
  synchronisiereUebergaenge(kopie);
@@ -330,6 +390,26 @@ function dilasBerechnet(a){
  const r=calcRinneDilas(segs,a.material);
  r.segmente=segs;
  return r;
+}
+
+// Die tatsächlich gültigen Dilatationselemente: die gerechneten, solange
+// niemand eingegriffen hat – sonst die von Hand angepasste Liste. Alles, was
+// Dilas anzeigt (Band, Grundriss, Zuschnitt, PDF), geht durch diese eine
+// Stelle, damit Bildschirm und Ausdruck nie auseinanderlaufen können.
+function dilasEffektiv(a){
+ const r=dilasBerechnet(a);
+ r.automatisch=!Array.isArray(a.dilasManuell);
+ if(!r.automatisch)
+  r.dilas=a.dilasManuell.map(d=>({posAbStart:zahl(d.posAbStart)}))
+                        .sort((x,y)=>x.posAbStart-y.posAbStart);
+ return r;
+}
+// Beim ersten Eingriff wird die gerechnete Liste übernommen – ab dann bleibt
+// sie stehen, auch wenn sich Länge oder Material ändern.
+function dilasVonHand(a){
+ if(!Array.isArray(a.dilasManuell))
+  a.dilasManuell=dilasBerechnet(a).dilas.map(d=>({posAbStart:Math.round(zahl(d.posAbStart))}));
+ return a.dilasManuell;
 }
 
 // ---- 4. Plausibilität (Auftrag 18) --------------------------------------
@@ -369,6 +449,21 @@ function pruefungen(a){
   meldungen.push({art:"fehler",text:"Die Halteranzahl darf nicht negativ sein."});
  if(a.dehnung.art==="dehnungsstueck"&&zahl(a.dehnung.anzahl)<0)
   meldungen.push({art:"fehler",text:"Die Anzahl Dehnungsstücke darf nicht negativ sein."});
+ // Von Hand gesetzte Dehnungselemente: sie werden NICHT stillschweigend
+ // zurechtgerückt, sondern gemeldet – wer eingreift, soll sehen, was er tut.
+ if(Array.isArray(a.dilasManuell)){
+  a.dilasManuell.forEach((dl,i)=>{
+   const pos=zahl(dl.posAbStart);
+   if(pos<0||(L>0&&pos>L))meldungen.push({art:"fehler",
+    text:`Dehnungselement ${i+1} liegt bei ${mm(pos)} mm und damit ausserhalb der Rinne (0 bis ${mm(L)} mm).`});
+  });
+  const auto=dilasBerechnet(a).dilas.length, hand=a.dilasManuell.length;
+  if(hand<auto)meldungen.push({art:"warnung",
+   text:`Von Hand sind ${hand} Dehnungselement(e) gesetzt, gerechnet wären ${auto}. `
+       +`Bei ${materialText(a)} kann sich die Rinne dann an einer Stelle nicht genug ausdehnen.`});
+  else if(hand>auto)meldungen.push({art:"warnung",
+   text:`Von Hand sind ${hand} Dehnungselement(e) gesetzt, gerechnet wären ${auto}.`});
+ }
  return meldungen;
 }
 function hatFehler(a){return pruefungen(a).some(m=>m.art==="fehler")}
@@ -493,7 +588,7 @@ function verlaufsBandSvg(a){
   s+=`<text x="${px.toFixed(1)}" y="${(y+40).toFixed(1)}" font-size="10" text-anchor="middle" fill="${farbe}" font-weight="700">DEHNT</text>`;
  });
  // Zusätzlich berechnete Dehnungselemente aus dem bestehenden Modul
- dilasBerechnet(a).dilas.forEach(d=>{
+ dilasEffektiv(a).dilas.forEach(d=>{
   const px=x(d.posAbStart), q=7;
   s+=`<polygon points="${px.toFixed(1)},${(y-q).toFixed(1)} ${(px+q).toFixed(1)},${y} ${px.toFixed(1)},${(y+q).toFixed(1)} ${(px-q).toFixed(1)},${y}" fill="#e07a1f" stroke="#8a4a0f" stroke-width="1"/>`;
  });
@@ -594,7 +689,7 @@ ${zeilen.join("")}
 <div class="p-legende">▲ Ecke (Fixpunkt) &nbsp;·&nbsp; ● E = Einhängestutzen (Fixpunkt) &nbsp;·&nbsp; ■ S = Schiebestutzen (kein Fixpunkt, gilt als Dehnungselement) &nbsp;·&nbsp; ◆ zusätzlich berechnetes Dehnungselement<br>
 Im Grundriss: ABL = Einhängestutzen &nbsp;·&nbsp; SS = Schiebestutzen &nbsp;·&nbsp; AE90/IE90 = Aussen-/Innenwinkel</div>
 <h3>Massstäblicher Grundriss</h3>
-<div class="p-grundriss" id="p-grundriss">${(()=>{const d=dilasBerechnet(a);return generateRinneGrundriss(d.segmente,d.dilas,d.boundaries||[])})()}</div>
+<div class="p-grundriss" id="p-grundriss">${(()=>{const d=dilasEffektiv(a);return generateRinneGrundriss(d.segmente,d.dilas,d.boundaries||[])})()}</div>
 </div>`;
 }
 
@@ -602,7 +697,7 @@ function schritt3(){
  const a=aufnahme;
  const L=gesamtlaengeBerechnet(a);
  const vorschlag=halterVorschlag(a);
- const dila=dilasBerechnet(a);
+ const dila=dilasEffektiv(a);
  const nEin=stutzenListe(a,"einhaenge").length, nSch=stutzenListe(a,"schiebe").length;
  return `<div class="p-karte">
 <h2>3 · Rinnenhalter</h2>
@@ -629,8 +724,9 @@ ${a.dehnung.art==="dehnungsstueck"?feld("Anzahl Dehnungsstücke",
 </div>
 <div class="p-hinweis">Links und rechts beziehen sich auf START und ENDE des aufgenommenen Verlaufs,
 nicht auf die Bildschirmdarstellung. Im Ausmass erscheinen sie als getrennte Positionen.
-${dila.dilas.length?` Die Berechnung aus dem bestehenden Modul ergibt <b>${dila.dilas.length}</b> zusätzliche(s) Dehnungselement(e) für ${esc(materialText(a))}.
-<button type="button" class="p-grau p-klein" id="p-dehnungUebernehmen">Übernehmen</button>`:` Für ${esc(materialText(a))} ist bei diesem Verlauf kein zusätzliches Dehnungselement nötig.`}</div>
+${dila.dilas.length?` ${dila.automatisch?"Die Berechnung aus dem bestehenden Modul ergibt":"Von Hand festgelegt sind"} <b>${dila.dilas.length}</b> zusätzliche(s) Dehnungselement(e) für ${esc(materialText(a))}.
+<button type="button" class="p-grau p-klein" id="p-dehnungUebernehmen">Übernehmen</button>`:` ${dila.automatisch?`Für ${esc(materialText(a))} ist bei diesem Verlauf kein zusätzliches Dehnungselement nötig.`:"Von Hand auf kein Dehnungselement gesetzt."}`}
+${dila.automatisch?"":` <b>Von Hand angepasst</b> – die Positionen stehen in Schritt 6 · Zuschnitt.`}</div>
 </div>
 
 <div class="p-karte">
@@ -711,6 +807,33 @@ ${a.bemerkung?`<div class="p-bem">${esc(a.bemerkung)}</div>`:""}</div>
 </div>`;
 }
 
+// Die Zuschnitt-Tabelle. Dila-Zeilen sind editierbar: der Abstand zum
+// Punkt davor lässt sich überschreiben, die Zeile lässt sich löschen –
+// dasselbe Verhalten wie in der Dila-Liste der laufenden App.
+function zuschnittTabelle(a){
+ const d=dilasEffektiv(a);
+ const st=berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass);
+ const zeilen=st.map(s=>{
+  const editierbar=s.dilaIndex!==null&&s.dilaIndex!==undefined;
+  return `<tr${editierbar?' class="p-dila-zeile"':""}>`
+   +`<td>${s.nr}</td>`
+   +`<td>${esc(zuschnittName(s.von))} → ${esc(zuschnittName(s.bis))}</td>`
+   +`<td class="p-num">${editierbar
+     ?`<input class="p-dila-feld" type="number" inputmode="numeric" step="1" `
+      +`data-dila-abstand="${s.dilaIndex}" data-dila-prev="${Math.round(s.prevPos)}" `
+      +`value="${Math.round(s.abstand)}">`
+     :esc(mm(s.abstand))}</td>`
+   +`<td class="p-num"><b>${esc(mm(s.zuschnitt))}</b></td>`
+   +`<td class="p-num">${editierbar
+     ?`<button type="button" class="p-weg p-dila-weg" data-dila-del="${s.dilaIndex}" title="Dehnungselement löschen">✕</button>`
+     :""}</td></tr>`;
+ }).join("");
+ return `<div class="p-tabelle" id="p-zuschnitt">
+<table><thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th></th></tr></thead>
+<tbody>${zeilen||'<tr><td colspan="5" class="p-leer">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
+</div>`;
+}
+
 function schritt6(){
  const a=aufnahme;
  const zeilen=ausmassZeilen(a);
@@ -735,15 +858,15 @@ function schritt6(){
 </div>
 <div class="p-karte">
 <h2>Zuschnitt aus dem bestehenden Modul</h2>
-<div class="p-hinweis">Diese Stückliste rechnet unverändert die Funktion der laufenden App (Dilatationselemente nach SPI/SIA, Anschlussmasse aus dem Katalog).</div>
-<div class="p-tabelle">
-<table><thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th></tr></thead>
-<tbody>${(function(){
- const d=dilasBerechnet(a);
- const st=berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass);
- return st.map(s=>`<tr><td>${s.nr}</td><td>${esc(zuschnittName(s.von))} → ${esc(zuschnittName(s.bis))}</td><td class="p-num">${esc(mm(s.abstand))}</td><td class="p-num"><b>${esc(mm(s.zuschnitt))}</b></td></tr>`).join("")
-  ||'<tr><td colspan="4" class="p-leer">Noch nichts zu berechnen.</td></tr>';
-})()}</tbody></table>
+<div class="p-hinweis">Diese Stückliste rechnet unverändert die Funktion der laufenden App (Dilatationselemente nach SPI/SIA, Anschlussmasse aus dem Katalog).
+Die Zuschnittmasse je Element stehen in den <b>Einstellungen</b> oben rechts.</div>
+${zuschnittTabelle(a)}
+<div class="p-hinweis">${dilasEffektiv(a).automatisch
+ ? "Die Dehnungselemente sind gerechnet. Der Abstand jeder Dila-Zeile lässt sich von Hand überschreiben, wenn es die Baustelle verlangt."
+ : "<b>Von Hand angepasst.</b> Die Dehnungselemente werden nicht mehr neu gerechnet, auch nicht bei geänderter Länge oder anderem Material."}</div>
+<div class="p-knopfreihe">
+<button type="button" class="p-grau" id="p-dilaPlus">＋ Dehnungselement von Hand</button>
+<button type="button" class="p-grau" id="p-dilaAuto"${dilasEffektiv(a).automatisch?" disabled":""}>↻ Zurück zur Berechnung</button>
 </div>
 </div>
 <div class="p-karte">
@@ -828,8 +951,55 @@ function listeHtml(){
  }).join("");
 }
 
+// ---- 10b. Einstellungen: Zuschnittmasse je Element -------------------------
+// Ein Mass je Element, das dem Rinnenzuschnitt zugerechnet (+) oder abgezogen
+// (−) wird. Die Liste kommt aus dem Anschlusstyp-Katalog selbst – dadurch
+// bekommt jedes künftige Element automatisch sein Feld, ohne dass hier eine
+// zweite Liste gepflegt werden muss.
+const MASS_ROLLE={};
+MASS_ROLLE[ECKE_AUSSEN_ID]="Aussenwinkel im Verlauf";
+MASS_ROLLE[ECKE_INNEN_ID]="Innenwinkel im Verlauf";
+MASS_ROLLE[EINHAENGE_FITTING_ID]="Einhängestutzen (Fixpunkt)";
+MASS_ROLLE[SCHIEBE_FITTING_ID]="Schiebestutzen (wirkt wie ein Dehnungselement)";
+MASS_ROLLE[BODEN_FITTING_ID]="Rinnenboden links und rechts";
+function masseHtml(){
+ const m=masseLesen()||{};
+ const zeilen=rinneFittingTypes.map(f=>{
+  const k=f.symbol||("id"+f.id);
+  const rolle=MASS_ROLLE[f.id]||"im Verlauf zurzeit nicht verwendet";
+  return `<tr>
+<td><b>${esc(f.name)}</b><div class="p-klein-text">${esc(rolle)}</div></td>
+<td class="p-num"><input class="p-mass-feld" type="number" inputmode="numeric" step="1"
+ data-mass-fitting="${esc(k)}" value="${Number(f.mass_mm)||0}"></td>
+<td class="p-klein-text">Vorgabe ${MASS_VORGABE[k]} mm</td></tr>`;
+ }).join("");
+ return `<div class="p-karte">
+<h2>⚙️ Zuschnittmasse je Element</h2>
+<div class="p-hinweis">Jedes Element kann ein Mass tragen, das dem Rinnenzuschnitt
+<b>zugerechnet (+)</b> oder <b>abgezogen (−)</b> wird. Beispiel: eine Aussenecke
+mit −110 mm verkürzt das anschliessende Stück um 110 mm.
+Die Werte gelten sofort für alle Aufnahmen und bleiben in diesem Browser.
+In der App stehen sie als Firmeneinstellung unter
+<b>Einstellungen → Massaufnahmen → Rinne</b>.</div>
+<div class="p-tabelle">
+<table><thead><tr><th>Element</th><th>Mass (mm)</th><th></th></tr></thead>
+<tbody>${zeilen}
+<tr class="p-mass-dila">
+<td><b>Dilatationselement</b><div class="p-klein-text">an jedem gerechneten oder von Hand gesetzten Dehnungselement, beidseitig</div></td>
+<td class="p-num"><input class="p-mass-feld" type="number" inputmode="numeric" step="1"
+ id="p-massDila" value="${Number(rinneDilaMass)||0}"></td>
+<td class="p-klein-text">Vorgabe ${DILA_MASS_VORGABE} mm</td></tr>
+</tbody></table>
+</div>
+<div class="p-knopfreihe">
+<button type="button" class="p-grau" id="p-masseZurueck">↻ Auf die Vorgaben zurücksetzen</button>
+<button type="button" class="p-grau" id="p-masseSchliessen">Schliessen</button>
+</div>
+</div>`;
+}
+
 // ---- 11. Zeichnen ---------------------------------------------------------
-let listeOffen=false;
+let listeOffen=false, massenOffen=false;
 function zeichne(){
  synchronisiereUebergaenge(aufnahme);
  const kopf=$("p-kopf");
@@ -848,6 +1018,8 @@ function zeichne(){
   weiter.textContent=schritt>=SCHRITTE.length?"Fertig":"Weiter › "+SCHRITTE[schritt];}
  const listeBox=$("p-listeBox");
  if(listeBox){listeBox.hidden=!listeOffen; if(listeOffen)listeBox.innerHTML=listeHtml();}
+ const massenBox=$("p-massenBox");
+ if(massenBox){massenBox.hidden=!massenOffen; if(massenOffen)massenBox.innerHTML=masseHtml();}
 }
 
 // Nach einer Zifferneingabe wird NICHT der ganze Schritt neu gezeichnet –
@@ -860,7 +1032,7 @@ function aktualisiereLive(){
  if(s)s.innerHTML=`Berechnete Gesamtlänge: <b>${L>0?esc(mm(L))+" mm":"–"}</b>${L>0?` &nbsp;(${esc(meter(L))} m)`:""}`;
  const band=$("p-band"); if(band)band.innerHTML=verlaufsBandSvg(aufnahme);
  const gr=$("p-grundriss");
- if(gr){const d=dilasBerechnet(aufnahme);gr.innerHTML=generateRinneGrundriss(aufnahme.segmente,d.dilas,d.boundaries||[]);}
+ if(gr){const d=dilasEffektiv(aufnahme);gr.innerHTML=generateRinneGrundriss(aufnahme.segmente,d.dilas,d.boundaries||[]);}
  const kopf=$("p-kopf");
  if(kopf){
   const z=kopf.querySelector(".p-kopf-zeile");
@@ -911,6 +1083,31 @@ function verdrahten(){
  wurzel.addEventListener("change",e=>{
   const t=e.target, d=t.dataset||{};
   const a=aufnahme;
+  // Zuschnittmasse: nur das Modell und den Inhalt dahinter neu zeichnen.
+  // Die Einstellungstabelle selbst bleibt stehen, sonst verliert das
+  // nächste Feld beim Weitertippen den Fokus.
+  if(d.massFitting!==undefined||t.id==="p-massDila"){
+   const fitting={};
+   document.querySelectorAll("[data-mass-fitting]").forEach(el=>{
+    fitting[el.dataset.massFitting]=el.value===""?0:zahl(el.value);
+   });
+   const dilaFeld=$("p-massDila");
+   masseSchreiben(fitting,dilaFeld&&dilaFeld.value!==""?zahl(dilaFeld.value):0);
+   const inhalt=$("p-inhalt");
+   if(inhalt)inhalt.innerHTML=[schritt1,schritt2,schritt3,schritt4,schritt5,schritt6][schritt-1]();
+   return;
+  }
+  // Dila-Abstand von Hand: derselbe Weg wie in der Dila-Liste der App –
+  // der eingegebene Abstand gilt ab dem Punkt davor.
+  if(d.dilaAbstand!==undefined){
+   const i=Number(d.dilaAbstand);
+   const liste=dilasVonHand(a);
+   if(liste[i]){
+    liste[i].posAbStart=Math.round((Number(d.dilaPrev)||0)+zahl(t.value));
+    zeichne();
+   }
+   return;
+  }
   if(t.id==="p-material")a.material=t.value;
   else if(t.id==="p-groesse")a.groesse=t.value;
   else if(t.id==="p-bodenLinks")a.rinnenboden.links=t.checked;
@@ -978,7 +1175,7 @@ function verdrahten(){
   if(t.id==="p-halterUebernehmen"){a.halter.anzahl=halterVorschlag(a);zeichne();return;}
   if(t.id==="p-dehnungUebernehmen"){
    a.dehnung.art="dehnungsstueck";
-   a.dehnung.anzahl=dilasBerechnet(a).dilas.length;
+   a.dehnung.anzahl=dilasEffektiv(a).dilas.length;
    zeichne();return;
   }
 
@@ -1029,7 +1226,22 @@ function verdrahten(){
    window.print();
    return;
   }
-  if(t.id==="p-liste"){listeOffen=!listeOffen;zeichne();return;}
+  if(t.id==="p-liste"){listeOffen=!listeOffen;massenOffen=false;zeichne();return;}
+  if(t.id==="p-massen"){massenOffen=!massenOffen;listeOffen=false;zeichne();return;}
+  if(t.id==="p-masseSchliessen"){massenOffen=false;zeichne();return;}
+  if(t.id==="p-masseZurueck"){masseZuruecksetzen();zeichne();return;}
+  if(t.id==="p-dilaPlus"){
+   const liste=dilasVonHand(a);
+   const L=gesamtlaengeBerechnet(a);
+   liste.push({posAbStart:Math.round(L/2)});
+   zeichne();return;
+  }
+  if(t.id==="p-dilaAuto"){a.dilasManuell=null;zeichne();return;}
+  if(d.dilaDel!==undefined){
+   const liste=dilasVonHand(a);
+   liste.splice(Number(d.dilaDel),1);
+   zeichne();return;
+  }
   if(d.oeffnen!==undefined){
    if(aufnahmeLaden(d.oeffnen)){listeOffen=false;setzeSchritt(1);}
    return;
@@ -1128,6 +1340,17 @@ function zuschnittName(t){
  return ZUSCHNITT_NAMEN[k]||k;
 }
 
+// Was tatsächlich in den Zuschnitt eingeflossen ist. Gehört ins PDF, weil
+// dieselbe Rinne mit anderen Einstellungen andere Zahlen ergibt – ohne diese
+// Zeile liesse sich ein Ausdruck später nicht mehr nachvollziehen.
+function massTextFuerDruck(){
+ const teile=rinneFittingTypes
+  .filter(f=>MASS_ROLLE[f.id]!==undefined&&(Number(f.mass_mm)||0)!==0)
+  .map(f=>`${f.name} ${Number(f.mass_mm)>0?"+":""}${Number(f.mass_mm)} mm`);
+ const dm=Number(rinneDilaMass)||0;
+ if(dm!==0)teile.push(`Dilatationselement ${dm>0?"+":""}${dm} mm`);
+ return teile.length?teile.join(" · "):"alle 0 mm";
+}
 function druckDatumZeit(){
  const d=new Date();
  return d.toLocaleDateString("de-CH")+", "+d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
@@ -1147,7 +1370,7 @@ function druckInfoZeile(label,wert){
 function druckDokumentHtml(){
  const a=aufnahme;
  const L=gesamtlaengeBerechnet(a);
- const d=dilasBerechnet(a);
+ const d=dilasEffektiv(a);
  const st=berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass);
  const zeilen=ausmassZeilen(a);
  const mat=materialUebersicht(a);
@@ -1250,7 +1473,10 @@ sie kommen aus der Materialliste der jeweiligen Firma.</div>
  +`<td class="r">${esc(mm(s.abstand))}</td><td class="r b">${esc(mm(s.zuschnitt))}</td></tr>`).join("")
  ||'<tr><td colspan="4">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
 <div class="pd-fussnote">Dehnungselemente, Anschlussmasse und Grundriss rechnet unverändert
-das bestehende Modul der laufenden App.</div>
+das bestehende Modul der laufenden App.
+${d.automatisch?"Die Dehnungselemente sind gerechnet."
+ :"<b>Die Dehnungselemente sind von Hand festgelegt</b> und weichen möglicherweise von der Berechnung ab."}
+Verwendete Zuschnittmasse: ${esc(massTextFuerDruck())}.</div>
 
 ${a.bemerkung?`<div class="pd-balken">Bemerkung</div><div class="pd-bemerkung">${esc(a.bemerkung)}</div>`:""}
 ${skizze}${fotos}
