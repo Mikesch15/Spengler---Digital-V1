@@ -37,6 +37,11 @@ function fuelleFeedbackModule(){
 // nirgends selbst nach company_id.
 let feedbackCache=[];
 let feedbackSort="offen";
+// Welche Feedbacks sollen heruntergeladen werden? Ausgewaehlt wird ueber
+// die IDs, damit die Auswahl das Umsortieren ueberlebt (die Liste wird
+// dabei neu gezeichnet). Beim Oeffnen des Bereichs ist alles ausgewaehlt -
+// der Download verhaelt sich damit wie vorher, bis der Benutzer eingrenzt.
+let feedbackAuswahl=new Set();
 
 const FEEDBACK_SORTIERUNGEN={
  offen: {label:"Offen zuerst",   fn:(a,b)=>(a.resolved?1:0)-(b.resolved?1:0)||feedbackZeit(b)-feedbackZeit(a)},
@@ -70,18 +75,31 @@ function feedbackSortiert(){
  return feedbackCache.slice().sort(s.fn);
 }
 
-async function renderFeedbackList(){
+// opt.behalten=true: die bestehende Auswahl beibehalten (nach "erledigt"
+// oder "geloescht" neu geladen). Ohne Angabe - also beim Oeffnen des
+// Bereichs - ist wieder alles ausgewaehlt.
+async function renderFeedbackList(opt){
  if(!isAdmin())return;
  $("feedbackList").innerHTML='<div class="small">Lädt…</div>';
  const {data,error}=await sb.from("feedback").select("*,profiles(first_name,last_name)");
  if(error){
-  feedbackCache=[];
+  feedbackCache=[];feedbackAuswahl=new Set();
   $("feedbackList").innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;
   renderFeedbackKopf(true);
   return;
  }
  feedbackCache=data||[];
+ const ids=new Set(feedbackCache.map(f=>f.id));
+ feedbackAuswahl=(opt&&opt.behalten)
+  // Nur noch vorhandene IDs behalten - ein geloeschtes Feedback faellt raus.
+  ?new Set([...feedbackAuswahl].filter(id=>ids.has(id)))
+  :new Set(ids);
  renderFeedbackRows();
+}
+
+// Die ausgewaehlten Feedbacks in der gerade gewaehlten Reihenfolge.
+function feedbackAusgewaehlt(){
+ return feedbackSortiert().filter(f=>feedbackAuswahl.has(f.id));
 }
 
 // Zeichnet nur die Liste neu - ohne erneute Abfrage.
@@ -96,8 +114,11 @@ function renderFeedbackRows(){
  box.innerHTML=list.length?list.map(f=>{
   const wer=feedbackPerson(f);
   const wann=feedbackDatum(f);
-  return `<div class="settingrow" style="display:block;padding:10px${f.resolved?";opacity:.55":""}">
-<div class="small" style="color:var(--muted)"><b>${esc(f.module)}</b> · ${esc(wer)} · ${esc(wann)}${f.resolved?" · ✓ erledigt":""}</div>
+  const gewaehlt=feedbackAuswahl.has(f.id);
+  // Die ganze Kopfzeile ist das Label - grosse Trefferflaeche auf dem Handy.
+  return `<div class="settingrow${gewaehlt?" feedback-gewaehlt":""}" style="display:block;padding:10px${f.resolved?";opacity:.55":""}">
+<label class="feedback-pick"><input type="checkbox" data-feedback-pick="${f.id}"${gewaehlt?" checked":""}>
+<span class="small" style="color:var(--muted)"><b>${esc(f.module)}</b> · ${esc(wer)} · ${esc(wann)}${f.resolved?" · ✓ erledigt":""}</span></label>
 <div style="margin-top:4px;white-space:pre-wrap${f.resolved?";text-decoration:line-through":""}">${esc(f.message)}</div>
 <div class="bar" style="margin-top:6px">
 <button type="button" class="gray" data-feedback-toggle="${f.id}" data-resolved="${f.resolved?"1":"0"}">${f.resolved?"↩️ Als offen markieren":"✓ Als erledigt markieren"}</button>
@@ -113,11 +134,26 @@ function renderFeedbackKopf(fehler){
  const info=$("feedbackCountInfo");
  const n=feedbackCache.length;
  const offen=feedbackCache.filter(f=>!f.resolved).length;
- if(info)info.textContent=fehler?"":(n?`${n} Feedback${n===1?"":"s"} · ${offen} offen · ${n-offen} erledigt`:"");
+ const gewaehlt=feedbackAuswahl.size;
+ if(info){
+  info.textContent=fehler?"":(n
+   ?`${n} Feedback${n===1?"":"s"} · ${offen} offen · ${n-offen} erledigt · `
+    +(gewaehlt?`${gewaehlt} zum Herunterladen ausgewählt`:"nichts ausgewählt")
+   :"");
+ }
  const leer=fehler||!n;
- ["feedbackSortBar","feedbackExportBar"].forEach(id=>{
+ ["feedbackSortBar","feedbackPickBar","feedbackExportBar"].forEach(id=>{
   const el=$(id);
   if(el)el.hidden=leer;
+ });
+ // Ohne Auswahl gibt es nichts herunterzuladen - der Knopf bleibt gesperrt,
+ // die Zaehlzeile darueber sagt warum.
+ [["feedbackExportXlsx","📊 Als Excel herunterladen"],
+  ["feedbackExportTxt","📄 Als Textdatei herunterladen"]].forEach(([id,text])=>{
+  const el=$(id);
+  if(!el)return;
+  el.disabled=leer||!gewaehlt;
+  el.textContent=gewaehlt?`${text} (${gewaehlt})`:text;
  });
 }
 
@@ -125,7 +161,7 @@ function renderFeedbackKopf(fehler){
 // beide Downloads, damit Excel und Textdatei nie auseinanderlaufen.
 const FEEDBACK_SPALTEN=["Nr.","Datum","Modul","Status","Mitarbeiter","Feedback"];
 function feedbackExportZeilen(){
- return feedbackSortiert().map((f,i)=>[
+ return feedbackAusgewaehlt().map((f,i)=>[
   i+1,
   feedbackDatum(f),
   feedbackText(f.module),
@@ -145,6 +181,32 @@ function feedbackDatenSpeichern(blob,dateiname){
  URL.revokeObjectURL(url);
 }
 
+// Kaestchen: auf "change" hoeren. Ein "click"-Listener wuerde hier zwar
+// auch funktionieren (der Klick aufs Label kommt als Klick auf das
+// Kaestchen an), aber "change" ist das Ereignis, das die Zustandsaenderung
+// wirklich meldet - auch bei Bedienung ueber die Tastatur.
+$("feedbackList").addEventListener("change",e=>{
+ const box=e.target.closest?e.target.closest("[data-feedback-pick]"):null;
+ if(!box)return;
+ const id=Number(box.dataset.feedbackPick);
+ if(box.checked)feedbackAuswahl.add(id);else feedbackAuswahl.delete(id);
+ // Nur Kopfzeile und Zeilenmarkierung auffrischen - die Liste NICHT neu
+ // zeichnen, sonst verliert das gerade angetippte Kaestchen den Zustand.
+ renderFeedbackKopf(false);
+ const zeile=box.closest?box.closest(".settingrow"):null;
+ if(zeile)zeile.classList.toggle("feedback-gewaehlt",box.checked);
+});
+
+$("feedbackPickBar").addEventListener("click",e=>{
+ const btn=e.target.closest("[data-feedback-pickall]");
+ if(!btn)return;
+ const wahl=btn.dataset.feedbackPickall;
+ if(wahl==="1")feedbackAuswahl=new Set(feedbackCache.map(f=>f.id));
+ else if(wahl==="0")feedbackAuswahl=new Set();
+ else if(wahl==="offen")feedbackAuswahl=new Set(feedbackCache.filter(f=>!f.resolved).map(f=>f.id));
+ renderFeedbackRows();
+});
+
 $("feedbackSortBar").addEventListener("click",e=>{
  const btn=e.target.closest("[data-feedback-sort]");
  if(!btn)return;
@@ -155,7 +217,7 @@ $("feedbackSortBar").addEventListener("click",e=>{
 });
 
 $("feedbackExportXlsx").onclick=()=>{
- if(!feedbackCache.length){alert("Kein Feedback zum Herunterladen vorhanden.");return}
+ if(!feedbackAuswahl.size){alert("Bitte mindestens ein Feedback auswählen.");return}
  // xlsx.full.min.js liegt bereits im Kopf von index.html (wird auch fuer
  // den Material-Import gebraucht). Fehlt es einmal, sagen wir das ehrlich,
  // statt eine kaputte Datei zu erzeugen.
@@ -175,14 +237,16 @@ $("feedbackExportXlsx").onclick=()=>{
 };
 
 $("feedbackExportTxt").onclick=()=>{
- if(!feedbackCache.length){alert("Kein Feedback zum Herunterladen vorhanden.");return}
+ if(!feedbackAuswahl.size){alert("Bitte mindestens ein Feedback auswählen.");return}
  const zeilen=feedbackExportZeilen();
- const offen=feedbackCache.filter(f=>!f.resolved).length;
+ const gewaehlt=feedbackAusgewaehlt();
+ const offen=gewaehlt.filter(f=>!f.resolved).length;
  const sortLabel=(FEEDBACK_SORTIERUNGEN[feedbackSort]||FEEDBACK_SORTIERUNGEN.offen).label;
  const kopf=[
   `${companyName} – Feedback`,
   `Stand: ${new Date().toLocaleString("de-CH")}`,
-  `${zeilen.length} Feedback${zeilen.length===1?"":"s"} · ${offen} offen · ${zeilen.length-offen} erledigt`,
+  `${zeilen.length} von ${feedbackCache.length} Feedback${feedbackCache.length===1?"":"s"} ausgewählt`
+   +` · ${offen} offen · ${zeilen.length-offen} erledigt`,
   `Sortierung: ${sortLabel}`,
   "=".repeat(64),
   ""
@@ -217,7 +281,7 @@ $("feedbackList").addEventListener("click",async e=>{
   const neuerStatus=toggle.dataset.resolved!=="1";
   const {error}=await sb.from("feedback").update({resolved:neuerStatus}).eq("id",id);
   if(error){alert("Fehler: "+error.message);return}
-  renderFeedbackList();
+  renderFeedbackList({behalten:true});
   return;
  }
  const del=e.target.closest("[data-feedback-del]");
@@ -225,7 +289,7 @@ $("feedbackList").addEventListener("click",async e=>{
   if(!confirm("Dieses Feedback wirklich löschen?"))return;
   const {error}=await sb.from("feedback").delete().eq("id",Number(del.dataset.feedbackDel));
   if(error){alert("Fehler: "+error.message);return}
-  renderFeedbackList();
+  renderFeedbackList({behalten:true});
  }
 });
 $("saveFeedback").onclick=async()=>{

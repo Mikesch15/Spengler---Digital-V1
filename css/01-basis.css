@@ -195,6 +195,14 @@ label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-wei
 /* Sortier-Chips der Feedback-Liste - gleiche Optik wie die Verlauf-Filter */
 .feedback-sort button{padding:6px 10px;font-size:11px;min-height:34px;background:var(--blue-light);color:var(--blue-dark)}
 .feedback-sort button.active{background:var(--blue);color:#fff}
+/* Auswahl der zu exportierenden Feedbacks: die ganze Kopfzeile ist das
+   Label, damit auf dem Handy nicht das kleine Kaestchen getroffen werden
+   muss. word-break, damit lange Modulnamen umbrechen statt zu ueberlaufen. */
+label.feedback-pick{display:flex;align-items:flex-start;gap:9px;cursor:pointer;
+ min-height:30px;padding:2px 0;margin:0}
+label.feedback-pick input{width:19px;height:19px;min-height:0;flex:0 0 auto;margin:2px 0 0;padding:0;border:0;border-radius:0;accent-color:var(--blue)}
+label.feedback-pick span{flex:1 1 auto;min-width:0;word-break:break-word;text-transform:none;letter-spacing:normal;font-weight:400;font-size:11px;margin:0}
+.settingrow.feedback-gewaehlt{border-left:3px solid var(--blue)}
 .verlauf-filters button.active{background:var(--blue);color:#fff}
 .verlauf-entry{border-bottom:1px solid var(--line);padding:7px 2px}
 .verlauf-entry:last-child{border-bottom:0}

@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.63, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.64, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.63**
+- sichtbare App-Version: **2.64**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -10462,3 +10462,188 @@ in `begin; … rollback;`.
   Erweiterung nach demselben Muster, war aber nicht Teil des Auftrags.
 - Der Export enthält keine `id` und keine `company_id` – bewusst, die
   Datei ist für Menschen gedacht, nicht als Re-Import.
+
+## 72. FEEDBACK VOR DEM EXPORT AUSWÄHLEN — VERSION 2.64
+
+Ergänzt den Export aus v2.63: vor dem Herunterladen lässt sich
+auswählen, welche Feedbacks in die Datei sollen. **Keine
+Schemaänderung, keine Migration, keine RLS-Änderung, keine Fachdatei
+angefasst** – geändert wurden nur `index.html`, `js/02-feedback.js` und
+`css/01-basis.css`.
+
+### 72.1 Bedienung
+
+- Jede Feedback-Zeile hat ein Auswahlkästchen. **Die ganze Kopfzeile
+  (Modul · Mitarbeiter · Datum) ist das Label** – auf dem Handy muss
+  also nicht das kleine Kästchen getroffen werden.
+- Drei Knöpfe über der Liste: **☑ Alle auswählen**, **☐ Keine
+  auswählen**, **Nur offene**.
+- Die Zählzeile nennt die Auswahl mit
+  („14 Feedbacks · 10 offen · 4 erledigt · 3 zum Herunterladen
+  ausgewählt"), die Download-Knöpfe tragen die Anzahl im Text
+  („📊 Als Excel herunterladen (3)").
+- Eine ausgewählte Zeile ist zusätzlich am blauen Balken links
+  erkennbar – also nicht nur am Häkchen.
+
+**Beim Öffnen des Bereichs ist alles ausgewählt.** Der Download
+verhält sich damit genau wie in v2.63, bis der Benutzer eingrenzt –
+niemand muss erst etwas anhaken, um überhaupt exportieren zu können.
+
+### 72.2 Kein Weg in eine Sackgasse
+
+Ist nichts ausgewählt, sind beide Download-Knöpfe **gesperrt** und die
+Zählzeile sagt „nichts ausgewählt". Ein gesperrter Knopf ohne Erklärung
+wäre schlechter als eine Fehlermeldung – deshalb beides zusammen. Wird
+der Knopf trotzdem programmatisch ausgelöst, kommt „Bitte mindestens
+ein Feedback auswählen." statt einer leeren Datei.
+
+### 72.3 Wann die Auswahl erhalten bleibt
+
+Ausgewählt wird über die **IDs** (`Set`), nicht über Positionen:
+
+| Aktion | Auswahl |
+|---|---|
+| Umsortieren (Chip klicken) | bleibt vollständig erhalten |
+| „Als erledigt markieren" | bleibt erhalten (`{behalten:true}`) |
+| Feedback löschen | bleibt erhalten, die gelöschte ID fällt raus |
+| Feedback-Bereich neu öffnen | alles wieder ausgewählt |
+
+`renderFeedbackList()` nimmt dafür ein optionales `{behalten:true}`.
+Der Aufruf aus `js/07-einstellungen.js` (Tab öffnen) bleibt unverändert
+und bedeutet weiterhin „frisch anfangen" – die beiden Aufrufe nach
+erledigt/gelöscht in `js/02` reichen `{behalten:true}` mit. Dadurch
+musste `js/07` nicht angefasst werden.
+
+Beim Anhaken wird die Liste **nicht** neu gezeichnet – nur die
+Kopfzeile und die Zeilenmarkierung. Sonst würde bei jedem Tippen die
+ganze Liste neu aufgebaut und auf dem Handy springen. Im Browser
+geprüft: das Kästchen-Element überlebt den Klick (Merkmal am DOM-Knoten
+gesetzt, danach wiedergefunden).
+
+### 72.4 Downloads
+
+Beide Downloads verwenden `feedbackAusgewaehlt()` = die Auswahl **in
+der gerade gewählten Sortierung**. Die gemeinsame Zeilenfunktion aus
+v2.63 bleibt die einzige Quelle für Excel und Textdatei.
+
+Die Nummerierung läuft in der Datei weiterhin von 1 an (sie ist eine
+Zeilennummer, keine Datenbank-ID). Der Kopf der Textdatei nennt jetzt
+Auswahl und Gesamtzahl: „3 von 14 Feedbacks ausgewählt · 1 offen ·
+2 erledigt".
+
+### 72.5 Dritte Wiederholung derselben CSS-Falle
+
+Nach `.bar{display:flex}` gegen `[hidden]` (Abschnitt 59/71.5) und
+`table{min-width:1000px}` (Abschnitt 60.5) hat hier die globale
+Grundregel
+
+```css
+input,select,textarea{width:100%;min-height:40px;border:…;padding:8px;…}
+```
+
+zugeschlagen: das Auswahlkästchen wurde dadurch **40 px hoch** und trug
+einen zweiten Rahmen – das Häkchen rutschte unter die Kopfzeile. Ebenso
+machte `label{…text-transform:uppercase;font-size:9px}` aus der
+Kopfzeile GROSSBUCHSTABEN.
+
+Beides **gemessen, nicht vermutet** (`getBoundingClientRect` und
+`getComputedStyle` in echtem Chromium: `19x40`, `text-transform:
+uppercase`). Korrektur ist ein gezieltes Zurücksetzen in der eigenen
+Regel (`min-height:0;padding:0;border:0` bzw. `text-transform:none`).
+
+Der Browser-Prüfstand misst das jetzt dauerhaft: Kästchengrösse
+zwischen 16 und 24 px, Kästchen links **neben** der Kopfzeile statt
+darunter, keine Grossbuchstaben. Gegenprobe mit entferntem Zurücksetzen
+schlägt fehl.
+
+**Merksatz für künftige Komponenten:** `css/01-basis.css` setzt in den
+ersten ~35 Zeilen sehr breite Grundregeln (`input`, `label`, `table`,
+`.bar`). Jede neue Komponente, die eines dieser Elemente verwendet,
+muss die betroffenen Eigenschaften ausdrücklich zurücksetzen – und das
+gehört gemessen, nicht angenommen.
+
+### 72.6 Sicherheit – unverändert
+
+Die Auswahl ist eine reine Anzeigefrage: sie entscheidet nur, welche
+der **ohnehin schon geladenen** Zeilen in die Datei kommen. Es wurde
+keine Abfrage geändert, keine Policy, kein Grant. Die Firmengrenze
+erzwingt weiterhin allein die restriktive Policy
+`tenant_boundary_feedback`; der Client filtert nirgends selbst nach
+`company_id`. Der Export kann folglich nur enthalten, was RLS ohnehin
+herausgibt.
+
+### 72.7 Tests
+
+**`feedback63` – 105/105** (vorher 78): neuer Abschnitt „Auswahl vor
+dem Export" – beim Öffnen alles ausgewählt, Kästchen je Zeile,
+Zählzeile und Knopftext nennen die Anzahl, Export enthält nur die
+Auswahl (Excel und Text), Nummerierung läuft trotzdem von 1,
+abgewähltes Feedback fehlt in beiden Dateien, ohne Auswahl sind beide
+Knöpfe gesperrt und es entsteht keine Datei, „Alle"/„Keine"/„Nur
+offene" wirken, Auswahl überlebt das Umsortieren.
+
+**`feedbackbrowser63` – 67/67** (vorher 44): in echtem Chromium mit
+echter SheetJS – Kästchen werden wirklich über das **Label** geklickt,
+die erzeugte `.xlsx` wird in Node wieder eingelesen und enthält
+nachweislich nur die ausgewählten Zeilen; „Nur offene" erzeugt eine
+Datei ohne das erledigte Feedback; gesperrte Knöpfe als echtes
+`disabled` geprüft; Kästchengrösse und -position gemessen (72.5); vier
+Gerätebreiten ohne seitlichen Überlauf; keine JS-Fehler.
+
+**Vier Gegenproben, jede reproduziert einen echten Fehler:**
+- Export ignoriert die Auswahl → `feedback63` 100/105
+- „Nur offene" ohne Wirkung → `feedback63` 104/105
+- Kästchen-Handler zeichnet die Liste neu → `feedbackbrowser63` 63/64
+  („Kästchen wird beim Anhaken nicht ersetzt")
+- CSS-Zurücksetzen entfernt → `feedbackbrowser63` 65/67 (40 px hohes
+  Kästchen, Grossbuchstaben)
+
+**Ehrlich dokumentiert:** eine fünfte Gegenprobe (Kästchen-Handler auf
+`click` statt `change`) blieb grün. Meine ursprüngliche Annahme, ein
+`click`-Listener würde beim Label-Klick doppelt umschalten, war
+**falsch** – der Klick aufs Label kommt als ein einzelnes Ereignis am
+Kästchen an. `change` bleibt trotzdem das richtige Ereignis (es meldet
+die Zustandsänderung auch bei Tastaturbedienung), aber der
+Code-Kommentar behauptet jetzt keinen Fehler mehr, den es nicht gibt.
+
+**Volle Regression grün**: rinne57 379/379, breite57 84/84,
+pdf52 504/504, breite52 52/52, kehle52 698/698,
+kehleintegration52 76/76, medien50 42/42, dateien49 38/38,
+adresse45 39/39, projekte47 37/37, pfade55 37/37, status46 35/35,
+auswahl48 32/32, dateien43 27/27, nav 23/23, stand42 17/17,
+suche45 13/13, recent41 12/12, kopf45 8/8, hidden51 7/7, suche40 7/7,
+treffer40 7/7, ui39 (9 Darstellungsfälle).
+
+`node --check` über alle 28 `js/*.js` und `sw.js` fehlerfrei,
+`<div>` 701/701, keine doppelten Element-IDs.
+
+**Nicht getestet – ausdrücklich**: ein Live-Klicktest gegen Supabase
+war wie immer nicht möglich (Sandbox blockiert HTTPS zu
+`nfgryuzkpwjfmdlmevuy.supabase.co`). Das wird nicht behauptet.
+
+### 72.8 PETER KÜNZI AG
+
+Unverändert: 2 Firmen, 13 Profile, 14 Feedbacks (4 erledigt),
+`companies.updated_at` (`2026-09-01 07:40:15.844647+00`), keine
+Wegwerf-Firma. In dieser Runde wurde **kein einziges Mal** in die
+Datenbank geschrieben – nur gelesen.
+
+### 72.9 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/02-feedback.js` | Auswahl-Zustand, Kästchen je Zeile, drei Auswahl-Knöpfe, Exporte auf die Auswahl beschränkt, Knopfsperre |
+| `index.html` | Auswahl-Leiste, Version 2.64 |
+| `css/01-basis.css` | Kästchen-Zeile inkl. Zurücksetzen der Grundregeln (72.5), Markierung ausgewählter Zeilen |
+| `sw.js` | Cache-Version 2.64 |
+
+### 72.10 Offene Punkte
+
+- Kein Live-Klicktest gegen Supabase möglich (siehe 72.7).
+- Die Auswahl wirkt nur auf den Export, nicht auf die Anzeige – es
+  gibt weiterhin keinen Filter „nur offene anzeigen" (nur den
+  Auswahl-Knopf „Nur offene"). Wäre eine kleine Erweiterung nach
+  demselben Muster, war aber nicht verlangt.
+- Keine Massenaktion auf der Auswahl (etwa „ausgewählte als erledigt
+  markieren" oder „ausgewählte löschen") – bewusst nicht gebaut, der
+  Auftrag betraf ausschliesslich den Export.
