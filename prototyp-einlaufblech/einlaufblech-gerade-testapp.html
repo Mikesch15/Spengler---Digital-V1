@@ -9,7 +9,7 @@
      Erzeugt von prototyp-einlaufblech/bauen.js – nicht von Hand bearbeiten.
      Änderungen gehören in prototyp-einlaufblech/prototyp-eb.js bzw.
      prototyp.css, danach "node prototyp-einlaufblech/bauen.js" laufen lassen.
-     Gebaut am 2026-09-03 18:31 UTC
+     Gebaut am 2026-09-03 18:49 UTC
      =================================================================== -->
 <style>
 /* ---- css/01-basis.css (unverändert aus der laufenden App) ---- */
@@ -612,6 +612,7 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
  <div class="p-kopf-knoepfe">
   <button type="button" class="p-gruen" id="p-speichern">💾 Speichern</button>
   <button type="button" class="p-grau" id="p-neu">＋ Neu</button>
+  <button type="button" class="p-grau" id="p-kopieren">📋 Kopieren</button>
   <button type="button" class="p-grau" id="p-listeAuf">📂 Gespeicherte</button>
   <button type="button" class="p-grau" id="p-einstAuf">⚙️ Einstellungen</button>
  </div>
@@ -2009,6 +2010,18 @@ function verdrahten(){
   if(t.id==="p-neu"){
    if(confirm("Neue Massaufnahme beginnen? Nicht Gespeichertes geht verloren."))
     {aufnahme=leereAufnahme();schritt=1;zeichne()}
+   return;
+  }
+  // Kopieren wie bei der Rinne: die gerade offene Aufnahme wird zu einer
+  // eigenstaendigen Kopie, die danach offen ist. Ungespeichertes laesst sich
+  // nicht kopieren - dann gaebe es kein Original, von dem zu kopieren waere.
+  if(t.id==="p-kopieren"){
+   if(!kopieren(aufnahme.id)){
+    alert("Diese Massaufnahme ist noch nicht gespeichert. Bitte zuerst speichern.");
+    return;
+   }
+   alert("Kopie angelegt: \u201E"+(aufnahme.bezeichnung||"Ohne Bezeichnung")
+     +"\u201C. Sie ist von der ursprünglichen Aufnahme unabhängig.");
    return;
   }
   if(t.id==="p-listeAuf"){listeOffen=!listeOffen;zeichne();return}

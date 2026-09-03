@@ -290,16 +290,19 @@ const text=page=>page.evaluate(()=>document.getElementById("p-inhalt").innerText
   speichern();
   const original=alleAufnahmen().find(x=>x.id===id);
   const k=alleAufnahmen().find(x=>x.id===neueId);
-  return {neueId,gleicheId:neueId===id,
-          originalMassA:original.massA, originalErstesStueck:original.stuecke[0].laenge,
-          kopieMassA:k.massA, kopieErstesStueck:k.stuecke[0].laenge,
-          bezeichnung:k.bezeichnung, anzahl:alleAufnahmen().length};
+  // Fehlt eines von beiden, sind Original und Kopie nicht getrennt. Das ist
+  // der Fehlschlag selbst und darf den Pruefstand nicht abbrechen lassen.
+  return {neueId,gleicheId:neueId===id,getrennt:!!original&&!!k,
+          originalMassA:original?original.massA:null,
+          originalErstesStueck:original?original.stuecke[0].laenge:null,
+          kopieMassA:k?k.massA:null, kopieErstesStueck:k?k.stuecke[0].laenge:null,
+          bezeichnung:k?k.bezeichnung:"", anzahl:alleAufnahmen().length};
  },gespeichert.id);
  p(!kopie.gleicheId,"die Kopie hat eine eigene Kennung",kopie);
  p(/Kopie/.test(kopie.bezeichnung),"die Bezeichnung ist als Kopie erkennbar",kopie);
- p(kopie.originalMassA===140,"das Original bleibt bei Mass A 140",kopie);
- p(kopie.originalErstesStueck!==111,"das erste Stück des Originals ist unverändert",kopie);
- p(kopie.kopieMassA===999,"die Kopie trägt den neuen Wert",kopie);
+ p(kopie.getrennt&&kopie.originalMassA===140,"das Original bleibt bei Mass A 140",kopie);
+ p(kopie.getrennt&&kopie.originalErstesStueck!==111,"das erste Stück des Originals ist unverändert",kopie);
+ p(kopie.getrennt&&kopie.kopieMassA===999,"die Kopie trägt den neuen Wert",kopie);
  p(kopie.anzahl===2,"beide Aufnahmen liegen gespeichert vor",kopie);
 
  // ---- TEST 9 · Ausmass ----------------------------------------------------
@@ -754,6 +757,89 @@ const text=page=>page.evaluate(()=>document.getElementById("p-inhalt").innerText
  });
  p(rinneOhne.knoepfe===0,"ohne gespeicherte Rinne kein Knopf",rinneOhne.knoepfe);
  p(/keine Rinne-Halbrund-Massaufnahme/i.test(rinneOhne.text),"und das wird gesagt");
+
+ console.log("\n20 · Kopieren über die Knöpfe – wie bei der Rinne");
+ // Ausgangslage: eine vollstaendig ausgefuellte, gespeicherte Aufnahme.
+ await page.evaluate(()=>{
+  try{localStorage.clear()}catch(e){}
+  aufnahme=leereAufnahme();
+  aufnahme.bezeichnung="Halle Nord";
+  aufnahme.abwicklung=333; aufnahme.massA=120; aufnahme.winkel=25;
+  aufnahme.montage="links"; aufnahme.material="titanzink";
+  aufnahme.stuecke=[{laenge:2070,stossStoss:2000,gehrungLinks:false,gehrungRechts:false,winkel:0},
+                    {laenge:1450,stossStoss:1450,gehrungLinks:false,gehrungRechts:false,winkel:0}];
+  aufnahme.gava={aktiv:true,abstand_mm:500,anzahl:null};
+  zeichne();
+ });
+ p(await page.evaluate(()=>!!document.getElementById("p-kopieren")),
+   "Kopieren-Knopf in der Kopfleiste vorhanden");
+
+ // Ungespeichert laesst sich nichts kopieren - es gaebe kein Original.
+ // Ueber evaluate mit Pruefung statt page.click: ein fehlender Knopf soll
+ // einen sauberen Fehlschlag geben, nicht den Pruefstand abbrechen.
+ const ohneSpeicher=await page.evaluate(()=>{
+  const k=document.getElementById("p-kopieren");
+  if(k)k.click();
+  return {da:!!k,anzahl:alleAufnahmen().length,id:aufnahme.id};
+ });
+ await page.waitForTimeout(150);
+ p(ohneSpeicher.da&&ohneSpeicher.anzahl===0,"ungespeichert wird nichts kopiert",ohneSpeicher);
+
+ const kop=await page.evaluate(()=>{
+  document.getElementById("p-speichern").click();
+  const vorId=aufnahme.id, vorAnzahl=alleAufnahmen().length;
+  const k=document.getElementById("p-kopieren");
+  if(k)k.click();
+  return {vorId,vorAnzahl,anzahl:alleAufnahmen().length,
+          id:aufnahme.id,name:aufnahme.bezeichnung,schritt,
+          abw:aufnahme.abwicklung,massA:aufnahme.massA,
+          stuecke:aufnahme.stuecke.map(x=>x.laenge).join(),
+          gava:JSON.stringify(aufnahme.gava),
+          originalDa:alleAufnahmen().some(x=>x.id===vorId)};
+ });
+ await page.waitForTimeout(200);
+ p(kop.vorAnzahl===1&&kop.anzahl===2,"Kopieren legt einen zweiten Eintrag an",kop);
+ p(kop.id!==kop.vorId,"die Kopie hat eine eigene Kennung",[kop.vorId,kop.id]);
+ p(/\(Kopie\)$/.test(kop.name),"und heisst \u201E… (Kopie)\u201C",kop.name);
+ p(kop.originalDa,"das Original bleibt in der Liste");
+ p(kop.abw===333&&kop.massA===120&&kop.stuecke==="2070,1450"&&/"aktiv":true/.test(kop.gava),
+   "alle Fachdaten sind mitkopiert",kop);
+ p(kop.schritt===1,"die Kopie beginnt auf Register 1",kop.schritt);
+
+ // Der eigentliche Punkt: die Kopie ist unabhaengig.
+ const unab=await page.evaluate(()=>{
+  const kopieId=aufnahme.id;
+  aufnahme.abwicklung=999;
+  aufnahme.stuecke=[{laenge:800,stossStoss:800,gehrungLinks:false,gehrungRechts:false,winkel:0}];
+  document.getElementById("p-speichern").click();
+  const liste=alleAufnahmen();
+  const orig=liste.find(x=>x.id!==kopieId);
+  const kopie=liste.find(x=>x.id===kopieId);
+  // Fehlt eines von beiden, sind Kopie und Original nicht getrennt - das ist
+  // der Fehlschlag selbst und darf den Pruefstand nicht abbrechen lassen.
+  return {getrennt:!!orig&&!!kopie,
+          origAbw:orig?orig.abwicklung:null,
+          origStuecke:orig?orig.stuecke.map(x=>x.laenge).join():null,
+          kopieAbw:kopie?kopie.abwicklung:null,
+          kopieStuecke:kopie?kopie.stuecke.map(x=>x.laenge).join():null};
+ });
+ await page.waitForTimeout(150);
+ p(unab.getrennt&&unab.origAbw===333&&unab.origStuecke==="2070,1450",
+   "eine Änderung an der Kopie lässt das Original unberührt",unab);
+ p(unab.getrennt&&unab.kopieAbw===999&&unab.kopieStuecke==="800","und wirkt in der Kopie",unab);
+
+ // Derselbe Weg aus der Liste heraus.
+ const ausListe=await page.evaluate(()=>{
+  listeOffen=false;
+  document.getElementById("p-listeAuf").click();
+  const knopf=document.querySelector("#p-listeBox [data-kopieren]");
+  const vor=alleAufnahmen().length;
+  if(knopf)knopf.click();
+  return {knopf:!!knopf,vor,nach:alleAufnahmen().length,id:aufnahme.id};
+ });
+ await page.waitForTimeout(200);
+ p(ausListe.knopf,"in der Liste steht je Eintrag ein Kopieren-Knopf");
+ p(ausListe.nach===ausListe.vor+1,"auch dieser Weg legt eine Kopie an",ausListe);
 
  console.log("\n12 · Keine JS-Fehler");
  p(fehler.length===0,"keine Seitenfehler",fehler.slice(0,3));

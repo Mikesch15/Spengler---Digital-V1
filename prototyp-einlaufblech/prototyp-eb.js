@@ -1063,6 +1063,18 @@ function verdrahten(){
     {aufnahme=leereAufnahme();schritt=1;zeichne()}
    return;
   }
+  // Kopieren wie bei der Rinne: die gerade offene Aufnahme wird zu einer
+  // eigenstaendigen Kopie, die danach offen ist. Ungespeichertes laesst sich
+  // nicht kopieren - dann gaebe es kein Original, von dem zu kopieren waere.
+  if(t.id==="p-kopieren"){
+   if(!kopieren(aufnahme.id)){
+    alert("Diese Massaufnahme ist noch nicht gespeichert. Bitte zuerst speichern.");
+    return;
+   }
+   alert("Kopie angelegt: \u201E"+(aufnahme.bezeichnung||"Ohne Bezeichnung")
+     +"\u201C. Sie ist von der ursprünglichen Aufnahme unabhängig.");
+   return;
+  }
   if(t.id==="p-listeAuf"){listeOffen=!listeOffen;zeichne();return}
   if(t.id==="p-einstAuf"){einstellungenOffen=!einstellungenOffen;zeichne();return}
   if(t.id==="p-einstZurueck"){
