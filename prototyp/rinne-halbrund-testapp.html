@@ -9,7 +9,7 @@
      Erzeugt von prototyp/bauen.js – nicht von Hand bearbeiten.
      Änderungen gehören in prototyp/prototyp-rinne.js bzw. prototyp.css,
      danach "node prototyp/bauen.js" laufen lassen.
-     Gebaut am 2026-09-03 10:16 UTC
+     Gebaut am 2026-09-03 10:45 UTC
      =================================================================== -->
 <style>
 /* ---- css/01-basis.css (unverändert aus der laufenden App) ---- */
@@ -626,7 +626,8 @@ body{background:#eef2f5;margin:0;padding:0 0 90px}
 
  /* Verlauf: Fixpunkt und Nicht-Fixpunkt müssen auch schwarz/weiss
     unterscheidbar sein – deshalb Text UND Auszeichnung, nie Farbe allein. */
- .pd-verlauf td.pos{white-space:nowrap;width:1%;text-align:right;color:#6b757c}
+ .pd-verlauf th.mass,.pd-verlauf td.mass{white-space:nowrap;width:1%;
+  text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
  .pd-verlauf td.kz{white-space:nowrap;width:1%;font-size:7pt;font-weight:800;
   letter-spacing:.06em;text-transform:uppercase}
  .pd-verlauf tr.fix td{font-weight:800}
@@ -1239,22 +1240,32 @@ $("rinne_abwicklung").addEventListener("change",renderRinneResult);
 // Weiterentwicklung des bestehenden Moduls, NICHT eine Parallel-Lösung.
 // Die gesamte Fachrechnung kommt unverändert aus js/12-rinne-halbrund.js
 // (siehe bruecke.js). Neu ist alles, was der Auftrag zusätzlich verlangt:
-// Grunddaten, Verlauf mit Ecken, Einhänge- und Schiebestutzen, Halter,
-// Endstücke, Dehnung, Sonderteile, Fotos, Skizze, Plausibilität,
-// Zusammenfassung, Ausmass, Material, Kopieren, lokales Speichern und ein
-// Ablauf in sechs Schritten.
+// Grunddaten, Verlauf mit Ecken sowie Einhänge- und Schiebestutzen (alle
+// drei werden gleich eingefügt und ab dem Abschnitt davor vermasst), Halter,
+// Rinnenboden, Dehnung, Fotos, Skizze, Plausibilität, Zusammenfassung,
+// Ausmass, Material, PDF, Kopieren, lokales Speichern und ein Ablauf in
+// sechs Schritten.
 // ===========================================================================
 
 // ---- 1. Grunddaten -------------------------------------------------------
 // Genau fünf Rinnengrössen, nichts Freies (Auftrag Änderung 1 und 2).
 const RG_GROESSEN=[
- {wert:"200",  text:"200 mm"},
- {wert:"250",  text:"250 mm"},
- {wert:"330",  text:"330 mm"},
- {wert:"400",  text:"400 mm"},
- {wert:"ohne", text:"ohne RG"}
+ {wert:"200", text:"200 mm"},
+ {wert:"250", text:"250 mm"},
+ {wert:"330", text:"330 mm"},
+ {wert:"400", text:"400 mm"}
 ];
-const STUTZEN_DURCHMESSER=["Ø 80","Ø 100","Ø 120","Ø 125","Ø 150"];
+// Ablaufrohr-Durchmesser
+const STUTZEN_DURCHMESSER=["Ø 60","Ø 75","Ø 100","Ø 120"];
+// Was an einem Übergang zwischen zwei Abschnitten sitzen kann. Der Stutzen
+// wird genau wie der Winkel eingefügt – deshalb eine einzige Auswahl.
+const UEBERGAENGE=[
+ {wert:"gerade",   text:"gerade weiter (nichts)"},
+ {wert:"aussen",   text:"Aussenwinkel"},
+ {wert:"innen",    text:"Innenwinkel"},
+ {wert:"einhaenge",text:"Einhängestutzen"},
+ {wert:"schiebe",  text:"Schiebestutzen"}
+];
 const FALLROHR_STATUS=["bestehend","neu","unbekannt"];
 
 // Fitting-IDs aus dem bestehenden Katalog (rinne_fitting_types).
@@ -1286,40 +1297,78 @@ function leereAufnahme(){
   material:3,                 // Kupfer
   groesse:"330",
   gesamtlaengeManuell_mm:null,
-  // Verlauf: exakt die Struktur des bestehenden Moduls
-  segmente:[{laenge:0,linksTyp:"",rechtsTyp:"",winkel:0}],
-  einhaengestutzen:[],        // Fixpunkt für die Dilatationsberechnung
-  schiebestutzen:[],          // kein Fixpunkt, gilt als Dehnungselement
+  // Verlauf: die Struktur des bestehenden Moduls, ergänzt um "stutzen".
+  // Winkel UND Stutzen sitzen am Ende ihres Abschnitts – der Stutzen wird
+  // also genau wie eine Ecke in den Verlauf eingefügt und ist damit
+  // automatisch ab dem letzten Rinnenabschnitt vermasst, nicht ab START.
+  segmente:[{laenge:0,linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null}],
   halter:{anzahl:null,abstand_mm:500,typ:""},
-  endstuecke:{links:true,rechts:true},
+  rinnenboden:{links:true,rechts:true},
   dehnung:{art:"keine",anzahl:0},
-  sonderteile:[],
   fotos:[],
   skizze:null,
   bemerkung:""
  };
 }
 
-// Ältere im Browser gespeicherte Aufnahmen behutsam übernehmen: früher gab
-// es "ablaeufe", freie Rinnengrössen und Verbinder. Nichts wird verworfen,
-// was noch eine Entsprechung hat.
+// Ältere im Browser gespeicherte Aufnahmen behutsam übernehmen. Es gab
+// nacheinander: "ablaeufe", freie Rinnengrössen, "Verbinder", "ohne RG",
+// Sonderteile, "endstuecke" und Stutzen als eigene Listen mit einer
+// Position ab START. Nichts wird verworfen, was noch eine Entsprechung hat –
+// die alten Stutzen werden an die passende Stelle im Verlauf gehängt und
+// notfalls wird der Abschnitt dafür geteilt.
 const RG_ALT={"RG 200":"200","RG 250":"250","RG 280":"250","RG 333":"330",
-              "RG 400":"400","RG 500":"400","andere":"ohne"};
+              "RG 400":"400","RG 500":"400","andere":"330","ohne":"330"};
+const D_ALT={"Ø 80":"Ø 75","Ø 125":"Ø 120","Ø 150":"Ø 120"};
+function stutzenInVerlauf(a,liste,art){
+ (liste||[]).forEach(st=>{
+  const ziel=Math.round(zahl(st.pos_mm));
+  const neu={art,durchmesser:D_ALT[st.durchmesser]||st.durchmesser||STUTZEN_DURCHMESSER[2],
+             anzahl:Math.max(1,Math.round(zahl(st.anzahl)||1)),
+             fallrohr:st.fallrohr||FALLROHR_STATUS[0],bemerkung:st.bemerkung||""};
+  let pos=0;
+  for(let i=0;i<a.segmente.length;i++){
+   const ende=pos+zahl(a.segmente[i].laenge);
+   if(ziel>pos&&ziel<ende){          // mitten im Abschnitt: dafür teilen
+    const rest=ende-ziel;
+    a.segmente[i].laenge=ziel-pos;
+    const alterStutzen=a.segmente[i].stutzen, alterWinkel=zahl(a.segmente[i].winkel);
+    a.segmente[i].stutzen=neu; a.segmente[i].winkel=0;
+    a.segmente.splice(i+1,0,{laenge:rest,linksTyp:"",rechtsTyp:"",
+                             winkel:alterWinkel,stutzen:alterStutzen});
+    return;
+   }
+   if(ziel===ende&&i<a.segmente.length-1&&!a.segmente[i].stutzen){
+    a.segmente[i].stutzen=neu; return;
+   }
+   pos=ende;
+  }
+  // Ganz am Anfang oder am Ende: dort gibt es keinen Übergang. Der Stutzen
+  // wird an den nächstgelegenen Übergang gehängt, statt ihn zu verlieren.
+  const idx=ziel<=0?0:a.segmente.length-2;
+  if(idx>=0&&a.segmente[idx]&&!a.segmente[idx].stutzen)a.segmente[idx].stutzen=neu;
+ });
+}
 function aufnahmeUmstellen(a){
  if(!a||typeof a!=="object")return a;
- // leereAufnahme() legt einhaengestutzen bereits als leeres Array an – die
- // Übernahme darf deshalb nicht daran hängen, dass das Feld fehlt.
+ if(!Array.isArray(a.segmente)||!a.segmente.length)
+  a.segmente=[{laenge:0,linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null}];
+ a.segmente.forEach(seg=>{if(seg.stutzen===undefined)seg.stutzen=null});
+ // "ablaeufe" (ganz alt) -> Einhängestutzen
  if(Array.isArray(a.ablaeufe)&&a.ablaeufe.length
     &&(!Array.isArray(a.einhaengestutzen)||!a.einhaengestutzen.length))
   a.einhaengestutzen=a.ablaeufe.map(x=>({pos_mm:x.pos_mm,durchmesser:x.durchmesser,
    anzahl:1,fallrohr:x.fallrohr,bemerkung:x.bemerkung||""}));
- delete a.ablaeufe;
- delete a.verbinder;
- delete a.groesseFrei;
- if(!Array.isArray(a.einhaengestutzen))a.einhaengestutzen=[];
- if(!Array.isArray(a.schiebestutzen))a.schiebestutzen=[];
+ stutzenInVerlauf(a,a.einhaengestutzen,"einhaenge");
+ stutzenInVerlauf(a,a.schiebestutzen,"schiebe");
+ // Nicht auf "rinnenboden fehlt" pruefen: aufnahmeLaden() legt es ueber
+ // leereAufnahme() schon an, die Uebernahme liefe sonst ins Leere.
+ if(a.endstuecke)a.rinnenboden={links:!!a.endstuecke.links,rechts:!!a.endstuecke.rechts};
+ if(!a.rinnenboden)a.rinnenboden={links:true,rechts:true};
+ ["ablaeufe","einhaengestutzen","schiebestutzen","verbinder","groesseFrei",
+  "sonderteile","endstuecke"].forEach(f=>{delete a[f]});
  if(RG_ALT[a.groesse])a.groesse=RG_ALT[a.groesse];
- if(!RG_GROESSEN.some(g=>g.wert===a.groesse))a.groesse="ohne";
+ if(!RG_GROESSEN.some(g=>g.wert===a.groesse))a.groesse="330";
  return a;
 }
 
@@ -1392,17 +1441,50 @@ function gesamtlaengeBerechnet(a){
 // bestehenden Modul am Abschnitt und meint die Richtungsänderung danach.
 // Vorzeichen wie im Katalog: negativ = Aussenwinkel, positiv = Innenwinkel.
 function eckenAusVerlauf(a){
- const ecken=[];
+ return verlaufElemente(a).filter(e=>e.art==="ecke")
+  .map(e=>({nachAbschnitt:e.index,pos_mm:e.pos,winkel:e.winkel,art:e.ecke}));
+}
+
+// Was sitzt an einem Übergang? Winkel und Stutzen schliessen sich in der
+// Bedienung aus – eine einzige Auswahl je Übergang, genau wie beim Winkel.
+function uebergangArt(seg){
+ if(!seg)return "gerade";
+ if(seg.stutzen&&seg.stutzen.art)return seg.stutzen.art;
+ const w=zahl(seg.winkel);
+ return w===0?"gerade":(w<0?"aussen":"innen");
+}
+
+// Der Verlauf als Liste, von START bis ENDE. "abVorher" ist die Länge des
+// Abschnitts unmittelbar davor – so ist jedes Element ab dem letzten
+// Rinnenabschnitt vermasst und nicht ab START. "pos" wird nur intern für
+// die Zeichnung und die Fachrechnung gebraucht.
+function verlaufElemente(a){
+ const segs=a.segmente||[];
+ const liste=[];
  let pos=0;
- (a.segmente||[]).forEach((seg,i)=>{
-  pos+=zahl(seg.laenge);
-  const w=zahl(seg.winkel);
-  if(w!==0&&i<a.segmente.length-1){
-   ecken.push({nachAbschnitt:i,pos_mm:pos,winkel:Math.abs(w),
-               art:w<0?"aussen":"innen"});
+ segs.forEach((seg,i)=>{
+  const laenge=zahl(seg.laenge);
+  liste.push({art:"abschnitt",nr:i+1,index:i,laenge,von:pos,pos:pos+laenge});
+  pos+=laenge;
+  if(i>=segs.length-1)return;                 // am Ende gibt es keinen Übergang
+  const art=uebergangArt(seg);
+  if(art==="gerade")return;
+  if(art==="aussen"||art==="innen"){
+   liste.push({art:"ecke",index:i,pos,abVorher:laenge,
+               winkel:Math.abs(zahl(seg.winkel))||90,ecke:art});
+  }else{
+   const st=seg.stutzen||{};
+   liste.push({art,index:i,pos,abVorher:laenge,
+               durchmesser:st.durchmesser||STUTZEN_DURCHMESSER[2],
+               anzahl:Math.round(zahl(st.anzahl)),   // roh, siehe pruefungen()
+               fallrohr:st.fallrohr||"",bemerkung:st.bemerkung||""});
   }
  });
- return ecken;
+ return liste;
+}
+function stutzenListe(a,art){
+ return verlaufElemente(a).filter(e=>e.art==="einhaenge"||e.art==="schiebe")
+  .filter(e=>!art||e.art===art);
 }
 
 // Vorschlag für die Halteranzahl (Auftrag 9). Der Benutzer darf ihn
@@ -1419,90 +1501,64 @@ function halterAnzahl(a){
   :(halterVorschlag(a)||0);
 }
 
-// ---- Einhängestutzen als Fixpunkt (Auftrag Änderung 3) -------------------
-// Das bestehende Modul kennt Fixpunkte ausschliesslich als Anschlusstyp an
-// einer Segmentgrenze – computeRinneBoundaries() liest linksTyp/rechtsTyp.
-// Ein Stutzen mitten in einem Abschnitt lässt sich so nicht ausdrücken.
+// ---- Übergänge in die Struktur des bestehenden Moduls spiegeln ----------
+// Das bestehende Modul kennt Fixpunkte und Schiebestutzen ausschliesslich als
+// Anschlusstyp an einer Segmentgrenze – computeRinneBoundaries() liest
+// linksTyp/rechtsTyp. Genau dort sitzen im Prototyp jetzt auch die Stutzen,
+// weil sie wie ein Winkel in den Verlauf eingefügt werden. Es braucht deshalb
+// keine Aufteilung von Abschnitten mehr: der Übergang IST die Segmentgrenze.
 //
-// Statt eine zweite Fixpunktlogik zu bauen, erzeugt der Prototyp eine
-// abgeleitete Segmentliste NUR FÜR DIE RECHNUNG: jeder Abschnitt wird an
-// der Stutzenposition geteilt und bekommt dort beidseitig den bestehenden
-// Katalogeintrag "Ablaufstutzen" (id 4, is_fixpunkt = true, mass_mm = 0).
-// Damit greift die vorhandene Fixpunktregel unverändert, ohne dass sich am
-// Verlauf des Benutzers etwas ändert und ohne dass sich die Gesamtlänge
-// verschiebt (das Zuschlagsmass dieses Anschlusstyps ist 0 mm).
+//   Aussen-/Innenwinkel -> Anschlusstyp 2 / 3  (Fixpunkt)
+//   Einhängestutzen     -> Anschlusstyp 4      (Fixpunkt, strenger Abstand)
+//   Schiebestutzen      -> Anschlusstyp 7      (kein Fixpunkt, gilt als
+//                                               Dehnungselement)
 //
-// Der Schiebestutzen wird hier bewusst NIE eingesetzt (Auftrag Änderung 4).
-// Dadurch kann er die Dilatationsberechnung strukturell nicht beeinflussen –
-// das hängt nicht an Sorgfalt, sondern daran, dass er in dieser Funktion
-// überhaupt nicht vorkommt.
-function istFixpunktTyp(typId){
- const f=rinneFittingTypes.find(x=>x.id===Number(typId));
- return !!(f&&f.is_fixpunkt);
-}
-function segmenteFuerRechnung(a){
- const segs=(a.segmente||[]).map(s=>({laenge:zahl(s.laenge),
-   linksTyp:s.linksTyp||"",rechtsTyp:s.rechtsTyp||"",winkel:zahl(s.winkel)}));
- if(!segs.length)return segs;
- const L=gesamtlaengeBerechnet(a);
-
- // Beide Stutzenarten setzen einen Grenzpunkt – aber einen unterschiedlichen:
- //   Einhängestutzen -> Anschlusstyp 4 (Fixpunkt, strenger Abstand)
- //   Schiebestutzen  -> Anschlusstyp 7 (kein Fixpunkt, gilt als Dehnungselement)
- const stellen=[];
- const sammle=(liste,typId)=>{
-  (liste||[]).forEach(st=>{
-   const pos=Math.round(zahl(st.pos_mm));
-   if(pos<0||pos>L)return;
-   if(!stellen.some(x=>x.pos===pos))stellen.push({pos,typId});
-  });
- };
- // Der Fixpunkt hat Vorrang: liegen beide Arten auf derselben Stelle, gilt
- // die strengere Regel.
- sammle(a.einhaengestutzen,EINHAENGE_FITTING_ID);
- sammle(a.schiebestutzen,SCHIEBE_FITTING_ID);
- if(!stellen.length)return segs;
- stellen.sort((x,y)=>x.pos-y.pos);
- const typAn=pos=>{const t=stellen.find(x=>x.pos===pos);return t?t.typId:null};
- const hatGrenze=typId=>{
-  const f=rinneFittingTypes.find(x=>x.id===Number(typId));
-  return !!(f&&(f.is_fixpunkt||f.is_schiebestutzen));
- };
-
- // Stutzen genau am Anfang oder am Ende: dort gibt es bereits eine Grenze,
- // sie braucht nur den Anschlusstyp – sofern dort nicht ohnehin schon einer
- // sitzt (eine Ecke zum Beispiel).
- const amAnfang=typAn(0);
- if(amAnfang!==null&&!hatGrenze(segs[0].linksTyp))segs[0].linksTyp=amAnfang;
- const letzte=segs[segs.length-1];
- const amEnde=typAn(L);
- if(amEnde!==null&&L>0&&!hatGrenze(letzte.rechtsTyp))letzte.rechtsTyp=amEnde;
-
- const raus=[];
- let start=0;
- segs.forEach(seg=>{
-  const ende=start+seg.laenge;
-  const innen=stellen.filter(x=>x.pos>start&&x.pos<ende);
-  // Stutzen genau auf einer Segmentgrenze: nur den Anschlusstyp setzen,
-  // nicht teilen – die Grenze existiert bereits.
-  const aufEnde=typAn(ende);
-  if(aufEnde!==null&&ende<L&&!hatGrenze(seg.rechtsTyp))seg.rechtsTyp=aufEnde;
-  const aufStart=typAn(start);
-  if(aufStart!==null&&start>0&&!hatGrenze(seg.linksTyp))seg.linksTyp=aufStart;
-  if(!innen.length){raus.push(seg);start=ende;return}
-  let cur=start,linksTyp=seg.linksTyp;
-  innen.forEach(x=>{
-   raus.push({laenge:x.pos-cur,linksTyp,rechtsTyp:x.typId,winkel:0});
-   linksTyp=x.typId; cur=x.pos;
-  });
-  raus.push({laenge:ende-cur,linksTyp,rechtsTyp:seg.rechtsTyp,winkel:seg.winkel});
-  start=ende;
+// Damit greift die vorhandene Fachlogik unverändert – es gibt keine zweite
+// Fixpunkt- oder Dila-Regel im Prototyp.
+const UEBERGANG_FITTING={aussen:ECKE_AUSSEN_ID,innen:ECKE_INNEN_ID,
+                         einhaenge:EINHAENGE_FITTING_ID,schiebe:SCHIEBE_FITTING_ID};
+function synchronisiereUebergaenge(a){
+ const segs=a.segmente||[];
+ segs.forEach((seg,i)=>{
+  if(seg.stutzen===undefined)seg.stutzen=null;
+  if(i>=segs.length-1)return;
+  const art=uebergangArt(seg);
+  const id=UEBERGANG_FITTING[art]||null;
+  const naechste=segs[i+1];
+  if(id===null){                 // gerade weiter: alte Anschlusstypen weg
+   if(bekannterUebergangsTyp(seg.rechtsTyp))seg.rechtsTyp="";
+   if(bekannterUebergangsTyp(naechste.linksTyp))naechste.linksTyp="";
+  }else{
+   seg.rechtsTyp=id; naechste.linksTyp=id;
+  }
  });
- return raus;
+ // Am allerersten und allerletzten Ende darf kein Übergang stehen bleiben.
+ if(segs.length){
+  const letzte=segs[segs.length-1];
+  if(bekannterUebergangsTyp(letzte.rechtsTyp))letzte.rechtsTyp="";
+  letzte.winkel=0; letzte.stutzen=null;
+  if(bekannterUebergangsTyp(segs[0].linksTyp))segs[0].linksTyp="";
+ }
+ return a;
+}
+function bekannterUebergangsTyp(typId){
+ const n=Number(typId);
+ return Object.keys(UEBERGANG_FITTING).some(k=>UEBERGANG_FITTING[k]===n);
 }
 
-// Dilas: unverändert die Rechnung des bestehenden Moduls, gefüttert mit der
-// abgeleiteten Segmentliste von oben.
+// Die Segmentliste für die Fachrechnung. Seit die Stutzen im Verlauf sitzen,
+// ist das eine reine Kopie mit gespiegelten Anschlusstypen – nichts wird
+// mehr geteilt oder umgerechnet.
+function segmenteFuerRechnung(a){
+ const kopie={segmente:(a.segmente||[]).map(x=>({laenge:zahl(x.laenge),
+   linksTyp:x.linksTyp||"",rechtsTyp:x.rechtsTyp||"",winkel:zahl(x.winkel),
+   stutzen:x.stutzen||null}))};
+ synchronisiereUebergaenge(kopie);
+ return kopie.segmente.map(x=>({laenge:x.laenge,linksTyp:x.linksTyp,
+   rechtsTyp:x.rechtsTyp,winkel:x.winkel}));
+}
+
+// Dilas: unverändert die Rechnung des bestehenden Moduls.
 function dilasBerechnet(a){
  const segs=segmenteFuerRechnung(a);
  if(!segs.length)return {dilas:[],tabelle:rinneMaterialTabelle(a.material),boundaries:[],segmente:segs};
@@ -1534,25 +1590,20 @@ function pruefungen(a){
         +`Differenz ${diff>0?"+":""}${mm(diff)} mm.`});
   }
  }
- // Stutzenpositionen beziehen sich immer auf den definierten START
- // (Auftrag Änderung 7 und 8).
- [["Einhängestutzen",a.einhaengestutzen],["Schiebestutzen",a.schiebestutzen]].forEach(([name,liste])=>{
-  (liste||[]).forEach((st,i)=>{
-   const pos=zahl(st.pos_mm);
-   if(pos<0)meldungen.push({art:"fehler",text:`${name} ${i+1} hat eine negative Position (${mm(pos)} mm ab START).`});
-   else if(L>0&&pos>L)meldungen.push({art:"fehler",text:`${name} ${i+1} liegt ausserhalb der aufgenommenen Rinne (${mm(pos)} mm von ${mm(L)} mm).`});
-   if(zahl(st.anzahl)<1)meldungen.push({art:"fehler",text:`${name} ${i+1} hat keine gültige Anzahl.`});
-  });
+ // Eine Stutzenposition kann nicht mehr ausserhalb der Rinne liegen und
+ // auch nicht negativ sein: der Stutzen sitzt an einem Übergang zwischen
+ // zwei Abschnitten. Der Fall ist strukturell ausgeschlossen, nicht nur
+ // geprüft. Zu prüfen bleibt die Anzahl.
+ verlaufElemente(a).filter(e=>e.art==="einhaenge"||e.art==="schiebe").forEach((e,i)=>{
+  const name=e.art==="einhaenge"?"Einhängestutzen":"Schiebestutzen";
+  if(zahl(e.anzahl)<1)meldungen.push({art:"fehler",
+   text:`${name} ${i+1} hat keine gültige Anzahl.`});
  });
  if(zahl(a.halter.abstand_mm)<0)meldungen.push({art:"fehler",text:"Der Halterabstand darf nicht negativ sein."});
  if(a.halter.anzahl!==null&&a.halter.anzahl!==""&&zahl(a.halter.anzahl)<0)
   meldungen.push({art:"fehler",text:"Die Halteranzahl darf nicht negativ sein."});
  if(a.dehnung.art==="dehnungsstueck"&&zahl(a.dehnung.anzahl)<0)
   meldungen.push({art:"fehler",text:"Die Anzahl Dehnungsstücke darf nicht negativ sein."});
- (a.sonderteile||[]).forEach((s,i)=>{
-  if(zahl(s.anzahl)<0)meldungen.push({art:"fehler",text:`Sonderteil ${i+1} hat eine negative Anzahl.`});
-  if(!String(s.bezeichnung||"").trim())meldungen.push({art:"warnung",text:`Sonderteil ${i+1} hat keine Bezeichnung.`});
- });
  return meldungen;
 }
 function hatFehler(a){return pruefungen(a).some(m=>m.art==="fehler")}
@@ -1562,8 +1613,7 @@ function hatFehler(a){return pruefungen(a).some(m=>m.art==="fehler")}
 // alle aus derselben Liste. Nichts wird doppelt gerechnet oder von Hand
 // nachgetragen.
 function komponenten(a){
- // gz ist der Grössenzusatz. Bei "ohne RG" bleibt er leer, damit im Ausmass
- // nicht "Rinnenhalter ohne RG" steht.
+ // gz ist der Grössenzusatz, z. B. " 330 mm".
  const gz=groesseZusatz(a);
  const L=gesamtlaengeBerechnet(a);
  const ecken=eckenAusVerlauf(a);
@@ -1580,30 +1630,29 @@ function komponenten(a){
  // Stutzen nach Durchmesser gruppieren. Beide Arten erscheinen im Ausmass –
  // dass nur der Einhängestutzen ein Fixpunkt ist, betrifft ausschliesslich
  // die Dilatationsberechnung, nicht die Stückzahl.
- const gruppiere=(liste2,bez,quelle,schl)=>{
+ const gruppiere=(art,bez,quelle,schl)=>{
   const nachD={};
-  (liste2||[]).forEach(st=>{
-   const d=st.durchmesser||"Ø ?";
-   nachD[d]=(nachD[d]||0)+Math.max(1,Math.round(zahl(st.anzahl)||1));
+  stutzenListe(a,art).forEach(e=>{
+   const d=e.durchmesser||"Ø ?";
+   nachD[d]=(nachD[d]||0)+Math.round(zahl(e.anzahl));
   });
-  Object.keys(nachD).sort().forEach(d=>{
+  Object.keys(nachD).sort().filter(d=>nachD[d]>0).forEach(d=>{
    liste.push({schluessel:schl+"_"+d,bezeichnung:`${bez}${gz} ${d}`,
                menge:nachD[d],einheit:"Stk.",herkunft:quelle});
   });
  };
- gruppiere(a.einhaengestutzen,"Einhängestutzen","Einhängestutzen (Fixpunkt)","einhaenge");
- gruppiere(a.schiebestutzen,"Schiebestutzen","Schiebestutzen (Dehnungselement)","schiebe");
- if(a.endstuecke.links)liste.push({schluessel:"endstueck_l",bezeichnung:`Endstück links${gz}`,menge:1,einheit:"Stk.",herkunft:"Eingabe"});
- if(a.endstuecke.rechts)liste.push({schluessel:"endstueck_r",bezeichnung:`Endstück rechts${gz}`,menge:1,einheit:"Stk.",herkunft:"Eingabe"});
+ gruppiere("einhaenge","Einhängestutzen","Einhängestutzen (Fixpunkt)","einhaenge");
+ gruppiere("schiebe","Schiebestutzen","Schiebestutzen (Dehnungselement)","schiebe");
+ // Rinnenboden links und rechts bleiben getrennte Positionen – sie sind
+ // spiegelbildlich und werden getrennt bestellt.
+ if(a.rinnenboden.links)liste.push({schluessel:"rinnenboden_l",bezeichnung:`Rinnenboden links${gz}`,
+                                    menge:1,einheit:"Stk.",herkunft:"Eingabe"});
+ if(a.rinnenboden.rechts)liste.push({schluessel:"rinnenboden_r",bezeichnung:`Rinnenboden rechts${gz}`,
+                                     menge:1,einheit:"Stk.",herkunft:"Eingabe"});
  if(a.dehnung.art==="dehnungsstueck"){
   const nD=Math.round(zahl(a.dehnung.anzahl));
   if(nD>0)liste.push({schluessel:"dehnung",bezeichnung:`Dehnungsstück${gz}`,menge:nD,einheit:"Stk.",herkunft:"Eingabe"});
  }
- (a.sonderteile||[]).forEach((s,i)=>{
-  const n=Math.round(zahl(s.anzahl));
-  if(n>0)liste.push({schluessel:"sonderteil_"+i,bezeichnung:String(s.bezeichnung||"Sonderteil").trim()||"Sonderteil",
-                     menge:n,einheit:"Stk.",herkunft:"Sonderteil",bemerkung:s.bemerkung||""});
- });
  return liste;
 }
 function ausmassZeilen(a){
@@ -1636,51 +1685,49 @@ function materialUebersicht(a){
 function verlaufsBandSvg(a){
  const L=gesamtlaengeBerechnet(a);
  if(L<=0)return '<div class="p-leer">Noch kein Abschnitt erfasst.</div>';
- const W=470,H=136,l=34,r=W-34,y=68;
+ const W=470,H=132,l=34,r=W-34,y=66;
  const x=p=>l+(r-l)*Math.max(0,Math.min(1,zahl(p)/L));
- let s=`<line x1="${l}" y1="${y}" x2="${r}" y2="${y}" stroke="#17202a" stroke-width="7" stroke-linecap="round"/>`;
+ let s='';
+ s+=`<line x1="${l}" y1="${y}" x2="${r}" y2="${y}" stroke="#17202a" stroke-width="7" stroke-linecap="round"/>`;
  s+=`<text x="${l}" y="${y+30}" font-size="11.5" text-anchor="middle" fill="#68737d" font-weight="700">START</text>`;
  s+=`<text x="${r}" y="${y+30}" font-size="11.5" text-anchor="middle" fill="#68737d" font-weight="700">ENDE</text>`;
- s+=`<text x="${r}" y="${(y-44).toFixed(1)}" font-size="13" text-anchor="end" fill="#1769aa" font-weight="700">Gesamt ${esc(mm(L))} mm</text>`;
- // Abschnittsgrenzen
- let pos=0;
- (a.segmente||[]).forEach((seg,i)=>{
-  const von=pos; pos+=zahl(seg.laenge);
-  const xm=(x(von)+x(pos))/2;
-  s+=`<text x="${xm.toFixed(1)}" y="${y-16}" font-size="12" text-anchor="middle" fill="#17202a" font-weight="700">${esc(mm(seg.laenge))}</text>`;
-  if(i<a.segmente.length-1)
-   s+=`<line x1="${x(pos).toFixed(1)}" y1="${y-9}" x2="${x(pos).toFixed(1)}" y2="${y+9}" stroke="#9bb0c1" stroke-width="2"/>`;
+ s+=`<text x="${r}" y="${(y-46).toFixed(1)}" font-size="13" text-anchor="end" fill="#1769aa" font-weight="700">Gesamt ${esc(mm(L))} mm</text>`;
+
+ const elemente=verlaufElemente(a);
+ // Abschnitte: die Länge steht über dem eigenen Abschnitt – sie IST das
+ // Mass bis zum nächsten Element.
+ elemente.filter(e=>e.art==="abschnitt").forEach((e,i,alle)=>{
+  const xm=(x(e.von)+x(e.pos))/2;
+  s+=`<text x="${xm.toFixed(1)}" y="${y-16}" font-size="12" text-anchor="middle" fill="#17202a" font-weight="700">${esc(mm(e.laenge))}</text>`;
+  if(i<alle.length-1)
+   s+=`<line x1="${x(e.pos).toFixed(1)}" y1="${y-9}" x2="${x(e.pos).toFixed(1)}" y2="${y+9}" stroke="#9bb0c1" stroke-width="2"/>`;
  });
  // Ecken
- eckenAusVerlauf(a).forEach(e=>{
-  const px=x(e.pos_mm);
+ elemente.filter(e=>e.art==="ecke").forEach(e=>{
+  const px=x(e.pos);
   s+=`<polygon points="${px.toFixed(1)},${y-20} ${(px+9).toFixed(1)},${y-8} ${(px-9).toFixed(1)},${y-8}" fill="#0f766e"/>`;
-  s+=`<text x="${px.toFixed(1)}" y="${y-27}" font-size="11" text-anchor="middle" fill="#0f766e" font-weight="700">${e.art==="innen"?"IE":"AE"} ${e.winkel}°</text>`;
+  s+=`<text x="${px.toFixed(1)}" y="${y-27}" font-size="11" text-anchor="middle" fill="#0f766e" font-weight="700">${e.ecke==="innen"?"IE":"AE"} ${e.winkel}°</text>`;
  });
- // Einhängestutzen: Fixpunkt. Runde Marke MIT senkrechtem Fixpunktstrich
- // durch die Rinne – so ist auf einen Blick zu sehen, dass er die
- // Dilatationsberechnung teilt.
- (a.einhaengestutzen||[]).forEach((st,i)=>{
-  const pos=zahl(st.pos_mm), draussen=pos<0||pos>L, px=x(pos);
-  const farbe=draussen?"#b42318":"#1769aa";
+ // Einhängestutzen: Fixpunkt. Runde Marke MIT senkrechtem Strich durch die
+ // Rinne – so ist zu sehen, dass er die Dilatationsberechnung teilt.
+ let nE=0;
+ elemente.filter(e=>e.art==="einhaenge").forEach(e=>{
+  nE++; const px=x(e.pos), farbe="#1769aa";
   s+=`<line x1="${px.toFixed(1)}" y1="${(y-13).toFixed(1)}" x2="${px.toFixed(1)}" y2="${(y+13).toFixed(1)}" stroke="${farbe}" stroke-width="3"/>`;
   s+=`<circle cx="${px.toFixed(1)}" cy="${(y+22).toFixed(1)}" r="8.5" fill="${farbe}"/>`;
-  s+=`<text x="${px.toFixed(1)}" y="${(y+25.6).toFixed(1)}" font-size="10" text-anchor="middle" fill="#fff" font-weight="700">E${i+1}</text>`;
+  s+=`<text x="${px.toFixed(1)}" y="${(y+25.6).toFixed(1)}" font-size="10" text-anchor="middle" fill="#fff" font-weight="700">E${nE}</text>`;
   s+=`<text x="${px.toFixed(1)}" y="${(y+40).toFixed(1)}" font-size="10" text-anchor="middle" fill="${farbe}" font-weight="700">FIX</text>`;
-  s+=`<text x="${px.toFixed(1)}" y="${(y+52).toFixed(1)}" font-size="10.5" text-anchor="middle" fill="${draussen?"#b42318":"#68737d"}">${esc(mm(pos))}</text>`;
  });
- // Schiebestutzen: kein Fixpunkt, aber er nimmt die Ausdehnung selbst auf.
- // Eckige Marke in anderer Farbe, kein Strich durch die Rinne – dafür die
- // Beschriftung DEHNT, damit der Unterschied zu FIX sichtbar bleibt.
- (a.schiebestutzen||[]).forEach((st,i)=>{
-  const pos=zahl(st.pos_mm), draussen=pos<0||pos>L, px=x(pos);
-  const farbe=draussen?"#b42318":"#6b4fa8";
+ // Schiebestutzen: kein Fixpunkt, nimmt die Ausdehnung selbst auf. Eckige
+ // Marke in anderer Farbe, kein Strich durch die Rinne, Beschriftung DEHNT.
+ let nS=0;
+ elemente.filter(e=>e.art==="schiebe").forEach(e=>{
+  nS++; const px=x(e.pos), farbe="#6b4fa8";
   s+=`<rect x="${(px-8.5).toFixed(1)}" y="${(y+13.5).toFixed(1)}" width="17" height="17" rx="3" fill="${farbe}"/>`;
-  s+=`<text x="${px.toFixed(1)}" y="${(y+25.6).toFixed(1)}" font-size="10" text-anchor="middle" fill="#fff" font-weight="700">S${i+1}</text>`;
+  s+=`<text x="${px.toFixed(1)}" y="${(y+25.6).toFixed(1)}" font-size="10" text-anchor="middle" fill="#fff" font-weight="700">S${nS}</text>`;
   s+=`<text x="${px.toFixed(1)}" y="${(y+40).toFixed(1)}" font-size="10" text-anchor="middle" fill="${farbe}" font-weight="700">DEHNT</text>`;
-  s+=`<text x="${px.toFixed(1)}" y="${(y+52).toFixed(1)}" font-size="10.5" text-anchor="middle" fill="${draussen?"#b42318":"#68737d"}">${esc(mm(pos))}</text>`;
  });
- // Dilas aus der bestehenden Rechnung
+ // Zusätzlich berechnete Dehnungselemente aus dem bestehenden Modul
  dilasBerechnet(a).dilas.forEach(d=>{
   const px=x(d.posAbStart), q=7;
   s+=`<polygon points="${px.toFixed(1)},${(y-q).toFixed(1)} ${(px+q).toFixed(1)},${y} ${px.toFixed(1)},${(y+q).toFixed(1)} ${(px-q).toFixed(1)},${y}" fill="#e07a1f" stroke="#8a4a0f" stroke-width="1"/>`;
@@ -1726,6 +1773,8 @@ ${feld("Aus den Abschnitten",`<div class="p-wert">${L>0?esc(mm(L))+" mm":"–"}<
 function schritt2(){
  const a=aufnahme;
  const L=gesamtlaengeBerechnet(a);
+ const dOpt=w=>STUTZEN_DURCHMESSER.map(d=>`<option value="${esc(d)}"${d===w?" selected":""}>${esc(d)}</option>`).join("");
+ const fOpt=w=>FALLROHR_STATUS.map(f=>`<option value="${esc(f)}"${f===w?" selected":""}>${esc(f)}</option>`).join("");
  const zeilen=[];
  (a.segmente||[]).forEach((seg,i)=>{
   zeilen.push(`<div class="p-zeile">
@@ -1734,38 +1783,53 @@ ${a.segmente.length>1?`<button type="button" class="p-weg" data-seg-del="${i}">�
 <div class="p-grid">
 ${feld("Länge (mm)",`<input class="p-gross" data-seg-laenge="${i}" type="number" inputmode="numeric" step="1" value="${seg.laenge||''}" placeholder="0">`)}
 </div></div>`);
-  if(i<a.segmente.length-1){
-   const w=zahl(seg.winkel);
-   const art=w===0?"gerade":(w<0?"aussen":"innen");
-   zeilen.push(`<div class="p-zeile p-ecke${art==="gerade"?" p-ecke-aus":""}">
-<div class="p-zeile-kopf"><b>Übergang ${i+1} → ${i+2}</b></div>
+  if(i>=a.segmente.length-1)return;
+  // Übergang: Winkel ODER Stutzen – beides wird gleich eingefügt und ist
+  // damit ab dem Abschnitt davor vermasst, nicht ab START.
+  const art=uebergangArt(seg);
+  const st=seg.stutzen||{};
+  const istStutzen=art==="einhaenge"||art==="schiebe";
+  const istEcke=art==="aussen"||art==="innen";
+  const w=Math.abs(zahl(seg.winkel))||90;
+  zeilen.push(`<div class="p-zeile p-ecke${art==="gerade"?" p-ecke-aus":""}${istStutzen?" p-stutzen":""}">
+<div class="p-zeile-kopf"><b>Übergang ${i+1} → ${i+2}</b>
+<span class="p-klein-text">${esc(mm(seg.laenge))} mm ab Abschnitt ${i+1}</span></div>
 <div class="p-grid">
-${feld("Art",`<select data-ecke-art="${i}">
-  <option value="gerade"${art==="gerade"?" selected":""}>gerade weiter (keine Ecke)</option>
-  <option value="aussen"${art==="aussen"?" selected":""}>Aussenwinkel</option>
-  <option value="innen"${art==="innen"?" selected":""}>Innenwinkel</option></select>`)}
-${art!=="gerade"?feld("Winkel (°)",`<input class="p-gross" data-ecke-winkel="${i}" type="number" inputmode="numeric" step="1" value="${Math.abs(w)||90}">`):""}
+${feld("Was sitzt hier?",`<select data-ueb-art="${i}">`
+  +UEBERGAENGE.map(u=>`<option value="${u.wert}"${u.wert===art?" selected":""}>${esc(u.text)}</option>`).join("")
+  +`</select>`,true)}
+${istEcke?feld("Winkel (°)",`<input class="p-gross" data-ecke-winkel="${i}" type="number" inputmode="numeric" step="1" value="${w}">`):""}
+${istStutzen?feld("Ablaufrohr",`<select data-ueb-d="${i}">${dOpt(st.durchmesser)}</select>`):""}
+${istStutzen?feld("Anzahl",`<input class="p-gross" data-ueb-anz="${i}" type="number" inputmode="numeric" step="1" min="1" value="${st.anzahl||1}">`):""}
+${istStutzen?feld("Fallrohr",`<select data-ueb-f="${i}">${fOpt(st.fallrohr)}</select>`):""}
+${istStutzen?feld("Bemerkung",`<input data-ueb-bem="${i}" value="${esc(st.bemerkung||"")}" placeholder="optional">`,true):""}
 </div>
-${art!=="gerade"&&Math.abs(w)!==90?`<div class="p-hinweis">Der Katalog kennt nur den 90°-Winkel als Formteil. Zuschnitt und Fixpunkt werden deshalb mit den Werten des 90°-Winkels gerechnet.</div>`:""}
+${istEcke&&w!==90?`<div class="p-hinweis">Der Katalog kennt nur den 90°-Winkel als Formteil. Zuschnitt und Fixpunkt werden deshalb mit den Werten des 90°-Winkels gerechnet.</div>`:""}
+${art==="einhaenge"?`<div class="p-hinweis"><b>Fixpunkt.</b> Teilt die Dilatationsberechnung an dieser Stelle.</div>`:""}
+${art==="schiebe"?`<div class="p-hinweis"><b>Kein Fixpunkt</b>, gilt aber als Dehnungselement – er nimmt die Ausdehnung hier selbst auf.</div>`:""}
 </div>`);
-  }
  });
  return `<div class="p-karte">
 <h2>2 · Rinnenverlauf</h2>
-<div class="p-hinweis">Abschnitt für Abschnitt von START bis ENDE. Eine Ecke sitzt immer zwischen zwei Abschnitten.</div>
+<div class="p-hinweis">Abschnitt für Abschnitt von START bis ENDE. Zwischen zwei Abschnitten sitzt ein
+Übergang: eine Ecke, ein Einhänge- oder ein Schiebestutzen. Jedes Element ist dadurch
+<b>ab dem Abschnitt davor</b> vermasst, nicht ab START.</div>
 ${zeilen.join("")}
 <div class="p-knopfreihe">
 <button type="button" class="p-blau" id="p-addSegment">＋ Rinnenabschnitt</button>
 <button type="button" class="p-grau" id="p-addEcke">＋ Ecke</button>
+<button type="button" class="p-grau" id="p-addEinhaenge">＋ Einhängestutzen</button>
+<button type="button" class="p-grau" id="p-addSchiebe">＋ Schiebestutzen</button>
 </div>
 <div class="p-summe" id="p-summeL">Berechnete Gesamtlänge: <b>${L>0?esc(mm(L))+" mm":"–"}</b>${L>0?` &nbsp;(${esc(meter(L))} m)`:""}</div>
 </div>
 <div class="p-karte">
 <h2>Verlauf im Überblick</h2>
 <div id="p-band">${verlaufsBandSvg(a)}</div>
-<div class="p-legende">▲ Ecke (Fixpunkt) &nbsp;·&nbsp; ● E = Einhängestutzen (Fixpunkt) &nbsp;·&nbsp; ■ S = Schiebestutzen (kein Fixpunkt, gilt als Dehnungselement) &nbsp;·&nbsp; ◆ zusätzlich berechnetes Dehnungselement</div>
+<div class="p-legende">▲ Ecke (Fixpunkt) &nbsp;·&nbsp; ● E = Einhängestutzen (Fixpunkt) &nbsp;·&nbsp; ■ S = Schiebestutzen (kein Fixpunkt, gilt als Dehnungselement) &nbsp;·&nbsp; ◆ zusätzlich berechnetes Dehnungselement<br>
+Im Grundriss: ABL = Einhängestutzen &nbsp;·&nbsp; SS = Schiebestutzen &nbsp;·&nbsp; AE90/IE90 = Aussen-/Innenwinkel</div>
 <h3>Massstäblicher Grundriss</h3>
-<div class="p-grundriss" id="p-grundriss">${generateRinneGrundriss(a.segmente,dilasBerechnet(a).dilas,dilasBerechnet(a).boundaries||[])}</div>
+<div class="p-grundriss" id="p-grundriss">${(()=>{const d=dilasBerechnet(a);return generateRinneGrundriss(d.segmente,d.dilas,d.boundaries||[])})()}</div>
 </div>`;
 }
 
@@ -1774,54 +1838,9 @@ function schritt3(){
  const L=gesamtlaengeBerechnet(a);
  const vorschlag=halterVorschlag(a);
  const dila=dilasBerechnet(a);
- const dOpt=w=>STUTZEN_DURCHMESSER.map(d=>`<option value="${esc(d)}"${d===w?" selected":""}>${esc(d)}</option>`).join("");
- const fOpt=w=>FALLROHR_STATUS.map(f=>`<option value="${esc(f)}"${f===w?" selected":""}>${esc(f)}</option>`).join("");
- // Ein Zeilenbauer für beide Stutzenarten – gleiche Felder, gleiche
- // Bedienung. Unterschiedlich ist nur, was daraus für die Rechnung folgt.
- const stutzenZeilen=(liste,art,name)=>(liste||[]).map((st,i)=>{
-  const pos=zahl(st.pos_mm);
-  const draussen=L>0&&(pos<0||pos>L);
-  return `<div class="p-zeile${draussen?" p-fehler":""}">
-<div class="p-zeile-kopf"><b>${name} ${i+1}</b><button type="button" class="p-weg" data-${art}-del="${i}">✕</button></div>
-<div class="p-grid">
-${feld("Position ab START (mm)",`<input class="p-gross" data-${art}-pos="${i}" type="number" inputmode="numeric" step="1" value="${st.pos_mm||''}" placeholder="0">`)}
-${feld("Durchmesser",`<select data-${art}-d="${i}">${dOpt(st.durchmesser)}</select>`)}
-${feld("Anzahl",`<input class="p-gross" data-${art}-anz="${i}" type="number" inputmode="numeric" step="1" min="1" value="${st.anzahl||1}">`)}
-${feld("Fallrohr",`<select data-${art}-f="${i}">${fOpt(st.fallrohr)}</select>`)}
-${feld("Bemerkung",`<input data-${art}-bem="${i}" value="${esc(st.bemerkung||"")}" placeholder="optional">`,true)}
-</div>
-${draussen?`<div class="p-warn">⚠️ ${name} liegt ausserhalb der aufgenommenen Rinne (Gesamtlänge ${esc(mm(L))} mm).</div>`:""}
-</div>`;
- }).join("");
- const einhaenge=stutzenZeilen(a.einhaengestutzen,"eh","Einhängestutzen");
- const schiebe=stutzenZeilen(a.schiebestutzen,"sh","Schiebestutzen");
- const sonder=(a.sonderteile||[]).map((s,i)=>`<div class="p-zeile">
-<div class="p-zeile-kopf"><b>Sonderteil ${i+1}</b><button type="button" class="p-weg" data-son-del="${i}">✕</button></div>
-<div class="p-grid">
-${feld("Bezeichnung",`<input data-son-bez="${i}" value="${esc(s.bezeichnung||"")}" placeholder="z. B. Kesselblech Sonderform">`,true)}
-${feld("Anzahl",`<input class="p-gross" data-son-anz="${i}" type="number" inputmode="numeric" step="1" value="${s.anzahl||1}">`)}
-${feld("Bemerkung",`<input data-son-bem="${i}" value="${esc(s.bemerkung||"")}" placeholder="optional">`,true)}
-</div></div>`).join("");
+ const nEin=stutzenListe(a,"einhaenge").length, nSch=stutzenListe(a,"schiebe").length;
  return `<div class="p-karte">
-<h2>3 · Einhängestutzen</h2>
-<div class="p-hinweis"><b>Ein Einhängestutzen ist ein Fixpunkt.</b> Seine Position teilt die
-Rinne für die Dilatationsberechnung – sie wird deshalb ab dem definierten START gemessen.</div>
-${einhaenge||'<div class="p-leer">Noch kein Einhängestutzen erfasst.</div>'}
-<div class="p-knopfreihe"><button type="button" class="p-blau" id="p-addEinhaenge">＋ Einhängestutzen</button></div>
-</div>
-
-<div class="p-karte">
-<h2>Schiebestutzen</h2>
-<div class="p-hinweis"><b>Ein Schiebestutzen ist kein Fixpunkt</b> – er nimmt die Ausdehnung
-selbst auf und wird deshalb <b>wie ein Dehnungselement</b> behandelt: die Rinne wird an seiner
-Position geteilt, links und rechts gilt der grosse Abstand, und dort wird kein zusätzliches
-Dehnungselement mehr gesetzt.</div>
-${schiebe||'<div class="p-leer">Noch kein Schiebestutzen erfasst.</div>'}
-<div class="p-knopfreihe"><button type="button" class="p-blau" id="p-addSchiebe">＋ Schiebestutzen</button></div>
-</div>
-
-<div class="p-karte">
-<h2>Rinnenhalter</h2>
+<h2>3 · Rinnenhalter</h2>
 <div class="p-grid">
 ${feld("Halterabstand (mm)",`<input class="p-gross" id="p-halterAbstand" type="number" inputmode="numeric" step="10" value="${a.halter.abstand_mm||""}">`)}
 ${feld("Anzahl",`<input class="p-gross" id="p-halterAnzahl" type="number" inputmode="numeric" step="1" value="${a.halter.anzahl??""}" placeholder="${vorschlag??""}">`)}
@@ -1833,25 +1852,31 @@ ${a.halter.anzahl?"":" – wird verwendet, solange keine eigene Anzahl eingetrag
 </div>
 
 <div class="p-karte">
-<h2>Endstücke und Dehnung</h2>
+<h2>Rinnenboden und Dehnung</h2>
 <div class="p-grid">
-${feld("Endstück links",`<label class="p-schalter"><input type="checkbox" id="p-endLinks"${a.endstuecke.links?" checked":""}> vorhanden</label>`)}
-${feld("Endstück rechts",`<label class="p-schalter"><input type="checkbox" id="p-endRechts"${a.endstuecke.rechts?" checked":""}> vorhanden</label>`)}
+${feld("Rinnenboden links",`<label class="p-schalter"><input type="checkbox" id="p-bodenLinks"${a.rinnenboden.links?" checked":""}> vorhanden</label>`)}
+${feld("Rinnenboden rechts",`<label class="p-schalter"><input type="checkbox" id="p-bodenRechts"${a.rinnenboden.rechts?" checked":""}> vorhanden</label>`)}
 ${feld("Dehnung",`<select id="p-dehnungArt">
   <option value="keine"${a.dehnung.art==="keine"?" selected":""}>Keine</option>
   <option value="dehnungsstueck"${a.dehnung.art==="dehnungsstueck"?" selected":""}>Dehnungsstück</option></select>`)}
 ${a.dehnung.art==="dehnungsstueck"?feld("Anzahl Dehnungsstücke",
   `<input class="p-gross" id="p-dehnungAnzahl" type="number" inputmode="numeric" step="1" value="${a.dehnung.anzahl||''}" placeholder="0">`):""}
 </div>
-<div class="p-hinweis">Links und rechts beziehen sich auf START und ENDE des aufgenommenen Verlaufs, nicht auf die Bildschirmdarstellung.
-${dila.dilas.length?` Die Berechnung aus dem bestehenden Modul ergibt <b>${dila.dilas.length}</b> Dehnungselement(e) für ${esc(materialText(a))}.
-<button type="button" class="p-grau p-klein" id="p-dehnungUebernehmen">Übernehmen</button>`:` Für ${esc(materialText(a))} ist bei dieser Länge kein Dehnungselement nötig.`}</div>
+<div class="p-hinweis">Links und rechts beziehen sich auf START und ENDE des aufgenommenen Verlaufs,
+nicht auf die Bildschirmdarstellung. Im Ausmass erscheinen sie als getrennte Positionen.
+${dila.dilas.length?` Die Berechnung aus dem bestehenden Modul ergibt <b>${dila.dilas.length}</b> zusätzliche(s) Dehnungselement(e) für ${esc(materialText(a))}.
+<button type="button" class="p-grau p-klein" id="p-dehnungUebernehmen">Übernehmen</button>`:` Für ${esc(materialText(a))} ist bei diesem Verlauf kein zusätzliches Dehnungselement nötig.`}</div>
 </div>
 
 <div class="p-karte">
-<h2>Sonderteile</h2>
-${sonder||'<div class="p-leer">Noch kein Sonderteil erfasst.</div>'}
-<div class="p-knopfreihe"><button type="button" class="p-blau" id="p-addSonder">＋ Sonderteil</button></div>
+<h2>Stutzen</h2>
+<div class="p-hinweis">Einhänge- und Schiebestutzen werden in <b>Schritt 2 · Rinnenverlauf</b> eingefügt –
+wie eine Ecke, an der Stelle, an der sie sitzen.</div>
+<div class="p-zf-kopf">
+<div><span>Einhängestutzen</span><b>${nEin}</b></div>
+<div><span>Schiebestutzen</span><b>${nSch}</b></div>
+</div>
+<div class="p-knopfreihe"><button type="button" class="p-grau" data-schritt="2">↩︎ Zum Rinnenverlauf</button></div>
 </div>`;
 }
 
@@ -1881,35 +1906,21 @@ function schritt5(){
  const a=aufnahme;
  const L=gesamtlaengeBerechnet(a);
  const p=pruefungen(a);
- // Der Verlauf von START bis ENDE, mit den Stutzen an ihrer Position
- // (Auftrag Änderung 7). Fixpunkt und Nicht-Fixpunkt sind beschriftet.
- const marken=[];
- (a.einhaengestutzen||[]).forEach(st=>marken.push({pos:zahl(st.pos_mm),
-  text:`Einhängestutzen ${st.durchmesser||""}`.trim(),fix:true,anzahl:Math.max(1,Math.round(zahl(st.anzahl)||1))}));
- (a.schiebestutzen||[]).forEach(st=>marken.push({pos:zahl(st.pos_mm),
-  text:`Schiebestutzen ${st.durchmesser||""}`.trim(),fix:false,anzahl:Math.max(1,Math.round(zahl(st.anzahl)||1))}));
- marken.sort((x,y)=>x.pos-y.pos);
+ // Der Verlauf von START bis ENDE. Jedes Element ist ab dem Abschnitt davor
+ // vermasst – so, wie es aufgenommen wurde.
  const verlauf=[];
- let gelaufen=0, offen=marken.slice();
- const markenBis=grenze=>{
-  while(offen.length&&offen[0].pos<=grenze){
-   const m=offen.shift();
-   verlauf.push(`<li class="${m.fix?"p-fix-li":"p-losfix-li"}">${esc(m.text)}`
-    +(m.anzahl>1?` (${m.anzahl}×)`:"")
-    +` bei ${esc(mm(m.pos))} mm → <b>${m.fix?"FIXPUNKT":"Dehnungselement"}</b>`
-    +`${m.fix?"":" (kein Fixpunkt)"}</li>`);
+ verlaufElemente(a).forEach(e=>{
+  if(e.art==="abschnitt"){verlauf.push(`<li>Abschnitt ${e.nr}: ${esc(mm(e.laenge))} mm</li>`);return}
+  if(e.art==="ecke"){
+   verlauf.push(`<li class="p-ecke-li">${e.ecke==="aussen"?"Aussenwinkel":"Innenwinkel"} ${e.winkel}° → <b>FIXPUNKT</b></li>`);
+   return;
   }
- };
- markenBis(0);
- (a.segmente||[]).forEach((seg,i)=>{
-  verlauf.push(`<li>${esc(mm(seg.laenge))} mm</li>`);
-  gelaufen+=zahl(seg.laenge);
-  markenBis(gelaufen);
-  const w=zahl(seg.winkel);
-  if(w!==0&&i<a.segmente.length-1)
-   verlauf.push(`<li class="p-ecke-li">${w<0?"Aussenwinkel":"Innenwinkel"} ${Math.abs(w)}° → <b>FIXPUNKT</b></li>`);
+  const name=e.art==="einhaenge"?"Einhängestutzen":"Schiebestutzen";
+  verlauf.push(`<li class="${e.art==="einhaenge"?"p-fix-li":"p-losfix-li"}">`
+   +`${esc(name)} ${esc(e.durchmesser)}${e.anzahl>1?` (${e.anzahl}×)`:""} → `
+   +`<b>${e.art==="einhaenge"?"FIXPUNKT":"Dehnungselement"}</b>`
+   +`${e.art==="einhaenge"?"":" (kein Fixpunkt)"}</li>`);
  });
- offen.forEach(m=>verlauf.push(`<li class="${m.fix?"p-fix-li":"p-losfix-li"}">${esc(m.text)} bei ${esc(mm(m.pos))} mm (ausserhalb)</li>`));
  const komp=komponenten(a).map(k=>
   `<li>${k.einheit==="m"?esc(k.menge.toFixed(2))+" m":esc(k.menge)+" ×"} ${esc(k.bezeichnung)}</li>`).join("");
  return `<div class="p-karte">
@@ -1925,7 +1936,7 @@ ${p.length?`<div class="p-pruefung">`+p.map(m=>
 <div><span>Grösse</span><b>${esc(groesseText(a))}</b></div>
 <div><span>Länge</span><b>${L>0?esc(mm(L))+" mm":"–"}</b></div>
 </div>
-<h3>Verlauf</h3>
+<h3>Verlauf ab START</h3>
 <ul class="p-liste">${verlauf.join("")||"<li>–</li>"}</ul>
 <h3>Komponenten</h3>
 <ul class="p-liste">${komp||"<li>–</li>"}</ul>
@@ -1965,7 +1976,7 @@ function schritt6(){
 <tbody>${(function(){
  const d=dilasBerechnet(a);
  const st=berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass);
- return st.map(s=>`<tr><td>${s.nr}</td><td>${esc(s.von)} → ${esc(s.bis)}</td><td class="p-num">${esc(mm(s.abstand))}</td><td class="p-num"><b>${esc(mm(s.zuschnitt))}</b></td></tr>`).join("")
+ return st.map(s=>`<tr><td>${s.nr}</td><td>${esc(zuschnittName(s.von))} → ${esc(zuschnittName(s.bis))}</td><td class="p-num">${esc(mm(s.abstand))}</td><td class="p-num"><b>${esc(mm(s.zuschnitt))}</b></td></tr>`).join("")
   ||'<tr><td colspan="4" class="p-leer">Noch nichts zu berechnen.</td></tr>';
 })()}</tbody></table>
 </div>
@@ -1976,38 +1987,6 @@ function schritt6(){
 Zuschnitt sowie Skizze und Fotos. Im Druckdialog als Ziel <b>„Als PDF speichern“</b> wählen.</div>
 <div class="p-knopfreihe"><button type="button" class="p-blau p-gross-knopf" id="p-pdf2">🖨 Als PDF speichern</button></div>
 </div>`;
-}
-
-// ---- 8. Ecken in die Struktur des bestehenden Moduls spiegeln -------------
-// Wichtig für die Weiterentwicklung: das bestehende Modul kennt eine Ecke
-// NICHT nur als Winkel, sondern als Anschlusstyp (AE90/IE90). Nur dadurch
-// wirkt sie als Fixpunkt in calcRinneDilas() und liefert ihr Zuschlagsmass
-// (−110 mm) an berechneRinneStueckliste(). Der Prototyp lässt den Benutzer
-// nur "Aussen/Innen" wählen und setzt die Typen selbst – die Fachrechnung
-// bleibt dadurch exakt die der laufenden App.
-function synchronisiereEcken(a){
- const segs=a.segmente||[];
- segs.forEach((seg,i)=>{
-  if(i>=segs.length-1)return;
-  const w=zahl(seg.winkel);
-  const naechste=segs[i+1];
-  if(w===0){
-   if(Number(seg.rechtsTyp)===ECKE_AUSSEN_ID||Number(seg.rechtsTyp)===ECKE_INNEN_ID)seg.rechtsTyp="";
-   if(Number(naechste.linksTyp)===ECKE_AUSSEN_ID||Number(naechste.linksTyp)===ECKE_INNEN_ID)naechste.linksTyp="";
-  }else{
-   const id=w<0?ECKE_AUSSEN_ID:ECKE_INNEN_ID;
-   seg.rechtsTyp=id; naechste.linksTyp=id;
-  }
- });
- // Am Anfang und am Ende darf keine Ecke stehen bleiben.
- if(segs.length){
-  const e=segs[segs.length-1];
-  if(Number(e.rechtsTyp)===ECKE_AUSSEN_ID||Number(e.rechtsTyp)===ECKE_INNEN_ID)e.rechtsTyp="";
-  e.winkel=0;
-  const s0=segs[0];
-  if(Number(s0.linksTyp)===ECKE_AUSSEN_ID||Number(s0.linksTyp)===ECKE_INNEN_ID)s0.linksTyp="";
- }
- return a;
 }
 
 // ---- 9. Bilder ------------------------------------------------------------
@@ -2087,7 +2066,7 @@ function listeHtml(){
 // ---- 11. Zeichnen ---------------------------------------------------------
 let listeOffen=false;
 function zeichne(){
- synchronisiereEcken(aufnahme);
+ synchronisiereUebergaenge(aufnahme);
  const kopf=$("p-kopf");
  if(kopf){
   const L=gesamtlaengeBerechnet(aufnahme);
@@ -2150,17 +2129,16 @@ function verdrahten(){
   else if(d.eckeWinkel!==undefined){
    const i=Number(d.eckeWinkel), alt=zahl(a.segmente[i].winkel);
    a.segmente[i].winkel=(alt<0?-1:1)*Math.abs(zahl(t.value));
-   synchronisiereEcken(a); live=true;
+   synchronisiereUebergaenge(a); live=true;
   }
-  else if(d.ehPos!==undefined){a.einhaengestutzen[Number(d.ehPos)].pos_mm=zahl(t.value);live=true;}
-  else if(d.ehAnz!==undefined)a.einhaengestutzen[Number(d.ehAnz)].anzahl=zahl(t.value);
-  else if(d.ehBem!==undefined)a.einhaengestutzen[Number(d.ehBem)].bemerkung=t.value;
-  else if(d.shPos!==undefined){a.schiebestutzen[Number(d.shPos)].pos_mm=zahl(t.value);live=true;}
-  else if(d.shAnz!==undefined)a.schiebestutzen[Number(d.shAnz)].anzahl=zahl(t.value);
-  else if(d.shBem!==undefined)a.schiebestutzen[Number(d.shBem)].bemerkung=t.value;
-  else if(d.sonBez!==undefined)a.sonderteile[Number(d.sonBez)].bezeichnung=t.value;
-  else if(d.sonAnz!==undefined)a.sonderteile[Number(d.sonAnz)].anzahl=zahl(t.value);
-  else if(d.sonBem!==undefined)a.sonderteile[Number(d.sonBem)].bemerkung=t.value;
+  else if(d.uebAnz!==undefined){
+   const i=Number(d.uebAnz);
+   if(a.segmente[i]&&a.segmente[i].stutzen)a.segmente[i].stutzen.anzahl=zahl(t.value);
+  }
+  else if(d.uebBem!==undefined){
+   const i=Number(d.uebBem);
+   if(a.segmente[i]&&a.segmente[i].stutzen)a.segmente[i].stutzen.bemerkung=t.value;
+  }
   else return;
   if(live)aktualisiereLive();
  });
@@ -2170,17 +2148,33 @@ function verdrahten(){
   const a=aufnahme;
   if(t.id==="p-material")a.material=t.value;
   else if(t.id==="p-groesse")a.groesse=t.value;
-  else if(t.id==="p-endLinks")a.endstuecke.links=t.checked;
-  else if(t.id==="p-endRechts")a.endstuecke.rechts=t.checked;
+  else if(t.id==="p-bodenLinks")a.rinnenboden.links=t.checked;
+  else if(t.id==="p-bodenRechts")a.rinnenboden.rechts=t.checked;
   else if(t.id==="p-dehnungArt"){a.dehnung.art=t.value;if(t.value==="keine")a.dehnung.anzahl=0;}
-  else if(d.eckeArt!==undefined){
-   const i=Number(d.eckeArt), betrag=Math.abs(zahl(a.segmente[i].winkel))||90;
-   a.segmente[i].winkel=t.value==="gerade"?0:(t.value==="aussen"?-betrag:betrag);
+  else if(d.uebArt!==undefined){
+   // Ein Übergang trägt entweder eine Ecke oder einen Stutzen – nie beides.
+   const i=Number(d.uebArt), seg=a.segmente[i];
+   if(!seg)return;
+   const betrag=Math.abs(zahl(seg.winkel))||90;
+   if(t.value==="aussen"||t.value==="innen"){
+    seg.winkel=t.value==="aussen"?-betrag:betrag; seg.stutzen=null;
+   }else if(t.value==="einhaenge"||t.value==="schiebe"){
+    const alt=seg.stutzen||{};
+    seg.winkel=0;
+    seg.stutzen={art:t.value,
+      durchmesser:alt.durchmesser||STUTZEN_DURCHMESSER[2],
+      anzahl:Math.max(1,Math.round(zahl(alt.anzahl)||1)),
+      fallrohr:alt.fallrohr||FALLROHR_STATUS[0],bemerkung:alt.bemerkung||""};
+   }else{ seg.winkel=0; seg.stutzen=null; }
   }
-  else if(d.ehD!==undefined)a.einhaengestutzen[Number(d.ehD)].durchmesser=t.value;
-  else if(d.ehF!==undefined)a.einhaengestutzen[Number(d.ehF)].fallrohr=t.value;
-  else if(d.shD!==undefined)a.schiebestutzen[Number(d.shD)].durchmesser=t.value;
-  else if(d.shF!==undefined)a.schiebestutzen[Number(d.shF)].fallrohr=t.value;
+  else if(d.uebD!==undefined){
+   const i=Number(d.uebD);
+   if(a.segmente[i]&&a.segmente[i].stutzen)a.segmente[i].stutzen.durchmesser=t.value;
+  }
+  else if(d.uebF!==undefined){
+   const i=Number(d.uebF);
+   if(a.segmente[i]&&a.segmente[i].stutzen)a.segmente[i].stutzen.fallrohr=t.value;
+  }
   else if(t.id==="p-fotoInput"){fotosAufnehmen(t.files);return;}
   else return;
   zeichne();
@@ -2194,37 +2188,28 @@ function verdrahten(){
   if(t.id==="p-zurueck"){setzeSchritt(schritt-1);return;}
   if(t.id==="p-weiter"){setzeSchritt(schritt+1);return;}
 
-  if(t.id==="p-addSegment"){
+  // Abschnitt, Ecke und Stutzen werden gleich angelegt: ein neuer Abschnitt,
+  // und der Übergang davor bekommt das gewünschte Element.
+  const neuerAbschnitt=uebergang=>{
    const letzte=a.segmente[a.segmente.length-1];
-   a.segmente.push({laenge:0,linksTyp:"",rechtsTyp:letzte?letzte.rechtsTyp:"",winkel:0});
-   if(letzte)letzte.rechtsTyp="";
-   zeichne();return;
-  }
-  if(t.id==="p-addEcke"){
-   const letzte=a.segmente[a.segmente.length-1];
-   if(letzte)letzte.winkel=-90;                     // Vorgabe Aussenwinkel 90°
-   a.segmente.push({laenge:0,linksTyp:"",rechtsTyp:"",winkel:0});
-   zeichne();return;
-  }
+   if(letzte&&uebergang==="ecke"){letzte.winkel=-90;letzte.stutzen=null}
+   else if(letzte&&(uebergang==="einhaenge"||uebergang==="schiebe")){
+    letzte.winkel=0;
+    letzte.stutzen={art:uebergang,durchmesser:STUTZEN_DURCHMESSER[2],anzahl:1,
+                    fallrohr:FALLROHR_STATUS[0],bemerkung:""};
+   }
+   a.segmente.push({laenge:0,linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null});
+   zeichne();
+  };
+  if(t.id==="p-addSegment"){neuerAbschnitt("gerade");return;}
+  if(t.id==="p-addEcke"){neuerAbschnitt("ecke");return;}
+  if(t.id==="p-addEinhaenge"){neuerAbschnitt("einhaenge");return;}
+  if(t.id==="p-addSchiebe"){neuerAbschnitt("schiebe");return;}
   if(d.segDel!==undefined){
    if(a.segmente.length<=1)return;
    a.segmente.splice(Number(d.segDel),1);
    zeichne();return;
   }
-  if(t.id==="p-addEinhaenge"){
-   a.einhaengestutzen.push({pos_mm:0,durchmesser:STUTZEN_DURCHMESSER[1],anzahl:1,
-                            fallrohr:FALLROHR_STATUS[0],bemerkung:""});
-   zeichne();return;
-  }
-  if(d.ehDel!==undefined){a.einhaengestutzen.splice(Number(d.ehDel),1);zeichne();return;}
-  if(t.id==="p-addSchiebe"){
-   a.schiebestutzen.push({pos_mm:0,durchmesser:STUTZEN_DURCHMESSER[1],anzahl:1,
-                          fallrohr:FALLROHR_STATUS[0],bemerkung:""});
-   zeichne();return;
-  }
-  if(d.shDel!==undefined){a.schiebestutzen.splice(Number(d.shDel),1);zeichne();return;}
-  if(t.id==="p-addSonder"){a.sonderteile.push({bezeichnung:"",anzahl:1,bemerkung:""});zeichne();return;}
-  if(d.sonDel!==undefined){a.sonderteile.splice(Number(d.sonDel),1);zeichne();return;}
   if(t.id==="p-halterUebernehmen"){a.halter.anzahl=halterVorschlag(a);zeichne();return;}
   if(t.id==="p-dehnungUebernehmen"){
    a.dehnung.art="dehnungsstueck";
@@ -2367,6 +2352,17 @@ window.addEventListener("beforeprint",druckVorbereiten);
 // Trennlinie, dunkle Abschnittsbalken, Tabellen mit wiederholtem Kopf.
 // Es ist dafür neu geschrieben – die PDF-Bausteine der App stecken in
 // js/16 und liessen sich ohne das ganze Formular nicht laden.
+// Die Stückliste des bestehenden Moduls benennt die Grenzpunkte mit den
+// Namen aus dem Anschlusstyp-Katalog ("Ablaufstutzen", "Schiebestutzen").
+// Der Einhängestutzen heisst dort noch "Ablaufstutzen" – derselbe Punkt hiesse
+// im selben Dokument oben so und unten anders. Umbenannt wird deshalb NUR die
+// Anzeige; die Fachfunktion und ihre Zahlen bleiben unangetastet.
+const ZUSCHNITT_NAMEN={"Ablaufstutzen":"Einhängestutzen"};
+function zuschnittName(t){
+ const k=String(t==null?"":t);
+ return ZUSCHNITT_NAMEN[k]||k;
+}
+
 function druckDatumZeit(){
  const d=new Date();
  return d.toLocaleDateString("de-CH")+", "+d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
@@ -2393,39 +2389,31 @@ function druckDokumentHtml(){
  const pruef=pruefungen(a);
  const ecken=eckenAusVerlauf(a);
 
- // Verlauf von START bis ENDE – dieselbe Reihenfolge wie in der
- // Zusammenfassung am Bildschirm.
- const marken=[];
- (a.einhaengestutzen||[]).forEach(x=>marken.push({pos:zahl(x.pos_mm),fix:true,
-  text:`Einhängestutzen ${x.durchmesser||""}`.trim(),anzahl:Math.max(1,Math.round(zahl(x.anzahl)||1))}));
- (a.schiebestutzen||[]).forEach(x=>marken.push({pos:zahl(x.pos_mm),fix:false,
-  text:`Schiebestutzen ${x.durchmesser||""}`.trim(),anzahl:Math.max(1,Math.round(zahl(x.anzahl)||1))}));
- marken.sort((x,y)=>x.pos-y.pos);
+ // Verlauf von START bis ENDE. Vermasst wird ab dem Abschnitt davor, nicht
+ // ab START – genau so, wie draussen gemessen wird.
  const verlauf=[];
- let offen=marken.slice(), gelaufen=0;
- const bisHier=grenze=>{
-  while(offen.length&&offen[0].pos<=grenze){
-   const m=offen.shift();
-   verlauf.push(`<tr class="${m.fix?"fix":"losfix"}"><td class="pos">${esc(mm(m.pos))}</td>`
-    +`<td>${esc(m.text)}${m.anzahl>1?` (${m.anzahl}×)`:""}</td>`
-    +`<td class="kz">${m.fix?"FIXPUNKT":"Dehnungselement"}</td></tr>`);
+ verlauf.push(`<tr class="ende"><td class="mass">–</td><td>START</td><td class="kz"></td></tr>`);
+ let nE=0,nS=0;
+ verlaufElemente(a).forEach(e=>{
+  if(e.art==="abschnitt"){
+   verlauf.push(`<tr><td class="mass">${esc(mm(e.laenge))}</td>`
+    +`<td>Abschnitt ${e.nr}</td><td class="kz"></td></tr>`);
+   return;
   }
- };
- verlauf.push(`<tr class="ende"><td class="pos">0</td><td>START</td><td class="kz"></td></tr>`);
- bisHier(0);
- (a.segmente||[]).forEach((seg,i)=>{
-  gelaufen+=zahl(seg.laenge);
-  verlauf.push(`<tr><td class="pos">${esc(mm(gelaufen))}</td>`
-   +`<td>Abschnitt ${i+1} · ${esc(mm(seg.laenge))} mm</td><td class="kz"></td></tr>`);
-  bisHier(gelaufen);
-  const w=zahl(seg.winkel);
-  if(w!==0&&i<a.segmente.length-1)
-   verlauf.push(`<tr class="fix"><td class="pos">${esc(mm(gelaufen))}</td>`
-    +`<td>${w<0?"Aussenwinkel":"Innenwinkel"} ${Math.abs(w)}°</td><td class="kz">FIXPUNKT</td></tr>`);
+  if(e.art==="ecke"){
+   verlauf.push(`<tr class="fix"><td class="mass"></td>`
+    +`<td>${e.ecke==="aussen"?"Aussenwinkel":"Innenwinkel"} ${e.winkel}°</td>`
+    +`<td class="kz">FIXPUNKT</td></tr>`);
+   return;
+  }
+  const fix=e.art==="einhaenge";
+  const nr=fix?++nE:++nS;
+  verlauf.push(`<tr class="${fix?"fix":"losfix"}"><td class="mass"></td>`
+   +`<td>${fix?"Einhängestutzen":"Schiebestutzen"} ${nr} · ${esc(e.durchmesser)}`
+   +`${e.anzahl>1?` (${e.anzahl}×)`:""}${e.fallrohr?` · Fallrohr ${esc(e.fallrohr)}`:""}</td>`
+   +`<td class="kz">${fix?"FIXPUNKT":"DEHNUNGSELEMENT"}</td></tr>`);
  });
- offen.forEach(m=>verlauf.push(`<tr class="warn"><td class="pos">${esc(mm(m.pos))}</td>`
-  +`<td>${esc(m.text)}</td><td class="kz">ausserhalb der Rinne</td></tr>`));
- verlauf.push(`<tr class="ende"><td class="pos">${esc(mm(L))}</td><td>ENDE</td><td class="kz"></td></tr>`);
+ verlauf.push(`<tr class="ende"><td class="mass">${esc(mm(L))}</td><td>ENDE (Gesamtlänge)</td><td class="kz"></td></tr>`);
 
  const fotos=(a.fotos||[]).map((f,i)=>
   `<div class="pd-bildseite"><div class="pd-balken">Foto ${i+1} von ${a.fotos.length}</div>`
@@ -2452,9 +2440,9 @@ function druckDokumentHtml(){
 ${druckInfoZeile("Gesamtlänge",L>0?esc(mm(L))+" mm ("+esc(meter(L))+" m)":"–")}
 ${druckInfoZeile("Abschnitte",String((a.segmente||[]).length))}
 ${druckInfoZeile("Ecken",ecken.length?`${ecken.filter(e=>e.art==="aussen").length} aussen, ${ecken.filter(e=>e.art==="innen").length} innen`:"keine")}
-${druckInfoZeile("Einhängestutzen",String((a.einhaengestutzen||[]).length)+" (Fixpunkt)")}
-${druckInfoZeile("Schiebestutzen",String((a.schiebestutzen||[]).length)+" (kein Fixpunkt, gilt als Dehnungselement)")}
-${druckInfoZeile("Dehnungselemente",`${d.dilas.length} berechnet · ${esc(d.tabelle.label)}: max. ${esc(mm(d.tabelle.mitDehnungselement))} mm, ab Fixpunkt ${esc(mm(d.tabelle.abFixpunkten))} mm`)}
+${druckInfoZeile("Einhängestutzen",String(stutzenListe(a,"einhaenge").length)+" (Fixpunkt)")}
+${druckInfoZeile("Schiebestutzen",String(stutzenListe(a,"schiebe").length)+" (kein Fixpunkt, gilt als Dehnungselement)")}
+${druckInfoZeile("Dehnungselemente",`${d.dilas.length} zusätzlich berechnet · ${esc(d.tabelle.label)}: max. ${esc(mm(d.tabelle.mitDehnungselement))} mm, ab Fixpunkt ${esc(mm(d.tabelle.abFixpunkten))} mm`)}
 </div>
 <div class="pd-trenner"></div>
 
@@ -2462,15 +2450,16 @@ ${pruef.length?`<div class="pd-balken">Hinweise</div>
 <div class="pd-hinweise">${pruef.map(m=>
  `<div class="${m.art==="fehler"?"f":"w"}">${m.art==="fehler"?"Fehler:":"Hinweis:"} ${esc(m.text)}</div>`).join("")}</div>`:""}
 
-<div class="pd-balken">Verlauf ab START</div>
+<div class="pd-balken">Verlauf ab START · jedes Mass gilt ab dem Abschnitt davor</div>
 <table class="pd-tab pd-verlauf">
-<thead><tr><th class="pos">mm ab START</th><th>Element</th><th class="kz">Fixpunkt</th></tr></thead>
+<thead><tr><th class="mass">Mass (mm)</th><th>Element</th><th class="kz">Wirkung</th></tr></thead>
 <tbody>${verlauf.join("")}</tbody></table>
 
 <div class="pd-balken">Schema</div>
 <div class="pd-band">${verlaufsBandSvg(a)}</div>
 <div class="pd-legende">Ecke (Dreieck) und Einhängestutzen (E, mit Strich durch die Rinne) sind Fixpunkte ·
-Schiebestutzen (S, eckig) ist keiner, gilt aber als Dehnungselement · Raute = zusätzlich berechnetes Dehnungselement</div>
+Schiebestutzen (S, eckig) ist keiner, gilt aber als Dehnungselement · Raute = zusätzlich berechnetes Dehnungselement<br>
+Im Grundriss darunter stehen die Kurzzeichen des Katalogs: ABL = Einhängestutzen, SS = Schiebestutzen, AE90/IE90 = Aussen-/Innenwinkel</div>
 <div class="pd-grundriss">${generateRinneGrundriss(d.segmente,d.dilas,d.boundaries||[])}</div>
 
 <div class="pd-balken">Ausmass</div>
@@ -2492,7 +2481,7 @@ sie kommen aus der Materialliste der jeweiligen Firma.</div>
 <div class="pd-balken">Zuschnitt</div>
 <table class="pd-tab">
 <thead><tr><th class="r">Nr.</th><th>Von → Bis</th><th class="r">Abstand (mm)</th><th class="r">Zuschnitt (mm)</th></tr></thead>
-<tbody>${st.map(s=>`<tr><td class="r">${s.nr}</td><td>${esc(s.von)} → ${esc(s.bis)}</td>`
+<tbody>${st.map(s=>`<tr><td class="r">${s.nr}</td><td>${esc(zuschnittName(s.von))} → ${esc(zuschnittName(s.bis))}</td>`
  +`<td class="r">${esc(mm(s.abstand))}</td><td class="r b">${esc(mm(s.zuschnitt))}</td></tr>`).join("")
  ||'<tr><td colspan="4">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
 <div class="pd-fussnote">Dehnungselemente, Anschlussmasse und Grundriss rechnet unverändert
@@ -2537,7 +2526,7 @@ function druckVorbereiten(){
  // Sicherheitsnetz: die Ecken werden sonst erst beim Zeichnen in die
  // Struktur des bestehenden Moduls gespiegelt. Das PDF darf nicht davon
  // abhängen, dass vorher gezeichnet wurde.
- synchronisiereEcken(aufnahme);
+ synchronisiereUebergaenge(aufnahme);
  box.innerHTML=druckDokumentHtml();
  grundrissZuschneiden(box);
 }

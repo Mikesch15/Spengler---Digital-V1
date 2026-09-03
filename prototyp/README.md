@@ -15,7 +15,7 @@ Zweitlösung**. Die gesamte Fachrechnung kommt unverändert aus
     ├── bruecke.js                    stellt bereit, was js/12 beim Laden braucht
     ├── prototyp.css                  Darstellung
     ├── bauen.js                      baut die Testapp aus den Einzeldateien
-    ├── pruefstand-proto-rinne.js     153 Prüfungen in echtem Chromium
+    ├── pruefstand-proto-rinne.js     163 Prüfungen in echtem Chromium
     └── README.md                     dieses Dokument
 
 Branch: `feature/prototype-rinne-halbrund`.
@@ -78,26 +78,31 @@ sie werden nie bedient.
 
 * **Ablauf in sechs Schritten** – Grunddaten · Verlauf · Komponenten ·
   Fotos & Skizze · Kontrolle · Ausmass & Material.
-* **Grunddaten** – Bezeichnung, Material, Rinnengrösse (RG 200 … RG 500 oder
-  frei), optionale gemessene Gesamtlänge zur Kontrolle.
+* **Grunddaten** – Bezeichnung, Material, Rinnengrösse (200 / 250 / 330 /
+  400 mm), optionale gemessene Gesamtlänge zur Kontrolle.
 * **Ecken ohne Fachwissen** – der Benutzer wählt nur „Aussenwinkel“ oder
   „Innenwinkel“. Der Prototyp setzt daraus selbst den Anschlusstyp AE90/IE90
   des bestehenden Katalogs; dadurch wirkt die Ecke automatisch als Fixpunkt
   in der Dila-Rechnung und bringt ihr Zuschlagsmass in die Stückliste.
-* **Einhängestutzen** – Position ab START, Durchmesser, Anzahl, Fallrohr
-  (bestehend / neu / unbekannt), Bemerkung. **Er ist ein Fixpunkt** und teilt
-  die Dilatationsberechnung an seiner Position, siehe Punkt 5.
-* **Schiebestutzen** – dieselben Felder. Er ist **kein** Fixpunkt, wird aber
-  **wie ein Dehnungselement** behandelt: er nimmt die Ausdehnung an seiner
-  Stelle selbst auf. Die Rinne wird dort geteilt, links und rechts gilt der
-  grosse Abstand („mit Dehnungselement“, nicht der strenge „ab Fixpunkt“),
-  und es wird dort kein zusätzliches Dehnungselement mehr gesetzt.
-* **PDF** – ein Blatt mit Kopf, Verlauf ab START, Schema, Ausmass,
+* **Stutzen im Verlauf** – Einhänge- und Schiebestutzen werden **genau wie
+  eine Ecke** eingefügt: zwischen zwei Abschnitten. Ein Übergang trägt
+  entweder eine Ecke oder einen Stutzen, ausgewählt in einer einzigen Liste.
+  Dadurch ist jedes Element **ab dem Abschnitt davor** vermasst und nicht ab
+  START – so, wie draussen gemessen wird. Zum Stutzen gehören Ablaufrohr-
+  Durchmesser (Ø 60 / 75 / 100 / 120), Anzahl, Fallrohr und Bemerkung.
+* **Einhängestutzen** – **Fixpunkt**, teilt die Dilatationsberechnung.
+* **Schiebestutzen** – **kein** Fixpunkt, wird aber **wie ein
+  Dehnungselement** behandelt: er nimmt die Ausdehnung an seiner Stelle
+  selbst auf. Die Rinne wird dort geteilt, links und rechts gilt der grosse
+  Abstand („mit Dehnungselement“, nicht der strenge „ab Fixpunkt“), und es
+  wird dort kein zusätzliches Dehnungselement mehr gesetzt.
+* **PDF** – ein Blatt mit Kopf, Verlauf (jedes Element mit seinem Mass ab
+  dem Abschnitt davor), Schema, Ausmass,
   Materialübersicht, Zuschnitt, Bemerkung, Skizze und Fotos. Über den
   Druckdialog des Browsers („Ziel: Als PDF speichern“).
 * **Rinnenhalter** – Abstand und Anzahl, mit Vorschlag `Länge / Abstand + 1`,
   jederzeit überschreibbar.
-* **Endstücke, Dehnung, Sonderteile.**
+* **Rinnenboden (links und rechts getrennt) und Dehnung.**
 * **Verlaufsband** – der ganze Verlauf als gerades Band von START bis ENDE,
   mit Ecken (▲), Einhängestutzen (runde Marke **E**, mit Strich durch die
   Rinne und der Beschriftung **FIX**), Schiebestutzen (eckige violette Marke
@@ -105,9 +110,10 @@ sie werden nie bedient.
   Dehnungselementen (◆) an ihrer echten Position;
   alles, was ausserhalb der Rinne läge, wird rot. Zum Prüfen auf dem Tablet
   in einem Blick; der massstäbliche Grundriss bleibt daneben unverändert.
-* **Plausibilitätsprüfung** – negative Längen, Winkel ausserhalb ±180°,
-  Ablauf ausserhalb der Rinne, auffällig kurze/lange Rinne, Abweichung
-  zwischen gemessener Gesamtlänge und Summe der Abschnitte.
+* **Plausibilitätsprüfung** – kein Abschnitt erfasst, negative Längen,
+  Winkel ausserhalb ±180°, Stutzenanzahl unter 1, negativer Halterabstand
+  oder negative Anzahl, auffällig kurze/lange Rinne, Abweichung zwischen
+  gemessener Gesamtlänge und Summe der Abschnitte.
 * **Zusammenfassung** auf einem Bildschirm.
 * **Ausmass und Materialübersicht** – automatisch, siehe Punkt 5.
 * **Fotos und Skizze** – Foto aufnehmen/wählen (verkleinert gespeichert),
@@ -125,28 +131,23 @@ sie werden nie bedient.
   Winkel und Anschlusstyp in getrennten Spalten und können auseinanderlaufen.
   Neu gibt es eine Auswahl, aus der beides erzeugt wird.
 * **Das Ausmass ist die Massaufnahme.** Jede Position (Rinne in Metern,
-  Halter, Innen-/Aussenwinkel, Einhangstutzen je Durchmesser, Endstücke,
-  Dehnungsstücke, Sonderteile) entsteht aus einer einzigen
+  Halter, Innen-/Aussenwinkel, Einhängestutzen je Durchmesser, Rinnenboden
+  links/rechts, Dehnungsstücke) entsteht aus einer einzigen
   Ableitung. Nichts wird ein zweites Mal eingegeben, und jede Zeile nennt
   ihre Herkunft. Ändert sich die Aufnahme, ändert sich das Ausmass mit.
-* **Der Einhängestutzen wirkt fachlich richtig, ohne eine zweite
-  Fixpunktlogik.** Das bestehende Modul kennt Fixpunkte nur als Anschlusstyp
-  an einer Segmentgrenze. Der Prototyp erzeugt deshalb eine abgeleitete
-  Segmentliste **nur für die Rechnung**: er teilt den Abschnitt an der
-  Stutzenposition und setzt dort beidseitig den vorhandenen Katalogeintrag
-  „Ablaufstutzen" (id 4, `is_fixpunkt`, Zuschlagsmass 0 mm). Die vorhandene
-  Regel greift damit unverändert, der Verlauf des Benutzers bleibt, wie er
-  ist, und die Gesamtlänge verschiebt sich nicht.
-* **Der Schiebestutzen wirkt anders als der Einhängestutzen – auch das ohne
-  neue Logik.** Er bekommt den vorhandenen Katalogeintrag „Schiebestutzen“
-  (id 7, `is_schiebestutzen`). `computeRinneBoundaries()` macht daraus eine
-  Grenze vom Typ `schiebe` statt `fix`: geteilt wird die Rinne dort auch,
-  aber mit dem grossen Abstand auf beiden Seiten und ohne zusätzliches
-  Dehnungselement. An derselben Stelle ergibt ein Einhängestutzen bei einer
-  10 m langen Kupferrinne zwei Dehnungselemente, ein Schiebestutzen keines.
-  Liegen beide auf derselben Position, gewinnt der Fixpunkt.
+* **Der Stutzen wirkt fachlich richtig, ohne eine zweite Fixpunktlogik.**
+  Das bestehende Modul kennt Fixpunkte und Schiebestutzen nur als
+  Anschlusstyp an einer Segmentgrenze. Genau dort sitzt der Stutzen jetzt
+  auch – der Übergang **ist** die Segmentgrenze. Der Prototyp setzt nur den
+  passenden Katalogeintrag: Einhängestutzen → „Ablaufstutzen“ (id 4,
+  `is_fixpunkt`), Schiebestutzen → „Schiebestutzen“ (id 7,
+  `is_schiebestutzen`), Ecken → AE90/IE90. Es wird nichts geteilt, nichts
+  umgerechnet und keine eigene Regel gebaut.
+* **Der Unterschied ist messbar.** An derselben Stelle einer 10 m langen
+  Kupferrinne ergibt ein Einhängestutzen zwei Dehnungselemente, ein
+  Schiebestutzen keines.
 * **Bauteile, die es bisher gar nicht gab** – Halter, Einhänge- und
-  Schiebestutzen, Endstücke, Sonderteile.
+  Schiebestutzen, Rinnenboden links/rechts.
 * **Fehler werden gemeldet, bevor sie ins Büro gehen**, statt erst dort
   aufzufallen.
 * **Für die Baustelle bedienbar** – ein Feld je Zeile, grosse Zahlenfelder,
@@ -162,22 +163,22 @@ sie werden nie bedient.
 {
   id, typ:"rinne_halbrund", erstellt, geaendert,
   bezeichnung, material,
-  groesse:"200"|"250"|"330"|"400"|"ohne", // genau diese fünf, nichts Freies
+  groesse:"200"|"250"|"330"|"400",  // genau diese vier, nichts Freies
   gesamtlaengeManuell_mm,                 // freiwillig, nur zur Kontrolle
 
-  // exakt die Struktur des bestehenden Moduls:
-  segmente:[{laenge, linksTyp, rechtsTyp, winkel}],
+  // die Struktur des bestehenden Moduls, um das Feld `stutzen` erweitert:
+  segmente:[{laenge, linksTyp, rechtsTyp, winkel, stutzen}],
+  // Winkel UND Stutzen sitzen am ENDE ihres Abschnitts – der Übergang IST
+  // die Segmentgrenze. Dadurch ist alles ab dem Abschnitt davor vermasst,
+  // nicht ab START, und es muss für die Rechnung nichts geteilt werden.
   //   winkel < 0 = Aussenecke, > 0 = Innenecke, 0 = gerade weiter
-  //   linksTyp/rechtsTyp werden aus dem Winkel gesetzt (AE90 = 2, IE90 = 3)
-
-  // beide Stutzenarten gleich aufgebaut, Position immer ab START:
-  einhaengestutzen:[{pos_mm, durchmesser, anzahl, fallrohr, bemerkung}], // FIXPUNKT
-  schiebestutzen:  [{pos_mm, durchmesser, anzahl, fallrohr, bemerkung}], // kein Fixpunkt,
-                                                    // gilt als Dehnungselement
+  //   stutzen = null | {art:"einhaenge"|"schiebe", durchmesser, anzahl,
+  //                     fallrohr, bemerkung}
+  //   linksTyp/rechtsTyp werden daraus gesetzt (AE90 = 2, IE90 = 3,
+  //   Einhängestutzen = 4 Fixpunkt, Schiebestutzen = 7 kein Fixpunkt)
   halter:{anzahl, abstand_mm, typ},       // anzahl null = Vorschlag gilt
-  endstuecke:{links, rechts},
+  rinnenboden:{links, rechts},   // im Ausmass zwei getrennte Positionen
   dehnung:{art:"keine"|"dehnungsstueck", anzahl},
-  sonderteile:[{bezeichnung, anzahl, bemerkung}],
   fotos:[dataURL], skizze:dataURL|null, bemerkung
 }
 ```
@@ -245,8 +246,9 @@ Beim späteren Einbau in die App passt das ohne Schemaänderung in
    sobald der Prototyp in die App wandert.
 4. **Ablaufposition auch antippbar** statt nur als Zahl: auf dem Verlaufsband
    die Stelle antippen und den Wert danach feinjustieren.
-5. **Sonderteile aus einer Vorschlagsliste** der zuletzt verwendeten
-   Bezeichnungen – „Kesselblech Sonderform“ tippt man sonst jedes Mal neu.
+5. **Ablaufrohrdurchmesser aus dem Materialkatalog** statt aus der festen
+   Liste 60 / 75 / 100 / 120 mm, sobald der Prototyp in die App wandert –
+   dieselbe Überlegung wie bei den Rinnengrössen.
 6. **Foto direkt bei der Stelle**, an der es aufgenommen wurde (Abschnitt
    oder Ablauf), statt in einem gemeinsamen Bereich.
 7. **Weitere Winkel im Katalog** (135°, 45°), sobald klar ist, welche
@@ -258,7 +260,7 @@ Beim späteren Einbau in die App passt das ohne Schemaänderung in
 
 ## Getestet
 
-Prüfstand `prototyp/pruefstand-proto-rinne.js` – **153 Prüfungen, alle
+Prüfstand `prototyp/pruefstand-proto-rinne.js` – **163 Prüfungen, alle
 bestanden**, in echtem Chromium mit echter Bedienung (Tippen Zeichen für
 Zeichen, Auswählen, Klicken). Geprüft wird die eigenständige Testapp, also
 genau die Datei, die geöffnet wird; zusätzlich, dass die Mehrdatei-Fassung
@@ -267,21 +269,24 @@ dasselbe liefert.
 | Testfall | Ergebnis |
 |---|---|
 | 1 · gerade Rinne 10 000 mm ohne Stutzen | ein Dehnungselement bei 5 000 mm, keine Fixpunkte, Zuschnitt 2 × 5 000 mm |
-| 2 · Einhängestutzen bei 5 000 mm | Rinne wird für die Rechnung dort geteilt, beidseitig Anschlusstyp id 4, `computeRinneBoundaries()` meldet einen Fixpunkt, **zwei** Dehnungselemente bei 2 500 und 7 500 mm, Gesamtlänge unverändert |
-| 3 · Schiebestutzen bei 5 000 mm | Grenze vom Typ `schiebe` (ausdrücklich **nicht** `fix`), kein einziger Fixpunkt, **kein zusätzliches** Dehnungselement – der Schiebestutzen ersetzt es; die Stückliste bricht dort um; an derselben Stelle ergibt ein Einhängestutzen 2 Dehnungselemente, ein Schiebestutzen 0 |
-| 4 · Einhängestutzen 3 000 + Schiebestutzen 7 000 | an beiden Stellen geteilt (3 000 / 4 000 / 3 000), genau **ein** Fixpunkt (bei 3 000 mm), der Schiebestutzen ist Typ `schiebe`, ein Dehnungselement bei 5 000 mm |
-| 5 · Rinnengrössen | genau fünf: 200 / 250 / 330 / 400 mm und „ohne RG“; kein 280, 333, 500, nichts Freies; bei „ohne RG“ steht die Grösse in keiner Bezeichnung |
-| 6 · Verbinder | in keinem der sechs Schritte, in keinem Element, nicht in den Daten, nicht im Ausmass, nicht in der Materialübersicht, nicht in der Zusammenfassung |
+| 2 · Einhängestutzen im Verlauf | beidseitig Anschlusstyp id 4, `computeRinneBoundaries()` meldet einen Fixpunkt, **zwei** Dehnungselemente bei 2 500 und 7 500 mm, Gesamtlänge unverändert |
+| 3 · Schiebestutzen im Verlauf | Grenze vom Typ `schiebe` (ausdrücklich **nicht** `fix`), kein einziger Fixpunkt, **kein zusätzliches** Dehnungselement – der Schiebestutzen ersetzt es; die Stückliste bricht dort um; an derselben Stelle ergibt ein Einhängestutzen 2 Dehnungselemente, ein Schiebestutzen 0 |
+| 4 · Einhängestutzen und Schiebestutzen gemeinsam | Abschnitte 3 000 / 4 000 / 3 000, genau **ein** Fixpunkt (am Einhängestutzen), der Schiebestutzen ist Typ `schiebe`, ein Dehnungselement bei 5 000 mm |
+| 5 · Rinnengrössen | genau vier: 200 / 250 / 330 / 400 mm; kein 280, 333, 500, kein „ohne RG“, nichts Freies |
+| 6 · Verbinder und Sonderformen | in keinem der sechs Schritte, in keinem Element, nicht in den Daten, nicht im Ausmass, nicht in der Materialübersicht, nicht in der Zusammenfassung |
+| 7 · Stutzen im Verlauf einfügen | „＋ Einhängestutzen“ und „＋ Schiebestutzen“ stehen neben „＋ Ecke“ und legen genauso Abschnitt und Übergang an; jeder Übergang bietet gerade / Aussen / Innen / Einhänge / Schiebe; Umschalten auf Ecke entfernt den Stutzen und zurück; in Schritt 3 gibt es keine Stutzen-Eingabe und in den Daten keine getrennten Stutzenlisten mehr |
+| 8 · Vermassung ab dem letzten Abschnitt | Einhängestutzen „2 500 mm ab Abschnitt 1“, Schiebestutzen „3 200 mm ab Abschnitt 2“ – **nicht** 5 700 ab START; Verlaufsband und Zusammenfassung vermassen ebenfalls abschnittsweise |
+| 9 · Ablaufrohr-Durchmesser | genau Ø 60 / 75 / 100 / 120 mm, kein Ø 80, 125 oder 150; der gewählte Durchmesser landet im Ausmass |
+| 10 · Rinnenboden statt Endstück | beide Schalter heissen Rinnenboden, das Wort „Endstück“ kommt nirgends mehr vor, das Ausmass führt „Rinnenboden links“ und „Rinnenboden rechts“ als getrennte Positionen – links abwählbar, rechts bleibt stehen |
 
-Dazu: Plausibilität (negative Position, Position ausserhalb, Anzahl 0 –
-für beide Stutzenarten), Stutzen genau auf einer Segmentgrenze und am
-START, Anzahl > 1 zählt im Ausmass mit, aber nur als **ein** Fixpunkt,
-Ecken bleiben Fixpunkte, Stutzen auf einer Ecke erzeugt keinen doppelten
-Fixpunkt, alte gespeicherte Aufnahmen werden übernommen (RG 333 → 330 mm,
-Abläufe → Einhängestutzen, Verbinder verschwinden), Kopieren,
-Längendifferenz-Warnung, Fokusverhalten beim Tippen, Bildschirmbreiten
-320 / 360 / 412 / 768 / 1280 px über alle sechs Schritte ohne seitliches
-Scrollen, alle Knöpfe ≥ 34 px hoch, keine JS-Fehler.
+Dazu: Plausibilität (Anzahl 0 für beide Stutzenarten, Längendifferenz),
+Anzahl > 1 zählt im Ausmass mit, aber nur als **ein** Fixpunkt, Ecken
+bleiben Fixpunkte, alte gespeicherte Aufnahmen werden übernommen
+(RG 333 → 330 mm, RG 500 → 400 mm, Ø 80 → 75, Ø 125/150 → 120, Abläufe →
+Einhängestutzen im Verlauf, Endstücke → Rinnenboden, Verbinder und
+Sonderteile verschwinden), Kopieren, Fokusverhalten beim Tippen,
+Bildschirmbreiten 320 / 360 / 412 / 768 / 1280 px über alle sechs Schritte
+ohne seitliches Scrollen, alle Knöpfe ≥ 34 px hoch, keine JS-Fehler.
 
 **Gegenproben** (jede baut einen Fehler ein und muss den Prüfstand
 umwerfen): Einhängestutzen nicht als Fixpunkt → 12 · Schiebestutzen
@@ -292,7 +297,12 @@ wieder angeboten → 4 · Verbinder wieder im Ausmass → 4 · Position ausserha
 nicht mehr geprüft → 2 · Druckdokument in einem `display:none`-Elternteil →
 4 · Bildschirm-UI im Druck nicht ausgeblendet → 1 · Grundriss nicht
 zugeschnitten → 2 · Tabellenkopf ohne Wiederholung und Bild ohne
-Seitenumbruch → 2 · Ecken vor dem Druck nicht gespiegelt → 1.
+Seitenumbruch → 2 · Ecken vor dem Druck nicht gespiegelt → 1 · Stutzen
+wieder nur über Schritt 3 statt im Verlauf → 11 · Vermassung wieder ab
+START statt ab dem letzten Abschnitt → 12 · „ohne RG“ wieder angeboten →
+6 · alte Durchmesser Ø 80/125/150 wieder angeboten → 6 · Rinnenboden im
+Ausmass wieder als eine gemeinsame Position → 1 · Sonderformen wieder
+aufgenommen → 1.
 
 **Nicht getestet:** Der Prototyp wurde nicht auf einem echten Handy oder
 Tablet bedient und nicht mit einer echten Baustellenaufnahme

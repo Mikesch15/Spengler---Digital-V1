@@ -245,7 +245,8 @@ body{background:#eef2f5;margin:0;padding:0 0 90px}
 
  /* Verlauf: Fixpunkt und Nicht-Fixpunkt müssen auch schwarz/weiss
     unterscheidbar sein – deshalb Text UND Auszeichnung, nie Farbe allein. */
- .pd-verlauf td.pos{white-space:nowrap;width:1%;text-align:right;color:#6b757c}
+ .pd-verlauf th.mass,.pd-verlauf td.mass{white-space:nowrap;width:1%;
+  text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
  .pd-verlauf td.kz{white-space:nowrap;width:1%;font-size:7pt;font-weight:800;
   letter-spacing:.06em;text-transform:uppercase}
  .pd-verlauf tr.fix td{font-weight:800}
