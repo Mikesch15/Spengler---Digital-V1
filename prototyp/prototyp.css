@@ -298,3 +298,7 @@ body{background:#eef2f5;margin:0;padding:0 0 90px}
 @media (max-width:520px){
  .p-mass-feld,.p-dila-feld{max-width:none}
 }
+
+/* Normlängen und Verschnitt */
+.p-warn{border-left:3px solid #d9822b;background:#fdf6ec}
+.p-rest{color:#b4610a;font-weight:600}

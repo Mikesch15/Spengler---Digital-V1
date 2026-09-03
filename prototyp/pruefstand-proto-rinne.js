@@ -418,6 +418,85 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  await page.evaluate(()=>{aufnahme.dilasManuell=null;aufnahmeSpeichern();zeichne()});
 
  // ==================================================================
+ console.log("\nTEST 13 · Normlängen und Verschnitt");
+ await masseZurueck();
+ await page.evaluate(()=>{localStorage.removeItem("sd_prototyp_rinne_normlaengen")});
+ // Kupfer 330 (4/5/6 m): 2 x 2500 mm Zuschnitt gehen in EINE 5-m-Stange
+ await alleMasseNull();
+ await setze({material:3,groesse:"330",rinnenboden:{links:false,rechts:false},
+              dilasManuell:[{posAbStart:2500}],...verlauf(5000)});
+ await gehe(6); await page.waitForTimeout(150);
+ const nt=await page.locator("#p-inhalt").innerText();
+ p(/Normlängen und Verschnitt/i.test(nt),"die Karte erscheint in Schritt 6");
+ const plan=await page.evaluate(()=>normlaengenErgebnis(aufnahme));
+ p(plan.ok&&plan.stangen.length===1&&plan.stangen[0].laenge===5000,
+   "2 x 2'500 mm: eine einzige 5-m-Stange",plan.stangen);
+ p(plan.verschnitt===0,"kein Verschnitt",plan);
+ p(plan.optimal===true,"und als geringster Materialeinsatz ausgewiesen",plan.optimal);
+ // Nur den Text DER KARTE prüfen - sonst würde ein "5.00 m" aus dem Ausmass
+ // die Prüfung bestehen lassen, ohne dass die Karte etwas zeigt.
+ const karte=nt.slice(nt.search(/Normlängen und Verschnitt/i));
+ p(/5\.00 m/.test(karte),"die Normlänge 5,00 m steht in der Karte",karte.slice(0,400));
+ p(/Verschnitt/i.test(karte)&&/0 mm|0,0 %/.test(karte),"und der Verschnitt",karte.slice(0,400));
+
+ // Mehrere Stücke aus einer Stange - genau die geforderte Eigenschaft
+ const inEiner=plan.stangen[0].stuecke.length;
+ p(inEiner===2,"beide Zuschnitte kommen aus derselben Stange",plan.stangen[0]);
+
+ // 6 m wäre schlechter: die Optimierung nimmt wirklich die kleinere Stange
+ const nurSechs=await page.evaluate(()=>normlaengenPlan([2500,2500],[6000]));
+ p(nurSechs.gesamt===6000&&nurSechs.verschnitt===1000,
+   "nur 6-m-Stangen verfügbar: 1'000 mm Verschnitt",nurSechs);
+ p(plan.gesamt<nurSechs.gesamt,"mit 4/5/6 m wird weniger Material gebraucht",
+   {mit:plan.gesamt,ohne:nurSechs.gesamt});
+
+ // Die hinterlegten Normlängen entsprechen der Vorgabe des Betreibers
+ const soll={"6|200":[6000],"6|250":[6000],"6|330":[6000],"6|400":[6000],
+  "3|200":[6000],"3|250":[4000,5000,6000],"3|330":[4000,5000,6000],"3|400":[6000],
+  "4|200":[6000],"4|250":[5000,6000],"4|330":[5000,6000],"4|400":[6000],
+  "2|200":[6000],"2|250":[5000,6000],"2|330":[4000,5000,6000]};
+ const ist=await page.evaluate(()=>NORMLAENGEN_VORGABE);
+ p(JSON.stringify(ist)===JSON.stringify(soll),"die Normlängen-Tabelle stimmt mit der Vorgabe überein",ist);
+ // Was nicht angegeben wurde, wird auch nicht erfunden
+ for(const [k,txt] of [["2|400","Titanzink 400"],["5|330","Chromstahl verzinnt"],["1|330","Aluminium"]])
+  p(ist[k]===undefined,"nicht geraten: "+txt);
+ const ohne=await page.evaluate(()=>normlaengenFuer({material:2,groesse:"400"}));
+ p(ohne===null,"ohne Hinterlegung liefert normlaengenFuer() null",ohne);
+ await setze({material:2,groesse:"400"});
+ await gehe(6); await page.waitForTimeout(150);
+ const nt2=await page.locator("#p-inhalt").innerText();
+ p(/keine Normlänge hinterlegt/i.test(nt2),"und die Karte sagt es, statt zu rechnen",nt2.slice(0,400));
+ p(!/Stange\s*Normlänge/i.test(nt2),"es wird dann auch keine Stangentabelle gezeigt");
+
+ // Normlängen lassen sich eintragen
+ await page.click("#p-massen"); await page.waitForTimeout(150);
+ p(await page.locator("#p-normlaengen").count()===1,"Normlängen stehen in den Einstellungen");
+ const nf=page.locator("#p-normlaengen");
+ await nf.fill("3, 4.5"); await nf.blur(); await page.waitForTimeout(150);
+ const eigen=await page.evaluate(()=>normlaengenFuer(aufnahme));
+ p(JSON.stringify(eigen)==="[3000,4500]","eingetragene Normlängen gelten (3 m / 4,5 m)",eigen);
+ await nf.fill("6, abc, -2, 0"); await nf.blur(); await page.waitForTimeout(150);
+ const eigen2=await page.evaluate(()=>normlaengenFuer(aufnahme));
+ p(JSON.stringify(eigen2)==="[6000]","Unsinn wird verworfen, nicht als 0-Stange übernommen",eigen2);
+ await page.click("#p-normZurueck"); await page.waitForTimeout(150);
+ p(await page.evaluate(()=>normlaengenFuer(aufnahme))===null,
+   "Zurücksetzen stellt den Ausgangszustand her (hier: nichts hinterlegt)");
+ // Eine eigene Angabe gilt nur für diese Material/Grösse-Kombination
+ await page.evaluate(()=>{normlaengenSchreiben({material:2,groesse:"400"},[3000]);});
+ const andere=await page.evaluate(()=>normlaengenFuer({material:3,groesse:"330"}));
+ p(JSON.stringify(andere)==="[4000,5000,6000]","eine eigene Angabe färbt nicht auf andere ab",andere);
+ await page.evaluate(()=>{localStorage.removeItem("sd_prototyp_rinne_normlaengen")});
+
+ // Zu langes Stück wird gemeldet
+ await setze({material:3,groesse:"330",rinnenboden:{links:false,rechts:false},
+              dilasManuell:[],...verlauf(9000)});
+ await gehe(6); await page.waitForTimeout(150);
+ const nt3=await page.locator("#p-inhalt").innerText();
+ p(/länger als die längste Normlänge/i.test(nt3),
+   "ein 9'000-mm-Zuschnitt wird als zu lang gemeldet",nt3.slice(0,900));
+ await page.evaluate(()=>{aufnahme.dilasManuell=null;zeichne()});
+
+ // ==================================================================
  console.log("\nB · Plausibilität");
  // Eine Position ausserhalb der Rinne ist strukturell nicht mehr moeglich
  const posFelder=await page.evaluate(()=>document.querySelectorAll("[data-eh-pos],[data-sh-pos]").length);

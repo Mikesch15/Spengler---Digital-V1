@@ -15,7 +15,8 @@ Zweitlösung**. Die gesamte Fachrechnung kommt unverändert aus
     ├── bruecke.js                    stellt bereit, was js/12 beim Laden braucht
     ├── prototyp.css                  Darstellung
     ├── bauen.js                      baut die Testapp aus den Einzeldateien
-    ├── pruefstand-proto-rinne.js     163 Prüfungen in echtem Chromium
+    ├── pruefstand-proto-rinne.js     221 Prüfungen in echtem Chromium
+    ├── pruefstand-verschnitt.js      1578 Prüfungen der Verschnitt-Rechnung
     └── README.md                     dieses Dokument
 
 Branch: `feature/prototype-rinne-halbrund`.
@@ -103,6 +104,15 @@ sie werden nie bedient.
 * **Rinnenhalter** – Abstand und Anzahl, mit Vorschlag `Länge / Abstand + 1`,
   jederzeit überschreibbar.
 * **Rinnenboden (links und rechts getrennt) und Dehnung.**
+* **Zuschnittmasse je Element als Einstellung** – jedes Element (Aussen-/
+  Innenwinkel, Einhänge- und Schiebestutzen, Rinnenboden, jeder weitere
+  Katalogtyp) und das Dilatationselement tragen ein Mass in mm, das dem
+  Zuschnitt zugerechnet (+) oder abgezogen (−) wird.
+* **Dehnungselemente von Hand anpassbar** – Abstand je Zeile überschreiben,
+  hinzufügen, löschen, zurück zur Berechnung.
+* **Normlängen und Verschnitt** – aus welchen Stangenlängen die Zuschnitte
+  geschnitten werden, so dass möglichst wenig übrig bleibt; mehrere Stücke
+  dürfen aus derselben Stange kommen.
 * **Verlaufsband** – der ganze Verlauf als gerades Band von START bis ENDE,
   mit Ecken (▲), Einhängestutzen (runde Marke **E**, mit Strich durch die
   Rinne und der Beschriftung **FIX**), Schiebestutzen (eckige violette Marke
@@ -154,6 +164,23 @@ sie werden nie bedient.
   Knöpfe über die volle Breite, ab 320 px Bildschirmbreite ohne seitliches
   Scrollen. Ein Zahlenfeld markiert beim ersten Antippen seinen ganzen Inhalt:
   wer ein Mass korrigiert, ersetzt es, statt versehentlich davor zu tippen.
+* **Der Zuschnitt ist einstellbar, ohne dass eine zweite Wahrheit entsteht.**
+  Die Zuschnittmasse liegen in genau den zwei Quellen, die das bestehende
+  Modul ohnehin benutzt: `rinne_fitting_types.mass_mm` für die Elemente und
+  `rinneDilaMass` für das Dilatationselement. Der Prototyp bearbeitet diese
+  beiden – er führt keine dritte ein, damit der Einbau in die App nichts
+  umrechnen muss. Der Rinnenboden ist dafür der Anschlusstyp am äussersten
+  Grenzpunkt (Katalogeintrag „Boden“), sodass `berechneRinneStueckliste()`
+  ihn ohne eine Zeile neuer Fachlogik mitrechnet.
+* **Die Berechnung lässt sich übersteuern, ohne dass es untergeht.** Wer die
+  Dehnungselemente von Hand setzt, sieht das in Schritt 3, in Schritt 6 und
+  im PDF ausdrücklich; eine Position ausserhalb der Rinne ist ein Fehler und
+  wird nicht still zurechtgerückt.
+* **Das Material wird ausgerechnet, nicht geschätzt.** Aus den Zuschnitten
+  und den Normlängen des Lieferanten entsteht der Bedarf mit dem geringsten
+  Verschnitt – mehrere Stücke dürfen aus einer Stange kommen. Fehlt für eine
+  Material/Grössen-Kombination eine Normlänge, wird sie **nicht geraten**:
+  die Karte sagt, dass nichts gerechnet wurde.
 * **Materialübersicht bewusst ohne Artikelnummern und Preise** – die kommen
   später aus der Materialliste der jeweiligen Firma.
 
@@ -179,6 +206,10 @@ sie werden nie bedient.
   halter:{anzahl, abstand_mm, typ},       // anzahl null = Vorschlag gilt
   rinnenboden:{links, rechts},   // im Ausmass zwei getrennte Positionen
   dehnung:{art:"keine"|"dehnungsstueck", anzahl},
+  dilasManuell:null | [{posAbStart}],  // null = gerechnet, sonst von Hand
+  //   Die Zuschnittmasse und die Normlängen gehören NICHT zur Aufnahme.
+  //   Sie sind Einstellungen und liegen in eigenen Schlüsseln:
+  //   sd_prototyp_rinne_massen und sd_prototyp_rinne_normlaengen.
   fotos:[dataURL], skizze:dataURL|null, bemerkung
 }
 ```
@@ -233,6 +264,17 @@ Beim späteren Einbau in die App passt das ohne Schemaänderung in
   Massbeschriftungen** mit den Positionsnummern. Das ist unverändertes
   Verhalten der Zeichenfunktion des bestehenden Moduls und tritt am
   Bildschirm genauso auf – die Funktion wird bewusst nicht angefasst.
+* **Normlängen nur für die angegebenen Kombinationen.** Hinterlegt sind
+  Stahl verzinkt, Kupfer, CrNi-Stahl (je alle vier Grössen) sowie Titanzink
+  200/250/330. **Nicht** hinterlegt und deshalb ohne Materialbedarf:
+  Titanzink 400, Chromstahl verzinnt, Aluminium. Sie lassen sich in den
+  Einstellungen je Material und Grösse eintragen.
+* **Der Verschnitt rechnet ohne Schnittfuge und ohne Reststücke-Lager.**
+  Die Säge- bzw. Scherenbreite ist nicht abgezogen, und ein Rest aus einer
+  früheren Stange wird nicht wiederverwendet.
+* **Bei sehr vielen Zuschnitten wird nicht jede Möglichkeit durchgerechnet.**
+  Ab einem Suchbudget liefert der Prototyp die beste gefundene Kombination
+  und weist sie ausdrücklich als solche aus, statt sie „optimal“ zu nennen.
 * **Keine Mehrfachauswahl von Rinnen**, kein Kopieren einzelner Abschnitte.
 
 ## 8. Empfehlungen nach dem ersten Test
@@ -260,7 +302,7 @@ Beim späteren Einbau in die App passt das ohne Schemaänderung in
 
 ## Getestet
 
-Prüfstand `prototyp/pruefstand-proto-rinne.js` – **163 Prüfungen, alle
+Prüfstand `prototyp/pruefstand-proto-rinne.js` – **221 Prüfungen, alle
 bestanden**, in echtem Chromium mit echter Bedienung (Tippen Zeichen für
 Zeichen, Auswählen, Klicken). Geprüft wird die eigenständige Testapp, also
 genau die Datei, die geöffnet wird; zusätzlich, dass die Mehrdatei-Fassung
@@ -277,6 +319,9 @@ dasselbe liefert.
 | 7 · Stutzen im Verlauf einfügen | „＋ Einhängestutzen“ und „＋ Schiebestutzen“ stehen neben „＋ Ecke“ und legen genauso Abschnitt und Übergang an; jeder Übergang bietet gerade / Aussen / Innen / Einhänge / Schiebe; Umschalten auf Ecke entfernt den Stutzen und zurück; in Schritt 3 gibt es keine Stutzen-Eingabe und in den Daten keine getrennten Stutzenlisten mehr |
 | 8 · Vermassung ab dem letzten Abschnitt | Einhängestutzen „2 500 mm ab Abschnitt 1“, Schiebestutzen „3 200 mm ab Abschnitt 2“ – **nicht** 5 700 ab START; Verlaufsband und Zusammenfassung vermassen ebenfalls abschnittsweise |
 | 9 · Ablaufrohr-Durchmesser | genau Ø 60 / 75 / 100 / 120 mm, kein Ø 80, 125 oder 150; der gewählte Durchmesser landet im Ausmass |
+| 11 · Zuschnittmasse | je ein Feld für **jeden** Anschlusstyp des Katalogs plus eines für das Dilatationselement; eine Aussenecke von 0 auf −300 mm verkürzt zwei Stücke um je 300 mm, +250 mm verlängert sie – das Vorzeichen wirkt; der Rinnenboden wirkt an beiden Enden, bei nur einem Boden nur einmal; geänderte Masse verschieben **kein** Dehnungselement; Zurücksetzen stellt die Vorgaben her (Dila −165 mm wie in der App) |
+| 12 · Dehnungselemente von Hand | jede Dila-Zeile im Zuschnitt hat ein Eingabefeld; der eingegebene Abstand gilt ab dem Punkt davor; ab dem ersten Eingriff bleibt die Handliste stehen, auch bei geänderter Länge; hinzufügen, löschen und „zurück zur Berechnung“ liefern wieder die gerechneten Positionen; zu wenige von Hand → Hinweis, Position ausserhalb der Rinne → Fehler; die Handanpassung wird mitgespeichert |
+| 13 · Normlängen und Verschnitt | 2 × 2 500 mm gehen in **eine** 5-m-Stange, kein Verschnitt, als geringster Materialeinsatz ausgewiesen; mit nur 6-m-Stangen wären es 1 000 mm Verschnitt; die hinterlegte Tabelle stimmt zeichengenau mit der Vorgabe überein; Titanzink 400, Chromstahl verzinnt und Aluminium werden **nicht** geraten, sondern gemeldet; eigene Normlängen lassen sich eintragen, Unsinn wird verworfen, das Zurücksetzen stellt den Ausgangszustand her, und die Angabe gilt nur für diese Material/Grössen-Kombination; ein zu langer Zuschnitt wird gemeldet |
 | 10 · Rinnenboden statt Endstück | beide Schalter heissen Rinnenboden, das Wort „Endstück“ kommt nirgends mehr vor, das Ausmass führt „Rinnenboden links“ und „Rinnenboden rechts“ als getrennte Positionen – links abwählbar, rechts bleibt stehen |
 
 Dazu: Plausibilität (Anzahl 0 für beide Stutzenarten, Längendifferenz),
@@ -287,6 +332,16 @@ Einhängestutzen im Verlauf, Endstücke → Rinnenboden, Verbinder und
 Sonderteile verschwinden), Kopieren, Fokusverhalten beim Tippen,
 Bildschirmbreiten 320 / 360 / 412 / 768 / 1280 px über alle sechs Schritte
 ohne seitliches Scrollen, alle Knöpfe ≥ 34 px hoch, keine JS-Fehler.
+
+Dazu ein zweiter, reiner Rechen-Prüfstand für die Verschnitt-Optimierung
+(`prototyp/pruefstand-verschnitt.js`, **1 578 Prüfungen**): er vergleicht das Ergebnis mit einer
+**unabhängigen, vollständigen Suche**, die stur alle Stangen-Kombinationen
+und alle Zuordnungen durchprobiert – für kleine Fälle ist das beweisbar das
+Optimum. Geprüft werden Handrechnungen, 120 Zufallsfälle, die Meldung zu
+langer Stücke, der Fall ohne hinterlegte Normlänge und ein realistischer
+Fall mit 24 Zuschnitten. Bei jedem Plan wird ausserdem nachgerechnet, dass
+keine Stange überladen ist, jedes Stück genau einmal vorkommt und Gesamtlänge
+und Verschnitt zur Stückliste passen.
 
 **Gegenproben** (jede baut einen Fehler ein und muss den Prüfstand
 umwerfen): Einhängestutzen nicht als Fixpunkt → 12 · Schiebestutzen
@@ -302,7 +357,21 @@ wieder nur über Schritt 3 statt im Verlauf → 11 · Vermassung wieder ab
 START statt ab dem letzten Abschnitt → 12 · „ohne RG“ wieder angeboten →
 6 · alte Durchmesser Ø 80/125/150 wieder angeboten → 6 · Rinnenboden im
 Ausmass wieder als eine gemeinsame Position → 1 · Sonderformen wieder
-aufgenommen → 1.
+aufgenommen → 1 · Rinnenboden-Mass nicht mitgerechnet → 2 · Einstellungen
+ohne Wirkung → 4 · Dila-Mass ignoriert → 2 · Handanpassung von der Rechnung
+überschrieben → 4 · Dila-Zeilen ohne Eingabefeld → 1 · Dila ausserhalb der
+Rinne nicht gemeldet → 1 · Normlängen-Karte weg → 5 · fehlende Normlänge als
+6 m geraten → 4 · eingetragene Normlängen ohne Wirkung → 2 · Kupfer 330 nur
+6 m → 6 · Optimierung aus, nur gierig → 1 · zu lange Stücke verschwiegen → 1 ·
+beide Filterschichten für Normlängen weg → bricht den Prüfstand ab.
+In der Verschnitt-Prüfung ebenso: nur gierig → 2 · immer die längste Stange
+→ 4 · zu lange Stücke weglassen → 2 · Stange überladen → 182 · fehlende
+Normlänge raten → 3.
+
+Eine dieser Gegenproben (die beiden Filterschichten für die Normlängen)
+zählte zunächst als „grün“, weil der Prüfstand dabei **abbricht** statt
+Fehlschläge zu melden – gemessen wurde nur die Zahl der Fehlschläge. Die
+Messung prüft jetzt zusätzlich, ob überhaupt ein Ergebnis zustande kommt.
 
 **Nicht getestet:** Der Prototyp wurde nicht auf einem echten Handy oder
 Tablet bedient und nicht mit einer echten Baustellenaufnahme

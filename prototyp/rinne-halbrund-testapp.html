@@ -9,7 +9,7 @@
      Erzeugt von prototyp/bauen.js – nicht von Hand bearbeiten.
      Änderungen gehören in prototyp/prototyp-rinne.js bzw. prototyp.css,
      danach "node prototyp/bauen.js" laufen lassen.
-     Gebaut am 2026-09-03 11:09 UTC
+     Gebaut am 2026-09-03 11:30 UTC
      =================================================================== -->
 <style>
 /* ---- css/01-basis.css (unverändert aus der laufenden App) ---- */
@@ -679,6 +679,10 @@ body{background:#eef2f5;margin:0;padding:0 0 90px}
 @media (max-width:520px){
  .p-mass-feld,.p-dila-feld{max-width:none}
 }
+
+/* Normlängen und Verschnitt */
+.p-warn{border-left:3px solid #d9822b;background:#fdf6ec}
+.p-rest{color:#b4610a;font-weight:600}
 
 </style>
 </head>
@@ -1350,6 +1354,185 @@ function masseZuruecksetzen(){
  masseAnwenden();
 }
 masseAnwenden();
+
+// ---- 1c. Normlängen und Verschnitt ----------------------------------------
+// Welche Rinnen-Normlängen der Lieferant je Material und Grösse führt.
+// Vorgabe nach Angabe des Betreibers. Eine Kombination, die hier NICHT steht,
+// wird auch nicht geraten – sie wird als "keine Normlänge hinterlegt"
+// gemeldet, und es wird nichts optimiert.
+const NORMLAENGEN_SPEICHER="sd_prototyp_rinne_normlaengen";
+const NORMLAENGEN_VORGABE={
+ // Stahl, verzinkt (id 6) – alle Grössen 6 m
+ "6|200":[6000], "6|250":[6000], "6|330":[6000], "6|400":[6000],
+ // Kupfer (id 3)
+ "3|200":[6000], "3|250":[4000,5000,6000], "3|330":[4000,5000,6000], "3|400":[6000],
+ // CrNi-Stahl / Chromnickelstahl (id 4)
+ "4|200":[6000], "4|250":[5000,6000], "4|330":[5000,6000], "4|400":[6000],
+ // Titanzink (id 2)
+ "2|200":[6000], "2|250":[5000,6000], "2|330":[4000,5000,6000]
+ // Nicht angegeben und deshalb bewusst leer: Titanzink 400,
+ // Chromstahl verzinnt (id 5), Aluminium (id 1).
+};
+function normSchluessel(a){return String(a&&a.material)+"|"+String(a&&a.groesse)}
+function normlaengenLesen(){
+ try{const m=JSON.parse(localStorage.getItem(NORMLAENGEN_SPEICHER)||"null");
+  return (m&&typeof m==="object")?m:{};}catch(e){return {}}
+}
+function normlaengenFuer(a){
+ const k=normSchluessel(a);
+ const eigen=normlaengenLesen()[k];
+ const quelle=Array.isArray(eigen)?eigen:NORMLAENGEN_VORGABE[k];
+ if(!Array.isArray(quelle))return null;                 // nichts hinterlegt
+ const liste=quelle.map(v=>Math.round(zahl(v))).filter(v=>v>0);
+ return liste.length?Array.from(new Set(liste)).sort((x,y)=>x-y):[];
+}
+function normlaengenSchreiben(a,liste){
+ const m=normlaengenLesen();
+ m[normSchluessel(a)]=liste;
+ try{localStorage.setItem(NORMLAENGEN_SPEICHER,JSON.stringify(m));}catch(e){}
+}
+function normlaengenZuruecksetzen(a){
+ const m=normlaengenLesen();
+ delete m[normSchluessel(a)];
+ try{localStorage.setItem(NORMLAENGEN_SPEICHER,JSON.stringify(m));}catch(e){}
+}
+
+// --- Der Materialbedarf: eindimensionales Verschnittproblem ----------------
+// Aus welchen Normlängen lassen sich alle Stücke so schneiden, dass möglichst
+// wenig übrig bleibt? Mehrere Stücke dürfen aus derselben Stange kommen.
+//
+// Vorgehen: zuerst eine brauchbare Lösung gierig bauen – sie liefert die
+// Obergrenze. Danach alle Stangen-Kombinationen mit kleinerer oder gleicher
+// Gesamtlänge der Reihe nach durchprobieren. Die erste, die aufgeht, ist die
+// mit dem kleinsten Materialeinsatz und damit die mit dem wenigsten
+// Verschnitt – die Summe der Stücke ist ja fest.
+// Reicht das Suchbudget nicht, wird die gierige Lösung zurückgegeben und
+// ausdrücklich NICHT als beste ausgewiesen.
+const NORM_BUDGET=400000;
+
+// Passen die Stücke (absteigend sortiert) in Stangen mit diesen Längen?
+// Exakte Suche mit zwei Abkürzungen: gleich grosse Reste werden nur einmal
+// probiert, und wenn die Stücke rechnerisch gar nicht mehr hineinpassen
+// können, wird sofort abgebrochen.
+function normPasst(stuecke,kapazitaeten,zaehler){
+ const rest=kapazitaeten.slice();
+ const belegung=kapazitaeten.map(()=>[]);
+ function schritt(i,summeRest){
+  if(i>=stuecke.length)return true;
+  if(zaehler.n++>NORM_BUDGET)return false;
+  let frei=0; for(let k=0;k<rest.length;k++)frei+=rest[k];
+  if(summeRest>frei)return false;
+  const st=stuecke[i];
+  const probiert=[];
+  for(let k=0;k<rest.length;k++){
+   if(rest[k]<st)continue;
+   if(probiert.indexOf(rest[k])>=0)continue;     // gleicher Rest: schon probiert
+   probiert.push(rest[k]);
+   rest[k]-=st; belegung[k].push(st);
+   if(schritt(i+1,summeRest-st))return true;
+   rest[k]+=st; belegung[k].pop();
+  }
+  return false;
+ }
+ let summe=0; stuecke.forEach(x=>{summe+=x});
+ if(!schritt(0,summe))return null;
+ return kapazitaeten.map((kap,k)=>({laenge:kap,stuecke:belegung[k].slice(),
+                                    rest:kap-belegung[k].reduce((x,y)=>x+y,0)}));
+}
+
+// Gierige Ausgangslösung: Stange für Stange. Für jede Normlänge wird
+// durchgerechnet, wie voll sie würde; genommen wird die mit dem kleinsten
+// Rest, bei Gleichstand die kürzere.
+function normGierig(stuecke,normen){
+ const offen=stuecke.slice().sort((a,b)=>b-a);
+ const stangen=[];
+ while(offen.length){
+  let beste=null;
+  normen.forEach(n=>{
+   if(offen[0]>n)return;                       // längstes Stück passt nicht
+   const genommen=[]; let rest=n;
+   offen.forEach(st=>{if(st<=rest){rest-=st;genommen.push(st)}});
+   if(!genommen.length)return;
+   if(!beste||rest<beste.rest||(rest===beste.rest&&n<beste.laenge))
+    beste={laenge:n,rest,stuecke:genommen};
+  });
+  if(!beste)return null;                        // kein Stück passt irgendwo
+  beste.stuecke.forEach(st=>{offen.splice(offen.indexOf(st),1)});
+  stangen.push(beste);
+ }
+ return stangen;
+}
+
+function normlaengenPlan(stuecke,normen){
+ const teile=(stuecke||[]).map(v=>Math.round(zahl(v))).filter(v=>v>0).sort((a,b)=>b-a);
+ if(!Array.isArray(normen)||!normen.length)
+  return {ok:false,grund:"keine",stangen:[],zuLang:[],gesamt:0,verschnitt:0,
+          summeStuecke:0,optimal:false};
+ const maxN=Math.max.apply(null,normen);
+ const zuLang=teile.filter(v=>v>maxN);
+ const passend=teile.filter(v=>v<=maxN);
+ const summeStuecke=passend.reduce((a,b)=>a+b,0);
+ if(!passend.length)
+  return {ok:zuLang.length===0,grund:zuLang.length?"zuLang":"leer",
+          stangen:[],zuLang,gesamt:0,verschnitt:0,summeStuecke:0,optimal:true};
+
+ const gierig=normGierig(passend,normen);
+ if(!gierig)return {ok:false,grund:"zuLang",stangen:[],zuLang:passend,
+                    gesamt:0,verschnitt:0,summeStuecke,optimal:false};
+ const gierigGesamt=gierig.reduce((a,b)=>a+b.laenge,0);
+
+ // Alle Stangen-Kombinationen mit Gesamtlänge zwischen der Summe der Stücke
+ // und der gierigen Lösung – nach Gesamtlänge, dann nach Stangenzahl sortiert.
+ const nsort=normen.slice().sort((a,b)=>b-a);
+ const kombis=[];
+ const maxAnzahl=nsort.map(n=>Math.floor(gierigGesamt/n));
+ (function baue(i,counts,summe){
+  if(summe>gierigGesamt)return;
+  if(i===nsort.length){
+   if(summe>=summeStuecke)kombis.push({counts:counts.slice(),summe,
+    anzahl:counts.reduce((a,b)=>a+b,0)});
+   return;
+  }
+  for(let c=0;c<=maxAnzahl[i];c++){
+   counts[i]=c;
+   if(summe+c*nsort[i]>gierigGesamt)break;
+   baue(i+1,counts,summe+c*nsort[i]);
+  }
+  counts[i]=0;
+ })(0,nsort.map(()=>0),0);
+ kombis.sort((a,b)=>a.summe-b.summe||a.anzahl-b.anzahl);
+
+ const zaehler={n:0};
+ for(const k of kombis){
+  const kap=[];
+  k.counts.forEach((c,i)=>{for(let j=0;j<c;j++)kap.push(nsort[i])});
+  if(!kap.length)continue;
+  const plan=normPasst(passend,kap,zaehler);
+  if(plan){
+   plan.sort((a,b)=>b.laenge-a.laenge||a.rest-b.rest);
+   return {ok:true,grund:"",stangen:plan,zuLang,gesamt:k.summe,
+           verschnitt:k.summe-summeStuecke,summeStuecke,optimal:true};
+  }
+  if(zaehler.n>NORM_BUDGET)break;
+ }
+ // Budget aufgebraucht: die gierige Lösung, ehrlich als "nicht bewiesen bestes
+ // Ergebnis" markiert.
+ gierig.sort((a,b)=>b.laenge-a.laenge||a.rest-b.rest);
+ return {ok:true,grund:"",stangen:gierig,zuLang,gesamt:gierigGesamt,
+         verschnitt:gierigGesamt-summeStuecke,summeStuecke,optimal:false};
+}
+
+// Die Stücke, die tatsächlich zugeschnitten werden – dieselbe Quelle wie die
+// Zuschnitt-Tabelle, damit Plan und Tabelle nie auseinanderlaufen können.
+function zuschnittStuecke(a){
+ const d=dilasEffektiv(a);
+ return berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass)
+   .map(s=>Math.round(zahl(s.zuschnitt))).filter(v=>v>0);
+}
+function normlaengenErgebnis(a){
+ return normlaengenPlan(zuschnittStuecke(a),normlaengenFuer(a));
+}
+
 
 function leereAufnahme(){
  return {
@@ -2085,6 +2268,52 @@ function zuschnittTabelle(a){
 </div>`;
 }
 
+// Materialbedarf: welche Normlängen, wie viele, und was bleibt übrig.
+function normlaengenKarte(a){
+ const normen=normlaengenFuer(a);
+ const kopf=`<div class="p-karte"><h2>Normlängen und Verschnitt</h2>`;
+ if(normen===null||!normen.length){
+  return kopf+`<div class="p-hinweis p-warn">Für <b>${esc(materialText(a))} ${esc(groesseText(a))}</b>
+ist keine Normlänge hinterlegt. Der Materialbedarf wird deshalb <b>nicht</b> gerechnet –
+er würde sonst auf einer geratenen Stangenlänge beruhen.
+Die Normlängen lassen sich in den <b>Einstellungen</b> oben rechts eintragen.</div></div>`;
+ }
+ const r=normlaengenErgebnis(a);
+ if(!r.stangen.length&&!r.zuLang.length)
+  return kopf+`<div class="p-hinweis">Noch nichts zuzuschneiden.</div></div>`;
+ // Wie viele Stangen je Normlänge
+ const nachLaenge={};
+ r.stangen.forEach(st=>{nachLaenge[st.laenge]=(nachLaenge[st.laenge]||0)+1});
+ // Die Kachelbeschriftung wird per CSS gross geschrieben - aus "6.00 m" würde
+ // dort "6.00 M". Die Längen gehören deshalb in den fetten Wert, nicht ins Label.
+ const bestellung=Object.keys(nachLaenge).map(Number).sort((x,y)=>y-x)
+  .map(l=>`${nachLaenge[l]} × ${meter(l)} m`).join(" · ");
+ const zeilen=r.stangen.map((st,i)=>`<tr>
+<td>${i+1}</td><td>${esc(meter(st.laenge))} m</td>
+<td>${st.stuecke.map(x=>esc(mm(x))).join(" + ")||"–"}</td>
+<td class="p-num${st.rest>0?" p-rest":""}">${esc(mm(st.rest))}</td></tr>`).join("");
+ const anteil=r.gesamt>0?(r.verschnitt/r.gesamt*100):0;
+ return kopf
+ +`<div class="p-hinweis">Aus welchen Normlängen die Stücke geschnitten werden, so dass möglichst
+wenig übrig bleibt. Mehrere Stücke dürfen aus derselben Stange kommen.
+Verfügbar für ${esc(materialText(a))} ${esc(groesseText(a))}: <b>${normen.map(n=>meter(n)+" m").join(" · ")}</b>.</div>
+<div class="p-zf-kopf">
+<div><span>Bedarf</span><b>${esc(bestellung)}</b></div>
+<div><span>Verschnitt</span><b>${esc(mm(r.verschnitt))} mm (${anteil.toFixed(1).replace(".",",")} %)</b></div></div>
+<div class="p-tabelle">
+<table><thead><tr><th>Stange</th><th>Normlänge</th><th>Zuschnitte (mm)</th><th>Rest (mm)</th></tr></thead>
+<tbody>${zeilen}</tbody></table>
+</div>
+<div class="p-hinweis">${r.optimal
+ ? `Das ist die Kombination mit dem geringsten Materialeinsatz – ${esc(mm(r.gesamt))} mm Normlänge für ${esc(mm(r.summeStuecke))} mm Zuschnitt.`
+ : `Beste gefundene Kombination. Bei dieser Stückzahl wurde nicht jede Möglichkeit durchgerechnet – es kann eine geringfügig bessere geben.`}</div>
+${r.zuLang.length?`<div class="p-hinweis p-warn"><b>Achtung:</b> ${r.zuLang.length} Zuschnitt(e)
+(${r.zuLang.map(x=>esc(mm(x))).join(", ")} mm) sind länger als die längste Normlänge
+(${esc(meter(Math.max.apply(null,normen)))} m) und lassen sich nicht aus einer Stange schneiden.
+Sie sind im Plan oben <b>nicht</b> enthalten.</div>`:""}
+</div>`;
+}
+
 function schritt6(){
  const a=aufnahme;
  const zeilen=ausmassZeilen(a);
@@ -2120,6 +2349,7 @@ ${zuschnittTabelle(a)}
 <button type="button" class="p-grau" id="p-dilaAuto"${dilasEffektiv(a).automatisch?" disabled":""}>↻ Zurück zur Berechnung</button>
 </div>
 </div>
+${normlaengenKarte(a)}
 <div class="p-karte">
 <h2>PDF</h2>
 <div class="p-hinweis">Erzeugt ein Blatt mit Verlauf, Schema, Ausmass, Materialübersicht,
@@ -2219,10 +2449,9 @@ function masseHtml(){
   const k=f.symbol||("id"+f.id);
   const rolle=MASS_ROLLE[f.id]||"im Verlauf zurzeit nicht verwendet";
   return `<tr>
-<td><b>${esc(f.name)}</b><div class="p-klein-text">${esc(rolle)}</div></td>
+<td><b>${esc(f.name)}</b><div class="p-klein-text">${esc(rolle)} · Vorgabe ${MASS_VORGABE[k]} mm</div></td>
 <td class="p-num"><input class="p-mass-feld" type="number" inputmode="numeric" step="1"
- data-mass-fitting="${esc(k)}" value="${Number(f.mass_mm)||0}"></td>
-<td class="p-klein-text">Vorgabe ${MASS_VORGABE[k]} mm</td></tr>`;
+ data-mass-fitting="${esc(k)}" value="${Number(f.mass_mm)||0}"></td></tr>`;
  }).join("");
  return `<div class="p-karte">
 <h2>⚙️ Zuschnittmasse je Element</h2>
@@ -2233,17 +2462,33 @@ Die Werte gelten sofort für alle Aufnahmen und bleiben in diesem Browser.
 In der App stehen sie als Firmeneinstellung unter
 <b>Einstellungen → Massaufnahmen → Rinne</b>.</div>
 <div class="p-tabelle">
-<table><thead><tr><th>Element</th><th>Mass (mm)</th><th></th></tr></thead>
+<table><thead><tr><th>Element</th><th>Mass (mm)</th></tr></thead>
 <tbody>${zeilen}
 <tr class="p-mass-dila">
-<td><b>Dilatationselement</b><div class="p-klein-text">an jedem gerechneten oder von Hand gesetzten Dehnungselement, beidseitig</div></td>
+<td><b>Dilatationselement</b><div class="p-klein-text">an jedem gerechneten oder von Hand gesetzten Dehnungselement, beidseitig · Vorgabe ${DILA_MASS_VORGABE} mm</div></td>
 <td class="p-num"><input class="p-mass-feld" type="number" inputmode="numeric" step="1"
- id="p-massDila" value="${Number(rinneDilaMass)||0}"></td>
-<td class="p-klein-text">Vorgabe ${DILA_MASS_VORGABE} mm</td></tr>
+ id="p-massDila" value="${Number(rinneDilaMass)||0}"></td></tr>
 </tbody></table>
 </div>
 <div class="p-knopfreihe">
 <button type="button" class="p-grau" id="p-masseZurueck">↻ Auf die Vorgaben zurücksetzen</button>
+</div>
+</div>
+<div class="p-karte">
+<h2>📏 Normlängen</h2>
+<div class="p-hinweis">Welche Stangenlängen der Lieferant für
+<b>${esc(materialText(aufnahme))} ${esc(groesseText(aufnahme))}</b> führt – in Metern,
+durch Komma getrennt (z. B. <b>4, 5, 6</b>). Daraus rechnet Schritt 6 den
+Materialbedarf und den Verschnitt. Die Angabe gilt je Material und Grösse.</div>
+<div class="p-grid">
+${feld("Normlängen (m)",`<input id="p-normlaengen" inputmode="decimal"
+ value="${esc((normlaengenFuer(aufnahme)||[]).map(n=>meter(n)).join(", "))}"
+ placeholder="keine hinterlegt">`,true)}
+</div>
+${normlaengenFuer(aufnahme)===null?`<div class="p-hinweis p-warn">Für diese Kombination ist
+nichts hinterlegt. Ohne Eintrag wird der Materialbedarf bewusst nicht gerechnet.</div>`:""}
+<div class="p-knopfreihe">
+<button type="button" class="p-grau" id="p-normZurueck">↻ Auf die Vorgabe zurücksetzen</button>
 <button type="button" class="p-grau" id="p-masseSchliessen">Schliessen</button>
 </div>
 </div>`;
@@ -2346,6 +2591,15 @@ function verdrahten(){
    masseSchreiben(fitting,dilaFeld&&dilaFeld.value!==""?zahl(dilaFeld.value):0);
    const inhalt=$("p-inhalt");
    if(inhalt)inhalt.innerHTML=[schritt1,schritt2,schritt3,schritt4,schritt5,schritt6][schritt-1]();
+   return;
+  }
+  if(t.id==="p-normlaengen"){
+   // "4, 5, 6" -> [4000,5000,6000]. Nur echte, positive Zahlen; alles
+   // andere wird verworfen statt in eine 0-Stange zu münden.
+   const liste=String(t.value||"").split(/[,;\s]+/).map(x=>x.replace(",","."))
+    .map(x=>Math.round(Number(x)*1000)).filter(v=>Number.isFinite(v)&&v>0);
+   normlaengenSchreiben(a,Array.from(new Set(liste)).sort((x,y)=>x-y));
+   zeichne();
    return;
   }
   // Dila-Abstand von Hand: derselbe Weg wie in der Dila-Liste der App –
@@ -2481,6 +2735,7 @@ function verdrahten(){
   if(t.id==="p-massen"){massenOffen=!massenOffen;listeOffen=false;zeichne();return;}
   if(t.id==="p-masseSchliessen"){massenOffen=false;zeichne();return;}
   if(t.id==="p-masseZurueck"){masseZuruecksetzen();zeichne();return;}
+  if(t.id==="p-normZurueck"){normlaengenZuruecksetzen(a);zeichne();return;}
   if(t.id==="p-dilaPlus"){
    const liste=dilasVonHand(a);
    const L=gesamtlaengeBerechnet(a);
@@ -2729,6 +2984,32 @@ ${d.automatisch?"Die Dehnungselemente sind gerechnet."
  :"<b>Die Dehnungselemente sind von Hand festgelegt</b> und weichen möglicherweise von der Berechnung ab."}
 Verwendete Zuschnittmasse: ${esc(massTextFuerDruck())}.</div>
 
+${(function(){
+ const normen=normlaengenFuer(a);
+ if(normen===null||!normen.length)
+  return `<div class="pd-balken">Normlängen</div><div class="pd-fussnote">Für
+${esc(materialText(a))} ${esc(groesseText(a))} ist keine Normlänge hinterlegt –
+der Materialbedarf wurde deshalb nicht gerechnet.</div>`;
+ const r=normlaengenErgebnis(a);
+ if(!r.stangen.length&&!r.zuLang.length)return "";
+ const nachLaenge={};
+ r.stangen.forEach(st=>{nachLaenge[st.laenge]=(nachLaenge[st.laenge]||0)+1});
+ const bestellung=Object.keys(nachLaenge).map(Number).sort((x,y)=>y-x)
+  .map(l=>`${nachLaenge[l]} × ${meter(l)} m`).join(" · ");
+ return `<div class="pd-balken">Normlängen und Verschnitt</div>
+<table class="pd-tab">
+<thead><tr><th class="r">Stange</th><th class="r">Normlänge</th><th>Zuschnitte (mm)</th><th class="r">Rest (mm)</th></tr></thead>
+<tbody>${r.stangen.map((st,i)=>`<tr><td class="r">${i+1}</td>`
+ +`<td class="r">${esc(meter(st.laenge))} m</td>`
+ +`<td>${st.stuecke.map(x=>esc(mm(x))).join(" + ")||"–"}</td>`
+ +`<td class="r${st.rest>0?" b":""}">${esc(mm(st.rest))}</td></tr>`).join("")}</tbody></table>
+<div class="pd-fussnote">Bedarf: <b>${esc(bestellung)}</b> ·
+Verschnitt <b>${esc(mm(r.verschnitt))} mm</b> von ${esc(mm(r.gesamt))} mm.
+${r.optimal?"Kombination mit dem geringsten Materialeinsatz."
+ :"Beste gefundene Kombination – nicht jede Möglichkeit wurde durchgerechnet."}
+${r.zuLang.length?` ACHTUNG: ${r.zuLang.length} Zuschnitt(e) (${r.zuLang.map(x=>esc(mm(x))).join(", ")} mm)
+sind länger als die längste Normlänge und im Plan NICHT enthalten.`:""}</div>`;
+})()}
 ${a.bemerkung?`<div class="pd-balken">Bemerkung</div><div class="pd-bemerkung">${esc(a.bemerkung)}</div>`:""}
 ${skizze}${fotos}
 <style>@page{@bottom-left{content:"${druckFussText()}";
