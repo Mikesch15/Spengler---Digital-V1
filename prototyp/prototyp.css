@@ -121,6 +121,9 @@ body{background:#eef2f5;margin:0;padding:0 0 90px}
 .p-zf-kopf b{font-size:15px}
 .p-liste{margin:0;padding:0 0 0 20px;font-size:14px;line-height:1.65}
 .p-ecke-li{color:#0f766e;font-weight:700}
+/* Fixpunkt und Nicht-Fixpunkt im Verlauf klar unterscheiden */
+.p-fix-li{color:#1769aa;font-weight:700}
+.p-losfix-li{color:#6b4fa8;font-weight:700}
 .p-zf-fuss{font-size:13px;color:#3b4750}
 .p-bem{margin:6px 0 0;padding:8px 10px;background:#f4f7f9;border-radius:9px;
  white-space:pre-wrap;word-break:break-word}

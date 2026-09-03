@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Prototyp · Massaufnahme Rinne Halbrund</title>
+<!-- ===================================================================
+     EIGENSTÄNDIGE TESTAPP  ·  eine einzige Datei, überall zu öffnen
+     Erzeugt von prototyp/bauen.js – nicht von Hand bearbeiten.
+     Änderungen gehören in prototyp/prototyp-rinne.js bzw. prototyp.css,
+     danach "node prototyp/bauen.js" laufen lassen.
+     Gebaut am 2026-09-03 09:42 UTC
+     =================================================================== -->
+<style>
+/* ---- css/01-basis.css (unverändert aus der laufenden App) ---- */
+*{box-sizing:border-box}
+:root{--blue:#1769aa;--blue-dark:#0f5288;--blue-light:#eaf4fa;--ink:#17242d;--muted:#6b7880;--line:#cbd4d9;--bg:#eef2f6;--green:#16845c;--green-dark:#0f6847;--red:#b42318;--red-light:#fff0ef;--card-bg:#fff;--card-line:#e2e8ec;--input-bg:#fff}
+html.dark{--ink:#e7edf1;--muted:#93a1a9;--line:#33424c;--bg:#141c22;--blue-light:#1c3546;--red-light:#3a1f1d;--card-bg:#1c262e;--card-line:#2a3841;--input-bg:#202b33}
+html.dark body{background:linear-gradient(180deg,#171f26,#141c22 240px,var(--bg) 480px)}
+html.dark .modal{background:linear-gradient(180deg,#171f26,#141c22 240px,var(--bg) 480px)}
+html.dark .card{background:var(--card-bg);border-color:var(--card-line)}
+html.dark input,html.dark select,html.dark textarea{background:var(--input-bg);color:var(--ink);border-color:var(--line)}
+html.dark .settingrow-mat,html.dark .sketch-thumb-wrap{background:var(--card-bg);border-color:var(--card-line)}
+html.dark .mat-row-head{background:transparent}
+html.dark th{background:#0e161c!important}
+body{margin:0;background:linear-gradient(180deg,#f2f5f8,#e8edf1 240px,var(--bg) 480px);background-attachment:fixed;font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
+.app{max-width:920px;margin:auto;padding:14px 9px 40px}
+.brand{font-size:11px;font-weight:900;letter-spacing:.16em;color:var(--blue)}
+h1{font-size:28px;margin:3px 0 14px;color:var(--ink);letter-spacing:-.01em}
+h2{font-size:13px;margin:0 0 12px;padding-bottom:8px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--blue-dark);border-bottom:2px solid var(--blue-light)}
+.card{background:#fff;border:1px solid #e2e8ec;border-radius:16px;padding:14px;margin:12px 0;box-shadow:0 1px 2px #17242d0a,0 10px 24px -8px #17242d1f}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wide{grid-column:1/-1}
+label{display:block;font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+input,select,textarea{width:100%;min-height:40px;border:1px solid var(--line);border-radius:9px;padding:8px;font-size:14px;background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26}
+input::placeholder,textarea::placeholder{color:#9aa7ae}
+textarea{min-height:72px;resize:vertical}
+button{border:0;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer;transition:filter .15s,transform .05s}
+button:hover{filter:brightness(1.06)}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.blue{background:var(--blue);color:#fff;box-shadow:0 2px 8px #1769aa40}.blue:hover{background:var(--blue-dark)}
+.green{background:var(--green);color:#fff;box-shadow:0 2px 8px #16845c40}.green:hover{background:var(--green-dark)}
+.gray{background:#e8eef1;color:var(--ink)}.gray:hover{background:#dde6ea}
+.red{background:#fff0ef;color:var(--red)}.red:hover{background:#ffe3e1}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+/* Ohne diese Regel schlaegt .bar{display:flex} das [hidden] des Browsers
+   und eine versteckte Leiste bleibt sichtbar (Lehre aus Abschnitt 59). */
+.bar[hidden]{display:none}
+.scroll{overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:1000px;table-layout:fixed}
+/* Spaltenbreiten in der App, abgestimmt auf den tatsächlichen Inhalt je Spalte.
+   Pos. wird unten für den Bildschirm zusätzlich fix auf 23mm gesetzt (gleich wie im PDF). */
+.work-table col.c-pos{width:7%}.work-table col.c-desc{width:54%}.work-table col.c-emp{width:5.5%}.work-table col.c-func{width:8.5%}.work-table col.c-std{width:5%}.work-table col.c-rate{width:7%}.work-table col.c-total{width:8.5%}.work-table col.c-del{width:4.5%}
+.mat-table col.m-pos{width:7%}.mat-table col.m-edv{width:11%}.mat-table col.m-material{width:43%}.mat-table col.m-dim{width:6.5%}.mat-table col.m-unit{width:6%}.mat-table col.m-qty{width:6%}.mat-table col.m-price{width:7.5%}.mat-table col.m-total{width:8%}.mat-table col.m-del{width:5%}
+.work-table td:last-child,.work-table th:last-child,.mat-table td:last-child,.mat-table th:last-child{text-align:left}
+.work-table td:last-child button,.mat-table td:last-child button{padding:6px 9px}
+input[type=date]{font-size:11px;padding-left:4px;padding-right:2px;width:100%;min-width:0}
+#workBody input[type=date],#matBody input[type=date]{width:100%;display:block;box-sizing:border-box}
+th{background:#f2f6f8;text-align:left;font-size:9px;padding:9px 6px;color:var(--muted);font-weight:800;letter-spacing:.03em}
+td{border-top:1px solid var(--line);padding:6px;font-size:12px;vertical-align:middle}
+tbody tr:hover td{background:#f7fafc}
+td input,td select{min-height:34px;font-size:12px}
+.money{text-align:left;font-variant-numeric:tabular-nums}
+.money input.mat-preis{text-align:left;font-variant-numeric:tabular-nums}
+.print-only{display:none}
+.total{text-align:right;font-size:20px;font-weight:900;margin-top:10px;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px}
+.small{font-size:11px;color:var(--muted);margin-top:7px}
+.search{position:relative}
+/* Leere Vorschlagsbox ausblenden – sonst bleibt ihr Rahmen als feiner
+   Strich quer über dem Bildschirm stehen. */
+.suggest:empty{display:none}
+.suggest{position:fixed;z-index:1000;min-width:320px;max-width:min(92vw,560px);background:#fff;border:1px solid #bcc9d0;border-radius:10px;box-shadow:0 14px 28px #17242d26;max-height:260px;overflow:auto}
+.item{white-space:normal;line-height:1.25}
+.item{padding:10px;border-bottom:1px solid #edf0f2;cursor:pointer;transition:background .1s}.item:last-child{border-bottom:0}.item:hover{background:var(--blue-light)}.item b{display:block}.item span{font-size:11px;color:var(--muted)}
+/* Projektvorschlag (v2.48): Adresse als Hauptinformation, darf ueber
+   mehrere Zeilen umbrechen; Trefferflaeche gross genug fuer den Daumen. */
+.projekt-vorschlag{min-height:48px;padding:9px 10px}
+.projekt-vorschlag b{font-size:13px;word-break:break-word}
+.projekt-vorschlag span{display:block;margin-top:2px;word-break:break-word}
+.empty{text-align:center;color:var(--muted);padding:20px;font-size:12px;border:1px dashed var(--line);border-radius:10px;background:#fbfcfd}
+.modal{position:fixed;inset:0;background:linear-gradient(180deg,#f2f5f8,#e8edf1 240px,var(--bg) 480px);background-attachment:fixed;z-index:500;padding:14px 9px 40px;overflow:auto;animation:fadeIn .15s ease-out}.modalbox{max-width:920px;margin:auto;padding:0}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.settingrow{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;margin:6px 0;display:grid;grid-template-columns:1.3fr .9fr auto;gap:8px;align-items:center}
+.settingrow.emp-row{grid-template-columns:1fr auto}
+.settings-section{border:1px solid #dfe6ea;border-radius:12px;margin:12px 0;overflow:hidden}
+.settings-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;cursor:pointer;background:var(--blue-light)}
+.settings-section-head h2{margin:0;padding:0;border:0;color:var(--blue-dark)}
+.settings-section-chevron{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--blue);transition:transform .15s}
+.settings-section.open .settings-section-chevron{transform:rotate(90deg)}
+.settings-section-body{display:none;padding:12px 14px}
+.settings-section.open .settings-section-body{display:block}
+.settings-tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid #e2e8ec;margin:8px 0 16px}
+.settings-tab{background:none;color:var(--muted);padding:9px 14px;border-radius:9px 9px 0 0;font-weight:800;font-size:12.5px;box-shadow:none}
+.settings-tab:hover{background:#f2f5f8}
+.settings-tab.active{background:var(--blue-light);color:var(--blue-dark)}
+.settingrow-mat{background:#fff;border:1px solid var(--line);border-radius:10px;margin:6px 0;overflow:hidden}
+.mat-row-head{display:flex;align-items:center;gap:8px;padding:7px;cursor:pointer}
+.mat-row-head .mat-nr{flex:0 0 30%;min-width:0}
+.mat-row-head .mat-name{flex:1 1 auto;min-width:0}
+.mat-chevron{flex:0 0 20px;text-align:center;color:var(--muted);font-size:16px;font-weight:900;transition:transform .15s}
+.settingrow-mat.open .mat-chevron{transform:rotate(90deg);color:var(--blue)}
+.mat-row-body{display:none;grid-template-columns:1fr 1fr 1fr auto;align-items:end;gap:7px;padding:0 7px 9px}
+.mat-row-body label{font-size:8px}
+.settingrow-mat.open .mat-row-body{display:grid}
+.settingrow-mat.open .mat-row-head{border-bottom:1px solid #eef1f3;background:var(--blue-light)}
+.cut{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+.cutgrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}.area{background:var(--blue-light);color:var(--blue-dark);border-radius:9px;padding:9px;font-weight:800}
+.project-row{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:6px 0}
+.project-row .project-row-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.project-row .project-row-top b{font-size:15px;flex:1 1 auto;min-width:0;word-break:break-word}
+.project-row .small{margin-top:3px;word-break:break-word}
+/* v2.47: Status auf eigener Zeile - so verdraengt das Badge nie den
+   Titel und die Karte laeuft auf dem Handy nicht seitlich hinaus. */
+.project-row-status{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.pstatus-archiv{color:var(--muted)}
+.project-row-archiviert{opacity:.72}
+/* Hauptaktion: volle Breite, gross genug fuer den Daumen. */
+.project-row-main{display:block;width:100%;min-height:44px;margin-top:9px;text-align:center;font-size:13px}
+.project-row-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.project-row-actions button{flex:1 1 auto;min-height:38px;padding:6px 10px;font-size:11px}
+.report-list{margin-top:8px;border-top:1px solid var(--line);padding-top:8px;display:none}
+.report-list.open{display:block}
+.report-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:var(--blue-light);border-radius:8px;padding:7px 9px;margin:5px 0}
+.report-row .report-row-info{flex:1 1 190px;min-width:0}
+.report-row .report-row-info b{display:block;font-size:12px;word-break:break-word}
+/* Objektadresse als Haupttitel im Regierapport-Bildschirm (v2.44) */
+.report-adresse{font-size:15px;font-weight:800;color:var(--ink);margin:-6px 0 10px;word-break:break-word}
+/* Projektdateien (v2.43): Bildvorschau bzw. Typ-Symbol vor der Zeile */
+.datei-thumb{flex:0 0 auto;width:44px;height:44px;border-radius:8px;object-fit:cover;background:#fff;border:1px solid var(--line)}
+.datei-icon{flex:0 0 auto;width:44px;height:44px;border-radius:8px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:20px}
+/* Dateizeile im Projekt-Cockpit (v2.49): Name gross, darunter Typ/Groesse
+   und Datum; die Aktionen brechen auf schmalen Geraeten um und sind gross
+   genug fuer den Daumen. */
+.datei-row .report-row-info b{font-size:13px}
+.datei-row .report-row-actions{flex:1 1 100%;flex-wrap:wrap;margin-top:2px}
+.datei-row .report-row-actions button{flex:1 1 auto;min-height:40px}
+.datei-row .report-row-actions button.blue{min-height:44px;flex:1 1 100%}
+/* Medien-Hinweis in der Massaufnahme-Zeile (v2.50) */
+.meas-medien-hinweis{color:var(--blue-dark)!important;font-weight:800}
+/* Galerie der Fotos/Skizzen einer Massaufnahme (v2.50): grosse, gut
+   antippbare Kacheln, die auf schmalen Geraeten umbrechen. */
+.medien-galerie{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.medien-kachel{flex:1 1 140px;max-width:200px;min-height:130px;padding:0;background:#fff;
+ border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;
+ flex-direction:column;align-items:stretch;cursor:pointer}
+.medien-kachel img{width:100%;height:110px;object-fit:cover;background:var(--blue-light);display:block}
+.medien-label{display:block;padding:6px 8px;font-size:11px;font-weight:800;color:var(--muted);text-align:left}
+.medien-fehler{display:flex;align-items:center;justify-content:center;height:110px;padding:8px;
+ font-size:11px;font-weight:700;color:var(--muted);background:var(--blue-light);text-align:center}
+/* Grosse Ansicht eines einzelnen Bildes (v2.50) */
+.medien-viewer{position:fixed;inset:0;z-index:900;background:#0d141aee;display:flex;
+ flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px}
+.medien-viewer-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;max-width:920px;color:#fff;font-size:12px;font-weight:800}
+.medien-viewer-bar button{min-height:44px}
+.medien-viewer img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:10px;background:#fff}
+/* WICHTIG: Eine Klasse mit display:… schlaegt die Browserregel
+   [hidden]{display:none}. Ohne diese Zeile bleibt die Vollbildansicht
+   dauerhaft ueber der ganzen App liegen (Fehler aus v2.50).
+   Gleiches Muster wie .sketch-fullscreen[hidden] weiter unten. */
+.medien-viewer[hidden]{display:none}
+/* Arbeitsstand im Projekt-Cockpit (v2.42): kompakte Zeilen, nur Fakten */
+.arbeitsstand{border:1px solid var(--line);border-radius:10px;margin-top:10px;overflow:hidden;background:#fff}
+.arbeitsstand-titel{font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px 4px}
+.arbeitsstand-zeile{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;border-top:1px solid #eef1f3;border-radius:0;padding:9px 10px;min-height:38px;font-weight:600;color:var(--ink)}
+button.arbeitsstand-zeile{cursor:pointer}
+button.arbeitsstand-zeile:hover{background:var(--blue-light)}
+.arbeitsstand-marke{flex:0 0 auto;width:16px;text-align:center;font-size:12px;font-weight:900;color:var(--blue)}
+.arbeitsstand-name{flex:1 1 auto;min-width:0;font-size:12px;word-break:break-word}
+.arbeitsstand-wert{flex:0 0 auto;font-size:12px;font-weight:800;color:var(--blue-dark);text-align:right}
+.arbeitsstand-aktivitaet .arbeitsstand-wert{font-weight:600;color:var(--muted)}
+/* Schnellzugriff "Zuletzt bearbeitet" (v2.41): ganze Karte ist der Knopf */
+.recent-project{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:11px 12px;margin:6px 0;min-height:52px}
+.recent-project-info{flex:1 1 auto;min-width:0}
+.recent-project-info b{display:block;font-size:13px;word-break:break-word}
+.recent-project-info span{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:3px;word-break:break-word}
+.recent-project-arrow{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--blue)}
+/* Projektstatus (v2.46): Zeichen + Text + Farbe - nie die Farbe allein.
+   Kompakt genug fuer die Projektkarte, gut lesbar auf dem Handy. */
+.pstatus{display:inline-block;font-size:11px;font-weight:900;line-height:1.5;
+ border:1px solid currentColor;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.pstatus-offen{color:var(--muted)}
+.pstatus-in_arbeit{color:var(--blue)}
+.pstatus-abgeschlossen{color:var(--green)}
+.pstatus-storniert{color:var(--red)}
+html.dark .pstatus-abgeschlossen{color:#4cc79a}
+html.dark .pstatus-storniert{color:#f08b80}
+/* Statuszeile im Projektkopf: Anzeige und Auswahlfeld nebeneinander,
+   auf schmalen Geraeten untereinander. */
+.projekt-status-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 4px}
+.projekt-status-zeile select{flex:0 1 200px;min-height:38px}
+.projekt-status-anzeige{flex:0 0 auto}
+/* Statusfilter der Projektliste: gleiche Chips wie im Verlauf (v2.31).
+   margin-top ist Pflicht: die Leiste darueber (.bar) hat nur margin-top,
+   sonst beruehren sich die beiden Knopfreihen ohne jede Luft (v2.69). */
+.status-filter{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px}
+.status-filter button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark);min-height:30px}
+.status-filter button.aktiv{background:var(--blue);color:#fff}
+.status-filter[hidden]{display:none}
+/* Projektkopf im Cockpit (v2.45): die Adresse ist der Haupttitel und
+   darf auf schmalen Geraeten umbrechen, statt seitlich hinauszulaufen. */
+#cockpitTitle{word-break:break-word}
+#cockpitSubline{word-break:break-word}
+/* Projekt-Cockpit (v2.39): Abschnittsueberschrift mit Anzahl rechts,
+   klar beschriftete Neu-Knoepfe ueber voller Breite. */
+/* Aus der globalen Suche geoeffneter Treffer (v2.40): kurz hervorheben */
+.report-row.treffer{outline:2px solid var(--blue);outline-offset:1px;background:#fff}
+.cockpit-count{float:right;font-size:11px;font-weight:900;color:var(--blue);background:var(--blue-light);border-radius:999px;padding:1px 9px;min-width:20px;text-align:center}
+.cockpit-new{display:block;width:100%;min-height:44px;text-align:center;line-height:24px}
+label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-weight:800;font-size:12px}
+.verlauf-filters button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark)}
+/* Sortier-Chips der Feedback-Liste - gleiche Optik wie die Verlauf-Filter */
+.feedback-sort button{padding:6px 10px;font-size:11px;min-height:34px;background:var(--blue-light);color:var(--blue-dark)}
+.feedback-sort button.active{background:var(--blue);color:#fff}
+/* Auswahl der zu exportierenden Feedbacks: die ganze Kopfzeile ist das
+   Label, damit auf dem Handy nicht das kleine Kaestchen getroffen werden
+   muss. word-break, damit lange Modulnamen umbrechen statt zu ueberlaufen. */
+label.feedback-pick{display:flex;align-items:flex-start;gap:9px;cursor:pointer;
+ min-height:30px;padding:2px 0;margin:0}
+label.feedback-pick input{width:19px;height:19px;min-height:0;flex:0 0 auto;margin:2px 0 0;padding:0;border:0;border-radius:0;accent-color:var(--blue)}
+label.feedback-pick span{flex:1 1 auto;min-width:0;word-break:break-word;text-transform:none;letter-spacing:normal;font-weight:400;font-size:11px;margin:0}
+.settingrow.feedback-gewaehlt{border-left:3px solid var(--blue)}
+.verlauf-filters button.active{background:var(--blue);color:#fff}
+.verlauf-entry{border-bottom:1px solid var(--line);padding:7px 2px}
+.verlauf-entry:last-child{border-bottom:0}
+.verlauf-entry-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.verlauf-entry-badges{display:flex;gap:5px;flex-wrap:wrap}
+.verlauf-entry-entity{font-size:10.5px;font-weight:800;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.verlauf-entry-action{font-size:10.5px;font-weight:800;color:var(--blue-dark);background:var(--blue-light);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.verlauf-entry-who{font-size:12px;font-weight:700}
+.verlauf-entry-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.verlauf-entry-changes{margin-top:4px;padding:6px 8px;background:var(--blue-light);border-radius:8px;font-size:11px;color:var(--ink)}
+.verlauf-change-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:2px 0}
+.verlauf-change-label{font-weight:700;color:var(--blue-dark);white-space:nowrap}
+.verlauf-change-value{word-break:break-word}
+.verlauf-limit-hint{color:var(--muted);text-align:center}
+.report-row .report-row-info span{display:block;font-size:11px;color:var(--muted);word-break:break-word}
+.report-row .report-row-actions{display:flex;gap:6px;flex:0 0 auto}
+.report-row button{padding:7px 10px;font-size:11px;min-height:34px}
+
+.meas-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.eb-table{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}
+.eb-diagram-box{background:#f8fafb;border:1px solid var(--line);border-radius:10px;padding:8px;margin:8px 0}
+.eb-diagram-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.eb-diagram-scroll svg{display:block}
+.eb-table col.eb-col-pos{width:14%}
+.eb-table col.eb-col-len{width:32%}
+.eb-table col.eb-col-massa{width:26%}
+.eb-table col.eb-col-side{width:28%}
+.eb-table th{background:#f2f6f8;text-align:left;font-size:9px;padding:6px 5px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+.eb-table td{border-top:1px solid var(--line);padding:5px;font-size:12px}
+.eb-table td:first-child{text-align:left;color:var(--muted)}
+.eb-table td:nth-child(2),.eb-table td:nth-child(3){text-align:left;font-variant-numeric:tabular-nums}
+.eb-rest-row td{background:var(--blue-light);font-weight:800}
+.start-nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px}
+.start-nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:26px 10px;border-radius:14px;font-size:14px;font-weight:800;text-align:center;line-height:1.3}
+.start-nav-btn small{font-weight:600;font-size:10px;opacity:.85}
+.start-nav-icon{font-size:34px;line-height:1}
+#topUserBar{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px}
+.report-topnav{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
+.report-topnav button{padding:7px 12px;font-size:12px}
+@media(max-width:600px){.start-nav{grid-template-columns:1fr}}
+.meas-preview{max-width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--line);display:block}
+.meas-preview[hidden]{display:none}
+.sketch-fullscreen{position:fixed;inset:0;z-index:2000;background:#fff;display:flex;flex-direction:column;touch-action:pan-x pan-y}
+.sketch-fullscreen[hidden]{display:none}
+.sketch-fs-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:9px 10px;background:#f2f5f8;border-bottom:1px solid var(--line);flex:0 0 auto;touch-action:manipulation}
+.sketch-fs-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sketch-fs-actions{display:flex;gap:8px;flex:0 0 auto;margin-left:auto}
+.sketch-fs-toolbar select,.sketch-fs-toolbar input[type=color]{width:auto;min-height:38px}
+.sketch-fs-toolbar button{padding:9px 14px;flex:0 0 auto}
+.sketch-zoom-label{font-size:12px;font-weight:800;color:var(--muted);min-width:38px;text-align:center}
+#fsPanFloating{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:50;padding:12px 20px;border-radius:999px;font-size:14px;font-weight:900;background:var(--green);color:#fff;box-shadow:0 4px 16px #0004;white-space:nowrap}
+#fsPanFloating.active{background:var(--blue)}
+#fsSketchDone{font-size:14px;font-weight:900;padding:10px 20px;box-shadow:0 3px 10px #16845c66}
+.sketch-viewport{flex:1 1 auto;overflow:auto;background:#dbe1e5;display:flex;align-items:flex-start;justify-content:center;padding:14px;touch-action:pan-x pan-y}
+#fsSketchCanvas{background:#fff;box-shadow:0 2px 14px #0002;flex:0 0 auto;touch-action:none}
+.sketch-gallery{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0}
+.sketch-thumb-wrap{position:relative;width:84px;height:118px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.sketch-thumb{width:100%;height:100%;object-fit:contain}
+.sketch-thumb-actions{position:absolute;inset:auto 0 0 0;display:flex;gap:2px;background:#17242dcc}
+.sketch-thumb-actions button{flex:1;padding:4px 0;font-size:11px;border-radius:0}
+.meas-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0}
+.meas-thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:0 0 auto;background:#eef2f6}
+.meas-thumb-empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px}
+.meas-row-info{flex:1 1 190px;min-width:0}
+.meas-row-info b{display:block;font-size:13px;word-break:break-word}
+.meas-row-info span{display:block;font-size:11px;color:var(--muted);word-break:break-word}
+.meas-row-actions{display:flex;gap:6px;flex:0 0 auto}
+.meas-row-actions button{padding:7px 10px;font-size:12px;min-height:34px}
+@media(max-width:600px){.meas-columns{grid-template-columns:1fr}}
+#authScreen .modalbox{max-width:420px}
+.info{background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:9px;border-left:3px solid var(--blue)}
+.report-head{display:none}
+.report-foot{display:none}
+.pdf-foot{display:none}
+.print-rate-block{display:none}
+
+
+/* Kehle (v2.52) – Hauptresultate b/c/d dominieren, alles Weitere bleibt
+   dezent. Kein Element hier startet versteckt; sollte das je nötig
+   werden, braucht die Klasse zusätzlich eine eigene
+   .klasse[hidden]{display:none}-Regel (siehe CLAUDE.md 59). */
+.kehle-haupt{background:var(--blue-light);border:2px solid var(--blue);border-radius:12px;padding:10px 12px;margin:12px 0 4px}
+.kehle-haupt-titel{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--blue-dark);margin-bottom:6px}
+.kehle-haupt-zeile{display:flex;flex-wrap:nowrap;align-items:baseline;gap:8px;padding:4px 0;border-top:1px solid #ffffff80}
+.kehle-haupt-zeile:first-of-type{border-top:0}
+.kehle-haupt-buchstabe{font-size:20px;font-weight:800;color:var(--blue-dark);flex:0 0 20px}
+.kehle-haupt-wert{font-size:24px;font-weight:800;color:var(--blue-dark);flex:0 0 auto;min-width:96px;text-align:right;white-space:nowrap}
+.kehle-haupt-text{flex:1 1 0;min-width:0;font-size:11px;line-height:1.25;color:var(--blue-dark);overflow-wrap:anywhere}
+/* Zusatzwerte bewusst schmal: Kurzbezeichnung auf dem Bildschirm, der
+   volle Excel-Wortlaut haengt als Tooltip an der Zeile und steht
+   ungekuerzt im PDF. */
+/* min-width:0 ist hier zwingend: die globale Regel oben (Zeile 33)
+   setzt jeder Tabelle min-width:1000px, weil die Stuecklisten-Tabellen
+   der App in einem <div class="scroll"> stehen und breit sein duerfen.
+   Ohne diese Zeile waere auch die Kehle-Tabelle 1000px breit und wuerde
+   rechts aus dem Bildschirm laufen. */
+table.kehle-tabelle{width:100%;min-width:0;border-collapse:collapse;font-size:11.5px;table-layout:fixed}
+.kehle-tabelle th{width:32px;text-align:left;font-weight:800;color:var(--blue-dark);padding:3px 5px 3px 0;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+.kehle-tabelle td{padding:3px 4px 3px 0;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.3;overflow-wrap:anywhere}
+.kehle-tabelle td.kehle-zahl{width:74px;text-align:right;font-weight:700;white-space:nowrap;padding-right:0}
+details.kehle-zwischen summary{cursor:pointer;font-size:11.5px;color:var(--muted);padding:7px 0;min-height:32px}
+details.kehle-zwischen[open] summary{margin-bottom:2px}
+@media(max-width:600px){
+ .kehle-haupt-wert{font-size:21px;min-width:84px}
+ .kehle-haupt-buchstabe{font-size:17px;flex:0 0 16px}
+ .kehle-haupt-text{font-size:10.5px}
+ table.kehle-tabelle{font-size:11px}
+ .kehle-tabelle td.kehle-zahl{width:68px}
+ .kehle-tabelle th{width:30px}
+}
+
+/* ---- Rinne · frei definierbares Profil + Zuschnittliste (v2.57) ----
+   Beide Tabellen stehen wie die uebrigen Stuecklisten in einem
+   <div class="scroll"> und duerfen breiter als der Bildschirm sein.
+   min-width und table-layout werden hier ausdruecklich gesetzt: die
+   globale Regel (Zeile 33) gibt jeder Tabelle min-width:1000px und
+   table-layout:fixed - bei einer Tabelle mit dynamisch vielen Spalten
+   waere beides falsch. */
+table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:collapse;
+ margin-top:6px;table-layout:auto}
+.rp-profiltabelle th,.rp-table th{background:#f2f6f8;text-align:left;font-size:9px;padding:6px 5px;
+ color:var(--muted);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+.rp-profiltabelle td,.rp-table td{border-top:1px solid var(--line);padding:4px 5px;font-size:12px;
+ vertical-align:middle;white-space:nowrap}
+.rp-profiltabelle td:first-child,.rp-table td:first-child{color:var(--muted);text-align:left}
+.rp-profiltabelle input,.rp-profiltabelle select,
+.rp-table input[type=number],.rp-table select{padding:5px 4px;font-size:12px;min-height:34px;
+ border:1px solid var(--line);border-radius:7px;background:#fff;color:inherit;min-width:0}
+.rp-profiltabelle input[type=text]{width:150px}
+.rp-profiltabelle input[type=number]{width:76px;text-align:right}
+.rp-profiltabelle select{width:92px}
+.rp-table input[type=number]{width:72px;text-align:right}
+.rp-table select{width:92px}
+.rp-varzelle input[type=number]{width:62px}
+/* display:flex auf einem <td> sprengt das Tabellenlayout - die Knoepfe
+   liefen in die Nachbarspalte. Deshalb ein innerer Flex-Container. */
+.rp-winkel > div{display:flex;gap:3px;align-items:center}
+.rp-winkel button,.rp-segbtn button,.rp-table button{min-height:32px;min-width:32px;padding:2px 6px;font-size:12px}
+.rp-segbtn{white-space:nowrap}
+.rp-segbtn button{margin-right:2px}
+.rp-var{color:var(--blue-dark);font-weight:800}
+.rp-erg{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
+.rp-zuschnitt{color:var(--blue-dark)}
+@media(max-width:600px){
+ .rp-profiltabelle td,.rp-table td{font-size:11.5px}
+ .rp-profiltabelle input[type=text]{width:120px}
+}
+/* Pflichtfeld-Stern (v2.70): rot, fett und etwas groesser als das Label,
+   damit er auch auf einem Handy sicher zu sehen ist. Der Stern steht im
+   Label, nie im Eingabewert - er kann also nicht mitgetippt werden. */
+.pflicht-stern{color:var(--red);font-weight:900;font-size:13px;line-height:1;margin-left:3px;vertical-align:baseline}
+/* Offline-Hinweis (v2.70): deutlich, aber nicht alarmierend. Steht ganz
+   oben und nimmt auf dem Handy die volle Breite ein. */
+.offline-hinweis{background:#fff4e5;border:1px solid #f0c48a;color:#8a5300;
+ border-radius:10px;padding:8px 10px;margin:0 0 8px;line-height:1.35}
+.offline-hinweis[hidden]{display:none}
+
+/* ---- prototyp/prototyp.css ---- */
+/* ===========================================================================
+   PROTOTYP · Massaufnahme Rinne Halbrund
+   ===========================================================================
+   Eigene Datei, damit css/01-basis.css der laufenden App unverändert bleibt.
+
+   ACHTUNG – Lehre aus mehreren Fehlern der App (CLAUDE.md 59, 60.5, 72.5,
+   77): css/01-basis.css setzt in den ersten Zeilen sehr breite Grundregeln
+   (input/select/textarea auf 100 % Breite und 40 px Höhe, label in
+   Grossbuchstaben, table mit min-width:1000px, .bar auf display:flex).
+   Jede Regel hier, die eines dieser Elemente betrifft, setzt die
+   betroffenen Eigenschaften deshalb ausdrücklich zurück.
+   =========================================================================== */
+
+body{background:#eef2f5;margin:0;padding:0 0 90px}
+
+/* ---- Kopf- und Fussleiste ---------------------------------------------- */
+.p-topbar{position:sticky;top:0;z-index:40;background:#17202a;color:#fff;
+ padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+ justify-content:space-between}
+.p-marke{font-size:13px;letter-spacing:.3px}
+.p-topknoepfe{display:flex;flex-wrap:wrap;gap:6px}
+.p-topknoepfe button{min-height:38px;padding:0 12px;font-size:13px}
+
+.p-fussleiste{position:sticky;bottom:0;z-index:35;background:#fff;
+ border-top:1px solid #cfd8de;padding:8px 12px;display:flex;gap:10px;
+ margin:14px -12px -90px;padding-bottom:14px}
+.p-fussleiste button{flex:1 1 0;min-height:52px;font-size:16px}
+.p-fussleiste button[disabled]{opacity:.4}
+
+/* ---- Grundbausteine ----------------------------------------------------- */
+#p-app{max-width:820px;margin:0 auto;padding:12px}
+.p-hinweisleiste{background:#eaf3fb;border:1px solid #b9d6ee;color:#17202a;
+ border-radius:10px;padding:9px 11px;font-size:12.5px;line-height:1.4;margin:0 0 12px}
+.p-karte{background:#fff;border:1px solid #d5dde3;border-radius:14px;
+ padding:14px;margin:0 0 12px}
+.p-karte h2{margin:0 0 10px;font-size:16px}
+.p-karte h3{margin:16px 0 6px;font-size:13px;color:#68737d;
+ text-transform:uppercase;letter-spacing:.5px}
+
+.p-kopf{background:#fff;border:1px solid #d5dde3;border-radius:14px;
+ padding:11px 14px;margin:0 0 10px}
+.p-kopf-titel{font-size:17px;font-weight:800;word-break:break-word}
+.p-kopf-zeile{font-size:12.5px;color:#68737d;margin-top:2px;word-break:break-word}
+.p-kopf-fehler{color:#b42318;font-weight:700}
+
+/* ---- Schrittleiste ------------------------------------------------------ */
+.p-schritte{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;
+ -webkit-overflow-scrolling:touch}
+.p-schritt{flex:0 0 auto;display:flex;align-items:center;gap:6px;
+ background:#fff;border:1px solid #cfd8de;border-radius:22px;
+ min-height:42px;padding:0 13px;font-size:13px;color:#17202a;width:auto}
+.p-schritt.aktiv{background:#1769aa;border-color:#1769aa;color:#fff;font-weight:700}
+.p-schritt-nr{display:inline-flex;align-items:center;justify-content:center;
+ width:20px;height:20px;border-radius:50%;background:#eef2f5;color:#17202a;
+ font-size:11px;font-weight:800;flex:0 0 auto}
+.p-schritt.aktiv .p-schritt-nr{background:#fff;color:#1769aa}
+.p-schritt-text{white-space:nowrap}
+
+/* ---- Felder ------------------------------------------------------------- */
+.p-grid{display:flex;flex-wrap:wrap;gap:10px}
+.p-feld{flex:1 1 170px;min-width:0}
+.p-feld.voll{flex:1 1 100%}
+/* label kommt aus der Grundregel in Grossbuchstaben und 9 px - hier nicht. */
+.p-feld > label{display:block;font-size:11.5px;font-weight:700;color:#68737d;
+ text-transform:none;letter-spacing:0;margin:0 0 4px}
+.p-feld input,.p-feld select,.p-feld textarea{width:100%;min-height:46px;font-size:15px}
+.p-gross{font-size:18px!important;font-weight:700}
+.p-wert{min-height:46px;display:flex;align-items:center;font-size:17px;font-weight:700}
+.p-karte textarea{width:100%;min-height:90px;font-size:15px}
+
+.p-schalter{display:flex;align-items:center;gap:8px;min-height:46px;
+ font-size:14px;font-weight:600;color:#17202a;text-transform:none;letter-spacing:0}
+/* Grundregel macht jede Checkbox 40 px hoch mit Rahmen – hier zurücksetzen. */
+.p-schalter input[type=checkbox]{width:24px;height:24px;min-height:0;
+ padding:0;border:0;margin:0;flex:0 0 auto}
+
+/* ---- Zeilen ------------------------------------------------------------- */
+.p-zeile{border:1px solid #dde4e9;border-radius:12px;padding:11px;margin:10px 0;
+ background:#fafcfd}
+.p-zeile-kopf{display:flex;align-items:center;justify-content:space-between;
+ gap:8px;margin:0 0 8px;font-size:13px}
+.p-klein-text{font-size:11.5px;color:#68737d;font-weight:400}
+.p-weg{background:#fff;border:1px solid #e3b5b0;color:#b42318;border-radius:9px;
+ min-height:36px;width:auto;padding:0 12px;font-size:14px;font-weight:700}
+.p-ecke{background:#f2faf8;border-color:#bfe0da}
+.p-ecke-aus{background:#f7f9fa;border-color:#e2e8ec}
+.p-fehler{background:#fdf3f2;border-color:#e8bcb6}
+
+.p-knopfreihe{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+.p-knopfreihe button{flex:1 1 auto;min-height:46px;font-size:14px}
+.p-blau{background:#1769aa;color:#fff;border:0;border-radius:11px;font-weight:700}
+.p-grau{background:#fff;color:#17202a;border:1px solid #c3ced6;border-radius:11px;font-weight:600}
+.p-klein{min-height:34px!important;font-size:12px!important;padding:0 10px;
+ width:auto;flex:0 0 auto;margin-left:8px}
+
+/* ---- Meldungen ---------------------------------------------------------- */
+.p-hinweis{background:#f4f7f9;border-left:3px solid #9bb0c1;border-radius:0 8px 8px 0;
+ padding:8px 10px;margin:10px 0 0;font-size:12.5px;line-height:1.45;color:#3b4750}
+.p-warn{background:#fff6e8;border-left:3px solid #e07a1f;border-radius:0 8px 8px 0;
+ padding:8px 10px;margin:8px 0 0;font-size:12.5px;color:#8a4a0f;font-weight:600}
+.p-leer{color:#8894a0;font-size:13px;padding:12px 2px;text-align:center}
+.p-ok{background:#effaf3;border:1px solid #b8e2c8;color:#146c43;border-radius:10px;
+ padding:11px;font-size:14px;font-weight:600}
+.p-pruefung{display:flex;flex-direction:column;gap:7px}
+.p-fehlerzeile{background:#fdf3f2;border:1px solid #e8bcb6;color:#b42318;
+ border-radius:10px;padding:10px;font-size:13.5px;line-height:1.4}
+.p-warnzeile{background:#fff6e8;border:1px solid #f0c48a;color:#8a5300;
+ border-radius:10px;padding:10px;font-size:13.5px;line-height:1.4}
+
+.p-summe{margin:12px 0 0;padding:11px;background:#eef4f9;border-radius:11px;
+ font-size:15px;text-align:center}
+.p-legende{font-size:11.5px;color:#68737d;text-align:center;margin:4px 0 0}
+.p-grundriss{display:flex;justify-content:center}
+
+/* ---- Zusammenfassung ---------------------------------------------------- */
+.p-zusammenfassung h2{border-bottom:2px solid #17202a;padding-bottom:6px}
+.p-zf-kopf{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 6px}
+.p-zf-kopf > div{flex:1 1 120px;background:#f4f7f9;border-radius:10px;padding:8px 10px}
+.p-zf-kopf span{display:block;font-size:10.5px;color:#68737d;text-transform:uppercase;
+ letter-spacing:.4px}
+.p-zf-kopf b{font-size:15px}
+.p-liste{margin:0;padding:0 0 0 20px;font-size:14px;line-height:1.65}
+.p-ecke-li{color:#0f766e;font-weight:700}
+/* Fixpunkt und Nicht-Fixpunkt im Verlauf klar unterscheiden */
+.p-fix-li{color:#1769aa;font-weight:700}
+.p-losfix-li{color:#6b4fa8;font-weight:700}
+.p-zf-fuss{font-size:13px;color:#3b4750}
+.p-bem{margin:6px 0 0;padding:8px 10px;background:#f4f7f9;border-radius:9px;
+ white-space:pre-wrap;word-break:break-word}
+
+/* ---- Tabellen ----------------------------------------------------------- */
+/* Grundregel setzt jede Tabelle auf min-width:1000px (CLAUDE.md 60.5). */
+.p-tabelle{overflow-x:auto}
+.p-tabelle table{width:100%;min-width:0;table-layout:auto;font-size:13px}
+.p-tabelle th{background:#f4f7f9;text-align:left;font-size:11px;
+ text-transform:uppercase;letter-spacing:.4px;color:#68737d;padding:7px 8px;
+ border-bottom:1px solid #d5dde3}
+.p-tabelle td{padding:8px;border-bottom:1px solid #eef2f5;word-break:break-word}
+.p-num{text-align:right;white-space:nowrap}
+.p-quelle{color:#68737d;font-size:11.5px}
+
+/* ---- Fotos und Skizze --------------------------------------------------- */
+.p-datei{display:flex;align-items:center;justify-content:center;
+ background:#1769aa;color:#fff;border-radius:11px;min-height:52px;
+ font-size:15px;font-weight:700;cursor:pointer;text-transform:none;
+ letter-spacing:0;padding:0 12px}
+.p-fotos{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 0}
+.p-foto{position:relative;flex:0 0 auto;width:130px}
+.p-foto.gross{width:100%;max-width:420px}
+.p-foto img{width:100%;height:auto;display:block;border-radius:10px;
+ border:1px solid #cfd8de}
+.p-foto .p-weg{position:absolute;top:6px;right:6px;min-height:32px;padding:0 10px}
+.p-fotos .p-leer{flex:1 1 100%}
+
+.p-skizzebox{position:fixed;inset:0;z-index:60;background:#eef2f5;
+ padding:12px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+/* Ohne diese Zeile bliebe die Fläche trotz hidden sichtbar (CLAUDE.md 59). */
+.p-skizzebox[hidden]{display:none}
+.p-skizze-kopf{font-size:16px;font-weight:800}
+.p-skizze-canvas{width:100%;background:#fff;border:1px solid #cfd8de;
+ border-radius:12px;touch-action:none;display:block}
+
+/* ---- Schmale Geräte ----------------------------------------------------- */
+.p-kurz{display:none}
+@media(max-width:520px){
+ /* Auf dem Handy muss die Kopfleiste EINE Zeile bleiben, sonst frisst sie
+    dauerhaft über 100 px Höhe. Deshalb kurze Beschriftungen und keine
+    Wortmarke – die Knöpfe bleiben aber beschriftet, nicht nur Symbole. */
+ .p-marke{display:none}
+ .p-topbar{padding:8px 10px}
+ .p-topknoepfe{width:100%;gap:5px;flex-wrap:nowrap}
+ .p-topknoepfe button{flex:1 1 0;min-width:0;padding:0 6px;font-size:12.5px;
+  min-height:42px;white-space:nowrap;overflow:hidden}
+ .p-lang{display:none}
+ .p-kurz{display:inline}
+ .p-feld{flex:1 1 100%}
+ .p-foto{width:calc(50% - 5px)}
+}
+
+</style>
+</head>
+<body>
+<!-- ===================================================================
+     PROTOTYP  ·  Massaufnahme "Rinne Halbrund"
+     ===================================================================
+     Eigenständige Seite. Sie verändert die laufende App NICHT und
+     spricht auch kein Supabase an. Gespeichert wird ausschliesslich im
+     lokalen Speicher dieses Browsers.
+
+     Die Fachrechnung kommt UNVERÄNDERT aus js/12-rinne-halbrund.js der
+     laufenden App. Damit diese Datei laden kann, braucht sie einige
+     Elemente, an die sie sich beim Laden hängt. Sie stehen weiter unten
+     im Block #p-stummel und sind für den Benutzer unsichtbar – sie
+     werden nie bedient, sondern nur bereitgestellt.
+     =================================================================== -->
+
+<header class="p-topbar">
+ <div class="p-marke">Spengler-DIGITAL · <b>Prototyp</b></div>
+ <div class="p-topknoepfe">
+  <button type="button" id="p-liste" class="p-grau">🗂 <span class="p-lang">Gespeicherte</span><span class="p-kurz">Liste</span></button>
+  <button type="button" id="p-neu" class="p-grau">＋ Neu</button>
+  <button type="button" id="p-kopieren" class="p-grau">📋 <span class="p-lang">Kopieren</span><span class="p-kurz">Kopie</span></button>
+  <button type="button" id="p-speichern" class="p-blau">💾 Speichern</button>
+ </div>
+</header>
+
+<div id="p-app">
+
+ <div class="p-hinweisleiste">
+  Prototyp der Massaufnahme <b>Rinne Halbrund</b>. Alle Eingaben bleiben nur in
+  diesem Browser. Die Rechnung (Dehnungselemente, Zuschnitt, Grundriss) ist
+  unverändert die der laufenden App.
+ </div>
+
+ <div id="p-listeBox" class="p-karte" hidden></div>
+
+ <div id="p-kopf" class="p-kopf"></div>
+ <div id="p-leiste"></div>
+ <div id="p-inhalt"></div>
+
+ <div class="p-fussleiste">
+  <button type="button" id="p-zurueck" class="p-grau">‹ Zurück</button>
+  <button type="button" id="p-weiter" class="p-blau">Weiter ›</button>
+ </div>
+
+ <!-- Skizzenfläche -->
+ <div id="p-skizzeBox" class="p-skizzebox" hidden>
+  <div class="p-skizze-kopf">Skizze zeichnen</div>
+  <canvas id="p-skizzeCanvas" class="p-skizze-canvas"></canvas>
+  <div class="p-knopfreihe">
+   <button type="button" id="p-skizzeSpeichern" class="p-blau">✓ Übernehmen</button>
+   <button type="button" id="p-skizzeLeeren" class="p-grau">Leeren</button>
+   <button type="button" id="p-skizzeAbbrechen" class="p-grau">Abbrechen</button>
+  </div>
+ </div>
+
+</div>
+
+<!-- Nur Aufhänger für js/12-rinne-halbrund.js. Nicht bedienbar, nicht sichtbar. -->
+<div id="p-stummel" hidden aria-hidden="true">
+ <select id="rinne_material"></select>
+ <input id="rinne_abwicklung" value="0">
+ <button type="button" id="rinne_addSegment"></button>
+ <button type="button" id="rinne_calcDilas"></button>
+ <button type="button" id="rinne_addDila"></button>
+ <table><tbody id="rinne_segmentsBody"></tbody></table>
+ <table><tbody id="rinne_dilasBody"></tbody></table>
+ <div id="rinne_dilasSummary"></div>
+ <div id="rinne_diagram"></div>
+ <div id="rinne_summary"></div>
+</div>
+<script>
+/* ---- prototyp/bruecke.js ---- */
+"use strict";
+// ===========================================================================
+// BRÜCKE zum bestehenden Modul  ·  Prototyp Rinne Halbrund
+// ===========================================================================
+// Der Prototyp lädt js/12-rinne-halbrund.js UNVERÄNDERT aus der laufenden
+// App. Diese Datei stellt nur das Wenige bereit, was jene Datei beim Laden
+// erwartet: die Hilfsfunktionen $ und esc, die beiden Katalogtabellen und
+// das Dila-Mass. Dadurch rechnet der Prototyp nachweislich mit DERSELBEN
+// Fachlogik wie die produktive App – es ist nichts nachgebaut.
+//
+// Übernommen werden dadurch unverändert:
+//   calcRinneSegment()            Zuschnitt je Segment inkl. Anschlussmasse
+//   computeRinneBoundaries()      Fixpunkte und Schiebestutzen im Verlauf
+//   calcDilaPositionsInStretch()  Dila-Verteilung nach SPI/SIA
+//   calcRinneDilas()              Dilas über den ganzen Verlauf
+//   berechneRinneStueckliste()    Stückliste zwischen allen Grenzpunkten
+//   generateRinneGrundriss()      Grundriss-Zeichnung des Verlaufs
+//   rinneMaterialTabelle()        Ausdehnungswerte je Material
+// ===========================================================================
+
+function $(id){return document.getElementById(id)}
+function esc(v){
+ return String(v===null||v===undefined?"":v)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// Anschlusstypen – 1:1 der Katalog der produktiven App (Tabelle
+// rinne_fitting_types). Im Prototyp lokal, damit ohne Supabase getestet
+// werden kann; die Struktur ist identisch.
+const rinneFittingTypes=[
+ {id:1,name:"Offenes Ende",     symbol:"offen",mass_mm:0,   angle_deg:0,  is_fixpunkt:false,is_schiebestutzen:false},
+ {id:2,name:"Aussenecke 90°",   symbol:"AE90", mass_mm:-110,angle_deg:-90,is_fixpunkt:true, is_schiebestutzen:false},
+ {id:3,name:"Innenecke 90°",    symbol:"IE90", mass_mm:-110,angle_deg:90, is_fixpunkt:true, is_schiebestutzen:false},
+ {id:4,name:"Ablaufstutzen",    symbol:"ABL",  mass_mm:0,   angle_deg:0,  is_fixpunkt:true, is_schiebestutzen:false},
+ {id:5,name:"Boden",            symbol:"BD",   mass_mm:0,   angle_deg:0,  is_fixpunkt:false,is_schiebestutzen:false},
+ {id:7,name:"Schiebestutzen",   symbol:"SS",   mass_mm:40,  angle_deg:0,  is_fixpunkt:false,is_schiebestutzen:true},
+ {id:8,name:"Gehrschildwinkel", symbol:"GSW",  mass_mm:0,   angle_deg:80, is_fixpunkt:false,is_schiebestutzen:false}
+];
+
+// Materialien mit den Ausdehnungswerten der produktiven App
+// (Tabelle measurement_materials). Die im Auftrag genannten Materialien
+// sind darin bereits enthalten.
+const measurementMaterials=[
+ {id:3,name:"Kupfer",              max_abstand_mm:6000,ab_fixpunkt_mm:3000},
+ {id:2,name:"Titanzink",           max_abstand_mm:5000,ab_fixpunkt_mm:2500},
+ {id:5,name:"Chromstahl, verzinnt",max_abstand_mm:6000,ab_fixpunkt_mm:3000},
+ {id:4,name:"CrNi-Stahl",          max_abstand_mm:6000,ab_fixpunkt_mm:3000},
+ {id:1,name:"Aluminium (Aluman)",  max_abstand_mm:4000,ab_fixpunkt_mm:2000},
+ {id:6,name:"Stahl, verzinkt",     max_abstand_mm:8000,ab_fixpunkt_mm:4000}
+];
+function measurementMaterialOrFallback(id){
+ const m=measurementMaterials.find(x=>String(x.id)===String(id));
+ return m||measurementMaterials[0];
+}
+function findMeasurementMaterial(id){
+ return measurementMaterials.find(x=>String(x.id)===String(id))||null;
+}
+
+// Zuschlagsmass an einer Dila – in der App eine Firmeneinstellung.
+let rinneDilaMass=0;
+
+</script>
+<script>
+/* ---- js/12-rinne-halbrund.js · UNVERÄNDERT aus der laufenden App ---- */
+"use strict";
+// ---- Rinne Halbrund ---------------------------------------------
+let rinneSegments=[];
+let rinneDilas=[];
+function calcRinneSegment(seg){
+ const laenge=Number(seg.laenge)||0;
+ const linksF=rinneFittingTypes.find(f=>f.id===Number(seg.linksTyp));
+ const rechtsF=rinneFittingTypes.find(f=>f.id===Number(seg.rechtsTyp));
+ const linksMass=linksF?Number(linksF.mass_mm)||0:0;
+ const rechtsMass=rechtsF?Number(rechtsF.mass_mm)||0:0;
+ return laenge+linksMass+rechtsMass;
+}
+// ---- Rinne Halbrund: automatische Dilatationselement-Platzierung ----
+// Werte gemäss Fachliteratur "Spenglerarbeiten", Kap. 4.1.5 "Ausdehnung".
+// Werte kommen aus dem Material-Katalog (Einstellungen → Massaufnahmen →
+// "Material", Tabelle measurement_materials), gepflegt in 01-basis.js.
+function rinneMaterialTabelle(material){
+ const m=measurementMaterialOrFallback(material);
+ return {label:m.name,mitDehnungselement:Number(m.max_abstand_mm)||5000,abFixpunkten:Number(m.ab_fixpunkt_mm)||2500};
+}
+function calcDilaPositionsInStretch(L,leftMax,rightMax,middleMax){
+ if(L<=0)return[];
+ if(L<=Math.min(leftMax,rightMax))return[];
+ // Kleinste Anzahl Elemente, mit der die Strecke überhaupt aufgeht
+ let n=1;
+ while(leftMax+(n-1)*middleMax+rightMax<L-1e-6)n++;
+ const anzahl=n+1;
+ // Grenze je Stück: aussen gilt an Ecken und Fixpunkten der halbe Abstand
+ const grenzen=[];
+ for(let i=0;i<anzahl;i++){
+  if(i===0)grenzen.push(leftMax);
+  else if(i===anzahl-1)grenzen.push(rightMax);
+  else grenzen.push(middleMax);
+ }
+ // Alle Stücke gleich lang. Wer über seiner Grenze liegt, wird darauf
+ // festgesetzt; die übrige Länge verteilt sich gleichmässig auf die
+ // restlichen Stücke. Das wiederholt sich, bis nichts mehr anschlägt.
+ const laengen=new Array(anzahl).fill(0);
+ const fest=new Array(anzahl).fill(false);
+ for(let runde=0;runde<anzahl;runde++){
+  let restLaenge=L, frei=0;
+  for(let i=0;i<anzahl;i++){
+   if(fest[i])restLaenge-=laengen[i];
+   else frei++;
+  }
+  if(!frei)break;
+  const ziel=restLaenge/frei;
+  let neuFestgesetzt=false;
+  for(let i=0;i<anzahl;i++){
+   if(fest[i])continue;
+   if(ziel>grenzen[i]+1e-6){laengen[i]=grenzen[i];fest[i]=true;neuFestgesetzt=true;}
+   else laengen[i]=ziel;
+  }
+  if(!neuFestgesetzt)break;
+ }
+ const positions=[];
+ let pos=0;
+ for(let i=0;i<anzahl-1;i++){pos+=laengen[i];positions.push(pos);}
+ return positions;
+}
+function isRinneFixpunkt(typId){
+ if(!typId)return false;
+ const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+ return !!(f&&f.is_fixpunkt);
+}
+function isRinneSchiebestutzen(typId){
+ if(!typId)return false;
+ const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+ return !!(f&&f.is_schiebestutzen);
+}
+function computeRinneBoundaries(segments){
+ // Grenzpunkte entlang des ganzen Verlaufs: 0 = Start von Segment 0, ..., N = Ende des letzten Segments.
+ // "fix" = Fixpunkt (strengere Regel), "schiebe" = Schiebestutzen (ersetzt funktional eine Dila,
+ // dort gilt die grosszügigere "Mit Dehnungselement"-Regel und es wird KEINE zusätzliche Dila platziert).
+ if(!segments.length)return{boundaries:[],gesamtlaenge:0};
+ function grenzInfo(typId){
+  if(!typId)return null;
+  const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+  if(!f)return null;
+  if(f.is_fixpunkt)return{typ:"fix",name:f.name,symbol:f.symbol};
+  if(f.is_schiebestutzen)return{typ:"schiebe",name:f.name,symbol:f.symbol};
+  return null;
+ }
+ function kombiniere(a,b){
+  if(a&&a.typ==="fix")return a;
+  if(b&&b.typ==="fix")return b;
+  if(a&&a.typ==="schiebe")return a;
+  if(b&&b.typ==="schiebe")return b;
+  return null;
+ }
+ const grenzen=[];
+ let cum=0;
+ grenzen.push({pos:0,info:grenzInfo(segments[0].linksTyp)});
+ for(let i=0;i<segments.length;i++){
+  cum+=Number(segments[i].laenge)||0;
+  const istLetzte=i===segments.length-1;
+  const info=istLetzte?grenzInfo(segments[i].rechtsTyp):kombiniere(grenzInfo(segments[i].rechtsTyp),grenzInfo(segments[i+1].linksTyp));
+  grenzen.push({pos:cum,info});
+ }
+ const gesamtlaenge=cum;
+ const boundaries=[{pos:0,typ:grenzen[0].info?grenzen[0].info.typ:null,name:grenzen[0].info?grenzen[0].info.name:null}];
+ for(let i=1;i<grenzen.length-1;i++)if(grenzen[i].info)boundaries.push({pos:grenzen[i].pos,typ:grenzen[i].info.typ,name:grenzen[i].info.name});
+ const letzte=grenzen[grenzen.length-1];
+ boundaries.push({pos:gesamtlaenge,typ:letzte.info?letzte.info.typ:null,name:letzte.info?letzte.info.name:null});
+ return{boundaries,gesamtlaenge};
+}
+function calcRinneDilas(segments,material){
+ const tab=rinneMaterialTabelle(material);
+ if(!segments.length)return{dilas:[],tabelle:tab,boundaries:[]};
+ const {boundaries,gesamtlaenge}=computeRinneBoundaries(segments);
+ const dilas=[];
+ for(let i=0;i<boundaries.length-1;i++){
+  const left=boundaries[i],right=boundaries[i+1];
+  const L=right.pos-left.pos;
+  const leftMax=left.typ==="fix"?tab.abFixpunkten:tab.mitDehnungselement;
+  const rightMax=right.typ==="fix"?tab.abFixpunkten:tab.mitDehnungselement;
+  const relPositions=calcDilaPositionsInStretch(L,leftMax,rightMax,tab.mitDehnungselement);
+  relPositions.forEach(rp=>dilas.push({posAbStart:left.pos+rp}));
+ }
+ return{dilas,tabelle:tab,gesamtlaenge,boundaries};
+}
+// Berechnet die Stückliste zwischen allen Grenzpunkten und Dilas.
+// Wird von der Anzeige, vom Speichern und vom PDF gleichermassen benutzt,
+// damit alle drei dieselben Zahlen zeigen.
+function berechneRinneStueckliste(segments,dilas,boundaries,dilaMass){
+ const segGrenzen=[0];
+ let acc=0;
+ (segments||[]).forEach(s=>{acc+=Number(s.laenge)||0;segGrenzen.push(acc)});
+ const massVon=typId=>{
+  const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+  return f?Number(f.mass_mm)||0:0;
+ };
+ // Je Grenzpunkt das Zuschlagsmass für das Stück links bzw. rechts davon
+ const massLinksSeite=[],massRechtsSeite=[];
+ segGrenzen.forEach((pos,i)=>{
+  massLinksSeite[i] =i>0?massVon(segments[i-1].rechtsTyp):0;
+  massRechtsSeite[i]=i<segments.length?massVon(segments[i].linksTyp):0;
+ });
+ const punkte=[];
+ segGrenzen.forEach((pos,i)=>{
+  const b=(boundaries||[]).find(x=>Math.round(x.pos)===Math.round(pos));
+  let label;
+  if(b&&b.name)label=b.name;
+  else if(i===0)label="Start";
+  else if(i===segGrenzen.length-1)label="Ende";
+  else label="Segmentgrenze";
+  punkte.push({pos,art:"grenze",label,grenzIndex:i});
+ });
+ (dilas||[]).forEach((d,i)=>punkte.push({pos:Number(d.posAbStart)||0,art:"dila",dilaIndex:i}));
+ punkte.sort((a,b)=>a.pos-b.pos);
+ const dm=Number(dilaMass)||0;
+ const stuecke=[];
+ for(let i=1;i<punkte.length;i++){
+  const prev=punkte[i-1],cur=punkte[i];
+  const abstand=cur.pos-prev.pos;
+  const zugabeLinks =prev.art==="grenze"?massRechtsSeite[prev.grenzIndex]:dm;
+  const zugabeRechts=cur.art==="grenze"?massLinksSeite[cur.grenzIndex]:dm;
+  stuecke.push({
+   nr:i,
+   von:prev.art==="grenze"?prev.label:`Dila ${punkte.slice(0,i).filter(p=>p.art==="dila").length}`,
+   bis:cur.art==="dila"?`Dila ${punkte.slice(0,i+1).filter(p=>p.art==="dila").length}`:cur.label,
+   abstand,
+   zuschnitt:abstand+zugabeLinks+zugabeRechts,
+   pos:cur.pos,
+   prevPos:prev.pos,
+   dilaIndex:cur.art==="dila"?cur.dilaIndex:null
+  });
+ }
+ return stuecke;
+}
+function renderRinneDilasList(){
+ const material=$("rinne_material").value;
+ const {boundaries}=computeRinneBoundaries(rinneSegments);
+ const stuecke=berechneRinneStueckliste(rinneSegments,rinneDilas,boundaries,rinneDilaMass);
+ const rows=stuecke.map(st=>{
+  if(st.dilaIndex!==null){
+   return `<tr>
+<td>${st.nr}</td>
+<td>${esc(st.von)} → ${esc(st.bis)}</td>
+<td><input data-rinne-dila-abstand="${st.dilaIndex}" data-rinne-dila-prev="${st.prevPos}" type="number" step="1" value="${st.abstand}"></td>
+<td><b>${Math.round(st.zuschnitt)}</b></td>
+<td>${Math.round(st.pos)}</td>
+<td><button type="button" class="red" data-rinne-dila-del="${st.dilaIndex}" style="padding:6px 8px">×</button></td>
+</tr>`;
+  }
+  return `<tr style="background:var(--card-bg,#f7fafc)">
+<td>${st.nr}</td>
+<td>${esc(st.von)} → ${esc(st.bis)}</td>
+<td class="small" style="color:var(--muted)">${Math.round(st.abstand)}</td>
+<td><b>${Math.round(st.zuschnitt)}</b></td>
+<td>${Math.round(st.pos)}</td>
+<td></td>
+</tr>`;
+ });
+ $("rinne_dilasBody").innerHTML=rows.join("")||'<tr><td colspan="6" class="small">Noch keine Segmente/Dilas vorhanden.</td></tr>';
+ if(!rinneSegments.length){
+  $("rinne_dilasSummary").textContent="";
+ }else{
+  const tab=rinneMaterialTabelle(material);
+  $("rinne_dilasSummary").textContent=rinneDilas.length?`${rinneDilas.length} Dila(s) (${tab.label}).`:`Keine Dila nötig (${tab.label}: max. ${tab.mitDehnungselement/1000} m mit Dehnungselement, ${tab.abFixpunkten/1000} m ab Fixpunkten).`;
+ }
+}
+$("rinne_calcDilas").onclick=()=>{
+ if(!rinneSegments.length){alert("Bitte zuerst Segmente erfassen.");return}
+ if(rinneDilas.length&&!confirm("Vorhandene Dilas werden ersetzt. Fortfahren?"))return;
+ const material=$("rinne_material").value;
+ const {dilas}=calcRinneDilas(rinneSegments,material);
+ rinneDilas=dilas;
+ renderRinneDilasList();
+ updateRinneDiagramAndSummary();
+};
+$("rinne_addDila").onclick=()=>{
+ const {gesamtlaenge}=computeRinneBoundaries(rinneSegments);
+ rinneDilas.push({posAbStart:Math.round(gesamtlaenge/2)});
+ renderRinneDilasList();
+ updateRinneDiagramAndSummary();
+};
+$("rinne_dilasBody").addEventListener("change",e=>{
+ const i=Number(e.target.dataset.rinneDilaAbstand);
+ if(Number.isNaN(i)||!rinneDilas[i])return;
+ const prevPos=Number(e.target.dataset.rinneDilaPrev)||0;
+ const neuerAbstand=Number(e.target.value)||0;
+ rinneDilas[i].posAbStart=prevPos+neuerAbstand;
+ renderRinneDilasList();
+ updateRinneDiagramAndSummary();
+});
+$("rinne_dilasBody").addEventListener("click",e=>{
+ const del=e.target.closest("[data-rinne-dila-del]");
+ if(!del)return;
+ rinneDilas.splice(Number(del.dataset.rinneDilaDel),1);
+ renderRinneDilasList();
+ updateRinneDiagramAndSummary();
+});
+function generateRinneGrundriss(segments,dilas,boundaries,enden){
+ dilas=dilas||[];
+ boundaries=boundaries||[];
+ // enden: {anfang:true,ende:true} – setzt bei der Mauerabdeckung ein
+ // Bodenzeichen an das jeweilige Ende der Linie.
+ enden=enden||{};
+ if(!segments.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Segmente für den Grundriss.</div>';
+ let x=0,y=0,dir=0;
+ const pts=[{x,y}];
+ for(const seg of segments){
+  const rad=dir*Math.PI/180;
+  x+=(Number(seg.laenge)||0)*Math.cos(rad);
+  y+=(Number(seg.laenge)||0)*Math.sin(rad);
+  pts.push({x,y});
+  dir+=Number(seg.winkel)||0;
+ }
+ const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+ const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+ const w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+ const pad=44,target=280;
+ const scale=Math.min(target/w,target/h);
+ const toSvg=p=>[pad+(p.x-minX)*scale,pad+(p.y-minY)*scale];
+ const svgW=target+2*pad,svgH=target+2*pad;
+ let lines="",labels="",arrows="";
+ for(let i=0;i<segments.length;i++){
+  const [x1,y1]=toSvg(pts[i]),[x2,y2]=toSvg(pts[i+1]);
+  lines+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
+  const mx=(x1+x2)/2,my=(y1+y2)/2;
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1;
+  const ux=dx/len,uy=dy/len;
+  const px=-uy,py=ux,off=15;
+  const lx=mx-px*off,ly=my-py*off;
+  let angleDeg=Math.atan2(dy,dx)*180/Math.PI;
+  if(angleDeg>90||angleDeg<-90)angleDeg+=180;
+  labels+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="12" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(segments[i].laenge||0)}</text>`;
+  // Blickrichtungs-Pfeil auf der Gegenseite der Massbeschriftung: Spitze beruehrt das Segment
+  const shaftFar=24,headLen=9,headWidth=5;
+  const farX=mx+px*shaftFar,farY=my+py*shaftFar;
+  const shaftEndX=mx+px*headLen,shaftEndY=my+py*headLen;
+  arrows+=`<line x1="${farX.toFixed(1)}" y1="${farY.toFixed(1)}" x2="${shaftEndX.toFixed(1)}" y2="${shaftEndY.toFixed(1)}" stroke="#b42318" stroke-width="2.2" stroke-linecap="round"/>`;
+  const p2x=shaftEndX+ux*headWidth,p2y=shaftEndY+uy*headWidth;
+  const p3x=shaftEndX-ux*headWidth,p3y=shaftEndY-uy*headWidth;
+  arrows+=`<polygon points="${mx.toFixed(1)},${my.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)} ${p3x.toFixed(1)},${p3y.toFixed(1)}" fill="#b42318"/>`;
+ }
+ let boeden="";
+ const bodenZeichen=(punkt,nachbar,text)=>{
+  const [px1,py1]=toSvg(punkt), [px2,py2]=toSvg(nachbar);
+  const dx=px2-px1, dy=py2-py1, len=Math.hypot(dx,dy)||1;
+  const ux=dx/len, uy=dy/len;      // zeigt ins Innere der Linie
+  const nx=-uy, ny=ux;             // quer dazu
+  const halb=11;
+  return `<line x1="${(px1+nx*halb).toFixed(1)}" y1="${(py1+ny*halb).toFixed(1)}" x2="${(px1-nx*halb).toFixed(1)}" y2="${(py1-ny*halb).toFixed(1)}" stroke="#0f766e" stroke-width="5" stroke-linecap="round"/>`
+   +`<text x="${(px1-ux*16).toFixed(1)}" y="${(py1-uy*16).toFixed(1)}" font-size="11" fill="#0f766e" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">${esc(text)}</text>`;
+ };
+ if(enden.anfang&&pts.length>1)boeden+=bodenZeichen(pts[0],pts[1],"Boden");
+ if(enden.ende&&pts.length>1)boeden+=bodenZeichen(pts[pts.length-1],pts[pts.length-2],"Boden");
+ let symbols="";
+ for(let i=0;i<segments.length;i++){
+  const sp=toSvg(pts[i]),ep=toSvg(pts[i+1]);
+  const linksF=rinneFittingTypes.find(f=>f.id===Number(segments[i].linksTyp));
+  const rechtsF=rinneFittingTypes.find(f=>f.id===Number(segments[i].rechtsTyp));
+  if(linksF&&linksF.symbol)symbols+=`<circle cx="${sp[0].toFixed(1)}" cy="${sp[1].toFixed(1)}" r="11" fill="#fff" stroke="#68737d" stroke-width="1.5"/><text x="${sp[0].toFixed(1)}" y="${(sp[1]+3).toFixed(1)}" font-size="8" fill="#17202a" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${esc(linksF.symbol)}</text>`;
+  if(rechtsF&&rechtsF.symbol)symbols+=`<circle cx="${ep[0].toFixed(1)}" cy="${ep[1].toFixed(1)}" r="11" fill="#fff" stroke="#68737d" stroke-width="1.5"/><text x="${ep[0].toFixed(1)}" y="${(ep[1]+3).toFixed(1)}" font-size="8" fill="#17202a" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${esc(rechtsF.symbol)}</text>`;
+ }
+ // Hilfsfunktion: SVG-Koordinaten (und lokale Segmentrichtung) für eine Position entlang des ganzen Verlaufs
+ function svgPosAt(posAbStart){
+  let remaining=posAbStart,segIdx=0;
+  while(segIdx<segments.length&&remaining>(Number(segments[segIdx].laenge)||0)){
+   remaining-=Number(segments[segIdx].laenge)||0;
+   segIdx++;
+  }
+  if(segIdx>=segments.length)segIdx=segments.length-1;
+  const segLen=Number(segments[segIdx].laenge)||1;
+  const frac=Math.max(0,Math.min(1,remaining/segLen));
+  const [sx1,sy1]=toSvg(pts[segIdx]),[sx2,sy2]=toSvg(pts[segIdx+1]);
+  const dx=sx2-sx1,dy=sy2-sy1,len=Math.hypot(dx,dy)||1;
+  return {x:sx1+dx*frac,y:sy1+dy*frac,ux:dx/len,uy:dy/len};
+ }
+ // Positionsnummern: nummeriert ALLE tatsächlichen Stücke, also sowohl die Hauptsegmente als
+ // auch die durch Dilas entstehenden Zwischenstücke (jede Segmentgrenze + jede Dila-Position
+ // gilt als eigener Schnittpunkt).
+ let posNummern="";
+ {
+  const segGrenzen=[0];
+  let cAcc=0;
+  segments.forEach(s=>{cAcc+=Number(s.laenge)||0;segGrenzen.push(cAcc);});
+  const volleKette=[...new Set([...segGrenzen,...dilas.map(d=>Math.round(Number(d.posAbStart)||0))])].sort((a,b)=>a-b);
+  for(let i=0;i<volleKette.length-1;i++){
+   const mid=(volleKette[i]+volleKette[i+1])/2;
+   const p=svgPosAt(mid);
+   const nx=-p.uy,ny=p.ux,off=13;
+   const qx=p.x-nx*off,qy=p.y-ny*off;
+   posNummern+=`<circle cx="${qx.toFixed(1)}" cy="${qy.toFixed(1)}" r="9" fill="#1769aa"/><text x="${qx.toFixed(1)}" y="${(qy+3.2).toFixed(1)}" font-size="9" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
+  }
+ }
+ // Dilas als kleine orange Rauten entlang des Verlaufs zeichnen
+ let dilaMarks="";
+ for(const d of dilas){
+  const p=svgPosAt(d.posAbStart);
+  const r=7;
+  dilaMarks+=`<polygon points="${p.x.toFixed(1)},${(p.y-r).toFixed(1)} ${(p.x+r).toFixed(1)},${p.y.toFixed(1)} ${p.x.toFixed(1)},${(p.y+r).toFixed(1)} ${(p.x-r).toFixed(1)},${p.y.toFixed(1)}" fill="#e07a1f" stroke="#8a4a0f" stroke-width="1"/>`;
+ }
+ // Vermassung: Abstände zwischen Start, Fixpunkten/Schiebestutzen, den Dilas und dem Ende beschriften
+ // (orange, parallel zur jeweiligen Linienrichtung).
+ let dilaMasse="";
+ if(dilas.length||boundaries.length>2){
+  const gesamtlaenge=segments.reduce((s,seg)=>s+(Number(seg.laenge)||0),0);
+  const kettePositionen=[0,...boundaries.map(b=>b.pos),...dilas.map(d=>d.posAbStart),gesamtlaenge];
+  const kette=[...new Set(kettePositionen.map(p=>Math.round(p)))].sort((a,b)=>a-b);
+  for(let i=0;i<kette.length-1;i++){
+   const gap=kette[i+1]-kette[i];
+   if(gap<=0)continue;
+   const mid=(kette[i]+kette[i+1])/2;
+   const pMid=svgPosAt(mid);
+   const nx=-pMid.uy,ny=pMid.ux,off=13;
+   const lx=pMid.x+nx*off,ly=pMid.y+ny*off;
+   let angleDeg=Math.atan2(pMid.uy,pMid.ux)*180/Math.PI;
+   if(angleDeg>90||angleDeg<-90)angleDeg+=180;
+   dilaMasse+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="9.5" fill="#b45a09" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(gap)}</text>`;
+  }
+ }
+ return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${labels}${posNummern}${symbols}${boeden}${dilaMarks}${dilaMasse}</svg>`;
+}
+function renderRinneSegmentsTable(){
+ const options=rinneFittingTypes.map(f=>`<option value="${f.id}">${esc(f.symbol?f.symbol+" – ":"")}${esc(f.name)}</option>`).join("");
+ $("rinne_segmentsBody").innerHTML=rinneSegments.map((s,i)=>`<tr>
+<td>${i+1}</td>
+<td><input data-rinne-laenge="${i}" type="number" step="1" value="${s.laenge||0}"></td>
+<td><select data-rinne-links="${i}"><option value="">–</option>${options}</select></td>
+<td><select data-rinne-rechts="${i}"><option value="">–</option>${options}</select></td>
+<td><input data-rinne-winkel="${i}" type="number" step="1" value="${s.winkel??0}"></td>
+<td>${calcRinneSegment(s)}</td>
+<td><button type="button" class="red" data-rinne-del="${i}" style="padding:6px 8px">×</button></td>
+</tr>`).join("")||'<tr><td colspan="7" class="small">Noch keine Segmente. "+ Segment hinzufügen" klicken.</td></tr>';
+ rinneSegments.forEach((s,i)=>{
+  const linksSel=document.querySelector(`[data-rinne-links="${i}"]`);
+  const rechtsSel=document.querySelector(`[data-rinne-rechts="${i}"]`);
+  if(linksSel)linksSel.value=s.linksTyp||"";
+  if(rechtsSel)rechtsSel.value=s.rechtsTyp||"";
+ });
+}
+function renderRinneResult(){
+ renderRinneSegmentsTable();
+ updateRinneDiagramAndSummary();
+ renderRinneDilasList();
+}
+function updateRinneDiagramAndSummary(){
+ const {boundaries}=computeRinneBoundaries(rinneSegments);
+ $("rinne_diagram").innerHTML=generateRinneGrundriss(rinneSegments,rinneDilas,boundaries);
+ const totalLen=rinneSegments.reduce((s,seg)=>s+(Number(seg.laenge)||0),0);
+ $("rinne_summary").textContent=rinneSegments.length?`${rinneSegments.length} Segmente · Gesamtlänge ${totalLen} mm · Abwicklung ${$("rinne_abwicklung").value} mm`:"";
+}
+$("rinne_material").addEventListener("change",()=>{renderRinneDilasList();updateRinneDiagramAndSummary();});
+$("rinne_addSegment").onclick=()=>{
+ const prev=rinneSegments[rinneSegments.length-1];
+ rinneSegments.push({laenge:0,linksTyp:prev?prev.rechtsTyp:"",rechtsTyp:"",winkel:0});
+ renderRinneResult();
+};
+$("rinne_segmentsBody").addEventListener("input",e=>{
+ const i=Number(e.target.dataset.rinneLaenge??e.target.dataset.rinneWinkel);
+ if(Number.isNaN(i)||!rinneSegments[i])return;
+ if(e.target.dataset.rinneLaenge!==undefined)rinneSegments[i].laenge=Number(e.target.value)||0;
+ else if(e.target.dataset.rinneWinkel!==undefined)rinneSegments[i].winkel=Number(e.target.value)||0;
+ const row=e.target.closest("tr");
+ if(row&&row.children[5])row.children[5].textContent=calcRinneSegment(rinneSegments[i]);
+ updateRinneDiagramAndSummary();
+ renderRinneDilasList();
+});
+$("rinne_segmentsBody").addEventListener("change",e=>{
+ const i=Number(e.target.dataset.rinneLinks??e.target.dataset.rinneRechts);
+ if(Number.isNaN(i)||!rinneSegments[i])return;
+ if(e.target.dataset.rinneLinks!==undefined)rinneSegments[i].linksTyp=e.target.value;
+ else if(e.target.dataset.rinneRechts!==undefined){
+  rinneSegments[i].rechtsTyp=e.target.value;
+  const f=rinneFittingTypes.find(x=>x.id===Number(e.target.value));
+  if(f)rinneSegments[i].winkel=Number(f.angle_deg)||0;
+ }
+ renderRinneResult();
+});
+$("rinne_segmentsBody").addEventListener("click",e=>{
+ const del=e.target.closest("[data-rinne-del]");
+ if(del){rinneSegments.splice(Number(del.dataset.rinneDel),1);renderRinneResult();}
+});
+$("rinne_abwicklung").addEventListener("change",renderRinneResult);
+
+</script>
+<script>
+/* ---- prototyp/prototyp-rinne.js ---- */
+"use strict";
+// ===========================================================================
+// PROTOTYP · Massaufnahme "Rinne Halbrund"
+// ===========================================================================
+// Weiterentwicklung des bestehenden Moduls, NICHT eine Parallel-Lösung.
+// Die gesamte Fachrechnung kommt unverändert aus js/12-rinne-halbrund.js
+// (siehe bruecke.js). Neu ist alles, was der Auftrag zusätzlich verlangt:
+// Grunddaten, Verlauf mit Ecken, Einhänge- und Schiebestutzen, Halter,
+// Endstücke, Dehnung, Sonderteile, Fotos, Skizze, Plausibilität,
+// Zusammenfassung, Ausmass, Material, Kopieren, lokales Speichern und ein
+// Ablauf in sechs Schritten.
+// ===========================================================================
+
+// ---- 1. Grunddaten -------------------------------------------------------
+// Genau fünf Rinnengrössen, nichts Freies (Auftrag Änderung 1 und 2).
+const RG_GROESSEN=[
+ {wert:"200",  text:"200 mm"},
+ {wert:"250",  text:"250 mm"},
+ {wert:"330",  text:"330 mm"},
+ {wert:"400",  text:"400 mm"},
+ {wert:"ohne", text:"ohne RG"}
+];
+const STUTZEN_DURCHMESSER=["Ø 80","Ø 100","Ø 120","Ø 125","Ø 150"];
+const FALLROHR_STATUS=["bestehend","neu","unbekannt"];
+
+// Fitting-IDs aus dem bestehenden Katalog (rinne_fitting_types).
+// Die Ecke ist dort bereits als Fixpunkt hinterlegt, dadurch wirkt sie
+// automatisch auf die Dila-Abstände.
+const ECKE_AUSSEN_ID=2, ECKE_INNEN_ID=3;
+// Der Einhängestutzen ist ein Fixpunkt. Im bestehenden Katalog trägt der
+// "Ablaufstutzen" (id 4) genau diese Eigenschaft (is_fixpunkt = true,
+// mass_mm = 0). Der Prototyp verwendet ihn deshalb unverändert weiter,
+// statt eine zweite Fixpunktlogik zu bauen.
+const EINHAENGE_FITTING_ID=4;
+// Der Schiebestutzen (id 7) hat im Katalog is_schiebestutzen = true und
+// würde damit in computeRinneBoundaries() als Grenzpunkt gelten. Genau das
+// ist hier NICHT gewollt (Auftrag Änderung 4): der Schiebestutzen darf die
+// Dilatationsberechnung nicht beeinflussen. Er wird deshalb bewusst NIE in
+// die Rechen-Segmente eingesetzt – siehe segmenteFuerRechnung().
+
+function leereAufnahme(){
+ return {
+  id:"ra_"+Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+  typ:"rinne_halbrund",
+  erstellt:new Date().toISOString(),
+  geaendert:new Date().toISOString(),
+  bezeichnung:"",
+  material:3,                 // Kupfer
+  groesse:"330",
+  gesamtlaengeManuell_mm:null,
+  // Verlauf: exakt die Struktur des bestehenden Moduls
+  segmente:[{laenge:0,linksTyp:"",rechtsTyp:"",winkel:0}],
+  einhaengestutzen:[],        // Fixpunkt für die Dilatationsberechnung
+  schiebestutzen:[],          // KEIN Fixpunkt, reines Bauteil
+  halter:{anzahl:null,abstand_mm:500,typ:""},
+  endstuecke:{links:true,rechts:true},
+  dehnung:{art:"keine",anzahl:0},
+  sonderteile:[],
+  fotos:[],
+  skizze:null,
+  bemerkung:""
+ };
+}
+
+// Ältere im Browser gespeicherte Aufnahmen behutsam übernehmen: früher gab
+// es "ablaeufe", freie Rinnengrössen und Verbinder. Nichts wird verworfen,
+// was noch eine Entsprechung hat.
+const RG_ALT={"RG 200":"200","RG 250":"250","RG 280":"250","RG 333":"330",
+              "RG 400":"400","RG 500":"400","andere":"ohne"};
+function aufnahmeUmstellen(a){
+ if(!a||typeof a!=="object")return a;
+ // leereAufnahme() legt einhaengestutzen bereits als leeres Array an – die
+ // Übernahme darf deshalb nicht daran hängen, dass das Feld fehlt.
+ if(Array.isArray(a.ablaeufe)&&a.ablaeufe.length
+    &&(!Array.isArray(a.einhaengestutzen)||!a.einhaengestutzen.length))
+  a.einhaengestutzen=a.ablaeufe.map(x=>({pos_mm:x.pos_mm,durchmesser:x.durchmesser,
+   anzahl:1,fallrohr:x.fallrohr,bemerkung:x.bemerkung||""}));
+ delete a.ablaeufe;
+ delete a.verbinder;
+ delete a.groesseFrei;
+ if(!Array.isArray(a.einhaengestutzen))a.einhaengestutzen=[];
+ if(!Array.isArray(a.schiebestutzen))a.schiebestutzen=[];
+ if(RG_ALT[a.groesse])a.groesse=RG_ALT[a.groesse];
+ if(!RG_GROESSEN.some(g=>g.wert===a.groesse))a.groesse="ohne";
+ return a;
+}
+
+let aufnahme=leereAufnahme();
+let schritt=1;
+const SCHRITTE=["Grunddaten","Verlauf","Komponenten","Fotos & Skizze","Kontrolle","Ausmass & Material"];
+
+// ---- 2. Lokal speichern --------------------------------------------------
+const SPEICHER="sd_prototyp_rinne_halbrund";
+function alleAufnahmen(){
+ try{const a=JSON.parse(localStorage.getItem(SPEICHER)||"[]");return Array.isArray(a)?a:[]}
+ catch(e){return []}
+}
+function speichereAlle(liste){
+ try{localStorage.setItem(SPEICHER,JSON.stringify(liste));return true}
+ catch(e){alert("Speichern nicht möglich: "+e.message);return false}
+}
+function aufnahmeSpeichern(){
+ aufnahme.geaendert=new Date().toISOString();
+ const liste=alleAufnahmen();
+ const i=liste.findIndex(a=>a.id===aufnahme.id);
+ if(i>=0)liste[i]=JSON.parse(JSON.stringify(aufnahme));
+ else liste.unshift(JSON.parse(JSON.stringify(aufnahme)));
+ return speichereAlle(liste);
+}
+function aufnahmeLaden(id){
+ const a=alleAufnahmen().find(x=>x.id===id);
+ if(!a)return false;
+ aufnahme=aufnahmeUmstellen(Object.assign(leereAufnahme(),JSON.parse(JSON.stringify(a))));
+ return true;
+}
+// Kopieren: neue, unabhängige Aufnahme mit eigener ID (Auftrag 23).
+function aufnahmeKopieren(id){
+ const a=alleAufnahmen().find(x=>x.id===id);
+ if(!a)return null;
+ const k=aufnahmeUmstellen(Object.assign(leereAufnahme(),JSON.parse(JSON.stringify(a))));
+ k.id="ra_"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+ k.erstellt=k.geaendert=new Date().toISOString();
+ k.bezeichnung=(k.bezeichnung||"Rinne")+" (Kopie)";
+ const liste=alleAufnahmen();
+ liste.unshift(k);
+ speichereAlle(liste);
+ return k;
+}
+
+// ---- 3. Ableitungen ------------------------------------------------------
+const zahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+function mm(v){return Math.round(zahl(v)).toLocaleString("de-CH")}
+function meter(v){return (Math.round(zahl(v))/1000).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2})}
+function groesseText(a){
+ const g=RG_GROESSEN.find(x=>x.wert===a.groesse);
+ return g?g.text:"ohne RG";
+}
+// Zusatz für Bauteilbezeichnungen: bei "ohne RG" bleibt er leer, damit im
+// Ausmass nicht "Rinnenhalter ohne RG" steht.
+function groesseZusatz(a){
+ return a.groesse==="ohne"?"":" "+groesseText(a);
+}
+function materialText(a){
+ const m=findMeasurementMaterial(a.material);
+ return m?m.name:"–";
+}
+
+// Gesamtlänge aus den Abschnitten – die einzige Quelle für alle Folgewerte.
+function gesamtlaengeBerechnet(a){
+ return (a.segmente||[]).reduce((s,seg)=>s+zahl(seg.laenge),0);
+}
+
+// Ecken entstehen aus dem Verlauf (Auftrag 12): der Winkel steht wie im
+// bestehenden Modul am Abschnitt und meint die Richtungsänderung danach.
+// Vorzeichen wie im Katalog: negativ = Aussenwinkel, positiv = Innenwinkel.
+function eckenAusVerlauf(a){
+ const ecken=[];
+ let pos=0;
+ (a.segmente||[]).forEach((seg,i)=>{
+  pos+=zahl(seg.laenge);
+  const w=zahl(seg.winkel);
+  if(w!==0&&i<a.segmente.length-1){
+   ecken.push({nachAbschnitt:i,pos_mm:pos,winkel:Math.abs(w),
+               art:w<0?"aussen":"innen"});
+  }
+ });
+ return ecken;
+}
+
+// Vorschlag für die Halteranzahl (Auftrag 9). Der Benutzer darf ihn
+// jederzeit überschreiben – deshalb nur ein Vorschlag, keine Festlegung.
+function halterVorschlag(a){
+ const L=gesamtlaengeBerechnet(a);
+ const d=zahl(a.halter.abstand_mm);
+ if(L<=0||d<=0)return null;
+ return Math.ceil(L/d)+1;
+}
+function halterAnzahl(a){
+ return a.halter.anzahl!==null&&a.halter.anzahl!==undefined&&a.halter.anzahl!==""
+  ?Math.max(0,Math.round(zahl(a.halter.anzahl)))
+  :(halterVorschlag(a)||0);
+}
+
+// ---- Einhängestutzen als Fixpunkt (Auftrag Änderung 3) -------------------
+// Das bestehende Modul kennt Fixpunkte ausschliesslich als Anschlusstyp an
+// einer Segmentgrenze – computeRinneBoundaries() liest linksTyp/rechtsTyp.
+// Ein Stutzen mitten in einem Abschnitt lässt sich so nicht ausdrücken.
+//
+// Statt eine zweite Fixpunktlogik zu bauen, erzeugt der Prototyp eine
+// abgeleitete Segmentliste NUR FÜR DIE RECHNUNG: jeder Abschnitt wird an
+// der Stutzenposition geteilt und bekommt dort beidseitig den bestehenden
+// Katalogeintrag "Ablaufstutzen" (id 4, is_fixpunkt = true, mass_mm = 0).
+// Damit greift die vorhandene Fixpunktregel unverändert, ohne dass sich am
+// Verlauf des Benutzers etwas ändert und ohne dass sich die Gesamtlänge
+// verschiebt (das Zuschlagsmass dieses Anschlusstyps ist 0 mm).
+//
+// Der Schiebestutzen wird hier bewusst NIE eingesetzt (Auftrag Änderung 4).
+// Dadurch kann er die Dilatationsberechnung strukturell nicht beeinflussen –
+// das hängt nicht an Sorgfalt, sondern daran, dass er in dieser Funktion
+// überhaupt nicht vorkommt.
+function istFixpunktTyp(typId){
+ const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+ return !!(f&&f.is_fixpunkt);
+}
+function segmenteFuerRechnung(a){
+ const segs=(a.segmente||[]).map(s=>({laenge:zahl(s.laenge),
+   linksTyp:s.linksTyp||"",rechtsTyp:s.rechtsTyp||"",winkel:zahl(s.winkel)}));
+ if(!segs.length)return segs;
+ const L=gesamtlaengeBerechnet(a);
+ const stellen=Array.from(new Set((a.einhaengestutzen||[])
+   .map(e=>Math.round(zahl(e.pos_mm)))
+   .filter(pos=>pos>=0&&pos<=L))).sort((x,y)=>x-y);
+ if(!stellen.length)return segs;
+
+ // Stutzen genau am Anfang oder am Ende: dort gibt es bereits eine Grenze,
+ // sie braucht nur den Anschlusstyp – sofern dort nicht ohnehin schon ein
+ // Fixpunkt sitzt (eine Ecke zum Beispiel).
+ if(stellen.indexOf(0)>=0&&!istFixpunktTyp(segs[0].linksTyp))
+  segs[0].linksTyp=EINHAENGE_FITTING_ID;
+ const letzte=segs[segs.length-1];
+ if(stellen.indexOf(L)>=0&&L>0&&!istFixpunktTyp(letzte.rechtsTyp))
+  letzte.rechtsTyp=EINHAENGE_FITTING_ID;
+
+ const raus=[];
+ let start=0;
+ segs.forEach(seg=>{
+  const ende=start+seg.laenge;
+  const innen=stellen.filter(pos=>pos>start&&pos<ende);
+  // Stutzen genau auf einer Segmentgrenze: nur den Anschlusstyp setzen,
+  // nicht teilen – die Grenze existiert bereits.
+  if(stellen.indexOf(ende)>=0&&ende<L&&!istFixpunktTyp(seg.rechtsTyp))
+   seg.rechtsTyp=EINHAENGE_FITTING_ID;
+  if(stellen.indexOf(start)>=0&&start>0&&!istFixpunktTyp(seg.linksTyp))
+   seg.linksTyp=EINHAENGE_FITTING_ID;
+  if(!innen.length){raus.push(seg);start=ende;return}
+  let cur=start,linksTyp=seg.linksTyp;
+  innen.forEach(pos=>{
+   raus.push({laenge:pos-cur,linksTyp,rechtsTyp:EINHAENGE_FITTING_ID,winkel:0});
+   linksTyp=EINHAENGE_FITTING_ID; cur=pos;
+  });
+  raus.push({laenge:ende-cur,linksTyp,rechtsTyp:seg.rechtsTyp,winkel:seg.winkel});
+  start=ende;
+ });
+ return raus;
+}
+
+// Dilas: unverändert die Rechnung des bestehenden Moduls, gefüttert mit der
+// abgeleiteten Segmentliste von oben.
+function dilasBerechnet(a){
+ const segs=segmenteFuerRechnung(a);
+ if(!segs.length)return {dilas:[],tabelle:rinneMaterialTabelle(a.material),boundaries:[],segmente:segs};
+ const r=calcRinneDilas(segs,a.material);
+ r.segmente=segs;
+ return r;
+}
+
+// ---- 4. Plausibilität (Auftrag 18) --------------------------------------
+function pruefungen(a){
+ const meldungen=[];
+ const L=gesamtlaengeBerechnet(a);
+ const segs=a.segmente||[];
+ if(!segs.length||L<=0)meldungen.push({art:"fehler",text:"Es ist noch kein Rinnenabschnitt mit einer Länge erfasst."});
+ segs.forEach((s,i)=>{
+  if(zahl(s.laenge)<0)meldungen.push({art:"fehler",text:`Abschnitt ${i+1} hat eine negative Länge.`});
+  const w=zahl(s.winkel);
+  if(w<-180||w>180)meldungen.push({art:"fehler",text:`Der Winkel nach Abschnitt ${i+1} liegt ausserhalb von −180° bis 180°.`});
+ });
+ if(L>0&&L<300)meldungen.push({art:"warnung",text:`Die Gesamtlänge von ${mm(L)} mm ist auffällig kurz – bitte prüfen.`});
+ if(L>200000)meldungen.push({art:"warnung",text:`Die Gesamtlänge von ${meter(L)} m ist auffällig lang – bitte prüfen.`});
+ // Manuelle Gesamtlänge gegen die Summe der Abschnitte
+ const man=a.gesamtlaengeManuell_mm;
+ if(man!==null&&man!==undefined&&man!==""&&zahl(man)>0&&L>0){
+  const diff=Math.round(zahl(man)-L);
+  if(diff!==0){
+   meldungen.push({art:"warnung",
+    text:`Die Abschnitte ergeben ${mm(L)} mm, die angegebene Gesamtlänge beträgt ${mm(man)} mm. `
+        +`Differenz ${diff>0?"+":""}${mm(diff)} mm.`});
+  }
+ }
+ // Stutzenpositionen beziehen sich immer auf den definierten START
+ // (Auftrag Änderung 7 und 8).
+ [["Einhängestutzen",a.einhaengestutzen],["Schiebestutzen",a.schiebestutzen]].forEach(([name,liste])=>{
+  (liste||[]).forEach((st,i)=>{
+   const pos=zahl(st.pos_mm);
+   if(pos<0)meldungen.push({art:"fehler",text:`${name} ${i+1} hat eine negative Position (${mm(pos)} mm ab START).`});
+   else if(L>0&&pos>L)meldungen.push({art:"fehler",text:`${name} ${i+1} liegt ausserhalb der aufgenommenen Rinne (${mm(pos)} mm von ${mm(L)} mm).`});
+   if(zahl(st.anzahl)<1)meldungen.push({art:"fehler",text:`${name} ${i+1} hat keine gültige Anzahl.`});
+  });
+ });
+ if(zahl(a.halter.abstand_mm)<0)meldungen.push({art:"fehler",text:"Der Halterabstand darf nicht negativ sein."});
+ if(a.halter.anzahl!==null&&a.halter.anzahl!==""&&zahl(a.halter.anzahl)<0)
+  meldungen.push({art:"fehler",text:"Die Halteranzahl darf nicht negativ sein."});
+ if(a.dehnung.art==="dehnungsstueck"&&zahl(a.dehnung.anzahl)<0)
+  meldungen.push({art:"fehler",text:"Die Anzahl Dehnungsstücke darf nicht negativ sein."});
+ (a.sonderteile||[]).forEach((s,i)=>{
+  if(zahl(s.anzahl)<0)meldungen.push({art:"fehler",text:`Sonderteil ${i+1} hat eine negative Anzahl.`});
+  if(!String(s.bezeichnung||"").trim())meldungen.push({art:"warnung",text:`Sonderteil ${i+1} hat keine Bezeichnung.`});
+ });
+ return meldungen;
+}
+function hatFehler(a){return pruefungen(a).some(m=>m.art==="fehler")}
+
+// ---- 5. Komponenten, Ausmass, Material (Auftrag 19–21) -------------------
+// EINE Ableitung – Zusammenfassung, Ausmass und Materialübersicht lesen
+// alle aus derselben Liste. Nichts wird doppelt gerechnet oder von Hand
+// nachgetragen.
+function komponenten(a){
+ // gz ist der Grössenzusatz. Bei "ohne RG" bleibt er leer, damit im Ausmass
+ // nicht "Rinnenhalter ohne RG" steht.
+ const gz=groesseZusatz(a);
+ const L=gesamtlaengeBerechnet(a);
+ const ecken=eckenAusVerlauf(a);
+ const innen=ecken.filter(e=>e.art==="innen").length;
+ const aussen=ecken.filter(e=>e.art==="aussen").length;
+ const liste=[];
+ if(L>0)liste.push({schluessel:"rinne",bezeichnung:`Rinne halbrund${gz} ${materialText(a)}`,
+                    menge:Math.round(L)/1000,einheit:"m",herkunft:"Verlauf"});
+ const nHalter=halterAnzahl(a);
+ if(nHalter>0)liste.push({schluessel:"halter",bezeichnung:`Rinnenhalter${gz}`+(a.halter.typ?` (${a.halter.typ})`:""),
+                          menge:nHalter,einheit:"Stk.",herkunft:a.halter.anzahl?"Eingabe":"Vorschlag aus Länge/Abstand"});
+ if(innen)liste.push({schluessel:"innenwinkel",bezeichnung:`Innenwinkel${gz}`,menge:innen,einheit:"Stk.",herkunft:"Verlauf"});
+ if(aussen)liste.push({schluessel:"aussenwinkel",bezeichnung:`Aussenwinkel${gz}`,menge:aussen,einheit:"Stk.",herkunft:"Verlauf"});
+ // Stutzen nach Durchmesser gruppieren. Beide Arten erscheinen im Ausmass –
+ // dass nur der Einhängestutzen ein Fixpunkt ist, betrifft ausschliesslich
+ // die Dilatationsberechnung, nicht die Stückzahl.
+ const gruppiere=(liste2,bez,quelle,schl)=>{
+  const nachD={};
+  (liste2||[]).forEach(st=>{
+   const d=st.durchmesser||"Ø ?";
+   nachD[d]=(nachD[d]||0)+Math.max(1,Math.round(zahl(st.anzahl)||1));
+  });
+  Object.keys(nachD).sort().forEach(d=>{
+   liste.push({schluessel:schl+"_"+d,bezeichnung:`${bez}${gz} ${d}`,
+               menge:nachD[d],einheit:"Stk.",herkunft:quelle});
+  });
+ };
+ gruppiere(a.einhaengestutzen,"Einhängestutzen","Einhängestutzen (Fixpunkt)","einhaenge");
+ gruppiere(a.schiebestutzen,"Schiebestutzen","Schiebestutzen","schiebe");
+ if(a.endstuecke.links)liste.push({schluessel:"endstueck_l",bezeichnung:`Endstück links${gz}`,menge:1,einheit:"Stk.",herkunft:"Eingabe"});
+ if(a.endstuecke.rechts)liste.push({schluessel:"endstueck_r",bezeichnung:`Endstück rechts${gz}`,menge:1,einheit:"Stk.",herkunft:"Eingabe"});
+ if(a.dehnung.art==="dehnungsstueck"){
+  const nD=Math.round(zahl(a.dehnung.anzahl));
+  if(nD>0)liste.push({schluessel:"dehnung",bezeichnung:`Dehnungsstück${gz}`,menge:nD,einheit:"Stk.",herkunft:"Eingabe"});
+ }
+ (a.sonderteile||[]).forEach((s,i)=>{
+  const n=Math.round(zahl(s.anzahl));
+  if(n>0)liste.push({schluessel:"sonderteil_"+i,bezeichnung:String(s.bezeichnung||"Sonderteil").trim()||"Sonderteil",
+                     menge:n,einheit:"Stk.",herkunft:"Sonderteil",bemerkung:s.bemerkung||""});
+ });
+ return liste;
+}
+function ausmassZeilen(a){
+ // Das Ausmass IST die Komponentenliste – die Positionen werden nirgends
+ // ein zweites Mal eingegeben (Auftrag 20).
+ return komponenten(a).map((k,i)=>({
+  pos:i+1,
+  bezeichnung:k.bezeichnung,
+  menge:k.einheit==="m"?k.menge.toFixed(2):String(k.menge),
+  einheit:k.einheit,
+  herkunft:k.herkunft
+ }));
+}
+function materialUebersicht(a){
+ // Bewusst OHNE Artikelnummern und Preise (Auftrag 21): die kommen später
+ // aus der firmenindividuellen Materialliste.
+ const mat=materialText(a);
+ return komponenten(a).map(k=>({
+  bezeichnung:k.bezeichnung,menge:k.einheit==="m"?k.menge.toFixed(2):String(k.menge),
+  einheit:k.einheit,material:mat
+ }));
+}
+
+// ---- 6. Verlaufsband ------------------------------------------------------
+// Neue, ergänzende Ansicht: der ganze Verlauf von START bis ENDE als gerades
+// Band. Darauf sitzen Ecken, Abläufe und Dilas an ihrer echten Position.
+// Genau dafür gedacht, auf dem Tablet in einem Blick zu prüfen, ob ein
+// Ablauf an der richtigen Stelle liegt. Der massstäbliche Grundriss kommt
+// weiterhin unverändert aus dem bestehenden Modul.
+function verlaufsBandSvg(a){
+ const L=gesamtlaengeBerechnet(a);
+ if(L<=0)return '<div class="p-leer">Noch kein Abschnitt erfasst.</div>';
+ const W=470,H=126,l=34,r=W-34,y=58;
+ const x=p=>l+(r-l)*Math.max(0,Math.min(1,zahl(p)/L));
+ let s=`<line x1="${l}" y1="${y}" x2="${r}" y2="${y}" stroke="#17202a" stroke-width="7" stroke-linecap="round"/>`;
+ s+=`<text x="${l}" y="${y+30}" font-size="11.5" text-anchor="middle" fill="#68737d" font-weight="700">START</text>`;
+ s+=`<text x="${r}" y="${y+30}" font-size="11.5" text-anchor="middle" fill="#68737d" font-weight="700">ENDE</text>`;
+ s+=`<text x="${r}" y="${(y-32).toFixed(1)}" font-size="13" text-anchor="end" fill="#1769aa" font-weight="700">Gesamt ${esc(mm(L))} mm</text>`;
+ // Abschnittsgrenzen
+ let pos=0;
+ (a.segmente||[]).forEach((seg,i)=>{
+  const von=pos; pos+=zahl(seg.laenge);
+  const xm=(x(von)+x(pos))/2;
+  s+=`<text x="${xm.toFixed(1)}" y="${y-16}" font-size="12" text-anchor="middle" fill="#17202a" font-weight="700">${esc(mm(seg.laenge))}</text>`;
+  if(i<a.segmente.length-1)
+   s+=`<line x1="${x(pos).toFixed(1)}" y1="${y-9}" x2="${x(pos).toFixed(1)}" y2="${y+9}" stroke="#9bb0c1" stroke-width="2"/>`;
+ });
+ // Ecken
+ eckenAusVerlauf(a).forEach(e=>{
+  const px=x(e.pos_mm);
+  s+=`<polygon points="${px.toFixed(1)},${y-20} ${(px+9).toFixed(1)},${y-8} ${(px-9).toFixed(1)},${y-8}" fill="#0f766e"/>`;
+  s+=`<text x="${px.toFixed(1)}" y="${y-27}" font-size="11" text-anchor="middle" fill="#0f766e" font-weight="700">${e.art==="innen"?"IE":"AE"} ${e.winkel}°</text>`;
+ });
+ // Einhängestutzen: Fixpunkt. Runde Marke MIT senkrechtem Fixpunktstrich
+ // durch die Rinne – so ist auf einen Blick zu sehen, dass er die
+ // Dilatationsberechnung teilt.
+ (a.einhaengestutzen||[]).forEach((st,i)=>{
+  const pos=zahl(st.pos_mm), draussen=pos<0||pos>L, px=x(pos);
+  const farbe=draussen?"#b42318":"#1769aa";
+  s+=`<line x1="${px.toFixed(1)}" y1="${(y-13).toFixed(1)}" x2="${px.toFixed(1)}" y2="${(y+13).toFixed(1)}" stroke="${farbe}" stroke-width="3"/>`;
+  s+=`<circle cx="${px.toFixed(1)}" cy="${(y+22).toFixed(1)}" r="8.5" fill="${farbe}"/>`;
+  s+=`<text x="${px.toFixed(1)}" y="${(y+25.6).toFixed(1)}" font-size="10" text-anchor="middle" fill="#fff" font-weight="700">E${i+1}</text>`;
+  s+=`<text x="${px.toFixed(1)}" y="${(y+40).toFixed(1)}" font-size="10" text-anchor="middle" fill="${farbe}" font-weight="700">FIX</text>`;
+  s+=`<text x="${px.toFixed(1)}" y="${(y+52).toFixed(1)}" font-size="10.5" text-anchor="middle" fill="${draussen?"#b42318":"#68737d"}">${esc(mm(pos))}</text>`;
+ });
+ // Schiebestutzen: KEIN Fixpunkt. Eckige Marke, andere Farbe, kein Strich
+ // durch die Rinne – die Rechnung bleibt an dieser Stelle ununterbrochen.
+ (a.schiebestutzen||[]).forEach((st,i)=>{
+  const pos=zahl(st.pos_mm), draussen=pos<0||pos>L, px=x(pos);
+  const farbe=draussen?"#b42318":"#6b4fa8";
+  s+=`<rect x="${(px-8.5).toFixed(1)}" y="${(y+13.5).toFixed(1)}" width="17" height="17" rx="3" fill="${farbe}"/>`;
+  s+=`<text x="${px.toFixed(1)}" y="${(y+25.6).toFixed(1)}" font-size="10" text-anchor="middle" fill="#fff" font-weight="700">S${i+1}</text>`;
+  s+=`<text x="${px.toFixed(1)}" y="${(y+52).toFixed(1)}" font-size="10.5" text-anchor="middle" fill="${draussen?"#b42318":"#68737d"}">${esc(mm(pos))}</text>`;
+ });
+ // Dilas aus der bestehenden Rechnung
+ dilasBerechnet(a).dilas.forEach(d=>{
+  const px=x(d.posAbStart), q=7;
+  s+=`<polygon points="${px.toFixed(1)},${(y-q).toFixed(1)} ${(px+q).toFixed(1)},${y} ${px.toFixed(1)},${(y+q).toFixed(1)} ${(px-q).toFixed(1)},${y}" fill="#e07a1f" stroke="#8a4a0f" stroke-width="1"/>`;
+ });
+ return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+}
+
+// ---- 7. Oberfläche --------------------------------------------------------
+function setzeSchritt(n){
+ schritt=Math.max(1,Math.min(SCHRITTE.length,n));
+ zeichne();
+ const k=$("p-inhalt"); if(k)k.scrollIntoView({block:"start"});
+}
+function schrittLeiste(){
+ return `<div class="p-schritte">`+SCHRITTE.map((s,i)=>
+  `<button type="button" class="p-schritt${i+1===schritt?" aktiv":""}" data-schritt="${i+1}">
+     <span class="p-schritt-nr">${i+1}</span><span class="p-schritt-text">${esc(s)}</span></button>`).join("")+`</div>`;
+}
+function feld(label,inhalt,voll){
+ return `<div class="p-feld${voll?" voll":""}"><label>${esc(label)}</label>${inhalt}</div>`;
+}
+
+function schritt1(){
+ const a=aufnahme;
+ const matOpt=measurementMaterials.map(m=>
+  `<option value="${m.id}"${String(m.id)===String(a.material)?" selected":""}>${esc(m.name)}</option>`).join("");
+ const rgOpt=RG_GROESSEN.map(g=>`<option value="${esc(g.wert)}"${g.wert===a.groesse?" selected":""}>${esc(g.text)}</option>`).join("");
+ const L=gesamtlaengeBerechnet(a);
+ return `<div class="p-karte">
+<h2>1 · Grunddaten</h2>
+<div class="p-grid">
+${feld("Bezeichnung",`<input id="p-bez" placeholder="z. B. Nordseite Haus A" value="${esc(a.bezeichnung)}">`,true)}
+${feld("Material",`<select id="p-material">${matOpt}</select>`)}
+${feld("Rinnengrösse",`<select id="p-groesse">${rgOpt}</select>`)}
+${feld("Gesamtlänge gemessen (mm, optional)",
+  `<input id="p-gesamt" type="number" inputmode="numeric" step="1" value="${a.gesamtlaengeManuell_mm??""}" placeholder="nur zur Kontrolle">`)}
+${feld("Aus den Abschnitten",`<div class="p-wert">${L>0?esc(mm(L))+" mm":"–"}</div>`)}
+</div>
+<div class="p-hinweis">Die Gesamtlänge oben ist freiwillig. Sie dient nur der Kontrolle gegen die Summe der Abschnitte aus Schritt 2.</div>
+</div>`;
+}
+
+function schritt2(){
+ const a=aufnahme;
+ const L=gesamtlaengeBerechnet(a);
+ const zeilen=[];
+ (a.segmente||[]).forEach((seg,i)=>{
+  zeilen.push(`<div class="p-zeile">
+<div class="p-zeile-kopf"><b>Abschnitt ${i+1}</b>
+${a.segmente.length>1?`<button type="button" class="p-weg" data-seg-del="${i}">✕</button>`:""}</div>
+<div class="p-grid">
+${feld("Länge (mm)",`<input class="p-gross" data-seg-laenge="${i}" type="number" inputmode="numeric" step="1" value="${seg.laenge||''}" placeholder="0">`)}
+</div></div>`);
+  if(i<a.segmente.length-1){
+   const w=zahl(seg.winkel);
+   const art=w===0?"gerade":(w<0?"aussen":"innen");
+   zeilen.push(`<div class="p-zeile p-ecke${art==="gerade"?" p-ecke-aus":""}">
+<div class="p-zeile-kopf"><b>Übergang ${i+1} → ${i+2}</b></div>
+<div class="p-grid">
+${feld("Art",`<select data-ecke-art="${i}">
+  <option value="gerade"${art==="gerade"?" selected":""}>gerade weiter (keine Ecke)</option>
+  <option value="aussen"${art==="aussen"?" selected":""}>Aussenwinkel</option>
+  <option value="innen"${art==="innen"?" selected":""}>Innenwinkel</option></select>`)}
+${art!=="gerade"?feld("Winkel (°)",`<input class="p-gross" data-ecke-winkel="${i}" type="number" inputmode="numeric" step="1" value="${Math.abs(w)||90}">`):""}
+</div>
+${art!=="gerade"&&Math.abs(w)!==90?`<div class="p-hinweis">Der Katalog kennt nur den 90°-Winkel als Formteil. Zuschnitt und Fixpunkt werden deshalb mit den Werten des 90°-Winkels gerechnet.</div>`:""}
+</div>`);
+  }
+ });
+ return `<div class="p-karte">
+<h2>2 · Rinnenverlauf</h2>
+<div class="p-hinweis">Abschnitt für Abschnitt von START bis ENDE. Eine Ecke sitzt immer zwischen zwei Abschnitten.</div>
+${zeilen.join("")}
+<div class="p-knopfreihe">
+<button type="button" class="p-blau" id="p-addSegment">＋ Rinnenabschnitt</button>
+<button type="button" class="p-grau" id="p-addEcke">＋ Ecke</button>
+</div>
+<div class="p-summe" id="p-summeL">Berechnete Gesamtlänge: <b>${L>0?esc(mm(L))+" mm":"–"}</b>${L>0?` &nbsp;(${esc(meter(L))} m)`:""}</div>
+</div>
+<div class="p-karte">
+<h2>Verlauf im Überblick</h2>
+<div id="p-band">${verlaufsBandSvg(a)}</div>
+<div class="p-legende">▲ Ecke (Fixpunkt) &nbsp;·&nbsp; ● E = Einhängestutzen (Fixpunkt) &nbsp;·&nbsp; ■ S = Schiebestutzen (kein Fixpunkt) &nbsp;·&nbsp; ◆ Dehnungselement (berechnet)</div>
+<h3>Massstäblicher Grundriss</h3>
+<div class="p-grundriss" id="p-grundriss">${generateRinneGrundriss(a.segmente,dilasBerechnet(a).dilas,dilasBerechnet(a).boundaries||[])}</div>
+</div>`;
+}
+
+function schritt3(){
+ const a=aufnahme;
+ const L=gesamtlaengeBerechnet(a);
+ const vorschlag=halterVorschlag(a);
+ const dila=dilasBerechnet(a);
+ const dOpt=w=>STUTZEN_DURCHMESSER.map(d=>`<option value="${esc(d)}"${d===w?" selected":""}>${esc(d)}</option>`).join("");
+ const fOpt=w=>FALLROHR_STATUS.map(f=>`<option value="${esc(f)}"${f===w?" selected":""}>${esc(f)}</option>`).join("");
+ // Ein Zeilenbauer für beide Stutzenarten – gleiche Felder, gleiche
+ // Bedienung. Unterschiedlich ist nur, was daraus für die Rechnung folgt.
+ const stutzenZeilen=(liste,art,name)=>(liste||[]).map((st,i)=>{
+  const pos=zahl(st.pos_mm);
+  const draussen=L>0&&(pos<0||pos>L);
+  return `<div class="p-zeile${draussen?" p-fehler":""}">
+<div class="p-zeile-kopf"><b>${name} ${i+1}</b><button type="button" class="p-weg" data-${art}-del="${i}">✕</button></div>
+<div class="p-grid">
+${feld("Position ab START (mm)",`<input class="p-gross" data-${art}-pos="${i}" type="number" inputmode="numeric" step="1" value="${st.pos_mm||''}" placeholder="0">`)}
+${feld("Durchmesser",`<select data-${art}-d="${i}">${dOpt(st.durchmesser)}</select>`)}
+${feld("Anzahl",`<input class="p-gross" data-${art}-anz="${i}" type="number" inputmode="numeric" step="1" min="1" value="${st.anzahl||1}">`)}
+${feld("Fallrohr",`<select data-${art}-f="${i}">${fOpt(st.fallrohr)}</select>`)}
+${feld("Bemerkung",`<input data-${art}-bem="${i}" value="${esc(st.bemerkung||"")}" placeholder="optional">`,true)}
+</div>
+${draussen?`<div class="p-warn">⚠️ ${name} liegt ausserhalb der aufgenommenen Rinne (Gesamtlänge ${esc(mm(L))} mm).</div>`:""}
+</div>`;
+ }).join("");
+ const einhaenge=stutzenZeilen(a.einhaengestutzen,"eh","Einhängestutzen");
+ const schiebe=stutzenZeilen(a.schiebestutzen,"sh","Schiebestutzen");
+ const sonder=(a.sonderteile||[]).map((s,i)=>`<div class="p-zeile">
+<div class="p-zeile-kopf"><b>Sonderteil ${i+1}</b><button type="button" class="p-weg" data-son-del="${i}">✕</button></div>
+<div class="p-grid">
+${feld("Bezeichnung",`<input data-son-bez="${i}" value="${esc(s.bezeichnung||"")}" placeholder="z. B. Kesselblech Sonderform">`,true)}
+${feld("Anzahl",`<input class="p-gross" data-son-anz="${i}" type="number" inputmode="numeric" step="1" value="${s.anzahl||1}">`)}
+${feld("Bemerkung",`<input data-son-bem="${i}" value="${esc(s.bemerkung||"")}" placeholder="optional">`,true)}
+</div></div>`).join("");
+ return `<div class="p-karte">
+<h2>3 · Einhängestutzen</h2>
+<div class="p-hinweis"><b>Ein Einhängestutzen ist ein Fixpunkt.</b> Seine Position teilt die
+Rinne für die Dilatationsberechnung – sie wird deshalb ab dem definierten START gemessen.</div>
+${einhaenge||'<div class="p-leer">Noch kein Einhängestutzen erfasst.</div>'}
+<div class="p-knopfreihe"><button type="button" class="p-blau" id="p-addEinhaenge">＋ Einhängestutzen</button></div>
+</div>
+
+<div class="p-karte">
+<h2>Schiebestutzen</h2>
+<div class="p-hinweis"><b>Ein Schiebestutzen ist kein Fixpunkt.</b> Er wird erfasst, angezeigt und
+im Ausmass ausgegeben, hat aber <b>keinen</b> Einfluss auf die Dilatationsberechnung.</div>
+${schiebe||'<div class="p-leer">Noch kein Schiebestutzen erfasst.</div>'}
+<div class="p-knopfreihe"><button type="button" class="p-blau" id="p-addSchiebe">＋ Schiebestutzen</button></div>
+</div>
+
+<div class="p-karte">
+<h2>Rinnenhalter</h2>
+<div class="p-grid">
+${feld("Halterabstand (mm)",`<input class="p-gross" id="p-halterAbstand" type="number" inputmode="numeric" step="10" value="${a.halter.abstand_mm||""}">`)}
+${feld("Anzahl",`<input class="p-gross" id="p-halterAnzahl" type="number" inputmode="numeric" step="1" value="${a.halter.anzahl??""}" placeholder="${vorschlag??""}">`)}
+${feld("Haltertyp (optional)",`<input id="p-halterTyp" value="${esc(a.halter.typ||"")}" placeholder="z. B. Aufschraubhalter">`,true)}
+</div>
+${vorschlag?`<div class="p-hinweis">Vorschlag aus ${esc(meter(L))} m und ${esc(mm(a.halter.abstand_mm))} mm Abstand: <b>${vorschlag} Stk.</b>
+${a.halter.anzahl?"":" – wird verwendet, solange keine eigene Anzahl eingetragen ist."}
+<button type="button" class="p-grau p-klein" id="p-halterUebernehmen">Vorschlag übernehmen</button></div>`:""}
+</div>
+
+<div class="p-karte">
+<h2>Endstücke und Dehnung</h2>
+<div class="p-grid">
+${feld("Endstück links",`<label class="p-schalter"><input type="checkbox" id="p-endLinks"${a.endstuecke.links?" checked":""}> vorhanden</label>`)}
+${feld("Endstück rechts",`<label class="p-schalter"><input type="checkbox" id="p-endRechts"${a.endstuecke.rechts?" checked":""}> vorhanden</label>`)}
+${feld("Dehnung",`<select id="p-dehnungArt">
+  <option value="keine"${a.dehnung.art==="keine"?" selected":""}>Keine</option>
+  <option value="dehnungsstueck"${a.dehnung.art==="dehnungsstueck"?" selected":""}>Dehnungsstück</option></select>`)}
+${a.dehnung.art==="dehnungsstueck"?feld("Anzahl Dehnungsstücke",
+  `<input class="p-gross" id="p-dehnungAnzahl" type="number" inputmode="numeric" step="1" value="${a.dehnung.anzahl||''}" placeholder="0">`):""}
+</div>
+<div class="p-hinweis">Links und rechts beziehen sich auf START und ENDE des aufgenommenen Verlaufs, nicht auf die Bildschirmdarstellung.
+${dila.dilas.length?` Die Berechnung aus dem bestehenden Modul ergibt <b>${dila.dilas.length}</b> Dehnungselement(e) für ${esc(materialText(a))}.
+<button type="button" class="p-grau p-klein" id="p-dehnungUebernehmen">Übernehmen</button>`:` Für ${esc(materialText(a))} ist bei dieser Länge kein Dehnungselement nötig.`}</div>
+</div>
+
+<div class="p-karte">
+<h2>Sonderteile</h2>
+${sonder||'<div class="p-leer">Noch kein Sonderteil erfasst.</div>'}
+<div class="p-knopfreihe"><button type="button" class="p-blau" id="p-addSonder">＋ Sonderteil</button></div>
+</div>`;
+}
+
+function schritt4(){
+ const a=aufnahme;
+ const fotos=(a.fotos||[]).map((f,i)=>`<div class="p-foto">
+<img src="${esc(f)}" alt="Foto ${i+1}"><button type="button" class="p-weg" data-foto-del="${i}">✕</button></div>`).join("");
+ return `<div class="p-karte">
+<h2>4 · Fotos</h2>
+<label class="p-datei">📷 Foto aufnehmen oder wählen
+<input type="file" id="p-fotoInput" accept="image/*" capture="environment" multiple hidden></label>
+<div class="p-fotos">${fotos||'<div class="p-leer">Noch kein Foto.</div>'}</div>
+</div>
+<div class="p-karte">
+<h2>Skizze</h2>
+${a.skizze?`<div class="p-foto gross"><img src="${esc(a.skizze)}" alt="Skizze"><button type="button" class="p-weg" id="p-skizzeDel">✕</button></div>`
+ :'<div class="p-leer">Noch keine Skizze.</div>'}
+<div class="p-knopfreihe"><button type="button" class="p-blau" id="p-skizzeOeffnen">✏️ ${a.skizze?"Skizze bearbeiten":"Skizze zeichnen"}</button></div>
+</div>
+<div class="p-karte">
+<h2>Bemerkung</h2>
+<textarea id="p-bemerkung" rows="4" placeholder="Bemerkung zur Massaufnahme">${esc(a.bemerkung||"")}</textarea>
+</div>`;
+}
+
+function schritt5(){
+ const a=aufnahme;
+ const L=gesamtlaengeBerechnet(a);
+ const p=pruefungen(a);
+ // Der Verlauf von START bis ENDE, mit den Stutzen an ihrer Position
+ // (Auftrag Änderung 7). Fixpunkt und Nicht-Fixpunkt sind beschriftet.
+ const marken=[];
+ (a.einhaengestutzen||[]).forEach(st=>marken.push({pos:zahl(st.pos_mm),
+  text:`Einhängestutzen ${st.durchmesser||""}`.trim(),fix:true,anzahl:Math.max(1,Math.round(zahl(st.anzahl)||1))}));
+ (a.schiebestutzen||[]).forEach(st=>marken.push({pos:zahl(st.pos_mm),
+  text:`Schiebestutzen ${st.durchmesser||""}`.trim(),fix:false,anzahl:Math.max(1,Math.round(zahl(st.anzahl)||1))}));
+ marken.sort((x,y)=>x.pos-y.pos);
+ const verlauf=[];
+ let gelaufen=0, offen=marken.slice();
+ const markenBis=grenze=>{
+  while(offen.length&&offen[0].pos<=grenze){
+   const m=offen.shift();
+   verlauf.push(`<li class="${m.fix?"p-fix-li":"p-losfix-li"}">${esc(m.text)}`
+    +(m.anzahl>1?` (${m.anzahl}×)`:"")
+    +` bei ${esc(mm(m.pos))} mm → <b>${m.fix?"FIXPUNKT":"kein Fixpunkt"}</b></li>`);
+  }
+ };
+ markenBis(0);
+ (a.segmente||[]).forEach((seg,i)=>{
+  verlauf.push(`<li>${esc(mm(seg.laenge))} mm</li>`);
+  gelaufen+=zahl(seg.laenge);
+  markenBis(gelaufen);
+  const w=zahl(seg.winkel);
+  if(w!==0&&i<a.segmente.length-1)
+   verlauf.push(`<li class="p-ecke-li">${w<0?"Aussenwinkel":"Innenwinkel"} ${Math.abs(w)}° → <b>FIXPUNKT</b></li>`);
+ });
+ offen.forEach(m=>verlauf.push(`<li class="${m.fix?"p-fix-li":"p-losfix-li"}">${esc(m.text)} bei ${esc(mm(m.pos))} mm (ausserhalb)</li>`));
+ const komp=komponenten(a).map(k=>
+  `<li>${k.einheit==="m"?esc(k.menge.toFixed(2))+" m":esc(k.menge)+" ×"} ${esc(k.bezeichnung)}</li>`).join("");
+ return `<div class="p-karte">
+<h2>5 · Kontrolle</h2>
+${p.length?`<div class="p-pruefung">`+p.map(m=>
+  `<div class="${m.art==="fehler"?"p-fehlerzeile":"p-warnzeile"}">${m.art==="fehler"?"⛔":"⚠️"} ${esc(m.text)}</div>`).join("")+`</div>`
+ :`<div class="p-ok">✓ Keine Auffälligkeiten gefunden.</div>`}
+</div>
+<div class="p-karte p-zusammenfassung">
+<h2>RINNE HALBRUND</h2>
+<div class="p-zf-kopf">
+<div><span>Material</span><b>${esc(materialText(a))}</b></div>
+<div><span>Grösse</span><b>${esc(groesseText(a))}</b></div>
+<div><span>Länge</span><b>${L>0?esc(mm(L))+" mm":"–"}</b></div>
+</div>
+<h3>Verlauf</h3>
+<ul class="p-liste">${verlauf.join("")||"<li>–</li>"}</ul>
+<h3>Komponenten</h3>
+<ul class="p-liste">${komp||"<li>–</li>"}</ul>
+<h3>Dokumentation</h3>
+<div class="p-zf-fuss">Fotos: <b>${(a.fotos||[]).length}</b> · Skizze: <b>${a.skizze?"vorhanden":"keine"}</b>
+${a.bemerkung?`<div class="p-bem">${esc(a.bemerkung)}</div>`:""}</div>
+</div>`;
+}
+
+function schritt6(){
+ const a=aufnahme;
+ const zeilen=ausmassZeilen(a);
+ const mat=materialUebersicht(a);
+ return `<div class="p-karte">
+<h2>6 · Ausmass</h2>
+<div class="p-hinweis">Automatisch aus der Massaufnahme. Nichts davon wird ein zweites Mal eingegeben – wird die Aufnahme geändert, ändert sich das Ausmass mit.</div>
+<div class="p-tabelle">
+<table><thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Herkunft</th></tr></thead>
+<tbody>${zeilen.map(z=>`<tr><td>${z.pos}</td><td>${esc(z.bezeichnung)}</td><td class="p-num">${esc(z.menge)}</td><td>${esc(z.einheit)}</td><td class="p-quelle">${esc(z.herkunft)}</td></tr>`).join("")
+ ||'<tr><td colspan="5" class="p-leer">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
+</div>
+</div>
+<div class="p-karte">
+<h2>Materialübersicht</h2>
+<div class="p-tabelle">
+<table><thead><tr><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Material</th></tr></thead>
+<tbody>${mat.map(m=>`<tr><td>${esc(m.bezeichnung)}</td><td class="p-num">${esc(m.menge)}</td><td>${esc(m.einheit)}</td><td>${esc(m.material)}</td></tr>`).join("")
+ ||'<tr><td colspan="4" class="p-leer">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
+</div>
+<div class="p-hinweis">Artikelnummern und Preise stehen hier bewusst nicht. Sie kommen später aus der Materialliste der jeweiligen Firma.</div>
+</div>
+<div class="p-karte">
+<h2>Zuschnitt aus dem bestehenden Modul</h2>
+<div class="p-hinweis">Diese Stückliste rechnet unverändert die Funktion der laufenden App (Dilatationselemente nach SPI/SIA, Anschlussmasse aus dem Katalog).</div>
+<div class="p-tabelle">
+<table><thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th></tr></thead>
+<tbody>${(function(){
+ const d=dilasBerechnet(a);
+ const st=berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass);
+ return st.map(s=>`<tr><td>${s.nr}</td><td>${esc(s.von)} → ${esc(s.bis)}</td><td class="p-num">${esc(mm(s.abstand))}</td><td class="p-num"><b>${esc(mm(s.zuschnitt))}</b></td></tr>`).join("")
+  ||'<tr><td colspan="4" class="p-leer">Noch nichts zu berechnen.</td></tr>';
+})()}</tbody></table>
+</div>
+</div>`;
+}
+
+// ---- 8. Ecken in die Struktur des bestehenden Moduls spiegeln -------------
+// Wichtig für die Weiterentwicklung: das bestehende Modul kennt eine Ecke
+// NICHT nur als Winkel, sondern als Anschlusstyp (AE90/IE90). Nur dadurch
+// wirkt sie als Fixpunkt in calcRinneDilas() und liefert ihr Zuschlagsmass
+// (−110 mm) an berechneRinneStueckliste(). Der Prototyp lässt den Benutzer
+// nur "Aussen/Innen" wählen und setzt die Typen selbst – die Fachrechnung
+// bleibt dadurch exakt die der laufenden App.
+function synchronisiereEcken(a){
+ const segs=a.segmente||[];
+ segs.forEach((seg,i)=>{
+  if(i>=segs.length-1)return;
+  const w=zahl(seg.winkel);
+  const naechste=segs[i+1];
+  if(w===0){
+   if(Number(seg.rechtsTyp)===ECKE_AUSSEN_ID||Number(seg.rechtsTyp)===ECKE_INNEN_ID)seg.rechtsTyp="";
+   if(Number(naechste.linksTyp)===ECKE_AUSSEN_ID||Number(naechste.linksTyp)===ECKE_INNEN_ID)naechste.linksTyp="";
+  }else{
+   const id=w<0?ECKE_AUSSEN_ID:ECKE_INNEN_ID;
+   seg.rechtsTyp=id; naechste.linksTyp=id;
+  }
+ });
+ // Am Anfang und am Ende darf keine Ecke stehen bleiben.
+ if(segs.length){
+  const e=segs[segs.length-1];
+  if(Number(e.rechtsTyp)===ECKE_AUSSEN_ID||Number(e.rechtsTyp)===ECKE_INNEN_ID)e.rechtsTyp="";
+  e.winkel=0;
+  const s0=segs[0];
+  if(Number(s0.linksTyp)===ECKE_AUSSEN_ID||Number(s0.linksTyp)===ECKE_INNEN_ID)s0.linksTyp="";
+ }
+ return a;
+}
+
+// ---- 9. Bilder ------------------------------------------------------------
+// Fotos werden verkleinert gespeichert. Der lokale Speicher des Browsers
+// fasst nur wenige Megabyte – ein Originalfoto vom Handy würde ihn allein
+// sprengen. Für den Prototyp ist das ausreichend; im späteren Einbau in die
+// App gehen die Bilder wie gehabt in den privaten Supabase-Speicher.
+const FOTO_MAXKANTE=1280, FOTO_QUALITAET=0.72;
+function bildVerkleinern(datei){
+ return new Promise(fertig=>{
+  const leser=new FileReader();
+  leser.onerror=()=>fertig(null);
+  leser.onload=()=>{
+   const bild=new Image();
+   bild.onerror=()=>fertig(null);
+   bild.onload=()=>{
+    const f=Math.min(1,FOTO_MAXKANTE/Math.max(bild.width,bild.height));
+    const c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(bild.width*f));
+    c.height=Math.max(1,Math.round(bild.height*f));
+    c.getContext("2d").drawImage(bild,0,0,c.width,c.height);
+    try{fertig(c.toDataURL("image/jpeg",FOTO_QUALITAET))}catch(e){fertig(null)}
+   };
+   bild.src=leser.result;
+  };
+  leser.readAsDataURL(datei);
+ });
+}
+
+// Skizze: einfache Zeichenfläche mit dem Finger. Bewusst schlicht gehalten –
+// der Prototyp soll zeigen, dass eine Skizze zur Aufnahme gehört, nicht ein
+// Zeichenprogramm ersetzen.
+let skizzeCtx=null, skizzeZeichnet=false;
+function skizzeOeffnen(){
+ const box=$("p-skizzeBox"), c=$("p-skizzeCanvas");
+ if(!box||!c)return;
+ box.hidden=false;
+ const b=c.getBoundingClientRect();
+ c.width=Math.max(320,Math.round(b.width));
+ c.height=Math.round(c.width*0.62);
+ skizzeCtx=c.getContext("2d");
+ skizzeCtx.fillStyle="#fff"; skizzeCtx.fillRect(0,0,c.width,c.height);
+ skizzeCtx.strokeStyle="#17202a"; skizzeCtx.lineWidth=3;
+ skizzeCtx.lineCap="round"; skizzeCtx.lineJoin="round";
+ if(aufnahme.skizze){
+  const alt=new Image();
+  alt.onload=()=>skizzeCtx.drawImage(alt,0,0,c.width,c.height);
+  alt.src=aufnahme.skizze;
+ }
+}
+function skizzePunkt(ev,c){
+ const b=c.getBoundingClientRect();
+ const t=(ev.touches&&ev.touches[0])||ev;
+ return [(t.clientX-b.left)*(c.width/b.width),(t.clientY-b.top)*(c.height/b.height)];
+}
+
+// ---- 10. Gespeicherte Aufnahmen ------------------------------------------
+function listeHtml(){
+ const liste=alleAufnahmen();
+ if(!liste.length)return '<div class="p-leer">Noch keine gespeicherte Massaufnahme.</div>';
+ return liste.map(a=>{
+  const L=gesamtlaengeBerechnet(a);
+  const d=new Date(a.geaendert||a.erstellt);
+  const datum=isNaN(d)?"":d.toLocaleDateString("de-CH")+" "+d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+  return `<div class="p-zeile">
+<div class="p-zeile-kopf"><b>${esc(a.bezeichnung||"Ohne Bezeichnung")}</b>
+<span class="p-klein-text">${esc(datum)}</span></div>
+<div class="p-klein-text">${esc(groesseText(a))} · ${esc(materialText(a))} · ${L>0?esc(mm(L))+" mm":"–"}${a.id===aufnahme.id?" · <b>gerade offen</b>":""}</div>
+<div class="p-knopfreihe">
+<button type="button" class="p-blau" data-oeffnen="${esc(a.id)}">Öffnen</button>
+<button type="button" class="p-grau" data-kopieren="${esc(a.id)}">Kopieren</button>
+<button type="button" class="p-grau" data-loeschen="${esc(a.id)}">Löschen</button>
+</div></div>`;
+ }).join("");
+}
+
+// ---- 11. Zeichnen ---------------------------------------------------------
+let listeOffen=false;
+function zeichne(){
+ synchronisiereEcken(aufnahme);
+ const kopf=$("p-kopf");
+ if(kopf){
+  const L=gesamtlaengeBerechnet(aufnahme);
+  const f=pruefungen(aufnahme).filter(m=>m.art==="fehler").length;
+  kopf.innerHTML=`<div class="p-kopf-titel">${esc(aufnahme.bezeichnung||"Neue Massaufnahme")}</div>
+<div class="p-kopf-zeile">${esc(groesseText(aufnahme))} · ${esc(materialText(aufnahme))} · ${L>0?esc(mm(L))+" mm":"noch keine Länge"}${f?` · <span class="p-kopf-fehler">${f} Hinweis${f>1?"e":""} in Schritt 5</span>`:""}</div>`;
+ }
+ const leiste=$("p-leiste"); if(leiste)leiste.innerHTML=schrittLeiste();
+ const inhalt=$("p-inhalt");
+ if(inhalt)inhalt.innerHTML=[schritt1,schritt2,schritt3,schritt4,schritt5,schritt6][schritt-1]();
+ const zurueck=$("p-zurueck"), weiter=$("p-weiter");
+ if(zurueck)zurueck.disabled=schritt<=1;
+ if(weiter){weiter.disabled=schritt>=SCHRITTE.length;
+  weiter.textContent=schritt>=SCHRITTE.length?"Fertig":"Weiter › "+SCHRITTE[schritt];}
+ const listeBox=$("p-listeBox");
+ if(listeBox){listeBox.hidden=!listeOffen; if(listeOffen)listeBox.innerHTML=listeHtml();}
+}
+
+// Nach einer Zifferneingabe wird NICHT der ganze Schritt neu gezeichnet –
+// sonst verliert das Feld nach dem ersten Zeichen den Fokus (dieselbe Falle
+// wie im Rinnen-Profil der laufenden App). Aktualisiert werden nur die
+// abgeleiteten Anzeigen.
+function aktualisiereLive(){
+ const L=gesamtlaengeBerechnet(aufnahme);
+ const s=$("p-summeL");
+ if(s)s.innerHTML=`Berechnete Gesamtlänge: <b>${L>0?esc(mm(L))+" mm":"–"}</b>${L>0?` &nbsp;(${esc(meter(L))} m)`:""}`;
+ const band=$("p-band"); if(band)band.innerHTML=verlaufsBandSvg(aufnahme);
+ const gr=$("p-grundriss");
+ if(gr){const d=dilasBerechnet(aufnahme);gr.innerHTML=generateRinneGrundriss(aufnahme.segmente,d.dilas,d.boundaries||[]);}
+ const kopf=$("p-kopf");
+ if(kopf){
+  const z=kopf.querySelector(".p-kopf-zeile");
+  if(z)z.innerHTML=`${esc(groesseText(aufnahme))} · ${esc(materialText(aufnahme))} · ${L>0?esc(mm(L))+" mm":"noch keine Länge"}`;
+ }
+}
+
+// ---- 12. Bedienung --------------------------------------------------------
+// Eine einzige Stelle für alle Ereignisse. Tippen (input) ändert nur das
+// Modell und die abgeleiteten Anzeigen, Auswählen (change) und Klicken
+// zeichnen den Schritt neu.
+function verdrahten(){
+ // Auf document.body, nicht auf #p-app: die Knöpfe der Kopfleiste
+ // (Speichern, Kopieren, Neu, Gespeicherte) und die Skizzenfläche liegen
+ // ausserhalb von #p-app.
+ const wurzel=document.body;
+ if(!wurzel)return;
+
+ wurzel.addEventListener("input",e=>{
+  const t=e.target, d=t.dataset||{};
+  const a=aufnahme;
+  let live=false;
+  if(t.id==="p-bez")a.bezeichnung=t.value;
+  else if(t.id==="p-gesamt")a.gesamtlaengeManuell_mm=t.value===""?null:zahl(t.value);
+  else if(t.id==="p-halterAbstand"){a.halter.abstand_mm=zahl(t.value);}
+  else if(t.id==="p-halterAnzahl")a.halter.anzahl=t.value===""?null:zahl(t.value);
+  else if(t.id==="p-halterTyp")a.halter.typ=t.value;
+  else if(t.id==="p-dehnungAnzahl")a.dehnung.anzahl=zahl(t.value);
+  else if(t.id==="p-bemerkung")a.bemerkung=t.value;
+  else if(d.segLaenge!==undefined){a.segmente[Number(d.segLaenge)].laenge=zahl(t.value);live=true;}
+  else if(d.eckeWinkel!==undefined){
+   const i=Number(d.eckeWinkel), alt=zahl(a.segmente[i].winkel);
+   a.segmente[i].winkel=(alt<0?-1:1)*Math.abs(zahl(t.value));
+   synchronisiereEcken(a); live=true;
+  }
+  else if(d.ehPos!==undefined){a.einhaengestutzen[Number(d.ehPos)].pos_mm=zahl(t.value);live=true;}
+  else if(d.ehAnz!==undefined)a.einhaengestutzen[Number(d.ehAnz)].anzahl=zahl(t.value);
+  else if(d.ehBem!==undefined)a.einhaengestutzen[Number(d.ehBem)].bemerkung=t.value;
+  else if(d.shPos!==undefined){a.schiebestutzen[Number(d.shPos)].pos_mm=zahl(t.value);live=true;}
+  else if(d.shAnz!==undefined)a.schiebestutzen[Number(d.shAnz)].anzahl=zahl(t.value);
+  else if(d.shBem!==undefined)a.schiebestutzen[Number(d.shBem)].bemerkung=t.value;
+  else if(d.sonBez!==undefined)a.sonderteile[Number(d.sonBez)].bezeichnung=t.value;
+  else if(d.sonAnz!==undefined)a.sonderteile[Number(d.sonAnz)].anzahl=zahl(t.value);
+  else if(d.sonBem!==undefined)a.sonderteile[Number(d.sonBem)].bemerkung=t.value;
+  else return;
+  if(live)aktualisiereLive();
+ });
+
+ wurzel.addEventListener("change",e=>{
+  const t=e.target, d=t.dataset||{};
+  const a=aufnahme;
+  if(t.id==="p-material")a.material=t.value;
+  else if(t.id==="p-groesse")a.groesse=t.value;
+  else if(t.id==="p-endLinks")a.endstuecke.links=t.checked;
+  else if(t.id==="p-endRechts")a.endstuecke.rechts=t.checked;
+  else if(t.id==="p-dehnungArt"){a.dehnung.art=t.value;if(t.value==="keine")a.dehnung.anzahl=0;}
+  else if(d.eckeArt!==undefined){
+   const i=Number(d.eckeArt), betrag=Math.abs(zahl(a.segmente[i].winkel))||90;
+   a.segmente[i].winkel=t.value==="gerade"?0:(t.value==="aussen"?-betrag:betrag);
+  }
+  else if(d.ehD!==undefined)a.einhaengestutzen[Number(d.ehD)].durchmesser=t.value;
+  else if(d.ehF!==undefined)a.einhaengestutzen[Number(d.ehF)].fallrohr=t.value;
+  else if(d.shD!==undefined)a.schiebestutzen[Number(d.shD)].durchmesser=t.value;
+  else if(d.shF!==undefined)a.schiebestutzen[Number(d.shF)].fallrohr=t.value;
+  else if(t.id==="p-fotoInput"){fotosAufnehmen(t.files);return;}
+  else return;
+  zeichne();
+ });
+
+ wurzel.addEventListener("click",e=>{
+  const t=e.target.closest("button,[data-schritt],[data-oeffnen],[data-kopieren],[data-loeschen]");
+  if(!t)return;
+  const d=t.dataset||{}, a=aufnahme;
+  if(d.schritt!==undefined){setzeSchritt(Number(d.schritt));return;}
+  if(t.id==="p-zurueck"){setzeSchritt(schritt-1);return;}
+  if(t.id==="p-weiter"){setzeSchritt(schritt+1);return;}
+
+  if(t.id==="p-addSegment"){
+   const letzte=a.segmente[a.segmente.length-1];
+   a.segmente.push({laenge:0,linksTyp:"",rechtsTyp:letzte?letzte.rechtsTyp:"",winkel:0});
+   if(letzte)letzte.rechtsTyp="";
+   zeichne();return;
+  }
+  if(t.id==="p-addEcke"){
+   const letzte=a.segmente[a.segmente.length-1];
+   if(letzte)letzte.winkel=-90;                     // Vorgabe Aussenwinkel 90°
+   a.segmente.push({laenge:0,linksTyp:"",rechtsTyp:"",winkel:0});
+   zeichne();return;
+  }
+  if(d.segDel!==undefined){
+   if(a.segmente.length<=1)return;
+   a.segmente.splice(Number(d.segDel),1);
+   zeichne();return;
+  }
+  if(t.id==="p-addEinhaenge"){
+   a.einhaengestutzen.push({pos_mm:0,durchmesser:STUTZEN_DURCHMESSER[1],anzahl:1,
+                            fallrohr:FALLROHR_STATUS[0],bemerkung:""});
+   zeichne();return;
+  }
+  if(d.ehDel!==undefined){a.einhaengestutzen.splice(Number(d.ehDel),1);zeichne();return;}
+  if(t.id==="p-addSchiebe"){
+   a.schiebestutzen.push({pos_mm:0,durchmesser:STUTZEN_DURCHMESSER[1],anzahl:1,
+                          fallrohr:FALLROHR_STATUS[0],bemerkung:""});
+   zeichne();return;
+  }
+  if(d.shDel!==undefined){a.schiebestutzen.splice(Number(d.shDel),1);zeichne();return;}
+  if(t.id==="p-addSonder"){a.sonderteile.push({bezeichnung:"",anzahl:1,bemerkung:""});zeichne();return;}
+  if(d.sonDel!==undefined){a.sonderteile.splice(Number(d.sonDel),1);zeichne();return;}
+  if(t.id==="p-halterUebernehmen"){a.halter.anzahl=halterVorschlag(a);zeichne();return;}
+  if(t.id==="p-dehnungUebernehmen"){
+   a.dehnung.art="dehnungsstueck";
+   a.dehnung.anzahl=dilasBerechnet(a).dilas.length;
+   zeichne();return;
+  }
+
+  if(d.fotoDel!==undefined){a.fotos.splice(Number(d.fotoDel),1);zeichne();return;}
+  if(t.id==="p-skizzeDel"){
+   if(confirm("Skizze wirklich löschen?")){a.skizze=null;zeichne();}
+   return;
+  }
+  if(t.id==="p-skizzeOeffnen"){skizzeOeffnen();return;}
+  if(t.id==="p-skizzeSpeichern"){
+   const c=$("p-skizzeCanvas");
+   if(c)a.skizze=c.toDataURL("image/png");
+   $("p-skizzeBox").hidden=true; zeichne(); return;
+  }
+  if(t.id==="p-skizzeAbbrechen"){$("p-skizzeBox").hidden=true;return;}
+  if(t.id==="p-skizzeLeeren"){
+   const c=$("p-skizzeCanvas");
+   if(c&&skizzeCtx){skizzeCtx.fillStyle="#fff";skizzeCtx.fillRect(0,0,c.width,c.height);}
+   return;
+  }
+
+  if(t.id==="p-speichern"){
+   if(!String(a.bezeichnung||"").trim()){
+    alert("Bitte zuerst in Schritt 1 eine Bezeichnung eintragen.");
+    setzeSchritt(1); return;
+   }
+   if(aufnahmeSpeichern()){t.textContent="✓ Gespeichert";setTimeout(()=>{t.textContent="💾 Speichern"},1600);}
+   if(listeOffen)zeichne();
+   return;
+  }
+  if(t.id==="p-neu"){
+   if(!confirm("Neue Massaufnahme beginnen? Nicht gespeicherte Änderungen gehen verloren."))return;
+   aufnahme=leereAufnahme(); setzeSchritt(1); return;
+  }
+  if(t.id==="p-kopieren"){
+   const k=aufnahmeKopieren(aufnahme.id);
+   if(!k){alert("Diese Massaufnahme ist noch nicht gespeichert. Bitte zuerst speichern.");return;}
+   aufnahme=k; setzeSchritt(1);
+   alert("Kopie angelegt: „"+k.bezeichnung+"“. Sie ist von der ursprünglichen Aufnahme unabhängig.");
+   return;
+  }
+  if(t.id==="p-liste"){listeOffen=!listeOffen;zeichne();return;}
+  if(d.oeffnen!==undefined){
+   if(aufnahmeLaden(d.oeffnen)){listeOffen=false;setzeSchritt(1);}
+   return;
+  }
+  if(d.kopieren!==undefined){
+   const k=aufnahmeKopieren(d.kopieren);
+   if(k){aufnahme=k;listeOffen=false;setzeSchritt(1);}
+   return;
+  }
+  if(d.loeschen!==undefined){
+   const liste=alleAufnahmen();
+   const eintrag=liste.find(x=>x.id===d.loeschen);
+   if(!eintrag)return;
+   if(!confirm("„"+(eintrag.bezeichnung||"Ohne Bezeichnung")+"“ endgültig löschen?"))return;
+   speichereAlle(liste.filter(x=>x.id!==d.loeschen));
+   zeichne(); return;
+  }
+ });
+
+ // Ein Zahlenfeld markiert beim ERSTEN Antippen seinen ganzen Inhalt. Wer
+ // ein Mass korrigiert, ersetzt es – sonst tippt man versehentlich davor
+ // ("7500" + "6200" ergäbe 75006200). Ein zweites Antippen setzt wie
+ // gewohnt nur die Schreibmarke, damit man auch eine Ziffer ändern kann.
+ // Das Markieren muss im click-Ereignis geschehen: ein früheres select()
+ // würde vom Loslassen der Maus/des Fingers wieder aufgehoben.
+ const istZahlfeld=t=>t&&t.tagName==="INPUT"&&t.type==="number"&&t.closest("#p-app");
+ wurzel.addEventListener("focusin",e=>{if(istZahlfeld(e.target))e.target.dataset.frisch="1"});
+ wurzel.addEventListener("click",e=>{
+  const t=e.target;
+  if(!istZahlfeld(t)||t.dataset.frisch!=="1")return;
+  delete t.dataset.frisch;
+  try{t.select()}catch(err){}
+ });
+
+ // Skizzenfläche
+ const c=$("p-skizzeCanvas");
+ if(c){
+  const start=ev=>{ev.preventDefault();if(!skizzeCtx)return;skizzeZeichnet=true;
+   const [x,y]=skizzePunkt(ev,c);skizzeCtx.beginPath();skizzeCtx.moveTo(x,y);};
+  const zieh=ev=>{if(!skizzeZeichnet||!skizzeCtx)return;ev.preventDefault();
+   const [x,y]=skizzePunkt(ev,c);skizzeCtx.lineTo(x,y);skizzeCtx.stroke();};
+  const stopp=()=>{skizzeZeichnet=false};
+  c.addEventListener("pointerdown",start);
+  c.addEventListener("pointermove",zieh);
+  window.addEventListener("pointerup",stopp);
+  c.addEventListener("touchstart",start,{passive:false});
+  c.addEventListener("touchmove",zieh,{passive:false});
+  window.addEventListener("touchend",stopp);
+ }
+}
+
+async function fotosAufnehmen(dateien){
+ const liste=Array.from(dateien||[]);
+ if(!liste.length)return;
+ for(const datei of liste){
+  if(!/^image\//.test(datei.type||"")){alert("„"+datei.name+"“ ist kein Bild und wurde übersprungen.");continue}
+  const bild=await bildVerkleinern(datei);
+  if(bild)aufnahme.fotos.push(bild);
+  else alert("„"+datei.name+"“ konnte nicht gelesen werden.");
+ }
+ zeichne();
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+ verdrahten();
+ zeichne();
+});
+
+</script>
+</body>
+</html>
