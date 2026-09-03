@@ -28,7 +28,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:412,height:1400}});
  await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",
-   body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}})};"}));
+   body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},from:()=>{const q={};['select','eq','order','limit'].forEach(k=>q[k]=()=>q);q.then=r=>Promise.resolve({data:[],error:null}).then(r);return q;}})};"}));
  const fehler=[];
  page.on("pageerror",e=>fehler.push(String(e)));
  page.on("dialog",d=>d.accept());
@@ -234,6 +234,56 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  await page.evaluate(()=>{ebA.massA=120;renderEinlaufblechAufnahme()});
  await page.waitForTimeout(150);
 
+ console.log("\nQ · Laengen aus einer Rinne uebernehmen");
+ await reg(page,3);
+ const ueb=await page.evaluate(()=>{
+  const box=document.getElementById("ebaRinneBox");
+  const st=box?getComputedStyle(box):null;
+  const body=box?box.querySelector(".settings-section-body"):null;
+  return {da:!!box, inRegister:!!(box&&box.closest("#einlaufblechAufnahme")),
+   sichtbar:st?st.display!=="none":false,
+   hoehe:box?Math.round(box.getBoundingClientRect().height):0,
+   offen:box?box.classList.contains("open"):false,
+   inhaltSichtbar:body?getComputedStyle(body).display!=="none":false,
+   hint:!!document.getElementById("eb_rinneHint"),
+   liste:!!document.getElementById("eb_rinneList")};
+ });
+ p(ueb.da&&ueb.inRegister,"Uebernahme-Block steht in Register 3",ueb);
+ p(ueb.sichtbar&&ueb.hoehe>40,"und ist sichtbar",ueb);
+ p(ueb.offen&&ueb.inhaltSichtbar,"und aufgeklappt - nicht zu uebersehen",ueb);
+ p(ueb.hint&&ueb.liste,"Hinweis und Liste von js/15 vorhanden",ueb);
+ // In den uebrigen Registern hat er nichts verloren
+ await reg(page,2);
+ const weg=await page.evaluate(()=>{
+  const box=document.getElementById("ebaRinneBox");
+  return box?getComputedStyle(box).display!=="none":false;
+ });
+ p(!weg,"in Register 2 ausgeblendet",weg);
+ await reg(page,3);
+ // Der Klick-Handler von js/15 haengt am Element selbst - es darf beim
+ // Neuzeichnen NICHT ersetzt worden sein.
+ const handler=await page.evaluate(()=>{
+  const l=document.getElementById("eb_rinneList");
+  // Fehlt er schon vorher, ist genau das der Fehlschlag - kein Absturz.
+  if(!l)return {gleich:false,grund:"Element fehlt vor dem Neuzeichnen"};
+  l.dataset.ebaMerker="1";
+  ebaSetzeSchritt(2); ebaSetzeSchritt(3);
+  const n=document.getElementById("eb_rinneList");
+  return {gleich:!!n&&n.dataset.ebaMerker==="1",grund:n?"":"Element nach dem Neuzeichnen weg"};
+ });
+ await page.waitForTimeout(150);
+ p(handler.gleich,"das Listen-Element ueberlebt das Neuzeichnen",handler);
+ // Und die Uebernahme selbst rechnet mit der Funktion der App
+ const rechnung=await page.evaluate(()=>{
+  const segs=[{laenge:5000,winkel:-90},{laenge:3000,winkel:0}];
+  const soll=baueEinlaufblechStueckeAusRinne(segs,einlaufblechSettings,
+    l=>teileLaengeInStuecke(l,einlaufblechSettings),false);
+  return {soll:soll.map(x=>x.laenge).join(), anzahl:soll.length,
+          gehrung:soll.some(x=>x.gehrungRechts||x.gehrungLinks)};
+ });
+ p(rechnung.anzahl>0&&rechnung.gehrung,
+   "baueEinlaufblechStueckeAusRinne aus js/13 ist erreichbar und macht Gehrungen",rechnung);
+
  console.log("\nJ · Speichern und Wiederoeffnen");
  const pay=await page.evaluate(()=>{
   measSelectedProjectId=7;
@@ -255,17 +305,31 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  p(d.rollen&&d.rollen.tafelLaenge===2170,"Tafellaenge im Plan",d.rollen&&d.rollen.tafelLaenge);
 
  const wieder=await page.evaluate(pl=>{
+  // Vorher auf Register 6 stellen: zeichnet ebaFuellen() nicht selbst neu,
+  // bleibt das Register sichtbar auf 6 stehen. Bewusst OHNE eigenes
+  // renderEinlaufblechAufnahme().
+  ebaSetzeSchritt(6);
   ebaFuellen(pl.data);
-  renderEinlaufblechAufnahme();
+  // Auch das DOM lesen: ebaFuellen() muss neu zeichnen, sonst zeigt das
+  // Register den Stand von vorher.
+  const feld=document.getElementById("eba_material");
+  const kopf=document.getElementById("eba_kopf");
   return {massA:ebA.massA, winkel:ebA.winkel, abw:ebA.abwicklung, mon:ebA.montage,
           mat:ebA.material, stuecke:ebA.stuecke.map(x=>x.laenge).join(),
-          gava:ebA.gava.aktiv, schritt:ebaSchritt};
+          gava:ebA.gava.aktiv, schritt:ebaSchritt,
+          domFeld:feld?feld.value:null,
+          // Fallunabhaengig: die App schreibt Ueberschriften per CSS gross,
+          // und innerText gibt genau das zurueck.
+          domRegister1:!!(kopf&&/^\s*1 ·/.test(kopf.innerText.split("\n").find(z=>/·/.test(z))||"")),
+          domAktiv:(document.querySelector("#eba_register .ra-register-knopf.aktiv")||{}).textContent||""};
  },pay);
  p(wieder.massA===120&&wieder.winkel===25&&wieder.abw===330&&wieder.mon==="rechts"&&wieder.mat==="2",
    "wiedergeoeffnet stimmen die Grunddaten",wieder);
  p(wieder.stuecke==="2170,1560","und die Stuecke",wieder.stuecke);
  p(wieder.gava===true,"und die Haltebleche",wieder.gava);
  p(wieder.schritt===1,"beginnt auf Register 1",wieder.schritt);
+ p(/1/.test(wieder.domAktiv)&&wieder.domFeld==="2",
+   "ebaFuellen() zeichnet selbst neu - sichtbar steht wieder Register 1",wieder);
 
  console.log("\nK · Ein alter Datensatz (vor v2.74) bleibt lesbar");
  const alt=await page.evaluate(()=>{

@@ -339,7 +339,6 @@ ${ebaFeld("Aus den Stücken",`<div class="ra-wert" id="eba_wLaenge">${L>0?esc(eb
 <button type="button" class="gray" id="eba_stueckPlus">＋ Stück hinzufügen</button>
 </div>
 <div class="small" style="margin:2px 0 8px;color:var(--muted)">„Anfügen“ ergänzt Stücke aus der Gesamtlänge ans Ende der Liste, z. B. um nach einer Gehrung in eine andere Richtung weiterzufahren.</div>
-<div id="eba_rinnePlatz"></div>
 <div class="small" style="margin-bottom:4px">Mass A gilt für alle Stücke. Das enge Mass (${esc(ebaMm(eng))} mm) wird bei Montage „von ${esc(a.montage)}“ auf der ${esc(seite)}en Seite jedes Stücks berechnet.</div>
 <div class="scroll">
 <table class="eb-table eba-tab">
@@ -462,15 +461,16 @@ function renderEinlaufblechAufnahme(){
  // zeichnet das Formular auch, ohne vorher eines von beiden aufzurufen –
  // ohne diese Zeile wäre es dann sichtbar, aber tot.
  ebaVerdrahten();
+ ebaGeruest();
  ebaBruecke();
- ziel.innerHTML=ebaRegisterHtml()+ebaSchrittInhalt()
-  +`<div class="bar ra-blaettern">
+ $("eba_kopf").innerHTML=ebaRegisterHtml()+ebaSchrittInhalt();
+ $("eba_fuss").innerHTML=`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="eba_zurueck"${ebaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="eba_weiter">${
  ebaSchritt>=EBA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(EBA_REGISTER[ebaSchritt].kurz)}</button>
 </div>`;
  ebaZeichnungen();
- ebaRinneBoxEinhaengen();
+ ebaRinneBoxZeigen();
  // Die Pflichtfelder entstehen erst hier, nach markierePflichtfelder() beim
  // App-Start - deshalb fuer diesen Bereich noch einmal aufrufen (dasselbe
  // Vorgehen wie bei den Massfeldern der Ort-/Seitenbleche in js/20).
@@ -485,16 +485,37 @@ function renderEinlaufblechAufnahme(){
   else if(ar.right>sr.right)strip.scrollLeft+=(ar.right-sr.right)+12;
  }
 }
-// Der Übernahme-Block aus dem HTML wandert in Register 3 und ist sonst
-// ausgeblendet. Verschoben statt neu gezeichnet: js/15 hat seinen Klick-
-// Handler beim Laden an #eb_rinneList gehängt, ein per innerHTML erzeugtes
-// Element hätte ihn nicht.
-function ebaRinneBoxEinhaengen(){
+// Der Übernahme-Block aus dem HTML gehört in Register 3, darf aber NICHT in
+// einen Container, der per innerHTML neu geschrieben wird: js/15 hat seinen
+// Klick-Handler beim Laden an #eb_rinneList gehängt, und ein Neuschreiben
+// würde das Element samt Handler vernichten. Deshalb bekommt
+// #einlaufblechAufnahme ein festes Gerüst aus drei Teilen; neu geschrieben
+// werden nur Kopf und Fuss, der Block liegt unberührt dazwischen.
+function ebaGeruest(){
+ const ziel=$("einlaufblechAufnahme");
+ if(!ziel||$("eba_kopf"))return;
+ const box=$("ebaRinneBox");
+ ziel.innerHTML='<div id="eba_kopf"></div><div id="eba_fuss"></div>';
+ if(box)ziel.insertBefore(box,$("eba_fuss"));
+}
+let ebaRinneListeFuer;   // fuer welches Projekt die Liste zuletzt geladen wurde
+function ebaRinneBoxZeigen(){
  const box=$("ebaRinneBox"); if(!box)return;
- const platz=$("eba_rinnePlatz");
- if(platz&&box.parentNode!==platz.parentNode){platz.parentNode.insertBefore(box,platz)}
- else if(platz){platz.parentNode.insertBefore(box,platz)}
- box.hidden=!platz;
+ const inRegister3=ebaSchritt===3;
+ box.hidden=!inRegister3;
+ if(!inRegister3)return;
+ // Aufgeklappt zeigen: der Abschnitt ist ein Zweck dieses Registers,
+ // zugeklappt würde man ihn übersehen.
+ box.classList.add("open");
+ // Die Liste hängt am gewählten Projekt. js/10 lädt sie bei der Projektwahl
+ // und beim Öffnen einer Aufnahme; hier nur nachladen, wenn sie für dieses
+ // Projekt noch nie geladen wurde - sonst liefe bei jedem Klick in Register 3
+ // eine Abfrage.
+ const pid=(typeof measSelectedProjectId!=="undefined")?measSelectedProjectId:null;
+ if(pid!==ebaRinneListeFuer&&typeof refreshEbRinneList==="function"){
+  ebaRinneListeFuer=pid;
+  refreshEbRinneList();
+ }
 }
 
 // Die Schnittzeichnung kommt unverändert aus js/11, der Grundriss aus js/13.
@@ -577,6 +598,9 @@ function ebaEndzugabe(position){
 // "Fertig" führt zum Rest des Formulars (Fotos, Notiz, Speichern) – es
 // speichert NICHT selbst, damit es nur einen Speicherweg gibt.
 function ebaAbschluss(){
+ // Der Foto-/Skizzenbereich ist waehrend der Register ausgeblendet und
+ // erscheint erst hier - deshalb zuerst aufklappen, dann hinscrollen.
+ if(typeof measMedienAufklappen==="function")measMedienAufklappen();
  const ziel=$("measMedienBereich")||$("measNote")||$("saveMeasurement");
  if(!ziel)return;
  if(ziel.scrollIntoView)ziel.scrollIntoView({block:"start",behavior:"smooth"});
@@ -699,8 +723,11 @@ function ebaAusData(d){
  }
  return a;
 }
-function ebaZuruecksetzen(){ebA=ebaLeer(); ebaSchritt=1; ebaBruecke()}
-function ebaFuellen(d){ebA=ebaAusData(d); ebaSchritt=1; ebaBruecke()}
+// Nach dem Setzen wird neu gezeichnet - sonst zeigt das Register noch den
+// vorherigen Stand (showMeasTypeSection laeuft in openMeasurement VOR dem
+// Fuellen).
+function ebaZuruecksetzen(){ebA=ebaLeer(); ebaSchritt=1; ebaRinneListeFuer=undefined; ebaVerdrahten(); renderEinlaufblechAufnahme()}
+function ebaFuellen(d){ebA=ebaAusData(d); ebaSchritt=1; ebaRinneListeFuer=undefined; ebaVerdrahten(); renderEinlaufblechAufnahme()}
 
 // ---- Zusatzfelder für den Speicher-Payload ---------------------------------
 // js/16 schreibt weiterhin genau dieselben acht Felder wie bisher und hängt

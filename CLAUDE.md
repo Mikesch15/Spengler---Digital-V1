@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.74, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.75, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.74**
+- sichtbare App-Version: **2.75**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -12430,3 +12430,98 @@ Ort-/Seitenbleche tut.
   das Ergebnis heisst dann „beste gefundene Verteilung".
 - Der Prototyp unter `prototyp-einlaufblech/` bleibt unverändert
   bestehen – er ist jetzt die Vorlage, nicht mehr die einzige Stelle.
+
+## 83. FOTOS UND SKIZZEN ANS ENDE DER REGISTER — VERSION 2.75
+
+Bei **Rinne Halbrund** und **Einlaufblech gerade** ist der Bereich
+„📷 Fotos und Skizzen" während der Register ausgeblendet. Er erscheint
+erst mit **„Fertig › Fotos und Speichern"** – dann wird er eingeblendet,
+angescrollt und kurz hervorgehoben. Die neun übrigen Arten haben keine
+Register; dort bleibt er unverändert sofort sichtbar.
+
+Zwei bewusste Ausnahmen: eine Aufnahme, die **bereits** ein Foto oder
+eine Skizze hat, zeigt den Bereich sofort (sonst sähe es aus, als wären
+sie weg), und einmal offen bleibt er offen – auch beim Zurückblättern.
+**Notiz und Speichern bleiben immer erreichbar**, sie gehören allen elf
+Arten.
+
+Eine Stelle entscheidet (js/16):
+
+```js
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade"];
+box.hidden = MEAS_MEDIEN_AM_ENDE.indexOf(art)>=0
+             && !measMedienAufgeklappt && !measFormularHatMedien();
+```
+
+**Namenskollision beim Bauen** (echter Fehler, vom Prüfstand gefunden):
+Die Hilfsfunktion hiess zuerst `measHatMedien()` – diesen Namen gibt es
+bereits in `js/24-projekt-cockpit.js` (v2.50), und js/24 lädt später und
+überschrieb sie still. Eine Aufnahme mit Fotos blieb dadurch zugeklappt.
+Sie heisst jetzt `measFormularHatMedien()`; der Prüfstand kontrolliert
+beide Namen dauerhaft.
+
+### 83.1 „Längen von Rinne übernehmen" wieder sichtbar
+
+Beim Umbau auf Register war der Übernahme-Block zwar noch da, aber
+zugeklappt. Beim Nachmessen kamen drei echte Fehler heraus:
+
+1. Der Block wurde in den Container geschoben, der bei jedem Neuzeichnen
+   per `innerHTML` überschrieben wird – dabei wurde er **samt dem
+   Klick-Handler von js/15 vernichtet**. `#einlaufblechAufnahme` hat
+   jetzt ein festes Gerüst (`#eba_kopf`, Block, `#eba_fuss`); neu
+   geschrieben werden nur Kopf und Fuss.
+2. Er blieb zugeklappt. In Register 3 wird er aufgeklappt gezeigt, in
+   den übrigen ausgeblendet.
+3. `ebaFuellen()` setzte nur das Modell, ohne neu zu zeichnen. Beim
+   Öffnen läuft `showMeasTypeSection()` **vor** dem Füllen – das
+   Register zeigte den Stand von vorher. Die Rinne (js/28) machte es
+   richtig, jetzt beide.
+
+Register 3 lädt die Rinnenliste nur nach, wenn sie für das gewählte
+Projekt noch nie geladen wurde – sonst liefe bei jedem Klick eine
+Abfrage. Gerechnet wird unverändert mit `baueEinlaufblechStueckeAusRinne()`
+aus js/13 über den bestehenden Handler in js/15.
+
+### 83.2 Getestet
+
+Neuer Prüfstand `pruefstaende/pruefstand-medien-am-ende-v2-75.js`,
+**38/38**, echtes Chromium. Sichtbarkeit wird **gemessen**
+(`getComputedStyle` + Höhe), nicht aus dem `hidden`-Attribut geschlossen
+– eine Klassenregel mit `display` würde `[hidden]` schlagen (Abschnitt
+59/71.5).
+
+Sechs Gegenproben: Bereich nie ausblenden 28/38 · auch die neun anderen
+Arten 36/38 · Fertig klappt nicht auf 36/38 · vorhandene Fotos zählen
+nicht 36/38 · Namenskollision zurück 35/38 · beim Öffnen nicht
+zurücksetzen 36/38.
+
+Einlaufblech-Prüfstand auf **95/95** erweitert (Abschnitt Q), vier
+weitere Gegenproben: Block in den innerHTML-Container 89/95 · Block
+bleibt zugeklappt 93/95 · Füllen zeichnet nicht neu 94/95 · Block auch
+in Register 2 93/95.
+
+**Zwei dieser Gegenproben deckten Schwächen im Prüfstand selbst auf:**
+eine stürzte ab statt fehlzuschlagen, eine blieb grün. Beide Prüfungen
+sind jetzt schärfer (vorher auf Register 6 stellen und den sichtbaren
+Registerknopf lesen, fallunabhängig – `innerText` liefert die
+CSS-Grossschreibung).
+
+`fotos70` prüfte „bei jeder Art sofort sichtbar" – überholt, aber nicht
+gestrichen, sondern verschärft: bei den zwei Register-Arten vorher zu
+und nach `measMedienAufklappen()` offen, sonst sofort. 88/88.
+
+Volle Regression grün. `node --check` über alle 30 `js/*.js` und `sw.js`
+fehlerfrei, `<div>` 714/714, keine doppelten IDs.
+
+**Regierapport unverändert**: Bild-Hash `85706e5d7a1eb615` und DOM-Hash
+`3066be99c3200173` identisch zu v2.73/v2.74. js/06, js/08,
+`css/03-druck.css` sowie js/11, js/12, js/13 und js/15 nicht im Diff.
+
+### 83.3 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** (Sandbox-Netzwerksperre) –
+  **das wird ausdrücklich nicht als getestet behauptet.**
+- Die Rinnenliste in Register 3 zeigt „Bitte zuerst oben ein Projekt
+  auswählen", solange kein Projekt gewählt ist – unverändert aus js/13.
+- Aus v2.74 offen: die fest verdrahteten 2 mm beim engen Mass A, der
+  GAVA-Vorgabewert 500 mm, Schnittfuge und Reststücke im Verschnitt.

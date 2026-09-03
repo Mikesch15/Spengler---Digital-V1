@@ -1,0 +1,153 @@
+FOTOS UND SKIZZEN ANS ENDE DER REGISTER
+Spengler-DIGITAL · Version 2.75 · 03.09.2026
+
+================================================================
+1. WAS SICH ÄNDERT
+================================================================
+Bei Rinne Halbrund und Einlaufblech gerade ist der Bereich
+"📷 Fotos und Skizzen" während der Register ausgeblendet. Er erscheint
+erst, wenn man auf dem letzten Register "Fertig › Fotos und Speichern"
+drückt – dann wird er eingeblendet, angescrollt und kurz hervorgehoben.
+
+Die neun übrigen Massaufnahme-Arten haben keine Register; dort bleibt
+er unverändert sofort sichtbar.
+
+Zwei bewusste Ausnahmen:
+- Eine bereits erfasste Aufnahme MIT Foto oder Skizze zeigt den Bereich
+  sofort. Sonst sähe es aus, als wären die Fotos weg.
+- Ist er einmal offen, bleibt er offen – auch beim Zurückblättern in ein
+  früheres Register. Ein gerade aufgenommenes Foto soll nicht wieder
+  verschwinden.
+
+Notiz und Speichern bleiben immer erreichbar. Sie gehören allen elf
+Arten und sind nicht mit ausgeblendet.
+
+================================================================
+2. WIE ES GEBAUT IST
+================================================================
+Eine Stelle entscheidet (js/16-massaufnahme-formular.js):
+
+    const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade"];
+    box.hidden = MEAS_MEDIEN_AM_ENDE.indexOf(art)>=0
+                 && !measMedienAufgeklappt
+                 && !measFormularHatMedien();
+
+Der "Fertig"-Knopf beider Arten ruft measMedienAufklappen(); js/10 setzt
+den Zustand beim Anlegen und beim Öffnen zurück und ruft die Sichtbarkeit
+nach dem Laden der Medien noch einmal auf.
+
+EIN ECHTER FEHLER BEIM BAUEN: Ich hatte die Hilfsfunktion zuerst
+measHatMedien() genannt. Diesen Namen gibt es bereits in
+js/24-projekt-cockpit.js (Medienansicht, v2.50) – js/24 lädt später und
+hat meine Funktion still überschrieben. Ergebnis: eine Aufnahme mit
+Fotos blieb zugeklappt. Sie heisst jetzt measFormularHatMedien(), und
+der Prüfstand kontrolliert beide Namen dauerhaft.
+
+================================================================
+3. "LÄNGEN VON RINNE ÜBERNEHMEN" WIEDER SICHTBAR
+================================================================
+Beim Umbau auf Register war der Übernahme-Block zwar noch da, aber
+zugeklappt und leicht zu übersehen. Beim genauen Nachmessen kamen drei
+echte Fehler heraus:
+
+(1) Der Block wurde in den Container geschoben, der bei jedem Neuzeichnen
+    per innerHTML überschrieben wird – dabei wurde er samt dem
+    Klick-Handler von js/15 vernichtet. #einlaufblechAufnahme hat jetzt
+    ein festes Gerüst: neu geschrieben werden nur Kopf und Fuss, der
+    Block liegt unberührt dazwischen.
+
+(2) Er blieb zugeklappt. In Register 3 wird er jetzt aufgeklappt gezeigt
+    und in den übrigen Registern ausgeblendet.
+
+(3) ebaFuellen() setzte nur das Modell, ohne neu zu zeichnen. Beim
+    Öffnen einer gespeicherten Aufnahme läuft showMeasTypeSection() VOR
+    dem Füllen – das Register zeigte also den Stand von vorher. Die
+    Rinne (js/28) macht es richtig; jetzt beide.
+
+Zusätzlich lädt Register 3 die Rinnenliste nur nach, wenn sie für das
+gewählte Projekt noch nie geladen wurde – sonst liefe bei jedem Klick
+eine Abfrage.
+
+Gerechnet wird unverändert mit baueEinlaufblechStueckeAusRinne() aus
+js/13, über den bestehenden Handler in js/15.
+
+================================================================
+4. GEPRÜFT
+================================================================
+Neuer Prüfstand pruefstaende/pruefstand-medien-am-ende-v2-75.js, 38/38,
+echtes Chromium:
+  - die neun übrigen Arten zeigen den Bereich sofort
+  - Rinne und Einlaufblech: beim Öffnen zugeklappt, bleiben es durch
+    Register 1–5 und 6, erscheinen erst nach "Fertig", werden markiert,
+    Foto-Feld und Skizzen-Knopf sind dann bedienbar
+  - beim Zurückblättern bleiben sie offen
+  - eine Aufnahme MIT Fotos zeigt sie sofort, eine OHNE startet zu
+  - Notiz und Speichern sind nicht mit ausgeblendet
+  - keine Namenskollision (measHatMedien aus js/24 unverändert)
+
+Sichtbarkeit wird gemessen (getComputedStyle + Höhe), nicht aus dem
+hidden-Attribut geschlossen: eine Klassenregel mit display würde
+[hidden] schlagen – diese Falle hat schon zweimal zugeschlagen.
+
+Sechs Gegenproben, jede wirft den Prüfstand um:
+  Bereich nie ausblenden                28/38
+  auch die neun anderen Arten           36/38
+  Fertig klappt nicht auf               36/38
+  vorhandene Fotos zählen nicht         36/38
+  Namenskollision zurück                35/38
+  beim Öffnen nicht zurücksetzen        36/38
+
+Einlaufblech-Prüfstand auf 95/95 erweitert (Abschnitt Q: Übernahme-Block
+in Register 3, sichtbar, aufgeklappt, überlebt das Neuzeichnen, in
+Register 2 weg). Vier weitere Gegenproben:
+  Block in den innerHTML-Container      89/95
+  Block bleibt zugeklappt               93/95
+  Füllen zeichnet nicht neu             94/95
+  Block auch in Register 2              93/95
+
+Zwei dieser Gegenproben deckten Schwächen im Prüfstand selbst auf: eine
+stürzte ab statt fehlzuschlagen, eine blieb grün. Beide Prüfungen sind
+jetzt schärfer (vorher auf Register 6 stellen und den sichtbaren
+Registerknopf lesen, fallunabhängig – innerText liefert die
+CSS-Grossschreibung).
+
+fotos70 prüfte "bei jeder Art sofort sichtbar" – überholt. Die Prüfung
+ist nicht gestrichen, sondern verschärft: bei den zwei Register-Arten
+vorher zu und nach measMedienAufklappen() offen, sonst sofort. 88/88.
+
+Volle Regression grün: required70 359/359, pdf52 526/526,
+kehle52 698/698, rinne57 379/379, verschnitt-app 1578/1578,
+rinneapp71 102/102, dila-sichtbar 57/57, offline70, medien50, ebg70,
+breite52/57, pfade55, hidden51, abstand69 und alle übrigen.
+
+node --check über alle 30 js/*.js und sw.js fehlerfrei, div 714/714,
+keine doppelten IDs, Version 2.75 in index.html und sw.js.
+
+REGIERAPPORT UNVERÄNDERT: Bild-Hash 85706e5d7a1eb615 und DOM-Hash
+3066be99c3200173 identisch zu v2.73/v2.74, 110584 Bytes.
+js/06, js/08, css/03-druck.css sowie js/11, js/12, js/13 und js/15
+sind nicht im Diff.
+
+================================================================
+5. GEÄNDERTE DATEIEN
+================================================================
+js/16-massaufnahme-formular.js   Sichtbarkeitssteuerung
+js/10-massaufnahme.js            zurücksetzen und nach dem Laden setzen
+js/28-rinne-aufnahme.js          Fertig klappt auf
+js/29-einlaufblech-aufnahme.js   Fertig klappt auf, festes Gerüst,
+                                 Übernahme-Block in Register 3,
+                                 Füllen zeichnet neu
+index.html / sw.js               Version 2.75
+
+================================================================
+6. OFFENE PUNKTE
+================================================================
+- Kein Live-Klicktest gegen Supabase – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen dorthin. DAS WIRD AUSDRÜCKLICH NICHT
+  ALS GETESTET BEHAUPTET.
+- Die Rinnenliste in Register 3 zeigt "Bitte zuerst oben ein Projekt
+  auswählen", solange kein Projekt gewählt ist – unverändertes
+  Verhalten aus js/13.
+- Aus v2.74 unverändert offen: die fest verdrahteten 2 mm beim engen
+  Mass A, der GAVA-Vorgabewert 500 mm, Schnittfuge und Reststücke im
+  Verschnitt.

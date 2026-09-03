@@ -22,6 +22,7 @@ function showMeasTypeSection(type){
  if(type==="einfassung_rund")renderEinfResult();
  if(type==="kehle")renderKehleResult();
  if(type==="rinne")renderRinneResult();
+ measMedienSichtbarkeit(type);
 }
 $("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
 $("openEinlaufblechSettings").onclick=()=>{
@@ -39,6 +40,35 @@ $("openEinlaufblechSettings").onclick=()=>{
 
 // Fotos und Skizzen gehoeren seit v2.70 zu jeder Massaufnahme-Art.
 // Eine Stelle, ein Ergebnis - so kann keine Art vergessen gehen.
+// ---- Fotos und Skizzen erst am Ende der Register -------------------------
+// Bei Rinne Halbrund und Einlaufblech gerade fuehrt ein Registerablauf durch
+// die Erfassung. Der Foto-/Skizzenbereich gehoert dort ans Ende: er erscheint
+// erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
+// Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
+// sichtbar.
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade"];
+let measMedienAufgeklappt=false;
+// Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
+// fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
+// gleichnamige Funktion hier ueberschreiben.
+function measFormularHatMedien(){
+ return !!(measPhotoDataUrl||measExistingPhotoUrl||(measSketches&&measSketches.length));
+}
+function measMedienSichtbarkeit(type){
+ const box=$("measMedienBereich");
+ if(!box)return;
+ const art=type||$("measType").value;
+ // Eine bereits erfasste Aufnahme zeigt ihre Fotos sofort - sonst saehe es
+ // aus, als waeren sie weg.
+ box.hidden=MEAS_MEDIEN_AM_ENDE.indexOf(art)>=0 && !measMedienAufgeklappt && !measFormularHatMedien();
+}
+// Wird vom "Fertig"-Knopf der beiden Register-Arten gerufen.
+function measMedienAufklappen(){
+ measMedienAufgeklappt=true;
+ measMedienSichtbarkeit();
+}
+function measMedienZuruecksetzen(){measMedienAufgeklappt=false}
+
 function measMedienAusFormular(){
  return {photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,
          sketch_paths:measSketches.slice()};

@@ -830,6 +830,9 @@ let raSchritt=1;
 // noch Fotos/Skizzen, Notiz und der Speichern-Knopf der App. "Fertig" fuehrt
 // dorthin - es speichert NICHT selbst, damit es nur einen Speicherweg gibt.
 function raAbschluss(){
+ // Der Foto-/Skizzenbereich ist waehrend der Register ausgeblendet und
+ // erscheint erst hier - deshalb zuerst aufklappen, dann hinscrollen.
+ if(typeof measMedienAufklappen==="function")measMedienAufklappen();
  const ziel=$("measMedienBereich")||$("measNote")||$("saveMeasurement");
  if(!ziel)return;
  if(ziel.scrollIntoView)ziel.scrollIntoView({block:"start",behavior:"smooth"});

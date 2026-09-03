@@ -332,6 +332,9 @@ function newMeasurementWithType(type){
  $("drawOnPhoto").hidden=true;
  measPhotoDataUrl=null;measExistingPhotoUrl=null;
  measSketches=[];
+ // Neue Aufnahme: der Foto-/Skizzenbereich der Register-Arten startet
+ // wieder zugeklappt.
+ if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
  renderSketchGallery();
  $("eb_gesamtlaenge").value="";
  $("eb_massA").value="";
@@ -422,6 +425,10 @@ function openMeasurement(m){
  $("measNote").value=m.note||"";
  $("measDate").value=m.date||new Date().toISOString().slice(0,10);
  $("measType").value=m.type||"skizze_foto";
+ // Zugeklappt starten; nach dem Laden der Medien (unten) wird die
+ // Sichtbarkeit noch einmal gesetzt - eine Aufnahme MIT Fotos zeigt sie
+ // sofort, sonst saehe es aus, als waeren sie weg.
+ if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
  showMeasTypeSection($("measType").value);
  setMeasProjectField(m.project_id);
  measPhotoDataUrl=null;
@@ -434,6 +441,7 @@ function openMeasurement(m){
  else{$("measPhotoPreview").hidden=true;$("measPhotoPreview").src="";$("measPhotoRemove").hidden=true;$("drawOnPhoto").hidden=true}
  measSketches=(m.sketch_paths&&m.sketch_paths.length)?[...m.sketch_paths]:(m.sketch_path?[m.sketch_path]:[]);
  renderSketchGallery();
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(m.type);
  const d=m.data||{};
  $("foto_material").value=findMeasurementMaterial(d.material)?.id??"";
  $("eb_gesamtlaenge").value=d.gesamtlaenge||"";
