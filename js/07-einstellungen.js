@@ -246,13 +246,15 @@ $("saveEinlaufblechSettings").onclick=()=>{
  const umschlagUnten=Number($("eb_umschlagUnten").value)||0;
  const restSchwelle=Number($("eb_restSchwelle").value)||0;
  const endZugabe=Number($("eb_endzugabe").value)||0;
+ const gavaAbstand=Number($("eb_gavaAbstand").value)||0;
  if(!stossLaenge||stossLaenge<=0){alert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
  if(ueberlappung<0){alert("Überlappung darf nicht negativ sein.");return}
  if(gehrungszugabe<0){alert("Gehrungszugabe darf nicht negativ sein.");return}
  if(umschlagOben<0||umschlagUnten<0){alert("Umschlagbreiten dürfen nicht negativ sein.");return}
  if(restSchwelle<0){alert("Restschwelle darf nicht negativ sein.");return}
  if(endZugabe<0){alert("Endzugabe darf nicht negativ sein.");return}
- einlaufblechSettings={stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,umschlag_oben:umschlagOben,umschlag_unten:umschlagUnten,rest_schwelle:restSchwelle,end_zugabe:endZugabe};
+ if(gavaAbstand<0){alert("Der Abstand der Haltebleche darf nicht negativ sein.");return}
+ einlaufblechSettings={stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,umschlag_oben:umschlagOben,umschlag_unten:umschlagUnten,rest_schwelle:restSchwelle,end_zugabe:endZugabe,gava_abstand:gavaAbstand||500};
  localStorage.setItem("sd_einlaufblechSettings",JSON.stringify(einlaufblechSettings));
  alert("Gespeichert (gilt nur für dieses Gerät).");
 };
@@ -288,9 +290,48 @@ function einlaufblechZuruecksetzen(praefix,speicherSchluessel,zuweisen){
  $(praefix+"umschlagUnten").value=w.umschlag_unten;
  $(praefix+"restSchwelle").value=w.rest_schwelle;
  $(praefix+"endzugabe").value=w.end_zugabe;
+ // Nur Einlaufblech gerade hat ein GAVA-Feld - konisch braucht keines.
+ if($(praefix+"gavaAbstand"))$(praefix+"gavaAbstand").value=w.gava_abstand??500;
  alert("Auf Standardwerte zurückgesetzt.");
 }
 $("resetEinlaufblechSettings").onclick=()=>einlaufblechZuruecksetzen("eb_","sd_einlaufblechSettings",w=>{einlaufblechSettings=w});
+
+// ---- Rollenbreiten des Blechlagers (firmenweit, app_settings) -------------
+// 1000 und 670 mm sind die Standardrollen. Eine leere Liste bedeutet "noch
+// nichts hinterlegt" und faellt im Modul auf diese beiden zurueck.
+const BLECH_ROLLEN_WAEHLBAR=[1000,670,500,400,330,250,200];
+const BLECH_ROLLEN_STANDARD=[1000,670];
+function renderBlechRollenbreiten(){
+ const box=$("eb_rollenbreiten");
+ if(!box)return;
+ const aktiv=(Array.isArray(blechRollenbreiten)&&blechRollenbreiten.length)
+   ? blechRollenbreiten : BLECH_ROLLEN_STANDARD;
+ box.innerHTML=BLECH_ROLLEN_WAEHLBAR.map(b=>
+  `<label class="ra-schalter" style="flex:0 0 auto"><input type="checkbox" data-rollenbreite="${b}"${aktiv.indexOf(b)>=0?" checked":""}> ${b} mm</label>`).join("");
+ const hinweis=$("eb_rollenHinweis");
+ if(hinweis)hinweis.textContent=(Array.isArray(blechRollenbreiten)&&blechRollenbreiten.length)
+  ? "Hinterlegt: "+blechRollenbreiten.join(", ")+" mm."
+  : "Noch nichts hinterlegt – es gilt die Vorgabe 1000 und 670 mm.";
+}
+$("saveBlechRollenbreiten").onclick=async()=>{
+ const gewaehlt=Array.from(document.querySelectorAll("#eb_rollenbreiten [data-rollenbreite]"))
+   .filter(c=>c.checked).map(c=>Number(c.dataset.rollenbreite))
+   .sort((a,b)=>b-a);
+ if(!gewaehlt.length){alert("Bitte mindestens eine Rollenbreite ankreuzen.");return}
+ const {fehler}=await speichereAppSettings({blech_rollenbreiten:gewaehlt});
+ if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+ blechRollenbreiten=gewaehlt;
+ renderBlechRollenbreiten();
+ alert("Rollenbreiten gespeichert (gilt für die ganze Firma).");
+};
+$("resetBlechRollenbreiten").onclick=async()=>{
+ if(!confirm("Zurück auf die Standardrollen 1000 und 670 mm?"))return;
+ const {fehler}=await speichereAppSettings({blech_rollenbreiten:BLECH_ROLLEN_STANDARD});
+ if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+ blechRollenbreiten=BLECH_ROLLEN_STANDARD.slice();
+ renderBlechRollenbreiten();
+ alert("Auf 1000 und 670 mm zurückgesetzt.");
+};
 $("resetEbkSettings").onclick=()=>einlaufblechZuruecksetzen("ebks_","sd_einlaufblechKonischSettings",w=>{einlaufblechKonischSettings=w});
 
 let materialPage=0, materialFilter="", materialExpanded=new Set();

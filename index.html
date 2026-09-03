@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.73</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.74</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -670,46 +670,42 @@ Diese Aktion löscht unwiderruflich:
 </div>
 
 <div id="measTypeEinlaufblech" hidden>
-<div class="info">Bleche werden leicht konisch gebogen, damit sie ineinandergesteckt werden können; die weite Seite wird angereift. Werte für Länge Stoss bis Stoss, Überlappung und Abwicklung stammen aus Einstellungen → Massaufnahmen.
-<button type="button" class="gray" id="openEinlaufblechSettings" style="margin-left:8px;padding:3px 9px;font-size:11px">⚙️ Werte anpassen</button>
-</div>
-<div class="grid">
-<div><label>Gesamtlänge (mm)</label><input id="eb_gesamtlaenge" type="number" step="1"></div>
-<div><label>Mass A (mm)</label><input id="eb_massA" data-pflicht="1" type="number" step="1"></div>
-<div><label>Dachneigung / Winkel (°)</label><input id="eb_winkel" data-pflicht="1" type="number" step="0.1"></div>
-<div><label>Montage</label><select id="eb_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
-<div><label>Abwicklung (mm)</label><select id="eb_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
-<div><label>Material</label><select id="eb_material" class="meas-material-select"></select></div>
-</div>
-<div class="bar">
-<button type="button" class="gray" id="eb_regenerate">🔄 Stücke aus Gesamtlänge berechnen</button>
-<button type="button" class="gray" id="eb_appendGesamtlaenge">➕ Weitere Länge anfügen</button>
-</div>
-<div class="small" style="margin:2px 0 8px;color:var(--muted)">"Anfügen" ergänzt Stücke aus der Gesamtlänge oben ans Ende der Liste, z. B. um nach einer Gehrung in eine andere Richtung weiterzufahren.</div>
-<div class="settings-section" data-section="eb-uebernahme" style="margin:8px 0 10px">
-<div class="settings-section-head" data-toggle-section="eb-uebernahme"><h2 style="font-size:12px">↩️ Stücke aus Rinne Halbrund übernehmen</h2><span class="settings-section-chevron">›</span></div>
+<div id="einlaufblechAufnahme"></div>
+
+<!-- Die Rinnen-Übernahme steht fest im HTML und wird von js/29 nur ein- und
+     ausgeblendet: js/15 hängt beim Laden einen Klick-Handler an
+     #eb_rinneList, der beim Neuzeichnen per innerHTML verloren ginge. -->
+<div class="settings-section" id="ebaRinneBox" data-section="eba-uebernahme" style="margin:8px 0 10px" hidden>
+<div class="settings-section-head" data-toggle-section="eba-uebernahme"><h2 style="font-size:12px">↩️ Stücke aus Rinne Halbrund übernehmen</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="small" id="eb_rinneHint">Bitte zuerst oben ein Projekt auswählen.</div>
 <div id="eb_rinneList" hidden></div>
 </div>
 </div>
-<div id="eb_diagram" class="eb-diagram-box" style="margin-top:12px"></div>
 
-<h2 style="margin-top:14px">Stücke</h2>
-<div class="small" id="eb_engeSeiteHint" style="margin-bottom:4px"></div>
-<div class="scroll">
-<table class="eb-table">
-<colgroup><col style="width:6%"><col style="width:14%"><col style="width:14%"><col style="width:9%"><col style="width:9%"><col style="width:17%"><col style="width:14%"><col style="width:7%"></colgroup>
-<thead><tr><th>Nr.</th><th>Länge Stoss/Stoss (mm)</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Winkel (°)</th><th id="eb_engHeader">Eng (mm)</th><th></th></tr></thead>
-<tbody id="eb_resultBody"></tbody>
-</table>
+<!-- Nur Aufhänger für js/11-einlaufblech-gerade.js und
+     js/15-einlaufblech-stueckliste.js, damit diese Fachdateien unverändert
+     laden und rechnen können. Nicht sichtbar, nicht bedienbar: die Erfassung
+     läuft über #einlaufblechAufnahme. -->
+<div id="ebStummel" hidden aria-hidden="true">
+ <input id="eb_gesamtlaenge" type="number">
+ <input id="eb_massA" type="number">
+ <input id="eb_winkel" type="number">
+ <select id="eb_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select>
+ <select id="eb_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select>
+ <select id="eb_material" class="meas-material-select"></select>
+ <button type="button" id="eb_regenerate"></button>
+ <button type="button" id="eb_appendGesamtlaenge"></button>
+ <button type="button" id="eb_addPiece"></button>
+ <button type="button" id="eb_toggleEndzugabeStart"></button>
+ <button type="button" id="eb_toggleEndzugabeEnd"></button>
+ <div id="eb_diagram"></div>
+ <div id="eb_grundriss"></div>
+ <button type="button" id="openEinlaufblechSettings"></button>
+ <div id="eb_engeSeiteHint"></div>
+ <div id="eb_summary"></div>
+ <table><thead><tr><th id="eb_engHeader"></th></tr></thead><tbody id="eb_resultBody"></tbody></table>
 </div>
-<div class="bar"><button type="button" class="gray" id="eb_addPiece">＋ Stück hinzufügen</button></div>
-<div class="bar"><button type="button" class="gray" id="eb_toggleEndzugabeStart">Endzugabe erstes Stück: aus</button><button type="button" class="gray" id="eb_toggleEndzugabeEnd">Endzugabe letztes Stück: aus</button></div>
-<div class="small" id="eb_summary"></div>
-<h2 style="margin-top:14px">Grundriss</h2>
-<div class="info">Winkel = Richtungsänderung nach diesem Stück (positiv/negativ für beide Richtungen möglich, 0 = keine Ecke).</div>
-<div id="eb_grundriss" class="eb-diagram-box"></div>
 </div>
 
 <div id="measTypeRinne" hidden>
@@ -1195,8 +1191,14 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div><label>Umschlagbreite unten (mm)</label><input id="eb_umschlagUnten" type="number" step="1"></div>
 <div><label>Restschwelle (mm)</label><input id="eb_restSchwelle" type="number" step="1"></div>
 <div><label>Endzugabe (mm)</label><input id="eb_endzugabe" type="number" step="1"></div>
+<div><label>Abstand Haltebleche GAVA (mm)</label><input id="eb_gavaAbstand" type="number" step="1"></div>
 </div>
 <div class="bar"><button id="saveEinlaufblechSettings" class="green">💾 Speichern</button><button type="button" id="resetEinlaufblechSettings" class="gray">↩️ Standardwerte</button></div>
+<h2 style="margin-top:14px">Rollenbreiten des Blechlagers</h2>
+<div class="small" style="margin-bottom:6px">Aus welchen Rollen zugeschnitten wird. 1000 und 670 mm sind die Standardrollen. Gilt für die ganze Firma und ist auch für andere Massaufnahmen gedacht.</div>
+<div id="eb_rollenbreiten" class="bar" style="flex-wrap:wrap"></div>
+<div class="bar"><button id="saveBlechRollenbreiten" class="green">💾 Rollenbreiten speichern</button><button type="button" id="resetBlechRollenbreiten" class="gray">↩️ Standard (1000 / 670)</button></div>
+<div class="small" id="eb_rollenHinweis" style="margin-top:4px"></div>
 </div>
 </div>
 
@@ -1558,6 +1560,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/25-kehle.js"></script>
 <script src="js/26-rinne.js"></script>
 <script src="js/28-rinne-aufnahme.js"></script>
+<script src="js/29-einlaufblech-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

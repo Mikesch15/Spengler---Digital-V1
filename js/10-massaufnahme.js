@@ -339,6 +339,7 @@ function newMeasurementWithType(type){
  $("eb_abwicklung").value="250";
  $("eb_montage").value="links";
  ebPieces=[];
+ if(typeof ebaZuruecksetzen==="function")ebaZuruecksetzen();
  renderEbPiecesTable();
  $("eb_material").value="";
  $("foto_material").value="";
@@ -442,6 +443,7 @@ function openMeasurement(m){
  $("eb_montage").value=d.montage||"links";
  $("eb_material").value=findMeasurementMaterial(d.material)?.id??"";
  ebPieces=(m.type==="einlaufblech_gerade"&&Array.isArray(d.pieces))?d.pieces.map(p=>({...p})):[];
+ if(m.type==="einlaufblech_gerade"&&typeof ebaFuellen==="function")ebaFuellen(d);
  if(m.type==="einlaufblech_gerade"){renderEbPiecesTable();refreshEbRinneList();}
  rinneSegments=(m.type==="rinne_halbrund"&&Array.isArray(d.segments))?d.segments.map(s=>({...s})):[];
  rinneDilas=(m.type==="rinne_halbrund"&&Array.isArray(d.dilas))?d.dilas.map(dd=>({...dd})):[];

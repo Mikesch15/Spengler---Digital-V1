@@ -11,7 +11,7 @@ function showMeasTypeSection(type){
  $("measTypeEinfassungRund").hidden=(type!=="einfassung_rund");
  $("measTypeKehle").hidden=(type!=="kehle");
  $("measTypeRinneProfil").hidden=(type!=="rinne");
- if(type==="einlaufblech_gerade")renderEbPiecesTable();
+ if(type==="einlaufblech_gerade"&&typeof renderEinlaufblechAufnahme==="function")renderEinlaufblechAufnahme();
  if(type==="rinne_halbrund"){renderRinneResult();if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();}
  if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
  if(type==="einlaufblech_gerade")refreshEbRinneList();
@@ -61,7 +61,11 @@ function buildMeasurementFromForm(){
   const massAEng=Math.max(0,massA-2);
   const restBreite=ebRestbreite();
   const gesamtlaenge=ebPieces.reduce((s,p)=>s+(Number(p.laenge)||0),0);
-  return {...base,...measMedienAusFormular(),data:{gesamtlaenge,massA,massAEng,winkel,montage,abwicklung,engeSeite,restBreite,pieces:ebPieces,material:$("eb_material").value}};
+  // Superset: die acht bisherigen Felder bleiben Zeichen für Zeichen gleich,
+  // die neuen kommen dazu. Eine vor v2.74 gespeicherte Aufnahme laesst sich
+  // dadurch unveraendert oeffnen.
+  const zusatz=(typeof ebaZusatzDaten==="function")?ebaZusatzDaten():{};
+  return {...base,...measMedienAusFormular(),data:{gesamtlaenge,massA,massAEng,winkel,montage,abwicklung,engeSeite,restBreite,pieces:ebPieces,material:$("eb_material").value,...zusatz}};
  }
  if(type==="rinne_halbrund"){
   if(typeof raBruecke==="function")raBruecke();
@@ -634,7 +638,8 @@ ${sketchSrcs.map((s2,i)=>`<div class="sketch-page"><div class="eb-section-head">
 <tr>${cell("Abwicklung",esc(d.abwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
 <tr>${cell("Dachneigung / Winkel",esc(d.winkel||0)+"°")}${cell("Montage",'von '+esc(d.montage||"–")+` (eng ${esc(engeSeite)})`)}</tr>
 <tr>${cell("Mass A",esc(d.massAEng||0)+` mm eng ${esc(engeSeite)} (${esc(d.massA||0)} mm)`)}${cell("Anzahl Stück",esc((pieces&&pieces.length)||0))}</tr>
-<tr>${cell("Material",matName)}<td></td></tr>
+<tr>${cell("Material",matName)}${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}</tr>
+${d.gava&&d.gava.aktiv?`<tr>${cell("Haltebleche (GAVA)",esc(d.gava.gerechnet??"–")+" Stk."+(d.gava.abstand_mm?" à "+esc(d.gava.abstand_mm)+" mm":""))}<td></td></tr>`:""}
 </table>
 <div class="eb-diagram-row">
  <div class="eb-diagram">
@@ -646,11 +651,35 @@ ${sketchSrcs.map((s2,i)=>`<div class="sketch-page"><div class="eb-section-head">
   ${generateEbkGrundriss(pieces)}
  </div>
 </div>
+${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`:""}
 <div class="eb-section-head">Stücke</div>
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th></tr></thead>
 <tbody>${pieces.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.laenge||0)}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td></tr>`).join("")}</tbody>
 </table>
+${(()=>{
+ // Der beim Speichern abgelegte Rollenplan, bewusst NICHT neu gerechnet: ein
+ // einmal gedrucktes Blatt soll gleich bleiben, auch wenn die Rollenbreiten
+ // der Firma später geändert werden.
+ const r=d.rollen;
+ if(!r||!Array.isArray(r.moeglich)||!r.moeglich.length)return "";
+ const zeilen=r.moeglich.map((x,i)=>`<tr><td>${esc(x.breite)} mm${i===0?" (beste)":""}</td><td>${esc(x.jeTafel)}</td><td>${esc(x.tafeln)}</td><td>${esc(Number(x.flaeche).toFixed(2).replace(".",","))}</td><td>${esc(Number(x.verschnitt).toFixed(2).replace(".",","))}</td></tr>`).join("");
+ const streifen=(r.streifen||[]).map((sf,i)=>`<tr><td>${i+1}</td><td>${esc(sf.stuecke.map(x=>"Stück "+x.nr+" · "+x.laenge+" mm").join(", "))}</td><td>${esc(Math.round(Number(r.tafelLaenge)-Number(sf.rest)))}</td><td>${esc(Math.round(Number(sf.rest)))}</td></tr>`).join("");
+ return `<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
+<div class="note">Tafellänge ${esc(r.tafelLaenge)} mm (längstes Stück), quer in Streifen der Abwicklungsbreite geteilt.${r.optimal===false?" Beste gefundene Verteilung – nicht nachweislich die günstigste.":""}</div>
+<table class="eb-cutlist">
+<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafelfläche (m²)</th><th>Verschnitt (m²)</th></tr></thead>
+<tbody>${zeilen}</tbody>
+</table>
+${streifen?`<table class="eb-cutlist">
+<thead><tr><th>Streifen</th><th>Stücke</th><th>belegt (mm)</th><th>Rest (mm)</th></tr></thead>
+<tbody>${streifen}</tbody>
+</table>`:""}`;
+})()}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="rinne_halbrund"){

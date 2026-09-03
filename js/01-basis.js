@@ -113,11 +113,13 @@ document.documentElement.classList.toggle("dark",darkMode);
 function photoQualitySettings(){
  return photoQuality==="hoch"?{maxDim:2200,quality:0.9}:{maxDim:1400,quality:0.75};
 }
-const EINLAUFBLECH_STANDARD=Object.freeze({stoss_laenge:2000,ueberlappung:70,gehrungszugabe:100,umschlag_oben:12,umschlag_unten:12,rest_schwelle:500,end_zugabe:10});
+const EINLAUFBLECH_STANDARD=Object.freeze({stoss_laenge:2000,ueberlappung:70,gehrungszugabe:100,umschlag_oben:12,umschlag_unten:12,rest_schwelle:500,end_zugabe:10,gava_abstand:500});
 // Standardwerte für beide Einlaufblech-Typen. Gespeicherte Werte des Geräts
 // haben Vorrang – zurücksetzen geht über den Knopf in den Einstellungen.
 let einlaufblechSettings=JSON.parse(localStorage.getItem("sd_einlaufblechSettings")||"null")||{...EINLAUFBLECH_STANDARD};
 if(einlaufblechSettings.end_zugabe===undefined)einlaufblechSettings.end_zugabe=10;
+// Abstand der Haltebleche (GAVA). Nur Einlaufblech gerade liest ihn.
+if(einlaufblechSettings.gava_abstand===undefined)einlaufblechSettings.gava_abstand=500;
 let einlaufblechKonischSettings=JSON.parse(localStorage.getItem("sd_einlaufblechKonischSettings")||"null")||{...EINLAUFBLECH_STANDARD};
 if(einlaufblechKonischSettings.end_zugabe===undefined)einlaufblechKonischSettings.end_zugabe=10;
 let blitzschutzMaterials=[];
@@ -161,6 +163,9 @@ let rinneDilaMass=-165;
 // Rinnen-Normlängen je Material und Grösse als Firmeneinstellung:
 // {"<material_id>|<groesse>":[laengen_mm]}. Leer = Vorgabe der App.
 let rinneNormlaengen={};
+// Rollenbreiten des Blechlagers, firmenweit aus app_settings. Leer =
+// noch nichts hinterlegt, dann gilt die Vorgabe 1000/670 (js/29).
+let blechRollenbreiten=[];
 // Masse für die Mauerabdeckung, firmenweit aus app_settings.
 let madBodenMass=0;
 let madSchieberMass=0;

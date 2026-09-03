@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.73, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.74, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.73**
+- sichtbare App-Version: **2.74**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -12280,3 +12280,153 @@ nicht nachvollziehbar gewesen.
 - Der Prototyp behält seinen gesperrten Knopf; er hat eine eigene
   Speicherleiste und ist nicht Teil der App.
 
+
+## 82. EINLAUFBLECH GERADE IN DIE APP EINGEBAUT — VERSION 2.74
+
+Die Massaufnahme **Einlaufblech gerade** wird nicht mehr als ein langes
+Formular erfasst, sondern über **sechs Register** – nach demselben Muster
+wie die Rinne seit v2.71. Grundlage ist der Prototyp unter
+`prototyp-einlaufblech/`, der unverändert bestehen bleibt.
+
+    1 Grunddaten · 2 Geometrie · 3 Stücke · 4 Kontrolle ·
+    5 Ausmass · 6 Zuschnitt aus Rollenblech
+
+### 82.1 js/11 und js/15 bleiben unverändert
+
+`js/11-einlaufblech-gerade.js` (Schnittzeichnung) und
+`js/15-einlaufblech-stueckliste.js` (enge Seite, Restbreite, Aufteilung,
+Gehrung, Endzugabe, Rinnen-Übernahme) sind gegenüber v2.73 **byteweise
+identisch**, ebenso `js/13-einlaufblech-konisch.js`.
+
+Die Brücke sind ihre eigenen Variablen und Felder. `ebaBruecke()` setzt
+`ebPieces` und die alten Formularelemente; danach liefern die Funktionen
+aus js/15 direkt die richtigen Werte:
+
+```js
+function ebaEngeSeite(){ebaBruecke();return ebEngeSeite()}
+function ebaRestbreite(){ebaBruecke();return ebRestbreite()}
+```
+
+Es gibt **keine zweite Rechnung**, die auseinanderlaufen könnte.
+`ebPieces` ist dasselbe Array wie `ebA.stuecke` – eine Wahrheit, kein
+Abgleich.
+
+Die alten Formularelemente stehen weiterhin im HTML, unsichtbar als
+**`#ebStummel`**: js/15 hängt beim Laden Handler an sie. Der
+Übernahme-Block (`#eb_rinneHint`/`#eb_rinneList`) steht dagegen **fest
+und sichtbar** im HTML und wird von js/29 nur in Register 3 eingehängt –
+ein per `innerHTML` neu erzeugtes Element hätte den Handler von js/15
+nicht.
+
+**Dabei ein echter Fehler gefunden:** beim Umbau war
+`#openEinlaufblechSettings` verschwunden, an den js/16 einen Handler
+hängt – die App warf beim Laden einen TypeError. Der Prüfstand hat es
+gemeldet, nicht das Lesen des Codes.
+
+### 82.2 Speichern: Superset
+
+js/16 schreibt weiterhin genau dieselben acht Felder wie bisher
+(`gesamtlaenge`, `massA`, `massAEng`, `winkel`, `montage`, `abwicklung`,
+`engeSeite`, `restBreite`) plus `pieces` und `material` – Zeichen für
+Zeichen unverändert. Dazu kommen `gava`, `flaeche_m2`, `ausmass` und
+`rollen`.
+
+Die Ergebnisse werden mitgespeichert, damit ein später gedrucktes Blatt
+gleich bleibt – dasselbe Vorgehen wie bei Rinne, Kehle und
+Anschlussblech. Eine vor v2.74 gespeicherte Aufnahme öffnet unverändert;
+es werden **keine Haltebleche erfunden** (eine alte Aufnahme hat keine
+erfasst, also steht das Kästchen aus).
+
+### 82.3 Neu gegenüber v2.73
+
+- **Haltebleche „GAVA Blech"** – Kästchen, Abstand, Anzahl. Dieselbe
+  Rechnung wie der Rinnenhalter-Abstand in js/28:
+  `Anzahl = ganzzahlig(Länge ÷ Abstand) + 1`. Ohne Haken wird nichts
+  gerechnet und nichts ins Ausmass gestellt.
+- **Blechfläche in m²** = Gesamtlänge × Abwicklung.
+- **Zuschnitt aus Rollenblech.** Von der Rolle wird eine **Tafel**
+  abgeschnitten und quer in Streifen der Abwicklungsbreite geteilt; die
+  Tafel ist höchstens so lang wie das längste Stück, ein Streifen kann
+  mehrere Stücke hintereinander aufnehmen (dasselbe Problem wie die
+  Normlängen bei der Rinne).
+
+      Streifen je Tafel = ganzzahlig(Rollenbreite ÷ Abwicklung)
+      Tafeln            = aufgerundet(Streifen ÷ Streifen je Tafel)
+      Verschnitt        = Tafelfläche − Blechfläche
+
+  Jedes Blech steht mit **seiner Nummer und seiner genauen Länge** in
+  der Streifenliste. Reicht das Suchbudget nicht, wird die gierige
+  Lösung gezeigt und ausdrücklich **nicht** als beste ausgewiesen.
+- **Ausmass und Materialübersicht** ohne zweite Eingabe, ohne
+  Artikelnummern und ohne Preise.
+- **Kontrolle** mit rotem Punkt am Register, sobald etwas fehlt.
+
+### 82.4 Rollenbreiten firmenweit, GAVA-Abstand gerätebezogen
+
+Migration `app_settings_blech_rollenbreiten_v2_74`: additive nullable
+`jsonb`-Spalte `app_settings.blech_rollenbreiten`. Kein Zeilentrigger
+feuert, keine bestehende Zeile ändert sich (beide Firmen haben
+unverändertes `updated_at`). `NULL` = noch nichts hinterlegt und fällt
+auf **1000/670 mm** zurück; wählbar sind zusätzlich 500, 400, 330, 250
+und 200 mm.
+
+Bewusst firmenweit und nicht gerätebezogen: es ist der Lagerbestand, und
+die Liste ist für andere Massaufnahmen wiederverwendbar. Der
+**GAVA-Abstand** liegt dagegen bei den übrigen Einlaufblech-Massen im
+`localStorage`, weil er ein Zuschnitt-/Montagemass ist wie Umschlag oder
+Endzugabe.
+
+### 82.5 Getestet
+
+Neuer Prüfstand `pruefstaende/pruefstand-einlaufblech-app-v2-74.js`,
+**87/87**, echtes Chromium gegen die echte `index.html`: Modul und
+Brücke, sechs Register, Geometrie, Stücke/Gehrung/Endzugabe, GAVA,
+Fläche und Rollenplan, Ausmass, Kontrolle, Speichern und Wiederöffnen,
+ein Datensatz im Format bis v2.73, leerer Zustand, Fertig-Knopf, Druck,
+fünf Bildschirmbreiten × sechs Register, keine JS-Fehler.
+
+**Neun Gegenproben**, jede wirft den Prüfstand um und keine lässt ihn
+abstürzen: Brücke setzt `ebPieces` nicht (76/87) · eigene Restbreite
+statt der aus js/15 (76/87) · Zusatzfelder nicht gespeichert (73/87) ·
+alter Datensatz erfindet Haltebleche (78/87) · Tafellänge = Summe statt
+längstes Stück (76/87) · Fertig-Knopf gesperrt (77/87) · alle Register
+auf einmal (77/87) · Druck rechnet den Rollenplan neu (85/87) · Ausmass
+fehlt im Druck (86/87).
+
+`pdf52` um einen v2.74-Fall erweitert: **526/526** (vorher 504/504).
+Volle Regression grün (required70 359/359, kehle52 698/698,
+rinne57 379/379, verschnitt-app 1578/1578, rinneapp71 102/102 und alle
+übrigen). `node --check` über alle 30 `js/*.js` und `sw.js` fehlerfrei,
+`<div>` 714/714, keine doppelten IDs.
+
+**Regierapport nachweislich unverändert:** der Ausdruck wurde in echtem
+Chromium unter `media:print` gegen den v2.73-Stand gerendert –
+Bild-Hash `85706e5d7a1eb615` und DOM-Hash `3066be99c3200173` sind in
+beiden Fassungen identisch (110584 Bytes). `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+
+**Zwei überholte Erwartungen** in bestehenden Prüfständen angepasst,
+keine davon ein Codefehler: `required70` kannte die Pflichtfelder noch
+als `eb_massA`/`eb_winkel` (sie heissen jetzt `eba_massA`/`eba_winkel`
+und entstehen erst beim Zeichnen), `pdf52` brauchte einen
+Ausgabeordner. Dabei aber ein **echter** Fehler gefunden: die neuen
+Pflichtfelder entstehen erst zur Laufzeit, `markierePflichtfelder()`
+beim App-Start erreichte sie nicht – der rote Stern fehlte.
+`renderEinlaufblechAufnahme()` ruft die Funktion jetzt für seinen
+Bereich noch einmal auf, wie js/20 es für die Massfelder der
+Ort-/Seitenbleche tut.
+
+### 82.6 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`.
+  **Das wird ausdrücklich nicht als getestet behauptet.**
+- Die **2 mm** beim engen Mass A sind weiterhin fest verdrahtet, so wie
+  bisher in js/15 und js/16.
+- Der **GAVA-Abstand von 500 mm** ist ein Vorgabewert, keine Norm.
+- Der Verschnitt rechnet **ohne Schnittfuge** und ohne Wiederverwendung
+  von Reststücken.
+- Bei sehr vielen Stücken wird nicht jede Kombination durchgerechnet;
+  das Ergebnis heisst dann „beste gefundene Verteilung".
+- Der Prototyp unter `prototyp-einlaufblech/` bleibt unverändert
+  bestehen – er ist jetzt die Vorlage, nicht mehr die einzige Stelle.

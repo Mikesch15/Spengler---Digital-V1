@@ -1,0 +1,85 @@
+<div id="reportScreen">
+<div class="report-head">
+  <div><div class="logo" id="printLogo">PETER KÜNZI AG</div><div class="sub">Regierapport · Arbeiten nach Aufwand</div></div>
+  <div style="text-align:right"><b class="js-company-name" id="printCompany">PETER KÜNZI AG</b><br><span id="printAddress" style="white-space:pre-line"></span></div>
+</div>
+
+<div class="brand">SPENGLER-DIGITAL</div>
+<h1>Regierapport</h1>
+<!-- Objektadresse als Haupttitel am Bildschirm (v2.44). Bewusst
+     .no-print: die gedruckte Kopfzeile bleibt unveraendert. -->
+<div class="no-print report-adresse" id="reportAddressLine"></div>
+
+<div class="card">
+<h2>Regieauftrag</h2>
+<div class="grid">
+<div class="wide"><label aria-label="Projekt (Pflichtfeld)">Projekt<span class="pflicht-stern no-print" title="Pflichtfeld" aria-hidden="true">*</span></label>
+<div class="search"><input id="projectSearch" data-pflicht="1" placeholder="Suchen: Projektname, Auftrags-Nr., Auftraggeber, Objekt …" autocomplete="off" required="" aria-required="true" style=""><div id="projectResults" class="suggest"></div></div>
+<div class="small" id="projectSelectedLabel"></div>
+<div class="print-only" id="printProjectLine"></div>
+</div>
+<div><label>Datum</label><input id="date" type="date" style=""></div>
+<div><label>Auftrags-Nr.</label><input id="orderNo" placeholder="z. B. 176712" style=""></div>
+<div><label>Auftraggeber</label><textarea id="customer" placeholder="Name / Adresse" style=""></textarea></div>
+<div><label>Objekt / Gebäudeteil</label><textarea id="object" placeholder="z. B. Wetterschutz · Kinderzimmer" style=""></textarea></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Ausführende Arbeiten</h2>
+<div class="scroll">
+<table class="work-table">
+<colgroup><col class="c-pos"><col class="c-desc"><col class="c-emp"><col class="c-func"><col class="c-std"><col class="c-rate"><col class="c-total"><col class="c-del"></colgroup>
+<thead><tr><th>Pos.</th><th>Beschreibung</th><th>MA</th><th>Funktion</th><th>Std.</th><th>Ansatz</th><th>Total</th><th class="no-print"></th></tr></thead>
+<tbody id="workBody"></tbody>
+</table>
+</div>
+<div class="bar no-print"><button id="addWork" class="gray">＋ Arbeitsposition</button></div>
+<div class="total">Total Arbeit CHF <span id="workTotal">0.00</span></div>
+</div>
+
+<div class="card">
+<h2>Material</h2>
+<div class="scroll">
+<table class="mat-table">
+<colgroup><col class="m-pos"><col class="m-edv"><col class="m-material"><col class="m-dim"><col class="m-unit"><col class="m-qty"><col class="m-price"><col class="m-total"><col class="m-del"></colgroup>
+<thead><tr><th>Pos.</th><th>EDV-Nr.</th><th>Material</th><th>Dim.</th><th>Einheit</th><th>Menge</th><th>Fr./E</th><th>Total</th><th class="no-print"></th></tr></thead>
+<tbody id="matBody"></tbody>
+</table>
+</div>
+<div class="bar no-print">
+<button id="addMat" class="gray">＋ Material</button>
+<button id="openSheet" class="blue">📐 Blechverbrauch</button>
+</div>
+<div class="total">Total Material CHF <span id="matTotal">0.00</span></div>
+</div>
+
+<div class="card">
+<div class="grid">
+<div><label>Sachbearbeiter</label><input id="employee" readonly="" style=""></div>
+<div><label>Total exkl. MWST</label><input id="netTotal" readonly="" style=""></div>
+<div><label>MWST</label><input id="vat" value="8.1 %" style=""></div>
+<div><label>Total inkl. MWST</label><input id="grossTotal" readonly="" style=""></div>
+</div>
+</div>
+
+<div class="report-foot">
+<div class="sig-block"><div class="sig-line"></div><div class="sig-label">Ort, Datum · Unterschrift Auftraggeber</div></div>
+<div class="sig-block"><div class="sig-line"></div><div class="sig-label">Unterschrift ausführender Mitarbeiter</div></div>
+</div>
+<div class="pdf-foot" id="reportFooterBar">Vergleichslauf</div>
+
+<div class="no-print">
+<button type="button" id="reportVerlaufToggle" class="gray" style="margin-bottom:8px" hidden="">🕒 Verlauf anzeigen</button>
+<div id="reportVerlaufBody" class="report-list"></div>
+</div>
+
+<div class="bar no-print">
+<button id="print" class="blue">🖨️ PDF / Drucken</button>
+<button id="save" class="green">💾 Speichern</button>
+<button id="clear" class="red">Alles löschen</button>
+<button id="reportEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
+<button id="backFromReportEdit" class="gray" hidden="">↩️ Zurück zum Projekt</button>
+<button id="startFromReportEdit" class="gray">🏠 Start</button>
+</div>
+</div>
