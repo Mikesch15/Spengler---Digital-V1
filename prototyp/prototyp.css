@@ -176,3 +176,110 @@ body{background:#eef2f5;margin:0;padding:0 0 90px}
  .p-feld{flex:1 1 100%}
  .p-foto{width:calc(50% - 5px)}
 }
+
+/* ===========================================================================
+   PDF / DRUCK
+   ===========================================================================
+   Der Prototyp läuft als einzelne Datei ohne Server. Ein PDF entsteht über
+   den Druckdialog des Browsers ("Ziel: Als PDF speichern"). Am Bildschirm
+   ist das Druckdokument unsichtbar, im Druck ist NUR es sichtbar.
+
+   Layout nach den Konventionen des App-PDFs (Version 2.53/2.54):
+   Firmenblock links, Dokumenttyp rechts, grosser Titel, eine dünne
+   Trennlinie, dunkle Abschnittsbalken, Tabellen mit wiederholtem Kopf.
+   =========================================================================== */
+.p-druck{display:none}
+.p-gross-knopf{min-height:56px!important;font-size:16px}
+
+@media print{
+ /* Alles vom Bildschirm weg – auch die klebenden Leisten. */
+ .p-topbar,#p-app,.p-skizzebox{display:none!important}
+ .p-druck{display:block!important}
+ body{background:#fff;margin:0;padding:0}
+
+ @page{size:A4 portrait;margin:14mm 14mm 17mm;
+  @bottom-right{content:"Seite " counter(page) " von " counter(pages);
+   font-family:Arial,Helvetica,sans-serif;font-size:6.5pt;color:#7b858c}}
+
+ .p-druck{font-family:Arial,Helvetica,sans-serif;color:#17202a;
+  font-size:8.5pt;line-height:1.35;padding-bottom:9mm;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+ /* Kopf */
+ .pd-kopf{display:flex;justify-content:space-between;align-items:flex-start;gap:10mm}
+ .pd-marke{font-size:13pt;font-weight:800;letter-spacing:.04em;line-height:1.1}
+ .pd-klein{margin-top:1.4mm;font-size:6.6pt;color:#5b666e;line-height:1.45}
+ .pd-typ{text-align:right;flex:0 0 auto;padding-top:.5mm}
+ .pd-doktyp{font-size:9.5pt;font-weight:800;text-transform:uppercase;
+  letter-spacing:.2em;white-space:nowrap}
+ .pd-datum{margin-top:1.2mm;font-size:8pt;color:#5b666e;white-space:nowrap}
+ .pd-titel{margin:7mm 0 0}
+ .pd-titel h1{font-size:15pt;font-weight:800;margin:0;line-height:1.18;
+  letter-spacing:-.01em;word-break:break-word}
+ .pd-untertitel{margin-top:1.5mm;font-size:8.5pt;color:#3d4850}
+ .pd-info{margin-top:3.5mm;font-size:8pt;line-height:1.55}
+ .pd-info span{display:inline-block;min-width:32mm;color:#6b757c}
+ .pd-trenner{border-top:.75pt solid #a7b1b8;margin:4.5mm 0 5mm}
+
+ /* Abschnittsbalken */
+ .pd-balken{background:#17202a;color:#fff;font-size:6.9pt;font-weight:800;
+  text-transform:uppercase;letter-spacing:.11em;padding:1.6mm 2.4mm;margin:5mm 0 0;
+  break-after:avoid;page-break-after:avoid}
+
+ /* Tabellen */
+ table.pd-tab{width:100%;min-width:0;table-layout:auto;border-collapse:collapse;
+  border:.5pt solid #b3bcc2;border-top:0;margin:0}
+ .pd-tab thead{display:table-header-group}
+ .pd-tab tr{break-inside:avoid;page-break-inside:avoid}
+ .pd-tab th{background:#e9edf0;color:#17202a;text-align:left;font-size:6.5pt;
+  font-weight:800;padding:1.6mm 2.2mm;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:.5pt solid #9aa4ab;border-right:.5pt solid #cfd6db}
+ .pd-tab td{padding:1.5mm 2.2mm;border-bottom:.5pt solid #dde3e7;
+  border-right:.5pt solid #eef1f3;font-size:8pt;
+  font-variant-numeric:tabular-nums;vertical-align:top}
+ .pd-tab th:last-child,.pd-tab td:last-child{border-right:0}
+ .pd-tab tbody tr:last-child td{border-bottom:0}
+ .pd-tab th.r,.pd-tab td.r{text-align:right;white-space:nowrap;width:1%}
+ .pd-tab td.b{font-weight:800}
+ .pd-tab td.q{color:#6b757c;font-size:7pt}
+
+ /* Verlauf: Fixpunkt und Nicht-Fixpunkt müssen auch schwarz/weiss
+    unterscheidbar sein – deshalb Text UND Auszeichnung, nie Farbe allein. */
+ .pd-verlauf td.pos{white-space:nowrap;width:1%;text-align:right;color:#6b757c}
+ .pd-verlauf td.kz{white-space:nowrap;width:1%;font-size:7pt;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase}
+ .pd-verlauf tr.fix td{font-weight:800}
+ .pd-verlauf tr.fix td.kz{color:#17202a}
+ .pd-verlauf tr.losfix td.kz{color:#6b757c}
+ .pd-verlauf tr.ende td{background:#f2f5f7;font-weight:800;letter-spacing:.08em}
+ .pd-verlauf tr.warn td{font-weight:800}
+
+ /* Zeichnungen: seitlicher Freiraum, damit Beschriftungen am Rand der
+    viewBox nicht abgeschnitten werden (dieselbe Lehre wie im App-PDF). */
+ .pd-band,.pd-grundriss{text-align:center;margin:3mm 0 0;padding:0 5mm;
+  break-inside:avoid;page-break-inside:avoid}
+ .pd-band svg{max-width:150mm;max-height:55mm;width:100%;height:auto}
+ /* Die Zeichenfunktion setzt inline max-width:340px – im Druck zu klein. */
+ .pd-grundriss svg{max-width:100%!important;max-height:95mm;width:100%!important;height:auto}
+ .pd-legende{font-size:6.4pt;color:#6b757c;text-align:center;margin:1.5mm 0 0}
+
+ .pd-hinweise{border:.5pt solid #b3bcc2;border-top:0;padding:2mm 2.4mm;
+  break-inside:avoid;page-break-inside:avoid}
+ .pd-hinweise div{font-size:7.6pt;line-height:1.5}
+ .pd-hinweise .f{font-weight:800}
+ .pd-fussnote{font-size:6.6pt;color:#6b757c;margin:1.6mm 0 0;line-height:1.45}
+ .pd-bemerkung{border:.5pt solid #b3bcc2;border-top:0;padding:2.2mm 2.4mm;
+  font-size:8pt;white-space:pre-wrap;word-break:break-word;
+  break-inside:avoid;page-break-inside:avoid}
+
+ /* Bilder: je eine eigene Seite, Seitenverhältnis bleibt erhalten. */
+ .pd-bildseite{break-before:page;page-break-before:always}
+ .pd-bildseite img{display:block;margin:3mm auto 0;max-width:100%;
+  max-height:220mm;width:auto;height:auto}
+
+}
+
+/* Nur zum Messen: getBBox() liefert an einem ausgeblendeten Element nichts.
+   Das Dokument wird dafür kurz ausserhalb des Bildes eingeblendet. */
+.p-druck-messen{display:block!important;position:absolute!important;
+ left:-10000px!important;top:0;width:182mm}

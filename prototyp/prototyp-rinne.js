@@ -32,11 +32,15 @@ const ECKE_AUSSEN_ID=2, ECKE_INNEN_ID=3;
 // mass_mm = 0). Der Prototyp verwendet ihn deshalb unverändert weiter,
 // statt eine zweite Fixpunktlogik zu bauen.
 const EINHAENGE_FITTING_ID=4;
-// Der Schiebestutzen (id 7) hat im Katalog is_schiebestutzen = true und
-// würde damit in computeRinneBoundaries() als Grenzpunkt gelten. Genau das
-// ist hier NICHT gewollt (Auftrag Änderung 4): der Schiebestutzen darf die
-// Dilatationsberechnung nicht beeinflussen. Er wird deshalb bewusst NIE in
-// die Rechen-Segmente eingesetzt – siehe segmenteFuerRechnung().
+// Der Schiebestutzen (id 7) ist KEIN Fixpunkt, wird aber wie ein
+// Dehnungselement behandelt: er nimmt die Ausdehnung an dieser Stelle selbst
+// auf. Im bestehenden Katalog trägt er dafür bereits is_schiebestutzen =
+// true. computeRinneBoundaries() macht daraus einen Grenzpunkt vom Typ
+// "schiebe": die Strecke wird dort geteilt, links und rechts gilt der
+// grosszügige Abstand "mit Dehnungselement" (nicht der strenge "ab
+// Fixpunkt"), und es wird an dieser Stelle KEINE zusätzliche Dila gesetzt.
+// Genau das ist der Unterschied zum Einhängestutzen.
+const SCHIEBE_FITTING_ID=7;
 
 function leereAufnahme(){
  return {
@@ -51,7 +55,7 @@ function leereAufnahme(){
   // Verlauf: exakt die Struktur des bestehenden Moduls
   segmente:[{laenge:0,linksTyp:"",rechtsTyp:"",winkel:0}],
   einhaengestutzen:[],        // Fixpunkt für die Dilatationsberechnung
-  schiebestutzen:[],          // KEIN Fixpunkt, reines Bauteil
+  schiebestutzen:[],          // kein Fixpunkt, gilt als Dehnungselement
   halter:{anzahl:null,abstand_mm:500,typ:""},
   endstuecke:{links:true,rechts:true},
   dehnung:{art:"keine",anzahl:0},
@@ -207,36 +211,55 @@ function segmenteFuerRechnung(a){
    linksTyp:s.linksTyp||"",rechtsTyp:s.rechtsTyp||"",winkel:zahl(s.winkel)}));
  if(!segs.length)return segs;
  const L=gesamtlaengeBerechnet(a);
- const stellen=Array.from(new Set((a.einhaengestutzen||[])
-   .map(e=>Math.round(zahl(e.pos_mm)))
-   .filter(pos=>pos>=0&&pos<=L))).sort((x,y)=>x-y);
+
+ // Beide Stutzenarten setzen einen Grenzpunkt – aber einen unterschiedlichen:
+ //   Einhängestutzen -> Anschlusstyp 4 (Fixpunkt, strenger Abstand)
+ //   Schiebestutzen  -> Anschlusstyp 7 (kein Fixpunkt, gilt als Dehnungselement)
+ const stellen=[];
+ const sammle=(liste,typId)=>{
+  (liste||[]).forEach(st=>{
+   const pos=Math.round(zahl(st.pos_mm));
+   if(pos<0||pos>L)return;
+   if(!stellen.some(x=>x.pos===pos))stellen.push({pos,typId});
+  });
+ };
+ // Der Fixpunkt hat Vorrang: liegen beide Arten auf derselben Stelle, gilt
+ // die strengere Regel.
+ sammle(a.einhaengestutzen,EINHAENGE_FITTING_ID);
+ sammle(a.schiebestutzen,SCHIEBE_FITTING_ID);
  if(!stellen.length)return segs;
+ stellen.sort((x,y)=>x.pos-y.pos);
+ const typAn=pos=>{const t=stellen.find(x=>x.pos===pos);return t?t.typId:null};
+ const hatGrenze=typId=>{
+  const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+  return !!(f&&(f.is_fixpunkt||f.is_schiebestutzen));
+ };
 
  // Stutzen genau am Anfang oder am Ende: dort gibt es bereits eine Grenze,
- // sie braucht nur den Anschlusstyp – sofern dort nicht ohnehin schon ein
- // Fixpunkt sitzt (eine Ecke zum Beispiel).
- if(stellen.indexOf(0)>=0&&!istFixpunktTyp(segs[0].linksTyp))
-  segs[0].linksTyp=EINHAENGE_FITTING_ID;
+ // sie braucht nur den Anschlusstyp – sofern dort nicht ohnehin schon einer
+ // sitzt (eine Ecke zum Beispiel).
+ const amAnfang=typAn(0);
+ if(amAnfang!==null&&!hatGrenze(segs[0].linksTyp))segs[0].linksTyp=amAnfang;
  const letzte=segs[segs.length-1];
- if(stellen.indexOf(L)>=0&&L>0&&!istFixpunktTyp(letzte.rechtsTyp))
-  letzte.rechtsTyp=EINHAENGE_FITTING_ID;
+ const amEnde=typAn(L);
+ if(amEnde!==null&&L>0&&!hatGrenze(letzte.rechtsTyp))letzte.rechtsTyp=amEnde;
 
  const raus=[];
  let start=0;
  segs.forEach(seg=>{
   const ende=start+seg.laenge;
-  const innen=stellen.filter(pos=>pos>start&&pos<ende);
+  const innen=stellen.filter(x=>x.pos>start&&x.pos<ende);
   // Stutzen genau auf einer Segmentgrenze: nur den Anschlusstyp setzen,
   // nicht teilen – die Grenze existiert bereits.
-  if(stellen.indexOf(ende)>=0&&ende<L&&!istFixpunktTyp(seg.rechtsTyp))
-   seg.rechtsTyp=EINHAENGE_FITTING_ID;
-  if(stellen.indexOf(start)>=0&&start>0&&!istFixpunktTyp(seg.linksTyp))
-   seg.linksTyp=EINHAENGE_FITTING_ID;
+  const aufEnde=typAn(ende);
+  if(aufEnde!==null&&ende<L&&!hatGrenze(seg.rechtsTyp))seg.rechtsTyp=aufEnde;
+  const aufStart=typAn(start);
+  if(aufStart!==null&&start>0&&!hatGrenze(seg.linksTyp))seg.linksTyp=aufStart;
   if(!innen.length){raus.push(seg);start=ende;return}
   let cur=start,linksTyp=seg.linksTyp;
-  innen.forEach(pos=>{
-   raus.push({laenge:pos-cur,linksTyp,rechtsTyp:EINHAENGE_FITTING_ID,winkel:0});
-   linksTyp=EINHAENGE_FITTING_ID; cur=pos;
+  innen.forEach(x=>{
+   raus.push({laenge:x.pos-cur,linksTyp,rechtsTyp:x.typId,winkel:0});
+   linksTyp=x.typId; cur=x.pos;
   });
   raus.push({laenge:ende-cur,linksTyp,rechtsTyp:seg.rechtsTyp,winkel:seg.winkel});
   start=ende;
@@ -335,7 +358,7 @@ function komponenten(a){
   });
  };
  gruppiere(a.einhaengestutzen,"Einhängestutzen","Einhängestutzen (Fixpunkt)","einhaenge");
- gruppiere(a.schiebestutzen,"Schiebestutzen","Schiebestutzen","schiebe");
+ gruppiere(a.schiebestutzen,"Schiebestutzen","Schiebestutzen (Dehnungselement)","schiebe");
  if(a.endstuecke.links)liste.push({schluessel:"endstueck_l",bezeichnung:`Endstück links${gz}`,menge:1,einheit:"Stk.",herkunft:"Eingabe"});
  if(a.endstuecke.rechts)liste.push({schluessel:"endstueck_r",bezeichnung:`Endstück rechts${gz}`,menge:1,einheit:"Stk.",herkunft:"Eingabe"});
  if(a.dehnung.art==="dehnungsstueck"){
@@ -379,12 +402,12 @@ function materialUebersicht(a){
 function verlaufsBandSvg(a){
  const L=gesamtlaengeBerechnet(a);
  if(L<=0)return '<div class="p-leer">Noch kein Abschnitt erfasst.</div>';
- const W=470,H=126,l=34,r=W-34,y=58;
+ const W=470,H=136,l=34,r=W-34,y=68;
  const x=p=>l+(r-l)*Math.max(0,Math.min(1,zahl(p)/L));
  let s=`<line x1="${l}" y1="${y}" x2="${r}" y2="${y}" stroke="#17202a" stroke-width="7" stroke-linecap="round"/>`;
  s+=`<text x="${l}" y="${y+30}" font-size="11.5" text-anchor="middle" fill="#68737d" font-weight="700">START</text>`;
  s+=`<text x="${r}" y="${y+30}" font-size="11.5" text-anchor="middle" fill="#68737d" font-weight="700">ENDE</text>`;
- s+=`<text x="${r}" y="${(y-32).toFixed(1)}" font-size="13" text-anchor="end" fill="#1769aa" font-weight="700">Gesamt ${esc(mm(L))} mm</text>`;
+ s+=`<text x="${r}" y="${(y-44).toFixed(1)}" font-size="13" text-anchor="end" fill="#1769aa" font-weight="700">Gesamt ${esc(mm(L))} mm</text>`;
  // Abschnittsgrenzen
  let pos=0;
  (a.segmente||[]).forEach((seg,i)=>{
@@ -412,13 +435,15 @@ function verlaufsBandSvg(a){
   s+=`<text x="${px.toFixed(1)}" y="${(y+40).toFixed(1)}" font-size="10" text-anchor="middle" fill="${farbe}" font-weight="700">FIX</text>`;
   s+=`<text x="${px.toFixed(1)}" y="${(y+52).toFixed(1)}" font-size="10.5" text-anchor="middle" fill="${draussen?"#b42318":"#68737d"}">${esc(mm(pos))}</text>`;
  });
- // Schiebestutzen: KEIN Fixpunkt. Eckige Marke, andere Farbe, kein Strich
- // durch die Rinne – die Rechnung bleibt an dieser Stelle ununterbrochen.
+ // Schiebestutzen: kein Fixpunkt, aber er nimmt die Ausdehnung selbst auf.
+ // Eckige Marke in anderer Farbe, kein Strich durch die Rinne – dafür die
+ // Beschriftung DEHNT, damit der Unterschied zu FIX sichtbar bleibt.
  (a.schiebestutzen||[]).forEach((st,i)=>{
   const pos=zahl(st.pos_mm), draussen=pos<0||pos>L, px=x(pos);
   const farbe=draussen?"#b42318":"#6b4fa8";
   s+=`<rect x="${(px-8.5).toFixed(1)}" y="${(y+13.5).toFixed(1)}" width="17" height="17" rx="3" fill="${farbe}"/>`;
   s+=`<text x="${px.toFixed(1)}" y="${(y+25.6).toFixed(1)}" font-size="10" text-anchor="middle" fill="#fff" font-weight="700">S${i+1}</text>`;
+  s+=`<text x="${px.toFixed(1)}" y="${(y+40).toFixed(1)}" font-size="10" text-anchor="middle" fill="${farbe}" font-weight="700">DEHNT</text>`;
   s+=`<text x="${px.toFixed(1)}" y="${(y+52).toFixed(1)}" font-size="10.5" text-anchor="middle" fill="${draussen?"#b42318":"#68737d"}">${esc(mm(pos))}</text>`;
  });
  // Dilas aus der bestehenden Rechnung
@@ -504,7 +529,7 @@ ${zeilen.join("")}
 <div class="p-karte">
 <h2>Verlauf im Überblick</h2>
 <div id="p-band">${verlaufsBandSvg(a)}</div>
-<div class="p-legende">▲ Ecke (Fixpunkt) &nbsp;·&nbsp; ● E = Einhängestutzen (Fixpunkt) &nbsp;·&nbsp; ■ S = Schiebestutzen (kein Fixpunkt) &nbsp;·&nbsp; ◆ Dehnungselement (berechnet)</div>
+<div class="p-legende">▲ Ecke (Fixpunkt) &nbsp;·&nbsp; ● E = Einhängestutzen (Fixpunkt) &nbsp;·&nbsp; ■ S = Schiebestutzen (kein Fixpunkt, gilt als Dehnungselement) &nbsp;·&nbsp; ◆ zusätzlich berechnetes Dehnungselement</div>
 <h3>Massstäblicher Grundriss</h3>
 <div class="p-grundriss" id="p-grundriss">${generateRinneGrundriss(a.segmente,dilasBerechnet(a).dilas,dilasBerechnet(a).boundaries||[])}</div>
 </div>`;
@@ -553,8 +578,10 @@ ${einhaenge||'<div class="p-leer">Noch kein Einhängestutzen erfasst.</div>'}
 
 <div class="p-karte">
 <h2>Schiebestutzen</h2>
-<div class="p-hinweis"><b>Ein Schiebestutzen ist kein Fixpunkt.</b> Er wird erfasst, angezeigt und
-im Ausmass ausgegeben, hat aber <b>keinen</b> Einfluss auf die Dilatationsberechnung.</div>
+<div class="p-hinweis"><b>Ein Schiebestutzen ist kein Fixpunkt</b> – er nimmt die Ausdehnung
+selbst auf und wird deshalb <b>wie ein Dehnungselement</b> behandelt: die Rinne wird an seiner
+Position geteilt, links und rechts gilt der grosse Abstand, und dort wird kein zusätzliches
+Dehnungselement mehr gesetzt.</div>
 ${schiebe||'<div class="p-leer">Noch kein Schiebestutzen erfasst.</div>'}
 <div class="p-knopfreihe"><button type="button" class="p-blau" id="p-addSchiebe">＋ Schiebestutzen</button></div>
 </div>
@@ -635,7 +662,8 @@ function schritt5(){
    const m=offen.shift();
    verlauf.push(`<li class="${m.fix?"p-fix-li":"p-losfix-li"}">${esc(m.text)}`
     +(m.anzahl>1?` (${m.anzahl}×)`:"")
-    +` bei ${esc(mm(m.pos))} mm → <b>${m.fix?"FIXPUNKT":"kein Fixpunkt"}</b></li>`);
+    +` bei ${esc(mm(m.pos))} mm → <b>${m.fix?"FIXPUNKT":"Dehnungselement"}</b>`
+    +`${m.fix?"":" (kein Fixpunkt)"}</li>`);
   }
  };
  markenBis(0);
@@ -707,6 +735,12 @@ function schritt6(){
   ||'<tr><td colspan="4" class="p-leer">Noch nichts zu berechnen.</td></tr>';
 })()}</tbody></table>
 </div>
+</div>
+<div class="p-karte">
+<h2>PDF</h2>
+<div class="p-hinweis">Erzeugt ein Blatt mit Verlauf, Schema, Ausmass, Materialübersicht,
+Zuschnitt sowie Skizze und Fotos. Im Druckdialog als Ziel <b>„Als PDF speichern“</b> wählen.</div>
+<div class="p-knopfreihe"><button type="button" class="p-blau p-gross-knopf" id="p-pdf2">🖨 Als PDF speichern</button></div>
 </div>`;
 }
 
@@ -1002,6 +1036,15 @@ function verdrahten(){
    alert("Kopie angelegt: „"+k.bezeichnung+"“. Sie ist von der ursprünglichen Aufnahme unabhängig.");
    return;
   }
+  if(t.id==="p-pdf"||t.id==="p-pdf2"){
+   if(!String(a.bezeichnung||"").trim()){
+    alert("Bitte zuerst in Schritt 1 eine Bezeichnung eintragen – sie steht als Titel im PDF.");
+    setzeSchritt(1); return;
+   }
+   druckVorbereiten();
+   window.print();
+   return;
+  }
   if(t.id==="p-liste"){listeOffen=!listeOffen;zeichne();return;}
   if(d.oeffnen!==undefined){
    if(aufnahmeLaden(d.oeffnen)){listeOffen=false;setzeSchritt(1);}
@@ -1070,3 +1113,197 @@ document.addEventListener("DOMContentLoaded",()=>{
  verdrahten();
  zeichne();
 });
+
+// Auch über Strg+P oder das Browsermenü gedruckt: das Dokument wird kurz
+// vorher aus dem aktuellen Stand gebaut, damit nie ein alter Stand im PDF
+// landet.
+window.addEventListener("beforeprint",druckVorbereiten);
+
+// ---- 13. PDF / Drucken ----------------------------------------------------
+// Der Prototyp läuft als einzelne Datei ohne Server. Ein PDF entsteht
+// deshalb über den Druckdialog des Browsers ("Ziel: Als PDF speichern") –
+// derselbe Weg, den der Regierapport der laufenden App geht.
+//
+// Bewusst KEIN window.open(): ein neues Fenster wird auf dem Tablet
+// regelmässig als Popup blockiert. Stattdessen wird das Dokument in einen
+// eigenen Bereich derselben Seite gebaut, den nur der Druck sieht.
+//
+// Das Layout folgt den Konventionen des App-PDFs (Version 2.53/2.54):
+// Firmenblock links, Dokumenttyp rechts, grosser Titel, eine dünne
+// Trennlinie, dunkle Abschnittsbalken, Tabellen mit wiederholtem Kopf.
+// Es ist dafür neu geschrieben – die PDF-Bausteine der App stecken in
+// js/16 und liessen sich ohne das ganze Formular nicht laden.
+function druckDatumZeit(){
+ const d=new Date();
+ return d.toLocaleDateString("de-CH")+", "+d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+}
+// Die Fusszeile steht in der Randbox der Seite (@bottom-left). Ein
+// position:fixed-Element wuerde sich in einem mehrseitigen Druck ueber den
+// Inhalt legen, weil dafuer kein Platz reserviert ist.
+function druckFussText(){
+ const t="Spengler-DIGITAL · Prototyp Rinne Halbrund · "
+  +(aufnahme.bezeichnung||"Ohne Bezeichnung")+" · gedruckt am "+druckDatumZeit();
+ // Anfuehrungszeichen und Zeilenumbrueche wuerden die CSS-Zeichenkette brechen.
+ return t.replace(/[\\"\r\n]/g," ");
+}
+function druckInfoZeile(label,wert){
+ return wert?`<div><span>${esc(label)}</span>${wert}</div>`:"";
+}
+function druckDokumentHtml(){
+ const a=aufnahme;
+ const L=gesamtlaengeBerechnet(a);
+ const d=dilasBerechnet(a);
+ const st=berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass);
+ const zeilen=ausmassZeilen(a);
+ const mat=materialUebersicht(a);
+ const pruef=pruefungen(a);
+ const ecken=eckenAusVerlauf(a);
+
+ // Verlauf von START bis ENDE – dieselbe Reihenfolge wie in der
+ // Zusammenfassung am Bildschirm.
+ const marken=[];
+ (a.einhaengestutzen||[]).forEach(x=>marken.push({pos:zahl(x.pos_mm),fix:true,
+  text:`Einhängestutzen ${x.durchmesser||""}`.trim(),anzahl:Math.max(1,Math.round(zahl(x.anzahl)||1))}));
+ (a.schiebestutzen||[]).forEach(x=>marken.push({pos:zahl(x.pos_mm),fix:false,
+  text:`Schiebestutzen ${x.durchmesser||""}`.trim(),anzahl:Math.max(1,Math.round(zahl(x.anzahl)||1))}));
+ marken.sort((x,y)=>x.pos-y.pos);
+ const verlauf=[];
+ let offen=marken.slice(), gelaufen=0;
+ const bisHier=grenze=>{
+  while(offen.length&&offen[0].pos<=grenze){
+   const m=offen.shift();
+   verlauf.push(`<tr class="${m.fix?"fix":"losfix"}"><td class="pos">${esc(mm(m.pos))}</td>`
+    +`<td>${esc(m.text)}${m.anzahl>1?` (${m.anzahl}×)`:""}</td>`
+    +`<td class="kz">${m.fix?"FIXPUNKT":"Dehnungselement"}</td></tr>`);
+  }
+ };
+ verlauf.push(`<tr class="ende"><td class="pos">0</td><td>START</td><td class="kz"></td></tr>`);
+ bisHier(0);
+ (a.segmente||[]).forEach((seg,i)=>{
+  gelaufen+=zahl(seg.laenge);
+  verlauf.push(`<tr><td class="pos">${esc(mm(gelaufen))}</td>`
+   +`<td>Abschnitt ${i+1} · ${esc(mm(seg.laenge))} mm</td><td class="kz"></td></tr>`);
+  bisHier(gelaufen);
+  const w=zahl(seg.winkel);
+  if(w!==0&&i<a.segmente.length-1)
+   verlauf.push(`<tr class="fix"><td class="pos">${esc(mm(gelaufen))}</td>`
+    +`<td>${w<0?"Aussenwinkel":"Innenwinkel"} ${Math.abs(w)}°</td><td class="kz">FIXPUNKT</td></tr>`);
+ });
+ offen.forEach(m=>verlauf.push(`<tr class="warn"><td class="pos">${esc(mm(m.pos))}</td>`
+  +`<td>${esc(m.text)}</td><td class="kz">ausserhalb der Rinne</td></tr>`));
+ verlauf.push(`<tr class="ende"><td class="pos">${esc(mm(L))}</td><td>ENDE</td><td class="kz"></td></tr>`);
+
+ const fotos=(a.fotos||[]).map((f,i)=>
+  `<div class="pd-bildseite"><div class="pd-balken">Foto ${i+1} von ${a.fotos.length}</div>`
+  +`<img src="${esc(f)}" alt=""></div>`).join("");
+ const skizze=a.skizze
+  ?`<div class="pd-bildseite"><div class="pd-balken">Skizze</div><img src="${esc(a.skizze)}" alt=""></div>`:"";
+
+ return `
+<div class="pd-kopf">
+ <div class="pd-firma">
+  <div class="pd-marke">SPENGLER-DIGITAL</div>
+  <div class="pd-klein">Prototyp · Massaufnahme<br>Die Rechnung stammt unverändert aus dem Modul „Rinne Halbrund“.</div>
+ </div>
+ <div class="pd-typ">
+  <div class="pd-doktyp">Massaufnahme</div>
+  <div class="pd-datum">${esc(druckDatumZeit())}</div>
+ </div>
+</div>
+<div class="pd-titel">
+ <h1>${esc(a.bezeichnung||"Ohne Bezeichnung")}</h1>
+ <div class="pd-untertitel">Rinne halbrund · ${esc(materialText(a))} · ${esc(groesseText(a))}</div>
+</div>
+<div class="pd-info">
+${druckInfoZeile("Gesamtlänge",L>0?esc(mm(L))+" mm ("+esc(meter(L))+" m)":"–")}
+${druckInfoZeile("Abschnitte",String((a.segmente||[]).length))}
+${druckInfoZeile("Ecken",ecken.length?`${ecken.filter(e=>e.art==="aussen").length} aussen, ${ecken.filter(e=>e.art==="innen").length} innen`:"keine")}
+${druckInfoZeile("Einhängestutzen",String((a.einhaengestutzen||[]).length)+" (Fixpunkt)")}
+${druckInfoZeile("Schiebestutzen",String((a.schiebestutzen||[]).length)+" (kein Fixpunkt, gilt als Dehnungselement)")}
+${druckInfoZeile("Dehnungselemente",`${d.dilas.length} berechnet · ${esc(d.tabelle.label)}: max. ${esc(mm(d.tabelle.mitDehnungselement))} mm, ab Fixpunkt ${esc(mm(d.tabelle.abFixpunkten))} mm`)}
+</div>
+<div class="pd-trenner"></div>
+
+${pruef.length?`<div class="pd-balken">Hinweise</div>
+<div class="pd-hinweise">${pruef.map(m=>
+ `<div class="${m.art==="fehler"?"f":"w"}">${m.art==="fehler"?"Fehler:":"Hinweis:"} ${esc(m.text)}</div>`).join("")}</div>`:""}
+
+<div class="pd-balken">Verlauf ab START</div>
+<table class="pd-tab pd-verlauf">
+<thead><tr><th class="pos">mm ab START</th><th>Element</th><th class="kz">Fixpunkt</th></tr></thead>
+<tbody>${verlauf.join("")}</tbody></table>
+
+<div class="pd-balken">Schema</div>
+<div class="pd-band">${verlaufsBandSvg(a)}</div>
+<div class="pd-legende">Ecke (Dreieck) und Einhängestutzen (E, mit Strich durch die Rinne) sind Fixpunkte ·
+Schiebestutzen (S, eckig) ist keiner, gilt aber als Dehnungselement · Raute = zusätzlich berechnetes Dehnungselement</div>
+<div class="pd-grundriss">${generateRinneGrundriss(d.segmente,d.dilas,d.boundaries||[])}</div>
+
+<div class="pd-balken">Ausmass</div>
+<table class="pd-tab">
+<thead><tr><th class="r">Pos.</th><th>Bezeichnung</th><th class="r">Menge</th><th>Einheit</th><th>Herkunft</th></tr></thead>
+<tbody>${zeilen.map(z=>`<tr><td class="r">${z.pos}</td><td>${esc(z.bezeichnung)}</td>`
+ +`<td class="r">${esc(z.menge)}</td><td>${esc(z.einheit)}</td><td class="q">${esc(z.herkunft)}</td></tr>`).join("")
+ ||'<tr><td colspan="5">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
+
+<div class="pd-balken">Materialübersicht</div>
+<table class="pd-tab">
+<thead><tr><th>Bezeichnung</th><th class="r">Menge</th><th>Einheit</th><th>Material</th></tr></thead>
+<tbody>${mat.map(m=>`<tr><td>${esc(m.bezeichnung)}</td><td class="r">${esc(m.menge)}</td>`
+ +`<td>${esc(m.einheit)}</td><td>${esc(m.material)}</td></tr>`).join("")
+ ||'<tr><td colspan="4">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
+<div class="pd-fussnote">Artikelnummern und Preise stehen hier bewusst nicht –
+sie kommen aus der Materialliste der jeweiligen Firma.</div>
+
+<div class="pd-balken">Zuschnitt</div>
+<table class="pd-tab">
+<thead><tr><th class="r">Nr.</th><th>Von → Bis</th><th class="r">Abstand (mm)</th><th class="r">Zuschnitt (mm)</th></tr></thead>
+<tbody>${st.map(s=>`<tr><td class="r">${s.nr}</td><td>${esc(s.von)} → ${esc(s.bis)}</td>`
+ +`<td class="r">${esc(mm(s.abstand))}</td><td class="r b">${esc(mm(s.zuschnitt))}</td></tr>`).join("")
+ ||'<tr><td colspan="4">Noch nichts zu berechnen.</td></tr>'}</tbody></table>
+<div class="pd-fussnote">Dehnungselemente, Anschlussmasse und Grundriss rechnet unverändert
+das bestehende Modul der laufenden App.</div>
+
+${a.bemerkung?`<div class="pd-balken">Bemerkung</div><div class="pd-bemerkung">${esc(a.bemerkung)}</div>`:""}
+${skizze}${fotos}
+<style>@page{@bottom-left{content:"${druckFussText()}";
+ font-family:Arial,Helvetica,sans-serif;font-size:6.2pt;color:#7b858c}}</style>
+`;
+}
+// Die Grundriss-Zeichnung des bestehenden Moduls hat eine feste, quadratische
+// viewBox – bei einer langgezogenen Rinne ist der grösste Teil davon leer und
+// verschiebt im PDF alles Weitere auf die nächste Seite. Für den Druck wird
+// die viewBox deshalb auf den tatsächlich gezeichneten Inhalt zugeschnitten.
+// Die Zeichenfunktion selbst bleibt dabei unangetastet – zugeschnitten wird
+// erst das fertige Ergebnis.
+function grundrissZuschneiden(box){
+ const svg=box.querySelector(".pd-grundriss svg");
+ if(!svg||!svg.getBBox)return;
+ // getBBox() misst nur an einem tatsächlich gerenderten Element. Das
+ // Druckdokument ist am Bildschirm ausgeblendet, also kurz unsichtbar
+ // ausserhalb des Bildes einblenden, messen und wieder verstecken.
+ box.classList.add("p-druck-messen");
+ try{
+  const b=svg.getBBox();
+  if(b.width>0&&b.height>0){
+   const rand=16;   // Platz für Beschriftungen am Rand der Zeichnung
+   svg.setAttribute("viewBox",
+    `${(b.x-rand).toFixed(1)} ${(b.y-rand).toFixed(1)} `
+    +`${(b.width+2*rand).toFixed(1)} ${(b.height+2*rand).toFixed(1)}`);
+   svg.style.maxWidth="100%";   // die Zeichenfunktion setzt hier 340px
+   svg.style.width="100%";
+   svg.style.margin="0 auto";
+  }
+ }catch(e){/* ohne Messung bleibt die ursprüngliche viewBox stehen */}
+ box.classList.remove("p-druck-messen");
+}
+function druckVorbereiten(){
+ const box=$("p-druck");
+ if(!box)return;
+ // Sicherheitsnetz: die Ecken werden sonst erst beim Zeichnen in die
+ // Struktur des bestehenden Moduls gespiegelt. Das PDF darf nicht davon
+ // abhängen, dass vorher gezeichnet wurde.
+ synchronisiereEcken(aufnahme);
+ box.innerHTML=druckDokumentHtml();
+ grundrissZuschneiden(box);
+}

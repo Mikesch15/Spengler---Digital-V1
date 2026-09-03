@@ -15,7 +15,7 @@ Zweitlösung**. Die gesamte Fachrechnung kommt unverändert aus
     ├── bruecke.js                    stellt bereit, was js/12 beim Laden braucht
     ├── prototyp.css                  Darstellung
     ├── bauen.js                      baut die Testapp aus den Einzeldateien
-    ├── pruefstand-proto-rinne.js     112 Prüfungen in echtem Chromium
+    ├── pruefstand-proto-rinne.js     153 Prüfungen in echtem Chromium
     └── README.md                     dieses Dokument
 
 Branch: `feature/prototype-rinne-halbrund`.
@@ -87,16 +87,22 @@ sie werden nie bedient.
 * **Einhängestutzen** – Position ab START, Durchmesser, Anzahl, Fallrohr
   (bestehend / neu / unbekannt), Bemerkung. **Er ist ein Fixpunkt** und teilt
   die Dilatationsberechnung an seiner Position, siehe Punkt 5.
-* **Schiebestutzen** – dieselben Felder. Er ist **kein** Fixpunkt und hat
-  nachweislich keinen Einfluss auf die Dilatationsberechnung; er wird nur
-  erfasst, angezeigt und im Ausmass ausgegeben.
+* **Schiebestutzen** – dieselben Felder. Er ist **kein** Fixpunkt, wird aber
+  **wie ein Dehnungselement** behandelt: er nimmt die Ausdehnung an seiner
+  Stelle selbst auf. Die Rinne wird dort geteilt, links und rechts gilt der
+  grosse Abstand („mit Dehnungselement“, nicht der strenge „ab Fixpunkt“),
+  und es wird dort kein zusätzliches Dehnungselement mehr gesetzt.
+* **PDF** – ein Blatt mit Kopf, Verlauf ab START, Schema, Ausmass,
+  Materialübersicht, Zuschnitt, Bemerkung, Skizze und Fotos. Über den
+  Druckdialog des Browsers („Ziel: Als PDF speichern“).
 * **Rinnenhalter** – Abstand und Anzahl, mit Vorschlag `Länge / Abstand + 1`,
   jederzeit überschreibbar.
 * **Endstücke, Dehnung, Sonderteile.**
 * **Verlaufsband** – der ganze Verlauf als gerades Band von START bis ENDE,
   mit Ecken (▲), Einhängestutzen (runde Marke **E**, mit Strich durch die
   Rinne und der Beschriftung **FIX**), Schiebestutzen (eckige violette Marke
-  **S**, ohne Strich) und Dehnungselementen (◆) an ihrer echten Position;
+  **S**, ohne Strich, beschriftet **DEHNT**) und zusätzlich berechneten
+  Dehnungselementen (◆) an ihrer echten Position;
   alles, was ausserhalb der Rinne läge, wird rot. Zum Prüfen auf dem Tablet
   in einem Blick; der massstäbliche Grundriss bleibt daneben unverändert.
 * **Plausibilitätsprüfung** – negative Längen, Winkel ausserhalb ±180°,
@@ -131,12 +137,14 @@ sie werden nie bedient.
   „Ablaufstutzen" (id 4, `is_fixpunkt`, Zuschlagsmass 0 mm). Die vorhandene
   Regel greift damit unverändert, der Verlauf des Benutzers bleibt, wie er
   ist, und die Gesamtlänge verschiebt sich nicht.
-* **Der Schiebestutzen kann die Rechnung strukturell nicht beeinflussen.**
-  Er kommt in `segmenteFuerRechnung()` überhaupt nicht vor. Das hängt nicht
-  an Sorgfalt beim Programmieren, sondern daran, dass es die Stelle nicht
-  gibt, an der er einfliessen könnte. (Der Katalog führt ihn zwar als
-  `is_schiebestutzen`, was im bestehenden Modul eine Grenze erzeugen würde –
-  genau deshalb wird er bewusst nicht eingesetzt.)
+* **Der Schiebestutzen wirkt anders als der Einhängestutzen – auch das ohne
+  neue Logik.** Er bekommt den vorhandenen Katalogeintrag „Schiebestutzen“
+  (id 7, `is_schiebestutzen`). `computeRinneBoundaries()` macht daraus eine
+  Grenze vom Typ `schiebe` statt `fix`: geteilt wird die Rinne dort auch,
+  aber mit dem grossen Abstand auf beiden Seiten und ohne zusätzliches
+  Dehnungselement. An derselben Stelle ergibt ein Einhängestutzen bei einer
+  10 m langen Kupferrinne zwei Dehnungselemente, ein Schiebestutzen keines.
+  Liegen beide auf derselben Position, gewinnt der Fixpunkt.
 * **Bauteile, die es bisher gar nicht gab** – Halter, Einhänge- und
   Schiebestutzen, Endstücke, Sonderteile.
 * **Fehler werden gemeldet, bevor sie ins Büro gehen**, statt erst dort
@@ -164,7 +172,8 @@ sie werden nie bedient.
 
   // beide Stutzenarten gleich aufgebaut, Position immer ab START:
   einhaengestutzen:[{pos_mm, durchmesser, anzahl, fallrohr, bemerkung}], // FIXPUNKT
-  schiebestutzen:  [{pos_mm, durchmesser, anzahl, fallrohr, bemerkung}], // kein Fixpunkt
+  schiebestutzen:  [{pos_mm, durchmesser, anzahl, fallrohr, bemerkung}], // kein Fixpunkt,
+                                                    // gilt als Dehnungselement
   halter:{anzahl, abstand_mm, typ},       // anzahl null = Vorschlag gilt
   endstuecke:{links, rechts},
   dehnung:{art:"keine"|"dehnungsstueck", anzahl},
@@ -207,7 +216,22 @@ Beim späteren Einbau in die App passt das ohne Schemaänderung in
   „Ablaufstutzen“ (id 4). Bekommt der Einhängestutzen später einen eigenen
   Katalogeintrag mit eigenem Zuschlagsmass, ist das eine Zeile in
   `prototyp-rinne.js` (`EINHAENGE_FITTING_ID`).
-* **Kein PDF, kein Druck.** Die Zusammenfassung ist für den Bildschirm.
+* **PDF nur über den Druckdialog.** Der Prototyp läuft ohne Server, also
+  gibt es keine „Datei herunterladen“-Schaltfläche – im Druckdialog ist
+  „Als PDF speichern“ zu wählen. Das ist derselbe Weg wie beim Regierapport
+  der laufenden App.
+* **Seitenzahlen und die Fusszeile erscheinen nur in Chromium-basierten
+  Browsern** (Chrome, Edge). Firefox und Safari unterstützen die Randboxen
+  von `@page` nicht; dort fehlen sie ersatzlos, ohne dass etwas kaputt
+  aussieht. Dieselbe Einschränkung hat das PDF der laufenden App.
+* **Das PDF ist neu geschrieben, nicht das der App.** Die PDF-Bausteine der
+  App stecken in `js/16` und liessen sich ohne das ganze Massaufnahme-
+  Formular nicht laden. Das Layout folgt aber deren Konventionen
+  (Version 2.53/2.54).
+* **Die Grundriss-Zeichnung überlagert bei manchen Verläufen ihre eigenen
+  Massbeschriftungen** mit den Positionsnummern. Das ist unverändertes
+  Verhalten der Zeichenfunktion des bestehenden Moduls und tritt am
+  Bildschirm genauso auf – die Funktion wird bewusst nicht angefasst.
 * **Keine Mehrfachauswahl von Rinnen**, kein Kopieren einzelner Abschnitte.
 
 ## 8. Empfehlungen nach dem ersten Test
@@ -234,7 +258,7 @@ Beim späteren Einbau in die App passt das ohne Schemaänderung in
 
 ## Getestet
 
-Prüfstand `prototyp/pruefstand-proto-rinne.js` – **112 Prüfungen, alle
+Prüfstand `prototyp/pruefstand-proto-rinne.js` – **153 Prüfungen, alle
 bestanden**, in echtem Chromium mit echter Bedienung (Tippen Zeichen für
 Zeichen, Auswählen, Klicken). Geprüft wird die eigenständige Testapp, also
 genau die Datei, die geöffnet wird; zusätzlich, dass die Mehrdatei-Fassung
@@ -244,8 +268,8 @@ dasselbe liefert.
 |---|---|
 | 1 · gerade Rinne 10 000 mm ohne Stutzen | ein Dehnungselement bei 5 000 mm, keine Fixpunkte, Zuschnitt 2 × 5 000 mm |
 | 2 · Einhängestutzen bei 5 000 mm | Rinne wird für die Rechnung dort geteilt, beidseitig Anschlusstyp id 4, `computeRinneBoundaries()` meldet einen Fixpunkt, **zwei** Dehnungselemente bei 2 500 und 7 500 mm, Gesamtlänge unverändert |
-| 3 · Schiebestutzen bei 5 000 mm | keine Teilung, Anschlusstyp id 7 kommt in der Rechnung nicht vor, keine Grenze, Dehnungselemente **identisch** zur Rinne ohne Stutzen – trotzdem im Ausmass |
-| 4 · Einhängestutzen 3 000 + Schiebestutzen 7 000 | nur bei 3 000 mm geteilt, genau ein Fixpunkt, ein Dehnungselement bei 6 000 mm; ohne den Schiebestutzen dasselbe Ergebnis |
+| 3 · Schiebestutzen bei 5 000 mm | Grenze vom Typ `schiebe` (ausdrücklich **nicht** `fix`), kein einziger Fixpunkt, **kein zusätzliches** Dehnungselement – der Schiebestutzen ersetzt es; die Stückliste bricht dort um; an derselben Stelle ergibt ein Einhängestutzen 2 Dehnungselemente, ein Schiebestutzen 0 |
+| 4 · Einhängestutzen 3 000 + Schiebestutzen 7 000 | an beiden Stellen geteilt (3 000 / 4 000 / 3 000), genau **ein** Fixpunkt (bei 3 000 mm), der Schiebestutzen ist Typ `schiebe`, ein Dehnungselement bei 5 000 mm |
 | 5 · Rinnengrössen | genau fünf: 200 / 250 / 330 / 400 mm und „ohne RG“; kein 280, 333, 500, nichts Freies; bei „ohne RG“ steht die Grösse in keiner Bezeichnung |
 | 6 · Verbinder | in keinem der sechs Schritte, in keinem Element, nicht in den Daten, nicht im Ausmass, nicht in der Materialübersicht, nicht in der Zusammenfassung |
 
@@ -260,10 +284,15 @@ Längendifferenz-Warnung, Fokusverhalten beim Tippen, Bildschirmbreiten
 Scrollen, alle Knöpfe ≥ 34 px hoch, keine JS-Fehler.
 
 **Gegenproben** (jede baut einen Fehler ein und muss den Prüfstand
-umwerfen): Einhängestutzen nicht als Fixpunkt → 12 Fehlschläge ·
-Schiebestutzen fälschlich als Fixpunkt → 10 · RG 333 und freie Grösse
-wieder angeboten → 4 · Verbinder wieder im Ausmass → 4 · Position
-ausserhalb nicht mehr geprüft → 2.
+umwerfen): Einhängestutzen nicht als Fixpunkt → 12 · Schiebestutzen
+fälschlich als Fixpunkt → 10 · Schiebestutzen wieder ohne jede Wirkung →
+10 · Einhängestutzen fälschlich als Schiebestutzen → 12 · Fixpunkt verliert
+gegen den Schiebestutzen auf derselben Stelle → 2 · RG 333 und freie Grösse
+wieder angeboten → 4 · Verbinder wieder im Ausmass → 4 · Position ausserhalb
+nicht mehr geprüft → 2 · Druckdokument in einem `display:none`-Elternteil →
+4 · Bildschirm-UI im Druck nicht ausgeblendet → 1 · Grundriss nicht
+zugeschnitten → 2 · Tabellenkopf ohne Wiederholung und Bild ohne
+Seitenumbruch → 2 · Ecken vor dem Druck nicht gespiegelt → 1.
 
 **Nicht getestet:** Der Prototyp wurde nicht auf einem echten Handy oder
 Tablet bedient und nicht mit einer echten Baustellenaufnahme

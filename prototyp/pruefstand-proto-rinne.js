@@ -78,46 +78,74 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p((await page.locator("#p-inhalt").innerText()).includes("FIXPUNKT"),"in der Zusammenfassung als FIXPUNKT bezeichnet");
 
  // ==================================================================
- console.log("\nTEST 3 · Schiebestutzen bei 5'000 mm ist KEIN Fixpunkt");
+ // Nachtrag des Betreibers vom 03.09.2026: "ein Schiebestutzen wird wie eine
+ // Dila behandelt". Er ist damit weiterhin KEIN Fixpunkt, nimmt die
+ // Ausdehnung an seiner Stelle aber selbst auf. Das weicht bewusst von der
+ // urspruenglichen Formulierung in TEST 3/4 des Auftrags ab ("Berechnung
+ // bleibt identisch") - die spaetere Anweisung gilt.
+ console.log("\nTEST 3 · Schiebestutzen bei 5'000 mm gilt als Dehnungselement");
  await setze({einhaengestutzen:[],
               schiebestutzen:[{pos_mm:5000,durchmesser:"Ø 100",anzahl:1,fallrohr:"neu",bemerkung:""}]});
  const segs3=await page.evaluate(()=>segmenteFuerRechnung(aufnahme));
- p(segs3.length===1&&segs3[0].laenge===10000,"Rinne wird für die Rechnung NICHT geteilt",segs3.map(s=>s.laenge));
- p(!segs3.some(s=>Number(s.linksTyp)===7||Number(s.rechtsTyp)===7),
-   "der Schiebestutzen-Anschlusstyp (id 7) taucht in der Rechnung nirgends auf",segs3);
+ p(segs3.length===2&&Number(segs3[0].rechtsTyp)===7&&Number(segs3[1].linksTyp)===7,
+   "beidseitig der Anschlusstyp Schiebestutzen (id 7), nicht der Fixpunkt (id 4)",
+   segs3.map(x=>[x.laenge,x.linksTyp,x.rechtsTyp]));
  const b3=await page.evaluate(()=>computeRinneBoundaries(segmenteFuerRechnung(aufnahme)).boundaries);
- p(!b3.some(b=>b.typ),"keine Grenze, weder fix noch schiebe",b3);
+ const g3=b3.find(x=>Math.round(x.pos)===5000);
+ p(g3&&g3.typ==="schiebe","die Grenze ist vom Typ \"schiebe\" – ausdrücklich NICHT \"fix\"",b3);
+ p(!b3.some(x=>x.typ==="fix"),"kein einziger Fixpunkt im Verlauf",b3);
  const d3=await dilas();
- p(JSON.stringify(d3)===JSON.stringify(d1),
-   "Dilatationsberechnung identisch zur Rinne ohne Schiebestutzen",[d1,d3]);
+ // Von Hand nachgerechnet (Kupfer, 6'000 mm mit Dehnungselement):
+ // beide Teilstrecken sind 5'000 mm lang und laufen gegen einen
+ // Schiebestutzen, nicht gegen einen Fixpunkt -> 5'000 <= 6'000, also keine
+ // zusaetzliche Dila. Der Schiebestutzen ersetzt die eine Dila von TEST 1.
+ p(d3.length===0,"keine zusätzliche Dila – der Schiebestutzen ersetzt sie",d3);
+ p(d1.length===1,"ohne ihn wäre an dieser Stelle eine Dila nötig gewesen",d1);
+ // Der Unterschied zum Fixpunkt muss messbar bleiben
+ const dFix=await page.evaluate(()=>{
+  const merk=aufnahme.schiebestutzen;
+  aufnahme.schiebestutzen=[];
+  aufnahme.einhaengestutzen=[{pos_mm:5000,durchmesser:"Ø 100",anzahl:1,fallrohr:"neu",bemerkung:""}];
+  const r=dilasBerechnet(aufnahme).dilas.map(x=>Math.round(x.posAbStart));
+  aufnahme.einhaengestutzen=[]; aufnahme.schiebestutzen=merk; return r;});
+ p(dFix.length===2&&d3.length===0,
+   "an derselben Stelle ergibt ein Einhängestutzen 2 Dilas, ein Schiebestutzen 0",[dFix,d3]);
  const k3=await page.evaluate(()=>komponenten(aufnahme).map(k=>k.bezeichnung+" ="+k.menge));
- p(k3.some(k=>k.startsWith("Schiebestutzen 330 mm Ø 100")&&k.endsWith("=1")),"trotzdem im Ausmass enthalten",k3);
+ p(k3.some(k=>k.startsWith("Schiebestutzen 330 mm Ø 100")&&k.endsWith("=1")),"im Ausmass enthalten",k3);
+ const st3=await page.evaluate(()=>{const d=dilasBerechnet(aufnahme);
+  return berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass).map(x=>[x.von,x.bis,x.zuschnitt]);});
+ p(st3.length===2&&st3[0][1]==="Schiebestutzen"&&st3[1][0]==="Schiebestutzen",
+   "die Stückliste bricht am Schiebestutzen um",st3);
  await gehe(5);
- p((await page.locator("#p-inhalt").innerText()).includes("kein Fixpunkt"),
-   "in der Zusammenfassung ausdrücklich als kein Fixpunkt bezeichnet");
+ const t5=await page.locator("#p-inhalt").innerText();
+ p(/Schiebestutzen[\s\S]{0,80}Dehnungselement/.test(t5),
+   "in der Zusammenfassung als Dehnungselement bezeichnet",
+   (t5.match(/Schiebestutzen.{0,90}/)||[])[0]);
+ p(/kein Fixpunkt/.test(t5),"und ausdrücklich als kein Fixpunkt",
+   (t5.match(/Schiebestutzen.{0,90}/)||[])[0]);
 
  // ==================================================================
  console.log("\nTEST 4 · Einhängestutzen 3'000 + Schiebestutzen 7'000");
  await setze({einhaengestutzen:[{pos_mm:3000,durchmesser:"Ø 100",anzahl:1,fallrohr:"neu",bemerkung:""}],
               schiebestutzen:[{pos_mm:7000,durchmesser:"Ø 120",anzahl:1,fallrohr:"bestehend",bemerkung:""}]});
  const segs4=await page.evaluate(()=>segmenteFuerRechnung(aufnahme));
- p(segs4.length===2&&segs4[0].laenge===3000&&segs4[1].laenge===7000,
-   "nur an 3'000 mm geteilt, nicht an 7'000 mm",segs4.map(s=>s.laenge));
+ p(segs4.length===3&&segs4.map(x=>x.laenge).join("/")==="3000/4000/3000",
+   "an beiden Stellen geteilt (3'000 / 4'000 / 3'000)",segs4.map(x=>x.laenge));
  const b4=await page.evaluate(()=>computeRinneBoundaries(segmenteFuerRechnung(aufnahme)).boundaries);
- p(b4.filter(b=>b.typ).length===1&&b4.some(b=>Math.round(b.pos)===3000&&b.typ==="fix"),
-   "genau ein Fixpunkt, und zwar bei 3'000 mm",b4);
+ p(b4.filter(x=>x.typ==="fix").length===1&&b4.some(x=>Math.round(x.pos)===3000&&x.typ==="fix"),
+   "genau EIN Fixpunkt, und zwar der Einhängestutzen bei 3'000 mm",b4);
+ p(b4.some(x=>Math.round(x.pos)===7000&&x.typ==="schiebe"),
+   "der Schiebestutzen ist eine Grenze vom Typ \"schiebe\", kein Fixpunkt",b4);
  const d4=await dilas();
- p(d4.length===1&&d4[0]===6000,"ein Dehnungselement bei 6'000 mm",d4);
- // Gegenprobe: ohne den Schiebestutzen exakt dasselbe
- await page.evaluate(()=>{aufnahme.schiebestutzen=[]});
- const d4b=await dilas();
- p(JSON.stringify(d4)===JSON.stringify(d4b),"der Schiebestutzen ändert am Ergebnis nichts",[d4,d4b]);
- await page.evaluate(()=>{aufnahme.schiebestutzen=[{pos_mm:7000,durchmesser:"Ø 120",anzahl:1,fallrohr:"bestehend",bemerkung:""}];zeichne()});
+ // Von Hand: 0..3000 gegen Fixpunkt = 3000 <= 3000 -> keine Dila.
+ // 3000..7000 = 4000, links Fixpunkt (max 3000), rechts Schiebestutzen
+ // (max 6000) -> zwei Stuecke a 2000 -> eine Dila bei 5000.
+ // 7000..10000 = 3000 <= 6000 -> keine Dila.
+ p(d4.length===1&&d4[0]===5000,"ein Dehnungselement bei 5'000 mm (von Hand nachgerechnet)",d4);
  const k4=await page.evaluate(()=>komponenten(aufnahme).map(k=>k.bezeichnung));
  p(k4.some(k=>k.startsWith("Einhängestutzen"))&&k4.some(k=>k.startsWith("Schiebestutzen")),
    "beide Stutzen im Ausmass",k4);
 
- // ==================================================================
  console.log("\nTEST 5 · Rinnengrössen");
  await gehe(1);
  const opt=await page.$$eval("#p-groesse option",o=>o.map(x=>({v:x.value,t:x.textContent.trim()})));
@@ -198,6 +226,18 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(bG.some(b=>Math.round(b.pos)===4000&&b.typ==="fix"),"Stutzen genau auf einer Segmentgrenze wirkt auch",bG);
  const sG=await page.evaluate(()=>segmenteFuerRechnung(aufnahme).length);
  p(sG===2,"und erzeugt dort keinen zusätzlichen Abschnitt",sG);
+ // Beide Arten auf derselben Stelle: die strengere Regel muss gewinnen.
+ await setze({...gerade(10000),
+  einhaengestutzen:[{pos_mm:5000,durchmesser:"Ø 100",anzahl:1,fallrohr:"neu",bemerkung:""}],
+  schiebestutzen:[{pos_mm:5000,durchmesser:"Ø 100",anzahl:1,fallrohr:"neu",bemerkung:""}]});
+ const bB=await page.evaluate(()=>computeRinneBoundaries(segmenteFuerRechnung(aufnahme)).boundaries);
+ const gB=bB.find(x=>Math.round(x.pos)===5000);
+ p(gB&&gB.typ==="fix","Einhänge- und Schiebestutzen auf derselben Stelle: der Fixpunkt gewinnt",bB);
+ const dB=await dilas();
+ p(dB.length===2&&dB[0]===2500&&dB[1]===7500,"und es wird nach der strengeren Regel gerechnet",dB);
+ const sB=await page.evaluate(()=>segmenteFuerRechnung(aufnahme).length);
+ p(sB===2,"die Stelle wird nur einmal geteilt",sB);
+
  // Stutzen am Anfang
  await setze({einhaengestutzen:[{pos_mm:0,durchmesser:"Ø 100",anzahl:1,fallrohr:"neu",bemerkung:""}]});
  const bS=await page.evaluate(()=>computeRinneBoundaries(segmenteFuerRechnung(aufnahme)).boundaries);
@@ -296,17 +336,26 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(mE.schiebestutzen.length===1&&mE.schiebestutzen[0].pos_mm===5700,
    "Schiebestutzen über die Oberfläche erfasst",mE.schiebestutzen);
  const dU=await dilas();
- p(dU.length===1&&dU[0]===5500,"der über die Oberfläche erfasste Einhängestutzen wirkt",dU);
- const dOhne=await page.evaluate(()=>{
-  const merk=aufnahme.einhaengestutzen; aufnahme.einhaengestutzen=[];
-  const r=dilasBerechnet(aufnahme).dilas.map(x=>Math.round(x.posAbStart));
-  aufnahme.einhaengestutzen=merk; return r;});
- p(dOhne.length===1&&dOhne[0]===5000,"ohne ihn läge die Dila bei 5'000 mm",dOhne);
+ // Von Hand (Kupfer 6'000 / 3'000 ab Fixpunkt), Einhängestutzen bei 2'500,
+ // Schiebestutzen bei 5'700:
+ //   0..2'500  gegen Fixpunkt: 2'500 <= 3'000        -> keine Dila
+ //   2'500..5'700 = 3'200, links Fixpunkt (max 3'000),
+ //                 rechts Schiebestutzen (max 6'000) -> Dila bei 4'100
+ //   5'700..10'000 = 4'300 <= 6'000                  -> keine Dila
+ p(dU.length===1&&dU[0]===4100,"beide Stutzen wirken gemeinsam (Dila bei 4'100 mm)",dU);
  const dNurSchiebe=await page.evaluate(()=>{
   const merk=aufnahme.einhaengestutzen; aufnahme.einhaengestutzen=[];
   const r=dilasBerechnet(aufnahme).dilas.map(x=>Math.round(x.posAbStart));
   aufnahme.einhaengestutzen=merk; return r;});
- p(JSON.stringify(dNurSchiebe)==="[5000]","der Schiebestutzen allein ändert nichts",dNurSchiebe);
+ // Ohne den Fixpunkt nimmt der Schiebestutzen die Ausdehnung allein auf:
+ // 5'700 und 4'300 liegen beide unter 6'000.
+ p(dNurSchiebe.length===0,"der Schiebestutzen allein ersetzt jede Dila",dNurSchiebe);
+ const dNurEH=await page.evaluate(()=>{
+  const merk=aufnahme.schiebestutzen; aufnahme.schiebestutzen=[];
+  const r=dilasBerechnet(aufnahme).dilas.map(x=>Math.round(x.posAbStart));
+  aufnahme.schiebestutzen=merk; return r;});
+ p(dNurEH.length===1&&dNurEH[0]===5500,
+   "ohne den Schiebestutzen läge die Dila bei 5'500 mm",dNurEH);
  await page.click('[data-sh-del="0"]'); await page.waitForTimeout(80);
  p((await modell()).schiebestutzen.length===0,"Schiebestutzen löschbar");
  await page.click('[data-eh-del="0"]'); await page.waitForTimeout(80);
@@ -355,6 +404,145 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   return dilasBerechnet(aufnahme).dilas.map(x=>Math.round(x.posAbStart));
  });
  p(JSON.stringify(d2b)==="[2500,7500]","dieselbe Rechnung wie in der Testapp",d2b);
+
+ // ==================================================================
+ console.log("\nH · PDF");
+ await page.setViewportSize({width:412,height:900});
+ await setze({bezeichnung:"PDF-Probe Nordseite",material:3,groesse:"330",
+   segmente:[{laenge:2500,linksTyp:"",rechtsTyp:"",winkel:0},
+             {laenge:3200,linksTyp:"",rechtsTyp:"",winkel:-90},
+             {laenge:3500,linksTyp:"",rechtsTyp:"",winkel:0}],
+   einhaengestutzen:[{pos_mm:2500,durchmesser:"Ø 100",anzahl:1,fallrohr:"neu",bemerkung:""}],
+   schiebestutzen:[{pos_mm:5700,durchmesser:"Ø 120",anzahl:2,fallrohr:"bestehend",bemerkung:""}],
+   bemerkung:"Gerüst steht bis KW 38.",
+   fotos:["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAFklEQVR4nGP8z8DwnwEPYMInOfIVAAeeAQtOZfCbAAAAAElFTkSuQmCC"]});
+ await gehe(6);
+ p(await page.locator("#p-pdf").count()===1,"PDF-Knopf in der Kopfleiste");
+ p(await page.locator("#p-pdf2").count()===1,"PDF-Knopf am Ende von Schritt 6");
+
+ // Am Bildschirm darf vom Druckdokument nichts zu sehen sein
+ await page.evaluate(()=>druckVorbereiten());
+ p(await page.evaluate(()=>getComputedStyle(document.getElementById("p-druck")).display)==="none",
+   "Druckdokument ist am Bildschirm unsichtbar");
+
+ // Druckansicht
+ await page.emulateMedia({media:"print"});
+ // Gemessen wird die tatsaechliche Groesse, nicht nur der berechnete Stil:
+ // ein Kind eines display:none-Elements meldet weiterhin display:block,
+ // wird aber nicht gerendert.
+ const sicht=await page.evaluate(()=>({
+  druckHoehe:Math.round(document.getElementById("p-druck").getBoundingClientRect().height),
+  appHoehe:Math.round(document.getElementById("p-app").getBoundingClientRect().height),
+  barHoehe:Math.round(document.querySelector(".p-topbar").getBoundingClientRect().height)}));
+ p(sicht.druckHoehe>500,"das Druckdokument wird wirklich gerendert",sicht);
+ p(sicht.appHoehe===0&&sicht.barHoehe===0,"kein Bildschirm-UI im Druck",sicht);
+
+ const dtxt=await page.locator("#p-druck").innerText();
+ p(/MASSAUFNAHME|Massaufnahme/.test(dtxt),"Dokumenttyp im Kopf");
+ p(dtxt.includes("PDF-Probe Nordseite"),"Bezeichnung als Titel");
+ p(dtxt.includes("Kupfer")&&dtxt.includes("330 mm"),"Material und Grösse");
+ p(dtxt.includes("9’200 mm"),"Gesamtlänge",dtxt.slice(0,400));
+ p(/START/.test(dtxt)&&/ENDE/.test(dtxt),"Verlauf von START bis ENDE");
+ p(/Einhängestutzen[\s\S]{0,60}FIXPUNKT/.test(dtxt),"Einhängestutzen als FIXPUNKT ausgewiesen");
+ p(/Schiebestutzen[\s\S]{0,60}kein Fixpunkt/.test(dtxt),"Schiebestutzen als kein Fixpunkt ausgewiesen");
+ p(dtxt.includes("Aussenwinkel")&&/Aussenwinkel[\s\S]{0,40}FIXPUNKT/.test(dtxt),"Ecke als Fixpunkt ausgewiesen");
+ // Die Abschnittsbalken stehen im Druck in Grossbuchstaben (text-transform),
+ // innerText liefert sie deshalb als AUSMASS usw. - ohne /i schlaegt das fehl.
+ p(/Ausmass/i.test(dtxt)&&/Material(ü|Ü)bersicht/i.test(dtxt)&&/Zuschnitt/i.test(dtxt),
+   "Ausmass, Materialübersicht und Zuschnitt enthalten",
+   (dtxt.match(/\n[A-ZÄÖÜ ]{4,}\n/g)||[]).join("|"));
+ p(dtxt.includes("Schiebestutzen 330 mm Ø 120")&&/2\b/.test(dtxt),"Anzahl 2 im Ausmass");
+ p(dtxt.includes("Gerüst steht bis KW 38."),"Bemerkung enthalten");
+ p(/Aussenecke 90°/.test(dtxt),"Zuschnitt benennt die Ecke, nicht nur \"Segmentgrenze\"",
+   (dtxt.match(/.{0,50}Segmentgrenze.{0,20}/)||[])[0]);
+ // Das PDF darf nicht davon abhaengen, dass vorher gezeichnet wurde.
+ const ohneZeichnen=await page.evaluate(()=>{
+  aufnahme.segmente=[{laenge:4000,linksTyp:"",rechtsTyp:"",winkel:-90},
+                     {laenge:4000,linksTyp:"",rechtsTyp:"",winkel:0}];
+  druckVorbereiten();                       // absichtlich ohne zeichne()
+  return document.getElementById("p-druck").innerText;});
+ // "Aussenwinkel 90°" steht im Verlauf auch ohne gespiegelte Ecke - es kommt
+ // aus dem Winkel. Beweiskraeftig ist nur der Name aus dem Anschlusstyp,
+ // den die Stueckliste des bestehenden Moduls vergibt.
+ p(/Aussenecke 90°/.test(ohneZeichnen),
+   "auch ohne vorheriges Zeichnen ist die Ecke im PDF ein Fixpunkt",
+   (ohneZeichnen.match(/.{0,40}Segmentgrenze.{0,10}/)||[])[0]);
+ await setze({bezeichnung:"PDF-Probe Nordseite",
+   segmente:[{laenge:2500,linksTyp:"",rechtsTyp:"",winkel:0},
+             {laenge:3200,linksTyp:"",rechtsTyp:"",winkel:-90},
+             {laenge:3500,linksTyp:"",rechtsTyp:"",winkel:0}]});
+ await page.evaluate(()=>druckVorbereiten());
+ p(!/Verbinder/i.test(dtxt),"kein Verbinder im PDF");
+ p(!/NaN|undefined|Infinity/.test(dtxt),"kein NaN, undefined oder Infinity",
+   (dtxt.match(/.{0,40}(NaN|undefined|Infinity).{0,40}/)||[])[0]);
+ p(dtxt.includes("Artikelnummern und Preise"),"Hinweis auf fehlende Preise");
+ p(!/Fr\.|CHF/.test(dtxt),"keine Preise im PDF");
+
+ // Umbruchregeln als tatsaechlich berechneter Stil
+ const um=await page.evaluate(()=>{
+  const th=document.querySelector("#p-druck .pd-tab thead");
+  const tr=document.querySelector("#p-druck .pd-tab tbody tr");
+  const bal=document.querySelector("#p-druck .pd-balken");
+  const bild=document.querySelector("#p-druck .pd-bildseite");
+  return {kopf:th&&getComputedStyle(th).display,
+          zeile:tr&&getComputedStyle(tr).breakInside,
+          balken:bal&&getComputedStyle(bal).breakAfter,
+          bild:bild&&getComputedStyle(bild).breakBefore};});
+ p(um.kopf==="table-header-group","Tabellenkopf wiederholt sich auf Folgeseiten",um);
+ p(um.zeile==="avoid","keine geteilte Tabellenzeile",um);
+ p(um.balken==="avoid","kein Abschnittsbalken allein am Seitenende",um);
+ p(um.bild==="page","jedes Bild auf einer eigenen Seite",um);
+
+ // Der Grundriss wird auf seinen Inhalt zugeschnitten – sonst schiebt die
+ // quadratische viewBox der Zeichenfunktion alles Weitere auf die naechste
+ // Seite. Verglichen wird gegen die UNveraenderte Ausgabe der
+ // Zeichenfunktion, nicht gegen eine geratene Zahl.
+ const vb=await page.evaluate(()=>{
+  const lies=t=>{const m=/viewBox="([^"]+)"/.exec(t||"");return m?m[1].trim().split(/\s+/).map(Number):null};
+  const d=dilasBerechnet(aufnahme);
+  const roh=lies(generateRinneGrundriss(d.segmente,d.dilas,d.boundaries||[]));
+  const svg=document.querySelector("#p-druck .pd-grundriss svg");
+  const zu=svg?svg.getAttribute("viewBox").trim().split(/\s+/).map(Number):null;
+  return {roh,zu};});
+ const flRoh=vb.roh?vb.roh[2]*vb.roh[3]:0, flZu=vb.zu?vb.zu[2]*vb.zu[3]:0;
+ p(flZu>0&&flZu<flRoh,"Grundriss im PDF auf den Inhalt zugeschnitten",
+   {roh:vb.roh,zugeschnitten:vb.zu,anteil:(flZu/flRoh).toFixed(2)});
+ p(vb.roh&&Math.abs(vb.roh[2]-vb.roh[3])<1,"die Zeichenfunktion selbst liefert weiterhin quadratisch",vb.roh);
+
+ // Bei einer geraden Rinne ist der Gewinn am groessten
+ const vbGerade=await page.evaluate(()=>{
+  const merk=JSON.parse(JSON.stringify(aufnahme.segmente));
+  aufnahme.segmente=[{laenge:10000,linksTyp:"",rechtsTyp:"",winkel:0}];
+  druckVorbereiten();
+  const svg=document.querySelector("#p-druck .pd-grundriss svg");
+  const zu=svg?svg.getAttribute("viewBox").trim().split(/\s+/).map(Number):null;
+  aufnahme.segmente=merk; druckVorbereiten();
+  return zu;});
+ p(vbGerade&&vbGerade[2]/vbGerade[3]>3,
+   "gerade Rinne: die Zeichnung ist danach breit statt quadratisch",vbGerade);
+
+ // Nichts laeuft ueber die Druckbreite (A4 minus 14 mm Rand = 182 mm)
+ const ueberDruck=await page.evaluate(()=>{
+  const box=document.getElementById("p-druck").getBoundingClientRect();
+  return Array.from(document.querySelectorAll("#p-druck *")).filter(e=>{
+   const r=e.getBoundingClientRect();
+   return r.width>0&&r.right>box.right+1;}).map(e=>e.tagName+"."+String(e.className||"").split(" ")[0]);});
+ p(ueberDruck.length===0,"nichts läuft über die Druckbreite hinaus",ueberDruck);
+ await page.emulateMedia({media:null});
+
+ // Wirklich ein PDF erzeugen und wieder einlesen
+ const pdf=await page.pdf({format:"A4",printBackground:true,
+   margin:{top:"14mm",bottom:"17mm",left:"14mm",right:"14mm"}});
+ p(pdf.length>3000,"PDF wird tatsächlich erzeugt ("+(pdf.length/1024).toFixed(0)+" KB)",pdf.length);
+ p(pdf.slice(0,5).toString()==="%PDF-","gültige PDF-Datei",pdf.slice(0,8).toString());
+ const seiten=(pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g)||[]).length;
+ p(seiten>=2,"mindestens zwei Seiten (Dokument + Foto)",seiten);
+
+ // Der Druck baut das Dokument immer aus dem aktuellen Stand
+ await page.evaluate(()=>{aufnahme.bezeichnung="Nach der Änderung";});
+ await page.evaluate(()=>window.dispatchEvent(new Event("beforeprint")));
+ p((await page.locator("#p-druck").innerText()).includes("Nach der Änderung"),
+   "beforeprint baut das Dokument neu (auch bei Strg+P)");
 
  await browser.close();
  console.log(`\n=== ${ok} bestanden, ${fail} fehlgeschlagen ===`);

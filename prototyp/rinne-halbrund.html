@@ -29,6 +29,7 @@
   <button type="button" id="p-liste" class="p-grau">🗂 <span class="p-lang">Gespeicherte</span><span class="p-kurz">Liste</span></button>
   <button type="button" id="p-neu" class="p-grau">＋ Neu</button>
   <button type="button" id="p-kopieren" class="p-grau">📋 <span class="p-lang">Kopieren</span><span class="p-kurz">Kopie</span></button>
+  <button type="button" id="p-pdf" class="p-grau">🖨 <span class="p-lang">PDF</span><span class="p-kurz">PDF</span></button>
   <button type="button" id="p-speichern" class="p-blau">💾 Speichern</button>
  </div>
 </header>
@@ -64,6 +65,12 @@
  </div>
 
 </div>
+
+<!-- Druckdokument. Bewusst AUSSERHALB von #p-app: im Druck wird #p-app
+     ausgeblendet, und ein Kind eines display:none-Elements ist ebenfalls
+     weg - display:block am Kind hilft dann nichts.
+     Wird unmittelbar vor jedem Druck neu aus dem aktuellen Stand gebaut. -->
+<div id="p-druck" class="p-druck" aria-hidden="true"></div>
 
 <!-- Nur Aufhänger für js/12-rinne-halbrund.js. Nicht bedienbar, nicht sichtbar. -->
 <div id="p-stummel" hidden aria-hidden="true">
