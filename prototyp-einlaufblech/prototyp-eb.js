@@ -54,6 +54,7 @@ function restbreite(a){
 }
 function massAEng(a){return Math.max(0,zahl(a.massA)-2)}
 function gesamtlaengeStuecke(a){return (a.stuecke||[]).reduce((s,p)=>s+zahl(p.laenge),0)}
+function materialText(a){const m=findMeasurementMaterial(a.material);return m?m.name:"–"}
 // Haltebleche ("GAVA Blech") - dieselbe Rechnung wie der Halterabstand bei
 // Rinne Halbrund in der laufenden App (js/28-rinne-aufnahme.js):
 //     Anzahl = floor(Länge / Abstand) + 1
@@ -81,29 +82,113 @@ function gavaText(a){
 function flaecheM2(a){
  return gesamtlaengeStuecke(a)*zahl(a.abwicklung)/1e6;
 }
-// Zuschnitt aus Rollenblech: aus einer Rolle der Breite B lassen sich
-// floor(B / Abwicklung) Streifen längs schneiden. Was übrig bleibt, ist
-// Verschnitt in der Breite. Je laufendem Meter Rolle entstehen so n Meter
-// Blech - die nötige Rollenlänge ist Gesamtlänge / n.
-function rollenPlan(a){
- const A=zahl(a.abwicklung), L=gesamtlaengeStuecke(a);
- const breiten=aktiveRollenbreiten();
- if(A<=0||L<=0||!breiten.length)return {moeglich:[],zuSchmal:breiten.slice(),bestes:null};
- const moeglich=[], zuSchmal=[];
- breiten.forEach(B=>{
-  const n=Math.floor(B/A);
-  if(n<1){zuSchmal.push(B);return}
-  const rollenlaenge=L/n;                       // mm
-  const flaecheRolle=B*rollenlaenge/1e6;        // m²
-  const nutz=flaecheM2(a);
-  moeglich.push({breite:B,streifen:n,verschnittBreite:B-n*A,
-   rollenlaenge,flaecheRolle,verschnitt:flaecheRolle-nutz,
-   anteil:flaecheRolle>0?(flaecheRolle-nutz)/flaecheRolle*100:0});
+// Zuschnitt aus Rollenblech.
+//
+// So wird tatsächlich gearbeitet: von der Rolle wird eine TAFEL abgeschnitten
+// und quer in Streifen von der Breite der Abwicklung geteilt. Die Tafel ist
+// höchstens so lang wie das längste Einlaufblechstück - länger liesse sie sich
+// nicht mehr vernünftig handhaben. Ein Streifen kann mehrere Stücke
+// HINTEREINANDER aufnehmen, genau wie eine Normlänge bei der Rinne.
+//
+//   Streifen je Tafel = ganzzahlig(Rollenbreite ÷ Abwicklung)
+//   Tafellänge        = längstes Einlaufblechstück
+//   Streifen          = wie viele Streifen nötig sind, wenn man die Stücke
+//                       hintereinander legt (möglichst wenige)
+//   Tafeln            = aufgerundet(Streifen ÷ Streifen je Tafel)
+//
+// Die Streifenverteilung ist dasselbe Problem wie die Normlängen bei der
+// Rinne: zuerst eine gierige Lösung, danach der Versuch, mit weniger
+// Streifen auszukommen. Reicht das Suchbudget nicht, wird die gierige
+// Lösung zurückgegeben und ausdrücklich NICHT als beste ausgewiesen.
+function packeInStreifen(laengen,L,budget){
+ const stuecke=laengen.filter(x=>x>0).slice().sort((a,b)=>b-a);
+ if(!stuecke.length)return {streifen:[],optimal:true};
+ if(stuecke[0]>L)return {streifen:null,optimal:true,zuLang:stuecke.filter(x=>x>L)};
+ // gierig: jedes Stück in den ersten Streifen, in den es noch passt
+ const gierig=[];
+ stuecke.forEach(x=>{
+  const s=gierig.find(g=>g.rest>=x-1e-9);
+  if(s){s.stuecke.push(x);s.rest-=x}
+  else gierig.push({stuecke:[x],rest:L-x});
  });
- moeglich.sort((x,y)=>x.verschnitt-y.verschnitt||x.breite-y.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null};
+ const summe=stuecke.reduce((a,b)=>a+b,0);
+ const untergrenze=Math.ceil(summe/L-1e-9);
+ let schritte=0, grenze=budget||200000;
+ // Passen alle Stücke in k Streifen? Rückwärts füllen, gleiche Restlängen
+ // nur einmal probieren.
+ function passt(i,reste){
+  if(i>=stuecke.length)return true;
+  if(++schritte>grenze)return null;
+  const gesehen=[];
+  for(let j=0;j<reste.length;j++){
+   if(reste[j]<stuecke[i]-1e-9)continue;
+   if(gesehen.indexOf(reste[j])>=0)continue;
+   gesehen.push(reste[j]);
+   reste[j]-=stuecke[i];
+   const r=passt(i+1,reste);
+   reste[j]+=stuecke[i];
+   if(r===null)return null;
+   if(r)return true;
+  }
+  return false;
+ }
+ for(let k=untergrenze;k<gierig.length;k++){
+  schritte=0;
+  const r=passt(0,new Array(k).fill(L));
+  if(r===null)return {streifen:gierig,optimal:false};
+  if(r){
+   // dieselbe Suche noch einmal, diesmal mit Mitschrift der Verteilung
+   const streifen=Array.from({length:k},()=>({stuecke:[],rest:L}));
+   const setze=i=>{
+    if(i>=stuecke.length)return true;
+    const gesehen=[];
+    for(let j=0;j<streifen.length;j++){
+     if(streifen[j].rest<stuecke[i]-1e-9)continue;
+     if(gesehen.indexOf(streifen[j].rest)>=0)continue;
+     gesehen.push(streifen[j].rest);
+     streifen[j].stuecke.push(stuecke[i]); streifen[j].rest-=stuecke[i];
+     if(setze(i+1))return true;
+     streifen[j].stuecke.pop(); streifen[j].rest+=stuecke[i];
+    }
+    return false;
+   };
+   if(setze(0))return {streifen,optimal:true};
+   return {streifen:gierig,optimal:false};
+  }
+ }
+ return {streifen:gierig,optimal:true};
 }
-function materialText(a){const m=findMeasurementMaterial(a.material);return m?m.name:"–"}
+function tafelLaenge(a){
+ const l=(a.stuecke||[]).map(p=>zahl(p.laenge)).filter(x=>x>0);
+ return l.length?Math.max.apply(null,l):0;
+}
+function rollenPlan(a){
+ const A=zahl(a.abwicklung);
+ const laengen=(a.stuecke||[]).map(p=>zahl(p.laenge)).filter(x=>x>0);
+ const L=tafelLaenge(a);
+ const breiten=aktiveRollenbreiten();
+ if(A<=0||!laengen.length||!breiten.length)
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,tafelLaenge:L};
+ const verteilung=packeInStreifen(laengen,L);
+ const moeglich=[], zuSchmal=[];
+ const netto=flaecheM2(a);
+ breiten.forEach(B=>{
+  const jeTafel=Math.floor(B/A);
+  if(jeTafel<1){zuSchmal.push(B);return}
+  const streifen=verteilung.streifen||[];
+  const tafeln=Math.ceil(streifen.length/jeTafel);
+  const streifenGesamt=tafeln*jeTafel;
+  const flaeche=tafeln*B*L/1e6;
+  moeglich.push({breite:B,jeTafel,tafeln,
+   streifen:streifen.length, ungenutzteStreifen:streifenGesamt-streifen.length,
+   restBreite:B-jeTafel*A,
+   flaeche, verschnitt:flaeche-netto,
+   anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
+ });
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.tafeln-y.tafeln||y.breite-x.breite);
+ return {moeglich,zuSchmal,bestes:moeglich[0]||null,
+         tafelLaenge:L,verteilung,netto};
+}
 
 // ---- 3b. Grundriss ohne den Blickrichtungspfeil am linken Rand -----------
 // generateEbkGrundriss() aus js/13 haengt immer ansichtsPfeilSvg("links",…)
@@ -546,14 +631,14 @@ function schritt5(){
 }
 
 function rollenKarte(a){
- const A=zahl(a.abwicklung), L=gesamtlaengeStuecke(a);
+ const A=zahl(a.abwicklung);
  const r=rollenPlan(a);
  const breiten=aktiveRollenbreiten();
  if(!breiten.length)
   return karte("Rollenblech und Verschnitt",
    `<div class="p-warnung">Es ist keine Rollenbreite aktiv. In den Einstellungen
 mindestens eine anhaken – sonst wird der Materialbedarf <b>nicht</b> gerechnet.</div>`);
- if(L<=0||A<=0)
+ if(!r.tafelLaenge||A<=0)
   return karte("Rollenblech und Verschnitt",`<div class="p-leer">Noch nichts zuzuschneiden.</div>`);
  if(!r.moeglich.length)
   return karte("Rollenblech und Verschnitt",
@@ -561,35 +646,53 @@ mindestens eine anhaken – sonst wird der Materialbedarf <b>nicht</b> gerechnet
 ist breit genug für eine Abwicklung von ${mm(A)} mm. Der Bedarf wird deshalb
 <b>nicht</b> gerechnet – er würde sonst auf einer geratenen Breite beruhen.</div>`);
  const b=r.bestes;
+ const v=r.verteilung||{streifen:[]};
  const zeilen=r.moeglich.map(x=>`<tr${x===b?' class="p-beste"':""}>
 <td>${mm(x.breite)} mm${x===b?" ★":""}</td>
-<td class="p-num">${x.streifen}</td>
-<td class="p-num">${mm(x.verschnittBreite)} mm</td>
-<td class="p-num">${meter(x.rollenlaenge)} m</td>
-<td class="p-num">${x.flaecheRolle.toFixed(2).replace(".",",")}</td>
-<td class="p-num${x.anteil>15?" p-warnwert":""}">${x.verschnitt.toFixed(2).replace(".",",")} (${x.anteil.toFixed(1).replace(".",",")} %)</td></tr>`).join("");
+<td class="p-num">${x.jeTafel}</td>
+<td class="p-num">${mm(x.restBreite)} mm</td>
+<td class="p-num">${x.tafeln}</td>
+<td class="p-num">${x.ungenutzteStreifen}</td>
+<td class="p-num">${x.flaeche.toFixed(2).replace(".",",")}</td>
+<td class="p-num${x.anteil>25?" p-warnwert":""}">${x.verschnitt.toFixed(2).replace(".",",")} (${x.anteil.toFixed(1).replace(".",",")} %)</td></tr>`).join("");
+ const streifenZeilen=(v.streifen||[]).map((st,i)=>`<tr>
+<td>${i+1}</td>
+<td>${st.stuecke.map(x=>mm(x)).join(" + ")||"–"}</td>
+<td class="p-num${st.rest>0?" p-rest":""}">${mm(st.rest)} mm</td></tr>`).join("");
  return karte("Rollenblech und Verschnitt",
-`<div class="p-hinweis">Aus einer Rolle der Breite B lassen sich
-ganzzahlig(B ÷ Abwicklung) Streifen längs schneiden; was in der Breite übrig
-bleibt, ist Verschnitt. Je laufendem Meter Rolle entstehen so <i>n</i> Meter
-Blech – nötige Rollenlänge = Gesamtlänge ÷ <i>n</i>.</div>
+`<div class="p-hinweis">Von der Rolle wird eine <b>Tafel</b> abgeschnitten und quer
+in Streifen von ${mm(A)} mm geteilt. Die Tafel ist so lang wie das längste
+Einlaufblechstück (<b>${mm(r.tafelLaenge)} mm</b>) – länger lässt sie sich nicht
+mehr handhaben. In einem Streifen dürfen mehrere Stücke <b>hintereinander</b>
+liegen, wie bei der Rinne aus einer Normlänge.</div>
 <div class="p-zf-kopf">
 <div><span>Empfehlung</span><b>${mm(b.breite)} mm</b></div>
-<div><span>Streifen je Rolle</span><b>${b.streifen}</b></div>
-<div><span>Rollenlänge</span><b>${meter(b.rollenlaenge)} m</b></div>
-<div><span>Blechfläche</span><b>${flaecheM2(a).toFixed(2).replace(".",",")} m²</b></div>
-<div><span>Verschnitt</span><b class="${b.anteil>15?"p-warnwert":""}">${b.verschnitt.toFixed(2).replace(".",",")} m² (${b.anteil.toFixed(1).replace(".",",")} %)</b></div>
+<div><span>Tafel</span><b>${mm(b.breite)} × ${mm(r.tafelLaenge)} mm</b></div>
+<div><span>Tafeln</span><b>${b.tafeln}</b></div>
+<div><span>Streifen je Tafel</span><b>${b.jeTafel}</b></div>
+<div><span>Streifen nötig</span><b>${b.streifen}</b></div>
+<div><span>Blechfläche</span><b>${(r.netto||0).toFixed(2).replace(".",",")} m²</b></div>
+<div><span>Verschnitt</span><b class="${b.anteil>25?"p-warnwert":""}">${b.verschnitt.toFixed(2).replace(".",",")} m² (${b.anteil.toFixed(1).replace(".",",")} %)</b></div>
 </div>
 <div class="p-tabelle">
-<table><thead><tr><th>Rollenbreite</th><th>Streifen</th><th>Rest Breite</th>
-<th>Rollenlänge</th><th>Fläche m²</th><th>Verschnitt m²</th></tr></thead>
+<table><thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Rest Breite</th>
+<th>Tafeln</th><th>Streifen frei</th><th>Fläche m²</th><th>Verschnitt m²</th></tr></thead>
 <tbody>${zeilen}</tbody></table>
 </div>
-${r.zuSchmal.length?`<div class="p-klein-text">Zu schmal für ${mm(A)} mm Abwicklung und
-deshalb nicht aufgeführt: ${r.zuSchmal.map(x=>mm(x)+" mm").join(" · ")}.</div>`:""}
-<div class="p-klein-text">Gerechnet wird nur die Breite. Ein Längsverschnitt am
-Rollenende und die Schnittfuge sind nicht berücksichtigt – dafür fehlen die
-Werte des Betriebs.</div>`);
+<h3>So liegen die Stücke in den Streifen</h3>
+<div class="p-tabelle">
+<table><thead><tr><th>Streifen</th><th>Stücke (mm)</th><th>Rest</th></tr></thead>
+<tbody>${streifenZeilen||'<tr><td colspan="3" class="p-leer">–</td></tr>'}</tbody></table>
+</div>
+<div class="p-klein-text">${v.optimal
+ ?`Das ist die Verteilung mit den wenigsten Streifen.`
+ :`Beste gefundene Verteilung. Bei dieser Stückzahl wurde nicht jede Möglichkeit
+durchgerechnet – es kann eine geringfügig bessere geben.`}
+${b.ungenutzteStreifen?` ${b.ungenutzteStreifen} Streifen der letzten Tafel
+bleiben ganz übrig – sie zählen hier als Verschnitt, lassen sich aber als
+Reststück weiterverwenden.`:""}</div>
+<div class="p-klein-text">Ein Anschnitt am Rollenanfang und die Schnittfuge sind
+nicht berücksichtigt – dafür fehlen die Werte des Betriebs.</div>`);
 }
 function schritt6(){
  const a=aufnahme, z=ausmassZeilen(a), mat=materialUebersicht(a);

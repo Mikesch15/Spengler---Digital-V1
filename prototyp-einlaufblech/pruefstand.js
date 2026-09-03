@@ -502,47 +502,79 @@ const text=page=>page.evaluate(()=>document.getElementById("p-inhalt").innerText
  p(fl.zeile&&/1,28/.test(String(fl.zeile.menge)),"steht als Position im Ausmass",fl.zeile);
  p(fl.mat&&/1,28/.test(String(fl.mat.flaeche)),"und in der Materialübersicht",fl.mat);
 
- console.log("\n18 · Neu: Zuschnitt aus Rollenblech");
+ console.log("\n18 · Zuschnitt aus Rollenblech (Tafel + Streifen)");
+ // So wird gearbeitet: Tafel von der Rolle, quer in Streifen der Abwicklung
+ // geteilt, im Streifen dürfen mehrere Stücke hintereinander liegen.
  const roll=await page.evaluate(()=>{
-  aufnahme.abwicklung=250; setzeSchritt(6);
+  aufnahme.abwicklung=250; aufnahme.stuecke=stueckeAusGesamtlaenge(5000);
+  setzeSchritt(6);
   return {plan:rollenPlan(aufnahme), aktiv:aktiveRollenbreiten(),
-          L:gesamtlaengeStuecke(aufnahme),
+          laengen:aufnahme.stuecke.map(x=>x.laenge), netto:flaecheM2(aufnahme),
           text:document.getElementById("p-inhalt").innerText};
  });
  p(roll.aktiv.join()==="1000,670","Standardrollen 1000 und 670 mm aktiv",roll.aktiv);
+ p(roll.plan.tafelLaenge===2070,"Tafel so lang wie das längste Stück (2070 mm)",roll.plan.tafelLaenge);
+ const str=roll.plan.verteilung.streifen;
+ p(str.length===3,"2070 + 2070 + 1000 brauchen 3 Streifen à 2070 mm",str);
+ // Defensiv: ohne den dritten Streifen darf der Pruefstand nicht abstuerzen,
+ // sonst sieht eine Gegenprobe aus wie "keine Fehler".
+ p(!!str[2]&&str[2].stuecke.join()==="1000"&&str[2].rest===1070,
+   "im dritten Streifen bleiben 1070 mm Rest",str[2]||null);
+ p(roll.plan.verteilung.optimal,"und das ist die Verteilung mit den wenigsten Streifen");
  const r1000=roll.plan.moeglich.find(x=>x.breite===1000);
  const r670=roll.plan.moeglich.find(x=>x.breite===670);
- p(r1000&&r1000.streifen===4,"1000 ÷ 250 = 4 Streifen",r1000);
- p(r1000&&r1000.verschnittBreite===0,"und 0 mm Rest in der Breite",r1000);
- p(r670&&r670.streifen===2,"670 ÷ 250 = 2 Streifen",r670);
- p(r670&&r670.verschnittBreite===170,"und 170 mm Rest",r670);
- p(Math.abs(r1000.rollenlaenge-roll.L/4)<1e-9,"Rollenlänge = Gesamtlänge ÷ Streifen",r1000);
- p(roll.plan.bestes&&roll.plan.bestes.breite===1000,"empfohlen wird die Rolle mit dem kleinsten Verschnitt",roll.plan.bestes);
- p(Math.abs(roll.plan.bestes.verschnitt)<1e-9,"bei 4 Streifen à 250 mm bleibt nichts übrig",roll.plan.bestes);
- p(/Rollenblech und Verschnitt/i.test(roll.text),"die Karte ist da");
- const roll330=await page.evaluate(()=>{
-  aufnahme.abwicklung=330; setzeSchritt(6);
+ p(r1000.jeTafel===4,"1000 ÷ 250 = 4 Streifen je Tafel",r1000);
+ p(r1000.tafeln===1,"3 Streifen passen auf 1 Tafel",r1000);
+ p(r1000.ungenutzteStreifen===1,"1 Streifen der Tafel bleibt ganz übrig",r1000);
+ p(Math.abs(r1000.flaeche-1*1000*2070/1e6)<1e-9,"Fläche = Tafeln × Breite × Tafellänge",r1000);
+ p(r670.jeTafel===2&&r670.tafeln===2,"670er Rolle: 2 Streifen je Tafel, also 2 Tafeln",r670);
+ p(roll.plan.bestes.breite===1000,"empfohlen wird die Rolle mit dem kleinsten Materialeinsatz",roll.plan.bestes);
+ p(Math.abs(roll.plan.bestes.verschnitt-(2.070-roll.netto))<1e-6,
+   "Verschnitt = Tafelfläche − Blechfläche",{v:roll.plan.bestes.verschnitt,netto:roll.netto});
+ p(/Tafel/.test(roll.text)&&/hintereinander/.test(roll.text),"die Karte erklärt Tafel und Hintereinanderlegen");
+ p(/2.070/.test(roll.text),"und nennt die Tafellänge",roll.text.slice(0,10));
+
+ console.log("\n18b · Mehrere Stücke hintereinander in einem Streifen");
+ const serie=await page.evaluate(()=>{
+  // Vier kurze Stücke: zwei passen hintereinander in einen Streifen.
+  aufnahme.stuecke=[900,900,900,900].map(l=>({laenge:l,stossStoss:l,
+    gehrungLinks:false,gehrungRechts:false,winkel:0}));
   const pl=rollenPlan(aufnahme);
-  return {plan:pl,best:pl.bestes};
+  return {plan:pl,str:pl.verteilung.streifen,best:pl.bestes};
  });
- p(roll330.best.breite===1000&&roll330.best.streifen===3,"330 mm: 1000er Rolle, 3 Streifen",roll330.best);
- p(roll330.plan.moeglich.find(x=>x.breite===670).streifen===2,"670er Rolle: 2 Streifen",roll330.plan.moeglich);
- // Verschnitt muss zur Flaeche passen
- const stimmig=await page.evaluate(()=>{
-  const pl=rollenPlan(aufnahme), n=flaecheM2(aufnahme);
-  return pl.moeglich.every(x=>Math.abs((x.flaecheRolle-n)-x.verschnitt)<1e-9
-    && Math.abs(x.flaecheRolle-x.breite*x.rollenlaenge/1e6)<1e-9);
+ p(serie.plan.tafelLaenge===900,"Tafellänge = längstes Stück (900 mm)",serie.plan.tafelLaenge);
+ p(serie.str.length===4,"bei gleich langen Stücken je ein Streifen",serie.str.length);
+ const serie2=await page.evaluate(()=>{
+  aufnahme.stuecke=[1200,800,700,500].map(l=>({laenge:l,stossStoss:l,
+    gehrungLinks:false,gehrungRechts:false,winkel:0}));
+  const pl=rollenPlan(aufnahme);
+  return {tafel:pl.tafelLaenge,str:pl.verteilung.streifen,optimal:pl.verteilung.optimal,
+          summe:1200+800+700+500};
  });
- p(stimmig,"Verschnitt = Rollenfläche − Blechfläche, für jede Zeile");
+ p(serie2.tafel===1200,"Tafellänge 1200 mm",serie2.tafel);
+ p(serie2.str.length===3,"1200/800+... : drei Streifen genügen",serie2.str.map(x=>x.stuecke));
+ p(serie2.str.some(x=>x.stuecke.length>1),"mindestens ein Streifen trägt zwei Stücke hintereinander",serie2.str.map(x=>x.stuecke));
+ const gedeckt=await page.evaluate(()=>{
+  const pl=rollenPlan(aufnahme);
+  const alle=[].concat.apply([],pl.verteilung.streifen.map(x=>x.stuecke)).sort((a,b)=>a-b);
+  const soll=aufnahme.stuecke.map(x=>x.laenge).sort((a,b)=>a-b);
+  const zuLang=pl.verteilung.streifen.some(x=>x.rest<-1e-9);
+  return {alle,soll,zuLang};
+ });
+ p(gedeckt.alle.join()===gedeckt.soll.join(),"jedes Stück kommt genau einmal vor",gedeckt);
+ p(!gedeckt.zuLang,"kein Streifen ist überfüllt",gedeckt);
+
+ console.log("\n18c · Grenzfälle");
  const schmal=await page.evaluate(()=>{
-  aufnahme.abwicklung=330;
+  aufnahme.abwicklung=330; aufnahme.stuecke=stueckeAusGesamtlaenge(5000);
   rollenbreiten.forEach(r=>{r.aktiv=(r.breite===250)});
   setzeSchritt(6);
   return {plan:rollenPlan(aufnahme), text:document.getElementById("p-inhalt").innerText};
  });
  p(schmal.plan.moeglich.length===0&&schmal.plan.zuSchmal.length===1,
-   "eine zu schmale Rolle wird nicht gerechnet",schmal.plan);
- p(/breit genug/i.test(schmal.text),"und das wird ausdrücklich gesagt",(schmal.text.match(/Rollenblech[\s\S]{0,220}/)||["(Karte nicht gefunden)"])[0]);
+   "eine zu schmale Rolle wird nicht gerechnet",schmal.plan.zuSchmal);
+ p(/breit genug/i.test(schmal.text),"und das wird ausdrücklich gesagt",
+   (schmal.text.match(/Rollenblech[\s\S]{0,200}/)||["(nicht gefunden)"])[0]);
  const keine=await page.evaluate(()=>{
   rollenbreiten.forEach(r=>{r.aktiv=false});
   setzeSchritt(6);
@@ -550,17 +582,27 @@ const text=page=>page.evaluate(()=>document.getElementById("p-inhalt").innerText
  });
  p(/keine Rollenbreite aktiv/i.test(keine),"ohne aktive Rolle wird nichts geraten");
  const dazu=await page.evaluate(()=>{
-  const k=document.querySelector('[data-rolle="500"]');
   einstellungenOffen=true; zeichne();
-  const k2=document.querySelector('[data-rolle="500"]');
-  k2.checked=true; k2.dispatchEvent(new Event("change",{bubbles:true}));
-  aufnahme.abwicklung=250; setzeSchritt(6);
-  return {aktiv:aktiveRollenbreiten(), plan:rollenPlan(aufnahme).bestes};
+  const k=document.querySelector('[data-rolle="500"]');
+  k.checked=true; k.dispatchEvent(new Event("change",{bubbles:true}));
+  aufnahme.abwicklung=250; aufnahme.stuecke=stueckeAusGesamtlaenge(5000);
+  setzeSchritt(6);
+  return {aktiv:aktiveRollenbreiten(), best:rollenPlan(aufnahme).bestes};
  });
  p(dazu.aktiv.join()==="500","eine Breite lässt sich dazuschalten",dazu.aktiv);
- p(dazu.plan&&dazu.plan.breite===500&&dazu.plan.streifen===2,"und wird dann gerechnet",dazu.plan);
+ p(dazu.best&&dazu.best.jeTafel===2,"500 ÷ 250 = 2 Streifen je Tafel",dazu.best);
+ p(dazu.best&&dazu.best.tafeln===2,"3 Streifen brauchen dann 2 Tafeln",dazu.best);
  await page.evaluate(()=>{rollenbreiten=ROLLEN_VORGABE.map(x=>({...x}));rollenSpeichern();
-   einstellungenOffen=false; aufnahme.abwicklung=250; setzeSchritt(6)});
+   einstellungenOffen=false; aufnahme.abwicklung=250;
+   aufnahme.stuecke=stueckeAusGesamtlaenge(5000); setzeSchritt(6)});
+ const leer=await page.evaluate(()=>{
+  const merk=aufnahme.stuecke; aufnahme.stuecke=[];
+  const pl=rollenPlan(aufnahme); const t=(setzeSchritt(6),document.getElementById("p-inhalt").innerText);
+  aufnahme.stuecke=merk; setzeSchritt(6);
+  return {plan:pl,text:t};
+ });
+ p(leer.plan.moeglich.length===0,"ohne Stücke wird nichts gerechnet",leer.plan);
+ p(/Noch nichts zuzuschneiden/i.test(leer.text),"und das steht auch so da");
 
  console.log("\n12 · Keine JS-Fehler");
  p(fehler.length===0,"keine Seitenfehler",fehler.slice(0,3));
