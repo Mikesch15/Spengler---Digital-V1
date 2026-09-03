@@ -215,10 +215,12 @@ $("startFromMeasurements").onclick=()=>{goToStart()};
 $("measurementSettingsShortcut").onclick=()=>openSettingsTo("measurements");
 $("startFromMeasurementEdit").onclick=()=>{goToStart()};
 $("measurementEditSettingsShortcut").onclick=()=>{
- const type=$("measType").value;
- if(type==="rinne_halbrund")openSettingsTo("measurements","rinne");
- else if(type==="einlaufblech_gerade")openSettingsTo("measurements","einlaufblech");
- else openSettingsTo("measurements");
+ // Bis v2.67 waren nur zwei der elf Arten hinterlegt - bei den uebrigen
+ // neun oeffnete sich nur das Register, ohne an die passende Stelle zu
+ // springen. Die Zuordnung steht jetzt vollstaendig in
+ // MEAS_TYPE_SETTINGS_SECTION (js/01-basis.js), direkt neben der Liste
+ // der Arten, damit eine neue Art beides gleichzeitig bekommt.
+ openSettingsTo("measurements",MEAS_TYPE_SETTINGS_SECTION[$("measType").value]||"");
 };
 $("startFromSettings").onclick=()=>{goToStart()};
 $("startFromSheet").onclick=()=>{goToStart()};

@@ -198,10 +198,11 @@ function renderProjectList(){
  renderProjectStatusFilter(gefunden);
  const list=projectStatusFilter==="alle"?gefunden:gefunden.filter(p=>projektStatusInfo(p).wert===projectStatusFilter);
  $("projectList").innerHTML=list.map(p=>{
-  // Dezente Ersteller-/Bearbeiter-Anzeige, dieselbe Logik wie bei
-  // Massaufnahmen (erstelltGeaendertText(), js/16-massaufnahme-
-  // formular.js) - siehe CLAUDE.md 36.
-  const meta=erstelltGeaendertText(p);
+  // v2.68: Wer wann erstellt/geaendert hat, steht NICHT mehr in der Liste.
+  // In einer Uebersicht sucht man ein Projekt, nicht seine Historie - die
+  // zwei Zeilen je Karte haben die Adresse und die Knoepfe verdraengt.
+  // Angezeigt wird sie jetzt im Projektkopf, also erst nach dem Auswaehlen
+  // des Projekts (renderCockpitStammdaten(), js/24-projekt-cockpit.js).
   // v2.45: Die Adresse ist die Hauptanzeige eines Projekts. Projektname,
   // Auftrags-Nr. und Auftraggeber bleiben als Zusatzangaben erhalten -
   // nichts wird geloescht, nur anders gewichtet.
@@ -215,7 +216,6 @@ function renderProjectList(){
 <div class="project-row-top"><b>${esc(titel)}</b></div>
 <div class="project-row-status">${projektStatusBadge(p)}${p.archived?'<span class="pstatus pstatus-archiv">🗄 Archiviert</span>':""}</div>
 <div class="small">${esc(zusatz)}</div>
-${meta?`<div class="small" style="color:var(--muted)">${meta}</div>`:""}
 <button class="blue project-row-main" data-open-cockpit="${p.id}">📂 Projekt öffnen</button>
 <div class="project-row-actions">
 <button class="gray" data-edit-project="${p.id}">✏️ Bearbeiten</button>

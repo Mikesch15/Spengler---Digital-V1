@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.67, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.68, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.67**
+- sichtbare App-Version: **2.68**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -11165,3 +11165,150 @@ unverändert. Einziger Schreibzugriff dieser Runde: die Migration
 - Abschnitt 21.3 dieses Dokuments enthält die widerlegte Aussage,
   ein `.update()` ohne `.eq()` sei ausreichend. Sie bleibt dort als
   historischer Stand stehen, ist aber durch diesen Abschnitt überholt.
+
+## 76. EINSTELLUNGEN SPRINGEN BEI JEDER ART AN DIE RICHTIGE STELLE + VERLAUFSDATEN AUS DER PROJEKTLISTE — VERSION 2.68
+
+Zwei gemeldete Punkte. **Keine Schemaänderung, keine Migration, keine
+RLS-Änderung, keine Berechnung angefasst.**
+
+### 76.1 Der Einstellungs-Knopf kannte nur zwei von elf Arten
+
+`$("measurementEditSettingsShortcut")` (der Knopf „⚙️ Einstellungen" im
+Massaufnahme-Formular) war so verdrahtet:
+
+```js
+if(type==="rinne_halbrund")      openSettingsTo("measurements","rinne");
+else if(type==="einlaufblech_gerade") openSettingsTo("measurements","einlaufblech");
+else                              openSettingsTo("measurements");
+```
+
+Bei den übrigen **neun** Arten öffnete sich also nur das Register, ohne
+an die passende Stelle zu springen. Fünf Arten haben zwar einen eigenen
+Knopf direkt im Formular (Einlaufblech, Lukarne, Ort-/Seitenbleche,
+Einfassung Rund, Rinne-Profil) – für Einlaufblech konisch,
+Mauerabdeckung, Skizze/Foto, Freies Profil und Kehle war der obere Knopf
+aber der einzige Weg.
+
+**Behoben** mit einer vollständigen Zuordnung, die direkt neben der
+Liste der Arten steht (`js/01-basis.js`), damit eine zwölfte Art beides
+gleichzeitig bekommt:
+
+| Art | Abschnitt |
+|---|---|
+| Skizze/Foto | `material` (nur Materialkatalog) |
+| Einlaufblech gerade | `einlaufblech` |
+| Rinne Halbrund | `rinne` (Anschlusstypen) |
+| Einlaufblech konisch | `einlaufblech-konisch` |
+| Freies Profil | `material` (kein eigener Abschnitt) |
+| Mauerabdeckung | `mauerabdeckung` |
+| Lukarne Seitenverkleidung | `lukarne` |
+| Ort- und Seitenbleche | `anschlussblech` |
+| Einfassung Rund | `einfassung-rund` |
+| **Kehle** | **keiner** – rechnet nur, hat kein Material |
+| Rinne | `rinne-profil` (Standardprofil & Ansetztypen) |
+
+Kehle bekommt bewusst keinen Abschnitt: sie hat als einzige Art kein
+Material-Feld und keine Einstellungen (Abschnitt 60.6, per Grep auf
+`id="kehle_material"` bestätigt). Dort öffnet sich weiterhin nur das
+Register – das ist die ehrliche Antwort, nicht eine erfundene Stelle.
+
+Dasselbe für die beiden Ausmass-Arten
+(`AM_TYPE_SETTINGS_SECTION`): Blitzschutzausmass → `blitzschutz`,
+Offerte erfassen → keiner (hat keine eigenen Einstellungen).
+
+Die fünf modul-eigenen Knöpfe **innerhalb** der Formulare sind
+unverändert – sie funktionierten bereits und setzen zusätzlich
+`settingsReturnToMeasurement`, damit das Schliessen ins Formular
+zurückführt.
+
+### 76.2 Verlaufsdaten raus aus der Projektliste
+
+Jede Projektkarte trug zwei Zeilen „Erstellt von … am … · Zuletzt
+geändert von … am …". In einer Übersicht sucht man ein Projekt, nicht
+seine Historie – die zwei Zeilen haben Adresse, Status und Knöpfe
+verdrängt (siehe Screenshot des Betreibers).
+
+Die Zeile ist jetzt **nach dem Auswählen des Projekts** im Projektkopf
+des Cockpits (`#cockpitMetaInfo`), also genau dort, wo man sich mit dem
+einzelnen Projekt befasst. Sie verwendet dieselbe Funktion wie
+Massaufnahme und Ausmass (`erstelltGeaendertText()`, js/16) – keine
+zweite Formatierlogik – und bleibt weg, wenn ein Projekt noch keine
+Verlaufsdaten hat.
+
+**Unverändert in der Liste**: Adresse als Haupttitel, Status-Badge,
+Projektname/Auftrags-Nr./Auftraggeber und alle vier Knöpfe.
+
+**Unverändert in den Cockpit-Listen**: das knappe „zuletzt geändert
+<Datum>" bei Massaufnahme/Ausmass/Rapport (`eintragZusatzTeile()`,
+v2.39) bleibt – diese Listen erscheinen ohnehin erst nach dem Auswählen
+des Projekts.
+
+### 76.3 Tests
+
+**`einst68` – 43/43**: für jede der elf Arten ist ein Eintrag
+hinterlegt, keine überzähligen, jeder hinterlegte Abschnitt existiert
+wirklich im HTML und liegt im richtigen Register, nur Kehle ohne
+Abschnitt (und hat auch kein Material-Feld), die Knöpfe nutzen die
+Tabelle statt fester Fälle, die Projektkarte ruft
+`erstelltGeaendertText` nicht mehr auf, Adresse/Status/Zusatz/Knöpfe
+bleiben, der Projektkopf füllt die Zeile und zeigt sie nur bei Inhalt.
+
+**`einstbrowser68` – 47/47** (echtes Chromium): für **jede** der elf
+Arten wird der echte Knopf geklickt und gemessen, ob das Register aktiv
+ist und der erwartete Abschnitt wirklich aufgeklappt **und sichtbar**
+ist (Höhe > 40 px). Zusätzlich beide Ausmass-Arten. Dann: die
+Projektliste enthält „Erstellt von"/„Zuletzt geändert von" nicht mehr,
+Adresse/Status/Knöpfe schon; der Projektkopf zeigt die Zeile nach dem
+Öffnen; ein Projekt ohne Verlaufsdaten lässt sie weg; keine JS-Fehler.
+
+Der Browser-Prüfstand zählt **unabhängig von der Tabelle** mit, wie
+viele Arten wirklich einen Abschnitt aufklappen (genau zehn von elf) –
+sonst hätte er nur seine eigene Erwartung bestätigt und eine
+leergeräumte Tabelle wäre still durchgegangen. Genau das ist beim
+ersten Anlauf passiert und wurde behoben.
+
+**Zwei Gegenproben, beide reproduzieren den gemeldeten Zustand:**
+- Zuordnung auf die alten zwei Arten zurückgesetzt → `einst68` 1
+  Fehlschlag, `einstbrowser68` „2 von 11"
+- Verlaufszeile zurück in die Projektliste → `einst68` 1 Fehlschlag
+
+**Volle Regression grün**: module67 42/42, modulebrowser67 16/16,
+freipos65 99/99, freiposbrowser65 33/33, feedback63 105/105,
+feedbackbrowser63 67/67, rinne57 379/379, breite57 84/84,
+pdf52 504/504, breite52 52/52, kehle52 698/698,
+kehleintegration52 76/76, medien50 42/42, dateien49 38/38,
+adresse45 39/39, projekte47 37/37, pfade55 37/37, status46 35/35,
+auswahl48 32/32, dateien43 27/27, nav 23/23, stand42 17/17,
+suche45 13/13, recent41 12/12, kopf45 8/8, hidden51 7/7, suche40 7/7,
+treffer40 7/7, ui39 (9 Darstellungsfälle).
+
+`node --check` über alle 28 `js/*.js` und `sw.js` fehlerfrei,
+`<div>` 702/702, keine doppelten Element-IDs.
+
+**Nicht getestet – ausdrücklich**: kein Live-Klicktest gegen Supabase
+(Sandbox blockiert HTTPS dorthin). In dieser Runde wurde **nicht** in
+die Datenbank geschrieben und nicht gelesen.
+
+### 76.4 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/01-basis.js` | `MEAS_TYPE_SETTINGS_SECTION` und `AM_TYPE_SETTINGS_SECTION` neben der Liste der Arten |
+| `js/04-start-suche.js` | Knopf nutzt die Tabelle statt zweier fester Fälle |
+| `js/17-ausmass.js` | **eine Zeile**: derselbe Umbau für die Ausmass-Arten, keine Fachlogik |
+| `js/09-projekte.js` | Verlaufszeile aus der Projektkarte entfernt |
+| `js/24-projekt-cockpit.js` | Verlaufszeile im Projektkopf |
+| `index.html` | `#cockpitMetaInfo`, Version 2.68 |
+| `sw.js` | Cache-Version 2.68 |
+
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+`css/03-druck.css` sind **nicht** im Diff.
+
+### 76.5 Offene Punkte
+
+- Kein Live-Klicktest gegen Supabase möglich (76.3).
+- `openSettingsTo()` klappt den Zielabschnitt auf, schliesst aber
+  vorher geöffnete nicht – unverändertes Verhalten seit v2.14.
+- Kehle und „Offerte erfassen" haben weiterhin keine eigenen
+  Einstellungen; falls dort je welche dazukommen, genügt ein Eintrag in
+  der jeweiligen Tabelle.

@@ -141,6 +141,30 @@ const MEAS_TYPE_LABELS=Object.freeze({
  kehle:"Kehle",
  rinne:"Rinne"
 });
+// Welcher Einstellungs-Abschnitt gehoert zu welcher Massaufnahme-Art?
+// Der Knopf "⚙️ Einstellungen" im Massaufnahme-Formular springt damit
+// direkt an die richtige Stelle statt nur das Register zu oeffnen.
+// Alle Abschnitte liegen im Register "Massaufnahmen".
+// Steht hier nichts, gibt es fuer die Art keinen eigenen Abschnitt und
+// es wird nur das Register geoeffnet.
+const MEAS_TYPE_SETTINGS_SECTION=Object.freeze({
+ skizze_foto:"material",            // nur Materialkatalog
+ einlaufblech_gerade:"einlaufblech",
+ rinne_halbrund:"rinne",            // Anschlusstypen
+ einlaufblech_konisch:"einlaufblech-konisch",
+ freies_profil:"material",          // kein eigener Abschnitt, nur Material
+ mauerabdeckung:"mauerabdeckung",
+ lukarne:"lukarne",
+ anschlussblech:"anschlussblech",
+ einfassung_rund:"einfassung-rund",
+ kehle:"",                          // rechnet nur, hat keine Einstellungen
+ rinne:"rinne-profil"               // Standardprofil & Ansetztypen
+});
+// Dasselbe fuer die beiden Ausmass-Arten (Register "Geschützt").
+const AM_TYPE_SETTINGS_SECTION=Object.freeze({
+ offerte_erfassen:"",               // keine eigenen Einstellungen
+ blitzschutz_ausmass:"blitzschutz"
+});
 // Module in Entwicklung: nur für Administratoren sichtbar.
 // Schlüssel: "meas:<art>" bzw. "am:<art>" -> true = versteckt für alle anderen.
 let moduleImTest={};

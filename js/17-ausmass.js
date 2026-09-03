@@ -361,8 +361,7 @@ $("ausmassSettingsShortcut").onclick=()=>openSettingsTo("protected","blitzschutz
 $("startFromAusmass").onclick=()=>goToStart();
 $("startFromAusmassEdit").onclick=()=>goToStart();
 $("ausmassEditSettingsShortcut").onclick=()=>{
- if($("amType").value==="blitzschutz_ausmass")openSettingsTo("protected","blitzschutz");
- else openSettingsTo("protected");
+ openSettingsTo("protected",AM_TYPE_SETTINGS_SECTION[$("amType").value]||"");
 };
 
 async function printAusmass(a){

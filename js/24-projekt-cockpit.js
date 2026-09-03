@@ -74,6 +74,13 @@ function renderCockpitStammdaten(){
  const titel=projektTitel(p);
  $("cockpitTitle").textContent="📁 "+titel;
  $("cockpitSubline").textContent=infoZeileOhne(titel,p.name,p.order_no,p.customer,p.archived?"archiviert":"");
+ // v2.68: Wer wann erstellt/geaendert hat, gehoert hierher - also erst
+ // nach dem Auswaehlen des Projekts - und nicht in die Projektliste.
+ // Dieselbe Funktion wie bei Massaufnahme/Ausmass (erstelltGeaendertText(),
+ // js/16-massaufnahme-formular.js), keine zweite Formatierlogik.
+ const meta=(typeof erstelltGeaendertText==="function")?erstelltGeaendertText(p):"";
+ const metaEl=$("cockpitMetaInfo");
+ if(metaEl){metaEl.textContent=meta;metaEl.hidden=!meta;}
  renderCockpitStatus();
  $("cockpitName").value=p.name||"";
  $("cockpitOrderNo").value=p.order_no||"";
