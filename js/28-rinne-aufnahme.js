@@ -697,12 +697,12 @@ function raAusmassHtml(){
  const zeilen=raAusmassZeilen(a), mat=raMaterialUebersicht(a);
  return `<div class="info">Automatisch aus der Massaufnahme. Nichts davon wird ein zweites Mal eingegeben –
 wird die Aufnahme geändert, ändert sich das Ausmass mit.</div>
-<div class="scroll"><table class="eb-table">
+<div class="scroll"><table class="eb-table ra-tab">
 <thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Herkunft</th></tr></thead>
 <tbody>${zeilen.map(z=>`<tr><td>${z.pos}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td><td>${esc(z.herkunft)}</td></tr>`).join("")
  ||'<tr><td colspan="5">Noch nichts zu berechnen.</td></tr>'}</tbody></table></div>
 <h2 style="margin-top:14px">Materialübersicht</h2>
-<div class="scroll"><table class="eb-table">
+<div class="scroll"><table class="eb-table ra-tab">
 <thead><tr><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Material</th></tr></thead>
 <tbody>${mat.map(m=>`<tr><td>${esc(m.bezeichnung)}</td><td>${esc(m.menge)}</td><td>${esc(m.einheit)}</td><td>${esc(m.material)}</td></tr>`).join("")
  ||'<tr><td colspan="4">Noch nichts zu berechnen.</td></tr>'}</tbody></table></div>
@@ -727,7 +727,7 @@ function raZuschnittHtml(){
  }).join("");
  return `<div class="info">Rechnet unverändert die Funktion der laufenden App. Die Zuschnittmasse je Element stehen in
 <b>Einstellungen → Massaufnahmen → Rinne</b>.</div>
-<div class="scroll"><table class="eb-table">
+<div class="scroll"><table class="eb-table ra-tab">
 <thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th></th></tr></thead>
 <tbody>${zeilen||'<tr><td colspan="5">Noch nichts zu berechnen.</td></tr>'}</tbody></table></div>
 <div class="small" style="color:var(--muted);margin-top:6px">${d.automatisch
@@ -761,7 +761,7 @@ Mehrere Stücke dürfen aus derselben Stange kommen. Verfügbar für ${esc(raMat
 ${raFeld("Bedarf",`<div class="ra-wert">${esc(bedarf)}</div>`)}
 ${raFeld("Verschnitt",`<div class="ra-wert">${esc(raMm(r.verschnitt))} mm (${anteil.toFixed(1).replace(".",",")} %)</div>`)}
 </div>
-<div class="scroll"><table class="eb-table">
+<div class="scroll"><table class="eb-table ra-tab">
 <thead><tr><th>Stange</th><th>Normlänge</th><th>Zuschnitte (mm)</th><th>Rest (mm)</th></tr></thead>
 <tbody>${r.stangen.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(raMeter(s.laenge))} m</td>`
  +`<td>${s.stuecke.map(x=>esc(raMm(x))).join(" + ")||"–"}</td>`

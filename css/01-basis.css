@@ -391,3 +391,10 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
 .ra-dila-feld{max-width:130px;text-align:right;font-variant-numeric:tabular-nums}
 .ra-rest{color:#b4610a;font-weight:700}
 @media (max-width:520px){.ra-dila-feld{max-width:none}}
+/* Die globale Grundregel table{min-width:1000px} ist fuer die breiten
+   Stuecklisten gedacht. Die Tabellen der Rinnen-Aufnahme haben wenige,
+   kurze Spalten und sollen auf dem Handy ganz sichtbar sein - min-width
+   muss dafuer AUSDRUECKLICH zurueckgesetzt werden, width:100% allein
+   reicht nicht (siehe CLAUDE.md 60.5). */
+.eb-table.ra-tab{min-width:0;table-layout:auto}
+.eb-table.ra-tab td,.eb-table.ra-tab th{word-break:break-word}

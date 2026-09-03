@@ -11985,6 +11985,12 @@ eigene Lösungen mit, die hier bewusst nicht übernommen wurden.
   status46 35/35, auswahl48 32/32, modulebrowser67 16/16,
   suche45 13/13, kopf45 8/8, hidden51 7/7, abstand69 2/2 sowie nav,
   stand42, dateien43, suche40, treffer40, recent41 ohne Fehlschlag.
+- **Die Tabellen der Rinnen-Aufnahme mussten `min-width` ausdrücklich
+  zurücksetzen** (`.eb-table.ra-tab{min-width:0}`). Die globale Grundregel
+  `table{min-width:1000px}` in `css/01-basis.css` ist für die breiten
+  Stücklisten gedacht und hätte in der Normlängen-Tabelle ausgerechnet die
+  Spalte „Zuschnitte" aus dem Bild geschoben – gemessen, nicht vermutet
+  (dieselbe Falle wie in Abschnitt 60.5).
 - `node --check` über alle 29 `js/*.js` und `sw.js`: fehlerfrei.
   `<div>`/`</div>` in `index.html` ausgeglichen (721/721), keine doppelten
   Element-IDs, `js/28-rinne-aufnahme.js` in der Service-Worker-Liste.
