@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.68, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.71, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.68**
+- sichtbare App-Version: **2.71**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -11808,3 +11808,219 @@ liegt in der Funktion"). Keine neue Art von Warnung, keine fehlende RLS.
   Bucket, Massaufnahme ohne Projekt kann kein Foto speichern, fehlender
   `search_path` bei zwei Storage-Hilfsfunktionen, 9 verwaiste
   Storage-Objekte (v2.24), Leaked-Password-Protection deaktiviert.
+
+## 79. RINNE HALBRUND NEU ERFASST + NORMLÄNGEN — VERSION 2.71
+
+Die Massaufnahme **Rinne Halbrund** wird nicht mehr als Segmenttabelle mit
+Anschlusstyp-Spalten erfasst, sondern so, wie draussen gemessen wird:
+Abschnitt · Übergang · Abschnitt. Dazu kommen Rinnenhalter, Rinnenboden,
+ein automatisches Ausmass und die Berechnung der nötigen Normlängen mit dem
+geringsten Verschnitt.
+
+Grundlage ist der Prototyp aus `prototyp/` (Branch
+`feature/prototype-rinne-halbrund`, Abschnitte in `prototyp/README.md`).
+Wie dort von Anfang an gefordert: **Weiterentwicklung des bestehenden
+Moduls, keine Parallellösung.**
+
+### 79.1 js/12-rinne-halbrund.js bleibt unverändert
+
+Die Fachrechnung wird nicht angefasst – nicht eine Zeile. `calcRinneSegment`,
+`computeRinneBoundaries`, `calcDilaPositionsInStretch`, `calcRinneDilas`,
+`berechneRinneStueckliste`, `generateRinneGrundriss` und
+`rinneMaterialTabelle` rechnen weiter wie bisher.
+
+Die Brücke sind seine eigenen Variablen: `raBruecke()` (js/28) setzt vor
+jeder Rechnung `rinneSegments` und `rinneDilas` aus dem erfassten Verlauf
+und schreibt Material und Grösse in die beiden alten Formularfelder. Die
+zehn Elemente, die js/12 beim Laden erwartet, stehen weiterhin im HTML –
+jetzt als unsichtbarer Block `#rinneStummel`. Dadurch konnte js/12
+byteweise unverändert bleiben und ist weiterhin die einzige Fachquelle.
+
+### 79.2 Der Übergang IST die Segmentgrenze
+
+Erfasst wird eine Kette aus Abschnitten und Übergängen. Ein Übergang trägt
+**entweder** eine Ecke **oder** einen Stutzen, ausgewählt in einer einzigen
+Liste (gerade / Aussenwinkel / Innenwinkel / Einhängestutzen /
+Schiebestutzen). Vier gleichwertige Knöpfe hängen an: ＋ Rinnenabschnitt,
+＋ Ecke, ＋ Einhängestutzen, ＋ Schiebestutzen.
+
+Daraus folgt unmittelbar, dass jedes Element **ab dem Abschnitt davor**
+vermasst ist und nicht ab START – so, wie draussen gemessen wird. Und weil
+der Übergang genau die Segmentgrenze des bestehenden Moduls ist, muss für
+die Rechnung nichts geteilt oder umgerechnet werden.
+
+| Element | Anschlusstyp | Wirkung |
+|---|---|---|
+| Aussenwinkel | AE90 | Fixpunkt |
+| Innenwinkel | IE90 | Fixpunkt |
+| Einhängestutzen | ABL | **Fixpunkt** – teilt die Dila-Berechnung |
+| Schiebestutzen | SS | **kein** Fixpunkt, wirkt wie ein Dehnungselement |
+| Rinnenboden links/rechts | BD | am ersten/letzten Grenzpunkt |
+
+**Der Rinnenboden ist der Anschlusstyp am äussersten Grenzpunkt.** Dadurch
+rechnet `berechneRinneStueckliste()` sein Mass ohne eine Zeile neuer
+Fachlogik in den Zuschnitt des ersten und letzten Stücks. Die
+Dila-Berechnung bleibt unberührt, weil der Boden weder Fixpunkt noch
+Schiebestutzen ist.
+
+**Die Katalog-IDs stehen NICHT im Code.** `rinne_fitting_types` ist
+firmenbezogen, die IDs sind je Firma verschieden – und eine frisch
+registrierte Firma hat **gar keinen** Katalog (per SQL geprüft: von zwei
+Firmen hat genau eine einen). `raTypFuer()` sucht deshalb zuerst über das
+Symbol (AE90/IE90/ABL/SS/BD), ersatzweise über die fachliche Eigenschaft
+(`is_fixpunkt` + Vorzeichen von `angle_deg`, `is_schiebestutzen`). Fehlt
+ein Typ, sagt das Formular das ausdrücklich und rechnet an dieser Stelle
+keinen Fixpunkt – statt eine ID zu erfinden.
+
+### 79.3 Dehnungselemente von Hand
+
+Die Zuschnitt-Tabelle im Formular ist editierbar: der Abstand jeder
+Dila-Zeile lässt sich überschreiben, Zeilen lassen sich hinzufügen und
+löschen, und „↻ Zurück zur Berechnung" stellt die Automatik wieder her.
+Ab dem ersten Eingriff bleibt die Handliste stehen, auch bei geänderter
+Länge oder anderem Material – das steht ausdrücklich am Bildschirm und im
+PDF. Eine Position ausserhalb der Rinne ist ein **Fehler** und wird nicht
+still zurechtgerückt.
+
+### 79.4 Normlängen und Verschnitt
+
+Neue Firmeneinstellung `app_settings.rinne_normlaengen` (jsonb, Migration
+`app_settings_rinne_normlaengen_v2_71`), Form
+`{"<material_id>|<groesse>":[laengen_mm]}`. Einzutragen unter
+**Einstellungen → Massaufnahmen → Rinne**, je Material und Rinnengrösse,
+in Metern.
+
+Ausgelieferte Vorgabe nach Angabe des Betreibers:
+
+| Material | 200 | 250 | 330 | 400 |
+|---|---|---|---|---|
+| Stahl verzinkt | 6 m | 6 m | 6 m | 6 m |
+| Kupfer | 6 m | 4/5/6 m | 4/5/6 m | 6 m |
+| CrNi-Stahl | 6 m | 5/6 m | 5/6 m | 6 m |
+| Titanzink | 6 m | 5/6 m | 4/5/6 m | **–** |
+
+**Nicht angegeben und deshalb bewusst leer**: Titanzink 400, Chromstahl
+verzinnt, Aluminium. Dort wird der Materialbedarf **nicht** gerechnet und
+das auch so gesagt – es würde sonst auf einer geratenen Stangenlänge
+beruhen.
+
+Rechenweg (`raNormPlan`): zuerst eine gierige Lösung als Obergrenze, danach
+alle Stangen-Kombinationen mit kleinerer oder gleicher Gesamtlänge der
+Reihe nach; die erste, die aufgeht, hat den kleinsten Materialeinsatz und
+damit den geringsten Verschnitt – die Summe der Stücke ist ja fest.
+Mehrere Stücke dürfen aus derselben Stange kommen. Reicht das Suchbudget
+nicht, wird die gierige Lösung zurückgegeben und ausdrücklich **nicht** als
+beste ausgewiesen. Zuschnitte, die länger sind als die längste Normlänge,
+werden gemeldet statt stillschweigend weggelassen.
+
+### 79.5 Gespeichert wird ein Superset – alte Datensätze bleiben lesbar
+
+`js/16` schreibt **unverändert** dieselben Felder wie bisher
+(`rinneAbwicklung`, `material`, `segments`, `gesamtlaenge`, `dilas`,
+`boundaries`, `stueckliste`, `dilaMass`) und ergänzt sie nur:
+`groesse`, `gesamtlaengeManuell_mm`, `halter`, `rinnenboden`, `dehnung`,
+`dilasManuell`, `ausmass`, `normlaengen`, `normplan`. `segments[i].stutzen`
+reist als zusätzliches Feld mit.
+
+Die vier real vorhandenen `rinne_halbrund`-Aufnahmen (IDs 6, 8, 9, 12;
+eine davon ohne `material`/`boundaries`/`dilas`) öffnen dadurch unverändert.
+`raAusData()` liest `groesse` aus `rinneAbwicklung`, wenn es fehlt, und
+**erfindet keinen Rinnenboden**: eine alte Aufnahme hat keinen erfasst, also
+steht er auf „nicht vorhanden". Der bestehende Druckzweig ist rein additiv
+erweitert (Rinnenhalter, Rinnenboden, Ausmass, Normlängen); der
+Normlängen-Abschnitt druckt den **gespeicherten** Plan, damit ein einmal
+gedrucktes Blatt gleich bleibt, auch wenn die Normlängen später geändert
+werden.
+
+### 79.6 Warum kein Schritt-für-Schritt-Ablauf wie im Prototyp
+
+Der Prototyp führt durch sechs Schritte, weil er eine eigenständige Seite
+ist. In der App liegt die Erfassung im Massaufnahme-Formular, das für die
+zehn anderen Arten ein einziges scrollendes Formular ist. Ein Stepper nur
+für diese eine Art wäre ein zweites Bedienkonzept im selben Dialog.
+Umgesetzt sind deshalb dieselben Inhalte als gestapelte Abschnitte:
+Grunddaten · Rinnenverlauf · Halter/Rinnenboden/Dehnung · Kontrolle ·
+Ausmass · Zuschnitt · Normlängen. Fotos, Skizze, Bezeichnung, Datum,
+Projekt und PDF kommen weiterhin aus der App – der Prototyp brachte dafür
+eigene Lösungen mit, die hier bewusst nicht übernommen wurden.
+
+### 79.7 Getestet
+
+- **`pruefstaende/pruefstand-rinne-app-v2-71.js` – 70/70**, echtes Chromium
+  gegen die echte `index.html` mit den echten Katalogwerten der
+  Produktivdatenbank: Modul verdrahtet, Brücke zu js/12 (Abschnitte,
+  Fixpunkt-IDs, Rinnenboden an beiden Enden, Material/Grösse in den alten
+  Feldern), Dehnungselemente bei 4 000 und 10 000 mm, Zuschnitte
+  3835/2835/2835/3335, Normlängenplan 14 000 mm mit 1 160 mm Verschnitt,
+  Speichern liefert alle acht bisherigen **und** alle acht neuen Felder,
+  ein alter Datensatz öffnet unverändert, Dilas von Hand, fehlender Katalog
+  wird gemeldet statt still falsch gerechnet, Speichern → Wiederöffnen
+  ergibt denselben Verlauf, fünf Bildschirmbreiten ohne seitliches Scrollen,
+  keine JS-Fehler.
+- **`pruefstaende/pruefstand-verschnitt-app.js` – 1 578/1 578**: die
+  Verschnitt-Rechnung der App gegen eine **unabhängige, vollständige
+  Suche**, die stur alle Stangen-Kombinationen und Zuordnungen durchprobiert
+  – für kleine Fälle beweisbar das Optimum. 120 Zufallsfälle, dazu
+  Handrechnungen, zu lange Stücke, fehlende Normlänge und ein Fall mit 24
+  Zuschnitten. Bei jedem Plan wird nachgerechnet, dass keine Stange
+  überladen ist, jedes Stück genau einmal vorkommt und Gesamtlänge und
+  Verschnitt zur Stückliste passen.
+- **Gegenproben** (jede baut einen Fehler ein und muss den Prüfstand
+  umwerfen): Brücke setzt `rinneSegments` nicht → Abbruch · Rinnenboden
+  nicht an die Enden → 2 · Stutzen geht beim Speichern verloren → 5 ·
+  Zusatzfelder werden nicht gespeichert → 18 · alter Datensatz erfindet
+  einen Rinnenboden → 2 · fehlender Katalog wird verschwiegen → Abbruch.
+- **Zwei echte Fehler kamen dabei heraus**, nicht aus dem Nachdenken:
+  (1) die gespeicherten `segments` verloren das Feld `stutzen`, ein
+  wiedergeöffneter Datensatz hätte seine Stutzen eingebüsst;
+  (2) eine Sammelumbenennung hatte `raHalterAnzahl` zu `raHalterAnraZahl`
+  verstümmelt. Beides behoben und je mit einer Gegenprobe abgesichert.
+- **Volle App-Regression grün**: pfade55 38/38, required70 359/359,
+  kehle52 698/698, kehleintegration52 76/76, rinne57 379/379,
+  breite52 52/52, breite57 84/84, einf70 185/185, offline70 107/107,
+  feedback63 108/108, freipos65 99/99, dila70 85/85, fotos70 88/88,
+  fp70 83/83, mad70 45/45, ebg70 49/49, feedback70 47/47,
+  einstbrowser68 47/47, einst68 43/43, module67 43/43,
+  medien50 42/42, adresse45 39/39, dateien49 38/38, projekte47 37/37,
+  status46 35/35, auswahl48 32/32, modulebrowser67 16/16,
+  suche45 13/13, kopf45 8/8, hidden51 7/7, abstand69 2/2 sowie nav,
+  stand42, dateien43, suche40, treffer40, recent41 ohne Fehlschlag.
+- `node --check` über alle 29 `js/*.js` und `sw.js`: fehlerfrei.
+  `<div>`/`</div>` in `index.html` ausgeglichen (721/721), keine doppelten
+  Element-IDs, `js/28-rinne-aufnahme.js` in der Service-Worker-Liste.
+- **`module67` hatte eine überholte Erwartung** („genau vier Aufrufstellen
+  nutzen `speichereAppSettings`") – durch die zwei neuen Normlängen-Knöpfe
+  sind es sechs. Die Prüfung testet jetzt die Eigenschaft (jeder
+  app_settings-Schreibzugriff geht über den Helfer) statt eine Zahl.
+
+### 79.8 Datenbestand
+
+Migration `app_settings_rinne_normlaengen_v2_71` angewandt (eine additive,
+nullable jsonb-Spalte). PETER KÜNZI AG danach unverändert: 2 Firmen, 16
+Massaufnahmen (davon 4 `rinne_halbrund`), `rinne_dila_mass_mm` weiterhin
+−165, `rinne_normlaengen` NULL, `app_settings.updated_at` unverändert
+(`2026-08-31 11:34:28.805+00`) – ein `ALTER TABLE … ADD COLUMN` löst keine
+Zeilentrigger aus. Sonst wurde **nicht** in die Datenbank geschrieben, nur
+gelesen.
+
+### 79.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert weiterhin
+  jede ausgehende HTTPS-Verbindung zu `nfgryuzkpwjfmdlmevuy.supabase.co`.
+  **Das wird ausdrücklich nicht als getestet behauptet.** Geprüft ist die
+  Oberfläche in echtem Chromium gegen die echte `index.html` (die
+  Supabase-Bibliothek wird dabei durch eine Attrappe ersetzt, gerechnet
+  wird ausschliesslich mit dem echten Code) und die Datenbankseite per SQL.
+- **Der Verschnitt rechnet ohne Schnittfuge und ohne Reststücke-Lager.**
+  Die Scheren-/Sägebreite ist nicht abgezogen, und ein Rest aus einer
+  früheren Stange wird nicht wiederverwendet.
+- Bei sehr vielen Zuschnitten wird nicht jede Möglichkeit durchgerechnet;
+  das Ergebnis heisst dann „beste gefundene Kombination", nicht „optimal".
+- **Eine frisch registrierte Firma hat keinen Anschlusstyp-Katalog.**
+  `register-company` legt Auth-User, Firma, Profil und `app_settings` an,
+  aber keine `rinne_fitting_types`. Das Formular meldet das jetzt
+  ausdrücklich; ein „Standardtypen anlegen"-Knopf wäre die naheliegende
+  Ergänzung und ist bewusst nicht Teil dieser Runde.
+- Die alte Segmenttabelle ist aus der Oberfläche verschwunden, der
+  unsichtbare `#rinneStummel` bleibt als Aufhänger für js/12 stehen. Ihn
+  aufzulösen hiesse, js/12 anzufassen – bewusst nicht getan.

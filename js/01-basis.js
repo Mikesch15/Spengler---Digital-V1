@@ -158,6 +158,9 @@ function renderMeasMaterialOptions(){
 // Mass des Dilatationselements (Rinne Halbrund), je angrenzendem Stück.
 // Negativ = wird abgezogen. Firmenweit, kommt aus app_settings.
 let rinneDilaMass=-165;
+// Rinnen-Normlängen je Material und Grösse als Firmeneinstellung:
+// {"<material_id>|<groesse>":[laengen_mm]}. Leer = Vorgabe der App.
+let rinneNormlaengen={};
 // Masse für die Mauerabdeckung, firmenweit aus app_settings.
 let madBodenMass=0;
 let madSchieberMass=0;

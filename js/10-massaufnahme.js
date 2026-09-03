@@ -347,6 +347,7 @@ function newMeasurementWithType(type){
  $("rinne_abwicklung").value="250";
  $("rinne_material").value=String(measurementMaterialOrFallback(null).id||"");
  renderRinneResult();
+ if(typeof rinneAufnahmeZuruecksetzen==="function")rinneAufnahmeZuruecksetzen();
  ebkPieces=[];
  $("ebk_abwicklung").value="250";
  $("ebk_dachneigung").value="";
@@ -447,6 +448,8 @@ function openMeasurement(m){
  $("rinne_abwicklung").value=d.rinneAbwicklung||"250";
  $("rinne_material").value=String(measurementMaterialOrFallback(d.material).id||"");
  if(m.type==="rinne_halbrund")renderRinneResult();
+ if(typeof rinneAufnahmeFuellen==="function")
+  rinneAufnahmeFuellen(m.type==="rinne_halbrund"?d:null);
  ebkPieces=(m.type==="einlaufblech_konisch"&&Array.isArray(d.pieces))?d.pieces.map(p=>({...p})):[];
  $("ebk_abwicklung").value=d.abwicklung||"250";
  $("ebk_dachneigung").value=d.dachneigung||"";

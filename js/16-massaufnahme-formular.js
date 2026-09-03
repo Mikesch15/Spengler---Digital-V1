@@ -12,7 +12,7 @@ function showMeasTypeSection(type){
  $("measTypeKehle").hidden=(type!=="kehle");
  $("measTypeRinneProfil").hidden=(type!=="rinne");
  if(type==="einlaufblech_gerade")renderEbPiecesTable();
- if(type==="rinne_halbrund")renderRinneResult();
+ if(type==="rinne_halbrund"){renderRinneResult();if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();}
  if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
  if(type==="einlaufblech_gerade")refreshEbRinneList();
  if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
@@ -64,6 +64,7 @@ function buildMeasurementFromForm(){
   return {...base,...measMedienAusFormular(),data:{gesamtlaenge,massA,massAEng,winkel,montage,abwicklung,engeSeite,restBreite,pieces:ebPieces,material:$("eb_material").value}};
  }
  if(type==="rinne_halbrund"){
+  if(typeof raBruecke==="function")raBruecke();
   const segmentsWithZuschnitt=rinneSegments.map(s=>({...s,zuschnittlaenge:calcRinneSegment(s)}));
   const gesamtlaenge=rinneSegments.reduce((s,seg)=>s+(Number(seg.laenge)||0),0);
   const material=$("rinne_material").value;
@@ -71,7 +72,12 @@ function buildMeasurementFromForm(){
   // Stückliste mitspeichern, damit ein späterer Ausdruck dieselben Zahlen
   // zeigt, auch wenn Anschluss- oder Dila-Masse zwischenzeitlich geändert werden.
   const stueckliste=berechneRinneStueckliste(rinneSegments,rinneDilas,boundaries,rinneDilaMass);
-  return {...base,...measMedienAusFormular(),data:{rinneAbwicklung:$("rinne_abwicklung").value,material,segments:segmentsWithZuschnitt,gesamtlaenge,dilas:rinneDilas,boundaries,stueckliste,dilaMass:rinneDilaMass}};
+  // Die bisherigen Felder bleiben unveraendert erhalten - dadurch oeffnen
+  // und drucken aeltere Datensaetze genau wie zuvor. Die Erfassung ergaenzt
+  // nur zusaetzliche Felder (Verlauf mit Stutzen, Halter, Rinnenboden,
+  // Normlaengen).
+  const zusatz=(typeof rinneAufnahmeZusatzDaten==="function")?rinneAufnahmeZusatzDaten():{};
+  return {...base,...measMedienAusFormular(),data:{rinneAbwicklung:$("rinne_abwicklung").value,material,segments:segmentsWithZuschnitt,gesamtlaenge,dilas:rinneDilas,boundaries,stueckliste,dilaMass:rinneDilaMass,...zusatz}};
  }
  if(type==="einlaufblech_konisch"){
   const abwicklung=Number($("ebk_abwicklung").value);
@@ -212,7 +218,11 @@ $("saveMeasurement").onclick=async()=>{
   if(!Number($("eb_massA").value)||Number($("eb_massA").value)<=0){alert("Bitte Mass A eingeben (Pflichtfeld).");return}
   if($("eb_winkel").value===""||$("eb_winkel").value===null){alert("Bitte Dachneigung / Winkel eingeben (Pflichtfeld).");return}
  }
- if(type==="rinne_halbrund"&&(!rinneSegments.length||!rinneSegments.some(s=>Number(s.laenge)>0))){alert("Bitte mindestens ein Segment mit einer gültigen Länge eingeben.");return}
+ if(type==="rinne_halbrund"){
+  if(typeof raBruecke==="function")raBruecke();
+  if(!rinneSegments.length||!rinneSegments.some(s=>Number(s.laenge)>0)){
+   alert("Bitte mindestens einen Rinnenabschnitt mit einer gültigen Länge eingeben.");return}
+ }
  if(type==="einlaufblech_konisch"){
   if(!ebkPieces.length||!ebkPieces.some(p=>Number(p.laenge)>0)){alert("Bitte mindestens ein Stück mit einer gültigen Länge erfassen.");return}
   if($("ebk_dachneigung").value===""||$("ebk_dachneigung").value===null){alert("Bitte Dachneigung / Winkel eingeben (Pflichtfeld).");return}
@@ -653,9 +663,16 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Rinnenabwicklung",esc(d.rinneAbwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
-<tr>${cell("Material",esc(matTab.label))}${cell("Dilatationselemente",dilas.length?esc(dilas.length)+" Stück":"Keine nötig")}<td></td></tr>
+<tr>${cell("Rinnengrösse",esc(d.groesse||d.rinneAbwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
+<tr>${cell("Material",esc(matTab.label))}${cell("Dilatationselemente",dilas.length?esc(dilas.length)+" Stück"+(d.dilasManuell?" (von Hand)":""):"Keine nötig")}
+${d.halter?cell("Rinnenhalter",esc(Math.round(Number(d.halter.anzahl!=null&&d.halter.anzahl!==""?d.halter.anzahl:(Number(d.gesamtlaenge||0)>0&&Number(d.halter.abstand_mm)>0?Math.floor(Number(d.gesamtlaenge)/Number(d.halter.abstand_mm))+1:0))||0))+" Stk."+(d.halter.abstand_mm?" à "+esc(d.halter.abstand_mm)+" mm":"")):"<td></td>"}</tr>
+${d.rinnenboden?`<tr>${cell("Rinnenboden links",d.rinnenboden.links?"ja":"nein")}${cell("Rinnenboden rechts",d.rinnenboden.rechts?"ja":"nein")}<td></td></tr>`:""}
 </table>
+${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`:""}
 <div class="eb-section-head">Grundriss</div>
 <div class="eb-diagram">${generateRinneGrundriss(segs,dilas,d.boundaries||[])}</div>
 <div class="eb-section-head">Dilatationselemente</div>
@@ -677,6 +694,28 @@ ${(()=>{
 <thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Links</th><th>Rechts</th><th>Winkel (°)</th><th>Zuschnitt (mm)</th></tr></thead>
 <tbody>${segs.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(fittingLabel(s.linksTyp))}</td><td>${esc(fittingLabel(s.rechtsTyp))}</td><td>${esc(s.winkel??0)}</td><td>${esc(s.zuschnittlaenge??calcRinneSegment(s))}</td></tr>`).join("")}</tbody>
 </table>
+${(()=>{
+ // Normlängen und Verschnitt aus dem gespeicherten Plan. Bewusst NICHT neu
+ // gerechnet: ein einmal gedrucktes Blatt soll gleich bleiben, auch wenn
+ // die Normlängen der Firma später geändert werden.
+ const np=d.normplan;
+ if(!np||!Array.isArray(np.stangen)||!np.stangen.length)return "";
+ const nachL={};
+ np.stangen.forEach(x=>{nachL[x.laenge]=(nachL[x.laenge]||0)+1});
+ const bedarf=Object.keys(nachL).map(Number).sort((x,y)=>y-x)
+  .map(l=>`${nachL[l]} × ${(l/1000).toFixed(2)} m`).join(" · ");
+ return `<div class="eb-section-head">Normlängen und Verschnitt</div>
+<table class="eb-cutlist">
+<thead><tr><th>Stange</th><th>Normlänge</th><th>Zuschnitte (mm)</th><th>Rest (mm)</th></tr></thead>
+<tbody>${np.stangen.map((x,i)=>`<tr><td>${i+1}</td><td>${(Number(x.laenge)/1000).toFixed(2)} m</td>`
+ +`<td>${(x.stuecke||[]).map(v=>esc(Math.round(v))).join(" + ")||"–"}</td>`
+ +`<td>${esc(Math.round(x.rest||0))}</td></tr>`).join("")}</tbody>
+</table>
+<div class="note">Bedarf: ${esc(bedarf)} · Verschnitt ${esc(Math.round(np.verschnitt||0))} mm von ${esc(Math.round(np.gesamt||0))} mm.
+${np.optimal?"Kombination mit dem geringsten Materialeinsatz."
+  :"Beste gefundene Kombination – nicht jede Möglichkeit wurde durchgerechnet."}
+${(np.zuLang||[]).length?` ACHTUNG: ${np.zuLang.length} Zuschnitt(e) sind länger als die längste Normlänge und im Plan nicht enthalten.`:""}</div>`;
+})()}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="mauerabdeckung"){

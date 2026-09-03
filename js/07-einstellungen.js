@@ -169,7 +169,31 @@ $("saveRinneDilaMass").onclick=async()=>{
  if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
  rinneDilaMass=wert;
  if(typeof renderRinneResult==="function"&&rinneSegments.length)renderRinneResult();
+ if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();
  alert("Gespeichert (gilt für alle).");
+};
+// Normlängen je Material und Grösse. Leeres Feld = nichts hinterlegt; dort
+// rechnet die Massaufnahme bewusst nichts, statt eine Stangenlänge zu raten.
+if($("saveRinneNorm"))$("saveRinneNorm").onclick=async()=>{
+ const neu=(typeof raNormAusFeldern==="function")?raNormAusFeldern():{};
+ $("saveRinneNorm").disabled=true;
+ const {fehler}=await speichereAppSettings({rinne_normlaengen:neu});
+ $("saveRinneNorm").disabled=false;
+ if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+ rinneNormlaengen=neu;
+ if(typeof renderRinneNormSettings==="function")renderRinneNormSettings();
+ if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();
+ alert("Gespeichert (gilt für alle).");
+};
+if($("resetRinneNorm"))$("resetRinneNorm").onclick=async()=>{
+ if(!confirm("Alle eigenen Normlängen verwerfen und die Vorgaben der App verwenden?"))return;
+ $("resetRinneNorm").disabled=true;
+ const {fehler}=await speichereAppSettings({rinne_normlaengen:{}});
+ $("resetRinneNorm").disabled=false;
+ if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+ rinneNormlaengen={};
+ if(typeof renderRinneNormSettings==="function")renderRinneNormSettings();
+ if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();
 };
 $("saveCompanyName").onclick=async()=>{
  const name=$("companyNameInput").value.trim();

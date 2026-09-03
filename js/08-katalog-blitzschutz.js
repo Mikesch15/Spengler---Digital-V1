@@ -297,6 +297,7 @@ function renderSettings(){
  $("protectedTabBtn").hidden=!isAdmin();
  const dilaFeld=$("rinneDilaMassInput");
  if(dilaFeld)dilaFeld.value=rinneDilaMass;
+ if(typeof renderRinneNormSettings==="function")renderRinneNormSettings();
  const madBoden=$("madBodenMassInput"),madSchieber=$("madSchieberMassInput");
  if(madBoden)madBoden.value=madBodenMass;
  if(madSchieber)madSchieber.value=madSchieberMass;

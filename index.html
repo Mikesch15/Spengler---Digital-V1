@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.70</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.71</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -713,33 +713,23 @@ Diese Aktion löscht unwiderruflich:
 </div>
 
 <div id="measTypeRinne" hidden>
-<div class="info">Jedes Segment ist ein gerades Rinnenstück. Winkel = Richtungsänderung zum nächsten Segment (90° = normale Gebäudeecke). Anschlusstypen und deren Masse werden in Einstellungen → Massaufnahmen verwaltet.</div>
-<div class="grid">
-<div><label>Rinnenabwicklung (mm)</label><select id="rinne_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
-<div><label>Material</label><select id="rinne_material" class="meas-material-select" data-meas-material-required="1"></select></div>
+<div id="rinneAufnahme"></div>
+
+<!-- Nur Aufhänger für js/12-rinne-halbrund.js, damit diese Fachdatei
+     unverändert laden und rechnen kann. Nicht sichtbar, nicht bedienbar:
+     die Erfassung läuft über #rinneAufnahme. -->
+<div id="rinneStummel" hidden aria-hidden="true">
+ <select id="rinne_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option><option value="400">400</option></select>
+ <select id="rinne_material" class="meas-material-select"></select>
+ <div id="rinne_diagram"></div>
+ <table><tbody id="rinne_segmentsBody"></tbody></table>
+ <button type="button" id="rinne_addSegment"></button>
+ <div id="rinne_summary"></div>
+ <button type="button" id="rinne_calcDilas"></button>
+ <button type="button" id="rinne_addDila"></button>
+ <table><tbody id="rinne_dilasBody"></tbody></table>
+ <div id="rinne_dilasSummary"></div>
 </div>
-<div id="rinne_diagram" class="eb-diagram-box"></div>
-<h2 style="margin-top:14px">Segmente</h2>
-<div class="scroll">
-<table class="eb-table">
-<colgroup><col style="width:8%"><col style="width:16%"><col style="width:20%"><col style="width:20%"><col style="width:14%"><col style="width:16%"><col style="width:6%"></colgroup>
-<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Links</th><th>Rechts</th><th>Winkel (°)</th><th>Zuschnitt (mm)</th><th></th></tr></thead>
-<tbody id="rinne_segmentsBody"></tbody>
-</table>
-</div>
-<div class="bar"><button type="button" class="gray" id="rinne_addSegment">＋ Segment hinzufügen</button></div>
-<div class="small" id="rinne_summary"></div>
-<h2 style="margin-top:14px">Dilatationselemente (Dilas)</h2>
-<div class="info">Automatisch nach SPI-Richtwerten platziert (Anschlusstypen mit Fixpunkt- oder Schiebestutzen-Kennzeichen wirken sich auf den Abstand aus). Einstellbar in Einstellungen → Massaufnahmen → Anschlusstypen. Abstände unten bei Bedarf manuell anpassen.</div>
-<div class="bar"><button type="button" class="gray" id="rinne_calcDilas">🔄 Dilas automatisch berechnen</button><button type="button" class="gray" id="rinne_addDila">＋ Dila manuell hinzufügen</button></div>
-<div class="scroll">
-<table class="eb-table">
-<colgroup><col style="width:12%"><col style="width:38%"><col style="width:20%"><col style="width:22%"><col style="width:8%"></colgroup>
-<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th>Position ab Start (mm)</th><th></th></tr></thead>
-<tbody id="rinne_dilasBody"></tbody>
-</table>
-</div>
-<div class="small" id="rinne_dilasSummary"></div>
 </div>
 
 <div id="measTypeMauerabdeckung" hidden>
@@ -1331,6 +1321,19 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div class="small" style="margin-bottom:8px">Wird jedem Rinnenstück abgezogen, das an eine Dila grenzt. Negativer Wert = Abzug.</div>
 <div class="bar" style="margin-bottom:14px"><button id="saveRinneDilaMass" class="green">💾 Dila-Mass speichern</button></div>
 
+<h2 style="margin-top:14px">Normlängen</h2>
+<div class="small" style="margin-bottom:8px">Welche Stangenlängen der Lieferant je Material und Rinnengrösse führt –
+in Metern, durch Komma getrennt (z. B. <b>4, 5, 6</b>). Daraus rechnet die Massaufnahme den Materialbedarf und
+den Verschnitt. Ist nichts hinterlegt, wird bewusst nichts gerechnet statt eine Stangenlänge zu raten.</div>
+<div id="rinneNormSettings"></div>
+<div class="bar" style="margin-bottom:14px">
+<button id="saveRinneNorm" class="green">💾 Normlängen speichern</button>
+<button id="resetRinneNorm" class="gray">↻ Auf die Vorgaben zurücksetzen</button>
+</div>
+
+<h2 style="margin-top:14px">Anschlusstypen</h2>
+<div class="small" style="margin-bottom:8px">Das Mass jedes Elements wird dem Rinnenzuschnitt zugerechnet (+) oder
+abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschliessende Stück um 110 mm.</div>
 <div id="rinneFittingSettings"></div>
 <div class="bar">
 <button id="newRinneFitting" class="gray">＋ Anschlusstyp hinzufügen</button>
@@ -1554,6 +1557,7 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <script src="js/24-projekt-cockpit.js"></script>
 <script src="js/25-kehle.js"></script>
 <script src="js/26-rinne.js"></script>
+<script src="js/28-rinne-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

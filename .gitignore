@@ -1,0 +1,6 @@
+# Screenshots, die die Browser-Pruefstaende beim Laufen im Repo-Verzeichnis
+# ablegen. Reine Testausgabe, kein Bestandteil der App.
+# Bewusst NICHT "*.png": icon-192.png und icon-512.png gehoeren zur PWA.
+/freipos_material.png
+/module_sysadmin.png
+/pdf/
