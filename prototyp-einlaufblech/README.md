@@ -54,7 +54,7 @@ hier unverändert als Formel notiert (Kopf von `prototyp-eb.js`):
 | `einlaufblech-gerade.html` | Mehrdatei-Fassung |
 | `einlaufblech-gerade-testapp.html` | **erzeugt** – eine Datei für das Tablet |
 | `bauen.js` | baut die Einzeldatei (mit Gegenprobe) |
-| `pruefstand.js` | 203 Prüfungen in echtem Chromium |
+| `pruefstand.js` | 220 Prüfungen in echtem Chromium |
 
 ## Register
 
@@ -88,6 +88,19 @@ hier unverändert als Formel notiert (Kopf von `prototyp-eb.js`):
   `Tafeln = aufgerundet(Streifen ÷ Streifen je Tafel)`.
   Standard sind 1'000 und 670 mm; 500/400/330/250/200 mm liegen bereit
   und lassen sich in den Einstellungen dazuschalten.
+
+## Rinnenlängen übernehmen
+
+Wie in der laufenden App: aus den Segmenten einer Rinne-Halbrund-
+Massaufnahme werden Einlaufblech-Stücke gerechnet – mit
+`baueEinlaufblechStueckeAusRinne()` aus `js/13`, unverändert. Eine Ecke
+im Rinnenverlauf wird zur Gehrung, zu lange Segmente werden aufgeteilt.
+
+Woher die Rinnen kommen: in der App aus Supabase, im Prototyp aus dem
+Speicher des Rinnen-Prototyps auf demselben Gerät
+(`sd_prototyp_rinne_halbrund`). Liegen die beiden Testapps getrennt,
+lässt sich eine Massaufnahme auch als Text einfügen – im Format des
+Rinnen-Prototyps (`segmente`) oder der App (`data.segments`).
 
 ## Nicht enthalten
 

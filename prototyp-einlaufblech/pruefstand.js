@@ -645,6 +645,116 @@ const text=page=>page.evaluate(()=>document.getElementById("p-inhalt").innerText
  p(leer.plan.moeglich.length===0,"ohne Stücke wird nichts gerechnet",leer.plan);
  p(/Noch nichts zuzuschneiden/i.test(leer.text),"und das steht auch so da");
 
+ console.log("\n19 · Rinnenlängen aus einer Rinne-Massaufnahme übernehmen");
+ // Dieselbe Funktion wie in der laufenden App (js/13), mit den Einstellungen
+ // von Einlaufblech gerade.
+ const vorbereitet=await page.evaluate(()=>{
+  // Zwei Rinnen im Speicher des Rinnen-Prototyps ablegen - so, wie der
+  // Rinnen-Prototyp sie schreibt.
+  const rinnen=[
+   {id:"ra_1",typ:"rinne_halbrund",bezeichnung:"Rinne Nordseite",
+    erstellt:"2026-09-01T08:00:00.000Z",geaendert:"2026-09-02T08:00:00.000Z",
+    segmente:[{laenge:5000,linksTyp:"",rechtsTyp:"",winkel:-90,stutzen:null},
+              {laenge:3000,linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null}]},
+   {id:"ra_2",typ:"rinne_halbrund",bezeichnung:"Rinne rinneOhne Masse",
+    erstellt:"2026-09-01T08:00:00.000Z",segmente:[{laenge:0,winkel:0}]}
+  ];
+  localStorage.setItem("sd_prototyp_rinne_halbrund",JSON.stringify(rinnen));
+  aufnahme=leereAufnahme(); aufnahme.abwicklung=250;
+  setzeSchritt(3);
+  return {liste:rinneAufnahmen().length,
+          knoepfe:document.querySelectorAll("[data-rinne]").length,
+          text:document.getElementById("p-inhalt").innerText};
+ });
+ p(vorbereitet.liste===2,"beide gespeicherten Rinnen werden gefunden",vorbereitet.liste);
+ p(vorbereitet.knoepfe===2,"je ein Übernehmen-Knopf",vorbereitet.knoepfe);
+ p(/Rinne Nordseite/.test(vorbereitet.text),"die Bezeichnung steht da");
+ p(/2 Segment\(e\)/.test(vorbereitet.text),"und die Zahl der Segmente",
+   (vorbereitet.text.match(/Rinne Nordseite[\s\S]{0,80}/)||[""])[0]);
+ const rinneGesperrt=await page.evaluate(()=>
+   document.querySelector('[data-rinne="1"]').disabled);
+ p(rinneGesperrt,"eine Rinne ohne Masse lässt sich nicht übernehmen");
+
+ // Uebernehmen (rinneOhne vorhandene Stuecke: keine Rueckfrage)
+ page.once("dialog",d=>d.accept());
+ await page.evaluate(()=>{document.querySelector('[data-rinne="0"]').click()});
+ await page.waitForTimeout(250);
+ const rinneU=await page.evaluate(()=>({
+  stuecke:aufnahme.stuecke.map(x=>({l:x.laenge,gl:x.gehrungLinks,gr:x.gehrungRechts,w:x.winkel})),
+  soll:baueEinlaufblechStueckeAusRinne(
+    [{laenge:5000,winkel:-90},{laenge:3000,winkel:0}],einlaufblechSettings,
+    l=>teileLaengeInStuecke(l,einlaufblechSettings),false)
+    .map(x=>({l:x.laenge,gl:x.gehrungLinks,gr:x.gehrungRechts,w:x.winkel}))
+ }));
+ p(JSON.stringify(rinneU.stuecke)===JSON.stringify(rinneU.soll),
+   "die Stücke sind genau das, was die Funktion der App liefert",rinneU);
+ p(rinneU.stuecke.length>=4,"aus zwei Segmenten entstehen mehrere Stücke",rinneU.stuecke.length);
+ p(rinneU.stuecke.some(x=>x.gr===true||x.gl===true),
+   "die Ecke im Rinnenverlauf wird zur Gehrung",rinneU.stuecke);
+ p(rinneU.stuecke.some(x=>x.w!==0),"und setzt den Winkel",rinneU.stuecke);
+
+ // Vorhandene Stuecke werden nur nach Rueckfrage ersetzt
+ const abgelehnt=await page.evaluate(()=>{
+  aufnahme.stuecke=[{laenge:1234,stossStoss:1234,gehrungLinks:false,gehrungRechts:false,winkel:0}];
+  setzeSchritt(3); return aufnahme.stuecke.length;
+ });
+ p(abgelehnt===1,"Ausgangslage: ein eigenes Stück");
+ page.once("dialog",d=>d.dismiss());
+ await page.evaluate(()=>{document.querySelector('[data-rinne="0"]').click()});
+ await page.waitForTimeout(250);
+ p((await page.evaluate(()=>aufnahme.stuecke.map(x=>x.laenge).join()))==="1234",
+   "Abbrechen lässt die vorhandenen Stücke stehen");
+ page.on("dialog",d=>d.accept());
+ await page.evaluate(()=>{document.querySelector('[data-rinne="0"]').click()});
+ await page.waitForTimeout(250);
+ p((await page.evaluate(()=>aufnahme.stuecke.length))>=4,"Bestätigen ersetzt sie");
+
+ // Alles Weitere rechnet mit den übernommenen Stücken
+ const rinneFolge=await page.evaluate(()=>{
+  setzeSchritt(6);
+  return {L:gesamtlaengeStuecke(aufnahme), zeilen:ausmassZeilen(aufnahme).length,
+          plan:rollenPlan(aufnahme).bestes};
+ });
+ p(rinneFolge.L>0&&rinneFolge.zeilen>0&&!!rinneFolge.plan,
+   "Ausmass und Rollenplan rechnen danach weiter",rinneFolge);
+
+ // Einfügen als Text - auch im Format der laufenden App
+ const ausText=await page.evaluate(()=>{
+  aufnahme.stuecke=[];
+  setzeSchritt(3);
+  document.getElementById("p-rinneEinfuegen").click();
+  const feld=document.getElementById("p-rinneText");
+  feld.value=JSON.stringify({id:7,title:"Aus der App",type:"rinne_halbrund",
+    data:{segments:[{laenge:4000,winkel:0}]}});
+  document.getElementById("p-rinneTextUebernehmen").click();
+  return {stuecke:aufnahme.stuecke.map(x=>x.laenge),
+          soll:teileLaengeInStuecke(4000,einlaufblechSettings)};
+ });
+ await page.waitForTimeout(200);
+ p(ausText.stuecke.join()===ausText.soll.join(),
+   "eine Massaufnahme im Format der App lässt sich als Text einfügen",ausText);
+ const rinneMist=await page.evaluate(()=>{
+  const vorher=aufnahme.stuecke.map(x=>x.laenge).join();
+  document.getElementById("p-rinneEinfuegen").click();
+  document.getElementById("p-rinneText").value="kein json";
+  document.getElementById("p-rinneTextUebernehmen").click();
+  const a1=aufnahme.stuecke.map(x=>x.laenge).join();
+  document.getElementById("p-rinneText").value='{"segmente":[]}';
+  document.getElementById("p-rinneTextUebernehmen").click();
+  return {vorher,a1,a2:aufnahme.stuecke.map(x=>x.laenge).join()};
+ });
+ await page.waitForTimeout(200);
+ p(rinneMist.a1===rinneMist.vorher&&rinneMist.a2===rinneMist.vorher,
+   "unlesbarer oder leerer Text ändert nichts",rinneMist);
+ await page.evaluate(()=>{try{localStorage.removeItem("sd_prototyp_rinne_halbrund")}catch(e){}});
+ const rinneOhne=await page.evaluate(()=>{
+  setzeSchritt(3);
+  return {knoepfe:document.querySelectorAll("[data-rinne]").length,
+          text:document.getElementById("p-inhalt").innerText};
+ });
+ p(rinneOhne.knoepfe===0,"ohne gespeicherte Rinne kein Knopf",rinneOhne.knoepfe);
+ p(/keine Rinne-Halbrund-Massaufnahme/i.test(rinneOhne.text),"und das wird gesagt");
+
  console.log("\n12 · Keine JS-Fehler");
  p(fehler.length===0,"keine Seitenfehler",fehler.slice(0,3));
 

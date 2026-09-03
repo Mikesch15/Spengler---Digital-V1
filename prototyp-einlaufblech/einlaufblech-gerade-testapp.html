@@ -9,7 +9,7 @@
      Erzeugt von prototyp-einlaufblech/bauen.js – nicht von Hand bearbeiten.
      Änderungen gehören in prototyp-einlaufblech/prototyp-eb.js bzw.
      prototyp.css, danach "node prototyp-einlaufblech/bauen.js" laufen lassen.
-     Gebaut am 2026-09-03 18:21 UTC
+     Gebaut am 2026-09-03 18:28 UTC
      =================================================================== -->
 <style>
 /* ---- css/01-basis.css (unverändert aus der laufenden App) ---- */
@@ -594,6 +594,10 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
 .p-rolle{flex:0 0 auto;min-height:42px}
 .p-tabelle tr.p-beste{background:#eff9f2}
 .p-tabelle tr.p-beste td:first-child{font-weight:700;color:#1f5c39}
+
+/* Übernahme aus einer Rinne-Massaufnahme */
+#p-rinneTextBox[hidden]{display:none}
+#p-rinneText{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
 
 </style>
 </head>
@@ -1196,6 +1200,48 @@ function endzugabeSchalten(position){
  return null;
 }
 
+// ---- 4b. Stücke aus einer Rinne-Massaufnahme übernehmen -------------------
+// Genau wie in der laufenden App (js/15): die Segmente der Rinne werden mit
+// baueEinlaufblechStueckeAusRinne() aus js/13 in Einlaufblech-Stücke
+// umgerechnet - mit den Einstellungen von Einlaufblech gerade und ohne
+// Mass links/rechts. Die Funktion ist unverändert übernommen.
+//
+// Woher die Rinnen kommen: in der App aus Supabase, im Prototyp aus dem
+// Speicher des Rinnen-Prototyps auf demselben Gerät. Liegt dort nichts
+// (etwa weil die beiden Testapps auf dem Tablet getrennt liegen), lässt
+// sich eine Massaufnahme auch als Text einfügen.
+const RINNE_SPEICHER="sd_prototyp_rinne_halbrund";
+function rinneAufnahmen(){
+ try{
+  const l=JSON.parse(localStorage.getItem(RINNE_SPEICHER)||"[]");
+  return Array.isArray(l)?l:[];
+ }catch(e){return []}
+}
+// Segmente lesen - aus dem Rinnen-Prototyp (a.segmente) ODER aus einer
+// Massaufnahme der laufenden App (m.data.segments). Beide haben laenge
+// und winkel je Segment, mehr braucht die Umrechnung nicht.
+function rinneSegmenteAus(m){
+ const roh=(m&&Array.isArray(m.segmente))?m.segmente
+   :((m&&m.data&&Array.isArray(m.data.segments))?m.data.segments:[]);
+ return roh.map(x=>({laenge:zahl(x&&x.laenge),winkel:zahl(x&&x.winkel)}))
+   .filter(x=>x.laenge>0);
+}
+function rinneName(m){
+ return String((m&&(m.bezeichnung||m.title))||"Ohne Bezeichnung");
+}
+function rinneDatum(m){
+ const d=new Date((m&&(m.geaendert||m.erstellt||m.date))||"");
+ return isNaN(d)?"–":d.toLocaleDateString("de-CH");
+}
+// Erzeugt die Stücke. Gibt einen Fehlertext zurück oder null bei Erfolg.
+function stueckeAusRinneUebernehmen(m){
+ const segs=rinneSegmenteAus(m);
+ if(!segs.length)return "Diese Rinnen-Massaufnahme hat keine Segmente mit einer Länge.";
+ aufnahme.stuecke=baueEinlaufblechStueckeAusRinne(segs,einlaufblechSettings,
+   l=>teileLaengeInStuecke(l,einlaufblechSettings),false);
+ return null;
+}
+
 // ---- 5. Plausibilität -----------------------------------------------------
 // Nur Prüfungen, die sich aus dem bestehenden Modul ableiten lassen. Es
 // werden KEINE fachlichen Grenzwerte erfunden (siehe Bericht).
@@ -1483,6 +1529,37 @@ function stueckZeilen(a){
 </tr>`).join("");
 }
 
+function rinneUebernahmeHtml(){
+ const liste=rinneAufnahmen();
+ const zeilen=liste.map((m,i)=>{
+  const n=rinneSegmenteAus(m).length;
+  return `<div class="p-zeile">
+<div class="p-zeile-kopf"><b>${esc(rinneName(m))}</b>
+<span class="p-klein-text">${esc(rinneDatum(m))} · ${n} Segment(e)</span></div>
+<div class="p-knopfreihe">
+<button type="button" class="p-blau" data-rinne="${i}"${n?"":" disabled"}>↩️ Übernehmen</button>
+</div></div>`;
+ }).join("");
+ return `<div class="p-hinweis">Aus den Rinnensegmenten werden Einlaufblech-Stücke
+gerechnet – mit der Funktion der laufenden App. Eine Ecke im Rinnenverlauf wird
+dabei zur Gehrung, und zu lange Segmente werden aufgeteilt.</div>
+${liste.length?zeilen
+ :`<div class="p-leer">Auf diesem Gerät ist keine Rinne-Halbrund-Massaufnahme
+gespeichert. In der laufenden App stehen hier die Massaufnahmen des Projekts.</div>`}
+<div class="p-knopfreihe">
+<button type="button" class="p-grau" id="p-rinneEinfuegen">📋 Massaufnahme als Text einfügen</button>
+</div>
+<div id="p-rinneTextBox" hidden>
+<textarea id="p-rinneText" rows="4" placeholder="Massaufnahme als JSON einfügen – aus dem Rinnen-Prototyp oder aus der App"></textarea>
+<div class="p-knopfreihe">
+<button type="button" class="p-blau" id="p-rinneTextUebernehmen">↩️ Übernehmen</button>
+<button type="button" class="p-grau" id="p-rinneTextAbbrechen">Abbrechen</button>
+</div>
+<div class="p-klein-text">Erwartet werden die Segmente der Rinne – entweder als
+<code>segmente</code> (Rinnen-Prototyp) oder als <code>data.segments</code>
+(laufende App). Nur Länge und Winkel je Segment werden gelesen.</div>
+</div>`;
+}
 function schritt3(){
  const a=aufnahme, L=gesamtlaengeStuecke(a);
  const letzte=(a.stuecke||[])[a.stuecke.length-1];
@@ -1495,6 +1572,8 @@ ${feld("Gesamtlänge (mm)",`<input class="p-gross" id="p-gesamtlaenge" type="num
 <button type="button" class="p-grau" id="p-stueckeAnhaengen">＋ Gesamtlänge anhängen</button>
 <button type="button" class="p-grau" id="p-stueckPlus">＋ Stück</button>
 </div>
+<h3>Stücke aus einer Rinne-Massaufnahme übernehmen</h3>
+${rinneUebernahmeHtml()}
 <div class="p-hinweis">Aufgeteilt wird mit der Funktion der laufenden App:
 Länge Stoss/Stoss ${mm(s.stoss_laenge)} mm, Überlappung ${mm(s.ueberlappung)} mm,
 Reststück-Schwelle ${mm(s.rest_schwelle)} mm. Eine Gehrung legt ${mm(s.gehrungszugabe)} mm
@@ -1857,6 +1936,7 @@ function verdrahten(){
   if(t.id==="p-bezeichnung")a.bezeichnung=t.value;
   else if(t.id==="p-objekt")a.objekt=t.value;
   else if(t.id==="p-bemerkung")a.bemerkung=t.value;
+  else if(t.id==="p-rinneText")return;          // reines Eingabefeld, nichts zu merken
   else if(t.id==="p-massA"){a.massA=zahl(t.value);nurLive=true}
   else if(t.id==="p-winkel"){a.winkel=t.value===""?"":zahl(t.value);nurLive=true}
   else if(t.id==="p-gesamtlaenge")a.gesamtlaenge=zahl(t.value);
@@ -1959,6 +2039,43 @@ function verdrahten(){
    const L=zahl(a.gesamtlaenge);
    if(L<=0){alert("Bitte eine gültige Gesamtlänge eingeben.");return}
    a.stuecke=(a.stuecke||[]).concat(stueckeAusGesamtlaenge(L)); zeichne(); return;
+  }
+  // Rinne übernehmen - wie in der App erst nach ausdrücklicher Bestätigung,
+  // wenn schon Stücke da sind.
+  if(d.rinne!==undefined){
+   const m=rinneAufnahmen()[Number(d.rinne)];
+   if(!m)return;
+   if((a.stuecke||[]).length&&!confirm(
+     "Vorhandene Stücke werden durch die aus dieser Rinne erzeugten Stücke ersetzt. Fortfahren?"))return;
+   const fehler=stueckeAusRinneUebernehmen(m);
+   if(fehler){alert(fehler);return}
+   zeichne();
+   alert(a.stuecke.length+" Stück(e) aus "+rinneSegmenteAus(m).length+" Segment(en) übernommen.");
+   return;
+  }
+  if(t.id==="p-rinneEinfuegen"){
+   const box=$("p-rinneTextBox"); if(box)box.hidden=!box.hidden; return;
+  }
+  if(t.id==="p-rinneTextAbbrechen"){
+   const box=$("p-rinneTextBox"); if(box)box.hidden=true; return;
+  }
+  if(t.id==="p-rinneTextUebernehmen"){
+   const feld=$("p-rinneText");
+   let roh=null;
+   try{roh=JSON.parse((feld&&feld.value)||"")}
+   catch(err){alert("Das ist kein lesbares JSON.");return}
+   // Eine einzelne Massaufnahme oder eine Liste - beides annehmen.
+   const m=Array.isArray(roh)?roh.find(x=>rinneSegmenteAus(x).length):roh;
+   if(!m||!rinneSegmenteAus(m).length){
+    alert("Darin sind keine Rinnensegmente mit einer Länge zu finden.");return;
+   }
+   if((a.stuecke||[]).length&&!confirm(
+     "Vorhandene Stücke werden ersetzt. Fortfahren?"))return;
+   const fehler=stueckeAusRinneUebernehmen(m);
+   if(fehler){alert(fehler);return}
+   zeichne();
+   alert(a.stuecke.length+" Stück(e) aus "+rinneSegmenteAus(m).length+" Segment(en) übernommen.");
+   return;
   }
   if(t.id==="p-stueckPlus"){
    const stoss=zahl(einlaufblechSettings.stoss_laenge)||2000;

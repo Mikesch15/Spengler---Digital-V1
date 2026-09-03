@@ -144,3 +144,7 @@
 .p-rolle{flex:0 0 auto;min-height:42px}
 .p-tabelle tr.p-beste{background:#eff9f2}
 .p-tabelle tr.p-beste td:first-child{font-weight:700;color:#1f5c39}
+
+/* Übernahme aus einer Rinne-Massaufnahme */
+#p-rinneTextBox[hidden]{display:none}
+#p-rinneText{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
