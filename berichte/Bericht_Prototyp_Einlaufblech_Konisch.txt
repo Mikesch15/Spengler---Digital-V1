@@ -1,0 +1,443 @@
+SPENGLER-DIGITAL
+Prototyp Massaufnahme "Einlaufblech konisch"
+Abschlussbericht
+
+Branch:  feature/prototype-einlaufblech-konisch
+Datum:   03.09.2026
+Stand:   Prototyp fertig und geprueft - NICHT in main integriert.
+
+
+================================================================
+1. ANALYSIERTE DATEIEN UND FUNKTIONEN
+================================================================
+
+Zuerst das bestehende Modul vollstaendig gelesen, nicht nur die im
+Auftrag genannte Datei. Ergebnis - und das ist der wichtigste Befund
+dieser Runde:
+
+  js/13-einlaufblech-konisch.js enthaelt NICHT den Rechenkern des
+  konischen Blechs, sondern die gemeinsamen Bausteine, die sich das
+  gerade und das konische Blech teilen:
+
+      teileLaengeInStuecke()             Stueckaufteilung
+      splitLengthIntoPieces()            duenne Huelle darum
+      generateEbkGrundriss()             Grundriss
+      baueEinlaufblechStueckeAusRinne()  Rinnen-Uebernahme
+
+  Der eigentliche Rechenkern des konischen Blechs liegt in
+  js/14-freies-profil.js:
+
+      calcEbkPiece()          enges Mass je Seite
+      ebkRestbreite()         Restbreite
+      ebkEngeSeite()          welche Seite die enge ist
+      renderEbkDiagram()      Schnittzeichnung (repraesentatives Mass)
+      renderEbkPiecesTable()  Stueckliste
+      refreshEbkRinneList()   Rinnenliste
+      ebkPieces               das Stueck-Array
+
+  Die Schnittzeichnung selbst kommt aus js/11-einlaufblech-gerade.js
+  (einlaufblechDiagramSvg), der Ansichtspfeil aus js/14
+  (ansichtsPfeilSvg).
+
+Ebenfalls gelesen: js/16-massaufnahme-formular.js (Speicher-Payload und
+Pflichtpruefung des konischen Blechs), js/10-massaufnahme.js (Laden und
+Zuruecksetzen), js/01-basis.js (EINLAUFBLECH_STANDARD), index.html
+(Formularaufbau), css/01-basis.css (globale Grundregeln).
+
+Weiterer Befund, der fuer den Praxistest wichtig ist:
+Das konische Blech hat in der App KEIN Feld "Gesamtlaenge", obwohl
+teileLaengeInStuecke() vorhanden ist - die Stuecke werden dort einzeln
+angelegt. Der Prototyp bietet beides an (siehe Punkt 7).
+
+
+================================================================
+2. WIEDERVERWENDETE FACHLOGIK
+================================================================
+
+Acht Funktionen sind ZEICHENGENAU aus der laufenden App uebernommen -
+nicht nachgebaut, nicht umgeschrieben, nicht "angepasst":
+
+  einlaufblechDiagramSvg            4023 Zeichen  js/11
+  teileLaengeInStuecke               631 Zeichen  js/13
+  splitLengthIntoPieces              114 Zeichen  js/13
+  generateEbkGrundriss              4513 Zeichen  js/13
+  baueEinlaufblechStueckeAusRinne    931 Zeichen  js/13
+  ansichtsPfeilSvg                  1194 Zeichen  js/14
+  calcEbkPiece                       153 Zeichen  js/14
+  ebkRestbreite                      266 Zeichen  js/14
+
+prototyp-einlaufblech-konisch/uebernehmen.js schneidet sie als Text aus
+den Quelldateien heraus und prueft danach, dass jedes Stueck wortgleich
+in der Quelle steht. bauen.js prueft es beim Zusammenbauen der Testapp
+ein zweites Mal. Weicht ein Zeichen ab, bricht der Bau ab.
+
+Die uebrigen Regeln des bestehenden Moduls sind im Prototyp mit
+demselben Wortlaut nachvollzogen und im Code mit der Fundstelle
+kommentiert:
+
+  enge Seite      Montage "von rechts" -> enge Seite links (und umgekehrt)
+  Gehrung         Gehrungszugabe auf die Laenge, Winkel 90; abwaehlen
+                  nimmt sie wieder weg. Das Nachbarstueck wird - anders
+                  als beim geraden Blech - NICHT automatisch mitgesetzt.
+  Endzugabe       immer auf das Reststueck (letztes Stueck)
+  Verkettung      das rechte Mass eines Stuecks ist das linke des
+                  naechsten (js/14, ebkMr-Handler)
+
+Es gibt keine zweite, abweichende Berechnung im Prototyp.
+
+
+================================================================
+3. NEUE PROTOTYP-DATEIEN
+================================================================
+
+Alle unter prototyp-einlaufblech-konisch/ :
+
+  uebernehmen.js                     72 Zeilen   schneidet die 8 Funktionen aus
+  uebernommen.js                    243 Zeilen   das Ergebnis (nicht von Hand bearbeiten)
+  bruecke.js                         88 Zeilen   Einstellungen, Rollenbreiten, Materialkatalog
+  prototyp-ebk.js                  1076 Zeilen   Oberflaeche, 7 Register, Ausmass, Zuschnitt
+  prototyp.css                      150 Zeilen   Stile
+  einlaufblech-konisch.html          43 Zeilen   Entwicklungsfassung (laedt die Dateien einzeln)
+  bauen.js                          108 Zeilen   baut die eigenstaendige Testapp
+  pruefstand.js                     509 Zeilen   102 Pruefungen in echtem Chromium
+
+  einlaufblech-konisch-testapp.html          die Datei fuer das Tablet
+                                             (116 KB, eine Datei, kein Netz noetig)
+
+
+================================================================
+4. UNVERAENDERTE PRODUKTIVE DATEIEN
+================================================================
+
+Kontrolle gegen main, ueber alle produktiven Ordner:
+
+  git diff --stat main -- js/ css/ index.html sw.js CLAUDE.md \
+                          pruefstaende/ prototyp/ prototyp-einlaufblech/ supabase/
+  -> leer
+
+Es wurde also KEINE einzige Zeile der App geaendert. Insbesondere
+unveraendert: js/11-einlaufblech-gerade.js, js/12-rinne-halbrund.js,
+js/13-einlaufblech-konisch.js, js/14-freies-profil.js,
+js/16-massaufnahme-formular.js. Keine Supabase-Aenderung, keine
+Migration, kein Edge-Function-Deploy, kein Schreibzugriff auf die
+Datenbank - in dieser Runde wurde die Datenbank ueberhaupt nicht
+angefasst.
+
+
+================================================================
+5. BENOETIGTE EINGABEMASSE
+================================================================
+
+Register 1 - Grunddaten
+  Bezeichnung, Material, Abwicklung (mm), Montage (von links / rechts)
+
+Register 2 - Geometrie
+  Dachneigung / Winkel (Grad)
+  Umschlag oben / unten kommen aus den Einstellungen (Vorgabe je 12 mm)
+
+Register 3 - Stuecke, je Stueck
+  Zuschnittlaenge (mm)
+  Mass links (mm)          am linken Ende gemessen
+  Mass rechts (mm)         am rechten Ende gemessen
+  Gehrung links / rechts   Haekchen
+  Winkel                   wird von der Gehrung auf 90 gesetzt, frei aenderbar
+  Laenge Stoss/Stoss       aus den Einstellungen vorbelegt
+  Endzugabe Anfang / Ende  auf dem Reststueck
+
+Abgeleitet und angezeigt, nicht eingegeben:
+  enge Seite, enges Mass je Stueck (Mass minus 2 mm, calcEbkPiece),
+  Restbreite (Abwicklung minus Mass minus beide Umschlaege, ebkRestbreite),
+  Konizitaet, Gesamtlaenge, Blechflaeche.
+
+Wo jedes Mass gemessen wird, zeigt eine eigene kleine Skizze je Stueck
+(Draufsicht): links und rechts sind beschriftet, die enge Seite ist rot
+hervorgehoben. Dazu die Schnittzeichnung der App in Register 2, die sich
+live mit Winkel, Mass und Umschlaegen aendert.
+
+
+================================================================
+6. BERECHNUNG DER KONIZITAET
+================================================================
+
+Die Konizitaet ist im bestehenden Modul KEINE eigene Groesse - es gibt
+dafuer weder eine Funktion noch ein Feld. Sie ergibt sich aus den beiden
+Massen des Stuecks. Der Prototyp zeigt sie an, erfindet aber keine
+Formel:
+
+  Konizitaet = Mass rechts - Mass links
+
+Alles Weitere kommt aus der App:
+
+  enges Mass je Seite   calcEbkPiece():  Mass - 2 mm  (je Seite)
+  enge Seite            Montage "von rechts" -> links, sonst rechts
+  Restbreite            ebkRestbreite(): Abwicklung - Mass
+                                          - Umschlag oben - Umschlag unten
+  Schnittzeichnung      einlaufblechDiagramSvg() mit dem
+                        repraesentativen Mass; das ist - wie in
+                        renderEbkDiagram() von js/14 - der Mittelwert
+                        aller Masse auf der ENGEN Seite.
+
+Die 2 mm in calcEbkPiece() sind in der App fest verdrahtet; sie wurden
+uebernommen und nicht hinterfragt (offener Punkt, siehe 14).
+
+
+================================================================
+7. STUECKAUFTEILUNG
+================================================================
+
+Zwei Wege, beide ueber dieselbe Funktion der App:
+
+  a) Gesamtlaenge eintragen -> Stuecke berechnen
+     splitLengthIntoPieces(L) aus js/13, also teileLaengeInStuecke()
+     mit den Einstellungen Laenge Stoss/Stoss, Ueberlappung und
+     Restschwelle. Es gibt keine zweite Aufteilungsrechnung.
+     (Dieser Weg fehlt in der App beim konischen Blech; er ist hier
+     ergaenzt, weil die Funktion vorhanden ist.)
+
+  b) Stueck fuer Stueck von Hand anlegen, wie bisher in der App.
+
+Die Stueckliste zeigt je Stueck: Nummer, Zuschnittlaenge, Mass links,
+Mass rechts, Gehrung links/rechts, Winkel, Laenge Stoss/Stoss,
+Endzugaben, enges Mass, Restbreite (rot bei negativ) und die Skizze.
+
+Verkettung: wird das rechte Mass eines Stuecks geaendert, wird es zum
+linken Mass des naechsten - einmal beim Setzen, danach frei
+ueberschreibbar. Genau wie im bestehenden Modul.
+
+
+================================================================
+8. GEHRUNGEN UND ENDZUGABEN
+================================================================
+
+Gehrung (Regel aus js/14 uebernommen):
+  Haekchen setzen  -> Zuschnittlaenge + Gehrungszugabe, Winkel 90
+  Haekchen weg     -> Zuschnittlaenge - Gehrungszugabe
+  keine Gehrung mehr am Stueck -> Winkel zurueck auf 0
+  Das Nachbarstueck wird nicht automatisch mitgesetzt (anders als beim
+  geraden Blech - so ist es im bestehenden konischen Modul).
+
+Endzugabe (Regel aus js/14 uebernommen):
+  immer auf das Reststueck, also das letzte Stueck - kein regulaeres
+  Stueck darf laenger sein als Laenge Stoss/Stoss + Ueberlappung.
+  Einmal fuer den Anfang, einmal fuer das Ende, beide abschaltbar.
+  Ist in den Einstellungen keine Endzugabe hinterlegt, sagt der
+  Prototyp das und rechnet nichts.
+
+Beide Zugaben stehen im Ausmass als eigene Zeilen.
+
+
+================================================================
+9. RINNEN-UEBERNAHME
+================================================================
+
+Unveraendert baueEinlaufblechStueckeAusRinne() aus js/13, aufgerufen
+mit den Einstellungen des konischen Blechs, splitLengthIntoPieces und
+mitMassen = true - genau wie in js/14. Es gibt keine zweite
+Uebernahmelogik.
+
+Damit gilt weiterhin: Aussen- und Innenecken der Rinne werden zu
+Gehrungen, jedes Rinnensegment wird nach denselben Regeln in Stuecke
+geteilt, und mitMassen = true legt je Stueck Mass links und rechts an.
+
+Woher die Rinnen kommen:
+  in der App aus Supabase, im Prototyp aus dem Speicher des
+  Rinnen-Prototyps auf demselben Geraet. Liegt dort nichts, laesst sich
+  eine Rinnen-Massaufnahme auch als Text einfuegen - damit die
+  Uebernahme auf dem Tablet ohne Anmeldung pruefbar ist.
+
+
+================================================================
+10. AUSMASS
+================================================================
+
+Entsteht ausschliesslich aus der Massaufnahme, ohne zweite Eingabe, und
+folgt jeder Aenderung sofort:
+
+  Einlaufblech konisch, Abwicklung <n> mm   Laufmeter (Summe der Zuschnitte)
+  Stuecke (Zuschnitte)                      Stueck
+  Gehrungen                                 Stueck
+  Blechstoesse                              Stueck (je Uebergang)
+  Blechflaeche                              m2  (Gesamtlaenge x Abwicklung)
+  Endzugabe erstes / letztes Stueck         mm
+
+Jede Zeile nennt, woher sie kommt. Dazu eine Materialuebersicht mit
+Menge, Flaeche und Material aus der Aufnahme.
+
+KEINE Artikelnummern, KEINE Preise - die kommen spaeter aus der
+importierten, firmeneigenen Materialliste. Der Materialkatalog des
+Prototyps enthaelt nur Kennung und Name, wie measurement_materials.
+
+
+================================================================
+11. ZUSCHNITT
+================================================================
+
+Dieselbe Rechnung wie im Prototyp des geraden Blechs und wie seit v2.74
+in der App. Sie gilt fachlich auch hier: der Zuschnitt ist ein Rechteck
+Abwicklungsbreite mal Zuschnittlaenge. Die Konizitaet entsteht erst beim
+Anreissen INNERHALB dieses Rechtecks und aendert die benoetigte
+Blechflaeche nicht.
+
+  Streifen je Tafel = ganzzahlig(Rollenbreite / Abwicklung)
+  Tafellaenge       = laengstes Stueck
+  Tafeln            = aufgerundet(Streifen / Streifen je Tafel)
+  Verschnitt        = Tafelflaeche - Blechflaeche
+
+Ein Streifen kann mehrere Stuecke hintereinander aufnehmen. Zuerst eine
+gierige Verteilung als Obergrenze, danach die vollstaendige Suche mit
+einem Schrittbudget. Reicht das Budget nicht, wird das Ergebnis
+ausdruecklich NICHT als bestes ausgewiesen.
+
+Angezeigt: je Rollenbreite Streifen je Tafel, Tafeln, Tafelflaeche,
+Verschnitt und Anteil; die beste Breite ist hervorgehoben. Dazu die
+Streifenverteilung mit jedem Blech unter SEINER Nummer und SEINER
+genauen Laenge, belegte Laenge und Rest je Streifen. Rollenbreiten, die
+schmaler sind als die Abwicklung, werden als solche genannt.
+
+Standardrollen 1000 und 670 mm aktiv; 500, 400, 330, 250 und 200 mm
+liegen bereit und lassen sich in den Einstellungen dazuschalten.
+
+
+================================================================
+12. TESTANZAHL
+================================================================
+
+102 Pruefungen in 19 Abschnitten, in echtem Chromium gegen die
+eigenstaendige Testapp - also gegen genau die Datei, die auf dem Tablet
+geoeffnet wird.
+
+   0 Fachlogik der App ist geladen (alle 8 Funktionen + zwei Rechenproben)
+   1 Leerer Zustand
+   2 Gueltige Standardaufnahme
+   3 Linkes Mass aendern
+   4 Rechtes Mass aendern und Verkettung
+   5 Geometrie / Winkel aendern
+   6 Mehrere Stuecke
+   7 Gehrung
+   8 Endzugabe
+   9 Rinne uebernehmen
+  10 Grundriss
+  11 Ausmass
+  12 Zuschnitt
+  13 Speichern und Laden
+  14 Kopieren erzeugt einen unabhaengigen Datensatz
+  15 Foto und Skizze
+  16 Kontrolle meldet, was nicht stimmt
+  17 Tablet-Breiten (600 / 768 / 800 / 1024 / 1280 px, alle 7 Register)
+  18 Keine JS-Fehler
+
+Damit sind alle 16 im Auftrag geforderten Testfaelle abgedeckt.
+
+
+================================================================
+13. ERFOLGREICHE TESTS
+================================================================
+
+102 von 102.
+
+Dazu 11 GEGENPROBEN. Jede baut absichtlich einen echten Fehler ein und
+muss den Pruefstand umwerfen - sonst pruefte er nur seine eigene
+Annahme:
+
+  G1  mittleres Mass von der breiten statt der engen Seite   100/102
+  G2  eigene Stueckaufteilung statt splitLengthIntoPieces     98/102
+  G3  Verkettung rechts -> links entfernt                    100/102
+  G4  zweite Rinnen-Uebernahmelogik                           99/102
+  G5  Kopie behaelt die Kennung des Originals                100/102
+  G6  Tabellen-CSS wie vorher (min-width greift nicht)        98/102
+  G7  Tafellaenge = Summe statt laengstes Stueck             100/102
+  G8  Kontrolle meldet nie etwas                              97/102
+  G9  Gehrungszugabe nicht auf die Laenge gerechnet          100/102
+  G10 Endzugabe ohne Wirkung                                 100/102
+  G11 Eingabe zeichnet die Seite neu (Fokus geht verloren)    89/102
+
+Beim Bauen sind dadurch zwei ECHTE Fehler herausgekommen, nicht durch
+Nachdenken:
+
+  a) Die Tabellen in Register 5 und 6 waren 1000 px breit und liefen auf
+     jedem Tablet seitlich aus dem Bild. Ursache: die globale Grundregel
+     table{min-width:1000px} in css/01-basis.css ist fuer die breiten
+     Stuecklisten der App gedacht; die Prototyp-Regel dagegen hiess
+     ".p-tabelle table", das Markup traegt die Klasse aber am <table>
+     selbst. Das Zuruecksetzen von min-width griff dadurch nie, und das
+     overflow-x sass am falschen Element. Gemessen, nicht vermutet -
+     der Pruefstand nennt jetzt auch, welches Element hinauslaeuft.
+     Dieselbe Falle wie in CLAUDE.md 60.5.
+
+  b) Gegenprobe G2 hat den Pruefstand ABGEBROCHEN statt fehlzuschlagen:
+     bei nur einem Stueck warf der Zugriff auf das zweite Stueck eine
+     Ausnahme. Ein abgebrochener Pruefstand sieht aus wie "keine
+     Fehler". Die Stelle ist jetzt abgesichert und meldet sauber
+     "kein zweites Stueck" - nach der Korrektur schlaegt G2 mit 98/102
+     fehl, wie es soll.
+
+Ausserdem eine ueberholte Erwartung im Pruefstand korrigiert (KEIN
+Codefehler): Abschnitt 5 verglich das repraesentative Mass mit dem
+Mittelwert zweier Masse, obwohl 5000 mm in DREI Stuecke geteilt werden.
+Der Pruefstand rechnet den Mittelwert jetzt unabhaengig aus den
+Rohwerten des Modells nach und verlangt zusaetzlich, dass er sich vom
+Mittelwert der breiten Seite unterscheidet - sonst wuerde er die
+geprueften Funktionen nur wiederholen.
+
+Regression: git diff --stat gegen main ueber alle produktiven Ordner
+ist leer (siehe Punkt 4). Die Pruefstaende der App wurden nicht
+angefasst und sind von dieser Runde nicht betroffen - es wurde keine
+Datei der App geaendert.
+
+NICHT GETESTET, und das wird auch nicht behauptet:
+  - Kein Live-Test gegen Supabase. Die Sandbox blockiert ausgehende
+    HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co.
+  - Kein Test auf einem echten Android-Tablet. Geprueft sind fuenf
+    Bildschirmbreiten in echtem Chromium, nicht Fingerbedienung,
+    Kamera oder Touch-Zeichnen auf Glas.
+  - Keine echte Kamera: der Foto-Weg ist mit einer Bilddatei geprueft,
+    nicht mit einer Aufnahme.
+
+
+================================================================
+14. OFFENE PUNKTE FUER DEN PRAXISTEST
+================================================================
+
+Fachlich zu bestaetigen:
+
+  1. Die 2 mm beim engen Mass (calcEbkPiece) sind in der App fest
+     verdrahtet und wurden uebernommen. Stimmt das fuer jedes Material
+     und jede Abwicklung?
+
+  2. Der Weg "Gesamtlaenge eintragen -> Stuecke berechnen" fehlt beim
+     konischen Blech in der App und ist hier ergaenzt. Ist das im
+     Alltag gewuenscht, oder sollen die Stuecke bewusst einzeln
+     angelegt werden?
+
+  3. Das Nachbarstueck wird bei einer Gehrung NICHT automatisch
+     mitgesetzt (so wie in der App). Beim geraden Blech ist es anders.
+     Ist der Unterschied gewollt?
+
+  4. Verschnitt: gerechnet wird OHNE Schnittfuge und ohne
+     Wiederverwendung von Reststuecken aus einer frueheren Tafel.
+     Dafuer fehlen die Zahlen des Betriebs.
+
+  5. Rollenbreiten: 1000 und 670 mm sind als Standard gesetzt, die
+     uebrigen liegen bereit. Ist die Liste vollstaendig?
+
+  6. Die Kontrolle meldet nur, was sich aus dem bestehenden Modul
+     ableiten laesst (fehlende Pflichtmasse, negative Werte, Winkel
+     ausserhalb 0-180 Grad, Restbreite negativ oder 0, Stueck laenger
+     als Stoss/Stoss + Ueberlappung, widerspruechliche Masse an einer
+     Stossstelle). Es wurden bewusst KEINE fachlichen Grenzwerte
+     erfunden. Fehlt eine Pruefung, die der Alltag braucht?
+
+  7. Bei sehr vielen Stuecken wird nicht jede Kombination
+     durchgerechnet; das Ergebnis heisst dann "beste gefundene
+     Verteilung" statt "optimal".
+
+Technisch offen:
+
+  8. Der Prototyp speichert im Browser des Tablets (localStorage), nicht
+     in Supabase. Fotos und Skizzen liegen dort als Bilddaten. Beim
+     spaeteren Einbau in die App gilt wieder der private Speicher mit
+     signierten Links, wie bei den anderen Arten.
+
+  9. Noch NICHT in main integriert - wie im Auftrag verlangt. Was
+     produktiv uebernommen wird, wird erst nach dem Praxistest
+     entschieden.
