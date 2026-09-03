@@ -176,8 +176,10 @@ html.dark .pstatus-storniert{color:#f08b80}
 .projekt-status-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 4px}
 .projekt-status-zeile select{flex:0 1 200px;min-height:38px}
 .projekt-status-anzeige{flex:0 0 auto}
-/* Statusfilter der Projektliste: gleiche Chips wie im Verlauf (v2.31). */
-.status-filter{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+/* Statusfilter der Projektliste: gleiche Chips wie im Verlauf (v2.31).
+   margin-top ist Pflicht: die Leiste darueber (.bar) hat nur margin-top,
+   sonst beruehren sich die beiden Knopfreihen ohne jede Luft (v2.69). */
+.status-filter{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px}
 .status-filter button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark);min-height:30px}
 .status-filter button.aktiv{background:var(--blue);color:#fff}
 .status-filter[hidden]{display:none}

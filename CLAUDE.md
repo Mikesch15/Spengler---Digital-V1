@@ -11312,3 +11312,117 @@ die Datenbank geschrieben und nicht gelesen.
 - Kehle und „Offerte erfassen" haben weiterhin keine eigenen
   Einstellungen; falls dort je welche dazukommen, genügt ein Eintrag in
   der jeweiligen Tabelle.
+
+## 77. KNOPFABSTÄNDE IN DER GESAMTEN APP GEPRÜFT — VERSION 2.69
+
+Gemeldet mit Screenshot: der Knopf „🗄 Archivierte Projekte anzeigen"
+klebt an den Statusfilter-Chips darunter. Auftrag war ausdrücklich, die
+**gesamte App** zu prüfen, nicht nur diese eine Stelle. **Keine
+Datenbank-, RLS- oder Storage-Änderung; keine Fachdatei angefasst** –
+geändert wurde eine CSS-Zeile.
+
+### 77.1 Messen statt suchen
+
+Statt den Code nach verdächtigen Stellen abzusuchen, misst der neue
+Prüfstand `abstand69` die tatsächliche Darstellung in echtem Chromium:
+
+- alle knopfartigen Elemente (`button`, `label.cockpit-upload`,
+  `.settings-tab`, `a.button`), die wirklich sichtbar sind
+- **6 Gerätebreiten** (320 / 360 / 390 / 412 / 768 / 1280 px)
+- **23 Bereiche** (Startbildschirm, Projektübersicht, Cockpit, alle
+  Übersichten, Regierapport, alle Einstellungs-Tabs, System-Admin,
+  Feedback, Medien, elf Massaufnahme-Formulare)
+- gemeldet wird jede Überlappung und jedes benachbarte Paar mit
+  **weniger als 6 px Luft**; dieselbe Stelle über mehrere Breiten wird
+  zusammengefasst
+
+**Zwei Nachbesserungen am Prüfstand waren nötig** (beide erst durch das
+Ergebnis aufgefallen):
+
+1. Der erste Lauf fand die **gemeldete** Stelle nicht. Grund: die Listen
+   waren nie gezeichnet – `#projectStatusFilter` erscheint erst, wenn
+   `renderProjectList()` gelaufen ist. Der Prüfstand ruft jetzt je
+   Bereich die echten Render-Funktionen auf (`renderProjectList`,
+   `openProjectCockpit`, `renderMeasurementsOverview`,
+   `renderAusmassOverview`, `renderReportsOverview`, `renderMain`,
+   `renderSettings`, `renderModuleTestListe`, `fuelleFeedbackModule`,
+   `showMeasTypeSection`). Danach fand er sie sofort.
+2. Zwei Gruppen sind **absichtlich** eng und ausdrücklich ausgenommen
+   (`ENG_GEWOLLT`): die Arbeitsstand-Zeilen im Cockpit (eine Liste mit
+   Trennlinien) und die Einstellungs-Tabs (eine Reiterleiste). Beides
+   ist kein Knopfpaar im Sinne der Meldung.
+
+### 77.2 Ergebnis: genau eine echte Stelle
+
+Über alle 6 × 23 Messungen: **keine Überlappung**, und genau **eine**
+zu enge Stelle – exakt die gemeldete, auf allen sechs Breiten:
+
+```
+[senkrecht] 0 px  projectsModal
+    "🗄 Archivierte Projekte anzeigen" (toggleArchivedProjects)
+    "Alle" / "○ Offen"
+```
+
+Ursache, im CSS nachgelesen:
+
+```css
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}      /* kein margin-bottom */
+.status-filter{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}  /* kein margin-top */
+```
+
+Beide Zeilen sind je für sich richtig, treffen aber im Projektmodal
+direkt aufeinander – 10 px oben, 8 px unten, **0 px dazwischen**.
+
+### 77.3 Korrektur
+
+```css
+.status-filter{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px}
+```
+
+`.status-filter` kommt in der ganzen App genau **einmal** vor (per Grep
+geprüft) – die Änderung wirkt also nur an dieser Stelle. Bewusst **nicht**
+`.bar{margin-bottom}` gesetzt: `.bar` ist eine der am häufigsten
+verwendeten Klassen und ein Bottom-Margin hätte Abstände quer durch die
+App verschoben, ohne dass es irgendwo nötig wäre.
+
+### 77.4 Tests
+
+- **`abstand69` 2/2** – keine Überlappung, überall ≥ 6 px Luft.
+- **Gegenprobe**: mit `margin:0 0 8px` zurückgesetzt meldet der Prüfstand
+  wieder „2 Stellen / 0 px" auf allen sechs Breiten – er greift also
+  wirklich.
+- Optisch nachgesehen (390 px, echtes Chromium): zwischen Knopf und
+  Chips steht jetzt sichtbar Luft.
+- **Volle Regression grün**: einst68 43/43, einstbrowser68 47/47,
+  module67 42/42, modulebrowser67 16/16, freipos65 99/99,
+  freiposbrowser65 33/33, feedback63 105/105, feedbackbrowser63 67/67,
+  rinne57 379/379, breite57 84/84, pdf52 504/504, breite52 52/52,
+  kehle52 698/698, kehleintegration52 76/76, medien50 42/42,
+  dateien49 38/38, adresse45 39/39, projekte47 37/37, pfade55 37/37,
+  status46 35/35, auswahl48 32/32, dateien43, nav, stand42, suche45,
+  recent41, kopf45, hidden51 7/7, suche40, treffer40, ui39 – alle ohne
+  Fehlschlag.
+- `node --check` über alle 28 `js/*.js` und `sw.js` fehlerfrei,
+  `<div>` 702/702, keine doppelten Element-IDs.
+- Keine Datenbankabfrage in dieser Runde – weder lesend noch schreibend.
+  PETER KÜNZI AG nicht berührt.
+
+### 77.5 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `css/01-basis.css` | eine Zeile: `margin-top` für `.status-filter` (mit Begründung im Kommentar) |
+| `index.html` | nur Versionstext 2.69 |
+| `sw.js` | Cache-Version 2.69 |
+
+### 77.6 Offene Punkte
+
+- Geprüft wird der **Abstand** knopfartiger Elemente. Andere
+  Überschneidungen (Text unter Bildern, abgeschnittene Tabellenspalten)
+  deckt `abstand69` nicht ab – dafür gibt es die bestehenden
+  Breiten-Prüfstände (`breite52`, `breite57`, und die Breitenblöcke in
+  `feedbackbrowser63`/`freiposbrowser65`/`einstbrowser68`).
+- Die Schwelle liegt bei 6 px. Aufgeklappte Bereiche, die nur nach einer
+  weiteren Bedienung sichtbar werden (z. B. jede einzelne Cockpit-Liste
+  in jedem Zustand), sind nicht erschöpfend durchgespielt – gemessen
+  wurde der jeweils geöffnete Grundzustand jedes Bereichs.
