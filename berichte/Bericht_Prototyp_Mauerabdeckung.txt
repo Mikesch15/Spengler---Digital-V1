@@ -1,0 +1,347 @@
+================================================================================
+ABSCHLUSSBERICHT · Prototyp Mauerabdeckung
+Spengler-DIGITAL · 04.09.2026
+================================================================================
+
+BRANCH   feature/prototype-mauerabdeckung
+COMMIT   2a299d1  "Prototyp Mauerabdeckung (eigener Branch, nicht in main)"
+BASIS    main @ 09a1084 (v2.78)
+
+NICHT in main integriert. Ausserhalb des Ordners prototyp-mauerabdeckung/ ist
+kein einziges Zeichen geaendert - per "git diff main..HEAD" bestaetigt.
+
+
+--------------------------------------------------------------------------------
+1 · NEUE DATEIEN
+--------------------------------------------------------------------------------
+
+prototyp-mauerabdeckung/
+  uebernehmen.js               6.5 KB   schneidet die Fachlogik zeichengenau
+                                        aus js/ heraus
+  uebernommen.js              29.5 KB   das Ergebnis - nicht von Hand zu bearbeiten
+  bruecke.js                   5.6 KB   Materialkatalog, Rollenbreiten, Zugaben
+  prototyp-mad.js             49.9 KB   Oberflaeche: neun Register
+  prototyp.css                 8.5 KB   nur die Ergaenzungen zur App-Grundschrift
+  mauerabdeckung.html          2.6 KB   Mehrdatei-Fassung zum Weiterentwickeln
+  bauen.js                     5.8 KB   baut die eigenstaendige Testapp
+  mauerabdeckung-testapp.html 132.5 KB  EINE Datei, ueberall zu oeffnen
+  pruefstand.js               47.6 KB   174 Pruefungen in echtem Chromium
+  README.md                    4.9 KB
+
+GEAENDERTE DATEIEN: keine.
+
+
+--------------------------------------------------------------------------------
+2 · KEINE ZWEITE FACHRECHNUNG
+--------------------------------------------------------------------------------
+
+Der Prototyp rechnet nichts selbst. Jede Funktion wird als Text aus ihrer
+Quelldatei geschnitten; danach wird geprueft, dass der geschnittene Text
+unveraendert in der Quelle vorkommt. Beim Bauen der Testapp wird dieselbe
+Probe nochmals gemacht. Weicht ein Zeichen ab, bricht der Bau ab.
+
+  js/12b-mauerabdeckung.js
+      madMaterialTabelle, computeMadBoundaries, calcMadSchieber,
+      berechneMadStueckliste, madBiegeVorgabe, madProfilMasse,
+      madNormHinweise, madProfilSvgAus, generateMadProfilSvg,
+      MAD_BIEGERADIUS, MAD_SAUM_LUFT, MAD_MIN_HOEHE / MAD_MIN_HOEHE_WIND
+  js/12-rinne-halbrund.js
+      calcDilaPositionsInStretch, generateRinneGrundriss
+  js/14-freies-profil.js
+      abgerundeterPfad, ansichtsPfeilSvg
+  js/29-einlaufblech-aufnahme.js
+      ebaPackeInStreifen, ebaZahl        (Zuschnitt aus Rollenblech)
+  js/01-basis.js
+      findMeasurementMaterial, measurementMaterialOrFallback,
+      MEASUREMENT_MATERIAL_FALLBACK
+
+21 Stuecke, alle zeichengenau.
+
+madProfilMasse() liest in der App direkt aus den Eingabefeldern. Damit die
+Funktion unveraendert bleiben kann, stehen dieselben Felder unsichtbar in der
+Seite (#p-stummel); madBrueckeSetzen() fuellt sie vor jeder Rechnung aus dem
+Modell. Gleiches Vorgehen wie #rinneStummel und #ebStummel in der App.
+
+Der Pruefstand kontrolliert das dauerhaft:
+  - prototyp-mad.js definiert KEINE der zehn Fachfunktionen selbst
+  - prototyp-mad.js ruft sie alle auf
+  - prototyp-mad.js enthaelt kein Math.sin / Math.cos / Math.tan
+
+
+BEIM SCHNEIDEN GEFUNDEN UND BEHOBEN
+Die allgemeine Schneideregel endet bei "\n}\n". madBiegeVorgabe() ist eine
+EINZEILIGE Funktion, die mit "}}" schliesst - dadurch wurde beim ersten Anlauf
+die naechste Funktion (madProfilMasse) mit hineingeschnitten und stand danach
+ZWEIMAL in uebernommen.js. uebernehmen.js hat jetzt eine eigene Regel fuer
+einzeilige Funktionen und prueft zusaetzlich, dass kein Name doppelt vorkommt.
+
+
+--------------------------------------------------------------------------------
+3 · DIE NEUN REGISTER
+--------------------------------------------------------------------------------
+
+1 Grunddaten        Bezeichnung, Datum, Objekt, Material; dazu die Abstaende,
+                    die dieses Material erlaubt (aus dem Material-Katalog)
+2 Verlauf           START -> Segment -> Ecke -> Segment -> ... -> ENDE.
+                    Jedes Segment eine eigene Karte mit grossen Feldern,
+                    verschiebbar und loeschbar; Grundriss darunter
+3 Boden & Schieber  Boden am Anfang/Ende (wirkt wie ein Fixpunkt), Grenzpunkte,
+                    automatische Schieber, wahlweise von Hand
+4 Profil & Norm     alle neun Profilmasse, Querschnitt, Abwicklung, Normhinweise
+5 Stueckliste       Nr., von/bis, Abstand, Zuschnitt, Position
+6 Zuschnitt         aus Rollenblech - je Rollenbreite Tafeln, Flaeche und
+                    Verschnitt, dazu die Belegung jedes Streifens
+7 Ausmass           vollstaendig aus den erfassten Daten abgeleitet
+8 Kontrolle         mit rotem/orangem Punkt am Register
+9 Fotos & Speichern erst am Schluss: Fotos -> Skizze -> Notiz -> Speichern
+
+
+ZUSCHNITT AUS ROLLENBLECH (Register 6)
+Genau wie bei Einlaufblech gerade, Einlaufblech konisch und Freies Profil: von
+der Rolle wird eine TAFEL abgeschnitten und quer in Streifen von der Breite der
+Abwicklung geteilt; ein Streifen nimmt mehrere Stuecke hintereinander auf.
+
+    Streifen je Tafel = ganzzahlig(Rollenbreite / Abwicklung)
+    Tafellaenge       = laengstes Zuschnittstueck
+    Tafeln            = aufgerundet(Streifen / Streifen je Tafel)
+    Verschnitt        = Tafelflaeche - Flaeche der Zuschnitte
+
+Gepackt wird mit ebaPackeInStreifen() aus js/29 - es gibt in der ganzen App nur
+EINE Packrechnung, und die wird hier benutzt. Anders als beim Freien Profil hat
+die Mauerabdeckung nur EINE Abwicklung, also auch nur eine Streifenbreite.
+
+Ehrlich angezeigt statt still gerechnet: ein Stueck laenger als die Tafel, keine
+Rolle breit genug, keine Rolle angehakt, und ein abgebrochenes Suchbudget
+("beste gefundene Verteilung", nicht "beste").
+
+Beispiel (Titanzink, 8000/4000/6000 mm mit zwei Ecken und Boden an beiden
+Enden, Abwicklung 460 mm, 8 Zuschnitte, laengster 3020 mm):
+    1'000 mm  2 Streifen je Tafel  4 Tafeln  12.08 m²  3.75 m² Verschnitt (31.1 %)
+      670 mm  1 Streifen je Tafel  8 Tafeln  16.19 m²  7.86 m² Verschnitt (48.6 %)
+
+
+--------------------------------------------------------------------------------
+4 · TESTS
+--------------------------------------------------------------------------------
+
+    SP=<Ordner mit node_modules> node prototyp-mauerabdeckung/pruefstand.js
+
+    174 von 174 bestanden.
+
+Laeuft in echtem Chromium gegen mauerabdeckung-testapp.html - also gegen genau
+die Datei, die auf dem Tablet geoeffnet wird. Bedient wird ueber die echten
+Knoepfe und Felder (Zeichen fuer Zeichen getippt), nicht nur ueber das Modell.
+
+Die 25 im Auftrag verlangten Punkte, jeder mit nachgerechneten Zahlen:
+
+  1  leere Aufnahme        keine Segmente, kein Schieber, kein Zuschnitt, kein
+                           Ausmass; jedes Register sagt, dass nichts da ist
+  2  ein Segment           8000 mm Titanzink -> 1 Schieber bei 4000 mm
+  3  mehrere Segmente      8000/4000/6000 mit zwei Ecken -> 4 Schieber bei
+                           2750 / 5500 / 10000 / 14500 mm (von Hand nachgerechnet)
+  4  gerade Segmentgrenze  Winkel 0 -> Typ "gerade", voller Abstand:
+                           6000+6000 -> Schieber bei 3000 und 9000
+  5  Ecken/Winkel          Winkel 90 -> Typ "ecke", halber Abstand:
+                           dieselben Laengen -> 3500 und 8500;
+                           Umkehren wirkt; Innen- und Aussenecke gleich
+  6  Boden links           8000 mm: ohne Boden 1 Schieber, mit Boden 2
+  7  Boden rechts          ebenso, spiegelbildlich; Bodenzugabe im Zuschnitt
+  8  automatische Schieber 22'000 mm -> 4 Schieber, kein Abstand ueber 5.00 m;
+                           von Hand uebernehmen, aendern, zurueckstellen
+  9  Materialwechsel       Abstaende je Material aus dem Katalog geprueft
+                           (4000/2000, 5000/2500, 6000/3000, 8000/4000)
+ 10  unterschiedliche      derselbe Verlauf (22'000 mm) ergibt 5 / 4 / 3 / 2
+     Abstaende             Schieber - Alu / Titanzink / Kupfer / Stahl verzinkt
+ 11  Profilmasse           alle neun Felder; Abwicklung 10+15+50+310+50+15+10
+                           = 460 mm; Breite 400 -> 550 mm
+ 12  Gefaelle              Hoehenversatz 0 / 27 / 55 mm bei 310 mm Breite;
+                           die Abwicklung haengt NICHT vom Gefaelle ab
+ 13  Biegewinkel           leeres Feld -> Vorgabe 95/85 bei 5 Grad; eingetragene
+                           Winkel schlagen sie; Abwicklung unveraendert
+ 14  Windexponiert         Schalter kommt in der Fachlogik an; 60 mm ohne Wind
+                           in Ordnung, mit Wind beide Schenkel gemeldet
+ 15  Normwarnung           40 mm links gemeldet, 60 mm rechts nicht; genau
+                           50 mm in Ordnung; steht im Register UND in der Kontrolle
+ 16  Stueckliste           8 Stuecke, Abstaende summieren sich auf 18'000 mm,
+                           erstes Stueck am Boden, letztes am Boden
+ 17  Zuschnitt             Abstand + Zugabe je Ende; geaenderte Zugabe wirkt
+                           sofort und laesst sich zurueckstellen
+ 18  Ausmass               6 Positionen; Blechflaeche 18 m x 0.46 m = 8.28 m²;
+                           keine Artikelnummern, keine Preise; jede Position
+                           nennt ihre Herkunft
+ 19  Speichern             im Geraet
+ 20  Laden                 Bezeichnung, Objekt, Notiz, Material, Segmente,
+                           Winkel, Boeden, Profil, Foto und Skizze wieder da;
+                           Stueckliste und Ausmass rechnen identisch;
+                           ein aelterer Datensatz ohne Profil/Fotos/Notiz oeffnet
+                           und bekommt die Vorgabe - ohne erfundenen Boden
+ 21  Fotos                 echte PNG-Datei ueber das Dateifeld aufgenommen,
+                           verkleinert als JPEG abgelegt, einzeln loeschbar
+ 22  Skizze                Zeichenflaeche geoeffnet, mit der Maus gezeichnet,
+                           uebernommen, ueberlebt Speichern und Laden
+ 23  Notiz                 im Modell, Fokus bleibt beim Tippen, ueberlebt Laden
+ 24  Kontrolle             vollstaendige Aufnahme: kein Fehler. Kaputte Aufnahme:
+                           fehlende Laenge, Winkel 270 Grad, fehlende
+                           Gesamtbreite, fehlende Hoehe, Schieber ausserhalb -
+                           alle als Fehler gemeldet; das Register traegt einen
+                           Punkt, rot bei einem Fehler, weg wenn alles stimmt
+ 25  keine JS-Fehler       kein einziger in der ganzen Sitzung
+
+Dazu:
+  - Zuschnitt aus Rollenblech (18 Pruefungen, siehe Abschnitt 3)
+  - Fokus bleibt beim Tippen in Laenge, Schieberposition, Profilmass und Notiz
+  - Blaettern: Zurueck auf dem ersten Register gesperrt, "Fertig" auf dem
+    letzten bedienbar, jedes Register zeigt nur seinen Inhalt, durch alle
+    Register blaettern veraendert das Modell nicht, das aktive Register bleibt
+    in der seitwaerts scrollenden Leiste sichtbar
+  - Verlauf bearbeiten: verschieben, loeschen mit Rueckfrage (Abbrechen loescht
+    nichts), Boden bleibt an den Aussenenden und wandert nicht mit
+  - Handy und Tablet: 320 / 360 / 412 / 768 / 1280 px, alle neun Register -
+    nichts laeuft seitlich hinaus, die Seite scrollt nie horizontal
+
+
+GEGENPROBEN
+18 Stueck. Jede baut einen echten Fehler ein und muss den Pruefstand umwerfen -
+sonst waere die Pruefung wertlos. Keine bricht ihn ab.
+
+   G1  Bruecke fuellt die Stummelfelder nicht           135/153
+   G2  eigene Grenzpunkt-Rechnung                       150/153
+   G3  Boden kommt nicht in der Fachlogik an            146/153
+   G4  eigene Schieber-Verteilung                       143/153
+   G5  Materialabstaende hart gesetzt                   149/153
+   G6  Zuschnitt ignoriert die Zugaben                  148/153
+   G7  Ausmass mit Artikelnummer und Preis              152/153
+   G8  Kontrolle prueft die Schieberposition nicht      152/153
+   G9  alle Register auf einmal                         151/153
+   G10 Eingabe zeichnet neu (Fokusverlust)              143/153
+   G11 Fotos und Profil werden nicht gespeichert        149/153
+   G12 alter Datensatz bekommt einen Boden angedichtet  152/153
+   G13 Normhinweise fehlen in der Kontrolle             151/153
+   Z1  eigene Packrechnung statt ebaPackeInStreifen     170/172
+   Z2  Tafellaenge = Summe statt laengstes Stueck       164/172
+   Z3  Rollenbreiten werden ignoriert                   168/174
+   Z4  zu schmale Rolle wird verschwiegen               173/174
+   Z5  Streifenbelegung ohne Stuecknummer               170/172
+   Z6  absichtlich kaputte Datei                        Ladefehler-Waechter
+                                                        meldet und bricht sauber ab
+
+AM PRUEFSTAND SELBST BEHOBEN
+Z3 und Z4 haben den Pruefstand beim ersten Anlauf ABGEBROCHEN statt fehlzu-
+schlagen - und ein abgebrochener Lauf sieht aus wie "keine Fehler". Behoben:
+kein blindes Zugreifen auf ein vielleicht fehlendes Ergebnis, und ein neuer
+Waechter direkt nach dem Laden ("die Testapp laedt ohne Fehler"), der bei einer
+nicht ladbaren Datei laut fehlschlaegt statt spaeter zu stolpern. Z6 belegt,
+dass der Waechter greift.
+
+Zwei weitere Korrekturen, beide am Pruefstand und nicht am Code:
+  - toLocaleString("de-CH") setzt den typografischen Apostroph (U+2019); meine
+    Erwartung suchte den geraden.
+  - innerText liefert die CSS-Grossschreibung der Ueberschriften mit.
+
+
+--------------------------------------------------------------------------------
+5 · REGRESSION
+--------------------------------------------------------------------------------
+
+Es wurde keine Datei ausserhalb von prototyp-mauerabdeckung/ angefasst
+("git diff main..HEAD" ohne den Prototyp-Ordner ist leer). Die bestehenden
+Pruefstaende wurden trotzdem vollstaendig gefahren:
+
+   pruefstand-rinne-app-v2-71.js                102/102   Rinne Halbrund
+   pruefstand-einlaufblech-app-v2-74.js           98/98    Einlaufblech gerade
+   pruefstand-einlaufblech-konisch-app-v2-76.js  113/113   Einlaufblech konisch
+   pruefstand-freies-profil-app-v2-77.js         118/118   Freies Profil
+   pruefstand-verschnitt-app.js                 1578/1578  Verschnittrechnung
+   pruefstand-medien-am-ende-v2-75.js             60/60    Fotos/Skizze am Ende
+   pruefstand-dila-sichtbar.js                    57/57    Dehnungselemente
+
+Alle gruen, keine einzige Abweichung.
+
+   node --check ueber alle js/*.js, sw.js, prototyp-mauerabdeckung/*.js und
+   pruefstaende/*.js: fehlerfrei.
+
+REGIERAPPORT: js/06-rapport.js, js/08-katalog-blitzschutz.js und
+css/03-druck.css sind nicht im Diff - unveraendert.
+PROJEKTVERWALTUNG: js/09-projekte.js und js/24-projekt-cockpit.js ebenso.
+SUPABASE: keine Migration, keine Policy, keine Edge Function. Aus der Datenbank
+wurde ausschliesslich GELESEN, und zwar zweimal: der Material-Katalog
+(measurement_materials) und die beiden Zuschnittzugaben aus app_settings -
+damit der Prototyp mit denselben Werten rechnet wie die App. Kein Schreibzugriff.
+
+
+--------------------------------------------------------------------------------
+6 · OFFENE PUNKTE
+--------------------------------------------------------------------------------
+
+- KEIN LIVE-TEST GEGEN SUPABASE. Die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co. Das wird ausdruecklich
+  NICHT als getestet behauptet. Geprueft ist die Oberflaeche in echtem Chromium
+  gegen die gebaute Testapp; die Datenbankseite ist fuer den Prototyp ohne
+  Belang, weil er im Geraet speichert.
+
+- Der Verschnitt rechnet OHNE Schnittfuge und OHNE Wiederverwendung von
+  Reststuecken - wie bei den uebrigen Modulen. Bei sehr vielen Stuecken wird
+  nicht jede Kombination durchgerechnet; das Ergebnis heisst dann ausdruecklich
+  "beste gefundene Verteilung", nicht "optimal".
+
+- Die zwei Zuschnittzugaben (Boden, Schieberseite) liegen im Prototyp
+  geraetebezogen im localStorage. In der App stehen dieselben Werte firmenweit
+  in app_settings (mad_boden_mass_mm / mad_schieber_mass_mm). Vorgabe ist der
+  Stand der laufenden App: Boden 0 mm, Schieber 10 mm.
+
+- Die Rollenbreiten ebenso (Vorgabe 1000 und 670 mm, weitere zuschaltbar);
+  in der App: app_settings.blech_rollenbreiten.
+
+- Kein PDF-Druck. Der Prototyp zeigt alles am Bildschirm; das Drucklayout
+  gehoert zum Einbau in die App.
+
+- Der Boden gilt nur an den beiden Aussenenden des ganzen Verlaufs - so
+  rechnet computeMadBoundaries(). Wird ein Segment verschoben oder geloescht,
+  holt der Prototyp einen dadurch "innen" gelandeten Boden auf die Aussenenden
+  zurueck, statt ihn unsichtbar wirkungslos stehen zu lassen.
+
+- Fachlich im Praxistest zu bestaetigen: ob ein Innenwinkel wirklich dieselbe
+  halbe Regel bekommt wie ein Aussenwinkel. Die bestehende Logik behandelt
+  beide gleich (so steht es auch im Kommentar von js/12b), der Prototyp
+  uebernimmt das unveraendert.
+
+
+--------------------------------------------------------------------------------
+7 · START- UND TESTANLEITUNG
+--------------------------------------------------------------------------------
+
+AUFMACHEN (Betreiber)
+  Eine einzige Datei, kein Server, kein Internet, kein Login:
+
+      prototyp-mauerabdeckung/mauerabdeckung-testapp.html
+
+  Auf das Android-Handy oder -Tablet kopieren und antippen, oder am Rechner:
+
+      xdg-open prototyp-mauerabdeckung/mauerabdeckung-testapp.html
+
+  Gespeichert wird im Geraet; es geht nichts nach aussen.
+
+  Kurzer Rundgang:
+    1. Register 1: Material waehlen (z. B. Titanzink)
+    2. Register 2: "+ Segment hinzufuegen", Laenge eintragen, Ecke setzen,
+       weitere Segmente anhaengen
+    3. Register 3: Boden am Anfang/Ende anhaken - die Schieber ruecken naeher
+    4. Register 4: Profilmasse eintragen, Querschnitt und Abwicklung ansehen
+    5. Register 5 und 6: Stueckliste und Zuschnitt aus Rollenblech
+    6. Register 7 und 8: Ausmass und Kontrolle
+    7. Register 9: Fotos, Skizze, Notiz, Speichern
+    Ueber "Gespeicherte" wieder oeffnen, ueber "Einstellungen" die Zugaben und
+    die Rollenbreiten aendern.
+
+WEITERENTWICKELN
+      node prototyp-mauerabdeckung/uebernehmen.js   # Fachlogik frisch schneiden
+      node prototyp-mauerabdeckung/bauen.js         # Testapp neu bauen
+
+PRUEFSTAND
+      SP=<Ordner mit node_modules> node prototyp-mauerabdeckung/pruefstand.js
+
+REGRESSION
+      export SP=<Ordner mit node_modules>
+      for f in pruefstaende/*.js; do node "$f"; done
+
+================================================================================
