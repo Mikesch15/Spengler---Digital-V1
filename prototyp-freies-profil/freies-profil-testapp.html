@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Prototyp · Massaufnahme Freies Profil</title>
+<!-- ===================================================================
+     EIGENSTÄNDIGE TESTAPP  ·  eine einzige Datei, überall zu öffnen
+     Erzeugt von prototyp-freies-profil/bauen.js – nicht von Hand bearbeiten.
+     Änderungen gehören in prototyp-freies-profil/prototyp-fp.js bzw.
+     prototyp.css, danach "node prototyp-freies-profil/bauen.js" laufen lassen.
+     Gebaut am 2026-09-04 07:04 UTC
+     =================================================================== -->
+<style>
+/* ---- css/01-basis.css (unverändert aus der laufenden App) ---- */
+*{box-sizing:border-box}
+:root{--blue:#1769aa;--blue-dark:#0f5288;--blue-light:#eaf4fa;--ink:#17242d;--muted:#6b7880;--line:#cbd4d9;--bg:#eef2f6;--green:#16845c;--green-dark:#0f6847;--red:#b42318;--red-light:#fff0ef;--card-bg:#fff;--card-line:#e2e8ec;--input-bg:#fff}
+html.dark{--ink:#e7edf1;--muted:#93a1a9;--line:#33424c;--bg:#141c22;--blue-light:#1c3546;--red-light:#3a1f1d;--card-bg:#1c262e;--card-line:#2a3841;--input-bg:#202b33}
+html.dark body{background:linear-gradient(180deg,#171f26,#141c22 240px,var(--bg) 480px)}
+html.dark .modal{background:linear-gradient(180deg,#171f26,#141c22 240px,var(--bg) 480px)}
+html.dark .card{background:var(--card-bg);border-color:var(--card-line)}
+html.dark input,html.dark select,html.dark textarea{background:var(--input-bg);color:var(--ink);border-color:var(--line)}
+html.dark .settingrow-mat,html.dark .sketch-thumb-wrap{background:var(--card-bg);border-color:var(--card-line)}
+html.dark .mat-row-head{background:transparent}
+html.dark th{background:#0e161c!important}
+body{margin:0;background:linear-gradient(180deg,#f2f5f8,#e8edf1 240px,var(--bg) 480px);background-attachment:fixed;font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
+.app{max-width:920px;margin:auto;padding:14px 9px 40px}
+.brand{font-size:11px;font-weight:900;letter-spacing:.16em;color:var(--blue)}
+h1{font-size:28px;margin:3px 0 14px;color:var(--ink);letter-spacing:-.01em}
+h2{font-size:13px;margin:0 0 12px;padding-bottom:8px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--blue-dark);border-bottom:2px solid var(--blue-light)}
+.card{background:#fff;border:1px solid #e2e8ec;border-radius:16px;padding:14px;margin:12px 0;box-shadow:0 1px 2px #17242d0a,0 10px 24px -8px #17242d1f}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wide{grid-column:1/-1}
+label{display:block;font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+input,select,textarea{width:100%;min-height:40px;border:1px solid var(--line);border-radius:9px;padding:8px;font-size:14px;background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26}
+input::placeholder,textarea::placeholder{color:#9aa7ae}
+textarea{min-height:72px;resize:vertical}
+button{border:0;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer;transition:filter .15s,transform .05s}
+button:hover{filter:brightness(1.06)}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.blue{background:var(--blue);color:#fff;box-shadow:0 2px 8px #1769aa40}.blue:hover{background:var(--blue-dark)}
+.green{background:var(--green);color:#fff;box-shadow:0 2px 8px #16845c40}.green:hover{background:var(--green-dark)}
+.gray{background:#e8eef1;color:var(--ink)}.gray:hover{background:#dde6ea}
+.red{background:#fff0ef;color:var(--red)}.red:hover{background:#ffe3e1}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+/* Ohne diese Regel schlaegt .bar{display:flex} das [hidden] des Browsers
+   und eine versteckte Leiste bleibt sichtbar (Lehre aus Abschnitt 59). */
+.bar[hidden]{display:none}
+.scroll{overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:1000px;table-layout:fixed}
+/* Spaltenbreiten in der App, abgestimmt auf den tatsächlichen Inhalt je Spalte.
+   Pos. wird unten für den Bildschirm zusätzlich fix auf 23mm gesetzt (gleich wie im PDF). */
+.work-table col.c-pos{width:7%}.work-table col.c-desc{width:54%}.work-table col.c-emp{width:5.5%}.work-table col.c-func{width:8.5%}.work-table col.c-std{width:5%}.work-table col.c-rate{width:7%}.work-table col.c-total{width:8.5%}.work-table col.c-del{width:4.5%}
+.mat-table col.m-pos{width:7%}.mat-table col.m-edv{width:11%}.mat-table col.m-material{width:43%}.mat-table col.m-dim{width:6.5%}.mat-table col.m-unit{width:6%}.mat-table col.m-qty{width:6%}.mat-table col.m-price{width:7.5%}.mat-table col.m-total{width:8%}.mat-table col.m-del{width:5%}
+.work-table td:last-child,.work-table th:last-child,.mat-table td:last-child,.mat-table th:last-child{text-align:left}
+.work-table td:last-child button,.mat-table td:last-child button{padding:6px 9px}
+input[type=date]{font-size:11px;padding-left:4px;padding-right:2px;width:100%;min-width:0}
+#workBody input[type=date],#matBody input[type=date]{width:100%;display:block;box-sizing:border-box}
+th{background:#f2f6f8;text-align:left;font-size:9px;padding:9px 6px;color:var(--muted);font-weight:800;letter-spacing:.03em}
+td{border-top:1px solid var(--line);padding:6px;font-size:12px;vertical-align:middle}
+tbody tr:hover td{background:#f7fafc}
+td input,td select{min-height:34px;font-size:12px}
+.money{text-align:left;font-variant-numeric:tabular-nums}
+.money input.mat-preis{text-align:left;font-variant-numeric:tabular-nums}
+.print-only{display:none}
+.total{text-align:right;font-size:20px;font-weight:900;margin-top:10px;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px}
+.small{font-size:11px;color:var(--muted);margin-top:7px}
+.search{position:relative}
+/* Leere Vorschlagsbox ausblenden – sonst bleibt ihr Rahmen als feiner
+   Strich quer über dem Bildschirm stehen. */
+.suggest:empty{display:none}
+.suggest{position:fixed;z-index:1000;min-width:320px;max-width:min(92vw,560px);background:#fff;border:1px solid #bcc9d0;border-radius:10px;box-shadow:0 14px 28px #17242d26;max-height:260px;overflow:auto}
+.item{white-space:normal;line-height:1.25}
+.item{padding:10px;border-bottom:1px solid #edf0f2;cursor:pointer;transition:background .1s}.item:last-child{border-bottom:0}.item:hover{background:var(--blue-light)}.item b{display:block}.item span{font-size:11px;color:var(--muted)}
+/* Projektvorschlag (v2.48): Adresse als Hauptinformation, darf ueber
+   mehrere Zeilen umbrechen; Trefferflaeche gross genug fuer den Daumen. */
+.projekt-vorschlag{min-height:48px;padding:9px 10px}
+.projekt-vorschlag b{font-size:13px;word-break:break-word}
+.projekt-vorschlag span{display:block;margin-top:2px;word-break:break-word}
+.empty{text-align:center;color:var(--muted);padding:20px;font-size:12px;border:1px dashed var(--line);border-radius:10px;background:#fbfcfd}
+.modal{position:fixed;inset:0;background:linear-gradient(180deg,#f2f5f8,#e8edf1 240px,var(--bg) 480px);background-attachment:fixed;z-index:500;padding:14px 9px 40px;overflow:auto;animation:fadeIn .15s ease-out}.modalbox{max-width:920px;margin:auto;padding:0}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.settingrow{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;margin:6px 0;display:grid;grid-template-columns:1.3fr .9fr auto;gap:8px;align-items:center}
+.settingrow.emp-row{grid-template-columns:1fr auto}
+.settings-section{border:1px solid #dfe6ea;border-radius:12px;margin:12px 0;overflow:hidden}
+.settings-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;cursor:pointer;background:var(--blue-light)}
+.settings-section-head h2{margin:0;padding:0;border:0;color:var(--blue-dark)}
+.settings-section-chevron{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--blue);transition:transform .15s}
+.settings-section.open .settings-section-chevron{transform:rotate(90deg)}
+.settings-section-body{display:none;padding:12px 14px}
+.settings-section.open .settings-section-body{display:block}
+.settings-tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid #e2e8ec;margin:8px 0 16px}
+.settings-tab{background:none;color:var(--muted);padding:9px 14px;border-radius:9px 9px 0 0;font-weight:800;font-size:12.5px;box-shadow:none}
+.settings-tab:hover{background:#f2f5f8}
+.settings-tab.active{background:var(--blue-light);color:var(--blue-dark)}
+.settingrow-mat{background:#fff;border:1px solid var(--line);border-radius:10px;margin:6px 0;overflow:hidden}
+.mat-row-head{display:flex;align-items:center;gap:8px;padding:7px;cursor:pointer}
+.mat-row-head .mat-nr{flex:0 0 30%;min-width:0}
+.mat-row-head .mat-name{flex:1 1 auto;min-width:0}
+.mat-chevron{flex:0 0 20px;text-align:center;color:var(--muted);font-size:16px;font-weight:900;transition:transform .15s}
+.settingrow-mat.open .mat-chevron{transform:rotate(90deg);color:var(--blue)}
+.mat-row-body{display:none;grid-template-columns:1fr 1fr 1fr auto;align-items:end;gap:7px;padding:0 7px 9px}
+.mat-row-body label{font-size:8px}
+.settingrow-mat.open .mat-row-body{display:grid}
+.settingrow-mat.open .mat-row-head{border-bottom:1px solid #eef1f3;background:var(--blue-light)}
+.cut{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+.cutgrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}.area{background:var(--blue-light);color:var(--blue-dark);border-radius:9px;padding:9px;font-weight:800}
+.project-row{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:6px 0}
+.project-row .project-row-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.project-row .project-row-top b{font-size:15px;flex:1 1 auto;min-width:0;word-break:break-word}
+.project-row .small{margin-top:3px;word-break:break-word}
+/* v2.47: Status auf eigener Zeile - so verdraengt das Badge nie den
+   Titel und die Karte laeuft auf dem Handy nicht seitlich hinaus. */
+.project-row-status{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.pstatus-archiv{color:var(--muted)}
+.project-row-archiviert{opacity:.72}
+/* Hauptaktion: volle Breite, gross genug fuer den Daumen. */
+.project-row-main{display:block;width:100%;min-height:44px;margin-top:9px;text-align:center;font-size:13px}
+.project-row-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.project-row-actions button{flex:1 1 auto;min-height:38px;padding:6px 10px;font-size:11px}
+.report-list{margin-top:8px;border-top:1px solid var(--line);padding-top:8px;display:none}
+.report-list.open{display:block}
+.report-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:var(--blue-light);border-radius:8px;padding:7px 9px;margin:5px 0}
+.report-row .report-row-info{flex:1 1 190px;min-width:0}
+.report-row .report-row-info b{display:block;font-size:12px;word-break:break-word}
+/* Objektadresse als Haupttitel im Regierapport-Bildschirm (v2.44) */
+.report-adresse{font-size:15px;font-weight:800;color:var(--ink);margin:-6px 0 10px;word-break:break-word}
+/* Projektdateien (v2.43): Bildvorschau bzw. Typ-Symbol vor der Zeile */
+.datei-thumb{flex:0 0 auto;width:44px;height:44px;border-radius:8px;object-fit:cover;background:#fff;border:1px solid var(--line)}
+.datei-icon{flex:0 0 auto;width:44px;height:44px;border-radius:8px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:20px}
+/* Dateizeile im Projekt-Cockpit (v2.49): Name gross, darunter Typ/Groesse
+   und Datum; die Aktionen brechen auf schmalen Geraeten um und sind gross
+   genug fuer den Daumen. */
+.datei-row .report-row-info b{font-size:13px}
+.datei-row .report-row-actions{flex:1 1 100%;flex-wrap:wrap;margin-top:2px}
+.datei-row .report-row-actions button{flex:1 1 auto;min-height:40px}
+.datei-row .report-row-actions button.blue{min-height:44px;flex:1 1 100%}
+/* Medien-Hinweis in der Massaufnahme-Zeile (v2.50) */
+.meas-medien-hinweis{color:var(--blue-dark)!important;font-weight:800}
+/* Galerie der Fotos/Skizzen einer Massaufnahme (v2.50): grosse, gut
+   antippbare Kacheln, die auf schmalen Geraeten umbrechen. */
+.medien-galerie{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.medien-kachel{flex:1 1 140px;max-width:200px;min-height:130px;padding:0;background:#fff;
+ border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;
+ flex-direction:column;align-items:stretch;cursor:pointer}
+.medien-kachel img{width:100%;height:110px;object-fit:cover;background:var(--blue-light);display:block}
+.medien-label{display:block;padding:6px 8px;font-size:11px;font-weight:800;color:var(--muted);text-align:left}
+.medien-fehler{display:flex;align-items:center;justify-content:center;height:110px;padding:8px;
+ font-size:11px;font-weight:700;color:var(--muted);background:var(--blue-light);text-align:center}
+/* Grosse Ansicht eines einzelnen Bildes (v2.50) */
+.medien-viewer{position:fixed;inset:0;z-index:900;background:#0d141aee;display:flex;
+ flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px}
+.medien-viewer-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;max-width:920px;color:#fff;font-size:12px;font-weight:800}
+.medien-viewer-bar button{min-height:44px}
+.medien-viewer img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:10px;background:#fff}
+/* WICHTIG: Eine Klasse mit display:… schlaegt die Browserregel
+   [hidden]{display:none}. Ohne diese Zeile bleibt die Vollbildansicht
+   dauerhaft ueber der ganzen App liegen (Fehler aus v2.50).
+   Gleiches Muster wie .sketch-fullscreen[hidden] weiter unten. */
+.medien-viewer[hidden]{display:none}
+/* Arbeitsstand im Projekt-Cockpit (v2.42): kompakte Zeilen, nur Fakten */
+.arbeitsstand{border:1px solid var(--line);border-radius:10px;margin-top:10px;overflow:hidden;background:#fff}
+.arbeitsstand-titel{font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px 4px}
+.arbeitsstand-zeile{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;border-top:1px solid #eef1f3;border-radius:0;padding:9px 10px;min-height:38px;font-weight:600;color:var(--ink)}
+button.arbeitsstand-zeile{cursor:pointer}
+button.arbeitsstand-zeile:hover{background:var(--blue-light)}
+.arbeitsstand-marke{flex:0 0 auto;width:16px;text-align:center;font-size:12px;font-weight:900;color:var(--blue)}
+.arbeitsstand-name{flex:1 1 auto;min-width:0;font-size:12px;word-break:break-word}
+.arbeitsstand-wert{flex:0 0 auto;font-size:12px;font-weight:800;color:var(--blue-dark);text-align:right}
+.arbeitsstand-aktivitaet .arbeitsstand-wert{font-weight:600;color:var(--muted)}
+/* Schnellzugriff "Zuletzt bearbeitet" (v2.41): ganze Karte ist der Knopf */
+.recent-project{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:11px 12px;margin:6px 0;min-height:52px}
+.recent-project-info{flex:1 1 auto;min-width:0}
+.recent-project-info b{display:block;font-size:13px;word-break:break-word}
+.recent-project-info span{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:3px;word-break:break-word}
+.recent-project-arrow{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--blue)}
+/* Projektstatus (v2.46): Zeichen + Text + Farbe - nie die Farbe allein.
+   Kompakt genug fuer die Projektkarte, gut lesbar auf dem Handy. */
+.pstatus{display:inline-block;font-size:11px;font-weight:900;line-height:1.5;
+ border:1px solid currentColor;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.pstatus-offen{color:var(--muted)}
+.pstatus-in_arbeit{color:var(--blue)}
+.pstatus-abgeschlossen{color:var(--green)}
+.pstatus-storniert{color:var(--red)}
+html.dark .pstatus-abgeschlossen{color:#4cc79a}
+html.dark .pstatus-storniert{color:#f08b80}
+/* Statuszeile im Projektkopf: Anzeige und Auswahlfeld nebeneinander,
+   auf schmalen Geraeten untereinander. */
+.projekt-status-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 4px}
+.projekt-status-zeile select{flex:0 1 200px;min-height:38px}
+.projekt-status-anzeige{flex:0 0 auto}
+/* Statusfilter der Projektliste: gleiche Chips wie im Verlauf (v2.31).
+   margin-top ist Pflicht: die Leiste darueber (.bar) hat nur margin-top,
+   sonst beruehren sich die beiden Knopfreihen ohne jede Luft (v2.69). */
+.status-filter{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px}
+.status-filter button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark);min-height:30px}
+.status-filter button.aktiv{background:var(--blue);color:#fff}
+.status-filter[hidden]{display:none}
+/* Projektkopf im Cockpit (v2.45): die Adresse ist der Haupttitel und
+   darf auf schmalen Geraeten umbrechen, statt seitlich hinauszulaufen. */
+#cockpitTitle{word-break:break-word}
+#cockpitSubline{word-break:break-word}
+/* Projekt-Cockpit (v2.39): Abschnittsueberschrift mit Anzahl rechts,
+   klar beschriftete Neu-Knoepfe ueber voller Breite. */
+/* Aus der globalen Suche geoeffneter Treffer (v2.40): kurz hervorheben */
+.report-row.treffer{outline:2px solid var(--blue);outline-offset:1px;background:#fff}
+.cockpit-count{float:right;font-size:11px;font-weight:900;color:var(--blue);background:var(--blue-light);border-radius:999px;padding:1px 9px;min-width:20px;text-align:center}
+.cockpit-new{display:block;width:100%;min-height:44px;text-align:center;line-height:24px}
+label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-weight:800;font-size:12px}
+.verlauf-filters button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark)}
+/* Sortier-Chips der Feedback-Liste - gleiche Optik wie die Verlauf-Filter */
+.feedback-sort button{padding:6px 10px;font-size:11px;min-height:34px;background:var(--blue-light);color:var(--blue-dark)}
+.feedback-sort button.active{background:var(--blue);color:#fff}
+/* Auswahl der zu exportierenden Feedbacks: die ganze Kopfzeile ist das
+   Label, damit auf dem Handy nicht das kleine Kaestchen getroffen werden
+   muss. word-break, damit lange Modulnamen umbrechen statt zu ueberlaufen. */
+label.feedback-pick{display:flex;align-items:flex-start;gap:9px;cursor:pointer;
+ min-height:30px;padding:2px 0;margin:0}
+label.feedback-pick input{width:19px;height:19px;min-height:0;flex:0 0 auto;margin:2px 0 0;padding:0;border:0;border-radius:0;accent-color:var(--blue)}
+label.feedback-pick span{flex:1 1 auto;min-width:0;word-break:break-word;text-transform:none;letter-spacing:normal;font-weight:400;font-size:11px;margin:0}
+.settingrow.feedback-gewaehlt{border-left:3px solid var(--blue)}
+.verlauf-filters button.active{background:var(--blue);color:#fff}
+.verlauf-entry{border-bottom:1px solid var(--line);padding:7px 2px}
+.verlauf-entry:last-child{border-bottom:0}
+.verlauf-entry-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.verlauf-entry-badges{display:flex;gap:5px;flex-wrap:wrap}
+.verlauf-entry-entity{font-size:10.5px;font-weight:800;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.verlauf-entry-action{font-size:10.5px;font-weight:800;color:var(--blue-dark);background:var(--blue-light);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.verlauf-entry-who{font-size:12px;font-weight:700}
+.verlauf-entry-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.verlauf-entry-changes{margin-top:4px;padding:6px 8px;background:var(--blue-light);border-radius:8px;font-size:11px;color:var(--ink)}
+.verlauf-change-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:2px 0}
+.verlauf-change-label{font-weight:700;color:var(--blue-dark);white-space:nowrap}
+.verlauf-change-value{word-break:break-word}
+.verlauf-limit-hint{color:var(--muted);text-align:center}
+.report-row .report-row-info span{display:block;font-size:11px;color:var(--muted);word-break:break-word}
+.report-row .report-row-actions{display:flex;gap:6px;flex:0 0 auto}
+.report-row button{padding:7px 10px;font-size:11px;min-height:34px}
+
+.meas-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.eb-table{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}
+.eb-diagram-box{background:#f8fafb;border:1px solid var(--line);border-radius:10px;padding:8px;margin:8px 0}
+.eb-diagram-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.eb-diagram-scroll svg{display:block}
+.eb-table col.eb-col-pos{width:14%}
+.eb-table col.eb-col-len{width:32%}
+.eb-table col.eb-col-massa{width:26%}
+.eb-table col.eb-col-side{width:28%}
+.eb-table th{background:#f2f6f8;text-align:left;font-size:9px;padding:6px 5px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+.eb-table td{border-top:1px solid var(--line);padding:5px;font-size:12px}
+.eb-table td:first-child{text-align:left;color:var(--muted)}
+.eb-table td:nth-child(2),.eb-table td:nth-child(3){text-align:left;font-variant-numeric:tabular-nums}
+.eb-rest-row td{background:var(--blue-light);font-weight:800}
+.start-nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px}
+.start-nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:26px 10px;border-radius:14px;font-size:14px;font-weight:800;text-align:center;line-height:1.3}
+.start-nav-btn small{font-weight:600;font-size:10px;opacity:.85}
+.start-nav-icon{font-size:34px;line-height:1}
+#topUserBar{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px}
+.report-topnav{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
+.report-topnav button{padding:7px 12px;font-size:12px}
+@media(max-width:600px){.start-nav{grid-template-columns:1fr}}
+.meas-preview{max-width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--line);display:block}
+.meas-preview[hidden]{display:none}
+.sketch-fullscreen{position:fixed;inset:0;z-index:2000;background:#fff;display:flex;flex-direction:column;touch-action:pan-x pan-y}
+.sketch-fullscreen[hidden]{display:none}
+.sketch-fs-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:9px 10px;background:#f2f5f8;border-bottom:1px solid var(--line);flex:0 0 auto;touch-action:manipulation}
+.sketch-fs-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sketch-fs-actions{display:flex;gap:8px;flex:0 0 auto;margin-left:auto}
+.sketch-fs-toolbar select,.sketch-fs-toolbar input[type=color]{width:auto;min-height:38px}
+.sketch-fs-toolbar button{padding:9px 14px;flex:0 0 auto}
+.sketch-zoom-label{font-size:12px;font-weight:800;color:var(--muted);min-width:38px;text-align:center}
+#fsPanFloating{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:50;padding:12px 20px;border-radius:999px;font-size:14px;font-weight:900;background:var(--green);color:#fff;box-shadow:0 4px 16px #0004;white-space:nowrap}
+#fsPanFloating.active{background:var(--blue)}
+#fsSketchDone{font-size:14px;font-weight:900;padding:10px 20px;box-shadow:0 3px 10px #16845c66}
+.sketch-viewport{flex:1 1 auto;overflow:auto;background:#dbe1e5;display:flex;align-items:flex-start;justify-content:center;padding:14px;touch-action:pan-x pan-y}
+#fsSketchCanvas{background:#fff;box-shadow:0 2px 14px #0002;flex:0 0 auto;touch-action:none}
+.sketch-gallery{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0}
+.sketch-thumb-wrap{position:relative;width:84px;height:118px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.sketch-thumb{width:100%;height:100%;object-fit:contain}
+.sketch-thumb-actions{position:absolute;inset:auto 0 0 0;display:flex;gap:2px;background:#17242dcc}
+.sketch-thumb-actions button{flex:1;padding:4px 0;font-size:11px;border-radius:0}
+.meas-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0}
+.meas-thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:0 0 auto;background:#eef2f6}
+.meas-thumb-empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px}
+.meas-row-info{flex:1 1 190px;min-width:0}
+.meas-row-info b{display:block;font-size:13px;word-break:break-word}
+.meas-row-info span{display:block;font-size:11px;color:var(--muted);word-break:break-word}
+.meas-row-actions{display:flex;gap:6px;flex:0 0 auto}
+.meas-row-actions button{padding:7px 10px;font-size:12px;min-height:34px}
+@media(max-width:600px){.meas-columns{grid-template-columns:1fr}}
+#authScreen .modalbox{max-width:420px}
+.info{background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:9px;border-left:3px solid var(--blue)}
+.report-head{display:none}
+.report-foot{display:none}
+.pdf-foot{display:none}
+.print-rate-block{display:none}
+
+
+/* Kehle (v2.52) – Hauptresultate b/c/d dominieren, alles Weitere bleibt
+   dezent. Kein Element hier startet versteckt; sollte das je nötig
+   werden, braucht die Klasse zusätzlich eine eigene
+   .klasse[hidden]{display:none}-Regel (siehe CLAUDE.md 59). */
+.kehle-haupt{background:var(--blue-light);border:2px solid var(--blue);border-radius:12px;padding:10px 12px;margin:12px 0 4px}
+.kehle-haupt-titel{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--blue-dark);margin-bottom:6px}
+.kehle-haupt-zeile{display:flex;flex-wrap:nowrap;align-items:baseline;gap:8px;padding:4px 0;border-top:1px solid #ffffff80}
+.kehle-haupt-zeile:first-of-type{border-top:0}
+.kehle-haupt-buchstabe{font-size:20px;font-weight:800;color:var(--blue-dark);flex:0 0 20px}
+.kehle-haupt-wert{font-size:24px;font-weight:800;color:var(--blue-dark);flex:0 0 auto;min-width:96px;text-align:right;white-space:nowrap}
+.kehle-haupt-text{flex:1 1 0;min-width:0;font-size:11px;line-height:1.25;color:var(--blue-dark);overflow-wrap:anywhere}
+/* Zusatzwerte bewusst schmal: Kurzbezeichnung auf dem Bildschirm, der
+   volle Excel-Wortlaut haengt als Tooltip an der Zeile und steht
+   ungekuerzt im PDF. */
+/* min-width:0 ist hier zwingend: die globale Regel oben (Zeile 33)
+   setzt jeder Tabelle min-width:1000px, weil die Stuecklisten-Tabellen
+   der App in einem <div class="scroll"> stehen und breit sein duerfen.
+   Ohne diese Zeile waere auch die Kehle-Tabelle 1000px breit und wuerde
+   rechts aus dem Bildschirm laufen. */
+table.kehle-tabelle{width:100%;min-width:0;border-collapse:collapse;font-size:11.5px;table-layout:fixed}
+.kehle-tabelle th{width:32px;text-align:left;font-weight:800;color:var(--blue-dark);padding:3px 5px 3px 0;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+.kehle-tabelle td{padding:3px 4px 3px 0;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.3;overflow-wrap:anywhere}
+.kehle-tabelle td.kehle-zahl{width:74px;text-align:right;font-weight:700;white-space:nowrap;padding-right:0}
+details.kehle-zwischen summary{cursor:pointer;font-size:11.5px;color:var(--muted);padding:7px 0;min-height:32px}
+details.kehle-zwischen[open] summary{margin-bottom:2px}
+@media(max-width:600px){
+ .kehle-haupt-wert{font-size:21px;min-width:84px}
+ .kehle-haupt-buchstabe{font-size:17px;flex:0 0 16px}
+ .kehle-haupt-text{font-size:10.5px}
+ table.kehle-tabelle{font-size:11px}
+ .kehle-tabelle td.kehle-zahl{width:68px}
+ .kehle-tabelle th{width:30px}
+}
+
+/* ---- Rinne · frei definierbares Profil + Zuschnittliste (v2.57) ----
+   Beide Tabellen stehen wie die uebrigen Stuecklisten in einem
+   <div class="scroll"> und duerfen breiter als der Bildschirm sein.
+   min-width und table-layout werden hier ausdruecklich gesetzt: die
+   globale Regel (Zeile 33) gibt jeder Tabelle min-width:1000px und
+   table-layout:fixed - bei einer Tabelle mit dynamisch vielen Spalten
+   waere beides falsch. */
+table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:collapse;
+ margin-top:6px;table-layout:auto}
+.rp-profiltabelle th,.rp-table th{background:#f2f6f8;text-align:left;font-size:9px;padding:6px 5px;
+ color:var(--muted);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+.rp-profiltabelle td,.rp-table td{border-top:1px solid var(--line);padding:4px 5px;font-size:12px;
+ vertical-align:middle;white-space:nowrap}
+.rp-profiltabelle td:first-child,.rp-table td:first-child{color:var(--muted);text-align:left}
+.rp-profiltabelle input,.rp-profiltabelle select,
+.rp-table input[type=number],.rp-table select{padding:5px 4px;font-size:12px;min-height:34px;
+ border:1px solid var(--line);border-radius:7px;background:#fff;color:inherit;min-width:0}
+.rp-profiltabelle input[type=text]{width:150px}
+.rp-profiltabelle input[type=number]{width:76px;text-align:right}
+.rp-profiltabelle select{width:92px}
+.rp-table input[type=number]{width:72px;text-align:right}
+.rp-table select{width:92px}
+.rp-varzelle input[type=number]{width:62px}
+/* display:flex auf einem <td> sprengt das Tabellenlayout - die Knoepfe
+   liefen in die Nachbarspalte. Deshalb ein innerer Flex-Container. */
+.rp-winkel > div{display:flex;gap:3px;align-items:center}
+.rp-winkel button,.rp-segbtn button,.rp-table button{min-height:32px;min-width:32px;padding:2px 6px;font-size:12px}
+.rp-segbtn{white-space:nowrap}
+.rp-segbtn button{margin-right:2px}
+.rp-var{color:var(--blue-dark);font-weight:800}
+.rp-erg{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
+.rp-zuschnitt{color:var(--blue-dark)}
+@media(max-width:600px){
+ .rp-profiltabelle td,.rp-table td{font-size:11.5px}
+ .rp-profiltabelle input[type=text]{width:120px}
+}
+/* Pflichtfeld-Stern (v2.70): rot, fett und etwas groesser als das Label,
+   damit er auch auf einem Handy sicher zu sehen ist. Der Stern steht im
+   Label, nie im Eingabewert - er kann also nicht mitgetippt werden. */
+.pflicht-stern{color:var(--red);font-weight:900;font-size:13px;line-height:1;margin-left:3px;vertical-align:baseline}
+/* Offline-Hinweis (v2.70): deutlich, aber nicht alarmierend. Steht ganz
+   oben und nimmt auf dem Handy die volle Breite ein. */
+.offline-hinweis{background:#fff4e5;border:1px solid #f0c48a;color:#8a5300;
+ border-radius:10px;padding:8px 10px;margin:0 0 8px;line-height:1.35}
+.offline-hinweis[hidden]{display:none}
+
+/* ---- Rinne Halbrund · Aufnahme (js/28) ---------------------------------- */
+/* Die globalen Grundregeln (input{min-height:40px}, label{uppercase},
+   table{min-width:1000px}) gelten auch hier - Tabellen stehen deshalb wie
+   ueberall in .scroll, und es wird nichts davon still ueberschrieben. */
+.ra-block{margin-top:4px}
+.ra-zeile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+.ra-zeile-kopf{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.ra-zeile-kopf b{font-size:13px}
+.ra-klein{font-size:11.5px;color:var(--muted);font-weight:400}
+.ra-weg{min-height:34px;padding:0 10px;flex:0 0 auto}
+.ra-ueb{background:#f4f9f8;border-color:#cfe4e0}
+.ra-ueb-aus{background:#fafbfc;border-color:var(--line)}
+.ra-ueb-stutzen{background:#f5f2fb;border-color:#ddd3ee}
+.ra-wert{min-height:40px;display:flex;align-items:center;font-weight:700;font-size:14px;
+ padding:8px;border:1px dashed var(--line);border-radius:9px;background:#fafbfc;word-break:break-word}
+.ra-schalter{display:flex;align-items:center;gap:8px;min-height:40px;font-size:13px;
+ font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0}
+.ra-schalter input{width:auto;min-height:0;padding:0;border:0;transform:scale(1.25);flex:0 0 auto}
+.ra-pruefung{display:flex;flex-direction:column;gap:6px}
+.ra-fehler{background:#fdf1f0;border-left:3px solid #b42318;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#8a2018}
+.ra-warnung{background:#fdf6ec;border-left:3px solid #d9822b;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#8a5312}
+.ra-ok{background:#eff9f2;border-left:3px solid #2e7d4f;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#1f5c39}
+.ra-liste{margin:8px 0 0;padding-left:18px;font-size:12.5px;line-height:1.55}
+.ra-warn{background:#fdf6ec;color:#8a5312;border-left-color:#d9822b}
+/* Legende unter dem Verlaufsband - ohne sie waeren die berechneten
+   Dehnungselemente nur unbeschriftete Rauten. */
+.ra-legende{font-size:11px;color:var(--muted);line-height:1.5;margin:2px 0 8px;text-align:center}
+/* Rinnenboden und Dehnung stehen in einem eigenen, abgesetzten Block, damit
+   die berechneten Dehnungselemente sichtbar sind und nicht in einer
+   Feldreihe untergehen. */
+.ra-dehnung{background:#fdf8f2;border:1px solid #f0dcc3;border-radius:12px;padding:10px;margin:10px 0}
+.ra-dehnung-zahl{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12.5px;
+ color:var(--ink);margin-bottom:4px}
+.ra-dehnung-zahl span{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700}
+.ra-dehnung-zahl b{font-size:17px;color:#b4610a}
+.ra-dehnung-liste{margin:4px 0 0;padding-left:18px;font-size:12.5px;line-height:1.6}
+/* Kurz sichtbar machen, wohin "Fertig" gefuehrt hat. */
+.ra-ziel{outline:2px solid var(--blue);outline-offset:3px;border-radius:10px}
+.ra-dila-zeile{background:var(--blue-light)}
+.ra-dila-feld{max-width:130px;text-align:right;font-variant-numeric:tabular-nums}
+.ra-rest{color:#b4610a;font-weight:700}
+@media (max-width:520px){.ra-dila-feld{max-width:none}}
+/* Die globale Grundregel table{min-width:1000px} ist fuer die breiten
+   Stuecklisten gedacht. Die Tabellen der Rinnen-Aufnahme haben wenige,
+   kurze Spalten und sollen auf dem Handy ganz sichtbar sein - min-width
+   muss dafuer AUSDRUECKLICH zurueckgesetzt werden, width:100% allein
+   reicht nicht (siehe CLAUDE.md 60.5). */
+.eb-table.ra-tab{min-width:0;table-layout:auto}
+.eb-table.ra-tab td,.eb-table.ra-tab th{word-break:break-word}
+/* Register-Fuehrung durch die Rinnen-Massaufnahme (wie in der Testapp).
+   .ra-register-knopf setzt min-height/padding/width ausdruecklich zurueck -
+   die globale button-Regel wuerde sie sonst ueberschreiben. */
+.ra-register{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;
+ -webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.ra-register-knopf{flex:0 0 auto;width:auto;display:inline-flex;align-items:center;gap:6px;
+ background:#fff;border:1px solid var(--line);border-radius:22px;
+ min-height:42px;padding:0 13px;font-size:13px;font-weight:600;color:var(--ink);
+ white-space:nowrap;cursor:pointer;position:relative}
+.ra-register-knopf.aktiv{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:800}
+.ra-register-nr{display:inline-flex;align-items:center;justify-content:center;
+ width:20px;height:20px;border-radius:50%;background:#eef2f5;color:var(--ink);
+ font-size:11px;font-weight:800;flex:0 0 auto}
+.ra-register-knopf.aktiv .ra-register-nr{background:#fff;color:var(--blue)}
+.ra-register-punkt{width:8px;height:8px;border-radius:50%;background:#d9822b;flex:0 0 auto}
+.ra-register-punkt.fehler{background:#b42318}
+.ra-register-knopf.aktiv .ra-register-punkt{box-shadow:0 0 0 2px #fff}
+.ra-blaettern{justify-content:space-between;margin-top:14px}
+.ra-blaettern button{flex:1 1 46%;min-height:46px;font-weight:700}
+
+/* ---- prototyp-freies-profil/prototyp.css ---- */
+/* Prototyp Freies Profil – nur die Ergänzungen zur App-Grundschrift.
+   Auf ein Android-Tablet ausgelegt: grosse Trefferflächen, keine festen
+   Breiten, alles umbruchfähig. */
+
+.p-app{max-width:900px;margin:0 auto;padding:10px 12px 40px}
+
+.p-kopf{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;
+ justify-content:space-between;margin:6px 0 12px}
+.p-kopf h1{margin:0;font-size:21px;letter-spacing:.2px}
+.p-kopf-klein{font-size:11.5px;color:var(--muted)}
+.p-kopf-knoepfe{display:flex;flex-wrap:wrap;gap:8px}
+.p-kopf-knoepfe button{min-height:44px;padding:0 14px}
+
+.p-karte{background:#fff;border:1px solid var(--line);border-radius:14px;
+ padding:12px 12px 14px;margin:0 0 12px}
+.p-karte h2{margin:2px 0 10px;font-size:12px;text-transform:uppercase;
+ letter-spacing:.6px;color:var(--muted)}
+.p-karte h3{margin:14px 0 6px;font-size:12px;text-transform:uppercase;
+ letter-spacing:.5px;color:var(--muted)}
+.p-klapp[hidden]{display:none}
+
+/* Register – scrollt auf schmalen Geräten seitwärts */
+.p-register{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;
+ -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.p-register::-webkit-scrollbar{display:none}
+.p-register-knopf{flex:0 0 auto;display:flex;align-items:center;gap:7px;
+ min-height:44px;padding:0 13px;border:1px solid var(--line);border-radius:11px;
+ background:#fff;color:var(--ink);font-size:13px;font-weight:600;cursor:pointer}
+.p-register-knopf.aktiv{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+.p-register-nr{display:inline-flex;align-items:center;justify-content:center;
+ width:20px;height:20px;border-radius:50%;background:#eef2f5;color:var(--muted);
+ font-size:11px;font-weight:700}
+.p-register-knopf.aktiv .p-register-nr{background:var(--blue);color:#fff}
+.p-punkt{width:8px;height:8px;border-radius:50%;display:inline-block}
+.p-punkt-rot{background:#b42318}
+.p-punkt-orange{background:#d9822b}
+
+.p-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.p-feld label{display:block;font-size:10.5px;text-transform:uppercase;
+ letter-spacing:.4px;color:var(--muted);font-weight:700;margin-bottom:3px}
+.p-voll{grid-column:1/-1}
+.p-gross{font-size:17px;font-weight:700;min-height:48px}
+
+.p-knopfreihe{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+.p-knopfreihe button{min-height:44px;padding:0 14px;flex:1 1 auto}
+.p-blau{background:var(--blue);color:#fff;border:0}
+.p-gruen{background:var(--green);color:#fff;border:0}
+.p-grau{background:#eef2f5;color:var(--ink);border:1px solid var(--line)}
+.p-weg{background:#fdf1f0;color:#8a2018;border:1px solid #f2ccc8;
+ min-height:36px;padding:0 10px}
+
+.p-blaettern{display:flex;gap:10px;margin:14px 0 0}
+.p-blaettern button{min-height:48px;flex:1 1 0;font-size:14px;font-weight:700}
+
+.p-hinweis{background:var(--blue-light);border-radius:10px;padding:9px 11px;
+ font-size:12px;line-height:1.55;margin:10px 0 0}
+.p-legende{font-size:11.5px;color:var(--muted);line-height:1.55;
+ text-align:center;margin:4px 0 8px}
+.p-klein-text{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:8px}
+.p-leer{color:var(--muted);font-size:12.5px;text-align:center;padding:14px}
+
+/* Schnittzeichnung – zentral und gross genug für ein Tablet */
+.p-schnitt{background:#fafbfc;border:1px solid var(--line);border-radius:12px;
+ padding:12px;margin:12px 0 4px;display:flex;justify-content:center}
+.p-schnitt svg{max-width:460px!important;width:100%}
+.p-grundriss{background:#fafbfc;border:1px solid var(--line);border-radius:12px;
+ padding:10px;display:flex;justify-content:center}
+
+/* Kennzahlen */
+.p-zf-kopf{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+ gap:8px;margin:12px 0 0}
+.p-zf-kopf>div{background:#fafbfc;border:1px solid var(--line);border-radius:10px;
+ padding:8px 10px;min-width:0}
+.p-zf-kopf span{display:block;font-size:10px;text-transform:uppercase;
+ letter-spacing:.4px;color:var(--muted);font-weight:700}
+.p-zf-kopf b{font-size:16px;word-break:break-word}
+.p-zf-fuss{font-size:12px;color:var(--muted);margin-top:10px}
+.p-warnwert{color:#b42318}
+
+/* Tabellen: die globale Grundregel table{min-width:1000px} in
+   css/01-basis.css ist für die breiten Stücklisten der App gedacht.
+   Hier muss min-width AUSDRÜCKLICH zurückgesetzt werden – width:100%
+   allein reicht nicht. */
+.p-tabelle-scroll{overflow-x:auto;margin-top:10px}
+table.p-tabelle{width:100%;min-width:0;table-layout:auto;border-collapse:collapse}
+.p-tabelle th,.p-tabelle td{border-bottom:1px solid var(--line);
+ padding:7px 6px;font-size:12.5px;text-align:left;word-break:break-word}
+.p-tabelle th{font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;
+ color:var(--muted);font-weight:700;white-space:nowrap}
+.p-num{text-align:right!important;font-variant-numeric:tabular-nums}
+.p-mitte{text-align:center!important}
+.p-quelle{color:var(--muted);font-size:11px}
+.p-tab-feld{min-height:38px;padding:4px 6px;text-align:right;
+ font-variant-numeric:tabular-nums;font-size:13px}
+/* Kästchen: die globale Regel input{width:100%;min-height:40px;border:…}
+   macht aus einem Häkchen sonst ein 40 px hohes Feld mit Rahmen. */
+.p-tabelle input[type=checkbox]{width:auto;min-height:0;padding:0;border:0;
+ transform:scale(1.3)}
+
+.p-pruefung{display:flex;flex-direction:column;gap:6px}
+.p-fehler{background:#fdf1f0;border-left:3px solid #b42318;border-radius:8px;
+ padding:8px 10px;font-size:12.5px;color:#8a2018}
+.p-warnung{background:#fdf6ec;border-left:3px solid #d9822b;border-radius:8px;
+ padding:8px 10px;font-size:12.5px;color:#8a5312}
+.p-ok{background:#eff9f2;border-left:3px solid #2e7d4f;border-radius:8px;
+ padding:8px 10px;font-size:12.5px;color:#1f5c39}
+
+/* Fotos und Skizze */
+.p-datei{display:flex;align-items:center;justify-content:center;min-height:48px;
+ background:var(--blue);color:#fff;border-radius:11px;font-size:14px;
+ font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
+.p-fotos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.p-foto{position:relative;flex:0 0 auto;width:118px}
+.p-foto.gross{width:100%;max-width:340px}
+.p-foto img{width:100%;height:auto;display:block;border:1px solid var(--line);
+ border-radius:10px}
+.p-foto .p-weg{position:absolute;top:4px;right:4px;min-height:30px;padding:0 8px}
+.p-skizzeBox[hidden]{display:none}
+.p-skizzeBox{margin-top:10px}
+#p-skizzeCanvas{width:100%;height:auto;background:#fff;border:1px solid var(--line);
+ border-radius:10px;touch-action:none;display:block}
+
+.p-zeile{background:#fafbfc;border:1px solid var(--line);border-radius:11px;
+ padding:9px 10px;margin:8px 0}
+.p-zeile-kopf{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;
+ align-items:baseline}
+.p-zeile-kopf b{font-size:13px;word-break:break-word}
+
+/* Legende der Schnittzeichnung: dieselben Farben wie in der Zeichnung. */
+.p-lg{display:inline-block;margin:0 6px;font-weight:700;white-space:nowrap}
+.p-lg::before{content:"● ";}
+.p-lg-blau{color:#1769aa}
+.p-lg-grau{color:#68737d}
+.p-lg-gruen{color:#2e7d4f}
+.p-lg-orange{color:#b4610a}
+/* Die farbigen Punkte an den beiden Geometriefeldern */
+.p-feld label{white-space:normal}
+
+/* Haltebleche und Rollenbreiten */
+.p-schalter{display:flex;align-items:center;gap:9px;min-height:46px;font-size:14px;
+ font-weight:700;color:var(--ink);text-transform:none;letter-spacing:0}
+.p-schalter input[type=checkbox]{width:auto;min-height:0;padding:0;border:0;transform:scale(1.4)}
+.p-rollen{display:flex;flex-wrap:wrap;gap:6px 16px}
+.p-rolle{flex:0 0 auto;min-height:42px}
+.p-tabelle tr.p-beste{background:#eff9f2}
+.p-tabelle tr.p-beste td:first-child{font-weight:700;color:#1f5c39}
+
+/* Übernahme aus einer Rinne-Massaufnahme */
+#p-rinneTextBox[hidden]{display:none}
+#p-rinneText{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+
+/* ---- Ergänzungen für das freie Profil ---------------------------------- */
+
+/* Die Zeichnung ist die eigentliche Rückmeldung beim Erfassen. Auf einem
+   Handy stünde sie sonst unter fünf langen Schenkel-Karten - man sähe sie
+   beim Tippen nie. Deshalb klebt sie in Register 2 oben am Bildschirmrand. */
+.p-zeichnung{background:#fff;border:1px solid var(--line);border-radius:10px;
+ padding:6px;margin-top:8px}
+.p-zeichnung.gross{padding:10px}
+.p-zeichnung-klebt{position:sticky;top:0;z-index:5;
+ box-shadow:0 6px 10px -8px rgba(0,0,0,.35)}
+.p-zeichnung-klebt svg{max-width:200px!important}
+.p-zeichnung-kopf{display:flex;justify-content:space-between;align-items:baseline;
+ gap:8px;font-size:10px;text-transform:uppercase;letter-spacing:.4px;
+ color:var(--muted);font-weight:700;margin-bottom:2px}
+
+/* Ein Knopf, dessen Zustand gerade gilt (z. B. 180°-Umschlag am Schenkel). */
+.p-grau.p-aktiv{background:#e8f1f9;border-color:#1769aa;color:#1769aa;font-weight:700}
+
+/* Meldung der Skizzen-Erkennung */
+.p-status{margin-top:8px;padding:8px 10px;border-radius:8px;background:#f4f6f8;
+ border:1px solid var(--line);font-size:12.5px;word-break:break-word}
+/* Die Vorschau der erkannten Form ist bewusst abgesetzt: sie ist noch nicht
+   übernommen. */
+.p-karte.p-vorschau{border:2px solid #e07a1f;background:#fffaf4}
+
+</style>
+</head>
+<body>
+<div class="p-app" id="p-app">
+
+<div class="p-kopf">
+ <div>
+  <h1>Freies Profil</h1>
+  <div class="p-kopf-klein">Prototyp · zeichnet und prüft mit der Fachlogik der laufenden App</div>
+ </div>
+ <div class="p-kopf-knoepfe">
+  <button type="button" class="p-gruen" id="p-speichern">💾 Speichern</button>
+  <button type="button" class="p-grau" id="p-neu">＋ Neu</button>
+  <button type="button" class="p-grau" id="p-kopieren">📋 Kopieren</button>
+  <button type="button" class="p-grau" id="p-listeAuf">📂 Gespeicherte</button>
+ </div>
+</div>
+
+<div class="p-karte p-klapp" id="p-listeBox" hidden></div>
+
+<div id="p-registerBox"></div>
+<div id="p-inhalt"></div>
+
+<div class="p-blaettern">
+ <button type="button" class="p-grau" id="p-zurueck">‹ Zurück</button>
+ <button type="button" class="p-grau" id="p-weiter">Weiter</button>
+</div>
+
+<!-- Nur Aufhänger für generateProfilDiagramSvg() aus js/14: die Funktion
+     liest die Ansichtsrichtung aus einem Feld mit genau dieser ID. Nicht
+     sichtbar und nicht bedienbar - gesetzt wird sie im Register 3. -->
+<select id="fp_ansicht" hidden aria-hidden="true">
+ <option value="keiner">keiner</option>
+ <option value="links">links</option>
+ <option value="oben">oben</option>
+ <option value="rechts">rechts</option>
+ <option value="unten">unten</option>
+</select>
+
+</div>
+<script>
+/* ---- prototyp-freies-profil/bruecke.js ---- */
+"use strict";
+// ===========================================================================
+// BRÜCKE zum bestehenden Modul  ·  Prototyp Freies Profil
+// ===========================================================================
+// Der Prototyp rechnet und zeichnet mit der Fachlogik der laufenden App,
+// nicht mit einer nachgebauten. Übernommen werden – zeichengenau, siehe
+// uebernehmen.js – aus js/14-freies-profil.js:
+//
+//   abgerundeterPfad()          runde Biegungen
+//   ansichtsPfeilSvg()          Ansichtsrichtung
+//   generateProfilDiagramSvg()  die ganze Profilzeichnung
+//   fpPruefeErkannteSchenkel()  Prüfung der Skizzen-Erkennung
+//   FP_MAX_SCHENKEL, FP_ERKENNUNG_ZEITGRENZE_MS
+//
+// Diese Datei stellt nur bereit, was jene Funktionen erwarten.
+// ===========================================================================
+
+function $(id){return document.getElementById(id)}
+function esc(v){
+ return String(v===null||v===undefined?"":v)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// generateProfilDiagramSvg() liest die Ansichtsrichtung direkt aus einem
+// Formularfeld mit der ID "fp_ansicht" - genau wie in der App. Damit die
+// Funktion unverändert bleiben kann, gibt es dieses Feld auch hier; es liegt
+// unsichtbar im Rumpf (#fp_ansicht) und wird vom Prototyp gesetzt.
+
+// Materialkatalog – Struktur wie die Tabelle measurement_materials der App.
+// Im Prototyp lokal, damit ohne Supabase getestet werden kann. Bewusst OHNE
+// Artikelnummern und Preise: die kommen später aus der importierten,
+// firmeneigenen Materialliste.
+const measurementMaterials=[
+ {id:3,name:"Kupfer"},
+ {id:2,name:"Titanzink"},
+ {id:5,name:"Chromstahl, verzinnt"},
+ {id:4,name:"CrNi-Stahl"},
+ {id:1,name:"Aluminium (Aluman)"},
+ {id:6,name:"Stahl, verzinkt"}
+];
+function findMeasurementMaterial(id){
+ return measurementMaterials.find(x=>String(x.id)===String(id))||null;
+}
+
+// Adresse der Erkennung. In der App kommen beide Werte aus js/01-basis.js;
+// im Prototyp stehen sie hier, damit die Testapp ohne die App läuft. Der
+// Anon-Key ist derselbe öffentliche Schlüssel, den die ausgelieferte App im
+// Browser trägt - kein Geheimnis, keine service_role.
+const SUPABASE_URL="https://nfgryuzkpwjfmdlmevuy.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_U1YsWEdl4X9U94JO4sL5Lg_7_dU0erM";
+
+</script>
+<script>
+/* ---- Fachlogik, zeichengenau aus js/14-freies-profil.js ---- */
+"use strict";
+// ==========================================================================
+// AUS DER LAUFENDEN APP ÜBERNOMMEN - NICHT VON HAND BEARBEITEN.
+// Erzeugt von prototyp-freies-profil/uebernehmen.js; jede Funktion ist
+// zeichengenau aus ihrer Quelldatei geschnitten und danach gegen die
+// Quelle geprüft worden.
+// ==========================================================================
+
+// ---- abgerundeterPfad()  ·  unverändert aus js/14-freies-profil.js ----
+function abgerundeterPfad(punkte,radius){
+ if(punkte.length<2)return "";
+ const P=(pt)=>`${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`;
+ if(punkte.length===2)return `M ${P(punkte[0])} L ${P(punkte[1])}`;
+ let d=`M ${P(punkte[0])}`;
+ for(let i=1;i<punkte.length-1;i++){
+  const [vx,vy]=punkte[i];
+  const [ax,ay]=punkte[i-1];
+  const [bx,by]=punkte[i+1];
+  // Richtungen von der Ecke weg, jeweils auf Länge 1
+  const ux=ax-vx, uy=ay-vy, wx=bx-vx, wy=by-vy;
+  const lenU=Math.hypot(ux,uy)||1, lenW=Math.hypot(wx,wy)||1;
+  const unx=ux/lenU, uny=uy/lenU, wnx=wx/lenW, wny=wy/lenW;
+  let cos=unx*wnx+uny*wny;
+  cos=Math.max(-1,Math.min(1,cos));
+  const phi=Math.acos(cos); // Innenwinkel an der Biegung
+  // Fast gerade oder vollständige Umkehr: nichts zu runden
+  if(phi>Math.PI-0.03||phi<0.03){d+=` L ${P(punkte[i])}`;continue}
+  // Tangentenabstand, begrenzt durch die kürzere der beiden Schenkellängen
+  const t=Math.min(radius,lenU*0.45,lenW*0.45);
+  const r=t*Math.tan(phi/2); // Radius des Kreisbogens
+  const p1=[vx+unx*t, vy+uny*t];
+  const p2=[vx+wnx*t, vy+wny*t];
+  // Drehrichtung aus dem Kreuzprodukt (Bildkoordinaten: y zeigt nach unten)
+  const kreuz=(vx-ax)*(by-vy)-(vy-ay)*(bx-vx);
+  const sweep=kreuz>0?1:0;
+  d+=` L ${P(p1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 ${sweep} ${P(p2)}`;
+ }
+ d+=` L ${P(punkte[punkte.length-1])}`;
+ return d;
+}
+
+// ---- ansichtsPfeilSvg()  ·  unverändert aus js/14-freies-profil.js ----
+function ansichtsPfeilSvg(seite,breite,hoehe,ox,oy){
+ ox=ox||0; oy=oy||0;
+ if(!seite||seite==="keiner")return "";
+ const laenge=26, kopf=9, halb=5, luft=4;
+ let sx,sy,ex,ey,k1x,k1y,k2x,k2y;
+ // Der Pfeil liegt vollständig innerhalb des Bildes: Schaft aussen am Rand,
+ // Spitze nach innen zur Zeichnung hin.
+ if(seite==="links"){      sx=luft;          sy=hoehe/2; ex=sx+laenge; ey=sy; }
+ else if(seite==="rechts"){sx=breite-luft;   sy=hoehe/2; ex=sx-laenge; ey=sy; }
+ else if(seite==="oben"){  sx=breite/2;      sy=luft;    ex=sx; ey=sy+laenge; }
+ else{                     sx=breite/2;      sy=hoehe-luft; ex=sx; ey=sy-laenge; }
+ const dx=ex-sx, dy=ey-sy, len=Math.hypot(dx,dy)||1;
+ const ux=dx/len, uy=dy/len, px=-uy, py=ux;
+ const bx=ex-ux*kopf, by=ey-uy*kopf;
+ k1x=bx+px*halb; k1y=by+py*halb; k2x=bx-px*halb; k2y=by-py*halb;
+ return `<line x1="${(sx+ox).toFixed(1)}" y1="${(sy+oy).toFixed(1)}" x2="${(bx+ox).toFixed(1)}" y2="${(by+oy).toFixed(1)}" stroke="#b42318" stroke-width="2.2" stroke-linecap="round"/>`
+  +`<polygon points="${(ex+ox).toFixed(1)},${(ey+oy).toFixed(1)} ${(k1x+ox).toFixed(1)},${(k1y+oy).toFixed(1)} ${(k2x+ox).toFixed(1)},${(k2y+oy).toFixed(1)}" fill="#b42318"/>`;
+}
+
+// ---- generateProfilDiagramSvg()  ·  unverändert aus js/14-freies-profil.js ----
+function generateProfilDiagramSvg(schenkel){
+ if(!schenkel.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Schenkel für die Zeichnung.</div>';
+ let x=0,y=0,dir=0;
+ const pts=[{x,y}];
+ const dirs=[0];
+ for(let i=0;i<schenkel.length;i++){
+  const s=schenkel[i];
+  // Auch der erste Schenkel wird gedreht: 0° = waagerecht.
+  dir+=Number(s.winkel)||0;
+  dirs.push(dir);
+  const rad=dir*Math.PI/180;
+  x+=(Number(s.laenge)||0)*Math.cos(rad);
+  y+=(Number(s.laenge)||0)*Math.sin(rad);
+  pts.push({x,y});
+ }
+ const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+ const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+ const w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+ const pad=30,target=240;
+ const scale=Math.min(target/w,target/h);
+ const toSvg=p=>[pad+(p.x-minX)*scale,pad+(p.y-minY)*scale];
+ const svgW=target+2*pad,svgH=target+2*pad;
+ const svgPtsRaw=pts.map(toSvg);
+ // Ist Schenkel i ein Umschlag (180°)? Der wird als eigene, kurze, parallel versetzte Linie
+ // mit kleinem Abstand gezeichnet, statt sich exakt mit dem vorherigen Schenkel zu decken.
+ const GAP=9;
+ // Zeichnerischer Biegeradius in Bildpunkten
+ const BIEGERADIUS=5;
+ function istUmschlag(i){
+  if(i===0)return false;
+  const winkelNorm=((Number(schenkel[i].winkel)||0)%360+360)%360;
+  return Math.abs(winkelNorm-180)<0.5;
+ }
+ // Für jeden Schenkel die tatsächlich gezeichneten Endpunkte bestimmen (versetzt bei Umschlag)
+ const drawEnds=schenkel.map((s,i)=>{
+  const [x1,y1]=svgPtsRaw[i],[x2,y2]=svgPtsRaw[i+1];
+  if(!istUmschlag(i))return[[x1,y1],[x2,y2]];
+  const radDir=dirs[i+1]*Math.PI/180;
+  const nx=-Math.sin(radDir),ny=Math.cos(radDir);
+  return[[x1+nx*GAP,y1+ny*GAP],[x2+nx*GAP,y2+ny*GAP]];
+ });
+ // Zusammenhängende Abschnitte (ohne Umschlag-Schenkel) als je eine Polyline mit runden Ecken;
+ // Umschlag-Schenkel werden als eigene kurze Linie gezeichnet (dadurch entsteht der Abstand).
+ let lines="";
+ let aktuellerPfad=[svgPtsRaw[0]];
+ for(let i=0;i<schenkel.length;i++){
+  if(istUmschlag(i)){
+   if(aktuellerPfad.length>1){
+    lines+=`<path d="${abgerundeterPfad(aktuellerPfad,BIEGERADIUS)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+   }
+   const [[ux1,uy1],[ux2,uy2]]=drawEnds[i];
+   // Die Kehre des Umschlags als Halbkreis zeichnen: vom Ende des vorherigen
+   // Schenkels um die Spitze herum auf die versetzte Rücklaufl inie.
+   const [sx,sy]=svgPtsRaw[i];
+   const radVor=dirs[i]*Math.PI/180;
+   const dvx=Math.cos(radVor),dvy=Math.sin(radVor);   // Laufrichtung davor
+   const nx2=(ux1-sx)/GAP,ny2=(uy1-sy)/GAP;          // Versatzrichtung, Länge 1
+   const kreuzU=nx2*dvy-ny2*dvx;                      // Kehre nach aussen wölben
+   const sweepU=kreuzU>0?0:1;
+   lines+=`<path d="M ${sx.toFixed(1)} ${sy.toFixed(1)} A ${(GAP/2).toFixed(1)} ${(GAP/2).toFixed(1)} 0 0 ${sweepU} ${ux1.toFixed(1)} ${uy1.toFixed(1)} L ${ux2.toFixed(1)} ${uy2.toFixed(1)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+   aktuellerPfad=[svgPtsRaw[i+1]];
+  }else{
+   aktuellerPfad.push(svgPtsRaw[i+1]);
+  }
+ }
+ if(aktuellerPfad.length>1){
+  lines+=`<path d="${abgerundeterPfad(aktuellerPfad,BIEGERADIUS)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+ }
+ let labels="",nums="";
+ for(let i=0;i<schenkel.length;i++){
+  const [[x1,y1],[x2,y2]]=drawEnds[i];
+  const mx=(x1+x2)/2,my=(y1+y2)/2;
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1;
+  const nx=-dy/len,ny=dx/len;
+  const lx=mx-nx*14,ly=my-ny*14;
+  let angleDeg=Math.atan2(dy,dx)*180/Math.PI;
+  if(angleDeg>90||angleDeg<-90)angleDeg+=180;
+  labels+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(schenkel[i].laenge||0)}</text>`;
+  const numx=mx+nx*14,numy=my+ny*14;
+  nums+=`<circle cx="${numx.toFixed(1)}" cy="${numy.toFixed(1)}" r="9" fill="#e07a1f"/><text x="${numx.toFixed(1)}" y="${(numy+3.2).toFixed(1)}" font-size="9" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
+ }
+ const pfeil=ansichtsPfeilSvg($("fp_ansicht")?$("fp_ansicht").value:"keiner",svgW,svgH);
+ return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:280px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${labels}${nums}${pfeil}</svg>`;
+}
+
+// ---- fpPruefeErkannteSchenkel()  ·  unverändert aus js/14-freies-profil.js ----
+function fpPruefeErkannteSchenkel(roh){
+ if(!Array.isArray(roh))return [];
+ const gut=[];
+ for(const e of roh){
+  if(gut.length>=FP_MAX_SCHENKEL)break;
+  if(!e||typeof e!=="object")continue;
+  const l=Number(e.laenge);
+  let w=Number(e.winkel);
+  if(!Number.isFinite(l)||l<=0)continue;      // Laenge 0 ist keine Geometrie
+  if(!Number.isFinite(w))w=0;
+  w=Math.max(-180,Math.min(180,w));
+  gut.push({laenge:Math.round(l),winkel:gut.length===0?0:Math.round(w)});
+ }
+ return gut.length>=2?gut:[];                 // ein einzelner Schenkel ist kein Profil
+}
+
+// ---- FP_ERKENNUNG_ZEITGRENZE_MS  ·  unverändert aus js/14-freies-profil.js ----
+const FP_ERKENNUNG_ZEITGRENZE_MS=30000;
+
+// ---- FP_MAX_SCHENKEL  ·  unverändert aus js/14-freies-profil.js ----
+const FP_MAX_SCHENKEL=24;
+
+</script>
+<script>
+/* ---- prototyp-freies-profil/prototyp-fp.js ---- */
+"use strict";
+// ===========================================================================
+// PROTOTYP · Massaufnahme "Freies Profil"
+// ===========================================================================
+// Weiterentwicklung des bestehenden Moduls, keine Parallellösung. Gezeichnet
+// und geprüft wird ausschliesslich mit der Fachlogik der laufenden App -
+// zeichengenau übernommen aus js/14-freies-profil.js (siehe uebernommen.js):
+//
+//   generateProfilDiagramSvg()  die ganze Profilzeichnung
+//   abgerundeterPfad()          runde Biegungen
+//   ansichtsPfeilSvg()          Ansichtsrichtung
+//   fpPruefeErkannteSchenkel()  Prüfung der Skizzen-Erkennung
+//   FP_MAX_SCHENKEL (24), FP_ERKENNUNG_ZEITGRENZE_MS
+//
+// Es gibt hier KEINE zweite Zeichenroutine und KEINE zweite Prüfung der
+// erkannten Schenkel.
+//
+// Sieben Register, wie im Auftrag vorgegeben:
+//   1 Grunddaten · 2 Profil · 3 Zeichnung · 4 Skizze → Profil ·
+//   5 Segmente und Ausmass · 6 Kontrolle · 7 Fotos & Speichern
+// ===========================================================================
+
+const SCHRITTE=["Grunddaten","Profil","Zeichnung","Skizze → Profil",
+                "Segmente & Ausmass","Kontrolle","Fotos & Speichern"];
+let schritt=1;
+
+// ---- 1. Datenmodell -------------------------------------------------------
+// Dieselben Felder, die die App unter measurements.data für freies_profil
+// speichert (schenkel, konisch, segmente, ansicht, material) - dazu die
+// Angaben, die die App ausserhalb von data führt (Bezeichnung, Datum, Notiz,
+// Fotos, Skizze).
+const SPEICHER="pfp_aufnahmen";
+function heute(){const d=new Date();return d.toISOString().slice(0,10)}
+function leereAufnahme(){
+ return {
+  id:null, bezeichnung:"", objekt:"", datum:heute(),
+  material:"", konisch:"nein", ansicht:"keiner",
+  schenkel:[], segmente:[],
+  fotos:[], skizze:null, bemerkung:"",
+  erstellt:null, geaendert:null
+ };
+}
+let aufnahme=leereAufnahme();
+
+const zahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+const mm=v=>Math.round(zahl(v)).toLocaleString("de-CH");
+const meter=v=>(zahl(v)/1000).toFixed(2).replace(".",",");
+const istKonisch=a=>(a||aufnahme).konisch==="ja";
+
+// ---- 2. Brücke zur Zeichnung der App --------------------------------------
+// generateProfilDiagramSvg() liest die Ansichtsrichtung aus einem Feld mit
+// der ID "fp_ansicht" - genau wie in der App. Damit die Funktion unverändert
+// bleiben kann, gibt es dieses Feld unsichtbar im Rumpf; hier wird es vor
+// jedem Zeichnen aus dem Modell gesetzt. Kein Nachbau der Zeichnung.
+function bruecke(){
+ const f=$("fp_ansicht");
+ if(f)f.value=aufnahme.ansicht||"keiner";
+}
+function profilSvg(schenkel){
+ bruecke();
+ return generateProfilDiagramSvg(schenkel||aufnahme.schenkel);
+}
+
+// ---- 3. Schenkel ----------------------------------------------------------
+// Regeln unverändert aus js/14: Winkel umkehren dreht das Vorzeichen,
+// "180°" macht den Schenkel zum Umschlag, ein neuer Schenkel startet bei 0/0.
+function neuerSchenkel(){return {laenge:0,winkel:0}}
+function schenkelUmkehren(i){
+ const s=aufnahme.schenkel[i]; if(!s)return;
+ s.winkel=-(zahl(s.winkel));
+}
+function schenkelUmschlag(i){
+ const s=aufnahme.schenkel[i]; if(!s)return;
+ s.winkel=180;
+}
+function istUmschlagSchenkel(s){
+ const w=((zahl(s&&s.winkel))%360+360)%360;
+ return Math.abs(w-180)<0.5;
+}
+// Länge eines Schenkels ändern - dieselbe Mitführung wie in js/14: solange im
+// Segment noch nichts oder noch der alte Wert steht, wandert die neue Länge
+// mit. Ein von Hand abweichend eingetragenes Mass bleibt stehen.
+function schenkelLaengeSetzen(i,wert){
+ const s=aufnahme.schenkel[i]; if(!s)return;
+ const alt=zahl(s.laenge), neu=zahl(wert);
+ s.laenge=neu;
+ const feld=istKonisch()?"links":"mass";
+ (aufnahme.segmente||[]).forEach(seg=>{
+  if(!seg.massen)seg.massen=[];
+  if(!seg.massen[i])seg.massen[i]={mass:0,links:0,rechts:0};
+  const jetzt=zahl(seg.massen[i][feld]);
+  if(jetzt===0||jetzt===alt)seg.massen[i][feld]=neu;
+ });
+}
+
+// ---- 4. Segmente ----------------------------------------------------------
+// Struktur und Verhalten wie in js/14: je Segment eine Länge und je Schenkel
+// ein Mass (konisch: links und rechts).
+function neuesSegment(){
+ return {laenge:0,massen:aufnahme.schenkel.map(s=>({mass:zahl(s.laenge),links:zahl(s.laenge),rechts:0}))};
+}
+function segmentMassen(seg){
+ if(!seg.massen)seg.massen=[];
+ // Werden Schenkel weniger - etwa weil eine erkannte Skizze das ganze Profil
+ // ersetzt -, bleiben sonst Masse zu Schenkeln stehen, die es nicht mehr
+ // gibt. Sie sind unsichtbar (die Tabelle zeigt nur die vorhandenen
+ // Schenkel), würden aber in die Abwicklung mitgezählt. Gemessen: 5 Schenkel
+ // à 300 mm, danach 3 erkannte Schenkel - die Abwicklung blieb bei 300 statt
+ // 210. Deshalb hier auf die tatsächliche Zahl der Schenkel kürzen.
+ if(seg.massen.length>aufnahme.schenkel.length)seg.massen.length=aufnahme.schenkel.length;
+ aufnahme.schenkel.forEach((s,j)=>{
+  if(!seg.massen[j])seg.massen[j]={mass:0,links:0,rechts:0};
+  const m=seg.massen[j];
+  // Leere Felder werden aus dem Profil gefüllt - unverändert aus js/14.
+  if(istKonisch()){ if(!m.links)m.links=zahl(s.laenge) }
+  else { if(!m.mass)m.mass=zahl(s.laenge) }
+ });
+ return seg.massen;
+}
+function masseAusProfil(i){
+ const seg=aufnahme.segmente[i]; if(!seg)return;
+ const konisch=istKonisch();
+ seg.massen=aufnahme.schenkel.map((s,j)=>{
+  const laenge=zahl(s.laenge), bisher=(seg.massen&&seg.massen[j])||{};
+  return {
+   mass:  konisch?zahl(bisher.mass):laenge,
+   links: konisch?laenge:zahl(bisher.links),
+   rechts:zahl(bisher.rechts)
+  };
+ });
+}
+function alleNachRechts(i){
+ const seg=aufnahme.segmente[i]; if(!seg)return;
+ (segmentMassen(seg)||[]).forEach(m=>{m.rechts=zahl(m.links)});
+}
+
+// ---- 5. Ausmass -----------------------------------------------------------
+// Es wird NICHTS erfunden. Alle Zeilen entstehen durch Zusammenzählen und
+// Abzählen bereits erfasster Werte; jede Zeile nennt, woher sie kommt.
+// Fehlt eine Angabe, steht das ausdrücklich da statt einer Zahl.
+function abwicklungSegment(seg){
+ const konisch=istKonisch();
+ const m=segmentMassen(seg);
+ if(konisch){
+  return {links:m.reduce((s,x)=>s+zahl(x.links),0),
+          rechts:m.reduce((s,x)=>s+zahl(x.rechts),0)};
+ }
+ const v=m.reduce((s,x)=>s+zahl(x.mass),0);
+ return {links:v,rechts:v};
+}
+// Fläche eines Segments: Länge × Abwicklung. Bei einem konischen Segment ist
+// das Blech ein Trapez - Länge × (Abwicklung links + rechts) / 2 ist dessen
+// Fläche, keine Schätzung.
+function flaecheSegmentM2(seg){
+ const a=abwicklungSegment(seg);
+ const breite=istKonisch()?(a.links+a.rechts)/2:a.links;
+ return zahl(seg.laenge)*breite/1e6;
+}
+function laufmeter(){return (aufnahme.segmente||[]).reduce((s,x)=>s+zahl(x.laenge),0)}
+function flaecheM2(){return (aufnahme.segmente||[]).reduce((s,x)=>s+flaecheSegmentM2(x),0)}
+function anzahlBiegungen(){
+ // Eine Biegung liegt zwischen zwei Schenkeln; ihr Winkel ist der Winkel des
+ // FOLGENDEN Schenkels. Winkel 0 heisst "gerade weiter", das ist keine Biegung.
+ return (aufnahme.schenkel||[]).filter((s,i)=>i>0&&zahl(s.winkel)!==0).length;
+}
+function anzahlUmschlaege(){
+ return (aufnahme.schenkel||[]).filter((s,i)=>i>0&&istUmschlagSchenkel(s)).length;
+}
+function ausmassZeilen(){
+ const z=[]; let pos=0;
+ const zeile=(bez,menge,einheit,herkunft)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft});
+ const segs=aufnahme.segmente||[];
+ if(!aufnahme.schenkel.length||!segs.length)return z;
+ const L=laufmeter();
+ if(L>0)zeile("Freies Profil, "+aufnahme.schenkel.length+" Schenkel",meter(L),"m","Summe der Segmentlängen");
+ zeile("Segmente",segs.length,"Stk.","Segmentliste");
+ segs.forEach((seg,i)=>{
+  const a=abwicklungSegment(seg);
+  const txt=istKonisch()
+   ?(a.links>0||a.rechts>0?mm(a.links)+" / "+mm(a.rechts):"–")
+   :(a.links>0?mm(a.links):"–");
+  zeile("Abwicklung Segment "+(i+1)+(istKonisch()?" (links / rechts)":""),txt,"mm",
+        "Summe der Masse je Schenkel");
+ });
+ const b=anzahlBiegungen();
+ if(b)zeile("Biegungen",b,"Stk.","Schenkel mit einem Winkel ≠ 0°");
+ const u=anzahlUmschlaege();
+ if(u)zeile("davon Umschläge (180°)",u,"Stk.","Schenkel mit Winkel 180°");
+ const f=flaecheM2();
+ if(f>0)zeile("Blechfläche",f.toFixed(2).replace(".",","),"m²",
+   istKonisch()?"Länge × mittlere Abwicklung je Segment (Trapez)":"Länge × Abwicklung je Segment");
+ return z;
+}
+function materialUebersicht(){
+ const L=laufmeter();
+ if(!aufnahme.schenkel.length||L<=0)return [];
+ return [{
+  bezeichnung:"Freies Profil, "+aufnahme.schenkel.length+" Schenkel",
+  menge:meter(L), einheit:"m",
+  flaeche:flaecheM2().toFixed(2).replace(".",","),
+  material:(findMeasurementMaterial(aufnahme.material)||{}).name||"–"
+ }];
+}
+
+// ---- 6. Kontrolle ---------------------------------------------------------
+// Nur Prüfungen, die sich aus dem bestehenden Modul ableiten lassen:
+// mindestens 2 Schenkel (fpPruefeErkannteSchenkel verlangt genau das),
+// höchstens FP_MAX_SCHENKEL, gültige Zahlen, keine negativen Längen,
+// Winkel im Bereich, den die Erkennung zulässt (±180°), und eine Geometrie,
+// die sich zeichnen lässt. Es werden KEINE eigenen Grenzwerte erfunden.
+function pruefungen(){
+ const a=aufnahme, m=[];
+ const sch=a.schenkel||[];
+ if(!sch.length)m.push({art:"fehler",text:"Noch kein Schenkel erfasst. Ein Profil braucht mindestens zwei."});
+ else if(sch.length<2)m.push({art:"fehler",text:"Nur ein Schenkel - das ist noch kein Profil. Die Erkennung der App verlangt ebenfalls mindestens zwei."});
+ if(sch.length>FP_MAX_SCHENKEL)
+  m.push({art:"fehler",text:"Mehr als "+FP_MAX_SCHENKEL+" Schenkel ("+sch.length+"). Die App lässt höchstens "+FP_MAX_SCHENKEL+" zu."});
+ sch.forEach((s,i)=>{
+  const nr=i+1;
+  const l=Number(s.laenge), w=Number(s.winkel);
+  if(!Number.isFinite(l))m.push({art:"fehler",text:"Schenkel "+nr+": die Länge ist keine gültige Zahl."});
+  else if(l<0)m.push({art:"fehler",text:"Schenkel "+nr+": negative Länge ("+mm(l)+" mm)."});
+  else if(l===0)m.push({art:"fehler",text:"Schenkel "+nr+": Länge 0 mm - ohne Länge lässt sich nichts zuschneiden."});
+  if(!Number.isFinite(w))m.push({art:"fehler",text:"Schenkel "+nr+": der Winkel ist keine gültige Zahl."});
+  else if(w<-180||w>180)m.push({art:"fehler",text:"Schenkel "+nr+": Winkel "+mm(w)+"° liegt ausserhalb von −180° bis 180°."});
+  if(i===0&&Number.isFinite(w)&&w!==0)
+   m.push({art:"warnung",text:"Schenkel 1 hat einen Winkel ("+mm(w)+"°). Er dreht das ganze Profil - beim ersten Schenkel ist 0° das Übliche."});
+ });
+ // Lässt sich die Geometrie zeichnen? Nicht behaupten, sondern versuchen.
+ if(sch.length){
+  const svg=profilSvg(sch);
+  if(!/<svg/.test(svg)||/NaN|Infinity/.test(svg))
+   m.push({art:"fehler",text:"Die Geometrie lässt sich nicht darstellen - bitte Längen und Winkel prüfen."});
+ }
+ if(!a.material)m.push({art:"warnung",text:"Kein Material gewählt - die Materialübersicht bleibt dadurch unvollständig."});
+ if(!String(a.bezeichnung||"").trim())
+  m.push({art:"warnung",text:"Keine Bezeichnung - gespeicherte Aufnahmen sind dann schwer auseinanderzuhalten."});
+ if(!(a.segmente||[]).length)
+  m.push({art:"warnung",text:"Noch kein Segment - ohne Segment gibt es keine Längen und kein Ausmass."});
+ else{
+  a.segmente.forEach((seg,i)=>{
+   if(zahl(seg.laenge)<=0)m.push({art:"warnung",text:"Segment "+(i+1)+" hat keine Länge."});
+   const ab=abwicklungSegment(seg);
+   if(ab.links<=0&&ab.rechts<=0)m.push({art:"warnung",text:"Segment "+(i+1)+": keine Masse erfasst - die Abwicklung bleibt leer."});
+   if(istKonisch()&&ab.rechts<=0)
+    m.push({art:"warnung",text:"Segment "+(i+1)+": konisch, aber rechts ist nichts erfasst."});
+  });
+ }
+ if(!(a.fotos||[]).length&&!a.skizze)
+  m.push({art:"warnung",text:"Weder Foto noch Skizze - für die Werkstatt ist ein Bild meist hilfreich."});
+ return m;
+}
+
+// ---- 7. Skizze → Profil ---------------------------------------------------
+// Ablauf unverändert wie in der App (v2.70): erkennen → prüfen → VORSCHAU →
+// erst auf ausdrückliche Bestätigung übernehmen. Geprüft wird mit
+// fpPruefeErkannteSchenkel() aus js/14 - es gibt hier keine zweite Prüfung
+// und keine eigene 24er-Grenze.
+let erkanntesProfil=null, erkanntVerworfen=0, erkennungStatus="";
+let erkennungLaeuft=false;
+
+async function erkenneProfil(dataUrl){
+ // Zeitgrenze auch im Browser - sonst bleibt die Anzeige bei einer
+ // haengenden Verbindung endlos auf "wird erkannt".
+ const abbruch=("AbortController" in window)?new AbortController():null;
+ const uhr=abbruch?setTimeout(()=>abbruch.abort(),FP_ERKENNUNG_ZEITGRENZE_MS):null;
+ let res;
+ try{
+  res=await fetch(SUPABASE_URL+"/functions/v1/extract-profile-shape",{
+   method:"POST",
+   headers:{"Content-Type":"application/json",
+            "Authorization":"Bearer "+SUPABASE_ANON_KEY,
+            "apikey":SUPABASE_ANON_KEY},
+   body:JSON.stringify({image_base64:dataUrl}),
+   signal:abbruch?abbruch.signal:undefined
+  });
+ }catch(e){
+  if(uhr)clearTimeout(uhr);
+  throw new Error((e&&e.name==="AbortError")
+   ?"Die Erkennung hat zu lange gedauert. Bitte erneut versuchen oder das Profil von Hand erfassen."
+   :"Keine Verbindung zur Erkennung. Bitte die Internetverbindung prüfen.");
+ }
+ if(uhr)clearTimeout(uhr);
+ const text=await res.text();
+ let data=null;
+ try{data=JSON.parse(text)}catch(e){}
+ if(!data)throw new Error("Die Antwort der Erkennung war unlesbar. Bitte erneut versuchen.");
+ if(!res.ok||!data.ok){
+  const m=String(data.error||"");
+  const brauchbar=m.indexOf(" ")>=0&&m.length>=15;
+  if(!brauchbar)console.error("extract-profile-shape:",res.status,data.error);
+  throw new Error(brauchbar?m
+   :"Die Erkennung ist fehlgeschlagen. Bitte erneut versuchen oder das Profil von Hand erfassen.");
+ }
+ return {schenkel:data.schenkel||[],verworfen:Number(data.verworfen)||0};
+}
+
+function vorschauSchliessen(){erkanntesProfil=null;erkanntVerworfen=0}
+
+async function erkennungStarten(){
+ const bild=aufnahme.skizze||(aufnahme.fotos||[])[aufnahme.fotos.length-1];
+ if(!bild){
+  erkennungStatus="⚠️ Zuerst eine Skizze zeichnen oder ein Foto aufnehmen (Register 7).";
+  zeichne(); return;
+ }
+ vorschauSchliessen();
+ erkennungLaeuft=true;
+ erkennungStatus="🔄 Form wird erkannt …";
+ zeichne();
+ try{
+  const antwort=await erkenneProfil(bild);
+  // Prüfung mit der Funktion der App - kein zweiter Filter.
+  const erkannt=fpPruefeErkannteSchenkel(antwort.schenkel);
+  if(!erkannt.length){
+   erkennungStatus="⚠️ Keine eindeutige Form erkannt – bitte manuell erfassen oder deutlicher skizzieren.";
+  }else{
+   erkanntesProfil=erkannt;
+   erkanntVerworfen=antwort.verworfen||0;
+   erkennungStatus="";
+  }
+ }catch(err){
+  // Nie ein Profil übernehmen, wenn etwas schiefging.
+  vorschauSchliessen();
+  erkennungStatus="⚠️ "+((err&&err.message)||"Die Erkennung ist fehlgeschlagen.");
+ }
+ erkennungLaeuft=false;
+ zeichne();
+}
+
+function erkanntesUebernehmen(){
+ if(!erkanntesProfil||!erkanntesProfil.length)return false;
+ if(aufnahme.schenkel.length
+    &&!confirm("Das vorhandene Profil wird durch die erkannte Form ersetzt. Fortfahren?"))return false;
+ const anzahl=erkanntesProfil.length;
+ aufnahme.schenkel=erkanntesProfil.map(s=>({...s}));
+ vorschauSchliessen();
+ erkennungStatus="✓ "+anzahl+" Schenkel übernommen. Bitte Längen und Winkel prüfen und mit den tatsächlichen Massen ergänzen.";
+ return true;
+}
+
+// ---- 8. Ablage ------------------------------------------------------------
+function alleAufnahmen(){
+ try{const l=JSON.parse(localStorage.getItem(SPEICHER)||"[]");return Array.isArray(l)?l:[]}
+ catch(e){return []}
+}
+function speichern(){
+ const jetzt=new Date().toISOString();
+ const liste=alleAufnahmen();
+ if(!aufnahme.id){
+  aufnahme.id="fp"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  aufnahme.erstellt=jetzt;
+  liste.unshift(JSON.parse(JSON.stringify(aufnahme)));
+ }else{
+  aufnahme.geaendert=jetzt;
+  const i=liste.findIndex(x=>x.id===aufnahme.id);
+  const kopie=JSON.parse(JSON.stringify(aufnahme));
+  if(i>=0)liste[i]=kopie; else liste.unshift(kopie);
+ }
+ try{localStorage.setItem(SPEICHER,JSON.stringify(liste))}catch(e){
+  alert("Der Speicher des Browsers ist voll. Bitte alte Aufnahmen oder Fotos löschen.");
+  return false;
+ }
+ return true;
+}
+function oeffnen(id){
+ const a=alleAufnahmen().find(x=>x.id===id);
+ if(!a)return false;
+ aufnahme=JSON.parse(JSON.stringify({...leereAufnahme(),...a}));
+ // Ältere Datensätze können Felder noch nicht kennen - Standard gilt, es
+ // wird nichts erfunden.
+ if(!Array.isArray(aufnahme.schenkel))aufnahme.schenkel=[];
+ if(!Array.isArray(aufnahme.segmente))aufnahme.segmente=[];
+ if(!Array.isArray(aufnahme.fotos))aufnahme.fotos=[];
+ vorschauSchliessen(); erkennungStatus="";
+ schritt=1; zeichne(); return true;
+}
+// Kopieren erzeugt einen eigenständigen Datensatz: eigene Kennung, tiefe
+// Kopie. Eine Änderung an der Kopie lässt das Original unberührt.
+function kopieren(id){
+ const a=alleAufnahmen().find(x=>x.id===id);
+ if(!a)return false;
+ const k=JSON.parse(JSON.stringify(a));
+ k.id="fp"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+ k.erstellt=new Date().toISOString(); k.geaendert=null;
+ k.bezeichnung=(a.bezeichnung||"Ohne Bezeichnung")+" (Kopie)";
+ const liste=alleAufnahmen(); liste.unshift(k);
+ localStorage.setItem(SPEICHER,JSON.stringify(liste));
+ aufnahme=JSON.parse(JSON.stringify({...leereAufnahme(),...k}));
+ schritt=1; zeichne(); return k.id;
+}
+function loeschen(id){
+ localStorage.setItem(SPEICHER,JSON.stringify(alleAufnahmen().filter(x=>x.id!==id)));
+}
+
+// ---- 9. Oberfläche --------------------------------------------------------
+function feld(label,inhalt,voll){
+ return `<div class="p-feld${voll?" p-voll":""}"><label>${esc(label)}</label>${inhalt}</div>`;
+}
+function karte(titel,inhalt){return `<div class="p-karte"><h2>${esc(titel)}</h2>${inhalt}</div>`}
+
+function registerHtml(){
+ // Die Kontrolle bekommt einen Punkt, sobald es dort etwas zu sehen gibt -
+ // sonst müsste man das Register aufsuchen, um zu merken, dass etwas fehlt.
+ const pr=pruefungen();
+ const fehler=pr.filter(x=>x.art==="fehler").length;
+ const warn=pr.length-fehler;
+ return `<div class="p-register" id="p-register">`+SCHRITTE.map((t,i)=>{
+  const n=i+1;
+  const marke=n===6&&(fehler||warn)
+   ? `<span class="p-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
+  return `<button type="button" class="p-register-knopf${n===schritt?" aktiv":""}" data-schritt="${n}">`
+   +`<span class="p-register-nr">${n}</span><span class="p-register-text">${esc(t)}</span>${marke}</button>`;
+ }).join("")+`</div>`;
+}
+
+// 1 · Grunddaten
+function schritt1(){
+ const a=aufnahme;
+ const matOpt=`<option value="">– bitte wählen –</option>`+measurementMaterials.map(m=>
+  `<option value="${m.id}"${String(m.id)===String(a.material)?" selected":""}>${esc(m.name)}</option>`).join("");
+ const konOpt=[["nein","nein – Masse über die ganze Länge gleich"],["ja","ja – Masse links und rechts verschieden"]]
+  .map(([w,t])=>`<option value="${w}"${a.konisch===w?" selected":""}>${esc(t)}</option>`).join("");
+ return karte("1 · Grunddaten",`<div class="p-gitter">
+${feld("Bezeichnung",`<input id="p-bezeichnung" type="text" value="${esc(a.bezeichnung)}" placeholder="z. B. Attikaabdeckung Nord">`,true)}
+${feld("Objekt / Bauteil",`<input id="p-objekt" type="text" value="${esc(a.objekt)}" placeholder="z. B. Dachrand Ost">`,true)}
+${feld("Datum",`<input id="p-datum" type="date" value="${esc(a.datum)}">`)}
+${feld("Material",`<select id="p-material">${matOpt}</select>`)}
+${feld("Konisch",`<select id="p-konisch">${konOpt}</select>`)}
+</div>
+<div class="p-hinweis">Das Profil selbst wird im nächsten Register Schenkel für Schenkel erfasst.
+„Konisch“ entscheidet, ob je Segment ein Mass genügt oder links und rechts getrennt erfasst werden -
+genau wie im bestehenden Modul.</div>`);
+}
+
+// 2 · Profil aufnehmen  (der wichtigste Bildschirm)
+function schritt2(){
+ const a=aufnahme;
+ const zeilen=a.schenkel.map((s,i)=>{
+  const um=istUmschlagSchenkel(s);
+  return `<div class="p-zeile" data-schenkel-zeile="${i}">
+<div class="p-zeile-kopf"><b>Schenkel ${i+1}</b>
+<span class="p-klein-text">${mm(s.laenge)} mm · ${mm(s.winkel)}°${um?" · Umschlag":""}${i===0?" · Startschenkel":""}</span>
+<button type="button" class="p-weg" data-schenkel-weg="${i}" title="Schenkel löschen">✕</button></div>
+<div class="p-gitter">
+${feld("Länge (mm)",`<input data-schenkel-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(s.laenge||0)}">`)}
+${feld("Winkel (°)",`<input data-schenkel-winkel="${i}" type="number" inputmode="numeric" step="1" value="${esc(s.winkel||0)}">`)}
+</div>
+<div class="p-knopfreihe">
+<button type="button" class="p-grau" data-schenkel-flip="${i}" title="Winkel umkehren">🔄 Richtung umkehren</button>
+<button type="button" class="p-grau${um?" p-aktiv":""}" data-schenkel-umschlag="${i}" title="Winkel auf 180° setzen">180° Umschlag</button>
+${i>0?`<button type="button" class="p-grau" data-schenkel-hoch="${i}">↑</button>`:""}
+${i<a.schenkel.length-1?`<button type="button" class="p-grau" data-schenkel-runter="${i}">↓</button>`:""}
+</div>
+</div>`;
+ }).join("");
+ return karte("2 · Profil aufnehmen",`<div class="p-knopfreihe">
+<button type="button" class="p-blau" id="p-schenkelPlus">＋ Schenkel hinzufügen</button>
+<span class="p-klein-text">${a.schenkel.length} von höchstens ${FP_MAX_SCHENKEL} Schenkeln</span>
+</div>
+<div class="p-hinweis">Winkel = Richtungsänderung gegenüber dem vorherigen Schenkel.
+0° heisst gerade weiter, 180° ist ein Umschlag. „Richtung umkehren“ dreht das Vorzeichen -
+dieselbe Regel wie im bestehenden Modul.</div>
+<div id="p-profil" class="p-zeichnung p-zeichnung-klebt">
+<div class="p-zeichnung-kopf"><span>Zeichnung – folgt jeder Eingabe</span><span>${a.schenkel.length} Schenkel</span></div>
+<div id="p-profilBild">${profilSvg(a.schenkel)}</div></div>
+${zeilen||'<div class="p-leer">Noch kein Schenkel. „＋ Schenkel hinzufügen“ oder im Register „Skizze → Profil“ eine Skizze erkennen lassen.</div>'}`);
+}
+
+// 3 · Profilzeichnung gross
+function schritt3(){
+ const a=aufnahme;
+ const ansOpt=[["keiner","kein Pfeil"],["links","von links"],["oben","von oben"],
+               ["rechts","von rechts"],["unten","von unten"]]
+  .map(([w,t])=>`<option value="${w}"${a.ansicht===w?" selected":""}>${esc(t)}</option>`).join("");
+ const tab=a.schenkel.map((s,i)=>
+  `<tr><td>${i+1}</td><td class="p-num">${mm(s.laenge)}</td><td class="p-num">${mm(s.winkel)}</td>
+<td>${istUmschlagSchenkel(s)?"Umschlag":(i===0?"Start":(zahl(s.winkel)===0?"gerade":"Biegung"))}</td></tr>`).join("");
+ return karte("3 · Profilzeichnung",`<div class="p-gitter">
+${feld("Ansichtsrichtung",`<select id="p-ansicht">${ansOpt}</select>`)}
+${feld("Schenkel",`<div class="p-wert">${a.schenkel.length}</div>`)}
+${feld("Biegungen",`<div class="p-wert">${anzahlBiegungen()}</div>`)}
+${feld("Umschläge",`<div class="p-wert">${anzahlUmschlaege()}</div>`)}
+</div>
+<div id="p-profilGross" class="p-zeichnung gross">${profilSvg(a.schenkel)}</div>
+<div class="p-klein-text">Schenkelnummern in Orange, Masse in Blau, der rote Pfeil zeigt die
+Blickrichtung. Gezeichnet wird mit <code>generateProfilDiagramSvg()</code> der laufenden App -
+runde Biegungen, versetzte Umschläge und Ansichtspfeil inbegriffen.</div>
+<div class="p-tabelle-scroll">
+<table class="p-tabelle"><thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th><th>Art</th></tr></thead>
+<tbody>${tab||'<tr><td colspan="4" class="p-klein-text">Noch kein Schenkel.</td></tr>'}</tbody></table>
+</div>`);
+}
+
+// 4 · Skizze → Profil
+function schritt4(){
+ const a=aufnahme;
+ const bild=a.skizze||(a.fotos||[])[a.fotos.length-1]||null;
+ const vorschau=erkanntesProfil?`<div class="p-karte p-vorschau">
+<h2>Erkannte Form – noch nicht übernommen</h2>
+<div class="p-hinweis">${erkanntesProfil.length} Schenkel erkannt${erkanntVerworfen?" · "+erkanntVerworfen+" unklare Angabe(n) verworfen":""}.
+<b>Die Längen sind nur grobe Schätzwerte aus der Skizze</b> – eine Handskizze hat keinen Massstab.
+Bitte nach dem Übernehmen mit den tatsächlichen Massen überschreiben.</div>
+<div class="p-zeichnung">${profilSvg(erkanntesProfil)}</div>
+<div class="p-tabelle-scroll">
+<table class="p-tabelle"><thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th></tr></thead>
+<tbody>${erkanntesProfil.map((s,i)=>`<tr><td>${i+1}</td><td class="p-num">${esc(s.laenge)}</td><td class="p-num">${esc(s.winkel)}</td></tr>`).join("")}</tbody></table>
+</div>
+<div class="p-knopfreihe">
+<button type="button" class="p-gruen" id="p-erkanntUebernehmen">✓ Übernehmen</button>
+<button type="button" class="p-grau" id="p-erkanntVerwerfen">✕ Verwerfen</button>
+</div></div>`:"";
+ return karte("4 · Skizze → Profil",`<div class="p-hinweis">Eine Handskizze oder ein Foto wird als
+<b>Vorlage</b> erkannt, nie als fertiges Mass. Das Ergebnis kommt zuerst als Vorschau und wird erst
+auf ausdrückliche Bestätigung übernommen. Geprüft wird mit der Funktion der laufenden App
+(<code>fpPruefeErkannteSchenkel</code>): mindestens 2, höchstens ${FP_MAX_SCHENKEL} Schenkel,
+Länge grösser 0, Winkel zwischen −180° und 180°.</div>
+${bild?`<div class="p-foto gross"><img src="${esc(bild)}" alt="Vorlage für die Erkennung"></div>`
+ :'<div class="p-leer">Noch keine Skizze und kein Foto. Beides wird im Register 7 erfasst.</div>'}
+<div class="p-knopfreihe">
+<button type="button" class="p-blau" id="p-erkennen"${bild&&!erkennungLaeuft?"":" disabled"}>🔍 Form aus Skizze erkennen</button>
+<button type="button" class="p-grau" id="p-zuFotos">📷 Zu Skizze und Fotos</button>
+</div>
+${erkennungStatus?`<div class="p-status">${esc(erkennungStatus)}</div>`:""}`)
++vorschau;
+}
+
+// 5 · Segmente und Ausmass
+function schritt5(){
+ const a=aufnahme;
+ const konisch=istKonisch();
+ const segs=(a.segmente||[]).map((seg,i)=>{
+  const massen=segmentMassen(seg);
+  const ab=abwicklungSegment(seg);
+  const zeilen=a.schenkel.map((s,j)=>{
+   const m=massen[j];
+   return konisch
+    ? `<tr><td>${j+1}</td>
+<td><input data-seg-links="${i}_${j}" type="number" inputmode="numeric" step="1" value="${esc(m.links||0)}"></td>
+<td class="p-mitte"><button type="button" class="p-grau p-weg" data-seg-nach-rechts="${i}_${j}" title="Mass nach rechts übernehmen">→</button></td>
+<td><input data-seg-rechts="${i}_${j}" type="number" inputmode="numeric" step="1" value="${esc(m.rechts||0)}"></td></tr>`
+    : `<tr><td>${j+1}</td>
+<td><input data-seg-mass="${i}_${j}" type="number" inputmode="numeric" step="1" value="${esc(m.mass||0)}"></td></tr>`;
+  }).join("");
+  return `<div class="p-zeile" data-seg-zeile="${i}">
+<div class="p-zeile-kopf"><b>Segment ${i+1}</b>
+<span class="p-klein-text">Abwicklung ${konisch?mm(ab.links)+" / "+mm(ab.rechts):mm(ab.links)} mm · Fläche ${flaecheSegmentM2(seg).toFixed(2).replace(".",",")} m²</span>
+<button type="button" class="p-weg" data-seg-weg="${i}" title="Segment löschen">✕</button></div>
+<div class="p-gitter">
+${feld("Länge (mm)",`<input data-seg-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(seg.laenge||0)}">`)}
+</div>
+<div class="p-tabelle-scroll">
+<table class="p-tabelle"><thead><tr><th>Schenkel</th><th>${konisch?"Mass links (mm)":"Mass (mm)"}</th>${konisch?"<th></th><th>Mass rechts (mm)</th>":""}</tr></thead>
+<tbody>${zeilen||`<tr><td colspan="${konisch?4:2}" class="p-klein-text">Noch kein Schenkel im Profil.</td></tr>`}</tbody></table>
+</div>
+<div class="p-knopfreihe">
+<button type="button" class="p-grau" data-seg-uebernehmen="${i}">↩️ Masse aus Profil übernehmen</button>
+${konisch?`<button type="button" class="p-grau" data-seg-alle-rechts="${i}">➡️ Alle nach rechts</button>`:""}
+</div></div>`;
+ }).join("");
+ const z=ausmassZeilen();
+ const mu=materialUebersicht();
+ const ausmass=z.length?`<div class="p-tabelle-scroll">
+<table class="p-tabelle"><thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Woher</th></tr></thead>
+<tbody>${z.map(x=>`<tr><td>${x.pos}</td><td>${esc(x.bezeichnung)}</td><td class="p-num">${esc(x.menge)}</td><td>${esc(x.einheit)}</td><td class="p-quelle">${esc(x.herkunft)}</td></tr>`).join("")}</tbody></table>
+</div>
+${mu.length?`<div class="p-tabelle-scroll" style="margin-top:8px">
+<table class="p-tabelle"><thead><tr><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Fläche</th><th>Material</th></tr></thead>
+<tbody>${mu.map(x=>`<tr><td>${esc(x.bezeichnung)}</td><td class="p-num">${esc(x.menge)}</td><td>${esc(x.einheit)}</td><td class="p-num">${esc(x.flaeche)} m²</td><td>${esc(x.material)}</td></tr>`).join("")}</tbody></table>
+</div>`:""}
+<div class="p-klein-text">Alles entsteht aus dieser Aufnahme – keine zweite Eingabe, keine
+Artikelnummern und keine Preise. Die kommen später aus der Materialliste der Firma.</div>`
+ :`<div class="p-leer">Noch nichts zu messen – bitte zuerst Schenkel und mindestens ein Segment erfassen.</div>`;
+ return karte("5 · Segmente",`<div class="p-knopfreihe">
+<button type="button" class="p-blau" id="p-segmentPlus">＋ Segment hinzufügen</button>
+</div>
+<div class="p-hinweis">Ein Segment ist ein Stück des Profils mit eigener Länge. Die Masse je
+Schenkel sind mit den Profillängen vorbelegt und lassen sich einzeln überschreiben${konisch?" – links und rechts getrennt, weil das Profil konisch ist":""}.</div>
+${segs||'<div class="p-leer">Noch kein Segment.</div>'}`)
++karte("Ausmass und Material",ausmass);
+}
+
+// 6 · Kontrolle
+function schritt6(){
+ const m=pruefungen();
+ if(!m.length)return karte("6 · Kontrolle",
+  `<div class="p-ok">Keine Auffälligkeit. Alles, was zum Speichern nötig ist, liegt vor.</div>`);
+ const a=aufnahme;
+ const uebersicht=`<div class="p-tabelle-scroll">
+<table class="p-tabelle"><tbody>
+<tr><td>Bezeichnung</td><td>${esc(a.bezeichnung||"–")}</td></tr>
+<tr><td>Material</td><td>${esc((findMeasurementMaterial(a.material)||{}).name||"–")}</td></tr>
+<tr><td>Schenkel</td><td>${a.schenkel.length}</td></tr>
+<tr><td>Segmente</td><td>${(a.segmente||[]).length}</td></tr>
+<tr><td>Fotos / Skizze</td><td>${(a.fotos||[]).length} Foto(s)${a.skizze?" · Skizze vorhanden":""}</td></tr>
+</tbody></table></div>`;
+ return karte("6 · Kontrolle",uebersicht+`<div class="p-pruefung">`+m.map(x=>
+  `<div class="p-${x.art==="fehler"?"fehler":"warnung"}">${esc(x.text)}</div>`).join("")+`</div>
+<div id="p-profilKontrolle" class="p-zeichnung">${profilSvg(a.schenkel)}</div>`);
+}
+
+// 7 · Fotos, Skizze, Notiz, Speichern
+function schritt7(){
+ const a=aufnahme;
+ const fotos=(a.fotos||[]).map((f,i)=>`<div class="p-foto">
+<img src="${esc(f)}" alt="Foto ${i+1}"><button type="button" class="p-weg" data-foto-weg="${i}">✕</button></div>`).join("");
+ return karte("7 · Fotos",`<label class="p-datei">📷 Foto aufnehmen oder wählen
+<input type="file" id="p-fotoInput" accept="image/*" capture="environment" multiple hidden></label>
+<div class="p-fotos">${fotos||'<div class="p-leer">Noch kein Foto.</div>'}</div>
+<div class="p-klein-text">Fotos werden verkleinert im Browser abgelegt. Beim späteren Einbau in
+die App gehen sie wie gehabt in den privaten Speicher von Supabase, zugeordnet zu Projekt und
+Massaufnahme.</div>`)
++karte("Skizze",`${a.skizze
+ ?`<div class="p-foto gross"><img src="${esc(a.skizze)}" alt="Skizze"><button type="button" class="p-weg" id="p-skizzeWeg">✕</button></div>`
+ :'<div class="p-leer">Noch keine Skizze.</div>'}
+<div class="p-knopfreihe"><button type="button" class="p-blau" id="p-skizzeOeffnen">✏️ ${a.skizze?"Skizze bearbeiten":"Skizze zeichnen"}</button></div>
+<div class="p-skizzeBox" id="p-skizzeBox" hidden>
+<canvas id="p-skizzeCanvas"></canvas>
+<div class="p-knopfreihe">
+<button type="button" class="p-blau" id="p-skizzeSpeichern">✓ Übernehmen</button>
+<button type="button" class="p-grau" id="p-skizzeLeeren">Leeren</button>
+<button type="button" class="p-grau" id="p-skizzeAbbrechen">Abbrechen</button>
+</div></div>`)
++karte("Bemerkung und Speichern",`<textarea id="p-bemerkung" rows="4" placeholder="Bemerkung zur Massaufnahme">${esc(a.bemerkung||"")}</textarea>
+<div class="p-knopfreihe"><button type="button" class="p-gruen" id="p-speichern2">💾 Speichern</button></div>`);
+}
+
+function inhaltHtml(){
+ return [schritt1,schritt2,schritt3,schritt4,schritt5,schritt6,schritt7][schritt-1]();
+}
+
+// ---- 10. Liste ------------------------------------------------------------
+let listeOffen=false;
+function listeHtml(){
+ const liste=alleAufnahmen();
+ if(!liste.length)return '<div class="p-leer">Noch keine gespeicherte Massaufnahme.</div>';
+ return liste.map(a=>{
+  const d=new Date(a.geaendert||a.erstellt);
+  const datum=isNaN(d)?"":d.toLocaleDateString("de-CH")+" "+d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+  return `<div class="p-zeile">
+<div class="p-zeile-kopf"><b>${esc(a.bezeichnung||"Ohne Bezeichnung")}</b><span class="p-klein-text">${esc(datum)}</span></div>
+<div class="p-klein-text">${(a.schenkel||[]).length} Schenkel · ${(a.segmente||[]).length} Segment(e)${(a.fotos||[]).length?" · "+a.fotos.length+" Foto(s)":""}${a.skizze?" · Skizze":""}${a.id===aufnahme.id?" · <b>gerade offen</b>":""}</div>
+<div class="p-knopfreihe">
+<button type="button" class="p-blau" data-oeffnen="${esc(a.id)}">Öffnen</button>
+<button type="button" class="p-grau" data-kopieren="${esc(a.id)}">Kopieren</button>
+<button type="button" class="p-grau" data-loeschen="${esc(a.id)}">Löschen</button>
+</div></div>`;
+ }).join("");
+}
+
+// ---- 11. Zeichnen ---------------------------------------------------------
+function zeichne(){
+ const reg=$("p-registerBox"); if(reg)reg.innerHTML=registerHtml();
+ const inhalt=$("p-inhalt"); if(inhalt)inhalt.innerHTML=inhaltHtml();
+ const zurueck=$("p-zurueck"), weiter=$("p-weiter");
+ if(zurueck)zurueck.disabled=schritt<=1;
+ if(weiter){
+  weiter.disabled=false;
+  weiter.textContent=schritt>=SCHRITTE.length?"Fertig › Speichern":"Weiter › "+SCHRITTE[schritt];
+ }
+ const listeBox=$("p-listeBox");
+ if(listeBox){listeBox.hidden=!listeOffen; if(listeOffen)listeBox.innerHTML=listeHtml()}
+ // Das aktive Register muss in der seitwärts scrollenden Leiste sichtbar sein.
+ const strip=$("p-register"), aktiv=strip&&strip.querySelector(".p-register-knopf.aktiv");
+ if(strip&&aktiv){
+  const sr=strip.getBoundingClientRect(), ar=aktiv.getBoundingClientRect();
+  if(ar.left<sr.left)strip.scrollLeft-=(sr.left-ar.left)+12;
+  else if(ar.right>sr.right)strip.scrollLeft+=(ar.right-sr.right)+12;
+ }
+}
+function setzeSchritt(n){
+ schritt=Math.max(1,Math.min(SCHRITTE.length,Number(n)||1));
+ zeichne();
+ const kopf=$("p-registerBox");
+ if(kopf&&kopf.scrollIntoView)kopf.scrollIntoView({block:"nearest"});
+}
+// Nach einer Zifferneingabe wird NICHT alles neu gezeichnet - sonst verliert
+// das Feld nach dem ersten Zeichen den Fokus. Aktualisiert werden nur die
+// Zeichnung und die abgeleiteten Anzeigen.
+function live(){
+ const a=aufnahme;
+ const svg=profilSvg(a.schenkel);
+ const p1=$("p-profilBild"); if(p1)p1.innerHTML=svg;
+ const p2=$("p-profilGross"); if(p2)p2.innerHTML=svg;
+ const p3=$("p-profilKontrolle"); if(p3)p3.innerHTML=svg;
+ // Kopfzeilen der Schenkel mitführen, ohne die Eingabefelder zu ersetzen.
+ a.schenkel.forEach((s,i)=>{
+  const block=document.querySelector('[data-schenkel-zeile="'+i+'"]');
+  if(!block)return;
+  const kopf=block.querySelector(".p-zeile-kopf .p-klein-text");
+  if(kopf)kopf.textContent=mm(s.laenge)+" mm · "+mm(s.winkel)+"°"
+   +(istUmschlagSchenkel(s)?" · Umschlag":"")+(i===0?" · Startschenkel":"");
+ });
+ // Kopfzeilen der Segmente ebenso.
+ (a.segmente||[]).forEach((seg,i)=>{
+  const block=document.querySelector('[data-seg-zeile="'+i+'"]');
+  if(!block)return;
+  const kopf=block.querySelector(".p-zeile-kopf .p-klein-text");
+  const ab=abwicklungSegment(seg);
+  if(kopf)kopf.textContent="Abwicklung "+(istKonisch()?mm(ab.links)+" / "+mm(ab.rechts):mm(ab.links))
+   +" mm · Fläche "+flaecheSegmentM2(seg).toFixed(2).replace(".",",")+" m²";
+ });
+}
+
+// ---- 12. Fotos und Skizze -------------------------------------------------
+const FOTO_MAXKANTE=1400, FOTO_QUALITAET=0.72;
+function bildVerkleinern(datei){
+ return new Promise(fertig=>{
+  const leser=new FileReader();
+  leser.onerror=()=>fertig(null);
+  leser.onload=()=>{
+   const bild=new Image();
+   bild.onerror=()=>fertig(null);
+   bild.onload=()=>{
+    const f=Math.min(1,FOTO_MAXKANTE/Math.max(bild.width,bild.height));
+    const c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(bild.width*f));
+    c.height=Math.max(1,Math.round(bild.height*f));
+    c.getContext("2d").drawImage(bild,0,0,c.width,c.height);
+    try{fertig(c.toDataURL("image/jpeg",FOTO_QUALITAET))}catch(e){fertig(null)}
+   };
+   bild.src=leser.result;
+  };
+  leser.readAsDataURL(datei);
+ });
+}
+async function fotosAufnehmen(dateien){
+ for(const d of Array.from(dateien||[])){
+  const bild=await bildVerkleinern(d);
+  if(bild)aufnahme.fotos.push(bild);
+ }
+ zeichne();
+}
+let skizzeCtx=null, skizzeZeichnet=false;
+function skizzeOeffnen(){
+ const box=$("p-skizzeBox"), c=$("p-skizzeCanvas");
+ if(!box||!c)return;
+ box.hidden=false;
+ const b=c.getBoundingClientRect();
+ c.width=Math.max(320,Math.round(b.width||480));
+ c.height=Math.round(c.width*0.62);
+ skizzeCtx=c.getContext("2d");
+ skizzeCtx.fillStyle="#fff"; skizzeCtx.fillRect(0,0,c.width,c.height);
+ skizzeCtx.strokeStyle="#17202a"; skizzeCtx.lineWidth=3;
+ skizzeCtx.lineCap="round"; skizzeCtx.lineJoin="round";
+ // Vorhandene Skizze weiterbearbeiten statt neu anfangen.
+ if(aufnahme.skizze){
+  const alt=new Image();
+  alt.onload=()=>skizzeCtx.drawImage(alt,0,0,c.width,c.height);
+  alt.src=aufnahme.skizze;
+ }
+}
+function skizzePunkt(ev,c){
+ const b=c.getBoundingClientRect();
+ const t=(ev.touches&&ev.touches[0])||ev;
+ return [(t.clientX-b.left)*(c.width/b.width),(t.clientY-b.top)*(c.height/b.height)];
+}
+
+// ---- 13. Bedienung --------------------------------------------------------
+// Eine einzige Stelle je Ereignisart, delegiert von der Wurzel.
+// Tippen (input) ändert nur das Modell und die Zeichnung, Auswählen (change)
+// und Klicken zeichnen neu.
+function verdrahten(){
+ const w=$("p-app");
+ if(!w||w.dataset.verdrahtet)return;
+ w.dataset.verdrahtet="1";
+
+ w.addEventListener("input",e=>{
+  const t=e.target, d=t.dataset||{}, a=aufnahme;
+  let nurLive=false;
+  if(t.id==="p-bezeichnung")a.bezeichnung=t.value;
+  else if(t.id==="p-objekt")a.objekt=t.value;
+  else if(t.id==="p-bemerkung")a.bemerkung=t.value;
+  else if(d.schenkelLaenge!==undefined){schenkelLaengeSetzen(Number(d.schenkelLaenge),t.value);nurLive=true}
+  else if(d.schenkelWinkel!==undefined){
+   const s=a.schenkel[Number(d.schenkelWinkel)];
+   if(s){s.winkel=zahl(t.value);nurLive=true}
+  }
+  else if(d.segLaenge!==undefined){
+   const seg=a.segmente[Number(d.segLaenge)];
+   if(seg){seg.laenge=zahl(t.value);nurLive=true}
+  }
+  else if(d.segMass!==undefined||d.segLinks!==undefined||d.segRechts!==undefined){
+   const key=d.segMass??d.segLinks??d.segRechts;
+   const [si,sj]=String(key).split("_").map(Number);
+   const seg=a.segmente[si];
+   if(seg){
+    if(!seg.massen)seg.massen=[];
+    if(!seg.massen[sj])seg.massen[sj]={mass:0,links:0,rechts:0};
+    if(d.segMass!==undefined)seg.massen[sj].mass=zahl(t.value);
+    else if(d.segLinks!==undefined)seg.massen[sj].links=zahl(t.value);
+    else seg.massen[sj].rechts=zahl(t.value);
+    nurLive=true;
+   }
+  }
+  else return;
+  if(nurLive)live();
+ });
+
+ w.addEventListener("change",e=>{
+  const t=e.target, d=t.dataset||{}, a=aufnahme;
+  if(t.id==="p-datum"){a.datum=t.value;return}
+  if(t.id==="p-material"){a.material=t.value;zeichne();return}
+  if(t.id==="p-konisch"){a.konisch=t.value;zeichne();return}
+  if(t.id==="p-ansicht"){a.ansicht=t.value;zeichne();return}
+  if(t.id==="p-fotoInput"){fotosAufnehmen(t.files);return}
+ });
+
+ w.addEventListener("click",e=>{
+  const t=e.target.closest("button,label,[data-schritt],[data-oeffnen],[data-kopieren],[data-loeschen]");
+  if(!t)return;
+  const d=t.dataset||{}, a=aufnahme;
+  if(d.schritt!==undefined){setzeSchritt(d.schritt);return}
+  if(t.id==="p-zurueck"){if(schritt>1)setzeSchritt(schritt-1);return}
+  if(t.id==="p-weiter"){
+   if(schritt<SCHRITTE.length){setzeSchritt(schritt+1);return}
+   if(speichern()){t.textContent="✓ Gespeichert";setTimeout(()=>{t.textContent="Fertig › Speichern"},1400)}
+   return;
+  }
+  if(t.id==="p-speichern"||t.id==="p-speichern2"){
+   if(speichern()){const alt=t.textContent;t.textContent="✓ Gespeichert";setTimeout(()=>{t.textContent=alt},1400)}
+   return;
+  }
+  if(t.id==="p-neu"){
+   if(confirm("Neue Massaufnahme beginnen? Nicht Gespeichertes geht verloren.")){
+    aufnahme=leereAufnahme(); vorschauSchliessen(); erkennungStatus="";
+    schritt=1; zeichne();
+   }
+   return;
+  }
+  if(t.id==="p-kopieren"){
+   if(!kopieren(aufnahme.id)){
+    alert("Diese Massaufnahme ist noch nicht gespeichert. Bitte zuerst speichern.");
+    return;
+   }
+   alert("Kopie angelegt: „"+(aufnahme.bezeichnung||"Ohne Bezeichnung")
+     +"“. Sie ist von der ursprünglichen Aufnahme unabhängig.");
+   return;
+  }
+  if(t.id==="p-listeAuf"){listeOffen=!listeOffen;zeichne();return}
+  if(d.oeffnen!==undefined){oeffnen(d.oeffnen);return}
+  if(d.kopieren!==undefined){kopieren(d.kopieren);return}
+  if(d.loeschen!==undefined){
+   if(confirm("Diese gespeicherte Massaufnahme wirklich löschen?")){loeschen(d.loeschen);zeichne()}
+   return;
+  }
+  // ---- Schenkel
+  if(t.id==="p-schenkelPlus"){
+   if(a.schenkel.length>=FP_MAX_SCHENKEL){
+    alert("Mehr als "+FP_MAX_SCHENKEL+" Schenkel lässt die App nicht zu.");return;
+   }
+   a.schenkel.push(neuerSchenkel()); zeichne(); return;
+  }
+  if(d.schenkelWeg!==undefined){
+   a.schenkel.splice(Number(d.schenkelWeg),1);
+   // Die Masse der Segmente wandern mit, damit Schenkel und Mass zusammenbleiben.
+   (a.segmente||[]).forEach(seg=>{if(seg.massen)seg.massen.splice(Number(d.schenkelWeg),1)});
+   zeichne(); return;
+  }
+  if(d.schenkelFlip!==undefined){schenkelUmkehren(Number(d.schenkelFlip)); zeichne(); return}
+  if(d.schenkelUmschlag!==undefined){schenkelUmschlag(Number(d.schenkelUmschlag)); zeichne(); return}
+  if(d.schenkelHoch!==undefined){
+   const i=Number(d.schenkelHoch);
+   if(i>0){
+    const x=a.schenkel.splice(i,1)[0]; a.schenkel.splice(i-1,0,x);
+    (a.segmente||[]).forEach(seg=>{if(seg.massen){const y=seg.massen.splice(i,1)[0];seg.massen.splice(i-1,0,y)}});
+   }
+   zeichne(); return;
+  }
+  if(d.schenkelRunter!==undefined){
+   const i=Number(d.schenkelRunter);
+   if(i<a.schenkel.length-1){
+    const x=a.schenkel.splice(i,1)[0]; a.schenkel.splice(i+1,0,x);
+    (a.segmente||[]).forEach(seg=>{if(seg.massen){const y=seg.massen.splice(i,1)[0];seg.massen.splice(i+1,0,y)}});
+   }
+   zeichne(); return;
+  }
+  // ---- Segmente
+  if(t.id==="p-segmentPlus"){a.segmente.push(neuesSegment()); zeichne(); return}
+  if(d.segWeg!==undefined){a.segmente.splice(Number(d.segWeg),1); zeichne(); return}
+  if(d.segUebernehmen!==undefined){masseAusProfil(Number(d.segUebernehmen)); zeichne(); return}
+  if(d.segAlleRechts!==undefined){alleNachRechts(Number(d.segAlleRechts)); zeichne(); return}
+  if(d.segNachRechts!==undefined){
+   const [si,sj]=String(d.segNachRechts).split("_").map(Number);
+   const seg=a.segmente[si];
+   if(seg&&segmentMassen(seg)[sj]){seg.massen[sj].rechts=zahl(seg.massen[sj].links)}
+   zeichne(); return;
+  }
+  // ---- Skizzen-Erkennung
+  if(t.id==="p-erkennen"){erkennungStarten(); return}
+  if(t.id==="p-erkanntUebernehmen"){
+   if(erkanntesUebernehmen())zeichne();
+   return;
+  }
+  if(t.id==="p-erkanntVerwerfen"){
+   vorschauSchliessen();
+   erkennungStatus="Erkannte Form verworfen. Das bestehende Profil bleibt unverändert.";
+   zeichne(); return;
+  }
+  if(t.id==="p-zuFotos"){setzeSchritt(7); return}
+  // ---- Fotos und Skizze
+  if(d.fotoWeg!==undefined){a.fotos.splice(Number(d.fotoWeg),1); zeichne(); return}
+  if(t.id==="p-skizzeWeg"){a.skizze=null; zeichne(); return}
+  if(t.id==="p-skizzeOeffnen"){skizzeOeffnen(); return}
+  if(t.id==="p-skizzeLeeren"){
+   const c=$("p-skizzeCanvas");
+   if(c&&skizzeCtx){skizzeCtx.fillStyle="#fff";skizzeCtx.fillRect(0,0,c.width,c.height);skizzeCtx.strokeStyle="#17202a"}
+   return;
+  }
+  if(t.id==="p-skizzeAbbrechen"){const b=$("p-skizzeBox"); if(b)b.hidden=true; return}
+  if(t.id==="p-skizzeSpeichern"){
+   const c=$("p-skizzeCanvas");
+   if(c){try{a.skizze=c.toDataURL("image/png")}catch(err){}}
+   const b=$("p-skizzeBox"); if(b)b.hidden=true;
+   zeichne(); return;
+  }
+ });
+
+ // Skizze zeichnen - Maus und Finger.
+ const start=ev=>{
+  const c=$("p-skizzeCanvas");
+  if(!c||!skizzeCtx||ev.target!==c)return;
+  ev.preventDefault();
+  skizzeZeichnet=true;
+  const [x,y]=skizzePunkt(ev,c);
+  skizzeCtx.beginPath(); skizzeCtx.moveTo(x,y);
+ };
+ const zug=ev=>{
+  const c=$("p-skizzeCanvas");
+  if(!skizzeZeichnet||!c||!skizzeCtx)return;
+  ev.preventDefault();
+  const [x,y]=skizzePunkt(ev,c);
+  skizzeCtx.lineTo(x,y); skizzeCtx.stroke();
+ };
+ const stopp=()=>{skizzeZeichnet=false};
+ w.addEventListener("mousedown",start); w.addEventListener("touchstart",start,{passive:false});
+ w.addEventListener("mousemove",zug);   w.addEventListener("touchmove",zug,{passive:false});
+ w.addEventListener("mouseup",stopp);   w.addEventListener("touchend",stopp);
+ w.addEventListener("mouseleave",stopp);
+}
+
+// ---- 14. Start ------------------------------------------------------------
+if(typeof document!=="undefined"&&document.addEventListener){
+ document.addEventListener("DOMContentLoaded",()=>{verdrahten();zeichne()});
+ if(document.readyState!=="loading"){verdrahten();zeichne()}
+}
+
+</script>
+</body>
+</html>

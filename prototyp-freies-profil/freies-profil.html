@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Prototyp · Massaufnahme Freies Profil</title>
+<link rel="stylesheet" href="../css/01-basis.css">
+<link rel="stylesheet" href="prototyp.css">
+</head>
+<body>
+<div class="p-app" id="p-app">
+
+<div class="p-kopf">
+ <div>
+  <h1>Freies Profil</h1>
+  <div class="p-kopf-klein">Prototyp · zeichnet und prüft mit der Fachlogik der laufenden App</div>
+ </div>
+ <div class="p-kopf-knoepfe">
+  <button type="button" class="p-gruen" id="p-speichern">💾 Speichern</button>
+  <button type="button" class="p-grau" id="p-neu">＋ Neu</button>
+  <button type="button" class="p-grau" id="p-kopieren">📋 Kopieren</button>
+  <button type="button" class="p-grau" id="p-listeAuf">📂 Gespeicherte</button>
+ </div>
+</div>
+
+<div class="p-karte p-klapp" id="p-listeBox" hidden></div>
+
+<div id="p-registerBox"></div>
+<div id="p-inhalt"></div>
+
+<div class="p-blaettern">
+ <button type="button" class="p-grau" id="p-zurueck">‹ Zurück</button>
+ <button type="button" class="p-grau" id="p-weiter">Weiter</button>
+</div>
+
+<!-- Nur Aufhänger für generateProfilDiagramSvg() aus js/14: die Funktion
+     liest die Ansichtsrichtung aus einem Feld mit genau dieser ID. Nicht
+     sichtbar und nicht bedienbar - gesetzt wird sie im Register 3. -->
+<select id="fp_ansicht" hidden aria-hidden="true">
+ <option value="keiner">keiner</option>
+ <option value="links">links</option>
+ <option value="oben">oben</option>
+ <option value="rechts">rechts</option>
+ <option value="unten">unten</option>
+</select>
+
+</div>
+<script src="bruecke.js"></script>
+<script src="uebernommen.js"></script>
+<script src="prototyp-fp.js"></script>
+</body>
+</html>
