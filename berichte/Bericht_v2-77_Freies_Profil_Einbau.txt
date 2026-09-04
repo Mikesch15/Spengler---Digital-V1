@@ -1,0 +1,227 @@
+SPENGLER-DIGITAL
+Freies Profil als Register-Aufnahme in die App
+Version 2.77 - veroeffentlicht
+
+Branch:  main
+Commit:  b2f2127
+Datum:   04.09.2026
+
+
+================================================================
+1. WAS SICH AENDERT
+================================================================
+
+Die Massaufnahme "Freies Profil" laeuft jetzt ueber sieben Register
+statt ein langes Formular - dasselbe Bediengefuehl wie Rinne Halbrund
+(v2.71), Einlaufblech gerade (v2.74) und Einlaufblech konisch (v2.76):
+
+  1 Grunddaten          Material, konisch, Ansichtspfeil
+  2 Profil aufnehmen    Schenkel als grosse Karten, Zeichnung klebt oben
+  3 Profilzeichnung     gross, mit Ansichtsrichtung und Uebersicht
+  4 Skizze -> Profil    erkennen, Vorschau, bestaetigen
+  5 Segmente & Ausmass  Segmente mit Massen, daraus das Ausmass
+  6 Zuschnitt           Rollenbreite, Streifen, Tafeln, Verschnitt
+  7 Kontrolle           was fehlt, was nicht stimmt
+
+Danach "Fertig - Fotos und Speichern": Fotos, Skizze, Notiz und
+Speichern erscheinen wie bei den anderen drei Arten erst am Ende.
+
+
+================================================================
+2. DER GEMELDETE ZEICHNUNGSFEHLER - JETZT AUCH IN DER APP BEHOBEN
+================================================================
+
+Am 04.09. mit Bildschirmfoto gemeldet: Profil 12 / 50 (180 Grad
+Umschlag) / 60 (-90 Grad). Der dritte Schenkel richtete sich am ERSTEN
+aus, zwischen Schenkel 2 und 3 klaffte eine Luecke.
+
+Ursache, an den gezeichneten Pfaden gemessen: ein Umschlag wird als
+parallel VERSETZTE Linie gezeichnet, der Schenkel danach setzte aber
+wieder am UNVERSETZTEN Punkt an.
+
+  vorher   Pfad 1 endet (30/21)   Pfad 2 beginnt (30/30)   Luecke 9
+  nachher  Pfad 1 endet (30/21)   Pfad 2 beginnt (30/21)   keine Luecke
+
+Behoben in js/14-freies-profil.js selbst - vier Stellen in
+generateProfilDiagramSvg(). Der Versatz wird jetzt auf alle folgenden
+Schenkel mitgenommen; so liegt das Blech nach einem Umschlag auch
+wirklich. Das ist die EINZIGE inhaltliche Aenderung an dieser Datei und
+betrifft ausschliesslich die Darstellung - an Massen, Speichermodell und
+Fachrechnung aendert sich nichts.
+
+Im Prototyp war der Fehler bereits korrigiert; jetzt ist er es an der
+Quelle, und der Prototyp und die App zeichnen wieder gleich.
+
+
+================================================================
+3. ZUSCHNITT AUS ROLLENBLECH  (Register 6)
+================================================================
+
+Gleiches Vorgehen wie beim Einlaufblech: von der Rolle wird eine TAFEL
+abgeschnitten und quer in Streifen der Abwicklungsbreite geteilt; ein
+Streifen kann mehrere Segmente hintereinander aufnehmen.
+
+Gepackt wird mit ebaPackeInStreifen() aus js/29 - es gibt in der App
+bewusst nur EINE Packrechnung, und hier wird keine zweite gebaut.
+
+Der eine Unterschied: dort hat die ganze Aufnahme eine Abwicklung, hier
+hat JEDES SEGMENT seine eigene. Deshalb bilden Segmente mit gleicher
+Streifenbreite eine Gruppe, und jede Gruppe wird fuer sich gepackt.
+
+Konisch: die Streifenbreite ist die GROESSERE der beiden Abwicklungen -
+der Zuschnitt muss das breitere Ende enthalten. Die Flaeche bleibt die
+Trapezflaeche; die Differenz ist echter Verschnitt.
+
+Ehrlich angezeigt statt stillschweigend gerechnet:
+  - Segmente ohne Laenge oder ohne Masse werden mit ihrer Nummer
+    gemeldet, nicht mitgerechnet.
+  - Ist keine Rolle breit genug, steht das als Warnung da.
+  - Reicht das Suchbudget nicht, heisst das Ergebnis ausdruecklich
+    "beste GEFUNDENE Verteilung".
+
+Die Rollenbreiten kommen aus Einstellungen -> Massaufnahmen ->
+Einlaufblech gerade (firmenweit, seit v2.74). KEINE neue Einstellung.
+
+
+================================================================
+4. WEITERE NEUERUNGEN
+================================================================
+
+- Blechflaeche, Ausmass und Materialuebersicht ohne zweite Eingabe,
+  ohne Artikelnummern und ohne Preise.
+- Kontrolle mit Punkt am Register (rot bei einem Fehler). Nur
+  Pruefungen, die sich aus dem bestehenden Modul ableiten lassen -
+  mindestens 2 Schenkel wie die Erkennungspruefung, hoechstens 24,
+  gueltige Zahlen, Winkel +-180 Grad, Geometrie zeichenbar.
+- Verwaiste Masse werden gekuerzt: werden Schenkel weniger (etwa weil
+  eine erkannte Skizze das Profil ersetzt), blieben sonst Masse zu
+  Schenkeln stehen, die es nicht mehr gibt - unsichtbar, aber in der
+  Abwicklung mitgezaehlt. Belegt: 210 mm statt faelschlich weiter 210,
+  richtig 170 mm.
+- Der Knopf "+ Schenkel hinzufuegen" steht UNTER den Karten.
+
+
+================================================================
+5. WAS UNVERAENDERT BLEIBT
+================================================================
+
+js/14-freies-profil.js bleibt die Fachquelle: die Zeichnung, die
+Erkennungspruefung (max. 24 Schenkel), das Fuellen der Segment-Masse
+aus dem Profil und die GANZE Skizzen-Erkennung mit Vorschau und
+Bestaetigung. Es wird nichts davon nachgebaut.
+
+Der Speicher-Payload ist ein Superset: dieselben fuenf Felder wie
+bisher (schenkel, konisch, segmente, ansicht, material), dazu
+flaeche_m2, ausmass und zuschnitt. Eine vor v2.77 gespeicherte
+Aufnahme oeffnet unveraendert und druckt ohne die neuen Abschnitte -
+es wird nichts nachgerechnet, damit ein einmal gedrucktes Blatt gleich
+bleibt.
+
+Nicht angefasst: js/06-rapport.js, js/08-katalog-blitzschutz.js,
+css/03-druck.css (Regierapport) sowie js/11, js/12, js/12b, js/13,
+js/15, js/17, js/19-js/30.
+
+
+================================================================
+6. GETESTET
+================================================================
+
+Neuer Pruefstand pruefstaende/pruefstand-freies-profil-app-v2-77.js -
+114/114, in echtem Chromium gegen die echte index.html: Modul und
+Bruecke, sieben Register, Grunddaten, Profil (Tippen Zeichen fuer
+Zeichen mit Fokuspruefung, Umschlag, Umkehren, Verschieben, Loeschen,
+24er-Grenze, Knopf unter den Karten, klebende Zeichnung gemessen), der
+behobene Zeichnungsfehler (Luecke UND Endpunkt), Erkennungs-Block nur
+in Register 4, Uebernahme aus js/14 landet im Modell und ueberlebt das
+Neuzeichnen, Segmente und Ausmass, verwaiste Masse, Zuschnitt mit von
+Hand gerechneten Erwartungen, Kontrolle, Speicher-Payload,
+Wiederoeffnen, ein Datensatz im Format bis v2.76, Fotos erst nach
+"Fertig", Druck (neu und alt), vier Bildschirmbreiten x sieben
+Register, keine JS-Fehler.
+
+12 GEGENPROBEN, jede baut einen echten Fehler ein und wirft den
+Pruefstand um:
+
+  Bruecke setzt fpSchenkel nicht                  113/114
+  Skizzen-Uebernahme kommt nicht ins Modell       113/114
+  verwaiste Masse nicht gekuerzt                  113/114
+  konisch: Breite von der schmalen Seite          113/114
+  Tafellaenge = Summe statt laengstes Stueck      108/114
+  eigene Packrechnung statt js/29                 113/114
+  Segment ohne Laenge still mitrechnen            112/114
+  Knopf wieder ueber die Karten                   106/114
+  Erkennungs-Block in den innerHTML-Kopf          108/114
+  Umschlag-Korrektur zurueckgenommen              112/114
+  Zusatzfelder nicht gespeichert                  106/114
+  Fotos schon waehrend der Register sichtbar      113/114
+
+Eine davon liess den Pruefstand zuerst ABBRECHEN statt fehlschlagen -
+ein abgebrochener Lauf sieht aus wie "keine Fehler". An beiden Stellen
+abgesichert und erneut gelaufen.
+
+REGRESSION - alle gruen:
+  einlaufblech-app 98/98, konisch-app 113/113, rinne-app 102/102,
+  medien-am-ende 60/60, dila-sichtbar 57/57, verschnitt-app 1578/1578,
+  kehle52 698/698, required70 359/359, pfade55 38/38, module67 43/43,
+  einst68 43/43, hidden51 7/7, abstand69 2/2.
+
+REGIERAPPORT nachweislich unveraendert: unter media:print mit
+ausgeloestem beforeprint gerendert und gegen v2.76 verglichen - Bild
+und DOM sind BYTEIDENTISCH (DOM 43b2ed7142cfd6fa / 5297 Bytes, Bild
+5743c9c239f38898 / 45830 Bytes).
+
+Struktur: node --check ueber alle 31 js-Dateien und sw.js fehlerfrei,
+<div>/</div> in index.html ausgeglichen (702/702), keine doppelten
+Element-IDs, jede js-Datei in der Service-Worker-Liste.
+
+
+================================================================
+7. ZWEI PRUEFSTAENDE HATTEN UEBERHOLTE ERWARTUNGEN
+================================================================
+
+Keiner davon war ein Codefehler:
+
+  - medien-am-ende fuehrte freies_profil noch unter den Arten, die den
+    Fotobereich sofort zeigen. Angepasst -> 60/60.
+
+  - required70 suchte das Pflichtfeld der konischen Dachneigung noch
+    unter der alten ID ebk_dachneigung. Das hat eine echte LUECKE SEIT
+    v2.76 aufgedeckt: das Feld heisst dort ebka_dachneigung und wurde
+    seither gar nicht mehr geprueft. Nachgemessen im Browser: der rote
+    Stern, required und aria-required sitzen korrekt - der Pruefstand
+    deckt es jetzt wieder ab (359/359 statt 351/359).
+
+
+================================================================
+8. NICHT GETESTET - UND DAS WIRD NICHT BEHAUPTET
+================================================================
+
+- Kein Live-Klicktest gegen Supabase. Die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co, wie in jeder
+  vorherigen Sitzung. Geprueft ist die Oberflaeche in echtem Chromium
+  gegen die echte index.html.
+- Die Skizzen-Erkennung wurde nicht gegen die echte Edge Function
+  getestet - geprueft ist der Weg mit der Vorschau von js/14 und
+  gestellten Schenkeln.
+- Kein Test auf einem echten Android-Geraet.
+
+
+================================================================
+9. OFFENE PUNKTE FUER DEN PRAXISTEST
+================================================================
+
+  1. Wird bei mehreren Abwicklungen je Breite eine eigene Tafel
+     geschnitten, oder legt man schmale und breite Streifen auf
+     dieselbe Tafel? Die App rechnet je Breite getrennt - das ist die
+     vorsichtige Annahme, sie kann Material kosten.
+
+  2. Zaehlt der Betrieb einen Umschlag als eine Biegung oder als zwei?
+     Gezaehlt werden Schenkel mit einem Winkel ungleich 0 Grad.
+
+  3. Verschnitt ohne Schnittfuge und ohne Wiederverwendung von
+     Reststuecken. Bei sehr vielen Segmenten heisst das Ergebnis
+     "beste gefundene Verteilung", nicht "die beste".
+
+  4. Konische Flaeche als Trapez (Laenge x Mittelwert der beiden
+     Abwicklungen) - geometrisch exakt, aber wird im Betrieb so
+     abgerechnet?
