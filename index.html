@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.89</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.90</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -114,6 +114,7 @@
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="lukarne"><span class="start-nav-icon">🏚️</span><span>Lukarne Seitenverkleidung</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="anschlussblech"><span class="start-nav-icon">📐</span><span>Ort- und Seitenbleche</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="einfassung_rund"><span class="start-nav-icon">⭕</span><span>Einfassung Rund</span></button>
+<button type="button" class="start-nav-btn blue" data-choose-meas-type="kamineinfassung"><span class="start-nav-icon">🧱</span><span>Kamineinfassung</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="kehle"><span class="start-nav-icon">📏</span><span>Kehle</span></button>
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="rinne"><span class="start-nav-icon">🚰</span><span>Rinne</span></button>
 </div>
@@ -654,7 +655,7 @@ Diese Aktion löscht unwiderruflich:
 <button type="button" id="measVerlaufToggle" class="gray" style="margin-bottom:8px" hidden>🕒 Verlauf anzeigen</button>
 <div id="measVerlaufBody" class="report-list"></div>
 <div class="grid" style="margin-bottom:8px">
-<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="anschlussblech">Ort- und Seitenbleche</option><option value="einfassung_rund">Einfassung Rund</option><option value="kehle">Kehle</option><option value="rinne">Rinne</option></select></div>
+<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Rinne Halbrund</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="anschlussblech">Ort- und Seitenbleche</option><option value="einfassung_rund">Einfassung Rund</option><option value="kamineinfassung">Kamineinfassung</option><option value="kehle">Kehle</option><option value="rinne">Rinne</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" data-pflicht="1" placeholder="z. B. Kamineinfassung Nordseite"></div>
 <div class="wide"><label>Projekt</label>
@@ -903,6 +904,10 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div class="bar" style="margin-top:8px"><button id="rp_addStueck" class="blue">&#65291; Neues Rinnenst&uuml;ck</button></div>
 </div>
 
+
+<div id="measTypeKamin" hidden>
+<div id="kaminAufnahme"></div>
+</div>
 
 <div id="measTypeKehle" hidden>
 <div id="kehleAufnahme"><div id="kea_kopf"></div>
@@ -1299,6 +1304,26 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 </div>
 
+<div class="settings-section" data-section="kamineinfassung">
+<div class="settings-section-head" data-toggle-section="kamineinfassung"><h2>Kamineinfassung</h2><span class="settings-section-chevron">&rsaquo;</span></div>
+<div class="settings-section-body">
+<div class="info">Vorgabewerte f&uuml;r neue Kamineinfassungen. Sie werden beim Anlegen einmal &uuml;bernommen und sind danach je Massaufnahme frei &auml;nderbar. <b>Bereits gespeicherte Massaufnahmen bleiben unver&auml;ndert.</b> Gilt nur f&uuml;r dieses Ger&auml;t.</div>
+<div class="grid" style="margin-bottom:10px">
+<div><label>Standard-Deckmaterial</label><select id="kamsDeckung"></select></div>
+<div><label>Lattenabstand Bleilappen (mm)</label><input id="kamsLattenabstand" type="number" step="1"></div>
+<div><label>Umschlag vorne (mm)</label><input id="kamsUmschlagVorne" type="number" step="1"></div>
+<div><label>Umschlag hinten (mm)</label><input id="kamsUmschlagHinten" type="number" step="1"></div>
+<div><label>Umschlag seitlich (mm)</label><input id="kamsUmschlagSeite" type="number" step="1"></div>
+<div><label>&Uuml;berlappung der Seitenteile (mm)</label><input id="kamsUeberlappung" type="number" step="1"></div>
+<div><label>E &middot; 90&deg;-Aufbug hinten (mm)</label><input id="kamsAufbugHinten" type="number" step="1"></div>
+</div>
+<div class="bar" style="margin-bottom:14px">
+<button id="saveKaminSettings" class="green">💾 Werte speichern</button>
+<button id="resetKaminSettings" class="gray">Auf Standardwerte zur&uuml;cksetzen</button>
+</div>
+</div>
+</div>
+
 <div class="settings-section" data-section="rinne-profil">
 <div class="settings-section-head" data-toggle-section="rinne-profil"><h2>Rinne &ndash; Standardprofil &amp; Ansetztypen</h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
@@ -1599,6 +1624,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/34-kehle-aufnahme.js"></script>
 <script src="js/35-pdf-listen.js"></script>
 <script src="js/36-lukarne-aufnahme.js"></script>
+<script src="js/37-kamin-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

@@ -14702,3 +14702,275 @@ er genau so gerechnet wurde. Es wird nichts nachgerechnet.
 - Beim Freien Profil und bei der Lukarne bekommt jede Streifenbreite ihre
   eigenen Abschnitte; schmale und breite Streifen werden nicht auf derselben
   Rollenbreite kombiniert.
+
+## 94. NEUES MODUL „KAMINEINFASSUNG" — VERSION 2.90
+
+Zwölfte Massaufnahme-Art: Einfassung eines rechteckigen Kamins. Gleiche
+fachliche Logik wie die Einfassung Rund (Deckungsmaterial, Lattenabstand,
+Bleilappen), aber rechteckig und mit sechs getrennten Zuschnitten. Erfasst
+wird über **sieben Register**:
+
+    1 Grunddaten · 2 Kaminmasse · 3 Umschläge · 4 Stückliste ·
+    5 Zuschnitt · 6 Ausmass · 7 Kontrolle
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung.**
+`measurements.type` hat keine CHECK-Constraint und `data` ist `jsonb` – ein
+neuer Typ braucht deshalb weder Tabelle noch Spalte noch Migration.
+
+### 94.1 Die DXF: was tatsächlich drinsteht
+
+`Schnitt_Kamineinfassung.dxf` enthält **keinen Text, keine Bemassung, keine
+Layernamen** – nur 8 echte Linien plus Pfeilspitzen-Dekoration. Auf die
+Dachlinie projiziert (t = längs, bergwärts positiv; h = senkrecht darüber):
+
+| Element | Lage | Deutung |
+|---|---|---|
+| Dach | t 0…798, h 0, Pfeile beidseits | Deckmaterial, läuft weiter |
+| Vorderkant | t 199→255, h 0→120 | lotrecht = 25° zur Dachsenkrechten |
+| Hinterkant | t 590→632, h 29→120 | ebenso |
+| Keil | t 590→608, h 29→0 | Wasserkeil hinter dem Kamin |
+| Schnittkante | t 632→255, h 120 | der Kamin ist abgeschnitten |
+| Knick voll | t 349, h 120→0 | ? |
+| Knick gestrichelt | t 469, h 120→0 | ? |
+
+8 Linien können die 13 verlangten Masse nicht tragen, und B/C überlappen
+sich laut Beschreibung. Die Zuordnung wurde deshalb – wie vom Anwender
+ausdrücklich verlangt – **vor dem Bauen mit ihm geklärt**:
+
+- Der **Knick ist die Überlappung der beiden Seitenteile**. Die volle Linie
+  ist seine Vorderkant, die gestrichelte seine Hinterkant (gestrichelt =
+  verdeckte Kante des unteren Blechs). **B ist die Zuschnittlänge des
+  vorderen, C die des hinteren Seitenteils.** In der DXF geht das exakt auf:
+  `B + C − Kaminlänge = (469−199) + (590−349) − 391 = 120` = Knickbreite.
+- **E** (90°-Aufbug hinten) gehört in die Abwicklung des **Hinterteils**.
+- **„Breite vorne/hinten"** sind die **Zuschnittlängen** von Vorder- und
+  Hinterteil; die Umschläge sind davon getrennt.
+
+### 94.2 Die sechs Zuschnitte
+
+Genau die Formeln des Anwenders, ergänzt um E (94.1):
+
+| Nr. | Teil | Länge | Abwicklung |
+|---|---|---|---|
+| 1 | Vorderteil | Breite vorne | Umschlag vorne + A + Höhe / cos(Winkel vorne) |
+| 2 | Hinterteil | Breite hinten | Umschlag hinten + E + D + Keil + Höhe / cos(Winkel hinten) |
+| 3/5 | Seitenteil vorne links/rechts | **B** | Umschlag Seite + G + F + seitliche Höhe |
+| 4/6 | Seitenteil hinten links/rechts | **C** | dieselbe Abwicklung |
+
+Nachgerechnet mit A 300, D 250, E 60, Keil 80, Winkel je 25°, Höhe 400,
+Breiten 900, Umschläge 20, B 500, C 400, F 150, G 100:
+cos 25° = 0.90631 → 400/0.90631 = 441.35 →
+**900 × 761**, **900 × 851**, **500 × 670**, **400 × 670** (je zweimal),
+Blechfläche **2.6568 m²**, Kaminlänge **780 mm**.
+
+Der Winkel ist „vom Senkrechten auf Blech" gemessen, also relativ zum Dach.
+Die **Dachneigung wird deshalb gar nicht erfasst** und auch nicht gebraucht.
+Sind links und rechts unterschiedlich hoch, rechnen Vorder- und Hinterteil
+mit der **grösseren** Höhe – ein zu kurzer Zuschnitt wäre unbrauchbar, ein
+zu langer lässt sich kürzen.
+
+### 94.3 Links und rechts getrennt
+
+Ein Schalter „Links und rechts getrennt erfassen". Ohne Haken gilt jedes
+seitliche Mass für beide Seiten (der rechte Wert wird trotzdem mitgeführt,
+damit ein späteres Einschalten nichts leert). Mit Haken bekommen **B, C, F,
+G und die seitliche Höhe** je zwei Felder. Alles andere gehört zur Vorder-
+bzw. Hinterseite und ist einmal vorhanden.
+
+### 94.4 Bleilappen
+
+Wie bei der Einfassung Rund **aufgerundet**, nicht abgerundet (die Korrektur
+aus v2.70) – und je Seitenteil, denn jedes bekommt seine eigenen Lappen:
+`ceil(Zuschnittlänge ÷ Lattenabstand)`, summiert über die vier Seitenteile.
+Im Beispiel: 500/330 → 2 und 400/330 → 2, je Seite, **8 gesamt**. Ohne
+Lattenabstand bleibt die Zahl `null` und die Anzeige zeigt „–", statt eine
+zu erfinden.
+
+### 94.5 Schnittskizze nach der DXF
+
+Gezeichnet werden genau die Elemente der Vorlage: Dach mit Pfeilen an beiden
+Enden, Vorder- und Hinterkant, die dachparallele Schnittkante oben, der Keil
+und die beiden Knickkanten (voll = vorne, gestrichelt = hinten). Dazu alle
+verlangten Masse.
+
+Zwei bewusste Darstellungsentscheidungen, beide an der Skizze angeschrieben:
+
+- **Das Dach wird waagerecht gezeichnet**, nicht wie in der DXF unter 25°.
+  Die Dachneigung ist kein erfasstes Mass; sie schräg zu zeichnen hiesse,
+  eine Zahl zu erfinden.
+- **Der Keil wird unter 45° zur Kaminwand dargestellt.** Die DXF gibt dafür
+  keinen erfassten Wert her; für die Abwicklung zählt ausschliesslich seine
+  Länge, die Darstellung ändert daran nichts.
+
+Die **viewBox wird nach dem Zeichnen exakt um alles Gezeichnete gelegt**,
+einschliesslich der geschätzten Textkästen – ohne das liefen die
+Beschriftungen an den Rändern aus dem Bild (im Browser gemessen, nicht
+vermutet; gleiches Vorgehen wie in js/26). Die Fahnen zeigen nach **innen**
+in den leeren Kamin, sonst wäre die Zeichnung doppelt so breit und der Text
+entsprechend klein.
+
+Ohne die nötigen Masse liefert die Funktion einen **Hinweis statt einer
+Zeichnung** – im PDF wird dieser Fall abgefangen, dort steht dann gar kein
+Schnitt.
+
+### 94.6 Gemeinsame Bausteine, nichts nachgebaut
+
+- **Packrechnung**: `ebaPackeInStreifen()` aus js/29 – es gibt in der App
+  weiterhin nur EINE. Gepackt wird je Abwicklung (die sechs Teile haben
+  unterschiedliche Streifenbreiten), genau wie beim Freien Profil und bei
+  der Lukarne.
+- **Zuschnitt-Darstellung**: `zuschnittHtml()` / `zuDruckHtml()` aus js/33.
+- **PDF-Listenauswahl**: js/35; neu zugeordnet ist nur die Überschrift
+  „Bleilappen" (→ Stückliste).
+- **Deckungsarten**: `EINF_DECKUNGEN` aus js/21.
+- **Zeichenbausteine**: `anbMassWaag`, `anbMassSenk`, `anbFahne`,
+  `ANB_FARBE`, `anbEsc` aus js/20.
+- **Rollenbreiten**: `app_settings.blech_rollenbreiten` (firmenweit, seit
+  v2.74) mit der Auswahl je Massaufnahme (v2.85) – **keine neue firmenweite
+  Einstellung**.
+- **Fotos und Skizzen am Ende**: `MEAS_MEDIEN_AM_ENDE` (v2.75-Mechanik).
+
+Eigene Einstellungen (je Gerät, `sd_kaminSettings`, wie Anschlussblech und
+Einfassung Rund): Standard-Deckmaterial, Lattenabstand, die drei Umschläge,
+die Überlappung der Seitenteile und E. Sie sind Vorgaben beim Anlegen und
+danach je Aufnahme frei änderbar.
+
+### 94.7 Zwei echte Befunde des gemeinsamen Prüfstands
+
+Der Standard-Prüfstand aus v2.80/v2.85 hat beim Aufnehmen der neuen Art
+zwei Fehler in meinem Modul gefunden – beides Abweichungen von den
+verbindlichen Vorgaben:
+
+1. **Die Seite stand im `merkmal`.** Dadurch erschienen zwei *identische*
+   Zuschnitte (Seitenteil vorne links und rechts, beide 500 × 670) als zwei
+   Zeilen statt als „2 ×". Die Seite ist eine reine Beschriftung und gehört
+   nach `hinweis` – wie „START → ECKE" bei der Mauerabdeckung.
+2. **Die Stückliste schrieb „900 × 761"** mit der Einheit nur im
+   Spaltenkopf. Der Standard aus v2.81 ist `900 mm × 761 mm`; verwendet wird
+   dafür `zuMasse()` aus js/33, damit jede Art einen Zuschnitt gleich
+   schreibt.
+
+### 94.8 Mitbehoben: der Einstellungs-Knopf der Kehle
+
+`MEAS_TYPE_SETTINGS_SECTION.kehle` stand noch auf `""` („rechnet nur, hat
+keine Einstellungen") – seit v2.83 hat die Kehle aber einen eigenen
+Abschnitt (Stoss/Überlappung). Der Knopf „⚙️ Einstellungen" sprang dort
+deshalb nur ins Register statt an die Stelle. Eintrag nachgetragen; damit
+hat jetzt **jede** der zwölf Arten einen Einstellungs-Abschnitt.
+
+### 94.9 Getestet
+
+**Neuer Prüfstand `pruefstaende/pruefstand-kamin-app-v2-90.js` – 97/97**,
+echtes Chromium gegen die echte `index.html`: Modul und geteilte Bausteine,
+sieben Register (nur eigener Inhalt, Reihenfolge, Marke am Kontroll-
+Register), Grunddaten und der Links/rechts-Schalter, echtes Tippen mit
+Fokusprüfung, alle sechs Zuschnitte gegen von Hand nachgerechnete Zahlen,
+getrennte Erfassung, Bleilappen, Rollenblech (drei Streifenbreiten, beste
+Rolle 1000 mm mit 3.8 m², 670 mm zu schmal), Ausmass, Kontrolle, Skizze
+(jedes Mass, gestrichelte Knickkante, Hinweis statt Zeichnung ohne Masse),
+Speichern und Wiederöffnen, Fotos erst nach „Fertig", Druck (auch ein
+Datensatz ohne Masse), fünf Bildschirmbreiten × sieben Register.
+
+**14 Gegenproben**, jede baut einen echten Fehler ein und wirft den
+Prüfstand um; keine bricht ihn ab:
+
+| Gegenprobe | Ergebnis |
+|---|---|
+| Winkel wirkt nicht auf die Abwicklung | 90/96 |
+| E fehlt in der Hinterteil-Abwicklung | 93/96 |
+| B und C vertauscht | 92/96 |
+| Überlappung nicht abgezogen | 94/96 |
+| Bleilappen abgerundet | 94/96 |
+| eigene Packrechnung | 95/97 |
+| Zuschnitte/Bleilappen nicht gespeichert | 94/97 |
+| Skizze zeichnet auch ohne Masse | 95/96 |
+| Fotos schon während der Register | 95/96 |
+| Register in anderer Reihenfolge | 95/96 |
+| Eingabe zeichnet neu (Fokusverlust) | 93/96 |
+| Vorderteil rechnet mit der kleineren Höhe | 94/96 |
+| Hinterkant Knick nicht gestrichelt | 95/96 |
+| Schnittskizze fehlt im PDF | 95/96 |
+
+Zwei dieser Gegenproben deckten zuerst **Schwächen im Prüfstand** auf: eine
+liess ihn abstürzen statt fehlschlagen (ein abgebrochener Lauf sieht aus wie
+„keine Fehler"), eine blieb grün, weil die naive Ersatzrechnung für den
+Testfall zufällig dasselbe lieferte. Beide Prüfungen sind jetzt schärfer –
+geprüft wird zusätzlich, dass zwei kurze Teile im **selben** Streifen landen
+(3 statt 4).
+
+**Die neue Art wurde in die gemeinsamen Prüfstände aufgenommen**:
+`register-zuschnitt` 276/276 (vorher 245), `medien-am-ende` 113/113
+(vorher 100), `lxb-druck` 53/53 (vorher 46).
+
+**Volle Regression grün** – alle 15 Prüfstände im Repo (verschnitt 1578,
+register-zuschnitt 276, kehle 158, mauerabdeckung 146, freies-profil 118,
+konisch 114, medien-am-ende 113, rinne 104, einlaufblech 99, kamin 97,
+rollenblech-pdf 95, lukarne 82, dila-sichtbar 57, skizze-foto 54,
+lxb-druck 53) und die archivierten (kehle52 698, pdf52 526, rinne57 379,
+required70 377, offline70 125, feedback63 108, freipos65 99, fotos70 88,
+dila70 85, breite57 84, fp70 83, kehleintegration52 76, feedbackbrowser63
+67, breite52 52, einstbrowser68 51, ebg70 49, feedback70 47, einst68 47,
+mad70 45, module67 43, medien50 42, pfade55 39, adresse45 39, dateien49 38,
+projekte47 37, status46 35, freiposbrowser65 33, auswahl48 32,
+modulebrowser67 16, suche45 13, kopf45 8, hidden51 7, abstand69 2,
+normbrute 1578 sowie nav, suche40, treffer40, recent41, stand42,
+dateien43, ui39 ohne Fehlschlag).
+
+**Angepasste Erwartungen** – alle **überholt**, keine davon ein Codefehler:
+sechs Prüfstände zählten „elf Massaufnahme-Arten" (jetzt zwölf), zwei
+führten `kamineinfassung` noch unter den Arten ohne Register bzw. mit sofort
+sichtbarem Fotobereich, einer prüfte „nur Kehle ohne eigenen Abschnitt"
+(seit 94.8 hat jede Art einen), einer zählte die Payload-Zweige.
+
+**Regierapport nachweislich unverändert**: der Ausdruck wurde in echtem
+Chromium unter `media:print` mit ausgelöstem `beforeprint` unmittelbar
+nacheinander gegen den v2.89-Stand gerendert – **Bild und DOM byteidentisch**
+(DOM `631410f5a5ecc8c6`, 4304 Zeichen; Bild `48fff995380cd305`, 41606 Bytes).
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und `css/03-druck.css`
+sind nicht im Diff.
+
+`node --check` über alle 39 `js/*.js`, `sw.js` und alle Prüfstände:
+fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0);
+keine doppelten Element-IDs; jede js-Datei in `index.html` **und** in der
+Service-Worker-Liste.
+
+**Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 94.10 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/37-kamin-aufnahme.js` | **neu** – sieben Register, Zuschnitte, Bleilappen, Skizze, Ausmass, Kontrolle, Einstellungen |
+| `index.html` | Auswahlknopf, `<option>`, `#measTypeKamin`/`#kaminAufnahme`, Einstellungsblock, Script-Tag, Version 2.90 |
+| `js/01-basis.js` | Art im Katalog, Einstellungs-Abschnitt (dazu die Kehle-Korrektur, 94.8) |
+| `js/16-massaufnahme-formular.js` | Sektion zeichnen, Payload, Pflichtprüfung, Medien am Ende, Druckzweig |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `js/35-pdf-listen.js` | **1 Zeile**: „Bleilappen" → Stückliste |
+| `css/01-basis.css` | `.kam-schalter` (setzt die globalen `input`/`label`-Regeln zurück, CLAUDE.md 72.5) |
+| `sw.js` | Cache-Version 2.90, neue Datei im SHELL |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie `js/11`–`js/34` und `js/36` – keine
+Berechnung, keine Stückliste, kein Zuschnitt, keine Abwicklung und keine
+Packrechnung einer bestehenden Art berührt.
+
+### 94.11 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- **Der Keilwinkel in der Skizze ist eine Darstellungsannahme** (45° zur
+  Wand, siehe 94.5) – die DXF liefert dafür keinen erfassten Wert. Sollte
+  der Betrieb hier eine feste Regel haben, wäre es ein Zeilentausch.
+- **Die Überlappung der Seitenteile** ist ein eigenes Mass mit Vorgabe 120
+  (dem DXF-Wert). Ohne sie liesse sich die Kaminlänge aus B und C nicht
+  bestimmen – geraten wird sie nicht, sie steht als Feld da.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei vielen Teilen heisst das Ergebnis „beste gefundene
+  Verteilung".
+- Kein Detail-Diff der Zuschnitte im Änderungsverlauf (wie bei allen
+  Array-Strukturen, Klasse C aus Abschnitt 42.2).
+- Damit haben **acht** der zwölf Massaufnahme-Arten Register; ohne sind
+  weiterhin Skizze/Foto, Ort-/Seitenbleche, Einfassung Rund und die
+  Rinne-Zuschnittliste.

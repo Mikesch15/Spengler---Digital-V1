@@ -48,6 +48,29 @@ const LXB=/\d[\d'’.\s]*×\s*\d/;
               {laenge:2000,ueberlappung:70,zuschnitt:2070},
               {laenge:1453,ueberlappung:0,zuschnitt:1453}],
     zuschnittSumme:5593,flaeche_m2:2.7965}],
+  // Kamineinfassung (v2.90). Von Hand: cos(25)=0.90631; 400/0.90631=441.35
+  //   Vorderteil 900 x (20+300+441) = 900 x 761
+  //   Hinterteil 900 x (20+60+250+80+441) = 900 x 851
+  //   Seitenteile 500/400 x (20+100+150+400) = x 670
+  ["Kamineinfassung","kamineinfassung",["900 × 761","900 × 851","500 × 670","400 × 670"],{
+    material:"2",deckung:"biber_einfach",lattenabstand:330,getrennt:false,
+    a:300,d:250,e:60,keil:80,winkelVorne:25,winkelHinten:25,
+    breiteVorne:900,breiteHinten:900,
+    umschlagVorne:20,umschlagHinten:20,umschlagSeite:20,ueberlappung:120,
+    b:{l:500,r:500},c:{l:400,r:400},f:{l:150,r:150},g:{l:100,r:100},hoehe:{l:400,r:400},
+    kaminLaenge:{l:780,r:780},
+    zuschnitte:[{nr:1,name:"Vorderteil",seite:"",laenge:900,breite:761,teile:[]},
+                {nr:2,name:"Hinterteil",seite:"",laenge:900,breite:851,teile:[]},
+                {nr:3,name:"Seitenteil vorne",seite:"links",laenge:500,breite:670,teile:[]},
+                {nr:4,name:"Seitenteil hinten",seite:"links",laenge:400,breite:670,teile:[]},
+                {nr:5,name:"Seitenteil vorne",seite:"rechts",laenge:500,breite:670,teile:[]},
+                {nr:6,name:"Seitenteil hinten",seite:"rechts",laenge:400,breite:670,teile:[]}],
+    bleilappen:{lattenabstand:330,gesamt:8,zeilen:[
+      {name:"Seitenteil vorne links",laenge:500,anzahl:2},
+      {name:"Seitenteil hinten links",laenge:400,anzahl:2},
+      {name:"Seitenteil vorne rechts",laenge:500,anzahl:2},
+      {name:"Seitenteil hinten rechts",laenge:400,anzahl:2}]},
+    flaeche_m2:2.657}],
   // --- die uebrigen Arten, seit v2.84 ebenfalls mit Laenge x Breite ---
   ["Ort- und Seitenbleche","anschlussblech",["3000 × 470","1200 × 470"],{
     deckung:"pfanne",art:"rinne",ausfuehrung:"wand",material:"2",

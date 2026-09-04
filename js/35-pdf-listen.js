@@ -53,6 +53,7 @@ const PDF_LISTE_FUER={
  "rinnenstücke":"stueckliste", "scharen":"stueckliste",
  "zuschnittliste":"stueckliste", "schieber und zuschnitt":"stueckliste",
  "dilatationselemente":"stueckliste", "positionen":"stueckliste",
+ "bleilappen":"stueckliste",
  // 5 · Rollenblech-Zuschnitt
  "zuschnitt aus rollenblech":"rollenblech",
  "normlängen und verschnitt":"rollenblech",

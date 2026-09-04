@@ -27,7 +27,9 @@ const ARTEN=[
  {typ:"mauerabdeckung",       name:"Mauerabdeckung",       wurzel:"mauerabdeckungAufnahme",
   setz:"madaSetzeSchritt",reg:"MADA_REGISTER",art:"rolle"},
  {typ:"kehle",                name:"Kehle",                wurzel:"kehleAufnahme"
-  ,setz:"keaSetzeSchritt", reg:"KEA_REGISTER",  art:"rolle"}
+  ,setz:"keaSetzeSchritt", reg:"KEA_REGISTER",  art:"rolle"},
+ {typ:"kamineinfassung",     name:"Kamineinfassung",     wurzel:"kaminAufnahme",
+  setz:"kamaSetzeSchritt",reg:"KAM_REGISTER", art:"rolle"}
 ];
 
 const zeige=async(page,typ)=>{
@@ -199,6 +201,13 @@ const auf=async(page,a)=>{
   kehleA.nh="42.5"; kehleA.nl="23.5"; kehleA.gl="5000";
   kehleA.segmente=[{laenge:2000,ueberlappung:70},{laenge:2000,ueberlappung:70},
                    {laenge:1453,ueberlappung:0}];
+  // Kamineinfassung
+  kamA=kamaLeer(); kamA.material="2"; kamA.lattenabstand=330;
+  kamA.a=300; kamA.d=250; kamA.e=60; kamA.keil=80;
+  kamA.winkelVorne=25; kamA.winkelHinten=25;
+  kamA.breiteVorne=900; kamA.breiteHinten=900; kamA.ueberlappung=120;
+  kamA.b={l:500,r:500}; kamA.c={l:400,r:400};
+  kamA.f={l:150,r:150}; kamA.g={l:100,r:100}; kamA.hoehe={l:400,r:400};
  });
  for(const a of ARTEN){
   await zeige(page,a.typ);
@@ -291,7 +300,7 @@ const auf=async(page,a)=>{
  // Und in der Stueckliste bzw. Stuecke-Liste der einzelnen Arten.
  const listenNamen={rinne_halbrund:"Stückliste",mauerabdeckung:"Stückliste",
    einlaufblech_gerade:"Stücke",einlaufblech_konisch:"Stücke",freies_profil:"Segmente",
-   kehle:"Segmente"};
+   kehle:"Segmente",kamineinfassung:"Stückliste"};
  for(const a of ARTEN){
   const name=listenNamen[a.typ];
   const nr=listen[a.typ].indexOf(name)+1;
@@ -347,7 +356,7 @@ const auf=async(page,a)=>{
  console.log("\nG · ohne Daten sagt jede Art dasselbe, ohne zu rechnen");
  await page.evaluate(()=>{
   ebA=ebaLeer(); ebkA=ebkaLeer(); fpA=fpaLeer(); madA=madaLeer();
-  kehleA=keaLeer();
+  kehleA=keaLeer(); kamA=kamaLeer();
  });
  for(const a of ARTEN){
   if(a.art==="stange")continue;      // die Rinne meldet die fehlende Normlaenge
@@ -374,6 +383,13 @@ const auf=async(page,a)=>{
   kehleA.nh="42.5"; kehleA.nl="23.5"; kehleA.gl="5000";
   kehleA.segmente=[{laenge:2000,ueberlappung:70},{laenge:2000,ueberlappung:70},
                    {laenge:1453,ueberlappung:0}];
+  // Kamineinfassung
+  kamA=kamaLeer(); kamA.material="2"; kamA.lattenabstand=330;
+  kamA.a=300; kamA.d=250; kamA.e=60; kamA.keil=80;
+  kamA.winkelVorne=25; kamA.winkelHinten=25;
+  kamA.breiteVorne=900; kamA.breiteHinten=900; kamA.ueberlappung=120;
+  kamA.b={l:500,r:500}; kamA.c={l:400,r:400};
+  kamA.f={l:150,r:150}; kamA.g={l:100,r:100}; kamA.hoehe={l:400,r:400};
  });
  for(const breite of [320,390,768,1280]){
   await page.setViewportSize({width:breite,height:1400});

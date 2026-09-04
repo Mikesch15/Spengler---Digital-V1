@@ -193,6 +193,7 @@ const MEAS_TYPE_LABELS=Object.freeze({
  lukarne:"Lukarne Seitenverkleidung",
  anschlussblech:"Ort- und Seitenbleche",
  einfassung_rund:"Einfassung Rund",
+ kamineinfassung:"Kamineinfassung",
  kehle:"Kehle",
  rinne:"Rinne"
 });
@@ -212,7 +213,8 @@ const MEAS_TYPE_SETTINGS_SECTION=Object.freeze({
  lukarne:"lukarne",
  anschlussblech:"anschlussblech",
  einfassung_rund:"einfassung-rund",
- kehle:"",                          // rechnet nur, hat keine Einstellungen
+ kamineinfassung:"kamineinfassung",
+ kehle:"kehle",                    // Stoss/Ueberlappung, seit v2.83
  rinne:"rinne-profil"               // Standardprofil & Ansetztypen
 });
 // Dasselbe fuer die beiden Ausmass-Arten (Register "Geschützt").

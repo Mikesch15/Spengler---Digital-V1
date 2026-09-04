@@ -12,6 +12,7 @@ function showMeasTypeSection(type){
  $("measTypeLukarne").hidden=(type!=="lukarne");
  $("measTypeAnschlussblech").hidden=(type!=="anschlussblech");
  $("measTypeEinfassungRund").hidden=(type!=="einfassung_rund");
+ $("measTypeKamin").hidden=(type!=="kamineinfassung");
  $("measTypeKehle").hidden=(type!=="kehle");
  $("measTypeRinneProfil").hidden=(type!=="rinne");
  if(type==="einlaufblech_gerade"&&typeof renderEinlaufblechAufnahme==="function")renderEinlaufblechAufnahme();
@@ -24,6 +25,7 @@ function showMeasTypeSection(type){
  if(type==="lukarne"&&typeof renderLukarneAufnahme==="function")renderLukarneAufnahme();
  if(type==="anschlussblech")renderAnbResult();
  if(type==="einfassung_rund")renderEinfResult();
+ if(type==="kamineinfassung"&&typeof renderKaminAufnahme==="function")renderKaminAufnahme();
  if(type==="kehle"&&typeof renderKehleAufnahme==="function")renderKehleAufnahme();
  if(type==="rinne")renderRinneResult();
  measMedienSichtbarkeit(type);
@@ -50,7 +52,7 @@ $("openEinlaufblechSettings").onclick=()=>{
 // erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
 // Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
 // sichtbar.
-const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne"];
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne","kamineinfassung"];
 let measMedienAufgeklappt=false;
 // Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
 // fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
@@ -212,6 +214,12 @@ function buildMeasurementFromForm(){
    material:$("einf_material").value
   }};
  }
+ if(type==="kamineinfassung"){
+  // Neues Modul (v2.90): alle Werte kommen aus js/37, es gibt kein altes
+  // Formular, auf das zurueckgefallen werden muesste.
+  return {...base,...measMedienAusFormular(),
+   data:(typeof kamaDaten==="function")?kamaDaten():{}};
+ }
  if(type==="kehle"){
   // Nur die drei Eingaben sind Nutzereingabe; die Excel-Resultate werden
   // mitgespeichert, damit ein spaeter gedrucktes PDF unveraendert bleibt
@@ -312,6 +320,14 @@ $("saveMeasurement").onclick=async()=>{
   const e=einfEingabenAusFeldern();
   if(!(Number(e.durchmesser)>0)){alert("Bitte den Rohrdurchmesser eingeben.");return}
   if(!(Number(e.a)>0)||!(Number(e.c)>0)){alert("Bitte mindestens die Masse a und c eingeben.");return}
+ }
+ if(type==="kamineinfassung"){
+  // Die Kontrolle des Moduls ist die eine Wahrheit - was dort ein Fehler
+  // ist, blockiert auch das Speichern.
+  if(typeof kamaPruefungen==="function"){
+   const f=kamaPruefungen().filter(x=>x.art==="fehler");
+   if(f.length){alert(f.map(x=>x.text).join("\n"));return}
+  }
  }
  if(type==="kehle"){
   // Ohne Firstgehrung wird gar nicht gerechnet - dann darf das Speichern
@@ -1162,6 +1178,66 @@ ${stuecke.some(st=>{const g=wert(st);return Math.round(Number(g.l)||0)!==Math.ro
 <table class="eb-info-table" style="margin-top:2mm">
 <tr>${cell2("Zuschnittl\u00e4nge gesamt",esc(mm(summeZuschnitt)+" mm"))}<td></td></tr>
 </table>
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="kamineinfassung"){
+  // Gedruckt wird ausschliesslich, was beim Speichern abgelegt wurde - ein
+  // einmal gedrucktes Blatt bleibt dadurch gleich, auch wenn spaeter eine
+  // Einstellung geaendert wird.
+  const d=m.data||{};
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  const mm=v=>esc(Math.round(Number(v)||0));
+  const paar=k=>{
+   const w=d[k]||{};
+   return d.getrennt?(mm(w.l)+" / "+mm(w.r)):mm(w.l);
+  };
+  const seitenTxt=d.getrennt?" (links / rechts)":"";
+  const teile=Array.isArray(d.zuschnitte)?d.zuschnitte:[];
+  const bl=d.bleilappen||{};
+  const deckName=((typeof EINF_DECKUNGEN==="object"&&EINF_DECKUNGEN[d.deckung])||{}).name||"–";
+  const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
+  // Die Skizze wird aus dem GESPEICHERTEN Datensatz gezeichnet. Fehlen die
+  // dafuer noetigen Masse, liefert kamaSkizze() einen Hinweis statt einer
+  // Zeichnung - der gehoert nicht ins PDF, deshalb die Pruefung auf <svg.
+  const kamSkizze=st=>{
+   const h=(typeof kamaSkizze==="function")?kamaSkizze(Object.assign({},d,{skizzeSeite:st})):"";
+   return /^<svg/.test(String(h).trim())?`<div class="eb-diagram">${h}</div>`:"";
+  };
+  const kamSchnitt=kamSkizze("l")+(d.getrennt?kamSkizze("r"):"");
+  bodyHtml=`${kopfHtml}
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Deckungsmaterial",esc(deckName))}${cell("Material",matName)}</tr>
+<tr>${cell("A · vorne bis Vorderkant Kamin",mm(d.a)+" mm")}${cell("D · Hinterkant Kamin bis unter Deckmaterial",mm(d.d)+" mm")}</tr>
+<tr>${cell("E · 90°-Aufbug hinten",mm(d.e)+" mm")}${cell("Keil hinterkant Kamin",mm(d.keil)+" mm")}</tr>
+<tr>${cell("Winkel vorne",esc(Number(d.winkelVorne)||0)+"°")}${cell("Winkel hinten",esc(Number(d.winkelHinten)||0)+"°")}</tr>
+<tr>${cell("B · Seitenteil vorne"+seitenTxt,paar("b")+" mm")}${cell("C · Seitenteil hinten"+seitenTxt,paar("c")+" mm")}</tr>
+<tr>${cell("F · bis Deckmaterial"+seitenTxt,paar("f")+" mm")}${cell("G · unter Deckmaterial"+seitenTxt,paar("g")+" mm")}</tr>
+<tr>${cell("Seitliche Höhe"+seitenTxt,paar("hoehe")+" mm")}${cell("Überlappung Knick",mm(d.ueberlappung)+" mm")}</tr>
+<tr>${cell("Breite vorne / hinten",mm(d.breiteVorne)+" / "+mm(d.breiteHinten)+" mm")}${cell("Umschlag vorne / hinten / Seite",mm(d.umschlagVorne)+" / "+mm(d.umschlagHinten)+" / "+mm(d.umschlagSeite)+" mm")}</tr>
+<tr>${cell("Kaminlänge längs Dach",(d.kaminLaenge?(d.getrennt?mm(d.kaminLaenge.l)+" / "+mm(d.kaminLaenge.r):mm(d.kaminLaenge.l)):"–")+" mm")}${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}</tr>
+</table>
+${kamSchnitt?`<div class="eb-section-head">Schnitt</div>${kamSchnitt}`:""}
+${teile.length?`<div class="eb-section-head">Stückliste</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Teil</th><th>Zuschnitt L × B (mm)</th><th>Abwicklung aus</th></tr></thead>
+<tbody>${teile.map(t=>`<tr><td>${esc(t.nr)}</td><td>${esc(t.name)}${t.seite?" "+esc(t.seite):""}</td>
+<td>${esc(pdfLxB(t.laenge,t.breite))}</td>
+<td>${esc((t.teile||[]).filter(x=>Number(x.wert)>0).map(x=>x.name+" "+Math.round(Number(x.wert))).join(" + ")||"–")}</td></tr>`).join("")}</tbody>
+</table>`:""}
+${(Array.isArray(bl.zeilen)&&bl.zeilen.length&&bl.gesamt!==null&&bl.gesamt!==undefined)?`<div class="eb-section-head">Bleilappen</div>
+<table class="eb-cutlist">
+<thead><tr><th>Seitenteil</th><th>Länge (mm)</th><th>Bleilappen</th></tr></thead>
+<tbody>${bl.zeilen.map(x=>`<tr><td>${esc(x.name)}</td><td>${mm(x.laenge)}</td><td>${x.anzahl===null?"–":esc(x.anzahl)}</td></tr>`).join("")}
+<tr><td colspan="2">Gesamt</td><td>${esc(bl.gesamt)}</td></tr></tbody>
+</table>
+<div class="note" style="font-size:8pt;color:#68737d">Je Seitenteil aufgerundet aus Länge ÷ Lattenabstand (${mm(bl.lattenabstand||d.lattenabstand)} mm).</div>`:""}
+${zuDruckHtml(d.rollen,0,"Teil")}
+${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`:""}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="kehle"){
