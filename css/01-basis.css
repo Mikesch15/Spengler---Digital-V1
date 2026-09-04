@@ -431,3 +431,21 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
 .ra-register-knopf.aktiv .ra-register-punkt{box-shadow:0 0 0 2px #fff}
 .ra-blaettern{justify-content:space-between;margin-top:14px}
 .ra-blaettern button{flex:1 1 46%;min-height:46px;font-weight:700}
+
+/* ---- Freies Profil: Aufnahme (v2.77) ---------------------------------- */
+/* Die globale Grundregel table{min-width:1000px} ist fuer die breiten
+   Stuecklisten gedacht. Diese Tabellen sollen in die Seitenbreite passen -
+   sonst muesste man auf dem Handy jede einzeln seitwaerts schieben. */
+.eb-table.fpa-tab{min-width:0;table-layout:auto}
+.eb-table.fpa-tab td,.eb-table.fpa-tab th{word-break:break-word}
+/* Die Zeichnung ist beim Erfassen die eigentliche Rückmeldung. Auf einem
+   Handy stünde sie sonst unter mehreren langen Schenkel-Karten - man sähe
+   sie beim Tippen nie. Deshalb klebt sie oben am Bildschirmrand. */
+.ra-zeichnung{border:1px solid var(--line);border-radius:12px;background:var(--card-bg);
+ padding:6px 8px 8px;margin:8px 0}
+.ra-zeichnung.ra-klebt{position:sticky;top:0;z-index:5;box-shadow:0 6px 14px -12px #0d141a55}
+.ra-zeichnung[hidden]{display:none}
+.ra-zeichnung-kopf{display:flex;justify-content:space-between;gap:8px;font-size:10px;
+ font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+/* Ein gedrückter Zustand für „180° Umschlag“ - der Knopf ist ein Schalter. */
+button.ra-aktiv{border-color:var(--blue);color:var(--blue-dark);background:var(--blue-light)}

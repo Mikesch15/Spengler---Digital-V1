@@ -93,17 +93,25 @@ function generateProfilDiagramSvg(schenkel){
   return Math.abs(winkelNorm-180)<0.5;
  }
  // Für jeden Schenkel die tatsächlich gezeichneten Endpunkte bestimmen (versetzt bei Umschlag)
+ // Der Versatz eines Umschlags wird auf alle FOLGENDEN Schenkel mitgenommen.
+ // Ohne das setzte der Schenkel nach einem Umschlag am unversetzten Punkt an -
+ // zwischen Umschlag und Folgeschenkel klaffte eine Luecke von GAP (am
+ // 04.09.2026 gemeldet). Es entspricht auch der Wirklichkeit: nach einem
+ // Umschlag liegt das Blech um seine eigene Dicke versetzt weiter.
+ const versatz=[[0,0]];
  const drawEnds=schenkel.map((s,i)=>{
+  const [ox,oy]=versatz[i];
   const [x1,y1]=svgPtsRaw[i],[x2,y2]=svgPtsRaw[i+1];
-  if(!istUmschlag(i))return[[x1,y1],[x2,y2]];
+  if(!istUmschlag(i)){versatz.push([ox,oy]);return[[x1+ox,y1+oy],[x2+ox,y2+oy]]}
   const radDir=dirs[i+1]*Math.PI/180;
   const nx=-Math.sin(radDir),ny=Math.cos(radDir);
-  return[[x1+nx*GAP,y1+ny*GAP],[x2+nx*GAP,y2+ny*GAP]];
+  versatz.push([ox+nx*GAP,oy+ny*GAP]);
+  return[[x1+ox+nx*GAP,y1+oy+ny*GAP],[x2+ox+nx*GAP,y2+oy+ny*GAP]];
  });
  // Zusammenhängende Abschnitte (ohne Umschlag-Schenkel) als je eine Polyline mit runden Ecken;
  // Umschlag-Schenkel werden als eigene kurze Linie gezeichnet (dadurch entsteht der Abstand).
  let lines="";
- let aktuellerPfad=[svgPtsRaw[0]];
+ let aktuellerPfad=[drawEnds.length?drawEnds[0][0]:svgPtsRaw[0]];
  for(let i=0;i<schenkel.length;i++){
   if(istUmschlag(i)){
    if(aktuellerPfad.length>1){
@@ -112,16 +120,16 @@ function generateProfilDiagramSvg(schenkel){
    const [[ux1,uy1],[ux2,uy2]]=drawEnds[i];
    // Die Kehre des Umschlags als Halbkreis zeichnen: vom Ende des vorherigen
    // Schenkels um die Spitze herum auf die versetzte Rücklaufl inie.
-   const [sx,sy]=svgPtsRaw[i];
+   const [sx,sy]=[svgPtsRaw[i][0]+versatz[i][0],svgPtsRaw[i][1]+versatz[i][1]];
    const radVor=dirs[i]*Math.PI/180;
    const dvx=Math.cos(radVor),dvy=Math.sin(radVor);   // Laufrichtung davor
    const nx2=(ux1-sx)/GAP,ny2=(uy1-sy)/GAP;          // Versatzrichtung, Länge 1
    const kreuzU=nx2*dvy-ny2*dvx;                      // Kehre nach aussen wölben
    const sweepU=kreuzU>0?0:1;
    lines+=`<path d="M ${sx.toFixed(1)} ${sy.toFixed(1)} A ${(GAP/2).toFixed(1)} ${(GAP/2).toFixed(1)} 0 0 ${sweepU} ${ux1.toFixed(1)} ${uy1.toFixed(1)} L ${ux2.toFixed(1)} ${uy2.toFixed(1)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
-   aktuellerPfad=[svgPtsRaw[i+1]];
+   aktuellerPfad=[drawEnds[i][1]];
   }else{
-   aktuellerPfad.push(svgPtsRaw[i+1]);
+   aktuellerPfad.push(drawEnds[i][1]);
   }
  }
  if(aktuellerPfad.length>1){

@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.76</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.77</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -970,17 +970,14 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 </div>
 
 <div id="measTypeFreiesProfil" hidden>
-<div class="info">Zuerst das Blechprofil Schenkel für Schenkel festlegen (Länge + Winkel zum vorherigen Schenkel; 180° = Umschlag). Danach unten die Segmente mit den tatsächlichen Massen erfassen.</div>
-<h2>Profil (Schenkel)</h2>
-<div class="scroll">
-<table class="eb-table">
-<colgroup><col style="width:10%"><col style="width:24%"><col style="width:52%"><col style="width:14%"></colgroup>
-<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th><th></th></tr></thead>
-<tbody id="fp_schenkelBody"></tbody>
-</table>
-</div>
+<!-- Die Erfassung laeuft ueber #freiesProfilAufnahme (js/31). Der
+     Erkennungs-Block steht als eigenes Element daneben, weil js/14 seine
+     Klick-Handler beim Laden daran haengt - er wird in Register 4
+     eingehaengt, nicht neu geschrieben. -->
+<div id="freiesProfilAufnahme"></div>
+
+<div id="fpaSkizzeBox" hidden>
 <div class="bar">
-<button type="button" class="gray" id="fp_addSchenkel">＋ Schenkel hinzufügen</button>
 <button type="button" class="gray" id="fp_sketchRecognize">✏️ Profil skizzieren &amp; erkennen</button>
 </div>
 <div class="small" id="fp_sketchStatus" style="margin:2px 0 8px"></div>
@@ -1006,18 +1003,22 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <button type="button" class="gray" id="fp_sketchVerwerfen">✕ Verwerfen</button>
 </div>
 </div>
-<div id="fp_profilDiagram" class="eb-diagram-box"></div>
-
-<div class="grid" style="margin-top:10px">
-<div><label>Konisch (Mass links/rechts pro Schenkel)</label><select id="fp_konisch"><option value="nein">Nein</option><option value="ja">Ja</option></select></div>
-<div><label>Ansichtspfeil</label><select id="fp_ansicht"><option value="keiner">kein Pfeil</option><option value="links" selected>von links</option><option value="oben">von oben</option><option value="rechts">von rechts</option><option value="unten">von unten</option></select></div>
-<div><label>Material</label><select id="fp_material" class="meas-material-select"></select></div>
 </div>
 
-<h2 style="margin-top:14px">Segmente</h2>
+<!-- Alte Formularelemente: unsichtbar, aber im Dokument. js/14 haengt beim
+     Laden Handler daran und schreibt weiterhin hinein. Sie sind nicht mehr
+     bedienbar: die Erfassung laeuft ueber #freiesProfilAufnahme. -->
+<div id="fpStummel" hidden aria-hidden="true">
+<table><tbody id="fp_schenkelBody"></tbody></table>
+<button type="button" id="fp_addSchenkel">＋ Schenkel</button>
+<div id="fp_profilDiagram"></div>
+<select id="fp_konisch"><option value="nein">Nein</option><option value="ja">Ja</option></select>
+<select id="fp_ansicht"><option value="keiner">kein Pfeil</option><option value="links" selected>von links</option><option value="oben">von oben</option><option value="rechts">von rechts</option><option value="unten">von unten</option></select>
+<select id="fp_material" class="meas-material-select"></select>
 <div id="fp_segmenteList"></div>
-<div class="bar"><button type="button" class="gray" id="fp_addSegment">＋ Segment hinzufügen</button></div>
-<div class="small" id="fp_summary"></div>
+<button type="button" id="fp_addSegment">＋ Segment</button>
+<div id="fp_summary"></div>
+</div>
 </div>
 
 <!-- Fotos und Skizzen: seit v2.70 fuer JEDE Massaufnahme-Art, nicht mehr
@@ -1560,6 +1561,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/28-rinne-aufnahme.js"></script>
 <script src="js/29-einlaufblech-aufnahme.js"></script>
 <script src="js/30-einlaufblech-konisch-aufnahme.js"></script>
+<script src="js/31-freies-profil-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

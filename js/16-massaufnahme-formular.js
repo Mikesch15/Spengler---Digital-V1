@@ -15,7 +15,8 @@ function showMeasTypeSection(type){
  if(type==="rinne_halbrund"){renderRinneResult();if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();}
  if(type==="einlaufblech_konisch"&&typeof renderEinlaufblechKonischAufnahme==="function")renderEinlaufblechKonischAufnahme();
  if(type==="einlaufblech_gerade")refreshEbRinneList();
- if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
+ if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();
+  if(typeof renderFreiesProfilAufnahme==="function")renderFreiesProfilAufnahme();}
  if(type==="mauerabdeckung")renderMadResult();
  if(type==="lukarne")renderLukResult();
  if(type==="anschlussblech")renderAnbResult();
@@ -46,7 +47,7 @@ $("openEinlaufblechSettings").onclick=()=>{
 // erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
 // Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
 // sichtbar.
-const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch"];
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil"];
 let measMedienAufgeklappt=false;
 // Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
 // fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
@@ -128,7 +129,10 @@ function buildMeasurementFromForm(){
  }
  if(type==="freies_profil"){
   const konisch=$("fp_konisch").value==="ja";
-  return {...base,...measMedienAusFormular(),data:{schenkel:fpSchenkel,konisch,segmente:fpSegmente,ansicht:$("fp_ansicht").value,material:$("fp_material").value}};
+  // Dieselben fuenf Felder wie bisher, dazu die abgeleiteten Werte (Flaeche,
+  // Ausmass, Zuschnitt). Eine aeltere Aufnahme oeffnet unveraendert.
+  const zusatz=(typeof fpaZusatzDaten==="function")?fpaZusatzDaten():{};
+  return {...base,...measMedienAusFormular(),data:{schenkel:fpSchenkel,konisch,segmente:fpSegmente,ansicht:$("fp_ansicht").value,material:$("fp_material").value,...zusatz}};
  }
  if(type==="mauerabdeckung"){
   const material=$("mad_material").value;
@@ -1019,6 +1023,38 @@ ${segmente.map((seg,i)=>`<div style="margin-top:3mm">
 }).join("")}</tbody>
 </table>
 </div>`).join("")}
+${(()=>{
+ // Ausmass, Flaeche und Zuschnitt nur, wenn sie im Datensatz stehen. Aeltere
+ // Aufnahmen (vor v2.77) drucken unveraendert ohne diese Abschnitte, und es
+ // wird NICHT neu gerechnet - so bleibt ein einmal gedrucktes Blatt gleich.
+ const zeilen=Array.isArray(d.ausmass)?d.ausmass:[];
+ const zu=d.zuschnitt||null;
+ const flaeche=Number(d.flaeche_m2);
+ let html="";
+ if(zeilen.length){
+  html+=`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${zeilen.map(x=>`<tr><td>${esc(x.pos)}</td><td>${esc(x.bezeichnung)}</td><td>${esc(x.menge)}</td><td>${esc(x.einheit)}</td></tr>`).join("")}</tbody>
+</table>`;
+ }
+ if(Number.isFinite(flaeche)&&flaeche>0){
+  html+=`<table class="eb-info-table"><tr>${cell("Blechfl\u00e4che",esc(flaeche.toFixed(2).replace(".",","))+" m\u00b2")}<td></td></tr></table>`;
+ }
+ if(zu&&zu.bestes){
+  const b=zu.bestes;
+  html+=`<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
+<table class="eb-info-table">
+<tr>${cell("Rollenbreite",esc(b.breite)+" mm")}${cell("Tafeln",esc(b.tafeln))}</tr>
+<tr>${cell("Blech gesamt",esc(Number(b.flaeche||0).toFixed(2).replace(".",","))+" m\u00b2")}${cell("Verschnitt",esc(Number(b.verschnitt||0).toFixed(2).replace(".",","))+" m\u00b2")}</tr>
+</table>
+${(zu.gruppen||[]).map(g=>`<table class="eb-cutlist">
+<thead><tr><th>Streifen \u00e0 ${esc(g.breite)} mm</th><th>Segmente</th><th>Rest (mm)</th></tr></thead>
+<tbody>${(g.streifen||[]).map((st,i)=>`<tr><td>${i+1}</td><td>${esc((st.stuecke||[]).map(x=>"Segment "+x.nr+" \u00b7 "+x.laenge+" mm").join(" + "))}</td><td>${esc(st.rest)}</td></tr>`).join("")}</tbody>
+</table>`).join("")}`;
+ }
+ return html;
+})()}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="rinne"){

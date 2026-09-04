@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.76, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.77, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.76**
+- sichtbare App-Version: **2.77**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -12736,3 +12736,205 @@ keine Abwicklung, kein Speichermodell und keine PDF-Kopflogik berührt.
 - Der Prototyp unter `prototyp-einlaufblech-konisch/` bleibt auf seinem
   Branch bestehen – er ist jetzt die Vorlage, nicht mehr die einzige
   Stelle.
+
+
+## 85. FREIES PROFIL ALS REGISTER-AUFNAHME IN DIE APP — VERSION 2.77
+
+Die Massaufnahme **Freies Profil** wird nicht mehr als ein langes Formular
+erfasst, sondern über **sieben Register** – nach demselben Muster wie Rinne
+Halbrund (v2.71), Einlaufblech gerade (v2.74) und Einlaufblech konisch
+(v2.76). Grundlage ist der Prototyp unter `prototyp-freies-profil/`
+(Branch `feature/prototype-freies-profil`), der unverändert bestehen bleibt.
+
+    1 Grunddaten · 2 Profil · 3 Zeichnung · 4 Skizze → Profil ·
+    5 Segmente & Ausmass · 6 Zuschnitt · 7 Kontrolle
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung.**
+
+### 85.1 Ein echter Zeichnungsfehler in js/14 behoben
+
+Am 04.09.2026 mit Bildschirmfoto gemeldet: Profil 12 mm / 50 mm (180°
+Umschlag) / 60 mm (−90°). Der dritte Schenkel richtete sich am **ersten**
+aus, zwischen Schenkel 2 und 3 klaffte eine Lücke.
+
+Ursache, an den gezeichneten Pfaden gemessen: ein Umschlag wird als
+parallel **versetzte** Linie gezeichnet, der Schenkel danach setzte aber
+wieder am **unversetzten** Punkt an.
+
+| | Pfad 1 endet | Pfad 2 beginnt |
+|---|---|---|
+| vorher | (30/21) | (30/30) → Lücke 9 |
+| nachher | (30/21) | (30/21) → keine Lücke |
+
+Korrigiert **in `js/14-freies-profil.js` selbst** (vier Stellen in
+`generateProfilDiagramSvg()`): der Versatz eines Umschlags wird auf alle
+folgenden Schenkel mitgenommen – so liegt das Blech nach einem Umschlag
+auch wirklich. Der Endpunkt des Beispielprofils liegt damit bei (30/261)
+statt (30/270).
+
+Das ist die **einzige** inhaltliche Änderung an js/14. Sie betrifft
+ausschliesslich die Darstellung; an Massen, Speichermodell und
+Fachrechnung ändert sich nichts. Der Fall steht dauerhaft im Prüfstand
+(Endpunkt und Lückenmass werden gemessen, nicht nur „es sieht gut aus").
+
+### 85.2 Brücke statt Nachbau
+
+`js/14-freies-profil.js` bleibt die Fachquelle: `generateProfilDiagramSvg()`,
+`abgerundeterPfad()`, `ansichtsPfeilSvg()`, `fpPruefeErkannteSchenkel()`,
+`renderFpSegmenteList()` (füllt leere Segment-Masse aus dem Profil) und die
+**ganze Skizzen-Erkennung** (Knöpfe, Vorschau, Übernehmen/Verwerfen).
+
+`fpaBruecke()` (js/31) setzt `fpSchenkel`, `fpSegmente` und die alten
+Formularfelder aus dem erfassten Stand. `fpSchenkel` **ist** danach
+`fpA.schenkel` – eine Wahrheit, kein Abgleich. Die alten, unsichtbaren
+Formularelemente stehen weiterhin im HTML als `#fpStummel`, damit js/14
+unverändert laden kann.
+
+**Der Erkennungs-Block liegt NICHT im Stummel**, sondern als eigenes
+Element `#fpaSkizzeBox` zwischen Kopf und Fuss: js/14 hängt seine Handler
+beim Laden an `fp_sketchRecognize` / `fp_sketchUebernehmen` /
+`fp_sketchVerwerfen`, und ein per `innerHTML` neu geschriebener Container
+würde sie samt Element vernichten (dieselbe Falle wie bei der
+Rinnen-Übernahme in v2.74/v2.76).
+
+Und: `fp_sketchUebernehmen` **ersetzt** `fpSchenkel` durch ein neues Array.
+Der Klick-Handler in js/31 holt es dort ab, wo es passiert – sonst ginge
+die erkannte Form beim nächsten Zeichnen lautlos verloren (genau der Fehler,
+der in v2.74 bei der Rinnen-Übernahme steckte).
+
+### 85.3 Zuschnitt aus Rollenblech (Register 6)
+
+Gleiches Vorgehen wie beim Einlaufblech: von der Rolle wird eine **Tafel**
+abgeschnitten und quer in Streifen der Abwicklungsbreite geteilt; ein
+Streifen kann mehrere Stücke hintereinander aufnehmen. Gepackt wird mit
+`ebaPackeInStreifen()` aus **js/29** – es gibt bewusst nur EINE
+Packrechnung in der App.
+
+**Der eine Unterschied**: dort hat die ganze Aufnahme eine Abwicklung, hier
+hat **jedes Segment** seine eigene. Deshalb bilden Segmente mit gleicher
+Streifenbreite eine Gruppe, und jede Gruppe wird für sich gepackt.
+
+Konisch: die Streifenbreite ist die **grössere** der beiden Abwicklungen –
+der Zuschnitt muss das breitere Ende enthalten. Die Fläche bleibt die
+Trapezfläche; die Differenz ist echter Verschnitt.
+
+Ehrlich angezeigt statt stillschweigend gerechnet: Segmente ohne Länge oder
+ohne Masse werden mit ihrer Nummer gemeldet; ist keine Rolle breit genug,
+steht das als Warnung da; reicht das Suchbudget nicht, heisst das Ergebnis
+„beste gefundene Verteilung".
+
+Die Rollenbreiten kommen aus `app_settings.blech_rollenbreiten`
+(firmenweit, seit v2.74) – **keine neue Einstellung**.
+
+### 85.4 Weitere Neuerungen
+
+- **Blechfläche, Ausmass und Materialübersicht** ohne zweite Eingabe, ohne
+  Artikelnummern und ohne Preise.
+- **Kontrolle** mit Punkt am Register (rot bei Fehler), nur Prüfungen, die
+  sich aus dem bestehenden Modul ableiten lassen (≥2 Schenkel wie
+  `fpPruefeErkannteSchenkel`, ≤`FP_MAX_SCHENKEL`, gültige Zahlen, Winkel
+  ±180°, Geometrie zeichenbar).
+- **Verwaiste Masse werden gekürzt**: werden Schenkel weniger (etwa weil
+  eine erkannte Skizze das Profil ersetzt), blieben sonst Masse zu
+  Schenkeln stehen, die es nicht mehr gibt – unsichtbar, aber in der
+  Abwicklung mitgezählt. Im Prüfstand belegt: 210 mm → 170 mm.
+- **Schenkel als grosse Karten**, Zeichnung klebt beim Erfassen oben, der
+  Knopf „＋ Schenkel hinzufügen" steht **unter** den Karten.
+- **Fotos und Skizzen am Ende** (`MEAS_MEDIEN_AM_ENDE` um `freies_profil`
+  erweitert, v2.75-Mechanik unverändert).
+
+### 85.5 Speichern: Superset
+
+js/16 schreibt **unverändert** dieselben fünf Felder wie bisher
+(`schenkel`, `konisch`, `segmente`, `ansicht`, `material`) und ergänzt sie
+nur um `flaeche_m2`, `ausmass` und `zuschnitt`. Eine vor v2.77 gespeicherte
+Aufnahme öffnet unverändert und druckt ohne die neuen Abschnitte – es wird
+**nicht** nachgerechnet, damit ein einmal gedrucktes Blatt gleich bleibt.
+
+### 85.6 Getestet
+
+- **`pruefstaende/pruefstand-freies-profil-app-v2-77.js` – 114/114**,
+  echtes Chromium gegen die echte `index.html`: Modul und Brücke, sieben
+  Register, Grunddaten, Profil (Tippen Zeichen für Zeichen mit
+  Fokusprüfung, Umschlag, Umkehren, Verschieben, Löschen, 24er-Grenze,
+  Knopf unter den Karten, klebende Zeichnung gemessen), der behobene
+  Zeichnungsfehler (Lücke **und** Endpunkt), Erkennungs-Block nur in
+  Register 4 und ausserhalb des neu geschriebenen Kopfs, Übernahme aus
+  js/14 landet im Modell und überlebt das Neuzeichnen, Segmente und
+  Ausmass, verwaiste Masse, Zuschnitt mit von Hand gerechneten
+  Erwartungen, Kontrolle, Speicher-Payload, Wiederöffnen, ein Datensatz
+  im Format bis v2.76, Fotos erst nach „Fertig", Druck (neu und alt),
+  vier Bildschirmbreiten × sieben Register, keine JS-Fehler.
+- **12 Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um: Brücke setzt `fpSchenkel` nicht (113) · Skizzen-Übernahme
+  kommt nicht ins Modell (113) · verwaiste Masse nicht gekürzt (113) ·
+  konisch von der schmalen Seite (113) · Tafellänge = Summe (108) ·
+  eigene Packrechnung (113) · Segment ohne Länge still mitrechnen (112) ·
+  Knopf wieder über die Karten (106) · Erkennungs-Block in den
+  innerHTML-Kopf (108) · Umschlag-Korrektur zurückgenommen (112) ·
+  Zusatzfelder nicht gespeichert (106) · Fotos schon während der
+  Register sichtbar (113).
+  Eine davon liess den Prüfstand zuerst **abbrechen** statt fehlschlagen
+  (der Erkennungs-Block verschwand, ein Klick lief ins Leere) – ein
+  abgebrochener Lauf sieht aus wie „keine Fehler". Der Prüfstand ist
+  jetzt an beiden Stellen abgesichert.
+- **Regression grün**: einlaufblech-app 98/98, konisch-app 113/113,
+  rinne-app 102/102, medien-am-ende 60/60, dila-sichtbar 57/57,
+  verschnitt-app 1578/1578, kehle52 698/698, required70 359/359,
+  pfade55 38/38, module67 43/43, einst68 43/43, hidden51 7/7,
+  abstand69 2/2.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` gerendert, gegen v2.76 verglichen –
+  **Bild und DOM byteidentisch** (DOM `43b2ed7142cfd6fa`, 5297 Bytes;
+  Bild `5743c9c239f38898`, 45830 Bytes). `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 31 `js/*.js` und `sw.js`: fehlerfrei;
+  `<div>`/`</div>` in `index.html` ausgeglichen (702/702); keine doppelten
+  Element-IDs; jede js-Datei in der Service-Worker-Liste.
+
+**Zwei überholte Erwartungen in bestehenden Prüfständen angepasst**, keine
+davon ein Codefehler: `medien-am-ende` führte `freies_profil` noch unter
+den Arten, die den Fotobereich sofort zeigen; `required70` suchte das
+Pflichtfeld der konischen Dachneigung noch unter der alten ID
+`ebk_dachneigung`. Die zweite hat eine echte **Lücke seit v2.76**
+aufgedeckt: das Feld heisst dort `ebka_dachneigung` und wurde vom
+Prüfstand seither gar nicht mehr geprüft. Nachgemessen: der rote Stern,
+`required` und `aria-required` sitzen korrekt – der Prüfstand deckt es
+jetzt wieder ab (359/359 statt 351/359).
+
+### 85.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/31-freies-profil-aufnahme.js` | **neu** – sieben Register, Brücke, Ausmass, Zuschnitt, Kontrolle |
+| `js/14-freies-profil.js` | **vier Stellen** in `generateProfilDiagramSvg()` – der Umschlag-Versatz (85.1). Sonst unverändert. |
+| `index.html` | Registercontainer, `#fpaSkizzeBox`, `#fpStummel`, Script-Tag, Version 2.77 |
+| `js/16-massaufnahme-formular.js` | Modul zeichnen, Payload-Superset, Medien am Ende, Druck um Ausmass/Fläche/Zuschnitt erweitert |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `css/01-basis.css` | klebende Zeichnung, `.eb-table.fpa-tab{min-width:0}`, gedrückter 180°-Knopf |
+| `sw.js` | Cache-Version 2.77, neue Datei im SHELL |
+| `pruefstaende/pruefstand-freies-profil-app-v2-77.js` | **neu** |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/11`, `js/12`, `js/12b`, `js/13`,
+`js/15`, `js/17`, `js/19`–`js/30` – per `git diff` bestätigt.
+
+### 85.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Geprüft ist die Oberfläche in echtem Chromium
+  gegen die echte `index.html`.
+- **Die Skizzen-Erkennung wurde nicht gegen die echte Edge Function
+  getestet** – geprüft ist der Weg mit der Vorschau von js/14 und
+  gestellten Schenkeln.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei sehr vielen Segmenten heisst das Ergebnis „beste
+  gefundene Verteilung".
+- Fachlich im Praxistest zu bestätigen: wird bei mehreren Abwicklungen je
+  Breite eine eigene Tafel geschnitten, oder legt man schmale und breite
+  Streifen auf dieselbe Tafel? Der Prototyp und die App rechnen je Breite
+  getrennt – die vorsichtige Annahme, sie kann Material kosten.
+- Zählt der Betrieb einen Umschlag als eine Biegung oder als zwei? Gezählt
+  werden Schenkel mit einem Winkel ≠ 0°.

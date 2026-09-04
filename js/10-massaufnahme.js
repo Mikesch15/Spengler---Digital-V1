@@ -364,6 +364,7 @@ function newMeasurementWithType(type){
  $("fp_konisch").value="nein";
  $("fp_ansicht").value="links";
  $("fp_material").value="";
+ if(typeof fpaZuruecksetzen==="function")fpaZuruecksetzen();
  renderFpSchenkelTable();
  renderFpSegmenteList();
  madSegments=[];
@@ -473,6 +474,7 @@ function openMeasurement(m){
  $("fp_konisch").value=d.konisch?"ja":"nein";
  $("fp_ansicht").value=d.ansicht||"links";
  $("fp_material").value=findMeasurementMaterial(d.material)?.id??"";
+ if(m.type==="freies_profil"&&typeof fpaFuellen==="function")fpaFuellen(d);
  if(m.type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
  madSegments=(m.type==="mauerabdeckung"&&Array.isArray(d.segments))?d.segments.map(x=>({...x})):[];
  madSchieber=(m.type==="mauerabdeckung"&&Array.isArray(d.schieber))?d.schieber.map(x=>({...x})):[];
