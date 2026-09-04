@@ -36,6 +36,14 @@ const zuMm=v=>Math.round(zuZahl(v)).toLocaleString("de-CH");
 const zuMeter=v=>(zuZahl(v)/1000).toFixed(2).replace(".",",");
 const zuQm=v=>zuZahl(v).toFixed(2).replace(".",",");
 
+// Ein Zuschnittstueck wird ueberall gleich geschrieben: Laenge x Breite,
+// z. B. "2'070 mm × 250 mm". Die Breite ist die Streifenbreite bzw. die
+// Abwicklung - ohne bekannte Breite steht nur die Laenge, es wird keine
+// erfunden.
+function zuMasse(laenge,breite){
+ const b=zuZahl(breite);
+ return zuMm(laenge)+"\u00a0mm"+(b>0?" × "+zuMm(b)+"\u00a0mm":"");
+}
 function zuKennzahl(label,wert,klein){
  return `<div><label>${esc(label)}</label><div class="ra-wert${klein?" ra-wert-klein":""}">${wert}</div></div>`;
 }
@@ -74,7 +82,9 @@ function zuMeldungenHtml(p){
  let h="";
  const zuLang=p.zuLang||[];
  if(zuLang.length){
-  const namen=zuLang.map(x=>(x&&x.nr!==undefined)?p.einheit+" "+x.nr:zuMm(x)+" mm").join(", ");
+  const br=p.art==="stange"?p.breite:((p.streifenbreiten||[])[0]);
+  const namen=zuLang.map(x=>(x&&x.nr!==undefined)
+    ?p.einheit+" "+x.nr+" ("+zuMasse(x.laenge,br)+")":zuMasse(x,br)).join(", ");
   h+=`<div class="ra-fehler">Zu lang für eine ${p.art==="stange"?"Stange":"Tafel"}: ${esc(namen)}.
 Diese ${p.einheit==="Segment"?"Segmente sind":"Stücke sind"} im Plan <b>nicht</b> enthalten.</div>`;
  }
@@ -128,18 +138,18 @@ ${esc(b0.tafeln)} Tafel(n), ${esc(zuQm(b0.flaeche))} m² Blech,
 // Belegung: welches Stueck liegt in welchem Streifen bzw. in welcher Stange.
 // In jeder Art dieselben vier Spalten.
 function zuBelegungHtml(p){
- const zeilenAus=(liste,laenge)=>liste.map((s,i)=>`<tr><td>${i+1}</td>
-<td>${esc((s.stuecke||[]).map(x=>p.einheit+" "+x.nr+" · "+zuMm(x.laenge)+" mm").join(" + "))||"–"}</td>
+ const zeilenAus=(liste,laenge,breite)=>liste.map((s,i)=>`<tr><td>${i+1}</td>
+<td>${esc((s.stuecke||[]).map(x=>p.einheit+" "+x.nr+" · "+zuMasse(x.laenge,breite)).join(" + "))||"–"}</td>
 <td>${esc(zuMm(zuZahl(laenge!==undefined?laenge:s.laenge)-zuZahl(s.rest)))} mm</td>
 <td>${esc(zuMm(s.rest))} mm</td></tr>`).join("");
  const kopf=`<thead><tr><th>${p.art==="stange"?"Stange":"Streifen"}</th>
-<th>${p.einheit==="Segment"?"Segmente":"Stücke"} mit ihrer Länge</th><th>belegt</th><th>Rest</th></tr></thead>`;
+<th>${p.einheit==="Segment"?"Segmente":"Stücke"} · Zuschnitt (Länge × Breite)</th><th>belegt</th><th>Rest</th></tr></thead>`;
  if(p.art==="stange"){
   if(!(p.stangen||[]).length)return "";
   return `<h2 style="margin-top:14px">So liegen die ${p.einheit==="Segment"?"Segmente":"Stücke"} in den Stangen</h2>
 <div class="scroll"><table class="eb-table ra-tab">${kopf}
 <tbody>${(p.stangen||[]).map((s,i)=>`<tr><td>${i+1}</td>
-<td>${esc((s.stuecke||[]).map(x=>p.einheit+" "+x.nr+" · "+zuMm(x.laenge)+" mm").join(" + "))||"–"}</td>
+<td>${esc((s.stuecke||[]).map(x=>p.einheit+" "+x.nr+" · "+zuMasse(x.laenge,p.breite)).join(" + "))||"–"}</td>
 <td>${esc(zuMm(zuZahl(s.laenge)-zuZahl(s.rest)))} mm</td>
 <td>${esc(zuMm(s.rest))} mm</td></tr>`).join("")}</tbody></table></div>`;
  }
@@ -150,7 +160,7 @@ function zuBelegungHtml(p){
   +gruppen.map(g=>`${eine?"":`<div class="small zu-gruppe"><b>Streifenbreite ${esc(zuMm(g.breite))} mm</b>
 · Tafellänge ${esc(zuMm(g.tafelLaenge))} mm</div>`}
 <div class="scroll"><table class="eb-table ra-tab">${kopf}
-<tbody>${zeilenAus(g.streifen||[],g.tafelLaenge)||'<tr><td colspan="4" class="small">–</td></tr>'}</tbody>
+<tbody>${zeilenAus(g.streifen||[],g.tafelLaenge,g.breite)||'<tr><td colspan="4" class="small">–</td></tr>'}</tbody>
 </table></div>`).join("");
 }
 

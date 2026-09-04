@@ -418,6 +418,14 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
 .ra-wert-klein{font-size:12.5px}
 .zu-hinweis{color:var(--muted);margin-top:6px;line-height:1.5}
 .zu-gruppe{margin:10px 0 4px;color:var(--ink)}
+/* Zuschnittlaenge und -breite in einer Tabellenzelle. Nebeneinander wuerde
+   das Eingabefeld in der schmalen Spalte auf wenige Pixel zusammengedrueckt
+   (im Browser gemessen) - deshalb steht die Breite UNTER dem Feld. Gelesen
+   ergibt das weiterhin "2'170 mm × 330 mm". */
+.zu-lb{display:block}
+.zu-lb input{width:100%;min-width:0}
+.zu-lb-breite{display:block;white-space:nowrap;font-size:11px;color:var(--muted);
+ margin-top:2px;text-align:right}
 .eb-table.ra-tab{min-width:0;table-layout:auto}
 .eb-table.ra-tab td,.eb-table.ra-tab th{word-break:break-word}
 /* Register-Fuehrung durch die Rinnen-Massaufnahme (wie in der Testapp).

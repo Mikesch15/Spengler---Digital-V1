@@ -331,7 +331,7 @@ function ebaStueckeHtml(){
  const zeilen=(a.stuecke||[]).map((p,i)=>`<tr>
 <td>${i+1}</td>
 <td><input data-eba-stoss="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.stossStoss||0)}"></td>
-<td><input data-eba-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.laenge||0)}"></td>
+<td><div class="zu-lb"><input data-eba-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.laenge||0)}"><span class="zu-lb-breite">mm × ${esc(ebaMm(a.abwicklung))}&nbsp;mm</span></div></td>
 <td class="p-mitte"><input data-eba-gl="${i}" type="checkbox"${p.gehrungLinks?" checked":""}></td>
 <td class="p-mitte"><input data-eba-gr="${i}" type="checkbox"${p.gehrungRechts?" checked":""}></td>
 <td><div style="display:flex;gap:4px;align-items:center"><input data-eba-winkel="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.winkel||0)}" style="flex:1"><button type="button" class="gray ra-weg" data-eba-flip="${i}" title="Winkel umkehren">🔄</button></div></td>
@@ -351,7 +351,7 @@ ${ebaFeld("Aus den Stücken",`<div class="ra-wert" id="eba_wLaenge">${L>0?esc(eb
 <div class="small" style="margin-bottom:4px">Mass A gilt für alle Stücke. Das enge Mass (${esc(ebaMm(eng))} mm) wird bei Montage „von ${esc(a.montage)}“ auf der ${esc(seite)}en Seite jedes Stücks berechnet.</div>
 <div class="scroll">
 <table class="eb-table eba-tab">
-<thead><tr><th>Nr.</th><th>Länge Stoss/Stoss (mm)</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Winkel (°)</th><th>Eng ${esc(seite)} (mm)</th><th></th></tr></thead>
+<thead><tr><th>Nr.</th><th>Länge Stoss/Stoss (mm)</th><th>Zuschnitt (Länge × Breite)</th><th>Ger. L</th><th>Ger. R</th><th>Winkel (°)</th><th>Eng ${esc(seite)} (mm)</th><th></th></tr></thead>
 <tbody>${zeilen||'<tr><td colspan="8" class="small">Noch kein Stück. „Stücke aus Gesamtlänge berechnen“ oder „＋ Stück hinzufügen“.</td></tr>'}</tbody>
 </table>
 </div>

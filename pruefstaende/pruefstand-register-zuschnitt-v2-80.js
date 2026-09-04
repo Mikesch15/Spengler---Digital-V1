@@ -215,6 +215,44 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
   p(/Einstellungen . Massaufnahmen/.test(t),a.name+": die Fusszeile nennt die Quelle");
  }
 
+ // ---- E2 · Jedes Zuschnittstueck steht als Laenge x Breite --------------
+ console.log("\nE2 · Laenge × Breite in jeder Zuschnittliste");
+ // Wieder mit Daten fuellen (Abschnitt E hat sie stehen lassen).
+ const LXB=/\d[\d'’.]*\s*mm\s*×\s*\d[\d'’.]*\s*mm/;
+ for(const a of ARTEN){
+  await zeige(page,a.typ);
+  await reg(page,a,listen[a.typ].indexOf("Zuschnitt")+1);
+  const t=await txt(page,a);
+  p(/Zuschnitt \(Länge × Breite\)/i.test(t),
+    a.name+": die Belegung heisst \"Zuschnitt (Länge × Breite)\"",t.slice(0,80));
+  p(LXB.test(t),a.name+": jedes Stueck steht als Laenge × Breite",
+    (t.match(/[^\n]*×[^\n]*/)||[""])[0].slice(0,80));
+ }
+ // Und in der Stueckliste bzw. Stuecke-Liste der einzelnen Arten.
+ const listenNamen={rinne_halbrund:"Stückliste",mauerabdeckung:"Stückliste",
+   einlaufblech_gerade:"Stücke",einlaufblech_konisch:"Stücke",freies_profil:"Segmente"};
+ for(const a of ARTEN){
+  const name=listenNamen[a.typ];
+  const nr=listen[a.typ].indexOf(name)+1;
+  if(!nr){p(false,a.name+": Register \""+name+"\" gefunden");continue}
+  await zeige(page,a.typ);
+  await reg(page,a,nr);
+  // Bei Einlaufblech steht die Laenge in einem Eingabefeld - innerText
+  // enthaelt sie nicht. Deshalb den Feldwert einsetzen und dann pruefen.
+  const t=await page.evaluate(w=>{
+   const wurzel=$(w); if(!wurzel)return "";
+   const kopie=wurzel.cloneNode(true);
+   const echt=wurzel.querySelectorAll("input"), kop=kopie.querySelectorAll("input");
+   for(let i=0;i<kop.length;i++){
+    const sp=document.createElement("span"); sp.textContent=echt[i].value;
+    kop[i].replaceWith(sp);
+   }
+   return kopie.innerText;
+  },a.wurzel);
+  p(LXB.test(t),a.name+" · "+name+": Laenge × Breite steht auch dort",
+    (t.match(/[^\n]*×[^\n]*/)||[""])[0].slice(0,90));
+ }
+
  // ---- F · Rechnung unveraendert ------------------------------------------
  console.log("\nF · die Rechnung selbst hat sich nicht geaendert");
  const z=await page.evaluate(()=>{
@@ -270,9 +308,14 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
  });
  for(const breite of [320,390,768,1280]){
   await page.setViewportSize({width:breite,height:1400});
-  for(const a of [ARTEN[1],ARTEN[4]]){
+  // Nicht nur das Zuschnitt-Register: auch die Stueck-/Stuecklisten, in denen
+  // seit v2.81 die Breite mitsteht. Genau dort war das Eingabefeld zuerst auf
+  // wenige Pixel zusammengedrueckt.
+  const messen=[[ARTEN[1],"Zuschnitt"],[ARTEN[4],"Zuschnitt"],
+                [ARTEN[1],"Stücke"],[ARTEN[0],"Stückliste"],[ARTEN[4],"Stückliste"]];
+  for(const [a,regName] of messen){
    await zeige(page,a.typ);
-   await reg(page,a,listen[a.typ].indexOf("Zuschnitt")+1);
+   await reg(page,a,listen[a.typ].indexOf(regName)+1);
    const ueber=await page.evaluate(w=>{
     const wurzel=$(w); if(!wurzel)return -1;
     // Elemente in einem seitwaerts scrollenden Kasten (.scroll, Registerleiste)
@@ -292,7 +335,19 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
     });
     return n;
    },a.wurzel);
-   p(ueber===0,a.name+" bei "+breite+" px: nichts laeuft seitlich hinaus",ueber);
+   p(ueber===0,a.name+" · "+regName+" bei "+breite+" px: nichts laeuft seitlich hinaus",ueber);
+   // Ein Eingabefeld, das auf wenige Pixel zusammengedrueckt ist, ist
+   // unbedienbar - die Zahl darin waere nicht mehr lesbar.
+   const eng=await page.evaluate(w=>{
+    const wurzel=$(w); if(!wurzel)return -1;
+    let n=0;
+    wurzel.querySelectorAll("input[type=number]").forEach(e=>{
+     const r=e.getBoundingClientRect();
+     if(r.width>0&&r.width<70)n++;
+    });
+    return n;
+   },a.wurzel);
+   p(eng===0,a.name+" · "+regName+" bei "+breite+" px: kein zusammengedruecktes Eingabefeld",eng);
   }
  }
  await page.setViewportSize({width:412,height:1600});

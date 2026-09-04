@@ -449,16 +449,19 @@ eigenen Werte gesetzt.</div>`;
 function madaStuecklisteHtml(){
  const st=madaStueckliste();
  if(!st.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:14px">Noch kein Zuschnittstück – zuerst den Verlauf erfassen.</div>';
+ // Jedes Stueck mit Laenge x Breite - die Breite ist die Abwicklung des
+ // Profils, also das Mass, auf das der Streifen geschnitten wird.
+ const B=Math.round(madaZahl(madaProfilMasse().abwicklung));
  const zeilen=st.map(x=>`<tr${x.schieberIndex===null?' style="background:var(--card-bg,#f7fafc)"':""}>
 <td>${x.nr}</td><td>${esc(x.von)} → ${esc(x.bis)}</td>
 <td style="text-align:right">${madaMm(x.abstand)}</td>
-<td style="text-align:right"><b>${madaMm(x.zuschnitt)}</b></td>
+<td style="text-align:right"><b>${madaMm(x.zuschnitt)}&nbsp;mm</b> × ${madaMm(B)}&nbsp;mm</td>
 <td style="text-align:right">${madaMm(x.pos)}</td></tr>`).join("");
  return `<div class="info">Zuschnitt = Abstand + Zugabe je Ende. Zugabe je Boden
 ${madaMm(madBodenMass)} mm, je Schieberseite ${madaMm(madSchieberMass)} mm
 (Einstellungen → Massaufnahmen).</div>
 <div class="scroll"><table class="eb-table ra-tab">
-<thead><tr><th>Nr.</th><th>Von → Bis</th><th style="text-align:right">Abstand (mm)</th><th style="text-align:right">Zuschnitt (mm)</th><th style="text-align:right">Position ab Start</th></tr></thead>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th style="text-align:right">Abstand (mm)</th><th style="text-align:right">Zuschnitt (Länge × Breite)</th><th style="text-align:right">Position ab Start</th></tr></thead>
 <tbody>${zeilen}</tbody></table></div>
 <div class="grid" style="margin-top:10px">
 ${madaFeld("Stücke",`<div class="ra-wert">${st.length}</div>`)}

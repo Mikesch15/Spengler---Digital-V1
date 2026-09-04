@@ -13336,3 +13336,89 @@ jetzt mitkorrigiert.
   Ort-/Seitenbleche, Einfassung Rund, Kehle, Rinne-Zuschnittliste) haben keine
   Register und keinen Zuschnitt aus Rollenblech – sie sind von dieser
   Vereinheitlichung nicht berührt.
+
+## 88. ZUSCHNITTLISTEN MIT LÄNGE × BREITE — VERSION 2.81
+
+In allen fünf umgebauten Massaufnahme-Arten steht jedes Zuschnittstück jetzt
+als **Länge × Breite**, z. B. `2'170 mm × 250 mm` – auf dem Bildschirm und im
+Ausdruck. **Keine Schemaänderung, keine Migration, keine Rechnung verändert.**
+
+### 88.1 Woher die Breite kommt
+
+Nie geraten, immer das Mass, auf das das Blech tatsächlich geschnitten wird:
+
+| Art | Breite |
+|---|---|
+| Rinne Halbrund | die Rinnengrösse (`groesse`) – im alten Modul hiess das Feld `rinne_abwicklung` |
+| Einlaufblech gerade | die Abwicklung |
+| Einlaufblech konisch | die Abwicklung |
+| Mauerabdeckung | die Abwicklung aus `madProfilMasse()` |
+| Freies Profil | die Abwicklung **je Segment**; konisch die grössere der beiden Seiten, weil der Streifen das breitere Ende enthalten muss |
+
+Ist keine Breite bekannt, steht nur die Länge – es wird keine erfunden
+(`zuMasse()` in js/33, `pdfLxB()` in js/16).
+
+### 88.2 Wo es steht
+
+**Bildschirm**
+- Belegung im Zuschnitt-Register (js/33): Spaltenkopf „Zuschnitt (Länge ×
+  Breite)", jedes Stück als Paar. Auch die Meldung „zu lang für eine Tafel/
+  Stange" nennt jetzt das Mass, nicht nur die Nummer.
+- Rinne · Stückliste und Mauerabdeckung · Stückliste: Spalte „Zuschnitt
+  (Länge × Breite)".
+- Einlaufblech gerade · Stücke: die Länge bleibt ein Eingabefeld, die Breite
+  steht darunter („mm × 330 mm").
+- Einlaufblech konisch: im Kopf jeder Stück-Karte, dazu das Feldlabel
+  „Zuschnittlänge (mm) × 250 mm breit".
+- Freies Profil: im Kopf jeder Segment-Karte, bei konisch zusätzlich beide
+  Abwicklungen in Klammern.
+
+**Ausdruck** (js/16, aus dem **gespeicherten** Datensatz – ein einmal
+gedrucktes Blatt bleibt gleich): Einlaufblech gerade und konisch, Rinne
+(Stückliste **und** Segmenttabelle), Mauerabdeckung, Freies Profil. Die
+Spalten heissen dort „Zuschnitt L × B (mm)".
+
+### 88.3 Zwei Dinge, die erst das Bild gezeigt hat
+
+- Die Breite **neben** dem Eingabefeld drückte dieses in der schmalen Spalte
+  auf rund 30 px zusammen – die eingetippte Zahl war nicht mehr lesbar
+  (im Browser gemessen: `2` statt `2170`). Sie steht jetzt **unter** dem Feld.
+  Der Prüfstand misst seither die Feldbreite und schlägt unter 70 px fehl.
+- Ein Mass brach mitten im Wert um („6'085 mm ×" / „250 mm" war noch in
+  Ordnung, „585 mm × 250" / „mm" nicht). Zwischen Zahl und Einheit steht
+  jetzt ein geschütztes Leerzeichen. In js/33 muss das ein echtes Zeichen
+  sein (` `), weil `&nbsp;` dort durch `esc()` als Text ausgegeben würde.
+
+### 88.4 Getestet
+
+- `pruefstand-register-zuschnitt-v2-80` auf **172/172** erweitert: die
+  Belegung und die Stück-/Stücklisten jeder Art tragen das Paar (bei
+  Eingabefeldern wird der Feldwert eingesetzt, weil `innerText` ihn nicht
+  enthält), plus die Breitenmessung je Register.
+- Neuer `pruefstand-laenge-mal-breite-druck-v2-81` – **24/24**: für alle fünf
+  Arten wird ein Ausdruck erzeugt und geprüft, dass **die richtigen Paare**
+  darin stehen (2070 × 250, 12000 × 250, 8000 × 460, 3000 × 300 …) und kein
+  NaN/undefined.
+- **Fünf Gegenproben**, jede reproduziert einen echten Fehler: Breite im Druck
+  weglassen (11/24) · falsche Breite im Druck (21/24) · `zuMasse` ohne Breite
+  (135/140) · Rinne-Stückliste ohne Breite (139/140) · Breite wieder neben das
+  Feld (168/172).
+- Volle Regression grün, Regierapport-Ausdruck byteidentisch zu v2.80
+  (Bild `85706e5d7a1eb615`, DOM `3066be99c3200173`). `node --check` über alle
+  31 js-Dateien und alle Prüfstände fehlerfrei, `<div>` 686/686, keine
+  doppelten IDs.
+- Zwei Fehlschläge kamen aus **meinen Testdaten**, nicht aus dem Code: ein
+  Profil ohne Vor-/Nachname ergab „Bearbeiter: undefined undefined", und
+  `konisch:"nein"` als Zeichenkette ist im gespeicherten Datensatz ein
+  **Boolean** (js/16 legt `$("fp_konisch").value==="ja"` ab).
+
+### 88.5 Offene Punkte
+
+- Kein Live-Klicktest gegen Supabase möglich (Sandbox-Netzwerksperre) – **das
+  wird ausdrücklich nicht als getestet behauptet.**
+- Die Stück-Tabelle des Einlaufblechs hat acht Spalten und scrollt auf dem
+  Handy weiterhin seitwärts – das ist unverändert seit v2.74 und Absicht
+  (`.scroll`).
+- Die übrigen sechs Massaufnahme-Arten sind nicht berührt. Lukarne
+  („Zuschnitt B × L") und Einfassung Rund („Zuschnitt Länge/Breite") nennen
+  beide Masse ohnehin schon.

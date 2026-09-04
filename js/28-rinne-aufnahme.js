@@ -249,6 +249,7 @@ function raAusData(d){
 }
 
 // ---- Ableitungen (unverändert aus dem Prototyp) ----------------------------
+function raZuschnittBreite(a){return raZahl(a&&a.groesse)}
 function raGroesseText(a){const g=RA_GROESSEN.find(x=>x.wert===a.groesse);return g?g.text:"–"}
 function raMaterialText(a){const m=findMeasurementMaterial(a.material);return m?m.name:"–"}
 function raGesamtlaenge(a){return (a.segmente||[]).reduce((s,seg)=>s+raZahl(seg.laenge),0)}
@@ -753,6 +754,9 @@ sie kommen aus der Materialliste der Firma.</div>`;
 function raStuecklisteHtml(){
  const a=rinneA, d=raDilas(a);
  const st=berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass);
+ // Jedes Stueck wird mit Laenge x Breite genannt - die Breite ist die
+ // Rinnengroesse, also das Mass, auf das das Blech geschnitten wird.
+ const B=raZuschnittBreite(a);
  const zeilen=st.map(s=>{
   const edit=s.dilaIndex!==null&&s.dilaIndex!==undefined;
   return `<tr${edit?' class="ra-dila-zeile"':""}>`
@@ -760,13 +764,13 @@ function raStuecklisteHtml(){
    +`<td>${edit?`<input class="ra-dila-feld" type="number" inputmode="numeric" step="1" `
        +`data-ra-dila-abstand="${s.dilaIndex}" data-ra-dila-prev="${Math.round(s.prevPos)}" `
        +`value="${Math.round(s.abstand)}">`:esc(raMm(s.abstand))}</td>`
-   +`<td><b>${esc(raMm(s.zuschnitt))}</b></td>`
+   +`<td><b>${esc(raMm(s.zuschnitt))}&nbsp;mm</b> × ${esc(raMm(B))}&nbsp;mm</td>`
    +`<td>${edit?`<button type="button" class="red ra-weg" data-ra-dila-del="${s.dilaIndex}" title="Dehnungselement löschen">✕</button>`:""}</td></tr>`;
  }).join("");
  return `<div class="info">Rechnet unverändert die Funktion der laufenden App. Die Zuschnittmasse je Element stehen in
 <b>Einstellungen → Massaufnahmen → Rinne</b>.</div>
 <div class="scroll"><table class="eb-table ra-tab">
-<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th></th></tr></thead>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (Länge × Breite)</th><th></th></tr></thead>
 <tbody>${zeilen||'<tr><td colspan="5">Noch nichts zu berechnen.</td></tr>'}</tbody></table></div>
 <div class="small" style="color:var(--muted);margin-top:6px">${d.automatisch
  ? "Die Dehnungselemente sind gerechnet. Der Abstand jeder Dila-Zeile lässt sich von Hand überschreiben."
@@ -808,6 +812,7 @@ function raZuschnittPlan(){
   zusatz:"Gilt für <b>"+esc(raMaterialText(a))+" "+esc(raGroesseText(a))+"</b>.",
   quelle:ZU_QUELLE_STANGE,
   leer:"Noch nichts zuzuschneiden.",
+  breite:raZuschnittBreite(a),
   normen, stangen, zuLang,
   gesamt:r.gesamt, summeStuecke:r.summeStuecke, verschnitt:r.verschnitt,
   optimal:r.optimal!==false};

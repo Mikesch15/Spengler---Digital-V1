@@ -347,7 +347,7 @@ function fpaSegmenteHtml(){
   }).join("");
   return `<div class="ra-zeile">
 <div class="ra-zeile-kopf"><b>Segment ${i+1}</b>
-<span class="small">Abwicklung ${konisch?esc(fpaMm(ab.links))+" / "+esc(fpaMm(ab.rechts)):esc(fpaMm(ab.links))} mm · Fläche ${esc(fpaFlaecheSegmentM2(seg).toFixed(2).replace(".",","))} m²</span>
+<span class="small">Zuschnitt ${esc(fpaMm(seg.laenge||0))}&nbsp;mm × ${esc(fpaMm(Math.max(ab.links,ab.rechts)))}&nbsp;mm${konisch?" (konisch "+esc(fpaMm(ab.links))+" / "+esc(fpaMm(ab.rechts))+" mm)":""} · Fläche ${esc(fpaFlaecheSegmentM2(seg).toFixed(2).replace(".",","))} m²</span>
 <button type="button" class="red ra-weg" data-fpa-seg-weg="${i}" title="Segment löschen">✕</button></div>
 <div class="grid">
 ${fpaFeld("Länge (mm)",`<input data-fpa-seg-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(seg.laenge||0)}">`)}

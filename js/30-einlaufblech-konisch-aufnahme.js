@@ -288,11 +288,11 @@ function ebkaStueckeHtml(){
   const rb=ebkaRestbreite(p), kon=ebkaKonizitaet(p);
   return `<div class="ra-zeile" data-ebka-zeile="${i}">
 <div class="ra-zeile-kopf"><b>Stück ${i+1}</b>
-<span class="small ebka-kopfinfo">Zuschnitt ${esc(ebkaMm(p.laenge))} mm · eng ${esc(eng)} ${esc(ebkaMm(ebkaEngesMass(p)))} mm${rb<0?" · ⚠️ Restbreite "+esc(ebkaMm(rb))+" mm":""}</span>
+<span class="small ebka-kopfinfo">Zuschnitt ${esc(ebkaMm(p.laenge))}&nbsp;mm × ${esc(ebkaMm(a.abwicklung))}&nbsp;mm · eng ${esc(eng)} ${esc(ebkaMm(ebkaEngesMass(p)))} mm${rb<0?" · ⚠️ Restbreite "+esc(ebkaMm(rb))+" mm":""}</span>
 <button type="button" class="red ra-weg" data-ebka-weg="${i}" title="Stück löschen">✕</button></div>
 <div class="grid">
 ${ebkaFeld("Länge Stoss/Stoss (mm)",`<input data-ebka-stoss="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.stossStoss||0)}">`)}
-${ebkaFeld("Zuschnittlänge (mm)",`<input data-ebka-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.laenge||0)}">`)}
+${ebkaFeld("Zuschnittlänge (mm) × "+ebkaMm(a.abwicklung)+" mm breit",`<input data-ebka-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.laenge||0)}">`)}
 ${ebkaFeld("Mass links (mm)",`<input data-ebka-ml="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.massLinks||0)}">`)}
 ${ebkaFeld("Mass rechts (mm)",`<input data-ebka-mr="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.massRechts||0)}">`)}
 ${ebkaFeld("Winkel (°)",`<div style="display:flex;gap:4px;align-items:center"><input data-ebka-winkel="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.winkel||0)}" style="flex:1"><button type="button" class="gray ra-weg" data-ebka-flip="${i}" title="Winkel umkehren">🔄</button></div>`)}

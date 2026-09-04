@@ -635,6 +635,13 @@ const PDF_LAYOUT_CSS=`
  .pdf-foot{position:fixed;left:0;right:0;bottom:0;font-size:6.2pt;color:#7b858c;text-align:center;
   padding-top:1.2mm;border-top:.5pt solid #d9e0e4;background:#fff}`;
 
+// Ein Zuschnittstueck wird im Druck genauso geschrieben wie am Bildschirm:
+// Laenge x Breite, z. B. "2'070 × 250 mm". Die Breite kommt aus dem
+// GESPEICHERTEN Datensatz - ein einmal gedrucktes Blatt bleibt gleich.
+function pdfLxB(laenge,breite){
+ const l=Math.round(Number(laenge)||0), b=Math.round(Number(breite)||0);
+ return b>0 ? l+" × "+b : String(l);
+}
 async function printMeasurement(m){
  const proj=allProjects.find(p=>p.id===m.project_id);
  const typeLabels=MEAS_TYPE_LABELS;
@@ -701,8 +708,8 @@ ${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausma
 </table>`:""}
 <div class="eb-section-head">Stücke</div>
 <table class="eb-cutlist">
-<thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th></tr></thead>
-<tbody>${pieces.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.laenge||0)}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td></tr>`).join("")}</tbody>
+<thead><tr><th>Nr.</th><th>Zuschnitt L × B (mm)</th><th>Ger. L</th><th>Ger. R</th></tr></thead>
+<tbody>${pieces.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(pdfLxB(p.laenge,d.abwicklung))}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td></tr>`).join("")}</tbody>
 </table>
 ${(()=>{
  // Der beim Speichern abgelegte Rollenplan, bewusst NICHT neu gerechnet: ein
@@ -755,16 +762,17 @@ ${(()=>{
  const stuecke=(Array.isArray(d.stueckliste)&&d.stueckliste.length)
   ? d.stueckliste
   : berechneRinneStueckliste(segs,dilas,d.boundaries||[],d.dilaMass!==undefined?d.dilaMass:rinneDilaMass);
- const zeilen=stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${Math.round(st.zuschnitt)}</td><td>${Math.round(st.pos)}</td></tr>`);
+ const brR=Number(d.groesse||d.rinneAbwicklung)||0;
+ const zeilen=stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${esc(pdfLxB(st.zuschnitt,brR))}</td><td>${Math.round(st.pos)}</td></tr>`);
  return `<table class="eb-cutlist">
-<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th>Position ab Start (mm)</th></tr></thead>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt L × B (mm)</th><th>Position ab Start (mm)</th></tr></thead>
 <tbody>${zeilen.join("")}</tbody>
 </table>`;
 })()}
 <div class="eb-section-head">Segmente</div>
 <table class="eb-cutlist">
-<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Links</th><th>Rechts</th><th>Winkel (°)</th><th>Zuschnitt (mm)</th></tr></thead>
-<tbody>${segs.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(fittingLabel(s.linksTyp))}</td><td>${esc(fittingLabel(s.rechtsTyp))}</td><td>${esc(s.winkel??0)}</td><td>${esc(s.zuschnittlaenge??calcRinneSegment(s))}</td></tr>`).join("")}</tbody>
+<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Links</th><th>Rechts</th><th>Winkel (°)</th><th>Zuschnitt L × B (mm)</th></tr></thead>
+<tbody>${segs.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(fittingLabel(s.linksTyp))}</td><td>${esc(fittingLabel(s.rechtsTyp))}</td><td>${esc(s.winkel??0)}</td><td>${esc(pdfLxB(s.zuschnittlaenge??calcRinneSegment(s),Number(d.groesse||d.rinneAbwicklung)||0))}</td></tr>`).join("")}</tbody>
 </table>
 ${(()=>{
  // Normlängen und Verschnitt aus dem gespeicherten Plan. Bewusst NICHT neu
@@ -816,8 +824,8 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 </table>
 <div class="eb-section-head">Schieber und Zuschnitt</div>
 <table class="eb-cutlist">
-<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th></tr></thead>
-<tbody>${stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${Math.round(st.zuschnitt)}</td></tr>`).join("")}</tbody>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt L × B (mm)</th></tr></thead>
+<tbody>${stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${esc(pdfLxB(st.zuschnitt,d.abwicklung))}</td></tr>`).join("")}</tbody>
 </table>
 ${d.flaeche_m2?`<div class="eb-section-head">Blechfläche</div>
 <table class="eb-info-table"><tr>${cell("Fläche",esc(Number(d.flaeche_m2).toFixed(2).replace(".",","))+" m²")}${cell("Gesamtlänge",esc(Math.round(d.gesamtlaenge||0))+" mm")}${cell("Abwicklung",esc(d.abwicklung||0)+" mm")}</tr></table>`:""}
@@ -986,12 +994,12 @@ ${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausma
 </table>`:""}
 <div class="eb-section-head">Stücke</div>
 <table class="eb-cutlist">
-<thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Mass links (mm)</th><th>Mass rechts (mm)</th></tr></thead>
+<thead><tr><th>Nr.</th><th>Zuschnitt L × B (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Mass links (mm)</th><th>Mass rechts (mm)</th></tr></thead>
 <tbody>${pieces.map((p,i)=>{
  const warn=ebkRestbreite(engeSeite==="links"?p.massLinks:p.massRechts,d.abwicklung)<0;
  const linksTxt=engeSeite==="links"?`${esc(p.massLinksEng??0)} (${esc(p.massLinks||0)})`:esc(p.massLinks||0);
  const rechtsTxt=engeSeite==="rechts"?`${esc(p.massRechtsEng??0)} (${esc(p.massRechts||0)})`:esc(p.massRechts||0);
- return `<tr><td>${i+1}</td><td>${esc(p.laenge||0)}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td><td${warn&&engeSeite==="links"?' class="warn"':""}>${linksTxt}${warn&&engeSeite==="links"?" ⚠️":""}</td><td${warn&&engeSeite==="rechts"?' class="warn"':""}>${rechtsTxt}${warn&&engeSeite==="rechts"?" ⚠️":""}</td></tr>`;
+ return `<tr><td>${i+1}</td><td>${esc(pdfLxB(p.laenge,d.abwicklung))}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td><td${warn&&engeSeite==="links"?' class="warn"':""}>${linksTxt}${warn&&engeSeite==="links"?" ⚠️":""}</td><td${warn&&engeSeite==="rechts"?' class="warn"':""}>${rechtsTxt}${warn&&engeSeite==="rechts"?" ⚠️":""}</td></tr>`;
 }).join("")}</tbody>
 </table>
 ${(()=>{
@@ -1020,6 +1028,20 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   const schenkel=d.schenkel||[];
   const segmente=d.segmente||[];
   const konisch=!!d.konisch;
+  // Die Zuschnittbreite eines Segments ist die Summe seiner Masse - beim
+  // konischen Profil die groessere der beiden Seiten, denn der Streifen muss
+  // das breitere Ende enthalten. Gerechnet wird nur aus den GESPEICHERTEN
+  // Massen, nichts kommt aus dem gerade offenen Formular.
+  const fpSegBreite=seg=>{
+   const liste=Array.isArray(seg&&seg.massen)?seg.massen:[];
+   let l=0,r=0;
+   liste.forEach(x=>{
+    const a2=Number(x&&x.links), b2=Number(x&&x.rechts), c2=Number(x&&x.mass);
+    if(konisch){ l+=Number.isFinite(a2)?a2:0; r+=Number.isFinite(b2)?b2:0; }
+    else l+=Number.isFinite(c2)?c2:0;
+   });
+   return konisch?Math.max(l,r):l;
+  };
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
   const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
   bodyHtml=`${kopfHtml}
@@ -1036,7 +1058,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 </table>
 <div class="eb-section-head">Segmente</div>
 ${segmente.map((seg,i)=>`<div style="margin-top:3mm">
-<b>Segment ${i+1}</b> · Länge ${esc(seg.laenge||0)} mm
+<b>Segment ${i+1}</b> · Zuschnitt ${esc(pdfLxB(seg.laenge,fpSegBreite(seg)))} mm
 <table class="eb-cutlist">
 <thead><tr><th>Schenkel</th>${konisch?"<th>Mass links (mm)</th><th>Mass rechts (mm)</th>":"<th>Mass (mm)</th>"}</tr></thead>
 <tbody>${schenkel.map((s,j)=>{
