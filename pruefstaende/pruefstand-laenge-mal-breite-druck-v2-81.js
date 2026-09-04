@@ -1,6 +1,7 @@
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-laenge-mal-breite-druck-v2-81.js
-// Prueft, dass die GEDRUCKTE Zuschnittliste jeder der fuenf umgebauten Arten
-// die Laenge mal die Breite nennt - aus dem gespeicherten Datensatz.
+// Prueft, dass die GEDRUCKTE Zuschnittliste JEDER Massaufnahme-Art die
+// Laenge mal die Breite nennt - aus dem gespeicherten Datensatz.
+// Ausgenommen: "Skizze / Foto" hat gar keine Stueckliste.
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const path=require("path");
 let ok=0,fail=0;
@@ -46,7 +47,41 @@ const LXB=/\d[\d'’.\s]*×\s*\d/;
     segmente:[{laenge:2000,ueberlappung:70,zuschnitt:2070},
               {laenge:2000,ueberlappung:70,zuschnitt:2070},
               {laenge:1453,ueberlappung:0,zuschnitt:1453}],
-    zuschnittSumme:5593,flaeche_m2:2.7965}]
+    zuschnittSumme:5593,flaeche_m2:2.7965}],
+  // --- die uebrigen Arten, seit v2.84 ebenfalls mit Laenge x Breite ---
+  ["Ort- und Seitenbleche","anschlussblech",["3000 × 470","1200 × 470"],{
+    deckung:"pfanne",art:"rinne",ausfuehrung:"wand",material:"2",
+    saum:20,stossLaenge:3000,ueberlappung:100,lattenabstand:330,firstgehrung:false,
+    a:300,b:100,c:50,d:50,wandAufkantung:150,restSchwelle:500,gehrungszugabe:100,
+    laenge:4200,abwicklung:470,
+    stueckliste:[{nr:1,laenge:3000,gehrung:false},{nr:2,laenge:1200,gehrung:false}],
+    teile:[{name:"Anschlussblech",abwicklung:470}],segmente:[]}],
+  ["Einfassung Rund","einfassung_rund",["330 × 520"],{
+    deckung:"biber_einfach",durchmesser:110,winkel:30,a:150,b:120,c:60,
+    lattenabstand:330,material:"2",abwicklung:520,breiteGesamt:330,anzahlBleilappen:4}],
+  ["Rinne (Zuschnittliste)","rinne",["2500 × 981"],{
+    material:"2",
+    profil:[{name:"Umschlag",art:"fix",laenge:15,winkel:0},
+            {name:"Anschl. Flachdach",art:"fix",laenge:150,winkel:180},
+            {name:"",art:"var",winkel:70},
+            {name:"Keil",art:"fix",laenge:40,winkel:-25},
+            {name:"",art:"var",winkel:-45},
+            {name:"Keil",art:"fix",laenge:40,winkel:-45},
+            {name:"",art:"var",winkel:-45},
+            {name:"Rest",art:"fix",laenge:200,winkel:56},
+            {name:"Umschlag",art:"fix",laenge:15,winkel:180}],
+    ansetz:{dila:-165,boden:0,ablauf:-230,gehrung:250,naht:15,nichts:0},
+    fixSumme:460,varMasse:[{buchstabe:"A"},{buchstabe:"B"},{buchstabe:"C"}],
+    stuecke:[{links:[127,192,202],rechts:[127,192,202],laenge:2500,
+              ansetzL:"boden",ansetzR:"naht",
+              abwicklungLinks:981,abwicklungRechts:981,zuschnitt:2500}]}],
+  ["Lukarne","lukarne",["600 × 1200"],{
+    hoehe:1000,laengeOben:1500,winkel:60,achsabstand:600,hilfsriss:200,
+    seite:"links",material:"2",breite:900,schraege:1200,anzahl:1,flaeche:1.08,
+    zugabeBreite:0,zugabeLaenge:0,
+    scharen:[{nr:1,zuschnittBreite:600,zuschnittLaenge:1200,
+      hrObenVorne:100,hrUntenVorne:200,laengeVorne:300,
+      hrObenHinten:110,hrUntenHinten:210,laengeHinten:320,breite:600}]}]
  ];
  for(const [name,typ,erwartet,data] of faelle){
   const h=await page.evaluate(async ([t,d,n])=>{

@@ -429,6 +429,14 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
  margin-top:2px;text-align:right}
 .eb-table.ra-tab{min-width:0;table-layout:auto}
 .eb-table.ra-tab td,.eb-table.ra-tab th{word-break:break-word}
+/* Kurze Kennzeichnungen wie "Traufstueck" duerfen NICHT mitten im Wort
+   umbrechen - .ra-tab bricht sonst Buchstabe fuer Buchstabe (gemessen). */
+.kea-rolle{white-space:nowrap;word-break:normal;color:var(--muted);font-size:10px;
+ line-height:1.2;margin-top:2px}
+.eb-table.ra-tab th.kea-nowrap{word-break:normal}
+/* Die Zahlenfelder duerfen nicht zusammengedrueckt werden - sonst ist der
+   eingetippte Wert nicht mehr lesbar (v2.81 schon einmal gemessen). */
+.eb-table.ra-tab input[type=number]{min-width:62px}
 /* Register-Fuehrung durch die Rinnen-Massaufnahme (wie in der Testapp).
    .ra-register-knopf setzt min-height/padding/width ausdruecklich zurueck -
    die globale button-Regel wuerde sie sonst ueberschreiben. */

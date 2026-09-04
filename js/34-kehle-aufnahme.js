@@ -54,7 +54,11 @@ function keaUeberlappungVorgabe(){
  return Number.isFinite(v)&&v>=0?v:70;
 }
 function keaLeer(){
- return {material:"",abwicklung:500,mittelrippe:"ohne",
+ // firstgehrung: Vorgabe "ja" - so bleibt eine bereits erfasste Kehle und
+ // der bisherige Zweck des Moduls (die Winkelberechnung) unveraendert.
+ // trauf/first: 0 = nicht festgelegt. Es wird KEINE Laenge erfunden.
+ return {material:"",abwicklung:500,mittelrippe:"ohne",firstgehrung:true,
+         traufLaenge:0,firstLaenge:0,
          nh:"",nl:"",gl:"",segmente:[]};
 }
 let kehleA=keaLeer();
@@ -66,7 +70,11 @@ function keaBruecke(){
  const setz=(id,v)=>{const f=$(id); if(f)f.value=(v===""||v===null||v===undefined)?"":String(v)};
  setz("kehle_nh",a.nh); setz("kehle_nl",a.nl); setz("kehle_gl",a.gl);
 }
+// Ohne Firstgehrung wird GAR NICHT gerechnet - es gibt dann keinen
+// Biegewinkel und keine Kehllaenge A, und es wird auch keine erfunden.
+function keaMitGehrung(){return kehleA.firstgehrung!==false}
 function keaErgebnis(){
+ if(!keaMitGehrung())return {ok:false,fehler:[],ohneGehrung:true};
  keaBruecke();
  return kehleBerechnen(kehleEingabenAusFeldern());
 }
@@ -78,7 +86,19 @@ function keaZuschnittLaenge(s){return keaZahl(s&&s.laenge)+keaZahl(s&&s.ueberlap
 function keaSegmente(){return kehleA.segmente||[]}
 function keaSummeLaenge(){return keaSegmente().reduce((s,x)=>s+keaZahl(x.laenge),0)}
 function keaSummeZuschnitt(){return keaSegmente().reduce((s,x)=>s+keaZuschnittLaenge(x),0)}
-function keaNeuesSegment(){return {laenge:0,ueberlappung:keaUeberlappungVorgabe()}}
+function keaNeuesSegment(rolle,laenge){
+ return {laenge:keaZahl(laenge),ueberlappung:keaUeberlappungVorgabe(),
+         rolle:rolle||null};
+}
+// Traufstueck und Firststueck: die Laenge wird BEIM ANLEGEN uebernommen und
+// ist danach frei aenderbar - wie die Verkettung bei der Rinne (Abschnitt
+// 64.4). Eine spaetere Aenderung der Vorgabe wirkt nie rueckwirkend.
+function keaTraufLaenge(){return keaZahl(kehleA.traufLaenge)}
+function keaFirstLaenge(){return keaZahl(kehleA.firstLaenge)}
+const KEA_ROLLE_TEXT={trauf:"Traufstück",first:"Firststück"};
+const KEA_ROLLE_KURZ={trauf:"Trauf",first:"First"};
+function keaRolleText(s){return (s&&KEA_ROLLE_TEXT[s.rolle])||""}
+function keaHatRolle(r){return keaSegmente().some(x=>x&&x.rolle===r)}
 // Kehllaenge A aus der Vorlage - nur als Vorschlag fuer die Aufteilung, sie
 // wird nirgends erzwungen.
 function keaKehlLaenge(){
@@ -88,16 +108,26 @@ function keaKehlLaenge(){
 function keaAusLaengeAufteilen(){
  const A=keaKehlLaenge();
  if(!(A>0))return false;
- // Dieselbe Aufteilung wie beim Einlaufblech, mit den Kehle-Einstellungen.
- const teile=teileLaengeInStuecke(A,kehleSettings);
- if(!teile.length)return false;
  const ue=keaUeberlappungVorgabe();
+ const trauf=keaTraufLaenge(), first=keaFirstLaenge();
+ // Trauf- und Firststueck sind fest vorgegeben; nur der Rest dazwischen
+ // wird aufgeteilt. Ist kein Rest uebrig, entstehen nur diese beiden -
+ // die Kontrolle meldet dann die Abweichung zur Kehllaenge A.
+ const rest=A-trauf-first;
+ const mitte=(rest>0)?teileLaengeInStuecke(rest,kehleSettings):[];
+ if(!mitte.length&&!(trauf>0)&&!(first>0))return false;
+ const neu=[];
+ if(trauf>0)neu.push({laenge:Math.round(trauf),ueberlappung:ue,rolle:"trauf"});
  // teileLaengeInStuecke liefert bereits Zuschnittlaengen (Stoss + Ueberlappung
  // je Stueck, das letzte ohne). Hier wird die Laenge Stoss/Stoss gebraucht.
- kehleA.segmente=teile.map((l,i)=>({
-  laenge:Math.round(i<teile.length-1?l-ue:l),
-  ueberlappung:i<teile.length-1?ue:0
- }));
+ mitte.forEach((l,i)=>neu.push({
+  laenge:Math.round(i<mitte.length-1?l-ue:l),
+  ueberlappung:i<mitte.length-1?ue:0, rolle:null}));
+ if(first>0)neu.push({laenge:Math.round(first),ueberlappung:0,rolle:"first"});
+ // Nur das letzte Stueck der Kette hat keine Ueberlappung mehr.
+ neu.forEach((x,i)=>{if(i<neu.length-1&&!keaZahl(x.ueberlappung))x.ueberlappung=ue});
+ if(neu.length)neu[neu.length-1].ueberlappung=0;
+ kehleA.segmente=neu;
  return true;
 }
 
@@ -176,6 +206,12 @@ function keaAusmassZeilen(){
  zeile("Kehlblech, Fläche",keaQm(keaFlaecheM2()),"m²","Zuschnittlänge × Abwicklung");
  zeile("Kehlblech, Stücke",String(n),"Stk.","erfasste Segmente");
  if(n>1)zeile("Stösse",String(n-1),"Stk.","zwischen den Segmenten");
+ // Trauf- und Firststueck werden nur genannt, wenn wirklich eines erfasst ist.
+ ["trauf","first"].forEach(r=>{
+  const st=keaSegmente().find(x=>x&&x.rolle===r);
+  if(st&&keaZahl(st.laenge)>0)
+   zeile(KEA_ROLLE_TEXT[r]+", Länge",keaMm(st.laenge),"mm","erfasstes Segment");
+ });
  return z;
 }
 function keaMaterialTabelle(){
@@ -189,7 +225,9 @@ function keaMaterialTabelle(){
 function keaPruefungen(){
  const m=[], a=kehleA;
  const g=keaErgebnis();
- if(!g.ok)(g.fehler||[]).forEach(t=>m.push({art:"fehler",text:t}));
+ // Ohne Firstgehrung wird nicht gerechnet - dann darf auch nichts an den
+ // fehlenden Neigungen bemaengelt werden.
+ if(keaMitGehrung()&&!g.ok)(g.fehler||[]).forEach(t=>m.push({art:"fehler",text:t}));
  if(!a.material)m.push({art:"fehler",text:"Es ist kein Material gewählt."});
  if(!(keaAbwicklung()>0))m.push({art:"fehler",text:"Es ist keine Abwicklung gewählt."});
  const segs=keaSegmente();
@@ -207,6 +245,13 @@ function keaPruefungen(){
    m.push({art:"warnung",text:"Die Segmente ergeben zusammen "+keaMm(summe)
      +" mm, die berechnete Kehllänge A ist "+keaMm(A)+" mm."});
  }
+ // Eine festgelegte Trauf-/Firstlaenge, zu der es kein Stueck gibt, ist ein
+ // Hinweis - vielleicht wurde der Knopf nur noch nicht gedrueckt.
+ [["trauf",keaTraufLaenge()],["first",keaFirstLaenge()]].forEach(x=>{
+  if(x[1]>0&&segs.length&&!keaHatRolle(x[0]))
+   m.push({art:"warnung",text:"Für das "+KEA_ROLLE_TEXT[x[0]]+" ist "+keaMm(x[1])
+     +" mm festgelegt, aber kein solches Stück in der Liste."});
+ });
  const rp=keaRollenPlan();
  if(keaBleche().length&&!rp.moeglich.length&&keaRollenbreiten().length)
   m.push({art:"warnung",text:"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung ("+keaMm(keaAbwicklung())+" mm)."});
@@ -238,13 +283,22 @@ ${keaFeld("Material",`<select id="kea_material" data-pflicht="1">${matOpt}</sele
 ${keaFeld("Abwicklung Kehlblech",`<select id="kea_abwicklung">${abwOpt}</select>`)}
 ${keaFeld("Ausführung",`<select id="kea_mittelrippe">${mrOpt}</select>`)}
 </div>
-<div class="small" style="color:var(--muted);margin-top:6px">${a.mittelrippe==="mit"
- ? "Mit Mittelrippe ist der <b>Innenwinkel zur Mittelrippe</b> (k / 2) der führende Winkel."
- : "Ohne Mittelrippe ist der <b>Biegewinkel Kehlblech</b> (d) der führende Winkel."}
-Beide Werte stehen im Register „Winkel“.</div>`;
+<label class="ra-schalter" style="margin-top:8px"><input type="checkbox" id="kea_firstgehrung"${
+ keaMitGehrung()?" checked":""}> Firstgehrung vorhanden</label>
+<div class="small" style="color:var(--muted);margin-top:6px">${keaMitGehrung()
+ ? (a.mittelrippe==="mit"
+    ? "Mit Mittelrippe ist der <b>Innenwinkel zur Mittelrippe</b> (k / 2) der führende Winkel."
+    : "Ohne Mittelrippe ist der <b>Biegewinkel Kehlblech</b> (d) der führende Winkel.")
+   +" Beide Werte stehen im Register „Winkel“."
+ : "<b>Ohne Firstgehrung wird kein Winkel berechnet.</b> Das Register „Winkel“ bleibt "
+   +"leer, es werden weder Neigungen noch eine Gefällslänge gebraucht. Erfasst werden "
+   +"nur die Segmente und der Zuschnitt."}</div>`;
 }
 function keaWinkelHtml(){
  const a=kehleA;
+ if(!keaMitGehrung())return `<div class="info">Für diese Kehle ist <b>keine Firstgehrung</b>
+angekreuzt – deshalb wird hier nichts gerechnet und nichts abgefragt. Soll die
+Winkelberechnung doch laufen, das Häkchen in <b>1 · Grunddaten</b> setzen.</div>`;
  return `<div class="info">Die drei Eingaben der Vorlage. Gerechnet wird unverändert
 mit der Funktion der laufenden App – es wurde nichts vereinfacht oder ersetzt.</div>
 <div class="grid">
@@ -267,7 +321,7 @@ function keaSegmenteHtml(){
  const a=kehleA, segs=keaSegmente();
  const A=keaKehlLaenge();
  const zeilen=segs.map((s,i)=>`<tr>
-<td>${i+1}</td>
+<td>${i+1}${keaRolleText(s)?`<div class="kea-rolle" title="${esc(keaRolleText(s))}">${esc(KEA_ROLLE_KURZ[s.rolle])}</div>`:""}</td>
 <td><input data-kea-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(keaZahl(s.laenge))}"></td>
 <td><input data-kea-ueb="${i}" type="number" inputmode="numeric" step="1" value="${esc(keaZahl(s.ueberlappung))}"></td>
 <td><div class="zu-lb"><b data-kea-zu="${i}">${esc(keaMm(keaZuschnittLaenge(s)))}</b><span class="zu-lb-breite">mm × ${esc(keaMm(keaAbwicklung()))}&nbsp;mm</span></div></td>
@@ -276,16 +330,30 @@ function keaSegmenteHtml(){
  return `<div class="info">Ein Segment ist ein Stück Kehlblech. Der Zuschnitt ist
 <b>Länge Stoss/Stoss + Überlappung</b>; die Vorgabe für die Überlappung steht in
 <b>Einstellungen → Massaufnahmen → Kehle</b> und lässt sich je Segment überschreiben.</div>
+${keaMitGehrung()?"":`<div class="small" style="color:var(--muted);margin-bottom:6px">Ohne
+Firstgehrung gibt es keine berechnete Kehllänge A – die Segmente werden von Hand
+erfasst.</div>`}
 <div class="grid">
 ${keaFeld("Berechnete Kehllänge A",`<div class="ra-wert" id="kea_wA">${A>0?esc(keaMm(A))+" mm":"–"}</div>`)}
 ${keaFeld("Aus den Segmenten",`<div class="ra-wert" id="kea_wSumme">${keaSummeLaenge()>0?esc(keaMm(keaSummeLaenge()))+" mm":"–"}</div>`)}
 </div>
+<div class="grid" style="margin-top:8px">
+${keaFeld("Länge Traufstück (mm)",`<input id="kea_trauf" type="number" inputmode="numeric" step="1" value="${keaTraufLaenge()?esc(keaTraufLaenge()):""}" placeholder="nicht festgelegt">`)}
+${keaFeld("Länge Firststück (mm)",`<input id="kea_first" type="number" inputmode="numeric" step="1" value="${keaFirstLaenge()?esc(keaFirstLaenge()):""}" placeholder="nicht festgelegt">`)}
+</div>
+<div class="small" style="color:var(--muted);margin-bottom:6px">Diese beiden Längen
+werden <b>beim Anlegen</b> eines Trauf- oder Firststücks übernommen und sind danach
+in der Liste frei änderbar – eine spätere Änderung wirkt nie rückwirkend.</div>
 <div class="bar">
 <button type="button" class="gray" id="kea_ausA"${A>0?"":" disabled"}>🔄 Segmente aus Kehllänge A berechnen</button>
 <button type="button" class="gray" id="kea_segPlus">＋ Segment hinzufügen</button>
 </div>
+<div class="bar">
+<button type="button" class="gray" id="kea_traufPlus"${keaTraufLaenge()>0&&!keaHatRolle("trauf")?"":" disabled"}>＋ Traufstück</button>
+<button type="button" class="gray" id="kea_firstPlus"${keaFirstLaenge()>0&&!keaHatRolle("first")?"":" disabled"}>＋ Firststück</button>
+</div>
 <div class="scroll"><table class="eb-table ra-tab">
-<thead><tr><th>Nr.</th><th>Länge Stoss/Stoss (mm)</th><th>Überlappung (mm)</th><th>Zuschnitt (Länge × Breite)</th><th></th></tr></thead>
+<thead><tr><th>Nr.</th><th>Länge Stoss/Stoss (mm)</th><th class="kea-nowrap">Überlappung<br>(mm)</th><th>Zuschnitt (Länge × Breite)</th><th></th></tr></thead>
 <tbody>${zeilen||'<tr><td colspan="5" class="small">Noch kein Segment. „Aus Kehllänge A berechnen“ oder „＋ Segment hinzufügen“.</td></tr>'}</tbody>
 </table></div>
 <div class="grid" style="margin-top:8px">
@@ -314,11 +382,12 @@ function keaKontrolleHtml(){
 <tr><td>Material</td><td>${esc(keaMaterialText())}</td></tr>
 <tr><td>Abwicklung</td><td>${esc(keaMm(keaAbwicklung()))} mm</td></tr>
 <tr><td>Ausführung</td><td>${esc(keaMittelrippeText())}</td></tr>
+<tr><td>Firstgehrung</td><td>${keaMitGehrung()?"ja":"nein"}</td></tr>
 <tr><td>Segmente</td><td>${keaSegmente().length}</td></tr>
 <tr><td>Zuschnitt gesamt</td><td>${esc(keaMm(keaSummeZuschnitt()))} mm</td></tr>
 <tr><td>Blechfläche</td><td>${esc(keaQm(keaFlaecheM2()))} m²</td></tr>
 <tr><td>Führender Winkel</td><td>${g.ok?esc(kehleWert(kehleA.mittelrippe==="mit"?"mitte":"d",
-  g[kehleA.mittelrippe==="mit"?"mitte":"d"])):"–"}</td></tr>
+  g[kehleA.mittelrippe==="mit"?"mitte":"d"])):(keaMitGehrung()?"–":"entfällt (keine Firstgehrung)")}</td></tr>
 </tbody></table></div>`;
  if(!m.length)return uebersicht+`<div class="ra-ok" style="margin-top:8px">Keine Auffälligkeit.
 Alles, was zum Speichern nötig ist, liegt vor.</div>`;
@@ -371,8 +440,9 @@ function renderKehleAufnahme(){
  const kopf=$("kea_kopf"), fuss=$("kea_fuss"), box=$("keaErgebnisBox");
  if(!kopf||!fuss||!box)return;
  kopf.innerHTML=keaRegisterHtml()+keaKopfInhalt();
- // Die Ergebnisanzeige der Vorlage gehoert zum Register "Winkel".
- box.hidden=keaSchritt!==2;
+ // Die Ergebnisanzeige der Vorlage gehoert zum Register "Winkel" - und nur
+ // dann, wenn ueberhaupt gerechnet wird.
+ box.hidden=keaSchritt!==2||!keaMitGehrung();
  if(!box.hidden)renderKehleResult();
  fuss.innerHTML=`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="kea_zurueck"${keaSchritt<=1?" disabled":""}>‹ Zurück</button>
@@ -389,6 +459,15 @@ function renderKehleAufnahme(){
 }
 // Nach einer Zifferneingabe wird NICHT alles neu gezeichnet - sonst verliert
 // das Feld nach dem ersten Zeichen den Fokus.
+// Die beiden Knoepfe "+ Traufstueck" / "+ Firststueck" haengen an der
+// festgelegten Laenge - sie werden ohne Neuzeichnen nachgefuehrt, damit das
+// gerade bearbeitete Feld den Fokus behaelt.
+function keaKnoepfe(){
+ const tp=$("kea_traufPlus");
+ if(tp)tp.disabled=!(keaTraufLaenge()>0&&!keaHatRolle("trauf"));
+ const fp=$("kea_firstPlus");
+ if(fp)fp.disabled=!(keaFirstLaenge()>0&&!keaHatRolle("first"));
+}
 function keaLive(){
  keaBruecke();
  const a=$("kea_wA"); if(a){const A=keaKehlLaenge();a.textContent=A>0?keaMm(A)+" mm":"–"}
@@ -403,6 +482,7 @@ function keaLive(){
  });
  // Die Marke am Kontroll-Register haengt an den Pruefungen und muss
  // mitwandern; die Registerleiste selbst traegt keinen Fokus.
+ keaKnoepfe();
  const strip=$("kea_register");
  if(strip)strip.outerHTML=keaRegisterHtml();
  if(keaSchritt===2&&$("keaErgebnisBox")&&!$("keaErgebnisBox").hidden)renderKehleResult();
@@ -427,8 +507,16 @@ function keaVerdrahten(){
    const i=Number(d.keaUeb);
    if(a.segmente[i])a.segmente[i].ueberlappung=keaZahl(t.value);
   }
+  else if(t.id==="kea_trauf"){a.traufLaenge=keaZahl(t.value); keaKnoepfe(); return}
+  else if(t.id==="kea_first"){a.firstLaenge=keaZahl(t.value); keaKnoepfe(); return}
   else return;
   keaLive();
+ });
+
+ wurzel.addEventListener("change",e2=>{
+  const t2=e2.target;
+  // Auch die beiden Laengenfelder sollen beim Verlassen nicht neu zeichnen.
+  if(t2.id==="kea_trauf"||t2.id==="kea_first"){keaKnoepfe(); e2.stopImmediatePropagation()}
  });
 
  wurzel.addEventListener("change",e=>{
@@ -436,6 +524,7 @@ function keaVerdrahten(){
   if(t.id==="kea_material")a.material=t.value;
   else if(t.id==="kea_abwicklung")a.abwicklung=keaZahl(t.value);
   else if(t.id==="kea_mittelrippe")a.mittelrippe=t.value;
+  else if(t.id==="kea_firstgehrung")a.firstgehrung=!!t.checked;
   // Zahleneingaben zeichnen NICHT neu: sonst verliert das Feld, in das der
   // Benutzer gerade weiterspringt, seine Ereignisse und die ersten Zeichen
   // gehen verloren. Das Modell ist bereits im input-Handler gesetzt.
@@ -457,6 +546,20 @@ function keaVerdrahten(){
    keaSetzeSchritt(keaSchritt+1); return;
   }
   if(t.id==="kea_segPlus"){a.segmente.push(keaNeuesSegment());renderKehleAufnahme();return}
+  // Traufstueck vorne, Firststueck hinten - beide mit der festgelegten Laenge.
+  if(t.id==="kea_traufPlus"){
+   if(!(keaTraufLaenge()>0)||keaHatRolle("trauf"))return;
+   a.segmente.unshift(keaNeuesSegment("trauf",keaTraufLaenge()));
+   renderKehleAufnahme(); return;
+  }
+  if(t.id==="kea_firstPlus"){
+   if(!(keaFirstLaenge()>0)||keaHatRolle("first"))return;
+   const vor=a.segmente[a.segmente.length-1];
+   if(vor&&!keaZahl(vor.ueberlappung))vor.ueberlappung=keaUeberlappungVorgabe();
+   const st=keaNeuesSegment("first",keaFirstLaenge()); st.ueberlappung=0;
+   a.segmente.push(st);
+   renderKehleAufnahme(); return;
+  }
   if(t.id==="kea_ausA"){
    if(a.segmente.length&&!confirm("Die bestehenden Segmente werden ersetzt. Fortfahren?"))return;
    if(keaAusLaengeAufteilen())renderKehleAufnahme();
@@ -480,9 +583,13 @@ function keaZusatzDaten(){
   material:kehleA.material,
   abwicklung:keaAbwicklung(),
   mittelrippe:kehleA.mittelrippe,
+  firstgehrung:keaMitGehrung(),
+  traufLaenge:keaTraufLaenge(),
+  firstLaenge:keaFirstLaenge(),
   segmente:keaSegmente().map(s=>({
    laenge:keaZahl(s.laenge),
    ueberlappung:keaZahl(s.ueberlappung),
+   rolle:s.rolle||null,
    zuschnitt:Math.round(keaZuschnittLaenge(s))
   })),
   zuschnittSumme:Math.round(keaSummeZuschnitt()),
@@ -509,9 +616,15 @@ function keaFuellen(d){
  // es wird KEINE erfunden, die Vorgabe steht nur als Auswahl bereit.
  a.abwicklung=KEA_ABWICKLUNGEN.indexOf(keaZahl(w.abwicklung))>=0?keaZahl(w.abwicklung):500;
  a.mittelrippe=(w.mittelrippe==="mit")?"mit":"ohne";
+ // Eine Aufnahme ohne das Feld ist eine von vor v2.84 - die hatte immer eine
+ // Firstgehrung (das Modul konnte gar nichts anderes), also "ja".
+ a.firstgehrung=(w.firstgehrung===false)?false:true;
+ a.traufLaenge=keaZahl(w.traufLaenge);
+ a.firstLaenge=keaZahl(w.firstLaenge);
  a.segmente=Array.isArray(w.segmente)?w.segmente.map(s=>({
   laenge:keaZahl(s&&s.laenge),
-  ueberlappung:keaZahl(s&&s.ueberlappung)
+  ueberlappung:keaZahl(s&&s.ueberlappung),
+  rolle:(s&&(s.rolle==="trauf"||s.rolle==="first"))?s.rolle:null
  })):[];
  kehleA=a;
  keaSchritt=1;

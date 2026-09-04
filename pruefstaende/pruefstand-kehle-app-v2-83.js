@@ -458,6 +458,159 @@ const text=page=>page.evaluate(()=>$("kehleAufnahme").innerText);
    &&!/Zuschnittliste/.test(altS),"der alte Datensatz druckt ohne die neuen Abschnitte");
  p(!/NaN|undefined|Infinity/.test(altS),"und ebenfalls ohne NaN");
 
+ // ---- N2 · Firstgehrung ja/nein -------------------------------------------
+ console.log("\nN2 · Firstgehrung");
+ await page.evaluate(pd=>{keaFuellen(pd)},d);
+ await reg(page,1);
+ const gh=await page.evaluate(()=>({da:!!$("kea_firstgehrung"),an:$("kea_firstgehrung").checked,
+  vorgabe:keaLeer().firstgehrung}));
+ p(gh.da,"in den Grunddaten steht ein Haekchen \"Firstgehrung vorhanden\"",gh);
+ p(gh.an===true&&gh.vorgabe===true,"Vorgabe ist ja - eine bestehende Kehle aendert sich nicht",gh);
+ // Ausschalten
+ await page.evaluate(()=>{const c=$("kea_firstgehrung");c.checked=false;
+  c.dispatchEvent(new Event("change",{bubbles:true}))});
+ await page.waitForTimeout(160);
+ const ohne=await page.evaluate(()=>{
+  keaSetzeSchritt(2);
+  return {modell:kehleA.firstgehrung, erg:keaErgebnis().ok, A:keaKehlLaenge(),
+   felder:!!$("kea_nh"), box:$("keaErgebnisBox").hidden,
+   txt:$("kea_kopf").innerText,
+   pruef:keaPruefungen().map(x=>x.text)};
+ });
+ p(ohne.modell===false,"das Haekchen kommt ins Modell",ohne.modell);
+ p(ohne.erg===false&&ohne.A===0,"OHNE Firstgehrung wird gar nicht gerechnet",ohne);
+ p(!ohne.felder,"die drei Winkel-Eingaben stehen dann nicht mehr da",ohne.felder);
+ p(ohne.box===true,"und die Ergebnisanzeige der Vorlage bleibt zu",ohne.box);
+ p(/keine Firstgehrung/i.test(ohne.txt),"das Register sagt, warum es leer ist",ohne.txt.slice(0,140));
+ p(!ohne.pruef.some(t=>/Neigung|Gef/i.test(t)),
+   "die Kontrolle bemaengelt keine fehlenden Neigungen",ohne.pruef);
+ // Ohne Firstgehrung darf trotzdem gespeichert werden
+ const pOhne=await page.evaluate(()=>buildMeasurementFromForm().data);
+ p(pOhne.firstgehrung===false,"der Payload merkt sich \"keine Firstgehrung\"",pOhne.firstgehrung);
+ p(pOhne.b===undefined&&pOhne.A===undefined,
+   "und speichert KEINE Winkel statt Platzhalter",{b:pOhne.b,A:pOhne.A});
+ p(pOhne.segmente&&pOhne.segmente.length===3,"die Segmente bleiben erhalten",pOhne.segmente&&pOhne.segmente.length);
+ // Wieder ein
+ await reg(page,1);
+ await page.evaluate(()=>{const c=$("kea_firstgehrung");c.checked=true;
+  c.dispatchEvent(new Event("change",{bubbles:true}))});
+ await page.waitForTimeout(160);
+ const wieder2=await page.evaluate(()=>({erg:keaErgebnis().ok,b:Number(keaErgebnis().b.toFixed(2))}));
+ p(wieder2.erg&&Math.abs(wieder2.b-66.48)<0.01,"wieder angekreuzt rechnet es unveraendert weiter",wieder2);
+ // Ein Datensatz von vor v2.84 gilt als "mit Firstgehrung"
+ const altG=await page.evaluate(()=>{keaFuellen({nh:30,nl:20,gl:3000});return kehleA.firstgehrung});
+ p(altG===true,"ein Datensatz ohne das Feld gilt als \"mit Firstgehrung\"",altG);
+
+ // ---- N3 · Trauf- und Firststueck -----------------------------------------
+ console.log("\nN3 · Trauf- und Firststueck");
+ await page.evaluate(pd=>{keaFuellen(pd)},d);
+ await reg(page,3);
+ const felder=await page.evaluate(()=>({t:!!$("kea_trauf"),f:!!$("kea_first"),
+  tp:$("kea_traufPlus")?$("kea_traufPlus").disabled:null,
+  fp:$("kea_firstPlus")?$("kea_firstPlus").disabled:null,
+  vorgabeT:keaLeer().traufLaenge,vorgabeF:keaLeer().firstLaenge}));
+ p(felder.t&&felder.f,"es gibt je eine Eingabe fuer Trauf- und Firststueck",felder);
+ p(felder.vorgabeT===0&&felder.vorgabeF===0,"ohne Eingabe wird KEINE Laenge erfunden",felder);
+ p(felder.tp===true&&felder.fp===true,"die beiden Knoepfe sind gesperrt, solange nichts festgelegt ist",felder);
+ // Laengen eintippen - ohne Fokusverlust
+ p(await tippe(page,"#kea_trauf","800"),"Traufstueck-Laenge eintippen");
+ const tf=await page.evaluate(()=>({wert:$("kea_trauf").value,
+  fokus:document.activeElement&&document.activeElement.id,modell:keaTraufLaenge(),
+  knopf:$("kea_traufPlus").disabled}));
+ p(tf.wert==="800"&&tf.fokus==="kea_trauf","ganz eintippbar, ohne den Fokus zu verlieren",tf);
+ p(tf.modell===800,"und steht im Modell",tf);
+ p(tf.knopf===false,"der Knopf wird dadurch bedienbar - ohne Neuzeichnen",tf);
+ await tippe(page,"#kea_first","600");
+ p((await page.evaluate(()=>keaFirstLaenge()))===600,"Firststueck-Laenge ebenso");
+ // Aufteilung aus A mit Trauf und First
+ p(await klick(page,"#kea_ausA")==="ok","aus der Kehllaenge A neu aufteilen");
+ const auf=await page.evaluate(()=>({
+  segs:keaSegmente().map(s=>[keaZahl(s.laenge),keaZahl(s.ueberlappung),s.rolle||null]),
+  summe:Math.round(keaSummeLaenge())}));
+ p(auf.segs.length>=3,"mehrere Segmente",auf);
+ p(auf.segs[0][0]===800&&auf.segs[0][2]==="trauf","das ERSTE Stueck ist das Traufstueck mit 800 mm",auf);
+ p(auf.segs[auf.segs.length-1][0]===600&&auf.segs[auf.segs.length-1][2]==="first",
+   "das LETZTE ist das Firststueck mit 600 mm",auf);
+ p(auf.segs[auf.segs.length-1][1]===0,"und traegt keine Ueberlappung mehr",auf);
+ p(auf.summe===5453,"die Summe bleibt die Kehllaenge A",auf);
+ p(auf.segs.slice(1,-1).every(x=>x[2]===null),"die Stuecke dazwischen tragen keine Rolle",auf);
+ // Die Rolle steht in der Liste
+ const rollen=await page.evaluate(()=>{
+  const zellen=[...document.querySelectorAll(".kea-rolle")];
+  return {texte:zellen.map(e=>e.textContent.trim()),
+   titel:zellen.map(e=>e.getAttribute("title")),
+   // Ein Wort, das Buchstabe fuer Buchstabe umbricht, ist unlesbar -
+   // deshalb die tatsaechliche Hoehe messen, nicht nur den Text pruefen.
+   hoehen:zellen.map(e=>Math.round(e.getBoundingClientRect().height)),
+   // Und die Kennzeichnung darf die Eingabefelder nicht zusammendruecken
+   // (in v2.81 schon einmal passiert).
+   feldbreiten:[...document.querySelectorAll("[data-kea-laenge]")]
+     .map(e=>Math.round(e.getBoundingClientRect().width)),
+   werte:[...document.querySelectorAll("[data-kea-laenge]")].map(e=>e.value)};
+ });
+ p(JSON.stringify(rollen.titel)==='["Traufstück","Firststück"]',
+   "Traufstueck und Firststueck sind in der Stueckliste gekennzeichnet",rollen.titel);
+ p(rollen.hoehen.every(h=>h<=16),"die Kennzeichnung bricht nicht mitten im Wort um",rollen.hoehen);
+ p(rollen.feldbreiten.every(b=>b>=60),"und drueckt die Laengenfelder nicht zusammen",rollen.feldbreiten);
+ p(rollen.werte[0]==="800","der eingetippte Wert bleibt vollstaendig lesbar",rollen.werte);
+ // Laenge danach frei aenderbar, Vorgabe wirkt nicht rueckwirkend
+ await tippe(page,'[data-kea-laenge="0"]',"950");
+ const frei=await page.evaluate(()=>({laenge:keaZahl(keaSegmente()[0].laenge),
+  rolle:keaSegmente()[0].rolle}));
+ p(frei.laenge===950&&frei.rolle==="trauf","die Laenge ist danach frei aenderbar, die Rolle bleibt",frei);
+ await page.evaluate(()=>{kehleA.traufLaenge=1200;renderKehleAufnahme()});
+ p((await page.evaluate(()=>keaZahl(keaSegmente()[0].laenge)))===950,
+   "eine spaetere Aenderung der Vorgabe wirkt NICHT rueckwirkend");
+ // Knopf-Weg: von Hand anlegen
+ const handWeg=await page.evaluate(()=>{
+  kehleA.segmente=[{laenge:2000,ueberlappung:70,rolle:null}];
+  kehleA.traufLaenge=800; kehleA.firstLaenge=600; renderKehleAufnahme();
+  return {tp:$("kea_traufPlus").disabled,fp:$("kea_firstPlus").disabled};
+ });
+ p(handWeg.tp===false&&handWeg.fp===false,"beide Knoepfe sind wieder frei",handWeg);
+ p(await klick(page,"#kea_traufPlus")==="ok","Traufstueck anlegen");
+ p(await klick(page,"#kea_firstPlus")==="ok","Firststueck anlegen");
+ const hand=await page.evaluate(()=>({
+  segs:keaSegmente().map(s=>[keaZahl(s.laenge),s.rolle||null]),
+  tp:$("kea_traufPlus").disabled,fp:$("kea_firstPlus").disabled}));
+ p(JSON.stringify(hand.segs)==='[[800,"trauf"],[2000,null],[600,"first"]]',
+   "das Traufstueck kommt VORNE, das Firststueck HINTEN",hand);
+ p(hand.tp===true&&hand.fp===true,"und jeder Knopf nur einmal",hand);
+ // Payload und Ausmass
+ const pTF=await page.evaluate(()=>buildMeasurementFromForm().data);
+ p(pTF.traufLaenge===800&&pTF.firstLaenge===600,"beide Laengen sind gespeichert",
+   {t:pTF.traufLaenge,f:pTF.firstLaenge});
+ p(pTF.segmente[0].rolle==="trauf"&&pTF.segmente[2].rolle==="first",
+   "und die Rolle je Segment",pTF.segmente.map(x=>x.rolle));
+ const amTF=await page.evaluate(()=>keaAusmassZeilen().map(x=>x.bezeichnung));
+ p(amTF.some(x=>/Traufstück/.test(x))&&amTF.some(x=>/Firststück/.test(x)),
+   "das Ausmass weist beide einzeln aus",amTF);
+ // Wiederoeffnen
+ const wTF=await page.evaluate(pd=>{keaFuellen(pd);
+  return {t:keaTraufLaenge(),f:keaFirstLaenge(),rollen:keaSegmente().map(s=>s.rolle||null)}},pTF);
+ p(wTF.t===800&&wTF.f===600&&JSON.stringify(wTF.rollen)==='["trauf",null,"first"]',
+   "Wiederoeffnen stellt Laengen und Rollen wieder her",wTF);
+ // Druck
+ const dTF=await page.evaluate(async pd=>{
+  let h="";const echt=window.open;
+  window.open=()=>({document:{write:x=>h+=x,close(){}},focus(){},print(){},set onload(f){}});
+  await printMeasurement({id:9,type:"kehle",title:"TF",date:"2026-09-04",project_id:null,note:"",data:pd});
+  window.open=echt;return h;
+ },pTF);
+ p(/Traufstück/.test(dTF)&&/Firststück/.test(dTF),"der Druck nennt Trauf- und Firststueck");
+ p(/Firstgehrung/.test(dTF),"und ob eine Firstgehrung vorhanden ist");
+ const dOhne=await page.evaluate(async pd=>{
+  let h="";const echt=window.open;
+  window.open=()=>({document:{write:x=>h+=x,close(){}},focus(){},print(){},set onload(f){}});
+  await printMeasurement({id:10,type:"kehle",title:"ohne",date:"2026-09-04",project_id:null,note:"",
+   data:{...pd,firstgehrung:false,b:undefined,c:undefined,d:undefined}});
+  window.open=echt;return h;
+ },pTF);
+ p(!/Hauptresultate/.test(dOhne)&&/Ohne Firstgehrung/.test(dOhne),
+   "ohne Firstgehrung druckt kein Winkelteil, sondern sagt warum");
+ p(/Zuschnittliste/.test(dOhne),"die Zuschnittliste bleibt trotzdem");
+ p(!/NaN|undefined/.test(dOhne),"und kein NaN",{t:(dOhne.match(/NaN|undefined/)||[""])[0]});
+
  // ---- O · Handy und Tablet ------------------------------------------------
  console.log("\nO · Handy und Tablet");
  await page.evaluate(pd=>{keaFuellen(pd)},d);

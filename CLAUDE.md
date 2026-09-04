@@ -13737,3 +13737,121 @@ niemals `git checkout` auf einem Baum mit unversionierter Arbeit.
   gefundene Verteilung".
 - Kein Detail-Diff der Kehle-Segmente im Änderungsverlauf (wie bei allen
   Array-Strukturen, Klasse C aus Abschnitt 42.2).
+
+## 89. LÄNGE × BREITE IN JEDEM DRUCK + KEHLE: FIRSTGEHRUNG UND TRAUF-/FIRSTSTÜCK — VERSION 2.84
+
+Zwei Punkte aus der Rückmeldung. **Keine Schemaänderung, keine Migration,
+keine RLS-/Storage-Änderung.**
+
+### 89.1 Teil A – der Druck: alle elf Arten geprüft
+
+v2.81 hatte `pdfLxB` nur in den damals fünf umgebauten Arten eingesetzt.
+Diese Runde prüft **jede** Art einzeln:
+
+| Art | vorher | jetzt |
+|---|---|---|
+| Einlaufblech gerade / konisch, Rinne Halbrund, Mauerabdeckung, Freies Profil, Kehle | `L × B` (v2.81/v2.83) | unverändert |
+| **Lukarne** | „Zuschnitt B × L", beide Werte da | unverändert – siehe 89.2 |
+| **Ort- und Seitenbleche** | zwei getrennte Spalten „Zuschnitt Länge" / „Zuschnitt Breite" | **eine** Spalte `Zuschnitt L × B (mm)` |
+| **Einfassung Rund** | nur „Zuschnittbreite (Querschnitt)" und „Breite der gesamten Einfassung" – **kein Zuschnitt** | zusätzliche Zeile `Zuschnitt L × B` (Gesamtbreite × Abwicklung) |
+| **Rinne (Zuschnittliste)** | Spalte „Zuschnitt" nur mit der Länge | `Zuschnitt L × B`; **B ist die grössere** der beiden Abwicklungen, weil ein Stück mit unterschiedlicher Abwicklung links/rechts auf der breiteren Seite Platz braucht – dazu ein Satz unter der Tabelle |
+| Skizze / Foto | keine Stückliste | nichts zu tun |
+
+### 89.2 Lukarne bewusst nicht umgestellt
+
+Die Lukarne nennt beide Masse seit je (`Zuschnitt B × L`), nur in der
+anderen Reihenfolge. Die Zeilen kommen aus `lukScharenZeilen()` in
+**js/19-lukarne.js** und speisen Bildschirm **und** Druck. Für eine reine
+Reihenfolge hätte eine geschützte Fachdatei geändert werden müssen –
+bewusst unterlassen. Die Angabe ist vollständig vorhanden.
+
+### 89.3 Teil B – Kehle: Firstgehrung ja/nein
+
+Neues Häkchen **„Firstgehrung vorhanden"** in `1 · Grunddaten`.
+
+- **Vorgabe ist „ja"** – eine bereits erfasste Kehle und der bisherige
+  Zweck des Moduls ändern sich dadurch nicht. Ein Datensatz ohne das Feld
+  (vor v2.84) gilt als „mit Firstgehrung": das Modul konnte gar nichts
+  anderes.
+- **Ohne Firstgehrung wird gar nicht gerechnet.** `keaErgebnis()` liefert
+  dann sofort „nicht gerechnet", ohne `kehleBerechnen()` überhaupt
+  aufzurufen. Register 2 zeigt statt der drei Eingaben den Grund; die
+  Ergebnisanzeige der Vorlage bleibt zu; es gibt keine Kehllänge A und
+  damit auch keine Aufteilung daraus.
+- Die Kontrolle bemängelt dann **keine** fehlenden Neigungen, das
+  Speichern verlangt sie nicht, und der Payload legt **keine** Winkel ab
+  statt Platzhalter. Der Druck lässt Eingaben, Hauptresultate und weitere
+  Resultate weg und sagt in einem Satz warum – Zuschnittliste, Ausmass
+  und Rollenblech bleiben.
+- Erneut angekreuzt rechnet alles unverändert weiter (b = 66.48° usw.).
+
+**js/25-kehle.js bleibt byteweise unverändert** – das Häkchen entscheidet
+nur, ob die Fachdatei überhaupt gefragt wird.
+
+### 89.4 Teil B – Trauf- und Firststück
+
+Zwei Eingaben in `3 · Segmente`: **Länge Traufstück** und **Länge
+Firststück**. Ohne Eingabe wird keine Länge erfunden (Vorgabe 0 = nicht
+festgelegt).
+
+Sie wirken **beim Anlegen**, danach ist die Länge in der Liste frei
+änderbar – dasselbe Prinzip wie die Verkettung bei der Rinne (Abschnitt
+64.4). Eine spätere Änderung der Vorgabe wirkt **nie rückwirkend**.
+
+- „🔄 Segmente aus Kehllänge A berechnen" setzt das Traufstück nach
+  **vorne**, das Firststück nach **hinten** und teilt nur den Rest
+  dazwischen über die bestehende `teileLaengeInStuecke()` auf. Die Summe
+  bleibt die Kehllänge A.
+- „＋ Traufstück" / „＋ Firststück" legen ein solches Stück von Hand an –
+  vorne bzw. hinten, jeder Knopf nur einmal, gesperrt solange keine Länge
+  festgelegt ist. Die Knopfzustände werden ohne Neuzeichnen nachgeführt,
+  damit das Eingabefeld den Fokus behält.
+- Die Rolle steht in der Stückliste, im Ausmass (eigene Position je
+  Stück) und im Druck; sie bleibt beim Ändern der Länge erhalten.
+- Ist eine Länge festgelegt, aber kein solches Stück in der Liste, ist
+  das ein **Hinweis** in der Kontrolle – kein Fehler.
+
+### 89.5 Zwei Darstellungsfehler, im Browser gemessen
+
+1. „Traufstück" in der schmalen Nr.-Spalte brach **Buchstabe für
+   Buchstabe** um („Tra ufst ück") – `.eb-table.ra-tab` setzt
+   `word-break:break-word`.
+2. Die Korrektur (`white-space:nowrap`) verbreiterte die Spalte und
+   **drückte die Längenfelder auf 8 px zusammen**: aus „800" wurde „8".
+   Exakt die Falle aus v2.81.
+
+Gelöst mit einer kurzen Kennzeichnung („Trauf" / „First", voller Name als
+Tooltip) **und** `min-width:62px` auf den Zahlenfeldern dieser Tabelle.
+Der Prüfstand misst seither Zeilenhöhe der Kennzeichnung, Feldbreite und
+den tatsächlich sichtbaren Wert – beide Gegenproben schlagen fehl.
+
+### 89.6 Getestet
+
+- **`pruefstand-kehle-app-v2-83.js` – 157/157** (vorher 109): neu die
+  Abschnitte „Firstgehrung" und „Trauf- und Firststück" sowie die drei
+  Layout-Messungen.
+- **`pruefstand-laenge-mal-breite-druck-v2-81.js` – 46/46** (vorher 29):
+  deckt jetzt **alle** Arten mit Stückliste ab, also auch Ort-/
+  Seitenbleche, Einfassung Rund, Rinne und Lukarne.
+- **Zehn neue Gegenproben**, jede wirft den Prüfstand um: Winkel wird
+  auch ohne Firstgehrung gerechnet (148/157) · alter Datensatz gilt als
+  ohne Firstgehrung (152) · Traufstück bei der Aufteilung übergangen
+  (151) · Traufstück hinten statt vorne (151) · Längenfeld zeichnet neu
+  (149) · neue Felder nicht gespeichert (151) · Payload speichert Winkel
+  ohne Firstgehrung (153) · Druck bringt den Winkelteil trotzdem (153) ·
+  Kennzeichnung bricht im Wort (156) · Längenfelder zusammengedrückt
+  (156). Dazu drei für Teil A: Ort-/Seitenbleche ohne Breite (43/46) ·
+  Einfassung ohne Zuschnitt (44) · Rinne nur Länge (44).
+- **Ein echter Fehler kam aus einer dieser Prüfungen**: ohne Firstgehrung
+  blieb die Ergebnisanzeige der Vorlage in Register 2 offen stehen.
+- Volle Regression grün, Regierapport unverändert.
+
+### 89.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`.
+  **Das wird ausdrücklich nicht als getestet behauptet.**
+- Lukarne bleibt bei `B × L` (89.2).
+- Trauf- und Firstlänge gehören zur einzelnen Massaufnahme, nicht zu den
+  Einstellungen – sie hängen vom Dach ab. Ein Vorgabewert je Gerät wäre
+  eine spätere, eigene Entscheidung.

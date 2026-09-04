@@ -213,7 +213,10 @@ function buildMeasurementFromForm(){
   // mitgespeichert, damit ein spaeter gedrucktes PDF unveraendert bleibt
   // (gleiches Vorgehen wie bei Anschlussblech/Einfassung Rund).
   const e=kehleEingabenAusFeldern();
-  const g=kehleBerechnen(e);
+  // Ohne Firstgehrung wird nicht gerechnet - dann werden auch keine Winkel
+  // gespeichert statt Platzhalter abzulegen.
+  const mitGehrung=(typeof keaMitGehrung==="function")?keaMitGehrung():true;
+  const g=mitGehrung?kehleBerechnen(e):{ok:false};
   const werte={};
   if(g&&g.ok)["Q","R","S","T","tanU","tanV","U","V","U90","V90","W","A","X","Y","Z","AA","AB","AC","AD","AE",
    "b","c","d","e","f","g","h","i","k","l","m","n","o","p","mitte"].forEach(k=>{werte[k]=g[k]});
@@ -307,8 +310,13 @@ $("saveMeasurement").onclick=async()=>{
   if(!(Number(e.a)>0)||!(Number(e.c)>0)){alert("Bitte mindestens die Masse a und c eingeben.");return}
  }
  if(type==="kehle"){
-  const g=kehleBerechnen(kehleEingabenAusFeldern());
-  if(!g.ok){alert(g.fehler.join("\n"));return}
+  // Ohne Firstgehrung wird gar nicht gerechnet - dann darf das Speichern
+  // auch keine Neigungen verlangen.
+  const mitGehrung=(typeof keaMitGehrung==="function")?keaMitGehrung():true;
+  if(mitGehrung){
+   const g=kehleBerechnen(kehleEingabenAusFeldern());
+   if(!g.ok){alert(g.fehler.join("\n"));return}
+  }
   if(typeof kehleA==="object"&&kehleA){
    if(!kehleA.material){alert("Bitte ein Material wählen.");return}
    if(!(kehleA.segmente||[]).length){alert("Bitte mindestens ein Segment erfassen.");return}
@@ -944,8 +952,8 @@ ${(erg&&erg.ohneZuschnitt&&erg.ohneZuschnitt.length)?`<div class="note">${erg.oh
 ${(erg&&erg.anzahlBleilappen!==null)?`<div class="note"><b>Anzahl Bleilappen:</b> ${esc(erg.anzahlBleilappen)} (Lattenabstand ${esc(Math.round(d.lattenabstand||0))} mm)</div>`:""}
 ${stuecke.length?`<div class="eb-section-head">Stückliste</div>
 <table class="eb-cutlist">
-<thead><tr><th>Stück</th><th>Zuschnitt Länge (mm)</th><th>Zuschnitt Breite (mm)</th></tr></thead>
-<tbody>${stuecke.map(s=>`<tr><td>${esc(s.nr)}${s.gehrung?" · First":""}</td><td>${esc(Math.round(s.laenge))}</td><td>${esc(Math.round(abw))}</td></tr>`).join("")}</tbody>
+<thead><tr><th>Stück</th><th>Zuschnitt L × B (mm)</th></tr></thead>
+<tbody>${stuecke.map(s=>`<tr><td>${esc(s.nr)}${s.gehrung?" · First":""}</td><td>${esc(pdfLxB(s.laenge,abw))}</td></tr>`).join("")}</tbody>
 </table>
 ${(()=>{const l=stuecke[stuecke.length-1];return (l&&l.gehrung)?`<div class="note">Endstück mit Firstgehrung: ${esc(Math.round(l.laengeOhneGehrung))} mm plus ${esc(Math.round(l.laenge-l.laengeOhneGehrung))} mm Gehrungszugabe.</div>`:""})()}`:""}
 ${(erg&&erg.warnungen.length)?`<div class="note" style="color:#b42318">${erg.warnungen.map(w=>esc(w)).join("<br>")}</div>`:""}
@@ -966,7 +974,8 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Eindeckungsart",esc(deckName))}${cell("&Oslash; Standrohr",esc(Math.round(d.durchmesser||0))+" mm")}</tr>
 <tr>${cell("Winkel / Dachneigung",esc(d.winkel||0)+"°")}${cell("Material",matName)}</tr>
 <tr>${cell("Zuschnittbreite (Querschnitt)",esc(Math.round(abw))+" mm")}${cell("Breite der gesamten Einfassung",breiteGesamt?esc(Math.round(breiteGesamt))+" mm":"–")}</tr>
-<tr>${cell("Anzahl Bleilappen",anzahlBleilappen!==null?esc(anzahlBleilappen):"–")}${cell("Lattenabstand",esc(Math.round(d.lattenabstand||0))+" mm")}</tr>
+<tr>${cell("Zuschnitt L × B",breiteGesamt?esc(pdfLxB(breiteGesamt,abw))+" mm":"–")}${cell("Anzahl Bleilappen",anzahlBleilappen!==null?esc(anzahlBleilappen):"–")}</tr>
+<tr>${cell("Lattenabstand",esc(Math.round(d.lattenabstand||0))+" mm")}<td></td></tr>
 </table>
 <div class="eb-section-head">Schnitt</div>
 <div class="eb-diagram">${einfZeichnung(d)}</div>
@@ -1173,14 +1182,20 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="eb-diagram">${skizze}</div>
 <div class="eb-section-head">Rinnenst\u00fccke</div>
 <table class="eb-cutlist">
-<thead><tr><th>Nr.</th><th>Links${varListe.length?" "+esc(varListe.map(v=>v.buchstabe).join("/")):""}</th><th>L\u00e4nge M/M</th><th>Rechts${varListe.length?" "+esc(varListe.map(v=>v.buchstabe).join("/")):""}</th><th>Ansetzen L</th><th>Ansetzen R</th><th>Abw. L</th><th>Abw. R</th><th>Zuschnitt</th></tr></thead>
+<thead><tr><th>Nr.</th><th>Links${varListe.length?" "+esc(varListe.map(v=>v.buchstabe).join("/")):""}</th><th>L\u00e4nge M/M</th><th>Rechts${varListe.length?" "+esc(varListe.map(v=>v.buchstabe).join("/")):""}</th><th>Ansetzen L</th><th>Ansetzen R</th><th>Abw. L</th><th>Abw. R</th><th>Zuschnitt L \u00d7 B</th></tr></thead>
 <tbody>${stuecke.map((st,i)=>{
  const g=wert(st);
  return `<tr><td>${i+1}</td><td>${esc(seiteText(st.links))}</td><td>${esc(mm(st.laenge))}</td><td>${esc(seiteText(st.rechts))}</td>`
   +`<td>${esc(RINNE_ANSETZ_LABELS[st.ansetzL]||st.ansetzL||"")}</td><td>${esc(RINNE_ANSETZ_LABELS[st.ansetzR]||st.ansetzR||"")}</td>`
-  +`<td>${esc(mm(g.l))}</td><td>${esc(mm(g.r))}</td><td>${esc(mm(g.z))}</td></tr>`;
+  // Die Breite des Streifens ist die groessere der beiden Abwicklungen -
+ // ein konisches Stueck muss auf der breiteren Seite Platz haben.
+  +`<td>${esc(mm(g.l))}</td><td>${esc(mm(g.r))}</td>`
+  +`<td>${esc(pdfLxB(g.z,Math.max(Number(g.l)||0,Number(g.r)||0)))}</td></tr>`;
 }).join("")}</tbody>
 </table>
+${stuecke.some(st=>{const g=wert(st);return Math.round(Number(g.l)||0)!==Math.round(Number(g.r)||0)})
+ ?`<div class="note">Bei einem St\u00fcck mit unterschiedlicher Abwicklung links und rechts bestimmt die
+<b>gr\u00f6ssere</b> Seite die Streifenbreite.</div>`:""}
 <table class="eb-info-table" style="margin-top:2mm">
 <tr>${cell2("Zuschnittl\u00e4nge gesamt",esc(mm(summeZuschnitt)+" mm"))}<td></td></tr>
 </table>
@@ -1198,8 +1213,11 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
    return esc(kehleWert(k,Number(v)));
   };
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  // Ohne Firstgehrung gibt es keinen Winkel - dann stehen die drei
+  // Winkelabschnitte gar nicht erst da, statt Striche zu drucken.
+  const mitGehrung=(d.firstgehrung!==false);
   bodyHtml=`${kopfHtml}
-<div class="eb-section-head">Eingaben</div>
+${mitGehrung?`<div class="eb-section-head">Eingaben</div>
 <table class="eb-info-table">
 <tr>${cell("Neigung Hauptdach (NH)",esc(d.nh!==undefined&&d.nh!==null?d.nh+"\u00b0":"\u2013"))}${cell("Neigung Lukarne (NL)",esc(d.nl!==undefined&&d.nl!==null?d.nl+"\u00b0":"\u2013"))}${cell("Gef\u00e4llsl\u00e4nge Lukarne (GL)",esc(d.gl!==undefined&&d.gl!==null?d.gl+" mm":"\u2013"))}</tr>
 </table>
@@ -1211,7 +1229,7 @@ ${["b","c","d"].map(k=>`<div><span class="bu">${k}</span><span class="wert">${we
 <table class="eb-cutlist">
 <thead><tr><th style="width:10%">Zeichen</th><th>Bezeichnung</th><th style="width:22%">Wert</th></tr></thead>
 <tbody>${["A","e","f","g","h","i","k","l","m","n","o","p"].map(k=>`<tr><td>${k}</td><td>${esc(KEHLE_LABELS[k])}</td><td>${wert(k)}</td></tr>`).join("")}</tbody>
-</table>
+</table>`:`<div class="note">Ohne Firstgehrung \u2013 es wurde kein Winkel berechnet.</div>`}
 ${(()=>{
  // Alles Folgende steht nur, wenn es im Datensatz liegt: eine vor v2.83
  // gespeicherte Kehle druckt unveraendert ohne diese Abschnitte, und es
@@ -1222,13 +1240,17 @@ ${(()=>{
  let h="";
  if(matName||d.abwicklung||mr){
   h+=`<div class="eb-section-head">Kehlblech</div>
-<table class="eb-info-table"><tr>${cell("Material",esc(matName||"\u2013"))}${cell("Abwicklung",d.abwicklung?esc(d.abwicklung)+" mm":"\u2013")}${cell("Ausf\u00fchrung",esc(mr||"\u2013"))}</tr></table>`;
+<table class="eb-info-table"><tr>${cell("Material",esc(matName||"\u2013"))}${cell("Abwicklung",d.abwicklung?esc(d.abwicklung)+" mm":"\u2013")}${cell("Ausf\u00fchrung",esc(mr||"\u2013"))}</tr>
+<tr>${cell("Firstgehrung",mitGehrung?"ja":"nein")}${cell("Traufst\u00fcck",Number(d.traufLaenge)>0?esc(Math.round(d.traufLaenge))+" mm":"\u2013")}${cell("Firstst\u00fcck",Number(d.firstLaenge)>0?esc(Math.round(d.firstLaenge))+" mm":"\u2013")}</tr></table>`;
  }
  if(segs.length){
   h+=`<div class="eb-section-head">Zuschnittliste</div>
 <table class="eb-cutlist">
 <thead><tr><th style="width:10%">Nr.</th><th>L\u00e4nge Stoss/Stoss (mm)</th><th>\u00dcberlappung (mm)</th><th>Zuschnitt L \u00d7 B (mm)</th></tr></thead>
-<tbody>${segs.map((sg,i)=>`<tr><td>${i+1}</td><td>${esc(Math.round(Number(sg.laenge)||0))}</td><td>${esc(Math.round(Number(sg.ueberlappung)||0))}</td><td>${esc(pdfLxB(sg.zuschnitt!=null?sg.zuschnitt:(Number(sg.laenge)||0)+(Number(sg.ueberlappung)||0),d.abwicklung))}</td></tr>`).join("")}</tbody>
+<tbody>${segs.map((sg,i)=>{
+   const rolle=sg.rolle==="trauf"?" \u00b7 Traufst\u00fcck":(sg.rolle==="first"?" \u00b7 Firstst\u00fcck":"");
+   return `<tr><td>${i+1}${esc(rolle)}</td><td>${esc(Math.round(Number(sg.laenge)||0))}</td><td>${esc(Math.round(Number(sg.ueberlappung)||0))}</td><td>${esc(pdfLxB(sg.zuschnitt!=null?sg.zuschnitt:(Number(sg.laenge)||0)+(Number(sg.ueberlappung)||0),d.abwicklung))}</td></tr>`;
+  }).join("")}</tbody>
 </table>
 <table class="eb-info-table" style="margin-top:2mm"><tr>${cell("Zuschnitt gesamt",esc(Math.round(Number(d.zuschnittSumme)||0))+" mm")}${d.flaeche_m2?cell("Blechfl\u00e4che",esc(Number(d.flaeche_m2).toFixed(2).replace(".",","))+" m\u00b2"):"<td></td>"}<td></td></tr></table>`;
  }
