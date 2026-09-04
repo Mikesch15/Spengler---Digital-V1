@@ -283,6 +283,42 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  });
  p(rechnung.anzahl>0&&rechnung.gehrung,
    "baueEinlaufblechStueckeAusRinne aus js/13 ist erreichbar und macht Gehrungen",rechnung);
+ // Und die Uebernahme muss im MODELL ankommen, nicht nur in ebPieces. Ohne
+ // diese Pruefung blieb der Fehler aus v2.74/v2.75 unentdeckt: ebaBruecke()
+ // hat ebPieces beim naechsten Zeichnen wieder mit dem alten Stand
+ // ueberschrieben, der Speicher-Payload enthielt danach 0 Stuecke.
+ const uebernahme=await page.evaluate(()=>{
+  const segs=[{laenge:5000,winkel:-90},{laenge:3000,winkel:0}];
+  ebRinneCache=[{id:1,title:"Rinne Nord",date:"2026-09-01",data:{segments:segs}}];
+  zeigeRinneUebernahmeListe("eb_rinneHint","eb_rinneList",
+    {liste:ebRinneCache,fehler:null},"pick-eb-rinne");
+  const soll=baueEinlaufblechStueckeAusRinne(segs,einlaufblechSettings,
+    l=>teileLaengeInStuecke(l,einlaufblechSettings),false);
+  const knopf=document.querySelector("[data-pick-eb-rinne]");
+  if(!knopf)return {fehlt:true};
+  knopf.click();
+  return {soll:soll.map(x=>x.laenge).join(), modell:ebA.stuecke.map(x=>x.laenge).join(),
+          gleich:ebPieces===ebA.stuecke};
+ });
+ await page.waitForTimeout(250);
+ p(uebernahme.modell===uebernahme.soll,
+   "die uebernommenen Stuecke stehen im Modell, nicht nur in ebPieces",uebernahme);
+ p(uebernahme.gleich,"und Modell und ebPieces sind wieder dasselbe Array",uebernahme);
+ const bleibt=await page.evaluate(()=>{
+  ebaSetzeSchritt(1); ebaSetzeSchritt(3);
+  measSelectedProjectId=7; $("measTitle").value="Halle";$("measDate").value="2026-09-04";
+  const pl=buildMeasurementFromForm();
+  return {modell:ebA.stuecke.length, gespeichert:(pl.data.pieces||[]).length};
+ });
+ p(bleibt.modell>0&&bleibt.gespeichert===bleibt.modell,
+   "sie ueberleben das Neuzeichnen und landen im Speicher-Payload",bleibt);
+ // Danach wieder der Zwei-Stueck-Stand fuer die folgenden Abschnitte
+ await page.evaluate(()=>{
+  ebA.stuecke=[{laenge:2170,stossStoss:2000,gehrungLinks:false,gehrungRechts:true,winkel:90},
+               {laenge:1560,stossStoss:1450,gehrungLinks:true,gehrungRechts:false,winkel:0,endzugabeEnd:10}];
+  ebA.massA=120; ebA.winkel=25; ebA.gava.aktiv=true;
+  renderEinlaufblechAufnahme();
+ });
 
  console.log("\nJ · Speichern und Wiederoeffnen");
  const pay=await page.evaluate(()=>{

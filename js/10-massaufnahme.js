@@ -357,6 +357,7 @@ function newMeasurementWithType(type){
  $("ebk_dachneigung").value="";
  $("ebk_montage").value="links";
  $("ebk_material").value="";
+ if(typeof ebkaZuruecksetzen==="function")ebkaZuruecksetzen();
  renderEbkPiecesTable();
  fpSchenkel=[];
  fpSegmente=[];
@@ -465,6 +466,7 @@ function openMeasurement(m){
  $("ebk_dachneigung").value=d.dachneigung||"";
  $("ebk_montage").value=d.montage||"links";
  $("ebk_material").value=findMeasurementMaterial(d.material)?.id??"";
+ if(m.type==="einlaufblech_konisch"&&typeof ebkaFuellen==="function")ebkaFuellen(d);
  if(m.type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
  fpSchenkel=(m.type==="freies_profil"&&Array.isArray(d.schenkel))?d.schenkel.map(s=>({...s})):[];
  fpSegmente=(m.type==="freies_profil"&&Array.isArray(d.segmente))?d.segmente.map(s=>({...s,massen:(s.massen||[]).map(mm=>({...mm}))})):[];

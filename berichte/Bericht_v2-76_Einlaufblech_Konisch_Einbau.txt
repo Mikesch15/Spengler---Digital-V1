@@ -1,0 +1,135 @@
+SPENGLER-DIGITAL · Version 2.76
+Einlaufblech konisch als Register-Aufnahme in die App eingebaut
+
+Branch: main
+Datum:  04.09.2026
+
+
+================================================================
+WAS SICH FUER DEN BENUTZER AENDERT
+================================================================
+
+Die Massaufnahme "Einlaufblech konisch" ist nicht mehr ein langes
+Formular, sondern fuehrt durch sechs Register - wie Rinne Halbrund
+(v2.71) und Einlaufblech gerade (v2.74):
+
+  1 Grunddaten · 2 Geometrie · 3 Stuecke · 4 Kontrolle ·
+  5 Ausmass · 6 Zuschnitt aus Rollenblech
+
+Danach kommt wie gewohnt "Fertig > Fotos und Speichern"; Fotos und
+Skizzen erscheinen erst dort, nicht schon waehrend der Erfassung.
+
+Neu dazugekommen:
+
+  - Weg "Gesamtlaenge eintragen -> Stuecke berechnen". Die Funktion war
+    in der App vorhanden, im konischen Formular aber nirgends
+    erreichbar.
+  - Eine Skizze je Stueck (Draufsicht): sie zeigt, WO Mass links und
+    Mass rechts gemessen werden. Die enge Seite ist rot.
+  - Konizitaet je Stueck (rechts minus links), als Anzeige.
+  - Verkettung: das rechte Mass eines Stuecks wird beim Tippen zum
+    linken des naechsten - danach frei ueberschreibbar.
+  - Kontrollschritt mit rotem Punkt am Register, sobald etwas fehlt.
+  - Ausmass und Materialuebersicht ohne zweite Eingabe, ohne
+    Artikelnummern und ohne Preise.
+  - Zuschnitt aus Rollenblech mit Tafeln, Streifenverteilung und
+    Verschnitt.
+
+Alles davon steht auch im PDF.
+
+
+================================================================
+EIN ECHTER FEHLER AUS v2.74/v2.75 MITBEHOBEN
+================================================================
+
+Beim Bauen der Bruecke ist aufgefallen, dass "Laengen aus Rinne
+uebernehmen" beim GERADEN Blech seit v2.74 kaputt war. Im Browser
+nachgemessen, nicht vermutet:
+
+  nach der Uebernahme:            5 Stuecke uebernommen
+  nach dem naechsten Zeichnen:    0 Stuecke
+  gespeichert:                    0 Stuecke
+
+Der Benutzer sah "5 Stueck uebernommen" und speicherte anschliessend
+ein leeres Blech. Das ist genau das Feedback FB6 aus v2.70.
+
+Ursache: die Fachdatei ersetzt bei der Uebernahme das Stueck-Array
+durch ein neues; die Register-Aufnahme hat es beim naechsten Zeichnen
+wieder mit ihrem eigenen, alten Stand ueberschrieben.
+
+Behoben. Die Uebernahme wird jetzt dort abgeholt, wo sie passiert.
+Der Pruefstand hatte sie bis dahin nur nachgerechnet, nie geklickt -
+deshalb blieb der Fehler unentdeckt. Er klickt jetzt den echten Knopf.
+
+
+================================================================
+WAS NICHT ANGEFASST WURDE
+================================================================
+
+Die Fachrechnung bleibt vollstaendig, wo sie ist. Wichtig zu wissen:
+der Rechenkern des konischen Blechs liegt NICHT in
+js/13-einlaufblech-konisch.js, sondern in js/14-freies-profil.js.
+Beide Dateien und js/11 sind byteweise unveraendert.
+
+Regierapport: der Ausdruck wurde in echtem Chromium unter media:print
+gegen den v2.75-Stand gerendert - byteidentisch. js/06-rapport.js,
+js/08-katalog-blitzschutz.js und css/03-druck.css sind nicht im Diff.
+
+Keine Datenbankaenderung, keine Migration, keine RLS- oder
+Storage-Aenderung. Eine vor v2.76 gespeicherte Aufnahme oeffnet
+unveraendert und druckt ohne die neuen Abschnitte.
+
+
+================================================================
+GETESTET
+================================================================
+
+Neuer Pruefstand (echtes Chromium gegen die echte index.html):
+113 von 113 Pruefungen.
+
+Dazu 13 Gegenproben - jede baut absichtlich einen Fehler ein und muss
+den Pruefstand umwerfen. Alle 13 tun das.
+
+Ehrlich dazu: die erste Fassung EINER Gegenprobe blieb gruen. Sie war
+selbst fehlerhaft. Eine Gegenprobe, die nicht fehlschlaegt, beweist
+nichts - sie wurde ersetzt und schlaegt jetzt korrekt fehl.
+
+Volle Regression aller bestehenden Pruefstaende gruen:
+einlaufblech-app 98/98, medien-am-ende 49/49, rinneapp71 102/102,
+verschnitt-app 1578/1578, dila-sichtbar 57/57.
+
+
+================================================================
+NICHT GETESTET - UND DAS WIRD AUCH NICHT BEHAUPTET
+================================================================
+
+Kein Live-Klicktest gegen Supabase. Die Sandbox blockiert ausgehende
+HTTPS-Verbindungen dorthin, wie in jeder vorherigen Sitzung. Geprueft
+ist die Oberflaeche in echtem Chromium gegen die echte index.html;
+die Datenbankseite wurde in dieser Runde gar nicht angefasst.
+
+Kein Test auf einem echten Android-Tablet. Geprueft sind fuenf
+Bildschirmbreiten (360, 412, 768, 1024, 1280 px) ueber alle sechs
+Register, nicht Fingerbedienung oder Kamera.
+
+
+================================================================
+OFFEN FUER DEN PRAXISTEST
+================================================================
+
+1. Die 2 mm beim engen Mass sind in der App fest verdrahtet und wurden
+   uebernommen, nicht hinterfragt.
+
+2. Bei einer Gehrung wird das Nachbarstueck NICHT automatisch
+   mitgesetzt - so wie im bestehenden konischen Modul. Beim geraden
+   Blech ist es anders. Ist der Unterschied gewollt?
+
+3. Der neue Weg "Gesamtlaenge -> Stuecke berechnen": im Alltag
+   gewuenscht, oder sollen die Stuecke bewusst einzeln angelegt werden?
+
+4. Verschnitt weiterhin ohne Schnittfuge und ohne Wiederverwendung von
+   Reststuecken - dafuer fehlen die Zahlen des Betriebs.
+
+5. Rollenbreiten: 1000 und 670 mm als Standard, die uebrigen zuschaltbar
+   in Einstellungen -> Massaufnahmen -> Einlaufblech gerade. Sie gelten
+   firmenweit fuer beide Blecharten. Ist die Liste vollstaendig?

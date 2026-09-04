@@ -68,6 +68,9 @@ let ebA=ebaLeer();
 // Felder wie bisher.
 function ebaBruecke(){
  const a=ebA;
+ // Eine Wahrheit: ebPieces IST das Stueck-Array des Modells. Wer es von
+ // aussen ersetzt (js/15 bei der Rinnen-Uebernahme), holt es dort ab, wo es
+ // passiert - siehe den Klick-Handler weiter unten.
  ebPieces=a.stuecke;
  const setz=(id,wert)=>{const f=$(id); if(f)f.value=String(wert)};
  setz("eb_massA",a.massA===""?"":a.massA);
@@ -656,6 +659,17 @@ function ebaVerdrahten(){
  });
 
  wurzel.addEventListener("click",e=>{
+  // Die Rinnen-Uebernahme von js/15 haengt am Listen-Element selbst und
+  // laeuft durch das Blubbern ZUERST. Sie ersetzt ebPieces durch ein NEUES
+  // Array - ohne die folgende Zeile wuerde ebaBruecke() es beim naechsten
+  // Zeichnen wieder mit dem alten Stand ueberschreiben und die uebernommenen
+  // Stuecke waeren lautlos weg (in v2.74/v2.75 nachgemessen: der
+  // Speicher-Payload enthielt danach 0 Stuecke). Hat js/15 abgebrochen,
+  // ist ebPieces unveraendert und die Bedingung greift nicht.
+  if(e.target.closest("[data-pick-eb-rinne]")){
+   if(Array.isArray(ebPieces)&&ebPieces!==ebA.stuecke)ebA.stuecke=ebPieces;
+   renderEinlaufblechAufnahme(); return;
+  }
   const t=e.target.closest("button,[data-eba-schritt]");
   if(!t)return;
   const d=t.dataset||{}, a=ebA;
@@ -726,8 +740,8 @@ function ebaAusData(d){
 // Nach dem Setzen wird neu gezeichnet - sonst zeigt das Register noch den
 // vorherigen Stand (showMeasTypeSection laeuft in openMeasurement VOR dem
 // Fuellen).
-function ebaZuruecksetzen(){ebA=ebaLeer(); ebaSchritt=1; ebaRinneListeFuer=undefined; ebaVerdrahten(); renderEinlaufblechAufnahme()}
-function ebaFuellen(d){ebA=ebaAusData(d); ebaSchritt=1; ebaRinneListeFuer=undefined; ebaVerdrahten(); renderEinlaufblechAufnahme()}
+function ebaZuruecksetzen(){ebA=ebaLeer(); ebaSchritt=1; ebaRinneListeFuer=undefined; ebPieces=ebA.stuecke; ebaVerdrahten(); renderEinlaufblechAufnahme()}
+function ebaFuellen(d){ebA=ebaAusData(d); ebaSchritt=1; ebaRinneListeFuer=undefined; ebPieces=ebA.stuecke; ebaVerdrahten(); renderEinlaufblechAufnahme()}
 
 // ---- Zusatzfelder für den Speicher-Payload ---------------------------------
 // js/16 schreibt weiterhin genau dieselben acht Felder wie bisher und hängt

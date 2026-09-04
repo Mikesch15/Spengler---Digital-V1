@@ -27,7 +27,7 @@ const sichtbar=page=>page.evaluate(()=>{
 });
 const alleArten=["skizze_foto","einlaufblech_gerade","rinne_halbrund","einlaufblech_konisch",
  "freies_profil","mauerabdeckung","lukarne","anschlussblech","einfassung_rund","kehle","rinne"];
-const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade"];
+const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch"];
 
 (async()=>{
  const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
@@ -50,7 +50,7 @@ const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade"];
   if(typeof renderMeasMaterialOptions==="function")renderMeasMaterialOptions();
  });
 
- console.log("\nA · Die neun uebrigen Arten zeigen den Bereich sofort");
+ console.log("\nA · Die uebrigen Arten zeigen den Bereich sofort");
  for(const art of alleArten.filter(a=>MIT_REGISTERN.indexOf(a)<0)){
   await page.evaluate(a=>{
    if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
@@ -76,7 +76,8 @@ const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade"];
   p(zu.display==="none",art+": wirklich display:none (nicht nur hidden-Attribut)",zu.display);
 
   // Durch alle Register blaettern - er bleibt zu
-  const setzeSchritt=art==="rinne_halbrund"?"raSetzeSchritt":"ebaSetzeSchritt";
+  const setzeSchritt=art==="rinne_halbrund"?"raSetzeSchritt"
+   :(art==="einlaufblech_konisch"?"ebkaSetzeSchritt":"ebaSetzeSchritt");
   let offenUnterwegs=0;
   for(let n=1;n<=5;n++){
    await page.evaluate(([f,k])=>window[f]?window[f](k):eval(f+"("+k+")"),[setzeSchritt,n]);
@@ -91,7 +92,8 @@ const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade"];
   await page.waitForTimeout(120);
   const vor=await sichtbar(page);
   p(!vor.sichtbar,art+": auf Register 6 noch zugeklappt",vor);
-  const knopf=art==="rinne_halbrund"?"#ra_weiter":"#eba_weiter";
+  const knopf=art==="rinne_halbrund"?"#ra_weiter"
+   :(art==="einlaufblech_konisch"?"#ebka_weiter":"#eba_weiter");
   const beschriftung=await page.evaluate(s=>{const e=document.querySelector(s);return e?e.textContent.trim():""},knopf);
   p(/Fertig/.test(beschriftung),art+": der Knopf heisst Fertig",beschriftung);
   const r=await klick(page,knopf);

@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.75</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.76</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -936,15 +936,12 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 
 
 <div id="measTypeEinlaufblechKonisch" hidden>
-<div class="info">Jedes Stück ist max. 2m lang (inkl. Überlappung/Reststück). Mass links und rechts sind pro Stück frei wählbar (konischer Verlauf). Werte für Stoss-Länge, Überlappung, Restschwelle und Umschläge stammen aus Einstellungen → Massaufnahmen → "Einlaufblech konisch" (eigene Werte, unabhängig von "Einlaufblech gerade").</div>
-<div class="grid">
-<div><label>Dachneigung / Winkel (°)</label><input id="ebk_dachneigung" data-pflicht="1" type="number" step="0.1"></div>
-<div><label>Montage</label><select id="ebk_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select></div>
-<div><label>Abwicklung (mm)</label><select id="ebk_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select></div>
-<div><label>Material</label><select id="ebk_material" class="meas-material-select"></select></div>
-</div>
+<div id="einlaufblechKonischAufnahme"></div>
 
-<div class="settings-section" data-section="ebk-uebernahme" style="margin:8px 0 10px">
+<!-- Die Rinnen-Übernahme steht fest im HTML und wird von js/30 nur ein- und
+     ausgeblendet: js/14 hängt beim Laden einen Klick-Handler an
+     #ebk_rinneList, der beim Neuzeichnen per innerHTML verloren ginge. -->
+<div class="settings-section" id="ebkaRinneBox" data-section="ebk-uebernahme" style="margin:8px 0 10px" hidden>
 <div class="settings-section-head" data-toggle-section="ebk-uebernahme"><h2 style="font-size:12px">↩️ Stücke aus Rinne Halbrund übernehmen</h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="small" id="ebk_rinneHint">Bitte zuerst oben ein Projekt auswählen.</div>
@@ -952,23 +949,24 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 </div>
 </div>
 
-<div id="ebk_diagram" class="eb-diagram-box" style="margin-top:18px"></div>
-
-<h2 style="margin-top:14px">Stücke</h2>
-<div class="small" id="ebk_engeSeiteHint" style="margin-bottom:4px"></div>
-<div class="scroll">
-<table class="eb-table">
-<colgroup><col style="width:6%"><col style="width:11%"><col style="width:13%"><col style="width:8%"><col style="width:8%"><col style="width:12%"><col style="width:13%"><col style="width:12%"><col style="width:12%"><col style="width:7%"></colgroup>
-<thead><tr><th>Nr.</th><th>Länge Stoss/Stoss (mm)</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Winkel (°)</th><th>Mass links (mm)</th><th>Mass rechts (mm)</th><th id="ebk_engHeader">Eng (mm)</th><th></th></tr></thead>
-<tbody id="ebk_piecesBody"></tbody>
-</table>
+<!-- Nur Aufhänger für js/14-freies-profil.js (dort liegt der Rechenkern des
+     konischen Blechs) und js/13-einlaufblech-konisch.js, damit diese
+     Fachdateien unverändert laden und rechnen können. Nicht sichtbar, nicht
+     bedienbar: die Erfassung läuft über #einlaufblechKonischAufnahme. -->
+<div id="ebkStummel" hidden aria-hidden="true">
+ <input id="ebk_dachneigung" type="number" step="0.1">
+ <select id="ebk_montage"><option value="links">von links</option><option value="rechts">von rechts</option></select>
+ <select id="ebk_abwicklung"><option value="200">200</option><option value="250" selected>250</option><option value="330">330</option></select>
+ <select id="ebk_material" class="meas-material-select"></select>
+ <button type="button" id="ebk_addPiece"></button>
+ <button type="button" id="ebk_toggleEndzugabeStart"></button>
+ <button type="button" id="ebk_toggleEndzugabeEnd"></button>
+ <div id="ebk_diagram"></div>
+ <div id="ebk_grundriss"></div>
+ <div id="ebk_engeSeiteHint"></div>
+ <div id="ebk_summary"></div>
+ <table><thead><tr><th id="ebk_engHeader"></th></tr></thead><tbody id="ebk_piecesBody"></tbody></table>
 </div>
-<div class="bar"><button type="button" class="gray" id="ebk_addPiece">＋ Stück hinzufügen</button></div>
-<div class="bar"><button type="button" class="gray" id="ebk_toggleEndzugabeStart">Endzugabe erstes Stück: aus</button><button type="button" class="gray" id="ebk_toggleEndzugabeEnd">Endzugabe letztes Stück: aus</button></div>
-<div class="small" id="ebk_summary"></div>
-<h2 style="margin-top:14px">Grundriss</h2>
-<div class="info">Winkel = Richtungsänderung nach diesem Stück (positiv/negativ für beide Richtungen möglich, 0 = keine Ecke).</div>
-<div id="ebk_grundriss" class="eb-diagram-box"></div>
 </div>
 
 <div id="measTypeFreiesProfil" hidden>
@@ -1561,6 +1559,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/26-rinne.js"></script>
 <script src="js/28-rinne-aufnahme.js"></script>
 <script src="js/29-einlaufblech-aufnahme.js"></script>
+<script src="js/30-einlaufblech-konisch-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

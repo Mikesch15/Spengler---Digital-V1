@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.75, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.76, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.75**
+- sichtbare App-Version: **2.76**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -12525,3 +12525,214 @@ fehlerfrei, `<div>` 714/714, keine doppelten IDs.
   auswählen", solange kein Projekt gewählt ist – unverändert aus js/13.
 - Aus v2.74 offen: die fest verdrahteten 2 mm beim engen Mass A, der
   GAVA-Vorgabewert 500 mm, Schnittfuge und Reststücke im Verschnitt.
+
+## 84. EINLAUFBLECH KONISCH IN DIE APP EINGEBAUT — VERSION 2.76
+
+Die Massaufnahme **Einlaufblech konisch** wird nicht mehr als ein langes
+Formular erfasst, sondern über **sechs Register** – nach demselben Muster
+wie Rinne Halbrund (v2.71) und Einlaufblech gerade (v2.74). Grundlage ist
+der Prototyp unter `prototyp-einlaufblech-konisch/`
+(Branch `feature/prototype-einlaufblech-konisch`), der unverändert bestehen
+bleibt.
+
+    1 Grunddaten · 2 Geometrie · 3 Stücke · 4 Kontrolle ·
+    5 Ausmass · 6 Zuschnitt aus Rollenblech
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung.**
+
+### 84.1 Der Rechenkern liegt in js/14, nicht in js/13
+
+Wichtigster Befund der Analyse, weil er der Dateiname widerspricht:
+`js/13-einlaufblech-konisch.js` enthält **nicht** den Rechenkern des
+konischen Blechs, sondern die Bausteine, die sich das gerade und das
+konische Blech teilen – `teileLaengeInStuecke()`,
+`splitLengthIntoPieces()`, `generateEbkGrundriss()`,
+`baueEinlaufblechStueckeAusRinne()`. Der Rechenkern liegt in
+**`js/14-freies-profil.js`**: `calcEbkPiece()` (enges Mass = Mass − 2 je
+Seite), `ebkRestbreite()`, `ebkEngeSeite()`, `renderEbkDiagram()`,
+`renderEbkPiecesTable()`, `refreshEbkRinneList()` und das Array
+`ebkPieces`. Die Schnittzeichnung kommt aus
+`js/11-einlaufblech-gerade.js`.
+
+**Alle drei Dateien sind byteweise unverändert** – per `git diff`
+bestätigt.
+
+### 84.2 Brücke statt Nachbau
+
+`ebkaBruecke()` (js/30) setzt `ebkPieces` und die alten Formularfelder
+aus dem erfassten Stand; danach liefern die Funktionen der App direkt die
+richtigen Werte:
+
+```js
+function ebkaEngeSeite(){ebkaBruecke();return ebkEngeSeite()}
+function ebkaRestbreite(p){return ebkRestbreite(ebkaMassEngerSeite(p),ebkA.abwicklung)}
+```
+
+`ebkPieces` **ist** `ebkA.stuecke` – eine Wahrheit, kein Abgleich. Die
+zehn Elemente, die js/14 beim Laden erwartet, stehen weiterhin im HTML,
+jetzt als unsichtbarer Block `#ebkStummel`. Der Übernahme-Block
+(`#ebk_rinneHint`/`#ebk_rinneList`) steht **fest und sichtbar** im HTML
+und wird von js/30 nur in Register 3 eingehängt – ein per `innerHTML` neu
+erzeugtes Element hätte den Klick-Handler von js/14 verloren.
+
+### 84.3 Ein echter Fehler in der Rinnen-Übernahme (v2.74/v2.75) behoben
+
+Beim Bauen der Brücke fiel auf, dass derselbe Mechanismus beim **geraden**
+Blech seit v2.74 kaputt war. Im Browser nachgemessen, nicht vermutet:
+
+| Schritt | ebPieces | ebA.stuecke | Speicher-Payload |
+|---|---|---|---|
+| nach der Übernahme | 5 | 0 | – |
+| nach dem nächsten Zeichnen | **0** | 0 | **0 Stücke** |
+
+Ursache: js/15 ersetzt bei der Übernahme `ebPieces` durch ein **neues**
+Array; `ebaBruecke()` schrieb beim nächsten Zeichnen wieder `ebPieces =
+ebA.stuecke` und warf den übernommenen Stand damit lautlos weg. Der
+Benutzer sah „5 Stück übernommen“ und speicherte anschliessend ein leeres
+Blech – genau das Feedback FB6 aus v2.70.
+
+Behoben in js/29 und von Anfang an richtig in js/30: die Übernahme wird
+**dort abgeholt, wo sie passiert**, im Klick-Handler, der durch das
+Blubbern nach dem Handler der Fachdatei läuft:
+
+```js
+if(e.target.closest("[data-pick-eb-rinne]")){
+ if(Array.isArray(ebPieces)&&ebPieces!==ebA.stuecke)ebA.stuecke=ebPieces;
+ renderEinlaufblechAufnahme(); return;
+}
+```
+
+Hat die Fachdatei abgebrochen (kein Segment, Rückfrage verneint), ist
+`ebPieces` unverändert und die Bedingung greift nicht. **Keine Heuristik
+in der Brücke** – ein erster Versuch, den fremden Stand dort zu erkennen,
+hat einen bewusst geleerten Stand wieder auferstehen lassen und wurde
+verworfen.
+
+Der Prüfstand der geraden Aufnahme hatte die Übernahme bis dahin nur
+**nachgerechnet**, nie geklickt – deshalb blieb der Fehler unentdeckt. Er
+klickt jetzt den echten Knopf und prüft Modell und Payload.
+
+### 84.4 Speichern: Superset
+
+js/16 schreibt **unverändert** dieselben sieben Felder wie bisher
+(`abwicklung`, `dachneigung`, `montage`, `engeSeite`, `pieces`,
+`gesamtlaenge`, `material`) und ergänzt sie nur um `flaeche_m2`,
+`ausmass` und `rollen`. Eine vor v2.76 gespeicherte Aufnahme öffnet
+unverändert und druckt ohne die neuen Abschnitte – beides im Prüfstand
+abgesichert.
+
+### 84.5 Neu gegenüber v2.75
+
+- **Weg „Gesamtlänge eintragen → Stücke berechnen“.**
+  `splitLengthIntoPieces()` war vorhanden, im konischen Formular aber
+  nirgends erreichbar. Jetzt derselbe Weg wie beim geraden Blech, über
+  dieselbe Funktion – keine zweite Aufteilungsrechnung.
+- **Skizze je Stück** (Draufsicht): zeigt, wo Mass links und Mass rechts
+  gemessen werden; die enge Seite ist rot. Reine Darstellung der
+  erfassten Werte, es wird nichts gerechnet.
+- **Konizität** (rechts − links) je Stück. Im bestehenden Modul gibt es
+  dafür weder Feld noch Funktion – sie wird angezeigt, nicht erfunden.
+- **Verkettung** rechts → links beim Tippen, wie in js/14, danach frei
+  überschreibbar.
+- **Kontrolle** mit rotem Punkt am Register: fehlende Pflichtmasse,
+  negative Werte, Winkel ausserhalb 0–180°, Restbreite ≤ 0, Stück länger
+  als Stoss/Stoss + Überlappung, widersprüchliche Masse an einer
+  Stossstelle. Keine erfundenen Grenzwerte.
+- **Ausmass und Materialübersicht** ohne zweite Eingabe, ohne
+  Artikelnummern und ohne Preise.
+- **Zuschnitt aus Rollenblech**, dieselbe Rechnung wie beim geraden
+  Blech: die Konizität entsteht beim Anreissen **innerhalb** des
+  Streifens und ändert die benötigte Fläche nicht. Gepackt wird mit
+  `ebaPackeInStreifen()` aus js/29 – es gibt bewusst nur **eine**
+  Packrechnung in der App.
+- **Fotos und Skizzen am Ende**: `MEAS_MEDIEN_AM_ENDE` um
+  `einlaufblech_konisch` erweitert (v2.75-Mechanik, unverändert).
+
+### 84.6 Getestet
+
+- **`pruefstaende/pruefstand-einlaufblech-konisch-app-v2-76.js` –
+  113/113**, echtes Chromium gegen die echte `index.html`: Modul und
+  Brücke (inkl. zwei Rechenproben direkt gegen js/14), sechs Register,
+  Geometrie (mittleres Mass gegen die Rohwerte unabhängig nachgerechnet,
+  und es muss die **enge**, nicht die breite Seite sein), Stücke mit
+  Tippen Zeichen für Zeichen und Fokusprüfung, Verkettung, Gehrung
+  (Nachbarstück bleibt unberührt – anders als beim geraden Blech),
+  Endzugabe, Aufteilung aus `splitLengthIntoPieces()`, Fläche und
+  Rollenplan, Ausmass, Kontrolle, **Rinnen-Übernahme über den echten
+  Knopf mit Prüfung von Modell und Payload**, Speichern/Wiederöffnen,
+  ein Datensatz im Format bis v2.75, leerer Zustand, Fotos erst nach
+  „Fertig“, Druck, fünf Bildschirmbreiten × sechs Register, keine
+  JS-Fehler.
+- **13 Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um: Brücke setzt `ebkPieces` nicht (108/113) · Übernahme
+  kommt nicht ins Modell (112) · eigene Stückaufteilung (112) ·
+  Verkettung entfernt (111) · mittleres Mass von der breiten Seite (111)
+  · Zusatzfelder nicht gespeichert (105) · Tafellänge = Summe (109) ·
+  Kontrolle meldet nie etwas (108) · Gehrung setzt das Nachbarstück doch
+  mit (112) · Füllen zeichnet nicht neu (112) · Fotos schon während der
+  Register sichtbar (112) · Übernahme-Block in den bei jedem Zeichnen neu
+  geschriebenen Teil (106) · Druck nimmt nicht den gespeicherten
+  Rollenplan (112).
+
+  Der erste Versuch für die Übernahme-Block-Gegenprobe blieb **grün** –
+  er hatte die folgende `insertBefore`-Zeile stehen lassen, die den
+  Block wieder eingehängt hat. Eine Gegenprobe, die nicht fehlschlägt,
+  ist kein Beweis: sie wurde durch eine ersetzt, die den Block wirklich
+  in den neu geschriebenen Teil legt, und schlägt jetzt mit 106/113 fehl.
+- **Volle Regression grün**: einlaufblech-app 98/98 (um die
+  Übernahme-Prüfung erweitert), medien-am-ende 49/49 (um den konischen
+  Typ erweitert), rinneapp71 102/102, verschnitt-app 1578/1578,
+  dila-sichtbar 57/57.
+- **Regierapport nachweislich unverändert**: der Druck wurde in echtem
+  Chromium unter `media:print` mit ausgelöstem `beforeprint` gegen den
+  v2.75-Stand gerendert – der Druck-DOM ist **byteidentisch**
+  (`22159288c1b3ec8568bff783f3a13b48`, 5345 Bytes). `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im
+  Diff.
+- `node --check` über alle 30 `js/*.js` und `sw.js` fehlerfrei,
+  `<div>`/`</div>` in `index.html` ausgeglichen (706/706), keine
+  doppelten Element-IDs.
+
+**Zwei überholte Erwartungen** in bestehenden Prüfständen angepasst,
+keine davon ein Codefehler: `medien-am-ende` führte
+`einlaufblech_konisch` unter den Arten, die den Fotobereich sofort
+zeigen; `einlaufblech-app` prüfte die Rinnen-Übernahme nur rechnerisch.
+Die zweite Anpassung ist zugleich die Lücke, durch die der Fehler aus
+84.3 gerutscht ist.
+
+### 84.7 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/30-einlaufblech-konisch-aufnahme.js` | **neu** – sechs Register, Brücke, Skizze je Stück, Ausmass, Rollenplan |
+| `index.html` | Registercontainer, Übernahme-Block, `#ebkStummel`, Script-Tag, Version 2.76 |
+| `js/16-massaufnahme-formular.js` | Modul zeichnen, Payload-Superset, Medien am Ende, Druck um Ausmass/Fläche/Rollenplan erweitert |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `js/29-einlaufblech-aufnahme.js` | Rinnen-Übernahme-Fehler behoben (84.3) |
+| `sw.js` | Cache-Version 2.76, neue Datei im SHELL |
+
+**Nicht angefasst**: `js/11`, `js/13`, `js/14`, `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js`, `css/03-druck.css`, `js/12`, `js/12b`,
+`js/15`, `js/17`, `js/19`–`js/28`, `css/01-basis.css` – per `git diff`
+einzeln bestätigt. Keine Berechnung, keine Stückliste, kein Zuschnitt,
+keine Abwicklung, kein Speichermodell und keine PDF-Kopflogik berührt.
+
+### 84.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Geprüft ist die Oberfläche in echtem Chromium
+  gegen die echte `index.html`.
+- Die **2 mm** beim engen Mass (`calcEbkPiece`) sind in js/14 fest
+  verdrahtet und wurden übernommen, nicht hinterfragt.
+- Bei einer Gehrung wird das Nachbarstück **nicht** automatisch
+  mitgesetzt – so wie im bestehenden konischen Modul. Beim geraden Blech
+  ist es anders; ob der Unterschied gewollt ist, gehört in den
+  Praxistest.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei sehr vielen Stücken heisst das Ergebnis „beste
+  gefundene Verteilung“.
+- Der Prototyp unter `prototyp-einlaufblech-konisch/` bleibt auf seinem
+  Branch bestehen – er ist jetzt die Vorlage, nicht mehr die einzige
+  Stelle.

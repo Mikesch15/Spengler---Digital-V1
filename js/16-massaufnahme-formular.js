@@ -13,7 +13,7 @@ function showMeasTypeSection(type){
  $("measTypeRinneProfil").hidden=(type!=="rinne");
  if(type==="einlaufblech_gerade"&&typeof renderEinlaufblechAufnahme==="function")renderEinlaufblechAufnahme();
  if(type==="rinne_halbrund"){renderRinneResult();if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();}
- if(type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
+ if(type==="einlaufblech_konisch"&&typeof renderEinlaufblechKonischAufnahme==="function")renderEinlaufblechKonischAufnahme();
  if(type==="einlaufblech_gerade")refreshEbRinneList();
  if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
  if(type==="mauerabdeckung")renderMadResult();
@@ -46,7 +46,7 @@ $("openEinlaufblechSettings").onclick=()=>{
 // erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
 // Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
 // sichtbar.
-const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade"];
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch"];
 let measMedienAufgeklappt=false;
 // Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
 // fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
@@ -120,7 +120,11 @@ function buildMeasurementFromForm(){
   const engeSeite=ebkEngeSeite();
   const gesamtlaenge=ebkPieces.reduce((s,p)=>s+(Number(p.laenge)||0),0);
   const piecesWithEng=ebkPieces.map(p=>({...p,...calcEbkPiece(p)}));
-  return {...base,...measMedienAusFormular(),data:{abwicklung,dachneigung,montage,engeSeite,pieces:piecesWithEng,gesamtlaenge,material:$("ebk_material").value}};
+  // Superset: die sieben bisherigen Felder bleiben Zeichen fuer Zeichen
+  // gleich, die neuen kommen dazu. Eine vor v2.76 gespeicherte Aufnahme
+  // laesst sich dadurch unveraendert oeffnen und drucken.
+  const zusatz=(typeof ebkaZusatzDaten==="function")?ebkaZusatzDaten():{};
+  return {...base,...measMedienAusFormular(),data:{abwicklung,dachneigung,montage,engeSeite,pieces:piecesWithEng,gesamtlaenge,material:$("ebk_material").value,...zusatz}};
  }
  if(type==="freies_profil"){
   const konisch=$("fp_konisch").value==="ja";
@@ -828,7 +832,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Waagerechte Breite",esc(Math.round(d.breite||0))+" mm")}${cell("Achsabstand Scharen",esc(Math.round(d.achsabstand||0))+" mm")}</tr>
 <tr>${cell("Hilfsriss unter Oberkante",esc(Math.round(d.hilfsriss||0))+" mm")}${cell("Fläche",esc((Math.round((d.flaeche||0)*100)/100).toFixed(2))+" m²")}</tr>
 <tr>${cell("Zugabe Zuschnitt",zugabeTxt)}${cell("Letzte Schar (Restbreite)",esc(Math.round(scharen.length?scharen[scharen.length-1].breite:0))+" mm")}</tr>
-<tr>${cell("Material",matName)}<td></td></tr>
+<tr>${cell("Material",matName)}${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}</tr>
 </table>
 <div class="eb-section-head">Plan</div>
 <div class="eb-diagram">${lukPlanSvg(g,{fuerDruck:true})}</div>
@@ -949,6 +953,11 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   ${generateEbkGrundriss(pieces)}
  </div>
 </div>
+${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`:""}
 <div class="eb-section-head">Stücke</div>
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Zuschnittlänge (mm)</th><th>Ger. L</th><th>Ger. R</th><th>Mass links (mm)</th><th>Mass rechts (mm)</th></tr></thead>
@@ -959,6 +968,25 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
  return `<tr><td>${i+1}</td><td>${esc(p.laenge||0)}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td><td${warn&&engeSeite==="links"?' class="warn"':""}>${linksTxt}${warn&&engeSeite==="links"?" ⚠️":""}</td><td${warn&&engeSeite==="rechts"?' class="warn"':""}>${rechtsTxt}${warn&&engeSeite==="rechts"?" ⚠️":""}</td></tr>`;
 }).join("")}</tbody>
 </table>
+${(()=>{
+ // Der beim Speichern abgelegte Rollenplan, bewusst NICHT neu gerechnet: ein
+ // einmal gedrucktes Blatt soll gleich bleiben, auch wenn die Rollenbreiten
+ // der Firma spaeter geaendert werden.
+ const r=d.rollen;
+ if(!r||!Array.isArray(r.moeglich)||!r.moeglich.length)return "";
+ const zeilen=r.moeglich.map((x,i)=>`<tr><td>${esc(x.breite)} mm${i===0?" (beste)":""}</td><td>${esc(x.jeTafel)}</td><td>${esc(x.tafeln)}</td><td>${esc(Number(x.flaeche).toFixed(2).replace(".",","))}</td><td>${esc(Number(x.verschnitt).toFixed(2).replace(".",","))}</td></tr>`).join("");
+ const streifen=(r.streifen||[]).map((sf,i)=>`<tr><td>${i+1}</td><td>${esc(sf.stuecke.map(x=>"Stück "+x.nr+" · "+x.laenge+" mm").join(", "))}</td><td>${esc(Math.round(Number(r.tafelLaenge)-Number(sf.rest)))}</td><td>${esc(Math.round(Number(sf.rest)))}</td></tr>`).join("");
+ return `<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
+<div class="note">Tafellänge ${esc(r.tafelLaenge)} mm (längstes Stück), quer in Streifen der Abwicklungsbreite geteilt. Die Konizität wird innerhalb des Streifens angerissen.${r.optimal===false?" Beste gefundene Verteilung – nicht nachweislich die günstigste.":""}</div>
+<table class="eb-cutlist">
+<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafelfläche (m²)</th><th>Verschnitt (m²)</th></tr></thead>
+<tbody>${zeilen}</tbody>
+</table>
+${streifen?`<table class="eb-cutlist">
+<thead><tr><th>Streifen</th><th>Stücke</th><th>belegt (mm)</th><th>Rest (mm)</th></tr></thead>
+<tbody>${streifen}</tbody>
+</table>`:""}`;
+})()}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="freies_profil"){
