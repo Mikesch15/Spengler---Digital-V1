@@ -27,7 +27,7 @@ const sichtbar=page=>page.evaluate(()=>{
 });
 const alleArten=["skizze_foto","einlaufblech_gerade","rinne_halbrund","einlaufblech_konisch",
  "freies_profil","mauerabdeckung","lukarne","anschlussblech","einfassung_rund","kehle","rinne"];
-const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil"];
+const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung"];
 
 (async()=>{
  const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});

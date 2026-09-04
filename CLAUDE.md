@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.78, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.79, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.78**
+- sichtbare App-Version: **2.79**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -13015,3 +13015,166 @@ Zuschnittliste) trägt die Seite seit Version 2.59 selbst mit
 Geändert: `js/14-freies-profil.js` (drei Zeilen),
 `pruefstaende/pruefstand-freies-profil-app-v2-77.js`, `index.html` und
 `sw.js` (Version 2.78). Sonst nichts.
+
+## 87. MAUERABDECKUNG ALS REGISTER-AUFNAHME IN DIE APP — VERSION 2.79
+
+Die Massaufnahme **Mauerabdeckung** wird nicht mehr als ein langes Formular
+erfasst, sondern über **neun Register** – nach demselben Muster wie Rinne
+Halbrund (v2.71), Einlaufblech gerade (v2.74), Einlaufblech konisch (v2.76)
+und Freies Profil (v2.77). Grundlage ist der Prototyp unter
+`prototyp-mauerabdeckung/` (Branch `feature/prototype-mauerabdeckung`), der
+unverändert bestehen bleibt.
+
+    1 Grunddaten · 2 Verlauf · 3 Boden & Schieber · 4 Profil & Norm ·
+    5 Stückliste · 6 Zuschnitt · 7 Ausmass · 8 Kontrolle · 9 Fotos & Speichern
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung.**
+
+### 87.1 js/12b bleibt byteweise unverändert
+
+`js/12b-mauerabdeckung.js` ist die Fachquelle und wurde **nicht angefasst** –
+ebenso wenig `js/12-rinne-halbrund.js` (Verteilung der Dehnungselemente,
+Grundriss) und `js/29-einlaufblech-aufnahme.js` (Packrechnung). Per
+`git diff` einzeln bestätigt.
+
+`madaBruecke()` (js/32) setzt vor jeder Rechnung `madSegments`, `madSchieber`
+und die alten Formularfelder aus dem Modell; danach liefern
+`computeMadBoundaries()`, `calcMadSchieber()`, `berechneMadStueckliste()`,
+`madProfilMasse()`, `madNormHinweise()` und `madProfilSvgAus()` direkt die
+richtigen Werte. `madSegments` **ist** `madA.segmente` – eine Wahrheit, kein
+Abgleich.
+
+`madProfilMasse()` liest seine Werte direkt aus den Eingabefeldern. Damit die
+Funktion unverändert bleiben kann, stehen dieselben Felder unsichtbar im
+Block **`#madStummel`**; js/12b hängt dort auch seine Handler an. Gleiches
+Vorgehen wie `#rinneStummel`, `#ebStummel`, `#ebkStummel` und `#fpStummel`.
+
+### 87.2 Speichern: Superset
+
+js/16 schreibt **unverändert** dieselben zehn Felder wie bisher (`material`,
+`profil`, `abwicklung`, `segments`, `schieber`, `boundaries`,
+`gesamtlaenge`, `stueckliste`, `bodenMass`, `schieberMass`) und ergänzt sie
+nur um `flaeche_m2`, `ausmass` und `rollen`. Eine vor v2.79 gespeicherte
+Aufnahme öffnet unverändert und druckt ohne die neuen Abschnitte – es wird
+**nichts nachgerechnet** und **kein Boden erfunden**, den der Datensatz nicht
+hatte.
+
+Beim Öffnen gilt `schieberManuell = true`: die gespeicherten Schieber dürfen
+nicht durch eine Neuberechnung überschrieben werden – genau das machte vorher
+das Kästchen „Schieber von Hand".
+
+### 87.3 Neu gegenüber v2.78
+
+- **Verlauf als Karten** statt einer Tabelle: Länge, Ecke, 🔄, verschieben,
+  löschen mit Rückfrage. Der Boden gilt nur an den beiden Aussenenden – nach
+  Verschieben oder Löschen wird er dorthin zurückgeholt, statt unsichtbar
+  wirkungslos stehen zu bleiben.
+- **Boden und Schieber** mit Grenzpunkt-Tabelle, den gerechneten Positionen
+  und dem Weg „von Hand" mit Rückkehr zur Rechnung.
+- **Zuschnitt aus Rollenblech**, wie bei den drei anderen Register-Arten: von
+  der Rolle wird eine Tafel abgeschnitten und quer in Streifen der
+  Abwicklungsbreite geteilt; ein Streifen nimmt mehrere Stücke hintereinander
+  auf. Gepackt wird mit `ebaPackeInStreifen()` aus js/29 – es gibt in der App
+  nur **eine** Packrechnung. Anders als beim Freien Profil hat die
+  Mauerabdeckung nur **eine** Abwicklung, also auch nur eine Streifenbreite.
+  Die Rollenbreiten kommen aus `app_settings.blech_rollenbreiten` (seit
+  v2.74), **keine neue Einstellung**.
+- **Ausmass und Materialübersicht** ohne zweite Eingabe, ohne Artikelnummern
+  und ohne Preise.
+- **Kontrolle** mit Punkt am Register (rot bei Fehler): fehlende Masse,
+  ungültige Zahlen, Verlauf, Boden, Schieber, Profil, Normhinweise, Ausmass,
+  Zuschnitt.
+- **Fotos und Skizzen am Ende** (`MEAS_MEDIEN_AM_ENDE` um `mauerabdeckung`
+  erweitert, v2.75-Mechanik unverändert).
+- Der Druck bekommt zusätzlich Blechfläche, Rollenblech-Plan und Ausmass –
+  jeweils nur, wenn sie im Datensatz stehen.
+
+### 87.4 Ein echter Fehler, den eine Gegenprobe gefunden hat
+
+Die Boden-Kästchen an den Segmentkarten hiessen zuerst
+`data-mada-bodenL="${i}"`. **HTML macht aus einem Attributnamen
+Kleinbuchstaben**, also `data-mada-bodenl` → `dataset.madaBodenl`. Der
+Handler prüfte `dataset.madaBodenL` und lief ins Leere: die Kästchen waren
+sichtbar, aber tot. Behoben durch `data-mada-boden-l` / `-r` /
+`data-mada-schieber-weg`; der Prüfstand kontrolliert seither ausdrücklich,
+dass die Kästchen an der Segmentkarte wirken.
+
+**Merksatz:** in einem `data`-Attributnamen niemals einen Grossbuchstaben –
+immer mit Bindestrich schreiben.
+
+### 87.5 Getestet
+
+- **`pruefstaende/pruefstand-mauerabdeckung-app-v2-79.js` – 143/143**, echtes
+  Chromium gegen die echte `index.html`: Modul und Brücke (madSegments ist
+  madA.segmente, Stummelfelder gefüllt, Abstände aus dem Material-Katalog),
+  neun Register (nur eigener Inhalt, Blättern verliert nichts, aktives
+  Register bleibt sichtbar), Verlauf mit echtem Tippen und Fokusprüfung,
+  Boden (ohne 1 Schieber, mit 2), Schieber automatisch und von Hand,
+  Materialwechsel (5/4/3/2 Schieber), Profil, Gefälle, Biegewinkel, Wind,
+  Norm, Stückliste, Zuschnitt aus Rollenblech (1000 mm → 4 Tafeln, 12.08 m²,
+  3.75 m² Verschnitt; 670 mm → 8 Tafeln, 16.19 m²), Ausmass, Kontrolle,
+  Fotos erst nach „Fertig", Speicher-Payload (alle zehn alten **und** die
+  drei neuen Felder), Wiederöffnen, ein Datensatz im Format bis v2.78, Druck
+  (neu und alt), fünf Bildschirmbreiten × neun Register, keine JS-Fehler.
+- **12 Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um; keine bricht ihn ab: Brücke setzt madSegments nicht (134) ·
+  Stummelfelder nicht gefüllt (130) · Zusatzfelder nicht gespeichert (135) ·
+  alter Datensatz bekommt einen Boden angedichtet (139) · Fotos schon während
+  der Register (139) · alle Register auf einmal (119) · Eingabe zeichnet neu
+  → Fokusverlust (135) · eigene Packrechnung (138) · Druck nimmt den
+  gespeicherten Rollenplan nicht (139) · Boden wandert beim Verschieben mit
+  (141) · dazu die beiden aus 87.4.
+  **Fünf davon deckten zuerst Lücken im Prüfstand auf** (zwei Abbrüche statt
+  Fehlschlägen, drei Kontrollen, die grün blieben) – alle geschlossen, danach
+  bissen alle zwölf.
+- **Regression grün**: rinne-app 102/102, einlaufblech-app 98/98,
+  konisch-app 113/113, freies-profil-app 118/118, verschnitt-app 1578/1578,
+  medien-am-ende 71/71, dila-sichtbar 57/57.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` gegen v2.78 gerendert – **DOM und Bild
+  byteidentisch** (DOM `880d9fbdd4f04bb9`, 4979 Zeichen; Bild
+  `26d89e102e3f452f`, 52606 Bytes), und zwei Läufe desselben Codes liefern
+  dasselbe Ergebnis. `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+  `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 34 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`/`</div>` in `index.html` ausgeglichen (686/686, vorher
+  702/702 – weniger, weil das alte Formular durch die Registerfläche und den
+  Stummel ersetzt wurde); keine doppelten Element-IDs; jede js-Datei in der
+  Service-Worker-Liste.
+
+**Eine überholte Erwartung** angepasst, kein Codefehler:
+`pruefstand-medien-am-ende-v2-75.js` führte `mauerabdeckung` noch unter den
+Arten, die den Fotobereich sofort zeigen (jetzt 71/71 statt 60/60).
+
+### 87.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/32-mauerabdeckung-aufnahme.js` | **neu** – neun Register, Brücke, Ausmass, Zuschnitt, Kontrolle |
+| `index.html` | Registerfläche `#mauerabdeckungAufnahme`, `#madStummel`, Script-Tag, Version 2.79 |
+| `js/16-massaufnahme-formular.js` | Modul zeichnen, Payload-Superset, Medien am Ende, Druck um Blechfläche/Rollenblech/Ausmass erweitert |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `sw.js` | Cache-Version 2.79, neue Datei im SHELL |
+| `pruefstaende/pruefstand-mauerabdeckung-app-v2-79.js` | **neu** |
+
+**Nicht angefasst**: `js/12b-mauerabdeckung.js`, `js/12-rinne-halbrund.js`,
+`js/29-einlaufblech-aufnahme.js`, `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js`, `css/03-druck.css`, `css/01-basis.css`
+(die `ra-*`-Klassen der übrigen Register-Arten reichten unverändert),
+`js/11`, `js/13`–`js/15`, `js/17`, `js/19`–`js/28`, `js/30`, `js/31`.
+
+### 87.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei sehr vielen Stücken heisst das Ergebnis „beste gefundene
+  Verteilung".
+- Fachlich im Praxistest zu bestätigen: ob ein Innenwinkel wirklich dieselbe
+  halbe Regel bekommt wie ein Aussenwinkel. Die bestehende Logik behandelt
+  beide gleich (so steht es im Kommentar von js/12b), die Aufnahme übernimmt
+  das unverändert.
+- Der Prototyp unter `prototyp-mauerabdeckung/` bleibt auf seinem Branch
+  bestehen – er ist jetzt die Vorlage, nicht mehr die einzige Stelle.

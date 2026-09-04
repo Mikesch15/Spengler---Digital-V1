@@ -17,7 +17,7 @@ function showMeasTypeSection(type){
  if(type==="einlaufblech_gerade")refreshEbRinneList();
  if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();
   if(typeof renderFreiesProfilAufnahme==="function")renderFreiesProfilAufnahme();}
- if(type==="mauerabdeckung")renderMadResult();
+ if(type==="mauerabdeckung"){renderMadResult();if(typeof renderMauerabdeckungAufnahme==="function")renderMauerabdeckungAufnahme();}
  if(type==="lukarne")renderLukResult();
  if(type==="anschlussblech")renderAnbResult();
  if(type==="einfassung_rund")renderEinfResult();
@@ -47,7 +47,7 @@ $("openEinlaufblechSettings").onclick=()=>{
 // erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
 // Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
 // sichtbar.
-const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil"];
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung"];
 let measMedienAufgeklappt=false;
 // Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
 // fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
@@ -138,6 +138,10 @@ function buildMeasurementFromForm(){
   const material=$("mad_material").value;
   const {boundaries,gesamtlaenge}=computeMadBoundaries(madSegments);
   const stueckliste=berechneMadStueckliste(madSegments,madSchieber,boundaries,madBodenMass,madSchieberMass);
+  // Dieselben zehn Felder wie bisher, dazu die abgeleiteten Werte (Flaeche,
+  // Ausmass, Zuschnitt aus Rollenblech). Eine aeltere Aufnahme oeffnet
+  // unveraendert.
+  const zusatz=(typeof madaZusatzDaten==="function")?madaZusatzDaten():{};
   return {...base,...measMedienAusFormular(),data:{
    material,
    profil:madProfilMasse(),
@@ -148,7 +152,8 @@ function buildMeasurementFromForm(){
    gesamtlaenge,
    stueckliste,
    bodenMass:madBodenMass,
-   schieberMass:madSchieberMass
+   schieberMass:madSchieberMass,
+   ...zusatz
   }};
  }
  if(type==="lukarne"){
@@ -814,6 +819,23 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th></tr></thead>
 <tbody>${stuecke.map(st=>`<tr><td>${st.nr}</td><td>${esc(st.von)} → ${esc(st.bis)}</td><td>${Math.round(st.abstand)}</td><td>${Math.round(st.zuschnitt)}</td></tr>`).join("")}</tbody>
 </table>
+${d.flaeche_m2?`<div class="eb-section-head">Blechfläche</div>
+<table class="eb-info-table"><tr>${cell("Fläche",esc(Number(d.flaeche_m2).toFixed(2).replace(".",","))+" m²")}${cell("Gesamtlänge",esc(Math.round(d.gesamtlaenge||0))+" mm")}${cell("Abwicklung",esc(d.abwicklung||0)+" mm")}</tr></table>`:""}
+${(d.rollen&&d.rollen.bestes)?`<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
+<table class="eb-info-table">
+<tr>${cell("Rolle",esc(d.rollen.bestes.breite)+" mm")}${cell("Tafeln",esc(d.rollen.bestes.tafeln)+" × "+esc(Math.round(d.rollen.tafelLaenge||0))+" mm")}${cell("Streifen je Tafel",esc(d.rollen.bestes.jeTafel))}</tr>
+<tr>${cell("Fläche",esc(Number(d.rollen.bestes.flaeche).toFixed(2).replace(".",","))+" m²")}${cell("Verschnitt",esc(Number(d.rollen.bestes.verschnitt).toFixed(2).replace(".",","))+" m²")}${cell("Anteil",esc(Number(d.rollen.bestes.anteil).toFixed(1).replace(".",","))+" %")}</tr>
+</table>
+${(d.rollen.streifen||[]).length?`<table class="eb-cutlist">
+<thead><tr><th>Streifen</th><th>Belegung</th><th>Rest (mm)</th></tr></thead>
+<tbody>${d.rollen.streifen.map((st,i)=>`<tr><td>${i+1}</td><td>${esc((st.stuecke||[]).map(x=>"Stück "+x.nr+" ("+Math.round(x.laenge)+" mm)").join(" + "))}</td><td>${Math.round(st.rest||0)}</td></tr>`).join("")}</tbody>
+</table>`:""}
+${d.rollen.optimal===false?`<div class="note">Beste gefundene Verteilung – nicht sicher die beste mögliche.</div>`:""}`:""}
+${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`:""}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="lukarne"){

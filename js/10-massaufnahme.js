@@ -382,6 +382,7 @@ function newMeasurementWithType(type){
  $("mad_biegeRechts").value=85;
  $("mad_windexponiert").checked=false;
  $("mad_manuell").checked=false;
+ if(typeof madaZuruecksetzen==="function")madaZuruecksetzen();
  renderMadResult();
  $("luk_hoehe").value="";
  $("luk_laengeOben").value="";
@@ -495,6 +496,7 @@ function openMeasurement(m){
    $("mad_biegeRechts").value=pr.wR??vg.rechts;}
   $("mad_windexponiert").checked=!!pr.wind;
   $("mad_manuell").checked=true; // gespeicherte Schieber nicht überschreiben
+  if(typeof madaFuellen==="function")madaFuellen(d);
   renderMadResult();
  }
  if(m.type==="lukarne"){

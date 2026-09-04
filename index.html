@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.78</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.79</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -729,47 +729,39 @@ Diese Aktion löscht unwiderruflich:
 </div>
 
 <div id="measTypeMauerabdeckung" hidden>
-<div class="info">Jedes Segment ist ein gerades Stück Mauerabdeckung. Winkel = Richtungsänderung zum nächsten Segment (90° = normale Ecke). Schieber werden nach SIA 271 automatisch gesetzt; ab einer Ecke gilt der halbe Abstand. Die Masse für Boden und Schieber stehen in Einstellungen → Massaufnahmen.</div>
-<div class="grid">
-<div><label>Material</label><select id="mad_material" class="meas-material-select" data-meas-material-required="1"></select></div>
+<div id="mauerabdeckungAufnahme"></div>
+
+<!-- ===================================================================
+     STUMMEL · unsichtbar, wird nie bedient.
+     js/12b-mauerabdeckung.js haengt seine Handler beim Laden an diese
+     Elemente und liest madProfilMasse() direkt aus den Eingabefeldern.
+     Damit die Fachdatei unveraendert bleiben kann, stehen die Felder hier;
+     js/32 schreibt vor jeder Rechnung sein Modell hinein (madaBruecke).
+     Gleiches Vorgehen wie #rinneStummel, #ebStummel, #ebkStummel, #fpStummel.
+     =================================================================== -->
+<div id="madStummel" hidden>
+<select id="mad_material" class="meas-material-select"></select>
+<input id="mad_breite" type="number" value="310">
+<input id="mad_gefaelle" type="number" value="5">
+<input id="mad_hoeheLinks" type="number" value="50">
+<input id="mad_hoeheRechts" type="number" value="50">
+<input id="mad_umschlagLinks" type="number" value="15">
+<input id="mad_umschlagRechts" type="number" value="15">
+<input id="mad_biegeLinks" type="number" value="95">
+<input id="mad_biegeRechts" type="number" value="85">
+<input id="mad_saum" type="number" value="10">
+<input type="checkbox" id="mad_windexponiert">
+<input type="checkbox" id="mad_manuell">
+<div id="mad_abwicklungOut"></div>
+<div id="mad_profilHinweis"></div>
+<div id="mad_profil"></div>
+<div id="mad_grundriss"></div>
+<div id="mad_summary"></div>
+<table><tbody id="mad_segmentsBody"></tbody></table>
+<table><tbody id="mad_stuecklisteBody"></tbody></table>
+<button type="button" id="mad_addSegment"></button>
+<button type="button" id="mad_addSchieber"></button>
 </div>
-<h2 style="margin-top:14px">Profil (Querschnitt)</h2>
-<div class="grid">
-<div><label>Gesamtbreite (mm)</label><input id="mad_breite" type="number" step="1" value="310"></div>
-<div><label>Gefälle nach rechts (°)</label><input id="mad_gefaelle" type="number" step="1" value="5"></div>
-<div><label>Höhe Schenkel links (mm, min. 50)</label><input id="mad_hoeheLinks" type="number" step="1" value="50"></div>
-<div><label>Höhe Schenkel rechts (mm, min. 50)</label><input id="mad_hoeheRechts" type="number" step="1" value="50"></div>
-<div><label>Umschlag links (mm, 135°)</label><input id="mad_umschlagLinks" type="number" step="1" value="15"></div>
-<div><label>Umschlag rechts (mm, 90°)</label><input id="mad_umschlagRechts" type="number" step="1" value="15"></div>
-<div><label>Biegewinkel links (°)</label><input id="mad_biegeLinks" type="number" step="1" value="95"></div>
-<div><label>Biegewinkel rechts (°)</label><input id="mad_biegeRechts" type="number" step="1" value="85"></div>
-<div><label>Saum 180° beidseitig (mm)</label><input id="mad_saum" type="number" step="1" value="10"></div>
-<div><label>Abwicklung</label><div id="mad_abwicklungOut" style="font-weight:800;padding:9px 0">–</div></div>
-</div>
-<label class="rechte-schalter"><input type="checkbox" id="mad_windexponiert"> Windexponierte Lage (Aufkantung min. 100 mm)</label>
-<div id="mad_profilHinweis" class="small" style="margin:6px 0"></div>
-<div id="mad_profil" class="eb-diagram-box"></div>
-<h2 style="margin-top:14px">Segmente</h2>
-<div class="scroll">
-<table class="eb-table">
-<colgroup><col style="width:8%"><col style="width:26%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:8%"></colgroup>
-<thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th><th>Boden Anfang</th><th>Boden Ende</th><th></th></tr></thead>
-<tbody id="mad_segmentsBody"></tbody>
-</table>
-</div>
-<div class="bar"><button type="button" class="gray" id="mad_addSegment">＋ Segment hinzufügen</button></div>
-<div id="mad_grundriss" class="eb-diagram-box"></div>
-<h2 style="margin-top:14px">Schieber und Zuschnitt</h2>
-<label class="rechte-schalter"><input type="checkbox" id="mad_manuell"> Schieber von Hand setzen (sonst automatisch nach SIA 271)</label>
-<div class="scroll">
-<table class="eb-table">
-<colgroup><col style="width:8%"><col style="width:30%"><col style="width:20%"><col style="width:18%"><col style="width:16%"><col style="width:8%"></colgroup>
-<thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (mm)</th><th>Position ab Start (mm)</th><th></th></tr></thead>
-<tbody id="mad_stuecklisteBody"></tbody>
-</table>
-</div>
-<div class="bar"><button type="button" class="gray" id="mad_addSchieber">＋ Schieber von Hand</button></div>
-<div id="mad_summary" class="small" style="margin-top:6px"></div>
 </div>
 
 <div id="measTypeLukarne" hidden>
@@ -1562,6 +1554,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/29-einlaufblech-aufnahme.js"></script>
 <script src="js/30-einlaufblech-konisch-aufnahme.js"></script>
 <script src="js/31-freies-profil-aufnahme.js"></script>
+<script src="js/32-mauerabdeckung-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>
