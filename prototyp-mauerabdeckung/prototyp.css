@@ -1,0 +1,160 @@
+/* Prototyp Mauerabdeckung – nur die Ergänzungen zur App-Grundschrift.
+   Auf ein Android-Handy und -Tablet ausgelegt: grosse Trefferflächen, keine
+   festen Breiten, alles umbruchfähig. */
+
+.p-app{max-width:900px;margin:0 auto;padding:10px 12px 40px}
+
+.p-kopf{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;
+ justify-content:space-between;margin:6px 0 12px}
+.p-kopf h1{margin:0;font-size:21px;letter-spacing:.2px}
+.p-kopf-klein{font-size:11.5px;color:var(--muted)}
+.p-kopf-knoepfe{display:flex;flex-wrap:wrap;gap:8px}
+.p-kopf-knoepfe button{min-height:44px;padding:0 14px}
+
+.p-karte{background:#fff;border:1px solid var(--line);border-radius:14px;
+ padding:12px 12px 14px;margin:0 0 12px}
+.p-karte h2{margin:2px 0 10px;font-size:12px;text-transform:uppercase;
+ letter-spacing:.6px;color:var(--muted)}
+.p-karte h3{margin:14px 0 6px;font-size:12px;text-transform:uppercase;
+ letter-spacing:.5px;color:var(--muted)}
+.p-klapp[hidden]{display:none}
+
+/* Register – scrollt auf schmalen Geräten seitwärts */
+.p-register{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;
+ -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.p-register::-webkit-scrollbar{display:none}
+.p-register-knopf{flex:0 0 auto;display:flex;align-items:center;gap:7px;
+ min-height:44px;padding:0 13px;border:1px solid var(--line);border-radius:11px;
+ background:#fff;color:var(--ink);font-size:13px;font-weight:600;cursor:pointer}
+.p-register-knopf.aktiv{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+.p-register-nr{display:inline-flex;align-items:center;justify-content:center;
+ width:20px;height:20px;border-radius:50%;background:#eef2f5;color:var(--muted);
+ font-size:11px;font-weight:700}
+.p-register-knopf.aktiv .p-register-nr{background:var(--blue);color:#fff}
+.p-punkt{width:8px;height:8px;border-radius:50%;display:inline-block}
+.p-punkt-rot{background:#b42318}
+.p-punkt-orange{background:#d9822b}
+
+.p-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.p-feld label{display:block;font-size:10.5px;text-transform:uppercase;
+ letter-spacing:.4px;color:var(--muted);font-weight:700;margin-bottom:3px;
+ white-space:normal}
+.p-voll{grid-column:1/-1}
+.p-gross{font-size:17px;font-weight:700;min-height:48px}
+
+.p-knopfreihe{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+.p-knopfreihe button{min-height:44px;padding:0 14px;flex:1 1 auto}
+.p-blau{background:var(--blue);color:#fff;border:0}
+.p-gruen{background:var(--green);color:#fff;border:0}
+.p-grau{background:#eef2f5;color:var(--ink);border:1px solid var(--line)}
+.p-weg{background:#fdf1f0;color:#8a2018;border:1px solid #f2ccc8;
+ min-height:36px;padding:0 10px}
+
+.p-blaettern{display:flex;gap:10px;margin:14px 0 0}
+.p-blaettern button{min-height:48px;flex:1 1 0;font-size:14px;font-weight:700}
+
+.p-hinweis{background:var(--blue-light);border-radius:10px;padding:9px 11px;
+ font-size:12px;line-height:1.55;margin:10px 0 0}
+.p-legende{font-size:11.5px;color:var(--muted);line-height:1.55;
+ text-align:center;margin:4px 0 8px}
+.p-klein-text{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:8px}
+.p-leer{color:var(--muted);font-size:12.5px;text-align:center;padding:14px}
+
+/* Zeichnungen – zentral und gross genug für ein Tablet */
+.p-schnitt{background:#fafbfc;border:1px solid var(--line);border-radius:12px;
+ padding:12px;margin:12px 0 4px;display:flex;justify-content:center}
+.p-schnitt svg{max-width:460px!important;width:100%}
+.p-grundriss{background:#fafbfc;border:1px solid var(--line);border-radius:12px;
+ padding:10px;display:flex;justify-content:center}
+
+/* Kennzahlen */
+.p-zf-kopf{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+ gap:8px;margin:12px 0 0}
+.p-zf-kopf>div{background:#fafbfc;border:1px solid var(--line);border-radius:10px;
+ padding:8px 10px;min-width:0}
+.p-zf-kopf span{display:block;font-size:10px;text-transform:uppercase;
+ letter-spacing:.4px;color:var(--muted);font-weight:700}
+.p-zf-kopf b{font-size:16px;word-break:break-word}
+.p-zf-fuss{font-size:12px;color:var(--muted);margin-top:10px}
+.p-warnwert{color:#b42318}
+
+/* Tabellen: die globale Grundregel table{min-width:1000px} in
+   css/01-basis.css ist für die breiten Stücklisten der App gedacht.
+   Hier muss min-width AUSDRÜCKLICH zurückgesetzt werden – width:100%
+   allein reicht nicht. */
+.p-tabelle{overflow-x:auto;margin-top:10px}
+.p-tabelle table{width:100%;min-width:0;table-layout:auto;border-collapse:collapse}
+.p-tabelle th,.p-tabelle td{border-bottom:1px solid var(--line);
+ padding:7px 6px;font-size:12.5px;text-align:left;word-break:break-word}
+.p-tabelle th{font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;
+ color:var(--muted);font-weight:700;white-space:nowrap}
+.p-num{text-align:right!important;font-variant-numeric:tabular-nums}
+.p-mitte{text-align:center!important}
+.p-quelle{color:var(--muted);font-size:11px}
+.p-tab-feld{min-height:38px;padding:4px 6px;text-align:right;
+ font-variant-numeric:tabular-nums;font-size:13px}
+/* Kästchen: die globale Regel input{width:100%;min-height:40px;border:…}
+   macht aus einem Häkchen sonst ein 40 px hohes Feld mit Rahmen. */
+.p-tabelle input[type=checkbox]{width:auto;min-height:0;padding:0;border:0;
+ transform:scale(1.3)}
+.p-tabelle tr.p-boden td{background:#f0f9f6}
+
+.p-pruefung{display:flex;flex-direction:column;gap:6px}
+.p-fehler{background:#fdf1f0;border-left:3px solid #b42318;border-radius:8px;
+ padding:8px 10px;font-size:12.5px;color:#8a2018}
+.p-warnung{background:#fdf6ec;border-left:3px solid #d9822b;border-radius:8px;
+ padding:8px 10px;font-size:12.5px;color:#8a5312}
+.p-ok{background:#eff9f2;border-left:3px solid #2e7d4f;border-radius:8px;
+ padding:8px 10px;font-size:12.5px;color:#1f5c39}
+
+/* Fotos und Skizze */
+.p-datei{display:flex;align-items:center;justify-content:center;min-height:48px;
+ background:var(--blue);color:#fff;border-radius:11px;font-size:14px;
+ font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
+.p-fotos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.p-foto{position:relative;flex:0 0 auto;width:118px}
+.p-foto.gross{width:100%;max-width:340px}
+.p-foto img{width:100%;height:auto;display:block;border:1px solid var(--line);
+ border-radius:10px}
+.p-foto .p-weg{position:absolute;top:4px;right:4px;min-height:30px;padding:0 8px}
+.p-skizzeBox[hidden]{display:none}
+.p-skizzeBox{margin-top:10px}
+#p-skizzeCanvas{width:100%;height:auto;background:#fff;border:1px solid var(--line);
+ border-radius:10px;touch-action:none;display:block}
+
+.p-zeile{background:#fafbfc;border:1px solid var(--line);border-radius:11px;
+ padding:9px 10px;margin:8px 0}
+.p-zeile-kopf{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;
+ align-items:baseline}
+.p-zeile-kopf b{font-size:13px;word-break:break-word}
+
+/* Verlauf: jedes Segment als eigene Karte mit grossen Feldern.
+   Auf dem Handy stehen Länge und Winkel untereinander statt nebeneinander. */
+.p-seg{background:#fafbfc;border:1px solid var(--line);border-radius:12px;
+ padding:10px 10px 12px;margin:10px 0}
+.p-seg-kopf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+ justify-content:space-between;margin-bottom:8px}
+.p-seg-nr{display:inline-flex;align-items:center;justify-content:center;
+ min-width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;
+ font-size:12px;font-weight:700;padding:0 7px}
+.p-seg-titel{font-size:13px;font-weight:700;word-break:break-word;flex:1 1 auto}
+.p-seg-weg{min-height:38px;padding:0 12px;flex:0 0 auto}
+.p-winkelreihe{display:flex;gap:6px;align-items:stretch}
+.p-winkelreihe input{flex:1 1 auto;min-width:0}
+.p-winkelreihe button{flex:0 0 auto;min-height:48px;padding:0 12px}
+/* Schalter (Boden, windexponiert, Schieber von Hand): grosse Trefferfläche.
+   text-transform muss zurückgesetzt werden – die globale label-Regel in
+   css/01-basis.css schreibt sonst alles in Grossbuchstaben. */
+.p-schalter{display:flex;align-items:center;gap:9px;min-height:46px;font-size:14px;
+ font-weight:700;color:var(--ink);text-transform:none;letter-spacing:0}
+.p-schalter input[type=checkbox]{width:auto;min-height:0;padding:0;border:0;
+ transform:scale(1.4)}
+.p-schalter-reihe{display:flex;flex-wrap:wrap;gap:6px 20px}
+
+/* Legende unter dem Grundriss – dieselben Farben wie die Zeichnung */
+.p-lg{display:inline-block;margin:0 6px;font-weight:700;white-space:nowrap}
+.p-lg::before{content:"● "}
+.p-lg-blau{color:#1769aa}
+.p-lg-orange{color:#e07a1f}
+.p-lg-gruen{color:#0f766e}
+.p-lg-rot{color:#b42318}

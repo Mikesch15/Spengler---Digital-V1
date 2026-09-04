@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Prototyp · Massaufnahme Mauerabdeckung</title>
+<link rel="stylesheet" href="../css/01-basis.css">
+<link rel="stylesheet" href="prototyp.css">
+</head>
+<body>
+<div class="p-app" id="p-app">
+
+<div class="p-kopf">
+ <div>
+  <h1>Mauerabdeckung</h1>
+  <div class="p-kopf-klein">Prototyp · rechnet mit der Fachlogik der laufenden App</div>
+ </div>
+ <div class="p-kopf-knoepfe">
+  <button type="button" class="p-gruen" id="p-speichern">💾 Speichern</button>
+  <button type="button" class="p-grau" id="p-neu">＋ Neu</button>
+  <button type="button" class="p-grau" id="p-kopieren">📋 Kopieren</button>
+  <button type="button" class="p-grau" id="p-listeAuf">📂 Gespeicherte</button>
+  <button type="button" class="p-grau" id="p-einstAuf">⚙️ Einstellungen</button>
+ </div>
+</div>
+
+<div class="p-karte p-klapp" id="p-listeBox" hidden></div>
+<div class="p-karte p-klapp" id="p-einstBox" hidden></div>
+
+<div id="p-registerBox"></div>
+<div id="p-inhalt"></div>
+
+<div class="p-blaettern">
+ <button type="button" class="p-grau" id="p-zurueck">‹ Zurück</button>
+ <button type="button" class="p-grau" id="p-weiter">Weiter</button>
+</div>
+
+<!-- ===================================================================
+     STUMMEL · unsichtbar, wird nie bedient
+     madProfilMasse() aus js/12b-mauerabdeckung.js liest seine Werte direkt
+     aus diesen Eingabefeldern. Damit die Funktion ZEICHENGENAU übernommen
+     werden kann, gibt es die Felder hier – der Prototyp schreibt vor jeder
+     Rechnung sein Modell hinein (madBrueckeSetzen in prototyp-mad.js).
+     Gleiches Vorgehen wie #rinneStummel / #ebStummel in der laufenden App.
+     =================================================================== -->
+<div id="p-stummel" hidden>
+ <input id="mad_breite" type="number" value="0">
+ <input id="mad_gefaelle" type="number" value="0">
+ <input id="mad_hoeheLinks" type="number" value="0">
+ <input id="mad_hoeheRechts" type="number" value="0">
+ <input id="mad_umschlagLinks" type="number" value="0">
+ <input id="mad_umschlagRechts" type="number" value="0">
+ <input id="mad_biegeLinks" type="number" value="0">
+ <input id="mad_biegeRechts" type="number" value="0">
+ <input id="mad_saum" type="number" value="0">
+ <input id="mad_windexponiert" type="checkbox">
+</div>
+
+</div>
+<script src="bruecke.js"></script>
+<script src="uebernommen.js"></script>
+<script src="prototyp-mad.js"></script>
+</body>
+</html>

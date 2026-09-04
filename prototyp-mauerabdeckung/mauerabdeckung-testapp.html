@@ -1,0 +1,2426 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Prototyp · Massaufnahme Mauerabdeckung</title>
+<!-- ===================================================================
+     EIGENSTÄNDIGE TESTAPP  ·  eine einzige Datei, überall zu öffnen
+     Erzeugt von prototyp-mauerabdeckung/bauen.js – nicht von Hand bearbeiten.
+     Änderungen gehören in prototyp-mauerabdeckung/prototyp-mad.js bzw.
+     prototyp.css, danach "node prototyp-mauerabdeckung/bauen.js" laufen lassen.
+     Gebaut am 2026-09-04 11:14 UTC
+     =================================================================== -->
+<style>
+/* ---- css/01-basis.css (unverändert aus der laufenden App) ---- */
+*{box-sizing:border-box}
+:root{--blue:#1769aa;--blue-dark:#0f5288;--blue-light:#eaf4fa;--ink:#17242d;--muted:#6b7880;--line:#cbd4d9;--bg:#eef2f6;--green:#16845c;--green-dark:#0f6847;--red:#b42318;--red-light:#fff0ef;--card-bg:#fff;--card-line:#e2e8ec;--input-bg:#fff}
+html.dark{--ink:#e7edf1;--muted:#93a1a9;--line:#33424c;--bg:#141c22;--blue-light:#1c3546;--red-light:#3a1f1d;--card-bg:#1c262e;--card-line:#2a3841;--input-bg:#202b33}
+html.dark body{background:linear-gradient(180deg,#171f26,#141c22 240px,var(--bg) 480px)}
+html.dark .modal{background:linear-gradient(180deg,#171f26,#141c22 240px,var(--bg) 480px)}
+html.dark .card{background:var(--card-bg);border-color:var(--card-line)}
+html.dark input,html.dark select,html.dark textarea{background:var(--input-bg);color:var(--ink);border-color:var(--line)}
+html.dark .settingrow-mat,html.dark .sketch-thumb-wrap{background:var(--card-bg);border-color:var(--card-line)}
+html.dark .mat-row-head{background:transparent}
+html.dark th{background:#0e161c!important}
+body{margin:0;background:linear-gradient(180deg,#f2f5f8,#e8edf1 240px,var(--bg) 480px);background-attachment:fixed;font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
+.app{max-width:920px;margin:auto;padding:14px 9px 40px}
+.brand{font-size:11px;font-weight:900;letter-spacing:.16em;color:var(--blue)}
+h1{font-size:28px;margin:3px 0 14px;color:var(--ink);letter-spacing:-.01em}
+h2{font-size:13px;margin:0 0 12px;padding-bottom:8px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--blue-dark);border-bottom:2px solid var(--blue-light)}
+.card{background:#fff;border:1px solid #e2e8ec;border-radius:16px;padding:14px;margin:12px 0;box-shadow:0 1px 2px #17242d0a,0 10px 24px -8px #17242d1f}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wide{grid-column:1/-1}
+label{display:block;font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+input,select,textarea{width:100%;min-height:40px;border:1px solid var(--line);border-radius:9px;padding:8px;font-size:14px;background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26}
+input::placeholder,textarea::placeholder{color:#9aa7ae}
+textarea{min-height:72px;resize:vertical}
+button{border:0;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer;transition:filter .15s,transform .05s}
+button:hover{filter:brightness(1.06)}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.blue{background:var(--blue);color:#fff;box-shadow:0 2px 8px #1769aa40}.blue:hover{background:var(--blue-dark)}
+.green{background:var(--green);color:#fff;box-shadow:0 2px 8px #16845c40}.green:hover{background:var(--green-dark)}
+.gray{background:#e8eef1;color:var(--ink)}.gray:hover{background:#dde6ea}
+.red{background:#fff0ef;color:var(--red)}.red:hover{background:#ffe3e1}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+/* Ohne diese Regel schlaegt .bar{display:flex} das [hidden] des Browsers
+   und eine versteckte Leiste bleibt sichtbar (Lehre aus Abschnitt 59). */
+.bar[hidden]{display:none}
+.scroll{overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:1000px;table-layout:fixed}
+/* Spaltenbreiten in der App, abgestimmt auf den tatsächlichen Inhalt je Spalte.
+   Pos. wird unten für den Bildschirm zusätzlich fix auf 23mm gesetzt (gleich wie im PDF). */
+.work-table col.c-pos{width:7%}.work-table col.c-desc{width:54%}.work-table col.c-emp{width:5.5%}.work-table col.c-func{width:8.5%}.work-table col.c-std{width:5%}.work-table col.c-rate{width:7%}.work-table col.c-total{width:8.5%}.work-table col.c-del{width:4.5%}
+.mat-table col.m-pos{width:7%}.mat-table col.m-edv{width:11%}.mat-table col.m-material{width:43%}.mat-table col.m-dim{width:6.5%}.mat-table col.m-unit{width:6%}.mat-table col.m-qty{width:6%}.mat-table col.m-price{width:7.5%}.mat-table col.m-total{width:8%}.mat-table col.m-del{width:5%}
+.work-table td:last-child,.work-table th:last-child,.mat-table td:last-child,.mat-table th:last-child{text-align:left}
+.work-table td:last-child button,.mat-table td:last-child button{padding:6px 9px}
+input[type=date]{font-size:11px;padding-left:4px;padding-right:2px;width:100%;min-width:0}
+#workBody input[type=date],#matBody input[type=date]{width:100%;display:block;box-sizing:border-box}
+th{background:#f2f6f8;text-align:left;font-size:9px;padding:9px 6px;color:var(--muted);font-weight:800;letter-spacing:.03em}
+td{border-top:1px solid var(--line);padding:6px;font-size:12px;vertical-align:middle}
+tbody tr:hover td{background:#f7fafc}
+td input,td select{min-height:34px;font-size:12px}
+.money{text-align:left;font-variant-numeric:tabular-nums}
+.money input.mat-preis{text-align:left;font-variant-numeric:tabular-nums}
+.print-only{display:none}
+.total{text-align:right;font-size:20px;font-weight:900;margin-top:10px;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px}
+.small{font-size:11px;color:var(--muted);margin-top:7px}
+.search{position:relative}
+/* Leere Vorschlagsbox ausblenden – sonst bleibt ihr Rahmen als feiner
+   Strich quer über dem Bildschirm stehen. */
+.suggest:empty{display:none}
+.suggest{position:fixed;z-index:1000;min-width:320px;max-width:min(92vw,560px);background:#fff;border:1px solid #bcc9d0;border-radius:10px;box-shadow:0 14px 28px #17242d26;max-height:260px;overflow:auto}
+.item{white-space:normal;line-height:1.25}
+.item{padding:10px;border-bottom:1px solid #edf0f2;cursor:pointer;transition:background .1s}.item:last-child{border-bottom:0}.item:hover{background:var(--blue-light)}.item b{display:block}.item span{font-size:11px;color:var(--muted)}
+/* Projektvorschlag (v2.48): Adresse als Hauptinformation, darf ueber
+   mehrere Zeilen umbrechen; Trefferflaeche gross genug fuer den Daumen. */
+.projekt-vorschlag{min-height:48px;padding:9px 10px}
+.projekt-vorschlag b{font-size:13px;word-break:break-word}
+.projekt-vorschlag span{display:block;margin-top:2px;word-break:break-word}
+.empty{text-align:center;color:var(--muted);padding:20px;font-size:12px;border:1px dashed var(--line);border-radius:10px;background:#fbfcfd}
+.modal{position:fixed;inset:0;background:linear-gradient(180deg,#f2f5f8,#e8edf1 240px,var(--bg) 480px);background-attachment:fixed;z-index:500;padding:14px 9px 40px;overflow:auto;animation:fadeIn .15s ease-out}.modalbox{max-width:920px;margin:auto;padding:0}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.settingrow{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;margin:6px 0;display:grid;grid-template-columns:1.3fr .9fr auto;gap:8px;align-items:center}
+.settingrow.emp-row{grid-template-columns:1fr auto}
+.settings-section{border:1px solid #dfe6ea;border-radius:12px;margin:12px 0;overflow:hidden}
+.settings-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;cursor:pointer;background:var(--blue-light)}
+.settings-section-head h2{margin:0;padding:0;border:0;color:var(--blue-dark)}
+.settings-section-chevron{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--blue);transition:transform .15s}
+.settings-section.open .settings-section-chevron{transform:rotate(90deg)}
+.settings-section-body{display:none;padding:12px 14px}
+.settings-section.open .settings-section-body{display:block}
+.settings-tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid #e2e8ec;margin:8px 0 16px}
+.settings-tab{background:none;color:var(--muted);padding:9px 14px;border-radius:9px 9px 0 0;font-weight:800;font-size:12.5px;box-shadow:none}
+.settings-tab:hover{background:#f2f5f8}
+.settings-tab.active{background:var(--blue-light);color:var(--blue-dark)}
+.settingrow-mat{background:#fff;border:1px solid var(--line);border-radius:10px;margin:6px 0;overflow:hidden}
+.mat-row-head{display:flex;align-items:center;gap:8px;padding:7px;cursor:pointer}
+.mat-row-head .mat-nr{flex:0 0 30%;min-width:0}
+.mat-row-head .mat-name{flex:1 1 auto;min-width:0}
+.mat-chevron{flex:0 0 20px;text-align:center;color:var(--muted);font-size:16px;font-weight:900;transition:transform .15s}
+.settingrow-mat.open .mat-chevron{transform:rotate(90deg);color:var(--blue)}
+.mat-row-body{display:none;grid-template-columns:1fr 1fr 1fr auto;align-items:end;gap:7px;padding:0 7px 9px}
+.mat-row-body label{font-size:8px}
+.settingrow-mat.open .mat-row-body{display:grid}
+.settingrow-mat.open .mat-row-head{border-bottom:1px solid #eef1f3;background:var(--blue-light)}
+.cut{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+.cutgrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}.area{background:var(--blue-light);color:var(--blue-dark);border-radius:9px;padding:9px;font-weight:800}
+.project-row{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:6px 0}
+.project-row .project-row-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.project-row .project-row-top b{font-size:15px;flex:1 1 auto;min-width:0;word-break:break-word}
+.project-row .small{margin-top:3px;word-break:break-word}
+/* v2.47: Status auf eigener Zeile - so verdraengt das Badge nie den
+   Titel und die Karte laeuft auf dem Handy nicht seitlich hinaus. */
+.project-row-status{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.pstatus-archiv{color:var(--muted)}
+.project-row-archiviert{opacity:.72}
+/* Hauptaktion: volle Breite, gross genug fuer den Daumen. */
+.project-row-main{display:block;width:100%;min-height:44px;margin-top:9px;text-align:center;font-size:13px}
+.project-row-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.project-row-actions button{flex:1 1 auto;min-height:38px;padding:6px 10px;font-size:11px}
+.report-list{margin-top:8px;border-top:1px solid var(--line);padding-top:8px;display:none}
+.report-list.open{display:block}
+.report-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:var(--blue-light);border-radius:8px;padding:7px 9px;margin:5px 0}
+.report-row .report-row-info{flex:1 1 190px;min-width:0}
+.report-row .report-row-info b{display:block;font-size:12px;word-break:break-word}
+/* Objektadresse als Haupttitel im Regierapport-Bildschirm (v2.44) */
+.report-adresse{font-size:15px;font-weight:800;color:var(--ink);margin:-6px 0 10px;word-break:break-word}
+/* Projektdateien (v2.43): Bildvorschau bzw. Typ-Symbol vor der Zeile */
+.datei-thumb{flex:0 0 auto;width:44px;height:44px;border-radius:8px;object-fit:cover;background:#fff;border:1px solid var(--line)}
+.datei-icon{flex:0 0 auto;width:44px;height:44px;border-radius:8px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:20px}
+/* Dateizeile im Projekt-Cockpit (v2.49): Name gross, darunter Typ/Groesse
+   und Datum; die Aktionen brechen auf schmalen Geraeten um und sind gross
+   genug fuer den Daumen. */
+.datei-row .report-row-info b{font-size:13px}
+.datei-row .report-row-actions{flex:1 1 100%;flex-wrap:wrap;margin-top:2px}
+.datei-row .report-row-actions button{flex:1 1 auto;min-height:40px}
+.datei-row .report-row-actions button.blue{min-height:44px;flex:1 1 100%}
+/* Medien-Hinweis in der Massaufnahme-Zeile (v2.50) */
+.meas-medien-hinweis{color:var(--blue-dark)!important;font-weight:800}
+/* Galerie der Fotos/Skizzen einer Massaufnahme (v2.50): grosse, gut
+   antippbare Kacheln, die auf schmalen Geraeten umbrechen. */
+.medien-galerie{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.medien-kachel{flex:1 1 140px;max-width:200px;min-height:130px;padding:0;background:#fff;
+ border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;
+ flex-direction:column;align-items:stretch;cursor:pointer}
+.medien-kachel img{width:100%;height:110px;object-fit:cover;background:var(--blue-light);display:block}
+.medien-label{display:block;padding:6px 8px;font-size:11px;font-weight:800;color:var(--muted);text-align:left}
+.medien-fehler{display:flex;align-items:center;justify-content:center;height:110px;padding:8px;
+ font-size:11px;font-weight:700;color:var(--muted);background:var(--blue-light);text-align:center}
+/* Grosse Ansicht eines einzelnen Bildes (v2.50) */
+.medien-viewer{position:fixed;inset:0;z-index:900;background:#0d141aee;display:flex;
+ flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px}
+.medien-viewer-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;max-width:920px;color:#fff;font-size:12px;font-weight:800}
+.medien-viewer-bar button{min-height:44px}
+.medien-viewer img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:10px;background:#fff}
+/* WICHTIG: Eine Klasse mit display:… schlaegt die Browserregel
+   [hidden]{display:none}. Ohne diese Zeile bleibt die Vollbildansicht
+   dauerhaft ueber der ganzen App liegen (Fehler aus v2.50).
+   Gleiches Muster wie .sketch-fullscreen[hidden] weiter unten. */
+.medien-viewer[hidden]{display:none}
+/* Arbeitsstand im Projekt-Cockpit (v2.42): kompakte Zeilen, nur Fakten */
+.arbeitsstand{border:1px solid var(--line);border-radius:10px;margin-top:10px;overflow:hidden;background:#fff}
+.arbeitsstand-titel{font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px 4px}
+.arbeitsstand-zeile{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;border-top:1px solid #eef1f3;border-radius:0;padding:9px 10px;min-height:38px;font-weight:600;color:var(--ink)}
+button.arbeitsstand-zeile{cursor:pointer}
+button.arbeitsstand-zeile:hover{background:var(--blue-light)}
+.arbeitsstand-marke{flex:0 0 auto;width:16px;text-align:center;font-size:12px;font-weight:900;color:var(--blue)}
+.arbeitsstand-name{flex:1 1 auto;min-width:0;font-size:12px;word-break:break-word}
+.arbeitsstand-wert{flex:0 0 auto;font-size:12px;font-weight:800;color:var(--blue-dark);text-align:right}
+.arbeitsstand-aktivitaet .arbeitsstand-wert{font-weight:600;color:var(--muted)}
+/* Schnellzugriff "Zuletzt bearbeitet" (v2.41): ganze Karte ist der Knopf */
+.recent-project{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:11px 12px;margin:6px 0;min-height:52px}
+.recent-project-info{flex:1 1 auto;min-width:0}
+.recent-project-info b{display:block;font-size:13px;word-break:break-word}
+.recent-project-info span{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:3px;word-break:break-word}
+.recent-project-arrow{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--blue)}
+/* Projektstatus (v2.46): Zeichen + Text + Farbe - nie die Farbe allein.
+   Kompakt genug fuer die Projektkarte, gut lesbar auf dem Handy. */
+.pstatus{display:inline-block;font-size:11px;font-weight:900;line-height:1.5;
+ border:1px solid currentColor;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.pstatus-offen{color:var(--muted)}
+.pstatus-in_arbeit{color:var(--blue)}
+.pstatus-abgeschlossen{color:var(--green)}
+.pstatus-storniert{color:var(--red)}
+html.dark .pstatus-abgeschlossen{color:#4cc79a}
+html.dark .pstatus-storniert{color:#f08b80}
+/* Statuszeile im Projektkopf: Anzeige und Auswahlfeld nebeneinander,
+   auf schmalen Geraeten untereinander. */
+.projekt-status-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 4px}
+.projekt-status-zeile select{flex:0 1 200px;min-height:38px}
+.projekt-status-anzeige{flex:0 0 auto}
+/* Statusfilter der Projektliste: gleiche Chips wie im Verlauf (v2.31).
+   margin-top ist Pflicht: die Leiste darueber (.bar) hat nur margin-top,
+   sonst beruehren sich die beiden Knopfreihen ohne jede Luft (v2.69). */
+.status-filter{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px}
+.status-filter button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark);min-height:30px}
+.status-filter button.aktiv{background:var(--blue);color:#fff}
+.status-filter[hidden]{display:none}
+/* Projektkopf im Cockpit (v2.45): die Adresse ist der Haupttitel und
+   darf auf schmalen Geraeten umbrechen, statt seitlich hinauszulaufen. */
+#cockpitTitle{word-break:break-word}
+#cockpitSubline{word-break:break-word}
+/* Projekt-Cockpit (v2.39): Abschnittsueberschrift mit Anzahl rechts,
+   klar beschriftete Neu-Knoepfe ueber voller Breite. */
+/* Aus der globalen Suche geoeffneter Treffer (v2.40): kurz hervorheben */
+.report-row.treffer{outline:2px solid var(--blue);outline-offset:1px;background:#fff}
+.cockpit-count{float:right;font-size:11px;font-weight:900;color:var(--blue);background:var(--blue-light);border-radius:999px;padding:1px 9px;min-width:20px;text-align:center}
+.cockpit-new{display:block;width:100%;min-height:44px;text-align:center;line-height:24px}
+label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-weight:800;font-size:12px}
+.verlauf-filters button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark)}
+/* Sortier-Chips der Feedback-Liste - gleiche Optik wie die Verlauf-Filter */
+.feedback-sort button{padding:6px 10px;font-size:11px;min-height:34px;background:var(--blue-light);color:var(--blue-dark)}
+.feedback-sort button.active{background:var(--blue);color:#fff}
+/* Auswahl der zu exportierenden Feedbacks: die ganze Kopfzeile ist das
+   Label, damit auf dem Handy nicht das kleine Kaestchen getroffen werden
+   muss. word-break, damit lange Modulnamen umbrechen statt zu ueberlaufen. */
+label.feedback-pick{display:flex;align-items:flex-start;gap:9px;cursor:pointer;
+ min-height:30px;padding:2px 0;margin:0}
+label.feedback-pick input{width:19px;height:19px;min-height:0;flex:0 0 auto;margin:2px 0 0;padding:0;border:0;border-radius:0;accent-color:var(--blue)}
+label.feedback-pick span{flex:1 1 auto;min-width:0;word-break:break-word;text-transform:none;letter-spacing:normal;font-weight:400;font-size:11px;margin:0}
+.settingrow.feedback-gewaehlt{border-left:3px solid var(--blue)}
+.verlauf-filters button.active{background:var(--blue);color:#fff}
+.verlauf-entry{border-bottom:1px solid var(--line);padding:7px 2px}
+.verlauf-entry:last-child{border-bottom:0}
+.verlauf-entry-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.verlauf-entry-badges{display:flex;gap:5px;flex-wrap:wrap}
+.verlauf-entry-entity{font-size:10.5px;font-weight:800;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.verlauf-entry-action{font-size:10.5px;font-weight:800;color:var(--blue-dark);background:var(--blue-light);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.verlauf-entry-who{font-size:12px;font-weight:700}
+.verlauf-entry-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.verlauf-entry-changes{margin-top:4px;padding:6px 8px;background:var(--blue-light);border-radius:8px;font-size:11px;color:var(--ink)}
+.verlauf-change-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:2px 0}
+.verlauf-change-label{font-weight:700;color:var(--blue-dark);white-space:nowrap}
+.verlauf-change-value{word-break:break-word}
+.verlauf-limit-hint{color:var(--muted);text-align:center}
+.report-row .report-row-info span{display:block;font-size:11px;color:var(--muted);word-break:break-word}
+.report-row .report-row-actions{display:flex;gap:6px;flex:0 0 auto}
+.report-row button{padding:7px 10px;font-size:11px;min-height:34px}
+
+.meas-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.eb-table{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}
+.eb-diagram-box{background:#f8fafb;border:1px solid var(--line);border-radius:10px;padding:8px;margin:8px 0}
+.eb-diagram-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.eb-diagram-scroll svg{display:block}
+.eb-table col.eb-col-pos{width:14%}
+.eb-table col.eb-col-len{width:32%}
+.eb-table col.eb-col-massa{width:26%}
+.eb-table col.eb-col-side{width:28%}
+.eb-table th{background:#f2f6f8;text-align:left;font-size:9px;padding:6px 5px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+.eb-table td{border-top:1px solid var(--line);padding:5px;font-size:12px}
+.eb-table td:first-child{text-align:left;color:var(--muted)}
+.eb-table td:nth-child(2),.eb-table td:nth-child(3){text-align:left;font-variant-numeric:tabular-nums}
+.eb-rest-row td{background:var(--blue-light);font-weight:800}
+.start-nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px}
+.start-nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:26px 10px;border-radius:14px;font-size:14px;font-weight:800;text-align:center;line-height:1.3}
+.start-nav-btn small{font-weight:600;font-size:10px;opacity:.85}
+.start-nav-icon{font-size:34px;line-height:1}
+#topUserBar{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px}
+.report-topnav{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
+.report-topnav button{padding:7px 12px;font-size:12px}
+@media(max-width:600px){.start-nav{grid-template-columns:1fr}}
+.meas-preview{max-width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--line);display:block}
+.meas-preview[hidden]{display:none}
+.sketch-fullscreen{position:fixed;inset:0;z-index:2000;background:#fff;display:flex;flex-direction:column;touch-action:pan-x pan-y}
+.sketch-fullscreen[hidden]{display:none}
+.sketch-fs-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:9px 10px;background:#f2f5f8;border-bottom:1px solid var(--line);flex:0 0 auto;touch-action:manipulation}
+.sketch-fs-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sketch-fs-actions{display:flex;gap:8px;flex:0 0 auto;margin-left:auto}
+.sketch-fs-toolbar select,.sketch-fs-toolbar input[type=color]{width:auto;min-height:38px}
+.sketch-fs-toolbar button{padding:9px 14px;flex:0 0 auto}
+.sketch-zoom-label{font-size:12px;font-weight:800;color:var(--muted);min-width:38px;text-align:center}
+#fsPanFloating{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:50;padding:12px 20px;border-radius:999px;font-size:14px;font-weight:900;background:var(--green);color:#fff;box-shadow:0 4px 16px #0004;white-space:nowrap}
+#fsPanFloating.active{background:var(--blue)}
+#fsSketchDone{font-size:14px;font-weight:900;padding:10px 20px;box-shadow:0 3px 10px #16845c66}
+.sketch-viewport{flex:1 1 auto;overflow:auto;background:#dbe1e5;display:flex;align-items:flex-start;justify-content:center;padding:14px;touch-action:pan-x pan-y}
+#fsSketchCanvas{background:#fff;box-shadow:0 2px 14px #0002;flex:0 0 auto;touch-action:none}
+.sketch-gallery{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0}
+.sketch-thumb-wrap{position:relative;width:84px;height:118px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.sketch-thumb{width:100%;height:100%;object-fit:contain}
+.sketch-thumb-actions{position:absolute;inset:auto 0 0 0;display:flex;gap:2px;background:#17242dcc}
+.sketch-thumb-actions button{flex:1;padding:4px 0;font-size:11px;border-radius:0}
+.meas-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0}
+.meas-thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:0 0 auto;background:#eef2f6}
+.meas-thumb-empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px}
+.meas-row-info{flex:1 1 190px;min-width:0}
+.meas-row-info b{display:block;font-size:13px;word-break:break-word}
+.meas-row-info span{display:block;font-size:11px;color:var(--muted);word-break:break-word}
+.meas-row-actions{display:flex;gap:6px;flex:0 0 auto}
+.meas-row-actions button{padding:7px 10px;font-size:12px;min-height:34px}
+@media(max-width:600px){.meas-columns{grid-template-columns:1fr}}
+#authScreen .modalbox{max-width:420px}
+.info{background:var(--blue-light);color:var(--blue-dark);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:9px;border-left:3px solid var(--blue)}
+.report-head{display:none}
+.report-foot{display:none}
+.pdf-foot{display:none}
+.print-rate-block{display:none}
+
+
+/* Kehle (v2.52) – Hauptresultate b/c/d dominieren, alles Weitere bleibt
+   dezent. Kein Element hier startet versteckt; sollte das je nötig
+   werden, braucht die Klasse zusätzlich eine eigene
+   .klasse[hidden]{display:none}-Regel (siehe CLAUDE.md 59). */
+.kehle-haupt{background:var(--blue-light);border:2px solid var(--blue);border-radius:12px;padding:10px 12px;margin:12px 0 4px}
+.kehle-haupt-titel{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--blue-dark);margin-bottom:6px}
+.kehle-haupt-zeile{display:flex;flex-wrap:nowrap;align-items:baseline;gap:8px;padding:4px 0;border-top:1px solid #ffffff80}
+.kehle-haupt-zeile:first-of-type{border-top:0}
+.kehle-haupt-buchstabe{font-size:20px;font-weight:800;color:var(--blue-dark);flex:0 0 20px}
+.kehle-haupt-wert{font-size:24px;font-weight:800;color:var(--blue-dark);flex:0 0 auto;min-width:96px;text-align:right;white-space:nowrap}
+.kehle-haupt-text{flex:1 1 0;min-width:0;font-size:11px;line-height:1.25;color:var(--blue-dark);overflow-wrap:anywhere}
+/* Zusatzwerte bewusst schmal: Kurzbezeichnung auf dem Bildschirm, der
+   volle Excel-Wortlaut haengt als Tooltip an der Zeile und steht
+   ungekuerzt im PDF. */
+/* min-width:0 ist hier zwingend: die globale Regel oben (Zeile 33)
+   setzt jeder Tabelle min-width:1000px, weil die Stuecklisten-Tabellen
+   der App in einem <div class="scroll"> stehen und breit sein duerfen.
+   Ohne diese Zeile waere auch die Kehle-Tabelle 1000px breit und wuerde
+   rechts aus dem Bildschirm laufen. */
+table.kehle-tabelle{width:100%;min-width:0;border-collapse:collapse;font-size:11.5px;table-layout:fixed}
+.kehle-tabelle th{width:32px;text-align:left;font-weight:800;color:var(--blue-dark);padding:3px 5px 3px 0;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+.kehle-tabelle td{padding:3px 4px 3px 0;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.3;overflow-wrap:anywhere}
+.kehle-tabelle td.kehle-zahl{width:74px;text-align:right;font-weight:700;white-space:nowrap;padding-right:0}
+details.kehle-zwischen summary{cursor:pointer;font-size:11.5px;color:var(--muted);padding:7px 0;min-height:32px}
+details.kehle-zwischen[open] summary{margin-bottom:2px}
+@media(max-width:600px){
+ .kehle-haupt-wert{font-size:21px;min-width:84px}
+ .kehle-haupt-buchstabe{font-size:17px;flex:0 0 16px}
+ .kehle-haupt-text{font-size:10.5px}
+ table.kehle-tabelle{font-size:11px}
+ .kehle-tabelle td.kehle-zahl{width:68px}
+ .kehle-tabelle th{width:30px}
+}
+
+/* ---- Rinne · frei definierbares Profil + Zuschnittliste (v2.57) ----
+   Beide Tabellen stehen wie die uebrigen Stuecklisten in einem
+   <div class="scroll"> und duerfen breiter als der Bildschirm sein.
+   min-width und table-layout werden hier ausdruecklich gesetzt: die
+   globale Regel (Zeile 33) gibt jeder Tabelle min-width:1000px und
+   table-layout:fixed - bei einer Tabelle mit dynamisch vielen Spalten
+   waere beides falsch. */
+table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:collapse;
+ margin-top:6px;table-layout:auto}
+.rp-profiltabelle th,.rp-table th{background:#f2f6f8;text-align:left;font-size:9px;padding:6px 5px;
+ color:var(--muted);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+.rp-profiltabelle td,.rp-table td{border-top:1px solid var(--line);padding:4px 5px;font-size:12px;
+ vertical-align:middle;white-space:nowrap}
+.rp-profiltabelle td:first-child,.rp-table td:first-child{color:var(--muted);text-align:left}
+.rp-profiltabelle input,.rp-profiltabelle select,
+.rp-table input[type=number],.rp-table select{padding:5px 4px;font-size:12px;min-height:34px;
+ border:1px solid var(--line);border-radius:7px;background:#fff;color:inherit;min-width:0}
+.rp-profiltabelle input[type=text]{width:150px}
+.rp-profiltabelle input[type=number]{width:76px;text-align:right}
+.rp-profiltabelle select{width:92px}
+.rp-table input[type=number]{width:72px;text-align:right}
+.rp-table select{width:92px}
+.rp-varzelle input[type=number]{width:62px}
+/* display:flex auf einem <td> sprengt das Tabellenlayout - die Knoepfe
+   liefen in die Nachbarspalte. Deshalb ein innerer Flex-Container. */
+.rp-winkel > div{display:flex;gap:3px;align-items:center}
+.rp-winkel button,.rp-segbtn button,.rp-table button{min-height:32px;min-width:32px;padding:2px 6px;font-size:12px}
+.rp-segbtn{white-space:nowrap}
+.rp-segbtn button{margin-right:2px}
+.rp-var{color:var(--blue-dark);font-weight:800}
+.rp-erg{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
+.rp-zuschnitt{color:var(--blue-dark)}
+@media(max-width:600px){
+ .rp-profiltabelle td,.rp-table td{font-size:11.5px}
+ .rp-profiltabelle input[type=text]{width:120px}
+}
+/* Pflichtfeld-Stern (v2.70): rot, fett und etwas groesser als das Label,
+   damit er auch auf einem Handy sicher zu sehen ist. Der Stern steht im
+   Label, nie im Eingabewert - er kann also nicht mitgetippt werden. */
+.pflicht-stern{color:var(--red);font-weight:900;font-size:13px;line-height:1;margin-left:3px;vertical-align:baseline}
+/* Offline-Hinweis (v2.70): deutlich, aber nicht alarmierend. Steht ganz
+   oben und nimmt auf dem Handy die volle Breite ein. */
+.offline-hinweis{background:#fff4e5;border:1px solid #f0c48a;color:#8a5300;
+ border-radius:10px;padding:8px 10px;margin:0 0 8px;line-height:1.35}
+.offline-hinweis[hidden]{display:none}
+
+/* ---- Rinne Halbrund · Aufnahme (js/28) ---------------------------------- */
+/* Die globalen Grundregeln (input{min-height:40px}, label{uppercase},
+   table{min-width:1000px}) gelten auch hier - Tabellen stehen deshalb wie
+   ueberall in .scroll, und es wird nichts davon still ueberschrieben. */
+.ra-block{margin-top:4px}
+.ra-zeile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+.ra-zeile-kopf{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.ra-zeile-kopf b{font-size:13px}
+.ra-klein{font-size:11.5px;color:var(--muted);font-weight:400}
+.ra-weg{min-height:34px;padding:0 10px;flex:0 0 auto}
+.ra-ueb{background:#f4f9f8;border-color:#cfe4e0}
+.ra-ueb-aus{background:#fafbfc;border-color:var(--line)}
+.ra-ueb-stutzen{background:#f5f2fb;border-color:#ddd3ee}
+.ra-wert{min-height:40px;display:flex;align-items:center;font-weight:700;font-size:14px;
+ padding:8px;border:1px dashed var(--line);border-radius:9px;background:#fafbfc;word-break:break-word}
+.ra-schalter{display:flex;align-items:center;gap:8px;min-height:40px;font-size:13px;
+ font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0}
+.ra-schalter input{width:auto;min-height:0;padding:0;border:0;transform:scale(1.25);flex:0 0 auto}
+.ra-pruefung{display:flex;flex-direction:column;gap:6px}
+.ra-fehler{background:#fdf1f0;border-left:3px solid #b42318;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#8a2018}
+.ra-warnung{background:#fdf6ec;border-left:3px solid #d9822b;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#8a5312}
+.ra-ok{background:#eff9f2;border-left:3px solid #2e7d4f;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#1f5c39}
+.ra-liste{margin:8px 0 0;padding-left:18px;font-size:12.5px;line-height:1.55}
+.ra-warn{background:#fdf6ec;color:#8a5312;border-left-color:#d9822b}
+/* Legende unter dem Verlaufsband - ohne sie waeren die berechneten
+   Dehnungselemente nur unbeschriftete Rauten. */
+.ra-legende{font-size:11px;color:var(--muted);line-height:1.5;margin:2px 0 8px;text-align:center}
+/* Rinnenboden und Dehnung stehen in einem eigenen, abgesetzten Block, damit
+   die berechneten Dehnungselemente sichtbar sind und nicht in einer
+   Feldreihe untergehen. */
+.ra-dehnung{background:#fdf8f2;border:1px solid #f0dcc3;border-radius:12px;padding:10px;margin:10px 0}
+.ra-dehnung-zahl{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12.5px;
+ color:var(--ink);margin-bottom:4px}
+.ra-dehnung-zahl span{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700}
+.ra-dehnung-zahl b{font-size:17px;color:#b4610a}
+.ra-dehnung-liste{margin:4px 0 0;padding-left:18px;font-size:12.5px;line-height:1.6}
+/* Kurz sichtbar machen, wohin "Fertig" gefuehrt hat. */
+.ra-ziel{outline:2px solid var(--blue);outline-offset:3px;border-radius:10px}
+.ra-dila-zeile{background:var(--blue-light)}
+.ra-dila-feld{max-width:130px;text-align:right;font-variant-numeric:tabular-nums}
+.ra-rest{color:#b4610a;font-weight:700}
+@media (max-width:520px){.ra-dila-feld{max-width:none}}
+/* Die globale Grundregel table{min-width:1000px} ist fuer die breiten
+   Stuecklisten gedacht. Die Tabellen der Rinnen-Aufnahme haben wenige,
+   kurze Spalten und sollen auf dem Handy ganz sichtbar sein - min-width
+   muss dafuer AUSDRUECKLICH zurueckgesetzt werden, width:100% allein
+   reicht nicht (siehe CLAUDE.md 60.5). */
+.eb-table.ra-tab{min-width:0;table-layout:auto}
+.eb-table.ra-tab td,.eb-table.ra-tab th{word-break:break-word}
+/* Register-Fuehrung durch die Rinnen-Massaufnahme (wie in der Testapp).
+   .ra-register-knopf setzt min-height/padding/width ausdruecklich zurueck -
+   die globale button-Regel wuerde sie sonst ueberschreiben. */
+.ra-register{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;
+ -webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.ra-register-knopf{flex:0 0 auto;width:auto;display:inline-flex;align-items:center;gap:6px;
+ background:#fff;border:1px solid var(--line);border-radius:22px;
+ min-height:42px;padding:0 13px;font-size:13px;font-weight:600;color:var(--ink);
+ white-space:nowrap;cursor:pointer;position:relative}
+.ra-register-knopf.aktiv{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:800}
+.ra-register-nr{display:inline-flex;align-items:center;justify-content:center;
+ width:20px;height:20px;border-radius:50%;background:#eef2f5;color:var(--ink);
+ font-size:11px;font-weight:800;flex:0 0 auto}
+.ra-register-knopf.aktiv .ra-register-nr{background:#fff;color:var(--blue)}
+.ra-register-punkt{width:8px;height:8px;border-radius:50%;background:#d9822b;flex:0 0 auto}
+.ra-register-punkt.fehler{background:#b42318}
+.ra-register-knopf.aktiv .ra-register-punkt{box-shadow:0 0 0 2px #fff}
+.ra-blaettern{justify-content:space-between;margin-top:14px}
+.ra-blaettern button{flex:1 1 46%;min-height:46px;font-weight:700}
+
+/* ---- Freies Profil: Aufnahme (v2.77) ---------------------------------- */
+/* Die globale Grundregel table{min-width:1000px} ist fuer die breiten
+   Stuecklisten gedacht. Diese Tabellen sollen in die Seitenbreite passen -
+   sonst muesste man auf dem Handy jede einzeln seitwaerts schieben. */
+.eb-table.fpa-tab{min-width:0;table-layout:auto}
+.eb-table.fpa-tab td,.eb-table.fpa-tab th{word-break:break-word}
+/* Die Zeichnung ist beim Erfassen die eigentliche Rückmeldung. Auf einem
+   Handy stünde sie sonst unter mehreren langen Schenkel-Karten - man sähe
+   sie beim Tippen nie. Deshalb klebt sie oben am Bildschirmrand. */
+.ra-zeichnung{border:1px solid var(--line);border-radius:12px;background:var(--card-bg);
+ padding:6px 8px 8px;margin:8px 0}
+.ra-zeichnung.ra-klebt{position:sticky;top:0;z-index:5;box-shadow:0 6px 14px -12px #0d141a55}
+.ra-zeichnung[hidden]{display:none}
+.ra-zeichnung-kopf{display:flex;justify-content:space-between;gap:8px;font-size:10px;
+ font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+/* Ein gedrückter Zustand für „180° Umschlag“ - der Knopf ist ein Schalter. */
+button.ra-aktiv{border-color:var(--blue);color:var(--blue-dark);background:var(--blue-light)}
+
+/* ---- prototyp-mauerabdeckung/prototyp.css ---- */
+/* Prototyp Mauerabdeckung – nur die Ergänzungen zur App-Grundschrift.
+   Auf ein Android-Handy und -Tablet ausgelegt: grosse Trefferflächen, keine
+   festen Breiten, alles umbruchfähig. */
+
+.p-app{max-width:900px;margin:0 auto;padding:10px 12px 40px}
+
+.p-kopf{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;
+ justify-content:space-between;margin:6px 0 12px}
+.p-kopf h1{margin:0;font-size:21px;letter-spacing:.2px}
+.p-kopf-klein{font-size:11.5px;color:var(--muted)}
+.p-kopf-knoepfe{display:flex;flex-wrap:wrap;gap:8px}
+.p-kopf-knoepfe button{min-height:44px;padding:0 14px}
+
+.p-karte{background:#fff;border:1px solid var(--line);border-radius:14px;
+ padding:12px 12px 14px;margin:0 0 12px}
+.p-karte h2{margin:2px 0 10px;font-size:12px;text-transform:uppercase;
+ letter-spacing:.6px;color:var(--muted)}
+.p-karte h3{margin:14px 0 6px;font-size:12px;text-transform:uppercase;
+ letter-spacing:.5px;color:var(--muted)}
+.p-klapp[hidden]{display:none}
+
+/* Register – scrollt auf schmalen Geräten seitwärts */
+.p-register{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;
+ -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.p-register::-webkit-scrollbar{display:none}
+.p-register-knopf{flex:0 0 auto;display:flex;align-items:center;gap:7px;
+ min-height:44px;padding:0 13px;border:1px solid var(--line);border-radius:11px;
+ background:#fff;color:var(--ink);font-size:13px;font-weight:600;cursor:pointer}
+.p-register-knopf.aktiv{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+.p-register-nr{display:inline-flex;align-items:center;justify-content:center;
+ width:20px;height:20px;border-radius:50%;background:#eef2f5;color:var(--muted);
+ font-size:11px;font-weight:700}
+.p-register-knopf.aktiv .p-register-nr{background:var(--blue);color:#fff}
+.p-punkt{width:8px;height:8px;border-radius:50%;display:inline-block}
+.p-punkt-rot{background:#b42318}
+.p-punkt-orange{background:#d9822b}
+
+.p-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.p-feld label{display:block;font-size:10.5px;text-transform:uppercase;
+ letter-spacing:.4px;color:var(--muted);font-weight:700;margin-bottom:3px;
+ white-space:normal}
+.p-voll{grid-column:1/-1}
+.p-gross{font-size:17px;font-weight:700;min-height:48px}
+
+.p-knopfreihe{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+.p-knopfreihe button{min-height:44px;padding:0 14px;flex:1 1 auto}
+.p-blau{background:var(--blue);color:#fff;border:0}
+.p-gruen{background:var(--green);color:#fff;border:0}
+.p-grau{background:#eef2f5;color:var(--ink);border:1px solid var(--line)}
+.p-weg{background:#fdf1f0;color:#8a2018;border:1px solid #f2ccc8;
+ min-height:36px;padding:0 10px}
+
+.p-blaettern{display:flex;gap:10px;margin:14px 0 0}
+.p-blaettern button{min-height:48px;flex:1 1 0;font-size:14px;font-weight:700}
+
+.p-hinweis{background:var(--blue-light);border-radius:10px;padding:9px 11px;
+ font-size:12px;line-height:1.55;margin:10px 0 0}
+.p-legende{font-size:11.5px;color:var(--muted);line-height:1.55;
+ text-align:center;margin:4px 0 8px}
+.p-klein-text{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:8px}
+.p-leer{color:var(--muted);font-size:12.5px;text-align:center;padding:14px}
+
+/* Zeichnungen – zentral und gross genug für ein Tablet */
+.p-schnitt{background:#fafbfc;border:1px solid var(--line);border-radius:12px;
+ padding:12px;margin:12px 0 4px;display:flex;justify-content:center}
+.p-schnitt svg{max-width:460px!important;width:100%}
+.p-grundriss{background:#fafbfc;border:1px solid var(--line);border-radius:12px;
+ padding:10px;display:flex;justify-content:center}
+
+/* Kennzahlen */
+.p-zf-kopf{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+ gap:8px;margin:12px 0 0}
+.p-zf-kopf>div{background:#fafbfc;border:1px solid var(--line);border-radius:10px;
+ padding:8px 10px;min-width:0}
+.p-zf-kopf span{display:block;font-size:10px;text-transform:uppercase;
+ letter-spacing:.4px;color:var(--muted);font-weight:700}
+.p-zf-kopf b{font-size:16px;word-break:break-word}
+.p-zf-fuss{font-size:12px;color:var(--muted);margin-top:10px}
+.p-warnwert{color:#b42318}
+
+/* Tabellen: die globale Grundregel table{min-width:1000px} in
+   css/01-basis.css ist für die breiten Stücklisten der App gedacht.
+   Hier muss min-width AUSDRÜCKLICH zurückgesetzt werden – width:100%
+   allein reicht nicht. */
+.p-tabelle{overflow-x:auto;margin-top:10px}
+.p-tabelle table{width:100%;min-width:0;table-layout:auto;border-collapse:collapse}
+.p-tabelle th,.p-tabelle td{border-bottom:1px solid var(--line);
+ padding:7px 6px;font-size:12.5px;text-align:left;word-break:break-word}
+.p-tabelle th{font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;
+ color:var(--muted);font-weight:700;white-space:nowrap}
+.p-num{text-align:right!important;font-variant-numeric:tabular-nums}
+.p-mitte{text-align:center!important}
+.p-quelle{color:var(--muted);font-size:11px}
+.p-tab-feld{min-height:38px;padding:4px 6px;text-align:right;
+ font-variant-numeric:tabular-nums;font-size:13px}
+/* Kästchen: die globale Regel input{width:100%;min-height:40px;border:…}
+   macht aus einem Häkchen sonst ein 40 px hohes Feld mit Rahmen. */
+.p-tabelle input[type=checkbox]{width:auto;min-height:0;padding:0;border:0;
+ transform:scale(1.3)}
+.p-tabelle tr.p-boden td{background:#f0f9f6}
+
+.p-pruefung{display:flex;flex-direction:column;gap:6px}
+.p-fehler{background:#fdf1f0;border-left:3px solid #b42318;border-radius:8px;
+ padding:8px 10px;font-size:12.5px;color:#8a2018}
+.p-warnung{background:#fdf6ec;border-left:3px solid #d9822b;border-radius:8px;
+ padding:8px 10px;font-size:12.5px;color:#8a5312}
+.p-ok{background:#eff9f2;border-left:3px solid #2e7d4f;border-radius:8px;
+ padding:8px 10px;font-size:12.5px;color:#1f5c39}
+
+/* Fotos und Skizze */
+.p-datei{display:flex;align-items:center;justify-content:center;min-height:48px;
+ background:var(--blue);color:#fff;border-radius:11px;font-size:14px;
+ font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
+.p-fotos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.p-foto{position:relative;flex:0 0 auto;width:118px}
+.p-foto.gross{width:100%;max-width:340px}
+.p-foto img{width:100%;height:auto;display:block;border:1px solid var(--line);
+ border-radius:10px}
+.p-foto .p-weg{position:absolute;top:4px;right:4px;min-height:30px;padding:0 8px}
+.p-skizzeBox[hidden]{display:none}
+.p-skizzeBox{margin-top:10px}
+#p-skizzeCanvas{width:100%;height:auto;background:#fff;border:1px solid var(--line);
+ border-radius:10px;touch-action:none;display:block}
+
+.p-zeile{background:#fafbfc;border:1px solid var(--line);border-radius:11px;
+ padding:9px 10px;margin:8px 0}
+.p-zeile-kopf{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;
+ align-items:baseline}
+.p-zeile-kopf b{font-size:13px;word-break:break-word}
+
+/* Verlauf: jedes Segment als eigene Karte mit grossen Feldern.
+   Auf dem Handy stehen Länge und Winkel untereinander statt nebeneinander. */
+.p-seg{background:#fafbfc;border:1px solid var(--line);border-radius:12px;
+ padding:10px 10px 12px;margin:10px 0}
+.p-seg-kopf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+ justify-content:space-between;margin-bottom:8px}
+.p-seg-nr{display:inline-flex;align-items:center;justify-content:center;
+ min-width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;
+ font-size:12px;font-weight:700;padding:0 7px}
+.p-seg-titel{font-size:13px;font-weight:700;word-break:break-word;flex:1 1 auto}
+.p-seg-weg{min-height:38px;padding:0 12px;flex:0 0 auto}
+.p-winkelreihe{display:flex;gap:6px;align-items:stretch}
+.p-winkelreihe input{flex:1 1 auto;min-width:0}
+.p-winkelreihe button{flex:0 0 auto;min-height:48px;padding:0 12px}
+/* Schalter (Boden, windexponiert, Schieber von Hand): grosse Trefferfläche.
+   text-transform muss zurückgesetzt werden – die globale label-Regel in
+   css/01-basis.css schreibt sonst alles in Grossbuchstaben. */
+.p-schalter{display:flex;align-items:center;gap:9px;min-height:46px;font-size:14px;
+ font-weight:700;color:var(--ink);text-transform:none;letter-spacing:0}
+.p-schalter input[type=checkbox]{width:auto;min-height:0;padding:0;border:0;
+ transform:scale(1.4)}
+.p-schalter-reihe{display:flex;flex-wrap:wrap;gap:6px 20px}
+
+/* Legende unter dem Grundriss – dieselben Farben wie die Zeichnung */
+.p-lg{display:inline-block;margin:0 6px;font-weight:700;white-space:nowrap}
+.p-lg::before{content:"● "}
+.p-lg-blau{color:#1769aa}
+.p-lg-orange{color:#e07a1f}
+.p-lg-gruen{color:#0f766e}
+.p-lg-rot{color:#b42318}
+
+</style>
+</head>
+<body>
+<div class="p-app" id="p-app">
+
+<div class="p-kopf">
+ <div>
+  <h1>Mauerabdeckung</h1>
+  <div class="p-kopf-klein">Prototyp · rechnet mit der Fachlogik der laufenden App</div>
+ </div>
+ <div class="p-kopf-knoepfe">
+  <button type="button" class="p-gruen" id="p-speichern">💾 Speichern</button>
+  <button type="button" class="p-grau" id="p-neu">＋ Neu</button>
+  <button type="button" class="p-grau" id="p-kopieren">📋 Kopieren</button>
+  <button type="button" class="p-grau" id="p-listeAuf">📂 Gespeicherte</button>
+  <button type="button" class="p-grau" id="p-einstAuf">⚙️ Einstellungen</button>
+ </div>
+</div>
+
+<div class="p-karte p-klapp" id="p-listeBox" hidden></div>
+<div class="p-karte p-klapp" id="p-einstBox" hidden></div>
+
+<div id="p-registerBox"></div>
+<div id="p-inhalt"></div>
+
+<div class="p-blaettern">
+ <button type="button" class="p-grau" id="p-zurueck">‹ Zurück</button>
+ <button type="button" class="p-grau" id="p-weiter">Weiter</button>
+</div>
+
+<!-- ===================================================================
+     STUMMEL · unsichtbar, wird nie bedient
+     madProfilMasse() aus js/12b-mauerabdeckung.js liest seine Werte direkt
+     aus diesen Eingabefeldern. Damit die Funktion ZEICHENGENAU übernommen
+     werden kann, gibt es die Felder hier – der Prototyp schreibt vor jeder
+     Rechnung sein Modell hinein (madBrueckeSetzen in prototyp-mad.js).
+     Gleiches Vorgehen wie #rinneStummel / #ebStummel in der laufenden App.
+     =================================================================== -->
+<div id="p-stummel" hidden>
+ <input id="mad_breite" type="number" value="0">
+ <input id="mad_gefaelle" type="number" value="0">
+ <input id="mad_hoeheLinks" type="number" value="0">
+ <input id="mad_hoeheRechts" type="number" value="0">
+ <input id="mad_umschlagLinks" type="number" value="0">
+ <input id="mad_umschlagRechts" type="number" value="0">
+ <input id="mad_biegeLinks" type="number" value="0">
+ <input id="mad_biegeRechts" type="number" value="0">
+ <input id="mad_saum" type="number" value="0">
+ <input id="mad_windexponiert" type="checkbox">
+</div>
+
+</div>
+<script>
+/* ---- prototyp-mauerabdeckung/bruecke.js ---- */
+"use strict";
+// ===========================================================================
+// BRÜCKE zum bestehenden Modul  ·  Prototyp Mauerabdeckung
+// ===========================================================================
+// Der Prototyp rechnet mit der Fachlogik der laufenden App, nicht mit einer
+// nachgebauten. Übernommen werden – zeichengenau, siehe uebernommen.js –
+//
+//   madMaterialTabelle()      js/12b-mauerabdeckung.js
+//   computeMadBoundaries()    js/12b-mauerabdeckung.js
+//   calcMadSchieber()         js/12b-mauerabdeckung.js
+//   berechneMadStueckliste()  js/12b-mauerabdeckung.js
+//   madBiegeVorgabe()         js/12b-mauerabdeckung.js
+//   madProfilMasse()          js/12b-mauerabdeckung.js
+//   madNormHinweise()         js/12b-mauerabdeckung.js
+//   madProfilSvgAus()         js/12b-mauerabdeckung.js
+//   generateMadProfilSvg()    js/12b-mauerabdeckung.js
+//   calcDilaPositionsInStretch()  js/12-rinne-halbrund.js  (Verteilung)
+//   generateRinneGrundriss()      js/12-rinne-halbrund.js  (Grundriss)
+//   abgerundeterPfad(), ansichtsPfeilSvg()  js/14-freies-profil.js
+//   findMeasurementMaterial(), measurementMaterialOrFallback()  js/01-basis.js
+//
+// Diese Datei stellt nur bereit, was jene Funktionen beim Laden erwarten.
+// ===========================================================================
+
+function $(id){return document.getElementById(id)}
+function esc(v){
+ return String(v===null||v===undefined?"":v)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// Materialkatalog – Struktur und Werte wie die Tabelle measurement_materials
+// der App (Einstellungen → Massaufnahmen → "Material"). Im Prototyp lokal,
+// damit ohne Supabase getestet werden kann. Bewusst OHNE Artikelnummern und
+// Preise: die kommen später aus der importierten, firmeneigenen Materialliste.
+//
+// max_abstand_mm / ab_fixpunkt_mm sind genau die Werte, die madMaterialTabelle()
+// aus dem Katalog liest – SIA 271, Tabelle 8.4.2. Sie werden hier NICHT neu
+// festgelegt, sondern aus dem bestehenden Katalog übernommen.
+let measurementMaterials=[
+ {id:1,name:"Aluminium (Aluman)",  legacy_key:"aluminium",          max_abstand_mm:4000,ab_fixpunkt_mm:2000},
+ {id:2,name:"Titanzink",           legacy_key:"titanzink",          max_abstand_mm:5000,ab_fixpunkt_mm:2500},
+ {id:3,name:"Kupfer",              legacy_key:"kupfer",             max_abstand_mm:6000,ab_fixpunkt_mm:3000},
+ {id:4,name:"CrNi-Stahl",          legacy_key:"crni_stahl",         max_abstand_mm:6000,ab_fixpunkt_mm:3000},
+ {id:5,name:"Chromstahl, verzinnt",legacy_key:"chromstahl_verzinnt",max_abstand_mm:6000,ab_fixpunkt_mm:3000},
+ {id:6,name:"Stahl, verzinkt",     legacy_key:"stahl_verzinkt",     max_abstand_mm:8000,ab_fixpunkt_mm:4000}
+];
+
+// generateRinneGrundriss() zeichnet die Anschlusstyp-Symbole der Rinne aus
+// dieser Liste. Die Mauerabdeckung hat keine Anschlusstypen – die Liste bleibt
+// leer, damit die Funktion unverändert benutzt werden kann.
+let rinneFittingTypes=[];
+
+// Rollenbreiten für den Zuschnitt aus Rollenblech. 1000 und 670 mm sind die
+// Standardrollen; die übrigen lassen sich dazuschalten. In der App stehen sie
+// firmenweit in app_settings.blech_rollenbreiten und gelten für alle
+// Massaufnahmen, die aus Rollenblech zugeschnitten werden.
+const ROLLEN_STANDARD=Object.freeze([1000,670]);
+const ROLLEN_WAEHLBAR=Object.freeze([1000,670,500,400,330,250,200]);
+const ROLLEN_SCHLUESSEL="pmad_rollenbreiten";
+let rollenbreiten=(function(){
+ try{
+  const g=JSON.parse(localStorage.getItem(ROLLEN_SCHLUESSEL)||"null");
+  if(!Array.isArray(g)||!g.length)return ROLLEN_WAEHLBAR.map(b=>({breite:b,aktiv:ROLLEN_STANDARD.indexOf(b)>=0}));
+  // Nur bekannte Breiten übernehmen, damit ein alter Eintrag nichts kaputt macht.
+  return ROLLEN_WAEHLBAR.map(b=>{
+   const t=g.find(x=>Number(x&&x.breite)===b);
+   return {breite:b,aktiv:t?!!t.aktiv:ROLLEN_STANDARD.indexOf(b)>=0};
+  });
+ }catch(e){return ROLLEN_WAEHLBAR.map(b=>({breite:b,aktiv:ROLLEN_STANDARD.indexOf(b)>=0}))}
+})();
+function aktiveRollenbreiten(){
+ return rollenbreiten.filter(r=>r.aktiv).map(r=>Number(r.breite))
+  .filter(b=>Number.isFinite(b)&&b>0).sort((a,b)=>b-a);
+}
+function rollenSpeichern(){
+ try{localStorage.setItem(ROLLEN_SCHLUESSEL,JSON.stringify(rollenbreiten))}catch(e){}
+}
+
+// Zuschnittzugaben. In der App stehen sie firmenweit in app_settings
+// (mad_boden_mass_mm / mad_schieber_mass_mm) und werden in js/05-daten-laden.js
+// nach madBodenMass / madSchieberMass geladen. Im Prototyp sind sie
+// gerätebezogen im localStorage, damit ohne Supabase getestet werden kann.
+// Die Vorgaben sind die Werte, die in der laufenden App tatsächlich hinterlegt
+// sind (Boden 0 mm, Schieber 10 mm) – keine erfundenen Zahlen.
+const MAD_ZUGABE_STANDARD=Object.freeze({boden_mass:0, schieber_mass:10});
+const MAD_ZUGABE_SCHLUESSEL="pmad_zugaben";
+let madZugaben=(function(){
+ try{
+  const g=JSON.parse(localStorage.getItem(MAD_ZUGABE_SCHLUESSEL)||"null");
+  return g&&typeof g==="object"?{...MAD_ZUGABE_STANDARD,...g}:{...MAD_ZUGABE_STANDARD};
+ }catch(e){return {...MAD_ZUGABE_STANDARD}}
+})();
+// Genau die beiden Namen, die berechneMadStueckliste() in der App bekommt.
+let madBodenMass=Number(madZugaben.boden_mass)||0;
+let madSchieberMass=Number(madZugaben.schieber_mass)||0;
+function madZugabenSpeichern(){
+ madBodenMass=Number(madZugaben.boden_mass)||0;
+ madSchieberMass=Number(madZugaben.schieber_mass)||0;
+ try{localStorage.setItem(MAD_ZUGABE_SCHLUESSEL,JSON.stringify(madZugaben))}catch(e){}
+}
+
+</script>
+<script>
+/* ---- Fachlogik, zeichengenau aus js/01, js/12, js/12b, js/14 und js/29 ---- */
+"use strict";
+// ==========================================================================
+// AUS DER LAUFENDEN APP ÜBERNOMMEN - NICHT VON HAND BEARBEITEN.
+// Erzeugt von prototyp-mauerabdeckung/uebernehmen.js; jedes Stück ist
+// zeichengenau aus seiner Quelldatei geschnitten und danach gegen die
+// Quelle geprüft worden.
+// ==========================================================================
+
+// ---- const MEASUREMENT_MATERIAL_FALLBACK  ·  unverändert aus js/01-basis.js ----
+const MEASUREMENT_MATERIAL_FALLBACK={id:null,name:"Titanzink (Standard)",legacy_key:"titanzink",max_abstand_mm:5000,ab_fixpunkt_mm:2500};
+
+// ---- findMeasurementMaterial()  ·  unverändert aus js/01-basis.js ----
+function findMeasurementMaterial(value){
+ if(value===undefined||value===null||value==="")return null;
+ return measurementMaterials.find(m=>String(m.id)===String(value))
+  ||measurementMaterials.find(m=>m.legacy_key===value)
+  ||null;
+}
+
+// ---- measurementMaterialOrFallback()  ·  unverändert aus js/01-basis.js ----
+function measurementMaterialOrFallback(value){
+ return findMeasurementMaterial(value)||measurementMaterials.find(m=>m.legacy_key==="titanzink")||MEASUREMENT_MATERIAL_FALLBACK;
+}
+
+// ---- calcDilaPositionsInStretch()  ·  unverändert aus js/12-rinne-halbrund.js ----
+function calcDilaPositionsInStretch(L,leftMax,rightMax,middleMax){
+ if(L<=0)return[];
+ if(L<=Math.min(leftMax,rightMax))return[];
+ // Kleinste Anzahl Elemente, mit der die Strecke überhaupt aufgeht
+ let n=1;
+ while(leftMax+(n-1)*middleMax+rightMax<L-1e-6)n++;
+ const anzahl=n+1;
+ // Grenze je Stück: aussen gilt an Ecken und Fixpunkten der halbe Abstand
+ const grenzen=[];
+ for(let i=0;i<anzahl;i++){
+  if(i===0)grenzen.push(leftMax);
+  else if(i===anzahl-1)grenzen.push(rightMax);
+  else grenzen.push(middleMax);
+ }
+ // Alle Stücke gleich lang. Wer über seiner Grenze liegt, wird darauf
+ // festgesetzt; die übrige Länge verteilt sich gleichmässig auf die
+ // restlichen Stücke. Das wiederholt sich, bis nichts mehr anschlägt.
+ const laengen=new Array(anzahl).fill(0);
+ const fest=new Array(anzahl).fill(false);
+ for(let runde=0;runde<anzahl;runde++){
+  let restLaenge=L, frei=0;
+  for(let i=0;i<anzahl;i++){
+   if(fest[i])restLaenge-=laengen[i];
+   else frei++;
+  }
+  if(!frei)break;
+  const ziel=restLaenge/frei;
+  let neuFestgesetzt=false;
+  for(let i=0;i<anzahl;i++){
+   if(fest[i])continue;
+   if(ziel>grenzen[i]+1e-6){laengen[i]=grenzen[i];fest[i]=true;neuFestgesetzt=true;}
+   else laengen[i]=ziel;
+  }
+  if(!neuFestgesetzt)break;
+ }
+ const positions=[];
+ let pos=0;
+ for(let i=0;i<anzahl-1;i++){pos+=laengen[i];positions.push(pos);}
+ return positions;
+}
+
+// ---- generateRinneGrundriss()  ·  unverändert aus js/12-rinne-halbrund.js ----
+function generateRinneGrundriss(segments,dilas,boundaries,enden){
+ dilas=dilas||[];
+ boundaries=boundaries||[];
+ // enden: {anfang:true,ende:true} – setzt bei der Mauerabdeckung ein
+ // Bodenzeichen an das jeweilige Ende der Linie.
+ enden=enden||{};
+ if(!segments.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Segmente für den Grundriss.</div>';
+ let x=0,y=0,dir=0;
+ const pts=[{x,y}];
+ for(const seg of segments){
+  const rad=dir*Math.PI/180;
+  x+=(Number(seg.laenge)||0)*Math.cos(rad);
+  y+=(Number(seg.laenge)||0)*Math.sin(rad);
+  pts.push({x,y});
+  dir+=Number(seg.winkel)||0;
+ }
+ const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+ const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+ const w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+ const pad=44,target=280;
+ const scale=Math.min(target/w,target/h);
+ const toSvg=p=>[pad+(p.x-minX)*scale,pad+(p.y-minY)*scale];
+ const svgW=target+2*pad,svgH=target+2*pad;
+ let lines="",labels="",arrows="";
+ for(let i=0;i<segments.length;i++){
+  const [x1,y1]=toSvg(pts[i]),[x2,y2]=toSvg(pts[i+1]);
+  lines+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
+  const mx=(x1+x2)/2,my=(y1+y2)/2;
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1;
+  const ux=dx/len,uy=dy/len;
+  const px=-uy,py=ux,off=15;
+  const lx=mx-px*off,ly=my-py*off;
+  let angleDeg=Math.atan2(dy,dx)*180/Math.PI;
+  if(angleDeg>90||angleDeg<-90)angleDeg+=180;
+  labels+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="12" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(segments[i].laenge||0)}</text>`;
+  // Blickrichtungs-Pfeil auf der Gegenseite der Massbeschriftung: Spitze beruehrt das Segment
+  const shaftFar=24,headLen=9,headWidth=5;
+  const farX=mx+px*shaftFar,farY=my+py*shaftFar;
+  const shaftEndX=mx+px*headLen,shaftEndY=my+py*headLen;
+  arrows+=`<line x1="${farX.toFixed(1)}" y1="${farY.toFixed(1)}" x2="${shaftEndX.toFixed(1)}" y2="${shaftEndY.toFixed(1)}" stroke="#b42318" stroke-width="2.2" stroke-linecap="round"/>`;
+  const p2x=shaftEndX+ux*headWidth,p2y=shaftEndY+uy*headWidth;
+  const p3x=shaftEndX-ux*headWidth,p3y=shaftEndY-uy*headWidth;
+  arrows+=`<polygon points="${mx.toFixed(1)},${my.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)} ${p3x.toFixed(1)},${p3y.toFixed(1)}" fill="#b42318"/>`;
+ }
+ let boeden="";
+ const bodenZeichen=(punkt,nachbar,text)=>{
+  const [px1,py1]=toSvg(punkt), [px2,py2]=toSvg(nachbar);
+  const dx=px2-px1, dy=py2-py1, len=Math.hypot(dx,dy)||1;
+  const ux=dx/len, uy=dy/len;      // zeigt ins Innere der Linie
+  const nx=-uy, ny=ux;             // quer dazu
+  const halb=11;
+  return `<line x1="${(px1+nx*halb).toFixed(1)}" y1="${(py1+ny*halb).toFixed(1)}" x2="${(px1-nx*halb).toFixed(1)}" y2="${(py1-ny*halb).toFixed(1)}" stroke="#0f766e" stroke-width="5" stroke-linecap="round"/>`
+   +`<text x="${(px1-ux*16).toFixed(1)}" y="${(py1-uy*16).toFixed(1)}" font-size="11" fill="#0f766e" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">${esc(text)}</text>`;
+ };
+ if(enden.anfang&&pts.length>1)boeden+=bodenZeichen(pts[0],pts[1],"Boden");
+ if(enden.ende&&pts.length>1)boeden+=bodenZeichen(pts[pts.length-1],pts[pts.length-2],"Boden");
+ let symbols="";
+ for(let i=0;i<segments.length;i++){
+  const sp=toSvg(pts[i]),ep=toSvg(pts[i+1]);
+  const linksF=rinneFittingTypes.find(f=>f.id===Number(segments[i].linksTyp));
+  const rechtsF=rinneFittingTypes.find(f=>f.id===Number(segments[i].rechtsTyp));
+  if(linksF&&linksF.symbol)symbols+=`<circle cx="${sp[0].toFixed(1)}" cy="${sp[1].toFixed(1)}" r="11" fill="#fff" stroke="#68737d" stroke-width="1.5"/><text x="${sp[0].toFixed(1)}" y="${(sp[1]+3).toFixed(1)}" font-size="8" fill="#17202a" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${esc(linksF.symbol)}</text>`;
+  if(rechtsF&&rechtsF.symbol)symbols+=`<circle cx="${ep[0].toFixed(1)}" cy="${ep[1].toFixed(1)}" r="11" fill="#fff" stroke="#68737d" stroke-width="1.5"/><text x="${ep[0].toFixed(1)}" y="${(ep[1]+3).toFixed(1)}" font-size="8" fill="#17202a" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${esc(rechtsF.symbol)}</text>`;
+ }
+ // Hilfsfunktion: SVG-Koordinaten (und lokale Segmentrichtung) für eine Position entlang des ganzen Verlaufs
+ function svgPosAt(posAbStart){
+  let remaining=posAbStart,segIdx=0;
+  while(segIdx<segments.length&&remaining>(Number(segments[segIdx].laenge)||0)){
+   remaining-=Number(segments[segIdx].laenge)||0;
+   segIdx++;
+  }
+  if(segIdx>=segments.length)segIdx=segments.length-1;
+  const segLen=Number(segments[segIdx].laenge)||1;
+  const frac=Math.max(0,Math.min(1,remaining/segLen));
+  const [sx1,sy1]=toSvg(pts[segIdx]),[sx2,sy2]=toSvg(pts[segIdx+1]);
+  const dx=sx2-sx1,dy=sy2-sy1,len=Math.hypot(dx,dy)||1;
+  return {x:sx1+dx*frac,y:sy1+dy*frac,ux:dx/len,uy:dy/len};
+ }
+ // Positionsnummern: nummeriert ALLE tatsächlichen Stücke, also sowohl die Hauptsegmente als
+ // auch die durch Dilas entstehenden Zwischenstücke (jede Segmentgrenze + jede Dila-Position
+ // gilt als eigener Schnittpunkt).
+ let posNummern="";
+ {
+  const segGrenzen=[0];
+  let cAcc=0;
+  segments.forEach(s=>{cAcc+=Number(s.laenge)||0;segGrenzen.push(cAcc);});
+  const volleKette=[...new Set([...segGrenzen,...dilas.map(d=>Math.round(Number(d.posAbStart)||0))])].sort((a,b)=>a-b);
+  for(let i=0;i<volleKette.length-1;i++){
+   const mid=(volleKette[i]+volleKette[i+1])/2;
+   const p=svgPosAt(mid);
+   const nx=-p.uy,ny=p.ux,off=13;
+   const qx=p.x-nx*off,qy=p.y-ny*off;
+   posNummern+=`<circle cx="${qx.toFixed(1)}" cy="${qy.toFixed(1)}" r="9" fill="#1769aa"/><text x="${qx.toFixed(1)}" y="${(qy+3.2).toFixed(1)}" font-size="9" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
+  }
+ }
+ // Dilas als kleine orange Rauten entlang des Verlaufs zeichnen
+ let dilaMarks="";
+ for(const d of dilas){
+  const p=svgPosAt(d.posAbStart);
+  const r=7;
+  dilaMarks+=`<polygon points="${p.x.toFixed(1)},${(p.y-r).toFixed(1)} ${(p.x+r).toFixed(1)},${p.y.toFixed(1)} ${p.x.toFixed(1)},${(p.y+r).toFixed(1)} ${(p.x-r).toFixed(1)},${p.y.toFixed(1)}" fill="#e07a1f" stroke="#8a4a0f" stroke-width="1"/>`;
+ }
+ // Vermassung: Abstände zwischen Start, Fixpunkten/Schiebestutzen, den Dilas und dem Ende beschriften
+ // (orange, parallel zur jeweiligen Linienrichtung).
+ let dilaMasse="";
+ if(dilas.length||boundaries.length>2){
+  const gesamtlaenge=segments.reduce((s,seg)=>s+(Number(seg.laenge)||0),0);
+  const kettePositionen=[0,...boundaries.map(b=>b.pos),...dilas.map(d=>d.posAbStart),gesamtlaenge];
+  const kette=[...new Set(kettePositionen.map(p=>Math.round(p)))].sort((a,b)=>a-b);
+  for(let i=0;i<kette.length-1;i++){
+   const gap=kette[i+1]-kette[i];
+   if(gap<=0)continue;
+   const mid=(kette[i]+kette[i+1])/2;
+   const pMid=svgPosAt(mid);
+   const nx=-pMid.uy,ny=pMid.ux,off=13;
+   const lx=pMid.x+nx*off,ly=pMid.y+ny*off;
+   let angleDeg=Math.atan2(pMid.uy,pMid.ux)*180/Math.PI;
+   if(angleDeg>90||angleDeg<-90)angleDeg+=180;
+   dilaMasse+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="9.5" fill="#b45a09" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(gap)}</text>`;
+  }
+ }
+ return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${labels}${posNummern}${symbols}${boeden}${dilaMarks}${dilaMasse}</svg>`;
+}
+
+// ---- abgerundeterPfad()  ·  unverändert aus js/14-freies-profil.js ----
+function abgerundeterPfad(punkte,radius){
+ if(punkte.length<2)return "";
+ const P=(pt)=>`${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`;
+ if(punkte.length===2)return `M ${P(punkte[0])} L ${P(punkte[1])}`;
+ let d=`M ${P(punkte[0])}`;
+ for(let i=1;i<punkte.length-1;i++){
+  const [vx,vy]=punkte[i];
+  const [ax,ay]=punkte[i-1];
+  const [bx,by]=punkte[i+1];
+  // Richtungen von der Ecke weg, jeweils auf Länge 1
+  const ux=ax-vx, uy=ay-vy, wx=bx-vx, wy=by-vy;
+  const lenU=Math.hypot(ux,uy)||1, lenW=Math.hypot(wx,wy)||1;
+  const unx=ux/lenU, uny=uy/lenU, wnx=wx/lenW, wny=wy/lenW;
+  let cos=unx*wnx+uny*wny;
+  cos=Math.max(-1,Math.min(1,cos));
+  const phi=Math.acos(cos); // Innenwinkel an der Biegung
+  // Fast gerade oder vollständige Umkehr: nichts zu runden
+  if(phi>Math.PI-0.03||phi<0.03){d+=` L ${P(punkte[i])}`;continue}
+  // Tangentenabstand, begrenzt durch die kürzere der beiden Schenkellängen
+  const t=Math.min(radius,lenU*0.45,lenW*0.45);
+  const r=t*Math.tan(phi/2); // Radius des Kreisbogens
+  const p1=[vx+unx*t, vy+uny*t];
+  const p2=[vx+wnx*t, vy+wny*t];
+  // Drehrichtung aus dem Kreuzprodukt (Bildkoordinaten: y zeigt nach unten)
+  const kreuz=(vx-ax)*(by-vy)-(vy-ay)*(bx-vx);
+  const sweep=kreuz>0?1:0;
+  d+=` L ${P(p1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 ${sweep} ${P(p2)}`;
+ }
+ d+=` L ${P(punkte[punkte.length-1])}`;
+ return d;
+}
+
+// ---- ansichtsPfeilSvg()  ·  unverändert aus js/14-freies-profil.js ----
+function ansichtsPfeilSvg(seite,breite,hoehe,ox,oy){
+ ox=ox||0; oy=oy||0;
+ if(!seite||seite==="keiner")return "";
+ const laenge=26, kopf=9, halb=5, luft=4;
+ let sx,sy,ex,ey,k1x,k1y,k2x,k2y;
+ // Der Pfeil liegt vollständig innerhalb des Bildes: Schaft aussen am Rand,
+ // Spitze nach innen zur Zeichnung hin.
+ if(seite==="links"){      sx=luft;          sy=hoehe/2; ex=sx+laenge; ey=sy; }
+ else if(seite==="rechts"){sx=breite-luft;   sy=hoehe/2; ex=sx-laenge; ey=sy; }
+ else if(seite==="oben"){  sx=breite/2;      sy=luft;    ex=sx; ey=sy+laenge; }
+ else{                     sx=breite/2;      sy=hoehe-luft; ex=sx; ey=sy-laenge; }
+ const dx=ex-sx, dy=ey-sy, len=Math.hypot(dx,dy)||1;
+ const ux=dx/len, uy=dy/len, px=-uy, py=ux;
+ const bx=ex-ux*kopf, by=ey-uy*kopf;
+ k1x=bx+px*halb; k1y=by+py*halb; k2x=bx-px*halb; k2y=by-py*halb;
+ return `<line x1="${(sx+ox).toFixed(1)}" y1="${(sy+oy).toFixed(1)}" x2="${(bx+ox).toFixed(1)}" y2="${(by+oy).toFixed(1)}" stroke="#b42318" stroke-width="2.2" stroke-linecap="round"/>`
+  +`<polygon points="${(ex+ox).toFixed(1)},${(ey+oy).toFixed(1)} ${(k1x+ox).toFixed(1)},${(k1y+oy).toFixed(1)} ${(k2x+ox).toFixed(1)},${(k2y+oy).toFixed(1)}" fill="#b42318"/>`;
+}
+
+// ---- const ebaZahl  ·  unverändert aus js/29-einlaufblech-aufnahme.js ----
+const ebaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+
+// ---- ebaPackeInStreifen()  ·  unverändert aus js/29-einlaufblech-aufnahme.js ----
+function ebaPackeInStreifen(bleche,L,budget){
+ // bleche: [{nr, laenge}] - die Nummer reist mit, damit in der Liste jedes
+ // Blech mit SEINER genauen Länge steht und nicht nur eine nackte Zahl.
+ const stuecke=bleche.filter(x=>ebaZahl(x.laenge)>0).slice()
+  .sort((a,b)=>ebaZahl(b.laenge)-ebaZahl(a.laenge));
+ if(!stuecke.length)return {streifen:[],optimal:true};
+ if(ebaZahl(stuecke[0].laenge)>L)
+  return {streifen:null,optimal:true,zuLang:stuecke.filter(x=>ebaZahl(x.laenge)>L)};
+ const gierig=[];
+ stuecke.forEach(x=>{
+  const s=gierig.find(g=>g.rest>=ebaZahl(x.laenge)-1e-9);
+  if(s){s.stuecke.push(x);s.rest-=ebaZahl(x.laenge)}
+  else gierig.push({stuecke:[x],rest:L-ebaZahl(x.laenge)});
+ });
+ const summe=stuecke.reduce((a,b)=>a+ebaZahl(b.laenge),0);
+ const untergrenze=Math.ceil(summe/L-1e-9);
+ let schritte=0; const grenze=budget||200000;
+ function passt(i,reste){
+  if(i>=stuecke.length)return true;
+  if(++schritte>grenze)return null;
+  const len=ebaZahl(stuecke[i].laenge), gesehen=[];
+  for(let j=0;j<reste.length;j++){
+   if(reste[j]<len-1e-9)continue;
+   if(gesehen.indexOf(reste[j])>=0)continue;
+   gesehen.push(reste[j]);
+   reste[j]-=len;
+   const r=passt(i+1,reste);
+   reste[j]+=len;
+   if(r===null)return null;
+   if(r)return true;
+  }
+  return false;
+ }
+ for(let k=untergrenze;k<gierig.length;k++){
+  schritte=0;
+  const r=passt(0,new Array(k).fill(L));
+  if(r===null)return {streifen:gierig,optimal:false};
+  if(r){
+   const streifen=Array.from({length:k},()=>({stuecke:[],rest:L}));
+   const setze=i=>{
+    if(i>=stuecke.length)return true;
+    const len=ebaZahl(stuecke[i].laenge), gesehen=[];
+    for(let j=0;j<streifen.length;j++){
+     if(streifen[j].rest<len-1e-9)continue;
+     if(gesehen.indexOf(streifen[j].rest)>=0)continue;
+     gesehen.push(streifen[j].rest);
+     streifen[j].stuecke.push(stuecke[i]); streifen[j].rest-=len;
+     if(setze(i+1))return true;
+     streifen[j].stuecke.pop(); streifen[j].rest+=len;
+    }
+    return false;
+   };
+   if(setze(0))return {streifen,optimal:true};
+   return {streifen:gierig,optimal:false};
+  }
+ }
+ return {streifen:gierig,optimal:true};
+}
+
+// ---- const MAD_BIEGERADIUS  ·  unverändert aus js/12b-mauerabdeckung.js ----
+const MAD_BIEGERADIUS=5;   // Bildpunkte
+
+// ---- const MAD_SAUM_LUFT  ·  unverändert aus js/12b-mauerabdeckung.js ----
+const MAD_SAUM_LUFT=4;     // mm Abstand zwischen Blech und zurückgelegtem Saum
+
+// ---- const MAD_MIN_HOEHE  ·  unverändert aus js/12b-mauerabdeckung.js ----
+const MAD_MIN_HOEHE=50, MAD_MIN_HOEHE_WIND=100;
+
+// ---- madBiegeVorgabe()  ·  unverändert aus js/12b-mauerabdeckung.js ----
+function madBiegeVorgabe(gef){return {links:90+(Number(gef)||0), rechts:90-(Number(gef)||0)}}
+
+// ---- madMaterialTabelle()  ·  unverändert aus js/12b-mauerabdeckung.js ----
+function madMaterialTabelle(material){
+ const m=measurementMaterialOrFallback(material);
+ return {label:m.name,maxAbstand:Number(m.max_abstand_mm)||5000,abEcke:Number(m.ab_fixpunkt_mm)||2500};
+}
+
+// ---- computeMadBoundaries()  ·  unverändert aus js/12b-mauerabdeckung.js ----
+function computeMadBoundaries(segments){
+ if(!segments.length)return{boundaries:[],gesamtlaenge:0};
+ let cum=0;
+ const boundaries=[{pos:0,typ:segments[0].bodenLinks?"ecke":"ende",name:segments[0].bodenLinks?"Boden":"Start"}];
+ for(let i=0;i<segments.length;i++){
+  cum+=Number(segments[i].laenge)||0;
+  const istLetzte=i===segments.length-1;
+  if(istLetzte){
+   // Ein Boden wirkt wie ein Fixpunkt: ab dort gilt der halbe Abstand.
+   boundaries.push({pos:cum,typ:segments[i].bodenRechts?"ecke":"ende",name:segments[i].bodenRechts?"Boden":"Ende"});
+  }else{
+   const winkel=Number(segments[i].winkel)||0;
+   if(winkel!==0)boundaries.push({pos:cum,typ:"ecke",name:`Ecke ${winkel}°`});
+   else boundaries.push({pos:cum,typ:"gerade",name:"Segmentgrenze"});
+  }
+ }
+ return{boundaries,gesamtlaenge:cum};
+}
+
+// ---- calcMadSchieber()  ·  unverändert aus js/12b-mauerabdeckung.js ----
+function calcMadSchieber(segments,material){
+ const tab=madMaterialTabelle(material);
+ if(!segments.length)return{schieber:[],tabelle:tab,boundaries:[],gesamtlaenge:0};
+ const {boundaries,gesamtlaenge}=computeMadBoundaries(segments);
+ const schieber=[];
+ for(let i=0;i<boundaries.length-1;i++){
+  const left=boundaries[i],right=boundaries[i+1];
+  const L=right.pos-left.pos;
+  const leftMax =left.typ==="ecke" ?tab.abEcke:tab.maxAbstand;
+  const rightMax=right.typ==="ecke"?tab.abEcke:tab.maxAbstand;
+  // gleiche Verteilungslogik wie bei der Rinne
+  const relPositions=calcDilaPositionsInStretch(L,leftMax,rightMax,tab.maxAbstand);
+  relPositions.forEach(rp=>schieber.push({posAbStart:left.pos+rp}));
+ }
+ return{schieber,tabelle:tab,boundaries,gesamtlaenge};
+}
+
+// ---- berechneMadStueckliste()  ·  unverändert aus js/12b-mauerabdeckung.js ----
+function berechneMadStueckliste(segments,schieber,boundaries,bodenMass,schieberMass){
+ const segGrenzen=[0];
+ let acc=0;
+ (segments||[]).forEach(s=>{acc+=Number(s.laenge)||0;segGrenzen.push(acc)});
+ const bm=Number(bodenMass)||0, sm=Number(schieberMass)||0;
+ // Boden zählt nur an den beiden Aussenenden des ganzen Verlaufs
+ const bodenLinksSeite=[],bodenRechtsSeite=[];
+ segGrenzen.forEach((pos,i)=>{
+  bodenLinksSeite[i] =(i===segGrenzen.length-1&&segments[i-1]&&segments[i-1].bodenRechts)?bm:0;
+  bodenRechtsSeite[i]=(i===0&&segments[0]&&segments[0].bodenLinks)?bm:0;
+ });
+ const punkte=[];
+ segGrenzen.forEach((pos,i)=>{
+  const b=(boundaries||[]).find(x=>Math.round(x.pos)===Math.round(pos));
+  punkte.push({pos,art:"grenze",label:b&&b.name?b.name:(i===0?"Start":(i===segGrenzen.length-1?"Ende":"Segmentgrenze")),grenzIndex:i});
+ });
+ (schieber||[]).forEach((s,i)=>punkte.push({pos:Number(s.posAbStart)||0,art:"schieber",schieberIndex:i}));
+ punkte.sort((a,b)=>a.pos-b.pos);
+ const stuecke=[];
+ for(let i=1;i<punkte.length;i++){
+  const prev=punkte[i-1],cur=punkte[i];
+  const abstand=cur.pos-prev.pos;
+  const zugabeLinks =prev.art==="grenze"?bodenRechtsSeite[prev.grenzIndex]:sm;
+  const zugabeRechts=cur.art==="grenze"?bodenLinksSeite[cur.grenzIndex]:sm;
+  stuecke.push({
+   nr:i,
+   von:prev.art==="grenze"?prev.label:`Schieber ${punkte.slice(0,i).filter(p=>p.art==="schieber").length}`,
+   bis:cur.art==="schieber"?`Schieber ${punkte.slice(0,i+1).filter(p=>p.art==="schieber").length}`:cur.label,
+   abstand,
+   zuschnitt:abstand+zugabeLinks+zugabeRechts,
+   pos:cur.pos,
+   prevPos:prev.pos,
+   schieberIndex:cur.art==="schieber"?cur.schieberIndex:null
+  });
+ }
+ return stuecke;
+}
+
+// ---- madProfilMasse()  ·  unverändert aus js/12b-mauerabdeckung.js ----
+function madProfilMasse(){
+ const z=id=>Number($(id).value)||0;
+ const breite=z("mad_breite");
+ const hL=z("mad_hoeheLinks"), hR=z("mad_hoeheRechts");
+ const umL=z("mad_umschlagLinks"), umR=z("mad_umschlagRechts");
+ const saum=z("mad_saum");
+ const gef=z("mad_gefaelle");
+ const wind=$("mad_windexponiert").checked;
+ const vorgabe=madBiegeVorgabe(gef);
+ const wL=z("mad_biegeLinks")||vorgabe.links;
+ const wR=z("mad_biegeRechts")||vorgabe.rechts;
+ const rad=gef*Math.PI/180;
+ const dy=breite*Math.tan(rad);
+ // Gesamtbreite wird so verwendet, wie sie eingegeben ist – nicht über
+ // die Schräge verlängert.
+ const schraeg=breite;
+ // Die Abwicklung ist die Summe der Schenkellängen und hängt NICHT vom
+ // Biegewinkel ab – unverändert gegenüber früher.
+ return {breite,hL,hR,umL,umR,saum,gef,wind,dy,schraeg,wL,wR,
+         abwicklung:saum+umL+hL+schraeg+hR+umR+saum};
+}
+
+// ---- madNormHinweise()  ·  unverändert aus js/12b-mauerabdeckung.js ----
+function madNormHinweise(m){
+ const minH=m.wind?MAD_MIN_HOEHE_WIND:MAD_MIN_HOEHE;
+ const h=[];
+ if(m.hL&&m.hL<minH)h.push(`Schenkel links ${m.hL} mm – die Norm verlangt mindestens ${minH} mm.`);
+ if(m.hR&&m.hR<minH)h.push(`Schenkel rechts ${m.hR} mm – die Norm verlangt mindestens ${minH} mm.`);
+ return h;
+}
+
+// ---- madProfilSvgAus()  ·  unverändert aus js/12b-mauerabdeckung.js ----
+function madProfilSvgAus(m){
+ if(!m||!m.breite||!m.hL)return '<div class="small" style="padding:10px">Bitte Gesamtbreite und Höhe eingeben.</div>';
+ // Richtung der Deckfläche (x nach rechts, y nach unten), um das Gefälle
+ // geneigt. Die beiden Schenkel hängen daran mit ihrem jeweiligen
+ // Biegewinkel – bei 90°+Gefälle links und 90°-Gefälle rechts steht der
+ // Schenkel senkrecht, also genau wie vor v2.70.
+ const dreh=(v,grad)=>{const r=grad*Math.PI/180;
+  return [v[0]*Math.cos(r)-v[1]*Math.sin(r), v[0]*Math.sin(r)+v[1]*Math.cos(r)];};
+ const vg=madBiegeVorgabe(m.gef);
+ const wL=Number(m.wL)||vg.links, wR=Number(m.wR)||vg.rechts;
+ const u=dreh([1,0],m.gef);                       // Deckfläche nach rechts
+ const dirL=dreh(u,180-wL);                       // linker Schenkel, nach unten
+ const dirR=dreh([-u[0],-u[1]],-(180-wR));        // rechter Schenkel, nach unten
+ const umDirL=dreh(dirL,-135);                    // Umschlag links, 135°
+ const umDirR=dreh(dirR,90);                      // Umschlag rechts, 90°
+
+ // Punkte in mm, x nach rechts, y nach unten
+ const pLinksUnten=[dirL[0]*m.hL, dirL[1]*m.hL];
+ const pLinksEnde=[pLinksUnten[0]+umDirL[0]*m.umL, pLinksUnten[1]+umDirL[1]*m.umL];
+ const pRechtsUnten=[m.breite+dirR[0]*m.hR, m.dy+dirR[1]*m.hR];
+ const pRechtsEnde=[pRechtsUnten[0]+umDirR[0]*m.umR, pRechtsUnten[1]+umDirR[1]*m.umR];
+ const punkte=[pLinksEnde,pLinksUnten,[0,0],[m.breite,m.dy],pRechtsUnten,pRechtsEnde];
+
+ // Säume: 180° zurückgelegt, mit etwas Luft, damit man sie sieht
+ const saeume=[];
+ if(m.saum>0){
+  saeume.push({von:pLinksEnde, richtung:umDirL, drehung:-1});  // linkes Ende, Kehre nach aussen
+  saeume.push({von:pRechtsEnde, richtung:umDirR, drehung:1});  // rechtes Ende
+ }
+ const saumPunkte=saeume.map(s=>{
+  const [dx,dy2]=s.richtung;
+  const dreh=s.drehung||1;
+  const nx=-dy2*dreh, ny=dx*dreh;                          // senkrecht dazu
+  const start=s.von;
+  const kehre=[start[0]+nx*MAD_SAUM_LUFT, start[1]+ny*MAD_SAUM_LUFT];
+  const ende=[kehre[0]-dx*m.saum, kehre[1]-dy2*m.saum];
+  return {start,kehre,ende,richtung:s.richtung,drehung:dreh};
+ });
+
+ const alle=punkte.concat(saumPunkte.flatMap(s=>[s.kehre,s.ende]));
+ const xs=alle.map(p=>p[0]), ys=alle.map(p=>p[1]);
+ const minX=Math.min(...xs), maxX=Math.max(...xs);
+ const minY=Math.min(...ys), maxY=Math.max(...ys);
+ const bw=Math.max(1,maxX-minX), bh=Math.max(1,maxY-minY);
+ const W=380,H=240,rand=34,randRechts=52;
+ const f=Math.min((W-randRechts-rand)/bw,(H-2*rand)/bh);
+ const ox=rand-minX*f, oy=(H-bh*f)/2-minY*f;
+ const s2=p=>[p[0]*f+ox, p[1]*f+oy];
+ const P=p=>`${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
+
+ const d=abgerundeterPfad(punkte.map(s2),MAD_BIEGERADIUS);
+ const saumPfade=saumPunkte.map(s=>{
+  const a=s2(s.start), b=s2(s.kehre), c=s2(s.ende);
+  const r=Math.hypot(b[0]-a[0],b[1]-a[1])/2;
+  const kreuz=(b[0]-a[0])*s.richtung[1]-(b[1]-a[1])*s.richtung[0];
+  const sweep=kreuz>0?0:1;
+  return `<path d="M ${P(a)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 ${sweep} ${P(b)} L ${P(c)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+ }).join("");
+
+ // Blickrichtungs-Pfeil, damit klar ist, aus welcher Richtung der Schnitt
+ // gesehen wird – gleiche Darstellung wie die Pfeile im Grundriss.
+
+ // ---- Vermassung ----
+ // Jedes Mass steht neben seinem Schenkel und ist mit einer feinen Linie
+ // damit verbunden. Kurze Schenkel bekommen mehr Abstand, und Beschriftungen,
+ // die einander zu nahe kommen, werden weiter nach aussen geschoben.
+ const mitteX=alle.reduce((a2,p)=>a2+p[0],0)/alle.length;
+ const mitteY=alle.reduce((a2,p)=>a2+p[1],0)/alle.length;
+ const strecken=[
+  {von:pLinksEnde, bis:pLinksUnten, mass:m.umL, andereSeite:true},
+  {von:pLinksUnten, bis:[0,0],      mass:m.hL},
+  {von:[0,0], bis:[m.breite,m.dy],  mass:m.breite},
+  {von:[m.breite,m.dy], bis:pRechtsUnten, mass:m.hR},
+  {von:pRechtsUnten, bis:pRechtsEnde, mass:m.umR}
+ ];
+ // Am linken Ende stehen Saum und Umschlag auf der anderen Blechseite,
+ // dort ist mehr Platz und sie geraten sich nicht gegenseitig ins Gehege.
+ saumPunkte.forEach((sp,i)=>strecken.push({von:sp.kehre, bis:sp.ende, mass:m.saum, andereSeite:i===0}));
+ const gesetzt=[];
+ let masse="";
+ strecken.forEach(st=>{
+  if(!st.mass)return;
+  const a2=s2(st.von), b2=s2(st.bis);
+  const mx=(a2[0]+b2[0])/2, my=(a2[1]+b2[1])/2;
+  const dx=b2[0]-a2[0], dy2=b2[1]-a2[1], len=Math.hypot(dx,dy2)||1;
+  let nx=-dy2/len, ny=dx/len;
+  if((mx-mitteX)*nx+(my-mitteY)*ny<0){nx=-nx;ny=-ny}
+  if(st.andereSeite){nx=-nx;ny=-ny}
+  // Grundabstand vom Schenkel; kurze Schenkel etwas weiter weg
+  const abstand=len<44?24:15;
+  const ux=dx/len, uy=dy2/len;
+  // Bei einer Überschneidung zuerst dem Schenkel entlang ausweichen – so
+  // bleiben die Hilfslinien senkrecht und kreuzen sich nicht. Erst wenn das
+  // nicht reicht, wird das Mass weiter nach aussen geschoben.
+  const versuche=[[0,0],[0.3,0],[-0.3,0],[0,12],[0.3,12],[-0.3,12],[0,26]];
+  let lx=0,ly=0;
+  for(let k=0;k<versuche.length;k++){
+   const [entlang,extra]=versuche[k];
+   lx=mx+ux*len*entlang+nx*(abstand+extra);
+   ly=my+uy*len*entlang+ny*(abstand+extra);
+   if(!gesetzt.some(g=>Math.hypot(g[0]-lx,g[1]-ly)<22))break;
+  }
+  gesetzt.push([lx,ly]);
+  let winkel=Math.atan2(dy2,dx)*180/Math.PI;
+  if(winkel>90||winkel<-90)winkel+=180;
+  // feine Hilfslinie vom Schenkel zum Mass
+  // Fusspunkt der Hilfslinie liegt senkrecht unter der Beschriftung
+  const fussT=(lx-mx)*ux+(ly-my)*uy;
+  const fx=mx+ux*fussT, fy=my+uy*fussT;
+  masse+=`<line x1="${fx.toFixed(1)}" y1="${fy.toFixed(1)}" x2="${(lx-nx*8).toFixed(1)}" y2="${(ly-ny*8).toFixed(1)}" stroke="#9bb0c1" stroke-width="0.8" stroke-dasharray="2 2"/>`;
+  masse+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${winkel.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${Math.round(st.mass)}</text>`;
+ });
+
+ // ---- Biegewinkel: nur die beiden Ecken an der Deckfläche ----
+ let winkelTexte="";
+ const winkelPunkte=[];
+ [2,3].forEach((i,nr)=>{
+  if(!punkte[i-1]||!punkte[i+1])return;
+  const v=s2(punkte[i]), a2=s2(punkte[i-1]), b2=s2(punkte[i+1]);
+  const ux=a2[0]-v[0], uy=a2[1]-v[1], wx=b2[0]-v[0], wy=b2[1]-v[1];
+  const lu=Math.hypot(ux,uy)||1, lw=Math.hypot(wx,wy)||1;
+  let cos=(ux*wx+uy*wy)/(lu*lw);
+  cos=Math.max(-1,Math.min(1,cos));
+  const eigener=Math.round(Math.acos(cos)*180/Math.PI);
+  // Die beiden Werte werden über Kreuz angeschrieben
+  const anderer=180-eigener;
+  let hx=ux/lu+wx/lw, hy=uy/lu+wy/lw;
+  const hl=Math.hypot(hx,hy)||1;
+  const tx=v[0]+(hx/hl)*24, ty=v[1]+(hy/hl)*24;
+  winkelPunkte.push([tx-16,ty-9],[tx+16,ty+9]);
+  winkelTexte+=`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-size="11" fill="#e07a1f" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">${anderer}°</text>`;
+ });
+
+ // Bildausschnitt so wählen, dass Blech, Masse und Winkel sicher hineinpassen
+ const eckpunkte=alle.map(s2).concat(gesetzt.map(g=>[g[0]-24,g[1]-10]),gesetzt.map(g=>[g[0]+24,g[1]+10]),winkelPunkte);
+ const exs=eckpunkte.map(p=>p[0]), eys=eckpunkte.map(p=>p[1]);
+ const vbMinX=Math.min(...exs)-8, vbMaxX=Math.max(...exs)+8;
+ const vbMinY=Math.min(...eys)-8, vbMaxY=Math.max(...eys)+8;
+ const pfeilBreite=34;
+ const vbW=(vbMaxX-vbMinX)+pfeilBreite, vbH=vbMaxY-vbMinY;
+ const pfeil=ansichtsPfeilSvg("rechts",vbW,vbH,vbMinX,vbMinY);
+ return `<svg viewBox="${vbMinX.toFixed(1)} ${vbMinY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+<path d="${d}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+${saumPfade}
+${masse}
+${winkelTexte}
+${pfeil}
+</svg>`;
+}
+
+// ---- generateMadProfilSvg()  ·  unverändert aus js/12b-mauerabdeckung.js ----
+function generateMadProfilSvg(){
+ return madProfilSvgAus(madProfilMasse());
+}
+
+</script>
+<script>
+/* ---- prototyp-mauerabdeckung/prototyp-mad.js ---- */
+"use strict";
+// ===========================================================================
+// PROTOTYP  ·  Massaufnahme "Mauerabdeckung"
+// ===========================================================================
+// Baut auf dem bestehenden Modul der laufenden App auf. Gerechnet und
+// gezeichnet wird ausschliesslich mit den Funktionen aus uebernommen.js, die
+// zeichengenau aus js/12b, js/12, js/14 und js/01 stammen. Es gibt in dieser
+// Datei KEINE zweite Berechnung von Grenzpunkten, Schiebern, Zuschnitt,
+// Profilmassen oder Normhinweisen - nur Bedienung, Anzeige, Ausmass und
+// Kontrolle.
+//
+// Neu gegenüber dem bestehenden Modul ist ausschliesslich:
+//   - acht Register statt eines langen Formulars
+//   - Verlauf als Karten (Segment · Ecke · Segment), gross bedienbar
+//   - Ausmass und Materialübersicht ohne zweite Eingabe
+//   - Kontrolle mit Punkt am Register
+//   - Fotos, Skizze und Notiz am Ende ("Fertig › Fotos und Speichern")
+//   - Speichern/Laden im Gerät
+// ===========================================================================
+
+// ---- 1. Register ----------------------------------------------------------
+const SCHRITTE=["Grunddaten","Verlauf","Boden & Schieber","Profil & Norm",
+                "Stückliste","Zuschnitt","Ausmass","Kontrolle","Fotos & Speichern"];
+const SCHRITT_KONTROLLE=8;
+let schritt=1;
+
+// ---- 2. Modell ------------------------------------------------------------
+const SPEICHER="pmad_aufnahmen";
+// Vorgabewerte des Profils: genau die Werte, die im Formular der laufenden App
+// (index.html, Abschnitt measTypeMauerabdeckung) als value stehen.
+const PROFIL_VORGABE=Object.freeze({
+ breite:310, gefaelle:5, hoeheLinks:50, hoeheRechts:50,
+ umschlagLinks:15, umschlagRechts:15, biegeLinks:95, biegeRechts:85,
+ saum:10, windexponiert:false
+});
+function leereAufnahme(){
+ return {
+  id:"mad"+Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+  erstellt:new Date().toISOString(), geaendert:null,
+  bezeichnung:"", datum:new Date().toISOString().slice(0,10), objekt:"",
+  material:"",
+  segmente:[],
+  schieberManuell:false, schieber:[],
+  profil:{...PROFIL_VORGABE},
+  fotos:[], skizze:null, bemerkung:""
+ };
+}
+let aufnahme=leereAufnahme();
+
+const zahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+const mm=v=>Math.round(zahl(v)).toLocaleString("de-CH");
+const meter=v=>(zahl(v)/1000).toFixed(2).replace(".",",");
+const qm=v=>zahl(v).toFixed(2).replace(".",",");
+
+// ---- 3. Brücke zum bestehenden Modul --------------------------------------
+// madProfilMasse() aus js/12b liest seine Werte direkt aus den Eingabefeldern
+// des App-Formulars. Damit die Funktion zeichengenau übernommen werden kann,
+// stehen dieselben Felder unsichtbar in der Seite (#p-stummel) und werden vor
+// jeder Rechnung aus dem Modell gefüllt. Gleiches Vorgehen wie #rinneStummel
+// und #ebStummel in der laufenden App.
+const STUMMEL_FELDER=[
+ ["mad_breite","breite"],["mad_gefaelle","gefaelle"],
+ ["mad_hoeheLinks","hoeheLinks"],["mad_hoeheRechts","hoeheRechts"],
+ ["mad_umschlagLinks","umschlagLinks"],["mad_umschlagRechts","umschlagRechts"],
+ ["mad_biegeLinks","biegeLinks"],["mad_biegeRechts","biegeRechts"],
+ ["mad_saum","saum"]
+];
+function madBrueckeSetzen(a){
+ const p=(a&&a.profil)||{};
+ STUMMEL_FELDER.forEach(([id,k])=>{
+  const f=$(id);
+  // Ein leeres Feld bleibt leer: madProfilMasse() lässt dann für die beiden
+  // Biegewinkel die Vorgabe aus dem Gefälle greifen - genau wie in der App.
+  if(f)f.value=(p[k]===""||p[k]===null||p[k]===undefined)?"":String(p[k]);
+ });
+ const w=$("mad_windexponiert");
+ if(w)w.checked=!!p.windexponiert;
+}
+// Alle abgeleiteten Werte kommen aus der Fachlogik der App:
+function profilMasse(a){madBrueckeSetzen(a);return madProfilMasse()}
+function profilSvg(a){return madProfilSvgAus(profilMasse(a))}
+function normHinweise(a){return madNormHinweise(profilMasse(a))}
+function materialTabelle(a){return madMaterialTabelle(a.material)}
+function verlaufDaten(a){return calcMadSchieber(a.segmente||[],a.material)}
+// Von Hand gesetzte Schieber schlagen die automatischen - wie in der App über
+// das Kästchen "Schieber von Hand setzen".
+function schieberAktiv(a){
+ return a.schieberManuell?(a.schieber||[]):verlaufDaten(a).schieber;
+}
+function stueckliste(a){
+ const {boundaries}=verlaufDaten(a);
+ return berechneMadStueckliste(a.segmente||[],schieberAktiv(a),boundaries,
+   madBodenMass,madSchieberMass);
+}
+function gesamtlaenge(a){return computeMadBoundaries(a.segmente||[]).gesamtlaenge}
+function endenMitBoden(a){
+ const s=a.segmente||[];
+ return {anfang:!!(s[0]&&s[0].bodenLinks), ende:!!(s[s.length-1]&&s[s.length-1].bodenRechts)};
+}
+function grundrissHtml(a){
+ const s=a.segmente||[];
+ if(!s.length)return '<div class="p-leer">Noch kein Segment erfasst.</div>';
+ const {boundaries}=verlaufDaten(a);
+ return generateRinneGrundriss(s,schieberAktiv(a).map(x=>({posAbStart:x.posAbStart})),
+   boundaries,endenMitBoden(a));
+}
+function materialText(a){const m=findMeasurementMaterial(a.material);return m?m.name:"–"}
+function eckenAnzahl(a){
+ const s=a.segmente||[];
+ return s.slice(0,Math.max(0,s.length-1)).filter(x=>zahl(x.winkel)!==0).length;
+}
+function bodenAnzahl(a){const e=endenMitBoden(a);return (e.anfang?1:0)+(e.ende?1:0)}
+// Blechfläche = Gesamtlänge × Abwicklung. Die Abwicklung kommt aus
+// madProfilMasse(), wird hier also nicht neu gerechnet.
+function flaecheM2(a){
+ const L=gesamtlaenge(a), b=zahl(profilMasse(a).abwicklung);
+ return (L/1000)*(b/1000);
+}
+function zuschnittSumme(a){return stueckliste(a).reduce((s,x)=>s+zahl(x.zuschnitt),0)}
+
+// ---- Zuschnitt aus Rollenblech --------------------------------------------
+// Genau wie bei Einlaufblech gerade, Einlaufblech konisch und Freies Profil:
+// von der Rolle wird eine TAFEL abgeschnitten und quer in Streifen von der
+// Breite der Abwicklung geteilt. Ein Streifen kann mehrere Stücke
+// HINTEREINANDER aufnehmen.
+//
+//   Streifen je Tafel = ganzzahlig(Rollenbreite ÷ Abwicklung)
+//   Tafellänge        = längstes Zuschnittstück
+//   Tafeln            = aufgerundet(Streifen ÷ Streifen je Tafel)
+//
+// Gepackt wird mit ebaPackeInStreifen() aus js/29-einlaufblech-aufnahme.js -
+// es gibt in der ganzen App nur EINE Packrechnung, und die wird hier benutzt.
+// Anders als beim Freien Profil hat die Mauerabdeckung nur EINE Abwicklung,
+// also auch nur eine Streifenbreite.
+function madBleche(a){
+ return stueckliste(a).map(x=>({nr:x.nr,laenge:zahl(x.zuschnitt)}))
+  .filter(x=>x.laenge>0);
+}
+function madTafelLaenge(a){
+ const l=madBleche(a).map(x=>x.laenge);
+ return l.length?Math.max.apply(null,l):0;
+}
+function madRollenPlan(a){
+ const A=Math.round(zahl(profilMasse(a).abwicklung));
+ const bleche=madBleche(a);
+ const L=madTafelLaenge(a);
+ const breiten=aktiveRollenbreiten();
+ if(A<=0||!bleche.length||!breiten.length)
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,tafelLaenge:L,
+          abwicklung:A,netto:flaecheM2(a),verteilung:null};
+ const verteilung=ebaPackeInStreifen(bleche,L);
+ const netto=bleche.reduce((s,x)=>s+x.laenge,0)*A/1e6;
+ const moeglich=[], zuSchmal=[];
+ breiten.forEach(B=>{
+  const jeTafel=Math.floor(B/A);
+  if(jeTafel<1){zuSchmal.push(B);return}
+  const streifen=(verteilung&&verteilung.streifen)||[];
+  const tafeln=Math.ceil(streifen.length/jeTafel);
+  const streifenGesamt=tafeln*jeTafel;
+  const flaeche=tafeln*B*L/1e6;
+  moeglich.push({breite:B,jeTafel,tafeln,
+   streifen:streifen.length, ungenutzteStreifen:streifenGesamt-streifen.length,
+   restBreite:B-jeTafel*A,
+   flaeche, verschnitt:flaeche-netto,
+   anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
+ });
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.tafeln-y.tafeln||y.breite-x.breite);
+ return {moeglich,zuSchmal,bestes:moeglich[0]||null,tafelLaenge:L,
+         abwicklung:A,netto,verteilung};
+}
+
+// ---- 4. Verlauf bearbeiten -------------------------------------------------
+function segmentAnhaengen(){
+ // Wie in der App: das erste Segment ohne Richtungsänderung, jedes weitere
+ // mit 90° als Vorgabe.
+ aufnahme.segmente.push({laenge:0,winkel:aufnahme.segmente.length?90:0,
+   bodenLinks:false,bodenRechts:false});
+ schieberNeuAusRechnung();
+}
+function segmentLoeschen(i){
+ aufnahme.segmente.splice(i,1);
+ // Boden gilt nur an den beiden Aussenenden - nach dem Löschen aufräumen.
+ bodenAufraeumen();
+ schieberNeuAusRechnung();
+}
+function segmentSchieben(i,richtung){
+ const j=i+richtung;
+ const s=aufnahme.segmente;
+ if(j<0||j>=s.length)return;
+ const t=s[i]; s[i]=s[j]; s[j]=t;
+ bodenAufraeumen();
+ schieberNeuAusRechnung();
+}
+// computeMadBoundaries() liest den Boden nur am ersten und am letzten Segment.
+// Steht er nach einer Umstellung woanders, wäre er unsichtbar wirkungslos -
+// deshalb wird er auf die beiden Aussenenden zurückgeholt.
+function bodenAufraeumen(){
+ const s=aufnahme.segmente;
+ if(!s.length)return;
+ s.forEach((x,i)=>{
+  if(i!==0)x.bodenLinks=false;
+  if(i!==s.length-1)x.bodenRechts=false;
+ });
+}
+// Solange nicht von Hand gesetzt wird, folgt die Schieberliste der Rechnung.
+function schieberNeuAusRechnung(){
+ if(!aufnahme.schieberManuell)aufnahme.schieber=verlaufDaten(aufnahme).schieber;
+}
+
+// ---- 5. Ausmass ------------------------------------------------------------
+// Wird vollständig aus den erfassten Daten abgeleitet - keine zweite Eingabe,
+// keine Artikelnummern, keine Preise.
+function ausmassZeilen(a){
+ const L=gesamtlaenge(a);
+ if(!L)return [];
+ const st=stueckliste(a);
+ const z=[];
+ z.push({was:"Mauerabdeckung "+materialText(a),menge:meter(L),einheit:"m",
+   quelle:"Summe der Segmentlängen"});
+ z.push({was:"Blech (Abwicklung "+mm(profilMasse(a).abwicklung)+" mm)",
+   menge:qm(flaecheM2(a)),einheit:"m²",quelle:"Gesamtlänge × Abwicklung"});
+ z.push({was:"Zuschnitte",menge:String(st.length),einheit:"Stk",
+   quelle:"Stückliste"});
+ const ecken=eckenAnzahl(a);
+ if(ecken)z.push({was:"Ecken",menge:String(ecken),einheit:"Stk",
+   quelle:"Segmente mit Winkel ≠ 0°"});
+ const sch=schieberAktiv(a).length;
+ if(sch)z.push({was:"Schieber",menge:String(sch),einheit:"Stk",
+   quelle:a.schieberManuell?"von Hand gesetzt":"automatisch nach SIA 271"});
+ const bo=bodenAnzahl(a);
+ if(bo)z.push({was:"Boden",menge:String(bo),einheit:"Stk",
+   quelle:"Abschluss am Anfang/Ende"});
+ return z;
+}
+function materialUebersicht(a){
+ const t=materialTabelle(a);
+ return [
+  {was:"Material",wert:materialText(a)==="–"?t.label+" (Rückfallwert)":materialText(a)},
+  {was:"Max. Abstand zwischen zwei Schiebern",wert:meter(t.maxAbstand)+" m"},
+  {was:"Max. Abstand ab einer Ecke oder einem Boden",wert:meter(t.abEcke)+" m"},
+  {was:"Zugabe je Boden",wert:mm(madBodenMass)+" mm"},
+  {was:"Zugabe je Schieberseite",wert:mm(madSchieberMass)+" mm"}
+ ];
+}
+
+// ---- 6. Kontrolle ----------------------------------------------------------
+function pruefungen(a){
+ const r=[];
+ const seg=a.segmente||[];
+ const fehlt=(t)=>r.push({art:"fehler",text:t});
+ const warn=(t)=>r.push({art:"warnung",text:t});
+
+ if(!a.material)warn("Kein Material gewählt – gerechnet wird mit dem Rückfallwert „"
+   +materialTabelle(a).label+"“.");
+ if(!seg.length){fehlt("Noch kein Segment erfasst – ohne Verlauf gibt es weder Schieber noch Zuschnitt.");}
+ seg.forEach((s,i)=>{
+  const L=Number(s.laenge);
+  if(!Number.isFinite(L)||L<=0)fehlt("Segment "+(i+1)+": keine gültige Länge.");
+  const w=Number(s.winkel);
+  if(!Number.isFinite(w))fehlt("Segment "+(i+1)+": Winkel ist keine Zahl.");
+  else if(Math.abs(w)>180)fehlt("Segment "+(i+1)+": Winkel "+w+"° liegt ausserhalb von ±180°.");
+ });
+ const L=gesamtlaenge(a);
+ if(seg.length&&L<=0)fehlt("Die Gesamtlänge ist 0 mm.");
+
+ // Boden
+ const e=endenMitBoden(a);
+ if(seg.length&&!e.anfang&&!e.ende)
+  warn("Kein Boden gesetzt – beide Enden gelten als offen. Ist das gewollt?");
+
+ // Schieber
+ const sch=schieberAktiv(a);
+ sch.forEach((s,i)=>{
+  const p=Number(s.posAbStart);
+  if(!Number.isFinite(p))fehlt("Schieber "+(i+1)+": Position ist keine Zahl.");
+  else if(p<=0||p>=L)fehlt("Schieber "+(i+1)+": Position "+Math.round(p)
+    +" mm liegt nicht zwischen 0 und "+Math.round(L)+" mm.");
+ });
+ if(a.schieberManuell){
+  const auto=verlaufDaten(a).schieber.length;
+  if(sch.length<auto)warn("Von Hand gesetzt: "+sch.length+" Schieber. Die Rechnung nach SIA 271 käme auf "+auto+".");
+ }
+
+ // Profil
+ const m=profilMasse(a);
+ if(!m.breite)fehlt("Profil: keine Gesamtbreite eingegeben.");
+ if(!m.hL)fehlt("Profil: keine Höhe für den linken Schenkel eingegeben.");
+ if(!m.hR)warn("Profil: keine Höhe für den rechten Schenkel eingegeben.");
+ [["breite","Gesamtbreite"],["hL","Höhe links"],["hR","Höhe rechts"],
+  ["umL","Umschlag links"],["umR","Umschlag rechts"],["saum","Saum"]].forEach(([k,t])=>{
+  if(m[k]<0)fehlt("Profil: "+t+" ist negativ.");
+ });
+ if(!Number.isFinite(m.abwicklung)||m.abwicklung<=0)fehlt("Profil: die Abwicklung ergibt keinen brauchbaren Wert.");
+
+ // Normhinweise kommen unverändert aus madNormHinweise()
+ normHinweise(a).forEach(t=>warn(t));
+
+ // Ausmass und Zuschnitt
+ if(seg.length&&!ausmassZeilen(a).length)warn("Aus den erfassten Daten lässt sich kein Ausmass ableiten.");
+ const st=stueckliste(a);
+ if(seg.length&&!st.length)warn("Es entsteht kein einziges Zuschnittstück.");
+ st.forEach(x=>{
+  if(zahl(x.abstand)<=0)fehlt("Stück "+x.nr+": Abstand "+Math.round(x.abstand)
+    +" mm – zwei Punkte liegen aufeinander.");
+ });
+
+ // Zuschnitt aus Rollenblech
+ if(st.length){
+  const rp=madRollenPlan(a);
+  if(rp.verteilung&&rp.verteilung.zuLang&&rp.verteilung.zuLang.length)
+   fehlt("Zuschnitt: Stück "+rp.verteilung.zuLang.map(x=>x.nr).join(", ")
+     +" ist länger als die Tafel.");
+  if(!aktiveRollenbreiten().length)
+   warn("Zuschnitt: keine Rollenbreite angehakt – der Materialbedarf wird nicht gerechnet.");
+  else if(!rp.moeglich.length)
+   warn("Zuschnitt: keine Rolle ist breit genug für eine Abwicklung von "
+     +Math.round(rp.abwicklung)+" mm.");
+  else if(rp.verteilung&&rp.verteilung.optimal===false)
+   warn("Zuschnitt: die Suche wurde abgebrochen – die gezeigte Verteilung ist die beste gefundene, nicht sicher die beste mögliche.");
+ }
+ return r;
+}
+
+// ---- 7. Ablage -------------------------------------------------------------
+function alleAufnahmen(){
+ try{const l=JSON.parse(localStorage.getItem(SPEICHER)||"[]");return Array.isArray(l)?l:[]}
+ catch(e){return []}
+}
+function speichern(){
+ try{
+  const liste=alleAufnahmen();
+  aufnahme.geaendert=new Date().toISOString();
+  const i=liste.findIndex(x=>x.id===aufnahme.id);
+  if(i>=0)liste[i]=JSON.parse(JSON.stringify(aufnahme));
+  else liste.unshift(JSON.parse(JSON.stringify(aufnahme)));
+  localStorage.setItem(SPEICHER,JSON.stringify(liste));
+  return true;
+ }catch(e){alert("Speichern nicht möglich: "+e.message);return false}
+}
+// Eine gespeicherte Aufnahme wird auf das aktuelle Modell gehoben: fehlende
+// Felder bekommen die Vorgabe, vorhandene bleiben unangetastet. So öffnen auch
+// ältere Datensätze, denen ein später ergänztes Feld fehlt.
+function aufModellHeben(a){
+ const g=JSON.parse(JSON.stringify({...leereAufnahme(),...a}));
+ g.profil={...PROFIL_VORGABE,...(a&&a.profil?a.profil:{})};
+ if(!Array.isArray(g.segmente))g.segmente=[];
+ if(!Array.isArray(g.schieber))g.schieber=[];
+ if(!Array.isArray(g.fotos))g.fotos=[];
+ return g;
+}
+function oeffnen(id){
+ const a=alleAufnahmen().find(x=>x.id===id);
+ if(!a)return false;
+ aufnahme=aufModellHeben(a);
+ schritt=1; zeichne(); return true;
+}
+function kopieren(id){
+ const a=alleAufnahmen().find(x=>x.id===id);
+ if(!a)return false;
+ const k=JSON.parse(JSON.stringify(a));
+ k.id="mad"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+ k.erstellt=new Date().toISOString(); k.geaendert=null;
+ k.bezeichnung=(a.bezeichnung||"Ohne Bezeichnung")+" (Kopie)";
+ const liste=alleAufnahmen(); liste.unshift(k);
+ localStorage.setItem(SPEICHER,JSON.stringify(liste));
+ aufnahme=aufModellHeben(k);
+ schritt=1; zeichne(); return k.id;
+}
+function loeschen(id){
+ localStorage.setItem(SPEICHER,JSON.stringify(alleAufnahmen().filter(x=>x.id!==id)));
+}
+
+// ---- 8. Oberfläche ---------------------------------------------------------
+function feld(label,inhalt,voll){
+ return `<div class="p-feld${voll?" p-voll":""}"><label>${esc(label)}</label>${inhalt}</div>`;
+}
+function karte(titel,inhalt){return `<div class="p-karte"><h2>${esc(titel)}</h2>${inhalt}</div>`}
+function zahlFeld(id,wert,extra){
+ return `<input class="p-gross" type="number" inputmode="numeric" step="1" id="${id}" value="${wert===""?"":zahl(wert)}"${extra||""}>`;
+}
+function registerHtml(){
+ const p=pruefungen(aufnahme);
+ const fehler=p.some(x=>x.art==="fehler"), warn=p.some(x=>x.art==="warnung");
+ return `<div class="p-register" id="p-register">${SCHRITTE.map((t,i)=>{
+  const n=i+1;
+  const punkt=n===SCHRITT_KONTROLLE&&(fehler||warn)
+   ?`<span class="p-punkt ${fehler?"p-punkt-rot":"p-punkt-orange"}"></span>`:"";
+  return `<button type="button" class="p-register-knopf${n===schritt?" aktiv":""}" data-schritt="${n}">
+<span class="p-register-nr">${n}</span>${esc(t)}${punkt}</button>`;
+ }).join("")}</div>`;
+}
+
+// ---- Register 1 · Grunddaten ----------------------------------------------
+function schritt1(){
+ const opt=['<option value="">– bitte wählen –</option>']
+  .concat(measurementMaterials.map(m=>`<option value="${esc(m.id)}"${String(aufnahme.material)===String(m.id)?" selected":""}>${esc(m.name)}</option>`))
+  .join("");
+ return karte("1 · Grunddaten",`<div class="p-grid">
+${feld("Bezeichnung",`<input class="p-gross" type="text" id="p-bezeichnung" value="${esc(aufnahme.bezeichnung)}" placeholder="z. B. Attika Nordseite">`,true)}
+${feld("Datum",`<input class="p-gross" type="date" id="p-datum" value="${esc(aufnahme.datum)}">`)}
+${feld("Objekt / Adresse",`<input class="p-gross" type="text" id="p-objekt" value="${esc(aufnahme.objekt)}">`)}
+${feld("Material",`<select class="p-gross" id="p-material">${opt}</select>`,true)}
+</div>
+<div class="p-hinweis">Das Material bestimmt die zulässigen Abstände zwischen zwei
+Schiebern. Die Werte kommen aus dem Material-Katalog der App (SIA 271, Tabelle 8.4.2)
+und werden hier nicht neu festgelegt.</div>
+<div class="p-tabelle"><table><tbody>
+${materialUebersicht(aufnahme).map(z=>`<tr><td>${esc(z.was)}</td><td class="p-num"><b>${esc(z.wert)}</b></td></tr>`).join("")}
+</tbody></table></div>`);
+}
+
+// ---- Register 2 · Verlauf --------------------------------------------------
+function segmentKarte(s,i,anzahl){
+ const letzte=i===anzahl-1;
+ return `<div class="p-seg">
+<div class="p-seg-kopf">
+ <span class="p-seg-nr">${i+1}</span>
+ <span class="p-seg-titel">Segment ${i+1}${letzte?" · letztes":""}</span>
+ <button type="button" class="p-grau p-seg-weg" data-seg-hoch="${i}"${i===0?" disabled":""}>▲</button>
+ <button type="button" class="p-grau p-seg-weg" data-seg-runter="${i}"${letzte?" disabled":""}>▼</button>
+ <button type="button" class="p-weg p-seg-weg" data-seg-weg="${i}">Löschen</button>
+</div>
+<div class="p-grid">
+${feld("Länge (mm)",`<input class="p-gross" type="number" inputmode="numeric" step="1" data-seg-laenge="${i}" value="${zahl(s.laenge)}">`)}
+${feld(letzte?"Winkel – am letzten Segment folgt nichts mehr":"Ecke zum nächsten Segment (°)",
+ `<div class="p-winkelreihe"><input class="p-gross" type="number" inputmode="numeric" step="1" data-seg-winkel="${i}" value="${zahl(s.winkel)}"${letzte?" disabled":""}>
+<button type="button" class="p-grau" data-seg-flip="${i}" title="Winkel umkehren"${letzte?" disabled":""}>🔄</button></div>`)}
+</div>
+<div class="p-schalter-reihe">
+${i===0?`<label class="p-schalter"><input type="checkbox" data-seg-bodenL="${i}"${s.bodenLinks?" checked":""}> Boden am Anfang</label>`:""}
+${letzte?`<label class="p-schalter"><input type="checkbox" data-seg-bodenR="${i}"${s.bodenRechts?" checked":""}> Boden am Ende</label>`:""}
+</div>
+</div>`;
+}
+function schritt2(){
+ const s=aufnahme.segmente;
+ const karten=s.length?s.map((x,i)=>segmentKarte(x,i,s.length)).join("")
+  :'<div class="p-leer">Noch kein Segment. Mit „＋ Segment hinzufügen“ beginnen.</div>';
+ return karte("2 · Verlauf",`<div class="p-hinweis">START → Segment → Ecke → Segment → Ecke → Segment → ENDE.
+Der Winkel eines Segments ist die Richtungsänderung zum <b>nächsten</b> Segment
+(90° = normale Ecke, 🔄 kehrt sie um). Das letzte Segment hat keinen Winkel mehr.</div>
+${karten}
+<div class="p-knopfreihe"><button type="button" class="p-blau" id="p-segPlus">＋ Segment hinzufügen</button></div>
+${zusammenfassungHtml()}
+<h3>Grundriss</h3>
+<div class="p-grundriss" id="p-grundriss">${grundrissHtml(aufnahme)}</div>
+<div class="p-legende"><span class="p-lg p-lg-blau">Segmentlänge</span>
+<span class="p-lg p-lg-orange">Schieber</span>
+<span class="p-lg p-lg-gruen">Boden</span>
+<span class="p-lg p-lg-rot">Blickrichtung</span></div>`);
+}
+function zusammenfassungHtml(){
+ const a=aufnahme;
+ const t=materialTabelle(a);
+ return `<div class="p-zf-kopf">
+<div><span>Segmente</span><b id="p-zfSeg">${(a.segmente||[]).length}</b></div>
+<div><span>Gesamtlänge</span><b id="p-zfLaenge">${gesamtlaenge(a)>0?mm(gesamtlaenge(a))+" mm":"–"}</b></div>
+<div><span>Ecken</span><b id="p-zfEcken">${eckenAnzahl(a)}</b></div>
+<div><span>Schieber</span><b id="p-zfSchieber">${schieberAktiv(a).length}</b></div>
+<div><span>Boden</span><b id="p-zfBoden">${bodenAnzahl(a)}</b></div>
+</div>
+<div class="p-zf-fuss" id="p-zfFuss">${esc(t.label)}: max. ${meter(t.maxAbstand)} m zwischen zwei Schiebern, ab einer Ecke oder einem Boden ${meter(t.abEcke)} m.</div>`;
+}
+
+// ---- Register 3 · Boden und Schieber --------------------------------------
+function schritt3(){
+ const a=aufnahme;
+ const s=a.segmente||[];
+ const e=endenMitBoden(a);
+ const {boundaries,tabelle}=verlaufDaten(a);
+ const auto=verlaufDaten(a).schieber;
+ const sch=schieberAktiv(a);
+ const grenzen=boundaries.map((b,i)=>`<tr>
+<td>${i+1}</td><td>${esc(b.name)}</td>
+<td>${b.typ==="ecke"?"Fixpunkt – ab hier gilt der halbe Abstand":"offene Grenze"}</td>
+<td class="p-num">${mm(b.pos)}</td></tr>`).join("");
+ const zeilen=sch.map((x,i)=>`<tr>
+<td>${i+1}</td>
+<td>${a.schieberManuell
+ ?`<input class="p-tab-feld" type="number" inputmode="numeric" step="1" data-schieber-pos="${i}" value="${Math.round(zahl(x.posAbStart))}">`
+ :`<span class="p-num">${mm(x.posAbStart)}</span>`}</td>
+<td class="p-num">${mm(zahl(x.posAbStart)-(i?zahl(sch[i-1].posAbStart):0))}</td>
+<td>${a.schieberManuell?`<button type="button" class="p-weg" data-schieber-weg="${i}">×</button>`:""}</td>
+</tr>`).join("");
+ return karte("3 · Boden",`<div class="p-hinweis">Der Boden ist der Abschluss am Anfang oder am Ende
+des ganzen Verlaufs. Er wirkt wie ein Fixpunkt: ab dort gilt der halbe Abstand –
+genau wie an einer Ecke.</div>
+<div class="p-schalter-reihe">
+<label class="p-schalter"><input type="checkbox" id="p-bodenL"${e.anfang?" checked":""}${s.length?"":" disabled"}> Boden am Anfang</label>
+<label class="p-schalter"><input type="checkbox" id="p-bodenR"${e.ende?" checked":""}${s.length?"":" disabled"}> Boden am Ende</label>
+</div>
+${s.length?"":'<div class="p-leer">Erst ein Segment im Verlauf erfassen.</div>'}
+<h3>Grenzpunkte</h3>
+${boundaries.length?`<div class="p-tabelle"><table>
+<thead><tr><th>Nr.</th><th>Punkt</th><th>Wirkung</th><th class="p-num">ab Start (mm)</th></tr></thead>
+<tbody>${grenzen}</tbody></table></div>`:'<div class="p-leer">Noch keine Grenzpunkte.</div>'}`)
++karte("4 · Schieber",`<div class="p-hinweis">Der Schieber ist das Dehnungselement. Die Positionen
+rechnet die App nach SIA 271 aus dem Material und den Grenzpunkten – hier wird
+nichts zweites gerechnet.<br>
+<b>${esc(tabelle.label)}</b>: höchstens ${meter(tabelle.maxAbstand)} m zwischen zwei
+Schiebern, ab einer Ecke oder einem Boden höchstens ${meter(tabelle.abEcke)} m.</div>
+<label class="p-schalter"><input type="checkbox" id="p-manuell"${a.schieberManuell?" checked":""}> Schieber von Hand setzen (sonst automatisch)</label>
+${a.schieberManuell?`<div class="p-warnung">Von Hand gesetzt. Die Rechnung käme auf ${auto.length} Schieber.</div>`:""}
+${sch.length?`<div class="p-tabelle"><table>
+<thead><tr><th>Nr.</th><th class="p-num">ab Start (mm)</th><th class="p-num">Abstand zum vorherigen</th><th></th></tr></thead>
+<tbody>${zeilen}</tbody></table></div>`
+:'<div class="p-ok">Kein Schieber nötig – alle Abschnitte liegen innerhalb der zulässigen Abstände.</div>'}
+${a.schieberManuell?`<div class="p-knopfreihe">
+<button type="button" class="p-grau" id="p-schieberPlus">＋ Schieber</button>
+<button type="button" class="p-grau" id="p-schieberAuto">↻ Zurück zur Rechnung</button>
+</div>`:""}
+<h3>Grundriss</h3>
+<div class="p-grundriss">${grundrissHtml(a)}</div>`);
+}
+
+// ---- Register 4 · Profil und Norm -----------------------------------------
+const PROFIL_FELDER=[
+ {k:"breite",        t:"Gesamtbreite (mm)"},
+ {k:"gefaelle",      t:"Gefälle nach rechts (°)"},
+ {k:"hoeheLinks",    t:"Höhe Schenkel links (mm)"},
+ {k:"hoeheRechts",   t:"Höhe Schenkel rechts (mm)"},
+ {k:"umschlagLinks", t:"Umschlag links (mm, 135°)"},
+ {k:"umschlagRechts",t:"Umschlag rechts (mm, 90°)"},
+ {k:"biegeLinks",    t:"Biegewinkel links (°)"},
+ {k:"biegeRechts",   t:"Biegewinkel rechts (°)"},
+ {k:"saum",          t:"Saum 180° beidseitig (mm)"}
+];
+function schritt4(){
+ const a=aufnahme, p=a.profil, m=profilMasse(a);
+ const vg=madBiegeVorgabe(m.gef);
+ const hinweise=normHinweise(a);
+ return karte("5 · Profil / Querschnitt",`<div class="p-grid">
+${PROFIL_FELDER.map(f=>feld(f.t,
+  `<input class="p-gross" type="number" inputmode="numeric" step="1" data-profil="${f.k}" value="${p[f.k]===""?"":zahl(p[f.k])}">`)).join("")}
+${feld("Abwicklung",`<div class="p-gross" id="p-abwicklung" style="padding:12px 0">${mm(m.abwicklung)} mm</div>`)}
+</div>
+<label class="p-schalter"><input type="checkbox" id="p-wind"${p.windexponiert?" checked":""}> Windexponierte Lage</label>
+<div class="p-klein-text">Bleibt ein Biegewinkel leer, gilt die Vorgabe aus dem Gefälle:
+links ${Math.round(vg.links)}°, rechts ${Math.round(vg.rechts)}°. Die Abwicklung ist die
+Summe der Schenkellängen und hängt nicht vom Biegewinkel ab.</div>
+<div class="p-schnitt" id="p-schnitt">${profilSvg(a)}</div>`)
++karte("6 · Normkontrolle",`<div class="p-pruefung" id="p-norm">${
+ hinweise.length?hinweise.map(t=>`<div class="p-warnung">⚠️ ${esc(t)}</div>`).join("")
+ :`<div class="p-ok">Die Höhen entsprechen den Mindestwerten der Norm (${p.windexponiert?MAD_MIN_HOEHE_WIND:MAD_MIN_HOEHE} mm).</div>`}</div>
+<div class="p-klein-text">Die Hinweise kommen unverändert aus madNormHinweise() der
+laufenden App – SIA 271, Dachrand: Aufkantung mindestens ${MAD_MIN_HOEHE} mm, in
+windexponierter Lage ${MAD_MIN_HOEHE_WIND} mm. Es werden keine eigenen Werte gesetzt.</div>`);
+}
+
+// ---- Register 5 · Stückliste ----------------------------------------------
+function schritt5(){
+ const a=aufnahme;
+ const st=stueckliste(a);
+ if(!st.length)return karte("7 · Stückliste / Zuschnitt",
+  '<div class="p-leer">Noch kein Zuschnittstück – zuerst den Verlauf erfassen.</div>');
+ const zeilen=st.map(x=>`<tr${x.schieberIndex===null?' class="p-boden"':""}>
+<td>${x.nr}</td>
+<td>${esc(x.von)} → ${esc(x.bis)}</td>
+<td class="p-num">${mm(x.abstand)}</td>
+<td class="p-num"><b>${mm(x.zuschnitt)}</b></td>
+<td class="p-num">${mm(x.pos)}</td>
+</tr>`).join("");
+ return karte("7 · Stückliste / Zuschnitt",`<div class="p-hinweis">Zuschnitt = Abstand + Zugabe je Ende.
+Zugabe je Boden ${mm(madBodenMass)} mm, je Schieberseite ${mm(madSchieberMass)} mm
+(Einstellungen). Gerechnet wird mit berechneMadStueckliste() der App.</div>
+<div class="p-tabelle"><table>
+<thead><tr><th>Nr.</th><th>Von → Bis</th><th class="p-num">Abstand (mm)</th><th class="p-num">Zuschnitt (mm)</th><th class="p-num">Position ab Start</th></tr></thead>
+<tbody>${zeilen}</tbody></table></div>
+<div class="p-zf-kopf">
+<div><span>Stücke</span><b>${st.length}</b></div>
+<div><span>Summe Zuschnitt</span><b>${mm(zuschnittSumme(a))} mm</b></div>
+<div><span>Gesamtlänge</span><b>${mm(gesamtlaenge(a))} mm</b></div>
+</div>
+<div class="p-klein-text">Grün hinterlegte Zeilen enden an einer Segmentgrenze oder
+an einem Boden, die übrigen an einem Schieber.</div>`);
+}
+
+// ---- Register 6 · Zuschnitt aus Rollenblech --------------------------------
+function streifenVon(a,nr){
+ const rp=madRollenPlan(a);
+ const s=(rp.verteilung&&rp.verteilung.streifen)||[];
+ const st=s[nr-1];
+ if(!st)return "";
+ return st.stuecke.map(x=>"Stück "+x.nr+" ("+mm(x.laenge)+" mm)").join(" + ")
+  +" · Rest "+mm(st.rest)+" mm";
+}
+function schritt6(){
+ const a=aufnahme;
+ const rp=madRollenPlan(a);
+ if(!madBleche(a).length)return karte("8 · Zuschnitt aus Rollenblech",
+  '<div class="p-leer">Noch kein Zuschnittstück – zuerst den Verlauf erfassen.</div>');
+ if(!aktiveRollenbreiten().length)return karte("8 · Zuschnitt aus Rollenblech",
+  '<div class="p-warnung">Keine Rollenbreite angehakt. Unter ⚙️ Einstellungen mindestens eine wählen – sonst wird der Materialbedarf nicht gerechnet.</div>');
+ const zuLang=(rp.verteilung&&rp.verteilung.zuLang)||[];
+ const streifen=(rp.verteilung&&rp.verteilung.streifen)||[];
+ const zeilen=rp.moeglich.map((m,i)=>`<tr${i===0?' class="p-boden"':""}>
+<td class="p-num">${mm(m.breite)}</td>
+<td class="p-num">${m.jeTafel}</td>
+<td class="p-num">${m.tafeln}</td>
+<td class="p-num">${qm(m.flaeche)}</td>
+<td class="p-num"><b>${qm(m.verschnitt)}</b></td>
+<td class="p-num">${m.anteil.toFixed(1).replace(".",",")} %</td>
+</tr>`).join("");
+ const streifenListe=streifen.map((s2,i)=>`<tr><td>${i+1}</td><td>${esc(streifenVon(a,i+1))}</td></tr>`).join("");
+ return karte("8 · Zuschnitt aus Rollenblech",`<div class="p-hinweis">Von der Rolle wird eine <b>Tafel</b>
+abgeschnitten und quer in Streifen von der Breite der Abwicklung geteilt. Ein
+Streifen kann mehrere Stücke hintereinander aufnehmen.<br>
+Streifen je Tafel = ganzzahlig(Rollenbreite ÷ Abwicklung) · Tafellänge = längstes
+Stück · Tafeln = aufgerundet(Streifen ÷ Streifen je Tafel).</div>
+${zuLang.length?`<div class="p-fehler">Stück ${zuLang.map(x=>x.nr).join(", ")} ist länger als die Tafel (${mm(rp.tafelLaenge)} mm) – dafür gibt es keine Verteilung.</div>`:""}
+<div class="p-zf-kopf">
+<div><span>Abwicklung</span><b>${mm(rp.abwicklung)} mm</b></div>
+<div><span>Tafellänge</span><b>${mm(rp.tafelLaenge)} mm</b></div>
+<div><span>Streifen</span><b>${streifen.length}</b></div>
+<div><span>Zuschnitte netto</span><b>${qm(rp.netto)} m²</b></div>
+</div>
+${rp.moeglich.length?`<h3>Je Rollenbreite</h3>
+<div class="p-tabelle"><table>
+<thead><tr><th class="p-num">Rolle</th><th class="p-num">Str./Tafel</th><th class="p-num">Tafeln</th><th class="p-num">Fläche</th><th class="p-num">Verschnitt</th><th class="p-num">Anteil</th></tr></thead>
+<tbody>${zeilen}</tbody></table></div>
+<div class="p-ok">Am wenigsten Material: <b>${mm(rp.bestes.breite)} mm</b> –
+${rp.bestes.tafeln} Tafel(n) à ${mm(rp.tafelLaenge)} mm, ${qm(rp.bestes.verschnitt)} m² Verschnitt.</div>`
+:`<div class="p-warnung">Keine der angehakten Rollen ist breit genug für eine
+Abwicklung von ${mm(rp.abwicklung)} mm${rp.zuSchmal.length?" (zu schmal: "+rp.zuSchmal.map(b=>mm(b)+" mm").join(", ")+")":""}.</div>`}
+${streifen.length?`<h3>Streifen</h3>
+<div class="p-tabelle"><table>
+<thead><tr><th>Nr.</th><th>Belegung</th></tr></thead>
+<tbody>${streifenListe}</tbody></table></div>`:""}
+${rp.verteilung&&rp.verteilung.optimal===false
+ ?'<div class="p-warnung">Die Suche wurde abgebrochen. Das ist die <b>beste gefundene</b> Verteilung, nicht sicher die beste mögliche.</div>':""}
+<div class="p-klein-text">Gerechnet ohne Schnittfuge und ohne Wiederverwendung von
+Reststücken – wie bei den übrigen Modulen.</div>`);
+}
+
+// ---- Register 7 · Ausmass --------------------------------------------------
+function schritt7(){
+ const a=aufnahme;
+ const z=ausmassZeilen(a);
+ if(!z.length)return karte("9 · Ausmass",
+  '<div class="p-leer">Noch nichts abzuleiten – zuerst den Verlauf erfassen.</div>');
+ return karte("9 · Ausmass",`<div class="p-hinweis">Vollständig aus den erfassten Daten abgeleitet –
+keine zweite Eingabe. Ohne Artikelnummern und ohne Preise: die kommen später aus
+der firmeneigenen Materialliste.</div>
+<div class="p-tabelle"><table>
+<thead><tr><th>Position</th><th class="p-num">Menge</th><th>Einheit</th><th>Woher</th></tr></thead>
+<tbody>${z.map(x=>`<tr><td>${esc(x.was)}</td><td class="p-num"><b>${esc(x.menge)}</b></td><td>${esc(x.einheit)}</td><td class="p-quelle">${esc(x.quelle)}</td></tr>`).join("")}</tbody>
+</table></div>
+<h3>Materialangaben</h3>
+<div class="p-tabelle"><table><tbody>
+${materialUebersicht(a).map(x=>`<tr><td>${esc(x.was)}</td><td class="p-num"><b>${esc(x.wert)}</b></td></tr>`).join("")}
+</tbody></table></div>`);
+}
+
+// ---- Register 8 · Kontrolle ------------------------------------------------
+function schritt8(){
+ const r=pruefungen(aufnahme);
+ const fehler=r.filter(x=>x.art==="fehler"), warn=r.filter(x=>x.art==="warnung");
+ const inhalt=r.length
+  ?fehler.map(x=>`<div class="p-fehler">✖ ${esc(x.text)}</div>`).join("")
+   +warn.map(x=>`<div class="p-warnung">⚠️ ${esc(x.text)}</div>`).join("")
+  :'<div class="p-ok">✓ Alles vollständig – keine Fehler und keine Hinweise.</div>';
+ return karte("10 · Kontrolle",`<div class="p-pruefung">${inhalt}</div>
+<div class="p-zf-kopf">
+<div><span>Fehler</span><b class="${fehler.length?"p-warnwert":""}">${fehler.length}</b></div>
+<div><span>Hinweise</span><b>${warn.length}</b></div>
+</div>
+<div class="p-klein-text">Geprüft werden fehlende Masse, ungültige Zahlen, Verlauf,
+Boden, Schieber, Profil, Normhinweise, Ausmass und Zuschnitt.</div>`);
+}
+
+// ---- Register 9 · Fotos, Skizze, Notiz, Speichern --------------------------
+function schritt9(){
+ const a=aufnahme;
+ const fotos=(a.fotos||[]).map((f,i)=>`<div class="p-foto"><img src="${f}" alt="Foto ${i+1}">
+<button type="button" class="p-weg" data-foto-weg="${i}">×</button></div>`).join("");
+ return karte("11 · Fotos, Skizze und Notiz",`<div class="p-hinweis">Wie bei den fertigen Modulen kommen
+Fotos, Skizze und Notiz erst am Schluss. Beim erneuten Öffnen sind sie wieder da.</div>
+<label class="p-datei" for="p-fotoInput">📷 Foto aufnehmen oder wählen</label>
+<input id="p-fotoInput" type="file" accept="image/*" multiple hidden>
+<div class="p-fotos">${fotos||'<div class="p-leer">Noch kein Foto.</div>'}</div>
+<h3>Skizze</h3>
+${a.skizze?`<div class="p-fotos"><div class="p-foto gross"><img src="${a.skizze}" alt="Skizze">
+<button type="button" class="p-weg" id="p-skizzeWeg">×</button></div></div>`
+:'<div class="p-leer">Noch keine Skizze.</div>'}
+<div class="p-knopfreihe"><button type="button" class="p-grau" id="p-skizzeOeffnen">✏️ Skizze zeichnen</button></div>
+<div class="p-skizzeBox" id="p-skizzeBox" hidden>
+<canvas id="p-skizzeCanvas"></canvas>
+<div class="p-knopfreihe">
+<button type="button" class="p-gruen" id="p-skizzeSpeichern">✓ Übernehmen</button>
+<button type="button" class="p-grau" id="p-skizzeLeeren">Leeren</button>
+<button type="button" class="p-grau" id="p-skizzeAbbrechen">Abbrechen</button>
+</div></div>
+<h3>Notiz</h3>
+<textarea id="p-bemerkung" rows="4" placeholder="Bemerkungen zur Massaufnahme">${esc(a.bemerkung)}</textarea>
+<div class="p-knopfreihe"><button type="button" class="p-gruen" id="p-fertigSpeichern">💾 Massaufnahme speichern</button></div>`);
+}
+
+// ---- 9. Zeichnen und Blättern ----------------------------------------------
+let listeOffen=false, einstellungenOffen=false;
+function inhaltHtml(){
+ return [schritt1,schritt2,schritt3,schritt4,schritt5,schritt6,schritt7,schritt8,schritt9][schritt-1]();
+}
+function zeichne(){
+ const reg=$("p-registerBox"); if(reg)reg.innerHTML=registerHtml();
+ const inhalt=$("p-inhalt"); if(inhalt)inhalt.innerHTML=inhaltHtml();
+ const zurueck=$("p-zurueck"), weiter=$("p-weiter");
+ if(zurueck)zurueck.disabled=schritt<=1;
+ if(weiter){
+  weiter.disabled=false;
+  weiter.textContent=schritt>=SCHRITTE.length?"Fertig › Speichern":"Weiter › "+SCHRITTE[schritt];
+ }
+ const listeBox=$("p-listeBox");
+ if(listeBox){listeBox.hidden=!listeOffen; if(listeOffen)listeBox.innerHTML=listeHtml()}
+ const einstBox=$("p-einstBox");
+ if(einstBox){einstBox.hidden=!einstellungenOffen; if(einstellungenOffen)einstBox.innerHTML=einstellungenHtml()}
+ // Das aktive Register muss in der seitwärts scrollenden Leiste sichtbar sein.
+ const strip=$("p-register"), aktiv=strip&&strip.querySelector(".p-register-knopf.aktiv");
+ if(strip&&aktiv){
+  const sr=strip.getBoundingClientRect(), ar=aktiv.getBoundingClientRect();
+  if(ar.left<sr.left)strip.scrollLeft-=(sr.left-ar.left)+12;
+  else if(ar.right>sr.right)strip.scrollLeft+=(ar.right-sr.right)+12;
+ }
+}
+function setzeSchritt(n){
+ schritt=Math.max(1,Math.min(SCHRITTE.length,Number(n)||1));
+ zeichne();
+ const kopf=$("p-registerBox");
+ if(kopf&&kopf.scrollIntoView)kopf.scrollIntoView({block:"nearest"});
+}
+// Nach einer Zifferneingabe wird NICHT alles neu gezeichnet - sonst verliert
+// das Feld nach dem ersten Zeichen den Fokus. Aktualisiert werden nur die
+// abgeleiteten Anzeigen.
+function live(){
+ const a=aufnahme;
+ const gr=$("p-grundriss"); if(gr)gr.innerHTML=grundrissHtml(a);
+ const sn=$("p-schnitt"); if(sn)sn.innerHTML=profilSvg(a);
+ const ab=$("p-abwicklung"); if(ab)ab.textContent=mm(profilMasse(a).abwicklung)+" mm";
+ const norm=$("p-norm");
+ if(norm){
+  const h=normHinweise(a);
+  norm.innerHTML=h.length?h.map(t=>`<div class="p-warnung">⚠️ ${esc(t)}</div>`).join("")
+   :`<div class="p-ok">Die Höhen entsprechen den Mindestwerten der Norm (${a.profil.windexponiert?MAD_MIN_HOEHE_WIND:MAD_MIN_HOEHE} mm).</div>`;
+ }
+ const seg=$("p-zfSeg"); if(seg)seg.textContent=(a.segmente||[]).length;
+ const L=$("p-zfLaenge"); if(L)L.textContent=gesamtlaenge(a)>0?mm(gesamtlaenge(a))+" mm":"–";
+ const ec=$("p-zfEcken"); if(ec)ec.textContent=eckenAnzahl(a);
+ const sc=$("p-zfSchieber"); if(sc)sc.textContent=schieberAktiv(a).length;
+ const bo=$("p-zfBoden"); if(bo)bo.textContent=bodenAnzahl(a);
+}
+
+function listeHtml(){
+ const liste=alleAufnahmen();
+ if(!liste.length)return '<div class="p-leer">Noch keine gespeicherte Massaufnahme.</div>';
+ return liste.map(a=>{
+  const L=(a.segmente||[]).reduce((s,x)=>s+zahl(x.laenge),0);
+  const d=new Date(a.geaendert||a.erstellt);
+  const datum=isNaN(d)?"":d.toLocaleDateString("de-CH")+" "+d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+  return `<div class="p-zeile">
+<div class="p-zeile-kopf"><b>${esc(a.bezeichnung||"Ohne Bezeichnung")}</b><span class="p-klein-text">${esc(datum)}</span></div>
+<div class="p-klein-text">${(a.segmente||[]).length} Segment(e) · ${L>0?mm(L)+" mm":"–"} · ${(a.fotos||[]).length} Foto(s)${a.id===aufnahme.id?" · <b>gerade offen</b>":""}</div>
+<div class="p-knopfreihe">
+<button type="button" class="p-blau" data-oeffnen="${esc(a.id)}">Öffnen</button>
+<button type="button" class="p-grau" data-kopieren="${esc(a.id)}">Kopieren</button>
+<button type="button" class="p-grau" data-loeschen="${esc(a.id)}">Löschen</button>
+</div></div>`;
+ }).join("");
+}
+
+// Zuschnittzugaben. In der App stehen sie firmenweit in app_settings.
+const EINST_FELDER=[
+ {k:"boden_mass",   t:"Zugabe je Boden (mm)"},
+ {k:"schieber_mass",t:"Zugabe je Schieberseite (mm)"}
+];
+function einstellungenHtml(){
+ return `<div class="p-grid">${EINST_FELDER.map(f=>feld(f.t,
+  `<input class="p-gross" type="number" inputmode="numeric" step="1" data-einst="${f.k}" value="${zahl(madZugaben[f.k])}">`)).join("")}</div>
+<h3>Rollenbreiten für den Zuschnitt</h3>
+<div class="p-schalter-reihe">${rollenbreiten.map(r=>`<label class="p-schalter">
+<input type="checkbox" data-rolle="${r.breite}"${r.aktiv?" checked":""}> ${mm(r.breite)} mm</label>`).join("")}</div>
+<div class="p-klein-text">1'000 mm und 670 mm sind die Standardrollen. Ist keine
+angehakt, wird der Materialbedarf nicht gerechnet. In der App stehen dieselben
+Breiten firmenweit in app_settings.blech_rollenbreiten.</div>
+<div class="p-knopfreihe"><button type="button" class="p-grau" id="p-einstZurueck">↻ Standardwerte</button></div>
+<div class="p-klein-text">Im Prototyp gerätebezogen gespeichert; in der App stehen
+dieselben zwei Werte firmenweit unter Einstellungen → Massaufnahmen.
+Vorgaben: Boden ${MAD_ZUGABE_STANDARD.boden_mass} mm · Schieber ${MAD_ZUGABE_STANDARD.schieber_mass} mm.
+Die Abstände zwischen zwei Schiebern kommen dagegen aus dem Material-Katalog und
+lassen sich hier bewusst nicht ändern.</div>`;
+}
+
+// ---- 10. Bilder ------------------------------------------------------------
+const FOTO_MAXKANTE=1280, FOTO_QUALITAET=0.72;
+function bildVerkleinern(datei){
+ return new Promise(fertig=>{
+  const leser=new FileReader();
+  leser.onerror=()=>fertig(null);
+  leser.onload=()=>{
+   const bild=new Image();
+   bild.onerror=()=>fertig(null);
+   bild.onload=()=>{
+    const f=Math.min(1,FOTO_MAXKANTE/Math.max(bild.width,bild.height));
+    const c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(bild.width*f));
+    c.height=Math.max(1,Math.round(bild.height*f));
+    c.getContext("2d").drawImage(bild,0,0,c.width,c.height);
+    try{fertig(c.toDataURL("image/jpeg",FOTO_QUALITAET))}catch(e){fertig(null)}
+   };
+   bild.src=leser.result;
+  };
+  leser.readAsDataURL(datei);
+ });
+}
+async function fotosAufnehmen(dateien){
+ for(const d of Array.from(dateien||[])){
+  const bild=await bildVerkleinern(d);
+  if(bild)aufnahme.fotos.push(bild);
+ }
+ zeichne();
+}
+let skizzeCtx=null, skizzeZeichnet=false;
+function skizzeOeffnen(){
+ const box=$("p-skizzeBox"), c=$("p-skizzeCanvas");
+ if(!box||!c)return;
+ box.hidden=false;
+ const b=c.getBoundingClientRect();
+ c.width=Math.max(320,Math.round(b.width||480));
+ c.height=Math.round(c.width*0.62);
+ skizzeCtx=c.getContext("2d");
+ skizzeCtx.fillStyle="#fff"; skizzeCtx.fillRect(0,0,c.width,c.height);
+ skizzeCtx.strokeStyle="#17202a"; skizzeCtx.lineWidth=3;
+ skizzeCtx.lineCap="round"; skizzeCtx.lineJoin="round";
+ if(aufnahme.skizze){
+  const alt=new Image();
+  alt.onload=()=>skizzeCtx.drawImage(alt,0,0,c.width,c.height);
+  alt.src=aufnahme.skizze;
+ }
+}
+function skizzePunkt(ev,c){
+ const b=c.getBoundingClientRect();
+ const t=(ev.touches&&ev.touches[0])||ev;
+ return [(t.clientX-b.left)*(c.width/b.width),(t.clientY-b.top)*(c.height/b.height)];
+}
+
+// ---- 11. Bedienung ---------------------------------------------------------
+// Eine einzige Stelle je Ereignisart, delegiert von der Wurzel.
+function verdrahten(){
+ const w=$("p-app");
+ if(!w||w.dataset.verdrahtet)return;
+ w.dataset.verdrahtet="1";
+
+ w.addEventListener("input",e=>{
+  const t=e.target, d=t.dataset||{}, a=aufnahme;
+  let nurLive=false;
+  if(t.id==="p-bezeichnung")a.bezeichnung=t.value;
+  else if(t.id==="p-objekt")a.objekt=t.value;
+  else if(t.id==="p-bemerkung")a.bemerkung=t.value;
+  else if(d.segLaenge!==undefined){
+   const i=Number(d.segLaenge);
+   if(a.segmente[i]){a.segmente[i].laenge=zahl(t.value);schieberNeuAusRechnung();nurLive=true}
+  }
+  else if(d.segWinkel!==undefined){
+   const i=Number(d.segWinkel);
+   if(a.segmente[i]){a.segmente[i].winkel=zahl(t.value);schieberNeuAusRechnung();nurLive=true}
+  }
+  else if(d.profil!==undefined){
+   // Leeres Feld bleibt leer, damit die Vorgabe aus dem Gefälle greifen kann.
+   a.profil[d.profil]=t.value===""?"":zahl(t.value);
+   nurLive=true;
+  }
+  else if(d.schieberPos!==undefined){
+   const i=Number(d.schieberPos);
+   if(a.schieber[i]){a.schieber[i].posAbStart=zahl(t.value);nurLive=true}
+  }
+  else if(d.einst!==undefined){
+   madZugaben[d.einst]=zahl(t.value);
+   madZugabenSpeichern(); nurLive=true;
+  }
+  else return;
+  if(nurLive)live();
+ });
+
+ w.addEventListener("change",e=>{
+  const t=e.target, d=t.dataset||{}, a=aufnahme;
+  if(t.id==="p-datum"){a.datum=t.value;return}
+  if(t.id==="p-material"){a.material=t.value;schieberNeuAusRechnung();zeichne();return}
+  if(t.id==="p-fotoInput"){fotosAufnehmen(t.files);return}
+  if(t.id==="p-wind"){a.profil.windexponiert=t.checked;zeichne();return}
+  if(t.id==="p-manuell"){
+   a.schieberManuell=t.checked;
+   // Beim Umschalten auf "von Hand" wird die gerechnete Liste übernommen -
+   // so wie in der App, wo madSchieber genau diese Werte enthält.
+   if(t.checked)a.schieber=verlaufDaten(a).schieber.map(x=>({posAbStart:x.posAbStart}));
+   else a.schieber=verlaufDaten(a).schieber;
+   zeichne(); return;
+  }
+  if(t.id==="p-bodenL"||t.id==="p-bodenR"){
+   const s=a.segmente;
+   if(!s.length)return;
+   if(t.id==="p-bodenL")s[0].bodenLinks=t.checked;
+   else s[s.length-1].bodenRechts=t.checked;
+   schieberNeuAusRechnung(); zeichne(); return;
+  }
+  if(d.segBodenL!==undefined){
+   const i=Number(d.segBodenL);
+   if(a.segmente[i]){a.segmente[i].bodenLinks=t.checked;schieberNeuAusRechnung();zeichne()}
+   return;
+  }
+  if(d.segBodenR!==undefined){
+   const i=Number(d.segBodenR);
+   if(a.segmente[i]){a.segmente[i].bodenRechts=t.checked;schieberNeuAusRechnung();zeichne()}
+   return;
+  }
+  if(d.schieberPos!==undefined){
+   a.schieber.sort((x,y)=>zahl(x.posAbStart)-zahl(y.posAbStart));
+   zeichne(); return;
+  }
+  if(d.rolle!==undefined){
+   const r2=rollenbreiten.find(x=>String(x.breite)===String(d.rolle));
+   if(r2)r2.aktiv=t.checked;
+   rollenSpeichern(); zeichne(); return;
+  }
+ });
+
+ w.addEventListener("click",e=>{
+  const t=e.target.closest("button,label,[data-schritt],[data-oeffnen],[data-kopieren],[data-loeschen]");
+  if(!t)return;
+  const d=t.dataset||{}, a=aufnahme;
+  if(d.schritt!==undefined){setzeSchritt(d.schritt);return}
+  if(t.id==="p-zurueck"){setzeSchritt(schritt-1);return}
+  if(t.id==="p-weiter"){
+   if(schritt>=SCHRITTE.length){
+    if(speichern()){t.textContent="✓ Gespeichert";setTimeout(zeichne,1400)}
+    return;
+   }
+   setzeSchritt(schritt+1);return;
+  }
+  if(t.id==="p-speichern"||t.id==="p-fertigSpeichern"){
+   const alt=t.textContent;
+   if(speichern()){t.textContent="✓ Gespeichert";setTimeout(()=>{t.textContent=alt},1400)}
+   return;
+  }
+  if(t.id==="p-neu"){
+   if(confirm("Neue Massaufnahme beginnen? Nicht Gespeichertes geht verloren."))
+    {aufnahme=leereAufnahme();schritt=1;zeichne()}
+   return;
+  }
+  if(t.id==="p-kopieren"){
+   if(!kopieren(aufnahme.id)){
+    alert("Diese Massaufnahme ist noch nicht gespeichert. Bitte zuerst speichern.");
+    return;
+   }
+   alert("Kopie angelegt: „"+(aufnahme.bezeichnung||"Ohne Bezeichnung")
+     +"“. Sie ist von der ursprünglichen Aufnahme unabhängig.");
+   return;
+  }
+  if(t.id==="p-listeAuf"){listeOffen=!listeOffen;zeichne();return}
+  if(t.id==="p-einstAuf"){einstellungenOffen=!einstellungenOffen;zeichne();return}
+  if(t.id==="p-einstZurueck"){
+   madZugaben={...MAD_ZUGABE_STANDARD};
+   rollenbreiten=ROLLEN_WAEHLBAR.map(b=>({breite:b,aktiv:ROLLEN_STANDARD.indexOf(b)>=0}));
+   madZugabenSpeichern(); rollenSpeichern(); zeichne(); return;
+  }
+  if(d.oeffnen!==undefined){oeffnen(d.oeffnen);return}
+  if(d.kopieren!==undefined){kopieren(d.kopieren);return}
+  if(d.loeschen!==undefined){
+   if(confirm("Diese gespeicherte Massaufnahme wirklich löschen?")){loeschen(d.loeschen);zeichne()}
+   return;
+  }
+  if(t.id==="p-segPlus"){segmentAnhaengen();zeichne();return}
+  if(d.segWeg!==undefined){
+   if(confirm("Segment "+(Number(d.segWeg)+1)+" wirklich löschen?")){
+    segmentLoeschen(Number(d.segWeg)); zeichne();
+   }
+   return;
+  }
+  if(d.segHoch!==undefined){segmentSchieben(Number(d.segHoch),-1);zeichne();return}
+  if(d.segRunter!==undefined){segmentSchieben(Number(d.segRunter),1);zeichne();return}
+  if(d.segFlip!==undefined){
+   const i=Number(d.segFlip);
+   if(a.segmente[i]){a.segmente[i].winkel=-zahl(a.segmente[i].winkel);schieberNeuAusRechnung();zeichne()}
+   return;
+  }
+  if(t.id==="p-schieberPlus"){
+   const L=gesamtlaenge(a);
+   const pos=Number(prompt("Position ab Start (mm):","0"));
+   if(!Number.isFinite(pos)||pos<=0||pos>=L){
+    alert("Position muss zwischen 0 und "+Math.round(L)+" mm liegen.");return;
+   }
+   a.schieber.push({posAbStart:pos});
+   a.schieber.sort((x,y)=>zahl(x.posAbStart)-zahl(y.posAbStart));
+   zeichne(); return;
+  }
+  if(d.schieberWeg!==undefined){a.schieber.splice(Number(d.schieberWeg),1);zeichne();return}
+  if(t.id==="p-schieberAuto"){
+   a.schieberManuell=false;
+   a.schieber=verlaufDaten(a).schieber;
+   zeichne(); return;
+  }
+  if(d.fotoWeg!==undefined){a.fotos.splice(Number(d.fotoWeg),1);zeichne();return}
+  if(t.id==="p-skizzeWeg"){
+   if(confirm("Skizze wirklich löschen?")){a.skizze=null;zeichne()}
+   return;
+  }
+  if(t.id==="p-skizzeOeffnen"){skizzeOeffnen();return}
+  if(t.id==="p-skizzeLeeren"){
+   const c=$("p-skizzeCanvas");
+   if(c&&skizzeCtx){skizzeCtx.fillStyle="#fff";skizzeCtx.fillRect(0,0,c.width,c.height);skizzeCtx.strokeStyle="#17202a"}
+   return;
+  }
+  if(t.id==="p-skizzeAbbrechen"){$("p-skizzeBox").hidden=true;return}
+  if(t.id==="p-skizzeSpeichern"){
+   const c=$("p-skizzeCanvas");
+   if(c){try{aufnahme.skizze=c.toDataURL("image/png")}catch(err){}}
+   $("p-skizzeBox").hidden=true; zeichne(); return;
+  }
+ });
+
+ // Zeichenfläche
+ const zeichnen=ev=>{
+  const c=$("p-skizzeCanvas"); if(!c||!skizzeCtx||!skizzeZeichnet)return;
+  const [x,y]=skizzePunkt(ev,c); skizzeCtx.lineTo(x,y); skizzeCtx.stroke(); ev.preventDefault();
+ };
+ const start=ev=>{
+  const c=$("p-skizzeCanvas"); if(!c||!skizzeCtx)return;
+  if(!(ev.target===c))return;
+  skizzeZeichnet=true; const [x,y]=skizzePunkt(ev,c);
+  skizzeCtx.beginPath(); skizzeCtx.moveTo(x,y); ev.preventDefault();
+ };
+ const stopp=()=>{skizzeZeichnet=false};
+ w.addEventListener("mousedown",start); w.addEventListener("mousemove",zeichnen);
+ window.addEventListener("mouseup",stopp);
+ w.addEventListener("touchstart",start,{passive:false});
+ w.addEventListener("touchmove",zeichnen,{passive:false});
+ window.addEventListener("touchend",stopp);
+}
+
+// ---- 12. Start -------------------------------------------------------------
+if(typeof document!=="undefined"&&document.getElementById("p-app")){
+ verdrahten();
+ zeichne();
+}
+
+</script>
+</body>
+</html>
