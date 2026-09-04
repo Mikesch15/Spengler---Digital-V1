@@ -3,7 +3,8 @@ Prototyp Massaufnahme "Freies Profil"
 Abschlussbericht
 
 Branch:  feature/prototype-freies-profil
-Datum:   04.09.2026
+Datum:   04.09.2026 (Nachtrag desselben Tages: Zeichnungsfehler behoben,
+         Zuschnitt aus Rollenblech ergaenzt, Knopf ans Ende gesetzt)
 Stand:   Prototyp fertig und geprueft - NICHT in main integriert.
 
 
@@ -12,8 +13,9 @@ Stand:   Prototyp fertig und geprueft - NICHT in main integriert.
 ================================================================
 
 Branch:  feature/prototype-freies-profil
-Commit:  6e2264e  Prototyp Freies Profil (eigenstaendig, nicht in main)
-         (dieser Bericht folgt als eigener Commit)
+Commits: 6e2264e  Prototyp Freies Profil (eigenstaendig, nicht in main)
+         39c71bc  Abschlussbericht
+         80dbed9   Nachtrag: Umschlag-Zeichnung, Zuschnitt, Knopf unten
 
 main wurde nicht veraendert. Kontrolle ueber alle produktiven Ordner:
 
@@ -67,10 +69,18 @@ nicht nachgebaut, nicht umgeschrieben, nicht "angepasst":
 
   abgerundeterPfad                1349 Zeichen  js/14
   ansichtsPfeilSvg                1194 Zeichen  js/14
-  generateProfilDiagramSvg        4605 Zeichen  js/14
+  generateProfilDiagramSvg        4605 Zeichen  js/14   * mit 4 Korrekturen
   fpPruefeErkannteSchenkel         556 Zeichen  js/14
+  ebaPackeInStreifen              2117 Zeichen  js/29
   FP_ERKENNUNG_ZEITGRENZE_MS        39 Zeichen  js/14
   FP_MAX_SCHENKEL                   25 Zeichen  js/14
+  ebaZahl                           67 Zeichen  js/29
+  EBA_ROLLEN_STANDARD               52 Zeichen  js/29
+  EBA_ROLLEN_WAEHLBAR               72 Zeichen  js/29
+
+* generateProfilDiagramSvg() ist das EINZIGE Stueck mit einer Abweichung -
+  vier ausgewiesene Ersetzungen wegen des am 04.09. gemeldeten
+  Zeichnungsfehlers. Siehe Abschnitt 7a.
 
 prototyp-freies-profil/uebernehmen.js schneidet sie als Text aus der
 Quelldatei und prueft danach, dass jedes Stueck wortgleich in der Quelle
@@ -97,17 +107,17 @@ Ebenso unveraendert nachvollzogen (mit Fundstelle im Code kommentiert):
 
 Alle unter prototyp-freies-profil/ :
 
-  uebernehmen.js          83 Zeilen   schneidet die Fachlogik aus js/14
-  uebernommen.js         169 Zeilen   das Ergebnis (nicht von Hand bearbeiten)
+  uebernehmen.js         170 Zeilen   schneidet die Fachlogik aus js/14 und js/29
+  uebernommen.js         243 Zeilen   das Ergebnis (nicht von Hand bearbeiten)
   bruecke.js              51 Zeilen   Materialkatalog, Adresse der Erkennung
-  prototyp-fp.js         945 Zeilen   Oberflaeche, 7 Register, Ausmass
-  prototyp.css           175 Zeilen   Stile
+  prototyp-fp.js        1123 Zeilen   Oberflaeche, 8 Register, Ausmass, Zuschnitt
+  prototyp.css           179 Zeilen   Stile
   freies-profil.html      52 Zeilen   Entwicklungsfassung (Dateien einzeln)
-  bauen.js               104 Zeilen   baut die eigenstaendige Testapp
-  pruefstand.js          608 Zeilen   159 Pruefungen in echtem Chromium
+  bauen.js               124 Zeilen   baut die eigenstaendige Testapp
+  pruefstand.js          803 Zeilen   194 Pruefungen in echtem Chromium
 
   freies-profil-testapp.html          die Datei fuer das Tablet
-                                      (104 KB, eine Datei, kein Netz noetig)
+                                      (116 KB, eine Datei, kein Netz noetig)
 
 
 ================================================================
@@ -135,8 +145,9 @@ leer.
   3 Profilzeichnung     gross, mit Ansichtsrichtung und Uebersicht
   4 Skizze -> Profil    erkennen, Vorschau, bestaetigen
   5 Segmente & Ausmass  Segmente mit Massen, daraus das Ausmass
-  6 Kontrolle           was fehlt, was nicht stimmt
-  7 Fotos & Speichern   Foto, Skizze, Notiz, speichern
+  6 Zuschnitt           Rollenbreite, Streifen, Tafeln, Verschnitt
+  7 Kontrolle           was fehlt, was nicht stimmt
+  8 Fotos & Speichern   Foto, Skizze, Notiz, speichern
 
 Register 2 ist der wichtigste Bildschirm. Jeder Schenkel ist eine eigene
 Karte mit Laenge, Winkel und vier grossen Knoepfen (Richtung umkehren,
@@ -146,6 +157,12 @@ Die Zeichnung KLEBT dort oben am Bildschirmrand (position:sticky). Grund:
 sie stand zuerst unter den Schenkel-Karten - auf einem Handy sieht man
 sie beim Tippen dann nie. Erst beim Ansehen des Bildschirmfotos ist das
 aufgefallen, nicht beim Lesen des Codes.
+
+Der Knopf "＋ Schenkel hinzufuegen" steht UNTER den Karten. Er stand
+zuerst oben; nach jedem erfassten Schenkel musste man wieder ganz nach
+oben scrollen (am 04.09. gemeldet). Unten liegt er dort, wo man nach dem
+letzten Schenkel ohnehin ist. Der Pruefstand misst jetzt die Lage - nicht
+die Reihenfolge im Text -, damit er nicht unbemerkt zurueckwandert.
 
 
 ================================================================
@@ -162,6 +179,105 @@ Vollstaendig aus generateProfilDiagramSvg() der App:
 Sie wird nach jeder Eingabe sofort neu gezeichnet - aber ohne die Seite
 neu aufzubauen, sonst verliert das Eingabefeld nach dem ersten Zeichen
 den Fokus. Aktualisiert werden nur die Zeichnung und die Kopfzeilen.
+
+
+================================================================
+7a. GEMELDETER ZEICHNUNGSFEHLER - URSACHE UND KORREKTUR
+================================================================
+
+Gemeldet am 04.09.2026 mit Bildschirmfoto: Profil 12 mm / 50 mm (180 Grad
+Umschlag) / 60 mm (-90 Grad). Der dritte Schenkel richtete sich am ersten
+aus, zwischen Schenkel 2 und 3 klaffte eine Luecke.
+
+URSACHE, im Code nachgerechnet und im Browser nachgemessen:
+Ein Umschlag wird als eigene, parallel VERSETZTE Linie gezeichnet, damit
+er sich nicht mit dem Blech darunter deckt. Der Schenkel danach setzte
+aber wieder am UNVERSETZTEN Punkt an. Gemessen an den gezeichneten
+Pfaden (Massstab 4, Rand 30):
+
+  vorher   Pfad 1 endet (30/21)   Pfad 2 beginnt (30/30)   Luecke 9
+  nachher  Pfad 1 endet (30/21)   Pfad 2 beginnt (30/21)   Luecke 0
+
+KORREKTUR: der Versatz eines Umschlags wird auf alle folgenden Schenkel
+mitgenommen. Das entspricht auch der Wirklichkeit - nach einem Umschlag
+liegt das Blech um seine eigene Dicke versetzt weiter. Der Endpunkt des
+Beispielprofils liegt damit bei (30/261) statt (30/270).
+
+WICHTIG - DERSELBE FEHLER STECKT IN DER LAUFENDEN APP:
+js/14-freies-profil.js hat dieselbe Stelle. Nachgewiesen, indem die
+unveraenderte Funktion der App direkt aufgerufen wurde:
+
+  node -e "... generateProfilDiagramSvg([12/0, 50/180, 60/-90]) ..."
+  Pfad 1: Ende 30,21     Pfad 2: Start 30,30
+
+Er wird hier NICHT in der App behoben, weil dieser Auftrag main
+ausdruecklich nicht veraendern darf. Auf Zuruf gerne als eigener,
+veroeffentlichter Schritt - es sind dieselben vier Ersetzungen.
+
+WIE DIE AUSNAHME SICHTBAR BLEIBT:
+Die vier Ersetzungen stehen als Liste in uebernehmen.js. Jede verlangt,
+dass der ALTE Text wortgleich in der App steht - wird js/14 spaeter
+selbst korrigiert, bricht uebernehmen.js ab und die Abweichung faellt
+sofort auf. bauen.js prueft zusaetzlich, dass die Korrektur wirklich in
+der Testapp steckt. Alle uebrigen neun Stuecke sind unveraendert
+zeichengleich.
+
+
+================================================================
+7b. ZUSCHNITT AUS ROLLENBLECH  (Register 6)
+================================================================
+
+Ebenfalls am 04.09. verlangt: "Zuschnitt-Optimierung auch hier
+einfuegen". Gleiches Vorgehen wie beim Einlaufblech - von der Rolle wird
+eine TAFEL abgeschnitten und quer in Streifen von der Breite der
+Abwicklung geteilt; ein Streifen kann mehrere Stuecke HINTEREINANDER
+aufnehmen.
+
+  Streifen je Tafel = ganzzahlig(Rollenbreite / Streifenbreite)
+  Tafellaenge       = laengstes Stueck der Gruppe
+  Tafeln            = aufgerundet(Streifen / Streifen je Tafel)
+  Verschnitt        = Tafelflaeche - Flaeche aus dem Ausmass
+
+Gepackt wird mit ebaPackeInStreifen() aus js/29 - zeichengenau
+uebernommen. Es gibt in der App bewusst nur EINE Packrechnung, und hier
+wird keine zweite gebaut.
+
+DER EINE UNTERSCHIED ZUM EINLAUFBLECH: dort hat die ganze Aufnahme eine
+Abwicklung, hier hat JEDES SEGMENT seine eigene. Deshalb werden Segmente
+mit gleicher Streifenbreite zu einer Gruppe zusammengefasst und jede
+Gruppe fuer sich gepackt. Das ist dieselbe Rechnung, nur je Breite
+einmal - nichts daran ist geraten.
+
+Konisch: die Streifenbreite ist die GROESSERE der beiden Abwicklungen -
+der Zuschnitt muss das breitere Ende enthalten. Die Flaeche des Blechs
+bleibt die Trapezflaeche; die Differenz ist echter Verschnitt.
+
+Ehrlich angezeigt statt stillschweigend gerechnet:
+  - Segmente ohne Laenge oder ohne Masse werden mit ihrer Nummer
+    gemeldet, nicht mitgerechnet.
+  - Ist keine gewaehlte Rolle breit genug, steht das als Warnung da
+    (mit der breitesten Abwicklung), es kommt keine Zahl.
+  - Reicht das Suchbudget beim Packen nicht, heisst das Ergebnis
+    ausdruecklich "beste GEFUNDENE Verteilung", nicht "die beste".
+
+Die Rollenbreiten (1000, 670, 500, 400, 330, 250, 200 mm) sind
+anhakbar; im Prototyp merkt sich das dieses Geraet. In der App liegen
+sie firmenweit in app_settings.blech_rollenbreiten und gelten auch fuer
+die anderen Massaufnahmen - dort waere nichts neu anzulegen.
+
+Der Zuschnittplan wird beim Speichern mitgeschrieben, damit ein spaeter
+gedrucktes Blatt gleich bleibt, auch wenn die Rollenbreiten sich
+aendern. Gleiches Vorgehen wie beim Einlaufblech.
+
+Von Hand nachgerechnetes Beispiel (im Pruefstand als Erwartung
+hinterlegt, nicht aus dem Code abgeschrieben): Profil 20/150/40 =
+210 mm, Segmente 2000 / 1500 / 1200 mm.
+
+  Tafellaenge 2000 mm, drei Streifen (2000 | 1500 | 1200)
+  Rolle 1000: 1000/210 -> 4 Streifen je Tafel -> 1 Tafel -> 2,00 m2
+  Rolle  670:  670/210 -> 3 Streifen je Tafel -> 1 Tafel -> 1,34 m2
+  netto 4700 x 210                                       = 0,987 m2
+  -> die schmalere Rolle ist die bessere.
 
 
 ================================================================
@@ -260,7 +376,7 @@ Schenkel an. Fuer einen spaeteren Einbau ist es trotzdem wichtig.
 12. TESTS
 ================================================================
 
-159 Pruefungen in 19 Abschnitten, in echtem Chromium gegen die
+194 Pruefungen in 20 Abschnitten, in echtem Chromium gegen die
 eigenstaendige Testapp - also gegen genau die Datei, die auf dem Tablet
 geoeffnet wird.
 
@@ -295,17 +411,21 @@ Alle 26 im Auftrag geforderten Testfaelle sind abgedeckt:
 
 Dazu: Register durchblaettern verliert nichts (Abschnitt 16), die
 Zeichnung in Register 2 klebt gemessen oben am Bildschirmrand und bleibt
-beim Scrollen im Bild (Abschnitt 2), und sechs Bildschirmbreiten von 360
-bis 1280 px ueber alle sieben Register (Abschnitt 17).
+beim Scrollen im Bild (Abschnitt 2), der Knopf fuer einen neuen Schenkel
+steht gemessen UNTER der letzten Karte (Abschnitt 2), kein Sprung
+zwischen Umschlag und Folgeschenkel und der richtige Endpunkt der
+Zeichnung (Abschnitt 5), der ganze Zuschnitt mit von Hand gerechneten
+Erwartungen (Abschnitt 11b) und sechs Bildschirmbreiten von 360 bis
+1280 px ueber alle acht Register (Abschnitt 17).
 
 
 ================================================================
 13. ERGEBNIS UND GEGENPROBEN
 ================================================================
 
-159 von 159.
+194 von 194.
 
-Dazu 15 GEGENPROBEN. Jede baut absichtlich einen echten Fehler ein
+Dazu 22 GEGENPROBEN. Jede baut absichtlich einen echten Fehler ein
 und muss den Pruefstand umwerfen - sonst pruefte er nur seine eigene
 Annahme:
 
@@ -324,11 +444,19 @@ Annahme:
   G13 Laden setzt das Register nicht zurueck             1
   G14 Eingabe zeichnet die Seite neu (Fokus geht weg)   12
   G15 klebende Zeichnung wieder nach unten               1
+  G16 Folgeschenkel am unversetzten Punkt (der Fehler)   2
+  G17 Umschlag-Versatz nicht mitgenommen                 1
+  G18 konisch: Streifenbreite von der schmalen Seite     1
+  G19 Tafellaenge = Summe statt laengstes Stueck         7
+  G20 Segment ohne Laenge still mitrechnen               2
+  G21 eigene Packrechnung statt ebaPackeInStreifen       2
+  G22 Knopf fuer neuen Schenkel wieder ueber die Karten  1
 
 Angegeben ist die Zahl der Pruefungen, die fehlschlagen - so ist die
 Zahl unabhaengig davon, wie viele Pruefungen es insgesamt gibt.
 G1 bis G11, G13 und G14 sind gegen den damaligen Stand von 157
-Pruefungen gemessen, G12 und G15 gegen 159 (siehe unten).
+Pruefungen gemessen, G12 und G15 gegen 159, G19/G20 gegen 190,
+G16/G17/G18/G21 gegen 193 und G22 gegen 194 (siehe unten).
 
 ZWEI GEGENPROBEN BLIEBEN ZUERST GRUEN - das wird hier nicht
 verschwiegen, sondern war der eigentliche Ertrag dieser Runde:
@@ -353,6 +481,30 @@ verschwiegen, sondern war der eigentliche Ertrag dieser Runde:
 Eine Gegenprobe, die nicht fehlschlaegt, ist kein Beweis - sie ist ein
 Hinweis darauf, dass der Pruefstand an dieser Stelle nichts prueft.
 
+IM NACHTRAG VOM 04.09. IST DAS DREIMAL WIEDER PASSIERT - auch das steht
+hier, weil es der eigentliche Ertrag der Gegenproben ist:
+
+  G17 (Umschlag-Versatz nicht mitgenommen) blieb bei 190/190. Der
+      Pruefstand mass nur, ob zwei Teilpfade luecklos aneinander
+      anschliessen - das taten sie auch mit dem Fehler, die Linie war
+      nur schief. Ergaenzt: der ENDPUNKT der Zeichnung muss stimmen
+      (30/261, von Hand gerechnet). Jetzt schlaegt sie fehl.
+
+  G18 (konisch: Streifenbreite von der schmalen Seite) blieb bei
+      190/190, weil in meinen Testdaten links zufaellig die breitere
+      Seite war - der Fehler war unsichtbar. Testdaten gedreht: jetzt
+      ist rechts die breitere Seite, und die Gegenprobe schlaegt fehl.
+
+  G21 (eigene Packrechnung) blieb bei 190/190, weil meine drei Stuecke
+      (2000/1500/1200) auch bei stupidem Packen drei Streifen ergeben.
+      Fall ergaenzt, bei dem sich zwei Stuecke einen Streifen teilen
+      muessen (2000 | 900+900 -> zwei Streifen). Jetzt schlaegt sie fehl.
+
+  Und eine vierte Gegenprobe hat den Pruefstand ABGEBROCHEN statt
+  fehlschlagen zu lassen: sie hat den Knopf ganz entfernt, worauf der
+  Klick ins Leere lief. Ein abgebrochener Pruefstand sieht aus wie
+  "keine Fehler". Ersetzt durch eine, die den Knopf VERSCHIEBT.
+
 Ehrlich dazu: acht Gegenproben eines ersten Laufs sind ABGEBROCHEN, weil
 ich waehrend des Laufs an derselben Datei gearbeitet habe. Ein
 abgebrochener Pruefstand sieht aus wie "keine Fehler" - deshalb wurden
@@ -372,6 +524,10 @@ Alle bestehenden Pruefstaende der App - unveraendert gruen:
   pruefstand-medien-am-ende-v2-75            49/49
   pruefstand-dila-sichtbar                   57/57
   pruefstand-verschnitt-app                  1578/1578
+
+Nach dem Nachtrag vom 04.09. erneut gelaufen - alle unveraendert gruen.
+Das ist zu erwarten, weil weiterhin keine produktive Datei angefasst
+wurde; js/29 wird nur GELESEN.
 
 Das ist zu erwarten, weil keine einzige produktive Datei angefasst wurde
 (Punkt 1 und 5) - es ist trotzdem gelaufen, nicht angenommen.
@@ -409,7 +565,7 @@ Am Rechner, aus dem Repo-Wurzelverzeichnis:
   node prototyp-freies-profil/uebernehmen.js   Fachlogik frisch schneiden
   node prototyp-freies-profil/bauen.js         Testapp bauen
   SP=<Ordner mit node_modules> \
-    node prototyp-freies-profil/pruefstand.js  159 Pruefungen
+    node prototyp-freies-profil/pruefstand.js  194 Pruefungen
 
 Zum Ausprobieren:
   1. Register 1: Bezeichnung und Material eintragen.
@@ -421,9 +577,14 @@ Zum Ausprobieren:
      Die erkannte Form kommt als Vorschau - erst "Uebernehmen" ersetzt
      das Profil.
   5. Register 5: Segment hinzufuegen, Laenge eintragen, Ausmass ansehen.
-  6. Register 6: Kontrolle.
-  7. Register 7: Foto, Notiz, "Speichern". Danach "Kopieren" und
+  6. Register 6: Rollenbreiten anhaken, Streifen und Verschnitt ansehen.
+  7. Register 7: Kontrolle.
+  8. Register 8: Foto, Notiz, "Speichern". Danach "Kopieren" und
      "Gespeicherte" ausprobieren.
+
+Zum Nachstellen des gemeldeten Zeichnungsfehlers: Register 2, drei
+Schenkel 12 / 50 / 60, beim zweiten "180 Grad Umschlag" und beim dritten
+Winkel -90. Der dritte Schenkel muss am zweiten haengen, nicht am ersten.
 
 
 ================================================================
@@ -443,11 +604,14 @@ Fachlich zu bestaetigen:
      Abwicklungen). Geometrisch exakt - aber wird im Betrieb so
      abgerechnet?
 
-  4. Es gibt keine Zuschnitt-/Rollenblechrechnung wie beim geraden und
-     konischen Einlaufblech. Das freie Profil hat keine feste
-     Abwicklungsbreite je Aufnahme, sondern eine je Segment. Ob und wie
-     daraus zugeschnitten wird, ist eine Entscheidung des Betriebs -
-     deshalb bewusst nicht geraten.
+  4. Zuschnitt aus Rollenblech ist seit dem Nachtrag vom 04.09. drin
+     (Abschnitt 7b). Zu bestaetigen: wird bei mehreren Abwicklungen
+     wirklich je Breite eine eigene Tafel geschnitten, oder legt man in
+     der Werkstatt schmale und breite Streifen auf dieselbe Tafel? Der
+     Prototyp rechnet je Breite getrennt - das ist die vorsichtige
+     Annahme, sie kann Material kosten.
+     Ausserdem: gerechnet wird OHNE Schnittfuge und ohne Wiederverwendung
+     von Reststuecken.
 
   5. Die Skizzen-Erkennung liefert grobe Schaetzwerte. Ob sie im Alltag
      genug trifft, um Zeit zu sparen, zeigt erst der Einsatz mit echten
@@ -467,3 +631,8 @@ Technisch offen:
   8. Noch NICHT in main integriert - wie im Auftrag verlangt. Was
      produktiv uebernommen wird, wird erst nach dem Praxistest
      entschieden.
+
+  9. Der Zeichnungsfehler aus Abschnitt 7a steckt weiterhin in der
+     laufenden App (js/14-freies-profil.js). Er ist dort NICHT behoben,
+     weil dieser Auftrag main nicht veraendern darf. Auf Zuruf gerne als
+     eigener, veroeffentlichter Schritt.
