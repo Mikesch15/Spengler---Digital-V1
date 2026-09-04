@@ -437,6 +437,30 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
 /* Die Zahlenfelder duerfen nicht zusammengedrueckt werden - sonst ist der
    eingetippte Wert nicht mehr lesbar (v2.81 schon einmal gemessen). */
 .eb-table.ra-tab input[type=number]{min-width:62px}
+
+/* ---- Zuschnittliste: STUECKZAHL x LAENGE x ABWICKLUNG -------------------
+   Hauptdarstellung in jeder Massaufnahme-Art. Bewusst KEINE Tabelle: auf dem
+   Handy soll man die Zeilen aus zwei Metern Abstand lesen koennen. */
+.zu-liste{border:1px solid var(--line);border-radius:10px;overflow:hidden;
+ margin:0 0 10px;background:var(--card)}
+.zu-liste-kopf{background:var(--bg2);padding:8px 12px;font-size:11px;font-weight:800;
+ letter-spacing:.6px;text-transform:uppercase;color:var(--muted);
+ border-bottom:1px solid var(--line)}
+.zu-zeile{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;
+ padding:9px 12px;border-bottom:1px solid var(--line)}
+.zu-zeile:last-of-type{border-bottom:0}
+.zu-anzahl{flex:0 0 auto;font-size:19px;font-weight:800;color:var(--blue);
+ min-width:46px;text-align:right}
+.zu-mass{flex:1 1 auto;min-width:0;font-size:19px;font-weight:700;
+ word-break:break-word}
+.zu-einheit{font-size:13px;font-weight:600;color:var(--muted)}
+.zu-zusatz{flex:1 1 100%;font-size:11px;color:var(--muted);word-break:break-word}
+.zu-liste-fuss{padding:8px 12px;font-size:12px;color:var(--muted);
+ border-top:1px solid var(--line);background:var(--bg2)}
+.zu-details{margin-top:4px}
+.zu-details>summary{cursor:pointer;font-size:12px;color:var(--blue);
+ padding:8px 2px;min-height:38px;display:flex;align-items:center}
+.zu-details[open]>summary{margin-bottom:6px}
 /* Register-Fuehrung durch die Rinnen-Massaufnahme (wie in der Testapp).
    .ra-register-knopf setzt min-height/padding/width ausdruecklich zurueck -
    die globale button-Regel wuerde sie sonst ueberschreiben. */
@@ -474,3 +498,30 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
  font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
 /* Ein gedrückter Zustand für „180° Umschlag“ - der Knopf ist ein Schalter. */
 button.ra-aktiv{border-color:var(--blue);color:var(--blue-dark);background:var(--blue-light)}
+
+/* --- PDF-Listenauswahl (js/35) ------------------------------------------
+   Ein Eintrag je waehlbarer Liste. Das Kaestchen muss die globalen
+   Grundregeln fuer input ausdruecklich zuruecksetzen (width:100%,
+   min-height:40px, border, padding) - sonst wird es 40 px hoch und
+   bekommt einen zweiten Rahmen. Ebenso label{text-transform:uppercase}. */
+label.pdf-liste{display:flex;align-items:center;gap:10px;min-height:44px;
+ padding:4px 2px;border-bottom:1px solid var(--line);cursor:pointer;
+ text-transform:none;font-size:14px;font-weight:500;color:var(--fg);letter-spacing:0}
+label.pdf-liste:last-child{border-bottom:0}
+label.pdf-liste input[type=checkbox]{width:20px;min-width:20px;height:20px;
+ min-height:0;padding:0;border:0;margin:0;flex:0 0 auto}
+.pdf-liste-name{flex:1 1 auto;min-width:0;word-break:break-word}
+.pdf-liste-aus{color:var(--muted);cursor:default}
+.pdf-liste-hinweis{flex:0 0 auto;font-size:11px;color:var(--muted);
+ text-transform:none;letter-spacing:0}
+
+/* --- Rollenauswahl je Massaufnahme (js/33) ------------------------------- */
+details.zu-rollen{border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+ margin:0 0 10px;background:var(--card)}
+details.zu-rollen>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--fg)}
+.zu-rollen-liste{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}
+label.zu-rolle{display:flex;align-items:center;gap:7px;min-height:40px;
+ text-transform:none;font-size:14px;font-weight:600;color:var(--fg);letter-spacing:0;
+ flex:0 0 auto;cursor:pointer}
+label.zu-rolle input[type=checkbox]{width:20px;min-width:20px;height:20px;
+ min-height:0;padding:0;border:0;margin:0;flex:0 0 auto}

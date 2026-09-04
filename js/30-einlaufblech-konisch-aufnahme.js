@@ -41,13 +41,20 @@ const EBKA_REGISTER=[
 const EBKA_KONTROLLE=EBKA_REGISTER.length;
 let ebkaSchritt=1;
 
+// Die Rollen, mit denen DIESE Massaufnahme rechnet: das Blechlager der
+// Firma, eingeschraenkt auf die im Register "Zuschnitt" angehakten.
+function ebkaRollen(){
+ return (typeof zuRollenGefiltert==="function")?zuRollenGefiltert(ebkA&&ebkA.rollenAuswahl)
+   :((typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[]);
+}
 const ebkaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const ebkaMm=v=>Math.round(ebkaZahl(v)).toLocaleString("de-CH");
 const ebkaMeter=v=>(ebkaZahl(v)/1000).toFixed(2).replace(".",",");
 
 function ebkaLeer(){
+ // rollenAuswahl: leer = das ganze Blechlager der Firma.
  return {material:"", abwicklung:250, montage:"links",
-         dachneigung:"", gesamtlaenge:"", stuecke:[]};
+         dachneigung:"", gesamtlaenge:"", stuecke:[], rollenAuswahl:[]};
 }
 let ebkA=ebkaLeer();
 
@@ -103,12 +110,26 @@ function ebkaTafelLaenge(){
  const l=(ebkA.stuecke||[]).map(p=>ebkaZahl(p.laenge)).filter(x=>x>0);
  return l.length?Math.max.apply(null,l):0;
 }
+// Was einen konischen Zuschnitt von einem anderen unterscheidet.
+function ebkaMerkmal(p){
+ const t=[];
+ const li=ebkaZahl(p&&p.massLinks), re=ebkaZahl(p&&p.massRechts);
+ if(li>0||re>0)t.push("Mass "+ebkaMm(li)+" / "+ebkaMm(re)+" mm");
+ if(p&&p.gehrungLinks&&p.gehrungRechts)t.push("Gehrung links und rechts");
+ else if(p&&p.gehrungLinks)t.push("Gehrung links");
+ else if(p&&p.gehrungRechts)t.push("Gehrung rechts");
+ return t.join(" · ");
+}
 function ebkaRollenPlan(){
  const A=ebkaZahl(ebkA.abwicklung);
- const bleche=(ebkA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebkaZahl(p.laenge)}))
+ // Zwei Stuecke gleicher Laenge sind beim konischen Blech nur dann derselbe
+ // Zuschnitt, wenn auch die beiden Masse gleich sind - die Verjuengung wird
+ // angerissen. Gehrungen ebenso.
+ const bleche=(ebkA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebkaZahl(p.laenge),
+   merkmal:ebkaMerkmal(p)}))
   .filter(x=>x.laenge>0);
  const L=ebkaTafelLaenge();
- const breiten=(typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[];
+ const breiten=ebkaRollen();
  if(A<=0||!bleche.length||!breiten.length)
   return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,tafelLaenge:L};
  const verteilung=ebaPackeInStreifen(bleche,L);
@@ -361,14 +382,16 @@ function ebkaZuschnittPlan(){
   zusatz:"Die Konizität wird innerhalb des Streifens angerissen und ändert die benötigte Fläche nicht.",
   quelle:ZU_QUELLE_ROLLE,
   leer:!(ebkA.stuecke||[]).length?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."
-      :(!((typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[]).length?"Es ist keine Rollenbreite hinterlegt."
+      :(!(ebkaRollen()).length?"Es ist keine Rollenbreite hinterlegt."
       :"Kein Stück lässt sich auf eine Tafel legen."),
   streifenbreiten:[A],
   gruppen:streifen.length?[{breite:A,tafelLaenge:plan.tafelLaenge,streifen}]:[],
   moeglich:plan.moeglich, netto:ebkaFlaecheM2(),
   zuSchmal:plan.zuSchmal, zuLang:v.zuLang||[], optimal:v.optimal!==false};
 }
-function ebkaZuschnittHtml(){return zuschnittHtml(ebkaZuschnittPlan())}
+function ebkaZuschnittHtml(){
+ return zuRollenAuswahlHtml(ebkA.rollenAuswahl,"data-ebka-rolle")+zuschnittHtml(ebkaZuschnittPlan());
+}
 
 // ---- Register --------------------------------------------------------------
 function ebkaSetzeSchritt(n){
@@ -586,6 +609,9 @@ function ebkaVerdrahten(){
 
  wurzel.addEventListener("change",e=>{
   const t=e.target, d=t.dataset||{}, a=ebkA;
+  // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
+  {const w=zuRollenKlick(e.target,"data-ebka-rolle");
+   if(w!==null){ebkA.rollenAuswahl=w; renderEinlaufblechKonischAufnahme(); return}}
   if(t.id==="ebka_material"){a.material=t.value; renderEinlaufblechKonischAufnahme(); return}
   if(t.id==="ebka_abwicklung"){a.abwicklung=ebkaZahl(t.value); renderEinlaufblechKonischAufnahme(); return}
   if(t.id==="ebka_montage"){a.montage=t.value; renderEinlaufblechKonischAufnahme(); return}
@@ -656,6 +682,10 @@ function ebkaAusData(d){
  const a=ebkaLeer();
  if(!d)return a;
  a.material=d.material??"";
+ // Welche Rollen fuer diese Aufnahme gewaehlt waren. Fehlt das Feld
+ // (Aufnahme vor v2.85), bleibt es leer = ganzes Lager.
+ const rq=(d.rollen&&d.rollen.auswahl);
+ a.rollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  a.abwicklung=ebkaZahl(d.abwicklung)||250;
  a.montage=d.montage||"links";
  a.dachneigung=d.dachneigung===undefined||d.dachneigung===null||d.dachneigung===""?"":ebkaZahl(d.dachneigung);
@@ -687,12 +717,12 @@ function ebkaZusatzDaten(){
  return {
   flaeche_m2:Number(ebkaFlaecheM2().toFixed(3)),
   ausmass:ebkaAusmassZeilen(),
-  rollen:{tafelLaenge:plan.tafelLaenge,
-          breiten:(typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[],
+  rollen:{auswahl:(ebkA.rollenAuswahl||[]).slice(),tafelLaenge:plan.tafelLaenge,
+          breiten:ebkaRollen(),
           bestes:plan.bestes||null,
           moeglich:plan.moeglich||[],
           streifen:((plan.verteilung||{}).streifen||[]).map(s=>({
-            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge})), rest:s.rest})),
+            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})), rest:s.rest})),
           optimal:(plan.verteilung||{}).optimal!==false}
  };
 }

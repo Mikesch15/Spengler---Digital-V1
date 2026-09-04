@@ -612,7 +612,7 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
                  {laenge:6000,winkel:0,bodenLinks:false,bodenRechts:true}];
   madA.schieberManuell=false; madaSchieberNeu(); renderMauerabdeckungAufnahme();
   const neu=buildMeasurementFromForm();
-  await printMeasurement({...neu,id:1,project_id:null,note:""});
+  await printMeasurement({...neu,id:1,project_id:null,note:""},{listen:"alle"});
   // profil ist genau das, was madProfilMasse() liefert und seit je her
   // gespeichert wird - einschliesslich dy und schraeg, die die Zeichnung
   // braucht.
@@ -623,7 +623,7 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
    schieber:[],boundaries:[{pos:0,typ:"ende",name:"Start"},{pos:5000,typ:"ende",name:"Ende"}],
    gesamtlaenge:5000,stueckliste:[{nr:1,von:"Start",bis:"Ende",abstand:5000,zuschnitt:5000,pos:5000,schieberIndex:null}],
    bodenMass:0,schieberMass:10};
-  await printMeasurement({id:2,type:"mauerabdeckung",title:"Alt",date:"2026-01-01",note:"",data:altD});
+  await printMeasurement({id:2,type:"mauerabdeckung",title:"Alt",date:"2026-01-01",note:"",data:altD},{listen:"alle"});
   window.open=echt;
   return seiten;
  });

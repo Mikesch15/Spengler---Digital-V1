@@ -255,6 +255,12 @@ const text=page=>page.evaluate(()=>$("kehleAufnahme").innerText);
  // ---- G · Zuschnitt aus Rollenblech --------------------------------------
  console.log("\nG · Zuschnitt aus Rollenblech");
  await reg(page,4);
+ // Seit v2.85 ist die Hauptansicht die Liste STUECKZAHL x LAENGE x ABWICKLUNG;
+ // die Kennzahlen stehen darunter aufklappbar. Fuer die Pruefung aufklappen -
+ // vorhanden und erreichbar muessen sie sein, nur nicht im Vordergrund.
+ await page.evaluate(()=>{document.querySelectorAll("#kea_kopf details.zu-details")
+   .forEach(d=>d.open=true)});
+ await page.waitForTimeout(60);
  const zu=await page.evaluate(()=>{
   const plan=keaZuschnittPlan(), rp=keaRollenPlan();
   const kenn=Array.from(document.querySelectorAll("#kea_kopf .zu-kennzahlen > div"))
@@ -437,9 +443,9 @@ const text=page=>page.evaluate(()=>$("kehleAufnahme").innerText);
   const seiten=[];
   const echt=window.open;
   window.open=()=>({document:{write:h=>seiten.push(h),close(){}},focus(){},print(){},set onload(f){}});
-  await printMeasurement({id:1,type:"kehle",title:"Kehle Nord",date:"2026-09-04",project_id:null,note:"",data:pd});
+  await printMeasurement({id:1,type:"kehle",title:"Kehle Nord",date:"2026-09-04",project_id:null,note:"",data:pd},{listen:"alle"});
   await printMeasurement({id:2,type:"kehle",title:"Alt",date:"2026-01-01",project_id:null,note:"",
-   data:{nh:30,nl:20,gl:3000}});
+   data:{nh:30,nl:20,gl:3000}},{listen:"alle"});
   window.open=echt;
   return seiten;
  },d);
@@ -594,7 +600,7 @@ const text=page=>page.evaluate(()=>$("kehleAufnahme").innerText);
  const dTF=await page.evaluate(async pd=>{
   let h="";const echt=window.open;
   window.open=()=>({document:{write:x=>h+=x,close(){}},focus(){},print(){},set onload(f){}});
-  await printMeasurement({id:9,type:"kehle",title:"TF",date:"2026-09-04",project_id:null,note:"",data:pd});
+  await printMeasurement({id:9,type:"kehle",title:"TF",date:"2026-09-04",project_id:null,note:"",data:pd},{listen:"alle"});
   window.open=echt;return h;
  },pTF);
  p(/Traufstück/.test(dTF)&&/Firststück/.test(dTF),"der Druck nennt Trauf- und Firststueck");
@@ -603,7 +609,7 @@ const text=page=>page.evaluate(()=>$("kehleAufnahme").innerText);
   let h="";const echt=window.open;
   window.open=()=>({document:{write:x=>h+=x,close(){}},focus(){},print(){},set onload(f){}});
   await printMeasurement({id:10,type:"kehle",title:"ohne",date:"2026-09-04",project_id:null,note:"",
-   data:{...pd,firstgehrung:false,b:undefined,c:undefined,d:undefined}});
+   data:{...pd,firstgehrung:false,b:undefined,c:undefined,d:undefined}},{listen:"alle"});
   window.open=echt;return h;
  },pTF);
  p(!/Hauptresultate/.test(dOhne)&&/Ohne Firstgehrung/.test(dOhne),

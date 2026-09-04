@@ -1,0 +1,297 @@
+================================================================================
+SPENGLER-DIGITAL · VERSION 2.85
+EINHEITLICHER ROLLENBLECH-ZUSCHNITT + GEMEINSAME PDF-LISTENAUSWAHL
+================================================================================
+Datum:   04.09.2026
+Branch:  main
+Basis:   Version 2.84
+
+
+1  AUSGANGSZUSTAND (frisch am Repo geprueft, nicht aus alten Berichten)
+--------------------------------------------------------------------------------
+Umgebaute Massaufnahme-Arten mit Registern: sechs.
+  Rinne Halbrund (js/28), Einlaufblech gerade (js/29), Einlaufblech konisch
+  (js/30), Freies Profil (js/31), Mauerabdeckung (js/32), Kehle (js/34).
+
+Vorhandene Rollenblech-Logik:
+  ebaPackeInStreifen()   js/29   die EINZIGE Packrechnung, von allen benutzt
+  ebaRollenbreiten()     js/29   das Blechlager der Firma
+  raNormPlan()           js/28   Normlaengen der Rinne, fachlich eigenstaendig
+  zuschnittHtml()        js/33   seit v2.80 die einzige Bildschirm-Darstellung
+
+Vorhandene PDF-Logik:
+  printMeasurement()     js/16   elf Zweige, darin FUENF kopierte Rollenblech-
+                                 Druckbloecke (Zeilen 743, 843, 1008, 1073, 1208)
+  printAusmass()         js/17   der zweite und letzte Druckerzeuger
+  pdfKopfHtml()          js/16   seit v2.54 der gemeinsame Kopf beider
+
+Schwaechen:
+  - Die Bildschirmdarstellung begann mit Kennzahlen und zwei technischen
+    Tabellen. Auf dem Handy stand viel Text, bevor klar war, WAS zuzuschneiden
+    ist.
+  - Die fuenf Druckbloecke waren fast gleich und liefen seit v2.74 auseinander.
+  - Es gab keine Auswahl, welche Listen ins PDF kommen.
+  - Das Blechlager stand unter "Massaufnahmen -> Einlaufblech gerade", obwohl es
+    firmenweit fuer alle Arten gilt.
+
+
+2  NEUE GEMEINSAME KOMPONENTEN
+--------------------------------------------------------------------------------
+js/33-zuschnitt.js  (erweitert)
+  zuGruppen(plan)                       gruppiert nach Laenge|Abwicklung|merkmal
+  zuListeHtml(plan)                     STUECKZAHL x LAENGE x ABWICKLUNG
+  zuDruckHtml(rollen,breite,einheit)    dieselbe Liste im PDF
+  zuPlanAusGespeichert()                bringt beide Speicherformen zusammen
+  zuRollenAuswahlHtml() / zuRollenGefiltert() / zuRollenKlick()
+                                        Rollenauswahl je Massaufnahme
+
+js/35-pdf-listen.js  (neu)
+  PDF_LISTEN                            die zehn Kategorien, verbindliche Folge
+  PDF_LISTE_FUER                        Ueberschrift -> Kategorie (30 Eintraege)
+  pdfAbschnitteZerlegen()               schneidet ein Dokument am DOM auf
+  pdfListenAuswahl()                    der eine Dialog
+  pdfListenZusammenbauen()              setzt NUR das Gewaehlte zusammen
+  pdfDruckVorbereiten()                 der eine Weg fuer beide Druckerzeuger
+
+
+3  ROLLENBLECH-ZUSCHNITT
+--------------------------------------------------------------------------------
+Hauptansicht in jeder Art, Bildschirm wie PDF:
+
+    ROLLENBLECH 1'000 mm
+      2 x  1'850 x 250 mm    Gehrung links - Stueck 1, 2
+      1 x  1'850 x 250 mm    Stueck 3
+      2 x  1'420 x 250 mm    Stueck 4, 5
+      1 x    980 x 250 mm    Stueck 6
+    2 Tafeln a 1'850 mm
+
+Stueckzahl und Mass mit 19 px. Alles Technische (Kennzahlen, Rollenbreiten-
+Vergleich, Belegung der Streifen, Herkunft der Breiten) steht unveraendert
+darunter in einem zugeklappten <details> - es ging NICHTS verloren.
+
+Zusammengefasst wird nur, was fuer den Zuschnitt wirklich gleich ist:
+Gruppenschluessel = Laenge | Abwicklung | merkmal.
+
+    Art                    merkmal (trennt)              hinweis (beschriftet)
+    Einlaufblech gerade    Gehrung links/rechts          -
+    Einlaufblech konisch   Mass links/rechts + Gehrung   -
+    Freies Profil          beide Abwicklungen (konisch)  -
+    Mauerabdeckung         -                             "START -> ECKE"
+    Kehle                  -                             "Traufstueck"/"Firststueck"
+
+Rinne Halbrund bleibt eigenstaendig: Normlaengen statt Rollen, Streifenbreite
+sagt ehrlich "entfaellt", die Fusszeile zaehlt Stangen statt Tafeln.
+
+Mitbehoben: "Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung"
+stand in der Vergleichstabelle und waere durch das Zuklappen unsichtbar
+geworden. Die Meldung steht jetzt in der Hauptansicht.
+
+
+4  PDF-LISTENAUSWAHL
+--------------------------------------------------------------------------------
+Vor jedem PDF fragt EIN Dialog:
+
+    1  Kopf / Projekt / Adresse   (immer, nicht waehlbar)
+    2  Zusammenfassung            6  Ausmass
+    3  Massaufnahme / Masse       7  Materialliste
+    4  Stueckliste                8  Kontrolle / Hinweise
+    5  Rollenblech-Zuschnitt      9  Fotos        10  Skizze
+
+Ablauf, ohne einen der elf Druckzweige umzubauen:
+  1. Der Zweig baut sein Dokument wie bisher.
+  2. pdfAbschnitteZerlegen() schneidet es an den bereits vorhandenen
+     <div class="eb-section-head">- bzw. am-section-head-Ueberschriften auf.
+  3. PDF_LISTE_FUER ordnet jede Ueberschrift einer Kategorie zu.
+  4. pdfListenZusammenbauen() setzt NUR die gewaehlten Abschnitte in der
+     verbindlichen Reihenfolge wieder zusammen.
+
+Geschnitten wird ueber den DOM, nicht mit einem regulaeren Ausdruck: eine
+Skizze steht als <div class="sketch-page"><div class="eb-section-head">... im
+Dokument. Ein Textschnitt wuerde diesen Rahmen zerreissen.
+
+Nicht vorhandene Listen sind ausgegraut - es entsteht NIE ein leerer Abschnitt.
+Nicht gewaehlte Abschnitte werden gar nicht erzeugt, nicht per CSS versteckt.
+
+Das Druckfenster oeffnet erst im Klick auf "PDF erstellen" - eine frische
+Benutzeraktion, deshalb blockiert der Browser es nicht.
+
+printMeasurement(m,opt) und printAusmass(a,opt) nehmen opt.listen ("alle" oder
+eine Liste von Schluesseln) und drucken dann ohne Dialog.
+
+
+5  BLECHLAGER UND AUSWAHL JE MASSAUFNAHME
+--------------------------------------------------------------------------------
+Der Kasten "Rollenbreiten des Blechlagers" steht jetzt unter
+Einstellungen -> Allgemein (vorher: Massaufnahmen -> Einlaufblech gerade).
+
+Im Register "Zuschnitt" jeder Rollen-Art gibt es dafuer einen aufklappbaren
+Kasten "Rollen fuer diese Massaufnahme" mit dem Lager zum Anhaken.
+
+  - gespeichert als data.rollen.auswahl bzw. data.zuschnitt.auswahl (additiv)
+  - eine Aufnahme vor v2.85 hat das Feld nicht und rechnet unveraendert mit
+    dem ganzen Lager
+  - leere Auswahl = ganzes Lager, es wird nie mit einer leeren Liste gerechnet
+  - das Blechlager der Firma bleibt unangetastet
+  - der Kasten bleibt nach dem Anhaken offen
+
+
+6  GEAENDERTE DATEIEN
+--------------------------------------------------------------------------------
+  js/35-pdf-listen.js                      NEU
+  pruefstaende/pruefstand-rollenblech-pdf-v2-85.js   NEU
+  js/33-zuschnitt.js                       Liste, Druckvariante, Rollenauswahl
+  js/16-massaufnahme-formular.js           5 Druckbloecke -> 1 Aufruf, Auswahl
+  js/17-ausmass.js                         dieselbe Auswahl
+  js/29 / js/30 / js/31 / js/32 / js/34    merkmal/hinweis, Rollenauswahl
+  js/03-login.js                           goToStart bricht offenen Dialog ab
+  index.html                               Dialog, Blechlager, Version 2.85
+  css/01-basis.css                         Liste, Dialog, Rollenauswahl
+  sw.js                                    Cache 2.85, neue Datei im SHELL
+  CLAUDE.md                                Abschnitt 90
+  acht bestehende Pruefstaende             ueberholte Erwartungen angepasst
+
+NICHT ANGEFASST (per git diff einzeln bestaetigt):
+  js/06-rapport.js, js/08-katalog-blitzschutz.js, css/03-druck.css
+  js/11, js/12, js/12b, js/13, js/14, js/15, js/19, js/20, js/21,
+  js/25, js/26, js/28
+Keine Berechnung, keine Stueckliste, kein Zuschnitt, keine Abwicklung und
+keine Packrechnung beruehrt.
+
+
+7  TESTS
+--------------------------------------------------------------------------------
+Neuer Pruefstand pruefstand-rollenblech-pdf-v2-85.js: 65/65
+  deckt die Tests 1-28 des Auftrags ab.
+
+Elf Gegenproben, jede baut einen echten Fehler ein:
+  Gruppierung ignoriert das merkmal ................ 63/65
+  Auswahl wird ignoriert (alles drucken) ........... 46/52
+  Fenster schon vor der Auswahl oeffnen ............ 49/52
+  Zerlegen wieder mit regulaerem Ausdruck .......... 52/54
+  Reihenfolge des Moduls statt der gemeinsamen ..... 52/53
+  "Alle auswaehlen" aktiviert auch nicht vorhandene  53/54
+  Einzelheiten wieder aufgeklappt .................. register-zuschnitt 233/239
+  gar keine Liste, nur die alten Tabellen .......... register-zuschnitt 197/215
+  Rollenauswahl wirkt nicht auf die Rechnung ....... 64/65
+  Kasten klappt beim Anhaken zu .................... 64/65
+  Auswahl wird nicht gespeichert ................... 64/65
+
+Vier davon deckten zuerst Schwaechen im Pruefstand auf: zwei blieben gruen,
+zwei liessen ihn abbrechen statt fehlschlagen. Alle vier sind jetzt scharf.
+
+Regression - alle 13 Pruefstaende im Repo gruen:
+  register-zuschnitt 239/239, mauerabdeckung 144/144, kehle 157/157,
+  freies-profil 118/118, konisch 113/113, rinne 104/104, einlaufblech 98/98,
+  medien-am-ende 88/88, dila-sichtbar 57/57, skizze-foto 54/54,
+  lxb-druck 46/46, verschnitt 1578/1578, rollenblech-pdf 65/65
+
+Archivierte Pruefstaende gruen:
+  required70 368/368, kehle52 698/698, rinne57 379/379, offline70 121/121,
+  einf70 185/185, feedback63 108/108, freipos65 99/99, dila70 85/85,
+  fotos70 88/88, fp70 83/83, breite57 84/84, breite52 52/52,
+  kehleintegration52 76/76, pfade55 38/38, module67 43/43, einst68 43/43,
+  medien50 42/42, dateien49 38/38, adresse45 39/39, projekte47 37/37,
+  status46 35/35, auswahl48 32/32, suche45 13/13, kopf45 8/8, hidden51 7/7,
+  abstand69 2/2, einstbrowser68 47/47, modulebrowser67 16/16,
+  feedbackbrowser63 67/67, freiposbrowser65 33/33, mad70 45/45, ebg70 49/49,
+  feedback70 47/47, normbrute 1578/1578, sowie nav, suche40, treffer40,
+  recent41, stand42, dateien43, ui39 ohne Fehlschlag.
+
+Regierapport nachweislich unveraendert: der Ausdruck wurde in echtem Chromium
+unter media:print mit ausgeloestem beforeprint unmittelbar nacheinander gegen
+den v2.84-Stand gerendert - Bild und DOM byteidentisch
+(DOM c222edf6b60ca2e2, 5424 Zeichen; Bild b6769f8a7ba7f95a, 51354 Bytes).
+
+Struktur: node --check ueber alle 32 js-Dateien, sw.js und alle Pruefstaende
+fehlerfrei; div-Verschachtelung in index.html ausgeglichen (Tiefe 0); keine
+doppelten Element-IDs; jede js-Datei in index.html UND im Service-Worker.
+
+Angepasste Erwartungen in acht bestehenden Pruefstaenden - alle ueberholt,
+keine davon ein Codefehler:
+  - die Einzelheiten stehen jetzt in <details> (die Pruefstaende klappen sie
+    vor der Pruefung auf)
+  - die gedruckte Tafellaenge heisst "2 Tafeln a 2'170 mm" statt
+    "Tafellaenge 2170 mm"
+  - die Fusszeile nennt "Einstellungen -> Allgemein"
+  - alle Druckaufrufe sagen jetzt ausdruecklich {listen:"alle"}
+
+
+8  DATENBANK
+--------------------------------------------------------------------------------
+Keine Migration, keine Schemaaenderung, keine RLS- oder Storage-Aenderung.
+In dieser Runde wurde NICHT in die Datenbank geschrieben und nicht gelesen.
+PETER KUENZI AG nicht beruehrt.
+
+
+9  OFFENE PUNKTE
+--------------------------------------------------------------------------------
+- Kein Live-Klicktest gegen Supabase: die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu nfgryuzkpwjfmdlmevuy.supabase.co, wie in jeder
+  vorherigen Sitzung. DAS WIRD AUSDRUECKLICH NICHT ALS GETESTET BEHAUPTET.
+  Geprueft ist die Oberflaeche in echtem Chromium gegen die echte index.html;
+  ein echter Ausdruck aus dem Browser-Druckdialog wurde nicht ausgefuehrt.
+- Materialliste (Kategorie 7) hat noch keinen eigenen Abschnitt - das Material
+  steht in "Angaben". Die Kategorie ist deshalb ueberall ausgegraut; sie ist
+  bewusst vorgesehen, damit ein kuenftiges Modul sie ohne Umbau benutzen kann.
+- Kategorie 8 "Kontrolle / Hinweise" enthaelt heute nur die Notiz; die
+  Kontroll-Register werden nicht gedruckt (das war vorher auch nicht so).
+- Verschnitt weiterhin ohne Schnittfuge und ohne Wiederverwendung von
+  Reststuecken; bei vielen Stuecken heisst das Ergebnis "beste gefundene
+  Verteilung".
+- Ausmass-Fotos bleiben wie seit v2.53 nicht im PDF.
+
+
+10  TESTANLEITUNG FUER DEN BETRIEB
+--------------------------------------------------------------------------------
+A) Blechlager
+   1. Einstellungen -> Allgemein oeffnen.
+   2. Unter "Rollenbreiten des Blechlagers" die Breiten anhaken, die wirklich
+      an Lager sind, und speichern.
+   3. Erwartung: der Hinweis darunter zeigt die gespeicherten Breiten.
+
+B) Rollenauswahl je Massaufnahme
+   4. Eine Massaufnahme "Einlaufblech gerade" oeffnen, ein paar Stuecke
+      erfassen und auf das Register "Zuschnitt" gehen.
+   5. Erwartung: die Liste steht zuoberst, im Format
+      "2 x  1'850 x 250 mm". Gleiche Zuschnitte stehen in EINER Zeile.
+   6. Den Kasten "Rollen fuer diese Massaufnahme" aufklappen und eine Rolle
+      abwaehlen.
+   7. Erwartung: der Kasten bleibt offen, die abgewaehlte Rolle verschwindet
+      aus dem Vergleich, die Kopfzeile nennt die beste verbliebene Rolle.
+   8. Speichern, Massaufnahme schliessen und wieder oeffnen.
+   9. Erwartung: die Auswahl steht noch so da.
+
+C) Gruppierung
+  10. Bei einem Stueck die Gehrung links anhaken.
+  11. Erwartung: dieses Stueck bekommt eine eigene Zeile mit dem Vermerk
+      "Gehrung links"; die uebrigen bleiben zusammengefasst.
+
+D) Einzelheiten
+  12. "Einzelheiten: Rollenbreiten vergleichen, Belegung der Streifen"
+      aufklappen.
+  13. Erwartung: Kennzahlen (Streifenbreite zuerst), Vergleichstabelle und
+      Belegung wie bisher.
+
+E) PDF-Listenauswahl
+  14. Auf "Drucken/PDF" gehen.
+  15. Erwartung: der Dialog erscheint, es oeffnet sich noch KEIN Druckfenster.
+      Nicht vorhandene Listen sind grau und nicht anhakbar.
+  16. "Keine auswaehlen", dann nur "Rollenblech-Zuschnitt" anhaken,
+      "PDF erstellen".
+  17. Erwartung: das PDF enthaelt den Kopf mit Objektadresse und NUR den
+      Rollenblech-Abschnitt.
+  18. Nochmals drucken, "Alle auswaehlen".
+  19. Erwartung: alle vorhandenen Abschnitte, in der Reihenfolge
+      Masse -> Stueckliste -> Rollenblech -> Ausmass -> Notiz -> Fotos -> Skizze.
+  20. Nochmals drucken und "Abbrechen".
+  21. Erwartung: kein PDF, kein Fenster.
+
+F) Ausmass
+  22. Ein Ausmass oeffnen und drucken.
+  23. Erwartung: derselbe Dialog mit denselben Namen; anhakbar sind nur
+      "Stueckliste" (die Positionen) und "Kontrolle / Hinweise" (die Notiz).
+
+G) Regierapport
+  24. Einen Regierapport drucken.
+  25. Erwartung: unveraendert wie bisher, KEIN Auswahldialog.
+================================================================================

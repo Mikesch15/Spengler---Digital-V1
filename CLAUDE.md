@@ -13855,3 +13855,286 @@ den tatsächlich sichtbaren Wert – beide Gegenproben schlagen fehl.
 - Trauf- und Firstlänge gehören zur einzelnen Massaufnahme, nicht zu den
   Einstellungen – sie hängen vom Dach ab. Ein Vorgabewert je Gerät wäre
   eine spätere, eigene Entscheidung.
+
+## 90. ROLLENBLECH-ZUSCHNITT UND PDF-LISTENAUSWAHL ALS STANDARD — VERSION 2.85
+
+Zwei ab jetzt verbindliche gemeinsame Standards für alle umgebauten und alle
+künftigen Massaufnahme-Module: **eine** Darstellung des Rollenblech-Zuschnitts
+und **ein** Auswahldialog vor jedem PDF. Dazu die Verlagerung des Blechlagers
+in die allgemeinen Einstellungen mit einer Auswahl je Massaufnahme.
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung.** Keine
+Fachrechnung verändert: es gibt weiterhin genau **eine** Packrechnung
+(`ebaPackeInStreifen`, js/29) und **eine** Normlängenrechnung (`raNormPlan`,
+js/28).
+
+### 90.1 Ausgangszustand (frisch am Repo geprüft, nicht aus Berichten)
+
+| Ort | Was |
+|---|---|
+| js/29 | `ebaPackeInStreifen()` – die einzige Packrechnung, von allen Rollen-Arten benutzt |
+| js/28 | `raNormPlan()` – die Normlängenrechnung der Rinne, fachlich eigenständig |
+| js/33 | `zuschnittHtml()` – seit v2.80 die einzige Bildschirm-Darstellung |
+| js/16 | `printMeasurement()` mit **elf** Zweigen, darin **fünf** kopierte Rollenblech-Druckblöcke |
+| js/17 | `printAusmass()` – der zweite und letzte Druckerzeuger |
+
+Die Bildschirmdarstellung war eine Kennzahlenzeile plus zwei technische
+Tabellen – korrekt, aber auf dem Handy viel Text, bevor überhaupt klar war,
+**was** zugeschnitten wird. Die fünf Druckblöcke waren fast gleich und liefen
+seit v2.74 langsam auseinander.
+
+### 90.2 Zuschnittliste: STÜCKZAHL × LÄNGE × ABWICKLUNG
+
+Neue Hauptansicht in js/33, in jeder Art identisch:
+
+```
+ROLLENBLECH 1'000 mm
+  2 ×  1'850 × 250 mm     Gehrung links · Stück 1, 2
+  1 ×  1'850 × 250 mm     Stück 3
+  2 ×  1'420 × 250 mm     Stück 4, 5
+  1 ×    980 × 250 mm     Stück 6
+2 Tafeln à 1'850 mm
+```
+
+Stückzahl und Mass mit 19 px – auf dem Handy aus dem Stand lesbar. Alles
+Technische (Kennzahlen, Rollenbreiten-Vergleich, Belegung der Streifen,
+Herkunft der Breiten) steht unverändert darunter in einem zugeklappten
+`<details>`; es ging **nichts** verloren.
+
+**Zusammengefasst wird nur, was für den Zuschnitt wirklich gleich ist.** Der
+Gruppenschlüssel ist `Länge | Abwicklung | merkmal`. Das `merkmal` liefert das
+Modul selbst, aus seiner eigenen Fachlogik:
+
+| Art | merkmal (trennt die Gruppe) | hinweis (nur Beschriftung) |
+|---|---|---|
+| Einlaufblech gerade | Gehrung links/rechts | – |
+| Einlaufblech konisch | Mass links/rechts + Gehrung | – |
+| Freies Profil | beide Abwicklungen bei konisch | – |
+| Mauerabdeckung | – | „START → ECKE" |
+| Kehle | – | „Traufstück" / „Firststück" |
+
+Zwei Stücke mit gleicher Länge, aber unterschiedlicher Bearbeitung stehen
+dadurch in getrennten Zeilen – eine fachlich relevante Bearbeitung kann nicht
+in einer Sammelzeile verschwinden. Reine Beschriftungen stehen in der
+Zusatzzeile, ohne die Gruppe zu zerlegen.
+
+**Rinne Halbrund bleibt eigenständig.** Sie bezieht ein fertiges Profil in
+Normlängen; die Streifenbreite steht an derselben Stelle wie überall und sagt
+ehrlich **„entfällt"**, die Fusszeile zählt Stangen statt Tafeln.
+
+**Mitbehoben:** „Keine hinterlegte Rollenbreite ist so breit wie die
+Abwicklung" stand bisher in der Vergleichstabelle – also seit dieser Runde in
+den zugeklappten Einzelheiten. Die Meldung steht jetzt in der Hauptansicht;
+sonst hätte die Liste Zuschnitte gezeigt, ohne zu sagen, dass sie so gar nicht
+zu schneiden sind.
+
+### 90.3 Dieselbe Liste im PDF
+
+Neue Funktion `zuDruckHtml(rollen,breite,einheit,zusatz)` in js/33. Die **fünf**
+kopierten Druckblöcke in js/16 sind durch je einen Aufruf ersetzt:
+
+| Zeile | vorher | jetzt |
+|---|---|---|
+| Einlaufblech gerade | 17 Zeilen eigener Block | `${zuDruckHtml(d.rollen,d.abwicklung,"Stück")}` |
+| Mauerabdeckung | 12 Zeilen | dito |
+| Einlaufblech konisch | 17 Zeilen | dito, mit Zusatz zur Konizität |
+| Freies Profil | 12 Zeilen | `zuDruckHtml(zu,0,"Segment")` |
+| Kehle | 17 Zeilen | dito |
+
+`zuPlanAusGespeichert()` bringt beide historisch gewachsenen Speicherformen
+(flach mit `streifen` bzw. `verteilung`, gruppiert mit `gruppen`) in dieselbe
+Form. **Gerechnet wird nichts** – gedruckt wird ausschliesslich der beim
+Speichern abgelegte Plan, damit ein einmal gedrucktes Blatt gleich bleibt.
+
+Damit die Unterscheidungen bis ins PDF durchhalten, tragen die gespeicherten
+`stuecke` jetzt `merkmal` und `hinweis` mit (additiv, alte Datensätze öffnen
+und drucken unverändert).
+
+### 90.4 Eine PDF-Listenauswahl für alles (js/35-pdf-listen.js)
+
+Vor jedem PDF fragt **ein** Dialog, welche Listen gedruckt werden. Zehn
+Kategorien, überall gleich benannt und gleich angeordnet:
+
+```
+1 Kopf / Projekt / Adresse   (immer, nicht wählbar)
+2 Zusammenfassung            6 Ausmass
+3 Massaufnahme / Masse       7 Materialliste
+4 Stückliste                 8 Kontrolle / Hinweise
+5 Rollenblech-Zuschnitt      9 Fotos      10 Skizze
+```
+
+Wie es zusammenhängt – ohne einen einzigen der elf Druckzweige umzubauen:
+
+1. Der Zweig baut sein Dokument wie bisher.
+2. `pdfAbschnitteZerlegen()` schneidet es an den **bereits vorhandenen**
+   `<div class="eb-section-head">`- bzw. `am-section-head`-Überschriften auf.
+3. `PDF_LISTE_FUER` ordnet jede Überschrift einer Kategorie zu (30 Einträge,
+   der Prüfstand kontrolliert, dass keine in den Notnagel fällt).
+4. `pdfListenZusammenbauen()` setzt **nur die gewählten** Abschnitte in der
+   verbindlichen Reihenfolge wieder zusammen.
+
+**Geschnitten wird über den DOM, nicht mit einem regulären Ausdruck.** Eine
+Skizze steht als `<div class="sketch-page"><div class="eb-section-head">…` im
+Dokument – ein Textschnitt an der Überschrift würde diesen Rahmen zerreissen
+und offene `<div>` hinterlassen. Der Prüfstand misst das (Gegenprobe: mit
+Textschnitt schlägt er fehl).
+
+Nicht vorhandene Listen sind ausgegraut und lassen sich nicht anhaken – es
+entsteht **nie** ein leerer Abschnitt. Nicht gewählte Abschnitte werden **gar
+nicht erzeugt**, nicht per CSS versteckt.
+
+**Das Druckfenster öffnet erst im Klick auf „PDF erstellen"** – das ist eine
+frische Benutzeraktion, der Browser blockiert es deshalb nicht. Vorher wurde es
+ganz am Anfang geöffnet; mit einem Dialog dazwischen wäre der Benutzer sonst
+vor einem leeren Fenster gestanden.
+
+`printMeasurement(m,opt)` und `printAusmass(a,opt)` nehmen ein optionales
+`opt.listen` („alle" oder eine Liste von Schlüsseln) – damit drucken die
+Prüfstände und spätere automatische Ausdrucke ohne Dialog.
+
+Der PDF-Kopf ist unverändert der gemeinsame `pdfKopfHtml()` aus v2.54
+(Firma, Dokumenttyp, Datum, **Objektadresse als Haupttitel**, Projekt,
+Auftrags-Nr., Auftraggeber, Bearbeiter) und wird immer gedruckt.
+
+### 90.5 Blechlager firmenweit, Auswahl je Massaufnahme
+
+Der Kasten „Rollenbreiten des Blechlagers" stand unter *Einstellungen →
+Massaufnahmen → Einlaufblech gerade* – er gilt aber für alle Arten und für die
+ganze Firma. Er steht jetzt unter **Einstellungen → Allgemein**.
+
+Im Register **Zuschnitt** jeder Rollen-Art gibt es dafür einen aufklappbaren
+Kasten „Rollen für diese Massaufnahme": das Lager der Firma zum Anhaken. Damit
+lässt sich für eine einzelne Aufnahme einschränken, was tatsächlich verwendet
+wird – z. B. weil auf diese Baustelle nur die 1000er Rolle mitkommt.
+
+- Gespeichert als `data.rollen.auswahl` bzw. `data.zuschnitt.auswahl`
+  (additiv). Eine Aufnahme vor v2.85 hat das Feld nicht und rechnet
+  unverändert mit dem ganzen Lager.
+- **Leere Auswahl = ganzes Lager.** Es wird nie mit einer leeren Rollenliste
+  gerechnet.
+- Das Blechlager der Firma bleibt dabei unangetastet.
+- Der Kasten bleibt nach dem Anhaken offen (sonst klappte er bei jedem Haken
+  zu, weil das Modul neu zeichnet).
+
+### 90.6 Getestet
+
+**Neuer Prüfstand `pruefstaende/pruefstand-rollenblech-pdf-v2-85.js` – 65/65**,
+echtes Chromium gegen die echte `index.html`, deckt die Tests 1–28 des Auftrags
+ab: ein Stück · mehrere gleiche · mehrere verschiedene · gleiche Länge mit
+anderer Abwicklung (nicht gruppieren) · gleiche Länge und Abwicklung
+(gruppieren) · Stückzahl · zu schmale Rolle · mehrere Rollenbreiten ·
+Tafellänge · mehrere Tafeln · Verschnitt · Stücknummern bleiben · Gehrungen
+bleiben · konische Stücke · Rinne bleibt eigene Logik · leere Liste ·
+keine Liste gewählt · nur Rollenblech · nur Ausmass · mehrere Listen ·
+Alle/Keine auswählen · nicht verfügbare Liste · keine leeren Abschnitte ·
+gleiche Reihenfolge bei verschiedenen Modulen · Kopf mit Adresse ·
+Seitenumbrüche · keine JavaScript-Fehler. Dazu die Blechlager-Verlagerung und
+die Auswahl je Massaufnahme.
+
+**Elf Gegenproben**, jede baut einen echten Fehler ein und wirft einen
+Prüfstand um:
+
+| Gegenprobe | Ergebnis |
+|---|---|
+| Gruppierung ignoriert das `merkmal` | 63/65 |
+| Auswahl wird ignoriert (alles drucken) | 46/52 |
+| Fenster schon vor der Auswahl öffnen | 49/52 |
+| Zerlegen wieder mit regulärem Ausdruck | 52/54 |
+| Reihenfolge des Moduls statt der gemeinsamen | 52/53 |
+| „Alle auswählen" aktiviert auch nicht vorhandene | 53/54 |
+| Einzelheiten wieder aufgeklappt | register-zuschnitt 233/239 |
+| gar keine Liste, nur die alten Tabellen | register-zuschnitt 197/215 |
+| Rollenauswahl wirkt nicht auf die Rechnung | 64/65 |
+| Kasten klappt beim Anhaken zu | 64/65 |
+| Auswahl wird nicht gespeichert | 64/65 |
+
+**Vier davon deckten zuerst Schwächen im Prüfstand auf** und wurden erst danach
+scharf: zwei blieben grün (Test 24 prüfte eine Auswahl, in der die Skizze gar
+nicht vorkam; Test 21 zählte `disabled&&checked` statt der Schlüssel), zwei
+liessen ihn **abbrechen** statt fehlschlagen – ein abgebrochener Lauf sieht aus
+wie „keine Fehler". Alle Indexzugriffe sind jetzt abgesichert.
+
+**Volle Regression grün** – alle 13 Prüfstände im Repo (register-zuschnitt
+239/239, mauerabdeckung 144/144, kehle 157/157, freies-profil 118/118, konisch
+113/113, rinne 104/104, einlaufblech 98/98, medien-am-ende 88/88, dila-sichtbar
+57/57, skizze-foto 54/54, lxb-druck 46/46, verschnitt 1578/1578) und die
+archivierten (required70 368/368, kehle52 698/698, rinne57 379/379, offline70
+121/121, einf70 185/185, feedback63 108/108, freipos65 99/99, dila70 85/85,
+fotos70 88/88, fp70 83/83, breite57 84/84, breite52 52/52, kehleintegration52
+76/76, pfade55 38/38, module67 43/43, einst68 43/43, medien50 42/42,
+dateien49 38/38, adresse45 39/39, projekte47 37/37, status46 35/35,
+auswahl48 32/32, suche45 13/13, kopf45 8/8, hidden51 7/7, abstand69 2/2,
+einstbrowser68 47/47, modulebrowser67 16/16, feedbackbrowser63 67/67,
+freiposbrowser65 33/33, mad70 45/45, ebg70 49/49, feedback70 47/47,
+normbrute 1578/1578, sowie nav, suche40, treffer40, recent41, stand42,
+dateien43, ui39 ohne Fehlschlag).
+
+**Regierapport nachweislich unverändert:** der Ausdruck wurde in echtem
+Chromium unter `media:print` mit ausgelöstem `beforeprint` unmittelbar
+nacheinander gegen den v2.84-Stand gerendert – **Bild und DOM byteidentisch**
+(DOM `c222edf6b60ca2e2`, 5424 Zeichen; Bild `b6769f8a7ba7f95a`, 51354 Bytes).
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind
+nicht im Diff.
+
+`node --check` über alle 32 `js/*.js`, `sw.js` und alle Prüfstände: fehlerfrei.
+`<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0), keine doppelten
+Element-IDs, jede js-Datei in `index.html` **und** in der
+Service-Worker-Liste.
+
+**Angepasste Erwartungen in bestehenden Prüfständen** – alle **überholt**,
+keine davon ein Codefehler: die Einzelheiten stehen jetzt in `<details>` (die
+Prüfstände klappen sie vor der Prüfung auf), die gedruckte Tafellänge heisst
+jetzt „2 Tafeln à 2'170 mm" statt „Tafellänge 2170 mm", die Fusszeile nennt
+„Einstellungen → Allgemein" statt „→ Massaufnahmen → Einlaufblech gerade", und
+alle Druckaufrufe der Prüfstände sagen jetzt ausdrücklich `{listen:"alle"}`.
+
+### 90.7 Geänderte Dateien
+
+| Datei | Warum |
+|---|---|
+| `js/35-pdf-listen.js` | **neu** – Kategorien, Zerlegen, Auswahl, Zusammensetzen |
+| `js/33-zuschnitt.js` | Zuschnittliste, Druckvariante, Rollenauswahl je Aufnahme |
+| `js/16-massaufnahme-formular.js` | fünf Druckblöcke → ein Aufruf, Listenauswahl |
+| `js/17-ausmass.js` | dieselbe Listenauswahl |
+| `js/29`–`js/32`, `js/34` | `merkmal`/`hinweis`, Rollenauswahl je Aufnahme |
+| `js/03-login.js` | `goToStart()` bricht einen offenen Dialog ab |
+| `index.html` | Dialog, Blechlager in „Allgemein", Version 2.85 |
+| `css/01-basis.css` | Liste, Dialog, Rollenauswahl |
+| `sw.js` | Cache-Version 2.85, neue Datei im SHELL |
+
+**Nicht angefasst:** `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie `js/11`, `js/12`, `js/12b`, `js/13`,
+`js/14`, `js/15`, `js/19`–`js/21`, `js/25`, `js/26`, `js/28` – per `git diff`
+einzeln bestätigt. Keine Berechnung, keine Stückliste, kein Zuschnitt, keine
+Abwicklung und keine Packrechnung berührt.
+
+### 90.8 Verbindlich für künftige Module
+
+- **keine eigene Rollenblech-Hauptdarstellung** – `zuschnittHtml(plan)` für den
+  Bildschirm, `zuDruckHtml(rollen,breite,einheit)` fürs PDF
+- **kein eigener PDF-Auswahldialog** – Abschnitte mit
+  `<div class="eb-section-head">` überschreiben, den Rest macht js/35
+- **keine zweite Packrechnung** – `ebaPackeInStreifen()` bleibt die einzige
+- ein neuer Abschnittsname braucht **einen** Eintrag in `PDF_LISTE_FUER`
+- `rollenAuswahl` im Zustand und `auswahl` im Speicher-Payload, dann greift die
+  Rollenauswahl automatisch
+
+### 90.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`;
+  ein echter Ausdruck aus dem Browser-Druckdialog wurde nicht ausgeführt.
+- **Materialliste (Kategorie 7) hat noch keinen eigenen Abschnitt** – das
+  Material steht in „Angaben". Die Kategorie ist deshalb überall ausgegraut.
+  Sie ist bewusst vorgesehen, damit ein künftiges Modul sie ohne Umbau
+  benutzen kann; eine eigene Materialliste wäre neuer Inhalt und war nicht
+  verlangt.
+- **Kategorie 8 „Kontrolle / Hinweise" enthält heute nur die Notiz** – die
+  Kontroll-Register der Aufnahmen werden nicht gedruckt (das war vorher auch
+  nicht so).
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei vielen Stücken heisst das Ergebnis „beste gefundene
+  Verteilung".
+- Ausmass-Fotos bleiben wie seit v2.53 nicht im PDF.

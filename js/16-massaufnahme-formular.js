@@ -668,13 +668,15 @@ function pdfLxB(laenge,breite){
  const l=Math.round(Number(laenge)||0), b=Math.round(Number(breite)||0);
  return b>0 ? l+" × "+b : String(l);
 }
-async function printMeasurement(m){
+// opt.listen  "alle" oder eine Liste von Kategorie-Schluesseln: dann wird ohne
+//             Dialog gedruckt (Prüfstände, spätere automatische Ausdrucke).
+//             Ohne opt fragt der gemeinsame Dialog aus js/35.
+async function printMeasurement(m,opt){
  const proj=allProjects.find(p=>p.id===m.project_id);
  const typeLabels=MEAS_TYPE_LABELS;
- // window.open() muss synchron im Klick-Handler passieren, sonst blockiert
- // der Browser das Popup – deshalb ganz am Anfang, vor jedem await.
- const win=window.open("","_blank");
- if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
+ // Das Druckfenster wird erst NACH der Listenauswahl geöffnet - im
+ // Klick-Handler von "PDF erstellen" (js/35). Das ist eine frische
+ // Benutzeraktion, der Browser blockiert es deshalb nicht.
  // Bucket ist privat: Firmenlogo sowie Foto/Skizzen (nur beim Typ
  // "skizze_foto") brauchen eine signierte URL statt des gespeicherten Pfads.
  const logoSrc=await storageSignedUrl(logoUrl);
@@ -740,25 +742,7 @@ ${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausma
 <thead><tr><th>Nr.</th><th>Zuschnitt L × B (mm)</th><th>Ger. L</th><th>Ger. R</th></tr></thead>
 <tbody>${pieces.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(pdfLxB(p.laenge,d.abwicklung))}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td></tr>`).join("")}</tbody>
 </table>
-${(()=>{
- // Der beim Speichern abgelegte Rollenplan, bewusst NICHT neu gerechnet: ein
- // einmal gedrucktes Blatt soll gleich bleiben, auch wenn die Rollenbreiten
- // der Firma später geändert werden.
- const r=d.rollen;
- if(!r||!Array.isArray(r.moeglich)||!r.moeglich.length)return "";
- const zeilen=r.moeglich.map((x,i)=>`<tr><td>${esc(x.breite)} mm${i===0?" (beste)":""}</td><td>${esc(x.jeTafel)}</td><td>${esc(x.tafeln)}</td><td>${esc(Number(x.flaeche).toFixed(2).replace(".",","))}</td><td>${esc(Number(x.verschnitt).toFixed(2).replace(".",","))}</td></tr>`).join("");
- const streifen=(r.streifen||[]).map((sf,i)=>`<tr><td>${i+1}</td><td>${esc(sf.stuecke.map(x=>"Stück "+x.nr+" · "+x.laenge+" mm").join(", "))}</td><td>${esc(Math.round(Number(r.tafelLaenge)-Number(sf.rest)))}</td><td>${esc(Math.round(Number(sf.rest)))}</td></tr>`).join("");
- return `<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
-<div class="note">Tafellänge ${esc(r.tafelLaenge)} mm (längstes Stück), quer in Streifen der Abwicklungsbreite geteilt.${r.optimal===false?" Beste gefundene Verteilung – nicht nachweislich die günstigste.":""}</div>
-<table class="eb-cutlist">
-<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafelfläche (m²)</th><th>Verschnitt (m²)</th></tr></thead>
-<tbody>${zeilen}</tbody>
-</table>
-${streifen?`<table class="eb-cutlist">
-<thead><tr><th>Streifen</th><th>Stücke</th><th>belegt (mm)</th><th>Rest (mm)</th></tr></thead>
-<tbody>${streifen}</tbody>
-</table>`:""}`;
-})()}
+${zuDruckHtml(d.rollen,d.abwicklung,"Stück")}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="rinne_halbrund"){
@@ -858,16 +842,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 </table>
 ${d.flaeche_m2?`<div class="eb-section-head">Blechfläche</div>
 <table class="eb-info-table"><tr>${cell("Fläche",esc(Number(d.flaeche_m2).toFixed(2).replace(".",","))+" m²")}${cell("Gesamtlänge",esc(Math.round(d.gesamtlaenge||0))+" mm")}${cell("Abwicklung",esc(d.abwicklung||0)+" mm")}</tr></table>`:""}
-${(d.rollen&&d.rollen.bestes)?`<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
-<table class="eb-info-table">
-<tr>${cell("Rolle",esc(d.rollen.bestes.breite)+" mm")}${cell("Tafeln",esc(d.rollen.bestes.tafeln)+" × "+esc(Math.round(d.rollen.tafelLaenge||0))+" mm")}${cell("Streifen je Tafel",esc(d.rollen.bestes.jeTafel))}</tr>
-<tr>${cell("Fläche",esc(Number(d.rollen.bestes.flaeche).toFixed(2).replace(".",","))+" m²")}${cell("Verschnitt",esc(Number(d.rollen.bestes.verschnitt).toFixed(2).replace(".",","))+" m²")}${cell("Anteil",esc(Number(d.rollen.bestes.anteil).toFixed(1).replace(".",","))+" %")}</tr>
-</table>
-${(d.rollen.streifen||[]).length?`<table class="eb-cutlist">
-<thead><tr><th>Streifen</th><th>Belegung</th><th>Rest (mm)</th></tr></thead>
-<tbody>${d.rollen.streifen.map((st,i)=>`<tr><td>${i+1}</td><td>${esc((st.stuecke||[]).map(x=>"Stück "+x.nr+" ("+Math.round(x.laenge)+" mm)").join(" + "))}</td><td>${Math.round(st.rest||0)}</td></tr>`).join("")}</tbody>
-</table>`:""}
-${d.rollen.optimal===false?`<div class="note">Beste gefundene Verteilung – nicht sicher die beste mögliche.</div>`:""}`:""}
+${zuDruckHtml(d.rollen,d.abwicklung,"Stück")}
 ${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
 <table class="eb-cutlist">
 <thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
@@ -1032,25 +1007,7 @@ ${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausma
  return `<tr><td>${i+1}</td><td>${esc(pdfLxB(p.laenge,d.abwicklung))}</td><td>${p.gehrungLinks?"Ja":"–"}</td><td>${p.gehrungRechts?"Ja":"–"}</td><td${warn&&engeSeite==="links"?' class="warn"':""}>${linksTxt}${warn&&engeSeite==="links"?" ⚠️":""}</td><td${warn&&engeSeite==="rechts"?' class="warn"':""}>${rechtsTxt}${warn&&engeSeite==="rechts"?" ⚠️":""}</td></tr>`;
 }).join("")}</tbody>
 </table>
-${(()=>{
- // Der beim Speichern abgelegte Rollenplan, bewusst NICHT neu gerechnet: ein
- // einmal gedrucktes Blatt soll gleich bleiben, auch wenn die Rollenbreiten
- // der Firma spaeter geaendert werden.
- const r=d.rollen;
- if(!r||!Array.isArray(r.moeglich)||!r.moeglich.length)return "";
- const zeilen=r.moeglich.map((x,i)=>`<tr><td>${esc(x.breite)} mm${i===0?" (beste)":""}</td><td>${esc(x.jeTafel)}</td><td>${esc(x.tafeln)}</td><td>${esc(Number(x.flaeche).toFixed(2).replace(".",","))}</td><td>${esc(Number(x.verschnitt).toFixed(2).replace(".",","))}</td></tr>`).join("");
- const streifen=(r.streifen||[]).map((sf,i)=>`<tr><td>${i+1}</td><td>${esc(sf.stuecke.map(x=>"Stück "+x.nr+" · "+x.laenge+" mm").join(", "))}</td><td>${esc(Math.round(Number(r.tafelLaenge)-Number(sf.rest)))}</td><td>${esc(Math.round(Number(sf.rest)))}</td></tr>`).join("");
- return `<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
-<div class="note">Tafellänge ${esc(r.tafelLaenge)} mm (längstes Stück), quer in Streifen der Abwicklungsbreite geteilt. Die Konizität wird innerhalb des Streifens angerissen.${r.optimal===false?" Beste gefundene Verteilung – nicht nachweislich die günstigste.":""}</div>
-<table class="eb-cutlist">
-<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafelfläche (m²)</th><th>Verschnitt (m²)</th></tr></thead>
-<tbody>${zeilen}</tbody>
-</table>
-${streifen?`<table class="eb-cutlist">
-<thead><tr><th>Streifen</th><th>Stücke</th><th>belegt (mm)</th><th>Rest (mm)</th></tr></thead>
-<tbody>${streifen}</tbody>
-</table>`:""}`;
-})()}
+${zuDruckHtml(d.rollen,d.abwicklung,"Stück","Die Konizität wird innerhalb des Streifens angerissen.")}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="freies_profil"){
@@ -1115,18 +1072,7 @@ ${(()=>{
  if(Number.isFinite(flaeche)&&flaeche>0){
   html+=`<table class="eb-info-table"><tr>${cell("Blechfl\u00e4che",esc(flaeche.toFixed(2).replace(".",","))+" m\u00b2")}<td></td></tr></table>`;
  }
- if(zu&&zu.bestes){
-  const b=zu.bestes;
-  html+=`<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
-<table class="eb-info-table">
-<tr>${cell("Rollenbreite",esc(b.breite)+" mm")}${cell("Tafeln",esc(b.tafeln))}</tr>
-<tr>${cell("Blech gesamt",esc(Number(b.flaeche||0).toFixed(2).replace(".",","))+" m\u00b2")}${cell("Verschnitt",esc(Number(b.verschnitt||0).toFixed(2).replace(".",","))+" m\u00b2")}</tr>
-</table>
-${(zu.gruppen||[]).map(g=>`<table class="eb-cutlist">
-<thead><tr><th>Streifen \u00e0 ${esc(g.breite)} mm</th><th>Segmente</th><th>Rest (mm)</th></tr></thead>
-<tbody>${(g.streifen||[]).map((st,i)=>`<tr><td>${i+1}</td><td>${esc((st.stuecke||[]).map(x=>"Segment "+x.nr+" \u00b7 "+x.laenge+" mm").join(" + "))}</td><td>${esc(st.rest)}</td></tr>`).join("")}</tbody>
-</table>`).join("")}`;
- }
+ html+=zuDruckHtml(zu,0,"Segment");
  return html;
 })()}
 ${m.note?`<div class="eb-section-head">Notiz</div>
@@ -1261,22 +1207,7 @@ ${(()=>{
 <tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
 </table>`;
  }
- const r=d.rollen;
- if(r&&Array.isArray(r.moeglich)&&r.moeglich.length){
-  const zeilen=r.moeglich.map((x,i)=>`<tr><td>${esc(x.breite)} mm${i===0?" (beste)":""}</td><td>${esc(x.jeTafel)}</td><td>${esc(x.tafeln)}</td><td>${esc(Number(x.flaeche).toFixed(2).replace(".",","))}</td><td>${esc(Number(x.verschnitt).toFixed(2).replace(".",","))}</td></tr>`).join("");
-  const v=r.verteilung||{};
-  const streifen=(v.streifen||[]).map((sf,i)=>`<tr><td>${i+1}</td><td>${esc((sf.stuecke||[]).map(x=>"St\u00fcck "+x.nr+" \u00b7 "+x.laenge+" mm").join(", "))}</td><td>${esc(Math.round(Number(r.tafelLaenge)-Number(sf.rest)))}</td><td>${esc(Math.round(Number(sf.rest)))}</td></tr>`).join("");
-  h+=`<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
-<div class="note">Tafell\u00e4nge ${esc(r.tafelLaenge)} mm (l\u00e4ngstes St\u00fcck), quer in Streifen der Abwicklungsbreite geteilt.${v.optimal===false?" Beste gefundene Verteilung \u2013 nicht nachweislich die g\u00fcnstigste.":""}</div>
-<table class="eb-cutlist">
-<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafelfl\u00e4che (m\u00b2)</th><th>Verschnitt (m\u00b2)</th></tr></thead>
-<tbody>${zeilen}</tbody>
-</table>
-${streifen?`<table class="eb-cutlist">
-<thead><tr><th>Streifen</th><th>St\u00fccke</th><th>belegt (mm)</th><th>Rest (mm)</th></tr></thead>
-<tbody>${streifen}</tbody>
-</table>`:""}`;
- }
+ h+=zuDruckHtml(d.rollen,d.abwicklung,"Stück");
  return h;
 })()}
 ${m.note?`<div class="eb-section-head">Notiz</div>
@@ -1293,11 +1224,16 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
  // Fotos und Skizzen haengen bei JEDER Art am Ende des Dokuments.
  bodyHtml+=medienHtml;
 
+ // Gemeinsame Listenauswahl: nur ausgewählte UND vorhandene Abschnitte
+ // werden erzeugt - nichts wird per CSS versteckt.
+ const vor=await pdfDruckVorbereiten(bodyHtml,"eb-section-head",opt);
+ if(!vor)return;                       // abgebrochen
+ const win=vor.win;
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(pdfDateiname(proj?proj.name:"",proj?proj.object:"",typeLabels[m.type]||m.type,m.title))}</title>
 <style>
 ${PDF_LAYOUT_CSS}
 </style></head><body>
-${pdfZahlenRechts(bodyHtml)}
+${pdfZahlenRechts(vor.html)}
 ${pdfFooterHtml(m)}
 </body></html>`);
  win.document.close();

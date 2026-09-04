@@ -370,13 +370,13 @@ $("ausmassEditSettingsShortcut").onclick=()=>{
  openSettingsTo("protected",AM_TYPE_SETTINGS_SECTION[$("amType").value]||"");
 };
 
-async function printAusmass(a){
+// opt.listen  "alle" oder eine Liste von Kategorie-Schluesseln: dann ohne
+//             Dialog drucken. Ohne opt fragt der gemeinsame Dialog (js/35).
+async function printAusmass(a,opt){
  const proj=allProjects.find(p=>p.id===a.project_id);
  const typeLabels={offerte_erfassen:"Offerte erfassen",blitzschutz_ausmass:"Blitzschutzausmass"};
- // window.open() muss synchron im Klick-Handler passieren, sonst blockiert
- // der Browser das Popup – deshalb ganz am Anfang, vor jedem await.
- const win=window.open("","_blank");
- if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
+ // Das Druckfenster wird erst NACH der Listenauswahl geöffnet - im
+ // Klick-Handler von "PDF erstellen" (js/35).
  const logoSrc=await storageSignedUrl(logoUrl);
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
  const positions=Array.isArray(a.positions)?a.positions:[];
@@ -406,11 +406,15 @@ async function printAusmass(a){
 ${positionsHtml}
 ${a.note?`<div class="am-section-head">Notiz</div>
 <div class="note">${esc(a.note)}</div>`:""}`;
+ // Dieselbe gemeinsame Listenauswahl wie bei den Massaufnahmen (js/35).
+ const vor=await pdfDruckVorbereiten(bodyHtml,"am-section-head",opt);
+ if(!vor)return;
+ const win=vor.win;
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(pdfDateiname(proj?proj.name:"",proj?proj.object:"",typeLabels[a.type]||a.type,a.title))}</title>
 <style>
 ${PDF_LAYOUT_CSS}
 </style></head><body>
-${pdfZahlenRechts(bodyHtml)}
+${pdfZahlenRechts(vor.html)}
 ${pdfFooterHtml(a)}
 </body></html>`);
  win.document.close();

@@ -47,6 +47,12 @@ function ebaRollenbreiten(){
  return liste.map(Number).filter(x=>Number.isFinite(x)&&x>0)
    .sort((a,b)=>b-a);
 }
+// Die Rollen, mit denen DIESE Massaufnahme rechnet: das Lager oben,
+// eingeschraenkt auf die im Register "Zuschnitt" angehakten Breiten.
+function ebaRollenAktiv(){
+ return (typeof zuRollenGefiltert==="function")?zuRollenGefiltert(ebA&&ebA.rollenAuswahl)
+   :ebaRollenbreiten();
+}
 
 const ebaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const ebaMm=v=>Math.round(ebaZahl(v)).toLocaleString("de-CH");
@@ -57,7 +63,9 @@ function ebaLeer(){
   material:"", abwicklung:250, montage:"links",
   massA:"", winkel:"", gesamtlaenge:"",
   stuecke:[],
-  gava:{aktiv:false,abstand_mm:ebaGavaVorgabe(),anzahl:null}
+  gava:{aktiv:false,abstand_mm:ebaGavaVorgabe(),anzahl:null},
+  // rollenAuswahl: leer = das ganze Blechlager der Firma (nichts abgewaehlt).
+  rollenAuswahl:[]
  };
 }
 // Der GAVA-Abstand ist ein Zuschnitt-/Montagemass wie Umschlag oder
@@ -190,12 +198,24 @@ function ebaTafelLaenge(){
  const l=(ebA.stuecke||[]).map(p=>ebaZahl(p.laenge)).filter(x=>x>0);
  return l.length?Math.max.apply(null,l):0;
 }
+// Kurztext der Gehrungen eines Stuecks - leer, wenn keine vorhanden ist.
+function ebaGehrungText(p){
+ const l=p&&p.gehrungLinks, r=p&&p.gehrungRechts;
+ if(l&&r)return "Gehrung links und rechts";
+ if(l)return "Gehrung links";
+ if(r)return "Gehrung rechts";
+ return "";
+}
 function ebaRollenPlan(){
  const A=ebaZahl(ebA.abwicklung);
- const bleche=(ebA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebaZahl(p.laenge)}))
+ // "merkmal" entscheidet in der gemeinsamen Zuschnittliste (js/33), ob zwei
+ // Stuecke zusammengefasst werden duerfen. Eine Gehrung macht denselben
+ // Zuschnitt zu einem anderen Zuschnitt - sie darf nicht verschwinden.
+ const bleche=(ebA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebaZahl(p.laenge),
+   merkmal:ebaGehrungText(p)}))
   .filter(x=>x.laenge>0);
  const L=ebaTafelLaenge();
- const breiten=ebaRollenbreiten();
+ const breiten=ebaRollenAktiv();
  if(A<=0||!bleche.length||!breiten.length)
   return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,tafelLaenge:L};
  const verteilung=ebaPackeInStreifen(bleche,L);
@@ -300,7 +320,7 @@ ${ebaFeld("Enge Seite",`<div class="ra-wert" id="eba_wSeite">${esc(ebaEngeSeite(
 </div>
 <div class="info">Die Bleche werden leicht konisch gebogen, damit sie ineinandergesteckt werden können;
 die weite Seite wird angereift. Länge Stoss/Stoss, Überlappung, Umschläge, Gehrungs- und Endzugabe
-stehen in <b>Einstellungen → Massaufnahmen → Einlaufblech gerade</b>.
+stehen in <b>Einstellungen → Allgemein → Rollenbreiten des Blechlagers</b>.
 <button type="button" class="gray" id="eba_einstellungen" style="margin-left:8px;padding:3px 9px;font-size:11px">⚙️ Werte anpassen</button></div>`;
 }
 
@@ -410,14 +430,16 @@ function ebaZuschnittPlan(){
   einleitung:ZU_EINLEITUNG_ROLLE,
   quelle:ZU_QUELLE_ROLLE,
   leer:!(ebA.stuecke||[]).length?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."
-      :(!ebaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."
+      :(!ebaRollenAktiv().length?"Es ist keine Rollenbreite hinterlegt."
       :"Kein Stück lässt sich auf eine Tafel legen."),
   streifenbreiten:[A],
   gruppen:streifen.length?[{breite:A,tafelLaenge:plan.tafelLaenge,streifen}]:[],
   moeglich:plan.moeglich, netto:ebaFlaecheM2(),
   zuSchmal:plan.zuSchmal, zuLang:v.zuLang||[], optimal:v.optimal!==false};
 }
-function ebaZuschnittHtml(){return zuschnittHtml(ebaZuschnittPlan())}
+function ebaZuschnittHtml(){
+ return zuRollenAuswahlHtml(ebA.rollenAuswahl,"data-eba-rolle")+zuschnittHtml(ebaZuschnittPlan());
+}
 
 // ---- Register --------------------------------------------------------------
 function ebaSetzeSchritt(n){
@@ -636,6 +658,9 @@ function ebaVerdrahten(){
 
  wurzel.addEventListener("change",e=>{
   const t=e.target, d=t.dataset||{}, a=ebA;
+  // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
+  {const w=zuRollenKlick(e.target,"data-eba-rolle");
+   if(w!==null){ebA.rollenAuswahl=w; renderEinlaufblechAufnahme(); return}}
   if(t.id==="eba_material"){a.material=t.value; renderEinlaufblechAufnahme(); return}
   if(t.id==="eba_abwicklung"){a.abwicklung=ebaZahl(t.value); renderEinlaufblechAufnahme(); return}
   if(t.id==="eba_montage"){a.montage=t.value; renderEinlaufblechAufnahme(); return}
@@ -714,6 +739,10 @@ function ebaAusData(d){
  const a=ebaLeer();
  if(!d)return a;
  a.material=d.material??"";
+ // Welche Rollen fuer diese Aufnahme gewaehlt waren. Fehlt das Feld
+ // (Aufnahme vor v2.85), bleibt es leer = ganzes Lager.
+ const rq=(d.rollen&&d.rollen.auswahl);
+ a.rollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  a.abwicklung=ebaZahl(d.abwicklung)||250;
  a.montage=d.montage||"links";
  a.massA=d.massA===undefined||d.massA===null||d.massA===""?"":ebaZahl(d.massA);
@@ -748,12 +777,12 @@ function ebaZusatzDaten(){
         gerechnet:ebaGavaAnzahl()},
   flaeche_m2:Number(ebaFlaecheM2().toFixed(3)),
   ausmass:ebaAusmassZeilen(),
-  rollen:{tafelLaenge:plan.tafelLaenge,
-          breiten:ebaRollenbreiten(),
+  rollen:{auswahl:(ebA.rollenAuswahl||[]).slice(),tafelLaenge:plan.tafelLaenge,
+          breiten:ebaRollenAktiv(),
           bestes:plan.bestes||null,
           moeglich:plan.moeglich||[],
           streifen:((plan.verteilung||{}).streifen||[]).map(s=>({
-            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge})), rest:s.rest})),
+            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})), rest:s.rest})),
           optimal:(plan.verteilung||{}).optimal!==false}
  };
 }

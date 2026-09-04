@@ -86,7 +86,7 @@ const LXB=/\d[\d'’.\s]*×\s*\d/;
  for(const [name,typ,erwartet,data] of faelle){
   const h=await page.evaluate(async ([t,d,n])=>{
    window.__html=null;
-   await printMeasurement({type:t,title:n,date:"2026-09-04",data:d,project_id:null});
+   await printMeasurement({type:t,title:n,date:"2026-09-04",data:d,project_id:null},{listen:"alle"});
    return window.__html||"";
   },[typ,data,name]);
   p(h.length>500,name+": der Druck entsteht",h.length);

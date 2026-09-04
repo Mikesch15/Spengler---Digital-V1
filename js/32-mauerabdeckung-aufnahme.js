@@ -39,8 +39,9 @@ const MADA_PROFIL_VORGABE=Object.freeze({
  saum:10, windexponiert:false
 });
 function madaLeer(){
+ // rollenAuswahl: leer = das ganze Blechlager der Firma.
  return {material:"",segmente:[],schieberManuell:false,schieber:[],
-         profil:{...MADA_PROFIL_VORGABE}};
+         profil:{...MADA_PROFIL_VORGABE},rollenAuswahl:[]};
 }
 let madA=madaLeer();
 
@@ -154,15 +155,22 @@ function madaSegmentSchieben(i,richtung){
 // EINE Packrechnung. Anders als beim Freien Profil hat die Mauerabdeckung nur
 // EINE Abwicklung, also auch nur eine Streifenbreite.
 function madaBleche(){
- return madaStueckliste().map(x=>({nr:x.nr,laenge:madaZahl(x.zuschnitt)}))
+ // von/bis ist eine Beschriftung, kein anderer Zuschnitt - deshalb "hinweis"
+ // und nicht "merkmal": gleiche Laengen duerfen zusammengefasst werden, die
+ // Zuordnung bleibt in den Einzelheiten sichtbar.
+ return madaStueckliste().map(x=>({nr:x.nr,laenge:madaZahl(x.zuschnitt),
+   hinweis:(x.von&&x.bis)?(x.von+" → "+x.bis):""}))
   .filter(x=>x.laenge>0);
 }
 function madaTafelLaenge(){
  const l=madaBleche().map(x=>x.laenge);
  return l.length?Math.max.apply(null,l):0;
 }
+// Die Rollen, mit denen DIESE Massaufnahme rechnet: das Blechlager der
+// Firma, eingeschraenkt auf die im Register "Zuschnitt" angehakten.
 function madaRollenbreiten(){
- return (typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[];
+ return (typeof zuRollenGefiltert==="function")?zuRollenGefiltert(madA&&madA.rollenAuswahl)
+   :((typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[]);
 }
 function madaRollenPlan(){
  const A=Math.round(madaZahl(madaProfilMasse().abwicklung));
@@ -482,14 +490,16 @@ function madaZuschnittPlan(){
   einleitung:ZU_EINLEITUNG_ROLLE,
   quelle:ZU_QUELLE_ROLLE,
   leer:!bleche.length?"Noch kein Zuschnittstück – zuerst den Verlauf erfassen."
-      :(!madaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt. Unter Einstellungen → Massaufnahmen → Einlaufblech gerade mindestens eine wählen."
+      :(!madaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt. Unter Einstellungen → Allgemein → Rollenbreiten des Blechlagers mindestens eine wählen."
       :"Kein Stück lässt sich auf eine Tafel legen."),
   streifenbreiten:[rp.abwicklung],
   gruppen:streifen.length?[{breite:rp.abwicklung,tafelLaenge:rp.tafelLaenge,streifen}]:[],
   moeglich:rp.moeglich, netto:rp.netto,
   zuSchmal:rp.zuSchmal, zuLang:v.zuLang||[], optimal:v.optimal!==false};
 }
-function madaZuschnittHtml(){return zuschnittHtml(madaZuschnittPlan())}
+function madaZuschnittHtml(){
+ return zuRollenAuswahlHtml(madA.rollenAuswahl,"data-mada-rolle")+zuschnittHtml(madaZuschnittPlan());
+}
 function madaAusmassHtml(){
  const z=madaAusmassZeilen();
  if(!z.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:14px">Noch nichts abzuleiten – zuerst den Verlauf erfassen.</div>';
@@ -633,6 +643,9 @@ function madaVerdrahten(){
 
  wurzel.addEventListener("change",e=>{
   const t=e.target, d=t.dataset||{}, a=madA;
+  // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
+  {const w=zuRollenKlick(e.target,"data-mada-rolle");
+   if(w!==null){madA.rollenAuswahl=w; renderMauerabdeckungAufnahme(); return}}
   if(t.id==="mada_material"){a.material=t.value;madaSchieberNeu();renderMauerabdeckungAufnahme();return}
   if(t.id==="mada_wind"){a.profil.windexponiert=t.checked;renderMauerabdeckungAufnahme();return}
   if(t.id==="mada_manuell"){
@@ -723,6 +736,10 @@ function madaAusData(d){
  const a=madaLeer();
  if(!d)return a;
  a.material=d.material??"";
+ // Welche Rollen fuer diese Aufnahme gewaehlt waren. Fehlt das Feld
+ // (Aufnahme vor v2.85), bleibt es leer = ganzes Lager.
+ const rq=(d.rollen&&d.rollen.auswahl);
+ a.rollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  a.segmente=Array.isArray(d.segments)?d.segments.map(s=>({...s})):[];
  // Eine gespeicherte Aufnahme bringt ihre Schieber mit - die duerfen nicht
  // ueberschrieben werden, genau wie bisher ueber "Schieber von Hand".
@@ -760,14 +777,14 @@ function madaZusatzDaten(){
  return {
   flaeche_m2:Number(madaFlaecheM2().toFixed(3)),
   ausmass:madaAusmassZeilen(),
-  rollen:{breiten:madaRollenbreiten(),
+  rollen:{auswahl:(madA.rollenAuswahl||[]).slice(),breiten:madaRollenbreiten(),
           abwicklung:plan.abwicklung,
           tafelLaenge:plan.tafelLaenge,
           netto:Number(plan.netto.toFixed(3)),
           bestes:plan.bestes||null,
           moeglich:plan.moeglich||[],
           streifen:((plan.verteilung&&plan.verteilung.streifen)||[])
-            .map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge})),rest:s.rest})),
+            .map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})),rest:s.rest})),
           optimal:plan.verteilung?plan.verteilung.optimal!==false:true}
  };
 }

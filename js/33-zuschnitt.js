@@ -44,6 +44,78 @@ function zuMasse(laenge,breite){
  const b=zuZahl(breite);
  return zuMm(laenge)+"\u00a0mm"+(b>0?" × "+zuMm(b)+"\u00a0mm":"");
 }
+// ---------------------------------------------------------------------------
+// Zuschnittliste: STÜCKZAHL × LÄNGE × ABWICKLUNG
+// ---------------------------------------------------------------------------
+// Die Hauptdarstellung in jeder Art. Gleiche Zuschnitte werden zusammengefasst
+// und mit ihrer Stückzahl gezeigt - drei identische Einzelzeilen sind auf dem
+// Handy unleserlich.
+//
+// Zusammengefasst wird NUR, was für den tatsächlichen Zuschnitt wirklich
+// gleich ist: gleiche Länge, gleiche Abwicklung UND gleiches "merkmal". Das
+// merkmal liefert das Modul selbst (Gehrung, konische Masse, …) - eine
+// fachlich unterschiedliche Bearbeitung darf nie in einer Zeile verschwinden.
+// Reine Beschriftungen ohne Einfluss auf den Zuschnitt (z. B. "Traufstück")
+// stehen als "hinweis" in den Einzelheiten, nicht im Gruppenschlüssel.
+function zuAlleStuecke(p){
+ const liste=[];
+ if(!p)return liste;
+ if(p.art==="stange"){
+  (p.stangen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>
+   liste.push(Object.assign({},x,{breite:p.breite,platz:si+1}))));
+ }else{
+  (p.gruppen||[]).forEach(g=>(g.streifen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>
+   liste.push(Object.assign({},x,{breite:g.breite,platz:si+1})))));
+ }
+ return liste;
+}
+function zuGruppen(p){
+ const nach=new Map();
+ zuAlleStuecke(p).forEach(x=>{
+  const l=Math.round(zuZahl(x.laenge)), b=Math.round(zuZahl(x.breite));
+  const schluessel=l+"|"+b+"|"+(x.merkmal||"");
+  if(!nach.has(schluessel))nach.set(schluessel,{laenge:l,breite:b,merkmal:x.merkmal||"",stuecke:[]});
+  nach.get(schluessel).stuecke.push(x);
+ });
+ // Längste zuerst - so steht der grösste Zuschnitt oben, wie auf dem Zettel.
+ return Array.from(nach.values()).sort((a,b)=>b.laenge-a.laenge||b.breite-a.breite);
+}
+// Ein Eintrag der Liste: "3 × 1'850 × 250 mm".
+function zuGruppenZeileHtml(g,einheit){
+ const nummern=g.stuecke.map(x=>x.nr).filter(x=>x!==undefined&&x!==null);
+ const hinweise=[];
+ g.stuecke.forEach(x=>{if(x.hinweis&&hinweise.indexOf(x.hinweis)<0)hinweise.push(x.hinweis)});
+ const unten=[];
+ if(g.merkmal)unten.push(esc(g.merkmal));
+ if(hinweise.length)unten.push(esc(hinweise.join(" · ")));
+ if(nummern.length)unten.push(esc((einheit||"Stück")+" "+nummern.join(", ")));
+ return `<div class="zu-zeile">
+<span class="zu-anzahl">${g.stuecke.length} ×</span>
+<span class="zu-mass">${esc(zuMm(g.laenge))}${g.breite>0?" × "+esc(zuMm(g.breite)):""}<span class="zu-einheit"> mm</span></span>
+${unten.length?`<span class="zu-zusatz">${unten.join(" · ")}</span>`:""}
+</div>`;
+}
+// Die Liste selbst - Kopf (welche Rolle), Zeilen, Fuss (wie viele Tafeln).
+function zuListeHtml(p){
+ const gruppen=zuGruppen(p);
+ if(!gruppen.length)return "";
+ const bestes=(p.moeglich||[])[0];
+ let kopf="Zuschnittliste", fuss="";
+ if(p.art==="rolle"&&bestes){
+  kopf="Rollenblech "+zuMm(bestes.breite)+" mm";
+  const tl=(p.gruppen||[])[0];
+  fuss=bestes.tafeln+" Tafel"+(bestes.tafeln===1?"":"n")
+    +(tl&&zuZahl(tl.tafelLaenge)>0?" à "+zuMm(tl.tafelLaenge)+" mm":"");
+ }else if(p.art==="stange"){
+  kopf="Zuschnittliste";
+  fuss=(p.stangen||[]).length+" Stange"+((p.stangen||[]).length===1?"":"n");
+ }
+ return `<div class="zu-liste">
+<div class="zu-liste-kopf">${esc(kopf)}</div>
+${gruppen.map(g=>zuGruppenZeileHtml(g,p.einheit)).join("")}
+${fuss?`<div class="zu-liste-fuss">${esc(fuss)}</div>`:""}
+</div>`;
+}
 function zuKennzahl(label,wert,klein){
  return `<div><label>${esc(label)}</label><div class="ra-wert${klein?" ra-wert-klein":""}">${wert}</div></div>`;
 }
@@ -88,6 +160,12 @@ function zuMeldungenHtml(p){
   h+=`<div class="ra-fehler">Zu lang für eine ${p.art==="stange"?"Stange":"Tafel"}: ${esc(namen)}.
 Diese ${p.einheit==="Segment"?"Segmente sind":"Stücke sind"} im Plan <b>nicht</b> enthalten.</div>`;
  }
+ if(p.art==="rolle"&&!(p.moeglich||[]).length){
+  const b=(p.streifenbreiten||[]).filter(x=>zuZahl(x)>0);
+  h+=`<div class="ra-warnung">Keine hinterlegte Rollenbreite ist so breit wie
+${b.length>1?"die breiteste Abwicklung":"die Abwicklung"} (${esc(b.length?zuMm(Math.max.apply(null,b)):"–")} mm).
+Der Zuschnitt lässt sich so <b>nicht</b> aus dem hinterlegten Rollenblech schneiden.</div>`;
+ }
  if((p.zuSchmal||[]).length)
   h+=`<div class="small zu-hinweis">Zu schmal für dieses Profil: ${esc(p.zuSchmal.map(x=>zuMm(x)+" mm").join(", "))}.</div>`;
  if(p.optimal===false)
@@ -114,11 +192,7 @@ function zuPlanTabelleHtml(p){
 ${esc(zuMm(p.summeStuecke))} mm Zuschnitt – <b>${esc(zuMm(p.verschnitt))} mm</b> Verschnitt
 (${anteil.toFixed(0)} %).</div>`;
  }
- if(!(p.moeglich||[]).length){
-  const b=(p.streifenbreiten||[]).filter(x=>zuZahl(x)>0);
-  return `<div class="ra-warnung">Keine hinterlegte Rollenbreite ist so breit wie
-${b.length>1?"die breiteste Abwicklung":"die Abwicklung"} (${esc(b.length?zuMm(Math.max.apply(null,b)):"–")} mm).</div>`;
- }
+ if(!(p.moeglich||[]).length)return "";   // Meldung steht in zuMeldungenHtml
  const zeilen=p.moeglich.map((x,i)=>`<tr${i===0?' class="ra-dila-zeile"':""}>
 <td>${esc(zuMm(x.breite))} mm</td>
 <td>${x.jeTafel===undefined?"–":esc(x.jeTafel)}</td>
@@ -171,12 +245,17 @@ function zuschnittHtml(p){
                             :!(p.gruppen||[]).length;
  if(leer)return `<div class="info">${esc(p.leer||"Noch nichts zuzuschneiden.")}</div>`
    +zuMeldungenHtml(p);
- return `<div class="info">${p.einleitung||""}${p.zusatz?" "+p.zusatz:""}</div>
-${zuKennzahlenHtml(p)}
+ // Hauptansicht: die Liste. Alles Technische steht darunter aufklappbar -
+ // auf dem Handy zaehlt zuerst, WAS zugeschnitten wird.
+ return `${zuListeHtml(p)}
 ${zuMeldungenHtml(p)}
+<details class="zu-details"><summary>Einzelheiten: Rollenbreiten vergleichen, Belegung der Streifen</summary>
+<div class="info">${p.einleitung||""}${p.zusatz?" "+p.zusatz:""}</div>
+${zuKennzahlenHtml(p)}
 ${zuPlanTabelleHtml(p)}
 ${zuBelegungHtml(p)}
-${p.quelle?`<div class="small zu-hinweis">${p.quelle}</div>`:""}`;
+${p.quelle?`<div class="small zu-hinweis">${p.quelle}</div>`:""}
+</details>`;
 }
 
 // Einleitungssatz, damit er nirgends abweicht.
@@ -185,6 +264,146 @@ const ZU_EINLEITUNG_ROLLE="Von der Rolle wird eine <b>Tafel</b> abgeschnitten un
  +"in einem Streifen dürfen mehrere Stücke hintereinander liegen.";
 const ZU_EINLEITUNG_STANGE="Aus welchen Normlängen die Stücke geschnitten werden, so dass "
  +"möglichst wenig übrig bleibt. Mehrere Stücke dürfen aus derselben Stange kommen.";
-const ZU_QUELLE_ROLLE="Rollenbreiten aus <b>Einstellungen → Massaufnahmen → Einlaufblech gerade</b> "
- +"(firmenweit, gilt für alle Arten).";
+const ZU_QUELLE_ROLLE="Blechlager aus <b>Einstellungen → Allgemein → Rollenbreiten des "
+ +"Blechlagers</b> (firmenweit, gilt für alle Arten).";
 const ZU_QUELLE_STANGE="Normlängen aus <b>Einstellungen → Massaufnahmen → Rinne</b>.";
+
+// ---------------------------------------------------------------------------
+// Dieselbe Zuschnittliste im Ausdruck
+// ---------------------------------------------------------------------------
+// Das PDF zeigt denselben Aufbau wie der Bildschirm: zuerst die Liste
+// STÜCKZAHL × LÄNGE × ABWICKLUNG, danach die technischen Einzelheiten
+// (Rollenbreiten-Vergleich, Belegung der Streifen).
+//
+// Gerechnet wird NICHTS - gedruckt wird ausschliesslich der beim Speichern
+// abgelegte Plan, damit ein einmal gedrucktes Blatt gleich bleibt, auch wenn
+// die Rollenbreiten der Firma später geändert werden.
+//
+// Die Module haben ihren Plan historisch in zwei Formen abgelegt:
+//   flach    {tafelLaenge, streifen:[…]}            bzw. {verteilung:{streifen}}
+//   gruppiert{gruppen:[{breite,tafelLaenge,streifen}]}   (Freies Profil)
+// zuPlanAusGespeichert() bringt beide in die eine Planform von oben.
+function zuPlanAusGespeichert(r,breite,einheit){
+ if(!r)return null;
+ let gruppen=[];
+ if(Array.isArray(r.gruppen)&&r.gruppen.length)gruppen=r.gruppen;
+ else{
+  const st=Array.isArray(r.streifen)?r.streifen
+          :((r.verteilung&&r.verteilung.streifen)||[]);
+  const b=zuZahl(breite)||zuZahl(r.abwicklung);
+  if(st.length)gruppen=[{breite:b,tafelLaenge:r.tafelLaenge,streifen:st}];
+ }
+ const optimal=r.optimal===false?false
+   :((r.verteilung&&r.verteilung.optimal===false)?false:true);
+ return {art:"rolle",einheit:einheit||"Stück",
+  streifenbreiten:gruppen.map(g=>zuZahl(g.breite)).filter(x=>x>0),
+  gruppen,moeglich:r.moeglich||[],netto:r.netto,
+  tafelLaenge:r.tafelLaenge,optimal};
+}
+function zuDruckHtml(r,breite,einheit,zusatz){
+ const p=zuPlanAusGespeichert(r,breite,einheit);
+ if(!p||!p.gruppen.length)return "";
+ const gruppen=zuGruppen(p);
+ if(!gruppen.length)return "";
+ const eh=p.einheit;
+ const zeilen=gruppen.map(g=>{
+  const nummern=g.stuecke.map(x=>x.nr).filter(x=>x!==undefined&&x!==null);
+  const hinweise=[];
+  g.stuecke.forEach(x=>{if(x.hinweis&&hinweise.indexOf(x.hinweis)<0)hinweise.push(x.hinweis)});
+  const bem=[];
+  if(g.merkmal)bem.push(g.merkmal);
+  if(hinweise.length)bem.push(hinweise.join(" · "));
+  if(nummern.length)bem.push(eh+" "+nummern.join(", "));
+  return `<tr><td><b>${g.stuecke.length} ×</b></td>
+<td><b>${esc(zuMm(g.laenge))}${g.breite>0?" × "+esc(zuMm(g.breite)):""} mm</b></td>
+<td>${esc(bem.join(" · "))||"–"}</td></tr>`;
+ }).join("");
+ const b0=(p.moeglich||[])[0];
+ const tafelLaenge=zuZahl(p.tafelLaenge)||zuZahl((p.gruppen[0]||{}).tafelLaenge);
+ const kopf=b0?"Rollenblech "+zuMm(b0.breite)+" mm · "+b0.tafeln+" Tafel"+(b0.tafeln===1?"":"n")
+   +(tafelLaenge>0?" à "+zuMm(tafelLaenge)+" mm":""):"";
+ const vergleich=(p.moeglich||[]).length?`<table class="eb-cutlist">
+<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafelfläche (m²)</th><th>Verschnitt (m²)</th></tr></thead>
+<tbody>${p.moeglich.map((x,i)=>`<tr><td>${esc(zuMm(x.breite))} mm${i===0?" (beste)":""}</td>
+<td>${x.jeTafel===undefined?"–":esc(x.jeTafel)}</td><td>${esc(x.tafeln)}</td>
+<td>${esc(zuQm(x.flaeche))}</td><td>${esc(zuQm(x.verschnitt))}</td></tr>`).join("")}</tbody>
+</table>`:"";
+ const belegung=p.gruppen.map(g=>{
+  const st=(g.streifen||[]);
+  if(!st.length)return "";
+  const tl=zuZahl(g.tafelLaenge)||tafelLaenge;
+  return `<table class="eb-cutlist">
+<thead><tr><th>Streifen à ${esc(zuMm(g.breite))} mm</th><th>${eh==="Segment"?"Segmente":"Stücke"}</th><th>belegt (mm)</th><th>Rest (mm)</th></tr></thead>
+<tbody>${st.map((sf,i)=>`<tr><td>${i+1}</td>
+<td>${esc((sf.stuecke||[]).map(x=>eh+" "+x.nr+" · "+zuMm(x.laenge)+" mm").join(" + "))||"–"}</td>
+<td>${esc(zuMm(tl-zuZahl(sf.rest)))}</td><td>${esc(zuMm(sf.rest))}</td></tr>`).join("")}</tbody>
+</table>`;
+ }).join("");
+ return `<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
+<table class="eb-cutlist">
+<thead><tr><th>Anzahl</th><th>Zuschnitt L × B (mm)</th><th>Bemerkung</th></tr></thead>
+<tbody>${zeilen}</tbody>
+</table>
+<div class="note">${kopf?esc(kopf)+". ":""}Von der Rolle wird eine Tafel abgeschnitten und quer in
+Streifen der Abwicklungsbreite geteilt; in einem Streifen dürfen mehrere Stücke
+hintereinander liegen.${zusatz?" "+zusatz:""}${p.optimal===false
+  ?" Beste gefundene Verteilung – nicht nachweislich die günstigste.":""}</div>
+${vergleich}${belegung}`;
+}
+
+
+// ---------------------------------------------------------------------------
+// Welche Rollen sollen fuer DIESE Massaufnahme verwendet werden?
+// ---------------------------------------------------------------------------
+// Das Blechlager der Firma steht in den Einstellungen (Allgemein). Hier wird
+// je Massaufnahme davon eine Teilmenge angehakt - z. B. weil auf dieser
+// Baustelle nur die 1000er Rolle mitkommt.
+//
+// Leere Auswahl = alle Rollen des Lagers. So aendert sich fuer eine bestehende
+// Aufnahme nichts, solange niemand etwas abwaehlt.
+function zuLagerbreiten(){
+ return (typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[];
+}
+function zuRollenGefiltert(gewaehlt){
+ const lager=zuLagerbreiten();
+ const w=(Array.isArray(gewaehlt)?gewaehlt:[]).map(Number).filter(x=>x>0);
+ if(!w.length)return lager;
+ const genommen=lager.filter(x=>w.indexOf(x)>=0);
+ return genommen.length?genommen:lager;   // nie leer rechnen
+}
+// Der aufklappbare Kasten. "attribut" ist der data-Name, den das Modul in
+// seinem Klick-Handler auswertet (z. B. "data-eba-rolle").
+// Merkt sich, ob der Kasten offen war. Nach jedem Haken zeichnet das Modul
+// neu - ohne das wuerde der Kasten dabei jedes Mal zuklappen.
+let zuRollenAuf=false, zuRollenFuer="";
+function zuRollenAuswahlHtml(gewaehlt,attribut){
+ if(attribut!==zuRollenFuer){zuRollenFuer=attribut;zuRollenAuf=false}
+ const lager=zuLagerbreiten();
+ if(!lager.length)return `<div class="ra-warnung">Im Blechlager ist keine Rollenbreite
+hinterlegt – Einstellungen → Allgemein → Rollenbreiten des Blechlagers.</div>`;
+ const genommen=zuRollenGefiltert(gewaehlt);
+ const alle=genommen.length===lager.length;
+ return `<details class="zu-rollen"${zuRollenAuf?" open":""}><summary>Rollen für diese Massaufnahme:
+<b>${esc(genommen.map(x=>zuMm(x)+" mm").join(" · "))}</b>${alle?" (alle aus dem Lager)":""}</summary>
+<div class="small">Aus dem Blechlager der Firma. Ohne Haken wird das ganze Lager
+gerechnet – abgewählte Rollen kommen im Vergleich nicht mehr vor.</div>
+<div class="zu-rollen-liste">${lager.map(x=>`<label class="zu-rolle">
+<input type="checkbox" ${attribut}="${x}"${genommen.indexOf(x)>=0?" checked":""}>
+<span>${esc(zuMm(x))} mm</span></label>`).join("")}</div>
+</details>`;
+}
+
+// Der Klick auf ein Kaestchen im Auswahlkasten. Das Modul ruft das in seinem
+// bestehenden change-Handler mit einer Zeile auf.
+// Rueckgabe: die neue Auswahl, oder null wenn das Ereignis nicht dazu gehoert.
+function zuRollenKlick(target,attribut){
+ if(!target||!target.hasAttribute||!target.hasAttribute(attribut))return null;
+ const wurzel=target.closest(".zu-rollen")||document;
+ const an=Array.from(wurzel.querySelectorAll("["+attribut+"]"))
+   .filter(e=>e.checked).map(e=>Number(e.getAttribute(attribut)))
+   .filter(x=>Number.isFinite(x)&&x>0);
+ zuRollenAuf=true;          // nach dem Neuzeichnen offen bleiben
+ // Gar nichts angehakt = wieder das ganze Lager. So bleibt der Zuschnitt
+ // rechenbar, statt in eine leere Liste zu laufen.
+ return an;
+}

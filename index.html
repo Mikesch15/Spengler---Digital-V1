@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.84</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.85</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1173,6 +1173,14 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div><label>Foto-Qualität</label><select id="photoQualityInput"><option value="schnell">Schnell (kleinere Dateien)</option><option value="hoch">Hoch (grössere Dateien)</option></select></div>
 </div>
 <div class="bar"><button id="saveRecentCount" class="green">💾 Speichern</button></div>
+
+<h2 style="margin-top:16px">Rollenbreiten des Blechlagers</h2>
+<div class="info">Welche Blechrollen die Firma an Lager führt. Gilt für die ganze
+Firma und für alle Massaufnahmen. In der einzelnen Massaufnahme lässt sich im
+Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
+<div id="eb_rollenbreiten" class="bar" style="flex-wrap:wrap"></div>
+<div class="bar"><button id="saveBlechRollenbreiten" class="green">💾 Rollenbreiten speichern</button><button type="button" id="resetBlechRollenbreiten" class="gray">↩️ Standard (1000 / 670)</button></div>
+<div class="small" id="eb_rollenHinweis" style="margin-top:4px"></div>
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="measurements" hidden>
@@ -1199,11 +1207,6 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div><label>Abstand Haltebleche GAVA (mm)</label><input id="eb_gavaAbstand" type="number" step="1"></div>
 </div>
 <div class="bar"><button id="saveEinlaufblechSettings" class="green">💾 Speichern</button><button type="button" id="resetEinlaufblechSettings" class="gray">↩️ Standardwerte</button></div>
-<h2 style="margin-top:14px">Rollenbreiten des Blechlagers</h2>
-<div class="small" style="margin-bottom:6px">Aus welchen Rollen zugeschnitten wird. 1000 und 670 mm sind die Standardrollen. Gilt für die ganze Firma und ist auch für andere Massaufnahmen gedacht.</div>
-<div id="eb_rollenbreiten" class="bar" style="flex-wrap:wrap"></div>
-<div class="bar"><button id="saveBlechRollenbreiten" class="green">💾 Rollenbreiten speichern</button><button type="button" id="resetBlechRollenbreiten" class="gray">↩️ Standard (1000 / 670)</button></div>
-<div class="small" id="eb_rollenHinweis" style="margin-top:4px"></div>
 </div>
 </div>
 
@@ -1234,7 +1237,7 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div><label>Restschwelle (mm)</label><input id="keas_restSchwelle" type="number" step="1"></div>
 </div>
 <div class="bar"><button id="saveKehleSettings" class="green">💾 Speichern</button><button type="button" id="resetKehleSettings" class="gray">↩️ Standardwerte</button></div>
-<div class="small" style="margin-top:4px">Die Rollenbreiten des Blechlagers stehen weiter oben unter „Einlaufblech gerade“ und gelten für alle Massaufnahmen.</div>
+<div class="small" style="margin-top:4px">Die Rollenbreiten des Blechlagers stehen unter <b>Einstellungen → Allgemein</b> und gelten für alle Massaufnahmen.</div>
 </div>
 </div>
 
@@ -1551,6 +1554,28 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 
 
 <!-- Programmteile: Reihenfolge NICHT ändern – spätere Dateien bauen auf früheren auf. -->
+<!-- PDF-Listenauswahl: EIN Dialog fuer alle Massaufnahmen und das Ausmass.
+     Nur ausgewaehlte UND vorhandene Listen werden erzeugt - nicht per CSS
+     versteckt. Nicht vorhandene Listen sind ausgegraut. -->
+<div id="pdfListenModal" class="modal" hidden>
+ <div class="modal-inner">
+  <h1 id="pdfListenTitel">PDF erstellen</h1>
+  <div class="card">
+   <div class="small" style="margin-bottom:8px">Welche Listen sollen gedruckt werden?</div>
+   <div id="pdfListenBox"></div>
+   <div class="small" style="margin-top:8px;color:var(--muted)">Kopf, Projekt und Adresse
+   stehen immer auf dem PDF.</div>
+   <div class="bar">
+    <button type="button" id="pdfListenAlle">Alle auswählen</button>
+    <button type="button" id="pdfListenKeine">Keine auswählen</button>
+   </div>
+   <div class="bar">
+    <button type="button" class="blue" id="pdfListenOk">📄 PDF erstellen</button>
+    <button type="button" id="pdfListenAbbrechen">Abbrechen</button>
+   </div>
+  </div>
+ </div>
+</div>
 <script src="js/01-basis.js"></script>
 <script src="js/02-feedback.js"></script>
 <script src="js/03-login.js"></script>
@@ -1585,6 +1610,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/32-mauerabdeckung-aufnahme.js"></script>
 <script src="js/33-zuschnitt.js"></script>
 <script src="js/34-kehle-aufnahme.js"></script>
+<script src="js/35-pdf-listen.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

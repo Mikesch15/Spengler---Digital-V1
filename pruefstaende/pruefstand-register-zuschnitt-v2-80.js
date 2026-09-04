@@ -40,6 +40,15 @@ const reg=async(page,a,n)=>{
 };
 const txt=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerText:""},a.wurzel);
 const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.wurzel);
+// Seit v2.85 ist die Hauptansicht die Liste STUECKZAHL x LAENGE x ABWICKLUNG;
+// alles Technische steht darunter in <details>. Fuer die Pruefungen der
+// Einzelheiten wird aufgeklappt - der Inhalt muss vorhanden und erreichbar
+// sein, er soll nur nicht die Hauptansicht ueberladen.
+const auf=async(page,a)=>{
+ await page.evaluate(w=>{const e=$(w);if(!e)return;
+  e.querySelectorAll("details.zu-details").forEach(d=>d.open=true)},a.wurzel);
+ await page.waitForTimeout(60);
+};
 
 (async()=>{
  const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
@@ -195,6 +204,37 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
   await zeige(page,a.typ);
   const zuNr=listen[a.typ].indexOf("Zuschnitt")+1;
   await reg(page,a,zuNr);
+  // --- Hauptansicht: die Liste STUECKZAHL x LAENGE x ABWICKLUNG ----------
+  const liste=await page.evaluate(w=>{
+   const e=$(w); if(!e)return null;
+   const box=e.querySelector(".zu-liste"); if(!box)return null;
+   const det=e.querySelector("details.zu-details");
+   const zeilen=Array.from(box.querySelectorAll(".zu-zeile")).map(z=>({
+     anzahl:(z.querySelector(".zu-anzahl")||{}).innerText||"",
+     mass:(z.querySelector(".zu-mass")||{}).innerText||"",
+     anzahlPx:parseFloat(getComputedStyle(z.querySelector(".zu-anzahl")||z).fontSize)||0,
+     massPx:parseFloat(getComputedStyle(z.querySelector(".zu-mass")||z).fontSize)||0}));
+   return {kopf:(box.querySelector(".zu-liste-kopf")||{}).innerText||"",
+     fuss:(box.querySelector(".zu-liste-fuss")||{}).innerText||"",
+     zeilen, detailsZu:det?!det.open:null,
+     detailsUnten:det?det.compareDocumentPosition(box)===Node.DOCUMENT_POSITION_PRECEDING:null};
+  },a.wurzel);
+  p(!!liste&&liste.zeilen.length>0,a.name+": die Zuschnittliste ist die Hauptansicht",liste);
+  if(liste&&liste.zeilen.length){
+   p(liste.zeilen.every(z=>/^\d+\s*×$/.test(z.anzahl.trim())),
+     a.name+": jede Zeile beginnt mit der Stueckzahl",liste.zeilen.map(z=>z.anzahl));
+   p(liste.zeilen.every(z=>/^\d[\d'’.]*\s*×\s*\d[\d'’.]*\s*mm$/.test(z.mass.replace(/\s+/g," ").trim())),
+     a.name+": danach LAENGE × ABWICKLUNG mm",liste.zeilen.map(z=>z.mass));
+   p(liste.zeilen[0].anzahlPx>=17&&liste.zeilen[0].massPx>=17,
+     a.name+": Stueckzahl und Mass sind gross genug fuers Handy",
+     {anzahl:liste.zeilen[0].anzahlPx,mass:liste.zeilen[0].massPx});
+   const laengen=liste.zeilen.map(z=>parseInt(z.mass.replace(/[^\d]/g,"").slice(0,6),10));
+   p(liste.zeilen.length===new Set(liste.zeilen.map(z=>z.mass)).size,
+     a.name+": gleiche Zuschnitte stehen nur EINMAL",liste.zeilen.map(z=>z.mass));
+  }
+  p(liste&&liste.detailsZu===true,a.name+": die Einzelheiten sind zugeklappt",liste&&liste.detailsZu);
+  p(liste&&liste.detailsUnten===true,a.name+": und stehen UNTER der Liste",liste&&liste.detailsUnten);
+  await auf(page,a);
   const t=await txt(page,a);
   const h=await html(page,a);
   // 1) Die Streifenbreite steht ueberall und zwar als ERSTE Kennzahl.
@@ -220,7 +260,7 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
   // 4) Belegung: welches Stueck liegt wo
   p(/so liegen die/i.test(t),a.name+": die Belegung steht da",t.slice(0,60));
   // 5) Fusszeile: woher die Breiten/Laengen kommen
-  p(/Einstellungen . Massaufnahmen/.test(t),a.name+": die Fusszeile nennt die Quelle");
+  p(/Einstellungen . (Allgemein|Massaufnahmen)/.test(t),a.name+": die Fusszeile nennt die Quelle",(t.match(/[^\n]*Einstellungen[^\n]*/)||[""])[0].slice(0,90));
  }
 
  // ---- E2 · Jedes Zuschnittstueck steht als Laenge x Breite --------------
@@ -230,6 +270,7 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
  for(const a of ARTEN){
   await zeige(page,a.typ);
   await reg(page,a,listen[a.typ].indexOf("Zuschnitt")+1);
+  await auf(page,a);
   const t=await txt(page,a);
   p(/Zuschnitt \(Länge × Breite\)/i.test(t),
     a.name+": die Belegung heisst \"Zuschnitt (Länge × Breite)\"",t.slice(0,80));

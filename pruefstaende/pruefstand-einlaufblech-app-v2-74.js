@@ -421,14 +421,14 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
   window.open=()=>({document:{write(h){window.__pdf.push(h)},close(){}},focus(){},print(){},set onload(f){}});
   storageSignedUrl=async()=>null;
   companyName="Peter Künzi AG"; companyAddress=""; logoUrl=null;
-  await printMeasurement({...pl,id:1,title:"Halle Nord",date:"2026-09-03",note:""});
+  await printMeasurement({...pl,id:1,title:"Halle Nord",date:"2026-09-03",note:""},{listen:"alle"});
   return window.__pdf[0]||"";
  },pay);
  p(/Zuschnitt aus Rollenblech/.test(druck),"Rollenplan im PDF");
  p(/>Ausmass</.test(druck),"Ausmass im PDF");
  p(/Haltebleche \(GAVA\)/.test(druck),"Haltebleche im PDF");
  p(/Blechfl/.test(druck),"Blechflaeche im PDF");
- p(/Tafell(ä|ae)nge 2170 mm/.test(druck),"Tafellaenge aus dem gespeicherten Plan, nicht neu gerechnet");
+ p(/Tafeln? à 2[^\d]?170\s*mm/.test(druck),"Tafellaenge aus dem gespeicherten Plan, nicht neu gerechnet",(druck.match(/[^<>]*Tafel[^<>]*/)||[""])[0].slice(0,90));
  p(!/\bNaN\b|\bInfinity\b/.test(druck),"kein NaN im PDF");
  // Ein alter Datensatz darf keinen der neuen Abschnitte erzeugen.
  const druckAlt=await page.evaluate(async()=>{
@@ -436,7 +436,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
   await printMeasurement({id:2,type:"einlaufblech_gerade",title:"Alt",date:"2026-08-28",note:"",
    data:{massA:100,massAEng:98,winkel:30,montage:"links",abwicklung:250,engeSeite:"rechts",
      restBreite:126,gesamtlaenge:5070,material:"3",
-     pieces:[{laenge:2070},{laenge:2070},{laenge:930}]}});
+     pieces:[{laenge:2070},{laenge:2070},{laenge:930}]}},{listen:"alle"});
   return window.__pdf[0]||"";
  });
  p(!/Zuschnitt aus Rollenblech/.test(druckAlt)&&!/Haltebleche/.test(druckAlt),

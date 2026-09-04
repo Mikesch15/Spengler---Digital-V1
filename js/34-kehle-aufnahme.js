@@ -57,9 +57,10 @@ function keaLeer(){
  // firstgehrung: Vorgabe "ja" - so bleibt eine bereits erfasste Kehle und
  // der bisherige Zweck des Moduls (die Winkelberechnung) unveraendert.
  // trauf/first: 0 = nicht festgelegt. Es wird KEINE Laenge erfunden.
+ // rollenAuswahl: leer = das ganze Blechlager der Firma (nichts abgewaehlt).
  return {material:"",abwicklung:500,mittelrippe:"ohne",firstgehrung:true,
          traufLaenge:0,firstLaenge:0,
-         nh:"",nl:"",gl:"",segmente:[]};
+         nh:"",nl:"",gl:"",segmente:[],rollenAuswahl:[]};
 }
 let kehleA=keaLeer();
 
@@ -135,15 +136,21 @@ function keaAusLaengeAufteilen(){
 function keaAbwicklung(){return keaZahl(kehleA.abwicklung)||0}
 function keaFlaecheM2(){return keaSummeZuschnitt()*keaAbwicklung()/1e6}
 function keaBleche(){
- return keaSegmente().map((s,i)=>({nr:i+1,laenge:Math.round(keaZuschnittLaenge(s))}))
+ // Trauf- und Firststueck sind Beschriftungen, kein anderer Zuschnitt -
+ // deshalb "hinweis": gleiche Laengen duerfen zusammengefasst werden.
+ return keaSegmente().map((s,i)=>({nr:i+1,laenge:Math.round(keaZuschnittLaenge(s)),
+   hinweis:keaRolleText(s)}))
   .filter(x=>x.laenge>0);
 }
 function keaTafelLaenge(){
  const l=keaBleche().map(x=>x.laenge);
  return l.length?Math.max.apply(null,l):0;
 }
+// Die Rollen, mit denen DIESE Massaufnahme rechnet: das Blechlager der
+// Firma, eingeschraenkt auf die im Register "Zuschnitt" angehakten.
 function keaRollenbreiten(){
- return (typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[];
+ return (typeof zuRollenGefiltert==="function")?zuRollenGefiltert(kehleA&&kehleA.rollenAuswahl)
+   :((typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[]);
 }
 // Dieselbe Packrechnung wie in allen uebrigen Arten (ebaPackeInStreifen,
 // js/29) - es gibt in der App nur EINE.
@@ -425,7 +432,7 @@ function keaKopfInhalt(){
  if(keaSchritt===1)return keaKarte("1 · Grunddaten",keaGrunddatenHtml());
  if(keaSchritt===2)return keaKarte("2 · Winkel",keaWinkelHtml()+keaFuehrenderWinkelHtml());
  if(keaSchritt===3)return keaKarte("3 · Segmente",keaSegmenteHtml());
- if(keaSchritt===4)return keaKarte("4 · Zuschnitt aus Rollenblech",zuschnittHtml(keaZuschnittPlan()));
+ if(keaSchritt===4)return keaKarte("4 · Zuschnitt aus Rollenblech",zuRollenAuswahlHtml(kehleA.rollenAuswahl,"data-kea-rolle")+zuschnittHtml(keaZuschnittPlan()));
  if(keaSchritt===5)return keaKarte("5 · Ausmass und Material",keaAusmassHtml());
  return keaKarte("6 · Kontrolle",keaKontrolleHtml());
 }
@@ -521,6 +528,9 @@ function keaVerdrahten(){
 
  wurzel.addEventListener("change",e=>{
   const t=e.target, a=kehleA;
+  // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
+  {const w=zuRollenKlick(e.target,"data-kea-rolle");
+   if(w!==null){kehleA.rollenAuswahl=w; renderKehleAufnahme(); return}}
   if(t.id==="kea_material")a.material=t.value;
   else if(t.id==="kea_abwicklung")a.abwicklung=keaZahl(t.value);
   else if(t.id==="kea_mittelrippe")a.mittelrippe=t.value;
@@ -595,7 +605,7 @@ function keaZusatzDaten(){
   zuschnittSumme:Math.round(keaSummeZuschnitt()),
   flaeche_m2:keaFlaecheM2(),
   ausmass:keaAusmassZeilen(),
-  rollen:{abwicklung:rp.abwicklung,tafelLaenge:rp.tafelLaenge,netto:rp.netto,
+  rollen:{auswahl:(kehleA.rollenAuswahl||[]).slice(),abwicklung:rp.abwicklung,tafelLaenge:rp.tafelLaenge,netto:rp.netto,
           moeglich:rp.moeglich,bestes:rp.bestes,zuSchmal:rp.zuSchmal,
           verteilung:rp.verteilung}
  };
@@ -612,6 +622,10 @@ function keaFuellen(d){
  a.nl=(w.nl===0||w.nl)?String(w.nl):"";
  a.gl=(w.gl===0||w.gl)?String(w.gl):"";
  a.material=w.material||"";
+ // Welche Rollen fuer diese Aufnahme gewaehlt waren. Fehlt das Feld
+ // (Aufnahme vor v2.85), bleibt es leer = ganzes Lager.
+ const rq=(w.rollen&&w.rollen.auswahl);
+ a.rollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  // Eine Aufnahme aus der Zeit vor v2.83 hat weder Abwicklung noch Segmente -
  // es wird KEINE erfunden, die Vorgabe steht nur als Auswahl bereit.
  a.abwicklung=KEA_ABWICKLUNGEN.indexOf(keaZahl(w.abwicklung))>=0?keaZahl(w.abwicklung):500;

@@ -521,7 +521,7 @@ const profil=async(page,liste)=>{
   window.open=()=>({document:{write(h){window.__pdf.push(h)},close(){}},focus(){},print(){},set onload(f){}});
   storageSignedUrl=async()=>null;
   companyName="Peter Künzi AG"; companyAddress=""; logoUrl=null;
-  await printMeasurement({...pl,id:1,title:"Attika Nord",date:"2026-09-04",note:""});
+  await printMeasurement({...pl,id:1,title:"Attika Nord",date:"2026-09-04",note:""},{listen:"alle"});
   return window.__pdf[0]||"";
  },pay);
  p(/>Profil</.test(druck)&&/<svg/.test(druck),"Profil und Zeichnung im PDF");
@@ -534,7 +534,7 @@ const profil=async(page,liste)=>{
   window.__pdf=[];
   await printMeasurement({id:2,type:"freies_profil",title:"Alt",date:"2026-08-28",note:"",
    data:{schenkel:[{laenge:15,winkel:0},{laenge:100,winkel:90}],konisch:false,
-     segmente:[{laenge:1000,massen:[{mass:15},{mass:100}]}],ansicht:"oben",material:"6"}});
+     segmente:[{laenge:1000,massen:[{mass:15},{mass:100}]}],ansicht:"oben",material:"6"}},{listen:"alle"});
   return window.__pdf[0]||"";
  });
  p(/>Profil</.test(druckAlt),"ein alter Datensatz druckt weiterhin");

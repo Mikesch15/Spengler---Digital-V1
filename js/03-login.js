@@ -139,6 +139,9 @@ function goToStart(){
  $("systemAdminCompanyModal").hidden=true;
  $("systemAdminDeleteModal").hidden=true;
  $("systemAdminRegisterModal").hidden=true;
+ // Der PDF-Auswahldialog wartet auf eine Antwort - beim Sprung auf den
+ // Startbildschirm gilt das als Abbruch, sonst bliebe das Versprechen offen.
+ if(typeof pdfListenSchliessen==="function"&&!$("pdfListenModal").hidden)pdfListenSchliessen(null);
  measEditReturnTo="measurementsModal";
  amEditReturnTo="ausmassModal";
  reportReturnTo="reportsModal";

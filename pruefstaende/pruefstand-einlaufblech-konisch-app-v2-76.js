@@ -503,13 +503,13 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
   window.open=()=>({document:{write(h){window.__pdf.push(h)},close(){}},focus(){},print(){},set onload(f){}});
   storageSignedUrl=async()=>null;
   companyName="Peter Künzi AG"; companyAddress=""; logoUrl=null;
-  await printMeasurement({...pl,id:1,title:"Traufe Nord",date:"2026-09-04",note:""});
+  await printMeasurement({...pl,id:1,title:"Traufe Nord",date:"2026-09-04",note:""},{listen:"alle"});
   return window.__pdf[0]||"";
  },pay);
  p(/Zuschnitt aus Rollenblech/.test(druck),"Rollenplan im PDF");
  p(/>Ausmass</.test(druck),"Ausmass im PDF");
  p(/Blechfl/.test(druck),"Blechflaeche im PDF");
- p(/Tafell(ä|ae)nge 2070 mm/.test(druck),"Tafellaenge aus dem gespeicherten Plan, nicht neu gerechnet");
+ p(/Tafeln? à 2[^\d]?070\s*mm/.test(druck),"Tafellaenge aus dem gespeicherten Plan, nicht neu gerechnet",(druck.match(/[^<>]*Tafel[^<>]*/)||[""])[0].slice(0,90));
  p(/Mass links/.test(druck)&&/Mass rechts/.test(druck),"Masse links und rechts im PDF");
  p(!/\bNaN\b|\bInfinity\b/.test(druck),"kein NaN im PDF");
  // Ein alter Datensatz darf keinen der neuen Abschnitte erzeugen.
@@ -517,7 +517,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
   window.__pdf=[];
   await printMeasurement({id:2,type:"einlaufblech_konisch",title:"Alt",date:"2026-08-28",note:"",
    data:{abwicklung:250,dachneigung:30,montage:"links",engeSeite:"rechts",gesamtlaenge:5070,material:"3",
-     pieces:[{laenge:2070,massLinks:100,massRechts:110,massLinksEng:98,massRechtsEng:108}]}});
+     pieces:[{laenge:2070,massLinks:100,massRechts:110,massLinksEng:98,massRechtsEng:108}]}},{listen:"alle"});
   return window.__pdf[0]||"";
  });
  p(!/Zuschnitt aus Rollenblech/.test(druckAlt),"eine alte Aufnahme druckt ohne die neuen Abschnitte");

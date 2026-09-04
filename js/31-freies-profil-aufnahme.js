@@ -45,11 +45,18 @@ const FPA_REGISTER=[
 const FPA_KONTROLLE=FPA_REGISTER.length;
 let fpaSchritt=1;
 
+// Die Rollen, mit denen DIESE Massaufnahme rechnet: das Blechlager der
+// Firma, eingeschraenkt auf die im Register "Zuschnitt" angehakten.
+function fpaRollen(){
+ return (typeof zuRollenGefiltert==="function")?zuRollenGefiltert(fpA&&fpA.rollenAuswahl)
+   :((typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[]);
+}
 const fpaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const fpaMm=v=>Math.round(fpaZahl(v)).toLocaleString("de-CH");
 const fpaMeter=v=>(fpaZahl(v)/1000).toFixed(2).replace(".",",");
 
-function fpaLeer(){return {material:"",konisch:"nein",ansicht:"links",schenkel:[],segmente:[]}}
+// rollenAuswahl: leer = das ganze Blechlager der Firma (nichts abgewaehlt).
+function fpaLeer(){return {material:"",konisch:"nein",ansicht:"links",schenkel:[],segmente:[],rollenAuswahl:[]}}
 let fpA=fpaLeer();
 
 // ---- Brücke zum bestehenden Modul -----------------------------------------
@@ -170,7 +177,13 @@ function fpaZuschnittGruppen(){
   if(laenge<=0||breite<=0){ohne.push({nr:i+1,laenge,breite});return}
   let g=gruppen.find(x=>x.breite===breite);
   if(!g){g={breite,stuecke:[]};gruppen.push(g)}
-  g.stuecke.push({nr:i+1,laenge});
+  // Bei einem konischen Profil sind zwei Segmente gleicher Laenge nur dann
+  // derselbe Zuschnitt, wenn auch beide Abwicklungen gleich sind - die
+  // Streifenbreite allein (die groessere Seite) genuegt nicht.
+  const ab=fpaAbwicklungSegment(seg);
+  const merkmal=fpaKonisch()
+   ?("Abwicklung "+Math.round(ab.links)+" / "+Math.round(ab.rechts)+" mm"):"";
+  g.stuecke.push({nr:i+1,laenge,merkmal});
  });
  gruppen.sort((a,b)=>b.breite-a.breite);
  gruppen.forEach(g=>{
@@ -184,7 +197,7 @@ function fpaZuschnittGruppen(){
 }
 function fpaRollenPlan(){
  const {gruppen,ohne}=fpaZuschnittGruppen();
- const breiten=(typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[];
+ const breiten=fpaRollen();
  const netto=fpaFlaecheM2();
  if(!gruppen.length||!breiten.length)
   return {gruppen,ohne,moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
@@ -385,7 +398,7 @@ Alles entsteht aus dieser Aufnahme – keine zweite Eingabe, keine Artikelnummer
 // Abwicklung, es kann also mehrere Streifenbreiten geben.
 function fpaZuschnittPlan(){
  const p=fpaRollenPlan();
- const breiten=(typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[];
+ const breiten=fpaRollen();
  // "Streifen je Tafel" ist nur bei EINER Streifenbreite eine einzelne Zahl.
  const moeglich=(p.moeglich||[]).map(m=>({breite:m.breite,
    jeTafel:(m.zeilen&&m.zeilen.length===1)?m.zeilen[0].jeTafel:undefined,
@@ -402,12 +415,13 @@ function fpaZuschnittPlan(){
   ohne:p.ohne||[]};
 }
 function fpaZuschnittHtml(){
+ const kasten=zuRollenAuswahlHtml(fpA.rollenAuswahl,"data-fpa-rolle");
  const p=fpaZuschnittPlan();
  // Segmente ohne Laenge oder ohne Masse werden nicht stillschweigend
  // mitgerechnet, sondern mit ihrer Nummer genannt.
  const ohne=p.ohne.length?`<div class="ra-warnung">${p.ohne.length} Segment(e) ohne Länge oder ohne
 Masse werden nicht gerechnet: Nummer ${esc(p.ohne.map(x=>x.nr).join(", "))}.</div>`:"";
- return zuschnittHtml(p)+ohne;
+ return kasten+zuschnittHtml(p)+ohne;
 }
 function fpaKontrolleHtml(){
  const m=fpaPruefungen();
@@ -572,6 +586,9 @@ function fpaVerdrahten(){
 
  wurzel.addEventListener("change",e=>{
   const t=e.target, a=fpA;
+  // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
+  {const w=zuRollenKlick(e.target,"data-fpa-rolle");
+   if(w!==null){fpA.rollenAuswahl=w; renderFreiesProfilAufnahme(); return}}
   if(t.id==="fpa_material"){a.material=t.value; renderFreiesProfilAufnahme(); return}
   if(t.id==="fpa_konisch"){a.konisch=t.value; renderFreiesProfilAufnahme(); return}
   if(t.id==="fpa_ansicht"||t.id==="fpa_ansicht2"){a.ansicht=t.value; renderFreiesProfilAufnahme(); return}
@@ -649,6 +666,10 @@ function fpaAusData(d){
  const a=fpaLeer();
  if(!d)return a;
  a.material=d.material??"";
+ // Welche Rollen fuer diese Aufnahme gewaehlt waren. Fehlt das Feld
+ // (Aufnahme vor v2.85), bleibt es leer = ganzes Lager.
+ const rq=(d.zuschnitt&&d.zuschnitt.auswahl);
+ a.rollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  a.konisch=d.konisch?"ja":"nein";
  a.ansicht=d.ansicht||"keiner";
  a.schenkel=Array.isArray(d.schenkel)?d.schenkel.map(s=>({...s})):[];
@@ -676,12 +697,12 @@ function fpaZusatzDaten(){
  return {
   flaeche_m2:Number(fpaFlaecheM2().toFixed(3)),
   ausmass:fpaAusmassZeilen(),
-  zuschnitt:{breiten:(typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[],
+  zuschnitt:{auswahl:(fpA.rollenAuswahl||[]).slice(),breiten:fpaRollen(),
              netto:Number(plan.netto.toFixed(3)),
              bestes:plan.bestes||null,
              moeglich:plan.moeglich||[],
              gruppen:plan.gruppen.map(g=>({breite:g.breite,tafelLaenge:g.tafelLaenge,
-               streifen:g.streifen.map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge})),rest:s.rest}))})),
+               streifen:g.streifen.map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||""})),rest:s.rest}))})),
              optimal:plan.optimal!==false}
  };
 }

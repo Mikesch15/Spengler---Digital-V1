@@ -113,6 +113,10 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
    "Normlaengenplan: 14'000 mm, 1'160 mm Verschnitt, als bester ausgewiesen",
    {gesamt:plan.gesamt,verschnitt:plan.verschnitt,optimal:plan.optimal});
  await reg(5);
+ // Einzelheiten aufklappen (seit v2.85 steht Technisches in <details>).
+ await page.evaluate(()=>{document.querySelectorAll("#rinneAufnahme details.zu-details")
+   .forEach(d=>d.open=true)});
+ await page.waitForTimeout(60);
  const txt=await page.locator("#rinneAufnahme").innerText();
  p(/Zuschnitt aus Normlängen/i.test(txt),"die Karte steht auf Register 5 (Zuschnitt)");
  p(/Kupfer/.test(txt)&&/330 mm/.test(txt),"Material und Groesse stehen dort",txt.slice(0,200));
