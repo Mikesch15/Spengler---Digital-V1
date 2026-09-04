@@ -31,11 +31,18 @@
 //   - Kontrolle mit Punkt am Register
 // ===========================================================================
 
+// Die Register heissen und stehen in ALLEN Massaufnahme-Arten gleich:
+// die fachlichen Schritte zuerst, danach Zuschnitt, Ausmass und zuletzt die
+// Kontrolle. Segmente und Ausmass waren bis v2.79 ein Register - sie sind
+// jetzt getrennt, damit das Ausmass ueberall an derselben Stelle steht.
 const FPA_REGISTER=[
  {nr:1,kurz:"Grunddaten"},{nr:2,kurz:"Profil"},{nr:3,kurz:"Zeichnung"},
- {nr:4,kurz:"Skizze → Profil"},{nr:5,kurz:"Segmente & Ausmass"},
- {nr:6,kurz:"Zuschnitt"},{nr:7,kurz:"Kontrolle"}
+ {nr:4,kurz:"Skizze → Profil"},{nr:5,kurz:"Segmente"},
+ {nr:6,kurz:"Zuschnitt"},{nr:7,kurz:"Ausmass"},{nr:8,kurz:"Kontrolle"}
 ];
+// Die Kontrolle ist immer das LETZTE Register - die Marke haengt deshalb an
+// der Registerzahl, nicht an einer festen Nummer.
+const FPA_KONTROLLE=FPA_REGISTER.length;
 let fpaSchritt=1;
 
 const fpaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
@@ -353,66 +360,54 @@ ${fpaFeld("Länge (mm)",`<input data-fpa-seg-laenge="${i}" type="number" inputmo
 ${konisch?`<button type="button" class="gray" data-fpa-seg-alle-rechts="${i}">➡️ Alle nach rechts</button>`:""}
 </div></div>`;
  }).join("");
+ return `<div class="bar"><button type="button" class="gray" id="fpa_segPlus">＋ Segment hinzufügen</button></div>
+<div class="info">Ein Segment ist ein Stück des Profils mit eigener Länge. Die Masse je Schenkel sind
+mit den Profillängen vorbelegt und lassen sich einzeln überschreiben${konisch?" – links und rechts getrennt, weil das Profil konisch ist":""}.</div>
+${segs||'<div class="empty">Noch kein Segment.</div>'}`;
+}
+// Eigenes Register, damit das Ausmass in allen Arten an derselben Stelle
+// steht. Der Inhalt ist unveraendert der aus "Segmente und Ausmass".
+function fpaAusmassHtml(){
  const z=fpaAusmassZeilen();
  const mat=findMeasurementMaterial(fpA.material);
- const ausmass=z.length?`<div class="scroll"><table class="eb-table fpa-tab">
+ if(!z.length)return `<div class="small">Noch nichts zu messen – bitte zuerst Schenkel und mindestens ein Segment erfassen.</div>`;
+ return `<div class="scroll"><table class="eb-table fpa-tab">
 <thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Woher</th></tr></thead>
 <tbody>${z.map(x=>`<tr><td>${x.pos}</td><td>${esc(x.bezeichnung)}</td><td>${esc(x.menge)}</td><td>${esc(x.einheit)}</td><td class="small">${esc(x.herkunft)}</td></tr>`).join("")}</tbody>
 </table></div>
 <div class="small" style="margin-top:8px">Material: <b>${esc(mat?mat.name:"–")}</b> ·
 Blechfläche <b>${esc(fpaFlaecheM2().toFixed(2).replace(".",","))} m²</b>.
-Alles entsteht aus dieser Aufnahme – keine zweite Eingabe, keine Artikelnummern und keine Preise.</div>`
- :`<div class="small">Noch nichts zu messen – bitte zuerst Schenkel und mindestens ein Segment erfassen.</div>`;
- return `<div class="bar"><button type="button" class="gray" id="fpa_segPlus">＋ Segment hinzufügen</button></div>
-<div class="info">Ein Segment ist ein Stück des Profils mit eigener Länge. Die Masse je Schenkel sind
-mit den Profillängen vorbelegt und lassen sich einzeln überschreiben${konisch?" – links und rechts getrennt, weil das Profil konisch ist":""}.</div>
-${segs||'<div class="empty">Noch kein Segment.</div>'}
-<h2 style="margin-top:14px">Ausmass und Material</h2>${ausmass}`;
+Alles entsteht aus dieser Aufnahme – keine zweite Eingabe, keine Artikelnummern und keine Preise.</div>`;
 }
-function fpaZuschnittHtml(){
+// Der Plan wird in die gemeinsame Form gebracht (js/33) und dort dargestellt -
+// damit sieht der Zuschnitt in allen Massaufnahme-Arten gleich aus. Der eine
+// Unterschied zu den uebrigen Arten: hier hat JEDES Segment seine eigene
+// Abwicklung, es kann also mehrere Streifenbreiten geben.
+function fpaZuschnittPlan(){
  const p=fpaRollenPlan();
  const breiten=(typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[];
- const hinweise=(p.ohne.length?`<div class="ra-warnung">${p.ohne.length} Segment(e) ohne Länge oder ohne Masse werden nicht
-gerechnet: Nummer ${esc(p.ohne.map(x=>x.nr).join(", "))}.</div>`:"")
- +(p.zuSchmal.length?`<div class="small" style="margin-top:6px;color:var(--muted)">Zu schmal für dieses Profil: ${esc(p.zuSchmal.join(", "))} mm.</div>`:"")
- +(p.optimal===false?`<div class="ra-warnung">Beste gefundene Verteilung – die Suche wurde abgebrochen, sie ist
-nicht nachweislich die günstigste.</div>`:"");
- if(!p.gruppen.length)
-  return `<div class="small">Noch nichts zuzuschneiden – es braucht mindestens ein Segment mit Länge und
-Massen (Register 5).</div>`+hinweise;
- const gruppen=`<div class="scroll"><table class="eb-table fpa-tab">
-<thead><tr><th>Streifenbreite</th><th>Segmente</th><th>Tafellänge</th><th>Streifen</th></tr></thead>
-<tbody>${p.gruppen.map(g=>`<tr><td>${esc(fpaMm(g.breite))} mm</td>
-<td>${esc(g.stuecke.map(x=>"Nr. "+x.nr+" ("+fpaMm(x.laenge)+" mm)").join(", "))}</td>
-<td>${esc(fpaMm(g.tafelLaenge))} mm</td><td>${g.streifen.length}</td></tr>`).join("")}</tbody>
-</table></div>`;
- const streifen=p.gruppen.map(g=>`<div style="margin-top:8px"><b>Streifen à ${esc(fpaMm(g.breite))} mm</b>
-<span class="small">· Tafellänge ${esc(fpaMm(g.tafelLaenge))} mm</span>
-<div class="scroll"><table class="eb-table fpa-tab">
-<thead><tr><th>Streifen</th><th>Segmente mit ihrer Länge</th><th>belegt</th><th>Rest</th></tr></thead>
-<tbody>${g.streifen.map((st,i)=>`<tr><td>${i+1}</td>
-<td>${esc(st.stuecke.map(x=>"Segment "+x.nr+" · "+fpaMm(x.laenge)+" mm").join(" + "))}</td>
-<td>${esc(fpaMm(g.tafelLaenge-st.rest))} mm</td><td>${esc(fpaMm(st.rest))} mm</td></tr>`).join("")}</tbody>
-</table></div></div>`).join("");
- const plan=p.moeglich.length?`<div class="scroll"><table class="eb-table fpa-tab">
-<thead><tr><th>Rollenbreite</th><th>Tafeln</th><th>Blech gesamt</th><th>Verschnitt</th><th>Anteil</th></tr></thead>
-<tbody>${p.moeglich.map((m,i)=>`<tr${i===0?' class="ra-dila-zeile"':""}>
-<td>${esc(fpaMm(m.breite))} mm${i===0?" <b>(beste)</b>":""}</td><td>${m.tafeln}</td>
-<td>${esc(m.flaeche.toFixed(2).replace(".",","))} m²</td>
-<td>${esc(m.verschnitt.toFixed(2).replace(".",","))} m²</td>
-<td>${esc(m.anteil.toFixed(0))} %</td></tr>`).join("")}</tbody>
-</table></div>
-<div class="small" style="margin-top:6px">Netto gebraucht werden <b>${esc(p.netto.toFixed(2).replace(".",","))} m²</b> –
-das ist die Fläche aus dem Ausmass. Alles darüber ist Verschnitt.</div>`
- :`<div class="ra-fehler">Keine hinterlegte Rollenbreite ist breit genug. Breiteste Abwicklung:
-${esc(fpaMm(p.gruppen[0].breite))} mm.</div>`;
- return `<div class="small" style="margin-bottom:6px">Von der Rolle wird eine <b>Tafel</b> abgeschnitten und quer in
-Streifen der Abwicklungsbreite geteilt; in einem Streifen dürfen mehrere Segmente hintereinander
-liegen. Segmente mit gleicher Streifenbreite werden zusammen gepackt.
-${fpaKonisch()?"Konisch: die Streifenbreite ist die grössere der beiden Abwicklungen – der Zuschnitt muss das breitere Ende enthalten.":""}</div>
-${gruppen}${plan}${streifen}${hinweise}
-<div class="small" style="margin-top:8px">Rollenbreiten aus <b>Einstellungen → Massaufnahmen →
-Einlaufblech gerade</b> (firmenweit, gilt für alle Arten)${breiten.length?": "+esc(breiten.join(", "))+" mm":""}.</div>`;
+ // "Streifen je Tafel" ist nur bei EINER Streifenbreite eine einzelne Zahl.
+ const moeglich=(p.moeglich||[]).map(m=>({breite:m.breite,
+   jeTafel:(m.zeilen&&m.zeilen.length===1)?m.zeilen[0].jeTafel:undefined,
+   tafeln:m.tafeln, flaeche:m.flaeche, verschnitt:m.verschnitt, anteil:m.anteil}));
+ const zusatz="Segmente mit gleicher Streifenbreite werden zusammen gepackt."
+  +(fpaKonisch()?" Konisch: die Streifenbreite ist die grössere der beiden Abwicklungen – der Zuschnitt muss das breitere Ende enthalten.":"");
+ return {art:"rolle", einheit:"Segment",
+  einleitung:ZU_EINLEITUNG_ROLLE, zusatz,
+  quelle:ZU_QUELLE_ROLLE+(breiten.length?" Hinterlegt: "+esc(breiten.join(", "))+" mm.":""),
+  leer:"Noch nichts zuzuschneiden – es braucht mindestens ein Segment mit Länge und Massen (Register 5).",
+  streifenbreiten:(p.gruppen||[]).map(g=>g.breite),
+  gruppen:p.gruppen||[], moeglich, netto:p.netto,
+  zuSchmal:p.zuSchmal, zuLang:[], optimal:p.optimal!==false,
+  ohne:p.ohne||[]};
+}
+function fpaZuschnittHtml(){
+ const p=fpaZuschnittPlan();
+ // Segmente ohne Laenge oder ohne Masse werden nicht stillschweigend
+ // mitgerechnet, sondern mit ihrer Nummer genannt.
+ const ohne=p.ohne.length?`<div class="ra-warnung">${p.ohne.length} Segment(e) ohne Länge oder ohne
+Masse werden nicht gerechnet: Nummer ${esc(p.ohne.map(x=>x.nr).join(", "))}.</div>`:"";
+ return zuschnittHtml(p)+ohne;
 }
 function fpaKontrolleHtml(){
  const m=fpaPruefungen();
@@ -445,7 +440,7 @@ function fpaRegisterHtml(){
  const fehler=pr.filter(m=>m.art==="fehler").length;
  const warn=pr.length-fehler;
  return `<div class="ra-register" id="fpa_register">`+FPA_REGISTER.map(r=>{
-  const marke=r.nr===7&&(fehler||warn)
+  const marke=r.nr===FPA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===fpaSchritt?" aktiv":""}" data-fpa-schritt="${r.nr}">`
    +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
@@ -456,9 +451,10 @@ function fpaSchrittInhalt(){
  if(fpaSchritt===2)return fpaKarte("2 · Profil aufnehmen",fpaProfilHtml());
  if(fpaSchritt===3)return fpaKarte("3 · Profilzeichnung",fpaZeichnungHtml());
  if(fpaSchritt===4)return fpaKarte("4 · Skizze → Profil",fpaSkizzeHtml());
- if(fpaSchritt===5)return fpaKarte("5 · Segmente und Ausmass",fpaSegmenteHtml());
+ if(fpaSchritt===5)return fpaKarte("5 · Segmente",fpaSegmenteHtml());
  if(fpaSchritt===6)return fpaKarte("6 · Zuschnitt aus Rollenblech",fpaZuschnittHtml());
- return fpaKarte("7 · Kontrolle",fpaKontrolleHtml());
+ if(fpaSchritt===7)return fpaKarte("7 · Ausmass und Material",fpaAusmassHtml());
+ return fpaKarte("8 · Kontrolle",fpaKontrolleHtml());
 }
 // Der Erkennungs-Block aus dem HTML gehört in Register 4, darf aber NICHT in
 // einen Container, der per innerHTML neu geschrieben wird: js/14 hat seine

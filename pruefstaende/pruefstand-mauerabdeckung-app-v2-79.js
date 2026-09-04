@@ -120,7 +120,7 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
    "die Fachfunktionen aus js/12b sind da",da);
  p(da.dila&&da.grundriss,"Verteilung und Grundriss aus js/12 sind da",da);
  p(da.packen,"die Packrechnung aus js/29 ist da",da);
- p(da.register===9,"neun Register",da);
+ p(da.register===8,"acht Register",da);
  p(da.stummelWeg===true,"der Stummel ist unsichtbar",da);
  p(da.normwerte[0]===50&&da.normwerte[1]===100,"Normwerte unveraendert (50/100 mm)",da);
 
@@ -148,9 +148,9 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
    "die Abstaende kommen aus dem Material-Katalog",br);
 
  // ---- C · Register --------------------------------------------------------
- console.log("\nC · Neun Register");
+ console.log("\nC · Acht Register");
  const kopf=[];
- for(let n=1;n<=9;n++){
+ for(let n=1;n<=8;n++){
   await reg(page,n);
   kopf.push(await page.evaluate(()=>{
    const aktiv=document.querySelector(".ra-register-knopf.aktiv");
@@ -182,7 +182,7 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
  p(sichtbar.links&&sichtbar.rechts,"das aktive Register bleibt in der Leiste sichtbar",sichtbar);
  const nav=await page.evaluate(()=>{
   madaSetzeSchritt(1); const z1=$("mada_zurueck").disabled;
-  madaSetzeSchritt(9);
+  madaSetzeSchritt(8);
   return {z1,w9:$("mada_weiter").textContent,gesperrt:$("mada_weiter").disabled};
  });
  p(nav.z1,"auf dem ersten Register ist Zurueck gesperrt",nav);
@@ -434,7 +434,9 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
   blechRollenbreiten=[];
   return {moeglich:r.moeglich.length,zuSchmal:r.zuSchmal,text:t,warnung:w};
  });
- p(schmal.moeglich===0&&schmal.zuSchmal.length===2&&/breit genug/.test(schmal.text)&&schmal.warnung,
+ p(schmal.moeglich===0&&schmal.zuSchmal.length===2
+   &&/(breit genug|so breit wie die Abwicklung)/.test(schmal.text)
+   &&/Zu schmal für dieses Profil/.test(schmal.text)&&schmal.warnung,
    "zu schmale Rollen werden gesagt, nicht still gerechnet",schmal);
 
  // ---- I · Ausmass ---------------------------------------------------------
@@ -497,8 +499,13 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
   return {hidden:b2.hidden,display:st.display,hoehe:Math.round(b2.getBoundingClientRect().height)};
  });
  p(zu.hidden&&zu.display==="none"&&zu.hoehe===0,"waehrend der Register ist der Fotobereich zu",zu);
- await reg(page,9);
- p(await klick(page,"#mada_fertig")==="ok","Knopf Fertig > Fotos und Speichern");
+ await reg(page,8);
+ // Der letzte Weiter-Knopf IST seit v2.80 der Fertig-Knopf - es gibt keinen
+ // eigenen mehr, genau wie in den uebrigen vier Arten.
+ const fertigMada=await page.evaluate(()=>$("mada_weiter").textContent.trim());
+ p(/Fertig/.test(fertigMada)&&/Fotos/.test(fertigMada),
+   "der letzte Knopf heisst Fertig > Fotos und Speichern",fertigMada);
+ p(await klick(page,"#mada_weiter")==="ok","und ist bedienbar");
  const auf=await page.evaluate(()=>{
   const b2=$("measMedienBereich"), st=getComputedStyle(b2);
   return {hidden:b2.hidden,display:st.display,hoehe:Math.round(b2.getBoundingClientRect().height),

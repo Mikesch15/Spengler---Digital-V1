@@ -13178,3 +13178,161 @@ Arten, die den Fotobereich sofort zeigen (jetzt 71/71 statt 60/60).
   das unverändert.
 - Der Prototyp unter `prototyp-mauerabdeckung/` bleibt auf seinem Branch
   bestehen – er ist jetzt die Vorlage, nicht mehr die einzige Stelle.
+
+## 87. GLEICHE REGISTER, GLEICHE ZUSCHNITT-OPTIMIERUNG — VERSION 2.80
+
+Die fünf umgebauten Massaufnahme-Arten (Rinne Halbrund, Einlaufblech gerade,
+Einlaufblech konisch, Freies Profil, Mauerabdeckung) hatten dieselben Schritte,
+aber in unterschiedlicher Reihenfolge und mit unterschiedlich benannten
+Registern; die Zuschnitt-Optimierung war fünfmal eigenständig gebaut. Beides ist
+jetzt vereinheitlicht. **Keine Schemaänderung, keine Migration, keine
+RLS-/Storage-Änderung, keine Fachdatei angefasst, keine Rechnung verändert.**
+
+### 87.1 Register: gleicher Name, gleiche Reihenfolge
+
+Der Abschluss ist in **allen fünf** Arten derselbe:
+**… → Zuschnitt → Ausmass → Kontrolle**, mit „Grunddaten" immer als Register 1
+und der Kontrolle immer zuletzt.
+
+| Art | vorher | jetzt |
+|---|---|---|
+| Rinne Halbrund | Grunddaten · Verlauf · Komponenten · **Kontrolle · Ausmass · Zuschnitt** (Stückliste und Normlängen in einem Register) | Grunddaten · Verlauf · Komponenten · **Stückliste · Zuschnitt · Ausmass · Kontrolle** |
+| Einlaufblech gerade | Grunddaten · Geometrie · Stücke · **Kontrolle · Ausmass · Zuschnitt** | Grunddaten · Geometrie · Stücke · **Zuschnitt · Ausmass · Kontrolle** |
+| Einlaufblech konisch | wie gerade | wie gerade |
+| Freies Profil | … · **Segmente & Ausmass · Zuschnitt · Kontrolle** | … · **Segmente · Zuschnitt · Ausmass · Kontrolle** |
+| Mauerabdeckung | … · Stückliste · Zuschnitt · Ausmass · Kontrolle · **Fotos & Speichern** | … · Stückliste · Zuschnitt · Ausmass · **Kontrolle** |
+
+Zwei Register wurden dafür geteilt (Rinne: Stückliste/Zuschnitt; Freies Profil:
+Segmente/Ausmass), eines entfiel (Mauerabdeckung: „Fotos & Speichern"). **Kein
+Inhalt ging verloren** – die Mauerabdeckung führt jetzt wie die übrigen vier
+Arten über den letzten Weiter-Knopf „Fertig › Fotos und Speichern" zum
+Fotobereich, statt dafür ein eigenes Register zu haben.
+
+Die Marke am Kontroll-Register hing in jedem Modul an einer **festen Nummer**
+(`r.nr===4` bzw. `===7`). Sie hängt jetzt überall an `*_KONTROLLE =
+*_REGISTER.length` – wird ein Register eingefügt, wandert sie mit, statt still
+am falschen zu sitzen.
+
+### 87.2 Eine Darstellung für den Zuschnitt: js/33-zuschnitt.js
+
+Neue Datei mit **einer** Renderfunktion `zuschnittHtml(plan)`. Jede Art bringt
+ihren Plan in dieselbe Form (`*ZuschnittPlan()`) und ruft sie auf. Aufbau, in
+jeder Art identisch:
+
+1. Einleitungssatz (was geschnitten wird)
+2. **Kennzahlen – immer zuerst die STREIFENBREITE**
+3. Fehler und Hinweise
+4. Tabelle je Rollenbreite bzw. je Normlänge, beste Zeile hervorgehoben
+5. Belegung: welches Stück liegt in welchem Streifen bzw. in welcher Stange
+6. Fusszeile: woher die Breiten/Längen kommen
+
+**Gerechnet wird weiterhin in den Modulen.** Es gibt unverändert genau **eine**
+Packrechnung (`ebaPackeInStreifen` in js/29) und **eine** Normlängen-Rechnung
+(`raNormPlan` in js/28) – js/33 stellt nur dar. Die alten, je Modul eigenen
+Tabellen sind entfallen; der Prüfstand kontrolliert dauerhaft, dass keine
+zurückkommt.
+
+### 87.3 Die Streifenbreite steht überall
+
+Sie ist die erste Kennzahl und wird darunter noch einmal als Satz genannt:
+„Auf **330 mm** muss der Streifen geschnitten werden – das ist die Abwicklung
+des Profils."
+
+- **Freies Profil** hat als einzige Art mehrere Streifenbreiten (jedes Segment
+  hat seine eigene Abwicklung). Die Kennzahl heisst dann „Streifenbreiten" und
+  listet alle; „Str./Tafel" steht ehrlich auf „–", weil das bei mehreren
+  Breiten keine einzelne Zahl ist.
+- **Rinne Halbrund** schneidet keinen Streifen von der Rolle, sondern bezieht
+  ein fertiges Profil in Normlängen. Die Kennzahl steht trotzdem an derselben
+  Stelle und sagt **„entfällt"**, dazu ein Satz mit der Begründung – statt sie
+  wegzulassen (dann wüsste man nicht, ob sie fehlt oder nicht gilt) oder eine
+  Zahl zu erfinden.
+
+### 87.4 Nichts verschwiegen
+
+- „Zu lang für eine Tafel/Stange" nennt die betroffenen Stücke mit ihrer Nummer
+  und sagt ausdrücklich, dass sie **nicht** im Plan enthalten sind.
+- Zu schmale Rollen werden aufgezählt.
+- Reicht das Suchbudget nicht, heisst es „beste gefundene Verteilung" und
+  **nicht** die günstigste.
+- Freies Profil: Segmente ohne Länge oder ohne Masse werden mit ihrer Nummer
+  genannt, statt still weggelassen zu werden.
+- Rinne: ohne hinterlegte Normlänge wird **nicht** gerechnet; die Karte sagt,
+  wo sie einzutragen ist. Der Zusatz nennt Material und Grösse, für die der
+  Plan gilt.
+
+### 87.5 Getestet
+
+**Neuer Prüfstand `pruefstaende/pruefstand-register-zuschnitt-v2-80.js` –
+125/125**, echtes Chromium gegen die echte `index.html`: Registernamen und
+-reihenfolge je Art, die Leiste zeigt genau diese Namen, der letzte Knopf heisst
+überall „Fertig › Fotos und Speichern" und ist bedienbar, alle fünf Arten
+zeichnen mit `zuschnittHtml`, keine Art hat eine eigene Tabelle mehr, mit echten
+Daten vier Kennzahlen mit der Streifenbreite zuerst, kein NaN, Belegung und
+Fusszeile vorhanden, leerer Zustand, vier Bildschirmbreiten.
+
+**Sechs Gegenproben**, jede baut einen echten Fehler ein und wirft den Prüfstand
+um: Kontrolle bei Einlaufblech wieder auf Register 4 (116/125) · Streifenbreite
+nicht mehr zuerst (121/125) · Mauerabdeckung mit eigener Tabelle (116/125) ·
+Mauerabdeckung behält „Fotos & Speichern" (122/125) · Rinne erfindet eine
+Streifenbreite statt „entfällt" (124/125) · Freies Profil mit eigenen Tabellen
+(116/125).
+
+**Volle Regression grün**: rinneapp71 104/104, einlaufblech-app 98/98,
+konisch-app 113/113, freies-profil-app 118/118, mauerabdeckung-app 144/144,
+medien-am-ende 76/76, dila-sichtbar 57/57, verschnitt-app 1578/1578,
+pdf52 526/526, kehle52 698/698, rinne57 379/379, required70 359/359,
+einf70 185/185, offline70 117/117, feedback63 108/108, freipos65 99/99,
+dila70 85/85, fotos70 88/88, fp70 83/83, breite57 84/84,
+kehleintegration52 76/76, feedback70 47/47, einstbrowser68 47/47,
+ebg70 49/49, mad70 45/45, module67 43/43, einst68 43/43, medien50 42/42,
+adresse45 39/39, pfade55 38/38, dateien49 38/38, projekte47 37/37,
+status46 35/35, auswahl48 32/32, breite52 52/52, modulebrowser67 16/16,
+suche45 13/13, kopf45 8/8, hidden51 7/7, abstand69 2/2 sowie nav, suche40,
+treffer40, recent41, stand42, dateien43, ui39 ohne Fehlschlag.
+
+**Regierapport nachweislich unverändert**: der Druck wurde in echtem Chromium
+unter `media:print` mit ausgelöstem `beforeprint` gegen den v2.79-Stand
+gerendert – **Bild und DOM byteidentisch** (Bild `85706e5d7a1eb615`, DOM
+`3066be99c3200173`, 110 584 Bytes). `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+
+`node --check` über alle 31 `js/*.js`, `sw.js` und alle Prüfstände fehlerfrei;
+`<div>`/`</div>` in `index.html` ausgeglichen (686/686); keine doppelten
+Element-IDs; jede js-Datei in der Service-Worker-Liste und in `index.html`.
+
+**Angepasste Erwartungen in bestehenden Prüfständen** – alle **überholt**, keine
+davon ein Codefehler: die Registernummern in den fünf Modul-Prüfständen, die
+Registerzahl (9→8 bei der Mauerabdeckung, 7→8 beim Freien Profil, 6→7 bei der
+Rinne), der Wortlaut der „keine Rolle breit genug"-Warnung und der Sprungknopf
+aus dem Dehnungs-Block (zeigt jetzt auf die Stückliste). Der Prüfstand
+`medien-am-ende` liest die Registerzahl jetzt aus der Leiste statt sie
+anzunehmen. `fotos70` führte konisch, Freies Profil und Mauerabdeckung noch
+unter den Arten, die den Fotobereich sofort zeigen – **das war schon vor dieser
+Runde falsch** (gegen den v2.79-Stand nachgemessen: ebenfalls 85/88) und ist
+jetzt mitkorrigiert.
+
+**Zwei Beobachtungen aus dem echten Browser** (gemessen, nicht vermutet):
+- Die langen Spaltenköpfe der Rollentabelle brachen auf 412 px mitten im Wort
+  („ROLLENBREI TE"). Sie heissen jetzt kurz „Rolle · Str./Tafel · Tafeln ·
+  Fläche · Verschnitt · Anteil".
+- Der Prüfstand `medien-am-ende` scheiterte an der 2,5-Sekunden-Hervorhebung
+  der jeweils vorigen Art. Das ist eine Eigenheit des Laufs, nicht der App; der
+  Prüfstand wartet jetzt ab, statt eine Zahl zu raten.
+
+### 87.6 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+- Zwei Arten klappt „Fertig" die Hervorhebung des Fotobereichs für 2,5 s auf.
+  Werden zwei Arten kurz nacheinander abgeschlossen, nimmt der ältere Timer die
+  neue Hervorhebung weg – rein kosmetisch, seit v2.71 so, nicht Teil dieser
+  Runde.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei vielen Stücken heisst das Ergebnis „beste gefundene
+  Verteilung".
+- Die übrigen sechs Massaufnahme-Arten (Skizze/Foto, Lukarne,
+  Ort-/Seitenbleche, Einfassung Rund, Kehle, Rinne-Zuschnittliste) haben keine
+  Register und keinen Zuschnitt aus Rollenblech – sie sind von dieser
+  Vereinheitlichung nicht berührt.

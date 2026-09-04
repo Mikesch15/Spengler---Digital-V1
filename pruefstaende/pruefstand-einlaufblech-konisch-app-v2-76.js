@@ -242,7 +242,9 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
  });
 
  console.log("\nH · Flaeche und Rollenblech");
- await reg(page,6);
+ // Seit v2.80 steht der Zuschnitt in ALLEN Arten auf Register 4, die
+ // Kontrolle immer zuletzt.
+ await reg(page,4);
  const roll=await page.evaluate(()=>{
   const plan=ebkaRollenPlan();
   return {flaeche:ebkaFlaecheM2(), tafel:plan.tafelLaenge,
@@ -283,7 +285,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
  p(folgt.vor!==folgt.nach,"das Ausmass folgt einer Aenderung sofort",folgt);
 
  console.log("\nJ · Kontrolle");
- await reg(page,4);
+ await reg(page,6);
  const k1=await page.evaluate(()=>ebkaPruefungen().filter(x=>x.art==="fehler").length);
  p(k1===0,"vollstaendige Aufnahme: kein Fehler",k1);
  const k2=await page.evaluate(()=>{
@@ -452,7 +454,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
  console.log("\nN · Leerer Zustand");
  const leer=await page.evaluate(()=>{
   ebkaZuruecksetzen();
-  ebkaSetzeSchritt(6);
+  ebkaSetzeSchritt(4);
   const t6=$("einlaufblechKonischAufnahme").innerText;
   ebkaSetzeSchritt(5);
   const t5=$("einlaufblechKonischAufnahme").innerText;

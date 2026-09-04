@@ -177,7 +177,9 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  await page.waitForTimeout(150);
 
  console.log("\nG · Flaeche und Rollenblech");
- await reg(page,6);
+ // Seit v2.80 steht der Zuschnitt in ALLEN Arten auf Register 4, die
+ // Kontrolle immer zuletzt.
+ await reg(page,4);
  const roll=await page.evaluate(()=>{
   const plan=ebaRollenPlan();
   return {flaeche:ebaFlaecheM2(), tafel:plan.tafelLaenge,
@@ -219,7 +221,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
    (am.text.match(/\bCHF\b|\bFr\.|\bArtikel-?Nr/i)||[])[0]);
 
  console.log("\nI · Kontrolle");
- await reg(page,4);
+ await reg(page,6);
  const k1=await page.evaluate(()=>({fehler:ebaPruefungen().filter(x=>x.art==="fehler").length}));
  p(k1.fehler===0,"vollstaendige Aufnahme: kein Fehler",k1);
  const k2=await page.evaluate(()=>{
@@ -388,7 +390,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  console.log("\nL · Leerer Zustand");
  const leer=await page.evaluate(()=>{
   ebaZuruecksetzen(); renderEinlaufblechAufnahme();
-  ebaSetzeSchritt(6);
+  ebaSetzeSchritt(4);
   const t6=$("einlaufblechAufnahme").innerText;
   ebaSetzeSchritt(5);
   const t5=$("einlaufblechAufnahme").innerText;

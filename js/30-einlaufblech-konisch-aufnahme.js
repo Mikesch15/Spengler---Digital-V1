@@ -29,10 +29,16 @@
 //   - Zuschnitt aus Rollenblech (dieselbe Rechnung wie beim geraden Blech)
 // ===========================================================================
 
+// Die Register heissen und stehen in ALLEN Massaufnahme-Arten gleich:
+// die fachlichen Schritte zuerst, danach Zuschnitt, Ausmass und zuletzt die
+// Kontrolle.
 const EBKA_REGISTER=[
  {nr:1,kurz:"Grunddaten"},{nr:2,kurz:"Geometrie"},{nr:3,kurz:"Stücke"},
- {nr:4,kurz:"Kontrolle"},{nr:5,kurz:"Ausmass"},{nr:6,kurz:"Zuschnitt"}
+ {nr:4,kurz:"Zuschnitt"},{nr:5,kurz:"Ausmass"},{nr:6,kurz:"Kontrolle"}
 ];
+// Die Kontrolle ist immer das LETZTE Register - die Marke haengt deshalb an
+// der Registerzahl, nicht an einer festen Nummer.
+const EBKA_KONTROLLE=EBKA_REGISTER.length;
 let ebkaSchritt=1;
 
 const ebkaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
@@ -342,43 +348,27 @@ function ebkaAusmassHtml(){
 Ohne Artikelnummern und ohne Preise – das Ausmass entsteht allein aus dieser Aufnahme.</div>`;
 }
 
-function ebkaZuschnittHtml(){
+// Der Plan wird in die gemeinsame Form gebracht (js/33) und dort dargestellt -
+// damit sieht der Zuschnitt in allen Massaufnahme-Arten gleich aus. Gerechnet
+// wird weiterhin hier bzw. in ebaPackeInStreifen().
+function ebkaZuschnittPlan(){
  const plan=ebkaRollenPlan();
  const v=plan.verteilung||{};
- const breiten=(typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[];
- if(!plan.moeglich.length){
-  const grund=!ebkaGesamtlaenge()?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."
-   :(!breiten.length?"Es ist keine Rollenbreite hinterlegt."
-   :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung ("+esc(ebkaMm(ebkA.abwicklung))+" mm).");
-  return `<div class="small">${grund}</div>`;
- }
- const zuLang=(v.zuLang||[]);
- const streifenTab=(v.streifen||[]).map((s,i)=>`<tr><td>${i+1}</td>
-<td>${s.stuecke.map(x=>"Stück "+x.nr+" · "+ebkaMm(x.laenge)+" mm").join("<br>")}</td>
-<td>${esc(ebkaMm(plan.tafelLaenge-s.rest))} mm</td><td>${esc(ebkaMm(s.rest))} mm</td></tr>`).join("");
- return `<div class="small" style="margin-bottom:6px">Von der Rolle wird eine <b>Tafel</b> abgeschnitten und quer in Streifen der
-Abwicklungsbreite geteilt. Die Tafel ist so lang wie das längste Stück (<b>${esc(ebkaMm(plan.tafelLaenge))} mm</b>);
-in einem Streifen dürfen mehrere Stücke hintereinander liegen. Die Konizität wird innerhalb des
-Streifens angerissen und ändert die benötigte Fläche nicht.</div>
-${zuLang.length?`<div class="ra-fehler">Zu lang für eine Tafel: ${esc(zuLang.map(x=>"Stück "+x.nr).join(", "))}.</div>`:""}
-<div class="scroll"><table class="eb-table eba-tab">
-<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafelfläche</th><th>Verschnitt</th><th>Anteil</th></tr></thead>
-<tbody>${plan.moeglich.map((x,i)=>`<tr${i===0?' class="ra-dila-zeile"':""}>
-<td>${esc(x.breite)} mm${i===0?" <b>(beste)</b>":""}</td><td>${esc(x.jeTafel)}</td><td>${esc(x.tafeln)}</td>
-<td>${esc(x.flaeche.toFixed(2).replace(".",","))} m²</td>
-<td>${esc(x.verschnitt.toFixed(2).replace(".",","))} m²</td>
-<td>${esc(x.anteil.toFixed(0))} %</td></tr>`).join("")}</tbody>
-</table></div>
-${plan.zuSchmal.length?`<div class="small" style="margin-top:6px;color:var(--muted)">Zu schmal für die Abwicklung: ${esc(plan.zuSchmal.join(", "))} mm.</div>`:""}
-<h2 style="margin-top:14px">So liegen die Stücke in den Streifen</h2>
-${v.optimal===false?`<div class="ra-warnung">Beste gefundene Verteilung – die Suche wurde abgebrochen, sie ist nicht nachweislich die günstigste.</div>`:""}
-<div class="scroll"><table class="eb-table eba-tab">
-<thead><tr><th>Streifen</th><th>Stücke mit ihrer Länge</th><th>belegt</th><th>Rest</th></tr></thead>
-<tbody>${streifenTab||'<tr><td colspan="4" class="small">–</td></tr>'}</tbody>
-</table></div>
-<div class="small" style="margin-top:8px">Blechfläche netto <b>${esc(ebkaFlaecheM2().toFixed(2).replace(".",","))} m²</b> ·
-Rollenbreiten aus <b>Einstellungen → Massaufnahmen → Einlaufblech gerade</b> (firmenweit, gilt für beide Arten).</div>`;
+ const streifen=v.streifen||[];
+ const A=ebkaZahl(ebkA.abwicklung);
+ return {art:"rolle", einheit:"Stück",
+  einleitung:ZU_EINLEITUNG_ROLLE,
+  zusatz:"Die Konizität wird innerhalb des Streifens angerissen und ändert die benötigte Fläche nicht.",
+  quelle:ZU_QUELLE_ROLLE,
+  leer:!(ebkA.stuecke||[]).length?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."
+      :(!((typeof ebaRollenbreiten==="function")?ebaRollenbreiten():[]).length?"Es ist keine Rollenbreite hinterlegt."
+      :"Kein Stück lässt sich auf eine Tafel legen."),
+  streifenbreiten:[A],
+  gruppen:streifen.length?[{breite:A,tafelLaenge:plan.tafelLaenge,streifen}]:[],
+  moeglich:plan.moeglich, netto:ebkaFlaecheM2(),
+  zuSchmal:plan.zuSchmal, zuLang:v.zuLang||[], optimal:v.optimal!==false};
 }
+function ebkaZuschnittHtml(){return zuschnittHtml(ebkaZuschnittPlan())}
 
 // ---- Register --------------------------------------------------------------
 function ebkaSetzeSchritt(n){
@@ -394,7 +384,7 @@ function ebkaRegisterHtml(){
  const fehler=pr.filter(m=>m.art==="fehler").length;
  const warn=pr.length-fehler;
  return `<div class="ra-register" id="ebka_register">`+EBKA_REGISTER.map(r=>{
-  const marke=r.nr===4&&(fehler||warn)
+  const marke=r.nr===EBKA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===ebkaSchritt?" aktiv":""}" data-ebka-schritt="${r.nr}">`
    +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
@@ -404,9 +394,9 @@ function ebkaSchrittInhalt(){
  if(ebkaSchritt===1)return ebkaKarte("1 · Grunddaten",ebkaGrunddatenHtml());
  if(ebkaSchritt===2)return ebkaKarte("2 · Geometrie",ebkaGeometrieHtml());
  if(ebkaSchritt===3)return ebkaKarte("3 · Stücke und Aufteilung",ebkaStueckeHtml());
- if(ebkaSchritt===4)return ebkaKarte("4 · Kontrolle",ebkaKontrolleHtml());
+ if(ebkaSchritt===4)return ebkaKarte("4 · Zuschnitt aus Rollenblech",ebkaZuschnittHtml());
  if(ebkaSchritt===5)return ebkaKarte("5 · Ausmass und Material",ebkaAusmassHtml());
- return ebkaKarte("6 · Zuschnitt aus Rollenblech",ebkaZuschnittHtml());
+ return ebkaKarte("6 · Kontrolle",ebkaKontrolleHtml());
 }
 // Der Übernahme-Block aus dem HTML gehört in Register 3, darf aber NICHT in
 // einen Container, der per innerHTML neu geschrieben wird: js/14 hat seinen

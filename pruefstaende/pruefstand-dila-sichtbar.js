@@ -74,10 +74,10 @@ const zeige=(page,n)=>page.evaluate(k=>{raSetzeSchritt(k);
  p(/6 · Zuschnitt/.test(t3),"Verweis auf 6 · Zuschnitt");
  const knoepfe=await page.evaluate(()=>({
   ueb:!!document.getElementById("ra_dehnungUebernehmen"),
-  zu6:!!document.querySelector('[data-ra-zu="6"]'),
+  zu6:!!document.querySelector('[data-ra-zu="4"]'),
   zu2:!!document.querySelector('[data-ra-zu="2"]')}));
  p(knoepfe.ueb,"Knopf 'Als Dehnungsstuecke uebernehmen'");
- p(knoepfe.zu6,"Knopf zum Zuschnitt");
+ p(knoepfe.zu6,"Knopf zur Stueckliste (dort stehen die Positionen)");
  p(knoepfe.zu2,"Knopf zurueck zum Verlauf");
 
  console.log("\nD · Uebernehmen traegt die Anzahl ein");
@@ -91,17 +91,17 @@ const zeige=(page,n)=>page.evaluate(k=>{raSetzeSchritt(k);
  p(de.anzahl===2,"Anzahl 2 uebernommen",de);
  p(de.feld,"Feld 'Anzahl Dehnungsstuecke' erscheint",de);
  p(de.schritt===3,"bleibt im Register 3",de);
- const amText=await zeige(page,5);
+ const amText=await zeige(page,6);
  p(/Dehnungsst/i.test(amText),"Dehnungsstuecke stehen jetzt im Ausmass");
 
- console.log("\nE · Sprung in den Zuschnitt");
+ console.log("\nE · Sprung in die Stueckliste");
  await zeige(page,3);
- await page.evaluate(()=>{const b=document.querySelector('[data-ra-zu="6"]');if(b)b.click()});
+ await page.evaluate(()=>{const b=document.querySelector('[data-ra-zu="4"]');if(b)b.click()});
  await page.waitForTimeout(150);
  const nach=await page.evaluate(()=>({schritt:raSchritt,
    felder:document.querySelectorAll("[data-ra-dila-abstand]").length,
    auto:document.getElementById("ra_dilaAuto")?document.getElementById("ra_dilaAuto").disabled:null}));
- p(nach.schritt===6,"Register 6 offen",nach);
+ p(nach.schritt===4,"Register 4 (Stueckliste) offen",nach);
  p(nach.felder===2,"zwei anpassbare Dila-Abstaende",nach);
  p(nach.auto===true,"'Zurueck zur Berechnung' noch gesperrt",nach);
 
@@ -119,7 +119,7 @@ const zeige=(page,n)=>page.evaluate(k=>{raSetzeSchritt(k);
  p(/Von Hand festgelegt/i.test(t3h),"Register 3 sagt 'Von Hand festgelegt'");
  p(/Dehnungselement 1 bei .*3.000 mm ab START/.test(t3h),"Register 3 zeigt die neue Position");
  p(/Von Hand angepasst/i.test(t3h),"Hinweis, dass nicht mehr gerechnet wird");
- await zeige(page,6);
+ await zeige(page,4);
  const autoDa=await page.evaluate(()=>{const b=document.getElementById("ra_dilaAuto");
   if(!b||b.disabled)return false; b.click(); return true;});
  p(autoDa,"'Zurueck zur Berechnung' ist jetzt bedienbar");

@@ -108,10 +108,10 @@ const profil=async(page,liste)=>{
   aktiv:document.querySelectorAll("#fpa_register .ra-register-knopf.aktiv").length,
   schritt:fpaSchritt
  }));
- p(b1.anzahl===7&&b1.aktiv===1&&b1.schritt===1,"sieben Register, eines aktiv",b1);
+ p(b1.anzahl===8&&b1.aktiv===1&&b1.schritt===1,"acht Register, eines aktiv",b1);
  const eigen=await page.evaluate(()=>{
   let eigenN=0,fremd=0;
-  for(let n=1;n<=7;n++){
+  for(let n=1;n<=8;n++){
    fpaSetzeSchritt(n);
    const h=[...document.querySelectorAll("#fpa_kopf h2")].map(x=>x.textContent.trim());
    if((h[0]||"").indexOf(n+" ·")===0)eigenN++;
@@ -120,7 +120,7 @@ const profil=async(page,liste)=>{
   fpaSetzeSchritt(1);
   return {eigenN,fremd};
  });
- p(eigen.eigenN===7&&eigen.fremd===0,"jedes Register zeigt nur seinen eigenen Inhalt",eigen);
+ p(eigen.eigenN===8&&eigen.fremd===0,"jedes Register zeigt nur seinen eigenen Inhalt",eigen);
 
  console.log("\nC · Grunddaten");
  await reg(page,1);
@@ -418,7 +418,7 @@ const profil=async(page,liste)=>{
   fpA.material="3";
   renderFreiesProfilAufnahme();
  });
- await reg(page,7);
+ await reg(page,8);
  const i0=await page.evaluate(()=>fpaPruefungen().filter(x=>x.art==="fehler").length);
  p(i0===0,"vollstaendige Aufnahme: kein Fehler",i0);
  const faelle=[
@@ -504,7 +504,7 @@ const profil=async(page,liste)=>{
   return {hidden:box.hidden,display:getComputedStyle(box).display};
  });
  p(vorFertig.hidden||vorFertig.display==="none","waehrend der Register ausgeblendet",vorFertig);
- await reg(page,7);
+ await reg(page,8);
  await klick(page,"#fpa_weiter");
  const nachFertig=await page.evaluate(()=>{
   const box=$("measMedienBereich"), r=box.getBoundingClientRect();
@@ -513,7 +513,7 @@ const profil=async(page,liste)=>{
  });
  p(nachFertig.display!=="none"&&nachFertig.hoehe>0,"nach Fertig sichtbar",nachFertig);
  p(nachFertig.markiert,"und hervorgehoben",nachFertig);
- p(nachFertig.schritt===7,"blaettert nicht ins Leere",nachFertig.schritt);
+ p(nachFertig.schritt===8,"blaettert nicht ins Leere",nachFertig.schritt);
 
  console.log("\nM · Druck");
  const druck=await page.evaluate(async pl=>{
@@ -545,7 +545,7 @@ const profil=async(page,liste)=>{
  for(const w of [360,412,768,1280]){
   await page.setViewportSize({width:w,height:1400});
   let schlimm=0; const wo=[];
-  for(let n=1;n<=7;n++){
+  for(let n=1;n<=8;n++){
    await reg(page,n);
    const m=await page.evaluate(br=>{
     const raus=[];
@@ -562,7 +562,7 @@ const profil=async(page,liste)=>{
    },w);
    if(m.raus.length||m.scrollt){schlimm++;wo.push("R"+n+": "+(m.raus.join(" | ")||"scrollWidth"))}
   }
-  p(schlimm===0,"Breite "+w+" px: alle sieben Register passen",wo.slice(0,3));
+  p(schlimm===0,"Breite "+w+" px: alle acht Register passen",wo.slice(0,3));
  }
  await page.setViewportSize({width:412,height:1400});
 

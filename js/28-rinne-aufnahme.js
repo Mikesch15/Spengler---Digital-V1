@@ -690,7 +690,7 @@ ${dila.dilas.length
    :"– von Hand auf kein Dehnungselement gesetzt."}</div>`}
 <div class="bar">
 ${dila.dilas.length?`<button type="button" class="gray" id="ra_dehnungUebernehmen">Als Dehnungsstücke übernehmen</button>`:""}
-<button type="button" class="gray" data-ra-zu="6">Positionen anpassen (6 · Zuschnitt)</button>
+<button type="button" class="gray" data-ra-zu="4">Positionen anpassen (4 · Stückliste)</button>
 </div>
 <div class="ra-klein">${dila.automatisch
  ? "Gerechnet nach dem bestehenden Modul (Material, Fixpunkte, Schiebestutzen). Die Abstände lassen sich in <b>6 · Zuschnitt</b> von Hand überschreiben."
@@ -750,7 +750,7 @@ sie kommen aus der Materialliste der Firma.</div>`;
 
 // Zuschnitt. Die Dila-Zeilen sind editierbar: der Abstand zum Punkt davor
 // lässt sich überschreiben, die Zeile lässt sich löschen.
-function raZuschnittHtml(){
+function raStuecklisteHtml(){
  const a=rinneA, d=raDilas(a);
  const st=berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass);
  const zeilen=st.map(s=>{
@@ -777,54 +777,72 @@ function raZuschnittHtml(){
 </div>`;
 }
 
-// Materialbedarf: welche Normlängen, wie viele, und was übrig bleibt.
-function raNormHtml(){
+// Materialbedarf: aus welchen Normlängen die Stücke geschnitten werden.
+// Der Plan wird in die gemeinsame Form gebracht (js/33) und dort dargestellt -
+// damit sieht der Zuschnitt in allen Massaufnahme-Arten gleich aus. Gerechnet
+// wird weiterhin ausschliesslich raNormPlan().
+//
+// Anders als bei den Blech-Arten wird hier NICHT von der Rolle geschnitten:
+// eine Rinne ist ein fertiges Profil in Normlängen. Die Kennzahl
+// "Streifenbreite" steht trotzdem an derselben Stelle und sagt ehrlich
+// "entfällt", statt sie wegzulassen.
+function raZuschnittPlan(){
+ const a=rinneA, normen=raNormlaengenFuer(a)||[];
+ const r=raNormErgebnis(a);
+ // raPasst() rechnet mit nackten Laengen. Fuer die Belegung wird jeder Wert
+ // wieder seiner Stuecknummer zugeordnet - jedes Stueck genau einmal.
+ const vorrat=raStueckliste(a).map(x=>({nr:x.nr,laenge:Math.round(raZahl(x.zuschnitt))}))
+   .filter(x=>x.laenge>0);
+ const hole=l=>{
+  const i=vorrat.findIndex(x=>x.laenge===l);
+  if(i<0)return {nr:"?",laenge:l};
+  return vorrat.splice(i,1)[0];
+ };
+ const stangen=(r.stangen||[]).map(st=>({laenge:st.laenge,rest:st.rest,
+   stuecke:(st.stuecke||[]).map(hole)}));
+ const zuLang=(r.zuLang||[]).map(hole);
+ return {art:"stange", einheit:"Stück",
+  einleitung:ZU_EINLEITUNG_STANGE,
+  // Fuer welches Material und welche Groesse die Normlaengen gelten - sonst
+  // waere nicht erkennbar, worauf sich der Plan bezieht.
+  zusatz:"Gilt für <b>"+esc(raMaterialText(a))+" "+esc(raGroesseText(a))+"</b>.",
+  quelle:ZU_QUELLE_STANGE,
+  leer:"Noch nichts zuzuschneiden.",
+  normen, stangen, zuLang,
+  gesamt:r.gesamt, summeStuecke:r.summeStuecke, verschnitt:r.verschnitt,
+  optimal:r.optimal!==false};
+}
+function raZuschnittHtml(){
  const a=rinneA, normen=raNormlaengenFuer(a);
+ // Ohne hinterlegte Normlaenge wird NICHT gerechnet - das Ergebnis beruhte
+ // sonst auf einer geratenen Stangenlaenge.
  if(normen===null||!normen.length)
   return `<div class="info ra-warn">Für <b>${esc(raMaterialText(a))} ${esc(raGroesseText(a))}</b> ist keine
 Normlänge hinterlegt. Der Materialbedarf wird deshalb <b>nicht</b> gerechnet – er würde sonst auf einer
 geratenen Stangenlänge beruhen. Einzutragen unter <b>Einstellungen → Massaufnahmen → Rinne</b>.</div>`;
- const r=raNormErgebnis(a);
- if(!r.stangen.length&&!r.zuLang.length)
-  return `<div class="info">Noch nichts zuzuschneiden.</div>`;
- const nachLaenge={};
- r.stangen.forEach(s=>{nachLaenge[s.laenge]=(nachLaenge[s.laenge]||0)+1});
- const bedarf=Object.keys(nachLaenge).map(Number).sort((x,y)=>y-x)
-  .map(l=>`${nachLaenge[l]} × ${raMeter(l)} m`).join(" · ");
- const anteil=r.gesamt>0?(r.verschnitt/r.gesamt*100):0;
- return `<div class="info">Aus welchen Normlängen die Stücke geschnitten werden, so dass möglichst wenig übrig bleibt.
-Mehrere Stücke dürfen aus derselben Stange kommen. Verfügbar für ${esc(raMaterialText(a))} ${esc(raGroesseText(a))}:
-<b>${normen.map(n=>raMeter(n)+" m").join(" · ")}</b>.</div>
-<div class="grid">
-${raFeld("Bedarf",`<div class="ra-wert">${esc(bedarf)}</div>`)}
-${raFeld("Verschnitt",`<div class="ra-wert">${esc(raMm(r.verschnitt))} mm (${anteil.toFixed(1).replace(".",",")} %)</div>`)}
-</div>
-<div class="scroll"><table class="eb-table ra-tab">
-<thead><tr><th>Stange</th><th>Normlänge</th><th>Zuschnitte (mm)</th><th>Rest (mm)</th></tr></thead>
-<tbody>${r.stangen.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(raMeter(s.laenge))} m</td>`
- +`<td>${s.stuecke.map(x=>esc(raMm(x))).join(" + ")||"–"}</td>`
- +`<td${s.rest>0?' class="ra-rest"':""}>${esc(raMm(s.rest))}</td></tr>`).join("")}</tbody></table></div>
-<div class="small" style="color:var(--muted);margin-top:6px">${r.optimal
- ? `Kombination mit dem geringsten Materialeinsatz – ${esc(raMm(r.gesamt))} mm Normlänge für ${esc(raMm(r.summeStuecke))} mm Zuschnitt.`
- : "Beste gefundene Kombination. Bei dieser Stückzahl wurde nicht jede Möglichkeit durchgerechnet."}</div>
-${r.zuLang.length?`<div class="info ra-warn"><b>Achtung:</b> ${r.zuLang.length} Zuschnitt(e)
-(${r.zuLang.map(x=>esc(raMm(x))).join(", ")} mm) sind länger als die längste Normlänge
-(${esc(raMeter(Math.max.apply(null,normen)))} m) und lassen sich nicht aus einer Stange schneiden.
-Im Plan oben sind sie <b>nicht</b> enthalten.</div>`:""}`;
+ return zuschnittHtml(raZuschnittPlan());
 }
-
 // ---- Register: durch die Massaufnahme führen ------------------------------
 // Sechs Register wie in der Testapp. Immer nur eines ist sichtbar; die Daten
 // liegen ausschliesslich im Modell rinneA, nicht im Formular - ein Register
 // zu wechseln kann deshalb nichts verlieren.
+// Die Register heissen und stehen in ALLEN Massaufnahme-Arten gleich:
+// die fachlichen Schritte zuerst, danach Stueckliste, Zuschnitt, Ausmass und
+// zuletzt die Kontrolle. Stueckliste und Zuschnitt waren bis v2.79 ein
+// Register - sie sind jetzt getrennt, damit der Zuschnitt ueberall an
+// derselben Stelle steht.
 const RA_REGISTER=[
  {nr:1,titel:"Grunddaten",     kurz:"Grunddaten"},
  {nr:2,titel:"Rinnenverlauf",  kurz:"Verlauf"},
  {nr:3,titel:"Komponenten",    kurz:"Komponenten"},
- {nr:4,titel:"Kontrolle",      kurz:"Kontrolle"},
- {nr:5,titel:"Ausmass",        kurz:"Ausmass"},
- {nr:6,titel:"Zuschnitt",      kurz:"Zuschnitt"}
+ {nr:4,titel:"Stückliste",     kurz:"Stückliste"},
+ {nr:5,titel:"Zuschnitt",      kurz:"Zuschnitt"},
+ {nr:6,titel:"Ausmass",        kurz:"Ausmass"},
+ {nr:7,titel:"Kontrolle",      kurz:"Kontrolle"}
 ];
+// Die Kontrolle ist immer das LETZTE Register - die Marke haengt deshalb an
+// der Registerzahl, nicht an einer festen Nummer.
+const RA_KONTROLLE=RA_REGISTER.length;
 let raSchritt=1;
 // Das letzte Register ist nicht das Ende der Massaufnahme: darunter stehen
 // noch Fotos/Skizzen, Notiz und der Speichern-Knopf der App. "Fertig" fuehrt
@@ -852,7 +870,7 @@ function raRegisterHtml(){
  const fehler=p.filter(m=>m.art==="fehler").length;
  const warn=p.length-fehler;
  return `<div class="ra-register" id="ra_register">`+RA_REGISTER.map(r=>{
-  const marke=r.nr===4&&(fehler||warn)
+  const marke=r.nr===RA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===raSchritt?" aktiv":""}" data-ra-schritt="${r.nr}">`
    +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
@@ -864,10 +882,10 @@ function raSchrittInhalt(){
  if(raSchritt===3)return raKarte("3 · Rinnenhalter",raKomponentenHtml())
       +raKarte("Rinnenboden und Dehnung",raDehnungHtml())
       +raKarte("Stutzen",raStutzenHtml());
- if(raSchritt===4)return raKarte("4 · Kontrolle",raKontrolleHtml());
- if(raSchritt===5)return raKarte("5 · Ausmass und Material",raAusmassHtml());
- return raKarte("6 · Zuschnitt",raZuschnittHtml())
-      +raKarte("Normlängen und Verschnitt",raNormHtml());
+ if(raSchritt===4)return raKarte("4 · Stückliste",raStuecklisteHtml());
+ if(raSchritt===5)return raKarte("5 · Zuschnitt aus Normlängen",raZuschnittHtml());
+ if(raSchritt===6)return raKarte("6 · Ausmass und Material",raAusmassHtml());
+ return raKarte("7 · Kontrolle",raKontrolleHtml());
 }
 function renderRinneAufnahme(){
  const ziel=$("rinneAufnahme");

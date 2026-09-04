@@ -410,6 +410,14 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
    kurze Spalten und sollen auf dem Handy ganz sichtbar sein - min-width
    muss dafuer AUSDRUECKLICH zurueckgesetzt werden, width:100% allein
    reicht nicht (siehe CLAUDE.md 60.5). */
+/* Zuschnitt-Optimierung (js/33): in allen Massaufnahme-Arten derselbe
+   Aufbau. Die Kennzahlen stehen immer in derselben Reihenfolge, zuerst die
+   Streifenbreite. .ra-wert-klein ist fuer laengere Aufzaehlungen (mehrere
+   Normlaengen), damit die Zeile nicht umbricht. */
+.zu-kennzahlen{margin:8px 0}
+.ra-wert-klein{font-size:12.5px}
+.zu-hinweis{color:var(--muted);margin-top:6px;line-height:1.5}
+.zu-gruppe{margin:10px 0 4px;color:var(--ink)}
 .eb-table.ra-tab{min-width:0;table-layout:auto}
 .eb-table.ra-tab td,.eb-table.ra-tab th{word-break:break-word}
 /* Register-Fuehrung durch die Rinnen-Massaufnahme (wie in der Testapp).

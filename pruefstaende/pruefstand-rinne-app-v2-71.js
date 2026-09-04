@@ -112,9 +112,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(plan.ok&&plan.optimal&&plan.gesamt===14000&&plan.verschnitt===1160,
    "Normlaengenplan: 14'000 mm, 1'160 mm Verschnitt, als bester ausgewiesen",
    {gesamt:plan.gesamt,verschnitt:plan.verschnitt,optimal:plan.optimal});
- await reg(6);
+ await reg(5);
  const txt=await page.locator("#rinneAufnahme").innerText();
- p(/Normlängen und Verschnitt/i.test(txt),"die Karte steht auf Register 6");
+ p(/Zuschnitt aus Normlängen/i.test(txt),"die Karte steht auf Register 5 (Zuschnitt)");
  p(/Kupfer/.test(txt)&&/330 mm/.test(txt),"Material und Groesse stehen dort",txt.slice(0,200));
 
  console.log("\nD · Speichern liefert die alten UND die neuen Felder");
@@ -167,7 +167,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
 
  console.log("\nF · Dehnungselemente von Hand");
  await setzeVerlauf();
- await reg(6);
+ await reg(4);
  const feld=page.locator("[data-ra-dila-abstand]").first();
  p(await page.locator("[data-ra-dila-abstand]").count()===2,"jede Dila-Zeile ist editierbar");
  await feld.fill("3000"); await feld.blur(); await page.waitForTimeout(250);
@@ -281,12 +281,15 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  console.log("\nJ · Register fuehren durch die Massaufnahme");
  await setzeVerlauf();
  const rnamen=await page.$$eval("[data-ra-schritt]",els=>els.map(e=>e.textContent.trim()));
- p(rnamen.length===6,"sechs Register",rnamen);
+ p(rnamen.length===7,"sieben Register",rnamen);
+ // Seit v2.80 in allen Massaufnahme-Arten dieselbe Reihenfolge:
+ // Fachschritte, dann Stueckliste, Zuschnitt, Ausmass, zuletzt die Kontrolle.
  p(/Grunddaten/.test(rnamen[0])&&/Verlauf/.test(rnamen[1])&&/Komponenten/.test(rnamen[2])
-   &&/Kontrolle/.test(rnamen[3])&&/Ausmass/.test(rnamen[4])&&/Zuschnitt/.test(rnamen[5]),
+   &&/Stückliste/.test(rnamen[3])&&/Zuschnitt/.test(rnamen[4])&&/Ausmass/.test(rnamen[5])
+   &&/Kontrolle/.test(rnamen[6]),
    "in der Reihenfolge der Massaufnahme",rnamen);
  // Immer genau EINES ist sichtbar
- for(let n=1;n<=6;n++){
+ for(let n=1;n<=7;n++){
   await reg(n);
   const st=await page.evaluate(()=>({
    aktiv:Array.from(document.querySelectorAll("[data-ra-schritt]"))
@@ -303,7 +306,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  // Auf schmalen Geraeten scrollt die Registerleiste - das aktive Register
  // muss darin sichtbar bleiben, sonst weiss man nicht, wo man ist.
  await page.setViewportSize({width:360,height:1400});
- for(const n of [6,1,4]){
+ for(const n of [7,1,4]){
   await reg(n);
   const sicht=await page.evaluate(()=>{
    const s=document.getElementById("ra_register");
@@ -323,7 +326,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(await page.evaluate(()=>raSchritt)===2,"Weiter blaettert vor");
  await page.click("#ra_zurueck"); await page.waitForTimeout(180);
  p(await page.evaluate(()=>raSchritt)===1,"Zurueck blaettert zurueck");
- await reg(6);
+ await reg(7);
  // Auf dem letzten Register heisst der Knopf "Fertig" und MUSS etwas tun -
  // ein Knopf, der wie eine Abschlussaktion aussieht und nichts bewirkt, ist
  // schlimmer als keiner. Er fuehrt zum Rest des Formulars (Fotos, Notiz,
@@ -345,10 +348,10 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   markiert:!!document.querySelector("#measMedienBereich.ra-ziel"),
   gespeichert:false}));
  p(nachFertig.markiert,"Fertig fuehrt zu Fotos/Notiz/Speichern",nachFertig);
- p(nachFertig.schritt===6,"Fertig blaettert nicht ins Leere",nachFertig);
+ p(nachFertig.schritt===7,"Fertig blaettert nicht ins Leere",nachFertig);
  // Der Registerwechsel darf nichts verlieren - die Daten liegen im Modell
  const vorher=await page.evaluate(()=>JSON.stringify(rinneA));
- for(const n of [1,4,2,6,3,5,2]) await reg(n);
+ for(const n of [1,4,2,7,3,5,6,2]) await reg(n);
  p(await page.evaluate(()=>JSON.stringify(rinneA))===vorher,
    "durch alle Register blaettern aendert die Aufnahme nicht");
  // Eine Eingabe auf Register 2 ueberlebt den Wechsel
@@ -364,11 +367,11 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  // Die Kontrolle wird markiert, sobald es dort etwas gibt
  await page.evaluate(()=>{rinneA.segmente[0].laenge=-5;renderRinneAufnahme()});
  await page.waitForTimeout(150);
- p(await page.locator('[data-ra-schritt="4"] .ra-register-punkt.fehler').count()===1,
+ p(await page.locator('[data-ra-schritt="7"] .ra-register-punkt.fehler').count()===1,
    "ein Fehler markiert das Kontroll-Register");
  await page.evaluate(()=>{rinneA.segmente[0].laenge=7000;renderRinneAufnahme()});
  await page.waitForTimeout(150);
- p(await page.locator('[data-ra-schritt="4"] .ra-register-punkt.fehler').count()===0,
+ p(await page.locator('[data-ra-schritt="7"] .ra-register-punkt.fehler').count()===0,
    "und die Markierung verschwindet wieder");
  // Beim Oeffnen einer Aufnahme faengt es vorne an
  await reg(5);
@@ -395,7 +398,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   // JEDES Register einzeln messen - ein Ueberlauf koennte sonst auf einem
   // gerade nicht sichtbaren Register unbemerkt bleiben.
   let schlimm=null;
-  for(let n=1;n<=6;n++){
+  for(let n=1;n<=7;n++){
    await reg(n);
    const uu=await page.evaluate(()=>{
     const br=document.documentElement.clientWidth,bad=[];

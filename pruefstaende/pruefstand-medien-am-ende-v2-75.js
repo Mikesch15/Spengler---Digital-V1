@@ -78,24 +78,38 @@ const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisc
   // Durch alle Register blaettern - er bleibt zu
   const setzeSchritt=art==="rinne_halbrund"?"raSetzeSchritt"
    :(art==="einlaufblech_konisch"?"ebkaSetzeSchritt":"ebaSetzeSchritt");
+  // Die Registerzahl aus der Leiste lesen - sie ist je Art verschieden und
+  // hat sich mit v2.80 geaendert. Eine fest angenommene Zahl wuerde hier
+  // still am falschen Register messen.
+  const anzahl=await page.evaluate(()=>document.querySelectorAll(
+    "#measurementEditModal .ra-register-knopf").length);
+  p(anzahl>=6,art+": die Registerleiste ist da ("+anzahl+" Register)",anzahl);
   let offenUnterwegs=0;
-  for(let n=1;n<=5;n++){
+  for(let n=1;n<anzahl;n++){
    await page.evaluate(([f,k])=>window[f]?window[f](k):eval(f+"("+k+")"),[setzeSchritt,n]);
    await page.waitForTimeout(100);
    const s=await sichtbar(page);
    if(s.sichtbar)offenUnterwegs++;
   }
-  p(offenUnterwegs===0,art+": bleibt in Register 1-5 zugeklappt",offenUnterwegs);
+  p(offenUnterwegs===0,art+": bleibt bis zum letzten Register zugeklappt",offenUnterwegs);
 
   // Letztes Register, dann "Fertig"
-  await page.evaluate(([f,k])=>window[f]?window[f](k):eval(f+"("+k+")"),[setzeSchritt,6]);
+  await page.evaluate(([f,k])=>window[f]?window[f](k):eval(f+"("+k+")"),[setzeSchritt,anzahl]);
   await page.waitForTimeout(120);
   const vor=await sichtbar(page);
-  p(!vor.sichtbar,art+": auf Register 6 noch zugeklappt",vor);
+  p(!vor.sichtbar,art+": auf dem letzten Register noch zugeklappt",vor);
   const knopf=art==="rinne_halbrund"?"#ra_weiter"
    :(art==="einlaufblech_konisch"?"#ebka_weiter":"#eba_weiter");
   const beschriftung=await page.evaluate(s=>{const e=document.querySelector(s);return e?e.textContent.trim():""},knopf);
   p(/Fertig/.test(beschriftung),art+": der Knopf heisst Fertig",beschriftung);
+  // Die Hervorhebung der VORIGEN Art laeuft 2,5 s und wuerde die gleich
+  // gesetzte sonst wieder wegnehmen - das ist eine Eigenheit dieses Laufs,
+  // nicht der App. Deshalb hier abwarten, bis nichts mehr markiert ist.
+  for(let w=0;w<30;w++){
+   const noch=await page.evaluate(()=>!!document.querySelector("#measMedienBereich.ra-ziel"));
+   if(!noch)break;
+   await page.waitForTimeout(120);
+  }
   const r=await klick(page,knopf);
   p(r==="ok",art+": Fertig ist bedienbar",r);
   await page.waitForTimeout(300);

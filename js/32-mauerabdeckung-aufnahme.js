@@ -19,9 +19,11 @@
 const MADA_REGISTER=[
  {nr:1,kurz:"Grunddaten"},{nr:2,kurz:"Verlauf"},{nr:3,kurz:"Boden & Schieber"},
  {nr:4,kurz:"Profil & Norm"},{nr:5,kurz:"Stückliste"},{nr:6,kurz:"Zuschnitt"},
- {nr:7,kurz:"Ausmass"},{nr:8,kurz:"Kontrolle"},{nr:9,kurz:"Fotos & Speichern"}
+ {nr:7,kurz:"Ausmass"},{nr:8,kurz:"Kontrolle"}
 ];
-const MADA_KONTROLLE=8;
+// Die Kontrolle ist in jeder Art das LETZTE Register - die Marke haengt
+// deshalb an der Registerzahl und nicht an einer festen Nummer.
+const MADA_KONTROLLE=MADA_REGISTER.length;
 let madaSchritt=1;
 
 const madaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
@@ -188,13 +190,6 @@ function madaRollenPlan(){
  moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.tafeln-y.tafeln||y.breite-x.breite);
  return {moeglich,zuSchmal,bestes:moeglich[0]||null,tafelLaenge:L,
          abwicklung:A,netto,verteilung};
-}
-function madaStreifenText(nr){
- const s=(madaRollenPlan().verteilung||{}).streifen||[];
- const st=s[nr-1];
- if(!st)return "";
- return st.stuecke.map(x=>"Stück "+x.nr+" ("+madaMm(x.laenge)+" mm)").join(" + ")
-  +" · Rest "+madaMm(st.rest)+" mm";
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -472,50 +467,26 @@ ${madaFeld("Gesamtlänge",`<div class="ra-wert">${madaMm(madaGesamtlaenge())} mm
 </div>`;
 }
 
-function madaZuschnittHtml(){
- if(!madaBleche().length)return '<div class="small" style="color:var(--muted);text-align:center;padding:14px">Noch kein Zuschnittstück – zuerst den Verlauf erfassen.</div>';
+// Der Plan wird in die gemeinsame Form gebracht (js/33) und dort dargestellt -
+// damit sieht der Zuschnitt in allen Massaufnahme-Arten gleich aus. Gerechnet
+// wird weiterhin hier bzw. in ebaPackeInStreifen().
+function madaZuschnittPlan(){
  const rp=madaRollenPlan();
- if(!madaRollenbreiten().length)return `<div class="ra-warnung">Keine Rollenbreite
-hinterlegt. Unter Einstellungen → Massaufnahmen → Blech-Rollenbreiten mindestens
-eine wählen – sonst wird der Materialbedarf nicht gerechnet.</div>`;
- const zuLang=(rp.verteilung&&rp.verteilung.zuLang)||[];
- const streifen=(rp.verteilung&&rp.verteilung.streifen)||[];
- const zeilen=rp.moeglich.map((m,i)=>`<tr${i===0?' style="background:#eff9f2"':""}>
-<td style="text-align:right">${madaMm(m.breite)}</td>
-<td style="text-align:right">${m.jeTafel}</td>
-<td style="text-align:right">${m.tafeln}</td>
-<td style="text-align:right">${madaQm(m.flaeche)}</td>
-<td style="text-align:right"><b>${madaQm(m.verschnitt)}</b></td>
-<td style="text-align:right">${m.anteil.toFixed(1).replace(".",",")} %</td></tr>`).join("");
- const liste=streifen.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(madaStreifenText(i+1))}</td></tr>`).join("");
- return `<div class="info">Von der Rolle wird eine <b>Tafel</b> abgeschnitten und quer
-in Streifen von der Breite der Abwicklung geteilt. Ein Streifen kann mehrere Stücke
-hintereinander aufnehmen.<br>Streifen je Tafel = ganzzahlig(Rollenbreite ÷ Abwicklung) ·
-Tafellänge = längstes Stück · Tafeln = aufgerundet(Streifen ÷ Streifen je Tafel).</div>
-${zuLang.length?`<div class="ra-fehler">Stück ${zuLang.map(x=>x.nr).join(", ")} ist länger als die Tafel (${madaMm(rp.tafelLaenge)} mm) – dafür gibt es keine Verteilung.</div>`:""}
-<div class="grid" style="margin-top:10px">
-${madaFeld("Abwicklung",`<div class="ra-wert">${madaMm(rp.abwicklung)} mm</div>`)}
-${madaFeld("Tafellänge",`<div class="ra-wert">${madaMm(rp.tafelLaenge)} mm</div>`)}
-${madaFeld("Streifen",`<div class="ra-wert">${streifen.length}</div>`)}
-${madaFeld("Zuschnitte netto",`<div class="ra-wert">${madaQm(rp.netto)} m²</div>`)}
-</div>
-${rp.moeglich.length?`<h3 style="margin-top:14px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Je Rollenbreite</h3>
-<div class="scroll"><table class="eb-table ra-tab">
-<thead><tr><th style="text-align:right">Rolle</th><th style="text-align:right">Str./Tafel</th><th style="text-align:right">Tafeln</th><th style="text-align:right">Fläche</th><th style="text-align:right">Verschnitt</th><th style="text-align:right">Anteil</th></tr></thead>
-<tbody>${zeilen}</tbody></table></div>
-<div class="ra-ok">Am wenigsten Material: <b>${madaMm(rp.bestes.breite)} mm</b> –
-${rp.bestes.tafeln} Tafel(n) à ${madaMm(rp.tafelLaenge)} mm, ${madaQm(rp.bestes.verschnitt)} m² Verschnitt.</div>`
-:`<div class="ra-warnung">Keine der hinterlegten Rollen ist breit genug für eine
-Abwicklung von ${madaMm(rp.abwicklung)} mm${rp.zuSchmal.length?" (zu schmal: "+rp.zuSchmal.map(b=>madaMm(b)+" mm").join(", ")+")":""}.</div>`}
-${streifen.length?`<h3 style="margin-top:14px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Streifen</h3>
-<div class="scroll"><table class="eb-table ra-tab">
-<thead><tr><th>Nr.</th><th>Belegung</th></tr></thead><tbody>${liste}</tbody></table></div>`:""}
-${rp.verteilung&&rp.verteilung.optimal===false
- ?'<div class="ra-warnung">Die Suche wurde abgebrochen. Das ist die <b>beste gefundene</b> Verteilung, nicht sicher die beste mögliche.</div>':""}
-<div class="small" style="margin-top:6px">Gerechnet ohne Schnittfuge und ohne
-Wiederverwendung von Reststücken – wie bei den übrigen Modulen.</div>`;
+ const v=rp.verteilung||{};
+ const streifen=v.streifen||[];
+ const bleche=madaBleche();
+ return {art:"rolle", einheit:"Stück",
+  einleitung:ZU_EINLEITUNG_ROLLE,
+  quelle:ZU_QUELLE_ROLLE,
+  leer:!bleche.length?"Noch kein Zuschnittstück – zuerst den Verlauf erfassen."
+      :(!madaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt. Unter Einstellungen → Massaufnahmen → Einlaufblech gerade mindestens eine wählen."
+      :"Kein Stück lässt sich auf eine Tafel legen."),
+  streifenbreiten:[rp.abwicklung],
+  gruppen:streifen.length?[{breite:rp.abwicklung,tafelLaenge:rp.tafelLaenge,streifen}]:[],
+  moeglich:rp.moeglich, netto:rp.netto,
+  zuSchmal:rp.zuSchmal, zuLang:v.zuLang||[], optimal:v.optimal!==false};
 }
-
+function madaZuschnittHtml(){return zuschnittHtml(madaZuschnittPlan())}
 function madaAusmassHtml(){
  const z=madaAusmassZeilen();
  if(!z.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:14px">Noch nichts abzuleiten – zuerst den Verlauf erfassen.</div>';
@@ -549,12 +520,6 @@ function madaKontrolleHtml(){
 <div class="small" style="margin-top:8px">Geprüft werden fehlende Masse, ungültige
 Zahlen, Verlauf, Boden, Schieber, Profil, Normhinweise, Ausmass und Zuschnitt.</div>`;
 }
-function madaAbschlussHtml(){
- return `<div class="info">Fotos, Skizze und Notiz stehen unter diesem Abschnitt.
-Zum Abschluss speichern.</div>
-<div class="bar"><button type="button" class="gray" id="mada_fertig" style="min-height:46px;font-weight:700">Fertig › Fotos und Speichern</button></div>`;
-}
-
 // ---- Register --------------------------------------------------------------
 function madaSetzeSchritt(n){
  madaSchritt=Math.max(1,Math.min(MADA_REGISTER.length,Number(n)||1));
@@ -581,8 +546,7 @@ function madaSchrittInhalt(){
  if(madaSchritt===5)return madaKarte("5 · Stückliste / Zuschnitt",madaStuecklisteHtml());
  if(madaSchritt===6)return madaKarte("6 · Zuschnitt aus Rollenblech",madaZuschnittHtml());
  if(madaSchritt===7)return madaKarte("7 · Ausmass",madaAusmassHtml());
- if(madaSchritt===8)return madaKarte("8 · Kontrolle",madaKontrolleHtml());
- return madaKarte("9 · Fotos, Skizze und Notiz",madaAbschlussHtml());
+ return madaKarte("8 · Kontrolle",madaKontrolleHtml());
 }
 function renderMauerabdeckungAufnahme(){
  const ziel=$("mauerabdeckungAufnahme");

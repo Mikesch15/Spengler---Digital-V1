@@ -23,10 +23,16 @@
 //   - Ausmass und Materialübersicht ohne zweite Eingabe
 // ===========================================================================
 
+// Die Register heissen und stehen in ALLEN Massaufnahme-Arten gleich:
+// die fachlichen Schritte zuerst, danach Zuschnitt, Ausmass und zuletzt die
+// Kontrolle.
 const EBA_REGISTER=[
  {nr:1,kurz:"Grunddaten"},{nr:2,kurz:"Geometrie"},{nr:3,kurz:"Stücke"},
- {nr:4,kurz:"Kontrolle"},{nr:5,kurz:"Ausmass"},{nr:6,kurz:"Zuschnitt"}
+ {nr:4,kurz:"Zuschnitt"},{nr:5,kurz:"Ausmass"},{nr:6,kurz:"Kontrolle"}
 ];
+// Die Kontrolle ist immer das LETZTE Register - die Marke haengt deshalb an
+// der Registerzahl, nicht an einer festen Nummer.
+const EBA_KONTROLLE=EBA_REGISTER.length;
 let ebaSchritt=1;
 
 // Rollenbreiten: 1000 und 670 sind die Standardrollen. Die übrigen lassen
@@ -392,42 +398,26 @@ function ebaAusmassHtml(){
 Ohne Artikelnummern und ohne Preise – das Ausmass entsteht allein aus dieser Aufnahme.</div>`;
 }
 
-function ebaZuschnittHtml(){
+// Der Plan wird in die gemeinsame Form gebracht (js/33) und dort dargestellt -
+// damit sieht der Zuschnitt in allen Massaufnahme-Arten gleich aus. Gerechnet
+// wird weiterhin hier bzw. in ebaPackeInStreifen().
+function ebaZuschnittPlan(){
  const plan=ebaRollenPlan();
  const v=plan.verteilung||{};
- const breiten=ebaRollenbreiten();
- if(!plan.moeglich.length){
-  const grund=!ebaGesamtlaenge()?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."
-   :(!breiten.length?"Es ist keine Rollenbreite hinterlegt."
-   :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung ("+esc(ebaMm(ebA.abwicklung))+" mm).");
-  return `<div class="small">${grund}</div>`;
- }
- const zuLang=(v.zuLang||[]);
- const streifenTab=(v.streifen||[]).map((s,i)=>`<tr><td>${i+1}</td>
-<td>${s.stuecke.map(x=>"Stück "+x.nr+" · "+ebaMm(x.laenge)+" mm").join("<br>")}</td>
-<td>${esc(ebaMm(plan.tafelLaenge-s.rest))} mm</td><td>${esc(ebaMm(s.rest))} mm</td></tr>`).join("");
- return `<div class="small" style="margin-bottom:6px">Von der Rolle wird eine <b>Tafel</b> abgeschnitten und quer in Streifen der
-Abwicklungsbreite geteilt. Die Tafel ist so lang wie das längste Stück (<b>${esc(ebaMm(plan.tafelLaenge))} mm</b>);
-in einem Streifen dürfen mehrere Stücke hintereinander liegen.</div>
-${zuLang.length?`<div class="ra-fehler">Zu lang für eine Tafel: ${esc(zuLang.map(x=>"Stück "+x.nr).join(", "))}.</div>`:""}
-<div class="scroll"><table class="eb-table eba-tab">
-<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafelfläche</th><th>Verschnitt</th><th>Anteil</th></tr></thead>
-<tbody>${plan.moeglich.map((x,i)=>`<tr${i===0?' class="ra-dila-zeile"':""}>
-<td>${esc(x.breite)} mm${i===0?" <b>(beste)</b>":""}</td><td>${esc(x.jeTafel)}</td><td>${esc(x.tafeln)}</td>
-<td>${esc(x.flaeche.toFixed(2).replace(".",","))} m²</td>
-<td>${esc(x.verschnitt.toFixed(2).replace(".",","))} m²</td>
-<td>${esc(x.anteil.toFixed(0))} %</td></tr>`).join("")}</tbody>
-</table></div>
-${plan.zuSchmal.length?`<div class="small" style="margin-top:6px;color:var(--muted)">Zu schmal für die Abwicklung: ${esc(plan.zuSchmal.join(", "))} mm.</div>`:""}
-<h2 style="margin-top:14px">So liegen die Stücke in den Streifen</h2>
-${v.optimal===false?`<div class="ra-warnung">Beste gefundene Verteilung – die Suche wurde abgebrochen, sie ist nicht nachweislich die günstigste.</div>`:""}
-<div class="scroll"><table class="eb-table eba-tab">
-<thead><tr><th>Streifen</th><th>Stücke mit ihrer Länge</th><th>belegt</th><th>Rest</th></tr></thead>
-<tbody>${streifenTab||'<tr><td colspan="4" class="small">–</td></tr>'}</tbody>
-</table></div>
-<div class="small" style="margin-top:8px">Blechfläche netto <b>${esc(ebaFlaecheM2().toFixed(2).replace(".",","))} m²</b> ·
-Rollenbreiten aus <b>Einstellungen → Massaufnahmen → Einlaufblech gerade</b>.</div>`;
+ const streifen=v.streifen||[];
+ const A=ebaZahl(ebA.abwicklung);
+ return {art:"rolle", einheit:"Stück",
+  einleitung:ZU_EINLEITUNG_ROLLE,
+  quelle:ZU_QUELLE_ROLLE,
+  leer:!(ebA.stuecke||[]).length?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."
+      :(!ebaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."
+      :"Kein Stück lässt sich auf eine Tafel legen."),
+  streifenbreiten:[A],
+  gruppen:streifen.length?[{breite:A,tafelLaenge:plan.tafelLaenge,streifen}]:[],
+  moeglich:plan.moeglich, netto:ebaFlaecheM2(),
+  zuSchmal:plan.zuSchmal, zuLang:v.zuLang||[], optimal:v.optimal!==false};
 }
+function ebaZuschnittHtml(){return zuschnittHtml(ebaZuschnittPlan())}
 
 // ---- Register --------------------------------------------------------------
 function ebaSetzeSchritt(n){
@@ -443,7 +433,7 @@ function ebaRegisterHtml(){
  const fehler=p.filter(m=>m.art==="fehler").length;
  const warn=p.length-fehler;
  return `<div class="ra-register" id="eba_register">`+EBA_REGISTER.map(r=>{
-  const marke=r.nr===4&&(fehler||warn)
+  const marke=r.nr===EBA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===ebaSchritt?" aktiv":""}" data-eba-schritt="${r.nr}">`
    +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
@@ -453,9 +443,9 @@ function ebaSchrittInhalt(){
  if(ebaSchritt===1)return ebaKarte("1 · Grunddaten",ebaGrunddatenHtml());
  if(ebaSchritt===2)return ebaKarte("2 · Geometrie",ebaGeometrieHtml());
  if(ebaSchritt===3)return ebaKarte("3 · Stücke",ebaStueckeHtml());
- if(ebaSchritt===4)return ebaKarte("4 · Kontrolle",ebaKontrolleHtml());
+ if(ebaSchritt===4)return ebaKarte("4 · Zuschnitt aus Rollenblech",ebaZuschnittHtml());
  if(ebaSchritt===5)return ebaKarte("5 · Ausmass und Material",ebaAusmassHtml());
- return ebaKarte("6 · Zuschnitt aus Rollenblech",ebaZuschnittHtml());
+ return ebaKarte("6 · Kontrolle",ebaKontrolleHtml());
 }
 function renderEinlaufblechAufnahme(){
  const ziel=$("einlaufblechAufnahme");
