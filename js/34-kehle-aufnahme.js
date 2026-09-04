@@ -155,25 +155,27 @@ function keaRollenbreiten(){
 // Dieselbe Packrechnung wie in allen uebrigen Arten (ebaPackeInStreifen,
 // js/29) - es gibt in der App nur EINE.
 function keaRollenPlan(){
- const A=keaAbwicklung(), bleche=keaBleche();
+ const A=keaAbwicklung(), bleche=keaBleche(), L=keaTafelLaenge();
  const breiten=keaRollenbreiten(), netto=keaFlaecheM2();
  if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto};
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto,abschnittLaenge:L};
+ const v=ebaPackeInStreifen(bleche,L);
+ const streifen=v.streifen||[];
  const moeglich=[], zuSchmal=[];
- let optimal=true;
  breiten.forEach(B=>{
-  const jeTafel=Math.floor(B/A);
-  if(jeTafel<1){zuSchmal.push(B);return}
-  const v=ebaPackeInBaender(bleche,jeTafel);
-  if(v.optimal===false)optimal=false;
-  const flaeche=B*v.laenge/1e6;
-  moeglich.push({breite:B,jeTafel,streifen:jeTafel,rollenLaenge:v.laenge,
-   restBreite:B-jeTafel*A, verteilung:v.streifen,
-   flaeche,verschnitt:flaeche-netto,
+  const jeAbschnitt=Math.floor(B/A);
+  if(jeAbschnitt<1){zuSchmal.push(B);return}
+  const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
+  const rollenLaenge=abschnitte*L;
+  const flaeche=B*rollenLaenge/1e6;
+  moeglich.push({breite:B,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,abschnittLaenge:L,
+   rollenLaenge, streifen:streifen.length,
+   restBreite:B-jeAbschnitt*A,flaeche,verschnitt:flaeche-netto,
    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
  });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null,abwicklung:A,netto,optimal};
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.abschnitte-y.abschnitte||y.breite-x.breite);
+ return {moeglich,zuSchmal,bestes:moeglich[0]||null,abwicklung:A,netto,
+         abschnittLaenge:L,verteilung:v,streifen,optimal:v.optimal!==false};
 }
 // Der Plan in der gemeinsamen Form (js/33) - damit sieht der Zuschnitt in
 // allen Arten gleich aus.
@@ -185,9 +187,12 @@ function keaZuschnittPlan(){
       :(!keaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."
       :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
   streifenbreiten:[rp.abwicklung],
-  gruppen:best?[{breite:rp.abwicklung,rollenLaenge:best.rollenLaenge,streifen:best.verteilung||[]}]:[],
+  gruppen:(rp.streifen||[]).length?[{breite:rp.abwicklung,abschnittLaenge:rp.abschnittLaenge,
+    jeAbschnitt:best?best.jeAbschnitt:1, abschnitte:best?best.abschnitte:0,
+    rollenLaenge:best?best.rollenLaenge:0, streifen:rp.streifen}]:[],
   moeglich:rp.moeglich, netto:rp.netto,
-  zuSchmal:rp.zuSchmal, optimal:rp.optimal!==false};
+  zuSchmal:rp.zuSchmal, zuLang:(rp.verteilung||{}).zuLang||[],
+  optimal:rp.optimal!==false};
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -604,10 +609,13 @@ function keaZusatzDaten(){
   flaeche_m2:keaFlaecheM2(),
   ausmass:keaAusmassZeilen(),
   rollen:{auswahl:(kehleA.rollenAuswahl||[]).slice(),abwicklung:rp.abwicklung,
+          abschnittLaenge:rp.abschnittLaenge,
+          abschnitte:rp.bestes?rp.bestes.abschnitte:0,
+          jeAbschnitt:rp.bestes?rp.bestes.jeAbschnitt:1,
           rollenLaenge:rp.bestes?rp.bestes.rollenLaenge:0,netto:rp.netto,
-          moeglich:(rp.moeglich||[]).map(m=>{const o=Object.assign({},m);delete o.verteilung;return o}),
+          moeglich:rp.moeglich||[],
           bestes:rp.bestes,zuSchmal:rp.zuSchmal,optimal:rp.optimal!==false,
-          streifen:((rp.bestes||{}).verteilung||[]).map(s=>({
+          streifen:(rp.streifen||[]).map(s=>({
             stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})),rest:s.rest}))}
  };
 }

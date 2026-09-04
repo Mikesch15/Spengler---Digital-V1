@@ -107,10 +107,10 @@ function zuListeHtml(p){
  let kopf="Zuschnittliste", fuss="";
  if(p.art==="rolle"&&bestes){
   kopf="Rollenblech "+zuMm(bestes.breite)+" mm";
-  const rl=zuRollenLaengeMm(bestes,p);
+  const ab=zuAbschnittText(bestes,p);
   const st=zuStreifenZahl(bestes,p);
-  fuss=(rl>0?zuMm(rl)+" mm ab Rolle":"")
-    +(st>0?(rl>0?" · ":"")+st+" Streifen nebeneinander":"");
+  fuss=(ab!=="–"?ab+" ab Rolle":"")
+    +(st>0?(ab!=="–"?" · ":"")+st+" Streifen je Abschnitt":"");
  }else if(p.art==="stange"){
   kopf="Zuschnittliste";
   fuss=(p.stangen||[]).length+" Stange"+((p.stangen||[]).length===1?"":"n");
@@ -142,17 +142,17 @@ bezogen – es ist <b>kein Streifen von der Rolle</b> zu schneiden.</div>`;
  const b=(p.streifenbreiten||[]).filter(x=>zuZahl(x)>0);
  const breiteText=b.length?b.map(x=>zuMm(x)+" mm").join(" · "):"–";
  const bestes=(p.moeglich||[])[0];
- const rl=zuRollenLaengeMm(bestes,p);
+ const ab=zuAbschnittText(bestes,p);
  const streifen=(p.gruppen||[]).reduce((s,g)=>s+(g.streifen||[]).length,0);
  return `<div class="grid zu-kennzahlen">
 ${zuKennzahl(b.length>1?"Streifenbreiten":"Streifenbreite",breiteText)}
-${zuKennzahl("Rollenlänge",rl>0?zuMm(rl)+" mm":"–")}
-${zuKennzahl("Streifen",streifen)}
+${zuKennzahl("Ab Rolle",esc(ab),ab.length>12)}
+${zuKennzahl("Streifen gesamt",streifen)}
 ${zuKennzahl("Blech netto",zuQm(p.netto)+" m²")}
 </div>
 <div class="small zu-hinweis">Auf <b>${esc(breiteText)}</b> muss der Streifen
-geschnitten werden – das ist die Abwicklung des Profils. Die Rollenlänge ist
-das Mass, das vom Rollenblech abgezogen werden muss.</div>`;
+geschnitten werden – das ist die Abwicklung des Profils. Von der Rolle werden
+<b>${esc(ab)}</b> abgezogen; jeder Abschnitt ist so lang wie das längste Blech.</div>`;
 }
 
 function zuMeldungenHtml(p){
@@ -179,35 +179,63 @@ sie ist nicht nachweislich die günstigste.</div>`;
  return h;
 }
 
-// Die Rollenlaenge zu einer Zeile des Rollenvergleichs: so lang muss vom
-// Rollenblech abgezogen werden. Beim Freien Profil und bei der Lukarne hat
-// jede Streifenbreite ihren eigenen Abschnitt - dann ist es die Summe.
+// Von der Rolle werden ABSCHNITTE abgezogen, jeder so lang wie das laengste
+// Blech - eine einzige, sehr lange Bahn liesse sich in der Werkstatt nicht
+// handhaben. Angezeigt wird deshalb "3 × 2'070 mm" und nicht "6'210 mm".
 //
-// Aeltere gespeicherte Plaene (bis v2.87) kennen "rollenLaenge" nicht. Dort
-// war die Rollenlaenge Tafeln x Tafellaenge - genau derselbe Wert, nur anders
-// benannt. Er wird deshalb daraus abgeleitet, statt eine Luecke zu zeigen.
+// Aeltere gespeicherte Plaene: bis v2.87 hiessen die Felder "tafeln" und
+// "tafelLaenge" - dieselbe Sache unter anderem Namen. Ein Plan aus v2.88 hat
+// nur die durchgehende "rollenLaenge"; der wird als EIN Abschnitt gezeigt,
+// weil er genau so gerechnet wurde. Es wird nichts nachgerechnet.
+function zuAbschnitte(x,p){
+ if(!x)return {n:0,laenge:0};
+ const zeilen=Array.isArray(x.zeilen)?x.zeilen:null;
+ if(zeilen&&zeilen.length){
+  const teile=zeilen.map(z=>zuAbschnitte(z,p)).filter(t=>t.n>0);
+  if(!teile.length)return {n:0,laenge:0};
+  // Mehrere Streifenbreiten (Freies Profil, Lukarne): je Breite ein eigener
+  // Abschnitt. Sind sie gleich lang, wird zusammengezaehlt, sonst aufgezaehlt.
+  const gleich=teile.every(t=>t.laenge===teile[0].laenge);
+  return gleich?{n:teile.reduce((a,t)=>a+t.n,0),laenge:teile[0].laenge}
+               :{n:0,laenge:0,teile};
+ }
+ const laenge=zuZahl(x.abschnittLaenge)||zuZahl(x.tafelLaenge)
+   ||zuZahl(p&&p.abschnittLaenge)||zuZahl(((p&&p.gruppen)||[])[0]&&(p.gruppen[0].abschnittLaenge||p.gruppen[0].tafelLaenge));
+ const n=zuZahl(x.abschnitte)||zuZahl(x.tafeln);
+ if(n>0&&laenge>0)return {n,laenge};
+ // v2.88-Plan: eine durchgehende Bahn.
+ const durch=zuZahl(x.rollenLaenge);
+ return durch>0?{n:1,laenge:durch}:{n:0,laenge:0};
+}
+// Als Text: "3 × 2'070 mm". Bei mehreren verschiedenen Abschnittlaengen
+// stehen sie einzeln da - es wird keine gemeinsame erfunden.
+function zuAbschnittText(x,p){
+ const a=zuAbschnitte(x,p);
+ if(a.teile)return a.teile.map(t=>t.n+" × "+zuMm(t.laenge)+"\u00a0mm").join(" + ");
+ if(!a.n||!a.laenge)return "–";
+ return a.n+" × "+zuMm(a.laenge)+"\u00a0mm";
+}
+// Die gesamte Laenge, die von der Rolle geht - fuer den Vergleich der Rollen.
 function zuRollenLaengeMm(x,p){
  if(!x)return 0;
  const direkt=zuZahl(x.rollenLaenge);
  if(direkt>0)return direkt;
  const zeilen=Array.isArray(x.zeilen)?x.zeilen:null;
  if(zeilen&&zeilen.length){
-  const summe=zeilen.reduce((s,z)=>s+(zuZahl(z.rollenLaenge)
-    ||zuZahl(z.tafeln)*zuZahl(z.tafelLaenge)),0);
+  const summe=zeilen.reduce((s,z)=>s+zuRollenLaengeMm(z,p),0);
   if(summe>0)return summe;
  }
- const alt=zuZahl(x.tafeln)*(zuZahl(x.tafelLaenge)
-   ||zuZahl(p&&p.tafelLaenge)||zuZahl(((p&&p.gruppen)||[])[0]&&p.gruppen[0].tafelLaenge));
- return alt>0?alt:0;
+ const a=zuAbschnitte(x,p);
+ return a.n*a.laenge;
 }
-// Wie viele Streifen liegen nebeneinander? Neu ist das "jeTafel", alt war es
-// die Zahl der belegten Streifen.
+// Wie viele Streifen liegen NEBENEINANDER auf einem Abschnitt? Das haengt an
+// der Rollenbreite und ist etwas anderes als die Gesamtzahl der Streifen.
 function zuStreifenZahl(x,p){
  if(!x)return 0;
  const zeilen=Array.isArray(x.zeilen)?x.zeilen:null;
  if(zeilen&&zeilen.length)
-  return zeilen.reduce((s,z)=>s+(zuZahl(z.streifen)||zuZahl(z.jeTafel)),0);
- return zuZahl(x.streifen)||zuZahl(x.jeTafel);
+  return zeilen.reduce((s,z)=>s+(zuZahl(z.jeAbschnitt)||zuZahl(z.jeTafel)),0);
+ return zuZahl(x.jeAbschnitt)||zuZahl(x.jeTafel);
 }
 function zuPlanTabelleHtml(p){
  if(p.art==="stange"){
@@ -231,7 +259,7 @@ ${esc(zuMm(p.summeStuecke))} mm Zuschnitt – <b>${esc(zuMm(p.verschnitt))} mm</
  const zeilen=p.moeglich.map((x,i)=>`<tr${i===0?' class="ra-dila-zeile"':""}>
 <td>${esc(zuMm(x.breite))} mm</td>
 <td>${esc(zuStreifenZahl(x,p)||"–")}</td>
-<td>${esc(zuMm(zuRollenLaengeMm(x,p)))} mm</td>
+<td>${esc(zuAbschnittText(x,p))}</td>
 <td><b>${esc(zuQm(x.verschnitt))} m²</b></td>
 <td>${esc(zuZahl(x.anteil).toFixed(0))} %</td></tr>`).join("");
  const b0=p.moeglich[0];
@@ -239,10 +267,10 @@ ${esc(zuMm(p.summeStuecke))} mm Zuschnitt – <b>${esc(zuMm(p.verschnitt))} mm</
  // netto + Verschnitt, und netto steht als Kennzahl direkt darueber. Sechs
  // Spalten brechen auf dem Handy die Ueberschriften mitten im Wort.
  return `<div class="scroll"><table class="eb-table ra-tab zu-vergleich">
-<thead><tr><th>Rolle</th><th>Streifen</th><th>Rollenlänge</th><th>Verschnitt</th><th>Anteil</th></tr></thead>
+<thead><tr><th>Rolle</th><th>Str./Abschn.</th><th>Ab Rolle</th><th>Verschnitt</th><th>Anteil</th></tr></thead>
 <tbody>${zeilen}</tbody></table></div>
 <div class="ra-ok">Am wenigsten Material: <b>${esc(zuMm(b0.breite))} mm</b> –
-${esc(zuMm(zuRollenLaengeMm(b0,p)))} mm ab Rolle, ${esc(zuQm(b0.flaeche))} m² Blech,
+${esc(zuAbschnittText(b0,p))} ab Rolle, ${esc(zuQm(b0.flaeche))} m² Blech,
 <b>${esc(zuQm(b0.verschnitt))} m²</b> Verschnitt (${esc(zuZahl(b0.anteil).toFixed(0))} %).</div>`;
 }
 
@@ -284,12 +312,18 @@ function zuBelegungHtml(p){
  const eine=gruppen.length===1;
  return `<h2 style="margin-top:14px">So liegen die ${wort} in den Streifen</h2>`
   +gruppen.map(g=>{
-   const L=zuZahl(g.rollenLaenge!==undefined?g.rollenLaenge:g.tafelLaenge);
+   const L=zuZahl(g.abschnittLaenge)||zuZahl(g.tafelLaenge)||zuZahl(g.rollenLaenge);
+   const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
+   const ab=zuAbschnitte(g,p);
    return `${eine?"":`<div class="small zu-gruppe"><b>Streifenbreite ${esc(zuMm(g.breite))} mm</b>
-· ${esc(zuMm(L))} mm ab Rolle</div>`}
+· ${esc(zuAbschnittText(g,p))} ab Rolle</div>`}
 <div class="zu-belegung">${(g.streifen||[]).map((s,i)=>{
     const belegt=(s.stuecke||[]).reduce((a,x)=>a+zuZahl(x.laenge),0);
-    return zuPlatzHtml("Streifen "+(i+1),s.stuecke,g.breite,e,belegt,
+    // Streifen 1..je gehoeren zum ersten Abschnitt, je+1..2je zum zweiten.
+    const titel=(ab.n>1)
+      ?"Abschnitt "+(Math.floor(i/je)+1)+" · Streifen "+(i%je+1)
+      :"Streifen "+(i+1);
+    return zuPlatzHtml(titel,s.stuecke,g.breite,e,belegt,
       zuZahl(s.rest)||Math.max(0,L-belegt));
    }).join("")||'<div class="zu-platz-leer">–</div>'}</div>`;
   }).join("");
@@ -316,10 +350,11 @@ ${p.quelle?`<div class="small zu-hinweis">${p.quelle}</div>`:""}
 }
 
 // Einleitungssatz, damit er nirgends abweicht.
-const ZU_EINLEITUNG_ROLLE="Von der Rolle werden längs <b>Streifen der Abwicklungsbreite</b> "
- +"abgetrennt. In einem Streifen liegen die Stücke hintereinander, und jedes wird auf "
- +"<b>seine genaue Länge</b> geschnitten. Die Rollenlänge ist die des vollsten Streifens – "
- +"passt die Rollenbreite zur Abwicklung, geht der Verschnitt gegen null.";
+const ZU_EINLEITUNG_ROLLE="Von der Rolle werden <b>Abschnitte</b> abgezogen und quer in "
+ +"<b>Streifen der Abwicklungsbreite</b> geteilt. Ein Abschnitt ist immer so lang wie das "
+ +"<b>längste Blech</b>; es werden so viele gezogen, wie es braucht. In einem Streifen dürfen "
+ +"mehrere Stücke hintereinander liegen, solange sie zusammen in einen Abschnitt passen – "
+ +"jedes Blech wird auf seine genaue Länge geschnitten.";
 const ZU_EINLEITUNG_STANGE="Aus welchen Normlängen die Stücke geschnitten werden, so dass "
  +"möglichst wenig übrig bleibt. Mehrere Stücke dürfen aus derselben Stange kommen.";
 const ZU_QUELLE_ROLLE="Blechlager aus <b>Einstellungen → Allgemein → Rollenbreiten des "
@@ -352,14 +387,16 @@ function zuPlanAusGespeichert(r,breite,einheit){
           :((r.verteilung&&r.verteilung.streifen)||[]);
   const b=zuZahl(breite)||zuZahl(r.abwicklung);
   if(st.length)gruppen=[{breite:b,rollenLaenge:r.rollenLaenge,
-    tafelLaenge:r.tafelLaenge,streifen:st}];
+    abschnittLaenge:r.abschnittLaenge,tafelLaenge:r.tafelLaenge,
+    jeAbschnitt:r.jeAbschnitt,abschnitte:r.abschnitte,streifen:st}];
  }
  const optimal=r.optimal===false?false
    :((r.verteilung&&r.verteilung.optimal===false)?false:true);
  return {art:"rolle",einheit:einheit||"Stück",
   streifenbreiten:gruppen.map(g=>zuZahl(g.breite)).filter(x=>x>0),
   gruppen,moeglich:r.moeglich||[],netto:r.netto,
-  rollenLaenge:r.rollenLaenge,tafelLaenge:r.tafelLaenge,optimal};
+  rollenLaenge:r.rollenLaenge,abschnittLaenge:r.abschnittLaenge,
+  tafelLaenge:r.tafelLaenge,optimal};
 }
 function zuDruckHtml(r,breite,einheit,zusatz){
  const p=zuPlanAusGespeichert(r,breite,einheit);
@@ -382,26 +419,29 @@ function zuDruckHtml(r,breite,einheit,zusatz){
 <td>${esc(bem.join(" · "))||"–"}</td></tr>`;
  }).join("");
  const b0=(p.moeglich||[])[0];
- const rl=zuRollenLaengeMm(b0,p);
+ const abText=zuAbschnittText(b0,p);
  const kopf=b0?"Rollenblech "+zuMm(b0.breite)+" mm"
-   +(rl>0?" · "+zuMm(rl)+" mm ab Rolle":"")
-   +(zuStreifenZahl(b0,p)>0?" · "+zuStreifenZahl(b0,p)+" Streifen nebeneinander":""):"";
+   +(abText!=="–"?" · "+abText+" ab Rolle":"")
+   +(zuStreifenZahl(b0,p)>0?" · "+zuStreifenZahl(b0,p)+" Streifen je Abschnitt":""):"";
  const vergleich=(p.moeglich||[]).length?`<table class="eb-cutlist">
-<thead><tr><th>Rollenbreite</th><th>Streifen</th><th>Rollenlänge (mm)</th><th>Fläche (m²)</th><th>Verschnitt (m²)</th></tr></thead>
+<thead><tr><th>Rollenbreite</th><th>Streifen je Abschnitt</th><th>Ab Rolle</th><th>Fläche (m²)</th><th>Verschnitt (m²)</th></tr></thead>
 <tbody>${p.moeglich.map((x,i)=>`<tr><td>${esc(zuMm(x.breite))} mm${i===0?" (beste)":""}</td>
 <td>${esc(zuStreifenZahl(x,p)||"–")}</td>
-<td>${esc(zuMm(zuRollenLaengeMm(x,p)))}</td>
+<td>${esc(zuAbschnittText(x,p))}</td>
 <td>${esc(zuQm(x.flaeche))}</td><td>${esc(zuQm(x.verschnitt))}</td></tr>`).join("")}</tbody>
 </table>`:"";
  const belegung=p.gruppen.map(g=>{
   const st=(g.streifen||[]);
   if(!st.length)return "";
-  const L=zuZahl(g.rollenLaenge!==undefined?g.rollenLaenge:g.tafelLaenge)||rl;
+  const L=zuZahl(g.abschnittLaenge)||zuZahl(g.tafelLaenge)||zuZahl(g.rollenLaenge);
+  const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
+  const ab=zuAbschnitte(g,p);
   return `<table class="eb-cutlist">
 <thead><tr><th>Streifen à ${esc(zuMm(g.breite))} mm</th><th>${eh==="Segment"?"Segmente":"Stücke"} · Nr. und Zuschnitt</th><th>belegt (mm)</th><th>Rest (mm)</th></tr></thead>
 <tbody>${st.map((sf,i)=>{
    const belegt=(sf.stuecke||[]).reduce((a,x)=>a+zuZahl(x.laenge),0);
-   return `<tr><td>${i+1}</td>
+   const titel=(ab.n>1)?(Math.floor(i/je)+1)+"."+(i%je+1):String(i+1);
+   return `<tr><td>${esc(titel)}</td>
 <td>${esc((sf.stuecke||[]).map(x=>eh+" "+x.nr+" = "+zuMm(x.laenge)+" mm").join("   ·   "))||"–"}</td>
 <td>${esc(zuMm(belegt))}</td><td>${esc(zuMm(zuZahl(sf.rest)||Math.max(0,L-belegt)))}</td></tr>`;
   }).join("")}</tbody>
@@ -412,9 +452,10 @@ function zuDruckHtml(r,breite,einheit,zusatz){
 <thead><tr><th>Anzahl</th><th>Zuschnitt L × B (mm)</th><th>${esc(eh)} Nr.</th><th>Bemerkung</th></tr></thead>
 <tbody>${zeilen}</tbody>
 </table>
-<div class="note">${kopf?esc(kopf)+". ":""}Von der Rolle werden längs Streifen der
-Abwicklungsbreite abgetrennt; in einem Streifen liegen die Stücke hintereinander und
-jedes wird auf seine genaue Länge geschnitten.${zusatz?" "+zusatz:""}${p.optimal===false
+<div class="note">${kopf?esc(kopf)+". ":""}Von der Rolle werden Abschnitte abgezogen und
+quer in Streifen der Abwicklungsbreite geteilt. Ein Abschnitt ist so lang wie das längste
+Blech; in einem Streifen dürfen mehrere Stücke hintereinander liegen. Die Streifennummer
+&quot;2.3&quot; heisst: Abschnitt 2, Streifen 3.${zusatz?" "+zusatz:""}${p.optimal===false
   ?" Beste gefundene Verteilung – nicht nachweislich die günstigste.":""}</div>
 ${vergleich}${belegung}`;
 }

@@ -125,19 +125,29 @@ function lukaRollenPlan(){
   if(!nach.has(x.breite))nach.set(x.breite,[]);
   nach.get(x.breite).push(x);
  });
- const gruppen=Array.from(nach.keys()).sort((a,b)=>b-a)
-   .map(B=>({breite:B,stuecke:nach.get(B)}));
- const moeglich=[], zuSchmal=[]; let optimal=true;
+ // Ein Abschnitt ist so lang wie die laengste Schar DIESER Zuschnittbreite.
+ // Die Verteilung haengt damit nicht an der Rollenbreite und wird einmal
+ // gepackt; erst die Zahl der Abschnitte folgt aus der Rollenbreite.
+ let optimal=true;
+ const gruppen=Array.from(nach.keys()).sort((a,b)=>b-a).map(B=>{
+  const liste=nach.get(B);
+  const L=Math.max.apply(null,liste.map(x=>x.laenge));
+  const v=ebaPackeInStreifen(liste,L);
+  if(v.optimal===false)optimal=false;
+  return {breite:B,stuecke:liste,abschnittLaenge:L,streifen:v.streifen||[]};
+ });
+ const moeglich=[], zuSchmal=[];
  breiten.forEach(R=>{
   const zeilen=[]; let flaeche=0, passt=true;
   gruppen.forEach(gr=>{
-   const jeTafel=Math.floor(R/gr.breite);
-   if(jeTafel<1){passt=false;return}
-   const v=ebaPackeInBaender(gr.stuecke,jeTafel);
-   if(v.optimal===false)optimal=false;
-   flaeche+=R*v.laenge/1e6;
-   zeilen.push({breite:gr.breite,jeTafel,streifen:jeTafel,rollenLaenge:v.laenge,
-     restBreite:R-jeTafel*gr.breite,verteilung:v.streifen});
+   const jeAbschnitt=Math.floor(R/gr.breite);
+   if(jeAbschnitt<1){passt=false;return}
+   const abschnitte=Math.ceil(gr.streifen.length/jeAbschnitt);
+   const rollenLaenge=abschnitte*gr.abschnittLaenge;
+   flaeche+=R*rollenLaenge/1e6;
+   zeilen.push({breite:gr.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
+     abschnittLaenge:gr.abschnittLaenge,rollenLaenge,
+     streifen:gr.streifen.length,restBreite:R-jeAbschnitt*gr.breite});
   });
   if(!passt){zuSchmal.push(R);return}
   moeglich.push({breite:R,zeilen,flaeche,verschnitt:flaeche-netto,
@@ -146,9 +156,10 @@ function lukaRollenPlan(){
  });
  moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
  const best=moeglich[0]||null;
- const gefuellt=gruppen.map((g,i)=>({breite:g.breite,stuecke:g.stuecke,
-   rollenLaenge:best?best.zeilen[i].rollenLaenge:0,
-   streifen:best?best.zeilen[i].verteilung:[]}));
+ const gefuellt=gruppen.map((g,i)=>Object.assign({},g,{
+   jeAbschnitt:best?best.zeilen[i].jeAbschnitt:1,
+   abschnitte:best?best.zeilen[i].abschnitte:0,
+   rollenLaenge:best?best.zeilen[i].rollenLaenge:0}));
  return {gruppen:gefuellt,moeglich,zuSchmal,bestes:best,netto,optimal};
 }
 // Der Plan in der gemeinsamen Form (js/33) - damit sieht der Zuschnitt in
@@ -505,13 +516,10 @@ function lukaZusatzDaten(){
   zuschnitt:{auswahl:(lukA.rollenAuswahl||[]).slice(),
              breiten:lukaRollenbreiten(),
              netto:Number(rp.netto.toFixed(3)),
-             bestes:rp.bestes?Object.assign({},rp.bestes,{
-               zeilen:(rp.bestes.zeilen||[]).map(z=>({breite:z.breite,jeTafel:z.jeTafel,
-                 streifen:z.streifen,rollenLaenge:z.rollenLaenge}))}):null,
-             moeglich:(rp.moeglich||[]).map(m=>Object.assign({},m,{
-               zeilen:(m.zeilen||[]).map(z=>({breite:z.breite,jeTafel:z.jeTafel,
-                 streifen:z.streifen,rollenLaenge:z.rollenLaenge}))})),
+             bestes:rp.bestes||null,
+             moeglich:rp.moeglich||[],
              gruppen:(rp.gruppen||[]).map(g=>({breite:g.breite,rollenLaenge:g.rollenLaenge,
+               abschnittLaenge:g.abschnittLaenge,jeAbschnitt:g.jeAbschnitt,abschnitte:g.abschnitte,
                streifen:(g.streifen||[]).map(s=>({
                  stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,
                    breite:x.breite,merkmal:x.merkmal||""})),

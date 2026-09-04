@@ -14565,3 +14565,140 @@ sowie `js/11`–`js/15`, `js/17`, `js/19`–`js/27`, `js/35`.
   Abschnitt von der Rolle gezogen; schmale und breite Streifen werden nicht
   auf derselben Rollenbreite kombiniert. Das ist die vorsichtige Annahme –
   sie kann Material kosten und gehört in den Praxistest.
+
+## 93. ZUSCHNITT IN ABSCHNITTE STATT EINER DURCHGEHENDEN BAHN — VERSION 2.89
+
+Rückmeldung mit Bildschirmfoto zum v2.88-Ausdruck: bei vielen gleich langen
+Blechen stand dort „6'210 mm ab Rolle". Das ist in der Werkstatt nicht
+handhabbar – der Zuschnitt soll **immer nur so lang sein wie das längste
+Blech**, also „3 × 2'070 mm".
+
+### 93.1 Was v2.88 falsch machte
+
+v2.88 hatte die Rolle als **eine durchgehende Bahn** gerechnet: `jeTafel`
+Streifen laufen nebeneinander, jeder so lang wie nötig, die Rollenlänge ist
+die des vollsten Streifens. Rechnerisch sparsam – aber der Streifen wurde
+dadurch beliebig lang (im gemeldeten Fall 6'210 mm), und niemand zieht 6 m
+Blech am Stück durch die Abkantbank.
+
+### 93.2 Neues Modell
+
+    Abschnittlänge        = längstes Stück
+    Streifen je Abschnitt = ganzzahlig(Rollenbreite ÷ Abwicklung)
+    Abschnitte            = aufgerundet(Streifen ÷ Streifen je Abschnitt)
+    Rollenlänge           = Abschnitte × Abschnittlänge
+    Blechfläche           = Rollenbreite × Rollenlänge
+
+Von der Rolle werden **Abschnitte** abgezogen und quer in Streifen der
+Abwicklungsbreite geteilt. Ein Abschnitt ist immer so lang wie das längste
+Blech; es werden so viele gezogen, wie es braucht. **In einem Streifen dürfen
+weiterhin mehrere Stücke hintereinander liegen**, solange sie zusammen in
+EINEN Abschnitt passen – dafür ist die Packrechnung da. Kein Stück läuft über
+eine Abschnittgrenze.
+
+Der gemeldete Fall, nachgerechnet (9× 2'070, 1× 1'600, 1× 1'100,
+Abwicklung 250, netto 5.33 m²):
+
+| | v2.88 | v2.89 |
+|---|---|---|
+| Rolle 1'000 | 6'210 mm am Stück | **3 × 2'070 mm** |
+| Streifen je Abschnitt | 4 | 4 |
+| Blechfläche | 6.21 m² | **6.21 m²** |
+| Verschnitt | 0.88 m² · 14 % | 0.88 m² · 14 % |
+
+**Die Fläche ändert sich hier nicht** – nur der Zuschnitt ist jetzt
+handhabbar. In anderen Fällen kostet die Vorgabe Material (Beispiel
+2000/1800/1600/1400/1200 bei Rolle 1'000: 4.00 m² statt 2.60 m²), weil ein
+Streifen nicht mehr über die Abschnittgrenze hinaus gefüllt werden darf. Das
+ist die bewusste Folge der Vorgabe und in 93.6 offengelegt.
+
+### 93.3 Weiterhin genau EINE Packrechnung
+
+`ebaPackeInBaender` aus v2.88 ist entfallen – gebraucht wird wieder nur
+`ebaPackeInStreifen(bleche, L)` (kleinste Streifenzahl bei fester
+Abschnittlänge) auf dem gemeinsamen Kern `ebaVerteile` in js/29. Da die
+Abschnittlänge nicht von der Rollenbreite abhängt, wird **einmal** gepackt;
+je Rollenbreite folgt daraus nur noch die Zahl der Abschnitte.
+
+`raNormPlan` (Rinne Halbrund, Normlängen) unverändert.
+
+### 93.4 Anzeige
+
+- Fusszeile der Liste: „**3 × 2'070 mm ab Rolle** · 4 Streifen je Abschnitt"
+- Kennzahl „Ab Rolle": `3 × 2'070 mm` (statt einer Gesamtlänge)
+- Rollenvergleich: Spalten **Rolle · Str./Abschn. · Ab Rolle · Verschnitt ·
+  Anteil**. „Str./Abschn." ist jetzt die Zahl der Streifen **nebeneinander**
+  (1'000 → 4, 670 → 2) und damit je Rolle verschieden – vorher stand dort für
+  beide dieselbe Gesamtzahl.
+- Belegung: jede Karte nennt **Abschnitt und Streifen** („Abschnitt 2 ·
+  Streifen 3"), im PDF als „2.3".
+
+**Ältere gespeicherte Pläne drucken unverändert ihre eigenen Zahlen.** Bis
+v2.87 hiessen die Felder `tafeln`/`tafelLaenge` – dieselbe Sache unter
+anderem Namen, sie werden als „2 × 2'070 mm" gelesen. Ein v2.88-Plan hat nur
+die durchgehende `rollenLaenge` und wird als **ein** Abschnitt gezeigt, weil
+er genau so gerechnet wurde. Es wird nichts nachgerechnet.
+
+### 93.5 Getestet
+
+- **`pruefstand-rollenblech-pdf-v2-85.js` – 95/95** (vorher 85), neuer
+  Abschnitt 30 mit genau dem gemeldeten Fall: der Abschnitt ist so lang wie
+  das längste Blech, kein Streifen ist länger belegt als ein Abschnitt,
+  11 Streifen, Rolle 1'000 → 4 je Abschnitt und 3 × 2'070 mm, Fläche
+  unverändert 6.21 m², die Anzeige sagt „3 × 2'070 mm ab Rolle" und
+  **nirgends** „6'210 mm", die Belegung nennt Abschnitt und Streifen.
+- **Vier Gegenproben**, jede baut einen echten Fehler ein: durchgehende Bahn
+  statt Abschnitten (92/95) · Abschnitt doppelt so lang wie das längste Blech
+  (89/95) · Belegung ohne Abschnittzuordnung (94/95) · alter Plan verliert
+  die Abschnitte (92/95).
+- **Volle Regression grün** – 14 Repo-Prüfstände (verschnitt 1578,
+  register-zuschnitt 245, kehle 158, mauerabdeckung 146, freies-profil 118,
+  konisch 114, rinne 104, medien-am-ende 100, einlaufblech 99,
+  rollenblech-pdf 95, lukarne 82, dila-sichtbar 57, skizze-foto 54,
+  lxb-druck 46) und alle archivierten (kehle52 698, pdf52 526, rinne57 379,
+  required70 377, einf70 185, offline70 123, feedback63 108, freipos65 99,
+  fotos70 88, dila70 85, breite57 84, fp70 83, kehleintegration52 76,
+  feedbackbrowser63 67, breite52 52, ebg70 49, einstbrowser68 47,
+  feedback70 47, mad70 45, module67 43, einst68 43, medien50 42,
+  adresse45 39, pfade55 38, dateien49 38, projekte47 37, status46 35,
+  freiposbrowser65 33, auswahl48 32, modulebrowser67 16, suche45 13,
+  kopf45 8, hidden51 7, abstand69 2, normbrute 1578, sowie nav, suche40,
+  treffer40, recent41, stand42, dateien43, ui39).
+- **Angepasste Erwartungen** – alle **überholt**, keine davon ein Codefehler:
+  die Prüfstände der sechs Rollenblech-Arten kannten die v2.88-Felder
+  `rollenLaenge`/`verteilung`. Die neuen Erwartungen sind **von Hand
+  nachgerechnet** und stehen als Kommentar daneben (z. B. Kehle: Zuschnitte
+  2070/2070/1453 → Abschnitt 2070, drei Streifen, Rolle 1'000 ÷ 500 = 2 je
+  Abschnitt → 2 Abschnitte → 4'140 mm → 4.14 m²).
+- **Dabei gefunden**: die Fusszeile sagte „11 Streifen nebeneinander" –
+  nebeneinander liegen aber nur 4. `zuStreifenZahl()` liefert jetzt die
+  Streifen **je Abschnitt**, nicht die Gesamtzahl; die Kennzahl heisst
+  „Streifen gesamt".
+- Spaltenköpfe des Vergleichs bei 320/360/412/768 px gemessen: alle
+  einzeilig.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` unmittelbar nacheinander gegen v2.88 gerendert –
+  **Bild und DOM byteidentisch** (DOM `e8f755c688bd77f9`, 4878 Zeichen;
+  Bild `82af9acca400e6bd`, 45941 Bytes).
+- `node --check` über alle 33 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Tiefe 0; keine doppelten Element-IDs.
+- **Kein Datenbankzugriff** in dieser Runde.
+
+### 93.6 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird
+  ausdrücklich nicht als getestet behauptet.**
+- **Die Abschnittvorgabe kostet in manchen Fällen Material.** Weil ein
+  Streifen nicht über die Abschnittgrenze hinaus gefüllt werden darf, bleibt
+  Rest stehen, den eine durchgehende Bahn genutzt hätte (Beispiel in 93.2:
+  4.00 m² statt 2.60 m²). Das ist die bewusste Folge der Vorgabe „nie länger
+  als das längste Blech" und kein Rechenfehler. Sollte sich in der Praxis
+  zeigen, dass ein längerer Abschnitt doch handhabbar ist, wäre eine
+  einstellbare Höchstlänge je Firma die naheliegende Erweiterung – dafür
+  bräuchte es eine Angabe, wie lang ein Abschnitt sein darf.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken.
+- Beim Freien Profil und bei der Lukarne bekommt jede Streifenbreite ihre
+  eigenen Abschnitte; schmale und breite Streifen werden nicht auf derselben
+  Rollenbreite kombiniert.

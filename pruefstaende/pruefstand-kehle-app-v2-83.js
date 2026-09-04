@@ -267,37 +267,39 @@ const text=page=>page.evaluate(()=>$("kehleAufnahme").innerText);
     .map(e=>e.innerText.replace(/\s+/g," ").trim());
   return {art:plan.art,breiten:plan.streifenbreiten,kenn,
    bestes:rp.bestes,netto:Number(rp.netto.toFixed(4)),
-   moeglich:rp.moeglich.map(m=>[m.breite,m.jeTafel,m.rollenLaenge,Number(m.flaeche.toFixed(4))]),
+   moeglich:rp.moeglich.map(m=>[m.breite,m.jeAbschnitt,m.rollenLaenge,Number(m.flaeche.toFixed(4))]),
    txt:$("kea_kopf").innerText};
  });
  p(zu.art==="rolle","der Plan hat die gemeinsame Form (js/33)",zu.art);
  p(/streifenbreite/i.test(zu.kenn[0]||""),"die Streifenbreite steht als ERSTE Kennzahl",zu.kenn);
  p(/500/.test(zu.kenn[0]||""),"und nennt die Abwicklung 500 mm",zu.kenn[0]);
  p(Math.abs(zu.netto-2.7965)<1e-4,"Blech netto = 5593 mm x 500 mm = 2.80 m2",zu.netto);
- // Seit v2.88 wird jedes Stueck auf SEINE Laenge geschnitten. Von Hand:
- // Zuschnitte 2070, 2070, 1453. Rolle 1000 ÷ 500 = 2 Streifen ->
- // 2070+1453 = 3523 und 2070 -> Rollenlaenge 3523, Flaeche 3.523 m2.
- p(zu.bestes&&zu.bestes.breite===1000&&zu.bestes.jeTafel===2&&zu.bestes.rollenLaenge===3523,
-   "beste Rolle 1000 mm: 2 Streifen, 3'523 mm ab Rolle",zu.bestes);
- p(zu.bestes&&Math.abs(zu.bestes.flaeche-3.523)<1e-6&&Math.abs(zu.bestes.verschnitt-0.7265)<1e-4,
-   "3.52 m2 Blech, 0.73 m2 Verschnitt",zu.bestes);
- // Rolle 670 ÷ 500 = 1 Streifen -> alle 5593 mm hintereinander.
+ // Seit v2.89 wird die Rolle in Abschnitte geschnitten, jeder so lang wie das
+ // laengste Blech. Von Hand: Zuschnitte 2070, 2070, 1453 -> Abschnitt 2070,
+ // drei Streifen (nichts passt hintereinander in 2070).
+ //   Rolle 1000 ÷ 500 = 2 Streifen je Abschnitt -> 2 Abschnitte -> 4'140 mm
+ //   -> 1000 x 4140 = 4.14 m2
+ p(zu.bestes&&zu.bestes.breite===1000&&zu.bestes.jeAbschnitt===2
+   &&zu.bestes.abschnitte===2&&zu.bestes.abschnittLaenge===2070,
+   "beste Rolle 1000 mm: 2 × 2'070 mm ab Rolle",zu.bestes);
+ p(zu.bestes&&Math.abs(zu.bestes.flaeche-4.14)<1e-6&&Math.abs(zu.bestes.verschnitt-1.3435)<1e-4,
+   "4.14 m2 Blech, 1.34 m2 Verschnitt",zu.bestes);
+ // Rolle 670 ÷ 500 = 1 Streifen je Abschnitt -> 3 Abschnitte -> 6'210 mm.
  const r670=zu.moeglich.find(m=>m[0]===670);
- p(!!r670&&r670[1]===1&&r670[2]===5593,"670 mm: 1 Streifen, 5'593 mm ab Rolle",r670);
+ p(!!r670&&r670[1]===1&&r670[2]===6210,"670 mm: 3 × 2'070 mm ab Rolle",r670);
  p(!/NaN|undefined|Infinity/.test(zu.txt),"kein NaN im Zuschnitt",
    {t:(zu.txt.match(/NaN|undefined|Infinity/)||[""])[0]});
  // Es gibt in der App nur EINE Packrechnung. Beweis: sie wird tatsaechlich
  // gerufen, und mehrere kurze Stuecke landen im selben Streifen - eine
  // naive Rechnung "ein Stueck je Streifen" kaeme auf drei statt zwei.
  const geteilt=await page.evaluate(()=>{
-  const echt=ebaPackeInBaender; let n=0;
-  ebaPackeInBaender=function(){n++;return echt.apply(this,arguments)};
+  const echt=ebaPackeInStreifen; let n=0;
+  ebaPackeInStreifen=function(){n++;return echt.apply(this,arguments)};
   const sicher=JSON.parse(JSON.stringify(kehleA.segmente));
   kehleA.segmente=[{laenge:1000,ueberlappung:0},{laenge:1000,ueberlappung:0},{laenge:2070,ueberlappung:0}];
   const rp=keaRollenPlan();
-  const b=rp.moeglich.find(m=>m.breite===1000)||rp.bestes;
-  const st=(b&&b.verteilung)||[];
-  kehleA.segmente=sicher; ebaPackeInBaender=echt; renderKehleAufnahme();
+  const st=rp.streifen||[];
+  kehleA.segmente=sicher; ebaPackeInStreifen=echt; renderKehleAufnahme();
   return {n,streifen:st.length,belegt:st.map(x=>x.stuecke.length).sort()};
  });
  p(geteilt.n>0,"keaRollenPlan ruft die gemeinsame Packrechnung aus js/29",geteilt);
@@ -380,11 +382,12 @@ const text=page=>page.evaluate(()=>$("kehleAufnahme").innerText);
  p(d.zuschnittSumme===5593&&Math.abs(d.flaeche_m2-2.7965)<1e-4,
    "neu: Zuschnittsumme und Blechflaeche",{z:d.zuschnittSumme,f:d.flaeche_m2});
  p(Array.isArray(d.ausmass)&&d.ausmass.length===4,"neu: das Ausmass",d.ausmass&&d.ausmass.length);
- p(d.rollen&&d.rollen.bestes&&d.rollen.bestes.breite===1000&&d.rollen.rollenLaenge===3523,
+ p(d.rollen&&d.rollen.bestes&&d.rollen.bestes.breite===1000
+   &&d.rollen.abschnitte===2&&d.rollen.abschnittLaenge===2070,
    "neu: der Rollenblech-Plan",d.rollen&&d.rollen.bestes);
- // Zwei Streifen (Rolle 1000 ÷ Abwicklung 500), jedes Stueck genau einmal.
+ // Drei Streifen (nichts passt hintereinander in 2070), jedes Stueck genau einmal.
  const st=(d.rollen&&d.rollen.streifen)||[];
- p(Array.isArray(st)&&st.length===2,"mit der Belegung der Streifen",st.length);
+ p(Array.isArray(st)&&st.length===3,"mit der Belegung der Streifen",st.length);
  p(st.flatMap(x=>x.stuecke.map(y=>y.nr)).sort().join()==="1,2,3",
    "jedes Segment liegt genau einmal in einem Streifen",
    st.map(x=>x.stuecke.map(y=>y.nr)));

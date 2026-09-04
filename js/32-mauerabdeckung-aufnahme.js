@@ -175,25 +175,28 @@ function madaRollenbreiten(){
 function madaRollenPlan(){
  const A=Math.round(madaZahl(madaProfilMasse().abwicklung));
  const bleche=madaBleche();
+ const L=madaTafelLaenge();
  const breiten=madaRollenbreiten();
  const netto=bleche.reduce((s,x)=>s+x.laenge,0)*A/1e6;
  if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto};
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto,abschnittLaenge:L};
+ const v=ebaPackeInStreifen(bleche,L);
+ const streifen=v.streifen||[];
  const moeglich=[], zuSchmal=[];
- let optimal=true;
  breiten.forEach(B=>{
-  const jeTafel=Math.floor(B/A);
-  if(jeTafel<1){zuSchmal.push(B);return}
-  const v=ebaPackeInBaender(bleche,jeTafel);
-  if(v.optimal===false)optimal=false;
-  const flaeche=B*v.laenge/1e6;
-  moeglich.push({breite:B,jeTafel,streifen:jeTafel,rollenLaenge:v.laenge,
-   restBreite:B-jeTafel*A, verteilung:v.streifen,
-   flaeche,verschnitt:flaeche-netto,
+  const jeAbschnitt=Math.floor(B/A);
+  if(jeAbschnitt<1){zuSchmal.push(B);return}
+  const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
+  const rollenLaenge=abschnitte*L;
+  const flaeche=B*rollenLaenge/1e6;
+  moeglich.push({breite:B,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,abschnittLaenge:L,
+   rollenLaenge, streifen:streifen.length,
+   restBreite:B-jeAbschnitt*A,flaeche,verschnitt:flaeche-netto,
    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
  });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null,abwicklung:A,netto,optimal};
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.abschnitte-y.abschnitte||y.breite-x.breite);
+ return {moeglich,zuSchmal,bestes:moeglich[0]||null,abwicklung:A,netto,
+         abschnittLaenge:L,verteilung:v,streifen,optimal:v.optimal!==false};
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -488,9 +491,12 @@ function madaZuschnittPlan(){
       :(!madaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt. Unter Einstellungen → Allgemein → Rollenbreiten des Blechlagers mindestens eine wählen."
       :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
   streifenbreiten:[rp.abwicklung],
-  gruppen:best?[{breite:rp.abwicklung,rollenLaenge:best.rollenLaenge,streifen:best.verteilung||[]}]:[],
+  gruppen:(rp.streifen||[]).length?[{breite:rp.abwicklung,abschnittLaenge:rp.abschnittLaenge,
+    jeAbschnitt:best?best.jeAbschnitt:1, abschnitte:best?best.abschnitte:0,
+    rollenLaenge:best?best.rollenLaenge:0, streifen:rp.streifen}]:[],
   moeglich:rp.moeglich, netto:rp.netto,
-  zuSchmal:rp.zuSchmal, optimal:rp.optimal!==false};
+  zuSchmal:rp.zuSchmal, zuLang:(rp.verteilung||{}).zuLang||[],
+  optimal:rp.optimal!==false};
 }
 function madaZuschnittHtml(){
  return zuRollenAuswahlHtml(madA.rollenAuswahl,"data-mada-rolle")+zuschnittHtml(madaZuschnittPlan());
@@ -774,11 +780,14 @@ function madaZusatzDaten(){
   ausmass:madaAusmassZeilen(),
   rollen:{auswahl:(madA.rollenAuswahl||[]).slice(),breiten:madaRollenbreiten(),
           abwicklung:plan.abwicklung,
+          abschnittLaenge:plan.abschnittLaenge,
+          abschnitte:plan.bestes?plan.bestes.abschnitte:0,
+          jeAbschnitt:plan.bestes?plan.bestes.jeAbschnitt:1,
           rollenLaenge:plan.bestes?plan.bestes.rollenLaenge:0,
           netto:Number(plan.netto.toFixed(3)),
           bestes:plan.bestes||null,
-          moeglich:(plan.moeglich||[]).map(m=>{const o=Object.assign({},m);delete o.verteilung;return o}),
-          streifen:((plan.bestes||{}).verteilung||[])
+          moeglich:plan.moeglich||[],
+          streifen:(plan.streifen||[])
             .map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})),rest:s.rest})),
           optimal:plan.optimal!==false}
  };

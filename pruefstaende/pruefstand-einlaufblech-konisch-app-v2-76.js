@@ -250,24 +250,25 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
   return {flaeche:ebkaFlaecheM2(),
           breiten:ebaRollenbreiten(),
           bestes:plan.bestes,
-          moeglich:plan.moeglich.map(m=>[m.breite,m.jeTafel,m.rollenLaenge,Number(m.flaeche.toFixed(4))]),
-          belegung:((plan.bestes||{}).verteilung||[]).map(x=>x.stuecke.map(y=>y.nr+":"+y.laenge)),
+          moeglich:plan.moeglich.map(m=>[m.breite,m.jeAbschnitt,m.abschnitte,m.abschnittLaenge,Number(m.flaeche.toFixed(4))]),
+          belegung:(plan.streifen||[]).map(x=>x.stuecke.map(y=>y.nr+":"+y.laenge)),
           text:$("einlaufblechKonischAufnahme").innerText,
           alles:$("einlaufblechKonischAufnahme").textContent};
  });
  p(Math.abs(roll.flaeche-3520*330/1e6)<1e-9,"Blechflaeche = Gesamtlaenge x Abwicklung",roll.flaeche);
  p(roll.breiten.join()==="1000,670","ohne Hinterlegung gelten 1000 und 670 mm",roll.breiten);
- // Seit v2.88 wird jedes Stueck auf SEINE Laenge geschnitten. Von Hand:
- // Zuschnitte 2070 und 1450, Abwicklung 330.
- //   670 ÷ 330 = 2 Streifen -> 2070 | 1450 -> Rollenlaenge 2070
- //  1000 ÷ 330 = 3 Streifen -> dasselbe 2070, aber mehr Blechbreite
+ // Seit v2.89 Abschnitte, jeder so lang wie das laengste Blech. Von Hand:
+ // Zuschnitte 2070 und 1450 -> Abschnitt 2070, zwei Streifen.
+ //   670 ÷ 330 = 2 Streifen je Abschnitt -> 1 Abschnitt -> 670x2070 = 1.3869 m2
+ //  1000 ÷ 330 = 3 Streifen je Abschnitt -> 1 Abschnitt -> mehr Blechbreite
  const r670=roll.moeglich.find(m=>m[0]===670), r1000=roll.moeglich.find(m=>m[0]===1000);
- p(!!r670&&r670[1]===2&&r670[2]===2070&&Math.abs(r670[3]-670*2070/1e6)<1e-6,
-   "670 mm: 2 Streifen, 2'070 mm ab Rolle",r670);
- p(!!r1000&&r1000[1]===3&&r1000[2]===2070,"1000 mm: 3 Streifen, 2'070 mm ab Rolle",r1000);
+ p(!!r670&&r670[1]===2&&r670[2]===1&&r670[3]===2070&&Math.abs(r670[4]-670*2070/1e6)<1e-6,
+   "670 mm: 2 Streifen je Abschnitt, 1 × 2'070 mm ab Rolle",r670);
+ p(!!r1000&&r1000[1]===3&&r1000[2]===1&&r1000[3]===2070,
+   "1000 mm: 3 Streifen je Abschnitt, 1 × 2'070 mm ab Rolle",r1000);
  p(roll.bestes&&roll.bestes.breite===670,"die schmalere Rolle braucht hier weniger Blech",roll.bestes);
- p(roll.bestes&&roll.bestes.jeTafel===Math.floor(roll.bestes.breite/330),
-   "Streifen nebeneinander = Rollenbreite ÷ Abwicklung",roll.bestes);
+ p(roll.bestes&&roll.bestes.jeAbschnitt===Math.floor(roll.bestes.breite/330),
+   "Streifen je Abschnitt = Rollenbreite ÷ Abwicklung",roll.bestes);
  p(roll.belegung.flat().map(x=>Number(x.split(":")[0])).sort().join()==="1,2",
    "jedes Stueck liegt genau einmal in einem Streifen",roll.belegung);
  p(/St(ü|ue)ck/i.test(roll.text)&&/Streifen 1/.test(roll.alles),
@@ -417,7 +418,8 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
  p(typeof d.flaeche_m2==="number"&&d.flaeche_m2>0,"Flaeche gespeichert",d.flaeche_m2);
  p(Array.isArray(d.ausmass)&&d.ausmass.length>0,"Ausmass gespeichert",d.ausmass&&d.ausmass.length);
  p(d.rollen&&Array.isArray(d.rollen.moeglich)&&d.rollen.moeglich.length>0,"Rollenplan gespeichert",d.rollen&&d.rollen.moeglich.length);
- p(d.rollen&&d.rollen.rollenLaenge===2070,"Rollenlaenge im Plan",d.rollen&&d.rollen.rollenLaenge);
+ p(d.rollen&&d.rollen.abschnitte===1&&d.rollen.abschnittLaenge===2070,
+   "Abschnitte im Plan",d.rollen&&{n:d.rollen.abschnitte,l:d.rollen.abschnittLaenge});
 
  const wieder=await page.evaluate(pl=>{
   // Vorher auf Register 6 stellen: zeichnet ebkaFuellen() nicht selbst neu,
@@ -518,7 +520,9 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
  p(/Zuschnitt aus Rollenblech/.test(druck),"Rollenplan im PDF");
  p(/>Ausmass</.test(druck),"Ausmass im PDF");
  p(/Blechfl/.test(druck),"Blechflaeche im PDF");
- p(/2[^\d]?070\s*mm ab Rolle/.test(druck),"Rollenlaenge aus dem gespeicherten Plan, nicht neu gerechnet",(druck.match(/[^<>]*ab Rolle[^<>]*/)||[""])[0].slice(0,90));
+ p(/1 × 2[^\d]?070(&nbsp;|\s)*mm ab Rolle/.test(druck),
+   "Abschnitte aus dem gespeicherten Plan, nicht neu gerechnet",
+   (druck.match(/[^<>]*ab Rolle[^<>]*/)||[""])[0].slice(0,90));
  p(/Mass links/.test(druck)&&/Mass rechts/.test(druck),"Masse links und rechts im PDF");
  p(!/\bNaN\b|\bInfinity\b/.test(druck),"kein NaN im PDF");
  // Ein alter Datensatz darf keinen der neuen Abschnitte erzeugen.

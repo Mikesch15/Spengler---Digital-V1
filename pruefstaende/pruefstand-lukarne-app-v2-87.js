@@ -273,7 +273,7 @@ const daten=async(page,o)=>{await page.evaluate(x=>{Object.assign(lukA,x);render
    "die Scharnummern bleiben erhalten und stehen als eigene Marken",
    zu.liste.map(z=>z.posMarke+" "+z.pos));
  p(zu.kasten,"der Kasten \"Rollen fuer diese Massaufnahme\" steht da");
- p(zu.kopf.indexOf("Rollenlänge")>=0,"und der Rollenvergleich nennt die Rollenlaenge",zu.kopf);
+ p(zu.kopf.indexOf("Ab Rolle")>=0,"und der Rollenvergleich nennt die Abschnitte",zu.kopf);
  p(!zu.nan,"kein NaN im Zuschnitt");
  // Gruppierung: gleiche Zuschnitte zusammenfassen
  const grp=await page.evaluate(()=>{

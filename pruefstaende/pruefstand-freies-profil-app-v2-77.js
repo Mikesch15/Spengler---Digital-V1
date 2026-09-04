@@ -348,17 +348,25 @@ const profil=async(page,liste)=>{
  const h1=await page.evaluate(()=>{
   const q=fpaRollenPlan();
   return {gruppen:q.gruppen.length,breite:q.gruppen[0].breite,rl:q.gruppen[0].rollenLaenge,
+   abschnittLaenge:q.gruppen[0].abschnittLaenge,
    streifen:q.gruppen[0].streifen.length,netto:Math.round(q.netto*1e6)/1e6,
-   moeglich:q.moeglich.map(m=>({b:m.breite,rl:m.rollenLaenge,f:Math.round(m.flaeche*1e6)/1e6})),
+   moeglich:q.moeglich.map(m=>({b:m.breite,rl:m.rollenLaenge,
+     ab:m.zeilen[0].abschnitte,al:m.zeilen[0].abschnittLaenge,
+     f:Math.round(m.flaeche*1e6)/1e6})),
    bestes:q.bestes&&q.bestes.breite,
    verschnitt:q.bestes?Math.round(q.bestes.verschnitt*1000)/1000:null};
  });
  p(h1.gruppen===1&&h1.breite===210,"eine Streifenbreite: 210 mm",h1);
- p(h1.rl===2000&&h1.streifen===3,"2'000 mm ab Rolle, drei Streifen nebeneinander",h1);
+ p(h1.abschnittLaenge===2000&&h1.streifen===3,
+   "Abschnitt 2'000 mm (laengstes Stueck), drei Streifen",h1);
  p(Math.abs(h1.netto-0.987)<1e-6,"netto 0,987 m² aus dem Ausmass",h1.netto);
  const r1000=h1.moeglich.find(m=>m.b===1000), r670=h1.moeglich.find(m=>m.b===670);
- p(r1000&&r1000.rl===2000&&Math.abs(r1000.f-2)<1e-6,"Rolle 1000: 2'000 mm ab Rolle, 2,00 m²",r1000);
- p(r670&&r670.rl===2000&&Math.abs(r670.f-1.34)<1e-6,"Rolle 670: 2'000 mm ab Rolle, 1,34 m²",r670);
+ // 1000 ÷ 210 = 4 Streifen je Abschnitt, drei Streifen -> EIN Abschnitt.
+ p(r1000&&r1000.ab===1&&r1000.al===2000&&Math.abs(r1000.f-2)<1e-6,
+   "Rolle 1000: 1 × 2'000 mm ab Rolle, 2,00 m²",r1000);
+ // 670 ÷ 210 = 3 Streifen je Abschnitt, drei Streifen -> ebenfalls EIN Abschnitt.
+ p(r670&&r670.ab===1&&r670.al===2000&&Math.abs(r670.f-1.34)<1e-6,
+   "Rolle 670: 1 × 2'000 mm ab Rolle, 1,34 m²",r670);
  p(h1.bestes===670,"die schmalere Rolle ist die bessere",h1.bestes);
  p(Math.abs(h1.verschnitt-0.353)<1e-3,"Verschnitt 0,353 m²",h1.verschnitt);
  // Fuenf Stuecke auf drei Streifen (Rolle 670 ÷ 210): ohne die Packrechnung
@@ -372,12 +380,17 @@ const profil=async(page,liste)=>{
   const b=q.moeglich.find(m=>m.breite===670);
   const g=q.gruppen[0];
   const r={streifen:g.streifen.length,rollenLaenge:b?b.zeilen[0].rollenLaenge:0,
-   belegung:(b?b.zeilen[0].verteilung:[]).map(st=>st.stuecke.map(x=>x.laenge).join("+")).sort().join(" | ")};
+   abschnitte:b?b.zeilen[0].abschnitte:0, abschnittLaenge:g.abschnittLaenge,
+   belegung:(g.streifen||[]).map(st=>st.stuecke.map(x=>x.laenge).join("+")).sort().join(" | ")};
   fpA.segmente=vor; fpSegmente=fpA.segmente; renderFreiesProfilAufnahme();
   return r;
  });
- p(pack.rollenLaenge===2000&&pack.belegung==="2000 | 900+900 | 900+900",
-   "fuenf Stuecke auf drei Streifen: 2'000 mm ab Rolle (Packrechnung aus js/29)",pack);
+ // Abschnitt = laengstes Stueck = 2000. Ohne die Packrechnung braeuchte es
+ // fuenf Streifen und damit zwei Abschnitte; mit ihr genuegen drei Streifen
+ // und EIN Abschnitt.
+ p(pack.abschnittLaenge===2000&&pack.streifen===3&&pack.abschnitte===1
+   &&pack.belegung==="2000 | 900+900 | 900+900",
+   "fuenf Stuecke auf drei Streifen: 1 × 2'000 mm ab Rolle (Packrechnung aus js/29)",pack);
  // Zwei verschiedene Breiten
  const zwei=await page.evaluate(()=>{
   fpA.segmente.push({laenge:900,massen:[{mass:100},{mass:100},{mass:100}]});

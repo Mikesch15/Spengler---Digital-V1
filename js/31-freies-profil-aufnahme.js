@@ -186,9 +186,16 @@ function fpaZuschnittGruppen(){
   g.stuecke.push({nr:i+1,laenge,merkmal});
  });
  gruppen.sort((a,b)=>b.breite-a.breite);
- // Gepackt wird hier NICHT: wie viele Streifen nebeneinander liegen, haengt
- // an der Rollenbreite - und damit auch die Verteilung. Das passiert je
- // Rollenbreite in fpaRollenPlan().
+ // Ein Abschnitt ist so lang wie das laengste Stueck DIESER Streifenbreite -
+ // die Verteilung haengt damit nicht an der Rollenbreite und wird einmal
+ // gepackt. Die Zahl der Abschnitte folgt erst in fpaRollenPlan().
+ gruppen.forEach(g=>{
+  g.abschnittLaenge=Math.max.apply(null,g.stuecke.map(x=>x.laenge));
+  const v=(typeof ebaPackeInStreifen==="function")
+   ?ebaPackeInStreifen(g.stuecke,g.abschnittLaenge):{streifen:[],optimal:true};
+  g.streifen=v.streifen||[];
+  g.optimal=v.optimal!==false;
+ });
  return {gruppen,ohne};
 }
 function fpaRollenPlan(){
@@ -198,17 +205,17 @@ function fpaRollenPlan(){
  if(!gruppen.length||!breiten.length)
   return {gruppen,ohne,moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
  const moeglich=[], zuSchmal=[];
- let optimal=true;
  breiten.forEach(B=>{
   const zeilen=[]; let flaeche=0, passt=true;
   gruppen.forEach(g=>{
-   const jeTafel=Math.floor(B/g.breite);
-   if(jeTafel<1){passt=false;return}
-   const v=ebaPackeInBaender(g.stuecke,jeTafel);
-   if(v.optimal===false)optimal=false;
-   flaeche+=B*v.laenge/1e6;
-   zeilen.push({breite:g.breite,jeTafel,streifen:jeTafel,rollenLaenge:v.laenge,
-                restBreite:B-jeTafel*g.breite,verteilung:v.streifen});
+   const jeAbschnitt=Math.floor(B/g.breite);
+   if(jeAbschnitt<1){passt=false;return}
+   const abschnitte=Math.ceil(g.streifen.length/jeAbschnitt);
+   const rollenLaenge=abschnitte*g.abschnittLaenge;
+   flaeche+=B*rollenLaenge/1e6;
+   zeilen.push({breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
+                abschnittLaenge:g.abschnittLaenge,rollenLaenge,
+                streifen:g.streifen.length,restBreite:B-jeAbschnitt*g.breite});
   });
   if(!passt){zuSchmal.push(B);return}
   moeglich.push({breite:B,zeilen,flaeche,verschnitt:flaeche-netto,
@@ -216,12 +223,14 @@ function fpaRollenPlan(){
                  rollenLaenge:zeilen.reduce((s,x)=>s+x.rollenLaenge,0)});
  });
  moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
- // Die Verteilung der besten Rolle ist die, mit der gearbeitet wird.
+ // Die Abschnittzahl der besten Rolle ist die, mit der gearbeitet wird.
  const best=moeglich[0]||null;
  const gefuellt=gruppen.map((g,i)=>Object.assign({},g,{
-   rollenLaenge:best?best.zeilen[i].rollenLaenge:0,
-   streifen:best?best.zeilen[i].verteilung:[]}));
- return {gruppen:gefuellt,ohne,moeglich,zuSchmal,bestes:best,netto,optimal};
+   jeAbschnitt:best?best.zeilen[i].jeAbschnitt:1,
+   abschnitte:best?best.zeilen[i].abschnitte:0,
+   rollenLaenge:best?best.zeilen[i].rollenLaenge:0}));
+ return {gruppen:gefuellt,ohne,moeglich,zuSchmal,bestes:best,netto,
+         optimal:gruppen.every(g=>g.optimal)};
 }
 
 // ---- Kontrolle -------------------------------------------------------------
@@ -403,9 +412,10 @@ function fpaZuschnittPlan(){
  // "Streifen je Tafel" ist nur bei EINER Streifenbreite eine einzelne Zahl.
  const moeglich=(p.moeglich||[]).map(m=>({breite:m.breite,
    jeTafel:(m.zeilen&&m.zeilen.length===1)?m.zeilen[0].jeTafel:undefined,
-   streifen:(m.zeilen||[]).reduce((s,z)=>s+z.streifen,0),
+   streifen:(m.zeilen||[]).reduce((s,z)=>s+z.jeAbschnitt,0),
    rollenLaenge:m.rollenLaenge,
-   zeilen:(m.zeilen||[]).map(z=>({breite:z.breite,jeTafel:z.jeTafel,rollenLaenge:z.rollenLaenge})),
+   zeilen:(m.zeilen||[]).map(z=>({breite:z.breite,jeTafel:z.jeTafel,jeAbschnitt:z.jeAbschnitt,
+     abschnitte:z.abschnitte,abschnittLaenge:z.abschnittLaenge,rollenLaenge:z.rollenLaenge})),
    flaeche:m.flaeche, verschnitt:m.verschnitt, anteil:m.anteil}));
  const zusatz="Segmente mit gleicher Streifenbreite werden zusammen gepackt."
   +(fpaKonisch()?" Konisch: die Streifenbreite ist die grössere der beiden Abwicklungen – der Zuschnitt muss das breitere Ende enthalten.":"");
@@ -703,13 +713,10 @@ function fpaZusatzDaten(){
   ausmass:fpaAusmassZeilen(),
   zuschnitt:{auswahl:(fpA.rollenAuswahl||[]).slice(),breiten:fpaRollen(),
              netto:Number(plan.netto.toFixed(3)),
-             bestes:plan.bestes?Object.assign({},plan.bestes,{
-               zeilen:(plan.bestes.zeilen||[]).map(z=>({breite:z.breite,jeTafel:z.jeTafel,
-                 streifen:z.streifen,rollenLaenge:z.rollenLaenge}))}):null,
-             moeglich:(plan.moeglich||[]).map(m=>Object.assign({},m,{
-               zeilen:(m.zeilen||[]).map(z=>({breite:z.breite,jeTafel:z.jeTafel,
-                 streifen:z.streifen,rollenLaenge:z.rollenLaenge}))})),
+             bestes:plan.bestes||null,
+             moeglich:plan.moeglich||[],
              gruppen:plan.gruppen.map(g=>({breite:g.breite,rollenLaenge:g.rollenLaenge,
+               abschnittLaenge:g.abschnittLaenge,jeAbschnitt:g.jeAbschnitt,abschnitte:g.abschnitte,
                streifen:(g.streifen||[]).map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||""})),rest:s.rest}))})),
              optimal:plan.optimal!==false}
  };

@@ -125,26 +125,30 @@ async function klick(page,sel){
     {breite:670,jeTafel:2,tafeln:4,flaeche:5.4,verschnitt:2.4,anteil:44}],250));
  p(/Rollenblech 1['’]000 mm/.test(r.kopf),"8 · der Kopf nennt die beste Rollenbreite",r.kopf);
  p(/ra-dila-zeile/.test(r.html),"   und die Vergleichstabelle hebt die beste Zeile hervor");
- // 9/10 · Rollenlaenge und Streifenzahl stehen in der Fusszeile
- p(/4['’]000 mm ab Rolle/.test(r.fuss)&&/4 Streifen/.test(r.fuss),
-   "9/10 · Fusszeile: Rollenlaenge und Streifen nebeneinander",r.fuss);
+ // 9/10 · Abschnitte und Streifen je Abschnitt stehen in der Fusszeile.
+ // Der Plan hier ist im alten Format (tafeln:2, tafelLaenge implizit 2000) -
+ // er wird korrekt als "2 × 2'000 mm" gelesen.
+ p(/2 × 2['’]000\s*mm ab Rolle/.test(r.fuss)&&/4 Streifen je Abschnitt/.test(r.fuss),
+   "9/10 · Fusszeile: Abschnitte und Streifen je Abschnitt",r.fuss);
  // 11 · Verschnitt
  p(/Verschnitt/.test(r.html),"11 · Verschnitt wird ausgewiesen");
- // 9b · Der Rollenvergleich nennt die ROLLENLAENGE - so lang muss abgezogen
- // werden. Aeltere gespeicherte Plaene kennen nur "tafeln x tafelLaenge";
- // daraus wird derselbe Wert abgeleitet, statt eine Luecke zu zeigen.
+ // 9b · Der Rollenvergleich nennt die ABSCHNITTE ("3 × 2'070 mm") - so wird
+ // von der Rolle geschnitten. Aeltere gespeicherte Plaene kennen dieselbe
+ // Sache als "tafeln x tafelLaenge"; das wird gelesen, nicht nachgerechnet.
  const spalten=await page.evaluate(()=>{
   const pl={art:"rolle",einheit:"Stück",streifenbreiten:[250],
-   gruppen:[{breite:250,rollenLaenge:2070,streifen:[{stuecke:[{nr:1,laenge:2070}],rest:0}]}],
-   moeglich:[{breite:1000,jeTafel:4,streifen:4,rollenLaenge:2070,flaeche:2.07,verschnitt:0.78,anteil:38},
-             {breite:670,jeTafel:2,streifen:2,rollenLaenge:4140,flaeche:2.77,verschnitt:1.48,anteil:53}],
-   netto:1.29,rollenLaenge:2070,optimal:true};
+   gruppen:[{breite:250,abschnittLaenge:2070,jeAbschnitt:4,abschnitte:1,
+             streifen:[{stuecke:[{nr:1,laenge:2070}],rest:0}]}],
+   moeglich:[{breite:1000,jeAbschnitt:4,abschnitte:1,abschnittLaenge:2070,flaeche:2.07,verschnitt:0.78,anteil:38},
+             {breite:670,jeAbschnitt:2,abschnitte:2,abschnittLaenge:2070,flaeche:2.77,verschnitt:1.48,anteil:53}],
+   netto:1.29,abschnittLaenge:2070,optimal:true};
   const d=document.createElement("div"); d.innerHTML=zuschnittHtml(pl);
   d.querySelectorAll("details").forEach(x=>x.open=true);
   const tab=Array.from(d.querySelectorAll("table")).find(t=>/Rolle/.test(t.textContent));
   // Und dasselbe im Ausdruck.
   const dr=document.createElement("div");
-  dr.innerHTML=zuDruckHtml({rollenLaenge:2070,moeglich:pl.moeglich,
+  dr.innerHTML=zuDruckHtml({abschnittLaenge:2070,abschnitte:1,jeAbschnitt:4,
+    moeglich:pl.moeglich,
     streifen:[{stuecke:[{nr:1,laenge:2070}],rest:0}],optimal:true},250,"Stück");
   const tabDr=Array.from(dr.querySelectorAll("table")).find(t=>/Rollenbreite/.test(t.textContent));
   // Freies Profil / Lukarne: mehrere Streifenbreiten -> die Rollenlaenge ist
@@ -152,22 +156,30 @@ async function klick(page,sel){
   const mehr=zuRollenLaengeMm({zeilen:[{rollenLaenge:3000},{rollenLaenge:2000}]},null);
   // Ein Plan im alten Format (bis v2.87): tafeln x tafelLaenge.
   const alt=zuRollenLaengeMm({tafeln:2,tafelLaenge:2070},null);
+  const altText=zuAbschnittText({tafeln:2,tafelLaenge:2070},null);
+  // Verschiedene Abschnittlaengen (Freies Profil) stehen einzeln da.
+  const zwei=zuAbschnittText({zeilen:[{abschnitte:2,abschnittLaenge:3000},
+                                      {abschnitte:1,abschnittLaenge:2000}]},null);
   return {kopf:tab?Array.from(tab.querySelectorAll("th")).map(x=>x.textContent.trim()):null,
     zeile:tab?Array.from(tab.querySelectorAll("tbody tr")[0].querySelectorAll("td")).map(x=>x.textContent.trim()):null,
     kopfDr:tabDr?Array.from(tabDr.querySelectorAll("th")).map(x=>x.textContent.trim()):null,
     zeileDr:tabDr?Array.from(tabDr.querySelectorAll("tbody tr")[0].querySelectorAll("td")).map(x=>x.textContent.trim()):null,
-    mehr,alt};
+    mehr,alt,altText,zwei};
  });
- p(spalten.kopf&&spalten.kopf.indexOf("Rollenlänge")===2,
-   "9b · der Rollenvergleich nennt die Rollenlaenge",spalten.kopf);
- p(spalten.zeile&&/^2[’\'´]?070\s*mm$/.test(spalten.zeile[2]||""),
-   "   und zwar als Mass in mm",spalten.zeile);
- p(spalten.kopfDr&&spalten.kopfDr[2]==="Rollenlänge (mm)"&&spalten.kopfDr.every(x=>!/Tafel/.test(x)),
+ p(spalten.kopf&&spalten.kopf[2]==="Ab Rolle",
+   "9b · der Rollenvergleich nennt die Abschnitte",spalten.kopf);
+ p(spalten.zeile&&/^1 × 2[’\'´]?070\s*mm$/.test(spalten.zeile[2]||""),
+   "   und zwar als \"n × Laenge\"",spalten.zeile);
+ p(spalten.kopfDr&&spalten.kopfDr[2]==="Ab Rolle"&&spalten.kopfDr.every(x=>!/Tafel/.test(x)),
    "   im Ausdruck genauso",spalten.kopfDr);
- p(spalten.zeileDr&&/^2[’\'´]?070$/.test(spalten.zeileDr[2]||""),
+ p(spalten.zeileDr&&/^1 × 2[’\'´]?070\s*mm$/.test(spalten.zeileDr[2]||""),
    "   mit demselben Wert",spalten.zeileDr);
  p(spalten.mehr===5000,"   mehrere Streifenbreiten: die Abschnitte werden summiert",spalten.mehr);
  p(spalten.alt===4140,"   ein Plan bis v2.87 wird aus Tafeln × Tafellaenge abgeleitet",spalten.alt);
+ p(/^2 × 2[’\'´]?070\s*mm$/.test(spalten.altText||""),
+   "   und als \"2 × 2'070 mm\" angezeigt",spalten.altText);
+ p(/3[’\'´]?000/.test(spalten.zwei)&&/2[’\'´]?000/.test(spalten.zwei),
+   "   verschiedene Abschnittlaengen stehen einzeln da",spalten.zwei);
 
  // 16 · leere Liste
  r=await liste({art:"rolle",einheit:"Stück",streifenbreiten:[250],gruppen:[],moeglich:[],
@@ -464,6 +476,49 @@ async function klick(page,sel){
  // 28 · keine JavaScript-Fehler
  p(fehler.length===0,"28 · kein einziger JavaScript-Fehler in der ganzen Sitzung",fehler.slice(0,3));
 
+
+ // ==========================================================================
+ // 30 · Der Abschnitt ist NIE laenger als das laengste Blech (v2.89)
+ // ==========================================================================
+ // Der Fall aus der Rueckmeldung: viele gleich lange Bleche. Es darf nicht
+ // eine durchgehende Bahn von 6'210 mm herauskommen, sondern 3 × 2'070 mm.
+ const abschnitt=await page.evaluate(()=>{
+  $("measType").value="einlaufblech_gerade"; showMeasTypeSection("einlaufblech_gerade");
+  ebA.abwicklung=250; ebA.winkel=30; ebA.massA=200;
+  const L=[2070,2070,2070,2070,2070,2070,2070,1100,2070,2070,1600];
+  ebA.stuecke=L.map((l,i)=>({laenge:l,gehrungLinks:i===8,gehrungRechts:i===7,
+    endzugabeStart:0,endzugabeEnd:0}));
+  ebaSetzeSchritt(4);
+  const rp=ebaRollenPlan();
+  const d=document.createElement("div"); d.innerHTML=ebaZuschnittHtml();
+  d.querySelectorAll("details").forEach(x=>x.open=true);
+  return {abschnittLaenge:rp.abschnittLaenge,
+   laengstes:Math.max.apply(null,L),
+   streifen:rp.streifen.length,
+   moeglich:rp.moeglich.map(m=>[m.breite,m.jeAbschnitt,m.abschnitte,m.abschnittLaenge,
+     Number(m.rollenLaenge.toFixed(0)),Number(m.flaeche.toFixed(3))]),
+   // Kein Streifen darf laenger belegt sein als ein Abschnitt.
+   maxBelegt:Math.max.apply(null,rp.streifen.map(x=>x.stuecke.reduce((a,y)=>a+y.laenge,0))),
+   text:d.textContent.replace(/\s+/g," ")};
+ });
+ p(abschnitt.abschnittLaenge===abschnitt.laengstes,
+   "30 · der Abschnitt ist genau so lang wie das laengste Blech",abschnitt.abschnittLaenge);
+ p(abschnitt.maxBelegt<=abschnitt.abschnittLaenge,
+   "   kein Streifen ist laenger belegt als ein Abschnitt",
+   {belegt:abschnitt.maxBelegt,abschnitt:abschnitt.abschnittLaenge});
+ // Von Hand: 11 Streifen, Rolle 1000 ÷ 250 = 4 je Abschnitt -> 3 Abschnitte.
+ const b1000=abschnitt.moeglich.find(m=>m[0]===1000);
+ p(abschnitt.streifen===11,"   elf Streifen (nichts passt hintereinander in 2'070)",abschnitt.streifen);
+ p(!!b1000&&b1000[1]===4&&b1000[2]===3&&b1000[3]===2070&&b1000[4]===6210,
+   "   Rolle 1'000 mm: 4 Streifen je Abschnitt, 3 × 2'070 mm",b1000);
+ p(!!b1000&&Math.abs(b1000[5]-6.21)<1e-6,"   Blechflaeche unveraendert 6.21 m²",b1000&&b1000[5]);
+ p(/3 × 2[’'´]?070\s*mm ab Rolle/.test(abschnitt.text),
+   "   die Anzeige sagt \"3 × 2'070 mm ab Rolle\", nicht \"6'210 mm\"",
+   (abschnitt.text.match(/[^.]*ab Rolle/)||[""])[0].slice(-60));
+ p(!/6[’'´]?210\s*mm ab Rolle/.test(abschnitt.text),
+   "   und nirgends eine durchgehende Bahn von 6'210 mm");
+ p(/Abschnitt 1 · Streifen 1/.test(abschnitt.text)&&/Abschnitt 3/.test(abschnitt.text),
+   "   die Belegung nennt Abschnitt UND Streifen");
 
  // ==========================================================================
  // 29 · Seitenumbrueche im PDF reissen keine Tabelle auseinander (v2.88)
