@@ -28,7 +28,7 @@ const sicht=(page,id)=>page.evaluate(i=>{
  const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:412,height:1600}});
  await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",
-   body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},from:()=>{const q={};['select','eq','order','limit'].forEach(k=>q[k]=()=>q);q.then=r=>Promise.resolve({data:[],error:null}).then(r);return q;},storage:{from:()=>({createSignedUrl:async()=>({data:null,error:null})})}})};"}));
+   body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},from:()=>{const q={};['select','eq','order','limit'].forEach(k=>q[k]=()=>q);q.then=r=>Promise.resolve({data:[],error:null}).then(r);return q;},storage:{from:()=>({createSignedUrl:async(pf)=>({data:{signedUrl:'https://beispiel.test/'+pf},error:null})})}})};"}));
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
  page.on("dialog",d=>d.accept());
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(400);
@@ -88,7 +88,7 @@ const sicht=(page,id)=>page.evaluate(i=>{
  // ---- C · Statuszeile: was ist wirklich erfasst ---------------------------
  console.log("\nC · Statuszeile sagt, was erfasst ist");
  await zeige(page,"skizze_foto");
- await page.evaluate(()=>{measPhotoDataUrl=null;measExistingPhotoUrl=null;measSketches=[];
+ await page.evaluate(()=>{measPhotos=[];measSketches=[];
    renderSketchGallery();measMedienStatus()});
  await page.waitForTimeout(120);
  let st=await sicht(page,"fotoStatus");
@@ -104,19 +104,19 @@ const sicht=(page,id)=>page.evaluate(i=>{
  await page.waitForTimeout(120);
  st=await sicht(page,"fotoStatus");
  p(!!st&&/3 Skizzen/.test(st.text),"drei Skizzen: Mehrzahl",st&&st.text);
- await page.evaluate(()=>{measPhotoDataUrl="data:image/png;base64,AA";renderSketchGallery()});
+ await page.evaluate(()=>{measPhotos=["data:image/png;base64,AA"];renderMeasPhotoGallery()});
  await page.waitForTimeout(120);
  st=await sicht(page,"fotoStatus");
  p(!!st&&/1 Foto/.test(st.text)&&/3 Skizzen/.test(st.text),
    "Foto und Skizzen zusammen",st&&st.text);
  // Foto entfernen wirkt sofort - ohne dass die Galerie neu gezeichnet wird.
- await page.evaluate(()=>{document.getElementById("measPhotoRemove").click()});
+ await page.evaluate(()=>{document.querySelector("[data-remove-photo]").click()});
  await page.waitForTimeout(150);
  st=await sicht(page,"fotoStatus");
  p(!!st&&!/1 Foto/.test(st.text)&&/3 Skizzen/.test(st.text),
    "Foto entfernen aendert die Zeile sofort",st&&st.text);
  // Beim Umschalten der Art wird sie ebenfalls gesetzt.
- await page.evaluate(()=>{measPhotoDataUrl=null;measSketches=[]});
+ await page.evaluate(()=>{measPhotos=[];measSketches=[]});
  await zeige(page,"kehle"); await zeige(page,"skizze_foto");
  st=await sicht(page,"fotoStatus");
  p(!!st&&/Noch kein Foto/i.test(st.text),
@@ -182,36 +182,90 @@ const sicht=(page,id)=>page.evaluate(i=>{
  // ---- E · Foto und Skizze arbeiten unveraendert --------------------------
  console.log("\nE · Foto und Skizze arbeiten unveraendert");
  const arbeit=await page.evaluate(()=>{
-  measPhotoDataUrl="data:image/png;base64,AA";
-  document.getElementById("measPhotoPreview").src=measPhotoDataUrl;
-  document.getElementById("measPhotoPreview").hidden=false;
-  document.getElementById("measPhotoRemove").hidden=false;
-  document.getElementById("drawOnPhoto").hidden=false;
-  measMedienStatus();
-  return {vorschau:!document.getElementById("measPhotoPreview").hidden,
-    entfernen:!document.getElementById("measPhotoRemove").hidden,
-    zeichnen:!document.getElementById("drawOnPhoto").hidden,
+  measPhotos=["data:image/png;base64,AA","data:image/png;base64,AB"];
+  renderMeasPhotoGallery();
+  const g=document.getElementById("measPhotoGallery");
+  return {vorschau:g.querySelectorAll("img.sketch-thumb").length===2,
+    entfernen:g.querySelectorAll("[data-remove-photo]").length===2,
+    zeichnen:g.querySelectorAll("[data-draw-photo]").length===2,
     skizzeKnopf:!!document.getElementById("addSketch"),
     galerie:!!document.getElementById("measSketchGallery")};
  });
  p(arbeit.vorschau&&arbeit.entfernen&&arbeit.zeichnen,
-   "Vorschau, Entfernen und 'Auf Foto zeichnen' unveraendert",arbeit);
+   "jedes Foto hat Vorschau, Entfernen und 'Auf Foto zeichnen'",arbeit);
  p(arbeit.skizzeKnopf&&arbeit.galerie,"Skizzen-Knopf und Galerie unveraendert",arbeit);
  // Der Speicher-Payload bleibt derselbe.
  const payload=await page.evaluate(()=>{
-  measPhotoDataUrl="data:image/png;base64,AA"; measSketches=["data:image/png;base64,AA","data:image/png;base64,AB"];
+  measPhotos=["data:image/png;base64,AA"]; measSketches=["data:image/png;base64,AA","data:image/png;base64,AB"];
   $("measType").value="skizze_foto"; showMeasTypeSection("skizze_foto");
   $("measTitle").value="Dach Nord"; $("measDate").value="2026-09-04";
   $("foto_material").value="2";
   const d=buildMeasurementFromForm();
   return {typ:d.type,titel:d.title,material:d.data.material,
     felder:Object.keys(d.data),skizzen:(d.sketch_paths||[]).length,
-    foto:!!d.photo_path||!!measPhotoDataUrl};
+    foto:!!d.photo_path,fotos:(d.photo_paths||[]).length};
  });
  p(payload.typ==="skizze_foto"&&payload.material==="2",
    "Speichern liefert unveraendert Typ und Material",payload);
  p(JSON.stringify(payload.felder)===JSON.stringify(["material"]),
    "und weiterhin GENAU das eine Feld material",payload.felder);
+
+ // ---- G · Mehrere Fotos ---------------------------------------------------
+ console.log("\nG · mehrere Fotos je Massaufnahme");
+ await zeige(page,"skizze_foto");
+ const mehr=await page.evaluate(()=>{
+  measPhotos=["data:image/png;base64,AA","data:image/png;base64,AB","data:image/png;base64,AC"];
+  measSketches=[]; renderMeasPhotoGallery();
+  const g=document.getElementById("measPhotoGallery");
+  return {kacheln:g.querySelectorAll(".sketch-thumb-wrap").length,
+    zeichnen:g.querySelectorAll("[data-draw-photo]").length,
+    entfernen:g.querySelectorAll("[data-remove-photo]").length,
+    status:document.getElementById("fotoStatus").innerText,
+    mehrfach:document.getElementById("measPhotoInput").multiple};
+ });
+ p(mehr.kacheln===3,"drei Fotos, drei Kacheln",mehr);
+ p(mehr.zeichnen===3&&mehr.entfernen===3,"jedes Foto hat seine beiden Knoepfe",mehr);
+ p(/3 Fotos/.test(mehr.status),"die Statuszeile zaehlt sie",mehr.status);
+ p(mehr.mehrfach===true,"das Dateifeld erlaubt Mehrfachauswahl",mehr.mehrfach);
+ // Genau das mittlere entfernen - nicht irgendeines.
+ const weg=await page.evaluate(()=>{
+  document.querySelectorAll("[data-remove-photo]")[1].click();
+  return {rest:measPhotos.slice(),status:document.getElementById("fotoStatus").innerText};
+ });
+ p(weg.rest.length===2&&weg.rest[0].endsWith("AA")&&weg.rest[1].endsWith("AC"),
+   "das mittlere Foto wird entfernt, nicht ein anderes",weg.rest);
+ p(/2 Fotos/.test(weg.status),"die Statuszeile folgt sofort",weg.status);
+ // Speichern: alle Fotos, photo_path bleibt das erste.
+ const pay=await page.evaluate(()=>{
+  measPhotos=["data:1","data:2"]; measSketches=[];
+  $("measType").value="skizze_foto"; $("measTitle").value="T"; $("measDate").value="2026-09-04";
+  const d=buildMeasurementFromForm();
+  return {pfad:d.photo_path,liste:d.photo_paths};
+ });
+ p(Array.isArray(pay.liste)&&pay.liste.length===2,"gespeichert werden alle Fotos",pay);
+ p(pay.pfad===pay.liste[0],
+   "photo_path traegt weiterhin das erste Foto (aeltere Ansichten bleiben heil)",pay);
+ // Eine Aufnahme aus der Zeit vor v2.83 hat nur photo_path.
+ const alt=await page.evaluate(()=>{
+  measPhotos=(function(m){return (m.photo_paths&&m.photo_paths.length)?[...m.photo_paths]
+    :(m.photo_path?[m.photo_path]:[])})({photo_path:"altes/foto.jpg"});
+  renderMeasPhotoGallery();
+  return {n:measPhotos.length,erstes:measPhotos[0]};
+ });
+ p(alt.n===1&&alt.erstes==="altes/foto.jpg",
+   "eine aeltere Aufnahme oeffnet mit genau ihrem einen Foto",alt);
+ // Und die Medienansicht im Cockpit zaehlt mehrere Fotos.
+ const cockpit=await page.evaluate(()=>{
+  const a1=measMedienPfade({photo_paths:["a","b"],sketch_paths:["s"]});
+  const a2=measMedienPfade({photo_path:"alt.jpg"});
+  const a3=measMedienPfade({});
+  return {neu:a1.fotos.length,text:measMedienText({photo_paths:["a","b"],sketch_paths:["s"]}),
+          alt:a2.fotos,leer:a3.fotos.length,hat:measHatMedien({photo_paths:["a"]})};
+ });
+ p(cockpit.neu===2&&/2 Fotos/.test(cockpit.text),"Cockpit: mehrere Fotos gezaehlt",cockpit);
+ p(cockpit.alt.length===1&&cockpit.alt[0]==="alt.jpg","Cockpit: aeltere Aufnahme unveraendert",cockpit);
+ p(cockpit.leer===0&&cockpit.hat===true,"Cockpit: leer bleibt leer",cockpit);
+ await page.evaluate(()=>{measPhotos=[];measSketches=[];renderMeasPhotoGallery()});
 
  // ---- F · Breiten ---------------------------------------------------------
  console.log("\nF · passt auf jedes Geraet");

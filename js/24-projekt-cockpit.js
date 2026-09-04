@@ -414,24 +414,31 @@ $("cockpitToggleStammdaten").onclick=()=>{
 // Einzelfeld sketch_path. Es wird nichts erfunden und nichts gezaehlt,
 // was nicht wirklich gespeichert ist.
 function measMedienPfade(m){
- const foto=m&&m.photo_path&&String(m.photo_path).trim()?String(m.photo_path):null;
+ // Aeltere Aufnahmen haben nur photo_path - dann ist es genau dieses eine
+ // Foto. Es wird keines erfunden und keines verschwiegen.
+ let fotos=[];
+ if(m&&Array.isArray(m.photo_paths)&&m.photo_paths.length){
+  fotos=m.photo_paths.filter(x=>x&&String(x).trim()).map(String);
+ }else if(m&&m.photo_path&&String(m.photo_path).trim()){
+  fotos=[String(m.photo_path)];
+ }
  let skizzen=[];
  if(m&&Array.isArray(m.sketch_paths)&&m.sketch_paths.length){
   skizzen=m.sketch_paths.filter(x=>x&&String(x).trim()).map(String);
  }else if(m&&m.sketch_path&&String(m.sketch_path).trim()){
   skizzen=[String(m.sketch_path)];
  }
- return {foto,skizzen};
+ return {fotos,skizzen};
 }
 function measHatMedien(m){
  const x=measMedienPfade(m);
- return !!x.foto||x.skizzen.length>0;
+ return x.fotos.length>0||x.skizzen.length>0;
 }
-// "📷 1 Foto · ✏️ 2 Skizzen" - leer, wenn nichts vorhanden ist.
+// "📷 2 Fotos · ✏️ 2 Skizzen" - leer, wenn nichts vorhanden ist.
 function measMedienText(m){
- const {foto,skizzen}=measMedienPfade(m);
+ const {fotos,skizzen}=measMedienPfade(m);
  const teile=[];
- if(foto)teile.push("📷 1 Foto");
+ if(fotos.length)teile.push(`📷 ${fotos.length} ${fotos.length===1?"Foto":"Fotos"}`);
  if(skizzen.length)teile.push(`✏️ ${skizzen.length} ${skizzen.length===1?"Skizze":"Skizzen"}`);
  return teile.join(" · ");
 }
@@ -462,8 +469,8 @@ function medienThumbsAufloesen(container){
 function openMeasMedien(measurementId){
  const m=projectMeasurementsCache.find(x=>x.id===measurementId);
  if(!m)return;                     // fremde/manipulierte ID: nichts tun
- const {foto,skizzen}=measMedienPfade(m);
- if(!foto&&!skizzen.length)return;
+ const {fotos,skizzen}=measMedienPfade(m);
+ if(!fotos.length&&!skizzen.length)return;
  const art=(typeof MEAS_TYPE_LABELS!=="undefined"&&MEAS_TYPE_LABELS[m.type])||m.type||"Massaufnahme";
  $("measMediaTitle").textContent="📷 "+art;
  $("measMediaSub").textContent=infoZeileOhne(art,m.title,measMedienText(m));
@@ -471,7 +478,7 @@ function openMeasMedien(measurementId){
   +`<img data-signed-src="${esc(pfad)}" alt="${esc(label)}">`
   +`<span class="medien-label">${esc(label)}</span></button>`;
  const teile=[];
- if(foto)teile.push(kachel(foto,"Foto"));
+ fotos.forEach((f,i)=>teile.push(kachel(f,fotos.length>1?`Foto ${i+1}`:"Foto")));
  skizzen.forEach((s,i)=>teile.push(kachel(s,skizzen.length>1?`Skizze ${i+1}`:"Skizze")));
  $("measMediaBody").innerHTML=teile.join("");
  $("measMediaModal").hidden=false;

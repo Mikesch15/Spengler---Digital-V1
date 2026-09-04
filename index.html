@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.82</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.83</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -918,17 +918,30 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 
 
 <div id="measTypeKehle" hidden>
-<div class="info">Winkelberechnung f&uuml;r Kehlen an Lukarnen. Die Berechnung entspricht exakt der Vorlage &bdquo;Winkel zu Kehlen Lukarne MA&ldquo; &ndash; es werden nur die drei Eingaben unten ben&ouml;tigt. Winkel in &deg;, L&auml;ngen in mm.</div>
-<div class="grid">
-<div><label>Neigung Hauptdach &middot; NH (&deg;)</label><input id="kehle_nh" data-pflicht="1" type="number" step="0.1" inputmode="decimal"></div>
-<div><label>Neigung Lukarne &middot; NL (&deg;)</label><input id="kehle_nl" data-pflicht="1" type="number" step="0.1" inputmode="decimal"></div>
-<div><label>Gef&auml;llsl&auml;nge Lukarne &middot; GL (mm)</label><input id="kehle_gl" data-pflicht="1" type="number" step="1" inputmode="decimal"></div>
-</div>
+<div id="kehleAufnahme"><div id="kea_kopf"></div>
+
+<!-- Die Ergebnisanzeige der Vorlage steht fest im HTML und wird von js/34 nur
+     ein- und ausgeblendet: js/25 h&auml;ngt beim Laden Handler an die Felder und
+     beschreibt genau diese Elemente. Ein Neuschreiben per innerHTML w&uuml;rde sie
+     samt Handler vernichten. -->
+<div id="keaErgebnisBox" hidden>
 <div id="kehle_hinweis" class="small" style="margin-top:6px"></div>
 <div id="kehle_haupt" class="kehle-haupt"></div>
 <h2 style="margin-top:14px">Weitere Resultate</h2>
 <div id="kehle_weitere"></div>
 <div id="kehle_zwischen" style="margin-top:10px"></div>
+</div>
+
+<div id="kea_fuss"></div></div>
+
+<!-- Nur Aufh&auml;nger f&uuml;r js/25-kehle.js, damit die Fachdatei unver&auml;ndert laden
+     und rechnen kann. Nicht sichtbar, nicht bedienbar: die Erfassung l&auml;uft
+     &uuml;ber #kehleAufnahme. -->
+<div id="kehleStummel" hidden aria-hidden="true">
+ <input id="kehle_nh" type="number" step="0.1">
+ <input id="kehle_nl" type="number" step="0.1">
+ <input id="kehle_gl" type="number" step="1">
+</div>
 </div>
 
 
@@ -1024,13 +1037,9 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <h2 style="margin-top:4px">📷 Fotos und Skizzen</h2>
 <div class="meas-columns">
 <div>
-<label>Foto</label>
-<label class="cockpit-new blue cockpit-upload">📷 Foto aufnehmen oder wählen<input type="file" id="measPhotoInput" accept="image/*" capture="environment" hidden></label>
-<img id="measPhotoPreview" class="meas-preview" hidden>
-<div class="bar" style="margin-top:6px">
-<button type="button" class="blue" id="drawOnPhoto" hidden>✏️ Auf Foto zeichnen</button>
-<button type="button" class="gray" id="measPhotoRemove" hidden>✕ Foto entfernen</button>
-</div>
+<label>Fotos (mehrere möglich)</label>
+<label class="cockpit-new blue cockpit-upload">📷 Fotos aufnehmen oder wählen<input type="file" id="measPhotoInput" accept="image/*" capture="environment" multiple hidden></label>
+<div id="measPhotoGallery" class="sketch-gallery"></div>
 </div>
 <div>
 <label>Skizzen (mehrere möglich)</label>
@@ -1212,6 +1221,20 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div><label>Endzugabe (mm)</label><input id="ebks_endzugabe" type="number" step="1"></div>
 </div>
 <div class="bar"><button id="saveEbkSettings" class="green">💾 Speichern</button><button type="button" id="resetEbkSettings" class="gray">↩️ Standardwerte</button></div>
+</div>
+</div>
+
+<div class="settings-section" data-section="kehle">
+<div class="settings-section-head" data-toggle-section="kehle"><h2>Kehle</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Zuschnittmasse für die Segmente eines Kehlblechs. Die Überlappung wird bei einem neuen Segment vorgeschlagen und lässt sich dort jederzeit überschreiben. Gilt nur für dieses Gerät/diesen Browser.</div>
+<div class="grid">
+<div><label>Länge Stoss bis Stoss (mm)</label><input id="keas_stossLaenge" type="number" step="1"></div>
+<div><label>Überlappung (mm)</label><input id="keas_ueberlappung" type="number" step="1"></div>
+<div><label>Restschwelle (mm)</label><input id="keas_restSchwelle" type="number" step="1"></div>
+</div>
+<div class="bar"><button id="saveKehleSettings" class="green">💾 Speichern</button><button type="button" id="resetKehleSettings" class="gray">↩️ Standardwerte</button></div>
+<div class="small" style="margin-top:4px">Die Rollenbreiten des Blechlagers stehen weiter oben unter „Einlaufblech gerade“ und gelten für alle Massaufnahmen.</div>
 </div>
 </div>
 
@@ -1561,6 +1584,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/31-freies-profil-aufnahme.js"></script>
 <script src="js/32-mauerabdeckung-aufnahme.js"></script>
 <script src="js/33-zuschnitt.js"></script>
+<script src="js/34-kehle-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

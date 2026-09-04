@@ -27,7 +27,7 @@ const sichtbar=page=>page.evaluate(()=>{
 });
 const alleArten=["skizze_foto","einlaufblech_gerade","rinne_halbrund","einlaufblech_konisch",
  "freies_profil","mauerabdeckung","lukarne","anschlussblech","einfassung_rund","kehle","rinne"];
-const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung"];
+const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle"];
 
 (async()=>{
  const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
@@ -54,7 +54,7 @@ const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisc
  for(const art of alleArten.filter(a=>MIT_REGISTERN.indexOf(a)<0)){
   await page.evaluate(a=>{
    if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
-   measPhotoDataUrl=null;measExistingPhotoUrl=null;measSketches=[];
+   measPhotos=[];measSketches=[];
    $("measType").value=a; showMeasTypeSection(a);
   },art);
   await page.waitForTimeout(120);
@@ -66,7 +66,7 @@ const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisc
  for(const art of MIT_REGISTERN){
   const setz=(a)=>page.evaluate(x=>{
    if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
-   measPhotoDataUrl=null;measExistingPhotoUrl=null;measSketches=[];
+   measPhotos=[];measSketches=[];
    renderSketchGallery();
    $("measType").value=x; showMeasTypeSection(x);
   },a);

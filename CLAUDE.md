@@ -13520,3 +13520,220 @@ doppelten IDs.
 - `#logoInput` (Firmenlogo in den Einstellungen) ist das letzte verbliebene
   nackte Dateifeld der App – ausserhalb dieses Auftrags, bewusst nicht
   angefasst.
+
+## 88. MEHRERE FOTOS + KEHLE ALS REGISTER-AUFNAHME — VERSION 2.83
+
+Zwei Dinge in einer Runde: eine Massaufnahme kann jetzt **mehrere Fotos**
+tragen, und die **Kehle** ist nach demselben Muster umgebaut wie die fünf
+Arten davor. Grundlage der Kehle-Rechnung bleibt unverändert
+`js/25-kehle.js` (die 35 Werte der Vorlage „Winkel zu Kehlen Lukarne MA",
+Spalte C).
+
+    1 Grunddaten · 2 Winkel · 3 Segmente · 4 Zuschnitt · 5 Ausmass · 6 Kontrolle
+
+### 88.1 Teil A – mehrere Fotos
+
+Bisher trug eine Aufnahme genau **ein** Foto (`measurements.photo_path`).
+Skizzen waren seit je mehrere (`sketch_paths`). Fotos gehen jetzt denselben
+Weg.
+
+Migration `measurements_photo_paths_v2_83`:
+
+```sql
+alter table public.measurements
+  add column if not exists photo_paths jsonb not null default '[]'::jsonb;
+```
+
+Additiv und nullfrei – keine bestehende Zeile ändert sich, kein
+Zeilentrigger feuert.
+
+**`photo_path` bleibt und trägt weiterhin das erste Foto.** Alle Stellen,
+die nur dieses eine Feld kennen (Vorschaubild in den Übersichtslisten, das
+Cockpit, ältere Ausdrucke), funktionieren dadurch unverändert weiter. Eine
+vor v2.83 gespeicherte Aufnahme öffnet mit genau ihrem einen Foto – es wird
+keines erfunden.
+
+| Stelle | vorher | jetzt |
+|---|---|---|
+| Zustand (js/10) | `measPhotoDataUrl` + `measExistingPhotoUrl` | **eine Liste** `measPhotos` – wie `measSketches` |
+| Formular | ein Vorschaubild, „✕ Foto entfernen", „✏️ Auf Foto zeichnen" | **Galerie** mit ✏️ und ✕ **je Foto**, gleiche Bausteine wie die Skizzengalerie |
+| Auswahl | eine Datei | `multiple`; alle gewählten Dateien werden übernommen, misslungene einzeln gemeldet |
+| Statuszeile | „1 Foto" | „3 Fotos · 2 Skizzen" |
+| Speichern | ein Upload | jedes neue Foto einzeln, `photo_path` = erstes, `photo_paths` = alle |
+| Druck | ein Abschnitt „Foto" | „Foto 1 von 3", „Foto 2 von 3" … |
+| Cockpit (js/24) | `{foto,skizzen}` | `{fotos,skizzen}`, „📷 2 Fotos", eine Kachel je Foto |
+
+Der Bucket bleibt privat: ein gespeichertes Foto wird vor dem Zeichnen über
+`storageSignedUrl()` aufgelöst, es entsteht **keine** öffentliche URL.
+Dabei mitgehärtet: `storageSignedUrl()` prüfte nur `error` und griff sonst
+auf `data.signedUrl` zu – bei einer leeren Antwort war das ein Absturz.
+
+### 88.2 Teil B – js/25 bleibt byteweise unverändert
+
+`js/25-kehle.js` wurde **nicht angefasst** – per `git diff` bestätigt.
+`keaBruecke()` (js/34) setzt `#kehle_nh`, `#kehle_nl`, `#kehle_gl` aus dem
+erfassten Stand; danach liefern `kehleEingabenAusFeldern()`,
+`kehleBerechnen()` und `renderKehleResult()` direkt die richtigen Werte.
+
+Der Prüfstand vergleicht `keaErgebnis()` Zeichen für Zeichen mit
+`kehleBerechnen(kehleEingabenAusFeldern())` – es gibt nur **eine** Wahrheit,
+keinen Nachbau. Die Excel-Werte sind unverändert: NH 42.5 / NL 23.5 →
+**b = 66.48°, c = 122.77°, d = 47.46°**.
+
+Die drei Felder stehen jetzt unsichtbar in **`#kehleStummel`**, die
+Ergebnisanzeige der Vorlage als festes Gerüst **`#keaErgebnisBox`** – sie
+wird nur ein- und ausgeblendet (sie gehört zu Register 2). Ein Neuschreiben
+per `innerHTML` würde die Handler von js/25 samt Element vernichten.
+
+### 88.3 Neu gegenüber v2.82
+
+- **Abwicklung 400 / 500 / 670 mm.** Sie wird **gewählt, nicht gerechnet** –
+  die Vorlage kennt keine Abwicklung.
+- **Kehle mit oder ohne Mittelrippe.** Ohne Mittelrippe ist der Biegewinkel
+  Kehlblech (**d**) der führende Winkel, mit Mittelrippe der Innenwinkel zur
+  Mittelrippe (**k / 2**, in der Vorlage `mitte` / F34). Beide Werte kommen
+  unverändert aus js/25, es wird nichts neu gerechnet.
+- **Mehrere Segmente** mit Länge Stoss/Stoss und **eigener Überlappung je
+  Stoss**. Zuschnitt = Länge + Überlappung.
+- **„Segmente aus Kehllänge A berechnen"** teilt über die bestehende
+  `teileLaengeInStuecke()` (js/13) mit den neuen Kehle-Einstellungen auf.
+  Beispiel: A = 5453 mm bei 2000 mm Stoss/Stoss → 2000+70, 2000+70, 1453 →
+  Zuschnitt 5593 mm. Die Aufteilung ist ein **Vorschlag**, nichts wird
+  erzwungen; die Kehle kann bewusst kürzer oder länger ausgeführt sein.
+- **Zuschnitt aus Rollenblech** über die gemeinsame Darstellung (js/33) und
+  die **eine** Packrechnung `ebaPackeInStreifen()` (js/29). Beispiel:
+  Abwicklung 500, Tafel 2070 mm → beste Rolle 1000 mm, 2 Streifen je Tafel,
+  2 Tafeln, 4.14 m² gegen 2.80 m² netto.
+- **Ausmass und Materialübersicht** ohne zweite Eingabe, ohne
+  Artikelnummern und ohne Preise.
+- **Kontrolle** mit Punkt am Register. Weicht die Summe der Segmente
+  deutlich von der berechneten Kehllänge A ab, ist das ein **Hinweis**, kein
+  Fehler.
+- **Fotos und Skizzen am Ende** (`MEAS_MEDIEN_AM_ENDE` um `kehle` erweitert,
+  v2.75-Mechanik unverändert).
+
+### 88.4 Neue Einstellung
+
+`KEHLE_STANDARD` in js/01 (`stoss_laenge` 2000, `ueberlappung` 70,
+`rest_schwelle` 500), im `localStorage` unter `sd_kehleSettings` – gleiche
+Form wie `EINLAUFBLECH_STANDARD`, damit `teileLaengeInStuecke()` unverändert
+damit rechnet. Zu finden unter **Einstellungen → Massaufnahmen → Kehle**.
+Die Rollenbreiten bleiben firmenweit (`app_settings.blech_rollenbreiten`,
+seit v2.74) – **keine neue firmenweite Einstellung**.
+
+### 88.5 Speichern: Superset
+
+js/16 schreibt **unverändert** die drei Eingaben und alle 35 Werte der
+Vorlage und ergänzt nur `material`, `abwicklung`, `mittelrippe`, `segmente`,
+`zuschnittSumme`, `flaeche_m2`, `ausmass` und `rollen`. Eine vor v2.83
+gespeicherte Kehle öffnet unverändert und druckt ohne die neuen Abschnitte –
+es wird **nichts nachgerechnet** und **kein Segment erfunden**.
+
+### 88.6 Ein Fehler, den erst eine Gegenprobe gefunden hat
+
+Der `change`-Handler zeichnete nach einer Zahleneingabe alles neu. Springt
+man vom Längen- ins Überlappungsfeld, feuert `change` beim Verlassen – das
+gerade fokussierte Zielfeld wurde dabei ersetzt und die ersten Zeichen
+gingen verloren. Genau der Fehlertyp aus Abschnitt 66, nur über `change`
+statt `input` ausgelöst.
+
+Behoben wie in js/29: Zahleneingaben zeichnen **nicht** neu. `keaLive()`
+aktualisiert die abgeleiteten Anzeigen Zelle für Zelle (`data-kea-zu`), dazu
+Summen und die Marke am Kontroll-Register. Der Prüfstand tippt seither
+Zeichen für Zeichen und prüft den Fokus.
+
+### 88.7 Getestet
+
+- **`pruefstaende/pruefstand-kehle-app-v2-83.js` – 109/109**, echtes
+  Chromium gegen die echte `index.html`: Modul und Brücke (inkl.
+  Zeichen-für-Zeichen-Vergleich mit js/25), sechs Register, Grunddaten,
+  Winkel, Segmente (echtes Tippen mit Fokusprüfung, Vorgabe aus den
+  Einstellungen, Löschen mit Rückfrage), Zuschnitt (Streifenbreite zuerst,
+  von Hand nachgerechnete Zahlen, **Nachweis, dass die gemeinsame
+  Packrechnung wirklich gerufen wird**), Ausmass, Kontrolle, Speicher-
+  Payload, Wiederöffnen, ein Datensatz im Format bis v2.82, Fotos erst nach
+  „Fertig", Druck (neu und alt), fünf Bildschirmbreiten × sechs Register,
+  keine JS-Fehler.
+- **Zwölf Gegenproben**, jede baut einen echten Fehler ein, jede wirft den
+  Prüfstand um, keine bricht ihn ab: Brücke setzt die Stummelfelder nicht
+  (66/109) · eigene Aufteilung statt `teileLaengeInStuecke` (79) ·
+  Überlappung fällt aus dem Zuschnitt (94) · Vorgabe nicht aus den
+  Einstellungen (106) · Zusatzfelder nicht gespeichert (96) · alter
+  Datensatz bekommt Segmente angedichtet (106) · Tafellänge = Summe (102) ·
+  eigene Packrechnung (107) · eigene Zuschnitt-Darstellung (106) · Register
+  in anderer Reihenfolge (108) · Fotos schon während der Register (108) ·
+  Neuzeichnen beim Feldwechsel (107).
+- **Zwei Gegenproben deckten Schwächen im Prüfstand selbst auf**: eine liess
+  ihn **abbrechen** statt fehlschlagen (ein abgebrochener Lauf sieht aus wie
+  „keine Fehler") – alle Indexzugriffe sind jetzt abgesichert; eine blieb
+  **grün** (die eigene Packrechnung lieferte für den Testfall zufällig
+  dasselbe) – geprüft wird jetzt, dass `ebaPackeInStreifen` tatsächlich
+  gerufen wird **und** dass zwei kurze Stücke im selben Streifen landen.
+- **`pruefstand-skizze-foto-v2-82.js` – 54/54** mit einem neuen Abschnitt
+  für mehrere Fotos: drei Kacheln, ✏️/✕ je Foto, „3 Fotos" in der
+  Statuszeile, `multiple` am Eingabefeld, genau das mittlere Foto entfernen,
+  `photo_path` trägt weiterhin das erste, ein älterer Datensatz mit nur
+  `photo_path` öffnet mit einem Foto, das Cockpit zählt mehrere.
+- **Kehle in die gemeinsamen Prüfstände aufgenommen**:
+  `register-zuschnitt` 197/197 (vorher 172), `lxb-druck` 29/29 (vorher 24),
+  `medien-am-ende` 88/88 (vorher 76).
+- **Volle Regression grün**: rinne-app 104/104, einlaufblech-app 98/98,
+  konisch-app 113/113, freies-profil-app 118/118, mauerabdeckung-app 144/144,
+  dila-sichtbar 57/57, verschnitt-app 1578/1578, pdf52 526/526,
+  required70 368/368, kehle52 698/698, kehleintegration52 76/76,
+  fotos70 88/88, medien50 42/42, offline70 119/119, einf70 185/185,
+  rinne57 379/379, breite57 84/84, feedback63 108/108, freipos65 99/99,
+  dila70 85/85, fp70 83/83, pfade55 38/38, abstand69 2/2 und alle übrigen
+  Archiv-Prüfstände.
+- **Angepasste Erwartungen** (alle **überholt**, keine davon ein Codefehler):
+  `required70` kannte die Kehle-Pflichtfelder noch als `kehle_nh/nl/gl` (sie
+  heissen jetzt `kea_nh/nl/gl`, dazu `kea_material`, und entstehen erst beim
+  Zeichnen des jeweiligen Registers – die Zählprüfungen sammeln deshalb jetzt
+  über mehrere Zustände statt einen einzigen Blick zu nehmen);
+  `kehleintegration52` und `medien50` kannten `measMedienPfade().foto` als
+  Einzelwert; `fotos70`, `medien-am-ende` und `mauerabdeckung-app` führten
+  `kehle` noch unter den Arten ohne Register.
+- **`breite56` (Archiv) schlägt mit 35/40 fehl – schon vor dieser Runde.**
+  Gegen den v2.82-Stand nachgemessen: identisch 35/40. Er erwartet noch die
+  Excel-Fixmasse 510 statt der seit v2.58 ausgelieferten 460 (Abschnitt 66.3)
+  und ist durch `rinne57` (379/379) und `breite57` (84/84) abgelöst.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` gegen den v2.82-Stand gerendert – **Bild und DOM
+  byteidentisch** (Bild `7843254639d00fad`, DOM `3066be99c3200173`,
+  109 744 Bytes). `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+  `css/03-druck.css` und alle zwölf Fachdateien sind nicht im Diff.
+- **Der echte Kehle-Datensatz der Produktivdatenbank** (NH 68 / NL 45 /
+  GL 1500, vom Betreiber am 02.09. angelegt) wurde im Browser geöffnet:
+  b = 74.06°, d = 74.64° unverändert, kein Material und kein Segment
+  erfunden, die Kontrolle nennt beides als offen.
+
+### 88.8 Ehrlich: unversionierte Arbeit zerstört
+
+Bei einer Gegenprobe habe ich den eingebauten Fehler mit
+`git checkout -- js/ index.html` zurückgenommen. Der Arbeitsbaum war nicht
+sauber – der Befehl hat **alle** noch nicht eingecheckten Änderungen
+verworfen: Teil A (mehrere Fotos) **und** die fertige Kehle-Verdrahtung.
+`git stash`, `git fsck` und die Ablage brachten nichts zurück; beides wurde
+neu gebaut und danach erneut vollständig geprüft (die Zahlen oben sind vom
+neu gebauten Stand). Nur `js/34-kehle-aufnahme.js` überlebte, weil es
+unversioniert war – dort steckte allerdings noch die Gegenprobe drin, was
+erst der Prüfstand gemeldet hat.
+
+**Regel daraus**: vor einer Gegenprobe den ganzen Baum sichern
+(`cp -r js index.html sw.js css /tmp/sicher/`) und daraus zurückstellen –
+niemals `git checkout` auf einem Baum mit unversionierter Arbeit.
+
+### 88.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet
+  behauptet.** Geprüft ist die Oberfläche in echtem Chromium gegen die echte
+  `index.html`; ein echter Foto-Upload wurde nicht ausgeführt.
+- Die Abwicklung des Kehlblechs wird **gewählt**, nicht aus NH/NL/GL
+  abgeleitet – die Vorlage enthält dafür keine Rechnung.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei sehr vielen Segmenten heisst das Ergebnis „beste
+  gefundene Verteilung".
+- Kein Detail-Diff der Kehle-Segmente im Änderungsverlauf (wie bei allen
+  Array-Strukturen, Klasse C aus Abschnitt 42.2).

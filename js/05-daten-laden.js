@@ -118,4 +118,7 @@ function applyEinlaufblechSettings(){
  if(document.activeElement!==$("ebks_umschlagUnten"))$("ebks_umschlagUnten").value=einlaufblechKonischSettings.umschlag_unten;
  if(document.activeElement!==$("ebks_restSchwelle"))$("ebks_restSchwelle").value=einlaufblechKonischSettings.rest_schwelle;
  if(document.activeElement!==$("ebks_endzugabe"))$("ebks_endzugabe").value=einlaufblechKonischSettings.end_zugabe;
+ if(document.activeElement!==$("keas_stossLaenge"))$("keas_stossLaenge").value=kehleSettings.stoss_laenge;
+ if(document.activeElement!==$("keas_ueberlappung"))$("keas_ueberlappung").value=kehleSettings.ueberlappung;
+ if(document.activeElement!==$("keas_restSchwelle"))$("keas_restSchwelle").value=kehleSettings.rest_schwelle;
 }

@@ -334,6 +334,28 @@ $("resetBlechRollenbreiten").onclick=async()=>{
 };
 $("resetEbkSettings").onclick=()=>einlaufblechZuruecksetzen("ebks_","sd_einlaufblechKonischSettings",w=>{einlaufblechKonischSettings=w});
 
+// ---- Kehle: Zuschnittmasse der Segmente (nur dieses Geraet) ---------------
+$("saveKehleSettings").onclick=()=>{
+ const stossLaenge=Number($("keas_stossLaenge").value);
+ const ueberlappung=Number($("keas_ueberlappung").value);
+ const restSchwelle=Number($("keas_restSchwelle").value)||0;
+ if(!stossLaenge||stossLaenge<=0){alert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
+ if(ueberlappung<0){alert("Überlappung darf nicht negativ sein.");return}
+ if(restSchwelle<0){alert("Restschwelle darf nicht negativ sein.");return}
+ kehleSettings={stoss_laenge:stossLaenge,ueberlappung,rest_schwelle:restSchwelle};
+ localStorage.setItem("sd_kehleSettings",JSON.stringify(kehleSettings));
+ alert("Gespeichert (gilt nur für dieses Gerät).");
+};
+$("resetKehleSettings").onclick=()=>{
+ if(!confirm("Alle Werte auf die Standardwerte zurücksetzen?"))return;
+ kehleSettings={...KEHLE_STANDARD};
+ localStorage.setItem("sd_kehleSettings",JSON.stringify(kehleSettings));
+ $("keas_stossLaenge").value=kehleSettings.stoss_laenge;
+ $("keas_ueberlappung").value=kehleSettings.ueberlappung;
+ $("keas_restSchwelle").value=kehleSettings.rest_schwelle;
+ alert("Auf Standardwerte zurückgesetzt.");
+};
+
 let materialPage=0, materialFilter="", materialExpanded=new Set();
 const MATERIAL_PAGE_SIZE=20;
 function renderMaterialSettings(){

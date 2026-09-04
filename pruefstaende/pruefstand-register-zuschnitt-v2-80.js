@@ -25,7 +25,9 @@ const ARTEN=[
  {typ:"freies_profil",        name:"Freies Profil",        wurzel:"freiesProfilAufnahme",
   setz:"fpaSetzeSchritt",reg:"FPA_REGISTER",  art:"rolle"},
  {typ:"mauerabdeckung",       name:"Mauerabdeckung",       wurzel:"mauerabdeckungAufnahme",
-  setz:"madaSetzeSchritt",reg:"MADA_REGISTER",art:"rolle"}
+  setz:"madaSetzeSchritt",reg:"MADA_REGISTER",art:"rolle"},
+ {typ:"kehle",                name:"Kehle",                wurzel:"kehleAufnahme"
+  ,setz:"keaSetzeSchritt", reg:"KEA_REGISTER",  art:"rolle"}
 ];
 
 const zeige=async(page,typ)=>{
@@ -143,7 +145,7 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
  const quellen=await page.evaluate(()=>({
   ra:String(raZuschnittHtml), eba:String(ebaZuschnittHtml),
   ebka:String(ebkaZuschnittHtml), fpa:String(fpaZuschnittHtml),
-  mada:String(madaZuschnittHtml)
+  mada:String(madaZuschnittHtml), kea:String(keaKopfInhalt)
  }));
  Object.keys(quellen).forEach(k=>p(quellen[k].indexOf("zuschnittHtml(")>=0,
    k+"ZuschnittHtml() ruft die gemeinsame Darstellung auf",quellen[k].slice(0,90)));
@@ -154,7 +156,8 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
   eba:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(ebaZuschnittHtml)),
   ebka:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(ebkaZuschnittHtml)),
   fpa:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(fpaZuschnittHtml)),
-  mada:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(madaZuschnittHtml))
+  mada:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(madaZuschnittHtml)),
+  kea:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(keaKopfInhalt))
  }));
  Object.keys(alt).forEach(k=>p(alt[k]===false,k+": keine eigene Zuschnitt-Tabelle mehr",alt));
 
@@ -182,6 +185,11 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
   madA.segmente=[{laenge:8000,winkel:90,bodenLinks:true,bodenRechts:false},
                  {laenge:4000,winkel:0,bodenLinks:false,bodenRechts:true}];
   madA.schieberManuell=false; madaSchieberNeu();
+  // Kehle
+  kehleA=keaLeer(); kehleA.material="2"; kehleA.abwicklung=500;
+  kehleA.nh="42.5"; kehleA.nl="23.5"; kehleA.gl="5000";
+  kehleA.segmente=[{laenge:2000,ueberlappung:70},{laenge:2000,ueberlappung:70},
+                   {laenge:1453,ueberlappung:0}];
  });
  for(const a of ARTEN){
   await zeige(page,a.typ);
@@ -230,7 +238,8 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
  }
  // Und in der Stueckliste bzw. Stuecke-Liste der einzelnen Arten.
  const listenNamen={rinne_halbrund:"Stückliste",mauerabdeckung:"Stückliste",
-   einlaufblech_gerade:"Stücke",einlaufblech_konisch:"Stücke",freies_profil:"Segmente"};
+   einlaufblech_gerade:"Stücke",einlaufblech_konisch:"Stücke",freies_profil:"Segmente",
+   kehle:"Segmente"};
  for(const a of ARTEN){
   const name=listenNamen[a.typ];
   const nr=listen[a.typ].indexOf(name)+1;
@@ -284,6 +293,7 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
  console.log("\nG · ohne Daten sagt jede Art dasselbe, ohne zu rechnen");
  await page.evaluate(()=>{
   ebA=ebaLeer(); ebkA=ebkaLeer(); fpA=fpaLeer(); madA=madaLeer();
+  kehleA=keaLeer();
  });
  for(const a of ARTEN){
   if(a.art==="stange")continue;      // die Rinne meldet die fehlende Normlaenge
@@ -305,6 +315,11 @@ const html=(page,a)=>page.evaluate(w=>{const e=$(w);return e?e.innerHTML:""},a.w
   madA.segmente=[{laenge:8000,winkel:90,bodenLinks:true,bodenRechts:false},
                  {laenge:4000,winkel:0,bodenLinks:false,bodenRechts:true}];
   madA.schieberManuell=false; madaSchieberNeu();
+  // Kehle
+  kehleA=keaLeer(); kehleA.material="2"; kehleA.abwicklung=500;
+  kehleA.nh="42.5"; kehleA.nl="23.5"; kehleA.gl="5000";
+  kehleA.segmente=[{laenge:2000,ueberlappung:70},{laenge:2000,ueberlappung:70},
+                   {laenge:1453,ueberlappung:0}];
  });
  for(const breite of [320,390,768,1280]){
   await page.setViewportSize({width:breite,height:1400});

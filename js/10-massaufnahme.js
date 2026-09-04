@@ -1,8 +1,10 @@
 "use strict";
 // ---- Massaufnahme (Skizze/Foto) --------------------------------
 let measSelectedProjectId=null;
-let measPhotoDataUrl=null;
-let measExistingPhotoUrl=null;
+// Mehrere Fotos je Massaufnahme. Je Eintrag entweder "data:..." (neu
+// aufgenommen) oder ein bereits gespeicherter Storage-Pfad - genau wie bei
+// den Skizzen, damit beide denselben Weg gehen.
+let measPhotos=[];
 let measSketches=[]; // je Eintrag: "data:..." (neu/geändert) oder "https://..." (bereits gespeichert)
 let sketchEditIndex=null; // null = neue Skizze anlegen, sonst Index in measSketches wird ersetzt
 let currentMeasurementId=null;
@@ -35,7 +37,7 @@ async function storageSignedUrl(value){
  if(!path)return null;
  if(path.startsWith("data:"))return path;
  const {data,error}=await sb.storage.from("measurements").createSignedUrl(path,3600);
- return error?null:data.signedUrl;
+ return (error||!data)?null:data.signedUrl;
 }
 // Löst alle <img data-signed-src="…"> innerhalb eines Containers auf,
 // nachdem eine Liste mit Foto-/Skizzenvorschauen neu gezeichnet wurde.
@@ -49,16 +51,29 @@ function resolveSignedThumbnails(container){
 function measMedienStatus(){
  const box=$("fotoStatus");
  if(!box)return;
- const foto=!!(measPhotoDataUrl||measExistingPhotoUrl);
+ const f=measPhotos.length;
  const n=measSketches.length;
- if(!foto&&!n){
+ if(!f&&!n){
   box.innerHTML='<span style="color:#8a5312">Noch kein Foto und keine Skizze – mindestens eines von beiden ist zum Speichern nötig.</span>';
   return;
  }
  const teile=[];
- if(foto)teile.push("1 Foto");
+ if(f)teile.push(f===1?"1 Foto":f+" Fotos");
  if(n)teile.push(n===1?"1 Skizze":n+" Skizzen");
  box.innerHTML='<span style="color:#1f5c39">✓ '+esc(teile.join(" · "))+' erfasst.</span>';
+}
+function renderMeasPhotoGallery(){
+ const box=$("measPhotoGallery");
+ if(!box)return;
+ box.innerHTML=measPhotos.map((src,i)=>`<div class="sketch-thumb-wrap">
+<img class="sketch-thumb" data-signed-src="${esc(src)}">
+<div class="sketch-thumb-actions">
+<button type="button" class="gray" data-draw-photo="${i}">✏️</button>
+<button type="button" class="red" data-remove-photo="${i}">✕</button>
+</div>
+</div>`).join("")||'<div class="small" style="color:var(--muted)">Noch kein Foto</div>';
+ resolveSignedThumbnails(box);
+ measMedienStatus();
 }
 function renderSketchGallery(){
  $("measSketchGallery").innerHTML=measSketches.map((src,i)=>`<div class="sketch-thumb-wrap">
@@ -71,6 +86,21 @@ function renderSketchGallery(){
  resolveSignedThumbnails($("measSketchGallery"));
  measMedienStatus();
 }
+$("measPhotoGallery").addEventListener("click",async e=>{
+ const zeichnen=e.target.closest("[data-draw-photo]");
+ if(zeichnen){
+  const i=Number(zeichnen.dataset.drawPhoto), src=measPhotos[i];
+  if(!src)return;
+  // Ein bereits gespeicherter Pfad muss vor dem Zeichnen zu einer
+  // signierten URL aufgeloest werden - der Bucket ist privat.
+  const url=src.startsWith("data:")?src:await storageSignedUrl(src);
+  if(!url){alert("Das Foto konnte nicht geladen werden.");return}
+  openSketchFullscreen(url);
+  return;
+ }
+ const weg=e.target.closest("[data-remove-photo]");
+ if(weg){measPhotos.splice(Number(weg.dataset.removePhoto),1);renderMeasPhotoGallery();}
+});
 $("measSketchGallery").addEventListener("click",e=>{
  const ed=e.target.closest("[data-edit-sketch]");
  if(ed){const i=Number(ed.dataset.editSketch);openSketchFullscreen(measSketches[i],i);return}
@@ -232,21 +262,7 @@ $("fsSketchDone").onclick=()=>{
  renderSketchGallery();
  $("sketchFullscreen").hidden=true;
 };
-$("measPhotoRemove").onclick=()=>{
- measPhotoDataUrl=null;
- measExistingPhotoUrl=null;
- $("measPhotoPreview").hidden=true;$("measPhotoPreview").src="";
- $("measPhotoInput").value="";
- $("measPhotoRemove").hidden=true;
- $("drawOnPhoto").hidden=true;
- measMedienStatus();
-};
 $("addSketch").onclick=()=>openSketchFullscreen();
-$("drawOnPhoto").onclick=()=>{
- const src=measPhotoDataUrl||measExistingPhotoUrl;
- if(!src){alert("Bitte zuerst ein Foto auswählen.");return}
- openSketchFullscreen(src);
-};
 
 function resizeImageFile(file,maxDim,quality,format){
  format=format||"jpeg";
@@ -272,16 +288,18 @@ function resizeImageFile(file,maxDim,quality,format){
  });
 }
 $("measPhotoInput").addEventListener("change",async e=>{
- const file=e.target.files[0];
- if(!file)return;
- try{
-  const pq=photoQualitySettings();measPhotoDataUrl=await resizeImageFile(file,pq.maxDim,pq.quality);
-  $("measPhotoPreview").src=measPhotoDataUrl;
-  $("measPhotoPreview").hidden=false;
-  $("measPhotoRemove").hidden=false;
-  $("drawOnPhoto").hidden=false;
-  measMedienStatus();
- }catch(err){alert("Foto konnte nicht geladen werden: "+err.message)}
+ const dateien=Array.from(e.target.files||[]);
+ if(!dateien.length)return;
+ const pq=photoQualitySettings();
+ const misslungen=[];
+ for(const file of dateien){
+  try{ measPhotos.push(await resizeImageFile(file,pq.maxDim,pq.quality)); }
+  catch(err){ misslungen.push(file.name+" ("+err.message+")"); }
+ }
+ // Zuruecksetzen, damit dieselbe Datei erneut gewaehlt werden kann.
+ e.target.value="";
+ renderMeasPhotoGallery();
+ if(misslungen.length)alert("Nicht geladen:\n"+misslungen.join("\n"));
 });
 
 function dataUrlToBlob(dataUrl){
@@ -343,12 +361,10 @@ function newMeasurementWithType(type){
  $("measTitle").value="";
  $("measNote").value="";
  $("measDate").value=new Date().toISOString().slice(0,10);
- $("measPhotoPreview").hidden=true;$("measPhotoPreview").src="";
  $("measPhotoInput").value="";
- $("measPhotoRemove").hidden=true;
- $("drawOnPhoto").hidden=true;
- measPhotoDataUrl=null;measExistingPhotoUrl=null;
+ measPhotos=[];
  measSketches=[];
+ renderMeasPhotoGallery();
  // Neue Aufnahme: der Foto-/Skizzenbereich der Register-Arten startet
  // wieder zugeklappt.
  if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
@@ -414,6 +430,7 @@ function newMeasurementWithType(type){
  einfFormularZuruecksetzen();
  $("einf_material").value="";
  kehleFormularZuruecksetzen();
+ if(typeof keaZuruecksetzen==="function")keaZuruecksetzen();
  rinneFormularZuruecksetzen();
  $("rp_material").value="";
  setMeasProjectField(currentProjectId);
@@ -451,14 +468,11 @@ function openMeasurement(m){
  if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
  showMeasTypeSection($("measType").value);
  setMeasProjectField(m.project_id);
- measPhotoDataUrl=null;
- measExistingPhotoUrl=m.photo_path||null;
  $("measPhotoInput").value="";
- if(measExistingPhotoUrl){
-  $("measPhotoPreview").src="";$("measPhotoPreview").hidden=false;$("measPhotoRemove").hidden=false;$("drawOnPhoto").hidden=false;
-  storageSignedUrl(measExistingPhotoUrl).then(url=>{if(url&&measExistingPhotoUrl)$("measPhotoPreview").src=url});
- }
- else{$("measPhotoPreview").hidden=true;$("measPhotoPreview").src="";$("measPhotoRemove").hidden=true;$("drawOnPhoto").hidden=true}
+ // Aeltere Aufnahmen haben nur photo_path - sie oeffnen mit genau diesem
+ // einen Foto, es wird keines erfunden.
+ measPhotos=(m.photo_paths&&m.photo_paths.length)?[...m.photo_paths]:(m.photo_path?[m.photo_path]:[]);
+ renderMeasPhotoGallery();
  measSketches=(m.sketch_paths&&m.sketch_paths.length)?[...m.sketch_paths]:(m.sketch_path?[m.sketch_path]:[]);
  renderSketchGallery();
  if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(m.type);
@@ -531,6 +545,7 @@ function openMeasurement(m){
  einfFormularFuellen(m.type==="einfassung_rund"?d:null);
  $("einf_material").value=(m.type==="einfassung_rund"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
  kehleFormularFuellen(m.type==="kehle"?d:null);
+ if(typeof keaFuellen==="function")keaFuellen(m.type==="kehle"?d:null);
  rinneFormularFuellen(m.type==="rinne"?d:null);
  $("rp_material").value=(m.type==="rinne"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
  $("measurementsModal").hidden=true;

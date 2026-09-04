@@ -491,7 +491,7 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
 
  // ---- K · Fotos erst am Ende ---------------------------------------------
  console.log("\nK · Fotos und Skizze erst am Ende");
- await page.evaluate(()=>{measMedienAufgeklappt=false;measPhotoDataUrl=null;measExistingPhotoUrl=null;
+ await page.evaluate(()=>{measMedienAufgeklappt=false;measPhotos=[];
    measSketches=[];showMeasTypeSection("mauerabdeckung")});
  await page.waitForTimeout(120);
  const zu=await page.evaluate(()=>{
@@ -515,17 +515,18 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
  p(!auf.hidden&&auf.display!=="none"&&auf.hoehe>40,"nach Fertig ist er offen",auf);
  p(auf.markiert&&auf.notiz&&auf.speichern,"er wird hervorgehoben, Notiz und Speichern stehen darunter",auf);
  const mitFoto=await page.evaluate(()=>{
-  measMedienAufgeklappt=false; measPhotoDataUrl="data:image/png;base64,AA";
+  measMedienAufgeklappt=false; measPhotos=["data:image/png;base64,AA"];
   showMeasTypeSection("mauerabdeckung");
   const b2=$("measMedienBereich");
   const r=!b2.hidden;
-  measPhotoDataUrl=null; measMedienAufgeklappt=false; showMeasTypeSection("mauerabdeckung");
+  measPhotos=[]; measMedienAufgeklappt=false; showMeasTypeSection("mauerabdeckung");
   return r;
  });
  p(mitFoto,"eine Aufnahme, die schon ein Foto hat, zeigt ihn sofort");
  const andere=await page.evaluate(()=>{
   const r={};
-  ["skizze_foto","lukarne","kehle"].forEach(t=>{
+  // kehle hat seit v2.83 Register und gehoert deshalb nicht mehr dazu
+  ["skizze_foto","lukarne","anschlussblech"].forEach(t=>{
    measMedienAufgeklappt=false; showMeasTypeSection(t);
    r[t]=$("measMedienBereich").hidden;
   });

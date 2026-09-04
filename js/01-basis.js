@@ -122,6 +122,11 @@ if(einlaufblechSettings.end_zugabe===undefined)einlaufblechSettings.end_zugabe=1
 if(einlaufblechSettings.gava_abstand===undefined)einlaufblechSettings.gava_abstand=500;
 let einlaufblechKonischSettings=JSON.parse(localStorage.getItem("sd_einlaufblechKonischSettings")||"null")||{...EINLAUFBLECH_STANDARD};
 if(einlaufblechKonischSettings.end_zugabe===undefined)einlaufblechKonischSettings.end_zugabe=10;
+// Kehle: Zuschnittmasse der Segmente. Gleiche Form wie EINLAUFBLECH_STANDARD,
+// damit teileLaengeInStuecke() unveraendert damit rechnen kann.
+const KEHLE_STANDARD=Object.freeze({stoss_laenge:2000,ueberlappung:70,rest_schwelle:500});
+let kehleSettings=JSON.parse(localStorage.getItem("sd_kehleSettings")||"null")||{...KEHLE_STANDARD};
+if(kehleSettings.rest_schwelle===undefined)kehleSettings.rest_schwelle=KEHLE_STANDARD.rest_schwelle;
 let blitzschutzMaterials=[];
 let rinneFittingTypes=[];
 // Material-Katalog für die Dropdowns bei jeder Massaufnahme-Art (Einstellungen

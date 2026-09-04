@@ -40,7 +40,13 @@ const LXB=/\d[\d'’.\s]*×\s*\d/;
                  {nr:2,von:"ECKE",bis:"BODEN",abstand:4000,zuschnitt:4000,schieberIndex:null,pos:8000}]}],
   ["Freies Profil","freies_profil",["3000 × 300"],{material:"2",konisch:false,
     schenkel:[{laenge:50,winkel:0},{laenge:200,winkel:-90},{laenge:50,winkel:-90}],
-    segmente:[{laenge:3000,massen:[{mass:50},{mass:200},{mass:50}]}]}]
+    segmente:[{laenge:3000,massen:[{mass:50},{mass:200},{mass:50}]}]}],
+  ["Kehle","kehle",["2070 × 500","1453 × 500"],{nh:42.5,nl:23.5,gl:5000,
+    material:"2",abwicklung:500,mittelrippe:"ohne",
+    segmente:[{laenge:2000,ueberlappung:70,zuschnitt:2070},
+              {laenge:2000,ueberlappung:70,zuschnitt:2070},
+              {laenge:1453,ueberlappung:0,zuschnitt:1453}],
+    zuschnittSumme:5593,flaeche_m2:2.7965}]
  ];
  for(const [name,typ,erwartet,data] of faelle){
   const h=await page.evaluate(async ([t,d,n])=>{

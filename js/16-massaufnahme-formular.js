@@ -24,7 +24,7 @@ function showMeasTypeSection(type){
  if(type==="lukarne")renderLukResult();
  if(type==="anschlussblech")renderAnbResult();
  if(type==="einfassung_rund")renderEinfResult();
- if(type==="kehle")renderKehleResult();
+ if(type==="kehle"&&typeof renderKehleAufnahme==="function")renderKehleAufnahme();
  if(type==="rinne")renderRinneResult();
  measMedienSichtbarkeit(type);
 }
@@ -50,13 +50,13 @@ $("openEinlaufblechSettings").onclick=()=>{
 // erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
 // Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
 // sichtbar.
-const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung"];
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle"];
 let measMedienAufgeklappt=false;
 // Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
 // fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
 // gleichnamige Funktion hier ueberschreiben.
 function measFormularHatMedien(){
- return !!(measPhotoDataUrl||measExistingPhotoUrl||(measSketches&&measSketches.length));
+ return !!((measPhotos&&measPhotos.length)||(measSketches&&measSketches.length));
 }
 function measMedienSichtbarkeit(type){
  const box=$("measMedienBereich");
@@ -74,7 +74,10 @@ function measMedienAufklappen(){
 function measMedienZuruecksetzen(){measMedienAufgeklappt=false}
 
 function measMedienAusFormular(){
- return {photo_path:measPhotoDataUrl||measExistingPhotoUrl||null,
+ // photo_path bleibt das erste Foto - damit oeffnen und drucken aeltere
+ // Stellen, die nur dieses eine Feld kennen, unveraendert weiter.
+ return {photo_path:measPhotos[0]||null,
+         photo_paths:measPhotos.slice(),
          sketch_paths:measSketches.slice()};
 }
 function buildMeasurementFromForm(){
@@ -214,11 +217,16 @@ function buildMeasurementFromForm(){
   const werte={};
   if(g&&g.ok)["Q","R","S","T","tanU","tanV","U","V","U90","V90","W","A","X","Y","Z","AA","AB","AC","AD","AE",
    "b","c","d","e","f","g","h","i","k","l","m","n","o","p","mitte"].forEach(k=>{werte[k]=g[k]});
+  // Superset: die bisherigen Felder bleiben Zeichen fuer Zeichen gleich,
+  // die neuen (Material, Abwicklung, Ausfuehrung, Segmente, Zuschnitt,
+  // Flaeche, Ausmass, Rollenblech) kommen nur dazu.
+  const zusatz=(typeof keaZusatzDaten==="function")?keaZusatzDaten():{};
   return {...base,...measMedienAusFormular(),data:{
    nh:e.nh===""?null:Number(e.nh),
    nl:e.nl===""?null:Number(e.nl),
    gl:e.gl===""?null:Number(e.gl),
-   ...werte
+   ...werte,
+   ...zusatz
   }};
  }
  if(type==="rinne"){
@@ -262,7 +270,7 @@ $("saveMeasurement").onclick=async()=>{
  if(offlineSperrtSpeichern("Diese Massaufnahme"))return;
  if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
  if(!measSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. Eine Massaufnahme kann nur einem Projekt zugeordnet gespeichert werden.");return}
- if(type==="skizze_foto"&&!measPhotoDataUrl&&!measExistingPhotoUrl&&measSketches.length===0){alert("Bitte ein Foto aufnehmen oder mindestens eine Skizze zeichnen.");return}
+ if(type==="skizze_foto"&&!measPhotos.length&&measSketches.length===0){alert("Bitte ein Foto aufnehmen oder mindestens eine Skizze zeichnen.");return}
  if(type==="einlaufblech_gerade"){
   if(!ebPieces.length||!ebPieces.some(p=>Number(p.laenge)>0)){alert("Bitte mindestens ein Stück mit einer gültigen Länge erfassen.");return}
   if(!Number($("eb_massA").value)||Number($("eb_massA").value)<=0){alert("Bitte Mass A eingeben (Pflichtfeld).");return}
@@ -301,6 +309,10 @@ $("saveMeasurement").onclick=async()=>{
  if(type==="kehle"){
   const g=kehleBerechnen(kehleEingabenAusFeldern());
   if(!g.ok){alert(g.fehler.join("\n"));return}
+  if(typeof kehleA==="object"&&kehleA){
+   if(!kehleA.material){alert("Bitte ein Material wählen.");return}
+   if(!(kehleA.segmente||[]).length){alert("Bitte mindestens ein Segment erfassen.");return}
+  }
  }
  if(type==="rinne"){
   if(!rinneProfil.length){alert("Bitte zuerst das Rinnenprofil festlegen (mindestens ein Segment).");return}
@@ -313,13 +325,13 @@ $("saveMeasurement").onclick=async()=>{
   const form=buildMeasurementFromForm();
   const warNeu=!currentMeasurementId;
   let workingId=currentMeasurementId;
-  let photoUrl=measExistingPhotoUrl,sketchUrls=measSketches.slice();
+  let photoUrls=measPhotos.slice(),sketchUrls=measSketches.slice();
   {
    // Fotos/Skizzen sollen eindeutig unter measurements/<projectId>/<measurementId>/…
    // abgelegt werden – bei einer neuen Massaufnahme gibt es diese ID aber
    // erst nach dem ersten Speichern. Deshalb bei neuen Foto-/Skizzen-Uploads
    // zuerst eine Platzhalterzeile anlegen, um die echte ID zu bekommen.
-   const hatNeueDateien=!!measPhotoDataUrl||measSketches.some(s=>s.startsWith("data:"));
+   const hatNeueDateien=measPhotos.some(s=>s.startsWith("data:"))||measSketches.some(s=>s.startsWith("data:"));
    if(!workingId&&hatNeueDateien){
     const {data:neu,error:eNeu}=await sb.from("measurements").insert({
      project_id:measSelectedProjectId||null,type,title,note:$("measNote").value,
@@ -332,8 +344,10 @@ $("saveMeasurement").onclick=async()=>{
     platzhalterId=neu.id;
    }
    const ordner=`measurements/${measSelectedProjectId}/${workingId}`;
-   photoUrl=measExistingPhotoUrl;
-   if(measPhotoDataUrl)photoUrl=await uploadMeasurementImage(measPhotoDataUrl,`${ordner}/photo`);
+   photoUrls=[];
+   for(const f of measPhotos){
+    photoUrls.push(f.startsWith("data:")?await uploadMeasurementImage(f,`${ordner}/photo`):f);
+   }
    sketchUrls=[];
    for(const s of measSketches){
     sketchUrls.push(s.startsWith("data:")?await uploadMeasurementImage(s,`${ordner}/sketches`):s);
@@ -346,7 +360,8 @@ $("saveMeasurement").onclick=async()=>{
    title,
    note:$("measNote").value,
    date:$("measDate").value||new Date().toISOString().slice(0,10),
-   photo_path:photoUrl,
+   photo_path:photoUrls[0]||null,
+   photo_paths:photoUrls,
    sketch_path:sketchUrls[0]||null,
    sketch_paths:sketchUrls,
    data:form.data||{},
@@ -656,14 +671,17 @@ async function printMeasurement(m){
  // "skizze_foto") brauchen eine signierte URL statt des gespeicherten Pfads.
  const logoSrc=await storageSignedUrl(logoUrl);
  // Seit v2.70 kann JEDE Art Fotos und Skizzen haben.
- const photoSrc=await storageSignedUrl(m.photo_path);
+ // Aeltere Aufnahmen haben nur photo_path - sie drucken genau dieses eine
+ // Foto, es wird keines erfunden.
+ const photoQuellen=(m.photo_paths&&m.photo_paths.length)?m.photo_paths:(m.photo_path?[m.photo_path]:[]);
+ const photoSrcs=(await Promise.all(photoQuellen.map(storageSignedUrl))).filter(Boolean);
  const sketchQuellen=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
  const sketchSrcs=(await Promise.all(sketchQuellen.map(storageSignedUrl))).filter(Boolean);
- // Gemeinsamer Anhang fuer alle Fach-Arten: Foto im Fluss, jede Skizze auf
+ // Gemeinsamer Anhang fuer alle Fach-Arten: Fotos im Fluss, jede Skizze auf
  // einer eigenen Seite - dieselbe Darstellung wie bei "Skizze / Foto".
- const medienHtml=(photoSrc||sketchSrcs.length)?`
-${photoSrc?`<div class="eb-section-head">Foto</div>
-<div class="pdf-bild"><img class="photo" src="${esc(photoSrc)}"></div>`:""}
+ const medienHtml=(photoSrcs.length||sketchSrcs.length)?`
+${photoSrcs.map((f,i)=>`<div class="eb-section-head">Foto${photoSrcs.length>1?` ${i+1} von ${photoSrcs.length}`:""}</div>
+<div class="pdf-bild"><img class="photo" src="${esc(f)}"></div>`).join("")}
 ${sketchSrcs.map((s2,i)=>`<div class="sketch-page"><div class="eb-section-head">Skizze${sketchSrcs.length>1?` ${i+1} von ${sketchSrcs.length}`:""}</div>
 <div class="pdf-bild"><img class="sketch" src="${esc(s2)}"></div></div>`).join("")}`:"";
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
@@ -1194,6 +1212,51 @@ ${["b","c","d"].map(k=>`<div><span class="bu">${k}</span><span class="wert">${we
 <thead><tr><th style="width:10%">Zeichen</th><th>Bezeichnung</th><th style="width:22%">Wert</th></tr></thead>
 <tbody>${["A","e","f","g","h","i","k","l","m","n","o","p"].map(k=>`<tr><td>${k}</td><td>${esc(KEHLE_LABELS[k])}</td><td>${wert(k)}</td></tr>`).join("")}</tbody>
 </table>
+${(()=>{
+ // Alles Folgende steht nur, wenn es im Datensatz liegt: eine vor v2.83
+ // gespeicherte Kehle druckt unveraendert ohne diese Abschnitte, und es
+ // wird nichts nachgerechnet.
+ const segs=Array.isArray(d.segmente)?d.segmente:[];
+ const matName=(findMeasurementMaterial(d.material)||{}).name;
+ const mr=d.mittelrippe==="mit"?"mit Mittelrippe":(d.mittelrippe==="ohne"?"ohne Mittelrippe":"");
+ let h="";
+ if(matName||d.abwicklung||mr){
+  h+=`<div class="eb-section-head">Kehlblech</div>
+<table class="eb-info-table"><tr>${cell("Material",esc(matName||"\u2013"))}${cell("Abwicklung",d.abwicklung?esc(d.abwicklung)+" mm":"\u2013")}${cell("Ausf\u00fchrung",esc(mr||"\u2013"))}</tr></table>`;
+ }
+ if(segs.length){
+  h+=`<div class="eb-section-head">Zuschnittliste</div>
+<table class="eb-cutlist">
+<thead><tr><th style="width:10%">Nr.</th><th>L\u00e4nge Stoss/Stoss (mm)</th><th>\u00dcberlappung (mm)</th><th>Zuschnitt L \u00d7 B (mm)</th></tr></thead>
+<tbody>${segs.map((sg,i)=>`<tr><td>${i+1}</td><td>${esc(Math.round(Number(sg.laenge)||0))}</td><td>${esc(Math.round(Number(sg.ueberlappung)||0))}</td><td>${esc(pdfLxB(sg.zuschnitt!=null?sg.zuschnitt:(Number(sg.laenge)||0)+(Number(sg.ueberlappung)||0),d.abwicklung))}</td></tr>`).join("")}</tbody>
+</table>
+<table class="eb-info-table" style="margin-top:2mm"><tr>${cell("Zuschnitt gesamt",esc(Math.round(Number(d.zuschnittSumme)||0))+" mm")}${d.flaeche_m2?cell("Blechfl\u00e4che",esc(Number(d.flaeche_m2).toFixed(2).replace(".",","))+" m\u00b2"):"<td></td>"}<td></td></tr></table>`;
+ }
+ if(Array.isArray(d.ausmass)&&d.ausmass.length){
+  h+=`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`;
+ }
+ const r=d.rollen;
+ if(r&&Array.isArray(r.moeglich)&&r.moeglich.length){
+  const zeilen=r.moeglich.map((x,i)=>`<tr><td>${esc(x.breite)} mm${i===0?" (beste)":""}</td><td>${esc(x.jeTafel)}</td><td>${esc(x.tafeln)}</td><td>${esc(Number(x.flaeche).toFixed(2).replace(".",","))}</td><td>${esc(Number(x.verschnitt).toFixed(2).replace(".",","))}</td></tr>`).join("");
+  const v=r.verteilung||{};
+  const streifen=(v.streifen||[]).map((sf,i)=>`<tr><td>${i+1}</td><td>${esc((sf.stuecke||[]).map(x=>"St\u00fcck "+x.nr+" \u00b7 "+x.laenge+" mm").join(", "))}</td><td>${esc(Math.round(Number(r.tafelLaenge)-Number(sf.rest)))}</td><td>${esc(Math.round(Number(sf.rest)))}</td></tr>`).join("");
+  h+=`<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
+<div class="note">Tafell\u00e4nge ${esc(r.tafelLaenge)} mm (l\u00e4ngstes St\u00fcck), quer in Streifen der Abwicklungsbreite geteilt.${v.optimal===false?" Beste gefundene Verteilung \u2013 nicht nachweislich die g\u00fcnstigste.":""}</div>
+<table class="eb-cutlist">
+<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafelfl\u00e4che (m\u00b2)</th><th>Verschnitt (m\u00b2)</th></tr></thead>
+<tbody>${zeilen}</tbody>
+</table>
+${streifen?`<table class="eb-cutlist">
+<thead><tr><th>Streifen</th><th>St\u00fccke</th><th>belegt (mm)</th><th>Rest (mm)</th></tr></thead>
+<tbody>${streifen}</tbody>
+</table>`:""}`;
+ }
+ return h;
+})()}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else{
