@@ -193,7 +193,8 @@ html.dark .pstatus-storniert{color:#f08b80}
 .report-row.treffer{outline:2px solid var(--blue);outline-offset:1px;background:#fff}
 .cockpit-count{float:right;font-size:11px;font-weight:900;color:var(--blue);background:var(--blue-light);border-radius:999px;padding:1px 9px;min-width:20px;text-align:center}
 .cockpit-new{display:block;width:100%;min-height:44px;text-align:center;line-height:24px}
-label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-weight:800;font-size:12px}
+label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-weight:800;font-size:12px;
+ text-transform:none;letter-spacing:0}
 .verlauf-filters button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark)}
 /* Sortier-Chips der Feedback-Liste - gleiche Optik wie die Verlauf-Filter */
 .feedback-sort button{padding:6px 10px;font-size:11px;min-height:34px;background:var(--blue-light);color:var(--blue-dark)}

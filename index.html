@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.81</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.82</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -664,9 +664,14 @@ Diese Aktion löscht unwiderruflich:
 </div>
 
 <div id="measTypeFoto">
+<div class="info">Für alles, was sich nicht rechnen lässt: ein Foto von der Stelle,
+eine Skizze von Hand, Masse und Hinweise als Notiz. Es wird nichts berechnet –
+darum gibt es hier auch keine Schritte. Foto und Skizzen stehen gleich unten,
+mindestens eines von beiden ist nötig.</div>
 <div class="grid" style="margin-bottom:8px">
 <div><label>Material</label><select id="foto_material" class="meas-material-select"></select></div>
 </div>
+<div class="small" id="fotoStatus"></div>
 </div>
 
 <div id="measTypeEinlaufblech" hidden>
@@ -1020,7 +1025,7 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div class="meas-columns">
 <div>
 <label>Foto</label>
-<input type="file" id="measPhotoInput" accept="image/*" capture="environment">
+<label class="cockpit-new blue cockpit-upload">📷 Foto aufnehmen oder wählen<input type="file" id="measPhotoInput" accept="image/*" capture="environment" hidden></label>
 <img id="measPhotoPreview" class="meas-preview" hidden>
 <div class="bar" style="margin-top:6px">
 <button type="button" class="blue" id="drawOnPhoto" hidden>✏️ Auf Foto zeichnen</button>
@@ -1113,7 +1118,7 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <div id="amMedienBereich" style="margin-top:10px">
 <h2 style="margin-top:4px">📷 Fotos</h2>
 <label>Fotos (mehrere möglich)</label>
-<input type="file" id="amPhotoInput" accept="image/*" capture="environment" multiple>
+<label class="cockpit-new blue cockpit-upload">📷 Fotos aufnehmen oder wählen<input type="file" id="amPhotoInput" accept="image/*" capture="environment" multiple hidden></label>
 <div id="amPhotoGallery" class="sketch-gallery"></div>
 <div class="bar" style="margin-top:6px">
 <button type="button" class="blue" id="amRecognizeAll" hidden>🔎 Alle Fotos erkennen</button>

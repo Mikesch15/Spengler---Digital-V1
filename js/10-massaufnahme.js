@@ -46,6 +46,20 @@ function resolveSignedThumbnails(container){
  });
 }
 
+function measMedienStatus(){
+ const box=$("fotoStatus");
+ if(!box)return;
+ const foto=!!(measPhotoDataUrl||measExistingPhotoUrl);
+ const n=measSketches.length;
+ if(!foto&&!n){
+  box.innerHTML='<span style="color:#8a5312">Noch kein Foto und keine Skizze – mindestens eines von beiden ist zum Speichern nötig.</span>';
+  return;
+ }
+ const teile=[];
+ if(foto)teile.push("1 Foto");
+ if(n)teile.push(n===1?"1 Skizze":n+" Skizzen");
+ box.innerHTML='<span style="color:#1f5c39">✓ '+esc(teile.join(" · "))+' erfasst.</span>';
+}
 function renderSketchGallery(){
  $("measSketchGallery").innerHTML=measSketches.map((src,i)=>`<div class="sketch-thumb-wrap">
 <img class="sketch-thumb" data-signed-src="${esc(src)}">
@@ -55,6 +69,7 @@ function renderSketchGallery(){
 </div>
 </div>`).join("")||'<div class="small" style="color:var(--muted)">Noch keine Skizze</div>';
  resolveSignedThumbnails($("measSketchGallery"));
+ measMedienStatus();
 }
 $("measSketchGallery").addEventListener("click",e=>{
  const ed=e.target.closest("[data-edit-sketch]");
@@ -224,6 +239,7 @@ $("measPhotoRemove").onclick=()=>{
  $("measPhotoInput").value="";
  $("measPhotoRemove").hidden=true;
  $("drawOnPhoto").hidden=true;
+ measMedienStatus();
 };
 $("addSketch").onclick=()=>openSketchFullscreen();
 $("drawOnPhoto").onclick=()=>{
@@ -264,6 +280,7 @@ $("measPhotoInput").addEventListener("change",async e=>{
   $("measPhotoPreview").hidden=false;
   $("measPhotoRemove").hidden=false;
   $("drawOnPhoto").hidden=false;
+  measMedienStatus();
  }catch(err){alert("Foto konnte nicht geladen werden: "+err.message)}
 });
 

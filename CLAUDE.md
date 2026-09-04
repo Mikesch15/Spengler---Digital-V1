@@ -13422,3 +13422,101 @@ Spalten heissen dort „Zuschnitt L × B (mm)".
 - Die übrigen sechs Massaufnahme-Arten sind nicht berührt. Lukarne
   („Zuschnitt B × L") und Einfassung Rund („Zuschnitt Länge/Breite") nennen
   beide Masse ohnehin schon.
+
+## 89. SKIZZE / FOTO PASST ZUM REST — VERSION 2.82
+
+Die Massaufnahme „Skizze / Foto" war die einzige Art, die weder Register noch
+einen erklärenden Block hatte und die das nackte Browser-Dateifeld zeigte.
+Angepasst wurde nur, was dafür wirklich nötig war. **Keine Schemaänderung,
+keine Migration, keine Rechnung, keine Fachdatei angefasst.**
+
+### 89.1 Bewusst KEINE Register
+
+Die Art hat genau **ein** Eingabefeld (Material); alles andere ist der
+gemeinsame Foto-/Skizzenbereich, Notiz und Speichern. Register würden nur
+Klicks kosten, ohne etwas zu ordnen – anders als bei den fünf Arten, die
+Verlauf, Geometrie, Stückliste, Zuschnitt, Ausmass und Kontrolle haben.
+Der Prüfstand hält das fest: Skizze/Foto hat **keine** Registerleiste, die
+fünf anderen haben weiterhin ihre.
+
+Ihre Bezugsgruppe sind die vier übrigen Arten ohne Register – Kehle, Lukarne,
+Ort-/Seitenbleche, Einfassung Rund. Deren Bauform ist: erklärender
+`.info`-Block, darunter ein `.grid` mit den Eingaben. Genau das fehlte
+Skizze/Foto als einziger.
+
+### 89.2 Was geändert wurde
+
+- **Erklärender Block** wie bei den vier anderen: wofür die Art gedacht ist,
+  dass hier nichts gerechnet wird (und es deshalb keine Schritte gibt) und
+  dass Foto oder Skizze nötig ist.
+- **Statuszeile** `#fotoStatus`: „Noch kein Foto und keine Skizze – mindestens
+  eines von beiden ist zum Speichern nötig." bzw. „✓ 1 Foto · 3 Skizzen
+  erfasst." Die übrigen Arten zeigen ihr Rechenergebnis; diese hat keines,
+  also zeigt sie, was tatsächlich da ist. Bis dahin sagte das nur ein
+  `alert()` beim Speichern. `measMedienStatus()` hängt an
+  `renderSketchGallery()` (deckt Skizzen, Zurücksetzen und Füllen ab), an den
+  beiden Foto-Stellen und an `showMeasTypeSection()`.
+- **Foto-Knopf wie jeder andere Datei-Knopf der App**: bisher das nackte
+  `<input type="file">` – winzig, englisch („Choose File / No file chosen")
+  und auf der Baustelle kaum zu treffen. Jetzt ein `label.cockpit-upload`
+  über die volle Breite (44 px hoch) mit dem versteckten Feld darin, genau
+  wie der Projektdatei-Knopf aus v2.49. `capture="environment"` und `accept`
+  bleiben erhalten. **Betrifft alle elf Massaufnahme-Arten**, weil der
+  Foto-/Skizzenbereich gemeinsam ist.
+- **Derselbe Knopf im Ausmass** (`#amPhotoInput`, Mehrfachauswahl bleibt) –
+  sonst wäre die App an einer Stelle neu und an der anderen alt.
+- **`label.cockpit-upload` nicht mehr in GROSSBUCHSTABEN**: die globale Regel
+  `label{text-transform:uppercase}` schlug seit v2.49 auch auf diesen Knopf
+  durch. Im Browser gemessen: der bestehende Projektdatei-Knopf las sich
+  „＋ DATEI/FOTO HINZUFÜGEN", während jeder echte `button` daneben gemischt
+  geschrieben ist. Ein `text-transform:none` in der eigenen Regel – dritter
+  Fall derselben Falle nach `[hidden]` (59), `table{min-width}` (60.5) und
+  den Eingabefeldern (72.5).
+
+Unverändert: Vorschau, „✏️ Auf Foto zeichnen", „✕ Foto entfernen",
+Skizzengalerie, Speicher-Payload (weiterhin genau das eine Feld `material`),
+die Pflichtprüfung beim Speichern und der Druck.
+
+### 89.3 Getestet
+
+Neuer Prüfstand `pruefstaende/pruefstand-skizze-foto-v2-82.js` – **42/42**,
+echtes Chromium gegen die echte `index.html`: keine Registerleiste bei
+Skizze/Foto und weiterhin welche bei den fünf anderen; erklärender Block
+vorhanden und inhaltlich passend, dazu die Gegenprobe, dass Kehle, Lukarne,
+Ort-/Seitenbleche und Einfassung Rund ebenfalls einen haben; Statuszeile in
+allen fünf Zuständen (nichts, 1 Skizze, 3 Skizzen, Foto+Skizzen, nach dem
+Entfernen) und nach dem Umschalten der Art; Foto-Knopf (Höhe ≥ 44 px, volle
+Breite, deutsch, keine Grossbuchstaben, Zeiger, verstecktes Feld darin,
+`capture`/`accept` erhalten, **ein Klick öffnet wirklich die Dateiauswahl**);
+derselbe Knopf im Ausmass; kein nacktes Dateifeld mehr im Formular; Vorschau/
+Zeichnen/Entfernen/Galerie unverändert; Speicher-Payload unverändert; fünf
+Bildschirmbreiten.
+
+**Fünf Gegenproben**, jede baut einen echten Fehler ein: Knopf zurück auf das
+nackte Feld (32/42) · erklärender Block entfernt (39/42) · Statuszeile lügt
+(40/42) · Grossbuchstaben zurück (41/42) · Register auch für Skizze/Foto
+(41/42).
+
+Die erste Gegenprobe hat den Prüfstand zuerst **abstürzen** lassen (Klick auf
+ein nicht vorhandenes Label) – ein abgebrochener Lauf sieht aus wie „keine
+Fehler". Die Stelle meldet jetzt sauber „nein". Ausserdem kamen zwei
+`Uncaught (in promise)`-Meldungen aus **meinen Testdaten**: Skizzen als nackte
+Zeichenketten statt `data:`-URLs liessen die Galerie eine signierte URL beim
+Storage holen, den es im Prüfstand nicht gibt.
+
+Volle Regression grün (alle 11 Repo-Prüfstände, alle 40 archivierten).
+Regierapport-Ausdruck byteidentisch zu v2.81 (Bild `85706e5d7a1eb615`, DOM
+`3066be99c3200173`). `node --check` fehlerfrei, `<div>` 688/688, keine
+doppelten IDs.
+
+### 89.4 Offene Punkte
+
+- Kein Live-Klicktest gegen Supabase möglich (Sandbox-Netzwerksperre) – **das
+  wird ausdrücklich nicht als getestet behauptet.** Insbesondere ein echter
+  Foto-Upload vom Handy ist nicht geprüft.
+- **Nur ein Foto je Massaufnahme** – `photo_path` ist ein Einzelwert. Mehrere
+  Fotos wären eine Schema-Erweiterung und waren nicht verlangt; Skizzen sind
+  weiterhin beliebig viele.
+- `#logoInput` (Firmenlogo in den Einstellungen) ist das letzte verbliebene
+  nackte Dateifeld der App – ausserhalb dieses Auftrags, bewusst nicht
+  angefasst.

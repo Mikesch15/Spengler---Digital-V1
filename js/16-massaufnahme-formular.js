@@ -1,6 +1,9 @@
 "use strict";
 function showMeasTypeSection(type){
  $("measTypeFoto").hidden=(type!=="skizze_foto");
+ // Die Statuszeile der Skizze/Foto-Aufnahme sagt, was tatsaechlich erfasst
+ // ist - auch direkt nach dem Umschalten der Art.
+ if(typeof measMedienStatus==="function")measMedienStatus();
  $("measTypeEinlaufblech").hidden=(type!=="einlaufblech_gerade");
  $("measTypeRinne").hidden=(type!=="rinne_halbrund");
  $("measTypeEinlaufblechKonisch").hidden=(type!=="einlaufblech_konisch");
