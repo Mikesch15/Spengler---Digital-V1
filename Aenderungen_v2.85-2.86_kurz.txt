@@ -1,0 +1,52 @@
+SPENGLER-DIGITAL - AENDERUNGEN v2.85 / v2.86
+============================================
+Stand 04.09.2026, auf main veroeffentlicht (1f65a21, 20bdc06)
+
+
+1  ZUSCHNITTLISTE UEBERALL GLEICH
+   Hauptansicht in jeder Art, Bildschirm wie PDF:
+
+       ROLLENBLECH 1'000 mm
+         2 x  1'850 x 250 mm   Gehrung links - Stueck 1, 2
+         1 x  1'850 x 250 mm   Stueck 3
+         2 x  1'420 x 250 mm   Stueck 4, 5
+       2 Tafeln a 1'850 mm
+
+   Gleiche Zuschnitte zusammengefasst, Stueckzahl gross. Getrennt bleibt, was
+   fachlich anders ist (Gehrung, konische Masse) - das verschwindet nie in
+   einer Sammelzeile.
+   Kennzahlen, Rollenvergleich und Streifenbelegung stehen darunter
+   aufklappbar. Es ging nichts verloren.
+   Rinne Halbrund bleibt eigenstaendig (Normlaengen statt Rollen).
+
+
+2  PDF: AUSWAHL, WAS GEDRUCKT WIRD
+   Vor jedem PDF ein Dialog mit zehn Listen (Zusammenfassung, Masse,
+   Stueckliste, Rollenblech, Ausmass, Materialliste, Kontrolle, Fotos, Skizze;
+   Kopf/Projekt/Adresse immer).
+   Nicht vorhandene Listen sind ausgegraut. Nicht gewaehlte Abschnitte werden
+   gar nicht erzeugt - es entsteht nie ein leerer Abschnitt.
+   Gilt fuer alle Massaufnahmen und das Ausmass. Regierapport unveraendert.
+
+
+3  BLECHLAGER
+   "Rollenbreiten des Blechlagers" steht jetzt unter
+   Einstellungen -> Allgemein (vorher unter Einlaufblech gerade).
+   Im Register "Zuschnitt" laesst sich je Massaufnahme aufklappen, welche
+   dieser Rollen dort verwendet werden. Ohne Haken gilt das ganze Lager;
+   aeltere Massaufnahmen rechnen unveraendert.
+
+
+4  ROLLENVERGLEICH (v2.86)
+   Die Spalte "Tafelflaeche (m2)" heisst jetzt "Tafellaenge (mm)" - in jedem
+   Modul, Bildschirm wie PDF. Der Verschnitt bleibt in m2.
+
+
+GEPRUEFT
+   Neuer Pruefstand 70/70, zwoelf Gegenproben, volle Regression gruen.
+   Regierapport-Ausdruck byteidentisch zu vorher.
+   Keine Datenbankaenderung, keine Berechnung veraendert.
+
+NICHT GEPRUEFT
+   Kein Live-Test gegen Supabase und kein echter Ausdruck aus dem
+   Browser-Druckdialog - die Sandbox laesst das nicht zu.
