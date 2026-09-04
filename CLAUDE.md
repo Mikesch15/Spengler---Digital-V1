@@ -14138,3 +14138,30 @@ Abwicklung und keine Packrechnung berührt.
   Reststücken; bei vielen Stücken heisst das Ergebnis „beste gefundene
   Verteilung".
 - Ausmass-Fotos bleiben wie seit v2.53 nicht im PDF.
+
+### 90.10 Nachtrag v2.86: Tafellänge statt Tafelfläche
+
+Rückmeldung nach dem ersten echten Ausdruck: im Rollenbreiten-Vergleich ist die
+**Tafellänge** die brauchbare Angabe, nicht die Tafelfläche – man muss wissen,
+wie lang die Tafel von der Rolle zu schneiden ist.
+
+Die Spalte heisst deshalb in **allen** Modulen jetzt „Tafellänge" statt
+„Fläche" (Bildschirm) bzw. „Tafelfläche (m²)" (PDF) und zeigt das Mass in mm.
+Geändert an **einer** Stelle – `zuPlanTabelleHtml()` und `zuDruckHtml()` in
+js/33 – also automatisch in Einlaufblech gerade und konisch, Freies Profil,
+Mauerabdeckung und Kehle.
+
+Neuer Helfer `zuTafelLaenge(x,p)`: beim **Freien Profil** hat jede
+Streifenbreite ihre eigene Tafel, dort stehen alle vorkommenden Längen
+(z. B. „3'000 · 2'000"); sonst die eine Tafellänge des Plans. Fehlt sie, steht
+„–" – es wird keine erfunden.
+
+Der Verschnitt bleibt in m² (das ist die Materialgrösse), ebenso die
+Zusammenfassung „Am wenigsten Material: … m² Blech".
+
+Geprüft in echtem Chromium für alle fünf Arten, Bildschirm und Ausdruck
+(Einlaufblech gerade 2'070 mm, konisch 2'070 mm, Freies Profil 3'000 mm,
+Mauerabdeckung 3'020 mm, Kehle 2'070 mm). Prüfstand
+`pruefstand-rollenblech-pdf-v2-85.js` auf **70/70** erweitert, Gegenprobe
+(Spalte wieder die Tafelfläche) schlägt mit 68/70 fehl. Volle Regression grün,
+Regierapport-Ausdruck weiterhin byteidentisch.

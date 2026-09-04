@@ -1,5 +1,5 @@
 ================================================================================
-SPENGLER-DIGITAL · VERSION 2.85
+SPENGLER-DIGITAL · VERSION 2.85 / 2.86
 EINHEITLICHER ROLLENBLECH-ZUSCHNITT + GEMEINSAME PDF-LISTENAUSWAHL
 ================================================================================
 Datum:   04.09.2026
@@ -294,4 +294,35 @@ F) Ausmass
 G) Regierapport
   24. Einen Regierapport drucken.
   25. Erwartung: unveraendert wie bisher, KEIN Auswahldialog.
+================================================================================
+
+
+================================================================================
+NACHTRAG VERSION 2.86 - TAFELLAENGE STATT TAFELFLAECHE
+================================================================================
+Rueckmeldung nach dem ersten echten Ausdruck: im Rollenbreiten-Vergleich ist die
+TAFELLAENGE die brauchbare Angabe, nicht die Tafelflaeche - man muss wissen, wie
+lang die Tafel von der Rolle zu schneiden ist.
+
+Die Spalte heisst deshalb in ALLEN Modulen jetzt "Tafellaenge" statt "Flaeche"
+(Bildschirm) bzw. "Tafelflaeche (m2)" (PDF) und zeigt das Mass in mm.
+Geaendert an EINER Stelle - zuPlanTabelleHtml() und zuDruckHtml() in js/33 -
+also automatisch in Einlaufblech gerade und konisch, Freies Profil,
+Mauerabdeckung und Kehle.
+
+Beim Freien Profil hat jede Streifenbreite ihre eigene Tafel; dort stehen alle
+vorkommenden Laengen (z. B. "3'000 - 2'000"). Fehlt eine Tafellaenge, steht "-"
+- es wird keine erfunden.
+
+Der Verschnitt bleibt in m2 (das ist die Materialgroesse), ebenso die
+Zusammenfassung "Am wenigsten Material: ... m2 Blech".
+
+Geprueft in echtem Chromium fuer alle fuenf Arten, Bildschirm und Ausdruck:
+  Einlaufblech gerade  2'070 mm      Mauerabdeckung  3'020 mm
+  Einlaufblech konisch 2'070 mm      Kehle           2'070 mm
+  Freies Profil        3'000 mm
+Pruefstand rollenblech-pdf auf 70/70 erweitert; Gegenprobe (Spalte wieder die
+Tafelflaeche) schlaegt mit 68/70 fehl. Volle Regression gruen (alle 13
+Repo-Pruefstaende, pdf52 526/526, archivierte Pruefstaende), Regierapport-
+Ausdruck weiterhin byteidentisch.
 ================================================================================

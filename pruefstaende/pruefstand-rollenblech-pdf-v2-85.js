@@ -125,6 +125,40 @@ async function klick(page,sel){
  p(/2 Tafeln à 2['’]000 mm/.test(r.fuss),"9/10 · Fusszeile: Anzahl Tafeln à Tafellaenge",r.fuss);
  // 11 · Verschnitt
  p(/Verschnitt/.test(r.html),"11 · Verschnitt wird ausgewiesen");
+ // 9b · Der Rollenvergleich nennt die TAFELLAENGE, nicht die Tafelflaeche.
+ const spalten=await page.evaluate(()=>{
+  const pl={art:"rolle",einheit:"Stück",streifenbreiten:[250],
+   gruppen:[{breite:250,tafelLaenge:2070,streifen:[{stuecke:[{nr:1,laenge:2070}],rest:0}]}],
+   moeglich:[{breite:1000,jeTafel:4,tafeln:1,flaeche:2.07,verschnitt:0.78,anteil:38},
+             {breite:670,jeTafel:2,tafeln:2,flaeche:2.77,verschnitt:1.48,anteil:53}],
+   netto:1.29,tafelLaenge:2070,optimal:true};
+  const d=document.createElement("div"); d.innerHTML=zuschnittHtml(pl);
+  d.querySelectorAll("details").forEach(x=>x.open=true);
+  const tab=Array.from(d.querySelectorAll("table")).find(t=>/Rolle/.test(t.textContent));
+  // Und dasselbe im Ausdruck.
+  const dr=document.createElement("div");
+  dr.innerHTML=zuDruckHtml({tafelLaenge:2070,moeglich:pl.moeglich,
+    streifen:[{stuecke:[{nr:1,laenge:2070}],rest:0}],optimal:true},250,"Stück");
+  const tabDr=Array.from(dr.querySelectorAll("table")).find(t=>/Rollenbreite/.test(t.textContent));
+  // Freies Profil: zwei verschiedene Tafellaengen in einer Zeile
+  const mehr=zuTafelLaenge({zeilen:[{tafelLaenge:3000},{tafelLaenge:2000}]},null);
+  return {kopf:tab?Array.from(tab.querySelectorAll("th")).map(x=>x.textContent.trim()):null,
+    zeile:tab?Array.from(tab.querySelectorAll("tbody tr")[0].querySelectorAll("td")).map(x=>x.textContent.trim()):null,
+    kopfDr:tabDr?Array.from(tabDr.querySelectorAll("th")).map(x=>x.textContent.trim()):null,
+    zeileDr:tabDr?Array.from(tabDr.querySelectorAll("tbody tr")[0].querySelectorAll("td")).map(x=>x.textContent.trim()):null,
+    mehr};
+ });
+ p(spalten.kopf&&spalten.kopf.indexOf("Tafellänge")===3&&spalten.kopf.indexOf("Fläche")<0,
+   "9b · der Rollenvergleich nennt die Tafellaenge statt der Tafelflaeche",spalten.kopf);
+ p(spalten.zeile&&/^2[’'´]?070\s*mm$/.test(spalten.zeile[3]||""),
+   "   und zwar als Mass in mm",spalten.zeile);
+ p(spalten.kopfDr&&spalten.kopfDr[3]==="Tafellänge (mm)"&&spalten.kopfDr.every(x=>!/Tafelfläche/.test(x)),
+   "   im Ausdruck genauso",spalten.kopfDr);
+ p(spalten.zeileDr&&/^2[’'´]?070$/.test(spalten.zeileDr[3]||""),
+   "   mit demselben Wert",spalten.zeileDr);
+ p(/3[’'´]?000/.test(spalten.mehr)&&/2[’'´]?000/.test(spalten.mehr),
+   "   mehrere Tafellaengen (Freies Profil) stehen alle da",spalten.mehr);
+
  // 16 · leere Liste
  r=await liste({art:"rolle",einheit:"Stück",streifenbreiten:[250],gruppen:[],moeglich:[],
    leer:"Noch nichts zuzuschneiden.",netto:0,optimal:true});

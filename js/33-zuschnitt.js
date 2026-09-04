@@ -174,6 +174,20 @@ sie ist nicht nachweislich die günstigste.</div>`;
  return h;
 }
 
+// Die Tafellaenge zu einer Zeile des Rollenvergleichs. Beim Freien Profil hat
+// jede Streifenbreite ihre eigene Tafel - dann stehen alle vorkommenden
+// Laengen da, sonst die eine des Plans. Es wird keine erfunden.
+function zuTafelLaenge(x,p){
+ const zeilen=(x&&Array.isArray(x.zeilen))?x.zeilen:null;
+ if(zeilen&&zeilen.length){
+  const l=[];
+  zeilen.forEach(z=>{const v=Math.round(zuZahl(z.tafelLaenge));if(v>0&&l.indexOf(v)<0)l.push(v)});
+  if(l.length)return l.sort((a,b)=>b-a).map(v=>zuMm(v)).join(" · ");
+ }
+ const eine=zuZahl(x&&x.tafelLaenge)||zuZahl(p&&p.tafelLaenge)
+   ||zuZahl(((p&&p.gruppen)||[])[0]&&p.gruppen[0].tafelLaenge);
+ return eine>0?zuMm(eine):"–";
+}
 function zuPlanTabelleHtml(p){
  if(p.art==="stange"){
   const nach={};
@@ -197,12 +211,12 @@ ${esc(zuMm(p.summeStuecke))} mm Zuschnitt – <b>${esc(zuMm(p.verschnitt))} mm</
 <td>${esc(zuMm(x.breite))} mm</td>
 <td>${x.jeTafel===undefined?"–":esc(x.jeTafel)}</td>
 <td>${esc(x.tafeln)}</td>
-<td>${esc(zuQm(x.flaeche))} m²</td>
+<td>${esc(zuTafelLaenge(x,p))} mm</td>
 <td><b>${esc(zuQm(x.verschnitt))} m²</b></td>
 <td>${esc(zuZahl(x.anteil).toFixed(0))} %</td></tr>`).join("");
  const b0=p.moeglich[0];
  return `<div class="scroll"><table class="eb-table ra-tab">
-<thead><tr><th>Rolle</th><th>Str./Tafel</th><th>Tafeln</th><th>Fläche</th><th>Verschnitt</th><th>Anteil</th></tr></thead>
+<thead><tr><th>Rolle</th><th>Str./Tafel</th><th>Tafeln</th><th>Tafellänge</th><th>Verschnitt</th><th>Anteil</th></tr></thead>
 <tbody>${zeilen}</tbody></table></div>
 <div class="ra-ok">Am wenigsten Material: <b>${esc(zuMm(b0.breite))} mm</b> –
 ${esc(b0.tafeln)} Tafel(n), ${esc(zuQm(b0.flaeche))} m² Blech,
@@ -323,10 +337,10 @@ function zuDruckHtml(r,breite,einheit,zusatz){
  const kopf=b0?"Rollenblech "+zuMm(b0.breite)+" mm · "+b0.tafeln+" Tafel"+(b0.tafeln===1?"":"n")
    +(tafelLaenge>0?" à "+zuMm(tafelLaenge)+" mm":""):"";
  const vergleich=(p.moeglich||[]).length?`<table class="eb-cutlist">
-<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafelfläche (m²)</th><th>Verschnitt (m²)</th></tr></thead>
+<thead><tr><th>Rollenbreite</th><th>Streifen je Tafel</th><th>Tafeln</th><th>Tafellänge (mm)</th><th>Verschnitt (m²)</th></tr></thead>
 <tbody>${p.moeglich.map((x,i)=>`<tr><td>${esc(zuMm(x.breite))} mm${i===0?" (beste)":""}</td>
 <td>${x.jeTafel===undefined?"–":esc(x.jeTafel)}</td><td>${esc(x.tafeln)}</td>
-<td>${esc(zuQm(x.flaeche))}</td><td>${esc(zuQm(x.verschnitt))}</td></tr>`).join("")}</tbody>
+<td>${esc(zuTafelLaenge(x,p))}</td><td>${esc(zuQm(x.verschnitt))}</td></tr>`).join("")}</tbody>
 </table>`:"";
  const belegung=p.gruppen.map(g=>{
   const st=(g.streifen||[]);
