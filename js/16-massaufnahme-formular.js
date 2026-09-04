@@ -21,7 +21,7 @@ function showMeasTypeSection(type){
  if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();
   if(typeof renderFreiesProfilAufnahme==="function")renderFreiesProfilAufnahme();}
  if(type==="mauerabdeckung"){renderMadResult();if(typeof renderMauerabdeckungAufnahme==="function")renderMauerabdeckungAufnahme();}
- if(type==="lukarne")renderLukResult();
+ if(type==="lukarne"&&typeof renderLukarneAufnahme==="function")renderLukarneAufnahme();
  if(type==="anschlussblech")renderAnbResult();
  if(type==="einfassung_rund")renderEinfResult();
  if(type==="kehle"&&typeof renderKehleAufnahme==="function")renderKehleAufnahme();
@@ -50,7 +50,7 @@ $("openEinlaufblechSettings").onclick=()=>{
 // erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
 // Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
 // sichtbar.
-const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle"];
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne"];
 let measMedienAufgeklappt=false;
 // Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
 // fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
@@ -163,7 +163,10 @@ function buildMeasurementFromForm(){
   }};
  }
  if(type==="lukarne"){
-  const g=berechneLukarne(lukEingabenAusFeldern());
+  // Die Eingaben kommen aus der Aufnahme (js/36) - sie enthalten zusaetzlich
+  // die Zugaben DIESER Massaufnahme. Ohne das Modul faellt es auf die alten
+  // Formularfelder zurueck.
+  const g=berechneLukarne(typeof lukaEingaben==="function"?lukaEingaben():lukEingabenAusFeldern());
   if(!g)return {...base,...measMedienAusFormular(),data:{}};
   // Scharenliste mitspeichern: ein einmal gedrucktes PDF bleibt dadurch
   // gleich, auch wenn eine Zugabe später geändert wird.
@@ -183,7 +186,8 @@ function buildMeasurementFromForm(){
    zugabeBreite:g.zugabeBreite,
    zugabeLaenge:g.zugabeLaenge,
    scharen:g.scharen,
-   material:$("luk_material").value
+   material:(typeof lukA==="object"&&lukA)?lukA.material:$("luk_material").value,
+   ...((typeof lukaZusatzDaten==="function")?lukaZusatzDaten():{})
   }};
  }
  if(type==="anschlussblech"){
@@ -298,7 +302,7 @@ $("saveMeasurement").onclick=async()=>{
   if(madSegments.some(s=>!Number(s.laenge))){alert("Bitte bei jedem Segment eine Länge eingeben.");return}
  }
  if(type==="lukarne"){
-  if(!berechneLukarne(lukEingabenAusFeldern())){alert("Bitte Höhe, obere Länge, Winkel und Achsabstand eingeben. Der obere Innenwinkel muss zwischen 90° und 180° liegen.");return}
+  if(!berechneLukarne(typeof lukaEingaben==="function"?lukaEingaben():lukEingabenAusFeldern())){alert("Bitte Höhe, obere Länge, Winkel und Achsabstand eingeben. Der obere Innenwinkel muss zwischen 90° und 180° liegen.");return}
  }
  if(type==="anschlussblech"){
   const e=anbEingabenAusFeldern();
@@ -880,6 +884,12 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tbody>${lukScharenZeilen(scharen,d.seite)}</tbody>
 </table>
 <div class="note" style="font-size:8pt;color:#68737d">Alle Masse in mm. &#8593; / &#8595; = Mass ab Hilfsriss (HR) nach oben bzw. nach unten, &#8222;H&#246;he&#8220; = ganze Scharkante. Links und rechts wie im Plan; bei der linken Wange liegt die Front rechts.</div>
+${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`:""}
+${zuDruckHtml(d.zuschnitt,0,"Schar")}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="anschlussblech"){

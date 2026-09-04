@@ -525,8 +525,8 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
  p(mitFoto,"eine Aufnahme, die schon ein Foto hat, zeigt ihn sofort");
  const andere=await page.evaluate(()=>{
   const r={};
-  // kehle hat seit v2.83 Register und gehoert deshalb nicht mehr dazu
-  ["skizze_foto","lukarne","anschlussblech"].forEach(t=>{
+  // kehle hat seit v2.83 Register, lukarne seit v2.87 - beide gehoeren nicht mehr dazu
+  ["skizze_foto","anschlussblech"].forEach(t=>{
    measMedienAufgeklappt=false; showMeasTypeSection(t);
    r[t]=$("measMedienBereich").hidden;
   });

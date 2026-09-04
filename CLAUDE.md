@@ -14165,3 +14165,175 @@ Mauerabdeckung 3'020 mm, Kehle 2'070 mm). Prüfstand
 `pruefstand-rollenblech-pdf-v2-85.js` auf **70/70** erweitert, Gegenprobe
 (Spalte wieder die Tafelfläche) schlägt mit 68/70 fehl. Volle Regression grün,
 Regierapport-Ausdruck weiterhin byteidentisch.
+
+## 91. LUKARNE SEITENVERKLEIDUNG ALS REGISTER-AUFNAHME — VERSION 2.87
+
+Die Massaufnahme **Lukarne Seitenverkleidung** wird nicht mehr als ein langes
+Formular erfasst, sondern über **sechs Register** – nach demselben Muster wie
+Rinne Halbrund (v2.71), Einlaufblech gerade (v2.74), Einlaufblech konisch
+(v2.76), Freies Profil (v2.77), Mauerabdeckung (v2.79) und Kehle (v2.83).
+
+    1 Grunddaten · 2 Geometrie · 3 Scharen · 4 Zuschnitt · 5 Ausmass · 6 Kontrolle
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung.**
+
+### 91.1 js/19-lukarne.js bleibt byteweise unverändert
+
+Die Fachrechnung ist die Wahrheit: `berechneLukarne()`, `lukPlanSvg()`,
+`lukScharenZeilen()`, `lukMass()` und die Hilfsriss-Kürzung stammen
+unverändert aus `js/19-lukarne.js` – per `git diff` bestätigt, ebenso
+`js/11`, `js/12`, `js/13` und `js/14` (die im Auftrag ausdrücklich
+geschützten Dateien).
+
+`lukaBruecke()` (js/36) setzt vor jeder Rechnung `luk_hoehe`,
+`luk_laengeOben`, `luk_winkel`, `luk_achsabstand`, `luk_hilfsriss`,
+`luk_seite` und `luk_material` aus dem erfassten Stand; danach liefert
+`berechneLukarne(lukaEingaben())` direkt die richtigen Werte. Es gibt
+**keinen Nachbau** – der Prüfstand vergleicht `lukaErgebnis()` gegen den
+direkten Aufruf der Fachdatei.
+
+Die alten Formularelemente stehen weiterhin im HTML, unsichtbar als
+**`#lukStummel`** – js/19 hängt dort beim Laden seine Handler an. Gleiches
+Vorgehen wie `#rinneStummel`, `#ebStummel`, `#ebkStummel`, `#fpStummel`,
+`#madStummel` und `#kehleStummel`.
+
+### 91.2 Die Scharentabelle hat kein einziges Eingabefeld
+
+Register 3 zeigt Scharnummer, Abstand ab Front, Breite, Länge vorne, Länge
+hinten, Hilfsriss oben, Hilfsriss unten, Zuschnittbreite und Zuschnittlänge –
+**alles aus `berechneLukarne()`**, nichts von Hand. Die Restbreite der letzten
+Schar ist als solche gekennzeichnet (`merkmal:"Breite N mm (Restbreite)"`),
+und die bestehende Kürzungsmeldung von js/19 wird wörtlich übernommen:
+ist die Wange der letzten Scharlinie niedriger als der gewünschte Hilfsriss,
+steht in Register 2, mit welchem Mass tatsächlich gerechnet wird.
+
+„Abstand ab Front" zeigt bei der ersten Schar **0**, nicht „–":
+`lukMass()` behandelt Werte ≤ 0.5 mm als Rundungsrest, deshalb formatiert die
+Aufnahme diese Spalte mit `lukaMm()`.
+
+### 91.3 Zuschnitt und Ausmass über die gemeinsame Infrastruktur
+
+- **Zuschnitt**: `zuschnittHtml()` / `zuDruckHtml()` aus **js/33**, die
+  Packrechnung ist unverändert `ebaPackeInStreifen()` aus **js/29** – es gibt
+  in der App weiterhin genau **eine**. Die Einheit heisst `"Schar"`,
+  gruppiert wird nach Zuschnittbreite; Scharen mit gleicher Länge **und**
+  gleicher Breite bilden eine Zeile, die Restbreiten-Schar bleibt über ihr
+  `merkmal` getrennt. Die Rollenbreiten kommen aus
+  `app_settings.blech_rollenbreiten` (firmenweit, seit v2.74) mit der
+  Auswahl je Massaufnahme (v2.85) – **keine neue Einstellung**.
+- **Ausmass**: sechs Positionen, vollständig aus den Scharen abgeleitet
+  (Fläche, Anzahl Scharen, Blechfläche Zuschnitt, Schräge A, vordere Kante,
+  Achsabstand) – ohne zweite Eingabe, **ohne Artikelnummern und ohne Preise**,
+  damit spätere Firmen-Materiallisten greifen können.
+- **PDF**: die Listenauswahl aus **js/35**, keine eigene Auswahllogik. Der
+  Druckzweig ist um Ausmass und `zuDruckHtml(d.zuschnitt,0,"Schar")` erweitert.
+- **Fotos und Skizzen am Ende**: `MEAS_MEDIEN_AM_ENDE` um `lukarne` erweitert
+  (v2.75-Mechanik unverändert).
+
+### 91.4 Speichern: Superset
+
+js/16 schreibt **unverändert** dieselben 15 Felder wie bisher (`hoehe`,
+`laengeOben`, `winkel`, `achsabstand`, `hilfsrissWunsch`, `hilfsriss`,
+`seite`, `breite`, `spitzeVersatz`, `schraege`, `anzahl`, `flaeche`,
+`zugabeBreite`, `zugabeLaenge`, `scharen`, `material`) und ergänzt nur
+`flaeche_m2`, `ausmass` und `zuschnitt`. Eine vor v2.87 gespeicherte Lukarne
+öffnet unverändert und druckt ohne die neuen Abschnitte – es wird **nichts
+nachgerechnet**.
+
+Die Zugaben (Längen-/Breitenzugabe) sind jetzt Werte **dieser** Massaufnahme
+statt nur der Geräteeinstellung; sie werden beim Anlegen einmal aus den
+Einstellungen übernommen und sind danach frei änderbar. Ohne das Modul fällt
+js/16 weiterhin auf `lukEingabenAusFeldern()` zurück.
+
+### 91.5 Vier echte Pflichtfelder
+
+Höhe H, obere Länge L, Winkel α und Achsabstand blockieren das Speichern
+(`berechneLukarne()` liefert sonst `null`) – sie tragen deshalb `data-pflicht`
+und den roten Stern. Sie entstehen erst beim Zeichnen von Register 2, also
+ruft `renderLukarneAufnahme()` `markierePflichtfelder()` für seinen Bereich
+noch einmal auf – wie js/20 und die fünf übrigen Register-Module.
+Der Prüfstand `required70` hat das gefunden (die IDs sind von `luk_*` auf
+`luka_*` gewandert) und deckt es jetzt wieder ab: **377/377** statt 368.
+
+### 91.6 Getestet
+
+- **`pruefstaende/pruefstand-lukarne-app-v2-87.js` – 82/82**, echtes Chromium
+  gegen die echte `index.html`, deckt die Testliste des Auftrags ab: leeres
+  Formular · Pflichtfelder · normale Lukarne · verschiedene Höhen/Längen/
+  Winkel · links/rechts · verschiedene Achsabstände · Hilfsriss ·
+  Hilfsriss-Kürzung · mehrere Scharen · Restbreite · Zugaben · Zuschnitt ·
+  Gruppierung · Ausmass · PDF · Speichern/Laden/Kopieren · Fotos/Skizze/Notiz ·
+  Navigation · keine JavaScript-Fehler.
+- **Zehn Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um (81, 79, 78, 77, 81, 75, 80, 81, 81, 80).
+- **Vier Fehlschläge waren meine Testfehler, keine Codefehler**: (1) nur zwei
+  statt vier Pflichtfelder leer, weil `lukaLeer()` Winkel und Achsabstand aus
+  den Einstellungen vorbelegt; (2) bei H = 1200 / L = 2500 / α = 100 / p = 500
+  ist `maxHilfsriss` = 0, dort wird **jeder** Hilfsriss gekürzt – die
+  Teilprüfung läuft jetzt mit p = 1300 (max = 337); (3) die „ohne Zugabe"-
+  Messung hatte die Zugaben aus einem früheren Abschnitt noch stehen;
+  (4) mein eigener Infotext enthält das Wort „Preise" – geprüft werden jetzt
+  nur die Tabellenzeilen.
+- **Volle Regression grün** – alle 14 Prüfstände im Repo (verschnitt 1578,
+  register-zuschnitt 239, kehle 157, mauerabdeckung 144, freies-profil 118,
+  konisch 113, rinne 104, medien-am-ende 100, einlaufblech 98, lukarne 82,
+  rollenblech-pdf 70, dila-sichtbar 57, skizze-foto 54, lxb-druck 46) und die
+  archivierten (kehle52 698/698, pdf52 526/526, rinne57 379/379,
+  required70 377/377, einf70 185/185, offline70 123/123, feedback63 108/108,
+  freipos65 99/99, fotos70 88/88, dila70 85/85, breite57 84/84, fp70 83/83,
+  kehleintegration52 76/76, feedbackbrowser63 67/67, breite52 52/52,
+  ebg70 49/49, einstbrowser68 47/47, feedback70 47/47, mad70 45/45,
+  module67 43/43, einst68 43/43, medien50 42/42, adresse45 39/39,
+  pfade55 38/38, dateien49 38/38, projekte47 37/37, status46 35/35,
+  freiposbrowser65 33/33, auswahl48 32/32, modulebrowser67 16/16,
+  suche45 13/13, kopf45 8/8, hidden51 7/7, abstand69 2/2, normbrute
+  1578/1578 sowie nav, suche40, treffer40, recent41, stand42, dateien43,
+  ui39 ohne Fehlschlag).
+- **Zwei überholte Erwartungen** angepasst, keine davon ein Codefehler:
+  `pruefstand-medien-am-ende-v2-75.js` und
+  `pruefstand-mauerabdeckung-app-v2-79.js` führten `lukarne` noch unter den
+  Arten **ohne** Register; `fotos70` ebenso.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` unmittelbar nacheinander gegen den v2.86-Stand
+  gerendert – **Bild und DOM byteidentisch** (DOM `d2a56a6519b3bf50`,
+  4878 Zeichen; Bild `82af9acca400e6bd`, 45941 Bytes). `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 33 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0);
+  keine doppelten Element-IDs; jede js-Datei in `index.html` **und** in der
+  Service-Worker-Liste.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 91.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/36-lukarne-aufnahme.js` | **neu** – sechs Register, Brücke, Ausmass, Zuschnitt, Kontrolle |
+| `index.html` | Registerfläche `#lukarneAufnahme`, `#lukStummel`, Script-Tag, Version 2.87 |
+| `js/16-massaufnahme-formular.js` | Modul zeichnen, Payload-Superset, Medien am Ende, Druck um Ausmass und Zuschnitt erweitert |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `sw.js` | Cache-Version 2.87, neue Datei im SHELL |
+| `pruefstaende/pruefstand-lukarne-app-v2-87.js` | **neu** |
+
+**Nicht angefasst**: `js/19-lukarne.js`, `js/11`, `js/12`, `js/13`, `js/14`
+(die im Auftrag geschützten Fachdateien), `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js`, `css/03-druck.css` (Regierapport), dazu
+`js/12b`, `js/15`, `js/17`, `js/20`, `js/21`, `js/25`–`js/35` und
+`css/01-basis.css` – per `git diff` bestätigt.
+
+### 91.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei vielen Scharen heisst das Ergebnis „beste gefundene
+  Verteilung".
+- Die Seite links/rechts dreht nur die Ansicht – gerechnet wird gleich,
+  unverändert wie in js/19.
+- Kein Detail-Diff der Scharen im Änderungsverlauf (wie bei allen
+  Array-Strukturen, Klasse C aus Abschnitt 42.2).
+- Damit haben **sieben** der elf Massaufnahme-Arten Register; ohne sind
+  weiterhin Skizze/Foto, Ort-/Seitenbleche, Einfassung Rund und die
+  Rinne-Zuschnittliste.

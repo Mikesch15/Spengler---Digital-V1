@@ -431,6 +431,7 @@ function newMeasurementWithType(type){
  $("einf_material").value="";
  kehleFormularZuruecksetzen();
  if(typeof keaZuruecksetzen==="function")keaZuruecksetzen();
+ if(typeof lukaZuruecksetzen==="function")lukaZuruecksetzen();
  rinneFormularZuruecksetzen();
  $("rp_material").value="";
  setMeasProjectField(currentProjectId);
@@ -531,6 +532,7 @@ function openMeasurement(m){
   renderMadResult();
  }
  if(m.type==="lukarne"){
+  if(typeof lukaFuellen==="function")lukaFuellen(d);
   $("luk_hoehe").value=d.hoehe??"";
   $("luk_laengeOben").value=d.laengeOben??"";
   $("luk_winkel").value=d.winkel??95;

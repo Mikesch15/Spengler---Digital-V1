@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.86</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.87</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -770,39 +770,26 @@ mindestens eines von beiden ist nötig.</div>
 </div>
 
 <div id="measTypeLukarne" hidden>
-<div class="info">Dreieckige Seitenwange einer Lukarne: vordere Kante senkrecht, obere Kante im Innenwinkel α dazu, beide treffen sich hinten in der Spitze. Die Scharen stehen senkrecht, Achsabstand und Scharbreite werden waagerecht gemessen; die letzte Schar bekommt die Restbreite. Der Hilfsriss ist die waagerechte Reisslinie, ab der jede Schar nach oben und unten abgemessen wird. Standardwerte und Zugaben stehen in Einstellungen → Massaufnahmen → "Lukarne Seitenverkleidung".</div>
-<div class="grid">
-<div><label>Vordere Höhe H (mm)</label><input id="luk_hoehe" data-pflicht="1" type="number" step="1" inputmode="numeric"></div>
-<div><label>Obere Länge L (mm)</label><input id="luk_laengeOben" data-pflicht="1" type="number" step="1" inputmode="numeric"></div>
-<div><label>Oberer Innenwinkel α (°)</label><input id="luk_winkel" data-pflicht="1" type="number" step="0.1" inputmode="decimal"></div>
-<div><label>Achsabstand Scharen (mm)</label><input id="luk_achsabstand" data-pflicht="1" type="number" step="1" inputmode="numeric"></div>
-<div><label>Hilfsriss unter Oberkante (mm)</label><input id="luk_hilfsriss" type="number" step="1" inputmode="numeric"></div>
-<div><label>Seite</label><select id="luk_seite"><option value="rechts">Rechte Seite</option><option value="links">Linke Seite</option></select></div>
-<div><label>Material</label><select id="luk_material" class="meas-material-select"></select></div>
+<div id="lukarneAufnahme"></div>
+
+<!-- Stummel: js/19-lukarne.js haengt beim Laden Handler an diese Felder und
+     beschreibt genau diese Elemente. Sie bleiben deshalb im Dokument, nur
+     unsichtbar - js/36 setzt sie ueber lukaBruecke() aus dem Zustand. Ein
+     Entfernen wuerde die Fachdatei beim Laden abbrechen lassen. -->
+<div id="lukStummel" hidden>
+<input id="luk_hoehe" type="number"><input id="luk_laengeOben" type="number">
+<input id="luk_winkel" type="number"><input id="luk_achsabstand" type="number">
+<input id="luk_hilfsriss" type="number">
+<select id="luk_seite"><option value="rechts">Rechte Seite</option><option value="links">Linke Seite</option></select>
+<select id="luk_material" class="meas-material-select"></select>
+<button type="button" id="openLukarneSettings">Einstellungen</button>
+<div id="luk_hinweis"></div>
+<div id="luk_schraegeOut"></div><div id="luk_breiteOut"></div>
+<div id="luk_anzahlOut"></div><div id="luk_hilfsrissOut"></div><div id="luk_flaecheOut"></div>
+<div id="luk_plan"></div>
+<table><tbody id="luk_scharenBody"></tbody></table>
+<div id="luk_summary"></div>
 </div>
-<div class="bar" style="margin-top:6px"><button type="button" class="gray" id="openLukarneSettings">⚙️ Standardwerte und Zugaben</button></div>
-<div id="luk_hinweis" class="small" style="margin:6px 0"></div>
-<h2 style="margin-top:14px">Berechnete Geometrie</h2>
-<div class="grid">
-<div><label>Schräge A (Dach)</label><div id="luk_schraegeOut" style="font-weight:800;padding:9px 0">–</div></div>
-<div><label>Waagerechte Breite</label><div id="luk_breiteOut" style="font-weight:800;padding:9px 0">–</div></div>
-<div><label>Anzahl Scharen</label><div id="luk_anzahlOut" style="font-weight:800;padding:9px 0">–</div></div>
-<div><label>Verwendeter Hilfsriss</label><div id="luk_hilfsrissOut" style="font-weight:800;padding:9px 0">–</div></div>
-<div><label>Fläche</label><div id="luk_flaecheOut" style="font-weight:800;padding:9px 0">–</div></div>
-</div>
-<div id="luk_plan" class="eb-diagram-box eb-diagram-scroll"></div>
-<div class="small" style="color:var(--muted);margin-top:-4px">Der Plan lässt sich seitlich verschieben.</div>
-<h2 style="margin-top:14px">Scharen</h2>
-<div class="scroll">
-<table class="eb-table" style="table-layout:auto;min-width:520px">
-<thead>
-<tr><th rowspan="2">Pos.</th><th colspan="3">Linke Kante</th><th colspan="3">Rechte Kante</th><th rowspan="2">Zuschnitt<br>B × L</th></tr>
-<tr><th>↑ ab HR</th><th>↓ ab HR</th><th>Höhe</th><th>↑ ab HR</th><th>↓ ab HR</th><th>Höhe</th></tr>
-</thead>
-<tbody id="luk_scharenBody"></tbody>
-</table>
-</div>
-<div id="luk_summary" class="small" style="margin-top:6px"></div>
 </div>
 
 <div id="measTypeAnschlussblech" hidden>
@@ -1611,6 +1598,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/33-zuschnitt.js"></script>
 <script src="js/34-kehle-aufnahme.js"></script>
 <script src="js/35-pdf-listen.js"></script>
+<script src="js/36-lukarne-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>
