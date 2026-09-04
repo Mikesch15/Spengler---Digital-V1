@@ -1,0 +1,469 @@
+SPENGLER-DIGITAL
+Prototyp Massaufnahme "Freies Profil"
+Abschlussbericht
+
+Branch:  feature/prototype-freies-profil
+Datum:   04.09.2026
+Stand:   Prototyp fertig und geprueft - NICHT in main integriert.
+
+
+================================================================
+1. BRANCH UND COMMIT
+================================================================
+
+Branch:  feature/prototype-freies-profil
+Commit:  6e2264e  Prototyp Freies Profil (eigenstaendig, nicht in main)
+         (dieser Bericht folgt als eigener Commit)
+
+main wurde nicht veraendert. Kontrolle ueber alle produktiven Ordner:
+
+  git diff --stat main -- js/ css/ index.html sw.js CLAUDE.md \
+      pruefstaende/ prototyp/ prototyp-einlaufblech/ \
+      prototyp-einlaufblech-konisch/ supabase/ berichte/
+  -> leer
+
+Neu auf diesem Branch sind ausschliesslich der Ordner
+prototyp-freies-profil/ und diese Berichtsdatei unter berichte/.
+
+Keine Supabase-Aenderung, keine Migration, kein Edge-Function-Deploy.
+In dieser Runde wurde die Datenbank ueberhaupt nicht angefasst.
+
+
+================================================================
+2. ANALYSIERTE DATEIEN UND FUNKTIONEN
+================================================================
+
+js/14-freies-profil.js vollstaendig gelesen (596 Zeilen). Fuer das freie
+Profil zustaendig sind davon:
+
+  fpSchenkel / fpSegmente          die beiden Datenlisten
+  abgerundeterPfad()               runde Biegungen im Pfad
+  ansichtsPfeilSvg()               Ansichtsrichtung (roter Pfeil)
+  generateProfilDiagramSvg()       die ganze Profilzeichnung
+  renderFpSchenkelTable()          Schenkel-Tabelle
+  renderFpSegmenteList()           Segmente mit Massen je Schenkel
+  fpPruefeErkannteSchenkel()       Pruefung der Skizzen-Erkennung
+  recognizeProfileSketch()         Aufruf der Erkennung
+  FP_MAX_SCHENKEL = 24             Obergrenze
+  FP_ERKENNUNG_ZEITGRENZE_MS       30 s Zeitgrenze
+
+Ebenfalls gelesen: js/16-massaufnahme-formular.js (Speicher-Payload
+{schenkel, konisch, segmente, ansicht, material}, Pflichtpruefung und
+PDF-Zweig fuer freies_profil), js/10-massaufnahme.js (Laden und
+Zuruecksetzen), index.html (Formularaufbau), css/01-basis.css.
+
+Wichtig fuer den spaeteren Einbau: js/14 enthaelt AUSSERDEM den
+Rechenkern des konischen Einlaufblechs (calcEbkPiece, ebkRestbreite,
+ebkEngeSeite, renderEbkDiagram, renderEbkPiecesTable). Der Dateiname
+sagt das nicht - beim Anfassen dieser Datei ist also Vorsicht geboten.
+
+
+================================================================
+3. WIEDERVERWENDETE FACHLOGIK
+================================================================
+
+Sechs Stuecke sind ZEICHENGENAU aus der laufenden App uebernommen -
+nicht nachgebaut, nicht umgeschrieben, nicht "angepasst":
+
+  abgerundeterPfad                1349 Zeichen  js/14
+  ansichtsPfeilSvg                1194 Zeichen  js/14
+  generateProfilDiagramSvg        4605 Zeichen  js/14
+  fpPruefeErkannteSchenkel         556 Zeichen  js/14
+  FP_ERKENNUNG_ZEITGRENZE_MS        39 Zeichen  js/14
+  FP_MAX_SCHENKEL                   25 Zeichen  js/14
+
+prototyp-freies-profil/uebernehmen.js schneidet sie als Text aus der
+Quelldatei und prueft danach, dass jedes Stueck wortgleich in der Quelle
+steht. bauen.js prueft es beim Zusammenbauen der Testapp ein zweites
+Mal. Weicht ein Zeichen ab, bricht der Bau ab.
+
+generateProfilDiagramSvg() liest die Ansichtsrichtung direkt aus einem
+Formularfeld mit der ID "fp_ansicht". Damit die Funktion unveraendert
+bleiben kann, gibt es dieses Feld auch im Prototyp - unsichtbar im
+Rumpf, gesetzt aus dem Modell. Es gibt hier KEINE zweite Zeichenroutine.
+
+Ebenso unveraendert nachvollzogen (mit Fundstelle im Code kommentiert):
+  - Winkel umkehren dreht das Vorzeichen
+  - 180 Grad macht den Schenkel zum Umschlag
+  - ein neuer Schenkel startet bei 0/0
+  - eine geaenderte Schenkellaenge wandert ins Segment-Mass mit, solange
+    dort noch nichts oder noch der alte Wert steht
+  - "Masse aus Profil uebernehmen" und "Alle nach rechts"
+
+
+================================================================
+4. NEUE PROTOTYP-DATEIEN
+================================================================
+
+Alle unter prototyp-freies-profil/ :
+
+  uebernehmen.js          83 Zeilen   schneidet die Fachlogik aus js/14
+  uebernommen.js         169 Zeilen   das Ergebnis (nicht von Hand bearbeiten)
+  bruecke.js              51 Zeilen   Materialkatalog, Adresse der Erkennung
+  prototyp-fp.js         945 Zeilen   Oberflaeche, 7 Register, Ausmass
+  prototyp.css           175 Zeilen   Stile
+  freies-profil.html      52 Zeilen   Entwicklungsfassung (Dateien einzeln)
+  bauen.js               104 Zeilen   baut die eigenstaendige Testapp
+  pruefstand.js          608 Zeilen   159 Pruefungen in echtem Chromium
+
+  freies-profil-testapp.html          die Datei fuer das Tablet
+                                      (104 KB, eine Datei, kein Netz noetig)
+
+
+================================================================
+5. UNVERAENDERTE PRODUKTIVE DATEIEN
+================================================================
+
+Alle. Insbesondere unveraendert:
+  js/11-einlaufblech-gerade.js
+  js/12-rinne-halbrund.js
+  js/13-einlaufblech-konisch.js
+  js/14-freies-profil.js
+  js/16-massaufnahme-formular.js
+  js/06-rapport.js, js/08-katalog-blitzschutz.js, css/03-druck.css
+
+Siehe Punkt 1: git diff gegen main ueber alle produktiven Ordner ist
+leer.
+
+
+================================================================
+6. WORKFLOW - SIEBEN REGISTER
+================================================================
+
+  1 Grunddaten          Bezeichnung, Objekt, Datum, Material, konisch
+  2 Profil aufnehmen    Schenkel einzeln, mit klebender Zeichnung oben
+  3 Profilzeichnung     gross, mit Ansichtsrichtung und Uebersicht
+  4 Skizze -> Profil    erkennen, Vorschau, bestaetigen
+  5 Segmente & Ausmass  Segmente mit Massen, daraus das Ausmass
+  6 Kontrolle           was fehlt, was nicht stimmt
+  7 Fotos & Speichern   Foto, Skizze, Notiz, speichern
+
+Register 2 ist der wichtigste Bildschirm. Jeder Schenkel ist eine eigene
+Karte mit Laenge, Winkel und vier grossen Knoepfen (Richtung umkehren,
+180 Grad Umschlag, hoch, runter) - keine enge Tabelle mit Mini-Feldern.
+
+Die Zeichnung KLEBT dort oben am Bildschirmrand (position:sticky). Grund:
+sie stand zuerst unter den Schenkel-Karten - auf einem Handy sieht man
+sie beim Tippen dann nie. Erst beim Ansehen des Bildschirmfotos ist das
+aufgefallen, nicht beim Lesen des Codes.
+
+
+================================================================
+7. PROFILZEICHNUNG
+================================================================
+
+Vollstaendig aus generateProfilDiagramSvg() der App:
+  - kompletter Profilverlauf mit runden Biegungen
+  - Schenkelnummern in orangen Kreisen
+  - Masse in Blau, entlang des Schenkels gedreht
+  - Umschlaege als eigene, versetzte Linie mit Kehre
+  - roter Ansichtspfeil je nach gewaehlter Blickrichtung
+
+Sie wird nach jeder Eingabe sofort neu gezeichnet - aber ohne die Seite
+neu aufzubauen, sonst verliert das Eingabefeld nach dem ersten Zeichen
+den Fokus. Aktualisiert werden nur die Zeichnung und die Kopfzeilen.
+
+
+================================================================
+8. SKIZZE -> PROFIL
+================================================================
+
+Ablauf unveraendert wie in der App (v2.70):
+
+  Skizze oder Foto -> Erkennung -> Pruefung -> VORSCHAU ->
+  Benutzer bestaetigt -> Uebernahme
+
+Geprueft wird mit fpPruefeErkannteSchenkel() aus js/14 - es gibt hier
+keine zweite Pruefung und keine eigene 24er-Grenze. Damit gilt
+unveraendert: mindestens 2 Schenkel, hoechstens 24, Laenge groesser 0,
+Winkel auf -180 bis 180 begrenzt, erster Winkel 0.
+
+Die Vorschau ist farblich abgesetzt und traegt den Hinweis, dass die
+Laengen nur grobe Schaetzwerte aus der Skizze sind - eine Handskizze hat
+keinen Massstab. Erkennt die App nichts Brauchbares, sagt sie das
+ehrlich und uebernimmt nichts.
+
+
+================================================================
+9. SEGMENTE UND AUSMASS
+================================================================
+
+Segmente sind die Struktur des bestehenden Moduls: je Segment eine
+Laenge und je Schenkel ein Mass (konisch: links und rechts getrennt).
+Die Masse sind mit den Profillaengen vorbelegt und einzeln
+ueberschreibbar.
+
+Das Ausmass entsteht ausschliesslich daraus - keine zweite Eingabe. Jede
+Zeile nennt, woher sie kommt:
+
+  Freies Profil, N Schenkel     m       Summe der Segmentlaengen
+  Segmente                      Stk.    Segmentliste
+  Abwicklung Segment 1..n       mm      Summe der Masse je Schenkel
+  Biegungen                     Stk.    Schenkel mit Winkel ungleich 0
+  davon Umschlaege (180 Grad)   Stk.    Schenkel mit Winkel 180
+  Blechflaeche                  m2      Laenge x Abwicklung je Segment
+
+Alles davon ist Zusammenzaehlen und Abzaehlen bereits erfasster Werte -
+KEINE erfundene Spengler-Formel. Bei einem konischen Segment ist das
+Blech ein Trapez; Laenge x (Abwicklung links + rechts) / 2 ist dessen
+Flaeche, keine Schaetzung.
+
+KEINE Artikelnummern, KEINE Preise. Der Materialkatalog des Prototyps
+enthaelt nur Kennung und Name, wie measurement_materials.
+
+
+================================================================
+10. KONTROLLE
+================================================================
+
+Nur Pruefungen, die sich aus dem bestehenden Modul ableiten lassen -
+es wurden KEINE eigenen fachlichen Grenzwerte erfunden:
+
+  - mindestens 2 Schenkel (fpPruefeErkannteSchenkel verlangt genau das)
+  - hoechstens 24 Schenkel (FP_MAX_SCHENKEL)
+  - Laenge muss eine gueltige Zahl und groesser 0 sein
+  - Winkel muss eine gueltige Zahl zwischen -180 und 180 sein
+  - Geometrie muss darstellbar sein: das wird nicht behauptet, sondern
+    versucht - die Zeichnung wird erzeugt und auf NaN geprueft
+  - Warnung, wenn Schenkel 1 einen Winkel hat (er dreht das ganze Profil)
+  - Warnung bei fehlendem Material, fehlender Bezeichnung, fehlendem
+    Segment, Segment ohne Laenge oder ohne Masse, konisch ohne rechts,
+    weder Foto noch Skizze
+
+Das Register Kontrolle traegt einen Punkt, sobald es dort etwas zu sehen
+gibt - rot bei einem Fehler, orange bei einem Hinweis.
+
+
+================================================================
+11. EIN ECHTER FEHLER, DEN DER PRUEFSTAND GEFUNDEN HAT
+================================================================
+
+Werden Schenkel weniger - etwa weil eine erkannte Skizze das ganze
+Profil ersetzt -, blieben Masse zu Schenkeln stehen, die es nicht mehr
+gibt. Sie sind unsichtbar, weil die Tabelle nur die vorhandenen Schenkel
+zeigt, wurden aber in die Abwicklung mitgezaehlt.
+
+Im Browser gemessen:
+
+  5 Schenkel, ein Segment      Abwicklung 300 mm
+  danach 3 erkannte Schenkel   Abwicklung immer noch 300 mm statt 210 mm
+
+Behoben: die Masse eines Segments werden auf die tatsaechliche Zahl der
+Schenkel gekuerzt. Der Fall steht jetzt dauerhaft im Pruefstand.
+
+Die laufende App ist davon NICHT betroffen: sie rechnet nirgends eine
+Abwicklung aus den Segment-Massen, sie zeigt sie nur je vorhandenem
+Schenkel an. Fuer einen spaeteren Einbau ist es trotzdem wichtig.
+
+
+================================================================
+12. TESTS
+================================================================
+
+159 Pruefungen in 19 Abschnitten, in echtem Chromium gegen die
+eigenstaendige Testapp - also gegen genau die Datei, die auf dem Tablet
+geoeffnet wird.
+
+Alle 26 im Auftrag geforderten Testfaelle sind abgedeckt:
+
+   1 leeres Profil ................. Abschnitt 1
+   2 zwei Schenkel ................. Abschnitt 2
+   3 drei und mehr Schenkel ........ Abschnitt 3
+   4 mehrere Winkel ................ Abschnitt 3
+   5 Winkelaenderung ............... Abschnitt 4
+   6 Winkel umkehren ............... Abschnitt 4
+   7 180-Grad-Umschlag ............. Abschnitt 5
+   8 hinzufuegen ................... Abschnitt 6
+   9 loeschen ...................... Abschnitt 6
+  10 bearbeiten .................... Abschnitt 2 und 4
+  11 Profilzeichnung ............... Abschnitt 7
+  12 Ansichtsrichtung .............. Abschnitt 7
+  13 erfolgreiche Erkennung ........ Abschnitt 8
+  14 ungueltige Erkennung .......... Abschnitt 9 (neun Faelle)
+  15 mehr als 24 erkannte Schenkel . Abschnitt 0 und 9
+  16 ungueltige Laenge ............. Abschnitt 12
+  17 ungueltiger Winkel ............ Abschnitt 12
+  18 Kontrolle ..................... Abschnitt 12
+  19 Ausmass ....................... Abschnitt 10 und 11
+  20 Speichern ..................... Abschnitt 14
+  21 Laden ......................... Abschnitt 14
+  22 Kopieren ...................... Abschnitt 15
+  23 Foto .......................... Abschnitt 13
+  24 Skizze ........................ Abschnitt 13
+  25 Notiz ......................... Abschnitt 13
+  26 keine JavaScript-Fehler ....... Abschnitt 18
+
+Dazu: Register durchblaettern verliert nichts (Abschnitt 16), die
+Zeichnung in Register 2 klebt gemessen oben am Bildschirmrand und bleibt
+beim Scrollen im Bild (Abschnitt 2), und sechs Bildschirmbreiten von 360
+bis 1280 px ueber alle sieben Register (Abschnitt 17).
+
+
+================================================================
+13. ERGEBNIS UND GEGENPROBEN
+================================================================
+
+159 von 159.
+
+Dazu 15 GEGENPROBEN. Jede baut absichtlich einen echten Fehler ein
+und muss den Pruefstand umwerfen - sonst pruefte er nur seine eigene
+Annahme:
+
+  G1  eigene Zeichnung statt generateProfilDiagramSvg   8 Fehlschlaege
+  G2  Ansichtsrichtung erreicht die Zeichnung nicht      3
+  G3  erkannte Schenkel ungeprueft uebernehmen           9
+  G4  Erkennung uebernimmt sofort statt Vorschau        19
+  G5  Winkel umkehren ohne Wirkung                       2
+  G6  180-Grad-Knopf setzt keinen Umschlag               3
+  G7  Umschlag wird nicht als solcher erkannt            1
+  G8  24er-Grenze beim Hinzufuegen aufgehoben            1
+  G9  verwaiste Masse bleiben stehen                     2
+  G10 konische Flaeche nicht als Trapez                  1
+  G11 Biegungen falsch gezaehlt                          1
+  G12 Kopie uebernimmt die Kennung des Originals         2
+  G13 Laden setzt das Register nicht zurueck             1
+  G14 Eingabe zeichnet die Seite neu (Fokus geht weg)   12
+  G15 klebende Zeichnung wieder nach unten               1
+
+Angegeben ist die Zahl der Pruefungen, die fehlschlagen - so ist die
+Zahl unabhaengig davon, wie viele Pruefungen es insgesamt gibt.
+G1 bis G11, G13 und G14 sind gegen den damaligen Stand von 157
+Pruefungen gemessen, G12 und G15 gegen 159 (siehe unten).
+
+ZWEI GEGENPROBEN BLIEBEN ZUERST GRUEN - das wird hier nicht
+verschwiegen, sondern war der eigentliche Ertrag dieser Runde:
+
+  G12 hiess zuerst "Kopie teilt die Daten mit dem Original" und
+      ersetzte die tiefe Kopie durch eine flache. Ergebnis: 157/157,
+      also KEIN Fehlschlag. Nachgemessen und verstanden: kopieren()
+      legt danach ohnehin ein frisch aus dem Text gelesenes Objekt an
+      (JSON.parse(JSON.stringify(...))), und speichern() schreibt den
+      ganzen Datensatz wieder als Text. Eine flache Kopie ist an dieser
+      Stelle also gar nicht beobachtbar - die Gegenprobe pruefte
+      nichts. Ersetzt durch einen echten Defekt: die Kopie uebernimmt
+      die Kennung des Originals. Der wirft den Pruefstand um.
+
+  G15 nahm der Zeichnung in Register 2 das Kleben (position:sticky).
+      Ergebnis: 157/157. Auch das war kein Beweis, sondern eine Luecke:
+      der Pruefstand hat die Eigenschaft nie gemessen. Zwei Pruefungen
+      ergaenzt - die Zeichnung muss "sticky" sein und nach dem Scrollen
+      ans Seitenende noch im Bild stehen. Damit sind es 159 Pruefungen,
+      und dieselbe Gegenprobe schlaegt jetzt fehl.
+
+Eine Gegenprobe, die nicht fehlschlaegt, ist kein Beweis - sie ist ein
+Hinweis darauf, dass der Pruefstand an dieser Stelle nichts prueft.
+
+Ehrlich dazu: acht Gegenproben eines ersten Laufs sind ABGEBROCHEN, weil
+ich waehrend des Laufs an derselben Datei gearbeitet habe. Ein
+abgebrochener Pruefstand sieht aus wie "keine Fehler" - deshalb wurden
+sie alle noch einmal einzeln und ohne gleichzeitige Bearbeitung
+durchlaufen.
+
+
+================================================================
+14. REGRESSION
+================================================================
+
+Alle bestehenden Pruefstaende der App - unveraendert gruen:
+
+  pruefstand-einlaufblech-app-v2-74          98/98
+  pruefstand-einlaufblech-konisch-app-v2-76  113/113
+  pruefstand-rinne-app-v2-71                 102/102
+  pruefstand-medien-am-ende-v2-75            49/49
+  pruefstand-dila-sichtbar                   57/57
+  pruefstand-verschnitt-app                  1578/1578
+
+Das ist zu erwarten, weil keine einzige produktive Datei angefasst wurde
+(Punkt 1 und 5) - es ist trotzdem gelaufen, nicht angenommen.
+
+Regierapport und Projektverwaltung: nicht im Diff, kein Code beruehrt.
+
+
+================================================================
+15. NICHT GETESTET - UND DAS WIRD AUCH NICHT BEHAUPTET
+================================================================
+
+- Kein Live-Test der Skizzen-Erkennung gegen die echte Edge Function.
+  Die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+  nfgryuzkpwjfmdlmevuy.supabase.co. Geprueft ist der gesamte Weg mit
+  gestellten Antworten, darunter neun schlechte Faelle und ein
+  Netzwerkfehler.
+- Kein Test auf einem echten Android-Tablet. Geprueft sind sechs
+  Bildschirmbreiten in echtem Chromium, nicht Fingerbedienung, Kamera
+  oder Zeichnen auf Glas.
+- Keine echte Kamera: der Foto-Weg ist mit einer Bilddatei geprueft,
+  nicht mit einer Aufnahme.
+
+
+================================================================
+16. START- UND TESTANLEITUNG
+================================================================
+
+Auf dem Tablet oder Handy:
+  Die Datei prototyp-freies-profil/freies-profil-testapp.html aufs
+  Geraet kopieren und direkt oeffnen. Sie braucht kein Netz, keinen
+  Server und keinen Login. Gespeichert wird im Browser des Geraets.
+  Nur die Skizzen-Erkennung braucht eine Internetverbindung.
+
+Am Rechner, aus dem Repo-Wurzelverzeichnis:
+  node prototyp-freies-profil/uebernehmen.js   Fachlogik frisch schneiden
+  node prototyp-freies-profil/bauen.js         Testapp bauen
+  SP=<Ordner mit node_modules> \
+    node prototyp-freies-profil/pruefstand.js  159 Pruefungen
+
+Zum Ausprobieren:
+  1. Register 1: Bezeichnung und Material eintragen.
+  2. Register 2: "＋ Schenkel hinzufuegen", Laenge und Winkel tippen -
+     die Zeichnung oben folgt sofort. "180 Grad Umschlag" und
+     "Richtung umkehren" ausprobieren.
+  3. Register 3: Ansichtsrichtung waehlen, der rote Pfeil wandert.
+  4. Register 7: Skizze zeichnen, dann Register 4: erkennen lassen.
+     Die erkannte Form kommt als Vorschau - erst "Uebernehmen" ersetzt
+     das Profil.
+  5. Register 5: Segment hinzufuegen, Laenge eintragen, Ausmass ansehen.
+  6. Register 6: Kontrolle.
+  7. Register 7: Foto, Notiz, "Speichern". Danach "Kopieren" und
+     "Gespeicherte" ausprobieren.
+
+
+================================================================
+17. OFFENE PUNKTE FUER DEN PRAXISTEST
+================================================================
+
+Fachlich zu bestaetigen:
+
+  1. Ausmass: sind die sechs Zeilen die richtigen? Fehlt etwas, das der
+     Alltag braucht (z. B. Anzahl Zuschnitte, Randabwicklung)? Es wurde
+     bewusst nichts erfunden, was das bestehende Modul nicht hergibt.
+
+  2. Biegungen werden als "Schenkel mit einem Winkel ungleich 0" gezaehlt.
+     Zaehlt der Betrieb einen Umschlag als eine Biegung oder als zwei?
+
+  3. Konische Flaeche als Trapez (Laenge x Mittelwert der beiden
+     Abwicklungen). Geometrisch exakt - aber wird im Betrieb so
+     abgerechnet?
+
+  4. Es gibt keine Zuschnitt-/Rollenblechrechnung wie beim geraden und
+     konischen Einlaufblech. Das freie Profil hat keine feste
+     Abwicklungsbreite je Aufnahme, sondern eine je Segment. Ob und wie
+     daraus zugeschnitten wird, ist eine Entscheidung des Betriebs -
+     deshalb bewusst nicht geraten.
+
+  5. Die Skizzen-Erkennung liefert grobe Schaetzwerte. Ob sie im Alltag
+     genug trifft, um Zeit zu sparen, zeigt erst der Einsatz mit echten
+     Handskizzen.
+
+Technisch offen:
+
+  6. Der Prototyp speichert im Browser des Tablets (localStorage), nicht
+     in Supabase. Fotos und Skizzen liegen dort als Bilddaten. Beim
+     spaeteren Einbau gilt wieder der private Speicher mit signierten
+     Links, wie bei den anderen Arten.
+
+  7. Die Zeichnung hat viel Leerraum, weil generateProfilDiagramSvg()
+     eine feste quadratische viewBox ausgibt - bekannt und unveraendert
+     aus der App (CLAUDE.md 63.6).
+
+  8. Noch NICHT in main integriert - wie im Auftrag verlangt. Was
+     produktiv uebernommen wird, wird erst nach dem Praxistest
+     entschieden.
