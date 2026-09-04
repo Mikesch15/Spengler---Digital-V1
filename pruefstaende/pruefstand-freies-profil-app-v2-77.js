@@ -208,6 +208,43 @@ const profil=async(page,liste)=>{
  p(luecke.groesster<0.15,"kein Sprung zwischen Umschlag und Folgeschenkel",luecke);
  p(luecke.letzt&&luecke.letzt[0]===30&&Math.abs(luecke.letzt[1]-261)<0.15,
    "der letzte Schenkel endet auf der versetzten Linie (30/261)",luecke.letzt);
+ // Am 04.09.2026 gemeldet: "Richtung umkehren" tat am Umschlag nichts.
+ // +180 und -180 zeigen geometrisch in dieselbe Richtung - die Seite, auf die
+ // der Umschlag klappt, muss deshalb aus dem VORZEICHEN kommen. Gemessen wird
+ // an den gezeichneten Pfaden, nicht am Augenschein.
+ const kehrt=await page.evaluate(()=>{
+  const pfade=svg=>[...svg.matchAll(/<path d="([^"]+)"/g)].map(m=>m[1]).join("|");
+  const plus=generateProfilDiagramSvg([{laenge:12,winkel:0},{laenge:50,winkel:180},{laenge:60,winkel:-90}]);
+  const minus=generateProfilDiagramSvg([{laenge:12,winkel:0},{laenge:50,winkel:-180},{laenge:60,winkel:-90}]);
+  const letzt=d=>{const q=[...d.matchAll(/(-?\d+\.\d)\s(-?\d+\.\d)/g)].map(m=>[+m[1],+m[2]]);return q[q.length-1]};
+  const pp=pfade(plus).split("|"), pm=pfade(minus).split("|");
+  return {gleich:pfade(plus)===pfade(minus),
+   endePlus:letzt(pp[pp.length-1]), endeMinus:letzt(pm[pm.length-1]),
+   umschlagPlus:fpaIstUmschlag({winkel:180}), umschlagMinus:fpaIstUmschlag({winkel:-180})};
+ });
+ p(!kehrt.gleich,"Richtung umkehren aendert die Zeichnung des Umschlags sichtbar",kehrt);
+ p(kehrt.endeMinus&&Math.abs(kehrt.endeMinus[1]-279)<0.15,
+   "der Umschlag klappt auf die andere Seite (Ende 30/279 statt 30/261)",kehrt);
+ p(kehrt.umschlagPlus&&kehrt.umschlagMinus,"und bleibt in beiden Faellen ein Umschlag",kehrt);
+ const masseGleich=await page.evaluate(()=>{
+  fpA.konisch="nein";
+  fpA.schenkel=[{laenge:12,winkel:0},{laenge:50,winkel:180},{laenge:60,winkel:-90}];
+  fpSchenkel=fpA.schenkel;
+  fpA.segmente=[{laenge:1000,massen:null}]; fpSegmente=fpA.segmente;
+  renderFreiesProfilAufnahme();
+  const vor={abw:fpaAbwicklungSegment(fpA.segmente[0]).links,
+             flaeche:Math.round(fpaFlaecheM2()*1e6)/1e6,
+             umschlaege:fpaUmschlaege(),biegungen:fpaBiegungen()};
+  fpA.schenkel[1].winkel=-180; renderFreiesProfilAufnahme();
+  const nach={abw:fpaAbwicklungSegment(fpA.segmente[0]).links,
+              flaeche:Math.round(fpaFlaecheM2()*1e6)/1e6,
+              umschlaege:fpaUmschlaege(),biegungen:fpaBiegungen()};
+  return {vor,nach};
+ });
+ p(JSON.stringify(masseGleich.vor)===JSON.stringify(masseGleich.nach),
+   "die Masse und die Zaehlung aendern sich dabei NICHT",masseGleich);
+ // Aufraeumen: die folgenden Abschnitte erwarten einen leeren Segmentstand.
+ await page.evaluate(()=>{fpA.segmente=[];fpSegmente=fpA.segmente;renderFreiesProfilAufnahme()});
  await profil(page,[{laenge:20,winkel:0},{laenge:150,winkel:90},{laenge:40,winkel:-90}]);
  await reg(page,3);
  const z3=await page.evaluate(()=>({svg:/<svg/.test($("fpa_profilGross").innerHTML),

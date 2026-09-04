@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.77, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 2.78, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.77**
+- sichtbare App-Version: **2.78**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -12938,3 +12938,80 @@ jetzt wieder ab (359/359 statt 351/359).
   getrennt – die vorsichtige Annahme, sie kann Material kosten.
 - Zählt der Betrieb einen Umschlag als eine Biegung oder als zwei? Gezählt
   werden Schenkel mit einem Winkel ≠ 0°.
+
+
+## 86. FREIES PROFIL: UMSCHLAG KEHRT DIE RICHTUNG UM — VERSION 2.78
+
+Gemeldet am 04.09.2026: „Umschlag ändert in der Zeichnung die Richtung
+nicht, wenn ich Richtung umkehren anklicke."
+
+### 86.1 Ursache
+
+Ein Umschlag wird als parallel **versetzte** Linie gezeichnet. Auf welche
+Seite versetzt wird, kam bisher allein aus der Laufrichtung:
+
+```js
+const radDir=dirs[i+1]*Math.PI/180;
+const nx=-Math.sin(radDir),ny=Math.cos(radDir);
+```
+
+`+180°` und `−180°` ergeben aber **dieselbe** Laufrichtung (Unterschied
+360°) – also denselben Sinus und Kosinus und damit denselben Versatz.
+„Richtung umkehren" setzte das Vorzeichen zwar um, an der Zeichnung
+änderte sich dadurch nichts.
+
+Nachgemessen an den gezeichneten Pfaden (Profil 12 / 50 Umschlag / 60):
+
+| | +180° | −180° |
+|---|---|---|
+| vorher | `A 4.5 … 230,21` → Ende (30/261) | **identisch** |
+| nachher | `A 4.5 … 230,21` → Ende (30/261) | `A 4.5 … 230,39` → Ende (30/279) |
+
+Der einzige Unterschied im ganzen SVG war vorher eine Beschriftung mit
+`rotate(360)` statt `rotate(0)` – optisch dasselbe.
+
+### 86.2 Korrektur
+
+Die Seite kommt jetzt aus dem **Vorzeichen** des Winkels – dieselbe
+Lösung wie in `js/26-rinne.js` seit Version 2.59 (Abschnitt 67.1):
+
+```js
+const seite=(Number(s.winkel)||0)<0?-1:1;
+const nx=-Math.sin(radDir)*seite,ny=Math.cos(radDir)*seite;
+```
+
+Der laufende Versatz aus Version 2.77 (Abschnitt 85.1) nimmt das mit, der
+Rest des Profils klappt also ebenfalls auf die andere Seite. Die Kehre
+folgt automatisch, weil ihre Wölbrichtung aus den tatsächlich
+gezeichneten Punkten abgeleitet wird (`nx2=(ux1-sx)/GAP`), und wölbt in
+beiden Fällen nach aussen – von Hand nachgerechnet.
+
+**Reine Darstellung.** An Massen, Abwicklung, Fläche, Zählung der
+Biegungen und Umschläge, Speichermodell und Fachrechnung ändert sich
+nichts – im Prüfstand ausdrücklich gemessen (vorher/nachher identisch).
+
+**Nur das Freie Profil war betroffen.** `js/26-rinne.js` (Rinne
+Zuschnittliste) trägt die Seite seit Version 2.59 selbst mit
+(`seite: w < 0 ? -1 : 1`) und ist unverändert.
+
+### 86.3 Getestet
+
+- `pruefstand-freies-profil-app-v2-77.js` **118/118** (vorher 114) – vier
+  neue Prüfungen: die Zeichnung ändert sich sichtbar, der Umschlag klappt
+  auf die andere Seite (Endpunkt 30/279 statt 30/261), er bleibt in
+  beiden Fällen ein Umschlag, und die Masse und die Zählung ändern sich
+  dabei **nicht**.
+- **Gegenprobe**: Seite wieder ohne Vorzeichen → 116/118, genau die zwei
+  Prüfungen zur Richtungsänderung schlagen fehl.
+- Regression grün: einlaufblech-app 98/98, konisch-app 113/113,
+  rinne-app 102/102, medien-am-ende 60/60, dila-sichtbar 57/57,
+  verschnitt-app 1578/1578.
+- Regierapport unter `media:print` unmittelbar nacheinander gegen v2.77
+  gerendert: **Bild und DOM byteidentisch** (DOM `4c17082dcf6e6307`,
+  5297 Bytes; Bild `5743c9c239f38898`, 45830 Bytes).
+- `node --check` über alle 31 `js/*.js` und `sw.js` fehlerfrei,
+  `<div>`-Balance 702/702, keine doppelten Element-IDs.
+
+Geändert: `js/14-freies-profil.js` (drei Zeilen),
+`pruefstaende/pruefstand-freies-profil-app-v2-77.js`, `index.html` und
+`sw.js` (Version 2.78). Sonst nichts.

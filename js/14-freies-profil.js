@@ -104,7 +104,11 @@ function generateProfilDiagramSvg(schenkel){
   const [x1,y1]=svgPtsRaw[i],[x2,y2]=svgPtsRaw[i+1];
   if(!istUmschlag(i)){versatz.push([ox,oy]);return[[x1+ox,y1+oy],[x2+ox,y2+oy]]}
   const radDir=dirs[i+1]*Math.PI/180;
-  const nx=-Math.sin(radDir),ny=Math.cos(radDir);
+  // Auf welche Seite der Umschlag klappt. +180 und -180 zeigen geometrisch in
+  // dieselbe Richtung - ohne das Vorzeichen aendert "Richtung umkehren" an
+  // einem Umschlag nichts an der Zeichnung (am 04.09.2026 gemeldet).
+  const seite=(Number(s.winkel)||0)<0?-1:1;
+  const nx=-Math.sin(radDir)*seite,ny=Math.cos(radDir)*seite;
   versatz.push([ox+nx*GAP,oy+ny*GAP]);
   return[[x1+ox+nx*GAP,y1+oy+ny*GAP],[x2+ox+nx*GAP,y2+oy+ny*GAP]];
  });
