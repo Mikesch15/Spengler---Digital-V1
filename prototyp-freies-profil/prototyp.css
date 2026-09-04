@@ -173,3 +173,7 @@ table.p-tabelle{width:100%;min-width:0;table-layout:auto;border-collapse:collaps
 /* Die Vorschau der erkannten Form ist bewusst abgesetzt: sie ist noch nicht
    übernommen. */
 .p-karte.p-vorschau{border:2px solid #e07a1f;background:#fffaf4}
+
+/* Der Knopf für einen neuen Schenkel steht unter den Karten - man ist nach
+   dem letzten Schenkel ohnehin dort und muss nicht nach oben scrollen. */
+.p-voll-knopf{flex:1 1 180px;min-height:48px;font-size:15px}

@@ -93,7 +93,7 @@ const profilSetzen=(page,schenkel)=>page.evaluate(s=>{aufnahme.schenkel=s;zeichn
   fehler:pruefungen().filter(x=>x.art==="fehler").length,
   svg:profilSvg([])
  }));
- p(leer.register===7,"sieben Register",leer.register);
+ p(leer.register===8,"acht Register",leer.register);
  p(leer.aktiv===1,"genau eines ist aktiv",leer.aktiv);
  p(leer.schenkel===0&&leer.segmente===0,"noch kein Schenkel, kein Segment",leer);
  p(leer.ausmass===0,"ohne Schenkel wird nichts gemessen",leer.ausmass);
@@ -110,6 +110,19 @@ const profilSetzen=(page,schenkel)=>page.evaluate(s=>{aufnahme.schenkel=s;zeichn
  const plus1=await klick(page,"#p-schenkelPlus");
  await klick(page,"#p-schenkelPlus");
  p(plus1==="ok","Schenkel hinzufügen ist bedienbar",plus1);
+ // Gemeldet am 04.09.2026: der Knopf stand oben, nach jedem erfassten Schenkel
+ // musste man wieder ganz nach oben scrollen. Gemessen wird die Lage, nicht
+ // die Reihenfolge im Text.
+ const knopfLage=await page.evaluate(()=>{
+  const k=$("p-schenkelPlus").getBoundingClientRect();
+  const karten=[...document.querySelectorAll("[data-schenkel-zeile]")]
+   .map(x=>x.getBoundingClientRect());
+  return {knopf:Math.round(k.top),
+   letzte:karten.length?Math.round(karten[karten.length-1].bottom):null,
+   erste:karten.length?Math.round(karten[0].top):null};
+ });
+ p(knopfLage.letzte!==null&&knopfLage.knopf>=knopfLage.letzte-1,
+   "der Knopf steht UNTER der letzten Schenkel-Karte",knopfLage);
  const zwei=await page.evaluate(()=>({
   anzahl:aufnahme.schenkel.length,
   felder:document.querySelectorAll("[data-schenkel-laenge]").length,
@@ -199,6 +212,32 @@ const profilSetzen=(page,schenkel)=>page.evaluate(s=>{aufnahme.schenkel=s;zeichn
  p(u1.umschlag&&u1.anzahl===1,"er wird als Umschlag erkannt und gezählt",u1);
  p(u1.pfade>=2,"und als eigene Linie gezeichnet",u1);
  p(u1.bogen>0,"mit einer Kehre (Bogen im Pfad)",u1.bogen);
+ // Gemeldet am 04.09.2026 mit Bildschirmfoto: nach einem Umschlag setzte der
+ // naechste Schenkel am UNVERSETZTEN Punkt an - zwischen Schenkel 2 und 3
+ // klaffte eine Luecke. Gemessen wird deshalb an den gezeichneten Pfaden
+ // selbst: das Ende eines Pfades muss der Anfang des naechsten sein.
+ const luecke=await page.evaluate(()=>{
+  const svg=profilSvg([{laenge:12,winkel:0},{laenge:50,winkel:180},{laenge:60,winkel:-90}]);
+  const pfade=[...svg.matchAll(/<path d="([^"]+)"/g)].map(m=>m[1]);
+  const punkte=d=>[...d.matchAll(/(-?\d+\.\d)\s(-?\d+\.\d)/g)].map(m=>[+m[1],+m[2]]);
+  const enden=pfade.map(d=>{const p=punkte(d);return {start:p[0],ende:p[p.length-1]}});
+  let groesster=0;
+  for(let i=1;i<enden.length;i++){
+   const a=enden[i-1].ende,b=enden[i].start;
+   groesster=Math.max(groesster,Math.hypot(a[0]-b[0],a[1]-b[1]));
+  }
+  const letzt=enden[enden.length-1].ende;
+  return {pfade:enden.length,groesster:Math.round(groesster*10)/10,letzt,
+          enden:enden.map(x=>x.start.join()+" -> "+x.ende.join())};
+ });
+ p(luecke.pfade===3,"das gemeldete Profil ergibt drei Teilpfade",luecke.pfade);
+ p(luecke.groesster<0.15,
+   "kein Sprung zwischen Umschlag und Folgeschenkel",luecke);
+ // Von Hand gerechnet: Massstab 4, Rand 30. Rohpunkte (182,30) (230,30)
+ // (30,30) (30,270); der Umschlag versetzt um GAP=9 nach oben, und dieser
+ // Versatz gilt ab da fuer den Rest -> Endpunkt (30,261), nicht (30,270).
+ p(luecke.letzt&&luecke.letzt[0]===30&&Math.abs(luecke.letzt[1]-261)<0.15,
+   "der letzte Schenkel endet auf der versetzten Linie (30/261)",luecke.letzt);
  // Zurueck auf einen normalen Winkel fuer die weiteren Abschnitte
  await page.evaluate(()=>{aufnahme.schenkel[1].winkel=90;zeichne()});
 
@@ -257,7 +296,7 @@ const profilSetzen=(page,schenkel)=>page.evaluate(s=>{aufnahme.schenkel=s;zeichn
  await waehle(page,"#p-ansicht","keiner");
 
  console.log("\n8 · Skizze → Profil: erfolgreiche Erkennung");
- await reg(page,7);
+ await reg(page,8);
  // Eine Skizze anlegen, ohne zu malen: der Prototyp braucht ein Bild als Vorlage.
  await page.evaluate(()=>{
   const c=document.createElement("canvas"); c.width=40; c.height=30;
@@ -433,8 +472,164 @@ const profilSetzen=(page,schenkel)=>page.evaluate(s=>{aufnahme.schenkel=s;zeichn
  p(/210/.test(k3.z.menge)&&/160/.test(k3.z.menge),"das Ausmass nennt beide Abwicklungen",k3.z);
  await reg(page,1); await waehle(page,"#p-konisch","nein");
 
- console.log("\n12 · Kontrolle");
+ console.log("\n11b · Zuschnitt aus Rollenblech");
+ // Ausgangslage: gerades Profil 20/150/40 -> Abwicklung 210 mm je Segment,
+ // drei Segmente 2000/1500/1200 mm. Die Erwartungen sind von Hand gerechnet:
+ //   Tafellaenge = laengstes Stueck            = 2000 mm
+ //   Streifen    = 2000 | 1500 | 1200          = 3 (Summe 4700 > 2 x 2000)
+ //   Rolle 1000: 1000/210 -> 4 Streifen/Tafel  -> 1 Tafel -> 1000x2000 = 2,00 m2
+ //   Rolle  670:  670/210 -> 3 Streifen/Tafel  -> 1 Tafel ->  670x2000 = 1,34 m2
+ //   netto = 4700 x 210                        = 0,987 m2
+ await page.evaluate(()=>{
+  localStorage.removeItem("pfp_rollenbreiten");
+  aufnahme.konisch="nein";
+  aufnahme.schenkel=[{laenge:20,winkel:0},{laenge:150,winkel:90},{laenge:40,winkel:-90}];
+  aufnahme.segmente=[2000,1500,1200].map(l=>({laenge:l,massen:null}));
+  aufnahme.segmente.forEach(seg=>segmentMassen(seg));
+  zeichne();
+ });
  await reg(page,6);
+ const zu1=await page.evaluate(()=>{
+  const p=rollenPlan();
+  return {gruppen:p.gruppen.length,breite:p.gruppen[0].breite,
+   tafelLaenge:p.gruppen[0].tafelLaenge,streifen:p.gruppen[0].streifen.length,
+   netto:Math.round(p.netto*1e6)/1e6,
+   moeglich:p.moeglich.map(m=>({b:m.breite,t:m.tafeln,f:Math.round(m.flaeche*1e6)/1e6})),
+   bestes:p.bestes&&p.bestes.breite,
+   verschnitt:p.bestes?Math.round(p.bestes.verschnitt*1000)/1000:null,
+   ohne:p.ohne.length};
+ });
+ p(zu1.gruppen===1&&zu1.breite===210,"eine Streifenbreite: 210 mm",zu1);
+ p(zu1.tafelLaenge===2000,"Tafellänge = längstes Segment",zu1.tafelLaenge);
+ p(zu1.streifen===3,"drei Streifen (2000 | 1500 | 1200)",zu1.streifen);
+ p(Math.abs(zu1.netto-0.987)<1e-6,"netto 0,987 m² aus dem Ausmass",zu1.netto);
+ const r1000=zu1.moeglich.find(m=>m.b===1000), r670=zu1.moeglich.find(m=>m.b===670);
+ p(r1000&&r1000.t===1&&Math.abs(r1000.f-2)<1e-6,"Rolle 1000: 1 Tafel, 2,00 m²",r1000);
+ p(r670&&r670.t===1&&Math.abs(r670.f-1.34)<1e-6,"Rolle 670: 1 Tafel, 1,34 m²",r670);
+ p(zu1.bestes===670,"die schmalere Rolle ist die bessere",zu1.bestes);
+ p(Math.abs(zu1.verschnitt-0.353)<1e-3,"Verschnitt 0,353 m²",zu1.verschnitt);
+ const anz1=await page.evaluate(()=>{
+  const txt=$("p-inhalt").innerText;
+  return {tabellen:document.querySelectorAll("#p-inhalt table").length,
+   rollen:document.querySelectorAll("[data-rollenbreite]").length,
+   an:[...document.querySelectorAll("[data-rollenbreite]")].filter(x=>x.checked).map(x=>+x.dataset.rollenbreite),
+   nan:/NaN|Infinity|undefined/.test($("p-inhalt").innerHTML),
+   nennt670:/670/.test(txt), nenntStreifen:/Streifen 1/.test(txt)};
+ });
+ p(anz1.tabellen>=2,"Register 6 zeigt Gruppen und Rollenplan",anz1.tabellen);
+ p(anz1.rollen===7&&anz1.an.join()==="1000,670","sieben Rollenbreiten, zwei angehakt",anz1);
+ p(anz1.nennt670&&anz1.nenntStreifen,"die beste Rolle und die Streifen stehen da",anz1);
+ p(!anz1.nan,"kein NaN in der Anzeige");
+
+ // Zwei Stuecke muessen sich einen Streifen teilen: 2000 | 900+900.
+ // Wer stur je Stueck einen Streifen nimmt, braucht drei statt zwei.
+ const zuP=await page.evaluate(()=>{
+  const vor=JSON.parse(JSON.stringify(aufnahme.segmente));
+  aufnahme.segmente=[2000,900,900].map(l=>({laenge:l,massen:null}));
+  aufnahme.segmente.forEach(seg=>segmentMassen(seg));
+  const p=rollenPlan();
+  const g=p.gruppen[0];
+  const r={streifen:g.streifen.length,
+   belegung:g.streifen.map(st=>st.stuecke.map(x=>x.laenge).join("+")).sort().join(" | "),
+   flaeche:p.bestes?Math.round(p.bestes.flaeche*1e6)/1e6:null};
+  aufnahme.segmente=vor; zeichne();
+  return r;
+ });
+ p(zuP.streifen===2,"2000 | 900+900 kommt mit zwei Streifen aus",zuP);
+ p(zuP.belegung==="2000 | 900+900","und zwar 2000 allein, 900+900 zusammen",zuP.belegung);
+
+ // Zweite Breite: ein Segment mit eigenen Massen (3 x 100 = 300 mm)
+ const zu2=await page.evaluate(()=>{
+  aufnahme.segmente.push({laenge:900,massen:[{mass:100},{mass:100},{mass:100}]});
+  zeichne();
+  const p=rollenPlan();
+  return {gruppen:p.gruppen.map(g=>({b:g.breite,n:g.stuecke.length,L:g.tafelLaenge})),
+   moeglich:p.moeglich.map(m=>({b:m.breite,f:Math.round(m.flaeche*1e6)/1e6,t:m.tafeln})),
+   bestes:p.bestes&&p.bestes.breite};
+ });
+ p(zu2.gruppen.length===2,"zwei Streifenbreiten",zu2.gruppen);
+ p(zu2.gruppen.some(g=>g.b===300&&g.n===1&&g.L===900),"die 300er-Gruppe steht für sich",zu2.gruppen);
+ const m1000=zu2.moeglich.find(m=>m.b===1000), m670=zu2.moeglich.find(m=>m.b===670);
+ p(m1000&&Math.abs(m1000.f-2.9)<1e-6,"Rolle 1000: 2,00 + 0,90 = 2,90 m²",m1000);
+ p(m670&&Math.abs(m670.f-1.943)<1e-6,"Rolle 670: 1,34 + 0,603 = 1,943 m²",m670);
+ p(zu2.bestes===670,"auch hier gewinnt 670",zu2.bestes);
+
+ // Rolle zu schmal
+ const zu3=await page.evaluate(()=>{
+  localStorage.setItem("pfp_rollenbreiten",JSON.stringify([200]));
+  zeichne();
+  const p=rollenPlan();
+  return {moeglich:p.moeglich.length,zuSchmal:p.zuSchmal,
+   text:/breit genug/.test($("p-inhalt").innerText)};
+ });
+ p(zu3.moeglich===0&&zu3.zuSchmal.join()==="200","200 mm ist zu schmal",zu3);
+ p(zu3.text,"und das steht als Warnung da",zu3.text);
+
+ // Segment ohne Länge wird gemeldet statt mitgerechnet
+ const zu4=await page.evaluate(()=>{
+  localStorage.removeItem("pfp_rollenbreiten");
+  aufnahme.segmente.push({laenge:0,massen:null});
+  zeichne();
+  const p=rollenPlan();
+  return {ohne:p.ohne.map(x=>x.nr),gruppen:p.gruppen.length,
+   text:/ohne Länge/.test($("p-inhalt").innerText)};
+ });
+ p(zu4.ohne.join()==="5"&&zu4.gruppen===2,"Segment ohne Länge wird nicht gerechnet",zu4);
+ p(zu4.text,"sondern ausdrücklich gemeldet",zu4.text);
+
+ // Konisch: die Streifenbreite ist die GRÖSSERE der beiden Abwicklungen
+ const zu5=await page.evaluate(()=>{
+  // rechts ist hier die GROESSERE Seite - sonst waere nicht zu sehen, ob die
+  // Streifenbreite wirklich von der breiteren Seite genommen wird.
+  aufnahme.segmente=[{laenge:1000,massen:[{links:50,rechts:70},{links:80,rechts:100},{links:30,rechts:40}]}];
+  aufnahme.konisch="ja"; zeichne();
+  const p=rollenPlan();
+  const ab=abwicklungSegment(aufnahme.segmente[0]);
+  return {links:ab.links,rechts:ab.rechts,breite:p.gruppen[0].breite,
+   netto:Math.round(p.netto*1e6)/1e6};
+ });
+ p(zu5.links===160&&zu5.rechts===210,"konisch: 160 / 210 mm",zu5);
+ p(zu5.breite===210,"die Streifenbreite ist die grössere (rechte) Abwicklung",zu5.breite);
+ p(Math.abs(zu5.netto-0.185)<1e-6,"die Fläche bleibt das Trapez (0,185 m²)",zu5.netto);
+
+ // Der Haken merkt sich die Auswahl
+ const zu6=await page.evaluate(async()=>{
+  aufnahme.konisch="nein"; zeichne();
+  const k=document.querySelector('[data-rollenbreite="500"]');
+  k.click();
+  await new Promise(r=>setTimeout(r,30));
+  const gespeichert=JSON.parse(localStorage.getItem("pfp_rollenbreiten")||"[]");
+  const jetzt=rollenbreitenGewaehlt();
+  const angehakt=!!document.querySelector('[data-rollenbreite="500"]').checked;
+  return {gespeichert,jetzt,angehakt,zeilen:rollenPlan().moeglich.length};
+ });
+ p(zu6.gespeichert.indexOf(500)>=0,"angehakte Rollenbreite wird gemerkt",zu6.gespeichert);
+ p(zu6.angehakt,"und bleibt nach dem Neuzeichnen angehakt");
+ p(zu6.zeilen===3,"der Plan rechnet jetzt mit drei Rollen",zu6.zeilen);
+
+ // Der Zuschnitt reist beim Speichern mit
+ const zu7=await page.evaluate(()=>{
+  localStorage.removeItem("pfp_rollenbreiten");
+  aufnahme.segmente=[{laenge:2000,massen:null},{laenge:1500,massen:null}];
+  aufnahme.segmente.forEach(seg=>segmentMassen(seg));
+  aufnahme.bezeichnung="Zuschnitt-Probe"; speichern();
+  const liste=JSON.parse(localStorage.getItem("pfp_aufnahmen")||"[]");
+  const g=liste.find(x=>x.id===aufnahme.id);
+  return {da:!!(g&&g.zuschnitt),breite:g&&g.zuschnitt&&g.zuschnitt.bestes.breite,
+   gruppen:g&&g.zuschnitt&&g.zuschnitt.gruppen.length};
+ });
+ p(zu7.da&&zu7.gruppen===1,"der Zuschnittplan wird mitgespeichert",zu7);
+ p(zu7.breite===670,"mit der gewählten Rollenbreite",zu7.breite);
+ await page.evaluate(()=>{
+  const liste=alleAufnahmen().filter(x=>x.bezeichnung!=="Zuschnitt-Probe");
+  localStorage.setItem("pfp_aufnahmen",JSON.stringify(liste));
+  aufnahme.id=null; aufnahme.bezeichnung="Attika Nord";
+  aufnahme.segmente=[{laenge:2000,massen:null}];
+  aufnahme.segmente.forEach(seg=>segmentMassen(seg)); zeichne();
+ });
+
+ console.log("\n12 · Kontrolle");
+ await reg(page,7);
  const c0=await page.evaluate(()=>pruefungen().filter(x=>x.art==="fehler").length);
  p(c0===0,"vollständige Aufnahme: kein Fehler",c0);
  const faelle=[
@@ -462,7 +657,7 @@ const profilSetzen=(page,schenkel)=>page.evaluate(s=>{aufnahme.schenkel=s;zeichn
  }
 
  console.log("\n13 · Fotos, Skizze, Notiz");
- await reg(page,7);
+ await reg(page,8);
  const f1=await page.evaluate(()=>({
   fotoFeld:!!document.getElementById("p-fotoInput"),
   skizzeKnopf:!!document.getElementById("p-skizzeOeffnen"),
@@ -548,24 +743,24 @@ const profilSetzen=(page,schenkel)=>page.evaluate(s=>{aufnahme.schenkel=s;zeichn
  console.log("\n16 · Register: durchblättern verliert nichts");
  const blaettern=await page.evaluate(()=>{
   const vor=JSON.stringify({s:aufnahme.schenkel,g:aufnahme.segmente,b:aufnahme.bezeichnung});
-  for(let n=1;n<=7;n++)setzeSchritt(n);
+  for(let n=1;n<=8;n++)setzeSchritt(n);
   const nach=JSON.stringify({s:aufnahme.schenkel,g:aufnahme.segmente,b:aufnahme.bezeichnung});
   const sichtbar=document.querySelectorAll("#p-inhalt .p-karte h2").length;
   return {gleich:vor===nach,schritt,sichtbar};
  });
- p(blaettern.gleich,"durch alle sieben Register blättern ändert nichts am Modell");
- p(blaettern.schritt===7,"und endet auf Register 7",blaettern.schritt);
+ p(blaettern.gleich,"durch alle acht Register blättern ändert nichts am Modell");
+ p(blaettern.schritt===8,"und endet auf Register 8",blaettern.schritt);
  const nurEins=await page.evaluate(()=>{
   let fremd=0, eigen=0;
-  for(let n=1;n<=7;n++){
+  for(let n=1;n<=8;n++){
    setzeSchritt(n);
    const h=Array.from(document.querySelectorAll("#p-inhalt h2")).map(x=>x.textContent.trim());
    if((h[0]||"").indexOf(n+" ·")===0)eigen++;
-   fremd+=h.filter(t=>/^[1-7] ·/.test(t)&&t.indexOf(n+" ·")!==0).length;
+   fremd+=h.filter(t=>/^[1-8] ·/.test(t)&&t.indexOf(n+" ·")!==0).length;
   }
   return {eigen,fremd};
  });
- p(nurEins.eigen===7,"jedes Register zeigt seine eigene Überschrift",nurEins.eigen);
+ p(nurEins.eigen===8,"jedes Register zeigt seine eigene Überschrift",nurEins.eigen);
  p(nurEins.fremd===0,"und keine fremde Registernummer",nurEins.fremd);
 
  console.log("\n17 · Tablet-Breiten: nichts läuft seitlich hinaus");
@@ -579,7 +774,7 @@ const profilSetzen=(page,schenkel)=>page.evaluate(s=>{aufnahme.schenkel=s;zeichn
  for(const w of [360,412,600,768,1024,1280]){
   await page.setViewportSize({width:w,height:1300});
   let schlimm=0; const wo=[];
-  for(let n=1;n<=7;n++){
+  for(let n=1;n<=8;n++){
    await reg(page,n);
    const m=await page.evaluate(()=>{
     const br=document.documentElement.clientWidth, raus=[];
@@ -595,7 +790,7 @@ const profilSetzen=(page,schenkel)=>page.evaluate(s=>{aufnahme.schenkel=s;zeichn
    });
    if(m.raus.length||m.scrollt){schlimm++;wo.push("R"+n+": "+(m.raus.join(" | ")||"scrollWidth"))}
   }
-  p(schlimm===0,"Breite "+w+" px: alle sieben Register passen",wo.slice(0,4));
+  p(schlimm===0,"Breite "+w+" px: alle acht Register passen",wo.slice(0,4));
  }
  await page.setViewportSize({width:800,height:1300});
 

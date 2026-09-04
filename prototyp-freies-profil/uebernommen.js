@@ -3,10 +3,11 @@
 // AUS DER LAUFENDEN APP ÜBERNOMMEN - NICHT VON HAND BEARBEITEN.
 // Erzeugt von prototyp-freies-profil/uebernehmen.js; jede Funktion ist
 // zeichengenau aus ihrer Quelldatei geschnitten und danach gegen die
-// Quelle geprüft worden.
+// Quelle geprüft worden. Einzige Ausnahme: generateProfilDiagramSvg() -
+// dort sind die in uebernehmen.js aufgeführten Korrekturen eingesetzt.
 // ==========================================================================
 
-// ---- abgerundeterPfad()  ·  unverändert aus js/14-freies-profil.js ----
+// ---- abgerundeterPfad()  ·  aus js/14-freies-profil.js  ·  unverändert ----
 function abgerundeterPfad(punkte,radius){
  if(punkte.length<2)return "";
  const P=(pt)=>`${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`;
@@ -39,7 +40,7 @@ function abgerundeterPfad(punkte,radius){
  return d;
 }
 
-// ---- ansichtsPfeilSvg()  ·  unverändert aus js/14-freies-profil.js ----
+// ---- ansichtsPfeilSvg()  ·  aus js/14-freies-profil.js  ·  unverändert ----
 function ansichtsPfeilSvg(seite,breite,hoehe,ox,oy){
  ox=ox||0; oy=oy||0;
  if(!seite||seite==="keiner")return "";
@@ -59,7 +60,7 @@ function ansichtsPfeilSvg(seite,breite,hoehe,ox,oy){
   +`<polygon points="${(ex+ox).toFixed(1)},${(ey+oy).toFixed(1)} ${(k1x+ox).toFixed(1)},${(k1y+oy).toFixed(1)} ${(k2x+ox).toFixed(1)},${(k2y+oy).toFixed(1)}" fill="#b42318"/>`;
 }
 
-// ---- generateProfilDiagramSvg()  ·  unverändert aus js/14-freies-profil.js ----
+// ---- generateProfilDiagramSvg()  ·  aus js/14-freies-profil.js  (4 Korrekturen, siehe uebernehmen.js) ----
 function generateProfilDiagramSvg(schenkel){
  if(!schenkel.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:20px">Noch keine Schenkel für die Zeichnung.</div>';
  let x=0,y=0,dir=0;
@@ -94,17 +95,21 @@ function generateProfilDiagramSvg(schenkel){
   return Math.abs(winkelNorm-180)<0.5;
  }
  // Für jeden Schenkel die tatsächlich gezeichneten Endpunkte bestimmen (versetzt bei Umschlag)
+ // KORRIGIERT IM PROTOTYP: laufender Versatz statt Versatz nur am Umschlag.
+ const versatz=[[0,0]];
  const drawEnds=schenkel.map((s,i)=>{
+  const [ox,oy]=versatz[i];
   const [x1,y1]=svgPtsRaw[i],[x2,y2]=svgPtsRaw[i+1];
-  if(!istUmschlag(i))return[[x1,y1],[x2,y2]];
+  if(!istUmschlag(i)){versatz.push([ox,oy]);return[[x1+ox,y1+oy],[x2+ox,y2+oy]]}
   const radDir=dirs[i+1]*Math.PI/180;
   const nx=-Math.sin(radDir),ny=Math.cos(radDir);
-  return[[x1+nx*GAP,y1+ny*GAP],[x2+nx*GAP,y2+ny*GAP]];
+  versatz.push([ox+nx*GAP,oy+ny*GAP]);
+  return[[x1+ox+nx*GAP,y1+oy+ny*GAP],[x2+ox+nx*GAP,y2+oy+ny*GAP]];
  });
  // Zusammenhängende Abschnitte (ohne Umschlag-Schenkel) als je eine Polyline mit runden Ecken;
  // Umschlag-Schenkel werden als eigene kurze Linie gezeichnet (dadurch entsteht der Abstand).
  let lines="";
- let aktuellerPfad=[svgPtsRaw[0]];
+ let aktuellerPfad=[drawEnds.length?drawEnds[0][0]:svgPtsRaw[0]];
  for(let i=0;i<schenkel.length;i++){
   if(istUmschlag(i)){
    if(aktuellerPfad.length>1){
@@ -113,16 +118,16 @@ function generateProfilDiagramSvg(schenkel){
    const [[ux1,uy1],[ux2,uy2]]=drawEnds[i];
    // Die Kehre des Umschlags als Halbkreis zeichnen: vom Ende des vorherigen
    // Schenkels um die Spitze herum auf die versetzte Rücklaufl inie.
-   const [sx,sy]=svgPtsRaw[i];
+   const [sx,sy]=[svgPtsRaw[i][0]+versatz[i][0],svgPtsRaw[i][1]+versatz[i][1]];
    const radVor=dirs[i]*Math.PI/180;
    const dvx=Math.cos(radVor),dvy=Math.sin(radVor);   // Laufrichtung davor
    const nx2=(ux1-sx)/GAP,ny2=(uy1-sy)/GAP;          // Versatzrichtung, Länge 1
    const kreuzU=nx2*dvy-ny2*dvx;                      // Kehre nach aussen wölben
    const sweepU=kreuzU>0?0:1;
    lines+=`<path d="M ${sx.toFixed(1)} ${sy.toFixed(1)} A ${(GAP/2).toFixed(1)} ${(GAP/2).toFixed(1)} 0 0 ${sweepU} ${ux1.toFixed(1)} ${uy1.toFixed(1)} L ${ux2.toFixed(1)} ${uy2.toFixed(1)}" fill="none" stroke="#17202a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
-   aktuellerPfad=[svgPtsRaw[i+1]];
+   aktuellerPfad=[drawEnds[i][1]];
   }else{
-   aktuellerPfad.push(svgPtsRaw[i+1]);
+   aktuellerPfad.push(drawEnds[i][1]);
   }
  }
  if(aktuellerPfad.length>1){
@@ -145,7 +150,7 @@ function generateProfilDiagramSvg(schenkel){
  return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:280px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${labels}${nums}${pfeil}</svg>`;
 }
 
-// ---- fpPruefeErkannteSchenkel()  ·  unverändert aus js/14-freies-profil.js ----
+// ---- fpPruefeErkannteSchenkel()  ·  aus js/14-freies-profil.js  ·  unverändert ----
 function fpPruefeErkannteSchenkel(roh){
  if(!Array.isArray(roh))return [];
  const gut=[];
@@ -162,8 +167,77 @@ function fpPruefeErkannteSchenkel(roh){
  return gut.length>=2?gut:[];                 // ein einzelner Schenkel ist kein Profil
 }
 
+// ---- ebaPackeInStreifen()  ·  aus js/29-einlaufblech-aufnahme.js  ·  unverändert ----
+function ebaPackeInStreifen(bleche,L,budget){
+ // bleche: [{nr, laenge}] - die Nummer reist mit, damit in der Liste jedes
+ // Blech mit SEINER genauen Länge steht und nicht nur eine nackte Zahl.
+ const stuecke=bleche.filter(x=>ebaZahl(x.laenge)>0).slice()
+  .sort((a,b)=>ebaZahl(b.laenge)-ebaZahl(a.laenge));
+ if(!stuecke.length)return {streifen:[],optimal:true};
+ if(ebaZahl(stuecke[0].laenge)>L)
+  return {streifen:null,optimal:true,zuLang:stuecke.filter(x=>ebaZahl(x.laenge)>L)};
+ const gierig=[];
+ stuecke.forEach(x=>{
+  const s=gierig.find(g=>g.rest>=ebaZahl(x.laenge)-1e-9);
+  if(s){s.stuecke.push(x);s.rest-=ebaZahl(x.laenge)}
+  else gierig.push({stuecke:[x],rest:L-ebaZahl(x.laenge)});
+ });
+ const summe=stuecke.reduce((a,b)=>a+ebaZahl(b.laenge),0);
+ const untergrenze=Math.ceil(summe/L-1e-9);
+ let schritte=0; const grenze=budget||200000;
+ function passt(i,reste){
+  if(i>=stuecke.length)return true;
+  if(++schritte>grenze)return null;
+  const len=ebaZahl(stuecke[i].laenge), gesehen=[];
+  for(let j=0;j<reste.length;j++){
+   if(reste[j]<len-1e-9)continue;
+   if(gesehen.indexOf(reste[j])>=0)continue;
+   gesehen.push(reste[j]);
+   reste[j]-=len;
+   const r=passt(i+1,reste);
+   reste[j]+=len;
+   if(r===null)return null;
+   if(r)return true;
+  }
+  return false;
+ }
+ for(let k=untergrenze;k<gierig.length;k++){
+  schritte=0;
+  const r=passt(0,new Array(k).fill(L));
+  if(r===null)return {streifen:gierig,optimal:false};
+  if(r){
+   const streifen=Array.from({length:k},()=>({stuecke:[],rest:L}));
+   const setze=i=>{
+    if(i>=stuecke.length)return true;
+    const len=ebaZahl(stuecke[i].laenge), gesehen=[];
+    for(let j=0;j<streifen.length;j++){
+     if(streifen[j].rest<len-1e-9)continue;
+     if(gesehen.indexOf(streifen[j].rest)>=0)continue;
+     gesehen.push(streifen[j].rest);
+     streifen[j].stuecke.push(stuecke[i]); streifen[j].rest-=len;
+     if(setze(i+1))return true;
+     streifen[j].stuecke.pop(); streifen[j].rest+=len;
+    }
+    return false;
+   };
+   if(setze(0))return {streifen,optimal:true};
+   return {streifen:gierig,optimal:false};
+  }
+ }
+ return {streifen:gierig,optimal:true};
+}
+
 // ---- FP_ERKENNUNG_ZEITGRENZE_MS  ·  unverändert aus js/14-freies-profil.js ----
 const FP_ERKENNUNG_ZEITGRENZE_MS=30000;
 
 // ---- FP_MAX_SCHENKEL  ·  unverändert aus js/14-freies-profil.js ----
 const FP_MAX_SCHENKEL=24;
+
+// ---- ebaZahl  ·  unverändert aus js/29-einlaufblech-aufnahme.js ----
+const ebaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+
+// ---- EBA_ROLLEN_STANDARD  ·  unverändert aus js/29-einlaufblech-aufnahme.js ----
+const EBA_ROLLEN_STANDARD=Object.freeze([1000,670]);
+
+// ---- EBA_ROLLEN_WAEHLBAR  ·  unverändert aus js/29-einlaufblech-aufnahme.js ----
+const EBA_ROLLEN_WAEHLBAR=Object.freeze([1000,670,500,400,330,250,200]);

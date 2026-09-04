@@ -79,18 +79,36 @@ function schneide(quelle,name){
  if(start<0||ende<0)throw new Error("nicht gefunden: "+name);
  return quelle.slice(start,ende+3);
 }
-const PRUEFEN=["abgerundeterPfad","ansichtsPfeilSvg","generateProfilDiagramSvg","fpPruefeErkannteSchenkel"];
-const q14=lies("js/14-freies-profil.js");
-for(const name of PRUEFEN){
- const stueck=schneide(q14,name);
- if(html.indexOf(sicherJs(stueck))<0)
-  throw new Error("Die eingebettete Fachlogik weicht ab bei "+name+" – Abbruch.");
+// generateProfilDiagramSvg() traegt die in uebernehmen.js ausgewiesenen
+// Korrekturen (Umschlag-Versatz) und ist deshalb NICHT zeichengleich mit der
+// App. Fuer dieses eine Stueck wird stattdessen geprueft, dass die Testapp
+// genau das enthaelt, was uebernehmen.js erzeugt hat - es darf zwischen
+// uebernommen.js und der Testapp nichts auseinanderlaufen.
+const KORRIGIERT=["generateProfilDiagramSvg"];
+const PRUEFEN=[
+ {datei:"js/14-freies-profil.js",namen:["abgerundeterPfad","ansichtsPfeilSvg",
+   "generateProfilDiagramSvg","fpPruefeErkannteSchenkel"],
+  konstanten:["FP_ERKENNUNG_ZEITGRENZE_MS","FP_MAX_SCHENKEL"]},
+ {datei:"js/29-einlaufblech-aufnahme.js",namen:["ebaPackeInStreifen"],
+  konstanten:["ebaZahl","EBA_ROLLEN_STANDARD","EBA_ROLLEN_WAEHLBAR"]}
+];
+for(const q of PRUEFEN){
+ const quelle=lies(q.datei);
+ for(const name of q.namen){
+  const stueck=KORRIGIERT.indexOf(name)>=0?schneide(uebernommen,name):schneide(quelle,name);
+  if(html.indexOf(sicherJs(stueck))<0)
+   throw new Error("Die eingebettete Fachlogik weicht ab bei "+name+" – Abbruch.");
+ }
+ for(const konst of q.konstanten){
+  const zeile=quelle.split("\n").find(z=>z.startsWith("const "+konst+"="));
+  if(!zeile||html.indexOf(zeile)<0)
+   throw new Error("Die Konstante "+konst+" weicht ab – Abbruch.");
+ }
 }
-for(const konst of ["FP_ERKENNUNG_ZEITGRENZE_MS","FP_MAX_SCHENKEL"]){
- const zeile=q14.split("\n").find(z=>z.startsWith("const "+konst+"="));
- if(!zeile||html.indexOf(zeile)<0)
-  throw new Error("Die Konstante "+konst+" weicht ab – Abbruch.");
-}
+// Und die Korrektur muss wirklich drin sein - sonst waere sie beim naechsten
+// Umbau lautlos verschwunden.
+if(html.indexOf("KORRIGIERT IM PROTOTYP")<0)
+ throw new Error("Die Umschlag-Korrektur fehlt in der Testapp – Abbruch.");
 
 const ziel=path.join(wurzel,"prototyp-freies-profil","freies-profil-testapp.html");
 fs.writeFileSync(ziel,html,"utf8");
@@ -99,6 +117,8 @@ console.log("geschrieben: prototyp-freies-profil/freies-profil-testapp.html  ("
 console.log("  css/01-basis.css      "+basisCss.length+" Zeichen");
 console.log("  prototyp.css          "+protoCss.length+" Zeichen");
 console.log("  bruecke.js            "+bruecke.length+" Zeichen");
-console.log("  uebernommen.js        "+uebernommen.length+" Zeichen  (aus js/14-freies-profil.js)");
+console.log("  uebernommen.js        "+uebernommen.length+" Zeichen  (aus js/14 und js/29)");
 console.log("  prototyp-fp.js        "+prototyp.length+" Zeichen");
-console.log("  Gegenprobe: alle "+(PRUEFEN.length+2)+" Stücke zeichengenau wie in der App.");
+const anzahl=PRUEFEN.reduce((n,q)=>n+q.namen.length+q.konstanten.length,0);
+console.log("  Gegenprobe: "+(anzahl-KORRIGIERT.length)+" von "+anzahl+" Stücken zeichengenau wie in der App,");
+console.log("              "+KORRIGIERT.length+" Stück mit ausgewiesener Korrektur (Umschlag-Versatz).");

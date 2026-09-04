@@ -17,11 +17,11 @@
 //
 // Sieben Register, wie im Auftrag vorgegeben:
 //   1 Grunddaten · 2 Profil · 3 Zeichnung · 4 Skizze → Profil ·
-//   5 Segmente und Ausmass · 6 Kontrolle · 7 Fotos & Speichern
+//   5 Segmente und Ausmass · 6 Zuschnitt · 7 Kontrolle · 8 Fotos & Speichern
 // ===========================================================================
 
 const SCHRITTE=["Grunddaten","Profil","Zeichnung","Skizze → Profil",
-                "Segmente & Ausmass","Kontrolle","Fotos & Speichern"];
+                "Segmente & Ausmass","Zuschnitt","Kontrolle","Fotos & Speichern"];
 let schritt=1;
 
 // ---- 1. Datenmodell -------------------------------------------------------
@@ -36,7 +36,7 @@ function leereAufnahme(){
   id:null, bezeichnung:"", objekt:"", datum:heute(),
   material:"", konisch:"nein", ansicht:"keiner",
   schenkel:[], segmente:[],
-  fotos:[], skizze:null, bemerkung:"",
+  fotos:[], skizze:null, bemerkung:"", zuschnitt:null,
   erstellt:null, geaendert:null
  };
 }
@@ -202,6 +202,104 @@ function materialUebersicht(){
  }];
 }
 
+// ---- 5b. Zuschnitt aus Rollenblech ----------------------------------------
+// Gleiches Vorgehen wie beim Einlaufblech: von der Rolle wird eine TAFEL
+// abgeschnitten und quer in Streifen von der Breite der Abwicklung geteilt.
+// Ein Streifen kann mehrere Stuecke HINTEREINANDER aufnehmen.
+//
+//   Streifen je Tafel = ganzzahlig(Rollenbreite / Streifenbreite)
+//   Tafellaenge       = laengstes Stueck der Gruppe
+//   Tafeln            = aufgerundet(Streifen / Streifen je Tafel)
+//
+// Gepackt wird mit ebaPackeInStreifen() aus js/29 - zeichengenau uebernommen.
+// Es gibt bewusst nur EINE Packrechnung.
+//
+// Der Unterschied zum Einlaufblech: dort hat die ganze Aufnahme EINE
+// Abwicklung, hier hat jedes Segment seine eigene. Deshalb werden Segmente
+// mit gleicher Streifenbreite zu einer Gruppe zusammengefasst und jede
+// Gruppe fuer sich gepackt. Nichts davon ist geraten - es ist dieselbe
+// Rechnung, nur je Breite einmal.
+//
+// Konisch: die Streifenbreite ist die GROESSERE der beiden Abwicklungen -
+// der Zuschnitt muss das breitere Ende enthalten. Die Flaeche des Blechs
+// bleibt die Trapezflaeche; die Differenz ist echter Verschnitt.
+const FP_ROLLEN_SPEICHER="pfp_rollenbreiten";
+function rollenbreitenGewaehlt(){
+ try{
+  const roh=JSON.parse(localStorage.getItem(FP_ROLLEN_SPEICHER)||"null");
+  if(Array.isArray(roh)&&roh.length)
+   return roh.map(Number).filter(x=>Number.isFinite(x)&&x>0).sort((a,b)=>b-a);
+ }catch(e){}
+ return EBA_ROLLEN_STANDARD.slice().sort((a,b)=>b-a);
+}
+function rollenbreitenSetzen(liste){
+ const rein=liste.map(Number).filter(x=>Number.isFinite(x)&&x>0);
+ try{localStorage.setItem(FP_ROLLEN_SPEICHER,JSON.stringify(rein))}catch(e){}
+}
+// Streifenbreite eines Segments: die Abwicklung, bei konisch die groessere.
+function streifenBreite(seg){
+ const a=abwicklungSegment(seg);
+ return Math.round(istKonisch()?Math.max(a.links,a.rechts):a.links);
+}
+// Segmente mit gleicher Streifenbreite bilden eine Gruppe. Segmente ohne
+// Laenge oder ohne Masse werden NICHT stillschweigend mitgerechnet, sondern
+// getrennt gemeldet.
+function zuschnittGruppen(){
+ const gruppen=[], ohne=[];
+ (aufnahme.segmente||[]).forEach((seg,i)=>{
+  const laenge=zahl(seg.laenge), breite=streifenBreite(seg);
+  if(laenge<=0||breite<=0){ohne.push({nr:i+1,laenge,breite});return}
+  let g=gruppen.find(x=>x.breite===breite);
+  if(!g){g={breite,stuecke:[]};gruppen.push(g)}
+  g.stuecke.push({nr:i+1,laenge});
+ });
+ gruppen.sort((a,b)=>b.breite-a.breite);
+ gruppen.forEach(g=>{
+  g.tafelLaenge=Math.max.apply(null,g.stuecke.map(x=>x.laenge));
+  const v=ebaPackeInStreifen(g.stuecke,g.tafelLaenge);
+  g.streifen=v.streifen||[];
+  g.optimal=v.optimal;
+ });
+ return {gruppen,ohne};
+}
+function rollenPlan(){
+ const {gruppen,ohne}=zuschnittGruppen();
+ const breiten=rollenbreitenGewaehlt();
+ const netto=flaecheM2();
+ if(!gruppen.length||!breiten.length)
+  return {gruppen,ohne,moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto};
+ const moeglich=[], zuSchmal=[];
+ breiten.forEach(B=>{
+  const zeilen=[]; let flaeche=0, passt=true;
+  gruppen.forEach(g=>{
+   const jeTafel=Math.floor(B/g.breite);
+   if(jeTafel<1){passt=false;return}
+   const tafeln=Math.ceil(g.streifen.length/jeTafel);
+   flaeche+=tafeln*B*g.tafelLaenge/1e6;
+   zeilen.push({breite:g.breite,jeTafel,tafeln,streifen:g.streifen.length,
+                ungenutzteStreifen:tafeln*jeTafel-g.streifen.length,
+                restBreite:B-jeTafel*g.breite,tafelLaenge:g.tafelLaenge});
+  });
+  if(!passt){zuSchmal.push(B);return}
+  moeglich.push({breite:B,zeilen,flaeche,verschnitt:flaeche-netto,
+                 anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,
+                 tafeln:zeilen.reduce((s,x)=>s+x.tafeln,0)});
+ });
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.tafeln-y.tafeln||y.breite-x.breite);
+ return {gruppen,ohne,moeglich,zuSchmal,bestes:moeglich[0]||null,netto,
+         optimal:gruppen.every(g=>g.optimal)};
+}
+// Momentaufnahme fuer den gespeicherten Datensatz - damit ein spaeter
+// gedrucktes Blatt gleich bleibt, auch wenn die Rollenbreiten sich aendern.
+function zuschnittSnapshot(){
+ const p=rollenPlan();
+ if(!p.bestes)return null;
+ return {breiten:rollenbreitenGewaehlt(),netto:p.netto,optimal:!!p.optimal,
+         bestes:JSON.parse(JSON.stringify(p.bestes)),
+         gruppen:p.gruppen.map(g=>({breite:g.breite,tafelLaenge:g.tafelLaenge,
+           streifen:g.streifen.map(s=>s.stuecke.map(x=>x.nr))}))};
+}
+
 // ---- 6. Kontrolle ---------------------------------------------------------
 // Nur Prüfungen, die sich aus dem bestehenden Modul ableiten lassen:
 // mindestens 2 Schenkel (fpPruefeErkannteSchenkel verlangt genau das),
@@ -345,6 +443,10 @@ function alleAufnahmen(){
 }
 function speichern(){
  const jetzt=new Date().toISOString();
+ // Der Zuschnittplan wird mitgespeichert, damit ein spaeter gedrucktes Blatt
+ // gleich bleibt, auch wenn die Rollenbreiten sich aendern - gleiches
+ // Vorgehen wie beim Einlaufblech.
+ aufnahme.zuschnitt=zuschnittSnapshot();
  const liste=alleAufnahmen();
  if(!aufnahme.id){
   aufnahme.id="fp"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -453,17 +555,20 @@ ${i<a.schenkel.length-1?`<button type="button" class="p-grau" data-schenkel-runt
 </div>
 </div>`;
  }).join("");
- return karte("2 · Profil aufnehmen",`<div class="p-knopfreihe">
-<button type="button" class="p-blau" id="p-schenkelPlus">＋ Schenkel hinzufügen</button>
-<span class="p-klein-text">${a.schenkel.length} von höchstens ${FP_MAX_SCHENKEL} Schenkeln</span>
-</div>
-<div class="p-hinweis">Winkel = Richtungsänderung gegenüber dem vorherigen Schenkel.
+ // Der Knopf steht UNTER den Schenkel-Karten. Gemeldet am 04.09.2026: stand er
+ // oben, musste man nach jedem erfassten Schenkel wieder ganz nach oben
+ // scrollen. Unten liegt er dort, wo man nach dem letzten Schenkel ohnehin ist.
+ return karte("2 · Profil aufnehmen",`<div class="p-hinweis">Winkel = Richtungsänderung gegenüber dem vorherigen Schenkel.
 0° heisst gerade weiter, 180° ist ein Umschlag. „Richtung umkehren“ dreht das Vorzeichen -
 dieselbe Regel wie im bestehenden Modul.</div>
 <div id="p-profil" class="p-zeichnung p-zeichnung-klebt">
 <div class="p-zeichnung-kopf"><span>Zeichnung – folgt jeder Eingabe</span><span>${a.schenkel.length} Schenkel</span></div>
 <div id="p-profilBild">${profilSvg(a.schenkel)}</div></div>
-${zeilen||'<div class="p-leer">Noch kein Schenkel. „＋ Schenkel hinzufügen“ oder im Register „Skizze → Profil“ eine Skizze erkennen lassen.</div>'}`);
+${zeilen||'<div class="p-leer">Noch kein Schenkel. „＋ Schenkel hinzufügen“ oder im Register „Skizze → Profil“ eine Skizze erkennen lassen.</div>'}
+<div class="p-knopfreihe" id="p-schenkelPlusReihe">
+<button type="button" class="p-blau p-voll-knopf" id="p-schenkelPlus">＋ Schenkel hinzufügen</button>
+<span class="p-klein-text">${a.schenkel.length} von höchstens ${FP_MAX_SCHENKEL} Schenkeln</span>
+</div>`);
 }
 
 // 3 · Profilzeichnung gross
@@ -579,10 +684,76 @@ ${segs||'<div class="p-leer">Noch kein Segment.</div>'}`)
 +karte("Ausmass und Material",ausmass);
 }
 
-// 6 · Kontrolle
+// 6 · Zuschnitt aus Rollenblech
 function schritt6(){
+ const waehlbar=EBA_ROLLEN_WAEHLBAR.slice().sort((a,b)=>b-a);
+ const gewaehlt=rollenbreitenGewaehlt();
+ const auswahl=`<div class="p-rollen">`+waehlbar.map(b=>
+  `<label class="p-schalter p-rolle">
+<input type="checkbox" data-rollenbreite="${b}"${gewaehlt.indexOf(b)>=0?" checked":""}> ${mm(b)} mm</label>`).join("")
+ +`</div><div class="p-klein-text">Welche Rollen im Lager liegen. Im Prototyp merkt sich das dieses
+Gerät; in der App steht es firmenweit in den Einstellungen und gilt auch für die anderen
+Massaufnahmen.</div>`;
+
+ const p=rollenPlan();
+ if(!p.gruppen.length){
+  return karte("6 · Zuschnitt aus Rollenblech",auswahl
+   +`<div class="p-leer">Noch nichts zuzuschneiden – es braucht mindestens ein Segment mit
+Länge und Massen (Register 5).</div>`
+   +(p.ohne.length?`<div class="p-warnung">${p.ohne.length} Segment(e) ohne Länge oder ohne Masse:
+Nummer ${p.ohne.map(x=>x.nr).join(", ")}. Sie werden nicht gerechnet.</div>`:""));
+ }
+
+ const gruppen=`<div class="p-tabelle-scroll">
+<table class="p-tabelle"><thead><tr><th>Streifenbreite</th><th>Segmente</th><th>Tafellänge</th><th>Streifen</th></tr></thead>
+<tbody>${p.gruppen.map(g=>`<tr>
+<td class="p-num">${mm(g.breite)} mm</td>
+<td>${g.stuecke.map(x=>"Nr. "+x.nr+" ("+mm(x.laenge)+" mm)").join(", ")}</td>
+<td class="p-num">${mm(g.tafelLaenge)} mm</td>
+<td class="p-num">${g.streifen.length}</td></tr>`).join("")}</tbody></table></div>`;
+
+ const streifen=p.gruppen.map(g=>`<div class="p-zeile">
+<div class="p-zeile-kopf"><b>Streifen à ${mm(g.breite)} mm</b>
+<span class="p-klein-text">Tafellänge ${mm(g.tafelLaenge)} mm</span></div>
+${g.streifen.map((st,i)=>`<div class="p-klein-text">Streifen ${i+1}: ${
+ st.stuecke.map(x=>"Segment "+x.nr+" · "+mm(x.laenge)+" mm").join("  +  ")
+ }${st.rest>0?"  →  Rest "+mm(st.rest)+" mm":""}</div>`).join("")}
+</div>`).join("");
+
+ const zeilen=p.moeglich.map(m=>`<tr${p.bestes&&m.breite===p.bestes.breite?' class="p-beste"':""}>
+<td class="p-num">${mm(m.breite)} mm</td>
+<td class="p-num">${m.tafeln}</td>
+<td class="p-num">${m.flaeche.toFixed(2).replace(".",",")} m²</td>
+<td class="p-num">${m.verschnitt.toFixed(2).replace(".",",")} m²</td>
+<td class="p-num">${m.anteil.toFixed(0)} %</td></tr>`).join("");
+
+ const plan=p.moeglich.length?`<div class="p-tabelle-scroll">
+<table class="p-tabelle"><thead><tr><th>Rollenbreite</th><th>Tafeln</th><th>Blech gesamt</th><th>Verschnitt</th><th>Anteil</th></tr></thead>
+<tbody>${zeilen}</tbody></table></div>
+<div class="p-klein-text">Netto gebraucht werden ${p.netto.toFixed(2).replace(".",",")} m² –
+das ist die Fläche aus dem Ausmass. Alles darüber ist Verschnitt.</div>`
+ :`<div class="p-warnung">Keine der gewählten Rollen ist breit genug. Breiteste Abwicklung:
+${mm(p.gruppen[0].breite)} mm.</div>`;
+
+ const hinweise=(p.ohne.length?`<div class="p-warnung">${p.ohne.length} Segment(e) ohne Länge oder
+ohne Masse werden nicht gerechnet: Nummer ${p.ohne.map(x=>x.nr).join(", ")}.</div>`:"")
+ +(p.zuSchmal.length?`<div class="p-klein-text">Zu schmal für dieses Profil: ${
+   p.zuSchmal.map(b=>mm(b)+" mm").join(", ")}.</div>`:"")
+ +(p.optimal===false?`<div class="p-warnung">Bei dieser Stückzahl wurde nicht jede Möglichkeit
+durchgerechnet – das ist die beste GEFUNDENE Verteilung, nicht nachweislich die beste.</div>`:"");
+
+ return karte("6 · Zuschnitt aus Rollenblech",auswahl)
+ +karte("Was zugeschnitten wird",gruppen
+  +`<div class="p-klein-text">Segmente mit gleicher Streifenbreite werden zusammen gepackt.
+${istKonisch()?"Konisch: die Streifenbreite ist die grössere der beiden Abwicklungen – der Zuschnitt muss das breitere Ende enthalten.":"Die Streifenbreite ist die Abwicklung des Segments."}</div>`
+  +streifen)
+ +karte("Rollenbreite und Verschnitt",plan+hinweise);
+}
+
+// 7 · Kontrolle
+function schritt7(){
  const m=pruefungen();
- if(!m.length)return karte("6 · Kontrolle",
+ if(!m.length)return karte("7 · Kontrolle",
   `<div class="p-ok">Keine Auffälligkeit. Alles, was zum Speichern nötig ist, liegt vor.</div>`);
  const a=aufnahme;
  const uebersicht=`<div class="p-tabelle-scroll">
@@ -593,17 +764,17 @@ function schritt6(){
 <tr><td>Segmente</td><td>${(a.segmente||[]).length}</td></tr>
 <tr><td>Fotos / Skizze</td><td>${(a.fotos||[]).length} Foto(s)${a.skizze?" · Skizze vorhanden":""}</td></tr>
 </tbody></table></div>`;
- return karte("6 · Kontrolle",uebersicht+`<div class="p-pruefung">`+m.map(x=>
+ return karte("7 · Kontrolle",uebersicht+`<div class="p-pruefung">`+m.map(x=>
   `<div class="p-${x.art==="fehler"?"fehler":"warnung"}">${esc(x.text)}</div>`).join("")+`</div>
 <div id="p-profilKontrolle" class="p-zeichnung">${profilSvg(a.schenkel)}</div>`);
 }
 
-// 7 · Fotos, Skizze, Notiz, Speichern
-function schritt7(){
+// 8 · Fotos, Skizze, Notiz, Speichern
+function schritt8(){
  const a=aufnahme;
  const fotos=(a.fotos||[]).map((f,i)=>`<div class="p-foto">
 <img src="${esc(f)}" alt="Foto ${i+1}"><button type="button" class="p-weg" data-foto-weg="${i}">✕</button></div>`).join("");
- return karte("7 · Fotos",`<label class="p-datei">📷 Foto aufnehmen oder wählen
+ return karte("8 · Fotos",`<label class="p-datei">📷 Foto aufnehmen oder wählen
 <input type="file" id="p-fotoInput" accept="image/*" capture="environment" multiple hidden></label>
 <div class="p-fotos">${fotos||'<div class="p-leer">Noch kein Foto.</div>'}</div>
 <div class="p-klein-text">Fotos werden verkleinert im Browser abgelegt. Beim späteren Einbau in
@@ -625,7 +796,7 @@ Massaufnahme.</div>`)
 }
 
 function inhaltHtml(){
- return [schritt1,schritt2,schritt3,schritt4,schritt5,schritt6,schritt7][schritt-1]();
+ return [schritt1,schritt2,schritt3,schritt4,schritt5,schritt6,schritt7,schritt8][schritt-1]();
 }
 
 // ---- 10. Liste ------------------------------------------------------------
@@ -803,6 +974,13 @@ function verdrahten(){
   if(t.id==="p-konisch"){a.konisch=t.value;zeichne();return}
   if(t.id==="p-ansicht"){a.ansicht=t.value;zeichne();return}
   if(t.id==="p-fotoInput"){fotosAufnehmen(t.files);return}
+  if(d.rollenbreite!==undefined){
+   const b=Number(d.rollenbreite);
+   const liste=rollenbreitenGewaehlt().filter(x=>x!==b);
+   if(t.checked)liste.push(b);
+   rollenbreitenSetzen(liste.sort((x,y)=>y-x));
+   zeichne(); return;
+  }
  });
 
  w.addEventListener("click",e=>{
