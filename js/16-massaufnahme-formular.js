@@ -610,11 +610,18 @@ const PDF_LAYOUT_CSS=`
   text-transform:uppercase;letter-spacing:.07em;color:#6b757c;margin:0 0 .6mm}
  .eb-info-table .val,.am-info-table .val{font-size:8pt;font-weight:700;color:#17202a;
   font-variant-numeric:tabular-nums;word-break:break-word}
- /* Technische Tabellen */
+ /* Technische Tabellen.
+    Eine Tabelle wird NICHT mitten auseinandergerissen: passt sie nicht mehr
+    auf die angebrochene Seite, wandert sie als Ganzes auf die naechste. Ist
+    sie laenger als eine ganze Seite, teilt der Browser sie trotzdem - dann
+    wiederholt sich der Tabellenkopf (table-header-group) und es bricht
+    weiterhin keine einzelne Zeile auf. */
  table.eb-cutlist,table.am-cutlist{width:100%;border-collapse:collapse;margin:0;
-  border:.5pt solid #b3bcc2;border-top:0}
+  border:.5pt solid #b3bcc2;border-top:0;
+  page-break-inside:avoid;break-inside:avoid}
  .eb-cutlist thead,.am-cutlist thead{display:table-header-group}
  .eb-cutlist tr,.am-cutlist tr{page-break-inside:avoid;break-inside:avoid}
+ .eb-cutlist tbody,.am-cutlist tbody{page-break-inside:auto;break-inside:auto}
  .eb-cutlist th,.am-cutlist th{background:#e9edf0;color:#17202a;text-align:left;font-size:6.5pt;
   font-weight:800;padding:1.6mm 2.2mm;text-transform:uppercase;letter-spacing:.05em;
   border-bottom:.5pt solid #9aa4ab;border-right:.5pt solid #cfd6db}

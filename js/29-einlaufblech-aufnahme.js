@@ -124,23 +124,64 @@ function ebaGavaAnzahl(){
 function ebaFlaecheM2(){return ebaGesamtlaenge()*ebaZahl(ebA.abwicklung)/1e6}
 
 // Zuschnitt aus Rollenblech. So wird tatsächlich gearbeitet: von der Rolle
-// wird eine TAFEL abgeschnitten und quer in Streifen von der Breite der
-// Abwicklung geteilt. Die Tafel ist höchstens so lang wie das längste
-// Einlaufblechstück. Ein Streifen kann mehrere Stücke HINTEREINANDER
-// aufnehmen - dasselbe Problem wie die Normlängen bei der Rinne.
+// werden längs STREIFEN von der Breite der Abwicklung abgetrennt. In einem
+// Streifen liegen die Stücke hintereinander, und JEDES wird auf SEINE genaue
+// Länge geschnitten - es wird nichts auf eine gemeinsame Tafellänge gebracht.
 //
-//   Streifen je Tafel = ganzzahlig(Rollenbreite ÷ Abwicklung)
-//   Tafellänge        = längstes Stück
-//   Tafeln            = aufgerundet(Streifen ÷ Streifen je Tafel)
+//   Streifen nebeneinander = ganzzahlig(Rollenbreite ÷ Abwicklung)
+//   Rollenlänge            = der vollste Streifen (alle laufen gleich lang mit)
+//   Blechfläche            = Rollenbreite × Rollenlänge
 //
-// Zuerst eine gierige Lösung, danach der Versuch, mit weniger Streifen
-// auszukommen. Reicht das Suchbudget nicht, wird die gierige Lösung
-// zurückgegeben und ausdrücklich NICHT als beste ausgewiesen.
+// Verschnitt entsteht dadurch nur noch an zwei Stellen: an der Restbreite der
+// Rolle (Rollenbreite − Streifen × Abwicklung) und am Rest der Streifen, die
+// nicht so voll werden wie der vollste. Passt die Rollenbreite zur Abwicklung,
+// geht der Verschnitt gegen null.
+//
+// ---- Die EINE Packrechnung der App ----------------------------------------
+// Kern ist ein einziges rekursives Verfahren: passen alle Stücke in k Streifen
+// der Länge L? Darauf sitzen beide Fragestellungen auf:
+//   ebaPackeInStreifen(bleche,L)   - kleinste Streifenzahl bei fester Länge
+//   ebaPackeInBaender(bleche,k)    - kleinste Länge bei fester Streifenzahl
+// Reicht das Suchbudget nicht, wird die gierige Lösung zurückgegeben und
+// ausdrücklich NICHT als beste ausgewiesen.
+
+// Sortierte Stückliste, längstes zuerst - Grundlage beider Eingänge.
+function ebaStueckliste(bleche){
+ return (bleche||[]).filter(x=>ebaZahl(x.laenge)>0).slice()
+  .sort((a,b)=>ebaZahl(b.laenge)-ebaZahl(a.laenge));
+}
+// Der Kern: verteilt die (absteigend sortierten) Stücke auf k Streifen der
+// Länge L. Rückgabe: die Streifen, false (passt nicht) oder null (Budget aus).
+function ebaVerteile(stuecke,k,L,budget){
+ if(k<1)return stuecke.length?false:[];
+ if(stuecke.length&&ebaZahl(stuecke[0].laenge)>L+1e-9)return false;
+ const streifen=Array.from({length:k},()=>({stuecke:[],rest:L}));
+ let schritte=0; const grenze=budget||200000; let ausBudget=false;
+ const setze=i=>{
+  if(i>=stuecke.length)return true;
+  if(++schritte>grenze){ausBudget=true;return false}
+  const len=ebaZahl(stuecke[i].laenge), gesehen=[];
+  for(let j=0;j<streifen.length;j++){
+   if(streifen[j].rest<len-1e-9)continue;
+   // Zwei Streifen mit gleichem Rest sind austauschbar - der zweite bringt
+   // nichts Neues und wird übersprungen.
+   if(gesehen.indexOf(streifen[j].rest)>=0)continue;
+   gesehen.push(streifen[j].rest);
+   streifen[j].stuecke.push(stuecke[i]); streifen[j].rest-=len;
+   if(setze(i+1))return true;
+   streifen[j].stuecke.pop(); streifen[j].rest+=len;
+   if(ausBudget)return false;
+  }
+  return false;
+ };
+ if(setze(0))return streifen;
+ return ausBudget?null:false;
+}
+// Eingang 1: feste Streifenlänge L, kleinstmögliche Streifenzahl.
 function ebaPackeInStreifen(bleche,L,budget){
  // bleche: [{nr, laenge}] - die Nummer reist mit, damit in der Liste jedes
  // Blech mit SEINER genauen Länge steht und nicht nur eine nackte Zahl.
- const stuecke=bleche.filter(x=>ebaZahl(x.laenge)>0).slice()
-  .sort((a,b)=>ebaZahl(b.laenge)-ebaZahl(a.laenge));
+ const stuecke=ebaStueckliste(bleche);
  if(!stuecke.length)return {streifen:[],optimal:true};
  if(ebaZahl(stuecke[0].laenge)>L)
   return {streifen:null,optimal:true,zuLang:stuecke.filter(x=>ebaZahl(x.laenge)>L)};
@@ -152,47 +193,48 @@ function ebaPackeInStreifen(bleche,L,budget){
  });
  const summe=stuecke.reduce((a,b)=>a+ebaZahl(b.laenge),0);
  const untergrenze=Math.ceil(summe/L-1e-9);
- let schritte=0; const grenze=budget||200000;
- function passt(i,reste){
-  if(i>=stuecke.length)return true;
-  if(++schritte>grenze)return null;
-  const len=ebaZahl(stuecke[i].laenge), gesehen=[];
-  for(let j=0;j<reste.length;j++){
-   if(reste[j]<len-1e-9)continue;
-   if(gesehen.indexOf(reste[j])>=0)continue;
-   gesehen.push(reste[j]);
-   reste[j]-=len;
-   const r=passt(i+1,reste);
-   reste[j]+=len;
-   if(r===null)return null;
-   if(r)return true;
-  }
-  return false;
- }
  for(let k=untergrenze;k<gierig.length;k++){
-  schritte=0;
-  const r=passt(0,new Array(k).fill(L));
-  if(r===null)return {streifen:gierig,optimal:false};
-  if(r){
-   const streifen=Array.from({length:k},()=>({stuecke:[],rest:L}));
-   const setze=i=>{
-    if(i>=stuecke.length)return true;
-    const len=ebaZahl(stuecke[i].laenge), gesehen=[];
-    for(let j=0;j<streifen.length;j++){
-     if(streifen[j].rest<len-1e-9)continue;
-     if(gesehen.indexOf(streifen[j].rest)>=0)continue;
-     gesehen.push(streifen[j].rest);
-     streifen[j].stuecke.push(stuecke[i]); streifen[j].rest-=len;
-     if(setze(i+1))return true;
-     streifen[j].stuecke.pop(); streifen[j].rest+=len;
-    }
-    return false;
-   };
-   if(setze(0))return {streifen,optimal:true};
-   return {streifen:gierig,optimal:false};
-  }
+  const v=ebaVerteile(stuecke,k,L,budget);
+  if(v===null)return {streifen:gierig,optimal:false};
+  if(v)return {streifen:v,optimal:true};
  }
  return {streifen:gierig,optimal:true};
+}
+// Eingang 2: feste Streifenzahl k, kleinstmögliche Rollenlänge.
+// Genau das braucht der Zuschnitt aus Rollenblech: die Streifen liegen
+// nebeneinander auf der Rolle, ihre Zahl steht durch die Rollenbreite fest,
+// gesucht ist die Länge, die abgezogen werden muss.
+function ebaPackeInBaender(bleche,k,budget){
+ const stuecke=ebaStueckliste(bleche);
+ const anzahl=Math.max(1,Math.floor(k)||1);
+ if(!stuecke.length)return {streifen:[],laenge:0,optimal:true};
+ // Gierige Lösung (längstes Stück zuerst in den leersten Streifen) - sie
+ // passt immer und ist zugleich die Obergrenze der Suche.
+ const gierig=Array.from({length:anzahl},()=>({stuecke:[],fuell:0}));
+ stuecke.forEach(x=>{
+  let ziel=gierig[0];
+  gierig.forEach(g=>{if(g.fuell<ziel.fuell)ziel=g});
+  ziel.stuecke.push(x); ziel.fuell+=ebaZahl(x.laenge);
+ });
+ const summe=stuecke.reduce((a,b)=>a+ebaZahl(b.laenge),0);
+ const untergrenze=Math.max(ebaZahl(stuecke[0].laenge),Math.ceil(summe/anzahl));
+ let bestes=gierig.map(g=>({stuecke:g.stuecke,rest:0}));
+ let hi=Math.max.apply(null,gierig.map(g=>g.fuell));
+ let lo=untergrenze, optimal=true;
+ // Kleinste Länge suchen, bei der alle Stücke noch in k Streifen passen.
+ while(lo<hi){
+  const mitte=Math.floor((lo+hi)/2);
+  const v=ebaVerteile(stuecke,anzahl,mitte,budget||60000);
+  if(v===null){optimal=false;break}
+  if(v){
+   // Der wirklich belegte Höchststand ist meist kürzer als die Probelänge.
+   const fuell=Math.max.apply(null,v.map(s=>mitte-s.rest));
+   bestes=v.map(s=>({stuecke:s.stuecke,rest:0})); hi=fuell;
+  }else lo=mitte+1;
+ }
+ const laenge=hi;
+ bestes.forEach(s=>{s.rest=laenge-s.stuecke.reduce((a,x)=>a+ebaZahl(x.laenge),0)});
+ return {streifen:bestes,laenge,optimal};
 }
 function ebaTafelLaenge(){
  const l=(ebA.stuecke||[]).map(p=>ebaZahl(p.laenge)).filter(x=>x>0);
@@ -214,29 +256,27 @@ function ebaRollenPlan(){
  const bleche=(ebA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebaZahl(p.laenge),
    merkmal:ebaGehrungText(p)}))
   .filter(x=>x.laenge>0);
- const L=ebaTafelLaenge();
  const breiten=ebaRollenAktiv();
  if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,tafelLaenge:L};
- const verteilung=ebaPackeInStreifen(bleche,L);
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null};
  const moeglich=[], zuSchmal=[];
  const netto=ebaFlaecheM2();
+ let optimal=true;
+ // Wie viele Streifen nebeneinander passen, haengt von der Rollenbreite ab -
+ // und damit auch die Verteilung. Deshalb wird je Breite neu gepackt.
  breiten.forEach(B=>{
   const jeTafel=Math.floor(B/A);
   if(jeTafel<1){zuSchmal.push(B);return}
-  const streifen=verteilung.streifen||[];
-  const tafeln=Math.ceil(streifen.length/jeTafel);
-  const streifenGesamt=tafeln*jeTafel;
-  const flaeche=tafeln*B*L/1e6;
-  moeglich.push({breite:B,jeTafel,tafeln,
-   streifen:streifen.length, ungenutzteStreifen:streifenGesamt-streifen.length,
-   restBreite:B-jeTafel*A,
+  const v=ebaPackeInBaender(bleche,jeTafel);
+  if(v.optimal===false)optimal=false;
+  const flaeche=B*v.laenge/1e6;
+  moeglich.push({breite:B,jeTafel,streifen:jeTafel,rollenLaenge:v.laenge,
+   restBreite:B-jeTafel*A, verteilung:v.streifen,
    flaeche, verschnitt:flaeche-netto,
    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
  });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.tafeln-y.tafeln||y.breite-x.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null,
-         tafelLaenge:L,verteilung,netto};
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
+ return {moeglich,zuSchmal,bestes:moeglich[0]||null,netto,optimal};
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -423,19 +463,20 @@ Ohne Artikelnummern und ohne Preise – das Ausmass entsteht allein aus dieser A
 // wird weiterhin hier bzw. in ebaPackeInStreifen().
 function ebaZuschnittPlan(){
  const plan=ebaRollenPlan();
- const v=plan.verteilung||{};
- const streifen=v.streifen||[];
+ // Die Verteilung gehört zur besten Rollenbreite - sie ist die, mit der
+ // gearbeitet wird.
+ const best=plan.bestes;
  const A=ebaZahl(ebA.abwicklung);
  return {art:"rolle", einheit:"Stück",
   einleitung:ZU_EINLEITUNG_ROLLE,
   quelle:ZU_QUELLE_ROLLE,
   leer:!(ebA.stuecke||[]).length?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."
       :(!ebaRollenAktiv().length?"Es ist keine Rollenbreite hinterlegt."
-      :"Kein Stück lässt sich auf eine Tafel legen."),
+      :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
   streifenbreiten:[A],
-  gruppen:streifen.length?[{breite:A,tafelLaenge:plan.tafelLaenge,streifen}]:[],
+  gruppen:best?[{breite:A,rollenLaenge:best.rollenLaenge,streifen:best.verteilung||[]}]:[],
   moeglich:plan.moeglich, netto:ebaFlaecheM2(),
-  zuSchmal:plan.zuSchmal, zuLang:v.zuLang||[], optimal:v.optimal!==false};
+  zuSchmal:plan.zuSchmal, optimal:plan.optimal!==false};
 }
 function ebaZuschnittHtml(){
  return zuRollenAuswahlHtml(ebA.rollenAuswahl,"data-eba-rolle")+zuschnittHtml(ebaZuschnittPlan());
@@ -777,12 +818,14 @@ function ebaZusatzDaten(){
         gerechnet:ebaGavaAnzahl()},
   flaeche_m2:Number(ebaFlaecheM2().toFixed(3)),
   ausmass:ebaAusmassZeilen(),
-  rollen:{auswahl:(ebA.rollenAuswahl||[]).slice(),tafelLaenge:plan.tafelLaenge,
+  rollen:{auswahl:(ebA.rollenAuswahl||[]).slice(),
+          rollenLaenge:plan.bestes?plan.bestes.rollenLaenge:0,
           breiten:ebaRollenAktiv(),
           bestes:plan.bestes||null,
-          moeglich:plan.moeglich||[],
-          streifen:((plan.verteilung||{}).streifen||[]).map(s=>({
+          // Der Vergleich ohne die Verteilung: die gehoert einmal nach unten.
+          moeglich:(plan.moeglich||[]).map(m=>{const o=Object.assign({},m);delete o.verteilung;return o}),
+          streifen:((plan.bestes||{}).verteilung||[]).map(s=>({
             stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})), rest:s.rest})),
-          optimal:(plan.verteilung||{}).optimal!==false}
+          optimal:plan.optimal!==false}
  };
 }

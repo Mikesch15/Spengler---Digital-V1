@@ -182,23 +182,33 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  await reg(page,4);
  const roll=await page.evaluate(()=>{
   const plan=ebaRollenPlan();
-  return {flaeche:ebaFlaecheM2(), tafel:plan.tafelLaenge,
+  return {flaeche:ebaFlaecheM2(),
           breiten:ebaRollenbreiten(),
-          bestes:plan.bestes, moeglich:plan.moeglich.length,
-          streifen:(plan.verteilung.streifen||[]).length,
+          bestes:plan.bestes, moeglich:plan.moeglich.map(m=>[m.breite,m.jeTafel,m.rollenLaenge,Number(m.flaeche.toFixed(4))]),
+          belegung:((plan.bestes||{}).verteilung||[]).map(x=>x.stuecke.map(y=>y.nr+":"+y.laenge)),
           text:$("einlaufblechAufnahme").innerText};
  });
  // 3730 mm x 330 mm = 1.2309 m2
  p(Math.abs(roll.flaeche-3730*330/1e6)<1e-9,"Blechflaeche = Gesamtlaenge x Abwicklung",roll.flaeche);
  p(roll.breiten.join()==="1000,670","ohne Hinterlegung gelten 1000 und 670 mm",roll.breiten);
- p(roll.tafel===2170,"Tafellaenge = laengstes Stueck",roll.tafel);
- // 2170 + 1560 = 3730 passt nicht in einen Streifen von 2170 -> zwei Streifen
- p(roll.streifen===2,"zwei Streifen noetig",roll.streifen);
+ // Seit v2.88 wird JEDES Stueck auf SEINE Laenge geschnitten. Von Hand:
+ // Zuschnitte 2170 und 1560, Abwicklung 330.
+ //   670 ÷ 330 = 2 Streifen -> 2170 | 1560, Rollenlaenge 2170, 670x2170 = 1.4539 m2
+ //  1000 ÷ 330 = 3 Streifen -> dasselbe 2170, aber 1000x2170 = 2.17 m2
+ const r670=roll.moeglich.find(m=>m[0]===670), r1000=roll.moeglich.find(m=>m[0]===1000);
+ p(!!r670&&r670[1]===2&&r670[2]===2170&&Math.abs(r670[3]-670*2170/1e6)<1e-6,
+   "670 mm: 2 Streifen, 2'170 mm ab Rolle",r670);
+ p(!!r1000&&r1000[1]===3&&r1000[2]===2170&&Math.abs(r1000[3]-1000*2170/1e6)<1e-6,
+   "1000 mm: 3 Streifen, 2'170 mm ab Rolle",r1000);
+ p(roll.bestes&&roll.bestes.breite===670,"die schmalere Rolle braucht hier weniger Blech",roll.bestes);
  p(roll.bestes&&roll.bestes.jeTafel===Math.floor(roll.bestes.breite/330),
-   "Streifen je Tafel = Rollenbreite ÷ Abwicklung",roll.bestes);
- p(roll.bestes&&roll.bestes.tafeln===Math.ceil(roll.streifen/roll.bestes.jeTafel),
-   "Tafeln = Streifen ÷ Streifen je Tafel, aufgerundet",roll.bestes);
- p(/St(ü|ue)ck 1/.test(roll.text)&&/St(ü|ue)ck 2/.test(roll.text),
+   "Streifen nebeneinander = Rollenbreite ÷ Abwicklung",roll.bestes);
+ p(roll.belegung.flat().map(x=>Number(x.split(":")[0])).sort().join()==="1,2",
+   "jedes Stueck liegt genau einmal in einem Streifen",roll.belegung);
+ // Die Nummern stehen seit v2.88 als eigene Marken in der Liste (STÜCK 1 2),
+ // die Belegung im zugeklappten <details> - dort greift textContent.
+ const nrText=await page.evaluate(()=>$("einlaufblechAufnahme").textContent);
+ p(/St(ü|ue)ck/i.test(roll.text)&&/Streifen 1/.test(nrText),
    "jedes Blech steht mit seiner Nummer in der Streifenliste");
  const eigen=await page.evaluate(()=>{blechRollenbreiten=[500,400];return ebaRollenbreiten()});
  p(eigen.join()==="500,400","hinterlegte Rollenbreiten schlagen die Vorgabe",eigen);
@@ -340,7 +350,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  p(typeof d.flaeche_m2==="number"&&d.flaeche_m2>0,"Flaeche gespeichert",d.flaeche_m2);
  p(Array.isArray(d.ausmass)&&d.ausmass.length>0,"Ausmass gespeichert",d.ausmass&&d.ausmass.length);
  p(d.rollen&&Array.isArray(d.rollen.moeglich)&&d.rollen.moeglich.length>0,"Rollenplan gespeichert",d.rollen&&d.rollen.moeglich.length);
- p(d.rollen&&d.rollen.tafelLaenge===2170,"Tafellaenge im Plan",d.rollen&&d.rollen.tafelLaenge);
+ p(d.rollen&&d.rollen.rollenLaenge===2170,"Rollenlaenge im Plan",d.rollen&&d.rollen.rollenLaenge);
 
  const wieder=await page.evaluate(pl=>{
   // Vorher auf Register 6 stellen: zeichnet ebaFuellen() nicht selbst neu,
@@ -428,7 +438,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  p(/>Ausmass</.test(druck),"Ausmass im PDF");
  p(/Haltebleche \(GAVA\)/.test(druck),"Haltebleche im PDF");
  p(/Blechfl/.test(druck),"Blechflaeche im PDF");
- p(/Tafeln? à 2[^\d]?170\s*mm/.test(druck),"Tafellaenge aus dem gespeicherten Plan, nicht neu gerechnet",(druck.match(/[^<>]*Tafel[^<>]*/)||[""])[0].slice(0,90));
+ p(/2[^\d]?170\s*mm ab Rolle/.test(druck),"Rollenlaenge aus dem gespeicherten Plan, nicht neu gerechnet",(druck.match(/[^<>]*ab Rolle[^<>]*/)||[""])[0].slice(0,90));
  p(!/\bNaN\b|\bInfinity\b/.test(druck),"kein NaN im PDF");
  // Ein alter Datensatz darf keinen der neuen Abschnitte erzeugen.
  const druckAlt=await page.evaluate(async()=>{

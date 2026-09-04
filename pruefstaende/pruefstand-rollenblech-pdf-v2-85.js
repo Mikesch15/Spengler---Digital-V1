@@ -66,7 +66,8 @@ async function klick(page,sel){
      zeilen:box?Array.from(box.querySelectorAll(".zu-zeile")).map(z=>({
        anzahl:(z.querySelector(".zu-anzahl")||{}).textContent.trim(),
        mass:(z.querySelector(".zu-mass")||{}).textContent.replace(/\s+/g," ").trim(),
-       zusatz:(z.querySelector(".zu-zusatz")||{textContent:""}).textContent.replace(/\s+/g," ").trim()})):[],
+       zusatz:(z.querySelector(".zu-zusatz")||{textContent:""}).textContent.replace(/\s+/g," ").trim(),
+       pos:Array.from(z.querySelectorAll(".zu-nr")).map(n=>n.textContent.trim()).join(",")})):[],
      html:d.innerHTML};
   },pl);
 
@@ -79,8 +80,11 @@ async function klick(page,sel){
                      {stuecke:[{nr:3,laenge:1850}],rest:150}],null,250));
  p(r.zeilen.length===1&&(r.zeilen[0]||{}).anzahl==="3 ×",
    "2 · drei gleiche Stuecke stehen als EINE Zeile mit \"3 ×\"",r.zeilen);
- p(r.zeilen.length===1&&/Stück 1, 2, 3/.test((r.zeilen[0]||{}).zusatz),
-   "12 · und die urspruenglichen Stuecknummern bleiben erhalten",(r.zeilen[0]||{}).zusatz);
+ // Seit v2.88 stehen die Nummern als eigene Marken (.zu-nr), nicht mehr als
+ // grauer Nachsatz - genau das war der Wunsch: gut sichtbar, welche Position
+ // auf welchen Zuschnitt gehoert.
+ p(r.zeilen.length===1&&(r.zeilen[0]||{}).pos==="1,2,3",
+   "12 · und die urspruenglichen Stuecknummern bleiben erhalten",(r.zeilen[0]||{}).pos);
  // 3 · unterschiedliche Stuecke -> laengstes zuerst
  r=await liste(plan([{stuecke:[{nr:1,laenge:980},{nr:2,laenge:1420}],rest:0},
                      {stuecke:[{nr:3,laenge:1850}],rest:150}],null,250));
@@ -121,43 +125,49 @@ async function klick(page,sel){
     {breite:670,jeTafel:2,tafeln:4,flaeche:5.4,verschnitt:2.4,anteil:44}],250));
  p(/Rollenblech 1['’]000 mm/.test(r.kopf),"8 · der Kopf nennt die beste Rollenbreite",r.kopf);
  p(/ra-dila-zeile/.test(r.html),"   und die Vergleichstabelle hebt die beste Zeile hervor");
- // 9/10 · Tafellaenge und Anzahl Tafeln stehen in der Fusszeile
- p(/2 Tafeln à 2['’]000 mm/.test(r.fuss),"9/10 · Fusszeile: Anzahl Tafeln à Tafellaenge",r.fuss);
+ // 9/10 · Rollenlaenge und Streifenzahl stehen in der Fusszeile
+ p(/4['’]000 mm ab Rolle/.test(r.fuss)&&/4 Streifen/.test(r.fuss),
+   "9/10 · Fusszeile: Rollenlaenge und Streifen nebeneinander",r.fuss);
  // 11 · Verschnitt
  p(/Verschnitt/.test(r.html),"11 · Verschnitt wird ausgewiesen");
- // 9b · Der Rollenvergleich nennt die TAFELLAENGE, nicht die Tafelflaeche.
+ // 9b · Der Rollenvergleich nennt die ROLLENLAENGE - so lang muss abgezogen
+ // werden. Aeltere gespeicherte Plaene kennen nur "tafeln x tafelLaenge";
+ // daraus wird derselbe Wert abgeleitet, statt eine Luecke zu zeigen.
  const spalten=await page.evaluate(()=>{
   const pl={art:"rolle",einheit:"Stück",streifenbreiten:[250],
-   gruppen:[{breite:250,tafelLaenge:2070,streifen:[{stuecke:[{nr:1,laenge:2070}],rest:0}]}],
-   moeglich:[{breite:1000,jeTafel:4,tafeln:1,flaeche:2.07,verschnitt:0.78,anteil:38},
-             {breite:670,jeTafel:2,tafeln:2,flaeche:2.77,verschnitt:1.48,anteil:53}],
-   netto:1.29,tafelLaenge:2070,optimal:true};
+   gruppen:[{breite:250,rollenLaenge:2070,streifen:[{stuecke:[{nr:1,laenge:2070}],rest:0}]}],
+   moeglich:[{breite:1000,jeTafel:4,streifen:4,rollenLaenge:2070,flaeche:2.07,verschnitt:0.78,anteil:38},
+             {breite:670,jeTafel:2,streifen:2,rollenLaenge:4140,flaeche:2.77,verschnitt:1.48,anteil:53}],
+   netto:1.29,rollenLaenge:2070,optimal:true};
   const d=document.createElement("div"); d.innerHTML=zuschnittHtml(pl);
   d.querySelectorAll("details").forEach(x=>x.open=true);
   const tab=Array.from(d.querySelectorAll("table")).find(t=>/Rolle/.test(t.textContent));
   // Und dasselbe im Ausdruck.
   const dr=document.createElement("div");
-  dr.innerHTML=zuDruckHtml({tafelLaenge:2070,moeglich:pl.moeglich,
+  dr.innerHTML=zuDruckHtml({rollenLaenge:2070,moeglich:pl.moeglich,
     streifen:[{stuecke:[{nr:1,laenge:2070}],rest:0}],optimal:true},250,"Stück");
   const tabDr=Array.from(dr.querySelectorAll("table")).find(t=>/Rollenbreite/.test(t.textContent));
-  // Freies Profil: zwei verschiedene Tafellaengen in einer Zeile
-  const mehr=zuTafelLaenge({zeilen:[{tafelLaenge:3000},{tafelLaenge:2000}]},null);
+  // Freies Profil / Lukarne: mehrere Streifenbreiten -> die Rollenlaenge ist
+  // die Summe der Abschnitte.
+  const mehr=zuRollenLaengeMm({zeilen:[{rollenLaenge:3000},{rollenLaenge:2000}]},null);
+  // Ein Plan im alten Format (bis v2.87): tafeln x tafelLaenge.
+  const alt=zuRollenLaengeMm({tafeln:2,tafelLaenge:2070},null);
   return {kopf:tab?Array.from(tab.querySelectorAll("th")).map(x=>x.textContent.trim()):null,
     zeile:tab?Array.from(tab.querySelectorAll("tbody tr")[0].querySelectorAll("td")).map(x=>x.textContent.trim()):null,
     kopfDr:tabDr?Array.from(tabDr.querySelectorAll("th")).map(x=>x.textContent.trim()):null,
     zeileDr:tabDr?Array.from(tabDr.querySelectorAll("tbody tr")[0].querySelectorAll("td")).map(x=>x.textContent.trim()):null,
-    mehr};
+    mehr,alt};
  });
- p(spalten.kopf&&spalten.kopf.indexOf("Tafellänge")===3&&spalten.kopf.indexOf("Fläche")<0,
-   "9b · der Rollenvergleich nennt die Tafellaenge statt der Tafelflaeche",spalten.kopf);
- p(spalten.zeile&&/^2[’'´]?070\s*mm$/.test(spalten.zeile[3]||""),
+ p(spalten.kopf&&spalten.kopf.indexOf("Rollenlänge")===2,
+   "9b · der Rollenvergleich nennt die Rollenlaenge",spalten.kopf);
+ p(spalten.zeile&&/^2[’\'´]?070\s*mm$/.test(spalten.zeile[2]||""),
    "   und zwar als Mass in mm",spalten.zeile);
- p(spalten.kopfDr&&spalten.kopfDr[3]==="Tafellänge (mm)"&&spalten.kopfDr.every(x=>!/Tafelfläche/.test(x)),
+ p(spalten.kopfDr&&spalten.kopfDr[2]==="Rollenlänge (mm)"&&spalten.kopfDr.every(x=>!/Tafel/.test(x)),
    "   im Ausdruck genauso",spalten.kopfDr);
- p(spalten.zeileDr&&/^2[’'´]?070$/.test(spalten.zeileDr[3]||""),
+ p(spalten.zeileDr&&/^2[’\'´]?070$/.test(spalten.zeileDr[2]||""),
    "   mit demselben Wert",spalten.zeileDr);
- p(/3[’'´]?000/.test(spalten.mehr)&&/2[’'´]?000/.test(spalten.mehr),
-   "   mehrere Tafellaengen (Freies Profil) stehen alle da",spalten.mehr);
+ p(spalten.mehr===5000,"   mehrere Streifenbreiten: die Abschnitte werden summiert",spalten.mehr);
+ p(spalten.alt===4140,"   ein Plan bis v2.87 wird aus Tafeln × Tafellaenge abgeleitet",spalten.alt);
 
  // 16 · leere Liste
  r=await liste({art:"rolle",einheit:"Stück",streifenbreiten:[250],gruppen:[],moeglich:[],
@@ -453,6 +463,61 @@ async function klick(page,sel){
 
  // 28 · keine JavaScript-Fehler
  p(fehler.length===0,"28 · kein einziger JavaScript-Fehler in der ganzen Sitzung",fehler.slice(0,3));
+
+
+ // ==========================================================================
+ // 29 · Seitenumbrueche im PDF reissen keine Tabelle auseinander (v2.88)
+ // ==========================================================================
+ // A4 minus @page-Rand 14mm/17mm ergibt die Inhaltsflaeche bei 96 dpi.
+ const PB=Math.round((210-28)/25.4*96), PH=Math.round((297-31)/25.4*96);
+ for(const [name,stueck] of [["normal",18],["laenger als eine Seite",60]]){
+  const dokument=await page.evaluate(async n=>{
+   window.__pdf=[];
+   window.open=()=>({document:{write(h){window.__pdf.push(h)},close(){}},focus(){},print(){},set onload(f){}});
+   storageSignedUrl=async()=>null;
+   companyName="Peter Künzi AG"; companyAddress="Bern"; logoUrl=null;
+   $("measType").value="einlaufblech_gerade"; showMeasTypeSection("einlaufblech_gerade");
+   ebA.abwicklung=250; ebA.winkel=30; ebA.massA=200; ebA.material="";
+   ebA.stuecke=Array.from({length:n},(_,i)=>({laenge:900+i*70,gehrungLinks:i%3===0,
+     gehrungRechts:false,endzugabeStart:0,endzugabeEnd:0}));
+   const pl=buildMeasurementFromForm();
+   await printMeasurement({...pl,id:1,title:"Halle Nord",date:"2026-09-04",note:"x"},{listen:"alle"});
+   return window.__pdf[0]||"";
+  },stueck);
+  const mess=await b.newPage({viewport:{width:900,height:1200}});
+  await mess.setContent(dokument);
+  await mess.emulateMedia({media:"print"});
+  await mess.addStyleTag({content:"body{width:"+PB+"px;margin:0}"});
+  await mess.waitForTimeout(250);
+  const r=await mess.evaluate(()=>{
+   const t=Array.from(document.querySelectorAll("table.eb-cutlist,table.am-cutlist"));
+   return {anzahl:t.length,
+    tabelle:[...new Set(t.map(x=>getComputedStyle(x).breakInside))],
+    thead:[...new Set(t.map(x=>getComputedStyle(x.querySelector("thead")||x).display))],
+    zeile:[...new Set(t.map(x=>getComputedStyle(x.querySelector("tbody tr")||x).breakInside))],
+    kopf:[...new Set(Array.from(document.querySelectorAll(".eb-section-head")).map(x=>getComputedStyle(x).breakAfter))],
+    hoehen:t.map(x=>Math.round(x.getBoundingClientRect().height))};
+  });
+  const pdfBytes=await mess.pdf({format:"A4",printBackground:true});
+  await mess.close();
+  p(r.anzahl>0,"29 · "+name+": das Dokument hat Tabellen",r.anzahl);
+  p(r.tabelle.length===1&&r.tabelle[0]==="avoid",
+    "   jede Tabelle traegt break-inside:avoid - sie wird nicht aufgeteilt",r.tabelle);
+  p(r.zeile.length===1&&r.zeile[0]==="avoid","   und keine einzelne Zeile bricht auf",r.zeile);
+  p(r.thead.length===1&&r.thead[0]==="table-header-group",
+    "   der Tabellenkopf wiederholt sich auf der Folgeseite",r.thead);
+  p(r.kopf.length===1&&r.kopf[0]==="avoid",
+    "   eine Abschnittsueberschrift steht nie allein am Seitenende",r.kopf);
+  const kurz=r.hoehen.filter(h=>h<=PH).length;
+  if(stueck===18)
+   p(kurz===r.hoehen.length,"   alle Tabellen passen auf eine Seite - die Regel greift also",
+     {hoehen:r.hoehen,seite:PH});
+  else
+   p(r.hoehen.some(h=>h>PH),
+     "   eine Tabelle ist laenger als eine Seite - sie darf umbrechen (Rueckfall)",
+     {hoehen:r.hoehen,seite:PH});
+  p(pdfBytes.length>1000,"   das PDF wird tatsaechlich erzeugt",pdfBytes.length+" Bytes");
+ }
 
  console.log("\npruefstand-rollenblech-pdf: "+ok+"/"+(ok+fail)+
    (fail?"  - "+fail+" FEHLGESCHLAGEN":"  - alle bestanden"));

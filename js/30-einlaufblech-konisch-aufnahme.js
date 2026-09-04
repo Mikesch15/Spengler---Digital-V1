@@ -128,27 +128,27 @@ function ebkaRollenPlan(){
  const bleche=(ebkA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebkaZahl(p.laenge),
    merkmal:ebkaMerkmal(p)}))
   .filter(x=>x.laenge>0);
- const L=ebkaTafelLaenge();
  const breiten=ebkaRollen();
  if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,tafelLaenge:L};
- const verteilung=ebaPackeInStreifen(bleche,L);
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null};
  const moeglich=[], zuSchmal=[];
  const netto=ebkaFlaecheM2();
+ let optimal=true;
+ // Je Rollenbreite neu packen: die Streifenzahl - und damit die Verteilung -
+ // haengt an der Breite.
  breiten.forEach(B=>{
   const jeTafel=Math.floor(B/A);
   if(jeTafel<1){zuSchmal.push(B);return}
-  const streifen=verteilung.streifen||[];
-  const tafeln=Math.ceil(streifen.length/jeTafel);
-  const flaeche=tafeln*B*L/1e6;
-  moeglich.push({breite:B,jeTafel,tafeln,streifen:streifen.length,
-   ungenutzteStreifen:tafeln*jeTafel-streifen.length,
-   restBreite:B-jeTafel*A,
+  const v=ebaPackeInBaender(bleche,jeTafel);
+  if(v.optimal===false)optimal=false;
+  const flaeche=B*v.laenge/1e6;
+  moeglich.push({breite:B,jeTafel,streifen:jeTafel,rollenLaenge:v.laenge,
+   restBreite:B-jeTafel*A, verteilung:v.streifen,
    flaeche, verschnitt:flaeche-netto,
    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
  });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.tafeln-y.tafeln||y.breite-x.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null,tafelLaenge:L,verteilung,netto};
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
+ return {moeglich,zuSchmal,bestes:moeglich[0]||null,netto,optimal};
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -374,8 +374,7 @@ Ohne Artikelnummern und ohne Preise – das Ausmass entsteht allein aus dieser A
 // wird weiterhin hier bzw. in ebaPackeInStreifen().
 function ebkaZuschnittPlan(){
  const plan=ebkaRollenPlan();
- const v=plan.verteilung||{};
- const streifen=v.streifen||[];
+ const best=plan.bestes;
  const A=ebkaZahl(ebkA.abwicklung);
  return {art:"rolle", einheit:"Stück",
   einleitung:ZU_EINLEITUNG_ROLLE,
@@ -383,11 +382,11 @@ function ebkaZuschnittPlan(){
   quelle:ZU_QUELLE_ROLLE,
   leer:!(ebkA.stuecke||[]).length?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."
       :(!(ebkaRollen()).length?"Es ist keine Rollenbreite hinterlegt."
-      :"Kein Stück lässt sich auf eine Tafel legen."),
+      :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
   streifenbreiten:[A],
-  gruppen:streifen.length?[{breite:A,tafelLaenge:plan.tafelLaenge,streifen}]:[],
+  gruppen:best?[{breite:A,rollenLaenge:best.rollenLaenge,streifen:best.verteilung||[]}]:[],
   moeglich:plan.moeglich, netto:ebkaFlaecheM2(),
-  zuSchmal:plan.zuSchmal, zuLang:v.zuLang||[], optimal:v.optimal!==false};
+  zuSchmal:plan.zuSchmal, optimal:plan.optimal!==false};
 }
 function ebkaZuschnittHtml(){
  return zuRollenAuswahlHtml(ebkA.rollenAuswahl,"data-ebka-rolle")+zuschnittHtml(ebkaZuschnittPlan());
@@ -717,12 +716,13 @@ function ebkaZusatzDaten(){
  return {
   flaeche_m2:Number(ebkaFlaecheM2().toFixed(3)),
   ausmass:ebkaAusmassZeilen(),
-  rollen:{auswahl:(ebkA.rollenAuswahl||[]).slice(),tafelLaenge:plan.tafelLaenge,
+  rollen:{auswahl:(ebkA.rollenAuswahl||[]).slice(),
+          rollenLaenge:plan.bestes?plan.bestes.rollenLaenge:0,
           breiten:ebkaRollen(),
           bestes:plan.bestes||null,
-          moeglich:plan.moeglich||[],
-          streifen:((plan.verteilung||{}).streifen||[]).map(s=>({
+          moeglich:(plan.moeglich||[]).map(m=>{const o=Object.assign({},m);delete o.verteilung;return o}),
+          streifen:((plan.bestes||{}).verteilung||[]).map(s=>({
             stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})), rest:s.rest})),
-          optimal:(plan.verteilung||{}).optimal!==false}
+          optimal:plan.optimal!==false}
  };
 }

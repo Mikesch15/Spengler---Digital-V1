@@ -272,8 +272,19 @@ const auf=async(page,a)=>{
   await reg(page,a,listen[a.typ].indexOf("Zuschnitt")+1);
   await auf(page,a);
   const t=await txt(page,a);
-  p(/Zuschnitt \(Länge × Breite\)/i.test(t),
-    a.name+": die Belegung heisst \"Zuschnitt (Länge × Breite)\"",t.slice(0,80));
+  // Seit v2.88 ist die Belegung eine Karte je Streifen: jedes Stueck steht mit
+  // seiner Nummer und seinem Mass "Laenge × Breite" auf einer eigenen Zeile.
+  const bel=await page.evaluate(id=>{
+   const w=document.getElementById(id);
+   return {karten:w.querySelectorAll(".zu-platz").length,
+     masse:Array.from(w.querySelectorAll(".zu-platz-mass")).map(x=>x.textContent.replace(/\s+/g," ").trim()),
+     nummern:Array.from(w.querySelectorAll(".zu-platz-stueck .zu-nr")).map(x=>x.textContent.trim())};
+  },a.wurzel);
+  p(bel.karten>0&&bel.masse.length>0&&bel.masse.every(m=>LXB.test(m)),
+    a.name+": die Belegung nennt je Stueck Laenge × Breite",
+    {karten:bel.karten,erstes:bel.masse[0]});
+  p(bel.nummern.length===bel.masse.length&&bel.nummern.every(n=>/^\d+$/.test(n)),
+    a.name+": und dazu seine Positionsnummer",bel.nummern.slice(0,6));
   p(LXB.test(t),a.name+": jedes Stueck steht als Laenge × Breite",
     (t.match(/[^\n]*×[^\n]*/)||[""])[0].slice(0,80));
  }
@@ -312,7 +323,7 @@ const auf=async(page,a)=>{
    rinneStangen:r.stangen.length, rinneNormen:r.normen,
    rinneSumme:r.summeStuecke, rinneGesamt:r.gesamt,
    // Einlaufblech: 3 Stuecke, laengstes 3000
-   ebTafel:e.gruppen.length?e.gruppen[0].tafelLaenge:null,
+   ebTafel:e.gruppen.length?e.gruppen[0].rollenLaenge:null,
    ebBreite:e.streifenbreiten[0],
    ebNetto:Math.round(e.netto*100)/100,
    ebBeste:e.moeglich.length?e.moeglich[0].breite:null,
@@ -321,7 +332,9 @@ const auf=async(page,a)=>{
    madNetto:Math.round(m.netto*100)/100
   };
  });
- p(z.ebTafel===3000,"Einlaufblech: die Tafel ist so lang wie das laengste Stueck",z);
+ // Rolle 1000 ÷ Abwicklung 250 = 4 Streifen; die Stuecke passen einzeln
+ // nebeneinander -> Rollenlaenge = laengstes Stueck.
+ p(z.ebTafel===3000,"Einlaufblech: 3'000 mm ab Rolle",z);
  p(z.ebBreite===250,"Einlaufblech: die Streifenbreite ist die Abwicklung",z);
  p(Math.abs(z.ebNetto-((3000+2000+2500)*250/1e6))<0.01,
    "Einlaufblech: Blech netto = Laenge x Abwicklung",z);

@@ -258,7 +258,10 @@ const daten=async(page,o)=>{await page.evaluate(x=>{Object.assign(lukA,x);render
    liste:Array.from(e.querySelectorAll(".zu-zeile")).map(z=>({
      anzahl:z.querySelector(".zu-anzahl").textContent.trim(),
      mass:z.querySelector(".zu-mass").textContent.replace(/\s+/g," ").trim(),
-     zusatz:(z.querySelector(".zu-zusatz")||{textContent:""}).textContent.replace(/\s+/g," ").trim()})),
+     zusatz:(z.querySelector(".zu-zusatz")||{textContent:""}).textContent.replace(/\s+/g," ").trim(),
+     // Seit v2.88 stehen die Positionsnummern als eigene Marken in .zu-pos.
+     pos:Array.from(z.querySelectorAll(".zu-nr")).map(n=>n.textContent.trim()).join(","),
+     posMarke:(z.querySelector(".zu-pos-marke")||{textContent:""}).textContent.trim()})),
    kasten:!!e.querySelector("details.zu-rollen"),
    kopf:Array.from((Array.from(e.querySelectorAll("table")).find(t=>/Rolle/.test(t.textContent))||{querySelectorAll:()=>[]}).querySelectorAll("th")).map(x=>x.textContent.trim()),
    nan:/NaN|Infinity|undefined/.test(e.innerHTML)};
@@ -266,9 +269,11 @@ const daten=async(page,o)=>{await page.evaluate(x=>{Object.assign(lukA,x);render
  p(zu.art==="rolle"&&zu.einheit==="Schar","der Plan hat die gemeinsame Form (js/33)",zu);
  p(zu.liste.length>0&&zu.liste.every(z=>/^\d+\s*×$/.test(z.anzahl)),
    "Stueckzahl × Laenge × Abwicklung",zu.liste);
- p(zu.liste.every(z=>/Schar \d/.test(z.zusatz)),"die Scharnummern bleiben erhalten",zu.liste.map(z=>z.zusatz));
+ p(zu.liste.every(z=>/^\d+(,\d+)*$/.test(z.pos))&&/Schar/i.test(zu.liste[0].posMarke),
+   "die Scharnummern bleiben erhalten und stehen als eigene Marken",
+   zu.liste.map(z=>z.posMarke+" "+z.pos));
  p(zu.kasten,"der Kasten \"Rollen fuer diese Massaufnahme\" steht da");
- p(zu.kopf.indexOf("Tafellänge")>=0,"und der Rollenvergleich nennt die Tafellaenge",zu.kopf);
+ p(zu.kopf.indexOf("Rollenlänge")>=0,"und der Rollenvergleich nennt die Rollenlaenge",zu.kopf);
  p(!zu.nan,"kein NaN im Zuschnitt");
  // Gruppierung: gleiche Zuschnitte zusammenfassen
  const grp=await page.evaluate(()=>{

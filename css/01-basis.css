@@ -455,6 +455,39 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
  word-break:break-word}
 .zu-einheit{font-size:13px;font-weight:600;color:var(--muted)}
 .zu-zusatz{flex:1 1 100%;font-size:11px;color:var(--muted);word-break:break-word}
+/* Positionsnummern: die eigentliche Frage auf der Baustelle - welches Blech
+   gehoert wohin. Deshalb eigene Zeile, dunkel und als abgesetzte Marken,
+   nicht als kleiner grauer Nachsatz. */
+.zu-pos{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:4px;
+ margin-top:2px}
+.zu-pos-marke{font-size:10px;font-weight:800;letter-spacing:.6px;
+ text-transform:uppercase;color:var(--muted);margin-right:2px}
+.zu-nr{display:inline-flex;align-items:center;justify-content:center;
+ min-width:26px;height:24px;padding:0 7px;border-radius:6px;
+ background:var(--bg2);border:1px solid var(--line);
+ font-size:13px;font-weight:800;color:var(--text);
+ font-variant-numeric:tabular-nums}
+/* Belegung: je Streifen eine Karte, je Stueck eine Zeile mit seiner Nummer. */
+.zu-belegung{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.zu-platz{flex:1 1 220px;min-width:0;border:1px solid var(--line);
+ border-radius:8px;overflow:hidden;background:var(--card)}
+.zu-platz-kopf{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;
+ background:var(--bg2);padding:6px 9px;border-bottom:1px solid var(--line);
+ font-size:12px}
+.zu-platz-fuell{font-size:11px;color:var(--muted)}
+.zu-platz-stueck{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;
+ padding:6px 9px;border-bottom:1px solid var(--line)}
+.zu-platz-stueck:last-child{border-bottom:0}
+.zu-platz-mass{flex:1 1 auto;min-width:0;font-size:14px;font-weight:700;
+ word-break:break-word;font-variant-numeric:tabular-nums}
+.zu-platz-zusatz{flex:1 1 100%;font-size:11px;color:var(--muted);word-break:break-word}
+.zu-platz-leer{padding:6px 9px;font-size:12px;color:var(--muted)}
+/* Rollenvergleich: die Spaltenkoepfe duerfen NICHT mitten im Wort brechen
+   (.ra-tab setzt word-break:break-word fuer die Zellen). Passt der Kopf nicht,
+   scrollt die Tabelle in ihrem .scroll-Rahmen - das ist lesbar, "ROLLENLÄNG E"
+   nicht. */
+table.zu-vergleich th{word-break:normal;overflow-wrap:normal;white-space:nowrap}
+table.zu-vergleich td{white-space:nowrap}
 .zu-liste-fuss{padding:8px 12px;font-size:12px;color:var(--muted);
  border-top:1px solid var(--line);background:var(--bg2)}
 .zu-details{margin-top:4px}

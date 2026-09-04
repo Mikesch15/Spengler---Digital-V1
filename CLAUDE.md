@@ -14337,3 +14337,231 @@ Der Prüfstand `required70` hat das gefunden (die IDs sind von `luk_*` auf
 - Damit haben **sieben** der elf Massaufnahme-Arten Register; ohne sind
   weiterhin Skizze/Foto, Ort-/Seitenbleche, Einfassung Rund und die
   Rinne-Zuschnittliste.
+
+## 92. ZUSCHNITT: JEDES STÜCK AUF SEINE LÄNGE + POSITIONSNUMMERN + SEITENUMBRÜCHE — VERSION 2.88
+
+Drei Punkte aus der Rückmeldung nach dem ersten echten Ausdruck der Lukarne.
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung.**
+
+### 92.1 Das alte Modell und warum es so viel Verschnitt erzeugte
+
+Bis v2.87 wurde von der Rolle eine **Tafel** abgeschnitten, so lang wie das
+**längste** Stück, und quer in Streifen geteilt. Alle Streifen einer Tafel
+waren damit gleich lang. Bei ungleichen Längen – und bei einer Lukarne hat
+**jede** Schar eine andere – blieb der Rest jedes kürzeren Streifens stehen.
+
+Am echten Beispiel gemessen (Lukarne H 1500 / L 4000 / α 100° / p 500,
+acht Scharen von 1530 bis 197 mm, netto 3.581 m²):
+
+| Rolle | v2.87 | v2.88 |
+|---|---|---|
+| 670 mm | 5.257 m² · **32 %** Verschnitt | **4.629 m²** · 23 % |
+| 1000 mm | 7.847 m² · **54 %** | **6.909 m²** · 48 % |
+
+Einlaufblech gerade mit 2000/1800/1600/1400/1200 mm, Abwicklung 250:
+
+| Rolle | v2.87 | v2.88 |
+|---|---|---|
+| 1000 mm | 4.000 m² · **50 %** | **2.600 m²** · 23 % |
+| 670 mm | 4.020 m² · 50 % | **2.814 m²** · 29 % |
+
+### 92.2 Neues Modell: Streifen längs von der Rolle
+
+    Streifen nebeneinander = ganzzahlig(Rollenbreite ÷ Abwicklung)
+    Rollenlänge            = der vollste Streifen
+    Blechfläche            = Rollenbreite × Rollenlänge
+
+Von der Rolle werden längs Streifen der Abwicklungsbreite abgetrennt; in
+einem Streifen liegen die Stücke hintereinander und **jedes wird auf seine
+genaue Länge geschnitten**. Verschnitt entsteht dadurch nur noch an zwei
+Stellen: an der Restbreite der Rolle (Rollenbreite − Streifen × Abwicklung)
+und am Rest der Streifen, die nicht so voll werden wie der vollste.
+
+**Damit stimmt die Vermutung aus der Rückmeldung – und zwar messbar.** Mit
+einer Rolle, deren Breite zur Abwicklung passt, geht der Verschnitt wirklich
+auf null. Dasselbe Einlaufblech mit einer 250er Rolle im Lager:
+
+| Rolle | Streifen | Rollenlänge | Fläche | Verschnitt |
+|---|---|---|---|---|
+| **250 mm** | 1 | 8'000 mm | 2.000 m² | **0.000 m² · 0 %** |
+| 500 mm | 2 | 4'200 mm | 2.100 m² | 0.100 m² · 5 % |
+| 1000 mm | 4 | 2'600 mm | 2.600 m² | 0.600 m² · 23 % |
+| 670 mm | 2 | 4'200 mm | 2.814 m² | 0.814 m² · 29 % |
+
+Im alten Modell hätte dieselbe 250er Rolle 2.5 m² und 20 % Verschnitt
+angezeigt (fünf Tafeln à 2000 mm) – sie wurde also **bestraft**, obwohl sie
+die beste ist. Der Rollenvergleich ist damit erst jetzt aussagekräftig.
+
+### 92.3 Weiterhin genau EINE Packrechnung
+
+Der Auftrag aus v2.85 („keine zweite Packrechnung") gilt unverändert.
+`ebaPackeInStreifen` und die neue `ebaPackeInBaender` sitzen beide auf
+**demselben** rekursiven Kern `ebaVerteile(stuecke,k,L,budget)` in js/29:
+
+| Eingang | Frage |
+|---|---|
+| `ebaPackeInStreifen(bleche,L)` | kleinste Streifen**zahl** bei fester Länge |
+| `ebaPackeInBaender(bleche,k)` | kleinste **Länge** bei fester Streifenzahl |
+
+Der zweite ist der, den der Zuschnitt aus Rollenblech braucht: die
+Streifenzahl steht durch die Rollenbreite fest, gesucht ist die Länge.
+Gesucht wird als Binärsuche zwischen der Untergrenze
+(`max(längstes Stück, Summe ÷ Streifen)`) und einer gierigen Lösung
+(längstes Stück zuerst in den leersten Streifen), die zugleich der Rückfall
+ist, wenn das Suchbudget nicht reicht. Dann heisst es weiterhin ausdrücklich
+„beste gefundene Verteilung – nicht nachweislich die günstigste".
+
+**Gepackt wird jetzt je Rollenbreite neu**, denn erst sie entscheidet, wie
+viele Streifen nebeneinander liegen. Vorher lief die Packung einmal
+ausserhalb der Schleife.
+
+`raNormPlan` (Rinne Halbrund, Normlängen) ist unverändert – eine Rinne wird
+als fertiges Profil bezogen und nicht von der Rolle geschnitten.
+
+### 92.4 Positionsnummern: wo sie hingehören
+
+Gemeldet: „man sieht schlecht, welche Positionsnummer auf welchem Zuschnitt
+platziert werden muss". Zutreffend – die Nummern standen als kleiner grauer
+Nachsatz am Zeilenende.
+
+**In der Zuschnittliste** stehen sie jetzt auf einer eigenen Zeile als
+abgesetzte Marken in Lesegrösse:
+
+```
+1 ×   2'000 × 250 mm
+STÜCK  1
+
+3 ×   1'850 × 250 mm
+STÜCK  1  4  7        Gehrung links
+```
+
+**In der Belegung** ist aus der Tabelle mit einer Sammelzelle
+(„Stück 1 · 2'070 mm + Stück 4 · 1'420 mm") eine Karte je Streifen geworden,
+mit einer eigenen Zeile je Stück:
+
+```
+Streifen 4      2'600 mm belegt · 0 mm Rest
+  4    1'400 mm × 250 mm
+  5    1'200 mm × 250 mm
+```
+
+**Im PDF** haben die Nummern eine eigene Spalte („Stück Nr."), und die
+Belegung nennt je Streifen „Stück 4 = 1'400 mm · Stück 5 = 1'200 mm".
+
+Gilt für **alle** Arten, weil es eine Stelle ist (js/33).
+
+### 92.5 Der Rollenvergleich
+
+Die Spalte „Tafellänge" heisst jetzt **„Rollenlänge"** – das ist das Mass,
+das tatsächlich von der Rolle abgezogen werden muss. Die Spalte „Fläche"
+ist entfallen: sie ist netto + Verschnitt, und netto steht als Kennzahl
+direkt darüber. Sechs Spalten brachen auf dem Handy die Überschriften
+**mitten im Wort** („ROLLENLÄNG E", „VERSCHNIT T") – im echten Browser
+gemessen, nicht vermutet. Fünf Spalten mit `white-space:nowrap` stehen auf
+320, 360, 412 und 768 px einzeilig.
+
+**Ältere gespeicherte Pläne (bis v2.87) drucken unverändert ihre eigenen
+Zahlen.** `zuRollenLaengeMm()` leitet die Rollenlänge dort aus
+`Tafeln × Tafellänge` ab – derselbe Wert, nur anders benannt. Es wird nichts
+nachgerechnet, ein einmal gedrucktes Blatt bleibt gleich.
+
+### 92.6 Seitenumbrüche brechen keine Tabelle mehr auf
+
+`table.eb-cutlist`/`am-cutlist` tragen jetzt `break-inside:avoid`. Passt eine
+Tabelle nicht mehr auf die angebrochene Seite, wandert sie als Ganzes auf die
+nächste. Ist sie länger als eine ganze Seite, teilt der Browser sie weiterhin
+– dann wiederholt sich der Tabellenkopf (`table-header-group`, unverändert)
+und es bricht keine einzelne Zeile auf (`tr{break-inside:avoid}`,
+unverändert). Eine Abschnittsüberschrift steht wie bisher nie allein am
+Seitenende (`break-after:avoid`).
+
+Gemessen im echten Druck-Dokument bei A4-Inhaltsbreite (688 px) und
+-höhe (1005 px): alle fünf Tabellen eines normalen Einlaufblech-Ausdrucks
+sind 25–506 px hoch, passen also auf eine Seite – die Regel greift dort
+tatsächlich. Mit 60 Stücken ist eine Tabelle länger als eine Seite und darf
+umbrechen.
+
+### 92.7 Getestet
+
+- **`pruefstand-rollenblech-pdf-v2-85.js` – 85/85** (vorher 70), neuer
+  Abschnitt 29: Umbruchregeln als *computed style* im echten Druck-Dokument,
+  für einen normalen und einen überlangen Ausdruck, dazu das wirklich
+  erzeugte PDF.
+- **Sechs Gegenproben**, jede baut einen echten Fehler ein und wirft einen
+  Prüfstand um: PDF-Tabellen wieder aufteilbar (83/85) · keine Längensuche,
+  nur gierig (Mauerabdeckung 144/146) · Nummern wieder als grauer Nachsatz
+  (82/85 bzw. 81/82) · Belegung ohne Nummern (register-zuschnitt 239/245) ·
+  alte gespeicherte Pläne verlieren die Rollenlänge (83/85) · nicht je
+  Rollenbreite packen (einlaufblech 95/99).
+- **Volle Regression grün** – 14 Repo-Prüfstände (verschnitt 1578,
+  register-zuschnitt 245, kehle 158, mauerabdeckung 146, freies-profil 118,
+  konisch 114, rinne 104, medien-am-ende 100, einlaufblech 99,
+  rollenblech-pdf 85, lukarne 82, dila-sichtbar 57, skizze-foto 54,
+  lxb-druck 46) und alle archivierten (kehle52 698/698, pdf52 526/526,
+  rinne57 379/379, required70 377/377, einf70 185/185, offline70 123/123,
+  feedback63 108/108, freipos65 99/99, fotos70 88/88, dila70 85/85,
+  breite57 84/84, fp70 83/83, kehleintegration52 76/76,
+  feedbackbrowser63 67/67, breite52 52/52, ebg70 49/49,
+  einstbrowser68 47/47, feedback70 47/47, mad70 45/45, module67 43/43,
+  einst68 43/43, medien50 42/42, adresse45 39/39, pfade55 38/38,
+  dateien49 38/38, projekte47 37/37, status46 35/35,
+  freiposbrowser65 33/33, auswahl48 32/32, modulebrowser67 16/16,
+  suche45 13/13, kopf45 8/8, hidden51 7/7, abstand69 2/2,
+  normbrute 1578/1578, sowie nav, suche40, treffer40, recent41, stand42,
+  dateien43, ui39 ohne Fehlschlag).
+- **Angepasste Erwartungen** – alle **überholt**, keine davon ein Codefehler:
+  die Prüfstände von Einlaufblech gerade/konisch, Freies Profil,
+  Mauerabdeckung, Kehle, Lukarne und register-zuschnitt kannten
+  `tafelLaenge`/`tafeln`/`verteilung` und die alte Belegungstabelle. Die
+  neuen Erwartungen sind **von Hand nachgerechnet** und stehen als Kommentar
+  daneben (z. B. Mauerabdeckung: acht Stücke, Summe 18'100 mm, Rolle 1000 ÷
+  460 = 2 Streifen, 3020+2010+2010+2010 = 9050 und 2510+2510+2020+2010 =
+  9050 → 9'050 mm ab Rolle).
+- **Zwei Fallen erneut**: die Belegung steht im zugeklappten `<details>` –
+  `innerText` lässt sie weg, `textContent` nicht. Und `.ra-tab` setzt
+  `word-break:break-word`, was die Spaltenköpfe mitten im Wort brach.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` unmittelbar nacheinander gegen v2.87 gerendert –
+  **Bild und DOM byteidentisch** (DOM `455d0fb03b8fa575`, 4878 Zeichen;
+  Bild `82af9acca400e6bd`, 45941 Bytes). `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 33 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung ausgeglichen (Tiefe 0); keine
+  doppelten Element-IDs; jede js-Datei in der Service-Worker-Liste.
+- **Kein Datenbankzugriff** in dieser Runde.
+
+### 92.8 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/29-einlaufblech-aufnahme.js` | gemeinsamer Packkern `ebaVerteile`, neuer Eingang `ebaPackeInBaender`, Bändermodell |
+| `js/30`, `js/32`, `js/34` | Rollenplan je Rollenbreite gepackt |
+| `js/31`, `js/36` | dasselbe je Streifenbreiten-Gruppe |
+| `js/33-zuschnitt.js` | Rollenlänge, Positionsnummern als Marken, Belegung als Karten, Rollenvergleich, Druckvariante |
+| `js/16-massaufnahme-formular.js` | `break-inside:avoid` auf den Drucktabellen |
+| `css/01-basis.css` | `.zu-pos`/`.zu-nr`, `.zu-belegung`/`.zu-platz`, Spaltenköpfe des Vergleichs |
+| `index.html`, `sw.js` | Version 2.88 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/28-rinne-aufnahme.js` (Normlängen),
+sowie `js/11`–`js/15`, `js/17`, `js/19`–`js/27`, `js/35`.
+
+### 92.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird
+  ausdrücklich nicht als getestet behauptet.**
+- **Die Seitenumbrüche sind über die Umbruchregeln im echten Druck-Dokument
+  belegt, nicht durch Rastern der PDF-Seiten** – im Container fehlt ein
+  PDF-Rasterer. Geprüft ist, dass jede Tabelle `break-inside:avoid` trägt,
+  dass sie auf eine Seite passt und dass das PDF erzeugt wird.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken.
+- Die Rollenlänge kann bei vielen Stücken gross werden (z. B. 18 m bei
+  einem Streifen). Das ist bei Rollenblech richtig, wäre bei bezogenen
+  **Tafeln** aber etwas anderes – dafür bräuchte es eine eigene Angabe der
+  Tafellänge im Lager.
+- Beim Freien Profil und bei der Lukarne wird je Streifenbreite ein eigener
+  Abschnitt von der Rolle gezogen; schmale und breite Streifen werden nicht
+  auf derselben Rollenbreite kombiniert. Das ist die vorsichtige Annahme –
+  sie kann Material kosten und gehört in den Praxistest.

@@ -118,39 +118,38 @@ function lukaRollenPlan(){
  const netto=lukaFlaecheM2();
  if(!bleche.length||!breiten.length)
   return {gruppen:[],moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
- // Nach Zuschnittbreite gruppieren, jede Gruppe fuer sich packen.
+ // Nach Zuschnittbreite gruppieren - gepackt wird erst je Rollenbreite, denn
+ // erst die entscheidet, wie viele Streifen nebeneinander liegen.
  const nach=new Map();
  bleche.forEach(x=>{
   if(!nach.has(x.breite))nach.set(x.breite,[]);
   nach.get(x.breite).push(x);
  });
- const gruppen=[]; let optimal=true, zuLang=[];
- Array.from(nach.keys()).sort((a,b)=>b-a).forEach(B=>{
-  const liste=nach.get(B);
-  const L=Math.max.apply(null,liste.map(x=>x.laenge));
-  const v=ebaPackeInStreifen(liste,L);
-  if(v.optimal===false)optimal=false;
-  if(v.zuLang&&v.zuLang.length)zuLang=zuLang.concat(v.zuLang);
-  gruppen.push({breite:B,tafelLaenge:L,streifen:v.streifen||[]});
- });
- const moeglich=[], zuSchmal=[];
+ const gruppen=Array.from(nach.keys()).sort((a,b)=>b-a)
+   .map(B=>({breite:B,stuecke:nach.get(B)}));
+ const moeglich=[], zuSchmal=[]; let optimal=true;
  breiten.forEach(R=>{
   const zeilen=[]; let flaeche=0, passt=true;
   gruppen.forEach(gr=>{
    const jeTafel=Math.floor(R/gr.breite);
    if(jeTafel<1){passt=false;return}
-   const tafeln=Math.ceil(gr.streifen.length/jeTafel);
-   flaeche+=tafeln*R*gr.tafelLaenge/1e6;
-   zeilen.push({breite:gr.breite,jeTafel,tafeln,streifen:gr.streifen.length,
-     tafelLaenge:gr.tafelLaenge});
+   const v=ebaPackeInBaender(gr.stuecke,jeTafel);
+   if(v.optimal===false)optimal=false;
+   flaeche+=R*v.laenge/1e6;
+   zeilen.push({breite:gr.breite,jeTafel,streifen:jeTafel,rollenLaenge:v.laenge,
+     restBreite:R-jeTafel*gr.breite,verteilung:v.streifen});
   });
   if(!passt){zuSchmal.push(R);return}
   moeglich.push({breite:R,zeilen,flaeche,verschnitt:flaeche-netto,
     anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,
-    tafeln:zeilen.reduce((s,x)=>s+x.tafeln,0)});
+    rollenLaenge:zeilen.reduce((s,x)=>s+x.rollenLaenge,0)});
  });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.tafeln-y.tafeln||y.breite-x.breite);
- return {gruppen,moeglich,zuSchmal,bestes:moeglich[0]||null,netto,optimal,zuLang};
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
+ const best=moeglich[0]||null;
+ const gefuellt=gruppen.map((g,i)=>({breite:g.breite,stuecke:g.stuecke,
+   rollenLaenge:best?best.zeilen[i].rollenLaenge:0,
+   streifen:best?best.zeilen[i].verteilung:[]}));
+ return {gruppen:gefuellt,moeglich,zuSchmal,bestes:best,netto,optimal};
 }
 // Der Plan in der gemeinsamen Form (js/33) - damit sieht der Zuschnitt in
 // allen Arten gleich aus.
@@ -160,10 +159,10 @@ function lukaZuschnittPlan(){
   einleitung:ZU_EINLEITUNG_ROLLE, quelle:ZU_QUELLE_ROLLE,
   leer:!lukaScharen().length?"Noch nichts zuzuschneiden – bitte zuerst die Geometrie erfassen."
       :(!lukaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."
-      :"Keine Schar lässt sich auf eine Tafel legen."),
+      :"Keine hinterlegte Rollenbreite ist so breit wie die Zuschnittbreite."),
   streifenbreiten:rp.gruppen.map(g=>g.breite),
   gruppen:rp.gruppen, moeglich:rp.moeglich, netto:rp.netto,
-  zuSchmal:rp.zuSchmal, zuLang:rp.zuLang||[], optimal:rp.optimal!==false};
+  zuSchmal:rp.zuSchmal, optimal:rp.optimal!==false};
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -506,9 +505,13 @@ function lukaZusatzDaten(){
   zuschnitt:{auswahl:(lukA.rollenAuswahl||[]).slice(),
              breiten:lukaRollenbreiten(),
              netto:Number(rp.netto.toFixed(3)),
-             bestes:rp.bestes||null,
-             moeglich:rp.moeglich||[],
-             gruppen:(rp.gruppen||[]).map(g=>({breite:g.breite,tafelLaenge:g.tafelLaenge,
+             bestes:rp.bestes?Object.assign({},rp.bestes,{
+               zeilen:(rp.bestes.zeilen||[]).map(z=>({breite:z.breite,jeTafel:z.jeTafel,
+                 streifen:z.streifen,rollenLaenge:z.rollenLaenge}))}):null,
+             moeglich:(rp.moeglich||[]).map(m=>Object.assign({},m,{
+               zeilen:(m.zeilen||[]).map(z=>({breite:z.breite,jeTafel:z.jeTafel,
+                 streifen:z.streifen,rollenLaenge:z.rollenLaenge}))})),
+             gruppen:(rp.gruppen||[]).map(g=>({breite:g.breite,rollenLaenge:g.rollenLaenge,
                streifen:(g.streifen||[]).map(s=>({
                  stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,
                    breite:x.breite,merkmal:x.merkmal||""})),

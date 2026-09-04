@@ -175,29 +175,25 @@ function madaRollenbreiten(){
 function madaRollenPlan(){
  const A=Math.round(madaZahl(madaProfilMasse().abwicklung));
  const bleche=madaBleche();
- const L=madaTafelLaenge();
  const breiten=madaRollenbreiten();
  const netto=bleche.reduce((s,x)=>s+x.laenge,0)*A/1e6;
  if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,tafelLaenge:L,
-          abwicklung:A,netto,verteilung:null};
- const verteilung=ebaPackeInStreifen(bleche,L);
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto};
  const moeglich=[], zuSchmal=[];
+ let optimal=true;
  breiten.forEach(B=>{
   const jeTafel=Math.floor(B/A);
   if(jeTafel<1){zuSchmal.push(B);return}
-  const streifen=(verteilung&&verteilung.streifen)||[];
-  const tafeln=Math.ceil(streifen.length/jeTafel);
-  const streifenGesamt=tafeln*jeTafel;
-  const flaeche=tafeln*B*L/1e6;
-  moeglich.push({breite:B,jeTafel,tafeln,streifen:streifen.length,
-   ungenutzteStreifen:streifenGesamt-streifen.length,
-   restBreite:B-jeTafel*A,flaeche,verschnitt:flaeche-netto,
+  const v=ebaPackeInBaender(bleche,jeTafel);
+  if(v.optimal===false)optimal=false;
+  const flaeche=B*v.laenge/1e6;
+  moeglich.push({breite:B,jeTafel,streifen:jeTafel,rollenLaenge:v.laenge,
+   restBreite:B-jeTafel*A, verteilung:v.streifen,
+   flaeche,verschnitt:flaeche-netto,
    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
  });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.tafeln-y.tafeln||y.breite-x.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null,tafelLaenge:L,
-         abwicklung:A,netto,verteilung};
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
+ return {moeglich,zuSchmal,bestes:moeglich[0]||null,abwicklung:A,netto,optimal};
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -483,19 +479,18 @@ ${madaFeld("Gesamtlänge",`<div class="ra-wert">${madaMm(madaGesamtlaenge())} mm
 // wird weiterhin hier bzw. in ebaPackeInStreifen().
 function madaZuschnittPlan(){
  const rp=madaRollenPlan();
- const v=rp.verteilung||{};
- const streifen=v.streifen||[];
+ const best=rp.bestes;
  const bleche=madaBleche();
  return {art:"rolle", einheit:"Stück",
   einleitung:ZU_EINLEITUNG_ROLLE,
   quelle:ZU_QUELLE_ROLLE,
   leer:!bleche.length?"Noch kein Zuschnittstück – zuerst den Verlauf erfassen."
       :(!madaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt. Unter Einstellungen → Allgemein → Rollenbreiten des Blechlagers mindestens eine wählen."
-      :"Kein Stück lässt sich auf eine Tafel legen."),
+      :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
   streifenbreiten:[rp.abwicklung],
-  gruppen:streifen.length?[{breite:rp.abwicklung,tafelLaenge:rp.tafelLaenge,streifen}]:[],
+  gruppen:best?[{breite:rp.abwicklung,rollenLaenge:best.rollenLaenge,streifen:best.verteilung||[]}]:[],
   moeglich:rp.moeglich, netto:rp.netto,
-  zuSchmal:rp.zuSchmal, zuLang:v.zuLang||[], optimal:v.optimal!==false};
+  zuSchmal:rp.zuSchmal, optimal:rp.optimal!==false};
 }
 function madaZuschnittHtml(){
  return zuRollenAuswahlHtml(madA.rollenAuswahl,"data-mada-rolle")+zuschnittHtml(madaZuschnittPlan());
@@ -779,12 +774,12 @@ function madaZusatzDaten(){
   ausmass:madaAusmassZeilen(),
   rollen:{auswahl:(madA.rollenAuswahl||[]).slice(),breiten:madaRollenbreiten(),
           abwicklung:plan.abwicklung,
-          tafelLaenge:plan.tafelLaenge,
+          rollenLaenge:plan.bestes?plan.bestes.rollenLaenge:0,
           netto:Number(plan.netto.toFixed(3)),
           bestes:plan.bestes||null,
-          moeglich:plan.moeglich||[],
-          streifen:((plan.verteilung&&plan.verteilung.streifen)||[])
+          moeglich:(plan.moeglich||[]).map(m=>{const o=Object.assign({},m);delete o.verteilung;return o}),
+          streifen:((plan.bestes||{}).verteilung||[])
             .map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})),rest:s.rest})),
-          optimal:plan.verteilung?plan.verteilung.optimal!==false:true}
+          optimal:plan.optimal!==false}
  };
 }

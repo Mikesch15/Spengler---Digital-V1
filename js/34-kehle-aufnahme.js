@@ -155,41 +155,39 @@ function keaRollenbreiten(){
 // Dieselbe Packrechnung wie in allen uebrigen Arten (ebaPackeInStreifen,
 // js/29) - es gibt in der App nur EINE.
 function keaRollenPlan(){
- const A=keaAbwicklung(), bleche=keaBleche(), L=keaTafelLaenge();
+ const A=keaAbwicklung(), bleche=keaBleche();
  const breiten=keaRollenbreiten(), netto=keaFlaecheM2();
  if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,tafelLaenge:L,
-          abwicklung:A,netto,verteilung:null};
- const verteilung=ebaPackeInStreifen(bleche,L);
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto};
  const moeglich=[], zuSchmal=[];
+ let optimal=true;
  breiten.forEach(B=>{
   const jeTafel=Math.floor(B/A);
   if(jeTafel<1){zuSchmal.push(B);return}
-  const streifen=(verteilung&&verteilung.streifen)||[];
-  const tafeln=Math.ceil(streifen.length/jeTafel);
-  const flaeche=tafeln*B*L/1e6;
-  moeglich.push({breite:B,jeTafel,tafeln,streifen:streifen.length,
+  const v=ebaPackeInBaender(bleche,jeTafel);
+  if(v.optimal===false)optimal=false;
+  const flaeche=B*v.laenge/1e6;
+  moeglich.push({breite:B,jeTafel,streifen:jeTafel,rollenLaenge:v.laenge,
+   restBreite:B-jeTafel*A, verteilung:v.streifen,
    flaeche,verschnitt:flaeche-netto,
    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
  });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.tafeln-y.tafeln||y.breite-x.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null,tafelLaenge:L,
-         abwicklung:A,netto,verteilung};
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
+ return {moeglich,zuSchmal,bestes:moeglich[0]||null,abwicklung:A,netto,optimal};
 }
 // Der Plan in der gemeinsamen Form (js/33) - damit sieht der Zuschnitt in
 // allen Arten gleich aus.
 function keaZuschnittPlan(){
- const rp=keaRollenPlan(), v=rp.verteilung||{};
- const streifen=v.streifen||[];
+ const rp=keaRollenPlan(), best=rp.bestes;
  return {art:"rolle", einheit:"Stück",
   einleitung:ZU_EINLEITUNG_ROLLE, quelle:ZU_QUELLE_ROLLE,
   leer:!keaBleche().length?"Noch nichts zuzuschneiden – bitte zuerst Segmente erfassen."
       :(!keaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."
-      :"Kein Stück lässt sich auf eine Tafel legen."),
+      :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
   streifenbreiten:[rp.abwicklung],
-  gruppen:streifen.length?[{breite:rp.abwicklung,tafelLaenge:rp.tafelLaenge,streifen}]:[],
+  gruppen:best?[{breite:rp.abwicklung,rollenLaenge:best.rollenLaenge,streifen:best.verteilung||[]}]:[],
   moeglich:rp.moeglich, netto:rp.netto,
-  zuSchmal:rp.zuSchmal, zuLang:v.zuLang||[], optimal:v.optimal!==false};
+  zuSchmal:rp.zuSchmal, optimal:rp.optimal!==false};
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -605,9 +603,12 @@ function keaZusatzDaten(){
   zuschnittSumme:Math.round(keaSummeZuschnitt()),
   flaeche_m2:keaFlaecheM2(),
   ausmass:keaAusmassZeilen(),
-  rollen:{auswahl:(kehleA.rollenAuswahl||[]).slice(),abwicklung:rp.abwicklung,tafelLaenge:rp.tafelLaenge,netto:rp.netto,
-          moeglich:rp.moeglich,bestes:rp.bestes,zuSchmal:rp.zuSchmal,
-          verteilung:rp.verteilung}
+  rollen:{auswahl:(kehleA.rollenAuswahl||[]).slice(),abwicklung:rp.abwicklung,
+          rollenLaenge:rp.bestes?rp.bestes.rollenLaenge:0,netto:rp.netto,
+          moeglich:(rp.moeglich||[]).map(m=>{const o=Object.assign({},m);delete o.verteilung;return o}),
+          bestes:rp.bestes,zuSchmal:rp.zuSchmal,optimal:rp.optimal!==false,
+          streifen:((rp.bestes||{}).verteilung||[]).map(s=>({
+            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})),rest:s.rest}))}
  };
 }
 function keaZuruecksetzen(){

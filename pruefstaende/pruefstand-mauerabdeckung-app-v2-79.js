@@ -388,25 +388,39 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
  await reg(page,6);
  const rp=await page.evaluate(()=>{
   const r=madaRollenPlan();
-  return {abw:r.abwicklung,tafel:r.tafelLaenge,netto:r.netto,
-   streifen:(r.verteilung&&r.verteilung.streifen||[]).length,
-   optimal:r.verteilung?r.verteilung.optimal:null,
-   moeglich:r.moeglich.map(m=>[m.breite,m.jeTafel,m.tafeln,Number(m.flaeche.toFixed(4)),Number(m.verschnitt.toFixed(4))]),
+  return {abw:r.abwicklung,netto:r.netto,optimal:r.optimal,
+   moeglich:r.moeglich.map(m=>[m.breite,m.jeTafel,m.rollenLaenge,Number(m.flaeche.toFixed(4)),Number(m.verschnitt.toFixed(4))]),
    bestes:r.bestes?r.bestes.breite:null,
-   text:$("mauerabdeckungAufnahme").innerText};
+   belegung:(r.bestes&&r.bestes.verteilung||[]).map(x=>x.stuecke.map(y=>y.nr+":"+y.laenge)),
+   summe:(madaBleche()||[]).reduce((a,x)=>a+x.laenge,0),
+   text:$("mauerabdeckungAufnahme").innerText,
+   // Die Belegung steht im zugeklappten <details> - innerText laesst sie weg.
+   alles:$("mauerabdeckungAufnahme").textContent};
  });
  p(rp.abw===460,"Abwicklung 460 mm ist die Streifenbreite",rp);
- p(rp.tafel===3020&&rp.streifen===8,"Tafel = laengstes Stueck, acht Streifen",rp);
+ // Seit v2.88 wird JEDES Stueck auf SEINE Laenge geschnitten: von der Rolle
+ // laufen nebeneinander so viele Streifen, wie ihre Breite hergibt, und die
+ // Rollenlaenge ist die des vollsten Streifens.
+ // Von Hand: acht Stuecke, Summe 18'100 mm, Abwicklung 460.
+ p(rp.summe===18100,"Summe der Zuschnitte 18'100 mm",rp.summe);
+ p(Math.abs(rp.netto-18100*460/1e6)<1e-6,"netto = Summe × Abwicklung = 8.326 m²",rp.netto);
  const r1000=rp.moeglich.find(m=>m[0]===1000), r670=rp.moeglich.find(m=>m[0]===670);
  p(!!r1000&&!!r670,"beide Standardrollen stehen in der Liste",rp.moeglich);
- p(!!r1000&&r1000[1]===2&&r1000[2]===4&&Math.abs(r1000[3]-12.08)<1e-6,
-   "1'000 mm: 2 Streifen je Tafel, 4 Tafeln, 12.08 m²",r1000);
- p(!!r670&&r670[1]===1&&r670[2]===8&&Math.abs(r670[3]-16.1872)<1e-4,
-   "670 mm: 1 Streifen je Tafel, 8 Tafeln, 16.19 m²",r670);
- p(!!r1000&&Math.abs(r1000[4]-(12.08-rp.netto))<1e-6,"Verschnitt = Tafelflaeche - Zuschnitte netto",
+ // 1000 ÷ 460 = 2 Streifen. 18'100 auf zwei Streifen geht genau auf:
+ // 3020+2010+2010+2010 = 9050 und 2510+2510+2020+2010 = 9050.
+ p(!!r1000&&r1000[1]===2&&r1000[2]===9050&&Math.abs(r1000[3]-9.05)<1e-6,
+   "1'000 mm: 2 Streifen, 9'050 mm ab Rolle, 9.05 m²",r1000);
+ // 670 ÷ 460 = 1 Streifen -> die ganzen 18'100 mm hintereinander.
+ p(!!r670&&r670[1]===1&&r670[2]===18100&&Math.abs(r670[3]-670*18100/1e6)<1e-6,
+   "670 mm: 1 Streifen, 18'100 mm ab Rolle, 12.13 m²",r670);
+ p(!!r1000&&Math.abs(r1000[4]-(9.05-rp.netto))<1e-6,"Verschnitt = Blechflaeche - Zuschnitte netto",
    {r1000,netto:rp.netto});
  p(rp.bestes===1000,"die breitere Rolle braucht weniger Material und steht zuoberst",rp);
- p(/Streifen/.test(rp.text)&&/Stück 1/.test(rp.text),"die Belegung nennt jedes Stueck mit Nummer");
+ // Jedes Stueck taucht in der Belegung genau EINMAL auf, mit seiner Nummer.
+ const nrn=rp.belegung.flat().map(x=>Number(x.split(":")[0])).sort((a,b)=>a-b);
+ p(nrn.join()==="1,2,3,4,5,6,7,8","jedes Stueck liegt genau einmal in einem Streifen",nrn);
+ p(/STÜCK/i.test(rp.text)&&/Streifen 1/.test(rp.alles),
+   "die Belegung nennt jedes Stueck mit Nummer");
  // Ein Fall, bei dem eine gierige Verteilung MEHR Streifen braucht: zwei
  // kurze Stuecke muessen hintereinander in einen Streifen passen. Ohne die
  // Packrechnung aus js/29 kaeme hier ein Streifen zu viel heraus.
@@ -417,13 +431,17 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
                  {laenge:1500,winkel:0,bodenLinks:false,bodenRechts:false}];
   madA.schieberManuell=false; madaSchieberNeu();
   const r=madaRollenPlan();
-  const streifen=((r.verteilung||{}).streifen||[]).map(s=>s.stuecke.map(x=>x.laenge));
+  const b=r.moeglich.find(m=>m.breite===1000)||r.bestes;
+  const streifen=((b&&b.verteilung)||[]).map(s=>s.stuecke.map(x=>x.laenge));
+  const rollenLaenge=b?b.rollenLaenge:0;
   madA=stand; madaSchieberNeu();
-  return {tafel:r.tafelLaenge,streifen};
+  return {rollenLaenge,streifen};
  });
- p(packen.streifen.length===2,
-   "4000 + 1500 + 1500 kommen mit zwei Streifen aus",packen);
- p(packen.streifen.some(s=>s.length===2&&s[0]+s[1]<=packen.tafel+1e-9),
+ // 1000 ÷ 460 = 2 Streifen. 4000 | 1500+1500 = 3000 -> Rollenlaenge 4000.
+ // Ohne die Packrechnung laege jedes Stueck fuer sich und es kaeme mehr heraus.
+ p(packen.streifen.length===2&&packen.rollenLaenge===4000,
+   "4000 | 1500+1500 auf zwei Streifen, 4'000 mm ab Rolle",packen);
+ p(packen.streifen.some(s=>s.length===2&&s[0]+s[1]<=packen.rollenLaenge+1e-9),
    "zwei kurze Stuecke liegen hintereinander in einem Streifen",packen);
  const schmal=await page.evaluate(()=>{
   blechRollenbreiten=[330,250];
