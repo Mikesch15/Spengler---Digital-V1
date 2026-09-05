@@ -426,6 +426,7 @@ function newMeasurementWithType(type){
  $("luk_material").value="";
  renderLukResult();
  anbFormularZuruecksetzen();
+ if(typeof anbaZuruecksetzen==="function")anbaZuruecksetzen();
  $("anb_material").value="";
  einfFormularZuruecksetzen();
  if(typeof einfaZuruecksetzen==="function")einfaZuruecksetzen();
@@ -546,6 +547,7 @@ function openMeasurement(m){
   renderLukResult();
  }
  anbFormularFuellen(m.type==="anschlussblech"?d:null);
+ if(typeof anbaFuellen==="function")anbaFuellen(m.type==="anschlussblech"?d:null);
  $("anb_material").value=(m.type==="anschlussblech"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
  einfFormularFuellen(m.type==="einfassung_rund"?d:null);
  if(typeof einfaFuellen==="function")einfaFuellen(m.type==="einfassung_rund"?d:null);

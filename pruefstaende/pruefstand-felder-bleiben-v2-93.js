@@ -26,7 +26,8 @@ const ARTEN=[
  {typ:"lukarne",             wurzel:"measTypeLukarne",               setz:"lukaSetzeSchritt", reg:"LUKA_REGISTER"},
  {typ:"kamineinfassung",     wurzel:"measTypeKamin",                 setz:"kamaSetzeSchritt", reg:"KAM_REGISTER"},
  {typ:"einfassung_rund",     wurzel:"measTypeEinfassungRund",        setz:"einfaSetzeSchritt",reg:"EINFA_REGISTER"},
- {typ:"rinne",               wurzel:"measTypeRinneProfil",           setz:"rpaSetzeSchritt",  reg:"RPA_REGISTER"}
+ {typ:"rinne",               wurzel:"measTypeRinneProfil",           setz:"rpaSetzeSchritt",  reg:"RPA_REGISTER"},
+ {typ:"anschlussblech",      wurzel:"measTypeAnschlussblech",        setz:"anbaSetzeSchritt", reg:"ANBA_REGISTER"}
 ];
 
 (async()=>{

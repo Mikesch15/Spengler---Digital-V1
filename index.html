@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.00</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.01</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -794,24 +794,46 @@ mindestens eines von beiden ist nötig.</div>
 </div>
 
 <div id="measTypeAnschlussblech" hidden>
-<div class="info">Ort- und Seitenbleche nach [7.3.37]. Zeichnung und Abwicklung stammen aus derselben Linie, können also nicht auseinanderlaufen. Die Mindestmasse werden geprüft; beim Biberschwanzziegel gilt beim Steg b = 60 mm statt 70 mm. Der Bleilappen wird gezeichnet und bemasst, z&auml;hlt aber nicht zum Zuschnitt &ndash; er ist aus Blei und wird nicht mit dem Blech gekantet.</div>
+<!-- ===================================================================
+     Register-Aufnahme (v3.01). Wie bei der Rinne-Zuschnittliste gibt es
+     KEINEN Stummel: js/20-anschlussblech.js haengt seine Handler direkt
+     an #anb_segmenteBody und die Auswahl-/Zahlenfelder und zeichnet
+     selbst in #anb_masse, #anb_abschluss, #anb_zeichnung, #anb_ergebnis
+     und #anb_stuecklisteBody. Ein Neuschreiben per innerHTML wuerde sie
+     samt Handler vernichten. Die Register 1 bis 4 stehen deshalb fest
+     hier und werden von js/40 nur ein- und ausgeblendet; geschrieben
+     wird ausschliesslich in #anba_seite5 bis #anba_seite7.
+     =================================================================== -->
+<div class="ra-register" id="anba_register"></div>
+
+<div id="anba_seite1" class="anba-seite" hidden>
+<div class="card"><h2>1 &middot; Grunddaten</h2>
+<div class="info">Ort- und Seitenbleche nach [7.3.37]. Zeichnung und Abwicklung stammen aus derselben Linie, k&ouml;nnen also nicht auseinanderlaufen. Die Mindestmasse werden gepr&uuml;ft; beim Biberschwanzziegel gilt beim Steg b = 60 mm statt 70 mm.</div>
 <div class="grid">
 <div><label>Deckmaterial</label><select id="anb_deckung"></select></div>
 <div><label>Anschlussart</label><select id="anb_art"></select></div>
 <div><label>Ausf&uuml;hrung</label><select id="anb_ausfuehrung"><option value="seite">Seitenblech (Wand)</option><option value="ort">Ortblech (Giebel)</option></select></div>
 <div><label>Material</label><select id="anb_material" class="meas-material-select"></select></div>
 </div>
-<h2 style="margin-top:14px">Masse des Schnitts</h2>
+<div class="bar" style="margin-top:6px"><button type="button" class="gray" id="openAnschlussblechSettings">&#9881;&#65039; Standardwerte</button></div>
+</div>
+</div>
+
+<div id="anba_seite2" class="anba-seite" hidden>
+<div class="card"><h2>2 &middot; Schnitt</h2>
+<div class="info">Der Bleilappen wird gezeichnet und bemasst, z&auml;hlt aber nicht zum Zuschnitt &ndash; er ist aus Blei und wird nicht mit dem Blech gekantet.</div>
 <div class="grid" id="anb_masse"></div>
 <div class="grid" id="anb_abschluss" style="margin-top:8px"></div>
 <div class="grid" style="margin-top:8px">
 <div><label>Umschlag am Blechende (mm)</label><input id="anb_saum" type="number" step="1" inputmode="numeric"></div>
 </div>
-<div class="bar" style="margin-top:6px"><button type="button" class="gray" id="openAnschlussblechSettings">⚙️ Standardwerte</button></div>
-<h2 style="margin-top:14px">Schnitt</h2>
-<div id="anb_zeichnung" class="eb-diagram-box"></div>
+<div id="anb_zeichnung" class="eb-diagram-box" style="margin-top:12px"></div>
 <div id="anb_warnung" class="small"></div>
-<h2 style="margin-top:14px">Segmente</h2>
+</div>
+</div>
+
+<div id="anba_seite3" class="anba-seite" hidden>
+<div class="card"><h2>3 &middot; Segmente</h2>
 <div class="info">Jedes Segment ist ein gerades St&uuml;ck. Ein Knick unterbricht ein Segment; Winkel und Mass ab Vorderkante sind nur zur Dokumentation und &auml;ndern Zuschnitt und Abwicklung nicht.</div>
 <div class="scroll">
 <table class="eb-table">
@@ -820,9 +842,13 @@ mindestens eines von beiden ist nötig.</div>
 <tbody id="anb_segmenteBody"></tbody>
 </table>
 </div>
-<div class="bar"><button type="button" class="gray" id="anb_addSegment">＋ Segment hinzuf&uuml;gen</button></div>
+<div class="bar"><button type="button" class="gray" id="anb_addSegment">&#65291; Segment hinzuf&uuml;gen</button></div>
 <div id="anb_segmenteSummary" class="small" style="margin-top:6px"></div>
-<h2 style="margin-top:14px">St&uuml;ckliste</h2>
+</div>
+</div>
+
+<div id="anba_seite4" class="anba-seite" hidden>
+<div class="card"><h2>4 &middot; St&uuml;ckliste</h2>
 <div class="grid">
 <div><label>St&uuml;ckl&auml;nge (mm)</label><input id="anb_stossLaenge" type="number" step="1" inputmode="numeric"></div>
 <div><label>&Uuml;berlappung am Stoss (mm)</label><input id="anb_ueberlappung" type="number" step="1" inputmode="numeric"></div>
@@ -839,6 +865,14 @@ mindestens eines von beiden ist nötig.</div>
 </table>
 </div>
 <div id="anb_summary" class="small" style="margin-top:6px"></div>
+</div>
+</div>
+
+<div id="anba_seite5" class="anba-seite" hidden></div>
+<div id="anba_seite6" class="anba-seite" hidden></div>
+<div id="anba_seite7" class="anba-seite" hidden></div>
+
+<div class="bar ra-blaettern" id="anba_blaettern"></div>
 </div>
 
 <div id="measTypeEinfassungRund" hidden>
@@ -1661,6 +1695,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/37-kamin-aufnahme.js"></script>
 <script src="js/38-einfassung-aufnahme.js"></script>
 <script src="js/39-rinne-aufnahme.js"></script>
+<script src="js/40-anschlussblech-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

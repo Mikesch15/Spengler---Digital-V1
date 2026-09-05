@@ -35,7 +35,11 @@ const ARTEN=[
  // Rinne (Zuschnittliste): die Register 1-3 stehen fest im HTML, deshalb ist
  // die Wurzel der ganze Block und nicht ein eigener Aufnahme-Container.
  {typ:"rinne",               name:"Rinne",               wurzel:"measTypeRinneProfil",
-  setz:"rpaSetzeSchritt", reg:"RPA_REGISTER", art:"rolle"}
+  setz:"rpaSetzeSchritt", reg:"RPA_REGISTER", art:"rolle"},
+ // Ort- und Seitenbleche: wie bei der Rinne stehen die Register 1-4 fest im
+ // HTML, deshalb ist die Wurzel der ganze Block.
+ {typ:"anschlussblech",      name:"Ort- und Seitenbleche", wurzel:"measTypeAnschlussblech",
+  setz:"anbaSetzeSchritt",reg:"ANBA_REGISTER",art:"rolle"}
 ];
 
 const zeige=async(page,typ)=>{
@@ -163,7 +167,8 @@ const auf=async(page,a)=>{
   ra:String(raZuschnittHtml), eba:String(ebaZuschnittHtml),
   ebka:String(ebkaZuschnittHtml), fpa:String(fpaZuschnittHtml),
   mada:String(madaZuschnittHtml), kea:String(keaKopfInhalt),
-  rpa:String(renderRinneAufnahmeRegister)
+  rpa:String(renderRinneAufnahmeRegister),
+  anba:String(renderAnschlussblechAufnahme)
  }));
  Object.keys(quellen).forEach(k=>p(quellen[k].indexOf("zuschnittHtml(")>=0,
    k+"ZuschnittHtml() ruft die gemeinsame Darstellung auf",quellen[k].slice(0,90)));
@@ -176,7 +181,8 @@ const auf=async(page,a)=>{
   fpa:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(fpaZuschnittHtml)),
   mada:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(madaZuschnittHtml)),
   kea:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(keaKopfInhalt)),
-  rpa:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(renderRinneAufnahmeRegister))
+  rpa:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(renderRinneAufnahmeRegister)),
+  anba:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(renderAnschlussblechAufnahme))
  }));
  Object.keys(alt).forEach(k=>p(alt[k]===false,k+": keine eigene Zuschnitt-Tabelle mehr",alt));
 
@@ -226,6 +232,14 @@ const auf=async(page,a)=>{
              {links:[130,195,205],rechts:[130,195,205],laenge:2000,ansetzL:"dila",ansetzR:"dila"},
              {links:[130,195,205],rechts:[130,195,205],laenge:2000,ansetzL:"dila",ansetzR:"dila"}]});
   rpaFuellen({material:"2"});
+  // Ort- und Seitenbleche: Pfannenziegel, Bleilappen, Seitenblech, zwei Segmente
+  // Die Felder fuellt wie im Betrieb js/20 (anbFormularFuellen); js/40 setzt
+  // danach nur die Rollenauswahl und zeichnet.
+  anbFormularFuellen({deckung:"pfanne",art:"bleilappen",ausfuehrung:"seite",material:"2",
+    a:50,b:50,saum:15,wandAufkantung:150,stossLaenge:2000,ueberlappung:70,
+    lattenabstand:330,firstgehrung:false,
+    segmente:[{laenge:4000,knick:false},{laenge:2500,knick:false}]});
+  anbaFuellen({});
  });
  for(const a of ARTEN){
   await zeige(page,a.typ);
@@ -319,7 +333,7 @@ const auf=async(page,a)=>{
  const listenNamen={rinne_halbrund:"Stückliste",mauerabdeckung:"Stückliste",
    einlaufblech_gerade:"Stücke",einlaufblech_konisch:"Stücke",freies_profil:"Segmente",
    kehle:"Segmente",kamineinfassung:"Stückliste",einfassung_rund:"Stückliste",
-   rinne:"Stücke"};
+   rinne:"Stücke",anschlussblech:"Stückliste"};
  for(const a of ARTEN){
   const name=listenNamen[a.typ];
   const nr=listen[a.typ].indexOf(name)+1;
@@ -382,6 +396,8 @@ const auf=async(page,a)=>{
   // Rinne (Zuschnittliste): der leere Zustand ist ein Stueck ohne Laenge M/M -
   // genau das legt rinneFormularFuellen(null) an.
   rinneFormularFuellen(null); rpaFuellen(null);
+  // Ort- und Seitenbleche: leer heisst kein Segment mit einer Laenge.
+  anbFormularFuellen(null); anbaFuellen(null);
  });
  for(const a of ARTEN){
   if(a.art==="stange")continue;      // die Rinne meldet die fehlende Normlaenge

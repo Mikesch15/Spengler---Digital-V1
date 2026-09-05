@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.00, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.01, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.00**
+- sichtbare App-Version: **3.01**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -16484,3 +16484,244 @@ keine Abwicklung und keine Packrechnung einer bestehenden Art berührt.
   Array-Strukturen, Klasse C aus Abschnitt 42.2) – unverändert seit v2.56.
 - Damit haben **zehn** der zwölf Massaufnahme-Arten Register; ohne sind
   weiterhin Skizze/Foto (bewusst, Abschnitt 89.1) und Ort- und Seitenbleche.
+
+## 105. ORT- UND SEITENBLECHE ALS REGISTER-AUFNAHME — VERSION 3.01
+
+Die Massaufnahme **Ort- und Seitenbleche** (interner Typ `anschlussblech`)
+wird nicht mehr als ein langes Formular erfasst, sondern über **sieben
+Register** – elftes und letztes rechnendes Modul nach demselben Muster wie
+Rinne Halbrund (v2.71), Einlaufblech gerade (v2.74) und konisch (v2.76),
+Freies Profil (v2.77), Mauerabdeckung (v2.79), Kehle (v2.83), Lukarne (v2.87),
+Kamineinfassung (v2.90), Einfassung Rund (v2.96) und Rinne (v3.00).
+
+    1 Grunddaten · 2 Schnitt · 3 Segmente · 4 Stückliste ·
+    5 Zuschnitt · 6 Ausmass · 7 Kontrolle
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung.**
+
+Damit haben **elf der zwölf** Massaufnahme-Arten Register. Ohne bleibt nur
+noch **Skizze / Foto** – bewusst, weil sie ausser dem Material kein einziges
+Eingabefeld hat und Register dort nur Klicks kosten würden (Abschnitt 89.1).
+
+### 105.1 Kein Stummel – wie bei der Rinne-Zuschnittliste
+
+`js/20-anschlussblech.js` hängt seine Handler **direkt** an
+`#anb_segmenteBody`, `#anb_deckung`, `#anb_art`, `#anb_ausfuehrung` und die
+Zahlenfelder und zeichnet selbst in `#anb_masse`, `#anb_abschluss`,
+`#anb_zeichnung`, `#anb_ergebnis` und `#anb_stuecklisteBody`. Ein Neuschreiben
+per `innerHTML` würde diese Elemente samt Handler vernichten – dieselbe Falle
+wie beim Übernahme-Block des Einlaufblechs (84.3), beim Erkennungs-Block des
+Freien Profils (85.2) und bei der Rinne (104.2).
+
+Deshalb gibt es hier **keinen Stummel**:
+
+| Register | Herkunft |
+|---|---|
+| 1 Grunddaten (Deckmaterial, Anschlussart, Ausführung, Material) | **fest im HTML**, nur ein-/ausgeblendet |
+| 2 Schnitt (Massfelder, Abschluss, Umschlag, Zeichnung) | **fest im HTML**, gezeichnet von js/20 |
+| 3 Segmente (Tabelle, Knopf, Zusammenfassung) | **fest im HTML**, gezeichnet von js/20 |
+| 4 Stückliste (Stücklänge, Überlappung, Lattenabstand, Firstgehrung, Ergebnis) | **fest im HTML**, gezeichnet von js/20 |
+| 5 Zuschnitt | js/40 schreibt hinein |
+| 6 Ausmass | js/40 schreibt hinein |
+| 7 Kontrolle | js/40 schreibt hinein |
+
+`js/40-anschlussblech-aufnahme.js` schreibt ausschliesslich in die Register 5
+bis 7, in die Registerleiste und in die Blätterleiste.
+**`js/20-anschlussblech.js` ist byteweise unverändert** – per `git diff`
+bestätigt.
+
+Aus demselben Grund führt eine Eingabe in den Registern 1 bis 4 **nie** zu
+einem Neuzeichnen durch js/40; nachgeführt wird nur die Marke am
+Kontroll-Register (`anbaMarkeNachfuehren()`). Sonst verlöre ein gerade
+bearbeitetes Feld nach dem ersten Zeichen den Fokus (66.1).
+
+### 105.2 Die Rechnung ist unverändert js/20
+
+Die Brücke ist zustandslos: `anbaEingaben()` **ist**
+`anbEingabenAusFeldern()`, `anbaErgebnis()` **ist**
+`berechneAnschlussblech(anbaEingaben())`. Es gibt **keinen Nachbau** – der
+Prüfstand vergleicht die Teile-Liste Zeichen für Zeichen mit dem direkten
+Aufruf der Fachdatei. Die Grundlage „Dimensionierung der Anschlussbleche"
+[7.3.37] und die Mindestmasse bleiben unverändert die Referenz; auch die
+variantenabhängigen Massfelder (Klasse B, Abschnitt 43.1) sind unberührt.
+
+Von Hand nachgerechneter Prüffall (Pfannenziegel, Bleilappen, Seitenblech,
+a = 50, b = 50, Umschlag 15, Wandaufkantung 150, Stücklänge 2000,
+Überlappung 70, Restschwelle 300, Segmente 4000 + 2500):
+
+| | Wert |
+|---|---|
+| Abwicklung | **265 mm** (50 + 50 + 15 + 150) |
+| Gesamtlänge | 6500 mm |
+| Zuschnitte | **2070 / 2000 / 2070 / 500**, je 265 mm breit |
+| Blechfläche | 1,7596 m² (265 × 6640) |
+| Abschnitt | 2070 mm (längstes Stück), **4 Streifen** |
+| beste Rolle | **670 mm** → 2 Abschnitte → 2,7738 m², Verschnitt 1,0142 m² |
+| 1000er Rolle | 3 Streifen je Abschnitt → 2 Abschnitte → 4,14 m² |
+| Bleilappen | 19 (6500 ÷ 330, abgerundet – unverändert aus js/20) |
+
+### 105.3 Neu gegenüber v3.00
+
+- **Zuschnitt aus Rollenblech** über die gemeinsamen Bausteine:
+  `zuschnittHtml()` / `zuDruckHtml()` aus js/33, gepackt mit
+  `ebaPackeInStreifen()` aus js/29 – es gibt in der App weiterhin genau **eine**
+  Packrechnung. Anders als beim Freien Profil und bei der Lukarne haben hier
+  **alle** Stücke dieselbe Abwicklung, also gibt es genau eine Streifenbreite.
+  * Gruppiert wird nach Länge, Breite **und Bearbeitung**: das Endstück mit
+    **Firstgehrung** trägt ein eigenes `merkmal` und darf nicht mit einem
+    geraden Stück derselben Länge in einer Sammelzeile verschwinden (90.2).
+  * Die Rollenbreiten kommen aus `app_settings.blech_rollenbreiten`
+    (firmenweit, seit v2.74) mit der Auswahl je Massaufnahme (v2.85) –
+    **keine neue Einstellung**.
+- **Ausmass und Materialübersicht** ohne zweite Eingabe, ohne Artikelnummern
+  und **ohne Preise**: Länge in Metern, Anzahl Segmente, Zuschnittstücke,
+  Zuschnittbreite, Materialfläche verlegt, Blechfläche Zuschnitt, je Teil des
+  Schnitts seine Abwicklung, Knicke im Verlauf, Bleilappen, Endstück mit
+  Firstgehrung. Was js/20 als „eigenes Material" ausweist (der Bleilappen ist
+  aus Blei), steht als eigene Zeile mit „–" statt einer erfundenen Menge.
+- **Kontrolle** mit Marke am Register (rot bei Fehler). Die **Mindestmasse der
+  Norm** kommen unverändert aus `berechneAnschlussblech()` und gelten hier als
+  **Fehler**, nicht als Geschmacksfrage; dazu fehlendes Mass a, kein Segment
+  mit Länge, negative Segmentlänge, fehlende Stücklänge, Überlappung ≥
+  Stücklänge sowie Warnungen für fehlendes Material, fehlenden Lattenabstand,
+  einen Knick ohne Winkel und Mass und eine fehlende oder zu schmale Rolle.
+- **PDF-Listenauswahl** über js/35 – keine eigene Auswahllogik. Der Druckzweig
+  ist um Ausmass und Rollenblech erweitert; jeweils nur, wenn sie im Datensatz
+  stehen.
+- **Fotos und Skizzen am Ende**: `MEAS_MEDIEN_AM_ENDE` um `anschlussblech`
+  erweitert (v2.75-Mechanik unverändert).
+
+### 105.4 Speichern: Superset
+
+js/16 schreibt **unverändert** dieselben Felder wie bisher (die Eingaben aus
+`anbEingabenAusFeldern()` plus `abwicklung`, `teile`, `stueckliste`, `flaeche`
+und `material`) und ergänzt nur `flaeche_m2`, `ausmass` und `zuschnitt`. Eine
+vor v3.01 gespeicherte Aufnahme öffnet unverändert und druckt ohne die neuen
+Abschnitte. Es wird **nichts nachgerechnet** – der Druck nimmt den
+gespeicherten Rollenplan, ein einmal gedrucktes Blatt bleibt gleich.
+
+### 105.5 Getestet
+
+- **`pruefstaende/pruefstand-anschlussblech-app-v3-01.js` – 95/95**, echtes
+  Chromium gegen die echte `index.html`: Modul und geteilte Bausteine (inkl.
+  Nachweis, dass `anbaErgebnis()` die Fachrechnung ist), sieben Register (nur
+  eine Seite sichtbar, Blättern, Fertig-Knopf), Schnitt und Segmente kommen
+  weiterhin von js/20 (der Wechsel der Anschlussart baut die Massfelder auch
+  **nach** einem Registerwechsel neu auf – die direkt gebundenen Handler
+  überleben), echtes Tippen mit Fokusprüfung, die von Hand nachgerechneten
+  Werte aus 105.2, Zuschnitt gegen die **wirklich gerufene** gemeinsame
+  Packrechnung (und dass zwei kurze Stücke im selben Streifen landen),
+  Firstgehrung als eigener Zuschnitt, Ausmass, Kontrolle, Marke am
+  Kontroll-Register (beim Zeichnen **und** beim Nachführen), Speichern und
+  Wiederöffnen, ein Datensatz bis v3.00, Fotos erst nach „Fertig", Druck (neu
+  und alt), fünf Bildschirmbreiten × sieben Register, keine JavaScript-Fehler.
+- **Zwölf Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | Brücke nachgebaut statt Fachrechnung | 70/95 |
+  | Abschnitt so lang wie die Summe statt wie das längste Stück | 89/95 |
+  | Zusatzfelder nicht gespeichert | 89/95 |
+  | eigene Packrechnung statt `ebaPackeInStreifen` | 93/95 |
+  | Firstgehrung ohne eigenes Merkmal | 94/95 |
+  | Superset verletzt (alte Felder nicht mehr gespeichert) | 94/95 |
+  | Fotos schon während der Register | 94/95 |
+  | Kontrolle nicht als letztes Register | 94/95 |
+  | Rollenauswahl wirkt nicht auf die Rechnung | 94/95 |
+  | Kontroll-Marke an fester Nummer statt an der Registerzahl | 94/95 |
+  | Rollenblech fehlt im PDF | 94/95 |
+  | Mindestmass nur eine Warnung statt eines Fehlers | 94/95 |
+
+- **Zwei Gegenproben deckten zuerst Schwächen im Prüfstand auf.** Die erste
+  liess ihn **abbrechen** statt fehlschlagen (ein Zugriff auf
+  `plan.gruppen[0].abschnittLaenge`, wenn keine Gruppe entsteht) – ein
+  abgebrochener Lauf sieht aus wie „keine Fehler"; die Stellen sind jetzt
+  abgesichert, danach beisst sie mit 70/95. Die zweite blieb **grün**: die
+  Marke wurde nur über `anbaMarkeNachfuehren()` geprüft, also gar nicht auf dem
+  Zeichenweg. Geprüft wird jetzt zusätzlich, dass die Marke schon beim
+  **Zeichnen** entsteht und am **letzten** Register sitzt – gemessen über die
+  Position in der Leiste, nicht über die Konstante.
+- **Zwei Erwartungen waren meine, nicht die des Codes**: die Ausmass-Zeile
+  „Bleilappen" wurde mit `/Bleilappen/` gesucht, was auch auf Position 1
+  („Seitenblech mit Bleilappen, Länge") passt – jetzt genau verglichen; und
+  `pdfLxB()` schreibt seit v2.81 **ohne** Tausendertrenner und mit der Einheit
+  im Spaltenkopf („2070 × 265"), nicht „2'070 mm × 265 mm" – die Prüfung
+  vergleicht jetzt das, was der Hausstil wirklich erzeugt.
+- **Die neue Art wurde in die gemeinsamen Prüfstände aufgenommen**:
+  register-zuschnitt 373/373 (vorher 340), medien-am-ende 149/149 (vorher
+  137), felder-bleiben 23/23 (vorher 21). lxb-druck 58/58 deckte sie seit
+  v2.84 bereits ab.
+- **Volle Regression grün** – alle 19 Prüfstände im Repo (verschnitt 1578,
+  register-zuschnitt 373, kehle 158, kamin 153, medien-am-ende 149,
+  mauerabdeckung 146, freies-profil 118, konisch 114, einfassung 113,
+  rinne-halbrund 104, einlaufblech 99, anschlussblech 95, rinne-zuschnitt 95,
+  rollenblech-pdf 95, lukarne 82, lxb-druck 58, dila-sichtbar 57,
+  skizze-foto 54, felder-bleiben 23) und die archivierten (kehle52 698,
+  pdf52 526, required70 395, rinne57 380, einf70 185, normbrute 1578,
+  offline70 131, feedback63 108, freipos65 99, fotos70 88, dila70 85,
+  breite57 84, fp70 83, kehleintegration52 76, feedbackbrowser63 67,
+  breite52 52, einstbrowser68 51, ebg70 49, feedback70 47, einst68 47,
+  mad70 45, module67 43, medien50 42, adresse45 39, pfade55 39,
+  dateien49 38, projekte47 37, status46 35, freiposbrowser65 33,
+  auswahl48 32, modulebrowser67 16, suche45 13, kopf45 8, hidden51 7,
+  abstand69 2, sowie dateien43, nav, recent41, stand42, suche40, treffer40,
+  ui39 ohne Fehlschlag).
+- **Zwei überholte Erwartungen** angepasst, keine davon ein Codefehler:
+  `fotos70` und der Mauerabdeckungs-Prüfstand führten `anschlussblech` noch
+  unter den Arten **ohne** Register. Der zweite listete die registerlosen Arten
+  von Hand auf – dort steht jetzt nur noch `skizze_foto`, mit dem Hinweis, dass
+  es die einzige verbliebene ist.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.00-Stand gerendert (die Druck-Fusszeile enthält die Uhrzeit, 100.6) –
+  **Bild und DOM byteidentisch** (DOM `7b64a6223502c622`, 5428 Zeichen; Bild
+  `14d16a0f1c95c416`, 51 534 Bytes), bestätigt durch einen dritten Lauf
+  desselben Codes. `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+  `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 42 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs; jede der 42 js-Dateien in
+  `index.html` **und** in der Service-Worker-Liste; Version 3.01 in
+  `index.html` und `sw.js` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 105.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/40-anschlussblech-aufnahme.js` | **neu** – Registerleiste, Zuschnitt, Ausmass, Kontrolle, Speichern/Laden |
+| `index.html` | `#measTypeAnschlussblech` auf Register umgebaut (feste Seiten 1–4), Script-Tag, Version 3.01 |
+| `js/16-massaufnahme-formular.js` | Modul mitzeichnen, Payload-Superset, Medien am Ende, Druck um Ausmass und Rollenblech erweitert |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `sw.js` | Cache-Version 3.01, neue Datei im SHELL |
+| `pruefstaende/pruefstand-anschlussblech-app-v3-01.js` | **neu** |
+| vier gemeinsame Prüfstände | Ort- und Seitenbleche aufgenommen bzw. überholte Erwartung |
+
+**Nicht angefasst**: `js/20-anschlussblech.js` (die Fachdatei, byteweise
+unverändert), `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `css/01-basis.css` sowie `js/11`–`js/19`,
+`js/21`–`js/39` – per `git diff` bestätigt. Keine Berechnung, keine
+Stückliste, kein Zuschnitt, keine Abwicklung und keine Packrechnung einer
+bestehenden Art berührt.
+
+### 105.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei vielen Stücken heisst das Ergebnis „beste gefundene
+  Verteilung".
+- Die **Bleilappen** zählen weiterhin `floor(Länge ÷ Lattenabstand)` aus js/20.
+  Bei der Einfassung Rund wurde das in v2.70 auf Aufrunden korrigiert, weil ein
+  abgerundeter Wert den Umfang nicht deckt; hier ist es eine Reihe entlang
+  einer Kante und keine Deckungszahl, deshalb wurde die Fachdatei **nicht**
+  eigenmächtig geändert. Ob der Betrieb an der letzten Latte einen weiteren
+  Lappen setzt, gehört in den Praxistest – die Änderung wäre eine Zeile.
+- Die variantenabhängigen Massfelder bleiben **Klasse B** ohne Detail-Diff im
+  Änderungsverlauf (Abschnitt 43.1, unverändert seit v2.35), die Segmente sind
+  wie alle Array-Strukturen Klasse C (42.2).
+- Damit haben **elf der zwölf** Massaufnahme-Arten Register; ohne ist nur noch
+  Skizze / Foto (bewusst, Abschnitt 89.1).

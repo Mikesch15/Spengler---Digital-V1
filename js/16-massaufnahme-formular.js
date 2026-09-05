@@ -23,7 +23,8 @@ function showMeasTypeSection(type){
   if(typeof renderFreiesProfilAufnahme==="function")renderFreiesProfilAufnahme();}
  if(type==="mauerabdeckung"){renderMadResult();if(typeof renderMauerabdeckungAufnahme==="function")renderMauerabdeckungAufnahme();}
  if(type==="lukarne"&&typeof renderLukarneAufnahme==="function")renderLukarneAufnahme();
- if(type==="anschlussblech")renderAnbResult();
+ if(type==="anschlussblech"){renderAnbResult();
+  if(typeof renderAnschlussblechAufnahme==="function")renderAnschlussblechAufnahme();}
  if(type==="einfassung_rund"){renderEinfResult();
   if(typeof renderEinfassungAufnahme==="function")renderEinfassungAufnahme();}
  if(type==="kamineinfassung"&&typeof renderKaminAufnahme==="function")renderKaminAufnahme();
@@ -54,7 +55,7 @@ $("openEinlaufblechSettings").onclick=()=>{
 // erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
 // Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
 // sichtbar.
-const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne","kamineinfassung","einfassung_rund","rinne"];
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne","kamineinfassung","einfassung_rund","rinne","anschlussblech"];
 let measMedienAufgeklappt=false;
 // Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
 // fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
@@ -198,12 +199,17 @@ function buildMeasurementFromForm(){
   const e=anbEingabenAusFeldern();
   const g=berechneAnschlussblech(e);
   // Ergebnis mitspeichern, damit ein gedrucktes PDF gleich bleibt.
+  // Zusatzfelder ab v3.01 (Register-Aufnahme). Die Felder darueber bleiben
+  // Zeichen fuer Zeichen dieselben - eine Aufnahme bis v3.00 oeffnet und
+  // druckt unveraendert.
+  const zusatz=(typeof anbaZusatzDaten==="function")?anbaZusatzDaten():{};
   return {...base,...measMedienAusFormular(),data:{...e,
    abwicklung:g?g.abwicklung:0,
    teile:g?g.teile:[],
    stueckliste:g?g.stuecke:[],
    flaeche:g?g.flaeche:0,
-   material:$("anb_material").value
+   material:$("anb_material").value,
+   ...zusatz
   }};
  }
  if(type==="einfassung_rund"){
@@ -985,6 +991,12 @@ ${stuecke.length?`<div class="eb-section-head">Stückliste</div>
 </table>
 ${(()=>{const l=stuecke[stuecke.length-1];return (l&&l.gehrung)?`<div class="note">Endstück mit Firstgehrung: ${esc(Math.round(l.laengeOhneGehrung))} mm plus ${esc(Math.round(l.laenge-l.laengeOhneGehrung))} mm Gehrungszugabe.</div>`:""})()}`:""}
 ${(erg&&erg.warnungen.length)?`<div class="note" style="color:#b42318">${erg.warnungen.map(w=>esc(w)).join("<br>")}</div>`:""}
+${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`:""}
+${zuDruckHtml(d.zuschnitt,abw,"St\u00fcck")}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="einfassung_rund"){
