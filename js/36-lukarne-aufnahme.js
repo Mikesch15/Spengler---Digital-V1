@@ -27,6 +27,13 @@ const LUKA_REGISTER=[
 // Registerzahl, nicht an einer festen Nummer.
 const LUKA_KONTROLLE=LUKA_REGISTER.length;
 let lukaSchritt=1;
+// true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
+// einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
+// ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
+// (gemessen, CLAUDE.md 103.4). Ohne diese Sperre schriebe der delegierte
+// Handler den alten Feldwert in den GERADE FRISCH gesetzten Zustand zurueck.
+// Waehrend des Zeichnens ist kein input/change eine echte Benutzereingabe.
+let lukaZeichnet=false;
 
 const lukaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const lukaMm=v=>Math.round(lukaZahl(v)).toLocaleString("de-CH");
@@ -420,11 +427,14 @@ function renderLukarneAufnahme(){
  if(!ziel)return;
  lukaVerdrahten();
  lukaBruecke();
+ lukaZeichnet=true;
+ try{
  ziel.innerHTML=lukaRegisterHtml()+lukaKopfInhalt()+`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="luka_zurueck"${lukaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="luka_weiter">${
  lukaSchritt>=LUKA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(LUKA_REGISTER[lukaSchritt].kurz)}</button>
 </div>`;
+ }finally{lukaZeichnet=false}
  if(typeof markierePflichtfelder==="function")markierePflichtfelder(ziel);
  const strip=$("luka_register"), aktiv=strip&&strip.querySelector(".ra-register-knopf.aktiv");
  if(strip&&aktiv){
@@ -473,6 +483,7 @@ function lukaVerdrahten(){
    luka_zugabeLaenge:"zugabeLaenge",luka_zugabeBreite:"zugabeBreite"};
 
  wurzel.addEventListener("input",e=>{
+  if(lukaZeichnet)return;
   const feld=zahlFelder[e.target.id];
   if(!feld)return;
   lukA[feld]=e.target.value;
@@ -480,6 +491,7 @@ function lukaVerdrahten(){
  });
 
  wurzel.addEventListener("change",e=>{
+  if(lukaZeichnet)return;
   const t=e.target;
   // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
   {const w=zuRollenKlick(t,"data-luka-rolle");

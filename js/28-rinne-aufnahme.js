@@ -851,6 +851,13 @@ const RA_REGISTER=[
 // der Registerzahl, nicht an einer festen Nummer.
 const RA_KONTROLLE=RA_REGISTER.length;
 let raSchritt=1;
+// true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
+// einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
+// ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
+// (gemessen, CLAUDE.md 103.4). Ohne diese Sperre schriebe der delegierte
+// Handler den alten Feldwert in den GERADE FRISCH gesetzten Zustand zurueck.
+// Waehrend des Zeichnens ist kein input/change eine echte Benutzereingabe.
+let raZeichnet=false;
 // Das letzte Register ist nicht das Ende der Massaufnahme: darunter stehen
 // noch Fotos/Skizzen, Notiz und der Speichern-Knopf der App. "Fertig" fuehrt
 // dorthin - es speichert NICHT selbst, damit es nur einen Speicherweg gibt.
@@ -906,12 +913,15 @@ function renderRinneAufnahme(){
  raVerdrahten();
  raBruecke();
  const r=RA_REGISTER[raSchritt-1]||RA_REGISTER[0];
+ raZeichnet=true;
+ try{
  ziel.innerHTML=raRegisterHtml()+raSchrittInhalt()
   +`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="ra_zurueck"${raSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="ra_weiter">${
  raSchritt>=RA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(RA_REGISTER[raSchritt].kurz)}</button>
 </div>`;
+ }finally{raZeichnet=false}
  // Die Registerleiste scrollt auf schmalen Geräten seitwärts. Das aktive
  // Register muss darin sichtbar sein - sonst weiss man nicht, wo man ist.
  const strip=$("ra_register"), aktiv=strip&&strip.querySelector(".ra-register-knopf.aktiv");
@@ -960,6 +970,7 @@ function raVerdrahten(){
  wurzel.dataset.raVerdrahtet="1";
 
  wurzel.addEventListener("input",e=>{
+  if(raZeichnet)return;
   const t=e.target, d=t.dataset||{}, a=rinneA;
   let live=false;
   if(t.id==="ra_gesamt")a.gesamtlaengeManuell_mm=t.value===""?null:raZahl(t.value);
@@ -986,6 +997,7 @@ function raVerdrahten(){
  });
 
  wurzel.addEventListener("change",e=>{
+  if(raZeichnet)return;
   const t=e.target, d=t.dataset||{}, a=rinneA;
   // Dila-Abstand von Hand: der eingegebene Abstand gilt ab dem Punkt davor.
   if(d.raDilaAbstand!==undefined){

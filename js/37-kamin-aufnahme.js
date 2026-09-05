@@ -64,6 +64,13 @@ const KAM_REGISTER=[
 // Registerzahl, nicht an einer festen Nummer.
 const KAM_KONTROLLE=KAM_REGISTER.length;
 let kamSchritt=1;
+// true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
+// einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
+// ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
+// (gemessen, CLAUDE.md 103.4). Ohne diese Sperre schriebe der delegierte
+// Handler den alten Feldwert in den GERADE FRISCH gesetzten Zustand zurueck.
+// Waehrend des Zeichnens ist kein input/change eine echte Benutzereingabe.
+let kamaZeichnet=false;
 
 const kamaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const kamaMm=v=>Math.round(kamaZahl(v)).toLocaleString("de-CH");
@@ -891,11 +898,14 @@ function renderKaminAufnahme(){
  const ziel=$("kaminAufnahme");
  if(!ziel)return;
  kamaVerdrahten();
+ kamaZeichnet=true;
+ try{
  ziel.innerHTML=kamaRegisterHtml()+kamaKopfInhalt()+`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="kam_zurueck"${kamSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="kam_weiter">${
  kamSchritt>=KAM_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(KAM_REGISTER[kamSchritt].kurz)}</button>
 </div>`;
+ }finally{kamaZeichnet=false}
  if(typeof markierePflichtfelder==="function")markierePflichtfelder(ziel);
  const strip=$("kam_register"), aktiv=strip&&strip.querySelector(".ra-register-knopf.aktiv");
  if(strip&&aktiv){
@@ -967,11 +977,13 @@ function kamaVerdrahten(){
  wurzel.dataset.kamVerdrahtet="1";
 
  wurzel.addEventListener("input",e=>{
+  if(kamaZeichnet)return;
   if(!kamaFeldZuweisen(e.target.id,e.target.value))return;
   kamaLive();
  });
 
  wurzel.addEventListener("change",e=>{
+  if(kamaZeichnet)return;
   const t=e.target;
   // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
   {const w=zuRollenKlick(t,"data-kam-rolle");

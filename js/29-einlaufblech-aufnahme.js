@@ -34,6 +34,13 @@ const EBA_REGISTER=[
 // der Registerzahl, nicht an einer festen Nummer.
 const EBA_KONTROLLE=EBA_REGISTER.length;
 let ebaSchritt=1;
+// true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
+// einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
+// ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
+// (gemessen, CLAUDE.md 103.4). Ohne diese Sperre schriebe der delegierte
+// Handler den alten Feldwert in den GERADE FRISCH gesetzten Zustand zurueck.
+// Waehrend des Zeichnens ist kein input/change eine echte Benutzereingabe.
+let ebaZeichnet=false;
 
 // Rollenbreiten: 1000 und 670 sind die Standardrollen. Die übrigen lassen
 // sich in den Einstellungen dazunehmen - sie stehen firmenweit in
@@ -494,12 +501,15 @@ function renderEinlaufblechAufnahme(){
  ebaVerdrahten();
  ebaGeruest();
  ebaBruecke();
+ ebaZeichnet=true;
+ try{
  $("eba_kopf").innerHTML=ebaRegisterHtml()+ebaSchrittInhalt();
  $("eba_fuss").innerHTML=`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="eba_zurueck"${ebaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="eba_weiter">${
  ebaSchritt>=EBA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(EBA_REGISTER[ebaSchritt].kurz)}</button>
 </div>`;
+ }finally{ebaZeichnet=false}
  ebaZeichnungen();
  ebaRinneBoxZeigen();
  // Die Pflichtfelder entstehen erst hier, nach markierePflichtfelder() beim
@@ -645,6 +655,7 @@ function ebaVerdrahten(){
  wurzel.dataset.ebaVerdrahtet="1";
 
  wurzel.addEventListener("input",e=>{
+  if(ebaZeichnet)return;
   const t=e.target, d=t.dataset||{}, a=ebA;
   if(t.id==="eba_massA"){a.massA=t.value===""?"":ebaZahl(t.value)}
   else if(t.id==="eba_winkel"){a.winkel=t.value===""?"":ebaZahl(t.value)}
@@ -673,6 +684,7 @@ function ebaVerdrahten(){
  });
 
  wurzel.addEventListener("change",e=>{
+  if(ebaZeichnet)return;
   const t=e.target, d=t.dataset||{}, a=ebA;
   // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
   {const w=zuRollenKlick(e.target,"data-eba-rolle");

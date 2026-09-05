@@ -40,6 +40,13 @@ const EBKA_REGISTER=[
 // der Registerzahl, nicht an einer festen Nummer.
 const EBKA_KONTROLLE=EBKA_REGISTER.length;
 let ebkaSchritt=1;
+// true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
+// einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
+// ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
+// (gemessen, CLAUDE.md 103.4). Ohne diese Sperre schriebe der delegierte
+// Handler den alten Feldwert in den GERADE FRISCH gesetzten Zustand zurueck.
+// Waehrend des Zeichnens ist kein input/change eine echte Benutzereingabe.
+let ebkaZeichnet=false;
 
 // Die Rollen, mit denen DIESE Massaufnahme rechnet: das Blechlager der
 // Firma, eingeschraenkt auf die im Register "Zuschnitt" angehakten.
@@ -465,12 +472,15 @@ function renderEinlaufblechKonischAufnahme(){
  ebkaVerdrahten();
  ebkaGeruest();
  ebkaBruecke();
+ ebkaZeichnet=true;
+ try{
  $("ebka_kopf").innerHTML=ebkaRegisterHtml()+ebkaSchrittInhalt();
  $("ebka_fuss").innerHTML=`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="ebka_zurueck"${ebkaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="ebka_weiter">${
  ebkaSchritt>=EBKA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(EBKA_REGISTER[ebkaSchritt].kurz)}</button>
 </div>`;
+ }finally{ebkaZeichnet=false}
  ebkaZeichnungen();
  ebkaRinneBoxZeigen();
  // Die Pflichtfelder entstehen erst hier, nach markierePflichtfelder() beim
@@ -592,6 +602,7 @@ function ebkaVerdrahten(){
  wurzel.dataset.ebkaVerdrahtet="1";
 
  wurzel.addEventListener("input",e=>{
+  if(ebkaZeichnet)return;
   const t=e.target, d=t.dataset||{}, a=ebkA;
   if(t.id==="ebka_dachneigung"){a.dachneigung=t.value===""?"":ebkaZahl(t.value)}
   else if(t.id==="ebka_gesamt"){a.gesamtlaenge=t.value===""?"":ebkaZahl(t.value);return}
@@ -618,6 +629,7 @@ function ebkaVerdrahten(){
  });
 
  wurzel.addEventListener("change",e=>{
+  if(ebkaZeichnet)return;
   const t=e.target, d=t.dataset||{}, a=ebkA;
   // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
   {const w=zuRollenKlick(e.target,"data-ebka-rolle");

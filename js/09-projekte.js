@@ -362,6 +362,22 @@ function formatFileSize(bytes){
 // Bucket-Grenze trotzdem nicht vorbei.
 const MAX_DATEI_BYTES=50*1024*1024;
 const MAX_DATEI_TEXT="50 MB";
+// Dateiendungen, die auf einer Baustellen-Ablage nichts verloren haben.
+// Bewusst eine SPERRLISTE und keine Positivliste: hochgeladen werden Plaene,
+// Offerten und Fotos in wechselnden Formaten (auch DXF, das viele Browser
+// ganz ohne MIME-Typ melden) - eine zu enge Positivliste wuerde davon still
+// etwas aussperren. Geprueft wird die Endung, nicht der vom Browser
+// gemeldete MIME-Typ: der ist frei faelschbar und bei DXF meist leer.
+const DATEI_GESPERRT=["exe","msi","bat","cmd","com","scr","pif","cpl","jar",
+ "js","jse","vbs","vbe","wsf","wsh","ps1","psm1","sh","apk","app","dmg",
+ "deb","rpm","reg","dll","sys","hta","lnk"];
+function dateiEndung(file){
+ return String(file&&file.name||"").split(".").pop().toLowerCase();
+}
+function dateiGesperrt(file){
+ const e=dateiEndung(file);
+ return !!e&&DATEI_GESPERRT.indexOf(e)>=0;
+}
 function dateiZuGross(file){
  return !!file&&Number(file.size)>MAX_DATEI_BYTES;
 }
@@ -414,6 +430,7 @@ function projectFileIcon(mime,name){
  return "📎";
 }
 async function uploadProjectFile(projectId,file){
+ if(dateiGesperrt(file))throw new Error(`Dateien vom Typ „.${dateiEndung(file)}" können nicht hochgeladen werden. Erlaubt sind Pläne, Dokumente und Fotos – keine Programme.`);
  if(dateiZuGross(file))throw new Error(`Die Datei ist zu gross (${formatFileSize(file.size)}). Erlaubt sind höchstens ${MAX_DATEI_TEXT} pro Datei.`);
  const ext=(file.name.split(".").pop()||"").toLowerCase();
  const path=`project-files/${projectId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}${ext?"."+ext:""}`;
@@ -434,6 +451,7 @@ async function uploadProjectFile(projectId,file){
 // Eintrag erst danach umbiegen – erst wenn das sicher geklappt hat, wird
 // die alte Datei aus dem Speicher gelöscht.
 async function replaceProjectFile(fileId,file){
+ if(dateiGesperrt(file))throw new Error(`Dateien vom Typ „.${dateiEndung(file)}" können nicht hochgeladen werden. Erlaubt sind Pläne, Dokumente und Fotos – keine Programme.`);
  if(dateiZuGross(file))throw new Error(`Die Datei ist zu gross (${formatFileSize(file.size)}). Erlaubt sind höchstens ${MAX_DATEI_TEXT} pro Datei.`);
  const alt=projectFilesCache.find(x=>x.id===fileId);
  if(!alt)throw new Error("Datei nicht gefunden.");

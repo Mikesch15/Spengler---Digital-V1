@@ -34,6 +34,13 @@ const RPA_REGISTER=[
 // Registerzahl, nicht an einer festen Nummer.
 const RPA_KONTROLLE=RPA_REGISTER.length;
 let rpaSchritt=1;
+// true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
+// einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
+// ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
+// (gemessen, CLAUDE.md 103.4). Ohne diese Sperre schriebe der delegierte
+// Handler den alten Feldwert in den GERADE FRISCH gesetzten Zustand zurueck.
+// Waehrend des Zeichnens ist kein input/change eine echte Benutzereingabe.
+let rpaZeichnet=false;
 // Welche Rollen fuer DIESE Massaufnahme gelten. Leer = ganzes Blechlager.
 let rpaRollenAuswahl=[];
 
@@ -348,6 +355,8 @@ function renderRinneAufnahmeRegister(){
  if(!wurzel)return;
  rpaVerdrahten();
  const leiste=$("rpa_register");
+ rpaZeichnet=true;
+ try{
  if(leiste)leiste.innerHTML=rpaRegisterHtml();
  for(let n=1;n<=RPA_REGISTER.length;n++){
   const seite=$("rpa_seite"+n);
@@ -371,6 +380,7 @@ function renderRinneAufnahmeRegister(){
  if(bl)bl.innerHTML=`<button type="button" class="gray" id="rpa_zurueck"${rpaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="rpa_weiter">${
  rpaSchritt>=RPA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(RPA_REGISTER[rpaSchritt].kurz)}</button>`;
+ }finally{rpaZeichnet=false}
  const aktiv=leiste&&leiste.querySelector(".ra-register-knopf.aktiv");
  if(leiste&&aktiv){
   const sr=leiste.getBoundingClientRect(), ar=aktiv.getBoundingClientRect();
@@ -400,8 +410,9 @@ function rpaVerdrahten(){
 
  // Jede Eingabe in den Registern 1 bis 3 gehoert js/26. Hier wird NICHT neu
  // gezeichnet - nur die Marke am Kontroll-Register nachgefuehrt.
- wurzel.addEventListener("input",()=>rpaMarkeNachfuehren());
+ wurzel.addEventListener("input",()=>{if(rpaZeichnet)return;rpaMarkeNachfuehren()});
  wurzel.addEventListener("change",e=>{
+  if(rpaZeichnet)return;
   const t=e.target;
   if(typeof zuRollenKlick==="function"){
    const w=zuRollenKlick(t,"data-rpa-rolle");

@@ -33,6 +33,13 @@ const ANBA_REGISTER=[
 // Registerzahl, nicht an einer festen Nummer.
 const ANBA_KONTROLLE=ANBA_REGISTER.length;
 let anbaSchritt=1;
+// true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
+// einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
+// ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
+// (gemessen, CLAUDE.md 103.4). Ohne diese Sperre schriebe der delegierte
+// Handler den alten Feldwert in den GERADE FRISCH gesetzten Zustand zurueck.
+// Waehrend des Zeichnens ist kein input/change eine echte Benutzereingabe.
+let anbaZeichnet=false;
 // Welche Rollen fuer DIESE Massaufnahme gelten. Leer = ganzes Blechlager.
 let anbaRollenAuswahl=[];
 
@@ -292,6 +299,8 @@ function renderAnschlussblechAufnahme(){
  if(!wurzel)return;
  anbaVerdrahten();
  const leiste=$("anba_register");
+ anbaZeichnet=true;
+ try{
  if(leiste)leiste.innerHTML=anbaRegisterHtml();
  for(let n=1;n<=ANBA_REGISTER.length;n++){
   const seite=$("anba_seite"+n);
@@ -315,6 +324,7 @@ function renderAnschlussblechAufnahme(){
  if(bl)bl.innerHTML=`<button type="button" class="gray" id="anba_zurueck"${anbaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="anba_weiter">${
  anbaSchritt>=ANBA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(ANBA_REGISTER[anbaSchritt].kurz)}</button>`;
+ }finally{anbaZeichnet=false}
  const aktiv=leiste&&leiste.querySelector(".ra-register-knopf.aktiv");
  if(leiste&&aktiv){
   const sr=leiste.getBoundingClientRect(), ar=aktiv.getBoundingClientRect();
@@ -344,8 +354,9 @@ function anbaVerdrahten(){
 
  // Jede Eingabe in den Registern 1 bis 4 gehoert js/20. Hier wird NICHT neu
  // gezeichnet - nur die Marke am Kontroll-Register nachgefuehrt.
- wurzel.addEventListener("input",()=>anbaMarkeNachfuehren());
+ wurzel.addEventListener("input",()=>{if(anbaZeichnet)return;anbaMarkeNachfuehren()});
  wurzel.addEventListener("change",e=>{
+  if(anbaZeichnet)return;
   const t=e.target;
   if(typeof zuRollenKlick==="function"){
    const w=zuRollenKlick(t,"data-anba-rolle");

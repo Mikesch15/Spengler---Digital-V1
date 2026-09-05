@@ -35,6 +35,13 @@ const KEA_REGISTER=[
 // der Registerzahl, nicht an einer festen Nummer.
 const KEA_KONTROLLE=KEA_REGISTER.length;
 let keaSchritt=1;
+// true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
+// einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
+// ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
+// (gemessen, CLAUDE.md 103.4). Ohne diese Sperre schriebe der delegierte
+// Handler den alten Feldwert in den GERADE FRISCH gesetzten Zustand zurueck.
+// Waehrend des Zeichnens ist kein input/change eine echte Benutzereingabe.
+let keaZeichnet=false;
 
 // Moegliche Abwicklungen des Kehlblechs. Die Breite wird gewaehlt, nicht
 // gerechnet - die Vorlage kennt keine Abwicklung.
@@ -453,6 +460,8 @@ function renderKehleAufnahme(){
  keaBruecke();
  const kopf=$("kea_kopf"), fuss=$("kea_fuss"), box=$("keaErgebnisBox");
  if(!kopf||!fuss||!box)return;
+ keaZeichnet=true;
+ try{
  kopf.innerHTML=keaRegisterHtml()+keaKopfInhalt();
  // Die Ergebnisanzeige der Vorlage gehoert zum Register "Winkel" - und nur
  // dann, wenn ueberhaupt gerechnet wird.
@@ -463,6 +472,7 @@ function renderKehleAufnahme(){
 <button type="button" class="gray" id="kea_weiter">${
  keaSchritt>=KEA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(KEA_REGISTER[keaSchritt].kurz)}</button>
 </div>`;
+ }finally{keaZeichnet=false}
  if(typeof markierePflichtfelder==="function")markierePflichtfelder(ziel);
  const strip=$("kea_register"), aktiv=strip&&strip.querySelector(".ra-register-knopf.aktiv");
  if(strip&&aktiv){
@@ -509,6 +519,7 @@ function keaVerdrahten(){
  wurzel.dataset.keaVerdrahtet="1";
 
  wurzel.addEventListener("input",e=>{
+  if(keaZeichnet)return;
   const t=e.target, d=t.dataset||{}, a=kehleA;
   if(t.id==="kea_nh")a.nh=t.value;
   else if(t.id==="kea_nl")a.nl=t.value;
@@ -528,12 +539,14 @@ function keaVerdrahten(){
  });
 
  wurzel.addEventListener("change",e2=>{
+  if(keaZeichnet)return;
   const t2=e2.target;
   // Auch die beiden Laengenfelder sollen beim Verlassen nicht neu zeichnen.
   if(t2.id==="kea_trauf"||t2.id==="kea_first"){keaKnoepfe(); e2.stopImmediatePropagation()}
  });
 
  wurzel.addEventListener("change",e=>{
+  if(keaZeichnet)return;
   const t=e.target, a=kehleA;
   // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
   {const w=zuRollenKlick(e.target,"data-kea-rolle");

@@ -25,6 +25,13 @@ const MADA_REGISTER=[
 // deshalb an der Registerzahl und nicht an einer festen Nummer.
 const MADA_KONTROLLE=MADA_REGISTER.length;
 let madaSchritt=1;
+// true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
+// einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
+// ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
+// (gemessen, CLAUDE.md 103.4). Ohne diese Sperre schriebe der delegierte
+// Handler den alten Feldwert in den GERADE FRISCH gesetzten Zustand zurueck.
+// Waehrend des Zeichnens ist kein input/change eine echte Benutzereingabe.
+let madaZeichnet=false;
 
 const madaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const madaMm=v=>Math.round(madaZahl(v)).toLocaleString("de-CH");
@@ -573,12 +580,15 @@ function renderMauerabdeckungAufnahme(){
  // zeichnet das Formular auch, ohne vorher eines von beiden aufzurufen.
  madaVerdrahten();
  madaBruecke();
+ madaZeichnet=true;
+ try{
  ziel.innerHTML=madaRegisterHtml()+madaSchrittInhalt()
   +`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="mada_zurueck"${madaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="mada_weiter">${
  madaSchritt>=MADA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(MADA_REGISTER[madaSchritt].kurz)}</button>
 </div>`;
+ }finally{madaZeichnet=false}
  if(typeof markierePflichtfelder==="function")markierePflichtfelder(ziel);
  const strip=$("mada_register"), aktiv=strip&&strip.querySelector(".ra-register-knopf.aktiv");
  if(strip&&aktiv){
@@ -623,6 +633,7 @@ function madaVerdrahten(){
  wurzel.dataset.madaVerdrahtet="1";
 
  wurzel.addEventListener("input",e=>{
+  if(madaZeichnet)return;
   const t=e.target, d=t.dataset||{}, a=madA;
   if(d.madaLaenge!==undefined){
    const s=a.segmente[Number(d.madaLaenge)];
@@ -647,6 +658,7 @@ function madaVerdrahten(){
  });
 
  wurzel.addEventListener("change",e=>{
+  if(madaZeichnet)return;
   const t=e.target, d=t.dataset||{}, a=madA;
   // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
   {const w=zuRollenKlick(e.target,"data-mada-rolle");

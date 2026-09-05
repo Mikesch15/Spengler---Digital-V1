@@ -182,7 +182,10 @@ const segmente=async(page,liste)=>{await page.evaluate(l=>{
  // Von Hand: 265/1000 * 6500/1000 = 1,7225 -> gerundet 1,72
  p(Math.abs(st.flaeche-1.72)<0.005,"Materialfläche verlegt 1,72 m²",st.flaeche);
  // Von Hand: floor(6500/330) = 19
- p(st.lappen===19,"19 Bleilappen (6500 ÷ 330, abgerundet)",st.lappen);
+ // 6500 / 330 = 19.7 -> AUFGERUNDET 20. Bis v3.03 rundete js/20 ab; der
+ // Betrieb setzt an der letzten Latte noch einen Lappen (Ansage 05.09.2026),
+ // gleiches Verhalten wie bei der Einfassung Rund seit v2.70.
+ p(st.lappen===20,"20 Bleilappen (6500 ÷ 330, aufgerundet)",st.lappen);
  // Echt tippen: das Feld darf den Fokus nicht verlieren.
  const feldOk=await tippe(page,"#anb_stossLaenge","2500");
  const nachTippen=await page.evaluate(()=>({
@@ -286,7 +289,7 @@ const segmente=async(page,liste)=>{await page.evaluate(l=>{
  // Achtung: die Bezeichnung von Position 1 enthaelt ebenfalls "Bleilappen"
  // ("Seitenblech mit Bleilappen, Länge") - deshalb genau vergleichen.
  const lappen=am.find(x=>x.bezeichnung==="Bleilappen");
- p(lappen&&lappen.menge==="19","19 Bleilappen",lappen);
+ p(lappen&&lappen.menge==="20","20 Bleilappen (aufgerundet)",lappen);
  p(!am.some(x=>/Preis|Fr\.|Artikel/i.test(x.bezeichnung)),"keine Preise, keine Artikelnummern",bez);
  await reg(page,6);
  const at=await page.evaluate(()=>$("anba_seite6").textContent);

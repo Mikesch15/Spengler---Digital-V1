@@ -44,6 +44,13 @@ const FPA_REGISTER=[
 // der Registerzahl, nicht an einer festen Nummer.
 const FPA_KONTROLLE=FPA_REGISTER.length;
 let fpaSchritt=1;
+// true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
+// einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
+// ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
+// (gemessen, CLAUDE.md 103.4). Ohne diese Sperre schriebe der delegierte
+// Handler den alten Feldwert in den GERADE FRISCH gesetzten Zustand zurueck.
+// Waehrend des Zeichnens ist kein input/change eine echte Benutzereingabe.
+let fpaZeichnet=false;
 
 // Die Rollen, mit denen DIESE Massaufnahme rechnet: das Blechlager der
 // Firma, eingeschraenkt auf die im Register "Zuschnitt" angehakten.
@@ -511,12 +518,15 @@ function renderFreiesProfilAufnahme(){
  fpaVerdrahten();
  fpaGeruest();
  fpaBruecke();
+ fpaZeichnet=true;
+ try{
  $("fpa_kopf").innerHTML=fpaRegisterHtml()+fpaSchrittInhalt();
  $("fpa_fuss").innerHTML=`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="fpa_zurueck"${fpaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="fpa_weiter">${
  fpaSchritt>=FPA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(FPA_REGISTER[fpaSchritt].kurz)}</button>
 </div>`;
+ }finally{fpaZeichnet=false}
  fpaSkizzeBoxZeigen();
  if(typeof markierePflichtfelder==="function")markierePflichtfelder(ziel);
  const strip=$("fpa_register"), aktiv=strip&&strip.querySelector(".ra-register-knopf.aktiv");
@@ -565,6 +575,7 @@ function fpaVerdrahten(){
  wurzel.dataset.fpaVerdrahtet="1";
 
  wurzel.addEventListener("input",e=>{
+  if(fpaZeichnet)return;
   const t=e.target, d=t.dataset||{}, a=fpA;
   if(d.fpaLaenge!==undefined){
    const i=Number(d.fpaLaenge), s=a.schenkel[i]; if(!s)return;
@@ -603,6 +614,7 @@ function fpaVerdrahten(){
  });
 
  wurzel.addEventListener("change",e=>{
+  if(fpaZeichnet)return;
   const t=e.target, a=fpA;
   // Rollenauswahl fuer DIESE Massaufnahme (gemeinsamer Kasten, js/33)
   {const w=zuRollenKlick(e.target,"data-fpa-rolle");

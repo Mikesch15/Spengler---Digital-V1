@@ -543,6 +543,16 @@ Probleme melden.</p>
 <p>Löschen ist hier bewusst nicht möglich: das Feedback gehört der
 jeweiligen Firma.</p>`},
 
+"verwaiste-dateien":{titel:"Verwaiste Dateien im Speicher",text:`
+<p>Beim Wechseln des Firmenlogos oder aus der Zeit vor der Pfadumstellung
+bleiben gelegentlich Dateien im Speicher liegen, auf die keine Massaufnahme,
+kein Ausmass, kein Projekt und keine Firma mehr zeigt.</p>
+<p>Sie sind für <b>niemanden</b> mehr erreichbar – auch nicht für die Firma,
+von der sie ursprünglich stammen – belegen aber weiterhin Speicherplatz. Die
+Liste zeigt sie mit Pfad, Grösse und Datum.</p>
+<p>Es wird nichts automatisch gelöscht. Beim Löschen prüft der Server die
+Liste nochmals selbst: eine Datei, auf die noch etwas zeigt, kann darüber
+nicht entfernt werden.</p>`},
 "module-test":{titel:"Module in Entwicklung",text:`
 <p>Was hier angehakt ist, sehen <b>nur Administratoren</b> – bei allen Firmen
 gemeinsam. So lässt sich eine noch nicht fertige Funktion ausliefern, ohne

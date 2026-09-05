@@ -598,11 +598,14 @@ function berechneAnschlussblech(e) {
   const flaeche = laenge > 0 ? (abwGesamt / 1000) * (laenge / 1000) : 0;
 
   // Anzahl Bleilappen: je Dachlatte entlang der Gesamtlänge einer, auf
-  // ganze Latten aufgerundet.
+  // ganze Latten AUFGERUNDET. Bis Version 3.03 wurde abgerundet - der Rest
+  // hinter der letzten vollen Latte bekam dadurch keinen Lappen mehr. Der
+  // Betrieb setzt dort einen (Ansage vom 05.09.2026), gleiches Verhalten wie
+  // bei der Einfassung Rund (js/21, dort seit v2.70 korrigiert).
   let anzahlBleilappen = null;
   if (e.art === "bleilappen") {
     const lattenabstand = Math.max(1, Number(e.lattenabstand) || 0);
-    anzahlBleilappen = laenge > 0 ? Math.floor(laenge / lattenabstand) : 0;
+    anzahlBleilappen = laenge > 0 ? Math.ceil(laenge / lattenabstand) : 0;
   }
 
   return {

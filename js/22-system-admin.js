@@ -365,3 +365,99 @@ $("saveModuleTest").addEventListener("click",async()=>{
   knopf.disabled=false;
  }
 });
+
+// ---------------------------------------------------------------------------
+// Verwaiste Storage-Dateien (v3.04)
+//
+// Offener Punkt aus CLAUDE.md 32.7: seit der Pfadumstellung in v2.24 liegen
+// Objekte im Bucket, auf die keine Datenbankzeile mehr zeigt. Sie sind fuer
+// niemanden erreichbar (die Storage-Policy verlangt eine echte Referenz der
+// eigenen Firma), belegen aber Speicher.
+//
+// Bewusst KEINE stille Loeschung: der Betreiber bekommt die Liste und
+// entscheidet selbst. Die massgebliche Liste kommt aus
+// system_admin_verwaiste_storage(), also serverseitig - der Client kann sie
+// weder erweitern noch eine referenzierte Datei hineinschmuggeln (die Edge
+// Function prueft beim Loeschen erneut gegen dieselbe Funktion).
+let sysStorageVerwaist=[];
+
+function sysStorageHinweis(text,fehler){
+ const el=$("sysStorageHinweis");
+ if(!el)return;
+ el.textContent=text||"";
+ el.style.color=fehler?"var(--red)":"var(--green)";
+ el.hidden=!text;
+}
+function sysStorageGroesse(b){
+ const n=Number(b)||0;
+ if(n>=1048576)return (n/1048576).toFixed(1)+" MB";
+ if(n>=1024)return Math.round(n/1024)+" KB";
+ return n+" B";
+}
+function renderSysStorageListe(){
+ const box=$("sysStorageListe");
+ if(!box)return;
+ if(!sysStorageVerwaist.length){
+  box.innerHTML=`<div class="small" style="color:var(--muted);margin-top:8px">Keine verwaisten Dateien – im Speicher liegt nichts Überflüssiges.</div>`;
+  return;
+ }
+ const summe=sysStorageVerwaist.reduce((s,r)=>s+(Number(r.groesse_bytes)||0),0);
+ const zeilen=sysStorageVerwaist.map(r=>`<div class="report-row">
+  <div class="report-row-info">
+   <b>${esc(r.pfad)}</b>
+   <span class="small" style="color:var(--muted)">${esc(r.kategorie||"")} · ${sysStorageGroesse(r.groesse_bytes)} · ${r.erstellt?new Date(r.erstellt).toLocaleDateString("de-CH"):"–"}</span>
+  </div>
+ </div>`).join("");
+ box.innerHTML=`<div class="small" style="margin:8px 0 4px"><b>${sysStorageVerwaist.length}</b> verwaiste Datei${sysStorageVerwaist.length===1?"":"en"} · ${sysStorageGroesse(summe)} belegt</div>
+  ${zeilen}
+  <div class="bar" style="margin-top:8px"><button type="button" id="sysStorageLoeschen" class="red">🗑 Alle ${sysStorageVerwaist.length} endgültig löschen</button></div>
+  <div class="small" style="color:var(--muted)">Unwiderruflich. Es werden ausschliesslich die oben gelisteten Dateien entfernt – der Server prüft die Liste dabei nochmals selbst.</div>`;
+}
+
+if($("sysStorageLaden")){
+ $("sysStorageLaden").onclick=async()=>{
+  const knopf=$("sysStorageLaden");
+  knopf.disabled=true;
+  sysStorageHinweis("");
+  try{
+   const {data,error}=await sb.rpc("system_admin_verwaiste_storage");
+   if(error){sysStorageHinweis("Konnte nicht gelesen werden: "+error.message,true);return}
+   sysStorageVerwaist=Array.isArray(data)?data:[];
+   renderSysStorageListe();
+  }catch(err){
+   sysStorageHinweis("Fehler: "+(err&&err.message?err.message:err),true);
+  }finally{
+   knopf.disabled=false;
+  }
+ };
+}
+
+// Der Loesch-Knopf entsteht erst beim Zeichnen der Liste, deshalb delegiert.
+document.addEventListener("click",async e=>{
+ const b=e.target&&e.target.closest?e.target.closest("#sysStorageLoeschen"):null;
+ if(!b)return;
+ if(!sysStorageVerwaist.length)return;
+ if(!confirm(`${sysStorageVerwaist.length} verwaiste Datei(en) endgültig löschen?\n\nDas lässt sich nicht rückgängig machen.`))return;
+ b.disabled=true;
+ sysStorageHinweis("");
+ try{
+  const {data,error}=await sb.functions.invoke("system-admin-storage-aufraeumen",{
+   body:{pfade:sysStorageVerwaist.map(r=>r.pfad)}
+  });
+  if(error){
+   sysStorageHinweis(await edgeFunctionErrorMessage(error,"Die Dateien konnten nicht entfernt werden."),true);
+   return;
+  }
+  if(!data||!data.ok){
+   sysStorageHinweis((data&&data.error)||"Die Dateien konnten nicht entfernt werden.",true);
+   return;
+  }
+  sysStorageVerwaist=[];
+  renderSysStorageListe();
+  sysStorageHinweis(`✓ ${data.geloescht} Datei${data.geloescht===1?"":"en"} entfernt.`);
+ }catch(err){
+  sysStorageHinweis("Fehler: "+(err&&err.message?err.message:err),true);
+ }finally{
+  b.disabled=false;
+ }
+});
