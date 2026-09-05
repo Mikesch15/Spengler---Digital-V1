@@ -1,0 +1,467 @@
+<!doctype html><html lang="de-CH"><head><meta charset="utf-8">
+<title>Spengler-DIGITAL – Anleitung</title>
+<style>
+@page{size:A4;margin:16mm 15mm 18mm;
+ @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.02";font:8pt system-ui;color:#7a8894}}
+@page:first{@bottom-right{content:""} @bottom-left{content:""}}
+*{box-sizing:border-box}
+body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
+h1{font-size:20pt;margin:0 0 4mm;color:#0f4c81;line-height:1.2}
+h2{font-size:14pt;margin:9mm 0 3mm;color:#0f4c81;padding-bottom:1.5mm;
+   border-bottom:1.5pt solid #0f4c81;break-after:avoid;break-inside:avoid}
+h3{font-size:11.5pt;margin:6mm 0 2mm;color:#17202a;break-after:avoid}
+p{margin:0 0 3mm;orphans:2;widows:2}
+ul,ol{margin:0 0 3mm;padding-left:6mm}
+li{margin:0 0 1.2mm}
+figure{margin:3mm 0 5mm;break-inside:avoid;text-align:center}
+figure img{max-width:100%;max-height:205mm;height:auto;width:auto;
+  border:0.6pt solid #cfd8de;border-radius:2mm}
+figcaption{font-size:8.5pt;color:#5c6b78;margin-top:1.5mm;text-align:left}
+table{width:100%;border-collapse:collapse;margin:0 0 4mm;font-size:9.5pt;break-inside:avoid}
+th{text-align:left;background:#eef4f9;color:#0f4c81;font-size:8pt;
+   text-transform:uppercase;letter-spacing:.4pt;padding:2mm;border-bottom:1pt solid #cfd8de}
+td{padding:2mm;border-bottom:0.5pt solid #e3e9ee;vertical-align:top}
+.hin{background:#eef4f9;border-left:3pt solid #0f4c81;padding:3mm 4mm;margin:0 0 4mm;
+  font-size:9.5pt;break-inside:avoid}
+.warn{background:#fdf3f2;border-left:3pt solid #b3261e;padding:3mm 4mm;margin:0 0 4mm;
+  font-size:9.5pt;break-inside:avoid}
+.titel{height:242mm;display:flex;flex-direction:column;justify-content:center;
+  break-after:page;text-align:center}
+.titel .marke{font-size:11pt;letter-spacing:3pt;color:#0f4c81;font-weight:700}
+.titel h1{font-size:34pt;margin:6mm 0 2mm;border:0}
+.titel .unter{font-size:13pt;color:#5c6b78}
+.titel .fuss{margin-top:14mm;font-size:9.5pt;color:#7a8894;line-height:1.8}
+.seite{break-before:page}
+nav ol{list-style:none;padding:0;font-size:10.5pt}
+nav ol li{padding:1.4mm 0;border-bottom:0.4pt dotted #cfd8de}
+nav .nr{display:inline-block;width:9mm;color:#0f4c81;font-weight:700}
+code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
+.klein{font-size:9pt;color:#5c6b78}
+.tasten{display:inline-block;border:0.6pt solid #b7c2cb;border-radius:1.5mm;
+  padding:0.3mm 1.6mm;font-size:9pt;background:#f6f9fb}
+</style></head><body>
+
+<div class="titel">
+ <div class="marke">SPENGLER-DIGITAL</div>
+ <h1>Anleitung</h1>
+ <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
+ <div class="fuss">
+  Version 3.02<br>
+  Stand 5. September 2026<br><br>
+  Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
+  Sie zeigen eine Demo-Firma mit erfundenen Daten.
+ </div>
+</div>
+
+<h1>Inhalt</h1>
+<nav><ol>
+<li><span class="nr">1</span>Wofür die App gedacht ist</li>
+<li><span class="nr">2</span>Anmelden</li>
+<li><span class="nr">3</span>Der Startbildschirm</li>
+<li><span class="nr">4</span>Projekte</li>
+<li><span class="nr">5</span>Das Projekt-Cockpit</li>
+<li><span class="nr">6</span>Massaufnahme – die zwölf Funktionen</li>
+<li><span class="nr">7</span>Eine Massaufnahme Schritt für Schritt</li>
+<li><span class="nr">8</span>Fotos und Skizzen</li>
+<li><span class="nr">9</span>PDF erstellen</li>
+<li><span class="nr">10</span>Zwei weitere Beispiele: Rinne und Kehle</li>
+<li><span class="nr">11</span>Ausmass</li>
+<li><span class="nr">12</span>Regierapport</li>
+<li><span class="nr">13</span>Suche</li>
+<li><span class="nr">14</span>Änderungsverlauf</li>
+<li><span class="nr">15</span>Einstellungen</li>
+<li><span class="nr">16</span>Feedback</li>
+<li><span class="nr">17</span>System-Administration (nur Betreiber)</li>
+<li><span class="nr">18</span>Auf Handy und Tablet</li>
+<li><span class="nr">19</span>Ohne Internet</li>
+<li><span class="nr">20</span>Begriffe</li>
+<li><span class="nr">21</span>Zu diesem Dokument</li>
+</ol></nav>
+
+<h2 class="seite">1 · Wofür die App gedacht ist</h2>
+<p>Spengler-DIGITAL nimmt auf der Baustelle Masse auf, rechnet daraus Abwicklungen,
+Stücklisten und Zuschnitte, und erstellt daraus ein PDF für die Werkstatt. Dazu
+kommen das Ausmass und der Regierapport.</p>
+<p>Alles hängt am <strong>Projekt</strong>. Ein Projekt ist eine Baustelle, erkennbar an
+ihrer Adresse. Massaufnahmen, Ausmasse, Regierapporte und Dateien gehören immer zu
+einem Projekt – deshalb führt der Weg in der App immer zuerst über das Projekt.</p>
+<div class="hin"><strong>Der rote Weg durch die App:</strong><br>
+Projekte → Projekt öffnen → Cockpit → dort die Arbeit anlegen und wiederfinden.</div>
+<p>Die App läuft im Browser auf Handy, Tablet, Laptop und Desktop. Sie lässt sich als
+App auf dem Startbildschirm ablegen (PWA) und braucht keine Installation aus einem
+App-Store.</p>
+
+<h2>2 · Anmelden</h2>
+<figure><img src="bilder/01-anmeldung.png"><figcaption>Der Anmeldebildschirm.</figcaption></figure>
+<p>Es gibt zwei Arten von Zugängen:</p>
+<table>
+<tr><th>Wer</th><th>Anmeldung mit</th></tr>
+<tr><td>Mitarbeiter (vom Firmenadmin angelegt)</td><td><code>Vorname.Nachname</code> – ohne @</td></tr>
+<tr><td>Firmenadministrator</td><td>der eigenen E-Mail-Adresse</td></tr>
+</table>
+<p>Beim <strong>ersten Anmelden</strong> verlangt die App von einem neu angelegten
+Mitarbeiterkonto ein eigenes Passwort. Erst danach steht die App offen.</p>
+<div class="warn"><strong>Passwort vergessen?</strong> Ein Firmenadministrator setzt es
+in den Einstellungen unter „Mitarbeiter“ zurück. Der Mitarbeiter wählt beim nächsten
+Anmelden wieder selbst eines.</div>
+
+<h2>3 · Der Startbildschirm</h2>
+<figure><img src="bilder/02-start.png"><figcaption>Der Startbildschirm mit Firmenlogo und Firmenname.</figcaption></figure>
+<table>
+<tr><th>Knopf</th><th>Wozu</th></tr>
+<tr><td>📁 Projekte</td><td>Der Haupteinstieg. Hier beginnt jede Arbeit.</td></tr>
+<tr><td>🔍 Suche</td><td>Findet einen Eintrag über alle Projekte hinweg.</td></tr>
+<tr><td>⚙️ Einstellungen</td><td>Firma, Material, Masse, Mitarbeiter.</td></tr>
+<tr><td>💬 Feedback geben</td><td>Rückmeldung an die Firma bzw. den Betreiber.</td></tr>
+<tr><td>⚙️ System-Administration</td><td>Nur beim Betreiber sichtbar (Abschnitt 17).</td></tr>
+</table>
+<p>Oben rechts steht, wer angemeldet ist, daneben <span class="tasten">🔓 Abmelden</span>.
+Unten steht die Programmversion – die ist wichtig, wenn du einen Fehler meldest.</p>
+
+<h2 class="seite">4 · Projekte</h2>
+<figure><img src="bilder/03-projekte.png"><figcaption>Die Projektübersicht: Schnellzugriff, Suchfeld, Statusfilter und die Projektkarten.</figcaption></figure>
+
+<h3>Zuletzt bearbeitet</h3>
+<p>Ganz oben stehen die vier Projekte, an denen zuletzt wirklich gearbeitet wurde –
+gerechnet über Projekt, Massaufnahmen, Ausmasse, Rapporte und Dateien. Ein Klick
+öffnet das Cockpit.</p>
+
+<h3>Suchen und filtern</h3>
+<p>Das Suchfeld durchsucht <strong>Adresse, Projektname, Auftrags-Nr. und
+Auftraggeber</strong>. Der Statusfilter darunter erscheint erst, wenn wirklich mehrere
+Status vorkommen – bei lauter gleichartigen Projekten bleibt die Liste schlicht.</p>
+
+<h3>Der Projektstatus</h3>
+<p>Der Status wird <strong>von Hand</strong> gesetzt. Die App leitet ihn nicht aus den
+Daten ab: ein Projekt mit fünf Massaufnahmen kann geschäftlich weiterhin offen sein,
+und ein storniertes behält seine erfassten Stunden.</p>
+<table>
+<tr><th>Status</th><th>Bedeutung</th></tr>
+<tr><td>○ Offen</td><td>Angelegt, noch nicht in Ausführung.</td></tr>
+<tr><td>◐ In Arbeit</td><td>Die Baustelle läuft.</td></tr>
+<tr><td>✓ Abgeschlossen</td><td>Die Arbeit ist fertig.</td></tr>
+<tr><td>× Storniert</td><td>Kommt nicht zustande oder wurde abgebrochen.</td></tr>
+</table>
+
+<h3>Archiv</h3>
+<p>Aktive und archivierte Projekte sind <strong>zwei getrennte Ansichten</strong>.
+Der Knopf „🗄 Archivierte Projekte anzeigen“ schaltet um. Es wird nichts automatisch
+archiviert – ein abgeschlossenes Projekt bleibt sichtbar, bis es jemand bewusst
+archiviert. Status und Archiv sind unabhängig voneinander.</p>
+
+<h3>Ein Projekt anlegen</h3>
+<p>Pflicht sind <strong>Projektname und Adresse</strong>. Auftrags-Nr. und Auftraggeber
+sind freiwillig, erleichtern aber das Wiederfinden und werden in den Regierapport
+übernommen.</p>
+<div class="hin">Pflichtfelder tragen überall in der App einen <strong style="color:#b3261e">roten Stern</strong>.
+Ohne sie lässt sich nicht speichern.</div>
+
+<h2 class="seite">5 · Das Projekt-Cockpit</h2>
+<p>Das Cockpit ist der Arbeitsplatz eines Projekts. Von hier wird alles angelegt und
+wiedergefunden; nach jeder Arbeit landet man wieder hier.</p>
+<figure><img src="bilder/04-cockpit-kopf.png"><figcaption>Der Projektkopf mit Status und Arbeitsstand.</figcaption></figure>
+<h3>Der Arbeitsstand</h3>
+<p>Zeigt auf einen Blick, was tatsächlich vorhanden ist: ein Häkchen und die Anzahl,
+oder „Noch keine …“. Es steht dort <strong>nie</strong>, dass etwas fehle oder
+erledigt sei – aus einem fehlenden Datensatz folgt nicht, dass er nötig wäre.
+Ein Klick auf eine Zeile springt zum passenden Bereich.</p>
+<p>Steht dort ein <strong>?</strong>, konnte dieser Bereich nicht geladen werden –
+das ist ehrlicher als eine falsche 0.</p>
+<figure><img src="bilder/05-cockpit-arbeit.png"><figcaption>Die vier Arbeitsbereiche. Jeder hat einen grossen Knopf zum Anlegen und darunter, was schon da ist.</figcaption></figure>
+<table>
+<tr><th>Bereich</th><th>Inhalt</th></tr>
+<tr><td>📐 Massaufnahmen</td><td>Die zwölf Fachfunktionen (Abschnitt 6).</td></tr>
+<tr><td>📏 Ausmass</td><td>Offerte erfassen und Blitzschutzausmass.</td></tr>
+<tr><td>📋 Regierapport</td><td>Arbeiten nach Aufwand.</td></tr>
+<tr><td>📎 Dateien/Fotos</td><td>Pläne, PDF, Fotos – höchstens 50 MB pro Datei.</td></tr>
+</table>
+<p>Über <span class="tasten">✏️ Stammdaten bearbeiten</span> lassen sich Projektname,
+Adresse, Auftrags-Nr. und Auftraggeber ändern. Es gibt dafür bewusst nur diese eine
+Stelle.</p>
+
+<h2 class="seite">6 · Massaufnahme – die zwölf Funktionen</h2>
+<figure><img src="bilder/06-massaufnahme-auswahl.png"><figcaption>Die Auswahl beim Anlegen einer Massaufnahme.</figcaption></figure>
+<table>
+<tr><th>Funktion</th><th>Wofür</th></tr>
+<tr><td>📷 Skizze/Foto</td><td>Nur Fotos und Handskizzen, ohne Rechnung.</td></tr>
+<tr><td>📐 Einlaufblech gerade</td><td>Mass A, Winkel, Stücke, Gehrung, Zuschnitt.</td></tr>
+<tr><td>🏠 Rinne Halbrund</td><td>Rinnenverlauf, Dehnungselemente, Normlängen.</td></tr>
+<tr><td>📐 Einlaufblech konisch</td><td>Wie gerade, mit Mass links/rechts je Stück.</td></tr>
+<tr><td>📐 Freies Profil</td><td>Beliebiges Profil aus Schenkeln und Winkeln.</td></tr>
+<tr><td>🧱 Mauerabdeckung</td><td>Verlauf, Schieber, Boden, Profil.</td></tr>
+<tr><td>🏚️ Lukarne Seitenverkleidung</td><td>Scharen, Hilfsriss, Zugaben.</td></tr>
+<tr><td>📐 Ort- und Seitenbleche</td><td>Anschlussbleche nach Deckmaterial und Art.</td></tr>
+<tr><td>⭕ Einfassung Rund</td><td>Standrohr-Einfassungen, Bleilappen.</td></tr>
+<tr><td>🧱 Kamineinfassung</td><td>Rechteckiger Kamin, sechs Zuschnitte.</td></tr>
+<tr><td>📏 Kehle</td><td>Winkelberechnung für Kehlen an Lukarnen.</td></tr>
+<tr><td>🚰 Rinne</td><td>Zuschnittliste mit frei definierbarem Profil.</td></tr>
+</table>
+<div class="hin">Elf der zwölf Funktionen führen dich über <strong>Register</strong>
+Schritt für Schritt durch die Erfassung. „Skizze/Foto“ hat keine – dort gibt es ausser
+dem Material nichts einzugeben.</div>
+
+<h2 class="seite">7 · Eine Massaufnahme Schritt für Schritt</h2>
+<p>Alle Register-Funktionen sind gleich aufgebaut. Oben die Registerleiste, unten
+<span class="tasten">‹ Zurück</span> und <span class="tasten">Weiter ›</span>. Am Ende
+steht immer die <strong>Kontrolle</strong>. Als Beispiel dient hier Einlaufblech gerade.</p>
+
+<h3>1 · Grunddaten</h3>
+<figure><img src="bilder/07-eb-1-grunddaten.png"><figcaption>Material, Abwicklung und Montageseite.</figcaption></figure>
+
+<h3>2 · Geometrie</h3>
+<figure><img src="bilder/08-eb-2-geometrie.png"><figcaption>Mass A und Winkel. Die App rechnet daraus enge Seite und Restbreite.</figcaption></figure>
+
+<h3>3 · Stücke</h3>
+<figure><img src="bilder/09-eb-3-stuecke-a.png"><figcaption>Die einzelnen Bleche. Je Stück: Länge Stoss/Stoss, Gehrung links/rechts, Endzugabe. Die Zuschnittlänge rechnet die App und zeigt sie als <strong>Länge × Breite</strong>.</figcaption></figure>
+<p>Aus einer <strong>Gesamtlänge</strong> lassen sich die Stücke automatisch aufteilen –
+die App verwendet dafür die Stosslänge und die Überlappung aus den Einstellungen.</p>
+<figure><img src="bilder/09-eb-3-stuecke-b.png"><figcaption>Darunter: der Grundriss, die Haltebleche und die Übernahme von Längen aus einer bereits erfassten Rinne Halbrund.</figcaption></figure>
+
+<h3 class="seite">4 · Zuschnitt aus Rollenblech</h3>
+<figure><img src="bilder/10-eb-4-zuschnitt.png"><figcaption>Die Zuschnittliste: Stückzahl × Länge × Abwicklung, dazu die Positionsnummern.</figcaption></figure>
+<p>Von der Rolle wird ein <strong>Abschnitt</strong> abgezogen – immer so lang wie das
+längste Blech – und quer in Streifen der Abwicklungsbreite geteilt. In einem Streifen
+dürfen mehrere Stücke hintereinander liegen. Die App probiert alle hinterlegten
+Rollenbreiten durch und hebt die materialsparendste hervor.</p>
+<p>Unter <em>Einzelheiten</em> stehen der Vergleich aller Rollenbreiten und die
+Belegung jedes einzelnen Streifens. Über <em>Rollen für diese Massaufnahme</em> lässt
+sich einschränken, welche Rollen auf diese Baustelle mitkommen.</p>
+<div class="warn">Der Verschnitt rechnet <strong>ohne Schnittfuge</strong> und
+<strong>ohne Reststücke aus früheren Aufträgen</strong>. Die Zahlen sind deshalb etwas
+optimistisch.</div>
+
+<h3>5 · Ausmass</h3>
+<figure><img src="bilder/11-eb-5-ausmass.png"><figcaption>Das Ausmass entsteht ohne zweite Eingabe aus dem, was erfasst wurde – ohne Artikelnummern und ohne Preise.</figcaption></figure>
+
+<h3>6 · Kontrolle</h3>
+<figure><img src="bilder/12-eb-6-kontrolle.png"><figcaption>Die Kontrolle steht immer zuletzt.</figcaption></figure>
+<p>Gibt es etwas zu sehen, trägt das Register einen Punkt: <strong style="color:#b3261e">rot</strong>
+bei einem Fehler, orange bei einem Hinweis. Ein Fehler ist etwas, das rechnerisch nicht
+aufgeht oder ein Mindestmass verletzt; ein Hinweis ist etwas Ungewöhnliches, aber
+Erlaubtes.</p>
+
+<h2 class="seite">8 · Fotos und Skizzen</h2>
+<figure><img src="bilder/13-fotos-skizzen.png"><figcaption>Der Foto-Bereich – sichtbar im letzten Register.</figcaption></figure>
+<p>Jede Massaufnahme kann <strong>mehrere Fotos und mehrere Skizzen</strong> tragen.
+Auf einem Foto lässt sich direkt zeichnen (<span class="tasten">✏️</span> an der
+Kachel), eine Skizze lässt sich frei aufziehen.</p>
+<div class="hin">Bei den Register-Funktionen erscheint der Bereich erst im
+<strong>letzten Register</strong>. Der Knopf <span class="tasten">Fertig › Fotos und
+Speichern</span> springt direkt dorthin. Bei „Skizze/Foto“ steht er von Anfang an da.</div>
+<p>Notiz und <span class="tasten">💾 Speichern</span> sind immer erreichbar, egal in
+welchem Register du gerade bist.</p>
+
+<h2>9 · PDF erstellen</h2>
+<figure><img src="bilder/14-pdf-listen.png"><figcaption>Vor jedem PDF fragt die App, welche Listen gedruckt werden sollen.</figcaption></figure>
+<p>Zehn Kategorien, in jeder Massaufnahme gleich benannt und gleich geordnet:</p>
+<table>
+<tr><th>Nr.</th><th>Liste</th><th>Nr.</th><th>Liste</th></tr>
+<tr><td>1</td><td>Kopf / Projekt / Adresse <span class="klein">(immer)</span></td><td>6</td><td>Ausmass</td></tr>
+<tr><td>2</td><td>Zusammenfassung</td><td>7</td><td>Materialliste</td></tr>
+<tr><td>3</td><td>Massaufnahme / Masse</td><td>8</td><td>Kontrolle / Hinweise</td></tr>
+<tr><td>4</td><td>Stückliste</td><td>9</td><td>Fotos</td></tr>
+<tr><td>5</td><td>Rollenblech-Zuschnitt</td><td>10</td><td>Skizze</td></tr>
+</table>
+<p>Was diese Massaufnahme nicht hat, ist ausgegraut und lässt sich nicht anhaken – es
+entsteht nie ein leerer Abschnitt. Der Briefkopf mit Firma, Objektadresse, Projekt und
+Bearbeiter steht auf jedem PDF.</p>
+<div class="hin">Der Ausdruck läuft über den Druckdialog des Browsers. Dort „Als PDF
+speichern“ wählen – so entsteht eine Datei, die sich weitergeben lässt.</div>
+
+<h2 class="seite">10 · Zwei weitere Beispiele</h2>
+<h3>Rinne Halbrund</h3>
+<figure><img src="bilder/15-rinne-verlauf.png"><figcaption>Der Rinnenverlauf wird als Kette aus Abschnitten und Übergängen erfasst – so, wie draussen gemessen wird.</figcaption></figure>
+<p>Ein Übergang trägt entweder eine <strong>Ecke</strong> oder einen
+<strong>Stutzen</strong>. Aussen- und Innenwinkel sowie der Einhängestutzen sind
+Fixpunkte und teilen die Rinne; der Schiebestutzen wirkt wie ein Dehnungselement.
+Der Rinnenboden sitzt an den beiden Aussenenden.</p>
+<p>Die App rechnet daraus, wie viele <strong>Dehnungselemente</strong> nötig sind und
+wo sie sitzen – abhängig vom Material. Die Positionen lassen sich im Register
+<em>Zuschnitt</em> von Hand überschreiben; „↻ Zurück zur Berechnung“ stellt die
+Automatik wieder her.</p>
+<figure><img src="bilder/16-rinne-stueckliste.png"><figcaption>Die Rinne wird als fertiges Profil in Normlängen bezogen – deshalb kein Rollenblech, sondern Stangen.</figcaption></figure>
+
+<h3 class="seite">Kehle</h3>
+<figure><img src="bilder/17-kehle-winkel.png"><figcaption>Die Winkelberechnung für Kehlen an Lukarnen.</figcaption></figure>
+<p>Drei Eingaben genügen: Neigung Hauptdach, Neigung Lukarne und Gefällslänge.
+Daraus kommen die drei Hauptwinkel – <strong>b</strong>, <strong>c</strong> und der
+Biegewinkel <strong>d</strong> – sowie alle weiteren Resultate.</p>
+<p>Ohne Firstgehrung wird gar nicht gerechnet; die App sagt dann, warum, statt Zahlen
+zu erfinden.</p>
+
+<h2 class="seite">11 · Ausmass</h2>
+<figure><img src="bilder/18-ausmass-auswahl.png"><figcaption>Zwei Arten von Ausmass.</figcaption></figure>
+<figure><img src="bilder/19-ausmass-blitzschutz.png"><figcaption>Das Blitzschutzausmass mit dem hinterlegten Artikelkatalog.</figcaption></figure>
+<table>
+<tr><th>Art</th><th>Wofür</th></tr>
+<tr><td>📄 Offerte erfassen</td><td>Freie Positionen mit Menge und Einheit. Positionen lassen sich aus einem Foto erkennen.</td></tr>
+<tr><td>⚡ Blitzschutzausmass</td><td>Positionen aus dem Blitzschutz-Katalog mit Artikelnummer.</td></tr>
+</table>
+<p>Auch ein Ausmass gehört zu einem Projekt, trägt Fotos und lässt sich als PDF
+drucken.</p>
+
+<h2>12 · Regierapport</h2>
+<figure><img src="bilder/20-regierapport.png"><figcaption>Arbeiten nach Aufwand: Stunden, Ansätze, Material und die Summen.</figcaption></figure>
+<p>Wird der Rapport aus dem Cockpit angelegt, sind Projekt, Auftrags-Nr., Auftraggeber
+und Objekt bereits gefüllt.</p>
+<h3>Arbeiten</h3>
+<p>Je Zeile Datum, Beschreibung, Mitarbeiter, Funktion und Stunden. Der Ansatz kommt
+aus der Funktion (Einstellungen → Funktionen/Stundenansätze), das Total rechnet die
+App.</p>
+<h3>Material</h3>
+<p>Die EDV-Nr. schlägt aus dem Materialkatalog vor; Bezeichnung, Dimension, Einheit und
+Preis kommen von dort.</p>
+<div class="hin"><strong>Material, das nicht im Katalog steht:</strong> die EDV-Nummern
+<code>999.90</code> bis <code>999.99</code> sind freie Positionen. Bezeichnung,
+Dimension, Einheit und Preis werden dann direkt in der Zeile eingetragen. Die App
+schlägt beim Tippen die nächste noch freie Nummer vor.</div>
+<p>Unten stehen Sachbearbeiter, MWST und die Summen exkl./inkl. MWST.
+<span class="tasten">🖨 PDF / Drucken</span> erzeugt das Blatt für den Kunden.</p>
+
+<h2 class="seite">13 · Suche</h2>
+<figure><img src="bilder/21-suche.png"><figcaption>Die Suche über alle Projekte hinweg.</figcaption></figure>
+<p>Gesucht wird in Rapporten (Auftraggeber, Objekt, Auftrags-Nr.), in Massaufnahmen und
+Ausmassen (Bezeichnung) sowie in den Projekten selbst (Adresse, Name, Auftrags-Nr.,
+Auftraggeber). Projekt-Treffer stehen zuoberst.</p>
+<p>Jeder Treffer bietet zwei Wege:</p>
+<table>
+<tr><th>Knopf</th><th>Was passiert</th></tr>
+<tr><td>📂 Projekt</td><td>Öffnet das Cockpit und hebt den Treffer dort hervor. Zurück führt danach ins Cockpit.</td></tr>
+<tr><td>✏️</td><td>Öffnet den Eintrag direkt. Zurück führt in die jeweilige Übersicht.</td></tr>
+</table>
+<p class="klein">Ein Eintrag, dessen Projekt gelöscht wurde, hat nur den direkten Weg.</p>
+
+<h2>14 · Änderungsverlauf</h2>
+<figure><img src="bilder/26-verlauf.png"><figcaption>Der Verlauf eines Projekts – wer, wann, was.</figcaption></figure>
+<p>Im Cockpit unter <span class="tasten">🕒 Verlauf anzeigen</span>. Dort stehen die
+Aktivitäten des Projekts <em>und</em> seiner Massaufnahmen, Ausmasse und Rapporte.
+Jede Massaufnahme hat zusätzlich ihren eigenen Verlauf.</p>
+<table>
+<tr><th>Aktion</th><th>Aktion</th></tr>
+<tr><td>Erstellt</td><td>Status geändert</td></tr>
+<tr><td>Geändert</td><td>Foto hinzugefügt / gelöscht</td></tr>
+<tr><td>Gelöscht</td><td>Skizze hinzugefügt / gelöscht</td></tr>
+</table>
+<p>Bei einer Änderung steht dabei, <strong>welches Feld</strong> sich wie geändert hat.
+Zwei Filter (Entität und Aktion) lassen sich frei kombinieren. Gezeigt werden die
+letzten 50 Einträge.</p>
+<p class="klein">Ein gelöschter Eintrag bleibt im Verlauf stehen – die Historie
+verschwindet nicht mit ihm. Wurde ein Mitarbeiter entfernt, steht dort
+„Unbekannter Benutzer“.</p>
+
+<h2 class="seite">15 · Einstellungen</h2>
+<p>Die Einstellungen sind in Register geteilt. Was hier steht, gilt entweder für die
+ganze Firma oder nur für dieses Gerät – das ist jeweils angeschrieben.</p>
+<figure><img src="bilder/22-einstellungen-allgemein.png"><figcaption>Allgemein: Darstellung, Anzahl der letzten Einträge, Fotoqualität und das Blechlager.</figcaption></figure>
+<div class="hin"><strong>Das Blechlager</strong> (die Rollenbreiten) gilt für die ganze
+Firma und wird von allen Massaufnahmen mit Rollenblech-Zuschnitt verwendet.</div>
+<figure><img src="bilder/23-einstellungen-massaufnahmen.png"><figcaption>Massaufnahmen: die Standardmasse je Fachfunktion.</figcaption></figure>
+<p>Hier stehen Umschläge, Überlappungen, Stosslängen, Achsabstände und ähnliche
+Vorgabewerte. Sie füllen eine <strong>neue</strong> Massaufnahme vor und sind darin
+danach frei änderbar. Eine Änderung wirkt <strong>nie rückwirkend</strong> auf bereits
+erfasste Massaufnahmen.</p>
+<figure><img src="bilder/24-einstellungen-geschuetzt.png"><figcaption>Geschützt: Firma, Mitarbeiter, Stundenansätze, Materialkataloge, Datensicherung.</figcaption></figure>
+<p>Dieses Register sehen nur Firmenadministratoren. Dort werden Firmenname, Adresse,
+Logo und MWST gepflegt, Mitarbeiter angelegt und Passwörter zurückgesetzt, Funktionen
+und Ansätze definiert und die Materialkataloge verwaltet.</p>
+<div class="hin">Aus jeder Massaufnahme führt ein <span class="tasten">⚙️ Einstellungen</span>-Knopf
+direkt an die passende Stelle in diesen Registern.</div>
+
+<h2>16 · Feedback</h2>
+<figure><img src="bilder/25-feedback.png"><figcaption>Eine Rückmeldung schreiben – erreichbar über 💬 Feedback geben auf dem Startbildschirm.</figcaption></figure>
+<p>Jeder kann eine Rückmeldung schreiben und einem Bereich zuordnen. Die Auswahlliste
+enthält automatisch alle vorhandenen Massaufnahme- und Ausmass-Arten.</p>
+<h3>Rückmeldungen ansehen</h3>
+<figure><img src="bilder/25b-feedback-liste.png"><figcaption>Die Liste liegt in den Einstellungen im Register 💬 Feedback und ist nur für Firmenadministratoren sichtbar.</figcaption></figure>
+<p>Dort lassen sich die Rückmeldungen nach fünf Kriterien sortieren, als erledigt
+markieren und löschen. Über die Kästchen wird ausgewählt, was in den Download kommt –
+als <strong>Excel-</strong> oder <strong>Textdatei</strong>. Die Zahl im Knopf sagt,
+wie viele gerade ausgewählt sind.</p>
+
+<h2>17 · System-Administration</h2>
+<figure><img src="bilder/27-systemadmin.png"><figcaption>Die Firmenverwaltung des Betreibers.</figcaption></figure>
+<div class="warn">Dieser Bereich ist <strong>nur für den Betreiber</strong> von
+Spengler-DIGITAL sichtbar, nicht für Firmenadministratoren.</div>
+<p>Er zeigt alle Firmen mit Status, Testphase, Registrierungsdatum und Benutzerzahl.
+Dort lassen sich neue Firmen registrieren, die Testphase verlängern, der Status ändern
+und eine Firma vollständig löschen.</p>
+<p>Ausserdem steht dort, welche Module gerade „in Entwicklung“ sind – die sind dann
+firmenübergreifend nur für Administratoren sichtbar.</p>
+<p class="klein">Es gibt bewusst <strong>keinen</strong> Zugriff auf Projekte,
+Massaufnahmen oder Fotos einzelner Kundenfirmen.</p>
+
+<h2>18 · Auf Handy und Tablet</h2>
+<p>Die App ist für die Bedienung mit dem Finger gebaut: grosse Knöpfe, umbrechende
+Zeilen, kein seitliches Scrollen.</p>
+<figure>
+ <div style="display:flex;gap:5mm;align-items:flex-start;justify-content:center">
+  <img src="bilder/28-handy-projekte.png" style="width:74mm;max-height:none">
+  <img src="bilder/29-handy-cockpit.png" style="width:74mm;max-height:none">
+ </div>
+ <figcaption>Projektliste und Projekt-Cockpit auf einem Handy (390 px Bildschirmbreite).</figcaption>
+</figure>
+<p>Auf dem Tablet ist die Erfassung am angenehmsten – die Registerleiste und die
+Zeichnungen haben dort genug Platz.</p>
+<h3>Als App ablegen</h3>
+<ul>
+<li><strong>iPhone/iPad:</strong> Teilen → „Zum Home-Bildschirm“</li>
+<li><strong>Android:</strong> Menü (die drei Punkte) → „App installieren“ bzw. „Zum Startbildschirm“</li>
+</ul>
+
+<h2 class="seite">19 · Ohne Internet</h2>
+<p>Die App startet und rechnet auch ohne Verbindung. Ein Hinweis oben sagt dann,
+dass keine Verbindung besteht und von wann die angezeigten Daten stammen.</p>
+<table>
+<tr><th>Geht ohne Verbindung</th><th>Geht nicht</th></tr>
+<tr><td>App starten und bedienen</td><td>Speichern (Projekt, Massaufnahme, Ausmass, Rapport, Feedback)</td></tr>
+<tr><td>Zuletzt geladene Projekte, Material, Ansätze und Kataloge ansehen</td><td>Fotos und Skizzen hochladen</td></tr>
+<tr><td>Alle Rechenmodule – Abwicklung, Stückliste, Zuschnitt, Winkel</td><td>Anmelden ohne bestehende Sitzung</td></tr>
+<tr><td></td><td>Suche, Verlauf, System-Administration</td></tr>
+</table>
+<div class="warn">Ein Speicherversuch ohne Verbindung wird <strong>klar abgelehnt</strong>,
+nicht stillschweigend verworfen. Die Eingaben bleiben im Formular stehen, bis wieder
+Verbindung da ist.</div>
+
+<h2>20 · Begriffe</h2>
+<table>
+<tr><th>Begriff</th><th>Bedeutung</th></tr>
+<tr><td>Abwicklung</td><td>Die Breite des flachen Blechs, bevor es gekantet wird.</td></tr>
+<tr><td>Abschnitt</td><td>Das Stück, das von der Rolle abgezogen wird – so lang wie das längste Blech.</td></tr>
+<tr><td>Streifen</td><td>Ein Abschnitt wird quer in Streifen der Abwicklungsbreite geteilt.</td></tr>
+<tr><td>Dehnungselement (Dila)</td><td>Element, das die Längenänderung der Rinne aufnimmt.</td></tr>
+<tr><td>Fixpunkt</td><td>Punkt, an dem die Rinne festgehalten wird – teilt sie in Abschnitte.</td></tr>
+<tr><td>Normlänge</td><td>Länge, in der ein fertiges Profil bezogen wird (z. B. 6 m).</td></tr>
+<tr><td>Bleilappen</td><td>Bleistück zum Anpassen an die Dachziegel.</td></tr>
+<tr><td>Hilfsriss</td><td>Zusatzmass an der Lukarne für den Anschluss.</td></tr>
+<tr><td>Arbeitsstand</td><td>Was im Projekt erfasst ist – nicht was noch fehlt.</td></tr>
+<tr><td>Register</td><td>Ein Schritt der Erfassung, oben in der Leiste wählbar.</td></tr>
+</table>
+
+<h2 class="seite">21 · Zu diesem Dokument</h2>
+<p>Diese Anleitung beschreibt <strong>Version 3.02</strong>, Stand 5. September 2026.</p>
+<h3>Woher die Bildschirmfotos stammen</h3>
+<p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
+einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
+gezeichneten Abbildungen.</p>
+<div class="warn"><strong>Die gezeigten Daten sind erfunden.</strong> Firma, Personen,
+Adressen, Projekte und Preise stammen aus einer Demo-Umgebung. Es wurde für diese
+Anleitung <strong>keine Verbindung zur Produktivdatenbank</strong> aufgebaut und kein
+Kundendatensatz verwendet.</p>
+<h3>Was diese Anleitung nicht leistet</h3>
+<ul>
+<li>Sie ersetzt <strong>keine fachliche Prüfung</strong> der Resultate. Die
+Berechnungen folgen den hinterlegten Vorlagen und Normen – die Verantwortung für
+Ausführung und Masse bleibt beim Spengler.</li>
+<li>Sie beschreibt nicht jede einzelne der zwölf Fachfunktionen im Detail. Die
+Register führen ohnehin durch die Erfassung, und jede Funktion hat ihre eigene
+Kontrolle.</li>
+<li>Der Verschnitt rechnet ohne Schnittfuge und ohne Reststücke aus früheren
+Aufträgen (siehe Abschnitt 7).</li>
+</ul>
+<h3>Etwas stimmt nicht?</h3>
+<p>Über <span class="tasten">💬 Feedback geben</span> auf dem Startbildschirm. Bitte
+den Bereich nennen und die Versionsnummer dazuschreiben – sie steht unten auf dem
+Startbildschirm.</p>
+
+</body></html>
