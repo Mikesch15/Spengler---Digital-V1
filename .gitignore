@@ -12,3 +12,9 @@
 
 # Bereits versionierte Testbilder (rapport_v273..275.png) bleiben davon
 # unberuehrt - .gitignore wirkt nicht auf bereits getrackte Dateien.
+
+# Die Bildschirmfotos der Anleitung. Sie werden aus der echten index.html
+# erzeugt (anleitung/schuss.js) und sind in Sekunden wieder da - rund 4 MB
+# Binaerdaten gehoeren nicht in die Versionsverwaltung. Eingecheckt sind
+# nur das fertige PDF und die Skripte.
+/anleitung/bilder/

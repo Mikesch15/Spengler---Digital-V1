@@ -577,7 +577,9 @@ function raFeld(label,inhalt,voll){
  return `<div${voll?' class="wide"':""}><label>${esc(label)}</label>${inhalt}</div>`;
 }
 function raKarte(titel,inhalt){
- return `<div class="ra-block"><h2 style="margin-top:14px">${esc(titel)}</h2>${inhalt}</div>`;
+ // Info-Knopf nur an der Hauptkarte des Registers (js/41-hilfe.js).
+ const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,RA_REGISTER):"";
+ return `<div class="ra-block"><h2 style="margin-top:14px">${esc(titel)}${h}</h2>${inhalt}</div>`;
 }
 
 function raGrunddatenHtml(){
@@ -837,13 +839,13 @@ geratenen Stangenlänge beruhen. Einzutragen unter <b>Einstellungen → Massaufn
 // Register - sie sind jetzt getrennt, damit der Zuschnitt ueberall an
 // derselben Stelle steht.
 const RA_REGISTER=[
- {nr:1,titel:"Grunddaten",     kurz:"Grunddaten"},
- {nr:2,titel:"Rinnenverlauf",  kurz:"Verlauf"},
- {nr:3,titel:"Komponenten",    kurz:"Komponenten"},
- {nr:4,titel:"Stückliste",     kurz:"Stückliste"},
- {nr:5,titel:"Zuschnitt",      kurz:"Zuschnitt"},
- {nr:6,titel:"Ausmass",        kurz:"Ausmass"},
- {nr:7,titel:"Kontrolle",      kurz:"Kontrolle"}
+ {nr:1,titel:"Grunddaten",     kurz:"Grunddaten",hilfe:"reg-grunddaten"},
+ {nr:2,titel:"Rinnenverlauf",  kurz:"Verlauf",hilfe:"rh-verlauf"},
+ {nr:3,titel:"Komponenten",    kurz:"Komponenten",hilfe:"rh-komponenten"},
+ {nr:4,titel:"Stückliste",     kurz:"Stückliste",hilfe:"rh-stueckliste"},
+ {nr:5,titel:"Zuschnitt",      kurz:"Zuschnitt",hilfe:"rh-normlaengen"},
+ {nr:6,titel:"Ausmass",        kurz:"Ausmass",hilfe:"reg-ausmass"},
+ {nr:7,titel:"Kontrolle",      kurz:"Kontrolle",hilfe:"reg-kontrolle"}
 ];
 // Die Kontrolle ist immer das LETZTE Register - die Marke haengt deshalb an
 // der Registerzahl, nicht an einer festen Nummer.

@@ -4,6 +4,8 @@
 // zur Laufzeit entstehen (Ort-/Seitenbleche), rufen die Funktion selbst
 // nochmals fuer ihren Bereich auf.
 markierePflichtfelder();
+// Info-Knoepfe fuer Tastatur und Screenreader beschriften (js/41-hilfe.js).
+if(typeof hilfeKnoepfeBeschriften==="function")hilfeKnoepfeBeschriften();
 
 // ---- Start: bestehende Sitzung prüfen -------------------------
 (async()=>{

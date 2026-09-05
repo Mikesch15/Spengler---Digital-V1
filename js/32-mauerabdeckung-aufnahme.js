@@ -17,9 +17,9 @@
 // ============================================================================
 
 const MADA_REGISTER=[
- {nr:1,kurz:"Grunddaten"},{nr:2,kurz:"Verlauf"},{nr:3,kurz:"Boden & Schieber"},
- {nr:4,kurz:"Profil & Norm"},{nr:5,kurz:"Stückliste"},{nr:6,kurz:"Zuschnitt"},
- {nr:7,kurz:"Ausmass"},{nr:8,kurz:"Kontrolle"}
+ {nr:1,kurz:"Grunddaten",hilfe:"reg-grunddaten"},{nr:2,kurz:"Verlauf",hilfe:"mad-verlauf"},{nr:3,kurz:"Boden & Schieber",hilfe:"mad-schieber"},
+ {nr:4,kurz:"Profil & Norm",hilfe:"mad-profil"},{nr:5,kurz:"Stückliste",hilfe:"mad-stueckliste"},{nr:6,kurz:"Zuschnitt",hilfe:"reg-zuschnitt"},
+ {nr:7,kurz:"Ausmass",hilfe:"reg-ausmass"},{nr:8,kurz:"Kontrolle",hilfe:"reg-kontrolle"}
 ];
 // Die Kontrolle ist in jeder Art das LETZTE Register - die Marke haengt
 // deshalb an der Registerzahl und nicht an einer festen Nummer.
@@ -301,7 +301,9 @@ function madaFeld(label,inhalt,voll){
  return `<div${voll?' style="grid-column:1/-1"':""}><label>${esc(label)}</label>${inhalt}</div>`;
 }
 function madaKarte(titel,inhalt){
- return `<div class="ra-block"><h2 style="margin-top:14px">${esc(titel)}</h2>${inhalt}</div>`;
+ // Info-Knopf nur an der Hauptkarte des Registers (js/41-hilfe.js).
+ const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,MADA_REGISTER):"";
+ return `<div class="ra-block"><h2 style="margin-top:14px">${esc(titel)}${h}</h2>${inhalt}</div>`;
 }
 function madaKennzahlen(){
  const t=madaMaterialTabelle();

@@ -27,8 +27,8 @@
 // die fachlichen Schritte zuerst, danach Zuschnitt, Ausmass und zuletzt die
 // Kontrolle.
 const EBA_REGISTER=[
- {nr:1,kurz:"Grunddaten"},{nr:2,kurz:"Geometrie"},{nr:3,kurz:"Stücke"},
- {nr:4,kurz:"Zuschnitt"},{nr:5,kurz:"Ausmass"},{nr:6,kurz:"Kontrolle"}
+ {nr:1,kurz:"Grunddaten",hilfe:"reg-grunddaten"},{nr:2,kurz:"Geometrie",hilfe:"eb-geometrie"},{nr:3,kurz:"Stücke",hilfe:"eb-stuecke"},
+ {nr:4,kurz:"Zuschnitt",hilfe:"reg-zuschnitt"},{nr:5,kurz:"Ausmass",hilfe:"reg-ausmass"},{nr:6,kurz:"Kontrolle",hilfe:"reg-kontrolle"}
 ];
 // Die Kontrolle ist immer das LETZTE Register - die Marke haengt deshalb an
 // der Registerzahl, nicht an einer festen Nummer.
@@ -311,7 +311,9 @@ function ebaFeld(label,inhalt,voll){
  return `<div${voll?' class="wide"':""}><label>${esc(label)}</label>${inhalt}</div>`;
 }
 function ebaKarte(titel,inhalt){
- return `<div class="ra-block"><h2 style="margin-top:14px">${esc(titel)}</h2>${inhalt}</div>`;
+ // Info-Knopf nur an der Hauptkarte des Registers (js/41-hilfe.js).
+ const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,EBA_REGISTER):"";
+ return `<div class="ra-block"><h2 style="margin-top:14px">${esc(titel)}${h}</h2>${inhalt}</div>`;
 }
 
 function ebaGrunddatenHtml(){

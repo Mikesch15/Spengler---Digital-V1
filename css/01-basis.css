@@ -566,3 +566,30 @@ label.kam-schalter{display:flex;align-items:center;gap:8px;min-height:40px;margi
  text-transform:none;font-size:14px;font-weight:600;color:var(--fg);letter-spacing:0;cursor:pointer}
 label.kam-schalter input[type=checkbox]{width:20px;min-width:20px;height:20px;
  min-height:0;padding:0;border:0;margin:0;flex:0 0 auto;cursor:pointer}
+
+/* ---- Hilfe (v3.03) -------------------------------------------------------
+   Der Info-Knopf steht meist in einem <h2>. Die globalen Grundregeln muessen
+   deshalb ausdruecklich zurueckgesetzt werden - sonst waere er 40 px hoch
+   (button{padding:10px 13px}) und seine Beschriftung GROSS und gesperrt
+   (h2{text-transform:uppercase;letter-spacing:.05em}). Gleiche Falle wie bei
+   .bar gegen [hidden] und table{min-width:1000px}, siehe CLAUDE.md 59/60.5. */
+.hilfe-knopf{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+ width:20px;height:20px;min-height:0;padding:0;margin-left:7px;vertical-align:middle;
+ border:1.5px solid var(--blue);border-radius:50%;background:transparent;color:var(--blue);
+ font:700 12px/1 Georgia,"Times New Roman",serif;text-transform:none;letter-spacing:0}
+.hilfe-knopf:hover{background:var(--blue);color:#fff}
+.settings-section-head .hilfe-knopf{border-color:var(--blue-dark);color:var(--blue-dark)}
+.settings-section-head .hilfe-knopf:hover{background:var(--blue-dark);color:#fff}
+/* In der Registerleiste sitzt der Knopf am Ende und darf nicht mitschrumpfen. */
+.ra-register .hilfe-knopf{align-self:center;margin-left:2px}
+
+.hilfe-box{max-width:660px}
+.hilfe-text{font-size:13px;line-height:1.55}
+.hilfe-text p{margin:0 0 9px}
+.hilfe-text ul{margin:0 0 9px;padding-left:20px}
+.hilfe-text li{margin:0 0 4px}
+.hilfe-text b{color:var(--blue-dark)}
+.hilfe-pdf{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;
+ border-radius:9px;background:var(--blue-light);color:var(--blue-dark);
+ font-weight:800;font-size:13px;text-decoration:none}
+.hilfe-pdf:hover{filter:brightness(.96)}

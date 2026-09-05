@@ -74,7 +74,7 @@
 <h1>Willkommen</h1>
 <div class="small" id="startCompanyLine" style="margin:-8px 0 10px"></div>
 <div class="card">
-<h2>Was möchtest du tun?</h2>
+<h2>Was möchtest du tun? <button type="button" class="hilfe-knopf no-print" data-hilfe="start">i</button></h2>
 <!-- v2.44: Regierapport/Massaufnahme/Ausmass sind keine eigenen
      Starteinstiege mehr. Diese Arbeiten gehoeren zu einem Projekt und
      werden ueber Projekte -> Projekt oeffnen -> Cockpit gestartet.
@@ -95,14 +95,14 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.02</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.03</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
 <div id="measTypeChooserModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>📐 Neue Massaufnahme</h2>
+<h2>📐 Neue Massaufnahme <button type="button" class="hilfe-knopf no-print" data-hilfe="meas-arten">i</button></h2>
 <div class="info">Welche Funktion?</div>
 <div class="start-nav">
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="skizze_foto"><span class="start-nav-icon">📷</span><span>Skizze/Foto</span></button>
@@ -129,7 +129,7 @@
 <div id="amTypeChooserModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>📏 Neues Ausmass</h2>
+<h2>📏 Neues Ausmass <button type="button" class="hilfe-knopf no-print" data-hilfe="am-arten">i</button></h2>
 <div class="info">Welche Funktion?</div>
 <div class="start-nav">
 <button type="button" class="start-nav-btn blue" data-choose-am-type="offerte_erfassen"><span class="start-nav-icon">📄</span><span>Offerte erfassen</span></button>
@@ -155,7 +155,7 @@
 <div class="no-print report-adresse" id="reportAddressLine"></div>
 
 <div class="card">
-<h2>Regieauftrag</h2>
+<h2>Regieauftrag <button type="button" class="hilfe-knopf no-print" data-hilfe="rapport-kopf">i</button></h2>
 <div class="grid">
 <div class="wide"><label>Projekt</label>
 <div class="search"><input id="projectSearch" data-pflicht="1" placeholder="Suchen: Projektname, Auftrags-Nr., Auftraggeber, Objekt …" autocomplete="off"><div id="projectResults" class="suggest"></div></div>
@@ -170,7 +170,7 @@
 </div>
 
 <div class="card">
-<h2>Ausführende Arbeiten</h2>
+<h2>Ausführende Arbeiten <button type="button" class="hilfe-knopf no-print" data-hilfe="rapport-arbeit">i</button></h2>
 <div class="scroll">
 <table class="work-table">
 <colgroup><col class="c-pos"><col class="c-desc"><col class="c-emp"><col class="c-func"><col class="c-std"><col class="c-rate"><col class="c-total"><col class="c-del"></colgroup>
@@ -183,7 +183,7 @@
 </div>
 
 <div class="card">
-<h2>Material</h2>
+<h2>Material <button type="button" class="hilfe-knopf no-print" data-hilfe="rapport-material">i</button></h2>
 <div class="scroll">
 <table class="mat-table">
 <colgroup><col class="m-pos"><col class="m-edv"><col class="m-material"><col class="m-dim"><col class="m-unit"><col class="m-qty"><col class="m-price"><col class="m-total"><col class="m-del"></colgroup>
@@ -237,12 +237,12 @@
      Datenquelle sind die echten Bearbeitungszeitpunkte der Projektdaten
      selbst - siehe js/09-projekte.js, renderRecentProjects(). -->
 <div class="card">
-<h2>🕘 Zuletzt bearbeitet</h2>
+<h2>🕘 Zuletzt bearbeitet <button type="button" class="hilfe-knopf no-print" data-hilfe="zuletzt">i</button></h2>
 <div id="recentProjectsList"></div>
 </div>
 
 <div class="card">
-<h2 id="projectListTitle">📁 Projekte</h2>
+<h2><span id="projectListTitle">📁 Projekte</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="projekte">i</button></h2>
 <div class="info">Projekte werden zentral gespeichert und sind auf allen Geräten sichtbar, mit denen sich Mitarbeiter anmelden.</div>
 <!-- Anlegen-Formular (v2.47): nur in der aktiven Ansicht sichtbar - ein
      neues Projekt gehoert nie ins Archiv. -->
@@ -280,7 +280,7 @@
      eingeklappt, damit die Arbeitsbereiche oben auf dem Bildschirm
      stehen - im Alltag wird gearbeitet, nicht umbenannt. -->
 <div class="card">
-<h2 id="cockpitTitle">📁 Projekt</h2>
+<h2><span id="cockpitTitle">📁 Projekt</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit">i</button></h2>
 <div class="small" id="cockpitSubline"></div>
 <div class="small" id="cockpitMetaInfo" style="color:var(--muted);margin-top:2px" hidden></div>
 
@@ -324,28 +324,28 @@
 <!-- Arbeitsbereiche: je ein Abschnitt, Liste immer sichtbar. -->
 <div id="cockpitWorkArea">
 <div class="card" id="cockpitMeasCard">
-<h2>📐 Massaufnahmen<span id="cockpitMeasCount" class="cockpit-count">–</span></h2>
+<h2>📐 Massaufnahmen<span id="cockpitMeasCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-meas">i</button></h2>
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="meas">＋ Neue Massaufnahme</button></div>
 <div id="cockpitMeasBody"></div>
 </div>
 <div class="card" id="cockpitAmCard">
-<h2>📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span></h2>
+<h2>📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-am">i</button></h2>
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="am">＋ Neues Ausmass</button></div>
 <div id="cockpitAmBody"></div>
 </div>
 <div class="card" id="cockpitRepCard">
-<h2>📋 Regierapport<span id="cockpitRepCount" class="cockpit-count">–</span></h2>
+<h2>📋 Regierapport<span id="cockpitRepCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-rep">i</button></h2>
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="rep">＋ Neuer Regierapport</button></div>
 <div id="cockpitRepBody"></div>
 </div>
 <div class="card" id="cockpitFilesCard">
-<h2>📎 Dateien/Fotos<span id="cockpitFilesCount" class="cockpit-count">–</span></h2>
+<h2>📎 Dateien/Fotos<span id="cockpitFilesCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-dateien">i</button></h2>
 <div id="cockpitFilesBody"></div>
 </div>
 </div>
 
 <div class="card">
-<h2>🕒 Verlauf</h2>
+<h2>🕒 Verlauf <button type="button" class="hilfe-knopf no-print" data-hilfe="verlauf">i</button></h2>
 <div class="small" id="cockpitLastActivity"></div>
 <div class="bar"><button id="cockpitVerlaufToggle" class="gray">🕒 Verlauf anzeigen</button></div>
 <div class="report-list" id="cockpitVerlaufBody"></div>
@@ -362,7 +362,7 @@
 <div id="measMediaModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2 id="measMediaTitle">📷 Fotos/Skizzen</h2>
+<h2><span id="measMediaTitle">📷 Fotos/Skizzen</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="medien">i</button></h2>
 <div class="small" id="measMediaSub"></div>
 <div class="medien-galerie" id="measMediaBody"></div>
 <div class="bar"><button id="measMediaClose" class="green">✓ Fertig</button></div>
@@ -383,7 +383,7 @@
 <div id="reportsModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>📋 Regierapport</h2>
+<h2>📋 Regierapport <button type="button" class="hilfe-knopf no-print" data-hilfe="rapport-liste">i</button></h2>
 <div class="bar"><button id="newReport" class="blue">＋ Neuer Regierapport</button><button id="exportReportsCsv" class="gray">📤 Als CSV exportieren</button><button id="reportSettingsShortcut" class="gray">⚙️ Einstellungen</button></div>
 <div id="recentReportsList"></div>
 <div class="small" style="margin-top:6px;color:var(--muted)">Ältere Rapporte findest du über 📁 Projekte.</div>
@@ -396,7 +396,7 @@
 <div id="globalSearchModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>🔍 Suche</h2>
+<h2>🔍 Suche <button type="button" class="hilfe-knopf no-print" data-hilfe="suche">i</button></h2>
 <div class="info">Durchsucht alle Rapporte, Massaufnahmen und Ausmasse – nicht nur die letzten Einträge.</div>
 <div class="grid" style="margin-bottom:8px">
 <div class="wide"><label>Suchbegriff</label><input id="globalSearchInput" placeholder="Projekt, Kunde, Adresse, Auftrags-Nr., Titel …"></div>
@@ -423,7 +423,7 @@
 <div id="feedbackModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>💬 Feedback geben</h2>
+<h2>💬 Feedback geben <button type="button" class="hilfe-knopf no-print" data-hilfe="feedback">i</button></h2>
 <div class="info">Dein Feedback geht direkt an den Entwickler der App. Bitte möglichst konkret beschreiben.</div>
 <div class="grid">
 <div><label>Modul</label>
@@ -445,7 +445,7 @@
 <div id="systemAdminModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>⚙️ Spengler-DIGITAL Administration</h2>
+<h2>⚙️ Spengler-DIGITAL Administration <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin">i</button></h2>
 <div class="info">Firmenverwaltung für den Betreiber von Spengler-DIGITAL. Unabhängig von der normalen Firmenadmin-Rolle.</div>
 <div class="bar" style="margin-bottom:10px"><button type="button" id="sysAdminOpenRegister" class="green">🏢 Neue Firma registrieren</button></div>
 <div class="grid" style="margin-bottom:10px">
@@ -466,7 +466,7 @@
 </div>
 
 <div class="card">
-<h2>💬 Feedback aller Firmen</h2>
+<h2>💬 Feedback aller Firmen <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin-feedback">i</button></h2>
 <div class="info">Zeigt das Feedback <b>aller</b> Firmen, inklusive Firma und Absender. Sichtbar nur für System-Administratoren; die Prüfung läuft serverseitig. Löschen ist hier bewusst nicht möglich – das Feedback gehört der jeweiligen Firma.</div>
 <div class="bar feedback-sort" id="sysFeedbackSortBar" style="margin-top:9px" hidden>
 <button type="button" class="gray active" data-feedback-sort="offen">Offen zuerst</button>
@@ -490,7 +490,7 @@
 </div>
 
 <div class="card">
-<h2>🧪 Module in Entwicklung</h2>
+<h2>🧪 Module in Entwicklung <button type="button" class="hilfe-knopf no-print" data-hilfe="module-test">i</button></h2>
 <div class="info">Gilt für <b>alle Firmen</b>. Angehakte Module sind nur für Administratoren sichtbar – alle anderen sehen den Knopf gar nicht erst. Gedacht für Funktionen, die noch nicht fertig sind.</div>
 <div id="moduleTestListe"></div>
 <div id="moduleTestHinweis" class="small" style="color:var(--green)" hidden></div>
@@ -637,7 +637,7 @@ Diese Aktion löscht unwiderruflich:
 <div id="measurementsModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>📐 Massaufnahme</h2>
+<h2>📐 Massaufnahme <button type="button" class="hilfe-knopf no-print" data-hilfe="meas-kopf">i</button></h2>
 <div class="bar"><button id="newMeasurement" class="blue">＋ Neue Massaufnahme</button><button id="measurementSettingsShortcut" class="gray">⚙️ Einstellungen</button></div>
 <div id="recentMeasurementsList"></div>
 <div class="small" style="margin-top:6px;color:var(--muted)">Ältere Massaufnahmen findest du über 📁 Projekte.</div>
@@ -807,7 +807,7 @@ mindestens eines von beiden ist nötig.</div>
 <div class="ra-register" id="anba_register"></div>
 
 <div id="anba_seite1" class="anba-seite" hidden>
-<div class="card"><h2>1 &middot; Grunddaten</h2>
+<div class="card"><h2>1 &middot; Grunddaten <button type="button" class="hilfe-knopf no-print" data-hilfe="reg-grunddaten">i</button></h2>
 <div class="info">Ort- und Seitenbleche nach [7.3.37]. Zeichnung und Abwicklung stammen aus derselben Linie, k&ouml;nnen also nicht auseinanderlaufen. Die Mindestmasse werden gepr&uuml;ft; beim Biberschwanzziegel gilt beim Steg b = 60 mm statt 70 mm.</div>
 <div class="grid">
 <div><label>Deckmaterial</label><select id="anb_deckung"></select></div>
@@ -820,7 +820,7 @@ mindestens eines von beiden ist nötig.</div>
 </div>
 
 <div id="anba_seite2" class="anba-seite" hidden>
-<div class="card"><h2>2 &middot; Schnitt</h2>
+<div class="card"><h2>2 &middot; Schnitt <button type="button" class="hilfe-knopf no-print" data-hilfe="anb-schnitt">i</button></h2>
 <div class="info">Der Bleilappen wird gezeichnet und bemasst, z&auml;hlt aber nicht zum Zuschnitt &ndash; er ist aus Blei und wird nicht mit dem Blech gekantet.</div>
 <div class="grid" id="anb_masse"></div>
 <div class="grid" id="anb_abschluss" style="margin-top:8px"></div>
@@ -833,7 +833,7 @@ mindestens eines von beiden ist nötig.</div>
 </div>
 
 <div id="anba_seite3" class="anba-seite" hidden>
-<div class="card"><h2>3 &middot; Segmente</h2>
+<div class="card"><h2>3 &middot; Segmente <button type="button" class="hilfe-knopf no-print" data-hilfe="anb-segmente">i</button></h2>
 <div class="info">Jedes Segment ist ein gerades St&uuml;ck. Ein Knick unterbricht ein Segment; Winkel und Mass ab Vorderkante sind nur zur Dokumentation und &auml;ndern Zuschnitt und Abwicklung nicht.</div>
 <div class="scroll">
 <table class="eb-table">
@@ -848,7 +848,7 @@ mindestens eines von beiden ist nötig.</div>
 </div>
 
 <div id="anba_seite4" class="anba-seite" hidden>
-<div class="card"><h2>4 &middot; St&uuml;ckliste</h2>
+<div class="card"><h2>4 &middot; St&uuml;ckliste <button type="button" class="hilfe-knopf no-print" data-hilfe="anb-stueckliste">i</button></h2>
 <div class="grid">
 <div><label>St&uuml;ckl&auml;nge (mm)</label><input id="anb_stossLaenge" type="number" step="1" inputmode="numeric"></div>
 <div><label>&Uuml;berlappung am Stoss (mm)</label><input id="anb_ueberlappung" type="number" step="1" inputmode="numeric"></div>
@@ -912,7 +912,7 @@ mindestens eines von beiden ist nötig.</div>
 <div class="ra-register" id="rpa_register"></div>
 
 <div id="rpa_seite1" class="rpa-seite" hidden>
-<div class="card"><h2>1 &middot; Grunddaten</h2>
+<div class="card"><h2>1 &middot; Grunddaten <button type="button" class="hilfe-knopf no-print" data-hilfe="reg-grunddaten">i</button></h2>
 <div class="info">Zuschnittliste f&uuml;r Rinnen. Zuerst das <b>Profil</b> festlegen, danach die Rinnenst&uuml;cke erfassen.
 Jedes Profilsegment ist entweder <b>fix</b> (bei jedem St&uuml;ck gleich, eigene L&auml;nge) oder <b>variabel</b>
 (je St&uuml;ck links/rechts eigener Wert, erscheint in der St&uuml;ckliste als A, B, C &hellip;).
@@ -925,7 +925,7 @@ Es gilt: <b>Abwicklung = Summe der variablen Masse + Summe aller Fixmasse</b>,
 </div>
 
 <div id="rpa_seite2" class="rpa-seite" hidden>
-<div class="card"><h2>2 &middot; Profil</h2>
+<div class="card"><h2>2 &middot; Profil <button type="button" class="hilfe-knopf no-print" data-hilfe="rp-profil">i</button></h2>
 <div class="info">Der Winkel ist &ndash; wie beim Freien Profil &ndash; die Richtungs&auml;nderung gegen&uuml;ber
 dem vorherigen Segment; 180&deg; ist ein Umschlag. Er bestimmt nur die Zeichnung, nicht die Abwicklung.</div>
 <div class="small" id="rp_profilInfo" style="margin-bottom:4px"></div>
@@ -946,7 +946,7 @@ dem vorherigen Segment; 180&deg; ist ein Umschlag. Er bestimmt nur die Zeichnung
 </div>
 
 <div id="rpa_seite3" class="rpa-seite" hidden>
-<div class="card"><h2>3 &middot; Rinnenst&uuml;cke</h2>
+<div class="card"><h2>3 &middot; Rinnenst&uuml;cke <button type="button" class="hilfe-knopf no-print" data-hilfe="rp-stuecke">i</button></h2>
 <div class="info">Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&uuml;cks
 als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Auml;nderung wirkt nie r&uuml;ckwirkend.</div>
 <div class="small" id="rp_summary" style="margin-bottom:4px"></div>
@@ -1053,7 +1053,7 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
      muss ausdrücklich übernommen werden. Vorher ersetzte die Erkennung das
      Profil sofort - auch wenn sie danebenlag. -->
 <div id="fp_sketchVorschau" class="card" hidden style="margin:8px 0;padding:10px">
-<h2 style="margin-top:0;font-size:12px">Erkannte Form – bitte prüfen</h2>
+<h2 style="margin-top:0;font-size:12px">Erkannte Form – bitte prüfen <button type="button" class="hilfe-knopf no-print" data-hilfe="fp-skizze">i</button></h2>
 <div class="small" id="fp_sketchVorschauHinweis" style="margin-bottom:6px"></div>
 <div id="fp_sketchVorschauDiagram" class="eb-diagram-box"></div>
 <div class="scroll" style="margin-top:6px">
@@ -1089,7 +1089,7 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <!-- Fotos und Skizzen: seit v2.70 fuer JEDE Massaufnahme-Art, nicht mehr
      nur fuer "Skizze / Foto". Ein einziger Baustein, einmal im Markup. -->
 <div id="measMedienBereich" style="margin-top:10px">
-<h2 style="margin-top:4px">📷 Fotos und Skizzen</h2>
+<h2 style="margin-top:4px">📷 Fotos und Skizzen <button type="button" class="hilfe-knopf no-print" data-hilfe="medien">i</button></h2>
 <div class="meas-columns">
 <div>
 <label>Fotos (mehrere möglich)</label>
@@ -1123,7 +1123,7 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <div id="ausmassModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>📏 Ausmass</h2>
+<h2>📏 Ausmass <button type="button" class="hilfe-knopf no-print" data-hilfe="am-kopf">i</button></h2>
 <div class="bar"><button id="newAusmass" class="blue">＋ Neues Ausmass</button><button id="ausmassSettingsShortcut" class="gray">⚙️ Einstellungen</button></div>
 <div id="recentAusmassList"></div>
 <div class="small" style="margin-top:6px;color:var(--muted)">Ältere Ausmasse findest du über 📁 Projekte.</div>
@@ -1151,7 +1151,7 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 </div>
 
 <div id="amTypeOfferte">
-<h2 style="margin-top:4px">Erkannte Positionen</h2>
+<h2 style="margin-top:4px">Erkannte Positionen <button type="button" class="hilfe-knopf no-print" data-hilfe="am-ki">i</button></h2>
 <div class="scroll">
 <table class="eb-table">
 <colgroup><col style="width:14%"><col style="width:50%"><col style="width:16%"><col style="width:14%"><col style="width:6%"></colgroup>
@@ -1166,7 +1166,7 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <div id="amTypeBlitzschutz" hidden>
 <label>Material aus dem Blitzschutz-Katalog</label>
 <div class="search"><input id="bzPositionSearch" placeholder="Artikel-Nr. oder Bezeichnung suchen …" autocomplete="off"><div id="bzPositionResults" class="suggest"></div></div>
-<h2 style="margin-top:14px">Erfasste Positionen</h2>
+<h2 style="margin-top:14px">Erfasste Positionen <button type="button" class="hilfe-knopf no-print" data-hilfe="am-positionen">i</button></h2>
 <div class="scroll">
 <table class="eb-table">
 <colgroup><col style="width:15%"><col style="width:35%"><col style="width:14%"><col style="width:14%"><col style="width:16%"><col style="width:6%"></colgroup>
@@ -1220,6 +1220,13 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="general">
+<h2 style="margin-top:0">📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2>
+<div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
+App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
+Internet geht.</div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.03.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 35 Seiten)</a></div>
+
+<h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
 <div class="grid">
 <div><label>Anzahl "Letzte Einträge" auf dem Startbildschirm</label><input id="recentCountInput" type="number" min="1" max="20" step="1"></div>
@@ -1229,7 +1236,7 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 </div>
 <div class="bar"><button id="saveRecentCount" class="green">💾 Speichern</button></div>
 
-<h2 style="margin-top:16px">Rollenbreiten des Blechlagers</h2>
+<h2 style="margin-top:16px">Rollenbreiten des Blechlagers <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-rollen">i</button></h2>
 <div class="info">Welche Blechrollen die Firma an Lager führt. Gilt für die ganze
 Firma und für alle Massaufnahmen. In der einzelnen Massaufnahme lässt sich im
 Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
@@ -1240,7 +1247,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 
 <div class="settings-tab-panel" data-settings-panel="measurements" hidden>
 <div class="settings-section" data-section="material">
-<div class="settings-section-head" data-toggle-section="material"><h2>Material</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="material"><h2>Material <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-material">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt firmenweit für alle. Die beiden Zahlenfelder werden nur bei "Rinne Halbrund" und "Mauerabdeckung" für die Dehnungsabstände nach SIA 271 gebraucht – bei allen anderen Arten leer lassen.</div>
 <div id="measMaterialSettings"></div>
@@ -1248,7 +1255,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 </div>
 <div class="settings-section open" data-section="einlaufblech">
-<div class="settings-section-head" data-toggle-section="einlaufblech"><h2>Einlaufblech gerade</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="einlaufblech"><h2>Einlaufblech gerade <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Diese Werte gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
 <div class="grid">
@@ -1266,7 +1273,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 
 <div class="settings-section" data-section="einlaufblech-konisch">
-<div class="settings-section-head" data-toggle-section="einlaufblech-konisch"><h2>Einlaufblech konisch</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="einlaufblech-konisch"><h2>Einlaufblech konisch <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Eigene Werte für "Einlaufblech konisch", unabhängig von "Einlaufblech gerade". Gilt nur für dieses Gerät/diesen Browser.</div>
 <div class="grid">
@@ -1283,7 +1290,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 
 <div class="settings-section" data-section="kehle">
-<div class="settings-section-head" data-toggle-section="kehle"><h2>Kehle</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="kehle"><h2>Kehle <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Zuschnittmasse für die Segmente eines Kehlblechs. Die Überlappung wird bei einem neuen Segment vorgeschlagen und lässt sich dort jederzeit überschreiben. Gilt nur für dieses Gerät/diesen Browser.</div>
 <div class="grid">
@@ -1297,7 +1304,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 
 <div class="settings-section" data-section="mauerabdeckung">
-<div class="settings-section-head" data-toggle-section="mauerabdeckung"><h2>Mauerabdeckung</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="mauerabdeckung"><h2>Mauerabdeckung <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Diese Masse gelten für alle Mitarbeiter. Sie werden jedem Stück zugerechnet, das an einen Boden oder einen Schieber grenzt. Negativer Wert = Abzug.</div>
 <div class="grid" style="margin-bottom:10px">
@@ -1309,7 +1316,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 
 <div class="settings-section" data-section="lukarne">
-<div class="settings-section-head" data-toggle-section="lukarne"><h2>Lukarne Seitenverkleidung</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="lukarne"><h2>Lukarne Seitenverkleidung <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Diese Werte gelten für alle Mitarbeiter. Achsabstand und Hilfsriss werden bei einer neuen Massaufnahme vorgeschlagen und lassen sich dort jederzeit überschreiben. Die Zugaben werden dem Zuschnitt jeder Schar zugerechnet – 0 = Zuschnitt entspricht dem gemessenen Mass. Negativer Wert = Abzug.</div>
 <div class="grid" style="margin-bottom:10px">
@@ -1323,7 +1330,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 
 <div class="settings-section" data-section="anschlussblech">
-<div class="settings-section-head" data-toggle-section="anschlussblech"><h2>Ort- und Seitenbleche</h2><span class="settings-section-chevron">&rsaquo;</span></div>
+<div class="settings-section-head" data-toggle-section="anschlussblech"><h2>Ort- und Seitenbleche <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
 <div class="info">Eigene Werte des Moduls &bdquo;Ort- und Seitenbleche&ldquo; &ndash; unabh&auml;ngig von den Einlaufblechen. Sie werden bei einer neuen Massaufnahme vorgeschlagen und lassen sich dort jederzeit &uuml;berschreiben. Die Anschlussmasse a bis d kommen aus den Mindestmassen der gew&auml;hlten Anschlussart und stehen deshalb nicht hier. Gilt nur f&uuml;r dieses Ger&auml;t.</div>
 <div class="grid" style="margin-bottom:10px">
@@ -1351,7 +1358,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 
 <div class="settings-section" data-section="einfassung-rund">
-<div class="settings-section-head" data-toggle-section="einfassung-rund"><h2>Einfassung Rund</h2><span class="settings-section-chevron">&rsaquo;</span></div>
+<div class="settings-section-head" data-toggle-section="einfassung-rund"><h2>Einfassung Rund <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
 <div class="info">Eigene Werte des Moduls &bdquo;Einfassung Rund&ldquo;. Umschlag und Mass seitlich neben Rohr z&auml;hlen je 2&times; in die Breite der gesamten Einfassung; Umschlag ist ausserdem die L&auml;nge des vorderen 180&deg;- und des oberen 135&deg;-Umschlags in der Zeichnung. <b>a, b und c</b> sind Vorgabewerte f&uuml;r eine neue Einfassung; sie werden beim Anlegen einmal &uuml;bernommen und sind danach je Einfassung frei &auml;nderbar &ndash; bereits gespeicherte Massaufnahmen bleiben unver&auml;ndert. Gilt nur f&uuml;r dieses Ger&auml;t.</div>
 <div class="grid" style="margin-bottom:10px">
@@ -1371,7 +1378,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 
 <div class="settings-section" data-section="kamineinfassung">
-<div class="settings-section-head" data-toggle-section="kamineinfassung"><h2>Kamineinfassung</h2><span class="settings-section-chevron">&rsaquo;</span></div>
+<div class="settings-section-head" data-toggle-section="kamineinfassung"><h2>Kamineinfassung <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
 <div class="info">Vorgabewerte f&uuml;r neue Kamineinfassungen. Sie werden beim Anlegen einmal &uuml;bernommen und sind danach je Massaufnahme frei &auml;nderbar. <b>Bereits gespeicherte Massaufnahmen bleiben unver&auml;ndert.</b> Gilt nur f&uuml;r dieses Ger&auml;t.</div>
 <div class="grid" style="margin-bottom:10px">
@@ -1393,7 +1400,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 
 <div class="settings-section" data-section="rinne-profil">
-<div class="settings-section-head" data-toggle-section="rinne-profil"><h2>Rinne &ndash; Standardprofil &amp; Ansetztypen</h2><span class="settings-section-chevron">&rsaquo;</span></div>
+<div class="settings-section-head" data-toggle-section="rinne-profil"><h2>Rinne &ndash; Standardprofil &amp; Ansetztypen <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
 <div class="info">Werte der Vorlage &bdquo;Zuschnittliste Rinnen&ldquo;. Die Ansetztypen werden zur L&auml;nge M/M addiert bzw. davon abgezogen (<b>Zuschnitt = L&auml;nge + Ansetzen L + Ansetzen R</b>). Gilt nur f&uuml;r dieses Ger&auml;t. <b>Bereits gespeicherte Rinnen-Massaufnahmen bleiben unver&auml;ndert</b> &ndash; sie behalten Profil und Werte, die beim Speichern gegolten haben.</div>
 <h2 style="font-size:12px;margin-top:6px">Standardprofil f&uuml;r neue Massaufnahmen</h2>
@@ -1416,7 +1423,7 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 </div>
 
 <div class="settings-section" data-section="rinne">
-<div class="settings-section-head" data-toggle-section="rinne"><h2>Rinne Halbrund – Anschlusstypen</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="rinne"><h2>Rinne Halbrund – Anschlusstypen <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-rinne-typen">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Diese Anschlusstypen stehen bei "Rinne Halbrund" links/rechts pro Segment zur Auswahl. Das Mass wird zur eingegebenen Länge dazugerechnet (positiv) oder abgezogen (negativ). Der Winkel wird beim Auswählen als "rechter" Anschlusstyp eines Segments automatisch ins Winkel-Feld übernommen (z. B. Innenecke 90° → 90). Gilt firmenweit für alle.</div>
 <div class="grid" style="margin-bottom:10px">
@@ -1453,7 +1460,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 
 <div class="settings-tab-panel" data-settings-panel="protected" hidden>
 <div class="settings-section" data-section="sicherung">
-<div class="settings-section-head" data-toggle-section="sicherung"><h2>Datensicherung</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="sicherung"><h2>Datensicherung <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-sicherung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Lädt alle Daten als eine Datei auf dieses Gerät. Sinnvoll einmal im Monat und immer vor einer Änderung an der Datenbank.</div>
 <div class="bar" style="margin-bottom:14px"><button id="datenSichern" class="green">⬇️ Sicherung herunterladen</button></div>
@@ -1465,7 +1472,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 
 <div id="protectedContent" hidden>
 <div class="settings-section open" data-section="company">
-<div class="settings-section-head" data-toggle-section="company"><h2>Firma</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="company"><h2>Firma <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-firma">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Diese Angaben erscheinen auf dem Startbildschirm und im Briefkopf der ausgedruckten Rapporte/PDFs. Änderungen gelten sofort für alle Mitarbeiter auf allen Geräten.</div>
 <div class="grid">
@@ -1484,7 +1491,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 </div>
 
 <div class="settings-section" data-section="employees">
-<div class="settings-section-head" data-toggle-section="employees"><h2>Mitarbeiter</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="employees"><h2>Mitarbeiter <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-mitarbeiter">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="grid" style="margin-bottom:8px">
 <div><label>Vorname</label><input id="neuMitarbeiterVor" data-pflicht="1" placeholder="Vorname"></div>
@@ -1497,7 +1504,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 </div>
 
 <div class="settings-section" data-section="rates">
-<div class="settings-section-head" data-toggle-section="rates"><h2>Funktionen / Stundenansätze</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="rates"><h2>Funktionen / Stundenansätze <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-ansaetze">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div id="rateSettings"></div>
 <button id="newRate" class="gray">＋ Funktion hinzufügen</button>
@@ -1505,7 +1512,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 </div>
 
 <div class="settings-section" data-section="materials">
-<div class="settings-section-head" data-toggle-section="materials"><h2>Material (Regierapport)</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="materials"><h2>Material (Regierapport) <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-rapportmaterial">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="grid" style="margin-bottom:8px">
 <div class="wide"><label>Material suchen</label><input id="materialSettingsSearch" placeholder="EDV-Nr. oder Materialbezeichnung"></div>
@@ -1535,7 +1542,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 </div>
 
 <div class="settings-section" data-section="blitzschutz">
-<div class="settings-section-head" data-toggle-section="blitzschutz"><h2>Blitzschutzausmass – Materialkatalog (Arthur Flury AG)</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="blitzschutz"><h2>Blitzschutzausmass – Materialkatalog (Arthur Flury AG) <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-blitzschutz">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Katalog für die Funktion "Blitzschutzausmass". Wird ohne Preise geführt, es werden dort nur Mengen erfasst.</div>
 <div class="grid" style="margin-bottom:8px">
@@ -1639,7 +1646,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
      versteckt. Nicht vorhandene Listen sind ausgegraut. -->
 <div id="pdfListenModal" class="modal" hidden>
  <div class="modal-inner">
-  <h1 id="pdfListenTitel">PDF erstellen</h1>
+  <h1><span id="pdfListenTitel">PDF erstellen</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="pdf-listen">i</button></h1>
   <div class="card">
    <div class="small" style="margin-bottom:8px">Welche Listen sollen gedruckt werden?</div>
    <div id="pdfListenBox"></div>
@@ -1656,6 +1663,21 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
   </div>
  </div>
 </div>
+<!-- HILFE: ein Dialog fuer die ganze App. Text und Knoepfe kommen aus
+     js/41-hilfe.js - dort stehen alle Erklaerungen an einer Stelle. -->
+<div id="hilfeModal" class="modal" hidden>
+ <div class="modal-inner hilfe-box">
+  <div class="card">
+   <h2 id="hilfeTitel">Hilfe</h2>
+   <div id="hilfeText" class="hilfe-text"></div>
+   <div class="bar">
+    <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.03.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+   </div>
+  </div>
+ </div>
+</div>
+
 <script src="js/01-basis.js"></script>
 <script src="js/02-feedback.js"></script>
 <script src="js/03-login.js"></script>
@@ -1696,6 +1718,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/38-einfassung-aufnahme.js"></script>
 <script src="js/39-rinne-aufnahme.js"></script>
 <script src="js/40-anschlussblech-aufnahme.js"></script>
+<script src="js/41-hilfe.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

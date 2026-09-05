@@ -56,9 +56,9 @@
 // Register: die fachlichen Schritte zuerst, danach Zuschnitt, Ausmass und
 // zuletzt die Kontrolle - dieselbe Reihenfolge wie in allen uebrigen Arten.
 const KAM_REGISTER=[
- {nr:1,kurz:"Grunddaten"},{nr:2,kurz:"Kaminmasse"},{nr:3,kurz:"Umschläge"},
- {nr:4,kurz:"Stückliste"},{nr:5,kurz:"Zuschnitt"},{nr:6,kurz:"Ausmass"},
- {nr:7,kurz:"Kontrolle"}
+ {nr:1,kurz:"Grunddaten",hilfe:"reg-grunddaten"},{nr:2,kurz:"Kaminmasse",hilfe:"kam-masse"},{nr:3,kurz:"Umschläge",hilfe:"kam-umschlaege"},
+ {nr:4,kurz:"Stückliste",hilfe:"kam-stueckliste"},{nr:5,kurz:"Zuschnitt",hilfe:"reg-zuschnitt"},{nr:6,kurz:"Ausmass",hilfe:"reg-ausmass"},
+ {nr:7,kurz:"Kontrolle",hilfe:"reg-kontrolle"}
 ];
 // Die Kontrolle ist immer das LETZTE Register - die Marke haengt an der
 // Registerzahl, nicht an einer festen Nummer.
@@ -649,7 +649,9 @@ function kamaPruefungen(){
 
 // ---- Anzeige --------------------------------------------------------------
 function kamaKarte(titel,inhalt){
- return `<div class="card"><h2>${esc(titel)}</h2>${inhalt}</div>`;
+ // Info-Knopf nur an der Hauptkarte des Registers (js/41-hilfe.js).
+ const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,KAM_REGISTER):"";
+ return `<div class="card"><h2>${esc(titel)}${h}</h2>${inhalt}</div>`;
 }
 function kamaFeld(label,inhalt,voll){
  return `<div${voll?' style="grid-column:1/-1"':""}><label>${esc(label)}</label>${inhalt}</div>`;

@@ -25,9 +25,9 @@
 // ============================================================================
 
 const ANBA_REGISTER=[
- {nr:1,kurz:"Grunddaten"},{nr:2,kurz:"Schnitt"},{nr:3,kurz:"Segmente"},
- {nr:4,kurz:"Stückliste"},{nr:5,kurz:"Zuschnitt"},{nr:6,kurz:"Ausmass"},
- {nr:7,kurz:"Kontrolle"}
+ {nr:1,kurz:"Grunddaten",hilfe:"reg-grunddaten"},{nr:2,kurz:"Schnitt",hilfe:"anb-schnitt"},{nr:3,kurz:"Segmente",hilfe:"anb-segmente"},
+ {nr:4,kurz:"Stückliste",hilfe:"anb-stueckliste"},{nr:5,kurz:"Zuschnitt",hilfe:"reg-zuschnitt"},{nr:6,kurz:"Ausmass",hilfe:"reg-ausmass"},
+ {nr:7,kurz:"Kontrolle",hilfe:"reg-kontrolle"}
 ];
 // Die Kontrolle ist immer das LETZTE Register - die Marke haengt an der
 // Registerzahl, nicht an einer festen Nummer.
@@ -218,7 +218,9 @@ function anbaPruefungen(){
 
 // ---- Anzeige ----------------------------------------------------------------
 function anbaKarte(titel,inhalt){
- return `<div class="card"><h2>${esc(titel)}</h2>${inhalt}</div>`;
+ // Info-Knopf nur an der Hauptkarte des Registers (js/41-hilfe.js).
+ const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,ANBA_REGISTER):"";
+ return `<div class="card"><h2>${esc(titel)}${h}</h2>${inhalt}</div>`;
 }
 function anbaAusmassHtml(){
  const z=anbaAusmassZeilen();

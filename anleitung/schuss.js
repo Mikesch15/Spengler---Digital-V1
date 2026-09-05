@@ -237,6 +237,13 @@ const liste=[];
  await schuss("24-einstellungen-geschuetzt","#settingsModal .modalbox",{warte:600});
  await page.evaluate(()=>{$("settingsModal").hidden=true});
 
+ // ---------- Hilfe-Fenster (Info-Knopf) ----------
+ await page.evaluate(()=>{
+  if(typeof hilfeOeffnen==="function")hilfeOeffnen("reg-zuschnitt");
+ });
+ await schuss("30-hilfe","#hilfeModal .modal-inner",{warte:400,breite:760});
+ await page.evaluate(()=>{if(typeof hilfeSchliessen==="function")hilfeSchliessen()});
+
  // ---------- Feedback ----------
  await page.evaluate(()=>{
   $("feedbackModal").hidden=false;

@@ -27,8 +27,8 @@
 // ============================================================================
 
 const RPA_REGISTER=[
- {nr:1,kurz:"Grunddaten"},{nr:2,kurz:"Profil"},{nr:3,kurz:"Stücke"},
- {nr:4,kurz:"Zuschnitt"},{nr:5,kurz:"Ausmass"},{nr:6,kurz:"Kontrolle"}
+ {nr:1,kurz:"Grunddaten",hilfe:"reg-grunddaten"},{nr:2,kurz:"Profil",hilfe:"rp-profil"},{nr:3,kurz:"Stücke",hilfe:"rp-stuecke"},
+ {nr:4,kurz:"Zuschnitt",hilfe:"reg-zuschnitt"},{nr:5,kurz:"Ausmass",hilfe:"reg-ausmass"},{nr:6,kurz:"Kontrolle",hilfe:"reg-kontrolle"}
 ];
 // Die Kontrolle ist immer das LETZTE Register - die Marke haengt an der
 // Registerzahl, nicht an einer festen Nummer.
@@ -273,7 +273,9 @@ function rpaPruefungen(){
 
 // ---- Anzeige ----------------------------------------------------------------
 function rpaKarte(titel,inhalt){
- return `<div class="card"><h2>${esc(titel)}</h2>${inhalt}</div>`;
+ // Info-Knopf nur an der Hauptkarte des Registers (js/41-hilfe.js).
+ const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,RPA_REGISTER):"";
+ return `<div class="card"><h2>${esc(titel)}${h}</h2>${inhalt}</div>`;
 }
 function rpaAusmassHtml(){
  const z=rpaAusmassZeilen();

@@ -16900,3 +16900,219 @@ bestätigt.
   (v2.50) ohne Blättern sichtbar.
 - Skizze/Foto bleibt die einzige Art ohne Register und zeigt den Bereich
   unverändert sofort (Abschnitt 89.1).
+
+## 107. INFO-KNÖPFE UND DIE ANLEITUNG IN DEN EINSTELLUNGEN — VERSION 3.03
+
+Zwei Dinge in einer Runde: die in v3.02 erstellte Bedienungsanleitung ist
+jetzt **aus der App heraus erreichbar**, und fast jede Karte und jede
+Überschrift trägt einen kleinen runden **Info-Knopf**, der in zwei, drei
+Sätzen erklärt, wofür der Bereich da ist. **Keine Schemaänderung, keine
+Migration, keine RLS-/Storage-Änderung, keine Berechnung verändert.**
+
+### 107.1 Die Anleitung in den Einstellungen
+
+Zuoberst in *Einstellungen → Allgemein* steht eine eigene Karte
+„📖 Anleitung" mit dem Knopf **„Anleitung öffnen (PDF, 35 Seiten)"**. Der
+Ort ist bewusst gewählt: *Allgemein* ist das erste Register und für jeden
+sichtbar – anders als *Geschützt*, das nur Firmenadministratoren sehen.
+
+Das PDF liegt als Datei im Repo (`anleitung/…-v3.03.pdf`, 3,9 MB) und wird
+über einen gewöhnlichen Link geöffnet (`target="_blank" rel="noopener"`).
+
+**Bewusst nicht im Offline-Vorrat**: die Datei ist grösser als die gesamte
+übrige App-Hülle zusammen. Sie in `sw.js` aufzunehmen hiesse, jedem Gerät
+bei jedem Versionswechsel 4 MB aufzuzwingen – auch denen, die die Anleitung
+nie öffnen. Ohne Verbindung ist der Knopf deshalb wirkungslos; das ist der
+richtige Kompromiss, aber es ist eine echte Einschränkung (107.8).
+
+### 107.2 Ein Mechanismus, keine 72 Sonderfälle
+
+Neue Datei **`js/41-hilfe.js`** (623 Zeilen): eine Tabelle mit **72
+Erklärungen** und die Mechanik dazu.
+
+```js
+const HILFE_TEXTE={ "reg-zuschnitt":{titel:"Zuschnitt aus Rollenblech",text:`…`}, … };
+
+function hilfeKnopf(key){
+ if(!HILFE_TEXTE[key])return "";          // kein Text -> KEIN Knopf
+ return `<button type="button" class="hilfe-knopf no-print" data-hilfe="${key}">i</button>`;
+}
+```
+
+**Fehlt der Text, entsteht kein Knopf** – statt eines Knopfes, der ein
+leeres Fenster öffnet. Der Prüfstand verlangt zusätzlich die Gegenrichtung:
+jeder hinterlegte Text muss auch irgendwo einen Knopf haben, sonst ist er
+eine Karteileiche.
+
+**55 Knöpfe stehen fest im HTML**, die übrigen entstehen zur Laufzeit in
+den Register-Modulen (107.3).
+
+### 107.3 Der Knopf einer Register-Karte hängt an der Registernummer
+
+Die elf Register-Module zeichnen ihre Karten über einen eigenen kleinen
+Helfer (`raKarte`, `ebaKarte`, …). Ein Register kann dabei **mehrere**
+Karten haben – js/28 ruft `raKarte` neunmal für sieben Register. Ein Knopf
+je Karte wären also mehrere Knöpfe im selben Register.
+
+Gelöst über den Kartentitel: die **Hauptkarte** eines Registers beginnt mit
+seiner Nummer („4 · Zuschnitt"), Nebenkarten nicht.
+
+```js
+function hilfeKarte(titel,register){
+ const m=/^\s*(\d+)\s*[·.]/.exec(String(titel||""));
+ if(!m||!Array.isArray(register))return "";
+ const r=register[Number(m[1])-1];
+ return (r&&r.hilfe)?hilfeKnopf(r.hilfe):"";
+}
+```
+
+Jede `<X>_REGISTER`-Zeile hat dafür ein Feld `hilfe`. Kein Textvergleich,
+keine feste Zahl – der Prüfstand misst für **alle elf** Arten und **jedes**
+Register, dass genau **ein** sichtbarer Knopf da ist und dass er zum
+gezeigten Register gehört.
+
+### 107.4 Erfassungsphase, damit der Knopf nichts anderes auslöst
+
+Die aufklappbaren Abschnitte der Einstellungen hängen an einem
+**bubbelnden** `document`-Handler in `js/07-einstellungen.js`. Ein Info-Knopf
+in einer solchen Überschrift hätte den Abschnitt zusätzlich umgeschaltet –
+ein Klick, zwei Wirkungen.
+
+Deshalb läuft der Hilfe-Handler in der **Erfassungsphase** und stoppt dort:
+
+```js
+document.addEventListener("click",e=>{
+ const b=e.target.closest?e.target.closest(".hilfe-knopf[data-hilfe]"):null;
+ if(!b)return;
+ e.preventDefault(); e.stopPropagation();
+ hilfeOeffnen(b.dataset.hilfe);
+},true);
+```
+
+Der Prüfstand misst das ausdrücklich: ein Klick auf den Info-Knopf einer
+Einstellungs-Überschrift darf den Abschnitt **nicht** umschalten.
+
+### 107.5 Der Ausdruck bleibt, wie er war
+
+Der Regierapport druckt die **Bildschirmseite selbst** (`window.print()`),
+und meine Info-Knöpfe sitzen mitten in `#reportScreen`. Beim ersten
+Vergleich war der Ausdruck deshalb verändert.
+
+Behoben, ohne `css/03-druck.css` anzufassen: jeder Info-Knopf trägt
+`class="hilfe-knopf no-print"` und fällt damit unter die dort bereits
+vorhandene Regel `.no-print{display:none!important}`.
+
+Danach ist das **gedruckte Bild byteidentisch** (`14d16a0f1c95c416`,
+51 534 Bytes), gerendert unmittelbar nacheinander in einem Aufruf (die
+Fusszeile enthält die Uhrzeit, CLAUDE.md 100.6).
+
+Der **DOM** enthält die drei Knöpfe naturgemäss weiterhin. Dass sie der
+einzige Unterschied sind, ist eigens gemessen: im Druck sind **0 von 3**
+sichtbar (`getComputedStyle`), und nach dem Entfernen der Knöpfe samt des
+Leerzeichens davor ist der DOM Zeichen für Zeichen derselbe wie in v3.02
+(`6d725a50e84859d5` beide).
+
+### 107.6 Drei Überschriften brauchten ein `<span>`
+
+`renderProjectList()`, die Medienansicht und der Projektkopf setzen ihre
+Überschrift mit `textContent=` – das hätte einen darin stehenden Knopf
+mitgelöscht. Der Text steht deshalb jetzt in einem eigenen `<span>`, der
+Knopf daneben bleibt. Betroffen: `projectListTitle`, `measMediaTitle`,
+`cockpitTitle`, dazu `pdfListenTitel` in einer `<h1>`.
+
+### 107.7 Getestet
+
+- **`pruefstaende/pruefstand-hilfe-v3-03.js` – 62/62**, echtes Chromium
+  gegen die echte `index.html`: Modul geladen und Fenster vorhanden, ≥60
+  Erklärungen, jede mit Titel und mindestens 80 Zeichen, **keine
+  ae/oe/ue-Umschreibungen im Benutzertext**, ≥35 Knöpfe, jeder Knopf hat
+  einen Text, Knopfgrösse 16–28 px und `text-transform:none` (die globale
+  `button`-Regel), `aria-label` gleich `title`, Klick öffnet, „Verstanden"
+  und Esc schliessen, ein Klick in einer Einstellungs-Überschrift schaltet
+  den Abschnitt **nicht** um, der Anleitungs-Link (href, target, rel, Höhe,
+  erste Karte im Register, Datei existiert), für **alle elf** Arten die
+  Registerprüfung aus 107.3, kein Text ohne Knopf, keine JS-Fehler.
+- **Fünf Gegenproben**, jede baut einen echten Fehler ein: fehlender Text
+  erzeugt trotzdem einen Knopf (61/62) · Handler in der Blasenphase, der
+  Abschnitt schaltet mit (61/62) · `no-print` entfernt (61/62) · Knopf an
+  jeder Karte statt an der Hauptkarte (58/62) · Anleitungs-Karte nicht
+  zuoberst (60/62).
+- **Vier echte Fehler haben die Prüfungen gefunden, nicht das Lesen**:
+  (1) ich hatte die Benutzertexte in ASCII-Umschreibung geschrieben, als
+  wären es Codekommentare; (2) die Umlaut-Korrektur traf auch die
+  **Schlüssel** (`eb-stuecke` → `eb-stücke`) und brach die
+  Register-Zuordnung; (3) der Text `pflichtfeld` hatte nirgends einen Knopf;
+  (4) **`#hilfeSchliessen` hatte gar keinen Handler** – der Knopf war
+  gezeichnet, aber nie verdrahtet.
+- **Volle Regression grün** – alle 20 Prüfstände im Repo (verschnitt 1578,
+  register-zuschnitt 373, kehle 158, kamin 153, medien-am-ende 150,
+  mauerabdeckung 146, freies-profil 118, konisch 114, einfassung 113,
+  rinne-halbrund 104, einlaufblech 99, anschlussblech 95,
+  rinne-zuschnitt 95, rollenblech-pdf 95, lukarne 82, hilfe 62,
+  lxb-druck 58, dila-sichtbar 57, skizze-foto 54, felder-bleiben 23).
+- `node --check` über alle 43 `js/*.js`, `sw.js` und alle 20 Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen
+  (Tiefe 0, Minimum 0); keine doppelten Element-IDs; jede js-Datei in
+  `index.html` **und** in der Service-Worker-Liste; Version 3.03 in
+  `index.html` und `sw.js` gleich; der verlinkte PDF-Pfad existiert.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 107.8 Die Anleitung ist auf 3.03 nachgeführt
+
+Die Bildschirmfotos der v3.02-Anleitung zeigten die Oberfläche **ohne**
+Info-Knöpfe – sie hätte am ersten Tag nicht mehr dem entsprochen, was der
+Benutzer sieht. Die Anleitung wurde deshalb neu erzeugt:
+
+- neuer **Abschnitt 4 „Hilfe in der App"** (mit einem Bild des geöffneten
+  Hilfe-Fensters), die folgenden Abschnitte um eins verschoben, die drei
+  Querverweise mit,
+- die Anleitungs-Karte in Abschnitt 16 (Einstellungen) erwähnt,
+- alle 31 bisherigen Bilder neu geschossen – sie zeigen die Info-Knöpfe
+  jetzt automatisch mit,
+- **35 Seiten** statt 34, keine leere Seite (`pruef.js`).
+
+`anleitung/stub.js` baut weiterhin **keine Verbindung zur
+Produktivdatenbank** auf; Firma, Personen, Adressen, Projekte und Preise in
+den Bildern sind erfunden.
+
+Neu in `.gitignore`: `/anleitung/bilder/`. Die rund 4 MB Bilder sind in
+Sekunden wieder erzeugt; eingecheckt sind nur das PDF und die Skripte.
+
+### 107.9 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/41-hilfe.js` | **neu** – 72 Erklärungen, Knopf-Erzeugung, Fenster, Erfassungsphase |
+| `index.html` | `#hilfeModal`, Anleitungs-Karte in *Allgemein*, 55 Info-Knöpfe, drei `<span>`-Hüllen, Script-Tag, Version 3.03 |
+| `css/01-basis.css` | `.hilfe-knopf` (mit ausdrücklichem Zurücksetzen der globalen `button`-Regeln), `.hilfe-box`, `.hilfe-text`, `.hilfe-pdf` |
+| `js/28`–`js/32`, `js/34`, `js/36`–`js/40` | je zwei Stellen: `hilfe`-Schlüssel in `<X>_REGISTER`, Info-Knopf im Karten-Helfer |
+| `js/18-app-start.js` | **eine Zeile**: Knöpfe für Tastatur und Screenreader beschriften |
+| `anleitung/*` | Abschnitt 4, Umnummerierung, Version 3.03, neues Bild, neues PDF |
+| `.gitignore`, `sw.js` | Bilderordner ausgeschlossen, Cache-Version 3.03 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie alle Fachdateien `js/11`–`js/26`,
+`js/33`, `js/35` – per `git diff` bestätigt.
+
+### 107.10 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet
+  behauptet.** Geprüft ist die Oberfläche in echtem Chromium gegen die
+  echte `index.html`.
+- **Die Anleitung ist offline nicht verfügbar** (107.1). Wäre eine spätere,
+  bewusste Entscheidung – etwa eine abgespeckte Fassung im Vorrat oder ein
+  Knopf „Anleitung für offline speichern".
+- **Die Erklärungen sind fest in `js/41-hilfe.js`**, nicht in der Datenbank.
+  Eine Firma kann sie also nicht selbst anpassen. Für eine Bedienhilfe ist
+  das richtig; sollte je Firmen-eigener Text gewünscht sein, wäre das eine
+  eigene Tabelle mit eigener Tenant-Trennung.
+- Nicht jeder Bereich hat einen Knopf – dort, wo die Überschrift schon
+  alles sagt („Anzahl"), wäre er nur Lärm. Ein fehlender Knopf ist deshalb
+  kein Fehler, ein Knopf ohne Text schon (107.2).
+- **In diesem Arbeitsbaum liegen nur die 20 Prüfstände unter
+  `pruefstaende/`.** Die in älteren Abschnitten genannten archivierten
+  Prüfstände (required70, kehle52, pdf52, offline70 …) sind hier **nicht
+  vorhanden** und konnten deshalb in dieser Runde nicht mitlaufen. Das ist
+  offen gelegt, nicht behauptet.

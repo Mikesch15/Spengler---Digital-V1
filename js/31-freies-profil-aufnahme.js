@@ -36,9 +36,9 @@
 // Kontrolle. Segmente und Ausmass waren bis v2.79 ein Register - sie sind
 // jetzt getrennt, damit das Ausmass ueberall an derselben Stelle steht.
 const FPA_REGISTER=[
- {nr:1,kurz:"Grunddaten"},{nr:2,kurz:"Profil"},{nr:3,kurz:"Zeichnung"},
- {nr:4,kurz:"Skizze → Profil"},{nr:5,kurz:"Segmente"},
- {nr:6,kurz:"Zuschnitt"},{nr:7,kurz:"Ausmass"},{nr:8,kurz:"Kontrolle"}
+ {nr:1,kurz:"Grunddaten",hilfe:"reg-grunddaten"},{nr:2,kurz:"Profil",hilfe:"fp-profil"},{nr:3,kurz:"Zeichnung",hilfe:"fp-zeichnung"},
+ {nr:4,kurz:"Skizze → Profil",hilfe:"fp-skizze"},{nr:5,kurz:"Segmente",hilfe:"fp-segmente"},
+ {nr:6,kurz:"Zuschnitt",hilfe:"reg-zuschnitt"},{nr:7,kurz:"Ausmass",hilfe:"reg-ausmass"},{nr:8,kurz:"Kontrolle",hilfe:"reg-kontrolle"}
 ];
 // Die Kontrolle ist immer das LETZTE Register - die Marke haengt deshalb an
 // der Registerzahl, nicht an einer festen Nummer.
@@ -278,7 +278,9 @@ function fpaFeld(label,inhalt,voll){
  return `<div${voll?' class="wide"':""}><label>${esc(label)}</label>${inhalt}</div>`;
 }
 function fpaKarte(titel,inhalt){
- return `<div class="ra-block"><h2 style="margin-top:14px">${esc(titel)}</h2>${inhalt}</div>`;
+ // Info-Knopf nur an der Hauptkarte des Registers (js/41-hilfe.js).
+ const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,FPA_REGISTER):"";
+ return `<div class="ra-block"><h2 style="margin-top:14px">${esc(titel)}${h}</h2>${inhalt}</div>`;
 }
 function fpaGrunddatenHtml(){
  const a=fpA;
