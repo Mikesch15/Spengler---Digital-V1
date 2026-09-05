@@ -31,7 +31,11 @@ const ARTEN=[
  {typ:"kamineinfassung",     name:"Kamineinfassung",     wurzel:"kaminAufnahme",
   setz:"kamaSetzeSchritt",reg:"KAM_REGISTER", art:"rolle"},
  {typ:"einfassung_rund",     name:"Einfassung Rund",     wurzel:"einfassungAufnahme",
-  setz:"einfaSetzeSchritt",reg:"EINFA_REGISTER",art:"rolle"}
+  setz:"einfaSetzeSchritt",reg:"EINFA_REGISTER",art:"rolle"},
+ // Rinne (Zuschnittliste): die Register 1-3 stehen fest im HTML, deshalb ist
+ // die Wurzel der ganze Block und nicht ein eigener Aufnahme-Container.
+ {typ:"rinne",               name:"Rinne",               wurzel:"measTypeRinneProfil",
+  setz:"rpaSetzeSchritt", reg:"RPA_REGISTER", art:"rolle"}
 ];
 
 const zeige=async(page,typ)=>{
@@ -158,7 +162,8 @@ const auf=async(page,a)=>{
  const quellen=await page.evaluate(()=>({
   ra:String(raZuschnittHtml), eba:String(ebaZuschnittHtml),
   ebka:String(ebkaZuschnittHtml), fpa:String(fpaZuschnittHtml),
-  mada:String(madaZuschnittHtml), kea:String(keaKopfInhalt)
+  mada:String(madaZuschnittHtml), kea:String(keaKopfInhalt),
+  rpa:String(renderRinneAufnahmeRegister)
  }));
  Object.keys(quellen).forEach(k=>p(quellen[k].indexOf("zuschnittHtml(")>=0,
    k+"ZuschnittHtml() ruft die gemeinsame Darstellung auf",quellen[k].slice(0,90)));
@@ -170,7 +175,8 @@ const auf=async(page,a)=>{
   ebka:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(ebkaZuschnittHtml)),
   fpa:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(fpaZuschnittHtml)),
   mada:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(madaZuschnittHtml)),
-  kea:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(keaKopfInhalt))
+  kea:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(keaKopfInhalt)),
+  rpa:/Streifen je Tafel|Rollenbreite<\/th>/.test(String(renderRinneAufnahmeRegister))
  }));
  Object.keys(alt).forEach(k=>p(alt[k]===false,k+": keine eigene Zuschnitt-Tabelle mehr",alt));
 
@@ -214,6 +220,12 @@ const auf=async(page,a)=>{
   einfA=einfaLeer(); einfA.material="2"; einfA.deckung="biber_doppel"; einfA.lattenabstand=330;
   einfA.einfassungen=[{bez:"",durchmesser:110,winkel:30,a:20,b:100,c:100,anzahl:1},
                       {bez:"Küche",durchmesser:160,winkel:30,a:20,b:100,c:100,anzahl:2}];
+  // Rinne (Zuschnittliste): Standardprofil, drei Stuecke
+  rinneFormularFuellen({material:"2",
+    stuecke:[{links:[127,192,202],rechts:[130,195,205],laenge:3000,ansetzL:"dila",ansetzR:"gehrung"},
+             {links:[130,195,205],rechts:[130,195,205],laenge:2000,ansetzL:"dila",ansetzR:"dila"},
+             {links:[130,195,205],rechts:[130,195,205],laenge:2000,ansetzL:"dila",ansetzR:"dila"}]});
+  rpaFuellen({material:"2"});
  });
  for(const a of ARTEN){
   await zeige(page,a.typ);
@@ -306,7 +318,8 @@ const auf=async(page,a)=>{
  // Und in der Stueckliste bzw. Stuecke-Liste der einzelnen Arten.
  const listenNamen={rinne_halbrund:"Stückliste",mauerabdeckung:"Stückliste",
    einlaufblech_gerade:"Stücke",einlaufblech_konisch:"Stücke",freies_profil:"Segmente",
-   kehle:"Segmente",kamineinfassung:"Stückliste",einfassung_rund:"Stückliste"};
+   kehle:"Segmente",kamineinfassung:"Stückliste",einfassung_rund:"Stückliste",
+   rinne:"Stücke"};
  for(const a of ARTEN){
   const name=listenNamen[a.typ];
   const nr=listen[a.typ].indexOf(name)+1;
@@ -366,6 +379,9 @@ const auf=async(page,a)=>{
   // Einfassung Rund ist wie im bestehenden Modul (js/21) mit der Vorgabe
   // Ø110 vorbelegt - der wirklich leere Zustand ist ein leerer Durchmesser.
   einfA=einfaLeer(); einfA.einfassungen.forEach(e=>{e.durchmesser="";});
+  // Rinne (Zuschnittliste): der leere Zustand ist ein Stueck ohne Laenge M/M -
+  // genau das legt rinneFormularFuellen(null) an.
+  rinneFormularFuellen(null); rpaFuellen(null);
  });
  for(const a of ARTEN){
   if(a.art==="stange")continue;      // die Rinne meldet die fehlende Normlaenge

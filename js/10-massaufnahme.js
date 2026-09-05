@@ -435,6 +435,7 @@ function newMeasurementWithType(type){
  if(typeof lukaZuruecksetzen==="function")lukaZuruecksetzen();
  if(typeof kamaZuruecksetzen==="function")kamaZuruecksetzen();
  rinneFormularZuruecksetzen();
+ if(typeof rpaZuruecksetzen==="function")rpaZuruecksetzen();
  $("rp_material").value="";
  setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
@@ -553,6 +554,7 @@ function openMeasurement(m){
  if(typeof keaFuellen==="function")keaFuellen(m.type==="kehle"?d:null);
  if(typeof kamaFuellen==="function")kamaFuellen(m.type==="kamineinfassung"?d:null);
  rinneFormularFuellen(m.type==="rinne"?d:null);
+ if(typeof rpaFuellen==="function")rpaFuellen(m.type==="rinne"?d:null);
  $("rp_material").value=(m.type==="rinne"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;

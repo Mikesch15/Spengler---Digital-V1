@@ -28,7 +28,8 @@ function showMeasTypeSection(type){
   if(typeof renderEinfassungAufnahme==="function")renderEinfassungAufnahme();}
  if(type==="kamineinfassung"&&typeof renderKaminAufnahme==="function")renderKaminAufnahme();
  if(type==="kehle"&&typeof renderKehleAufnahme==="function")renderKehleAufnahme();
- if(type==="rinne")renderRinneResult();
+ if(type==="rinne"){renderRinneResult();
+  if(typeof renderRinneAufnahmeRegister==="function")renderRinneAufnahmeRegister();}
  measMedienSichtbarkeit(type);
 }
 $("measType").addEventListener("change",e=>showMeasTypeSection(e.target.value));
@@ -53,7 +54,7 @@ $("openEinlaufblechSettings").onclick=()=>{
 // erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
 // Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
 // sichtbar.
-const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne","kamineinfassung","einfassung_rund"];
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne","kamineinfassung","einfassung_rund","rinne"];
 let measMedienAufgeklappt=false;
 // Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
 // fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
@@ -268,12 +269,17 @@ function buildMeasurementFromForm(){
     zuschnitt:g.zuschnitt
    };
   });
+  // Zusatzfelder ab v3.00 (Register-Aufnahme). Die Felder darueber bleiben
+  // Zeichen fuer Zeichen dieselben - eine Aufnahme bis v2.99 oeffnet und
+  // druckt unveraendert.
+  const zusatz=(typeof rpaZusatzDaten==="function")?rpaZusatzDaten():{};
   return {...base,...measMedienAusFormular(),data:{
    profil:w.profil,ansetz:w.ansetz,
    fixSumme:rinneFixSumme(w.profil),
    varMasse:rinneVariable(w.profil).map(v=>({buchstabe:v.buchstabe,name:v.name})),
    stuecke,
-   material:$("rp_material")?$("rp_material").value:""
+   material:$("rp_material")?$("rp_material").value:"",
+   ...zusatz
   }};
  }
  return {...base,...measMedienAusFormular(),data:{material:$("foto_material")?$("foto_material").value:""}};
@@ -1190,7 +1196,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <table class="eb-info-table">
 <tr>${cell2("Material",esc(matName||"\u2013"))}${cell2("Fixmasse gesamt",esc(mm(fix)+" mm"))}</tr>
 <tr>${cell2("Variable Masse",esc(kopfMasse))}${cell2("Abwicklung",esc(formel))}</tr>
-<tr>${cell2("St\u00fccke",esc(String(stuecke.length)))}<td></td></tr>
+<tr>${cell2("St\u00fccke",esc(String(stuecke.length)))}${d.flaeche_m2?cell2("Blechfl\u00e4che",esc(String(d.flaeche_m2).replace(".",","))+" m\u00b2"):"<td></td>"}</tr>
 </table>
 <div class="eb-section-head">Profil</div>
 <table class="eb-cutlist">
@@ -1223,6 +1229,12 @@ ${stuecke.some(st=>{const g=wert(st);return Math.round(Number(g.l)||0)!==Math.ro
 <table class="eb-info-table" style="margin-top:2mm">
 <tr>${cell2("Zuschnittl\u00e4nge gesamt",esc(mm(summeZuschnitt)+" mm"))}<td></td></tr>
 </table>
+${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`:""}
+${zuDruckHtml(d.zuschnitt,0,"St\u00fcck")}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }else if(m.type==="kamineinfassung"){

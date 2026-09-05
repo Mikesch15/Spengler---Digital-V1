@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.99</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.00</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -866,18 +866,34 @@ mindestens eines von beiden ist nötig.</div>
 </div>
 
 <div id="measTypeRinneProfil" hidden>
+<!-- ===================================================================
+     Register-Aufnahme (v3.00). ANDERS ALS BEI DEN NEUN UEBRIGEN ARTEN
+     gibt es hier KEINEN Stummel: js/26-rinne.js haengt seine Handler
+     direkt an #rp_profilBody und #rp_stueckeBody und zeichnet selbst in
+     diese Elemente. Ein Neuschreiben per innerHTML wuerde sie samt
+     Handler vernichten. Die Register 1 bis 3 stehen deshalb fest hier
+     und werden von js/39 nur ein- und ausgeblendet; geschrieben wird
+     ausschliesslich in #rpa_seite4 bis #rpa_seite6.
+     =================================================================== -->
+<div class="ra-register" id="rpa_register"></div>
+
+<div id="rpa_seite1" class="rpa-seite" hidden>
+<div class="card"><h2>1 &middot; Grunddaten</h2>
 <div class="info">Zuschnittliste f&uuml;r Rinnen. Zuerst das <b>Profil</b> festlegen, danach die Rinnenst&uuml;cke erfassen.
 Jedes Profilsegment ist entweder <b>fix</b> (bei jedem St&uuml;ck gleich, eigene L&auml;nge) oder <b>variabel</b>
 (je St&uuml;ck links/rechts eigener Wert, erscheint in der St&uuml;ckliste als A, B, C &hellip;).
-Der Winkel ist &ndash; wie beim Freien Profil &ndash; die Richtungs&auml;nderung gegen&uuml;ber dem vorherigen Segment; 180&deg; ist ein Umschlag.
 Es gilt: <b>Abwicklung = Summe der variablen Masse + Summe aller Fixmasse</b>,
-<b>Zuschnittl&auml;nge = L&auml;nge M/M + Ansetzen links + Ansetzen rechts</b>.
-Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&uuml;cks als links &uuml;bernommen und bleiben frei &auml;nderbar.</div>
+<b>Zuschnittl&auml;nge = L&auml;nge M/M + Ansetzen links + Ansetzen rechts</b>.</div>
 <div class="grid">
 <div><label>Material</label><select id="rp_material" class="meas-material-select"></select></div>
 </div>
+</div>
+</div>
 
-<h2 style="margin-top:14px">Profil</h2>
+<div id="rpa_seite2" class="rpa-seite" hidden>
+<div class="card"><h2>2 &middot; Profil</h2>
+<div class="info">Der Winkel ist &ndash; wie beim Freien Profil &ndash; die Richtungs&auml;nderung gegen&uuml;ber
+dem vorherigen Segment; 180&deg; ist ein Umschlag. Er bestimmt nur die Zeichnung, nicht die Abwicklung.</div>
 <div class="small" id="rp_profilInfo" style="margin-bottom:4px"></div>
 <div class="scroll">
 <table class="rp-profiltabelle">
@@ -891,10 +907,14 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 <button id="rp_profilAlsStandard" class="gray">Als Vorgabe speichern</button>
 <button id="openRinneProfilSettings" class="gray">&#9881;&#65039; Ansetztypen</button>
 </div>
-
 <div id="rp_diagram" class="eb-diagram-box" style="margin-top:12px"></div>
+</div>
+</div>
 
-<h2 style="margin-top:14px">Rinnenst&uuml;cke</h2>
+<div id="rpa_seite3" class="rpa-seite" hidden>
+<div class="card"><h2>3 &middot; Rinnenst&uuml;cke</h2>
+<div class="info">Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&uuml;cks
+als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Auml;nderung wirkt nie r&uuml;ckwirkend.</div>
 <div class="small" id="rp_summary" style="margin-bottom:4px"></div>
 <div class="scroll">
 <table class="rp-table">
@@ -903,6 +923,14 @@ Beim Anlegen eines neuen St&uuml;cks werden die Masse rechts des vorherigen St&u
 </table>
 </div>
 <div class="bar" style="margin-top:8px"><button id="rp_addStueck" class="blue">&#65291; Neues Rinnenst&uuml;ck</button></div>
+</div>
+</div>
+
+<div id="rpa_seite4" class="rpa-seite" hidden></div>
+<div id="rpa_seite5" class="rpa-seite" hidden></div>
+<div id="rpa_seite6" class="rpa-seite" hidden></div>
+
+<div class="bar ra-blaettern" id="rpa_blaettern"></div>
 </div>
 
 
@@ -1632,6 +1660,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/36-lukarne-aufnahme.js"></script>
 <script src="js/37-kamin-aufnahme.js"></script>
 <script src="js/38-einfassung-aufnahme.js"></script>
+<script src="js/39-rinne-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

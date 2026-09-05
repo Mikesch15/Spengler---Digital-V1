@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 2.79, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.00, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **2.79**
+- sichtbare App-Version: **3.00**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -16273,3 +16273,214 @@ die Bleilappen-Rechnung sind unangetastet.
 - `durchmesser` (110) und `winkel` (30 bzw. angezeigt 120) bleiben feste
   Vorgaben ohne Einstellung – sie hängen am einzelnen Rohr und am Dach, nicht
   am Betrieb.
+
+## 104. RINNE (ZUSCHNITTLISTE) ALS REGISTER-AUFNAHME — VERSION 3.00
+
+Die Massaufnahme **Rinne** (Zuschnittliste) wird nicht mehr als ein langes
+Formular erfasst, sondern über **sechs Register** – zehntes Modul nach
+demselben Muster wie Rinne Halbrund (v2.71), Einlaufblech gerade (v2.74) und
+konisch (v2.76), Freies Profil (v2.77), Mauerabdeckung (v2.79), Kehle (v2.83),
+Lukarne (v2.87), Kamineinfassung (v2.90) und Einfassung Rund (v2.96).
+
+    1 Grunddaten · 2 Profil · 3 Stücke · 4 Zuschnitt · 5 Ausmass · 6 Kontrolle
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung.**
+
+### 104.1 Versionsnummer 3.00
+
+Nach 2.99 gibt es in diesem Zählschema keine 2.100 – die nächste Zahl ist
+**3.00**. Das ist keine inhaltliche Aussage über einen Bruch: das
+Speicherformat bleibt ein Superset, jede bis v2.99 erfasste Massaufnahme
+öffnet und druckt unverändert.
+
+### 104.2 Der eine Unterschied zu den neun vorherigen Modulen
+
+Bei allen bisherigen Umbauten blieb die Fachdatei über einen unsichtbaren
+**Stummel** erreichbar, und das Registermodul zeichnete den ganzen Inhalt neu.
+Hier geht das nicht: `js/26-rinne.js` hängt seine Handler **direkt** an
+`#rp_profilBody` und `#rp_stueckeBody` (nicht delegiert an einen stabilen
+Vorfahren) und zeichnet selbst in diese Elemente. Ein Neuschreiben per
+`innerHTML` würde sie samt Handler vernichten – dieselbe Falle wie beim
+Übernahme-Block des Einlaufblechs (84.3) und beim Erkennungs-Block des Freien
+Profils (85.2).
+
+Deshalb gibt es hier **keinen Stummel**:
+
+| Register | Herkunft |
+|---|---|
+| 1 Grunddaten (Material) | **fest im HTML**, nur ein-/ausgeblendet |
+| 2 Profil (Tabelle, Knöpfe, Skizze) | **fest im HTML**, gezeichnet von js/26 |
+| 3 Stücke (Tabelle, Zusammenfassung) | **fest im HTML**, gezeichnet von js/26 |
+| 4 Zuschnitt | js/39 schreibt hinein |
+| 5 Ausmass | js/39 schreibt hinein |
+| 6 Kontrolle | js/39 schreibt hinein |
+
+`js/39-rinne-aufnahme.js` schreibt ausschliesslich in die Register 4 bis 6, in
+die Registerleiste und in die Blätterleiste. **`js/26-rinne.js` ist byteweise
+unverändert** – per `git diff` bestätigt.
+
+Aus demselben Grund führt eine Eingabe in den Registern 1 bis 3 **nie** zu
+einem Neuzeichnen durch js/39; nachgeführt wird nur die Marke am
+Kontroll-Register (`rpaMarkeNachfuehren()`). Sonst verlöre ein gerade
+bearbeitetes Feld nach dem ersten Zeichen den Fokus (66.1).
+
+### 104.3 Die Rechnung ist unverändert die Excel-Vorlage
+
+Gerechnet wird ausschliesslich über `rinneStueckRechnen()`, `rinneFixSumme()`,
+`rinneVariable()` und `rinneWerte()` aus js/26. Es gibt **keinen Nachbau** –
+der Prüfstand vergleicht `rpaRechnen()` Zeichen für Zeichen mit dem direkten
+Aufruf der Fachdatei. Die drei Formeln der Vorlage „Zuschnittliste
+Rinnen.xlsx" (Abschnitt 3.11) gelten unverändert.
+
+### 104.4 Neu gegenüber v2.99
+
+- **Zuschnitt aus Rollenblech** über die gemeinsamen Bausteine:
+  `zuschnittHtml()` / `zuDruckHtml()` aus js/33, gepackt mit
+  `ebaPackeInStreifen()` aus js/29 – es gibt in der App weiterhin genau **eine**
+  Packrechnung. Gepackt wird je Streifenbreite, wie beim Freien Profil und bei
+  der Lukarne.
+  * **Die Streifenbreite ist die grössere der beiden Abwicklungen.** Bei einem
+    Stück, das links und rechts unterschiedlich abwickelt, muss das breitere
+    Ende Platz haben – genau so steht es seit v2.84 auch im Ausdruck.
+  * Gruppiert wird nach Länge, Breite **und Bearbeitung**: das `merkmal` trägt
+    die beiden Ansetztypen und, bei einem konischen Stück, beide Abwicklungen.
+    Zwei Stücke gleicher Länge mit Dila und mit Gehrung sind nicht derselbe
+    Zuschnitt und dürfen nicht in einer Sammelzeile verschwinden (90.2).
+  * Die Rollenbreiten kommen aus `app_settings.blech_rollenbreiten`
+    (firmenweit, seit v2.74) mit der Auswahl je Massaufnahme (v2.85) –
+    **keine neue Einstellung**.
+- **Ausmass und Materialübersicht** ohne zweite Eingabe, ohne Artikelnummern
+  und **ohne Preise**: Stückzahl, Länge M/M gesamt, Zuschnittlänge gesamt,
+  Blechfläche, Fixmasse, Anzahl variabler Masse und je verwendetem Ansetztyp
+  eine Position („Ansetzen Dila 5 Stk."). „Nichts" ist kein Arbeitsschritt und
+  erscheint nicht.
+- **Kontrolle** mit Marke am Register (rot bei Fehler): fehlendes Material,
+  leeres Profil, fixes Segment ohne Länge, kein Stück, fehlende Länge M/M,
+  **negativer Zuschnitt** (das Ansetzen zieht mehr ab, als das Stück lang ist),
+  leeres variables Mass, keine oder keine passende Rollenbreite.
+- **PDF-Listenauswahl** über js/35 – keine eigene Auswahllogik. Der
+  Druckzweig ist um Blechfläche, Ausmass und Rollenblech erweitert; jeweils
+  nur, wenn sie im Datensatz stehen.
+- **Fotos und Skizzen am Ende**: `MEAS_MEDIEN_AM_ENDE` um `rinne` erweitert
+  (v2.75-Mechanik unverändert).
+
+### 104.5 Speichern: Superset
+
+js/16 schreibt **unverändert** dieselben sechs Felder wie bisher (`profil`,
+`ansetz`, `fixSumme`, `varMasse`, `stuecke`, `material`) und ergänzt nur
+`flaeche_m2`, `ausmass` und `zuschnitt`. Eine vor v3.00 gespeicherte Rinne
+öffnet unverändert – sie bringt ihr eigenes Profil mit, nicht das aktuelle
+Standardprofil – und druckt ohne die neuen Abschnitte. Es wird **nichts
+nachgerechnet**.
+
+### 104.6 Getestet
+
+- **`pruefstaende/pruefstand-rinne-zuschnitt-app-v3-00.js` – 95/95**, echtes
+  Chromium gegen die echte `index.html`: Modul und geteilte Bausteine, sechs
+  Register (nur eine Seite sichtbar, Blättern, Fertig-Knopf), Profil und
+  Stückliste kommen weiterhin von js/26 (inkl. Nachweis, dass die direkt
+  gebundenen Handler einen Registerwechsel überleben), echtes Tippen mit
+  Fokusprüfung, die von Hand nachgerechneten Excel-Werte (Abw. 981/990,
+  Zuschnitt 3085), Zuschnitt gegen die **wirklich gerufene** gemeinsame
+  Packrechnung, Ausmass, Kontrolle, Speichern und Wiederöffnen, ein Datensatz
+  bis v2.99, Fotos erst nach „Fertig", Druck (neu und alt), fünf
+  Bildschirmbreiten × sechs Register, keine JavaScript-Fehler.
+- **Sechs Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | eigene Rechnung statt der Fachdatei | 83/95 |
+  | die **kleinere** Abwicklung als Streifenbreite | 85/95 |
+  | eigene Packrechnung statt `ebaPackeInStreifen` | 93/95 |
+  | Zusatzfelder nicht gespeichert | 87/95 |
+  | Fotos schon während der Register | 94/95 |
+  | alle Seiten auf einmal sichtbar | 89/95 |
+
+- **Eine Gegenprobe liess den Prüfstand zuerst abbrechen** statt fehlschlagen
+  (ein Zugriff auf `d.zuschnitt.auswahl`, wenn das Feld fehlt) – ein
+  abgebrochener Lauf sieht aus wie „keine Fehler". Die Stelle ist abgesichert;
+  danach beisst sie mit 87/95.
+- **Zwei Erwartungen waren meine, nicht die des Codes**: zwei Stücke à 1000 mm
+  können nicht in **einen** Abschnitt von 1000 mm passen (der Abschnitt ist so
+  lang wie das längste Stück) – die Prüfung nimmt jetzt 3000/1000/1000; und
+  6425 mm sind 6,425 m, was JavaScript als „6,42" schreibt (6.425 ist als
+  Gleitkommazahl minimal kleiner, `toFixed(2)` rundet ab) – dieselbe
+  Schreibweise wie in allen übrigen Modulen.
+- **Die Rinne wurde in die gemeinsamen Prüfstände aufgenommen**:
+  register-zuschnitt 340/340 (vorher 307), medien-am-ende 137/137 (vorher
+  125), felder-bleiben 21/21 (vorher 19). lxb-druck 58/58 deckte sie seit
+  v2.84 bereits ab.
+- **Volle Regression grün** – alle 18 Prüfstände im Repo (verschnitt 1578,
+  register-zuschnitt 340, kehle 158, kamin 153, mauerabdeckung 146,
+  medien-am-ende 137, freies-profil 118, konisch 114, einfassung 113,
+  rinne-halbrund 104, einlaufblech 99, rinne-zuschnitt 95, rollenblech-pdf 95,
+  lukarne 82, lxb-druck 58, dila-sichtbar 57, skizze-foto 54,
+  felder-bleiben 21) und die archivierten (kehle52 698, pdf52 526,
+  required70 395, rinne57 380, einf70 185, normbrute 1578, offline70 129,
+  feedback63 108, freipos65 99, fotos70 88, dila70 85, breite57 84, fp70 83,
+  kehleintegration52 76, feedbackbrowser63 67, breite52 52,
+  einstbrowser68 51, ebg70 49, feedback70 47, einst68 47, mad70 45,
+  module67 43, medien50 42, adresse45 39, pfade55 39, dateien49 38,
+  projekte47 37, status46 35, freiposbrowser65 33, auswahl48 32,
+  modulebrowser67 16, suche45 13, kopf45 8, hidden51 7, abstand69 2, sowie
+  dateien43, nav, recent41, stand42, suche40, treffer40, ui39 ohne
+  Fehlschlag).
+- **Drei überholte Erwartungen** angepasst, keine davon ein Codefehler:
+  `fotos70` und `medien-am-ende` führten `rinne` noch unter den Arten **ohne**
+  Register; `rinne57` erwartete den Renderaufruf in der alten einzeiligen Form
+  (er zeichnet jetzt zusätzlich die Register – geprüft wird beides);
+  `breite57` bedient die Profil- und Stücktabelle und musste dafür das
+  jeweilige Register aufschlagen, und die seitlich scrollende Registerleiste
+  ist wie in allen übrigen Register-Arten von der Überlaufprüfung
+  ausgenommen (dass die **Seite** nicht scrollt, prüft es weiterhin eigens).
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` unmittelbar nacheinander gegen den v2.99-Stand
+  gerendert – **Bild und DOM byteidentisch** (Bild `85706e5d7a1eb615`,
+  DOM `3066be99c3200173`, 110 584 Bytes), zweimal bestätigt, dazu acht
+  Wiederholungen desselben Codes mit identischem Ergebnis.
+  *Offen gelegt:* in einer früheren Serie wich ein einzelner Lauf im **Bild**
+  ab (bei identischem DOM). In insgesamt vierzehn weiteren Läufen liess sich
+  das nicht wiederholen; eine Ursache wird deshalb hier **nicht behauptet**.
+- `node --check` über alle 60 js-Dateien (inkl. `sw.js` und der Prüfstände):
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs; jede js-Datei in `index.html`
+  **und** in der Service-Worker-Liste; Version 3.00 in `index.html` und
+  `sw.js` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 104.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/39-rinne-aufnahme.js` | **neu** – Registerleiste, Zuschnitt, Ausmass, Kontrolle, Speichern/Laden |
+| `index.html` | `#measTypeRinneProfil` auf Register umgebaut (feste Seiten 1–3), Script-Tag, Version 3.00 |
+| `js/16-massaufnahme-formular.js` | Modul mitzeichnen, Payload-Superset, Medien am Ende, Druck um Blechfläche/Ausmass/Rollenblech erweitert |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `sw.js` | Cache-Version 3.00, neue Datei im SHELL |
+| `pruefstaende/pruefstand-rinne-zuschnitt-app-v3-00.js` | **neu** |
+| drei gemeinsame Prüfstände | Rinne aufgenommen |
+
+**Nicht angefasst**: `js/26-rinne.js` (die Fachdatei, byteweise unverändert),
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js`, `css/03-druck.css`
+(Regierapport), `css/01-basis.css` sowie `js/11`–`js/25` und `js/27`–`js/38` –
+per `git diff` bestätigt. Keine Berechnung, keine Stückliste, kein Zuschnitt,
+keine Abwicklung und keine Packrechnung einer bestehenden Art berührt.
+
+### 104.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei vielen Stücken heisst das Ergebnis „beste gefundene
+  Verteilung".
+- Ein Rinnenstück mit unterschiedlicher Abwicklung links und rechts wird auf
+  der breiteren Seite eingeplant. Der Verschnitt der schmaleren Seite fällt
+  damit an und wird nicht anderweitig genutzt – das ist die vorsichtige
+  Annahme und gehört in den Praxistest.
+- Kein Detail-Diff der Rinnenstücke im Änderungsverlauf (wie bei allen
+  Array-Strukturen, Klasse C aus Abschnitt 42.2) – unverändert seit v2.56.
+- Damit haben **zehn** der zwölf Massaufnahme-Arten Register; ohne sind
+  weiterhin Skizze/Foto (bewusst, Abschnitt 89.1) und Ort- und Seitenbleche.
