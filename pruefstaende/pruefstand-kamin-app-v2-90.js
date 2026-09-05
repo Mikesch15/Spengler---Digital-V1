@@ -494,8 +494,46 @@ const FALL={
  p(k1.length===0,"vollstaendige Aufnahme: keine Meldung",k1);
  const k2=await page.evaluate(()=>{kamA=kamaLeer();return kamaPruefungen()});
  p(k2.filter(x=>x.art==="fehler").length>=5,"leere Aufnahme: mehrere Fehler",k2.length);
- p(k2.some(x=>/Mass A/.test(x.text))&&k2.some(x=>/seitliche Höhe/.test(x.text)),
+ // A, D und E kommen seit v2.98 als Vorgabe aus den Einstellungen - gemeldet
+ // werden also die Masse, die wirklich noch fehlen.
+ p(k2.some(x=>/Breite vorne/.test(x.text))&&k2.some(x=>/seitliche Höhe/.test(x.text)),
    "Fehler nennen die fehlenden Masse",k2.map(x=>x.text).slice(0,4));
+ const vorgabe=await page.evaluate(()=>{
+  kamA=kamaLeer();
+  return {a:kamA.a,d:kamA.d,e:kamA.e,
+    s:{v:kaminSettings.mass_vorne,h:kaminSettings.mass_hinten,e:kaminSettings.aufbug_hinten}};
+ });
+ p(vorgabe.a===250&&vorgabe.d===200&&vorgabe.e===35,
+   "eine neue Aufnahme startet mit A 250, D 200 und E 35 aus den Einstellungen",vorgabe);
+ p(vorgabe.s.v===250&&vorgabe.s.h===200&&vorgabe.s.e===35,
+   "und genau diese Werte stehen in den Einstellungen",vorgabe.s);
+ await reg(page,2);
+ const vf=await page.evaluate(()=>{const w=i=>{const e=document.getElementById(i);return e?e.value:"FEHLT"};
+   return {a:w("kam_a"),d:w("kam_d"),e:w("kam_e")}});
+ p(vf.a==="250"&&vf.d==="200"&&vf.e==="35","die Vorgaben stehen auch in den Feldern",vf);
+ // Aendern muss weiterhin gehen - es ist eine Vorgabe, keine feste Zahl.
+ await tippe(page,"#kam_a","300");
+ const vg=await page.evaluate(()=>({feld:($("kam_a")||{}).value,zustand:kamA.a}));
+ p(vg.feld==="300"&&String(vg.zustand)==="300","die Vorgabe ist frei ueberschreibbar",vg);
+ // Die drei Werte sind echte Einstellungen: geaendert und gespeichert muessen
+ // sie in der naechsten neuen Aufnahme stehen.
+ const rt=await page.evaluate(()=>{
+  const alt={v:kaminSettings.mass_vorne,h:kaminSettings.mass_hinten,e:kaminSettings.aufbug_hinten};
+  $("kamsMassVorne").value=280; $("kamsMassHinten").value=210; $("kamsAufbugHinten").value=40;
+  $("saveKaminSettings").click();
+  kamA=kamaLeer();
+  const neu={a:kamA.a,d:kamA.d,e:kamA.e};
+  // zuruecksetzen, damit die uebrigen Pruefungen unveraendert laufen
+  $("kamsMassVorne").value=alt.v; $("kamsMassHinten").value=alt.h; $("kamsAufbugHinten").value=alt.e;
+  $("saveKaminSettings").click();
+  kamA=kamaLeer();
+  return {neu,zurueck:{a:kamA.a,d:kamA.d,e:kamA.e}};
+ });
+ p(rt.neu.a===280&&rt.neu.d===210&&rt.neu.e===40,
+   "geaenderte Einstellungen wirken auf die naechste neue Aufnahme",rt.neu);
+ p(rt.zurueck.a===250&&rt.zurueck.d===200&&rt.zurueck.e===35,
+   "und lassen sich wieder auf 250/200/35 stellen",rt.zurueck);
+ await setz(page,FALL);
  await setz(page,Object.assign({},FALL,{b:{l:100,r:100}}));
  const k3=await page.evaluate(()=>kamaPruefungen());
  p(k3.some(x=>/Überlappung/.test(x.text)),"B kleiner als die Ueberlappung wird gemeldet",k3.map(x=>x.text));

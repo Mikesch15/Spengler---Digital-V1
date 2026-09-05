@@ -75,7 +75,12 @@ const KAMIN_STANDARD=Object.freeze({
  lattenabstand:330,
  umschlag_vorne:20, umschlag_hinten:20, umschlag_seite:20,
  ueberlappung:120,      // Ueberlappung der beiden Seitenteile (Knickbreite)
- aufbug_hinten:60       // E, 90-Grad-Aufbug am hinteren Blechende
+ aufbug_hinten:35,      // E, 90-Grad-Aufbug am hinteren Blechende
+ // A und D sind Masse dieser einen Aufnahme - die Vorgabe fuellt sie beim
+ // Anlegen nur vor und ist danach frei aenderbar (wie E, Umschlag und
+ // Ueberlappung). Werte vom Betrieb genannt.
+ mass_vorne:250,        // A, vorne auf Deckmaterial bis Vorderkant Kamin
+ mass_hinten:200        // D, Hinterkant Kamin bis hinten unter Deckmaterial
 });
 const KAMIN_EINSTELLUNGEN="sd_kaminSettings";
 let kaminSettings=kamEinstellungenLaden();
@@ -100,7 +105,7 @@ function kamaLeer(){
  return {
   material:"", deckung:s.deckung, lattenabstand:s.lattenabstand,
   getrennt:false, skizzeSeite:"l",
-  a:"", d:"", e:s.aufbug_hinten, keil:"",
+  a:s.mass_vorne, d:s.mass_hinten, e:s.aufbug_hinten, keil:"",
   // Der laufende Zustand traegt IMMER den Innenwinkel Dach/Wand - das Merkmal
   // sagt das, damit kamaWinkelDach() ihn nicht faelschlich als alten Datensatz
   // umrechnet.
@@ -1026,6 +1031,8 @@ function applyKaminSettings(){
  setzen("kamsUmschlagSeite",s.umschlag_seite);
  setzen("kamsUeberlappung",s.ueberlappung);
  setzen("kamsAufbugHinten",s.aufbug_hinten);
+ setzen("kamsMassVorne",s.mass_vorne);
+ setzen("kamsMassHinten",s.mass_hinten);
 }
 (function kamEinstellungenBinden(){
  if(!$("saveKaminSettings"))return;
@@ -1039,10 +1046,13 @@ function applyKaminSettings(){
    umschlag_hinten:zahl("kamsUmschlagHinten")||0,
    umschlag_seite:zahl("kamsUmschlagSeite")||0,
    ueberlappung:zahl("kamsUeberlappung")||0,
-   aufbug_hinten:zahl("kamsAufbugHinten")||0
+   aufbug_hinten:zahl("kamsAufbugHinten")||0,
+   mass_vorne:zahl("kamsMassVorne")||0,
+   mass_hinten:zahl("kamsMassHinten")||0
   };
   if(typeof EINF_DECKUNGEN==="object"&&!EINF_DECKUNGEN[w.deckung]){alert("Bitte ein Deckmaterial wählen.");return}
-  if(["lattenabstand","umschlag_vorne","umschlag_hinten","umschlag_seite","ueberlappung","aufbug_hinten"]
+  if(["lattenabstand","umschlag_vorne","umschlag_hinten","umschlag_seite","ueberlappung",
+      "aufbug_hinten","mass_vorne","mass_hinten"]
      .some(k=>w[k]<0)){alert("Diese Werte dürfen nicht negativ sein.");return}
   kamEinstellungenSichern(w);
   applyKaminSettings();
@@ -1104,6 +1114,11 @@ function kamaZuruecksetzen(){
 function kamaFuellen(d){
  const w=d||{};
  const a=kamaLeer();
+ // Die neuen Vorgaben A und D aus den Einstellungen gelten fuer eine NEUE
+ // Aufnahme. Beim Oeffnen eines gespeicherten Datensatzes wird nichts
+ // erfunden: fehlt eines der beiden Masse dort, bleibt es leer. (E ist seit
+ // v2.90 vorbelegt und bleibt es - jeder gespeicherte Datensatz traegt es.)
+ a.a=""; a.d="";
  const nimm=(k,ziel)=>{if(w[k]===0||w[k])a[ziel||k]=w[k]};
  a.material=w.material??"";
  if(w.deckung&&(typeof EINF_DECKUNGEN!=="object"||EINF_DECKUNGEN[w.deckung]))a.deckung=w.deckung;

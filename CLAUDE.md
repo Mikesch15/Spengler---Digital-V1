@@ -16022,3 +16022,86 @@ und `change` gleichermassen ab.
   Rohr hat, anders als der Kamin, nur eine Wand.
 - Die Dachneigung selbst wird weiterhin nicht eigens erfasst – sie steckt im
   Winkel (Innenwinkel − 90).
+
+## 102. KAMINEINFASSUNG: STANDARDWERTE A 250, D 200, E 35 — VERSION 2.98
+
+Ansage des Betriebs: *"standartwerte voren auf 250 hinten auf 200 und 90 grad
+abbug hinten auf 35mm"*. Gemeint sind die drei Masse der **Kamineinfassung**
+(js/37) – „90°-Aufbug hinten" ist dort der Feldname von **E**:
+
+| Feld | bis v2.97 | ab v2.98 |
+|---|---|---|
+| **A** · vorne auf Deckmaterial bis Vorderkant Kamin | keine Vorgabe (leer) | **250 mm** |
+| **D** · Hinterkant Kamin bis hinten unter Deckmaterial | keine Vorgabe (leer) | **200 mm** |
+| **E** · Mass vom 90°-Aufbug hinten | 60 mm | **35 mm** |
+
+**Keine Schemaänderung, keine Migration, keine Rechnung verändert.**
+
+### 102.1 Vorgabe, keine feste Zahl
+
+Alle drei sind **Einstellungen je Gerät** (`sd_kaminSettings`, wie Umschlag
+und Überlappung seit v2.90) und stehen unter *Einstellungen → Massaufnahmen →
+Kamineinfassung*. E war dort schon; A und D sind als
+„A · vorne auf Deckmaterial" und „D · hinten unter Deckmaterial" dazugekommen.
+
+Sie füllen eine **neue** Aufnahme vor und sind danach frei überschreibbar –
+dasselbe Prinzip wie die Verkettung bei der Rinne (Abschnitt 64.4). Eine
+Änderung in den Einstellungen wirkt **nie rückwirkend**.
+
+### 102.2 Ein gespeicherter Datensatz bekommt nichts angedichtet
+
+`kamaFuellen()` beginnt zwar bei `kamaLeer()`, setzt A und D aber
+ausdrücklich zurück, bevor die gespeicherten Werte einziehen. Ein Datensatz
+ohne diese Masse öffnet dadurch weiterhin **leer** und meldet sie als Fehler,
+statt 250/200 zu erfinden. Genau das prüft der Prüfstand seit v2.90 („ein
+Datensatz ohne Masse öffnet ohne etwas zu erfinden") – und genau das hat den
+ersten Entwurf auffliegen lassen.
+
+### 102.3 Getestet
+
+- **`pruefstand-kamin-app-v2-90.js` – 153/153** (vorher 147): eine neue
+  Aufnahme startet mit 250 / 200 / 35, die Werte stehen auch in den Feldern,
+  sie sind frei überschreibbar, sie stammen nachweislich aus den
+  Einstellungen, geänderte Einstellungen wirken auf die nächste neue Aufnahme
+  und lassen sich wieder zurückstellen, und ein Datensatz ohne Masse öffnet
+  unverändert leer.
+- **Fünf Gegenproben**, jede reproduziert einen echten Fehler: A und D ohne
+  Vorgabe (149/153) · E bleibt bei 60 (149/153) · `kamaFuellen` erfindet die
+  Vorgaben auch für alte Datensätze (152/153) · die Einstellungsseite
+  speichert die beiden neuen Werte nicht (152/153) · die Vorgabe ist fest
+  verdrahtet statt aus den Einstellungen (152/153).
+- **Eine überholte Erwartung** angepasst, kein Codefehler: die leere Aufnahme
+  meldet nicht mehr „Mass A fehlt" (A ist jetzt vorbelegt), sondern die
+  Masse, die wirklich noch fehlen.
+- **Volle Regression grün** – alle 17 Prüfstände im Repo (verschnitt 1578,
+  register-zuschnitt 307, kehle 158, kamin 153, mauerabdeckung 146,
+  medien-am-ende 125, freies-profil 118, konisch 114, rinne 104,
+  einfassung 101, einlaufblech 99, rollenblech-pdf 95, lukarne 82,
+  lxb-druck 58, dila-sichtbar 57, skizze-foto 54, felder-bleiben 19) sowie
+  required70 395, pdf52 526, kehle52 698, rinne57 379, einf70 185,
+  offline70 127, fotos70 88, einst68 47, medien50 42, pfade55 39,
+  hidden51 7, abstand69 2 – ohne Fehlschlag.
+- **Regierapport nachweislich unverändert**: unmittelbar nacheinander gegen
+  den v2.97-Stand gerendert – **Bild und DOM byteidentisch** (DOM
+  `792fa96a434da658`, 4878 Zeichen; Bild `06e85cff4645b891`, 45939 Bytes).
+- `node --check` fehlerfrei, `<div>`-Verschachtelung ausgeglichen (Tiefe 0),
+  keine doppelten Element-IDs, Version 2.98 in `index.html` und `sw.js`.
+- **Kein Datenbankzugriff** in dieser Runde.
+
+### 102.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/37-kamin-aufnahme.js` | `mass_vorne`/`mass_hinten` in `KAMIN_STANDARD`, `aufbug_hinten` 60 → 35, Vorbelegung in `kamaLeer()`, A/D beim Öffnen zurückgesetzt, Einstellungsseite |
+| `index.html` | zwei neue Einstellungsfelder (A vor D vor E), Version 2.98 |
+| `pruefstaende/pruefstand-kamin-app-v2-90.js` | sechs neue Prüfungen |
+| `sw.js` | Cache-Version 2.98 |
+
+### 102.5 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird
+  ausdrücklich nicht als getestet behauptet.**
+- Die Vorgaben liegen wie alle Kamin-Einstellungen **je Gerät** im
+  `localStorage`, nicht firmenweit – ein zweites Tablet muss sie einmal
+  selbst setzen. Firmenweit sind bisher nur die Rollenbreiten (v2.74).
