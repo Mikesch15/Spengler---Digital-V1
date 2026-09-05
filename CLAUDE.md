@@ -15544,3 +15544,111 @@ siehe 71.7), meldet er einen Fehlschlag, der keiner ist. Beides deshalb
 | `js/37-kamin-aufnahme.js` | B, C und die Überlappung in den Kaminmasse-Block, Erklärzeile mit |
 | `pruefstaende/pruefstand-kamin-app-v2-90.js` | fünf Prüfungen auf die Lage im Dokument |
 | `index.html`, `sw.js` | Version 2.94 |
+
+## 99. KAMINEINFASSUNG: WINKEL SIND DER INNENWINKEL DACH/WAND — VERSION 2.95
+
+Gemeldet: *"winkel stimmen auch noch nicht bei zb. 25 grad müsste 115 grad
+eingegeben werden und hinten dementsprechend 65 grad"*. Zutreffend – das
+Formular verlangte bis v2.94 die **Neigung der Wand vom Senkrechten auf das
+Dach** (auf einem 25°-Dach also 25/25), am Bau abgegriffen wird aber der
+**Winkel zwischen Dachfläche und Kaminwand**. **Keine Schemaänderung, keine
+Migration**, keine Fachdatei angefasst.
+
+### 99.1 Gegen die Vorlage nachgerechnet
+
+`Schnitt_Kamineinfassung.dxf`, aufs Dach projiziert:
+
+| | Wert |
+|---|---|
+| Wandrichtung vorne über der Dachfläche | 65,00° |
+| Wandrichtung hinten über der Dachfläche | 65,00° |
+| **Innenwinkel vorne** (Dach liegt talwärts) | **115,00°** |
+| **Innenwinkel hinten** (Dach liegt bergwärts) | **65,00°** |
+| Summe | 180,00° |
+
+Exakt die Zahlen aus der Meldung. Vorne ist der Winkel **stumpf**, hinten
+**spitz**; beim lotrechten Kamin ergeben sie immer 180°, weil die beiden
+Wände parallel stehen (siehe Abschnitt 96).
+
+### 99.2 Umrechnung
+
+Eingegeben wird der Innenwinkel, gerechnet wird intern weiter mit der Neigung
+vom Senkrechten (daraus kommt die Verlängerung `Höhe / cos`):
+
+```
+vorne:  Dach liegt talwärts   ->  intern = Innen − 90     (115 − 90 = 25)
+hinten: Dach liegt bergwärts  ->  intern = 90 − Innen     (90 − 65 = 25)
+Keil-Abbug                    ->  (180 − Innen hinten)/2  (= 57,5°, wie DXF)
+```
+
+Beide ergeben beim lotrechten Kamin denselben Wert – die Dachneigung.
+
+Die Umrechnung sitzt in **einer** Funktion (`kamaWinkelDach`), die aus jeder
+Quelle liest. Damit sehen Formular, Skizze, Rechnung, Kontrolle und PDF
+dasselbe, ohne dass jede Aufrufstelle den Fall kennen muss.
+
+### 99.3 Bereits gespeicherte Datensätze
+
+Ein Datensatz bis v2.94 trug 25/25 und **kein** Merkmal `winkelBezug`. Er
+wird daran erkannt und beim Lesen umgerechnet – aus 25/25 wird 115/65.
+
+**Die Umrechnung ist verlustfrei**: intern kommt exakt derselbe Wert wieder
+heraus, also bleiben Abwicklungen, Keilhöhe, Zuschnitte, Fläche, Bleilappen
+und Rollenplan unverändert. Im Prüfstand wird das Stück für Stück verglichen.
+Auch das PDF eines alten Datensatzes zeigt jetzt 115°/65° statt 25°/25° –
+eine Korrektur der Beschriftung, keine Neuberechnung.
+
+Neue Datensätze speichern `winkelBezug:"dach"` mit.
+
+### 99.4 Kontrolle
+
+- Sinnvoller Bereich jetzt **3° bis 177°** (darüber hinaus läuft `Höhe / cos`
+  ins Unendliche) statt −87° bis 87°.
+- **90°** ist die Warnung: die Wand stünde senkrecht auf dem Dach, das Blech
+  bekäme keine Verlängerung. (Vorher war das 0°.)
+- Ein fehlender Winkel bleibt ein **Fehler** und nennt jetzt ein Beispiel
+  („auf einem 25°-Dach z. B. 115°").
+- **Neu**: ergeben vorne und hinten zusammen nicht 180°, kommt ein **Hinweis**
+  – ein schräger Kamin ist erlaubt, aber selten.
+
+### 99.5 Getestet
+
+- **`pruefstand-kamin-app-v2-90.js` – 147/147** (vorher 134). Neuer Abschnitt
+  **E3**: 115/65 ergibt intern 25/25 und den Keil-Abbug 57,5°; die
+  Abwicklungen bleiben 761 und 777; ein Datensatz bis v2.94 öffnet als 115/65
+  mit **denselben** Zuschnitten und einer gezeichneten Skizze; der Payload
+  trägt `winkelBezug`; die 180°-Summe ist ein Hinweis; die Feldbeschriftungen
+  nennen „Dach/Wand", „stumpf" und „spitz". Dazu im Druck-Abschnitt: das PDF
+  nennt 115°/65°, und auch ein alter Datensatz wird so gedruckt.
+- **Vier Gegenproben**, jede reproduziert einen echten Fehler:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | keine Umrechnung (Innenwinkel direkt intern) | 126/147 |
+  | alte Datensätze nicht umrechnen | 143/147 |
+  | `winkelBezug` nicht speichern | 144/147 |
+  | Druck rechnet alte Datensätze nicht um | 146/147 |
+
+- **Volle Regression grün**: alle 16 Repo-Prüfstände und alle 42 archivierten.
+- **Regierapport nachweislich unverändert**: gegen v2.94 gerendert – Bild und
+  DOM byteidentisch (DOM `059d20dcf9aa6421`, 5428 Zeichen; Bild
+  `14d16a0f1c95c416`, 51534 Bytes), mit Kontrolllauf bestätigt.
+- **Kein Datenbankzugriff** in dieser Runde.
+
+### 99.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/37-kamin-aufnahme.js` | `kamaWinkelDach`/`kamaWvIntern`/`kamaWhIntern`, alle Verwendungsstellen, Beschriftungen, Kontrolle, Speichern/Laden |
+| `js/16-massaufnahme-formular.js` | PDF zeigt den Innenwinkel, rechnet alte Datensätze um |
+| `pruefstaende/pruefstand-kamin-app-v2-90.js` | Abschnitt E3, Druckprüfungen, Testfall auf 115/65 |
+| `index.html`, `sw.js` | Version 2.95 |
+
+### 99.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird
+  ausdrücklich nicht als getestet behauptet.**
+- Die Dachneigung selbst wird weiterhin **nicht** erfasst und nicht gebraucht –
+  sie steckt in den beiden Winkeln. Bei einem lotrechten Kamin ist sie
+  `Innenwinkel vorne − 90`.

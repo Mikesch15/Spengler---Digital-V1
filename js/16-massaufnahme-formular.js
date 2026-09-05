@@ -1210,7 +1210,16 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Deckungsmaterial",esc(deckName))}${cell("Material",matName)}</tr>
 <tr>${cell("A · vorne bis Vorderkant Kamin",mm(d.a)+" mm")}${cell("D · Hinterkant Kamin bis unter Deckmaterial",mm(d.d)+" mm")}</tr>
 <tr>${cell("E · 90°-Aufbug hinten",mm(d.e)+" mm")}${cell("Keil hinterkant Kamin",mm(d.keil)+" mm")}</tr>
-<tr>${cell("Winkel vorne",esc(Number(d.winkelVorne)||0)+"°")}${cell("Winkel hinten",esc(Number(d.winkelHinten)||0)+"°")}</tr>
+<tr>${(()=>{
+  // Seit v2.95 stehen hier die am Bau gemessenen Innenwinkel Dach/Wand.
+  // Datensaetze bis v2.94 trugen die Neigung vom Senkrechten und werden
+  // umgerechnet, damit im PDF nicht die falsche Zahl steht (an den
+  // Zuschnitten aendert das nichts - die sind gespeichert).
+  const dach=d.winkelBezug==="dach";
+  const wv=dach?(Number(d.winkelVorne)||0):90+(Number(d.winkelVorne)||0);
+  const wh=dach?(Number(d.winkelHinten)||0):90-(Number(d.winkelHinten)||0);
+  return cell("Winkel Dach/Wand vorne",esc(wv)+"°")+cell("Winkel Dach/Wand hinten",esc(wh)+"°");
+ })()}</tr>
 <tr>${cell("B · Seitenteil vorne"+seitenTxt,paar("b")+" mm")}${cell("C · Seitenteil hinten"+seitenTxt,paar("c")+" mm")}</tr>
 <tr>${cell("F · bis Deckmaterial"+seitenTxt,paar("f")+" mm")}${cell("G · unter Deckmaterial"+seitenTxt,paar("g")+" mm")}</tr>
 <tr>${cell("Seitliche Höhe"+seitenTxt,paar("hoehe")+" mm")}${cell("Überlappung Knick",mm(d.ueberlappung)+" mm")}</tr>

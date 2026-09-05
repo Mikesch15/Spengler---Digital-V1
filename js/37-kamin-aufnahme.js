@@ -101,7 +101,10 @@ function kamaLeer(){
   material:"", deckung:s.deckung, lattenabstand:s.lattenabstand,
   getrennt:false, skizzeSeite:"l",
   a:"", d:"", e:s.aufbug_hinten, keil:"",
-  winkelVorne:"", winkelHinten:"",
+  // Der laufende Zustand traegt IMMER den Innenwinkel Dach/Wand - das Merkmal
+  // sagt das, damit kamaWinkelDach() ihn nicht faelschlich als alten Datensatz
+  // umrechnet.
+  winkelBezug:"dach", winkelVorne:"", winkelHinten:"",
   breiteVorne:"", breiteHinten:"",
   umschlagVorne:s.umschlag_vorne, umschlagHinten:s.umschlag_hinten,
   umschlagSeite:s.umschlag_seite, ueberlappung:s.ueberlappung,
@@ -145,6 +148,35 @@ function kamaHoeheMitWinkel(hoehe,winkel){
 // In der Vorlage (Schnitt_Kamineinfassung.dxf) geht das exakt auf: bei 25 Grad
 // sind es 57.5 Grad je Abbug, der 34.10 lange Keil ueberwindet damit
 // 34.10 * sin(57.5) = 28.76 senkrecht - genau der Wert der Zeichnung.
+// ---- Winkel: Eingabe am Bau vs. Rechnung ----------------------------------
+// EINGEGEBEN wird der Innenwinkel zwischen Dachflaeche und Kaminwand - genau
+// das, was am Bau mit dem Winkelmesser abgegriffen wird. Vorne (talseitig) ist
+// er stumpf, hinten (bergseitig) spitz; bei einem lotrechten Kamin ergeben
+// beide zusammen 180 Grad. Auf einem 25-Grad-Dach also 115 vorne und 65 hinten
+// (gegen die Vorlage Schnitt_Kamineinfassung.dxf nachgerechnet, v2.95).
+//
+// GERECHNET wird intern weiter mit der Neigung der Wand vom Senkrechten auf
+// das Dach - daraus kommt die Verlaengerung des Blechs (Hoehe / cos).
+//   vorne:  Dach liegt talwaerts  -> intern = Innen - 90
+//   hinten: Dach liegt bergwaerts -> intern = 90 - Innen
+// Beide ergeben beim lotrechten Kamin denselben Wert, die Dachneigung.
+// Liefert den Innenwinkel Dach/Wand - aus JEDER Quelle richtig, auch aus einem
+// gespeicherten Datensatz bis v2.94. Der trug die Neigung vom Senkrechten und
+// traegt kein Merkmal "winkelBezug"; er wird hier umgerechnet. Damit lesen
+// Skizze, Rechnung und PDF alle dasselbe, ohne dass jede Aufrufstelle den Fall
+// selbst kennen muss.
+function kamaWinkelDach(quelle,feld){
+ const q=quelle||kamA;
+ const w=kamaZahl(q[feld]);
+ if(q.winkelBezug==="dach")return w;
+ return feld==="winkelHinten"?90-w:90+w;
+}
+function kamaWvIntern(quelle){
+ return kamaWinkelDach(quelle,"winkelVorne")-90;
+}
+function kamaWhIntern(quelle){
+ return 90-kamaWinkelDach(quelle,"winkelHinten");
+}
 function kamaKeilAbbug(winkelHinten){
  return (90+kamaZahl(winkelHinten))/2;
 }
@@ -190,7 +222,7 @@ function kamaZuschnitte(){
    merkmal:name, hinweis:seite||""});
  };
 
- const hv=kamaHoeheMitWinkel(h,a.winkelVorne);
+ const hv=kamaHoeheMitWinkel(h,kamaWvIntern(a));
  dazu("Vorderteil","vorne","",a.breiteVorne,[
   {name:"Umschlag vorne",wert:kamaZahl(a.umschlagVorne)},
   {name:"Mass A",wert:kamaZahl(a.a)},
@@ -198,9 +230,9 @@ function kamaZuschnitte(){
 
  // Hinten beginnt die Wand ERST UEBER DEM KEIL - der Keil ueberwindet den
  // unteren Teil der Hoehe. Ohne diesen Abzug waere das Blech zu lang.
- const keilH=kamaKeilHoehe(a.keil,a.winkelHinten);
+ const keilH=kamaKeilHoehe(a.keil,kamaWhIntern(a));
  const restH=h-keilH;
- const hh=kamaHoeheMitWinkel(restH>0?restH:0,a.winkelHinten);
+ const hh=kamaHoeheMitWinkel(restH>0?restH:0,kamaWhIntern(a));
  dazu("Hinterteil","hinten","",a.breiteHinten,[
   {name:"Umschlag hinten",wert:kamaZahl(a.umschlagHinten)},
   {name:"Mass E · 90°-Aufbug",wert:kamaZahl(a.e)},
@@ -258,7 +290,7 @@ function kamaSkizze(quelle){
  const B=kamaSeite("b",seite,q), C=kamaSeite("c",seite,q);
  const Ue=kamaZahl(q.ueberlappung);
  const H=kamaSeite("hoehe",seite,q);
- const wv=kamaZahl(q.winkelVorne), wh=kamaZahl(q.winkelHinten);
+ const wv=kamaWvIntern(q), wh=kamaWhIntern(q);
  const L=kamaKaminLaenge(seite,q);
  if(!(H>0)||!(L>0))
   return `<div class="ra-warnung">Für die Schnittskizze fehlen noch Masse:
@@ -381,8 +413,8 @@ bitte die seitliche Höhe sowie B und C eingeben.</div>`;
  // nach links oben - sonst schieben sich die beiden Texte uebereinander.
  if(E>0)fahne(L+D,E,8,-22,"E = "+zahl(E)+" · 90°");
  if(keilS&&keilE)fahne((keilS[0]+keilE[0])/2,(keilS[1]+keilE[1])/2,-40,-22,"Keil = "+zahl(keil));
- fahne(vTop[0],vTop[1],24,16,"Winkel vorne "+kamaZahl(wv)+"°");
- fahne(hTop[0],hTop[1],-24,16,"Winkel hinten "+kamaZahl(wh)+"°");
+ fahne(vTop[0],vTop[1],24,16,"Winkel vorne "+kamaZahl(kamaWinkelDach(q,"winkelVorne"))+"°");
+ fahne(hTop[0],hTop[1],-24,16,"Winkel hinten "+kamaZahl(kamaWinkelDach(q,"winkelHinten"))+"°");
 
  const seiteTxt=q.getrennt?(seite==="r"?" · rechte Seite":" · linke Seite"):"";
  const fuss="Kamineinfassung · Schnitt längs des Dachs"+seiteTxt+" · Dach waagerecht dargestellt";
@@ -536,24 +568,37 @@ function kamaPruefungen(){
    if(kamaSeite(k,s.k)<0)m.push({art:"fehler",text:"Ein seitliches Mass ist negativ ("+s.name+")."});
   });
  });
- [["winkelVorne","Winkel vorne"],["winkelHinten","Winkel hinten"]].forEach(([k,name])=>{
-  if(Math.abs(kamaZahl(a[k]))>=87)
-   m.push({art:"fehler",text:name+" muss zwischen −87° und 87° liegen – sonst läuft das Blech ins Unendliche."});
-  // 0 Grad heisst: die Wand steht senkrecht auf dem Dach. Bei einem lotrechten
-  // Kamin auf einem geneigten Dach ist das praktisch nie der Fall - und dann
-  // fehlt dem Blech die ganze Verlaengerung. Deshalb ausdruecklich melden,
-  // statt still mit dem unkorrigierten Mass zu rechnen.
-  else if(a[k]===""||a[k]===null||a[k]===undefined)
-   m.push({art:"fehler",text:name+" fehlt. Ohne ihn rechnet die App mit 0°, "
-     +"also mit einer Wand senkrecht auf dem Dach – das Blech wäre zu kurz."});
-  else if(kamaZahl(a[k])===0)
-   m.push({art:"warnung",text:name+" steht auf 0° – die Wand stünde dann senkrecht "
-     +"auf dem Dach. Bei einem lotrechten Kamin entspricht der Winkel der Dachneigung."});
+ // Eingegeben wird der Innenwinkel Dach/Wand (siehe kamaWvIntern). Sinnvoll ist
+ // er zwischen 3 und 177 Grad - darueber hinaus laeuft "Hoehe / cos" ins
+ // Unendliche. 90 Grad hiesse: die Wand steht senkrecht AUF DEM DACH; bei einem
+ // lotrechten Kamin auf einem geneigten Dach ist das praktisch nie der Fall,
+ // und dann fehlt dem Blech die ganze Verlaengerung.
+ [["winkelVorne","Winkel Dach/Wand vorne",115],["winkelHinten","Winkel Dach/Wand hinten",65]]
+  .forEach(([k,name,bsp])=>{
+  const w=kamaZahl(a[k]);
+  if(a[k]===""||a[k]===null||a[k]===undefined)
+   m.push({art:"fehler",text:name+" fehlt. Er wird zwischen Dachfläche und Kaminwand "
+     +"gemessen – auf einem 25°-Dach z. B. "+bsp+"°."});
+  else if(w<=3||w>=177)
+   m.push({art:"fehler",text:name+" muss zwischen 3° und 177° liegen – sonst läuft "
+     +"das Blech ins Unendliche."});
+  else if(w===90)
+   m.push({art:"warnung",text:name+" steht auf 90° – die Wand stünde dann senkrecht "
+     +"auf dem Dach, das Blech bekäme keine Verlängerung."});
  });
+ // Beim lotrechten Kamin ergeben vorne und hinten zusammen 180 Grad. Ein
+ // deutlich anderer Wert ist erlaubt (schraeger Kamin), aber selten - deshalb
+ // ein Hinweis, keine Sperre.
+ {const wv=kamaZahl(a.winkelVorne), wh=kamaZahl(a.winkelHinten);
+  if(a.winkelVorne!==""&&a.winkelHinten!==""&&wv>3&&wv<177&&wh>3&&wh<177
+     &&Math.abs(wv+wh-180)>1)
+   m.push({art:"warnung",text:"Vorne und hinten ergeben zusammen "+kamaMm(wv+wh)
+     +"° statt 180° – bei einem lotrechten Kamin sind es immer 180°."});
+ }
  // Der Keil ueberwindet einen Teil der Hoehe. Ist er hoeher als die ganze
  // Einfassung, bleibt fuer die Wand nichts uebrig - dann stimmt eines der
  // beiden Masse nicht.
- {const kh=kamaKeilHoehe(a.keil,a.winkelHinten), hh=kamaHoeheDurchgehend();
+ {const kh=kamaKeilHoehe(a.keil,kamaWhIntern(a)), hh=kamaHoeheDurchgehend();
   if(kamaZahl(a.keil)>0&&hh>0&&kh>=hh)
    m.push({art:"fehler",text:"Der Keil überwindet mit "+kamaMm(kh)+" mm bereits die ganze "
      +"seitliche Höhe ("+kamaMm(hh)+" mm) – für die Kaminwand bliebe nichts übrig."});
@@ -564,7 +609,7 @@ function kamaPruefungen(){
  // unmoeglich - deshalb ein Fehler, keine Warnung.
  KAM_SEITEN.forEach(s=>{
   const L=kamaKaminLaenge(s.k), H=kamaSeite("hoehe",s.k);
-  const wv=kamaZahl(a.winkelVorne), wh=kamaZahl(a.winkelHinten);
+  const wv=kamaWvIntern(a), wh=kamaWhIntern(a);
   if(!(L>0)||!(H>0)||Math.abs(wv)>=87||Math.abs(wh)>=87)return;
   const oben=L+H*(Math.tan(wh*Math.PI/180)-Math.tan(wv*Math.PI/180));
   if(oben<=0)
@@ -654,13 +699,13 @@ function kamaKennzahlenHtml(){
  const wert=(l,v)=>`<div><label>${esc(l)}</label><div class="ra-wert">${esc(v)}</div></div>`;
  const Ll=kamaKaminLaenge("l"), Lr=kamaKaminLaenge("r");
  const bl=kamaBleilappen();
- const kh=kamaKeilHoehe(kamA.keil,kamA.winkelHinten);
+ const kh=kamaKeilHoehe(kamA.keil,kamaWhIntern(kamA));
  return `<div class="grid ra-kennzahlen" id="kam_kennzahlen">
 ${wert("Kaminlänge längs Dach"+(kamA.getrennt?" links":""),Ll>0?kamaMm(Ll)+" mm":"–")}
 ${kamA.getrennt?wert("Kaminlänge rechts",Lr>0?kamaMm(Lr)+" mm":"–"):""}
 ${wert("Seitliche Höhe für Vorder-/Hinterteil",kamaHoeheDurchgehend()>0?kamaMm(kamaHoeheDurchgehend())+" mm":"–")}
 ${wert("Keil: Abbug / Höhenanteil",kamaZahl(kamA.keil)>0
-   ?kamaKeilAbbug(kamA.winkelHinten).toFixed(1).replace(".",",")+"° / "+kamaMm(kh)+" mm":"–")}
+   ?kamaKeilAbbug(kamaWhIntern(kamA)).toFixed(1).replace(".",",")+"° / "+kamaMm(kh)+" mm":"–")}
 ${wert("Anzahl Bleilappen",bl.gesamt!==null?String(bl.gesamt):"–")}
 </div>`;
 }
@@ -671,11 +716,12 @@ function kamaMasseHtml(){
 <button type="button" class="gray${a.skizzeSeite==="r"?" blue":""}" data-kam-skizze="r">Rechte Seite</button>
 </div>`:"";
  return `<div class="info">Alle Masse in mm, längs des Dachs gemessen. Die beiden Winkel
-sind vom Senkrechten auf das Dach gemessen, <b>positiv</b> heisst bergwärts
-(zum First) geneigt – <b>für beide Wände gleichsinnig</b>. Bei einem lotrechten
-Kamin stehen die Wände parallel: dann sind beide Winkel gleich der Dachneigung.
-<b>0°</b> hiesse, die Wand stünde senkrecht auf dem Dach. Der Keil braucht keinen eigenen Winkel: er halbiert den Knick,
-damit die beiden an ihn grenzenden Abbüge gleich sind.</div>
+sind die, die am Bau abgegriffen werden: der Winkel <b>zwischen Dachfläche und
+Kaminwand</b>, je auf seiner Seite. Vorne (talseitig) ist er <b>stumpf</b>, hinten
+(bergseitig) <b>spitz</b>; bei einem lotrechten Kamin ergeben beide zusammen 180°.
+Auf einem 25°-Dach also <b>115° vorne und 65° hinten</b>. <b>90°</b> hiesse, die Wand
+stünde senkrecht auf dem Dach. Der Keil braucht keinen eigenen Winkel: er halbiert
+den Knick, damit die beiden an ihn grenzenden Abbüge gleich sind.</div>
 <div class="grid">
 ${kamaZahlFeld("A · vorne auf Deckmaterial bis Vorderkant Kamin","kam_a",a.a,"1",true)}
 ${kamaSeitenFeld("B · Vorderkant Kamin bis Hinterkant Knick","kam_b",true)}
@@ -684,8 +730,8 @@ ${kamaZahlFeld("Überlappung der Seitenteile (Knick)","kam_ueberlappung",a.ueber
 ${kamaZahlFeld("D · Hinterkant Kamin bis hinten unter Deckmaterial","kam_d",a.d,"1",true)}
 ${kamaZahlFeld("E · Mass vom 90°-Aufbug hinten","kam_e",a.e)}
 ${kamaZahlFeld("Keil hinterkant Kamin","kam_keil",a.keil)}
-${kamaZahlFeld("Winkel vorne vom Senkrechten (°)","kam_winkelVorne",a.winkelVorne,"0.1",true)}
-${kamaZahlFeld("Winkel hinten vom Senkrechten (°)","kam_winkelHinten",a.winkelHinten,"0.1",true)}
+${kamaZahlFeld("Winkel Dach/Wand vorne (°) · stumpf","kam_winkelVorne",a.winkelVorne,"0.1",true)}
+${kamaZahlFeld("Winkel Dach/Wand hinten (°) · spitz","kam_winkelHinten",a.winkelHinten,"0.1",true)}
 </div>
 <div class="small" style="color:var(--muted);margin-top:4px">B und C überlappen sich im
 Knick – die Kaminlänge ist deshalb B + C − Überlappung.</div>
@@ -777,9 +823,9 @@ ${zeile("Deckungsmaterial",kamaDeckungText())}
 ${zeile("A / D",kamaMm(a.a)+" / "+kamaMm(a.d)+" mm")}
 ${zeile("E · 90°-Aufbug / Keil",kamaMm(a.e)+" / "+kamaMm(a.keil)+" mm")}
 ${kamaZahl(a.keil)>0?zeile("Keil: Abbug / Höhenanteil",
-   kamaKeilAbbug(a.winkelHinten).toFixed(1).replace(".",",")+"° / "
-   +kamaMm(kamaKeilHoehe(a.keil,a.winkelHinten))+" mm"):""}
-${zeile("Winkel vorne / hinten",kamaZahl(a.winkelVorne)+"° / "+kamaZahl(a.winkelHinten)+"°")}
+   kamaKeilAbbug(kamaWhIntern(a)).toFixed(1).replace(".",",")+"° / "
+   +kamaMm(kamaKeilHoehe(a.keil,kamaWhIntern(a)))+" mm"):""}
+${zeile("Winkel Dach/Wand vorne / hinten",kamaZahl(a.winkelVorne)+"° / "+kamaZahl(a.winkelHinten)+"°")}
 ${seitig("B · Seitenteil vorne","b","mm")}
 ${seitig("C · Seitenteil hinten","c","mm")}
 ${seitig("F / G","f","mm")}
@@ -1022,6 +1068,10 @@ function kamaDaten(){
   material:a.material, deckung:a.deckung, lattenabstand:kamaZahl(a.lattenabstand),
   getrennt:!!a.getrennt,
   a:kamaZahl(a.a), d:kamaZahl(a.d), e:kamaZahl(a.e), keil:kamaZahl(a.keil),
+  // Seit v2.95 sind das die am Bau gemessenen Innenwinkel Dach/Wand. Das
+  // Merkmal sagt das ausdruecklich, damit aeltere Datensaetze (die den Winkel
+  // vom Senkrechten trugen) beim Oeffnen erkannt und umgerechnet werden.
+  winkelBezug:"dach",
   winkelVorne:kamaZahl(a.winkelVorne), winkelHinten:kamaZahl(a.winkelHinten),
   breiteVorne:kamaZahl(a.breiteVorne), breiteHinten:kamaZahl(a.breiteHinten),
   umschlagVorne:kamaZahl(a.umschlagVorne), umschlagHinten:kamaZahl(a.umschlagHinten),
@@ -1060,6 +1110,13 @@ function kamaFuellen(d){
  ["lattenabstand","a","d","e","keil","winkelVorne","winkelHinten",
   "breiteVorne","breiteHinten","umschlagVorne","umschlagHinten",
   "umschlagSeite","ueberlappung"].forEach(k=>nimm(k));
+ // Datensaetze bis v2.94 trugen die Neigung VOM SENKRECHTEN (auf einem
+ // 25-Grad-Dach also 25/25). Ohne das Merkmal "winkelBezug" werden sie in den
+ // jetzt eingegebenen Innenwinkel Dach/Wand umgerechnet - aus 25/25 wird
+ // 115/65. Die Abwicklung aendert sich dadurch NICHT: intern kommt genau
+ // derselbe Wert wieder heraus (115-90 = 25 und 90-65 = 25).
+ if(a.winkelVorne!=="")a.winkelVorne=kamaWinkelDach(w,"winkelVorne");
+ if(a.winkelHinten!=="")a.winkelHinten=kamaWinkelDach(w,"winkelHinten");
  a.getrennt=!!w.getrennt;
  ["b","c","f","g","hoehe"].forEach(k=>{
   const v=w[k];

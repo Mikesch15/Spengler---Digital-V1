@@ -35,12 +35,18 @@ const FALL={
  material:"2", deckung:"biber_einfach", lattenabstand:330,
  getrennt:false,
  a:300, d:250, e:60, keil:80,
- winkelVorne:25, winkelHinten:25,
+ winkelVorne:115, winkelHinten:65,
  breiteVorne:900, breiteHinten:900,
  umschlagVorne:20, umschlagHinten:20, umschlagSeite:20, ueberlappung:120,
  b:{l:500,r:500}, c:{l:400,r:400}, f:{l:150,r:150}, g:{l:100,r:100},
  hoehe:{l:400,r:400}, rollenAuswahl:[]
 };
+// Die beiden Winkel sind seit v2.95 die am Bau gemessenen INNENWINKEL zwischen
+// Dachflaeche und Kaminwand: vorne stumpf, hinten spitz, zusammen 180 Grad beim
+// lotrechten Kamin. Auf einem 25-Grad-Dach also 115 und 65. Intern wird daraus
+// die Neigung vom Senkrechten (115-90 = 25 und 90-65 = 25) - deshalb bleiben
+// alle Zahlen unten unveraendert gueltig.
+//
 // Von Hand (v2.91): cos(25 Grad)=0.9063077870
 //  Vorderteil   400/cos25 = 441.3512 -> 900 x (20+300+441.3512) = 900 x 761
 //  Keil-Abbug   (90+25)/2 = 57.5 Grad   (Winkelhalbierende, siehe kamaKeilAbbug)
@@ -258,9 +264,11 @@ const FALL={
    [z.teile[4],z.teile[5]]);
  p(Math.abs(z.flaeche-2.5902)<1e-4,"Blechflaeche 2.5902 m²",z.flaeche);
  // Der Winkel muss wirklich wirken: ohne Winkel waere die Abwicklung 720.
- const ohneW=await page.evaluate(()=>{const alt=kamA.winkelVorne;kamA.winkelVorne=0;
+ // 90 Grad heisst: Wand senkrecht AUF DEM DACH - dann gibt es keine
+ // Verlaengerung und die Abwicklung waere 20+300+400 = 720.
+ const ohneW=await page.evaluate(()=>{const alt=kamA.winkelVorne;kamA.winkelVorne=90;
    const b=kamaZuschnitte()[0].breite;kamA.winkelVorne=alt;return b});
- p(ohneW===720,"ohne Winkel vorne waere die Abwicklung 720 — der Winkel wirkt",ohneW);
+ p(ohneW===720,"bei 90° (Wand senkrecht auf dem Dach) waere die Abwicklung 720",ohneW);
 
  console.log("\nE2 · Keil und Winkel — die v2.91-Korrektur");
  await setz(page,FALL);
@@ -310,11 +318,11 @@ const FALL={
  // Wand senkrecht auf dem Dach - genau der Fehler aus v2.90.
  await setz(page,Object.assign({},FALL,{winkelHinten:""}));
  const kwLeer=await page.evaluate(()=>kamaPruefungen());
- p(kwLeer.some(x=>x.art==="fehler"&&/Winkel hinten fehlt/.test(x.text)),
+ p(kwLeer.some(x=>x.art==="fehler"&&/Winkel Dach\/Wand hinten fehlt/.test(x.text)),
    "leerer Winkel ist ein Fehler, kein stilles 0°",kwLeer.map(x=>x.text));
- await setz(page,Object.assign({},FALL,{winkelVorne:0}));
+ await setz(page,Object.assign({},FALL,{winkelVorne:90,winkelHinten:90}));
  const kwNull=await page.evaluate(()=>kamaPruefungen());
- p(kwNull.some(x=>x.art==="warnung"&&/Winkel vorne/.test(x.text)),
+ p(kwNull.some(x=>x.art==="warnung"&&/Winkel Dach\/Wand vorne/.test(x.text)),
    "0° wird als Warnung genannt (Wand senkrecht auf dem Dach)",kwNull.map(x=>x.text));
  await reg(page,2);
  const wPflicht=await page.evaluate(()=>["kam_winkelVorne","kam_winkelHinten"].map(id=>{
@@ -322,6 +330,75 @@ const FALL={
   return e?{req:e.required,aria:e.getAttribute("aria-required")}:null;
  }));
  p(wPflicht.every(x=>x&&x.req&&x.aria==="true"),"beide Winkel sind echte Pflichtfelder",wPflicht);
+
+ console.log("\nE3 · Winkel = Innenwinkel Dach/Wand (v2.95)");
+ // Am Bau wird der Winkel ZWISCHEN DACHFLAECHE UND KAMINWAND abgegriffen -
+ // vorne stumpf, hinten spitz, zusammen 180 beim lotrechten Kamin. Gegen die
+ // Vorlage: Vorder- und Hinterkant stehen beide 65 Grad ueber der Dachflaeche,
+ // also 180-65 = 115 vorne und 65 hinten.
+ await setz(page,FALL);
+ const wi=await page.evaluate(()=>({
+  vi:kamaWvIntern(kamA), hi:kamaWhIntern(kamA),
+  abbug:kamaKeilAbbug(kamaWhIntern(kamA)),
+  vorder:kamaZuschnitte()[0].breite, hinter:kamaZuschnitte()[1].breite
+ }));
+ p(Math.abs(wi.vi-25)<1e-9&&Math.abs(wi.hi-25)<1e-9,
+   "115/65 ergibt intern 25/25 (die Dachneigung)",wi);
+ p(Math.abs(wi.abbug-57.5)<1e-9,"Keil-Abbug daraus 57,5° wie in der DXF",wi.abbug);
+ p(wi.vorder===761&&wi.hinter===777,"Abwicklungen unveraendert 761 und 777",wi);
+
+ // Ein Datensatz bis v2.94 trug 25/25 als Neigung vom Senkrechten und KEIN
+ // Merkmal "winkelBezug". Er muss beim Oeffnen als 115/65 erscheinen - und
+ // dabei exakt dieselben Zuschnitte behalten.
+ const altD=await page.evaluate(()=>{
+  const neu=kamaDaten();
+  const alt=Object.assign({},neu,{winkelVorne:25,winkelHinten:25});
+  delete alt.winkelBezug;
+  const vorher=neu.zuschnitte.map(x=>x.laenge+"x"+x.breite);
+  kamaFuellen(alt);
+  const raus={angezeigtV:kamA.winkelVorne,angezeigtH:kamA.winkelHinten,
+    internV:kamaWvIntern(kamA),internH:kamaWhIntern(kamA),
+    teile:kamaZuschnitte().map(x=>x.laenge+"x"+x.breite),
+    skizzeAusAlt:kamaSkizze(alt).slice(0,9),vorher};
+  return raus;
+ });
+ p(Number(altD.angezeigtV)===115&&Number(altD.angezeigtH)===65,
+   "ein Datensatz bis v2.94 oeffnet als 115/65",altD);
+ p(Math.abs(altD.internV-25)<1e-9&&Math.abs(altD.internH-25)<1e-9,
+   "und rechnet intern weiterhin mit 25/25",altD);
+ p(JSON.stringify(altD.teile)===JSON.stringify(altD.vorher),
+   "dieselben Zuschnitte wie vorher - die Umrechnung ist verlustfrei",altD);
+ p(altD.skizzeAusAlt.indexOf("<svg")===0,
+   "auch die Skizze eines alten Datensatzes wird gezeichnet",altD.skizzeAusAlt);
+
+ // Der Speicher-Payload sagt die Bedeutung ausdruecklich.
+ await setz(page,FALL);
+ const bez=await page.evaluate(()=>{const d=kamaDaten();
+   return {bezug:d.winkelBezug,v:d.winkelVorne,h:d.winkelHinten}});
+ p(bez.bezug==="dach"&&bez.v===115&&bez.h===65,
+   "gespeichert wird der Innenwinkel, mit Merkmal winkelBezug",bez);
+
+ // Beim lotrechten Kamin ergeben beide zusammen 180 - sonst ein Hinweis.
+ const summe=await page.evaluate(()=>{
+  const alt={v:kamA.winkelVorne,h:kamA.winkelHinten};
+  kamA.winkelHinten=70;
+  const m=kamaPruefungen().map(x=>x.art+": "+x.text);
+  Object.assign(kamA,{winkelVorne:alt.v,winkelHinten:alt.h});
+  return m;
+ });
+ p(summe.some(t=>/^warnung: /.test(t)&&/185° statt 180°/.test(t)),
+   "eine Summe ungleich 180° ist ein Hinweis, keine Sperre",summe);
+
+ // Die Beschriftung muss sagen, was gemeint ist.
+ await reg(page,2);
+ const lab=await page.evaluate(()=>["kam_winkelVorne","kam_winkelHinten"].map(id=>{
+  const f=document.getElementById(id); if(!f)return null;
+  const l=f.closest("label")||f.parentElement;
+  return (l?l.textContent:"").replace(/\s+/g," ").trim();
+ }));
+ p(/Dach\/Wand/.test(lab[0]||"")&&/stumpf/.test(lab[0]||""),"Feld vorne nennt Dach/Wand und stumpf",lab);
+ p(/Dach\/Wand/.test(lab[1]||"")&&/spitz/.test(lab[1]||""),"Feld hinten nennt Dach/Wand und spitz",lab);
+ await setz(page,FALL);
 
  console.log("\nF · Links und rechts getrennt");
  await setz(page,Object.assign({},FALL,{getrennt:true,
@@ -422,9 +499,10 @@ const FALL={
  await setz(page,Object.assign({},FALL,{b:{l:100,r:100}}));
  const k3=await page.evaluate(()=>kamaPruefungen());
  p(k3.some(x=>/Überlappung/.test(x.text)),"B kleiner als die Ueberlappung wird gemeldet",k3.map(x=>x.text));
- await setz(page,Object.assign({},FALL,{winkelVorne:90}));
+ await setz(page,Object.assign({},FALL,{winkelVorne:200}));
  const k4=await page.evaluate(()=>kamaPruefungen());
- p(k4.some(x=>x.art==="fehler"&&/Winkel vorne/.test(x.text)),"Winkel 90° wird als Fehler gemeldet",k4.map(x=>x.text));
+ p(k4.some(x=>x.art==="fehler"&&/Winkel Dach\/Wand vorne/.test(x.text)),
+   "ein Winkel ausserhalb 3°–177° wird als Fehler gemeldet",k4.map(x=>x.text));
 
  console.log("\nK · Schnittskizze nach der DXF");
  await setz(page,FALL);
@@ -440,7 +518,7 @@ const FALL={
  p(hat("Höhe = 400"),"seitliche Höhe bemasst");
  p(hat("Keil = 80"),"Keil bemasst");
  p(hat("E = 60"),"E · 90°-Aufbug bemasst");
- p(hat("Winkel vorne 25°")&&hat("Winkel hinten 25°"),"beide Winkel beschriftet");
+ p(hat("Winkel vorne 115°")&&hat("Winkel hinten 65°"),"beide Winkel beschriftet");
  p(hat("Knick 120"),"Knick als Masskette zwischen den beiden Kanten");
  p(/stroke-dasharray="7 5"/.test(sk.html),"Hinterkant Knick gestrichelt (verdeckte Kante)");
  p(!/NaN|Infinity/.test(sk.html),"kein NaN in der Skizze");
@@ -459,7 +537,8 @@ const FALL={
  };
  const wKeil=keilWinkel(sk.html);
  p(wKeil!==null&&Math.abs(wKeil-57.5)<0.4,"der gezeichnete Keil steht unter 57,5° (Winkelhalbierende)",wKeil);
- const sk40=await page.evaluate(()=>{const alt=kamA.winkelHinten;kamA.winkelHinten=40;
+ // 40 Grad intern entspricht dem Innenwinkel 90-40 = 50 hinten.
+ const sk40=await page.evaluate(()=>{const alt=kamA.winkelHinten;kamA.winkelHinten=50;
    const h=kamaSkizze();kamA.winkelHinten=alt;return h});
  const wKeil40=keilWinkel(sk40);
  p(wKeil40!==null&&Math.abs(wKeil40-65)<0.4,"bei 40° Wandwinkel steht der Keil unter 65°",wKeil40);
@@ -477,9 +556,12 @@ const FALL={
  // v2.91 zeichnete die App die Vorderwand gegenlaeufig - der Kamin ging nach
  // oben auf, bei H=400 und 25 Grad um 2*400*tan25 = 373 mm.
  await setz(page,FALL);
- const waende=(wv,wh,keil)=>page.evaluate(([a,b,k])=>{
+ // Uebergeben werden die INTERNEN Winkel (Neigung vom Senkrechten), damit die
+ // Erwartungen unten weiterhin gegen die DXF-Werte lesbar bleiben. Umgerechnet
+ // in die Eingabe: vorne 90+intern, hinten 90-intern.
+ const waende=(wvI,whI,keil)=>page.evaluate(([a,b,k])=>{
   const alt={v:kamA.winkelVorne,h:kamA.winkelHinten,k:kamA.keil};
-  kamA.winkelVorne=a; kamA.winkelHinten=b; kamA.keil=k;
+  kamA.winkelVorne=90+a; kamA.winkelHinten=90-b; kamA.keil=k;
   const svg=kamaSkizze();
   Object.assign(kamA,{winkelVorne:alt.v,winkelHinten:alt.h,keil:alt.k});
   const L=[...svg.matchAll(/<line x1="(-?[\d.]+)" y1="(-?[\d.]+)" x2="(-?[\d.]+)" y2="(-?[\d.]+)"\s+stroke="([^"]*)" stroke-width="3"/g)]
@@ -504,7 +586,7 @@ const FALL={
   return {vorne:+grad(senk[0]).toFixed(2), hinten:+grad(senk[1]).toFixed(2),
           oben:+Math.abs(waag[0].x2-waag[0].x1).toFixed(1),
           dach:+Math.abs(fussAmDach(senk[1])-fussAmDach(senk[0])).toFixed(1)};
- },[wv,wh,keil]);
+ },[wvI,whI,keil]);
  const w25=await waende(25,25,80);
  p(!w25.fehler,"die beiden Kaminwaende sind in der Skizze messbar",w25.fehler);
  p(!w25.fehler&&Math.abs(w25.vorne-25)<0.3,"Vorderwand steht bei +25° (bergwaerts) wie in der DXF",w25.vorne);
@@ -527,7 +609,8 @@ const FALL={
  // Der Kamin kann sich mit den Winkeln rechnerisch selbst aufheben.
  const unmoeglich=await page.evaluate(()=>{
   const alt=JSON.parse(JSON.stringify(kamA));
-  Object.assign(kamA,{winkelVorne:60,winkelHinten:0,hoehe:{l:1000,r:1000},
+  // Intern vorne 60 / hinten 0 -> als Innenwinkel eingegeben 150 und 90.
+  Object.assign(kamA,{winkelVorne:150,winkelHinten:90,hoehe:{l:1000,r:1000},
     b:{l:200,r:200},c:{l:120,r:120},ueberlappung:120});
   const t=kamaPruefungen().map(x=>x.art+": "+x.text);
   Object.assign(kamA,alt);
@@ -634,6 +717,25 @@ const FALL={
  p(/Ausmass/.test(dr),"Ausmass im PDF");
  p(/<div class="eb-section-head">Schnitt<\/div>/.test(dr)&&/<svg/.test(dr),"Schnittskizze im PDF");
  p(!/NaN|undefined/.test(dr),"kein NaN im PDF");
+ p(/Winkel Dach\/Wand vorne/.test(dr)&&dr.indexOf("115°")>=0&&dr.indexOf("65°")>=0,
+   "das PDF nennt die Innenwinkel 115° und 65°",(dr.match(/.{0,60}Dach\/Wand.{0,90}/)||[""])[0]);
+ // Ein Datensatz bis v2.94 trug 25/25 als Neigung vom Senkrechten. Im PDF muss
+ // trotzdem 115/65 stehen, sonst steht dort eine Zahl, die niemand gemessen hat.
+ const drAltWinkel=await page.evaluate(async()=>{
+  window.__html=null;
+  const d=kamaDaten(); const alt=Object.assign({},d,{winkelVorne:25,winkelHinten:25});
+  delete alt.winkelBezug;
+  const o=window.open;
+  window.open=()=>({document:{write(h){window.__html=(window.__html||"")+h},close(){}},
+    focus(){},print(){},addEventListener(){},setTimeout(){},closed:false});
+  await printMeasurement({type:"kamineinfassung",title:"Alt",date:"2026-09-05",
+    data:alt,project_id:7},{listen:"alle"});
+  window.open=o;
+  return window.__html||"";
+ });
+ p(drAltWinkel.indexOf("115°")>=0&&drAltWinkel.indexOf("65°")>=0&&drAltWinkel.indexOf("25°")<0,
+   "auch ein Datensatz bis v2.94 wird im PDF als 115°/65° gedruckt",
+   (drAltWinkel.match(/.{0,60}Dach\/Wand.{0,90}/)||[""])[0]);
  const drAlt=await page.evaluate(async()=>{
   window.__html=null;
   const alt=window.open;
