@@ -1109,6 +1109,9 @@ function kamaDaten(){
   bleilappen:bl,
   flaeche_m2:Number(kamaFlaecheM2().toFixed(3)),
   ausmass:kamaAusmassZeilen(),
+  // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen
+  // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
+  kontrolle:kamaPruefungen(),
   rollen:{auswahl:(a.rollenAuswahl||[]).slice(),
           breiten:kamaRollenbreiten(),
           netto:Number(rp.netto.toFixed(3)),

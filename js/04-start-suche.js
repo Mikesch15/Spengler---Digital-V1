@@ -142,6 +142,9 @@ $("newReport").onclick=()=>{
  $("customer").value="";
  $("object").value="";
  $("vat").value=defaultVat;
+ // Fotos eines vorherigen Rapports duerfen nicht stehen bleiben (v3.04).
+ if(typeof reportPhotos!=="undefined"){reportPhotos=[];
+  if(typeof renderReportFotos==="function")renderReportFotos()}
  renderProjectSelect();
  renderMain();
  $("reportsModal").hidden=true;

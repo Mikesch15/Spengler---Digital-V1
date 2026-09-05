@@ -446,6 +446,9 @@ function rpaZusatzDaten(){
  return {
   flaeche_m2:Number(rpaFlaecheM2().toFixed(3)),
   ausmass:rpaAusmassZeilen(),
+  // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen
+  // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
+  kontrolle:rpaPruefungen(),
   zuschnitt:{auswahl:(rpaRollenAuswahl||[]).slice(),
              breiten:rpaRollenbreiten(),
              netto:Number(rp.netto.toFixed(3)),

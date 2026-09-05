@@ -210,6 +210,7 @@ function newAusmassWithType(type){
  $("amPhotoInput").value="";
  $("amRecognizeStatus").textContent="";
  amPhotos=[];
+ amWsNeueMarke();
  renderAmPhotoGallery();
  amPositions=[];
  renderAmPositionsTable();
@@ -248,6 +249,7 @@ function openAusmass(a){
  showAmTypeSection($("amType").value);
  setAmProjectField(a.project_id);
  $("amPhotoInput").value="";
+ amWsNeueMarke();
  amPhotos=(a.photo_paths&&a.photo_paths.length)?[...a.photo_paths]:(a.photo_path?[a.photo_path]:[]);
  renderAmPhotoGallery();
  if(a.type==="blitzschutz_ausmass"){
@@ -283,12 +285,44 @@ function buildAusmassFromForm(){
  };
 }
 $("printAusmassBtn").onclick=()=>printAusmass(Object.assign(buildAusmassFromForm(),currentAusmassMeta));
+// Zweimal speichern soll denselben Warteschlangen-Eintrag ersetzen, nicht
+// einen zweiten Datensatz anlegen (v3.04).
+let amWsMarke=null;
+function amWsNeueMarke(){ amWsMarke="am-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8) }
+function amWsToken(){ if(!amWsMarke)amWsNeueMarke(); return amWsMarke }
 $("saveAusmass").onclick=async()=>{
  const title=$("amTitle").value.trim();
- // Offline (v2.70): klare Absage statt kryptischer Netzwerkmeldung.
- if(offlineSperrtSpeichern("Dieses Ausmass"))return;
  if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
  if(!amSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. Ein Ausmass kann nur einem Projekt zugeordnet gespeichert werden.");return}
+ // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04).
+ if(wsIstOffline()){
+  const r=await wsEinreihen({
+   tabelle:"ausmass",
+   zielId:currentAusmassId||null,
+   schluessel:amWsToken(),
+   standVorher:currentAusmassMeta?currentAusmassMeta.updated_at:null,
+   titel:`${(typeof COCKPIT_AM_TYPE_LABELS==="object"
+     ?COCKPIT_AM_TYPE_LABELS[$("amType").value]:null)||$("amType").value} · ${title}`,
+   payload:{project_id:amSelectedProjectId,type:$("amType").value,title,
+     note:$("amNote").value,
+     date:$("amDate").value||new Date().toISOString().slice(0,10),
+     positions:$("amType").value==="blitzschutz_ausmass"?amBzPositions:amPositions},
+   bilder:{photo_paths:amPhotos.slice()}
+  });
+  if(!r.ok){
+   alert("Keine Verbindung – und dieses Ausmass lässt sich auf diesem Gerät auch nicht "
+    +"zwischenspeichern ("+(r.grund||"unbekannter Grund")+").\n\nDie Eingaben bleiben im "
+    +"Formular stehen. Bitte speichern, sobald wieder eine Verbindung besteht.");
+   return;
+  }
+  alert("Keine Verbindung.\n\nDas Ausmass wartet jetzt auf diesem Gerät und wird übertragen, "
+   +"sobald wieder eine Verbindung besteht. Bis dahin ist es NICHT in der Datenbank – "
+   +"bitte das Gerät nicht zurücksetzen.");
+  $("ausmassEditModal").hidden=true;
+  await amEditZurueck();
+  isDirty=false;
+  return;
+ }
  $("saveAusmass").disabled=true;
  try{
   const photoUrls=[];
@@ -401,11 +435,21 @@ async function printAusmass(a,opt){
   bearbeiter:currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"",
   logoSrc
  });
+ // Fotos des Ausmasses (v3.04). Bis v3.03 waren sie nie im PDF (CLAUDE.md
+ // 61.11) - dabei sind sie der Beleg fuer das Gemessene. Der Bucket ist
+ // privat, deshalb signierte URLs. Aeltere Ausmasse haben nur photo_path;
+ // sie drucken genau dieses eine Foto, es wird keines erfunden.
+ const fotoQuellen=(a.photo_paths&&a.photo_paths.length)?a.photo_paths:(a.photo_path?[a.photo_path]:[]);
+ const fotoSrcs=(await Promise.all(fotoQuellen.map(storageSignedUrl))).filter(Boolean);
+ const fotoHtml=fotoSrcs.map((f,i)=>`<div class="am-section-head">Foto${
+   fotoSrcs.length>1?` ${i+1} von ${fotoSrcs.length}`:""}</div>
+<div class="pdf-bild"><img class="photo" src="${esc(f)}"></div>`).join("");
  const bodyHtml=`${kopfHtml}
 <div class="am-section-head">Positionen${positions.length?` (${positions.length})`:""}</div>
 ${positionsHtml}
 ${a.note?`<div class="am-section-head">Notiz</div>
-<div class="note">${esc(a.note)}</div>`:""}`;
+<div class="note">${esc(a.note)}</div>`:""}
+${fotoHtml}`;
  // Dieselbe gemeinsame Listenauswahl wie bei den Massaufnahmen (js/35).
  const vor=await pdfDruckVorbereiten(bodyHtml,"am-section-head",opt);
  if(!vor)return;

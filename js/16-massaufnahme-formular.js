@@ -319,8 +319,6 @@ $("cancelMeasurement").onclick=()=>{
 $("saveMeasurement").onclick=async()=>{
  const title=$("measTitle").value.trim();
  const type=$("measType").value;
- // Offline (v2.70): klare Absage statt kryptischer Netzwerkmeldung.
- if(offlineSperrtSpeichern("Diese Massaufnahme"))return;
  if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
  if(!measSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. Eine Massaufnahme kann nur einem Projekt zugeordnet gespeichert werden.");return}
  if(type==="skizze_foto"&&!measPhotos.length&&measSketches.length===0){alert("Bitte ein Foto aufnehmen oder mindestens eine Skizze zeichnen.");return}
@@ -391,6 +389,42 @@ $("saveMeasurement").onclick=async()=>{
   if(!rinneProfil.length){alert("Bitte zuerst das Rinnenprofil festlegen (mindestens ein Segment).");return}
   if(!rinneStuecke.length){alert("Bitte mindestens ein Rinnenstück erfassen.");return}
   if(!rinneStuecke.some(st=>Number(st.laenge)>0)){alert("Bitte bei mindestens einem Rinnenstück eine Länge M/M eingeben.");return}
+ }
+ // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04).
+ // Erst hier - alle fachlichen Pruefungen sind bestanden, es wird also nichts
+ // Unvollstaendiges eingereiht.
+ if(wsIstOffline()){
+  const form=buildMeasurementFromForm();
+  const r=await wsEinreihen({
+   tabelle:"measurements",
+   zielId:currentMeasurementId||null,
+   // Zweimal speichern soll denselben Eintrag ersetzen, nicht einen zweiten
+   // Datensatz anlegen. measWsToken merkt sich das Formular.
+   schluessel:measWsToken(),
+   standVorher:currentMeasurementMeta?currentMeasurementMeta.updated_at:null,
+   titel:`${MEAS_TYPE_LABELS[type]||type} · ${title}`,
+   payload:{project_id:measSelectedProjectId||null,type,title,
+     note:$("measNote").value,
+     date:$("measDate").value||new Date().toISOString().slice(0,10),
+     data:form.data||{}},
+   // Fotos und Skizzen reisen als data:-URLs mit und werden erst beim
+   // Senden hochgeladen - offline gibt es weder Zeilen-ID noch Storage.
+   bilder:{photo_paths:measPhotos.slice(),sketch_paths:measSketches.slice()}
+  });
+  if(!r.ok){
+   alert("Keine Verbindung – und diese Massaufnahme lässt sich auf diesem Gerät auch nicht "
+    +"zwischenspeichern ("+(r.grund||"unbekannter Grund")+").\n\nDie Eingaben bleiben im "
+    +"Formular stehen. Bitte speichern, sobald wieder eine Verbindung besteht.");
+   return;
+  }
+  measWsAbgelegt=true;
+  alert("Keine Verbindung.\n\nDie Massaufnahme wartet jetzt auf diesem Gerät und wird "
+   +"übertragen, sobald wieder eine Verbindung besteht. Bis dahin ist sie NICHT in der "
+   +"Datenbank – bitte das Gerät nicht zurücksetzen.");
+  $("measurementEditModal").hidden=true;
+  await measEditZurueck();
+  isDirty=false;
+  return;
  }
  $("saveMeasurement").disabled=true;
  let platzhalterId=null; // falls hier eine Zeile nur für die Ordner-ID angelegt wird
@@ -743,6 +777,58 @@ function pdfLxB(laenge,breite){
 // opt.listen  "alle" oder eine Liste von Kategorie-Schluesseln: dann wird ohne
 //             Dialog gedruckt (Prüfstände, spätere automatische Ausdrucke).
 //             Ohne opt fragt der gemeinsame Dialog aus js/35.
+// ---------------------------------------------------------------------------
+// Zwei gemeinsame Abschnitte fuer den Ausdruck jeder Massaufnahme (v3.04).
+//
+// Bis v3.03 waren die Kategorien "Materialliste" und "Kontrolle / Hinweise"
+// im Auswahldialog zwar vorhanden, aber immer ausgegraut - kein Modul hat
+// einen solchen Abschnitt erzeugt (CLAUDE.md 90.9). Beide entstehen jetzt
+// zentral aus dem GESPEICHERTEN Datensatz.
+
+// Was an Material gebraucht wird: Sorte, Blechflaeche und die Zeilen des
+// Ausmasses, die eine Materialmenge tragen. Ohne Artikelnummern und ohne
+// Preise - wie das Ausmass selbst.
+function pdfMateriallisteHtml(m){
+ const d=(m&&m.data)||{};
+ const mat=(typeof findMeasurementMaterial==="function")?findMeasurementMaterial(d.material):null;
+ const zeilen=[];
+ if(mat)zeilen.push({b:"Material",m:mat.name,e:""});
+ if(d.flaeche_m2)zeilen.push({b:"Blechfläche",m:Number(d.flaeche_m2).toFixed(2).replace(".",","),e:"m²"});
+ if(d.abwicklung)zeilen.push({b:"Abwicklung (Streifenbreite)",m:String(Math.round(Number(d.abwicklung)||0)),e:"mm"});
+ // Aus dem gespeicherten Ausmass alles uebernehmen, was eine Menge in einer
+ // Materialeinheit hat - Stueckzahlen und Laengen gehoeren zum Ausmass, nicht
+ // zur Materialliste.
+ (Array.isArray(d.ausmass)?d.ausmass:[]).forEach(z=>{
+  if(!z||!z.einheit)return;
+  if(["m²","m2","kg","Stk.","Stück"].indexOf(String(z.einheit))<0)return;
+  if(/^(Material|Blechfläche)/i.test(String(z.bezeichnung||"")))return;
+  zeilen.push({b:z.bezeichnung,m:z.menge,e:z.einheit});
+ });
+ if(!zeilen.length)return "";
+ return `<div class="eb-section-head">Materialliste</div>
+<table class="eb-cutlist"><thead><tr><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${zeilen.map(z=>`<tr><td>${esc(z.b)}</td><td>${esc(String(z.m))}</td><td>${esc(z.e)}</td></tr>`).join("")}</tbody></table>
+<div class="note" style="font-size:7.5pt">Ohne Artikelnummern und ohne Preise – entsteht allein aus dieser Aufnahme.</div>`;
+}
+
+// Der Kontrollstand, wie er beim Speichern war, plus die Notiz. Er wird NICHT
+// neu gerechnet - sonst zeigte ein spaeter gedrucktes Blatt etwas anderes als
+// das gespeicherte.
+function pdfKontrolleHtml(m){
+ const d=(m&&m.data)||{};
+ const k=Array.isArray(d.kontrolle)?d.kontrolle:[];
+ // Die Notiz drucken die einzelnen Zweige bereits selbst (Abschnitt "Notiz",
+ // ebenfalls Kategorie "Kontrolle / Hinweise") - sie gehoert hier nicht noch
+ // einmal hin. Ohne gespeicherten Kontrollstand entfaellt der Abschnitt ganz,
+ // statt eine leere Tabelle zu drucken.
+ if(!k.length)return "";
+ return `<div class="eb-section-head">Kontrolle</div>
+<table class="eb-cutlist"><thead><tr><th>Art</th><th>Hinweis</th></tr></thead><tbody>`
+  +k.map(x=>`<tr><td>${x&&x.art==="fehler"?"Fehler":"Hinweis"}</td><td>${esc((x&&x.text)||"")}</td></tr>`).join("")
+  +`</tbody></table>
+<div class="note" style="font-size:7.5pt">Stand beim Speichern dieser Massaufnahme.</div>`;
+}
+
 async function printMeasurement(m,opt){
  const proj=allProjects.find(p=>p.id===m.project_id);
  const typeLabels=MEAS_TYPE_LABELS;
@@ -1411,6 +1497,12 @@ ${matName?`<div class="eb-section-head">Angaben</div>
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }
+ // Materialliste und Kontrolle - zentral fuer JEDE Art (v3.04). Damit sind
+ // die beiden Kategorien im Auswahldialog nicht mehr dauerhaft ausgegraut.
+ // Beides kommt aus dem GESPEICHERTEN Datensatz, es wird nichts neu
+ // gerechnet: ein einmal gedrucktes Blatt bleibt gleich.
+ bodyHtml+=pdfMateriallisteHtml(m);
+ bodyHtml+=pdfKontrolleHtml(m);
  // Fotos und Skizzen haengen bei JEDER Art am Ende des Dokuments.
  bodyHtml+=medienHtml;
 

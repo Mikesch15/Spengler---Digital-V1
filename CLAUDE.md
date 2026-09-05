@@ -17206,3 +17206,248 @@ gleich) kommen zwei dazu:
 
 - `pruefstand-hilfe-v3-03.js` läuft grün – er deckt beide Regeln ab.
 - Die Anleitung ist neu erzeugt und das alte PDF ist weg.
+
+## 109. ALLE PUNKTE DER IDEENLISTE — VERSION 3.04
+
+Umsetzung der sieben Punkte, die ich nach v3.03 als Ideen genannt hatte. Vier
+Fragen wurden vor dem Beginn gestellt und vom Betrieb beantwortet:
+
+| Frage | Antwort |
+|---|---|
+| Bleilappen Ort-/Seitenbleche: auf- oder abrunden? | **Aufrunden wie bei der Einfassung** |
+| Vorgabewert der Schnittfuge? | **0 mm (wie bisher)** |
+| Mindestlänge eines Reststücks? | **Einstellbar, Startwert 1000 mm** |
+| Fotos im Regierapport bauen (Schema + geschützte Drucklogik)? | **Ja** |
+
+### 109.1 Punkt 1 · Ohne Verbindung erfassen (js/43-warteschlange.js)
+
+Bis v3.03 hat die App das Speichern ohne Verbindung schlicht **abgelehnt**
+(§78.9). Das war ehrlich, aber auf der Baustelle unbrauchbar. Jetzt wandert
+der Eintrag in eine **Warteschlange auf dem Gerät** und wird übertragen,
+sobald wieder eine Verbindung besteht.
+
+| Geht jetzt ohne Verbindung | Geht weiterhin nicht |
+|---|---|
+| Projekt anlegen | Löschen und Archivieren |
+| Massaufnahme anlegen **und ändern**, mit Fotos und Skizzen | Mitarbeiter, Rechte, Einstellungen, Kataloge, Reststücke, System-Admin |
+| Ausmass, Regierapport (je mit Fotos) | Fotos ansehen, PDF mit Fotos |
+| Feedback | Anmelden ohne Sitzung, Suche, Verlauf |
+
+Fünf Entscheidungen, jede aus einem realen Fehlerbild:
+
+- **IndexedDB statt localStorage.** Ein auf 1600 px verkleinertes Foto sind
+  als `data:`-URL 200–400 kB; ein Arbeitstag kommt über die 5 MB, die
+  localStorage hält. Lässt sich IndexedDB nicht öffnen (privates Fenster),
+  wird **nicht stillschweigend nichts gespeichert** – dann kommt die alte,
+  klare Absage aus js/27.
+- **Temporäre IDs.** Ein offline angelegtes Projekt hat noch keine
+  Datenbank-ID. Es bekommt `tmp-…`; jede Massaufnahme, jedes Ausmass und
+  jeder Rapport, der offline darauf zeigt, trägt diese ID. Beim Senden wird
+  sie durch die echte ersetzt. **Scheitert das Projekt, werden die
+  abhängigen Einträge NICHT gesendet** – sie warten mit, statt auf eine
+  Projekt-ID zu zeigen, die es nicht gibt.
+- **Echte Konfliktprüfung.** Jeder Änderungs-Eintrag merkt sich den
+  `updated_at`, den der Datensatz beim Erfassen hatte. Ist der Serverstand
+  beim Senden neuer, wird **nichts überschrieben**: der Eintrag bleibt als
+  Konflikt stehen und die Person entscheidet – „meine Fassung nehmen" oder
+  „verwerfen". Kein automatisches Zusammenführen.
+- **Bilder erst nach der Zeile.** Der Storage-Pfad braucht die Zeilen-ID, die
+  es offline nicht gibt. Die `data:`-URLs reisen im Eintrag mit und werden
+  beim Senden hochgeladen, danach mit der Zeile verknüpft. Scheitert nur
+  dieser Schritt, gilt der Eintrag als **teilweise** erledigt und wird
+  entfernt – ein zweiter Versuch würde die Zeile doppelt anlegen.
+- **Nur fünf Tabellen.** Der Tabellenname steht im Eintrag **auf dem Gerät** –
+  wer Zugriff auf den Browserspeicher hat, könnte ihn ändern. Die Firmengrenze
+  hielte ohnehin (restriktive Policy + `DEFAULT my_company_id()`), aber die
+  Warteschlange schreibt gar nicht erst in Tabellen, für die sie nie gedacht
+  war: geprüft beim Einreihen **und** noch einmal beim Senden.
+- **Firmentrennung wie beim Offline-Cache.** Die Warteschlange gehört genau
+  einer Firma; fragt eine andere danach, wird nichts herausgegeben **und**
+  der Rest sofort gelöscht. Die Einträge tragen **nie** eine `company_id` –
+  die setzt die Datenbank per `DEFAULT my_company_id()`, die restriktive
+  `tenant_boundary`-Policy erzwingt sie zusätzlich.
+
+Beim **Abmelden** warnt die App, wenn noch etwas wartet, und lässt abbrechen.
+Die Warteschlange wird dabei bewusst **nicht** geleert – sie ist Arbeit, kein
+Cache – und beim Lesen ohnehin verworfen, sobald eine andere Firma sie
+anfassen würde.
+
+Ein wartendes Projekt steht sofort in der Liste, gekennzeichnet als „Wartet
+auf die Übertragung". Öffnen, Bearbeiten, Archivieren und Löschen sind dort
+**nicht** angeboten – die Zeile gibt es serverseitig noch nicht.
+
+Der Kopfkommentar von `js/27-offline.js` behauptete das Gegenteil („eine
+Warteschlange ist bewusst nicht gebaut") und wurde als überholt gekennzeichnet.
+
+### 109.2 Punkt 2 · Verschnitt glaubwürdig
+
+- **Schnittfuge** (`app_settings.schnittfuge_mm`, firmenweit, Vorgabe **0**)
+  fliesst in die **eine** Packrechnung (`ebaVerteile`/`ebaPackeInStreifen`,
+  js/29) und in die Streifenzahl je Abschnitt. Bei 0 ändert sich nichts –
+  belegt dadurch, dass alle Prüfstände unverändert grün blieben.
+- **Reststücke-Lager** (`reststuecke`, eigene Tabelle mit restriktiver
+  `tenant_boundary`-Policy und dem `set_creator_editor_meta`-Trigger).
+  Ab welcher Länge ein Rest lagerwürdig ist, ist einstellbar
+  (`rest_mindestlaenge_mm`, **1000**). Der Zuschnitt schlägt passende
+  Reststücke vor und lässt neue einlagern; Einlagern und Verbrauchen sind
+  bewusst **kein** Warteschlangen-Fall (kein Baustellen-Schritt).
+
+**Dabei gefunden**: `restKandidaten` verglich die **Breite** der Rolle gegen
+die Mindest**länge**. Ein seitlicher Rest tauchte deshalb nie auf. Vom
+Prüfstand gefunden, nicht vom Lesen.
+
+### 109.3 Punkt 3 · Vier kleine Bediensachen
+
+- **`change`-Sperre in allen elf Register-Modulen.** Chromium feuert auf einem
+  Feld mit Fokus beim Neuzeichnen noch ein `change`, und der Knoten meldet
+  sich dabei als weiterhin im Dokument (gemessen). Der delegierte Handler
+  schrieb den alten Wert in den frisch gesetzten Zustand zurück. In §103.4
+  nur für js/38 behoben – jetzt einheitlich überall (`<pre>Zeichnet`).
+- **Projekt-Hinweis am Foto-Bereich**: ohne gewähltes Projekt lässt sich die
+  Massaufnahme nicht speichern – das steht jetzt dort, wo fotografiert wird.
+- **Verlauf blättert** (`.range()`, 50 je Seite) statt bei 50 abzuschneiden.
+- **Zuletzt bearbeitet** zieht `audit_log` als fünfte Quelle mit heran.
+
+### 109.4 Punkt 4 · PDF vervollständigt
+
+Die Kategorien **Materialliste** (7) und **Kontrolle** (8) waren seit v2.85 im
+Auswahldialog vorhanden, aber dauerhaft ausgegraut – kein Modul erzeugte einen
+solchen Abschnitt (§90.9). Beide entstehen jetzt zentral in js/16 aus dem
+**gespeicherten** Datensatz (`pdfMateriallisteHtml`, `pdfKontrolleHtml`); es
+wird nichts neu gerechnet, ein einmal gedrucktes Blatt bleibt gleich. Ohne
+Inhalt entsteht **kein leerer Abschnitt**.
+
+Dazu **Fotos im Ausmass-PDF** (bis v3.03 nie gedruckt, §61.11) und **Fotos im
+Regierapport** – Letzteres mit `reports.photo_paths`, dem neuen Storage-Zweig
+`reports/<projectId>/<reportId>/photo/` in `storage_object_insert_allowed` und
+einer Galerie im Rapport-Bildschirm.
+
+**Der Regierapport-Ausdruck bleibt unverändert.** Ein Rapport **ohne** Fotos
+wurde unmittelbar nacheinander gegen den v3.03-Stand gerendert: **Bild
+byteidentisch** (`7e13b7c959c5c9e5`, 59 335 Bytes), Text und Höhe identisch;
+der einzige DOM-Unterschied ist der neue Bereich, der ohne Fotos im Druck
+nichts rendert (`.no-print` am Erfassungsteil, `#reportFotoGalerie:empty`).
+
+### 109.5 Punkt 5 · Bleilappen Ort-/Seitenbleche
+
+Auf Ansage: `Math.ceil` statt `Math.floor` in js/20 – dieselbe Regel wie bei
+der Einfassung Rund seit v2.70. Aus 19 werden im Prüffall 20 Lappen; die
+überholte Erwartung im Prüfstand wurde mit Begründung nachgezogen.
+
+### 109.6 Punkt 6 · Technische Hygiene
+
+- `search_path` an `storage_object_is_own_company`, `storage_path_from_value`
+  und `set_creator_editor_meta` nachgetragen.
+- **Verwaiste Storage-Objekte** (die 9 aus §32.1): der System-Admin sieht sie
+  jetzt und entscheidet. Gelöscht wird über eine Edge Function, die nur die
+  Pfade entfernt, die die **Datenbank selbst** als verwaist meldet – ein
+  direktes SQL-`DELETE` auf `storage.objects` verbietet der eingebaute
+  Trigger `protect_delete` ohnehin.
+- **Dateitypen**: eine Sperrliste ausführbarer Endungen statt einer
+  MIME-Positivliste am Bucket. Begründung: MIME lässt sich fälschen und ist
+  bei DXF-Plänen oft leer – eine Positivliste hätte echte Projektdateien
+  stillschweigend abgewiesen.
+
+### 109.7 Punkt 7 · Roadmap
+
+- **Generischer Excel-Import.** CLAUDE.md §7 verlangt „Spalten zuordnen" und
+  „unterschiedliche Listenformate" – bis v3.03 war die Spaltenreihenfolge
+  **fest**. Jetzt: Zuordnung je Feld, automatisch aus der Kopfzeile erkannt
+  (mit den Schreibweisen echter Lieferantenlisten als Alias), von Hand
+  änderbar, Pflichtspalten geprüft, unvollständige Zeilen benannt statt
+  stillschweigend importiert. Trifft die Erkennung nichts, bleibt das Feld
+  **leer statt geraten**.
+- **Vorlagen für wiederkehrende Massaufnahmen.** „📄 Als Vorlage" übernimmt
+  Typ, Material und alle Masse in eine **neue** Aufnahme. Nicht übernommen:
+  Bezeichnung, Notiz, Datum, Fotos, Skizzen und das Projekt der Vorlage –
+  welches Projekt die Kopie bekommt, entscheidet der Aufrufer. Dafür wurde
+  das Füllen der Fachfelder aus `openMeasurement` als `measFelderAusData()`
+  herausgelöst: **eine** Wahrheit für Öffnen und Kopie.
+- **Mitarbeiter-Zugangsdaten** stehen jetzt in einem kopierbaren Feld mit
+  Teilen-Knopf statt in einem `alert()` (auf einem Tablet nicht kopierbar,
+  und weggetippt war das Startpasswort verloren). Beim Schliessen wird der
+  Text geleert.
+
+**Nicht gebaut, ehrlich benannt:** eine echte **Einladung per Link** (Token,
+Ablauf, öffentliche Route) – das wäre ein eigener Auth-Weg, nicht eine
+Verbesserung des bestehenden.
+
+### 109.8 Was ich nicht tun kann – Sache des Betreibers
+
+- **Leaked-Password-Protection** ist weiterhin deaktiviert (per Advisor
+  bestätigt). Das ist ein Schalter im Supabase-Dashboard:
+  *Authentication → Policies → Password Protection*. Über die
+  Werkzeuge hier nicht erreichbar.
+- **Eigene Domain** (`spengler-digital.ch`): Registrar, DNS-Einträge und die
+  Pages-Einstellung im Repository – alles ausserhalb dessen, was ich tun kann.
+
+### 109.9 Prüfstände und Gegenproben
+
+Fünf neue Prüfstände, **34 Gegenproben**, jede baut einen echten Fehler ein
+und wirft ihren Prüfstand um:
+
+| Prüfstand | Ergebnis | Gegenproben |
+|---|---|---|
+| `pruefstand-warteschlange-v3-04` | 70/70 | 11 |
+| `pruefstand-pdf-v3-04` | 45/45 | 10 |
+| `pruefstand-excel-import-v3-04` | 31/31 | 5 |
+| `pruefstand-vorlage-zugang-v3-04` | 35/35 | 5 |
+| `pruefstand-change-sperre-v3-04` | 36/36 | 3 |
+| `pruefstand-bediensachen-v3-04` | 22/22 | – |
+| `pruefstand-schnittfuge-reste-v3-04` | 27/27 | – |
+
+**Vier Gegenproben deckten zuerst Schwächen im Prüfstand selbst auf** – zwei
+liessen ihn abbrechen statt fehlschlagen (ein abgebrochener Lauf sieht aus wie
+„keine Fehler"), zwei blieben grün. Alle nachgeschärft, danach bissen sie.
+
+**Ein echter Fehler kam aus einer Gegenprobe, nicht aus dem Lesen**: zweimal
+speichern ohne Verbindung legte **zwei** Einträge an – beim Übertragen wäre
+daraus ein doppelter Datensatz geworden (bei „neu") oder ein Konflikt gegen
+die **eigene** erste Änderung (bei „ändern"). Jeder Eintrag trägt jetzt einen
+Schlüssel: bei einer Änderung die Zielzeile, bei einem neuen Datensatz eine
+Marke, die sich das Formular merkt. Der zweite Aufruf **ersetzt** den ersten,
+behält dabei die temporäre ID (sonst zeigten bereits eingereihte Einträge ins
+Leere) und den Vergleichsstand **vor** der ersten eigenen Änderung.
+
+**Eine weitere Gegenprobe blieb zunächst grün**: das Entfernen der Marke aus
+den Formularen fiel nicht auf, weil der Prüfstand `wsEinreihen` direkt mit
+einer Marke aufrief. Er prüft jetzt zusätzlich am Quelltext, dass jeder
+Erfassungsweg eine mitgibt.
+
+**Eine Gegenprobe war wertlos und wurde ersetzt**: das Entfernen der Zeile,
+die Bildfelder aus dem Insert löscht, änderte nichts – die Bilder stehen gar
+nicht im `payload`, sondern in `bilder`. Die Zeile ist ein Sicherheitsnetz für
+einen Aufrufer, der sie doch dorthin legt; genau das stellt die neue
+Gegenprobe nach.
+
+**Zwei überholte Erwartungen** nachgezogen, keine davon ein Codefehler: die
+Bleilappen-Zahl (§109.5) und „Materialliste ist ausgegraut" – sie ist es seit
+v3.04 nicht mehr, und die Prüfung testet jetzt die Eigenschaft („ausgegraut
+ist genau, was das Dokument nicht enthält") statt einer festen Liste.
+
+### 109.10 Anleitung
+
+Nach §108.1 mitgeführt: Kapitel 20 „Ohne Internet" komplett neu (es behauptete
+das Gegenteil des neuen Verhaltens), dazu „Als Vorlage" in Kapitel 8, Excel-
+Import und Zugangsdaten in Kapitel 16. Alle 32 Bilder neu erzeugt, PDF neu
+gebaut: **39 Seiten**, keine leere. Die fünf Verweise nachgezogen, das alte
+PDF gelöscht. `pruefstand-hilfe-v3-03.js` (67/67) erzwingt das mechanisch –
+mit Gegenprobe bestätigt: Version hochsetzen ohne Anleitung → 63/67.
+
+`anleitung/stub.js` brauchte `.range()` (der Verlauf blättert seit v3.04) und
+baut weiterhin **keine Verbindung zur Produktivdatenbank** auf.
+
+### 109.11 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`,
+  die Datenbankseite per SQL gegen das echte Produktivschema.
+- **Die Warteschlange ist nicht im echten Offline-Betrieb erprobt.** Geprüft
+  ist sie gegen eine Supabase-Attrappe, die jeden Aufruf protokolliert – also
+  *was* gesendet würde. Ein echter Tag ohne Netz mit anschliessender
+  Übertragung steht aus und gehört an den Anfang des Praxistests.
+- Verschnitt weiterhin ohne Wiederverwendung von Reststücken **innerhalb**
+  einer Rechnung – vorgeschlagen wird aus dem Lager, verrechnet wird nicht.
+- Die beiden Punkte aus 109.8 kann nur der Betreiber erledigen.

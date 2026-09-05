@@ -649,6 +649,9 @@ function einfaDaten(){
   bleilappenGesamt:einfaBleilappenGesamt(),
   flaeche_m2:Number(einfaFlaecheM2().toFixed(3)),
   ausmass:einfaAusmassZeilen(),
+  // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen
+  // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
+  kontrolle:einfaPruefungen(),
   rollen:{auswahl:(a.rollenAuswahl||[]).slice(),
     breiten:einfaRollenbreiten(),
     netto:Number((plan.netto||0).toFixed(3)),

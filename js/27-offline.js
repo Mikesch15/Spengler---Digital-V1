@@ -16,16 +16,21 @@
 //     * Ein deutlicher Hinweis sagt, dass gerade keine Verbindung besteht.
 //
 //   GEHT OFFLINE NICHT
-//     * Speichern (Projekt, Massaufnahme, Ausmass, Regierapport, Feedback).
-//       Statt einer kryptischen Netzwerkmeldung kommt eine klare Absage,
-//       damit niemand glaubt, seine Arbeit sei gesichert.
-//     * Fotos und Skizzen hochladen, PDF mit Fotos (signierte URLs).
+//     * Loeschen und Archivieren, Mitarbeiterverwaltung, Rechte,
+//       Einstellungen, Materialkataloge, Reststuecke, System-Administration.
+//     * Fotos ansehen (signierte URLs), PDF mit Fotos.
 //     * Anmelden ohne bestehende Sitzung, Suche ueber die Datenbank,
-//       Verlauf, System-Administration.
+//       Verlauf.
+//     Dafuer ist offlineSperrtSpeichern() weiterhin die eine Stelle mit der
+//     einen klaren Absage.
 //
-// Eine vollstaendige Offline-Erfassung mit Warteschlange, eigenen IDs,
-// Wiederholung und Konfliktloesung ist BEWUSST NICHT gebaut. Halb umgesetzt
-// waere sie gefaehrlicher als gar nicht - siehe Bericht zu v2.70.
+// SEIT v3.04: Erfassen geht ohne Verbindung.
+//   Projekt anlegen, Massaufnahme, Ausmass, Regierapport und Feedback wandern
+//   in eine Warteschlange auf dem Geraet (js/43-warteschlange.js) und werden
+//   uebertragen, sobald wieder eine Verbindung besteht - mit temporaeren IDs,
+//   Fotos und einer echten Konfliktpruefung. Die frueher hier dokumentierte
+//   Aussage "eine Warteschlange ist bewusst nicht gebaut" gilt damit NICHT
+//   mehr; sie steht in der Fassung von v2.70 und ist ueberholt.
 //
 // DATENSCHUTZ: Der lokale Zwischenspeicher gehoert immer genau einer Firma
 // und wird beim Abmelden und bei jedem Firmenwechsel geloescht. Es liegen
@@ -46,9 +51,13 @@ function offlineHinweisZeigen(anZeigen,stand){
  if(!el)return;
  if(!anZeigen){el.hidden=true;return}
  const wann=stand?new Date(stand):null;
+ // Seit v3.04 laesst sich auch ohne Verbindung erfassen - der Hinweis darf
+ // deshalb nicht laenger das Gegenteil behaupten.
  el.innerHTML="📴 <b>Keine Verbindung.</b> Angezeigt werden die zuletzt geladenen Daten"
   +(wann&&!isNaN(wann.getTime())?` (Stand ${esc(wann.toLocaleString("de-CH"))})`:"")
-  +". Neue Einträge lassen sich erst wieder speichern, sobald eine Verbindung besteht.";
+  +". Erfassen geht weiter: Projekte, Massaufnahmen, Ausmasse und Rapporte warten auf "
+  +"diesem Gerät und werden übertragen, sobald wieder eine Verbindung besteht. "
+  +"Löschen, Archivieren und die Verwaltung brauchen eine Verbindung.";
  el.hidden=false;
 }
 

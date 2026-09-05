@@ -402,7 +402,10 @@ $("mitarbeiterAnlegen").addEventListener("click",async()=>{
   if(!data?.ok){alert(data?.error||"Konto konnte nicht angelegt werden.");return}
   const username=data?.user?.username||data?.username||(vor.toLowerCase()+"."+nach.toLowerCase());
   const passwort=data?.password||"(vom Server vergeben)";
-  alert("Konto angelegt.\n\nBenutzername: "+username+"\nStartpasswort: "+passwort+"\n\nBitte dem Mitarbeiter weitergeben. Er muss bei der ersten Anmeldung ein eigenes Passwort vergeben.");
+  // Zum Weitergeben in einem kopierbaren Feld statt in einem alert() (v3.04):
+  // auf einem Tablet laesst sich ein alert nicht kopieren, und weggetippt ist
+  // das Startpasswort verloren.
+  zugangsdatenZeigen(vor+" "+nach,username,passwort);
   $("neuMitarbeiterVor").value="";
   $("neuMitarbeiterNach").value="";
   await loadAllData();
@@ -413,6 +416,49 @@ $("mitarbeiterAnlegen").addEventListener("click",async()=>{
   knopf.disabled=false;
  }
 });
+
+// ---- Zugangsdaten weitergeben (v3.04) ------------------------
+// Der Text ist so gebaut, dass er sich unveraendert in eine Nachricht
+// einfuegen laesst. Er enthaelt bewusst KEINE Firmendaten ausser dem Namen -
+// und er wird nur einmal gezeigt, weil das Startpasswort danach serverseitig
+// nicht mehr abrufbar ist.
+function zugangsdatenText(name,username,passwort){
+ return `Zugang zu Spengler-DIGITAL für ${name}\n\n`
+  +`Benutzername: ${username}\n`
+  +`Startpasswort: ${passwort}\n\n`
+  +`Beim ersten Anmelden muss ein eigenes Passwort vergeben werden.\n`
+  +`Adresse: ${location.origin+location.pathname}`;
+}
+function zugangsdatenZeigen(name,username,passwort){
+ const box=$("zugangBox"); if(!box)return;
+ $("zugangText").value=zugangsdatenText(name,username,passwort);
+ $("zugangMeldung").textContent="";
+ // Teilen gibt es nur, wo das Geraet es kann (Handy/Tablet) - sonst waere es
+ // ein Knopf, der nichts tut.
+ const teilen=$("zugangTeilen");
+ if(teilen)teilen.hidden=typeof navigator==="undefined"||typeof navigator.share!=="function";
+ box.hidden=false;
+ box.scrollIntoView({behavior:"smooth",block:"center"});
+}
+if($("zugangKopieren"))$("zugangKopieren").onclick=async()=>{
+ const t=$("zugangText");
+ try{
+  if(navigator.clipboard&&navigator.clipboard.writeText)await navigator.clipboard.writeText(t.value);
+  else {t.select();document.execCommand("copy")}
+  $("zugangMeldung").textContent="✓ In die Zwischenablage kopiert.";
+ }catch(e){
+  // Ehrlich statt eines stillen Fehlschlags: der Text steht ja im Feld.
+  t.select();
+  $("zugangMeldung").textContent="Kopieren hat nicht geklappt – der Text ist markiert, bitte von Hand kopieren.";
+ }
+};
+if($("zugangTeilen"))$("zugangTeilen").onclick=async()=>{
+ try{ await navigator.share({title:"Zugang zu Spengler-DIGITAL",text:$("zugangText").value}) }
+ catch(e){ /* abgebrochen - keine Meldung noetig */ }
+};
+if($("zugangSchliessen"))$("zugangSchliessen").onclick=()=>{
+ $("zugangBox").hidden=true; $("zugangText").value=""; $("zugangMeldung").textContent="";
+};
 
 // ---- Datensicherung -----------------------------------------
 $("datenSichern").addEventListener("click",async()=>{

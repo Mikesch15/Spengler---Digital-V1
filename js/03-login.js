@@ -31,8 +31,22 @@ $("loginBtn").onclick=async()=>{
 };
 
 $("logout").onclick=async()=>{
+ // Wartet noch etwas auf die Uebertragung, wird davor gewarnt - sonst
+ // meldet sich jemand ab und die Arbeit des Tages ist noch nirgends (v3.04).
+ if(typeof wsAlle==="function"){
+  let warten=[];
+  try{ warten=await wsAlle() }catch(e){ warten=[] }
+  if(warten.length&&!confirm(
+    `${warten.length} ${warten.length===1?"Eintrag wartet":"Einträge warten"} noch auf die `
+    +"Übertragung und sind NOCH NICHT in der Datenbank.\n\nSie bleiben auf diesem Gerät "
+    +"gespeichert und werden übertragen, sobald du dich hier wieder anmeldest und eine "
+    +"Verbindung besteht. Meldet sich vorher jemand aus einer anderen Firma an diesem Gerät "
+    +"an, gehen sie verloren.\n\nTrotzdem abmelden?"))return;
+ }
  // Abmelden raeumt den lokalen Zwischenspeicher weg: es darf nie eine
- // Firma auf dem Geraet zurueckbleiben (v2.70).
+ // Firma auf dem Geraet zurueckbleiben (v2.70). Die Warteschlange bleibt
+ // bewusst stehen - sie ist Arbeit, kein Cache - und wird beim Lesen
+ // ohnehin verworfen, sobald eine andere Firma sie anfassen wuerde.
  offlineCacheLeeren();
  await sb.auth.signOut();
  location.reload();
@@ -115,6 +129,15 @@ async function afterLogin(){
  renderMain();
  await applyRechte();
  showStart();
+ // Was ohne Verbindung erfasst wurde, jetzt uebertragen (v3.04). Erst hier -
+ // vorher steht die company_id des Aufrufers noch nicht fest, und ohne sie
+ // duerfte die Warteschlange gar nicht gelesen werden.
+ if(typeof wsAnzeigeAuffrischen==="function")wsAnzeigeAuffrischen();
+ if(typeof wsSynchronisieren==="function"&&!offlineIstOffline()){
+  wsSynchronisieren().then(b=>{
+   if(b&&b.gesendet)renderProjectSelect();
+  },()=>{});
+ }
 }
 function showStart(){
  $("startScreen").hidden=false;

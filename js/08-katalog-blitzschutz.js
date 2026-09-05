@@ -85,48 +85,159 @@ async function excelZeilenLesen(file){
 function excelZahlLesen(wert){
  return Number(String(wert??"").replace(/['\s]/g,"").replace(",","."))||0;
 }
+// Spaltenzuordnung: welche Spalte der Datei gehoert zu welchem Feld.
+// Ohne sie musste die Datei die feste Reihenfolge der App haben - genau das
+// verlangt CLAUDE.md 7 ausdruecklich nicht ("unterschiedliche Listenformate
+// unterstuetzen", "Spalten zuordnen"). Erkannt wird ueber die Kopfzeile,
+// aendern laesst es sich immer von Hand.
+function importSpaltenName(i){
+ // 0 -> A, 25 -> Z, 26 -> AA
+ let n=i,s="";
+ do{ s=String.fromCharCode(65+(n%26))+s; n=Math.floor(n/26)-1; }while(n>=0);
+ return s;
+}
+function importNormal(t){
+ return String(t==null?"":t).toLowerCase()
+  .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss")
+  .replace(/[^a-z0-9]/g,"");
+}
+// Ordnet anhand der Kopfzeile zu. Trifft nichts, bleibt das Feld leer -
+// es wird nichts geraten.
+function importAutoZuordnen(felder,kopf){
+ const zu={};
+ const belegt={};
+ felder.forEach(f=>{
+  const kandidaten=[f.label].concat(f.alias||[]).map(importNormal);
+  for(let i=0;i<(kopf||[]).length;i++){
+   if(belegt[i])continue;
+   const k=importNormal(kopf[i]);
+   if(!k)continue;
+   if(kandidaten.some(c=>c&&(k===c||k.indexOf(c)===0||c.indexOf(k)===0))){
+    zu[f.key]=i; belegt[i]=true; return;
+   }
+  }
+ });
+ return zu;
+}
 function initExcelImport(cfg){
- // cfg: {inputId,buttonId,previewId,headerCheckId,countId,tableId,
- //       confirmId,cancelId,tableName,felder:[{key,label,zahl}],nachImport}
+ // cfg: {inputId,buttonId,previewId,headerCheckId,countId,tableId,mappingId,
+ //       fehlerId,confirmId,cancelId,tableName,felder:[{key,label,zahl,pflicht,alias}],
+ //       nachImport}
  const input=$(cfg.inputId),btn=$(cfg.buttonId);
  if(!input||!btn)return;
  let zeilen=[];
+ let zuordnung={};        // feldKey -> Spaltenindex
  btn.onclick=()=>input.click();
  input.addEventListener("change",async()=>{
   const file=input.files[0];
   if(!file)return;
   try{ zeilen=await excelZeilenLesen(file); }
   catch(err){ alert("Die Datei konnte nicht gelesen werden: "+(err.message||err)); input.value=""; return; }
+  if(!zeilen.length){ alert("Die Datei enthält keine Zeilen."); input.value=""; return; }
+  // Nur beim Einlesen automatisch zuordnen - eine spaetere Aenderung von
+  // Hand darf nicht ueberschrieben werden.
+  zuordnung=$(cfg.headerCheckId).checked?importAutoZuordnen(cfg.felder,zeilen[0]):{};
   $(cfg.previewId).hidden=false;
-  zeichneVorschau();
+  zeichneZuordnung(); zeichneVorschau();
  });
+ function spaltenAnzahl(){
+  return zeilen.reduce((m,z)=>Math.max(m,(z||[]).length),0);
+ }
  function datenZeilen(){
   const mitKopf=$(cfg.headerCheckId).checked;
   return (mitKopf?zeilen.slice(1):zeilen).filter(z=>z.some(w=>String(w||"").trim()!==""));
  }
+ function zeichneZuordnung(){
+  const box=$(cfg.mappingId); if(!box)return;
+  const n=spaltenAnzahl();
+  const mitKopf=$(cfg.headerCheckId).checked;
+  const kopf=mitKopf?(zeilen[0]||[]):[];
+  const optionen=i=>{
+   let o='<option value="">– keine –</option>';
+   for(let c=0;c<n;c++){
+    const name=String(kopf[c]||"").trim();
+    o+=`<option value="${c}"${zuordnung[i]===c?" selected":""}>Spalte ${importSpaltenName(c)}${
+      name?" · "+esc(name):""}</option>`;
+   }
+   return o;
+  };
+  box.innerHTML=`<div class="small" style="margin-bottom:4px"><b>Spalten zuordnen</b> – welche Spalte der Datei ist welches Feld?</div>`
+   +cfg.felder.map(f=>`<label class="import-feld"><span>${esc(f.label)}${
+     f.pflicht?' <span style="color:#d9534f">*</span>':""}</span>
+<select data-import-feld="${esc(f.key)}">${optionen(f.key)}</select></label>`).join("");
+  box.querySelectorAll("[data-import-feld]").forEach(sel=>{
+   sel.addEventListener("change",()=>{
+    const k=sel.dataset.importFeld;
+    if(sel.value==="")delete zuordnung[k]; else zuordnung[k]=Number(sel.value);
+    zeichneVorschau();
+   });
+  });
+ }
+ // Der Wert einer Zeile fuer ein Feld - ohne Zuordnung bleibt er leer.
+ function wert(z,f){
+  const i=zuordnung[f.key];
+  if(i===undefined)return f.zahl?0:"";
+  return f.zahl?excelZahlLesen(z[i]):String(z[i]??"").trim();
+ }
+ // Was am Import noch nicht stimmt. Ehrlich benannt statt eines pauschalen
+ // "Fehler beim Import".
+ function pruefen(daten){
+  const meldungen=[];
+  cfg.felder.filter(f=>f.pflicht).forEach(f=>{
+   if(zuordnung[f.key]===undefined)meldungen.push(`Das Pflichtfeld „${f.label}" ist keiner Spalte zugeordnet.`);
+  });
+  if(!daten.length)meldungen.push("Die Datei enthält keine Datenzeilen.");
+  // Leere Pflichtwerte je Zeile
+  cfg.felder.filter(f=>f.pflicht&&zuordnung[f.key]!==undefined).forEach(f=>{
+   const leer=daten.filter(z=>String(wert(z,f)).trim()==="").length;
+   if(leer)meldungen.push(`${leer} Zeile(n) haben kein „${f.label}" – sie werden nicht importiert.`);
+  });
+  return meldungen;
+ }
+ function verwendbar(daten){
+  return daten.filter(z=>cfg.felder.filter(f=>f.pflicht)
+    .every(f=>zuordnung[f.key]!==undefined&&String(wert(z,f)).trim()!==""));
+ }
  function zeichneVorschau(){
   const daten=datenZeilen();
-  $(cfg.countId).textContent=`${daten.length} Positionen erkannt (von ${zeilen.length} Zeilen in der Datei).`;
+  const gut=verwendbar(daten);
+  const meldungen=pruefen(daten);
+  $(cfg.countId).textContent=`${gut.length} von ${daten.length} Zeilen werden importiert `
+   +`(die Datei hat ${zeilen.length} Zeilen und ${spaltenAnzahl()} Spalten).`;
+  const fb=$(cfg.fehlerId);
+  if(fb){
+   fb.innerHTML=meldungen.length
+    ? meldungen.map(m=>`<div style="color:#8a5312">⚠️ ${esc(m)}</div>`).join("")
+    : '<div style="color:var(--green)">✓ Alle Pflichtfelder sind zugeordnet.</div>';
+  }
   const kopf="<tr>"+cfg.felder.map(f=>`<th>${esc(f.label)}</th>`).join("")+"</tr>";
-  const rumpf=daten.slice(0,200).map(z=>"<tr>"+cfg.felder.map((f,i)=>`<td>${esc(String(z[i]??""))}</td>`).join("")+"</tr>").join("");
+  const rumpf=gut.slice(0,200).map(z=>"<tr>"+cfg.felder.map(f=>`<td>${esc(String(wert(z,f)))}</td>`).join("")+"</tr>").join("");
   $(cfg.tableId).innerHTML=kopf+rumpf;
+  const k=$(cfg.confirmId); if(k)k.disabled=!gut.length;
  }
- $(cfg.headerCheckId).addEventListener("change",zeichneVorschau);
- $(cfg.cancelId).onclick=()=>{ zeilen=[]; input.value=""; $(cfg.previewId).hidden=true; };
+ $(cfg.headerCheckId).addEventListener("change",()=>{
+  if($(cfg.headerCheckId).checked&&!Object.keys(zuordnung).length)
+   zuordnung=importAutoZuordnen(cfg.felder,zeilen[0]);
+  zeichneZuordnung(); zeichneVorschau();
+ });
+ $(cfg.cancelId).onclick=()=>{ zeilen=[]; zuordnung={}; input.value=""; $(cfg.previewId).hidden=true; };
  $(cfg.confirmId).onclick=async()=>{
-  const daten=datenZeilen();
-  if(!daten.length){ alert("Keine Zeilen zum Importieren gefunden."); return; }
+  const daten=verwendbar(datenZeilen());
+  if(!daten.length){ alert("Keine vollständigen Zeilen zum Importieren gefunden."); return; }
   const eintraege=daten.map(z=>{
    const o={};
-   cfg.felder.forEach((f,i)=>{ o[f.key]=f.zahl?excelZahlLesen(z[i]):String(z[i]??"").trim(); });
+   cfg.felder.forEach(f=>{ o[f.key]=wert(z,f); });
    return o;
   });
   $(cfg.confirmId).disabled=true;
-  const {error}=await sb.from(cfg.tableName).insert(eintraege);
+  const {data,error}=await sb.from(cfg.tableName).insert(eintraege).select();
   $(cfg.confirmId).disabled=false;
   if(error){ alert("Fehler beim Import: "+error.message); return; }
-  alert(`${eintraege.length} Positionen importiert.`);
-  zeilen=[]; input.value=""; $(cfg.previewId).hidden=true;
+  // Ein von RLS geblocktes INSERT meldet keinen Fehler, es betrifft still
+  // 0 Zeilen (CLAUDE.md 24.1) - deshalb wird das Ergebnis geprueft.
+  if(!data||!data.length){ alert("Es wurde nichts importiert. Fehlt die nötige Berechtigung?"); return; }
+  alert(`${data.length} Positionen importiert.`);
+  zeilen=[]; zuordnung={}; input.value=""; $(cfg.previewId).hidden=true;
   await cfg.nachImport();
  };
 }
@@ -134,13 +245,16 @@ initExcelImport({
  inputId:"materialExcelInput",buttonId:"materialExcelBtn",previewId:"materialExcelPreview",
  headerCheckId:"materialExcelHeader",countId:"materialExcelCount",tableId:"materialExcelTable",
  confirmId:"materialExcelConfirm",cancelId:"materialExcelCancel",
+ mappingId:"materialExcelMapping",fehlerId:"materialExcelFehler",
  tableName:"materials",
+ // "alias" sind die Schreibweisen, die in echten Lieferantenlisten
+ // vorkommen - damit trifft die automatische Zuordnung ohne Raten.
  felder:[
-  {key:"edv_nr",label:"EDV-Nr."},
-  {key:"name",label:"Material"},
-  {key:"dim",label:"Dim."},
-  {key:"unit",label:"Einheit"},
-  {key:"price",label:"Preis",zahl:true}
+  {key:"edv_nr",label:"EDV-Nr.",pflicht:true,alias:["edvnr","artikelnr","artikelnummer","nr","nummer","code","artikel"]},
+  {key:"name",label:"Material",pflicht:true,alias:["bezeichnung","artikelbezeichnung","beschreibung","text","benennung"]},
+  {key:"dim",label:"Dim.",alias:["dimension","abmessung","masse","staerke","dicke","format"]},
+  {key:"unit",label:"Einheit",alias:["einh","me","mengeneinheit","verkaufseinheit","vpe"]},
+  {key:"price",label:"Preis",zahl:true,alias:["preis","fr","chf","betrag","vkpreis","verkaufspreis","einzelpreis","listenpreis"]}
  ],
  nachImport:async()=>{ await loadAllData(); renderSettings(); }
 });
@@ -148,12 +262,13 @@ initExcelImport({
  inputId:"bzMaterialExcelInput",buttonId:"bzMaterialExcelBtn",previewId:"bzMaterialExcelPreview",
  headerCheckId:"bzMaterialExcelHeader",countId:"bzMaterialExcelCount",tableId:"bzMaterialExcelTable",
  confirmId:"bzMaterialExcelConfirm",cancelId:"bzMaterialExcelCancel",
+ mappingId:"bzMaterialExcelMapping",fehlerId:"bzMaterialExcelFehler",
  tableName:"blitzschutz_materials",
  felder:[
-  {key:"artikel_nr",label:"Artikel-Nr."},
-  {key:"bezeichnung",label:"Bezeichnung"},
-  {key:"material",label:"Material"},
-  {key:"einheit",label:"Einheit"}
+  {key:"artikel_nr",label:"Artikel-Nr.",pflicht:true,alias:["artikelnr","artikelnummer","edvnr","nr","nummer","code","artikel"]},
+  {key:"bezeichnung",label:"Bezeichnung",pflicht:true,alias:["beschreibung","text","benennung","name"]},
+  {key:"material",label:"Material",alias:["werkstoff","ausfuehrung"]},
+  {key:"einheit",label:"Einheit",alias:["einh","me","mengeneinheit","vpe"]}
  ],
  nachImport:async()=>{
   const {data}=await sb.from("blitzschutz_materials").select("*").order("bezeichnung");
@@ -459,9 +574,33 @@ window.addEventListener("beforeprint",()=>{
  bar.textContent=teile.join(" · ");
 });
 $("save").onclick=async()=>{
- // Offline (v2.70): klare Absage statt kryptischer Netzwerkmeldung.
- if(offlineSperrtSpeichern("Dieser Regierapport"))return;
  if(!currentProjectId){alert("Bitte zuerst ein Projekt auswählen. Ein Rapport kann nur einem Projekt zugeordnet gespeichert werden.");return}
+ // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04).
+ if(wsIstOffline()){
+  const proj=allProjects.find(x=>String(x.id)===String(currentProjectId));
+  const r=await wsEinreihen({
+   tabelle:"reports", zielId:currentReportId||null,
+   // Ein Rapport-Bildschirm, eine Marke - zweimal speichern ersetzt.
+   schluessel:"report-"+(currentProjectId||"?"),
+   standVorher:currentReportMeta?currentReportMeta.updated_at:null,
+   titel:`${($("date").value||"")} · ${proj?(proj.object||proj.name):""}`.trim(),
+   payload:{project_id:currentProjectId,date:$("date").value||null,
+     order_no:$("orderNo").value,customer:$("customer").value,object:$("object").value,
+     vat:$("vat").value,work_entries:works,material_entries:mats},
+   bilder:{photo_paths:(typeof reportPhotos!=="undefined")?reportPhotos.slice():[]}
+  });
+  if(!r.ok){
+   alert("Keine Verbindung – und dieser Rapport lässt sich auf diesem Gerät auch nicht "
+    +"zwischenspeichern ("+(r.grund||"unbekannter Grund")+").\n\nDie Eingaben bleiben "
+    +"stehen. Bitte speichern, sobald wieder eine Verbindung besteht.");
+   return;
+  }
+  isDirty=false;
+  alert("Keine Verbindung.\n\nDer Rapport wartet jetzt auf diesem Gerät und wird übertragen, "
+   +"sobald wieder eine Verbindung besteht. Bis dahin ist er NICHT in der Datenbank – "
+   +"bitte das Gerät nicht zurücksetzen.");
+  return;
+ }
  $("save").disabled=true;
  const payload={
   project_id:currentProjectId,
@@ -476,8 +615,34 @@ $("save").onclick=async()=>{
   updated_at:new Date().toISOString()
  };
  let res;
+ // Fotos (v3.04): sie liegen unter reports/<projectId>/<reportId>/photo/… -
+ // bei einem neuen Rapport gibt es diese ID aber erst nach dem ersten
+ // Speichern. Deshalb wie bei den Massaufnahmen zuerst die Zeile anlegen und
+ // die Bilder danach hochladen.
+ const neueFotos=(typeof reportPhotos!=="undefined")
+   ? reportPhotos.some(x=>String(x).startsWith("data:")) : false;
  if(currentReportId)res=await sb.from("reports").update(payload).eq("id",currentReportId).select().maybeSingle();
  else res=await sb.from("reports").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:new Date().toISOString()}).select().maybeSingle();
+ if(!res.error&&res.data&&neueFotos){
+  try{
+   const ordner=`reports/${currentProjectId}/${res.data.id}/photo`;
+   const pfade=[];
+   for(const f of reportPhotos){
+    pfade.push(String(f).startsWith("data:")?await uploadMeasurementImage(f,ordner):f);
+   }
+   const nach=await sb.from("reports").update({photo_paths:pfade}).eq("id",res.data.id).select().maybeSingle();
+   if(nach.error)throw nach.error;
+   reportPhotos=pfade;
+   if(typeof renderReportFotos==="function")renderReportFotos();
+   res=nach;
+  }catch(err){
+   $("save").disabled=false;
+   alert("Der Rapport wurde gespeichert, aber die Fotos konnten nicht hochgeladen werden: "
+     +(err&&err.message?err.message:err)+"\n\nDie Fotos bleiben im Formular stehen.");
+   if(res.data){currentReportId=res.data.id;}
+   return;
+  }
+ }
  $("save").disabled=false;
  if(res.error){alert("Fehler beim Speichern: "+res.error.message);return}
  if(res.data){currentReportId=res.data.id;currentReportMeta={created_by:res.data.created_by,created_at:res.data.created_at,updated_by:res.data.updated_by,updated_at:res.data.updated_at};}
@@ -485,4 +650,6 @@ $("save").onclick=async()=>{
  isDirty=false;
  alert("Rapport gespeichert und dem Projekt zugeordnet.");
 };
-$("clear").onclick=()=>{if(confirm("Wirklich alle Rapportdaten löschen?")){works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0}];mats=[];currentReportId=null;updateVerlaufToggleVisibility($("reportVerlaufToggle"),$("reportVerlaufBody"),null);renderMain()}};
+$("clear").onclick=()=>{if(confirm("Wirklich alle Rapportdaten löschen?")){works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0}];mats=[];currentReportId=null;
+ if(typeof reportPhotos!=="undefined"){reportPhotos=[];if(typeof renderReportFotos==="function")renderReportFotos()}
+ updateVerlaufToggleVisibility($("reportVerlaufToggle"),$("reportVerlaufBody"),null);renderMain()}};

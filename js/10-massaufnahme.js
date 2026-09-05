@@ -362,6 +362,53 @@ $("measProjectResults").addEventListener("click",e=>{
  $("measProjectResults").innerHTML="";
 });
 
+// ---- Marke fuer die Warteschlange (v3.04) --------------------------------
+// Wird eine NEUE Massaufnahme ohne Verbindung zweimal gespeichert, darf das
+// keinen zweiten Datensatz ergeben. Diese Marke bleibt, solange dasselbe
+// Formular offen ist, und wird beim Anlegen/Oeffnen neu gesetzt.
+let measWsMarke=null;
+let measWsAbgelegt=false;
+function measWsNeueMarke(){
+ measWsMarke="meas-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
+ measWsAbgelegt=false;
+}
+function measWsToken(){ if(!measWsMarke)measWsNeueMarke(); return measWsMarke }
+
+// ---- Als Vorlage (v3.04) --------------------------------------------------
+// Eine bestehende Massaufnahme wird zur Grundlage einer NEUEN. Uebernommen
+// werden ausschliesslich Typ, Material und die gerechneten Masse (data);
+// Bezeichnung, Notiz, Datum, Fotos und Skizzen bleiben leer.
+//
+// Bewusst NICHT uebernommen:
+//   * das Projekt der VORLAGE - eine Vorlage ist gerade dann nuetzlich, wenn
+//     dieselbe Konstruktion auf einer anderen Baustelle wiederkommt. Welches
+//     Projekt die Kopie bekommt, entscheidet der Aufrufer (aus dem Cockpit
+//     heraus das gerade geoeffnete) - nie stillschweigend das der Vorlage.
+//   * Fotos und Skizzen - sie zeigen ein anderes Dach.
+//   * Ersteller und Zeitstempel - die setzt der Trigger serverseitig.
+// Es entsteht KEINE Verknuepfung zur Ursprungsaufnahme: die Kopie ist ein
+// eigenstaendiger Datensatz, eine spaetere Aenderung an ihr wirkt nicht
+// zurueck.
+function measurementAlsVorlage(m,projektId){
+ if(!m)return;
+ const typ=m.type||"skizze_foto";
+ newMeasurementWithType(typ);
+ if($("measType").value!==typ)return;    // Modul gesperrt - nichts kopieren
+ if(projektId!==undefined&&projektId!==null)setMeasProjectField(projektId);
+ // Ab hier wie beim Oeffnen, nur ohne Identitaet der Vorlage.
+ const kopie={id:null,type:typ,title:"",note:"",date:new Date().toISOString().slice(0,10),
+   project_id:measSelectedProjectId||null,
+   photo_paths:[],sketch_paths:[],photo_path:null,sketch_path:null,
+   data:JSON.parse(JSON.stringify(m.data||{}))};
+ measFelderAusData(kopie);
+ $("measTitle").value=(m.title?m.title+" (Kopie)":"");
+ // Die Fuellen-Funktionen der Module setzen ihr Register zurueck, ohne ueber
+ // SetzeSchritt zu laufen - Sichtbarkeit und Titel deshalb noch einmal.
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(typ);
+ updateMeasFormTitle();
+ $("measTitle").focus();
+}
+
 function newMeasurementWithType(type){
  if(modulGesperrt("meas:"+type)){alert("Dieses Modul ist noch in Entwicklung und steht vorerst nur Administratoren zur Verfügung.");return}
  sperreFuerEintrag("massaufnahme",null);
@@ -369,6 +416,7 @@ function newMeasurementWithType(type){
  measEditReturnTo="measurementsModal";
  currentMeasurementId=null;
  currentMeasurementMeta={};
+ measWsNeueMarke();
  $("printMeasurementBtn").hidden=false;
  $("measType").value=type;
  showMeasTypeSection(type);
@@ -475,30 +523,10 @@ function updateMeasFormTitle(){
  $("measMetaInfo").hidden=!meta;
  updateVerlaufToggleVisibility($("measVerlaufToggle"),$("measVerlaufBody"),currentMeasurementId);
 }
-function openMeasurement(m){
- sperreFuerEintrag("massaufnahme",m&&m.created_by);
- isDirty=false;
- currentMeasurementId=m.id;
- currentMeasurementMeta={created_by:m.created_by,created_at:m.created_at,updated_by:m.updated_by,updated_at:m.updated_at};
- $("printMeasurementBtn").hidden=false;
- $("measTitle").value=m.title||"";
- $("measNote").value=m.note||"";
- $("measDate").value=m.date||new Date().toISOString().slice(0,10);
- $("measType").value=m.type||"skizze_foto";
- // Zugeklappt starten; nach dem Laden der Medien (unten) wird die
- // Sichtbarkeit noch einmal gesetzt - eine Aufnahme MIT Fotos zeigt sie
- // sofort, sonst saehe es aus, als waeren sie weg.
- if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
- showMeasTypeSection($("measType").value);
- setMeasProjectField(m.project_id);
- $("measPhotoInput").value="";
- // Aeltere Aufnahmen haben nur photo_path - sie oeffnen mit genau diesem
- // einen Foto, es wird keines erfunden.
- measPhotos=(m.photo_paths&&m.photo_paths.length)?[...m.photo_paths]:(m.photo_path?[m.photo_path]:[]);
- renderMeasPhotoGallery();
- measSketches=(m.sketch_paths&&m.sketch_paths.length)?[...m.sketch_paths]:(m.sketch_path?[m.sketch_path]:[]);
- renderSketchGallery();
- if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(m.type);
+// Fuellt alle Fachfelder aus m.data. Herausgeloest aus openMeasurement,
+// damit die Vorlagen-Kopie (measurementAlsVorlage) exakt denselben Weg geht -
+// eine Wahrheit statt zweier Fuell-Logiken, die auseinanderlaufen koennen.
+function measFelderAusData(m){
  const d=m.data||{};
  $("foto_material").value=findMeasurementMaterial(d.material)?.id??"";
  $("eb_gesamtlaenge").value=d.gesamtlaenge||"";
@@ -576,6 +604,36 @@ function openMeasurement(m){
  rinneFormularFuellen(m.type==="rinne"?d:null);
  if(typeof rpaFuellen==="function")rpaFuellen(m.type==="rinne"?d:null);
  $("rp_material").value=(m.type==="rinne"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
+}
+
+function openMeasurement(m){
+ sperreFuerEintrag("massaufnahme",m&&m.created_by);
+ isDirty=false;
+ currentMeasurementId=m.id;
+ measWsNeueMarke();
+ currentMeasurementMeta={created_by:m.created_by,created_at:m.created_at,updated_by:m.updated_by,updated_at:m.updated_at};
+ $("printMeasurementBtn").hidden=false;
+ $("measTitle").value=m.title||"";
+ $("measNote").value=m.note||"";
+ $("measDate").value=m.date||new Date().toISOString().slice(0,10);
+ $("measType").value=m.type||"skizze_foto";
+ // Zugeklappt starten; nach dem Laden der Medien (unten) wird die
+ // Sichtbarkeit noch einmal gesetzt - eine Aufnahme MIT Fotos zeigt sie
+ // sofort, sonst saehe es aus, als waeren sie weg.
+ if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
+ showMeasTypeSection($("measType").value);
+ setMeasProjectField(m.project_id);
+ $("measPhotoInput").value="";
+ // Aeltere Aufnahmen haben nur photo_path - sie oeffnen mit genau diesem
+ // einen Foto, es wird keines erfunden.
+ measPhotos=(m.photo_paths&&m.photo_paths.length)?[...m.photo_paths]:(m.photo_path?[m.photo_path]:[]);
+ renderMeasPhotoGallery();
+ measSketches=(m.sketch_paths&&m.sketch_paths.length)?[...m.sketch_paths]:(m.sketch_path?[m.sketch_path]:[]);
+ renderSketchGallery();
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(m.type);
+ // Alle Fachfelder aus m.data fuellen - dieselbe Stelle, die auch die
+ // Vorlagen-Kopie benutzt (v3.04).
+ measFelderAusData(m);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
  // Zum Schluss noch einmal: die Fuellen-Funktionen oben setzen das Register

@@ -390,6 +390,9 @@ function anbaZusatzDaten(){
  return {
   flaeche_m2:Number(anbaFlaecheM2().toFixed(3)),
   ausmass:anbaAusmassZeilen(),
+  // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen
+  // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
+  kontrolle:anbaPruefungen(),
   zuschnitt:{auswahl:(anbaRollenAuswahl||[]).slice(),
              breiten:anbaRollenbreiten(),
              netto:Number(rp.netto.toFixed(3)),

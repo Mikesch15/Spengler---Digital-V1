@@ -383,8 +383,17 @@ async function klick(page,sel){
  p(dlg.namen.join("|")==="Zusammenfassung|Massaufnahme / Masse|Stückliste|Rollenblech-Zuschnitt|Ausmass|Materialliste|Kontrolle / Hinweise|Fotos|Skizze",
    "die Namen sind die gemeinsamen",dlg.namen);
  const nichtDa=dlg.eintraege.filter(x=>x.aus).map(x=>x.key);
- p(nichtDa.indexOf("material")>=0&&nichtDa.indexOf("fotos")>=0&&nichtDa.indexOf("skizze")>=0,
-   "23 · nicht vorhandene Listen sind ausgegraut",nichtDa);
+ // Seit v3.04 ist "Materialliste" NICHT mehr dauerhaft ausgegraut - diese
+ // Massaufnahme hat ein Material, also gibt es den Abschnitt (CLAUDE.md 90.9
+ // ist damit erledigt). Geprueft wird deshalb die Eigenschaft statt einer
+ // festen Liste: ausgegraut ist genau, was das Dokument nicht enthaelt.
+ const imDok=await page.evaluate(()=>{
+   const z=pdfAbschnitteZerlegen(window.__letzterBody||"","eb-section-head");
+   return Array.from(pdfVerfuegbareListen(z));});
+ p(nichtDa.indexOf("fotos")>=0&&nichtDa.indexOf("skizze")>=0,
+   "23 · nicht vorhandene Listen sind ausgegraut (hier: Fotos und Skizze)",nichtDa);
+ p(nichtDa.indexOf("material")<0,
+   "die Materialliste ist NICHT mehr dauerhaft ausgegraut (v3.04)",nichtDa);
  p(dlg.eintraege.filter(x=>!x.aus).every(x=>x.an),"vorhandene Listen sind vorangehakt");
 
  // 22 · Keine auswaehlen

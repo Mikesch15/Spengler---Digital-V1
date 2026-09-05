@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.03";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.04";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -47,7 +47,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.03<br>
+  Version 3.04<br>
   Stand 5. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -256,6 +256,13 @@ bei einem Fehler, orange bei einem Hinweis. Ein Fehler ist etwas, das rechnerisc
 aufgeht oder ein Mindestmass verletzt; ein Hinweis ist etwas Ungewöhnliches, aber
 Erlaubtes.</p>
 
+<h3>Eine Massaufnahme als Vorlage</h3>
+<p>Kommt dieselbe Konstruktion wieder, muss sie nicht neu eingetippt werden: im
+Projekt-Cockpit steht bei jeder Massaufnahme <em>📄 Als Vorlage</em>. Übernommen werden
+Typ, Material und alle Masse. Bezeichnung, Notiz, Datum, Fotos und Skizzen bleiben leer –
+sie gehören zum anderen Dach. Es entsteht ein eigenständiger neuer Datensatz; die Vorlage
+bleibt unverändert.</p>
+
 <h2 class="seite">9 · Fotos und Skizzen</h2>
 <figure><img src="bilder/13-fotos-skizzen.png"><figcaption>Der Foto-Bereich – sichtbar im letzten Register.</figcaption></figure>
 <p>Jede Massaufnahme kann <strong>mehrere Fotos und mehrere Skizzen</strong> tragen.
@@ -386,6 +393,21 @@ und Ansätze definiert und die Materialkataloge verwaltet.</p>
 <div class="hin">Aus jeder Massaufnahme führt ein <span class="tasten">⚙️ Einstellungen</span>-Knopf
 direkt an die passende Stelle in diesen Registern.</div>
 
+<h3>Eine Lieferantenliste einlesen</h3>
+<p>Materialkatalog und Blitzschutz-Katalog lassen sich aus einer Excel- oder CSV-Datei
+einlesen. Die Datei braucht <strong>keine bestimmte Spaltenreihenfolge</strong>: nach dem
+Auswählen zeigt die App, welche Spalte sie wofür hält, und jedes Feld lässt sich von Hand
+umstellen. Pflichtfelder tragen einen roten Stern; Zeilen, bei denen eines fehlt, werden
+nicht importiert – wie viele das sind, steht über der Vorschau.</p>
+<div class="warn">Der Import <strong>ergänzt</strong> die Liste. Es wird nichts gelöscht
+und nichts überschrieben – eine bereits vorhandene Nummer käme ein zweites Mal hinein.</div>
+
+<h3>Ein Mitarbeiterkonto anlegen</h3>
+<p>Nach dem Anlegen erscheinen Benutzername und Startpasswort in einem Feld zum Kopieren
+oder Weitergeben. <strong>Das Startpasswort wird nur dieses eine Mal angezeigt</strong>
+und lässt sich danach nicht mehr abrufen; geht es verloren, setzt ein Administrator in
+der Mitarbeiterliste ein neues. Beim ersten Anmelden vergibt die Person ein eigenes.</p>
+
 <h2>17 · Feedback</h2>
 <figure><img src="bilder/25-feedback.png"><figcaption>Eine Rückmeldung schreiben – erreichbar über 💬 Feedback geben auf dem Startbildschirm.</figcaption></figure>
 <p>Jeder kann eine Rückmeldung schreiben und einem Bereich zuordnen. Die Auswahlliste
@@ -428,18 +450,35 @@ Zeichnungen haben dort genug Platz.</p>
 </ul>
 
 <h2 class="seite">20 · Ohne Internet</h2>
-<p>Die App startet und rechnet auch ohne Verbindung. Ein Hinweis oben sagt dann,
-dass keine Verbindung besteht und von wann die angezeigten Daten stammen.</p>
+<p>Die App startet, rechnet <strong>und erfasst</strong> auch ohne Verbindung. Ein
+Hinweis oben sagt, dass keine Verbindung besteht und von wann die angezeigten Daten
+stammen.</p>
+<p>Was ohne Verbindung erfasst wird, wandert in eine <strong>Warteschlange auf dem
+Gerät</strong> und wird übertragen, sobald wieder eine Verbindung besteht – von selbst,
+beim nächsten Anmelden oder über den Knopf <em>Jetzt übertragen</em>.</p>
 <table>
 <tr><th>Geht ohne Verbindung</th><th>Geht nicht</th></tr>
-<tr><td>App starten und bedienen</td><td>Speichern (Projekt, Massaufnahme, Ausmass, Rapport, Feedback)</td></tr>
-<tr><td>Zuletzt geladene Projekte, Material, Ansätze und Kataloge ansehen</td><td>Fotos und Skizzen hochladen</td></tr>
-<tr><td>Alle Rechenmodule – Abwicklung, Stückliste, Zuschnitt, Winkel</td><td>Anmelden ohne bestehende Sitzung</td></tr>
-<tr><td></td><td>Suche, Verlauf, System-Administration</td></tr>
+<tr><td>App starten und bedienen</td><td>Löschen und Archivieren</td></tr>
+<tr><td>Projekt anlegen</td><td>Mitarbeiter, Rechte, Einstellungen, Kataloge</td></tr>
+<tr><td>Massaufnahme, Ausmass und Rapport erfassen – mit Fotos</td><td>Fotos ansehen, PDF mit Fotos</td></tr>
+<tr><td>Feedback schreiben</td><td>Anmelden ohne bestehende Sitzung</td></tr>
+<tr><td>Alle Rechenmodule – Abwicklung, Stückliste, Zuschnitt, Winkel</td><td>Suche über die Datenbank, Verlauf</td></tr>
 </table>
-<div class="warn">Ein Speicherversuch ohne Verbindung wird <strong>klar abgelehnt</strong>,
-nicht stillschweigend verworfen. Die Eingaben bleiben im Formular stehen, bis wieder
-Verbindung da ist.</div>
+<div class="warn">Solange etwas in der Warteschlange steht, ist es <strong>noch nicht in
+der Datenbank</strong>. Bitte das Gerät nicht zurücksetzen, den Browser-Speicher nicht
+löschen und die App nicht neu installieren, bevor die Liste leer ist. Beim Abmelden
+warnt die App, wenn noch etwas wartet.</div>
+<h3>Ein Projekt, das noch wartet</h3>
+<p>Ein ohne Verbindung angelegtes Projekt steht sofort in der Liste, gekennzeichnet mit
+<em>Wartet auf die Übertragung</em>. Massaufnahmen, Ausmasse und Rapporte lassen sich
+schon jetzt dazu erfassen – sie warten mit und bekommen beim Übertragen automatisch die
+richtige Projektzuordnung. Öffnen, Bearbeiten, Archivieren und Löschen geht erst danach,
+weil es das Projekt in der Datenbank noch nicht gibt.</p>
+<h3>Wenn jemand anderes schneller war</h3>
+<p>Wird ein <em>geänderter</em> Datensatz übertragen, den in der Zwischenzeit jemand
+anderes bearbeitet hat, überschreibt die App <strong>nichts</strong>. Der Eintrag bleibt
+als Konflikt stehen und fragt: <em>Meine Fassung nehmen</em> oder <em>Meine Fassung
+verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 
 <h2>21 · Begriffe</h2>
 <table>
@@ -457,7 +496,7 @@ Verbindung da ist.</div>
 </table>
 
 <h2 class="seite">22 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.03</strong>, Stand 5. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.04</strong>, Stand 5. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

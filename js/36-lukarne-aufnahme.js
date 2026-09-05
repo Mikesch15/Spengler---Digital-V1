@@ -530,6 +530,9 @@ function lukaZusatzDaten(){
  return {
   flaeche_m2:Number(lukaFlaecheM2().toFixed(3)),
   ausmass:lukaAusmassZeilen(),
+  // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen
+  // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
+  kontrolle:lukaPruefungen(),
   zuschnitt:{auswahl:(lukA.rollenAuswahl||[]).slice(),
              breiten:lukaRollenbreiten(),
              netto:Number(rp.netto.toFixed(3)),

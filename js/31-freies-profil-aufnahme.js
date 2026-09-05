@@ -728,6 +728,9 @@ function fpaZusatzDaten(){
  return {
   flaeche_m2:Number(fpaFlaecheM2().toFixed(3)),
   ausmass:fpaAusmassZeilen(),
+  // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen
+  // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
+  kontrolle:fpaPruefungen(),
   zuschnitt:{auswahl:(fpA.rollenAuswahl||[]).slice(),breiten:fpaRollen(),
              netto:Number(plan.netto.toFixed(3)),
              bestes:plan.bestes||null,

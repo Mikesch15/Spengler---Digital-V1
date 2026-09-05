@@ -626,6 +626,9 @@ function keaZusatzDaten(){
   zuschnittSumme:Math.round(keaSummeZuschnitt()),
   flaeche_m2:keaFlaecheM2(),
   ausmass:keaAusmassZeilen(),
+  // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen
+  // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
+  kontrolle:keaPruefungen(),
   rollen:{auswahl:(kehleA.rollenAuswahl||[]).slice(),abwicklung:rp.abwicklung,
           abschnittLaenge:rp.abschnittLaenge,
           abschnitte:rp.bestes?rp.bestes.abschnitte:0,

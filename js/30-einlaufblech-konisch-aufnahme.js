@@ -740,6 +740,9 @@ function ebkaZusatzDaten(){
  return {
   flaeche_m2:Number(ebkaFlaecheM2().toFixed(3)),
   ausmass:ebkaAusmassZeilen(),
+  // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen
+  // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
+  kontrolle:ebkaPruefungen(),
   rollen:{auswahl:(ebkA.rollenAuswahl||[]).slice(),
           abschnittLaenge:plan.abschnittLaenge,
           abschnitte:plan.bestes?plan.bestes.abschnitte:0,

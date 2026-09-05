@@ -795,6 +795,9 @@ function madaZusatzDaten(){
  return {
   flaeche_m2:Number(madaFlaecheM2().toFixed(3)),
   ausmass:madaAusmassZeilen(),
+  // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen
+  // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
+  kontrolle:madaPruefungen(),
   rollen:{auswahl:(madA.rollenAuswahl||[]).slice(),breiten:madaRollenbreiten(),
           abwicklung:plan.abwicklung,
           abschnittLaenge:plan.abschnittLaenge,

@@ -388,8 +388,23 @@ async function feedbackListeHandler(e){
 }
 $("saveFeedback").onclick=async()=>{
  const message=$("feedbackMessage").value.trim();
- if(offlineSperrtSpeichern("Dieses Feedback"))return;
  if(!message){alert("Bitte ein Feedback eingeben.");return}
+ // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04).
+ if(wsIstOffline()){
+  // Derselbe Text zweimal ist ein Doppelklick, kein zweites Feedback.
+  const r=await wsEinreihen({tabelle:"feedback",titel:message.slice(0,60),
+   schluessel:"feedback:"+$("feedbackModul").value+":"+message,
+   payload:{module:$("feedbackModul").value,message}});
+  if(!r.ok){
+   alert("Keine Verbindung – und dieses Feedback lässt sich auf diesem Gerät auch nicht "
+    +"zwischenspeichern ("+(r.grund||"unbekannter Grund")+").");
+   return;
+  }
+  $("feedbackModal").hidden=true;
+  alert("Keine Verbindung – dein Feedback wartet auf diesem Gerät und wird gesendet, "
+   +"sobald wieder eine Verbindung besteht. Danke!");
+  return;
+ }
  $("saveFeedback").disabled=true;
  const {error}=await sb.from("feedback").insert({
   module:$("feedbackModul").value,

@@ -224,14 +224,16 @@ function renderProjectList(){
   // damit eine lange Adresse ihn nicht verdraengt.
   return `<div class="project-row${p.archived?" project-row-archiviert":""}">
 <div class="project-row-top"><b>${esc(titel)}</b></div>
-<div class="project-row-status">${projektStatusBadge(p)}${p.archived?'<span class="pstatus pstatus-archiv">🗄 Archiviert</span>':""}</div>
+<div class="project-row-status">${projektStatusBadge(p)}${p.archived?'<span class="pstatus pstatus-archiv">🗄 Archiviert</span>':""}${
+   p.wartet?'<span class="pstatus pstatus-wartet">📤 Wartet auf die Übertragung</span>':""}</div>
 <div class="small">${esc(zusatz)}</div>
-<button class="blue project-row-main" data-open-cockpit="${p.id}">📂 Projekt öffnen</button>
+${p.wartet?`<div class="small" style="color:var(--muted);margin-top:6px">Massaufnahmen, Ausmasse und Rapporte lassen sich schon jetzt dazu erfassen – sie warten mit. Öffnen, Bearbeiten, Archivieren und Löschen geht erst nach der Übertragung.</div>`
+ :`<button class="blue project-row-main" data-open-cockpit="${p.id}">📂 Projekt öffnen</button>
 <div class="project-row-actions">
 <button class="gray" data-edit-project="${p.id}">✏️ Bearbeiten</button>
 <button class="gray" data-archive-project="${p.id}">${p.archived?"↩️ Reaktivieren":"📦 Archivieren"}</button>
 <button class="red" data-del-project="${p.id}">🗑 Löschen</button>
-</div>
+</div>`}
 </div>`;
  }).join("")||`<div class="empty">${projektListeLeerText(sichtbar.length)}</div>`;
 }
@@ -346,6 +348,7 @@ async function loadProjectMeasurements(projectId){
 <div class="report-row-actions">
 <button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>`
    +(medien?`<button class="gray" data-meas-medien="${m.id}">📷 Fotos/Skizzen</button>`:"")+`
+<button class="gray" data-kopiere-measurement="${m.id}" title="Als Vorlage für eine neue Massaufnahme">📄 Als Vorlage</button>
 <button class="gray" data-print-project-measurement="${m.id}" title="Drucken">🖨️</button>
 <button class="red" data-del-project-measurement="${m.id}" title="Löschen">×</button>
 </div>
@@ -561,6 +564,12 @@ function openReport(r,returnTo){
  $("customer").value=r.customer||"";
  $("object").value=r.object||"";
  $("vat").value=r.vat||"8.1 %";
+ // Fotos zum Rapport (v3.04). Ein Rapport ohne Fotos bekommt keine
+ // angedichtet - genommen wird genau, was gespeichert ist.
+ if(typeof reportPhotos!=="undefined"){
+  reportPhotos=Array.isArray(r.photo_paths)?r.photo_paths.slice():[];
+  if(typeof renderReportFotos==="function")renderReportFotos();
+ }
  $("projectsModal").hidden=true;
  $("projectCockpitModal").hidden=true;
  $("reportsModal").hidden=true;
@@ -610,11 +619,36 @@ $("addProject").onclick=async()=>{
  const name=$("newProjectName").value.trim();
  const orderNo=$("newProjectOrderNo").value.trim();
  const address=$("newProjectObject").value.trim();
- // Offline (v2.70): klare Absage statt kryptischer Netzwerkmeldung.
- if(offlineSperrtSpeichern("Dieses Projekt"))return;
  if(!name){alert("Bitte einen Projektnamen eingeben.");return}
  if(!orderNo){alert("Bitte eine Auftrags-Nr. eingeben.");return}
  if(!address){alert("Bitte eine Adresse eingeben.");return}
+ // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04). Das
+ // Projekt bekommt eine temporaere ID, damit eine gleich danach erfasste
+ // Massaufnahme schon darauf zeigen kann - beim Senden wird sie durch die
+ // echte ersetzt.
+ if(wsIstOffline()){
+  const r=await wsEinreihen({
+   tabelle:"projects", titel:`${address} · ${name}`,
+   payload:{name,order_no:orderNo,customer:$("newProjectCustomer").value.trim(),object:address}
+  });
+  if(!r.ok){
+   alert("Keine Verbindung – und dieses Projekt lässt sich auf diesem Gerät auch nicht "
+    +"zwischenspeichern ("+(r.grund||"unbekannter Grund")+").");
+   return;
+  }
+  // Damit sofort weitergearbeitet werden kann, steht das Projekt schon in
+  // der Liste - erkennbar als "wartet auf die Übertragung".
+  allProjects=allProjects.concat([{id:r.tmpId,name,order_no:orderNo,
+    customer:$("newProjectCustomer").value.trim(),object:address,
+    archived:false,status:"offen",wartet:true}]);
+  $("newProjectName").value="";$("newProjectOrderNo").value="";
+  $("newProjectCustomer").value="";$("newProjectObject").value="";
+  renderProjectList();renderProjectSelect();
+  alert("Keine Verbindung.\n\nDas Projekt wartet auf diesem Gerät und wird übertragen, "
+   +"sobald wieder eine Verbindung besteht. Massaufnahmen dazu lassen sich schon jetzt "
+   +"erfassen – sie warten mit.");
+  return;
+ }
  const {error}=await sb.from("projects").insert({
   name,
   order_no:orderNo,
@@ -757,6 +791,24 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
    measEditReturnTo="projectCockpit";
    $("projectCockpitModal").hidden=true;
    openMeasurement(m);
+  }
+  return;
+ }
+ // Als Vorlage: die Masse einer bestehenden Massaufnahme werden zur
+ // Grundlage einer NEUEN. Kopiert wird ausschliesslich data und der Typ -
+ // Bezeichnung, Datum, Fotos und Skizzen bleiben leer, damit nichts
+ // Fremdes am neuen Datensatz haengt (v3.04).
+ const kopie=e.target.closest("[data-kopiere-measurement]");
+ if(kopie){
+  const id=Number(kopie.dataset.kopiereMeasurement);
+  const m=projectMeasurementsCache.find(x=>x.id===id);
+  if(m&&typeof measurementAlsVorlage==="function"){
+   measEditReturnTo="projectCockpit";
+   $("projectCockpitModal").hidden=true;
+   // Aus dem Cockpit heraus gehoert die Kopie zu DIESEM Projekt, nicht zu
+   // dem der Vorlage - beides ist hier ohnehin dasselbe, aber der Aufrufer
+   // entscheidet es ausdruecklich.
+   measurementAlsVorlage(m,cockpitProjectId);
   }
   return;
  }

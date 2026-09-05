@@ -47,10 +47,12 @@ function filtere(tabelle,filter){
  return rows;
 }
 function bauer(tabelle){
- const filter=[]; let limit=null,order=null,richtung=true;
+ const filter=[]; let limit=null,order=null,richtung=true,von=null,bis=null;
  const antwort=()=>{
   let rows=filtere(tabelle,filter);
   if(order)rows.sort((a,b)=>String(a[order]||"").localeCompare(String(b[order]||""))*(richtung?1:-1));
+  // .range(von,bis) - seit v3.04 blaettert der Verlauf damit (js/23).
+  if(von!=null)rows=rows.slice(von,bis!=null?bis+1:undefined);
   if(limit!=null)rows=rows.slice(0,limit);
   return {data:rows,error:null,count:rows.length};
  };
@@ -63,6 +65,7 @@ function bauer(tabelle){
   neq(){return b}, not(){return b},
   order(feld,opt){order=feld;richtung=!(opt&&opt.ascending===false);return b},
   limit(n){limit=n;return b},
+  range(a,e){von=a;bis=e;return b},
   insert(){return b}, update(){return b}, delete(){return b}, upsert(){return b},
   maybeSingle(){const a=antwort();return Promise.resolve({data:a.data[0]||null,error:null})},
   single(){const a=antwort();return Promise.resolve({data:a.data[0]||null,error:null})},

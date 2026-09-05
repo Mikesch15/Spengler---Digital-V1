@@ -234,3 +234,18 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
     display:none !important;
   }
 }
+
+/* v3.04: Fotos zum Regierapport. Sie stehen vor den Unterschriften und
+   werden mitgedruckt - der Erfassungsteil darueber traegt no-print.
+   Auf dem Bildschirm bleibt es bei den kleinen Vorschaubildern; im Druck
+   sollen sie lesbar gross sein, aber nicht die Seite sprengen. */
+@media print {
+  #reportFotoGalerie{display:flex;flex-wrap:wrap;gap:4mm;margin:4mm 0}
+  /* .sketch-thumb-wrap hat auf dem Bildschirm feste 84x118 px - im Druck
+     muss der Rahmen dem Bild folgen, sonst bleibt das Foto briefmarkengross. */
+  #reportFotoGalerie .sketch-thumb-wrap{width:auto;height:auto;overflow:visible;
+    border:0;background:none;break-inside:avoid;page-break-inside:avoid}
+  #reportFotoGalerie .sketch-thumb{width:auto;height:auto;
+    max-width:85mm;max-height:70mm;object-fit:contain;border:1px solid #ccc}
+  #reportFotoGalerie:empty{display:none}
+}

@@ -270,3 +270,56 @@ $("matBody").addEventListener("click",e=>{
 $("addWork").onclick=()=>{works.push({date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0});renderMain()};
 $("addMat").onclick=()=>{mats.push({date:new Date().toISOString().slice(0,10),no:"",qty:0});renderMain()};
 $("vat").addEventListener("input",updateTotals);
+
+// ---------------------------------------------------------------------------
+// Fotos zum Regierapport (v3.04)
+//
+// Bis v3.03 gab es sie nicht - dafuer brauchte es eine Schema-Erweiterung UND
+// einen Eingriff in die Rapport-Drucklogik, die in CLAUDE.md unter "nicht
+// veraendern" stand. Der Betrieb hat beides ausdruecklich freigegeben
+// (Ansage 05.09.2026).
+//
+// Der Speicherpfad ist wie bei den Massaufnahmen fest am Projekt verankert:
+//   reports/<projectId>/<reportId>/photo/<datei>
+// Damit gilt dieselbe geschlossene Positivliste aus v2.48 - es entsteht keine
+// neue flache Kategorie, und die Firmenzugehoerigkeit steckt im Pfad. Ein
+// Rapport ohne Projekt kann deshalb kein Foto tragen; das Speichern verlangt
+// ohnehin schon ein Projekt.
+let reportPhotos=[];          // gespeicherte Pfade und neue data:-Bilder
+
+function reportFotoStatus(){
+ const el=$("reportFotoStatus");
+ if(!el)return;
+ el.textContent=reportPhotos.length
+  ? (reportPhotos.length===1?"1 Foto":reportPhotos.length+" Fotos")+" – sie werden mitgedruckt."
+  : "Noch kein Foto. Fotos gehören zum Rapport und werden mitgedruckt.";
+}
+function renderReportFotos(){
+ const box=$("reportFotoGalerie");
+ if(!box)return;
+ box.innerHTML=reportPhotos.map((src,i)=>`<div class="sketch-thumb-wrap">
+<img class="sketch-thumb" data-signed-src="${esc(src)}">
+<div class="sketch-thumb-actions no-print">
+<button type="button" class="red" data-report-foto-weg="${i}">✕</button>
+</div></div>`).join("");
+ if(typeof resolveSignedThumbnails==="function")resolveSignedThumbnails(box);
+ reportFotoStatus();
+}
+if($("reportPhotoInput")){
+ $("reportPhotoInput").addEventListener("change",async e=>{
+  const dateien=Array.from(e.target.files||[]);
+  e.target.value="";
+  for(const f of dateien){
+   try{ reportPhotos.push(await resizeImageFile(f,1600,0.8)); }
+   catch(err){ alert("Ein Foto konnte nicht übernommen werden: "+(err&&err.message?err.message:err)); }
+  }
+  if(dateien.length){isDirty=true;renderReportFotos()}
+ });
+}
+document.addEventListener("click",e=>{
+ const b=e.target.closest?e.target.closest("[data-report-foto-weg]"):null;
+ if(!b)return;
+ reportPhotos.splice(Number(b.dataset.reportFotoWeg),1);
+ isDirty=true;
+ renderReportFotos();
+});

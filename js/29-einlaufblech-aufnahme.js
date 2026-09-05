@@ -828,6 +828,9 @@ function ebaZusatzDaten(){
         gerechnet:ebaGavaAnzahl()},
   flaeche_m2:Number(ebaFlaecheM2().toFixed(3)),
   ausmass:ebaAusmassZeilen(),
+  // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen
+  // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
+  kontrolle:ebaPruefungen(),
   rollen:{auswahl:(ebA.rollenAuswahl||[]).slice(),
           abschnittLaenge:plan.abschnittLaenge,
           abschnitte:plan.bestes?plan.bestes.abschnitte:0,

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.03.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.04.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -478,6 +478,35 @@ Massaufnahmen – eine einmal gespeicherte Massaufnahme rechnet weiter mit den
 Werten, die beim Erfassen galten.</p>
 <p>Die Vorgabemasse gelten je Gerät, nicht firmenweit.</p>`},
 
+"vorlage":{titel:"Als Vorlage",text:`
+<p>Übernimmt <b>Typ, Material und alle Masse</b> einer bestehenden Massaufnahme
+in eine neue. Gedacht für die Konstruktion, die immer wieder gleich kommt –
+statt sie jedes Mal neu einzutippen.</p>
+<p>Nicht übernommen werden Bezeichnung, Notiz, Datum, <b>Fotos und Skizzen</b>
+(sie zeigen ein anderes Dach) und das Projekt – die Vorlage ist gerade dann
+nützlich, wenn dieselbe Konstruktion auf einer <b>anderen</b> Baustelle
+wiederkommt. Das Projekt bleibt deshalb das gerade gewählte.</p>
+<p>Die Kopie ist ein eigenständiger Datensatz. Sie ist mit der Vorlage nicht
+verbunden: eine spätere Änderung wirkt nicht auf die andere.</p>`},
+"zugangsdaten":{titel:"Zugangsdaten weitergeben",text:`
+<p>Benutzername und Startpasswort des neu angelegten Kontos – zum Kopieren
+oder direkt Weitergeben. <b>Das Startpasswort wird nur dieses eine Mal
+angezeigt</b> und lässt sich danach nicht mehr abrufen; es liegt serverseitig
+nur verschlüsselt. Geht es verloren, setzt ein Administrator in der
+Mitarbeiterliste ein neues.</p>
+<p>Beim ersten Anmelden muss die Person ein eigenes Passwort vergeben – das
+Startpasswort gilt also nur für den einen ersten Zugang.</p>`},
+"excel-import":{titel:"Liste aus Excel einlesen",text:`
+<p>Eine Lieferantenliste als Excel- oder CSV-Datei einlesen, statt sie
+abzutippen. Die Datei muss <b>keine bestimmte Spaltenreihenfolge</b> haben:
+nach dem Auswählen wird gezeigt, welche Spalte die App wofür hält, und das
+lässt sich für jedes Feld ändern.</p>
+<p>Pflichtfelder sind mit einem roten Stern gekennzeichnet. Zeilen, bei denen
+ein Pflichtfeld leer ist, werden <b>nicht</b> importiert – wie viele das sind,
+steht über der Vorschau. Erst was in der Vorschau steht, wird auch gespeichert.</p>
+<p>Der Import <b>ergänzt</b> die bestehende Liste. Es wird nichts gelöscht und
+nichts überschrieben; eine bereits vorhandene Nummer kommt dadurch ein zweites
+Mal in die Liste – vorher prüfen, ob sie schon da ist.</p>`},
 "einst-material":{titel:"Material",text:`
 <p>Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt
 <b>firmenweit</b>.</p>
@@ -553,6 +582,27 @@ Liste zeigt sie mit Pfad, Grösse und Datum.</p>
 <p>Es wird nichts automatisch gelöscht. Beim Löschen prüft der Server die
 Liste nochmals selbst: eine Datei, auf die noch etwas zeigt, kann darüber
 nicht entfernt werden.</p>`},
+"warteschlange":{titel:"Wartet auf die Übertragung",text:`
+<p>Ohne Verbindung – auf dem Dach, im Keller, im Funkloch – lässt sich
+trotzdem erfassen: Projekt anlegen, Massaufnahme, Ausmass, Regierapport und
+Feedback. Der Eintrag liegt dann auf <b>diesem Gerät</b> und wird gesendet,
+sobald wieder eine Verbindung besteht. Das geschieht von selbst; mit
+&bdquo;Jetzt übertragen&ldquo; lässt es sich anstossen.</p>
+<p><b>Solange etwas hier steht, ist es noch nicht in der Datenbank.</b> Bitte
+das Gerät nicht zurücksetzen, den Browser-Speicher nicht löschen und die App
+nicht neu installieren, bevor die Liste leer ist.</p>
+<p>Hat jemand anderes einen geänderten Datensatz zwischenzeitlich bearbeitet,
+wird <b>nichts überschrieben</b>. Der Eintrag bleibt als Konflikt stehen, und
+du entscheidest: die eigene Fassung nehmen oder verwerfen.</p>
+<p>Löschen, Archivieren und die Verwaltung (Mitarbeiter, Rechte,
+Einstellungen, Kataloge) brauchen weiterhin eine Verbindung.</p>`},
+"rapport-fotos":{titel:"Fotos zum Rapport",text:`
+<p>Fotos, die zu diesem Regierapport gehören – etwa der Zustand vor dem
+Eingriff oder die ausgeführte Arbeit. Sie werden <b>mitgedruckt</b> und
+stehen im Ausdruck vor den Unterschriften.</p>
+<p>Ein Rapport muss dafür einem Projekt zugeordnet sein: der Speicherort
+hängt am Projekt, so wie bei den Massaufnahmen.</p>`},
+
 "einst-schnittfuge":{titel:"Schnittfuge und Reste",text:`
 <p>Die <b>Schnittfuge</b> ist die Breite, die Schere oder Säge beim Trennen
 wegnimmt. Sie wird bei jedem Schnitt abgezogen – sowohl beim Längsteilen der
