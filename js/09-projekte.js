@@ -98,11 +98,18 @@ async function renderRecentProjects(){
  if(!box)return;
  const lauf=++recentProjectsLauf;
  const felder="project_id,updated_at,updated_by";
- const [mRes,aRes,rRes,fRes]=await Promise.all([
+ const [mRes,aRes,rRes,fRes,logRes]=await Promise.all([
   sb.from("measurements").select(felder).order("updated_at",{ascending:false}).limit(RECENT_QUELLE_LIMIT),
   sb.from("ausmass").select(felder).order("updated_at",{ascending:false}).limit(RECENT_QUELLE_LIMIT),
   sb.from("reports").select(felder).order("updated_at",{ascending:false}).limit(RECENT_QUELLE_LIMIT),
-  sb.from("project_files").select("project_id,created_at,updated_at,created_by,updated_by").order("created_at",{ascending:false}).limit(RECENT_QUELLE_LIMIT)
+  sb.from("project_files").select("project_id,created_at,updated_at,created_by,updated_by").order("created_at",{ascending:false}).limit(RECENT_QUELLE_LIMIT),
+  // Fuenfte Quelle seit v3.04 (CLAUDE.md 49.8): das Aenderungsprotokoll
+  // kennt auch LOESCHUNGEN - eine geloeschte Massaufnahme hinterlaesst keine
+  // Zeile mehr, deren updated_at man lesen koennte, wohl aber einen
+  // audit_log-Eintrag. Bewusst ZUSAETZLICH statt als Ersatz: das Protokoll
+  // gibt es erst seit v2.30, aeltere Arbeit steht nur in den vier Tabellen.
+  // Der spaeteste Zeitpunkt aus allen fuenf gewinnt.
+  sb.from("audit_log").select("project_id,created_at,user_id").order("created_at",{ascending:false}).limit(RECENT_QUELLE_LIMIT)
  ]);
  if(lauf!==recentProjectsLauf)return;   // neuere Aktualisierung laeuft bereits
  const fehler=[mRes,aRes,rRes,fRes].find(x=>x.error);
@@ -124,6 +131,9 @@ async function renderRecentProjects(){
  (aRes.data||[]).forEach(x=>merke(x.project_id,x.updated_at,x.updated_by));
  (rRes.data||[]).forEach(x=>merke(x.project_id,x.updated_at,x.updated_by));
  (fRes.data||[]).forEach(x=>merke(x.project_id,x.updated_at||x.created_at,x.updated_by||x.created_by));
+ // Ein Fehler im Protokoll darf den Schnellzugriff nicht leeren - dann
+ // zaehlen eben nur die vier Tabellen, wie bis v3.03.
+ if(!logRes.error)(logRes.data||[]).forEach(x=>merke(x.project_id,x.created_at,x.user_id));
 
  // Nur aktive Projekte der eigenen Firma: allProjects ist bereits
  // RLS-gefiltert, archivierte bleiben im Schnellzugriff aussen vor.

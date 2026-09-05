@@ -54,13 +54,24 @@ function measMedienStatus(){
  const f=measPhotos.length;
  const n=measSketches.length;
  if(!f&&!n){
-  box.innerHTML='<span style="color:#8a5312">Noch kein Foto und keine Skizze – mindestens eines von beiden ist zum Speichern nötig.</span>';
+  box.innerHTML='<span style="color:#8a5312">Noch kein Foto und keine Skizze – mindestens eines von beiden ist zum Speichern nötig.</span>'+measProjektHinweis();
   return;
  }
  const teile=[];
  if(f)teile.push(f===1?"1 Foto":f+" Fotos");
  if(n)teile.push(n===1?"1 Skizze":n+" Skizzen");
- box.innerHTML='<span style="color:#1f5c39">✓ '+esc(teile.join(" · "))+' erfasst.</span>';
+ box.innerHTML='<span style="color:#1f5c39">✓ '+esc(teile.join(" · "))+' erfasst.</span>'+measProjektHinweis();
+}
+// Ohne Projekt laesst sich eine Massaufnahme ueberhaupt nicht speichern -
+// js/16 bricht dann mit einer Meldung ab, und Fotos haetten ausserdem keinen
+// gueltigen Speicherpfad (er waere "measurements/null/...", CLAUDE.md 56.7).
+// Bis v3.03 erfuhr man das erst beim Druck auf Speichern, also nach dem
+// Erfassen. Jetzt steht es von Anfang an da.
+function measProjektHinweis(){
+ const ohne=(typeof measSelectedProjectId==="undefined")||!measSelectedProjectId;
+ return ohne
+  ?'<br><span style="color:#8a5312">Noch kein Projekt gewählt – ohne Projekt lässt sich die Massaufnahme nicht speichern.</span>'
+  :"";
 }
 function renderMeasPhotoGallery(){
  const box=$("measPhotoGallery");
@@ -341,6 +352,9 @@ function setMeasProjectField(projId){
  $("measProjectSelectedLabel").textContent=proj?"":"Kein Projekt ausgewählt";
  if($("measType").value==="einlaufblech_konisch")refreshEbkRinneList();
  if($("measType").value==="einlaufblech_gerade")refreshEbRinneList();
+ // Der Hinweis "zum Speichern der Bilder muss ein Projekt gewaehlt sein"
+ // muss verschwinden, sobald eines gewaehlt ist.
+ measMedienStatus();
 }
 $("measProjectResults").addEventListener("click",e=>{
  const it=e.target.closest("[data-pick-meas-project]");if(!it)return;

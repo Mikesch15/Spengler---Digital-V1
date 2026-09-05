@@ -254,35 +254,75 @@ function verlaufFiltersHtml(withEntityFilter){
 // Gemeinsamer Kern: führt die Abfrage aus (Query wird von den beiden
 // Aufrufern loadVerlauf()/loadProjectVerlauf() zusammengestellt) und
 // rendert Filterleiste(n) + Liste in box.
-async function runVerlaufQuery(box,query,combined){
+// Wie viele Eintraege eine Seite umfasst. Bis v3.03 war das ein fester
+// Deckel ohne Nachladen - bei einem langlaufenden Projekt fehlte irgendwann
+// der Anfang (CLAUDE.md 40.10). Jetzt eine Seitengroesse mit "Mehr laden".
+const VERLAUF_SEITE=50;
+
+async function runVerlaufQuery(box,query,combined,nachladen){
  box.innerHTML=`${verlaufFiltersHtml(combined)}
 <div class="verlauf-entries"><div class="small">Lädt…</div></div>`;
- const {data,error}=await query;
+ const {data,error}=await query(0);
  const list=box.querySelector(".verlauf-entries");
  if(error){
   list.innerHTML=`<div class="small" style="color:var(--red)">Verlauf konnte nicht geladen werden: ${esc(error.message)}</div>`;
   return;
  }
- verlaufState.set(box,{rows:data||[],actionFilter:"alle",entityFilter:"alle",combined});
+ verlaufState.set(box,{rows:data||[],actionFilter:"alle",entityFilter:"alle",combined,
+   query,vollstaendig:!data||data.length<VERLAUF_SEITE});
  if(!data||!data.length){
   list.innerHTML='<div class="empty">Noch keine Aktivitäten vorhanden.</div>';
   return;
  }
  renderVerlaufFiltered(box);
- // Auftrag Abschnitt 16: Limit von 50 bleibt bestehen, aber dezent
- // kommunizieren, falls dadurch tatsächlich etwas fehlen könnte.
- let hint=box.querySelector(".verlauf-limit-hint");
- if(data.length>=50){
-  if(!hint){
-   hint=document.createElement("div");
-   hint.className="small verlauf-limit-hint";
-   hint.style.marginTop="4px";
-   box.appendChild(hint);
-  }
-  hint.textContent="Zeigt die letzten 50 Einträge.";
- }else if(hint){
-  hint.remove();
+ verlaufMehrKnopf(box);
+}
+
+// Zeigt "Mehr laden", solange die letzte Seite voll war - dann kann es noch
+// aeltere Eintraege geben. Ist alles geladen, steht das ausdruecklich da,
+// statt den Knopf wortlos verschwinden zu lassen.
+function verlaufMehrKnopf(box){
+ const st=verlaufState.get(box);
+ if(!st)return;
+ let fuss=box.querySelector(".verlauf-mehr");
+ if(!fuss){
+  fuss=document.createElement("div");
+  fuss.className="verlauf-mehr";
+  fuss.style.marginTop="6px";
+  box.appendChild(fuss);
  }
+ if(st.vollstaendig){
+  fuss.innerHTML=st.rows.length>VERLAUF_SEITE
+   ? `<div class="small" style="color:var(--muted)">Alle ${st.rows.length} Einträge geladen.</div>`
+   : "";
+  return;
+ }
+ fuss.innerHTML=`<button type="button" class="gray verlauf-mehr-knopf">↓ Weitere ${VERLAUF_SEITE} Einträge laden</button>
+<div class="small" style="color:var(--muted);margin-top:2px">${st.rows.length} Einträge geladen – es gibt ältere.</div>`;
+}
+
+// Haengt die naechste Seite an. Die bereits geladenen Zeilen bleiben stehen -
+// die Liste waechst, sie wird nicht ersetzt.
+async function verlaufMehrLaden(box){
+ const st=verlaufState.get(box);
+ if(!st||!st.query||st.vollstaendig)return;
+ const knopf=box.querySelector(".verlauf-mehr-knopf");
+ if(knopf){knopf.disabled=true;knopf.textContent="Lädt…"}
+ const {data,error}=await st.query(st.rows.length);
+ if(error){
+  const fuss=box.querySelector(".verlauf-mehr");
+  if(fuss)fuss.innerHTML=`<div class="small" style="color:var(--red)">Weitere Einträge konnten nicht geladen werden: ${esc(error.message)}</div>`;
+  return;
+ }
+ // Dieselbe id kann durch einen zwischenzeitlich neuen Eintrag zweimal
+ // kommen - deshalb ueber die id zusammenfuehren statt blind anzuhaengen.
+ const bekannt=new Set(st.rows.map(r=>r.id));
+ const neu=(data||[]).filter(r=>!bekannt.has(r.id));
+ st.rows=st.rows.concat(neu);
+ st.vollstaendig=!data||data.length<VERLAUF_SEITE;
+ verlaufState.set(box,st);
+ renderVerlaufFiltered(box);
+ verlaufMehrKnopf(box);
 }
 
 // Direkter Verlauf genau eines Datensatzes (Massaufnahme/Ausmass/Report/
@@ -290,8 +330,8 @@ async function runVerlaufQuery(box,query,combined){
 // auf die eigene Firma, bewusst kein company_id-Filter vom Client.
 async function loadVerlauf(box,entityType,entityId){
  await runVerlaufQuery(box,
-  sb.from("audit_log").select("*").eq("entity_type",entityType).eq("entity_id",entityId)
-    .order("created_at",{ascending:false}).limit(50),
+  ab=>sb.from("audit_log").select("*").eq("entity_type",entityType).eq("entity_id",entityId)
+    .order("created_at",{ascending:false}).range(ab,ab+VERLAUF_SEITE-1),
   false);
 }
 
@@ -301,8 +341,8 @@ async function loadVerlauf(box,entityType,entityId){
 // write_audit_log() gesetzt, nie vom Client (siehe CLAUDE.md 40.3/40.4).
 async function loadProjectVerlauf(box,projectId){
  await runVerlaufQuery(box,
-  sb.from("audit_log").select("*").eq("project_id",projectId)
-    .order("created_at",{ascending:false}).limit(50),
+  ab=>sb.from("audit_log").select("*").eq("project_id",projectId)
+    .order("created_at",{ascending:false}).range(ab,ab+VERLAUF_SEITE-1),
   true);
 }
 
@@ -310,6 +350,16 @@ async function loadProjectVerlauf(box,projectId){
 // Kontext) statt eigener Listener pro Aufrufstelle. Action- und
 // Entitäts-Filter sind unabhängige Zustände und wirken kombiniert.
 document.addEventListener("click",e=>{
+ // "Mehr laden" - der Knopf entsteht erst beim Zeichnen, deshalb delegiert.
+ const mehr=e.target.closest?e.target.closest(".verlauf-mehr-knopf"):null;
+ if(mehr){
+  // Der Knopf sitzt in ".verlauf-mehr", das ein direktes Kind der Box ist -
+  // und genau dieses Element ist der Schluessel in verlaufState.
+  const fuss=mehr.closest(".verlauf-mehr");
+  const box=fuss&&fuss.parentElement;
+  if(box)verlaufMehrLaden(box);
+  return;
+ }
  const afb=e.target.closest("[data-verlauf-filter]");
  if(afb){
   const box=afb.closest("[data-verlauf-filter-group]")?.parentElement;
