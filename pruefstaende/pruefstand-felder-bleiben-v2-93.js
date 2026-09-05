@@ -15,7 +15,7 @@ let ok=0,fail=0;
 const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
   console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,300):""))}};
 
-// Die acht Arten mit Registern, mit ihrem Wurzelelement und der Umschaltfunktion.
+// Die neun Arten mit Registern, mit ihrem Wurzelelement und der Umschaltfunktion.
 const ARTEN=[
  {typ:"rinne_halbrund",      wurzel:"measTypeRinne",                 setz:"raSetzeSchritt",   reg:"RA_REGISTER"},
  {typ:"einlaufblech_gerade", wurzel:"measTypeEinlaufblech",          setz:"ebaSetzeSchritt",  reg:"EBA_REGISTER"},
@@ -24,7 +24,8 @@ const ARTEN=[
  {typ:"mauerabdeckung",      wurzel:"measTypeMauerabdeckung",        setz:"madaSetzeSchritt", reg:"MADA_REGISTER"},
  {typ:"kehle",               wurzel:"measTypeKehle",                 setz:"keaSetzeSchritt",  reg:"KEA_REGISTER"},
  {typ:"lukarne",             wurzel:"measTypeLukarne",               setz:"lukaSetzeSchritt", reg:"LUKA_REGISTER"},
- {typ:"kamineinfassung",     wurzel:"measTypeKamin",                 setz:"kamaSetzeSchritt", reg:"KAM_REGISTER"}
+ {typ:"kamineinfassung",     wurzel:"measTypeKamin",                 setz:"kamaSetzeSchritt", reg:"KAM_REGISTER"},
+ {typ:"einfassung_rund",     wurzel:"measTypeEinfassungRund",        setz:"einfaSetzeSchritt",reg:"EINFA_REGISTER"}
 ];
 
 (async()=>{

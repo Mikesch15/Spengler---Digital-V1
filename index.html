@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.95</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.96</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -842,26 +842,27 @@ mindestens eines von beiden ist nötig.</div>
 </div>
 
 <div id="measTypeEinfassungRund" hidden>
-<div class="info">Einfassung f&uuml;r ein rundes Standrohr (Dunstrohreinfassung). Es wird nur der seitliche Querschnitt gezeichnet und bemessen &ndash; der Umfang um das Rohr wird nicht dargestellt. Die &bdquo;Breite der gesamten Einfassung&ldquo; ist eine eigenst&auml;ndige Zahl aus Rohrdurchmesser + 2&times; Umschlag + 2&times; Mass seitlich neben Rohr (Werte aus den Einstellungen).</div>
-<div class="grid">
-<div><label>Eindeckungsart</label><select id="einf_deckung"></select></div>
-<div><label>&Oslash; Standrohr (mm)</label><input id="einf_durchmesser" data-pflicht="1" type="number" step="1" inputmode="numeric"></div>
-<div><label>Winkel / Dachneigung (&deg;)</label><input id="einf_winkel" type="number" step="0.1"></div>
-<div><label>Material</label><select id="einf_material" class="meas-material-select"></select></div>
+<div id="einfassungAufnahme"></div>
+
+<!-- Die alten Felder bleiben unsichtbar stehen: js/21-einfassung-rund.js
+     h&auml;ngt beim Laden Handler an genau diese IDs und f&uuml;llt sie. Ohne den
+     Stummel w&uuml;rde die Fachdatei beim Start ins Leere greifen. Gleiches
+     Vorgehen wie #rinneStummel, #ebStummel, #ebkStummel, #fpStummel,
+     #madStummel, #kehleStummel, #lukStummel und #kamStummel. -->
+<div id="einfStummel" hidden>
+<select id="einf_deckung"></select>
+<input id="einf_durchmesser" type="number">
+<input id="einf_winkel" type="number">
+<select id="einf_material" class="meas-material-select"></select>
+<input id="einf_a" type="number">
+<input id="einf_b" type="number">
+<input id="einf_c" type="number">
+<input id="einf_lattenabstand" type="number">
+<button type="button" id="openEinfassungSettings">Einstellungen</button>
+<div id="einf_zeichnung"></div>
+<div id="einf_warnung"></div>
+<div id="einf_ergebnis"></div>
 </div>
-<h2 style="margin-top:14px">Masse des Schnitts</h2>
-<div class="grid">
-<div><label>a &middot; vorne auf Deckmaterial bis Mitte Rohr (mm)</label><input type="number" step="1" inputmode="numeric" id="einf_a" data-pflicht="1"></div>
-<div><label>b &middot; ab Mitte Rohr bis hinten unter Deckmaterial (mm)</label><input type="number" step="1" inputmode="numeric" id="einf_b"></div>
-<div><label>c &middot; Aufbug 90&deg;, oben Umschlag 135&deg; (mm)</label><input type="number" step="1" inputmode="numeric" id="einf_c" data-pflicht="1"></div>
-<div><label>Lattenabstand, f&uuml;r Anzahl Bleilappen (mm)</label><input type="number" step="1" inputmode="numeric" id="einf_lattenabstand"></div>
-</div>
-<div class="bar" style="margin-top:6px"><button type="button" class="gray" id="openEinfassungSettings">⚙️ Standardwerte</button></div>
-<h2 style="margin-top:14px">Schnitt</h2>
-<div id="einf_zeichnung" class="eb-diagram-box"></div>
-<div id="einf_warnung" class="small"></div>
-<h2 style="margin-top:14px">Ergebnis</h2>
-<div class="grid" id="einf_ergebnis"></div>
 </div>
 
 <div id="measTypeRinneProfil" hidden>
@@ -1625,6 +1626,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/35-pdf-listen.js"></script>
 <script src="js/36-lukarne-aufnahme.js"></script>
 <script src="js/37-kamin-aufnahme.js"></script>
+<script src="js/38-einfassung-aufnahme.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

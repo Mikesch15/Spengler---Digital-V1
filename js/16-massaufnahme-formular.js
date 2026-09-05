@@ -24,7 +24,8 @@ function showMeasTypeSection(type){
  if(type==="mauerabdeckung"){renderMadResult();if(typeof renderMauerabdeckungAufnahme==="function")renderMauerabdeckungAufnahme();}
  if(type==="lukarne"&&typeof renderLukarneAufnahme==="function")renderLukarneAufnahme();
  if(type==="anschlussblech")renderAnbResult();
- if(type==="einfassung_rund")renderEinfResult();
+ if(type==="einfassung_rund"){renderEinfResult();
+  if(typeof renderEinfassungAufnahme==="function")renderEinfassungAufnahme();}
  if(type==="kamineinfassung"&&typeof renderKaminAufnahme==="function")renderKaminAufnahme();
  if(type==="kehle"&&typeof renderKehleAufnahme==="function")renderKehleAufnahme();
  if(type==="rinne")renderRinneResult();
@@ -52,7 +53,7 @@ $("openEinlaufblechSettings").onclick=()=>{
 // erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
 // Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
 // sichtbar.
-const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne","kamineinfassung"];
+const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne","kamineinfassung","einfassung_rund"];
 let measMedienAufgeklappt=false;
 // Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
 // fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
@@ -205,6 +206,12 @@ function buildMeasurementFromForm(){
   }};
  }
  if(type==="einfassung_rund"){
+  // Seit v2.96 kommen alle Werte aus dem Register-Modul js/38. Der Payload
+  // ist ein SUPERSET: die Felder des alten Formulars bleiben unveraendert
+  // erhalten (mit den Werten der ersten Einfassung), damit ein Datensatz bis
+  // v2.95 unveraendert oeffnet und druckt.
+  if(typeof einfaDaten==="function")
+   return {...base,...measMedienAusFormular(),data:einfaDaten()};
   const e=einfEingabenAusFeldern();
   const g=einfBerechnen(e);
   return {...base,...measMedienAusFormular(),data:{...e,
@@ -317,9 +324,16 @@ $("saveMeasurement").onclick=async()=>{
   if(!(Number(e.a)>0)){alert("Bitte mindestens das Mass a eingeben.");return}
  }
  if(type==="einfassung_rund"){
-  const e=einfEingabenAusFeldern();
-  if(!(Number(e.durchmesser)>0)){alert("Bitte den Rohrdurchmesser eingeben.");return}
-  if(!(Number(e.a)>0)||!(Number(e.c)>0)){alert("Bitte mindestens die Masse a und c eingeben.");return}
+  // Die Kontrolle des Moduls ist die eine Wahrheit - was dort ein Fehler ist,
+  // blockiert auch das Speichern.
+  if(typeof einfaPruefungen==="function"){
+   const f=einfaPruefungen().filter(x=>x.art==="fehler");
+   if(f.length){alert(f.map(x=>x.text).join("\n"));return}
+  }else{
+   const e=einfEingabenAusFeldern();
+   if(!(Number(e.durchmesser)>0)){alert("Bitte den Rohrdurchmesser eingeben.");return}
+   if(!(Number(e.a)>0)||!(Number(e.c)>0)){alert("Bitte mindestens die Masse a und c eingeben.");return}
+  }
  }
  if(type==="kamineinfassung"){
   // Die Kontrolle des Moduls ist die eine Wahrheit - was dort ein Fehler
@@ -996,6 +1010,34 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr><td>c</td><td>Aufbug 90°, oben Umschlag 135°</td><td>${esc(Math.round(d.c||0))} mm</td></tr>
 </tbody>
 </table>
+${(()=>{
+  // Ab v2.96 koennen mehrere Einfassungen erfasst sein. Gedruckt wird
+  // ausschliesslich, was beim Speichern abgelegt wurde - ein einmal
+  // gedrucktes Blatt bleibt gleich. Ein Datensatz bis v2.95 hat diese
+  // Felder nicht; dann bleiben die Abschnitte weg.
+  const liste=Array.isArray(d.einfassungen)?d.einfassungen:[];
+  if(liste.length<2&&!Array.isArray(d.zuschnitte))return "";
+  const teile=Array.isArray(d.zuschnitte)?d.zuschnitte:[];
+  const bl=d.bleilappenGesamt;
+  return (teile.length?`<div class="eb-section-head">Stückliste</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Einfassung</th><th>Zuschnitt L × B (mm)</th><th>Bleilappen</th></tr></thead>
+<tbody>${teile.map(t=>`<tr><td>${esc(t.nr)}</td>
+<td>${esc(t.name)}${t.hinweis?" · "+esc(t.hinweis):""}</td>
+<td>${esc(pdfLxB(t.laenge,t.breite))}</td>
+<td>${t.bleilappen===null||t.bleilappen===undefined?"–":esc(t.bleilappen)}</td></tr>`).join("")}</tbody>
+${(bl!==null&&bl!==undefined)?`<tfoot><tr><td colspan="3">Bleilappen gesamt</td><td>${esc(bl)}</td></tr></tfoot>`:""}
+</table>`:"")
+   +(d.flaeche_m2?`<div class="note" style="font-size:8pt;color:#68737d">Blechfläche ${
+      esc(String(d.flaeche_m2).replace(".",","))} m²</div>`:"")
+   +zuDruckHtml(d.rollen,0,"Einfassung")
+   +((Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td>
+<td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`:"");
+ })()}
 ${(erg&&erg.warnungen.length)?`<div class="note" style="color:#b42318">${erg.warnungen.map(w=>esc(w)).join("<br>")}</div>`:""}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;

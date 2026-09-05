@@ -15652,3 +15652,232 @@ Neue Datensätze speichern `winkelBezug:"dach"` mit.
 - Die Dachneigung selbst wird weiterhin **nicht** erfasst und nicht gebraucht –
   sie steckt in den beiden Winkeln. Bei einem lotrechten Kamin ist sie
   `Innenwinkel vorne − 90`.
+
+## 100. EINFASSUNG RUND ALS REGISTER-AUFNAHME — VERSION 2.96
+
+Die Massaufnahme **Einfassung Rund** wird nicht mehr als ein einzelnes
+Formular erfasst, sondern über **sechs Register** – neuntes Modul nach
+demselben Muster wie Rinne Halbrund (v2.71), Einlaufblech gerade (v2.74)
+und konisch (v2.76), Freies Profil (v2.77), Mauerabdeckung (v2.79), Kehle
+(v2.83), Lukarne (v2.87) und Kamineinfassung (v2.90).
+
+    1 Grunddaten · 2 Einfassungen · 3 Stückliste ·
+    4 Zuschnitt · 5 Ausmass · 6 Kontrolle
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung.**
+
+### 100.1 js/21-einfassung-rund.js bleibt byteweise unverändert
+
+Die Fachrechnung ist die Wahrheit: `einfBerechnen()`, `einfProfil()`,
+`einfZeichnung()`, `einfVorgabe()` und `EINF_DECKUNGEN` stammen unverändert
+aus `js/21-einfassung-rund.js` – per `git diff` bestätigt.
+
+Beide Funktionen sind **zustandslos** (sie nehmen ein Eingabeobjekt), was
+dieses Modul von den acht vorherigen unterscheidet: es braucht keine
+Wertübergabe über versteckte Felder, jede Einfassung der Liste wird einzeln
+durch dieselbe Rechnung geschickt.
+
+```js
+function einfaBerechne(e,quelle){
+ if(typeof einfBerechnen!=="function")return null;
+ return einfBerechnen(einfaEingabe(e,quelle));
+}
+```
+
+Es gibt **keinen Nachbau** – der Prüfstand vergleicht das Ergebnis Zeichen
+für Zeichen mit dem direkten Aufruf der Fachdatei. Die alten Formularfelder
+stehen weiterhin unsichtbar als **`#einfStummel`** im HTML, damit js/21 beim
+Laden seine Handler anhängen kann (wie `#rinneStummel`, `#ebStummel`,
+`#ebkStummel`, `#fpStummel`, `#madStummel`, `#kehleStummel`, `#lukStummel`
+und `#kamStummel`).
+
+### 100.2 Mehrere Einfassungen je Massaufnahme
+
+Das war die einzige echte fachliche Lücke: auf einem Dach steht selten nur
+ein Rohr. Jede Einfassung hat jetzt eine eigene Bezeichnung, eigene Masse
+(Durchmesser, Dachneigung, a, b, c) und eine **Stückzahl**.
+
+Gerechnet wird je Einfassung mit der unveränderten Fachrechnung; die
+Eindeckungsart und der Lattenabstand gelten für die ganze Aufnahme, weil sie
+zum Dach gehören und nicht zum einzelnen Rohr.
+
+Vorbelegt ist die Vorgabe aus js/21 (Ø110, 30°) – unverändertes Verhalten,
+das alte Formular war ebenso vorbelegt. Der wirklich leere Zustand ist
+deshalb ein **leerer Durchmesser**, nicht eine leere Liste; der Prüfstand
+prüft ihn genau so.
+
+### 100.3 Neu gegenüber v2.95
+
+- **Stückliste** je Einfassung mit Zuschnitt `Länge × Breite`
+  (Gesamtbreite × Abwicklung, v2.81-Standard) und Bleilappen.
+- **Zuschnitt aus Rollenblech** über die gemeinsamen Bausteine:
+  `zuschnittHtml()` / `zuDruckHtml()` aus js/33, gepackt mit
+  `ebaPackeInStreifen()` aus js/29 – es gibt in der App weiterhin genau
+  **eine** Packrechnung. Gepackt wird je Abwicklung (jede Rohrgrösse hat
+  ihre eigene Streifenbreite), wie beim Freien Profil und bei der Lukarne.
+  Die Rollenbreiten kommen aus `app_settings.blech_rollenbreiten`
+  (firmenweit, seit v2.74) mit der Auswahl je Massaufnahme (v2.85) –
+  **keine neue Einstellung**.
+- **Ausmass und Materialübersicht** ohne zweite Eingabe, ohne
+  Artikelnummern und **ohne Preise**, damit spätere Firmen-Materiallisten
+  greifen können.
+- **Kontrolle** mit Marke am Register (rot bei Fehler): fehlendes Material,
+  fehlende Eindeckungsart, fehlender Lattenabstand, fehlende Pflichtmasse
+  je Einfassung, negative Werte, Dachneigung ausserhalb 0–90°, Stückzahl
+  unter 1, zu schmale Rollen.
+- **PDF-Listenauswahl** über js/35 – keine eigene Auswahllogik; neu
+  zugeordnet ist nur die Überschrift „Bleilappen“ (→ Stückliste, bereits
+  aus v2.90 vorhanden).
+- **Fotos und Skizzen am Ende**: `MEAS_MEDIEN_AM_ENDE` um
+  `einfassung_rund` erweitert (v2.75-Mechanik unverändert).
+
+### 100.4 Speichern: Superset
+
+js/16 schreibt **unverändert** dieselben zehn Felder wie bisher (`material`,
+`deckung`, `lattenabstand`, `durchmesser`, `winkel`, `a`, `b`, `c`,
+`abwicklung`, `breiteGesamt`, `anzahlBleilappen` – die flachen Werte der
+**ersten** Einfassung) und ergänzt nur `einfassungen`, `zuschnitte`,
+`bleilappenGesamt`, `flaeche_m2`, `ausmass` und `rollen`.
+
+Eine vor v2.96 gespeicherte Einfassung öffnet unverändert: `einfaFuellen()`
+übernimmt die flachen Felder als **eine** Einfassung und erfindet dabei
+nichts – genommen wird genau, was dort steht. Der Druck nimmt die
+gespeicherten Werte, ein einmal gedrucktes Blatt bleibt gleich.
+
+### 100.5 Getestet
+
+- **`pruefstaende/pruefstand-einfassung-app-v2-96.js` – 78/78**, echtes
+  Chromium gegen die echte `index.html`: Modul und geteilte Bausteine,
+  sechs Register (nur eigener Inhalt, Reihenfolge, Marke am
+  Kontroll-Register), Grunddaten, echtes Tippen mit Fokusprüfung, mehrere
+  Einfassungen mit Stückzahl, von Hand nachgerechnete Zuschnitte
+  (Ø110 → 350 × 278, Ø160 → 400 × 308), Bleilappen (aufgerundet, die
+  Korrektur aus v2.70), Blechfläche, Rollenblech gegen die **wirklich
+  gerufene** gemeinsame Packrechnung, Ausmass, Kontrolle, Speichern und
+  Wiederöffnen, Datensatz im Format bis v2.95, Fotos erst nach „Fertig“,
+  Druck, fünf Bildschirmbreiten × sechs Register, keine JavaScript-Fehler.
+- **XSS gemessen, nicht behauptet.** Die Bezeichnung einer Einfassung ist
+  Benutzertext und reist bis in die Zuschnittliste, das Ausmass und den
+  Ausdruck. Geprüft wird nicht „es steht `esc()` im Code“, sondern dass aus
+  `<img src=x onerror=alert(1)>` an keiner dieser fünf Stellen ein echtes
+  Element entsteht und der Text stattdessen sichtbar dasteht. Gegenprobe
+  (Bezeichnung ungeschützt eingesetzt): 77/78. Escapt wird durchgehend mit
+  der zentralen `esc()` aus js/03 – auch in js/33 und im Druckzweig.
+- **Sechs Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um; keine bricht ihn ab:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | eigene Rechnung statt `einfBerechnen` | 66/73 |
+  | Stückzahl ignoriert | 68/73 |
+  | Superset verletzt (alte Felder nicht mehr gespeichert) | 72/73 |
+  | alter Datensatz wird nicht übernommen | 71/73 |
+  | eigene Packrechnung | 71/73 |
+  | Fotos schon während der Register | 72/73 |
+
+- **Die zweite Gegenprobe liess den Prüfstand zuerst abbrechen** statt
+  fehlschlagen – ein abgebrochener Lauf sieht aus wie „keine Fehler“. Alle
+  Indexzugriffe der Zuschnittprüfung sind jetzt abgesichert; danach beisst
+  sie mit 68/73.
+- **Die neue Art wurde in die gemeinsamen Prüfstände aufgenommen**:
+  `register-zuschnitt` 307/307 (vorher 276), `medien-am-ende` 125/125
+  (vorher 113), `lxb-druck` 58/58 (vorher 53), `felder-bleiben` 19/19
+  (vorher 17).
+- **Volle Regression grün** – alle 17 Prüfstände im Repo (verschnitt 1578,
+  register-zuschnitt 307, kehle 158, mauerabdeckung 146, kamin 147,
+  medien-am-ende 125, konisch 114, freies-profil 118, rinne 104,
+  einlaufblech 99, rollenblech-pdf 95, lukarne 82, einfassung 78,
+  lxb-druck 58, dila-sichtbar 57, skizze-foto 54, felder-bleiben 19) und
+  die archivierten (kehle52 698, pdf52 526, required70 386, rinne57 379,
+  einf70 185, offline70 127, feedback63 108, freipos65 99, fotos70 88,
+  dila70 85, breite57 84, fp70 83, kehleintegration52 76,
+  feedbackbrowser63 67, breite52 52, einstbrowser68 51, ebg70 49,
+  einst68 47, feedback70 47, mad70 45, module67 43, medien50 42,
+  pfade55 39, adresse45 39, dateien49 38, projekte47 37, status46 35,
+  freiposbrowser65 33, auswahl48 32, modulebrowser67 16, suche45 13,
+  kopf45 8, hidden51 7, abstand69 2, normbrute 1578 sowie dateien43, nav,
+  recent41, stand42, suche40, treffer40, ui39 ohne Fehlschlag).
+- **Drei überholte Erwartungen** angepasst, keine davon ein Codefehler:
+  * `required70` kannte die Pflichtfelder noch als `einf_durchmesser`/
+    `einf_a`/`einf_c`. Sie heissen jetzt `einfa_durchmesser_0` usw. und
+    entstehen erst beim Zeichnen von Register 2 – dieselbe Verschiebung
+    wie bei Kehle (v2.83) und Lukarne (v2.87). 386/386.
+  * `fotos70` führte `einfassung_rund` noch unter den Arten mit sofort
+    sichtbarem Fotobereich. Dabei fiel eine **Zählprüfung** auf
+    („genau 13 Zweige nutzen die gemeinsame Funktion“) – eine feste Zahl
+    als Behelf für eine Eigenschaft. Sie prüft jetzt die Eigenschaft
+    selbst (jeder `return {...base,`-Zweig muss `measMedienAusFormular()`
+    nutzen), braucht keine Pflege mehr und meldet einen vergessenen Zweig,
+    was die Zahl nicht tat. Gegenprobe: 85/88. Jetzt 88/88.
+  * Die **Archivkopie** `rinneapp71.js` ist eine veraltete Fassung von
+    v2.71 (kennt die Register nicht und nicht die `<details>` aus v2.85).
+    Sie schlägt **schon gegen den v2.95-Stand** mit denselben drei Zeilen
+    fehl – nachgemessen, nicht angenommen. Abgelöst durch die gepflegte
+    Fassung `pruefstaende/pruefstand-rinne-app-v2-71.js` (104/104); die
+    Kopie wurde aus dem Archivlauf genommen, statt sie weiter falschen
+    Alarm geben zu lassen.
+  * Unverändert kein Fehlschlag, sondern der geprüfte Fall selbst:
+    `ui39` druckt in seinem eigenen Fehlerfall-Test die Zeile
+    „Fehler: permission denied“ (bekannt seit Abschnitt 80.4).
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` unmittelbar nacheinander gegen den v2.95-Stand
+  gerendert – **DOM byteidentisch** (5468 Bytes), bestätigt durch einen
+  dritten Lauf desselben Codes. `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 39 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen
+  (Tiefe 0); keine doppelten Element-IDs; jede js-Datei in `index.html`
+  **und** in der Service-Worker-Liste; Version in `index.html` und `sw.js`
+  gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 100.6 Merksatz: der Druck-DOM enthält die Uhrzeit
+
+Beim Regierapport-Vergleich wichen zwei Läufe **desselben** Codes im
+DOM-Hash voneinander ab. Nachgemessen: der Druck-Fusszeilentext enthält das
+Druckdatum **mit Uhrzeit** (`05.09.2026, 12:57`). Zwei Läufe über eine
+Minutengrenze hinweg unterscheiden sich deshalb naturgemäss – das ist kein
+Codeunterschied.
+
+**Der Vergleich ist nur aussagekräftig, wenn beide Stände unmittelbar
+nacheinander im selben Aufruf gerendert werden** (so wurde er in allen
+bisherigen Abschnitten auch geführt). Ein Lauf über die Minutengrenze
+erzeugt sonst einen falschen Alarm.
+
+### 100.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/38-einfassung-aufnahme.js` | **neu** – sechs Register, mehrere Einfassungen, Stückliste, Zuschnitt, Ausmass, Kontrolle |
+| `index.html` | Registerfläche `#einfassungAufnahme`, `#einfStummel`, Script-Tag, Version 2.96 |
+| `js/16-massaufnahme-formular.js` | Modul zeichnen, Payload-Superset, Pflichtprüfung, Medien am Ende, Druckzweig um Stückliste/Zuschnitt/Ausmass erweitert |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `sw.js` | Cache-Version 2.96, neue Datei im SHELL |
+| `pruefstaende/pruefstand-einfassung-app-v2-96.js` | **neu** |
+| vier gemeinsame Prüfstände | Einfassung Rund aufgenommen |
+| `required70`, `fotos70` (Archiv) | überholte Erwartungen, siehe 100.5 |
+
+**Nicht angefasst**: `js/21-einfassung-rund.js` (die Fachdatei),
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js`, `css/03-druck.css`
+(Regierapport) sowie `js/11`–`js/20` und `js/22`–`js/37` – per `git diff`
+bestätigt. Keine Berechnung, keine Stückliste, kein Zuschnitt, keine
+Abwicklung und keine Packrechnung einer bestehenden Art berührt.
+
+### 100.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet
+  behauptet.** Geprüft ist die Oberfläche in echtem Chromium gegen die
+  echte `index.html`.
+- Der **Umschlag** und das **seitliche Mass** kommen weiterhin aus den
+  Firmeneinstellungen und gelten für alle Einfassungen einer Aufnahme –
+  unverändert aus js/21, dort steckt die Gesamtbreite-Formel
+  (`D + 2·Umschlag + 2·seitliches Mass`).
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken; bei vielen Einfassungen heisst das Ergebnis „beste gefundene
+  Verteilung“.
+- Kein Detail-Diff der Einfassungsliste im Änderungsverlauf (wie bei allen
+  Array-Strukturen, Klasse C aus Abschnitt 42.2).
+- Damit haben **neun** der zwölf Massaufnahme-Arten Register; ohne sind
+  weiterhin Skizze/Foto, Ort-/Seitenbleche und die Rinne-Zuschnittliste.

@@ -29,7 +29,9 @@ const ARTEN=[
  {typ:"kehle",                name:"Kehle",                wurzel:"kehleAufnahme"
   ,setz:"keaSetzeSchritt", reg:"KEA_REGISTER",  art:"rolle"},
  {typ:"kamineinfassung",     name:"Kamineinfassung",     wurzel:"kaminAufnahme",
-  setz:"kamaSetzeSchritt",reg:"KAM_REGISTER", art:"rolle"}
+  setz:"kamaSetzeSchritt",reg:"KAM_REGISTER", art:"rolle"},
+ {typ:"einfassung_rund",     name:"Einfassung Rund",     wurzel:"einfassungAufnahme",
+  setz:"einfaSetzeSchritt",reg:"EINFA_REGISTER",art:"rolle"}
 ];
 
 const zeige=async(page,typ)=>{
@@ -208,6 +210,10 @@ const auf=async(page,a)=>{
   kamA.breiteVorne=900; kamA.breiteHinten=900; kamA.ueberlappung=120;
   kamA.b={l:500,r:500}; kamA.c={l:400,r:400};
   kamA.f={l:150,r:150}; kamA.g={l:100,r:100}; kamA.hoehe={l:400,r:400};
+  // Einfassung Rund
+  einfA=einfaLeer(); einfA.material="2"; einfA.deckung="biber_doppel"; einfA.lattenabstand=330;
+  einfA.einfassungen=[{bez:"",durchmesser:110,winkel:30,a:20,b:100,c:100,anzahl:1},
+                      {bez:"Küche",durchmesser:160,winkel:30,a:20,b:100,c:100,anzahl:2}];
  });
  for(const a of ARTEN){
   await zeige(page,a.typ);
@@ -300,7 +306,7 @@ const auf=async(page,a)=>{
  // Und in der Stueckliste bzw. Stuecke-Liste der einzelnen Arten.
  const listenNamen={rinne_halbrund:"Stückliste",mauerabdeckung:"Stückliste",
    einlaufblech_gerade:"Stücke",einlaufblech_konisch:"Stücke",freies_profil:"Segmente",
-   kehle:"Segmente",kamineinfassung:"Stückliste"};
+   kehle:"Segmente",kamineinfassung:"Stückliste",einfassung_rund:"Stückliste"};
  for(const a of ARTEN){
   const name=listenNamen[a.typ];
   const nr=listen[a.typ].indexOf(name)+1;
@@ -357,6 +363,9 @@ const auf=async(page,a)=>{
  await page.evaluate(()=>{
   ebA=ebaLeer(); ebkA=ebkaLeer(); fpA=fpaLeer(); madA=madaLeer();
   kehleA=keaLeer(); kamA=kamaLeer();
+  // Einfassung Rund ist wie im bestehenden Modul (js/21) mit der Vorgabe
+  // Ø110 vorbelegt - der wirklich leere Zustand ist ein leerer Durchmesser.
+  einfA=einfaLeer(); einfA.einfassungen.forEach(e=>{e.durchmesser="";});
  });
  for(const a of ARTEN){
   if(a.art==="stange")continue;      // die Rinne meldet die fehlende Normlaenge
@@ -390,6 +399,10 @@ const auf=async(page,a)=>{
   kamA.breiteVorne=900; kamA.breiteHinten=900; kamA.ueberlappung=120;
   kamA.b={l:500,r:500}; kamA.c={l:400,r:400};
   kamA.f={l:150,r:150}; kamA.g={l:100,r:100}; kamA.hoehe={l:400,r:400};
+  // Einfassung Rund
+  einfA=einfaLeer(); einfA.material="2"; einfA.deckung="biber_doppel"; einfA.lattenabstand=330;
+  einfA.einfassungen=[{bez:"",durchmesser:110,winkel:30,a:20,b:100,c:100,anzahl:1},
+                      {bez:"Küche",durchmesser:160,winkel:30,a:20,b:100,c:100,anzahl:2}];
  });
  for(const breite of [320,390,768,1280]){
   await page.setViewportSize({width:breite,height:1400});

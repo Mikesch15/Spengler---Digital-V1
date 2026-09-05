@@ -428,6 +428,7 @@ function newMeasurementWithType(type){
  anbFormularZuruecksetzen();
  $("anb_material").value="";
  einfFormularZuruecksetzen();
+ if(typeof einfaZuruecksetzen==="function")einfaZuruecksetzen();
  $("einf_material").value="";
  kehleFormularZuruecksetzen();
  if(typeof keaZuruecksetzen==="function")keaZuruecksetzen();
@@ -546,6 +547,7 @@ function openMeasurement(m){
  anbFormularFuellen(m.type==="anschlussblech"?d:null);
  $("anb_material").value=(m.type==="anschlussblech"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
  einfFormularFuellen(m.type==="einfassung_rund"?d:null);
+ if(typeof einfaFuellen==="function")einfaFuellen(m.type==="einfassung_rund"?d:null);
  $("einf_material").value=(m.type==="einfassung_rund"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
  kehleFormularFuellen(m.type==="kehle"?d:null);
  if(typeof keaFuellen==="function")keaFuellen(m.type==="kehle"?d:null);

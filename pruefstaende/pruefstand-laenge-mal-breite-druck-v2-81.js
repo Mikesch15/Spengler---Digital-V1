@@ -79,9 +79,26 @@ const LXB=/\d[\d'’.\s]*×\s*\d/;
     laenge:4200,abwicklung:470,
     stueckliste:[{nr:1,laenge:3000,gehrung:false},{nr:2,laenge:1200,gehrung:false}],
     teile:[{name:"Anschlussblech",abwicklung:470}],segmente:[]}],
-  ["Einfassung Rund","einfassung_rund",["330 × 520"],{
+  ["Einfassung Rund (Format bis v2.95)","einfassung_rund",["330 × 520"],{
     deckung:"biber_einfach",durchmesser:110,winkel:30,a:150,b:120,c:60,
     lattenabstand:330,material:"2",abwicklung:520,breiteGesamt:330,anzahlBleilappen:4}],
+  // Ab v2.96 mehrere Einfassungen mit eigener Stueckliste. Die Werte sind die
+  // real gerechneten (Ø110 -> 350 x 278, Ø160 -> 400 x 308); gedruckt wird der
+  // GESPEICHERTE Plan, es wird nichts nachgerechnet.
+  ["Einfassung Rund (v2.96)","einfassung_rund",["350 × 278","400 × 308"],{
+    deckung:"biber_doppel",durchmesser:110,winkel:30,a:20,b:100,c:100,
+    lattenabstand:330,material:"2",abwicklung:278,breiteGesamt:350,anzahlBleilappen:2,
+    einfassungen:[{bez:"",durchmesser:110,winkel:30,a:20,b:100,c:100,anzahl:1,
+                   abwicklung:278,breiteGesamt:350,bleilappen:2},
+                  {bez:"Küche",durchmesser:160,winkel:30,a:20,b:100,c:100,anzahl:2,
+                   abwicklung:308,breiteGesamt:400,bleilappen:2}],
+    zuschnitte:[{nr:1,name:"Einfassung 1",laenge:350,breite:278,durchmesser:110,
+                 bleilappen:2,merkmal:"",hinweis:"Ø 110"},
+                {nr:2,name:"Einfassung 2",laenge:400,breite:308,durchmesser:160,
+                 bleilappen:2,merkmal:"",hinweis:"Küche"},
+                {nr:3,name:"Einfassung 2",laenge:400,breite:308,durchmesser:160,
+                 bleilappen:2,merkmal:"",hinweis:"Küche"}],
+    bleilappenGesamt:6,flaeche_m2:0.3437}],
   ["Rinne (Zuschnittliste)","rinne",["2500 × 981"],{
     material:"2",
     profil:[{name:"Umschlag",art:"fix",laenge:15,winkel:0},
