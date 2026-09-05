@@ -148,6 +148,106 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
    "die Masse stehen nach einem Registerwechsel noch in den Feldern",nachNeu);
  await setz(page,FALL);
 
+ console.log("\nD2 · Winkel Dach/Rohr: eingegeben wird der Innenwinkel (ueber 90 Grad)");
+ // Von Hand: Dachneigung 30 -> angezeigt 30 + 90 = 120.
+ await setz(page,FALL);
+ await reg(page,2);
+ const wf=await page.evaluate(()=>{
+  const f=$("einfa_winkel_0");
+  const lab=f?f.closest("div").querySelector("label"):null;
+  return {wert:f?f.value:null, label:lab?lab.textContent:"",
+    pflicht:f?f.getAttribute("data-pflicht"):null,
+    stern:lab?!!lab.querySelector(".pflicht-stern"):false,
+    intern:einfaListe()[0].winkel};
+ });
+ p(wf.wert==="120","Dachneigung 30 wird als 120 angezeigt (30 + 90)",wf);
+ p(/Dach\/Rohr/.test(wf.label)&&!/Dachneigung/.test(wf.label),
+   "das Feld heisst 'Winkel Dach/Rohr', nicht mehr 'Dachneigung'",wf.label);
+ p(wf.pflicht==="1"&&wf.stern,"der Winkel ist ein Pflichtfeld mit rotem Stern",wf);
+ p(wf.intern===30,"intern steht weiterhin die Dachneigung",wf);
+
+ const ok115=await tippe(page,"#einfa_winkel_0","115");
+ const t115=await page.evaluate(()=>({fokus:document.activeElement&&document.activeElement.id,
+   feld:($("einfa_winkel_0")||{}).value, intern:einfaListe()[0].winkel}));
+ p(ok115&&t115.fokus==="einfa_winkel_0"&&t115.feld==="115",
+   "115 vollstaendig getippt, das Feld behaelt den Fokus",t115);
+ p(t115.intern===25,"daraus wird intern die Dachneigung 25",t115);
+ await reg(page,4); await reg(page,2);
+ const w115=await page.evaluate(()=>($("einfa_winkel_0")||{}).value);
+ p(w115==="115","nach einem Registerwechsel stehen weiterhin 115 im Feld",w115);
+
+ // GEMESSEN an der wirklich gezeichneten Geometrie, und zwar ueber das
+ // FELD: eingetippt wird der Innenwinkel, gemessen wird danach der Winkel
+ // zwischen Dachflaeche und Rohr in der Zeichnung. Rechnet die App nicht um,
+ // faellt das hier auf. (Die Abwicklung haengt beim runden Standrohr gar nicht
+ // vom Winkel ab - er dreht ausschliesslich die Dachschraege in einfProfil().)
+ const messeUeberFeld=async innen=>{
+  await tippe(page,"#einfa_winkel_0",String(innen));
+  return await page.evaluate(()=>{
+   const e=einfaListe()[0];
+   const pr=einfProfil({a:e.a,b:e.b,c:e.c,winkel:e.winkel});
+   // Strecke a laeuft bergwaerts in der Dachschraege.
+   const dx=pr.pts[2][0]-pr.pts[1][0], dy=pr.pts[2][1]-pr.pts[1][1];
+   const len=Math.hypot(dx,dy);
+   return {intern:e.winkel,
+     dach:Math.round(Math.atan2(dy,dx)*180/Math.PI*1000)/1000,
+     // Das Rohr steht im Lot. Gemessen wird auf der TALSEITE, also zwischen
+     // der talwaerts zeigenden Dachrichtung und dem Rohr nach oben (0,1).
+     gemessen:Math.round(Math.acos((-dy)/len)*180/Math.PI*1000)/1000};
+  });
+ };
+ const g115=await messeUeberFeld(115);
+ p(Math.abs(g115.gemessen-115)<0.01,
+   "eingetippte 115 sind wirklich der Winkel zwischen Dachflaeche und Rohr",g115);
+ p(Math.abs(g115.dach-25)<0.01,"das entspricht einem 25-Grad-Dach",g115);
+ const g130=await messeUeberFeld(130);
+ p(Math.abs(g130.gemessen-130)<0.01&&Math.abs(g130.dach-40)<0.01,"130 -> 40-Grad-Dach",g130);
+ const g95=await messeUeberFeld(95);
+ p(Math.abs(g95.gemessen-95)<0.01&&Math.abs(g95.dach-5)<0.01,"95 -> 5-Grad-Dach",g95);
+ await setz(page,FALL);
+ await reg(page,2);
+
+ // Kontrolle: leer, zu klein, zu gross, genau 90.
+ const wk=await page.evaluate(()=>{
+  const e=einfaListe()[0]; const alt=e.winkel;
+  const nimm=v=>{e.winkel=v;return einfaPruefungen()};
+  const r={leer:nimm(""), klein:nimm(-45), gross:nimm(110), neunzig:nimm(0), gut:nimm(25)};
+  e.winkel=alt;
+  return {leer:r.leer.map(x=>x.art+":"+x.text), klein:r.klein.map(x=>x.art+":"+x.text),
+    gross:r.gross.map(x=>x.art+":"+x.text), neunzig:r.neunzig.map(x=>x.art+":"+x.text),
+    gut:r.gut.filter(x=>/Winkel/.test(x.text)).map(x=>x.art+":"+x.text)};
+ });
+ p(wk.leer.some(x=>/^fehler.*Winkel zwischen Dachfl/.test(x)),
+   "ein leerer Winkel ist ein Fehler",wk.leer);
+ p(wk.klein.some(x=>/^fehler.*Winkel zwischen Dachfl.*zwischen 90/.test(x)),
+   "ein Winkel unter 90 Grad ist ein Fehler (hier 45)",wk.klein);
+ p(wk.gross.some(x=>/^fehler.*180/.test(x)),
+   "ein Winkel ab 180 Grad ist ein Fehler (hier 200)",wk.gross);
+ p(wk.neunzig.some(x=>/^warnung.*waagerecht/.test(x)),
+   "genau 90 Grad ist ein waagerechtes Dach - eine Warnung",wk.neunzig);
+ p(wk.gut.length===0,"115 Grad meldet nichts",wk.gut);
+ // Der Winkel darf nicht zusaetzlich als "negatives Mass" gemeldet werden.
+ p(!wk.klein.some(x=>/negativ/.test(x)),
+   "ein falscher Winkel meldet nicht zusaetzlich 'Ein Mass ist negativ'",wk.klein);
+
+ // Gespeichert wird unveraendert die Dachneigung - ein Datensatz bis v2.96
+ // oeffnet damit ohne jede Umrechnung und zeigt seinen Winkel als Innenwinkel.
+ const wsp=await page.evaluate(()=>{
+  einfaListe()[0].winkel=25;
+  const d=einfaDaten();
+  einfaFuellen({material:"2",deckung:"biber_einfach",lattenabstand:330,
+    durchmesser:200,winkel:25,a:80,b:80,c:120});
+  return {gespeichert:d.winkel, liste0:d.einfassungen[0].winkel,
+    altIntern:einfaListe()[0].winkel, altFeld:null};
+ });
+ p(wsp.gespeichert===25&&wsp.liste0===25,
+   "gespeichert wird die Dachneigung 25 (Superset unveraendert)",wsp);
+ p(wsp.altIntern===25,"ein Datensatz bis v2.96 wird nicht umgerechnet",wsp);
+ await reg(page,2);
+ const altFeld=await page.evaluate(()=>($("einfa_winkel_0")||{}).value);
+ p(altFeld==="115","und zeigt seine 25 Grad als 115 Grad im Feld",altFeld);
+ await setz(page,FALL);
+
  console.log("\nE · Zuschnitte und Stueckliste (von Hand nachgerechnet)");
  const zu=await page.evaluate(()=>einfaZuschnitte().map(x=>({nr:x.nr,l:x.laenge,b:x.breite,h:x.hinweis})));
  p(zu.length===3,"drei Zuschnitte (1x Ø110, 2x Ø160)",zu.length);
@@ -312,6 +412,11 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  p(/400\s*(&#215;|×)\s*308/.test(dr)&&/Zuschnitt L (&#215;|×) B \(mm\)/.test(dr),
    "Zuschnitt als L × B im PDF",(dr.match(/.{0,50}(×|&#215;) 308.{0,20}/)||[""])[0]);
  p(!/NaN|undefined/.test(dr),"kein NaN im PDF");
+ // Der Winkel wird auch im PDF als Innenwinkel Dach/Rohr gezeigt (30 + 90).
+ p(/Winkel Dach\/Rohr/.test(dr)&&!/Winkel \/ Dachneigung/.test(dr),
+   "das PDF nennt den Winkel Dach/Rohr",(dr.match(/.{0,40}Winkel.{0,60}/)||[""])[0]);
+ p(/Winkel Dach\/Rohr[\s\S]{0,120}?120\s*(&#176;|°)/.test(dr),
+   "und zeigt 120 Grad (Dachneigung 30 + 90)",(dr.match(/Winkel Dach.{0,120}/)||[""])[0]);
  // Ein Datensatz bis v2.95 muss weiterhin drucken - ohne die neuen Abschnitte.
  const drAlt=await page.evaluate(async()=>{
   window.__html=null;
@@ -327,6 +432,9 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  });
  p(drAlt.length>400&&!/NaN|undefined/.test(drAlt),"ein Datensatz bis v2.95 druckt unveraendert",drAlt.length);
  p(drAlt.indexOf("440")>=0,"und zeigt seine eigenen Werte",(drAlt.match(/.{0,40}440.{0,20}/)||[""])[0]);
+ // Sein gespeicherter Winkel ist die Dachneigung 25 - gedruckt wird 115.
+ p(/Winkel Dach\/Rohr[\s\S]{0,120}?115\s*(&#176;|°)/.test(drAlt),
+   "ein alter Datensatz druckt seine 25 Grad als 115 Grad",(drAlt.match(/Winkel Dach.{0,120}/)||[""])[0]);
 
  console.log("\nM · Mobil: nichts laeuft seitlich hinaus");
  await setz(page,FALL);

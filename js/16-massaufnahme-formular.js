@@ -988,13 +988,16 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   const breiteGesamt=d.breiteGesamt!==undefined&&d.breiteGesamt!==null?d.breiteGesamt:(erg?erg.breiteGesamt:null);
   const anzahlBleilappen=d.anzahlBleilappen!==undefined&&d.anzahlBleilappen!==null?d.anzahlBleilappen:(erg?erg.anzahlBleilappen:null);
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  // Gespeichert ist unveraendert die Dachneigung; gedruckt wird ab v2.97 der
+  // Innenwinkel Dach/Rohr (Dachneigung + 90) - dieselbe Korrektur der
+  // Beschriftung wie bei der Kamineinfassung in v2.95 (CLAUDE.md 99.3).
   const deckName=(EINF_DECKUNGEN[d.deckung]||{}).name||"–";
   const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
   bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
 <tr>${cell("Eindeckungsart",esc(deckName))}${cell("&Oslash; Standrohr",esc(Math.round(d.durchmesser||0))+" mm")}</tr>
-<tr>${cell("Winkel / Dachneigung",esc(d.winkel||0)+"°")}${cell("Material",matName)}</tr>
+<tr>${cell("Winkel Dach/Rohr",(d.winkel===0||d.winkel)?esc(Number(d.winkel)+90)+"°":"–")}${cell("Material",matName)}</tr>
 <tr>${cell("Zuschnittbreite (Querschnitt)",esc(Math.round(abw))+" mm")}${cell("Breite der gesamten Einfassung",breiteGesamt?esc(Math.round(breiteGesamt))+" mm":"–")}</tr>
 <tr>${cell("Zuschnitt L × B",breiteGesamt?esc(pdfLxB(breiteGesamt,abw))+" mm":"–")}${cell("Anzahl Bleilappen",anzahlBleilappen!==null?esc(anzahlBleilappen):"–")}</tr>
 <tr>${cell("Lattenabstand",esc(Math.round(d.lattenabstand||0))+" mm")}<td></td></tr>

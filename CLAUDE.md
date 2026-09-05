@@ -15881,3 +15881,144 @@ Abwicklung und keine Packrechnung einer bestehenden Art berührt.
   Array-Strukturen, Klasse C aus Abschnitt 42.2).
 - Damit haben **neun** der zwölf Massaufnahme-Arten Register; ohne sind
   weiterhin Skizze/Foto, Ort-/Seitenbleche und die Rinne-Zuschnittliste.
+
+## 101. EINFASSUNG RUND: DER WINKEL IST DER INNENWINKEL DACH/ROHR — VERSION 2.97
+
+Gemeldet: *"auch hier muss der winkel über 90graf sein"*. Zutreffend – das
+Feld verlangte bis v2.96 die **Dachneigung** (0–90°), abgegriffen wird am Bau
+aber der Winkel **zwischen Dachfläche und Rohr**. Gleiche Umstellung wie bei
+der Kamineinfassung in v2.95 (Abschnitt 99). **Keine Schemaänderung, keine
+Migration, keine RLS-/Storage-Änderung**, `js/21-einfassung-rund.js`
+byteweise unverändert.
+
+### 101.1 Geometrie
+
+Das Rohr steht im Lot, die Dachfläche fällt talwärts weg. Der Winkel, den der
+Spengler mit dem Winkelmesser abgreift – auf der **Talseite**, zwischen
+Dachfläche und Rohr – ist deshalb immer **über 90°**:
+
+    Innenwinkel = 90 + Dachneigung        (25°-Dach  ->  115°)
+    Dachneigung = Innenwinkel - 90
+
+Auf der Bergseite wäre es 90 − Dachneigung (65°) – dieselbe Aufteilung wie
+vorne/hinten beim Kamin, nur hat das runde Rohr eine einzige Wand.
+
+**Am gezeichneten Profil gemessen**, nicht behauptet: aus dem Feld heraus
+115 eingetippt ergibt eine Dachschräge von 25,000° und einen Winkel zwischen
+der talwärts zeigenden Dachrichtung und dem Rohr von 115,000°. Ebenso 130 →
+40°-Dach und 95 → 5°-Dach.
+
+### 101.2 Gespeichert wird weiterhin die Dachneigung
+
+Anders als beim Kamin ist `data.winkel` hier ein **Superset-Feld** aus der
+Zeit vor v2.96, und `einfProfil()` in js/21 dreht die Dachschräge unmittelbar
+damit. Deshalb bleibt gespeichert, was immer dort stand: die **Dachneigung**.
+
+- Ein Datensatz bis v2.96 öffnet **ohne jede Umrechnung** und zeigt seine
+  25° als 115° im Feld.
+- Das Superset bleibt unangetastet, und die versteckten Stummelfelder, die
+  js/21 beim Laden bedient, bekommen weiterhin den Wert, den sie erwarten.
+- Es braucht deshalb **kein** Merkmal wie `winkelBezug` – die Bedeutung des
+  gespeicherten Werts ändert sich nicht.
+
+Umgerechnet wird ausschliesslich für **Anzeige und Ausdruck**, in genau
+einem Funktionspaar (`einfaWinkelAnzeige` / `einfaWinkelIntern`, js/38). Der
+Eingabe-Handler rechnet an **einer** Stelle zurück und deckt damit `input`
+und `change` gleichermassen ab.
+
+### 101.3 Was sonst noch nötig war
+
+- **Der Winkel ist jetzt ein Pflichtfeld** (roter Stern, `required`). Leer
+  hiess vorher stillschweigend 0° Dachneigung – derselbe stille Fehlgriff
+  wie beim Kamin in 99.1, dort ebenso behoben.
+- **Kontrolle**: leer → Fehler mit Beispiel („auf einem 25°-Dach also 115°");
+  unter 90° oder ab 180° → Fehler; genau 90° → **Warnung** (waagerechtes
+  Dach). Die Spanne entspricht exakt der bisherigen (Dachneigung 0…90), nur
+  in der neuen Zählung – es ist nichts neu verboten.
+- Der Winkel fällt aus der allgemeinen „Ein Mass ist negativ"-Prüfung heraus;
+  eine Eingabe unter 90° ist intern zwangsläufig negativ und hätte sonst zwei
+  Meldungen erzeugt, davon eine nichtssagende.
+- **PDF**: die Zeile heisst „Winkel Dach/Rohr" und zeigt den Innenwinkel –
+  auch für einen alten Datensatz (25 → 115). Eine Korrektur der Beschriftung,
+  keine Neuberechnung, wie in 99.3.
+- **Die Abwicklung hängt beim runden Standrohr gar nicht vom Winkel ab** (sie
+  ist die Summe der Schenkellängen); er dreht ausschliesslich die Dachschräge
+  in der Zeichnung. Zuschnitte, Gesamtbreite, Bleilappen, Fläche und
+  Rollenplan sind deshalb unverändert.
+
+### 101.4 Getestet
+
+- **`pruefstand-einfassung-app-v2-96.js` – 101/101** (vorher 78): neuer
+  Abschnitt **D2** – Anzeige 120 bei Dachneigung 30, Feldname, Pflichtfeld
+  mit Stern, 115 Zeichen für Zeichen getippt ohne Fokusverlust, intern 25,
+  der Wert steht nach einem Registerwechsel noch im Feld, die **über das Feld
+  gemessene** Geometrie für 115/130/95, alle fünf Kontrollfälle, keine
+  Doppelmeldung „negativ", das Superset speichert 25, ein Datensatz bis v2.96
+  öffnet unverändert und zeigt 115. Dazu im Druck-Abschnitt: das PDF nennt
+  „Winkel Dach/Rohr" und zeigt 120° bzw. für den alten Datensatz 115°.
+- **Sechs Gegenproben**, jede reproduziert einen echten Fehler:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | gar keine Umrechnung | 94/101 |
+  | nur die Anzeige umrechnen, der Handler schreibt roh | 95/101 |
+  | Kontrolle prüft weiter die alte 0–90-Spanne | 100/101 |
+  | das PDF rechnet nicht um | 99/101 |
+  | der Winkel ist kein Pflichtfeld | 100/101 |
+  | der Winkel bleibt in der Negativprüfung | 100/101 |
+
+- **Die erste Gegenprobe deckte eine Schwäche im Prüfstand auf**: die
+  Geometriemessung setzte den internen Wert selbst und prüfte damit nur meine
+  eigene Rechnung, nicht die des Moduls (3 statt 7 Fehlschläge). Sie tippt
+  jetzt in das Feld und misst danach – erst dadurch beisst sie.
+- **`required70` – 395/395** (vorher 386): der Winkel ist als Pflichtfeld
+  aufgenommen (überholte Erwartung, kein Codefehler).
+- **Volle Regression grün** – alle 17 Prüfstände im Repo (verschnitt 1578,
+  register-zuschnitt 307, kehle 158, mauerabdeckung 146, kamin 147,
+  medien-am-ende 125, freies-profil 118, konisch 114, rinne 104,
+  einfassung 101, einlaufblech 99, rollenblech-pdf 95, lukarne 82,
+  lxb-druck 58, dila-sichtbar 57, skizze-foto 54, felder-bleiben 19) und
+  alle archivierten (kehle52 698, pdf52 526, required70 395, rinne57 379,
+  einf70 185, offline70 127, feedback63 108, freipos65 99, fotos70 88,
+  dila70 85, breite57 84, fp70 83, kehleintegration52 76,
+  feedbackbrowser63 67, breite52 52, einstbrowser68 51, ebg70 49,
+  einst68 47, feedback70 47, mad70 45, module67 43, medien50 42,
+  pfade55 39, adresse45 39, dateien49 38, projekte47 37, status46 35,
+  freiposbrowser65 33, auswahl48 32, modulebrowser67 16, suche45 13,
+  recent41 12, kopf45 8, hidden51 7, abstand69 2, normbrute 1578 sowie
+  dateien43, nav, stand42, suche40, treffer40, ui39 ohne Fehlschlag.
+  `breite56` bleibt bei 35/40 – die seit v2.58 überholte Archivkopie
+  (Abschnitt 88.7), sie schlägt gegen den v2.96-Stand genauso fehl.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` unmittelbar nacheinander gegen den v2.96-Stand
+  gerendert – **Bild und DOM byteidentisch** (DOM `32f0771d0fa74484`,
+  4878 Zeichen; Bild `06e85cff4645b891`, 45939 Bytes), bestätigt durch einen
+  Kontrolllauf desselben Codes. `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js`, `css/03-druck.css` und
+  `js/21-einfassung-rund.js` sind nicht im Diff.
+- `node --check` über alle 39 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen
+  (Tiefe 0); keine doppelten Element-IDs; Version 2.97 in `index.html` und
+  `sw.js` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 101.5 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/38-einfassung-aufnahme.js` | `einfaWinkelAnzeige`/`einfaWinkelIntern`, Feld, Erklärtext, Kontrolle, Rückrechnung im Handler |
+| `js/16-massaufnahme-formular.js` | das PDF nennt den Innenwinkel Dach/Rohr |
+| `pruefstaende/pruefstand-einfassung-app-v2-96.js` | Abschnitt D2 und zwei Druckprüfungen |
+| `index.html`, `sw.js` | Version 2.97 |
+
+### 101.6 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- Gemessen wird auf der **Talseite**. Auf der Bergseite wäre derselbe Winkel
+  90 − Dachneigung; ein zweites Feld dafür gibt es bewusst nicht – das runde
+  Rohr hat, anders als der Kamin, nur eine Wand.
+- Die Dachneigung selbst wird weiterhin nicht eigens erfasst – sie steckt im
+  Winkel (Innenwinkel − 90).

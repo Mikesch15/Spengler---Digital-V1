@@ -43,6 +43,30 @@ const einfaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const einfaMm=v=>Math.round(einfaZahl(v)).toLocaleString("de-CH");
 const einfaQm=v=>einfaZahl(v).toFixed(2).replace(".",",");
 
+// ---- Winkel: eingegeben wird der Innenwinkel Dach/Rohr ---------------------
+// Abgegriffen wird am Bau der Winkel ZWISCHEN Dachfläche und Rohr, auf der
+// Talseite - dort setzt der Spengler den Winkelmesser an. Das Rohr steht im
+// Lot, die Dachfläche fällt talwärts weg, deshalb ist dieser Winkel immer
+// ÜBER 90°:
+//
+//     Innenwinkel = 90 + Dachneigung        (25°-Dach  ->  115°)
+//     Dachneigung = Innenwinkel - 90
+//
+// Gleiche Umstellung wie bei der Kamineinfassung in v2.95 (CLAUDE.md 99).
+//
+// Gerechnet UND GESPEICHERT wird weiterhin die Dachneigung: einfProfil() in
+// js/21 dreht die Dachschräge damit, und data.winkel behält dadurch exakt die
+// Bedeutung, die es seit jeher hat. Ein Datensatz bis v2.96 öffnet deshalb
+// ohne jede Umrechnung; umgerechnet wird nur für die Anzeige und den Ausdruck.
+const EINFA_WINKEL_VERSATZ=90;
+const einfaLeerWert=v=>v===""||v===null||v===undefined;
+function einfaWinkelAnzeige(intern){
+ return einfaLeerWert(intern)?"":einfaZahl(intern)+EINFA_WINKEL_VERSATZ;
+}
+function einfaWinkelIntern(anzeige){
+ return einfaLeerWert(anzeige)?"":einfaZahl(anzeige)-EINFA_WINKEL_VERSATZ;
+}
+
 function einfaNeue(){
  const v=(typeof einfVorgabe==="function")?einfVorgabe():{durchmesser:110,winkel:30,a:60,b:60,c:100};
  return {bez:"",durchmesser:v.durchmesser,winkel:v.winkel,a:v.a,b:v.b,c:v.c,anzahl:1};
@@ -245,12 +269,23 @@ function einfaPruefungen(){
    m.push({art:"fehler",text:nr+"Mass a fehlt (vorne bis Mitte Rohr)."});
   if(!(einfaZahl(e.c)>0))
    m.push({art:"fehler",text:nr+"Mass c fehlt (Aufbug)."});
-  ["durchmesser","winkel","a","b","c"].forEach(k=>{
+  // Der Winkel hat seine eigene Prüfung (er ist intern die Dachneigung und
+  // wäre bei einer Eingabe unter 90° zwangsläufig negativ) - sonst käme zu
+  // jedem falschen Winkel zusätzlich die nichtssagende Meldung "negativ".
+  ["durchmesser","a","b","c"].forEach(k=>{
    if(einfaZahl(e[k])<0)m.push({art:"fehler",text:nr+"Ein Mass ist negativ."});
   });
-  const w=einfaZahl(e.winkel);
-  if(w<0||w>=90)
-   m.push({art:"fehler",text:nr+"Die Dachneigung muss zwischen 0° und 90° liegen."});
+  if(einfaLeerWert(e.winkel)){
+   m.push({art:"fehler",text:nr+"Der Winkel zwischen Dachfläche und Rohr fehlt. "
+     +"Er wird auf der Talseite gemessen und ist immer über 90° – auf einem 25°-Dach also 115°."});
+  }else{
+   const w=einfaWinkelAnzeige(e.winkel);
+   if(w<90||w>=180)
+    m.push({art:"fehler",text:nr+"Der Winkel zwischen Dachfläche und Rohr muss zwischen 90° "
+      +"und 180° liegen – auf einem 25°-Dach sind es 115° (Dachneigung + 90°)."});
+   else if(w===90)
+    m.push({art:"warnung",text:nr+"90° bedeutet ein waagerechtes Dach ohne Neigung."});
+  }
   if(einfaAnzahl(e)<1)
    m.push({art:"fehler",text:nr+"Die Stückzahl muss mindestens 1 sein."});
  });
@@ -323,7 +358,7 @@ function einfaEinfassungenHtml(){
 <div class="grid">
 ${einfaFeld("Bezeichnung",`<input id="einfa_bez_${i}" type="text" value="${esc(e.bez||"")}">`)}
 ${einfaZahlFeld("Ø Standrohr (mm)","einfa_durchmesser_"+i,e.durchmesser,"1",true)}
-${einfaZahlFeld("Winkel / Dachneigung (°)","einfa_winkel_"+i,e.winkel,"0.1")}
+${einfaZahlFeld("Winkel Dach/Rohr (°)","einfa_winkel_"+i,einfaWinkelAnzeige(e.winkel),"0.1",true)}
 ${einfaZahlFeld("a · vorne bis Mitte Rohr (mm)","einfa_a_"+i,e.a,"1",true)}
 ${einfaZahlFeld("b · ab Mitte Rohr bis hinten (mm)","einfa_b_"+i,e.b)}
 ${einfaZahlFeld("c · Aufbug 90°, oben Umschlag 135° (mm)","einfa_c_"+i,e.c,"1",true)}
@@ -337,7 +372,9 @@ ${einfaZahlFeld("Stückzahl","einfa_anzahl_"+i,e.anzahl)}
  const aktiv=liste[a.aktiv]||liste[0];
  return `<div class="info">Jede Einfassung bekommt ihre eigenen Masse. Sind mehrere Rohre
 gleich, genügt eine Zeile mit der passenden <b>Stückzahl</b>. Der Schnitt zeigt die gerade
-gewählte Einfassung.</div>
+gewählte Einfassung.<br>
+Der <b>Winkel Dach/Rohr</b> wird zwischen Dachfläche und Rohr auf der Talseite gemessen und ist
+deshalb immer <b>über 90°</b> – auf einem 25°-Dach also 115° (Dachneigung + 90°).</div>
 ${karten||`<div class="ra-warnung">Noch keine Einfassung erfasst.</div>`}
 <div class="bar" style="margin-top:8px">
 <button type="button" class="gray" id="einfa_neu">＋ Einfassung hinzufügen</button>
@@ -492,7 +529,9 @@ function einfaFeldZuweisen(id,wert){
  if(m&&EINFA_LISTENFELDER.indexOf(m[1])>=0){
   const e=einfaListe()[Number(m[2])];
   if(!e)return false;
-  e[m[1]]=wert;
+  // Der Winkel wird als Innenwinkel eingegeben, gerechnet und gespeichert
+  // wird die Dachneigung - eine Stelle für input UND change.
+  e[m[1]]=(m[1]==="winkel")?einfaWinkelIntern(wert):wert;
   return true;
  }
  return false;
