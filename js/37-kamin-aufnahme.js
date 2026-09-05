@@ -31,6 +31,16 @@
 //   * "Breite vorne/hinten" sind die Zuschnittlaengen von Vorder- und
 //     Hinterteil, die Umschlaege sind davon getrennt.
 //
+// Nachgetragen in v2.91, nachdem der erste Ausdruck es gezeigt hat:
+//   * Die seitliche Hoehe ist ueber die ganze Laenge gleich. Laenger wird das
+//     Blech an Vorder- und Hinterwand nur, weil diese SCHRAEG zur
+//     Dachsenkrechten stehen: Laenge = Hoehe / cos(Winkel).
+//   * Hinten beginnt die Wand ERST UEBER DEM KEIL. Der Keil ueberwindet den
+//     unteren Teil der Hoehe; bis v2.90 wurde er zur vollen Hoehe addiert und
+//     das Blech dadurch zu lang.
+//   * Der Keilwinkel ist nicht frei, sondern die Winkelhalbierende - siehe
+//     kamaKeilAbbug().
+//
 // Die Dachneigung selbst wird NICHT erfasst und auch nicht gebraucht: alle
 // Masse liegen im Dachsystem, und die beiden Winkel sind ausdruecklich "vom
 // Senkrechten auf Blech" gemessen, also relativ zum Dach. Die Skizze zeichnet
@@ -123,6 +133,29 @@ function kamaHoeheMitWinkel(hoehe,winkel){
  if(!(Math.abs(c)>0.05))return null;      // ab 87 Grad ist das kein Blech mehr
  return kamaZahl(hoehe)/Math.abs(c);
 }
+// Der Keil hinter dem Kamin sitzt zwischen dem Dachblech und der Kaminwand.
+// Sein Winkel ist NICHT frei: er halbiert den Knick, damit die beiden an ihn
+// grenzenden Abbuege denselben Winkel haben (Vorgabe des Anwenders, v2.91).
+//
+//   Dachblech laeuft talwaerts               -> Richtung 180 Grad
+//   Wand steigt an                           -> Richtung 90 - Winkel hinten
+//   ganzer Knick                             -> 90 + Winkel hinten
+//   je Abbug (= Neigung des Keils zum Dach)  -> (90 + Winkel hinten) / 2
+//
+// In der Vorlage (Schnitt_Kamineinfassung.dxf) geht das exakt auf: bei 25 Grad
+// sind es 57.5 Grad je Abbug, der 34.10 lange Keil ueberwindet damit
+// 34.10 * sin(57.5) = 28.76 senkrecht - genau der Wert der Zeichnung.
+function kamaKeilAbbug(winkelHinten){
+ return (90+kamaZahl(winkelHinten))/2;
+}
+// Senkrecht zum Dach gemessener Hoehenanteil, den der Keil ueberwindet.
+// Die Kaminwand beginnt erst darueber - ohne diesen Abzug waere die
+// Abwicklung des Hinterteils zu lang (der Fehler bis v2.90).
+function kamaKeilHoehe(keil,winkelHinten){
+ const a=kamaKeilAbbug(winkelHinten)*Math.PI/180;
+ const h=kamaZahl(keil)*Math.sin(a);
+ return h>0?h:0;
+}
 // Vorder- und Hinterteil laufen ueber die ganze Breite. Sind die beiden
 // Seiten unterschiedlich hoch, wird mit der GROESSEREN gerechnet - ein zu
 // kurzer Zuschnitt waere unbrauchbar, ein zu langer laesst sich kuerzen.
@@ -163,13 +196,17 @@ function kamaZuschnitte(){
   {name:"Mass A",wert:kamaZahl(a.a)},
   {name:"Seitliche Höhe mit Winkel vorne",wert:hv===null?0:hv}]);
 
- const hh=kamaHoeheMitWinkel(h,a.winkelHinten);
+ // Hinten beginnt die Wand ERST UEBER DEM KEIL - der Keil ueberwindet den
+ // unteren Teil der Hoehe. Ohne diesen Abzug waere das Blech zu lang.
+ const keilH=kamaKeilHoehe(a.keil,a.winkelHinten);
+ const restH=h-keilH;
+ const hh=kamaHoeheMitWinkel(restH>0?restH:0,a.winkelHinten);
  dazu("Hinterteil","hinten","",a.breiteHinten,[
   {name:"Umschlag hinten",wert:kamaZahl(a.umschlagHinten)},
   {name:"Mass E · 90°-Aufbug",wert:kamaZahl(a.e)},
   {name:"Mass D",wert:kamaZahl(a.d)},
   {name:"Keil",wert:kamaZahl(a.keil)},
-  {name:"Seitliche Höhe mit Winkel hinten",wert:hh===null?0:hh}]);
+  {name:"Wand über dem Keil, mit Winkel hinten",wert:hh===null?0:hh}]);
 
  // Die vier Seitenteile: dieselbe Abwicklung je Seite, unterschiedliche
  // Laenge (vorne B, hinten C).
@@ -207,9 +244,10 @@ function kamaBleilappen(){
 // oben, der Keil hinten und die beiden Knickkanten (voll = vorne,
 // gestrichelt = hinten). Dazu die vom Anwender verlangten Masse.
 //
-// Der Keil wird zur DARSTELLUNG unter 45 Grad zur Kaminwand gezeichnet - die
-// DXF gibt dafuer keinen erfassten Wert her. Fuer die Abwicklung zaehlt
-// ausschliesslich seine Laenge, die Darstellung aendert daran nichts.
+// Der Keil wird unter seinem tatsaechlichen Winkel gezeichnet: er halbiert den
+// Knick zwischen Dachblech und Wand (kamaKeilAbbug). Dieselbe Regel bestimmt,
+// welchen Hoehenanteil er ueberwindet - Zeichnung und Abwicklung koennen
+// deshalb nicht auseinanderlaufen.
 // Ohne Argument wird der laufende Zustand gezeichnet, mit Argument der
 // gespeicherte Datensatz - so zeigt das PDF genau den Stand von damals.
 function kamaSkizze(quelle){
@@ -236,16 +274,18 @@ bitte die seitliche Höhe sowie B und C eingeben.</div>`;
  const hFuss=P(L,0), hTop=P(L+hDir[0]*H/Math.max(0.05,Math.abs(hDir[1])),H);
 
  // Keil: vom Punkt S auf der Hinterwand schraeg bergwaerts hinunter aufs Dach.
+ // Sein Winkel ist NICHT frei gewaehlt, sondern die Winkelhalbierende des
+ // Knicks zwischen Dachblech und Wand (siehe kamaKeilAbbug) - dieselbe Regel,
+ // nach der auch die Abwicklung des Hinterteils rechnet. In der Vorlage geht
+ // das exakt auf: Kopfpunkt (589.67, 28.76), Fusspunkt (607.99, 0).
  let keilS=null, keilE=null;
- if(keil>0){
-  const rot=(v,g)=>[v[0]*Math.cos(rad(g))-v[1]*Math.sin(rad(g)),
-                    v[0]*Math.sin(rad(g))+v[1]*Math.cos(rad(g))];
-  const runter=[-hDir[0],-hDir[1]];
-  const kDir=rot(runter,45);                 // 45 Grad von der Wand weg
-  if(kDir[1]<-0.05){
-   const s=keil*(-kDir[1])/Math.max(0.05,Math.abs(hDir[1]));
-   keilS=P(hFuss[0]+hDir[0]*s,hDir[1]*s);
-   keilE=P(keilS[0]+kDir[0]*keil,keilS[1]+kDir[1]*keil);
+ const keilHoehe=kamaKeilHoehe(keil,wh);
+ if(keil>0&&keilHoehe>0&&keilHoehe<H){
+  const abbug=kamaKeilAbbug(wh)*Math.PI/180;
+  const cw=Math.cos(rad(wh));
+  if(Math.abs(cw)>0.05){
+   keilS=P(L+keilHoehe*Math.tan(rad(wh)),keilHoehe);
+   keilE=P(keilS[0]+keil*Math.cos(abbug),keilS[1]-keil*Math.sin(abbug));
   }
  }
 
@@ -494,7 +534,25 @@ function kamaPruefungen(){
  [["winkelVorne","Winkel vorne"],["winkelHinten","Winkel hinten"]].forEach(([k,name])=>{
   if(Math.abs(kamaZahl(a[k]))>=87)
    m.push({art:"fehler",text:name+" muss zwischen −87° und 87° liegen – sonst läuft das Blech ins Unendliche."});
+  // 0 Grad heisst: die Wand steht senkrecht auf dem Dach. Bei einem lotrechten
+  // Kamin auf einem geneigten Dach ist das praktisch nie der Fall - und dann
+  // fehlt dem Blech die ganze Verlaengerung. Deshalb ausdruecklich melden,
+  // statt still mit dem unkorrigierten Mass zu rechnen.
+  else if(a[k]===""||a[k]===null||a[k]===undefined)
+   m.push({art:"fehler",text:name+" fehlt. Ohne ihn rechnet die App mit 0°, "
+     +"also mit einer Wand senkrecht auf dem Dach – das Blech wäre zu kurz."});
+  else if(kamaZahl(a[k])===0)
+   m.push({art:"warnung",text:name+" steht auf 0° – die Wand stünde dann senkrecht "
+     +"auf dem Dach. Bei einem lotrechten Kamin entspricht der Winkel der Dachneigung."});
  });
+ // Der Keil ueberwindet einen Teil der Hoehe. Ist er hoeher als die ganze
+ // Einfassung, bleibt fuer die Wand nichts uebrig - dann stimmt eines der
+ // beiden Masse nicht.
+ {const kh=kamaKeilHoehe(a.keil,a.winkelHinten), hh=kamaHoeheDurchgehend();
+  if(kamaZahl(a.keil)>0&&hh>0&&kh>=hh)
+   m.push({art:"fehler",text:"Der Keil überwindet mit "+kamaMm(kh)+" mm bereits die ganze "
+     +"seitliche Höhe ("+kamaMm(hh)+" mm) – für die Kaminwand bliebe nichts übrig."});
+ }
  KAM_SEITEN.forEach(s=>{
   const L=kamaKaminLaenge(s.k);
   const zusatz=a.getrennt?" ("+s.name+")":"";
@@ -568,10 +626,13 @@ function kamaKennzahlenHtml(){
  const wert=(l,v)=>`<div><label>${esc(l)}</label><div class="ra-wert">${esc(v)}</div></div>`;
  const Ll=kamaKaminLaenge("l"), Lr=kamaKaminLaenge("r");
  const bl=kamaBleilappen();
+ const kh=kamaKeilHoehe(kamA.keil,kamA.winkelHinten);
  return `<div class="grid ra-kennzahlen" id="kam_kennzahlen">
 ${wert("Kaminlänge längs Dach"+(kamA.getrennt?" links":""),Ll>0?kamaMm(Ll)+" mm":"–")}
 ${kamA.getrennt?wert("Kaminlänge rechts",Lr>0?kamaMm(Lr)+" mm":"–"):""}
 ${wert("Seitliche Höhe für Vorder-/Hinterteil",kamaHoeheDurchgehend()>0?kamaMm(kamaHoeheDurchgehend())+" mm":"–")}
+${wert("Keil: Abbug / Höhenanteil",kamaZahl(kamA.keil)>0
+   ?kamaKeilAbbug(kamA.winkelHinten).toFixed(1).replace(".",",")+"° / "+kamaMm(kh)+" mm":"–")}
 ${wert("Anzahl Bleilappen",bl.gesamt!==null?String(bl.gesamt):"–")}
 </div>`;
 }
@@ -583,14 +644,17 @@ function kamaMasseHtml(){
 </div>`:"";
  return `<div class="info">Alle Masse in mm, längs des Dachs gemessen. Die beiden Winkel
 sind vom Senkrechten auf das Dach gemessen: <b>positiv</b> heisst vorne nach vorne
-(talwärts) und hinten nach hinten (bergwärts) geneigt.</div>
+(talwärts) und hinten nach hinten (bergwärts) geneigt. <b>0°</b> hiesse, die Wand
+stünde senkrecht auf dem Dach – bei einem lotrechten Kamin entspricht der Winkel
+der Dachneigung. Der Keil braucht keinen eigenen Winkel: er halbiert den Knick,
+damit die beiden an ihn grenzenden Abbüge gleich sind.</div>
 <div class="grid">
 ${kamaZahlFeld("A · vorne auf Deckmaterial bis Vorderkant Kamin","kam_a",a.a,"1",true)}
 ${kamaZahlFeld("D · Hinterkant Kamin bis hinten unter Deckmaterial","kam_d",a.d,"1",true)}
 ${kamaZahlFeld("E · Mass vom 90°-Aufbug hinten","kam_e",a.e)}
 ${kamaZahlFeld("Keil hinterkant Kamin","kam_keil",a.keil)}
-${kamaZahlFeld("Winkel vorne vom Senkrechten (°)","kam_winkelVorne",a.winkelVorne,"0.1")}
-${kamaZahlFeld("Winkel hinten vom Senkrechten (°)","kam_winkelHinten",a.winkelHinten,"0.1")}
+${kamaZahlFeld("Winkel vorne vom Senkrechten (°)","kam_winkelVorne",a.winkelVorne,"0.1",true)}
+${kamaZahlFeld("Winkel hinten vom Senkrechten (°)","kam_winkelHinten",a.winkelHinten,"0.1",true)}
 ${kamaZahlFeld("Überlappung der Seitenteile (Knick)","kam_ueberlappung",a.ueberlappung)}
 </div>
 <h2 style="margin-top:14px">Seitliche Masse</h2>
@@ -684,6 +748,9 @@ ${zeile("Material",kamaMaterialText())}
 ${zeile("Deckungsmaterial",kamaDeckungText())}
 ${zeile("A / D",kamaMm(a.a)+" / "+kamaMm(a.d)+" mm")}
 ${zeile("E · 90°-Aufbug / Keil",kamaMm(a.e)+" / "+kamaMm(a.keil)+" mm")}
+${kamaZahl(a.keil)>0?zeile("Keil: Abbug / Höhenanteil",
+   kamaKeilAbbug(a.winkelHinten).toFixed(1).replace(".",",")+"° / "
+   +kamaMm(kamaKeilHoehe(a.keil,a.winkelHinten))+" mm"):""}
 ${zeile("Winkel vorne / hinten",kamaZahl(a.winkelVorne)+"° / "+kamaZahl(a.winkelHinten)+"°")}
 ${seitig("B · Seitenteil vorne","b","mm")}
 ${seitig("C · Seitenteil hinten","c","mm")}

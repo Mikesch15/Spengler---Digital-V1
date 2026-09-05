@@ -41,13 +41,24 @@ const FALL={
  b:{l:500,r:500}, c:{l:400,r:400}, f:{l:150,r:150}, g:{l:100,r:100},
  hoehe:{l:400,r:400}, rollenAuswahl:[]
 };
-// Von Hand: cos(25 Grad)=0.9063077870; 400/0.9063077870 = 441.3534
-//  Vorderteil   900 x (20+300+441.3534) = 900 x 761
-//  Hinterteil   900 x (20+60+250+80+441.3534) = 900 x 851
+// Von Hand (v2.91): cos(25 Grad)=0.9063077870
+//  Vorderteil   400/cos25 = 441.3512 -> 900 x (20+300+441.3512) = 900 x 761
+//  Keil-Abbug   (90+25)/2 = 57.5 Grad   (Winkelhalbierende, siehe kamaKeilAbbug)
+//  Keilhoehe    80*sin(57.5) = 67.4713
+//  Wand hinten  (400-67.4713)/cos25 = 332.5287/0.9063078 = 366.9048
+//  Hinterteil   900 x (20+60+250+80+366.9048) = 900 x 777
+//               Bis v2.90 stand hier 851 - der Keil wurde zur VOLLEN Hoehe
+//               addiert, statt ihren unteren Teil zu ersetzen.
 //  Seitenteile  500/400 x (20+100+150+400) = x 670
 //  Kaminlaenge  500+400-120 = 780
-//  Flaeche  (900*761 + 900*851 + 2*(500*670) + 2*(400*670)) / 1e6 = 2.6568
+//  Flaeche  (900*761 + 900*777 + 2*(500*670) + 2*(400*670)) / 1e6 = 2.5902
 //  Bleilappen  ceil(500/330)=2, ceil(400/330)=2, je Seite -> 8
+//
+// Gegen die Vorlage Schnitt_Kamineinfassung.dxf, aufs Dach projiziert:
+//  Keil        Kopf (589.67, 28.76) -> Fuss (607.99, 0), Laenge 34.10
+//  Hinterkant  (589.67, 28.76) -> (632.21, 120.00), Laenge 100.67
+//  Bei Winkel hinten 25 Grad: Abbug 57.5, 34.10*sin(57.5) = 28.760 (= DXF),
+//  Wand (120-28.760)/cos25 = 100.673 (= DXF), Keillaenge+Wand = 134.77.
 
 (async()=>{
  const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
@@ -184,19 +195,80 @@ const FALL={
  p(z.teile.length===6,"sechs Zuschnitte",z.teile.length);
  p(z.teile[0].name==="Vorderteil"&&z.teile[0].l===900&&z.teile[0].br===761,
    "Vorderteil 900 × 761 (20 + 300 + 400/cos25)",z.teile[0]);
- p(z.teile[1].name==="Hinterteil"&&z.teile[1].l===900&&z.teile[1].br===851,
-   "Hinterteil 900 × 851 (20 + 60 + 250 + 80 + 400/cos25) — E ist enthalten",z.teile[1]);
+ p(z.teile[1].name==="Hinterteil"&&z.teile[1].l===900&&z.teile[1].br===777,
+   "Hinterteil 900 × 777 (20 + 60 + 250 + 80 + Wand ÜBER dem Keil) — E ist enthalten",z.teile[1]);
  p(z.teile[2].name==="Seitenteil vorne"&&z.teile[2].seite==="links"&&z.teile[2].l===500&&z.teile[2].br===670,
    "Seitenteil vorne links 500 × 670 (B als Laenge)",z.teile[2]);
  p(z.teile[3].name==="Seitenteil hinten"&&z.teile[3].l===400&&z.teile[3].br===670,
    "Seitenteil hinten links 400 × 670 (C als Laenge)",z.teile[3]);
  p(z.teile[4].seite==="rechts"&&z.teile[5].seite==="rechts","je ein Seitenteil vorne und hinten rechts",
    [z.teile[4],z.teile[5]]);
- p(Math.abs(z.flaeche-2.6568)<1e-4,"Blechflaeche 2.6568 m²",z.flaeche);
+ p(Math.abs(z.flaeche-2.5902)<1e-4,"Blechflaeche 2.5902 m²",z.flaeche);
  // Der Winkel muss wirklich wirken: ohne Winkel waere die Abwicklung 720.
  const ohneW=await page.evaluate(()=>{const alt=kamA.winkelVorne;kamA.winkelVorne=0;
    const b=kamaZuschnitte()[0].breite;kamA.winkelVorne=alt;return b});
  p(ohneW===720,"ohne Winkel vorne waere die Abwicklung 720 — der Winkel wirkt",ohneW);
+
+ console.log("\nE2 · Keil und Winkel — die v2.91-Korrektur");
+ await setz(page,FALL);
+ // Der Keilwinkel ist die Winkelhalbierende des Knicks zwischen Dachblech und
+ // Wand: beide an den Keil grenzenden Abbuege bekommen denselben Winkel.
+ const kw=await page.evaluate(()=>({
+  ab25:kamaKeilAbbug(25), ab0:kamaKeilAbbug(0), ab40:kamaKeilAbbug(40),
+  // Die drei Werte der Vorlage, nachgerechnet: Keil 34.10 bei 25 Grad
+  dxfHoehe:kamaKeilHoehe(34.10,25),
+  dxfWand:(120-kamaKeilHoehe(34.10,25))/Math.cos(25*Math.PI/180),
+  h80:kamaKeilHoehe(80,25), h0:kamaKeilHoehe(0,25)
+ }));
+ p(Math.abs(kw.ab25-57.5)<1e-9,"Abbug bei 25° = (90+25)/2 = 57,5°",kw.ab25);
+ p(Math.abs(kw.ab0-45)<1e-9,"senkrechte Wand (0°) ergibt 45° Keil",kw.ab0);
+ p(Math.abs(kw.ab40-65)<1e-9,"Abbug bei 40° = 65°",kw.ab40);
+ p(Math.abs(kw.dxfHoehe-28.760)<0.005,"DXF: 34,10 mm Keil ueberwinden 28,76 mm Hoehe",kw.dxfHoehe);
+ p(Math.abs(kw.dxfWand-100.673)<0.01,"DXF: Wand ueber dem Keil = 100,67 mm",kw.dxfWand);
+ p(Math.abs(34.10+kw.dxfWand-134.77)<0.01,"DXF: Keillaenge + Wand = 134,77 mm (die Abwicklung hinten)",34.10+kw.dxfWand);
+ p(Math.abs(kw.h80-67.4713)<1e-3,"Testfall: 80 mm Keil ueberwinden 67,47 mm Hoehe",kw.h80);
+ p(kw.h0===0,"ohne Keil keine Keilhoehe",kw.h0);
+
+ // Der Keil ERSETZT den unteren Teil der Hoehe, er wird nicht dazugezaehlt.
+ const kz=await page.evaluate(()=>{
+  const merk=kamA.keil, r={};
+  const bein=()=>{const t=kamaZuschnitte()[1].teile;
+    return t[t.length-1];};
+  kamA.keil=0;   r.ohne=kamaZuschnitte()[1].breite; r.beinOhne=bein().wert;
+  kamA.keil=80;  r.k80=kamaZuschnitte()[1].breite;  r.name=bein().name;
+  kamA.keil=160; r.k160=kamaZuschnitte()[1].breite;
+  kamA.keil=merk; return r;
+ });
+ // ohne Keil: 20+60+250+0+400/cos25 = 771.35 -> 771
+ p(kz.ohne===771&&Math.abs(kz.beinOhne-441.3512)<1e-3,
+   "ohne Keil rechnet die Wand mit der vollen Hoehe (771)",kz);
+ p(kz.k80===777,"mit 80 mm Keil: 777 — der Keil ersetzt 67,47 mm Hoehe",kz.k80);
+ // Der doppelte Keil verlaengert nur um 5 mm (die Hypotenuse ist laenger als
+ // das Wandstueck, das sie ersetzt). Bis v2.90 waren es volle +80.
+ p(kz.k160===782,"doppelter Keil bringt nur +5 mm, nicht +80",kz.k160);
+ p(/Wand über dem Keil/.test(kz.name),"das Bein heisst 'Wand ueber dem Keil'",kz.name);
+
+ // Ein Keil, der die ganze Hoehe ueberwindet, ist ein Fehler.
+ await setz(page,Object.assign({},FALL,{keil:600}));
+ const kzF=await page.evaluate(()=>kamaPruefungen().filter(x=>x.art==="fehler").map(x=>x.text));
+ p(kzF.some(x=>/Keil überwindet/.test(x)),"Keil groesser als die Hoehe wird gemeldet",kzF);
+
+ // Der Winkel ist ab v2.91 ein Pflichtfeld: leer waere 0 Grad und damit eine
+ // Wand senkrecht auf dem Dach - genau der Fehler aus v2.90.
+ await setz(page,Object.assign({},FALL,{winkelHinten:""}));
+ const kwLeer=await page.evaluate(()=>kamaPruefungen());
+ p(kwLeer.some(x=>x.art==="fehler"&&/Winkel hinten fehlt/.test(x.text)),
+   "leerer Winkel ist ein Fehler, kein stilles 0°",kwLeer.map(x=>x.text));
+ await setz(page,Object.assign({},FALL,{winkelVorne:0}));
+ const kwNull=await page.evaluate(()=>kamaPruefungen());
+ p(kwNull.some(x=>x.art==="warnung"&&/Winkel vorne/.test(x.text)),
+   "0° wird als Warnung genannt (Wand senkrecht auf dem Dach)",kwNull.map(x=>x.text));
+ await reg(page,2);
+ const wPflicht=await page.evaluate(()=>["kam_winkelVorne","kam_winkelHinten"].map(id=>{
+  const e=document.getElementById(id);
+  return e?{req:e.required,aria:e.getAttribute("aria-required")}:null;
+ }));
+ p(wPflicht.every(x=>x&&x.req&&x.aria==="true"),"beide Winkel sind echte Pflichtfelder",wPflicht);
 
  console.log("\nF · Links und rechts getrennt");
  await setz(page,Object.assign({},FALL,{getrennt:true,
@@ -234,16 +306,16 @@ const FALL={
     best:r.bestes?{breite:r.bestes.breite,flaeche:Number(r.bestes.flaeche.toFixed(4))}:null,
     zuSchmal:r.zuSchmal, netto:Number(r.netto.toFixed(4))};
  });
- // Gruppen nach Abwicklung: 851 (1 Stueck, L=900), 761 (1, L=900), 670 (4, L=500)
+ // Gruppen nach Abwicklung: 777 (1 Stueck, L=900), 761 (1, L=900), 670 (4, L=500)
  // 670er Gruppe: 500+400 > 500, also 4 Streifen a 500.
  // Rolle 1000: je Gruppe 1 Streifen nebeneinander -> 900 + 900 + 4*500 = 3800 mm
  //   Flaeche = 1000 * 3800 / 1e6 = 3.8
- // Rolle 670 ist schmaler als 851 -> faellt weg.
- p(JSON.stringify(rp.breiten)==="[851,761,670]","drei Streifenbreiten, breiteste zuerst",rp.breiten);
+ // Rolle 670 ist schmaler als 777 -> faellt weg.
+ p(JSON.stringify(rp.breiten)==="[777,761,670]","drei Streifenbreiten, breiteste zuerst",rp.breiten);
  p(JSON.stringify(rp.streifen)==="[1,1,4]","die 670er Gruppe braucht 4 Streifen",rp.streifen);
  p(JSON.stringify(rp.abschnitt)==="[900,900,500]","Abschnitt = laengstes Stueck der Gruppe",rp.abschnitt);
  p(rp.best&&rp.best.breite===1000&&Math.abs(rp.best.flaeche-3.8)<1e-4,"beste Rolle 1000 mm, 3.8 m²",rp.best);
- p(rp.zuSchmal.indexOf(670)>=0,"670 mm ist zu schmal fuer die 851er Abwicklung",rp.zuSchmal);
+ p(rp.zuSchmal.indexOf(670)>=0,"670 mm ist zu schmal fuer die 777er Abwicklung",rp.zuSchmal);
  // Es darf keine zweite Packrechnung geben.
  const nurEine=await page.evaluate(()=>{
   const alt=window.ebaPackeInStreifen; let gerufen=0;
@@ -322,6 +394,22 @@ const FALL={
  const skLeer=await page.evaluate(()=>{const alt=kamA;kamA=kamaLeer();
    const h=kamaSkizze();kamA=alt;return h});
  p(skLeer.indexOf("<svg")<0&&/fehlen/.test(skLeer),"ohne Masse ein Hinweis statt einer erfundenen Zeichnung");
+ // Der gezeichnete Keil muss der Winkelhalbierenden folgen, nicht einem fest
+ // gewaehlten Winkel. Die Skizze skaliert x und y gleich, der Winkel bleibt
+ // also erhalten (y ist im Bild nur nach unten gespiegelt).
+ const keilWinkel=(html)=>{
+  const alle=[...String(html).matchAll(/<line x1="(-?[\d.]+)" y1="(-?[\d.]+)" x2="(-?[\d.]+)" y2="(-?[\d.]+)"\s+stroke="[^"]*" stroke-width="3\.4"/g)]
+   .map(m=>m.slice(1,5).map(Number)).filter(q=>Math.abs(q[0]-q[2])>0.5);
+  if(!alle.length)return null;
+  const q=alle[0];
+  return Math.atan2(q[3]-q[1],q[2]-q[0])*180/Math.PI;
+ };
+ const wKeil=keilWinkel(sk.html);
+ p(wKeil!==null&&Math.abs(wKeil-57.5)<0.4,"der gezeichnete Keil steht unter 57,5° (Winkelhalbierende)",wKeil);
+ const sk40=await page.evaluate(()=>{const alt=kamA.winkelHinten;kamA.winkelHinten=40;
+   const h=kamaSkizze();kamA.winkelHinten=alt;return h});
+ const wKeil40=keilWinkel(sk40);
+ p(wKeil40!==null&&Math.abs(wKeil40-65)<0.4,"bei 40° Wandwinkel steht der Keil unter 65°",wKeil40);
 
  console.log("\nL · Speichern und Wiederoeffnen");
  await setz(page,Object.assign({},FALL,{getrennt:true,b:{l:500,r:600},hoehe:{l:400,r:450}}));

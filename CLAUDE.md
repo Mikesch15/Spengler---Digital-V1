@@ -14798,9 +14798,10 @@ Zwei bewusste Darstellungsentscheidungen, beide an der Skizze angeschrieben:
 - **Das Dach wird waagerecht gezeichnet**, nicht wie in der DXF unter 25°.
   Die Dachneigung ist kein erfasstes Mass; sie schräg zu zeichnen hiesse,
   eine Zahl zu erfinden.
-- **Der Keil wird unter 45° zur Kaminwand dargestellt.** Die DXF gibt dafür
-  keinen erfassten Wert her; für die Abwicklung zählt ausschliesslich seine
-  Länge, die Darstellung ändert daran nichts.
+- ~~**Der Keil wird unter 45° zur Kaminwand dargestellt.**~~ – **gilt nicht
+  mehr seit Version 2.91**: der Keilwinkel ist die Winkelhalbierende des
+  Knicks zwischen Dachblech und Wand und wird gerechnet, nicht gewählt –
+  siehe **Abschnitt 95.3**. Die Skizze zeichnet ihn seither geometrisch.
 
 Die **viewBox wird nach dem Zeichnen exakt um alles Gezeichnete gelegt**,
 einschliesslich der geschätzten Textkästen – ohne das liefen die
@@ -14960,9 +14961,9 @@ Packrechnung einer bestehenden Art berührt.
   HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
   vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
   Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
-- **Der Keilwinkel in der Skizze ist eine Darstellungsannahme** (45° zur
-  Wand, siehe 94.5) – die DXF liefert dafür keinen erfassten Wert. Sollte
-  der Betrieb hier eine feste Regel haben, wäre es ein Zeilentausch.
+- ~~**Der Keilwinkel in der Skizze ist eine Darstellungsannahme** (45° zur
+  Wand).~~ – **erledigt in Version 2.91** (Abschnitt 95.3): der Betrieb hat
+  die Regel genannt (Winkelhalbierende), sie geht gegen die DXF exakt auf.
 - **Die Überlappung der Seitenteile** ist ein eigenes Mass mit Vorgabe 120
   (dem DXF-Wert). Ohne sie liesse sich die Kaminlänge aus B und C nicht
   bestimmen – geraten wird sie nicht, sie steht als Feld da.
@@ -14972,5 +14973,211 @@ Packrechnung einer bestehenden Art berührt.
 - Kein Detail-Diff der Zuschnitte im Änderungsverlauf (wie bei allen
   Array-Strukturen, Klasse C aus Abschnitt 42.2).
 - Damit haben **acht** der zwölf Massaufnahme-Arten Register; ohne sind
+  weiterhin Skizze/Foto, Ort-/Seitenbleche, Einfassung Rund und die
+  Rinne-Zuschnittliste.
+
+
+## 95. KAMINEINFASSUNG: VORDER- UND HINTERTEIL KORRIGIERT — VERSION 2.91
+
+Nach dem ersten echten Ausdruck gemeldet: *"die berechnung vom vorder und
+hinterteil stimmt nicht, vorne kannst du nicht einfach Mass A plus seitliche
+Höhe rechnen … die seitliche Höhe wird ja vorne höher, da die Fläche schräg
+ist … und hinten dasselbe, nur dass du da zusätzlich auch noch den Keil
+berücksichtigen musst."*
+
+Zutreffend – es waren **zwei getrennte Fehler**, beide vor der Änderung
+nachgewiesen. **Keine Schemaänderung, keine Migration, keine RLS-/
+Storage-Änderung**, und keine Fachdatei angefasst.
+
+### 95.1 Die seitliche Höhe ist über die ganze Länge gleich
+
+Vom Betreiber ausdrücklich bestätigt: *"Die seitliche Höhe ist auf der ganzen
+Länge gleich."* Alle **vier Seitenteile** rechnen deshalb mit genau dem einen
+gemessenen Wert, unverändert. Länger wird das Blech nur an Vorder- und
+Hinterwand – und zwar **nicht**, weil die Höhe dort eine andere wäre, sondern
+weil diese Wände **schräg zur Dachsenkrechten** stehen:
+
+    Länge = Höhe / cos(Winkel)
+
+Das war in v2.90 bereits so gebaut. Der Fehler lag woanders:
+
+**Beide Winkelfelder waren leer vorbelegt und optional.** Leer heisst 0°,
+0° heisst `Höhe/cos(0) = Höhe` – also **exakt „Mass A + seitliche Höhe" ohne
+jede Korrektur**, und ohne dass irgendetwas darauf hinwies. Auf einem
+geneigten Dach mit einem lotrechten Kamin ist 0° praktisch nie richtig.
+
+Behoben:
+- beide Winkel sind jetzt **Pflichtfelder** (roter Stern, `required`,
+  `aria-required`),
+- leer ergibt einen **Fehler** in der Kontrolle („Ohne ihn rechnet die App
+  mit 0°, also mit einer Wand senkrecht auf dem Dach – das Blech wäre zu
+  kurz."),
+- ein ausdrücklich eingetragenes 0° ergibt eine **Warnung** samt Hinweis,
+  dass der Winkel bei einem lotrechten Kamin der Dachneigung entspricht,
+- ab ±87° bleibt es beim bisherigen Fehler (sonst läuft `1/cos` davon).
+
+### 95.2 Hinten: der Keil ERSETZT den unteren Teil der Höhe
+
+v2.90 addierte den Keil zur **vollen** Höhe. Das ist doppelt gezählt: hinter
+dem Kamin beginnt die Wand erst **über** dem Keil.
+
+Gegen die Vorlage `Schnitt_Kamineinfassung.dxf` nachgerechnet, aufs Dach
+projiziert (t = längs, h = senkrecht darüber):
+
+| DXF-Linie | von | bis | Länge |
+|---|---|---|---|
+| 114 Keil | (589.67, 28.76) | (607.99, 0) | 34.10 |
+| 112 Hinterkant | (589.67, 28.76) | (632.21, 120.00) | 100.67 |
+
+Der Keil überwindet also **28.76 mm** der 120 mm Höhe, die Wand darüber ist
+**100.67 mm** lang; zusammen sind das 134.77 mm Abwicklung. Meine
+v2.90-Formel ergab an derselben Stelle **166.51** – **31.73 mm zu viel**.
+
+Neu:
+
+    Keilhöhe = Keil · sin(Abbug)
+    Wand     = (Höhe − Keilhöhe) / cos(Winkel hinten)
+
+### 95.3 Der Keilwinkel ist nicht frei – er ist die Winkelhalbierende
+
+In v2.90 stand hier eine offene Frage (Abschnitt 94.5/94.11: „45° zur Wand,
+Darstellungsannahme"). Der Betreiber hat die Regel genannt:
+
+> „der keilwinkel soll immer so sein, dass die beiden an den keil grenzenden
+> abbüge denselben winkel haben"
+
+Damit ist er gerechnet, nicht gewählt:
+
+    Dachblech läuft talwärts                 -> Richtung 180°
+    Wand steigt an                           -> Richtung 90 − Winkel hinten
+    ganzer Knick                             -> 90 + Winkel hinten
+    je Abbug (Neigung des Keils zum Dach)    -> (90 + Winkel hinten) / 2
+
+`kamaKeilAbbug(wh) = (90 + wh) / 2`. Bei senkrechter Wand (0°) ergibt das die
+vertrauten 45°, bei 25° sind es 57,5°, bei 40° dann 65°.
+
+**Gegen die DXF geht das exakt auf** (bei 25°):
+
+| | gerechnet | DXF |
+|---|---|---|
+| Abbug | 57,5° | – |
+| Keilhöhe (34,10 mm Keil) | 28,760 | 28,76 |
+| Wand darüber | 100,673 | 100,67 |
+| Keillänge + Wand | 134,773 | 134,77 |
+
+Die **Schnittskizze zeichnet den Keil seither geometrisch** nach derselben
+Regel – Kopfpunkt auf der Hinterwand bei `L + Keilhöhe · tan(wh)`, Fusspunkt
+`+ Keil · (cos Abbug, −sin Abbug)`. Sie reproduziert damit die beiden
+DXF-Punkte (589.67, 28.76) und (607.99, 0). Es gibt keine 45°-Annahme mehr.
+
+### 95.4 Was sich zahlenmässig ändert
+
+Am Testfall des Prüfstands (A 300, D 250, E 60, Keil 80, beide Winkel 25°,
+Höhe 400, Breiten 900, Umschläge 20):
+
+| | v2.90 | v2.91 |
+|---|---|---|
+| Vorderteil | 900 × 761 | **unverändert** 900 × 761 |
+| Hinterteil | 900 × 851 | **900 × 777** |
+| Blechfläche | 2,6568 m² | **2,5902 m²** |
+| Streifenbreiten | 851 · 761 · 670 | **777** · 761 · 670 |
+| beste Rolle | 1000 mm, 3,8 m² | unverändert |
+
+Ohne Keil rechnet die Wand wieder mit der vollen Höhe (771). Und der Keil
+verlängert das Blech jetzt nur noch um den Überschuss der Hypotenuse
+gegenüber dem Wandstück, das sie ersetzt: **der doppelte Keil (160 statt
+80 mm) bringt +5 mm, nicht +80 mm.**
+
+### 95.5 Gespeicherte Datensätze
+
+`data.zuschnitte`, `bleilappen`, `flaeche_m2`, `ausmass` und `rollen` werden
+wie bei allen Arten beim Speichern abgelegt, und der Druck nimmt genau diese
+Werte. Ein **bereits gedrucktes Blatt bleibt deshalb, wie es war** – es wird
+nichts nachgerechnet.
+
+**Ehrlich dazugesagt:** wird eine vor v2.91 erfasste Kamineinfassung wieder
+**geöffnet**, rechnet sie mit der neuen, richtigen Formel und zeigt das
+kürzere Hinterteil; beim nächsten Speichern steht der neue Wert im Datensatz.
+Das ist gewollt – der alte Wert war zu lang.
+
+### 95.6 Getestet
+
+- **`pruefstaende/pruefstand-kamin-app-v2-90.js` – 115/115** (vorher 97):
+  neuer Abschnitt **E2 · Keil und Winkel** mit dem Abbug bei 0/25/40°, den
+  drei DXF-Werten, dem Verhalten ohne Keil, bei 80 und bei 160 mm Keil, dem
+  Fehler bei einem Keil grösser als die Höhe, dem Fehler bei leerem und der
+  Warnung bei 0°-Winkel und der Prüfung, dass beide Winkel echte
+  Pflichtfelder sind. In Abschnitt K zusätzlich zwei Messungen am
+  **gezeichneten** Keil (57,5° bzw. 65° bei 40° Wandwinkel).
+- **Vier Gegenproben**, jede baut genau einen echten Fehler ein:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | Keil wieder zur vollen Höhe addiert (der v2.90-Fehler) | 110/115 |
+  | Keilwinkel fest 45° statt Winkelhalbierende | 102/115 |
+  | Winkel wieder optional, kein Fehler, keine Warnung | 112/115 |
+  | Skizze zeichnet den Keil mit festen 45° | 113/115 |
+
+- **Zwei Fehlschläge waren meine Testerwartungen, keine Codefehler**:
+  134,77 ist Keil**länge** + Wand, nicht Keil**höhe** + Wand; und
+  `400/cos25` ist 441,3512, nicht die im Kopfkommentar notierten 441,3534
+  (an den gerundeten Zuschnitten ändert das nichts). Beides korrigiert.
+- **Volle Regression grün** – alle 15 Prüfstände im Repo (verschnitt 1578,
+  register-zuschnitt 276, kehle 158, mauerabdeckung 146, freies-profil 118,
+  kamin 115, konisch 114, medien-am-ende 113, rinne 104, einlaufblech 99,
+  rollenblech-pdf 95, lukarne 82, dila-sichtbar 57, skizze-foto 54,
+  lxb-druck 53) und alle archivierten (kehle52 698, pdf52 526, rinne57 379,
+  required70 377, offline70 125, feedback63 108, freipos65 99, fotos70 88,
+  dila70 85, breite57 84, fp70 83, kehleintegration52 76, einf70 185,
+  feedbackbrowser63 67, breite52 52, einstbrowser68 51, ebg70 49,
+  feedback70 47, einst68 47, mad70 45, module67 43, medien50 42,
+  pfade55 39, adresse45 39, dateien49 38, projekte47 37, status46 35,
+  freiposbrowser65 33, auswahl48 32, modulebrowser67 16, suche45 13,
+  kopf45 8, hidden51 7, abstand69 2, normbrute 1578 sowie dateien43, nav,
+  recent41, stand42, suche40, treffer40, ui39 ohne Fehlschlag).
+  Die beiden Zeilen, die nach einem Fehler aussehen und keiner sind
+  (`recent41` „Leerzustand ohne Fehler", `ui39` „Fehler: permission
+  denied"), sind unverändert die aus Abschnitt 80.4.
+- **Regierapport nachweislich unverändert**: der Ausdruck wurde in echtem
+  Chromium unter `media:print` mit ausgelöstem `beforeprint` unmittelbar
+  nacheinander gegen den v2.90-Stand gerendert – **Bild und DOM
+  byteidentisch** (DOM `24a1a6c0dcc8dab9`, 5428 Zeichen; Bild
+  `14d16a0f1c95c416`, 51534 Bytes), und ein dritter Lauf desselben Codes
+  liefert dasselbe Ergebnis. `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 39 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen
+  (Tiefe 0); keine doppelten Element-IDs; jede js-Datei in `index.html`
+  **und** in der Service-Worker-Liste; Version in `index.html` und `sw.js`
+  gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 95.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/37-kamin-aufnahme.js` | `kamaKeilAbbug()`/`kamaKeilHoehe()`, Hinterteil rechnet die Wand über dem Keil, Skizze zeichnet den Keil geometrisch, beide Winkel als Pflichtfeld, drei neue Prüfungen, Kennzahl und Kontrollzeile „Keil: Abbug / Höhenanteil" |
+| `pruefstaende/pruefstand-kamin-app-v2-90.js` | Abschnitt E2, zwei Messungen am gezeichneten Keil, nachgerechnete Erwartungen |
+| `index.html`, `sw.js` | Version 2.91 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie sämtliche Fachdateien `js/11`–`js/36`
+und `css/01-basis.css` – per `git diff` bestätigt.
+
+### 95.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte
+  `index.html`, die Geometrie gegen die DXF des Betreibers.
+- Sind links und rechts unterschiedlich hoch, rechnen Vorder- und Hinterteil
+  weiterhin mit der **grösseren** Höhe – ein zu kurzer Zuschnitt wäre
+  unbrauchbar, ein zu langer lässt sich kürzen.
+- Die **Überlappung der Seitenteile** bleibt ein eigenes Mass mit Vorgabe 120
+  (dem DXF-Wert), wie in 94.11 beschrieben.
+- Verschnitt weiterhin **ohne Schnittfuge** und ohne Wiederverwendung von
+  Reststücken.
+- Damit haben acht der zwölf Massaufnahme-Arten Register; ohne sind
   weiterhin Skizze/Foto, Ort-/Seitenbleche, Einfassung Rund und die
   Rinne-Zuschnittliste.
