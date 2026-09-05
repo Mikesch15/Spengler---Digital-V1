@@ -171,6 +171,14 @@ let rinneNormlaengen={};
 // Rollenbreiten des Blechlagers, firmenweit aus app_settings. Leer =
 // noch nichts hinterlegt, dann gilt die Vorgabe 1000/670 (js/29).
 let blechRollenbreiten=[];
+// Schnittbreite der Schere/Saege, firmenweit aus app_settings. 0 = wie bis
+// v3.03, dann aendert sich keine bestehende Zahl. Wird bei jedem Schnitt
+// abgezogen (js/29).
+let blechSchnittfuge=0;
+// Ab welcher Laenge sich das Aufheben eines Restes lohnt, firmenweit.
+let restMindestlaenge=1000;
+// Das Restsuecke-Lager der Firma, geladen wie die uebrigen Kataloge.
+let reststuecke=[];
 // Masse für die Mauerabdeckung, firmenweit aus app_settings.
 let madBodenMass=0;
 let madSchieberMass=0;

@@ -1251,6 +1251,26 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 <div id="eb_rollenbreiten" class="bar" style="flex-wrap:wrap"></div>
 <div class="bar"><button id="saveBlechRollenbreiten" class="green">💾 Rollenbreiten speichern</button><button type="button" id="resetBlechRollenbreiten" class="gray">↩️ Standard (1000 / 670)</button></div>
 <div class="small" id="eb_rollenHinweis" style="margin-top:4px"></div>
+
+<h2 style="margin-top:16px">Schnittfuge und Reste <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-schnittfuge">i</button></h2>
+<div class="info">Beides gilt für die ganze Firma und für jede Massaufnahme mit
+Rollenblech-Zuschnitt.</div>
+<div class="grid">
+<div><label>Schnittfuge (mm)</label><input id="set_schnittfuge" type="number" step="0.5" min="0" max="50" placeholder="0"></div>
+<div><label>Reste aufheben ab (mm)</label><input id="set_restMindest" type="number" step="10" min="0" max="20000" placeholder="1000"></div>
+</div>
+<div class="small" style="color:var(--muted);margin-top:2px">Schnittfuge 0 mm heisst: es wird gerechnet wie bisher, ohne Abzug. Jeder Schnitt zieht sonst diese Breite ab.</div>
+<div class="bar"><button id="saveSchnittfuge" class="green">💾 Speichern</button></div>
+<div class="small" id="set_schnittfugeHinweis" style="margin-top:4px" hidden></div>
+
+<h2 style="margin-top:16px">Reststücke-Lager <button type="button" class="hilfe-knopf no-print" data-hilfe="reststuecke">i</button></h2>
+<div class="info">Reste, die beim Zuschnitt übrig bleiben und sich noch verwenden
+lassen. Aus dem Register „Zuschnitt“ einer Massaufnahme lassen sie sich mit
+einem Klick hier aufnehmen; beim nächsten Zuschnitt werden passende Reste
+vorgeschlagen.</div>
+<div id="restLagerListe"></div>
+<div class="bar"><button type="button" id="restLagerNeu" class="gray">＋ Rest von Hand erfassen</button></div>
+<div class="small" id="restLagerHinweis" style="margin-top:4px" hidden></div>
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="measurements" hidden>
@@ -1727,6 +1747,7 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <script src="js/39-rinne-aufnahme.js"></script>
 <script src="js/40-anschlussblech-aufnahme.js"></script>
 <script src="js/41-hilfe.js"></script>
+<script src="js/42-reste.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

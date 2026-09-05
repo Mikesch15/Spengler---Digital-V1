@@ -553,6 +553,26 @@ Liste zeigt sie mit Pfad, Grösse und Datum.</p>
 <p>Es wird nichts automatisch gelöscht. Beim Löschen prüft der Server die
 Liste nochmals selbst: eine Datei, auf die noch etwas zeigt, kann darüber
 nicht entfernt werden.</p>`},
+"einst-schnittfuge":{titel:"Schnittfuge und Reste",text:`
+<p>Die <b>Schnittfuge</b> ist die Breite, die Schere oder Säge beim Trennen
+wegnimmt. Sie wird bei jedem Schnitt abgezogen – sowohl beim Längsteilen der
+Rolle in Streifen als auch zwischen zwei Stücken im selben Streifen.</p>
+<p>Steht sie auf <b>0 mm</b>, wird gerechnet wie bisher, ganz ohne Abzug. Das
+ist der Startwert: so ändert sich keine bestehende Zahl, bis der Betrieb den
+echten Wert einträgt.</p>
+<p><b>Reste aufheben ab</b> legt fest, wie lang ein Rest mindestens sein muss,
+damit er im Reststücke-Lager vorgeschlagen wird.</p>`},
+
+"reststuecke":{titel:"Reststücke-Lager",text:`
+<p>Was beim Zuschnitt übrig bleibt und sich noch verwenden lässt. Im Register
+„Zuschnitt“ einer Massaufnahme steht, welche Reste dabei anfallen – von dort
+lassen sie sich mit einem Klick hier aufnehmen.</p>
+<p>Beim nächsten Zuschnitt werden Reste angezeigt, die breit genug wären.
+Sie werden bewusst <b>nicht automatisch eingeplant</b>: ein Rest liegt
+physisch irgendwo und ist vielleicht schon verbraucht. Die Entscheidung
+trifft der Spengler.</p>
+<p>„Verbraucht“ nimmt einen Rest aus der Liste, ohne ihn zu löschen.</p>`},
+
 "module-test":{titel:"Module in Entwicklung",text:`
 <p>Was hier angehakt ist, sehen <b>nur Administratoren</b> – bei allen Firmen
 gemeinsam. So lässt sich eine noch nicht fertige Funktion ausliefern, ohne

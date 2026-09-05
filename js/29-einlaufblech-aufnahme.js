@@ -160,15 +160,34 @@ function ebaStueckliste(bleche){
 }
 // Der Kern: verteilt die (absteigend sortierten) Stücke auf k Streifen der
 // Länge L. Rückgabe: die Streifen, false (passt nicht) oder null (Budget aus).
+// Die Schnittbreite der Schere/Saege. Firmenweit aus app_settings, Vorgabe 0
+// (dann rechnet alles exakt wie bis v3.03). Jedes Stueck kostet zusaetzlich
+// EINEN Schnitt - den, der es vom Rest des Streifens trennt. Das ist das
+// uebliche Modell fuer eindimensionalen Zuschnitt.
+function ebaSchnittfuge(){
+ const v=(typeof blechSchnittfuge!=="undefined")?Number(blechSchnittfuge):0;
+ return Number.isFinite(v)&&v>0?v:0;
+}
+// Wie viele Streifen der Breite A nebeneinander aus einer Rolle der Breite B
+// entstehen. Zwischen zwei Streifen liegt ein Laengsschnitt, der aeussere
+// Rand der letzten ist die Rollenkante - also n-1 Schnitte fuer n Streifen.
+// Mit Schnittfuge 0 ist das exakt das bisherige Math.floor(B/A).
+function ebaStreifenJeAbschnitt(B,A){
+ const b=Number(B)||0, a=Number(A)||0;
+ if(a<=0||b<=0)return 0;
+ const f=ebaSchnittfuge();
+ return Math.floor((b+f)/(a+f));
+}
 function ebaVerteile(stuecke,k,L,budget){
  if(k<1)return stuecke.length?false:[];
- if(stuecke.length&&ebaZahl(stuecke[0].laenge)>L+1e-9)return false;
+ const fuge=ebaSchnittfuge();
+ if(stuecke.length&&ebaZahl(stuecke[0].laenge)+fuge>L+1e-9)return false;
  const streifen=Array.from({length:k},()=>({stuecke:[],rest:L}));
  let schritte=0; const grenze=budget||200000; let ausBudget=false;
  const setze=i=>{
   if(i>=stuecke.length)return true;
   if(++schritte>grenze){ausBudget=true;return false}
-  const len=ebaZahl(stuecke[i].laenge), gesehen=[];
+  const len=ebaZahl(stuecke[i].laenge)+fuge, gesehen=[];
   for(let j=0;j<streifen.length;j++){
    if(streifen[j].rest<len-1e-9)continue;
    // Zwei Streifen mit gleichem Rest sind austauschbar - der zweite bringt
@@ -191,15 +210,18 @@ function ebaPackeInStreifen(bleche,L,budget){
  // Blech mit SEINER genauen Länge steht und nicht nur eine nackte Zahl.
  const stuecke=ebaStueckliste(bleche);
  if(!stuecke.length)return {streifen:[],optimal:true};
- if(ebaZahl(stuecke[0].laenge)>L)
-  return {streifen:null,optimal:true,zuLang:stuecke.filter(x=>ebaZahl(x.laenge)>L)};
+ // Jedes Stueck braucht seine Laenge PLUS einen Schnitt.
+ const fuge=ebaSchnittfuge();
+ const brutto=x=>ebaZahl(x.laenge)+fuge;
+ if(brutto(stuecke[0])>L)
+  return {streifen:null,optimal:true,zuLang:stuecke.filter(x=>brutto(x)>L)};
  const gierig=[];
  stuecke.forEach(x=>{
-  const s=gierig.find(g=>g.rest>=ebaZahl(x.laenge)-1e-9);
-  if(s){s.stuecke.push(x);s.rest-=ebaZahl(x.laenge)}
-  else gierig.push({stuecke:[x],rest:L-ebaZahl(x.laenge)});
+  const s=gierig.find(g=>g.rest>=brutto(x)-1e-9);
+  if(s){s.stuecke.push(x);s.rest-=brutto(x)}
+  else gierig.push({stuecke:[x],rest:L-brutto(x)});
  });
- const summe=stuecke.reduce((a,b)=>a+ebaZahl(b.laenge),0);
+ const summe=stuecke.reduce((a,b)=>a+brutto(b),0);
  const untergrenze=Math.ceil(summe/L-1e-9);
  for(let k=untergrenze;k<gierig.length;k++){
   const v=ebaVerteile(stuecke,k,L,budget);
@@ -239,7 +261,7 @@ function ebaRollenPlan(){
  const moeglich=[], zuSchmal=[];
  const netto=ebaFlaecheM2();
  breiten.forEach(B=>{
-  const jeAbschnitt=Math.floor(B/A);
+  const jeAbschnitt=ebaStreifenJeAbschnitt(B,A);
   if(jeAbschnitt<1){zuSchmal.push(B);return}
   const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
   const rollenLaenge=abschnitte*L;
@@ -445,6 +467,7 @@ function ebaZuschnittPlan(){
  const best=plan.bestes;
  const A=ebaZahl(ebA.abwicklung);
  return {art:"rolle", einheit:"Stück",
+  material:(typeof ebA!=="undefined")?(ebA.material):null,
   einleitung:ZU_EINLEITUNG_ROLLE,
   quelle:ZU_QUELLE_ROLLE,
   leer:!(ebA.stuecke||[]).length?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."

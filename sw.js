@@ -63,7 +63,8 @@ const SHELL = [
   "./js/38-einfassung-aufnahme.js",
   "./js/39-rinne-aufnahme.js",
   "./js/40-anschlussblech-aufnahme.js",
-  "./js/41-hilfe.js"
+  "./js/41-hilfe.js",
+  "./js/42-reste.js"
 ];
 
 self.addEventListener("install", event => {

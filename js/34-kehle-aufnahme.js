@@ -170,7 +170,7 @@ function keaRollenPlan(){
  const streifen=v.streifen||[];
  const moeglich=[], zuSchmal=[];
  breiten.forEach(B=>{
-  const jeAbschnitt=Math.floor(B/A);
+  const jeAbschnitt=ebaStreifenJeAbschnitt(B,A);
   if(jeAbschnitt<1){zuSchmal.push(B);return}
   const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
   const rollenLaenge=abschnitte*L;
@@ -189,6 +189,7 @@ function keaRollenPlan(){
 function keaZuschnittPlan(){
  const rp=keaRollenPlan(), best=rp.bestes;
  return {art:"rolle", einheit:"Stück",
+  material:(typeof kehleA!=="undefined")?(kehleA.material):null,
   einleitung:ZU_EINLEITUNG_ROLLE, quelle:ZU_QUELLE_ROLLE,
   leer:!keaBleche().length?"Noch nichts zuzuschneiden – bitte zuerst Segmente erfassen."
       :(!keaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."

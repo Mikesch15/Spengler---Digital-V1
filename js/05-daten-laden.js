@@ -1,7 +1,7 @@
 "use strict";
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
@@ -13,6 +13,9 @@ async function loadAllData(){
   // "Module in Entwicklung" ist seit v2.67 eine Betreiber-Einstellung
   // (eine Zeile fuer das ganze System), nicht mehr eine je Firma.
   sb.from("system_settings").select("module_test").maybeSingle(),
+  // Das Restsuecke-Lager (v3.04). RLS grenzt auf die eigene Firma ein,
+  // der Client filtert bewusst nicht selbst nach company_id.
+  sb.from("reststuecke").select("*").eq("verbraucht",false).order("laenge_mm",{ascending:false}),
  ]);
  // Offline (v2.70): schlaegt das Laden fehl, wird NICHT stillschweigend
  // eine leere App gezeigt - dann kaeme jede Liste als "nichts vorhanden"
@@ -20,7 +23,7 @@ async function loadAllData(){
  // deutlicher Hinweis.
  const geladen={rates:ratesRes.data,materials:materialsRes.data,profiles:profilesRes.data,
   projects:projectsRes.data,appSettings:appSettingsRes.data,bz:bzRes.data,
-  rinne:rinneRes.data,measMaterials:measMaterialsRes.data};
+  rinne:rinneRes.data,measMaterials:measMaterialsRes.data,rest:restRes?restRes.data:[]};
  const fehlgeschlagen=[ratesRes,materialsRes,profilesRes,projectsRes,bzRes,rinneRes,measMaterialsRes]
    .some(r=>r&&r.error);
  const firmaId=currentProfile?currentProfile.company_id:null;
@@ -57,6 +60,9 @@ async function loadAllData(){
   if(geladen.appSettings.rinne_dila_mass_mm!==null&&geladen.appSettings.rinne_dila_mass_mm!==undefined)rinneDilaMass=Number(geladen.appSettings.rinne_dila_mass_mm)||0;
   rinneNormlaengen=(geladen.appSettings.rinne_normlaengen&&typeof geladen.appSettings.rinne_normlaengen==="object")?geladen.appSettings.rinne_normlaengen:{};
   blechRollenbreiten=Array.isArray(geladen.appSettings.blech_rollenbreiten)?geladen.appSettings.blech_rollenbreiten.map(Number).filter(x=>Number.isFinite(x)&&x>0):[];
+  blechSchnittfuge=Number(geladen.appSettings.schnittfuge_mm)||0;
+  restMindestlaenge=(geladen.appSettings.rest_mindestlaenge_mm===null||geladen.appSettings.rest_mindestlaenge_mm===undefined)
+   ?1000:(Number(geladen.appSettings.rest_mindestlaenge_mm)||0);
   if(geladen.appSettings.mad_boden_mass_mm!==null&&geladen.appSettings.mad_boden_mass_mm!==undefined)madBodenMass=Number(geladen.appSettings.mad_boden_mass_mm)||0;
   if(geladen.appSettings.mad_schieber_mass_mm!==null&&geladen.appSettings.mad_schieber_mass_mm!==undefined)madSchieberMass=Number(geladen.appSettings.mad_schieber_mass_mm)||0;
   if(geladen.appSettings.luk_achsabstand_mm!==null&&geladen.appSettings.luk_achsabstand_mm!==undefined)lukAchsabstand=Number(geladen.appSettings.luk_achsabstand_mm)||500;
@@ -71,6 +77,7 @@ async function loadAllData(){
  blitzschutzMaterials=geladen.bz||[];
  rinneFittingTypes=geladen.rinne||[];
  measurementMaterials=geladen.measMaterials||[];
+ reststuecke=geladen.rest||[];
  applyCompanyName();
  applyEinlaufblechSettings();
  renderMeasMaterialOptions();

@@ -593,3 +593,9 @@ label.kam-schalter input[type=checkbox]{width:20px;min-width:20px;height:20px;
  border-radius:9px;background:var(--blue-light);color:var(--blue-dark);
  font-weight:800;font-size:13px;text-decoration:none}
 .hilfe-pdf:hover{filter:brightness(.96)}
+
+/* Reststuecke-Lager (v3.04): der Block unter der Zuschnittliste. Bewusst
+   dezent - er ist ein Hinweis, keine Rechnung. */
+.rest-block{margin:8px 0 4px;padding:8px 10px;border:1px solid var(--line);
+  border-radius:8px;background:rgba(127,127,127,.06)}
+.rest-block .bar{margin-top:4px}

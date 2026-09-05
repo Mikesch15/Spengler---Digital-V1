@@ -483,7 +483,7 @@ function kamaRollenPlan(){
  breiten.forEach(R=>{
   const zeilen=[]; let flaeche=0, passt=true;
   gruppen.forEach(gr=>{
-   const jeAbschnitt=Math.floor(R/gr.breite);
+   const jeAbschnitt=ebaStreifenJeAbschnitt(R,gr.breite);
    if(jeAbschnitt<1){passt=false;return}
    const abschnitte=Math.ceil(gr.streifen.length/jeAbschnitt);
    const rollenLaenge=abschnitte*gr.abschnittLaenge;
@@ -508,6 +508,7 @@ function kamaRollenPlan(){
 function kamaZuschnittPlan(){
  const rp=kamaRollenPlan();
  return {art:"rolle", einheit:"Teil",
+  material:(typeof kamA!=="undefined")?(kamA.material):null,
   einleitung:ZU_EINLEITUNG_ROLLE, quelle:ZU_QUELLE_ROLLE,
   leer:!kamaBleche().length?"Noch nichts zuzuschneiden – bitte zuerst die Masse erfassen."
       :(!kamaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."

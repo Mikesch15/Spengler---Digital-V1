@@ -298,6 +298,9 @@ function renderSettings(){
  const dilaFeld=$("rinneDilaMassInput");
  if(dilaFeld)dilaFeld.value=rinneDilaMass;
  if(typeof renderRinneNormSettings==="function")renderRinneNormSettings();
+ // Schnittfuge, Rest-Mindestlaenge und das Reststuecke-Lager (v3.04, js/42).
+ if(typeof renderSchnittfugeFelder==="function")renderSchnittfugeFelder();
+ if(typeof renderRestLager==="function")renderRestLager();
  const madBoden=$("madBodenMassInput"),madSchieber=$("madSchieberMassInput");
  if(madBoden)madBoden.value=madBodenMass;
  if(madSchieber)madSchieber.value=madSchieberMass;

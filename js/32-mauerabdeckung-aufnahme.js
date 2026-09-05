@@ -191,7 +191,7 @@ function madaRollenPlan(){
  const streifen=v.streifen||[];
  const moeglich=[], zuSchmal=[];
  breiten.forEach(B=>{
-  const jeAbschnitt=Math.floor(B/A);
+  const jeAbschnitt=ebaStreifenJeAbschnitt(B,A);
   if(jeAbschnitt<1){zuSchmal.push(B);return}
   const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
   const rollenLaenge=abschnitte*L;
@@ -494,6 +494,7 @@ function madaZuschnittPlan(){
  const best=rp.bestes;
  const bleche=madaBleche();
  return {art:"rolle", einheit:"Stück",
+  material:(typeof madA!=="undefined")?(madA.material):null,
   einleitung:ZU_EINLEITUNG_ROLLE,
   quelle:ZU_QUELLE_ROLLE,
   leer:!bleche.length?"Noch kein Zuschnittstück – zuerst den Verlauf erfassen."

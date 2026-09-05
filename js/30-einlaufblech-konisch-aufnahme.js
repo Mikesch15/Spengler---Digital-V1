@@ -146,7 +146,7 @@ function ebkaRollenPlan(){
  const moeglich=[], zuSchmal=[];
  const netto=ebkaFlaecheM2();
  breiten.forEach(B=>{
-  const jeAbschnitt=Math.floor(B/A);
+  const jeAbschnitt=ebaStreifenJeAbschnitt(B,A);
   if(jeAbschnitt<1){zuSchmal.push(B);return}
   const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
   const rollenLaenge=abschnitte*L;
@@ -390,6 +390,7 @@ function ebkaZuschnittPlan(){
  const best=plan.bestes;
  const A=ebkaZahl(ebkA.abwicklung);
  return {art:"rolle", einheit:"Stück",
+  material:(typeof ebkA!=="undefined")?(ebkA.material):null,
   einleitung:ZU_EINLEITUNG_ROLLE,
   zusatz:"Die Konizität wird innerhalb des Streifens angerissen und ändert die benötigte Fläche nicht.",
   quelle:ZU_QUELLE_ROLLE,

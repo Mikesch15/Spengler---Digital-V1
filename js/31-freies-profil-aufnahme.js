@@ -215,7 +215,7 @@ function fpaRollenPlan(){
  breiten.forEach(B=>{
   const zeilen=[]; let flaeche=0, passt=true;
   gruppen.forEach(g=>{
-   const jeAbschnitt=Math.floor(B/g.breite);
+   const jeAbschnitt=ebaStreifenJeAbschnitt(B,g.breite);
    if(jeAbschnitt<1){passt=false;return}
    const abschnitte=Math.ceil(g.streifen.length/jeAbschnitt);
    const rollenLaenge=abschnitte*g.abschnittLaenge;
@@ -429,6 +429,7 @@ function fpaZuschnittPlan(){
  const zusatz="Segmente mit gleicher Streifenbreite werden zusammen gepackt."
   +(fpaKonisch()?" Konisch: die Streifenbreite ist die grössere der beiden Abwicklungen – der Zuschnitt muss das breitere Ende enthalten.":"");
  return {art:"rolle", einheit:"Segment",
+  material:(typeof fpA!=="undefined")?(fpA.material):null,
   einleitung:ZU_EINLEITUNG_ROLLE, zusatz,
   quelle:ZU_QUELLE_ROLLE+(breiten.length?" Hinterlegt: "+esc(breiten.join(", "))+" mm.":""),
   leer:"Noch nichts zuzuschneiden – es braucht mindestens ein Segment mit Länge und Massen (Register 5).",

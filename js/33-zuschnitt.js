@@ -338,8 +338,13 @@ function zuschnittHtml(p){
    +zuMeldungenHtml(p);
  // Hauptansicht: die Liste. Alles Technische steht darunter aufklappbar -
  // auf dem Handy zaehlt zuerst, WAS zugeschnitten wird.
+ // Reststuecke-Lager (v3.04): passende Reste anzeigen und die Reste dieses
+ // Zuschnitts einlagerbar machen. Hier EINMAL eingehaengt, damit es in jedem
+ // Modul erscheint, ohne es zehnmal einzubauen. Fehlt js/42, bleibt es leer.
+ const reste=(typeof restBlockHtml==="function")?restBlockHtml(p,p.material):"";
  return `${zuListeHtml(p)}
 ${zuMeldungenHtml(p)}
+${reste}
 <details class="zu-details"><summary>Einzelheiten: Rollenbreiten vergleichen, Belegung der Streifen</summary>
 <div class="info">${p.einleitung||""}${p.zusatz?" "+p.zusatz:""}</div>
 ${zuKennzahlenHtml(p)}

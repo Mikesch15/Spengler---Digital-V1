@@ -149,7 +149,7 @@ function rpaRollenPlan(){
  breiten.forEach(R=>{
   const zeilen=[]; let flaeche=0, passt=true;
   gruppen.forEach(gr=>{
-   const jeAbschnitt=Math.floor(R/gr.breite);
+   const jeAbschnitt=ebaStreifenJeAbschnitt(R,gr.breite);
    if(jeAbschnitt<1){passt=false;return}
    const abschnitte=Math.ceil(gr.streifen.length/jeAbschnitt);
    const rollenLaenge=abschnitte*gr.abschnittLaenge;
@@ -176,6 +176,7 @@ function rpaRollenPlan(){
 function rpaZuschnittPlan(){
  const rp=rpaRollenPlan();
  return {art:"rolle", einheit:"Stück",
+  material:($("rp_material")?$("rp_material").value:null)||null,
   einleitung:(typeof ZU_EINLEITUNG_ROLLE==="string")?ZU_EINLEITUNG_ROLLE:"",
   quelle:(typeof ZU_QUELLE_ROLLE==="string")?ZU_QUELLE_ROLLE:"",
   leer:!rpaBleche().length

@@ -116,7 +116,7 @@ function anbaRollenPlan(){
  const gruppe={breite:B,stuecke:bleche,abschnittLaenge:L,streifen:v.streifen||[]};
  const moeglich=[], zuSchmal=[];
  breiten.forEach(R=>{
-  const jeAbschnitt=Math.floor(R/B);
+  const jeAbschnitt=ebaStreifenJeAbschnitt(R,B);
   if(jeAbschnitt<1){zuSchmal.push(R);return}
   const abschnitte=Math.ceil(gruppe.streifen.length/jeAbschnitt);
   const rollenLaenge=abschnitte*L;
@@ -139,6 +139,7 @@ function anbaRollenPlan(){
 function anbaZuschnittPlan(){
  const rp=anbaRollenPlan();
  return {art:"rolle", einheit:"Stück",
+  material:(typeof anbaMaterialWert==="function")?(anbaMaterialWert()||null):null,
   einleitung:(typeof ZU_EINLEITUNG_ROLLE==="string")?ZU_EINLEITUNG_ROLLE:"",
   quelle:(typeof ZU_QUELLE_ROLLE==="string")?ZU_QUELLE_ROLLE:"",
   leer:!anbaBleche().length

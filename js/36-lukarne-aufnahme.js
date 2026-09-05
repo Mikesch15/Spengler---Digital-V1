@@ -147,7 +147,7 @@ function lukaRollenPlan(){
  breiten.forEach(R=>{
   const zeilen=[]; let flaeche=0, passt=true;
   gruppen.forEach(gr=>{
-   const jeAbschnitt=Math.floor(R/gr.breite);
+   const jeAbschnitt=ebaStreifenJeAbschnitt(R,gr.breite);
    if(jeAbschnitt<1){passt=false;return}
    const abschnitte=Math.ceil(gr.streifen.length/jeAbschnitt);
    const rollenLaenge=abschnitte*gr.abschnittLaenge;
@@ -174,6 +174,7 @@ function lukaRollenPlan(){
 function lukaZuschnittPlan(){
  const rp=lukaRollenPlan();
  return {art:"rolle", einheit:"Schar",
+  material:(typeof lukA!=="undefined")?(lukA.material):null,
   einleitung:ZU_EINLEITUNG_ROLLE, quelle:ZU_QUELLE_ROLLE,
   leer:!lukaScharen().length?"Noch nichts zuzuschneiden – bitte zuerst die Geometrie erfassen."
       :(!lukaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."

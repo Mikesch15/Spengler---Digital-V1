@@ -188,7 +188,7 @@ function einfaRollenPlan(){
  breiten.forEach(R=>{
   const zeilen=[]; let flaeche=0, passt=true;
   gruppen.forEach(gr=>{
-   const jeAbschnitt=Math.floor(R/gr.breite);
+   const jeAbschnitt=ebaStreifenJeAbschnitt(R,gr.breite);
    if(jeAbschnitt<1){passt=false;return}
    const abschnitte=Math.ceil(gr.streifen.length/jeAbschnitt);
    const rollenLaenge=abschnitte*gr.abschnittLaenge;
@@ -213,6 +213,7 @@ function einfaRollenPlan(){
 function einfaZuschnittPlan(){
  const rp=einfaRollenPlan();
  return {art:"rolle", einheit:"Einfassung",
+  material:(typeof einfA!=="undefined")?(einfA.material):null,
   einleitung:(typeof ZU_EINLEITUNG_ROLLE!=="undefined")?ZU_EINLEITUNG_ROLLE:"",
   quelle:(typeof ZU_QUELLE_ROLLE!=="undefined")?ZU_QUELLE_ROLLE:"",
   leer:!einfaBleche().length?"Noch nichts zuzuschneiden – bitte zuerst eine Einfassung erfassen."
