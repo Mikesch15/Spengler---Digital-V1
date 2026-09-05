@@ -227,6 +227,34 @@ const ARTEN=[
  p(verwendet.unbenutzt.length===0,"kein Text ohne Info-Knopf",verwendet.unbenutzt);
  p(verwendet.benutzt.length>=55,"mindestens 55 Erklaerungen erreichbar",verwendet.benutzt.length);
 
+
+ // ------------------------------------------- G2 Anleitung ist auf dem Stand
+ // Stehende Regel (CLAUDE.md 108): die Anleitung wird bei JEDER Version
+ // mitgefuehrt. Dieser Block macht das mechanisch nachpruefbar - er schlaegt
+ // fehl, sobald die App eine neue Version traegt, die Anleitung aber nicht.
+ console.log("\nG2 · Anleitung ist auf dem Stand der App");
+ const htmlRoh=fs.readFileSync(path.join(process.cwd(),"index.html"),"utf8");
+ const mv=/>Version ([0-9]+\.[0-9]+)</.exec(htmlRoh);
+ const appVersion=mv?mv[1]:"";
+ p(!!appVersion,"App-Version aus index.html gelesen",appVersion);
+ const sollPdf="anleitung/Spengler-DIGITAL-Anleitung-v"+appVersion+".pdf";
+ p(fs.existsSync(path.join(process.cwd(),sollPdf)),
+   "die Anleitung traegt die aktuelle Version",sollPdf);
+ const stellen=[["index.html",htmlRoh],
+   ["js/41-hilfe.js",fs.readFileSync(path.join(process.cwd(),"js/41-hilfe.js"),"utf8")],
+   ["anleitung/README.md",fs.readFileSync(path.join(process.cwd(),"anleitung/README.md"),"utf8")]];
+ const veraltet=stellen.filter(([,t])=>{
+  const m=t.match(/Spengler-DIGITAL-Anleitung-v([0-9]+\.[0-9]+)\.pdf/g)||[];
+  return m.some(x=>x.indexOf("-v"+appVersion+".pdf")<0);
+ }).map(([n])=>n);
+ p(veraltet.length===0,"jeder Verweis auf die Anleitung nennt diese Version",veraltet);
+ const anlRoh=fs.readFileSync(path.join(process.cwd(),"anleitung/anleitung.html"),"utf8");
+ p(anlRoh.indexOf("Version "+appVersion)>=0,
+   "die Anleitung selbst nennt diese Version",appVersion);
+ const alte=fs.readdirSync(path.join(process.cwd(),"anleitung"))
+   .filter(f=>/^Spengler-DIGITAL-Anleitung-v.*\.pdf$/.test(f)&&f.indexOf("-v"+appVersion+".pdf")<0);
+ p(alte.length===0,"keine veraltete Anleitung mehr im Ordner",alte);
+
  // ------------------------------------------------------- H Keine JS-Fehler
  console.log("\nH · Sauberkeit");
  p(jsFehler.length===0,"keine JavaScript-Fehler",jsFehler.slice(0,3));

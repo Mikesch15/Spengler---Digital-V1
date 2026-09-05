@@ -17116,3 +17116,93 @@ Sekunden wieder erzeugt; eingecheckt sind nur das PDF und die Skripte.
   Prüfstände (required70, kehle52, pdf52, offline70 …) sind hier **nicht
   vorhanden** und konnten deshalb in dieser Runde nicht mitlaufen. Das ist
   offen gelegt, nicht behauptet.
+
+## 108. STEHENDE REGELN: ANLEITUNG UND INFO-KNÖPFE — AB VERSION 3.03
+
+Zwei Anweisungen des Projektinhabers vom 05.09.2026, die **ab sofort für
+jede weitere Version gelten** – nicht nur für einen Auftrag:
+
+> „bitte ab jetzt die anleitung immer mit anpassen, dass sie immer aktuell
+> ist … auch die info knöpfe bei allem zukünftigen mit einbauen."
+
+Sie stehen hier, damit sie eine spätere Sitzung findet, auch wenn der
+Auftrag sie nicht wiederholt.
+
+### 108.1 Regel A · Die Anleitung wird bei jeder Version mitgeführt
+
+Wer die App ändert, ändert die Anleitung mit. Sie ist kein einmaliges
+Dokument, sondern Teil der Auslieferung – sonst zeigt sie am ersten Tag
+etwas anderes als die App.
+
+Bei **jeder** Versionserhöhung:
+
+1. `anleitung/anleitung.html` inhaltlich nachführen – neue Funktion
+   beschreiben, geänderte Bedienung korrigieren, bei einem neuen Abschnitt
+   die folgenden umnummerieren **und die Querverweise mit**.
+2. Versionsnummer dort an allen Stellen setzen (Titelseite, Fusszeile,
+   letzter Abschnitt).
+3. Bildschirmfotos neu erzeugen – sie kommen aus der echten `index.html`,
+   zeigen also Änderungen automatisch mit:
+
+       SP=<Ordner mit node_modules> AUS=anleitung/bilder \
+       STUB=anleitung/stub.js node anleitung/schuss.js
+
+4. PDF neu erzeugen, **auf den neuen Dateinamen**:
+
+       SP=<…> HTML=$PWD/anleitung/anleitung.html \
+       PDF=anleitung/Spengler-DIGITAL-Anleitung-v<NEU>.pdf node anleitung/pdf.js
+
+5. `node anleitung/pruef.js` – keine leere und keine kaputte Seite.
+6. Das alte PDF löschen und die **fünf** Verweise nachziehen:
+   `index.html` ×2 (Einstellungen-Karte und Hilfe-Dialog),
+   `js/41-hilfe.js` (`HILFE_PDF`), `anleitung/README.md` ×2
+   (Dateiname und Beispielaufruf). Die Seitenzahl im Knopftext
+   („Anleitung öffnen (PDF, 35 Seiten)") gehört ebenfalls nachgeführt.
+
+**Mechanisch erzwungen**: `pruefstaende/pruefstand-hilfe-v3-03.js`,
+Abschnitt **G2**, liest die Version aus `index.html` und schlägt fehl,
+sobald die Anleitung nicht mitgezogen ist – fehlende Datei, veralteter
+Verweis, alte Versionsnummer im Text oder ein liegengebliebenes altes PDF.
+Gegenprobe durchgeführt: Version auf 3.04 gesetzt, ohne die Anleitung
+anzufassen → **63/67**, vier Fehlschläge, jeder nennt genau die Stelle.
+
+`stub.js` baut weiterhin **keine Verbindung zur Produktivdatenbank** auf.
+Firma, Personen, Adressen, Projekte und Preise in den Bildern sind
+erfunden; es darf nie ein echter Kundendatensatz hinein.
+
+### 108.2 Regel B · Jeder neue Bereich bekommt einen Info-Knopf
+
+Ein neuer Bereich ohne Erklärung ist unfertig. Der Weg ist immer derselbe
+(Abschnitt 107), es gibt **keinen zweiten Hilfe-Mechanismus**:
+
+| Was | Wie |
+|---|---|
+| Neue Karte oder Überschrift im HTML | Eintrag in `HILFE_TEXTE` (js/41) + `data-hilfe="key"` am Knopf im Markup |
+| Neues Register einer Massaufnahme | Eintrag in `HILFE_TEXTE` + `hilfe:"key"` in der `<X>_REGISTER`-Zeile – der Knopf entsteht dann von selbst an der Hauptkarte |
+| Neues Register-Modul | zusätzlich `hilfeKarte(titel,<X>_REGISTER)` in den Karten-Helfer, wie in js/28–js/40 |
+
+Zu beachten, alles bereits gebaut und geprüft:
+
+- **Kein Text → kein Knopf** (`hilfeKnopf()` gibt leer zurück). Ein Knopf,
+  der ein leeres Fenster öffnet, wäre schlimmer als keiner.
+- **Kein Text ohne Knopf** – der Prüfstand meldet Karteileichen.
+- Der Knopf trägt **`no-print`**, sonst verändert er den Ausdruck des
+  Regierapports (er sitzt mitten in `#reportScreen`).
+- Wird eine Überschrift per `textContent=` gesetzt, gehört der Text in ein
+  eigenes `<span>` – sonst löscht die Zuweisung den Knopf mit (107.6).
+- Der Text ist **für Spengler geschrieben**, auf Deutsch mit Umlauten,
+  zwei bis vier Sätze: wofür der Bereich da ist, was er rechnet oder nicht
+  rechnet, worauf zu achten ist.
+- Nicht jede Zeile braucht einen Knopf. Wo die Überschrift schon alles
+  sagt („Anzahl"), wäre er Lärm – ein fehlender Knopf ist kein Fehler,
+  ein Knopf ohne Text schon.
+
+### 108.3 Was das für die Prüfung einer Runde heisst
+
+Zu den bisherigen Pflichtschritten (Prüfstand mit Gegenproben, volle
+Regression, Regierapport-Ausdruck byteidentisch, `node --check`,
+`<div>`-Balance, keine doppelten IDs, Version in `index.html` und `sw.js`
+gleich) kommen zwei dazu:
+
+- `pruefstand-hilfe-v3-03.js` läuft grün – er deckt beide Regeln ab.
+- Die Anleitung ist neu erzeugt und das alte PDF ist weg.
