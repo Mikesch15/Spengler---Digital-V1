@@ -510,8 +510,10 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
 
  // ---- K · Fotos erst am Ende ---------------------------------------------
  console.log("\nK · Fotos und Skizze erst am Ende");
- await page.evaluate(()=>{measMedienAufgeklappt=false;measPhotos=[];
-   measSketches=[];showMeasTypeSection("mauerabdeckung")});
+ // Seit v3.02 haengt die Sichtbarkeit am Register, nicht mehr an einem
+ // Merker - deshalb ausdruecklich auf Register 1 stellen.
+ await page.evaluate(()=>{measPhotos=[];measSketches=[];
+   showMeasTypeSection("mauerabdeckung");madaSetzeSchritt(1)});
  await page.waitForTimeout(120);
  const zu=await page.evaluate(()=>{
   const b2=$("measMedienBereich"), st=getComputedStyle(b2);

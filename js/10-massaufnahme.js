@@ -441,6 +441,10 @@ function newMeasurementWithType(type){
  setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
+ // Zum Schluss noch einmal: die Zuruecksetzen-Funktionen oben setzen das
+ // Register ihres Moduls zurueck, ohne ueber SetzeSchritt zu laufen. Ohne
+ // diese Zeile bliebe der Foto-/Skizzenbereich auf dem Stand von vorher.
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit();
  updateMeasFormTitle();
 }
 function updateMeasFormTitle(){
@@ -560,5 +564,9 @@ function openMeasurement(m){
  $("rp_material").value=(m.type==="rinne"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
+ // Zum Schluss noch einmal: die Fuellen-Funktionen oben setzen das Register
+ // ihres Moduls zurueck, ohne ueber SetzeSchritt zu laufen. Ohne diese Zeile
+ // bliebe der Foto-/Skizzenbereich auf dem Stand von vorher offen.
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(m.type);
  updateMeasFormTitle();
 }

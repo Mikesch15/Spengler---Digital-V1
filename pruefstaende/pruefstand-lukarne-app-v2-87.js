@@ -337,6 +337,9 @@ const daten=async(page,o)=>{await page.evaluate(x=>{Object.assign(lukA,x);render
  p(punkt.mit&&!punkt.ohne,"das Kontroll-Register traegt einen roten Punkt, wenn etwas fehlt",punkt);
 
  console.log("\nO · Fotos und Skizze erst am Ende");
+ // Seit v3.02 haengt die Sichtbarkeit am Register - vorher an einem Merker.
+ // Deshalb hier ausdruecklich auf ein Register vor dem letzten stellen.
+ await reg(page,1);
  const med=await page.evaluate(()=>{
   const box=$("measMedienBereich");
   const st=getComputedStyle(box);

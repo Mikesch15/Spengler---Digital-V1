@@ -403,6 +403,8 @@ function ebkaZuschnittHtml(){
 function ebkaSetzeSchritt(n){
  ebkaSchritt=Math.max(1,Math.min(EBKA_REGISTER.length,Number(n)||1));
  renderEinlaufblechKonischAufnahme();
+ // Der Foto-/Skizzenbereich haengt am Register: nur das letzte zeigt ihn.
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit();
  const kopf=$("ebka_register");
  if(kopf&&kopf.scrollIntoView)kopf.scrollIntoView({block:"nearest"});
 }

@@ -859,6 +859,8 @@ function kamaAbschluss(){
 function kamaSetzeSchritt(n){
  kamSchritt=Math.max(1,Math.min(KAM_REGISTER.length,Number(n)||1));
  renderKaminAufnahme();
+ // Der Foto-/Skizzenbereich haengt am Register: nur das letzte zeigt ihn.
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit();
  const kopf=$("kam_register");
  if(kopf&&kopf.scrollIntoView)kopf.scrollIntoView({block:"nearest"});
 }

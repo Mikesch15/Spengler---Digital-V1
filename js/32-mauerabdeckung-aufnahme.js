@@ -538,6 +538,8 @@ Zahlen, Verlauf, Boden, Schieber, Profil, Normhinweise, Ausmass und Zuschnitt.</
 function madaSetzeSchritt(n){
  madaSchritt=Math.max(1,Math.min(MADA_REGISTER.length,Number(n)||1));
  renderMauerabdeckungAufnahme();
+ // Der Foto-/Skizzenbereich haengt am Register: nur das letzte zeigt ihn.
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit();
  const kopf=$("mada_register");
  if(kopf&&kopf.scrollIntoView)kopf.scrollIntoView({block:"nearest"});
 }

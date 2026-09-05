@@ -266,6 +266,8 @@ function anbaAbschluss(){
 function anbaSetzeSchritt(n){
  anbaSchritt=Math.max(1,Math.min(ANBA_REGISTER.length,Number(n)||1));
  renderAnschlussblechAufnahme();
+ // Der Foto-/Skizzenbereich haengt am Register: nur das letzte zeigt ihn.
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit();
  const kopf=$("anba_register");
  if(kopf&&kopf.scrollIntoView)kopf.scrollIntoView({block:"nearest"});
 }

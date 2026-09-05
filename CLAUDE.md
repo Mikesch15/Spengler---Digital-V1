@@ -16725,3 +16725,178 @@ bestehenden Art berührt.
   wie alle Array-Strukturen Klasse C (42.2).
 - Damit haben **elf der zwölf** Massaufnahme-Arten Register; ohne ist nur noch
   Skizze / Foto (bewusst, Abschnitt 89.1).
+
+## 106. FOTOS UND SKIZZEN NUR NOCH IM LETZTEN REGISTER — VERSION 3.02
+
+Gemeldet: *"es ist in jedem modul noch in allen registern die funktion zum
+skizzen und fotos hinzufügen zu sehen, das sollte nur immer im letzten
+register zu sehen sein"*. Zutreffend – vor der Änderung gemessen, nicht
+angenommen. **Keine Schemaänderung, keine Migration, keine RLS-/Storage-
+Änderung, keine Berechnung verändert.**
+
+### 106.1 Gemessener Ausgangszustand
+
+In echtem Chromium für alle elf Register-Arten, je Register einzeln geprüft:
+
+| Fall | Ergebnis vor v3.02 |
+|---|---|
+| gespeicherte Aufnahme **mit** Foto geöffnet | sichtbar in **allen** Registern (7 von 7, 6 von 6, 8 von 8 …) |
+| neue Aufnahme, einmal „Fertig“ gedrückt, dann zurückgeblättert | auf Register 1 **sichtbar** |
+
+Beides für jede der elf Arten. Ursache waren die zwei in Abschnitt 83
+ausdrücklich eingebauten Ausnahmen:
+
+```js
+box.hidden = MEAS_MEDIEN_AM_ENDE.indexOf(art)>=0
+             && !measMedienAufgeklappt        // einmal offen bleibt offen
+             && !measFormularHatMedien();     // hat schon Fotos -> sofort
+```
+
+Im Alltag greift praktisch immer eine davon: eine erfasste Massaufnahme hat
+ein Foto, und wer einmal „Fertig“ gedrückt hat, sieht den Bereich bis zum
+Schliessen des Formulars in jedem Register.
+
+### 106.2 Neues Modell: die Sichtbarkeit hängt am Register
+
+Der Bereich ist genau dann sichtbar, wenn das **letzte** Register offen ist –
+sonst nie. Kein Merker, keine Ausnahme. Eine Tabelle in `js/16`, aus der die
+Artenliste abgeleitet wird, damit beide nicht auseinanderlaufen können:
+
+```js
+const MEAS_MEDIEN_LETZTES_REGISTER={
+ rinne_halbrund:      ()=>raSchritt   >=RA_REGISTER.length,
+ einlaufblech_gerade: ()=>ebaSchritt  >=EBA_REGISTER.length,
+ …
+ anschlussblech:      ()=>anbaSchritt >=ANBA_REGISTER.length
+};
+const MEAS_MEDIEN_AM_ENDE=Object.keys(MEAS_MEDIEN_LETZTES_REGISTER);
+```
+
+Eine Art **ohne** Register (Skizze/Foto) steht nicht in der Tabelle und zeigt
+den Bereich wie bisher immer. Lässt sich der Registerstand einer Art nicht
+ermitteln, wird der Bereich **gezeigt** statt versteckt – ein fehlendes Modul
+darf die Foto-Erfassung nicht unerreichbar machen.
+
+Aufgefrischt wird an drei Stellen:
+
+- in jedem `<x>SetzeSchritt(n)` der elf Module (je eine Zeile),
+- am **Ende** von `openMeasurement()` und `newMeasurement()` (js/10): die
+  `Fuellen`-/`Zuruecksetzen`-Funktionen der Module setzen ihr Register
+  direkt, ohne über `SetzeSchritt` zu laufen – ohne diese Zeile bliebe der
+  Bereich auf dem Stand von vorher offen. Genau das ist beim Bauen passiert
+  und vom Prüfstand gefunden worden.
+
+`measMedienAufklappen()` bleibt (elf Aufrufstellen), klappt aber nichts mehr
+auf, sondern frischt nur auf – auf dem letzten Register ist der Bereich
+ohnehin schon da, die Module scrollen danach hin und heben ihn kurz hervor.
+`measMedienZuruecksetzen()` ist ein dokumentierter Leerlauf, damit die zwei
+Aufrufstellen in js/10 unverändert bleiben. `measFormularHatMedien()` ist
+entfallen.
+
+### 106.3 Mitgefunden und behoben: Einfassung Rund ohne Hervorhebung
+
+`einfaAbschluss()` (js/38) rief seit v2.96 als **einzige** der elf Arten nur
+`measMedienAufklappen()` auf und sprang den Bereich weder an noch hob es ihn
+hervor. Vorher fiel das nicht auf, weil die Hervorhebung der jeweils vorher
+geprüften Art im Prüfstand noch stand. Ergänzt, gleiche vier Zeilen wie in
+den übrigen zehn Modulen.
+
+### 106.4 Zwei Schwächen im Prüfstand, beide gemessen
+
+`pruefstand-medien-am-ende-v2-75.js` prüfte seit v2.75 weniger, als es schien:
+
+1. **Für acht der elf Arten stand fest `ebaSetzeSchritt` als Blätter-
+   Funktion** – das Blättern lief für sie ins Leere, „bleibt zugeklappt“ ging
+   trivial durch. Jetzt eine vollständige Tabelle je Art.
+2. **Die Registerzahl kam aus `#measurementEditModal .ra-register-knopf`** –
+   das zählt die Leisten **aller** Arten zusammen, weil die Sektionen der
+   übrigen nur ausgeblendet sind und im DOM stehen bleiben. Gemessen wurden
+   dadurch Werte bis 73 statt 6–8; die Prüfung `anzahl>=6` bestand trotzdem.
+   Jetzt werden nur sichtbare Knöpfe gezählt und zusätzlich nach oben
+   begrenzt.
+
+### 106.5 Tests
+
+- **`pruefstand-medien-am-ende-v2-75.js` – 150/150** (vorher 149): für jede
+  der elf Arten wird **jedes** Register einzeln gemessen und verlangt, dass
+  der Bereich in genau einem sichtbar ist, nämlich im letzten. Dazu: beim
+  Öffnen zugeklappt, „Fertig“ bedienbar und hebt hervor, Zurückblättern
+  klappt wieder zu, eine Aufnahme **mit** Fotos zeigt ihn ebenfalls nur im
+  letzten Register, eine ohne Fotos startet zugeklappt, Notiz und Speichern
+  bleiben immer erreichbar, die Tabelle ist vollständig und die Artenliste
+  daraus abgeleitet.
+- **Fünf Gegenproben**, jede baut einen echten Fehler ein:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | alter Merker und die Ausnahme „hat schon Fotos“ zurück | 87/150 |
+  | `SetzeSchritt` frischt die Sichtbarkeit nicht auf (Lukarne) | 147/150 |
+  | `openMeasurement` frischt am Schluss nicht auf | 145/150 |
+  | Artenliste getrennt gepflegt (kann auseinanderlaufen) | 149/150 |
+  | Einfassung Rund wieder ohne Hervorhebung | 149/150 |
+
+- **Volle Regression grün** – alle 19 Prüfstände im Repo (verschnitt 1578,
+  register-zuschnitt 373, kehle 158, kamin 153, medien-am-ende 150,
+  mauerabdeckung 146, freies-profil 118, konisch 114, einfassung 113,
+  rinne-halbrund 104, einlaufblech 99, anschlussblech 95, rinne-zuschnitt 95,
+  rollenblech-pdf 95, lukarne 82, lxb-druck 58, dila-sichtbar 57,
+  skizze-foto 54, felder-bleiben 23) und die archivierten (kehle52 698,
+  pdf52 526, required70 395, rinne57 380, einf70 185, normbrute 1578,
+  offline70 131, feedback63 108, freipos65 99, fotos70 88, dila70 85,
+  breite57 84, fp70 83, kehleintegration52 76, feedbackbrowser63 67,
+  breite52 52, einstbrowser68 51, ebg70 49, einst68 47, feedback70 47,
+  mad70 45, module67 43, medien50 42, adresse45 39, pfade55 39,
+  dateien49 38, projekte47 37, status46 35, freiposbrowser65 33,
+  auswahl48 32, modulebrowser67 16, suche45 13, kopf45 8, hidden51 7,
+  abstand69 2, sowie dateien43, nav, recent41, stand42, suche40, treffer40,
+  ui39 ohne Fehlschlag).
+- **Drei überholte Erwartungen** angepasst, keine davon ein Codefehler: die
+  Prüfstände von Lukarne und Mauerabdeckung massen „während der Register
+  zugeklappt“, standen dabei aber auf dem letzten Register (vorher hing es
+  am Merker, nicht am Register) – sie stellen jetzt ausdrücklich auf
+  Register 1. `fotos70` prüfte die Erreichbarkeit über
+  `measMedienAufklappen()`; sie läuft jetzt über das letzte Register.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.01-Stand gerendert (die Druck-Fusszeile enthält die Uhrzeit, 100.6) –
+  **Bild und DOM byteidentisch** (DOM `915d7607a6153042`, 5428 Zeichen;
+  Bild `14d16a0f1c95c416`, 51 534 Bytes), bestätigt durch einen dritten Lauf
+  desselben Codes. `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+  `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 42 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs; jede der 42 js-Dateien in
+  `index.html` **und** in der Service-Worker-Liste; Version 3.02 in
+  `index.html` und `sw.js` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 106.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/16-massaufnahme-formular.js` | Sichtbarkeit hängt am Register, Tabelle `MEAS_MEDIEN_LETZTES_REGISTER`, Liste daraus abgeleitet, Merker und Ausnahme entfernt |
+| `js/28`–`js/32`, `js/34`, `js/36`–`js/40` | je **eine Zeile** in `SetzeSchritt`: Sichtbarkeit auffrischen |
+| `js/38-einfassung-aufnahme.js` | zusätzlich die fehlende Hervorhebung (106.3) |
+| `js/10-massaufnahme.js` | Sichtbarkeit am Ende von `openMeasurement()` und `newMeasurement()` auffrischen |
+| `index.html`, `sw.js` | Version 3.02 |
+| `pruefstaende/pruefstand-medien-am-ende-v2-75.js` | je Register gemessen, vollständige Artentabelle, nur sichtbare Leiste gezählt |
+| `pruefstaende/pruefstand-lukarne-app-v2-87.js`, `…-mauerabdeckung-app-v2-79.js` | überholte Erwartung |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `css/01-basis.css` sowie alle Fachdateien
+`js/11`–`js/15`, `js/17`, `js/19`–`js/27`, `js/33`, `js/35` – per `git diff`
+bestätigt.
+
+### 106.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- **Bewusst in Kauf genommen**: eine gespeicherte Aufnahme mit Fotos zeigt
+  diese jetzt erst im letzten Register. Genau dafür gab es bis v3.01 die
+  Ausnahme – sie war zugleich der gemeldete Fehler. Die Fotos sind weiterhin
+  im Vorschaubild der Übersichtslisten und in der Medienansicht des Cockpits
+  (v2.50) ohne Blättern sichtbar.
+- Skizze/Foto bleibt die einzige Art ohne Register und zeigt den Bereich
+  unverändert sofort (Abschnitt 89.1).

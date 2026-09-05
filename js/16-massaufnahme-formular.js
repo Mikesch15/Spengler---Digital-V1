@@ -49,34 +49,53 @@ $("openEinlaufblechSettings").onclick=()=>{
 
 // Fotos und Skizzen gehoeren seit v2.70 zu jeder Massaufnahme-Art.
 // Eine Stelle, ein Ergebnis - so kann keine Art vergessen gehen.
-// ---- Fotos und Skizzen erst am Ende der Register -------------------------
-// Bei Rinne Halbrund und Einlaufblech gerade fuehrt ein Registerablauf durch
-// die Erfassung. Der Foto-/Skizzenbereich gehoert dort ans Ende: er erscheint
-// erst, wenn "Fertig > Fotos und Speichern" gedrueckt wurde.
-// Alle uebrigen Arten haben keine Register - dort bleibt er wie bisher immer
-// sichtbar.
-const MEAS_MEDIEN_AM_ENDE=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne","kamineinfassung","einfassung_rund","rinne","anschlussblech"];
-let measMedienAufgeklappt=false;
-// Name bewusst mit "Formular": measHatMedien(m) gibt es bereits in js/24
-// fuer die Medienansicht im Cockpit - js/24 laedt spaeter und wuerde eine
-// gleichnamige Funktion hier ueberschreiben.
-function measFormularHatMedien(){
- return !!((measPhotos&&measPhotos.length)||(measSketches&&measSketches.length));
-}
+// ---- Fotos und Skizzen nur im letzten Register ---------------------------
+// Elf Arten fuehren ueber Register durch die Erfassung. Der Foto-/Skizzen-
+// bereich gehoert dort ans ENDE und ist genau dann sichtbar, wenn das
+// LETZTE Register offen ist - sonst nie.
+//
+// Bis v3.01 hing das an einem Merker ("einmal aufgeklappt bleibt offen") und
+// an einer Ausnahme fuer eine Aufnahme, die schon Fotos hat. Beides zusammen
+// hat den Bereich in der Praxis in JEDEM Register gezeigt: eine gespeicherte
+// Aufnahme mit Foto oeffnete offen, und nach einem einzigen "Fertig" blieb er
+// bis zum Schliessen des Formulars offen. Gemessen und beides entfernt.
+//
+// Eine Tabelle, eine Wahrheit: die Schluesselliste der Arten MIT Registern
+// wird daraus abgeleitet, damit die beiden nicht auseinanderlaufen koennen.
+const MEAS_MEDIEN_LETZTES_REGISTER={
+ rinne_halbrund:      ()=>raSchritt   >=RA_REGISTER.length,
+ einlaufblech_gerade: ()=>ebaSchritt  >=EBA_REGISTER.length,
+ einlaufblech_konisch:()=>ebkaSchritt >=EBKA_REGISTER.length,
+ freies_profil:       ()=>fpaSchritt  >=FPA_REGISTER.length,
+ mauerabdeckung:      ()=>madaSchritt >=MADA_REGISTER.length,
+ kehle:               ()=>keaSchritt  >=KEA_REGISTER.length,
+ lukarne:             ()=>lukaSchritt >=LUKA_REGISTER.length,
+ kamineinfassung:     ()=>kamSchritt  >=KAM_REGISTER.length,
+ einfassung_rund:     ()=>einfaSchritt>=EINFA_REGISTER.length,
+ rinne:               ()=>rpaSchritt  >=RPA_REGISTER.length,
+ anschlussblech:      ()=>anbaSchritt >=ANBA_REGISTER.length
+};
+const MEAS_MEDIEN_AM_ENDE=Object.keys(MEAS_MEDIEN_LETZTES_REGISTER);
 function measMedienSichtbarkeit(type){
  const box=$("measMedienBereich");
  if(!box)return;
  const art=type||$("measType").value;
- // Eine bereits erfasste Aufnahme zeigt ihre Fotos sofort - sonst saehe es
- // aus, als waeren sie weg.
- box.hidden=MEAS_MEDIEN_AM_ENDE.indexOf(art)>=0 && !measMedienAufgeklappt && !measFormularHatMedien();
+ const letztes=MEAS_MEDIEN_LETZTES_REGISTER[art];
+ // Arten ohne Register (Skizze/Foto): wie bisher immer sichtbar.
+ if(!letztes){box.hidden=false;return}
+ // Im Zweifel zeigen statt verstecken - ein fehlendes Modul darf die
+ // Foto-Erfassung nicht unerreichbar machen.
+ let amEnde=true;
+ try{amEnde=!!letztes()}catch(e){console.error("Register-Stand unbekannt:",e)}
+ box.hidden=!amEnde;
 }
-// Wird vom "Fertig"-Knopf der beiden Register-Arten gerufen.
-function measMedienAufklappen(){
- measMedienAufgeklappt=true;
- measMedienSichtbarkeit();
-}
-function measMedienZuruecksetzen(){measMedienAufgeklappt=false}
+// Wird vom "Fertig"-Knopf jeder Register-Art gerufen. Der Bereich ist auf dem
+// letzten Register ohnehin schon sichtbar; die Module scrollen danach hin und
+// heben ihn kurz hervor.
+function measMedienAufklappen(){measMedienSichtbarkeit()}
+// Der frueher noetige Merker ist entfallen. Die Funktion bleibt, damit die
+// beiden Aufrufstellen in js/10 unveraendert bleiben.
+function measMedienZuruecksetzen(){}
 
 function measMedienAusFormular(){
  // photo_path bleibt das erste Foto - damit oeffnen und drucken aeltere

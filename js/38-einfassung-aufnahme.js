@@ -500,9 +500,18 @@ function einfaRegisterSichtbar(){
 function einfaSetzeSchritt(n){
  einfaSchritt=Math.max(1,Math.min(EINFA_REGISTER.length,Number(n)||1));
  renderEinfassungAufnahme();
+ // Der Foto-/Skizzenbereich haengt am Register: nur das letzte zeigt ihn.
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit();
 }
 function einfaAbschluss(){
  if(typeof measMedienAufklappen==="function")measMedienAufklappen();
+ // Seit v2.96 fehlte hier - als einziger der elf Arten - das Anspringen und
+ // Hervorheben des Foto-/Skizzenbereichs.
+ const ziel=$("measMedienBereich")||$("measNote")||$("saveMeasurement");
+ if(!ziel)return;
+ if(ziel.scrollIntoView)ziel.scrollIntoView({block:"start",behavior:"smooth"});
+ ziel.classList.add("ra-ziel");
+ setTimeout(()=>ziel.classList.remove("ra-ziel"),2500);
 }
 // Nach einer Zifferneingabe wird NICHT alles neu gezeichnet - sonst verliert
 // das Feld nach dem ersten Zeichen den Fokus (CLAUDE.md 66).

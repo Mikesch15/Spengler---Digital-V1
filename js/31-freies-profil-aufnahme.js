@@ -459,6 +459,8 @@ Speichern nötig ist, liegt vor.</div>`;
 function fpaSetzeSchritt(n){
  fpaSchritt=Math.max(1,Math.min(FPA_REGISTER.length,Number(n)||1));
  renderFreiesProfilAufnahme();
+ // Der Foto-/Skizzenbereich haengt am Register: nur das letzte zeigt ihn.
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit();
  const kopf=$("fpa_register");
  if(kopf&&kopf.scrollIntoView)kopf.scrollIntoView({block:"nearest"});
 }

@@ -1,7 +1,7 @@
-// Fotos und Skizzen am Ende der Register (v2.75).
-// Bei Rinne Halbrund und Einlaufblech gerade erscheint der Foto-/Skizzen-
-// bereich erst mit "Fertig > Fotos und Speichern". Alle uebrigen Arten
-// zeigen ihn wie bisher sofort.
+// Fotos und Skizzen nur im letzten Register (v2.75, verschaerft in v3.02).
+// Die elf Arten mit Registern zeigen den Foto-/Skizzenbereich AUSSCHLIESSLICH
+// im letzten Register - kein Merker, keine Ausnahme fuer eine Aufnahme, die
+// schon Fotos hat. Alle uebrigen Arten zeigen ihn wie bisher sofort.
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-medien-am-ende-v2-75.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
@@ -28,7 +28,22 @@ const sichtbar=page=>page.evaluate(()=>{
 const alleArten=["skizze_foto","einlaufblech_gerade","rinne_halbrund","einlaufblech_konisch",
  "freies_profil","mauerabdeckung","lukarne","anschlussblech","einfassung_rund","kehle","rinne",
  "kamineinfassung"];
-const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisch","freies_profil","mauerabdeckung","kehle","lukarne","kamineinfassung","einfassung_rund","rinne","anschlussblech"];
+// Bis v3.01 stand hier fuer acht der elf Arten faelschlich ebaSetzeSchritt -
+// das Blaettern lief dadurch ins Leere und Abschnitt B ging fuer sie trivial
+// durch. Jetzt eine vollstaendige Tabelle je Art.
+const REGISTER_ARTEN=[
+ {typ:"rinne_halbrund",      setz:"raSetzeSchritt",   knopf:"#ra_weiter"},
+ {typ:"einlaufblech_gerade", setz:"ebaSetzeSchritt",  knopf:"#eba_weiter"},
+ {typ:"einlaufblech_konisch",setz:"ebkaSetzeSchritt", knopf:"#ebka_weiter"},
+ {typ:"freies_profil",       setz:"fpaSetzeSchritt",  knopf:"#fpa_weiter"},
+ {typ:"mauerabdeckung",      setz:"madaSetzeSchritt", knopf:"#mada_weiter"},
+ {typ:"kehle",               setz:"keaSetzeSchritt",  knopf:"#kea_weiter"},
+ {typ:"lukarne",             setz:"lukaSetzeSchritt", knopf:"#luka_weiter"},
+ {typ:"kamineinfassung",     setz:"kamaSetzeSchritt", knopf:"#kam_weiter"},
+ {typ:"einfassung_rund",     setz:"einfaSetzeSchritt",knopf:"#einfa_weiter"},
+ {typ:"rinne",               setz:"rpaSetzeSchritt",  knopf:"#rpa_weiter"},
+ {typ:"anschlussblech",      setz:"anbaSetzeSchritt", knopf:"#anba_weiter"}];
+const MIT_REGISTERN=REGISTER_ARTEN.map(a=>a.typ);
 
 (async()=>{
  const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
@@ -63,46 +78,42 @@ const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisc
   p(s.sichtbar,art+": Fotos und Skizzen sofort sichtbar",s);
  }
 
- console.log("\nB · Rinne und Einlaufblech: erst nach 'Fertig'");
- for(const art of MIT_REGISTERN){
-  const setz=(a)=>page.evaluate(x=>{
+ console.log("\nB · Die Register-Arten: nur das letzte Register zeigt ihn");
+ for(const {typ:art,setz:setzeSchritt,knopf} of REGISTER_ARTEN){
+  await page.evaluate(x=>{
    if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
    measPhotos=[];measSketches=[];
    renderSketchGallery();
    $("measType").value=x; showMeasTypeSection(x);
-  },a);
-  await setz(art); await page.waitForTimeout(150);
+  },art);
+  await page.waitForTimeout(150);
   const zu=await sichtbar(page);
   p(!zu.sichtbar,art+": beim Oeffnen zugeklappt",zu);
   p(zu.display==="none",art+": wirklich display:none (nicht nur hidden-Attribut)",zu.display);
 
-  // Durch alle Register blaettern - er bleibt zu
-  const setzeSchritt=art==="rinne_halbrund"?"raSetzeSchritt"
-   :(art==="einlaufblech_konisch"?"ebkaSetzeSchritt":"ebaSetzeSchritt");
   // Die Registerzahl aus der Leiste lesen - sie ist je Art verschieden und
   // hat sich mit v2.80 geaendert. Eine fest angenommene Zahl wuerde hier
   // still am falschen Register messen.
-  const anzahl=await page.evaluate(()=>document.querySelectorAll(
-    "#measurementEditModal .ra-register-knopf").length);
-  p(anzahl>=6,art+": die Registerleiste ist da ("+anzahl+" Register)",anzahl);
-  let offenUnterwegs=0;
-  for(let n=1;n<anzahl;n++){
+  // Nur die SICHTBARE Leiste zaehlen: die Registerleisten der uebrigen Arten
+  // bleiben im DOM stehen (ihre Sektion ist nur ausgeblendet). Bis v3.01 hat
+  // der Pruefstand hier alle zusammengezaehlt und mit "anzahl>=6" trotzdem
+  // bestanden - er hat dadurch am falschen Register gemessen.
+  const anzahl=await page.evaluate(()=>Array.from(document.querySelectorAll(
+    "#measurementEditModal .ra-register-knopf")).filter(b=>b.offsetParent!==null).length);
+  p(anzahl>=6&&anzahl<=9,art+": die Registerleiste ist da ("+anzahl+" Register)",anzahl);
+  // Jedes Register einzeln messen: sichtbar genau im letzten, sonst nie.
+  const offen=[];
+  for(let n=1;n<=anzahl;n++){
    await page.evaluate(([f,k])=>window[f]?window[f](k):eval(f+"("+k+")"),[setzeSchritt,n]);
    await page.waitForTimeout(100);
-   const s=await sichtbar(page);
-   if(s.sichtbar)offenUnterwegs++;
+   if((await sichtbar(page)).sichtbar)offen.push(n);
   }
-  p(offenUnterwegs===0,art+": bleibt bis zum letzten Register zugeklappt",offenUnterwegs);
+  p(offen.length===1&&offen[0]===anzahl,
+    art+": sichtbar genau im letzten Register ("+anzahl+")",offen);
 
-  // Letztes Register, dann "Fertig"
-  await page.evaluate(([f,k])=>window[f]?window[f](k):eval(f+"("+k+")"),[setzeSchritt,anzahl]);
-  await page.waitForTimeout(120);
-  const vor=await sichtbar(page);
-  p(!vor.sichtbar,art+": auf dem letzten Register noch zugeklappt",vor);
-  const knopf=art==="rinne_halbrund"?"#ra_weiter"
-   :(art==="einlaufblech_konisch"?"#ebka_weiter":"#eba_weiter");
-  const beschriftung=await page.evaluate(s=>{const e=document.querySelector(s);return e?e.textContent.trim():""},knopf);
-  p(/Fertig/.test(beschriftung),art+": der Knopf heisst Fertig",beschriftung);
+  // Auf dem letzten Register ist er schon da - "Fertig" scrollt nur hin.
+  const knopfText=await page.evaluate(s=>{const e=document.querySelector(s);return e?e.textContent.trim():""},knopf);
+  p(/Fertig/.test(knopfText),art+": der Knopf heisst Fertig",knopfText);
   // Die Hervorhebung der VORIGEN Art laeuft 2,5 s und wuerde die gleich
   // gesetzte sonst wieder wegnehmen - das ist eine Eigenheit dieses Laufs,
   // nicht der App. Deshalb hier abwarten, bis nichts mehr markiert ist.
@@ -125,28 +136,38 @@ const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisc
   p(markiert.markiert,art+": und wird kurz hervorgehoben",markiert);
   p(markiert.foto&&markiert.skizze,art+": Foto-Feld und Skizzen-Knopf bedienbar",markiert);
 
-  // Zurueckblaettern laesst ihn offen - ein gerade gemachtes Foto soll
-  // nicht wieder verschwinden.
+  // Zurueckblaettern klappt ihn wieder zu. Bis v3.01 blieb er offen - so war
+  // er nach einem einzigen "Fertig" in JEDEM Register zu sehen.
   await page.evaluate(([f,k])=>window[f]?window[f](k):eval(f+"("+k+")"),[setzeSchritt,2]);
   await page.waitForTimeout(120);
   const zurueck=await sichtbar(page);
-  p(zurueck.sichtbar,art+": bleibt beim Zurueckblaettern offen",zurueck);
+  p(!zurueck.sichtbar,art+": beim Zurueckblaettern wieder zugeklappt",zurueck);
  }
 
- console.log("\nC · Eine Aufnahme MIT Fotos zeigt sie sofort");
- for(const art of MIT_REGISTERN){
-  const s=await page.evaluate(a=>{
+ console.log("\nC · Auch eine Aufnahme MIT Fotos zeigt ihn nur im letzten Register");
+ // Bis v3.01 war genau das die Ausnahme, die ihn in jedem Register zeigte -
+ // vom Betrieb gemeldet und hier gemessen.
+ for(const {typ:art,setz:setzeSchritt} of REGISTER_ARTEN){
+  await page.evaluate(a=>{
    openMeasurement({id:99,type:a,title:"Mit Foto",date:"2026-09-03",note:"",
      photo_path:"FOTO",sketch_paths:["SKIZZE"],project_id:null,data:{}});
-   const e=document.getElementById("measMedienBereich"), st=getComputedStyle(e);
-   return {hidden:e.hidden,display:st.display,hoehe:Math.round(e.getBoundingClientRect().height)};
   },art);
-  await page.waitForTimeout(200);
-  p(st_sichtbar(s),art+": Aufnahme mit Foto zeigt den Bereich sofort",s);
+  await page.waitForTimeout(220);
+  const anzahl=await page.evaluate(()=>Array.from(document.querySelectorAll(
+    "#measurementEditModal .ra-register-knopf")).filter(b=>b.offsetParent!==null).length);
+  const hatMedien=await page.evaluate(()=>({fotos:measPhotos.length,skizzen:measSketches.length}));
+  p(hatMedien.fotos===1&&hatMedien.skizzen===1,art+": die Aufnahme hat wirklich Medien",hatMedien);
+  const offen=[];
+  for(let n=1;n<=anzahl;n++){
+   await page.evaluate(([f,k])=>window[f]?window[f](k):eval(f+"("+k+")"),[setzeSchritt,n]);
+   await page.waitForTimeout(90);
+   if((await sichtbar(page)).sichtbar)offen.push(n);
+  }
+  p(offen.length===1&&offen[0]===anzahl,
+    art+": trotz Fotos nur im letzten Register ("+anzahl+")",offen);
  }
- function st_sichtbar(s){return s.display!=="none"&&s.hoehe>0}
 
- console.log("\nD · Eine Aufnahme OHNE Fotos startet wieder zugeklappt");
+ console.log("\nD · Eine Aufnahme OHNE Fotos startet ebenfalls zugeklappt");
  for(const art of MIT_REGISTERN){
   const s=await page.evaluate(a=>{
    openMeasurement({id:98,type:a,title:"Ohne Foto",date:"2026-09-03",note:"",
@@ -157,6 +178,7 @@ const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisc
   await page.waitForTimeout(200);
   p(!st_sichtbar(s),art+": Aufnahme ohne Foto startet zugeklappt",s);
  }
+ function st_sichtbar(s){return s.display!=="none"&&s.hoehe>0}
 
  console.log("\nE · Notiz und Speichern bleiben immer erreichbar");
  const rest=await page.evaluate(()=>{
@@ -171,17 +193,23 @@ const MIT_REGISTERN=["rinne_halbrund","einlaufblech_gerade","einlaufblech_konisc
  // hier waere still ueberschrieben worden - genau das ist beim Bauen
  // passiert und hat den Bereich trotz vorhandener Fotos zugeklappt gelassen.
  const namen=await page.evaluate(()=>({
-  formular:typeof measFormularHatMedien,
   cockpit:typeof measHatMedien,
   cockpitNimmtArgument:(typeof measHatMedien==="function")&&measHatMedien.length===1,
   sicht:typeof measMedienSichtbarkeit, auf:typeof measMedienAufklappen,
-  zurueck:typeof measMedienZuruecksetzen
+  zurueck:typeof measMedienZuruecksetzen,
+  tabelle:(typeof MEAS_MEDIEN_LETZTES_REGISTER==="object")?Object.keys(MEAS_MEDIEN_LETZTES_REGISTER):null,
+  liste:(typeof MEAS_MEDIEN_AM_ENDE!=="undefined")?MEAS_MEDIEN_AM_ENDE:null
  }));
- p(namen.formular==="function","measFormularHatMedien existiert",namen);
  p(namen.cockpit==="function"&&namen.cockpitNimmtArgument,
    "measHatMedien aus js/24 ist unveraendert (nimmt eine Massaufnahme)",namen);
  p(namen.sicht==="function"&&namen.auf==="function"&&namen.zurueck==="function",
-   "die drei neuen Funktionen sind da",namen);
+   "die drei Funktionen sind da",namen);
+ // Eine Tabelle, eine Wahrheit: die Liste wird daraus abgeleitet.
+ p(!!namen.tabelle&&namen.tabelle.length===MIT_REGISTERN.length&&
+   MIT_REGISTERN.every(a=>namen.tabelle.indexOf(a)>=0),
+   "jede Register-Art steht in MEAS_MEDIEN_LETZTES_REGISTER",namen.tabelle);
+ p(!!namen.liste&&namen.liste.join(",")===(namen.tabelle||[]).join(","),
+   "MEAS_MEDIEN_AM_ENDE ist daraus abgeleitet - sie koennen nicht auseinanderlaufen",namen.liste);
 
  console.log("\nF · Keine JS-Fehler");
  p(fehler.length===0,"keine Seitenfehler",fehler.slice(0,3));

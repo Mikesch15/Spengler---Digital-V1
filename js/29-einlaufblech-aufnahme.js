@@ -457,6 +457,8 @@ function ebaZuschnittHtml(){
 function ebaSetzeSchritt(n){
  ebaSchritt=Math.max(1,Math.min(EBA_REGISTER.length,Number(n)||1));
  renderEinlaufblechAufnahme();
+ // Der Foto-/Skizzenbereich haengt am Register: nur das letzte zeigt ihn.
+ if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit();
  const kopf=$("eba_register");
  if(kopf&&kopf.scrollIntoView)kopf.scrollIntoView({block:"nearest"});
 }
