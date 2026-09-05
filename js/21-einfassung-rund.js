@@ -58,7 +58,13 @@ const EINFASSUNG_STANDARD = Object.freeze({
   deckung: "biber_einfach",
   umschlag: 20,        // Umschlag vorne (180°) und oben am Aufbug (135°)
   mass_seitlich: 100,  // Mass seitlich neben Rohr
-  lattenabstand: 330   // für Anzahl Bleilappen
+  lattenabstand: 330,  // für Anzahl Bleilappen
+  // Vorgabemasse einer NEUEN Einfassung (v2.99, auf Ansage des Betriebs).
+  // Sie werden beim Anlegen einmal übernommen und sind danach je Einfassung
+  // frei änderbar; ein gespeicherter Datensatz bleibt unverändert.
+  mass_a: 250,         // a · Vorderkante auf Deckmaterial bis Mitte Rohr
+  mass_b: 200,         // b · ab Mitte Rohr bis hinten, unter das Deckmaterial
+  mass_c: 35           // c · 90°-Aufbug hinten
 });
 const EINF_EINSTELLUNGEN = "sd_einfassungRundSettings";
 
@@ -79,9 +85,13 @@ function einfEinstellungenSichern(w) {
 function einfVorgabe() {
   const s = einfassungSettings || EINFASSUNG_STANDARD;
   const deckung = EINF_DECKUNGEN[s.deckung] ? s.deckung : "biber_einfach";
+  const zahl = (v, ersatz) => (Number.isFinite(Number(v)) ? Number(v) : ersatz);
   return {
     deckung: deckung,
-    durchmesser: 110, winkel: 30, a: 60, b: 60, c: 100,
+    durchmesser: 110, winkel: 30,
+    a: zahl(s.mass_a, EINFASSUNG_STANDARD.mass_a),
+    b: zahl(s.mass_b, EINFASSUNG_STANDARD.mass_b),
+    c: zahl(s.mass_c, EINFASSUNG_STANDARD.mass_c),
     lattenabstand: s.lattenabstand
   };
 }
@@ -308,6 +318,9 @@ function applyEinfassungSettings() {
   setzen("einfsUmschlag", s.umschlag);
   setzen("einfsMassSeitlich", s.mass_seitlich);
   setzen("einfsLattenabstand", s.lattenabstand);
+  setzen("einfsMassA", s.mass_a);
+  setzen("einfsMassB", s.mass_b);
+  setzen("einfsMassC", s.mass_c);
 }
 
 // ---- 7. Bedienung ----------------------------------------------------
@@ -345,10 +358,13 @@ function applyEinfassungSettings() {
       deckung: $("einfsDeckung").value,
       umschlag: zahl("einfsUmschlag") || 0,
       mass_seitlich: zahl("einfsMassSeitlich") || 0,
-      lattenabstand: zahl("einfsLattenabstand") || 0
+      lattenabstand: zahl("einfsLattenabstand") || 0,
+      mass_a: zahl("einfsMassA") || 0,
+      mass_b: zahl("einfsMassB") || 0,
+      mass_c: zahl("einfsMassC") || 0
     };
     if (!EINF_DECKUNGEN[w.deckung]) { alert("Bitte ein Deckmaterial wählen."); return; }
-    const negativ = ["umschlag", "mass_seitlich", "lattenabstand"].some(k => w[k] < 0);
+    const negativ = ["umschlag", "mass_seitlich", "lattenabstand", "mass_a", "mass_b", "mass_c"].some(k => w[k] < 0);
     if (negativ) { alert("Diese Werte dürfen nicht negativ sein."); return; }
     einfEinstellungenSichern(w);
     applyEinfassungSettings();

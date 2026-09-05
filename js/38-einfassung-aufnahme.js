@@ -68,7 +68,7 @@ function einfaWinkelIntern(anzeige){
 }
 
 function einfaNeue(){
- const v=(typeof einfVorgabe==="function")?einfVorgabe():{durchmesser:110,winkel:30,a:60,b:60,c:100};
+ const v=(typeof einfVorgabe==="function")?einfVorgabe():{durchmesser:110,winkel:30,a:250,b:200,c:35};
  return {bez:"",durchmesser:v.durchmesser,winkel:v.winkel,a:v.a,b:v.b,c:v.c,anzahl:1};
 }
 function einfaLeer(){
@@ -80,6 +80,9 @@ function einfaLeer(){
  };
 }
 let einfA=einfaLeer();
+// true, solange die Registerflaeche neu gezeichnet wird - siehe
+// renderEinfassungAufnahme().
+let einfaZeichnet=false;
 
 // ---- Brücke zur Fachrechnung (js/21) --------------------------------------
 // Jede Einfassung wird einzeln durch die bestehende Rechnung geschickt. Die
@@ -464,12 +467,21 @@ function renderEinfassungAufnahme(){
  const weiter=einfaSchritt>=EINFA_REGISTER.length
    ?"Fertig › Fotos und Speichern"
    :"Weiter › "+EINFA_REGISTER[einfaSchritt].kurz;
- ziel.innerHTML=einfaRegisterHtml()
-  +einfaKarte(r.nr+" · "+r.kurz,inhalt?inhalt():"")
-  +`<div class="bar ra-blaettern">
+ // Chromium feuert auf einem Feld, das gerade den Fokus hat, beim Ersetzen
+ // des Inhalts noch ein "change" - und der Knoten meldet sich dabei als
+ // weiterhin im Dokument. Ohne diese Sperre schriebe der Handler den alten
+ // Feldwert in den GERADE FRISCH gesetzten Zustand zurueck (Zuruecksetzen und
+ // Oeffnen eines Datensatzes). Waehrend des Zeichnens ist kein change eine
+ // echte Benutzereingabe, deshalb wird er verworfen.
+ einfaZeichnet=true;
+ try{
+  ziel.innerHTML=einfaRegisterHtml()
+   +einfaKarte(r.nr+" · "+r.kurz,inhalt?inhalt():"")
+   +`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="einfa_zurueck"${einfaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="einfa_weiter">${esc(weiter)}</button>
 </div>`;
+ }finally{einfaZeichnet=false}
  if(typeof markierePflichtfelder==="function")markierePflichtfelder(ziel);
  einfaRegisterSichtbar();
 }
@@ -542,10 +554,12 @@ function einfaVerdrahten(){
  wurzel.dataset.einfaVerdrahtet="1";
 
  wurzel.addEventListener("input",e=>{
+  if(einfaZeichnet)return;
   if(!einfaFeldZuweisen(e.target.id,e.target.value))return;
   einfaLive();
  });
  wurzel.addEventListener("change",e=>{
+  if(einfaZeichnet)return;
   const t=e.target;
   {const w=(typeof zuRollenKlick==="function")?zuRollenKlick(t,"data-einfa-rolle"):null;
    if(w!==null){einfA.rollenAuswahl=w; renderEinfassungAufnahme(); return}}

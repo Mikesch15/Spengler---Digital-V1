@@ -16105,3 +16105,171 @@ ersten Entwurf auffliegen lassen.
 - Die Vorgaben liegen wie alle Kamin-Einstellungen **je Gerät** im
   `localStorage`, nicht firmenweit – ein zweites Tablet muss sie einmal
   selbst setzen. Firmenweit sind bisher nur die Rollenbreiten (v2.74).
+
+## 103. EINFASSUNG RUND: STANDARDMASSE a 250, b 200, c 35 — VERSION 2.99
+
+Nachtrag zu Abschnitt 102: die Standardwerte gehören laut Ansage des Betriebs
+**auch in die Einfassung Rund**. Die in v2.98 gesetzten Werte der
+Kamineinfassung bleiben unverändert bestehen. **Keine Schemaänderung, keine
+Migration, keine Rechnung verändert.**
+
+### 103.1 Die Zuordnung
+
+Die drei Begriffe treffen in der Einfassung Rund auf genau drei Masse:
+
+| Ansage | Feld | bis v2.98 | ab v2.99 |
+|---|---|---|---|
+| „vorne" | **a** · Vorderkante auf Deckmaterial bis Mitte Rohr | 60 mm | **250 mm** |
+| „hinten" | **b** · ab Mitte Rohr bis hinten, unter das Deckmaterial | 60 mm | **200 mm** |
+| „90 Grad Abbug hinten" | **c** · 90°-Aufbug | 100 mm | **35 mm** |
+
+Dieselben drei Begriffe wie beim Kamin (A / D / E, Abschnitt 102) – dort ist
+E ausdrücklich das „Mass vom 90°-Aufbug hinten", hier heisst dasselbe Mass c.
+
+### 103.2 Vorgabe, keine feste Zahl
+
+Bis v2.98 standen 60 / 60 / 100 fest in `einfVorgabe()`. Sie liegen jetzt –
+wie beim Kamin – als **Einstellung je Gerät** in `EINFASSUNG_STANDARD`
+(`sd_einfassungRundSettings`) und sind unter *Einstellungen → Massaufnahmen →
+Einfassung Rund* änderbar, neben Umschlag, Mass seitlich und Lattenabstand.
+
+Sie füllen eine **neue** Einfassung vor – auch jede weitere, die über
+„＋ Einfassung hinzufügen" dazukommt – und sind danach frei überschreibbar.
+Eine Änderung in den Einstellungen wirkt **nie rückwirkend**.
+
+### 103.3 Ein gespeicherter Datensatz bekommt nichts angedichtet
+
+`einfaFuellen()` baut jede Einfassung ausdrücklich aus dem gespeicherten
+Datensatz auf und greift dabei **nicht** auf `einfaNeue()` zurück – weder für
+die Liste ab v2.96 noch für die flachen Felder bis v2.95. Ein Datensatz mit
+a = 80 öffnet deshalb weiterhin mit 80, nicht mit 250. Anders als beim Kamin
+(102.2) war dafür kein Zurücksetzen nötig; der Prüfstand misst es trotzdem.
+
+### 103.4 Dabei gefunden: ein getippter Wert leckte in den neuen Zustand
+
+Der neue Prüfstand hat einen **bestehenden** Fehler in js/38 aufgedeckt, der
+nichts mit den Vorgabewerten zu tun hat:
+
+Chromium feuert auf einem Eingabefeld, das gerade den Fokus hat, beim
+Ersetzen des Inhalts noch ein `change` – und der Knoten meldet sich dabei als
+**weiterhin im Dokument** (gemessen: `document.contains(e.target) === true`).
+Der delegierte Handler auf `#measTypeEinfassungRund` schrieb den alten
+Feldwert dadurch in den **gerade frisch gesetzten** Zustand zurück:
+
+```
+Feld "a" mit 310 getippt  ->  einfaZuruecksetzen()  ->  a war weiterhin 310
+```
+
+Betroffen sind beide Wege, die den Zustand ersetzen und danach zeichnen:
+`einfaZuruecksetzen()` (neue Massaufnahme) und `einfaFuellen()` (Datensatz
+öffnen). Im Alltag ist der Weg schmal – wer wegklickt, löst das `change`
+vorher aus, und dann ist es die richtige Zuweisung – aber er ist real.
+
+**Behoben** mit einer Sperre um das Neuzeichnen (`einfaZeichnet`): während
+gezeichnet wird, ist kein `input`/`change` eine echte Benutzereingabe und wird
+verworfen. `document.contains()` hilft hier nicht, weil der Knoten zu diesem
+Zeitpunkt noch hängt – das wurde gemessen, nicht angenommen.
+
+**Dieselbe Bauform haben die acht übrigen Register-Module** (js/28–js/32,
+js/34, js/36, js/37): delegierter `change`-Handler auf einem Container, der
+selbst neu gezeichnet wird. In dieser Runde wurde nur js/38 angefasst – dort,
+wo der Prüfstand es gefunden hat. Für die übrigen ist es als eigener,
+kleiner Durchgang vorgemerkt (siehe 103.7).
+
+### 103.5 Getestet
+
+- **`pruefstand-einfassung-app-v2-96.js` – 113/113** (vorher 101): neuer
+  Abschnitt **D3** – eine neue Aufnahme startet mit 250 / 200 / 35, die Werte
+  stehen auch in den Feldern, eine weitere Einfassung bekommt dieselbe
+  Vorgabe, sie ist frei überschreibbar, sie stammt nachweislich aus den
+  Einstellungen (300 / 220 / 40 gesetzt → wirkt auf die nächste neue Aufnahme
+  → wieder zurückgestellt), ein gespeicherter Datensatz behält seine Masse,
+  die drei Eingabefelder stehen in den Einstellungen und zeigen die aktuellen
+  Werte. Dazu die beiden Messungen zum Leck aus 103.4.
+- **Fünf Gegenproben**, jede baut einen echten Fehler ein:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | Vorgabe zurück auf 60 / 60 / 100 | 107/113 |
+  | Vorgabe fest verdrahtet statt aus den Einstellungen | 111/113 |
+  | Einstellungsseite zeigt die Vorgaben nicht | 112/113 |
+  | Sperre beim Neuzeichnen entfernt (der Fehler aus 103.4) | 111/113 |
+  | `einfaFuellen()` erfindet die Vorgabe für fehlende Masse | 110/113 |
+
+- **Eine Prüfung war zuerst zu schwach**: die zweite Leck-Messung setzte den
+  Feldwert per JavaScript. Chromium feuert das `change` beim Entfernen aber
+  nur, wenn der **Benutzer** den Wert geändert hat – die Prüfung hätte gar
+  nicht fehlschlagen können. Sie tippt jetzt echt und beisst (111/113 statt
+  112/113).
+- **Eine Erwartung war meine, nicht die des Codes**: der Zustand hält beim
+  Tippen den rohen Feldtext (`"310"`), umgerechnet wird über `einfaZahl()`.
+  Das ist die Bauform aller Register-Module, kein Fehler – die Prüfung
+  vergleicht jetzt mit `Number()`.
+
+### 103.6 Regression
+
+- **Alle 17 Prüfstände im Repo grün**: verschnitt 1578, register-zuschnitt 307,
+  kehle 158, kamin 153, mauerabdeckung 146, medien-am-ende 125,
+  freies-profil 118, konisch 114, einfassung 113, rinne 104, einlaufblech 99,
+  rollenblech-pdf 95, lukarne 82, lxb-druck 58, dila-sichtbar 57,
+  skizze-foto 54, felder-bleiben 19.
+- **Archiv grün**: kehle52 698, pdf52 526, required70 395, rinne57 379,
+  einf70 185, normbrute 1578, offline70 127, feedback63 108, freipos65 99,
+  fotos70 88, dila70 85, breite57 84, fp70 83, kehleintegration52 76,
+  feedbackbrowser63 67, breite52 52, einstbrowser68 51, ebg70 49,
+  feedback70 47, einst68 47, mad70 45, module67 43, medien50 42,
+  adresse45 39, pfade55 39, dateien49 38, projekte47 37, status46 35,
+  freiposbrowser65 33, auswahl48 32, modulebrowser67 16, suche45 13,
+  kopf45 8, hidden51 7, abstand69 2, sowie dateien43, nav, recent41,
+  stand42, suche40, treffer40, ui39 ohne Fehlschlag. Die beiden Zeilen, die
+  nach einem Fehler aussehen und keiner sind (`ui39` „Fehler: permission
+  denied", `recent41` „Leerzustand ohne Fehler"), sind unverändert die aus
+  Abschnitt 80.4.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` unmittelbar nacheinander gegen den v2.98-Stand
+  gerendert – **Bild und DOM byteidentisch** (Bild `85706e5d7a1eb615`,
+  DOM `3066be99c3200173`, 110 584 Bytes), bestätigt durch einen dritten Lauf
+  desselben Codes (CLAUDE.md 100.6).
+- `node --check` über alle 58 js-Dateien (inkl. `sw.js` und der Prüfstände):
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs; jede js-Datei in `index.html`
+  **und** in der Service-Worker-Liste; Version 2.99 in `index.html` und
+  `sw.js` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 103.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/21-einfassung-rund.js` | `mass_a`/`mass_b`/`mass_c` in `EINFASSUNG_STANDARD`, `einfVorgabe()` liest sie, Einstellungsseite (anzeigen, speichern, Negativprüfung) |
+| `js/38-einfassung-aufnahme.js` | Sperre `einfaZeichnet` gegen das `change` beim Neuzeichnen (103.4), Rückfallwerte angeglichen |
+| `index.html` | drei Eingabefelder in den Einstellungen, Hinweistext, Version 2.99 |
+| `pruefstaende/pruefstand-einfassung-app-v2-96.js` | Abschnitt D3 (12 Prüfungen) |
+| `sw.js` | Cache-Version 2.99 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/37-kamin-aufnahme.js` (die Werte aus
+v2.98 bleiben, wie vom Betrieb verlangt) sowie `js/10`–`js/20`, `js/22`–`js/36`
+und `css/01-basis.css` – per `git diff` bestätigt. Keine Berechnung, keine
+Stückliste, kein Zuschnitt, keine Abwicklung und keine Packrechnung berührt.
+
+**Damit ist js/21 nicht mehr byteweise unverändert** (anders als in 100.1 und
+101 dokumentiert). Verändert wurden ausschliesslich die Vorgabewerte und ihre
+Einstellungsseite – `einfProfil()`, `einfBerechnen()`, `einfZeichnung()` und
+die Bleilappen-Rechnung sind unangetastet.
+
+### 103.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- Die Vorgaben liegen wie alle Einfassungs-Einstellungen **je Gerät** im
+  `localStorage`, nicht firmenweit – ein zweites Tablet muss sie einmal selbst
+  setzen. Firmenweit sind bisher nur die Rollenbreiten (v2.74).
+- **Die Sperre aus 103.4 gibt es bisher nur in js/38.** Die acht übrigen
+  Register-Module haben dieselbe Bauform und damit denselben schmalen Weg;
+  ein eigener, kleiner Durchgang dafür ist vorgemerkt.
+- `durchmesser` (110) und `winkel` (30 bzw. angezeigt 120) bleiben feste
+  Vorgaben ohne Einstellung – sie hängen am einzelnen Rohr und am Dach, nicht
+  am Betrieb.

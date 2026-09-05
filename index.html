@@ -95,7 +95,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.98</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 2.99</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1291,12 +1291,15 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 <div class="settings-section" data-section="einfassung-rund">
 <div class="settings-section-head" data-toggle-section="einfassung-rund"><h2>Einfassung Rund</h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
-<div class="info">Eigene Werte des Moduls &bdquo;Einfassung Rund&ldquo;. Umschlag und Mass seitlich neben Rohr z&auml;hlen je 2&times; in die Breite der gesamten Einfassung; Umschlag ist ausserdem die L&auml;nge des vorderen 180&deg;- und des oberen 135&deg;-Umschlags in der Zeichnung. Gilt nur f&uuml;r dieses Ger&auml;t.</div>
+<div class="info">Eigene Werte des Moduls &bdquo;Einfassung Rund&ldquo;. Umschlag und Mass seitlich neben Rohr z&auml;hlen je 2&times; in die Breite der gesamten Einfassung; Umschlag ist ausserdem die L&auml;nge des vorderen 180&deg;- und des oberen 135&deg;-Umschlags in der Zeichnung. <b>a, b und c</b> sind Vorgabewerte f&uuml;r eine neue Einfassung; sie werden beim Anlegen einmal &uuml;bernommen und sind danach je Einfassung frei &auml;nderbar &ndash; bereits gespeicherte Massaufnahmen bleiben unver&auml;ndert. Gilt nur f&uuml;r dieses Ger&auml;t.</div>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="einfsDeckung"></select></div>
 <div><label>Umschlag (mm)</label><input id="einfsUmschlag" type="number" step="1"></div>
 <div><label>Mass seitlich neben Rohr (mm)</label><input id="einfsMassSeitlich" type="number" step="1"></div>
 <div><label>Lattenabstand Bleilappen (mm)</label><input id="einfsLattenabstand" type="number" step="1"></div>
+<div><label>a &middot; vorne bis Mitte Rohr (mm)</label><input id="einfsMassA" type="number" step="1"></div>
+<div><label>b &middot; Mitte Rohr bis hinten (mm)</label><input id="einfsMassB" type="number" step="1"></div>
+<div><label>c &middot; 90&deg;-Aufbug hinten (mm)</label><input id="einfsMassC" type="number" step="1"></div>
 </div>
 <div class="bar" style="margin-bottom:14px">
 <button id="saveEinfassungSettings" class="green">💾 Werte speichern</button>

@@ -248,6 +248,83 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  p(altFeld==="115","und zeigt seine 25 Grad als 115 Grad im Feld",altFeld);
  await setz(page,FALL);
 
+ console.log("\nD3 · Vorgabemasse a 250 / b 200 / c 35 (v2.99)");
+ // Auf Ansage des Betriebs. Die Werte sind eine VORGABE aus den Einstellungen,
+ // keine feste Zahl - und sie gelten nur fuer eine NEUE Einfassung.
+ await page.evaluate(()=>einfaZuruecksetzen());
+ await page.waitForTimeout(200);
+ const vg=await page.evaluate(()=>{const e=einfaListe()[0];return {a:e.a,b:e.b,c:e.c,n:einfaListe().length}});
+ p(vg.a===250&&vg.b===200&&vg.c===35,"eine neue Aufnahme startet mit 250 / 200 / 35",vg);
+ await reg(page,2);
+ const vgf=await page.evaluate(()=>["a","b","c"].map(k=>($("einfa_"+k+"_0")||{}).value));
+ p(JSON.stringify(vgf)===JSON.stringify(["250","200","35"]),"die Werte stehen auch in den Feldern",vgf);
+ // Eine neu hinzugefuegte Einfassung bekommt dieselbe Vorgabe.
+ await klick(page,"#einfa_neu");
+ const vg2=await page.evaluate(()=>{const l=einfaListe();const e=l[l.length-1];return {n:l.length,a:e.a,b:e.b,c:e.c}});
+ p(vg2.n===2&&vg2.a===250&&vg2.b===200&&vg2.c===35,"auch eine weitere Einfassung startet mit der Vorgabe",vg2);
+ await page.evaluate(()=>einfaZuruecksetzen());
+ await page.waitForTimeout(200);
+ await reg(page,2);
+ const ueber=await tippe(page,"#einfa_a_0","310");
+ // Der Zustand haelt beim Tippen den rohen Feldtext - umgerechnet wird ueber
+ // einfaZahl(). Deshalb Number(), nicht ===310.
+ const vg3=await page.evaluate(()=>({a:einfaListe()[0].a,feld:($("einfa_a_0")||{}).value}));
+ p(ueber&&Number(vg3.a)===310&&vg3.feld==="310","die Vorgabe ist frei ueberschreibbar",vg3);
+ // Ein Feld, das beim Neuzeichnen den Fokus hat, feuert in Chromium noch ein
+ // "change". Ohne Sperre schriebe das den ALTEN Wert in den frisch gesetzten
+ // Zustand zurueck - hier gemessen, nicht angenommen.
+ const leck=await page.evaluate(()=>{einfaZuruecksetzen();return {a:einfaListe()[0].a,fokus:document.activeElement.id}});
+ p(Number(leck.a)===250,"der getippte Wert leckt beim Zuruecksetzen nicht in den neuen Zustand",leck);
+ await reg(page,2);   // nach dem Zuruecksetzen steht es wieder auf Register 1
+ // Echt tippen, nicht value setzen: Chromium feuert das change nur, wenn der
+ // BENUTZER den Wert geaendert hat - ein per JS gesetzter Wert loest es nicht
+ // aus, die Pruefung koennte dann gar nicht fehlschlagen.
+ await tippe(page,"#einfa_a_0","777");
+ const leck2=await page.evaluate(()=>{
+  if(!$("einfa_a_0"))return {fehlt:true};
+  einfaFuellen({material:"2",deckung:"biber_einfach",lattenabstand:330,
+    durchmesser:200,winkel:25,a:80,b:90,c:120});
+  return {a:einfaListe()[0].a};
+ });
+ p(Number(leck2.a)===80,"und auch nicht beim Oeffnen eines Datensatzes",leck2);
+ // Die Vorgabe kommt aus den EINSTELLUNGEN, sie ist nicht fest verdrahtet.
+ const ausEinst=await page.evaluate(()=>{
+  const alt=JSON.parse(JSON.stringify(einfassungSettings));
+  einfEinstellungenSichern(Object.assign({},alt,{mass_a:300,mass_b:220,mass_c:40}));
+  const v=einfVorgabe();
+  einfaZuruecksetzen();
+  const neu=einfaListe()[0];
+  einfEinstellungenSichern(alt);
+  einfaZuruecksetzen();
+  const zurueck=einfaListe()[0];
+  return {v:{a:v.a,b:v.b,c:v.c},neu:{a:neu.a,b:neu.b,c:neu.c},zurueck:{a:zurueck.a,b:zurueck.b,c:zurueck.c}};
+ });
+ p(ausEinst.v.a===300&&ausEinst.v.b===220&&ausEinst.v.c===40,
+   "einfVorgabe() liest a/b/c aus den Einstellungen",ausEinst.v);
+ p(ausEinst.neu.a===300&&ausEinst.neu.b===220&&ausEinst.neu.c===40,
+   "geaenderte Einstellungen wirken auf die naechste neue Aufnahme",ausEinst.neu);
+ p(ausEinst.zurueck.a===250&&ausEinst.zurueck.b===200&&ausEinst.zurueck.c===35,
+   "und lassen sich wieder zurueckstellen",ausEinst.zurueck);
+ // Ein gespeicherter Datensatz bekommt die Vorgabe NICHT angedichtet.
+ const alt99=await page.evaluate(()=>{
+  einfaFuellen({material:"2",deckung:"biber_einfach",lattenabstand:330,
+    durchmesser:200,winkel:25,a:80,b:90,c:120});
+  const e=einfaListe()[0]; return {a:e.a,b:e.b,c:e.c};
+ });
+ p(alt99.a===80&&alt99.b===90&&alt99.c===120,
+   "ein gespeicherter Datensatz behaelt seine Masse (keine Vorgabe angedichtet)",alt99);
+ // Die Einstellungsseite kennt die drei Felder.
+ const felder=await page.evaluate(()=>{
+  const ids=["einfsMassA","einfsMassB","einfsMassC"];
+  const da=ids.map(i=>!!document.getElementById(i));
+  if(typeof applyEinfassungSettings==="function")applyEinfassungSettings();
+  return {da,werte:ids.map(i=>(document.getElementById(i)||{}).value)};
+ });
+ p(felder.da.every(Boolean),"drei Eingabefelder in den Einstellungen",felder.da);
+ p(JSON.stringify(felder.werte)===JSON.stringify(["250","200","35"]),
+   "die Einstellungsseite zeigt die aktuellen Vorgaben",felder.werte);
+ await setz(page,FALL);
+
  console.log("\nE · Zuschnitte und Stueckliste (von Hand nachgerechnet)");
  const zu=await page.evaluate(()=>einfaZuschnitte().map(x=>({nr:x.nr,l:x.laenge,b:x.breite,h:x.hinweis})));
  p(zu.length===3,"drei Zuschnitte (1x Ø110, 2x Ø160)",zu.length);
