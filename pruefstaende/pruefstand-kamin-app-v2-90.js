@@ -183,6 +183,18 @@ const FALL={
  p(fok2.id==="kam_hoehe_l"&&fok2.wert==="400","seitliche Höhe getippt, Fokus bleibt",fok2);
  p(String(fok2.rechts)==="400","ohne Schalter gilt der Wert fuer beide Seiten",fok2);
 
+ // Der Fehler bis v2.92: die seitlichen Felder wurden mit ihrer FELD-ID im
+ // Zustand gesucht (kamA["kam_b"] statt kamA.b) und waren deshalb nach JEDEM
+ // Neuzeichnen leer - gespeichert war alles, nur nie zu sehen. Direkt nach dem
+ // Tippen faellt das nicht auf, das Feld traegt ja noch den getippten Text.
+ for(const [id,v] of [["#kam_b_l","500"],["#kam_c_l","400"],["#kam_f_l","150"],["#kam_g_l","100"]])
+  await tippe(page,id,v);
+ await reg(page,5); await reg(page,3); await reg(page,2);
+ const nachNeu=await page.evaluate(()=>["kam_b_l","kam_c_l","kam_f_l","kam_g_l","kam_hoehe_l"]
+   .map(i=>{const e=document.getElementById(i);return e?e.value:"FEHLT"}));
+ p(JSON.stringify(nachNeu)===JSON.stringify(["500","400","150","100","400"]),
+   "die seitlichen Masse stehen nach einem Registerwechsel noch in den Feldern",nachNeu);
+
  console.log("\nE · Kaminlaenge und Zuschnitte (von Hand nachgerechnet)");
  await setz(page,FALL);
  const z=await page.evaluate(()=>({
@@ -512,6 +524,25 @@ const FALL={
  p(gesp!==null&&JSON.stringify(wieder.teile)===JSON.stringify(gesp),
    "dieselben Zuschnitte nach dem Wiederoeffnen",{gesp,neu:wieder.teile});
  p(wieder.schritt===1,"nach dem Oeffnen beginnt es bei Register 1");
+
+ // Der Anwenderfall: eine gespeicherte Massaufnahme oeffnen. Bis v2.92 standen
+ // die Werte im Zustand, die Felder waren aber leer - fuer den Anwender nicht
+ // von "wird nicht gespeichert" zu unterscheiden. Deshalb hier die FELDER
+ // pruefen, nicht nur den Zustand.
+ await page.evaluate(()=>{renderKaminAufnahme(); kamaSetzeSchritt(2)});
+ await page.waitForTimeout(200);
+ const felderAuf=await page.evaluate(()=>{
+  const w=i=>{const e=document.getElementById(i);return e?e.value:"FEHLT"};
+  return {getrennt:!!kamA.getrennt,
+    bl:w("kam_b_l"),br:w("kam_b_r"),cl:w("kam_c_l"),
+    fl:w("kam_f_l"),gl:w("kam_g_l"),hl:w("kam_hoehe_l"),hr:w("kam_hoehe_r")};
+ });
+ p(felderAuf.bl==="500"&&felderAuf.br==="600",
+   "nach dem Oeffnen zeigen die B-Felder links 500 und rechts 600",felderAuf);
+ p(felderAuf.hl==="400"&&felderAuf.hr==="450",
+   "nach dem Oeffnen zeigen die Hoehen-Felder 400 und 450",felderAuf);
+ p(felderAuf.cl==="400"&&felderAuf.fl==="150"&&felderAuf.gl==="100",
+   "C, F und G stehen ebenfalls in ihren Feldern",felderAuf);
  const leerD=await page.evaluate(()=>{kamaFuellen({});return {a:kamA.a,teile:kamaZuschnitte().length,
    pruef:kamaPruefungen().filter(x=>x.art==="fehler").length>0}});
  p(leerD.a===""&&leerD.pruef,"ein Datensatz ohne Masse oeffnet ohne etwas zu erfinden",leerD);

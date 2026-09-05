@@ -15328,3 +15328,143 @@ und `css/01-basis.css` – per `git diff` bestätigt.
 - Die Masslinien für B und C stehen oberhalb der Zeichnung und tragen die
   richtigen x-Werte am Dach, aber ohne Masshilfslinie zum Fusspunkt. Das war
   vor dieser Runde ebenso und wurde nicht mit angefasst.
+
+## 97. KAMINEINFASSUNG: SEITLICHE MASSE WAREN UNSICHTBAR — VERSION 2.93
+
+Gemeldet: *"die seitlichen masse werden nicht mitgespeichert"*. Zutreffend
+aus Anwendersicht – tatsächlich waren sie die ganze Zeit gespeichert, aber
+**nie zu sehen**. Für den Anwender ist das nicht zu unterscheiden.
+**Keine Schemaänderung, keine Migration**, keine Fachdatei angefasst.
+
+### 97.1 Der Fehler
+
+```js
+function kamaSeitenFeld(label,basis,pflicht){
+ const w=kamA[basis]||{l:"",r:""};      // basis ist "kam_b" …
+ return kamaZahlFeld(label,basis+"_l",w.l,"1",pflicht);
+```
+
+`basis` ist die **Feld-ID** (`kam_b`), der Zustand hält den Wert aber unter
+dem kurzen Schlüssel (`b`). `kamA["kam_b"]` gibt es nicht – die Funktion fiel
+also **immer** auf `{l:"",r:""}` zurück und zeichnete leere Felder.
+
+Betroffen waren alle fünf seitlichen Masse (B, C, F, G, seitliche Höhe), je
+links und rechts.
+
+Im Browser gemessen, vor der Änderung:
+
+| Schritt | Ergebnis |
+|---|---|
+| 500/400/150/100/400 eingetippt | Felder zeigen die Werte |
+| Register wechseln und zurück | Felder **leer** |
+| `kamaDaten()` danach | `b:{l:500,r:500}`, `c:{l:400,r:400}` … – **alles da** |
+| gespeicherten Datensatz öffnen | Werte im Zustand, Felder **leer** |
+
+Direkt nach dem Tippen fällt so etwas nie auf: das Feld trägt ja noch den
+getippten Text. Erst das nächste Neuzeichnen zeigt es – ein Registerwechsel,
+oder das Öffnen einer gespeicherten Massaufnahme.
+
+### 97.2 Warum kein Prüfstand das gefangen hat
+
+Zwei Lücken, beide dieselbe Ursache – geprüft wurde der **Zustand**, nicht
+die **Anzeige**:
+
+- Abschnitt L („Speichern und Wiederöffnen") setzte den Zustand über
+  `setz(page,FALL)` direkt und prüfte nach `kamaFuellen()` wieder nur
+  `kamA.b.l` / `kamA.b.r`. Beides war korrekt – die Felder sah niemand an.
+- Abschnitt D tippte zwar in `kam_hoehe_l`, prüfte aber **unmittelbar
+  danach**, also bevor irgendetwas neu gezeichnet war.
+
+### 97.3 Korrektur
+
+```js
+const feld=(typeof KAM_SEITENFELDER==="object"&&KAM_SEITENFELDER[basis])
+  ||String(basis).replace(/^kam_/,"");
+const w=kamA[feld]||{l:"",r:""};
+```
+
+`KAM_SEITENFELDER` ist dieselbe Tabelle, die auch der Eingabe-Handler
+benutzt – Anzeige und Zuweisung hängen damit an einer Quelle.
+
+### 97.4 Neuer Prüfstand für die ganze Fehlerklasse
+
+`pruefstaende/pruefstand-felder-bleiben-v2-93.js` (**17/17**) prüft nicht den
+Einzelfall, sondern die Klasse: für **alle acht** Register-Arten wird in jedes
+sichtbare Zahlenfeld ein Wert gesetzt, dann werden alle Register
+durchgeblättert (das erzwingt das Neuzeichnen), dann muss jedes Feld, das es
+noch gibt, seinen Wert noch zeigen.
+
+| Art | erfasste Zahlenfelder |
+|---|---|
+| Rinne Halbrund | 6 |
+| Einlaufblech gerade | 6 |
+| Einlaufblech konisch | 7 |
+| Freies Profil | 4 |
+| Mauerabdeckung | 10 |
+| Kehle | 7 |
+| Lukarne | 7 |
+| Kamineinfassung | 18 |
+
+Ein Feld, das nach dem Neuzeichnen **gar nicht mehr existiert**, wird gemeldet,
+aber nicht bewertet – das kann eine gelöschte Zeile oder eine andere Variante
+sein und ist kein Anzeigefehler.
+
+**Drei Dinge musste der Prüfstand lernen** (alle gemessen, nicht vermutet):
+- Die Register-Tabellen sind mit `const` deklariert und hängen deshalb
+  **nicht** an `window` – sie werden über ihren Namen aufgelöst.
+- Die Wurzelelemente heissen `measTypeEinlaufblech`,
+  `measTypeEinlaufblechKonisch`, `measTypeMauerabdeckung` … – meine erste
+  Fassung hatte sie geraten und fand acht von acht nicht.
+- **Nicht jedes Zahlenfeld hat eine ID.** Mauerabdeckung und Freies Profil
+  sprechen ihre Felder über `data`-Attribute an; dort dient
+  „Register#Position" als Schlüssel. Ohne das fand der Prüfstand bei diesen
+  beiden Arten null Felder und meldete das fälschlich als Fehler.
+
+### 97.5 Getestet
+
+- **`pruefstand-kamin-app-v2-90.js` – 129/129** (vorher 125): vier neue
+  Prüfungen, die die **Felder** ansehen statt des Zustands – nach einem
+  Registerwechsel und nach dem Öffnen eines gespeicherten Datensatzes
+  (dort mit getrennten Seiten: B links 500 / rechts 600, Höhe 400 / 450).
+- **`pruefstand-felder-bleiben-v2-93.js` – 17/17** (neu).
+- **Zwei Gegenproben**, beide reproduzieren den gemeldeten Fehler: den alten
+  Schlüssel zurück → Kamin-Prüfstand **125/129** (genau die vier neuen
+  Prüfungen), Feld-Prüfstand **16/17** mit der Nennung aller fünf betroffenen
+  Felder.
+- **Volle Regression grün**: alle 16 Repo-Prüfstände und alle 42
+  archivierten.
+- **Regierapport nachweislich unverändert**: gegen den v2.92-Stand gerendert –
+  **Bild und DOM byteidentisch** (DOM `9ba47adacf276066`, 5428 Zeichen;
+  Bild `14d16a0f1c95c416`, 51534 Bytes), bestätigt durch einen Kontrolllauf
+  desselben Codes.
+- `node --check` über alle js-Dateien fehlerfrei; `<div>`-Tiefe 0; keine
+  doppelten Element-IDs; Version 2.93 in `index.html` und `sw.js`.
+- **Kein Datenbankzugriff** in dieser Runde.
+
+**Zwei eigene Testfehler unterwegs**, ehrlich festgehalten: mein erster
+Messversuch meldete zusätzlich „die seitlichen Masse fehlen im Ausdruck" –
+das war falsch. Meine `window.open`-Attrappe war zu dünn und das `await` vor
+`printMeasurement` fehlte, der Ausdruck war schlicht leer. Der Druckzweig
+enthält B, C, F, G und die seitliche Höhe seit v2.90 korrekt.
+
+### 97.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/37-kamin-aufnahme.js` | `kamaSeitenFeld()` liest mit dem richtigen Schlüssel |
+| `pruefstaende/pruefstand-kamin-app-v2-90.js` | vier Prüfungen auf die Feldanzeige |
+| `pruefstaende/pruefstand-felder-bleiben-v2-93.js` | **neu** |
+| `index.html`, `sw.js` | Version 2.93 |
+
+### 97.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird
+  ausdrücklich nicht als getestet behauptet.**
+- **Bereits gespeicherte Kamineinfassungen sind vollständig** – die Werte
+  standen immer im Datensatz und erscheinen ab jetzt auch im Formular. Es
+  geht nichts verloren und es muss nichts nacherfasst werden.
+- Der neue Prüfstand setzt die Werte über ein `input`-Ereignis statt über
+  echte Tastendrücke (sonst dauert ein Lauf über acht Arten und rund 65
+  Felder zu lange). Den Fokusverlust beim Tippen prüfen weiterhin die
+  Modul-Prüfstände Zeichen für Zeichen.

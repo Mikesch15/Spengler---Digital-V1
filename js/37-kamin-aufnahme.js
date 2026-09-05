@@ -613,7 +613,15 @@ function kamaZahlFeld(label,id,wert,schritt,pflicht){
 // Ein seitenabhaengiges Mass: ohne getrennte Erfassung genau EIN Feld, sonst
 // zwei nebeneinander. Der linke Wert gilt dann weiterhin fuer links.
 function kamaSeitenFeld(label,basis,pflicht){
- const w=kamA[basis]||{l:"",r:""};
+ // "basis" ist die FELD-ID ("kam_b"), der Zustand haelt den Wert aber unter
+ // dem kurzen Schluessel ("b"). Bis v2.92 wurde hier mit der Feld-ID im
+ // Zustand gesucht - kamA["kam_b"] gibt es nicht, die seitlichen Masse waren
+ // deshalb nach JEDEM Neuzeichnen leer (Registerwechsel, oder das Oeffnen
+ // eines gespeicherten Datensatzes). Gespeichert waren sie die ganze Zeit,
+ // nur nie zu sehen - fuer den Anwender nicht zu unterscheiden.
+ const feld=(typeof KAM_SEITENFELDER==="object"&&KAM_SEITENFELDER[basis])
+   ||String(basis).replace(/^kam_/,"");
+ const w=kamA[feld]||{l:"",r:""};
  if(!kamA.getrennt)
   return kamaZahlFeld(label,basis+"_l",w.l,"1",pflicht);
  return kamaZahlFeld(label+" · links",basis+"_l",w.l,"1",pflicht)
