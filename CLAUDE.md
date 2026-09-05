@@ -15181,3 +15181,150 @@ und `css/01-basis.css` – per `git diff` bestätigt.
 - Damit haben acht der zwölf Massaufnahme-Arten Register; ohne sind
   weiterhin Skizze/Foto, Ort-/Seitenbleche, Einfassung Rund und die
   Rinne-Zuschnittliste.
+
+## 96. KAMINEINFASSUNG: BEIDE WÄNDE NEIGEN SICH GLEICHSINNIG — VERSION 2.92
+
+Nach dem Ausdruck von v2.91 gemeldet: *"überprüfe die winkel vorne und
+hinten, die stimmen nicht"*. Zutreffend – die Schnittskizze zeichnete die
+Vorderwand in die **falsche Richtung**. **Keine Schemaänderung, keine
+Migration, keine RLS-/Storage-Änderung**, keine Fachdatei angefasst.
+
+### 96.1 Was die Vorlage zeigt
+
+`Schnitt_Kamineinfassung.dxf` neu ausgelesen und aufs Dach projiziert
+(t = längs, bergwärts positiv; h = senkrecht darüber):
+
+| DXF-Linie | Winkel vom Senkrechten |
+|---|---|
+| Vorderkant (48) | **+25.00°** |
+| Hinterkant (49) | **+25.00°** |
+| Keil (51) | −32.50° → 57,5° zum Dach ✓ (v2.91 unverändert) |
+
+**Beide Wände neigen sich in dieselbe Richtung – bergwärts, zum First.**
+Nachweis der Parallelität: die Hinterkant bis h = 0 verlängert ergibt
+t = 589,67 − 28,76 · tan25° = 576,26, die Öffnung am Dach also
+576,26 − 199,33 = **376,93**; die Schnittkante oben (Linie 50) misst
+632,21 − 255,29 = **376,92**. Ein Parallelogramm.
+
+Das ist auch der physikalische Normalfall: die Dachrichtung der Vorlage ist
+25,0000°, und die Weltlotrechte hat in Dachkoordinaten die Richtung
+(sin α, cos α) – sie kippt also bergwärts, mit genau der Dachneigung. Ein
+**lotrechter Kamin auf geneigtem Dach** hat deshalb zwei parallele Wände,
+beide mit dem Winkel der Dachneigung.
+
+### 96.2 Der Fehler
+
+```js
+const vDir=[-Math.sin(rad(wv)),Math.cos(rad(wv))];   // vorne: talwärts
+const hDir=[ Math.sin(rad(wh)),Math.cos(rad(wh))];   // hinten: bergwärts
+```
+
+Die Vorderwand hatte das umgekehrte Vorzeichen. Im echten Browser gemessen
+(nicht vermutet): gezeichnete Wandwinkel **[−25,02 · +25,00]** statt
+[+25 · +25]. Der Kamin ging dadurch nach oben auf statt parallel zu stehen –
+bei H = 400 und 25° um 2 · 400 · tan25° = **373 mm**, bei einer Kaminlänge
+von 780 mm also fast die Hälfte.
+
+Der Erklärtext im Formular sagte dasselbe Falsche („positiv heisst vorne
+nach vorne (talwärts) und hinten nach hinten (bergwärts)") und widersprach
+sich sogar im selben Absatz: „bei einem lotrechten Kamin entspricht der
+Winkel der Dachneigung" – mit einer gegenläufigen Konvention wäre so ein
+Kamin oben breiter als unten.
+
+**Die Abwicklungen waren nicht betroffen**: `kamaHoeheMitWinkel()` rechnet
+mit `Math.abs(cos)`, ist also vorzeichenunabhängig. Vorderteil 761,
+Hinterteil 777, Fläche 2,5902 m² und der Rollenplan bleiben unverändert.
+Falsch war ausschliesslich die Zeichnung – und die Erklärung, nach der ein
+Anwender seine Winkel einträgt.
+
+### 96.3 Korrektur
+
+```js
+const vDir=[Math.sin(rad(wv)),Math.cos(rad(wv))];
+const hDir=[Math.sin(rad(wh)),Math.cos(rad(wh))];
+```
+
+Konvention jetzt einheitlich: **positiv = bergwärts (zum First), für beide
+Wände gleichsinnig**. Der Erklärtext nennt das ausdrücklich und ergänzt,
+dass bei einem lotrechten Kamin beide Winkel gleich der Dachneigung sind.
+Negative Winkel neigen beide Wände talwärts – ebenfalls parallel.
+
+Nach der Korrektur reproduziert die Skizze die DXF exakt: Vorderwand
+(0,0) → (55,96, 120), Hinterwand (376,93, 0) → (432,89, 120) – dieselben
+Werte wie die Vorlage, relativ zu ihrem Vorderkantfuss.
+
+Der Keil ist unberührt: `kamaKeilAbbug(wh) = (90 + wh)/2` bezog sich schon
+in v2.91 auf die bergwärts geneigte Hinterwand und geht weiterhin exakt
+gegen die DXF auf.
+
+### 96.4 Neue Kontrolle: der Kamin kann oben verschwinden
+
+Weil sich beide Wände jetzt gleichsinnig neigen, läuft die Vorderwand der
+Hinterwand davon, wenn die Winkel stark abweichen:
+
+    Länge oben = Kaminlänge + Höhe · (tan(Winkel hinten) − tan(Winkel vorne))
+
+Wird das ≤ 0, träfen sich die Wände unterhalb der Oberkante. Das ist keine
+gewählte Grenze, sondern geometrisch unmöglich – deshalb ein **Fehler** in
+der Kontrolle, keine Warnung. Die bestehenden Prüfungen (±87°, fehlender
+Winkel, 0°, Keil höher als die Einfassung) sind unverändert.
+
+### 96.5 Getestet
+
+- **`pruefstand-kamin-app-v2-90.js` – 125/125** (vorher 115): neuer Abschnitt
+  **K2 · Wandrichtungen gegen die DXF**. Gemessen werden die tatsächlich
+  gezeichneten Linien: beide Wände bei +25° wie in der Vorlage, gleichsinnig,
+  Öffnung am Dach = Schnittkante oben (Parallelogramm) bei 25°, bei 40° und
+  bei −25°, dazu die neue Kontrolle.
+  Die Messung hat eine eingebaute **Gegenprobe gegen sich selbst**: bei
+  unterschiedlichen Winkeln (25/10) muss sie ausdrücklich **kein**
+  Parallelogramm melden – sonst würde sie jeden Fehler durchwinken.
+- **Zwei Gegenproben**, beide reproduzieren einen echten Fehler:
+  Vorderwand wieder gegenläufig → **119/125** (sechs Fehlschläge, darunter
+  „Öffnung am Dach = Schnittkante oben" mit 324,3 gegen 479,5 px – die
+  373 mm aus 96.2); Kontrolle aus 96.4 entfernt → **124/125**.
+- **Zwei Fallen bei der Messung selbst**, beide gemessen statt vermutet:
+  die Dachlinie ist ebenfalls waagerecht und 3 breit und musste über ihre
+  Farbe getrennt werden; die Hinterwand beginnt am **Keilkopf** und muss für
+  die Öffnung am Dach entlang ihrer Richtung verlängert werden. Ein erster
+  Messversuch lieferte deshalb `undefined` und hätte fälschlich „nicht
+  parallel" gemeldet – er meldet jetzt sauber „MESSUNG FEHLGESCHLAGEN".
+- **Volle Regression grün**: alle 15 Repo-Prüfstände und alle 42
+  archivierten ohne Fehlschlag.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` unmittelbar nacheinander gegen den v2.91-Stand
+  gerendert – **Bild und DOM byteidentisch** (DOM `d7b1e157d1c791f7`,
+  5428 Zeichen; Bild `14d16a0f1c95c416`, 51534 Bytes).
+- `node --check` über alle 55 js-Dateien (inkl. Prüfstände) fehlerfrei;
+  `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0, Minimum 0);
+  keine doppelten Element-IDs; Version 2.92 in `index.html` und `sw.js`.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 96.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/37-kamin-aufnahme.js` | Vorderwand gleichsinnig, Erklärtext, Kontrolle aus 96.4 |
+| `pruefstaende/pruefstand-kamin-app-v2-90.js` | Abschnitt K2 |
+| `index.html`, `sw.js` | Version 2.92 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie sämtliche Fachdateien `js/11`–`js/36`
+und `css/01-basis.css` – per `git diff` bestätigt.
+
+### 96.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird
+  ausdrücklich nicht als getestet behauptet.** Geprüft ist die Skizze in
+  echtem Chromium gegen die DXF des Betreibers.
+- Ein bereits **gedrucktes** Blatt bleibt, wie es war (der Druck nimmt die
+  gespeicherten Werte). Die Zeichnung wird bei jedem Öffnen neu erzeugt –
+  eine vor v2.92 erfasste Kamineinfassung zeigt die Skizze also ab sofort
+  richtig; an ihren Zuschnitten ändert sich nichts (96.2).
+- Es bleiben **zwei** Winkelfelder. Bei einem lotrechten Kamin sind beide
+  gleich der Dachneigung; ein einzelnes Feld wäre kürzer, würde aber den
+  schrägen Kamin ausschliessen.
+- Die Masslinien für B und C stehen oberhalb der Zeichnung und tragen die
+  richtigen x-Werte am Dach, aber ohne Masshilfslinie zum Fusspunkt. Das war
+  vor dieser Runde ebenso und wurde nicht mit angefasst.

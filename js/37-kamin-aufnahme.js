@@ -265,10 +265,15 @@ function kamaSkizze(quelle){
 bitte die seitliche Höhe sowie B und C eingeben.</div>`;
 
  const rad=g=>g*Math.PI/180;
- // Wandrichtungen, jeweils vom Fusspunkt nach oben. Positiv heisst: vorne
- // neigt sich nach vorne (talwaerts), hinten nach hinten (bergwaerts).
- const vDir=[-Math.sin(rad(wv)),Math.cos(rad(wv))];
- const hDir=[ Math.sin(rad(wh)),Math.cos(rad(wh))];
+ // Wandrichtungen, jeweils vom Fusspunkt nach oben. BEIDE Waende neigen sich
+ // bei positivem Winkel in DIESELBE Richtung - bergwaerts, zum First. Bis
+ // v2.91 kippte die Vorderwand hier gegenlaeufig, wodurch der Kamin nach oben
+ // aufging statt parallel zu stehen (v2.92, gegen die Vorlage gemessen:
+ // Vorderkant und Hinterkant der DXF stehen beide bei +25 Grad, und die
+ // Schnittkante oben ist genauso lang wie die Oeffnung am Dach - also ein
+ // Parallelogramm, der Normalfall des lotrechten Kamins auf geneigtem Dach).
+ const vDir=[Math.sin(rad(wv)),Math.cos(rad(wv))];
+ const hDir=[Math.sin(rad(wh)),Math.cos(rad(wh))];
  const P=(x,y)=>[x,y];
  const vFuss=P(0,0), vTop=P(vDir[0]*H/Math.max(0.05,Math.abs(vDir[1])),H);
  const hFuss=P(L,0), hTop=P(L+hDir[0]*H/Math.max(0.05,Math.abs(hDir[1])),H);
@@ -553,6 +558,21 @@ function kamaPruefungen(){
    m.push({art:"fehler",text:"Der Keil überwindet mit "+kamaMm(kh)+" mm bereits die ganze "
      +"seitliche Höhe ("+kamaMm(hh)+" mm) – für die Kaminwand bliebe nichts übrig."});
  }
+ // Beide Waende neigen sich gleichsinnig (v2.92). Weichen die Winkel stark
+ // voneinander ab, laeuft die Vorderwand der Hinterwand davon und oben bliebe
+ // kein Kamin mehr uebrig. Das ist keine gewaehlte Grenze, sondern schlicht
+ // unmoeglich - deshalb ein Fehler, keine Warnung.
+ KAM_SEITEN.forEach(s=>{
+  const L=kamaKaminLaenge(s.k), H=kamaSeite("hoehe",s.k);
+  const wv=kamaZahl(a.winkelVorne), wh=kamaZahl(a.winkelHinten);
+  if(!(L>0)||!(H>0)||Math.abs(wv)>=87||Math.abs(wh)>=87)return;
+  const oben=L+H*(Math.tan(wh*Math.PI/180)-Math.tan(wv*Math.PI/180));
+  if(oben<=0)
+   m.push({art:"fehler",text:"Mit diesen Winkeln träfen sich die beiden Kaminwände "
+     +"noch unterhalb der Oberkante"+(a.getrennt?" ("+s.name+")":"")+" – bitte Winkel "
+     +"und seitliche Höhe prüfen."});
+  if(!a.getrennt)return;
+ });
  KAM_SEITEN.forEach(s=>{
   const L=kamaKaminLaenge(s.k);
   const zusatz=a.getrennt?" ("+s.name+")":"";
@@ -643,10 +663,10 @@ function kamaMasseHtml(){
 <button type="button" class="gray${a.skizzeSeite==="r"?" blue":""}" data-kam-skizze="r">Rechte Seite</button>
 </div>`:"";
  return `<div class="info">Alle Masse in mm, längs des Dachs gemessen. Die beiden Winkel
-sind vom Senkrechten auf das Dach gemessen: <b>positiv</b> heisst vorne nach vorne
-(talwärts) und hinten nach hinten (bergwärts) geneigt. <b>0°</b> hiesse, die Wand
-stünde senkrecht auf dem Dach – bei einem lotrechten Kamin entspricht der Winkel
-der Dachneigung. Der Keil braucht keinen eigenen Winkel: er halbiert den Knick,
+sind vom Senkrechten auf das Dach gemessen, <b>positiv</b> heisst bergwärts
+(zum First) geneigt – <b>für beide Wände gleichsinnig</b>. Bei einem lotrechten
+Kamin stehen die Wände parallel: dann sind beide Winkel gleich der Dachneigung.
+<b>0°</b> hiesse, die Wand stünde senkrecht auf dem Dach. Der Keil braucht keinen eigenen Winkel: er halbiert den Knick,
 damit die beiden an ihn grenzenden Abbüge gleich sind.</div>
 <div class="grid">
 ${kamaZahlFeld("A · vorne auf Deckmaterial bis Vorderkant Kamin","kam_a",a.a,"1",true)}

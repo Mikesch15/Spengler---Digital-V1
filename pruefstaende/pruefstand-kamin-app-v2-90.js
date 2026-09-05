@@ -411,6 +411,79 @@ const FALL={
  const wKeil40=keilWinkel(sk40);
  p(wKeil40!==null&&Math.abs(wKeil40-65)<0.4,"bei 40° Wandwinkel steht der Keil unter 65°",wKeil40);
 
+
+ console.log("\nK2 · Wandrichtungen gegen die DXF (v2.92)");
+ // Gegen die Vorlage Schnitt_Kamineinfassung.dxf, aufs Dach projiziert:
+ //   Vorderkant  t 199.33 h   0.00 -> t 255.29 h 120.00  -> +25.00 Grad
+ //   Hinterkant  t 589.67 h  28.76 -> t 632.21 h 120.00  -> +25.00 Grad
+ //   Schnittkante oben                632.21 - 255.29 = 376.92
+ //   Hinterkant bis h=0 verlaengert:  589.67 - 28.76*tan25 = 576.26
+ //   Oeffnung am Dach:                576.26 - 199.33 = 376.93  = oben
+ // Beide Waende neigen sich also GLEICHSINNIG bergwaerts, der Kamin ist im
+ // Schnitt ein Parallelogramm (lotrechter Kamin auf geneigtem Dach). Bis
+ // v2.91 zeichnete die App die Vorderwand gegenlaeufig - der Kamin ging nach
+ // oben auf, bei H=400 und 25 Grad um 2*400*tan25 = 373 mm.
+ await setz(page,FALL);
+ const waende=(wv,wh,keil)=>page.evaluate(([a,b,k])=>{
+  const alt={v:kamA.winkelVorne,h:kamA.winkelHinten,k:kamA.keil};
+  kamA.winkelVorne=a; kamA.winkelHinten=b; kamA.keil=k;
+  const svg=kamaSkizze();
+  Object.assign(kamA,{winkelVorne:alt.v,winkelHinten:alt.h,keil:alt.k});
+  const L=[...svg.matchAll(/<line x1="(-?[\d.]+)" y1="(-?[\d.]+)" x2="(-?[\d.]+)" y2="(-?[\d.]+)"\s+stroke="([^"]*)" stroke-width="3"/g)]
+   .map(m=>({x1:+m[1],y1:+m[2],x2:+m[3],y2:+m[4],f:m[5]}));
+  // Die Dachlinie ist ebenfalls waagerecht und 3 breit, hat aber eine eigene
+  // Farbe - ohne diese Trennung misst man die falsche Linie.
+  const dach=L.filter(l=>l.f!=="#5a6670");
+  const bau=L.filter(l=>l.f==="#5a6670");
+  const waag=bau.filter(l=>Math.abs(l.y1-l.y2)<=2);
+  const senk=bau.filter(l=>Math.abs(l.y1-l.y2)>2)
+    .sort((p,q)=>Math.min(p.x1,p.x2)-Math.min(q.x1,q.x2));
+  if(dach.length!==1||waag.length!==1||senk.length!==2)
+   return {fehler:{dach:dach.length,waag:waag.length,senk:senk.length}};
+  const yDach=dach[0].y1;
+  const teile=l=>({f:l.y1>l.y2?[l.x1,l.y1]:[l.x2,l.y2],
+                   o:l.y1>l.y2?[l.x2,l.y2]:[l.x1,l.y1]});
+  const grad=l=>{const t=teile(l);return Math.atan2(t.o[0]-t.f[0],t.f[1]-t.o[1])*180/Math.PI};
+  // Die Hinterwand beginnt am Keilkopf - fuer die Oeffnung am Dach wird sie
+  // entlang ihrer eigenen Richtung bis auf Dachhoehe verlaengert.
+  const fussAmDach=l=>{const t=teile(l), dy=t.f[1]-t.o[1];
+   return dy<1?t.f[0]:t.f[0]+(t.f[0]-t.o[0])/dy*(yDach-t.f[1])};
+  return {vorne:+grad(senk[0]).toFixed(2), hinten:+grad(senk[1]).toFixed(2),
+          oben:+Math.abs(waag[0].x2-waag[0].x1).toFixed(1),
+          dach:+Math.abs(fussAmDach(senk[1])-fussAmDach(senk[0])).toFixed(1)};
+ },[wv,wh,keil]);
+ const w25=await waende(25,25,80);
+ p(!w25.fehler,"die beiden Kaminwaende sind in der Skizze messbar",w25.fehler);
+ p(!w25.fehler&&Math.abs(w25.vorne-25)<0.3,"Vorderwand steht bei +25° (bergwaerts) wie in der DXF",w25.vorne);
+ p(!w25.fehler&&Math.abs(w25.hinten-25)<0.3,"Hinterwand steht bei +25° wie in der DXF",w25.hinten);
+ p(!w25.fehler&&Math.abs(w25.vorne-w25.hinten)<0.3,"bei gleichen Winkeln neigen sich beide Waende GLEICHSINNIG",
+   w25&&[w25.vorne,w25.hinten]);
+ p(!w25.fehler&&Math.abs(w25.dach-w25.oben)<1.5,
+   "Oeffnung am Dach = Schnittkante oben -> Parallelogramm wie in der DXF",w25&&[w25.dach,w25.oben]);
+ const w40=await waende(40,40,80);
+ p(!w40.fehler&&Math.abs(w40.dach-w40.oben)<1.5,"auch bei 40° ein Parallelogramm",w40&&[w40.dach,w40.oben]);
+ const wNeg=await waende(-25,-25,0);
+ p(!wNeg.fehler&&Math.abs(wNeg.vorne+25)<0.3&&Math.abs(wNeg.hinten+25)<0.3,
+   "negative Winkel neigen beide Waende talwaerts",wNeg&&[wNeg.vorne,wNeg.hinten]);
+ p(!wNeg.fehler&&Math.abs(wNeg.dach-wNeg.oben)<1.5,"auch talwaerts ein Parallelogramm",wNeg&&[wNeg.dach,wNeg.oben]);
+ // Gegenprobe der Messung selbst: bei UNTERSCHIEDLICHEN Winkeln darf sie nicht
+ // parallel melden - sonst wuerde sie jeden Fehler durchwinken.
+ const wSchief=await waende(25,10,80);
+ p(!wSchief.fehler&&Math.abs(wSchief.dach-wSchief.oben)>20,
+   "bei unterschiedlichen Winkeln meldet die Messung KEIN Parallelogramm",wSchief&&[wSchief.dach,wSchief.oben]);
+ // Der Kamin kann sich mit den Winkeln rechnerisch selbst aufheben.
+ const unmoeglich=await page.evaluate(()=>{
+  const alt=JSON.parse(JSON.stringify(kamA));
+  Object.assign(kamA,{winkelVorne:60,winkelHinten:0,hoehe:{l:1000,r:1000},
+    b:{l:200,r:200},c:{l:120,r:120},ueberlappung:120});
+  const t=kamaPruefungen().map(x=>x.art+": "+x.text);
+  Object.assign(kamA,alt);
+  return t;
+ });
+ p(unmoeglich.some(t=>/^fehler: /.test(t)&&/träfen sich/.test(t)),
+   "ein Kamin, der oben verschwindet, wird als Fehler gemeldet",unmoeglich);
+ await setz(page,FALL);
+
  console.log("\nL · Speichern und Wiederoeffnen");
  await setz(page,Object.assign({},FALL,{getrennt:true,b:{l:500,r:600},hoehe:{l:400,r:450}}));
  const sp=await page.evaluate(()=>{
