@@ -195,6 +195,47 @@ const FALL={
  p(JSON.stringify(nachNeu)===JSON.stringify(["500","400","150","100","400"]),
    "die seitlichen Masse stehen nach einem Registerwechsel noch in den Feldern",nachNeu);
 
+ // B und C sind Masse LAENGS DES DACHS - sie bilden zusammen mit der
+ // Ueberlappung die Kaminlaenge und gehoeren damit zu den Kaminmassen, nicht
+ // zu den seitlichen Details wie F und G (v2.94, auf Ansage des Betriebs).
+ // Geprueft wird die tatsaechliche Reihenfolge im Dokument, nicht der Text.
+ await reg(page,2);
+ const lage=await page.evaluate(()=>{
+  const h2=[...document.querySelectorAll("#kaminAufnahme h2")]
+    .find(e=>/Seitliche Masse/i.test(e.textContent||""));
+  if(!h2)return {fehler:"Ueberschrift 'Seitliche Masse' nicht gefunden"};
+  // 4 = FOLLOWING: das Element steht im Dokument NACH der Ueberschrift.
+  const nach=id=>{const e=document.getElementById(id);
+   return e?!!(h2.compareDocumentPosition(e)&4):null};
+  const reihe=[...document.querySelectorAll("#kaminAufnahme .grid input")]
+    .filter(f=>f.offsetParent!==null).map(f=>f.id);
+  return {bNach:nach("kam_b_l"),cNach:nach("kam_c_l"),
+          fNach:nach("kam_f_l"),gNach:nach("kam_g_l"),hNach:nach("kam_hoehe_l"),reihe};
+ });
+ p(!lage.fehler,"Abschnitt 'Seitliche Masse' vorhanden",lage.fehler);
+ p(lage.bNach===false&&lage.cNach===false,
+   "B und C stehen im Abschnitt Kaminmasse, nicht unter 'Seitliche Masse'",lage);
+ p(lage.fNach===true&&lage.gNach===true&&lage.hNach===true,
+   "F, G und die seitliche Hoehe bleiben unter 'Seitliche Masse'",lage);
+ {const r=lage.reihe||[];
+  const i=id=>r.indexOf(id);
+  p(i("kam_a")>=0&&i("kam_b_l")>i("kam_a")&&i("kam_c_l")>i("kam_b_l")
+    &&i("kam_ueberlappung")>i("kam_c_l")&&i("kam_d")>i("kam_ueberlappung"),
+    "Reihenfolge folgt dem Dachverlauf: A, B, C, Ueberlappung, D",r);}
+ // Auch mit getrennten Seiten bleiben B und C oben.
+ await setz(page,Object.assign({},FALL,{getrennt:true}));
+ await reg(page,2);
+ const lageG=await page.evaluate(()=>{
+  const h2=[...document.querySelectorAll("#kaminAufnahme h2")]
+    .find(e=>/Seitliche Masse/i.test(e.textContent||""));
+  const nach=id=>{const e=document.getElementById(id);
+   return e?!!(h2.compareDocumentPosition(e)&4):null};
+  return {bl:nach("kam_b_l"),br:nach("kam_b_r"),cl:nach("kam_c_l"),cr:nach("kam_c_r")};
+ });
+ p(lageG.bl===false&&lageG.br===false&&lageG.cl===false&&lageG.cr===false,
+   "auch links/rechts getrennt stehen B und C bei den Kaminmassen",lageG);
+ await setz(page,FALL);
+
  console.log("\nE · Kaminlaenge und Zuschnitte (von Hand nachgerechnet)");
  await setz(page,FALL);
  const z=await page.evaluate(()=>({

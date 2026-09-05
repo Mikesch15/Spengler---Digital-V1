@@ -15468,3 +15468,79 @@ enthält B, C, F, G und die seitliche Höhe seit v2.90 korrekt.
   echte Tastendrücke (sonst dauert ein Lauf über acht Arten und rund 65
   Felder zu lange). Den Fokusverlust beim Tippen prüfen weiterhin die
   Modul-Prüfstände Zeichen für Zeichen.
+
+## 98. KAMINEINFASSUNG: B UND C GEHÖREN ZU DEN KAMINMASSEN — VERSION 2.94
+
+Auf Ansage des Betriebs: *"masse b und c gehören auch noch in den abschnitt
+kaminmasse"*. **Nur eine Umstellung im Formular** – keine Schemaänderung,
+keine Migration, keine geänderte Rechnung, keine Fachdatei angefasst.
+
+### 98.1 Warum das fachlich richtig ist
+
+B und C sind Masse **längs des Dachs**: zusammen mit der Überlappung bilden
+sie die Kaminlänge (`L = B + C − Überlappung`). Sie standen bisher unter der
+Unterüberschrift „Seitliche Masse" – aber nur, weil sie technisch
+seitenabhängig erfassbar sind, nicht weil sie ein seitliches Detail wären.
+Seitliche Details sind F (bis Deckmaterial), G (unter Deckmaterial) und die
+seitliche Höhe.
+
+### 98.2 Neue Reihenfolge im Register „2 · Kaminmasse"
+
+Sie folgt jetzt dem Verlauf längs des Dachs von vorne nach hinten:
+
+```
+A · vorne auf Deckmaterial bis Vorderkant Kamin
+B · Vorderkant Kamin bis Hinterkant Knick
+C · Vorderkant Knick bis Hinterkant Kamin
+Überlappung der Seitenteile (Knick)
+D · Hinterkant Kamin bis hinten unter Deckmaterial
+E · Mass vom 90°-Aufbug hinten
+Keil hinterkant Kamin
+Winkel vorne / Winkel hinten
+--------------------------------------------------
+Seitliche Masse:  F · G · seitliche Höhe
+```
+
+Die Erklärzeile „B und C überlappen sich im Knick – die Kaminlänge ist
+deshalb B + C − Überlappung" steht jetzt direkt unter dem Block, zu dem sie
+gehört, statt weiter unten bei den Kennzahlen.
+
+B und C bleiben **seitenabhängig**: mit dem Schalter „Links und rechts
+getrennt" erscheinen sie weiterhin als je zwei Felder – nur eben oben bei
+den Kaminmassen.
+
+### 98.3 Nichts an der Rechnung geändert
+
+Kaminlänge, Zuschnitte, Bleilappen, Ausmass, Rollenplan, Speicher-Payload und
+Ausdruck sind unberührt – die Felder tragen dieselben IDs und schreiben in
+dieselben Zustandswerte, sie stehen nur an einer anderen Stelle im Formular.
+
+### 98.4 Getestet
+
+- **`pruefstand-kamin-app-v2-90.js` – 134/134** (vorher 129). Geprüft wird die
+  tatsächliche **Position im Dokument** (`compareDocumentPosition`), nicht ein
+  Text: B und C müssen **vor** der Überschrift „Seitliche Masse" stehen, F, G
+  und die seitliche Höhe **danach**; die Reihenfolge A → B → C → Überlappung →
+  D muss stimmen; und mit getrennten Seiten müssen auch `kam_b_r` und
+  `kam_c_r` oben stehen.
+- **Gegenprobe**: B und C zurück unter „Seitliche Masse" → **131/134**, genau
+  die drei Lage-Prüfungen schlagen fehl.
+- **Volle Regression grün**: alle 16 Repo-Prüfstände und alle 42 archivierten.
+- **Regierapport nachweislich unverändert**: gegen den v2.93-Stand gerendert –
+  **Bild und DOM byteidentisch** (DOM `47e43d3a48d5072b`, 5428 Zeichen;
+  Bild `14d16a0f1c95c416`, 51534 Bytes), mit Kontrolllauf bestätigt.
+- **Kein Datenbankzugriff** in dieser Runde.
+
+**Lehre aus v2.93 beherzigt**: der Regierapport-Vergleich verändert
+`index.html` kurzzeitig (die Version wird angeglichen). Läuft dabei parallel
+ein Prüfstand, der Version in `index.html` und `sw.js` vergleicht (`einst68`,
+siehe 71.7), meldet er einen Fehlschlag, der keiner ist. Beides deshalb
+**nacheinander** laufen lassen, nie gleichzeitig.
+
+### 98.5 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/37-kamin-aufnahme.js` | B, C und die Überlappung in den Kaminmasse-Block, Erklärzeile mit |
+| `pruefstaende/pruefstand-kamin-app-v2-90.js` | fünf Prüfungen auf die Lage im Dokument |
+| `index.html`, `sw.js` | Version 2.94 |

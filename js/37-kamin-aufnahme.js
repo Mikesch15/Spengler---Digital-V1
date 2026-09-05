@@ -678,24 +678,24 @@ Kamin stehen die Wände parallel: dann sind beide Winkel gleich der Dachneigung.
 damit die beiden an ihn grenzenden Abbüge gleich sind.</div>
 <div class="grid">
 ${kamaZahlFeld("A · vorne auf Deckmaterial bis Vorderkant Kamin","kam_a",a.a,"1",true)}
+${kamaSeitenFeld("B · Vorderkant Kamin bis Hinterkant Knick","kam_b",true)}
+${kamaSeitenFeld("C · Vorderkant Knick bis Hinterkant Kamin","kam_c",true)}
+${kamaZahlFeld("Überlappung der Seitenteile (Knick)","kam_ueberlappung",a.ueberlappung)}
 ${kamaZahlFeld("D · Hinterkant Kamin bis hinten unter Deckmaterial","kam_d",a.d,"1",true)}
 ${kamaZahlFeld("E · Mass vom 90°-Aufbug hinten","kam_e",a.e)}
 ${kamaZahlFeld("Keil hinterkant Kamin","kam_keil",a.keil)}
 ${kamaZahlFeld("Winkel vorne vom Senkrechten (°)","kam_winkelVorne",a.winkelVorne,"0.1",true)}
 ${kamaZahlFeld("Winkel hinten vom Senkrechten (°)","kam_winkelHinten",a.winkelHinten,"0.1",true)}
-${kamaZahlFeld("Überlappung der Seitenteile (Knick)","kam_ueberlappung",a.ueberlappung)}
 </div>
+<div class="small" style="color:var(--muted);margin-top:4px">B und C überlappen sich im
+Knick – die Kaminlänge ist deshalb B + C − Überlappung.</div>
 <h2 style="margin-top:14px">Seitliche Masse</h2>
 <div class="grid">
-${kamaSeitenFeld("B · Vorderkant Kamin bis Hinterkant Knick","kam_b",true)}
-${kamaSeitenFeld("C · Vorderkant Knick bis Hinterkant Kamin","kam_c",true)}
 ${kamaSeitenFeld("F · seitlich bis Deckmaterial","kam_f")}
 ${kamaSeitenFeld("G · seitlich unter Deckmaterial","kam_g")}
 ${kamaSeitenFeld("Seitliche Höhe","kam_hoehe",true)}
 </div>
 ${kamaKennzahlenHtml()}
-<div class="small" style="color:var(--muted);margin-top:4px">B und C überlappen sich im
-Knick – die Kaminlänge ist deshalb B + C − Überlappung.</div>
 <h2 style="margin-top:14px">Schnitt</h2>
 ${seitenWahl}
 <div id="kam_skizze" class="eb-diagram-box eb-diagram-scroll" style="margin-top:8px">${kamaSkizze()}</div>`;
