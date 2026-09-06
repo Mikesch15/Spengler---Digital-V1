@@ -237,30 +237,11 @@ function cockpitStandLaedt(){
  cockpitModulStand();
 }
 
-// v3.09 Auftrag Abschnitt 10: die drei zusaetzlichen Bereiche stehen im
-// Arbeitsstand nur, wenn ihr Modul eingeschaltet ist. Die Zahl wird NICHT
-// zweitgerechnet - sie wird aus der Ueberschrift des jeweiligen Abschnitts
-// uebernommen, die das Modul selbst geschrieben hat.
-const COCKPIT_MODUL_STAND=[
- {modul:"material",    zeile:"cockpitStandMaterialZeile",    count:"cockpitMaterialCount",
-  mark:"cockpitMaterialMark",    stand:"cockpitMaterialStand",    leer:"Noch keins"},
- {modul:"zuschnitt",   zeile:"cockpitStandZuschnittZeile",   count:"cockpitZuschnittCount",
-  mark:"cockpitZuschnittMark",   stand:"cockpitZuschnittStand",   leer:"Noch keiner"},
- {modul:"reservierung",zeile:"cockpitStandReservierungZeile",count:"cockpitReservierungCount",
-  mark:"cockpitReservierungMark",stand:"cockpitReservierungStand",leer:"Noch keine"}
-];
+// v3.15: Aus den drei Modulzeilen (Material, Zuschnitt, Reservierung) ist
+// EINE geworden - "Material & Zuschnitt". Gerechnet wird sie in js/56 aus
+// den ohnehin geladenen Massaufnahmen, ohne zusaetzliche Abfrage.
 function cockpitModulStand(){
- COCKPIT_MODUL_STAND.forEach(b=>{
-  const z=$(b.zeile); if(!z)return;
-  const an=(typeof pmAktiv==="function")&&pmAktiv(b.modul);
-  z.hidden=!an;
-  if(!an)return;
-  const roh=($(b.count)&&$(b.count).textContent||"").trim();
-  const n=Number(roh);
-  const unbekannt=roh===""||roh==="?"||roh==="-"||roh==="…"||!isFinite(n);
-  $(b.mark).textContent =unbekannt?(roh==="…"?"…":"?"):(n>0?"✓":"○");
-  $(b.stand).textContent=unbekannt?(roh==="…"?"…":"?"):(n>0?String(n):b.leer);
- });
+ if(typeof cockpitMatZuStand==="function")cockpitMatZuStand();
 }
 // Klick auf eine Arbeitsstand-Zeile springt zum bereits vorhandenen
 // Abschnitt weiter unten - keine zweite Navigation, kein Nachladen.
@@ -271,11 +252,11 @@ $("projectCockpitModal").addEventListener("click",e=>{
  // v3.11: erst aufklappen, sonst springt die Zeile in einen zugeklappten
  // Abschnitt und es sieht aus, als waere nichts passiert.
  if(b){cockpitKlappOeffnen(z.dataset.cockpitGoto);$(b.card).scrollIntoView({block:"start"});return}
- // v3.09: die drei zusaetzlichen Bereiche haben ihre eigene Karte.
- const karten={material:"cockpitMaterialCard",zuschnitt:"cockpitZuschnittCard",
-               reservierung:"cockpitReservierungCard"};
- const k=karten[z.dataset.cockpitGoto];
- if(k&&$(k)&&!$(k).hidden){cockpitKlappOeffnen(z.dataset.cockpitGoto);$(k).scrollIntoView({block:"start"});}
+ // v3.15: Material, Zuschnitt und Reservierung stehen auf einer eigenen
+ // Seite - die Zeile fuehrt dorthin statt in eine Karte im Cockpit.
+ if(z.dataset.cockpitGoto==="matzu"&&typeof openMaterialZuschnitt==="function"){
+  openMaterialZuschnitt(cockpitProjectId);
+ }
 });
 // Einzelnen Bereich neu laden (nach Rückkehr, Anlegen oder Löschen).
 async function cockpitBereichAktualisieren(key){

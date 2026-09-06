@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.14";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.15";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.14<br>
+  Version 3.15<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -217,6 +217,9 @@ Bereiche – er kann nie hinter einem zugeklappten Abschnitt verschwinden.</p>
 <tr><td>📋 Regierapport</td><td>Arbeiten nach Aufwand.</td></tr>
 <tr><td>📎 Dateien/Fotos</td><td>Pläne, PDF, Fotos – höchstens 50 MB pro Datei.</td></tr>
 </table>
+<p>Ist der erweiterte Ablauf eingeschaltet (Abschnitt 10), kommt darüber <strong>eine</strong>
+weitere Karte dazu: <span class="tasten">🧱 Material &amp; Zuschnitt</span> mit dem
+Fortschritt und einem Knopf auf die gemeinsame Arbeitsseite.</p>
 <p>Über <span class="tasten">✏️ Stammdaten bearbeiten</span> lassen sich Projektname,
 Adresse, Auftrags-Nr. und Auftraggeber ändern. Es gibt dafür bewusst nur diese eine
 Stelle.</p>
@@ -489,21 +492,69 @@ der Ablauf erneut eingeschaltet wird.</div>
 
 <figure><img src="bilder/38-projektmodule.png"><figcaption>Hauptschalter und sieben Untermodule. Ein Untermodul ohne seine Grundlage bleibt gesperrt und sagt auch warum.</figcaption></figure>
 
-<h3>Projektweite Materialübersicht</h3>
-<p>Führt das Material aller Massaufnahmen eines Projekts zusammen – gruppiert nach
-Material, mit den Zuschnitten. <strong>Es wird nichts neu gerechnet:</strong> jede
-Position kommt aus dem Ausmass und dem Zuschnittplan, die die Massaufnahme beim
-Speichern selbst abgelegt hat. Zu jeder Zeile steht, aus welcher Massaufnahme sie
-stammt.</p>
+<h3>Material &amp; Zuschnitt – die eine Arbeitsseite</h3>
+<figure><img src="bilder/42-matzu.png"><figcaption>Oben vier Kennzahlen, darunter das Material, dann jede Massaufnahme mit ihrem Zuschnittfortschritt.</figcaption></figure>
+<p>Im Projekt-Cockpit steht dafür <strong>eine</strong> Karte:</p>
+<p class="mitte"><strong>🧱 MATERIAL &amp; ZUSCHNITT</strong><br>
+Material: 3 Positionen<br>Zuschnitt: 7 von 12 erledigt<br>5 Zuschnitte offen<br>
+<span class="tasten">🧱 Material &amp; Zuschnitt öffnen</span></p>
+<p>Die Seite beantwortet in wenigen Sekunden: <em>Was muss für dieses Objekt
+zugeschnitten werden, aus welcher Massaufnahme kommt es, und was ist davon schon
+erledigt?</em> Ganz oben stehen vier Kennzahlen – Materialpositionen, Zuschnitt offen,
+Zuschnitt erledigt, Massaufnahmen. Darunter zwei Bereiche:</p>
+<p><strong>MATERIAL</strong> – je Material eine Karte mit dem Bedarf und dem
+Reservierungsstand, dazu genau <em>eine</em> passende Aktion:
+<span class="tasten">📦 Material reservieren</span>, wenn noch nichts reserviert ist,
+sonst <span class="tasten">Reservierung ändern</span>. Wer und wann ist Detailinformation
+und steht nicht in der Hauptansicht.</p>
+<p><strong>ZUSCHNITT NACH MASSAUFNAHME</strong> – jede Massaufnahme als Karte, mit
+ihrer Art, ihrem Titel, ihrem Material, der Zahl der Zuschnitte und dem Fortschritt
+(<em>2 von 4 erledigt</em>). <strong>Offene und teilweise erledigte stehen zuoberst</strong>,
+vollständige darunter. Ist die Freigabe nach einer Änderung verfallen (Kapitel 9), steht
+das rot auf der Karte – ein überholter Stand darf nicht unbemerkt als aktueller Zuschnitt
+gelten.</p>
+<p><span class="tasten">Zuschnitt öffnen</span> springt direkt in die vorhandene
+Zuschnittansicht dieser Massaufnahme. Es ist <strong>dieselbe</strong> Ansicht wie im
+Register „Zuschnitt“ – keine zweite Darstellung, keine zweite Rechnung.
+<span class="tasten">Reststücke verfügbar: 5</span> steht als eine einzige Zeile da; ein
+Reststück wird nie automatisch eingeplant.</p>
 
-<h3>Projektweiter Zuschnitt</h3>
-<p>Fasst die Zuschnitte des ganzen Projekts zu einem Rollenblech-Plan je Material
-zusammen. Gerechnet wird mit derselben Packrechnung wie in der einzelnen
-Massaufnahme – dieselbe Rollenbreite aus dem Blechlager, dieselbe Schnittfuge,
-dieselben Reststücke. Der Vorteil: über mehrere Massaufnahmen hinweg passt mehr auf
-denselben Abschnitt.</p>
+<h4>Ein Tap = zugeschnitten</h4>
+<p>In der Zuschnittansicht ist <strong>jede Positionsnummer ein Knopf</strong>. Ein Tipp
+darauf hakt genau dieses Stück als zugeschnitten ab, es wird grün mit einem Häkchen. Ein
+zweiter Tipp nimmt den Haken zurück.</p>
+<p>Bei mehreren gleichen Zuschnitten steht der Stand daneben – <em>1/3 erledigt</em> –
+und <span class="tasten">alle</span> hakt die ganze Gruppe in einem Tipp ab. Die
+einzelnen Stücke bleiben trotzdem einzeln abhakbar; der Fortschritt schlägt sofort bis
+auf die Karte und ins Cockpit durch.</p>
+<div class="hin"><strong>„Zugeschnitten“ entsteht nur so.</strong> Weder eine
+Reservierung noch die Verfügbarkeit von Material macht ein Stück zugeschnitten – nur die
+echte Bestätigung an der Werkbank. Und die drei Angaben bleiben getrennt:
+<strong>Material</strong> (benötigt · verfügbar · reserviert),
+<strong>Zuschnitt</strong> (offen · teilweise · vollständig) und
+<strong>Werkstatt</strong> (gerüstet · montiert). Es gibt kein Feld mehr, in dem alles
+zusammen ausgewählt wird.</div>
+<p>Passt ein abgehaktes Stück nicht mehr zum aktuellen Plan – weil die Massaufnahme
+danach geändert wurde –, steht das als Hinweis da, statt den Haken stillschweigend als
+gültig zu zeigen.</p>
 
-<h3>Materialreservierung</h3>
+<h3>Die ausführlichen Ansichten</h3>
+<p>Unter den beiden Bereichen stehen <strong>zugeklappt</strong> die drei genauen
+Auswertungen. Sie sind unverändert da, nur nicht mehr der Einstieg:</p>
+<p><strong>Ganze Materialübersicht des Projekts.</strong> Führt das Material aller
+Massaufnahmen zusammen – gruppiert nach Material, mit den Zuschnitten. <strong>Es wird
+nichts neu gerechnet:</strong> jede Position kommt aus dem Ausmass und dem Zuschnittplan,
+die die Massaufnahme beim Speichern selbst abgelegt hat. Zu jeder Zeile steht, aus
+welcher Massaufnahme sie stammt.</p>
+<p><strong>Projektweiter Rollenblech-Plan.</strong> Fasst die Zuschnitte des ganzen
+Projekts zu einem Plan je Material zusammen. Gerechnet wird mit derselben Packrechnung
+wie in der einzelnen Massaufnahme – dieselbe Rollenbreite aus dem Blechlager, dieselbe
+Schnittfuge, dieselben Reststücke. Der Vorteil: über mehrere Massaufnahmen hinweg passt
+mehr auf denselben Abschnitt. Dort wird <strong>nicht</strong> abgehakt – die
+Positionsnummern sind über das ganze Projekt neu durchnummeriert und gehören zu keiner
+einzelnen Massaufnahme mehr.</p>
+
+<h3>Materialreservierung im Einzelnen</h3>
 <figure><img src="bilder/39-reservierung.png"><figcaption>Der Bedarf des Projekts mit seinem Reservierungsstand.</figcaption></figure>
 <p>Über <span class="tasten">Bedarf übernehmen</span> wird genau das übernommen, was
 die Materialübersicht ohnehin zeigt. Jede Position durchläuft fünf Zustände:</p>
@@ -861,7 +912,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.14</strong>, Stand 6. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.15</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

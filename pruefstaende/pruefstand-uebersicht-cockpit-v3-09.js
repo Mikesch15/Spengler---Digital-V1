@@ -216,35 +216,42 @@ const klick=async(page,wahl)=>{
  p(zurueck.auf&&zurueck.form,"Zurueck fuehrt in die Uebersicht",zurueck);
 
  console.log("\nF · Arbeitsstand im Projekt-Cockpit (Abschnitt 10)");
+ // Seit v3.15 steht dort EINE Zeile "Material & Zuschnitt" statt der drei
+ // Modulzeilen - genau das verlangt der Auftrag zu v3.15 (keine redundanten
+ // Karten). Geprueft wird deshalb diese eine Zeile.
  const cockpit=async module=>{
   await page.evaluate(mod=>{
    $("adminMeasModal").hidden=true;
    $("projectCockpitModal").hidden=false;
    cockpitProjectId=3;
    pmUebernehmen(mod);
-   $("cockpitMaterialCount").textContent="4";
-   $("cockpitZuschnittCount").textContent="0";
-   $("cockpitReservierungCount").textContent="?";
+   projectMeasurementsCache=[];
    cockpitModulStand();
   },module);
-  return page.evaluate(()=>["Material","Zuschnitt","Reservierung"].map(k=>{
-   const z=$("cockpitStand"+k+"Zeile"), r=z.getBoundingClientRect();
-   return {k,sichtbar:!z.hidden&&getComputedStyle(z).display!=="none"&&r.height>0,
-           mark:$("cockpit"+k+"Mark").textContent.trim(),
-           wert:$("cockpit"+k+"Stand").textContent.trim()};
-  }));
+  return page.evaluate(()=>{
+   const z=$("cockpitStandMatZuZeile"), k=$("cockpitMatZuCard");
+   const r=z?z.getBoundingClientRect():{height:0};
+   return {sichtbar:!!z&&!z.hidden&&getComputedStyle(z).display!=="none"&&r.height>0,
+           karte:!!k&&!k.hidden,
+           mark:($("cockpitMatZuMark")||{}).textContent||"",
+           wert:($("cockpitMatZuStand")||{}).textContent||"",
+           text:(($("cockpitMatZuText")||{}).innerText||"").replace(/\s+/g," ").trim(),
+           alteZeilen:["Material","Zuschnitt","Reservierung"].filter(n=>$("cockpitStand"+n+"Zeile"))};
+  });
  };
  let c=await cockpit({});
- p(c.every(x=>!x.sichtbar),"bei AUS keine der drei Zeilen",c);
+ p(!c.sichtbar&&!c.karte,"bei AUS weder Zeile noch Karte",c);
+ p(c.alteZeilen.length===0,"die drei alten Modulzeilen gibt es nicht mehr",c.alteZeilen);
  c=await cockpit({haupt:true,material:true,zuschnitt:true});
- p(c[0].sichtbar&&c[1].sichtbar&&!c[2].sichtbar,"nur die eingeschalteten Zeilen",c);
- p(c[0].mark==="✓"&&c[0].wert==="4","Material uebernimmt die Zahl der Ueberschrift",c[0]);
- p(c[1].mark==="○"&&/Noch/.test(c[1].wert),"Zuschnitt: 0 wird als Leerzustand benannt",c[1]);
+ p(c.sichtbar&&c.karte,"eingeschaltet steht die eine Zeile da",c);
+ p(/Material: 0 Positionen/.test(c.text),"sie nennt die Materialpositionen",c.text);
+ p(/Zuschnitt: noch keiner/.test(c.text),"und benennt den Leerzustand statt einer falschen Zahl",c.text);
  c=await cockpit({haupt:true,material:true,zuschnitt:true,reservierung:true});
- p(c[2].sichtbar&&c[2].mark==="?"&&c[2].wert==="?","unbekannt bleibt „?“ statt einer falschen 0",c[2]);
- // Sprung zur Karte
- await page.evaluate(()=>{$("cockpitMaterialCard").hidden=false});
- p((await klick(page,'[data-cockpit-goto="material"]'))==="ok","Sprung zur Materialkarte bedienbar");
+ p(c.sichtbar,"mit Reservierung bleibt es dieselbe eine Zeile",c);
+ // Sprung: seit v3.15 fuehrt die Zeile auf die gemeinsame Seite.
+ p((await klick(page,'[data-cockpit-goto="matzu"]'))==="ok","Sprung auf die Seite Material & Zuschnitt bedienbar");
+ p(await page.evaluate(()=>!$("matZuModal").hidden),"und sie geht dabei wirklich auf");
+ await page.evaluate(()=>{$("matZuModal").hidden=true});
 
  console.log("\nG · Bildschirmbreiten");
  for(const b of [360,412,768,1200]){

@@ -115,7 +115,14 @@ const vorbereiten=async(page,module)=>{
   pmUebernehmen(mod);
   $("appRoot").hidden=false;$("authScreen").hidden=true;$("startScreen").hidden=true;
   $("settingsModal").hidden=true;$("measurementEditModal").hidden=true;
-  $("projectCockpitModal").hidden=false;
+  // v3.15: die drei ausfuehrlichen Ansichten liegen jetzt auf der Seite
+ // MATERIAL & ZUSCHNITT, zugeklappt. Fuer diesen Pruefstand wird die
+ // Seite geoeffnet und alles aufgeklappt - eine ueberholte Erwartung,
+ // kein Codefehler; geprueft wird weiterhin dasselbe.
+ $("projectCockpitModal").hidden=false;
+ $("matZuModal").hidden=false;
+ ["matZuDetailsMaterial","matZuDetailsZuschnitt","matZuDetailsReservierung"]
+  .forEach(id=>{const d=$(id); if(d){d.hidden=false; d.open=true}});
   window.__ruf=[];
  },[AUFNAHMEN,module,RESTE]);
  await page.evaluate(()=>resvCockpitLaden(7));
@@ -131,7 +138,7 @@ const stand=page=>page.evaluate(()=>{
  const r=k.getBoundingClientRect();
  return {
   hidden:k.hidden, hoehe:Math.round(r.height),
-  zahl:($("cockpitReservierungCount").textContent||"").trim(),
+  zahl:(($("cockpitReservierungCount")||{}).textContent||"").trim(),
   text:b.textContent.replace(/\s+/g," ").trim(),
   // Seit v3.13 traegt jede Zeile ein Auswahl-Kaestchen als erste Spalte.
   // Die Spalte wird hier weggelassen, damit die Indizes dieselben bleiben -
@@ -177,7 +184,7 @@ const stand=page=>page.evaluate(()=>{
  await vorbereiten(page,{haupt:true,material:true,reservierung:true});
  s=await stand(page);
  p(s.hidden===false&&s.hoehe>40,"Karte sichtbar",{h:s.hidden,y:s.hoehe});
- p(s.zahl==="0","Zaehler 0",{z:s.zahl});
+ p(s.zeilen.length===0,"noch keine Zeile",{n:s.zeilen.length});
  p(/Noch kein Bedarf erfasst/.test(s.text),"Leerzustand benannt");
  p(s.zeilen.length===0,"keine Zeile");
  ruf=await page.evaluate(()=>window.__ruf.filter(r=>r.tabelle==="material_reservierungen"));
@@ -197,7 +204,7 @@ const stand=page=>page.evaluate(()=>{
  await page.waitForTimeout(80);
  s=await stand(page);
  p(s.zeilen.length===6,"6 Positionen uebernommen",{n:s.zeilen.length,z:s.zeilen});
- p(s.zahl==="6","Zaehler zeigt 6",{z:s.zahl});
+ p(s.text.indexOf("Noch kein Bedarf erfasst")<0,"der Leerzustand ist weg",{t:s.text.slice(0,60)});
  const alleText=s.zeilen.map(z=>z.join(" | ")).join(" ~ ");
  p(/Enge Seite/.test(alleText)===false,"reiner Text wird nicht reserviert");
  p(/1200 × 250 mm/.test(alleText)&&/700 × 250 mm/.test(alleText),"Zuschnitte mit Abmessung",{t:alleText.slice(0,300)});
@@ -327,7 +334,7 @@ const stand=page=>page.evaluate(()=>{
 
  console.log("\nK · Hilfe und Ausschalten");
  const hilfe=await page.evaluate(()=>{
-  const b=$("cockpitReservierungCard").querySelector("[data-hilfe]");
+  const b=$("matZuDetailsReservierung").querySelector("[data-hilfe]");
   return {key:b?b.dataset.hilfe:null,
           hatText:!!(typeof HILFE_TEXTE==="object"&&HILFE_TEXTE["cockpit-reservierung"]),
           beschriftet:!!(b&&b.getAttribute("aria-label"))};

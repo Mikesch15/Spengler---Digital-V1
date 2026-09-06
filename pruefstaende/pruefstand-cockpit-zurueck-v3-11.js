@@ -111,7 +111,13 @@ const abschnitt=(s,key)=>s.abschnitte.find(a=>a.key===key)||{};
  console.log("\nA - Uebersicht statt Bildschirmkilometer");
  await page.evaluate(()=>openProjectCockpit(7)); await page.waitForTimeout(400);
  let s=await stand(page);
- p(s.abschnitte.length>=8,"jeder Bereich ist ein klappbarer Abschnitt",s.abschnitte.map(a=>a.key));
+ // v3.15: die drei Modulkarten (Material, Zuschnitt, Reservierung) stehen
+ // nicht mehr im Cockpit, sondern auf der Seite MATERIAL & ZUSCHNITT -
+ // genau das verlangt der Auftrag zu v3.15. Es bleiben sechs Abschnitte;
+ // ueberholte Erwartung, kein Codefehler.
+ const SOLL=["stand","meas","am","rep","files","verlauf"];
+ p(SOLL.every(k=>s.abschnitte.some(a=>a.key===k))&&s.abschnitte.length===SOLL.length,
+   "jeder Bereich ist ein klappbarer Abschnitt",s.abschnitte.map(a=>a.key));
  const zu=s.abschnitte.filter(a=>a.kartenSichtbar&&!a.offen).map(a=>a.key);
  p(zu.indexOf("meas")>=0&&zu.indexOf("am")>=0&&zu.indexOf("rep")>=0
    &&zu.indexOf("files")>=0&&zu.indexOf("verlauf")>=0,

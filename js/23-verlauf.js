@@ -24,13 +24,15 @@ const VERLAUF_ACTION_LABELS={created:"Erstellt",updated:"Geändert",deleted:"Gel
 const VERLAUF_BILD_ACTIONS=["photo_added","photo_deleted","sketch_added","sketch_deleted"];
 const VERLAUF_ENTITY_LABELS={project:"Projekt",measurement:"Massaufnahme",ausmass:"Ausmass",report:"Regierapport",
  // v3.09: dieselbe Historie, nur drei weitere Arten - kein zweites Protokoll.
- reservierung:"Reservierung",reststueck:"Reststück",vorlage:"Vorlage"};
+ reservierung:"Reservierung",reststueck:"Reststück",vorlage:"Vorlage",
+ // v3.15: ein abgehaktes Zuschnittstueck.
+ zuschnitt:"Zuschnitt"};
 // v2.35: dieselben Symbole, die bereits in den jeweiligen Hauptbereichen
 // verwendet werden (index.html: "📁 Projekte", "📐 Massaufnahme",
 // "📏 Ausmass", "📋 Regierapport") - keine neue Symbolsprache, dezente
 // Kennzeichnung der Entität statt Farbcodierung (Auftrag Abschnitt 9).
 const VERLAUF_ENTITY_ICONS={project:"📁",measurement:"📐",ausmass:"📏",report:"📋",
- reservierung:"📦",reststueck:"♻️",vorlage:"📄"};
+ reservierung:"📦",reststueck:"♻️",vorlage:"📄",zuschnitt:"✂️"};
 
 // v2.33: Feld-Diffing. Bewusst nur dasselbe kleine, zuverlässige Feld-Set,
 // das write_audit_log() serverseitig vergleicht (siehe CLAUDE.md
@@ -45,6 +47,8 @@ const VERLAUF_FIELD_LABELS={
  reservierung:{status:"Status",menge:"Menge",bezeichnung:"Position",notiz:"Notiz"},
  reststueck:{reserviert_fuer:"Reserviert für Projekt",verbraucht:"Verbraucht",anzahl:"Anzahl"},
  vorlage:{name:"Name",notiz:"Notiz",type:"Art",vorlage_data:"Masse"},
+ // v3.15: das Abhaken eines Zuschnittstuecks.
+ zuschnitt:{erledigt:"Zugeschnitten"},
  measurement:{
   title:"Bezeichnung",date:"Datum",note:"Notiz / Masse",
   // v3.05 Arbeitsworkflow (Freigabe, Zuweisung, Ruesten, Montage)
@@ -213,6 +217,10 @@ function verlaufChangesHtml(row){
   }else if(row.entity_type==="vorlage"&&c.field==="type"){
    const n=v=>(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[v])||String(v||"–");
    wert=`${esc(n(c.old))} → ${esc(n(c.new))}`;
+  }else if(row.entity_type==="zuschnitt"&&c.field==="erledigt"){
+   // v3.15: "nein -> ja" saehe aus wie ein Schalter; hier steht, was es
+   // fachlich heisst.
+   wert=`${esc(c.old?"zugeschnitten":"offen")} → ${esc(c.new?"zugeschnitten":"offen")}`;
   }else if(row.entity_type==="reststueck"&&c.field==="verbraucht"){
    wert=`${esc(c.old?"verbraucht":"im Lager")} → ${esc(c.new?"verbraucht":"im Lager")}`;
   }else if(row.entity_type==="measurement"&&(c.field==="photo"||c.field==="sketches")){

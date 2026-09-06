@@ -83,7 +83,17 @@ function zuGruppen(p){
 // Ein Eintrag der Liste: "3 × 1'850 × 250 mm" - darunter, deutlich lesbar,
 // auf WELCHE Positionsnummern dieser eine Zuschnitt gehört. Genau das ist die
 // Frage auf der Baustelle: welches Blech kommt wohin.
-function zuGruppenZeileHtml(g,einheit){
+// v3.15: Zu welcher Massaufnahme gehoert dieser Plan - und darf darin
+// abgehakt werden? Nur im Formular EINER Massaufnahme: in einer
+// projektweiten Zusammenfassung sind die Stuecknummern neu vergeben und
+// gehoeren zu verschiedenen Aufnahmen, ein Haken waere dort nicht eindeutig.
+function zuErledigtFuer(p){
+ if(p&&p.sammel)return null;
+ if(p&&p.erledigtFuer!==undefined)return p.erledigtFuer;
+ if(typeof zeAbhakenMoeglich!=="function"||!zeAbhakenMoeglich())return null;
+ return (typeof zeOffeneMassaufnahme==="function")?zeOffeneMassaufnahme():null;
+}
+function zuGruppenZeileHtml(g,einheit,p){
  const nummern=g.stuecke.map(x=>x.nr).filter(x=>x!==undefined&&x!==null);
  const hinweise=[];
  g.stuecke.forEach(x=>{if(x.hinweis&&hinweise.indexOf(x.hinweis)<0)hinweise.push(x.hinweis)});
@@ -91,11 +101,32 @@ function zuGruppenZeileHtml(g,einheit){
  if(g.merkmal)zusatz.push(esc(g.merkmal));
  if(hinweise.length)zusatz.push(esc(hinweise.join(" · ")));
  const e=einheit||"Stück";
- return `<div class="zu-zeile">
+ // v3.15: Ein Tap auf die Positionsnummer hakt genau dieses Stueck ab.
+ // Die Nummern standen seit v2.88 ohnehin da - sie werden jetzt bedienbar,
+ // statt eine zweite Liste danebenzustellen. Der Stand wird NICHT hier
+ // eingesetzt, sondern nachtraeglich von zeMarkierungAuffrischen() gemalt:
+ // die Haken kommen aus der Datenbank und sind beim Zeichnen oft noch nicht
+ // da (dasselbe Muster wie die signierten Vorschaubilder).
+ const mid=zuErledigtFuer(p);
+ const nrHtml=n=>{
+  if(mid===null||mid===undefined)return `<span class="zu-nr">${esc(n)}</span>`;
+  const x=g.stuecke.find(y=>y.nr===n)||{};
+  return `<button type="button" class="zu-nr zu-nr-hak" aria-pressed="false"`
+   +` data-ze-meas="${esc(mid)}" data-ze-nr="${esc(n)}"`
+   +` data-ze-l="${esc(g.laenge)}" data-ze-b="${esc(g.breite||"")}"`
+   +` data-ze-m="${esc(g.merkmal||"")}"`
+   +` title="Stück ${esc(n)} als zugeschnitten abhaken">${esc(n)}</button>`;
+ };
+ const stand=(mid===null||mid===undefined)?"":
+  `<span class="ze-stand" data-ze-stand="1">–</span>`
+  +(nummern.length>1?`<button type="button" class="ze-alle" data-ze-alle="${esc(mid)}"`
+    +` data-ze-nrs="${esc(nummern.join(","))}">✓ alle</button>`:"");
+ return `<div class="zu-zeile"${mid!==null&&mid!==undefined?' data-ze-zeile="1"':""}>
 <span class="zu-anzahl">${g.stuecke.length} ×</span>
 <span class="zu-mass">${esc(zuMm(g.laenge))}${g.breite>0?" × "+esc(zuMm(g.breite)):""}<span class="zu-einheit"> mm</span></span>
 ${nummern.length?`<span class="zu-pos"><span class="zu-pos-marke">${esc(e)}</span>${
-  nummern.map(n=>`<span class="zu-nr">${esc(n)}</span>`).join("")}</span>`:""}
+  nummern.map(n=>nrHtml(n)).join("")}</span>`:""}
+${stand}
 ${zusatz.length?`<span class="zu-zusatz">${zusatz.join(" · ")}</span>`:""}
 </div>`;
 }
@@ -117,7 +148,7 @@ function zuListeHtml(p){
  }
  return `<div class="zu-liste">
 <div class="zu-liste-kopf">${esc(kopf)}</div>
-${gruppen.map(g=>zuGruppenZeileHtml(g,p.einheit)).join("")}
+${gruppen.map(g=>zuGruppenZeileHtml(g,p.einheit,p)).join("")}
 ${fuss?`<div class="zu-liste-fuss">${esc(fuss)}</div>`:""}
 </div>`;
 }

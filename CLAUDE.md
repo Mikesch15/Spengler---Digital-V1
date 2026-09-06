@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.14, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.15, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.14**
+- sichtbare App-Version: **3.15**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -19641,3 +19641,331 @@ Fachdateien `js/10`–`js/43` und `js/45`–`js/56`.
 - Die Vorgabe setzt **beide** Rollen. Ein Betrieb, in dem grundsätzlich
   jemand anderes rüstet, muss sie einmal je Massaufnahme umstellen – eine
   firmenweite Standardperson wäre eine eigene, spätere Einstellung.
+
+## 120. MATERIAL & ZUSCHNITT – EINE ARBEITSSEITE STATT FÜNF ZUSTÄNDE — VERSION 3.15
+
+Die Material-/Reservierungsdarstellung des Projekt-Cockpits war zu
+unübersichtlich: drei eigene Karten, und ein einziges Auswahlfeld mit fünf
+Werten (Benötigt/Verfügbar/Reserviert/Zugeschnitten/Gerüstet) vermischte
+Materialzustand und Produktionsfortschritt. An ihre Stelle tritt **eine**
+Karte im Cockpit und **eine** zentrale Arbeitsseite.
+
+    Projekt → MATERIAL & ZUSCHNITT → Material
+                                   → Zuschnitt nach Massaufnahme
+                                   → Zuschnitt öffnen → Stück abhaken
+
+**Standard bleibt AUS** – ohne den Modulschalter aus v3.09 gibt es weder die
+Karte noch die Seite. Der Wert `projektmodule` wurde nicht angefasst.
+
+### 120.1 Die drei Karten sind weg, nicht zusätzlich
+
+Im Cockpit stand bisher je eine Karte für Materialübersicht, projektweiten
+Zuschnitt und Reservierung, dazu drei Zeilen im Arbeitsstand. Beides ist
+durch **eine** Karte und **eine** Zeile ersetzt:
+
+```
+🧱 MATERIAL & ZUSCHNITT
+Material: 3 Positionen
+Zuschnitt: 7 von 12 erledigt
+5 Zuschnitte offen
+[ 🧱 Material & Zuschnitt öffnen ]
+```
+
+Die drei ausführlichen Ansichten sind **nicht gelöscht** – sie stehen
+zugeklappt unten auf der Seite (`<details>`), samt ihren Info-Knöpfen. Ihre
+Element-IDs (`cockpitMaterialCard`/`Body`, `cockpitZuschnittCard`/`Body`,
+`cockpitReservierungCard`/`Body`) sind unverändert, damit js/48, js/49 und
+js/50 ohne eine Zeile Änderung weiterschreiben.
+
+Die drei Zähler in den früheren Klapp-Überschriften gibt es nicht mehr; die
+Zahlen stehen jetzt in den Kennzahlen der Seite. Alle drei Schreibstellen
+waren bereits mit `if($("…Count"))` abgesichert – **kein** Fachmodul musste
+angefasst werden.
+
+### 120.2 Die Seite
+
+Oben genau vier Kennzahlen (Materialpositionen · Zuschnitt offen · Zuschnitt
+erledigt · Massaufnahmen), darunter zwei Bereiche als **Kartenliste, keine
+Tabelle**:
+
+| Bereich | Inhalt |
+|---|---|
+| 🧱 Material | je Material eine Karte: Bedarf, Reservierungsstand, **genau eine** Aktion (`📦 Material reservieren` bzw. `Reservierung ändern`). Wer/wann ist Detailinformation. |
+| ✂️ Zuschnitt nach Massaufnahme | je Massaufnahme eine Karte: Art · Titel, Material, Zahl der Zuschnitte, Fortschritt mit Balken, `✂️ Zuschnitt öffnen`. **Offene und teilweise zuerst**, vollständige darunter. |
+
+Reststücke stehen als **eine Zeile** („Reststücke verfügbar: 5" →
+`Reststücke anzeigen`), nicht in der Hauptansicht. Eine verfallene Freigabe
+(v3.06) steht rot auf der Karte.
+
+**Eine Materialgruppe ohne Position bekommt keine Karte.** Eine Massaufnahme
+ohne Material erzeugte sonst „Ohne Material – 0 Positionen" mit einem Knopf,
+der nichts zu reservieren hat. In den Einzelheiten unten steht weiterhin
+alles. Aufgefallen beim Ansehen des erzeugten Bildschirmfotos, nicht beim
+Lesen des Codes.
+
+### 120.3 „Zuschnitt öffnen" – dieselbe Ansicht, keine zweite
+
+`mzZuschnittOeffnen()` schliesst die Seite, setzt `measEditReturnTo` auf
+`"projectCockpit"`, öffnet die Massaufnahme über das bestehende
+`openMeasurement()` und stellt auf ihr **Zuschnitt-Register**. Welches das
+ist, wird nicht als Zahl hinterlegt, sondern in der Registertabelle des
+jeweiligen Moduls gesucht (`kurz==="Zuschnitt"`) – wird dort je ein Register
+eingefügt, wandert es mit. Elf Arten sind erfasst.
+
+Es entsteht **keine zweite Darstellung und keine zweite Rechnung**:
+`zuschnittHtml()` (js/33) bleibt die einzige Zuschnittdarstellung,
+`ebaPackeInStreifen()`/`ebaVerteile()` (js/29) die einzige Packrechnung,
+`pmatStuecke()`/`pmatSammeln()` (js/48) die einzige Quelle für das, was eine
+Massaufnahme gespeichert hat. Der Prüfstand belegt das am Quelltext.
+
+### 120.4 Ein Tap = zugeschnitten
+
+Jede Positionsnummer in der Zuschnittansicht ist ein Knopf (mindestens
+34 × 34 px, `aria-pressed`). Ein Tipp hakt genau dieses Stück ab, ein zweiter
+nimmt es zurück. Bei gruppierten gleichen Zuschnitten steht daneben der Stand
+(`1/3 erledigt`) und ein Knopf `alle` für die ganze Gruppe – die einzelnen
+Stücke bleiben trotzdem einzeln abhakbar.
+
+**„Zugeschnitten" entsteht ausschliesslich so** – nicht aus einer
+Reservierung und nicht aus Verfügbarkeit.
+
+**Im projektweiten Plan wird nicht abgehakt.** `pzuPlan()` (js/49) trägt
+dafür `sammel:true`; dort sind die Positionsnummern über das ganze Projekt
+neu durchnummeriert und gehören zu keiner einzelnen Massaufnahme mehr.
+js/51 (Werkstatt) erbt das.
+
+Gemalt wird der Stand **nach** dem Zeichnen (`zeMarkierungAuffrischen()` plus
+ein MutationObserver) – dasselbe Muster wie die signierten Vorschaubilder
+seit v2.50. Dadurch musste **keines der elf Register-Module** angefasst
+werden.
+
+### 120.5 Datenmodell: additiv, mit RLS und Verlauf
+
+Migration `zuschnitt_erledigt_v3_15`:
+
+```sql
+create table public.zuschnitt_erledigt(
+  id bigint generated always as identity primary key,
+  company_id uuid not null default my_company_id() references companies(id) on delete cascade,
+  measurement_id bigint not null references measurements(id) on delete cascade,
+  stueck_nr integer not null,
+  laenge_mm numeric, breite_mm numeric, merkmal text,
+  erledigt boolean not null default true,
+  created_by uuid references profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_by uuid references profiles(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  constraint zuschnitt_erledigt_stueck_uk unique (measurement_id, stueck_nr));
+```
+
+- **Bewusst ohne `project_id`.** Der Auftrag nennt die Spalte, aber sie wäre
+  eine zweite Wahrheit: wird eine Massaufnahme in ein anderes Projekt
+  verschoben, liefe sie auseinander. Das Projekt kommt über
+  `measurements.project_id`; der Verlauf ermittelt es per Unterabfrage, der
+  Client fragt mit `.in("measurement_id", …)` aus dem ohnehin geladenen
+  `projectMeasurementsCache`.
+- **`company_id` kommt nie vom Client** – `DEFAULT my_company_id()`, und die
+  restriktive `tenant_boundary_zuschnitt_erledigt` verlangt zusätzlich, dass
+  die Massaufnahme über ihr Projekt zur eigenen Firma gehört. Dazu vier
+  `has_permission('projects', …)`-Policies, wie bei jeder anderen
+  Projekttabelle.
+- **Länge, Breite und Merkmal werden als Beleg mitgespeichert.** Passt ein
+  Haken später nicht mehr zum aktuellen Plan (die Massaufnahme wurde
+  geändert), wird er als **veraltet** ausgewiesen statt stillschweigend als
+  gültig.
+- Geschrieben wird mit **einem** `upsert(…, {onConflict:"measurement_id,stueck_nr"})`
+  – auch für eine ganze Gruppe. Ein von RLS geblocktes Schreiben meldet keinen
+  Fehler, es betrifft still 0 Zeilen (CLAUDE.md 24.1): `0` gilt hier
+  ausdrücklich **nicht** als Erfolg, es kommt „Es wurde nichts gespeichert.
+  Fehlt die nötige Berechtigung?".
+
+**Bewusst keine `SECURITY DEFINER`-Funktion.** Das Abhaken ist ein
+gewöhnliches, RLS-geprüftes Schreiben; eine DEFINER-Funktion würde RLS
+umgehen und müsste die Prüfung nachbauen – sie würde die Absicherung
+schwächen, nicht stärken.
+
+**Verlauf** (Migration `audit_log_zuschnitt_v3_15`): `'zuschnitt'` in
+`audit_log_entity_type_check`, dazu ein Zweig in **derselben**
+`write_audit_log()` – kein zweiter Schreiber. Gepatcht wurde an eindeutigen
+Ankern (`pg_get_functiondef` → `replace` → `execute`, mit Abbruch, falls ein
+Anker fehlt), nicht neu getippt.
+
+### 120.6 Ein Fehler in meiner eigenen Migration
+
+Der `zuschnitt`-Zweig im **Diff**-Block setzte noch einmal die Aktion, statt
+den Unterschied festzuhalten – der Verlauf sagte „Status geändert", ohne zu
+sagen **was**. Beim Nachlesen der erzeugten Funktion aufgefallen, nicht beim
+Schreiben. Behoben mit `audit_log_zuschnitt_diff_v3_15`; seither steht dort
+`erledigt: offen → zugeschnitten` (js/23 übersetzt es, „nein → ja" sähe aus
+wie ein Schalter).
+
+### 120.7 Empirisch geprüft: die Datenbank (alle in `begin; … rollback;`)
+
+**14 von 14** gegen das echte Produktivschema, nichts committet:
+
+| Nr | Prüfung | Ergebnis |
+|---|---|---|
+| 1 | Admin hakt sein eigenes Stück ab | `company_id` und `created_by` serverseitig gesetzt |
+| 2 | `company_id` vom Client gefälscht | abgewiesen (`tenant_boundary_zuschnitt_erledigt`) |
+| 3 | Haken auf eine Massaufnahme einer **fremden** Firma | abgewiesen |
+| 4 | dasselbe Stück zweimal anlegen | abgewiesen (Eindeutigkeit) |
+| 5 | `upsert` – der Weg des Clients | genau 1 Zeile, Wert geändert |
+| 6 | Mitarbeiter derselben Firma | darf lesen und abhaken |
+| 7–9 | fremde Firma liest / ändert / löscht | je 0 Zeilen |
+| 10 | Verlauf beim Abhaken | `created`, richtiges Projekt, richtiger Benutzer |
+| 11 | Verlauf beim Zurücknehmen | `status_changed` mit Diff (nach 120.6) |
+| 12 | Ersteller/Bearbeiter | `created_by` fest, `updated_by`/`updated_at` gesetzt |
+| 13 | Massaufnahme gelöscht | keine verwaisten Haken |
+| 14 | nur ein Beleg-Mass geändert | `updated` **ohne** Diff – richtig |
+
+`get_advisors(security)`: keine neue Art von Warnung; die neue Tabelle
+erscheint nicht als „RLS fehlt". Die bekannte Leaked-Password-Warnung bleibt
+Sache des Betreibers (109.8).
+
+### 120.8 Empirisch geprüft: die Oberfläche
+
+**`pruefstaende/pruefstand-material-zuschnitt-v3-15.js` – 56/56**, echtes
+Chromium gegen die echte `index.html`: Modul aus (weder Karte noch Zeile noch
+Seite, und die drei alten Karten stehen nicht mehr im Cockpit), Cockpit,
+die Seite (vier Kennzahlen, keine Tabelle, Karten je Material und je
+Massaufnahme, Reststücke als eine Zeile, verfallene Freigabe gekennzeichnet,
+Einzelheiten zugeklappt, Info-Knopf auf der Aufklapp-Zeile klappt **nichts**
+mit auf), Abhaken (was wirklich an die Datenbank geht, ohne `company_id`,
+Masse als Beleg, Gruppenstand, „alle" in **einem** Aufruf), Fortschritt bis
+in Karte und Cockpit, keine zweite Rechnung, „Zuschnitt öffnen", der
+Fehlerfall und drei Bildschirmbreiten.
+
+**12 Gegenproben**, jede baut einen echten Fehler ein und wirft den Prüfstand
+um:
+
+| Gegenprobe | Ergebnis |
+|---|---|
+| `company_id` vom Client mitschicken | 52/53 |
+| 0 geschriebene Zeilen gelten als Erfolg | 52/53 |
+| Masse nicht als Beleg mitschreiben | 52/53 |
+| „alle" schreibt in einer Schleife | 52/53 |
+| projektweiter Plan ohne `sammel:true` | 52/53 |
+| Rückweg nicht gesetzt | 52/53 |
+| Modulschalter ignoriert | 51/53 |
+| verfallene Freigabe nicht gekennzeichnet | 52/53 |
+| Trefferfläche auf 16 px | 52/53 |
+| einzelne Stücke nicht mehr abhakbar | 35/57 |
+| Hauptansicht wieder als Tabelle | 49/53 |
+| leere Materialgruppen wieder anzeigen | 55/56 |
+
+Eine dieser Gegenproben liess den Prüfstand zuerst **abstürzen** statt
+fehlschlagen – ein abgebrochener Lauf sieht aus wie „keine Fehler"
+(CLAUDE.md 78). Alle Indexzugriffe sind jetzt abgesichert, und ein Klick
+läuft über einen Helfer mit kurzer Frist statt 30 s zu hängen.
+
+### 120.9 Regression
+
+**Alle 43 Prüfstände grün.** Sechs hatten **überholte Erwartungen**, keine
+davon ein Codefehler – sie stammen alle aus genau dem Umbau, den der Auftrag
+verlangt hat:
+
+| Prüfstand | überholt |
+|---|---|
+| `uebersicht-cockpit-v3-09` | erwartete drei Modulzeilen im Arbeitsstand; es ist jetzt eine |
+| `cockpit-zurueck-v3-11` | erwartete ≥ 8 klappbare Abschnitte im Cockpit; es sind sechs |
+| `naechster-schritt-v3-10` | prüfte die `[hidden]`-Falle an `cockpitStandMaterialZeile` |
+| `projekt-material-zuschnitt-v3-09` | las den Zähler der Klapp-Überschrift |
+| `reservierung-v3-09` | dito, und suchte den Info-Knopf in der Karte |
+| `sammelaktion-v3-13` | erwartete die Reservierung im Cockpit statt auf der Seite |
+
+**Regierapport nachweislich unverändert**: unter `media:print` mit
+ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+v3.14-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+enthält die Uhrzeit, CLAUDE.md 100.6) – **DOM, Text und Bild byteidentisch**
+(DOM `249fb3a7c407d803`, 6211 Zeichen; Bild `e590ad91eaf9078a`, 47 767
+Bytes), bestätigt durch einen Kontrolllauf desselben Codes.
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und `css/03-druck.css`
+sind nicht im Diff.
+
+`node --check` über alle 58 `js/*.js`, `sw.js` und alle 43 Prüfstände:
+fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+Minimum 0); keine doppelten Element-IDs; alle 58 js-Dateien in `index.html`
+**und** in der Service-Worker-Liste; Version 3.15 in `index.html` und
+`sw.js` gleich; kein `data-hilfe` ohne Text.
+
+### 120.10 Anleitung
+
+Nach Regel 108.1 mitgeführt: Kapitel 10 um „Material & Zuschnitt – die eine
+Arbeitsseite", „Ein Tap = zugeschnitten" und „Die ausführlichen Ansichten"
+erweitert, die frühere Materialreservierung als Einzelheit eingeordnet,
+Kapitel 6 nennt die neue Karte. Ein neues Bild (`42-matzu`), alle 47 neu
+erzeugt, PDF v3.15 mit **59 Seiten** (vorher 57), keine leere. Die fünf
+Verweise nachgezogen, das alte PDF gelöscht. `pruefstand-hilfe-v3-03`
+(68/68) erzwingt das mechanisch.
+
+Dabei mitkorrigiert: `schuss.js` schoss `39-reservierung` und
+`41-sammelaktion` aus dem Cockpit, wo die Karte seit v3.15 nicht mehr steht –
+beide kommen jetzt von der geöffneten Seite.
+
+### 120.11 Datenbestand
+
+`zuschnitt_erledigt` enthält **0 Zeilen** – die Funktion ist neu. Sonst
+unverändert: 2 Firmen, 13 Profile, 4 Projekte, 9 Massaufnahmen, 5
+Reservierungen, `PETER KÜNZI AG.updated_at` unverändert
+(`2026-09-01 07:40:15.844647+00`). Alle Schreibtests liefen in
+`begin; … rollback;`.
+
+**Beobachtung ausserhalb dieser Aufgabe** (nur dokumentiert, nicht
+verursacht): **PETER KÜNZI AG hat den erweiterten Ablauf eingeschaltet** –
+Hauptschalter und alle sieben Untermodule stehen auf `true`. Der in v3.09
+gebaute Block läuft damit erstmals mit echten Firmendaten; der in 114.11 als
+offen benannte Punkt („noch nie mit echten Daten gelaufen") ist damit
+erledigt. Ebenso stehen 222 Verlaufszeilen und 5 Reservierungen in der
+Datenbank – reale Nutzung, unangetastet gelassen.
+
+### 120.12 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migrationen `zuschnitt_erledigt_v3_15`, `audit_log_zuschnitt_v3_15`, `audit_log_zuschnitt_diff_v3_15` | Tabelle, RLS, Verlauf, Diff (120.6) |
+| `js/56-material-zuschnitt.js` | **neu** – Abhak-Schicht und die zentrale Seite |
+| `js/33-zuschnitt.js` | Positionsnummern werden abhakbare Knöpfe, Gruppenstand, `alle` |
+| `js/24-projekt-cockpit.js` | drei Modulzeilen → eine, Sprung auf die Seite |
+| `js/49-projekt-zuschnitt.js` | `sammel:true`, gezielte Auffrischung nur bei offener Seite |
+| `js/10-massaufnahme.js` | **2 Zeilen**: welche Massaufnahme im Formular offen ist |
+| `js/23-verlauf.js` | deutsche Bezeichnung für den neuen Eintrag |
+| `js/41-hilfe.js` | Hilfetext „Material & Zuschnitt", PDF-Verweis |
+| `index.html` | eine Cockpit-Karte statt drei, `#matZuModal`, Version 3.15 |
+| `css/01-basis.css` | `.mz-*`, abhakbare Positionsnummern |
+| `sw.js` | Cache-Version 3.15, neue Datei im SHELL |
+| `pruefstaende/pruefstand-material-zuschnitt-v3-15.js` | **neu** |
+| sechs bestehende Prüfstände | überholte Erwartungen (120.9) |
+| `anleitung/*` | Kapitel 6 und 10, neues Bild, PDF v3.15 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/48-projekt-material.js`,
+`js/50-reservierung.js`, `js/51-werkstatt.js`, `js/42-reste.js`,
+`js/44-workflow.js`, `js/45-aufgaben.js`, `js/47-projektmodule.js` sowie
+sämtliche Fachdateien `js/11`–`js/22` und `js/25`–`js/40` – per `git diff`
+bestätigt. Keine Zuschnittberechnung, keine Packrechnung, keine
+Reststücklogik, keine Schnittfuge, keine Rollenplanung und keine
+Rinnenlogik berührt.
+
+### 120.13 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und die Datenbankseite
+  per SQL gegen das echte Produktivschema.
+- Ein Haken bezieht sich auf die **Positionsnummer** des gespeicherten Plans.
+  Wird die Massaufnahme so geändert, dass sich die Nummerierung verschiebt,
+  hängt der Haken an der Nummer, nicht am physischen Stück – deshalb der
+  Beleg mit Länge und Breite und die Kennzeichnung „veraltet" (120.5). Ein
+  Neu-Zuordnen findet **nicht** automatisch statt.
+- Die Haken sind **nicht** in der Offline-Warteschlange (v3.04). Ohne
+  Verbindung greift die bestehende Absage; das Abhaken ist ein
+  Werkstattschritt und wurde bewusst nicht in die Warteschlange gelegt, weil
+  ein nachträglich übertragener Haken auf einem inzwischen geänderten Plan
+  auf die falsche Nummer treffen könnte.
+- Der Verlauf schreibt **eine Zeile je abgehaktem Stück** – bei zwölf Stücken
+  also zwölf Einträge. Das ist richtig (jedes Stück wurde wirklich
+  abgehakt), macht den Verlauf aber voll. Eine Zusammenfassung wäre eine
+  eigene, bewusste Erweiterung von `write_audit_log()` (wie schon in 118.9
+  für die Sammelaktionen vermerkt).

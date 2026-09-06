@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.14.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.15.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -260,6 +260,29 @@ Projektübersicht noch in der Suche zu finden und lässt sich nicht öffnen.</p>
 und gerüstet werden. Es wird nichts überschrieben: Masse, Fotos, Skizzen und
 der Ersteller bleiben unverändert.</p>
 <p>Die Zuordnung steht im Änderungsverlauf der Massaufnahme.</p>`},
+"matzu":{titel:"Material & Zuschnitt",text:`
+<p>Eine Seite je Projekt, die drei Fragen beantwortet: <b>welches Material</b>
+braucht das Projekt, <b>welche Massaufnahme liefert welche Zuschnitte</b>, und
+<b>was davon ist schon geschnitten</b>.</p>
+<p>Oben stehen die Kennzahlen, darunter das Material nach Materialart, darunter
+die Zuschnitte – eine Karte je Massaufnahme, offene und teilweise erledigte
+zuerst. <span class="tasten">✂️ Zuschnitt öffnen</span> führt direkt in die
+Zuschnittansicht genau dieser Massaufnahme. Dort wird nichts neu gerechnet: es
+ist dieselbe Liste, die auch das PDF druckt.</p>
+<p><b>Ein Tap auf eine Positionsnummer hakt dieses Stück als zugeschnitten
+ab</b>, nochmals tippen nimmt den Haken zurück. Bei mehreren gleichen
+Zuschnitten steht daneben „2/3 erledigt“ und <span class="tasten">✓ alle</span>
+hakt die ganze Zeile ab. Wer wann abgehakt hat, steht im Änderungsverlauf.</p>
+<p><b>Zugeschnitten entsteht nur so</b> – nicht dadurch, dass Material
+reserviert oder verfügbar ist. Das sind getrennte Dinge: <i>Material</i> ist
+benötigt/verfügbar/reserviert, <i>Zuschnitt</i> ist offen/teilweise/vollständig,
+und <i>gerüstet/montiert</i> gehört zum Arbeitsablauf der Massaufnahme.</p>
+<p>Die Reservierung und das Reststücke-Lager stehen weiter unten unter
+<b>Einzelheiten</b>. Ein Reststück wird nie automatisch eingeplant.</p>
+<p>Die Seite gibt es nur, wenn mindestens eines der Module Material, Zuschnitt
+oder Reservierung eingeschaltet ist (Einstellungen → Allgemein →
+Projektmodule).</p>`},
+
 "workflow":{titel:"Arbeitsstatus",text:`
 <p>Der Weg einer Massaufnahme in fünf Stationen – die Leiste oben zeigt, wo
 sie gerade steht:</p>

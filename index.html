@@ -119,7 +119,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.14</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.15</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -346,10 +346,10 @@
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="am"><span class="arbeitsstand-marke" id="cockpitAmMark">○</span><span class="arbeitsstand-name">📏 Ausmass</span><span class="arbeitsstand-wert" id="cockpitAmStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="rep"><span class="arbeitsstand-marke" id="cockpitRepMark">○</span><span class="arbeitsstand-name">📋 Regierapporte</span><span class="arbeitsstand-wert" id="cockpitRepStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="files"><span class="arbeitsstand-marke" id="cockpitFilesMark">○</span><span class="arbeitsstand-name">📎 Dateien/Fotos</span><span class="arbeitsstand-wert" id="cockpitFilesStand">–</span></button>
-<!-- v3.09: nur sichtbar, wenn das jeweilige Modul eingeschaltet ist. -->
-<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="material" id="cockpitStandMaterialZeile" hidden><span class="arbeitsstand-marke" id="cockpitMaterialMark">○</span><span class="arbeitsstand-name">🧱 Material</span><span class="arbeitsstand-wert" id="cockpitMaterialStand">–</span></button>
-<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="zuschnitt" id="cockpitStandZuschnittZeile" hidden><span class="arbeitsstand-marke" id="cockpitZuschnittMark">○</span><span class="arbeitsstand-name">✂️ Zuschnitt</span><span class="arbeitsstand-wert" id="cockpitZuschnittStand">–</span></button>
-<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="reservierung" id="cockpitStandReservierungZeile" hidden><span class="arbeitsstand-marke" id="cockpitReservierungMark">○</span><span class="arbeitsstand-name">📦 Reservierung</span><span class="arbeitsstand-wert" id="cockpitReservierungStand">–</span></button>
+<!-- v3.15: EINE Zeile statt dreier. Material, Zuschnitt und Reservierung
+     stehen zusammen auf der Seite "Material & Zuschnitt"; sichtbar, sobald
+     mindestens eines der drei Untermodule eingeschaltet ist. -->
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="matzu" id="cockpitStandMatZuZeile" hidden><span class="arbeitsstand-marke" id="cockpitMatZuMark">○</span><span class="arbeitsstand-name">🧱 Material &amp; Zuschnitt</span><span class="arbeitsstand-wert" id="cockpitMatZuStand">–</span></button>
 <!-- v3.10: Was im Projekt als Naechstes ansteht. Kommt aus den ohnehin
      geladenen Massaufnahmen (projectMeasurementsCache), keine zusaetzliche
      Abfrage; nur sichtbar, wenn der Arbeitsablauf eingeschaltet ist. -->
@@ -384,30 +384,16 @@
 <div id="cockpitMeasBody"></div>
 </div>
 </div>
-<!-- v3.09 Projektweite Materialuebersicht und projektweiter Zuschnitt.
-     Beide starten hidden und werden nur eingeblendet, wenn das jeweilige
-     Untermodul eingeschaltet ist (pmAktiv). Standard ist AUS. -->
-<div class="card klapp" id="cockpitMaterialCard" hidden>
-<h2 class="klapp-kopf" data-klapp="material" role="button" tabindex="0" aria-expanded="false">Material<span id="cockpitMaterialCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-material">i</button><span class="klapp-chevron">›</span></h2>
-<div class="klapp-body">
-<div class="small" style="color:var(--muted);margin-bottom:6px">Zusammengefasst aus dem, was die Massaufnahmen dieses Projekts gespeichert haben. Es wird nichts neu gerechnet.</div>
-<div id="cockpitMaterialBody"></div>
+<!-- v3.15: EINE kompakte Karte statt der drei Karten aus v3.09.
+     Sie ERSETZT sie - die ausfuehrlichen Ansichten stehen unveraendert auf
+     der Seite "Material & Zuschnitt", nur nicht mehr als eigene Karten
+     davor. Standard ist AUS: ohne eingeschaltetes Modul gibt es sie nicht. -->
+<div class="card" id="cockpitMatZuCard" hidden>
+<h2>🧱 Material &amp; Zuschnitt <button type="button" class="hilfe-knopf no-print" data-hilfe="matzu">i</button></h2>
+<div class="small mz-kompakt" id="cockpitMatZuText"></div>
+<div class="bar"><button id="cockpitMatZuOeffnen" class="blue mz-knopf">🧱 Material &amp; Zuschnitt öffnen</button></div>
 </div>
-</div>
-<div class="card klapp" id="cockpitZuschnittCard" hidden>
-<h2 class="klapp-kopf" data-klapp="zuschnitt" role="button" tabindex="0" aria-expanded="false">Zuschnitt<span id="cockpitZuschnittCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-zuschnitt">i</button><span class="klapp-chevron">›</span></h2>
-<div class="klapp-body">
-<div class="small" style="color:var(--muted);margin-bottom:6px">Derselbe Rollenblech-Plan wie in der einzelnen Massaufnahme, nur über das ganze Projekt. Gleiche Berechnung, gleiche Schnittfuge, gleiches Reststücke-Lager.</div>
-<div id="cockpitZuschnittBody"></div>
-</div>
-</div>
-<div class="card klapp" id="cockpitReservierungCard" hidden>
-<h2 class="klapp-kopf" data-klapp="reservierung" role="button" tabindex="0" aria-expanded="false">Reservierung<span id="cockpitReservierungCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-reservierung">i</button><span class="klapp-chevron">›</span></h2>
-<div class="klapp-body">
-<div class="small" style="color:var(--muted);margin-bottom:6px">Was für dieses Projekt gebraucht, reserviert, zugeschnitten und gerüstet ist. Ein Rest wird nie automatisch eingeplant.</div>
-<div id="cockpitReservierungBody"></div>
-</div>
-</div>
+
 <div class="card klapp" id="cockpitAmCard">
 <h2 class="klapp-kopf" data-klapp="am" role="button" tabindex="0" aria-expanded="false">📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-am">i</button><span class="klapp-chevron">›</span></h2>
 <div class="klapp-body">
@@ -450,6 +436,40 @@
      Laedt ausschliesslich ueber signierte URLs (privater Bucket) und
      veraendert den Bearbeitungszustand der Massaufnahme nicht.
      Siehe js/24-projekt-cockpit.js, openMeasMedien(). -->
+
+<!-- ===== v3.15 MATERIAL & ZUSCHNITT - die zentrale Arbeitsseite eines
+     Projekts. Sie ersetzt die drei Cockpit-Karten aus v3.09; deren
+     ausfuehrliche Ansichten stehen unveraendert unten als Einzelheiten.
+     Die Hauptansicht ist bewusst eine Kartenliste und KEINE Tabelle. -->
+<div id="matZuModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>🧱 Material &amp; Zuschnitt <button type="button" class="hilfe-knopf no-print" data-hilfe="matzu">i</button></h2>
+<div class="small" id="matZuTitel"></div>
+<div class="mz-kennzahlen" id="matZuKennzahlen"></div>
+</div>
+<div id="matZuBody"></div>
+<details class="mz-details" id="matZuDetailsMaterial" hidden><summary>Einzelheiten: ganze Materialübersicht des Projekts <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-material">i</button></summary>
+<div class="card" id="cockpitMaterialCard">
+<div class="small" style="color:var(--muted);margin-bottom:6px">Zusammengefasst aus dem, was die Massaufnahmen dieses Projekts gespeichert haben. Es wird nichts neu gerechnet.</div>
+<div id="cockpitMaterialBody"></div>
+</div>
+</details>
+<details class="mz-details" id="matZuDetailsZuschnitt" hidden><summary>Einzelheiten: projektweiter Rollenblech-Plan <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-zuschnitt">i</button></summary>
+<div class="card" id="cockpitZuschnittCard">
+<div class="small" style="color:var(--muted);margin-bottom:6px">Derselbe Rollenblech-Plan wie in der einzelnen Massaufnahme, nur über das ganze Projekt. Gleiche Berechnung, gleiche Schnittfuge, gleiches Reststücke-Lager.</div>
+<div id="cockpitZuschnittBody"></div>
+</div>
+</details>
+<details class="mz-details" id="matZuDetailsReservierung" hidden><summary>Einzelheiten: Reservierung und Reststücke <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-reservierung">i</button></summary>
+<div class="card" id="cockpitReservierungCard">
+<div class="small" style="color:var(--muted);margin-bottom:6px">Was für dieses Projekt gebraucht, reserviert, zugeschnitten und gerüstet ist. Ein Rest wird nie automatisch eingeplant.</div>
+<div id="cockpitReservierungBody"></div>
+</div>
+</details>
+<div class="bar"><button id="matZuZurueck" class="gray">↩️ Zurück zum Projekt</button></div>
+</div>
+</div>
 <div id="measMediaModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
@@ -1527,7 +1547,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.14.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 57 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.15.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 59 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -2059,7 +2079,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.14.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.15.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2133,6 +2153,7 @@ nicht neu installieren.</div>
 <script src="js/53-versionen.js"></script>
 <script src="js/54-zurueck.js"></script>
 <script src="js/55-winkel.js"></script>
+<script src="js/56-material-zuschnitt.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

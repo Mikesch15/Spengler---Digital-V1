@@ -419,6 +419,9 @@ function newMeasurementWithType(type){
  measWsNeueMarke();
  // v3.05: eine noch nicht gespeicherte Massaufnahme hat keinen Arbeitsstatus.
  if(typeof mwStandAusZeile==="function"){mwStandAusZeile(null);renderMeasWorkflow()}
+ // v3.15: welche Massaufnahme im Formular offen ist - daran haengt, ob in
+ // ihrer Zuschnittansicht abgehakt werden kann. Eine neue hat noch keine.
+ if(typeof zeFormularAuf==="function")zeFormularAuf(null);
  if(typeof verNeuLaden==="function")verNeuLaden();   // v3.09 Fassungen
  $("printMeasurementBtn").hidden=false;
  $("measType").value=type;
@@ -645,6 +648,7 @@ function openMeasurement(m){
  if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(m.type);
  // v3.05 Arbeitsstatus aus der geladenen Zeile - kein zweiter Ladevorgang.
  if(typeof mwStandAusZeile==="function"){mwStandAusZeile(m);renderMeasWorkflow()}
+ if(typeof zeFormularAuf==="function")zeFormularAuf(m.id);
  if(typeof verNeuLaden==="function")verNeuLaden();   // v3.09 Fassungen
  updateMeasFormTitle();
 }

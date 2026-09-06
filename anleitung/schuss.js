@@ -305,22 +305,24 @@ const liste=[];
  await schuss("38-projektmodule","#pmListe",{warte:600,breite:900});
  await page.evaluate(()=>{$("settingsModal").hidden=true});
 
- // Reservierung im Projekt-Cockpit.
+ // v3.15: die zentrale Seite MATERIAL & ZUSCHNITT.
  await page.evaluate(async()=>{
-  $("projectCockpitModal").hidden=false;
   cockpitProjectId=1;
   // Das Reststuecke-Lager wird sonst von loadAllData() gefuellt, das hier
   // nicht laeuft - deshalb aus denselben Demodaten setzen.
   if(typeof reststuecke!=="undefined")reststuecke=window.__demo.reststuecke.slice();
+  if(typeof openMaterialZuschnitt==="function")await openMaterialZuschnitt(1);
+ });
+ await schuss("42-matzu","#matZuModal .modalbox",{warte:1200,breite:900});
+ // Die ausfuehrliche Reservierung steht seit v3.15 zugeklappt darunter.
+ await page.evaluate(async()=>{
+  const d=$("matZuDetailsReservierung"); if(d)d.open=true;
   if(typeof resvCockpitLaden==="function")await resvCockpitLaden(1);
-  // v3.11: die Karte ist klappbar und startet zugeklappt - fuer das Bild auf.
-  const kr=document.querySelector('#cockpitReservierungCard .klapp-kopf[data-klapp]');
-  if(kr&&!kr.closest(".klapp").classList.contains("open"))kr.click();
  });
  await schuss("39-reservierung","#cockpitReservierungCard",{warte:900,breite:900});
  // v3.13: die Sammelaktionen - Auswahl, Zahl am Knopf, Sperrzustand.
  await schuss("41-sammelaktion","#cockpitReservierungBody .resv-bulk",{warte:300,breite:900});
- await page.evaluate(()=>{$("projectCockpitModal").hidden=true});
+ await page.evaluate(()=>{$("matZuModal").hidden=true});
 
  // Werkstatt- und Ruestansicht.
  await page.evaluate(async()=>{

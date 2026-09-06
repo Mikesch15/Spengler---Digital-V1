@@ -92,7 +92,14 @@ const vorbereiten=(page,module,schnittfuge)=>page.evaluate(([auf,mod,fuge])=>{
  pmUebernehmen(mod);
  $("appRoot").hidden=false;$("authScreen").hidden=true;$("startScreen").hidden=true;
  $("settingsModal").hidden=true;$("measurementEditModal").hidden=true;
+ // v3.15: die drei ausfuehrlichen Ansichten liegen jetzt auf der Seite
+ // MATERIAL & ZUSCHNITT, zugeklappt. Fuer diesen Pruefstand wird die
+ // Seite geoeffnet und alles aufgeklappt - eine ueberholte Erwartung,
+ // kein Codefehler; geprueft wird weiterhin dasselbe.
  $("projectCockpitModal").hidden=false;
+ $("matZuModal").hidden=false;
+ ["matZuDetailsMaterial","matZuDetailsZuschnitt","matZuDetailsReservierung"]
+  .forEach(id=>{const d=$(id); if(d){d.hidden=false; d.open=true}});
  pmSichtbarkeitAuffrischen();
 },[AUFNAHMEN,module,schnittfuge]);
 
@@ -103,8 +110,8 @@ const stand=page=>page.evaluate(()=>{
  return {
   matHidden:mk.hidden, matHoehe:Math.round(mr.height),
   zuHidden:zk.hidden,  zuHoehe:Math.round(zr.height),
-  matZahl:($("cockpitMaterialCount").textContent||"").trim(),
-  zuZahl:($("cockpitZuschnittCount").textContent||"").trim(),
+  matZahl:(($("cockpitMaterialCount")||{}).textContent||"").trim(),
+  zuZahl:(($("cockpitZuschnittCount")||{}).textContent||"").trim(),
   // textContent, nicht innerText: die Einzelheiten stehen in <details>
   matText:$("cockpitMaterialBody").textContent.replace(/\s+/g," ").trim(),
   zuText:$("cockpitZuschnittBody").textContent.replace(/\s+/g," ").trim(),
@@ -145,7 +152,10 @@ const stand=page=>page.evaluate(()=>{
  p(s.zuHidden===true,"Zuschnittkarte bleibt aus, solange ihr Modul aus ist",s.zuHidden);
  p(s.matGruppen.length===2&&s.matGruppen.indexOf("Kupfer")>=0&&s.matGruppen.indexOf("Titanzink")>=0,
    "zwei Materialgruppen, aus der bestehenden Materialverwaltung benannt",s.matGruppen);
- p(s.matZahl==="2","der Zaehler nennt die Materialien",s.matZahl);
+ // Der Zaehler stand in der Klapp-Ueberschrift, die es seit v3.15 nicht
+ // mehr gibt; die Zahl steht jetzt in den Kennzahlen der Seite.
+ const kz=await page.evaluate(()=>($("matZuKennzahlen").innerText||"").replace(/\s+/g," ").trim());
+ p(/Materialpositionen/i.test(kz),"die Kennzahl nennt die Materialpositionen",kz);
 
  console.log("\nC · Zusammenfassen nur, was fachlich dasselbe ist");
  // Titanzink: "Stücke (Zuschnitte)" kommt in 11 mit 2 und in 12 mit 1 vor -> 3

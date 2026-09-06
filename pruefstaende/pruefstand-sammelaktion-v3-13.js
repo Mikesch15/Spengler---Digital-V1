@@ -123,7 +123,13 @@ const vorbereiten=async(page,module)=>{
   $("appRoot").hidden=false;$("authScreen").hidden=true;$("startScreen").hidden=true;
   $("settingsModal").hidden=true;$("measurementEditModal").hidden=true;
   $("werkstattModal").hidden=true;
+ // v3.15: die Reservierung liegt jetzt zugeklappt auf der Seite
+ // MATERIAL & ZUSCHNITT. Fuer diesen Pruefstand wird sie geoeffnet -
+ // ueberholte Erwartung, kein Codefehler.
   $("projectCockpitModal").hidden=false;
+  $("matZuModal").hidden=false;
+  ["matZuDetailsMaterial","matZuDetailsZuschnitt","matZuDetailsReservierung"]
+   .forEach(id=>{const d=$(id); if(d){d.hidden=false; d.open=true}});
   window.__ruf=[];
  },[AUFNAHMEN,module,RESTE]);
  await page.evaluate(()=>resvCockpitLaden(7));

@@ -993,3 +993,43 @@ input:has(+ .winkel-knopf){min-width:70px}
 .werk-zeile-jetzt{border-left:4px solid var(--blue);padding-left:8px;
  background:linear-gradient(90deg,var(--blue-light),transparent 60%)}
 .werk-block-dran{outline:2px solid var(--blue);outline-offset:4px;border-radius:8px}
+
+/* ---- v3.15 Material & Zuschnitt ---------------------------------------- */
+/* Hauptansicht bewusst als Kartenliste, nicht als Tabelle: die Seite wird auf
+   dem Handy in Werkstatt und Baustelle bedient. */
+.mz-kennzahlen{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.mz-kennzahlen[hidden]{display:none}
+.mz-kennzahl{flex:1 1 130px;min-width:0}
+.mz-kennzahl label{display:block}
+.mz-titel{margin:14px 0 6px;font-size:13px}
+.mz-karte{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.mz-karte-fertig{border-color:var(--green)}
+.mz-karte-titel{font-weight:700;font-size:14px;word-break:break-word}
+.mz-karte-zeile{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
+.mz-stand{color:var(--ink);font-weight:700}
+.mz-zahl{font-weight:700;color:var(--ink)}
+.mz-knopf{width:100%;min-height:44px;margin-top:8px}
+.mz-klein{min-height:36px;margin-left:6px}
+.mz-balken{height:8px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:6px}
+.mz-balken-innen{height:100%;background:var(--blue);border-radius:5px}
+.mz-balken-innen.mz-voll{background:var(--green)}
+.mz-warn{font-size:12px;color:var(--red);font-weight:700;margin-top:6px;word-break:break-word}
+.mz-rest{font-size:12px;margin:8px 0 4px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mz-kompakt{line-height:1.5}
+.mz-details{margin:10px 0}
+.mz-details[hidden]{display:none}
+.mz-details>summary{cursor:pointer;padding:8px 4px;font-size:12px;color:var(--muted)}
+
+/* v3.15 Zuschnittstueck abhaken: die Positionsnummern aus v2.88 werden
+   bedienbar, statt eine zweite Liste danebenzustellen. Grosse Trefferflaeche,
+   ein Tap = erledigt. Die globalen button-Regeln werden dafuer ausdruecklich
+   zurueckgesetzt (CLAUDE.md 72.5). */
+button.zu-nr.zu-nr-hak{min-height:34px;min-width:34px;padding:2px 8px;cursor:pointer;
+ text-transform:none;letter-spacing:0;font-weight:700;line-height:1.1;
+ border:1.5px solid var(--line);background:var(--card-bg);color:var(--ink)}
+button.zu-nr.zu-nr-hak.ze-ok{border-color:var(--green);background:var(--green);color:#fff}
+button.zu-nr.zu-nr-hak.ze-ok::before{content:"✓ "}
+.ze-stand{font-size:11px;color:var(--muted);white-space:nowrap}
+.ze-stand.ze-stand-ok{color:var(--green);font-weight:700}
+button.ze-alle{min-height:30px;padding:2px 8px;font-size:11px;text-transform:none;
+ letter-spacing:0;background:transparent;border:1px solid var(--line);color:var(--muted)}

@@ -139,6 +139,9 @@ function pzuPlan(M){
  const zuLang=[];
  (p.gruppen||[]).forEach(g=>(g.zuLang||[]).forEach(x=>zuLang.push(x)));
  return {art:"rolle", einheit:"Stück",
+  // v3.15: Zusammenfassung ueber mehrere Massaufnahmen - hier wird NICHT
+  // abgehakt, die Stuecknummern sind neu vergeben und nicht eindeutig.
+  sammel:true,
   material:M.material,
   einleitung:(typeof ZU_EINLEITUNG_ROLLE!=="undefined")?ZU_EINLEITUNG_ROLLE:"",
   zusatz:"Zusammengefasst über "+M.quellen.length+" Massaufnahme"+(M.quellen.length===1?"":"n")
@@ -225,11 +228,21 @@ if($("cockpitZuschnittBody")){
 // Eine Stelle frischt beide neuen Projektkarten auf. js/47 ruft sie nach
 // einer Schalteraenderung, js/24 nach dem Laden der Massaufnahmen.
 // Ist das Cockpit gar nicht offen, passiert nichts.
-function pmSichtbarkeitAuffrischen(){
- if(typeof renderProjektMaterial==="function")renderProjektMaterial();
- if(typeof renderProjektZuschnitt==="function")renderProjektZuschnitt();
- // Die Reservierung braucht eine eigene Abfrage - deshalb ueber resvCockpitLaden,
- // das ein zwischenzeitlich gewechseltes Projekt selbst erkennt.
- if(typeof resvCockpitLaden==="function"&&typeof cockpitProjectId!=="undefined")
-  resvCockpitLaden(cockpitProjectId);
+async function pmSichtbarkeitAuffrischen(){
+ // v3.15: Beim Laden des Projekts wird nur noch die eine kompakte Karte
+ // gebraucht. Die ausfuehrlichen Ansichten (Material, projektweiter
+ // Zuschnitt, Reservierung) zeichnen sich erst, wenn die Seite
+ // "Material & Zuschnitt" wirklich offen ist - sonst laeuft ihre Arbeit
+ // samt Reservierungs-Abfrage bei jedem Projektwechsel ins Leere.
+ const an=(typeof mzModulAn==="function")&&mzModulAn();
+ if(an&&typeof zeLaden==="function"&&Array.isArray(projectMeasurementsCache))
+  await zeLaden(projectMeasurementsCache.map(m=>m.id),true);
+ if(typeof cockpitMatZuStand==="function")cockpitMatZuStand();
+ if(typeof mzSeiteOffen==="function"&&mzSeiteOffen()){
+  if(typeof renderProjektMaterial==="function")renderProjektMaterial();
+  if(typeof renderProjektZuschnitt==="function")renderProjektZuschnitt();
+  if(typeof resvCockpitLaden==="function"&&typeof cockpitProjectId!=="undefined")
+   await resvCockpitLaden(cockpitProjectId);
+  if(typeof mzAuffrischen==="function")mzAuffrischen();
+ }
 }

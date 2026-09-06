@@ -339,11 +339,14 @@ const karte=(page)=>page.evaluate(()=>{
   const r={hidden:z.hidden,sichtbar:getComputedStyle(z).display!=="none"};
   workflowAktiv=true; return r});
  p(aus.hidden&&!aus.sichtbar,"abgeschalteter Ablauf: die Zeile ist wirklich weg (nicht nur hidden)",aus);
- // Dieselbe Falle betrifft die drei Modulzeilen aus v3.09.
+ // Dieselbe Falle betrifft die Modulzeile. Seit v3.15 ist es EINE Zeile
+ // (Material & Zuschnitt) statt der drei aus v3.09 - ueberholte Erwartung,
+ // kein Codefehler; geprueft wird weiterhin dasselbe.
  const modulzeile=await page.evaluate(()=>{
-  const z=$("cockpitStandMaterialZeile"); z.hidden=true;
+  const z=$("cockpitStandMatZuZeile"); if(!z)return {fehlt:true};
+  z.hidden=true;
   return {hidden:z.hidden,sichtbar:getComputedStyle(z).display!=="none"}});
- p(!modulzeile.sichtbar,"auch die Modulzeilen aus v3.09 verschwinden wirklich",modulzeile);
+ p(!modulzeile.fehlt&&!modulzeile.sichtbar,"auch die Modulzeile verschwindet wirklich",modulzeile);
 
  // ---- H · Status korrigieren als Dialog ----------------------------------
  console.log("\nH · Status korrigieren");
