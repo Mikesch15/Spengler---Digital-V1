@@ -18058,6 +18058,18 @@ abgebrochener Lauf sieht aus wie „keine Fehler"). Danach wieder 101/101.
 liefert die per CSS grossgeschriebene Fassung („🔁 ARBEITSSTATUS"), der
 Vergleich ist jetzt gross-/kleinschreibungsunabhängig (Abschnitt 80.4).
 
+**Volle Regression grün** – alle **29** Prüfstände im Repo, nach Abschluss
+sämtlicher Bearbeitungen in einem Zug gelaufen: verschnitt 1578,
+register-zuschnitt 373, kehle 158, kamin 153, medien-am-ende 150,
+mauerabdeckung 146, freies-profil 118, konisch 114, einfassung 113,
+rinne-halbrund 104, workflow 101, einlaufblech 99, rollenblech-pdf 96,
+anschlussblech 95, rinne-zuschnitt 95, lukarne 82, warteschlange 75,
+hilfe 68, lxb-druck 58, dila-sichtbar 57, skizze-foto 54,
+aufgaben-schalter 49, pdf 45, change-sperre 36, vorlage-zugang 35,
+excel-import 31, schnittfuge-reste 27, felder-bleiben 23, bediensachen 22
+– ohne einen einzigen Fehlschlag. Auch `warteschlange`, der in v3.06
+zeitweise sprunghaft war (Abschnitt 111.7), lief durch.
+
 **Regierapport nachweislich unverändert**: unter `media:print` mit
 ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
 v3.06-Stand gerendert, mit angeglichener Versionsnummer – **DOM und Bild
