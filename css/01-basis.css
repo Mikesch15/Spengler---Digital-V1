@@ -631,3 +631,52 @@ label.kam-schalter input[type=checkbox]{width:20px;min-width:20px;height:20px;
      unleserlich, weil die Feldnamen Punkte und Bindestriche tragen. */
   text-transform:none;font-size:11px;color:var(--muted)}
 .import-feld select{min-height:38px;font-size:13px}
+
+/* ---- v3.05 Arbeitsstatus der Massaufnahme -------------------------------
+   Gleiche Bauform wie der Projektstatus (v2.46): Zeichen + Text + Farbe,
+   nie die Farbe allein. */
+/* Der Zuweisungs-Dialog oeffnet UEBER dem Massaufnahme-Formular. Alle
+   .modal teilen z-index 500, dann entscheidet die Reihenfolge im Dokument -
+   und das Formular steht weiter unten. Ohne diese Zeile laege der Dialog
+   dahinter. Kein display hier, sonst schlaegt die Regel [hidden] (CLAUDE.md 59). */
+#mwZuweisenModal{z-index:700}
+.mw-bereich{margin-top:14px;border-top:2px solid var(--card-line);padding-top:10px}
+.mw-badge{display:inline-block;font-size:11px;font-weight:900;line-height:1.5;
+ border:1px solid currentColor;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.mw-grau{color:var(--muted)}
+.mw-blau{color:var(--blue)}
+.mw-rot{color:var(--red)}
+.mw-orange{color:#a35a06}
+.mw-gruen{color:var(--green)}
+html.dark .mw-gruen{color:#4cc79a}
+html.dark .mw-rot{color:#f08b80}
+html.dark .mw-orange{color:#e0a35c}
+.mw-kopf{margin-bottom:8px}
+.mw-liste{margin-bottom:10px}
+.mw-zeile{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;
+ font-size:12px;padding:4px 0;border-bottom:1px solid var(--card-line);min-width:0}
+.mw-zeile:last-child{border-bottom:0}
+.mw-zeile .mw-label{flex:0 0 118px;font-size:9px;font-weight:900;color:var(--muted);
+ text-transform:uppercase;letter-spacing:.03em}
+.mw-zeile>span:last-child{flex:1 1 140px;min-width:0;word-break:break-word}
+.mw-zeit{color:var(--muted);font-size:11px}
+.mw-aktionen{display:flex;flex-direction:column;gap:6px}
+.mw-voll{width:100%;min-height:44px}
+.mw-fehler{color:var(--red);font-weight:700}
+
+/* ---- v3.05 Persoenliche Aufgaben auf der Startseite --------------------- */
+.aufgabe{border:1px solid var(--card-line);border-left:4px solid var(--muted);
+ border-radius:10px;padding:9px 11px;margin-bottom:8px;background:var(--card-bg)}
+.aufgabe-rot{border-left-color:var(--red)}
+.aufgabe-orange{border-left-color:#d98014}
+.aufgabe-kopf{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:900;
+ color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.aufgabe-marke{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+.aufgabe-marke-rot{background:var(--red)}
+.aufgabe-marke-orange{background:#d98014}
+.aufgabe-titel{font-size:13px;font-weight:800;word-break:break-word;line-height:1.3}
+.aufgabe-zusatz{font-size:11px;color:var(--muted);word-break:break-word;margin-top:2px}
+.aufgabe-knoepfe{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.aufgabe-knoepfe button{flex:1 1 auto;min-height:40px}
+.aufgabe-haupt{flex:1 1 100%}
+@media(min-width:520px){.aufgabe-haupt{flex:1 1 auto}}

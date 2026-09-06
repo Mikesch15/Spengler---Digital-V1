@@ -344,7 +344,10 @@ async function loadProjectMeasurements(projectId){
   const medien=measMedienText(m);
   return `<div class="report-row">
 <div class="report-row-info"><b>${esc(art)}</b><span>${esc(infoZeileOhne(art,m.title,...eintragZusatzTeile(m))||"Keine weiteren Angaben")}</span>`
-   +(medien?`<span class="meas-medien-hinweis">${esc(medien)}</span>`:"")+`</div>
+   +(medien?`<span class="meas-medien-hinweis">${esc(medien)}</span>`:"")
+   // v3.05 Arbeitsstatus - nur wenn der Workflow ueberhaupt begonnen hat.
+   +((typeof mwBadge==="function"&&m.workflow_status&&m.workflow_status!=="in_bearbeitung")
+      ?`<span class="meas-medien-hinweis">${mwBadge(m.workflow_status)}</span>`:"")+`</div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>`
    +(medien?`<button class="gray" data-meas-medien="${m.id}">📷 Fotos/Skizzen</button>`:"")+`

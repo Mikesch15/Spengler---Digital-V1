@@ -7,8 +7,8 @@ window.__demo={
   {id:3,name:"Sturmschaden Kamin",order_no:"2026-131",customer:"Verwaltung Rosenweg",object:"Rosenweg 8, 3006 Bern",archived:false,status:"abgeschlossen",created_by:"u1",created_at:"2026-07-02T09:00:00Z",updated_by:"u1",updated_at:"2026-08-19T16:05:00Z"}
  ],
  measurements:[
-  {id:11,project_id:1,type:"rinne_halbrund",title:"Rinne Nordseite",date:"2026-08-29",note:"",data:{},photo_path:null,sketch_paths:[],created_by:"u1",created_at:"2026-08-29T09:10:00Z",updated_by:"u1",updated_at:"2026-08-29T09:40:00Z"},
-  {id:12,project_id:1,type:"einlaufblech_gerade",title:"Einlaufblech Traufe Nord",date:"2026-08-29",note:"",data:{},photo_path:null,sketch_paths:[],created_by:"u1",created_at:"2026-08-29T10:00:00Z",updated_by:"u2",updated_at:"2026-09-02T10:12:00Z"},
+  {id:11,project_id:1,type:"rinne_halbrund",title:"Rinne Nordseite",date:"2026-08-29",note:"",data:{},photo_path:null,sketch_paths:[],created_by:"u1",created_at:"2026-08-29T09:10:00Z",updated_by:"u1",updated_at:"2026-08-29T09:40:00Z",workflow_status:"zu_ruesten",freigegeben_von:"u1",freigegeben_am:"2026-08-29T09:45:00Z",ruester_id:"u1",ruester_zugewiesen_am:"2026-08-29T10:00:00Z",monteur_id:"u2",monteur_zugewiesen_am:"2026-08-29T10:00:00Z"},
+  {id:12,project_id:1,type:"einlaufblech_gerade",title:"Einlaufblech Traufe Nord",date:"2026-08-29",note:"",data:{},photo_path:null,sketch_paths:[],created_by:"u1",created_at:"2026-08-29T10:00:00Z",updated_by:"u2",updated_at:"2026-09-02T10:12:00Z",workflow_status:"in_bearbeitung"},
   {id:13,project_id:1,type:"kehle",title:"Kehle Lukarne Ost",date:"2026-08-30",note:"",data:{},photo_path:null,sketch_paths:[],created_by:"u2",created_at:"2026-08-30T13:20:00Z",updated_by:"u2",updated_at:"2026-08-30T13:55:00Z"}
  ],
  ausmass:[
@@ -21,7 +21,8 @@ window.__demo={
   {id:3,project_id:1,name:"Dachaufsicht Plan.pdf",file_path:"project-files/1/plan.pdf",size_bytes:412300,mime_type:"application/pdf",created_by:"u1",created_at:"2026-08-15T08:20:00Z",updated_at:"2026-08-15T08:20:00Z"}
  ],
  audit_log:[
-  {id:9,company_id:"c1",user_id:"u2",entity_type:"measurement",entity_id:12,project_id:1,action:"updated",description:"Einlaufblech Traufe Nord",changes:null,created_at:"2026-09-02T10:12:00Z"},
+  {id:10,company_id:"c1",user_id:"u1",entity_type:"measurement",entity_id:11,project_id:1,action:"status_changed",description:"Rinne Nordseite",changes:[{field:"workflow_status",old:"freigegeben",new:"zu_ruesten"},{field:"ruester_id",old:null,new:"u1"}],created_at:"2026-08-29T10:00:00Z"},
+ {id:9,company_id:"c1",user_id:"u2",entity_type:"measurement",entity_id:12,project_id:1,action:"updated",description:"Einlaufblech Traufe Nord",changes:null,created_at:"2026-09-02T10:12:00Z"},
   {id:8,company_id:"c1",user_id:"u1",entity_type:"project",entity_id:1,project_id:1,action:"status_changed",description:"Sanierung Dach Nord",changes:[{field:"status",old:"offen",new:"in_arbeit"}],created_at:"2026-08-29T08:05:00Z"},
   {id:7,company_id:"c1",user_id:"u1",entity_type:"project",entity_id:1,project_id:1,action:"created",description:"Sanierung Dach Nord",changes:null,created_at:"2026-08-14T08:00:00Z"}
  ],

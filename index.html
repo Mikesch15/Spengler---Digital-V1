@@ -75,6 +75,13 @@
 <div class="brand" id="startBrandText">SPENGLER-DIGITAL</div>
 <h1>Willkommen</h1>
 <div class="small" id="startCompanyLine" style="margin:-8px 0 10px"></div>
+<!-- v3.05 Persoenliche Aufgaben. Entsteht ausschliesslich aus den echten
+     Massaufnahme-/Zuweisungsdaten (js/45-aufgaben.js), kein zweites
+     Aufgabensystem. Bleibt zugeklappt, solange nichts offen ist. -->
+<div class="card" id="aufgabenKarte" hidden>
+<h2 id="aufgabenTitel">🔔 Meine offenen Aufgaben <button type="button" class="hilfe-knopf no-print" data-hilfe="aufgaben">i</button></h2>
+<div id="aufgabenListe"></div>
+</div>
 <div class="card">
 <h2>Was möchtest du tun? <button type="button" class="hilfe-knopf no-print" data-hilfe="start">i</button></h2>
 <!-- v2.44: Regierapport/Massaufnahme/Ausmass sind keine eigenen
@@ -97,7 +104,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.04</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.05</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -387,6 +394,27 @@
 </div>
 
 <!-- Grosse Ansicht eines einzelnen Bildes (v2.50) -->
+<!-- v3.05 Ruester und Monteur zuweisen. Die Auswahl kommt aus dem bereits
+     geladenen allProfiles (RLS-gefiltert) - keine zweite Mitarbeiterverwaltung. -->
+<div id="mwZuweisenModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>👥 Rüster und Monteur zuweisen <button type="button" class="hilfe-knopf no-print" data-hilfe="zuweisen">i</button></h2>
+<div class="small" id="mwZuweisenTitel" style="color:var(--muted);margin-bottom:8px"></div>
+<div class="grid">
+<div class="wide"><label>Rüsten</label><select id="mwZuweisenRuester"></select></div>
+<div class="wide"><label>Montage</label><select id="mwZuweisenMonteur"></select></div>
+</div>
+<div class="info">Eine Person darf beides übernehmen. „– niemand –“ nimmt die Zuweisung wieder zurück.</div>
+<div class="small mw-fehler" id="mwZuweisenFehler" hidden></div>
+<div class="bar">
+<button id="mwZuweisenSpeichern" class="green">✓ Zuweisung speichern</button>
+<button id="mwZuweisenAbbrechen" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
 <div id="measMediaViewer" class="medien-viewer" hidden>
 <div class="medien-viewer-bar">
 <span id="measMediaViewerLabel"></span>
@@ -1132,6 +1160,11 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <div class="wide"><label>Notiz / Masse</label><textarea id="measNote" placeholder="Masse, Hinweise …"></textarea></div>
 </div>
 
+<!-- v3.05 Arbeitsstatus: Freigabe, Zuweisung, Ruesten, Montage.
+     Gezeichnet von js/44-workflow.js, erst wenn die Massaufnahme
+     gespeichert ist - vorher gibt es keinen Workflow. -->
+<div id="measWorkflowBereich" class="mw-bereich" hidden></div>
+
 <div class="bar">
 <button id="saveMeasurement" class="green">💾 Speichern</button>
 <button id="printMeasurementBtn" class="gray" hidden>🖨️ Als PDF</button>
@@ -1248,7 +1281,7 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.04.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 39 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.05.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 41 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -1733,7 +1766,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.04.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.05.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -1795,6 +1828,8 @@ nicht neu installieren.</div>
 <script src="js/41-hilfe.js"></script>
 <script src="js/42-reste.js"></script>
 <script src="js/43-warteschlange.js"></script>
+<script src="js/44-workflow.js"></script>
+<script src="js/45-aufgaben.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

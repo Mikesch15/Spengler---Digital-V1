@@ -45,6 +45,9 @@ async function zurueckInsCockpit(bereich){
 }
 async function measEditZurueck(){
  if(measEditReturnTo==="projectCockpit"&&cockpitProjectId)await zurueckInsCockpit("meas");
+ // v3.05: aus der Aufgabenzentrale der Startseite geoeffnet -> zurueck zur
+ // Startseite, mit frisch geladenen Aufgaben.
+ else if(measEditReturnTo==="startScreen"){$("startScreen").hidden=false;if(typeof aufgabenNeuLaden==="function")await aufgabenNeuLaden()}
  else{$("measurementsModal").hidden=false;await renderMeasurementsOverview()}
  measEditReturnTo="measurementsModal";
 }

@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.04";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.05";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -47,8 +47,8 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.04<br>
-  Stand 5. September 2026<br><br>
+  Version 3.05<br>
+  Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
  </div>
@@ -64,20 +64,21 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
 <li><span class="nr">6</span>Das Projekt-Cockpit</li>
 <li><span class="nr">7</span>Massaufnahme – die zwölf Funktionen</li>
 <li><span class="nr">8</span>Eine Massaufnahme Schritt für Schritt</li>
-<li><span class="nr">9</span>Fotos und Skizzen</li>
-<li><span class="nr">10</span>PDF erstellen</li>
-<li><span class="nr">11</span>Zwei weitere Beispiele: Rinne und Kehle</li>
-<li><span class="nr">12</span>Ausmass</li>
-<li><span class="nr">13</span>Regierapport</li>
-<li><span class="nr">14</span>Suche</li>
-<li><span class="nr">15</span>Änderungsverlauf</li>
-<li><span class="nr">16</span>Einstellungen</li>
-<li><span class="nr">17</span>Feedback</li>
-<li><span class="nr">18</span>System-Administration (nur Betreiber)</li>
-<li><span class="nr">19</span>Auf Handy und Tablet</li>
-<li><span class="nr">20</span>Ohne Internet</li>
-<li><span class="nr">21</span>Begriffe</li>
-<li><span class="nr">22</span>Zu diesem Dokument</li>
+<li><span class="nr">9</span>Freigeben, Rüsten, Montieren</li>
+<li><span class="nr">10</span>Fotos und Skizzen</li>
+<li><span class="nr">11</span>PDF erstellen</li>
+<li><span class="nr">12</span>Zwei weitere Beispiele: Rinne und Kehle</li>
+<li><span class="nr">13</span>Ausmass</li>
+<li><span class="nr">14</span>Regierapport</li>
+<li><span class="nr">15</span>Suche</li>
+<li><span class="nr">16</span>Änderungsverlauf</li>
+<li><span class="nr">17</span>Einstellungen</li>
+<li><span class="nr">18</span>Feedback</li>
+<li><span class="nr">19</span>System-Administration (nur Betreiber)</li>
+<li><span class="nr">20</span>Auf Handy und Tablet</li>
+<li><span class="nr">21</span>Ohne Internet</li>
+<li><span class="nr">22</span>Begriffe</li>
+<li><span class="nr">23</span>Zu diesem Dokument</li>
 </ol></nav>
 
 <h2 class="seite">1 · Wofür die App gedacht ist</h2>
@@ -115,8 +116,12 @@ Anmelden wieder selbst eines.</div>
 <tr><td>🔍 Suche</td><td>Findet einen Eintrag über alle Projekte hinweg.</td></tr>
 <tr><td>⚙️ Einstellungen</td><td>Firma, Material, Masse, Mitarbeiter.</td></tr>
 <tr><td>💬 Feedback geben</td><td>Rückmeldung an die Firma bzw. den Betreiber.</td></tr>
-<tr><td>⚙️ System-Administration</td><td>Nur beim Betreiber sichtbar (Abschnitt 18).</td></tr>
+<tr><td>⚙️ System-Administration</td><td>Nur beim Betreiber sichtbar (Abschnitt 19).</td></tr>
 </table>
+<p>Über den Knöpfen erscheint die Karte <strong>🔔 Meine offenen Aufgaben</strong>,
+sobald für dich persönlich etwas ansteht – eine eigene Massaufnahme freigeben, einen
+Auftrag rüsten oder eine Montage bestätigen. Hast du nichts offen, ist die Karte gar
+nicht da. Mehr dazu in Abschnitt 9.</p>
 <p>Oben rechts steht, wer angemeldet ist, daneben <span class="tasten">🔓 Abmelden</span>.
 Unten steht die Programmversion – die ist wichtig, wenn du einen Fehler meldest.</p>
 
@@ -263,7 +268,52 @@ Typ, Material und alle Masse. Bezeichnung, Notiz, Datum, Fotos und Skizzen bleib
 sie gehören zum anderen Dach. Es entsteht ein eigenständiger neuer Datensatz; die Vorlage
 bleibt unverändert.</p>
 
-<h2 class="seite">9 · Fotos und Skizzen</h2>
+<h2 class="seite">9 · Freigeben, Rüsten, Montieren</h2>
+<p>Eine fertig erfasste Massaufnahme geht anschliessend ihren Weg durch die Werkstatt.
+Die App hält fest, wer welchen Schritt gemacht hat und wann.</p>
+<table>
+<tr><th>Status</th><th>Was er heisst</th></tr>
+<tr><td>In Bearbeitung</td><td>Die Aufnahme ist erfasst, aber noch nicht freigegeben.</td></tr>
+<tr><td>Freigegeben</td><td>Der Aufnehmer hat bestätigt, dass sie vollständig ist.</td></tr>
+<tr><td>Zu rüsten</td><td>Ein Rüster ist eingeteilt und noch nicht fertig.</td></tr>
+<tr><td>Gerüstet</td><td>Das Material ist gerüstet.</td></tr>
+<tr><td>Zu montieren</td><td>Ein Monteur ist eingeteilt.</td></tr>
+<tr><td>Montiert</td><td>Die Arbeit ist montiert.</td></tr>
+<tr><td>Abgeschlossen</td><td>Erledigt und abgehakt.</td></tr>
+</table>
+
+<h3>Freigeben</h3>
+<p>Unten in der Massaufnahme steht der Abschnitt <strong>🔁 Arbeitsstatus</strong> mit dem
+Knopf <span class="tasten">✓ Massaufnahme freigeben</span>. Die App fragt vorher nach.</p>
+<figure><img src="bilder/31-workflow.png"><figcaption>Der Arbeitsstatus am Ende der Massaufnahme: wer sie aufgenommen hat, und der Knopf zum Freigeben.</figcaption></figure>
+<div class="hin"><strong>Freigeben kann nur, wer die Massaufnahme aufgenommen hat</strong> –
+auch ein Administrator nicht. Und <strong>freigegeben heisst nicht</strong>, dass ein
+Meister die Masse fachlich geprüft hat. Es heisst: der Aufnehmer bestätigt, dass die
+Aufnahme aus seiner Sicht vollständig aufgenommen und kontrolliert ist.</div>
+
+<h3>Rüster und Monteur einteilen</h3>
+<p>Nach der Freigabe erscheint <span class="tasten">👥 Rüster und Monteur zuweisen</span>.
+Beides ist freiwillig: du kannst nur einen Rüster, nur einen Monteur oder beide setzen.
+<span class="tasten">– niemand –</span> nimmt eine Einteilung wieder zurück.</p>
+<p>Aufnehmer, Rüster und Monteur sind getrennte Rollen – dieselbe Person darf mehrere
+davon übernehmen. Einteilen darf der Aufnehmer oder ein Administrator.</p>
+
+<h3>Gerüstet und Montiert bestätigen</h3>
+<p>Der eingeteilte Rüster sieht die Aufgabe auf seinem Startbildschirm und bestätigt mit
+<span class="tasten">🔧 Gerüstet</span>. Danach erscheint die Montage beim eingeteilten
+Monteur, der mit <span class="tasten">🏠 Montiert</span> bestätigt. Jeder darf nur seinen
+eigenen Schritt bestätigen.</p>
+<figure><img src="bilder/32-aufgaben.png"><figcaption>Meine offenen Aufgaben: rot heisst „jetzt dran“, orange „weniger dringend“. Ein Tippen führt direkt zur richtigen Massaufnahme.</figcaption></figure>
+<p>Jede Aufgabe nennt die <strong>Adresse der Baustelle</strong> und die Art der
+Massaufnahme – dieselbe Bezeichnung wie überall sonst in der App.</p>
+
+<h3>Was im Verlauf steht</h3>
+<p>Jeder Schritt landet mit Person und Zeitpunkt im Änderungsverlauf der Massaufnahme
+(Abschnitt 16): Freigabe, jede Einteilung, Gerüstet und Montiert. Ein Administrator kann
+einen versehentlich gesetzten Schritt über <span class="tasten">↩️ Status korrigieren</span>
+zurücknehmen – auch das steht im Verlauf.</p>
+
+<h2 class="seite">10 · Fotos und Skizzen</h2>
 <figure><img src="bilder/13-fotos-skizzen.png"><figcaption>Der Foto-Bereich – sichtbar im letzten Register.</figcaption></figure>
 <p>Jede Massaufnahme kann <strong>mehrere Fotos und mehrere Skizzen</strong> tragen.
 Auf einem Foto lässt sich direkt zeichnen (<span class="tasten">✏️</span> an der
@@ -274,7 +324,7 @@ Speichern</span> springt direkt dorthin. Bei „Skizze/Foto“ steht er von Anfa
 <p>Notiz und <span class="tasten">💾 Speichern</span> sind immer erreichbar, egal in
 welchem Register du gerade bist.</p>
 
-<h2>10 · PDF erstellen</h2>
+<h2>11 · PDF erstellen</h2>
 <figure><img src="bilder/14-pdf-listen.png"><figcaption>Vor jedem PDF fragt die App, welche Listen gedruckt werden sollen.</figcaption></figure>
 <p>Zehn Kategorien, in jeder Massaufnahme gleich benannt und gleich geordnet:</p>
 <table>
@@ -291,7 +341,7 @@ Bearbeiter steht auf jedem PDF.</p>
 <div class="hin">Der Ausdruck läuft über den Druckdialog des Browsers. Dort „Als PDF
 speichern“ wählen – so entsteht eine Datei, die sich weitergeben lässt.</div>
 
-<h2 class="seite">11 · Zwei weitere Beispiele</h2>
+<h2 class="seite">12 · Zwei weitere Beispiele</h2>
 <h3>Rinne Halbrund</h3>
 <figure><img src="bilder/15-rinne-verlauf.png"><figcaption>Der Rinnenverlauf wird als Kette aus Abschnitten und Übergängen erfasst – so, wie draussen gemessen wird.</figcaption></figure>
 <p>Ein Übergang trägt entweder eine <strong>Ecke</strong> oder einen
@@ -312,7 +362,7 @@ Biegewinkel <strong>d</strong> – sowie alle weiteren Resultate.</p>
 <p>Ohne Firstgehrung wird gar nicht gerechnet; die App sagt dann, warum, statt Zahlen
 zu erfinden.</p>
 
-<h2 class="seite">12 · Ausmass</h2>
+<h2 class="seite">13 · Ausmass</h2>
 <figure><img src="bilder/18-ausmass-auswahl.png"><figcaption>Zwei Arten von Ausmass.</figcaption></figure>
 <figure><img src="bilder/19-ausmass-blitzschutz.png"><figcaption>Das Blitzschutzausmass mit dem hinterlegten Artikelkatalog.</figcaption></figure>
 <table>
@@ -323,7 +373,7 @@ zu erfinden.</p>
 <p>Auch ein Ausmass gehört zu einem Projekt, trägt Fotos und lässt sich als PDF
 drucken.</p>
 
-<h2>13 · Regierapport</h2>
+<h2>14 · Regierapport</h2>
 <figure><img src="bilder/20-regierapport.png"><figcaption>Arbeiten nach Aufwand: Stunden, Ansätze, Material und die Summen.</figcaption></figure>
 <p>Wird der Rapport aus dem Cockpit angelegt, sind Projekt, Auftrags-Nr., Auftraggeber
 und Objekt bereits gefüllt.</p>
@@ -341,7 +391,7 @@ schlägt beim Tippen die nächste noch freie Nummer vor.</div>
 <p>Unten stehen Sachbearbeiter, MWST und die Summen exkl./inkl. MWST.
 <span class="tasten">🖨 PDF / Drucken</span> erzeugt das Blatt für den Kunden.</p>
 
-<h2 class="seite">14 · Suche</h2>
+<h2 class="seite">15 · Suche</h2>
 <figure><img src="bilder/21-suche.png"><figcaption>Die Suche über alle Projekte hinweg.</figcaption></figure>
 <p>Gesucht wird in Rapporten (Auftraggeber, Objekt, Auftrags-Nr.), in Massaufnahmen und
 Ausmassen (Bezeichnung) sowie in den Projekten selbst (Adresse, Name, Auftrags-Nr.,
@@ -354,7 +404,7 @@ Auftraggeber). Projekt-Treffer stehen zuoberst.</p>
 </table>
 <p class="klein">Ein Eintrag, dessen Projekt gelöscht wurde, hat nur den direkten Weg.</p>
 
-<h2>15 · Änderungsverlauf</h2>
+<h2>16 · Änderungsverlauf</h2>
 <figure><img src="bilder/26-verlauf.png"><figcaption>Der Verlauf eines Projekts – wer, wann, was.</figcaption></figure>
 <p>Im Cockpit unter <span class="tasten">🕒 Verlauf anzeigen</span>. Dort stehen die
 Aktivitäten des Projekts <em>und</em> seiner Massaufnahmen, Ausmasse und Rapporte.
@@ -372,7 +422,7 @@ letzten 50 Einträge.</p>
 verschwindet nicht mit ihm. Wurde ein Mitarbeiter entfernt, steht dort
 „Unbekannter Benutzer“.</p>
 
-<h2 class="seite">16 · Einstellungen</h2>
+<h2 class="seite">17 · Einstellungen</h2>
 <p>Zuoberst im Register <strong>Allgemein</strong> steht
 <span class="tasten">📖 Anleitung öffnen (PDF)</span> – dieses Dokument, jederzeit aus
 der App heraus erreichbar.</p>
@@ -408,7 +458,7 @@ oder Weitergeben. <strong>Das Startpasswort wird nur dieses eine Mal angezeigt</
 und lässt sich danach nicht mehr abrufen; geht es verloren, setzt ein Administrator in
 der Mitarbeiterliste ein neues. Beim ersten Anmelden vergibt die Person ein eigenes.</p>
 
-<h2>17 · Feedback</h2>
+<h2>18 · Feedback</h2>
 <figure><img src="bilder/25-feedback.png"><figcaption>Eine Rückmeldung schreiben – erreichbar über 💬 Feedback geben auf dem Startbildschirm.</figcaption></figure>
 <p>Jeder kann eine Rückmeldung schreiben und einem Bereich zuordnen. Die Auswahlliste
 enthält automatisch alle vorhandenen Massaufnahme- und Ausmass-Arten.</p>
@@ -419,7 +469,7 @@ markieren und löschen. Über die Kästchen wird ausgewählt, was in den Downloa
 als <strong>Excel-</strong> oder <strong>Textdatei</strong>. Die Zahl im Knopf sagt,
 wie viele gerade ausgewählt sind.</p>
 
-<h2>18 · System-Administration</h2>
+<h2>19 · System-Administration</h2>
 <figure><img src="bilder/27-systemadmin.png"><figcaption>Die Firmenverwaltung des Betreibers.</figcaption></figure>
 <div class="warn">Dieser Bereich ist <strong>nur für den Betreiber</strong> von
 Spengler-DIGITAL sichtbar, nicht für Firmenadministratoren.</div>
@@ -431,7 +481,7 @@ firmenübergreifend nur für Administratoren sichtbar.</p>
 <p class="klein">Es gibt bewusst <strong>keinen</strong> Zugriff auf Projekte,
 Massaufnahmen oder Fotos einzelner Kundenfirmen.</p>
 
-<h2>19 · Auf Handy und Tablet</h2>
+<h2>20 · Auf Handy und Tablet</h2>
 <p>Die App ist für die Bedienung mit dem Finger gebaut: grosse Knöpfe, umbrechende
 Zeilen, kein seitliches Scrollen.</p>
 <figure>
@@ -449,7 +499,7 @@ Zeichnungen haben dort genug Platz.</p>
 <li><strong>Android:</strong> Menü (die drei Punkte) → „App installieren“ bzw. „Zum Startbildschirm“</li>
 </ul>
 
-<h2 class="seite">20 · Ohne Internet</h2>
+<h2 class="seite">21 · Ohne Internet</h2>
 <p>Die App startet, rechnet <strong>und erfasst</strong> auch ohne Verbindung. Ein
 Hinweis oben sagt, dass keine Verbindung besteht und von wann die angezeigten Daten
 stammen.</p>
@@ -480,7 +530,7 @@ anderes bearbeitet hat, überschreibt die App <strong>nichts</strong>. Der Eintr
 als Konflikt stehen und fragt: <em>Meine Fassung nehmen</em> oder <em>Meine Fassung
 verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 
-<h2>21 · Begriffe</h2>
+<h2>22 · Begriffe</h2>
 <table>
 <tr><th>Begriff</th><th>Bedeutung</th></tr>
 <tr><td>Abwicklung</td><td>Die Breite des flachen Blechs, bevor es gekantet wird.</td></tr>
@@ -495,8 +545,8 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 <tr><td>Register</td><td>Ein Schritt der Erfassung, oben in der Leiste wählbar.</td></tr>
 </table>
 
-<h2 class="seite">22 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.04</strong>, Stand 5. September 2026.</p>
+<h2 class="seite">23 · Zu diesem Dokument</h2>
+<p>Diese Anleitung beschreibt <strong>Version 3.05</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

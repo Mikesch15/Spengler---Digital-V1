@@ -88,19 +88,39 @@ const ARTEN=[
  console.log("\nB · Info-Knoepfe");
  const knoepfe=await page.evaluate(()=>{
   const alle=[...document.querySelectorAll(".hilfe-knopf[data-hilfe]")];
-  const ohneText=alle.map(x=>x.dataset.hilfe).filter(k=>!HILFE_TEXTE[k]);
+  // v3.05: die Workflow-Karte entsteht erst beim Oeffnen einer gespeicherten
+  // Massaufnahme - ohne sie zu zeichnen, pruefte der Pruefstand ihre Knoepfe nie.
+  if(typeof mwStandAusZeile==="function"){
+   mwStandAusZeile({id:1,project_id:1,type:"kehle",title:"T",created_by:"u1",workflow_status:"in_bearbeitung"});
+   renderMeasWorkflow();
+  }
+  if(typeof renderAufgaben==="function"){
+   aufgabenListe=[{art:"freigeben",m:{id:1,project_id:1,type:"kehle",title:"T"}}];
+   renderAufgaben();
+  }
+  const alle2=[...document.querySelectorAll(".hilfe-knopf[data-hilfe]")];
+  const ohneText=alle2.map(x=>x.dataset.hilfe).filter(k=>!HILFE_TEXTE[k]);
+  const ohneLabel=alle2.filter(x=>!x.getAttribute("aria-label")).map(x=>x.dataset.hilfe);
+  // Danach den Startbildschirm wieder in den Normalzustand bringen, sonst
+  // messen die naechsten Abschnitte die gerade erzeugte Aufgabenkarte.
+  if(typeof renderAufgaben==="function"){aufgabenListe=[];renderAufgaben()}
+  if(typeof mwStandAusZeile==="function"){mwStandAusZeile(null);renderMeasWorkflow()}
   return {anzahl:alle.length,ohneText:[...new Set(ohneText)],
+          ohneLabel:[...new Set(ohneLabel)],
           keys:[...new Set(alle.map(x=>x.dataset.hilfe))]};
  });
  p(knoepfe.anzahl>=35,"mindestens 35 Info-Knoepfe im HTML",knoepfe.anzahl);
  p(knoepfe.ohneText.length===0,"jeder Knopf hat einen hinterlegten Text",knoepfe.ohneText);
+ // Auch zur Laufzeit erzeugte Knoepfe muessen beschriftet sein (v3.05).
+ p(knoepfe.ohneLabel.length===0,"jeder Knopf ist fuer Screenreader beschriftet",knoepfe.ohneLabel);
 
  // Groesse und Beschriftung - der Knopf steht in einem <h2> und muss die
  // globalen Regeln (button{padding:10px 13px}, h2{text-transform:uppercase})
  // ausdruecklich zuruecksetzen.
  const stil=await page.evaluate(()=>{
   $("startScreen").hidden=false;
-  const b=document.querySelector('#startScreen .hilfe-knopf');
+  const b=[...document.querySelectorAll('#startScreen .hilfe-knopf')]
+    .find(x=>x.getBoundingClientRect().width>0);
   if(!b)return null;
   const r=b.getBoundingClientRect(), c=getComputedStyle(b);
   return {w:Math.round(r.width),h:Math.round(r.height),
@@ -118,7 +138,8 @@ const ARTEN=[
  // ---------------------------------------------------------- C Dialog oeffnen
  console.log("\nC · Dialog");
  const auf=await page.evaluate(async()=>{
-  const b=document.querySelector('#startScreen .hilfe-knopf');
+  const b=[...document.querySelectorAll('#startScreen .hilfe-knopf')]
+    .find(x=>x.getBoundingClientRect().width>0);
   b.click();
   const m=document.getElementById("hilfeModal");
   return {offen:!m.hidden,titel:document.getElementById("hilfeTitel").textContent,
@@ -216,6 +237,10 @@ const ARTEN=[
  // ----------------------------------------------- G Kein Text ohne Verwendung
  console.log("\nG · Vollstaendigkeit");
  const verwendet=await page.evaluate(async ARTEN=>{
+  if(typeof mwStandAusZeile==="function"){
+   mwStandAusZeile({id:1,project_id:1,type:"kehle",title:"T",created_by:"u1",workflow_status:"in_bearbeitung"});
+   renderMeasWorkflow();
+  }
   const s=new Set([...document.querySelectorAll(".hilfe-knopf[data-hilfe]")].map(x=>x.dataset.hilfe));
   for(const a of ARTEN){
    showMeasTypeSection(a.typ);

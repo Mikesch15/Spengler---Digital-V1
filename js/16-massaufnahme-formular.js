@@ -485,6 +485,8 @@ $("saveMeasurement").onclick=async()=>{
    :{...currentMeasurementMeta,updated_by:payload.updated_by,updated_at:jetzt};
   $("measurementEditModal").hidden=true;
   await measEditZurueck();   // zentrale Rueckkehr, siehe js/24-projekt-cockpit.js
+  // v3.05: eine neue Massaufnahme ist sofort eine offene Freigabe-Aufgabe.
+  if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
   isDirty=false;
  }catch(err){
   if(platzhalterId)await sb.from("measurements").delete().eq("id",platzhalterId).then(()=>{},()=>{});

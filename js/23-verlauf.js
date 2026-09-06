@@ -40,6 +40,8 @@ const VERLAUF_FIELD_LABELS={
           status:"Status",archived:"Archiv"},
  measurement:{
   title:"Bezeichnung",date:"Datum",note:"Notiz / Masse",
+  // v3.05 Arbeitsworkflow (Freigabe, Zuweisung, Ruesten, Montage)
+  workflow_status:"Arbeitsstatus",ruester_id:"Rüsten",monteur_id:"Montage",
   // v2.34: Detail-Diff innerhalb measurements.data (siehe CLAUDE.md
   // Abschnitt 42) - nur die dort als Klasse A eingestuften, flachen,
   // typübergreifend eindeutigen Felder. Kollisionsfreie Feldnamen über
@@ -106,7 +108,16 @@ function verlaufFormatWann(iso){
 // (Auftrag Abschnitt 25), Zahlen mit Schweizer Tausendertrennzeichen +
 // bekannter Einheit, Booleans als Ja/Nein, alles andere als reiner Text.
 function verlaufFormatDiffValue(field,v){
+ // v3.05: eine leere Zuweisung heisst ausdruecklich "niemand", nicht "-".
+ if((field==="ruester_id"||field==="monteur_id")&&(v===null||v===undefined||v===""))return "niemand";
  if(v===null||v===undefined||v==="")return "–";
+ // Arbeitsstatus und Personen ueber die bereits vorhandenen Tabellen
+ // aufloesen - keine zweite Namens- oder Statuslogik.
+ if(field==="workflow_status")return (typeof mwStatusText==="function")?mwStatusText(v):String(v);
+ if(field==="ruester_id"||field==="monteur_id"){
+  const n=typeof profileName==="function"?profileName(v):"";
+  return n||"Unbekannter Benutzer";
+ }
  if(field==="date"){
   const d=new Date(v);
   return isNaN(d)?String(v):d.toLocaleDateString("de-CH");

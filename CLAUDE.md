@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.01, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.05, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.01**
+- sichtbare App-Version: **3.05**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -17451,3 +17451,249 @@ baut weiterhin **keine Verbindung zur Produktivdatenbank** auf.
 - Verschnitt weiterhin ohne Wiederverwendung von Reststücken **innerhalb**
   einer Rechnung – vorgeschlagen wird aus dem Lager, verrechnet wird nicht.
 - Die beiden Punkte aus 109.8 kann nur der Betreiber erledigen.
+
+## 110. ARBEITSWORKFLOW DER MASSAUFNAHME — VERSION 3.05
+
+Freigabe durch den Aufnehmer, Zuweisung von Rüster und Monteur, Bestätigung
+von Rüsten und Montage – dazu eine persönliche Aufgabenzentrale auf der
+Startseite. **Keine neue Tabelle**, kein zweites Aufgabensystem, keine
+zweite Mitarbeiterverwaltung, keine zweite Protokolllösung.
+
+    IN BEARBEITUNG → FREIGEGEBEN → ZU RÜSTEN → GERÜSTET
+                   → ZU MONTIEREN → MONTIERT → ABGESCHLOSSEN
+
+### 110.1 Bestandsaufnahme (vor der Umsetzung, gegen das echte Schema)
+
+| Gebraucht | Bereits vorhanden |
+|---|---|
+| `aufgenommen_von` / `aufgenommen_am` | **`created_by` / `created_at`** – seit v2.28 serverseitig durch `set_creator_editor_meta()` erzwungen. Nicht verdoppelt. |
+| Protokoll aller Schritte | **`write_audit_log()`** + `js/23-verlauf.js` (v2.30–v2.36) |
+| Mitarbeiterliste | **`allProfiles`** (RLS-gefiltert) + `profileName()` |
+| Projektbezug in der Anzeige | **`eintragAdresse()`** / `MEAS_TYPE_LABELS` (v2.44/v2.45) |
+| Muster für einen kontrollierten Status | **`projects.status`** (v2.46) |
+
+Gefunden und dadurch bestimmend: `permission_settings` gibt auch der Rolle
+`employee` für `measurements` **`can_edit` mit `edit_scope:'all'`**. Ein
+Mitarbeiter kann also jede Massaufnahme seiner Firma per direktem UPDATE
+ändern. Ein blosses Statusfeld wäre damit von jedem frei setzbar gewesen –
+das widerspricht „Statusübergänge sollen fachlich kontrolliert werden".
+
+### 110.2 Datenmodell (Migration `measurement_workflow_v3_05`)
+
+Dreizehn Spalten **auf `measurements`**, keine neue Tabelle:
+
+`workflow_status` (NOT NULL, Default `in_bearbeitung`, CHECK über die sieben
+Werte), `freigegeben_von/_am`, `ruester_id`, `ruester_zugewiesen_von/_am`,
+`geruestet_von/_am`, `monteur_id`, `monteur_zugewiesen_von/_am`,
+`montiert_von/_am`.
+
+Alle sieben Personenverweise gehen auf `profiles` mit **`ON DELETE SET
+NULL`** – ein entfernter Mitarbeiter darf die Massaufnahme nicht blockieren
+(dieselbe Lehre wie in 36.1/37/51). Drei Indizes für die Aufgabenzentrale.
+
+Eine zusätzliche Aufgaben-Tabelle wäre nur nötig, wenn es mehrere
+Aufgabentypen ausserhalb der Massaufnahme gäbe. Jede Aufgabe ist hier genau
+ein Zustand eines Massaufnahme-Datensatzes – die Zentrale liest ihn direkt.
+
+### 110.3 Zwei Schlösser statt eines Statusfelds
+
+**(1) Direktschreib-Sperre.** Trigger
+`schuetze_measurement_workflow()` (BEFORE INSERT OR UPDATE):
+
+- beim **INSERT** werden alle Workflow-Spalten auf ihren Anfangswert
+  gesetzt – ein Client kann den Workflow nicht überspringen, auch nicht
+  über die Offline-Warteschlange;
+- beim **UPDATE** wird jede Änderung an einer Workflow-Spalte mit `42501`
+  abgewiesen, solange nicht `app.workflow_ok` gesetzt ist. Das setzen
+  ausschliesslich die Übergangsfunktionen, transaktionslokal.
+
+Fachliche Änderungen (Titel, Masse, Fotos) bleiben unberührt.
+
+**(2) Eng gefasste `SECURITY DEFINER`-Funktionen**, gleiches Muster wie
+`mark_own_password_set()` (24.2) und die `system_admin_*`-Funktionen. Jede
+prüft **zuerst**, dass die Massaufnahme zur Firma des Aufrufers gehört
+(`mw_firma_ok()` über den `projects`-Join) – SECURITY DEFINER umgeht RLS,
+diese Prüfung ist deshalb nicht optional:
+
+| Funktion | Wer darf | Bedingung |
+|---|---|---|
+| `measurement_freigeben` | **nur** `created_by = auth.uid()` | Status `in_bearbeitung` |
+| `measurement_zuweisen` | Aufnehmer **oder** Administrator | freigegeben, nicht abgeschlossen; die zugewiesene Person muss zur eigenen Firma gehören |
+| `measurement_geruestet` | zugewiesener Rüster (Admin korrigiert) | Status `zu_ruesten` |
+| `measurement_montiert` | zugewiesener Monteur (Admin korrigiert) | Status `zu_montieren` |
+| `measurement_abschliessen` | Aufnehmer oder Administrator | Status `montiert` |
+| `measurement_workflow_korrigieren` | **nur** Administrator | – |
+
+Die drei Helfer (`mw_firma_ok`, `mw_zeile`, `mw_ergebnis`) sind für
+`authenticated` **entzogen**: `mw_ergebnis()` würde als SECURITY DEFINER
+sonst die Workflow-Felder jeder beliebigen Massaufnahme herausgeben, auch
+der einer fremden Firma. Die Übergangsfunktionen rufen sie als Eigentümer.
+
+**Der Status wird abgeleitet, nicht frei gesetzt.** Eine Zuweisung nach der
+Freigabe führt selbst nach `zu_ruesten` bzw. – wenn nur ein Monteur
+eingeteilt ist – nach `zu_montieren`. Das Rüsten darf übersprungen werden;
+der Auftrag sagt ausdrücklich „und/oder".
+
+### 110.4 Verlauf: ein Schreiber bleibt ein Schreiber
+
+`write_audit_log()` wurde erweitert (Migration `audit_log_workflow_v3_05`),
+**nicht** ergänzt um einen zweiten Schreiber: eine Änderung an
+`workflow_status`, `ruester_id` oder `monteur_id` ergibt die bereits
+vorhandene Aktion `status_changed` mit den Feld-Diffs. Die
+`audit_log_action_check`-Constraint brauchte deshalb **keine** Änderung.
+
+Die Funktion wurde dabei nicht neu getippt, sondern in SQL an zwei
+eindeutigen Ankern gepatcht (`pg_get_functiondef` → `replace` → `execute`),
+mit Abbruch, falls ein Anker fehlt.
+
+`js/23-verlauf.js` löst die neuen Felder über die bereits vorhandenen
+Tabellen auf: `mwStatusText()` für den Status, `profileName()` für die
+Person. Eine zurückgenommene Zuweisung heisst ausdrücklich „niemand", nicht
+„–".
+
+### 110.5 Oberfläche
+
+- **`js/44-workflow.js`** – die Karte „🔁 Arbeitsstatus" am Ende der
+  Massaufnahme: Statusabzeichen, wer was wann gemacht hat, und genau die
+  Knöpfe, die diese Person in diesem Zustand betätigen darf. Sie ist reine
+  Führung – abgesichert ist ausschliesslich die Datenbank.
+  Bestätigungsdialog im geforderten Wortlaut. Eine noch nicht gespeicherte
+  Massaufnahme hat keinen Workflow und zeigt die Karte nicht.
+- **`js/45-aufgaben.js`** – „🔔 Meine offenen Aufgaben" auf der Startseite,
+  **über** dem bestehenden „Was möchtest du tun?" und zugeklappt, solange
+  nichts offen ist. Drei schmale Abfragen (`created_by` / `ruester_id` /
+  `monteur_id` = ich), jede auf die eigene Rolle. **Nie ein
+  `company_id`-Filter im Client** – die Firmengrenze erzwingt weiterhin
+  allein die restriktive `tenant_boundary_measurements`-Policy.
+  Rot = jetzt dran, Orange = weniger dringend, wie im Auftrag skizziert.
+- Angezeigt wird die **Projektadresse** (`eintragAdresse()`) und die Art der
+  Massaufnahme – dieselbe Bezeichnung wie im Cockpit, keine zweite
+  Projektlogik.
+- Eine Massaufnahme **ohne Projekt** erscheint gar nicht erst als Aufgabe:
+  sie gehört zu keinem Projekt und damit zu keiner Firmengrenze, ihre
+  Freigabe würde serverseitig abgewiesen. Drei solche Zeilen gibt es real
+  (Projekt gelöscht, `ON DELETE SET NULL`).
+- Ohne Verbindung wird die Liste **nicht geleert** – sie bliebe sonst
+  fälschlich leer und behauptete „nichts offen". Jeder Schritt läuft über
+  die bestehende `offlineSperrtSpeichern()`-Absage.
+
+### 110.6 Zwei echte Fehler, die erst die Messung gezeigt hat
+
+1. **Der Zuweisungs-Dialog lag hinter dem Formular.** Alle `.modal` teilen
+   `z-index:500`, dann entscheidet die Reihenfolge im Dokument – und das
+   Massaufnahme-Formular steht weiter unten. Der Dialog war sichtbar, aber
+   nicht bedienbar. `#mwZuweisenModal{z-index:700}`.
+   Der Prüfstand misst das jetzt über `elementFromPoint()` statt zu klicken:
+   ein verdeckter Knopf liess ihn vorher **hängen**, und ein abgebrochener
+   Lauf sieht aus wie „keine Fehler".
+2. **Zur Laufzeit erzeugte Info-Knöpfe waren nicht beschriftet.**
+   `hilfeKnoepfeBeschriften()` läuft beim Start; ein Knopf, der erst beim
+   Zeichnen entsteht, wurde nur erfasst, wenn das Modul daran dachte.
+   `hilfeKnopf()` gibt `aria-label` und `title` jetzt selbst mit – das gilt
+   damit für jedes künftige Modul.
+
+Dazu zwei Lücken im **bestehenden** Hilfe-Prüfstand, die dieser Umbau
+aufgedeckt hat: er mass den ersten Info-Knopf der Startseite (jetzt der
+einer zugeklappten Karte, Grösse 0) und sammelte die Knöpfe, bevor die
+Workflow-Karte gezeichnet war. Beides nachgeschärft, nicht abgeschwächt –
+er prüft seither zusätzlich, dass **jeder** Knopf beschriftet ist.
+
+### 110.7 Datenbank empirisch geprüft (alle in `begin; … rollback;`)
+
+Wegwerf-Firma mit vier Personen (A Aufnehmer, B Rüster, C Monteur,
+D Administrator) plus einer Person einer echten anderen Firma. **18 von 18**:
+
+| Nr | Prüfung | Ergebnis |
+|---|---|---|
+| 1 | Anlegen mit vorgetäuschtem Status `montiert` | auf `in_bearbeitung` zurückgesetzt |
+| 2 | direktes `UPDATE` des Status | abgewiesen (`42501`) |
+| 3 | fachliche Änderung (Titel) | weiterhin möglich |
+| 4 | Freigabe durch einen anderen Mitarbeiter | abgewiesen |
+| 5 | Freigabe durch den Aufnehmer | Status, Person und Zeitpunkt gesetzt |
+| 6 | zweite Freigabe | abgewiesen |
+| 7 | Zuweisung B/C durch den Aufnehmer | `zu_ruesten`, beide Zuweisungen mit „von/am" |
+| 8 | Rüsten durch den Monteur | abgewiesen |
+| 9 | Rüsten durch den Rüster | `zu_montieren`, Person und Zeitpunkt |
+| 10 | Montage durch den Rüster | abgewiesen |
+| 11 | Montage durch den Monteur | `montiert` |
+| 12 | Abschliessen | `abgeschlossen` |
+| 13 | Korrektur durch einen Mitarbeiter | abgewiesen |
+| 14 | Korrektur durch den Administrator | Status zurückgesetzt |
+| 15/16 | fremde Firma greift zu / weist zu | „Massaufnahme nicht gefunden." |
+| 17 | fremde Person als Rüster zuweisen | abgewiesen |
+| 18 | Änderungsverlauf | alle sechs Übergänge lückenlos protokolliert |
+
+`get_advisors(security)` danach: die sechs neuen Funktionen erscheinen nur
+mit derselben erwarteten Warnung wie jede `system_admin_*`-Funktion
+(„von `authenticated` aufrufbar, die Prüfung liegt in der Funktion"). Keine
+neue Art von Warnung, keine fehlende RLS. Die bekannte
+Leaked-Password-Warnung bleibt Sache des Betreibers.
+
+### 110.8 Oberfläche geprüft
+
+**Neuer Prüfstand `pruefstand-workflow-v3-05.js` – 73/73**, echtes Chromium
+gegen die echte `index.html`: wer welchen Knopf sieht (Aufnehmer,
+Unbeteiligter, Administrator, Rüster, Monteur), der Wortlaut der Rückfrage,
+welche Datenbankfunktion mit welchen Werten gerufen wird, dass eine
+Fehlermeldung der Datenbank ankommt **und der Status dabei nicht
+vorgetäuscht wird**, die Aufgabenzentrale je Person, dass fremde Aufgaben
+nie erscheinen, der Klick zur richtigen Massaufnahme, die deutschen
+Bezeichnungen im Verlauf und vier Bildschirmbreiten.
+
+**Neun Gegenproben**, jede baut einen echten Fehler ein und wirft ihren
+Prüfstand um:
+
+| Gegenprobe | Ergebnis |
+|---|---|
+| jeder darf freigeben | 66/72 |
+| Aufgaben ohne Personenfilter | 66/72 |
+| falsche Datenbankfunktion beim Rüsten | 69/72 |
+| Fehler der Datenbank ignoriert, Status vorgetäuscht | 70/72 |
+| Zuweisungs-Dialog wieder hinter dem Formular | 72/73 |
+| Massaufnahmen ohne Projekt als Aufgabe | 70/73 |
+| Verlauf zeigt die Rohwerte | 72/73 |
+| `hilfeKnopf()` ohne Beschriftung | 67/68 (Hilfe-Prüfstand) |
+| Version hochgesetzt ohne die Anleitung mitzuführen | 63/67 (Hilfe-Prüfstand) |
+
+### 110.9 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migrationen `measurement_workflow_v3_05`, `_guard_`, `_funktionen_`, `_helfer_entziehen_`, `audit_log_workflow_v3_05` | Spalten, Sperre, sechs Übergangsfunktionen, Verlauf |
+| `js/44-workflow.js` | **neu** – Workflow-Karte, Zuweisung, alle Übergänge |
+| `js/45-aufgaben.js` | **neu** – persönliche Aufgabenzentrale |
+| `index.html` | Aufgabenkarte, Workflow-Bereich, Zuweisungs-Dialog, Version 3.05 |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Workflow beim Öffnen/Anlegen setzen |
+| `js/16-massaufnahme-formular.js` | **1 Zeile**: Aufgaben nach dem Speichern nachziehen |
+| `js/24-projekt-cockpit.js` | Rückkehr zur Startseite, wenn aus einer Aufgabe geöffnet |
+| `js/03-login.js` | Aufgaben nach dem Anmelden und beim Betreten der Startseite |
+| `js/09-projekte.js` | Statusabzeichen in der Cockpit-Liste |
+| `js/23-verlauf.js` | deutsche Bezeichnungen der drei neuen Felder |
+| `js/41-hilfe.js` | drei Erklärungen, `hilfeKnopf()` beschriftet selbst |
+| `css/01-basis.css`, `sw.js` | Stile, Cache 3.05, beide neuen Dateien im SHELL |
+| `anleitung/*` | neues Kapitel 9, Umnummerierung, zwei Bilder, PDF v3.05 (41 Seiten) |
+
+**Nicht angefasst**: sämtliche Fachdateien `js/11`–`js/15`, `js/17`,
+`js/19`–`js/22`, `js/25`, `js/26`, `js/28`–`js/40`, dazu `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js` und `css/03-druck.css` (Regierapport) – keine
+Berechnung, keine Stückliste, kein Zuschnitt, keine Abwicklung berührt.
+
+### 110.10 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet
+  behauptet.** Geprüft ist die Oberfläche in echtem Chromium gegen die echte
+  `index.html` mit einer Attrappe, die jeden Aufruf protokolliert, und die
+  Datenbankseite per SQL gegen das echte Produktivschema.
+- **Eine wesentliche Änderung nach der Freigabe löst KEINE erneute Freigabe
+  aus.** Der Auftrag lässt das für diese erste Umsetzung ausdrücklich offen
+  („keine unnötige Versionierungsarchitektur"). Was passiert: die Änderung
+  steht im Verlauf, der Status bleibt. Wer eine erneute Freigabe braucht,
+  setzt den Status heute als Administrator zurück.
+- **Die Freigabe-Aufgabe zeigt jede eigene unfreigegebene Massaufnahme.**
+  Bei vielen offenen Aufnahmen wird die Liste lang; sie ist auf 25 je
+  Abfrage begrenzt. Ob „freigebbar" enger gefasst werden soll, gehört in den
+  Praxistest – die App kennt heute keinen Begriff von „fertig erfasst".
+- `montiert` und `abgeschlossen` sind bewusst zwei Zustände. Wird im Betrieb
+  nie abgeschlossen, kann `montiert` später der Endzustand werden.

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.04.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.05.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -33,6 +33,41 @@ einem Projekt.</p>
 <li>Projekt anlegen oder auswählen</li>
 <li>Im <b>Cockpit</b> die Arbeit anlegen und wiederfinden</li></ul>
 <p>Nach jeder Arbeit landest du wieder im Cockpit desselben Projekts.</p>`},
+
+// ---- Arbeitsworkflow (v3.05) --------------------------------------------
+"aufgaben":{titel:"Meine offenen Aufgaben",text:`
+<p>Hier steht, was <b>du persönlich</b> noch erledigen musst. Die Liste ist
+keine eigene Aufgabenverwaltung – sie entsteht direkt aus den Massaufnahmen
+und ihren Zuweisungen.</p>
+<ul><li><b>Massaufnahme freigeben</b> – deine eigene Aufnahme ist noch nicht
+freigegeben.</li>
+<li><b>Rüster/Monteur zuweisen</b> – sie ist freigegeben, aber es ist noch
+niemand eingeteilt.</li>
+<li><b>Zu rüsten</b> – du bist als Rüster eingeteilt.</li>
+<li><b>Zu montieren</b> – du bist als Monteur eingeteilt.</li></ul>
+<p>Ein Klick führt direkt zur richtigen Massaufnahme. Aufgaben anderer
+Mitarbeiter siehst du hier nie.</p>`},
+
+"workflow":{titel:"Arbeitsstatus",text:`
+<p>Der Weg einer Massaufnahme von der Erfassung bis zur Montage:</p>
+<ul><li><b>In Bearbeitung</b> → <b>Freigegeben</b> → <b>Zu rüsten</b> →
+<b>Gerüstet</b> → <b>Zu montieren</b> → <b>Montiert</b> →
+<b>Abgeschlossen</b></li></ul>
+<p><b>Freigeben</b> kann nur die Person, welche die Massaufnahme aufgenommen
+hat. Freigegeben heisst <i>nicht</i>, dass ein Meister die Masse fachlich
+geprüft hat – es heisst: der Aufnehmer bestätigt, dass die Aufnahme aus
+seiner Sicht vollständig und kontrolliert ist.</p>
+<p><b>Gerüstet</b> bestätigt der eingeteilte Rüster, <b>Montiert</b> der
+eingeteilte Monteur. Jeder Schritt wird mit Person und Zeitpunkt gespeichert
+und steht im Änderungsverlauf.</p>`},
+
+"zuweisen":{titel:"Rüster und Monteur",text:`
+<p>Nach der Freigabe teilst du ein, wer <b>rüstet</b> und wer <b>montiert</b>.
+Beides ist freiwillig: du kannst nur einen Rüster, nur einen Monteur oder
+beide setzen.</p>
+<p>Aufnehmer, Rüster und Monteur sind getrennte Rollen – dieselbe Person darf
+mehrere davon übernehmen. Zuweisen darf der Aufnehmer oder ein
+Administrator; jede Änderung steht im Änderungsverlauf.</p>`},
 
 // ---- Projekte -----------------------------------------------------------
 "zuletzt":{titel:"Zuletzt bearbeitet",text:`
@@ -640,7 +675,12 @@ oder ausdrucken.</p>`}
 // bewusst gar kein Knopf - lieber keiner als einer, der nichts sagt.
 function hilfeKnopf(key){
  if(!HILFE_TEXTE[key])return "";
- return `<button type="button" class="hilfe-knopf no-print" data-hilfe="${key}">i</button>`;
+ // Beschriftung fuer Tastatur und Screenreader gleich mitgeben: ein zur
+ // Laufzeit erzeugter Knopf wird von hilfeKnoepfeBeschriften() sonst nur
+ // erfasst, wenn das aufrufende Modul daran denkt (v3.05).
+ const wozu="Erklärung: "+HILFE_TEXTE[key].titel;
+ const a=String(wozu).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+ return `<button type="button" class="hilfe-knopf no-print" data-hilfe="${key}" aria-label="${a}" title="${a}">i</button>`;
 }
 
 // Der Info-Knopf einer Register-Karte. Er erscheint nur bei der HAUPTKARTE

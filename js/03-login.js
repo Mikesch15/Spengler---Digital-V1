@@ -133,6 +133,8 @@ async function afterLogin(){
  // vorher steht die company_id des Aufrufers noch nicht fest, und ohne sie
  // duerfte die Warteschlange gar nicht gelesen werden.
  if(typeof wsAnzeigeAuffrischen==="function")wsAnzeigeAuffrischen();
+ // v3.05 Persoenliche Aufgaben laden - erst hier, aus demselben Grund.
+ if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
  if(typeof wsSynchronisieren==="function"&&!offlineIstOffline()){
   wsSynchronisieren().then(b=>{
    if(b&&b.gesendet)renderProjectSelect();
@@ -162,6 +164,7 @@ function goToStart(){
  $("systemAdminCompanyModal").hidden=true;
  $("systemAdminDeleteModal").hidden=true;
  $("systemAdminRegisterModal").hidden=true;
+ $("mwZuweisenModal").hidden=true;         // v3.05
  // Der PDF-Auswahldialog wartet auf eine Antwort - beim Sprung auf den
  // Startbildschirm gilt das als Abbruch, sonst bliebe das Versprechen offen.
  if(typeof pdfListenSchliessen==="function"&&!$("pdfListenModal").hidden)pdfListenSchliessen(null);
@@ -170,6 +173,8 @@ function goToStart(){
  reportReturnTo="reportsModal";
  $("backFromReportEdit").hidden=true;
  showStart();
+ // v3.05: die persoenlichen Aufgaben beim Betreten der Startseite nachziehen.
+ if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
 }
 
 // ---- Eigenes Passwort festlegen ----------------------------

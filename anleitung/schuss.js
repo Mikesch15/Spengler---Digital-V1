@@ -237,6 +237,20 @@ const liste=[];
  await schuss("24-einstellungen-geschuetzt","#settingsModal .modalbox",{warte:600});
  await page.evaluate(()=>{$("settingsModal").hidden=true});
 
+ // ---------- Arbeitsstatus und persoenliche Aufgaben (v3.05) ----------
+ await page.evaluate(()=>{
+  const m=window.__demo.measurements.find(x=>x.id===12);
+  openMeasurement(m);
+ });
+ await schuss("31-workflow","#measWorkflowBereich",{warte:500,breite:760});
+ await page.evaluate(()=>{$("measurementEditModal").hidden=true;$("startScreen").hidden=false});
+ await page.evaluate(()=>{
+  // Der angemeldete Benutzer ist u1 - er hat eine eigene Massaufnahme
+  // freizugeben und ist bei der Rinne als Ruester eingeteilt.
+  if(typeof aufgabenNeuLaden==="function")return aufgabenNeuLaden();
+ });
+ await schuss("32-aufgaben","#aufgabenKarte",{warte:700,breite:760});
+
  // ---------- Hilfe-Fenster (Info-Knopf) ----------
  await page.evaluate(()=>{
   if(typeof hilfeOeffnen==="function")hilfeOeffnen("reg-zuschnitt");
