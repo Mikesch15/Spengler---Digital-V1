@@ -109,6 +109,16 @@ let isDirty=false;
 let darkMode=localStorage.getItem("sd_darkMode")==="ja";
 let defaultRate=localStorage.getItem("sd_defaultRate")||"";
 let photoQuality=localStorage.getItem("sd_photoQuality")||"schnell";
+// v3.07 Aufgabenzentrale auf dem Startbildschirm.
+// aufgabenOffenStart: je Geraet - startet die Karte zugeklappt oder offen.
+//   Der Klick auf die Karte gilt nur fuer jetzt, diese Einstellung fuer den
+//   Start. Zwei Quellen fuer denselben Wert waeren verwirrend.
+// workflowAktiv: firmenweit aus app_settings.workflow_aktiv. REINE
+//   ANZEIGE-EINSTELLUNG - abgesichert ist der Ablauf ausschliesslich
+//   serverseitig (schuetze_measurement_workflow() und die sechs
+//   measurement_*-Funktionen), nicht hierdurch.
+let aufgabenOffenStart=localStorage.getItem("sd_aufgabenOffen")==="auf";
+let workflowAktiv=true;
 document.documentElement.classList.toggle("dark",darkMode);
 function photoQualitySettings(){
  return photoQuality==="hoch"?{maxDim:2200,quality:0.9}:{maxDim:1400,quality:0.75};

@@ -249,6 +249,10 @@ const liste=[];
   // freizugeben und ist bei der Rinne als Ruester eingeteilt.
   if(typeof aufgabenNeuLaden==="function")return aufgabenNeuLaden();
  });
+ // v3.07: Die Karte ist zugeklappt - fuer das Bild einmal so und einmal offen.
+ await page.evaluate(()=>{if(typeof aufgabenOffen!=="undefined"){aufgabenOffen=false;renderAufgaben()}});
+ await schuss("34-aufgaben-zu","#aufgabenKarte",{warte:500,breite:760});
+ await page.evaluate(()=>{if(typeof aufgabenOffen!=="undefined"){aufgabenOffen=true;renderAufgaben()}});
  await schuss("32-aufgaben","#aufgabenKarte",{warte:700,breite:760});
 
  // ---------- Verfallene Freigabe (v3.06) ----------

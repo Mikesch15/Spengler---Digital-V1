@@ -10,9 +10,20 @@
 // company_id. Gefiltert wird nur nach "gehoert mir" (created_by / ruester_id /
 // monteur_id) - das ist die persoenliche Auswahl, keine Berechtigung.
 
+// v3.07: Die Karte ist zugeklappt und nimmt dann eine Zeile ein. Der ganze
+// Arbeitsablauf laesst sich in den Einstellungen firmenweit abschalten
+// (app_settings.workflow_aktiv) - das ist reine Anzeige, abgesichert bleibt er
+// ausschliesslich serverseitig.
+
 const AUFGABEN_LIMIT=25;   // Startseite, nicht Arbeitsliste
 let aufgabenListe=[];
 let aufgabenLauf=0;
+// Der Klick gilt fuer jetzt, die Einstellung fuer den Start (js/01-basis.js).
+let aufgabenOffen=(typeof aufgabenOffenStart!=="undefined")?!!aufgabenOffenStart:false;
+
+// Firmenweiter Schalter. Fehlt der Wert (noch nicht geladen), gilt "ein" -
+// die Vorgabe der Spalte.
+function aufgabenAktiv(){return (typeof workflowAktiv==="undefined")||workflowAktiv!==false}
 
 // Rot = jetzt dran, Orange = wartet auf den Schritt davor bzw. weniger dringend.
 const AUFGABEN_ARTEN={
@@ -77,13 +88,27 @@ async function aufgabenLaden(){
  return liste;
 }
 
+// Die zugeklappte Zeile sagt genau so viel, wie sie muss: wie viele Aufgaben
+// offen sind und wie viele davon jetzt dran sind (rot).
+function aufgabenKopfText(){
+ const n=aufgabenListe.length;
+ const dringend=aufgabenListe.filter(a=>(AUFGABEN_ARTEN[a.art]||{}).farbe==="rot").length;
+ const haupt=`🔔 ${n} offene ${n===1?"Aufgabe":"Aufgaben"}`;
+ return dringend?`${haupt} <span class="aufgaben-dringend">· ${dringend} dringend</span>`:haupt;
+}
+
 function renderAufgaben(){
  const karte=$("aufgabenKarte"), box=$("aufgabenListe");
  if(!karte||!box)return;
- if(!aufgabenListe||!aufgabenListe.length){karte.hidden=true;box.innerHTML="";return}
+ if(!aufgabenAktiv()||!aufgabenListe||!aufgabenListe.length){karte.hidden=true;box.innerHTML="";return}
  karte.hidden=false;
- $("aufgabenTitel").innerHTML=`🔔 Meine offenen Aufgaben (${aufgabenListe.length}) `
-  +(typeof hilfeKnopf==="function"?hilfeKnopf("aufgaben"):"");
+ const titel=$("aufgabenTitel"); if(titel)titel.innerHTML=aufgabenKopfText();
+ karte.classList.toggle("offen",aufgabenOffen);
+ const kopf=$("aufgabenKopf");
+ if(kopf){
+  kopf.setAttribute("aria-expanded",aufgabenOffen?"true":"false");
+  kopf.title=aufgabenOffen?"Aufgaben zuklappen":"Aufgaben anzeigen";
+ }
  box.innerHTML=aufgabenListe.map(a=>{
   const art=AUFGABEN_ARTEN[a.art], b=aufgabenBeschriftung(a.m);
   return `<div class="aufgabe aufgabe-${art.farbe}">
@@ -101,7 +126,7 @@ function renderAufgaben(){
 async function aufgabenNeuLaden(){
  const karte=$("aufgabenKarte");
  if(!karte)return;
- if(!currentProfile){karte.hidden=true;return}
+ if(!currentProfile||!aufgabenAktiv()){karte.hidden=true;return}
  // Ohne Verbindung wird die Liste nicht geleert - sie bleibt auf dem zuletzt
  // geladenen Stand stehen, statt faelschlich "nichts offen" zu behaupten.
  if(typeof offlineIstOffline==="function"&&offlineIstOffline())return;
@@ -150,3 +175,13 @@ document.addEventListener("click",e=>{
  if(!k)return;
  aufgabeAusfuehren(k.dataset.aufgabe,k.dataset.aufgabeId);
 });
+
+// Auf- und Zuklappen. Der Kopf ist ein echter Knopf (Tastatur bedienbar), der
+// Info-Knopf steht daneben und nicht darin - ein Knopf im Knopf waere kein
+// gueltiges HTML.
+if($("aufgabenKopf")){
+ $("aufgabenKopf").addEventListener("click",()=>{
+  aufgabenOffen=!aufgabenOffen;
+  renderAufgaben();
+ });
+}

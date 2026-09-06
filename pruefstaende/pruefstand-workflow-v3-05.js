@@ -254,6 +254,9 @@ const box=(page)=>page.evaluate(()=>{
     aufgabenListe=[];renderAufgaben()});
   await page.evaluate(()=>aufgabenNeuLaden());
   await page.waitForTimeout(250);
+  // v3.07: Die Karte startet zugeklappt. Fuer alles, was die einzelnen
+  // Aufgaben liest oder anklickt, muss sie offen sein.
+  await page.evaluate(()=>{if(!$("aufgabenKarte").hidden){aufgabenOffen=true;renderAufgaben()}});
   return page.evaluate(()=>({
    hidden:$("aufgabenKarte").hidden,
    titel:($("aufgabenTitel").innerText||"").trim(),
@@ -269,9 +272,13 @@ const box=(page)=>page.evaluate(()=>{
  let av=await aufgaben(A);
  p(!av.hidden&&av.karten.length===2,"A sieht genau seine zwei eigenen Aufgaben",av.karten);
  const sichtbar=await page.evaluate(()=>{const e=$("aufgabenKarte");
-   return {display:getComputedStyle(e).display,hoehe:Math.round(e.getBoundingClientRect().height)}});
+   return {display:getComputedStyle(e).display,hoehe:Math.round(e.getBoundingClientRect().height),
+           offen:e.classList.contains("offen")}});
  p(sichtbar.display!=="none"&&sichtbar.hoehe>60,"die Karte ist auf der Startseite wirklich zu sehen",sichtbar);
- p(/\(2\)/.test(av.titel),"die Anzahl steht in der Ueberschrift",av.titel);
+ // Seit v3.07 nennt die Zeile die Anzahl im Klartext statt in Klammern
+ // (ueberholte Erwartung, kein Codefehler). Die Karte ist zugeklappt eine
+ // Zeile hoch - das prueft pruefstand-aufgaben-schalter-v3-07.js.
+ p(/\b2 offene Aufgaben\b/.test(av.titel),"die Anzahl steht in der Zeile",av.titel);
  p(av.karten.some(k=>/freigeben/i.test(k.art)&&k.id==="11"),"seine unfreigegebene Massaufnahme",av.karten);
  p(av.karten.some(k=>/zuweisen/i.test(k.art)&&k.id==="12"),"seine freigegebene ohne Zuweisung",av.karten);
  p(!av.karten.some(k=>k.id==="15"),"die fremde Massaufnahme erscheint NICHT",av.karten);

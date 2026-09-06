@@ -98,12 +98,15 @@ function mwMitarbeiterOptionen(gewaehlt){
   `<option value="${esc(p.id)}"${p.id===gewaehlt?" selected":""}>${esc(profileName(p.id))}</option>`).join("");
 }
 
+// v3.07: Firmenweiter Schalter. Reine Anzeige - die Datenbank prueft weiter.
+function mwAktiv(){return (typeof workflowAktiv==="undefined")||workflowAktiv!==false}
+
 // Was in einer Liste neben der Massaufnahme steht. "In Bearbeitung" ist dort
 // keine Meldung wert - eine verfallene Freigabe schon: sie blockiert bereits
 // eingeteilte Leute, waere aber sonst von einer frisch erfassten nicht zu
 // unterscheiden (v3.06).
 function mwBadgeFuerListe(m){
- if(!m)return "";
+ if(!m||!mwAktiv())return "";
  if(m.freigabe_verfallen)return `<span class="mw-badge mw-rot">⚠️ Freigabe verfallen</span>`;
  if(m.workflow_status&&m.workflow_status!=="in_bearbeitung")return mwBadge(m.workflow_status);
  return "";
@@ -112,8 +115,10 @@ function mwBadgeFuerListe(m){
 function renderMeasWorkflow(){
  const box=$("measWorkflowBereich"); if(!box)return;
  const w=mwStand;
- // Eine noch nicht gespeicherte Massaufnahme hat keinen Workflow.
- if(!w||!w.id){box.hidden=true;box.innerHTML="";return}
+ // Eine noch nicht gespeicherte Massaufnahme hat keinen Workflow. Ebenso eine
+ // Firma, die den Ablauf abgeschaltet hat - der Stand bleibt dabei in der
+ // Datenbank stehen und ist wieder da, sobald sie ihn einschaltet.
+ if(!w||!w.id||!mwAktiv()){box.hidden=true;box.innerHTML="";return}
  box.hidden=false;
  const s=w.workflow_status;
  const teile=[];

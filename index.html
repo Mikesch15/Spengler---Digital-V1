@@ -77,10 +77,16 @@
 <div class="small" id="startCompanyLine" style="margin:-8px 0 10px"></div>
 <!-- v3.05 Persoenliche Aufgaben. Entsteht ausschliesslich aus den echten
      Massaufnahme-/Zuweisungsdaten (js/45-aufgaben.js), kein zweites
-     Aufgabensystem. Bleibt zugeklappt, solange nichts offen ist. -->
-<div class="card" id="aufgabenKarte" hidden>
-<h2 id="aufgabenTitel">🔔 Meine offenen Aufgaben <button type="button" class="hilfe-knopf no-print" data-hilfe="aufgaben">i</button></h2>
-<div id="aufgabenListe"></div>
+     Aufgabensystem. Ist gar nicht da, solange nichts offen ist.
+     v3.07: Die Karte ist zugeklappt eine Zeile hoch; der Kopf ist ein echter
+     Knopf, der Info-Knopf steht daneben (kein Knopf im Knopf). Der ganze
+     Arbeitsablauf laesst sich in den Einstellungen firmenweit abschalten. -->
+<div class="card aufgaben-karte" id="aufgabenKarte" hidden>
+<div class="aufgaben-leiste">
+<button type="button" class="aufgaben-toggle" id="aufgabenKopf" aria-expanded="false" aria-controls="aufgabenListe"><span id="aufgabenTitel">🔔 Meine offenen Aufgaben</span><span class="aufgaben-chevron" aria-hidden="true">›</span></button>
+<button type="button" class="hilfe-knopf no-print" data-hilfe="aufgaben">i</button>
+</div>
+<div id="aufgabenListe" class="aufgaben-body"></div>
 </div>
 <div class="card">
 <h2>Was möchtest du tun? <button type="button" class="hilfe-knopf no-print" data-hilfe="start">i</button></h2>
@@ -104,7 +110,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.06</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.07</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1281,7 +1287,7 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.06.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 42 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.07.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 44 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -1290,8 +1296,23 @@ Internet geht.</div>
 <div><label>Dunkler Modus</label><select id="darkModeInput"><option value="nein">Aus</option><option value="ja">An</option></select></div>
 <div><label>Standard-Funktion (neue Arbeitsposition)</label><select id="defaultRateInput"></select></div>
 <div><label>Foto-Qualität</label><select id="photoQualityInput"><option value="schnell">Schnell (kleinere Dateien)</option><option value="hoch">Hoch (grössere Dateien)</option></select></div>
+<div><label>Aufgaben auf dem Startbildschirm</label><select id="aufgabenOffenInput"><option value="zu">Zugeklappt (nur die Zeile)</option><option value="auf">Geöffnet (Liste sichtbar)</option></select></div>
 </div>
 <div class="bar"><button id="saveRecentCount" class="green">💾 Speichern</button></div>
+
+<h2 style="margin-top:18px">Arbeitsablauf der Massaufnahme <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-workflow">i</button></h2>
+<div class="info">Freigabe durch den Aufnehmer, Zuweisung von Rüster und Monteur,
+Bestätigung von Rüsten und Montage – und die Aufgabenliste auf dem
+Startbildschirm. Gilt für die ganze Firma. Wer ohne diesen Ablauf arbeitet,
+schaltet ihn hier aus; dann verschwindet er aus der Massaufnahme und vom
+Startbildschirm. <b>Es wird dabei nichts gelöscht</b> – der Stand bereits
+laufender Massaufnahmen bleibt gespeichert und ist wieder da, sobald der
+Ablauf erneut eingeschaltet wird. Ändern kann das nur ein Administrator.</div>
+<div class="grid">
+<div><label>Arbeitsablauf verwenden</label><select id="workflowAktivInput"><option value="ja">Ein</option><option value="nein">Aus</option></select></div>
+</div>
+<div class="bar"><button id="saveWorkflowAktiv" class="green">💾 Speichern</button></div>
+<div class="small" id="workflowAktivHinweis" style="margin-top:4px" hidden></div>
 
 <h2 style="margin-top:16px">Rollenbreiten des Blechlagers <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-rollen">i</button></h2>
 <div class="info">Welche Blechrollen die Firma an Lager führt. Gilt für die ganze
@@ -1766,7 +1787,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.06.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.07.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

@@ -234,10 +234,41 @@ $("saveRecentCount").onclick=async()=>{
  localStorage.setItem("sd_defaultRate",defaultRate);
  photoQuality=$("photoQualityInput").value;
  localStorage.setItem("sd_photoQuality",photoQuality);
+ // v3.07: Startzustand der Aufgabenkarte, ebenfalls nur fuer dieses Geraet.
+ const auf=$("aufgabenOffenInput")&&$("aufgabenOffenInput").value==="auf";
+ localStorage.setItem("sd_aufgabenOffen",auf?"auf":"zu");
+ aufgabenOffenStart=auf;
+ aufgabenOffen=auf;
+ if(typeof renderAufgaben==="function")renderAufgaben();
  if(!$("measurementsModal").hidden)await renderMeasurementsOverview();
  if(!$("ausmassModal").hidden)await renderAusmassOverview();
  alert("Gespeichert (gilt nur für dieses Gerät).");
 };
+// v3.07: Arbeitsablauf firmenweit ein-/ausschalten. Reine Anzeige-Einstellung -
+// die Datenbank prueft jeden Schritt weiterhin selbst. Ein Mitarbeiter ohne
+// Adminrecht schreibt nichts: das UPDATE laeuft in die app_settings-Policy
+// (is_admin()) und betrifft still 0 Zeilen - speichereAppSettings() meldet das
+// als Fehler, statt Erfolg vorzutaeuschen (CLAUDE.md 24.1/75).
+function workflowAktivHinweis(text,fehler){
+ const el=$("workflowAktivHinweis");
+ if(!el)return;
+ el.textContent=text||"";
+ el.style.color=fehler?"var(--red)":"var(--green)";
+ el.hidden=!text;
+}
+if($("saveWorkflowAktiv")){
+ $("saveWorkflowAktiv").onclick=async()=>{
+  const ein=$("workflowAktivInput").value==="ja";
+  const {fehler}=await speichereAppSettings({workflow_aktiv:ein});
+  if(fehler){workflowAktivHinweis("Konnte nicht gespeichert werden: "+fehler,true);return}
+  workflowAktiv=ein;
+  if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
+  if(typeof renderMeasWorkflow==="function")renderMeasWorkflow();
+  workflowAktivHinweis(ein
+   ? "✓ Gespeichert – der Arbeitsablauf ist für die ganze Firma eingeschaltet."
+   : "✓ Gespeichert – der Arbeitsablauf ist ausgeschaltet. Es wurde nichts gelöscht: der Stand laufender Massaufnahmen bleibt gespeichert.");
+ };
+}
 $("saveEinlaufblechSettings").onclick=()=>{
  const stossLaenge=Number($("eb_stossLaenge").value);
  const ueberlappung=Number($("eb_ueberlappung").value);

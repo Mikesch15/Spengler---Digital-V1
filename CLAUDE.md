@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.06, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.07, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.06**
+- sichtbare App-Version: **3.07**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -17923,3 +17923,224 @@ zur Laufzeit scheitern. Aufgefallen beim Nachlesen, unmittelbar mit
   aber: eine späte Korrektur fällt dort niemandem auf.
 - Die Freigabe-Aufgabe zeigt weiterhin **jede** eigene unfreigegebene
   Massaufnahme, begrenzt auf 25 (unverändert aus 110.10).
+
+## 112. AUFGABENZENTRALE AUFKLAPPBAR UND ABSCHALTBAR — VERSION 3.07
+
+Die Aufgabenkarte aus v3.05 nahm auf dem Startbildschirm eine ganze
+Bildschirmhöhe ein, noch bevor der Haupteinstieg „📁 Projekte" sichtbar war.
+Sie ist jetzt **zugeklappt und eine Zeile hoch**, lässt sich auf- und
+zuklappen, und der ganze Arbeitsablauf lässt sich **firmenweit abschalten**.
+
+### 112.1 Zugeklappt: eine Zeile
+
+```
+🔔 3 offene Aufgaben · 2 dringend                          ›   ⓘ
+```
+
+Die Zeile nennt die Anzahl und – rot – wie viele davon **jetzt** dran sind
+(die roten Arten: erneut freigeben, freigeben, rüsten). Ein Tipp klappt die
+Liste auf, ein zweiter wieder zu; die Aufgaben selbst sind unverändert
+(v3.05/v3.06).
+
+Gemessen bei 412 px Bildschirmbreite:
+
+| Aufgaben | zugeklappt | offen (wie bis v3.06) |
+|---|---|---|
+| 1 | **48 px** | 180 px |
+| 3 | **48 px** | 420 px |
+| 5 | **48 px** | 659 px |
+
+Zugeklappt bleibt es eine Zeile, egal wie viel offen ist.
+
+Sind keine Aufgaben offen, erscheint die Karte weiterhin gar nicht.
+
+**Der Kopf ist ein echter `<button>`**, mit `aria-expanded` und per Tastatur
+bedienbar. Der Info-Knopf steht **daneben**, nicht darin – ein Knopf im Knopf
+wäre kein gültiges HTML, und ein Klick darauf darf die Karte nicht mit
+aufklappen (dieselbe Falle wie bei den Einstellungen, Abschnitt 107.4).
+
+### 112.2 Zwei Einstellungen, mehr nicht
+
+| Einstellung | Wo | Reichweite |
+|---|---|---|
+| **Arbeitsablauf verwenden** (ein/aus) | Einstellungen → Allgemein → Arbeitsablauf | firmenweit (`app_settings.workflow_aktiv`) |
+| **Aufgaben auf dem Startbildschirm** (zugeklappt/geöffnet) | Einstellungen → Allgemein → Anzeige | je Gerät (`localStorage`) |
+
+**Bewusst keine dritte.** Naheliegend wäre eine Zahl „wie viele Aufgaben
+anzeigen" (`AUFGABEN_LIMIT`, heute 25). Sie wurde nicht gebaut: zugeklappt
+kostet die Länge der Liste keinen Platz mehr, und wer sie aufklappt, will
+sehen, was offen ist – eine Zahl, die niemand verstellt, ist eine Option
+zuviel. Ebenso wenig ein Filter nach Aufgabenart: man sieht ohnehin nur, was
+einem selbst gehört.
+
+Der Klick auf die Karte gilt **für jetzt**, die Einstellung für den **Start**.
+Zwei Quellen für denselben Wert wären verwirrend, deshalb wird der Klick nicht
+zusätzlich gespeichert.
+
+### 112.3 Der Schalter ist reine Anzeige
+
+Migration `app_settings_workflow_aktiv_v3_07`: eine additive, nicht-nullbare
+Spalte mit Vorgabe `true`. Beide Firmen stehen danach auf `true`,
+`updated_at` unverändert (ein `ALTER TABLE … ADD COLUMN` löst keinen
+Zeilentrigger aus).
+
+Ausgeschaltet verschwinden:
+- die Aufgabenkarte auf dem Startbildschirm,
+- die Karte „🔁 Arbeitsstatus" in der Massaufnahme,
+- das Statusabzeichen in der Projektliste des Cockpits.
+
+**Es wird nichts gelöscht.** Der Stand laufender Massaufnahmen bleibt in den
+Spalten stehen und ist unverändert wieder da, sobald die Firma den Ablauf
+einschaltet. Das steht so im Info-Text, im Hilfetext und in der Anleitung –
+der Prüfstand verlangt es dort ausdrücklich.
+
+**Und der Schalter lockert nichts.** `schuetze_measurement_workflow()` und die
+sechs `measurement_*`-Funktionen prüfen unverändert weiter; ein manipulierter
+Client kann mit `workflowAktiv=true/false` keinen Schritt überspringen. Die
+Entscheidung, den Schalter *nicht* serverseitig auszuwerten, ist bewusst: eine
+Anzeige-Einstellung darf keine Sicherheitsgrenze werden, sonst hinge die
+Absicherung an einem Wert, den ein Firmenadmin selbst setzt.
+
+Ändern darf ihn nur ein Administrator – das erzwingt die bestehende
+`app_settings`-Policy (`is_admin()`). Ein Mitarbeiter schreibt nichts: das
+UPDATE betrifft still 0 Zeilen, und `speichereAppSettings()` meldet das als
+Fehler statt Erfolg vorzutäuschen (Abschnitt 24.1/75). Im Prüfstand
+nachgestellt und gemessen: der Schalter bleibt stehen, die Meldung ist rot.
+
+### 112.4 Eine Prüfung, die gar nicht fehlschlagen konnte
+
+Der erste Entwurf prüfte strukturell „der Info-Knopf steckt nicht im
+Kopf-Knopf". Die Gegenprobe (Knopf hineinschieben) blieb **grün**. Gemessen,
+warum: der HTML-Parser löst einen `<button>` im `<button>` von sich aus auf –
+
+```
+<button id="a">Text<button id="i">i</button></button>
+  →  <button id="a">Text</button><button id="i">i</button>
+```
+
+Die Prüfung konnte also niemals fehlschlagen und war Zierde. Ersetzt durch das
+**Verhalten**: ein Klick auf den Info-Knopf öffnet die Hilfe und lässt die
+Karte zu. Dafür gibt es jetzt eine Gegenprobe, die beisst.
+
+### 112.5 Tests
+
+**Neuer Prüfstand `pruefstaende/pruefstand-aufgaben-schalter-v3-07.js` –
+49/49**, echtes Chromium gegen die echte `index.html`. Gemessen statt
+behauptet (`getComputedStyle`, echte Rechtecke, echte Klicks und
+Tastendrücke): zugeklappte Höhe ≤ 72 px, Liste nicht sichtbar, Anzahl und
+Einzahl/Mehrzahl, der dringende Teil wirklich rot (RGB), `aria-expanded`,
+Auf- und Zuklappen, Lesbarkeit erst im offenen Zustand, Tastatur (Enter),
+Info-Knopf, Startzustand aus der Einstellung, Speichern je Gerät, der
+firmenweite Schalter in allen drei Wirkungen, was beim Speichern wirklich zur
+Datenbank geht, das blockierte UPDATE, die Hilfetexte und vier
+Bildschirmbreiten je zugeklappt und offen.
+
+**Sechs Gegenproben**, jede baut einen echten Fehler ein und wirft den
+Prüfstand um:
+
+| Gegenprobe | Ergebnis |
+|---|---|
+| Karte immer offen (kein Zuklappen) | 43/49 |
+| kein Toggle-Handler (lässt sich nicht öffnen) | 45/49 |
+| blockiertes UPDATE gilt als Erfolg | 46/49 |
+| firmenweiter Schalter wird ignoriert | 47/49 |
+| „Arbeitsstatus" ignoriert den Schalter | 47/49 |
+| Startzustand ignoriert die Einstellung | 47/49 |
+
+**Zwei überholte Erwartungen** im Workflow-Prüfstand nachgezogen, keine davon
+ein Codefehler: die Anzahl steht jetzt im Klartext statt in Klammern, und der
+Helfer muss die Karte aufklappen, bevor er die einzelnen Aufgaben liest –
+`innerText` liefert bei verstecktem Inhalt `""`, und ein Klick auf ein
+verstecktes Element **liess den Prüflauf hängen** statt fehlzuschlagen (ein
+abgebrochener Lauf sieht aus wie „keine Fehler"). Danach wieder 101/101.
+
+**Ein Fehlschlag war meine Testerwartung**, kein Codefehler: `innerText`
+liefert die per CSS grossgeschriebene Fassung („🔁 ARBEITSSTATUS"), der
+Vergleich ist jetzt gross-/kleinschreibungsunabhängig (Abschnitt 80.4).
+
+**Regierapport nachweislich unverändert**: unter `media:print` mit
+ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+v3.06-Stand gerendert, mit angeglichener Versionsnummer – **DOM und Bild
+byteidentisch** (DOM `d1801ae54ce7f15b`, 6692 Zeichen; Bild
+`a9cea8e3db208e27`, 47 935 Bytes), bestätigt durch einen dritten Lauf
+desselben Codes. `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+`css/03-druck.css` sind nicht im Diff.
+
+`node --check` über alle `js/*.js`, `sw.js` und alle Prüfstände: fehlerfrei;
+`<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0, Minimum 0);
+keine doppelten Element-IDs; jede js-Datei in `index.html` **und** in der
+Service-Worker-Liste; Version 3.07 in `index.html` und `sw.js` gleich.
+
+**Kein Schreibzugriff auf Produktivdaten** in dieser Runde ausser der
+Migration selbst (112.3).
+
+**Beobachtung ausserhalb dieser Aufgabe** (nur dokumentiert, nicht verursacht):
+Die Massaufnahme 62 „Test" steht seit dem 06.09.2026, 06:16 auf
+`abgeschlossen`, freigegeben von Mike Ledermann. Der Betreiber hat den in
+v3.05 gebauten Ablauf also erstmals **real im Browser** durchgespielt –
+freigeben, rüsten, montieren, abschliessen –, ausserhalb dieser Sandbox und
+nicht durch einen Test hier. Das ist die erste Live-Bestätigung des Workflows.
+Nutzdaten, unangetastet gelassen.
+
+Datenbestand vor und nach dieser Runde identisch: 2 Firmen, 13 Profile, 24
+Massaufnahmen, 0 verfallene Freigaben, `PETER KÜNZI AG.updated_at` unverändert
+(`2026-09-01 07:40:15.844647+00`).
+
+`get_advisors(security)`: derselbe Satz wie nach v3.06 – die bekannten
+„von `authenticated` aufrufbar, die Prüfung liegt in der Funktion"-Warnungen
+und die deaktivierte Leaked-Password-Protection (Sache des Betreibers, siehe
+Abschnitt 109.8). Keine neue Art von Warnung; in dieser Runde kam ohnehin
+keine neue `SECURITY DEFINER`-Funktion dazu.
+
+### 112.6 Anleitung
+
+Nach Abschnitt 108.1 mitgeführt: Kapitel 3 nennt die zugeklappte Zeile (mit
+neuem Bild `34-aufgaben-zu`), Kapitel 9 bekommt das Auf-/Zuklappen und den
+neuen Unterabschnitt „Wenn die Firma ohne diesen Ablauf arbeitet", Kapitel 17
+nennt beide Einstellungen. Alle 36 Bilder neu erzeugt, PDF neu gebaut:
+**44 Seiten** (vorher 42), keine leere. Die fünf Verweise nachgezogen, das
+alte PDF gelöscht. `pruefstand-hilfe-v3-03.js` (68/68) erzwingt das
+mechanisch.
+
+### 112.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migration `app_settings_workflow_aktiv_v3_07` | Spalte, Vorgabe ein |
+| `js/45-aufgaben.js` | Zuklappen, Kopfzeile, `aufgabenAktiv()` |
+| `js/44-workflow.js` | `mwAktiv()` – Karte und Statusabzeichen |
+| `js/07-einstellungen.js` | beide Speicher-Wege |
+| `js/08-katalog-blitzschutz.js` | zwei Zeilen: die Felder anzeigen |
+| `js/05-daten-laden.js`, `js/01-basis.js` | `workflowAktiv`, `aufgabenOffenStart` |
+| `js/41-hilfe.js` | Text `einst-workflow`, `aufgaben` erweitert |
+| `index.html`, `css/01-basis.css`, `sw.js` | Karte, Einstellungen, Stile, Version 3.07 |
+| `anleitung/*` | Kapitel 3/9/17, neues Bild, PDF v3.07 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08`-Rapportlogik,
+`css/03-druck.css` (Regierapport) sowie sämtliche Fachdateien `js/11`–`js/40`
+ausser js/44 – keine Berechnung, keine Stückliste, kein Zuschnitt, keine
+Abwicklung berührt.
+
+### 112.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- Der Schalter wirkt erst nach dem nächsten Laden der Firmeneinstellungen bei
+  den **anderen** Mitarbeitern – wer gerade angemeldet ist, sieht die Änderung
+  beim nächsten Anmelden. Ein Live-Abgleich wäre eine eigene Funktion
+  (Supabase Realtime) und war nicht verlangt.
+- Der Verfall der Freigabe (v3.06) läuft in der Datenbank weiter, auch wenn
+  der Ablauf abgeschaltet ist. Das ist harmlos: er greift nur bei einer
+  Massaufnahme, die schon freigegeben war – und beim Wiedereinschalten ist der
+  Stand dadurch stimmig statt veraltet.
+- **Nebenbefund, nicht in dieser Runde behoben**: `#startLogo` trägt ein
+  `hidden`-Attribut **und** ein Inline-`display:block` – das Inline-Style
+  schlägt das `[hidden]` des Browsers (dieselbe Falle wie in Abschnitt 59).
+  Gemessen ist das Element trotzdem 0 × 0 px, weil ohne `src` nichts zu
+  rendern ist, und es verhält sich in v3.06 identisch – also kein durch diese
+  Runde verursachter und heute kein sichtbarer Fehler. Latent bleibt er
+  trotzdem: bekäme das Bild je ein `src`, solange es `hidden` ist, würde es
+  erscheinen. Eine Zeile `#startLogo[hidden]{display:none}` würde es
+  schliessen; bewusst nicht mit dieser Aufgabe vermischt.

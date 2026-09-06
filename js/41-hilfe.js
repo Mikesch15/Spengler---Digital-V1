@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.06.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.07.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -48,7 +48,28 @@ niemand eingeteilt.</li>
 <li><b>Zu rüsten</b> – du bist als Rüster eingeteilt.</li>
 <li><b>Zu montieren</b> – du bist als Monteur eingeteilt.</li></ul>
 <p>Ein Klick führt direkt zur richtigen Massaufnahme. Aufgaben anderer
-Mitarbeiter siehst du hier nie.</p>`},
+Mitarbeiter siehst du hier nie.</p>
+<p>Die Karte ist <b>zugeklappt</b> und braucht dann eine Zeile: sie nennt die
+Anzahl und – rot – wie viele davon jetzt dran sind. Ein Tipp darauf klappt die
+Liste auf. Ob sie beim Start offen oder zu ist, stellst du unter
+<b>Einstellungen → Allgemein → Anzeige</b> ein; das gilt nur für dieses Gerät.
+Sind keine Aufgaben offen, erscheint die Karte gar nicht.</p>`},
+
+"einst-workflow":{titel:"Arbeitsablauf der Massaufnahme",text:`
+<p>Schaltet den ganzen Ablauf für die <b>ganze Firma</b> ein oder aus: Freigabe
+durch den Aufnehmer, Zuweisung von Rüster und Monteur, Bestätigung von Rüsten
+und Montage – und die Aufgabenliste auf dem Startbildschirm.</p>
+<p><b>Aus</b> heisst: die Karte „Arbeitsstatus“ verschwindet aus der
+Massaufnahme und der Startbildschirm zeigt keine Aufgaben mehr. Für einen
+Betrieb, in dem dieselbe Person misst, rüstet und montiert, ist der Ablauf
+unnötiger Aufwand.</p>
+<p><b>Es wird nichts gelöscht.</b> Der Stand bereits laufender Massaufnahmen
+bleibt gespeichert und ist unverändert wieder da, sobald der Ablauf erneut
+eingeschaltet wird.</p>
+<p>Ändern kann das nur ein Administrator. Der Schalter blendet nur aus – wer
+den Ablauf verwendet, ist weiterhin an die Regeln gebunden: freigeben darf nur
+der Aufnehmer, rüsten nur der eingeteilte Rüster. Das prüft die Datenbank
+selbst, unabhängig von dieser Einstellung.</p>`},
 
 "workflow":{titel:"Arbeitsstatus",text:`
 <p>Der Weg einer Massaufnahme von der Erfassung bis zur Montage:</p>

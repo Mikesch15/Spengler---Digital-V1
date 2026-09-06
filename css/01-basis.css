@@ -687,3 +687,18 @@ html.dark .mw-warnung{border-color:#f08b80;color:#f08b80}
 .aufgabe-knoepfe button{flex:1 1 auto;min-height:40px}
 .aufgabe-haupt{flex:1 1 100%}
 @media(min-width:520px){.aufgabe-haupt{flex:1 1 auto}}
+/* v3.07 Die Karte ist zugeklappt eine Zeile hoch. Der Kopf ist ein echter
+   Knopf (Tastatur), der Info-Knopf steht daneben - ein Knopf im Knopf waere
+   kein gueltiges HTML. */
+.aufgaben-karte{padding:0;overflow:hidden}
+.aufgaben-leiste{display:flex;align-items:center;gap:4px;padding-right:10px}
+.aufgaben-toggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:space-between;
+ gap:8px;min-height:46px;padding:10px 4px 10px 14px;background:none;color:inherit;
+ font-size:13px;font-weight:800;text-align:left;border-radius:16px 0 0 16px;
+ text-transform:none;word-break:break-word}
+.aufgaben-toggle:hover{filter:none;background:var(--blue-light)}
+.aufgaben-dringend{color:var(--red)}
+.aufgaben-chevron{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--blue);transition:transform .15s}
+.aufgaben-karte.offen .aufgaben-chevron{transform:rotate(90deg)}
+.aufgaben-body{display:none;padding:0 14px 12px}
+.aufgaben-karte.offen .aufgaben-body{display:block}

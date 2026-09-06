@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.06";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.07";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -47,7 +47,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.06<br>
+  Version 3.07<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -120,8 +120,11 @@ Anmelden wieder selbst eines.</div>
 </table>
 <p>Über den Knöpfen erscheint die Karte <strong>🔔 Meine offenen Aufgaben</strong>,
 sobald für dich persönlich etwas ansteht – eine eigene Massaufnahme freigeben, einen
-Auftrag rüsten oder eine Montage bestätigen. Hast du nichts offen, ist die Karte gar
-nicht da. Mehr dazu in Abschnitt 9.</p>
+Auftrag rüsten oder eine Montage bestätigen. Sie ist <strong>zugeklappt</strong> und
+braucht dann eine Zeile: sie nennt, wie viele Aufgaben offen sind und – rot – wie viele
+davon jetzt dran sind. Ein Tippen darauf klappt die Liste auf. Hast du nichts offen, ist
+die Karte gar nicht da. Mehr dazu in Abschnitt 9.</p>
+<figure><img src="bilder/34-aufgaben-zu.png"><figcaption>Zugeklappt braucht die Aufgabenkarte eine Zeile. Ein Tippen öffnet die Liste.</figcaption></figure>
 <p>Oben rechts steht, wer angemeldet ist, daneben <span class="tasten">🔓 Abmelden</span>.
 Unten steht die Programmversion – die ist wichtig, wenn du einen Fehler meldest.</p>
 
@@ -309,6 +312,20 @@ eigenen Schritt bestätigen.</p>
 <figure><img src="bilder/32-aufgaben.png"><figcaption>Meine offenen Aufgaben: rot heisst „jetzt dran“, orange „weniger dringend“. Ein Tippen führt direkt zur richtigen Massaufnahme.</figcaption></figure>
 <p>Jede Aufgabe nennt die <strong>Adresse der Baustelle</strong> und die Art der
 Massaufnahme – dieselbe Bezeichnung wie überall sonst in der App.</p>
+<p>Die Karte ist zugeklappt und zeigt nur die Zeile mit der Anzahl; ein Tippen öffnet
+die Liste, ein zweites schliesst sie wieder. Ob sie beim Start offen oder zu ist,
+stellst du unter <strong>Einstellungen → Allgemein → Anzeige</strong> ein – das gilt
+nur für dieses Gerät, jeder Mitarbeiter entscheidet für sich.</p>
+
+<h3>Wenn die Firma ohne diesen Ablauf arbeitet</h3>
+<p>Wo dieselbe Person misst, rüstet und montiert, ist der Ablauf unnötiger Aufwand. Ein
+Administrator schaltet ihn deshalb unter <strong>Einstellungen → Allgemein →
+Arbeitsablauf der Massaufnahme</strong> für die ganze Firma aus. Dann verschwinden die
+Karte <strong>🔁 Arbeitsstatus</strong> aus der Massaufnahme und die Aufgabenliste vom
+Startbildschirm.</p>
+<div class="hin"><strong>Es wird dabei nichts gelöscht.</strong> Der Stand bereits
+laufender Massaufnahmen bleibt gespeichert und ist unverändert wieder da, sobald der
+Ablauf erneut eingeschaltet wird.</div>
 
 <h3>Wenn nach der Freigabe noch etwas ändert</h3>
 <p>Eine freigegebene Massaufnahme ist die Grundlage, nach der gerüstet und montiert
@@ -457,6 +474,11 @@ ganze Firma oder nur für dieses Gerät – das ist jeweils angeschrieben.</p>
 <figure><img src="bilder/22-einstellungen-allgemein.png"><figcaption>Allgemein: Darstellung, Anzahl der letzten Einträge, Fotoqualität und das Blechlager.</figcaption></figure>
 <div class="hin"><strong>Das Blechlager</strong> (die Rollenbreiten) gilt für die ganze
 Firma und wird von allen Massaufnahmen mit Rollenblech-Zuschnitt verwendet.</div>
+<p>Unter <strong>Anzeige</strong> steht auch, ob die Aufgabenkarte auf dem
+Startbildschirm zugeklappt oder offen startet – nur für dieses Gerät. Darunter schaltet
+ein Administrator unter <strong>Arbeitsablauf der Massaufnahme</strong> den ganzen
+Ablauf aus Abschnitt 9 für die ganze Firma ein oder aus; ausgeschaltet wird nichts
+gelöscht.</p>
 <figure><img src="bilder/23-einstellungen-massaufnahmen.png"><figcaption>Massaufnahmen: die Standardmasse je Fachfunktion.</figcaption></figure>
 <p>Hier stehen Umschläge, Überlappungen, Stosslängen, Achsabstände und ähnliche
 Vorgabewerte. Sie füllen eine <strong>neue</strong> Massaufnahme vor und sind darin
@@ -572,7 +594,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">23 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.06</strong>, Stand 6. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.07</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

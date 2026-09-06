@@ -434,6 +434,8 @@ function renderSettings(){
  renderMeasMaterialSettings();
  $("darkModeInput").value=darkMode?"ja":"nein";
  $("photoQualityInput").value=photoQuality;
+ if($("aufgabenOffenInput"))$("aufgabenOffenInput").value=aufgabenOffenStart?"auf":"zu";
+ if($("workflowAktivInput"))$("workflowAktivInput").value=(typeof workflowAktiv==="undefined"||workflowAktiv!==false)?"ja":"nein";
  $("defaultRateInput").innerHTML='<option value="">Kein Standard</option>'+settings.rates.map(r=>`<option value="${esc(r[0])}"${r[0]===defaultRate?" selected":""}>${esc(r[0])}</option>`).join("");
 }
 $("materialSettingsSearch").addEventListener("input",e=>{materialFilter=e.target.value;materialPage=0;renderMaterialSettings()});
