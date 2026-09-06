@@ -313,8 +313,13 @@ const liste=[];
   // nicht laeuft - deshalb aus denselben Demodaten setzen.
   if(typeof reststuecke!=="undefined")reststuecke=window.__demo.reststuecke.slice();
   if(typeof resvCockpitLaden==="function")await resvCockpitLaden(1);
+  // v3.11: die Karte ist klappbar und startet zugeklappt - fuer das Bild auf.
+  const kr=document.querySelector('#cockpitReservierungCard .klapp-kopf[data-klapp]');
+  if(kr&&!kr.closest(".klapp").classList.contains("open"))kr.click();
  });
  await schuss("39-reservierung","#cockpitReservierungCard",{warte:900,breite:900});
+ // v3.13: die Sammelaktionen - Auswahl, Zahl am Knopf, Sperrzustand.
+ await schuss("41-sammelaktion","#cockpitReservierungBody .resv-bulk",{warte:300,breite:900});
  await page.evaluate(()=>{$("projectCockpitModal").hidden=true});
 
  // Werkstatt- und Ruestansicht.

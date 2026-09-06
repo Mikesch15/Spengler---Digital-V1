@@ -363,7 +363,7 @@ const typWaehlen=async(page,typ,register)=>{
      farbe:[...(x.querySelector(".mw-streifen")||{classList:[]}).classList].filter(c=>/^mw-streifen-/.test(c)).join(""),
      stationen:[...x.querySelectorAll(".mw-station")].map(s=>
        (s.querySelector(".mw-st-text")||{}).textContent+":"+[...s.classList].filter(c=>/^mw-st-/.test(c))[0]),
-     knopf:(x.querySelector(".mw-streifen-knopf")||{}).textContent||"",
+     knopf:[...x.querySelectorAll(".mw-streifen-knopf")].map(k=>k.textContent||"").join(" | "),
      zeilen:[...x.querySelectorAll(".werk-zeile")].map(z=>
        ((z.querySelector("b")||{}).textContent||"")+(z.classList.contains("werk-zeile-jetzt")?" *":""))
    }))
@@ -399,6 +399,9 @@ const typWaehlen=async(page,typ,register)=>{
  p(!!b7&&stat(b7)==="Reserviert:mw-st-jetzt|Zugeschnitten:mw-st-offen|Gerüstet:mw-st-offen|Montiert:mw-st-offen",
    "die Leiste zeigt vier Stationen, die erste ist dran",stat(b7));
  p(!!b7&&/Projekt öffnen/.test(b7.knopf),"mit einem Knopf, der dorthin fuehrt",b7&&b7.knopf);
+ // v3.13: daneben erledigt ein Sammelknopf denselben Schritt fuer das ganze
+ // Projekt - mit der Zahl der Positionen, die er wirklich aendert.
+ p(!!b7&&/Alle reservieren \(1\)/.test(b7.knopf),"und einem, der es gleich hier erledigt",b7&&b7.knopf);
 
  // Reserviert -> Zuschneiden ist dran
  await werkstatt(res1("reserviert"));

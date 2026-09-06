@@ -803,8 +803,42 @@ button.pmat-quelle:hover{border-color:var(--blue)}
  justify-content:space-between;font-size:12px;padding:4px 0;
  border-bottom:1px solid var(--card-line);min-width:0}
 .resv-rest-zeile:last-of-type{border-bottom:0}
-.resv-rest-zeile>span:first-child{flex:1 1 160px;min-width:0;word-break:break-word}
+.resv-rest-zeile>span:not(.resv-akt){flex:1 1 160px;min-width:0;word-break:break-word}
+.resv-rest-zeile>label.resv-pick{flex:0 0 auto}
 .resv-rest-zeile button{width:auto;min-height:34px;padding:4px 8px;font-size:12px}
+
+/* ---- Sammelaktionen der Reservierung (v3.13) ------------------------------
+   Die Kaestchen setzen die globale input-Grundregel ausdruecklich zurueck
+   (CLAUDE.md 72.5) - sonst waeren sie 40 px hoch und traegen einen zweiten
+   Rahmen. Ebenso label{text-transform:uppercase}. */
+label.resv-pick{display:inline-flex;align-items:center;justify-content:center;
+ min-height:30px;min-width:30px;margin:0;padding:0;cursor:pointer;
+ text-transform:none;letter-spacing:normal;font-weight:400}
+label.resv-pick input[type=checkbox]{width:19px;min-width:19px;height:19px;
+ min-height:0;padding:0;border:0;border-radius:0;margin:0;flex:0 0 auto;
+ cursor:pointer;accent-color:var(--blue)}
+/* Nur fuer Screenreader - sichtbar waere der Text in der schmalen Spalte Laerm. */
+.resv-pick-sr{position:absolute;width:1px;height:1px;overflow:hidden;
+ clip:rect(0 0 0 0);white-space:nowrap}
+.resv-tab th.resv-pick-th,.resv-tab td.resv-pick-td{width:34px;padding-left:2px;padding-right:2px;text-align:center}
+/* .pmat-tab setzt min-width:0, weil es fuer VIER Spalten gedacht ist (siehe
+   dort). Diese Tabelle hat sieben - auf einem Handy wurde daraus ein Umbruch
+   Buchstabe fuer Buchstabe ("T i t a n z i n k"). Sie bekommt deshalb wieder
+   eine Mindestbreite und scrollt in ihrem .scroll-Rahmen seitwaerts, wie die
+   uebrigen breiten Tabellen der App (CLAUDE.md 60.5). */
+table.resv-tab{min-width:760px}
+/* .pmat-tab bricht mit word-break:break-word auch MITTEN im Wort. Hier reicht
+   ein Umbruch an der Wortgrenze; nur ein Wort, das allein nicht passt, wird
+   noch geteilt. Sonst stand da "Titanzin k". */
+table.resv-tab th,table.resv-tab td{word-break:normal;overflow-wrap:break-word}
+tr.resv-gewaehlt td:first-child{border-left:3px solid var(--blue)}
+.resv-rest-zeile.resv-gewaehlt{border-left:3px solid var(--blue);padding-left:5px}
+.resv-bulk{border:1px solid var(--line);border-radius:8px;padding:8px;margin:8px 0}
+.resv-bulk-chips{display:flex;flex-wrap:wrap;gap:6px}
+.resv-bulk-zahl{margin:6px 0 4px}
+.resv-bulk-knoepfe{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.resv-bulk-knoepfe button{width:auto;flex:0 1 auto;min-height:38px;padding:6px 10px;font-size:12px}
+.resv-bulk-knoepfe button[disabled]{opacity:.45;cursor:not-allowed}
 /* v3.09 Werkstatt. Vollstaendige Uebersicht am Schreibtisch, auf dem Tablet
    und Handy sinnvoll gestapelt - keine unbrauchbaren Mini-Tabellen. */
 .werk-projekt{margin-bottom:10px}

@@ -133,8 +133,12 @@ const stand=page=>page.evaluate(()=>{
   hidden:k.hidden, hoehe:Math.round(r.height),
   zahl:($("cockpitReservierungCount").textContent||"").trim(),
   text:b.textContent.replace(/\s+/g," ").trim(),
+  // Seit v3.13 traegt jede Zeile ein Auswahl-Kaestchen als erste Spalte.
+  // Die Spalte wird hier weggelassen, damit die Indizes dieselben bleiben -
+  // eine ueberholte Erwartung, kein Codefehler.
   zeilen:[...b.querySelectorAll("tbody tr")].map(tr=>
-    [...tr.querySelectorAll("td")].map(td=>td.textContent.replace(/\s+/g," ").trim())),
+    [...tr.querySelectorAll("td")].filter(td=>!td.classList.contains("resv-pick-td"))
+      .map(td=>td.textContent.replace(/\s+/g," ").trim())),
   status:[...b.querySelectorAll("[data-resv-status]")].map(s=>({id:s.dataset.resvStatus,wert:s.value})),
   nehmen:[...b.querySelectorAll("[data-resv-rest-nehmen]")].map(x=>x.dataset.resvRestNehmen),
   frei:[...b.querySelectorAll("[data-resv-rest-frei]")].map(x=>x.dataset.resvRestFrei),

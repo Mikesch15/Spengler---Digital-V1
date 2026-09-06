@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.12, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.13, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.12**
+- sichtbare App-Version: **3.13**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -19252,3 +19252,214 @@ Stückliste, kein Zuschnitt, keine Abwicklung berührt.
 - In einer engen Tabellenzelle (Stückliste des Einlaufblechs) bricht der
   i.M.-Knopf auf eine zweite Zeile um (117.5). Die Zeile wird dadurch etwas
   höher – das ist der Preis dafür, dass das Zahlenfeld lesbar bleibt.
+
+## 118. ALLES MATERIAL EINES OBJEKTS AUF EINMAL — VERSION 3.13
+
+Ansage des Betriebs: *„mache eine funktion um alles material eines objekts
+auf einmal zu reservieren, und auch für die anderen funktionen"*. Bis v3.12
+gab es je Bedarfszeile ein Auswahlfeld – bei zwei Dutzend Positionen war das
+Weiterstellen die eigentliche Arbeit. **Keine Schemaänderung, keine
+Migration, keine RLS-/Storage-Änderung, keine neue Datenbankfunktion.**
+
+### 118.1 Ein Schreibweg, nicht zwei
+
+Naheliegend wäre eine `SECURITY DEFINER`-Funktion gewesen. Sie wäre hier
+**falsch**: die einzelne Zeile schreibt seit v3.09 über ein gewöhnliches
+`UPDATE`, das die restriktive `tenant_boundary_material_reservierungen` und
+`has_permission('projects','edit')` je Zeile prüfen. Eine DEFINER-Funktion
+umgeht RLS und müsste die Prüfung nachbauen – sie würde die Absicherung
+schwächen, nicht stärken.
+
+Deshalb: **ein** `update(...).in("id",[…]).select()`, derselbe Weg wie
+einzeln, mit denselben Feldern (`resvStatusFelder()` ist seit v3.13 die eine
+Quelle für einzeln **und** sammeln). Der Client schickt weiterhin **nirgends**
+eine `company_id` mit.
+
+Was die RLS ablehnt, kommt schlicht nicht in `data` zurück – daraus entsteht
+die ehrliche Zählung:
+
+```
+✓ 3 Positionen auf „Reserviert" gesetzt. 2 waren schon so weit.
+  3 wurden abgelehnt – fehlt die nötige Berechtigung?
+```
+
+`0` zurückgegebene Zeilen gelten **nicht** als Erfolg (CLAUDE.md 24.1).
+
+### 118.2 Drei Regeln, die die Bedienung tragen
+
+1. **Beim Öffnen ist alles angehakt** – dieselbe Vorgabe wie beim
+   Feedback-Export (72.1). „→ Reserviert (12)" ist damit ein Knopfdruck.
+2. **Die Zahl am Knopf ist die Zahl der Zeilen, die er wirklich ändert.**
+   Steht dort `(0)`, ist er gesperrt – man drückt nie ins Leere.
+3. **Ein Vorwärts-Schritt hebt nur, was noch dahinter steht.** Eine bereits
+   zugeschnittene Position wird von „Alle reservieren" **nicht**
+   zurückgezogen. Der Rückschritt hat einen eigenen Knopf
+   („↩ Zurücksetzen") mit eigener Rückfrage, die ihn als solchen benennt.
+
+Die Rangfolge ist dieselbe wie in der Werkstatt (`WERK_RES_RANG`, js/51) –
+`RESV_RANG` in js/50, keine zweite Reihenfolge.
+
+Dazu Filter über der Liste (Alle · Keine · je vorkommendem Zustand), eine
+Sammel-Entfernung, und je Aktion eine Rückfrage mit der Zahl.
+
+### 118.3 Reststücke: dieselbe Bedienung, umgekehrte Vorgabe
+
+Auch die Reststücke bekommen Kästchen und Sammelknöpfe (reservieren,
+freigeben, als verwendet buchen), mit denselben wettlaufsicheren Bedingungen
+im `WHERE` wie einzeln – ein Rest, den inzwischen ein anderes Projekt
+genommen hat, fällt aus dem `UPDATE` und wird gezählt.
+
+**Dort ist aber nichts vorgewählt.** Der Unterschied ist Absicht und hat
+einen Grund: eine Bedarfszeile gehört per Definition zu diesem Projekt (sie
+kommt aus seinen eigenen Massaufnahmen). Ein freies Reststück gehört noch
+niemandem – das ganze Lager vorzuwählen wäre genau das stillschweigende
+Einplanen, das Abschnitt 114.3 ausschliesst. „Alle auswählen" nimmt zudem
+nur die **tatsächlich gezeigten** zwölf; was nicht sichtbar ist, wählt man
+nicht ungesehen aus.
+
+### 118.4 Werkstatt: derselbe Knopf, wo der Satz den Mangel nennt
+
+Der rote Faden aus v3.12 sagte „Material reservieren – 5 Positionen sind
+noch nicht reserviert" und bot als einzigen Knopf „📂 Projekt öffnen".
+Jetzt steht daneben **„📦 Alle reservieren (5)"** bzw. beim nächsten Schritt
+„✓ Alle als zugeschnitten buchen (n)".
+
+Geschrieben wird über **`resvBulkStatus` aus js/50** – dieselbe Funktion wie
+im Projekt. Sie nimmt die ids ausdrücklich entgegen und liest **nicht**
+selbst aus `resvListe`, damit die Werkstatt mit ihrer eigenen Liste
+(`werkReservierungen`) denselben Weg benutzt. Betroffen sind nur Zeilen
+**dieses** Projekts, die noch dahinter stehen; danach lädt die Werkstatt
+frisch, statt den Stand zu erraten.
+
+### 118.5 Zwei Darstellungsfehler, im Browser gemessen
+
+- **Die Restzeile klebte auseinander.** `.resv-rest-zeile>span:first-child`
+  meinte den Text – seit dem Kästchen ist das erste Kind das Label. Regel auf
+  `>span:not(.resv-akt)` umgestellt.
+- **Die Tabelle brach Buchstabe für Buchstabe um** („T i t a n z i n k").
+  `.pmat-tab` setzt `min-width:0` und `word-break:break-word` – laut eigenem
+  Kommentar für **vier** Spalten gedacht. Die Reservierungstabelle hat sieben
+  (seit v3.13 acht mit dem Kästchen).
+  **Ehrlich dazu:** der Umbruch besteht **schon in v3.12** – gegen den
+  v3.12-Stand im selben Browser nachgemessen, dort bricht die Materialspalte
+  identisch. Meine Spalte hat ihn verschärft (auch die Positionsspalte kippte
+  um). Behoben für **diese** Tabelle: `min-width:760px` (sie scrollt in ihrem
+  `.scroll`-Rahmen seitwärts, wie die übrigen breiten Tabellen der App,
+  CLAUDE.md 60.5) und `word-break:normal;overflow-wrap:break-word` – Umbruch
+  an der Wortgrenze, nur ein allein zu langes Wort wird noch geteilt.
+  `.pmat-tab` selbst ist unangetastet, die Materialübersicht also unverändert.
+
+**Vierter Fall derselben Falle** (nach 59, 60.5, 72.5, 88.5/89.5/117.5): eine
+globale Grundregel in `css/01-basis.css` überstimmt still eine neue
+Komponente. Und wieder gemessen statt vermutet – im Bildschirmfoto sichtbar,
+nicht im Code lesbar.
+
+### 118.6 Getestet
+
+- **`pruefstaende/pruefstand-sammelaktion-v3-13.js` – 88/88**, echtes
+  Chromium gegen die echte `index.html`: Vorgabe beim Öffnen (auch beim
+  **erneuten** Öffnen eines Projekts, das seine Zeilen schon hat), genau
+  **ein** Schreibaufruf für alle Zeilen, `.in("id",[…])` ohne `company_id`,
+  die Vorwärts-Regel (zwei schon weitere Zeilen bleiben unberührt, nur vier
+  ids gehen an die Datenbank), Auswahl eingrenzen ohne dass das angetippte
+  Kästchen ersetzt wird, die Chips, gesperrte Knöpfe schreiben nichts,
+  abgelehnte Rückfrage ändert nichts, **Teil-Ablehnung durch die Datenbank**
+  wird gezählt und genannt, Zurücksetzen löscht wer/wann, Sammel-Entfernen,
+  Reststücke nicht vorgewählt, die Werkstatt über denselben Weg, vier
+  Bildschirmbreiten samt Kästchengrösse und dem Umbruch aus 118.5.
+- **14 Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | Vorwärts-Regel entfernt | 76/82 |
+  | Schleife statt einem Aufruf | 76/82 |
+  | Teil-Ablehnung verschwiegen | 80/82 |
+  | 0 Zeilen als Erfolg | 81/82 |
+  | Reststücke vorgewählt | 80/82 |
+  | Kästchen zeichnet die Tabelle neu | 78/82 |
+  | Knopf ohne Zahl, nie gesperrt | 74/82 |
+  | Werkstatt mit eigenem Schreibweg | 80/82 |
+  | Rückfrage entfernt | 76/82 |
+  | Werkstatt ohne Sammelknopf | 76/82 |
+  | beim Öffnen nichts gewählt | 69/84 |
+  | Reste ohne Wettlaufschutz | 83/84 |
+  | Auswahl ignoriert | 79/84 |
+  | Tabelle wieder zusammengedrückt | 86/88 |
+
+- **Zwei Gegenproben blieben zuerst grün** – beide Prüfungen waren wertlos
+  und wurden geschärft: (1) „das Kästchen wurde nicht ersetzt" prüfte über
+  `document.contains()`, was auf den **neuen** Knoten hereinfällt; jetzt über
+  ein Merkmal am Knoten. (2) „beim Öffnen ist alles gewählt" wurde nie
+  wirklich geprüft, weil `resvBedarfUebernehmen()` die frisch angelegten
+  Zeilen ohnehin selbst auswählt – der Fall „Projekt mit vorhandenen Zeilen
+  erneut öffnen" fehlte und ist jetzt drin.
+- **Volle Regression grün** – alle **41** Prüfstände im Repo, rund **4859**
+  bestandene Prüfungen, **0** Fehlschläge.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.12-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, 100.6) – **DOM, Text und Bild byteidentisch**
+  (Bild `34a77e4eb376a55c`, 59 282 Bytes, Höhe 721 px), bestätigt durch einen
+  Kontrolllauf desselben Codes. `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 57 `js/*.js`, `sw.js` und alle 41 Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs; alle 57 js-Dateien in `index.html`
+  **und** in der Service-Worker-Liste; Version 3.13 in `index.html` und
+  `sw.js` gleich.
+- **Zwei überholte Erwartungen** angepasst, keine davon ein Codefehler: der
+  Reservierungs-Prüfstand aus v3.09 las die Tabellenspalten über ihren Index
+  (das Kästchen ist seit v3.13 die erste Spalte), und der v3.12-Prüfstand
+  erwartete am Streifen genau **einen** Knopf.
+- **Kein Schreibzugriff auf die Datenbank** in dieser Runde – gelesen wurden
+  nur Schema und Policies der beiden Tabellen.
+
+### 118.7 Anleitung
+
+Nach Regel 108.1 mitgeführt: neuer Unterabschnitt „Alles auf einmal" bei der
+Materialreservierung (mit neuem Bild `41-sammelaktion`), die Reststück-Regel
+um die umgekehrte Vorgabe ergänzt, die Werkstatt um den Sammelknopf. Alle 46
+Bilder neu erzeugt, PDF v3.13 mit **56 Seiten** (vorher 55), keine leere. Die
+fünf Verweise nachgezogen, das alte PDF gelöscht. `pruefstand-hilfe-v3-03`
+(68/68) erzwingt das mechanisch.
+
+Dabei mitkorrigiert: `schuss.js` schoss das Bild `39-reservierung` aus der
+seit v3.11 **zugeklappten** Karte – sie wird jetzt vorher aufgeklappt.
+
+### 118.8 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/50-reservierung.js` | Auswahl, Sammelaktions-Leiste, `resvBulkStatus`/`resvBulkLoeschen`/`resvBulkRest`, `resvStatusFelder` als eine Quelle |
+| `js/51-werkstatt.js` | Sammelknopf im Streifen, Handler über den Weg aus js/50 |
+| `css/01-basis.css` | Kästchen (globale `input`-Regel zurückgesetzt), Leiste, Markierung, Tabellenbreite und Umbruch (118.5) |
+| `js/41-hilfe.js` | Hilfetexte „Materialreservierung" und „Werkstatt" erweitert |
+| `index.html`, `sw.js` | Version 3.13 |
+| `pruefstaende/pruefstand-sammelaktion-v3-13.js` | **neu** |
+| zwei bestehende Prüfstände | überholte Erwartung (118.6) |
+| `anleitung/*` | neuer Unterabschnitt, neues Bild, PDF v3.13 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/42-reste.js` (das Lager selbst) sowie
+sämtliche Fachdateien `js/10`–`js/40` und `js/43`–`js/49`, `js/52`–`js/55` –
+per `git diff` bestätigt.
+
+### 118.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und die Datenbankseite
+  per SQL (nur lesend) gegen das echte Produktivschema.
+- **Der ganze Block steht bei allen Firmen weiterhin auf AUS** (114.1) – die
+  Sammelaktionen sind also noch nie mit echten Firmendaten gelaufen.
+- Eine Sammelaktion schreibt **eine** Audit-Zeile je geänderter Position –
+  bei zwölf Positionen also zwölf Einträge im Verlauf. Das ist richtig (jede
+  Position hat sich wirklich geändert), macht den Verlauf aber voll. Eine
+  Zusammenfassung („12 Positionen reserviert") wäre eine eigene, bewusste
+  Erweiterung von `write_audit_log()`.
+- Die Reststück-Auswahl „Alle auswählen" umfasst nur die gezeigten zwölf
+  (118.3). Ein Lager mit mehr freien Resten braucht dafür mehrere Durchgänge
+  – bewusst, statt Unsichtbares mitzuwählen.

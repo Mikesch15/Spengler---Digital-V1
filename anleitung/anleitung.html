@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.12";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.13";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.12<br>
+  Version 3.13<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -506,12 +506,34 @@ die Materialübersicht ohnehin zeigt. Jede Position durchläuft fünf Zustände:
 <tr><td>Zugeschnitten</td><td>geschnitten</td></tr>
 <tr><td>Gerüstet</td><td>bereit für die Baustelle</td></tr>
 </table>
+<h4>Alles auf einmal</h4>
+<figure><img src="bilder/41-sammelaktion.png"><figcaption>Beim Öffnen ist alles angehakt – ein Druck reserviert das ganze Objekt.</figcaption></figure>
+<p>Zwei Dutzend Positionen einzeln weiterzustellen wäre die eigentliche Arbeit. Deshalb
+ist beim Öffnen <strong>jede Zeile angehakt</strong>, und über der Liste steht je Schritt
+ein Knopf:</p>
+<p class="mitte"><span class="tasten">→ Verfügbar</span> <span class="tasten">→ Reserviert</span>
+<span class="tasten">→ Zugeschnitten</span> <span class="tasten">→ Gerüstet</span></p>
+<p><strong>Die Zahl am Knopf ist die Zahl der Zeilen, die er wirklich ändert.</strong>
+Steht dort <em>(0)</em>, ist er gesperrt – man drückt nie ins Leere. Und ein Schritt hebt
+nur Positionen, die noch dahinter stehen: eine bereits zugeschnittene Position wird von
+<span class="tasten">→ Reserviert</span> <strong>nicht</strong> zurückgezogen. Vor dem
+Schreiben kommt eine Rückfrage mit der Zahl; danach steht da, was wirklich geschehen ist –
+und was die Datenbank abgelehnt hat, wird genannt statt verschwiegen.</p>
+<p>Wer nur einen Teil will, nimmt Haken weg oder tippt auf einen der Filter über der Liste
+(<span class="tasten">Alle</span>, <span class="tasten">Keine</span>, oder einen Zustand).
+<span class="tasten">↩ Zurücksetzen</span> stellt ausgewählte Positionen wieder auf
+<em>Benötigt</em> – das ist ein Rückschritt und sagt das in der Rückfrage auch.</p>
 <div class="hin">Ein passendes <strong>Reststück wird nie automatisch eingeplant.</strong>
 Es wird vorgeschlagen; erst der Klick auf <span class="tasten">Für dieses Projekt
 reservieren</span> sperrt es. Danach steht es keinem anderen Projekt mehr zur
 Verfügung. <span class="tasten">Freigeben</span> macht es wieder frei,
 <span class="tasten">Verbraucht</span> bucht es aus – die Spur zum Projekt bleibt in
-beiden Fällen im Änderungsverlauf.</div>
+beiden Fällen im Änderungsverlauf.
+<br><br>Auch die Reststücke lassen sich sammeln bearbeiten – dort ist aber
+<strong>nichts vorgewählt</strong>. Der Unterschied hat einen Grund: eine Bedarfszeile
+gehört per Definition zu diesem Projekt, ein freies Reststück gehört noch niemandem. Das
+ganze Lager vorzuwählen wäre genau das stillschweigende Einplanen, das oben
+ausgeschlossen ist.</div>
 
 <h3>Werkstatt- und Rüstansicht</h3>
 <figure><img src="bilder/40-werkstatt.png"><figcaption>Alles, was freigegeben, zu rüsten, gerüstet oder zu montieren ist – nach Projekt gruppiert.</figcaption></figure>
@@ -529,6 +551,10 @@ Die Projekte stehen in genau dieser Reihenfolge: was zuerst drankommt, steht obe
 die Massaufnahmen, um die es beim jetzigen Schritt geht, sind blau markiert und stehen
 innerhalb des Projekts zuoberst.</p>
 <figure><img src="bilder/38-werkstatt-faden.png"><figcaption>Nächster Schritt, Stationenleiste und die markierten Massaufnahmen.</figcaption></figure>
+<p>Steht als nächster Schritt <em>Material reservieren</em> oder <em>Zuschneiden</em>,
+trägt der Streifen einen Knopf, der genau das für das ganze Projekt auf einmal erledigt –
+<span class="tasten">📦 Alle reservieren (5)</span>. Es ist derselbe Vorgang wie im Projekt
+selbst, nur ohne den Umweg dorthin.</p>
 <p><span class="tasten">Rüstgrundlage anzeigen</span> klappt auf, was für dieses Projekt
 gebraucht wird – in der Reihenfolge des Ablaufs: <strong>1 · Material</strong>,
 <strong>2 · Reservierungen</strong>, <strong>3 · Zuschnitt</strong>. Der Block, der zum
@@ -826,7 +852,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.12</strong>, Stand 6. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.13</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

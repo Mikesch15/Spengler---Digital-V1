@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.12.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.13.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -185,6 +185,11 @@ sonst gäbe es dazu keinen ablesbaren Zustand. Reserviert und Zugeschnitten
 kommen aus dem Status der Reservierungen, Gerüstet und Montiert aus dem
 Arbeitsstatus der Massaufnahmen. Es wird nichts geschätzt.
 
+Steht als nächster Schritt „Material reservieren" oder „Zuschneiden", trägt
+der Streifen einen Knopf, der genau das für das ganze Projekt auf einmal
+erledigt – „📦 Alle reservieren (5)". Die Zahl ist die Zahl der Positionen,
+die noch dahinter stehen; was schon weiter ist, bleibt unberührt.
+
 „Rüstgrundlage anzeigen" klappt auf, was für dieses Projekt gebraucht wird:
 Material, Zuschnitt, Reservierungen und die dafür reservierten Reststücke.
 Das sind genau dieselben Zahlen wie im Projekt selbst – es wird nichts neu
@@ -203,9 +208,18 @@ Der Status wird von Hand weitergestellt: Benötigt → Verfügbar → Reserviert
 Zugeschnitten → Gerüstet. Jede Änderung steht mit altem und neuem Wert im
 Projekt-Verlauf.
 
-Ein Reststück aus dem Lager wird nie automatisch eingeplant. Erst wenn Sie
-es ausdrücklich für dieses Projekt reservieren, ist es für andere Projekte
-gesperrt. Freigeben macht es wieder verfügbar, „Als verwendet buchen" nimmt
+<b>Alles auf einmal:</b> beim Öffnen ist jede Zeile angehakt – „→ Reserviert (12)"
+reserviert also das ganze Objekt mit einem Druck. Die Zahl am Knopf ist die
+Zahl der Zeilen, die er wirklich ändert; steht dort (0), ist er gesperrt. Ein
+Schritt hebt nur Positionen, die noch dahinter stehen – eine bereits
+zugeschnittene wird nie zurückgezogen. Wer nur einen Teil will, nimmt Haken
+weg oder tippt auf einen der Filter über der Liste.
+
+Ein Reststück aus dem Lager wird nie automatisch eingeplant. Bei den
+Reststücken ist deshalb – anders als bei den Bedarfszeilen – <b>nichts</b>
+vorgewählt: das ganze Lager für ein Projekt vorzuwählen wäre genau dieses
+stillschweigende Einplanen. Erst wenn Sie eines ausdrücklich für dieses
+Projekt reservieren, ist es für andere Projekte gesperrt. Freigeben macht es wieder verfügbar, „Als verwendet buchen" nimmt
 es aus dem Lager – die Projektzuordnung bleibt im Verlauf nachvollziehbar.`},
 "einst-workflow":{titel:"Arbeitsablauf der Massaufnahme",text:`
 <p>Schaltet den ganzen Ablauf für die <b>ganze Firma</b> ein oder aus: Freigabe

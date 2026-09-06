@@ -191,12 +191,19 @@ function werkNaechster(g){
    knopf:g.projectId?{text:"📂 Projekt öffnen",attr:'data-werk-projekt="'+g.projectId+'"'}:null};
  if(!jetzt)return {k:"fertig",farbe:"gruen",rang:9,
    satz:"Nichts offen – in der Werkstatt ist für dieses Projekt gerade nichts zu tun.",knopf:null};
+ // Sammelaktion direkt im Streifen (v3.13): der Satz nennt die Zahl, der
+ // Knopf erledigt genau diese Zahl. Geschrieben wird ueber resvBulkStatus
+ // aus js/50 - derselbe Weg wie im Projekt, kein zweiter.
  if(jetzt.k==="reservieren")return {k:"reservieren",farbe:"orange",rang:1,
    satz:"Material reservieren – "+z.offenRes+(z.offenRes===1?" Position ist":" Positionen sind")+" noch nicht reserviert.",
-   knopf:g.projectId?{text:"📂 Projekt öffnen",attr:'data-werk-projekt="'+g.projectId+'"'}:null};
+   knopf:g.projectId?{text:"📦 Alle reservieren ("+z.offenRes+")",
+     attr:'data-werk-bulk="reserviert" data-werk-bulk-projekt="'+g.projectId+'"'}:null,
+   knopf2:g.projectId?{text:"📂 Projekt öffnen",attr:'data-werk-projekt="'+g.projectId+'"'}:null};
  if(jetzt.k==="zuschneiden")return {k:"zuschneiden",farbe:"orange",rang:2,
    satz:"Zuschneiden – "+z.offenZu+(z.offenZu===1?" Position ist":" Positionen sind")+" noch nicht zugeschnitten.",
-   knopf:{text:"✂️ Zuschnitt anzeigen",attr:'data-werk-auf="'+(g.projectId||0)+'"'}};
+   knopf:{text:"✂️ Zuschnitt anzeigen",attr:'data-werk-auf="'+(g.projectId||0)+'"'},
+   knopf2:g.projectId?{text:"✓ Alle als zugeschnitten buchen ("+z.offenZu+")",
+     attr:'data-werk-bulk="zugeschnitten" data-werk-bulk-projekt="'+g.projectId+'"'}:null};
  if(jetzt.k==="ruesten"){
   if(z.zuRuesten)return {k:"ruesten",farbe:"blau",rang:3,
     satz:"Rüsten – "+z.zuRuesten+(z.zuRuesten===1?" Massaufnahme ist":" Massaufnahmen sind")
@@ -230,6 +237,7 @@ function werkStreifenHtml(g){
   +'<div class="mw-streifen-text"><span class="mw-streifen-label">Nächster Schritt</span>'
   +'<span class="mw-streifen-satz">'+esc(n.satz)+'</span></div>'
   +(n.knopf?'<button type="button" class="mw-streifen-knopf" '+n.knopf.attr+'>'+esc(n.knopf.text)+'</button>':"")
+  +(n.knopf2?'<button type="button" class="mw-streifen-knopf gray" '+n.knopf2.attr+'>'+esc(n.knopf2.text)+'</button>':"")
   +'</div>';
 }
 // Gehoert diese Zeile zum jetzigen Schritt? Dann steht sie oben und wird
@@ -457,6 +465,30 @@ document.addEventListener("click",async e=>{
   // v3.12: Der Block, der zum jetzigen Schritt gehoert, wird angesteuert -
   // sonst muesste man in der Ruestgrundlage suchen, wo man gerade steht.
   werkBlockAnsteuern(id);
+  return;
+ }
+
+ // Sammelaktion aus dem Streifen (v3.13). Der Schreibweg ist ausdruecklich
+ // resvBulkStatus aus js/50 - dieselbe Funktion wie im Projekt. Betroffen
+ // sind nur die Zeilen DIESES Projekts, die noch dahinter stehen.
+ const bulk=e.target.closest("[data-werk-bulk]");
+ if(bulk){
+  const status=bulk.dataset.werkBulk;
+  const pid=Number(bulk.dataset.werkBulkProjekt);
+  if(typeof resvBulkStatus!=="function"||typeof resvRang!=="function")return;
+  const ziel=resvRang(status);
+  const treffer=werkReservierungen.filter(r=>r.project_id===pid&&resvRang(r.status)<ziel);
+  if(!treffer.length)return;
+  const name=(typeof resvStatusName==="function")?resvStatusName(status):status;
+  if(!confirm(treffer.length+" Position"+(treffer.length===1?"":"en")+" dieses Projekts auf „"+name+"\" setzen?\n\n"
+    +"Positionen, die schon weiter sind, bleiben unberührt."))return;
+  bulk.disabled=true;
+  const erg=await resvBulkStatus(treffer.map(r=>r.id),status);
+  if(erg&&erg.offline)return;
+  if(erg&&erg.fehler){alert(erg.fehler);bulk.disabled=false;return}
+  // Die Werkstatt fuehrt eine eigene Liste - sie wird frisch geladen, statt
+  // den Stand zu erraten.
+  await werkstattNeuLaden();
   return;
  }
 
