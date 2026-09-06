@@ -61,6 +61,9 @@ async function loadAllData(){
   rinneNormlaengen=(geladen.appSettings.rinne_normlaengen&&typeof geladen.appSettings.rinne_normlaengen==="object")?geladen.appSettings.rinne_normlaengen:{};
   blechRollenbreiten=Array.isArray(geladen.appSettings.blech_rollenbreiten)?geladen.appSettings.blech_rollenbreiten.map(Number).filter(x=>Number.isFinite(x)&&x>0):[];
   workflowAktiv=(geladen.appSettings.workflow_aktiv!==false);   // v3.07, Vorgabe ein
+  // v3.09 erweiterter Projekt-/Material-/Werkstattworkflow. Fehlt die
+  // Spalte oder ist sie leer, ist alles aus - das ist der Standard.
+  if(typeof pmUebernehmen==="function")pmUebernehmen(geladen.appSettings.projektmodule);
   blechSchnittfuge=Number(geladen.appSettings.schnittfuge_mm)||0;
   restMindestlaenge=(geladen.appSettings.rest_mindestlaenge_mm===null||geladen.appSettings.rest_mindestlaenge_mm===undefined)
    ?1000:(Number(geladen.appSettings.rest_mindestlaenge_mm)||0);

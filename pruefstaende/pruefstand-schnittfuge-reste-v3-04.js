@@ -65,25 +65,43 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
 
  // ------------------------------------------- B Die Packrechnung
  console.log("\nB · Die Schnittfuge wirkt in der Packrechnung");
- // Zwei Stuecke a 1000 mm in einem Abschnitt von 2070: ohne Fuge passen sie
- // zusammen (2000), mit 40 mm Fuge nicht mehr (2x1040 = 2080 > 2070).
+ // Die Fuge faellt ZWISCHEN zwei Stuecken an, nicht vor dem ersten: der
+ // Abschnitt ist beim Abziehen von der Rolle schon abgetrennt. n Stuecke
+ // brauchen deshalb n-1 Fugen - dieselbe Regel, die
+ // ebaStreifenJeAbschnitt() in der Breite verwendet.
+ //
+ // Bis v3.08 rechnete die Laengsrichtung mit n Fugen UND verglich das
+ // laengste Stueck plus Fuge gegen einen Abschnitt ohne Fugenzugabe. Damit
+ // war ab jeder Fuge > 0 jedes laengste Stueck "zu lang" und der ganze Plan
+ // leer. Beide Firmen standen auf 0, deshalb ist es nie aufgefallen.
+ // In v3.09 korrigiert; die folgenden Erwartungen sind die der richtigen
+ // Regel und von Hand nachgerechnet.
  const eng=await page.evaluate(()=>{
   const bl=[{nr:1,laenge:1000},{nr:2,laenge:1000}];
-  blechSchnittfuge=0;  const ohne=ebaPackeInStreifen(bl,2070).streifen.length;
-  blechSchnittfuge=40; const mit =ebaPackeInStreifen(bl,2070).streifen.length;
-  blechSchnittfuge=0;
-  return {ohne,mit};
+  const n=(f,L)=>{blechSchnittfuge=f;const r=ebaPackeInStreifen(bl,L);
+                  blechSchnittfuge=0;return r.streifen?r.streifen.length:null};
+  return {ohne:n(0,2070),           // 1000+1000        = 2000 <= 2070 -> 1
+          mit40:n(40,2070),         // 1000+40+1000     = 2040 <= 2070 -> 1
+          mit100:n(100,2070),       // 1000+100+1000    = 2100 >  2070 -> 2
+          knapp:n(70,2070)};        // 1000+70+1000     = 2070 <= 2070 -> 1
  });
  p(eng.ohne===1,"ohne Fuge liegen beide im selben Streifen",eng);
- p(eng.mit===2,"mit 40 mm Fuge braucht es zwei Streifen",eng);
- // Ein Stueck, das mit Fuge nicht mehr in den Abschnitt passt, wird gemeldet.
+ p(eng.mit40===1,"mit 40 mm Fuge passen sie weiterhin zusammen (1000+40+1000=2040)",eng);
+ p(eng.knapp===1,"bei genau passender Fuge (2070) noch zusammen",eng);
+ p(eng.mit100===2,"mit 100 mm Fuge braucht es zwei Streifen (2100 > 2070)",eng);
+ // Ein einzelnes Stueck braucht keine Fuge - der Abschnitt ist schon
+ // abgetrennt. Erst ein Stueck laenger als der Abschnitt ist zu lang.
  const zuLang=await page.evaluate(()=>{
-  blechSchnittfuge=40;
-  const r=ebaPackeInStreifen([{nr:1,laenge:2050}],2070);
-  blechSchnittfuge=0;
-  return {streifen:r.streifen,zuLang:(r.zuLang||[]).length};
+  const f=(l,fu)=>{blechSchnittfuge=fu;const r=ebaPackeInStreifen([{nr:1,laenge:l}],2070);
+                   blechSchnittfuge=0;
+                   return {streifen:r.streifen?r.streifen.length:null,zuLang:(r.zuLang||[]).length}};
+  return {passt:f(2050,40), genau:f(2070,40), zuLang:f(2100,40)};
  });
- p(zuLang.streifen===null&&zuLang.zuLang===1,"ein zu langes Stueck wird als solches gemeldet",zuLang);
+ p(zuLang.passt.streifen===1&&zuLang.passt.zuLang===0,
+   "ein einzelnes Stueck von 2050 passt in 2070 - eine Fuge davor gibt es nicht",zuLang.passt);
+ p(zuLang.genau.streifen===1,"auch ein Stueck von genau 2070 passt",zuLang.genau);
+ p(zuLang.zuLang.streifen===null&&zuLang.zuLang.zuLang===1,
+   "erst ein Stueck laenger als der Abschnitt wird als zu lang gemeldet",zuLang.zuLang);
 
  // ------------------------------------------- C Vorgabe 0 aendert nichts
  console.log("\nC · Mit der Vorgabe 0 mm bleibt jede Zahl wie bisher");

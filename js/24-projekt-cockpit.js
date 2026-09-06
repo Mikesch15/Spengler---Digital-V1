@@ -210,6 +210,9 @@ $("projectCockpitModal").addEventListener("click",e=>{
 async function cockpitBereichAktualisieren(key){
  if(!key||!cockpitProjectId||!COCKPIT_BEREICHE[key])return;
  cockpitZeigeAnzahl(key,await COCKPIT_BEREICHE[key].load(cockpitProjectId));
+ // v3.09: aendert sich die Massaufnahme-Liste, aendert sich auch das
+ // Material und der projektweite Zuschnitt - beide lesen dieselbe Liste.
+ if(key==="meas"&&typeof pmSichtbarkeitAuffrischen==="function")pmSichtbarkeitAuffrischen();
 }
 async function cockpitAktivitaetLaden(){
  const id=cockpitProjectId;
@@ -245,6 +248,10 @@ async function loadProjectCockpitData(){
  // Ergebnis verwerfen statt eine fremde Übersicht zu zeichnen.
  if(cockpitProjectId!==id||$("projectCockpitModal").hidden)return;
  keys.forEach((k,i)=>cockpitZeigeAnzahl(k,ergebnisse[i]));
+ // v3.09: Material und Zuschnitt lesen ausschliesslich die soeben geladenen
+ // Massaufnahmen (projectMeasurementsCache) - keine zusaetzliche Abfrage.
+ // Sind die Untermodule aus, bleiben beide Karten unsichtbar.
+ if(typeof pmSichtbarkeitAuffrischen==="function")pmSichtbarkeitAuffrischen();
 }
 
 // treffer (optional, v2.40): {kind:"measurement"|"ausmass"|"report", id}

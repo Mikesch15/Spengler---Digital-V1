@@ -360,6 +360,19 @@
 <div class="small" style="color:var(--muted);margin-bottom:4px">Eine bestehende Aufnahme lässt sich mit „📄 Als Vorlage" als Grundlage für eine neue nehmen. <button type="button" class="hilfe-knopf no-print" data-hilfe="vorlage">i</button></div>
 <div id="cockpitMeasBody"></div>
 </div>
+<!-- v3.09 Projektweite Materialuebersicht und projektweiter Zuschnitt.
+     Beide starten hidden und werden nur eingeblendet, wenn das jeweilige
+     Untermodul eingeschaltet ist (pmAktiv). Standard ist AUS. -->
+<div class="card" id="cockpitMaterialCard" hidden>
+<h2>Material<span id="cockpitMaterialCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-material">i</button></h2>
+<div class="small" style="color:var(--muted);margin-bottom:6px">Zusammengefasst aus dem, was die Massaufnahmen dieses Projekts gespeichert haben. Es wird nichts neu gerechnet.</div>
+<div id="cockpitMaterialBody"></div>
+</div>
+<div class="card" id="cockpitZuschnittCard" hidden>
+<h2>Zuschnitt<span id="cockpitZuschnittCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-zuschnitt">i</button></h2>
+<div class="small" style="color:var(--muted);margin-bottom:6px">Derselbe Rollenblech-Plan wie in der einzelnen Massaufnahme, nur über das ganze Projekt. Gleiche Berechnung, gleiche Schnittfuge, gleiches Reststücke-Lager.</div>
+<div id="cockpitZuschnittBody"></div>
+</div>
 <div class="card" id="cockpitAmCard">
 <h2>📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-am">i</button></h2>
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="am">＋ Neues Ausmass</button></div>
@@ -1351,6 +1364,24 @@ Ablauf erneut eingeschaltet wird. Ändern kann das nur ein Administrator.</div>
 <div class="bar"><button id="saveWorkflowAktiv" class="green">💾 Speichern</button></div>
 <div class="small" id="workflowAktivHinweis" style="margin-top:4px" hidden></div>
 
+<h2 style="margin-top:18px">Erweiterter Projekt-/Material-/Werkstattworkflow <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-projektmodule">i</button></h2>
+<div class="info">Führt Material, Zuschnitt, Reservierung und Werkstatt eines
+ganzen Projekts zusammen und ergänzt Vorlagen, Serienaufnahmen und die
+Versionierung der Massaufnahme. <b>Standardmässig aus.</b> Solange der
+Hauptschalter aus ist, verhält sich die App genau wie bisher – keine neuen
+Pflichtfelder, keine neuen Karten, keine Reservierungs- oder
+Versionierungspflicht. <b>Beim Ausschalten wird nichts gelöscht</b>: bereits
+erfasste Reservierungen, Vorlagen und Versionen bleiben gespeichert und sind
+wieder da, sobald der Ablauf erneut eingeschaltet wird. Gilt für die ganze
+Firma; ändern kann das nur ein Administrator.</div>
+<div class="grid">
+<div><label>Erweiterten Ablauf verwenden</label><select id="pmHauptInput"><option value="nein">Aus</option><option value="ja">Ein</option></select></div>
+</div>
+<div class="small" id="pmNurAdmin" style="margin-top:6px;color:var(--muted)" hidden>Diese Einstellung kann nur ein Administrator ändern.</div>
+<div id="pmListe" class="pm-liste" hidden></div>
+<div class="bar"><button id="savePmModule" class="green">💾 Speichern</button></div>
+<div class="small" id="pmHinweis" style="margin-top:4px" hidden></div>
+
 <h2 style="margin-top:16px">Rollenbreiten des Blechlagers <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-rollen">i</button></h2>
 <div class="info">Welche Blechrollen die Firma an Lager führt. Gilt für die ganze
 Firma und für alle Massaufnahmen. In der einzelnen Massaufnahme lässt sich im
@@ -1889,6 +1920,9 @@ nicht neu installieren.</div>
 <script src="js/44-workflow.js"></script>
 <script src="js/45-aufgaben.js"></script>
 <script src="js/46-admin-uebersicht.js"></script>
+<script src="js/47-projektmodule.js"></script>
+<script src="js/48-projekt-material.js"></script>
+<script src="js/49-projekt-zuschnitt.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

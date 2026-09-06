@@ -436,6 +436,7 @@ function renderSettings(){
  $("photoQualityInput").value=photoQuality;
  if($("aufgabenOffenInput"))$("aufgabenOffenInput").value=aufgabenOffenStart?"auf":"zu";
  if($("workflowAktivInput"))$("workflowAktivInput").value=(typeof workflowAktiv==="undefined"||workflowAktiv!==false)?"ja":"nein";
+ if(typeof renderProjektmodule==="function")renderProjektmodule();   // v3.09
  $("defaultRateInput").innerHTML='<option value="">Kein Standard</option>'+settings.rates.map(r=>`<option value="${esc(r[0])}"${r[0]===defaultRate?" selected":""}>${esc(r[0])}</option>`).join("");
 }
 $("materialSettingsSearch").addEventListener("input",e=>{materialFilter=e.target.value;materialPage=0;renderMaterialSettings()});

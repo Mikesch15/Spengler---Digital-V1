@@ -728,3 +728,47 @@ html.dark .mw-warnung{border-color:#f08b80;color:#f08b80}
  .au-knoepfe button{width:100%}
 }
 .au-warn{color:var(--red);font-weight:800}
+
+/* ---- Projektmodule-Schalter (v3.09) --------------------------------------
+   Die Unterschalter des erweiterten Projekt-/Material-/Werkstattworkflows.
+   Wie label.kam-schalter setzt jede Zeile die globalen Grundregeln fuer
+   input und label ausdruecklich zurueck (CLAUDE.md 72.5), und weil
+   .pm-liste ein eigenes display setzt, braucht sie die [hidden]-Regel
+   (CLAUDE.md 59/71.5) - sonst waere die Liste trotz hidden sichtbar. */
+.pm-liste{display:grid;gap:8px;margin-top:10px}
+.pm-liste[hidden]{display:none}
+label.pm-zeile{display:flex;align-items:flex-start;gap:10px;min-height:44px;
+ padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);
+ text-transform:none;font-size:13px;font-weight:400;color:var(--fg);letter-spacing:0;cursor:pointer}
+label.pm-zeile input[type=checkbox]{width:20px;min-width:20px;height:20px;
+ min-height:0;padding:0;border:0;margin:2px 0 0;flex:0 0 auto;cursor:pointer}
+label.pm-zeile .pm-text{flex:1 1 auto;min-width:0;word-break:break-word}
+label.pm-zeile.pm-gesperrt{opacity:.55;cursor:not-allowed}
+label.pm-zeile.pm-gesperrt input[type=checkbox]{cursor:not-allowed}
+
+/* ---- Projektweites Material und Zuschnitt (v3.09) -------------------------
+   .pmat-tab setzt das globale table{min-width:1000px} ausdruecklich zurueck
+   (CLAUDE.md 60.5) - diese Tabellen haben vier Spalten und sollen sich in
+   die Seitenbreite einfuegen, nicht seitwaerts scrollen. */
+.pmat-gruppe,.pzu-material{border:1px solid var(--line);border-radius:10px;
+ padding:10px;margin-bottom:12px;background:var(--card)}
+.pmat-kopf{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;
+ margin-bottom:6px;word-break:break-word}
+.pmat-kopf b{font-size:15px}
+.pmat-unter{font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+ color:var(--muted);margin:10px 0 4px}
+table.pmat-tab{width:100%;min-width:0;table-layout:auto;font-size:12px}
+table.pmat-tab th,table.pmat-tab td{padding:4px 6px;word-break:break-word}
+table.pmat-tab td.pmat-zahl,table.pmat-tab th:nth-child(2){text-align:right;white-space:nowrap}
+.pmat-quellen{display:flex;flex-wrap:wrap;gap:6px}
+button.pmat-quelle{width:auto;min-height:34px;padding:6px 10px;font-size:12px;
+ background:var(--card);border:1px solid var(--line);border-radius:8px;
+ color:var(--fg);text-transform:none;letter-spacing:0;cursor:pointer;
+ max-width:100%;white-space:normal;text-align:left;word-break:break-word}
+button.pmat-quelle:hover{border-color:var(--blue)}
+.pmat-status{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.pmat-statuszeile{font-size:11px;color:var(--muted);display:flex;
+ flex-wrap:wrap;align-items:center;gap:6px;word-break:break-word}
+.pzu-herkunft{margin-top:10px}
+.pzu-quelle{margin-bottom:8px}
+.pzu-quelle .small{margin-top:2px;color:var(--muted);word-break:break-word}

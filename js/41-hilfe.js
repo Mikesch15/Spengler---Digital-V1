@@ -55,6 +55,61 @@ Liste auf. Ob sie beim Start offen oder zu ist, stellst du unter
 <b>Einstellungen → Allgemein → Anzeige</b> ein; das gilt nur für dieses Gerät.
 Sind keine Aufgaben offen, erscheint die Karte gar nicht.</p>`},
 
+"cockpit-material":{titel:"Material des Projekts",text:`
+<p>Führt zusammen, was die einzelnen Massaufnahmen dieses Projekts ohnehin
+schon ausgerechnet haben: welches Material, welche Menge, welche Zuschnitte.</p>
+<p><b>Es wird nichts neu gerechnet.</b> Angezeigt wird genau das, was beim
+Speichern jeder Massaufnahme abgelegt wurde – dieselben Werte, die auch das
+PDF druckt. Übersicht und Ausdruck können deshalb nicht auseinanderlaufen.</p>
+<p>Zusammengefasst wird nur, was fachlich dasselbe ist: gleiches Material,
+gleiche Bezeichnung, gleiche Einheit. Zwei Einlaufbleche mit verschiedener
+Abwicklung bleiben getrennt, weil die Bezeichnung die Abwicklung schon
+nennt. Was sich nicht als Zahl lesen lässt, wird nicht summiert, sondern
+einzeln aufgeführt.</p>
+<p>Jede Position lässt sich zu ihrer Massaufnahme zurückverfolgen – der
+Knopf darunter öffnet sie.</p>
+<p>Das Material selbst kommt aus der bestehenden Materialverwaltung
+(Einstellungen → Geschützt → Massaufnahme-Materialien). Hier wird nichts
+fest eingebaut.</p>
+`},
+"cockpit-zuschnitt":{titel:"Zuschnitt des ganzen Projekts",text:`
+<p>Derselbe Rollenblech-Plan wie im Register „Zuschnitt“ der einzelnen
+Massaufnahme – nur über <b>alle</b> Massaufnahmen des Projekts zusammen.
+Stücke mehrerer Aufnahmen können dadurch aus denselben Abschnitten kommen,
+was in der Regel Material spart.</p>
+<p><b>Es ist dieselbe Berechnung.</b> Gepackt wird mit derselben Funktion,
+mit derselben Schnittfuge und denselben Rollenbreiten des Blechlagers; das
+Reststücke-Lager ist dasselbe. Es gibt in der App nur eine
+Zuschnittberechnung.</p>
+<p>Getrennt wird nach <b>Material</b> – Stücke aus verschiedenen Materialien
+können nicht aus derselben Rolle kommen. Innerhalb eines Materials werden
+Stücke mit gleicher Streifenbreite zusammen gepackt.</p>
+<p>Unter „Herkunft der Stücke“ steht, welches Stück aus welcher Massaufnahme
+kommt. Ist die Freigabe einer beteiligten Massaufnahme verfallen, steht das
+dort – dann sollte vor dem Zuschneiden erst wieder freigegeben werden.</p>
+`},
+"einst-projektmodule":{titel:"Erweiterter Projekt-/Material-/Werkstattworkflow",text:`
+<p>Dieser Block führt zusammen, was heute je Massaufnahme einzeln dasteht:
+das <b>Material</b> und den <b>Zuschnitt</b> eines ganzen Projekts, die
+<b>Reservierung</b> von Material und Reststücken, eine <b>Werkstattansicht</b>
+für den Rüster, <b>Vorlagen</b> und <b>Serienaufnahmen</b> für wiederkehrende
+Arbeiten und die <b>Versionierung</b> der Massaufnahme.</p>
+<p><b>Standardmässig ist alles aus.</b> Solange der Hauptschalter aus ist,
+verhält sich die App genau wie vorher – es gibt keine neuen Pflichtfelder,
+keine neuen Karten, keine Reservierungs- und keine Versionierungspflicht. Wer
+das nicht braucht, muss nichts tun.</p>
+<p>Der Hauptschalter gibt die sieben Untermodule frei; jedes lässt sich
+einzeln ein- und ausschalten. Einige bauen aufeinander auf: der projektweite
+Zuschnitt und die Reservierung brauchen die Materialübersicht,
+Serienaufnahmen brauchen Vorlagen. Fehlt die Grundlage, ist das Untermodul
+gesperrt und sagt auch warum.</p>
+<p><b>Beim Ausschalten wird nichts gelöscht.</b> Bereits erfasste
+Reservierungen, Vorlagen und Versionen bleiben gespeichert; nur die
+Bedienung verschwindet. Wird der Ablauf später wieder eingeschaltet, ist
+alles unverändert da – auch die vorher gewählten Untermodule.</p>
+<p>Gilt für die <b>ganze Firma</b>. Ändern kann das nur ein Administrator;
+die Datenbank prüft das bei jedem Speichern selbst.</p>
+`},
 "einst-workflow":{titel:"Arbeitsablauf der Massaufnahme",text:`
 <p>Schaltet den ganzen Ablauf für die <b>ganze Firma</b> ein oder aus: Freigabe
 durch den Aufnehmer, Zuweisung von Rüster und Monteur, Bestätigung von Rüsten

@@ -181,14 +181,25 @@ function ebaStreifenJeAbschnitt(B,A){
 function ebaVerteile(stuecke,k,L,budget){
  if(k<1)return stuecke.length?false:[];
  const fuge=ebaSchnittfuge();
- if(stuecke.length&&ebaZahl(stuecke[0].laenge)+fuge>L+1e-9)return false;
+ // Die Schnittfuge faellt ZWISCHEN zwei Stuecken an, nicht vor dem ersten:
+ // der Abschnitt ist beim Abziehen von der Rolle bereits abgetrennt. n
+ // Stuecke brauchen deshalb n-1 Fugen. Genau diese Regel verwendet
+ // ebaStreifenJeAbschnitt() in der Breite auch - floor((B+f)/(a+f)).
+ // Bis v3.08 rechnete diese Funktion mit n Fugen und verglich das laengste
+ // Stueck PLUS Fuge gegen einen Abschnitt OHNE Fugenzugabe; damit war ab
+ // jeder Schnittfuge > 0 jedes laengste Stueck "zu lang" und der ganze
+ // Plan leer. Beide Firmen standen auf 0, deshalb ist das nie aufgefallen.
+ if(stuecke.length&&ebaZahl(stuecke[0].laenge)>L+1e-9)return false;
  const streifen=Array.from({length:k},()=>({stuecke:[],rest:L}));
  let schritte=0; const grenze=budget||200000; let ausBudget=false;
  const setze=i=>{
   if(i>=stuecke.length)return true;
   if(++schritte>grenze){ausBudget=true;return false}
-  const len=ebaZahl(stuecke[i].laenge)+fuge, gesehen=[];
+  const roh=ebaZahl(stuecke[i].laenge), gesehen=[];
   for(let j=0;j<streifen.length;j++){
+   // Nur wenn schon etwas im Streifen liegt, kostet das naechste Stueck
+   // zusaetzlich eine Schnittfuge.
+   const len=roh+(streifen[j].stuecke.length?fuge:0);
    if(streifen[j].rest<len-1e-9)continue;
    // Zwei Streifen mit gleichem Rest sind austauschbar - der zweite bringt
    // nichts Neues und wird übersprungen.
@@ -210,18 +221,21 @@ function ebaPackeInStreifen(bleche,L,budget){
  // Blech mit SEINER genauen Länge steht und nicht nur eine nackte Zahl.
  const stuecke=ebaStueckliste(bleche);
  if(!stuecke.length)return {streifen:[],optimal:true};
- // Jedes Stueck braucht seine Laenge PLUS einen Schnitt.
+ // Die Schnittfuge faellt ZWISCHEN zwei Stuecken an (siehe ebaVerteile):
+ // ein Stueck allein braucht keine, jedes weitere im selben Streifen eine.
  const fuge=ebaSchnittfuge();
- const brutto=x=>ebaZahl(x.laenge)+fuge;
- if(brutto(stuecke[0])>L)
-  return {streifen:null,optimal:true,zuLang:stuecke.filter(x=>brutto(x)>L)};
+ const roh=x=>ebaZahl(x.laenge);
+ if(roh(stuecke[0])>L)
+  return {streifen:null,optimal:true,zuLang:stuecke.filter(x=>roh(x)>L)};
  const gierig=[];
  stuecke.forEach(x=>{
-  const s=gierig.find(g=>g.rest>=brutto(x)-1e-9);
-  if(s){s.stuecke.push(x);s.rest-=brutto(x)}
-  else gierig.push({stuecke:[x],rest:L-brutto(x)});
+  const s=gierig.find(g=>g.rest>=roh(x)+fuge-1e-9);
+  if(s){s.stuecke.push(x);s.rest-=roh(x)+fuge}
+  else gierig.push({stuecke:[x],rest:L-roh(x)});
  });
- const summe=stuecke.reduce((a,b)=>a+brutto(b),0);
+ // Untergrenze: das reine Material passt nicht in weniger als so viele
+ // Streifen. Die Fugen kommen nur dazu, die Grenze bleibt gueltig.
+ const summe=stuecke.reduce((a,b)=>a+roh(b),0);
  const untergrenze=Math.ceil(summe/L-1e-9);
  for(let k=untergrenze;k<gierig.length;k++){
   const v=ebaVerteile(stuecke,k,L,budget);
