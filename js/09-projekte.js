@@ -345,9 +345,10 @@ async function loadProjectMeasurements(projectId){
   return `<div class="report-row">
 <div class="report-row-info"><b>${esc(art)}</b><span>${esc(infoZeileOhne(art,m.title,...eintragZusatzTeile(m))||"Keine weiteren Angaben")}</span>`
    +(medien?`<span class="meas-medien-hinweis">${esc(medien)}</span>`:"")
-   // v3.05 Arbeitsstatus - nur wenn der Workflow ueberhaupt begonnen hat.
-   +((typeof mwBadge==="function"&&m.workflow_status&&m.workflow_status!=="in_bearbeitung")
-      ?`<span class="meas-medien-hinweis">${mwBadge(m.workflow_status)}</span>`:"")+`</div>
+   // v3.05 Arbeitsstatus, v3.06 zusaetzlich eine verfallene Freigabe.
+   // Eine Stelle entscheidet, was hier steht: mwBadgeFuerListe() in js/44.
+   +((typeof mwBadgeFuerListe==="function"&&mwBadgeFuerListe(m))
+      ?`<span class="meas-medien-hinweis">${mwBadgeFuerListe(m)}</span>`:"")+`</div>
 <div class="report-row-actions">
 <button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>`
    +(medien?`<button class="gray" data-meas-medien="${m.id}">📷 Fotos/Skizzen</button>`:"")+`

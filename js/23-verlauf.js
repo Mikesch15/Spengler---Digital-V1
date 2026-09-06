@@ -42,6 +42,7 @@ const VERLAUF_FIELD_LABELS={
   title:"Bezeichnung",date:"Datum",note:"Notiz / Masse",
   // v3.05 Arbeitsworkflow (Freigabe, Zuweisung, Ruesten, Montage)
   workflow_status:"Arbeitsstatus",ruester_id:"Rüsten",monteur_id:"Montage",
+  freigabe_verfallen:"Freigabe",
   // v2.34: Detail-Diff innerhalb measurements.data (siehe CLAUDE.md
   // Abschnitt 42) - nur die dort als Klasse A eingestuften, flachen,
   // typübergreifend eindeutigen Felder. Kollisionsfreie Feldnamen über
@@ -110,6 +111,8 @@ function verlaufFormatWann(iso){
 function verlaufFormatDiffValue(field,v){
  // v3.05: eine leere Zuweisung heisst ausdruecklich "niemand", nicht "-".
  if((field==="ruester_id"||field==="monteur_id")&&(v===null||v===undefined||v===""))return "niemand";
+ // v3.06: "Freigabe: gültig → verfallen" liest sich klarer als "Ja/Nein".
+ if(field==="freigabe_verfallen")return v?"verfallen":"gültig";
  if(v===null||v===undefined||v==="")return "–";
  // Arbeitsstatus und Personen ueber die bereits vorhandenen Tabellen
  // aufloesen - keine zweite Namens- oder Statuslogik.

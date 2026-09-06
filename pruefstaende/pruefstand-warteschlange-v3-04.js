@@ -184,6 +184,50 @@ window.supabase={createClient:()=>({
  p(String(mIns&&mIns.daten.project_id).indexOf("tmp-")<0,
    "keine temporäre ID landet in der Datenbank",mIns&&mIns.daten.project_id);
 
+ // Die Reihenfolge darf nicht vom Zufall abhaengen: 'erstellt' hat nur
+ // Millisekunden. Projekt und Massaufnahme aus demselben Speichervorgang
+ // haben denselben Zeitstempel - dann muss die Abhaengigkeit entscheiden.
+ // Deterministisch geprueft, nicht ueber wiederholte Laeufe.
+ const sortiert=await page.evaluate(()=>{
+  const gleich="2026-09-06T10:00:00.000Z";
+  const projekt={id:"zzz",erstellt:gleich,tmpId:"tmp-x",payload:{name:"P"}};
+  const mess   ={id:"aaa",erstellt:gleich,payload:{project_id:"tmp-x"}};
+  const rap    ={id:"bbb",erstellt:gleich,payload:{project_id:"tmp-x"}};
+  // Absichtlich in der schlechtesten Reihenfolge uebergeben.
+  return {
+   fall1:wsSortieren([mess,rap,projekt]).map(e=>e.id),
+   // Ohne Projekt in der Liste bleibt die Reihenfolge, statt zu haengen.
+   fall2:wsSortieren([mess,rap]).map(e=>e.id),
+   // Aeltere Eintraege bleiben vorne.
+   fall3:wsSortieren([
+     {id:"neu",erstellt:"2026-09-06T10:00:01.000Z",payload:{}},
+     {id:"alt",erstellt:"2026-09-06T09:00:00.000Z",payload:{}}]).map(e=>e.id)};
+ });
+ p(sortiert.fall1[0]==="zzz","das Projekt wird vor die abhängigen sortiert",sortiert.fall1);
+ p(sortiert.fall1.length===3&&sortiert.fall1.indexOf("aaa")>0&&sortiert.fall1.indexOf("bbb")>0,
+   "beide Abhängigen stehen dahinter, keiner geht verloren",sortiert.fall1);
+ p(sortiert.fall2.length===2,"ein nicht auflösbarer Bezug hängt die Liste nicht auf",sortiert.fall2);
+ p(sortiert.fall3[0]==="alt","ohne Abhängigkeit bleibt es beim Zeitstempel",sortiert.fall3);
+
+ // Und das Entscheidende: wsAlle() muss diese Reihenfolge auch WIRKLICH
+ // verwenden. Sonst prueft der Pruefstand nur eine Funktion, die niemand
+ // aufruft. Zwei Eintraege mit gleichem Zeitstempel, deren Schluessel die
+ // falsche Reihenfolge ergibt (getAll() liefert nach Schluessel).
+ const echteReihe=await page.evaluate(async()=>{
+  await wsLeeren();
+  const gleich=new Date().toISOString();
+  const firma=(typeof currentProfile!=="undefined"&&currentProfile&&currentProfile.company_id)?String(currentProfile.company_id):"";
+  await wsLegen({id:"aaa",firma,erstellt:gleich,geaendert:gleich,tabelle:"measurements",
+                 art:"insert",titel:"M",payload:{project_id:"tmp-x"},versuche:0});
+  await wsLegen({id:"zzz",firma,erstellt:gleich,geaendert:gleich,tabelle:"projects",
+                 art:"insert",titel:"P",tmpId:"tmp-x",payload:{name:"P"},versuche:0});
+  const r=(await wsAlle()).map(e=>e.id);
+  await wsLeeren();
+  return r;
+ });
+ p(echteReihe[0]==="zzz"&&echteReihe[1]==="aaa",
+   "wsAlle() liefert das Projekt zuerst, obwohl der Schlüssel 'aaa' vorne stünde",echteReihe);
+
  // Scheitert das Projekt, duerfen die abhaengigen NICHT gesendet werden
  console.log("\nD2 · Scheitert das Projekt, warten die abhängigen mit");
  await leeren(); await offline(true);

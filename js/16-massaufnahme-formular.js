@@ -475,10 +475,13 @@ $("saveMeasurement").onclick=async()=>{
    updated_by:currentProfile?currentProfile.id:null,
    updated_at:jetzt
   };
-  const {error}=workingId
-   ?await sb.from("measurements").update(payload).eq("id",workingId)
-   :await sb.from("measurements").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:jetzt});
+  // v3.06: Der Workflow-Trigger kann beim Speichern die Freigabe verfallen
+  // lassen. Das steht nur in der zurueckgelesenen Zeile - deshalb .select().
+  const {data:gespeichert,error}=workingId
+   ?await sb.from("measurements").update(payload).eq("id",workingId).select("id,workflow_status,freigabe_verfallen")
+   :await sb.from("measurements").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:jetzt}).select("id,workflow_status,freigabe_verfallen");
   if(error)throw error;
+  if(typeof mwNachSpeichern==="function")mwNachSpeichern(Array.isArray(gespeichert)?gespeichert[0]:gespeichert);
   currentMeasurementId=workingId;
   currentMeasurementMeta=warNeu
    ?{created_by:currentProfile?currentProfile.id:null,created_at:jetzt,updated_by:null,updated_at:null}

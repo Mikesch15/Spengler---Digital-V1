@@ -323,6 +323,138 @@ const box=(page)=>page.evaluate(()=>{
  p(v.wert==="Zu rüsten","der Status erscheint im Klartext, nicht als Rohwert",v);
  p(v.person==="Bruno Ruester","die zugewiesene Person erscheint mit Namen",v);
  p(v.leer==="niemand","eine zurueckgenommene Zuweisung heisst 'niemand'",v);
+ const v2=await page.evaluate(()=>({
+  label:VERLAUF_FIELD_LABELS.measurement.freigabe_verfallen,
+  wahr:verlaufFormatDiffValue("freigabe_verfallen",true),
+  falsch:verlaufFormatDiffValue("freigabe_verfallen",false)}));
+ p(v2.label==="Freigabe","der Verfall hat eine deutsche Bezeichnung",v2);
+ p(v2.wahr==="verfallen"&&v2.falsch==="gültig","er liest sich als 'gültig -> verfallen', nicht als Ja/Nein",v2);
+
+ // ---- K · Verfallene Freigabe (v3.06) -------------------------------------
+ // Eine wesentliche Aenderung nach der Freigabe laesst die Freigabe verfallen.
+ // Das entscheidet ausschliesslich der Trigger in der Datenbank (per SQL
+ // geprueft, 20 Faelle) - hier wird nur geprueft, ob die Oberflaeche es
+ // richtig anzeigt und nicht darueber hinweggeht.
+ console.log("\nK · Verfallene Freigabe");
+ const VERFALLEN=M({id:21,workflow_status:"in_bearbeitung",freigabe_verfallen:true,
+   ruester_id:B,monteur_id:C,freigegeben_von:null,freigegeben_am:null});
+
+ await anmelden(page,A,"employee");
+ await oeffne(page,VERFALLEN);
+ s=await box(page);
+ p(/nach der Freigabe geändert/i.test(s.text),"der Verfall wird ausdruecklich benannt",s.text.slice(0,220));
+ p(/verfallen/i.test(s.text),"und heisst beim Namen: verfallen",s.text.slice(0,220));
+ p(/rüster und monteur bleiben zugewiesen/i.test(s.text),
+   "es steht da, dass die Zuweisungen bestehen bleiben",s.text.slice(0,260));
+ const knopfText=await page.evaluate(()=>{const k=$("mwFreigeben");return k?k.textContent.trim():""});
+ p(/erneut freigeben/i.test(knopfText),"der Knopf heisst 'Erneut freigeben'",knopfText);
+ const warnSichtbar=await page.evaluate(()=>{
+   const w=document.querySelector("#measWorkflowBereich .mw-warnung");
+   if(!w)return {da:false};
+   const st=getComputedStyle(w);
+   return {da:true,display:st.display,hoehe:Math.round(w.getBoundingClientRect().height)}});
+ p(warnSichtbar.da&&warnSichtbar.display!=="none"&&warnSichtbar.hoehe>20,
+   "der Hinweis ist wirklich zu sehen, nicht nur im Markup",warnSichtbar);
+
+ // Die Rueckfrage muss sagen, dass es eine ERNEUTE Freigabe ist.
+ await page.evaluate(()=>{window.__ruf=[];window.__rpcAntwort={measurement_freigeben:{data:{
+   workflow_status:"zu_ruesten",freigabe_verfallen:false,
+   freigegeben_von:"aaaa1111-1111-1111-1111-111111111111",freigegeben_am:"2026-09-06T09:00:00Z",
+   ruester_id:"bbbb2222-2222-2222-2222-222222222222",
+   monteur_id:"cccc3333-3333-3333-3333-333333333333"}}}});
+ letzterDialog="";
+ await page.click("#mwFreigeben"); await page.waitForTimeout(200);
+ p(/erneut freigeben\?/i.test(letzterDialog)&&/nach der letzten Freigabe geändert/i.test(letzterDialog),
+   "die Rueckfrage nennt die erneute Freigabe und den Grund",letzterDialog);
+ s=await box(page);
+ p(/Zu rüsten/.test(s.text)&&!/nach der Freigabe geändert/i.test(s.text),
+   "nach der erneuten Freigabe steht der Hinweis nicht mehr da",s.text.slice(0,200));
+
+ // Wer nicht der Aufnehmer ist, sieht den Hinweis auch - aber keinen Knopf.
+ await anmelden(page,B,"employee");
+ await oeffne(page,VERFALLEN);
+ s=await box(page);
+ p(/nach der Freigabe geändert/i.test(s.text),"auch der Ruester erfaehrt, dass die Freigabe verfallen ist",s.text.slice(0,200));
+ p(!s.knoepfe.includes("mwFreigeben"),"er bekommt dafuer aber keinen Freigabe-Knopf",s.knoepfe);
+ p(/Anna Aufnehmer/.test(s.text),"es steht da, wer sie erneut freigeben muss",s.text.slice(0,260));
+
+ // Ohne Verfall kein Hinweis.
+ await anmelden(page,A,"employee");
+ await oeffne(page,M({workflow_status:"zu_ruesten",freigegeben_von:A,ruester_id:B,monteur_id:C}));
+ s=await box(page);
+ p(!/nach der Freigabe geändert/i.test(s.text),"ohne Verfall erscheint kein Hinweis",s.text.slice(0,160));
+
+ // Speichern: der Trigger kann die Freigabe verfallen lassen. Der Client
+ // erfaehrt das nur ueber die zurueckgelesene Zeile.
+ letzterDialog="";
+ const nachher=await page.evaluate(()=>{
+  mwNachSpeichern({id:1,workflow_status:"in_bearbeitung",freigabe_verfallen:true});
+  return {status:mwStand.workflow_status,verfallen:mwStand.freigabe_verfallen,
+          frei:mwStand.freigegeben_von,text:($("measWorkflowBereich").innerText||"").replace(/\s+/g," ")}});
+ p(nachher.status==="in_bearbeitung"&&nachher.verfallen===true&&nachher.frei===null,
+   "mwNachSpeichern uebernimmt den Verfall aus der zurueckgelesenen Zeile",nachher);
+ await page.waitForTimeout(120);
+ p(/Freigabe ist verfallen/i.test(letzterDialog),"und sagt es der Person, statt es zu verschlucken",letzterDialog);
+
+ // Ein Speichern ohne Verfall meldet nichts.
+ await oeffne(page,M({workflow_status:"zu_ruesten",freigegeben_von:A,ruester_id:B,monteur_id:C}));
+ letzterDialog="";
+ await page.evaluate(()=>{mwNachSpeichern({id:1,workflow_status:"zu_ruesten",freigabe_verfallen:false})});
+ await page.waitForTimeout(120);
+ p(letzterDialog==="","ein Speichern ohne Verfall meldet nichts",letzterDialog);
+
+ // js/16 liest die Zeile beim Speichern wirklich zurueck - sonst koennte der
+ // Client den Verfall gar nicht bemerken.
+ const q16=require("fs").readFileSync("js/16-massaufnahme-formular.js","utf8");
+ p(/\.select\("id,workflow_status,freigabe_verfallen"\)/.test(q16)
+   &&/mwNachSpeichern\(/.test(q16),
+   "js/16 liest workflow_status und freigabe_verfallen beim Speichern zurueck");
+
+ // Die Aufgabenzentrale: eine verfallene Freigabe ist eine eigene Art.
+ await page.evaluate(z=>{window.__zeilen=z},[
+  M({id:31,project_id:7,title:"Verfallen",created_by:A,workflow_status:"in_bearbeitung",
+     freigabe_verfallen:true,ruester_id:B,monteur_id:C,date:"2026-09-01"}),
+  M({id:32,project_id:8,title:"Ganz neu",created_by:A,workflow_status:"in_bearbeitung",date:"2026-09-05"})
+ ]);
+ av=await aufgaben(A);
+ p(av.karten.length===2,"beide erscheinen als Aufgabe",av.karten);
+ p(/erneut freigeben/i.test(av.karten[0].art)&&av.karten[0].id==="31",
+   "die verfallene Freigabe steht zuoberst",av.karten);
+ p(/nach der freigabe geändert/i.test(av.karten[0].art),
+   "und sagt, warum sie da ist",av.karten[0]);
+ p(av.karten[0].rot,"sie ist rot",av.karten[0]);
+ p(av.karten[1].id==="32"&&!/erneut/i.test(av.karten[1].art),
+   "eine noch nie freigegebene bleibt die gewohnte Freigabe-Aufgabe",av.karten[1]);
+ // In einer Liste (Cockpit) darf eine verfallene Freigabe nicht wie eine
+ // frisch erfasste aussehen - sonst sieht niemand, dass sie Leute blockiert.
+ const badges=await page.evaluate(()=>({
+  verfallen:mwBadgeFuerListe({workflow_status:"in_bearbeitung",freigabe_verfallen:true}),
+  frisch:mwBadgeFuerListe({workflow_status:"in_bearbeitung",freigabe_verfallen:false}),
+  laufend:mwBadgeFuerListe({workflow_status:"zu_ruesten"})}));
+ p(/verfallen/i.test(badges.verfallen)&&/mw-rot/.test(badges.verfallen),
+   "in der Liste steht bei einer verfallenen Freigabe ein roter Hinweis",badges);
+ p(badges.frisch==="","eine frisch erfasste bleibt in der Liste unmarkiert",badges);
+ p(/Zu rüsten/.test(badges.laufend),"ein laufender Schritt wird weiterhin genannt",badges);
+ const q09=require("fs").readFileSync("js/09-projekte.js","utf8");
+ p(/mwBadgeFuerListe\(m\)/.test(q09)&&!/mwBadge\(m\.workflow_status\)/.test(q09),
+   "die Cockpit-Liste entscheidet das nicht selbst, sondern ueber js/44");
+
+ // Die lange Beschriftung muss auf einem schmalen Handy umbrechen duerfen,
+ // statt die Karte aufzureissen.
+ for(const w of [320,390]){
+  await page.setViewportSize({width:w,height:1400});
+  await page.waitForTimeout(120);
+  const m=await page.evaluate(()=>{
+   const k=document.querySelector("#aufgabenListe .aufgabe");
+   const r=k.getBoundingClientRect();
+   return {rechts:Math.round(r.right),fenster:window.innerWidth,
+           scroll:document.documentElement.scrollWidth>window.innerWidth+1}});
+  p(m.rechts<=m.fenster+1&&!m.scroll,"die lange Beschriftung passt bei "+w+" px",m);
+ }
+ await page.setViewportSize({width:412,height:1800});
+
+ // Zurueck auf den Stand von Abschnitt G, damit J unveraendert weiterlaeuft.
+ await page.evaluate(z=>{window.__zeilen=z},zeilen);
 
  // ---- J · Darstellung auf Handy, Tablet und Bildschirm --------------------
  console.log("\nJ · Responsive");

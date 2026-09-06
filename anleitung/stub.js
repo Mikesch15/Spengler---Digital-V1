@@ -9,7 +9,8 @@ window.__demo={
  measurements:[
   {id:11,project_id:1,type:"rinne_halbrund",title:"Rinne Nordseite",date:"2026-08-29",note:"",data:{},photo_path:null,sketch_paths:[],created_by:"u1",created_at:"2026-08-29T09:10:00Z",updated_by:"u1",updated_at:"2026-08-29T09:40:00Z",workflow_status:"zu_ruesten",freigegeben_von:"u1",freigegeben_am:"2026-08-29T09:45:00Z",ruester_id:"u1",ruester_zugewiesen_am:"2026-08-29T10:00:00Z",monteur_id:"u2",monteur_zugewiesen_am:"2026-08-29T10:00:00Z"},
   {id:12,project_id:1,type:"einlaufblech_gerade",title:"Einlaufblech Traufe Nord",date:"2026-08-29",note:"",data:{},photo_path:null,sketch_paths:[],created_by:"u1",created_at:"2026-08-29T10:00:00Z",updated_by:"u2",updated_at:"2026-09-02T10:12:00Z",workflow_status:"in_bearbeitung"},
-  {id:13,project_id:1,type:"kehle",title:"Kehle Lukarne Ost",date:"2026-08-30",note:"",data:{},photo_path:null,sketch_paths:[],created_by:"u2",created_at:"2026-08-30T13:20:00Z",updated_by:"u2",updated_at:"2026-08-30T13:55:00Z"}
+  {id:13,project_id:1,type:"kehle",title:"Kehle Lukarne Ost",date:"2026-08-30",note:"",data:{},photo_path:null,sketch_paths:[],created_by:"u2",created_at:"2026-08-30T13:20:00Z",updated_by:"u2",updated_at:"2026-08-30T13:55:00Z"},
+  {id:14,project_id:2,type:"mauerabdeckung",title:"Mauerabdeckung Attika",date:"2026-09-03",note:"",data:{},photo_path:null,sketch_paths:[],created_by:"u1",created_at:"2026-09-03T08:15:00Z",updated_by:"u1",updated_at:"2026-09-04T14:20:00Z",workflow_status:"in_bearbeitung",freigabe_verfallen:true,freigegeben_von:null,freigegeben_am:null,ruester_id:"u2",ruester_zugewiesen_am:"2026-09-03T09:00:00Z",monteur_id:"u2",monteur_zugewiesen_am:"2026-09-03T09:00:00Z"}
  ],
  ausmass:[
   {id:5,project_id:1,type:"blitzschutz_ausmass",title:"Blitzschutz Hauptdach",date:"2026-08-30",positions:[],created_by:"u1",created_at:"2026-08-30T14:00:00Z",updated_by:"u1",updated_at:"2026-08-30T14:30:00Z"}
@@ -21,6 +22,7 @@ window.__demo={
   {id:3,project_id:1,name:"Dachaufsicht Plan.pdf",file_path:"project-files/1/plan.pdf",size_bytes:412300,mime_type:"application/pdf",created_by:"u1",created_at:"2026-08-15T08:20:00Z",updated_at:"2026-08-15T08:20:00Z"}
  ],
  audit_log:[
+  {id:11,company_id:"c1",user_id:"u1",entity_type:"measurement",entity_id:14,project_id:2,action:"status_changed",description:"Mauerabdeckung Attika",changes:[{field:"workflow_status",old:"zu_ruesten",new:"in_bearbeitung"},{field:"freigabe_verfallen",old:false,new:true}],created_at:"2026-09-04T14:20:00Z"},
   {id:10,company_id:"c1",user_id:"u1",entity_type:"measurement",entity_id:11,project_id:1,action:"status_changed",description:"Rinne Nordseite",changes:[{field:"workflow_status",old:"freigegeben",new:"zu_ruesten"},{field:"ruester_id",old:null,new:"u1"}],created_at:"2026-08-29T10:00:00Z"},
  {id:9,company_id:"c1",user_id:"u2",entity_type:"measurement",entity_id:12,project_id:1,action:"updated",description:"Einlaufblech Traufe Nord",changes:null,created_at:"2026-09-02T10:12:00Z"},
   {id:8,company_id:"c1",user_id:"u1",entity_type:"project",entity_id:1,project_id:1,action:"status_changed",description:"Sanierung Dach Nord",changes:[{field:"status",old:"offen",new:"in_arbeit"}],created_at:"2026-08-29T08:05:00Z"},

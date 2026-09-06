@@ -16,6 +16,7 @@ let aufgabenLauf=0;
 
 // Rot = jetzt dran, Orange = wartet auf den Schritt davor bzw. weniger dringend.
 const AUFGABEN_ARTEN={
+ erneut_freigeben:{titel:"Erneut freigeben – nach der Freigabe geändert",farbe:"rot",knopf:"Massaufnahme öffnen"},
  freigeben:{titel:"Massaufnahme freigeben",farbe:"rot", knopf:"Massaufnahme öffnen"},
  zuweisen: {titel:"Rüster/Monteur zuweisen",farbe:"orange",knopf:"Zuweisen"},
  ruesten:  {titel:"Zu rüsten",             farbe:"rot", knopf:"Gerüstet"},
@@ -41,7 +42,7 @@ function aufgabenBeschriftung(m){
 async function aufgabenLaden(){
  const ich=aufgabenIch();
  if(!ich)return [];
- const felder="id,project_id,type,title,date,workflow_status,created_by,ruester_id,monteur_id";
+ const felder="id,project_id,type,title,date,workflow_status,freigabe_verfallen,created_by,ruester_id,monteur_id";
  // Drei getrennte, schmale Abfragen statt einer breiten mit OR - jede fragt
  // genau eine persoenliche Rolle ab.
  const [eigene,ruest,mont]=await Promise.all([
@@ -63,13 +64,15 @@ async function aufgabenLaden(){
   // zu keinem Projekt und damit zu keiner Firmengrenze) - sie erscheint
   // deshalb gar nicht erst als Aufgabe.
   if(!m.project_id)return;
-  if(m.workflow_status==="in_bearbeitung")liste.push({art:"freigeben",m});
+  // v3.06: Eine verfallene Freigabe ist etwas anderes als eine noch nie
+  // freigegebene - sie blockiert bereits eingeteilte Leute.
+  if(m.workflow_status==="in_bearbeitung")liste.push({art:m.freigabe_verfallen?"erneut_freigeben":"freigeben",m});
   else if(m.workflow_status==="freigegeben"&&!m.ruester_id&&!m.monteur_id)liste.push({art:"zuweisen",m});
  });
  (ruest.data||[]).forEach(m=>{if(m.project_id)liste.push({art:"ruesten",m})});
  (mont.data||[]).forEach(m=>{if(m.project_id)liste.push({art:"montieren",m})});
  // Rot zuerst, danach nach Datum.
- const rang={ruesten:0,freigeben:1,montieren:2,zuweisen:3};
+ const rang={erneut_freigeben:0,ruesten:1,freigeben:2,montieren:3,zuweisen:4};
  liste.sort((a,b)=>(rang[a.art]-rang[b.art])||String(b.m.date||"").localeCompare(String(a.m.date||"")));
  return liste;
 }
@@ -89,7 +92,7 @@ function renderAufgaben(){
    ${b.zusatz?`<div class="aufgabe-zusatz">${esc(b.zusatz)}</div>`:""}
    <div class="aufgabe-knoepfe">
     <button type="button" class="blue aufgabe-haupt" data-aufgabe="${esc(a.art)}" data-aufgabe-id="${esc(a.m.id)}">${esc(art.knopf)}</button>
-    ${a.art==="freigeben"?"":`<button type="button" class="gray" data-aufgabe="oeffnen" data-aufgabe-id="${esc(a.m.id)}">Massaufnahme öffnen</button>`}
+    ${(a.art==="freigeben"||a.art==="erneut_freigeben")?"":`<button type="button" class="gray" data-aufgabe="oeffnen" data-aufgabe-id="${esc(a.m.id)}">Massaufnahme öffnen</button>`}
    </div>
   </div>`;
  }).join("");
@@ -122,7 +125,7 @@ async function aufgabeOeffnen(id){
 }
 
 async function aufgabeAusfuehren(art,id){
- if(art==="oeffnen"||art==="freigeben"||art==="zuweisen"){
+ if(art==="oeffnen"||art==="freigeben"||art==="erneut_freigeben"||art==="zuweisen"){
   await aufgabeOeffnen(id);
   // Zuweisen und Freigeben passieren in der Workflow-Karte des Formulars -
   // eine Stelle, eine Logik.

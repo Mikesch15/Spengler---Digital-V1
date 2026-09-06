@@ -101,7 +101,38 @@ async function wsAlle(){
  // wie beim Offline-Cache (js/27).
  const fremd=liste.filter(e=>String(e.firma)!==String(firma));
  if(fremd.length){await wsLeeren();return []}
- return liste.sort((a,b)=>String(a.erstellt).localeCompare(String(b.erstellt)));
+ return wsSortieren(liste);
+}
+
+// Reihenfolge der Warteschlange. Zeitstempel zuerst - aber ein Eintrag, der
+// auf eine temporaere Projekt-ID zeigt, muss NACH dem Eintrag stehen, der
+// dieses Projekt anlegt.
+//
+// Warum das noetig ist: 'erstellt' hat Millisekunden-Aufloesung. Werden
+// Projekt und Massaufnahme in derselben Millisekunde eingereiht - beim
+// Anlegen aus dem Cockpit heraus der Normalfall -, sind die Zeitstempel
+// gleich, und dann entschied bisher die zufaellige Schluesselreihenfolge von
+// getAll(). Landete die Massaufnahme vorne, meldete das Senden fuer sie
+// "wartet" und sie ging erst eine Runde spaeter durch. Kein Datenverlust,
+// aber fuer den Benutzer ein unerklaerliches "1 wartet noch".
+function wsSortieren(liste){
+ const nach=liste.slice().sort((a,b)=>String(a.erstellt).localeCompare(String(b.erstellt)));
+ const erg=[], offen=nach.slice(), fertig=new Set();
+ let runden=0;
+ while(offen.length && runden++ <= nach.length){
+  let bewegt=false;
+  for(let i=0;i<offen.length;){
+   const e=offen[i];
+   const braucht=(e.payload && wsIstTmp(e.payload.project_id))?String(e.payload.project_id):null;
+   if(!braucht || fertig.has(braucht)){
+    erg.push(e);
+    if(e.tmpId)fertig.add(String(e.tmpId));
+    offen.splice(i,1); bewegt=true;
+   }else i++;
+  }
+  if(!bewegt)break;   // nicht aufloesbar (das Projekt ist nicht mehr in der Liste)
+ }
+ return erg.concat(offen);
 }
 async function wsLegen(e){ await wsAktion("readwrite",s=>s.put(e)); return e }
 async function wsWeg(id){ await wsAktion("readwrite",s=>s.delete(id)) }
@@ -327,6 +358,11 @@ async function wsSynchronisieren(){
  // angelegten Projekte und Massaufnahmen sichtbar werden.
  if(bericht.gesendet&&typeof loadAllData==="function"){
   try{ await loadAllData() }catch(e){}
+ }
+ // v3.06: Beim Senden kann eine Freigabe verfallen sein (der Trigger prueft
+ // erst jetzt) - die Aufgabenzentrale muss das mitbekommen.
+ if(bericht.gesendet&&typeof aufgabenNeuLaden==="function"){
+  try{ await aufgabenNeuLaden() }catch(e){}
  }
  return bericht;
 }

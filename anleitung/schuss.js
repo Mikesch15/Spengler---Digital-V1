@@ -251,6 +251,15 @@ const liste=[];
  });
  await schuss("32-aufgaben","#aufgabenKarte",{warte:700,breite:760});
 
+ // ---------- Verfallene Freigabe (v3.06) ----------
+ await page.evaluate(()=>{
+  $("startScreen").hidden=true;
+  const m=window.__demo.measurements.find(x=>x.id===14);
+  openMeasurement(m);
+ });
+ await schuss("33-verfallen","#measWorkflowBereich",{warte:600,breite:760});
+ await page.evaluate(()=>{$("measurementEditModal").hidden=true;$("startScreen").hidden=false});
+
  // ---------- Hilfe-Fenster (Info-Knopf) ----------
  await page.evaluate(()=>{
   if(typeof hilfeOeffnen==="function")hilfeOeffnen("reg-zuschnitt");

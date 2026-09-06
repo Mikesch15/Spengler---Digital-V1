@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.05";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.06";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -47,7 +47,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.05<br>
+  Version 3.06<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -281,6 +281,9 @@ Die App hält fest, wer welchen Schritt gemacht hat und wann.</p>
 <tr><td>Montiert</td><td>Die Arbeit ist montiert.</td></tr>
 <tr><td>Abgeschlossen</td><td>Erledigt und abgehakt.</td></tr>
 </table>
+<p>Dazu kommt ein Sonderfall: wird eine <strong>freigegebene</strong> Massaufnahme
+nachträglich fachlich geändert, springt sie zurück auf <em>In Bearbeitung</em> und
+ist als <strong>verfallen</strong> gekennzeichnet – siehe weiter unten.</p>
 
 <h3>Freigeben</h3>
 <p>Unten in der Massaufnahme steht der Abschnitt <strong>🔁 Arbeitsstatus</strong> mit dem
@@ -307,9 +310,32 @@ eigenen Schritt bestätigen.</p>
 <p>Jede Aufgabe nennt die <strong>Adresse der Baustelle</strong> und die Art der
 Massaufnahme – dieselbe Bezeichnung wie überall sonst in der App.</p>
 
+<h3>Wenn nach der Freigabe noch etwas ändert</h3>
+<p>Eine freigegebene Massaufnahme ist die Grundlage, nach der gerüstet und montiert
+wird. Ändert sie sich danach noch, <strong>verfällt die Freigabe automatisch</strong>:
+der Status springt zurück auf <em>In Bearbeitung</em>, und im Arbeitsstatus steht rot
+umrandet, was passiert ist. So baut niemand nach einem Stand, den es nicht mehr gibt.</p>
+<figure><img src="bilder/33-verfallen.png"><figcaption>Die Freigabe ist verfallen: der Hinweis sagt, was passiert ist, und der Knopf heisst jetzt „Erneut freigeben“.</figcaption></figure>
+<table>
+<tr><th>Das lässt die Freigabe verfallen</th><th>Das nicht</th></tr>
+<tr><td>Ein Mass ändert sich</td><td>Bezeichnung, Notiz, Datum</td></tr>
+<tr><td>Die Art der Massaufnahme wechselt</td><td>Ein <em>zusätzliches</em> Foto oder eine zusätzliche Skizze</td></tr>
+<tr><td>Die Massaufnahme kommt in ein anderes Projekt</td><td>Speichern, ohne wirklich etwas geändert zu haben</td></tr>
+<tr><td>Ein Foto oder eine Skizze verschwindet oder wird ersetzt</td><td>Eine bereits <em>abgeschlossene</em> Massaufnahme</td></tr>
+</table>
+<div class="hin"><strong>Rüster und Monteur bleiben eingeteilt.</strong> Nach der
+erneuten Freigabe geht es ohne neues Einteilen genau dort weiter, wo es aufgehört hat.
+Ein bereits bestätigtes „Gerüstet“ zählt allerdings nicht mehr – es galt dem alten
+Stand.</div>
+<p>Beim Speichern sagt die App es dir sofort. Auf dem Startbildschirm erscheint die
+Aufgabe <strong>„Erneut freigeben – nach der Freigabe geändert“</strong> ganz oben in
+der Liste, weil eingeteilte Leute darauf warten. Im Projekt-Cockpit steht neben der
+Massaufnahme <strong>„⚠️ Freigabe verfallen“</strong> in Rot.</p>
+
 <h3>Was im Verlauf steht</h3>
 <p>Jeder Schritt landet mit Person und Zeitpunkt im Änderungsverlauf der Massaufnahme
-(Abschnitt 16): Freigabe, jede Einteilung, Gerüstet und Montiert. Ein Administrator kann
+(Abschnitt 16): Freigabe, jede Einteilung, Gerüstet und Montiert – und eine verfallene
+Freigabe als <em>„Freigabe: gültig → verfallen“</em>. Ein Administrator kann
 einen versehentlich gesetzten Schritt über <span class="tasten">↩️ Status korrigieren</span>
 zurücknehmen – auch das steht im Verlauf.</p>
 
@@ -546,7 +572,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">23 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.05</strong>, Stand 6. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.06</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

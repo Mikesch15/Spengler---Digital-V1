@@ -46,6 +46,7 @@ function mwStandAusZeile(m){
   id:m.id, project_id:m.project_id||null, type:m.type||"", title:m.title||"",
   created_by:m.created_by||null, created_at:m.created_at||null,
   workflow_status:m.workflow_status||"in_bearbeitung",
+  freigabe_verfallen:!!m.freigabe_verfallen,
   freigegeben_von:m.freigegeben_von||null, freigegeben_am:m.freigegeben_am||null,
   ruester_id:m.ruester_id||null, ruester_zugewiesen_von:m.ruester_zugewiesen_von||null,
   ruester_zugewiesen_am:m.ruester_zugewiesen_am||null,
@@ -59,9 +60,10 @@ function mwStandAusZeile(m){
 // Workflow-Felder zurueck, Projekt/Typ/Titel bleiben wie sie sind.
 function mwStandAusAntwort(a){
  if(!mwStand||!a)return;
- ["workflow_status","freigegeben_von","freigegeben_am","ruester_id","ruester_zugewiesen_von",
+ ["workflow_status","freigabe_verfallen","freigegeben_von","freigegeben_am","ruester_id","ruester_zugewiesen_von",
   "ruester_zugewiesen_am","geruestet_von","geruestet_am","monteur_id","monteur_zugewiesen_von",
   "monteur_zugewiesen_am","montiert_von","montiert_am"].forEach(k=>{mwStand[k]=a[k]??null});
+ mwStand.freigabe_verfallen=!!mwStand.freigabe_verfallen;
 }
 
 function mwIchBin(){return currentProfile?currentProfile.id:null}
@@ -96,6 +98,17 @@ function mwMitarbeiterOptionen(gewaehlt){
   `<option value="${esc(p.id)}"${p.id===gewaehlt?" selected":""}>${esc(profileName(p.id))}</option>`).join("");
 }
 
+// Was in einer Liste neben der Massaufnahme steht. "In Bearbeitung" ist dort
+// keine Meldung wert - eine verfallene Freigabe schon: sie blockiert bereits
+// eingeteilte Leute, waere aber sonst von einer frisch erfassten nicht zu
+// unterscheiden (v3.06).
+function mwBadgeFuerListe(m){
+ if(!m)return "";
+ if(m.freigabe_verfallen)return `<span class="mw-badge mw-rot">⚠️ Freigabe verfallen</span>`;
+ if(m.workflow_status&&m.workflow_status!=="in_bearbeitung")return mwBadge(m.workflow_status);
+ return "";
+}
+
 function renderMeasWorkflow(){
  const box=$("measWorkflowBereich"); if(!box)return;
  const w=mwStand;
@@ -109,6 +122,18 @@ function renderMeasWorkflow(){
  // (CLAUDE.md 107.2).
  teile.push(`<h2 style="margin-top:4px">🔁 Arbeitsstatus ${typeof hilfeKnopf==="function"?hilfeKnopf("workflow"):""}</h2>`);
  teile.push(`<div class="mw-kopf">${mwBadge(s)}</div>`);
+
+ // v3.06: Die Freigabe ist verfallen, weil die Massaufnahme danach fachlich
+ // geaendert wurde. Das setzt ausschliesslich der Trigger in der Datenbank -
+ // hier steht nur, was passiert ist und was jetzt zu tun ist.
+ if(w.freigabe_verfallen){
+  const wer=mwIstAufnehmer(w)?"Du musst sie":`${esc(mwPerson(w.created_by))} muss sie`;
+  const bleibt=(w.ruester_id||w.monteur_id)
+   ? " Rüster und Monteur bleiben zugewiesen und sind danach automatisch wieder dran."
+   : "";
+  teile.push(`<div class="mw-warnung">⚠️ Diese Massaufnahme wurde nach der Freigabe geändert. `
+   +`Die Freigabe ist damit verfallen – ${wer} erneut freigeben.${bleibt}</div>`);
+ }
 
  // Wer was gemacht hat - ausschliesslich echte, gespeicherte Angaben.
  const zeilen=[
@@ -124,7 +149,7 @@ function renderMeasWorkflow(){
  const aktionen=[];
  if(s==="in_bearbeitung"){
   if(mwIstAufnehmer(w)){
-   aktionen.push(`<button type="button" class="green mw-voll" id="mwFreigeben">✓ Massaufnahme freigeben</button>`);
+   aktionen.push(`<button type="button" class="green mw-voll" id="mwFreigeben">${w.freigabe_verfallen?"✓ Erneut freigeben":"✓ Massaufnahme freigeben"}</button>`);
   }else{
    teile.push(`<div class="info">Freigeben kann nur die Person, welche die Massaufnahme aufgenommen hat (${esc(mwPerson(w.created_by))}).</div>`);
   }
@@ -176,7 +201,10 @@ async function mwRuf(name,args,wasOffline){
 
 async function mwFreigeben(){
  if(!mwStand)return;
- if(!confirm("Massaufnahme freigeben?\n\nMit der Freigabe bestätigst du, dass die Massaufnahme vollständig aufgenommen und kontrolliert wurde."))return;
+ const frage=mwStand.freigabe_verfallen
+  ? "Massaufnahme erneut freigeben?\n\nSie wurde nach der letzten Freigabe geändert. Mit der erneuten Freigabe bestätigst du, dass der jetzige Stand vollständig aufgenommen und kontrolliert ist."
+  : "Massaufnahme freigeben?\n\nMit der Freigabe bestätigst du, dass die Massaufnahme vollständig aufgenommen und kontrolliert wurde.";
+ if(!confirm(frage))return;
  const a=await mwRuf("measurement_freigeben",{p_id:mwStand.id},"Die Freigabe");
  if(!a)return;
  mwStandAusAntwort(a); renderMeasWorkflow(); mwNachAenderung();
@@ -248,7 +276,7 @@ async function mwKorrigieren(){
 function mwNachAenderung(){
  if(typeof allMeasurements!=="undefined"&&Array.isArray(allMeasurements)&&mwStand){
   const z=allMeasurements.find(x=>x.id===mwStand.id);
-  if(z)Object.assign(z,{workflow_status:mwStand.workflow_status,ruester_id:mwStand.ruester_id,
+  if(z)Object.assign(z,{workflow_status:mwStand.workflow_status,freigabe_verfallen:mwStand.freigabe_verfallen,ruester_id:mwStand.ruester_id,
     monteur_id:mwStand.monteur_id,freigegeben_von:mwStand.freigegeben_von,freigegeben_am:mwStand.freigegeben_am,
     geruestet_von:mwStand.geruestet_von,geruestet_am:mwStand.geruestet_am,
     montiert_von:mwStand.montiert_von,montiert_am:mwStand.montiert_am});
@@ -256,7 +284,30 @@ function mwNachAenderung(){
  if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
  if(typeof projectMeasurementsCache!=="undefined"&&Array.isArray(projectMeasurementsCache)&&mwStand){
   const z=projectMeasurementsCache.find(x=>x.id===mwStand.id);
-  if(z)z.workflow_status=mwStand.workflow_status;
+  if(z){z.workflow_status=mwStand.workflow_status;z.freigabe_verfallen=mwStand.freigabe_verfallen}
+ }
+}
+
+// v3.06: Beim Speichern kann der Trigger die Freigabe haben verfallen lassen.
+// Der Client erfaehrt das nur ueber die zurueckgelesene Zeile - deshalb liest
+// js/16 sie beim Speichern mit und reicht sie hier herein.
+function mwNachSpeichern(zeile){
+ if(!zeile||!zeile.id)return;
+ const warFreigegeben=!!(mwStand&&mwStand.id===zeile.id
+   &&mwStand.workflow_status&&mwStand.workflow_status!=="in_bearbeitung");
+ if(mwStand&&mwStand.id===zeile.id){
+  mwStand.workflow_status=zeile.workflow_status||mwStand.workflow_status;
+  mwStand.freigabe_verfallen=!!zeile.freigabe_verfallen;
+  if(mwStand.freigabe_verfallen){
+   mwStand.freigegeben_von=null; mwStand.freigegeben_am=null;
+   mwStand.geruestet_von=null;   mwStand.geruestet_am=null;
+   mwStand.montiert_von=null;    mwStand.montiert_am=null;
+  }
+  mwNachAenderung();
+ }
+ // Nur melden, wenn die Freigabe durch genau dieses Speichern verfallen ist.
+ if(zeile.freigabe_verfallen&&warFreigegeben){
+  alert("Die Freigabe ist verfallen.\n\nDie Massaufnahme wurde nach der Freigabe fachlich geändert und muss erneut freigegeben werden. Rüster und Monteur bleiben zugewiesen.");
  }
 }
 

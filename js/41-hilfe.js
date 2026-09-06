@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.05.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.06.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -41,6 +41,8 @@ keine eigene Aufgabenverwaltung – sie entsteht direkt aus den Massaufnahmen
 und ihren Zuweisungen.</p>
 <ul><li><b>Massaufnahme freigeben</b> – deine eigene Aufnahme ist noch nicht
 freigegeben.</li>
+<li><b>Erneut freigeben</b> – sie wurde nach der Freigabe geändert, die
+Freigabe ist verfallen und die eingeteilten Leute warten.</li>
 <li><b>Rüster/Monteur zuweisen</b> – sie ist freigegeben, aber es ist noch
 niemand eingeteilt.</li>
 <li><b>Zu rüsten</b> – du bist als Rüster eingeteilt.</li>
@@ -59,7 +61,14 @@ geprüft hat – es heisst: der Aufnehmer bestätigt, dass die Aufnahme aus
 seiner Sicht vollständig und kontrolliert ist.</p>
 <p><b>Gerüstet</b> bestätigt der eingeteilte Rüster, <b>Montiert</b> der
 eingeteilte Monteur. Jeder Schritt wird mit Person und Zeitpunkt gespeichert
-und steht im Änderungsverlauf.</p>`},
+und steht im Änderungsverlauf.</p>
+<p><b>Wird eine freigegebene Massaufnahme fachlich geändert</b> – an den
+Massen, an der Art, am Projekt, oder es verschwindet ein Foto oder eine
+Skizze –, dann <b>verfällt die Freigabe</b> automatisch und sie muss erneut
+freigegeben werden. So baut niemand nach einem Stand, den es nicht mehr gibt.
+Rüster und Monteur bleiben eingeteilt und sind nach der erneuten Freigabe
+sofort wieder dran. Bezeichnung, Notiz, Datum und ein <i>zusätzliches</i>
+Foto ändern nichts an der Freigabe.</p>`},
 
 "zuweisen":{titel:"Rüster und Monteur",text:`
 <p>Nach der Freigabe teilst du ein, wer <b>rüstet</b> und wer <b>montiert</b>.
@@ -67,7 +76,9 @@ Beides ist freiwillig: du kannst nur einen Rüster, nur einen Monteur oder
 beide setzen.</p>
 <p>Aufnehmer, Rüster und Monteur sind getrennte Rollen – dieselbe Person darf
 mehrere davon übernehmen. Zuweisen darf der Aufnehmer oder ein
-Administrator; jede Änderung steht im Änderungsverlauf.</p>`},
+Administrator; jede Änderung steht im Änderungsverlauf.</p>
+<p>Eine Zuweisung überlebt es, wenn die Freigabe verfällt: nach der erneuten
+Freigabe geht es ohne neues Einteilen dort weiter, wo es aufgehört hat.</p>`},
 
 // ---- Projekte -----------------------------------------------------------
 "zuletzt":{titel:"Zuletzt bearbeitet",text:`

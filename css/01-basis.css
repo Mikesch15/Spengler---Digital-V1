@@ -663,14 +663,21 @@ html.dark .mw-orange{color:#e0a35c}
 .mw-aktionen{display:flex;flex-direction:column;gap:6px}
 .mw-voll{width:100%;min-height:44px}
 .mw-fehler{color:var(--red);font-weight:700}
+/* v3.06: Die Freigabe ist verfallen. Bewusst mit Zeichen UND Text, nicht nur
+   ueber die Farbe - wie die Statusabzeichen. */
+.mw-warnung{border:1.5px solid var(--red);border-radius:8px;padding:8px 10px;
+ margin:0 0 10px;font-size:12px;line-height:1.45;color:var(--red);font-weight:700;
+ word-break:break-word}
+html.dark .mw-warnung{border-color:#f08b80;color:#f08b80}
 
 /* ---- v3.05 Persoenliche Aufgaben auf der Startseite --------------------- */
 .aufgabe{border:1px solid var(--card-line);border-left:4px solid var(--muted);
  border-radius:10px;padding:9px 11px;margin-bottom:8px;background:var(--card-bg)}
 .aufgabe-rot{border-left-color:var(--red)}
 .aufgabe-orange{border-left-color:#d98014}
-.aufgabe-kopf{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:900;
- color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.aufgabe-kopf{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;font-size:9px;
+ font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;
+ margin-bottom:3px;min-width:0;word-break:break-word}
 .aufgabe-marke{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto}
 .aufgabe-marke-rot{background:var(--red)}
 .aufgabe-marke-orange{background:#d98014}

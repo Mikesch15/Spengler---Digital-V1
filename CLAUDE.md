@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.05, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.06, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.05**
+- sichtbare App-Version: **3.06**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -17697,3 +17697,229 @@ Berechnung, keine Stückliste, kein Zuschnitt, keine Abwicklung berührt.
   Praxistest – die App kennt heute keinen Begriff von „fertig erfasst".
 - `montiert` und `abgeschlossen` sind bewusst zwei Zustände. Wird im Betrieb
   nie abgeschlossen, kann `montiert` später der Endzustand werden.
+
+## 111. FREIGABE VERFÄLLT BEI EINER WESENTLICHEN ÄNDERUNG — VERSION 3.06
+
+Schliesst den in Abschnitt 110.10 offengelegten Punkt: bis v3.05 blieb eine
+Massaufnahme freigegeben, auch wenn danach die Masse geändert wurden – Rüster
+und Monteur hätten nach einem Stand gearbeitet, den es nicht mehr gibt.
+**Keine neue Tabelle, keine RLS-/Storage-Änderung**, eine einzige zusätzliche
+Spalte.
+
+### 111.1 Warum das ein echtes Loch war
+
+Der Workflow aus v3.05 kennt genau zwei Zustandsquellen: die sechs
+Übergangsfunktionen und den Guard-Trigger. Eine fachliche Änderung der
+Massaufnahme (ein gewöhnliches `UPDATE` auf `data`) lief an beiden vorbei –
+der Status blieb `zu_ruesten`, und der eingeteilte Rüster sah weiterhin seine
+Aufgabe, jetzt mit anderen Massen dahinter.
+
+Der Auftrag zu v3.05 hatte ausdrücklich „keine unnötige
+Versionierungsarchitektur" verlangt. Die Lösung hält sich daran: es wird
+**keine Fassung gespeichert**, nichts kopiert und nichts verglichen. Es wird
+nur festgehalten, dass die Freigabe nicht mehr zum Inhalt passt.
+
+### 111.2 Was als wesentlich gilt – und was nicht
+
+Wesentlich ist die fachliche Grundlage, nach der gerüstet und montiert wird:
+
+| Freigabe verfällt | Freigabe bleibt |
+|---|---|
+| `data` ändert sich (die Masse aller zwölf Arten) | `title`, `note`, `date` |
+| `type` wechselt | ein **zusätzliches** Foto oder eine zusätzliche Skizze |
+| `project_id` wechselt (andere Adresse, andere Baustelle) | Speichern ohne echte Änderung |
+| ein Foto oder eine Skizze **verschwindet oder wird ersetzt** | Status `abgeschlossen` (dort ist die Arbeit getan) |
+
+Die Bildregel ist eine Mengenprüfung, keine Anzahlprüfung: jeder Pfad, der
+vorher da war, muss noch da sein (`mw_bildpfade(alt) <@ mw_bildpfade(neu)`).
+Ein Foto dazuzunehmen ist der Normalfall auf der Baustelle und darf die
+Freigabe nicht kippen; eines wegzunehmen ändert die Grundlage – bei
+`skizze_foto` **ist** die Skizze die ganze Grundlage, `data` enthält dort nur
+das Material.
+
+`project_id` ist mit dabei, weil die Adresse daran hängt: eine verschobene
+Massaufnahme schickt Rüster und Monteur sonst an die falsche Baustelle.
+
+**Bewusst grob: `data` wird als Ganzes verglichen.** Damit verfällt die
+Freigabe auch, wenn sich nur ein **abgeleiteter** Wert ändert – etwa der
+Rollenblech-Plan, weil jemand die Rollenbreiten der Firma umgestellt hat.
+Eine Whitelist der reinen Eingabefelder je Art wäre genau die typspezifische
+Diff-Logik, die Abschnitt 41.1 für `data` schon einmal verworfen hat (neun
+bzw. zwölf verschiedene Strukturen). Die Richtung ist die vorsichtige: im
+Zweifel verfällt die Freigabe, statt dass jemand nach veralteten Zahlen baut.
+
+### 111.3 Umsetzung: eine Spalte, ein Zweig im bestehenden Guard
+
+Migration `measurement_freigabe_verfaellt_v3_06`:
+`measurements.freigabe_verfallen boolean not null default false`, dazu die
+reine Textfunktion `mw_bildpfade(text,jsonb,text,jsonb)` (kein Tabellen­
+zugriff, `anon` entzogen).
+
+Der Verfall sitzt **im bestehenden** `schuetze_measurement_workflow()`, nicht
+in einem zweiten Trigger. Zwei BEFORE-UPDATE-Trigger wären eine Falle
+gewesen: der erste ändert `NEW`, der zweite sieht die Änderung und weist sie
+als unerlaubten Client-Zugriff ab. In einer Funktion ist die Reihenfolge
+ausdrücklich:
+
+1. `app.workflow_ok` gesetzt → es ist eine Übergangsfunktion, alles erlaubt.
+2. Sonst: hat der **Client** eine Workflow-Spalte verändert? → `42501`.
+   Geprüft wird gegen das, was der Client geschickt hat – **vor** jeder
+   eigenen Korrektur.
+3. Erst dann der Verfall-Zweig, der `NEW` überschreibt.
+
+Zurückgesetzt werden `workflow_status` auf `in_bearbeitung`,
+`freigegeben_von/_am`, `geruestet_von/_am` und `montiert_von/_am`;
+`freigabe_verfallen` wird `true`. **Die Zuweisungen bleiben stehen** – die
+Person bleibt eingeteilt. Was verloren geht, steht im Änderungsverlauf.
+
+`measurement_freigeben()` räumt den Verfall auf und leitet den Status aus den
+bestehenden Zuweisungen ab (Rüster → `zu_ruesten`, sonst Monteur →
+`zu_montieren`, sonst `freigegeben`). Nach der erneuten Freigabe geht es
+damit ohne neues Einteilen dort weiter, wo es aufgehört hat.
+`measurement_zuweisen()` sagt bei einem Verfall ausdrücklich warum,
+`measurement_workflow_korrigieren()` räumt ihn auf (der Administrator
+entscheidet ausdrücklich), `mw_ergebnis()` gibt das Feld mit zurück.
+
+### 111.4 Verlauf: derselbe Schreiber, ein Feld mehr
+
+`write_audit_log()` wurde an zwei eindeutigen Ankern gepatcht
+(`pg_get_functiondef` → `replace` → `execute`, mit Abbruch, falls ein Anker
+fehlt) – nicht neu getippt. Ein Verfall ist dieselbe Aktion
+**`status_changed`** wie jeder andere Schritt, mit dem zusätzlichen Diff
+`freigabe_verfallen`. `audit_log_action_check` brauchte **keine** Änderung.
+
+Im Verlauf liest sich das als „Arbeitsstatus: Zu rüsten → In Bearbeitung"
+plus „Freigabe: gültig → verfallen" – nicht als „Ja/Nein" (js/23).
+
+### 111.5 Oberfläche
+
+- **Massaufnahme**: rot umrandeter Hinweis im Arbeitsstatus, der sagt, was
+  passiert ist, wer sie erneut freigeben muss und dass Rüster und Monteur
+  eingeteilt bleiben. Der Knopf heisst dann **„✓ Erneut freigeben"**, die
+  Rückfrage nennt den Grund.
+- **Beim Speichern** kann der Trigger die Freigabe kippen, ohne dass der
+  Client davon wüsste. Deshalb liest js/16 die Zeile beim Speichern mit
+  zurück (`.select("id,workflow_status,freigabe_verfallen")` – kein
+  zusätzlicher Aufruf) und reicht sie an `mwNachSpeichern()`. Nur wenn die
+  Freigabe durch **genau dieses** Speichern verfallen ist, wird es gemeldet.
+- **Aufgabenzentrale**: eine eigene Art „Erneut freigeben – nach der Freigabe
+  geändert", rot und **zuoberst** – sie blockiert bereits eingeteilte Leute.
+  Eine noch nie freigegebene bleibt die gewohnte Freigabe-Aufgabe.
+- **Cockpit-Liste**: `in_bearbeitung` war dort bisher bewusst unbeschriftet –
+  eine verfallene Freigabe hätte damit ausgesehen wie eine frisch erfasste
+  Massaufnahme. `mwBadgeFuerListe()` (js/44) entscheidet das jetzt an **einer**
+  Stelle und setzt dort „⚠️ Freigabe verfallen" in Rot.
+
+### 111.6 Getestet
+
+**Datenbank – 20/20** (`begin; … rollback;`, Wegwerf-Firma mit vier Personen).
+Wichtig ist die Gegenrichtung, nicht nur der Verfall: Titel, Notiz, Datum,
+ein zusätzliches Foto und dasselbe `data` in anderer Schlüsselreihenfolge
+lassen die Freigabe **stehen**. Dazu: Massänderung, Foto entfernen, Skizze
+ersetzen, Projektwechsel und Artwechsel lassen sie verfallen; die Zuweisungen
+überleben; Zuweisen und Rüsten sind danach gesperrt und sagen warum; die
+erneute Freigabe führt direkt zurück nach `zu_ruesten`; der Client kann
+`freigabe_verfallen` nicht selbst setzen (`42501`); `abgeschlossen` bleibt
+unberührt; die Admin-Korrektur räumt auf; der Verlauf hält es fest.
+
+**Gegenprobe auf der Datenbank**: der Verfall-Zweig wurde **innerhalb einer
+zurückgerollten Transaktion** ausgebaut (DDL ist in Postgres transaktional) –
+danach bestanden **0 von 4** der betroffenen Prüfungen, alle vier blieben auf
+`freigegeben`. Nach dem `rollback` steht die echte Funktion wieder (per
+`pg_get_functiondef` bestätigt).
+
+**Oberfläche – `pruefstand-workflow-v3-05.js` 101/101** (vorher 73), neuer
+Abschnitt K. Darin auch die lange Beschriftung „Erneut freigeben – nach der
+Freigabe geändert" auf 320 und 390 px gemessen: `.aufgabe-kopf` hat dafür
+`flex-wrap:wrap` und `word-break` bekommen. **Acht Gegenproben**, jede baut
+einen echten Fehler ein (die ersten sieben gegen den damaligen Stand von 95):
+
+| Gegenprobe | Ergebnis |
+|---|---|
+| Hinweis wird nicht gezeigt | 90/95 |
+| `mwStandAusZeile` übernimmt das Merkmal nicht | 88/95 |
+| Aufgabenzentrale kennt die eigene Art nicht | 92/95 |
+| Knopf heisst immer „Massaufnahme freigeben" | 94/95 |
+| Verlauf zeigt den Rohwert | 94/95 |
+| `mwNachSpeichern` meldet den Verfall nicht | 94/95 |
+| js/16 liest die Zeile nicht zurück | 94/95 |
+| Liste zeigt eine verfallene Freigabe wie eine frische | 100/101 |
+
+Die letzte bringt nur einen Fehlschlag, und zwar den Quelltext-Nachweis: der
+Prüfstand ruft `mwNachSpeichern()` direkt auf, der komplette Speicherweg wird
+nicht durchgespielt. Das ist offengelegt, nicht behauptet.
+
+`get_advisors(security)` nach den Migrationen: dieselbe Menge Warnungen wie
+nach v3.05, keine neue Art. `mw_bildpfade` ist nicht `SECURITY DEFINER` und
+erscheint dort gar nicht.
+
+### 111.7 Nebenbefund: die Warteschlange sendete in zufälliger Reihenfolge
+
+Der Prüfstand `pruefstand-warteschlange-v3-04.js` fiel im Regressionslauf
+sporadisch mit 6 Fehlschlägen aus. Gemessen statt achselzuckend abgetan:
+**beide Stände sind betroffen** – v3.05 in 1 von 6 Läufen, v3.06 in 3 von 6.
+Es war also kein Fehler dieser Runde, aber ein echter.
+
+`wsAlle()` sortierte allein nach `erstellt`, und das hat
+Millisekunden-Auflösung. Projekt und Massaufnahme aus **einem**
+Speichervorgang bekommen denselben Zeitstempel; `Array.sort` ist stabil, also
+entschied dann die Reihenfolge aus `getAll()` – und die ist die
+**Schlüsselreihenfolge**, der Schlüssel enthält `Math.random()`. Landete die
+Massaufnahme vorne, meldete `wsSynchronisieren()` für sie „wartet", weil das
+Projekt noch keine echte ID hatte. Kein Datenverlust – die nächste Runde holt
+es nach –, aber für den Benutzer ein unerklärliches „1 wartet noch".
+
+`wsSortieren()` sortiert jetzt nach Zeitstempel **und** setzt jeden Eintrag,
+der auf eine `tmp-`-Projekt-ID zeigt, hinter den Eintrag, der dieses Projekt
+anlegt. Ein nicht auflösbarer Bezug hängt die Schleife nicht auf, er bleibt
+in seiner Reihenfolge stehen.
+
+**Der erste Versuch, das abzusichern, war wertlos**: die neuen Prüfungen
+riefen `wsSortieren()` direkt auf, und die Gegenprobe (alte Sortierung in
+`wsAlle()`) blieb grün – geprüft war eine Funktion, die niemand mehr aufruft.
+Die Prüfung legt jetzt zwei Einträge mit gleichem Zeitstempel und
+„falscher" Schlüsselreihenfolge in die echte Warteschlange und liest sie über
+`wsAlle()` zurück. Danach schlägt die Gegenprobe in **jedem** Lauf fehl
+(`["aaa","zzz"]`), und der Prüfstand ist mit 75/75 in acht Läufen stabil –
+vorher war er es in keinem.
+
+### 111.8 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migrationen `measurement_freigabe_verfaellt_v3_06`, `_guard_verfall_` (+`_fix`), `_funktionen_verfall_`, `audit_log_freigabe_verfallen_v3_06` | Spalte, Bildpfad-Helfer, Verfall im Guard, vier Funktionen, Verlauf |
+
+Zur Migrationsliste: `measurement_workflow_guard_verfall_v3_06` enthielt einen
+Platzhalter aus meinem Entwurf (`new.sketches_dummy_platzhalter()` und einen
+leeren Rumpf). Postgres nimmt so etwas bei `create function` an und würde erst
+zur Laufzeit scheitern. Aufgefallen beim Nachlesen, unmittelbar mit
+`_fix` überschrieben – zwischen beiden Migrationen lief kein einziges
+`UPDATE` gegen den Trigger, und die 20 Prüfungen liefen erst danach.
+| `js/44-workflow.js` | Merkmal im Stand, Hinweis, Knopfbeschriftung, Rückfrage, `mwNachSpeichern()` |
+| `js/45-aufgaben.js` | eigene Aufgabenart, Sortierung, Feld in der Abfrage |
+| `js/16-massaufnahme-formular.js` | liest die Zeile beim Speichern zurück |
+| `js/23-verlauf.js` | Bezeichnung und „gültig → verfallen" |
+| `js/43-warteschlange.js` | nach dem Senden die Aufgaben nachziehen (auch ein offline erfasster Stand kann die Freigabe kippen); dazu `wsSortieren()` – siehe 111.7 |
+| `js/09-projekte.js` | die Cockpit-Liste fragt `mwBadgeFuerListe()` statt selbst zu entscheiden |
+| `js/41-hilfe.js` | drei Hilfetexte ergänzt |
+| `css/01-basis.css` | `.mw-warnung` |
+| `index.html`, `sw.js` | Version 3.06 |
+| `anleitung/*` | Abschnitt 9 um „Wenn nach der Freigabe noch etwas ändert" erweitert, neues Bild `33-verfallen`, PDF v3.06 (42 Seiten) |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie sämtliche Fachdateien `js/11`–`js/15`,
+`js/17`, `js/19`–`js/22`, `js/25`–`js/40`.
+
+### 111.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+- Der grobe `data`-Vergleich lässt die Freigabe auch bei einem rein
+  abgeleiteten Wert verfallen (111.2). Ob das im Alltag stört, gehört in den
+  Praxistest; enger wäre nur mit typspezifischem Wissen möglich.
+- Eine **abgeschlossene** Massaufnahme bleibt bei einer nachträglichen
+  Massänderung abgeschlossen. Das ist Absicht – gebaut ist gebaut –, heisst
+  aber: eine späte Korrektur fällt dort niemandem auf.
+- Die Freigabe-Aufgabe zeigt weiterhin **jede** eigene unfreigegebene
+  Massaufnahme, begrenzt auf 25 (unverändert aus 110.10).
