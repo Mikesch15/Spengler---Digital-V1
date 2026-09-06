@@ -808,3 +808,15 @@ button.pmat-quelle:hover{border-color:var(--blue)}
 .vorlage-info{flex:1 1 190px;min-width:0;word-break:break-word}
 .vorlage-akt{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px}
 .vorlage-akt button{min-height:34px}
+
+/* v3.09 Freigegebene Fassungen */
+.ver-liste{margin-top:8px}
+.ver-zeile{padding:8px 0;border-bottom:1px solid var(--line)}
+.ver-zeile:last-child{border-bottom:0}
+.ver-kopf{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+.ver-akt{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.ver-akt button{min-height:34px}
+.ver-diff{margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:8px}
+.ver-diff-zeile{display:flex;flex-wrap:wrap;gap:6px;padding:3px 0}
+.ver-diff-label{flex:1 1 150px;min-width:0;font-weight:600;color:var(--blue);word-break:break-word}
+.ver-diff-wert{flex:1 1 150px;min-width:0;word-break:break-word}

@@ -110,6 +110,22 @@ alles unverändert da – auch die vorher gewählten Untermodule.</p>
 <p>Gilt für die <b>ganze Firma</b>. Ändern kann das nur ein Administrator;
 die Datenbank prüft das bei jedem Speichern selbst.</p>
 `},
+"versionen":{titel:"Freigegebene Fassungen",text:`
+Jede Freigabe hält den Stand fest, der ab diesem Moment für Zuschnitt und
+Rüsten verbindlich ist. Diese Fassung lässt sich nicht mehr ändern – auch
+nicht von einem Administrator.
+
+Wird nach der Freigabe etwas Wesentliches geändert, verfällt sie: der
+Arbeitsstatus fällt auf „In Bearbeitung" zurück, und die nächste Freigabe
+erzeugt die nächste Fassung. Damit kann kein Zuschnitt und kein Rüsten
+unbemerkt auf einem veralteten Stand weiterlaufen.
+
+Der Vergleich zeigt, was sich zwischen zwei Fassungen oder gegenüber dem
+aktuellen Stand geändert hat. Verglichen werden die einzelnen Masse. Bei
+Listen (Stücke, Segmente, Scharen) und bei zusammengesetzten Werten wie dem
+Zuschnittplan steht bewusst nur, DASS sich etwas geändert hat – dort wäre
+ein Feldvergleich eine Scheingenauigkeit.
+`},
 "vorlagen-bibliothek":{titel:"Vorlagen",text:`
 Eine Vorlage ist ein gespeicherter Satz Masse einer Massaufnahme-Art – mehr
 nicht. Sie enthält bewusst kein Projekt, keine Adresse, keine Bezeichnung,

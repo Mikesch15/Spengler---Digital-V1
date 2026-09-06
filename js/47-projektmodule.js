@@ -156,7 +156,7 @@ function pmNachAenderung(){
  [ "renderProjectList","renderCockpitStammdaten","aufgabenNeuLaden",
    "renderMeasWorkflow","pmSichtbarkeitAuffrischen",
    "werkstattKnopfAktualisieren","vorlageKnopfAktualisieren",
-   "renderVorlagenListe" ].forEach(f=>{
+   "renderVorlagenListe","verNeuLaden" ].forEach(f=>{
   try{ if(typeof window[f]==="function")window[f](); }catch(e){ console.error(f,e) }
  });
 }

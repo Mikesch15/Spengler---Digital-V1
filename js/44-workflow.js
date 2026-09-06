@@ -287,6 +287,9 @@ function mwNachAenderung(){
     montiert_von:mwStand.montiert_von,montiert_am:mwStand.montiert_am});
  }
  if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
+ // v3.09: eine Freigabe erzeugt serverseitig eine neue Fassung - dieselbe
+ // Logik, nur eine weitere Sicht darauf.
+ if(typeof verNeuLaden==="function")verNeuLaden();
  if(typeof projectMeasurementsCache!=="undefined"&&Array.isArray(projectMeasurementsCache)&&mwStand){
   const z=projectMeasurementsCache.find(x=>x.id===mwStand.id);
   if(z){z.workflow_status=mwStand.workflow_status;z.freigabe_verfallen=mwStand.freigabe_verfallen}

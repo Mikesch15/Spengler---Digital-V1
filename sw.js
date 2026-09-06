@@ -74,7 +74,8 @@ const SHELL = [
   "./js/49-projekt-zuschnitt.js",
   "./js/50-reservierung.js",
   "./js/51-werkstatt.js",
-  "./js/52-vorlagen.js"
+  "./js/52-vorlagen.js",
+  "./js/53-versionen.js"
 ];
 
 self.addEventListener("install", event => {

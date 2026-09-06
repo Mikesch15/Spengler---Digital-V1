@@ -30,6 +30,9 @@ const WERK_STATUS=["freigegeben","zu_ruesten","geruestet","zu_montieren"];
 const WERK_LIMIT=300;
 let werkZeilen=[];        // leichte Liste, ohne data
 let werkReservierungen=[];
+// v3.09 Auftrag Abschnitt 15: welche freigegebene Fassung liegt der Zeile
+// zugrunde? Eine Abfrage fuer die ganze Liste, nicht eine je Zeile.
+let werkFassungen=[];
 let werkOffen=null;       // aufgeklapptes Projekt
 let werkGrundlage=null;   // {projectId, aufnahmen:[...]}
 let werkFilter="alle";
@@ -44,7 +47,7 @@ function werkIch(){return currentProfile?currentProfile.id:null}
 // Kein company_id-Filter: die Firmengrenze erzwingt die Datenbank.
 async function werkLaden(){
  werkFehler=null;
- if(!werkAktiv()){werkZeilen=[];werkReservierungen=[];return}
+ if(!werkAktiv()){werkZeilen=[];werkReservierungen=[];werkFassungen=[];return}
  const {data,error}=await sb.from("measurements")
   .select("id,project_id,type,title,date,workflow_status,freigabe_verfallen,"
         +"ruester_id,monteur_id,geruestet_am,montiert_am,updated_at,created_by")
@@ -53,12 +56,25 @@ async function werkLaden(){
   .limit(WERK_LIMIT);
  if(error){werkFehler=error.message||"Unbekannter Fehler";werkZeilen=[];return}
  werkZeilen=data||[];
- werkReservierungen=[];
+ werkReservierungen=[]; werkFassungen=[];
+ const mids=werkZeilen.map(z=>z.id);
+ if(mids.length&&typeof pmAktiv==="function"&&pmAktiv("versionierung")){
+  const v=await sb.from("measurement_versionen")
+   .select("measurement_id,nummer,freigegeben_am").in("measurement_id",mids);
+  if(!v.error)werkFassungen=v.data||[];
+ }
  if(!(typeof pmAktiv==="function"&&pmAktiv("reservierung")))return;
  const ids=[...new Set(werkZeilen.map(z=>z.project_id).filter(x=>x))];
  if(!ids.length)return;
  const r=await sb.from("material_reservierungen").select("*").in("project_id",ids);
  if(!r.error)werkReservierungen=r.data||[];
+}
+
+// Hoechste Fassungsnummer einer Massaufnahme, oder null.
+function werkFassung(id){
+ let hoch=null;
+ werkFassungen.forEach(v=>{if(v.measurement_id===id&&(hoch===null||v.nummer>hoch))hoch=v.nummer});
+ return hoch;
 }
 
 // Die Ruestgrundlage eines Projekts braucht die gespeicherten Daten der
@@ -115,10 +131,16 @@ function werkAufnahmeHtml(a){
  }
  const wer=[ruester?"Rüster: "+esc(ruester):"", monteur?"Monteur: "+esc(monteur):""]
    .filter(Boolean).join(" · ");
+ // v3.09 Abschnitt 15: auf welcher freigegebenen Fassung liegt die Arbeit?
+ // Nur wenn die Versionierung eingeschaltet ist - sonst gibt es keine.
+ const nr=werkFassung(a.id);
+ const fassung=(nr===null)?"":(verfallen
+   ? ` · <span style="color:var(--red)">Fassung ${nr} nicht mehr aktuell</span>`
+   : ` · Fassung ${nr}`);
  return `<div class="werk-zeile">
   <div class="werk-zeile-info">
    <b>${esc(werkTyp(a.type))}</b>${a.title?" · "+esc(a.title):""}
-   <div class="small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${wer?" · "+wer:""}</div>
+   <div class="small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${wer?" · "+wer:""}${fassung}</div>
    ${verfallen?'<div class="small" style="color:var(--red)">Diese Massaufnahme wurde nach der Freigabe geändert. Sie muss erneut freigegeben werden, bevor daran weitergearbeitet wird.</div>':""}
   </div>
   <div class="werk-zeile-akt">
