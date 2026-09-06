@@ -178,6 +178,7 @@ function goToStart(){
  $("vorlageSpeichernModal").hidden=true;      // v3.09
  $("vorlageWahlModal").hidden=true;           // v3.09
  $("serieModal").hidden=true;                 // v3.09
+ $("winkelModal").hidden=true;                // v3.12
  // Der PDF-Auswahldialog wartet auf eine Antwort - beim Sprung auf den
  // Startbildschirm gilt das als Abbruch, sonst bliebe das Versprechen offen.
  if(typeof pdfListenSchliessen==="function"&&!$("pdfListenModal").hidden)pdfListenSchliessen(null);

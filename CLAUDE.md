@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.11, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.12, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.11**
+- sichtbare App-Version: **3.12**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -19007,3 +19007,248 @@ Berechnung, keine Stückliste, kein Zuschnitt, keine Abwicklung berührt.
   firmenweit – ein zweites Tablet fängt wieder mit der Vorgabe an.
 - Die Zurück-Taste verlässt die App weiterhin, wenn der Startbildschirm
   steht und nichts offen ist (116.2).
+
+## 117. WINKEL IM METER + ROTER FADEN IN DER WERKSTATT — VERSION 3.12
+
+Zwei Rückmeldungen des Betriebs in einer Runde. **Keine Schemaänderung, keine
+Migration, keine RLS-/Storage-Änderung, keine neue Datenbankfunktion, keine
+Fachrechnung verändert.**
+
+### 117.1 Teil A – die Umrechnungstabelle ist die Referenz
+
+> „das ist eine tabelle zum umrechnen von winkeln wenn im meter gemessen wird
+> (Winkel i.M), mache überall wo man winkel eingeben kann eine funktion um
+> zwischen den beiden umzuschalten und nimm die tabelle als grundlage zum
+> umrechnen"
+
+Vorlage ist die „Umrechnungstabelle Winkel in Meter – Grad" der **GABS AG**
+(Gebäudehülle, PO.0823.d): 120 Zeilen von **50.00 bis 79.75 cm** in Schritten
+von 0.25 cm, je Zeile zwei Winkel („50 → 31 / 149").
+
+Sie steht **Zeile für Zeile** in `js/55-winkel.js`. Es wird **keine Formel
+benutzt und keine nachgerechnet** – gleiche Regel wie bei der Kehle
+(Abschnitt 60.2) und der Rinne (64.1): die Vorlage ist die Wahrheit, nicht
+eine Nacherzählung davon.
+
+**Warum keine Formel:** ich habe es versucht. Das beste einfache Modell
+(`A ≈ 39.2 + 40.35 · sin(α/2)`) liegt über den ganzen Bereich um bis zu
+**0.4 cm** daneben – mehr als die Rundung der Tabelle selbst hergibt. Also
+gilt die Tabelle, und zwischen zwei Zeilen wird linear interpoliert; dass
+interpoliert wurde, steht ausdrücklich dabei.
+
+**Die zwei Zahlen je Zeile.** Zwei sich kreuzende Flächen bilden vier Winkel:
+α, 180−α, α, 180−α. Der Meter misst genau **einen** dieser Keile – das ist die
+erste Zahl. Die zweite ist der Nachbarkeil, damit man den Meter nicht umsetzen
+muss. Welcher gemeint ist, weiss nur, wer gemessen hat; deshalb bietet der
+Dialog **beide** zur Übernahme an und wählt nicht selbst aus.
+
+Beide Richtungen:
+
+| Eingabe | Ergebnis |
+|---|---|
+| 64.5 cm | 78° / 102°, „Zeile 64.5 cm der Tabelle" |
+| 64.6 cm | 78°, „zwischen 64.5 (78°) und 64.75 (79°) – interpoliert" |
+| 115° | 73.25 cm |
+| 149° | 78.38 cm (zwischen 78.25 = 148° und 78.50 = 150°) |
+| 33° | 50.63 cm – der Grad steht in zwei Zeilen, genommen wird die Mitte |
+| 99° | 69.88 cm – der Grad fehlt in der Vorlage, dazwischen interpoliert |
+| 20° | 79.25 cm, gemessen wird der Nachbarkeil 160° |
+| 5° / 45 cm | **kein** Wert – ausserhalb der Tabelle, und das wird gesagt |
+
+### 117.2 Das Feld hält immer Grad
+
+Die entscheidende Architekturentscheidung: **es gibt keinen Einheitenwechsel
+am Feld selbst.** Ein Feld, das mal Zentimeter und mal Grad hält, wäre die
+offene Einladung, einen cm-Wert als Winkel zu speichern – jedes Fachmodul
+liest `e.target.value` direkt.
+
+Stattdessen ein kleiner Knopf **i.M.** neben dem Feld, der einen Dialog
+öffnet. Übernommen wird ausschliesslich der **Gradwert**, und zwar mit einem
+`input`- **und** einem `change`-Ereignis, damit ihn das Fachmodul wirklich
+mitbekommt (die Module horchen teils auf das eine, teils auf das andere).
+Im Prüfstand wird nicht nur das Feld geprüft, sondern dass `ebA.winkel`
+danach tatsächlich den Wert trägt.
+
+Damit ist **keine Fachrechnung, kein Speicherformat und kein PDF** berührt.
+
+### 117.3 Kein Fachmodul angefasst
+
+Die Winkelfelder stehen **zentral** in `WINKEL_FELDER` (js/55) – gleiches
+Muster wie `HILFE_TEXTE` in js/41 (Abschnitt 108.2). Ein MutationObserver
+hängt den Knopf an jedes markierte Feld und zieht ihn nach, wenn ein Modul
+seine Tabelle neu zeichnet. Dadurch musste **keine der elf Register-Dateien
+und keine Fachdatei** geändert werden.
+
+Erfasst sind 19 Selektoren über alle zwölf Arten: Dachneigung (Einlaufblech
+gerade/konisch), Gehrung je Stück, oberer Innenwinkel (Lukarne), NH/NL
+(Kehle), Innenwinkel Dach/Wand (Kamin), Innenwinkel Dach/Rohr (Einfassung),
+Ecke im Verlauf (Rinne Halbrund), Schenkelwinkel (Freies Profil), Ecke,
+Gefälle und beide Biegewinkel (Mauerabdeckung), Profilwinkel (Rinne
+Zuschnittliste), Knickwinkel (Ort-/Seitenbleche) und die Anschlusstypen in
+den Einstellungen.
+
+**Der Prüfstand sucht unabhängig von dieser Liste:** er blättert in allen
+zwölf Arten durch jedes Register, sammelt jedes sichtbare Zahlenfeld, dessen
+Beschriftung nach einem Winkel aussieht und **kein** Millimeterfeld ist, und
+verlangt an jedem den Knopf. Ein künftig vergessenes Feld fällt damit auf.
+
+**Falle wiedergefunden (vierter Fall):** der Dialog lag zuerst **hinter** dem
+Massaufnahme-Formular. Alle `.modal` teilen `z-index:500`, dann entscheidet
+die Reihenfolge im Dokument – genau die Falle, die in Abschnitt 110.6 schon
+einmal den Zuweisen-Dialog unbedienbar gemacht hat. `#winkelModal` steht
+jetzt auf 750; der Prüfstand misst das Verhältnis, nicht die Zahl.
+
+### 117.4 Teil B – der rote Faden in der Werkstatt
+
+> „auch im werkstatt workflow muss es eindeutiger sein und einen roten faden
+> geben der einem da durch führt"
+
+Bis v3.11 war die Werkstatt eine flache, alphabetisch sortierte Liste: man
+sah, **was** anliegt, aber nicht, **was zuerst**. Neu je Projekt:
+
+- ein **Nächster-Schritt-Streifen** mit genau einer Aussage und, wo sinnvoll,
+  einem Knopf,
+- eine **Stationenleiste** `Reserviert — Zugeschnitten — Gerüstet — Montiert`
+  (✓ erledigt, ▸ jetzt dran, ○ offen, – übersprungen),
+- die **Massaufnahmen des jetzigen Schritts** stehen innerhalb des Projekts
+  zuoberst und sind blau markiert,
+- die **Projekte** stehen in der Reihenfolge ihres nächsten Schritts – was
+  zuerst drankommt, steht oben,
+- ganz oben eine Zeile „Jetzt dran: 2 × reservieren · 3 × rüsten",
+- die **Rüstgrundlage** ist in der Reihenfolge des Ablaufs nummeriert
+  (1 · Material, 2 · Reservierungen, 3 · Zuschnitt) statt Material/Zuschnitt/
+  Reservierungen, und der Block des jetzigen Schritts wird beim Aufklappen
+  angesteuert und kurz hervorgehoben.
+
+Leiste und Streifen verwenden **dieselben CSS-Klassen** wie der Arbeitsstatus
+der Massaufnahme aus v3.10 (`mw-leiste`, `mw-station`, `mw-streifen`) – keine
+zweite Bildsprache und kein zweites Aufgabensystem.
+
+**Alle Zustände kommen aus echten Daten**: Reserviert und Zugeschnitten aus
+dem Status der Reservierungen (das ist genau die Kette `benoetigt →
+verfuegbar → reserviert → zugeschnitten → geruestet` aus js/50), Gerüstet und
+Montiert aus dem Arbeitsstatus der Massaufnahmen (v3.05). Eine Station
+erscheint nur, wenn die dafür nötigen Module eingeschaltet sind – sonst gäbe
+es dazu keinen ablesbaren Zustand.
+
+### 117.5 Zwei echte Fehler, die erst die Prüfstände gezeigt haben
+
+Der erste Entwurf schickte ein Projekt, an dem schon **montiert** wird, zum
+Schritt „zuerst reservieren" – nur weil es dazu keine Reservierungszeile gab.
+Das ist eine Behauptung ohne Grundlage: „nichts reserviert" heisst nicht
+„noch nicht reserviert", es kann auch „hier nicht über die App reserviert"
+heissen, und die App kann das nicht unterscheiden.
+
+Behoben: gibt es zu einem Projekt **gar keine** Reservierung, stehen die
+beiden Stationen auf **übersprungen** (–, mit Tooltip) und werden nie als
+nächster Schritt verlangt. Dasselbe Muster, das v3.10 schon für eine
+übersprungene Rüst-Station verwendet.
+
+**Der zweite Fehler kam aus der Regression, nicht aus dieser Runde selbst.**
+`pruefstand-register-zuschnitt-v2-80` meldete 4 Fehlschläge: der neue Knopf
+drückte in der Stückliste des Einlaufblechs das Winkelfeld auf **28 px**
+zusammen – die eingetippte Zahl war nicht mehr lesbar. Die Zelle ist dort
+115 px breit und enthält bereits das Feld und den 🔄-Knopf; ein dritter Knopf
+passt nicht daneben. **Zum dritten Mal dieselbe Falle** (Abschnitt 88.5 und
+89.5: eine Angabe neben ein enges Zahlenfeld gestellt, und das Feld
+verschwindet).
+
+Behoben in drei CSS-Zeilen, ohne ein Fachmodul anzufassen: der Knopf rückt
+per `order` ans Ende und bricht um, das Feld behält seine lesbare
+Mindestbreite von 70 px. Danach misst es 74 px.
+
+**Mein eigener Prüfstand hatte den Fall nicht gesehen**, obwohl er alle
+Winkelfelder durchgeht: er legte die Stücke an, **bevor** er ins zugehörige
+Register blätterte – dort war der Knopf „＋ Stück hinzufügen" gar nicht
+sichtbar, also entstand nie ein Stück und nie eine Tabellenzeile. Er legt sie
+jetzt **im** Register an und misst zusätzlich die Breite jedes Winkelfeldes,
+bei 320 **und** 412 px. Erst dadurch beisst die vierzehnte Gegenprobe
+(CSS-Zeilen entfernt → 62/63).
+
+### 117.6 Getestet
+
+- **`pruefstaende/pruefstand-winkel-werkstatt-v3-12.js` – 63/63**, echtes
+  Chromium gegen die echte `index.html`. Geprüft wird die Tabelle gegen
+  **55 Stichproben direkt aus dem Bild der Vorlage** (über alle drei Spalten,
+  inklusive der Wiederholungen und der Lücken), beide Umrechnungsrichtungen
+  mit ihren Randfällen, der Knopf an jedem Winkelfeld aller zwölf Arten, der
+  Dialog (Grösse, Beschriftung, `no-print`, Lage vor dem Formular, beide
+  Übernahme-Knöpfe, die Zeile der Vorlage als Beleg), dass das Fachmodell
+  den Wert wirklich übernimmt, die vier Stationen in allen vier
+  Reservierungszuständen, Sortierung, Markierung, abgeschaltete Module und
+  sieben Bildschirmbreiten.
+- **14 Gegenproben**, jede baut einen echten Fehler ein, jede wirft den
+  Prüfstand um.
+- **Zwei Schwächen im Prüfstand kamen dabei heraus, nicht im Code**: die
+  Interpolationsprüfung nahm einen Zwischenwert, bei dem obere und untere
+  Zeile denselben Grad tragen – die Gegenprobe blieb grün (jetzt 72.2 cm,
+  wo 108 und 110 auseinanderliegen); und `page.fill` auf ein verstecktes
+  Feld liess den Lauf **abstürzen** statt fehlzuschlagen – ein abgebrochener
+  Lauf sieht aus wie „keine Fehler" (Abschnitt 78). Beides geschärft. Die
+  dritte fand die Regression selbst (117.5): die Stücke wurden im falschen
+  Register angelegt, deshalb blieb die halbe Stückliste ungeprüft.
+- **Volle Regression grün** – alle **40** Prüfstände im Repo, zusammen
+  827 bestandene Prüfungen, kein einziger Fehlschlag.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.11-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, Abschnitt 100.6) – **DOM, Text und Bild
+  byteidentisch** (DOM `9569aef0c52e96f4`, Bild `b7ee9fb627c589d4`,
+  59 277 Bytes, Höhe 721 px), bestätigt durch einen Kontrolllauf desselben
+  Codes.
+- `node --check` über alle 57 `js/*.js`, `sw.js` und alle 40 Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs; alle 57 js-Dateien in
+  `index.html` **und** in der Service-Worker-Liste; kein `data-hilfe` ohne
+  Text; Version 3.12 in `index.html` und `sw.js` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+- **Zwei überholte Erwartungen** im Werkstatt-Prüfstand aus v3.09 angepasst,
+  keine davon ein Codefehler: die Blocknamen und ihre Reihenfolge (er wählt
+  sie jetzt über `data-werk-block` statt über einen Textanfang – robuster als
+  vorher), und die Zahl der Projekt-Knöpfe (der Streifen bringt einen mit).
+  Dazu die Fortschrittsleiste in der Überlaufprüfung ausgenommen: sie scrollt
+  auf schmalen Geräten bewusst seitwärts, die Reihenfolge ist die Aussage
+  (Abschnitt 115.4) – dass die **Seite** nicht scrollt, wird weiterhin
+  geprüft.
+
+### 117.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/55-winkel.js` | **neu** – die Tabelle Zeile für Zeile, beide Umrechnungsrichtungen, Feldliste, Beobachter, Dialog |
+| `js/51-werkstatt.js` | Stationen, nächster Schritt, Sortierung, markierte Zeilen, nummerierte Rüstgrundlage |
+| `index.html` | `#winkelModal`, Script-Tag, Version 3.12 |
+| `css/01-basis.css` | `.winkel-*`, `#winkelModal{z-index:750}`, drei Zeilen gegen das zusammengedrückte Feld (117.5), `.werk-jetzt`, `.werk-zeile-jetzt`, `.werk-block-dran` |
+| `js/41-hilfe.js` | Text `winkel-meter` neu, `werkstatt` um den roten Faden erweitert |
+| `js/03-login.js` | **eine Zeile**: `goToStart()` schliesst den Dialog mit |
+| `sw.js` | Cache-Version 3.12, neue Datei im SHELL |
+| `pruefstaende/pruefstand-winkel-werkstatt-v3-12.js` | **neu** |
+| `pruefstaende/pruefstand-werkstatt-v3-09.js` | überholte Erwartungen (117.6) |
+| `pruefstaende/pruefstand-hilfe-v3-03.js` | „blaue"/„genaue" in die Liste echter deutscher Wörter, in denen ae/oe/ue nur zufällig steht – die Heuristik hatte einen Fehlalarm |
+| `anleitung/*` | Abschnitt 8 „Winkel im Meter", Abschnitt 10 „Der rote Faden", zwei neue Bilder, PDF v3.12 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie **sämtliche Fachdateien** `js/10`–`js/40`
+und `js/42`–`js/54` – per `git diff` bestätigt. Keine Berechnung, keine
+Stückliste, kein Zuschnitt, keine Abwicklung berührt.
+
+### 117.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`.
+- **Die Vorlage deckt 50.00 bis 79.75 cm ab**, also 31° bis 169° direkt und
+  über den Nachbarkeil 11° bis 149°. Ausserhalb wird kein Wert erfunden.
+  Ein flacherer oder steilerer Winkel lässt sich mit dieser Tabelle nicht
+  aus dem Meter ablesen.
+- Die Rückrechnung Grad → Meter liefert bei Wiederholungen die **Mitte** der
+  betroffenen Zeilen und bei Lücken einen interpolierten Wert. Beides ist
+  eine bewusste Wahl; die Vorlage gibt dort keinen einzelnen Wert her.
+- Die Station „Reserviert"/„Zugeschnitten" bleibt ohne jede Reservierung
+  stumm (117.5). Ein Betrieb, der das Reservierungsmodul benutzt, aber für
+  ein Projekt noch nichts erfasst hat, bekommt in der Werkstatt also keinen
+  Hinweis darauf – erfasst wird im Projekt, nicht in der Werkstatt.
+- In einer engen Tabellenzelle (Stückliste des Einlaufblechs) bricht der
+  i.M.-Knopf auf eine zweite Zeile um (117.5). Die Zeile wird dadurch etwas
+  höher – das ist der Preis dafür, dass das Zahlenfeld lesbar bleibt.

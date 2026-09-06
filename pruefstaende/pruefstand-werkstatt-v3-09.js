@@ -146,8 +146,9 @@ const stand=page=>page.evaluate(()=>{
   messknopf:[...b.querySelectorAll("[data-werk-mess]")].map(x=>x.dataset.werkMess),
   grundlage:(b.querySelector(".werk-grundlage")||{}).textContent||"",
   // Nur die Ueberschrift des Blocks - im Zuschnitt stehen weitere <b>.
-  bloecke:[...b.querySelectorAll(".werk-block-titel b")].map(x=>x.textContent),
-  reservierteReste:(b.querySelector(".werk-block:last-of-type")||{textContent:""})
+  bloecke:[...b.querySelectorAll("[data-werk-block]")].map(x=>x.dataset.werkBlock),
+  blocktitel:[...b.querySelectorAll(".werk-block-titel b")].map(x=>x.textContent),
+  reservierteReste:(b.querySelector('[data-werk-block="reservieren"]')||{textContent:""})
     .textContent.split("Reservierte Reststücke:")[1]||""
  };
 });
@@ -258,8 +259,11 @@ const stand=page=>page.evaluate(()=>{
  await klick(page,'[data-werk-auf="7"]');
  await page.waitForTimeout(160);
  s=await stand(page);
- p(s.bloecke.join("|")==="Material|Zuschnitt|Reservierungen",
-   "Material, Zuschnitt und Reservierungen",s.bloecke);
+ p(s.bloecke.join("|")==="material|reservieren|zuschneiden",
+   "Material, Reservierungen und Zuschnitt - in der Reihenfolge des Ablaufs (v3.12)",s.bloecke);
+ p(/1 · Material/.test(s.blocktitel[0]||"")&&/2 · Reservierungen/.test(s.blocktitel[1]||"")
+   &&/3 · Zuschnitt/.test(s.blocktitel[2]||""),
+   "und mit ihrer Schrittnummer beschriftet",s.blocktitel);
  p(/Titanzink/.test(s.grundlage)&&/Kupfer/.test(s.grundlage),"beide Materialien",{g:s.grundlage.slice(0,160)});
  p(/1'200 × 250 mm|1200 × 250/.test(s.grundlage),"mit den Zuschnitten",{g:s.grundlage.slice(0,400)});
  p(/Zuschnitt 1200 × 250 mm/.test(s.grundlage),"die Reservierung",{g:s.grundlage.slice(0,600)});
@@ -275,15 +279,13 @@ const stand=page=>page.evaluate(()=>{
   const soll=[];
   pmatSammeln(liste).forEach(g=>g.positionen.forEach(pos=>
     soll.push(g.material+"|"+pos.bezeichnung)));
-  const block=[...$("werkstattBody").querySelectorAll(".werk-block")]
-    .find(x=>/^Material/.test(x.textContent));
+  const block=$("werkstattBody").querySelector('[data-werk-block="material"]');
   const ist=block?[...block.querySelectorAll("tbody tr")].map(tr=>{
     const td=tr.querySelectorAll("td");
     return (td[0]?td[0].textContent:"")+"|"+(td[1]?td[1].textContent:"");
   }):[];
   const zsoll=pzuSammeln(liste).materialien.map(M=>M.material).sort().join(",");
-  const zblock=[...$("werkstattBody").querySelectorAll(".werk-block")]
-    .find(x=>/^Zuschnitt/.test(x.textContent));
+  const zblock=$("werkstattBody").querySelector('[data-werk-block="zuschneiden"]');
   const zist=zblock?[...zblock.querySelectorAll(".pmat-kopf b")].map(x=>x.textContent).sort().join(","):"";
   return {soll:soll.sort(),ist:ist.sort(),zsoll,zist};
  });
@@ -313,7 +315,7 @@ const stand=page=>page.evaluate(()=>{
  await klick(page,'[data-werk-auf="7"]');
  await page.waitForTimeout(160);
  s=await stand(page);
- p(s.bloecke.join("|")==="Material","nur Material, wenn nur Material an ist",s.bloecke);
+ p(s.bloecke.join("|")==="material","nur Material, wenn nur Material an ist",s.bloecke);
 
  console.log("\nI · Filter und Navigation");
  await vorbereiten(page,ALLES);
@@ -331,7 +333,8 @@ const stand=page=>page.evaluate(()=>{
  await page.waitForTimeout(60);
  s=await stand(page);
  p(s.zeilen.length===4,"und zurueck auf alle");
- p(s.projektknopf.length===2&&s.messknopf.length===4,
+ p(s.projektknopf.length>=2&&[...new Set(s.projektknopf)].sort().join()==="7,8"
+   &&s.messknopf.length===4,
    "kein Sackgasse: Projekt und Massaufnahme sind erreichbar",
    {pr:s.projektknopf.length,me:s.messknopf.length});
 
@@ -364,7 +367,7 @@ const stand=page=>page.evaluate(()=>{
   const ueber=await page.evaluate(()=>{
    const b=$("werkstattBody"); const raus=[];
    b.querySelectorAll("*").forEach(e=>{
-    if(e.closest(".scroll"))return;             // darf seitlich scrollen
+    if(e.closest(".scroll")||e.closest(".mw-leiste"))return;  // darf seitlich scrollen
     const r=e.getBoundingClientRect();
     if(r.width>0&&r.right>document.documentElement.clientWidth+1)
      raus.push((e.className||e.tagName)+" "+Math.round(r.right));

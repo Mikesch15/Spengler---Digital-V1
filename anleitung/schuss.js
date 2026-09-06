@@ -143,6 +143,17 @@ const liste=[];
  await schussEB("07-eb-1-grunddaten");
  await page.evaluate(()=>ebaSetzeSchritt(2));
  await schussEB("08-eb-2-geometrie");
+ // v3.12: der Umrechner "Winkel im Meter" - er haengt an JEDEM Winkelfeld.
+ await page.evaluate(()=>{
+  const k=document.querySelector("#eba_winkel + [data-winkel-knopf]");
+  if(k)k.click();
+ });
+ await page.waitForTimeout(300);
+ await page.evaluate(()=>{const e=$("winkelEingabeAus");
+  if(e){e.value="64.5";e.dispatchEvent(new Event("input",{bubbles:true}))}});
+ await schuss("37-winkel","#winkelModal .card",{warte:500,breite:760});
+ await page.evaluate(()=>{$("winkelModal").hidden=true});
+
  await page.evaluate(()=>ebaSetzeSchritt(3));
  await schussGeteilt("09-eb-3-stuecke","#einlaufblechAufnahme",0.52);
  await page.evaluate(()=>ebaSetzeSchritt(4));
@@ -311,6 +322,8 @@ const liste=[];
   if(typeof werkstattOeffnen==="function")await werkstattOeffnen();
  });
  await schuss("40-werkstatt","#werkstattModal .card",{warte:1000,breite:900});
+ // v3.12: der rote Faden - naechster Schritt, Stationen, markierte Zeilen.
+ await schuss("38-werkstatt-faden","#werkstattModal .werk-projekt",{warte:400,breite:900});
  await page.evaluate(()=>{$("werkstattModal").hidden=true});
 
  // Freigegebene Fassungen in der Massaufnahme.

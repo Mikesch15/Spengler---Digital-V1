@@ -119,7 +119,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.11</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.12</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -491,6 +491,33 @@ Rüster eingeteilt, geht es direkt zur Montage.</div>
      Nummernliste aus v3.05 - auf einem Tablet war das unbedienbar. Erlaubt
      bleibt es nur dem Administrator; geprueft wird das serverseitig in
      measurement_workflow_korrigieren(). -->
+<div id="winkelModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📐 Winkel im Meter <button type="button" class="hilfe-knopf no-print" data-hilfe="winkel-meter">i</button></h2>
+<div class="small" id="winkelZielHinweis" style="color:var(--muted);margin-bottom:8px"></div>
+<div class="status-filter">
+<button type="button" class="status-chip aktiv" data-winkel-richtung="aus">Meter → Grad</button>
+<button type="button" class="status-chip" data-winkel-richtung="zu">Grad → Meter</button>
+</div>
+<div class="grid" id="winkelZeileAus">
+<div class="wide"><label>Am Meter abgelesenes Mass A (cm)</label>
+<input id="winkelEingabeAus" type="number" inputmode="decimal" step="0.25" placeholder="z. B. 64.5"></div>
+</div>
+<div class="grid" id="winkelZeileZu" hidden>
+<div class="wide"><label>Gewünschter Winkel (°)</label>
+<input id="winkelEingabeZu" type="number" inputmode="decimal" step="1" placeholder="z. B. 115"></div>
+</div>
+<div id="winkelErgebnis" style="margin-top:8px"></div>
+<div class="small" style="margin-top:8px;color:var(--muted)">Grundlage ist die
+Umrechnungstabelle „Winkel in Meter – Grad“ (GABS AG). Der Meter misst immer
+genau einen der vier Keile – der Nachbarkeil ist der Rest auf 180°.</div>
+<div class="bar">
+<button id="winkelSchliessen" class="gray">Schliessen</button>
+</div>
+</div>
+</div>
+</div>
 <div id="mwKorrigierenModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
@@ -1500,7 +1527,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.11.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 52 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.12.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 55 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -2032,7 +2059,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.11.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.12.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2105,6 +2132,7 @@ nicht neu installieren.</div>
 <script src="js/52-vorlagen.js"></script>
 <script src="js/53-versionen.js"></script>
 <script src="js/54-zurueck.js"></script>
+<script src="js/55-winkel.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

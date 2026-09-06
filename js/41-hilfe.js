@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.11.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.12.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -173,6 +173,18 @@ Hier steht, was freigegeben und zum Rüsten oder Montieren eingeteilt ist –
 nach Projekt gruppiert, nicht nach Person. Es ist dieselbe Arbeitsliste wie
 auf der Startseite, nur aus Sicht der Werkstatt.
 
+Ganz oben steht, was insgesamt ansteht. Jedes Projekt trägt darunter seinen
+<b>nächsten Schritt</b> und eine Leiste mit den vier Stationen – Reserviert,
+Zugeschnitten, Gerüstet, Montiert. Ein Häkchen heisst erledigt, das blaue
+Dreieck ist der Schritt, der jetzt dran ist. Die Projekte stehen in genau
+dieser Reihenfolge: was zuerst drankommt, steht oben. Die Massaufnahmen, um
+die es beim jetzigen Schritt geht, sind blau markiert und stehen zuoberst.
+
+Eine Station erscheint nur, wenn das zugehörige Modul eingeschaltet ist –
+sonst gäbe es dazu keinen ablesbaren Zustand. Reserviert und Zugeschnitten
+kommen aus dem Status der Reservierungen, Gerüstet und Montiert aus dem
+Arbeitsstatus der Massaufnahmen. Es wird nichts geschätzt.
+
 „Rüstgrundlage anzeigen" klappt auf, was für dieses Projekt gebraucht wird:
 Material, Zuschnitt, Reservierungen und die dafür reservierten Reststücke.
 Das sind genau dieselben Zahlen wie im Projekt selbst – es wird nichts neu
@@ -260,6 +272,23 @@ Rüster und Monteur bleiben eingeteilt und sind nach der erneuten Freigabe
 sofort wieder dran. Bezeichnung, Notiz, Datum und ein <i>zusätzliches</i>
 Foto ändern nichts an der Freigabe.</p>`},
 
+"winkel-meter":{titel:"Winkel im Meter (i.M.)",text:`
+<p>Neben jedem Winkelfeld steht ein kleiner Knopf <b>i.M.</b> Er rechnet
+zwischen dem am Gliedermeter abgelesenen Mass und Grad um – in beide
+Richtungen.</p>
+<p><b>Meter → Grad:</b> Das Mass A eintippen, das am Meter abgelesen wurde
+(50 bis 79.75 cm). Es erscheinen zwei Winkel: der Keil, den der Meter
+tatsächlich aufspannt, und der Nachbarkeil daneben (der Rest auf 180°).
+Welcher gemeint ist, weiss nur der, der gemessen hat – deshalb sind beide
+zum Übernehmen da.</p>
+<p><b>Grad → Meter:</b> Den gewünschten Winkel eintippen und ablesen, auf
+welches Mass der Meter zu stellen ist – zum Nachkontrollieren auf dem Dach.</p>
+<p>Grundlage ist die Umrechnungstabelle „Winkel in Meter – Grad" der GABS AG,
+Zeile für Zeile hinterlegt. Zwischen zwei Zeilen wird gerade interpoliert; das
+steht dann auch so da.</p>
+<p><b>Das Feld selbst hält immer Grad.</b> Die Umrechnung ist eine reine
+Eingabehilfe – es kann also nie versehentlich ein Zentimeterwert als Winkel
+gespeichert werden.</p>`},
 "korrigieren":{titel:"Arbeitsstatus korrigieren",text:`
 <p>Nur für den Fall, dass ein Schritt versehentlich bestätigt wurde – etwa
 wenn jemand „Gerüstet" gedrückt hat, bevor das Material wirklich bereit war.

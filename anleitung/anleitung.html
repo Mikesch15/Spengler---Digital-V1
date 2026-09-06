@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.11";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.12";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.11<br>
+  Version 3.12<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -252,6 +252,23 @@ steht immer die <strong>Kontrolle</strong>. Als Beispiel dient hier Einlaufblech
 
 <h3>2 · Geometrie</h3>
 <figure><img src="bilder/08-eb-2-geometrie.png"><figcaption>Mass A und Winkel. Die App rechnet daraus enge Seite und Restbreite.</figcaption></figure>
+
+<h3>Winkel im Meter (i.M.)</h3>
+<p>Neben <strong>jedem</strong> Winkelfeld der App steht ein kleiner Knopf
+<span class="tasten">i.M.</span> Wer den Winkel auf dem Dach mit dem Gliedermeter
+abgreift, tippt dort das abgelesene Mass ein und bekommt den Winkel in Grad.</p>
+<figure><img src="bilder/37-winkel.png"><figcaption>Das Meter-Mass eintippen – die App nennt beide Winkel, die dazu gehören.</figcaption></figure>
+<p>Der Meter spannt immer genau <strong>einen</strong> der vier Keile auf. Deshalb
+erscheinen zwei Werte: der gemessene Keil und der Nachbarkeil daneben – zusammen
+immer 180°. Welcher gemeint ist, weiss nur, wer gemessen hat; darum sind beide zum
+Übernehmen da.</p>
+<p>Über <span class="tasten">Grad → Meter</span> geht es auch andersherum: gewünschten
+Winkel eintippen und ablesen, auf welches Mass der Meter zu stellen ist.</p>
+<div class="hin">Grundlage ist die Umrechnungstabelle „Winkel in Meter – Grad" der
+GABS AG, Zeile für Zeile hinterlegt (50.00 bis 79.75 cm). Zwischen zwei Zeilen wird
+gerade interpoliert – das steht dann auch so da. <strong>Das Feld selbst hält immer
+Grad</strong>; es kann also nie versehentlich ein Zentimeterwert als Winkel
+gespeichert werden.</div>
 
 <h3>3 · Stücke</h3>
 <figure><img src="bilder/09-eb-3-stuecke-a.png"><figcaption>Die einzelnen Bleche. Je Stück: Länge Stoss/Stoss, Gehrung links/rechts, Endzugabe. Die Zuschnittlänge rechnet die App und zeigt sie als <strong>Länge × Breite</strong>.</figcaption></figure>
@@ -499,10 +516,28 @@ beiden Fällen im Änderungsverlauf.</div>
 <h3>Werkstatt- und Rüstansicht</h3>
 <figure><img src="bilder/40-werkstatt.png"><figcaption>Alles, was freigegeben, zu rüsten, gerüstet oder zu montieren ist – nach Projekt gruppiert.</figcaption></figure>
 <p>Dieselbe Arbeitsliste wie auf der Startseite, nur aus Sicht der Werkstatt: nach
-Projekt statt nach Person. <span class="tasten">Rüstgrundlage anzeigen</span> klappt
-auf, was für dieses Projekt gebraucht wird – Material, Zuschnitt und die
-Reservierungen. Rüsten und Montieren werden hier genauso bestätigt wie auf der
-Startseite; es ist derselbe Arbeitsablauf, nur eine zweite Sicht darauf.</p>
+Projekt statt nach Person. Rüsten und Montieren werden hier genauso bestätigt wie auf
+der Startseite; es ist derselbe Arbeitsablauf, nur eine zweite Sicht darauf.</p>
+
+<h4>Der rote Faden</h4>
+<p>Ganz oben steht, was insgesamt ansteht – etwa <em>2 × reservieren · 3 × rüsten</em>.
+Jedes Projekt trägt darunter seinen <strong>nächsten Schritt</strong> und eine Leiste
+mit vier Stationen:</p>
+<p style="text-align:center"><strong>Reserviert — Zugeschnitten — Gerüstet — Montiert</strong></p>
+<p>Ein Häkchen heisst erledigt, das blaue Dreieck ist der Schritt, der jetzt dran ist.
+Die Projekte stehen in genau dieser Reihenfolge: was zuerst drankommt, steht oben. Und
+die Massaufnahmen, um die es beim jetzigen Schritt geht, sind blau markiert und stehen
+innerhalb des Projekts zuoberst.</p>
+<figure><img src="bilder/38-werkstatt-faden.png"><figcaption>Nächster Schritt, Stationenleiste und die markierten Massaufnahmen.</figcaption></figure>
+<p><span class="tasten">Rüstgrundlage anzeigen</span> klappt auf, was für dieses Projekt
+gebraucht wird – in der Reihenfolge des Ablaufs: <strong>1 · Material</strong>,
+<strong>2 · Reservierungen</strong>, <strong>3 · Zuschnitt</strong>. Der Block, der zum
+jetzigen Schritt gehört, wird dabei angesteuert und kurz hervorgehoben.</p>
+<div class="hin">Eine Station erscheint nur, wenn das zugehörige Modul eingeschaltet
+ist. Reserviert und Zugeschnitten kommen aus dem Status der Reservierungen, Gerüstet
+und Montiert aus dem Arbeitsstatus der Massaufnahmen. Ist für ein Projekt
+<strong>gar nichts</strong> reserviert, sagen die Daten dazu nichts – die beiden
+Stationen stehen dann auf „–" und werden nicht als nächster Schritt verlangt.</div>
 
 <h3>Vorlagen und Serien</h3>
 <p>Eine <strong>Vorlage</strong> ist ein gespeicherter Satz Masse einer Art – ohne
@@ -791,7 +826,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.11</strong>, Stand 6. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.12</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

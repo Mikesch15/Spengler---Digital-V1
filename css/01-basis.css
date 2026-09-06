@@ -915,3 +915,41 @@ html.dark .mw-st-fertig .mw-st-marke{border-color:#4cc79a}
  color:var(--muted);word-break:break-word}
 .aufgabe-jetzt-text b{font-size:12px;color:var(--ink)}
 .aufgabe-jetzt-knopf{flex:0 0 auto;min-height:36px;font-size:11px}
+
+/* --- v3.12: Winkel im Meter -------------------------------------------- */
+/* Der Knopf steht in engen Tabellenzellen neben dem Eingabefeld. Die
+   globale button-Regel (padding 10/13, fett) wuerde ihn dort sprengen -
+   sie wird deshalb ausdruecklich zurueckgesetzt (CLAUDE.md 72.5). */
+/* Der Dialog kann ueber JEDEM anderen Schirm stehen - auch ueber dem
+   Massaufnahme-Formular und ueber dem Zuweisen-Dialog. Alle .modal teilen
+   z-index 500, dann entscheidet die Reihenfolge im Dokument (CLAUDE.md 110.6:
+   dieselbe Falle hat den Zuweisen-Dialog unbedienbar gemacht). */
+#winkelModal{z-index:750}
+.winkel-knopf{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+ min-width:34px;height:30px;min-height:0;padding:0 6px;margin-left:5px;vertical-align:middle;
+ border:1.5px solid var(--blue);border-radius:8px;background:var(--blue-light);color:var(--blue-dark);
+ font:800 10.5px/1 inherit;text-transform:none;letter-spacing:.2px;white-space:nowrap}
+.winkel-knopf:hover{background:var(--blue);color:#fff}
+/* Der Knopf darf ein enges Zahlenfeld nicht zusammendruecken - genau diese
+   Falle hat schon in v2.81 und v2.88 zugeschlagen (CLAUDE.md 88.5/89.5).
+   In einer engen Tabellenzelle bricht deshalb der Knopf um, nicht das Feld:
+   er ruecht per order ans Ende, das Feld behaelt seine lesbare Mindestbreite. */
+*:has(> .winkel-knopf){flex-wrap:wrap}
+*:has(> .winkel-knopf) > .winkel-knopf{order:9}
+input:has(+ .winkel-knopf){min-width:70px}
+.winkel-paar{display:flex;flex-wrap:wrap;gap:10px}
+.winkel-feld{flex:1 1 150px;min-width:0}
+.winkel-wert{font-size:22px;font-weight:900;color:var(--ink);line-height:1.2}
+.winkel-uebernahme{width:100%;min-height:44px;background:var(--blue);color:#fff;
+ font-size:15px;text-transform:none;letter-spacing:0}
+.winkel-uebernahme:hover{background:var(--blue-dark)}
+
+/* --- v3.12: der rote Faden in der Werkstatt ---------------------------- */
+.werk-jetzt{padding:9px 11px;margin-bottom:8px;border-radius:9px;
+ background:var(--blue-light);color:var(--blue-dark);font-size:12px;line-height:1.4;
+ word-break:break-word}
+.werk-projekt .mw-streifen{margin:8px 0 6px}
+.werk-projekt .mw-leiste{margin:0 0 8px}
+.werk-zeile-jetzt{border-left:4px solid var(--blue);padding-left:8px;
+ background:linear-gradient(90deg,var(--blue-light),transparent 60%)}
+.werk-block-dran{outline:2px solid var(--blue);outline-offset:4px;border-radius:8px}

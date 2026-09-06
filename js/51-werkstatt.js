@@ -111,12 +111,144 @@ function werkGruppen(){
  }).sort((a,b)=>a.titel.localeCompare(b.titel,"de"));
 }
 
+// ---- Der rote Faden -------------------------------------------------------
+// v3.12: Bis v3.11 war die Werkstatt eine flache Liste - man sah, WAS anliegt,
+// aber nicht, WAS ZUERST. Die Stationen unten leiten sich ausschliesslich aus
+// echten Daten ab: aus dem Status der Reservierungen (das ist genau die Kette
+// benoetigt -> verfuegbar -> reserviert -> zugeschnitten aus js/50) und aus
+// dem Arbeitsstatus der Massaufnahmen (v3.05). Es wird nichts erfunden und
+// keine zweite Statuskette gefuehrt.
+//
+// Eine Station erscheint nur, wenn die dafuer noetigen Module eingeschaltet
+// sind - sonst gaebe es dazu keinen ablesbaren Zustand.
+const WERK_STATIONEN=[
+ {k:"reservieren", text:"Reserviert",    module:["reservierung"]},
+ {k:"zuschneiden", text:"Zugeschnitten", module:["reservierung","zuschnitt"]},
+ {k:"ruesten",     text:"Gerüstet",      module:[]},
+ {k:"montieren",   text:"Montiert",      module:[]}
+];
+const WERK_RES_RANG={benoetigt:0,verfuegbar:1,reserviert:2,zugeschnitten:3,geruestet:4};
+
+function werkModulAn(k){return typeof pmAktiv==="function"&&pmAktiv(k)}
+function werkStationen(){
+ return WERK_STATIONEN.filter(st=>st.module.every(werkModulAn));
+}
+
+// Die Zahlen eines Projekts - eine Stelle, aus der Leiste, Streifen,
+// Sortierung und Zeilenmarkierung gleichermassen lesen.
+function werkZahlen(g){
+ const res=werkReservierungen.filter(r=>r.project_id===g.projectId);
+ const rang=r=>(WERK_RES_RANG[r.status]!==undefined?WERK_RES_RANG[r.status]:0);
+ const auf=g.aufnahmen||[];
+ return {
+  res:res.length,
+  offenRes:res.filter(r=>rang(r)<2).length,   // noch nicht reserviert
+  offenZu:res.filter(r=>rang(r)<3).length,    // noch nicht zugeschnitten
+  zuRuesten:auf.filter(a=>a.workflow_status==="zu_ruesten"&&!a.freigabe_verfallen).length,
+  zuMontieren:auf.filter(a=>a.workflow_status==="zu_montieren"&&!a.freigabe_verfallen).length,
+  wartet:auf.filter(a=>a.workflow_status==="freigegeben").length,  // niemand eingeteilt
+  verfallen:auf.filter(a=>!!a.freigabe_verfallen).length
+ };
+}
+// Je Station: fertig / jetzt / offen. Der erste nicht erledigte Schritt ist
+// "jetzt" - genau der, den der Streifen nennt.
+function werkStand(g){
+ const z=werkZahlen(g);
+ // Gibt es zu diesem Projekt UEBERHAUPT keine Reservierung, dann sagen die
+ // Daten nichts darueber aus, ob das Material schon bereit ist - der Betrieb
+ // hat es hier schlicht nicht ueber die App reserviert. Diese beiden
+ // Stationen werden dann als uebersprungen gezeigt und nie als naechster
+ // Schritt gefordert. Sonst stuende bei einem Projekt, das schon montiert
+ // wird, "zuerst reservieren" - eine Behauptung ohne Grundlage.
+ const ohneRes=z.res===0;
+ const roh=werkStationen().map(st=>{
+  if((st.k==="reservieren"||st.k==="zuschneiden")&&ohneRes)
+   return {k:st.k,text:st.text,uebersprungen:true};
+  let fertig=false;
+  if(st.k==="reservieren")   fertig=z.offenRes===0;
+  else if(st.k==="zuschneiden")fertig=z.offenZu===0;
+  else if(st.k==="ruesten")  fertig=z.zuRuesten===0&&z.wartet===0;
+  else                       fertig=z.zuMontieren===0&&z.zuRuesten===0&&z.wartet===0;
+  return {k:st.k,text:st.text,fertig};
+ });
+ let jetzt=false;
+ return roh.map(x=>{
+  if(x.uebersprungen)return {...x,zustand:"uebersprungen"};
+  if(x.fertig)return {...x,zustand:"fertig"};
+  if(!jetzt){jetzt=true;return {...x,zustand:"jetzt"}}
+  return {...x,zustand:"offen"};
+ });
+}
+// Was jetzt zu tun ist. Liefert immer einen Satz - auch wenn nichts offen ist.
+function werkNaechster(g){
+ const z=werkZahlen(g);
+ const stand=werkStand(g);
+ const jetzt=stand.find(x=>x.zustand==="jetzt");
+ if(z.verfallen)return {k:"verfallen",farbe:"rot",rang:0,
+   satz:z.verfallen+(z.verfallen===1?" Massaufnahme wurde":" Massaufnahmen wurden")
+     +" nach der Freigabe geändert. Daran darf nicht weitergearbeitet werden, bis sie erneut freigegeben "
+     +(z.verfallen===1?"ist":"sind")+".",
+   knopf:g.projectId?{text:"📂 Projekt öffnen",attr:'data-werk-projekt="'+g.projectId+'"'}:null};
+ if(!jetzt)return {k:"fertig",farbe:"gruen",rang:9,
+   satz:"Nichts offen – in der Werkstatt ist für dieses Projekt gerade nichts zu tun.",knopf:null};
+ if(jetzt.k==="reservieren")return {k:"reservieren",farbe:"orange",rang:1,
+   satz:"Material reservieren – "+z.offenRes+(z.offenRes===1?" Position ist":" Positionen sind")+" noch nicht reserviert.",
+   knopf:g.projectId?{text:"📂 Projekt öffnen",attr:'data-werk-projekt="'+g.projectId+'"'}:null};
+ if(jetzt.k==="zuschneiden")return {k:"zuschneiden",farbe:"orange",rang:2,
+   satz:"Zuschneiden – "+z.offenZu+(z.offenZu===1?" Position ist":" Positionen sind")+" noch nicht zugeschnitten.",
+   knopf:{text:"✂️ Zuschnitt anzeigen",attr:'data-werk-auf="'+(g.projectId||0)+'"'}};
+ if(jetzt.k==="ruesten"){
+  if(z.zuRuesten)return {k:"ruesten",farbe:"blau",rang:3,
+    satz:"Rüsten – "+z.zuRuesten+(z.zuRuesten===1?" Massaufnahme ist":" Massaufnahmen sind")
+      +" bereit. Unten je Massaufnahme bestätigen.",knopf:null};
+  return {k:"einteilen",farbe:"orange",rang:3,
+    satz:z.wartet+(z.wartet===1?" Massaufnahme ist":" Massaufnahmen sind")
+      +" freigegeben, aber noch niemandem zugeteilt. Eingeteilt wird im Projekt.",
+    knopf:g.projectId?{text:"📂 Projekt öffnen",attr:'data-werk-projekt="'+g.projectId+'"'}:null};
+ }
+ return {k:"montieren",farbe:"blau",rang:4,
+   satz:"Montieren – "+z.zuMontieren+(z.zuMontieren===1?" Massaufnahme ist":" Massaufnahmen sind")
+     +" gerüstet. Unten je Massaufnahme bestätigen.",knopf:null};
+}
+// Leiste und Streifen verwenden dieselben Klassen wie der Arbeitsstatus der
+// Massaufnahme (v3.10) - keine zweite Bildsprache.
+function werkLeisteHtml(g){
+ const st=werkStand(g);
+ if(!st.length)return "";
+ const zeichen={fertig:"✓",jetzt:"▸",offen:"○",uebersprungen:"–"};
+ return '<div class="mw-leiste" role="list">'+st.map(x=>
+  '<div class="mw-station mw-st-'+x.zustand+'" role="listitem"'
+  +(x.zustand==="uebersprungen"
+    ?' title="Für dieses Projekt ist nichts reserviert – dazu sagen die Daten nichts."':"")
+  +'>'
+  +'<span class="mw-st-marke" aria-hidden="true">'+zeichen[x.zustand]+'</span>'
+  +'<span class="mw-st-text">'+esc(x.text)+'</span></div>').join("")+'</div>';
+}
+function werkStreifenHtml(g){
+ const n=werkNaechster(g);
+ return '<div class="mw-streifen mw-streifen-'+n.farbe+'">'
+  +'<div class="mw-streifen-text"><span class="mw-streifen-label">Nächster Schritt</span>'
+  +'<span class="mw-streifen-satz">'+esc(n.satz)+'</span></div>'
+  +(n.knopf?'<button type="button" class="mw-streifen-knopf" '+n.knopf.attr+'>'+esc(n.knopf.text)+'</button>':"")
+  +'</div>';
+}
+// Gehoert diese Zeile zum jetzigen Schritt? Dann steht sie oben und wird
+// markiert - sonst muesste man in einer langen Liste suchen.
+function werkZeileJetzt(a,k){
+ if(a.freigabe_verfallen)return k==="verfallen";
+ if(k==="ruesten")return a.workflow_status==="zu_ruesten";
+ if(k==="montieren")return a.workflow_status==="zu_montieren";
+ if(k==="einteilen")return a.workflow_status==="freigegeben";
+ return false;
+}
+
 // ---- Anzeige --------------------------------------------------------------
 function werkTyp(t){
  return (typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[t])||t||"Massaufnahme";
 }
-function werkAufnahmeHtml(a){
+function werkAufnahmeHtml(a,jetztK){
  const verfallen=!!a.freigabe_verfallen;
+ const dran=werkZeileJetzt(a,jetztK||"");
  const ichRuester=a.ruester_id===werkIch(), ichMonteur=a.monteur_id===werkIch();
  const ruester=a.ruester_id&&typeof profileName==="function"?profileName(a.ruester_id):"";
  const monteur=a.monteur_id&&typeof profileName==="function"?profileName(a.monteur_id):"";
@@ -137,7 +269,7 @@ function werkAufnahmeHtml(a){
  const fassung=(nr===null)?"":(verfallen
    ? ` · <span style="color:var(--red)">Fassung ${nr} nicht mehr aktuell</span>`
    : ` · Fassung ${nr}`);
- return `<div class="werk-zeile">
+ return `<div class="werk-zeile${dran?" werk-zeile-jetzt":""}">
   <div class="werk-zeile-info">
    <b>${esc(werkTyp(a.type))}</b>${a.title?" · "+esc(a.title):""}
    <div class="small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${wer?" · "+wer:""}${fassung}</div>
@@ -161,7 +293,7 @@ function werkGrundlageHtml(g){
 
  if(typeof pmAktiv==="function"&&pmAktiv("material")&&typeof pmatSammeln==="function"){
   const gruppen=pmatSammeln(liste);
-  h+='<div class="werk-block"><div class="small werk-block-titel"><b>Material</b></div>';
+  h+='<div class="werk-block" data-werk-block="material"><div class="small werk-block-titel"><b>1 · Material</b> – was das Projekt braucht</div>';
   h+=gruppen.length?('<div class="scroll"><table class="eb-table pmat-tab"><thead><tr>'
     +'<th>Material</th><th>Position</th><th>Menge</th></tr></thead><tbody>'
     +gruppen.map(gr=>gr.positionen.map(p=>`<tr><td>${esc(gr.material)}</td><td>${esc(p.bezeichnung)}</td>`
@@ -172,22 +304,9 @@ function werkGrundlageHtml(g){
   h+="</div>";
  }
 
- if(typeof pmAktiv==="function"&&pmAktiv("zuschnitt")&&typeof pzuSammeln==="function"){
-  const {materialien}=pzuSammeln(liste);
-  h+='<div class="werk-block"><div class="small werk-block-titel"><b>Zuschnitt</b></div>';
-  h+=materialien.length?materialien.map(M=>{
-    const plan=(typeof pzuPlan==="function")?pzuPlan(M):null;
-    // zuschnittHtml zeigt das Reststuecke-Lager selbst - hier waere es doppelt.
-    return `<div class="pzu-material"><div class="pmat-kopf"><b>${esc(M.material)}</b></div>`
-      +((plan&&typeof zuschnittHtml==="function")?zuschnittHtml(plan):"")+"</div>";
-   }).join("")
-   :'<div class="small" style="color:var(--muted)">Nichts zuzuschneiden – keine Massaufnahme hat einen gespeicherten Zuschnitt.</div>';
-  h+="</div>";
- }
-
  if(typeof pmAktiv==="function"&&pmAktiv("reservierung")){
   const res=werkReservierungen.filter(r=>r.project_id===g.projectId);
-  h+='<div class="werk-block"><div class="small werk-block-titel"><b>Reservierungen</b></div>';
+  h+='<div class="werk-block" data-werk-block="reservieren"><div class="small werk-block-titel"><b>2 · Reservierungen</b> – was für das Projekt zurückgelegt ist</div>';
   h+=res.length?('<div class="scroll"><table class="eb-table pmat-tab"><thead><tr>'
     +'<th>Material</th><th>Position</th><th>Menge</th><th>Status</th></tr></thead><tbody>'
     +res.map(r=>`<tr><td>${esc(r.material_name||"Ohne Material")}</td>`
@@ -205,6 +324,19 @@ function werkGrundlageHtml(g){
     :'<div class="small" style="color:var(--muted);margin-top:4px">Kein Reststück für dieses Projekt reserviert.</div>';
   h+="</div>";
  }
+ if(typeof pmAktiv==="function"&&pmAktiv("zuschnitt")&&typeof pzuSammeln==="function"){
+  const {materialien}=pzuSammeln(liste);
+  h+='<div class="werk-block" data-werk-block="zuschneiden"><div class="small werk-block-titel"><b>3 · Zuschnitt</b> – wie es zu schneiden ist</div>';
+  h+=materialien.length?materialien.map(M=>{
+    const plan=(typeof pzuPlan==="function")?pzuPlan(M):null;
+    // zuschnittHtml zeigt das Reststuecke-Lager selbst - hier waere es doppelt.
+    return `<div class="pzu-material"><div class="pmat-kopf"><b>${esc(M.material)}</b></div>`
+      +((plan&&typeof zuschnittHtml==="function")?zuschnittHtml(plan):"")+"</div>";
+   }).join("")
+   :'<div class="small" style="color:var(--muted)">Nichts zuzuschneiden – keine Massaufnahme hat einen gespeicherten Zuschnitt.</div>';
+  h+="</div>";
+ }
+
 
  return h||'<div class="small" style="color:var(--muted)">Für die Rüstgrundlage sind Materialübersicht, Zuschnitt oder Reservierung nötig – alle drei sind ausgeschaltet.</div>';
 }
@@ -222,14 +354,26 @@ function renderWerkstatt(){
  if(zaehler)zaehler.textContent=String(werkZeilen.filter(werkPasst).length);
  const chips=[["alle","Alle"],["ruesten","Zu rüsten"],["montieren","Zu montieren"],["meine","Nur meine"]]
   .map(([k,t])=>`<button type="button" class="status-chip${werkFilter===k?" aktiv":""}" data-werk-filter="${k}">${esc(t)}</button>`).join("");
- let h=`<div class="status-filter">${chips}</div>`;
+ // v3.12: Was jetzt insgesamt ansteht - der Einstieg in den roten Faden.
+ const schritte=gruppen.map(g=>({g,n:werkNaechster(g)}));
+ const WERK_SCHRITT_TEXT={verfallen:"erneut freigeben",reservieren:"reservieren",
+   zuschneiden:"zuschneiden",einteilen:"einteilen",ruesten:"rüsten",montieren:"montieren"};
+ const zaehlung={};
+ schritte.forEach(x=>{if(x.n.k!=="fertig")zaehlung[x.n.k]=(zaehlung[x.n.k]||0)+1});
+ const zt=Object.keys(zaehlung).map(k=>zaehlung[k]+" × "+WERK_SCHRITT_TEXT[k]).join(" · ");
+ let h=`<div class="werk-jetzt">${zt
+   ?"<b>Jetzt dran:</b> "+esc(zt)
+   :"<b>Nichts offen</b> – in der Werkstatt wartet gerade kein Schritt."}</div>`
+  +`<div class="status-filter">${chips}</div>`;
  if(!gruppen.length){
   h+=`<div class="small" style="color:var(--muted)">${werkFilter==="alle"
     ?"In der Werkstatt liegt gerade nichts an. Hier erscheint, was freigegeben und zum Rüsten oder Montieren eingeteilt ist."
     :"Nichts, das zu diesem Filter passt."}</div>`;
   box.innerHTML=h; return 0;
  }
- h+=gruppen.map(g=>{
+ // Der roteste Faden ueberhaupt: was zuerst drankommt, steht oben.
+ schritte.sort((a,b)=>(a.n.rang-b.n.rang)||a.g.titel.localeCompare(b.g.titel,"de"));
+ h+=schritte.map(({g,n})=>{
   const offen=werkOffen===(g.projectId||0);
   const zahl=[g.zuRuesten?g.zuRuesten+" zu rüsten":"",g.zuMontieren?g.zuMontieren+" zu montieren":""]
     .filter(Boolean).join(" · ");
@@ -243,7 +387,10 @@ function renderWerkstatt(){
      <button type="button" data-werk-auf="${g.projectId||0}">${offen?"Rüstgrundlage schliessen":"Rüstgrundlage anzeigen"}</button>
     </div>
    </div>
-   ${g.aufnahmen.map(werkAufnahmeHtml).join("")}
+   ${werkStreifenHtml(g)}
+   ${werkLeisteHtml(g)}
+   ${g.aufnahmen.slice().sort((x,y)=>(werkZeileJetzt(y,n.k)?1:0)-(werkZeileJetzt(x,n.k)?1:0))
+      .map(a=>werkAufnahmeHtml(a,n.k)).join("")}
    ${offen?`<div class="werk-grundlage">${werkGrundlageHtml(g)}</div>`:""}
   </div>`;
  }).join("");
@@ -278,6 +425,18 @@ function werkstattKnopfAktualisieren(){
  if(k)k.hidden=!werkAktiv();
 }
 
+// Hebt den Block des jetzigen Schritts kurz hervor und scrollt ihn ins Bild.
+function werkBlockAnsteuern(projectId){
+ const g=werkGruppen().find(x=>(x.projectId||0)===projectId);
+ if(!g)return;
+ const k=werkNaechster(g).k;
+ const el=document.querySelector('[data-werk-block="'+k+'"]');
+ if(!el)return;
+ el.classList.add("werk-block-dran");
+ try{el.scrollIntoView({block:"center",behavior:"smooth"})}catch(e){}
+ setTimeout(()=>{try{el.classList.remove("werk-block-dran")}catch(e){}},2500);
+}
+
 // ---- Bedienung ------------------------------------------------------------
 document.addEventListener("click",async e=>{
  if(!e.target||!e.target.closest)return;
@@ -295,6 +454,9 @@ document.addEventListener("click",async e=>{
   werkOffen=id; werkGrundlage=null; renderWerkstatt();
   if(id){await werkGrundlageLaden(id); if(werkOffen===id)renderWerkstatt()}
   else{werkGrundlage={projectId:0,aufnahmen:[],fehler:null};renderWerkstatt()}
+  // v3.12: Der Block, der zum jetzigen Schritt gehoert, wird angesteuert -
+  // sonst muesste man in der Ruestgrundlage suchen, wo man gerade steht.
+  werkBlockAnsteuern(id);
   return;
  }
 

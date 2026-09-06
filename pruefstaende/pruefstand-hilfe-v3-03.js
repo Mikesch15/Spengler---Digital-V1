@@ -72,7 +72,8 @@ const ARTEN=[
  // Kein Text darf in Ersatzschreibweise stehen - das ist Benutzertext.
  const umlaut=await page.evaluate(()=>{
   const echt=/(ae|oe|ue)/;
-  const erlaubt=/^(neu|neue|neuen|neueste|quer|zuerst|steuert|Mauerabdeckung|Neue|Dauer|dauer|bauen|aufbauen|Bauen|aktuell)/i;
+  // echte deutsche Woerter, in denen ae/oe/ue nur zufaellig vorkommt
+  const erlaubt=/^(neu|neue|neuen|neueste|quer|zuerst|steuert|Mauerabdeckung|Neue|Dauer|dauer|bauen|aufbauen|Bauen|aktuell|blau|blaue|blauen|genau|genaue|genauen|Frau)/i;
   const treffer=[];
   Object.keys(HILFE_TEXTE).forEach(k=>{
    const s=HILFE_TEXTE[k].titel+" "+HILFE_TEXTE[k].text.replace(/<[^>]*>/g," ");
