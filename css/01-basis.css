@@ -151,6 +151,11 @@ td input,td select{min-height:34px;font-size:12px}
 .arbeitsstand-zeile{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;border-top:1px solid #eef1f3;border-radius:0;padding:9px 10px;min-height:38px;font-weight:600;color:var(--ink)}
 button.arbeitsstand-zeile{cursor:pointer}
 button.arbeitsstand-zeile:hover{background:var(--blue-light)}
+/* v3.10: .arbeitsstand-zeile setzt display:flex und schlaegt damit das
+   [hidden] des Browsers - dieselbe Falle wie .bar und .medien-viewer
+   (CLAUDE.md 59). Betrifft die drei Modulzeilen aus v3.09 und die neue
+   Zeile "Naechster Schritt". */
+.arbeitsstand-zeile[hidden]{display:none}
 .arbeitsstand-marke{flex:0 0 auto;width:16px;text-align:center;font-size:12px;font-weight:900;color:var(--blue)}
 .arbeitsstand-name{flex:1 1 auto;min-width:0;font-size:12px;word-break:break-word}
 .arbeitsstand-wert{flex:0 0 auto;font-size:12px;font-weight:800;color:var(--blue-dark);text-align:right}
@@ -639,7 +644,7 @@ label.kam-schalter input[type=checkbox]{width:20px;min-width:20px;height:20px;
    .modal teilen z-index 500, dann entscheidet die Reihenfolge im Dokument -
    und das Formular steht weiter unten. Ohne diese Zeile laege der Dialog
    dahinter. Kein display hier, sonst schlaegt die Regel [hidden] (CLAUDE.md 59). */
-#mwZuweisenModal{z-index:700}
+#mwZuweisenModal,#mwKorrigierenModal{z-index:700}
 .mw-bereich{margin-top:14px;border-top:2px solid var(--card-line);padding-top:10px}
 .mw-badge{display:inline-block;font-size:11px;font-weight:900;line-height:1.5;
  border:1px solid currentColor;border-radius:999px;padding:1px 8px;white-space:nowrap}
@@ -823,3 +828,74 @@ button.pmat-quelle:hover{border-color:var(--blue)}
 
 /* v3.09 Modul-Angaben in der Firmenadmin-Uebersicht */
 .au-module{margin-top:4px;gap:6px}
+
+/* === v3.10 Der naechste Schritt ========================================== */
+/* Streifen ganz oben im Massaufnahme-Formular. Er beantwortet in jedem
+   Register dieselbe Frage: was ist jetzt zu tun und wer macht es.
+   display:flex schlaegt das [hidden] des Browsers - deshalb die eigene
+   Regel darunter (CLAUDE.md 59). */
+.mw-streifen{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;
+ border:1.5px solid var(--card-line);border-left-width:5px;border-radius:9px;
+ padding:8px 10px;margin:0 0 10px;background:var(--card)}
+.mw-streifen[hidden]{display:none}
+.mw-streifen-rot{border-left-color:var(--red)}
+.mw-streifen-orange{border-left-color:#d98014}
+.mw-streifen-gruen{border-left-color:var(--green)}
+.mw-streifen-text{flex:1 1 190px;min-width:0}
+.mw-streifen-label{display:block;font-size:9px;font-weight:900;letter-spacing:.5px;
+ text-transform:uppercase;color:var(--muted)}
+.mw-streifen-satz{display:block;font-size:12px;line-height:1.35;word-break:break-word}
+.mw-streifen-knopf{flex:1 1 auto;min-height:42px}
+@media(min-width:560px){.mw-streifen-knopf{flex:0 0 auto}}
+
+/* Fortschrittsleiste: fuenf Stationen. Auf schmalen Geraeten scrollt sie
+   seitwaerts statt zu brechen - die Reihenfolge ist die Aussage. */
+.mw-leiste{display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;
+ margin:0 0 10px;padding-bottom:2px}
+.mw-station{flex:1 0 auto;min-width:66px;text-align:center;position:relative;
+ padding:0 2px}
+.mw-station+.mw-station::before{content:"";position:absolute;left:-50%;right:50%;
+ top:9px;height:2px;background:var(--card-line)}
+.mw-st-fertig+.mw-station::before,.mw-station.mw-st-fertig::before{background:var(--green)}
+.mw-st-marke{position:relative;z-index:1;display:inline-flex;align-items:center;
+ justify-content:center;width:20px;height:20px;border-radius:50%;font-size:11px;
+ font-weight:900;border:2px solid var(--card-line);background:var(--card);color:var(--muted)}
+.mw-st-text{display:block;font-size:9px;font-weight:800;letter-spacing:.3px;
+ text-transform:uppercase;color:var(--muted);margin-top:3px;word-break:break-word}
+.mw-st-fertig .mw-st-marke{border-color:var(--green);color:var(--green)}
+.mw-st-fertig .mw-st-text{color:var(--green)}
+.mw-st-jetzt .mw-st-marke{border-color:var(--blue);background:var(--blue);color:#fff}
+.mw-st-jetzt .mw-st-text{color:var(--ink)}
+.mw-st-uebersprungen .mw-st-marke{border-style:dashed}
+html.dark .mw-st-fertig .mw-st-marke,html.dark .mw-st-fertig .mw-st-text{color:#4cc79a}
+html.dark .mw-st-fertig .mw-st-marke{border-color:#4cc79a}
+
+/* Der Satz "was ist als Naechstes zu tun" in der Karte am Ende. */
+.mw-schritt{display:flex;gap:8px;align-items:flex-start;border-radius:9px;
+ padding:9px 10px;margin:0 0 10px;border:1.5px solid var(--card-line);
+ border-left-width:5px}
+.mw-schritt-rot{border-left-color:var(--red)}
+.mw-schritt-orange{border-left-color:#d98014}
+.mw-schritt-gruen{border-left-color:var(--green)}
+.mw-schritt-marke{font-weight:900;line-height:1.4}
+.mw-schritt-label{font-size:9px;font-weight:900;letter-spacing:.5px;
+ text-transform:uppercase;color:var(--muted)}
+.mw-schritt-satz{font-size:12px;line-height:1.35;color:var(--muted);word-break:break-word}
+
+/* In Listen: der naechste Schritt neben dem Status. */
+.mw-next{font-size:11px;font-weight:800}
+
+/* Startseite: die eine Aufgabe, die jetzt dran ist - auch zugeklappt.
+   Bewusst eine kompakte Zeile und nicht die volle Karte, damit die Startseite
+   nicht wieder einen halben Bildschirm braucht (Grund fuer v3.07). */
+.aufgaben-jetzt{padding:0 10px 8px}
+.aufgaben-jetzt[hidden]{display:none}
+.aufgabe-jetzt-zeile{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;
+ border:1px solid var(--card-line);border-left:4px solid var(--muted);
+ border-radius:8px;padding:7px 9px}
+.aufgabe-jetzt-zeile.aufgabe-rot{border-left-color:var(--red)}
+.aufgabe-jetzt-zeile.aufgabe-orange{border-left-color:#d98014}
+.aufgabe-jetzt-text{flex:1 1 150px;min-width:0;font-size:11px;line-height:1.35;
+ color:var(--muted);word-break:break-word}
+.aufgabe-jetzt-text b{font-size:12px;color:var(--ink)}
+.aufgabe-jetzt-knopf{flex:0 0 auto;min-height:36px;font-size:11px}

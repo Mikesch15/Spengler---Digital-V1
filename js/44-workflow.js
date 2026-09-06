@@ -98,6 +98,168 @@ function mwMitarbeiterOptionen(gewaehlt){
   `<option value="${esc(p.id)}"${p.id===gewaehlt?" selected":""}>${esc(profileName(p.id))}</option>`).join("");
 }
 
+// ===========================================================================
+// v3.10 DER NAECHSTE SCHRITT - eine Quelle, ueberall dieselbe Antwort
+// ---------------------------------------------------------------------------
+// Bis v3.09 stand an vier Stellen eine eigene Ableitung, was als Naechstes zu
+// tun ist: die info-Zeilen in renderMeasWorkflow(), die Aufgabenarten in
+// js/45, das Badge in den Listen und die Werkstattansicht. Sie sagten
+// verschiedene Dinge und zwei Zustaende (geruestet, montiert) sagten gar
+// nichts. Jetzt beantwortet mwNaechsterSchritt() das einmal.
+//
+// Zwei Zwischenschritte haben KEINEN eigenen Datenbankzustand und sind
+// trotzdem echte Arbeit - genau sie gingen bisher verloren:
+//   freigegeben ohne Ruester/Monteur -> jemanden zuweisen
+//   geruestet   ohne Monteur         -> Monteur zuweisen
+// ===========================================================================
+
+// Rot = jetzt dran, Orange = dran, aber weniger dringend.
+const MW_SCHRITTE={
+ erneut_freigeben:{kurz:"Erneut freigeben",farbe:"rot",   aktion:"freigeben",   knopf:"✓ Erneut freigeben"},
+ freigeben:       {kurz:"Freigeben",       farbe:"rot",   aktion:"freigeben",   knopf:"✓ Freigeben"},
+ zuweisen:        {kurz:"Zuweisen",        farbe:"orange",aktion:"zuweisen",    knopf:"👥 Zuweisen"},
+ monteur:         {kurz:"Monteur zuweisen",farbe:"orange",aktion:"zuweisen",    knopf:"👥 Monteur zuweisen"},
+ ruesten:         {kurz:"Rüsten",          farbe:"rot",   aktion:"geruestet",   knopf:"🔧 Gerüstet"},
+ montieren:       {kurz:"Montieren",       farbe:"orange",aktion:"montiert",    knopf:"🏠 Montiert"},
+ abschliessen:    {kurz:"Abschliessen",    farbe:"orange",aktion:"abschliessen",knopf:"✓ Abschliessen"},
+ fertig:          {kurz:"Abgeschlossen",   farbe:"gruen", aktion:null,          knopf:""}
+};
+
+// Welcher Schritt ist als Naechstes dran - unabhaengig davon, wer zusieht.
+function mwSchrittSchluessel(w){
+ if(!w)return "fertig";
+ switch(w.workflow_status){
+  case "in_bearbeitung": return w.freigabe_verfallen?"erneut_freigeben":"freigeben";
+  case "freigegeben":    return "zuweisen";
+  case "zu_ruesten":     return "ruesten";
+  case "geruestet":      return "monteur";
+  case "zu_montieren":   return "montieren";
+  case "montiert":       return "abschliessen";
+  default:               return "fertig";
+ }
+}
+
+// Wer den Schritt machen muss. Zuweisen und Abschliessen darf ausser dem
+// Aufnehmer auch ein Firmenadministrator - genannt wird trotzdem der
+// Aufnehmer, denn er ist zustaendig.
+function mwSchrittWer(w,k){
+ if(!w)return null;
+ if(k==="ruesten")return w.ruester_id||null;
+ if(k==="montieren")return w.monteur_id||null;
+ if(k==="fertig")return null;
+ return w.created_by||null;
+}
+
+// Darf ICH diesen Schritt jetzt ausloesen? Dieselbe Regel prueft die
+// Datenbank noch einmal - das hier ist reine Fuehrung.
+function mwSchrittDarfIch(w,k){
+ if(!w||k==="fertig")return false;
+ if(k==="freigeben"||k==="erneut_freigeben")return mwIstAufnehmer(w);
+ if(k==="zuweisen"||k==="monteur")return mwDarfZuweisen(w);
+ if(k==="ruesten")return mwIstRuester(w)||isAdmin();
+ if(k==="montieren")return mwIstMonteur(w)||isAdmin();
+ if(k==="abschliessen")return mwIstAufnehmer(w)||isAdmin();
+ return false;
+}
+
+// Die eine Antwort. `satz` ist ganz ausgeschrieben und nennt immer, WER dran
+// ist - das ist die Angabe, die bis v3.09 gefehlt hat.
+function mwNaechsterSchritt(w){
+ const k=mwSchrittSchluessel(w);
+ const s=MW_SCHRITTE[k];
+ const wer=mwSchrittWer(w,k);
+ const ich=mwSchrittDarfIch(w,k);
+ const meiner=!!(wer&&wer===mwIchBin());
+ let satz;
+ if(k==="fertig")satz="Diese Massaufnahme ist abgeschlossen.";
+ else if(k==="erneut_freigeben")satz=meiner
+  ? "Sie wurde nach der Freigabe geändert – du musst sie erneut freigeben."
+  : `Sie wurde nach der Freigabe geändert – ${mwPerson(wer)} muss sie erneut freigeben.`;
+ else if(k==="freigeben")satz=meiner
+  ? "Du gibst die Massaufnahme frei, sobald sie vollständig aufgenommen ist."
+  : `${mwPerson(wer)} muss die Massaufnahme freigeben.`;
+ else if(k==="zuweisen")satz=meiner||ich
+  ? "Du teilst ein, wer rüstet und wer montiert – ohne Zuweisung bleibt sie liegen."
+  : `${mwPerson(wer)} muss Rüster und Monteur zuweisen.`;
+ else if(k==="monteur")satz=meiner||ich
+  ? "Das Material ist gerüstet – du musst noch einen Monteur einteilen."
+  : `Gerüstet. ${mwPerson(wer)} muss noch einen Monteur zuweisen.`;
+ else if(k==="ruesten")satz=meiner
+  ? "Du rüstest das Material und bestätigst es danach hier."
+  : `${mwPerson(wer)} rüstet das Material.`;
+ else if(k==="montieren")satz=meiner
+  ? "Du montierst und bestätigst es danach hier."
+  : `${mwPerson(wer)} montiert.`;
+ else satz=meiner||ich
+  ? "Montiert. Du schliesst die Massaufnahme zum Schluss ab."
+  : `Montiert. ${mwPerson(wer)} schliesst die Massaufnahme ab.`;
+ return {
+  schluessel:k, kurz:s.kurz, farbe:s.farbe, satz,
+  wer, meiner, ichBinDran:ich,
+  aktion:ich?s.aktion:null, knopf:ich?s.knopf:""
+ };
+}
+
+// Kurzform fuer eine Listenzeile: "Rüsten – Hans Muster" bzw. "– du". Ist
+// niemand zustaendig (bei "zuweisen" der Normalfall), steht nur der Schritt -
+// es wird keine Person erfunden.
+function mwSchrittKurzText(w){
+ const n=mwNaechsterSchritt(w);
+ if(n.schluessel==="fertig")return "";
+ const wer=n.meiner?"du":(n.wer?mwPerson(n.wer):"");
+ return wer?`${n.kurz} – ${wer}`:n.kurz;
+}
+
+// ===========================================================================
+// Fortschrittsleiste: fuenf Stationen, jede eine Frage mit Ja/Nein.
+// Abgeleitet ausschliesslich aus echten Zeitstempeln - es wird nichts
+// behauptet, was nicht in der Zeile steht. "Rüsten" darf uebersprungen
+// werden (der Auftrag sagt ausdruecklich "und/oder"); das steht dann auch so
+// da, statt die Station stillschweigend als erledigt zu zeigen.
+// ===========================================================================
+const MW_STATIONEN=[
+ {k:"aufgenommen",  text:"Aufgenommen"},
+ {k:"freigegeben",  text:"Freigegeben"},
+ {k:"geruestet",    text:"Gerüstet"},
+ {k:"montiert",     text:"Montiert"},
+ {k:"abgeschlossen",text:"Abschluss"}
+];
+const MW_ST_RANG={in_bearbeitung:0,freigegeben:1,zu_ruesten:1,geruestet:2,zu_montieren:2,montiert:3,abgeschlossen:4};
+
+function mwStationen(w){
+ if(!w)return [];
+ const s=w.workflow_status||"in_bearbeitung";
+ const rang=MW_ST_RANG[s]??0;
+ const jetzt=mwSchrittSchluessel(w);
+ const zu=({freigeben:"freigegeben",erneut_freigeben:"freigegeben",zuweisen:"geruestet",
+            ruesten:"geruestet",monteur:"montiert",montieren:"montiert",
+            abschliessen:"abgeschlossen"})[jetzt]||"";
+ return MW_STATIONEN.map((st,i)=>{
+  let zustand;
+  if(st.k==="aufgenommen")zustand="fertig";
+  else if(st.k==="freigegeben")zustand=w.freigegeben_am?"fertig":(zu===st.k?"jetzt":"offen");
+  else if(st.k==="geruestet"){
+   if(w.geruestet_am)zustand="fertig";
+   else if(rang>=2)zustand="uebersprungen";     // ohne Rüster direkt zur Montage
+   else zustand=(zu===st.k)?"jetzt":"offen";
+  }
+  else if(st.k==="montiert")zustand=w.montiert_am?"fertig":(zu===st.k?"jetzt":"offen");
+  else zustand=(s==="abgeschlossen")?"fertig":(zu===st.k?"jetzt":"offen");
+  return {k:st.k,text:st.text,zustand,nr:i+1};
+ });
+}
+
+function mwLeisteHtml(w){
+ const st=mwStationen(w);
+ if(!st.length)return "";
+ const zeichen={fertig:"✓",jetzt:"▸",offen:"○",uebersprungen:"–"};
+ return `<div class="mw-leiste" role="list">`+st.map(x=>
+  `<div class="mw-station mw-st-${x.zustand}" role="listitem"`
+  +(x.zustand==="uebersprungen"?' title="Ohne Rüster – direkt zur Montage"':"")
+  +`><span class="mw-st-marke" aria-hidden="true">${zeichen[x.zustand]}</span>`
+  +`<span class="mw-st-text">${esc(x.text)}</span></div>`).join("")+`</div>`;
+}
+
 // v3.07: Firmenweiter Schalter. Reine Anzeige - die Datenbank prueft weiter.
 function mwAktiv(){return (typeof workflowAktiv==="undefined")||workflowAktiv!==false}
 
@@ -107,12 +269,25 @@ function mwAktiv(){return (typeof workflowAktiv==="undefined")||workflowAktiv!==
 // unterscheiden (v3.06).
 function mwBadgeFuerListe(m){
  if(!m||!mwAktiv())return "";
- if(m.freigabe_verfallen)return `<span class="mw-badge mw-rot">⚠️ Freigabe verfallen</span>`;
- if(m.workflow_status&&m.workflow_status!=="in_bearbeitung")return mwBadge(m.workflow_status);
- return "";
+ // v3.10: Bis v3.09 stand hier der Status ("Zu rüsten") - der sagt aber
+ // nicht, was zu tun ist und von wem. Jetzt steht genau eine Angabe da: der
+ // naechste Schritt mit der zustaendigen Person, aus derselben Quelle wie
+ // ueberall sonst. Eine verfallene Freigabe bleibt daran erkennbar, dass sie
+ // "Erneut freigeben" heisst und ein Warnzeichen traegt (v3.06).
+ const n=mwNaechsterSchritt(m);
+ if(n.schluessel==="fertig")return mwBadge("abgeschlossen");
+ const verfallen=(n.schluessel==="erneut_freigeben");
+ const zeichen=verfallen?"⚠️":"▸";
+ const grund=verfallen?' title="Nach der Freigabe geändert – die Freigabe ist verfallen"':"";
+ return `<span class="mw-next mw-${n.farbe}"${grund}>${zeichen} ${esc(mwSchrittKurzText(m))}</span>`;
 }
 
+// v3.10: Derselbe Aufruf zeichnet zwei Dinge - den Streifen ganz oben im
+// Formular (immer sichtbar, egal in welchem Register man steht) und die
+// ausfuehrliche Karte am Ende. Beide sagen dasselbe, weil beide aus
+// mwNaechsterSchritt() kommen.
 function renderMeasWorkflow(){
+ renderMeasSchrittStreifen();
  const box=$("measWorkflowBereich"); if(!box)return;
  const w=mwStand;
  // Eine noch nicht gespeicherte Massaufnahme hat keinen Workflow. Ebenso eine
@@ -121,23 +296,37 @@ function renderMeasWorkflow(){
  if(!w||!w.id||!mwAktiv()){box.hidden=true;box.innerHTML="";return}
  box.hidden=false;
  const s=w.workflow_status;
+ const n=mwNaechsterSchritt(w);
  const teile=[];
  // Ueber hilfeKnopf(), nicht als fester Knopf: fehlt der Text, entsteht auch
  // kein Knopf - statt eines Knopfes, der ein leeres Fenster oeffnet
  // (CLAUDE.md 107.2).
  teile.push(`<h2 style="margin-top:4px">🔁 Arbeitsstatus ${typeof hilfeKnopf==="function"?hilfeKnopf("workflow"):""}</h2>`);
+ // Der Status in derselben Sprache wie in den Listen, damit die Begriffe
+ // zusammenpassen - danach die fuenf Stationen, damit der ganze Ablauf auf
+ // einen Blick sichtbar ist.
  teile.push(`<div class="mw-kopf">${mwBadge(s)}</div>`);
+ teile.push(mwLeisteHtml(w));
 
  // v3.06: Die Freigabe ist verfallen, weil die Massaufnahme danach fachlich
  // geaendert wurde. Das setzt ausschliesslich der Trigger in der Datenbank -
  // hier steht nur, was passiert ist und was jetzt zu tun ist.
  if(w.freigabe_verfallen){
-  const wer=mwIstAufnehmer(w)?"Du musst sie":`${esc(mwPerson(w.created_by))} muss sie`;
   const bleibt=(w.ruester_id||w.monteur_id)
    ? " Rüster und Monteur bleiben zugewiesen und sind danach automatisch wieder dran."
    : "";
   teile.push(`<div class="mw-warnung">⚠️ Diese Massaufnahme wurde nach der Freigabe geändert. `
-   +`Die Freigabe ist damit verfallen – ${wer} erneut freigeben.${bleibt}</div>`);
+   +`Die Freigabe ist damit verfallen.${bleibt}</div>`);
+ }
+
+ // Der naechste Schritt - ein Satz, der immer sagt WER dran ist.
+ if(n.schluessel==="fertig"){
+  teile.push(`<div class="mw-schritt mw-schritt-gruen"><span class="mw-schritt-marke">✓</span>`
+   +`<span><b>Abgeschlossen</b><br><span class="mw-schritt-satz">${esc(n.satz)}</span></span></div>`);
+ }else{
+  teile.push(`<div class="mw-schritt mw-schritt-${n.farbe}"><span class="mw-schritt-marke">▸</span>`
+   +`<span><span class="mw-schritt-label">Nächster Schritt</span><br>`
+   +`<b>${esc(n.kurz)}</b><br><span class="mw-schritt-satz">${esc(n.satz)}</span></span></div>`);
  }
 
  // Wer was gemacht hat - ausschliesslich echte, gespeicherte Angaben.
@@ -151,39 +340,49 @@ function renderMeasWorkflow(){
  ].filter(Boolean).join("");
  teile.push(`<div class="mw-liste">${zeilen}</div>`);
 
+ // Der Knopf fuer den naechsten Schritt steht zuerst und ist gruen - alles
+ // andere ist eine Nebenaktion.
  const aktionen=[];
- if(s==="in_bearbeitung"){
-  if(mwIstAufnehmer(w)){
-   aktionen.push(`<button type="button" class="green mw-voll" id="mwFreigeben">${w.freigabe_verfallen?"✓ Erneut freigeben":"✓ Massaufnahme freigeben"}</button>`);
-  }else{
-   teile.push(`<div class="info">Freigeben kann nur die Person, welche die Massaufnahme aufgenommen hat (${esc(mwPerson(w.created_by))}).</div>`);
-  }
+ if(n.ichBinDran&&n.aktion){
+  aktionen.push(`<button type="button" class="green mw-voll" id="${esc(MW_AKTION_ID[n.aktion])}">${esc(n.knopf)}</button>`);
  }
- if(s!=="in_bearbeitung"&&s!=="abgeschlossen"&&mwDarfZuweisen(w)){
-  aktionen.push(`<button type="button" class="blue mw-voll" id="mwZuweisenOeffnen">👥 Rüster und Monteur zuweisen</button>`);
- }
- if(s==="zu_ruesten"&&(mwIstRuester(w)||isAdmin())){
-  aktionen.push(`<button type="button" class="green mw-voll" id="mwGeruestet">🔧 Gerüstet</button>`);
- }
- if(s==="zu_montieren"&&(mwIstMonteur(w)||isAdmin())){
-  aktionen.push(`<button type="button" class="green mw-voll" id="mwMontiert">🏠 Montiert</button>`);
- }
- if(s==="montiert"&&(mwIstAufnehmer(w)||isAdmin())){
-  aktionen.push(`<button type="button" class="blue mw-voll" id="mwAbschliessen">✓ Abschliessen</button>`);
+ // Zuweisen bleibt auch dann erreichbar, wenn es gerade nicht der naechste
+ // Schritt ist - eine Zuweisung laesst sich jederzeit korrigieren.
+ if(s!=="in_bearbeitung"&&s!=="abgeschlossen"&&mwDarfZuweisen(w)&&n.aktion!=="zuweisen"){
+  aktionen.push(`<button type="button" class="gray mw-voll" id="mwZuweisenOeffnen">👥 Rüster und Monteur ändern</button>`);
  }
  if(isAdmin()&&s!=="in_bearbeitung"){
   aktionen.push(`<button type="button" class="gray mw-voll" id="mwKorrigieren">↩️ Status korrigieren</button>`);
  }
- // Ehrlich sagen, warum gerade nichts zu tun ist.
- if(!aktionen.length){
-  if(s==="freigegeben")teile.push(`<div class="info">Freigegeben. Ein Rüster oder Monteur ist noch nicht zugewiesen.</div>`);
-  else if(s==="zu_ruesten")teile.push(`<div class="info">Wartet auf ${esc(mwPerson(w.ruester_id))} (Rüsten).</div>`);
-  else if(s==="geruestet")teile.push(`<div class="info">Gerüstet. Ein Monteur ist noch nicht zugewiesen.</div>`);
-  else if(s==="zu_montieren")teile.push(`<div class="info">Wartet auf ${esc(mwPerson(w.monteur_id))} (Montage).</div>`);
- }
  teile.push(`<div class="mw-aktionen">${aktionen.join("")}</div>`);
  teile.push(`<div class="small mw-fehler" id="mwFehler" hidden></div>`);
  box.innerHTML=teile.join("");
+}
+
+// Welcher Knopf zu welcher Aktion gehoert. Die Ids sind seit v3.05 dieselben,
+// damit bestehende Bedienung und Pruefstaende unveraendert weiterlaufen.
+const MW_AKTION_ID={freigeben:"mwFreigeben",zuweisen:"mwZuweisenOeffnen",
+ geruestet:"mwGeruestet",montiert:"mwMontiert",abschliessen:"mwAbschliessen"};
+
+// Der Streifen ganz oben im Formular. Er beantwortet die eine Frage, die bis
+// v3.09 unbeantwortet blieb: was muss ich als Naechstes tun? Er ist in jedem
+// Register sichtbar, weil er ausserhalb der Register steht.
+function renderMeasSchrittStreifen(){
+ const box=$("measNaechsterSchritt"); if(!box)return;
+ const w=mwStand;
+ if(!w||!w.id||!mwAktiv()){box.hidden=true;box.innerHTML="";return}
+ const n=mwNaechsterSchritt(w);
+ box.hidden=false;
+ box.className="mw-streifen mw-streifen-"+n.farbe;
+ const knopf=(n.ichBinDran&&n.aktion)
+  ? `<button type="button" class="green mw-streifen-knopf" data-mw-aktion="${esc(n.aktion)}">${esc(n.knopf)}</button>`
+  : "";
+ const kopf=n.schluessel==="fertig"?"✓ Abgeschlossen":"Nächster Schritt";
+ const titel=n.schluessel==="fertig"?"":`<b>${esc(n.kurz)}</b> · `;
+ box.innerHTML=`<div class="mw-streifen-text">`
+  +`<span class="mw-streifen-label">${esc(kopf)}</span>`
+  +`<span class="mw-streifen-satz">${titel}${esc(n.satz)}</span></div>`
+  +knopf;
 }
 
 function mwFehlerZeigen(text){
@@ -213,6 +412,10 @@ async function mwFreigeben(){
  const a=await mwRuf("measurement_freigeben",{p_id:mwStand.id},"Die Freigabe");
  if(!a)return;
  mwStandAusAntwort(a); renderMeasWorkflow(); mwNachAenderung();
+ // v3.10: Bis hierher war Schluss - die Massaufnahme stand auf "freigegeben"
+ // und niemand sagte, dass jetzt jemand eingeteilt werden muss. Ist noch
+ // niemand zugewiesen und darf ich es, geht der Zuweisungsdialog direkt auf.
+ if(!mwStand.ruester_id&&!mwStand.monteur_id&&mwDarfZuweisen(mwStand))mwZuweisenOeffnen();
 }
 
 async function mwGeruestet(){
@@ -264,16 +467,34 @@ async function mwZuweisenSpeichern(){
  renderMeasWorkflow(); mwNachAenderung();
 }
 
-async function mwKorrigieren(){
+// v3.10: Bis v3.09 lief das ueber prompt() mit einer Nummernliste - auf
+// einem Tablet unbrauchbar. Jetzt ein Auswahlfeld im Dialog. Erlaubt bleibt
+// es weiterhin nur dem Administrator, und geprueft wird das serverseitig in
+// measurement_workflow_korrigieren().
+function mwKorrigierenOeffnen(){
  if(!mwStand)return;
- const liste=MW_REIHENFOLGE.map((k,i)=>`${i+1} = ${MW_STATUS[k].text}`).join("\n");
- const eingabe=prompt("Arbeitsstatus korrigieren (nur Administrator).\n\n"+liste+"\n\nNummer eingeben:");
- if(!eingabe)return;
- const nr=Number(String(eingabe).trim());
- if(!Number.isFinite(nr)||nr<1||nr>MW_REIHENFOLGE.length){mwFehlerZeigen("Bitte eine Nummer von 1 bis "+MW_REIHENFOLGE.length+" eingeben.");return}
- const a=await mwRuf("measurement_workflow_korrigieren",{p_id:mwStand.id,p_status:MW_REIHENFOLGE[nr-1]},"Die Korrektur");
- if(!a)return;
- mwStandAusAntwort(a); renderMeasWorkflow(); mwNachAenderung();
+ const sel=$("mwKorrigierenStatus");
+ sel.innerHTML=MW_REIHENFOLGE.map(k=>
+  `<option value="${esc(k)}"${k===mwStand.workflow_status?" selected":""}>${esc(MW_STATUS[k].text)}</option>`).join("");
+ $("mwKorrigierenTitel").textContent=mwStand.title||"Massaufnahme";
+ $("mwKorrigierenFehler").hidden=true;
+ $("mwKorrigierenModal").hidden=false;
+}
+
+async function mwKorrigierenSpeichern(){
+ if(!mwStand)return;
+ const status=$("mwKorrigierenStatus").value;
+ if(!status||MW_REIHENFOLGE.indexOf(status)<0)return;
+ if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Die Korrektur"))return;
+ const {data,error}=await sb.rpc("measurement_workflow_korrigieren",{p_id:mwStand.id,p_status:status});
+ if(error){
+  console.error("measurement_workflow_korrigieren",error);
+  const f=$("mwKorrigierenFehler"); f.textContent=error.message||"Der Status konnte nicht geändert werden."; f.hidden=false;
+  return;
+ }
+ mwStandAusAntwort(data);
+ $("mwKorrigierenModal").hidden=true;
+ renderMeasWorkflow(); mwNachAenderung();
 }
 
 // Nach jedem Schritt: die Aufgabenzentrale und die geladenen Listen ziehen
@@ -319,7 +540,15 @@ function mwNachSpeichern(zeile){
  }
 }
 
+// v3.10: Der Streifen oben nutzt data-mw-aktion, die Karte unten die
+// bisherigen Ids. Beide landen in derselben Funktion - es gibt keinen
+// zweiten Weg fuer denselben Schritt.
+const MW_AKTION_FN={freigeben:()=>mwFreigeben(),zuweisen:()=>mwZuweisenOeffnen(),
+ geruestet:()=>mwGeruestet(),montiert:()=>mwMontiert(),abschliessen:()=>mwAbschliessen()};
+
 document.addEventListener("click",e=>{
+ const a=e.target&&e.target.closest?e.target.closest("[data-mw-aktion]"):null;
+ if(a){const f=MW_AKTION_FN[a.dataset.mwAktion]; if(f){f();return}}
  const t=e.target;
  if(!t||!t.id)return;
  if(t.id==="mwFreigeben")mwFreigeben();
@@ -327,8 +556,10 @@ document.addEventListener("click",e=>{
  else if(t.id==="mwMontiert")mwMontiert();
  else if(t.id==="mwAbschliessen")mwAbschliessen();
  else if(t.id==="mwZuweisenOeffnen")mwZuweisenOeffnen();
- else if(t.id==="mwKorrigieren")mwKorrigieren();
+ else if(t.id==="mwKorrigieren")mwKorrigierenOeffnen();
 });
 
 $("mwZuweisenSpeichern").onclick=mwZuweisenSpeichern;
 $("mwZuweisenAbbrechen").onclick=()=>{$("mwZuweisenModal").hidden=true};
+$("mwKorrigierenSpeichern").onclick=mwKorrigierenSpeichern;
+$("mwKorrigierenAbbrechen").onclick=()=>{$("mwKorrigierenModal").hidden=true};

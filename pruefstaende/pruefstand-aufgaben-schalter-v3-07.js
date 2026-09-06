@@ -76,7 +76,9 @@ const stand=async(page)=>page.evaluate(()=>{
   kopfTag:kopf?kopf.tagName:null,
   // innerText liefert bei verstecktem Inhalt "" - deshalb zaehlen wir die
   // Elemente und lesen den Text nur im offenen Zustand.
-  anzahlKarten:k.querySelectorAll("#aufgabenListe .aufgabe").length};
+  anzahlKarten:k.querySelectorAll("#aufgabenListe .aufgabe").length,
+  jetztSichtbar:!$("aufgabenJetzt").hidden&&$("aufgabenJetzt").getBoundingClientRect().height>0,
+  jetztText:($("aufgabenJetzt").innerText||"").replace(/\s+/g," ").trim()};
 });
 
 const laden=async(page,wer,rolle)=>{
@@ -113,7 +115,12 @@ const laden=async(page,wer,rolle)=>{
  p(!s.hidden&&s.kartenDisplay!=="none","die Karte ist sichtbar",s);
  p(s.anzahlKarten===3,"drei Aufgaben sind geladen",s);
  p(!s.offen&&s.bodyDisplay==="none","zugeklappt: die Liste ist nicht zu sehen",s);
- p(s.hoehe>0&&s.hoehe<=72,"zugeklappt braucht die Karte hoechstens eine Zeile",s);
+ // v3.10: Zugeklappt steht jetzt auch die eine Aufgabe da, die dran ist -
+ // eine kompakte Zeile, nicht die volle Karte. Gemessen: Kopfzeile plus
+ // diese eine Zeile. Die volle Liste (drei Aufgaben) war 420 px hoch.
+ p(s.hoehe>0&&s.hoehe<=140,"zugeklappt: Kopfzeile plus die eine Aufgabe, die dran ist",s);
+ p(s.jetztSichtbar&&/Musterstrasse|Hauptstrasse/.test(s.jetztText),
+   "zugeklappt steht die dringendste Aufgabe mit Adresse da",s);
  p(/3 offene Aufgaben/.test(s.titel),"die Zeile nennt die Anzahl",s.titel);
  p(s.dringendRot&&/2 dringend/.test(s.dringendRot.text),"und wie viele davon jetzt dran sind",s.dringendRot);
  p(s.dringendRot&&s.dringendRot.r>s.dringendRot.g+40&&s.dringendRot.r>s.dringendRot.b+40,
@@ -216,7 +223,8 @@ const laden=async(page,wer,rolle)=>{
  p(!(await stand(page)).hidden,"eingeschaltet: die Aufgabenkarte ist wieder da");
  w=await wf();
  p(!w.hidden&&/Arbeitsstatus/i.test(w.text),"eingeschaltet: die Karte 'Arbeitsstatus' ebenfalls",w);
- p(/Freigegeben/.test(w.badge),"und das Statusabzeichen auch",w);
+ // v3.10: In der Liste steht der naechste Schritt statt des Status.
+ p(/Zuweisen/.test(w.badge),"und der naechste Schritt in der Projektliste auch",w);
 
  // Speichern: was wirklich zur Datenbank geht.
  const sp=await page.evaluate(async()=>{

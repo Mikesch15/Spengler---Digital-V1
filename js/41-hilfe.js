@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.09.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.10.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -43,6 +43,10 @@ und ihren Zuweisungen.</p>
 freigegeben.</li>
 <li><b>Erneut freigeben</b> – sie wurde nach der Freigabe geändert, die
 Freigabe ist verfallen und die eingeteilten Leute warten.</li>
+<li><b>Monteur zuweisen</b> – das Material ist gerüstet, aber es ist noch
+niemand für die Montage eingeteilt.</li>
+<li><b>Abschliessen</b> – die Arbeit ist montiert und muss zum Schluss noch
+abgeschlossen werden.</li>
 <li><b>Rüster/Monteur zuweisen</b> – sie ist freigegeben, aber es ist noch
 niemand eingeteilt.</li>
 <li><b>Zu rüsten</b> – du bist als Rüster eingeteilt.</li>
@@ -231,10 +235,16 @@ und gerüstet werden. Es wird nichts überschrieben: Masse, Fotos, Skizzen und
 der Ersteller bleiben unverändert.</p>
 <p>Die Zuordnung steht im Änderungsverlauf der Massaufnahme.</p>`},
 "workflow":{titel:"Arbeitsstatus",text:`
-<p>Der Weg einer Massaufnahme von der Erfassung bis zur Montage:</p>
-<ul><li><b>In Bearbeitung</b> → <b>Freigegeben</b> → <b>Zu rüsten</b> →
-<b>Gerüstet</b> → <b>Zu montieren</b> → <b>Montiert</b> →
-<b>Abgeschlossen</b></li></ul>
+<p>Der Weg einer Massaufnahme in fünf Stationen – die Leiste oben zeigt, wo
+sie gerade steht:</p>
+<ul><li><b>Aufgenommen</b> → <b>Freigegeben</b> → <b>Gerüstet</b> →
+<b>Montiert</b> → <b>Abschluss</b></li></ul>
+<p>Ein Häkchen heisst erledigt, der ausgefüllte Punkt ist der Schritt, der
+gerade dran ist, ein Strich heisst <i>übersprungen</i> – das passiert bei
+„Gerüstet", wenn niemand zum Rüsten eingeteilt wurde.</p>
+<p>Direkt darunter steht in einem Satz, <b>was als Nächstes zu tun ist und
+wer dran ist</b>. Derselbe Satz steht auch ganz oben im Formular, damit du
+ihn in jedem Register siehst.</p>
 <p><b>Freigeben</b> kann nur die Person, welche die Massaufnahme aufgenommen
 hat. Freigegeben heisst <i>nicht</i>, dass ein Meister die Masse fachlich
 geprüft hat – es heisst: der Aufnehmer bestätigt, dass die Aufnahme aus
@@ -249,6 +259,16 @@ freigegeben werden. So baut niemand nach einem Stand, den es nicht mehr gibt.
 Rüster und Monteur bleiben eingeteilt und sind nach der erneuten Freigabe
 sofort wieder dran. Bezeichnung, Notiz, Datum und ein <i>zusätzliches</i>
 Foto ändern nichts an der Freigabe.</p>`},
+
+"korrigieren":{titel:"Arbeitsstatus korrigieren",text:`
+<p>Nur für den Fall, dass ein Schritt versehentlich bestätigt wurde – etwa
+wenn jemand „Gerüstet" gedrückt hat, bevor das Material wirklich bereit war.
+Der Status lässt sich damit auf einen beliebigen Punkt der Kette
+zurücksetzen oder vorsetzen.</p>
+<p>Das darf <b>nur ein Firmenadministrator</b>, und die Datenbank prüft das
+noch einmal selbst. Die Korrektur steht mit Person und Zeitpunkt im
+Änderungsverlauf – sie verschwindet nicht spurlos.</p>
+<p>Zuweisungen bleiben dabei erhalten.</p>`},
 
 "zuweisen":{titel:"Rüster und Monteur",text:`
 <p>Nach der Freigabe teilst du ein, wer <b>rüstet</b> und wer <b>montiert</b>.

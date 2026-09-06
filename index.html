@@ -86,6 +86,9 @@
 <button type="button" class="aufgaben-toggle" id="aufgabenKopf" aria-expanded="false" aria-controls="aufgabenListe"><span id="aufgabenTitel">🔔 Meine offenen Aufgaben</span><span class="aufgaben-chevron" aria-hidden="true">›</span></button>
 <button type="button" class="hilfe-knopf no-print" data-hilfe="aufgaben">i</button>
 </div>
+<!-- v3.10: Die eine Aufgabe, die jetzt dran ist, steht auch im zugeklappten
+     Zustand da - sonst sieht man auf der Startseite nur eine Zahl. -->
+<div id="aufgabenJetzt" class="aufgaben-jetzt" hidden></div>
 <div id="aufgabenListe" class="aufgaben-body"></div>
 </div>
 <div class="card">
@@ -116,7 +119,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.09</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.10</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -344,6 +347,10 @@
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="material" id="cockpitStandMaterialZeile" hidden><span class="arbeitsstand-marke" id="cockpitMaterialMark">○</span><span class="arbeitsstand-name">🧱 Material</span><span class="arbeitsstand-wert" id="cockpitMaterialStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="zuschnitt" id="cockpitStandZuschnittZeile" hidden><span class="arbeitsstand-marke" id="cockpitZuschnittMark">○</span><span class="arbeitsstand-name">✂️ Zuschnitt</span><span class="arbeitsstand-wert" id="cockpitZuschnittStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="reservierung" id="cockpitStandReservierungZeile" hidden><span class="arbeitsstand-marke" id="cockpitReservierungMark">○</span><span class="arbeitsstand-name">📦 Reservierung</span><span class="arbeitsstand-wert" id="cockpitReservierungStand">–</span></button>
+<!-- v3.10: Was im Projekt als Naechstes ansteht. Kommt aus den ohnehin
+     geladenen Massaufnahmen (projectMeasurementsCache), keine zusaetzliche
+     Abfrage; nur sichtbar, wenn der Arbeitsablauf eingeschaltet ist. -->
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="meas" id="cockpitStandSchrittZeile" hidden><span class="arbeitsstand-marke" id="cockpitSchrittMark">▸</span><span class="arbeitsstand-name">🔁 Nächster Schritt</span><span class="arbeitsstand-wert" id="cockpitSchrittStand">–</span></button>
 <div class="arbeitsstand-zeile arbeitsstand-aktivitaet"><span class="arbeitsstand-marke">🕘</span><span class="arbeitsstand-name">Letzte Aktivität</span><span class="arbeitsstand-wert" id="cockpitStandAktivitaet">–</span></div>
 </div>
 
@@ -436,15 +443,42 @@
 <div class="card">
 <h2>👥 Rüster und Monteur zuweisen <button type="button" class="hilfe-knopf no-print" data-hilfe="zuweisen">i</button></h2>
 <div class="small" id="mwZuweisenTitel" style="color:var(--muted);margin-bottom:8px"></div>
+<!-- v3.10: Der erklaerende Satz steht vor den Feldern, nicht dahinter. -->
+<div class="info">Wer rüstet das Material, wer montiert? Ohne Zuweisung bleibt
+die Massaufnahme liegen. Beides darf dieselbe Person übernehmen, und wird kein
+Rüster eingeteilt, geht es direkt zur Montage.</div>
 <div class="grid">
 <div class="wide"><label>Rüsten</label><select id="mwZuweisenRuester"></select></div>
 <div class="wide"><label>Montage</label><select id="mwZuweisenMonteur"></select></div>
 </div>
-<div class="info">Eine Person darf beides übernehmen. „– niemand –“ nimmt die Zuweisung wieder zurück.</div>
+<div class="small" style="color:var(--muted)">„– niemand –“ nimmt eine Zuweisung wieder zurück.</div>
 <div class="small mw-fehler" id="mwZuweisenFehler" hidden></div>
 <div class="bar">
 <button id="mwZuweisenSpeichern" class="green">✓ Zuweisung speichern</button>
 <button id="mwZuweisenAbbrechen" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- v3.10 Arbeitsstatus korrigieren. Ersetzt das prompt() mit der
+     Nummernliste aus v3.05 - auf einem Tablet war das unbedienbar. Erlaubt
+     bleibt es nur dem Administrator; geprueft wird das serverseitig in
+     measurement_workflow_korrigieren(). -->
+<div id="mwKorrigierenModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>↩️ Arbeitsstatus korrigieren <button type="button" class="hilfe-knopf no-print" data-hilfe="korrigieren">i</button></h2>
+<div class="small" id="mwKorrigierenTitel" style="color:var(--muted);margin-bottom:8px"></div>
+<div class="info">Nur für den Fall, dass ein Schritt versehentlich bestätigt
+wurde. Der Verlauf hält die Korrektur fest.</div>
+<div class="grid">
+<div class="wide"><label>Status</label><select id="mwKorrigierenStatus"></select></div>
+</div>
+<div class="small mw-fehler" id="mwKorrigierenFehler" hidden></div>
+<div class="bar">
+<button id="mwKorrigierenSpeichern" class="green">✓ Status setzen</button>
+<button id="mwKorrigierenAbbrechen" class="gray">Abbrechen</button>
 </div>
 </div>
 </div>
@@ -788,6 +822,11 @@ Diese Aktion löscht unwiderruflich:
 <div class="card">
 <h2>📐 Neue Massaufnahme</h2>
 <div id="measMetaInfo" class="small" style="color:var(--muted);margin-bottom:6px" hidden></div>
+<!-- v3.10 Naechster Schritt. Steht ausserhalb der Register und ist deshalb in
+     jedem Register sichtbar. Gezeichnet von js/44-workflow.js aus derselben
+     Quelle wie die Karte am Ende (mwNaechsterSchritt) - eine Antwort, zwei
+     Stellen. Erscheint erst, wenn die Massaufnahme gespeichert ist. -->
+<div id="measNaechsterSchritt" class="mw-streifen" hidden></div>
 <button type="button" id="measVerlaufToggle" class="gray" style="margin-bottom:8px" hidden>🕒 Verlauf anzeigen</button>
 <div id="measVerlaufBody" class="report-list"></div>
 <div class="grid" style="margin-bottom:8px">
@@ -1435,7 +1474,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.09.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 45 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.10.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 51 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -1967,7 +2006,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.09.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.10.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

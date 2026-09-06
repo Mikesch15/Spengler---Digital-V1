@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.09";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.10";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.09<br>
+  Version 3.10<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -124,9 +124,10 @@ Anmelden wieder selbst eines.</div>
 <p>Über den Knöpfen erscheint die Karte <strong>🔔 Meine offenen Aufgaben</strong>,
 sobald für dich persönlich etwas ansteht – eine eigene Massaufnahme freigeben, einen
 Auftrag rüsten oder eine Montage bestätigen. Sie ist <strong>zugeklappt</strong> und
-braucht dann eine Zeile: sie nennt, wie viele Aufgaben offen sind und – rot – wie viele
-davon jetzt dran sind. Ein Tippen darauf klappt die Liste auf. Hast du nichts offen, ist
-die Karte gar nicht da. Mehr dazu in Abschnitt 9.</p>
+bleibt schmal: sie nennt, wie viele Aufgaben offen sind, wie viele davon – rot – jetzt
+dran sind, und zeigt gleich <strong>die eine Aufgabe, die als Nächstes ansteht</strong>,
+mit Adresse und Knopf. Ein Tippen darauf klappt die ganze Liste auf. Hast du nichts
+offen, ist die Karte gar nicht da. Mehr dazu in Abschnitt 9.</p>
 <figure><img src="bilder/34-aufgaben-zu.png"><figcaption>Zugeklappt braucht die Aufgabenkarte eine Zeile. Ein Tippen öffnet die Liste.</figcaption></figure>
 <p>Oben rechts steht, wer angemeldet ist, daneben <span class="tasten">🔓 Abmelden</span>.
 Unten steht die Programmversion – die ist wichtig, wenn du einen Fehler meldest.</p>
@@ -277,6 +278,30 @@ bleibt unverändert.</p>
 <h2 class="seite">9 · Freigeben, Rüsten, Montieren</h2>
 <p>Eine fertig erfasste Massaufnahme geht anschliessend ihren Weg durch die Werkstatt.
 Die App hält fest, wer welchen Schritt gemacht hat und wann.</p>
+
+<h3>Was ist der nächste Schritt?</h3>
+<p>Das steht ganz oben in der Massaufnahme, in <strong>jedem</strong> Register – man muss
+also nicht nach unten scrollen, um es zu sehen. Der Streifen sagt immer beides: welcher
+Schritt dran ist und <strong>wer ihn machen muss</strong>. Bist du selbst dran, steht der
+Knopf gleich daneben.</p>
+<figure><img src="bilder/35-schritt.png"><figcaption>Der Streifen ganz oben: der nächste Schritt, wer dran ist, und der Knopf dazu.</figcaption></figure>
+<p>Dieselbe Angabe steht auch in der Massaufnahme-Liste des Projekt-Cockpits
+(<em>▸ Rüsten – Bruno Muster</em>), im Arbeitsstand des Projekts (<em>2 × Freigeben,
+1 × Rüsten</em>) und in der Aufgabenliste auf dem Startbildschirm. Es ist überall
+dieselbe Antwort.</p>
+
+<h3>Die fünf Stationen</h3>
+<p>Im Abschnitt <strong>🔁 Arbeitsstatus</strong> am Ende der Massaufnahme zeigt eine
+Leiste, wo sie steht:</p>
+<table>
+<tr><th>Zeichen</th><th>Was es heisst</th></tr>
+<tr><td>✓</td><td>erledigt</td></tr>
+<tr><td>▸</td><td>das ist gerade dran</td></tr>
+<tr><td>○</td><td>kommt noch</td></tr>
+<tr><td>–</td><td>übersprungen – so steht „Gerüstet“ da, wenn niemand zum Rüsten eingeteilt wurde</td></tr>
+</table>
+<p>Die Stationen heissen <strong>Aufgenommen · Freigegeben · Gerüstet · Montiert ·
+Abschluss</strong>. Jede beantwortet eine einfache Frage: ist das passiert oder nicht.</p>
 <table>
 <tr><th>Status</th><th>Was er heisst</th></tr>
 <tr><td>In Bearbeitung</td><td>Die Aufnahme ist erfasst, aber noch nicht freigegeben.</td></tr>
@@ -301,9 +326,13 @@ Meister die Masse fachlich geprüft hat. Es heisst: der Aufnehmer bestätigt, da
 Aufnahme aus seiner Sicht vollständig aufgenommen und kontrolliert ist.</div>
 
 <h3>Rüster und Monteur einteilen</h3>
-<p>Nach der Freigabe erscheint <span class="tasten">👥 Rüster und Monteur zuweisen</span>.
-Beides ist freiwillig: du kannst nur einen Rüster, nur einen Monteur oder beide setzen.
-<span class="tasten">– niemand –</span> nimmt eine Einteilung wieder zurück.</p>
+<p><strong>Direkt nach der Freigabe geht der Einteilungs-Dialog von selbst auf</strong> –
+solange noch niemand eingeteilt ist. Freigeben allein bringt die Massaufnahme nämlich
+noch nicht weiter: ohne Rüster und ohne Monteur bleibt sie liegen.</p>
+<p>Beides ist freiwillig: du kannst nur einen Rüster, nur einen Monteur oder beide setzen.
+Wird kein Rüster eingeteilt, geht es direkt zur Montage.
+<span class="tasten">– niemand –</span> nimmt eine Einteilung wieder zurück. Später
+änderst du sie über <span class="tasten">👥 Rüster und Monteur ändern</span>.</p>
 <p>Aufnehmer, Rüster und Monteur sind getrennte Rollen – dieselbe Person darf mehrere
 davon übernehmen. Einteilen darf der Aufnehmer oder ein Administrator.</p>
 
@@ -315,10 +344,30 @@ eigenen Schritt bestätigen.</p>
 <figure><img src="bilder/32-aufgaben.png"><figcaption>Meine offenen Aufgaben: rot heisst „jetzt dran“, orange „weniger dringend“. Ein Tippen führt direkt zur richtigen Massaufnahme.</figcaption></figure>
 <p>Jede Aufgabe nennt die <strong>Adresse der Baustelle</strong> und die Art der
 Massaufnahme – dieselbe Bezeichnung wie überall sonst in der App.</p>
-<p>Die Karte ist zugeklappt und zeigt nur die Zeile mit der Anzahl; ein Tippen öffnet
-die Liste, ein zweites schliesst sie wieder. Ob sie beim Start offen oder zu ist,
-stellst du unter <strong>Einstellungen → Allgemein → Anzeige</strong> ein – das gilt
-nur für dieses Gerät, jeder Mitarbeiter entscheidet für sich.</p>
+<p>Die Karte ist zugeklappt und zeigt dann die Anzahl <strong>und die eine Aufgabe, die
+jetzt dran ist</strong> – mit Adresse und Knopf. Ein Tippen öffnet die ganze Liste, ein
+zweites schliesst sie wieder. Ob sie beim Start offen oder zu ist, stellst du unter
+<strong>Einstellungen → Allgemein → Anzeige</strong> ein – das gilt nur für dieses Gerät,
+jeder Mitarbeiter entscheidet für sich.</p>
+<p>In der Liste erscheint <strong>jeder</strong> Schritt der Kette, der auf dich wartet:</p>
+<table>
+<tr><th>Aufgabe</th><th>Wann sie erscheint</th></tr>
+<tr><td>Massaufnahme freigeben</td><td>deine eigene Aufnahme ist noch nicht freigegeben</td></tr>
+<tr><td>Erneut freigeben</td><td>sie wurde nach der Freigabe geändert</td></tr>
+<tr><td>Rüster/Monteur zuweisen</td><td>freigegeben, aber noch niemand eingeteilt</td></tr>
+<tr><td>Zu rüsten</td><td>du bist als Rüster eingeteilt</td></tr>
+<tr><td>Monteur zuweisen</td><td>gerüstet, aber noch kein Monteur eingeteilt</td></tr>
+<tr><td>Zu montieren</td><td>du bist als Monteur eingeteilt</td></tr>
+<tr><td>Abschliessen</td><td>montiert – jetzt fehlt nur noch der Abschluss</td></tr>
+</table>
+
+<h3>Wenn ein Schritt versehentlich bestätigt wurde</h3>
+<p>Ein <strong>Administrator</strong> setzt den Arbeitsstatus mit
+<span class="tasten">↩️ Status korrigieren</span> auf einen beliebigen Punkt der Kette
+zurück oder vor. Das ist für den Fall gedacht, dass jemand „Gerüstet“ gedrückt hat,
+bevor das Material wirklich bereit war.</p>
+<div class="hin">Die Korrektur steht mit Person und Zeitpunkt im Änderungsverlauf –
+sie verschwindet nicht spurlos. Einteilungen bleiben dabei erhalten.</div>
 
 <h3>Wenn die Firma ohne diesen Ablauf arbeitet</h3>
 <p>Wo dieselbe Person misst, rüstet und montiert, ist der Ablauf unnötiger Aufwand. Ein
@@ -718,7 +767,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.09</strong>, Stand 6. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.10</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

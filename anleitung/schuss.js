@@ -242,6 +242,8 @@ const liste=[];
   const m=window.__demo.measurements.find(x=>x.id===12);
   openMeasurement(m);
  });
+ // v3.10: der Streifen ganz oben - er beantwortet die Frage "was jetzt?"
+ await schuss("35-schritt","#measNaechsterSchritt",{warte:400,breite:760});
  await schuss("31-workflow","#measWorkflowBereich",{warte:500,breite:760});
  await page.evaluate(()=>{$("measurementEditModal").hidden=true;$("startScreen").hidden=false});
  await page.evaluate(()=>{

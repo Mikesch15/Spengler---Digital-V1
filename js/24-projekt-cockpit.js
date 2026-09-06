@@ -192,6 +192,38 @@ function cockpitZeigeAnzahl(key,n){
  $(b.count).textContent=unbekannt?"?":String(n);
  $(b.mark).textContent =unbekannt?"?":(n>0?"✓":"○");
  $(b.stand).textContent=unbekannt?"?":(n>0?String(n):b.leer);
+ // v3.10: Sobald die Massaufnahmen geladen sind, steht auch da, was im
+ // Projekt als Naechstes ansteht.
+ if(key==="meas")cockpitSchrittStand(unbekannt?null:n);
+}
+
+// v3.10 Was im Projekt als Naechstes zu tun ist. Gezaehlt wird ueber
+// mwSchrittSchluessel() aus js/44 - dieselbe Quelle wie das Formular und die
+// Aufgabenzentrale. Die Massaufnahmen sind bereits geladen
+// (projectMeasurementsCache), es faellt keine zusaetzliche Abfrage an.
+function cockpitSchrittStand(anzahl){
+ const zeile=$("cockpitStandSchrittZeile"); if(!zeile)return;
+ const an=(typeof mwAktiv!=="function")||mwAktiv();
+ zeile.hidden=!an;
+ if(!an)return;
+ const wert=$("cockpitSchrittStand"), mark=$("cockpitSchrittMark");
+ if(anzahl===null){wert.textContent="?";mark.textContent="?";return}
+ const liste=(typeof projectMeasurementsCache!=="undefined"&&Array.isArray(projectMeasurementsCache))
+  ?projectMeasurementsCache:[];
+ if(!liste.length){wert.textContent="Noch keine Massaufnahme";mark.textContent="○";return}
+ const zaehler=new Map();
+ liste.forEach(m=>{
+  const k=(typeof mwSchrittSchluessel==="function")?mwSchrittSchluessel(m):"fertig";
+  if(k==="fertig")return;
+  const kurz=(typeof MW_SCHRITTE!=="undefined"&&MW_SCHRITTE[k])?MW_SCHRITTE[k].kurz:k;
+  zaehler.set(kurz,(zaehler.get(kurz)||0)+1);
+ });
+ if(!zaehler.size){wert.textContent="Alles erledigt";mark.textContent="✓";return}
+ // Hoechstens drei nennen - der Rest als Zahl, statt die Zeile zu sprengen.
+ const teile=[...zaehler.entries()].sort((a,b)=>b[1]-a[1]);
+ const text=teile.slice(0,3).map(([k,n])=>`${n} × ${k}`).join(", ")
+  +(teile.length>3?` +${teile.length-3} weitere`:"");
+ wert.textContent=text; mark.textContent="▸";
 }
 // Ladezustand: nichts behaupten, solange nichts bekannt ist.
 function cockpitStandLaedt(){
@@ -200,6 +232,8 @@ function cockpitStandLaedt(){
   $(b.count).textContent="…";$(b.mark).textContent="…";$(b.stand).textContent="…";
  });
  $("cockpitStandAktivitaet").textContent="…";
+ const sw=$("cockpitSchrittStand"), sm=$("cockpitSchrittMark");
+ if(sw){sw.textContent="…"} if(sm){sm.textContent="…"}
  cockpitModulStand();
 }
 

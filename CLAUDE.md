@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.09, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.10, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.09**
+- sichtbare App-Version: **3.10**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -18533,3 +18533,268 @@ Produktivdatenbank** auf; die Demodaten sind erfunden.
   verrechnet wird nicht (unverändert aus 109.11).
 - Die Übersicht filtert weiterhin auf höchstens 1000 geladenen Zeilen
   (unverändert aus 113).
+
+## 115. DER NÄCHSTE SCHRITT — VERSION 3.10
+
+Rückmeldung des Betriebs nach v3.09: *„der workflow muss einfacher und klarer
+sein, man weiss im moment nicht genau was der nächste schritt in der app ist
+den man machen muss."* Zutreffend – und zwar an sechs Stellen, die vor der
+Änderung im Code nachgelesen und im Browser gemessen wurden.
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung, keine
+neue Datenbankfunktion.** Der Ablauf selbst (v3.05–v3.07), der Verfall der
+Freigabe (v3.06) und die sieben Zustände bleiben unverändert – geändert ist
+ausschliesslich, was die App darüber sagt.
+
+### 115.1 Was tatsächlich fehlte
+
+| Nr | Befund |
+|---|---|
+| 1 | **Die Kette brach zweimal ab.** `js/45` fragte eigene Massaufnahmen nur mit `.in("workflow_status",["in_bearbeitung","freigegeben"])` ab. `geruestet` (Monteur fehlt) und `montiert` (Abschluss fehlt) erzeugten deshalb **gar keine Aufgabe** – beide blieben stumm liegen. |
+| 2 | **Sackgasse nach dem Freigeben.** Danach stand „freigegeben“ und nichts geschah. Der erklärende Satz dazu erschien nur, wenn **kein** Knopf da war – also nie für den, der ihn brauchte. |
+| 3 | **Der Status stand ganz unten**, hinter allen Registern, hinter Fotos, hinter den Fassungen. |
+| 4 | **Der Status sagte nicht, was zu tun ist.** „Zu rüsten“ nennt weder die Handlung noch die Person. |
+| 5 | **Kein Überblick über die Kette** – sieben Zustände, nirgends als Ablauf dargestellt. |
+| 6 | **„Status korrigieren“ lief über `prompt()`** mit einer Nummernliste – auf einem Tablet unbedienbar. |
+
+### 115.2 Eine Quelle: `mwNaechsterSchritt()`
+
+Bis v3.09 leitete jede Stelle für sich ab, was als Nächstes dran ist – die
+`info`-Zeilen im Formular, die Aufgabenarten in js/45, das Badge in den
+Listen. Sie sagten Verschiedenes, und zwei Zustände sagten nichts.
+
+Jetzt beantwortet **eine** Funktion in js/44 die Frage für jede Massaufnahme:
+welcher Schritt, wer ist dran, darf ich ihn auslösen, wie dringend. Zwei
+Zwischenschritte haben dabei **keinen eigenen Datenbankzustand** und sind
+trotzdem echte Arbeit – genau sie gingen verloren:
+
+    freigegeben ohne Rüster/Monteur  ->  jemanden zuweisen
+    geruestet   ohne Monteur         ->  Monteur zuweisen
+
+Der Satz nennt **immer** die Person („Bruno Ruester rüstet das Material.“,
+„Du gibst die Massaufnahme frei …“) – das ist die Angabe, die gefehlt hat.
+Der Prüfstand verlangt das ausdrücklich für jeden Zustand.
+
+Aus derselben Funktion speisen sich seither: der Streifen oben im Formular,
+die Karte am Ende, die Cockpit-Liste, der Projekt-Arbeitsstand, die
+Aufgabenzentrale und die Administrator-Gesamtübersicht.
+
+### 115.3 Der Streifen ganz oben
+
+`#measNaechsterSchritt` steht **ausserhalb** der Register und ist deshalb in
+jedem Register sichtbar – gemessen für alle Register einer Massaufnahme.
+Gemessen **77 px** auf 412 px Breite:
+
+```
+NÄCHSTER SCHRITT
+Freigeben · Du gibst die Massaufnahme frei, …      [✓ Freigeben]
+```
+
+Wer nicht dran ist, sieht denselben Satz **ohne** Knopf. Eine noch nicht
+gespeicherte Massaufnahme und eine Firma mit abgeschaltetem Ablauf zeigen ihn
+gar nicht.
+
+Der Knopf im Streifen (`data-mw-aktion`) und der in der Karte (die Ids seit
+v3.05) landen in **derselben** Funktion – es gibt keinen zweiten Weg für
+denselben Schritt.
+
+### 115.4 Fünf Stationen statt sieben Zustände
+
+    ✓ Aufgenommen — ✓ Freigegeben — ▸ Gerüstet — ○ Montiert — ○ Abschluss
+
+Jede Station ist eine Frage mit Ja/Nein und wird **ausschliesslich aus den
+echten Zeitstempeln** abgeleitet (`created_at`, `freigegeben_am`,
+`geruestet_am`, `montiert_am`, Status). Es wird nichts behauptet, was nicht in
+der Zeile steht.
+
+**„Gerüstet“ darf übersprungen werden** – der Auftrag zu v3.05 sagt
+ausdrücklich „und/oder“. Ohne Rüster steht dort ein Strich mit dem Tooltip
+„Ohne Rüster – direkt zur Montage“, **nicht** stillschweigend ein Häkchen.
+Der Prüfstand hat dafür eine eigene Gegenprobe.
+
+Die Leiste ist 36 px hoch und scrollt auf schmalen Geräten seitwärts – die
+Reihenfolge ist die Aussage, ein Umbruch würde sie zerstören.
+
+Das Status-Abzeichen („Zu rüsten“) bleibt darüber stehen: es ist die
+Vokabel, die auch die Werkstattansicht und die Administrator-Übersicht
+verwenden.
+
+### 115.5 Die Sackgasse ist zu
+
+Nach `measurement_freigeben` geht der Zuweisungs-Dialog **von selbst auf** –
+aber nur, wenn wirklich noch niemand eingeteilt ist und ich es darf. Ist
+bereits jemand zugewiesen (etwa nach einer verfallenen Freigabe, v3.06), geht
+er nicht auf; auch das ist geprüft.
+
+Der Dialog erklärt sich seither **vor** den Feldern statt danach: „Wer rüstet
+das Material, wer montiert? Ohne Zuweisung bleibt die Massaufnahme liegen.“
+
+### 115.6 In den Listen steht der Schritt, nicht der Status
+
+| | bis v3.09 | ab v3.10 |
+|---|---|---|
+| frisch erfasst | *(nichts)* | `▸ Freigeben – du` |
+| zu rüsten | `▸ Zu rüsten` | `▸ Rüsten – Bruno Ruester` |
+| montiert | `✓ Montiert` | `▸ Abschliessen – du` |
+| verfallen | `⚠️ Freigabe verfallen` | `⚠️ Erneut freigeben – Anna` *(Grund im Tooltip)* |
+| abgeschlossen | `✓ Abgeschlossen` | unverändert |
+
+Der Grund für die v3.06-Regel („In Bearbeitung ist keine Meldung wert, sonst
+wäre eine verfallene Freigabe nicht von einer frisch erfassten zu
+unterscheiden“) ist damit weg: **beide sind jetzt unterscheidbar** – die eine
+heisst „Erneut freigeben“ und trägt ein Warnzeichen, die andere nicht. Der
+Prüfstand misst genau das.
+
+Ist niemand zuständig (bei „zuweisen“ der Normalfall), steht **nur** der
+Schritt – es wird keine Person erfunden.
+
+Neu auch im Projekt-Arbeitsstand: `▸ Nächster Schritt · 2 × Freigeben,
+1 × Rüsten`. Gerechnet aus dem ohnehin geladenen `projectMeasurementsCache` –
+**keine zusätzliche Abfrage**. Höchstens drei Arten werden genannt, der Rest
+als Zahl; „Alles erledigt“, wenn nichts offen ist; „?“ bei einem Ladefehler,
+statt einer erfundenen Null.
+
+### 115.7 Startseite: die eine Aufgabe, die jetzt dran ist
+
+v3.07 hatte die Karte auf **eine Zeile** zugeklappt, weil sie einen halben
+Bildschirm brauchte. Zugeklappt sah man seither nur eine Zahl – und damit
+nicht, was zu tun ist.
+
+Jetzt steht auch zugeklappt die dringendste Aufgabe da, als **kompakte
+Zeile** (Schritt, Adresse, Knopf) und nicht als volle Karte. Gemessen auf
+412 px: **108 px** zugeklappt gegen 300 px offen. Beim Aufklappen fällt die
+Zeile weg – dort steht sie ohnehin zuoberst in der Liste.
+
+### 115.8 Status korrigieren als Dialog
+
+`prompt()` mit einer Nummernliste ist auf einem Tablet unbedienbar. Jetzt ein
+Auswahlfeld im Dialog, mit dem aktuellen Zustand vorgewählt, mit `z-index:700`
+vor dem Formular (dieselbe Falle wie beim Zuweisungs-Dialog in v3.05) und mit
+der Ablehnung der Datenbank im Dialog statt in einem `alert()`.
+
+Erlaubt bleibt es **nur** dem Administrator, und
+`measurement_workflow_korrigieren()` prüft das unverändert serverseitig – die
+Oberfläche ist reine Führung.
+
+### 115.9 Mitgefunden: die Modulzeilen aus v3.09 waren nicht wirklich versteckt
+
+`.arbeitsstand-zeile{display:flex}` ist eine Autorenregel und schlägt das
+`[hidden]{display:none}` des Browsers – dieselbe Falle wie `.bar` (Abschnitt
+59), `table{min-width:1000px}` (60.5) und die Eingabefelder (72.5). Die drei
+in v3.09 eingeführten Modulzeilen des Arbeitsstands (Material, Zuschnitt,
+Reservierung) setzen `z.hidden=!an` und wären damit **auch bei
+ausgeschaltetem Modul sichtbar** gewesen – und die Module sind bei allen
+Firmen aus.
+
+Eine Zeile `.arbeitsstand-zeile[hidden]{display:none}` schliesst das für die
+drei alten und die neue Zeile zugleich. Gemessen, nicht angenommen; die
+Gegenprobe (Regel entfernt) schlägt fehl.
+
+**Merksatz, viertes Mal:** `css/01-basis.css` setzt in den ersten Zeilen sehr
+breite Grundregeln. Jede neue Komponente, die ein `hidden`-Element mit einer
+eigenen `display`-Regel versieht, braucht die `[hidden]`-Regel dazu.
+
+### 115.10 Geprüft
+
+- **`pruefstaende/pruefstand-naechster-schritt-v3-10.js` – 68/68**, echtes
+  Chromium gegen die echte `index.html`: die Antwort für alle acht Zustände
+  (inklusive der Prüfung, dass **jeder** Satz eine Person nennt), der Streifen
+  in **jedem** Register, die fünf Stationen samt übersprungener, die Zuweisung
+  nach der Freigabe, die vollständige Kette in der Aufgabenzentrale, die
+  zugeklappte Startseite, Listen und Arbeitsstand, der Korrektur-Dialog samt
+  Ablehnung der Datenbank, vier Bildschirmbreiten, keine JavaScript-Fehler.
+- **Zehn Gegenproben**, jede baut einen echten Fehler ein, jede wirft den
+  Prüfstand um, **keine bricht ihn ab**:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | die zwei Zustände wieder aus der Aufgaben-Abfrage | 65/69 |
+  | nach dem Freigeben passiert wieder nichts | 67/68 |
+  | der Streifen wird nicht gezeichnet | 58/69 |
+  | übersprungene Station gilt als erledigt | 67/68 |
+  | die Liste zeigt wieder den Status | 65/68 |
+  | zugeklappt steht wieder nur die Zahl da | 65/68 |
+  | Status korrigieren wieder über `prompt()` | 62/70 |
+  | Rüster/Monteur ignoriert, immer der Aufnehmer | 64/68 |
+  | die Cockpit-Zeile ignoriert den Firmenschalter | 67/68 |
+  | `.arbeitsstand-zeile[hidden]` entfernt | 66/68 |
+
+- **Volle Regression grün** – alle **38** Prüfstände im Repo, einzeln
+  bestätigt. Ein Lauf mit 38 gleichzeitigen Browsern liess
+  `pruefstand-werkstatt-v3-09` einmal in einen 4000-ms-Klick-Timeout laufen;
+  einzeln zweimal wiederholt: **53/53**. Das ist eine Eigenheit des
+  Parallellaufs, kein Fehler im Code.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.09-Stand gerendert, mit angeglichener Versionsnummer – **DOM, Text und
+  Bild byteidentisch** (Bild `349aec2236bbc995`, 59 293 Bytes, Höhe 721 px),
+  bestätigt durch einen Kontrolllauf desselben Codes. Ein erster Lauf war
+  über die Minutengrenze gefallen (die Fusszeile enthält die Uhrzeit,
+  Abschnitt 100.6) und zeigte genau diesen einen Unterschied.
+  `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und `css/03-druck.css`
+  sind nicht im Diff.
+- `node --check` über alle 55 `js/*.js`, `sw.js` und alle 38 Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs; alle 55 js-Dateien in `index.html`
+  **und** in der Service-Worker-Liste; Version 3.10 in `index.html` und
+  `sw.js` gleich; kein `data-hilfe` ohne Text.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+**Angepasste Erwartungen** in bestehenden Prüfständen, alle **überholt**,
+keine davon ein Codefehler: der Wortlaut zweier Sätze (`workflow-v3-05`), die
+Höhe der zugeklappten Aufgabenkarte und die Anzeige in der Projektliste
+(`aufgaben-schalter-v3-07`). `workflow-v3-05` prüft jetzt zusätzlich, dass die
+Zuweisung nach der Freigabe von selbst aufgeht.
+
+### 115.11 Anleitung
+
+Nach Regel 108.1 mitgeführt: Kapitel 9 um „Was ist der nächste Schritt?“ und
+„Die fünf Stationen“ erweitert, die automatische Zuweisung und der
+Korrektur-Dialog beschrieben, die vollständige Aufgabenliste als Tabelle,
+Kapitel 3 auf die neue zugeklappte Karte nachgezogen. Ein neues Bild
+(`35-schritt`), alle 42 neu erzeugt, PDF v3.10 mit **51 Seiten** (vorher 49),
+keine leere Seite. Die fünf Verweise nachgezogen, das alte PDF gelöscht.
+`pruefstand-hilfe-v3-03` (68/68) erzwingt das mechanisch.
+
+### 115.12 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/44-workflow.js` | `mwNaechsterSchritt` und die Tabellen dazu, Fortschrittsleiste, Streifen, Karte neu, Zuweisung nach der Freigabe, Korrektur-Dialog |
+| `js/45-aufgaben.js` | Arten aus der gemeinsamen Quelle, `geruestet`/`montiert` in der Abfrage, kompakte „jetzt dran“-Zeile, zwei neue Aufgabenarten |
+| `js/24-projekt-cockpit.js` | `cockpitSchrittStand()` – was im Projekt ansteht |
+| `js/46-admin-uebersicht.js` | der nächste Schritt neben dem Status |
+| `js/41-hilfe.js` | `korrigieren` neu, `workflow` und `aufgaben` nachgeführt |
+| `index.html` | `#measNaechsterSchritt`, `#mwKorrigierenModal`, `#aufgabenJetzt`, Zeile im Arbeitsstand, Zuweisungsdialog erklärt, Version 3.10 |
+| `css/01-basis.css` | Leiste, Streifen, Schritt-Satz, kompakte Aufgabenzeile, `.arbeitsstand-zeile[hidden]` (115.9) |
+| `sw.js` | Cache-Version 3.10 |
+| `pruefstaende/pruefstand-naechster-schritt-v3-10.js` | **neu** |
+| `anleitung/*` | Kapitel 3 und 9, neues Bild, PDF v3.10 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie sämtliche Fachdateien `js/11`–`js/40`
+und `js/47`–`js/55` – keine Berechnung, keine Stückliste, kein Zuschnitt,
+keine Abwicklung berührt.
+
+### 115.13 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert.
+- Der Streifen kostet auf jeder gespeicherten Massaufnahme **77 px** ganz
+  oben. Das ist der Preis dafür, dass die Frage „was jetzt?“ ohne Scrollen
+  beantwortet ist – falls er im Alltag stört, wäre eine einzeilige Fassung
+  ohne den erklärenden Satz die naheliegende Verkleinerung.
+- Die Freigabe-Aufgabe zeigt weiterhin **jede** eigene unfreigegebene
+  Massaufnahme, begrenzt auf 25 (unverändert aus 110.10) – die App kennt
+  keinen Begriff von „fertig erfasst“.
+- Ein Administrator sieht „zuweisen“ weiterhin **nicht** als persönliche
+  Aufgabe (nur der Aufnehmer). Dafür gibt es die
+  Administrator-Gesamtübersicht aus v3.08, die seit v3.10 ebenfalls den
+  nächsten Schritt nennt.
+- `montiert` und `abgeschlossen` bleiben zwei Zustände (unverändert aus
+  110.10). Wird im Betrieb nie abgeschlossen, kann `montiert` später der
+  Endzustand werden.
+

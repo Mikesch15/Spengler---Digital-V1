@@ -42,8 +42,16 @@ function auStatusText(s){
  return (typeof mwStatusText==="function")?mwStatusText(s):(s||"");
 }
 function auBadge(z){
- if(z.freigabe_verfallen)return `<span class="mw-badge mw-rot">⚠️ Freigabe verfallen</span>`;
- return (typeof mwBadge==="function")?mwBadge(z.workflow_status):esc(z.workflow_status||"");
+ const badge=z.freigabe_verfallen
+  ? `<span class="mw-badge mw-rot">⚠️ Freigabe verfallen</span>`
+  : ((typeof mwBadge==="function")?mwBadge(z.workflow_status):esc(z.workflow_status||""));
+ // v3.10: Der Status allein sagt dem Administrator nicht, worauf die
+ // Massaufnahme wartet. Der naechste Schritt kommt aus derselben Quelle wie
+ // ueberall sonst (mwNaechsterSchritt in js/44).
+ if(typeof mwSchrittKurzText!=="function"||typeof mwNaechsterSchritt!=="function")return badge;
+ const n=mwNaechsterSchritt(z);
+ if(n.schluessel==="fertig")return badge;
+ return `${badge} <span class="mw-next mw-${n.farbe}">▸ ${esc(mwSchrittKurzText(z))}</span>`;
 }
 function auPerson(id){
  if(!id)return "";

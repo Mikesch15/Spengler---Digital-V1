@@ -98,7 +98,7 @@ const box=(page)=>page.evaluate(()=>{
  await oeffne(page,M({}));
  s=await box(page);
  p(!s.knoepfe.includes("mwFreigeben"),"ein anderer Mitarbeiter sieht den Freigabe-Knopf NICHT",s.knoepfe);
- p(/nur die Person/i.test(s.text),"und erfaehrt, warum",s.text.slice(0,160));
+ p(/Anna Aufnehmer muss die Massaufnahme freigeben/.test(s.text),"und erfaehrt, warum",s.text.slice(0,160));
 
  // Auch ein Administrator darf nicht freigeben - das ist Sache des Aufnehmers.
  await anmelden(page,D,"admin");
@@ -121,6 +121,12 @@ const box=(page)=>page.evaluate(()=>{
  s=await box(page);
  p(/Freigegeben/.test(s.text),"der Status folgt der Antwort",s.text.slice(0,80));
  p(/freigegeben von/i.test(s.text)&&/Anna Aufnehmer/.test(s.text),"Freigeber und Zeitpunkt stehen da",s.text.slice(0,200));
+
+ // v3.10: Nach der Freigabe oeffnet sich der Zuweisungs-Dialog von selbst.
+ // Fuer den naechsten Abschnitt wieder schliessen.
+ p(await page.evaluate(()=>!$("mwZuweisenModal").hidden),
+   "nach der Freigabe geht die Zuweisung direkt auf (keine Sackgasse)");
+ await page.evaluate(()=>{$("mwZuweisenModal").hidden=true});
 
  // ---- B · Zuweisung -------------------------------------------------------
  console.log("\nB · Zuweisung");
@@ -175,7 +181,7 @@ const box=(page)=>page.evaluate(()=>{
  await oeffne(page,ZUR);
  s=await box(page);
  p(!s.knoepfe.includes("mwGeruestet"),"der Monteur sieht den Geruestet-Knopf nicht",s.knoepfe);
- p(/Wartet auf Bruno Ruester/.test(s.text),"stattdessen: auf wen gewartet wird",s.text.slice(0,200));
+ p(/Bruno Ruester rüstet das Material/.test(s.text),"stattdessen: auf wen gewartet wird",s.text.slice(0,240));
  await anmelden(page,B,"employee");
  await oeffne(page,ZUR);
  s=await box(page);
@@ -438,10 +444,14 @@ const box=(page)=>page.evaluate(()=>{
   verfallen:mwBadgeFuerListe({workflow_status:"in_bearbeitung",freigabe_verfallen:true}),
   frisch:mwBadgeFuerListe({workflow_status:"in_bearbeitung",freigabe_verfallen:false}),
   laufend:mwBadgeFuerListe({workflow_status:"zu_ruesten"})}));
- p(/verfallen/i.test(badges.verfallen)&&/mw-rot/.test(badges.verfallen),
+ p(/verfallen/i.test(badges.verfallen)&&/mw-rot/.test(badges.verfallen)&&/⚠️/.test(badges.verfallen),
    "in der Liste steht bei einer verfallenen Freigabe ein roter Hinweis",badges);
- p(badges.frisch==="","eine frisch erfasste bleibt in der Liste unmarkiert",badges);
- p(/Zu rüsten/.test(badges.laufend),"ein laufender Schritt wird weiterhin genannt",badges);
+ p(/Erneut freigeben/.test(badges.verfallen)&&/⚠️/.test(badges.verfallen)
+   &&/Freigeben/.test(badges.frisch)&&!/Erneut/.test(badges.frisch)&&!/⚠️/.test(badges.frisch),
+   "eine frisch erfasste ist von einer verfallenen zu unterscheiden",badges);
+ p(/Rüsten/.test(badges.laufend)&&!/Zu rüsten/.test(badges.laufend),
+   "die Liste nennt den naechsten Schritt, nicht den Status",badges);
+ p(/Rüsten/.test(badges.laufend),"ein laufender Schritt wird weiterhin genannt",badges);
  const q09=require("fs").readFileSync("js/09-projekte.js","utf8");
  p(/mwBadgeFuerListe\(m\)/.test(q09)&&!/mwBadge\(m\.workflow_status\)/.test(q09),
    "die Cockpit-Liste entscheidet das nicht selbst, sondern ueber js/44");
