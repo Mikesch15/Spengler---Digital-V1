@@ -326,6 +326,11 @@ const VORLAGEN=[
  console.log("\nE · Serie");
  await vorbereiten(page,{haupt:true,vorlagen:true,serien:true},VORLAGEN);
  await page.evaluate(()=>{$("projectCockpitModal").hidden=false;window.__ruf=[]});
+ // v3.11: die Cockpit-Abschnitte sind klappbar und starten zugeklappt.
+ // Fuer diesen Pruefstand wird alles aufgeklappt - eine ueberholte
+ // Erwartung, kein Codefehler; geprueft wird weiterhin dasselbe.
+ await page.evaluate(()=>{document.querySelectorAll("#projectCockpitModal .klapp:not(.open) .klapp-kopf[data-klapp]").forEach(k=>k.click())});
+ await page.waitForTimeout(120);
  p((await klick(page,"#cockpitSerie"))==="ok","Serien-Knopf im Cockpit bedienbar");
  await page.waitForTimeout(120);
  wahl=await page.evaluate(()=>({offen:!$("vorlageWahlModal").hidden,titel:$("vorlageWahlTitel").textContent,

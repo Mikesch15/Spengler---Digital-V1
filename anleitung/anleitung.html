@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.10";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.11";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.10<br>
+  Version 3.11<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -195,7 +195,21 @@ erledigt sei – aus einem fehlenden Datensatz folgt nicht, dass er nötig wäre
 Ein Klick auf eine Zeile springt zum passenden Bereich.</p>
 <p>Steht dort ein <strong>?</strong>, konnte dieser Bereich nicht geladen werden –
 das ist ehrlicher als eine falsche 0.</p>
-<figure><img src="bilder/05-cockpit-arbeit.png"><figcaption>Die vier Arbeitsbereiche. Jeder hat einen grossen Knopf zum Anlegen und darunter, was schon da ist.</figcaption></figure>
+<h3>Alles ist klappbar</h3>
+<p>Jeder Bereich ist ein Abschnitt, der sich auf- und zuklappen lässt, und startet
+<strong>zugeklappt</strong>. Die Anzahl steht rechts in der Überschrift – man sieht
+also auch zugeklappt, was vorhanden ist. Ein Tipp auf die Überschrift öffnet den
+Bereich, ein zweiter schliesst ihn wieder.</p>
+<figure><img src="bilder/36-cockpit-zu.png"><figcaption>Zugeklappt passt das ganze Projekt auf einen Bildschirm.</figcaption></figure>
+<p><strong>Das Gerät merkt sich, was offen war.</strong> Wer immer mit den
+Massaufnahmen arbeitet, findet diesen Bereich beim nächsten Projekt wieder offen –
+der zusätzliche Tipp fällt genau einmal an. Die Einstellung gilt nur für dieses
+Gerät, nicht für die ganze Firma.</p>
+<p><span class="tasten">⬇️ Alles aufklappen</span> öffnet alle Bereiche auf einmal;
+derselbe Knopf heisst dann <span class="tasten">⬆️ Alles zuklappen</span>.</p>
+<p>Der Weg zurück steht ganz unten <strong>ausserhalb</strong> der klappbaren
+Bereiche – er kann nie hinter einem zugeklappten Abschnitt verschwinden.</p>
+<figure><img src="bilder/05-cockpit-arbeit.png"><figcaption>Ein aufgeklappter Arbeitsbereich: grosser Knopf zum Anlegen, darunter, was schon da ist.</figcaption></figure>
 <table>
 <tr><th>Bereich</th><th>Inhalt</th></tr>
 <tr><td>📐 Massaufnahmen</td><td>Die zwölf Fachfunktionen (Abschnitt 7).</td></tr>
@@ -714,6 +728,16 @@ Zeilen, kein seitliches Scrollen.</p>
 </figure>
 <p>Auf dem Tablet ist die Erfassung am angenehmsten – die Registerleiste und die
 Zeichnungen haben dort genug Platz.</p>
+<h3>Die Zurück-Taste des Geräts</h3>
+<p>Die Zurück-Taste (bzw. die Wischgeste am Rand) führt <strong>einen Bildschirm
+zurück</strong> und schliesst nicht die App: aus einer Massaufnahme zurück ins
+Cockpit, von dort in die Projektübersicht, von dort auf den Startbildschirm.</p>
+<p>Sie nimmt dabei denselben Weg wie der Zurück-Knopf im Bild – aus einer
+Massaufnahme also zurück dorthin, wo sie geöffnet wurde.</p>
+<p>Erst wenn nichts mehr offen ist und der Startbildschirm dasteht, verlässt die
+Zurück-Taste die App. Das ist Absicht: von dort gibt es innerhalb der App nichts
+mehr, wohin sie zurückführen könnte.</p>
+
 <h3>Als App ablegen</h3>
 <ul>
 <li><strong>iPhone/iPad:</strong> Teilen → „Zum Home-Bildschirm“</li>
@@ -767,7 +791,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.10</strong>, Stand 6. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.11</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

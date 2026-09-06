@@ -119,7 +119,11 @@ const vorbereiten=async(page,module)=>{
   window.__ruf=[];
  },[AUFNAHMEN,module,RESTE]);
  await page.evaluate(()=>resvCockpitLaden(7));
- await page.waitForTimeout(60);
+ // v3.11: die Cockpit-Abschnitte sind klappbar und starten zugeklappt.
+ // Fuer diesen Pruefstand wird alles aufgeklappt - eine ueberholte
+ // Erwartung, kein Codefehler; geprueft wird weiterhin dasselbe.
+ await page.evaluate(()=>{document.querySelectorAll("#projectCockpitModal .klapp:not(.open) .klapp-kopf[data-klapp]").forEach(k=>k.click())});
+ await page.waitForTimeout(120);
 };
 
 const stand=page=>page.evaluate(()=>{
@@ -308,6 +312,7 @@ const stand=page=>page.evaluate(()=>{
    label:VERLAUF_ENTITY_LABELS.reservierung+"/"+VERLAUF_ENTITY_LABELS.reststueck
   };
  });
+
  p(/Benötigt/.test(verlauf.res)&&/Reserviert/.test(verlauf.res)&&!/benoetigt/.test(verlauf.res),
    "Reservierungsstatus auf Deutsch",{h:verlauf.res.slice(0,180)});
  p(/niemand/.test(verlauf.rest)&&/Musterstrasse 12/.test(verlauf.rest),

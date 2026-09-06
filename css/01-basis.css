@@ -198,6 +198,22 @@ html.dark .pstatus-storniert{color:#f08b80}
 .report-row.treffer{outline:2px solid var(--blue);outline-offset:1px;background:#fff}
 .cockpit-count{float:right;font-size:11px;font-weight:900;color:var(--blue);background:var(--blue-light);border-radius:999px;padding:1px 9px;min-width:20px;text-align:center}
 .cockpit-new{display:block;width:100%;min-height:44px;text-align:center;line-height:24px}
+/* Klappbare Abschnitte im Projekt-Cockpit (v3.11). Gleiche Bildsprache wie
+   die Einstellungen (.settings-section): Kopf antippbar, Winkel dreht sich.
+   Der Koerper wird ueber die Klasse .open geschaltet und NICHT ueber das
+   hidden-Attribut - eine eigene display-Regel wuerde [hidden] sonst
+   schlagen (CLAUDE.md 59/71.5/115.9). */
+.klapp-kopf{display:flex;align-items:center;gap:8px;cursor:pointer;min-height:34px;user-select:none}
+.klapp-kopf .cockpit-count{float:none;margin-left:auto}
+.klapp-kopf .hilfe-knopf{flex:0 0 auto}
+.klapp-chevron{flex:0 0 auto;margin-left:auto;font-size:18px;font-weight:900;color:var(--blue);transition:transform .15s}
+.klapp-kopf .cockpit-count~.klapp-chevron,.klapp-kopf .hilfe-knopf~.klapp-chevron{margin-left:0}
+.klapp.open>.klapp-kopf .klapp-chevron{transform:rotate(90deg)}
+.klapp:not(.open)>h2.klapp-kopf{margin-bottom:0;padding-bottom:0;border-bottom:0}
+.klapp-body{display:none}
+.klapp.open>.klapp-body{display:block}
+.arbeitsstand-titel.klapp-kopf{padding:9px 10px;min-height:36px}
+.arbeitsstand-titel.klapp-kopf .klapp-chevron{font-size:15px}
 label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-weight:800;font-size:12px;
  text-transform:none;letter-spacing:0}
 .verlauf-filters button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark)}

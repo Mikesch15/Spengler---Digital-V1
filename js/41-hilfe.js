@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.10.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.11.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -310,7 +310,17 @@ oder erledigt sei – aus einem fehlenden Datensatz folgt nicht, dass er nötig
 wäre.</p>
 <p>Steht dort ein <b>?</b>, konnte dieser Bereich nicht geladen werden. Das
 ist ehrlicher als eine falsche 0.</p>
-<p>Ein Klick auf eine Zeile springt zum passenden Bereich.</p>`},
+<p>Ein Klick auf eine Zeile springt zum passenden Bereich – und klappt ihn
+dabei auf.</p>
+<p><b>Alles ist klappbar.</b> Jeder Bereich startet zugeklappt; die Anzahl
+steht in der Überschrift, man sieht also auch zugeklappt, was da ist. Ein
+Tipp auf die Überschrift öffnet ihn. Was offen war, merkt sich dieses Gerät
+und öffnet es beim nächsten Projekt wieder. „⬇️ Alles aufklappen" öffnet und
+schliesst alles auf einmal.</p>
+<p>Der Weg zurück steht bewusst ganz unten <b>ausserhalb</b> der klappbaren
+Bereiche – er kann nie hinter einem zugeklappten Abschnitt verschwinden.
+Auf dem Handy führt auch die Zurück-Taste des Geräts einen Schirm
+zurück.</p>`},
 
 "cockpit-meas":{titel:"Massaufnahmen im Projekt",text:`
 <p>Alle Massaufnahmen dieses Projekts. "＋ Neue Massaufnahme" führt zur

@@ -109,6 +109,12 @@ const liste=[];
  await page.evaluate(()=>openProjectCockpit(1));
  await page.waitForTimeout(1200);
  await schuss("04-cockpit-kopf","#projectCockpitModal .card:nth-of-type(1)");
+ // v3.11: zugeklappt - so startet das Cockpit seit dieser Version.
+ await schuss("36-cockpit-zu","#projectCockpitModal .modalbox",{warte:400});
+ // Fuer das naechste Bild einen Arbeitsbereich aufklappen.
+ await page.evaluate(()=>{const k=document.querySelector('#cockpitMeasCard .klapp-kopf[data-klapp]');
+   if(k&&!k.closest(".klapp").classList.contains("open"))k.click()});
+ await page.waitForTimeout(300);
  await schuss("05-cockpit-arbeit","#cockpitWorkArea");
 
  // ---------- Massaufnahme-Auswahl ----------
@@ -351,6 +357,9 @@ const liste=[];
  await page.evaluate(()=>{
   $("feedbackModal").hidden=true; $("projectCockpitModal").hidden=false;
   cockpitProjectId=1;
+  // v3.11: die Verlaufskarte ist klappbar und startet zugeklappt.
+  const kv=document.querySelector('#cockpitVerlaufCard .klapp-kopf[data-klapp]');
+  if(kv&&!kv.closest(".klapp").classList.contains("open"))kv.click();
   if(typeof toggleProjectVerlaufBox==="function")
    toggleProjectVerlaufBox($("cockpitVerlaufBody"),$("cockpitVerlaufToggle"),1);
  });

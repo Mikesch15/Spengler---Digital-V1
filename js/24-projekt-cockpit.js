@@ -268,12 +268,14 @@ $("projectCockpitModal").addEventListener("click",e=>{
  const z=e.target.closest("[data-cockpit-goto]");
  if(!z)return;
  const b=COCKPIT_BEREICHE[z.dataset.cockpitGoto];
- if(b){$(b.card).scrollIntoView({block:"start"});return}
+ // v3.11: erst aufklappen, sonst springt die Zeile in einen zugeklappten
+ // Abschnitt und es sieht aus, als waere nichts passiert.
+ if(b){cockpitKlappOeffnen(z.dataset.cockpitGoto);$(b.card).scrollIntoView({block:"start"});return}
  // v3.09: die drei zusaetzlichen Bereiche haben ihre eigene Karte.
  const karten={material:"cockpitMaterialCard",zuschnitt:"cockpitZuschnittCard",
                reservierung:"cockpitReservierungCard"};
  const k=karten[z.dataset.cockpitGoto];
- if(k&&$(k)&&!$(k).hidden)$(k).scrollIntoView({block:"start"});
+ if(k&&$(k)&&!$(k).hidden){cockpitKlappOeffnen(z.dataset.cockpitGoto);$(k).scrollIntoView({block:"start"});}
 });
 // Einzelnen Bereich neu laden (nach Rückkehr, Anlegen oder Löschen).
 async function cockpitBereichAktualisieren(key){
@@ -321,6 +323,7 @@ async function loadProjectCockpitData(){
  // Massaufnahmen (projectMeasurementsCache) - keine zusaetzliche Abfrage.
  // Sind die Untermodule aus, bleiben beide Karten unsichtbar.
  if(typeof pmSichtbarkeitAuffrischen==="function")pmSichtbarkeitAuffrischen();
+ cockpitAlleKlappText();          // v3.11 Modul-Karten koennen dazugekommen sein
 }
 
 // treffer (optional, v2.40): {kind:"measurement"|"ausmass"|"report", id}
@@ -334,6 +337,7 @@ async function openProjectCockpit(projectId,treffer){
  if(!cockpitProject())return;
  renderCockpitStammdaten();
  cockpitStammdatenEinklappen();
+ cockpitKlappAnwenden();          // v3.11 gemerkter Klappzustand
  // Listen des vorherigen Projekts sofort leeren, damit nie kurz die
  // falschen Einträge stehen bleiben.
  Object.keys(COCKPIT_BEREICHE).forEach(k=>{$(COCKPIT_BEREICHE[k].body).innerHTML=""});
@@ -347,12 +351,16 @@ async function openProjectCockpit(projectId,treffer){
 }
 
 // Den aus der Suche kommenden Eintrag in der bereits geladenen Liste
-// finden, hinscrollen und kurz hervorheben. Seit v2.39 sind alle vier
-// Listen ohnehin sofort sichtbar - es ist also kein Aufklappen noetig.
+// finden, hinscrollen und kurz hervorheben.
+// v3.11: Die Abschnitte sind jetzt klappbar - der zugehoerige wird
+// zuerst geoeffnet, sonst laege der Treffer in einem zugeklappten
+// Bereich und der Sprung aus der Suche ginge ins Leere.
 const COCKPIT_TREFFER_ATTR={measurement:"data-open-project-measurement",ausmass:"data-open-project-ausmass",report:"data-open-report"};
+const COCKPIT_TREFFER_KLAPP={measurement:"meas",ausmass:"am",report:"rep"};
 function cockpitTrefferHervorheben(treffer){
  const attr=COCKPIT_TREFFER_ATTR[treffer&&treffer.kind];
  if(!attr||!treffer.id)return;
+ cockpitKlappOeffnen(COCKPIT_TREFFER_KLAPP[treffer.kind]);
  const knopf=$("cockpitWorkArea").querySelector(`[${attr}="${treffer.id}"]`);
  const zeile=knopf&&knopf.closest(".report-row");
  if(!zeile)return;
@@ -503,6 +511,102 @@ $("cockpitToggleStammdaten").onclick=()=>{
  $("cockpitToggleStammdaten").textContent=offen?"▲ Stammdaten schliessen":"✏️ Stammdaten bearbeiten";
  if(offen)renderCockpitStammdaten();
 };
+
+// ---- Klappbare Abschnitte (v3.11) -------------------------------
+// Bis v3.10 standen alle Arbeitsbereiche offen untereinander - ein Projekt
+// mit Massaufnahmen, Ausmassen, Rapporten und Dateien war damit auf dem
+// Handy mehrere Bildschirme lang, bevor man ueberhaupt wusste, was drin
+// ist. Jetzt ist jeder Abschnitt klappbar; die Anzahl steht in der
+// Ueberschrift, also sieht man auch zugeklappt, was vorhanden ist.
+//
+// Bewusst zur Kenntnis genommen: v2.39 (CLAUDE.md 47.2) hatte den
+// "Oeffnen"-Klick je Bereich absichtlich ENTFERNT, weil er einen Klick je
+// Bereich kostete. Der Betrieb hat jetzt das Gegenteil verlangt. Der
+// Einwand von damals wird dadurch entkraeftet, dass sich das Geraet
+// merkt, welcher Abschnitt offen war - der zusaetzliche Tipp faellt im
+// Alltag genau einmal an, nicht bei jedem Projekt.
+//
+// Der Zustand liegt bewusst im localStorage (je Geraet), nicht in der
+// Datenbank: es ist eine Ansichtssache wie "Aufgaben auf dem
+// Startbildschirm" (v3.07), kein Firmendatum.
+const COCKPIT_KLAPP_KEY="sd_cockpitKlapp";
+// Vorgabe: nur der Arbeitsstand ist offen - er IST die Uebersicht.
+const COCKPIT_KLAPP_VORGABE={stand:true};
+
+function cockpitKlappGespeichert(){
+ try{const r=JSON.parse(localStorage.getItem(COCKPIT_KLAPP_KEY)||"{}");
+     return (r&&typeof r==="object")?r:{};}catch(e){return {};}
+}
+function cockpitKlappMerken(key,offen){
+ if(!key)return;
+ try{const r=cockpitKlappGespeichert(); r[key]=!!offen;
+     localStorage.setItem(COCKPIT_KLAPP_KEY,JSON.stringify(r));}catch(e){}
+}
+function cockpitKlappKoepfe(){
+ return [...document.querySelectorAll("#projectCockpitModal .klapp-kopf[data-klapp]")];
+}
+// Sichtbar heisst: die Karte selbst ist nicht ausgeblendet. Die drei
+// Modul-Karten (v3.09) sind bei ausgeschaltetem Modul gar nicht da und
+// zaehlen deshalb weder fuer "Alles aufklappen" noch fuer den Text.
+function cockpitKlappSichtbar(){
+ return cockpitKlappKoepfe().filter(k=>{const b=k.closest(".klapp");return b&&!b.hidden;});
+}
+function cockpitKlappSetzen(kopf,offen){
+ const box=kopf&&kopf.closest(".klapp"); if(!box)return;
+ box.classList.toggle("open",!!offen);
+ kopf.setAttribute("aria-expanded",offen?"true":"false");
+}
+function cockpitKlappAnwenden(){
+ const g=cockpitKlappGespeichert();
+ cockpitKlappKoepfe().forEach(k=>{
+  const key=k.dataset.klapp;
+  cockpitKlappSetzen(k,(key in g)?!!g[key]:!!COCKPIT_KLAPP_VORGABE[key]);
+ });
+ cockpitAlleKlappText();
+}
+// Einen Abschnitt gezielt oeffnen (Arbeitsstand-Klick, Treffer aus der
+// Suche): sonst wuerde die Zeile in einen zugeklappten Bereich springen.
+function cockpitKlappOeffnen(key){
+ const k=cockpitKlappKoepfe().find(x=>x.dataset.klapp===key);
+ if(!k)return null;
+ cockpitKlappSetzen(k,true);
+ cockpitKlappMerken(key,true);
+ cockpitAlleKlappText();
+ return k;
+}
+function cockpitAlleOffen(){
+ const s=cockpitKlappSichtbar();
+ return s.length>0&&s.every(k=>k.closest(".klapp").classList.contains("open"));
+}
+function cockpitAlleKlappText(){
+ const b=$("cockpitAlleKlapp"); if(!b)return;
+ b.textContent=cockpitAlleOffen()?"⬆️ Alles zuklappen":"⬇️ Alles aufklappen";
+}
+$("cockpitAlleKlapp").onclick=()=>{
+ const auf=!cockpitAlleOffen();
+ cockpitKlappSichtbar().forEach(k=>{cockpitKlappSetzen(k,auf);cockpitKlappMerken(k.dataset.klapp,auf);});
+ cockpitAlleKlappText();
+};
+// Ein Klick auf die Ueberschrift klappt auf und zu. Der Info-Knopf darin
+// loest das NICHT mit aus: js/41 faengt ihn in der Erfassungsphase ab und
+// stoppt dort (CLAUDE.md 107.4).
+$("projectCockpitModal").addEventListener("click",e=>{
+ const k=e.target.closest?e.target.closest(".klapp-kopf[data-klapp]"):null;
+ if(!k)return;
+ const offen=!k.closest(".klapp").classList.contains("open");
+ cockpitKlappSetzen(k,offen);
+ cockpitKlappMerken(k.dataset.klapp,offen);
+ cockpitAlleKlappText();
+});
+// Tastatur: die Ueberschrift ist ein role="button", also muessen Enter und
+// Leertaste dasselbe tun wie ein Tipp.
+$("projectCockpitModal").addEventListener("keydown",e=>{
+ if(e.key!=="Enter"&&e.key!==" "&&e.key!=="Spacebar")return;
+ const k=e.target.closest?e.target.closest(".klapp-kopf[data-klapp]"):null;
+ if(!k)return;
+ e.preventDefault();
+ k.click();
+});
 
 // ---- Fotos/Skizzen einer Massaufnahme ansehen (v2.50) -----------
 // Reine Anzeige: das bestehende Bearbeiten-Vollbild aus

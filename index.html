@@ -119,7 +119,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.10</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.11</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -336,9 +336,12 @@
 <!-- Arbeitsstand (v2.42): fasst nur zusammen, was tatsaechlich vorhanden
      ist. Die Zahlen stammen aus denselben Ladefunktionen, die die
      Arbeitsbereiche darunter fuellen - keine zusaetzliche Abfrage, kein
-     erfundener Projektstatus. -->
-<div class="arbeitsstand">
-<div class="arbeitsstand-titel">Arbeitsstand</div>
+     erfundener Projektstatus.
+     v3.11: klappbar wie alles im Cockpit, aber als Uebersicht
+     standardmaessig OFFEN. -->
+<div class="arbeitsstand klapp open" id="cockpitStandBox">
+<div class="arbeitsstand-titel klapp-kopf" data-klapp="stand" role="button" tabindex="0" aria-expanded="true">Arbeitsstand<span class="klapp-chevron">›</span></div>
+<div class="klapp-body">
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="meas"><span class="arbeitsstand-marke" id="cockpitMeasMark">○</span><span class="arbeitsstand-name">📐 Massaufnahmen</span><span class="arbeitsstand-wert" id="cockpitMeasStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="am"><span class="arbeitsstand-marke" id="cockpitAmMark">○</span><span class="arbeitsstand-name">📏 Ausmass</span><span class="arbeitsstand-wert" id="cockpitAmStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="rep"><span class="arbeitsstand-marke" id="cockpitRepMark">○</span><span class="arbeitsstand-name">📋 Regierapporte</span><span class="arbeitsstand-wert" id="cockpitRepStand">–</span></button>
@@ -353,8 +356,9 @@
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="meas" id="cockpitStandSchrittZeile" hidden><span class="arbeitsstand-marke" id="cockpitSchrittMark">▸</span><span class="arbeitsstand-name">🔁 Nächster Schritt</span><span class="arbeitsstand-wert" id="cockpitSchrittStand">–</span></button>
 <div class="arbeitsstand-zeile arbeitsstand-aktivitaet"><span class="arbeitsstand-marke">🕘</span><span class="arbeitsstand-name">Letzte Aktivität</span><span class="arbeitsstand-wert" id="cockpitStandAktivitaet">–</span></div>
 </div>
+</div>
 
-<div class="bar"><button id="cockpitToggleStammdaten" class="gray">✏️ Stammdaten bearbeiten</button></div>
+<div class="bar"><button id="cockpitToggleStammdaten" class="gray">✏️ Stammdaten bearbeiten</button><button id="cockpitAlleKlapp" class="gray">⬇️ Alles aufklappen</button></div>
 <div id="cockpitStammdaten" hidden>
 <div class="grid">
 <div><label>Projektname</label><input id="cockpitName" data-pflicht="1"></div>
@@ -367,55 +371,77 @@
 </div>
 </div>
 
-<!-- Arbeitsbereiche: je ein Abschnitt, Liste immer sichtbar. -->
+<!-- Arbeitsbereiche (v3.11): je ein klappbarer Abschnitt. Die Anzahl steht
+     in der Ueberschrift, also sieht man auch zugeklappt, was vorhanden ist.
+     Welcher Abschnitt offen ist, merkt sich das Geraet - der zusaetzliche
+     Tipp faellt damit im Alltag genau einmal an. -->
 <div id="cockpitWorkArea">
-<div class="card" id="cockpitMeasCard">
-<h2>📐 Massaufnahmen<span id="cockpitMeasCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-meas">i</button></h2>
+<div class="card klapp" id="cockpitMeasCard">
+<h2 class="klapp-kopf" data-klapp="meas" role="button" tabindex="0" aria-expanded="false">📐 Massaufnahmen<span id="cockpitMeasCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-meas">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="meas">＋ Neue Massaufnahme</button><button type="button" id="cockpitSerie" class="blue" hidden>📄 Serie aus Vorlage</button></div>
 <div class="small" style="color:var(--muted);margin-bottom:4px">Eine bestehende Aufnahme lässt sich mit „📄 Als Vorlage" als Grundlage für eine neue nehmen. <button type="button" class="hilfe-knopf no-print" data-hilfe="vorlage">i</button></div>
 <div id="cockpitMeasBody"></div>
 </div>
+</div>
 <!-- v3.09 Projektweite Materialuebersicht und projektweiter Zuschnitt.
      Beide starten hidden und werden nur eingeblendet, wenn das jeweilige
      Untermodul eingeschaltet ist (pmAktiv). Standard ist AUS. -->
-<div class="card" id="cockpitMaterialCard" hidden>
-<h2>Material<span id="cockpitMaterialCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-material">i</button></h2>
+<div class="card klapp" id="cockpitMaterialCard" hidden>
+<h2 class="klapp-kopf" data-klapp="material" role="button" tabindex="0" aria-expanded="false">Material<span id="cockpitMaterialCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-material">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
 <div class="small" style="color:var(--muted);margin-bottom:6px">Zusammengefasst aus dem, was die Massaufnahmen dieses Projekts gespeichert haben. Es wird nichts neu gerechnet.</div>
 <div id="cockpitMaterialBody"></div>
 </div>
-<div class="card" id="cockpitZuschnittCard" hidden>
-<h2>Zuschnitt<span id="cockpitZuschnittCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-zuschnitt">i</button></h2>
+</div>
+<div class="card klapp" id="cockpitZuschnittCard" hidden>
+<h2 class="klapp-kopf" data-klapp="zuschnitt" role="button" tabindex="0" aria-expanded="false">Zuschnitt<span id="cockpitZuschnittCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-zuschnitt">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
 <div class="small" style="color:var(--muted);margin-bottom:6px">Derselbe Rollenblech-Plan wie in der einzelnen Massaufnahme, nur über das ganze Projekt. Gleiche Berechnung, gleiche Schnittfuge, gleiches Reststücke-Lager.</div>
 <div id="cockpitZuschnittBody"></div>
 </div>
-<div class="card" id="cockpitReservierungCard" hidden>
-<h2>Reservierung<span id="cockpitReservierungCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-reservierung">i</button></h2>
+</div>
+<div class="card klapp" id="cockpitReservierungCard" hidden>
+<h2 class="klapp-kopf" data-klapp="reservierung" role="button" tabindex="0" aria-expanded="false">Reservierung<span id="cockpitReservierungCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-reservierung">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
 <div class="small" style="color:var(--muted);margin-bottom:6px">Was für dieses Projekt gebraucht, reserviert, zugeschnitten und gerüstet ist. Ein Rest wird nie automatisch eingeplant.</div>
 <div id="cockpitReservierungBody"></div>
 </div>
-<div class="card" id="cockpitAmCard">
-<h2>📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-am">i</button></h2>
+</div>
+<div class="card klapp" id="cockpitAmCard">
+<h2 class="klapp-kopf" data-klapp="am" role="button" tabindex="0" aria-expanded="false">📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-am">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="am">＋ Neues Ausmass</button></div>
 <div id="cockpitAmBody"></div>
 </div>
-<div class="card" id="cockpitRepCard">
-<h2>📋 Regierapport<span id="cockpitRepCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-rep">i</button></h2>
+</div>
+<div class="card klapp" id="cockpitRepCard">
+<h2 class="klapp-kopf" data-klapp="rep" role="button" tabindex="0" aria-expanded="false">📋 Regierapport<span id="cockpitRepCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-rep">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="rep">＋ Neuer Regierapport</button></div>
 <div id="cockpitRepBody"></div>
 </div>
-<div class="card" id="cockpitFilesCard">
-<h2>📎 Dateien/Fotos<span id="cockpitFilesCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-dateien">i</button></h2>
+</div>
+<div class="card klapp" id="cockpitFilesCard">
+<h2 class="klapp-kopf" data-klapp="files" role="button" tabindex="0" aria-expanded="false">📎 Dateien/Fotos<span id="cockpitFilesCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-dateien">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
 <div id="cockpitFilesBody"></div>
 </div>
 </div>
+</div>
 
-<div class="card">
-<h2>🕒 Verlauf <button type="button" class="hilfe-knopf no-print" data-hilfe="verlauf">i</button></h2>
+<div class="card klapp" id="cockpitVerlaufCard">
+<h2 class="klapp-kopf" data-klapp="verlauf" role="button" tabindex="0" aria-expanded="false">🕒 Verlauf <button type="button" class="hilfe-knopf no-print" data-hilfe="verlauf">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
 <div class="small" id="cockpitLastActivity"></div>
 <div class="bar"><button id="cockpitVerlaufToggle" class="gray">🕒 Verlauf anzeigen</button></div>
 <div class="report-list" id="cockpitVerlaufBody"></div>
-<div class="bar"><button id="cockpitBack" class="green">↩️ Zurück zur Projektübersicht</button><button id="cockpitStart" class="gray">🏠 Start</button></div>
 </div>
+</div>
+
+<!-- Ausstieg: bewusst AUSSERHALB der klappbaren Verlaufskarte - der Weg
+     zurueck darf nie hinter einem zugeklappten Abschnitt verschwinden. -->
+<div class="bar" id="cockpitAusstieg"><button id="cockpitBack" class="green">↩️ Zurück zur Projektübersicht</button><button id="cockpitStart" class="gray">🏠 Start</button></div>
 
 </div>
 </div>
@@ -1474,7 +1500,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.10.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 51 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.11.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 52 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -2006,7 +2032,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.10.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.11.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2078,6 +2104,7 @@ nicht neu installieren.</div>
 <script src="js/51-werkstatt.js"></script>
 <script src="js/52-vorlagen.js"></script>
 <script src="js/53-versionen.js"></script>
+<script src="js/54-zurueck.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

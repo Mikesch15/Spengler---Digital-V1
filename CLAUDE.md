@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.10, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.11, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.10**
+- sichtbare App-Version: **3.11**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -18798,3 +18798,212 @@ keine Abwicklung berührt.
   110.10). Wird im Betrieb nie abgeschlossen, kann `montiert` später der
   Endzustand werden.
 
+## 116. KLAPPBARES COCKPIT UND DIE ZURÜCK-TASTE — VERSION 3.11
+
+Zwei Punkte aus der Rückmeldung: *„das objekt cockpit muss übersichtlicher
+werden, mache alles zum ausklappen"* und *„mache das wenn ich auf dem handy
+zurück klicke, das es einen bildschirm zurück springt und nicht die app
+schliesst"*. Beides zutreffend – und beides vor der Änderung gemessen.
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung, keine
+neue Datenbankfunktion, keine Fachdatei angefasst.**
+
+### 116.1 Teil A – das Cockpit war mehrere Bildschirme lang
+
+Bis v3.10 standen alle Arbeitsbereiche offen untereinander. Im Browser
+gemessen (412 px, Projekt mit allen vier Bereichen):
+
+| | v3.10 | v3.11 |
+|---|---|---|
+| Höhe des Cockpits | über 2'400 px | **878 px** |
+| sichtbar ohne Scrollen | Kopf und Arbeitsstand | Kopf, Arbeitsstand **und alle Bereichsüberschriften mit ihrer Anzahl** |
+
+Jetzt ist jeder Bereich ein klappbarer Abschnitt: Massaufnahmen, Ausmass,
+Regierapport, Dateien/Fotos, die drei Modul-Karten aus v3.09 (Material,
+Zuschnitt, Reservierung) und der Verlauf – dazu der Arbeitsstand selbst.
+
+- **Vorgabe: alles zu, nur der Arbeitsstand offen** – er *ist* die
+  Übersicht.
+- **Die Anzahl steht in der Überschrift**, man sieht also auch zugeklappt,
+  was vorhanden ist.
+- **Das Gerät merkt sich, was offen war** (`localStorage`,
+  `sd_cockpitKlapp`) – eine Ansichtssache wie „Aufgaben auf dem
+  Startbildschirm" (v3.07), kein Firmendatum.
+- „⬇️ Alles aufklappen" / „⬆️ Alles zuklappen" für alle sichtbaren
+  Abschnitte auf einmal.
+- Bedienung mit **Tastatur**: die Überschrift ist ein `role="button"` mit
+  `aria-expanded`, Enter und Leertaste tun dasselbe wie ein Tipp.
+
+**Bewusst zur Kenntnis genommen:** v2.39 (Abschnitt 47.2) hatte den
+„Öffnen"-Klick je Bereich absichtlich **entfernt**, weil er einen Klick je
+Bereich kostete. Der Betrieb hat jetzt das Gegenteil verlangt. Der Einwand
+von damals wird dadurch entkräftet, dass der Zustand gemerkt wird – der
+zusätzliche Tipp fällt im Alltag genau einmal an, nicht bei jedem Projekt.
+
+**Kein zweiter Klappmechanismus.** Gleiche Bildsprache wie die
+Einstellungen (`.settings-section`): Kopf antippbar, Winkel dreht sich um
+90°. Der Körper wird über die Klasse `.open` geschaltet und **nicht** über
+`hidden` – eine eigene `display`-Regel würde `[hidden]` sonst schlagen
+(Abschnitt 59/71.5/115.9).
+
+**Wer hinspringt, findet den Abschnitt offen:** ein Klick auf eine
+Arbeitsstand-Zeile und ein Treffer aus der globalen Suche klappen den
+zugehörigen Abschnitt zuerst auf. Ohne das wäre der Sprung ins Leere
+gelaufen; der Kommentar in `cockpitTrefferHervorheben()`, der seit v2.39
+das Gegenteil behauptete („kein Aufklappen nötig"), ist mit korrigiert.
+
+**Der Rückweg verschwindet nie.** „↩️ Zurück zur Projektübersicht" und
+„🏠 Start" standen bis v3.10 **in** der Verlaufskarte – zugeklappt wären
+sie unerreichbar gewesen. Sie stehen jetzt in einer eigenen Leiste
+ausserhalb aller klappbaren Bereiche.
+
+### 116.2 Teil B – die App verwendete die Verlaufsliste gar nicht
+
+Repo-weite Suche vor der Änderung: **kein einziges** `history.pushState`,
+`popstate`, `history.back` oder `hashchange`. Für den Browser sah die
+gesamte Bedienung wie **eine** Seite aus – die Zurück-Taste des Handys
+verliess deshalb die Seite bzw. schloss die App.
+
+Neue Datei **`js/54-zurueck.js`**. Grundgedanke: für jeden offenen Schirm
+liegt ein Platzhalter in der Verlaufsliste. Die Zurück-Taste nimmt einen
+davon weg, und die App schliesst dafür den obersten Schirm.
+
+- Erkannt werden die Schirme über einen **MutationObserver** auf dem
+  `hidden`-Attribut aller `.modal`, `.medien-viewer`, `.sketch-fullscreen`
+  und `#reportScreen`. Das ist Absicht: die App öffnet und schliesst
+  Schirme an weit über hundert Stellen, und **keine einzige davon musste
+  angefasst werden**.
+- Geprüft wird die **tatsächliche** Sichtbarkeit (`display` und echte
+  Rechtecke), nicht nur das Attribut – dieselbe Falle wie in 59/71.5.
+- `#authScreen`, `#companyLockedScreen` und `#appRoot` sind **kein**
+  Rückweg, sie sind der Boden.
+- **Sonderwege**: ein Schirm, der einen anderen *ersetzt*, braucht seinen
+  eigenen Rückweg, sonst bliebe ein leerer Hintergrund stehen –
+  Massaufnahme-Formular (`measEditZurueck`), Ausmass (`amEditZurueck`),
+  Regierapport (`reportZurueck`), Cockpit (`cockpitBack`) und die beiden
+  Typ-Auswahlen (ihr Abbrechen-Knopf). Alles andere überlagert und wird
+  einfach ausgeblendet.
+- **Sammelschliessungen** (`goToStart()` schliesst zwei Dutzend Schirme in
+  einem Zug) sind abgedeckt: der Abgleich gibt die überzähligen
+  Platzhalter über `history.go(-n)` zurück, ein Zähler verwirft die
+  dadurch ausgelösten Ereignisse.
+- **Selbstheilend**: schliesst sich ein Schirm doch nicht (eine Rückfrage
+  wurde abgebrochen), bekommt er seinen Platzhalter wieder.
+- Verweigert ein Browser `pushState`, schaltet sich die Datei ab, statt
+  etwas kaputtzumachen.
+
+Steht der Startbildschirm und ist nichts offen, verlässt die Zurück-Taste
+die App – das ist richtig, dorthin gibt es innerhalb der App keinen Weg
+zurück.
+
+### 116.3 Geprüft
+
+- **`pruefstaende/pruefstand-cockpit-zurueck-v3-11.js` – 50/50**, echtes
+  Chromium gegen die echte `index.html`: Vorgabe und Höhe, gemessene
+  Sichtbarkeit statt `hidden`-Attribut, Anzahl in der Überschrift,
+  Trefferflächen ≥ 34 px, `aria-expanded`, Tipp/Enter/Leertaste, der
+  Info-Knopf klappt nichts mit auf, „Alles auf/zu", gemerkter Zustand über
+  einen Projektwechsel und einen Neustart hinweg, Arbeitsstand-Klick und
+  Suchtreffer klappen auf, der Ausstieg liegt nachweislich ausserhalb der
+  Verlaufskarte, die Zurück-Taste über **drei** Ebenen (Cockpit →
+  Projektübersicht → Startbildschirm), Typ-Auswahl, Massaufnahme-Formular,
+  `goToStart()`, und vier Bildschirmbreiten.
+- **Neun Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | Vorgabe wieder „alles offen" (wie v3.10) | 33/51 |
+  | `.klapp-body` zeigt immer alles | 46/50 |
+  | Klappzustand wird nicht gemerkt | 48/50 |
+  | Arbeitsstand-Klick klappt nicht auf | 49/50 |
+  | Ausstieg wieder in der Verlaufskarte | 48/50 |
+  | `js/54-zurueck.js` gar nicht eingebunden | 28/31, Abbruch mit klarer Meldung |
+  | Typ-Auswahl ohne eigenen Rückweg | 49/50 |
+  | kein Abgleich nach Sammelschliessung | 49/50 |
+  | Info-Knopf ohne Erfassungsphase | 49/50 |
+
+- **Die Gegenprobe mit fehlender `js/54` liess den Prüfstand zuerst
+  abstürzen** statt fehlschlagen – ein abgebrochener Lauf sieht aus wie
+  „keine Fehler" (Abschnitt 78). Jeder Zugriff auf den Rückweg-Stapel ist
+  jetzt abgesichert, und eine Zurück-Taste, die die Seite verlässt, endet
+  mit einer ausdrücklichen Meldung samt Zählung statt mit einem Stapel.
+- **Volle Regression grün** – alle **39** Prüfstände im Repo, einzeln und
+  nacheinander gelaufen: verschnitt 1578, register-zuschnitt 373, kehle 158,
+  kamin 153, medien-am-ende 150, mauerabdeckung 146, freies-profil 118,
+  konisch 114, einfassung 113, rinne-halbrund 104, workflow 103,
+  einlaufblech 99, rollenblech-pdf 96, anschlussblech 95,
+  rinne-zuschnitt 95, vorlagen 84, lukarne 82, warteschlange 75,
+  hilfe 68, naechster-schritt 68, admin-uebersicht 67, reservierung 67,
+  lxb-druck 58, dila-sichtbar 57, projektmodule 56, skizze-foto 54,
+  werkstatt 53, aufgaben-schalter 50, cockpit-zurueck 50, versionen 47,
+  pdf 45, projekt-material-zuschnitt 43, uebersicht-cockpit 42,
+  change-sperre 36, vorlage-zugang 35, schnittfuge-reste 31,
+  excel-import 31, felder-bleiben 23, bediensachen 22 – ohne einen
+  einzigen Fehlschlag.
+- **Drei überholte Erwartungen** angepasst, keine davon ein Codefehler:
+  `projekt-material-zuschnitt`, `reservierung` und `vorlagen` griffen auf
+  Inhalte in den jetzt zugeklappten Cockpit-Abschnitten zu. Sie klappen
+  vorher auf und prüfen danach dasselbe wie bisher.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.10-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, Abschnitt 100.6) – **DOM, Text und Bild
+  byteidentisch** (DOM `89e15acc1c0c5413`, Bild `7511c10ba13eb8b1`,
+  43 485 Bytes), bestätigt durch einen Kontrolllauf desselben Codes.
+  `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+  `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 56 `js/*.js`, `sw.js` und alle 39 Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen
+  (Tiefe 0, Minimum 0); keine doppelten Element-IDs; alle 56 js-Dateien in
+  `index.html` **und** in der Service-Worker-Liste; Version 3.11 in
+  `index.html` und `sw.js` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 116.4 Anleitung
+
+Nach Regel 108.1 mitgeführt: Kapitel 6 um „Alles ist klappbar" erweitert,
+Kapitel 21 um „Die Zurück-Taste des Geräts". Ein neues Bild
+(`36-cockpit-zu`), alle 43 neu erzeugt, PDF v3.11 mit **52 Seiten**
+(vorher 51), keine leere Seite. Die fünf Verweise nachgezogen, das alte
+PDF gelöscht. `pruefstand-hilfe-v3-03` (68/68) erzwingt das mechanisch.
+
+Dabei fiel auf, dass `schuss.js` zwei Bilder aus zugeklappten Bereichen
+schoss (`05-cockpit-arbeit`, `26-verlauf`) – beide klappen jetzt vorher
+auf. Die Bilder zeigen also weiterhin, was sie zeigen sollen.
+
+### 116.5 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/54-zurueck.js` | **neu** – Rückweg-Stapel, Beobachter, Sonderwege |
+| `js/24-projekt-cockpit.js` | Klapp-Mechanik, gemerkter Zustand, „Alles auf/zu", Sprungziele klappen auf |
+| `index.html` | Cockpit-Modal auf klappbare Abschnitte, Ausstiegsleiste heraus, Script-Tag, Version 3.11 |
+| `css/01-basis.css` | `.klapp*`-Stile |
+| `js/41-hilfe.js` | Hilfetext „Das Projekt-Cockpit" erweitert, PDF-Verweis |
+| `sw.js` | Cache-Version 3.11, neue Datei im SHELL |
+| `pruefstaende/pruefstand-cockpit-zurueck-v3-11.js` | **neu** |
+| drei bestehende Prüfstände | überholte Erwartung (116.3) |
+| `anleitung/*` | Kapitel 6 und 21, neues Bild, PDF v3.11 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie sämtliche Fachdateien `js/11`–`js/23`,
+`js/25`–`js/40` und `js/42`–`js/53` – per `git diff` bestätigt. Keine
+Berechnung, keine Stückliste, kein Zuschnitt, keine Abwicklung berührt.
+
+### 116.6 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Geprüft ist die Oberfläche in echtem Chromium
+  gegen die echte `index.html`; die Zurück-Taste ist über `page.goBack()`
+  geprüft, **nicht** auf einem echten Android-Gerät.
+- Öffnen zwei Schirme im **selben** Verarbeitungsschritt, folgt die
+  Reihenfolge im Stapel der Dokumentreihenfolge statt der wirklichen
+  Öffnungsreihenfolge. Über mehrere Schritte hinweg – der Normalfall –
+  stimmt sie. Praktisch fällt das nicht auf, weil sich Schirme fast immer
+  einzeln öffnen.
+- Der gemerkte Klappzustand liegt **je Gerät** im `localStorage`, nicht
+  firmenweit – ein zweites Tablet fängt wieder mit der Vorgabe an.
+- Die Zurück-Taste verlässt die App weiterhin, wenn der Startbildschirm
+  steht und nichts offen ist (116.2).

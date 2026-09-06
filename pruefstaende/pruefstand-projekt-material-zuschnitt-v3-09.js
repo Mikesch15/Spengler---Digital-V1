@@ -35,7 +35,18 @@ const sichtbar=(page,sel)=>page.evaluate(s=>{
  const r=e.getBoundingClientRect();
  return r.width>0&&r.height>0&&getComputedStyle(e).visibility!=="hidden";
 },sel);
+// v3.11: die Cockpit-Abschnitte sind klappbar und starten zugeklappt. Ein
+// Element darin ist erst nach dem Aufklappen sichtbar - das ist eine
+// ueberholte Erwartung dieses Pruefstands, kein Codefehler. Geprueft wird
+// weiterhin, dass es DANACH wirklich sichtbar und anklickbar ist.
+const aufklappen=(page,sel)=>page.evaluate(s=>{
+ const e=document.querySelector(s); if(!e)return;
+ const box=e.closest(".klapp"); if(!box)return;
+ const kopf=box.querySelector(".klapp-kopf[data-klapp]");
+ if(kopf&&!box.classList.contains("open"))kopf.click();
+},sel);
 const klick=async(page,sel,was)=>{
+ await aufklappen(page,sel);
  if(!await sichtbar(page,sel)){p(false,(was||"Element")+" sichtbar und anklickbar ("+sel+")");return false}
  try{await page.click(sel,{timeout:4000});return true}
  catch(e){p(false,(was||"Element")+" anklickbar ("+sel+")",String(e).slice(0,120));return false}
