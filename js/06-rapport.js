@@ -22,6 +22,52 @@ function naechsteFreiePositionNr(kandidaten){
  const belegt=new Set(zeilen.map(m=>String(m&&m.no!=null?m.no:"").trim()));
  return liste.find(nr=>!belegt.has(nr))||liste[liste.length-1];
 }
+// ---------------------------------------------------------------------------
+// v3.16  Fest hinterlegte Funktion je Mitarbeiter
+// ---------------------------------------------------------------------------
+// "Mitarbeiter sollen fest hinterlegte funktionen haben (zb. Polier) und im
+//  Regierapport soll dann automatisch die initialien und stundenansaetze des
+//  angemeldeten benutzers angezeigt werden." (Feedback 05.09.2026)
+//
+// Die Funktion steht in profiles.rate_id und zeigt auf die bestehende
+// Tabelle "rates" - es gibt keinen zweiten Ansatzkatalog. Der NAME wird
+// bewusst nicht mitgespeichert: wird die Funktion umbenannt, folgt die
+// Zuordnung ueber den Fremdschluessel von selbst.
+function profilFunktion(p){
+ if(!p||p.rate_id===null||p.rate_id===undefined)return "";
+ const i=rateIds.indexOf(Number(p.rate_id));
+ return (i>=0&&settings.rates[i])?settings.rates[i][0]:"";
+}
+// Der angemeldete Benutzer, so wie er in der Mitarbeiterliste steht. Steht er
+// dort nicht (z. B. ein Firmenadmin ohne Profil in der Liste), wird NICHT
+// irgendjemand genommen - dann bleibt es beim bisherigen ersten Eintrag.
+function meinMitarbeiterName(){
+ if(!currentProfile)return "";
+ const name=`${currentProfile.first_name} ${currentProfile.last_name}`;
+ return settings.employees.indexOf(name)>=0?name:"";
+}
+// Eine neue Arbeitsposition. EINE Quelle fuer alle Stellen, die eine anlegen
+// (js/03 Anmeldung, js/04 neuer Rapport, js/06 Knopf, js/08 "Alles loeschen",
+// js/09 Rapport oeffnen) - bis v3.15 stand derselbe Ausdruck fuenfmal da und
+// haette auseinanderlaufen koennen.
+//
+// Reihenfolge der Vorbelegung, jede Stufe nur wenn es sie wirklich gibt:
+//   Mitarbeiter: angemeldeter Benutzer -> sonst erster der Liste
+//   Funktion:    seine hinterlegte     -> sonst Standard aus den
+//                Einstellungen (je Geraet) -> sonst die erste Funktion
+function neueArbeitsposition(){
+ const mein=meinMitarbeiterName();
+ const meineFunktion=profilFunktion(currentProfile);
+ const standard=(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:"";
+ return {
+  date:new Date().toISOString().slice(0,10),
+  desc:"",
+  employee:mein||settings.employees[0]||"",
+  rateName:meineFunktion||standard||(settings.rates[0]?.[0]||""),
+  hours:0
+ };
+}
+
 function matZahl(v){return Number(String(v==null?"":v).replace(",","."))||0}
 // Preis je Einheit - aus der Zeile selbst (freie Position) oder aus dem Katalog.
 function matPreis(m){
@@ -202,6 +248,9 @@ function repositionAllSuggests(){
   else if(box.id==="amProjectResults")input=$("amProjectSearch");
   else if(box.id==="bzPositionResults")input=$("bzPositionSearch");
   else if(box.id==="ausmassProjectResults")input=$("ausmassProjectSearch");
+  // v3.16: Materialliste in der Massaufnahme (js/57) - ohne diesen Zweig
+  // bliebe ihre Vorschlagsliste beim Scrollen stehen.
+  else if(box.id.startsWith("rmatSug"))input=document.querySelector(`[data-rmat-nr="${box.id.slice(7)}"]`);
   else input=document.querySelector(`[data-mat-search="${box.id.slice(6)}"]`);
   if(input)positionSuggest(input,box);
  });
@@ -267,7 +316,7 @@ $("matBody").addEventListener("click",e=>{
  if(d){mats.splice(Number(d.dataset.delMat),1);renderMain()}
 });
 
-$("addWork").onclick=()=>{works.push({date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0});renderMain()};
+$("addWork").onclick=()=>{works.push(neueArbeitsposition());renderMain()};
 $("addMat").onclick=()=>{mats.push({date:new Date().toISOString().slice(0,10),no:"",qty:0});renderMain()};
 $("vat").addEventListener("input",updateTotals);
 

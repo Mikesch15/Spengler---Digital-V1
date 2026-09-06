@@ -122,7 +122,7 @@ async function afterLogin(){
  $("authScreen").hidden=true;
  $("appRoot").hidden=false;
  await loadAllData();
- works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0}];
+ works=[neueArbeitsposition()];
  mats=[];
  $("date").value=new Date().toISOString().slice(0,10);
  renderProjectSelect();
@@ -179,6 +179,7 @@ function goToStart(){
  $("vorlageWahlModal").hidden=true;           // v3.09
  $("serieModal").hidden=true;                 // v3.09
  $("winkelModal").hidden=true;                // v3.12
+ $("rmatModal").hidden=true;                  // v3.16
  // Der PDF-Auswahldialog wartet auf eine Antwort - beim Sprung auf den
  // Startbildschirm gilt das als Abbruch, sonst bliebe das Versprechen offen.
  if(typeof pdfListenSchliessen==="function"&&!$("pdfListenModal").hidden)pdfListenSchliessen(null);

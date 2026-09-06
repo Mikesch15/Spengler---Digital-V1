@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.15.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.16.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -859,6 +859,33 @@ die liegen auf dem Server und werden dort gesichert.</p>`},
 auf dem Startbildschirm.</p>
 <p>Gilt <b>firmenweit</b> – eine Änderung sehen alle Mitarbeiter.</p>`},
 
+"meas-rapportmaterial":{titel:"Material für den Regierapport",text:`
+<p>Hier wird festgehalten, welches <b>Material auf dieser Baustelle
+verbraucht</b> wird – Schrauben, Dichtmasse, Halter und alles andere, was
+nicht aus der Berechnung der Massaufnahme entsteht.</p>
+<p>Gesucht wird im gewöhnlichen Materialkatalog über die EDV-Nummer. Es
+entsteht kein zweiter Katalog, und es wird <b>kein Preis</b> gespeichert –
+der kommt erst im Regierapport aus dem Katalog.</p>
+<p>Im Regierapport dieses Projekts lässt sich alles hier Erfasste mit dem
+Knopf <b>„🧱 Aus Massaufnahmen übernehmen"</b> in einem Schritt in die
+Materialliste holen.</p>
+<p>Eine Materialzeile lässt die <b>Freigabe nicht verfallen</b> – sie ändert
+nichts an der fachlichen Grundlage, nach der gerüstet und montiert wird.</p>`},
+
+"rmat-uebernehmen":{titel:"Material aus den Massaufnahmen",text:`
+<p>Angeboten wird, was in den Massaufnahmen <b>dieses Projekts</b> unter
+„Material für den Regierapport" erfasst ist.</p>
+<p>Eine EDV-Nummer, die bereits im Rapport steht, ist <b>nicht vorgewählt</b> –
+sonst stünde sie nach einem zweiten Klick doppelt da. Sie lässt sich trotzdem
+anhaken, wenn an einem anderen Tag noch einmal Material gebraucht wurde.</p>
+<p>Übernommen wird als gewöhnliche Materialzeile: Bezeichnung, Dimension,
+Einheit und Preis kommen wie immer aus dem Katalog. Das Datum ist das der
+Massaufnahme.</p>
+<p>Steht bei einer Massaufnahme „Kein Material erfasst", ist dort noch nichts
+eingetragen. Was die Massaufnahme <b>ausrechnet</b> (Ausmass, Zuschnitte),
+erscheint hier bewusst nicht – dafür gibt es keine Artikelnummer, und eine
+erfundene wäre schlimmer als keine.</p>`},
+
 "einst-mitarbeiter":{titel:"Mitarbeiter",text:`
 <p>Hier werden Mitarbeiterkonten angelegt. Der Benutzername ist
 <b>Vorname.Nachname</b>; beim ersten Anmelden wählt die Person selbst ein
@@ -867,7 +894,12 @@ Passwort.</p>
 nächsten Anmelden wieder ein eigenes.</p>
 <p>Wird ein Mitarbeiter entfernt, bleiben seine Projekte, Massaufnahmen und
 Rapporte vollständig erhalten. Im Verlauf steht dann "Unbekannter
-Benutzer".</p>`},
+Benutzer".</p>
+<p><b>Funktion / Stundenansatz:</b> was hier hinterlegt ist, wird im
+Regierapport bei einer neuen Arbeitsposition automatisch vorgeschlagen –
+zusammen mit dem angemeldeten Benutzer selbst. Ändern lässt es sich in der
+Zeile jederzeit. Ohne Hinterlegung bleibt es beim bisherigen Verhalten
+(erster Mitarbeiter, Standard-Funktion aus den Einstellungen).</p>`},
 
 "einst-ansaetze":{titel:"Funktionen und Stundenansätze",text:`
 <p>Die Funktionen, die im Regierapport zur Auswahl stehen, mit ihrem

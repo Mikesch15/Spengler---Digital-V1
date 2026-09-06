@@ -19969,3 +19969,215 @@ Rinnenlogik berührt.
   abgehakt), macht den Verlauf aber voll. Eine Zusammenfassung wäre eine
   eigene, bewusste Erweiterung von `write_audit_log()` (wie schon in 118.9
   für die Sammelaktionen vermerkt).
+
+## 121. REGIERAPPORT: MATERIAL AUS DEN MASSAUFNAHMEN + FUNKTION JE MITARBEITER — VERSION 3.16
+
+Die zwei offenen Rückmeldungen des Betriebs zum Regierapport (Export vom
+6.9.2026). **Keine RLS-Policy verändert, keine neue `SECURITY DEFINER`-
+Funktion, keine Fachrechnung angefasst.**
+
+### 121.1 Teil B – jede Person hat eine Funktion
+
+> „Mitarbeiter sollen fest hinterlegte funktionen haben (zb. Polier) und im
+> Regierapport soll dann automatisch die initialien und stundenansätze des
+> angemeldeten benutzers angezeigt werden."
+
+Migration `profiles_rate_id_v3_16`: `profiles.rate_id bigint references
+rates(id) on delete set null`. **Ein Fremdschlüssel, kein Text** – wird eine
+Funktion umbenannt, bleibt die Zuordnung bestehen; wird sie gelöscht, steht
+die Person auf „keine" statt auf einem Namen, den es nicht mehr gibt.
+
+Gesetzt wird in der Mitarbeiterliste (Einstellungen → Geschützt) über ein
+Auswahlfeld je Person. Geschrieben wird mit einem gewöhnlichen `UPDATE` –
+also durch die bestehende `profiles`-RLS (`is_admin()` + restriktive
+Tenant-Grenze), **keine** DEFINER-Funktion, die diese Prüfung nachbauen
+müsste. 0 geänderte Zeilen gelten **nicht** als Erfolg: die Auswahl springt
+zurück und es kommt eine Meldung (CLAUDE.md 24.1).
+
+Im Rapport entsteht eine neue Arbeitszeile jetzt an **einer** Stelle
+(`neueArbeitsposition()`, js/06) statt an fünf. Sie belegt Mitarbeiter und
+Funktion mit der angemeldeten Person vor, sofern deren Name in
+`settings.employees` steht und eine Funktion hinterlegt ist; der
+Stundenansatz folgt daraus. Fehlt eines von beidem, bleibt es beim
+bisherigen Verhalten (erster Mitarbeiter, Standard-Ansatz) – es wird nichts
+erfunden.
+
+**`initials()` wurde bewusst nicht angefasst.** Die Rückmeldung nennt
+„Initialien"; die App leitet sie seit je aus dem Namen ab, und alle 13
+gespeicherten Werte sind mit den abgeleiteten identisch. Eine Änderung hätte
+nichts geändert.
+
+### 121.2 Eine echte Sicherheitslücke, die erst der Test gezeigt hat
+
+Ein Administrator konnte `profiles.rate_id` auf eine Funktion einer
+**fremden Firma** setzen – Test 4 meldete „1 Zeile(n) geaendert". Kein
+Datenleck (der Client liest Namen nur aus seinem eigenen, RLS-gefilterten
+Katalog und zeigt sonst „keine hinterlegt"), aber ein falscher Wert in der
+Datenbank.
+
+Behoben mit Migration `profiles_rate_id_firma_v3_16` und dem Trigger
+`enforce_profile_rate_company()` – gleiches Muster wie
+`enforce_permission_override_company()` seit Abschnitt 20.6. Nachgeprüft:
+eigene Funktion geht, fremde wird abgewiesen („Diese Funktion gehoert nicht
+zur Firma des Mitarbeiters."), `NULL` bleibt erlaubt.
+
+### 121.3 Teil A – Material aus den Massaufnahmen
+
+> „Im regierapport sollte es einen button geben, um materialien aus den
+> massaufnahmen des passenden objekts direkt in den regierapport zu
+> übernehmen. Hierzu ist evt. in den einzelnen massaufnahmen eine liste
+> nötig, um zusätzliche materialien zu erfassen, welche nicht automatisch
+> erzeugt werden"
+
+Beide Teile umgesetzt, in einer neuen Datei `js/57-rapport-material.js`:
+
+- **In der Massaufnahme** eine Liste „🧱 Material für den Regierapport"
+  unter der Notiz, in **jeder** der zwölf Arten. Je Zeile EDV-Nr. aus dem
+  Materialkatalog (mit derselben Vorschlagsliste wie im Rapport), Menge und
+  wahlweise eine Bemerkung. Gedacht für Schrauben, Dichtband, Kleber – alles,
+  was verbraucht wird und aus keiner Berechnung hervorgeht.
+- **Im Regierapport** der Knopf „🧱 Aus Massaufnahmen übernehmen": **eine**
+  Abfrage über alle Massaufnahmen des Projekts, nach Massaufnahme gruppiert,
+  zum Anhaken. Übernommen werden gewöhnliche Materialzeilen.
+
+**Bewusst keine Ausmass-Positionen zum Übernehmen.** Sie haben keine
+EDV-Nummer; eine erfundene wäre schlechter als keine. Der Dialog sagt
+stattdessen „Kein Material erfasst" und nennt den Weg.
+
+### 121.4 Eine eigene Spalte, damit die Freigabe nicht verfällt
+
+`measurements.rapport_material jsonb not null default '[]'` (Migration
+`measurements_rapport_material_v3_16`) – **nicht** ein Feld in `data`.
+
+Der Grund ist der Verfall der Freigabe aus v3.06 (Abschnitt 111): jede
+Änderung an `data` setzt eine freigegebene Massaufnahme auf
+`in_bearbeitung` zurück. Verbrauchtes Material einzutragen ist aber keine
+Änderung der Masse – wer beim Rüsten Schrauben notiert, darf damit nicht die
+eigene Freigabe kippen.
+
+**Empirisch belegt** (`begin; … rollback;`): nach `measurement_freigeben` →
+`zu_ruesten` liess ein Schreiben in `rapport_material` den Stand bei
+`zu_ruesten / verfallen=false`, während die Kontrolländerung an `data`
+korrekt `in_bearbeitung / verfallen=true` ergab. Cross-Tenant: 0 Zeilen
+geschrieben, 0 sichtbar.
+
+Die Liste erscheint zusätzlich im PDF der Massaufnahme unter
+**Materialliste** – die Kategorie 7 der Listenauswahl (v2.85), die bis v3.15
+mangels Inhalt dauerhaft ausgegraut war (Abschnitt 90.9).
+
+**Wichtig für künftige Felder:** js/16 baut die beiden Speicher-Payloads
+(online und Offline-Warteschlange) von Hand aus einzelnen Feldern statt aus
+`form`. Ein neues Feld muss deshalb an **drei** Stellen stehen – in `base`
+und in beiden Payloads. Ohne das wird es im Formular angezeigt, aber nie
+gespeichert.
+
+### 121.5 Ein echter Bedienfehler, den der Prüfstand gefunden hat
+
+Die Vorschlagsliste der EDV-Nr. legte sich über das Mengenfeld darunter. Der
+allgemeine „Klick ausserhalb `.search`"-Schliesser in js/07 hilft dort
+nicht: der Klick trifft die Liste selbst. Behoben mit einem `focusout`, der
+die Liste nach 150 ms schliesst. Dazu ein `repositionAllSuggests`-Zweig, den
+die neue Liste sonst nicht kennt.
+
+### 121.6 Getestet
+
+- **`pruefstaende/pruefstand-rapport-v3-16.js` – 76/76**, echtes Chromium
+  gegen die echte `index.html`: Vorbelegung (mit und ohne Funktion, ohne
+  Anmeldung, alle fünf früheren Stellen nutzen die eine Funktion),
+  Einstellungen (Auswahlfeld, Speicherweg, 0-Zeilen-Fall, eigenes Profil),
+  die Liste in der Massaufnahme (alle zwölf Arten, Vorschlag, Bemerkung,
+  Speicher-Payload, Wiederöffnen), die Übernahme (eine Abfrage, kein
+  `company_id`-Filter, Gruppierung, Anhaken, bereits vorhandene
+  gekennzeichnet, ohne Projekt, ohne Material), Sichtbarkeit und Hilfe,
+  vier Bildschirmbreiten.
+- **12 Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um (72/3, 72/3, 62/17, 72/3, 73/2, 74/1, 73/2, 74/1, 74/1,
+  74/1, 74/3, 75/1).
+- **Drei Gegenproben blieben zuerst grün oder liessen den Lauf abstürzen** –
+  ein abgebrochener Lauf sieht aus wie „keine Fehler" (Abschnitt 78). Alle
+  drei nachgeschärft: die Vorbelegungs-Probe hatte den angemeldeten Benutzer
+  zufällig als ersten Mitarbeiter, die `focusout`-Probe traf die falsche
+  Lücke, und die `company_id`-Probe hatte Testprofile ohne `company_id`.
+  Dazu ein `waehle()`-Helfer mit Frist, weil `selectOption` auf ein
+  verstecktes Feld 30 s hängt.
+- **Volle Regression: 42 von 44 Prüfständen grün.** Zwei Ausnahmen, beide
+  **keine Regression**:
+  * `pruefstand-hilfe-v3-03` war bis zur Anleitung bei 63/68 (genau die
+    fünf Regel-Prüfungen aus 108.1), nach dem neuen PDF **68/68**.
+  * `pruefstand-excel-import-v3-04` bricht ab, weil **SheetJS nicht geladen
+    werden kann** – beide CDNs sind in diesem Container gesperrt
+    (`CONNECT tunnel failed, 403`). Gegen den **unveränderten HEAD-Stand**
+    nachgemessen: identischer Abbruch. Die Einbindungszeile in `index.html`
+    ist nicht im Diff.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.15-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, Abschnitt 100.6) – **Text und Bild byteidentisch**
+  (Text `dff105da2d073225`, Bild `ee87b329696a2d10`, 59 360 Bytes, Höhe
+  721 px), bestätigt durch einen Kontrolllauf desselben Codes. Der DOM
+  unterscheidet sich um genau ein Element: den neuen Knopf, gemessen
+  **0 × 0 px** unter `media:print` in seiner `.bar no-print`.
+- `node --check` über alle 58 `js/*.js`, `sw.js`, alle 44 Prüfstände und die
+  Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung in `index.html`
+  ausgeglichen (Tiefe 0, Minimum 0); keine doppelten Element-IDs; alle 58
+  js-Dateien in `index.html` **und** in der Service-Worker-Liste; Version
+  3.16 in `index.html` und `sw.js` gleich.
+- `get_advisors(security)`: identischer bekannter Satz. Der neue Trigger
+  erscheint **nicht** – er ist nicht `SECURITY DEFINER`, `anon`/`public`
+  entzogen.
+
+### 121.7 Ehrlich: zwei Zeilen zu viel in einer Migration
+
+In `profiles_rate_id_v3_16` sind zwei Zeilen aus meinem Entwurf stehen
+geblieben, die eine Hilfsspalte auf `measurements` anlegen und sofort wieder
+löschen. Die Wirkung ist netto null (nachgeprüft: 0 solche Spalten,
+`measurements.updated_at` unverändert), aber sie stehen in der
+Migrationsgeschichte. Beim Nachlesen der angewandten Migration aufgefallen,
+nicht beim Schreiben.
+
+### 121.8 Datenbestand
+
+Vor und nach der Runde: 2 Firmen, 13 Profile (**0** mit hinterlegter
+Funktion), 10 Massaufnahmen (**0** mit Material für den Regierapport),
+`PETER KÜNZI AG.updated_at` unverändert (`2026-09-01 07:40:15.844647+00`),
+keine Testreste. Alle schreibenden Tests liefen in `begin; … rollback;`.
+
+### 121.9 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migrationen `profiles_rate_id_v3_16`, `profiles_rate_id_firma_v3_16`, `measurements_rapport_material_v3_16` | Funktion je Person, Firmenprüfung, Materialliste |
+| `js/57-rapport-material.js` | **neu** – Liste in der Massaufnahme und die Übernahme |
+| `js/06-rapport.js` | `neueArbeitsposition()`, `profilFunktion()`, `meinMitarbeiterName()`, Vorschlags-Position |
+| `js/03`, `js/04`, `js/08`, `js/09` | die fünf Stellen nutzen die eine Funktion |
+| `js/05a-rechte.js` | Auswahlfeld je Mitarbeiter mit 0-Zeilen-Prüfung |
+| `js/16-massaufnahme-formular.js` | `rapport_material` in `base` **und beiden** Payloads, Materialliste im PDF, Sichtbarkeit |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `js/41-hilfe.js` | zwei neue Hilfetexte, `einst-mitarbeiter` erweitert, PDF-Verweis |
+| `index.html`, `css/01-basis.css`, `css/04-rechte.css`, `sw.js` | Markup, Stile, Version 3.16 |
+| `anleitung/*` | Kapitel 8, 15 und 18, zwei neue Bilder, PDF v3.16 (61 Seiten) |
+
+**Nicht angefasst**: `js/08`-Rapportlogik ausser der einen Zeile,
+`css/03-druck.css` sowie sämtliche Fachdateien `js/11`–`js/15`, `js/17`,
+`js/19`–`js/40`, `js/42`–`js/56` – keine Berechnung, keine Stückliste, kein
+Zuschnitt, keine Abwicklung berührt.
+
+### 121.10 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und die Datenbankseite
+  per SQL gegen das echte Produktivschema.
+- **Der Excel-Import-Prüfstand ist in diesem Container nicht lauffähig**
+  (121.6) – die Funktion selbst ist unverändert, geprüft wurde nur, dass der
+  Abbruch nicht von dieser Runde stammt.
+- Die Vorbelegung greift nur, wenn der Name der angemeldeten Person in
+  `settings.employees` steht. Mitarbeiterliste und Profile sind in der App
+  zwei getrennte Listen – eine Zusammenführung wäre eine eigene, grössere
+  Aufgabe.
+- Eine übernommene Materialzeile trägt **keinen Verweis** auf die
+  Massaufnahme, aus der sie stammt. Sie ist danach eine gewöhnliche Zeile;
+  eine zweite Übernahme legt sie ein zweites Mal an (gekennzeichnet, aber
+  erlaubt – das entscheidet die Person).

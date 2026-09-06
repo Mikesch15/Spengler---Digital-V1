@@ -76,18 +76,26 @@ const MEAS_MEDIEN_LETZTES_REGISTER={
  anschlussblech:      ()=>anbaSchritt >=ANBA_REGISTER.length
 };
 const MEAS_MEDIEN_AM_ENDE=Object.keys(MEAS_MEDIEN_LETZTES_REGISTER);
+// v3.16: Die Liste "Material fuer den Regierapport" steht wie die Medien am
+// Ende und folgt derselben Regel - zwei verschiedene Regeln fuer zwei
+// benachbarte Bloecke waeren nicht nachvollziehbar.
+function measAbschlussBlockSetzen(versteckt){
+ const mat=$("measRapportMaterial");
+ if(mat)mat.hidden=!!versteckt;
+}
 function measMedienSichtbarkeit(type){
  const box=$("measMedienBereich");
  if(!box)return;
  const art=type||$("measType").value;
  const letztes=MEAS_MEDIEN_LETZTES_REGISTER[art];
  // Arten ohne Register (Skizze/Foto): wie bisher immer sichtbar.
- if(!letztes){box.hidden=false;return}
+ if(!letztes){box.hidden=false;measAbschlussBlockSetzen(false);return}
  // Im Zweifel zeigen statt verstecken - ein fehlendes Modul darf die
  // Foto-Erfassung nicht unerreichbar machen.
  let amEnde=true;
  try{amEnde=!!letztes()}catch(e){console.error("Register-Stand unbekannt:",e)}
  box.hidden=!amEnde;
+ measAbschlussBlockSetzen(!amEnde);
 }
 // Wird vom "Fertig"-Knopf jeder Register-Art gerufen. Der Bereich ist auf dem
 // letzten Register ohnehin schon sichtbar; die Module scrollen danach hin und
@@ -112,6 +120,9 @@ function buildMeasurementFromForm(){
   date:$("measDate").value,
   type,
   project_id:measSelectedProjectId,
+  // v3.16: Material fuer den Regierapport. Steht in base und gilt damit
+  // fuer alle zwoelf Zweige - eine Stelle, nicht zwoelf.
+  rapport_material:(typeof measRapportMaterialAusFormular==="function")?measRapportMaterialAusFormular():[],
  };
  if(type==="einlaufblech_gerade"){
   const massA=Number($("eb_massA").value)||0;
@@ -406,7 +417,10 @@ $("saveMeasurement").onclick=async()=>{
    payload:{project_id:measSelectedProjectId||null,type,title,
      note:$("measNote").value,
      date:$("measDate").value||new Date().toISOString().slice(0,10),
-     data:form.data||{}},
+     data:form.data||{},
+     // v3.16: auch offline mitgeben - sonst waere die Materialliste nach
+     // der Uebertragung weg.
+     rapport_material:form.rapport_material||[]},
    // Fotos und Skizzen reisen als data:-URLs mit und werden erst beim
    // Senden hochgeladen - offline gibt es weder Zeilen-ID noch Storage.
    bilder:{photo_paths:measPhotos.slice(),sketch_paths:measSketches.slice()}
@@ -472,6 +486,10 @@ $("saveMeasurement").onclick=async()=>{
    sketch_path:sketchUrls[0]||null,
    sketch_paths:sketchUrls,
    data:form.data||{},
+   // v3.16: Material fuer den Regierapport. Der Speicher-Payload wird hier
+   // ausdruecklich aufgebaut - ohne diese Zeile ginge die Liste beim
+   // Speichern verloren, obwohl sie im Formular steht.
+   rapport_material:form.rapport_material||[],
    updated_by:currentProfile?currentProfile.id:null,
    updated_at:jetzt
   };
@@ -808,6 +826,18 @@ function pdfMateriallisteHtml(m){
   if(["m²","m2","kg","Stk.","Stück"].indexOf(String(z.einheit))<0)return;
   if(/^(Material|Blechfläche)/i.test(String(z.bezeichnung||"")))return;
   zeilen.push({b:z.bezeichnung,m:z.menge,e:z.einheit});
+ });
+ // v3.16: die in dieser Aufnahme erfasste Materialliste fuer den
+ // Regierapport. Bezeichnung, Dim. und Einheit kommen aus dem Katalog -
+ // eine unbekannte EDV-Nr. wird als solche ausgewiesen statt geraten.
+ // Preise stehen bewusst nicht im Massaufnahme-PDF.
+ const rm=(m&&Array.isArray(m.rapport_material))?m.rapport_material:[];
+ rm.forEach(z=>{
+  const no=String(z&&z.no!=null?z.no:"").trim();
+  if(!no)return;
+  const x=(typeof materialFor==="function")?materialFor(no):null;
+  zeilen.push({b:no+(x?" · "+x[1]:" · nicht im Katalog")+(x&&x[2]?" · "+x[2]:""),
+    m:z.qty,e:(x&&x[3])||""});
  });
  if(!zeilen.length)return "";
  return `<div class="eb-section-head">Materialliste</div>

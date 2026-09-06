@@ -432,6 +432,8 @@ function newMeasurementWithType(type){
  $("measPhotoInput").value="";
  measPhotos=[];
  measSketches=[];
+ // v3.16: Material fuer den Regierapport - eine neue Aufnahme hat keines.
+ if(typeof measRapportMaterialZuruecksetzen==="function")measRapportMaterialZuruecksetzen();
  renderMeasPhotoGallery();
  // Neue Aufnahme: der Foto-/Skizzenbereich der Register-Arten startet
  // wieder zugeklappt.
@@ -636,6 +638,9 @@ function openMeasurement(m){
  renderMeasPhotoGallery();
  measSketches=(m.sketch_paths&&m.sketch_paths.length)?[...m.sketch_paths]:(m.sketch_path?[m.sketch_path]:[]);
  renderSketchGallery();
+ // v3.16: aus der Spalte, NICHT aus data - eine vor v3.16 gespeicherte
+ // Aufnahme hat die Spalte nicht und oeffnet mit leerer Liste.
+ if(typeof measRapportMaterialFuellen==="function")measRapportMaterialFuellen(m);
  if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(m.type);
  // Alle Fachfelder aus m.data fuellen - dieselbe Stelle, die auch die
  // Vorlagen-Kopie benutzt (v3.04).

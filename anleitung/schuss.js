@@ -84,7 +84,9 @@ const liste=[];
   settings.rates=[["Meister",98],["Vorarbeiter",88],["Monteur",76],["Lernender",42]];
   settings.materials=[["101.10","Titanzink Band 0.7 mm","0.7 mm","m2",38.5],
                       ["101.20","Titanzink Rinne halbrund 333","333 mm","m",42.0],
-                      ["204.05","Kupfer Band 0.6 mm","0.6 mm","m2",71.2]];
+                      ["204.05","Kupfer Band 0.6 mm","0.6 mm","m2",71.2],
+                      ["301.40","Bohrschraube nichtrostend","4.5 × 35 mm","Stk",0.42],
+                      ["305.10","Dichtband Butyl","15 mm × 10 m","Rolle",18.9]];
   settings.employees=["Andrea Beispiel","Beat Muster"];
   rinneFittingTypes=[{id:1,name:"Aussenwinkel 90°",symbol:"AE90",is_fixpunkt:true,angle_deg:90,zuschlag_mm:0},
                      {id:2,name:"Innenwinkel 90°",symbol:"IE90",is_fixpunkt:true,angle_deg:-90,zuschlag_mm:0},
@@ -234,7 +236,26 @@ const liste=[];
   renderMain();
  });
  await schuss("20-regierapport","#reportScreen",{warte:500});
+ // v3.16: Material aus den Massaufnahmen des Objekts uebernehmen.
+ await page.evaluate(async()=>{
+  currentProjectId=1;
+  if(typeof rmatOeffnen==="function")await rmatOeffnen();
+ });
+ await schuss("44-rmat-uebernehmen","#rmatModal .card",{warte:800,breite:900});
+ await page.evaluate(()=>{$("rmatModal").hidden=true});
  await page.evaluate(()=>{$("reportScreen").hidden=true;goToStart&&goToStart()});
+
+ // v3.16: die Materialliste in der Massaufnahme selbst.
+ await page.evaluate(()=>{
+  $("measurementEditModal").hidden=false;
+  if(typeof measRapportMaterialFuellen==="function")
+   measRapportMaterialFuellen({rapport_material:[
+    {no:"301.40",qty:"250",bem:"Schrauben 4.5 × 35"},
+    {no:"305.10",qty:"3",bem:"Dichtband Rolle"}]});
+  const b=$("measRapportMaterial"); if(b)b.hidden=false;
+ });
+ await schuss("43-meas-rapportmaterial","#measRapportMaterial",{warte:500,breite:900});
+ await page.evaluate(()=>{$("measurementEditModal").hidden=true;goToStart&&goToStart()});
 
  // ---------- Globale Suche ----------
  await page.evaluate(()=>{

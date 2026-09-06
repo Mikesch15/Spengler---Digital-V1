@@ -119,7 +119,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.15</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.16</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -219,6 +219,7 @@
 <div class="bar no-print">
 <button id="addMat" class="gray">＋ Material</button>
 <button id="openSheet" class="blue">📐 Blechverbrauch</button>
+<button type="button" id="rmatOeffnen" class="blue">🧱 Aus Massaufnahmen übernehmen</button>
 </div>
 <div class="total">Total Material CHF <span id="matTotal">0.00</span></div>
 </div>
@@ -1352,6 +1353,18 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 </div>
 </div>
 
+<!-- v3.16  Material dieser Massaufnahme fuer den Regierapport.
+     Zeilen mit EDV-Nr. aus dem bestehenden Katalog. Im Regierapport des
+     Projekts lassen sie sich mit einem Knopf uebernehmen. Steht bewusst
+     ausserhalb von data - eine Materialzeile darf die Freigabe (v3.06)
+     nicht verfallen lassen. -->
+<div id="measRapportMaterial" style="margin-top:10px">
+<h2 style="margin-top:4px">🧱 Material für den Regierapport <button type="button" class="hilfe-knopf no-print" data-hilfe="meas-rapportmaterial">i</button></h2>
+<div class="small">Material, das auf dieser Baustelle verbraucht wird und nicht aus der Berechnung entsteht. Im Regierapport dieses Projekts lässt es sich mit einem Knopf übernehmen.</div>
+<div id="measRapportMaterialBody"></div>
+<div class="bar no-print"><button type="button" id="measRapportMaterialAdd" class="gray">＋ Material</button></div>
+</div>
+
 <div class="grid" style="margin-top:8px">
 <div class="wide"><label>Notiz / Masse</label><textarea id="measNote" placeholder="Masse, Hinweise …"></textarea></div>
 </div>
@@ -1547,7 +1560,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.15.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 59 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.16.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 61 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -2009,6 +2022,27 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 </div>
 
 <!-- SHEET -->
+<!-- v3.16  Material aus den Massaufnahmen des Projekts uebernehmen.
+     Angeboten wird ausschliesslich, was in der jeweiligen Massaufnahme
+     unter "Material fuer den Regierapport" erfasst ist - eine
+     Ausmass-Position ohne EDV-Nr. laesst sich nicht in eine Rapportzeile
+     verwandeln, ohne eine Artikelnummer zu erfinden. -->
+<div id="rmatModal" class="modal" hidden>
+<div class="card">
+<h2>🧱 Material aus den Massaufnahmen <button type="button" class="hilfe-knopf no-print" data-hilfe="rmat-uebernehmen">i</button></h2>
+<div class="small">Angeboten wird, was in den Massaufnahmen dieses Projekts unter „Material für den Regierapport“ erfasst ist. Bereits im Rapport stehende EDV-Nummern sind nicht vorgewählt.</div>
+<div class="bar no-print">
+<button type="button" id="rmatAlle" class="gray">Alle auswählen</button>
+<button type="button" id="rmatKeine" class="gray">Keine auswählen</button>
+</div>
+<div id="rmatListe"></div>
+<div class="bar">
+<button type="button" id="rmatUebernehmenBtn" class="green">✓ Ausgewählte übernehmen (0)</button>
+<button type="button" id="rmatSchliessen" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+
 <div id="sheetModal" class="modal" hidden>
 <div class="modalbox"><div class="card">
 <h2>📐 Blechverbrauch</h2>
@@ -2079,7 +2113,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.15.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.16.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2154,6 +2188,7 @@ nicht neu installieren.</div>
 <script src="js/54-zurueck.js"></script>
 <script src="js/55-winkel.js"></script>
 <script src="js/56-material-zuschnitt.js"></script>
+<script src="js/57-rapport-material.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

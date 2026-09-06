@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.15";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.16";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.15<br>
+  Version 3.16<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -301,6 +301,19 @@ optimistisch.</div>
 bei einem Fehler, orange bei einem Hinweis. Ein Fehler ist etwas, das rechnerisch nicht
 aufgeht oder ein Mindestmass verletzt; ein Hinweis ist etwas Ungewöhnliches, aber
 Erlaubtes.</p>
+
+<h3>Material für den Regierapport</h3>
+<figure><img src="bilder/43-meas-rapportmaterial.png"><figcaption>Unter der Notiz: Material, das die App nicht selbst kennt.</figcaption></figure>
+<p>Unter dem letzten Register steht die Liste <strong>🧱 Material für den
+Regierapport</strong>. Sie ist für alles gedacht, was verbraucht wird, aber aus keiner
+Berechnung hervorgeht – Schrauben, Dichtband, Kleber, Nieten. Je Zeile die EDV-Nr. aus
+dem Materialkatalog, die Menge und wahlweise eine Bemerkung; die Bezeichnung kommt aus
+dem Katalog.</p>
+<p>Aus dem Regierapport heraus lässt sich diese Liste später mit einem Knopf übernehmen
+(Abschnitt 15). Sie erscheint auch im PDF der Massaufnahme unter <em>Materialliste</em>.</p>
+<div class="hin">Diese Liste gehört <strong>nicht</strong> zu den Massen. Etwas hier
+einzutragen lässt deshalb <strong>keine Freigabe verfallen</strong> (Abschnitt 9) – auch
+dann nicht, wenn schon gerüstet wird.</div>
 
 <h3>Eine Massaufnahme als Vorlage</h3>
 <p>Kommt dieselbe Konstruktion wieder, muss sie nicht neu eingetippt werden: im
@@ -727,6 +740,13 @@ und Objekt bereits gefüllt.</p>
 <p>Je Zeile Datum, Beschreibung, Mitarbeiter, Funktion und Stunden. Der Ansatz kommt
 aus der Funktion (Einstellungen → Funktionen/Stundenansätze), das Total rechnet die
 App.</p>
+<p>Eine <strong>neue Zeile ist bereits vorbelegt</strong>: Mitarbeiter und Funktion
+stehen auf der angemeldeten Person, sofern für sie in der Mitarbeiterliste eine Funktion
+hinterlegt ist (Abschnitt 18). Der Stundenansatz folgt daraus von selbst. Beides bleibt
+frei änderbar – wer für jemand anderen schreibt, stellt die Zeile einfach um.</p>
+<div class="hin">Ist für die angemeldete Person keine Funktion hinterlegt, bleibt es beim
+bisherigen Verhalten: die Zeile startet mit dem ersten Mitarbeiter und dem
+Standard-Ansatz.</div>
 <h3>Material</h3>
 <p>Die EDV-Nr. schlägt aus dem Materialkatalog vor; Bezeichnung, Dimension, Einheit und
 Preis kommen von dort.</p>
@@ -734,6 +754,21 @@ Preis kommen von dort.</p>
 <code>999.90</code> bis <code>999.99</code> sind freie Positionen. Bezeichnung,
 Dimension, Einheit und Preis werden dann direkt in der Zeile eingetragen. Die App
 schlägt beim Tippen die nächste noch freie Nummer vor.</div>
+<h3>Material aus den Massaufnahmen übernehmen</h3>
+<figure><img src="bilder/44-rmat-uebernehmen.png"><figcaption>Was in den Massaufnahmen dieses Objekts erfasst wurde – zum Anhaken.</figcaption></figure>
+<p><span class="tasten">🧱 Aus Massaufnahmen übernehmen</span> zeigt alles, was in den
+Massaufnahmen <strong>dieses Projekts</strong> unter <em>Material für den
+Regierapport</em> steht (Abschnitt 8), nach Massaufnahme gruppiert. Angehakt wird, was
+in den Rapport soll; <span class="tasten">Übernehmen</span> legt daraus Materialzeilen an.</p>
+<p>Beim Öffnen ist nichts vorgewählt. Eine Position, die bereits im Rapport steht, ist
+gekennzeichnet – doppelt übernehmen lässt sie sich trotzdem, das entscheidet die Person.
+Übernommene Zeilen sind danach ganz gewöhnliche Materialzeilen und frei änderbar.</p>
+<div class="warn">Übernommen wird nur, was in den Massaufnahmen <strong>von Hand</strong>
+erfasst wurde. Blech aus dem Zuschnitt hat keine EDV-Nummer und wird deshalb nicht
+angeboten – eine erfundene Nummer wäre schlechter als keine.</div>
+<p>Ohne gewähltes Projekt bleibt der Knopf wirkungslos und sagt das; hat noch keine
+Massaufnahme des Projekts Material erfasst, steht das ebenfalls da.</p>
+
 <p>Unten stehen Sachbearbeiter, MWST und die Summen exkl./inkl. MWST.
 <span class="tasten">🖨 PDF / Drucken</span> erzeugt das Blatt für den Kunden.</p>
 
@@ -796,6 +831,15 @@ erfasste Massaufnahmen.</p>
 <p>Dieses Register sehen nur Firmenadministratoren. Dort werden Firmenname, Adresse,
 Logo und MWST gepflegt, Mitarbeiter angelegt und Passwörter zurückgesetzt, Funktionen
 und Ansätze definiert und die Materialkataloge verwaltet.</p>
+<h3>Die Funktion eines Mitarbeiters</h3>
+<p>In der Mitarbeiterliste steht neben jeder Person ein Auswahlfeld <strong>Funktion</strong>
+mit den Funktionen aus <em>Funktionen/Stundenansätze</em> – zum Beispiel Polier oder
+Monteur. Die Zuordnung gilt für die Firma und lässt sich jederzeit ändern; <em>– keine –</em>
+ist ebenfalls erlaubt.</p>
+<p>Sie wirkt im Regierapport: eine neue Arbeitszeile startet mit dieser Funktion und
+damit mit dem richtigen Stundenansatz (Abschnitt 15). Wird eine Funktion umbenannt,
+bleibt die Zuordnung bestehen – gespeichert ist die Funktion selbst, nicht ihr Name.</p>
+
 <div class="hin">Aus jeder Massaufnahme führt ein <span class="tasten">⚙️ Einstellungen</span>-Knopf
 direkt an die passende Stelle in diesen Registern.</div>
 
@@ -912,7 +956,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.15</strong>, Stand 6. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.16</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

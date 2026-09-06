@@ -561,7 +561,7 @@ function openReport(r,returnTo){
  currentReportId=r.id;
  currentReportMeta={created_by:r.created_by,created_at:r.created_at,updated_by:r.updated_by,updated_at:r.updated_at};
  updateVerlaufToggleVisibility($("reportVerlaufToggle"),$("reportVerlaufBody"),currentReportId);
- works=(r.work_entries&&r.work_entries.length)?r.work_entries:[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0}];
+ works=(r.work_entries&&r.work_entries.length)?r.work_entries:[neueArbeitsposition()];
  mats=r.material_entries||[];
  $("date").value=r.date||"";
  $("orderNo").value=r.order_no||"";

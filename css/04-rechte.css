@@ -138,3 +138,11 @@ body.recht-einstellungen-ansehen #settingsModal [data-del-rinne-fitting]{display
   margin-top:9px;
 }
 .rechte-schalter input{width:auto;min-height:0;flex:0 0 auto}
+
+/* ---------- v3.16  Fest hinterlegte Funktion je Mitarbeiter ----------
+   Steht offen in der Zeile, nicht hinter "Rechte": die Funktion wird im
+   Alltag gesetzt, die Rechte einmal. Kein eigenes Layout - dieselbe
+   Feldbreite wie die uebrigen Einstellungsfelder. */
+.mitarbeiter-funktion{margin-top:7px}
+.mitarbeiter-funktion label{display:block;margin-bottom:2px}
+.mitarbeiter-funktion select{width:100%}

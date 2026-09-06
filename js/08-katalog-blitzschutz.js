@@ -654,6 +654,6 @@ $("save").onclick=async()=>{
  isDirty=false;
  alert("Rapport gespeichert und dem Projekt zugeordnet.");
 };
-$("clear").onclick=()=>{if(confirm("Wirklich alle Rapportdaten löschen?")){works=[{date:new Date().toISOString().slice(0,10),desc:"",employee:settings.employees[0]||"",rateName:(defaultRate&&settings.rates.some(r=>r[0]===defaultRate))?defaultRate:(settings.rates[0]?.[0]||""),hours:0}];mats=[];currentReportId=null;
+$("clear").onclick=()=>{if(confirm("Wirklich alle Rapportdaten löschen?")){works=[neueArbeitsposition()];mats=[];currentReportId=null;
  if(typeof reportPhotos!=="undefined"){reportPhotos=[];if(typeof renderReportFotos==="function")renderReportFotos()}
  updateVerlaufToggleVisibility($("reportVerlaufToggle"),$("reportVerlaufBody"),null);renderMain()}};

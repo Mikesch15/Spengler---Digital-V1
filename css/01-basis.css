@@ -1033,3 +1033,40 @@ button.zu-nr.zu-nr-hak.ze-ok::before{content:"✓ "}
 .ze-stand.ze-stand-ok{color:var(--green);font-weight:700}
 button.ze-alle{min-height:30px;padding:2px 8px;font-size:11px;text-transform:none;
  letter-spacing:0;background:transparent;border:1px solid var(--line);color:var(--muted)}
+
+/* ---------------------------------------------------------------------------
+   v3.16  Material fuer den Regierapport
+   ---------------------------------------------------------------------------
+   ACHTUNG - dieselbe Falle wie in CLAUDE.md 59/60.5/71.5/72.5/115.9/118.5:
+   ganz oben in dieser Datei stehen sehr breite Grundregeln. Sie treffen hier
+   zweimal zu und werden deshalb ausdruecklich zurueckgesetzt:
+     label{text-transform:uppercase;font-size:9px}  -> die Auswahlzeile ist
+       ein <label> und waere sonst durchgehend GROSS und winzig
+     input{width:100%;min-height:40px;border;padding} -> das Kaestchen waere
+       40 px hoch mit zweitem Rahmen
+   Gemessen, nicht vermutet. */
+.rmat-zeile{
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  border:1px solid var(--line);border-radius:10px;
+  padding:6px;margin:6px 0;background:#fff;
+}
+.rmat-nr{flex:1 1 130px;min-width:0}
+.rmat-menge{flex:0 1 110px}
+.rmat-text{flex:2 1 180px;min-width:0;font-size:12px;color:var(--muted);word-break:break-word}
+.rmat-unbekannt{color:var(--red)}
+.rmat-zeile [data-rmat-weg]{flex:0 0 auto;min-height:34px}
+
+.rmat-gruppe{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+.rmat-gruppe:first-child{border-top:0;padding-top:0;margin-top:0}
+.rmat-gruppe-kopf{font-size:12px;font-weight:800;color:var(--blue-dark);margin-bottom:4px}
+.rmat-wahl{
+  display:flex;gap:8px;align-items:flex-start;
+  padding:6px;border-radius:8px;cursor:pointer;
+  text-transform:none;font-size:13px;font-weight:400;color:inherit;letter-spacing:0;
+}
+.rmat-wahl:hover{background:var(--bg)}
+.rmat-wahl input[type="checkbox"]{
+  width:20px;height:20px;min-height:0;padding:0;border:0;margin:2px 0 0;flex:0 0 auto;
+}
+.rmat-wahl-text{display:flex;flex-direction:column;gap:2px;min-width:0;word-break:break-word}
+.rmat-schon{color:var(--red)}

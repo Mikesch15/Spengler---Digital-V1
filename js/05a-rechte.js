@@ -162,12 +162,24 @@ function renderMitarbeiterSettings(){
     <label class="rechte-schalter"><input type="checkbox" data-recht-kataloge="${i}"${r.kataloge?" checked":""}${istAdmin?" disabled":""}> darf Material, Stundenansätze, Blitzschutz, Rinnenteile und Massaufnahme-Materialien ändern</label>
    </div>`
    :'<div class="small">Rechte kann nur ein Administrator ändern.</div>';
+  // v3.16: fest hinterlegte Funktion. Sie ist eine Alltagseinstellung und
+  // steht deshalb offen da, nicht hinter "Rechte". Aendern darf sie nur ein
+  // Administrator - das erzwingt ohnehin die profiles-Policy, die Anzeige
+  // fuehrt nur.
+  const funktion=`<div class="mitarbeiter-funktion">
+    <label for="empFunktion${i}">Funktion / Stundenansatz</label>
+    <select id="empFunktion${i}" data-emp-funktion="${i}"${darfVergeben?"":" disabled"}>
+     <option value="">– keine hinterlegt –</option>
+     ${settings.rates.map((r,ri)=>`<option value="${esc(rateIds[ri])}"${(p&&String(p.rate_id)===String(rateIds[ri]))?" selected":""}>${esc(r[0])} · CHF ${money(r[1])}</option>`).join("")}
+    </select>
+   </div>`;
   return `<div class="rechte-zeile">
    <div class="rechte-kopf">
     <input data-set-emp="${i}" value="${esc(e)}">
     ${darfVergeben?`<button type="button" class="gray" data-pw-reset="${i}" title="Passwort zurücksetzen">🔑</button>`:""}
     <button class="red" data-del-emp="${i}">Löschen</button>
    </div>
+   ${funktion}
    <details class="rechte-details">
     <summary>Rechte${istAdmin?" – Administrator":""}</summary>
     ${block}
@@ -232,3 +244,39 @@ document.addEventListener("change",async e=>{
  if(currentProfile&&currentProfile.id===id)await applyRechte();
  renderMitarbeiterSettings();
 });
+
+// ---------------------------------------------------------------------------
+// v3.16  Funktion eines Mitarbeiters speichern
+// ---------------------------------------------------------------------------
+// Ein gewoehnliches UPDATE auf profiles - dieselbe Policy wie beim Namen
+// (has_permission('profiles','edit') UND (id=auth.uid() ODER is_admin())).
+// Eine SECURITY-DEFINER-Funktion waere hier falsch: sie wuerde RLS umgehen
+// und muesste die Pruefung nachbauen.
+//
+// Ein von RLS abgelehntes UPDATE meldet in PostgREST KEINEN Fehler, es
+// betrifft still 0 Zeilen (CLAUDE.md 24.1). Deshalb .select() und 0 Zeilen
+// ausdruecklich NICHT als Erfolg werten - sonst stuende die Auswahl auf
+// einem Wert, den die Datenbank gar nicht hat.
+if($("employeeSettings")){
+ $("employeeSettings").addEventListener("change",async e=>{
+  const feld=e.target.closest?e.target.closest("[data-emp-funktion]"):null;
+  if(!feld)return;
+  const i=Number(feld.dataset.empFunktion);
+  const profil=allProfiles.find(x=>x.id===employeeIds[i]);
+  if(!profil)return;
+  const vorher=profil.rate_id===null||profil.rate_id===undefined?"":String(profil.rate_id);
+  const wert=feld.value?Number(feld.value):null;
+  const {data,error}=await sb.from("profiles").update({rate_id:wert,updated_at:new Date().toISOString()})
+    .eq("id",profil.id).select("id,rate_id");
+  if(error||!data||!data.length){
+   feld.value=vorher;
+   alert(error?("Die Funktion konnte nicht gespeichert werden: "+error.message)
+              :"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");
+   return;
+  }
+  profil.rate_id=data[0].rate_id;
+  // Der angemeldete Benutzer aendert seine eigene Funktion: die Vorbelegung
+  // neuer Arbeitspositionen haengt daran.
+  if(currentProfile&&currentProfile.id===profil.id)currentProfile.rate_id=data[0].rate_id;
+ });
+}
