@@ -1,0 +1,303 @@
+// ---------------------------------------------------------------------------
+// v3.09  Werkstatt- und Ruestansicht
+// ---------------------------------------------------------------------------
+// EINE ZUSAETZLICHE SICHT auf den bestehenden Arbeitsablauf aus v3.05 bis
+// v3.07 - kein zweiter Ablauf, keine zweite Statuskette, keine zweite
+// Aufgabenverwaltung (Auftrag Abschnitt 8 und 21).
+//
+//   FREIGEGEBEN → ZU RÜSTEN → GERÜSTET → ZU MONTIEREN → MONTIERT → ABGESCHLOSSEN
+//
+// Bestaetigt wird ueber genau dieselbe Stelle wie auf der Startseite:
+// aufgabeAusfuehren() in js/45, das seinerseits die bestehenden
+// measurement_geruestet/measurement_montiert-Funktionen ruft. Hier wird
+// KEIN eigener Schreibweg gebaut.
+//
+// Der Ruester sieht die echte Ruestgrundlage - Projekt, Massaufnahmen,
+// Material, Zuschnitt, Reservierungen, Reststuecke, Status - und zwar aus
+// denselben Funktionen, die auch das Projekt-Cockpit verwendet
+// (pmatSammeln aus js/48, pzuSammeln/pzuPlan aus js/49, zuschnittHtml aus
+// js/33). Es wird nichts zweitgerechnet.
+//
+// Ein VERALTETER FREIGABESTAND wird deutlich gekennzeichnet und ist nicht
+// bestaetigbar (Auftrag Abschnitt 15). Das erzwingt ohnehin schon die
+// Datenbank: der Verfall setzt den Status auf "in_bearbeitung" zurueck,
+// und measurement_geruestet verlangt "zu_ruesten". Hier wird es sichtbar.
+//
+// Sichtbar nur, wenn das Untermodul eingeschaltet ist - pmAktiv("werkstatt").
+// ---------------------------------------------------------------------------
+
+const WERK_STATUS=["freigegeben","zu_ruesten","geruestet","zu_montieren"];
+const WERK_LIMIT=300;
+let werkZeilen=[];        // leichte Liste, ohne data
+let werkReservierungen=[];
+let werkOffen=null;       // aufgeklapptes Projekt
+let werkGrundlage=null;   // {projectId, aufnahmen:[...]}
+let werkFilter="alle";
+let werkLauf=0;
+let werkFehler=null;
+
+function werkAktiv(){return typeof pmAktiv==="function"&&pmAktiv("werkstatt")}
+function werkIch(){return currentProfile?currentProfile.id:null}
+
+// ---- Laden ----------------------------------------------------------------
+// Zwei Abfragen fuer die ganze Liste, danach eine je aufgeklapptem Projekt.
+// Kein company_id-Filter: die Firmengrenze erzwingt die Datenbank.
+async function werkLaden(){
+ werkFehler=null;
+ if(!werkAktiv()){werkZeilen=[];werkReservierungen=[];return}
+ const {data,error}=await sb.from("measurements")
+  .select("id,project_id,type,title,date,workflow_status,freigabe_verfallen,"
+        +"ruester_id,monteur_id,geruestet_am,montiert_am,updated_at,created_by")
+  .in("workflow_status",WERK_STATUS)
+  .order("updated_at",{ascending:false})
+  .limit(WERK_LIMIT);
+ if(error){werkFehler=error.message||"Unbekannter Fehler";werkZeilen=[];return}
+ werkZeilen=data||[];
+ werkReservierungen=[];
+ if(!(typeof pmAktiv==="function"&&pmAktiv("reservierung")))return;
+ const ids=[...new Set(werkZeilen.map(z=>z.project_id).filter(x=>x))];
+ if(!ids.length)return;
+ const r=await sb.from("material_reservierungen").select("*").in("project_id",ids);
+ if(!r.error)werkReservierungen=r.data||[];
+}
+
+// Die Ruestgrundlage eines Projekts braucht die gespeicherten Daten der
+// Massaufnahmen. Deshalb erst beim Aufklappen und nur fuer dieses eine
+// Projekt - kein Nachladen fuer jede Zeile der Liste.
+async function werkGrundlageLaden(projectId){
+ const {data,error}=await sb.from("measurements").select("*").eq("project_id",projectId);
+ werkGrundlage={projectId,aufnahmen:error?null:(data||[]),fehler:error?error.message:null};
+}
+
+// ---- Gruppieren -----------------------------------------------------------
+function werkPasst(z){
+ if(werkFilter==="ruesten")return z.workflow_status==="zu_ruesten";
+ if(werkFilter==="montieren")return z.workflow_status==="zu_montieren";
+ if(werkFilter==="meine")return z.ruester_id===werkIch()||z.monteur_id===werkIch();
+ return true;
+}
+function werkGruppen(){
+ const map=new Map();
+ werkZeilen.filter(werkPasst).forEach(z=>{
+  const k=z.project_id||0;
+  if(!map.has(k))map.set(k,{projectId:z.project_id||null,aufnahmen:[]});
+  map.get(k).aufnahmen.push(z);
+ });
+ return [...map.values()].map(g=>{
+  const p=g.projectId&&typeof allProjects!=="undefined"
+    ?allProjects.find(x=>x.id===g.projectId):null;
+  return {...g, projekt:p||null,
+    titel:p?((typeof projektTitel==="function")?projektTitel(p):(p.name||"Projekt"))
+           :"Ohne Projekt",
+    unter:p?[p.name,p.order_no,p.customer].filter(Boolean).join(" · "):"",
+    zuRuesten:g.aufnahmen.filter(a=>a.workflow_status==="zu_ruesten").length,
+    zuMontieren:g.aufnahmen.filter(a=>a.workflow_status==="zu_montieren").length};
+ }).sort((a,b)=>a.titel.localeCompare(b.titel,"de"));
+}
+
+// ---- Anzeige --------------------------------------------------------------
+function werkTyp(t){
+ return (typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[t])||t||"Massaufnahme";
+}
+function werkAufnahmeHtml(a){
+ const verfallen=!!a.freigabe_verfallen;
+ const ichRuester=a.ruester_id===werkIch(), ichMonteur=a.monteur_id===werkIch();
+ const ruester=a.ruester_id&&typeof profileName==="function"?profileName(a.ruester_id):"";
+ const monteur=a.monteur_id&&typeof profileName==="function"?profileName(a.monteur_id):"";
+ let aktion="";
+ if(verfallen){
+  // Auftrag Abschnitt 15: hier darf nichts unbemerkt weiterlaufen.
+  aktion=`<span class="mw-badge mw-rot">Freigabe verfallen</span>`;
+ }else if(a.workflow_status==="zu_ruesten"&&(ichRuester||(typeof isAdmin==="function"&&isAdmin()))){
+  aktion=`<button type="button" data-aufgabe="ruesten" data-aufgabe-id="${a.id}">✓ Rüsten bestätigen</button>`;
+ }else if(a.workflow_status==="zu_montieren"&&(ichMonteur||(typeof isAdmin==="function"&&isAdmin()))){
+  aktion=`<button type="button" data-aufgabe="montieren" data-aufgabe-id="${a.id}">✓ Montage bestätigen</button>`;
+ }
+ const wer=[ruester?"Rüster: "+esc(ruester):"", monteur?"Monteur: "+esc(monteur):""]
+   .filter(Boolean).join(" · ");
+ return `<div class="werk-zeile">
+  <div class="werk-zeile-info">
+   <b>${esc(werkTyp(a.type))}</b>${a.title?" · "+esc(a.title):""}
+   <div class="small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${wer?" · "+wer:""}</div>
+   ${verfallen?'<div class="small" style="color:var(--red)">Diese Massaufnahme wurde nach der Freigabe geändert. Sie muss erneut freigegeben werden, bevor daran weitergearbeitet wird.</div>':""}
+  </div>
+  <div class="werk-zeile-akt">
+   ${aktion}
+   <button type="button" class="gray" data-werk-mess="${a.id}">Öffnen</button>
+  </div>
+ </div>`;
+}
+
+// Die Ruestgrundlage: dieselben Funktionen wie im Projekt-Cockpit.
+function werkGrundlageHtml(g){
+ if(!werkGrundlage||werkGrundlage.projectId!==g.projectId)
+  return '<div class="small" style="color:var(--muted)">Rüstgrundlage wird geladen …</div>';
+ if(werkGrundlage.fehler)
+  return `<div class="small" style="color:var(--red)">Die Rüstgrundlage konnte nicht geladen werden: ${esc(werkGrundlage.fehler)}</div>`;
+ const liste=werkGrundlage.aufnahmen||[];
+ let h="";
+
+ if(typeof pmAktiv==="function"&&pmAktiv("material")&&typeof pmatSammeln==="function"){
+  const gruppen=pmatSammeln(liste);
+  h+='<div class="werk-block"><div class="small werk-block-titel"><b>Material</b></div>';
+  h+=gruppen.length?('<div class="scroll"><table class="eb-table pmat-tab"><thead><tr>'
+    +'<th>Material</th><th>Position</th><th>Menge</th></tr></thead><tbody>'
+    +gruppen.map(gr=>gr.positionen.map(p=>`<tr><td>${esc(gr.material)}</td><td>${esc(p.bezeichnung)}</td>`
+      +`<td class="pmat-zahl">${p.summe===null?esc(p.texte.join(" · ")||"-"):esc(pmatFormat(p.summe))}`
+      +`${p.einheit?" "+esc(p.einheit):""}</td></tr>`).join("")).join("")
+    +'</tbody></table></div>')
+   :'<div class="small" style="color:var(--muted)">Noch kein gespeichertes Ausmass.</div>';
+  h+="</div>";
+ }
+
+ if(typeof pmAktiv==="function"&&pmAktiv("zuschnitt")&&typeof pzuSammeln==="function"){
+  const {materialien}=pzuSammeln(liste);
+  h+='<div class="werk-block"><div class="small werk-block-titel"><b>Zuschnitt</b></div>';
+  h+=materialien.length?materialien.map(M=>{
+    const plan=(typeof pzuPlan==="function")?pzuPlan(M):null;
+    // zuschnittHtml zeigt das Reststuecke-Lager selbst - hier waere es doppelt.
+    return `<div class="pzu-material"><div class="pmat-kopf"><b>${esc(M.material)}</b></div>`
+      +((plan&&typeof zuschnittHtml==="function")?zuschnittHtml(plan):"")+"</div>";
+   }).join("")
+   :'<div class="small" style="color:var(--muted)">Nichts zuzuschneiden – keine Massaufnahme hat einen gespeicherten Zuschnitt.</div>';
+  h+="</div>";
+ }
+
+ if(typeof pmAktiv==="function"&&pmAktiv("reservierung")){
+  const res=werkReservierungen.filter(r=>r.project_id===g.projectId);
+  h+='<div class="werk-block"><div class="small werk-block-titel"><b>Reservierungen</b></div>';
+  h+=res.length?('<div class="scroll"><table class="eb-table pmat-tab"><thead><tr>'
+    +'<th>Material</th><th>Position</th><th>Menge</th><th>Status</th></tr></thead><tbody>'
+    +res.map(r=>`<tr><td>${esc(r.material_name||"Ohne Material")}</td>`
+      +`<td>${esc(r.bezeichnung||"")}</td>`
+      +`<td class="pmat-zahl">${esc(r.menge===null||r.menge===undefined?"":String(r.menge))}${r.einheit?" "+esc(r.einheit):""}</td>`
+      +`<td>${(typeof resvBadge==="function")?resvBadge(r.status):esc(r.status)}</td></tr>`).join("")
+    +'</tbody></table></div>')
+   :'<div class="small" style="color:var(--muted)">Für dieses Projekt ist noch nichts reserviert.</div>';
+  const reste=(typeof reststuecke!=="undefined"&&Array.isArray(reststuecke))
+    ?reststuecke.filter(r=>r.reserviert_fuer_project_id===g.projectId&&!r.verbraucht):[];
+  h+=reste.length
+    ?'<div class="small" style="margin-top:4px">Reservierte Reststücke: '
+      +reste.map(r=>esc(Math.round(Number(r.laenge_mm))+" × "+Math.round(Number(r.breite_mm))+" mm"
+        +(r.material_name?" ("+r.material_name+")":""))).join(" · ")+"</div>"
+    :'<div class="small" style="color:var(--muted);margin-top:4px">Kein Reststück für dieses Projekt reserviert.</div>';
+  h+="</div>";
+ }
+
+ return h||'<div class="small" style="color:var(--muted)">Für die Rüstgrundlage sind Materialübersicht, Zuschnitt oder Reservierung nötig – alle drei sind ausgeschaltet.</div>';
+}
+
+function renderWerkstatt(){
+ const box=$("werkstattBody");
+ if(!box)return 0;
+ if(!werkAktiv()){box.innerHTML="";return 0}
+ if(werkFehler){
+  box.innerHTML=`<div class="small" style="color:var(--red)">Die Werkstattliste konnte nicht geladen werden: ${esc(werkFehler)}</div>`;
+  return 0;
+ }
+ const gruppen=werkGruppen();
+ const zaehler=$("werkstattCount");
+ if(zaehler)zaehler.textContent=String(werkZeilen.filter(werkPasst).length);
+ const chips=[["alle","Alle"],["ruesten","Zu rüsten"],["montieren","Zu montieren"],["meine","Nur meine"]]
+  .map(([k,t])=>`<button type="button" class="status-chip${werkFilter===k?" aktiv":""}" data-werk-filter="${k}">${esc(t)}</button>`).join("");
+ let h=`<div class="status-filter">${chips}</div>`;
+ if(!gruppen.length){
+  h+=`<div class="small" style="color:var(--muted)">${werkFilter==="alle"
+    ?"In der Werkstatt liegt gerade nichts an. Hier erscheint, was freigegeben und zum Rüsten oder Montieren eingeteilt ist."
+    :"Nichts, das zu diesem Filter passt."}</div>`;
+  box.innerHTML=h; return 0;
+ }
+ h+=gruppen.map(g=>{
+  const offen=werkOffen===(g.projectId||0);
+  const zahl=[g.zuRuesten?g.zuRuesten+" zu rüsten":"",g.zuMontieren?g.zuMontieren+" zu montieren":""]
+    .filter(Boolean).join(" · ");
+  return `<div class="card werk-projekt">
+   <div class="werk-kopf">
+    <div class="werk-kopf-titel"><b>${esc(g.titel)}</b>
+     ${g.unter?`<div class="small" style="color:var(--muted)">${esc(g.unter)}</div>`:""}
+     ${zahl?`<div class="small">${esc(zahl)}</div>`:""}</div>
+    <div class="werk-kopf-akt">
+     ${g.projectId?`<button type="button" class="gray" data-werk-projekt="${g.projectId}">📂 Projekt</button>`:""}
+     <button type="button" data-werk-auf="${g.projectId||0}">${offen?"Rüstgrundlage schliessen":"Rüstgrundlage anzeigen"}</button>
+    </div>
+   </div>
+   ${g.aufnahmen.map(werkAufnahmeHtml).join("")}
+   ${offen?`<div class="werk-grundlage">${werkGrundlageHtml(g)}</div>`:""}
+  </div>`;
+ }).join("");
+ box.innerHTML=h;
+ return gruppen.length;
+}
+
+async function werkstattNeuLaden(){
+ if(!werkAktiv())return;
+ const lauf=++werkLauf;
+ await werkLaden();
+ if(lauf!==werkLauf)return;
+ // Ein aufgeklapptes Projekt behaelt seine Grundlage - sie wird nur dann
+ // neu geholt, wenn es weiterhin in der Liste steht.
+ if(werkOffen&&!werkZeilen.some(z=>(z.project_id||0)===werkOffen)){werkOffen=null;werkGrundlage=null}
+ renderWerkstatt();
+}
+async function werkstattOeffnen(){
+ if(!werkAktiv())return;
+ // Bewusst NICHT ueber goToStart(): das laedt die Aufgabenzentrale neu und
+ // wuerde vier zusaetzliche Abfragen ausloesen, die hier niemand braucht.
+ // Gleiches Muster wie auOeffnen() in js/46.
+ const m=$("werkstattModal");
+ if(m)m.hidden=false;
+ werkOffen=null; werkGrundlage=null; werkFilter="alle";
+ const box=$("werkstattBody");
+ if(box)box.innerHTML='<div class="small">Wird geladen …</div>';
+ await werkstattNeuLaden();
+}
+function werkstattKnopfAktualisieren(){
+ const k=$("navWerkstatt");
+ if(k)k.hidden=!werkAktiv();
+}
+
+// ---- Bedienung ------------------------------------------------------------
+document.addEventListener("click",async e=>{
+ if(!e.target||!e.target.closest)return;
+
+ const start=e.target.closest("#navWerkstatt");
+ if(start){werkstattOeffnen();return}
+
+ const filter=e.target.closest("[data-werk-filter]");
+ if(filter){werkFilter=filter.dataset.werkFilter;renderWerkstatt();return}
+
+ const auf=e.target.closest("[data-werk-auf]");
+ if(auf){
+  const id=Number(auf.dataset.werkAuf);
+  if(werkOffen===id){werkOffen=null;werkGrundlage=null;renderWerkstatt();return}
+  werkOffen=id; werkGrundlage=null; renderWerkstatt();
+  if(id){await werkGrundlageLaden(id); if(werkOffen===id)renderWerkstatt()}
+  else{werkGrundlage={projectId:0,aufnahmen:[],fehler:null};renderWerkstatt()}
+  return;
+ }
+
+ const pro=e.target.closest("[data-werk-projekt]");
+ if(pro){
+  const id=Number(pro.dataset.werkProjekt);
+  if(typeof openProjectCockpit==="function"){
+   const m=$("werkstattModal"); if(m)m.hidden=true;
+   openProjectCockpit(id);
+  }
+  return;
+ }
+
+ const mess=e.target.closest("[data-werk-mess]");
+ if(mess){
+  const id=Number(mess.dataset.werkMess);
+  const {data,error}=await sb.from("measurements").select("*").eq("id",id).maybeSingle();
+  if(error||!data){alert("Diese Massaufnahme ist nicht mehr verfügbar.");werkstattNeuLaden();return}
+  if(typeof measEditReturnTo!=="undefined")measEditReturnTo="werkstatt";
+  const m=$("werkstattModal"); if(m)m.hidden=true;
+  if(typeof openMeasurement==="function")openMeasurement(data);
+  return;
+ }
+});
+
+if($("werkstattAktualisieren"))$("werkstattAktualisieren").onclick=()=>werkstattNeuLaden();
+if($("closeWerkstatt"))$("closeWerkstatt").onclick=()=>{$("werkstattModal").hidden=true;$("startScreen").hidden=false};
+if($("startFromWerkstatt"))$("startFromWerkstatt").onclick=()=>{if(typeof goToStart==="function")goToStart()};

@@ -154,7 +154,8 @@ if($("savePmModule"))$("savePmModule").onclick=pmSpeichern;
 // Ansicht hier keinen Fehler wirft.
 function pmNachAenderung(){
  [ "renderProjectList","renderCockpitStammdaten","aufgabenNeuLaden",
-   "renderMeasWorkflow","pmSichtbarkeitAuffrischen" ].forEach(f=>{
+   "renderMeasWorkflow","pmSichtbarkeitAuffrischen",
+   "werkstattKnopfAktualisieren" ].forEach(f=>{
   try{ if(typeof window[f]==="function")window[f](); }catch(e){ console.error(f,e) }
  });
 }

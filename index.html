@@ -108,6 +108,9 @@
      über is_system_admin() in RLS/den system_admin_*-Funktionen. -->
 <!-- v3.08: Nur fuer Firmenadministratoren (isAdmin). Reine UI-Fuehrung -
      admin_alle_massaufnahmen() prueft serverseitig noch einmal. -->
+<!-- v3.09: nur wenn das Untermodul "Werkstatt" eingeschaltet ist
+     (js/47-projektmodule.js). Standard ist AUS. -->
+<button id="navWerkstatt" class="gray" hidden>🔧 Werkstatt</button>
 <button id="navAdminMeas" class="gray" hidden>📋 Alle Massaufnahmen</button>
 <button id="navSystemAdmin" class="gray" hidden>⚙️ System-Administration</button>
 </div>
@@ -729,6 +732,20 @@ Diese Aktion löscht unwiderruflich:
 <div id="auListe"></div>
 <div class="small" id="auGrenze" style="color:var(--muted);margin-top:6px" hidden>Zeigt die ersten 1000 Massaufnahmen, zuletzt geänderte zuerst.</div>
 <div class="bar"><button id="auAktualisieren" class="gray">↻ Aktualisieren</button><button id="closeAdminMeas" class="green">✓ Fertig</button><button id="startFromAdminMeas" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- v3.09 Werkstatt- und Rüstansicht. Eine zusätzliche Sicht auf den
+     bestehenden Arbeitsablauf - keine zweite Statuskette, siehe
+     js/51-werkstatt.js. -->
+<div id="werkstattModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>🔧 Werkstatt<span id="werkstattCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="werkstatt">i</button></h2>
+<div class="small" style="color:var(--muted);margin-bottom:6px">Was freigegeben und zum Rüsten oder Montieren eingeteilt ist – mit der Rüstgrundlage: Material, Zuschnitt, Reservierungen und Reststücke des Projekts.</div>
+<div id="werkstattBody"></div>
+<div class="bar"><button id="werkstattAktualisieren" class="gray">↻ Aktualisieren</button><button id="closeWerkstatt" class="green">✓ Fertig</button><button id="startFromWerkstatt" class="gray">🏠 Start</button></div>
 </div>
 </div>
 </div>
@@ -1929,6 +1946,7 @@ nicht neu installieren.</div>
 <script src="js/48-projekt-material.js"></script>
 <script src="js/49-projekt-zuschnitt.js"></script>
 <script src="js/50-reservierung.js"></script>
+<script src="js/51-werkstatt.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

@@ -110,6 +110,19 @@ alles unverändert da – auch die vorher gewählten Untermodule.</p>
 <p>Gilt für die <b>ganze Firma</b>. Ändern kann das nur ein Administrator;
 die Datenbank prüft das bei jedem Speichern selbst.</p>
 `},
+"werkstatt":{titel:"Werkstatt und Rüsten",text:`
+Hier steht, was freigegeben und zum Rüsten oder Montieren eingeteilt ist –
+nach Projekt gruppiert, nicht nach Person. Es ist dieselbe Arbeitsliste wie
+auf der Startseite, nur aus Sicht der Werkstatt.
+
+„Rüstgrundlage anzeigen" klappt auf, was für dieses Projekt gebraucht wird:
+Material, Zuschnitt, Reservierungen und die dafür reservierten Reststücke.
+Das sind genau dieselben Zahlen wie im Projekt selbst – es wird nichts neu
+gerechnet.
+
+Wurde eine Massaufnahme nach ihrer Freigabe geändert, steht das rot dabei
+und sie lässt sich nicht bestätigen. Zuerst muss sie erneut freigegeben
+werden – damit niemand nach einem überholten Stand rüstet.`},
 "cockpit-reservierung":{titel:"Materialreservierung",text:`
 Hier steht, was für dieses Projekt gebraucht, reserviert, zugeschnitten und
 gerüstet ist. „Bedarf übernehmen" holt genau die Positionen, die die

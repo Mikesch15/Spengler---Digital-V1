@@ -784,3 +784,19 @@ button.pmat-quelle:hover{border-color:var(--blue)}
 .resv-rest-zeile:last-of-type{border-bottom:0}
 .resv-rest-zeile>span:first-child{flex:1 1 160px;min-width:0;word-break:break-word}
 .resv-rest-zeile button{width:auto;min-height:34px;padding:4px 8px;font-size:12px}
+/* v3.09 Werkstatt. Vollstaendige Uebersicht am Schreibtisch, auf dem Tablet
+   und Handy sinnvoll gestapelt - keine unbrauchbaren Mini-Tabellen. */
+.werk-projekt{margin-bottom:10px}
+.werk-kopf{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;
+ justify-content:space-between;margin-bottom:6px}
+.werk-kopf-titel{flex:1 1 200px;min-width:0;word-break:break-word}
+.werk-kopf-titel b{font-size:15px}
+.werk-kopf-akt{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px}
+.werk-kopf-akt button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
+.werk-zeile{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;
+ justify-content:space-between;padding:6px 0;border-top:1px solid var(--card-line);min-width:0}
+.werk-zeile-info{flex:1 1 200px;min-width:0;word-break:break-word}
+.werk-zeile-akt{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px}
+.werk-zeile-akt button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
+.werk-grundlage{margin-top:8px;border-top:2px solid var(--line);padding-top:8px}
+.werk-block{margin-bottom:10px}

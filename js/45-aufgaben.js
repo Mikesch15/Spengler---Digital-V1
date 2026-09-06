@@ -168,6 +168,9 @@ async function aufgabeAusfuehren(art,id){
   alert(error.message||"Der Schritt konnte nicht ausgeführt werden.");
  }
  aufgabenNeuLaden();
+ // v3.09: derselbe Schritt kann aus der Werkstattansicht kommen - eine
+ // Logik, zwei Sichten.
+ if(typeof werkstattNeuLaden==="function")werkstattNeuLaden();
 }
 
 document.addEventListener("click",e=>{

@@ -51,6 +51,9 @@ async function measEditZurueck(){
  // v3.08: aus der Firmenadmin-Uebersicht geoeffnet -> zurueck dorthin, mit
  // frisch geladenem Stand (der Status kann sich geaendert haben).
  else if(measEditReturnTo==="adminMeasModal"){$("adminMeasModal").hidden=false;if(typeof auNeuLaden==="function")await auNeuLaden()}
+ // v3.09: aus der Werkstattansicht geoeffnet -> zurueck dorthin, mit frisch
+ // geladenem Stand (der Arbeitsstatus kann sich geaendert haben).
+ else if(measEditReturnTo==="werkstatt"){$("werkstattModal").hidden=false;if(typeof werkstattNeuLaden==="function")await werkstattNeuLaden()}
  else{$("measurementsModal").hidden=false;await renderMeasurementsOverview()}
  measEditReturnTo="measurementsModal";
 }
