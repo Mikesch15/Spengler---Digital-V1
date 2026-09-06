@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.07.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.08.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -71,6 +71,29 @@ den Ablauf verwendet, ist weiterhin an die Regeln gebunden: freigeben darf nur
 der Aufnehmer, rüsten nur der eingeteilte Rüster. Das prüft die Datenbank
 selbst, unabhängig von dieser Einstellung.</p>`},
 
+"admin-uebersicht":{titel:"Alle Massaufnahmen",text:`
+<p>Diese Übersicht sehen nur Firmenadministratoren. Sie zeigt <b>jede</b>
+Massaufnahme der Firma mit ihrer Zuordnung – Projekt und Adresse, wer sie
+aufgenommen hat, wer rüstet, wer montiert – und ihrem Arbeitsstatus.</p>
+<p>Mit dem Suchfeld und den Filtern lässt sich eingrenzen: nach Status,
+Projekt, Art der Massaufnahme oder nach einer Person. Gesucht wird über
+Adresse, Projektname, Bezeichnung und Personennamen. Die Filter arbeiten auf
+der bereits geladenen Liste, sie lösen keine neue Abfrage aus.</p>
+<p><b>„Ohne Projekt"</b> in Rot heisst: diese Massaufnahme wurde ohne Projekt
+gespeichert. Sie ist dadurch in der normalen App <i>nirgends</i> sichtbar und
+lässt sich auch nicht bearbeiten. Über „📁 Projekt zuordnen" bekommt sie ein
+Projekt und ist danach eine ganz normale Massaufnahme.</p>
+<p>Der Status wird hier nur angezeigt. Ändern lässt er sich wie immer in der
+Massaufnahme selbst, damit es dafür nur einen Weg gibt.</p>`},
+"admin-zuordnen":{titel:"Projekt zuordnen",text:`
+<p>Eine Massaufnahme ohne Projekt gehört zu keiner Baustelle und zu keiner
+Adresse. Die App zeigt sie deshalb nirgends an – sie ist weder in der
+Projektübersicht noch in der Suche zu finden und lässt sich nicht öffnen.</p>
+<p>Hier bekommt sie ein Projekt der eigenen Firma. Danach erscheint sie
+überall wie jede andere Massaufnahme und kann normal bearbeitet, freigegeben
+und gerüstet werden. Es wird nichts überschrieben: Masse, Fotos, Skizzen und
+der Ersteller bleiben unverändert.</p>
+<p>Die Zuordnung steht im Änderungsverlauf der Massaufnahme.</p>`},
 "workflow":{titel:"Arbeitsstatus",text:`
 <p>Der Weg einer Massaufnahme von der Erfassung bis zur Montage:</p>
 <ul><li><b>In Bearbeitung</b> → <b>Freigegeben</b> → <b>Zu rüsten</b> →

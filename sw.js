@@ -9,7 +9,7 @@
    Offline-Bestand zur ausgelieferten Fassung passt. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-3.07";
+const CACHE = "spengler-digital-3.08";
 
 const SHELL = [
   "./",
@@ -67,7 +67,8 @@ const SHELL = [
   "./js/42-reste.js",
   "./js/43-warteschlange.js",
   "./js/44-workflow.js",
-  "./js/45-aufgaben.js"
+  "./js/45-aufgaben.js",
+  "./js/46-admin-uebersicht.js"
 ];
 
 self.addEventListener("install", event => {

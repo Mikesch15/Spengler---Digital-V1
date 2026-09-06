@@ -18156,3 +18156,161 @@ Abwicklung berührt.
   trotzdem: bekäme das Bild je ein `src`, solange es `hidden` ist, würde es
   erscheinen. Eine Zeile `#startLogo[hidden]{display:none}` würde es
   schliessen; bewusst nicht mit dieser Aufgabe vermischt.
+
+## 113. FIRMENADMIN-ÜBERSICHT ÜBER ALLE MASSAUFNAHMEN — VERSION 3.08
+
+Der Firmenadministrator sieht auf dem Startbildschirm neu **„📋 Alle
+Massaufnahmen"**: jede Massaufnahme seiner Firma mit ihrer Zuordnung
+(Projekt/Adresse, Ersteller, Rüster, Monteur) und ihrem Arbeitsstatus.
+Bis v3.07 gab es eine solche Gesamtsicht **nicht** – der Auftrag zum grossen
+Entwicklungsblock setzt sie in seinem Abschnitt 9 voraus („die bereits
+bestehende Administrator-Gesamtübersicht erweitern").
+
+### 113.1 Bestandsaufnahme – ein Drittel des Bestands war unsichtbar
+
+Beim Prüfen des Ist-Stands kam ein realer, gravierender Befund heraus:
+
+    24 Massaufnahmen gesamt
+     8 davon ohne project_id   <- fuer NIEMANDEN sichtbar
+
+`tenant_boundary_measurements` ist restriktiv und verlangt ein Projekt:
+
+```sql
+EXISTS (select 1 from projects p
+        where p.id = measurements.project_id and p.company_id = my_company_id())
+```
+
+Bei `project_id IS NULL` ist das `false`. Diese acht Aufnahmen (IDs 3, 4, 6,
+7, 8, 14, 16, 17, alle von Mike Ledermann, 24.–30.08.) erscheinen deshalb
+**nirgends** – nicht in der Projektübersicht, nicht in der Suche, nicht in
+den Übersichtslisten.
+
+**Sie liessen sich auch nicht reparieren.** Postgres prüft die restriktive
+Bedingung bei einem `UPDATE` auch für die **alte** Zeile (`USING`) – ein
+„Projekt nachtragen" scheitert daran, bevor `WITH CHECK` überhaupt greift.
+Sie waren damit endgültig unerreichbar. Eine Übersicht, die sie nur anzeigt,
+wäre ein Grabstein gewesen.
+
+### 113.2 Zwei Funktionen, beide eng gefasst
+
+**`admin_alle_massaufnahmen(p_limit)`** (Migration
+`admin_alle_massaufnahmen_v3_08`) liefert die Liste. Eine Zeile gehört über
+**genau eine** von zwei Regeln zur eigenen Firma:
+
+| Fall | Firmenzuordnung |
+|---|---|
+| mit Projekt | `projects.company_id = my_company_id()` |
+| ohne Projekt | Ersteller: `profiles.company_id = my_company_id()` |
+
+Die zweite Regel ist keine Lockerung, sondern die einzige Zuordnung, die
+eine projektlose Aufnahme überhaupt hat. Geraten wird nichts.
+
+**`admin_massaufnahme_projekt_zuweisen(p_id, p_project_id)`** (Migration
+`admin_massaufnahme_projekt_zuweisen_v3_08`) repariert sie: nur eine
+Aufnahme, die **wirklich** kein Projekt hat, nur wenn ihr Ersteller zur
+eigenen Firma gehört, nur auf ein Projekt der eigenen Firma. Danach greift
+die normale RLS wieder. Kein Workflow-Feld wird angefasst; die bestehenden
+Trigger setzen `updated_by`/`updated_at` und schreiben den Verlaufseintrag.
+
+### 113.3 Die Firmenprüfung ist NICHT `is_admin()` allein
+
+`is_admin()` prüft ausschliesslich `role='admin'` – **ohne** Firmenbezug.
+Beide neuen Funktionen prüfen deshalb wie `permission_scope()`:
+
+```sql
+exists (select 1 from profiles pr
+        where pr.id = auth.uid() and pr.role = 'admin'
+          and pr.company_id = my_company_id())
+```
+
+**Gemessen, nicht behauptet** (Gegenprobe mit nur `is_admin()`, in einer
+zurückgerollten Transaktion, DDL ist in Postgres transaktional): der Aufruf
+einer gesperrten Firma **lief durch und lieferte eine leere Liste**, statt
+abzuweisen. Ein Datenleck wäre es nicht gewesen (`my_company_id()` ist dort
+`NULL`, die Where-Klausel trifft nichts) – der Unterschied ist **klare
+Meldung statt stiller Leerliste**. Meine ursprüngliche Annahme „umgeht die
+Trial-Sperre" war zu stark; so steht es jetzt richtig hier.
+
+### 113.4 Oberfläche
+
+`js/46-admin-uebersicht.js` – Karten statt Tabelle (eine Tabelle wäre auf
+dem Handy unbrauchbar, und `table{min-width:1000px}` würde sie ohnehin aus
+dem Bild schieben, CLAUDE.md 60.5). Auf Bildschirmen ab 700 px steht der
+Knopf **neben** dem Text statt darunter – sonst wäre eine Liste mit 23
+Massaufnahmen unnötig lang (gemessen: 1426 statt 1810 px Höhe bei vier
+Zeilen).
+
+Kein zweites System: Status-Beschriftung aus `mwBadge()`/`MW_STATUS`
+(js/44), Namen aus `profileName()`/`allProfiles`, Arten aus
+`MEAS_TYPE_LABELS`. **Der Status wird nur angezeigt** – ändern lässt er sich
+weiterhin ausschliesslich über die Übergangsfunktionen aus v3.05, erreichbar
+in der Massaufnahme selbst.
+
+Filter (Suche, Projekt, Art, Person) und Status-Chips arbeiten rein
+clientseitig auf der bereits geladenen Liste – **keine neue Abfrage pro
+Tastenanschlag**, im Prüfstand ausdrücklich gezählt. Der Personenfilter
+findet Ersteller, Rüster **und** Monteur.
+
+Obergrenze 1000, zuletzt geänderte zuerst; werden es genau 1000, sagt eine
+Zeile das ausdrücklich, statt die Grenze zu verschweigen.
+
+### 113.5 Getestet
+
+**Datenbank** – alle Schreibtests in zurückgerollten Transaktionen, Produktiv­
+daten vor und nach identisch (`PETER KÜNZI AG.updated_at` unverändert
+`2026-09-01 07:40:15.844647+00`):
+
+| Prüfung | Ergebnis |
+|---|---|
+| Firmenadmin PETER KÜNZI AG | 23 Zeilen (15 mit Projekt + 8 ohne) – exakt der echte Bestand |
+| Mitarbeiter | abgewiesen: „Nur für Firmenadministratoren." |
+| Admin Testfirma | genau 1 – und **keine** fremde, auch keine fremde projektlose |
+| anonym | abgewiesen |
+| Admin einer gesperrten Firma | abgewiesen |
+| Zuordnen: Mitarbeiter / fremder Admin / fremdes Projekt | je abgewiesen |
+| Zuordnen: eigener Admin, eigenes Projekt | gesetzt und danach sichtbar |
+| Zuordnen: ein zweites Mal | abgewiesen („hat bereits ein Projekt") |
+| Verlauf | Eintrag geschrieben |
+
+**Oberfläche** – `pruefstaende/pruefstand-admin-uebersicht-v3-08.js`
+**67/67** in echtem Chromium gegen die echte `index.html`.
+
+**Neun Gegenproben**, jede baut einen echten Fehler ein und wirft den
+Prüfstand um:
+
+| Gegenprobe | Ergebnis |
+|---|---|
+| Knopf auch für Mitarbeiter sichtbar | 66/67 |
+| projektlose bekommen „öffnen" statt „zuordnen" | 56/75 |
+| Filter lösen eine neue Abfrage aus | 66/67 |
+| Fehler der Datenbank wird verschluckt | 66/67 |
+| „Ohne Projekt" nicht gekennzeichnet | 64/67 |
+| archivierte Projekte zur Auswahl | 66/67 |
+| Zuordnen ruft direktes `update()` statt der Funktion | 61/68 |
+| Rückziel nicht gesetzt | 56/75 |
+| js/24 kennt das Rückziel nicht | 57/75 |
+
+**Zwei Gegenproben liessen den Prüfstand zuerst abstürzen** statt
+fehlzuschlagen – ein abgebrochener Lauf sieht aus wie „keine Fehler"
+(CLAUDE.md 78). Jeder Klick und jede Auswahl läuft jetzt über einen Helfer,
+der Sichtbarkeit prüft und sauber fehlschlägt; danach bissen beide.
+
+**Zwei Fehlschläge waren meine Testfehler, keine Codefehler**: der Prüfstand
+rief `measEditZurueck()` direkt, obwohl jeder echte Aufrufer das Formular
+vorher schliesst (js/16:314, 424, 489) – er nutzt jetzt den echten
+„Abbrechen"-Knopf; und er mass die Knopfhöhe, ohne `showStart()` gerufen zu
+haben, weshalb der Startbildschirm versteckt und die Höhe 0 px war.
+
+### 113.6 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+- **Die acht projektlosen Massaufnahmen im Produktivbestand sind noch nicht
+  zugeordnet** – das ist eine fachliche Entscheidung des Betriebs (welche
+  gehört zu welchem Projekt), und die Übersicht ist genau der Ort dafür.
+- Filter und Suche arbeiten auf höchstens 1000 geladenen Zeilen. Bei einer
+  Firma mit mehr Massaufnahmen bräuchte es echte Serverfilterung; bei den
+  realen Mengen (23) ist das weit entfernt.
+- Die Übersicht zeigt Massaufnahmen. Ausmasse und Regierapporte haben keine
+  entsprechende Gesamtsicht – sie war nicht verlangt.

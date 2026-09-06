@@ -48,6 +48,9 @@ async function measEditZurueck(){
  // v3.05: aus der Aufgabenzentrale der Startseite geoeffnet -> zurueck zur
  // Startseite, mit frisch geladenen Aufgaben.
  else if(measEditReturnTo==="startScreen"){$("startScreen").hidden=false;if(typeof aufgabenNeuLaden==="function")await aufgabenNeuLaden()}
+ // v3.08: aus der Firmenadmin-Uebersicht geoeffnet -> zurueck dorthin, mit
+ // frisch geladenem Stand (der Status kann sich geaendert haben).
+ else if(measEditReturnTo==="adminMeasModal"){$("adminMeasModal").hidden=false;if(typeof auNeuLaden==="function")await auNeuLaden()}
  else{$("measurementsModal").hidden=false;await renderMeasurementsOverview()}
  measEditReturnTo="measurementsModal";
 }

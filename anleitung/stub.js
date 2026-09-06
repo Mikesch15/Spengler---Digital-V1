@@ -32,6 +32,14 @@ window.__demo={
   {id:31,module:"Massaufnahme",profiles:{first_name:"Beat",last_name:"Muster"},message:"Beim Einlaufblech wäre eine Vorlage für wiederkehrende Dächer praktisch.",created_by:"u2",created_at:"2026-09-02T07:14:00Z",resolved:false},
   {id:30,module:"Regierapport",profiles:{first_name:"Andrea",last_name:"Beispiel"},message:"Die freie Position 999.90 funktioniert gut, danke.",created_by:"u1",created_at:"2026-08-31T16:02:00Z",resolved:true}
  ],
+ // v3.08 Firmenadmin-Uebersicht: dieselben Demo-Massaufnahmen, dazu zwei
+ // ohne Projekt - genau der Fall, den die Uebersicht sichtbar macht.
+ adminMass:[
+  {id:11,project_id:1,projekt_name:"Sanierung Dach Nord",projekt_adresse:"Bahnhofstrasse 12, 3011 Bern",projekt_archiviert:false,projekt_status:"in_arbeit",type:"rinne_halbrund",title:"Rinne Nordseite",datum:"2026-08-29",created_by:"u1",created_at:"2026-08-29T09:10:00Z",updated_by:"u1",updated_at:"2026-09-05T09:40:00Z",workflow_status:"zu_ruesten",freigabe_verfallen:false,freigegeben_von:"u1",freigegeben_am:"2026-08-29T09:45:00Z",ruester_id:"u1",geruestet_von:null,geruestet_am:null,monteur_id:"u2",montiert_von:null,montiert_am:null},
+  {id:14,project_id:2,projekt_name:"Neubau Reiheneinfamilienhaus",projekt_adresse:"Sonnhaldenweg 4, 3097 Liebefeld",projekt_archiviert:false,projekt_status:"offen",type:"mauerabdeckung",title:"Mauerabdeckung Attika",datum:"2026-09-03",created_by:"u1",created_at:"2026-09-03T08:15:00Z",updated_by:"u1",updated_at:"2026-09-04T14:20:00Z",workflow_status:"in_bearbeitung",freigabe_verfallen:true,freigegeben_von:null,freigegeben_am:null,ruester_id:"u2",geruestet_von:null,geruestet_am:null,monteur_id:"u2",montiert_von:null,montiert_am:null},
+  {id:13,project_id:1,projekt_name:"Sanierung Dach Nord",projekt_adresse:"Bahnhofstrasse 12, 3011 Bern",projekt_archiviert:false,projekt_status:"in_arbeit",type:"kehle",title:"Kehle Lukarne Ost",datum:"2026-08-30",created_by:"u2",created_at:"2026-08-30T13:20:00Z",updated_by:"u2",updated_at:"2026-08-30T13:55:00Z",workflow_status:"abgeschlossen",freigabe_verfallen:false,freigegeben_von:"u2",freigegeben_am:"2026-08-30T14:00:00Z",ruester_id:null,geruestet_von:null,geruestet_am:null,monteur_id:"u2",montiert_von:"u2",montiert_am:"2026-09-01T11:00:00Z"},
+  {id:9,project_id:null,projekt_name:null,projekt_adresse:null,projekt_archiviert:null,projekt_status:null,type:"lukarne",title:"Lukarne Probe",datum:"2026-08-12",created_by:"u1",created_at:"2026-08-12T10:00:00Z",updated_by:"u1",updated_at:"2026-08-12T10:00:00Z",workflow_status:"in_bearbeitung",freigabe_verfallen:false,freigegeben_von:null,freigegeben_am:null,ruester_id:null,geruestet_von:null,geruestet_am:null,monteur_id:null,montiert_von:null,montiert_am:null}
+ ],
  companies:[{id:"c1",name:"Muster Spenglerei AG",slug:"muster-spenglerei",subscription_status:"active",trial_days:30,trial_started_at:"2026-08-01T00:00:00Z",trial_ends_at:"2026-08-31T00:00:00Z",created_at:"2026-08-01T00:00:00Z",is_active:true}]
 };
 
@@ -79,7 +87,10 @@ function bauer(tabelle){
 window.supabase={createClient:()=>({
  auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{},signOut:async()=>({})},
  from:t=>bauer(t),
- rpc:async()=>({data:null,error:null}),
+ rpc:async(name)=>{
+   if(name==="admin_alle_massaufnahmen")return {data:window.__demo.adminMass,error:null};
+   return {data:null,error:null};
+ },
  functions:{invoke:async()=>({data:null,error:null})},
  storage:{from:()=>({createSignedUrl:async()=>({data:null,error:{message:"Demo"}}),
    upload:async()=>({error:null}),remove:async()=>({error:null})})}

@@ -106,11 +106,14 @@
 <!-- Nur für Benutzer in system_admins sichtbar, siehe js/22-system-admin.js.
      Reine UI-Führung - abgesichert ist das ausschliesslich serverseitig
      über is_system_admin() in RLS/den system_admin_*-Funktionen. -->
+<!-- v3.08: Nur fuer Firmenadministratoren (isAdmin). Reine UI-Fuehrung -
+     admin_alle_massaufnahmen() prueft serverseitig noch einmal. -->
+<button id="navAdminMeas" class="gray" hidden>📋 Alle Massaufnahmen</button>
 <button id="navSystemAdmin" class="gray" hidden>⚙️ System-Administration</button>
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.07</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.08</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -692,6 +695,40 @@ Diese Aktion löscht unwiderruflich:
 </div>
 
 <!-- MASSAUFNAHME: LISTE / SUCHE -->
+<!-- v3.08 FIRMENADMIN: ALLE MASSAUFNAHMEN -->
+<div id="adminMeasModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📋 Alle Massaufnahmen <button type="button" class="hilfe-knopf no-print" data-hilfe="admin-uebersicht">i</button></h2>
+<div class="small" id="auZaehler" style="color:var(--muted)"></div>
+<div class="au-filter">
+<input id="auSuche" placeholder="Suchen: Adresse, Projekt, Bezeichnung, Person …" autocomplete="off">
+<select id="auFilterProjekt"><option value="">Alle Projekte</option></select>
+<select id="auFilterTyp"><option value="">Alle Arten</option></select>
+<select id="auFilterPerson"><option value="">Alle Personen</option></select>
+</div>
+<div id="auStatusFilter" class="status-filter" hidden></div>
+<div id="auListe"></div>
+<div class="small" id="auGrenze" style="color:var(--muted);margin-top:6px" hidden>Zeigt die ersten 1000 Massaufnahmen, zuletzt geänderte zuerst.</div>
+<div class="bar"><button id="auAktualisieren" class="gray">↻ Aktualisieren</button><button id="closeAdminMeas" class="green">✓ Fertig</button><button id="startFromAdminMeas" class="gray">🏠 Start</button></div>
+</div>
+</div>
+</div>
+
+<!-- v3.08 Projektlose Massaufnahme einem Projekt zuordnen -->
+<div id="adminMeasZuweisenModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📁 Projekt zuordnen <button type="button" class="hilfe-knopf no-print" data-hilfe="admin-zuordnen">i</button></h2>
+<div class="small" style="color:var(--muted);margin-bottom:6px" id="auZuweisenTitel"></div>
+<div class="info">Diese Massaufnahme hat kein Projekt. Ohne Projekt ist sie in der App nicht sichtbar und lässt sich nicht bearbeiten. Nach der Zuordnung ist sie eine ganz normale Massaufnahme.</div>
+<div class="grid"><div class="wide"><label>Projekt</label><select id="auZuweisenProjekt"></select></div></div>
+<div class="small" id="auZuweisenFehler" style="color:var(--red)" hidden></div>
+<div class="bar"><button id="auZuweisenSpeichern" class="green">✓ Zuordnen</button><button id="auZuweisenAbbrechen" class="gray">Abbrechen</button></div>
+</div>
+</div>
+</div>
+
 <div id="measurementsModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
@@ -1287,7 +1324,7 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.07.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 44 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.08.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 45 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -1787,7 +1824,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.07.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.08.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -1851,6 +1888,7 @@ nicht neu installieren.</div>
 <script src="js/43-warteschlange.js"></script>
 <script src="js/44-workflow.js"></script>
 <script src="js/45-aufgaben.js"></script>
+<script src="js/46-admin-uebersicht.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

@@ -135,6 +135,9 @@ async function afterLogin(){
  if(typeof wsAnzeigeAuffrischen==="function")wsAnzeigeAuffrischen();
  // v3.05 Persoenliche Aufgaben laden - erst hier, aus demselben Grund.
  if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
+ // v3.08 Der Knopf zur Firmenadmin-Uebersicht haengt an isAdmin() und damit
+ // am geladenen Profil - deshalb ebenfalls erst hier.
+ if(typeof auKnopfAktualisieren==="function")auKnopfAktualisieren();
  if(typeof wsSynchronisieren==="function"&&!offlineIstOffline()){
   wsSynchronisieren().then(b=>{
    if(b&&b.gesendet)renderProjectSelect();
@@ -165,6 +168,8 @@ function goToStart(){
  $("systemAdminDeleteModal").hidden=true;
  $("systemAdminRegisterModal").hidden=true;
  $("mwZuweisenModal").hidden=true;         // v3.05
+ $("adminMeasModal").hidden=true;          // v3.08
+ $("adminMeasZuweisenModal").hidden=true;
  // Der PDF-Auswahldialog wartet auf eine Antwort - beim Sprung auf den
  // Startbildschirm gilt das als Abbruch, sonst bliebe das Versprechen offen.
  if(typeof pdfListenSchliessen==="function"&&!$("pdfListenModal").hidden)pdfListenSchliessen(null);
@@ -175,6 +180,8 @@ function goToStart(){
  showStart();
  // v3.05: die persoenlichen Aufgaben beim Betreten der Startseite nachziehen.
  if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
+ // v3.08: der Knopf zur Firmenadmin-Uebersicht haengt an isAdmin().
+ if(typeof auKnopfAktualisieren==="function")auKnopfAktualisieren();
 }
 
 // ---- Eigenes Passwort festlegen ----------------------------

@@ -264,6 +264,16 @@ const liste=[];
  await schuss("33-verfallen","#measWorkflowBereich",{warte:600,breite:760});
  await page.evaluate(()=>{$("measurementEditModal").hidden=true;$("startScreen").hidden=false});
 
+ // ---------- Firmenadmin-Uebersicht (v3.08) ----------
+ await page.evaluate(()=>{
+  if(currentProfile)currentProfile.role="admin";
+  if(typeof meineRechte!=="undefined")meineRechte.admin=true;
+  if(typeof auKnopfAktualisieren==="function")auKnopfAktualisieren();
+  if(typeof auOeffnen==="function")auOeffnen();
+ });
+ await schuss("35-admin-uebersicht","#adminMeasModal .card",{warte:800,breite:900});
+ await page.evaluate(()=>{$("adminMeasModal").hidden=true});
+
  // ---------- Hilfe-Fenster (Info-Knopf) ----------
  await page.evaluate(()=>{
   if(typeof hilfeOeffnen==="function")hilfeOeffnen("reg-zuschnitt");
