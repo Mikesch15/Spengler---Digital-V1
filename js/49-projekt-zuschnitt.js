@@ -188,6 +188,7 @@ function renderProjektZuschnitt(){
  const liste=Array.isArray(projectMeasurementsCache)?projectMeasurementsCache:[];
  const {materialien,ohne}=pzuSammeln(liste);
  if($("cockpitZuschnittCount"))$("cockpitZuschnittCount").textContent=String(materialien.length);
+ if(typeof cockpitModulStand==="function")cockpitModulStand();
  if(!materialien.length){
   box.innerHTML=`<div class="small">Noch nichts zuzuschneiden – keine der Massaufnahmen dieses Projekts hat einen gespeicherten Zuschnitt.</div>`;
   return 0;

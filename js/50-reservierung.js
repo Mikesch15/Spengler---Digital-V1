@@ -150,10 +150,12 @@ function renderProjektReservierung(){
  if(resvListe===null){
   box.innerHTML='<div class="small" style="color:var(--red)">Die Reservierungen konnten nicht geladen werden.</div>';
   if($("cockpitReservierungCount"))$("cockpitReservierungCount").textContent="?";
+  if(typeof cockpitModulStand==="function")cockpitModulStand();
   return 0;
  }
  const liste=resvListe||[];
  if($("cockpitReservierungCount"))$("cockpitReservierungCount").textContent=String(liste.length);
+ if(typeof cockpitModulStand==="function")cockpitModulStand();
  let h='<div class="bar"><button type="button" id="resvBedarfBtn">＋ Bedarf aus der Materialübersicht übernehmen</button></div>'
   +'<div class="small resv-hinweis" hidden></div>';
  if(!liste.length){

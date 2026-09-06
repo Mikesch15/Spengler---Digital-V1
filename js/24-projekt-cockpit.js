@@ -200,6 +200,33 @@ function cockpitStandLaedt(){
   $(b.count).textContent="…";$(b.mark).textContent="…";$(b.stand).textContent="…";
  });
  $("cockpitStandAktivitaet").textContent="…";
+ cockpitModulStand();
+}
+
+// v3.09 Auftrag Abschnitt 10: die drei zusaetzlichen Bereiche stehen im
+// Arbeitsstand nur, wenn ihr Modul eingeschaltet ist. Die Zahl wird NICHT
+// zweitgerechnet - sie wird aus der Ueberschrift des jeweiligen Abschnitts
+// uebernommen, die das Modul selbst geschrieben hat.
+const COCKPIT_MODUL_STAND=[
+ {modul:"material",    zeile:"cockpitStandMaterialZeile",    count:"cockpitMaterialCount",
+  mark:"cockpitMaterialMark",    stand:"cockpitMaterialStand",    leer:"Noch keins"},
+ {modul:"zuschnitt",   zeile:"cockpitStandZuschnittZeile",   count:"cockpitZuschnittCount",
+  mark:"cockpitZuschnittMark",   stand:"cockpitZuschnittStand",   leer:"Noch keiner"},
+ {modul:"reservierung",zeile:"cockpitStandReservierungZeile",count:"cockpitReservierungCount",
+  mark:"cockpitReservierungMark",stand:"cockpitReservierungStand",leer:"Noch keine"}
+];
+function cockpitModulStand(){
+ COCKPIT_MODUL_STAND.forEach(b=>{
+  const z=$(b.zeile); if(!z)return;
+  const an=(typeof pmAktiv==="function")&&pmAktiv(b.modul);
+  z.hidden=!an;
+  if(!an)return;
+  const roh=($(b.count)&&$(b.count).textContent||"").trim();
+  const n=Number(roh);
+  const unbekannt=roh===""||roh==="?"||roh==="-"||roh==="…"||!isFinite(n);
+  $(b.mark).textContent =unbekannt?(roh==="…"?"…":"?"):(n>0?"✓":"○");
+  $(b.stand).textContent=unbekannt?(roh==="…"?"…":"?"):(n>0?String(n):b.leer);
+ });
 }
 // Klick auf eine Arbeitsstand-Zeile springt zum bereits vorhandenen
 // Abschnitt weiter unten - keine zweite Navigation, kein Nachladen.
@@ -207,7 +234,12 @@ $("projectCockpitModal").addEventListener("click",e=>{
  const z=e.target.closest("[data-cockpit-goto]");
  if(!z)return;
  const b=COCKPIT_BEREICHE[z.dataset.cockpitGoto];
- if(b)$(b.card).scrollIntoView({block:"start"});
+ if(b){$(b.card).scrollIntoView({block:"start"});return}
+ // v3.09: die drei zusaetzlichen Bereiche haben ihre eigene Karte.
+ const karten={material:"cockpitMaterialCard",zuschnitt:"cockpitZuschnittCard",
+               reservierung:"cockpitReservierungCard"};
+ const k=karten[z.dataset.cockpitGoto];
+ if(k&&$(k)&&!$(k).hidden)$(k).scrollIntoView({block:"start"});
 });
 // Einzelnen Bereich neu laden (nach Rückkehr, Anlegen oder Löschen).
 async function cockpitBereichAktualisieren(key){

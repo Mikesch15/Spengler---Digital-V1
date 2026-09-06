@@ -340,6 +340,10 @@
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="am"><span class="arbeitsstand-marke" id="cockpitAmMark">○</span><span class="arbeitsstand-name">📏 Ausmass</span><span class="arbeitsstand-wert" id="cockpitAmStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="rep"><span class="arbeitsstand-marke" id="cockpitRepMark">○</span><span class="arbeitsstand-name">📋 Regierapporte</span><span class="arbeitsstand-wert" id="cockpitRepStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="files"><span class="arbeitsstand-marke" id="cockpitFilesMark">○</span><span class="arbeitsstand-name">📎 Dateien/Fotos</span><span class="arbeitsstand-wert" id="cockpitFilesStand">–</span></button>
+<!-- v3.09: nur sichtbar, wenn das jeweilige Modul eingeschaltet ist. -->
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="material" id="cockpitStandMaterialZeile" hidden><span class="arbeitsstand-marke" id="cockpitMaterialMark">○</span><span class="arbeitsstand-name">🧱 Material</span><span class="arbeitsstand-wert" id="cockpitMaterialStand">–</span></button>
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="zuschnitt" id="cockpitStandZuschnittZeile" hidden><span class="arbeitsstand-marke" id="cockpitZuschnittMark">○</span><span class="arbeitsstand-name">✂️ Zuschnitt</span><span class="arbeitsstand-wert" id="cockpitZuschnittStand">–</span></button>
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="reservierung" id="cockpitStandReservierungZeile" hidden><span class="arbeitsstand-marke" id="cockpitReservierungMark">○</span><span class="arbeitsstand-name">📦 Reservierung</span><span class="arbeitsstand-wert" id="cockpitReservierungStand">–</span></button>
 <div class="arbeitsstand-zeile arbeitsstand-aktivitaet"><span class="arbeitsstand-marke">🕘</span><span class="arbeitsstand-name">Letzte Aktivität</span><span class="arbeitsstand-wert" id="cockpitStandAktivitaet">–</span></div>
 </div>
 
@@ -730,6 +734,7 @@ Diese Aktion löscht unwiderruflich:
 <select id="auFilterPerson"><option value="">Alle Personen</option></select>
 </div>
 <div id="auStatusFilter" class="status-filter" hidden></div>
+<div id="auModulFilter" class="status-filter" hidden></div>
 <div id="auListe"></div>
 <div class="small" id="auGrenze" style="color:var(--muted);margin-top:6px" hidden>Zeigt die ersten 1000 Massaufnahmen, zuletzt geänderte zuerst.</div>
 <div class="bar"><button id="auAktualisieren" class="gray">↻ Aktualisieren</button><button id="closeAdminMeas" class="green">✓ Fertig</button><button id="startFromAdminMeas" class="gray">🏠 Start</button></div>

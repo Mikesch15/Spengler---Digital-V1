@@ -820,3 +820,6 @@ button.pmat-quelle:hover{border-color:var(--blue)}
 .ver-diff-zeile{display:flex;flex-wrap:wrap;gap:6px;padding:3px 0}
 .ver-diff-label{flex:1 1 150px;min-width:0;font-weight:600;color:var(--blue);word-break:break-word}
 .ver-diff-wert{flex:1 1 150px;min-width:0;word-break:break-word}
+
+/* v3.09 Modul-Angaben in der Firmenadmin-Uebersicht */
+.au-module{margin-top:4px;gap:6px}

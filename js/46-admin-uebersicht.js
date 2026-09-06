@@ -26,7 +26,12 @@
 const AU_LIMIT=1000;                 // Obergrenze der Serverfunktion
 let auZeilen=[];                     // zuletzt geladener Stand
 let auLauf=0;
-let auFilter={suche:"",status:"",projekt:"",typ:"",person:""};
+let auFilter={suche:"",status:"",projekt:"",typ:"",person:"",modul:""};
+// v3.09 Auftrag Abschnitt 9: Reservierung und Reststuecke haengen am PROJEKT,
+// nicht an der einzelnen Massaufnahme. Deshalb je Projekt zusammengezaehlt -
+// eine Abfrage fuer die ganze Liste, nicht eine je Zeile.
+let auReservierungen=[];
+let auReste=[];
 let auZuweisenId=null;
 
 // Sichtbar nur fuer einen Firmenadministrator. Reine Fuehrung - die Funktion
@@ -74,7 +79,31 @@ function auAdresse(z){
 async function auLaden(){
  const {data,error}=await sb.rpc("admin_alle_massaufnahmen",{p_limit:AU_LIMIT});
  if(error){console.error("admin_alle_massaufnahmen",error);return {fehler:error.message||"Unbekannter Fehler"}}
- return {zeilen:Array.isArray(data)?data:[]};
+ const zeilen=Array.isArray(data)?data:[];
+ // Nur wenn die Module eingeschaltet sind - sonst gibt es die Angaben nicht
+ // und es wird auch nicht danach gefragt.
+ auReservierungen=[]; auReste=[];
+ const ids=[...new Set(zeilen.map(z=>z.project_id).filter(x=>x))];
+ if(ids.length&&typeof pmAktiv==="function"&&pmAktiv("reservierung")){
+  const r=await sb.from("material_reservierungen").select("project_id,status").in("project_id",ids);
+  if(!r.error)auReservierungen=r.data||[];
+  const t=await sb.from("reststuecke").select("reserviert_fuer_project_id,verbraucht")
+   .in("reserviert_fuer_project_id",ids);
+  if(!t.error)auReste=t.data||[];
+ }
+ return {zeilen};
+}
+
+// Zusammenfassung je Projekt. Zaehlt nur, was tatsaechlich da ist - es wird
+// nichts geschaetzt und nichts ergaenzt.
+function auProjektZahlen(projectId){
+ if(!projectId)return null;
+ const res=auReservierungen.filter(r=>r.project_id===projectId);
+ if(!res.length&&!auReste.length)return null;
+ const fertig=res.filter(r=>r.status==="reserviert"||r.status==="zugeschnitten"||r.status==="geruestet").length;
+ const reste=auReste.filter(r=>r.reserviert_fuer_project_id===projectId&&!r.verbraucht).length;
+ if(!res.length&&!reste)return null;
+ return {gesamt:res.length,reserviert:fertig,reste:reste};
 }
 
 // --- Filter -----------------------------------------------------------------
@@ -91,6 +120,15 @@ function auPasst(z){
   else if(String(z.project_id||"")!==f.projekt)return false;
  }
  if(f.typ&&(z.type||"")!==f.typ)return false;
+ if(f.modul){
+  const z2=auProjektZahlen(z.project_id);
+  if(f.modul==="ohne_material"&&z.hat_material)return false;
+  if(f.modul==="ohne_zuschnitt"&&z.hat_zuschnitt)return false;
+  if(f.modul==="mit_zuschnitt"&&!z.hat_zuschnitt)return false;
+  if(f.modul==="res_offen"&&!(z2&&z2.gesamt>z2.reserviert))return false;
+  if(f.modul==="mit_rest"&&!(z2&&z2.reste>0))return false;
+  if(f.modul==="ohne_fassung"&&z.fassung)return false;
+ }
  if(f.person){
   const p=f.person;
   if(z.created_by!==p&&z.ruester_id!==p&&z.monteur_id!==p)return false;
@@ -176,11 +214,65 @@ function auStatusChips(){
  box.hidden=vorhanden.length<2&&!verfallen;
 }
 
+// v3.09: die zweite Filterzeile erscheint nur, wenn die zugehoerigen Module
+// eingeschaltet sind - bei AUS gibt es die Angaben nicht.
+function auModulChips(){
+ const box=$("auModulFilter"); if(!box)return;
+ const an=k=>typeof pmAktiv==="function"&&pmAktiv(k);
+ const knoepfe=[];
+ if(an("material")){
+  knoepfe.push(["ohne_material","Ohne Material"]);
+ }
+ if(an("zuschnitt")){
+  knoepfe.push(["mit_zuschnitt","Mit Zuschnittplan"]);
+  knoepfe.push(["ohne_zuschnitt","Ohne Zuschnittplan"]);
+ }
+ if(an("reservierung")){
+  knoepfe.push(["res_offen","Reservierung offen"]);
+  knoepfe.push(["mit_rest","Mit Reststück"]);
+ }
+ if(an("versionierung")){
+  knoepfe.push(["ohne_fassung","Ohne freigegebene Fassung"]);
+ }
+ if(!knoepfe.length){box.hidden=true;box.innerHTML="";auFilter.modul="";return}
+ box.hidden=false;
+ box.innerHTML=[`<button type="button" data-au-modul="" class="${auFilter.modul===""?"aktiv":""}">Alle</button>`]
+  .concat(knoepfe.map(([k,t])=>
+   `<button type="button" data-au-modul="${esc(k)}" class="${auFilter.modul===k?"aktiv":""}">${esc(t)}</button>`))
+  .join("");
+}
+
+// Was die Zeile ueber Material, Zuschnitt, Reservierung, Reststueck und
+// Fassung sagt. Jede Angabe kommt aus einer echten Quelle; fehlt das Modul,
+// steht dort gar nichts (Auftrag Abschnitt 10: nur aktivierte Module).
+function auModulBadges(r){
+ const an=k=>typeof pmAktiv==="function"&&pmAktiv(k);
+ const teile=[];
+ if(an("material"))teile.push(r.hat_material
+   ?`<span class="mw-badge mw-gruen">Material</span>`
+   :`<span class="mw-badge mw-grau">Ohne Material</span>`);
+ if(an("zuschnitt"))teile.push(r.hat_zuschnitt
+   ?`<span class="mw-badge mw-gruen">Zuschnitt</span>`
+   :`<span class="mw-badge mw-grau">Kein Zuschnittplan</span>`);
+ if(an("versionierung"))teile.push(r.fassung
+   ?`<span class="mw-badge mw-blau">Fassung ${Number(r.fassung)}</span>`
+   :`<span class="mw-badge mw-grau">Keine Fassung</span>`);
+ if(an("reservierung")){
+  const z=auProjektZahlen(r.project_id);
+  if(z){
+   teile.push(`<span class="mw-badge ${z.reserviert>=z.gesamt?"mw-gruen":"mw-blau"}">Reservierung ${z.reserviert}/${z.gesamt}</span>`);
+   if(z.reste)teile.push(`<span class="mw-badge mw-blau">${z.reste} Reststück${z.reste===1?"":"e"}</span>`);
+  }
+ }
+ return teile.join(" ");
+}
+
 function auRender(){
  const liste=$("auListe"); if(!liste)return;
  const gezeigt=auGefiltert();
  const z=$("auZaehler"); if(z)z.innerHTML=auZaehlText(gezeigt.length);
  auStatusChips();
+ auModulChips();
  if(!auZeilen.length){
   liste.innerHTML='<div class="empty">Noch keine Massaufnahmen in dieser Firma.</div>';
   return;
@@ -209,6 +301,7 @@ function auRender(){
    ${zusatz?`<div class="au-zusatz">${esc(zusatz)}</div>`:""}
    ${(!ohneProjekt&&r.projekt_name)?`<div class="au-zusatz">Projekt: ${esc(r.projekt_name)}</div>`:""}
    <div class="au-zusatz">${esc(rollen)}</div>
+   ${(()=>{const bd=auModulBadges(r);return bd?`<div class="au-kopf au-module">${bd}</div>`:""})()}
    ${geaendert?`<div class="au-zusatz au-zeit">${esc(geaendert)}</div>`:""}
    <div class="au-knoepfe">
     ${ohneProjekt
@@ -304,6 +397,8 @@ document.addEventListener("click",e=>{
  const t=e.target; if(!t||!t.closest)return;
  const s=t.closest("[data-au-status]");
  if(s){auFilter.status=s.dataset.auStatus||"";auRender();return}
+ const md=t.closest("[data-au-modul]");
+ if(md){auFilter.modul=md.dataset.auModul||"";auRender();return}
  const o=t.closest("[data-au-oeffnen]");
  if(o){auOeffneMassaufnahme(o.dataset.auOeffnen);return}
  const z=t.closest("[data-au-zuweisen]");

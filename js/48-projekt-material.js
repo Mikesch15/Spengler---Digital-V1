@@ -161,6 +161,7 @@ function renderProjektMaterial(){
  const liste=Array.isArray(projectMeasurementsCache)?projectMeasurementsCache:[];
  const gruppen=pmatSammeln(liste);
  if($("cockpitMaterialCount"))$("cockpitMaterialCount").textContent=String(gruppen.length);
+ if(typeof cockpitModulStand==="function")cockpitModulStand();
  if(!liste.length){
   box.innerHTML=`<div class="small">Noch keine Massaufnahme in diesem Projekt – es gibt deshalb noch kein Material.</div>`;
   return 0;
