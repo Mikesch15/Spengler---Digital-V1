@@ -20181,3 +20181,196 @@ Zuschnitt, keine Abwicklung berührt.
   Massaufnahme, aus der sie stammt. Sie ist danach eine gewöhnliche Zeile;
   eine zweite Übernahme legt sie ein zweites Mal an (gekennzeichnet, aber
   erlaubt – das entscheidet die Person).
+
+## 122. RESERVIEREN: NUR ZUSCHNITTE UND ECHTE TEILE — VERSION 3.17
+
+Rückmeldung des Betriebs mit Bildschirmfoto der Reservierungsliste
+(6.9.2026): *„hier beim reservieren, reicht von miraus gesehen die
+zuschnitte… ausser es sind noch halbfabrikate wie dilas oder rinnendöden
+dabei…"*
+
+**Keine Schemaänderung, keine Migration, keine RLS-Änderung, keine neue
+Datenbankfunktion, keine Fachrechnung verändert.**
+
+### 122.1 Was in der Liste stand
+
+Der Bedarf nahm bis v3.16 **jede** Ausmass-Position mit. Aus den beiden
+Massaufnahmen, die in der Produktivdatenbank überhaupt ein Ausmass haben
+(50 und 87, beide Einlaufblech gerade), sind das acht Zeilen – **eine
+davon** ist ein Teil:
+
+| Zeile | Was es ist |
+|---|---|
+| Einlaufblech gerade, Abwicklung 250 mm | Mass |
+| Stücke (Zuschnitte) | Zählung |
+| Blechstösse | Zählung |
+| Blechfläche | Mass |
+| **Haltebleche (GAVA Blech)** | **Teil** |
+
+Reserviert wird aber, was jemand aus dem Lager holt. Eine Abwicklung holt
+niemand.
+
+### 122.2 Die Entscheidung gehört an die Quelle, nicht an den Namen
+
+`herkunft` war der naheliegende Kandidat – es steht seit v3.09 an jeder
+Zeile. Es ist aber **Fliesstext für Menschen** („Summe der
+Zuschnittlängen", „Verlauf", „Stückliste"), kein Maschinenschlüssel:
+„Verlauf" bedeutet bei der Rinne ein echtes Teil und wäre anderswo ein
+abgeleiteter Wert. Ebenso wenig trägt die **Einheit** die Unterscheidung:
+„Stücke (Zuschnitte)" ist Stk. und abgeleitet, „Rinne halbrund 18,40 m"
+ist Meter und ein Halbfabrikat.
+
+Eine **Namensliste** in js/50 wäre bei jeder Umformulierung still falsch
+geworden – genau der Fehlertyp, vor dem CLAUDE.md an mehreren Stellen
+warnt.
+
+Deshalb: **das Modul, das die Zeile rechnet, sagt es selbst.** Der
+`zeile()`-Helfer der neun Register-Module bekommt einen vierten Wert:
+
+```js
+const zeile=(bez,menge,einheit,herkunft,teil)=>
+  z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
+```
+
+Ohne vierten Wert gilt **abgeleitet** – eine Zahl über die Arbeit ist
+nichts, was jemand holt. Markiert sind ausdrücklich:
+
+| Modul | Teil |
+|---|---|
+| Rinne Halbrund (js/28) | **jede** Komponente – Rinne nach Metern, Halter, Innen-/Aussenwinkel, Einhänge- und Schiebestutzen, Rinnenböden, Dehnungsstücke. Genau die Dilas und Rinnenböden aus der Rückmeldung. |
+| Einlaufblech gerade (js/29) | Haltebleche (GAVA Blech) |
+| Mauerabdeckung (js/32) | Schieber, Boden |
+| Kamineinfassung (js/37) | Bleilappen |
+| Einfassung Rund (js/38) | Bleilappen |
+| Ort-/Seitenbleche (js/40) | Bleilappen, „… (eigenes Material)" |
+
+Die übrigen Module (Einlaufblech konisch, Freies Profil, Kehle, Lukarne,
+Rinne-Zuschnittliste) liefern **nur** abgeleitete Masse – dort ist der
+Zuschnitt das Ganze.
+
+**Bewusst nicht als Teil markiert**: „Ansetzen Dila 5 Stk." in der
+Rinne-Zuschnittliste (js/39). Das zählt **Stückenden**, nicht Dilas – zwei
+Enden ergeben eine Dila. Als Bedarfszeile wäre die Zahl falsch, und eine
+falsche Zahl ist schlechter als keine.
+
+### 122.3 Alte Datensätze: die App rät nicht
+
+`pmatSammeln()` (js/48) fasst mehrere Ausmass-Zeilen zu einer Position
+zusammen und trägt den Stand jetzt dreiwertig mit:
+
+| `p.teil` | wann |
+|---|---|
+| `true` | mindestens eine Quelle sagt ausdrücklich „Teil" |
+| `false` | alle Quellen sagen ausdrücklich „abgeleitet" |
+| `undefined` | mindestens eine Quelle sagt **gar nichts** (Fassung vor v3.17) |
+
+`resvBedarfZeilen()` lässt nur `false` weg. Eine Position aus einer älteren
+Fassung **kommt mit** – die App kann sie nicht klassifizieren und tut auch
+nicht so. Die Meldung nach dem Übernehmen sagt es ausdrücklich und nennt
+den Weg: die Massaufnahme einmal öffnen und speichern, dann ordnet die App
+sie zu.
+
+Das ist die vorsichtige Richtung: ein zu viel angezeigtes Mass ist Lärm,
+ein stillschweigend weggelassener Rinnenboden ist ein fehlendes Teil auf
+der Baustelle.
+
+### 122.4 Ehrlich gezählt statt still weggelassen
+
+`resvBedarfStand()` liefert Teile, abgeleitete, unbekannte und Zuschnitte;
+`resvBedarfZusatz()` hängt daraus einen Satz an die Erfolgsmeldung:
+
+> ✓ 6 Positionen übernommen. 4 abgeleitete Masse (Abwicklung, Flächen,
+> Stückzahlen) gehören nicht in eine Reservierung und bleiben weg.
+
+Ohne diesen Satz hielte jemand die fehlenden Zeilen für einen Fehler. Der
+Leerzustand nennt vorab, was bereit steht.
+
+**Der Schreibweg ist unverändert**: ein `insert`, kein `company_id` vom
+Client, `DEFAULT my_company_id()` plus restriktive Policy – wie seit v3.09.
+
+### 122.5 Getestet
+
+- **`pruefstaende/pruefstand-bedarf-teile-v3-17.js` – 37/37**, echtes
+  Chromium gegen die echte `index.html`: genau der Fall aus dem
+  Bildschirmfoto plus eine Rinne halbrund mit Dilas und Rinnenböden;
+  die vier abgeleiteten Zeilen fallen weg, die fünf Teile und die
+  Zuschnitte bleiben; der Stand wird richtig gezählt; der Text nennt die
+  weggelassenen; **ein** insert ohne `company_id`; eine Aufnahme aus einer
+  älteren Fassung verliert nichts und wird benannt; gemischt zählt beides
+  nebeneinander; ein absichtlich falsch markierter „Rinnenboden" fällt
+  weg und eine als Teil markierte „Blechfläche" kommt mit – die
+  Entscheidung hängt also nachweislich **nicht** an der Bezeichnung; die
+  Module setzen das Feld wirklich (an der echten Rinne-Ausmassfunktion
+  gemessen, dazu am Quelltext aller elf).
+- **Acht Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | Filter entfernt | 31/37 |
+  | alte Daten gelten als abgeleitet (App rät) | 31/37 |
+  | Rinne halbrund markiert nichts mehr | 35/37 |
+  | Haltebleche nicht mehr markiert | 36/37 |
+  | Zusatztext verschweigt die weggelassenen | 35/37 |
+  | Filter über die Bezeichnung statt über `teil` | 33/37 |
+  | Zuschnitte fallen mit weg | 36/37 |
+  | `pmatSammeln` trägt den Stand nicht mit | 33/37 |
+
+- **Volle Regression grün** – die vier Prüfstände, die dieselben Daten
+  benutzen, ausdrücklich zuerst: reservierung 67/67, sammelaktion 88/88,
+  werkstatt 54/54, material-zuschnitt 56/56,
+  projekt-material-zuschnitt 43/43. Sie bleiben grün, weil ihre Testdaten
+  kein `teil` tragen und damit in den Fall „unbekannt" fallen – genau die
+  Rückwärtsverträglichkeit aus 122.3.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.16-Stand gerendert (die Fusszeile enthält die Uhrzeit, 100.6) –
+  **DOM, Text und Bild byteidentisch** (DOM `b7a719043405e675`, Bild
+  `121d6d6e5bdc8b13`, 59 252 Bytes, Höhe 721 px), bestätigt durch einen
+  Kontrolllauf desselben Codes.
+- `node --check` über alle js-Dateien, `sw.js`, alle Prüfstände und die
+  Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung ausgeglichen
+  (Tiefe 0, Minimum 0); keine doppelten Element-IDs; jede js-Datei in
+  `index.html` **und** in der Service-Worker-Liste; Version 3.17 in
+  `index.html` und `sw.js` gleich.
+- **Kein Schreibzugriff auf die Datenbank** in dieser Runde – gelesen
+  wurde nur, welche Massaufnahmen ein Ausmass haben und wie es aussieht.
+
+### 122.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/28-rinne-aufnahme.js` | jede Komponente ist ein Teil |
+| `js/29`–`js/32`, `js/34`, `js/36`, `js/37`, `js/39`, `js/40` | `zeile()` reicht `teil` durch, echte Teile markiert |
+| `js/38-einfassung-aufnahme.js` | dito |
+| `js/48-projekt-material.js` | `pmatSammeln` trägt den Stand dreiwertig |
+| `js/50-reservierung.js` | Filter, `resvBedarfStand()`, `resvBedarfZusatz()`, Leerzustand |
+| `js/41-hilfe.js` | Hilfetext „Materialreservierung" erweitert |
+| `index.html`, `sw.js` | Version 3.17 |
+| `pruefstaende/pruefstand-bedarf-teile-v3-17.js` | **neu** |
+| `anleitung/*` | Abschnitt 10, PDF v3.17 (61 Seiten) |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/49-projekt-zuschnitt.js`,
+`js/51-werkstatt.js`, `js/42-reste.js`, `js/56-material-zuschnitt.js`
+sowie sämtliche Fachdateien `js/11`–`js/27` – keine Berechnung, keine
+Stückliste, kein Zuschnitt, keine Packrechnung berührt.
+
+### 122.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie
+  in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet
+  behauptet.** Geprüft ist die Oberfläche in echtem Chromium gegen die
+  echte `index.html` mit einer Attrappe, die jeden Aufruf protokolliert,
+  und die Datenbankseite per SQL (nur lesend).
+- Die beiden real vorhandenen Massaufnahmen (50 und 87) tragen das Feld
+  noch nicht; ihre Positionen kommen also weiterhin alle mit, bis sie
+  einmal geöffnet und gespeichert werden. Ein nachträgliches Setzen per
+  SQL wäre möglich, aber es hiesse, für fremde Datensätze zu raten – das
+  entscheidet der Betrieb mit einem Klick selbst.
+- „Ansetzen Dila" in der Rinne-Zuschnittliste bleibt abgeleitet (122.2).
+  Sollte der Betrieb daraus eine Bedarfszeile wollen, müsste das Modul
+  erst die Zahl der **Dilas** rechnen statt der Stückenden.
+- Die Reservierung bucht weiterhin **keinen Lagerbestand ab** (114.11) –
+  es gibt keine Bestandsführung in der App.

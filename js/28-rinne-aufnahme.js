@@ -479,7 +479,11 @@ function raAusmassZeilen(a){
   bezeichnung:k.bezeichnung,
   menge:k.einheit==="m"?k.menge.toFixed(2):String(k.menge),
   einheit:k.einheit,
-  herkunft:k.herkunft
+  herkunft:k.herkunft,
+  // v3.17: jede Komponente ist ein Teil, das beschafft wird - Rinne nach
+  // Metern, Halter, Winkel, Stutzen, Rinnenboeden, Dehnungsstuecke. Genau
+  // deshalb nimmt die Reservierung sie alle.
+  teil:true
  }));
 }
 function raMaterialUebersicht(a){

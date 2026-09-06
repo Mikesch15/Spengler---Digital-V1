@@ -195,7 +195,11 @@ function lukaMaterialText(){
 function lukaAusmassZeilen(){
  const g=lukaErgebnis();
  const z=[]; let pos=0;
- const zeile=(bez,menge,einheit,herkunft)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft});
+ // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird (Halbfabrikat,
+ // gekaufter Artikel), oder ein abgeleitetes Mass. Die Reservierung nimmt nur
+ // Teile. Ohne vierten Wert gilt "abgeleitet" - eine Zahl ueber die Arbeit ist
+ // nichts, was jemand aus dem Lager holt.
+ const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
  if(!g)return z;
  zeile("Lukarne Seitenverkleidung, "+lukaSeiteText()+", Fläche",
        lukaQm(g.flaeche),"m²","Dreieckfläche aus H und Breite");

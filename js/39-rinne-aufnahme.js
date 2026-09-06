@@ -194,7 +194,11 @@ function rpaZuschnittPlan(){
 function rpaAusmassZeilen(){
  const st=rpaStuecke();
  const z=[]; let pos=0;
- const zeile=(bez,menge,einheit,herkunft)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft});
+ // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird (Halbfabrikat,
+ // gekaufter Artikel), oder ein abgeleitetes Mass. Die Reservierung nimmt nur
+ // Teile. Ohne vierten Wert gilt "abgeleitet" - eine Zahl ueber die Arbeit ist
+ // nichts, was jemand aus dem Lager holt.
+ const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
  if(!st.length)return z;
  const summeZuschnitt=st.reduce((s,x)=>{const g=rpaRechnen(x);return s+(g?rpaZahl(g.zuschnitt):0)},0);
  const summeMM=st.reduce((s,x)=>s+rpaZahl(x.laenge),0);

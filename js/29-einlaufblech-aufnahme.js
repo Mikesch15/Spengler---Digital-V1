@@ -298,7 +298,11 @@ function ebaRollenPlan(){
 function ebaAusmassZeilen(){
  const a=ebA, z=[], L=ebaGesamtlaenge();
  let pos=0;
- const zeile=(bez,menge,einheit,herkunft)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft});
+ // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird (Halbfabrikat,
+ // gekaufter Artikel), oder ein abgeleitetes Mass. Die Reservierung nimmt nur
+ // Teile. Ohne vierten Wert gilt "abgeleitet" - eine Zahl ueber die Arbeit ist
+ // nichts, was jemand aus dem Lager holt.
+ const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
  if(L>0)zeile("Einlaufblech gerade, Abwicklung "+ebaMm(a.abwicklung)+" mm",ebaMeter(L),"m","Summe der Zuschnittlängen");
  if((a.stuecke||[]).length)zeile("Stücke (Zuschnitte)",a.stuecke.length,"Stk.","Stückliste");
  const gehrungen=(a.stuecke||[]).reduce((s,p)=>s+(p.gehrungLinks?1:0)+(p.gehrungRechts?1:0),0);
@@ -308,7 +312,7 @@ function ebaAusmassZeilen(){
  if(L>0)zeile("Blechfläche",ebaFlaecheM2().toFixed(2).replace(".",","),"m²","Gesamtlänge × Abwicklung");
  const nG=ebaGavaAnzahl();
  if(nG!==null)zeile("Haltebleche (GAVA Blech)",nG,"Stk.",
-   (a.gava.anzahl?"Eingabe":"Länge ÷ Abstand "+ebaMm(a.gava.abstand_mm)+" mm"));
+   (a.gava.anzahl?"Eingabe":"Länge ÷ Abstand "+ebaMm(a.gava.abstand_mm)+" mm"),true);
  const letzte=(a.stuecke||[])[a.stuecke.length-1];
  if(letzte&&ebaZahl(letzte.endzugabeStart))zeile("Endzugabe erstes Stück",ebaMm(letzte.endzugabeStart),"mm","Einstellung Endzugabe");
  if(letzte&&ebaZahl(letzte.endzugabeEnd))zeile("Endzugabe letztes Stück",ebaMm(letzte.endzugabeEnd),"mm","Einstellung Endzugabe");

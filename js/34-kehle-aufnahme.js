@@ -216,7 +216,11 @@ function keaMaterialText(){
 }
 function keaAusmassZeilen(){
  const z=[]; let pos=0;
- const zeile=(bez,menge,einheit,herkunft)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft});
+ // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird (Halbfabrikat,
+ // gekaufter Artikel), oder ein abgeleitetes Mass. Die Reservierung nimmt nur
+ // Teile. Ohne vierten Wert gilt "abgeleitet" - eine Zahl ueber die Arbeit ist
+ // nichts, was jemand aus dem Lager holt.
+ const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
  const L=keaSummeZuschnitt(), A=keaAbwicklung(), n=keaBleche().length;
  if(!n||!(A>0))return z;
  zeile("Kehlblech "+keaMittelrippeText()+", Abwicklung "+keaMm(A)+" mm",

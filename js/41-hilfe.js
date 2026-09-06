@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.16.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.17.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -200,9 +200,19 @@ und sie lässt sich nicht bestätigen. Zuerst muss sie erneut freigegeben
 werden – damit niemand nach einem überholten Stand rüstet.`},
 "cockpit-reservierung":{titel:"Materialreservierung",text:`
 Hier steht, was für dieses Projekt gebraucht, reserviert, zugeschnitten und
-gerüstet ist. „Bedarf übernehmen" holt genau die Positionen, die die
-Massaufnahmen dieses Projekts bereits ausgerechnet haben – es wird nichts
-neu gerechnet und nichts erfunden.
+gerüstet ist. „Bedarf übernehmen" holt genau das, was die Massaufnahmen dieses
+Projekts bereits ausgerechnet haben – es wird nichts neu gerechnet und nichts
+erfunden.
+
+<b>Was übernommen wird:</b> die <b>Zuschnitte</b> und die <b>Teile</b> –
+Halbfabrikate und gekaufte Artikel wie Dilas, Rinnenböden, Rinnenhalter,
+Stutzen, Winkel, Schieber, Bleilappen oder GAVA-Bleche. <b>Abgeleitete Masse</b>
+(Abwicklung, Blechfläche, Stückzahlen, Blechstösse, Gehrungen) kommen nicht
+mit: das sind Zahlen über die Arbeit, nichts, was jemand aus dem Lager holt.
+Entschieden wird das nicht am Namen, sondern von der Massaufnahme selbst.
+Eine Massaufnahme, die vor Version 3.17 zuletzt gespeichert wurde, trägt diese
+Angabe noch nicht – ihre Positionen kommen deshalb alle mit, und die Meldung
+sagt das. Die Massaufnahme einmal öffnen und speichern ordnet sie zu.
 
 Der Status wird von Hand weitergestellt: Benötigt → Verfügbar → Reserviert →
 Zugeschnitten → Gerüstet. Jede Änderung steht mit altem und neuem Wert im

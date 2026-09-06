@@ -531,7 +531,11 @@ function kamaMaterialText(){
 }
 function kamaAusmassZeilen(){
  const z=[]; let pos=0;
- const zeile=(bez,menge,einheit,herkunft)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft});
+ // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird (Halbfabrikat,
+ // gekaufter Artikel), oder ein abgeleitetes Mass. Die Reservierung nimmt nur
+ // Teile. Ohne vierten Wert gilt "abgeleitet" - eine Zahl ueber die Arbeit ist
+ // nichts, was jemand aus dem Lager holt.
+ const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
  const teile=kamaZuschnitte().filter(x=>x.laenge>0&&x.breite>0);
  if(!teile.length)return z;
  zeile("Kamineinfassung, "+kamaDeckungText(),"1","Stk.","Deckmaterial aus den Grunddaten");
@@ -540,7 +544,7 @@ function kamaAusmassZeilen(){
  zeile("Blechfläche Zuschnitt",kamaQm(kamaFlaecheM2()),"m²","Summe Länge × Abwicklung");
  const bl=kamaBleilappen();
  if(bl.gesamt!==null)
-  zeile("Bleilappen",String(bl.gesamt),"Stk.","je Seitenteil aufgerundet aus Länge ÷ Lattenabstand");
+  zeile("Bleilappen",String(bl.gesamt),"Stk.","je Seitenteil aufgerundet aus Länge ÷ Lattenabstand",true);
  const Ll=kamaKaminLaenge("l"), Lr=kamaKaminLaenge("r");
  if(Ll>0)zeile("Kaminlänge längs Dach"+(kamA.getrennt?" links":""),kamaMm(Ll),"mm","B + C − Überlappung");
  if(kamA.getrennt&&Lr>0)zeile("Kaminlänge längs Dach rechts",kamaMm(Lr),"mm","B + C − Überlappung");

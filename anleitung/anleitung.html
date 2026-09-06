@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.16";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.17";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.16<br>
+  Version 3.17<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -570,7 +570,26 @@ einzelnen Massaufnahme mehr.</p>
 <h3>Materialreservierung im Einzelnen</h3>
 <figure><img src="bilder/39-reservierung.png"><figcaption>Der Bedarf des Projekts mit seinem Reservierungsstand.</figcaption></figure>
 <p>Über <span class="tasten">Bedarf übernehmen</span> wird genau das übernommen, was
-die Materialübersicht ohnehin zeigt. Jede Position durchläuft fünf Zustände:</p>
+die Massaufnahmen dieses Projekts ohnehin ausgerechnet haben.</p>
+<h4>Was in eine Reservierung kommt</h4>
+<p>Reserviert wird, was jemand aus dem Lager holt oder bestellt:</p>
+<table>
+<tr><th>Kommt mit</th><th>Beispiele</th></tr>
+<tr><td><strong>Zuschnitte</strong></td><td>jedes Blech, das geschnitten wird</td></tr>
+<tr><td><strong>Teile</strong></td><td>Dilas, Rinnenböden, Rinnenhalter, Stutzen, Winkel, Schieber, Bleilappen, GAVA-Bleche</td></tr>
+</table>
+<table>
+<tr><th>Kommt nicht mit</th><th>Beispiele</th></tr>
+<tr><td><strong>Abgeleitete Masse</strong></td><td>Abwicklung, Blechfläche, Stückzahlen, Blechstösse, Gehrungen, Segmente</td></tr>
+</table>
+<p>Das sind Zahlen <em>über</em> die Arbeit – aus dem Lager holt sie niemand. Entschieden
+wird das nicht am Namen der Position, sondern von der Massaufnahme selbst; die Meldung
+nach dem Übernehmen sagt, wie viele Zeilen deshalb weggeblieben sind.</p>
+<div class="hin">Eine Massaufnahme, die zuletzt vor Version 3.17 gespeichert wurde,
+trägt diese Angabe noch nicht. Ihre Positionen kommen deshalb <strong>alle</strong> mit
+– die App rät nicht – und die Meldung sagt das. Die Massaufnahme einmal öffnen und
+speichern ordnet sie zu.</div>
+<p>Jede Position durchläuft fünf Zustände:</p>
 <table>
 <tr><th>Zustand</th><th>Bedeutung</th></tr>
 <tr><td>Benötigt</td><td>steht auf der Liste, sonst nichts</td></tr>
@@ -956,7 +975,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.16</strong>, Stand 6. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.17</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

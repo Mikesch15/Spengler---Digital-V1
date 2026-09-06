@@ -108,11 +108,22 @@ function pmatSammeln(liste){
    const zahl=pmatZahl(z.menge);
    const key=bez+"|"+einheit+"|"+(zahl===null?"text":"zahl");
    if(!g.positionen.has(key))g.positionen.set(key,{bezeichnung:bez,einheit,
-     summe:zahl===null?null:0,texte:[],quellen:[]});
+     summe:zahl===null?null:0,texte:[],quellen:[],teil:undefined});
    const p=g.positionen.get(key);
    if(zahl===null)p.texte.push(String(z.menge===undefined?"":z.menge));
    else p.summe+=zahl;
    p.quellen.push({id:m.id,menge:z.menge,herkunft:z.herkunft||""});
+   // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird
+   // (Halbfabrikat, gekaufter Artikel), oder ein abgeleitetes Mass. Die
+   // Reservierung nimmt nur Teile - die Zuschnitte stehen ohnehin schon
+   // getrennt darunter.
+   //   true      mindestens eine Quelle sagt ausdruecklich "Teil"
+   //   false     alle Quellen sagen ausdruecklich "abgeleitet"
+   //   undefined mindestens eine Quelle sagt gar nichts (Datensatz aus
+   //             einer Fassung vor v3.17) - die App RAET dann nicht.
+   if(z.teil===true)p.teil=true;
+   else if(z.teil===false){if(p.teil===undefined&&!p.unbekannt)p.teil=false}
+   else {p.unbekannt=true; if(p.teil!==true)p.teil=undefined}
   });
 
   pmatStuecke(m).forEach(s=>{

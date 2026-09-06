@@ -229,8 +229,9 @@ function einfaZuschnittPlan(){
 // Artikelnummern und ohne Preise (die Materialliste der Firma kommt spaeter).
 function einfaAusmassZeilen(quelle){
  const q=quelle||einfA;
- const z=[], dazu=(bez,menge,einheit,herkunft)=>
-   z.push({pos:z.length+1,bezeichnung:bez,menge:menge,einheit:einheit,herkunft:herkunft});
+ const z=[], dazu=(bez,menge,einheit,herkunft,teil)=>
+   // v3.17: teil = wird beschafft (Halbfabrikat/gekaufter Artikel).
+   z.push({pos:z.length+1,bezeichnung:bez,menge:menge,einheit:einheit,herkunft:herkunft,teil:teil===true});
  const liste=einfaListe(q);
  if(!liste.length)return z;
  const stueck=einfaZuschnitte(q).length;
@@ -246,7 +247,7 @@ function einfaAusmassZeilen(quelle){
  const fl=einfaFlaecheM2(q);
  if(fl>0)dazu("Blechfläche Zuschnitt",einfaQm(fl),"m²","Länge × Abwicklung");
  const bl=einfaBleilappenGesamt(q);
- if(bl!==null&&bl>0)dazu("Bleilappen",bl,"Stk","Umfang ÷ Lattenabstand, aufgerundet");
+ if(bl!==null&&bl>0)dazu("Bleilappen",bl,"Stk","Umfang ÷ Lattenabstand, aufgerundet",true);
  return z;
 }
 function einfaMaterialTabelle(){

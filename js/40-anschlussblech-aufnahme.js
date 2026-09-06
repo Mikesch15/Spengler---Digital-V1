@@ -157,7 +157,11 @@ function anbaZuschnittPlan(){
 function anbaAusmassZeilen(){
  const e=anbaEingaben(), erg=anbaErgebnis();
  const z=[]; let pos=0;
- const zeile=(bez,menge,einheit,herkunft)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft});
+ // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird (Halbfabrikat,
+ // gekaufter Artikel), oder ein abgeleitetes Mass. Die Reservierung nimmt nur
+ // Teile. Ohne vierten Wert gilt "abgeleitet" - eine Zahl ueber die Arbeit ist
+ // nichts, was jemand aus dem Lager holt.
+ const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
  if(!e||!erg)return z;
  const segmente=Array.isArray(e.segmente)?e.segmente.filter(s=>anbaZahl(s.laenge)>0):[];
  if(!segmente.length&&!(erg.stuecke||[]).length)return z;
@@ -172,12 +176,12 @@ function anbaAusmassZeilen(){
  const knicke=segmente.filter(s=>s.knick).length;
  if(knicke)zeile("Knicke im Verlauf",String(knicke),"Stk.","erfasste Knicke");
  if(erg.anzahlBleilappen!==null&&erg.anzahlBleilappen!==undefined)
-  zeile("Bleilappen",String(erg.anzahlBleilappen),"Stk.","Länge ÷ Lattenabstand");
+  zeile("Bleilappen",String(erg.anzahlBleilappen),"Stk.","Länge ÷ Lattenabstand",true);
  const letztes=(erg.stuecke||[])[(erg.stuecke||[]).length-1];
  if(letztes&&letztes.gehrung)
   zeile("Endstück mit Firstgehrung","1","Stk.","Zuschlag aus den Einstellungen");
  (erg.ohneZuschnitt||[]).forEach(n=>
-  zeile(n+" (eigenes Material)","–","","nicht im Blechzuschnitt"));
+  zeile(n+" (eigenes Material)","–","","nicht im Blechzuschnitt",true));
  return z;
 }
 function anbaMaterialTabelle(){

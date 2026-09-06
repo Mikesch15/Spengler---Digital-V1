@@ -214,8 +214,17 @@ function renderProjektReservierung(){
  let h='<div class="bar"><button type="button" id="resvBedarfBtn">＋ Bedarf aus der Materialübersicht übernehmen</button></div>'
   +'<div class="small resv-hinweis" hidden></div>';
  if(!liste.length){
-  h+='<div class="small" style="color:var(--muted)">Noch kein Bedarf erfasst. „Bedarf übernehmen" legt die Positionen an, '
-   +'die die Massaufnahmen dieses Projekts bereits ausgerechnet haben.</div>';
+  const st=resvBedarfStand();
+  h+='<div class="small" style="color:var(--muted)">Noch kein Bedarf erfasst. „Bedarf übernehmen" legt an, '
+   +'was die Massaufnahmen dieses Projekts an <strong>Zuschnitten</strong> und '
+   +'<strong>Teilen</strong> ergeben – Halbfabrikate und gekaufte Artikel wie '
+   +'Dilas, Rinnenböden, Halter oder Bleilappen. Abgeleitete Masse (Abwicklung, '
+   +'Flächen, Stückzahlen) gehören nicht in eine Reservierung und bleiben weg.'
+   +(st.zuschnitte||st.teile||st.unbekannt
+      ? ' Bereit: '+st.zuschnitte+' Zuschnitt'+(st.zuschnitte===1?'':'e')
+        +' und '+(st.teile+st.unbekannt)+' Position'+((st.teile+st.unbekannt)===1?'':'en')+'.'
+      : '')
+   +'</div>';
  }else{
   h+='<div id="resvBulkBar">'+resvBulkBarHtml()+'</div>'
    +'<div class="scroll"><table class="eb-table pmat-tab resv-tab"><thead><tr>'
@@ -270,12 +279,54 @@ function resvBulkBarAuffrischen(){
 // ---- Bedarf uebernehmen ---------------------------------------------------
 // Nimmt genau das, was die projektweite Materialuebersicht ohnehin schon
 // zeigt (js/48) - es wird nichts zusaetzlich gerechnet.
+// Was gehoert ueberhaupt in eine Reservierung?
+//
+// Rueckmeldung des Betriebs (6.9.2026): "beim reservieren reicht von miraus
+// gesehen die zuschnitte ... ausser es sind noch halbfabrikate wie dilas oder
+// rinnendoeden dabei". Genau so:
+//
+//   Zuschnitte            immer  - das Blech, das geschnitten wird
+//   Teile                 immer  - Halbfabrikate und gekaufte Artikel:
+//                                  Dilas, Rinnenboeden, Halter, Stutzen,
+//                                  Winkel, Schieber, Bleilappen, GAVA-Bleche
+//   abgeleitete Masse     nie    - Abwicklung, Blechflaeche, Stueckzahlen,
+//                                  Blechstoesse, Gehrungen, Segmente
+//
+// Entschieden wird das NICHT an der Bezeichnung (eine Namensliste waere bei
+// jeder Umformulierung still falsch), sondern am Feld "teil", das die zwoelf
+// Module beim Rechnen selbst setzen. Eine Massaufnahme aus einer Fassung vor
+// v3.17 hat das Feld nicht - dort raet die App nicht, sondern nimmt die
+// Position mit und sagt warum (siehe resvBedarfStand).
+function resvBedarfStand(){
+ if(typeof pmatSammeln!=="function")return {teile:0,abgeleitet:0,unbekannt:0,zuschnitte:0};
+ let teile=0,abgeleitet=0,unbekannt=0,zuschnitte=0;
+ pmatSammeln(projectMeasurementsCache||[]).forEach(g=>{
+  g.positionen.forEach(p=>{
+   if(p.summe===null)return;
+   if(p.teil===true)teile++; else if(p.teil===false)abgeleitet++; else unbekannt++;
+  });
+  zuschnitte+=g.zuschnitte.length;
+ });
+ return {teile,abgeleitet,unbekannt,zuschnitte};
+}
+// Der Zusatz zur Erfolgsmeldung. Er sagt ausdruecklich, was NICHT uebernommen
+// wurde - sonst wuerde jemand die fehlenden Zeilen fuer einen Fehler halten.
+function resvBedarfZusatz(){
+ const st=resvBedarfStand(); const t=[];
+ if(st.abgeleitet)t.push(st.abgeleitet+" abgeleitete Mass"+(st.abgeleitet===1?"":"e")
+   +" (Abwicklung, Flächen, Stückzahlen) gehören nicht in eine Reservierung und bleiben weg.");
+ if(st.unbekannt)t.push(st.unbekannt+" Position"+(st.unbekannt===1?"":"en")
+   +" aus einer älteren Fassung sind mit dabei – die App kann dort nicht unterscheiden,"
+   +" ob es ein Teil oder ein Mass ist. Die Massaufnahme einmal öffnen und speichern ordnet sie zu.");
+ return t.length?" "+t.join(" "):"";
+}
 function resvBedarfZeilen(){
  if(typeof pmatSammeln!=="function")return [];
  const raus=[];
  pmatSammeln(projectMeasurementsCache||[]).forEach(g=>{
   g.positionen.forEach(p=>{
    if(p.summe===null)return;                 // reiner Text wird nicht reserviert
+   if(p.teil===false)return;                 // abgeleitetes Mass - nichts zum Holen
    const q=p.quellen||[];
    raus.push({material_name:g.material==="Ohne Material"?null:g.material,
      bezeichnung:p.bezeichnung, menge:p.summe, einheit:p.einheit||null,
@@ -511,6 +562,7 @@ document.addEventListener("click",async e=>{
    await resvNachAktion(erg, erg.anzahl
     ? `✓ ${erg.anzahl} Position${erg.anzahl===1?"":"en"} übernommen.`
       +(erg.uebersprungen?` ${erg.uebersprungen} war${erg.uebersprungen===1?"":"en"} schon erfasst.`:"")
+      +resvBedarfZusatz()
     : "Es gab nichts Neues zu übernehmen – alle Positionen sind bereits erfasst.");
   }else{await resvNachAktion(erg)}
   return;

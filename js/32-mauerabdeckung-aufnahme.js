@@ -214,7 +214,11 @@ function madaAusmassZeilen(){
  if(!L)return [];
  const z=[], st=madaStueckliste();
  let pos=0;
- const zeile=(bez,menge,einheit,herkunft)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft});
+ // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird (Halbfabrikat,
+ // gekaufter Artikel), oder ein abgeleitetes Mass. Die Reservierung nimmt nur
+ // Teile. Ohne vierten Wert gilt "abgeleitet" - eine Zahl ueber die Arbeit ist
+ // nichts, was jemand aus dem Lager holt.
+ const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
  zeile("Mauerabdeckung "+madaMaterialText(),madaMeter(L),"m","Summe der Segmentlängen");
  zeile("Blech (Abwicklung "+madaMm(madaProfilMasse().abwicklung)+" mm)",
    madaQm(madaFlaecheM2()),"m²","Gesamtlänge × Abwicklung");
@@ -223,9 +227,9 @@ function madaAusmassZeilen(){
  if(ecken)zeile("Ecken",String(ecken),"Stk.","Segmente mit Winkel ≠ 0°");
  const sch=madaSchieberAktiv().length;
  if(sch)zeile("Schieber",String(sch),"Stk.",
-   madA.schieberManuell?"von Hand gesetzt":"automatisch nach SIA 271");
+   madA.schieberManuell?"von Hand gesetzt":"automatisch nach SIA 271",true);
  const bo=madaBoeden();
- if(bo)zeile("Boden",String(bo),"Stk.","Abschluss am Anfang/Ende");
+ if(bo)zeile("Boden",String(bo),"Stk.","Abschluss am Anfang/Ende",true);
  return z;
 }
 
