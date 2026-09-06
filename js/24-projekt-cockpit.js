@@ -371,6 +371,30 @@ $("amTypeChooserModal").addEventListener("click",e=>{
  setAmProjectField(cockpitProjectId);
  updateAmFormTitle();
 });
+// v3.09 Serie: nur aus dem Projekt-Cockpit heraus, weil dort das Projekt
+// feststeht. Ohne Projekt liesse sich keine der Massaufnahmen speichern -
+// ein zweiter Projektwaehler waere die schlechtere Antwort darauf.
+if($("cockpitSerie")){
+ $("cockpitSerie").onclick=()=>{
+  if(!cockpitProjectId)return;
+  if(typeof vorlageWahlOeffnen!=="function")return;
+  $("projectCockpitModal").hidden=true;
+  vorlageWahlOeffnen("serie",cockpitProjectId);
+ };
+}
+// Aus der Vorlagen-/Seriewahl zurueck ins Cockpit statt ins Leere.
+if($("closeVorlageWahl")){
+ $("closeVorlageWahl").addEventListener("click",()=>{
+  if($("measTypeChooserModal")&&!$("measTypeChooserModal").hidden)return;
+  if(cockpitProjectId)$("projectCockpitModal").hidden=false;
+ });
+}
+if($("cancelSerie")){
+ $("cancelSerie").addEventListener("click",()=>{
+  if(cockpitProjectId)$("projectCockpitModal").hidden=false;
+ });
+}
+
 // Abbrechen in der Typ-Auswahl: zurück ins Cockpit statt in die Übersicht.
 $("cancelMeasTypeChooser").addEventListener("click",()=>{
  if(cockpitTypWahl!=="meas")return;

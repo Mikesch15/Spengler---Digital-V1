@@ -800,3 +800,11 @@ button.pmat-quelle:hover{border-color:var(--blue)}
 .werk-zeile-akt button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
 .werk-grundlage{margin-top:8px;border-top:2px solid var(--line);padding-top:8px}
 .werk-block{margin-bottom:10px}
+
+/* v3.09 Vorlagen und Serien */
+.vorlage-zeile{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;
+ padding:8px 0;border-bottom:1px solid var(--line)}
+.vorlage-zeile:last-child{border-bottom:0}
+.vorlage-info{flex:1 1 190px;min-width:0;word-break:break-word}
+.vorlage-akt{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px}
+.vorlage-akt button{min-height:34px}

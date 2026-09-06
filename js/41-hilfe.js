@@ -110,6 +110,44 @@ alles unverändert da – auch die vorher gewählten Untermodule.</p>
 <p>Gilt für die <b>ganze Firma</b>. Ändern kann das nur ein Administrator;
 die Datenbank prüft das bei jedem Speichern selbst.</p>
 `},
+"vorlagen-bibliothek":{titel:"Vorlagen",text:`
+Eine Vorlage ist ein gespeicherter Satz Masse einer Massaufnahme-Art – mehr
+nicht. Sie enthält bewusst kein Projekt, keine Adresse, keine Bezeichnung,
+keine Notiz, kein Datum, keine Fotos und keinen Arbeitsstatus. Damit lässt
+sich eine wiederkehrende Konstruktion auf jeder Baustelle neu verwenden, ohne
+dass Angaben der letzten Baustelle stillschweigend mitkommen.
+
+Eine daraus erzeugte Massaufnahme ist vollständig eigenständig. Es gibt keine
+Verknüpfung zurück: eine spätere Änderung an der Vorlage verändert bereits
+erfasste Massaufnahmen nicht, und eine Änderung an einer Massaufnahme
+verändert die Vorlage nicht.
+
+Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
+„📄 Als Vorlage speichern". Die Liste hier dient zum Umbenennen und Löschen.
+Löschen ändert nichts an bestehenden Massaufnahmen.
+`},
+"vorlage-speichern":{titel:"Als Vorlage speichern",text:`
+Übernommen werden nur die Masse dieser Art. Projekt, Bezeichnung, Notiz,
+Datum, Fotos und Skizzen bleiben aussen vor – sie gehören zum einzelnen
+Objekt und wären auf der nächsten Baustelle falsch.
+
+Gibt es für dieselbe Art schon eine Vorlage mit demselben Namen, wird
+nachgefragt, ob sie überschrieben werden soll. Bereits erfasste
+Massaufnahmen bleiben dabei unverändert.
+`},
+"serie":{titel:"Serienaufnahme",text:`
+Aus einer Vorlage entstehen mehrere Massaufnahmen auf einmal – etwa acht
+gleiche Lukarnen auf demselben Dach. Die Bezeichnungen werden aus dem Präfix
+und einer laufenden Nummer gebildet und vorher angezeigt.
+
+Jede entstandene Massaufnahme ist eigenständig: sie lässt sich einzeln
+bearbeiten, freigeben, zuschneiden, rüsten und montieren. Eine Änderung an
+einer wirkt nicht auf die anderen. Alle starten im Arbeitsstatus
+„In Bearbeitung" – eine Serie kann den Ablauf nicht überspringen.
+
+Die Serie wird im gerade geöffneten Projekt angelegt; deshalb steht der
+Knopf im Projekt und nicht in der allgemeinen Übersicht.
+`},
 "werkstatt":{titel:"Werkstatt und Rüsten",text:`
 Hier steht, was freigegeben und zum Rüsten oder Montieren eingeteilt ist –
 nach Projekt gruppiert, nicht nach Person. Es ist dieselbe Arbeitsliste wie

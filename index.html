@@ -140,6 +140,7 @@
 <button type="button" class="start-nav-btn blue" data-choose-meas-type="rinne"><span class="start-nav-icon">🚰</span><span>Rinne</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
+<button type="button" id="chooseFromVorlage" class="blue" hidden>📄 Aus Vorlage</button>
 <button id="cancelMeasTypeChooser" class="gray">Abbrechen</button>
 </div>
 </div>
@@ -359,7 +360,7 @@
 <div id="cockpitWorkArea">
 <div class="card" id="cockpitMeasCard">
 <h2>📐 Massaufnahmen<span id="cockpitMeasCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-meas">i</button></h2>
-<div class="bar"><button class="blue cockpit-new" data-cockpit-new="meas">＋ Neue Massaufnahme</button></div>
+<div class="bar"><button class="blue cockpit-new" data-cockpit-new="meas">＋ Neue Massaufnahme</button><button type="button" id="cockpitSerie" class="blue" hidden>📄 Serie aus Vorlage</button></div>
 <div class="small" style="color:var(--muted);margin-bottom:4px">Eine bestehende Aufnahme lässt sich mit „📄 Als Vorlage" als Grundlage für eine neue nehmen. <button type="button" class="hilfe-knopf no-print" data-hilfe="vorlage">i</button></div>
 <div id="cockpitMeasBody"></div>
 </div>
@@ -1245,10 +1246,73 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 
 <div class="bar">
 <button id="saveMeasurement" class="green">💾 Speichern</button>
+<button type="button" id="measAlsVorlage" class="gray" hidden>📄 Als Vorlage speichern</button>
 <button id="printMeasurementBtn" class="gray" hidden>🖨️ Als PDF</button>
 <button id="cancelMeasurement" class="gray">Abbrechen</button>
 <button id="measurementEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
 <button id="startFromMeasurementEdit" class="gray">🏠 Start</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- v3.09 VORLAGE SPEICHERN -->
+<div id="vorlageSpeichernModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📄 Als Vorlage speichern <button type="button" class="hilfe-knopf no-print" data-hilfe="vorlage-speichern">i</button></h2>
+<div class="info">Gespeichert werden <b>nur die Masse</b> dieser Art
+(<span id="vorlageTypName">–</span>). Projekt, Bezeichnung, Notiz, Datum,
+Fotos und Skizzen bleiben aussen vor – sie gehören zum einzelnen Objekt, nicht
+zur Vorlage.</div>
+<div class="grid">
+<div class="wide"><label>Name der Vorlage</label><input id="vorlageName" placeholder="z. B. Standardrinne Reiheneinfamilienhaus"></div>
+<div class="wide"><label>Notiz (freiwillig)</label><input id="vorlageNotiz" placeholder="Wofür ist diese Vorlage gedacht?"></div>
+</div>
+<div class="small" id="vorlageSpeichernHinweis" style="margin-top:4px" hidden></div>
+<div class="bar" style="margin-top:12px">
+<button type="button" id="saveVorlage" class="green">💾 Vorlage speichern</button>
+<button type="button" id="cancelVorlageSpeichern" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- v3.09 VORLAGE WAEHLEN -->
+<div id="vorlageWahlModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2 id="vorlageWahlTitel">📄 Massaufnahme aus Vorlage</h2>
+<div class="info">Die Masse der Vorlage werden in eine <b>neue, eigenständige</b>
+Massaufnahme übernommen. Bezeichnung, Datum und Fotos bleiben leer.</div>
+<div id="vorlageWahlBody"></div>
+<div class="bar" style="margin-top:12px">
+<button type="button" id="closeVorlageWahl" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- v3.09 SERIE -->
+<div id="serieModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📄 Serienaufnahme <button type="button" class="hilfe-knopf no-print" data-hilfe="serie">i</button></h2>
+<div class="info">Aus der Vorlage <b id="serieVorlageName">–</b>
+(<span id="serieTypName">–</span>) entstehen mehrere Massaufnahmen im gerade
+geöffneten Projekt. <b>Jede ist eigenständig</b>: sie lässt sich einzeln
+bearbeiten, freigeben, zuschneiden, rüsten und montieren. Eine Änderung an
+einer wirkt nicht auf die anderen.</div>
+<div class="grid">
+<div><label>Anzahl</label><input id="serieAnzahl" type="number" min="1" max="50" step="1" value="3"></div>
+<div><label>Startnummer</label><input id="serieStart" type="number" min="0" step="1" value="1"></div>
+<div class="wide"><label>Bezeichnung (Präfix)</label><input id="serieBezeichnung" placeholder="z. B. Lukarne"></div>
+</div>
+<div class="small" id="serieVorschau" style="margin-top:6px;color:var(--muted)"></div>
+<div class="small" id="serieHinweis" style="margin-top:4px" hidden></div>
+<div class="bar" style="margin-top:12px">
+<button type="button" id="serieAnlegenBtn" class="green">✓ Serie anlegen</button>
+<button type="button" id="cancelSerie" class="gray">Abbrechen</button>
 </div>
 </div>
 </div>
@@ -1440,6 +1504,20 @@ vorgeschlagen.</div>
 <div class="info">Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt firmenweit für alle. Die beiden Zahlenfelder werden nur bei "Rinne Halbrund" und "Mauerabdeckung" für die Dehnungsabstände nach SIA 271 gebraucht – bei allen anderen Arten leer lassen.</div>
 <div id="measMaterialSettings"></div>
 <div class="bar" style="margin-bottom:14px"><button id="newMeasMaterial" class="gray">＋ Material hinzufügen</button></div>
+</div>
+</div>
+<div class="settings-section" data-section="vorlagen" id="vorlagenKarte" hidden>
+<div class="settings-section-head" data-toggle-section="vorlagen"><h2>Vorlagen <button type="button" class="hilfe-knopf no-print" data-hilfe="vorlagen-bibliothek">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Wiederkehrende Massaufnahmen als Vorlage. Eine Vorlage enthält
+<b>nur die Masse einer Art</b> – kein Projekt, keine Adresse, keine
+Bezeichnung, keine Notiz, kein Datum, keine Fotos und keinen Arbeitsstatus.
+Eine daraus erzeugte Massaufnahme ist vollständig eigenständig: eine spätere
+Änderung an der Vorlage verändert bereits erfasste Massaufnahmen <b>nicht</b>.
+Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
+„📄 Als Vorlage speichern“. Gilt für die ganze Firma.</div>
+<div id="vorlagenListe"></div>
+<div class="small" id="vorlagenHinweis" style="margin-top:6px" hidden></div>
 </div>
 </div>
 <div class="settings-section open" data-section="einlaufblech">
@@ -1947,6 +2025,7 @@ nicht neu installieren.</div>
 <script src="js/49-projekt-zuschnitt.js"></script>
 <script src="js/50-reservierung.js"></script>
 <script src="js/51-werkstatt.js"></script>
+<script src="js/52-vorlagen.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

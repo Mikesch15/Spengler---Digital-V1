@@ -141,6 +141,7 @@ async function afterLogin(){
  // v3.09 Der Werkstatt-Knopf haengt am Untermodul der Firma - ebenfalls
  // erst hier, wenn die Einstellungen geladen sind.
  if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
+ if(typeof vorlageKnopfAktualisieren==="function")vorlageKnopfAktualisieren();
  if(typeof wsSynchronisieren==="function"&&!offlineIstOffline()){
   wsSynchronisieren().then(b=>{
    if(b&&b.gesendet)renderProjectSelect();
@@ -174,6 +175,9 @@ function goToStart(){
  $("adminMeasModal").hidden=true;          // v3.08
  $("adminMeasZuweisenModal").hidden=true;
  $("werkstattModal").hidden=true;             // v3.09
+ $("vorlageSpeichernModal").hidden=true;      // v3.09
+ $("vorlageWahlModal").hidden=true;           // v3.09
+ $("serieModal").hidden=true;                 // v3.09
  // Der PDF-Auswahldialog wartet auf eine Antwort - beim Sprung auf den
  // Startbildschirm gilt das als Abbruch, sonst bliebe das Versprechen offen.
  if(typeof pdfListenSchliessen==="function"&&!$("pdfListenModal").hidden)pdfListenSchliessen(null);
@@ -187,6 +191,7 @@ function goToStart(){
  // v3.08: der Knopf zur Firmenadmin-Uebersicht haengt an isAdmin().
  if(typeof auKnopfAktualisieren==="function")auKnopfAktualisieren();
  if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
+ if(typeof vorlageKnopfAktualisieren==="function")vorlageKnopfAktualisieren();
 }
 
 // ---- Eigenes Passwort festlegen ----------------------------

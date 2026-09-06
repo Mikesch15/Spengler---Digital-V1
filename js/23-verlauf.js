@@ -23,14 +23,14 @@ const VERLAUF_ACTION_LABELS={created:"Erstellt",updated:"Geändert",deleted:"Gel
 // Aktionen, die der Filter "Foto/Skizze" zusammenfasst.
 const VERLAUF_BILD_ACTIONS=["photo_added","photo_deleted","sketch_added","sketch_deleted"];
 const VERLAUF_ENTITY_LABELS={project:"Projekt",measurement:"Massaufnahme",ausmass:"Ausmass",report:"Regierapport",
- // v3.09: dieselbe Historie, nur zwei weitere Arten - kein zweites Protokoll.
- reservierung:"Reservierung",reststueck:"Reststück"};
+ // v3.09: dieselbe Historie, nur drei weitere Arten - kein zweites Protokoll.
+ reservierung:"Reservierung",reststueck:"Reststück",vorlage:"Vorlage"};
 // v2.35: dieselben Symbole, die bereits in den jeweiligen Hauptbereichen
 // verwendet werden (index.html: "📁 Projekte", "📐 Massaufnahme",
 // "📏 Ausmass", "📋 Regierapport") - keine neue Symbolsprache, dezente
 // Kennzeichnung der Entität statt Farbcodierung (Auftrag Abschnitt 9).
 const VERLAUF_ENTITY_ICONS={project:"📁",measurement:"📐",ausmass:"📏",report:"📋",
- reservierung:"📦",reststueck:"♻️"};
+ reservierung:"📦",reststueck:"♻️",vorlage:"📄"};
 
 // v2.33: Feld-Diffing. Bewusst nur dasselbe kleine, zuverlässige Feld-Set,
 // das write_audit_log() serverseitig vergleicht (siehe CLAUDE.md
@@ -44,6 +44,7 @@ const VERLAUF_FIELD_LABELS={
  // v3.09 Reservierung und Reststueck.
  reservierung:{status:"Status",menge:"Menge",bezeichnung:"Position",notiz:"Notiz"},
  reststueck:{reserviert_fuer:"Reserviert für Projekt",verbraucht:"Verbraucht",anzahl:"Anzahl"},
+ vorlage:{name:"Name",notiz:"Notiz",type:"Art",vorlage_data:"Masse"},
  measurement:{
   title:"Bezeichnung",date:"Datum",note:"Notiz / Masse",
   // v3.05 Arbeitsworkflow (Freigabe, Zuweisung, Ruesten, Montage)
@@ -204,6 +205,13 @@ function verlaufChangesHtml(row){
     return p?((typeof projektTitel==="function")?projektTitel(p):(p.name||("Projekt "+v)))
             :("Projekt "+v);
    };
+   wert=`${esc(n(c.old))} → ${esc(n(c.new))}`;
+  }else if(row.entity_type==="vorlage"&&c.field==="vorlage_data"){
+   // Der Inhalt der Vorlage steht bewusst nicht im Log (er kann gross sein),
+   // festgehalten ist nur, DASS sich die Masse geaendert haben.
+   wert="geändert";
+  }else if(row.entity_type==="vorlage"&&c.field==="type"){
+   const n=v=>(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[v])||String(v||"–");
    wert=`${esc(n(c.old))} → ${esc(n(c.new))}`;
   }else if(row.entity_type==="reststueck"&&c.field==="verbraucht"){
    wert=`${esc(c.old?"verbraucht":"im Lager")} → ${esc(c.new?"verbraucht":"im Lager")}`;

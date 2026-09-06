@@ -155,7 +155,8 @@ if($("savePmModule"))$("savePmModule").onclick=pmSpeichern;
 function pmNachAenderung(){
  [ "renderProjectList","renderCockpitStammdaten","aufgabenNeuLaden",
    "renderMeasWorkflow","pmSichtbarkeitAuffrischen",
-   "werkstattKnopfAktualisieren" ].forEach(f=>{
+   "werkstattKnopfAktualisieren","vorlageKnopfAktualisieren",
+   "renderVorlagenListe" ].forEach(f=>{
   try{ if(typeof window[f]==="function")window[f](); }catch(e){ console.error(f,e) }
  });
 }
