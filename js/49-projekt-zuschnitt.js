@@ -227,4 +227,8 @@ if($("cockpitZuschnittBody")){
 function pmSichtbarkeitAuffrischen(){
  if(typeof renderProjektMaterial==="function")renderProjektMaterial();
  if(typeof renderProjektZuschnitt==="function")renderProjektZuschnitt();
+ // Die Reservierung braucht eine eigene Abfrage - deshalb ueber resvCockpitLaden,
+ // das ein zwischenzeitlich gewechseltes Projekt selbst erkennt.
+ if(typeof resvCockpitLaden==="function"&&typeof cockpitProjectId!=="undefined")
+  resvCockpitLaden(cockpitProjectId);
 }

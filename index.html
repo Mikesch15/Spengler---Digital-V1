@@ -373,6 +373,11 @@
 <div class="small" style="color:var(--muted);margin-bottom:6px">Derselbe Rollenblech-Plan wie in der einzelnen Massaufnahme, nur über das ganze Projekt. Gleiche Berechnung, gleiche Schnittfuge, gleiches Reststücke-Lager.</div>
 <div id="cockpitZuschnittBody"></div>
 </div>
+<div class="card" id="cockpitReservierungCard" hidden>
+<h2>Reservierung<span id="cockpitReservierungCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-reservierung">i</button></h2>
+<div class="small" style="color:var(--muted);margin-bottom:6px">Was für dieses Projekt gebraucht, reserviert, zugeschnitten und gerüstet ist. Ein Rest wird nie automatisch eingeplant.</div>
+<div id="cockpitReservierungBody"></div>
+</div>
 <div class="card" id="cockpitAmCard">
 <h2>📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-am">i</button></h2>
 <div class="bar"><button class="blue cockpit-new" data-cockpit-new="am">＋ Neues Ausmass</button></div>
@@ -1923,6 +1928,7 @@ nicht neu installieren.</div>
 <script src="js/47-projektmodule.js"></script>
 <script src="js/48-projekt-material.js"></script>
 <script src="js/49-projekt-zuschnitt.js"></script>
+<script src="js/50-reservierung.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

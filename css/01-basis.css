@@ -772,3 +772,15 @@ button.pmat-quelle:hover{border-color:var(--blue)}
 .pzu-herkunft{margin-top:10px}
 .pzu-quelle{margin-bottom:8px}
 .pzu-quelle .small{margin-top:2px;color:var(--muted);word-break:break-word}
+/* v3.09 Materialreservierung. Die Aktionsspalte darf nicht umbrechen, die
+   Zeile selbst schon - sonst laeuft sie auf dem Handy seitlich hinaus. */
+.resv-akt{white-space:nowrap}
+.resv-akt select{width:auto;display:inline-block;margin-right:4px}
+.resv-akt button{width:auto;min-height:34px;padding:4px 8px;font-size:12px}
+.resv-reste{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+.resv-rest-zeile{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;
+ justify-content:space-between;font-size:12px;padding:4px 0;
+ border-bottom:1px solid var(--card-line);min-width:0}
+.resv-rest-zeile:last-of-type{border-bottom:0}
+.resv-rest-zeile>span:first-child{flex:1 1 160px;min-width:0;word-break:break-word}
+.resv-rest-zeile button{width:auto;min-height:34px;padding:4px 8px;font-size:12px}

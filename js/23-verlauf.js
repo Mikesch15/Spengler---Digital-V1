@@ -22,12 +22,15 @@ const VERLAUF_ACTION_LABELS={created:"Erstellt",updated:"Geändert",deleted:"Gel
  sketch_added:"Skizze hinzugefügt",sketch_deleted:"Skizze gelöscht"};
 // Aktionen, die der Filter "Foto/Skizze" zusammenfasst.
 const VERLAUF_BILD_ACTIONS=["photo_added","photo_deleted","sketch_added","sketch_deleted"];
-const VERLAUF_ENTITY_LABELS={project:"Projekt",measurement:"Massaufnahme",ausmass:"Ausmass",report:"Regierapport"};
+const VERLAUF_ENTITY_LABELS={project:"Projekt",measurement:"Massaufnahme",ausmass:"Ausmass",report:"Regierapport",
+ // v3.09: dieselbe Historie, nur zwei weitere Arten - kein zweites Protokoll.
+ reservierung:"Reservierung",reststueck:"Reststück"};
 // v2.35: dieselben Symbole, die bereits in den jeweiligen Hauptbereichen
 // verwendet werden (index.html: "📁 Projekte", "📐 Massaufnahme",
 // "📏 Ausmass", "📋 Regierapport") - keine neue Symbolsprache, dezente
 // Kennzeichnung der Entität statt Farbcodierung (Auftrag Abschnitt 9).
-const VERLAUF_ENTITY_ICONS={project:"📁",measurement:"📐",ausmass:"📏",report:"📋"};
+const VERLAUF_ENTITY_ICONS={project:"📁",measurement:"📐",ausmass:"📏",report:"📋",
+ reservierung:"📦",reststueck:"♻️"};
 
 // v2.33: Feld-Diffing. Bewusst nur dasselbe kleine, zuverlässige Feld-Set,
 // das write_audit_log() serverseitig vergleicht (siehe CLAUDE.md
@@ -38,6 +41,9 @@ const VERLAUF_FIELD_LABELS={
  // davon getrennte Archiv. Beide erscheinen als action "status_changed".
  project:{name:"Projektname",order_no:"Auftrags-Nr.",customer:"Auftraggeber",object:"Adresse",
           status:"Status",archived:"Archiv"},
+ // v3.09 Reservierung und Reststueck.
+ reservierung:{status:"Status",menge:"Menge",bezeichnung:"Position",notiz:"Notiz"},
+ reststueck:{reserviert_fuer:"Reserviert für Projekt",verbraucht:"Verbraucht",anzahl:"Anzahl"},
  measurement:{
   title:"Bezeichnung",date:"Datum",note:"Notiz / Masse",
   // v3.05 Arbeitsworkflow (Freigabe, Zuweisung, Ruesten, Montage)
@@ -185,6 +191,22 @@ function verlaufChangesHtml(row){
   }else if(row.entity_type==="project"&&c.field==="status"){
    // Deutsche Bezeichnung statt des gespeicherten Rohwerts (v2.46).
    wert=`${esc(projektStatusText(c.old))} → ${esc(projektStatusText(c.new))}`;
+  }else if(row.entity_type==="reservierung"&&c.field==="status"){
+   // v3.09: deutsche Bezeichnung des Reservierungsstatus. Die Entitaet
+   // entscheidet, nicht der Wert - project.status heisst anders.
+   const n=v=>(typeof resvStatusName==="function")?resvStatusName(v):String(v||"-");
+   wert=`${esc(n(c.old))} → ${esc(n(c.new))}`;
+  }else if(row.entity_type==="reststueck"&&c.field==="reserviert_fuer"){
+   const n=v=>{
+    if(v===null||v===undefined)return "niemand";
+    const p=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))
+      ?allProjects.find(x=>x.id===v):null;
+    return p?((typeof projektTitel==="function")?projektTitel(p):(p.name||("Projekt "+v)))
+            :("Projekt "+v);
+   };
+   wert=`${esc(n(c.old))} → ${esc(n(c.new))}`;
+  }else if(row.entity_type==="reststueck"&&c.field==="verbraucht"){
+   wert=`${esc(c.old?"verbraucht":"im Lager")} → ${esc(c.new?"verbraucht":"im Lager")}`;
   }else if(row.entity_type==="measurement"&&(c.field==="photo"||c.field==="sketches")){
    const text=verlaufBildWert(row,c);
    if(text===null)return;

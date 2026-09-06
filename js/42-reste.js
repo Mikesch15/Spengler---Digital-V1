@@ -189,7 +189,11 @@ function restPassend(breite,laengen){
  return (reststuecke||[]).filter(r=>!r.verbraucht
    &&restZahl(r.breite_mm)>=b-1e-9
    &&restZahl(r.laenge_mm)>=Math.min.apply(null,l)-1e-9)
-  .map(r=>({...r,passtFuerLaengste:restZahl(r.laenge_mm)>=laengste}));
+  .map(r=>({...r,passtFuerLaengste:restZahl(r.laenge_mm)>=laengste,
+    // v3.09: ein fuer ein Projekt reserviertes Stueck ist nicht mehr frei.
+    // Es wird trotzdem gezeigt, aber als vergeben gekennzeichnet - sonst
+    // waere unklar, warum es im Lager steht und doch nicht verfuegbar ist.
+    fuerProjekt:r.reserviert_fuer_project_id||null}));
 }
 
 // Der Block unter der Zuschnittliste. Wird von zuschnittHtml() (js/33)
@@ -207,7 +211,7 @@ function restBlockHtml(plan,material){
  let h='<div class="rest-block">';
  if(passend.length){
   h+=`<div class="small"><b>Aus dem Reststücke-Lager</b> – ${passend.length} Rest${passend.length===1?"":"e"}, die breit genug sind:</div>`
-   +passend.slice(0,8).map(r=>`<div class="small" style="color:var(--muted)">• ${esc(restBeschreibung(r))}${r.passtFuerLaengste?"":" – kürzer als das längste Stück"}</div>`).join("")
+   +passend.slice(0,8).map(r=>`<div class="small" style="color:var(--muted)">• ${esc(restBeschreibung(r))}${r.passtFuerLaengste?"":" – kürzer als das längste Stück"}${r.fuerProjekt?" – bereits für ein Projekt reserviert":""}</div>`).join("")
    +'<div class="small" style="color:var(--muted);margin-top:2px">Wird bewusst nicht automatisch eingeplant – ein Rest liegt physisch irgendwo und ist vielleicht schon weg.</div>';
  }
  if(kandidaten.length){

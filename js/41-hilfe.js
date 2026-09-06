@@ -110,6 +110,20 @@ alles unverändert da – auch die vorher gewählten Untermodule.</p>
 <p>Gilt für die <b>ganze Firma</b>. Ändern kann das nur ein Administrator;
 die Datenbank prüft das bei jedem Speichern selbst.</p>
 `},
+"cockpit-reservierung":{titel:"Materialreservierung",text:`
+Hier steht, was für dieses Projekt gebraucht, reserviert, zugeschnitten und
+gerüstet ist. „Bedarf übernehmen" holt genau die Positionen, die die
+Massaufnahmen dieses Projekts bereits ausgerechnet haben – es wird nichts
+neu gerechnet und nichts erfunden.
+
+Der Status wird von Hand weitergestellt: Benötigt → Verfügbar → Reserviert →
+Zugeschnitten → Gerüstet. Jede Änderung steht mit altem und neuem Wert im
+Projekt-Verlauf.
+
+Ein Reststück aus dem Lager wird nie automatisch eingeplant. Erst wenn Sie
+es ausdrücklich für dieses Projekt reservieren, ist es für andere Projekte
+gesperrt. Freigeben macht es wieder verfügbar, „Als verwendet buchen" nimmt
+es aus dem Lager – die Projektzuordnung bleibt im Verlauf nachvollziehbar.`},
 "einst-workflow":{titel:"Arbeitsablauf der Massaufnahme",text:`
 <p>Schaltet den ganzen Ablauf für die <b>ganze Firma</b> ein oder aus: Freigabe
 durch den Aufnehmer, Zuweisung von Rüster und Monteur, Bestätigung von Rüsten
