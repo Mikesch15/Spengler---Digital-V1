@@ -274,6 +274,51 @@ const liste=[];
  await schuss("35-admin-uebersicht","#adminMeasModal .card",{warte:800,breite:900});
  await page.evaluate(()=>{$("adminMeasModal").hidden=true});
 
+ // ---------- v3.09 Erweiterter Ablauf ----------
+ // Einstellungen: Hauptschalter und Untermodule.
+ await page.evaluate(()=>{
+  if(typeof pmUebernehmen==="function")
+   pmUebernehmen({haupt:true,material:true,zuschnitt:true,reservierung:true,
+                  werkstatt:true,vorlagen:true,serien:true,versionierung:true});
+  if(typeof openSettingsTo==="function")openSettingsTo("general","");
+  if(typeof renderProjektmodule==="function")renderProjektmodule();
+ });
+ await schuss("38-projektmodule","#pmListe",{warte:600,breite:900});
+ await page.evaluate(()=>{$("settingsModal").hidden=true});
+
+ // Reservierung im Projekt-Cockpit.
+ await page.evaluate(async()=>{
+  $("projectCockpitModal").hidden=false;
+  cockpitProjectId=1;
+  // Das Reststuecke-Lager wird sonst von loadAllData() gefuellt, das hier
+  // nicht laeuft - deshalb aus denselben Demodaten setzen.
+  if(typeof reststuecke!=="undefined")reststuecke=window.__demo.reststuecke.slice();
+  if(typeof resvCockpitLaden==="function")await resvCockpitLaden(1);
+ });
+ await schuss("39-reservierung","#cockpitReservierungCard",{warte:900,breite:900});
+ await page.evaluate(()=>{$("projectCockpitModal").hidden=true});
+
+ // Werkstatt- und Ruestansicht.
+ await page.evaluate(async()=>{
+  if(typeof werkstattOeffnen==="function")await werkstattOeffnen();
+ });
+ await schuss("40-werkstatt","#werkstattModal .card",{warte:1000,breite:900});
+ await page.evaluate(()=>{$("werkstattModal").hidden=true});
+
+ // Freigegebene Fassungen in der Massaufnahme.
+ await page.evaluate(async()=>{
+  currentMeasurementId=11;
+  if(typeof mwStandAusZeile==="function")
+   mwStandAusZeile({id:11,workflow_status:"zu_ruesten",freigabe_verfallen:false,
+     ruester_id:"u1",monteur_id:"u2",freigegeben_von:"u1",
+     freigegeben_am:"2026-08-29T09:45:00Z",geruestet_von:null,geruestet_am:null,
+     montiert_von:null,montiert_am:null});
+  if(typeof verNeuLaden==="function")await verNeuLaden();
+  $("measurementEditModal").hidden=false;
+ });
+ await schuss("41-fassungen","#measVersionenBereich",{warte:900,breite:900});
+ await page.evaluate(()=>{$("measurementEditModal").hidden=true;$("startScreen").hidden=false});
+
  // ---------- Hilfe-Fenster (Info-Knopf) ----------
  await page.evaluate(()=>{
   if(typeof hilfeOeffnen==="function")hilfeOeffnen("reg-zuschnitt");

@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.07, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.09, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.07**
+- sichtbare App-Version: **3.09**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -18314,3 +18314,222 @@ haben, weshalb der Startbildschirm versteckt und die Höhe 0 px war.
   realen Mengen (23) ist das weit entfernt.
 - Die Übersicht zeigt Massaufnahmen. Ausmasse und Regierapporte haben keine
   entsprechende Gesamtsicht – sie war nicht verlangt.
+
+## 114. ERWEITERTER PROJEKT-/MATERIAL-/WERKSTATTWORKFLOW — VERSION 3.09
+
+Fünf Bereiche als **ein** zusammenhängendes System: projektweite
+Materialübersicht, projektweiter Zuschnitt, Werkstatt-/Rüstansicht,
+Materialreservierung mit Reststücken, sowie Vorlagen/Serien und
+Massaufnahme-Fassungen.
+
+    PROJEKT → MASSAUFNAHME → FREIGABE → MATERIAL → RESERVIERUNG →
+    ZUSCHNITT → WERKSTATT/RÜSTEN → MONTAGE → AUSMASS → RAPPORT → ABSCHLUSS
+
+### 114.1 Standard ist AUS – für neue wie für bestehende Firmen
+
+Der Auftrag verlangt das ausdrücklich: bei AUS verhält sich die App **exakt
+wie bis 3.08**. Umgesetzt über `app_settings.projektmodule jsonb not null
+default '{}'` – jeder Schlüssel fehlt also, `pmAktiv()` liefert `false`.
+
+**Empirisch belegt**, nicht behauptet: nach allen Migrationen haben **0 von 2**
+Firmen ein Modul eingeschaltet, `PETER KÜNZI AG.updated_at` ist unverändert
+(`2026-09-01 07:40:15.844647+00`). Ein `ALTER TABLE … ADD COLUMN` löst keinen
+Zeilentrigger aus.
+
+Ein Hauptschalter und sieben Untermodule (`material`, `zuschnitt`,
+`reservierung`, `werkstatt`, `vorlagen`, `serien`, `versionierung`), mit
+Abhängigkeiten (`zuschnitt` und `reservierung` brauchen `material`, `serien`
+braucht `vorlagen`). Die Abhängigkeit steht **zweimal**: im Client zur
+Bedienung und noch einmal serverseitig in `set_projektmodule()`.
+
+Geschrieben wird ausschliesslich über diese `SECURITY DEFINER`-Funktion, die
+den Administrator mit Firmenbezug prüft. Der Schalter ist **reine Bedienung,
+keine Sicherheitsgrenze** – sonst hinge die Absicherung an einem Wert, den
+ein Firmenadmin selbst setzt (dieselbe Überlegung wie beim
+Workflow-Schalter in 112.3).
+
+**Beim Ausschalten wird nichts gelöscht** – Reservierungen, Fassungen,
+Vorlagen und Reststücke bleiben stehen und sind beim Wiedereinschalten
+unverändert da.
+
+### 114.2 Keine zweite Rechnung, kein zweiter Katalog
+
+| Gebraucht | Wiederverwendet |
+|---|---|
+| Packrechnung | `ebaPackeInStreifen`/`ebaVerteile` (js/29) – weiterhin die **einzige** |
+| Zuschnitt-Darstellung | `zuschnittHtml()`/`zuDruckHtml()` (js/33) |
+| Schnittfuge, Reststück-Lager | v3.04 (Abschnitt 109.2) |
+| Freigabe und Verfall | v3.05/v3.06 – **keine zweite Freigabelogik** |
+| Mitarbeiter, Rollen | `allProfiles`, `permission_settings` |
+| Verlauf | `write_audit_log()` – erweitert, nicht neu gebaut |
+| Material je Massaufnahme | die Fachmodule liefern es; nichts wird nachgerechnet |
+| Projektadresse, Typbezeichnung | `eintragAdresse()`, `MEAS_TYPE_LABELS` |
+
+**Kein Material und kein Artikel ist fest verdrahtet.** Die projektweite
+Übersicht führt zusammen, was die einzelnen Massaufnahmen bereits gerechnet
+haben; jede Zeile nennt die verursachende Massaufnahme und ist von dort aus
+anklickbar.
+
+### 114.3 Reservierung: nichts wird stillschweigend eingeplant
+
+Zustände: **benötigt · verfügbar · reserviert · zugeschnitten · gerüstet** –
+genau die fünf des Auftrags, keine weiteren.
+
+Ein physisches Reststück wird **nie automatisch** eingeplant. Es wird
+vorgeschlagen; verwendet wird es erst nach ausdrücklicher Reservierung. Beim
+Freigeben ist es wieder verfügbar, **die Historie bleibt**.
+
+### 114.4 Werkstatt: eine zusätzliche Sicht, kein zweiter Ablauf
+
+Die Werkstattansicht ersetzt den Mitarbeiter-Workflow aus v3.05–v3.07
+**nicht**. Sie ist eine andere Sicht auf dieselben Spalten und dieselben
+sechs `measurement_*`-Übergangsfunktionen – es gibt keine zweite
+Aufgabenverwaltung.
+
+Jede Zeile nennt die **Fassung**, auf der sie beruht. Ist die Freigabe
+verfallen (v3.06), steht das rot daneben: ein Zuschnitt oder ein Rüstvorgang
+darf nicht unbemerkt auf einem überholten Stand weiterlaufen (Auftrag §15).
+
+### 114.5 Fassungen statt Versionierungsapparat
+
+`measurement_versionen` bekommt bei **jeder** Freigabe eine Zeile – geschrieben
+von `measurement_freigeben()` selbst, nicht von einem zweiten Weg. Die Tabelle
+ist für den Client **nur lesbar**: restriktive `tenant_boundary`-Policy,
+`revoke all` + `grant select to authenticated`, kein Insert-Recht.
+
+Der Vergleich zweier Fassungen nutzt `VERLAUF_FIELD_LABELS.measurement` und
+`verlaufFormatDiffValue()` aus js/23 – eine Quelle, keine zweite
+Formatierungstabelle. **Keine Scheingenauigkeit**: ein Array meldet nur
+„Liste geändert (n → m Einträge)", ein verschachteltes Objekt „geändert", und
+ein unbekannter Schlüssel erscheint mit seinem **technischen** Namen statt
+mit einer erfundenen deutschen Bezeichnung.
+
+### 114.6 Vorlagen und Serien
+
+Eine Vorlage enthält **ausschliesslich `type` und `data`** – keine
+Bezeichnung, kein Datum, kein Projekt, keine Fotos, keinen Workflow-Stand.
+Eine daraus erzeugte Massaufnahme ist vollständig eigenständig; eine spätere
+Änderung der Vorlage verändert **keine** bestehende Massaufnahme (der
+`data`-Block wird tief kopiert).
+
+Eine Serie legt N eigenständige `measurements`-Zeilen an – **keine
+Serien-Entität**, kein Sammeldatensatz. Jedes Objekt ist danach einzeln
+bearbeitbar, freigebbar, zuschneidbar, rüstbar und montierbar (Auftrag §12).
+Der Serienname geht in den Titel jeder Zeile.
+
+### 114.7 Bestehende Übersichten erweitert, nicht ersetzt
+
+Die v3.08-Administrator-Gesamtübersicht bekommt Materialstatus,
+Zuschnittstatus, Fassung, Reservierung und Reststücke als Abzeichen, dazu
+einen Modulfilter. Dafür wurden der RPC drei **abgeleitete** Werte
+hinzugefügt (`hat_material`, `hat_zuschnitt`, `fassung`), statt das ganze
+`data`-JSON von bis zu 5000 Zeilen zu übertragen.
+
+Reservierungs- und Reststückzahlen sind **projektbezogen**, also zwei
+Abfragen für die ganze Liste – nicht eine je Zeile.
+
+Das Projekt-Cockpit zeigt im Arbeitsstand nur die Zeilen der **eingeschalteten**
+Module; die Zahl kommt aus der ohnehin gezeichneten Überschrift, ein „?"
+bleibt ein „?" (kein vorgetäuschter Nullwert).
+
+### 114.8 Ein Fehler in der Datenbank, den erst der Advisor gezeigt hat
+
+`admin_alle_massaufnahmen` musste für die drei neuen Rückgabespalten mit
+**drop + create** neu angelegt werden (Postgres erlaubt bei geändertem
+Rückgabetyp kein `create or replace`). Dabei fielen die Grants der alten
+Funktion weg, und Supabase vergibt bei einer neuen Funktion im Schema
+`public` per Default-Privileges automatisch `EXECUTE` an `anon` – der in
+v3.08 ausdrücklich entzogene Zugriff war dadurch wieder da.
+
+Ausnutzbar war das nicht (die Funktion prüft `is_admin()` als erste Zeile,
+und `anon` hat keinen `auth.uid()`), aber es widerspricht dem Hausstil
+„minimal notwendige Berechtigung" (24.2, 25.2). Behoben mit der Migration
+`admin_alle_massaufnahmen_revoke_anon_v3_09`; per
+`has_function_privilege()` bestätigt: `anon` false, `authenticated` true.
+
+**Merksatz:** nach jedem `drop function` + `create function` die Grants
+ausdrücklich neu setzen – ein `create or replace` behält sie, ein
+`drop`+`create` nicht.
+
+### 114.9 Getestet
+
+Drei neue Prüfstände in dieser Phase, dazu vier aus den Phasen davor:
+
+| Prüfstand | Ergebnis | Gegenproben |
+|---|---|---|
+| `projektmodule-v3-09` | 56/56 | 8 |
+| `projekt-material-zuschnitt-v3-09` | 43/43 | 8 |
+| `reservierung-v3-09` | 67/67 | 10 |
+| `werkstatt-v3-09` | 53/53 | 12 |
+| `vorlagen-v3-09` | 84/84 | 8 |
+| `versionen-v3-09` | 47/47 | 5 |
+| `uebersicht-cockpit-v3-09` | 42/42 | 5 |
+
+Zusammen **56 Gegenproben**, jede baut einen echten Fehler ein und wirft
+ihren Prüfstand um.
+
+**Volle Regression grün** – alle **37** Prüfstände im Repo: verschnitt 1578,
+register-zuschnitt 373, kehle 158, kamin 153, medien-am-ende 150,
+mauerabdeckung 146, freies-profil 118, konisch 114, einfassung 113,
+rinne-halbrund 104, workflow 101, einlaufblech 99, rollenblech-pdf 96,
+anschlussblech 95, rinne-zuschnitt 95, vorlagen 84, lukarne 82,
+warteschlange 75, hilfe 68, admin-uebersicht 67, reservierung 67,
+lxb-druck 58, dila-sichtbar 57, projektmodule 56, skizze-foto 54,
+werkstatt 53, aufgaben-schalter 49, versionen 47, pdf 45,
+projekt-material-zuschnitt 43, uebersicht-cockpit 42, change-sperre 36,
+vorlage-zugang 35, schnittfuge-reste 31, excel-import 31,
+felder-bleiben 23, bediensachen 22 – ohne einen einzigen Fehlschlag.
+
+**Regierapport nachweislich unverändert**: unter `media:print` mit
+ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+v3.08-Stand gerendert (die Fusszeile enthält die Uhrzeit, 100.6) – **DOM,
+Text und Bild byteidentisch** (DOM `1254185771062f94`, Bild
+`3d58f9bbf39625bd`, 59 244 Bytes, Höhe 721 px), bestätigt durch einen
+dritten Lauf desselben Codes.
+
+`node --check` über alle 55 `js/*.js`, `sw.js` und alle 37 Prüfstände:
+fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+Minimum 0); keine doppelten Element-IDs; **alle 55** js-Dateien in
+`index.html` **und** in der Service-Worker-Liste; Version 3.09 in
+`index.html`, `sw.js`, `js/41-hilfe.js` und dem PDF-Verweis gleich.
+
+Alle Datenbanktests liefen in `begin; … rollback;` mit Wegwerf-Firmen.
+Produktivbestand vor und nach der Runde identisch: 2 Firmen, 13 Profile,
+4 Projekte, 24 Massaufnahmen, 42 Verlaufszeilen, **0** Fassungen, **0**
+Vorlagen, **0** Reservierungen, **0** Reststücke, **0** Firmen mit
+eingeschaltetem Modul.
+
+### 114.10 Anleitung
+
+Nach 108.1 mitgeführt: neues Kapitel 10 „Der erweiterte Ablauf" mit sieben
+Unterabschnitten, die bisherigen Kapitel 10–23 zu 11–24 umnummeriert,
+Inhaltsverzeichnis und Querverweise nachgezogen. Vier neue Bilder, alle 41
+neu erzeugt, PDF v3.09 mit **49 Seiten**, keine leere.
+`pruefstand-hilfe-v3-03.js` (68/68) erzwingt das mechanisch.
+
+`anleitung/stub.js` baut weiterhin **keine Verbindung zur
+Produktivdatenbank** auf; die Demodaten sind erfunden.
+
+### 114.11 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte
+  `index.html` mit einer Attrappe, die jeden Aufruf protokolliert, und die
+  Datenbankseite per SQL gegen das echte Produktivschema.
+- **Der ganze Block ist noch nie mit echten Firmendaten gelaufen** – bei
+  allen Firmen steht er auf AUS. Der erste Einschaltversuch gehört an den
+  Anfang des Praxistests.
+- Der Versionsvergleich bleibt bewusst grob bei Listen und verschachtelten
+  Strukturen (114.5). Feiner ginge nur mit typspezifischem Wissen über
+  zwölf verschiedene `data`-Strukturen – dieselbe Abwägung wie in 41.1.
+- Die Reservierung bucht **keinen Lagerbestand ab** – es gibt keine
+  Bestandsführung in der App. Reserviert wird gegen das Reststück-Lager und
+  gegen den Bedarf, nicht gegen einen Vorrat, den niemand pflegt.
+- Der projektweite Zuschnitt rechnet weiterhin **ohne Schnittfuge-Vorgabe
+  über 0 mm** (die Firma stellt sie ein) und **ohne** Wiederverwendung von
+  Reststücken innerhalb einer Rechnung – vorgeschlagen wird aus dem Lager,
+  verrechnet wird nicht (unverändert aus 109.11).
+- Die Übersicht filtert weiterhin auf höchstens 1000 geladenen Zeilen
+  (unverändert aus 113).

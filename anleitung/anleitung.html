@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.08";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.09";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -33,6 +33,7 @@ td{padding:2mm;border-bottom:0.5pt solid #e3e9ee;vertical-align:top}
 .titel .unter{font-size:13pt;color:#5c6b78}
 .titel .fuss{margin-top:14mm;font-size:9.5pt;color:#7a8894;line-height:1.8}
 .seite{break-before:page}
+.mitte{text-align:center;margin:0 0 4mm}
 nav ol{list-style:none;padding:0;font-size:10.5pt}
 nav ol li{padding:1.4mm 0;border-bottom:0.4pt dotted #cfd8de}
 nav .nr{display:inline-block;width:9mm;color:#0f4c81;font-weight:700}
@@ -47,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.08<br>
+  Version 3.09<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -65,20 +66,21 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
 <li><span class="nr">7</span>Massaufnahme – die zwölf Funktionen</li>
 <li><span class="nr">8</span>Eine Massaufnahme Schritt für Schritt</li>
 <li><span class="nr">9</span>Freigeben, Rüsten, Montieren</li>
-<li><span class="nr">10</span>Fotos und Skizzen</li>
-<li><span class="nr">11</span>PDF erstellen</li>
-<li><span class="nr">12</span>Zwei weitere Beispiele: Rinne und Kehle</li>
-<li><span class="nr">13</span>Ausmass</li>
-<li><span class="nr">14</span>Regierapport</li>
-<li><span class="nr">15</span>Suche</li>
-<li><span class="nr">16</span>Änderungsverlauf</li>
-<li><span class="nr">17</span>Einstellungen</li>
-<li><span class="nr">18</span>Feedback</li>
-<li><span class="nr">19</span>System-Administration (nur Betreiber)</li>
-<li><span class="nr">20</span>Auf Handy und Tablet</li>
-<li><span class="nr">21</span>Ohne Internet</li>
-<li><span class="nr">22</span>Begriffe</li>
-<li><span class="nr">23</span>Zu diesem Dokument</li>
+<li><span class="nr">10</span>Der erweiterte Ablauf: Material, Zuschnitt, Werkstatt, Vorlagen</li>
+<li><span class="nr">11</span>Fotos und Skizzen</li>
+<li><span class="nr">12</span>PDF erstellen</li>
+<li><span class="nr">13</span>Zwei weitere Beispiele: Rinne und Kehle</li>
+<li><span class="nr">14</span>Ausmass</li>
+<li><span class="nr">15</span>Regierapport</li>
+<li><span class="nr">16</span>Suche</li>
+<li><span class="nr">17</span>Änderungsverlauf</li>
+<li><span class="nr">18</span>Einstellungen</li>
+<li><span class="nr">19</span>Feedback</li>
+<li><span class="nr">20</span>System-Administration (nur Betreiber)</li>
+<li><span class="nr">21</span>Auf Handy und Tablet</li>
+<li><span class="nr">22</span>Ohne Internet</li>
+<li><span class="nr">23</span>Begriffe</li>
+<li><span class="nr">24</span>Zu diesem Dokument</li>
 </ol></nav>
 
 <h2 class="seite">1 · Wofür die App gedacht ist</h2>
@@ -117,7 +119,7 @@ Anmelden wieder selbst eines.</div>
 <tr><td>⚙️ Einstellungen</td><td>Firma, Material, Masse, Mitarbeiter.</td></tr>
 <tr><td>💬 Feedback geben</td><td>Rückmeldung an die Firma bzw. den Betreiber.</td></tr>
 <tr><td>📋 Alle Massaufnahmen</td><td>Nur für Firmenadministratoren: der Überblick über jede Massaufnahme der Firma (Abschnitt 9).</td></tr>
-<tr><td>⚙️ System-Administration</td><td>Nur beim Betreiber sichtbar (Abschnitt 19).</td></tr>
+<tr><td>⚙️ System-Administration</td><td>Nur beim Betreiber sichtbar (Abschnitt 20).</td></tr>
 </table>
 <p>Über den Knöpfen erscheint die Karte <strong>🔔 Meine offenen Aufgaben</strong>,
 sobald für dich persönlich etwas ansteht – eine eigene Massaufnahme freigeben, einen
@@ -375,12 +377,105 @@ bearbeitbar, freigebbar. Masse, Fotos und Skizzen bleiben dabei unverändert.</p
 
 <h3>Was im Verlauf steht</h3>
 <p>Jeder Schritt landet mit Person und Zeitpunkt im Änderungsverlauf der Massaufnahme
-(Abschnitt 16): Freigabe, jede Einteilung, Gerüstet und Montiert – und eine verfallene
+(Abschnitt 17): Freigabe, jede Einteilung, Gerüstet und Montiert – und eine verfallene
 Freigabe als <em>„Freigabe: gültig → verfallen“</em>. Ein Administrator kann
 einen versehentlich gesetzten Schritt über <span class="tasten">↩️ Status korrigieren</span>
 zurücknehmen – auch das steht im Verlauf.</p>
 
-<h2 class="seite">10 · Fotos und Skizzen</h2>
+<h2 class="seite">10 · Der erweiterte Ablauf</h2>
+<p>Material, Zuschnitt, Werkstatt, Reservierung, Vorlagen und Fassungen bilden
+zusammen einen erweiterten Ablauf über das ganze Projekt:</p>
+<p class="mitte"><strong>Projekt → Massaufnahme → Freigabe → Material → Reservierung →
+Zuschnitt → Werkstatt/Rüsten → Montage → Ausmass → Rapport → Abschluss</strong></p>
+
+<div class="warn"><strong>Standardmässig ist das alles ausgeschaltet.</strong> Solange
+der Hauptschalter aus ist, verhält sich die App genau wie bisher – keine neuen
+Karten, keine neuen Pflichtfelder, keine Reservierungs- oder Versionierungspflicht.
+Einschalten kann das nur ein Administrator unter
+<span class="tasten">⚙️ Einstellungen → Allgemein → Erweiterter
+Projekt-/Material-/Werkstattworkflow</span>. Es gilt dann für die ganze Firma.<br><br>
+Beim Ausschalten wird <strong>nichts gelöscht</strong>: bereits erfasste
+Reservierungen, Vorlagen und Fassungen bleiben gespeichert und sind wieder da, sobald
+der Ablauf erneut eingeschaltet wird.</div>
+
+<figure><img src="bilder/38-projektmodule.png"><figcaption>Hauptschalter und sieben Untermodule. Ein Untermodul ohne seine Grundlage bleibt gesperrt und sagt auch warum.</figcaption></figure>
+
+<h3>Projektweite Materialübersicht</h3>
+<p>Führt das Material aller Massaufnahmen eines Projekts zusammen – gruppiert nach
+Material, mit den Zuschnitten. <strong>Es wird nichts neu gerechnet:</strong> jede
+Position kommt aus dem Ausmass und dem Zuschnittplan, die die Massaufnahme beim
+Speichern selbst abgelegt hat. Zu jeder Zeile steht, aus welcher Massaufnahme sie
+stammt.</p>
+
+<h3>Projektweiter Zuschnitt</h3>
+<p>Fasst die Zuschnitte des ganzen Projekts zu einem Rollenblech-Plan je Material
+zusammen. Gerechnet wird mit derselben Packrechnung wie in der einzelnen
+Massaufnahme – dieselbe Rollenbreite aus dem Blechlager, dieselbe Schnittfuge,
+dieselben Reststücke. Der Vorteil: über mehrere Massaufnahmen hinweg passt mehr auf
+denselben Abschnitt.</p>
+
+<h3>Materialreservierung</h3>
+<figure><img src="bilder/39-reservierung.png"><figcaption>Der Bedarf des Projekts mit seinem Reservierungsstand.</figcaption></figure>
+<p>Über <span class="tasten">Bedarf übernehmen</span> wird genau das übernommen, was
+die Materialübersicht ohnehin zeigt. Jede Position durchläuft fünf Zustände:</p>
+<table>
+<tr><th>Zustand</th><th>Bedeutung</th></tr>
+<tr><td>Benötigt</td><td>steht auf der Liste, sonst nichts</td></tr>
+<tr><td>Verfügbar</td><td>an Lager, aber noch nicht für dieses Projekt gesperrt</td></tr>
+<tr><td>Reserviert</td><td>für dieses Projekt gesperrt</td></tr>
+<tr><td>Zugeschnitten</td><td>geschnitten</td></tr>
+<tr><td>Gerüstet</td><td>bereit für die Baustelle</td></tr>
+</table>
+<div class="hin">Ein passendes <strong>Reststück wird nie automatisch eingeplant.</strong>
+Es wird vorgeschlagen; erst der Klick auf <span class="tasten">Für dieses Projekt
+reservieren</span> sperrt es. Danach steht es keinem anderen Projekt mehr zur
+Verfügung. <span class="tasten">Freigeben</span> macht es wieder frei,
+<span class="tasten">Verbraucht</span> bucht es aus – die Spur zum Projekt bleibt in
+beiden Fällen im Änderungsverlauf.</div>
+
+<h3>Werkstatt- und Rüstansicht</h3>
+<figure><img src="bilder/40-werkstatt.png"><figcaption>Alles, was freigegeben, zu rüsten, gerüstet oder zu montieren ist – nach Projekt gruppiert.</figcaption></figure>
+<p>Dieselbe Arbeitsliste wie auf der Startseite, nur aus Sicht der Werkstatt: nach
+Projekt statt nach Person. <span class="tasten">Rüstgrundlage anzeigen</span> klappt
+auf, was für dieses Projekt gebraucht wird – Material, Zuschnitt und die
+Reservierungen. Rüsten und Montieren werden hier genauso bestätigt wie auf der
+Startseite; es ist derselbe Arbeitsablauf, nur eine zweite Sicht darauf.</p>
+
+<h3>Vorlagen und Serien</h3>
+<p>Eine <strong>Vorlage</strong> ist ein gespeicherter Satz Masse einer Art – ohne
+Projekt, ohne Bezeichnung, ohne Notiz, ohne Datum und ohne Fotos. Angelegt wird sie in
+einer geöffneten Massaufnahme über <span class="tasten">📄 Als Vorlage speichern</span>,
+verwendet in der Funktionsauswahl über <span class="tasten">📄 Aus Vorlage</span>.</p>
+<div class="hin">Die entstehende Massaufnahme ist <strong>vollständig
+eigenständig</strong>. Eine spätere Änderung an der Vorlage verändert bereits erfasste
+Massaufnahmen nicht – und umgekehrt.</div>
+<p>Eine <strong>Serie</strong> erzeugt aus einer Vorlage mehrere Massaufnahmen auf
+einmal, etwa acht gleiche Lukarnen auf demselben Dach. Der Knopf
+<span class="tasten">📄 Serie aus Vorlage</span> steht im Projekt-Cockpit, weil dort das
+Projekt feststeht. Auch hier ist jede entstandene Massaufnahme eigenständig: einzeln
+bearbeitbar, freigebbar, zuschneidbar, rüstbar und montierbar.</p>
+
+<h3>Freigegebene Fassungen</h3>
+<figure><img src="bilder/41-fassungen.png"><figcaption>Jede Freigabe hält den Stand fest, der ab dann verbindlich ist.</figcaption></figure>
+<p>Jede Freigabe hält den Stand fest, der ab diesem Moment für Zuschnitt und Rüsten
+verbindlich ist. Diese Fassung lässt sich nicht mehr ändern – auch nicht von einem
+Administrator.</p>
+<div class="warn">Wird nach der Freigabe etwas Wesentliches geändert, <strong>verfällt
+sie</strong> (Abschnitt 9). Die Fassung ist dann ausdrücklich als nicht mehr aktuell
+gekennzeichnet – in der Massaufnahme und an der Zeile der Werkstattansicht. So kann
+kein Zuschnitt und kein Rüsten unbemerkt auf einem veralteten Stand weiterlaufen.</div>
+<p>Der Vergleich zeigt, was sich zwischen zwei Fassungen oder gegenüber dem aktuellen
+Stand geändert hat. Verglichen werden die einzelnen Masse. Bei Listen (Stücke,
+Segmente, Scharen) und beim Zuschnittplan steht bewusst nur, <em>dass</em> sich etwas
+geändert hat – ein Feldvergleich wäre dort eine Scheingenauigkeit.</p>
+
+<h3>Was der Firmenadministrator zusätzlich sieht</h3>
+<p>Die Übersicht <span class="tasten">🗂 Alle Massaufnahmen</span> zeigt bei
+eingeschalteten Modulen zusätzlich, ob eine Massaufnahme Material und einen
+Zuschnittplan hat, welche Fassung freigegeben ist und wie weit die Reservierung des
+Projekts ist. Eine zweite Filterzeile filtert danach.</p>
+
+<h2 class="seite">11 · Fotos und Skizzen</h2>
 <figure><img src="bilder/13-fotos-skizzen.png"><figcaption>Der Foto-Bereich – sichtbar im letzten Register.</figcaption></figure>
 <p>Jede Massaufnahme kann <strong>mehrere Fotos und mehrere Skizzen</strong> tragen.
 Auf einem Foto lässt sich direkt zeichnen (<span class="tasten">✏️</span> an der
@@ -391,7 +486,7 @@ Speichern</span> springt direkt dorthin. Bei „Skizze/Foto“ steht er von Anfa
 <p>Notiz und <span class="tasten">💾 Speichern</span> sind immer erreichbar, egal in
 welchem Register du gerade bist.</p>
 
-<h2>11 · PDF erstellen</h2>
+<h2>12 · PDF erstellen</h2>
 <figure><img src="bilder/14-pdf-listen.png"><figcaption>Vor jedem PDF fragt die App, welche Listen gedruckt werden sollen.</figcaption></figure>
 <p>Zehn Kategorien, in jeder Massaufnahme gleich benannt und gleich geordnet:</p>
 <table>
@@ -408,7 +503,7 @@ Bearbeiter steht auf jedem PDF.</p>
 <div class="hin">Der Ausdruck läuft über den Druckdialog des Browsers. Dort „Als PDF
 speichern“ wählen – so entsteht eine Datei, die sich weitergeben lässt.</div>
 
-<h2 class="seite">12 · Zwei weitere Beispiele</h2>
+<h2 class="seite">13 · Zwei weitere Beispiele</h2>
 <h3>Rinne Halbrund</h3>
 <figure><img src="bilder/15-rinne-verlauf.png"><figcaption>Der Rinnenverlauf wird als Kette aus Abschnitten und Übergängen erfasst – so, wie draussen gemessen wird.</figcaption></figure>
 <p>Ein Übergang trägt entweder eine <strong>Ecke</strong> oder einen
@@ -429,7 +524,7 @@ Biegewinkel <strong>d</strong> – sowie alle weiteren Resultate.</p>
 <p>Ohne Firstgehrung wird gar nicht gerechnet; die App sagt dann, warum, statt Zahlen
 zu erfinden.</p>
 
-<h2 class="seite">13 · Ausmass</h2>
+<h2 class="seite">14 · Ausmass</h2>
 <figure><img src="bilder/18-ausmass-auswahl.png"><figcaption>Zwei Arten von Ausmass.</figcaption></figure>
 <figure><img src="bilder/19-ausmass-blitzschutz.png"><figcaption>Das Blitzschutzausmass mit dem hinterlegten Artikelkatalog.</figcaption></figure>
 <table>
@@ -440,7 +535,7 @@ zu erfinden.</p>
 <p>Auch ein Ausmass gehört zu einem Projekt, trägt Fotos und lässt sich als PDF
 drucken.</p>
 
-<h2>14 · Regierapport</h2>
+<h2>15 · Regierapport</h2>
 <figure><img src="bilder/20-regierapport.png"><figcaption>Arbeiten nach Aufwand: Stunden, Ansätze, Material und die Summen.</figcaption></figure>
 <p>Wird der Rapport aus dem Cockpit angelegt, sind Projekt, Auftrags-Nr., Auftraggeber
 und Objekt bereits gefüllt.</p>
@@ -458,7 +553,7 @@ schlägt beim Tippen die nächste noch freie Nummer vor.</div>
 <p>Unten stehen Sachbearbeiter, MWST und die Summen exkl./inkl. MWST.
 <span class="tasten">🖨 PDF / Drucken</span> erzeugt das Blatt für den Kunden.</p>
 
-<h2 class="seite">15 · Suche</h2>
+<h2 class="seite">16 · Suche</h2>
 <figure><img src="bilder/21-suche.png"><figcaption>Die Suche über alle Projekte hinweg.</figcaption></figure>
 <p>Gesucht wird in Rapporten (Auftraggeber, Objekt, Auftrags-Nr.), in Massaufnahmen und
 Ausmassen (Bezeichnung) sowie in den Projekten selbst (Adresse, Name, Auftrags-Nr.,
@@ -471,7 +566,7 @@ Auftraggeber). Projekt-Treffer stehen zuoberst.</p>
 </table>
 <p class="klein">Ein Eintrag, dessen Projekt gelöscht wurde, hat nur den direkten Weg.</p>
 
-<h2>16 · Änderungsverlauf</h2>
+<h2>17 · Änderungsverlauf</h2>
 <figure><img src="bilder/26-verlauf.png"><figcaption>Der Verlauf eines Projekts – wer, wann, was.</figcaption></figure>
 <p>Im Cockpit unter <span class="tasten">🕒 Verlauf anzeigen</span>. Dort stehen die
 Aktivitäten des Projekts <em>und</em> seiner Massaufnahmen, Ausmasse und Rapporte.
@@ -489,7 +584,7 @@ letzten 50 Einträge.</p>
 verschwindet nicht mit ihm. Wurde ein Mitarbeiter entfernt, steht dort
 „Unbekannter Benutzer“.</p>
 
-<h2 class="seite">17 · Einstellungen</h2>
+<h2 class="seite">18 · Einstellungen</h2>
 <p>Zuoberst im Register <strong>Allgemein</strong> steht
 <span class="tasten">📖 Anleitung öffnen (PDF)</span> – dieses Dokument, jederzeit aus
 der App heraus erreichbar.</p>
@@ -503,6 +598,11 @@ Startbildschirm zugeklappt oder offen startet – nur für dieses Gerät. Darunt
 ein Administrator unter <strong>Arbeitsablauf der Massaufnahme</strong> den ganzen
 Ablauf aus Abschnitt 9 für die ganze Firma ein oder aus; ausgeschaltet wird nichts
 gelöscht.</p>
+<p>Ebenfalls dort, unter <strong>Erweiterter Projekt-/Material-/Werkstattworkflow</strong>,
+schaltet ein Administrator den Ablauf aus Abschnitt 10 ein – Hauptschalter und sieben
+Untermodule. Standardmässig ist alles aus; beim Ausschalten wird nichts gelöscht.</p>
+<p>Im Register <strong>Massaufnahmen</strong> steht bei eingeschaltetem Modul zusätzlich
+die <strong>Vorlagen</strong>-Bibliothek zum Umbenennen und Löschen.</p>
 <figure><img src="bilder/23-einstellungen-massaufnahmen.png"><figcaption>Massaufnahmen: die Standardmasse je Fachfunktion.</figcaption></figure>
 <p>Hier stehen Umschläge, Überlappungen, Stosslängen, Achsabstände und ähnliche
 Vorgabewerte. Sie füllen eine <strong>neue</strong> Massaufnahme vor und sind darin
@@ -530,7 +630,7 @@ oder Weitergeben. <strong>Das Startpasswort wird nur dieses eine Mal angezeigt</
 und lässt sich danach nicht mehr abrufen; geht es verloren, setzt ein Administrator in
 der Mitarbeiterliste ein neues. Beim ersten Anmelden vergibt die Person ein eigenes.</p>
 
-<h2>18 · Feedback</h2>
+<h2>19 · Feedback</h2>
 <figure><img src="bilder/25-feedback.png"><figcaption>Eine Rückmeldung schreiben – erreichbar über 💬 Feedback geben auf dem Startbildschirm.</figcaption></figure>
 <p>Jeder kann eine Rückmeldung schreiben und einem Bereich zuordnen. Die Auswahlliste
 enthält automatisch alle vorhandenen Massaufnahme- und Ausmass-Arten.</p>
@@ -541,7 +641,7 @@ markieren und löschen. Über die Kästchen wird ausgewählt, was in den Downloa
 als <strong>Excel-</strong> oder <strong>Textdatei</strong>. Die Zahl im Knopf sagt,
 wie viele gerade ausgewählt sind.</p>
 
-<h2>19 · System-Administration</h2>
+<h2>20 · System-Administration</h2>
 <figure><img src="bilder/27-systemadmin.png"><figcaption>Die Firmenverwaltung des Betreibers.</figcaption></figure>
 <div class="warn">Dieser Bereich ist <strong>nur für den Betreiber</strong> von
 Spengler-DIGITAL sichtbar, nicht für Firmenadministratoren.</div>
@@ -553,7 +653,7 @@ firmenübergreifend nur für Administratoren sichtbar.</p>
 <p class="klein">Es gibt bewusst <strong>keinen</strong> Zugriff auf Projekte,
 Massaufnahmen oder Fotos einzelner Kundenfirmen.</p>
 
-<h2>20 · Auf Handy und Tablet</h2>
+<h2>21 · Auf Handy und Tablet</h2>
 <p>Die App ist für die Bedienung mit dem Finger gebaut: grosse Knöpfe, umbrechende
 Zeilen, kein seitliches Scrollen.</p>
 <figure>
@@ -571,7 +671,7 @@ Zeichnungen haben dort genug Platz.</p>
 <li><strong>Android:</strong> Menü (die drei Punkte) → „App installieren“ bzw. „Zum Startbildschirm“</li>
 </ul>
 
-<h2 class="seite">21 · Ohne Internet</h2>
+<h2 class="seite">22 · Ohne Internet</h2>
 <p>Die App startet, rechnet <strong>und erfasst</strong> auch ohne Verbindung. Ein
 Hinweis oben sagt, dass keine Verbindung besteht und von wann die angezeigten Daten
 stammen.</p>
@@ -602,7 +702,7 @@ anderes bearbeitet hat, überschreibt die App <strong>nichts</strong>. Der Eintr
 als Konflikt stehen und fragt: <em>Meine Fassung nehmen</em> oder <em>Meine Fassung
 verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 
-<h2>22 · Begriffe</h2>
+<h2>23 · Begriffe</h2>
 <table>
 <tr><th>Begriff</th><th>Bedeutung</th></tr>
 <tr><td>Abwicklung</td><td>Die Breite des flachen Blechs, bevor es gekantet wird.</td></tr>
@@ -617,8 +717,8 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 <tr><td>Register</td><td>Ein Schritt der Erfassung, oben in der Leiste wählbar.</td></tr>
 </table>
 
-<h2 class="seite">23 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.08</strong>, Stand 6. September 2026.</p>
+<h2 class="seite">24 · Zu diesem Dokument</h2>
+<p>Diese Anleitung beschreibt <strong>Version 3.09</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
@@ -626,7 +726,7 @@ gezeichneten Abbildungen.</p>
 <div class="warn"><strong>Die gezeigten Daten sind erfunden.</strong> Firma, Personen,
 Adressen, Projekte und Preise stammen aus einer Demo-Umgebung. Es wurde für diese
 Anleitung <strong>keine Verbindung zur Produktivdatenbank</strong> aufgebaut und kein
-Kundendatensatz verwendet.</p>
+Kundendatensatz verwendet.</div>
 <h3>Was diese Anleitung nicht leistet</h3>
 <ul>
 <li>Sie ersetzt <strong>keine fachliche Prüfung</strong> der Resultate. Die
