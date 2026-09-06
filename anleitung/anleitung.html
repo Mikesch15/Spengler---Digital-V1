@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.13";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.14";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.13<br>
+  Version 3.14<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -357,9 +357,18 @@ Meister die Masse fachlich geprüft hat. Es heisst: der Aufnehmer bestätigt, da
 Aufnahme aus seiner Sicht vollständig aufgenommen und kontrolliert ist.</div>
 
 <h3>Rüster und Monteur einteilen</h3>
-<p><strong>Direkt nach der Freigabe geht der Einteilungs-Dialog von selbst auf</strong> –
-solange noch niemand eingeteilt ist. Freigeben allein bringt die Massaufnahme nämlich
-noch nicht weiter: ohne Rüster und ohne Monteur bleibt sie liegen.</p>
+<p><strong>Mit der Freigabe werden Rüster und Monteur automatisch auf die Person gesetzt,
+welche die Massaufnahme aufgenommen hat.</strong> Im Normalfall ist das genau richtig –
+wer draussen misst, rüstet und montiert meist auch. Die App sagt danach in einer grünen
+Zeile, wer eingeteilt wurde.</p>
+<div class="hin"><strong>Das ist nur eine Vorgabe.</strong> Mit
+<span class="tasten">👥 Rüster und Monteur ändern</span> lässt sich jederzeit jemand
+anderes einteilen oder mit <span class="tasten">– niemand –</span> die Einteilung
+zurücknehmen. War schon jemand eingeteilt – etwa nach einer verfallenen Freigabe –,
+wird nichts überschrieben.</div>
+<p>Greift die Vorgabe ausnahmsweise nicht, geht der Einteilungs-Dialog nach der Freigabe
+wie bisher von selbst auf – ohne Rüster und ohne Monteur bliebe die Massaufnahme sonst
+liegen. Der Dialog schlägt dann ebenfalls den Aufnehmer vor.</p>
 <p>Beides ist freiwillig: du kannst nur einen Rüster, nur einen Monteur oder beide setzen.
 Wird kein Rüster eingeteilt, geht es direkt zur Montage.
 <span class="tasten">– niemand –</span> nimmt eine Einteilung wieder zurück. Später
@@ -852,7 +861,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.13</strong>, Stand 6. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.14</strong>, Stand 6. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

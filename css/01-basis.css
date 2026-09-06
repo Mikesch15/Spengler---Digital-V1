@@ -690,6 +690,12 @@ html.dark .mw-orange{color:#e0a35c}
  margin:0 0 10px;font-size:12px;line-height:1.45;color:var(--red);font-weight:700;
  word-break:break-word}
 html.dark .mw-warnung{border-color:#f08b80;color:#f08b80}
+/* v3.14: ruhige Meldung nach der Freigabe (Standard-Zuweisung). Kein Fehler,
+   deshalb gruen und ohne Ausrufezeichen. Setzt kein display, damit das
+   [hidden]-Attribut wirkt (CLAUDE.md 59). */
+.mw-hinweis{border:1.5px solid var(--green);border-radius:8px;padding:8px 10px;
+ margin:8px 0 0;line-height:1.45;color:var(--green);word-break:break-word}
+.mw-hinweis[hidden]{display:none}
 
 /* ---- v3.05 Persoenliche Aufgaben auf der Startseite --------------------- */
 .aufgabe{border:1px solid var(--card-line);border-left:4px solid var(--muted);

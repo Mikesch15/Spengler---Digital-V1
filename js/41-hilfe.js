@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.13.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.14.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -275,6 +275,11 @@ ihn in jedem Register siehst.</p>
 hat. Freigegeben heisst <i>nicht</i>, dass ein Meister die Masse fachlich
 geprüft hat – es heisst: der Aufnehmer bestätigt, dass die Aufnahme aus
 seiner Sicht vollständig und kontrolliert ist.</p>
+<p><b>Rüster und Monteur werden bei der Freigabe automatisch auf die Person
+gesetzt, welche die Massaufnahme aufgenommen hat.</b> Das ist nur eine
+Vorgabe: mit „👥 Rüster und Monteur ändern" lässt sie sich jederzeit auf
+jemand anderen oder auf „– niemand –" stellen. War schon jemand eingeteilt
+– etwa nach einer verfallenen Freigabe –, wird nichts überschrieben.</p>
 <p><b>Gerüstet</b> bestätigt der eingeteilte Rüster, <b>Montiert</b> der
 eingeteilte Monteur. Jeder Schritt wird mit Person und Zeitpunkt gespeichert
 und steht im Änderungsverlauf.</p>

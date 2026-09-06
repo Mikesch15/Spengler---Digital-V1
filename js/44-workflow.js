@@ -355,6 +355,7 @@ function renderMeasWorkflow(){
   aktionen.push(`<button type="button" class="gray mw-voll" id="mwKorrigieren">↩️ Status korrigieren</button>`);
  }
  teile.push(`<div class="mw-aktionen">${aktionen.join("")}</div>`);
+ teile.push(`<div class="small mw-hinweis" id="mwHinweis" hidden></div>`);
  teile.push(`<div class="small mw-fehler" id="mwFehler" hidden></div>`);
  box.innerHTML=teile.join("");
 }
@@ -385,6 +386,14 @@ function renderMeasSchrittStreifen(){
   +knopf;
 }
 
+// v3.14: eine ruhige Meldung, kein Fehler - etwa wenn die Standard-Zuweisung
+// gegriffen hat. Sie steht in der Karte und verschwindet beim naechsten
+// Zeichnen von selbst.
+function mwHinweisZeigen(text){
+ const h=$("mwHinweis"); if(!h)return;
+ h.textContent=text; h.hidden=false;
+}
+
 function mwFehlerZeigen(text){
  const f=$("mwFehler"); if(!f){alert(text);return}
  f.textContent=text; f.hidden=false;
@@ -409,12 +418,25 @@ async function mwFreigeben(){
   ? "Massaufnahme erneut freigeben?\n\nSie wurde nach der letzten Freigabe geändert. Mit der erneuten Freigabe bestätigst du, dass der jetzige Stand vollständig aufgenommen und kontrolliert ist."
   : "Massaufnahme freigeben?\n\nMit der Freigabe bestätigst du, dass die Massaufnahme vollständig aufgenommen und kontrolliert wurde.";
  if(!confirm(frage))return;
+ const vorR=mwStand.ruester_id, vorM=mwStand.monteur_id;
  const a=await mwRuf("measurement_freigeben",{p_id:mwStand.id},"Die Freigabe");
  if(!a)return;
+ const vorherOhne=!vorR&&!vorM;
  mwStandAusAntwort(a); renderMeasWorkflow(); mwNachAenderung();
- // v3.10: Bis hierher war Schluss - die Massaufnahme stand auf "freigegeben"
- // und niemand sagte, dass jetzt jemand eingeteilt werden muss. Ist noch
- // niemand zugewiesen und darf ich es, geht der Zuweisungsdialog direkt auf.
+ // v3.14: War niemand eingeteilt, setzt measurement_freigeben() Ruester und
+ // Monteur auf den Aufnehmer. Das steht dann hier - es soll niemand
+ // uebersehen, dass jetzt jemand eingeteilt IST und wer.
+ const standard=vorherOhne&&mwStand.ruester_id===mwStand.created_by
+                &&mwStand.monteur_id===mwStand.created_by;
+ if(standard){
+  mwHinweisZeigen(`Rüster und Monteur wurden auf ${mwPerson(mwStand.created_by)} gesetzt `
+   +`(die Person, die die Massaufnahme aufgenommen hat). Mit „👥 Rüster und Monteur ändern" `
+   +`lässt sich das jederzeit anpassen.`);
+  return;
+ }
+ // v3.10: Ohne diese Vorgabe stand die Massaufnahme auf "freigegeben" und
+ // niemand sagte, dass jetzt jemand eingeteilt werden muss. Greift die
+ // Vorgabe ausnahmsweise nicht, geht der Zuweisungsdialog wie bisher auf.
  if(!mwStand.ruester_id&&!mwStand.monteur_id&&mwDarfZuweisen(mwStand))mwZuweisenOeffnen();
 }
 
@@ -444,8 +466,12 @@ async function mwAbschliessen(){
 
 function mwZuweisenOeffnen(){
  if(!mwStand)return;
- $("mwZuweisenRuester").innerHTML=mwMitarbeiterOptionen(mwStand.ruester_id);
- $("mwZuweisenMonteur").innerHTML=mwMitarbeiterOptionen(mwStand.monteur_id);
+ // v3.14: Ist niemand eingeteilt, steht der Aufnehmer als Vorschlag da -
+ // dieselbe Vorgabe, die auch die Freigabe setzt. Eine bestehende Zuweisung
+ // wird nie ueberschrieben, "- niemand -" bleibt waehlbar.
+ const vorgabe=(!mwStand.ruester_id&&!mwStand.monteur_id)?mwStand.created_by:null;
+ $("mwZuweisenRuester").innerHTML=mwMitarbeiterOptionen(mwStand.ruester_id||vorgabe);
+ $("mwZuweisenMonteur").innerHTML=mwMitarbeiterOptionen(mwStand.monteur_id||vorgabe);
  $("mwZuweisenFehler").hidden=true;
  $("mwZuweisenTitel").textContent=mwStand.title||"Massaufnahme";
  $("mwZuweisenModal").hidden=false;

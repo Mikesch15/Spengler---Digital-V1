@@ -17,11 +17,11 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.13, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.14, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.13**
+- sichtbare App-Version: **3.14**
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -19463,3 +19463,181 @@ per `git diff` bestätigt.
 - Die Reststück-Auswahl „Alle auswählen" umfasst nur die gezeigten zwölf
   (118.3). Ein Lager mit mehr freien Resten braucht dafür mehrere Durchgänge
   – bewusst, statt Unsichtbares mitzuwählen.
+
+## 119. RÜSTER UND MONTEUR STANDARDMÄSSIG AUF DEN AUFNEHMER — VERSION 3.14
+
+Ansage des Betriebs: *„setze den rüster und den montierer standartmässig
+automatisch auf denjenigen der die massaufnahme aufgenommen hat (soll aber
+immernoch anpassbar bleiben)"*. **Keine Schemaänderung, keine neue Tabelle,
+keine RLS-/Storage-Änderung, keine neue Datenbankfunktion.**
+
+### 119.1 Die Vorgabe gehört in die Datenbank, nicht in den Dialog
+
+Naheliegend wäre gewesen, den Dialog nur vorauszufüllen. Das wäre **keine**
+Vorgabe: solange niemand „Speichern" drückt, bliebe die Massaufnahme
+unzugewiesen liegen – genau der Zustand, den v3.10 (Abschnitt 115.5) als
+Sackgasse beschrieben hat.
+
+Gesetzt wird deshalb in `measurement_freigeben()` selbst (Migration
+`measurement_freigabe_standard_zuweisung_v3_14`). Damit gilt die Vorgabe für
+**jeden** Aufrufer – auch für die Offline-Warteschlange und für einen
+späteren zweiten Weg – und der Status leitet sich wie gewohnt daraus ab:
+
+```sql
+if z.ruester_id is null and z.monteur_id is null
+   and exists (select 1 from public.profiles pr
+                where pr.id = z.created_by and pr.company_id = public.my_company_id()) then
+  v_standard := z.created_by;
+end if;
+```
+
+Drei Regeln, jede mit einem Grund:
+
+- **Nur wenn niemand eingeteilt ist.** Eine bestehende Einteilung wird nie
+  überschrieben – insbesondere nicht nach einer verfallenen Freigabe, die die
+  Zuweisungen bewusst stehen lässt (Abschnitt 111.3).
+- **Beide zugleich oder keiner.** Wer bewusst nur einen Monteur einteilt,
+  bekommt bei einer erneuten Freigabe keinen Rüster angedichtet.
+- **Nur mit Profil in der eigenen Firma.** Sonst schlüge der Fremdschlüssel
+  auf `profiles` fehl. Ehrlich dazugesagt: dieser Zweig kann heute gar nicht
+  greifen – freigeben darf nur der Aufnehmer, und ohne Profil liefert
+  `my_company_id()` `NULL`, womit `mw_firma_ok()` schon vorher abweist. Es
+  ist ein Sicherheitsnetz, kein behandelter Fall.
+
+`measurement_zuweisen()` ist **unverändert** – dort liegt die
+Anpassbarkeit, und daran wurde nichts angefasst.
+
+**Bewusst in Kauf genommen:** wer beide Einteilungen absichtlich leert und
+danach erneut freigibt, bekommt die Vorgabe wieder. Die Datenbank kann
+„nie eingeteilt" nicht von „bewusst geleert" unterscheiden – beim Leeren
+werden `zugewiesen_von`/`_am` mit auf `NULL` gesetzt.
+
+### 119.2 Oberfläche: eine Zeile statt eines Dialogs
+
+Bis v3.13 öffnete sich nach der Freigabe der Zuweisungsdialog von selbst
+(v3.10). Das war die Antwort auf die Sackgasse – die es jetzt nicht mehr
+gibt. Statt eines Dialogs steht in der Karte eine ruhige grüne Zeile:
+
+```
+Rüster und Monteur wurden auf Mike Ledermann gesetzt (die Person, die die
+Massaufnahme aufgenommen hat). Mit „👥 Rüster und Monteur ändern" lässt sich
+das jederzeit anpassen.
+```
+
+`mwFreigeben()` erkennt das an dem, was es selbst weiss: vorher beide leer,
+nachher beide gleich `created_by`. **Kein neues Feld, kein Merker in der
+Datenbank** – die Zeile ist eine einmalige Meldung nach der Aktion und
+verschwindet beim nächsten Zeichnen von selbst.
+
+**Der Rückfallweg bleibt**: greift die Vorgabe ausnahmsweise nicht (beide
+danach weiterhin leer), geht der Dialog wie seit v3.10 auf. Sonst wäre die
+Sackgasse zurück.
+
+Der Dialog schlägt zusätzlich den Aufnehmer vor, solange niemand eingeteilt
+ist – dieselbe Vorgabe, nur als Auswahl. Eine bestehende Einteilung wird
+davon nie ersetzt, „– niemand –" bleibt wählbar.
+
+### 119.3 Getestet
+
+**Datenbank – 5/5** (`begin; … rollback;`, Wegwerf-Firma, PETER KÜNZI AG nur
+gelesen): die Vorgabe greift und setzt Person **und** Zeitpunkt für beide
+Rollen, der Status wird `zu_ruesten`; `measurement_zuweisen` ändert sie
+unverändert; eine bestehende Einteilung überlebt eine erneute Freigabe; die
+automatische Zuweisung steht als `status_changed` mit dem Diff `ruester_id`
+im Änderungsverlauf; eine Massaufnahme ohne Projekt wird wie bisher von der
+RLS abgewiesen.
+
+**Gegenprobe auf der Datenbank**: die Vorgabe wurde **innerhalb einer
+zurückgerollten Transaktion** wieder ausgebaut (DDL ist in Postgres
+transaktional) – danach blieb `ruester_id` leer und der Status auf
+`freigegeben`. Nach dem `rollback` steht die echte Funktion wieder (per
+`pg_get_functiondef` bestätigt).
+
+**Oberfläche – `pruefstaende/pruefstand-standard-zuweisung-v3-14.js` 28/28**,
+echtes Chromium gegen die echte `index.html`: nur **ein** Aufruf nach der
+Freigabe (die Oberfläche schreibt keine zweite Zuweisung), Status und beide
+Rollen folgen der Antwort, der Hinweis nennt Person, Grund und den Weg zum
+Ändern, der Dialog drängt sich nicht auf, das Ändern geht unverändert an
+`measurement_zuweisen`, der Vorschlag im Dialog, eine bestehende Einteilung
+wird nicht ersetzt, der Rückfallweg, die verfallene Freigabe und vier
+Bildschirmbreiten.
+
+**Fünf Gegenproben**, jede baut einen echten Fehler ein und wirft den
+Prüfstand um: kein Hinweis (20/28) · Dialog drängt sich trotz Vorgabe auf
+(20/28) · Dialog schlägt den Aufnehmer nicht vor (27/28) · die Oberfläche
+schreibt selbst eine zweite Zuweisung (27/28) · Hinweis auch bei bestehender
+Einteilung (25/28).
+
+**Drei Fehlschläge waren meine Testerwartungen**, keine Codefehler:
+`innerText` liefert die per CSS grossgeschriebenen Etiketten (CLAUDE.md
+80.4) – verglichen wird jetzt gross-/kleinschreibungsunabhängig.
+
+**Volle Regression grün** – alle **42** Prüfstände im Repo, kein einziger
+Fehlschlag (verschnitt 1578, register-zuschnitt 373, kehle 158, kamin 153,
+medien-am-ende 150, mauerabdeckung 146, freies-profil 118, konisch 114,
+einfassung 113, rinne-halbrund 104, workflow 103, einlaufblech 99,
+rollenblech-pdf 96, anschlussblech 95, rinne-zuschnitt 95, sammelaktion 88,
+vorlagen 84, lukarne 82, warteschlange 75, hilfe 68, naechster-schritt 68,
+admin-uebersicht 67, reservierung 67, winkel-werkstatt 64, lxb-druck 58,
+dila-sichtbar 57, projektmodule 56, skizze-foto 54, werkstatt 54,
+aufgaben-schalter 50, cockpit-zurueck 50, versionen 47, pdf 45,
+projekt-material-zuschnitt 43, uebersicht-cockpit 42, change-sperre 36,
+vorlage-zugang 35, schnittfuge-reste 31, excel-import 31,
+standard-zuweisung 28, felder-bleiben 23, bediensachen 22).
+
+**Regierapport nachweislich unverändert**: unter `media:print` mit
+ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+v3.13-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+enthält die Uhrzeit, Abschnitt 100.6) – **DOM, Text und Bild byteidentisch**
+(DOM `793664107d7a9701`, Bild `3d327de1295bda38`, 59 327 Bytes, Höhe 721 px),
+bestätigt durch einen Kontrolllauf desselben Codes.
+
+`node --check` über alle 57 `js/*.js`, `sw.js` und alle 42 Prüfstände:
+fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+Minimum 0); keine doppelten Element-IDs; alle 57 js-Dateien in `index.html`
+**und** in der Service-Worker-Liste; Version 3.14 in `index.html` und
+`sw.js` gleich.
+
+### 119.4 Beobachtung ausserhalb dieser Aufgabe
+
+Während dieser Runde hat der Betreiber die App real benutzt (alle Änderungen
+im Verlauf tragen seine Benutzer-ID). Zwei Dinge, nur dokumentiert, nicht
+verursacht:
+
+- **PETER KÜNZI AG hat alle acht Projektmodule eingeschaltet**
+  (`haupt`, `material`, `zuschnitt`, `reservierung`, `werkstatt`, `vorlagen`,
+  `serien`, `versionierung`). Der ganze v3.09-Block ist damit erstmals real
+  im Einsatz – Abschnitt 114.11 („bei allen Firmen auf AUS") ist überholt.
+- Am 06.09. zwischen 18:30 und 18:31 hat er **64 Datensätze gelöscht**
+  (15 Massaufnahmen, 48 Reservierungen, 1 Regierapport) – sichtbar ein
+  Aufräumen eigener Testdaten über die App. Der Bestand steht danach bei
+  9 Massaufnahmen und 5 Reservierungen. **Kein Test dieser Runde hat
+  Produktivdaten verändert** – alle Schreibversuche liefen in
+  `begin; … rollback;`.
+
+### 119.5 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migration `measurement_freigabe_standard_zuweisung_v3_14` | die Vorgabe in `measurement_freigeben()` |
+| `js/44-workflow.js` | Hinweiszeile statt aufgedrängtem Dialog, Vorschlag im Dialog, `mwHinweisZeigen()` |
+| `css/01-basis.css` | `.mw-hinweis` (mit `[hidden]`-Regel, CLAUDE.md 59) |
+| `js/41-hilfe.js` | Hilfetext „Arbeitsstatus" um die Vorgabe erweitert |
+| `index.html`, `sw.js` | Version 3.14 |
+| `pruefstaende/pruefstand-standard-zuweisung-v3-14.js` | **neu** |
+| `anleitung/*` | Kapitel 9 „Rüster und Monteur einteilen" neu geschrieben, PDF v3.14 (57 Seiten) |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `measurement_zuweisen()` sowie sämtliche
+Fachdateien `js/10`–`js/43` und `js/45`–`js/56`.
+
+### 119.6 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+- Wer beide Einteilungen bewusst leert und erneut freigibt, bekommt die
+  Vorgabe wieder (119.1).
+- Die Vorgabe setzt **beide** Rollen. Ein Betrieb, in dem grundsätzlich
+  jemand anderes rüstet, muss sie einmal je Massaufnahme umstellen – eine
+  firmenweite Standardperson wäre eine eigene, spätere Einstellung.
