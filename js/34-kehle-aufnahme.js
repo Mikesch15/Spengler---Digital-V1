@@ -649,7 +649,10 @@ function keaZusatzDaten(){
           moeglich:rp.moeglich||[],
           bestes:rp.bestes,zuSchmal:rp.zuSchmal,optimal:rp.optimal!==false,
           streifen:(rp.streifen||[]).map(s=>({
-            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})),rest:s.rest}))}
+            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})),rest:s.rest})),
+          // v3.29: die Stuecke aus vorhandenen Resten - sie fielen bis v3.28
+          // beim Speichern weg und fehlten dadurch im gespeicherten Plan ganz.
+          ausResten:ebaAusRestenSpeicher(rp.ausResten)}
  };
 }
 function keaZuruecksetzen(){

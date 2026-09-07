@@ -277,6 +277,29 @@ function ebaVorabzug(bleche,kontext){
  v.abschnittLaenge=l.length?Math.max.apply(null,l):0;
  return v;
 }
+// v3.29: die schlanke Form von ausResten fuer den Speicher-Payload.
+//
+// WARUM UEBERHAUPT: bis v3.28 fiel ausResten beim Speichern weg - und
+// zuPlanAusGespeichert() (js/33) las es auch nicht. Die Stuecke, die aus
+// einem Rest geschnitten werden, fehlten dadurch im gespeicherten Plan
+// GANZ: weder unter "aus Rest" noch bei der Rolle. Ruestliste, Werkstatt,
+// Abhaken und der Stand "7 von 12" verloren sie lautlos. Aufgefallen ist
+// das nur, weil der Schalter "Reste im Zuschnitt" bei beiden Firmen aus
+// steht und der Weg noch nie gelaufen ist.
+//
+// Gespeichert wird bewusst NICHT die ganze Reststueck-Zeile - nur das,
+// was der Ausdruck spaeter braucht. Der Rest selbst kann inzwischen
+// verbraucht oder geloescht sein; die id bleibt als Verweis stehen.
+function ebaAusRestenSpeicher(liste){
+ return (liste||[]).map(x=>({
+  id:x.id||null,
+  laenge:Number(x.laenge)||0, breite:Number(x.breite)||0,
+  abwicklung:Number(x.abwicklung)||0,
+  material_name:(x.rest&&x.rest.material_name)||null,
+  stuecke:(x.stuecke||[]).map(st=>({nr:st.nr,laenge:st.laenge,
+    merkmal:st.merkmal||"",hinweis:st.hinweis||""}))
+ })).filter(x=>x.stuecke.length);
+}
 function ebaTafelLaenge(){
  const l=(ebA.stuecke||[]).map(p=>ebaZahl(p.laenge)).filter(x=>x>0);
  return l.length?Math.max.apply(null,l):0;
@@ -912,6 +935,9 @@ function ebaZusatzDaten(){
           moeglich:plan.moeglich||[],
           streifen:(plan.streifen||[]).map(s=>({
             stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})), rest:s.rest})),
-          optimal:plan.optimal!==false}
+          optimal:plan.optimal!==false,
+          // v3.29: die Stuecke, die aus vorhandenen Resten geschnitten
+          // werden. Ohne sie fehlen sie im gespeicherten Plan ganz.
+          ausResten:ebaAusRestenSpeicher(plan.ausResten)}
  };
 }

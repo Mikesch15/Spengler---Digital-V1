@@ -189,6 +189,11 @@ let blechSchnittfuge=0;
 let restMindestlaenge=1000;
 // Das Restsuecke-Lager der Firma, geladen wie die uebrigen Kataloge.
 let reststuecke=[];
+// v3.29: die bereits verwendeten Reste MIT Bezug (js/05). Bis v3.28 wurde
+// nur "verbraucht" gespeichert und nirgends gelesen - ein verwendeter Rest
+// verschwand spurlos. Bewusst eine getrennte Liste: die freien Reste sind
+// Arbeitsvorrat, diese hier sind Nachschau.
+let restVerwendet=[];
 // v3.27: Lagerbestand, Mindestbreite und der Schalter fuer die
 // Reststueckverwendung. Die Vorgaben entsprechen den Spalten-Defaults der
 // Datenbank, damit die App vor dem ersten Laden nichts anderes annimmt.

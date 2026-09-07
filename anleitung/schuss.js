@@ -201,6 +201,16 @@ const liste=[];
  // im Registerschuss oben stehen sie ganz unten und waeren kaum lesbar.
  await schuss("47-materialbilanz","#einlaufblechAufnahme .zu-bilanz",{warte:200,breite:760});
  await schuss("48-reste","#einlaufblechAufnahme .rest-block",{warte:200,breite:760});
+ // v3.29: der Dialog "Hier verwenden". Die Stuecke kommen aus dem eben
+ // gezeichneten Plan - der Dialog selbst ist der echte.
+ await page.evaluate(()=>{
+  restStueckeJeMass.set(12,[{nr:1,laenge:2000,breite:250,merkmal:""},
+                            {nr:2,laenge:1400,breite:250,merkmal:""},
+                            {nr:3,laenge:2400,breite:250,merkmal:""}]);
+  restVerwendenOeffnen(22,12);
+ });
+ await schuss("50-rest-verwenden","#restVerwendenModal .card",{warte:300,breite:760});
+ await page.evaluate(()=>{if(typeof restVerwendenSchliessen==="function")restVerwendenSchliessen()});
  await page.evaluate(()=>ebaSetzeSchritt(5));
  await schussEB("11-eb-5-ausmass");
  await page.evaluate(()=>ebaSetzeSchritt(6));

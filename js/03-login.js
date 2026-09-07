@@ -180,6 +180,7 @@ function goToStart(){
  $("serieModal").hidden=true;                 // v3.09
  $("winkelModal").hidden=true;                // v3.12
  $("rmatModal").hidden=true;                  // v3.16
+ $("restVerwendenModal").hidden=true;         // v3.29
  // Der PDF-Auswahldialog wartet auf eine Antwort - beim Sprung auf den
  // Startbildschirm gilt das als Abbruch, sonst bliebe das Versprechen offen.
  if(typeof pdfListenSchliessen==="function"&&!$("pdfListenModal").hidden)pdfListenSchliessen(null);

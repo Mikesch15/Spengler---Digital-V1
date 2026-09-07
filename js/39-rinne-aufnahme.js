@@ -476,7 +476,10 @@ function rpaZusatzDaten(){
                  stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,breite:x.breite,
                    merkmal:x.merkmal||"",hinweis:x.hinweis||""})),
                  rest:s.rest}))})),
-             optimal:rp.optimal!==false}
+             optimal:rp.optimal!==false,
+          // v3.29: die Stuecke aus vorhandenen Resten - sie fielen bis v3.28
+          // beim Speichern weg und fehlten dadurch im gespeicherten Plan ganz.
+          ausResten:ebaAusRestenSpeicher(rp.ausResten)}
  };
 }
 // Wird von js/10 nach rinneFormularZuruecksetzen()/rinneFormularFuellen()

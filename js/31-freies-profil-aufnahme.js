@@ -761,6 +761,9 @@ function fpaZusatzDaten(){
              gruppen:plan.gruppen.map(g=>({breite:g.breite,rollenLaenge:g.rollenLaenge,
                abschnittLaenge:g.abschnittLaenge,jeAbschnitt:g.jeAbschnitt,abschnitte:g.abschnitte,
                streifen:(g.streifen||[]).map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||""})),rest:s.rest}))})),
-             optimal:plan.optimal!==false}
+             optimal:plan.optimal!==false,
+          // v3.29: die Stuecke aus vorhandenen Resten - sie fielen bis v3.28
+          // beim Speichern weg und fehlten dadurch im gespeicherten Plan ganz.
+          ausResten:ebaAusRestenSpeicher(plan.ausResten)}
  };
 }

@@ -17,7 +17,7 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.28, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.29, Branch `main`.**
 
 Die Versionsnummer dieses Abschnitts blieb zwischen Version 3.21 und 3.24
 stehen, obwohl der Code weiterlief – die Abschnitte 127 bis 129 waren
@@ -32,7 +32,7 @@ beide müssen gleich sein, ein Prüfstand erzwingt das.
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.28**
+- sichtbare App-Version: **3.29**
 - **Es wird ausschliesslich direkt auf `main` gearbeitet und
   veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
   Feature-Branch, kein Pull Request.
@@ -22642,3 +22642,242 @@ beiden Hilfetexten und in der Anleitung:
   `prompt()`-Weg beim Status-Korrigieren aus genau diesem Grund ersetzt.
   Nicht gemeldet und nicht Teil dieser Runde, deshalb bewusst nicht mit
   angefasst.
+
+## 134. WO EIN VERWENDETER REST WIEDER AUFTAUCHT — VERSION 3.29
+
+Gemeldet am 07.09.2026: *„wenn ich jetzt einen resten aus dem lager verwende
+müsste ich sehen wo dieser verwendet wird und es müsste dan die usrprüngliche
+rüstliste angepasst werden"*. Beide Punkte waren zutreffend – und beim
+Nachmessen kam ein dritter heraus, der niemandem aufgefallen war und der die
+eigentliche Ursache ist.
+
+**Eine Migration (eine nullbare Spalte), keine RLS-Änderung, keine neue
+Datenbankfunktion, keine zweite Packrechnung, keine Fachrechnung verändert.**
+
+### 134.1 Der Befund, gemessen statt vermutet
+
+**(a) Nichts war sichtbar.** `verbraucht_fuer_measurement_id` wird seit v3.26
+beim Klick geschrieben – und **nirgends gelesen**. `restLaden()` holte
+ausschliesslich `.eq("verbraucht",false)`; ein verwendeter Rest verliess das
+Lager und war danach spurlos weg. In der Produktivdatenbank steht genau so ein
+Fall: Rest 20 (2000 × 300 mm), am 07.09. um 18:05 für die Massaufnahme 90
+„nord" verbraucht, seither nirgends auffindbar.
+
+**(b) Die Rüstliste konnte sich gar nicht ändern.** `rlPlan()` (js/58) →
+`pmatPlanFuer()` (js/48) → `zuPlanAusGespeichert()` (js/33) → `data.rollen`.
+Sie zeigt den **gespeicherten** Plan und rechnet nichts – richtig so (ein
+einmal gedrucktes Blatt bleibt gleich, §120.4/§130).
+
+**(c) Der eigentliche Fehler: `ausResten` wurde nie gespeichert.** Der
+Vorabzug aus v3.27 (`ebaVorabzug`, js/29) liefert `{plan, ausResten}` – die
+zehn Rollen-Module reichten aber nur `plan` in ihren Speicher-Payload, und
+`zuPlanAusGespeichert()` stellte das Feld beim Öffnen auch nicht wieder her.
+Stücke, die aus einem Rest geschnitten wurden, **fehlten im gespeicherten Plan
+vollständig** – in der Zuschnittliste, in der Rüstliste, beim Abhaken.
+
+Latent war das nur, weil `reste_im_zuschnitt` bei beiden Firmen auf `false`
+steht (§132.10) und der Vorabzug damit noch nie gelaufen ist. Sobald ihn eine
+Firma einschaltet, hätte die Rüstliste Stücke verschwiegen.
+
+### 134.2 Die Entscheidung des Betriebs
+
+Zwei Vorschläge wurden vorgelegt, die Antwort war **„b"**:
+
+- **(b) angenommen:** Ist der Rest beim Rüsten doch nicht da, bleibt das Stück
+  **mit seinem Kästchen** auf der Rüstliste stehen und trägt nur den Vermerk
+  „aus Rest 2'000 × 300 mm". Es aus der Rollenliste zu entfernen würde die
+  Liste falsch machen, sobald der Rest fehlt.
+- **(a) als freiwillige Angabe gebaut:** „Hier verwenden" öffnet einen Dialog
+  mit den Stücknummern zum Anhaken – vorgewählt sind die, die nach Länge und
+  Breite in den Rest passen. Man kann aber auch einfach bestätigen; dann bleibt
+  es beim reinen Vermerk. Damit passt das Ergebnis zu beiden Lesarten der
+  Meldung.
+
+### 134.3 Der Fehler aus 134.1(c) behoben – an einer Stelle
+
+`ebaAusRestenSpeicher(ausResten)` (js/29) bringt die Liste in eine schlanke,
+speicherbare Form; die **zehn** Rollen-Module hängen sie mit einer Zeile an
+ihren Payload (`ausResten:ebaAusRestenSpeicher(...)`). Der Prüfstand hält
+mechanisch fest, dass die Funktion **genau einmal** im Repo definiert ist und
+jedes Modul sie genau einmal aufruft.
+
+`zuPlanAusGespeichert()` (js/33) stellt sie wieder her
+(`ausResten:r.ausResten||[]`), `zuAlleStuecke()` liefert seither **beides** –
+die Stücke von der Rolle und die aus einem Rest, jedes mit `ausRestId`.
+
+**Es wird nichts nachgerechnet.** Der Plan wurde damals so gerechnet, er wurde
+nur unvollständig gespeichert.
+
+### 134.4 Der Vermerk entsteht an einer Stelle
+
+`zuRestVermerk(rest)` (js/33) baut den Text „aus Rest 2'000 × 300 mm";
+`zuMerkmalMitRest()` hängt ihn ans `merkmal` des Stücks. Damit trägt ihn jede
+Darstellung, die es ohnehin gibt – Zuschnittliste, Rüstliste, PDF – **ohne
+dass eine von ihnen den Fall kennen muss**, und er trennt die Gruppe: ein Stück
+aus dem Rest ist ein anderer Zuschnitt als eines von der Rolle und darf nicht
+mit ihm zusammengefasst werden (§90.2).
+
+### 134.5 Drei Orte, an denen die Verwendung auftaucht
+
+| Ort | Was |
+|---|---|
+| **Lager**, Block „Zuletzt verwendet" | der Rest mit Massen, Datum, Person und der Massaufnahme, für die er gebraucht wurde |
+| **Massaufnahme-Zeile** im Lager | ein Klick führt zur Massaufnahme |
+| **am Stück selbst** | der Vermerk in Zuschnittliste, Rüstliste und PDF |
+
+Geladen wird das über eine **zwölfte** Abfrage in dem bereits vorhandenen
+`Promise.all` von `js/05-daten-laden.js`
+(`.eq("verbraucht",true).not("verbraucht_fuer_measurement_id","is",null)`) –
+keine zusätzliche Runde, kein `company_id`-Filter im Client (die restriktive
+`tenant_boundary_reststuecke` erzwingt ihn).
+
+### 134.6 Datenmodell
+
+Migration `reststueck_verwendung_v3_29`: **eine** nullbare Spalte
+`reststuecke.verbraucht_stuecke jsonb`. Sie hält die angehakten Stücknummern
+mit ihren Massen – oder `null`, wenn niemand etwas angehakt hat. Die
+Herkunftslogik aus v3.26 (`measurement_id`, `project_id`,
+`verbraucht_fuer_measurement_id`) und der Trigger
+`enforce_reststueck_herkunft()` sind unverändert weiterverwendet.
+
+Geschrieben wird über den **bestehenden** Weg: ein `update` mit
+`.eq("verbraucht",false)`, damit zwei Personen denselben Rest nicht doppelt
+vergeben; **0 geänderte Zeilen gelten nicht als Erfolg** (§24.1). Der Client
+schickt **nie** eine `company_id`.
+
+### 134.7 Die v3.04-Regel bleibt
+
+Ein Rest wird weiterhin **nie automatisch eingeplant** und der Zuschnittplan
+**nie neu gerechnet** – „ein Rest liegt physisch irgendwo und ist vielleicht
+schon weg". Die Verwendung ist eine ausdrückliche Handlung, das Anhaken der
+Stücknummern eine freiwillige Angabe darüber.
+
+### 134.8 Zwei Fehler, beide durch Messen gefunden
+
+- **Die Attrappe log über PostgREST.** Ihr `update().select()` gab nur die
+  geschriebenen Felder plus `id` zurück; echtes PostgREST liefert die **ganze
+  Zeile**. Abschnitt 9 des Prüfstands scheiterte deshalb an einem Fall, den es
+  real nicht gibt. Die Attrappe führt jetzt ein Register
+  (`window.__zeileFuer(t,id)`) und mischt die Ursprungszeile darunter.
+- **GROSSBUCHSTABEN im Dialog** („2'000 × 250 MM"). Die globale Regel
+  `label{text-transform:uppercase}` schlug durch – **sechster Fall** derselben
+  Falle (§72.5). Aufgefallen beim **Ansehen des erzeugten Bildes**, nicht beim
+  Lesen des Codes. Behoben mit `text-transform:none` in `.rest-stueck-wahl`,
+  dazu eine **gemessene** Prüfung (`getComputedStyle(...).textTransform`).
+
+Dazu ein Folgefehler beim Reparieren der Attrappe: eine fehlende Klammer liess
+`window.supabase.createClient()` werfen, js/01 brach ab und `currentProfile`
+blieb in der temporalen Todeszone („Cannot access before initialization").
+Eingekreist, indem die Attrappe herausgelöst und einzeln syntaxgeprüft wurde;
+seither steht am Anfang des Prüfstands ein `waitForFunction`-Ladewächter.
+
+### 134.9 Getestet
+
+- **`pruefstaende/pruefstand-restverwendung-v3-29.js` – 64/64**, echtes
+  Chromium gegen die echte `index.html`, 16 Abschnitte: der Vorabzug liefert
+  `ausResten` · es übersteht Speichern und Wiederherstellen · alle zehn Module
+  speichern es genau einmal und `ebaAusRestenSpeicher` gibt es genau einmal im
+  Repo · der Vermerk landet im `merkmal` und trennt die Gruppe ·
+  `pmatStuecke`/`pmatPlanFuer` tragen ihn weiter · die Rüstliste zeigt drei
+  Kästchen **und** den Vermerk · der Dialog (Vorwahl nach Passung, „passt
+  nicht", Titel, keine Grossbuchstaben) · genau ein `update`, richtige Nutzlast,
+  **nie** eine `company_id`, `.eq("verbraucht",false)`, der Rest wandert vom
+  Lager in die Nachschau · der Vermerk steht an genau den genannten Stücken ·
+  „Zuletzt verwendet" · der Vermerk überlebt, wenn sonst nichts mehr zu zeigen
+  ist · freiwillig (keine Auswahl ⇒ `verbraucht_stuecke:null`, kein Vermerk) ·
+  0 Zeilen sind kein Erfolg · gemessene Überdeckung des Dialogs · vier
+  Bildschirmbreiten · Sauberkeit.
+- **Zehn Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um; **keine bricht ihn ab** (§78).
+- **Zwei Gegenproben blieben zuerst grün** – beide Prüfungen waren wertlos und
+  wurden geschärft, bevor sie angenommen wurden: (1) Abschnitt 11 benutzte
+  einen Plan, der noch Kandidaten hatte, weshalb der frühe Rücksprung nie
+  geprüft wurde; (2) Abschnitt 16 suchte die blosse Zeichenkette
+  `restVerwendet` – jetzt wird `.eq("verbraucht",true)` **und**
+  `restVerwendet=geladen.restVerwendet` verlangt. Danach beissen beide
+  (60/62 bzw. 61/62).
+- **Eine Gegenprobe liess den Prüfstand zuerst abstürzen** statt fehlschlagen
+  (§78). Alle Index- und Eigenschaftszugriffe sind jetzt abgesichert; danach
+  meldet sie sauber 47/61.
+- **Zwei überholte Erwartungen** in bestehenden Prüfständen nachgezogen, keine
+  davon ein Codefehler, keine abgeschwächt: `lager-reste-v3-27` (71/71) prüft
+  weiterhin dasselbe, nur an der richtigen Stelle – `zuAlleStuecke()` enthält
+  seit v3.29 beide Quellen, also wird verlangt, dass jedes Stück genau einmal
+  vorkommt und die aus dem Rest gekennzeichnet sind; `reste-schnittfuge-v3-26`
+  (74/74) berücksichtigt, dass der Knopf jetzt zuerst den Dialog öffnet und
+  erst dort geschrieben wird.
+- **Volle Regression grün** – alle **54** Prüfstände, jeder mit
+  **Beendigungscode 0** (§132.7), rund 5050 bestandene Prüfungen.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.28-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, §100.6) – **DOM, Text und Bild byteidentisch**
+  (DOM `e9489aeb45bff285`, 6833 Zeichen; Bild `b6769f8a7ba7f95a`, 51 354
+  Bytes), bestätigt durch einen Kontrolllauf desselben Codes.
+- `node --check` über alle 61 `js/*.js`, `sw.js` und alle 54 Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs (840 gesamt); alle 61 js-Dateien in
+  `index.html` **und** in der Service-Worker-Liste; kein `data-hilfe` ohne
+  Text; Version 3.29 in `index.html`, `sw.js`, `js/41-hilfe.js` und
+  `anleitung/README.md` gleich.
+- Alle Schreibtests gegen die Datenbank liefen in `begin; … rollback;`.
+
+### 134.10 Anleitung
+
+Nach Regel §108.1 mitgeführt: der Vorabzug-Abschnitt sagt jetzt, dass die
+Stücke aus einem Rest seit v3.29 **in der Zuschnittliste selbst** stehen (bis
+v3.28 fehlten sie im gespeicherten Plan ganz), dazu der neue Unterabschnitt
+„Wo ein verwendeter Rest wieder auftaucht" mit den drei Orten, dem neuen Bild
+`50-rest-verwenden` und einem Hinweiskasten zur Entscheidung (b). Alle 56
+Bilder neu erzeugt, PDF v3.29 mit **73 Seiten** (vorher 72), keine leere. Die
+fünf Verweise und die Seitenzahl nachgezogen, das alte PDF gelöscht.
+`pruefstand-hilfe-v3-03` (68/68) erzwingt das mechanisch – mit Gegenprobe
+bestätigt: Version hochsetzen ohne die Anleitung → 64/68.
+
+Die historischen Angaben „seit Version 3.2x" bleiben unverändert stehen
+(§126.7).
+
+### 134.11 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migration `reststueck_verwendung_v3_29` | `reststuecke.verbraucht_stuecke jsonb` |
+| `js/05-daten-laden.js` | zwölfte Abfrage: verbrauchte Reste mitladen |
+| `js/01-basis.js` | `restVerwendet` |
+| `js/29-einlaufblech-aufnahme.js` | `ebaAusRestenSpeicher()` |
+| `js/30`, `js/31`, `js/32`, `js/34`, `js/36`–`js/40` | je eine Zeile: `ausResten` mitspeichern |
+| `js/33-zuschnitt.js` | `zuRestVermerk`, `zuMerkmalMitRest`, `zuAlleStuecke` und `zuPlanAusGespeichert` erweitert |
+| `js/48-projekt-material.js` | `pmatStuecke` liefert die Stücke aus einem Rest mit |
+| `js/42-reste.js` | „Zuletzt verwendet", Dialog, Schreibweg |
+| `js/03-login.js` | `goToStart()` schliesst den Dialog mit |
+| `index.html`, `css/01-basis.css`, `sw.js` | Block, Dialog, Stile (§134.8), Version 3.29 |
+| `js/41-hilfe.js` | zwei neue Hilfetexte, PDF-Verweis |
+| `pruefstaende/pruefstand-restverwendung-v3-29.js` | **neu** |
+| zwei bestehende Prüfstände | überholte Erwartungen (§134.9) |
+| `anleitung/*` | Abschnitt 5, neues Bild, PDF v3.29 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/49-projekt-zuschnitt.js`,
+`js/50-reservierung.js`, `js/51-werkstatt.js`, `js/56-material-zuschnitt.js`,
+`js/58-ruestliste.js` sowie sämtliche Fachdateien `js/10`–`js/28` – keine
+Berechnung, keine Stückliste, kein Zuschnitt, keine Packrechnung berührt.
+
+### 134.12 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und die Datenbankseite
+  per SQL gegen das echte Produktivschema.
+- **Der Vorabzug ist weiterhin bei keiner Firma eingeschaltet**
+  (`reste_im_zuschnitt = false`, §132.10) – der ganze Weg ist damit noch nie
+  mit echten Firmendaten gelaufen. Der behobene Speicherfehler war genau
+  deshalb latent.
+- **Der Rest 20 aus §134.1 bleibt ohne Stückangabe.** Die Spalte ist neu; die
+  App trägt nichts nachträglich ein. Er erscheint ab sofort unter „Zuletzt
+  verwendet" mit seiner Massaufnahme, aber ohne Stücknummern.
+- Ein Rest wird weiterhin **ganz genommen oder gar nicht**; ein Teilverbrauch
+  erzeugt kein Folgereststück (§132.10, unverändert).
+- **„＋ Rest von Hand erfassen" verwendet weiterhin `prompt()`** (§133.7,
+  unverändert) – nicht gemeldet, deshalb nicht mit angefasst.

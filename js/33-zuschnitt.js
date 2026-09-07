@@ -189,6 +189,24 @@ function zuBilanz(p){
 // fachlich unterschiedliche Bearbeitung darf nie in einer Zeile verschwinden.
 // Reine Beschriftungen ohne Einfluss auf den Zuschnitt (z. B. "Traufstück")
 // stehen als "hinweis" in den Einzelheiten, nicht im Gruppenschlüssel.
+// v3.29: der Herkunftsvermerk eines Stueckes, das aus einem Rest kommt.
+// Er wird an "merkmal" gehaengt - und damit steht er automatisch ueberall,
+// wo merkmal ohnehin schon steht: Zuschnittliste, Ausdruck, Ruestliste und
+// Werkstatt. Weil merkmal zugleich im Gruppenschluessel steckt (seit v2.85
+// macht eine Gehrung denselben Zuschnitt zu einem anderen), wird ein Stueck
+// aus dem Rest auch nicht mehr mit einem gleich langen von der Rolle
+// zusammengefasst.
+function zuRestVermerk(laenge,breite,material){
+ const l=zuZahl(laenge), b=zuZahl(breite);
+ if(l<=0)return "";
+ return "aus Rest "+zuMm(l)+(b>0?" × "+zuMm(b):"")+" mm"+(material?" ("+material+")":"");
+}
+function zuMerkmalMitRest(merkmal,vermerk){
+ const m=merkmal||"";
+ if(!vermerk)return m;
+ if(m.indexOf("aus Rest")>=0)return m;   // nicht doppelt vermerken
+ return m?m+" · "+vermerk:vermerk;
+}
 function zuAlleStuecke(p){
  const liste=[];
  if(!p)return liste;
@@ -198,6 +216,28 @@ function zuAlleStuecke(p){
  }else{
   (p.gruppen||[]).forEach(g=>(g.streifen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>
    liste.push(Object.assign({},x,{breite:g.breite,platz:si+1})))));
+ }
+ // Stuecke, die aus einem vorhandenen Rest geschnitten werden. Sie stehen
+ // NICHT in den Gruppen - die Rolle wurde ohne sie gerechnet. Sie gehoeren
+ // trotzdem auf die Liste: sie muessen geschnitten und abgehakt werden.
+ // Ist der Rest beim Ruesten doch nicht da, wird das Stueck von der Rolle
+ // geschnitten - deshalb bleibt es mit seinem Kaestchen stehen und traegt
+ // nur den Vermerk, woher es kommen sollte.
+ (p.ausResten||[]).forEach(r=>{
+  const vermerk=zuRestVermerk(r.laenge,r.breite,r.material_name);
+  (r.stuecke||[]).forEach(x=>liste.push(Object.assign({},x,{
+   breite:zuZahl(r.abwicklung)||zuZahl(x.breite),
+   ausRestId:r.id||null,
+   merkmal:zuMerkmalMitRest(x.merkmal,vermerk)})));
+ });
+ // Der Weg von Hand ("Hier verwenden", js/42): dort wurde der Plan OHNE den
+ // Rest gerechnet, das Stueck steht also bereits oben in den Gruppen. Es
+ // bekommt nur den Vermerk. Fehlt js/42, bleibt alles wie es ist.
+ if(p.erledigtFuer&&typeof restStueckVermerk==="function"){
+  liste.forEach(x=>{
+   const v=restStueckVermerk(p.erledigtFuer,x.nr);
+   if(v)x.merkmal=zuMerkmalMitRest(x.merkmal,v);
+  });
  }
  return liste;
 }
@@ -576,19 +616,23 @@ function zuAusRestenHtml(p){
  const liste=(p&&p.ausResten)||[];
  if(!liste.length)return "";
  const zahl=liste.reduce((a,x)=>a+(x.stuecke||[]).length,0);
+ // v3.29: zuAlleStuecke() enthaelt diese Stuecke jetzt selbst - sie duerfen
+ // nicht ein zweites Mal dazugezaehlt werden.
  return `<div class="zu-ausreste">
 <div class="small zu-ausreste-kopf"><b>Aus dem Reststücke-Lager</b> – ${zahl} von
-${zuAlleStuecke(p).length+zahl} Stück lassen sich aus vorhandenen Resten schneiden.</div>
+${zuAlleStuecke(p).length} Stück lassen sich aus vorhandenen Resten schneiden.</div>
 ${liste.map(x=>`<div class="small zu-ausrest">
 <b>${esc(zuMm(x.laenge))} × ${esc(zuMm(x.breite))} mm</b>${
  x.rest&&x.rest.material_name?" · "+esc(x.rest.material_name):""} →
 ${(x.stuecke||[]).map(st=>`<span class="zu-ausrest-nr">${esc(String(st.nr))}</span>`).join(" ")}
 <span style="color:var(--muted)">(${esc((x.stuecke||[]).map(st=>zuMm(st.laenge)+" mm").join(" · "))})</span>
 </div>`).join("")}
-<div class="small" style="color:var(--muted)">Diese Stücke sind unten nicht mehr
-aufgeführt – die Rolle wird nur noch für den Rest gerechnet. <b>Verbucht ist damit
-nichts</b>: der Rest gilt erst dann als verbraucht, wenn er unten ausdrücklich
-verwendet wird.</div>
+<div class="small" style="color:var(--muted)">Diese Stücke stehen unten in der
+Liste mit dem Vermerk „aus Rest" – sie müssen geschnitten und abgehakt werden
+wie alle anderen. Ist der Rest beim Rüsten doch nicht da, wird das Stück von
+der Rolle geschnitten. Die Rolle selbst wird nur noch für den Rest gerechnet.
+<b>Verbucht ist damit nichts</b>: der Rest gilt erst dann als verbraucht, wenn
+er unten ausdrücklich verwendet wird.</div>
 </div>`;
 }
 
@@ -668,6 +712,10 @@ function zuPlanAusGespeichert(r,breite,einheit){
   streifenbreiten:gruppen.map(g=>zuZahl(g.breite)).filter(x=>x>0),
   gruppen,moeglich:r.moeglich||[],netto:r.netto,
   rollenLaenge:r.rollenLaenge,abschnittLaenge:r.abschnittLaenge,
+  // v3.29: die Stuecke aus vorhandenen Resten. Bis v3.28 wurde ausResten
+  // hier NICHT gelesen (und von den Modulen gar nicht erst gespeichert) -
+  // die Stuecke fehlten dadurch im wiederhergestellten Plan ganz.
+  ausResten:r.ausResten||[],
   tafelLaenge:r.tafelLaenge,optimal};
 }
 function zuDruckHtml(r,breite,einheit,zusatz){

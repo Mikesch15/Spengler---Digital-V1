@@ -821,6 +821,9 @@ function madaZusatzDaten(){
           moeglich:plan.moeglich||[],
           streifen:(plan.streifen||[])
             .map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})),rest:s.rest})),
-          optimal:plan.optimal!==false}
+          optimal:plan.optimal!==false,
+          // v3.29: die Stuecke aus vorhandenen Resten - sie fielen bis v3.28
+          // beim Speichern weg und fehlten dadurch im gespeicherten Plan ganz.
+          ausResten:ebaAusRestenSpeicher(plan.ausResten)}
  };
 }

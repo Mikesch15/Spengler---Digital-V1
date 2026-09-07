@@ -110,6 +110,15 @@ function pmatStuecke(m){
               :((d.abwicklung!==undefined&&d.abwicklung!==null)?d.abwicklung:null);
   ausStreifen(r.streifen||((r.verteilung&&r.verteilung.streifen)||[]),breite);
  }
+ // v3.29: die Stuecke, die aus einem vorhandenen Rest geschnitten werden.
+ // Sie stehen nicht in den Streifen - die Rolle wurde ohne sie gerechnet.
+ // Sie muessen trotzdem geschnitten und abgehakt werden, sonst waere der
+ // Stand "7 von 12" falsch und Ruestliste wie Werkstatt liessen sie weg.
+ (r.ausResten||[]).forEach(x=>(x.stuecke||[]).forEach(st=>{
+  const l=pmatZahl(st.laenge);
+  if(l!==null&&l>0)raus.push({laenge:l,breite:pmatZahl(x.abwicklung),
+   merkmal:st.merkmal||"",hinweis:st.hinweis||"",nr:st.nr,ausRestId:x.id||null});
+ }));
  return raus;
 }
 

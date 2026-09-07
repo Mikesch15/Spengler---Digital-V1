@@ -214,11 +214,20 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
   box.innerHTML=restBlockHtml(pl,"Titanzink");
   const k=box.querySelector("[data-rest-verwenden]");
   if(!k)return {fehlt:true};
+  // Seit v3.29 oeffnet der Knopf zuerst einen Dialog, in dem sich angeben
+  // laesst, WELCHE Stuecke aus dem Rest geschnitten werden (freiwillig).
+  // Geschrieben wird erst dort - danach unveraendert genau einmal.
   k.click(); await new Promise(r=>setTimeout(r,150));
+  const dialog=$("restVerwendenModal")&&!$("restVerwendenModal").hidden;
+  const vorher=(window.__schreib||[]).filter(x=>x.t==="reststuecke").length;
+  if(dialog)$("restVerwendenSpeichern").click();
+  await new Promise(r=>setTimeout(r,200));
   const s=(window.__schreib||[]).filter(x=>x.t==="reststuecke");
   box.remove();
-  return {schreib:s, frei:(reststuecke||[]).length};
+  return {schreib:s, dialog, vorher, frei:(reststuecke||[]).length};
  });
+ p(t6b.dialog===true&&t6b.vorher===0,
+   "der Knopf oeffnet erst den Dialog und schreibt noch nichts",t6b);
  p(!t6b.fehlt&&t6b.schreib.length===1&&t6b.schreib[0].op==="update",
    "ein Klick schreibt genau einmal",t6b.schreib);
  p(!t6b.fehlt&&t6b.schreib[0].d.verbraucht===true&&t6b.schreib[0].d.verbraucht_fuer_measurement_id===55,
@@ -238,8 +247,14 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
   box.innerHTML=restBlockHtml(pl,"Titanzink");
   box.querySelector("[data-rest-verwenden]").click();
   await new Promise(r=>setTimeout(r,150));
-  const t=box.textContent; const frei=(reststuecke||[]).length;
+  // v3.29: die Meldung steht jetzt im Dialog, nicht mehr im Block.
+  if($("restVerwendenModal")&&!$("restVerwendenModal").hidden)
+   $("restVerwendenSpeichern").click();
+  await new Promise(r=>setTimeout(r,200));
+  const t=(($("restVerwendenFehler")||{}).textContent||"")+" "+box.textContent;
+  const frei=(reststuecke||[]).length;
   box.remove(); window.__updateLeer=false;
+  if(typeof restVerwendenSchliessen==="function")restVerwendenSchliessen();
   return {meldung:/nichts geändert/i.test(t), frei};
  });
  p(t6c.meldung&&t6c.frei===1,

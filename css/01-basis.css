@@ -1190,6 +1190,10 @@ html.dark .rmat-unsicher{color:#e0a35c}
    Karte HINTER den Einstellungen, sichtbar geoeffnet und doch unbedienbar.
    Gemessen ueber elementFromPoint, nicht ueber die z-index-Zahl. */
 #lagerFormModal{z-index:700}
+/* v3.29: "Rest verwenden" oeffnet ueber dem Massaufnahme-Formular bzw. ueber
+   der Seite "Material & Zuschnitt" - derselbe Fall, deshalb dieselbe Ebene.
+   Fuenfter Fall der Falle aus 133.5: gemessen, nicht aus der Zahl gelesen. */
+#restVerwendenModal{z-index:700}
 
 /* Das Hilfefenster ist von JEDEM Schirm aus erreichbar - auch aus den vier
    hochgesetzten Dialogen (700/750) und aus der Skizzen-Vollbildansicht
@@ -1197,3 +1201,21 @@ html.dark .rmat-unsicher{color:#e0a35c}
    stand es auf 500 und oeffnete aus diesen Dialogen heraus unsichtbar
    dahinter. Hoechste Ebene der App - darueber kommt nichts mehr. */
 #hilfeModal{z-index:2500}
+
+/* ---- Rest verwenden: Stueckauswahl (v3.29) -------------------------------
+   Die Kaestchen setzen die globalen input-Grundregeln zurueck (CLAUDE.md
+   72.5) - sonst waeren sie 40 px hoch und truegen einen zweiten Rahmen. */
+.rest-stueck-liste{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+/* text-transform muss ausdruecklich zurueckgesetzt werden: die globale
+   label-Regel schreibt sonst GROSS, und "250 MM" liest sich falsch
+   (CLAUDE.md 72.5 - schon der sechste Fall dieser Falle). */
+.rest-stueck-wahl{display:flex;align-items:center;gap:5px;border:1px solid var(--line);
+ border-radius:8px;padding:6px 9px;min-height:36px;cursor:pointer;font-size:12px;
+ text-transform:none;letter-spacing:normal;color:var(--text)}
+.rest-stueck-wahl input[type=checkbox]{width:17px;min-height:0;height:17px;
+ margin:0;padding:0;border:0;flex:0 0 auto}
+.rest-stueck-wahl b{font-size:12px}
+.rest-stueck-wahl.rest-stueck-passt-nicht{opacity:.55}
+.rest-verwendet-zeile{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;
+ padding:5px 0;border-top:1px solid var(--line);min-width:0}
+.rest-verwendet-zeile b{word-break:break-word}

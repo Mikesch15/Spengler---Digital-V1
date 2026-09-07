@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.28.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.29.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1116,6 +1116,28 @@ Materialkatalog der Firma. Beides ist firmeneigen und wird hier nicht neu
 erfunden. Wird ein Artikel gewählt, schlägt das Formular Stärke und
 Bezeichnung vor – beides bleibt frei änderbar.</p>`},
 
+"rest-verwendet":{titel:"Zuletzt verwendete Reste",text:`
+<p>Ein Rest, der für eine Massaufnahme gebraucht wurde, verschwindet aus dem
+Lager – er ist ja verbraucht. Hier steht, <b>wofür</b> er gebraucht wurde, und
+falls die Stücke angegeben wurden, auch für welche.</p>
+<p>Bis Version 3.28 hielt die App das zwar fest, zeigte es aber nirgends. Der
+Rest war nach dem Klick spurlos.</p>
+<p>Die Liste ist eine Nachschau, kein zweites Lager: sie zeigt die zwanzig
+zuletzt verwendeten Reste. Zurückholen lässt sich ein verwendeter Rest nicht –
+wer sich vertan hat, erfasst ihn neu von Hand.</p>`},
+"rest-verwenden":{titel:"Rest verwenden",text:`
+<p>Hält fest, dass dieser Rest für diese Massaufnahme gebraucht wurde. Er gilt
+danach als verbraucht und verschwindet aus dem Lager.</p>
+<p><b>Der Zuschnittplan wird nicht neu gerechnet.</b> Das ist Absicht: ein Rest
+liegt physisch irgendwo und ist vielleicht längst weg. Die App plant deshalb
+nichts um – sie schreibt nur auf, was Sie entschieden haben.</p>
+<p>Welche Stücke aus dem Rest geschnitten werden, ist eine <b>freiwillige</b>
+Angabe. Machen Sie sie, steht auf der Rüstliste bei diesen Stücken „aus Rest“.
+Sie bleiben dort mit ihrem Kästchen stehen – ist der Rest beim Rüsten doch
+nicht da, wird das Stück von der Rolle geschnitten und die Liste stimmt
+trotzdem.</p>
+<p>Vorgeschlagen werden nur Stücke, die von Länge und Breite her überhaupt in
+den Rest passen. Ohne Angabe bleibt es beim reinen Vermerk.</p>`},
 "reststuecke":{titel:"Reststücke-Lager",text:`
 <p>Ein Reststück ist ein <b>einzelnes, konkretes Stück</b> mit genau einer
 Länge und Breite – nicht zu verwechseln mit dem <b>Materialbestand</b>

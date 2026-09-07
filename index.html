@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.28</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.29</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -539,6 +539,29 @@ Umrechnungstabelle „Winkel in Meter – Grad“ (GABS AG). Der Meter misst imm
 genau einen der vier Keile – der Nachbarkeil ist der Rest auf 180°.</div>
 <div class="bar">
 <button id="winkelSchliessen" class="gray">Schliessen</button>
+</div>
+</div>
+</div>
+</div>
+<!-- v3.29: Einen Rest aus dem Lager fuer diese Massaufnahme verwenden.
+     Die Stueckzuordnung ist FREIWILLIG - wer nur bestaetigt, bekommt den
+     reinen Vermerk. Der Zuschnittplan wird dadurch NICHT neu gerechnet
+     (bewusst seit v3.04: ein Rest liegt physisch irgendwo). -->
+<div id="restVerwendenModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2><span id="restVerwendenTitel">Rest verwenden</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="rest-verwenden">i</button></h2>
+<div class="small" id="restVerwendenRest" style="color:var(--muted);margin-bottom:8px"></div>
+<div class="info">Der Rest wird als verbraucht vermerkt und verschwindet aus dem
+Lager. <b>Der Zuschnittplan ändert sich dadurch nicht.</b> Wenn Sie angeben,
+welche Stücke daraus geschnitten werden, steht das auf der Rüstliste – die
+Stücke bleiben dort mit ihrem Kästchen stehen, damit die Liste auch dann
+stimmt, wenn der Rest beim Rüsten doch nicht da ist.</div>
+<div id="restVerwendenStuecke"></div>
+<div class="small" id="restVerwendenFehler" style="color:var(--red)" hidden></div>
+<div class="bar">
+<button id="restVerwendenSpeichern" class="green">✓ Rest verwenden</button>
+<button id="restVerwendenAbbrechen" class="gray">Abbrechen</button>
 </div>
 </div>
 </div>
@@ -1579,7 +1602,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.28.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 72 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.29.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 73 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -1898,6 +1921,13 @@ vorgeschlagen.</div>
 <div id="restLagerListe"></div>
 <div class="bar"><button type="button" id="restLagerNeu" class="gray">＋ Rest von Hand erfassen</button></div>
 <div class="small" id="restLagerHinweis" style="margin-top:4px" hidden></div>
+<div id="restVerwendetBlock" hidden>
+<h3 style="margin:14px 0 4px">Zuletzt verwendet <button type="button" class="hilfe-knopf no-print" data-hilfe="rest-verwendet">i</button></h3>
+<div class="small" style="color:var(--muted);margin-bottom:4px">Reste, die für eine
+Massaufnahme gebraucht wurden. Sie sind aus dem Lager verschwunden – hier steht,
+wofür.</div>
+<div id="restVerwendetListe"></div>
+</div>
 </div>
 </div>
 <div class="settings-tab-panel" data-settings-panel="protected" hidden>
@@ -2153,7 +2183,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.28.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.29.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

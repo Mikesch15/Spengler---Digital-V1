@@ -194,14 +194,23 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
    "12 · kein Rest wird zweimal verplant",r);
  r=await page.evaluate(()=>{
   const pl=window.__plan([1500,1400,1300,1200],250);
-  const ids=[];
-  (pl.ausResten||[]).forEach(x=>(x.stuecke||[]).forEach(s=>ids.push(s.laenge)));
-  // Was auf der Rolle bleibt, steht in der gemeinsamen Zuschnittliste - nicht
-  // in gruppen[].stuecke (dort haelt js/29 die Verteilung in streifen).
-  const rest=zuAlleStuecke(pl).map(s=>s.laenge);
-  return {ausResten:ids.slice().sort(),aufRolle:rest.slice().sort(),gesamt:ids.length+rest.length};
+  const ausRest=[];
+  (pl.ausResten||[]).forEach(x=>(x.stuecke||[]).forEach(s=>ausRest.push(s.laenge)));
+  // Seit v3.29 enthaelt zuAlleStuecke() BEIDES: die Stuecke von der Rolle
+  // und die aus einem Rest. Das ist der Sinn der Aenderung - bis v3.28
+  // fehlten die aus dem Rest ueberall, auch auf der Ruestliste. Geprueft
+  // wird deshalb weiterhin dasselbe, nur an der richtigen Stelle: jedes
+  // Stueck kommt genau einmal vor, und die aus dem Rest sind als solche
+  // gekennzeichnet.
+  const alle=zuAlleStuecke(pl);
+  const mitId=alle.filter(s=>s.ausRestId).map(s=>s.laenge);
+  const ohneId=alle.filter(s=>!s.ausRestId).map(s=>s.laenge);
+  return {ausResten:ausRest.slice().sort(),gekennzeichnet:mitId.slice().sort(),
+          aufRolle:ohneId.slice().sort(),gesamt:alle.length};
  });
  p(r.gesamt===4,"12 · jedes Stueck kommt genau einmal vor - aus Rest ODER von der Rolle",r);
+ p(JSON.stringify(r.gekennzeichnet)===JSON.stringify(r.ausResten),
+   "12 · und die aus dem Rest sind als solche gekennzeichnet",r);
 
  // ---- 12  Keine Doppelverwendung ----------------------------------------
  console.log("\n12 · verbrauchte und reservierte Reste");

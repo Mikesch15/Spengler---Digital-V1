@@ -207,14 +207,75 @@ function restMerkmaleFehlen(r){
  if(m.ausfuehrung===null)f.push("Ausführung");
  return f;
 }
+// ===========================================================================
+// VERWENDETE RESTE (v3.29)
+// ===========================================================================
+// Bis v3.28 hielt die App fest, DASS ein Rest fuer eine Massaufnahme gebraucht
+// wurde (verbraucht_fuer_measurement_id, v3.26) - gelesen wurde es nirgends.
+// Der Rest verschwand aus dem Lager und war danach spurlos. Seit v3.29 laedt
+// js/05 die verwendeten Reste mit Bezug als restVerwendet mit; hier stehen
+// die zwei Fragen, die sie beantworten:
+//   * Wofuer wurde dieser Rest gebraucht?          -> renderRestVerwendet()
+//   * Woher kommt dieses Stueck der Ruestliste?    -> restStueckVermerk()
+function restVerwendetFuer(mid){
+ const id=Number(mid);
+ if(!Number.isFinite(id)||id<=0)return [];
+ return (restVerwendet||[]).filter(r=>Number(r.verbraucht_fuer_measurement_id)===id);
+}
+// Die Stuecknummern, die beim Verwenden angegeben wurden. Die Angabe ist
+// freiwillig - null heisst: nur vermerkt, ohne Zuordnung. Dann gibt es auch
+// keinen Vermerk am Stueck, und es wird keiner erfunden.
+function restStuecknummern(r){
+ const v=r&&r.verbraucht_stuecke;
+ if(!Array.isArray(v))return [];
+ return v.map(x=>Number(x)).filter(x=>Number.isFinite(x));
+}
+// Der Herkunftsvermerk fuer genau ein Stueck. Den Text baut zuRestVermerk()
+// (js/33) - es gibt nur EINE Formulierung, sonst stuende in der Ruestliste
+// etwas anderes als am Bildschirm.
+function restStueckVermerk(mid,nr){
+ const n=Number(nr);
+ if(!Number.isFinite(n))return "";
+ if(typeof zuRestVermerk!=="function")return "";
+ const treffer=restVerwendetFuer(mid).find(r=>restStuecknummern(r).indexOf(n)>=0);
+ if(!treffer)return "";
+ return zuRestVermerk(treffer.laenge_mm,treffer.breite_mm,treffer.material_name);
+}
+function restMassaufnahmeName(mid){
+ const id=Number(mid);
+ const liste=(typeof projectMeasurementsCache!=="undefined"&&projectMeasurementsCache)
+   ?projectMeasurementsCache:[];
+ const m=(liste||[]).find(x=>Number(x.id)===id);
+ if(!m)return "Massaufnahme "+id;
+ const art=(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[m.type])||m.type||"";
+ return (m.title||art||"Massaufnahme "+id);
+}
+function renderRestVerwendet(){
+ const block=$("restVerwendetBlock"), box=$("restVerwendetListe");
+ if(!block||!box)return;
+ const liste=(restVerwendet||[]).slice(0,20);
+ block.hidden=!liste.length;
+ if(!liste.length){box.innerHTML="";return}
+ box.innerHTML=liste.map(r=>{
+  const nrn=restStuecknummern(r);
+  const wann=r.updated_at?new Date(r.updated_at).toLocaleDateString("de-CH"):"";
+  return `<div class="rest-verwendet-zeile">
+<b>${esc(restBeschreibung(r))}</b>
+<span class="small" style="color:var(--muted)">für ${esc(restMassaufnahmeName(r.verbraucht_fuer_measurement_id))}${
+ nrn.length?" · Stück "+esc(nrn.join(", ")):" · ohne Stückzuordnung"}${wann?" · "+esc(wann):""}</span>
+</div>`;
+ }).join("");
+}
 function renderRestLager(){
  const box=$("restLagerListe");
  if(!box)return;
  const liste=(reststuecke||[]).filter(r=>!r.verbraucht);
  if(!liste.length){
   box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Noch keine Reste im Lager. Aufgehoben wird ${restGrenzeText()}.</div>`;
+  renderRestVerwendet();
   return;
  }
+ renderRestVerwendet();
  box.innerHTML=liste.map(r=>{const fehlt=restMerkmaleFehlen(r);return `<div class="report-row">
  <div class="report-row-info">
   <b>${esc(restBeschreibung(r))}</b>
@@ -553,10 +614,28 @@ function restBlockHtml(plan,material){
  const alle=restAlle(plan);
  const kandidaten=restKandidaten(plan);
  const klein=alle.filter(x=>x.zuKlein&&x.laenge_mm>0);
- if(!passend.length&&!kandidaten.length&&!klein.length)return "";
  const bezug=restPlanBezug(plan);
+ // v3.29: die Stuecke dieses Plans merken - der Dialog "Rest verwenden"
+ // braucht sie, und beim Klick ist der Plan nicht mehr greifbar. Auf der
+ // Seite "Material & Zuschnitt" stehen mehrere Plaene nebeneinander,
+ // deshalb je Massaufnahme.
+ if(bezug.measurement_id&&typeof zuAlleStuecke==="function")
+  restStueckeJeMass.set(Number(bezug.measurement_id),zuAlleStuecke(plan));
+ // v3.29: was fuer DIESE Massaufnahme bereits aus dem Lager genommen wurde.
+ // Bis v3.28 verschwand ein verwendeter Rest spurlos - hier steht er wieder.
+ // Der Block erscheint auch dann, wenn sonst nichts zu zeigen waere: nach
+ // dem Verwenden ist oft kein passender Rest mehr im Lager, und der Vermerk
+ // duerfte deshalb nicht mitverschwinden.
+ const genommen=bezug.measurement_id?restVerwendetFuer(bezug.measurement_id):[];
+ if(!passend.length&&!kandidaten.length&&!klein.length&&!genommen.length)return "";
  const schon=restSchonEingelagert(bezug.measurement_id);
  let h='<div class="rest-block">';
+ if(genommen.length){
+  h+=`<div class="small rest-genommen"><b>Aus dem Lager für diese Massaufnahme verwendet:</b></div>`
+   +genommen.map(r=>{const n=restStuecknummern(r);
+     return `<div class="small rest-genommen-zeile" style="color:var(--muted)">• ${esc(restBeschreibung(r))}${
+      n.length?" – für Stück "+esc(n.join(", ")):" – ohne Stückzuordnung"}</div>`}).join("");
+ }
  if(passend.length){
   h+=`<div class="small"><b>Aus dem Reststücke-Lager</b> – ${passend.length} Rest${passend.length===1?"":"e"}, die breit genug sind:</div>`
    +passend.slice(0,8).map(r=>`<div class="small rest-passend${r.exakt?" rest-exakt":""}" style="color:var(--muted)">• ${esc(restBeschreibung(r))}${r.passtFuerLaengste?"":" – kürzer als das längste Stück"}${r.fuerProjekt?" – bereits für ein Projekt reserviert":""}${
@@ -632,32 +711,104 @@ document.addEventListener("click",async e=>{
  b.disabled=true;
 });
 
-// v3.26: Einen Rest aus dem Lager fuer DIESE Massaufnahme verwenden.
-// Der Zuschnittplan wird dadurch NICHT neu gerechnet - das bleibt die
-// bewusste Entscheidung aus v3.04 (ein Rest liegt physisch irgendwo).
-// Festgehalten wird nur, dass er gebraucht wurde: verbraucht + wofuer.
-document.addEventListener("click",async e=>{
+// ===========================================================================
+// EINEN REST AUS DEM LAGER VERWENDEN  (v3.26, Dialog seit v3.29)
+// ===========================================================================
+// Der Zuschnittplan wird dadurch NICHT neu gerechnet - das bleibt die bewusste
+// Entscheidung aus v3.04 (ein Rest liegt physisch irgendwo und ist vielleicht
+// schon weg). Festgehalten wird, DASS er gebraucht wurde (verbraucht + wofuer)
+// und seit v3.29 auf Wunsch auch, WELCHE Stuecke daraus geschnitten werden.
+//
+// Die Stueckangabe ist FREIWILLIG: wer nur bestaetigt, bekommt weiterhin den
+// reinen Vermerk. Geraten wird nichts - vorgeschlagen werden nur die Stuecke,
+// die von Laenge und Breite her ueberhaupt hineinpassen.
+const restStueckeJeMass=new Map();
+let restVerwendenId=null, restVerwendenMid=null;
+
+function restStueckePassen(r,stuecke){
+ const L=restZahl(r&&r.laenge_mm), B=restZahl(r&&r.breite_mm);
+ return (stuecke||[]).map(x=>{
+  const l=restZahl(x.laenge), b=restZahl(x.breite);
+  return {nr:x.nr,laenge:l,breite:b,merkmal:x.merkmal||"",
+          passt:l>0&&l<=L+1e-9&&(b<=0||b<=B+1e-9)};
+ }).filter(x=>x.nr!==undefined&&x.nr!==null);
+}
+function restVerwendenFehler(text){
+ const el=$("restVerwendenFehler");
+ if(!el)return; el.textContent=text||""; el.hidden=!text;
+}
+function restVerwendenOeffnen(id,mid){
+ const r=(reststuecke||[]).find(x=>x.id===Number(id));
+ const box=$("restVerwendenModal");
+ if(!r||!box)return;
+ restVerwendenId=Number(id); restVerwendenMid=Number(mid);
+ restVerwendenFehler("");
+ const t=$("restVerwendenRest");
+ if(t)t.textContent=restBeschreibung(r)+" → "+restMassaufnahmeName(mid);
+ const liste=restStueckePassen(r,restStueckeJeMass.get(Number(mid))||[]);
+ const ziel=$("restVerwendenStuecke");
+ if(ziel){
+  ziel.innerHTML=liste.length
+   ? `<div class="small" style="margin-top:6px"><b>Welche Stücke werden daraus geschnitten?</b>
+Freiwillig – ohne Angabe wird nur vermerkt, dass der Rest gebraucht wurde.</div>
+<div class="rest-stueck-liste">${liste.map(x=>`<label class="rest-stueck-wahl${x.passt?"":" rest-stueck-passt-nicht"}">
+<input type="checkbox" data-rest-stueck="${esc(String(x.nr))}"${x.passt?" checked":""}>
+<b>${esc(String(x.nr))}</b> <span class="small" style="color:var(--muted)">${esc(restMm(x.laenge))}${
+ x.breite>0?" × "+esc(restMm(x.breite)):""} mm${x.passt?"":" – passt nicht"}</span></label>`).join("")}</div>`
+   : `<div class="small" style="color:var(--muted);margin-top:6px">Für diese Massaufnahme
+ist kein gespeicherter Zuschnitt bekannt – es lässt sich deshalb kein Stück zuordnen.
+Der Rest wird nur als verwendet vermerkt.</div>`;
+ }
+ box.hidden=false;
+}
+function restVerwendenSchliessen(){
+ const box=$("restVerwendenModal");
+ if(box)box.hidden=true;
+ restVerwendenId=null; restVerwendenMid=null;
+}
+document.addEventListener("click",e=>{
  const b=e.target.closest?e.target.closest("[data-rest-verwenden]"):null;
  if(!b)return;
- const id=Number(b.dataset.restVerwenden), mid=Number(b.dataset.restFuer);
+ restVerwendenOeffnen(b.dataset.restVerwenden,b.dataset.restFuer);
+});
+document.addEventListener("click",async e=>{
+ if(e.target.closest&&e.target.closest("#restVerwendenAbbrechen")){restVerwendenSchliessen();return}
+ if(!e.target.closest||!e.target.closest("#restVerwendenSpeichern"))return;
+ const id=restVerwendenId, mid=restVerwendenMid;
  const r=(reststuecke||[]).find(x=>x.id===id);
- if(!r||!mid)return;
- const zeile=b.closest(".rest-passend");
- const zeige=(t,f)=>{if(!zeile)return;
-  let s=zeile.querySelector(".rest-verwendet");
-  if(!s){s=document.createElement("span");s.className="rest-verwendet";zeile.appendChild(s)}
-  s.textContent=" "+t; s.style.color=f?"var(--red)":"var(--green)"};
- if(!confirm(`Rest „${restBeschreibung(r)}" für diese Massaufnahme verwenden?\n\nEr wird als verbraucht vermerkt und verschwindet aus dem Lager. Der Zuschnittplan ändert sich dadurch nicht.`))return;
- b.disabled=true;
+ if(!r||!mid){restVerwendenSchliessen();return}
+ const nrn=Array.prototype.slice.call(
+   document.querySelectorAll("#restVerwendenStuecke [data-rest-stueck]:checked"))
+   .map(x=>Number(x.dataset.restStueck)).filter(x=>Number.isFinite(x));
+ const knopf=$("restVerwendenSpeichern");
+ if(knopf)knopf.disabled=true;
+ restVerwendenFehler("");
  const {data,error}=await sb.from("reststuecke")
-  .update({verbraucht:true,verbraucht_fuer_measurement_id:mid})
+  .update({verbraucht:true,verbraucht_fuer_measurement_id:mid,
+           // Freiwillig: ohne Auswahl bleibt es null - es wird kein Stueck
+           // erfunden, und der Vermerk am Stueck entsteht dann auch nicht.
+           verbraucht_stuecke:nrn.length?nrn:null})
   .eq("id",id).eq("verbraucht",false).select();
- if(error){b.disabled=false;zeige("Konnte nicht gespeichert werden: "+error.message,true);return}
+ if(knopf)knopf.disabled=false;
+ if(error){restVerwendenFehler("Konnte nicht gespeichert werden: "+error.message);return}
  // 0 Zeilen heisst: der Rest ist inzwischen weg oder die Berechtigung fehlt -
  // das gilt NICHT als Erfolg (CLAUDE.md 24.1).
- if(!data||!data.length){b.disabled=false;
-  zeige("Es wurde nichts geändert – der Rest ist inzwischen vergeben, oder die Berechtigung fehlt.",true);return}
+ if(!data||!data.length){
+  restVerwendenFehler("Es wurde nichts geändert – der Rest ist inzwischen vergeben, oder die Berechtigung fehlt.");
+  return;
+ }
  reststuecke=(reststuecke||[]).filter(x=>x.id!==id);
- zeige("✓ als verwendet vermerkt");
+ // Der Rest ist jetzt Nachschau statt Vorrat - und der Vermerk am Stueck
+ // steht sofort, ohne dass die App neu geladen werden muss.
+ restVerwendet=[data[0]].concat(restVerwendet||[]);
+ restVerwendenSchliessen();
  renderRestLager();
+ // Der Vermerk am Stueck steht in der Zuschnittliste - sie muss deshalb neu
+ // gezeichnet werden. Genommen wird die Auffrischung des Bereichs, der
+ // wirklich offen ist; ist keiner davon offen, gibt es nichts nachzuziehen.
+ if(typeof mzSeiteOffen==="function"&&mzSeiteOffen()&&typeof mzAuffrischen==="function")mzAuffrischen();
+ else if(typeof renderWerkstatt==="function"&&$("werkstattModal")&&!$("werkstattModal").hidden)renderWerkstatt();
+ else if(typeof showMeasTypeSection==="function"&&$("measType")&&$("measurementEditModal")
+         &&!$("measurementEditModal").hidden)showMeasTypeSection($("measType").value);
+ if(typeof zeNachziehen==="function")zeNachziehen();
 });

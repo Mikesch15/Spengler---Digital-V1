@@ -1,7 +1,7 @@
 "use strict";
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes,verwendetRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
@@ -21,6 +21,13 @@ async function loadAllData(){
   // Zuschnitt nicht abgebucht. Der Eintrag traegt Staerke und Ausfuehrung
   // und macht dadurch erst das exakte Matching der Reste moeglich.
   sb.from("lagerbestand").select("*").order("bezeichnung"),
+  // v3.29: die bereits VERWENDETEN Reste, aber nur die mit einem Bezug.
+  // Ohne sie waere nirgends zu sehen, wofuer ein Rest gebraucht wurde - er
+  // verschwand bis v3.28 spurlos aus dem Lager. Bewusst begrenzt und nur mit
+  // Bezug: die Liste ist eine Nachschau, kein zweites Lager.
+  sb.from("reststuecke").select("*").eq("verbraucht",true)
+    .not("verbraucht_fuer_measurement_id","is",null)
+    .order("updated_at",{ascending:false}).limit(200),
  ]);
  // Offline (v2.70): schlaegt das Laden fehl, wird NICHT stillschweigend
  // eine leere App gezeigt - dann kaeme jede Liste als "nichts vorhanden"
@@ -29,7 +36,8 @@ async function loadAllData(){
  const geladen={rates:ratesRes.data,materials:materialsRes.data,profiles:profilesRes.data,
   projects:projectsRes.data,appSettings:appSettingsRes.data,bz:bzRes.data,
   rinne:rinneRes.data,measMaterials:measMaterialsRes.data,rest:restRes?restRes.data:[],
-  lager:lagerRes?lagerRes.data:[]};
+  lager:lagerRes?lagerRes.data:[],
+  restVerwendet:verwendetRes?verwendetRes.data:[]};
  const fehlgeschlagen=[ratesRes,materialsRes,profilesRes,projectsRes,bzRes,rinneRes,measMaterialsRes]
    .some(r=>r&&r.error);
  const firmaId=currentProfile?currentProfile.company_id:null;
@@ -96,6 +104,7 @@ async function loadAllData(){
  measurementMaterials=geladen.measMaterials||[];
  reststuecke=geladen.rest||[];
  lagerbestand=geladen.lager||[];
+ restVerwendet=geladen.restVerwendet||[];
  applyCompanyName();
  applyEinlaufblechSettings();
  renderMeasMaterialOptions();
