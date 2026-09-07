@@ -858,12 +858,6 @@ tr.resv-gewaehlt td:first-child{border-left:3px solid var(--blue)}
 .werk-kopf-titel b{font-size:15px}
 .werk-kopf-akt{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px}
 .werk-kopf-akt button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
-.werk-zeile{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;
- justify-content:space-between;padding:6px 0;border-top:1px solid var(--card-line);min-width:0}
-.werk-zeile-info{flex:1 1 200px;min-width:0;word-break:break-word}
-.werk-zeile-akt{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;gap:6px;
- justify-content:flex-end}
-.werk-zeile-akt button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
 .werk-grundlage{margin-top:8px;border-top:2px solid var(--line);padding-top:8px}
 .werk-block{margin-bottom:10px}
 
@@ -995,8 +989,6 @@ input:has(+ .winkel-knopf){min-width:70px}
  word-break:break-word}
 .werk-projekt .mw-streifen{margin:8px 0 6px}
 .werk-projekt .mw-leiste{margin:0 0 8px}
-.werk-zeile-jetzt{border-left:4px solid var(--blue);padding-left:8px;
- background:linear-gradient(90deg,var(--blue-light),transparent 60%)}
 .werk-block-dran{outline:2px solid var(--blue);outline-offset:4px;border-radius:8px}
 
 /* ---- v3.15 Material & Zuschnitt ---------------------------------------- */
@@ -1077,10 +1069,28 @@ button.ze-alle{min-height:30px;padding:2px 8px;font-size:11px;text-transform:non
 .rmat-schon{color:var(--red)}
 
 /* Werkstatt: Zuschnitt direkt abhaken (v3.20). Eine Karte je Massaufnahme -
-   Kopf mit Fortschritt, darunter die abhakbare Liste aus js/33. */
-.werk-zu-karte{border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0;background:var(--card)}
-.werk-zu-karte.werk-zu-fertig{border-color:var(--green)}
-.werk-zu-kopf{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:4px}
-.werk-zu-titel{flex:1 1 190px;min-width:0;word-break:break-word}
-.werk-zu-kopf button{flex:0 0 auto;min-height:38px}
-.werk-zu-stand{color:var(--muted);font-weight:400}
+   Kopf mit Fortschritt, darunter die abhakbare Liste aus js/33.
+   v3.21: Die Karte IST die Massaufnahme-Zeile - eine Darstellung, nicht
+   zwei. Sie steht ohne Aufklappen da. */
+.werk-karte{border:1px solid var(--line);border-radius:8px;padding:8px;margin:8px 0;
+ background:var(--card)}
+.werk-karte.werk-zu-fertig{border-color:var(--green)}
+.werk-karte-jetzt{border-left:4px solid var(--blue)}
+.werk-karte-kopf{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:4px}
+.werk-karte-info{flex:1 1 190px;min-width:0;word-break:break-word}
+.werk-karte-akt{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;gap:6px;
+ justify-content:flex-end}
+.werk-karte-akt button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
+.werk-zu-text{color:var(--muted)}
+.werk-karte.werk-zu-fertig .werk-zu-text{color:var(--green);font-weight:600}
+/* Material und Reservierungen - beim Ruesten die Nebensache, deshalb
+   zugeklappt. Gleiche Bildsprache wie die Klappbereiche des Cockpits. */
+.werk-mehr{margin-top:8px;border-top:2px solid var(--line);padding-top:6px}
+.werk-mehr-knopf{width:100%;text-align:left;background:none;border:0;color:var(--muted);
+ font-size:12px;min-height:38px;padding:4px 2px;text-transform:none;letter-spacing:0;
+ font-weight:600;cursor:pointer}
+.werk-mehr-pfeil{display:inline-block;width:14px}
+.werk-jetzt-zu{display:block;margin-top:3px;font-weight:600}
+.werk-zu-auf{width:100%;text-align:left;background:none;border:1px dashed var(--line);
+ border-radius:8px;color:var(--muted);font-size:12px;min-height:38px;padding:6px 8px;
+ text-transform:none;letter-spacing:0;cursor:pointer;margin-top:4px}

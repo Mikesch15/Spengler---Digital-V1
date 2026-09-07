@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.20";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.21";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.20<br>
+  Version 3.21<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -286,7 +286,7 @@ Einstellungen auf ihre Länge.</p>
 <strong>einmal</strong>. Zwei Haken sind nicht zwei Gehrungen, sondern eine Ecke mit
 zwei Seiten. Ein Haken ohne Gegenstück – am äusseren Ende der Reihe – ist dagegen eine
 Gehrung für sich.</div>
-<p>Beim <strong>Einlaufblech konisch</strong> gilt seit Version 3.20 genau dasselbe.</p>
+<p>Beim <strong>Einlaufblech konisch</strong> gilt seit Version 3.19 genau dasselbe.</p>
 <figure><img src="bilder/09-eb-3-stuecke-b.png"><figcaption>Darunter: der Grundriss, die Haltebleche und die Übernahme von Längen aus einer bereits erfassten Rinne Halbrund.</figcaption></figure>
 
 <h3 class="seite">5 · Zuschnitt aus Rollenblech</h3>
@@ -603,7 +603,7 @@ Positionen vorsichtshalber alle mit, und die Meldung sagt das.</div>
 
 <h4>Zeilen aus einer früheren Übernahme aufräumen</h4>
 <figure><img src="bilder/45-aufraeumen.png"><figcaption>Der Aufräum-Knopf nennt die Zahl, die Zeilen sind gekennzeichnet.</figcaption></figure>
-<p>Was <strong>vor</strong> Version 3.20 übernommen wurde, steht weiterhin in der Liste
+<p>Was <strong>vor</strong> Version 3.18 übernommen wurde, steht weiterhin in der Liste
 – auch die abgeleiteten Masse. Sie sind mit <em>abgeleitetes Mass</em> gekennzeichnet, und
 <span class="tasten">🧹 Abgeleitete Masse entfernen</span> räumt genau sie weg. Die
 Rückfrage nennt sie beim Namen; Zuschnitte und Teile bleiben stehen.</p>
@@ -665,38 +665,41 @@ innerhalb des Projekts zuoberst.</p>
 trägt der Streifen einen Knopf, der genau das für das ganze Projekt auf einmal erledigt –
 <span class="tasten">📦 Alle reservieren (5)</span>. Es ist derselbe Vorgang wie im Projekt
 selbst, nur ohne den Umweg dorthin.</p>
-<p><span class="tasten">Rüstgrundlage anzeigen</span> klappt auf, was für dieses Projekt
-gebraucht wird – in der Reihenfolge des Ablaufs: <strong>1 · Material</strong>,
-<strong>2 · Reservierungen</strong>, <strong>3 · Zuschnitt</strong>. Der Block, der zum
-jetzigen Schritt gehört, wird dabei angesteuert und kurz hervorgehoben.</p>
 <div class="hin">Eine Station erscheint nur, wenn das zugehörige Modul eingeschaltet
 ist. Reserviert und Zugeschnitten kommen aus dem Status der Reservierungen, Gerüstet
 und Montiert aus dem Arbeitsstatus der Massaufnahmen. Ist für ein Projekt
 <strong>gar nichts</strong> reserviert, sagen die Daten dazu nichts – die beiden
 Stationen stehen dann auf „–" und werden nicht als nächster Schritt verlangt.</div>
 
-<h4>Zuschnitte sofort abhaken</h4>
-<figure><img src="bilder/43-werkstatt-abhaken.png"><figcaption>Block 3: je Massaufnahme ihre eigene Zuschnittliste. Jede Positionsnummer ist ein Knopf.</figcaption></figure>
+<h4>Die Zuschnittliste steht sofort da</h4>
+<figure><img src="bilder/43-werkstatt-abhaken.png"><figcaption>Je Massaufnahme eine Karte, die Zuschnittliste darin ohne einen weiteren Klick.</figcaption></figure>
 <p>Beim Rüsten zählt zuerst, <em>was</em> zu schneiden ist – und dass es sich sofort
-abhaken lässt. Unter <strong>3 · Zuschnitt</strong> steht deshalb je Massaufnahme ihre
-<strong>eigene</strong> Zuschnittliste, und <strong>jede Positionsnummer ist ein
-Knopf</strong>: ein Tipp hakt dieses Blech als zugeschnitten ab, ein zweiter nimmt es
-zurück. Sind mehrere gleiche Zuschnitte zusammengefasst, hakt
-<span class="tasten">alle</span> die ganze Gruppe ab.</p>
-<p>Der Stand steht je Karte und im Kopf des Blocks
-(<em>2 von 3 zugeschnitten</em>) und zieht nach jedem Tipp sofort nach.</p>
+abhaken lässt. Je Massaufnahme steht deshalb eine <strong>Karte</strong>, und die
+Zuschnittliste steht <strong>darin</strong>: kein Aufklappen, kein zweiter Klick.
+<strong>Jede Positionsnummer ist ein Knopf</strong> – ein Tipp hakt dieses Blech als
+zugeschnitten ab, ein zweiter nimmt es zurück. Sind mehrere gleiche Zuschnitte
+zusammengefasst, hakt <span class="tasten">alle</span> die ganze Gruppe ab.</p>
+<p>Der Stand steht an drei Stellen und zieht nach jedem Tipp sofort nach: auf der Karte
+(<em>2 von 3 zugeschnitten</em>), im Streifen des Projekts und ganz oben für alle
+Projekte zusammen (<em>✂️ 7 von 12 Stück zugeschnitten</em>).</p>
 <div class="hin">Es ist derselbe Haken wie im Formular der Massaufnahme, keine zweite
 Liste: was hier abgehakt wird, steht dort ebenfalls abgehakt – und umgekehrt.</div>
+<p>Ist an einer Massaufnahme <strong>alles geschnitten</strong>, klappt ihre Liste zu
+und die Karte wird grün – was noch offen ist, steht damit vorne.
+<span class="tasten">▸ Zuschnittliste zeigen</span> holt sie zurück. Wer gerade an einer
+Karte abhakt, behält sie offen, auch wenn das letzte Stück sie fertig macht: sonst
+spränge sie unter dem Finger weg.</p>
 <p>Wer die ganze Massaufnahme sehen will, kommt mit
-<span class="tasten">✂️ Zuschnitt 2/3</span> in der Zeile <strong>direkt</strong> in ihr
+<span class="tasten">✂️ Im Formular</span> <strong>direkt</strong> in ihr
 Zuschnitt-Register. <span class="tasten">Zurück</span> führt in die Werkstatt.</p>
 
-<h4>Reservierungen: nur was man holt</h4>
-<p>Unter <strong>2 · Reservierungen</strong> steht nur, was man wirklich aus dem Lager
-holt – Blech, Halbfabrikate, Zuschnitte. <strong>Abgeleitete Masse</strong> (Abwicklung,
-Blechfläche, Stückzahl) sind Rechenergebnisse und bleiben hier weg. Wie viele es sind,
-steht darunter; aufräumen lassen sie sich im Projekt unter
-<em>Material &amp; Zuschnitt</em>.</p>
+<h4>Material und Reservierungen</h4>
+<p>Ganz unten klappt <span class="tasten">Material und Reservierungen</span> auf, was
+für dieses Projekt gebraucht wird – dieselben Zahlen wie im Projekt selbst, es wird
+nichts neu gerechnet. Dort steht nur, was man wirklich aus dem Lager holt: Blech,
+Halbfabrikate, Zuschnitte. <strong>Abgeleitete Masse</strong> (Abwicklung, Blechfläche,
+Stückzahl) sind Rechenergebnisse und bleiben weg. Wie viele es sind, steht darunter;
+aufräumen lassen sie sich im Projekt unter <em>Material &amp; Zuschnitt</em>.</p>
 
 <h3>Vorlagen und Serien</h3>
 <p>Eine <strong>Vorlage</strong> ist ein gespeicherter Satz Masse einer Art – ohne
@@ -1016,7 +1019,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.20</strong>, Stand 7. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.21</strong>, Stand 7. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

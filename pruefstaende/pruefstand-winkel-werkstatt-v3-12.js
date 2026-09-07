@@ -364,8 +364,11 @@ const typWaehlen=async(page,typ,register)=>{
      stationen:[...x.querySelectorAll(".mw-station")].map(s=>
        (s.querySelector(".mw-st-text")||{}).textContent+":"+[...s.classList].filter(c=>/^mw-st-/.test(c))[0]),
      knopf:[...x.querySelectorAll(".mw-streifen-knopf")].map(k=>k.textContent||"").join(" | "),
-     zeilen:[...x.querySelectorAll(".werk-zeile")].map(z=>
-       ((z.querySelector("b")||{}).textContent||"")+(z.classList.contains("werk-zeile-jetzt")?" *":""))
+     // v3.21: aus der Zeile ist eine Karte geworden - die Zuschnittliste
+     // steht darin sofort da. Geprueft wird weiterhin dasselbe: welche
+     // Massaufnahme oben steht und welche markiert ist.
+     zeilen:[...x.querySelectorAll(".werk-karte")].map(z=>
+       ((z.querySelector("b")||{}).textContent||"")+(z.classList.contains("werk-karte-jetzt")?" *":""))
    }))
   };
  });
@@ -410,7 +413,11 @@ const typWaehlen=async(page,typ,register)=>{
  p(!!q7&&/Zuschneiden/.test(q7.satz),"ist reserviert, kommt das Zuschneiden",q7&&q7.satz);
  p(!!q7&&stat(q7)==="Reserviert:mw-st-fertig|Zugeschnitten:mw-st-jetzt|Gerüstet:mw-st-offen|Montiert:mw-st-offen",
    "die Leiste rueckt eine Station weiter",stat(q7));
- p(!!q7&&/Zuschnitt anzeigen/.test(q7.knopf),"und der Knopf fuehrt zum Zuschnitt",q7&&q7.knopf);
+ // v3.21: Ein "Zuschnitt anzeigen"-Knopf waere sinnlos - die abhakbare
+ // Liste steht seit dem Umbau ohnehin in jeder Karte. Der Knopf hier bucht
+ // die Materialpositionen der Reservierung, und er nennt ihre Zahl.
+ p(!!q7&&/Material als zugeschnitten buchen \(1\)/.test(q7.knopf),
+   "und der Knopf bucht das Material - mit der Zahl",q7&&q7.knopf);
 
  // Zugeschnitten -> Ruesten ist dran, die Zeile ist markiert
  await werkstatt(res1("zugeschnitten"));
@@ -420,7 +427,7 @@ const typWaehlen=async(page,typ,register)=>{
    "ist zugeschnitten, kommt das Ruesten - mit der Zahl",s7&&s7.satz);
  p(!!s7&&stat(s7)==="Reserviert:mw-st-fertig|Zugeschnitten:mw-st-fertig|Gerüstet:mw-st-jetzt|Montiert:mw-st-offen",
    "und die Leiste steht auf Geruestet",stat(s7));
- p(!!s7&&s7.zeilen[0].indexOf("*")>0,
+ p(!!s7&&s7.zeilen.length>0&&s7.zeilen[0].indexOf("*")>0,
    "die Massaufnahme, um die es geht, steht oben und ist markiert",s7&&s7.zeilen);
  const s8=w.projekte.find(x=>/Feldweg/.test(x.titel));
  p(!!s8&&/Montieren/.test(s8.satz),"das andere Projekt ist beim Montieren",s8&&s8.satz);

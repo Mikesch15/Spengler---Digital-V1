@@ -138,7 +138,7 @@ const stand=page=>page.evaluate(()=>{
   text:b.textContent.replace(/\s+/g," ").trim(),
   projekte:[...b.querySelectorAll(".werk-projekt")].map(x=>
     (x.querySelector(".werk-kopf-titel b")||{}).textContent||""),
-  zeilen:[...b.querySelectorAll(".werk-zeile")].map(x=>x.textContent.replace(/\s+/g," ").trim()),
+  zeilen:[...b.querySelectorAll(".werk-karte")].map(x=>x.textContent.replace(/\s+/g," ").trim()),
   ruesten:[...b.querySelectorAll('[data-aufgabe="ruesten"]')].map(x=>x.dataset.aufgabeId),
   montieren:[...b.querySelectorAll('[data-aufgabe="montieren"]')].map(x=>x.dataset.aufgabeId),
   auf:[...b.querySelectorAll("[data-werk-auf]")].map(x=>x.dataset.werkAuf),
@@ -195,7 +195,13 @@ const stand=page=>page.evaluate(()=>{
  p(s.zahl==="4","Zaehler zeigt 4",{z:s.zahl});
 
  const abfragen=await page.evaluate(()=>window.__ruf.filter(r=>r.tabelle));
- p(abfragen.length===2,"zwei Abfragen fuer die ganze Liste",{n:abfragen.length,a:abfragen.map(x=>x.tabelle)});
+ // v3.21: drei Abfragen fuer die ganze Liste - Massaufnahmen, Reservierungen
+ // und die gesetzten Haken. Entscheidend ist, dass jede EINMAL laeuft und
+ // nicht einmal je Massaufnahme.
+ const jeTab={};
+ abfragen.forEach(a=>{jeTab[a.tabelle]=(jeTab[a.tabelle]||0)+1});
+ p(Object.keys(jeTab).every(k=>jeTab[k]===1)&&abfragen.length<=3,
+   "je Tabelle genau eine Abfrage fuer die ganze Liste",jeTab);
  p(abfragen.every(a=>JSON.stringify(a.filter).indexOf("company_id")<0),
    "kein company_id-Filter im Client - das erzwingt die Datenbank");
  const messabfrage=abfragen.find(a=>a.tabelle==="measurements");
@@ -259,11 +265,12 @@ const stand=page=>page.evaluate(()=>{
  await klick(page,'[data-werk-auf="7"]');
  await page.waitForTimeout(160);
  s=await stand(page);
- p(s.bloecke.join("|")==="material|reservieren|zuschneiden",
-   "Material, Reservierungen und Zuschnitt - in der Reihenfolge des Ablaufs (v3.12)",s.bloecke);
- p(/1 · Material/.test(s.blocktitel[0]||"")&&/2 · Reservierungen/.test(s.blocktitel[1]||"")
-   &&/3 · Zuschnitt/.test(s.blocktitel[2]||""),
-   "und mit ihrer Schrittnummer beschriftet",s.blocktitel);
+ // v3.21: Der Zuschnitt steht oben in den Karten (sofort abhakbar), hier
+ // unten liegen nur noch Material und Reservierungen.
+ p(s.bloecke.join("|")==="material|reservieren",
+   "unten nur noch Material und Reservierungen",s.bloecke);
+ p(/Material/.test(s.blocktitel[0]||"")&&/Reservierungen/.test(s.blocktitel[1]||""),
+   "beide beschriftet",s.blocktitel);
  p(/Titanzink/.test(s.grundlage)&&/Kupfer/.test(s.grundlage),"beide Materialien",{g:s.grundlage.slice(0,160)});
  p(/1'200 × 250 mm|1200 × 250/.test(s.grundlage),"mit den Zuschnitten",{g:s.grundlage.slice(0,400)});
  p(/Zuschnitt 1200 × 250 mm/.test(s.grundlage),"die Reservierung",{g:s.grundlage.slice(0,600)});
@@ -284,19 +291,18 @@ const stand=page=>page.evaluate(()=>{
     const td=tr.querySelectorAll("td");
     return (td[0]?td[0].textContent:"")+"|"+(td[1]?td[1].textContent:"");
   }):[];
-  // v3.20: Block 3 zeigt je Massaufnahme ihre eigene Liste (abhakbar),
-  // nicht mehr die projektweiten Materialgruppen. Geprueft wird deshalb,
-  // dass genau die Aufnahmen mit gespeichertem Zuschnitt dastehen.
+  // v3.21: Die abhakbaren Listen stehen OHNE Aufklappen in den Karten.
+  // Geprueft wird, dass genau die Aufnahmen mit gespeichertem Zuschnitt
+  // eine haben.
   const zsoll=liste.filter(m=>werkZuschnittPlan(m)).map(m=>m.id).sort().join(",");
-  const zblock=$("werkstattBody").querySelector('[data-werk-block="zuschneiden"]');
-  const zist=zblock?[...zblock.querySelectorAll("[data-werk-zu-stand]")]
-    .map(x=>Number(x.dataset.werkZuStand)).sort().join(","):"";
+  const zist=[...$("werkstattBody").querySelectorAll("[data-werk-zu-stand]")]
+    .map(x=>Number(x.dataset.werkZuStand)).sort().join(",");
   return {soll:soll.sort(),ist:ist.sort(),zsoll,zist};
  });
  p(gleich.soll.length>0&&JSON.stringify(gleich.soll)===JSON.stringify(gleich.ist),
    "die gezeigten Materialzeilen sind genau die von pmatSammeln",gleich);
  p(gleich.zsoll.length>0&&gleich.zsoll===gleich.zist,
-   "Block 3 zeigt genau die Aufnahmen mit gespeichertem Zuschnitt",{s:gleich.zsoll,i:gleich.zist});
+   "genau die Aufnahmen mit gespeichertem Zuschnitt haben eine Liste",{s:gleich.zsoll,i:gleich.zist});
 
  await klick(page,'[data-werk-auf="7"]');
  await page.waitForTimeout(80);
@@ -306,12 +312,13 @@ const stand=page=>page.evaluate(()=>{
  console.log("\nH · nur aktivierte Untermodule");
  await vorbereiten(page,{haupt:true,werkstatt:true});
  await page.evaluate(()=>werkstattOeffnen());
- await page.waitForTimeout(120);
- await klick(page,'[data-werk-auf="7"]');
- await page.waitForTimeout(160);
+ await page.waitForTimeout(200);
  s=await stand(page);
+ // v3.21: Sind Material UND Reservierung aus, gibt es unten nichts
+ // aufzuklappen - dann steht dort auch kein Knopf. Besser als ein leerer
+ // Bereich, der erklaert, dass er leer ist.
  p(s.bloecke.length===0,"ohne Material/Zuschnitt/Reservierung kein Block",s.bloecke);
- p(/alle drei sind ausgeschaltet/.test(s.grundlage),"und es wird gesagt warum",{g:s.grundlage.slice(0,160)});
+ p(s.auf.length===0,"und gar kein Aufklapp-Knopf",{n:s.auf.length});
 
  await vorbereiten(page,{haupt:true,material:true,werkstatt:true});
  await page.evaluate(()=>werkstattOeffnen());

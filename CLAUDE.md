@@ -17,11 +17,14 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.15, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.21, Branch `main`.**
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.15**
+- sichtbare App-Version: **3.21**
+- **Es wird ausschliesslich direkt auf `main` gearbeitet und
+  veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
+  Feature-Branch, kein Pull Request.
 - aktuelle Struktur ist bereits modularisiert.
 - Nicht davon ausgehen, dass ältere Refactor-Branches neuer sind.
 
@@ -20965,5 +20968,235 @@ keine Packrechnung berührt.
   nicht mehr auf, im Projekt stehen sie gekennzeichnet.
 - Der projektweite Sammelplan bleibt nicht abhakbar (§120.4). Wer alles auf
   einen Blick will, sieht ihn weiterhin auf der Seite „Material & Zuschnitt".
+- Der Verlauf schreibt **eine Zeile je abgehaktem Stück** (§120.13,
+  unverändert).
+
+## 126. WERKSTATT NEU GEBAUT: DIE ZUSCHNITTLISTE OHNE EINEN KLICK — VERSION 3.21
+
+Gemeldet am 7.9.2026: *„in der reservierungs liste wird immernoch alles
+übernommen und ich komme nicht in die zuschnittliste (im werkstatt modul) …
+das ganze muss viel einfacher und übersichtlicher werden … wenn nötig kannst
+du die werkstattansicht auch komplett umbauen. wichtig ist wie erwähnt, dass
+ich aus der werkstatt ansicht mit einem klick direkt in die abhakbare
+zuschnittliste komme"*
+
+Zwei Meldungen, **ein echter Fehler**. Der zweite Punkt war zutreffend und ist
+ein Fehler, den ich in v3.20 selbst eingebaut habe. Der erste ist gemessen
+worden statt vermutet – und dabei kam etwas anderes heraus.
+
+**Keine Schemaänderung, keine Migration, keine RLS-Änderung, keine neue
+Datenbankfunktion, keine Fachrechnung verändert.**
+
+### 126.1 Meldung 1: der Filter ist richtig, die App war alt
+
+Statt am Filter zu suchen, wurde er mit den **echten** Daten gerechnet: die
+Funktion `pmatTeilRueckfall()` aus js/48 in einem vm-Kontext geladen und über
+genau die Bezeichnungen laufen lassen, die real in der Datenbank stehen.
+
+Die letzte Übernahme (07.09., 06:35) hat **13 Zeilen** angelegt:
+
+| Bezeichnung | Filter sagt |
+|---|---|
+| Zuschnitt ×2, Zuschnitt · Gehrung rechts ×3 | Zuschnitt – bleibt |
+| **Haltebleche (GAVA Blech)** | **Teil – bleibt** |
+| Blechfläche, Blechstösse, Abwicklung 250 mm, Endzugabe erstes/letztes Stück, Gehrungen, Stücke (Zuschnitte) | abgeleitet – fällt weg |
+
+**Der Filter hätte 6 statt 13 Zeilen übernommen.** Er arbeitet also korrekt.
+
+Der Grund steht im Push-Verlauf: `main` trug von 06.09. 19:46 bis 07.09. 06:31
+die **Version 3.15** – dort gab es den Filter noch gar nicht (er kam mit
+v3.17, der Rückfall mit v3.18). Die sechs Zeilen von 06.09. 20:40 stammen
+zwangsläufig von diesem Stand. Die 13 Zeilen von 07.09. 06:35 entstanden vier
+Minuten nach dem Push von v3.20 – ein Browser, der die Seite offen hatte,
+lief da noch mit dem alten Code aus dem Service-Worker-Vorrat.
+
+**Am Code war deshalb nichts zu ändern.** Die bereits angelegten Zeilen räumt
+seit v3.18 der Knopf „🧹 Abgeleitete Masse entfernen" weg; die App löscht
+bewusst nichts von selbst (§123.8).
+
+### 126.2 Meldung 2: ein echter Fehler aus v3.20
+
+`werkLaden()` holte die Massaufnahmen ohne die Spalte `data`:
+
+```js
+.select("id,project_id,type,title,date,workflow_status,freigabe_verfallen,"
+      +"ruester_id,monteur_id,geruestet_am,montiert_am,updated_at,created_by")
+```
+
+`zeStand()` fragt darüber `pmatStuecke()` → `data.rollen`. Ohne `data` lieferte
+es immer `gesamt:0` – der Knopf „✂️ Zuschnitt n/m" erschien deshalb **nie**,
+und die in v3.20 gebaute Liste war über die Werkstatt gar nicht erreichbar.
+Genau die Meldung.
+
+Der Prüfstand hatte das nicht gefangen, weil die Supabase-Attrappe `select()`
+ignoriert und `data` immer mitliefert. Geprüft wird das jetzt am **Quelltext**
+von js/51, nicht am Ergebnis der Attrappe – dieselbe Lehre wie in §120.8.
+
+**Gegen die echten Daten nachgesehen**, nicht nur gegen Testdaten: die
+Massaufnahme 50 (`einlaufblech_gerade`, `zu_ruesten`, 41 Stücke) hat ihren
+Plan im **flachen** Format abgelegt – `rollen.streifen` mit 41 Einträgen,
+`abschnittLaenge` 2070, `abwicklung` 250, kein `gruppen`. Genau diesen Fall
+wandelt `zuPlanAusGespeichert()` (js/33) seit v2.85 in eine Gruppe um, und
+`werkZuschnittPlan()` nimmt die Breite aus `r.abwicklung` mit `d.abwicklung`
+als Rückfall – beide stehen im Datensatz. Die echte Massaufnahme erzeugt
+damit eine Liste mit 41 abhakbaren Positionen.
+
+### 126.3 Der Umbau: die Liste steht sofort da
+
+Der Auftrag erlaubt den kompletten Umbau ausdrücklich. Aus vier Ebenen
+(Projekt → Rüstgrundlage aufklappen → Block 3 → Zeile) ist **eine** geworden:
+
+| bis v3.20 | ab v3.21 |
+|---|---|
+| Zeile je Massaufnahme, Liste nur unter „Rüstgrundlage anzeigen → 3 · Zuschnitt" | **Karte** je Massaufnahme, die Zuschnittliste **darin**, ohne einen Klick |
+| „✂️ Zuschnitt 2/3" führte ins Formular | „✂️ Im Formular" – der Weg bleibt, ist aber kein Umweg mehr |
+| „✂️ Zuschnitt anzeigen" im Streifen | entfällt – die Liste ist ohnehin da |
+| Rüstgrundlage: 1 · Material, 2 · Reservierungen, 3 · Zuschnitt | „Material und Reservierungen" unten, zugeklappt |
+| Stand nur je Karte und im Blockkopf | zusätzlich im Streifen und ganz oben („✂️ 7 von 12 Stück zugeschnitten") |
+
+**Fertige Karten klappen zu und werden grün** – was noch offen ist, steht
+damit vorne. „▸ Zuschnittliste zeigen" holt sie zurück.
+
+**Eine Ausnahme, aus der Bedienung heraus:** wer gerade an einer Karte
+abhakt, behält sie offen, auch wenn das letzte Stück sie fertig macht.
+Sonst spränge sie unter dem Finger weg, und ein versehentlicher Haken wäre
+nur über einen zusätzlichen Klick zurückzunehmen. `zeSetzen()` (js/56) trägt
+die Karte dafür in `werkOffenKarte` ein.
+
+**Es entsteht keine zweite Darstellung und keine zweite Rechnung**:
+`zuListeHtml()` (js/33) bleibt die einzige Zuschnittliste,
+`ebaPackeInStreifen()` (js/29) die einzige Packrechnung, `pmatPlanRoh()`
+(js/48) die einzige Quelle für den gespeicherten Plan, `zeSetzen()` (js/56)
+der einzige Schreibweg und `zeStandListe()` die einzige Standquelle. Der
+projektweite Sammelplan bleibt weiterhin **nicht** abhakbar (§120.4).
+
+### 126.4 Der Satz beim Zuschneiden nennt jetzt Stücke
+
+Der nächste Schritt „Zuschneiden" zählte bis v3.20 **Materialpositionen** der
+Reservierung – oben stand „4 Positionen", darunter eine Liste mit 45 Stücken.
+Zwei Zahlen für dieselbe Arbeit. Der Satz nennt jetzt die Stücke („7 von 12
+Stück geschnitten. Die Listen stehen darunter."), der Knopf bucht weiterhin
+die Materialpositionen und heisst deshalb auch anders: „✓ Material als
+zugeschnitten buchen (n)".
+
+### 126.5 Getestet
+
+- **`pruefstand-werkstatt-zuschnitt-v3-20.js` – 47/47** (vorher 38), neuer
+  Abschnitt H: die Liste steht ohne Aufklappen da, ein Tipp hakt ab, eine
+  fertige Karte klappt zu und wird grün, „▸ Zuschnittliste zeigen" holt sie
+  zurück, das **letzte** Stück lässt die Liste stehen, der Stand steht an
+  drei Stellen, Material und Reservierungen sind zugeklappt.
+- **Acht Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | `data` wieder aus der Abfrage (der Fehler aus v3.20) | 46/47 |
+  | Liste wieder nur nach Aufklappen | 39/47 |
+  | fertige Karte klappt nicht zu | 45/47 |
+  | das letzte Stück klappt die Karte unter dem Finger zu | 46/47 |
+  | Stand nicht im Streifen | 46/47 |
+  | eigene Zuschnittliste statt `zuListeHtml` | 44/47 |
+  | Sammelplan wird abhakbar | 46/47 |
+  | Material/Reservierungen wieder offen | 45/47 |
+
+- **Drei Schwächen im Prüfstand kamen dabei heraus** und wurden geschärft,
+  bevor sie bissen: „die Werkstattliste trägt `data`" blieb grün (die
+  Attrappe liefert es immer – jetzt am Quelltext geprüft), eine Gegenprobe
+  liess den Lauf **abstürzen** statt fehlschlagen (ein abgebrochener Lauf
+  sieht aus wie „keine Fehler", §78), und der Fall „letztes Stück" fehlte
+  ganz.
+- **`pruefstand-werkstatt-v3-09.js` – 54/54** und
+  **`pruefstand-winkel-werkstatt-v3-12.js` – 64/64** nach dem Nachziehen
+  überholter Erwartungen (126.6).
+- **Volle Regression: 46 von 47 Prüfständen grün.** Die eine Ausnahme ist
+  `excel-import-v3-04`: **SheetJS lässt sich in diesem Container nicht
+  laden**, beide CDNs sind gesperrt – bekannt und unverändert seit §121.6,
+  gegen den unveränderten Stand nachgemessen.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.20-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, §100.6) – **DOM, Text und Bild byteidentisch**
+  (DOM `c2bd26fe0098097b`, 6797 Zeichen; Text `36bca66ee518dfcf`; Bild
+  `89ddd538a70a00d1`, 48 122 Bytes), bestätigt durch einen Kontrolllauf
+  desselben Codes.
+- `node --check` über alle js-Dateien, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs; jede js-Datei in `index.html`
+  **und** in der Service-Worker-Liste; kein `data-hilfe` ohne Text; Version
+  3.21 überall gleich.
+- **Kein Schreibzugriff auf die Datenbank** in dieser Runde – gelesen wurden
+  nur die 19 Reservierungszeilen und ihre Bezeichnungen.
+
+### 126.6 Überholte Erwartungen, keine Codefehler
+
+| Prüfstand | überholt |
+|---|---|
+| `werkstatt-v3-09` | `.werk-zeile` → `.werk-karte`; „zwei Abfragen" → je Tabelle genau eine; Blöcke ohne Nummern; Karten ohne Aufklappen; ohne Material- und Reservierungsmodul gibt es **gar keinen** Aufklapp-Knopf mehr (besser als ein leerer Bereich, der erklärt, dass er leer ist) |
+| `winkel-werkstatt-v3-12` | dieselben Klassennamen; der Knopf beim Zuschneiden heisst jetzt „✓ Material als zugeschnitten buchen (1)"; dazu ein Absturzschutz beim Zugriff auf die erste Karte |
+
+Beide Anpassungen wurden mit einer Gegenprobe abgesichert: die Markierung der
+Karte entfernt → `winkel-werkstatt` 63/64, genau die eine Prüfung.
+
+### 126.7 Ein alter Fehler in der Anleitung mitkorrigiert
+
+Beim Versionssprung fiel auf, dass ein **pauschales** Ersetzen der
+Versionsnummer in den Runden v3.19 und v3.20 zwei **historische** Aussagen
+mitgezogen hatte:
+
+- „Beim Einlaufblech konisch gilt seit Version 3.20 genau dasselbe" – richtig
+  ist **3.19** (§124).
+- „Was vor Version 3.20 übernommen wurde, steht weiterhin in der Liste" –
+  richtig ist **3.18** (§123).
+
+Beide zurückgesetzt. **Merksatz:** die Versionsnummer in der Anleitung steht
+an fünf Stellen, die mitwandern (Kopfzeile, Titelseite, Schlusssatz, zwei
+Verweise) – aber jede Aussage der Form „seit Version X" ist eine historische
+Angabe und darf **nicht** mitwandern. Beim Bumpen deshalb einzeln ersetzen,
+nicht pauschal.
+
+### 126.8 Anleitung
+
+Nach Regel §108.1 mitgeführt: der Werkstatt-Abschnitt beschreibt die Karte
+mit ihrer sofort sichtbaren Liste, das Zuklappen fertiger Karten und die
+Ausnahme beim letzten Stück; „Rüstgrundlage anzeigen" ist durch „Material und
+Reservierungen" ersetzt. Alle Bilder neu erzeugt (sie zeigen den Umbau
+automatisch mit), PDF v3.21, keine leere Seite. Die fünf Verweise nachgezogen,
+das alte PDF gelöscht. `pruefstand-hilfe-v3-03` erzwingt das mechanisch.
+
+### 126.9 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/51-werkstatt.js` | `data` in der Abfrage, Karte mit sofort sichtbarer Liste, `werkOffenKarte`, Stand an drei Stellen, Satz nennt Stücke, Material/Reservierungen zugeklappt |
+| `js/56-material-zuschnitt.js` | die gerade bearbeitete Karte bleibt offen |
+| `css/01-basis.css` | `.werk-karte*`, `.werk-mehr*`, `.werk-zu-auf`, `.werk-jetzt-zu`; ungenutzte `.werk-zeile*` entfernt |
+| `js/41-hilfe.js` | Hilfetext „Werkstatt und Rüsten" neu geschrieben, PDF-Verweis |
+| `index.html`, `sw.js` | Einleitungssatz der Werkstatt, Version 3.21 |
+| drei Prüfstände | neuer Abschnitt H, überholte Erwartungen |
+| `anleitung/*` | Werkstatt-Abschnitt, zwei historische Angaben zurückgesetzt, PDF v3.21 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/33-zuschnitt.js`,
+`js/48-projekt-material.js`, `js/49-projekt-zuschnitt.js`,
+`js/50-reservierung.js` sowie sämtliche Fachdateien `js/11`–`js/40`.
+
+### 126.10 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und die Datenbankseite
+  per SQL (nur lesend).
+- **`data` reist jetzt in der Werkstattabfrage mit.** Gemessen an den echten
+  Daten: die grösste offene Massaufnahme (41 Stücke) hat rund 10 kB `data`,
+  die drei heute offenen zusammen rund 15 kB. Die Abfrage ist auf
+  `WERK_LIMIT` = 300 Zeilen begrenzt – im theoretischen Höchstfall also
+  einige MB. Sollte eine Firma je in diese Grössenordnung kommen, wäre eine
+  eigene, schmale Zuschnitt-Abfrage (nur `data->rollen`) die naheliegende
+  Erweiterung; heute wäre sie vorgezogene Arbeit ohne Anlass.
+- **Die 19 bestehenden Reservierungszeilen sind noch da** (126.1) – der
+  Betrieb entfernt die abgeleiteten mit dem Knopf aus v3.18.
 - Der Verlauf schreibt **eine Zeile je abgehaktem Stück** (§120.13,
   unverändert).

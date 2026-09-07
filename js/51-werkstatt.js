@@ -36,6 +36,10 @@ let werkFassungen=[];
 let werkOffen=null;       // aufgeklapptes Projekt
 let werkGrundlage=null;   // {projectId, aufnahmen:[...]}
 let werkFilter="alle";
+// v3.21: Eine fertig geschnittene Karte klappt ihre Liste zu - sonst waere
+// die Werkstatt bei vielen erledigten Massaufnahmen unnoetig lang. Wer sie
+// wieder aufklappt, steht hier drin; es geht nichts verloren.
+const werkOffenKarte=new Set();
 let werkLauf=0;
 let werkFehler=null;
 
@@ -49,8 +53,14 @@ async function werkLaden(){
  werkFehler=null;
  if(!werkAktiv()){werkZeilen=[];werkReservierungen=[];werkFassungen=[];return}
  const {data,error}=await sb.from("measurements")
+  // v3.21: data MUSS mit. Ohne das kann keine Zeile ihren Zuschnittstand
+  // kennen (zeStand -> pmatStuecke -> data.rollen), und der Ruester saehe
+  // die abhakbare Liste erst nach zwei weiteren Klicks - genau die Meldung,
+  // die zu diesem Umbau gefuehrt hat. Gemessen an echten Daten: die groesste
+  // offene Massaufnahme (41 Stuecke) hat rund 10 kB data. Die Abfrage ist auf
+  // WERK_LIMIT=300 Zeilen begrenzt, zeigt also nur Freigegebenes/Eingeteiltes.
   .select("id,project_id,type,title,date,workflow_status,freigabe_verfallen,"
-        +"ruester_id,monteur_id,geruestet_am,montiert_am,updated_at,created_by")
+        +"ruester_id,monteur_id,geruestet_am,montiert_am,updated_at,created_by,data")
   .in("workflow_status",WERK_STATUS)
   .order("updated_at",{ascending:false})
   .limit(WERK_LIMIT);
@@ -179,6 +189,13 @@ function werkStand(g){
   return {...x,zustand:"offen"};
  });
 }
+// v3.21: Wie viele Stuecke dieses Projekts sind geschnitten? Aus zeStandListe
+// (js/56) - dieselbe Quelle wie die Karten und der Gesamtstand oben.
+function werkStueckStand(g){
+ const auf=(g&&g.aufnahmen)||[];
+ const s=(typeof zeStandListe==="function")?zeStandListe(auf):null;
+ return s||{gesamt:0,erledigt:0};
+}
 // Was jetzt zu tun ist. Liefert immer einen Satz - auch wenn nichts offen ist.
 function werkNaechster(g){
  const z=werkZahlen(g);
@@ -199,11 +216,21 @@ function werkNaechster(g){
    knopf:g.projectId?{text:"📦 Alle reservieren ("+z.offenRes+")",
      attr:'data-werk-bulk="reserviert" data-werk-bulk-projekt="'+g.projectId+'"'}:null,
    knopf2:g.projectId?{text:"📂 Projekt öffnen",attr:'data-werk-projekt="'+g.projectId+'"'}:null};
- if(jetzt.k==="zuschneiden")return {k:"zuschneiden",farbe:"orange",rang:2,
-   satz:"Zuschneiden – "+z.offenZu+(z.offenZu===1?" Position ist":" Positionen sind")+" noch nicht zugeschnitten.",
-   knopf:{text:"✂️ Zuschnitt anzeigen",attr:'data-werk-auf="'+(g.projectId||0)+'"'},
-   knopf2:g.projectId?{text:"✓ Alle als zugeschnitten buchen ("+z.offenZu+")",
+ if(jetzt.k==="zuschneiden"){
+  // v3.21: Der Satz nennt die STUECKE - das ist die Arbeit an der
+  // Abkantbank, und die Listen dafuer stehen direkt darunter. Der Knopf
+  // bucht die Materialpositionen der Reservierung; das ist etwas anderes
+  // und wird deshalb auch anders benannt. Ein "Zuschnitt anzeigen"-Knopf
+  // waere seit dem Umbau sinnlos: die Liste ist ohnehin schon da.
+  const st=werkStueckStand(g);
+  return {k:"zuschneiden",farbe:"orange",rang:2,
+   satz:st.gesamt
+     ?("Zuschneiden – "+st.erledigt+" von "+st.gesamt+" Stück geschnitten. Die Listen stehen darunter.")
+     :("Zuschneiden – "+z.offenZu+(z.offenZu===1?" Materialposition ist":" Materialpositionen sind")
+       +" noch nicht als zugeschnitten gebucht."),
+   knopf:g.projectId?{text:"✓ Material als zugeschnitten buchen ("+z.offenZu+")",
      attr:'data-werk-bulk="zugeschnitten" data-werk-bulk-projekt="'+g.projectId+'"'}:null};
+ }
  if(jetzt.k==="ruesten"){
   if(z.zuRuesten)return {k:"ruesten",farbe:"blau",rang:3,
     satz:"Rüsten – "+z.zuRuesten+(z.zuRuesten===1?" Massaufnahme ist":" Massaufnahmen sind")
@@ -254,6 +281,11 @@ function werkZeileJetzt(a,k){
 function werkTyp(t){
  return (typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[t])||t||"Massaufnahme";
 }
+// v3.21: EINE Karte je Massaufnahme - Kopf, sofort sichtbare abhakbare
+// Zuschnittliste, Aktionsknoepfe. Bis v3.20 waren das zwei getrennte
+// Darstellungen: eine duenne Zeile oben und, zwei Klicks weiter unten in der
+// Ruestgrundlage, die eigentliche Liste. An der Abkantbank zaehlt genau das
+// Umgekehrte: die Stuecke zuerst, alles andere danach.
 function werkAufnahmeHtml(a,jetztK){
  const verfallen=!!a.freigabe_verfallen;
  const dran=werkZeileJetzt(a,jetztK||"");
@@ -273,27 +305,32 @@ function werkAufnahmeHtml(a,jetztK){
    .filter(Boolean).join(" · ");
  // v3.09 Abschnitt 15: auf welcher freigegebenen Fassung liegt die Arbeit?
  // Nur wenn die Versionierung eingeschaltet ist - sonst gibt es keine.
- // v3.20: Ein Klick von der Werkstatt direkt in die Zuschnittliste dieser
- // Massaufnahme - mit dem Stand daneben, damit man sieht, was noch offen ist.
- const zStand=(typeof pmAktiv==="function"&&pmAktiv("zuschnitt"))?werkZuStand(a):{gesamt:0,erledigt:0};
- const zuKnopf=zStand.gesamt
-   ?`<button type="button" data-werk-mess="${a.id}" data-werk-zu="1" data-werk-zu-knopf="${a.id}">✂️ Zuschnitt ${zStand.erledigt}/${zStand.gesamt}</button>`
-   :"";
  const nr=werkFassung(a.id);
  const fassung=(nr===null)?"":(verfallen
    ? ` · <span style="color:var(--red)">Fassung ${nr} nicht mehr aktuell</span>`
    : ` · Fassung ${nr}`);
- return `<div class="werk-zeile${dran?" werk-zeile-jetzt":""}">
-  <div class="werk-zeile-info">
-   <b>${esc(werkTyp(a.type))}</b>${a.title?" · "+esc(a.title):""}
-   <div class="small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${wer?" · "+wer:""}${fassung}</div>
-   ${verfallen?'<div class="small" style="color:var(--red)">Diese Massaufnahme wurde nach der Freigabe geändert. Sie muss erneut freigegeben werden, bevor daran weitergearbeitet wird.</div>':""}
+ // Die Zuschnittliste steht SOFORT da - kein Aufklappen, kein zweiter Klick.
+ // Der Plan ist der gespeicherte dieser einen Aufnahme, deshalb duerfen die
+ // Positionsnummern abgehakt werden (erledigtFuer, siehe CLAUDE.md 120.4).
+ const plan=(typeof pmAktiv==="function"&&pmAktiv("zuschnitt"))?werkZuschnittPlan(a):null;
+ const stand=werkZuStand(a);
+ return `<div class="werk-karte${dran?" werk-karte-jetzt":""}${plan&&stand.fertig?" werk-zu-fertig":""}">
+  <div class="werk-karte-kopf">
+   <div class="werk-karte-info">
+    <b>${esc(werkTyp(a.type))}</b>${a.title?" · "+esc(a.title):""}
+    ${plan&&plan.material?`<span class="small" style="color:var(--muted)"> · ${esc(plan.material)}</span>`:""}
+    <div class="small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${wer?" · "+wer:""}${fassung}</div>
+    ${plan?`<div class="small werk-zu-text" data-werk-zu-stand="${a.id}">${werkStandText(a)}</div>`:""}
+   </div>
+   <div class="werk-karte-akt">
+    ${aktion}
+    <button type="button" class="gray" data-werk-mess="${a.id}"${plan?' data-werk-zu="1"':""}>${plan?"✂️ Im Formular":"Öffnen"}</button>
+   </div>
   </div>
-  <div class="werk-zeile-akt">
-   ${aktion}
-   ${zuKnopf}
-   <button type="button" class="gray" data-werk-mess="${a.id}">Öffnen</button>
-  </div>
+  ${verfallen?'<div class="small" style="color:var(--red)">Diese Massaufnahme wurde nach der Freigabe geändert. Sie muss erneut freigegeben werden, bevor daran weitergearbeitet wird.</div>':""}
+  ${plan?(stand.fertig&&!werkOffenKarte.has(a.id)
+    ? `<button type="button" class="werk-zu-auf" data-werk-karte="${a.id}">▸ Zuschnittliste zeigen (alles geschnitten)</button>`
+    : (typeof zuListeHtml==="function"?zuListeHtml(plan):"")):""}
  </div>`;
 }
 
@@ -317,27 +354,45 @@ function werkZuschnittPlan(m){
 // Eine Karte je Massaufnahme: Kopf mit Fortschritt, darunter die abhakbare
 // Liste. Bewusst nur zuListeHtml() - Rollenvergleich, Belegung und das
 // Reststuecke-Lager gehoeren ins Projekt, nicht an die Abkantbank.
-function werkGesamtText(liste){
- const g=(typeof zeStandListe==="function")?zeStandListe(liste):null;
- return (g&&g.gesamt)?(esc(g.erledigt)+" von "+esc(g.gesamt)+" zugeschnitten"):"";
+// v3.21: Was jetzt insgesamt ansteht, ganz oben - einschliesslich der
+// Zuschnitte, weil das an der Abkantbank die eigentliche Zahl ist. Eine
+// Stelle, aus der das Zeichnen und das spaetere Nachfuehren lesen.
+function werkJetztText(){
+ const gruppen=werkGruppen();
+ const WERK_SCHRITT_TEXT={verfallen:"erneut freigeben",reservieren:"reservieren",
+   zuschneiden:"zuschneiden",einteilen:"einteilen",ruesten:"rüsten",montieren:"montieren"};
+ const zaehlung={};
+ gruppen.forEach(g=>{const k=werkNaechster(g).k; if(k!=="fertig")zaehlung[k]=(zaehlung[k]||0)+1});
+ const zt=Object.keys(zaehlung).map(k=>zaehlung[k]+" × "+WERK_SCHRITT_TEXT[k]).join(" · ");
+ const zu=(typeof zeStandListe==="function")?zeStandListe(werkZeilen||[]):null;
+ const zuText=(zu&&zu.gesamt)
+   ?'<span class="werk-jetzt-zu">✂️ '+esc(zu.erledigt)+" von "+esc(zu.gesamt)+" Stück zugeschnitten</span>":"";
+ return (zt?"<b>Jetzt dran:</b> "+esc(zt)
+   :"<b>Nichts offen</b> – in der Werkstatt wartet gerade kein Schritt.")+zuText;
 }
 // Nach jedem Abhaken nur die Zahlen nachziehen, nicht die ganze Werkstatt neu
 // zeichnen - sonst spraenge die Seite unter dem Finger weg. Die Knoepfe selbst
 // malt zeMarkierungAuffrischen() aus js/56.
 function werkZuschnittStandAuffrischen(){
  const box=$("werkstattBody"); if(!box)return;
- const liste=(werkGrundlage&&werkGrundlage.aufnahmen)||[];
+ // v3.21: Die Karten kommen aus werkZeilen - dort steht data seit dieser
+ // Fassung mit drin. Frueher stand hier werkGrundlage.aufnahmen; das war
+ // die Liste des aufgeklappten Projekts und traf die Karten gar nicht.
+ const liste=werkZeilen||[];
  box.querySelectorAll("[data-werk-zu-stand]").forEach(el=>{
   const m=liste.find(x=>x&&Number(x.id)===Number(el.dataset.werkZuStand));
   if(m)el.innerHTML=werkStandText(m);
  });
- box.querySelectorAll("[data-werk-zu-ges]").forEach(el=>{el.innerHTML=werkGesamtText(liste)});
- box.querySelectorAll("[data-werk-zu-knopf]").forEach(el=>{
-  const m=liste.find(x=>x&&Number(x.id)===Number(el.dataset.werkZuKnopf));
-  if(!m)return;
-  const s=werkZuStand(m);
-  el.textContent="✂️ Zuschnitt "+s.erledigt+"/"+s.gesamt;
+ box.querySelectorAll("[data-werk-jetzt]").forEach(el=>{el.innerHTML=werkJetztText()});
+ // Die Haken kommen erst nach dem Zeichnen aus der Datenbank. Ist eine Karte
+ // dadurch fertig geworden, klappt ihre Liste zu - aber NUR, wenn niemand
+ // gerade an ihr abhakt: sonst spraenge sie unter dem Finger weg.
+ const zuklappen=(werkZeilen||[]).some(m=>{
+  if(!m||werkOffenKarte.has(m.id))return false;
+  if(!box.querySelector('[data-ze-meas="'+m.id+'"]'))return false;   // Liste schon zu
+  return werkZuStand(m).fertig;
  });
+ if(zuklappen)renderWerkstatt();
 }
 function werkZuStand(m){
  return (typeof zeStand==="function")?zeStand(m):{gesamt:0,erledigt:0,offen:0,veraltet:0,fertig:false};
@@ -350,35 +405,22 @@ function werkStandText(m){
  return (s.fertig?"✓ ":"")+esc(s.erledigt)+" von "+esc(s.gesamt)+" zugeschnitten"
   +(s.veraltet?' · <span style="color:var(--red)">'+esc(s.veraltet)+" Haken passen nicht mehr zum Plan</span>":"");
 }
-function werkZuschnittKarteHtml(m){
- const plan=werkZuschnittPlan(m); if(!plan)return "";
- const stand=werkZuStand(m);
- const verfallen=!!m.freigabe_verfallen&&typeof mwAktiv==="function"&&mwAktiv();
- return `<div class="werk-zu-karte${stand.fertig?" werk-zu-fertig":""}">
-  <div class="werk-zu-kopf">
-   <div class="werk-zu-titel"><b>${esc(werkTyp(m.type))}</b>${m.title?" · "+esc(m.title):""}
-    ${plan.material?'<span class="small" style="color:var(--muted)"> · '+esc(plan.material)+"</span>":""}
-    <div class="small werk-zu-text" style="color:var(--muted)" data-werk-zu-stand="${m.id}">${werkStandText(m)}</div>
-   </div>
-   <button type="button" class="gray" data-werk-mess="${m.id}" data-werk-zu="1">✂️ Im Formular öffnen</button>
-  </div>
-  ${verfallen?'<div class="small" style="color:var(--red)">Diese Massaufnahme wurde nach der Freigabe geändert – vor dem Zuschneiden erneut freigeben lassen.</div>':""}
-  ${(typeof zuListeHtml==="function")?zuListeHtml(plan):""}
- </div>`;
-}
-
-// Die Ruestgrundlage: dieselben Funktionen wie im Projekt-Cockpit.
+// Material und Reservierungen - beim Ruesten die Nebensache, deshalb seit
+// v3.21 in einem zugeklappten Bereich unter den Zuschnittkarten. Der
+// Zuschnitt selbst steht oben in der Karte jeder Massaufnahme.
+// Es wird nichts zweitgerechnet: pmatSammeln aus js/48, resvAbgeleitet und
+// resvBadge aus js/50 - dieselben Funktionen wie im Projekt-Cockpit.
 function werkGrundlageHtml(g){
  if(!werkGrundlage||werkGrundlage.projectId!==g.projectId)
-  return '<div class="small" style="color:var(--muted)">Rüstgrundlage wird geladen …</div>';
+  return '<div class="small" style="color:var(--muted)">Wird geladen …</div>';
  if(werkGrundlage.fehler)
-  return `<div class="small" style="color:var(--red)">Die Rüstgrundlage konnte nicht geladen werden: ${esc(werkGrundlage.fehler)}</div>`;
+  return `<div class="small" style="color:var(--red)">Material und Reservierungen konnten nicht geladen werden: ${esc(werkGrundlage.fehler)}</div>`;
  const liste=werkGrundlage.aufnahmen||[];
  let h="";
 
  if(typeof pmAktiv==="function"&&pmAktiv("material")&&typeof pmatSammeln==="function"){
   const gruppen=pmatSammeln(liste);
-  h+='<div class="werk-block" data-werk-block="material"><div class="small werk-block-titel"><b>1 · Material</b> – was das Projekt braucht</div>';
+  h+='<div class="werk-block" data-werk-block="material"><div class="small werk-block-titel"><b>Material</b> – was das Projekt braucht</div>';
   h+=gruppen.length?('<div class="scroll"><table class="eb-table pmat-tab"><thead><tr>'
     +'<th>Material</th><th>Position</th><th>Menge</th></tr></thead><tbody>'
     +gruppen.map(gr=>gr.positionen.map(p=>`<tr><td>${esc(gr.material)}</td><td>${esc(p.bezeichnung)}</td>`
@@ -399,7 +441,7 @@ function werkGrundlageHtml(g){
   const res=(typeof resvAbgeleitet==="function")
     ?alle.filter(r=>!resvAbgeleitet(r,liste)):alle;
   const weg=alle.length-res.length;
-  h+='<div class="werk-block" data-werk-block="reservieren"><div class="small werk-block-titel"><b>2 · Reservierungen</b> – was für das Projekt zurückgelegt ist</div>';
+  h+='<div class="werk-block" data-werk-block="reservieren"><div class="small werk-block-titel"><b>Reservierungen</b> – was für das Projekt zurückgelegt ist</div>';
   h+=res.length?('<div class="scroll"><table class="eb-table pmat-tab"><thead><tr>'
     +'<th>Material</th><th>Position</th><th>Menge</th><th>Status</th></tr></thead><tbody>'
     +res.map(r=>`<tr><td>${esc(r.material_name||"Ohne Material")}</td>`
@@ -421,26 +463,7 @@ function werkGrundlageHtml(g){
     :'<div class="small" style="color:var(--muted);margin-top:4px">Kein Reststück für dieses Projekt reserviert.</div>';
   h+="</div>";
  }
- if(typeof pmAktiv==="function"&&pmAktiv("zuschnitt")){
-  // v3.20: Beim Ruesten zaehlt zuerst, was zu schneiden ist - und dass es
-  // sich SOFORT abhaken laesst. Deshalb steht hier nicht mehr der
-  // projektweite Sammelplan (dort sind die Stuecknummern neu vergeben und
-  // gehoeren zu verschiedenen Aufnahmen, ein Haken waere nicht eindeutig -
-  // CLAUDE.md 120.4), sondern je Massaufnahme ihre EIGENE Liste. Damit ist
-  // jede Positionsnummer derselbe Abhak-Knopf wie im Formular: dieselbe
-  // Darstellung aus js/33, dieselbe Abhak-Schicht aus js/56, keine zweite.
-  const mitZ=liste.filter(m=>werkZuschnittPlan(m));
-  h+='<div class="werk-block" data-werk-block="zuschneiden"><div class="small werk-block-titel">'
-   +'<b>3 · Zuschnitt</b> – abhaken, was geschnitten ist'
-   +' <span class="werk-zu-stand" data-werk-zu-ges="1">'+werkGesamtText(liste)+'</span>'
-   +'</div>';
-  h+=mitZ.length?mitZ.map(m=>werkZuschnittKarteHtml(m)).join("")
-   :'<div class="small" style="color:var(--muted)">Nichts zuzuschneiden – keine Massaufnahme hat einen gespeicherten Zuschnitt.</div>';
-  h+="</div>";
- }
-
-
- return h||'<div class="small" style="color:var(--muted)">Für die Rüstgrundlage sind Materialübersicht, Zuschnitt oder Reservierung nötig – alle drei sind ausgeschaltet.</div>';
+ return h||'<div class="small" style="color:var(--muted)">Dafür sind die Materialübersicht oder die Reservierung nötig – beide sind ausgeschaltet.</div>';
 }
 
 function renderWerkstatt(){
@@ -457,15 +480,10 @@ function renderWerkstatt(){
  const chips=[["alle","Alle"],["ruesten","Zu rüsten"],["montieren","Zu montieren"],["meine","Nur meine"]]
   .map(([k,t])=>`<button type="button" class="status-chip${werkFilter===k?" aktiv":""}" data-werk-filter="${k}">${esc(t)}</button>`).join("");
  // v3.12: Was jetzt insgesamt ansteht - der Einstieg in den roten Faden.
+ // v3.21: aus werkJetztText(), damit das Nachfuehren nach einem Haken
+ // dieselbe Zeile schreibt wie das Zeichnen.
  const schritte=gruppen.map(g=>({g,n:werkNaechster(g)}));
- const WERK_SCHRITT_TEXT={verfallen:"erneut freigeben",reservieren:"reservieren",
-   zuschneiden:"zuschneiden",einteilen:"einteilen",ruesten:"rüsten",montieren:"montieren"};
- const zaehlung={};
- schritte.forEach(x=>{if(x.n.k!=="fertig")zaehlung[x.n.k]=(zaehlung[x.n.k]||0)+1});
- const zt=Object.keys(zaehlung).map(k=>zaehlung[k]+" × "+WERK_SCHRITT_TEXT[k]).join(" · ");
- let h=`<div class="werk-jetzt">${zt
-   ?"<b>Jetzt dran:</b> "+esc(zt)
-   :"<b>Nichts offen</b> – in der Werkstatt wartet gerade kein Schritt."}</div>`
+ let h=`<div class="werk-jetzt" data-werk-jetzt="1">${werkJetztText()}</div>`
   +`<div class="status-filter">${chips}</div>`;
  if(!gruppen.length){
   h+=`<div class="small" style="color:var(--muted)">${werkFilter==="alle"
@@ -479,6 +497,9 @@ function renderWerkstatt(){
   const offen=werkOffen===(g.projectId||0);
   const zahl=[g.zuRuesten?g.zuRuesten+" zu rüsten":"",g.zuMontieren?g.zuMontieren+" zu montieren":""]
     .filter(Boolean).join(" · ");
+  // v3.21: Die Karten mit ihren abhakbaren Zuschnittlisten stehen SOFORT da.
+  // Material und Reservierungen sind beim Ruesten die Nebensache und liegen
+  // darunter in einem zugeklappten Bereich, der erst beim Oeffnen laedt.
   return `<div class="card werk-projekt">
    <div class="werk-kopf">
     <div class="werk-kopf-titel"><b>${esc(g.titel)}</b>
@@ -486,14 +507,17 @@ function renderWerkstatt(){
      ${zahl?`<div class="small">${esc(zahl)}</div>`:""}</div>
     <div class="werk-kopf-akt">
      ${g.projectId?`<button type="button" class="gray" data-werk-projekt="${g.projectId}">📂 Projekt</button>`:""}
-     <button type="button" data-werk-auf="${g.projectId||0}">${offen?"Rüstgrundlage schliessen":"Rüstgrundlage anzeigen"}</button>
     </div>
    </div>
    ${werkStreifenHtml(g)}
    ${werkLeisteHtml(g)}
    ${g.aufnahmen.slice().sort((x,y)=>(werkZeileJetzt(y,n.k)?1:0)-(werkZeileJetzt(x,n.k)?1:0))
       .map(a=>werkAufnahmeHtml(a,n.k)).join("")}
-   ${offen?`<div class="werk-grundlage">${werkGrundlageHtml(g)}</div>`:""}
+   ${(werkModulAn("material")||werkModulAn("reservierung"))?`<div class="werk-mehr">
+    <button type="button" class="werk-mehr-knopf" data-werk-auf="${g.projectId||0}" aria-expanded="${offen?"true":"false"}">
+     <span class="werk-mehr-pfeil">${offen?"▾":"▸"}</span> Material und Reservierungen${offen?"":" ansehen"}</button>
+    ${offen?`<div class="werk-grundlage">${werkGrundlageHtml(g)}</div>`:""}
+   </div>`:""}
   </div>`;
  }).join("");
  box.innerHTML=h;
@@ -518,6 +542,9 @@ async function werkstattOeffnen(){
  const m=$("werkstattModal");
  if(m)m.hidden=false;
  werkOffen=null; werkGrundlage=null; werkFilter="alle";
+ // Jede neue Sitzung an der Abkantbank faengt frisch an: fertige Karten sind
+ // wieder zugeklappt, bis jemand sie ausdruecklich oeffnet.
+ werkOffenKarte.clear();
  const box=$("werkstattBody");
  if(box)box.innerHTML='<div class="small">Wird geladen …</div>';
  await werkstattNeuLaden();
@@ -531,8 +558,10 @@ function werkstattKnopfAktualisieren(){
 function werkBlockAnsteuern(projectId){
  const g=werkGruppen().find(x=>(x.projectId||0)===projectId);
  if(!g)return;
+ // v3.21: Der Zuschnitt steht nicht mehr in diesem Bereich, sondern oben in
+ // den Karten. Angesteuert wird deshalb nur noch, was hier wirklich liegt.
  const k=werkNaechster(g).k;
- const el=document.querySelector('[data-werk-block="'+k+'"]');
+ const el=document.querySelector('[data-werk-block="'+(k==="zuschneiden"?"reservieren":k)+'"]');
  if(!el)return;
  el.classList.add("werk-block-dran");
  try{el.scrollIntoView({block:"center",behavior:"smooth"})}catch(e){}
@@ -548,6 +577,10 @@ document.addEventListener("click",async e=>{
 
  const filter=e.target.closest("[data-werk-filter]");
  if(filter){werkFilter=filter.dataset.werkFilter;renderWerkstatt();return}
+
+ // Eine fertige Karte wieder aufklappen (v3.21).
+ const karte=e.target.closest("[data-werk-karte]");
+ if(karte){werkOffenKarte.add(Number(karte.dataset.werkKarte));renderWerkstatt();return}
 
  const auf=e.target.closest("[data-werk-auf]");
  if(auf){

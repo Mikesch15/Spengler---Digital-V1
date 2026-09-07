@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.20.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.21.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -190,24 +190,27 @@ der Streifen einen Knopf, der genau das für das ganze Projekt auf einmal
 erledigt – „📦 Alle reservieren (5)". Die Zahl ist die Zahl der Positionen,
 die noch dahinter stehen; was schon weiter ist, bleibt unberührt.
 
-„Rüstgrundlage anzeigen" klappt auf, was für dieses Projekt gebraucht wird:
-Material, Zuschnitt, Reservierungen und die dafür reservierten Reststücke.
-Das sind genau dieselben Zahlen wie im Projekt selbst – es wird nichts neu
-gerechnet.
+Je Massaufnahme steht eine Karte, und <b>die Zuschnittliste steht darin
+sofort</b> – kein Aufklappen, kein zweiter Klick. <b>Jede Positionsnummer ist
+ein Knopf</b>: ein Tipp hakt dieses Blech als zugeschnitten ab, ein zweiter
+nimmt es zurück. Es ist derselbe Haken wie im Formular der Massaufnahme,
+nicht ein zweiter. Der Stand („2 von 3 zugeschnitten") steht auf der Karte,
+im Streifen des Projekts und ganz oben für alle Projekte zusammen.
 
-Unter <b>3 · Zuschnitt</b> steht je Massaufnahme ihre eigene Zuschnittliste –
-und <b>jede Positionsnummer ist ein Knopf</b>: ein Tipp hakt dieses Blech als
-zugeschnitten ab, ein zweiter nimmt es zurück. Es ist derselbe Haken wie im
-Formular der Massaufnahme, nicht ein zweiter. Der Stand („2 von 3
-zugeschnitten") steht je Karte und im Kopf des Blocks.
+Ist an einer Massaufnahme <b>alles geschnitten</b>, klappt ihre Liste zu und
+die Karte wird grün – was noch offen ist, steht damit vorne. „▸ Zuschnittliste
+zeigen" holt sie zurück. Wer gerade an einer Karte abhakt, behält sie offen,
+auch wenn das letzte Stück sie fertig macht.
 
-Wer die ganze Massaufnahme sehen will, kommt mit <b>„✂️ Zuschnitt 2/3"</b> in
-der Zeile direkt in ihr Zuschnitt-Register; „Zurück" führt in die Werkstatt.
+Wer die ganze Massaufnahme sehen will, kommt mit <b>„✂️ Im Formular"</b> direkt
+in ihr Zuschnitt-Register; „Zurück" führt in die Werkstatt.
 
-Unter <b>2 · Reservierungen</b> steht nur, was man wirklich aus dem Lager holt –
+Ganz unten klappt <b>„Material und Reservierungen"</b> auf, was für dieses
+Projekt gebraucht wird – dieselben Zahlen wie im Projekt selbst, es wird
+nichts neu gerechnet. Dort steht nur, was man wirklich aus dem Lager holt:
 Blech, Halbfabrikate, Zuschnitte. Abgeleitete Masse (Abwicklung, Blechfläche,
-Stückzahl) sind Rechenergebnisse und bleiben hier weg; wie viele es sind,
-steht darunter. Aufräumen lassen sie sich im Projekt unter „Material &amp;
+Stückzahl) sind Rechenergebnisse und bleiben weg; wie viele es sind, steht
+darunter. Aufräumen lassen sie sich im Projekt unter „Material &amp;
 Zuschnitt".
 
 Wurde eine Massaufnahme nach ihrer Freigabe geändert, steht das rot dabei

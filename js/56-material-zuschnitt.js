@@ -138,6 +138,11 @@ async function zeSetzen(mid,nrListe,an,masse){
  const m=zeCache.get(Number(mid))||new Map();
  data.forEach(z=>m.set(Number(z.stueck_nr),z));
  zeCache.set(Number(mid),m);
+ // v3.21: Wer gerade an dieser Karte abhakt, behaelt ihre Liste offen - auch
+ // wenn das letzte Stueck sie fertig macht. Sonst spraenge sie unter dem
+ // Finger weg, und ein versehentlicher Haken waere nur ueber einen
+ // zusaetzlichen Klick zurueckzunehmen.
+ if(typeof werkOffenKarte!=="undefined")werkOffenKarte.add(Number(mid));
  return {fehler:null,anzahl:data.length};
 }
 
