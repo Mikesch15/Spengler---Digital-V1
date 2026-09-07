@@ -17,7 +17,7 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.27, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.28, Branch `main`.**
 
 Die Versionsnummer dieses Abschnitts blieb zwischen Version 3.21 und 3.24
 stehen, obwohl der Code weiterlief – die Abschnitte 127 bis 129 waren
@@ -32,7 +32,7 @@ beide müssen gleich sein, ein Prüfstand erzwingt das.
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.27**
+- sichtbare App-Version: **3.28**
 - **Es wird ausschliesslich direkt auf `main` gearbeitet und
   veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
   Feature-Branch, kein Pull Request.
@@ -22504,3 +22504,141 @@ keine hartcodierten Firmenmaterialien, keine zweite Mindestlängen-Einstellung.
   Offerten. Dazu die Punkte, die nur der Betreiber erledigen kann:
   Schnittfuge eintragen, den Materialbestand füllen, den Schalter
   einschalten, Leaked-Password-Schutz, eigene Domain.
+
+## 133. „MATERIAL ERFASSEN" ÖFFNETE HINTER DEN EINSTELLUNGEN — VERSION 3.28
+
+Gemeldet am 07.09.2026: *„material erfassen die karte öffnet im hintergrund"*.
+Zutreffend – und zwar zum **vierten Mal** dieselbe Falle. Beim Nachmessen kamen
+zwei weitere Fehler derselben Art heraus, die niemand gemeldet hatte.
+**Keine Schemaänderung, keine Migration, keine RLS-Änderung, keine
+Fachrechnung verändert** – zwei CSS-Zeilen und eine HTML-Zeile.
+
+### 133.1 Gemessen, nicht vermutet
+
+Im echten Chromium, über `elementFromPoint` auf dem Mittelpunkt der Karte:
+
+```
+lagerFormHidden:false   ziLagerForm:500   ziSettings:500
+karteRect: 394 × 521 px, sichtbar geoeffnet
+obenAmKartenpunkt: DIV.info   obenIn: "settingsModal"      <- verdeckt
+dokReihenfolge: "lagerForm VOR settings"
+```
+
+Der Dialog war also **offen und trotzdem unbedienbar**: alle `.modal` teilen
+`z-index:500`, dann entscheidet die Reihenfolge im Dokument – und
+`#lagerFormModal` steht auf Zeile 565, `#settingsModal` auf 1563.
+
+Dieselbe Ursache wie beim Zuweisen-Dialog (§110.6), beim Korrigieren-Dialog
+(§115.8) und beim Winkel-Dialog (§117.3).
+
+### 133.2 Zwei Fehler mehr, beide vorbestehend
+
+**(1) Das Hilfefenster lag hinter den hochgesetzten Dialogen.** Alle vier
+Dialoge mit eigenem `z-index` (700/700/750) tragen einen Info-Knopf –
+`#hilfeModal` stand aber auf 500. Gemessen: aus dem Zuweisen-, Korrigieren-
+und Winkel-Dialog heraus öffnete die Hilfe **unsichtbar dahinter**. Der Fehler
+besteht seit v3.05 und ist nie aufgefallen, weil ihn niemand von dort aus
+aufgerufen hat.
+
+**(2) Der Info-Knopf des Dialogs wurde beim Öffnen gelöscht.**
+`lagFormularOeffnen()` setzt den Titel mit
+`titel.textContent = "Material erfassen"` – und der Knopf stand **in**
+derselben `<h2 id="lagerFormTitel">`. Fünfter Fall von §107.6: „Wird eine
+Überschrift per `textContent=` gesetzt, gehört der Text in ein eigenes
+`<span>`". Aufgefallen ist das erst, weil der neue Prüfstand die
+Bedienelemente des Dialogs einzeln misst.
+
+### 133.3 Behoben
+
+```css
+#lagerFormModal{z-index:700}   /* Dialog auf Dialog, wie 110.6/115.8/117.3 */
+#hilfeModal{z-index:2500}      /* ueber allem - auch ueber .sketch-fullscreen (2000) */
+```
+
+Dazu der Titel in ein eigenes `<span>`, mit einem Kommentar in js/59, damit
+der Grund nicht verlorengeht.
+
+**2500 ist bewusst die höchste Ebene der App**: die Hilfe ist von jedem Schirm
+aus erreichbar, auch aus der Skizzen-Vollbildansicht (`z-index:2000`). Darunter
+liegen die Vorschlagslisten (`.suggest`, 1000) und die vier Dialoge.
+
+### 133.4 Geprüft
+
+**`pruefstaende/pruefstand-dialogebenen-v3-28.js` – 28/28**, echtes Chromium
+gegen die echte `index.html`. Geprüft wird die **tatsächliche Überdeckung**
+über `elementFromPoint`, nicht die z-index-Zahl: die kann stimmen und der
+Dialog trotzdem verdeckt sein, sobald ein Dritter dazwischenkommt. Gemessen
+statt geklickt, weil ein verdeckter Knopf `page.click` **hängen** lässt und ein
+hängender Lauf aussieht wie „keine Fehler" (§78).
+
+Abschnitte: der gemeldete Weg (Karte, Speichern, Abbrechen, Info-Knopf und
+**jedes** Eingabefeld einzeln erreichbar) · Schliessen · die Hilfe über sechs
+verschiedenen Schirmen und über der Skizzen-Vollbildansicht · fünf bekannte
+„Dialog über Dialog"-Flows · fünf Bildschirmbreiten.
+
+**Fünf Gegenproben**, jede baut einen echten Fehler ein, jede wirft den
+Prüfstand um, **keine bricht ihn ab**:
+
+| Gegenprobe | Ergebnis |
+|---|---|
+| `#lagerFormModal` ohne eigenes z-index (der gemeldete Fehler) | 17/28 |
+| `#hilfeModal` ohne eigenes z-index | 23/28 |
+| Titel wieder direkt in der `<h2>` (Info-Knopf gelöscht) | 27/28 |
+| z-index gesetzt, aber **zu niedrig** (400 statt 700) | 17/28 |
+| Hilfe auf 1500 – über den Dialogen, unter der Skizzenfläche | 27/28 |
+
+Die vierte ist der Grund, warum die Prüfung die Überdeckung misst und nicht
+die Zahl: eine vorhandene Regel allein beweist nichts.
+
+**Volle Regression grün** – alle **53** Prüfstände, jeder mit **Beendigungscode
+0** (nicht nur `fails=0`, siehe §132.7). Keine bestehende Erwartung musste
+abgeschwächt werden.
+
+**Regierapport nachweislich unverändert**: unter `media:print` mit ausgelöstem
+`beforeprint` **in einem Aufruf hintereinander** gegen den v3.27-Stand
+gerendert, mit angeglichener Versionsnummer (die Fusszeile enthält die
+Uhrzeit, §100.6) – **DOM, Text und Bild byteidentisch**
+(DOM `3b045dd1b670b8d8`, 6797 Zeichen; Bild `89ddd538a70a00d1`, 48 122 Bytes),
+bestätigt durch einen Kontrolllauf desselben Codes.
+
+`node --check` über alle 61 `js/*.js`, `sw.js`, alle 53 Prüfstände und die
+Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung ausgeglichen (Tiefe 0,
+Minimum 0); keine doppelten Element-IDs; alle 61 js-Dateien in `index.html`
+**und** in der Service-Worker-Liste; kein `data-hilfe` ohne Text; Version 3.28
+überall gleich.
+
+**Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 133.5 Merksatz für jeden künftigen Dialog
+
+Ein Dialog, der **über** einem anderen geöffnet wird, braucht ein eigenes
+`z-index` – `.modal` allein genügt nie. Und das Hilfefenster muss über allem
+liegen, was einen Info-Knopf trägt. Beides gehört **gemessen** (Überdeckung
+über `elementFromPoint`), nicht aus der Zahl abgelesen: heute sind es vier
+solche Dialoge, und die Reihenfolge im Dokument entscheidet, sobald zwei
+dieselbe Zahl tragen.
+
+### 133.6 Nebenbei beantwortet: Materialbestand oder Reststück?
+
+Die Frage kam beim Melden auf und stand nirgends knapp beieinander. Ergänzt in
+beiden Hilfetexten und in der Anleitung:
+
+- **Materialbestand** = *neues* Material, wie es eingekauft wird – ganze
+  Tafeln, Rollen, Stangen, mit einer **Menge**. Es wird nichts abgebucht; sein
+  zweiter Zweck ist, der App zu sagen, welche Stärken und Ausführungen eine
+  Materialart im Betrieb überhaupt hat (§132.2).
+- **Reststück** = ein einzelnes, konkretes Stück, das beim Zuschnitt **übrig
+  geblieben** ist – genau eine Länge, eine Breite, meist von einer bestimmten
+  Massaufnahme. Nach der Verwendung ist es verbraucht.
+
+### 133.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+- **„＋ Rest von Hand erfassen" verwendet weiterhin `prompt()`** (zwei
+  Abfragen nacheinander, js/42). Das ist auf einem Tablet unbequem und steht
+  unmittelbar neben dem jetzt richtigen Dialog – §115.8 hat denselben
+  `prompt()`-Weg beim Status-Korrigieren aus genau diesem Grund ersetzt.
+  Nicht gemeldet und nicht Teil dieser Runde, deshalb bewusst nicht mit
+  angefasst.

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.27.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.28.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1096,6 +1096,11 @@ Ausführung kennt, steht im Register <b>📦 Lager</b> unter Materialbestand.</p
 kämen. Ob ein Rest wirklich verbraucht ist, bleibt ein ausdrücklicher Klick.</p>`},
 
 "lagerbestand":{titel:"Materialbestand",text:`
+<p><b>Materialbestand oder Reststück?</b> Der Bestand ist <b>neues</b> Material,
+wie es eingekauft wird – ganze Tafeln, Rollen, Stangen, mit einer Menge. Ein
+<b>Reststück</b> ist ein einzelnes, konkretes Stück, das beim Zuschnitt übrig
+geblieben ist, mit genau einer Länge und Breite. Vom Bestand wird nichts
+abgebucht; ein Reststück ist nach der Verwendung verbraucht.</p>
 <p>Was an <b>neuem</b> Material im Betrieb liegt – Tafeln, Rollen, Stangen.
 Ausdrücklich <b>keine</b> Lagerverwaltung: es wird nichts automatisch
 abgebucht, nichts bestellt und kein Bestand fortgeschrieben.</p>
@@ -1112,6 +1117,9 @@ erfunden. Wird ein Artikel gewählt, schlägt das Formular Stärke und
 Bezeichnung vor – beides bleibt frei änderbar.</p>`},
 
 "reststuecke":{titel:"Reststücke-Lager",text:`
+<p>Ein Reststück ist ein <b>einzelnes, konkretes Stück</b> mit genau einer
+Länge und Breite – nicht zu verwechseln mit dem <b>Materialbestand</b>
+darüber, der das neu eingekaufte Material mit einer Menge führt.</p>
 <p>Was beim Zuschnitt übrig bleibt und sich noch verwenden lässt. Im Register
 „Zuschnitt“ einer Massaufnahme steht, welche Reste dabei anfallen – von dort
 lassen sie sich mit einem Klick hier aufnehmen.</p>

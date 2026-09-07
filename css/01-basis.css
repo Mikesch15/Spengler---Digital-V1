@@ -1181,3 +1181,19 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .werk-fertig-knopf{flex:0 0 auto;width:auto;min-height:42px;padding:8px 14px}
 .werk-fertig-still{color:var(--muted);font-weight:400;border-color:var(--line);
  background:none;font-size:12px}
+
+/* ---- v3.28 Dialoge, die UEBER einem anderen Dialog stehen ----------------
+   Vierter Fall derselben Falle (CLAUDE.md 110.6, 115.8, 117.3): alle .modal
+   teilen z-index 500, dann entscheidet die Reihenfolge im Dokument.
+   "Material erfassen" (#lagerFormModal, Zeile 565) oeffnet aus den
+   Einstellungen (#settingsModal, Zeile 1563) - ohne diese Zeile liegt die
+   Karte HINTER den Einstellungen, sichtbar geoeffnet und doch unbedienbar.
+   Gemessen ueber elementFromPoint, nicht ueber die z-index-Zahl. */
+#lagerFormModal{z-index:700}
+
+/* Das Hilfefenster ist von JEDEM Schirm aus erreichbar - auch aus den vier
+   hochgesetzten Dialogen (700/750) und aus der Skizzen-Vollbildansicht
+   (.sketch-fullscreen, 2000). Es muss deshalb ueber allem liegen; bis v3.27
+   stand es auf 500 und oeffnete aus diesen Dialogen heraus unsichtbar
+   dahinter. Hoechste Ebene der App - darueber kommt nichts mehr. */
+#hilfeModal{z-index:2500}

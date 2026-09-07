@@ -170,6 +170,8 @@ function lagFormularOeffnen(l){
  const box=$("lagerFormBody");
  if(!box)return;
  box.innerHTML=lagFormularHtml(lagBearbeitet);
+ // Der Titel steht in einem eigenen <span> - eine Zuweisung auf die ganze
+ // <h2> wuerde den Info-Knopf darin mitloeschen (CLAUDE.md 107.6).
  const titel=$("lagerFormTitel");
  if(titel)titel.textContent=lagBearbeitet.id?"Material bearbeiten":"Material erfassen";
  const fehler=$("lagerFormFehler");
