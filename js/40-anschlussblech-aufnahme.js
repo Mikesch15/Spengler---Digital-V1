@@ -104,14 +104,21 @@ function anbaRollenbreiten(){
 // Packrechnung wie ueberall (ebaPackeInStreifen, js/29). Es gibt in der App
 // nur EINE.
 function anbaRollenPlan(){
- const bleche=anbaBleche();
+ const alleBleche=anbaBleche();
+// v3.27: passende Reststuecke fallen VOR der Rollenrechnung aus dem Bedarf.
+// Gerechnet wird in restVorabzug() (js/42) mit der bestehenden Packrechnung;
+// bei ausgeschalteter Einstellung kommt die Liste unveraendert zurueck.
+ const vor=ebaVorabzug(alleBleche,{material:(typeof anbaMaterialWert==="function")?anbaMaterialWert():null,
+   abwicklung:alleBleche.length?alleBleche[0].breite:0});
+ const bleche=vor.bleche;
  const breiten=anbaRollenbreiten();
  const netto=anbaFlaecheM2();
  if(!bleche.length||!breiten.length||typeof ebaPackeInStreifen!=="function")
-  return {gruppen:[],moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
+  return {gruppen:[],moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true,
+          ausResten:vor.ausResten};
  const B=bleche[0].breite;
  // Ein Abschnitt ist so lang wie das laengste Stueck.
- const L=Math.max.apply(null,bleche.map(x=>x.laenge));
+ const L=vor.abschnittLaenge||Math.max.apply(null,bleche.map(x=>x.laenge));
  const v=ebaPackeInStreifen(bleche,L);
  const gruppe={breite:B,stuecke:bleche,abschnittLaenge:L,streifen:v.streifen||[]};
  const moeglich=[], zuSchmal=[];
@@ -133,7 +140,7 @@ function anbaRollenPlan(){
    abschnitte:best?best.zeilen[0].abschnitte:0,
    rollenLaenge:best?best.zeilen[0].rollenLaenge:0});
  return {gruppen:[gefuellt],moeglich,zuSchmal,bestes:best,netto,
-   optimal:v.optimal!==false};
+   optimal:v.optimal!==false,ausResten:vor.ausResten};
 }
 // Der Plan in der gemeinsamen Form (js/33).
 function anbaZuschnittPlan(){
@@ -148,7 +155,7 @@ function anbaZuschnittPlan(){
     :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
   streifenbreiten:rp.gruppen.map(g=>g.breite),
   gruppen:rp.gruppen, moeglich:rp.moeglich, netto:rp.netto,
-  zuSchmal:rp.zuSchmal, optimal:rp.optimal!==false};
+  zuSchmal:rp.zuSchmal, ausResten:(rp.ausResten||[]), optimal:rp.optimal!==false};
 }
 
 // ---- Ausmass ----------------------------------------------------------------

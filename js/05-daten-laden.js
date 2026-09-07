@@ -1,7 +1,7 @@
 "use strict";
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
@@ -16,6 +16,11 @@ async function loadAllData(){
   // Das Restsuecke-Lager (v3.04). RLS grenzt auf die eigene Firma ein,
   // der Client filtert bewusst nicht selbst nach company_id.
   sb.from("reststuecke").select("*").eq("verbraucht",false).order("laenge_mm",{ascending:false}),
+  // Der Lagerbestand (v3.27): welche Materialien die Firma grundsaetzlich
+  // fuehrt. Ausdruecklich KEINE Lagerverwaltung - die Menge wird beim
+  // Zuschnitt nicht abgebucht. Der Eintrag traegt Staerke und Ausfuehrung
+  // und macht dadurch erst das exakte Matching der Reste moeglich.
+  sb.from("lagerbestand").select("*").order("bezeichnung"),
  ]);
  // Offline (v2.70): schlaegt das Laden fehl, wird NICHT stillschweigend
  // eine leere App gezeigt - dann kaeme jede Liste als "nichts vorhanden"
@@ -23,7 +28,8 @@ async function loadAllData(){
  // deutlicher Hinweis.
  const geladen={rates:ratesRes.data,materials:materialsRes.data,profiles:profilesRes.data,
   projects:projectsRes.data,appSettings:appSettingsRes.data,bz:bzRes.data,
-  rinne:rinneRes.data,measMaterials:measMaterialsRes.data,rest:restRes?restRes.data:[]};
+  rinne:rinneRes.data,measMaterials:measMaterialsRes.data,rest:restRes?restRes.data:[],
+  lager:lagerRes?lagerRes.data:[]};
  const fehlgeschlagen=[ratesRes,materialsRes,profilesRes,projectsRes,bzRes,rinneRes,measMaterialsRes]
    .some(r=>r&&r.error);
  const firmaId=currentProfile?currentProfile.company_id:null;
@@ -67,6 +73,13 @@ async function loadAllData(){
   blechSchnittfuge=Number(geladen.appSettings.schnittfuge_mm)||0;
   restMindestlaenge=(geladen.appSettings.rest_mindestlaenge_mm===null||geladen.appSettings.rest_mindestlaenge_mm===undefined)
    ?1000:(Number(geladen.appSettings.rest_mindestlaenge_mm)||0);
+  // v3.27: die Mindestbreite kommt NEU dazu, die Mindestlaenge darueber
+  // bleibt unveraendert und wird nicht dupliziert.
+  restMindestbreite=(geladen.appSettings.rest_mindestbreite_mm===null||geladen.appSettings.rest_mindestbreite_mm===undefined)
+   ?100:(Number(geladen.appSettings.rest_mindestbreite_mm)||0);
+  // Duerfen vorhandene Reste in die Zuschnittplanung einfliessen? Vorgabe
+  // AUS - dann rechnet der Zuschnitt exakt wie bis v3.26.
+  resteImZuschnitt=(geladen.appSettings.reste_im_zuschnitt===true);
   if(geladen.appSettings.mad_boden_mass_mm!==null&&geladen.appSettings.mad_boden_mass_mm!==undefined)madBodenMass=Number(geladen.appSettings.mad_boden_mass_mm)||0;
   if(geladen.appSettings.mad_schieber_mass_mm!==null&&geladen.appSettings.mad_schieber_mass_mm!==undefined)madSchieberMass=Number(geladen.appSettings.mad_schieber_mass_mm)||0;
   if(geladen.appSettings.luk_achsabstand_mm!==null&&geladen.appSettings.luk_achsabstand_mm!==undefined)lukAchsabstand=Number(geladen.appSettings.luk_achsabstand_mm)||500;
@@ -82,6 +95,7 @@ async function loadAllData(){
  rinneFittingTypes=geladen.rinne||[];
  measurementMaterials=geladen.measMaterials||[];
  reststuecke=geladen.rest||[];
+ lagerbestand=geladen.lager||[];
  applyCompanyName();
  applyEinlaufblechSettings();
  renderMeasMaterialOptions();

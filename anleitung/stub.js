@@ -49,9 +49,14 @@ window.__demo={
   // der Aufraeum-Knopf wegnimmt. Erfunden wie alles hier.
   {id:4,company_id:"c1",project_id:1,measurement_id:12,material_name:"Titanzink 0.7 mm",bezeichnung:"Stücke (Zuschnitte)",menge:4,einheit:"Stk.",breite_mm:null,laenge_mm:null,status:"benoetigt",reserviert_von:null,reserviert_am:null,notiz:null,created_at:"2026-09-02T07:50:00Z"}
  ],
+ // v3.27: Reste tragen jetzt Material, Staerke und Ausfuehrung - nur damit
+ // laesst sich entscheiden, ob einer wirklich passt. Rest 22 hat die Merkmale
+ // bewusst NICHT: so zeigt das Bild auch, was die App bei einem aelteren Rest
+ // sagt. Alles erfunden.
  reststuecke:[
-  {id:21,company_id:"c1",material_name:"Titanzink 0.7 mm",breite_mm:333,laenge_mm:1450,anzahl:1,verbraucht:false,reserviert_fuer_project_id:1,reserviert_von:"u1",reserviert_am:"2026-09-02T08:05:00Z",notiz:"aus Rinne Südseite",created_at:"2026-08-20T10:00:00Z"},
-  {id:22,company_id:"c1",material_name:"Titanzink",breite_mm:250,laenge_mm:2100,anzahl:1,verbraucht:false,reserviert_fuer_project_id:null,reserviert_von:null,reserviert_am:null,notiz:null,created_at:"2026-08-22T10:00:00Z"}
+  {id:21,company_id:"c1",material_id:1,artikel_id:3,staerke_mm:0.7,ausfuehrung:"blank",material_name:"Titanzinkblech blank",breite_mm:333,laenge_mm:1450,anzahl:1,verbraucht:false,reserviert_fuer_project_id:1,reserviert_von:"u1",reserviert_am:"2026-09-02T08:05:00Z",notiz:"aus Rinne Südseite",created_at:"2026-08-20T10:00:00Z"},
+  {id:22,company_id:"c1",material_id:null,artikel_id:null,staerke_mm:null,ausfuehrung:null,material_name:"Titanzink",breite_mm:250,laenge_mm:2100,anzahl:1,verbraucht:false,reserviert_fuer_project_id:null,reserviert_von:null,reserviert_am:null,notiz:null,created_at:"2026-08-22T10:00:00Z"},
+  {id:23,company_id:"c1",material_id:1,artikel_id:3,staerke_mm:0.7,ausfuehrung:"blank",material_name:"Titanzinkblech blank",breite_mm:620,laenge_mm:2400,anzahl:1,verbraucht:false,reserviert_fuer_project_id:null,reserviert_von:null,reserviert_am:null,notiz:"aus Mauerabdeckung Ost",created_at:"2026-09-03T09:00:00Z"}
  ],
  measurement_versionen:[
   {id:1,company_id:"c1",measurement_id:11,nummer:1,type:"rinne_halbrund",title:"Rinne Nordseite",project_id:1,data:{material:1,rinneAbwicklung:333,groesse:333,segments:[{laenge:8000}]},freigegeben_von:"u1",freigegeben_am:"2026-08-28T15:10:00Z"},

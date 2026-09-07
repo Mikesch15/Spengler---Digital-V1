@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.26</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.27</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -557,6 +557,20 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div class="bar">
 <button id="mwKorrigierenSpeichern" class="green">✓ Status setzen</button>
 <button id="mwKorrigierenAbbrechen" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
+<div id="lagerFormModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2 id="lagerFormTitel">Material erfassen <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerbestand">i</button></h2>
+<div id="lagerFormBody"></div>
+<div class="small" id="lagerFormFehler" style="color:var(--red)" hidden></div>
+<div class="bar">
+<button id="lagerFormSpeichern" class="green">💾 Speichern</button>
+<button id="lagerFormAbbrechen" class="gray">Abbrechen</button>
 </div>
 </div>
 </div>
@@ -1555,6 +1569,7 @@ einer wirkt nicht auf die anderen.</div>
 <button type="button" class="settings-tab active" data-settings-tab="general">Allgemein</button>
 <button type="button" class="settings-tab" data-settings-tab="measurements">Massaufnahmen</button>
 <button type="button" class="settings-tab" data-settings-tab="ausmass">Ausmass</button>
+<button type="button" class="settings-tab" data-settings-tab="lager">📦 Lager</button>
 <button type="button" class="settings-tab" data-settings-tab="protected" id="protectedTabBtn" hidden>🔒 Geschützt</button>
 <button type="button" class="settings-tab" data-settings-tab="feedback" id="feedbackTabBtn" hidden>💬 Feedback</button>
 </div>
@@ -1564,7 +1579,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.26.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 70 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.27.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 72 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -1622,20 +1637,18 @@ Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
 Rollenblech-Zuschnitt.</div>
 <div class="grid">
 <div><label>Schnittfuge (mm)</label><input id="set_schnittfuge" type="number" step="0.5" min="0" max="50" placeholder="0"></div>
-<div><label>Reste aufheben ab (mm)</label><input id="set_restMindest" type="number" step="10" min="0" max="20000" placeholder="1000"></div>
+<div><label>Reste aufheben ab Länge (mm)</label><input id="set_restMindest" type="number" step="10" min="0" max="20000" placeholder="1000"></div>
+<div><label>Reste aufheben ab Breite (mm)</label><input id="set_restMindestBreite" type="number" step="10" min="0" max="5000" placeholder="100"></div>
+<div><label>Reststücke beim Zuschnitt verwenden</label><select id="set_resteImZuschnitt"><option value="nein">Nein – nur speichern und vorschlagen</option><option value="ja">Ja – passende Reste vom Bedarf abziehen</option></select></div>
 </div>
-<div class="small" style="color:var(--muted);margin-top:2px">Schnittfuge 0 mm heisst: es wird gerechnet wie bisher, ohne Abzug. Jeder Schnitt zieht sonst diese Breite ab.</div>
+<div class="small" style="color:var(--muted);margin-top:2px">Schnittfuge 0 mm heisst: es wird gerechnet wie bisher, ohne Abzug. Jeder Schnitt zieht sonst diese Breite ab.
+Ein Rest ist nur verwertbar, wenn er <b>beide</b> Grenzen erfüllt – Länge und Breite. Was darunter liegt, ist Verschnitt.
+Wird die Verwendung eingeschaltet, ziehen passende Reste den Bedarf ab, <b>bevor</b> von der Rolle gerechnet wird –
+verbucht wird dabei nichts, das bleibt ein ausdrücklicher Klick.</div>
 <div class="bar"><button id="saveSchnittfuge" class="green">💾 Speichern</button></div>
 <div class="small" id="set_schnittfugeHinweis" style="margin-top:4px" hidden></div>
 
-<h2 style="margin-top:16px">Reststücke-Lager <button type="button" class="hilfe-knopf no-print" data-hilfe="reststuecke">i</button></h2>
-<div class="info">Reste, die beim Zuschnitt übrig bleiben und sich noch verwenden
-lassen. Aus dem Register „Zuschnitt“ einer Massaufnahme lassen sie sich mit
-einem Klick hier aufnehmen; beim nächsten Zuschnitt werden passende Reste
-vorgeschlagen.</div>
-<div id="restLagerListe"></div>
-<div class="bar"><button type="button" id="restLagerNeu" class="gray">＋ Rest von Hand erfassen</button></div>
-<div class="small" id="restLagerHinweis" style="margin-top:4px" hidden></div>
+<div class="small" style="color:var(--muted);margin-top:8px">Das Lager selbst – Materialbestand und Reststücke – steht im Register <b>📦 Lager</b>.</div>
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="measurements" hidden>
@@ -1865,6 +1878,28 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 <div class="empty">Der Blitzschutzausmass-Materialkatalog findet sich jetzt im Register "🔒 Geschützt".</div>
 </div>
 
+<div class="settings-tab-panel" data-settings-panel="lager" hidden>
+<div class="card">
+<h2>Materialbestand <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerbestand">i</button></h2>
+<div class="info">Was an neuem Material im Betrieb liegt – Tafeln, Rollen, Stangen.
+Gedacht als Nachschlagewerk für den Zuschnitt, <b>nicht</b> als Lagerverwaltung:
+es wird nichts automatisch abgebucht. Material, Stärke und Ausführung kommen aus
+den bestehenden Listen der Firma und werden hier nicht neu erfunden.</div>
+<div id="lagerListe"></div>
+<div class="bar"><button type="button" id="lagerNeu" class="green">＋ Material erfassen</button></div>
+<div class="small" id="lagerHinweis" style="margin-top:4px" hidden></div>
+</div>
+<div class="card">
+<h2>Reststücke <button type="button" class="hilfe-knopf no-print" data-hilfe="reststuecke">i</button></h2>
+<div class="info">Reste, die beim Zuschnitt übrig bleiben und sich noch verwenden
+lassen. Aus dem Register „Zuschnitt“ einer Massaufnahme lassen sie sich mit
+einem Klick hier aufnehmen; beim nächsten Zuschnitt werden passende Reste
+vorgeschlagen.</div>
+<div id="restLagerListe"></div>
+<div class="bar"><button type="button" id="restLagerNeu" class="gray">＋ Rest von Hand erfassen</button></div>
+<div class="small" id="restLagerHinweis" style="margin-top:4px" hidden></div>
+</div>
+</div>
 <div class="settings-tab-panel" data-settings-panel="protected" hidden>
 <div class="settings-section" data-section="sicherung">
 <div class="settings-section-head" data-toggle-section="sicherung"><h2>Datensicherung <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-sicherung">i</button></h2><span class="settings-section-chevron">›</span></div>
@@ -2118,7 +2153,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.26.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.27.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2195,6 +2230,7 @@ nicht neu installieren.</div>
 <script src="js/56-material-zuschnitt.js"></script>
 <script src="js/57-rapport-material.js"></script>
 <script src="js/58-ruestliste.js"></script>
+<script src="js/59-lagerbestand.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

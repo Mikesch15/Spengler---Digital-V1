@@ -258,6 +258,25 @@ function ebaPackeInStreifen(bleche,L,budget){
  }
  return {streifen:gierig,optimal:true};
 }
+// ---- Reststuecke als Eingang (v3.27) --------------------------------------
+// Der EINE Einstiegspunkt fuer alle Rollen-Module. Gerechnet wird in
+// restVorabzug() (js/42) mit ebaVerteile() und ebaStreifenJeAbschnitt() von
+// oben - es entsteht KEINE zweite Packrechnung.
+//
+// Ohne js/42 oder mit ausgeschalteter Einstellung kommt die Liste unveraendert
+// zurueck; die Rollenrechnung darunter verhaelt sich dann exakt wie bis v3.26.
+//
+// abschnittLaenge ist das laengste VERBLEIBENDE Stueck: wird das laengste aus
+// einem Rest geschnitten, wird der Abschnitt von der Rolle entsprechend
+// kuerzer.
+function ebaVorabzug(bleche,kontext){
+ const liste=(bleche||[]).slice();
+ const v=(typeof restVorabzug==="function")?restVorabzug(liste,kontext)
+   :{bleche:liste,ausResten:[],grund:"aus"};
+ const l=(v.bleche||[]).map(x=>Number(x&&x.laenge)||0).filter(x=>x>0);
+ v.abschnittLaenge=l.length?Math.max.apply(null,l):0;
+ return v;
+}
 function ebaTafelLaenge(){
  const l=(ebA.stuecke||[]).map(p=>ebaZahl(p.laenge)).filter(x=>x>0);
  return l.length?Math.max.apply(null,l):0;
@@ -290,13 +309,16 @@ function ebaRollenPlan(){
  // "merkmal" entscheidet in der gemeinsamen Zuschnittliste (js/33), ob zwei
  // Stuecke zusammengefasst werden duerfen. Eine Gehrung macht denselben
  // Zuschnitt zu einem anderen Zuschnitt - sie darf nicht verschwinden.
- const bleche=(ebA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebaZahl(p.laenge),
+ const alleBleche=(ebA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebaZahl(p.laenge),
    merkmal:ebaGehrungText(p)}))
   .filter(x=>x.laenge>0);
- const L=ebaTafelLaenge();
+ const vor=ebaVorabzug(alleBleche,{material:(typeof ebA!=="undefined"&&ebA)?ebA.material:null,abwicklung:A});
+ const bleche=vor.bleche;
+ const L=vor.abschnittLaenge||ebaTafelLaenge();
  const breiten=ebaRollenAktiv();
  if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abschnittLaenge:L};
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abschnittLaenge:L,
+          ausResten:vor.ausResten};
  // Die Streifen haengen nur an der Abschnittlaenge, nicht an der Rollenbreite -
  // deshalb wird EINMAL gepackt.
  const v=ebaPackeInStreifen(bleche,L);
@@ -318,7 +340,8 @@ function ebaRollenPlan(){
  });
  moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.abschnitte-y.abschnitte||y.breite-x.breite);
  return {moeglich,zuSchmal,bestes:moeglich[0]||null,
-         abschnittLaenge:L,verteilung:v,streifen,netto,optimal:v.optimal!==false};
+         abschnittLaenge:L,verteilung:v,streifen,netto,optimal:v.optimal!==false,
+         ausResten:vor.ausResten};
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -526,6 +549,7 @@ function ebaZuschnittPlan(){
     rollenLaenge:best?best.rollenLaenge:0, streifen:plan.streifen}]:[],
   moeglich:plan.moeglich, netto:ebaFlaecheM2(),
   zuSchmal:plan.zuSchmal, zuLang:(plan.verteilung||{}).zuLang||[],
+  ausResten:plan.ausResten||[],
   optimal:plan.optimal!==false};
 }
 function ebaZuschnittHtml(){

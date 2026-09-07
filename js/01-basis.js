@@ -189,6 +189,12 @@ let blechSchnittfuge=0;
 let restMindestlaenge=1000;
 // Das Restsuecke-Lager der Firma, geladen wie die uebrigen Kataloge.
 let reststuecke=[];
+// v3.27: Lagerbestand, Mindestbreite und der Schalter fuer die
+// Reststueckverwendung. Die Vorgaben entsprechen den Spalten-Defaults der
+// Datenbank, damit die App vor dem ersten Laden nichts anderes annimmt.
+let lagerbestand=[];
+let restMindestbreite=100;
+let resteImZuschnitt=false;
 // Masse für die Mauerabdeckung, firmenweit aus app_settings.
 let madBodenMass=0;
 let madSchieberMass=0;

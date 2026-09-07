@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.26";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.27";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.26<br>
+  Version 3.27<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -338,10 +338,13 @@ auch wenn die Firma die Schnittfuge später ändert.</p>
 <h4>Was übrig bleibt</h4>
 <figure><img src="bilder/48-reste.png"><figcaption>Jeder Rest mit seiner Herkunft. Was zu klein ist, verschwindet nicht – es wird nur nicht angeboten.</figcaption></figure>
 <p>Jeder Rest steht mit seiner Herkunft da: <em>Streifen 2</em>, <em>ungenutzte
-Streifen</em> oder <em>seitlicher Rest der 1000er Rolle</em>. Was mindestens so lang ist
-wie die <strong>Mindestlänge</strong> aus den Einstellungen (Startwert 1000 mm), lässt
-sich mit einem Knopf ins <strong>Reststücke-Lager</strong> legen; die App merkt sich
-dabei, aus welcher Massaufnahme und aus welchem Projekt es stammt. Ein zweites Mal
+Streifen</em> oder <em>seitlicher Rest der 1000er Rolle</em>. Aufheben lohnt sich, wenn
+<strong>beide</strong> Grenzen aus den Einstellungen erfüllt sind: die
+<strong>Mindestlänge</strong> (Startwert 1000 mm) <strong>und</strong> die
+<strong>Mindestbreite</strong> (Startwert 100 mm). Ein 6 m langer, 40 mm breiter
+Streifen ist keine Kantung mehr – er zählt als Verschnitt. Was beide Grenzen erfüllt,
+lässt sich mit einem Knopf ins <strong>Reststücke-Lager</strong> legen; die App merkt
+sich dabei, aus welcher Massaufnahme und aus welchem Projekt es stammt. Ein zweites Mal
 einlagern geht nicht – der Knopf sagt dann, dass es schon im Lager liegt.</p>
 <p>Was <strong>zu klein</strong> ist, wird nicht verschwiegen: es steht als eigene Zeile
 mit Stückzahl und Fläche darunter. Nur aufheben lohnt sich nicht.</p>
@@ -351,6 +354,24 @@ verwenden</span> bucht einen aus und hält fest, für welche Massaufnahme er geb
 wurde. <strong>Der Zuschnittplan ändert sich dadurch nicht.</strong> Das ist Absicht: die
 App rechnet den Plan nicht hinter dem Rücken neu, sondern überlässt die Entscheidung dem,
 der vor dem Blech steht.</div>
+
+<h4>Reststücke schon beim Rechnen berücksichtigen</h4>
+<p>Wer will, kann die App die Reste <strong>vor</strong> dem Rollenbedarf einplanen
+lassen. Der Schalter dafür steht unter <em>Einstellungen → Allgemein → Schnittfuge und
+Reste</em> und heisst <span class="tasten">Reststücke beim Zuschnitt verwenden</span>.
+Standardmässig steht er auf <strong>Nein</strong>; dann rechnet die App genau wie
+vorher, und die Reste werden nur gespeichert und vorgeschlagen.</p>
+<p>Auf <strong>Ja</strong> geschaltet passiert Folgendes: bevor der Rollenplan entsteht,
+sucht die App im Lager nach passenden Resten. Was hineinpasst, fällt aus dem
+Rollenbedarf – die Rolle wird dadurch kleiner. Unter der Zuschnittliste steht dann, welche
+Stücke aus welchem Rest kommen.</p>
+<div class="hin"><strong>Das Material muss exakt stimmen.</strong> Ein Rest wird nur
+verwendet, wenn <strong>Materialart, Stärke und Ausführung</strong> genau passen –
+0,70 mm Titanzink blank ist <strong>kein</strong> Ersatz für 0,80 mm Titanzink oder für
+vorbewittertes. Woher die App Stärke und Ausführung des Bedarfs kennt, steht im
+<strong>Materialbestand</strong> (Abschnitt 18): ist dort für eine Materialart genau
+eine Kombination hinterlegt, ist der Bedarf eindeutig. Stehen mehrere da oder gar keine,
+<strong>rät die App nicht</strong> – sie sagt es und zieht keinen Rest ab.</div>
 
 <h3>6 · Ausmass</h3>
 <figure><img src="bilder/11-eb-5-ausmass.png"><figcaption>Das Ausmass entsteht ohne zweite Eingabe aus dem, was erfasst wurde – ohne Artikelnummern und ohne Preise.</figcaption></figure>
@@ -1049,12 +1070,34 @@ ganze Firma oder nur für dieses Gerät – das ist jeweils angeschrieben.</p>
 <figure><img src="bilder/22-einstellungen-allgemein.png"><figcaption>Allgemein: Darstellung, Anzahl der letzten Einträge, Fotoqualität und das Blechlager.</figcaption></figure>
 <div class="hin"><strong>Das Blechlager</strong> (die Rollenbreiten) gilt für die ganze
 Firma und wird von allen Massaufnahmen mit Rollenblech-Zuschnitt verwendet.
-<br><br>Daneben stehen unter <strong>Schnittfuge und Reststücke</strong> zwei Werte,
+<br><br>Daneben stehen unter <strong>Schnittfuge und Reste</strong> vier Werte,
 ebenfalls für die ganze Firma: die <strong>Schnittfuge</strong> in Millimetern
-(Startwert 0 – dann rechnet die App wie vor Version 3.26) und die
-<strong>Mindestlänge</strong>, ab der sich ein Rest aufzuheben lohnt (Startwert
-1000 mm). Beide wirken nur auf <strong>neu</strong> gerechnete Zuschnittpläne; ein
-gespeicherter Plan behält seine Zahlen.</div>
+(Startwert 0 – dann rechnet die App wie vor Version 3.26), die
+<strong>Mindestlänge</strong> und die <strong>Mindestbreite</strong>, ab denen sich ein
+Rest aufzuheben lohnt (Startwerte 1000 mm und 100 mm), und der Schalter
+<strong>Reststücke beim Zuschnitt verwenden</strong> (Startwert <em>Nein</em>). Sie wirken
+nur auf <strong>neu</strong> gerechnete Zuschnittpläne; ein gespeicherter Plan behält
+seine Zahlen.</div>
+
+<figure><img src="bilder/49-lager.png"><figcaption>Das Register „Lager“: Materialbestand und Reststücke an einem Ort.</figcaption></figure>
+<p>Das Register <strong>📦 Lager</strong> hat zwei Karten. Unter
+<strong>Materialbestand</strong> steht, was an neuem Material im Betrieb liegt – je Zeile
+Artikel aus dem Materialkatalog der Firma, Materialart, <strong>Stärke</strong>,
+<strong>Ausführung</strong> (blank, vorbewittert, verzinkt …), Abmessung und Menge.
+Das ist <strong>keine Lagerverwaltung</strong>: es wird nichts abgebucht und nichts
+bestellt. Der Bestand hat einen zweiten, wichtigen Zweck – er sagt der App, welche
+Stärke und welche Ausführung eine Materialart im Betrieb überhaupt hat. Nur dadurch kann
+sie beim Zuschnitt entscheiden, ob ein Rest wirklich passt (Abschnitt 5).</p>
+<div class="hin">Sind für eine Materialart <strong>mehrere</strong> Kombinationen aus
+Stärke und Ausführung hinterlegt – etwa Titanzink 0,70 blank und 0,80 vorbewittert –,
+kann die App aus der Massaufnahme allein nicht ableiten, welche gemeint ist. Sie sagt das
+dann ausdrücklich und <strong>zieht keinen Rest ab</strong>, statt zu raten. Der Zuschnitt
+selbst funktioniert unverändert weiter.</div>
+<p>Die zweite Karte sind die <strong>Reststücke</strong> – dieselbe Liste wie bisher, nur
+jetzt neben dem Materialbestand statt unter „Allgemein“. Jeder Rest trägt Material,
+Stärke, Ausführung, Länge, Breite und seine Herkunft. Fehlt einem älteren Rest die Stärke
+oder die Ausführung, steht das an der Zeile; er wird dann nicht automatisch verwendet,
+bleibt aber gespeichert und lässt sich von Hand nachtragen.</p>
 <p>Unter <strong>Anzeige</strong> steht auch, ob die Aufgabenkarte auf dem
 Startbildschirm zugeklappt oder offen startet – nur für dieses Gerät. Darunter schaltet
 ein Administrator unter <strong>Arbeitsablauf der Massaufnahme</strong> den ganzen
@@ -1200,7 +1243,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.26</strong>, Stand 7. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.27</strong>, Stand 7. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
@@ -1218,9 +1261,15 @@ Ausführung und Masse bleibt beim Spengler.</li>
 Register führen ohnehin durch die Erfassung, und jede Funktion hat ihre eigene
 Kontrolle.</li>
 <li>Der Verschnitt rechnet seit Version 3.26 <strong>mit</strong> der Schnittfuge, und
-jeder Rest wird ausgewiesen (Abschnitt 8). Reste aus dem Lager werden aber weiterhin
-<strong>nicht automatisch eingeplant</strong> – sie werden vorgeschlagen, und der Plan
-bleibt, wie er ist.</li>
+jeder Rest wird ausgewiesen (Abschnitt 8). Ob Reste aus dem Lager vom Bedarf abgezogen
+werden, entscheidet seit Version 3.27 ein Schalter je Firma – ohne ihn werden sie nur
+vorgeschlagen, und der Plan bleibt, wie er ist.</li>
+<li>Der <strong>Materialbestand</strong> ist ein Nachschlagewerk, <strong>keine
+Lagerverwaltung</strong>: es wird nichts abgebucht, nichts bestellt und keine Menge
+automatisch fortgeschrieben.</li>
+<li>Ein Reststück wird immer <strong>ganz</strong> genommen oder gar nicht. Ein Rest
+teilweise zu verbrauchen und den Rest davon wieder einzulagern, kann die App heute
+nicht.</li>
 </ul>
 <h3>Etwas stimmt nicht?</h3>
 <p>Über <span class="tasten">💬 Feedback geben</span> auf dem Startbildschirm. Bitte

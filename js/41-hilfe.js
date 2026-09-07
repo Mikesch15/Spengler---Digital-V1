@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.26.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.27.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1079,22 +1079,52 @@ Rolle in Streifen als auch zwischen zwei Stücken im selben Streifen.</p>
 <p>Steht sie auf <b>0 mm</b>, wird gerechnet wie bisher, ganz ohne Abzug. Das
 ist der Startwert: so ändert sich keine bestehende Zahl, bis der Betrieb den
 echten Wert einträgt.</p>
-<p><b>Reste aufheben ab</b> legt fest, wie lang ein Rest mindestens sein muss,
-damit er im Reststücke-Lager vorgeschlagen wird. Kürzere Reste verschwinden
-nicht stillschweigend: sie stehen im Zuschnitt als <i>zu klein zum Aufheben</i>
-und zählen in der Materialbilanz als echter Verschnitt.</p>
-<p>Eine <b>Mindestbreite</b> gibt es bewusst nicht – ob ein schmaler Streifen
-noch brauchbar ist, entscheidet der Betrieb. Länge und Breite jedes Restes
-stehen deshalb immer dabei.</p>`},
+<p><b>Reste aufheben ab Länge</b> und <b>ab Breite</b> legen zusammen fest, was
+verwertbar ist. Ein Rest muss <b>beide</b> Grenzen erfüllen – ein 6 m langer,
+40 mm breiter Streifen ist keine brauchbare Kantung mehr. Was darunter liegt,
+verschwindet nicht stillschweigend: es steht im Zuschnitt als <i>zu klein zum
+Aufheben</i> und zählt in der Materialbilanz als echter Verschnitt.</p>
+<p><b>Reststücke beim Zuschnitt verwenden</b> ist die einzige Einstellung, die
+die Rechnung ändert. Steht sie auf <i>Nein</i> – das ist der Startwert –,
+werden Reste nur gespeichert und vorgeschlagen; gerechnet wird wie bisher.
+Steht sie auf <i>Ja</i>, ziehen passende Reste den Bedarf ab, <b>bevor</b> von
+der Rolle gerechnet wird.</p>
+<p>Passend heisst: gleiche Materialart, gleiche Stärke, gleiche Ausführung.
+0,70 mm Titanzink ist <b>kein</b> Ersatz für 0,80 mm. Woher die App Stärke und
+Ausführung kennt, steht im Register <b>📦 Lager</b> unter Materialbestand.</p>
+<p>Verbucht wird dabei nichts: der Plan zeigt, welche Stücke aus welchem Rest
+kämen. Ob ein Rest wirklich verbraucht ist, bleibt ein ausdrücklicher Klick.</p>`},
+
+"lagerbestand":{titel:"Materialbestand",text:`
+<p>Was an <b>neuem</b> Material im Betrieb liegt – Tafeln, Rollen, Stangen.
+Ausdrücklich <b>keine</b> Lagerverwaltung: es wird nichts automatisch
+abgebucht, nichts bestellt und kein Bestand fortgeschrieben.</p>
+<p>Der eigentliche Zweck ist ein anderer. Eine Massaufnahme kennt nur die
+<b>Materialart</b> („Titanzink“) – Stärke und Ausführung stehen dort nirgends.
+Erst wenn hier eingetragen ist, welche Stärke und welche Ausführung die Firma
+für diese Materialart führt, weiss die App, was ein passender Rest ist.</p>
+<p>Führt eine Materialart <b>mehrere</b> Kombinationen (0,70 <i>und</i> 0,80),
+wird für sie <b>kein</b> Rest automatisch verwendet – die App rät nicht,
+welche gemeint war. Das steht dann als Hinweis in der Liste.</p>
+<p>Materialarten kommen aus den Massaufnahme-Materialien, Artikel aus dem
+Materialkatalog der Firma. Beides ist firmeneigen und wird hier nicht neu
+erfunden. Wird ein Artikel gewählt, schlägt das Formular Stärke und
+Bezeichnung vor – beides bleibt frei änderbar.</p>`},
 
 "reststuecke":{titel:"Reststücke-Lager",text:`
 <p>Was beim Zuschnitt übrig bleibt und sich noch verwenden lässt. Im Register
 „Zuschnitt“ einer Massaufnahme steht, welche Reste dabei anfallen – von dort
 lassen sie sich mit einem Klick hier aufnehmen.</p>
 <p>Beim nächsten Zuschnitt werden Reste angezeigt, die breit genug wären.
-Sie werden bewusst <b>nicht automatisch eingeplant</b>: ein Rest liegt
-physisch irgendwo und ist vielleicht schon verbraucht. Die Entscheidung
-trifft der Spengler.</p>
+Ob sie den Bedarf auch <b>abziehen</b>, entscheidet die Einstellung
+„Reststücke beim Zuschnitt verwenden“ (Register Allgemein). Sie steht
+standardmässig auf Nein – ein Rest liegt physisch irgendwo und ist vielleicht
+schon verbraucht.</p>
+<p>Auch eingeschaltet wird <b>nichts verbucht</b>: der Plan zeigt nur, welche
+Stücke aus welchem Rest kämen. Verwendet werden darf ein Rest nur, wenn
+Materialart, <b>Stärke</b> und <b>Ausführung</b> exakt stimmen. Fehlt eine
+dieser Angaben, steht das an der Zeile – mit „✏️ Merkmale“ lässt sie sich
+nachtragen.</p>
 <p>„Verbraucht“ nimmt einen Rest aus der Liste, ohne ihn zu löschen.
 <b>Hier verwenden</b> im Zuschnitt tut dasselbe und hält zusätzlich fest, für
 welche Massaufnahme er gebraucht wurde. Der Zuschnittplan wird dadurch

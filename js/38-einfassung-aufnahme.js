@@ -176,14 +176,26 @@ function einfaRollenPlan(){
   if(!nach.has(x.breite))nach.set(x.breite,[]);
   nach.get(x.breite).push(x);
  });
+ // v3.27: passende Reststuecke fallen VOR der Rollenrechnung aus dem Bedarf -
+ // je Gruppe mit DEREN Zuschnittbreite, denn ein Rest muss dazu passen.
+ // Gerechnet wird in restVorabzug() (js/42) mit der bestehenden Packrechnung;
+ // bei ausgeschalteter Einstellung kommt die Liste unveraendert zurueck.
  let optimal=true;
+ const ausResten=[];
  const gruppen=Array.from(nach.keys()).sort((a,b)=>b-a).map(B=>{
-  const liste=nach.get(B);
-  const L=Math.max.apply(null,liste.map(x=>x.laenge));
+  const vor=(typeof ebaVorabzug==="function")
+   ?ebaVorabzug(nach.get(B),{material:einfA&&einfA.material,abwicklung:B})
+   :{bleche:nach.get(B),ausResten:[],abschnittLaenge:0};
+  const liste=vor.bleche||[];
+  (vor.ausResten||[]).forEach(x=>ausResten.push(x));
+  if(!liste.length)return {breite:B,stuecke:[],abschnittLaenge:0,streifen:[]};
+  const L=vor.abschnittLaenge||Math.max.apply(null,liste.map(x=>x.laenge));
   const v=ebaPackeInStreifen(liste,L);
   if(v.optimal===false)optimal=false;
   return {breite:B,stuecke:liste,abschnittLaenge:L,streifen:v.streifen||[]};
- });
+ // Eine Gruppe, deren Stuecke vollstaendig aus Resten kommen, hat fuer die
+ // Rolle nichts mehr - sie faellt raus.
+ }).filter(g=>g.stuecke.length);
  const moeglich=[], zuSchmal=[];
  breiten.forEach(R=>{
   const zeilen=[]; let flaeche=0, passt=true;
@@ -208,7 +220,7 @@ function einfaRollenPlan(){
    jeAbschnitt:best?best.zeilen[i].jeAbschnitt:1,
    abschnitte:best?best.zeilen[i].abschnitte:0,
    rollenLaenge:best?best.zeilen[i].rollenLaenge:0}));
- return {gruppen:gefuellt,moeglich,zuSchmal,bestes:best,netto,optimal};
+ return {gruppen:gefuellt,moeglich,zuSchmal,bestes:best,netto,optimal,ausResten};
 }
 function einfaZuschnittPlan(){
  const rp=einfaRollenPlan();
@@ -221,6 +233,7 @@ function einfaZuschnittPlan(){
       :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
   streifenbreiten:rp.gruppen.map(g=>g.breite),
   gruppen:rp.gruppen, moeglich:rp.moeglich, netto:rp.netto,
+  ausResten:rp.ausResten||[],
   zuSchmal:rp.zuSchmal, optimal:rp.optimal!==false};
 }
 

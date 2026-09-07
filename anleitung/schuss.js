@@ -88,6 +88,18 @@ const liste=[];
   // einer Firma ist 0 mm - hier bewusst 3 mm, damit die Bilder zeigen, was die
   // Materialbilanz tut. Erfunden wie alle Demodaten.
   blechSchnittfuge=3; restMindestlaenge=1000;
+  // v3.27: die zweite Grenze und der Schalter. Der Startwert einer Firma ist
+  // "Nein" - hier bewusst "Ja", damit die Bilder zeigen, was der Vorabzug tut.
+  restMindestbreite=100; resteImZuschnitt=true;
+  // v3.27: der Materialbestand. Er ist zugleich die Bruecke, ueber die die App
+  // Staerke und Ausfuehrung eines Bedarfs kennt (Abschnitt 18). Erfunden.
+  if(typeof lagerbestand!=="undefined")lagerbestand=[
+   {id:1,material_id:1,artikel_id:3,bezeichnung:"Titanzinkblech blank",staerke_mm:0.7,
+    ausfuehrung:"blank",laenge_mm:2000,breite_mm:1000,menge:12,einheit:"Tafel",notiz:null},
+   {id:2,material_id:2,artikel_id:5,bezeichnung:"Kupferblech",staerke_mm:0.6,
+    ausfuehrung:"blank",laenge_mm:2000,breite_mm:1000,menge:4,einheit:"Tafel",notiz:null},
+   {id:3,material_id:3,artikel_id:null,bezeichnung:"Stahlblech verzinkt",staerke_mm:0.75,
+    ausfuehrung:"verzinkt",laenge_mm:null,breite_mm:1000,menge:2,einheit:"Rolle",notiz:"Restrolle"}];
   // Das Reststuecke-Lager fuellt sonst loadAllData(), das hier nicht laeuft.
   if(typeof reststuecke!=="undefined")reststuecke=window.__demo.reststuecke.slice();
   settings.rates=[["Meister",98],["Vorarbeiter",88],["Monteur",76],["Lernender",42]];
@@ -300,6 +312,11 @@ const liste=[];
  await schuss("22-einstellungen-allgemein","#settingsModal .modalbox",{warte:600});
  await page.evaluate(()=>{openSettingsTo("measurements","")});
  await schuss("23-einstellungen-massaufnahmen","#settingsModal .modalbox",{warte:600});
+ // v3.27: das neue Register "Lager" - Materialbestand und Reststuecke.
+ await page.evaluate(()=>{openSettingsTo("lager","");
+   if(typeof renderLagerbestand==="function")renderLagerbestand();
+   if(typeof renderRestLager==="function")renderRestLager();});
+ await schuss("49-lager","#settingsModal .modalbox",{warte:700});
  await page.evaluate(()=>{openSettingsTo("protected","")});
  await schuss("24-einstellungen-geschuetzt","#settingsModal .modalbox",{warte:600});
  await page.evaluate(()=>{$("settingsModal").hidden=true});

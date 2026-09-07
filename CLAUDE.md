@@ -17,20 +17,22 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.25, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.27, Branch `main`.**
 
 Die Versionsnummer dieses Abschnitts blieb zwischen Version 3.21 und 3.24
 stehen, obwohl der Code weiterlief – die Abschnitte 127 bis 129 waren
 bereits geschrieben. Beim Aufräumen im Rahmen von Version 3.25 wurde sie
 gegen `index.html` und `sw.js` geprüft und nachgezogen; der Auftrag ging
-dabei von 3.23 aus, tatsächlich stand `main` auf **3.24**.
+dabei von 3.23 aus, tatsächlich stand `main` auf **3.24**. Dasselbe noch
+einmal bei Version 3.27: der Auftrag ging von 3.25+ aus, tatsächlich stand
+`main` auf **3.26** (siehe Abschnitt 132.1).
 
 Massgeblich ist immer die Versionsnummer in `index.html` und `sw.js` –
 beide müssen gleich sein, ein Prüfstand erzwingt das.
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.25**
+- sichtbare App-Version: **3.27**
 - **Es wird ausschliesslich direkt auf `main` gearbeitet und
   veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
   Feature-Branch, kein Pull Request.
@@ -22236,3 +22238,269 @@ Punkte kennt das Repository nicht, und sie sind deshalb **nicht** umgesetzt:
   zusammenführen, Übersicht für Ausmass und Rapporte, Offerten. Dazu die
   Punkte, die nur der Betreiber erledigen kann: Schnittfuge eintragen, die
   projektlosen Massaufnahmen zuordnen, Leaked-Password-Schutz, eigene Domain.
+
+## 132. LAGERBESTAND, RESTSTÜCK-MERKMALE UND RESTE ALS EINGANG DES ZUSCHNITTS — VERSION 3.27
+
+`Materialbedarf → Lager prüfen → passende Reststücke prüfen → Reste verwenden
+(wenn eingeschaltet und passend) → Neumaterial für den Rest → Zuschnitt planen`
+ist jetzt durchgehend. **Keine zweite Packrechnung, keine parallele
+Reststücktabelle, keine zweite Materialstatuslogik** – die eine Packrechnung
+aus js/29 wurde als Kern **wiederverwendet**, nicht ergänzt.
+
+### 132.1 Der Auftrag ging von v3.25+ aus – `main` stand auf v3.26
+
+Beim Prüfen des tatsächlichen Stands (Auftragspunkt „Vor Beginn IMMER den
+aktuellsten Stand von main prüfen") war `main` = `3a2a776`, Version **3.26**.
+Die Auftragsangabe war also eine Version zu tief. Der Kopf dieses Dokuments
+stimmte seit v3.25 wieder (Abschnitt 130.1) und ist auch hier nachgeführt;
+massgeblich bleiben `index.html` und `sw.js`, deren Gleichheit ein Prüfstand
+erzwingt.
+
+### 132.2 Das fachliche Kernproblem: die Nachfrageseite kennt die Stärke nicht
+
+Auftragspunkt 2 verlangt exaktes Matching – *„0,70 mm Titanzink darf NICHT
+automatisch für 0,80 mm Titanzink verwendet werden."* Gemessen am echten
+Schema, nicht angenommen:
+
+| Tabelle | was sie hat |
+|---|---|
+| `measurement_materials` (was die Massaufnahme kennt) | `name`, `legacy_key`, Dilatationsmasse – **keine Stärke, keine Oberfläche** |
+| `materials` (Artikelliste der Firma) | `edv_nr`, `name`, `dim` – Stärke und Oberfläche stecken **bereits** drin: `103.01 Titanzinkblech blank 0.70`, `103.02 … 0.80`, `103.51 Titanzink vorbewittert blaugrau 0.70` |
+
+Genau das Beispiel des Auftrags steht also schon im Katalog – aber die
+Massaufnahme zeigt nicht darauf. Ohne Brücke wäre exaktes Matching nur zu
+haben, indem alle zwölf Fachmodule um zwei Felder erweitert würden.
+
+**Der Lagerbestand ist die Brücke.** `restBedarfMerkmale(materialId)` sammelt
+die Lagereinträge dieser Materialart:
+
+| Befund im Lager | Folge |
+|---|---|
+| genau **eine** Kombination (Stärke, Ausführung) | Bedarf eindeutig, Matching möglich |
+| **mehrere** | `mehrdeutig` – **kein** Rest wird abgezogen, die App sagt welche Kombinationen sie gefunden hat |
+| **keine** | `kein-lager` – ebenso, mit dem Hinweis, wo es einzutragen wäre |
+
+Die Firma bestimmt damit über ihren **eigenen** Bestand, wie eindeutig eine
+Materialart ist. **Es wird nichts geraten**, und es ist nichts hartcodiert –
+Materialart, Artikel, Stärke und Ausführung kommen ausschliesslich aus den
+bestehenden firmenspezifischen Listen.
+
+### 132.3 Datenmodell (Migration `lager_reststuecke_v3_27`)
+
+Das Modell wurde **vor** der Implementierung schriftlich festgelegt
+(Auftragspunkt 14, Phase 2).
+
+- **`app_settings`**, zwei Spalten: `rest_mindestbreite_mm integer not null
+  default 100`, `reste_im_zuschnitt boolean not null default false`.
+  Die bestehende `rest_mindestlaenge_mm` bleibt **unverändert** und wird
+  ausdrücklich **nicht dupliziert** (Auftragspunkt 3).
+- **`reststuecke`**, drei Spalten statt einer zweiten Tabelle (Auftragspunkt 6):
+  `artikel_id → materials`, `staerke_mm numeric`, `ausfuehrung text`. Die
+  Herkunftslogik aus v3.26 (`measurement_id`, `project_id`,
+  `verbraucht_fuer_measurement_id`) ist unverändert weiterverwendet.
+- **`lagerbestand`** (neu): `company_id default my_company_id()`,
+  `material_id → measurement_materials`, `artikel_id → materials`,
+  `bezeichnung`, `staerke_mm`, `ausfuehrung`, `laenge_mm`, `breite_mm`,
+  `menge`, `einheit`, `notiz`, Ersteller/Bearbeiter. RLS aktiv, **eine**
+  restriktive `tenant_boundary_lagerbestand` plus vier
+  `*_permission`-Policies über `has_permission('materials',…)` – dasselbe
+  Muster wie jede andere Firmentabelle. `company_id` kommt **nie** vom
+  Client. Zwei Trigger: `set_creator_editor_meta_lagerbestand` und
+  `enforce_lager_firma()` (Materialart und Artikel müssen zur eigenen Firma
+  gehören), dazu `enforce_reststueck_artikel()` für die neue
+  Reststück-Spalte – gleiches Muster wie `enforce_permission_override_company()`
+  (Abschnitt 20.6) und `enforce_profile_rate_company()` (v3.16).
+
+Alle drei Erweiterungen sind **additiv**: beide Firmen stehen nach der
+Migration auf `rest_mindestbreite_mm = 100`, `reste_im_zuschnitt = false`,
+`rest_mindestlaenge_mm = 1000` (unverändert) und `schnittfuge_mm = 0`.
+
+### 132.4 Verwertbar heisst: beide Grenzen
+
+    verwertbar := laenge >= rest_mindestlaenge_mm  UND  breite >= rest_mindestbreite_mm
+
+`restVerwertbar(laenge,breite)` in js/42 ist die **eine** Stelle; sie gilt für
+alle drei Restquellen aus v3.26 (Streifenrest, ungenutzter Streifenplatz,
+seitlicher Rand) und für die Stangen-Reste. Ein 6 m langer, 40 mm breiter
+Streifen ist damit kein Reststück mehr, sondern Verschnitt – und wird als
+solcher **ausgewiesen**, nicht weggelassen.
+
+### 132.5 Integration ohne zweite Packrechnung
+
+Auftragspunkt 8 ist ausdrücklich: *„Die bestehende Packrechnung bleibt
+Grundlage. Keine zweite parallele Packrechnung entwickeln."*
+
+Der Schlüssel ist eine geometrische Beobachtung: **ein Reststück ist genau
+ein Abschnitt fester Länge und Breite** – exakt die Form, für die
+`ebaVerteile(stuecke,k,L)` gebaut ist. `restVorabzug(bleche,kontext)` in js/42
+nutzt deshalb dieselben zwei Kernfunktionen wie jedes Modul:
+
+```js
+const n = ebaStreifenJeAbschnitt(rest.breite_mm, A);   // Streifen im Rest
+const v = ebaVerteile(kandidaten, n, rest.laenge_mm);  // die BESTEHENDE Kernfunktion
+```
+
+Was hineinpasst, fällt aus dem Rollenbedarf; der Rest geht **unverändert** in
+`ebaPackeInStreifen()`. Kandidaten werden nach Fläche aufsteigend sortiert,
+damit kleine Reste zuerst aufgebraucht werden statt einen grossen zu
+zerschneiden.
+
+**Bei ausgeschalteter Einstellung – der Vorgabe – kommt die Liste
+byteidentisch zurück.** Das ist die Regressionssicherheit: das Verhalten ist
+dann exakt v3.26. Im Prüfstand gemessen: dieselbe Aufgabe ergibt aus 2,000 m²
+(aus) und 1,005 m² (ein).
+
+Eingehängt ist der Vorabzug über **einen** Einstiegspunkt `ebaVorabzug()`
+(js/29); jedes der elf Rollen-Module ruft ihn mit `{material, abwicklung}` und
+reicht `ausResten` in seinen Plan durch. Die Packrechnung selbst ist
+byteweise unverändert.
+
+**Gebucht wird nichts.** Der Plan schlägt vor; „Hier verwenden" bleibt eine
+ausdrückliche Handlung – dieselbe Philosophie wie seit v3.04 (ein Rest liegt
+physisch irgendwo und ist vielleicht längst weg).
+
+### 132.6 Materialverbrauch: zwei Zeilen mehr, keine zweite Rechnung
+
+Die Materialbilanz aus v3.26 (`zuBilanz`, js/33) bekommt „Aus vorhandenen
+Reststücken" und – wenn Reste im Spiel sind – heisst „Ausgangsmaterial"
+folgerichtig „Neumaterial von der Rolle". Darunter steht, welche Stücke aus
+welchem Rest kommen. **Keine zweite Materialrechnung, keine zweite
+Statuskette**: Materialzustand (`material_reservierungen`, js/50) und
+Produktionsfortschritt (`zuschnitt_erledigt`, js/56) bleiben getrennt.
+
+### 132.7 Ein echter Fehler, den erst die Vollregression gezeigt hat
+
+`js/40-anschlussblech-aufnahme.js` bekam beim Einbau des Vorabzugs
+`{material: anbA && anbA.material, …}` – **`anbA` gibt es dort nicht**, das
+Modul liest sein Material über `anbaMaterialWert()` aus dem Feld. Die
+Anschlussblech-Aufnahme warf dadurch beim Öffnen einen `ReferenceError`.
+
+Aufgefallen ist es **nicht** beim Lesen, sondern weil zwei bestehende
+Prüfstände (`cockpit-zurueck-v3-11`, `felder-bleiben-v2-93`) mit Exit-Code 1
+**abbrachen** – ein abgebrochener Lauf sieht aus wie „keine Fehler"
+(CLAUDE.md 78), deshalb misst der Regressionslauf seit dieser Runde
+ausdrücklich den Beendigungscode und nicht nur die Zahl der Fehlschläge.
+
+Dieselbe Klasse Fehler war schon einmal da (js/39 kennt kein `rpA`, sondern
+`rpaMaterialWert()`). Die vier verbliebenen ungeschützten Zugriffe
+(`ebA.material`, `ebkA.material`, `fpA.material`, `lukA.material`) sind
+deshalb auf das `typeof`-Muster umgestellt, das der Rest des Repos in seinen
+Payload-Zeilen ohnehin verwendet.
+
+**Merksatz:** die elf Register-Module halten ihr Material **nicht**
+einheitlich – acht in einem Zustandsobjekt, zwei über eine Funktion. Wer ein
+neues Feld quer durch alle Module reicht, muss die Quelle **je Modul** prüfen,
+nicht aus dem Namensschema ableiten.
+
+### 132.8 Getestet
+
+- **`pruefstaende/pruefstand-lager-reste-v3-27.js` – 70/70**, echtes Chromium
+  gegen die echte `index.html`, über die 20 im Auftrag geforderten Fälle:
+  Mindestlänge bleibt die bestehende · Mindestbreite 100 mm · Rest unter
+  Länge · Rest unter Breite · Rest erfüllt beide · exakt passendes Material ·
+  falsche Stärke wird abgelehnt · falsche Ausführung wird abgelehnt ·
+  Verwendung ein · Verwendung aus · mehrere passende Reste · keine
+  Doppelverwendung · entstehender Rest · Schnittfuge · bestehende Planung
+  ohne Reste · mehrere Streifenbreiten · Offline-Abhaken · Konfliktprüfung ·
+  Rüstliste · Modulschalter · Lagerbestand.
+- **Zwei Runden Gegenproben.** Runde 1 (8 Stück) biss überall, deckte aber
+  auf, dass Stärke und Ausführung nur auf Helfer-Ebene geprüft waren – die
+  Ende-zu-Ende-Prüfungen im echten Plan wurden ergänzt. Runde 2 (10 Stück):
+  jede baut einen echten Fehler ein und wirft den Prüfstand um (66–69 von 70).
+- **Eine Gegenprobe liess den Prüfstand zuerst abstürzen statt fehlschlagen**
+  (G3, Ausschalter entfernt → alle Stücke vorab abgezogen → `zuAlleStuecke()`
+  leer → `st[0].nr` wirft). Genau die Schwäche aus CLAUDE.md 78. Der
+  betroffene Abschnitt setzt den Schalter jetzt ausdrücklich aus und
+  behandelt die leere Liste; danach meldet G3 sauber **66/70** mit vier
+  benannten Fehlschlägen und **ohne Absturz**.
+- **Volle Regression grün** – alle **52** Prüfstände im Repo, rund 4990
+  bestandene Prüfungen, **0** Fehlschläge und **kein** Abbruch. Der Lauf
+  misst seit dieser Runde den **Beendigungscode** je Prüfstand, nicht nur
+  die Zahl der Fehlschläge (siehe 132.7). **Keine bestehende Erwartung
+  musste abgeschwächt werden, kein Prüfstand wurde entfernt.**
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.26-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, Abschnitt 100.6) – **DOM, Text und Bild
+  byteidentisch** (DOM `bbb6a4b5ee84f0be`, 6797 Zeichen; Bild
+  `89ddd538a70a00d1`, 48 122 Bytes), bestätigt durch einen Kontrolllauf
+  desselben Codes. `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+  `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 61 `js/*.js`, `sw.js`, alle 52 Prüfstände und die
+  Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung in `index.html`
+  ausgeglichen (Tiefe 0, Minimum 0); keine doppelten Element-IDs; alle 61
+  js-Dateien in `index.html` **und** in der Service-Worker-Liste; Version
+  3.27 in `index.html`, `sw.js`, `js/41-hilfe.js` und `anleitung/README.md`
+  gleich. Die verbliebenen Nennungen von 3.24/3.25 sind **historische**
+  Angaben und wandern nicht mit (Abschnitt 126.7).
+- Alle Schreibtests gegen die Datenbank liefen in `begin; … rollback;`.
+  `get_advisors(security)`: derselbe bekannte Satz wie nach v3.26, **keine
+  neue Art** von Warnung; `lagerbestand` erscheint nicht als „RLS fehlt", die
+  zwei neuen Trigger sind nicht `SECURITY DEFINER` und erscheinen dort nicht.
+
+### 132.9 Anleitung
+
+Nach Regel 108.1 mitgeführt: Abschnitt 5 um **beide** Grenzen und den neuen
+Unterabschnitt „Reststücke schon beim Rechnen berücksichtigen" erweitert
+(mit Hinweiskasten zum exakten Matching), Abschnitt 18 um die vier Werte und
+das neue Register „📦 Lager" (neues Bild `49-lager`), die Schlussliste um
+drei Einschränkungen ergänzt: der Schalter gilt je Firma, der Materialbestand
+ist keine Lagerverwaltung, und ein Rest wird ganz genommen oder gar nicht.
+
+Alle 55 Bildschirmfotos neu erzeugt, PDF v3.27 mit **72 Seiten** (vorher 70),
+keine leere. Die fünf Verweise nachgezogen, das alte PDF gelöscht.
+`pruefstand-hilfe-v3-03` (68/68) erzwingt das mechanisch.
+
+**Zwei Darstellungsfehler kamen dabei heraus, beide am erzeugten Bild
+gesehen und nicht im Code gelesen**: die Aufzählung fehlender Merkmale las
+sich als „Ohne Material und Stärke und Ausführung" (jetzt `restFehltText()`
+mit deutscher Aufzählung), und der Demo-Rest zeigte seine Stärke doppelt
+(„Titanzink 0.7 mm · 0,7 mm · blank" – der Name in `stub.js` ist bereinigt).
+
+### 132.10 Offene fachliche Entscheidungen (Auftragspunkt 17 – nicht geraten)
+
+Keiner dieser Punkte ist halb implementiert; sie sind ausdrücklich offen:
+
+- **Teilverbrauch.** Ein Rest wird heute **ganz** genommen oder gar nicht.
+  Wird nur ein Teil geschnitten, entsteht **kein** automatisches
+  Folgereststück. Grund: die Restgeometrie eines teilbelegten Reststücks ist
+  zweidimensional (Rest der Streifen **plus** seitlicher Rand), und ob der
+  Betrieb ihn überhaupt wieder abtrennt, ist eine Werkstattfrage.
+- **Ein Rest als Quelle mehrerer Zuschnitte** – technisch möglich, aber nicht
+  gebucht.
+- **Rest aus Rest** entsteht damit ebenfalls nicht automatisch.
+- **Lagerplatten mit Menge**: der Bestand wird beim Zuschnitt **nicht**
+  abgebucht. Der Materialbestand ist ein Nachschlagewerk, keine
+  Bestandsführung.
+- **Die Schnittfuge steht bei beiden Firmen weiterhin auf 0 mm**, und
+  `reste_im_zuschnitt` auf `false` – der ganze Vorabzug ist damit noch nie
+  mit echten Firmendaten gelaufen.
+
+### 132.11 Bewusst nicht gebaut
+
+Keine Lagerverwaltung, kein ERP, keine Lieferanten- oder Bestelllogik, keine
+Offerten-/Auftragsfunktion, keine Änderung an einer der zwölf
+Massaufnahme-Berechnungen, keine Änderung an der Packrechnung selbst, keine
+zweite Pack-, Material- oder Reststückrechnung, keine zweite Statuskette,
+keine hartcodierten Firmenmaterialien, keine zweite Mindestlängen-Einstellung.
+
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und `css/03-druck.css`
+(Regierapport) sowie sämtliche Fachdateien `js/11`–`js/28` sind nicht im Diff.
+
+### 132.12 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und die Datenbankseite
+  per SQL gegen das echte Produktivschema.
+- Die drei bestehenden Reststücke tragen **keine** Stärke und keine
+  Ausführung (die Spalten sind neu). Sie bleiben gespeichert und werden
+  angezeigt, sind aber **nicht** automatisch verwendbar – das steht an der
+  Zeile, und die Merkmale lassen sich von Hand nachtragen.
+- Vom Ideenzettel weiterhin offen: Bestellliste je Lieferant,
+  Mitarbeiterliste zusammenführen, Übersicht für Ausmass und Rapporte,
+  Offerten. Dazu die Punkte, die nur der Betreiber erledigen kann:
+  Schnittfuge eintragen, den Materialbestand füllen, den Schalter
+  einschalten, Leaked-Password-Schutz, eigene Domain.

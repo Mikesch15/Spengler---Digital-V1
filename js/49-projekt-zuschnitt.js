@@ -49,7 +49,11 @@ function pzuSammeln(liste){
    return;
   }
   const matName=(typeof pmatMaterialName==="function")?pmatMaterialName((m.data||{}).material):"Ohne Material";
-  if(!nachMaterial.has(matName))nachMaterial.set(matName,{material:matName,gruppen:[],quellen:new Map()});
+  // Die Material-ID wird mitgefuehrt, weil der Reststueck-Vorabzug (v3.27)
+  // damit die Merkmale des Lagerbestands nachschlaegt. Der Name allein
+  // genuegt dafuer nicht.
+  if(!nachMaterial.has(matName))nachMaterial.set(matName,
+    {material:matName,materialId:(m.data||{}).material||null,gruppen:[],quellen:new Map()});
   const M=nachMaterial.get(matName);
   M.quellen.set(m.id,m);
   stuecke.forEach(s=>{
@@ -66,8 +70,21 @@ function pzuSammeln(liste){
  // Rollenbreite (v2.89). Gepackt wird mit der gemeinsamen Funktion.
  const raus=[...nachMaterial.values()].map(M=>{
   M.gruppen.sort((a,b)=>b.breite-a.breite);
+  // v3.27: passende Reststuecke fallen VOR der Rollenrechnung aus dem Bedarf -
+  // je Gruppe mit DEREN Streifenbreite. Ueber das ganze Projekt gerechnet ist
+  // das die genauere Zahl als die Summe der einzelnen Plaene: derselbe Rest
+  // kann hier nur EINMAL vergeben werden. Gerechnet wird in restVorabzug()
+  // (js/42) mit der bestehenden Packrechnung; bei ausgeschalteter Einstellung
+  // kommt die Liste unveraendert zurueck.
+  M.ausResten=[];
   M.gruppen.forEach(g=>{
-   g.abschnittLaenge=Math.max.apply(null,g.stuecke.map(x=>x.laenge));
+   const vor=(typeof ebaVorabzug==="function")
+    ?ebaVorabzug(g.stuecke,{material:M.materialId,abwicklung:g.breite})
+    :{bleche:g.stuecke,ausResten:[],abschnittLaenge:0};
+   g.stuecke=vor.bleche||[];
+   (vor.ausResten||[]).forEach(x=>M.ausResten.push(x));
+   if(!g.stuecke.length){g.abschnittLaenge=0;g.streifen=[];g.optimal=true;g.zuLang=[];return}
+   g.abschnittLaenge=vor.abschnittLaenge||Math.max.apply(null,g.stuecke.map(x=>x.laenge));
    const v=(typeof ebaPackeInStreifen==="function")
     ?ebaPackeInStreifen(g.stuecke,g.abschnittLaenge)
     :{streifen:[],optimal:true};
@@ -75,6 +92,9 @@ function pzuSammeln(liste){
    g.optimal=v.optimal!==false;
    g.zuLang=v.zuLang||[];
   });
+  // Eine Gruppe, deren Stuecke vollstaendig aus Resten kommen, hat fuer die
+  // Rolle nichts mehr - sie faellt raus.
+  M.gruppen=M.gruppen.filter(g=>g.stuecke.length);
   M.quellen=[...M.quellen.values()];
   return M;
  }).sort((a,b)=>a.material.localeCompare(b.material,"de"));
@@ -154,6 +174,7 @@ function pzuPlan(M){
   leer:"Für dieses Material ist noch nichts zuzuschneiden.",
   streifenbreiten:(p.gruppen||[]).map(g=>g.breite),
   gruppen:p.gruppen||[], moeglich, netto:p.netto,
+  ausResten:M.ausResten||[],
   zuSchmal:p.zuSchmal, zuLang, optimal:p.optimal!==false};
 }
 

@@ -132,13 +132,19 @@ function ebkaRollenPlan(){
  // Zwei Stuecke gleicher Laenge sind beim konischen Blech nur dann derselbe
  // Zuschnitt, wenn auch die beiden Masse gleich sind - die Verjuengung wird
  // angerissen. Gehrungen ebenso.
- const bleche=(ebkA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebkaZahl(p.laenge),
+ const alleBleche=(ebkA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebkaZahl(p.laenge),
    merkmal:ebkaMerkmal(p)}))
   .filter(x=>x.laenge>0);
- const L=ebkaTafelLaenge();
+// v3.27: passende Reststuecke fallen VOR der Rollenrechnung aus dem Bedarf.
+// Gerechnet wird in restVorabzug() (js/42) mit der bestehenden Packrechnung;
+// bei ausgeschalteter Einstellung kommt die Liste unveraendert zurueck.
+ const vor=ebaVorabzug(alleBleche,{material:(typeof ebkA!=="undefined"&&ebkA)?ebkA.material:null,abwicklung:A});
+ const bleche=vor.bleche;
+ const L=vor.abschnittLaenge||ebkaTafelLaenge();
  const breiten=ebkaRollen();
  if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abschnittLaenge:L};
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abschnittLaenge:L,
+          ausResten:vor.ausResten};
  // Ein Abschnitt ist so lang wie das laengste Stueck - die Streifen haengen
  // deshalb nicht an der Rollenbreite und werden EINMAL gepackt.
  const v=ebaPackeInStreifen(bleche,L);
@@ -159,7 +165,8 @@ function ebkaRollenPlan(){
  });
  moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.abschnitte-y.abschnitte||y.breite-x.breite);
  return {moeglich,zuSchmal,bestes:moeglich[0]||null,abschnittLaenge:L,
-         verteilung:v,streifen,netto,optimal:v.optimal!==false};
+         verteilung:v,streifen,netto,optimal:v.optimal!==false,
+         ausResten:vor.ausResten};
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -409,6 +416,7 @@ function ebkaZuschnittPlan(){
     rollenLaenge:best?best.rollenLaenge:0, streifen:plan.streifen}]:[],
   moeglich:plan.moeglich, netto:ebkaFlaecheM2(),
   zuSchmal:plan.zuSchmal, zuLang:(plan.verteilung||{}).zuLang||[],
+  ausResten:(plan.ausResten||[]),
   optimal:plan.optimal!==false};
 }
 function ebkaZuschnittHtml(){

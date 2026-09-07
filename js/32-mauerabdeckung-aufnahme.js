@@ -181,12 +181,18 @@ function madaRollenbreiten(){
 }
 function madaRollenPlan(){
  const A=Math.round(madaZahl(madaProfilMasse().abwicklung));
- const bleche=madaBleche();
- const L=madaTafelLaenge();
+ const alleBleche=madaBleche();
+// v3.27: passende Reststuecke fallen VOR der Rollenrechnung aus dem Bedarf.
+// Gerechnet wird in restVorabzug() (js/42) mit der bestehenden Packrechnung;
+// bei ausgeschalteter Einstellung kommt die Liste unveraendert zurueck.
+ const vor=ebaVorabzug(alleBleche,{material:madA&&madA.material,abwicklung:A});
+ const bleche=vor.bleche;
+ const L=vor.abschnittLaenge||madaTafelLaenge();
  const breiten=madaRollenbreiten();
  const netto=bleche.reduce((s,x)=>s+x.laenge,0)*A/1e6;
  if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto,abschnittLaenge:L};
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto,
+          abschnittLaenge:L,ausResten:vor.ausResten};
  const v=ebaPackeInStreifen(bleche,L);
  const streifen=v.streifen||[];
  const moeglich=[], zuSchmal=[];
@@ -203,7 +209,8 @@ function madaRollenPlan(){
  });
  moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.abschnitte-y.abschnitte||y.breite-x.breite);
  return {moeglich,zuSchmal,bestes:moeglich[0]||null,abwicklung:A,netto,
-         abschnittLaenge:L,verteilung:v,streifen,optimal:v.optimal!==false};
+         abschnittLaenge:L,verteilung:v,streifen,optimal:v.optimal!==false,
+         ausResten:vor.ausResten};
 }
 
 // ---- Ausmass ---------------------------------------------------------------
@@ -510,6 +517,7 @@ function madaZuschnittPlan(){
     rollenLaenge:best?best.rollenLaenge:0, streifen:rp.streifen}]:[],
   moeglich:rp.moeglich, netto:rp.netto,
   zuSchmal:rp.zuSchmal, zuLang:(rp.verteilung||{}).zuLang||[],
+  ausResten:(rp.ausResten||[]),
   optimal:rp.optimal!==false};
 }
 function madaZuschnittHtml(){

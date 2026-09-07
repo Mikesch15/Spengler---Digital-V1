@@ -162,10 +162,16 @@ function keaRollenbreiten(){
 // Dieselbe Packrechnung wie in allen uebrigen Arten (ebaPackeInStreifen,
 // js/29) - es gibt in der App nur EINE.
 function keaRollenPlan(){
- const A=keaAbwicklung(), bleche=keaBleche(), L=keaTafelLaenge();
+ const A=keaAbwicklung();
+// v3.27: passende Reststuecke fallen VOR der Rollenrechnung aus dem Bedarf.
+// Gerechnet wird in restVorabzug() (js/42) mit der bestehenden Packrechnung;
+// bei ausgeschalteter Einstellung kommt die Liste unveraendert zurueck.
+ const vor=ebaVorabzug(keaBleche(),{material:kehleA&&kehleA.material,abwicklung:A});
+ const bleche=vor.bleche, L=vor.abschnittLaenge||keaTafelLaenge();
  const breiten=keaRollenbreiten(), netto=keaFlaecheM2();
  if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto,abschnittLaenge:L};
+  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto,
+          abschnittLaenge:L,ausResten:vor.ausResten};
  const v=ebaPackeInStreifen(bleche,L);
  const streifen=v.streifen||[];
  const moeglich=[], zuSchmal=[];
@@ -182,7 +188,8 @@ function keaRollenPlan(){
  });
  moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.abschnitte-y.abschnitte||y.breite-x.breite);
  return {moeglich,zuSchmal,bestes:moeglich[0]||null,abwicklung:A,netto,
-         abschnittLaenge:L,verteilung:v,streifen,optimal:v.optimal!==false};
+         abschnittLaenge:L,verteilung:v,streifen,optimal:v.optimal!==false,
+         ausResten:vor.ausResten};
 }
 // Der Plan in der gemeinsamen Form (js/33) - damit sieht der Zuschnitt in
 // allen Arten gleich aus.
@@ -200,6 +207,7 @@ function keaZuschnittPlan(){
     rollenLaenge:best?best.rollenLaenge:0, streifen:rp.streifen}]:[],
   moeglich:rp.moeglich, netto:rp.netto,
   zuSchmal:rp.zuSchmal, zuLang:(rp.verteilung||{}).zuLang||[],
+  ausResten:(rp.ausResten||[]),
   optimal:rp.optimal!==false};
 }
 

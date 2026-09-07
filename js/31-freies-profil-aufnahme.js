@@ -197,24 +197,39 @@ function fpaZuschnittGruppen(){
   g.stuecke.push({nr:i+1,laenge,merkmal});
  });
  gruppen.sort((a,b)=>b.breite-a.breite);
+ // v3.27: passende Reststuecke fallen VOR der Rollenrechnung aus dem Bedarf -
+ // je Gruppe mit DEREN Abwicklung, denn ein Rest muss zur Streifenbreite
+ // passen. Gerechnet wird in restVorabzug() (js/42) mit der bestehenden
+ // Packrechnung; bei ausgeschalteter Einstellung kommt die Liste unveraendert
+ // zurueck.
+ const ausResten=[];
  // Ein Abschnitt ist so lang wie das laengste Stueck DIESER Streifenbreite -
  // die Verteilung haengt damit nicht an der Rollenbreite und wird einmal
  // gepackt. Die Zahl der Abschnitte folgt erst in fpaRollenPlan().
  gruppen.forEach(g=>{
-  g.abschnittLaenge=Math.max.apply(null,g.stuecke.map(x=>x.laenge));
+  const vor=(typeof ebaVorabzug==="function")
+   ?ebaVorabzug(g.stuecke,{material:(typeof fpA!=="undefined"&&fpA)?fpA.material:null,abwicklung:g.breite})
+   :{bleche:g.stuecke,ausResten:[],abschnittLaenge:0};
+  g.stuecke=vor.bleche||[];
+  (vor.ausResten||[]).forEach(x=>ausResten.push(x));
+  if(!g.stuecke.length){g.abschnittLaenge=0;g.streifen=[];g.optimal=true;return}
+  g.abschnittLaenge=vor.abschnittLaenge||Math.max.apply(null,g.stuecke.map(x=>x.laenge));
   const v=(typeof ebaPackeInStreifen==="function")
    ?ebaPackeInStreifen(g.stuecke,g.abschnittLaenge):{streifen:[],optimal:true};
   g.streifen=v.streifen||[];
   g.optimal=v.optimal!==false;
  });
- return {gruppen,ohne};
+ // Eine Gruppe, deren Stuecke vollstaendig aus Resten kommen, hat fuer die
+ // Rolle nichts mehr - sie faellt raus, sonst rechnete die Rollenrechnung mit
+ // einer leeren Liste.
+ return {gruppen:gruppen.filter(g=>g.stuecke.length),ohne,ausResten};
 }
 function fpaRollenPlan(){
- const {gruppen,ohne}=fpaZuschnittGruppen();
+ const {gruppen,ohne,ausResten}=fpaZuschnittGruppen();
  const breiten=fpaRollen();
  const netto=fpaFlaecheM2();
  if(!gruppen.length||!breiten.length)
-  return {gruppen,ohne,moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
+  return {gruppen,ohne,ausResten,moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
  const moeglich=[], zuSchmal=[];
  breiten.forEach(B=>{
   const zeilen=[]; let flaeche=0, passt=true;
@@ -240,7 +255,7 @@ function fpaRollenPlan(){
    jeAbschnitt:best?best.zeilen[i].jeAbschnitt:1,
    abschnitte:best?best.zeilen[i].abschnitte:0,
    rollenLaenge:best?best.zeilen[i].rollenLaenge:0}));
- return {gruppen:gefuellt,ohne,moeglich,zuSchmal,bestes:best,netto,
+ return {gruppen:gefuellt,ohne,ausResten,moeglich,zuSchmal,bestes:best,netto,
          optimal:gruppen.every(g=>g.optimal)};
 }
 
@@ -443,6 +458,7 @@ function fpaZuschnittPlan(){
   streifenbreiten:(p.gruppen||[]).map(g=>g.breite),
   gruppen:p.gruppen||[], moeglich, netto:p.netto,
   zuSchmal:p.zuSchmal, zuLang:[], optimal:p.optimal!==false,
+  ausResten:p.ausResten||[],
   ohne:p.ohne||[]};
 }
 function fpaZuschnittHtml(){

@@ -163,9 +163,15 @@ function zuBilanz(p){
  const gut=reste.filter(r=>!r.zuKlein).reduce((a,r)=>a+flaeche(r),0);
  const klein=reste.filter(r=>r.zuKlein).reduce((a,r)=>a+flaeche(r),0);
  const diff=brutto-netto-fuge-gut-klein;
+ // v3.27: was aus vorhandenen Reststuecken kommt, steht NEBEN der Bilanz -
+ // es ist kein neues Material und darf die Rollenbilanz nicht verfaelschen.
+ // Die Rollenzahlen oben beschreiben nur, was neu von der Rolle kommt.
+ const ausR=(p.ausResten||[]).reduce((a,x)=>a
+   +(x.stuecke||[]).reduce((b,st)=>b+zuZahl(st.laenge),0)*zuZahl(x.breite||0),0);
  return {einheit:"m²",art:"rolle",
   brutto:brutto/1e6,zuschnitte:netto/1e6,fuge:fuge/1e6,fugeBekannt:true,
   verwertbar:gut/1e6,zuKlein:klein/1e6,verlust:(fuge+klein)/1e6,reste,
+  ausResten:ausR/1e6,ausRestenAnzahl:(p.ausResten||[]).length,
   // Toleranz 1 mm² - gerechnet wird exakt, das faengt nur Gleitkommareste.
   aufgeht:Math.abs(diff)<=1};
 }
@@ -545,7 +551,8 @@ die Materialbilanz nicht lückenlos aufstellen – es fehlen Angaben, und es wir
 nichts geschätzt. Sie erscheint, sobald die Massaufnahme einmal neu gespeichert wird.</div></div>`;
  return `<div class="zu-bilanz">
 <div class="small zu-bilanz-kopf">Materialbilanz <span style="color:var(--muted)">– geplant, aus diesem Zuschnitt</span></div>
-${zuBilanzZeile(mm?"Normlänge gesamt":"Ausgangsmaterial",w(b.brutto),null,"zu-bilanz-summe")}
+${zuBilanzZeile(mm?"Normlänge gesamt":(b.ausRestenAnzahl?"Neumaterial von der Rolle":"Ausgangsmaterial"),w(b.brutto),null,"zu-bilanz-summe")}
+${b.ausRestenAnzahl?zuBilanzZeile("Aus vorhandenen Reststücken",w(b.ausResten),null,"zu-bilanz-rest"):""}
 ${zuBilanzZeile("Zuschnitte",w(b.zuschnitte),a(b.zuschnitte))}
 ${b.fugeBekannt?zuBilanzZeile("Schnittfuge",w(b.fuge),a(b.fuge)):""}
 ${zuBilanzZeile("Reste verwertbar",w(b.verwertbar),a(b.verwertbar))}
@@ -557,11 +564,42 @@ ${zuBilanzZeile("Verschnitt (zu klein)",w(b.zuKlein),a(b.zuKlein))}
 </div>`;
 }
 
+// ---------------------------------------------------------------------------
+// Was aus vorhandenen Reststücken geschnitten wird (v3.27)
+// ---------------------------------------------------------------------------
+// Gerechnet hat das restVorabzug() (js/42) mit der BESTEHENDEN Packrechnung;
+// hier wird es nur dargestellt. Der Plan trägt das Ergebnis als p.ausResten.
+//
+// Gebucht ist damit nichts: der Rest wird erst mit "Hier verwenden" als
+// verbraucht vermerkt. Das steht ausdrücklich dabei.
+function zuAusRestenHtml(p){
+ const liste=(p&&p.ausResten)||[];
+ if(!liste.length)return "";
+ const zahl=liste.reduce((a,x)=>a+(x.stuecke||[]).length,0);
+ return `<div class="zu-ausreste">
+<div class="small zu-ausreste-kopf"><b>Aus dem Reststücke-Lager</b> – ${zahl} von
+${zuAlleStuecke(p).length+zahl} Stück lassen sich aus vorhandenen Resten schneiden.</div>
+${liste.map(x=>`<div class="small zu-ausrest">
+<b>${esc(zuMm(x.laenge))} × ${esc(zuMm(x.breite))} mm</b>${
+ x.rest&&x.rest.material_name?" · "+esc(x.rest.material_name):""} →
+${(x.stuecke||[]).map(st=>`<span class="zu-ausrest-nr">${esc(String(st.nr))}</span>`).join(" ")}
+<span style="color:var(--muted)">(${esc((x.stuecke||[]).map(st=>zuMm(st.laenge)+" mm").join(" · "))})</span>
+</div>`).join("")}
+<div class="small" style="color:var(--muted)">Diese Stücke sind unten nicht mehr
+aufgeführt – die Rolle wird nur noch für den Rest gerechnet. <b>Verbucht ist damit
+nichts</b>: der Rest gilt erst dann als verbraucht, wenn er unten ausdrücklich
+verwendet wird.</div>
+</div>`;
+}
+
 function zuschnittHtml(p){
  if(!p)return "";
  const leer=p.art==="stange"?!(p.stangen||[]).length&&!(p.zuLang||[]).length
                             :!(p.gruppen||[]).length;
- if(leer)return `<div class="info">${esc(p.leer||"Noch nichts zuzuschneiden.")}</div>`
+ if(leer)return zuAusRestenHtml(p)
+   +`<div class="info">${esc((p.ausResten||[]).length
+      ?"Für die Rolle bleibt nichts übrig – alle Stücke lassen sich aus vorhandenen Reststücken schneiden."
+      :(p.leer||"Noch nichts zuzuschneiden."))}</div>`
    +zuMeldungenHtml(p);
  // Hauptansicht: die Liste. Alles Technische steht darunter aufklappbar -
  // auf dem Handy zaehlt zuerst, WAS zugeschnitten wird.
@@ -569,7 +607,8 @@ function zuschnittHtml(p){
  // Zuschnitts einlagerbar machen. Hier EINMAL eingehaengt, damit es in jedem
  // Modul erscheint, ohne es zehnmal einzubauen. Fehlt js/42, bleibt es leer.
  const reste=(typeof restBlockHtml==="function")?restBlockHtml(p,p.material):"";
- return `${zuListeHtml(p)}
+ return `${zuAusRestenHtml(p)}
+${zuListeHtml(p)}
 ${zuMeldungenHtml(p)}
 ${zuBilanzHtml(p)}
 ${reste}
