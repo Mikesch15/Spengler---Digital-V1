@@ -248,6 +248,21 @@ function ebaTafelLaenge(){
  const l=(ebA.stuecke||[]).map(p=>ebaZahl(p.laenge)).filter(x=>x>0);
  return l.length?Math.max.apply(null,l):0;
 }
+// v3.19: Eine Gehrung ist eine ECKE, kein Haken. Stossen zwei Stuecke mit
+// "Gehrung rechts" und "Gehrung links" aneinander, ist das dieselbe physische
+// Ecke - sie darf nur einmal zaehlen. Vorher stand dort 2 statt 1.
+// Ein einzelner Haken ohne Gegenstueck (aeusseres Ende, oder der Nachbar wurde
+// wieder abgehakt) ist eine Gehrung fuer sich.
+// Wird auch vom konischen Modul (js/30) benutzt - eine Regel, keine zwei.
+function ebaGehrungAnzahl(stuecke){
+ const l=stuecke||[]; let n=0;
+ for(let i=0;i<l.length;i++){
+  const vor=i>0?l[i-1]:null;
+  if(l[i].gehrungLinks&&!(vor&&vor.gehrungRechts))n++;
+  if(l[i].gehrungRechts)n++;
+ }
+ return n;
+}
 // Kurztext der Gehrungen eines Stuecks - leer, wenn keine vorhanden ist.
 function ebaGehrungText(p){
  const l=p&&p.gehrungLinks, r=p&&p.gehrungRechts;
@@ -305,8 +320,8 @@ function ebaAusmassZeilen(){
  const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
  if(L>0)zeile("Einlaufblech gerade, Abwicklung "+ebaMm(a.abwicklung)+" mm",ebaMeter(L),"m","Summe der Zuschnittlängen");
  if((a.stuecke||[]).length)zeile("Stücke (Zuschnitte)",a.stuecke.length,"Stk.","Stückliste");
- const gehrungen=(a.stuecke||[]).reduce((s,p)=>s+(p.gehrungLinks?1:0)+(p.gehrungRechts?1:0),0);
- if(gehrungen)zeile("Gehrungen",gehrungen,"Stk.","Stückliste");
+ const gehrungen=ebaGehrungAnzahl(a.stuecke);
+ if(gehrungen)zeile("Gehrungen",gehrungen,"Stk.","je Ecke, nicht je Haken");
  const stoss=Math.max(0,(a.stuecke||[]).length-1);
  if(stoss)zeile("Blechstösse",stoss,"Stk.","je Übergang zwischen zwei Stücken");
  if(L>0)zeile("Blechfläche",ebaFlaecheM2().toFixed(2).replace(".",","),"m²","Gesamtlänge × Abwicklung");

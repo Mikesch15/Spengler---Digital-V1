@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.18.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.19.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -526,7 +526,11 @@ Abwicklung – die Kontrolle sagt es.</p>`},
 <p>Aus einer <b>Gesamtlänge</b> lassen sich die Stücke automatisch
 aufteilen – mit Stosslänge und Überlappung aus den Einstellungen.</p>
 <p>Sind für dieses Projekt schon Rinnen erfasst, lassen sich deren Längen
-übernehmen.</p>`},
+übernehmen.</p>
+<p><b>Gehrung:</b> wer „Gehrung rechts" ankreuzt, bekommt am nächsten Stück
+automatisch „Gehrung links" – es ist dieselbe Ecke. Beide Bleche bekommen
+die Gehrungszugabe auf die Länge, im Ausmass zählt die Ecke aber nur
+<b>einmal</b>.</p>`},
 
 "ebk-geometrie":{titel:"Geometrie",text:`
 <p>Anders als beim geraden Einlaufblech hat hier <b>jedes Stück</b> ein
@@ -538,7 +542,10 @@ Stücke: Abwicklung, Dachneigung und Montageseite.</p>`},
 und die Zuschnittlänge.</p>
 <p>Beim Anlegen wird das rechte Mass des vorherigen Stücks als linkes Mass
 übernommen. Danach ist der Wert frei änderbar – eine spätere Änderung
-wirkt nicht rückwirkend.</p>`},
+wirkt nicht rückwirkend.</p>
+<p><b>Gehrung:</b> wie beim geraden Blech – „Gehrung rechts" setzt am
+nächsten Stück automatisch „Gehrung links", weil es dieselbe Ecke ist.
+Beide Bleche bekommen die Zugabe, gezählt wird die Ecke nur <b>einmal</b>.</p>`},
 
 "rh-verlauf":{titel:"Rinnenverlauf",text:`
 <p>Die Rinne wird als Kette aus <b>Abschnitten</b> und <b>Übergängen</b>

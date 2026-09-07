@@ -175,8 +175,10 @@ function ebkaAusmassZeilen(){
  const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
  if(L>0)zeile("Einlaufblech konisch, Abwicklung "+ebkaMm(a.abwicklung)+" mm",ebkaMeter(L),"m","Summe der Zuschnittlängen");
  if((a.stuecke||[]).length)zeile("Stücke (Zuschnitte)",a.stuecke.length,"Stk.","Stückliste");
- const gehrungen=(a.stuecke||[]).reduce((s,p)=>s+(p.gehrungLinks?1:0)+(p.gehrungRechts?1:0),0);
- if(gehrungen)zeile("Gehrungen",gehrungen,"Stk.","Stückliste");
+ // Eine Gehrung ist eine ECKE, kein Haken - dieselbe Regel wie beim geraden
+ // Blech, mit derselben Funktion aus js/29. Keine zweite Zaehlweise.
+ const gehrungen=ebaGehrungAnzahl(a.stuecke);
+ if(gehrungen)zeile("Gehrungen",gehrungen,"Stk.","je Ecke, nicht je Haken");
  const stoss=Math.max(0,(a.stuecke||[]).length-1);
  if(stoss)zeile("Blechstösse",stoss,"Stk.","je Übergang zwischen zwei Stücken");
  if(L>0)zeile("Blechfläche",ebkaFlaecheM2().toFixed(2).replace(".",","),"m²","Gesamtlänge × Abwicklung");
@@ -552,15 +554,24 @@ function ebkaStueckeAusGesamtlaenge(L){
  }));
 }
 // Gehrung: dieselbe Regel wie in js/14 – Zugabe auf die Länge, Winkel 90.
-// Anders als beim geraden Blech setzt das bestehende konische Modul das
-// Nachbarstück NICHT automatisch mit; das bleibt hier genauso.
+// v3.19: Das Nachbarstück wird jetzt AUCH hier mitgesetzt, genau wie beim
+// geraden Blech. "Gehrung rechts" an Stück N und "Gehrung links" an Stück N+1
+// sind dieselbe physische Ecke - wer eine Seite ankreuzt, meint die Ecke.
+// Der in CLAUDE.md 84.7 offengelassene Unterschied ist damit beantwortet.
 function ebkaGehrung(i,seite,an){
  const p=(ebkA.stuecke||[])[i]; if(!p)return;
  const zugabe=ebkaZahl(einlaufblechKonischSettings.gehrungszugabe);
  const key=seite==="links"?"gehrungLinks":"gehrungRechts";
  const war=!!p[key];
  p[key]=!!an;
- if(an&&!war){p.laenge=ebkaZahl(p.laenge)+zugabe; p.winkel=90;}
+ if(an&&!war){
+  p.laenge=ebkaZahl(p.laenge)+zugabe; p.winkel=90;
+  const nachbar=seite==="links"?ebkA.stuecke[i-1]:ebkA.stuecke[i+1];
+  const nkey=seite==="links"?"gehrungRechts":"gehrungLinks";
+  if(nachbar&&!nachbar[nkey]){
+   nachbar[nkey]=true; nachbar.laenge=ebkaZahl(nachbar.laenge)+zugabe; nachbar.winkel=90;
+  }
+ }
  else if(!an&&war)p.laenge=Math.max(0,ebkaZahl(p.laenge)-zugabe);
  if(!p.gehrungLinks&&!p.gehrungRechts)p.winkel=0;
 }

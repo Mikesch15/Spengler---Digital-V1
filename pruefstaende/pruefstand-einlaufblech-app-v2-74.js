@@ -149,6 +149,21 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  await page.waitForTimeout(200);
  // Gehrungszugabe 100 auf beiden Seiten der Ecke, Winkel 90 - Regel aus js/15
  p(geh.nach==="2170,1550"&&geh.winkel===90&&geh.nachbar,"Gehrung setzt Zugabe und Nachbarstueck",geh);
+ // v3.19: Eine Gehrung ist eine ECKE, kein Haken. Stueck 1 "rechts" und
+ // Stueck 2 "links" sind dieselbe physische Ecke - vorher stand 2 statt 1.
+ const anz=await page.evaluate(()=>({
+  ecke:ebaGehrungAnzahl(ebA.stuecke),
+  haken:ebA.stuecke.reduce((s,x)=>s+(x.gehrungLinks?1:0)+(x.gehrungRechts?1:0),0),
+  beide:ebaGehrungAnzahl([{gehrungLinks:true,gehrungRechts:true}]),
+  einzeln:ebaGehrungAnzahl([{gehrungLinks:false,gehrungRechts:false},{gehrungLinks:true,gehrungRechts:false}]),
+  drei:ebaGehrungAnzahl([{gehrungLinks:true,gehrungRechts:true},{gehrungLinks:true,gehrungRechts:true}]),
+  leer:ebaGehrungAnzahl([])
+ }));
+ p(anz.haken===2&&anz.ecke===1,"eine Ecke zaehlt einmal, nicht zwei Haken",anz);
+ p(anz.beide===2,"beide Enden eines einzelnen Stuecks sind zwei Gehrungen",anz);
+ p(anz.einzeln===1,"ein Haken ohne Gegenstueck zaehlt fuer sich",anz);
+ p(anz.drei===3,"zwei Stuecke beidseits gegehrt: aussen + Ecke + aussen",anz);
+ p(anz.leer===0,"ohne Stuecke keine Gehrung",anz);
  const ez=await page.evaluate(()=>{
   document.getElementById("eba_endEnde").click();
   return {laenge:ebA.stuecke[1].laenge, flag:ebA.stuecke[1].endzugabeEnd};
@@ -227,6 +242,8 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  p(!!holen("Blechfl"),"Blechflaeche in m²");
  p(!!holen("Haltebleche"),"Haltebleche, weil GAVA aktiv");
  p(!!holen("Gehrungen"),"Gehrungen aus der Stueckliste");
+ // Stueck 1 rechts + Stueck 2 links = EINE Ecke. Vorher stand hier 2.
+ p(Number((holen("Gehrungen")||{}).menge)===1,"im Ausmass steht 1 Gehrung, nicht 2",holen("Gehrungen"));
  // Mit Wortgrenzen: ohne sie trifft /CHF/i mitten in "Blechflaeche".
  p(!/\bCHF\b|\bFr\.|\bArtikel-?Nr/i.test(am.text),"keine Preise, keine Artikelnummern",
    (am.text.match(/\bCHF\b|\bFr\.|\bArtikel-?Nr/i)||[])[0]);

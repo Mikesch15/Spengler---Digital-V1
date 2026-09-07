@@ -213,15 +213,27 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
  });
  await page.waitForTimeout(200);
  // Gehrungszugabe 100 auf die Laenge, Winkel 90 - Regel aus js/14.
- // Anders als beim geraden Blech wird das Nachbarstueck NICHT mitgesetzt.
- p(geh.nach==="2170,1450"&&geh.winkel===90,"Gehrung setzt Zugabe und Winkel",geh);
- p(geh.nachbar===false,"das Nachbarstueck bleibt unberuehrt (wie im konischen Modul)",geh);
+ // v3.19: Das Nachbarstueck wird jetzt AUCH hier mitgesetzt - "rechts" an
+ // Stueck 1 und "links" an Stueck 2 sind dieselbe physische Ecke. Der in
+ // CLAUDE.md 84.7 offengelassene Unterschied ist damit beantwortet.
+ p(geh.nach==="2170,1550"&&geh.winkel===90,"Gehrung setzt Zugabe und Winkel",geh);
+ p(geh.nachbar===true,"das Nachbarstueck wird mitgesetzt (wie beim geraden Blech)",geh);
+ // Und die Ecke zaehlt trotzdem nur EINMAL - dieselbe Funktion aus js/29.
+ const kanz=await page.evaluate(()=>({
+  zeile:ebkaAusmassZeilen().find(z=>/Gehrungen/i.test(z.bezeichnung)),
+  haken:ebkA.stuecke.reduce((s,x)=>s+(x.gehrungLinks?1:0)+(x.gehrungRechts?1:0),0),
+  einer:typeof ebaGehrungAnzahl==="function"
+ }));
+ p(kanz.einer,"konisch nutzt die Zaehlregel aus js/29, keine zweite",kanz);
+ p(kanz.haken===2&&kanz.zeile&&Number(kanz.zeile.menge)===1,
+   "im Ausmass steht 1 Gehrung, nicht 2",kanz);
  const ez=await page.evaluate(()=>{
   document.getElementById("ebka_endEnde").click();
   return {laenge:ebkA.stuecke[1].laenge, flag:ebkA.stuecke[1].endzugabeEnd};
  });
  await page.waitForTimeout(150);
- p(ez.laenge===1460&&ez.flag===10,"Endzugabe auf das Reststueck",ez);
+ // 1450 + 100 Gehrungszugabe (Nachbarstueck, v3.19) + 10 Endzugabe
+ p(ez.laenge===1560&&ez.flag===10,"Endzugabe auf das Reststueck",ez);
 
  console.log("\nG · Stuecke aus Gesamtlaenge (Weg, den das alte Formular nicht hatte)");
  const auf=await page.evaluate(()=>{

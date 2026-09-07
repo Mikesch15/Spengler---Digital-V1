@@ -20598,3 +20598,143 @@ Stückliste, kein Zuschnitt, keine Packrechnung berührt.
 - „Ansetzen Dila" in der Rinne-Zuschnittliste bleibt abgeleitet (§122.7)
   – es zählt Stückenden, nicht Dilas.
 - Die Reservierung bucht weiterhin **keinen Lagerbestand ab** (§114.11).
+
+## 124. GEHRUNG IST EINE ECKE, KEIN HAKEN — VERSION 3.19
+
+Gemeldet: *„beim einlaufblech gerade, wenn der haken bei gehrung rechts gesetzt
+wird muss automatisch immer beim nächsten stück der haken bei gehrung links
+gesetzt werden, dabei dürfen aber nicht zwei gehrungen erzeugt werden (das
+passiert im moment) … und prüfen ob das beim konischen auch so ist"*
+
+**Keine Schemaänderung, keine Migration, keine RLS-Änderung, keine
+Fachdatei angefasst.**
+
+### 124.1 Der erste Teil war schon da, der zweite war der Fehler
+
+Das automatische Mitsetzen gibt es beim geraden Blech seit v2.74: `ebaGehrung()`
+in js/29 setzt am Nachbarstück die gegenüberliegende Seite und gibt ihm dieselbe
+Gehrungszugabe. Das ist auch richtig – **beide** Bleche müssen für die Ecke
+geschnitten werden.
+
+Falsch war die **Zählung** im Ausmass:
+
+```js
+const gehrungen=(a.stuecke||[]).reduce((s,p)=>s+(p.gehrungLinks?1:0)+(p.gehrungRechts?1:0),0);
+```
+
+Stück 1 „rechts" und Stück 2 „links" sind **dieselbe physische Ecke** – dort
+stand deshalb **2 statt 1**. Genau das meldet der Betrieb.
+
+### 124.2 Gezählt werden Ecken
+
+`ebaGehrungAnzahl(stuecke)` in js/29 – **eine** Funktion, die auch das konische
+Modul benutzt (dasselbe Muster wie `ebaPackeInStreifen`, es gibt keine zweite
+Zählweise):
+
+```js
+for(let i=0;i<l.length;i++){
+ const vor=i>0?l[i-1]:null;
+ if(l[i].gehrungLinks&&!(vor&&vor.gehrungRechts))n++;
+ if(l[i].gehrungRechts)n++;
+}
+```
+
+| Fall | Ecken |
+|---|---|
+| Stück 1 rechts + Stück 2 links | **1** (vorher 2) |
+| ein einzelnes Stück, beide Enden gegehrt | 2 |
+| ein Haken ohne Gegenstück (äusseres Ende, oder der Nachbar wurde wieder abgehakt) | 1 |
+| zwei Stücke, beidseits gegehrt | 3 (aussen + Ecke + aussen) |
+
+Ein einzelner Haken ohne Gegenstück zählt bewusst **für sich**: es ist eine
+gegehrte Kante, die geschnitten werden muss. Die Herkunft der Zeile heisst
+jetzt „je Ecke, nicht je Haken".
+
+**Die Länge bleibt unberührt.** Jedes der beiden Bleche behält seine
+Gehrungszugabe – das ist die physische Wahrheit und wäre falsch zu kürzen.
+Ebenso das `merkmal` in der Zuschnittliste: ein Stück mit Gehrungsschnitt ist
+ein anderer Zuschnitt als ein gerades und darf nicht mit ihm zusammengefasst
+werden (v2.85).
+
+### 124.3 Konisch: die offene Frage aus v2.76 ist beantwortet
+
+Abschnitt 84.7 hatte den Unterschied offengelassen: *„Bei einer Gehrung wird das
+Nachbarstück nicht automatisch mitgesetzt … ob der Unterschied gewollt ist,
+gehört in den Praxistest."* Der Betrieb hat jetzt geantwortet – es ist dieselbe
+Ecke, also gilt dieselbe Regel.
+
+`ebkaGehrung()` (js/30) setzt das Nachbarstück deshalb ebenfalls mit, mit
+demselben Code wie js/29, und zählt über dieselbe Funktion. Die Fachdateien
+js/14 und js/15 sind byteweise unverändert – geändert sind nur die beiden
+Registermodule.
+
+### 124.4 Getestet
+
+- **`pruefstand-einlaufblech-app-v2-74.js` – 105/105** (vorher 99): fünf neue
+  Prüfungen auf die Zählregel (Ecke, beide Enden eines einzelnen Stücks, Haken
+  ohne Gegenstück, zwei Stücke beidseits, leere Liste) und die Gegenprobe im
+  Ausmass („1 Gehrung, nicht 2").
+- **`pruefstand-einlaufblech-konisch-app-v2-76.js` – 116/116** (vorher 113):
+  das Nachbarstück wird jetzt mitgesetzt, die Ecke zählt einmal, und der
+  Prüfstand belegt, dass die Zählfunktion die aus js/29 ist.
+- **Vier Gegenproben**, jede baut einen echten Fehler ein:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | Zählung wieder je Haken (der gemeldete Fehler) | gerade 102/105, konisch 115/116 |
+  | konisch setzt das Nachbarstück nicht mit (Stand bis v3.18) | 112/116 |
+  | gerade setzt das Nachbarstück nicht mit | 101/105 |
+  | nur Ecken zwischen Stücken zählen, Aussenkanten vergessen | 103/105 |
+
+- **Volle Regression: 45 von 46 Prüfständen grün.** Die eine Ausnahme ist
+  `excel-import-v3-04`: **SheetJS lässt sich in diesem Container nicht laden**,
+  beide CDNs sind gesperrt – bekannt und unverändert seit Abschnitt 121.6.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.18-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, 100.6) – **DOM, Text und Bild byteidentisch**
+  (DOM `0f8076fcf1f45a59`, Bild `fcd37b4ea7d6549f`, 59 294 Bytes, Höhe 721 px),
+  bestätigt durch einen Kontrolllauf desselben Codes.
+- `node --check` über alle js-Dateien, `sw.js`, alle Prüfstände und die
+  Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung in `index.html`
+  ausgeglichen (Tiefe 0, Minimum 0); keine doppelten Element-IDs; jede
+  js-Datei in `index.html` **und** in der Service-Worker-Liste; Version 3.19
+  in `index.html` und `sw.js` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 124.5 Anleitung
+
+Nach Regel 108.1 mitgeführt: Abschnitt 8 bekommt „Gehrung: eine Ecke, zwei
+Bleche" mit dem ausdrücklichen Hinweis, dass im Ausmass nur einmal gezählt
+wird, dazu den Satz, dass beim konischen Blech seit 3.19 dasselbe gilt. Die
+Hilfetexte „Stücke" beider Arten ebenso. Alle 50 Bilder neu erzeugt, PDF v3.19
+mit **63 Seiten**, keine leere. Die fünf Verweise nachgezogen, das alte PDF
+gelöscht. `pruefstand-hilfe-v3-03` (68/68) erzwingt das mechanisch.
+
+### 124.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/29-einlaufblech-aufnahme.js` | `ebaGehrungAnzahl()`, Ausmass zählt Ecken |
+| `js/30-einlaufblech-konisch-aufnahme.js` | Nachbarstück wird mitgesetzt, dieselbe Zählregel |
+| `js/41-hilfe.js` | Hilfetexte „Stücke" beider Arten, PDF-Verweis |
+| `index.html`, `sw.js` | Version 3.19 |
+| beide Einlaufblech-Prüfstände | neue Prüfungen, überholte Erwartung konisch |
+| `anleitung/*` | Abschnitt 8, PDF v3.19 |
+
+**Nicht angefasst**: `js/14-freies-profil.js`, `js/15-einlaufblech-stueckliste.js`
+(die Fachdateien), `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie alle übrigen Module.
+
+### 124.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird
+  ausdrücklich nicht als getestet behauptet.**
+- **Das Abhaken wirkt nur in eine Richtung.** Wer „Gehrung rechts" wieder
+  abhakt, verliert am eigenen Stück die Zugabe – das Nachbarstück behält seinen
+  Haken und seine Zugabe. Die Zählung bleibt dabei ehrlich (dann ist es ein
+  Haken ohne Gegenstück, also weiterhin **1**), aber das Nachbarstück muss von
+  Hand abgehakt werden. Bewusst so gelassen, weil der Auftrag ausdrücklich nur
+  das Setzen betraf; ob das Abhaken die Ecke ganz auflösen soll, gehört in den
+  Praxistest.
