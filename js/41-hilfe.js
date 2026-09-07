@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.25.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.26.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -557,8 +557,17 @@ materialsparendste hervor. Unter <i>Einzelheiten</i> stehen der Vergleich
 aller Breiten und die Belegung jedes Streifens.</p>
 <p>Über <i>Rollen für diese Massaufnahme</i> lässt sich einschränken,
 welche Rollen auf diese Baustelle mitkommen.</p>
-<p><b>Wichtig:</b> gerechnet wird ohne Schnittfuge und ohne Reststücke aus
-früheren Aufträgen. Die Zahlen sind deshalb etwas optimistisch.</p>`},
+<p>Die <b>Schnittfuge</b> ist mitgerechnet, sowohl beim Längsteilen der Rolle
+als auch zwischen zwei Stücken im selben Streifen. Steht sie auf 0 mm, kostet
+sie nichts – einzustellen unter <i>Einstellungen → Allgemein</i>.</p>
+<p>Die <b>Materialbilanz</b> darunter zerlegt das Ausgangsmaterial lückenlos in
+Zuschnitte, Schnittfuge, verwertbare Reste und zu kleinen Verschnitt. Die vier
+Zahlen ergeben zusammen immer genau das Ausgangsmaterial; geschätzt wird
+nichts. Sie gilt für <b>diesen gespeicherten Plan</b> – eine später geänderte
+Schnittfuge rechnet ein gedrucktes Blatt nicht um.</p>
+<p><b>Reste aus früheren Aufträgen werden weiterhin nicht automatisch
+eingeplant.</b> Sie werden vorgeschlagen; verwendet wird ein Rest erst, wenn
+jemand ihn ausdrücklich dafür bestimmt.</p>`},
 
 "reg-ausmass":{titel:"Ausmass und Material",text:`
 <p>Entsteht ohne zweite Eingabe aus dem, was du erfasst hast – Längen,
@@ -1071,7 +1080,12 @@ Rolle in Streifen als auch zwischen zwei Stücken im selben Streifen.</p>
 ist der Startwert: so ändert sich keine bestehende Zahl, bis der Betrieb den
 echten Wert einträgt.</p>
 <p><b>Reste aufheben ab</b> legt fest, wie lang ein Rest mindestens sein muss,
-damit er im Reststücke-Lager vorgeschlagen wird.</p>`},
+damit er im Reststücke-Lager vorgeschlagen wird. Kürzere Reste verschwinden
+nicht stillschweigend: sie stehen im Zuschnitt als <i>zu klein zum Aufheben</i>
+und zählen in der Materialbilanz als echter Verschnitt.</p>
+<p>Eine <b>Mindestbreite</b> gibt es bewusst nicht – ob ein schmaler Streifen
+noch brauchbar ist, entscheidet der Betrieb. Länge und Breite jedes Restes
+stehen deshalb immer dabei.</p>`},
 
 "reststuecke":{titel:"Reststücke-Lager",text:`
 <p>Was beim Zuschnitt übrig bleibt und sich noch verwenden lässt. Im Register
@@ -1081,7 +1095,13 @@ lassen sie sich mit einem Klick hier aufnehmen.</p>
 Sie werden bewusst <b>nicht automatisch eingeplant</b>: ein Rest liegt
 physisch irgendwo und ist vielleicht schon verbraucht. Die Entscheidung
 trifft der Spengler.</p>
-<p>„Verbraucht“ nimmt einen Rest aus der Liste, ohne ihn zu löschen.</p>`},
+<p>„Verbraucht“ nimmt einen Rest aus der Liste, ohne ihn zu löschen.
+<b>Hier verwenden</b> im Zuschnitt tut dasselbe und hält zusätzlich fest, für
+welche Massaufnahme er gebraucht wurde. Der Zuschnittplan wird dadurch
+<b>nicht</b> neu gerechnet – er bleibt, wie er gespeichert ist.</p>
+<p>Ein aus einem Zuschnitt aufgenommener Rest merkt sich, aus welcher
+Massaufnahme und welchem Projekt er stammt. Dieselbe Massaufnahme lässt sich
+deshalb nicht zweimal einlagern.</p>`},
 
 "module-test":{titel:"Module in Entwicklung",text:`
 <p>Was hier angehakt ist, sehen <b>nur Administratoren</b> – bei allen Firmen

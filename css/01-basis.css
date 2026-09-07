@@ -627,6 +627,29 @@ label.kam-schalter input[type=checkbox]{width:20px;min-width:20px;height:20px;
 .rest-block{margin:8px 0 4px;padding:8px 10px;border:1px solid var(--line);
   border-radius:8px;background:rgba(127,127,127,.06)}
 .rest-block .bar{margin-top:4px}
+/* Der kleine "Hier verwenden"-Knopf in einer Restzeile. Die globale
+   button-Grundregel macht ihn sonst gross und ueber die volle Breite. */
+.rest-klein-knopf{display:inline-block;width:auto;min-height:26px;padding:2px 8px;
+  margin-left:6px;font-size:11.5px;text-transform:none;vertical-align:baseline}
+.rest-verwendet{font-weight:600}
+
+/* Materialbilanz (v3.26): Ausgangsmaterial -> Schnittfuge -> Zuschnitte ->
+   Reststueck. Bewusst als Flex-Zeilen und NICHT als <table> - die globale
+   Grundregel table{min-width:1000px} wuerde sie sonst aus dem Bild schieben
+   (CLAUDE.md 60.5). */
+.zu-bilanz{margin:8px 0 4px;padding:8px 10px;border:1px solid var(--line);
+  border-radius:8px;background:rgba(127,127,127,.06)}
+.zu-bilanz-kopf{font-weight:700;margin-bottom:4px}
+.zu-bilanz-zeile{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;
+  padding:2px 0;font-size:12.5px;line-height:1.35}
+.zu-bilanz-name{flex:1 1 130px;min-width:0;word-break:break-word;color:var(--muted)}
+.zu-bilanz-wert{flex:0 0 auto;font-variant-numeric:tabular-nums;font-weight:600}
+.zu-bilanz-anteil{flex:0 0 44px;text-align:right;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.zu-bilanz-summe{border-bottom:1px solid var(--line);padding-bottom:4px;
+  margin-bottom:2px}
+.zu-bilanz-summe .zu-bilanz-name{color:inherit;font-weight:700}
+.zu-bilanz-fuss{margin-top:5px;color:var(--muted)}
 
 /* ---- Offline-Warteschlange (v3.04) ------------------------------------ */
 /* Der Knopf erscheint nur, wenn wirklich etwas wartet - er ist deshalb

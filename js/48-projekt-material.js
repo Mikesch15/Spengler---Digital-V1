@@ -75,6 +75,9 @@ function pmatPlanFuer(m){
  const p=zuPlanAusGespeichert(r,breite,"Stück");
  if(!p||!(p.gruppen||[]).length)return null;
  p.erledigtFuer=(m&&m.id!==undefined)?m.id:null;
+ // v3.26: Woher der Plan stammt - fuer die Herkunft eines eingelagerten
+ // Restes (js/42). Reine Zusatzangabe, die Rechnung beruehrt sie nicht.
+ p.projektFuer=(m&&m.project_id!==undefined)?m.project_id:null;
  p.material=pmatMaterialName(d.material);
  return p;
 }

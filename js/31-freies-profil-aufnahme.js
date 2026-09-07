@@ -226,7 +226,7 @@ function fpaRollenPlan(){
    flaeche+=B*rollenLaenge/1e6;
    zeilen.push({breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
                 abschnittLaenge:g.abschnittLaenge,rollenLaenge,
-                streifen:g.streifen.length,restBreite:B-jeAbschnitt*g.breite});
+                streifen:g.streifen.length,restBreite:ebaRestBreite(B,g.breite,jeAbschnitt)});
   });
   if(!passt){zuSchmal.push(B);return}
   moeglich.push({breite:B,zeilen,flaeche,verschnitt:flaeche-netto,
@@ -428,7 +428,10 @@ function fpaZuschnittPlan(){
    streifen:(m.zeilen||[]).reduce((s,z)=>s+z.jeAbschnitt,0),
    rollenLaenge:m.rollenLaenge,
    zeilen:(m.zeilen||[]).map(z=>({breite:z.breite,jeTafel:z.jeTafel,jeAbschnitt:z.jeAbschnitt,
-     abschnitte:z.abschnitte,abschnittLaenge:z.abschnittLaenge,rollenLaenge:z.rollenLaenge})),
+     abschnitte:z.abschnitte,abschnittLaenge:z.abschnittLaenge,rollenLaenge:z.rollenLaenge,
+     // v3.26: der seitliche Rand je Streifenbreite. Fiel bisher hier weg,
+     // deshalb kannte restKandidaten() ihn bei mehreren Breiten gar nicht.
+     restBreite:z.restBreite})),
    flaeche:m.flaeche, verschnitt:m.verschnitt, anteil:m.anteil}));
  const zusatz="Segmente mit gleicher Streifenbreite werden zusammen gepackt."
   +(fpaKonisch()?" Konisch: die Streifenbreite ist die grössere der beiden Abwicklungen – der Zuschnitt muss das breitere Ende enthalten.":"");

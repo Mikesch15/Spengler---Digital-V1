@@ -178,6 +178,20 @@ function ebaStreifenJeAbschnitt(B,A){
  const f=ebaSchnittfuge();
  return Math.floor((b+f)/(a+f));
 }
+// Was neben den Streifen von der Rollenbreite uebrig bleibt - der seitliche
+// Rand ueber die ganze Rollenlaenge. Bis v3.25 stand die Formel elfmal im
+// Code als B - jeAbschnitt*A und zog die Laengsschnitte NICHT ab; der
+// gemeldete Rand war damit um (n-1) Fugen zu breit und ein Rest, den es so
+// gar nicht gibt, waere ins Lager gewandert. Beispiel B=1000, A=250, f=3:
+// drei Streifen brauchen 3*250 + 2*3 = 756 mm, frei sind 244 mm - gemeldet
+// wurden 250 mm. Mit Fuge 0 ist es exakt die alte Zahl, deshalb aendert
+// sich bei beiden Firmen (Vorgabe 0) keine bestehende Angabe.
+function ebaRestBreite(B,A,jeAbschnitt){
+ const b=Number(B)||0, a=Number(A)||0, n=Number(jeAbschnitt)||0;
+ if(b<=0||a<=0||n<1)return 0;
+ const rest=b-n*a-(n-1)*ebaSchnittfuge();
+ return rest>0?rest:0;
+}
 function ebaVerteile(stuecke,k,L,budget){
  if(k<1)return stuecke.length?false:[];
  const fuge=ebaSchnittfuge();
@@ -298,7 +312,7 @@ function ebaRollenPlan(){
   moeglich.push({breite:B,jeTafel:jeAbschnitt,jeAbschnitt,
    abschnitte,abschnittLaenge:L,rollenLaenge,
    streifen:streifen.length, ungenutzteStreifen:abschnitte*jeAbschnitt-streifen.length,
-   restBreite:B-jeAbschnitt*A,
+   restBreite:ebaRestBreite(B,A,jeAbschnitt),
    flaeche, verschnitt:flaeche-netto,
    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
  });

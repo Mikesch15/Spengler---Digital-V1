@@ -80,7 +80,16 @@ const liste=[];
   measurementMaterials=[{id:1,name:"Titanzink",legacy_key:"titanzink",max_abstand_mm:5000,ab_fixpunkt_mm:2500},
                         {id:2,name:"Kupfer",legacy_key:"kupfer",max_abstand_mm:6000,ab_fixpunkt_mm:3000},
                         {id:3,name:"Stahl verzinkt",legacy_key:"stahl",max_abstand_mm:8000,ab_fixpunkt_mm:4000}];
-  blechRollenbreiten=[1000,670,500,330,250];
+  // Ein plausibles Lager. Bewusst OHNE eine Rolle, die genau der Abwicklung
+  // entspricht - sonst gewinnt sie immer, es faellt gar kein Laengsschnitt an,
+  // und die Bilder zeigten eine Schnittfuge von null.
+  blechRollenbreiten=[1000,670,500];
+  // v3.26: Schnittfuge und Mindestlaenge fuer verwertbare Reste. Der Startwert
+  // einer Firma ist 0 mm - hier bewusst 3 mm, damit die Bilder zeigen, was die
+  // Materialbilanz tut. Erfunden wie alle Demodaten.
+  blechSchnittfuge=3; restMindestlaenge=1000;
+  // Das Reststuecke-Lager fuellt sonst loadAllData(), das hier nicht laeuft.
+  if(typeof reststuecke!=="undefined")reststuecke=window.__demo.reststuecke.slice();
   settings.rates=[["Meister",98],["Vorarbeiter",88],["Monteur",76],["Lernender",42]];
   // Demo-Katalog. Er ist bewusst nach dem Muster eines echten Katalogs
   // aufgebaut (Blech in m² mit der Dicke in der Dimension, Halbfabrikate in
@@ -176,6 +185,10 @@ const liste=[];
  await schussGeteilt("09-eb-3-stuecke","#einlaufblechAufnahme",0.52);
  await page.evaluate(()=>ebaSetzeSchritt(4));
  await schussEB("10-eb-4-zuschnitt");
+ // v3.26: die Materialbilanz und der Reststuecke-Block als eigene Bilder -
+ // im Registerschuss oben stehen sie ganz unten und waeren kaum lesbar.
+ await schuss("47-materialbilanz","#einlaufblechAufnahme .zu-bilanz",{warte:200,breite:760});
+ await schuss("48-reste","#einlaufblechAufnahme .rest-block",{warte:200,breite:760});
  await page.evaluate(()=>ebaSetzeSchritt(5));
  await schussEB("11-eb-5-ausmass");
  await page.evaluate(()=>ebaSetzeSchritt(6));

@@ -124,7 +124,7 @@ function anbaRollenPlan(){
   moeglich.push({breite:R,flaeche,verschnitt:flaeche-netto,
     anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,rollenLaenge,
     zeilen:[{breite:B,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,abschnittLaenge:L,
-      rollenLaenge,streifen:gruppe.streifen.length,restBreite:R-jeAbschnitt*B}]});
+      rollenLaenge,streifen:gruppe.streifen.length,restBreite:ebaRestBreite(R,B,jeAbschnitt)}]});
  });
  moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
  const best=moeglich[0]||null;

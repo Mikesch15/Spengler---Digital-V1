@@ -21979,3 +21979,260 @@ nicht an – der Ausdruck ändert sich dadurch nicht.
   erledigen kann: Schnittfuge eintragen, die projektlosen Massaufnahmen
   zuordnen, die abgeleiteten Reservierungszeilen wegräumen,
   Leaked-Password-Schutz, eigene Domain.
+
+## 131. SCHNITTFUGE, RESTSTÜCKE, MATERIALBILANZ — VERSION 3.26
+
+`Ausgangsmaterial → Schnittfuge → Zuschnitte → Reststück` ist jetzt in jedem
+Zuschnitt nachvollziehbar. **Keine zweite Zuschnittrechnung, keine zweite
+Materiallogik, keine zweite Statuskette** – die eine Packrechnung aus js/29
+und die eine Darstellung aus js/33 wurden erweitert, nicht ergänzt.
+
+### 131.1 Der Auftrag ging von v3.25 aus – main stand auf v3.24
+
+Die Versionsangabe im Kopf dieses Dokuments hinkte zwischen v3.21 und v3.24
+hinterher (siehe Abschnitt 2). Sie ist beim Aufräumen im Rahmen von v3.25
+nachgezogen worden; massgeblich sind seither `index.html` und `sw.js`, deren
+Gleichheit ein Prüfstand erzwingt.
+
+### 131.2 Was vorher tatsächlich passierte – gemessen, nicht vermutet
+
+Die Schnittfuge gibt es seit v3.04 (`app_settings.schnittfuge_mm`, firmenweit,
+Vorgabe 0). Sie floss in **zwei** der drei Stellen ein, an denen sie anfällt:
+
+| Stelle | bis v3.25 |
+|---|---|
+| Stücke hintereinander im Streifen (`ebaVerteile`) | ✓ berücksichtigt |
+| Streifen nebeneinander (`ebaStreifenJeAbschnitt`) | ✓ berücksichtigt |
+| **seitlicher Rand** (`restBreite`) | ✗ `B − n·A`, ohne Fugenabzug |
+
+Der dritte Fall stand **elfmal** im Code (js/29, js/30, js/31, js/32, js/34,
+js/36, js/37, js/38, js/39, js/40, js/49). Nachgerechnet: B = 1000, A = 250,
+f = 3 → drei Streifen belegen 3·250 + 2·3 = **756 mm**, frei sind **244 mm**;
+gemeldet wurden 250 mm. Ein Rest, den es so gar nicht gibt, wäre ins Lager
+gewandert. Mit Fuge 0 ist es exakt die alte Zahl – **beide** Firmen stehen auf
+0 (per SQL geprüft), an bestehenden Angaben ändert sich also nichts.
+
+Bei den Resten war die Lücke grösser. `restKandidaten()` (js/42) kannte zwei
+Quellen und liess **vier** Arten von Rest lautlos verschwinden:
+
+1. Reste unter der Mindestlänge wurden nicht einmal erwähnt.
+2. **Ungenutzte Streifenplätze** im letzten Abschnitt – volle Streifen über die
+   ganze Abschnittlänge, oft mehrere Meter.
+3. Bei **mehreren Streifenbreiten** (Freies Profil, Lukarne, Kamin, Einfassung,
+   Rinne, Ort-/Seitenbleche, Projektplan) fand die Funktion den seitlichen Rand
+   gar nicht: `best.restBreite` gibt es dort nicht, er steht je Breite in
+   `best.zeilen[]` – und wurde von `fpaZuschnittPlan()`/`pzuPlan()` beim
+   Speichern **weggelassen**.
+4. Die Rinne halbrund (Normlängen) hatte überhaupt keine Reste.
+
+### 131.3 Das fachliche Modell
+
+Ein **Reststück** ist Material, das nach dem Zuschnitt physisch übrig bleibt
+und sich wiederverwenden lässt. Es entsteht an drei Stellen, alle drei aus dem
+**gespeicherten** Plan ableitbar:
+
+| Quelle | Länge × Breite |
+|---|---|
+| freier Rest am Ende eines belegten Streifens | Rest × Streifenbreite |
+| ungenutzter Streifenplatz | Abschnittlänge × Streifenbreite |
+| seitlicher Rand der Rolle | Rollenlänge × Randbreite |
+
+Verwertbar ist es ab `app_settings.rest_mindestlaenge_mm` (Vorgabe 1000, seit
+v3.04) – die Grenze gilt für die **Länge**, denn ein 6 m langer, 40 mm breiter
+Streifen ist eine brauchbare Kantung, ein 40 mm langer nicht.
+
+**Die Schnittfuge fällt zwischen zwei Stücken an**, nicht am Rand: n Stücke in
+einem Streifen kosten n−1 Fugen, n Streifen nebeneinander ebenfalls n−1. Der
+Trennschnitt Rolle → Abschnitt zählt nicht mit – die Rolle ist an dieser Stelle
+ohnehin zu Ende. Einheit ist mm, eingestellt firmenweit unter *Einstellungen →
+Allgemein*.
+
+**Die Materialbilanz** liest dieselbe Rechnung rückwärts, mit der der Plan
+entstanden ist:
+
+    quer  je Abschnitt:  n·A + (n−1)·Fuge + seitlicher Rand = B
+    längs je Streifen:   Σ Stücke + (n−1)·Fuge + freier Rest = L
+
+    Brutto = Zuschnitte + Schnittfuge + Reste
+    Reste  = freier Rest + ungenutzte Streifenplätze + Rand
+             (geteilt in verwertbar und zu klein)
+    effektiv verloren = Schnittfuge + zu kleine Reste
+
+Sie geht damit **exakt** auf (Toleranz 1 mm² für Gleitkommareste) – der
+Prüfstand rechnet sie in jedem Fall nach.
+
+### 131.4 Eine Quelle, nicht zwei
+
+`zuGeometrie(plan)` in **js/33** ist die einzige Stelle, an der die Geometrie
+eines Plans abgeleitet wird; Materialbilanz **und** Restermittlung lesen von
+dort. Zwei getrennte Ableitungen wären unweigerlich auseinandergelaufen, und
+dann ginge die Bilanz nicht mehr auf.
+
+Ebenso `ebaRestBreite(B,A,jeAbschnitt)` in **js/29** – der seitliche Rand steht
+jetzt einmal statt elfmal im Code. Der Prüfstand hält das mechanisch: jedes
+`restBreite:` im Repo muss über diese Funktion laufen.
+
+Alles kommt aus dem **Plan**, nicht aus der heutigen Einstellung: ein
+gespeicherter Plan wurde mit der Schnittfuge seiner Zeit gerechnet, und die
+Bilanz muss zu dem Plan passen, den sie beschreibt. **Es wird nichts
+nachgerechnet** – ein einmal gedrucktes Blatt bleibt gleich.
+
+**Fehlt einem älteren Plan eine Angabe, wird nichts geschätzt.** Ohne
+Abschnittlänge oder Streifenzahl stellt sich die Bilanz gar nicht erst auf und
+sagt das ausdrücklich („es fehlen Angaben, und es wird nichts geschätzt");
+die **Reste** zeigt `restAlle()` trotzdem, denn ein Streifenrest hängt an der
+Gruppe und braucht die Rollengeometrie nicht.
+
+### 131.5 Reststücke: Herkunft, keine Doppelerfassung, Verwendung
+
+Migration `reststuecke_herkunft_v3_26` – drei nullbare Spalten, keine
+Strukturänderung: `measurement_id`, `project_id`,
+`verbraucht_fuer_measurement_id`, alle mit `ON DELETE SET NULL`. Ein von Hand
+erfasster Rest gehört zu keiner Massaufnahme und behält deshalb `NULL`.
+
+Der Trigger `enforce_reststueck_herkunft()` prüft serverseitig, dass Aufnahme
+und Projekt zur eigenen Firma gehören – gleiches Muster wie
+`enforce_permission_override_company()` (Abschnitt 20.6) und
+`enforce_profile_rate_company()` (v3.16). Die `company_id` kommt weiterhin
+**nie** vom Client.
+
+- **Keine Doppelerfassung.** Vor dem Einlagern fragt die App gezielt nach, ob
+  von genau dieser Massaufnahme schon etwas im Lager liegt – eine Abfrage, nur
+  beim Klick. Der Knopf wird sonst nach jedem Neuzeichnen erneut drückbar und
+  legt dieselben Reste ein zweites Mal an.
+- **„Hier verwenden"** hält fest, dass ein Rest aus dem Lager für diese
+  Massaufnahme gebraucht wurde: `verbraucht = true` plus die Massaufnahme.
+  Der Zuschnittplan wird dadurch **nicht** neu gerechnet – das bleibt die
+  bewusste Entscheidung aus v3.04: ein Rest liegt physisch irgendwo und ist
+  vielleicht schon weg. Geschrieben wird mit `.eq("verbraucht",false)`, damit
+  zwei Personen denselben Rest nicht doppelt vergeben; 0 geänderte Zeilen
+  gelten **nicht** als Erfolg (Abschnitt 24.1).
+- **Was zu klein ist, verschwindet nicht mehr stillschweigend.** Es steht als
+  „Zu klein zum Aufheben (unter n mm): x Stück, zusammen y m² – das ist echter
+  Verschnitt" da.
+
+### 131.6 Ein Fehler, den erst das erzeugte Bild gezeigt hat
+
+Die Fusszeile der Materialbilanz sagte „Für die Schnittfuge ist 0 mm
+hinterlegt", obwohl 3 mm eingestellt waren. `b.fuge` ist die Fuge **dieses
+Plans**, nicht die Einstellung – ein Plan, bei dem jedes Stück allein in seinem
+Streifen liegt und die Rollenbreite ohne Längsschnitt aufgeht, hat auch bei
+3 mm Fuge keine. `zuFugeHinweis()` trennt die beiden Fälle jetzt („In diesem
+Zuschnitt fällt rechnerisch keine Schnittfuge an" gegen „ist 0 mm
+hinterlegt"). Aufgefallen beim Ansehen des Anleitungsbildes, nicht beim Lesen
+des Codes.
+
+### 131.7 Bewusst nicht geändert
+
+- **Die Packrechnung selbst** (`ebaVerteile`, `ebaPackeInStreifen`) – sie
+  berücksichtigt die Fuge zwischen den Stücken seit v3.04 korrekt.
+- **Keine Verrechnung von Resten innerhalb einer Rechnung.** Ein Rest wird
+  vorgeschlagen, nie automatisch eingeplant (v3.04/114.3). Ihn zu verrechnen
+  hiesse, den Plan auf ein Stück Blech zu stützen, das vielleicht längst
+  verbraucht ist.
+- **Keine Bestandsführung**, keine Lieferanten-/Bestelllogik, keine
+  Ausmass-/Offertenfunktion.
+- **Materialzustand und Produktionsfortschritt bleiben getrennt**: der Status
+  einer Reservierung kommt weiterhin aus `material_reservierungen` (js/50), der
+  Zuschnittstand ausschliesslich aus `zuschnitt_erledigt` (js/56). Nichts davon
+  wurde vermischt.
+- Massaufnahme-Berechnungen, Regierapport, `css/03-druck.css`: nicht im Diff.
+
+### 131.8 Getestet
+
+- **`pruefstaende/pruefstand-reste-schnittfuge-v3-26.js` – 73/73**, echtes
+  Chromium gegen die echte `index.html`, mit genau den 14 im Auftrag
+  geforderten Fällen: ein Zuschnitt ohne Rest; einer mit verwertbarem Rest;
+  mehrere Zuschnitte aus einem Ausgangsstück; mehrere Schnittfugen (quer und
+  längs, je nachgerechnet); Rest unter der Mindestgrösse; ein Rest, der später
+  verwendet wird; verschiedene Materialarten und Abmessungen; ein bestehender
+  gespeicherter Zuschnitt bleibt korrekt; Abhaken; Abhaken ohne Verbindung;
+  Konfliktprüfung; Rüstliste; Modulschalter; Sauberkeitsprüfungen (keine
+  zweite Randformel, keine zweite Bilanz).
+- **Zehn Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um; **keine bricht ihn ab** (Abschnitt 78).
+- **Zwei davon deckten echte Lücken im Prüfstand auf** und wurden geschlossen,
+  bevor sie bissen: (1) „Streifenreste hängen wieder an der Geometrie" blieb
+  grün, weil die Testpläne `moeglich:[]` hatten und `zuGeometrie` dann `[]`
+  liefert – Fall 8c ergänzt; (2) die Sauberkeitsprüfung suchte ein
+  Verdachtsmuster, das `Math.max(0,(B)-(je)*(A))` nicht traf – positiv
+  umformuliert: **jedes** `restBreite:` muss über `ebaRestBreite(` laufen.
+- **Vollregression: alle 51 Prüfstände grün**, rund 4990 bestandene Prüfungen,
+  **0** Fehlschläge – darunter die Prüfstände, die dieselben Daten benutzen
+  (`schnittfuge-reste-v3-04` 31/31, `material-zuschnitt-v3-15` 62/62,
+  `werkstatt-zuschnitt-v3-20` 57/57, `ruestliste-offline-v3-23` 71/71,
+  `ablauf-v3-25` 49/49). **Keine bestehende Erwartung musste abgeschwächt
+  werden.**
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.25-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, Abschnitt 100.6) – **DOM, Text und Bild byteidentisch**
+  (DOM `2e01d781016108f8`, Text `0e9c0b99cb54e5cc`, Bild `89ddd538a70a00d1`),
+  bestätigt durch einen Kontrolllauf desselben Codes.
+- `node --check` über alle 60 `js/*.js`, `sw.js` und alle 51 Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs; alle 60 js-Dateien in `index.html`
+  **und** in der Service-Worker-Liste; kein `data-hilfe` ohne Text; Version
+  3.26 in `index.html`, `sw.js`, `js/41-hilfe.js` und `anleitung/README.md`
+  gleich.
+- **Kein Schreibzugriff auf Produktivdaten** ausser der Migration selbst.
+  Danach unverändert: 2 Firmen, 4 Massaufnahmen, 3 Reststücke, 52
+  Zuschnitt-Haken, `PETER KÜNZI AG.updated_at`
+  (`2026-09-01 07:40:15.844647+00`). `get_advisors(security)`: keine neue Art
+  von Warnung; der neue Trigger ist nicht `SECURITY DEFINER` und erscheint
+  dort nicht.
+
+### 131.9 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migration `reststuecke_herkunft_v3_26` | drei nullbare Spalten, Firmenprüfung per Trigger |
+| `js/29-einlaufblech-aufnahme.js` | `ebaRestBreite()` – der seitliche Rand einmal statt elfmal |
+| `js/30`, `js/32`, `js/34`, `js/36`–`js/40` | rufen sie auf (je eine Zeile) |
+| `js/31`, `js/49` | dito, dazu `restBreite` je Streifenbreite mitspeichern |
+| `js/33-zuschnitt.js` | `zuGeometrie`, `zuStreifenRest`, `zuBilanz`, `zuBilanzHtml`, `zuFugeHinweis` |
+| `js/42-reste.js` | `restAlle()` statt zweier Quellen, Herkunft, Doppelerfassung, „Hier verwenden" |
+| `js/48-projekt-material.js` | `projektFuer` am Plan (Herkunft eines Restes) |
+| `js/41-hilfe.js`, `css/01-basis.css` | zwei neue Hilfetexte, Stile der Bilanz |
+| `index.html`, `sw.js` | Version 3.26 |
+| `pruefstaende/pruefstand-reste-schnittfuge-v3-26.js` | **neu** |
+| `anleitung/*` | Abschnitt 5 und Einstellungen, zwei neue Bilder, PDF v3.26 (70 Seiten) |
+
+### 131.10 Offene fachliche Entscheidungen
+
+Der Auftrag verlangt ausdrücklich, Fehlendes **nicht zu erfinden**. Diese
+Punkte kennt das Repository nicht, und sie sind deshalb **nicht** umgesetzt:
+
+- **Stärke und Oberfläche** eines Restes. `reststuecke` kennt `material_id` und
+  `material_name`; die Blechdicke steht nirgends als eigenes Feld, die
+  Ausführung ebenso wenig. Ein 0,7er und ein 0,8er Titanzink sind im Lager
+  heute **nicht** unterscheidbar, ausser über den Namen des Materials.
+- **Eine Mindest*breite*.** Es gibt nur `rest_mindestlaenge_mm`. Ob ein 20 mm
+  breiter, 6 m langer Streifen aufgehoben wird, entscheidet heute niemand –
+  er erscheint als verwertbar.
+- **Ob ein ungenutzter Streifenplatz überhaupt geschnitten wird.** Die App
+  zählt ihn als Rest in voller Abschnittlänge; ob der Betrieb ihn wirklich
+  abtrennt oder die Rolle so weiterverwendet, ist eine Werkstattfrage.
+- **Reste als Ausgangsmaterial verrechnen.** Die Wiederverwendung ist heute
+  eine Buchung („dieser Rest wurde hier gebraucht"), keine Eingangsgrösse der
+  Packrechnung. Das wäre der nächste grosse Schritt und würde die Rechnung
+  selbst betreffen – bewusst nicht mit dieser Runde vermischt.
+- **Die Schnittfuge steht bei beiden Firmen auf 0 mm.** Solange das so ist,
+  ändert die ganze Fugenrechnung an keiner Zahl etwas. Den echten Wert kennt
+  nur der Betrieb (Tafelschere, Schlagschere, Plasma – jeweils anders).
+
+### 131.11 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und die Datenbankseite
+  per SQL gegen das echte Produktivschema.
+- Die drei bestehenden Reststücke tragen **keinen** Herkunftsbezug (die
+  Spalten sind neu) – sie behalten ihren Freitext und funktionieren
+  unverändert.
+- Vom Ideenzettel weiterhin offen: Bestellliste je Lieferant, Mitarbeiterliste
+  zusammenführen, Übersicht für Ausmass und Rapporte, Offerten. Dazu die
+  Punkte, die nur der Betreiber erledigen kann: Schnittfuge eintragen, die
+  projektlosen Massaufnahmen zuordnen, Leaked-Password-Schutz, eigene Domain.

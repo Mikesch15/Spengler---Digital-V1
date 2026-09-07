@@ -153,7 +153,7 @@ function ebkaRollenPlan(){
   const flaeche=B*rollenLaenge/1e6;
   moeglich.push({breite:B,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,abschnittLaenge:L,
    rollenLaenge, streifen:streifen.length,
-   restBreite:B-jeAbschnitt*A,
+   restBreite:ebaRestBreite(B,A,jeAbschnitt),
    flaeche, verschnitt:flaeche-netto,
    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
  });

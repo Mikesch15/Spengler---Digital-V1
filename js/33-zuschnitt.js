@@ -45,6 +45,132 @@ function zuMasse(laenge,breite){
  return zuMm(laenge)+"\u00a0mm"+(b>0?" × "+zuMm(b)+"\u00a0mm":"");
 }
 // ---------------------------------------------------------------------------
+// Die Geometrie eines Plans - EINE Stelle (v3.26)
+// ---------------------------------------------------------------------------
+// Sowohl die Materialbilanz (unten) als auch die Restermittlung (js/42) müssen
+// von denselben Zahlen ausgehen, sonst geht die Bilanz nicht auf. Deshalb
+// steht die Ableitung genau hier und nirgends sonst.
+//
+// Alles wird aus dem PLAN selbst gelesen, nicht aus der heutigen Einstellung:
+// ein gespeicherter Plan wurde mit der Schnittfuge seiner Zeit gerechnet, und
+// die Bilanz muss zu dem Plan passen, den sie beschreibt.
+//
+// Je Gruppe (= je Streifenbreite):
+//   B   Rollenbreite der besten Rolle
+//   A   Streifenbreite (Abwicklung)
+//   L   Abschnittlänge (= längstes Stück der Gruppe)
+//   n   Streifen je Abschnitt        ab  Abschnitte
+//   restBreite  seitlicher Rand      fugeQuer  B − n·A − restBreite
+function zuGeometrie(p){
+ if(!p||p.art!=="rolle")return [];
+ const best=(p.moeglich||[])[0];
+ if(!best)return [];
+ const B=zuZahl(best.breite);
+ if(B<=0)return [];
+ const zeilen=Array.isArray(best.zeilen)?best.zeilen:null;
+ const raus=[];
+ (p.gruppen||[]).forEach((g,i)=>{
+  const z=zeilen?(zeilen[i]||{}):best;
+  const A=zuZahl(g.breite)||zuZahl(z.breite);
+  const L=zuZahl(g.abschnittLaenge)||zuZahl(z.abschnittLaenge)||zuZahl(p.abschnittLaenge);
+  const n=Math.round(zuZahl(g.jeAbschnitt)||zuZahl(z.jeAbschnitt)||zuZahl(z.jeTafel)||0);
+  const streifen=g.streifen||[];
+  let ab=Math.round(zuZahl(g.abschnitte)||zuZahl(z.abschnitte)||0);
+  const rl=zuZahl(g.rollenLaenge)||zuZahl(z.rollenLaenge);
+  if(!ab&&rl>0&&L>0)ab=Math.round(rl/L);
+  if(!ab&&n>0&&streifen.length)ab=Math.ceil(streifen.length/n);
+  if(A<=0)return;
+  // Der seitliche Rand steht im Plan, sobald er dort gespeichert wurde - er
+  // gehört zu genau diesem Plan. Fehlt er (ältere Pläne), bleibt B − n·A;
+  // dann ist fugeQuer 0, was für einen ohne Fugenabzug gerechneten Plan
+  // richtig ist.
+  const rb=(z.restBreite!==undefined&&z.restBreite!==null)
+    ?Math.max(0,zuZahl(z.restBreite)):((n>0)?Math.max(0,B-n*A):0);
+  // v3.26: ein Eintrag entsteht auch dann, wenn Abschnittlänge oder
+  // Streifenzahl fehlen (ältere gespeicherte Pläne). Was sich daraus NICHT
+  // ableiten lässt, bleibt 0 und wird über "voll" ausgewiesen - die
+  // Materialbilanz stellt sich dann gar nicht erst auf, statt zu schätzen.
+  // Der seitliche Rand braucht diese Angaben nicht: er steht mit restBreite
+  // und Rollenlänge im Plan und darf deshalb nicht mit verschwinden.
+  const RL=(ab>0&&L>0)?ab*L:(rl>0?rl:0);
+  raus.push({B,A,L,jeAbschnitt:n,abschnitte:ab,rollenLaenge:RL,
+   restBreite:rb,frei:(n>0&&ab>0)?Math.max(0,n*ab-streifen.length):0,
+   fugeQuer:(n>0)?Math.max(0,B-n*A-rb):0,streifen,index:i,
+   voll:L>0&&n>=1&&ab>=1&&RL>0});
+ });
+ return raus;
+}
+
+// Was in EINEM Streifen an Schnittfuge steckt, aus dem Streifen selbst
+// abgeleitet: Abschnittlänge − Summe der Stücke − freier Rest. Bei n Stücken
+// sind das die n−1 Schnitte dazwischen (js/29, ebaVerteile). Fehlt der Rest
+// (sehr alte Pläne), gilt Fuge 0 und der Rest ist, was übrig bleibt.
+function zuStreifenRest(st,L){
+ const summe=(st.stuecke||[]).reduce((a,x)=>a+zuZahl(x.laenge),0);
+ if(st.rest===undefined||st.rest===null)
+  return {summe,rest:Math.max(0,L-summe),fuge:0};
+ const rest=Math.max(0,zuZahl(st.rest));
+ return {summe,rest,fuge:Math.max(0,L-summe-rest)};
+}
+
+// ---------------------------------------------------------------------------
+// Materialbilanz (v3.26)
+// ---------------------------------------------------------------------------
+// Ausgangsmaterial → Schnittfuge → Zuschnitte → Reststück. Die Zerlegung geht
+// exakt auf, weil sie dieselbe Rechnung rückwärts liest, mit der der Plan
+// entstanden ist:
+//
+//   quer  je Abschnitt:  n·A + (n−1)·Fuge + seitlicher Rand = B
+//   längs je Streifen:   Σ Stücke + (n−1)·Fuge + freier Rest = L
+//
+//   Brutto = Zuschnitte + Schnittfuge + Reste
+//   Reste  = freier Rest je Streifen + ungenutzte Streifenplätze + Rand
+//   Reste  teilen sich in verwertbar (ab Mindestlänge) und zu klein
+//   effektiv verloren = Schnittfuge + zu kleine Reste
+//
+// Die Reste selbst zählt restAlle() (js/42) - es gibt nur EINE Ermittlung,
+// sonst könnten Bilanz und Lager auseinanderlaufen.
+function zuBilanz(p){
+ if(!p)return null;
+ const reste=(typeof restAlle==="function")?restAlle(p):[];
+ const flaeche=r=>zuZahl(r.laenge_mm)*zuZahl(r.breite_mm)*Math.max(1,zuZahl(r.anzahl)||1);
+ const laenge=r=>zuZahl(r.laenge_mm)*Math.max(1,zuZahl(r.anzahl)||1);
+ if(p.art==="stange"){
+  // Eindimensional: die Rinne wird als fertiges Profil in Normlängen bezogen.
+  const brutto=zuZahl(p.gesamt), netto=zuZahl(p.summeStuecke);
+  if(brutto<=0)return null;
+  const gut=reste.filter(r=>!r.zuKlein).reduce((a,r)=>a+laenge(r),0);
+  const klein=reste.filter(r=>r.zuKlein).reduce((a,r)=>a+laenge(r),0);
+  return {einheit:"mm",art:"stange",brutto,zuschnitte:netto,fuge:0,fugeBekannt:false,
+   verwertbar:gut,zuKlein:klein,verlust:klein,reste,
+   aufgeht:Math.abs(brutto-netto-gut-klein)<=1};
+ }
+ const geo=zuGeometrie(p);
+ // Eine Bilanz nur, wenn JEDE Gruppe vollstaendig beschrieben ist. Fehlt einem
+ // aelteren gespeicherten Plan die Abschnittlaenge oder die Streifenzahl,
+ // wird nichts geschaetzt - die Reste selbst zeigt restAlle() trotzdem.
+ if(!geo.length||geo.some(g=>!g.voll))return null;
+ let brutto=0,netto=0,fuge=0;
+ geo.forEach(g=>{
+  brutto+=g.B*g.rollenLaenge;
+  fuge+=g.fugeQuer*g.rollenLaenge;
+  (g.streifen||[]).forEach(st=>{
+   const w=zuStreifenRest(st,g.L);
+   netto+=w.summe*g.A;
+   fuge+=w.fuge*g.A;
+  });
+ });
+ const gut=reste.filter(r=>!r.zuKlein).reduce((a,r)=>a+flaeche(r),0);
+ const klein=reste.filter(r=>r.zuKlein).reduce((a,r)=>a+flaeche(r),0);
+ const diff=brutto-netto-fuge-gut-klein;
+ return {einheit:"m²",art:"rolle",
+  brutto:brutto/1e6,zuschnitte:netto/1e6,fuge:fuge/1e6,fugeBekannt:true,
+  verwertbar:gut/1e6,zuKlein:klein/1e6,verlust:(fuge+klein)/1e6,reste,
+  // Toleranz 1 mm² - gerechnet wird exakt, das faengt nur Gleitkommareste.
+  aufgeht:Math.abs(diff)<=1};
+}
+
+// ---------------------------------------------------------------------------
 // Zuschnittliste: STÜCKZAHL × LÄNGE × ABWICKLUNG
 // ---------------------------------------------------------------------------
 // Die Hauptdarstellung in jeder Art. Gleiche Zuschnitte werden zusammengefasst
@@ -382,6 +508,55 @@ function zuBelegungHtml(p){
 }
 
 // Die eine Darstellung. Jede Art ruft genau diese Funktion auf.
+// Die Bilanz als Block. Sie steht in der Hauptansicht, weil sie genau die
+// Frage beantwortet, um die es beim Material geht: wie viel geht drauf und
+// was bleibt. Die technischen Einzelheiten bleiben aufklappbar darunter.
+function zuBilanzZeile(label,wert,anteil,klasse){
+ return `<div class="zu-bilanz-zeile${klasse?" "+klasse:""}">
+<span class="zu-bilanz-name">${esc(label)}</span>
+<span class="zu-bilanz-wert">${esc(wert)}</span>
+<span class="zu-bilanz-anteil">${anteil===null?"":esc(anteil)}</span>
+</div>`;
+}
+// Der Satz zur Schnittfuge muss zwei verschiedene Dinge auseinanderhalten:
+// was die Firma EINGESTELLT hat, und was in DIESEM Zuschnitt tatsaechlich
+// anfaellt. Beides kann 0 sein, aus voellig verschiedenen Gruenden - ein Plan,
+// bei dem jedes Stueck allein in seinem Streifen liegt und die Rollenbreite
+// ohne Laengsschnitt aufgeht, hat auch bei 3 mm Fuge keine. Bis diese Stelle
+// das trennte, behauptete sie dort faelschlich "0 mm hinterlegt".
+function zuFugeHinweis(b){
+ if(!b||!b.fugeBekannt||b.fuge>0)return "";
+ const e=(typeof ebaSchnittfuge==="function")?ebaSchnittfuge():0;
+ return e>0
+  ? " In diesem Zuschnitt fällt rechnerisch keine Schnittfuge an."
+  : " Für die Schnittfuge ist 0 mm hinterlegt – sie kostet in dieser Rechnung nichts.";
+}
+function zuBilanzHtml(p){
+ const b=zuBilanz(p);
+ if(!b)return "";
+ const mm=b.einheit==="mm";
+ const w=v=>mm?(zuMm(v)+" mm"):(zuQm(v)+" m²");
+ const a=v=>b.brutto>0?Math.round(v/b.brutto*100)+" %":"";
+ const grenze=(typeof restGrenze==="function")?restGrenze():null;
+ if(!b.aufgeht)
+  return `<div class="zu-bilanz"><div class="small zu-bilanz-kopf">Materialbilanz</div>
+<div class="small" style="color:var(--muted)">Für diesen gespeicherten Plan lässt sich
+die Materialbilanz nicht lückenlos aufstellen – es fehlen Angaben, und es wird
+nichts geschätzt. Sie erscheint, sobald die Massaufnahme einmal neu gespeichert wird.</div></div>`;
+ return `<div class="zu-bilanz">
+<div class="small zu-bilanz-kopf">Materialbilanz <span style="color:var(--muted)">– geplant, aus diesem Zuschnitt</span></div>
+${zuBilanzZeile(mm?"Normlänge gesamt":"Ausgangsmaterial",w(b.brutto),null,"zu-bilanz-summe")}
+${zuBilanzZeile("Zuschnitte",w(b.zuschnitte),a(b.zuschnitte))}
+${b.fugeBekannt?zuBilanzZeile("Schnittfuge",w(b.fuge),a(b.fuge)):""}
+${zuBilanzZeile("Reste verwertbar",w(b.verwertbar),a(b.verwertbar))}
+${zuBilanzZeile("Verschnitt (zu klein)",w(b.zuKlein),a(b.zuKlein))}
+<div class="small zu-bilanz-fuss">Effektiv verloren: <b>${esc(w(b.verlust))}</b>${
+ b.fugeBekannt?" (Schnittfuge und zu kleine Reste)":" (zu kleine Reste)"}.${
+ grenze!==null?" Aufgehoben wird ab "+esc(zuMm(grenze))+" mm Länge.":""}${
+ zuFugeHinweis(b)}</div>
+</div>`;
+}
+
 function zuschnittHtml(p){
  if(!p)return "";
  const leer=p.art==="stange"?!(p.stangen||[]).length&&!(p.zuLang||[]).length
@@ -396,6 +571,7 @@ function zuschnittHtml(p){
  const reste=(typeof restBlockHtml==="function")?restBlockHtml(p,p.material):"";
  return `${zuListeHtml(p)}
 ${zuMeldungenHtml(p)}
+${zuBilanzHtml(p)}
 ${reste}
 <details class="zu-details"><summary>Einzelheiten: Rollenbreiten vergleichen, Belegung der Streifen</summary>
 <div class="info">${p.einleitung||""}${p.zusatz?" "+p.zusatz:""}</div>

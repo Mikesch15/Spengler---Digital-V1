@@ -156,7 +156,7 @@ function rpaRollenPlan(){
    flaeche+=R*rollenLaenge/1e6;
    zeilen.push({breite:gr.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
      abschnittLaenge:gr.abschnittLaenge,rollenLaenge,
-     streifen:gr.streifen.length,restBreite:R-jeAbschnitt*gr.breite});
+     streifen:gr.streifen.length,restBreite:ebaRestBreite(R,gr.breite,jeAbschnitt)});
   });
   if(!passt){zuSchmal.push(R);return}
   moeglich.push({breite:R,zeilen,flaeche,verschnitt:flaeche-netto,

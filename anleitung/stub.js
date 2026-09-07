@@ -51,7 +51,7 @@ window.__demo={
  ],
  reststuecke:[
   {id:21,company_id:"c1",material_name:"Titanzink 0.7 mm",breite_mm:333,laenge_mm:1450,anzahl:1,verbraucht:false,reserviert_fuer_project_id:1,reserviert_von:"u1",reserviert_am:"2026-09-02T08:05:00Z",notiz:"aus Rinne Südseite",created_at:"2026-08-20T10:00:00Z"},
-  {id:22,company_id:"c1",material_name:"Kupfer 0.6 mm",breite_mm:500,laenge_mm:2100,anzahl:1,verbraucht:false,reserviert_fuer_project_id:null,reserviert_von:null,reserviert_am:null,notiz:null,created_at:"2026-08-22T10:00:00Z"}
+  {id:22,company_id:"c1",material_name:"Titanzink",breite_mm:250,laenge_mm:2100,anzahl:1,verbraucht:false,reserviert_fuer_project_id:null,reserviert_von:null,reserviert_am:null,notiz:null,created_at:"2026-08-22T10:00:00Z"}
  ],
  measurement_versionen:[
   {id:1,company_id:"c1",measurement_id:11,nummer:1,type:"rinne_halbrund",title:"Rinne Nordseite",project_id:1,data:{material:1,rinneAbwicklung:333,groesse:333,segments:[{laenge:8000}]},freigegeben_von:"u1",freigegeben_am:"2026-08-28T15:10:00Z"},
