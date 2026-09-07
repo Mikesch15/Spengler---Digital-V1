@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.17.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.18.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -211,8 +211,14 @@ Stutzen, Winkel, Schieber, Bleilappen oder GAVA-Bleche. <b>Abgeleitete Masse</b>
 mit: das sind Zahlen über die Arbeit, nichts, was jemand aus dem Lager holt.
 Entschieden wird das nicht am Namen, sondern von der Massaufnahme selbst.
 Eine Massaufnahme, die vor Version 3.17 zuletzt gespeichert wurde, trägt diese
-Angabe noch nicht – ihre Positionen kommen deshalb alle mit, und die Meldung
-sagt das. Die Massaufnahme einmal öffnen und speichern ordnet sie zu.
+Angabe noch nicht – dort beantwortet die App die Frage über die Art der
+Massaufnahme, also aus derselben Quelle. Geraten wird nichts.
+
+<b>Zeilen aus einer früheren Übernahme:</b> was vor Version 3.18 übernommen
+wurde, steht weiterhin in der Liste – auch die abgeleiteten Masse. Sie sind
+als „abgeleitetes Mass" gekennzeichnet, und der Knopf
+<b>„🧹 Abgeleitete Masse entfernen"</b> räumt genau sie weg. Zuschnitte und
+Teile bleiben dabei stehen.
 
 Der Status wird von Hand weitergestellt: Benötigt → Verfügbar → Reserviert →
 Zugeschnitten → Gerüstet. Jede Änderung steht mit altem und neuem Wert im

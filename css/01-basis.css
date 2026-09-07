@@ -842,6 +842,10 @@ tr.resv-gewaehlt td:first-child{border-left:3px solid var(--blue)}
 .resv-bulk{border:1px solid var(--line);border-radius:8px;padding:8px;margin:8px 0}
 .resv-bulk-chips{display:flex;flex-wrap:wrap;gap:6px}
 .resv-bulk-zahl{margin:6px 0 4px}
+/* v3.18: Zeilen aus einer Uebernahme vor v3.17, die ein Rechenergebnis sind.
+   Dezent, aber erkennbar - der Aufraeum-Knopf nennt sie beim Namen. */
+.resv-abgeleitet{color:var(--muted);font-style:italic}
+.resv-abgeleitet-hinweis{margin-top:6px;color:var(--muted)}
 .resv-bulk-knoepfe{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .resv-bulk-knoepfe button{width:auto;flex:0 1 auto;min-height:38px;padding:6px 10px;font-size:12px}
 .resv-bulk-knoepfe button[disabled]{opacity:.45;cursor:not-allowed}

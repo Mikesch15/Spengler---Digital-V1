@@ -84,6 +84,61 @@ function pmatStuecke(m){
  return raus;
 }
 
+// ---- Rueckfall fuer Datensaetze aus der Zeit vor v3.17 --------------------
+// Seit v3.17 sagt das Modul an jeder Ausmass-Zeile selbst, ob sie ein Teil
+// ist (teil:true) oder ein abgeleitetes Mass. Ein Datensatz, der VOR v3.17
+// gespeichert wurde, traegt das Feld nicht - und die App darf dann weder
+// raten noch alles mitnehmen (dann steht die Reservierungsliste wieder voll
+// mit Abwicklungen und Flaechen).
+//
+// Sie kann es aber wissen, OHNE zu raten: die Bezeichnungen erzeugt das
+// Modul selbst, und welche davon Teile sind, steht in genau demselben Modul
+// eine Zeile weiter. Diese Tabelle ist deshalb keine geratene Namensliste,
+// sondern dieselbe Aussage, nur nach dem Typ abgefragt.
+//
+// DIE WAHRHEIT BLEIBT DAS FELD AM DATENSATZ. Der Rueckfall greift
+// ausschliesslich, wenn es fehlt.
+//
+// Damit die Tabelle nicht still auseinanderlaeuft, wenn jemand eine
+// Bezeichnung umformuliert, haelt pruefstand-rueckfall-v3-18 sie gegen die
+// echten Ausmass-Funktionen aller elf Module: jede Zeile, die ein Modul
+// heute erzeugt, muss hier dieselbe Antwort bekommen wie ihr teil-Feld.
+const PMAT_TEIL_RUECKFALL={
+ // Jede Komponente einer Rinne wird beschafft - Rinne nach Metern, Halter,
+ // Winkel, Stutzen, Rinnenboeden, Dehnungsstuecke (js/28).
+ rinne_halbrund:       ()=>true,
+ einlaufblech_gerade:  b=>b==="Haltebleche (GAVA Blech)",
+ mauerabdeckung:       b=>b==="Schieber"||b==="Boden",
+ kamineinfassung:      b=>b==="Bleilappen",
+ einfassung_rund:      b=>b==="Bleilappen",
+ anschlussblech:       b=>b==="Bleilappen"||/ \(eigenes Material\)$/.test(b),
+ // Diese fuenf rechnen nur Masse und Zaehlungen - dort ist der Zuschnitt
+ // das Ganze, es wird nichts zusaetzlich beschafft.
+ einlaufblech_konisch: ()=>false,
+ freies_profil:        ()=>false,
+ kehle:                ()=>false,
+ lukarne:              ()=>false,
+ rinne:                ()=>false,
+ // Skizze/Foto rechnet gar nichts und hat kein Ausmass.
+ skizze_foto:          ()=>false
+};
+// true/false wenn der Typ bekannt ist, sonst undefined - ein kuenftiger
+// dreizehnter Typ wird nicht geraten, sondern bleibt unbekannt.
+function pmatTeilRueckfall(type,bezeichnung){
+ const f=PMAT_TEIL_RUECKFALL[String(type||"")];
+ if(typeof f!=="function")return undefined;
+ return f(String(bezeichnung||"").trim())===true;
+}
+// Die EINE Stelle, an der beantwortet wird, ob eine gespeicherte
+// Ausmass-Zeile ein Teil ist. Zuerst das Feld am Datensatz, sonst der
+// Rueckfall des Typs. pmatSammeln und die Reservierung (js/50) fragen
+// beide hier - sonst koennten sie auseinanderlaufen.
+function pmatTeilVon(m,z){
+ const t=z&&z.teil;
+ if(t===true||t===false)return t;
+ return pmatTeilRueckfall(m&&m.type,z&&z.bezeichnung);
+}
+
 // ---- Zusammenfuehren ------------------------------------------------------
 // Aggregiert wird nur, was fachlich dasselbe ist: gleiches Material,
 // gleiche Bezeichnung, gleiche Einheit. Die Bezeichnung der Module traegt
@@ -119,10 +174,14 @@ function pmatSammeln(liste){
    // getrennt darunter.
    //   true      mindestens eine Quelle sagt ausdruecklich "Teil"
    //   false     alle Quellen sagen ausdruecklich "abgeleitet"
-   //   undefined mindestens eine Quelle sagt gar nichts (Datensatz aus
-   //             einer Fassung vor v3.17) - die App RAET dann nicht.
-   if(z.teil===true)p.teil=true;
-   else if(z.teil===false){if(p.teil===undefined&&!p.unbekannt)p.teil=false}
+   //   undefined weder das Feld noch der Rueckfall wissen es - die App
+   //             RAET dann nicht (nur bei einem unbekannten Typ moeglich).
+   // v3.18: fehlt das Feld (Datensatz vor v3.17), fragt sie den Rueckfall
+   // ihres Typs. Das ist dieselbe Aussage des Moduls, nur nach dem Typ
+   // abgefragt - siehe PMAT_TEIL_RUECKFALL.
+   const teil=pmatTeilVon(m,z);
+   if(teil===true)p.teil=true;
+   else if(teil===false){if(p.teil===undefined&&!p.unbekannt)p.teil=false}
    else {p.unbekannt=true; if(p.teil!==true)p.teil=undefined}
   });
 

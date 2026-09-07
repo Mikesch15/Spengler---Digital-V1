@@ -44,7 +44,10 @@ window.__demo={
  material_reservierungen:[
   {id:1,company_id:"c1",project_id:1,measurement_id:11,material_name:"Titanzink 0.7 mm",bezeichnung:"Rinne halbrund, Abwicklung 333 mm",menge:18.4,einheit:"m",breite_mm:333,laenge_mm:null,status:"reserviert",reserviert_von:"u1",reserviert_am:"2026-09-02T08:00:00Z",notiz:null,created_at:"2026-09-02T07:50:00Z"},
   {id:2,company_id:"c1",project_id:1,measurement_id:11,material_name:"Titanzink 0.7 mm",bezeichnung:"Zuschnitt 3'835 × 333 mm",menge:4,einheit:"Stk.",breite_mm:333,laenge_mm:3835,status:"zugeschnitten",reserviert_von:"u1",reserviert_am:"2026-09-02T08:00:00Z",notiz:null,created_at:"2026-09-02T07:50:00Z"},
-  {id:3,company_id:"c1",project_id:1,measurement_id:12,material_name:"Titanzink 0.7 mm",bezeichnung:"Einlaufblech gerade, Abwicklung 250 mm",menge:6.2,einheit:"m",breite_mm:250,laenge_mm:null,status:"benoetigt",reserviert_von:null,reserviert_am:null,notiz:null,created_at:"2026-09-02T07:50:00Z"}
+  {id:3,company_id:"c1",project_id:1,measurement_id:12,material_name:"Titanzink 0.7 mm",bezeichnung:"Einlaufblech gerade, Abwicklung 250 mm",menge:6.2,einheit:"m",breite_mm:250,laenge_mm:null,status:"benoetigt",reserviert_von:null,reserviert_am:null,notiz:null,created_at:"2026-09-02T07:50:00Z"},
+  // v3.18: zwei Zeilen aus einer Uebernahme vor v3.18 - Rechenergebnisse, die
+  // der Aufraeum-Knopf wegnimmt. Erfunden wie alles hier.
+  {id:4,company_id:"c1",project_id:1,measurement_id:12,material_name:"Titanzink 0.7 mm",bezeichnung:"Stücke (Zuschnitte)",menge:4,einheit:"Stk.",breite_mm:null,laenge_mm:null,status:"benoetigt",reserviert_von:null,reserviert_am:null,notiz:null,created_at:"2026-09-02T07:50:00Z"}
  ],
  reststuecke:[
   {id:21,company_id:"c1",material_name:"Titanzink 0.7 mm",breite_mm:333,laenge_mm:1450,anzahl:1,verbraucht:false,reserviert_fuer_project_id:1,reserviert_von:"u1",reserviert_am:"2026-09-02T08:05:00Z",notiz:"aus Rinne Südseite",created_at:"2026-08-20T10:00:00Z"},

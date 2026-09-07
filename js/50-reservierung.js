@@ -121,6 +121,30 @@ function resvQuelleHtml(r){
              :("Massaufnahme "+r.measurement_id);
  return `<button type="button" class="pmat-quelle" data-resv-quelle="${r.measurement_id}">${esc(name)}</button>`;
 }
+// ---- Bestehende Zeilen aus der Zeit vor v3.17 ----------------------------
+// Der Filter beim Uebernehmen wirkt nur beim Anlegen. Zeilen, die vorher
+// schon angelegt wurden, bleiben stehen - der Betrieb sah deshalb weiterhin
+// Abwicklungen und Blechflaechen in seiner Liste (Rueckmeldung 7.9.2026).
+//
+// Hier wird eine BESTEHENDE Zeile derselben Frage unterworfen wie eine neue:
+// ueber ihre Massaufnahme und ihre Bezeichnung, mit pmatTeilVon() als der
+// einen Quelle (js/48). Ein Zuschnitt ist nie abgeleitet, und ohne Zuordnung
+// zu genau einer Massaufnahme sagt die App NICHTS - sie raet nicht.
+function resvAbgeleitet(r){
+ if(!r)return false;
+ if(r.laenge_mm!==null&&r.laenge_mm!==undefined)return false;   // Zuschnitt
+ if(typeof pmatTeilVon!=="function")return false;
+ const id=r.measurement_id; if(!id)return false;
+ const m=(projectMeasurementsCache||[]).find(x=>x&&x.id===id);
+ const zeilen=(m&&m.data&&Array.isArray(m.data.ausmass))?m.data.ausmass:null;
+ if(!zeilen)return false;
+ const bez=String(r.bezeichnung||"").trim();
+ const z=zeilen.find(x=>String((x&&x.bezeichnung)||"").trim()===bez);
+ if(!z)return false;
+ return pmatTeilVon(m,z)===false;
+}
+function resvAbgeleiteteZeilen(){return (resvListe||[]).filter(resvAbgeleitet)}
+
 function resvZeileHtml(r){
  const masse=resvMasse(r);
  const menge=(r.menge===null||r.menge===undefined)?"" :
@@ -128,10 +152,11 @@ function resvZeileHtml(r){
  const wer=r.reserviert_von&&typeof profileName==="function"?profileName(r.reserviert_von):"";
  const wann=r.reserviert_am&&typeof verlaufFormatWann==="function"?verlaufFormatWann(r.reserviert_am):"";
  const gewaehlt=resvAuswahl.has(r.id);
+ const abgeleitet=resvAbgeleitet(r);
  return `<tr class="${gewaehlt?"resv-gewaehlt":""}" data-resv-zeile="${r.id}">
   <td class="resv-pick-td"><label class="resv-pick"><input type="checkbox" data-resv-pick="${r.id}"${gewaehlt?" checked":""}><span class="resv-pick-sr">Auswählen</span></label></td>
   <td>${esc(r.material_name||"Ohne Material")}</td>
-  <td>${esc(r.bezeichnung||"")}${masse?`<br><span class="small" style="color:var(--muted)">${esc(masse)}</span>`:""}</td>
+  <td>${esc(r.bezeichnung||"")}${masse?`<br><span class="small" style="color:var(--muted)">${esc(masse)}</span>`:""}${abgeleitet?`<br><span class="small resv-abgeleitet" title="Abwicklungen, Flächen und Stückzahlen sind Rechenergebnisse – aus dem Lager holt sie niemand.">abgeleitetes Mass</span>`:""}</td>
   <td class="pmat-zahl">${esc(menge)}${r.einheit?" "+esc(r.einheit):""}</td>
   <td>${resvQuelleHtml(r)}</td>
   <td>${resvBadge(r.status)}${wer?`<br><span class="small" style="color:var(--muted)">${esc(wer)}${wann?" · "+esc(wann):""}</span>`:""}</td>
@@ -252,6 +277,7 @@ function resvBulkBarHtml(){
   return `<button type="button" data-resv-bulk="${status}"${n?"":" disabled"} title="${esc(text)}">${esc(text)} (${n})</button>`;
  };
  const loeschN=gewaehlt.length;
+ const abgN=resvAbgeleiteteZeilen().length;
  return '<div class="resv-bulk">'
   +'<div class="resv-bulk-chips">'+chips+'</div>'
   +'<div class="small resv-bulk-zahl">'+(gewaehlt.length
@@ -264,8 +290,10 @@ function resvBulkBarHtml(){
    +knopf("geruestet","→ Gerüstet")
    +`<button type="button" class="gray" data-resv-bulk="benoetigt"${resvBetroffen("benoetigt",gewaehlt).length?"":" disabled"}>↩ Zurücksetzen (${resvBetroffen("benoetigt",gewaehlt).length})</button>`
    +`<button type="button" class="gray" data-resv-bulk-loeschen="1"${loeschN?"":" disabled"}>🗑 Entfernen (${loeschN})</button>`
+   +(abgN?`<button type="button" class="gray" data-resv-aufraeumen="1" title="Entfernt die Zeilen, die ein Rechenergebnis sind – Abwicklung, Fläche, Stückzahl.">🧹 Abgeleitete Masse entfernen (${abgN})</button>`:"")
   +'</div>'
   +'<div class="small" style="color:var(--muted)">Ein Schritt hebt nur Positionen, die noch dahinter stehen – eine bereits weitere wird nie zurückgezogen.</div>'
+  +(abgN?'<div class="small resv-abgeleitet-hinweis">'+abgN+' Zeile'+(abgN===1?'':'n')+' in dieser Liste '+(abgN===1?'ist':'sind')+' ein abgeleitetes Mass (Abwicklung, Fläche, Stückzahl) – aus dem Lager holt das niemand. Sie '+(abgN===1?'stammt':'stammen')+' aus einer Übernahme vor dieser Fassung.</div>':'')
  +'</div>';
 }
 // Nur die Leiste und die Zeilenmarkierung auffrischen. Die Tabelle NICHT neu
@@ -295,8 +323,10 @@ function resvBulkBarAuffrischen(){
 // Entschieden wird das NICHT an der Bezeichnung (eine Namensliste waere bei
 // jeder Umformulierung still falsch), sondern am Feld "teil", das die zwoelf
 // Module beim Rechnen selbst setzen. Eine Massaufnahme aus einer Fassung vor
-// v3.17 hat das Feld nicht - dort raet die App nicht, sondern nimmt die
-// Position mit und sagt warum (siehe resvBedarfStand).
+// v3.17 hat das Feld nicht; seit v3.18 beantwortet pmatTeilVon() sie dann
+// ueber den Rueckfall ihres Typs (js/48) - dieselbe Aussage des Moduls, nur
+// nach dem Typ abgefragt. Nur wenn auch der Typ unbekannt ist, raet die App
+// nicht, sondern nimmt die Position mit und sagt warum (resvBedarfStand).
 function resvBedarfStand(){
  if(typeof pmatSammeln!=="function")return {teile:0,abgeleitet:0,unbekannt:0,zuschnitte:0};
  let teile=0,abgeleitet=0,unbekannt=0,zuschnitte=0;
@@ -611,6 +641,25 @@ document.addEventListener("click",async e=>{
     +"„Bedarf übernehmen\" legt sie später wieder aus den Massaufnahmen an."))return;
   bulkDel.disabled=true;
   const erg=await resvBulkLoeschen(gewaehlt.map(r=>r.id));
+  if(erg&&!erg.offline&&!erg.fehler){
+   await resvNachAktion(erg,resvBulkMeldung(erg,"entfernt",0));
+  }else{await resvNachAktion(erg)}
+  return;
+ }
+
+ // v3.18: die bestehenden abgeleiteten Zeilen wegraeumen. Geht ueber
+ // denselben Loeschweg wie die Auswahl - kein zweiter Schreibpfad.
+ const aufr=e.target.closest("[data-resv-aufraeumen]");
+ if(aufr){
+  const weg=resvAbgeleiteteZeilen();
+  if(!weg.length)return;
+  if(!confirm(weg.length+" abgeleitete "+(weg.length===1?"Zeile":"Zeilen")+" entfernen?\n\n"
+    +weg.slice(0,6).map(r=>"· "+(r.bezeichnung||"")).join("\n")
+    +(weg.length>6?"\n· … und "+(weg.length-6)+" weitere":"")
+    +"\n\nDas sind Rechenergebnisse (Abwicklung, Fläche, Stückzahl) – aus dem "
+    +"Lager holt sie niemand. Zuschnitte und Teile bleiben stehen."))return;
+  aufr.disabled=true;
+  const erg=await resvBulkLoeschen(weg.map(r=>r.id));
   if(erg&&!erg.offline&&!erg.fehler){
    await resvNachAktion(erg,resvBulkMeldung(erg,"entfernt",0));
   }else{await resvNachAktion(erg)}

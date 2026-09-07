@@ -343,6 +343,8 @@ const liste=[];
  await schuss("39-reservierung","#cockpitReservierungCard",{warte:900,breite:900});
  // v3.13: die Sammelaktionen - Auswahl, Zahl am Knopf, Sperrzustand.
  await schuss("41-sammelaktion","#cockpitReservierungBody .resv-bulk",{warte:300,breite:900});
+ // v3.18: der Aufraeum-Knopf fuer Zeilen aus einer frueheren Uebernahme.
+ await schuss("45-aufraeumen","#cockpitReservierungBody",{warte:300,breite:900});
  await page.evaluate(()=>{$("matZuModal").hidden=true});
 
  // Werkstatt- und Ruestansicht.

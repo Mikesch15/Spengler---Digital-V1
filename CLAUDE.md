@@ -20374,3 +20374,227 @@ Stückliste, kein Zuschnitt, keine Packrechnung berührt.
   erst die Zahl der **Dilas** rechnen statt der Stückenden.
 - Die Reservierung bucht weiterhin **keinen Lagerbestand ab** (114.11) –
   es gibt keine Bestandsführung in der App.
+
+## 123. RESERVIERUNG: DER RÜCKFALL FÜR ALTE DATENSÄTZE — VERSION 3.18
+
+Gemeldet am 7.9.2026 mit Bildschirmfoto: *„die reservierungsliste hat
+immernoch zu viele positionen"*. Zutreffend – und zwar aus zwei Gründen,
+beide vor der Änderung an den echten Daten gemessen. **Keine
+Schemaänderung, keine Migration, keine RLS-Änderung, keine neue
+Datenbankfunktion, keine Fachrechnung verändert.**
+
+### 123.1 Warum v3.17 nicht gereicht hat
+
+Der Filter aus v3.17 entscheidet am Feld `teil`, das die Module beim
+Rechnen setzen. Direkt in der Produktivdatenbank nachgesehen:
+
+- Die beiden einzigen Massaufnahmen mit einem Ausmass (**50** und **87**,
+  beide `einlaufblech_gerade`) wurden **vor** v3.17 gespeichert und tragen
+  das Feld nicht. Sie fielen in den „unbekannt"-Zweig – und dort nimmt die
+  App bewusst alles mit (§122.3). Genau das war der Lärm.
+- Die **elf Reservierungszeilen** der Firma stammen vom 06.09., 18:14 und
+  20:40 – also aus einer Übernahme vor v3.17. Der Filter wirkt beim
+  Anlegen; bereits angelegte Zeilen bleiben stehen.
+
+Der Screenshot zeigt die **Werkstattansicht**, Block „2 · Reservierungen",
+mit sechs Zeilen der Massaufnahme 87 – vier davon abgeleitet.
+
+### 123.2 Der Rückfall rät nicht, er fragt dasselbe Modul
+
+`PMAT_TEIL_RUECKFALL` (js/48) beantwortet die Frage für einen Datensatz
+ohne das Feld – **je Typ**, nicht über eine zentrale Namensliste (die war
+in §122.2 aus gutem Grund verworfen: `herkunft` ist mehrdeutig, die
+Einheit auch).
+
+Der Unterschied: die Bezeichnungen **erzeugt das Modul selbst**, und
+welche davon Teile sind, steht in demselben Modul eine Zeile weiter. Die
+Tabelle ist deshalb keine geratene Liste, sondern dieselbe Aussage, nur
+nach dem Typ abgefragt.
+
+| Typ | Regel |
+|---|---|
+| `rinne_halbrund` | **alles** – jede Komponente wird beschafft (js/28) |
+| `einlaufblech_gerade` | „Haltebleche (GAVA Blech)" |
+| `mauerabdeckung` | „Schieber", „Boden" |
+| `kamineinfassung`, `einfassung_rund` | „Bleilappen" |
+| `anschlussblech` | „Bleilappen", alles auf „ (eigenes Material)" |
+| die übrigen sechs | **nichts** – dort ist der Zuschnitt das Ganze |
+
+Zwei Dinge halten das ehrlich:
+
+- **Die Wahrheit bleibt das Feld am Datensatz.** `pmatTeilVon()` fragt
+  zuerst `z.teil` und nur bei dessen Fehlen den Rückfall. Ein
+  ausdrückliches `teil` schlägt ihn in **beide** Richtungen.
+- **Ein unbekannter Typ wird nicht geraten.** Für eine künftige
+  dreizehnte Art liefert der Rückfall `undefined`, die Position kommt
+  vorsichtshalber mit, und der Text sagt warum.
+
+`pmatTeilVon()` ist die **eine** Stelle – js/48 und js/50 fragen beide
+dort, sonst könnten sie auseinanderlaufen.
+
+### 123.3 Mechanisch gegen stille Divergenz gesichert
+
+Benennt jemand später „Schieber" in „Schieberelemente" um, wäre die
+Tabelle still falsch. Der Prüfstand hält sie deshalb doppelt gegen die
+Module:
+
+- **live**: für Rinne halbrund, Einlaufblech gerade, Mauerabdeckung und
+  Ort-/Seitenbleche werden die echten Ausmass-Zeilen erzeugt und Zeile
+  für Zeile `teil === Rückfall` verglichen;
+- **am Quelltext**: jeder `zeile(...)`-Aufruf mit fester Bezeichnung in
+  allen zehn Modulen – der Rückfall muss dasselbe sagen wie das `,true)`
+  dahinter.
+
+Dazu: nur `rinne_halbrund` darf „alles ist Teil" sein, jede der zwölf
+Arten hat genau eine Regel, und keine Regel ohne Art.
+
+### 123.4 Bestehende Zeilen aufräumen
+
+`resvAbgeleitet(r)` (js/50) unterwirft eine **bestehende** Zeile derselben
+Frage – über ihre Massaufnahme und ihre Bezeichnung, mit `pmatTeilVon()`
+als Quelle. Ein Zuschnitt ist nie abgeleitet (er hat `laenge_mm`), und
+ohne Zuordnung zu genau einer Massaufnahme sagt die App **nichts**.
+
+In der Liste sind solche Zeilen mit „abgeleitetes Mass" gekennzeichnet,
+ein Satz erklärt sie, und **„🧹 Abgeleitete Masse entfernen (n)"** räumt
+sie weg – über den bestehenden `resvBulkLoeschen()`-Weg, **kein zweiter
+Schreibpfad**. Die Rückfrage nennt sie beim Namen; Zuschnitte und Teile
+bleiben stehen. Ohne solche Zeilen erscheint der Knopf gar nicht.
+
+### 123.5 Getestet
+
+- **`pruefstaende/pruefstand-rueckfall-v3-18.js` – 51/51**, echtes
+  Chromium gegen die echte `index.html`: genau der Fall aus dem
+  Bildschirmfoto (Massaufnahme 87), ein echtes Teil aus einer alten
+  Aufnahme, eine alte Rinne, das Feld schlägt den Rückfall, der unbekannte
+  Typ, alle zwölf Arten, die Live- und Quelltext-Absicherung, die elf
+  realen Zeilen, das Aufräumen über den bestehenden Löschweg.
+- **Acht Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | `pmatTeilVon` fragt den Rückfall nicht (v3.17-Verhalten) | 29/40 |
+  | „Schieber" umbenannt, Rückfall nicht nachgezogen | 46/49 |
+  | das Feld am Datensatz wird ignoriert | 47/49 |
+  | Rückfall rät bei unbekanntem Typ | 46/49 |
+  | Rinne halbrund auf „nichts ist Teil" | 46/49 |
+  | Zuschnitt-Ausnahme entfernt | 50/51 |
+  | Aufräum-Knopf löscht alles statt nur der abgeleiteten | 47/49 |
+  | Kennzeichnung in der Zeile entfernt | 50/51 |
+
+- **Drei Prüfungen waren zuerst wertlos** und wurden geschärft, bevor sie
+  bissen: die Live-Messung der Mauerabdeckung erzeugte weder Schieber noch
+  Boden (die Felder heissen `bodenLinks`/`bodenRechts`, nicht `bodenL`) –
+  sie prüfte also genau das nicht, worum es geht; die von Ort-/
+  Seitenblechen lieferte 0 Zeilen und die Folgeprüfung war damit trivial
+  grün; und „die Zeilen sind gekennzeichnet" fand denselben Text im
+  Erklärsatz unter der Leiste. Eine vierte Gegenprobe blieb zunächst
+  ohne Wirkung, weil die Bash-Escapes die Ersetzung verschluckt hatten –
+  sie lief gegen unveränderten Code, was aussieht wie „bestanden".
+- **Zwei Erwartungen waren meine, nicht die des Codes**: `pmatSammeln`
+  aggregiert gleichnamige Positionen mehrerer Aufnahmen zu einer (seit
+  v3.09), und 4 + 3 sind 7.
+- **Fünf überholte Erwartungen** in `pruefstand-bedarf-teile-v3-17`
+  nachgezogen – sie beschrieben genau das Verhalten, das der Auftrag
+  ändert („die App rät nicht – sie nimmt alles mit"). Die Prüfung auf
+  „unbekannt" ist dabei nicht verlorengegangen, sondern auf einen
+  wirklich unbekannten Typ verlagert. Jetzt 40/40.
+- **Zwei weitere Prüfstände hatten überholte Testdaten**, keine davon ein
+  Codefehler: `reservierung-v3-09` und `sammelaktion-v3-13` speisen
+  Massaufnahmen **ohne** `teil`-Feld ein – also genau den Fall, den der
+  Rückfall jetzt korrekt filtert. Ihre Bedarfslisten schrumpften dadurch
+  von 6 auf 3 Zeilen, und alle Zählungen darüber schlugen fehl.
+  **Nicht die Erwartungen abgesenkt, sondern echte Teile in die Testdaten
+  gegeben**: die Einlaufblech-Aufnahme bekommt „Haltebleche (GAVA Blech)",
+  die zweite Aufnahme wird zu einer Mauerabdeckung mit „Schieber" und
+  „Boden" bzw. zu Ort-/Seitenblechen mit „Bleilappen" – lauter
+  Bezeichnungen, die das jeweilige Modul wirklich erzeugt. Die
+  Sammelaktions-Arithmetik bleibt damit unverändert bei sechs Zeilen, und
+  die Textsperre der Reservierung prüft seither wirklich die Textsperre:
+  „Bleilappen (eigenes Material)" ist ein **Teil** mit einer Textmenge und
+  darf trotzdem nicht reserviert werden (§105.3). Jetzt 69/69 (vorher 67)
+  bzw. 88/88.
+- **Gegenprobe für genau diese Anpassung**: mit ausgebautem
+  Abgeleiteten-Filter schlagen beide angepassten Prüfstände weiterhin fehl
+  (63/69 bzw. 71/88) – die Testdaten sind also nicht so gewählt, dass sie
+  den Filter umgehen.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.17-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, §100.6) – **DOM, Text und Bild byteidentisch**
+  (DOM `47ae23b1dee8c542`, 6797 Zeichen; Text `bf0875a00c7b80f6`;
+  Bild `89ddd538a70a00d1`, 48 122 Bytes).
+  Der Kontrolllauf desselben Codes wich im DOM ab – **nachgemessen statt
+  weggewunken**: zwei Läufe über die Minutengrenze unterscheiden sich an
+  genau einer Stelle, `Gedruckt am 07.09.2026, 05:17` gegen `05:18`. Das
+  Bild ist auch dort byteidentisch.
+- **Volle Regression: 45 von 46 Prüfständen grün** (nach Beendigungscode
+  gemessen, weil jeder Prüfstand sein eigenes Zusammenfassungsformat hat).
+  Die eine Ausnahme ist `excel-import-v3-04`: **SheetJS lässt sich in
+  diesem Container nicht laden**, beide CDNs sind gesperrt. Gegen den
+  unveränderten HEAD-Stand nachgemessen – identischer Fehlschlag; die
+  Einbindungszeile in `index.html` ist nicht im Diff (bekannt seit
+  §121.6).
+- `node --check` über alle js-Dateien, `sw.js`, alle Prüfstände und die
+  Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung in `index.html`
+  ausgeglichen (Tiefe 0, Minimum 0); keine doppelten Element-IDs; jede
+  js-Datei in `index.html` **und** in der Service-Worker-Liste; kein
+  `data-hilfe` ohne Text; Version 3.18 in `index.html` und `sw.js` gleich.
+- **Kein Schreibzugriff auf die Datenbank** in dieser Runde – gelesen
+  wurden nur die elf Reservierungszeilen und das Ausmass von 50 und 87.
+
+### 123.6 Anleitung
+
+Nach Regel §108.1 mitgeführt: der Hinweis zu alten Massaufnahmen sagt
+jetzt, dass die App über die Art zuordnet statt alles mitzunehmen, dazu
+der neue Unterabschnitt „Zeilen aus einer früheren Übernahme aufräumen"
+mit dem Bild `45-aufraeumen`. Alle 50 Bilder neu erzeugt, PDF v3.18 mit
+**63 Seiten** (vorher 61), keine leere. Die fünf Verweise nachgezogen,
+das alte PDF gelöscht. `pruefstand-hilfe-v3-03` (68/68) erzwingt das
+mechanisch – mit Gegenprobe bestätigt: Version hochsetzen ohne die
+Anleitung → 64/68.
+
+Dabei ein Fehlalarm der ae/oe/ue-Heuristik nachgezogen: „Quelle" ist ein
+echtes deutsches Wort (wie „blaue"/„genaue" in §117.7).
+
+### 123.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/48-projekt-material.js` | `PMAT_TEIL_RUECKFALL`, `pmatTeilRueckfall()`, `pmatTeilVon()` als die eine Quelle |
+| `js/50-reservierung.js` | `resvAbgeleitet()`, Kennzeichnung, Aufräum-Knopf und sein Handler |
+| `css/01-basis.css` | `.resv-abgeleitet`, `.resv-abgeleitet-hinweis` |
+| `js/41-hilfe.js` | Hilfetext „Materialreservierung" nachgezogen, PDF-Verweis |
+| `index.html`, `sw.js` | Version 3.18 |
+| `pruefstaende/pruefstand-rueckfall-v3-18.js` | **neu** |
+| `pruefstaende/pruefstand-bedarf-teile-v3-17.js` | überholte Erwartungen (123.5) |
+| `pruefstaende/pruefstand-reservierung-v3-09.js` | echte Teile in den Testdaten (123.5) |
+| `pruefstaende/pruefstand-sammelaktion-v3-13.js` | dito, Zeilenzahl unverändert 6 |
+| `pruefstaende/pruefstand-hilfe-v3-03.js` | „Quelle" in die Ausnahmeliste |
+| `anleitung/*` | Abschnitt 10, neues Bild, PDF v3.18 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/49-projekt-zuschnitt.js`,
+`js/51-werkstatt.js`, `js/42-reste.js`, `js/56-material-zuschnitt.js`
+sowie sämtliche Fachdateien `js/11`–`js/40` – keine Berechnung, keine
+Stückliste, kein Zuschnitt, keine Packrechnung berührt.
+
+### 123.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Geprüft ist die Oberfläche in echtem Chromium
+  gegen die echte `index.html` mit einer Attrappe, die jeden Aufruf
+  protokolliert, und die Datenbankseite per SQL (nur lesend).
+- **Die elf realen Zeilen sind noch da** – die App räumt nichts von
+  selbst weg. Der Betrieb sieht sie jetzt gekennzeichnet und entfernt sie
+  mit einem Knopfdruck. Das ist Absicht: eine App, die ungefragt
+  Datensätze löscht, wäre schlimmer als eine zu lange Liste.
+- Der Rückfall greift nur für die **zwölf** heute bekannten Arten. Eine
+  neue Art braucht einen Eintrag in `PMAT_TEIL_RUECKFALL`; der Prüfstand
+  meldet es, wenn er fehlt.
+- „Ansetzen Dila" in der Rinne-Zuschnittliste bleibt abgeleitet (§122.7)
+  – es zählt Stückenden, nicht Dilas.
+- Die Reservierung bucht weiterhin **keinen Lagerbestand ab** (§114.11).

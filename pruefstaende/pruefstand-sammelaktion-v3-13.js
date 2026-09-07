@@ -79,18 +79,30 @@ window.supabase={createClient:()=>({
 
 // Dieselben Aufnahmen wie im Reservierungs-Pruefstand - eine Quelle, damit
 // beide nicht auseinanderlaufen. Ergibt 6 Bedarfszeilen.
+// Seit v3.18 nimmt die Reservierung nur Teile und Zuschnitte (Abschnitt 123).
+// Die Ausmass-Zeilen tragen hier bewusst KEIN teil-Feld - das ist der echte
+// Zustand eines vor v3.17 gespeicherten Datensatzes, und genau dann greift
+// der Rueckfall nach Typ. Jede Aufnahme hat deshalb echte Teile, damit die
+// Sammelaktionen weiterhin an SECHS Zeilen geprueft werden:
+//   Titanzink: Haltebleche (Teil) + 2 Zuschnitte            = 3
+//   Kupfer:    Schieber + Boden (Teile) + 1 Zuschnitt       = 3
+// Die abgeleiteten Masse (Abwicklung, Blechfläche) und der reine Text
+// ("Enge Seite") fallen weg - das prueft der Bedarfs-Pruefstand.
 const AUFNAHMEN=[
  {id:11,project_id:7,type:"einlaufblech_gerade",title:"Dach Nord",
   workflow_status:"zu_ruesten",freigabe_verfallen:false,
   data:{material:2,abwicklung:250,
    ausmass:[{pos:1,bezeichnung:"Einlaufblech gerade, Abwicklung 250 mm",menge:"1,90",einheit:"m"},
             {pos:2,bezeichnung:"Stücke (Zuschnitte)",menge:2,einheit:"Stk."},
-            {pos:3,bezeichnung:"Enge Seite",menge:"–",einheit:""}],
+            {pos:3,bezeichnung:"Enge Seite",menge:"–",einheit:""},
+            {pos:4,bezeichnung:"Haltebleche (GAVA Blech)",menge:5,einheit:"Stk."}],
    rollen:{streifen:[{rest:0,stuecke:[{nr:1,laenge:1200},{nr:2,laenge:700}]}],optimal:true}}},
- {id:12,project_id:7,type:"kehle",title:"Kehle West",
+ {id:12,project_id:7,type:"mauerabdeckung",title:"Mauerkrone West",
   workflow_status:"zu_ruesten",freigabe_verfallen:false,
   data:{material:3,abwicklung:500,
-   ausmass:[{pos:1,bezeichnung:"Blechfläche",menge:"1,00",einheit:"m²"}],
+   ausmass:[{pos:1,bezeichnung:"Blechfläche",menge:"1,00",einheit:"m²"},
+            {pos:2,bezeichnung:"Schieber",menge:4,einheit:"Stk."},
+            {pos:3,bezeichnung:"Boden",menge:2,einheit:"Stk."}],
    rollen:{abwicklung:500,streifen:[{rest:0,stuecke:[{nr:1,laenge:2000}]}],optimal:true}}}
 ];
 const RESTE=[

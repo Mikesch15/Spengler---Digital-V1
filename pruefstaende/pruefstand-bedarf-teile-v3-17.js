@@ -159,12 +159,24 @@ const vorbereiten=async(page,aufnahmen)=>{
  p(erg&&!erg.fehler&&erg.anzahl===w.length,"die Meldung nennt die geschriebene Zahl",erg);
 
  console.log("\nD · Eine Massaufnahme aus einer aelteren Fassung");
+ // ANGEPASST in v3.18: bis v3.17 nahm die App hier alles mit, weil das Feld
+ // fehlte - genau das hat der Betrieb als "immernoch zu viele positionen"
+ // gemeldet. Seit v3.18 beantwortet der Rueckfall ihres Typs die Frage
+ // (js/48). Geraten wird weiterhin nichts: nur ein unbekannter TYP bleibt
+ // unbekannt, siehe pruefstand-rueckfall-v3-18.
  await vorbereiten(page,ALT);
  const zAlt=await page.evaluate(()=>resvBedarfZeilen().map(r=>r.bezeichnung));
  p(zAlt.some(b=>/Haltebleche/.test(b)),"das Teil geht NICHT verloren",zAlt);
- p(zAlt.some(b=>/Abwicklung 250 mm/.test(b)),"die App raet nicht - sie nimmt alles mit",zAlt);
+ p(!zAlt.some(b=>/Abwicklung 250 mm/.test(b)),"die Abwicklung faellt jetzt auch hier weg",zAlt);
  const stAlt=await page.evaluate(()=>resvBedarfStand());
- p(stAlt.unbekannt===2&&stAlt.teile===0&&stAlt.abgeleitet===0,"beide als unbekannt gezaehlt",stAlt);
+ p(stAlt.unbekannt===0&&stAlt.teile===1&&stAlt.abgeleitet===1,
+   "der Rueckfall ordnet beide zu",stAlt);
+ // Unbekannt bleibt, was die App wirklich nicht wissen kann: ein Typ, den es
+ // noch nicht gibt.
+ await vorbereiten(page,[{id:41,project_id:7,type:"kuenftige_art",title:"Z",
+   data:{material:2,ausmass:[{pos:1,bezeichnung:"Irgendwas",menge:2,einheit:"Stk."}]}}]);
+ const stX=await page.evaluate(()=>resvBedarfStand());
+ p(stX.unbekannt===1,"ein unbekannter Typ bleibt unbekannt",stX);
  const zusAlt=await page.evaluate(()=>resvBedarfZusatz());
  p(/ältere/.test(zusAlt)&&/öffnen und speichern/.test(zusAlt),
    "und der Text sagt, was zu tun ist",zusAlt);
@@ -172,10 +184,18 @@ const vorbereiten=async(page,aufnahmen)=>{
  console.log("\nE · Gemischt: eine neue und eine alte Aufnahme");
  await vorbereiten(page,AUFNAHMEN.concat(ALT));
  const stMix=await page.evaluate(()=>resvBedarfStand());
- p(stMix.teile>=5&&stMix.unbekannt>=1,"beide Staende nebeneinander gezaehlt",stMix);
+ // Gleichnamige Positionen beider Aufnahmen werden zu EINER zusammengefasst
+ // (pmatSammeln seit v3.09) - deshalb 5 und 4, nicht 6 und 5.
+ p(stMix.teile===5&&stMix.abgeleitet===4&&stMix.unbekannt===0,
+   "beide Aufnahmen sauber zugeordnet",stMix);
  const zMix=await page.evaluate(()=>resvBedarfZeilen().map(r=>r.bezeichnung));
- p(zMix.filter(b=>/Abwicklung 250 mm/.test(b)).length===1,
-   "die bekannte Abwicklung faellt weg, die unbekannte bleibt",zMix);
+ p(zMix.filter(b=>/Abwicklung 250 mm/.test(b)).length===0,
+   "keine Abwicklung mehr dabei - weder die neue noch die alte",zMix);
+ p(zMix.filter(b=>/Haltebleche/.test(b)).length===1,
+   "aber das GAVA-Blech beider Aufnahmen",zMix);
+ const mengeGava=await page.evaluate(()=>
+   (resvBedarfZeilen().find(r=>/Haltebleche/.test(r.bezeichnung))||{}).menge);
+ p(mengeGava===7,"mit der Summe aus beiden (4 + 3)",mengeGava);
 
  console.log("\nF · Die Entscheidung haengt NICHT an der Bezeichnung");
  await vorbereiten(page,[{id:31,project_id:7,type:"kehle",title:"X",

@@ -75,16 +75,29 @@ window.supabase={createClient:()=>({
 // Zwei Massaufnahmen mit gespeichertem Ausmass und Zuschnitt, ein drittes
 // Material - genau wie im Materialpruefstand, damit beide dieselbe Quelle
 // benutzen und nicht auseinanderlaufen koennen.
+// Seit v3.18 nimmt die Reservierung nur Teile und Zuschnitte (Abschnitt 123).
+// Die Ausmass-Zeilen tragen hier bewusst KEIN teil-Feld - das ist der echte
+// Zustand eines vor v3.17 gespeicherten Datensatzes, und genau dann greift
+// der Rueckfall nach Typ. Jede Aufnahme hat deshalb mindestens ein echtes
+// Teil, damit die Mechanik (ein Insert, Quelle, Statuswechsel) weiterhin an
+// Ausmass-Zeilen UND Zuschnitten geprueft wird.
 const AUFNAHMEN=[
  {id:11,project_id:7,type:"einlaufblech_gerade",title:"Dach Nord",
   data:{material:2,abwicklung:250,
    ausmass:[{pos:1,bezeichnung:"Einlaufblech gerade, Abwicklung 250 mm",menge:"1,90",einheit:"m"},
             {pos:2,bezeichnung:"Stücke (Zuschnitte)",menge:2,einheit:"Stk."},
-            {pos:3,bezeichnung:"Enge Seite",menge:"–",einheit:""}],
+            {pos:3,bezeichnung:"Enge Seite",menge:"–",einheit:""},
+            {pos:4,bezeichnung:"Haltebleche (GAVA Blech)",menge:5,einheit:"Stk."}],
    rollen:{streifen:[{rest:0,stuecke:[{nr:1,laenge:1200},{nr:2,laenge:700}]}],optimal:true}}},
- {id:12,project_id:7,type:"kehle",title:"Kehle West",
+ {id:12,project_id:7,type:"anschlussblech",title:"Ortblech Süd",
   data:{material:3,abwicklung:500,
-   ausmass:[{pos:1,bezeichnung:"Blechfläche",menge:"1,00",einheit:"m²"}],
+   ausmass:[{pos:1,bezeichnung:"Bleilappen",menge:8,einheit:"Stk."},
+            {pos:2,bezeichnung:"Blechfläche",menge:"1,00",einheit:"m²"},
+            // Ein echtes TEIL mit einer Textmenge - js/20 weist den Bleilappen
+            // als eigenes Material ohne erfundene Menge aus (CLAUDE.md 105.3).
+            // Damit prueft die Textsperre unten wirklich die Textsperre und
+            // nicht nur den Teile-Filter.
+            {pos:3,bezeichnung:"Bleilappen (eigenes Material)",menge:"–",einheit:""}],
    rollen:{abwicklung:500,streifen:[{rest:0,stuecke:[{nr:1,laenge:2000}]}],optimal:true}}}
 ];
 
@@ -194,19 +207,26 @@ const stand=page=>page.evaluate(()=>{
    "kein company_id-Filter im Client - das erzwingt die Datenbank");
 
  console.log("\nC · Bedarf aus der Materialuebersicht uebernehmen");
- // Von Hand nachgerechnet aus AUFNAHMEN:
- //  Titanzink: Ausmasszeilen "Einlaufblech gerade..." (1,90 m) und
- //             "Stücke (Zuschnitte)" (2 Stk.) - "Enge Seite" ist Text und
- //             wird NICHT reserviert. Zuschnitte: 1200x250 und 700x250.
- //  Kupfer:    "Blechfläche" 1,00 m². Zuschnitt 2000x500.
- //  Summe: 2 + 2 + 1 + 1 = 6 Zeilen.
+ // Von Hand nachgerechnet aus AUFNAHMEN, mit der Regel aus v3.17/v3.18
+ // (nur Teile und Zuschnitte, Abschnitt 122/123):
+ //  Titanzink: Teil "Haltebleche (GAVA Blech)" (5 Stk.). Die drei uebrigen
+ //             Zeilen sind abgeleitete Masse und fallen weg. Zuschnitte:
+ //             1200x250 und 700x250.            -> 1 + 2 = 3
+ //  Kupfer:    Teil "Bleilappen" (8 Stk.). "Blechfläche" ist abgeleitet,
+ //             "Bleilappen (eigenes Material)" ist zwar ein Teil, hat aber
+ //             eine Textmenge und wird deshalb NICHT reserviert.
+ //             Zuschnitt 2000x500.               -> 1 + 1 = 2
+ //  Summe: 3 + 2 = 5 Zeilen.
  await page.click("#resvBedarfBtn");
  await page.waitForTimeout(80);
  s=await stand(page);
- p(s.zeilen.length===6,"6 Positionen uebernommen",{n:s.zeilen.length,z:s.zeilen});
+ p(s.zeilen.length===5,"5 Positionen uebernommen",{n:s.zeilen.length,z:s.zeilen});
  p(s.text.indexOf("Noch kein Bedarf erfasst")<0,"der Leerzustand ist weg",{t:s.text.slice(0,60)});
  const alleText=s.zeilen.map(z=>z.join(" | ")).join(" ~ ");
- p(/Enge Seite/.test(alleText)===false,"reiner Text wird nicht reserviert");
+ p(/eigenes Material/.test(alleText)===false,"reiner Text wird nicht reserviert - auch bei einem Teil");
+ p(/Bleilappen/.test(alleText),"das Teil mit Zahl kommt dagegen mit");
+ p(/Abwicklung 250/.test(alleText)===false&&/Blechfläche/.test(alleText)===false,
+   "abgeleitete Masse fallen weg",{t:alleText.slice(0,300)});
  p(/1200 × 250 mm/.test(alleText)&&/700 × 250 mm/.test(alleText),"Zuschnitte mit Abmessung",{t:alleText.slice(0,300)});
  p(/Titanzink/.test(alleText)&&/Kupfer/.test(alleText),"beide Materialien getrennt");
  p(s.zeilen.every(z=>/Benötigt/.test(z[4])),"alle starten bei Benötigt");
@@ -214,20 +234,20 @@ const stand=page=>page.evaluate(()=>{
  const gesendet=await page.evaluate(()=>window.__ruf.filter(r=>r.op==="insert"));
  p(gesendet.length===1,"ein einziger Insert",{n:gesendet.length});
  const zeilenGesendet=gesendet.length?[].concat(gesendet[0].werte):[];
- p(zeilenGesendet.length===6,"6 Zeilen im Insert",{n:zeilenGesendet.length});
+ p(zeilenGesendet.length===5,"5 Zeilen im Insert",{n:zeilenGesendet.length});
  p(zeilenGesendet.every(z=>!("company_id" in z)),"der Client schickt keine company_id mit",zeilenGesendet[0]);
  p(zeilenGesendet.every(z=>z.project_id===7),"jede Zeile traegt das Projekt");
  p(zeilenGesendet.every(z=>z.status==="benoetigt"),"jede Zeile startet bei benoetigt");
  const mitQuelle=zeilenGesendet.filter(z=>z.measurement_id);
- p(mitQuelle.length===6&&mitQuelle.every(z=>[11,12].indexOf(z.measurement_id)>=0),
+ p(mitQuelle.length===5&&mitQuelle.every(z=>[11,12].indexOf(z.measurement_id)>=0),
    "jede Position fuehrt auf ihre Massaufnahme zurueck",zeilenGesendet.map(z=>z.measurement_id));
- p(s.quellen.length===6,"und die Quelle ist anklickbar",{n:s.quellen.length});
+ p(s.quellen.length===5,"und die Quelle ist anklickbar",{n:s.quellen.length});
 
  console.log("\nD · zweimal uebernehmen legt nichts doppelt an");
  await page.click("#resvBedarfBtn");
  await page.waitForTimeout(80);
  s=await stand(page);
- p(s.zeilen.length===6,"weiterhin 6 Zeilen",{n:s.zeilen.length});
+ p(s.zeilen.length===5,"weiterhin 5 Zeilen",{n:s.zeilen.length});
  p(/Es gab nichts Neues/.test(s.hinweis),"und es wird gesagt, dass nichts neu war",{h:s.hinweis});
  const inserts=await page.evaluate(()=>window.__ruf.filter(r=>r.op==="insert").length);
  p(inserts===1,"kein zweiter Insert",{n:inserts});
