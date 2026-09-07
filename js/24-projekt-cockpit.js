@@ -54,6 +54,12 @@ async function measEditZurueck(){
  // v3.09: aus der Werkstattansicht geoeffnet -> zurueck dorthin, mit frisch
  // geladenem Stand (der Arbeitsstatus kann sich geaendert haben).
  else if(measEditReturnTo==="werkstatt"){$("werkstattModal").hidden=false;if(typeof werkstattNeuLaden==="function")await werkstattNeuLaden()}
+ // v3.25: aus der Seite "Material & Zuschnitt" geoeffnet -> zurueck dorthin.
+ // Bis v3.24 landete man im Cockpit und musste die Seite erneut oeffnen -
+ // ein Umweg mitten im Ablauf. Das Projekt kommt aus mzProjectId (js/56),
+ // damit auch die richtige Seite wieder aufgeht.
+ else if(measEditReturnTo==="matZu"&&typeof openMaterialZuschnitt==="function"
+         &&typeof mzProjectId!=="undefined"&&mzProjectId){await openMaterialZuschnitt(mzProjectId)}
  else{$("measurementsModal").hidden=false;await renderMeasurementsOverview()}
  measEditReturnTo="measurementsModal";
 }

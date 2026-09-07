@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.24.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.25.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -328,14 +328,26 @@ der Ersteller bleiben unverändert.</p>
 braucht das Projekt, <b>welche Massaufnahme liefert welche Zuschnitte</b>, und
 <b>was davon ist schon geschnitten</b>.</p>
 <p>Oben stehen die Kennzahlen, darunter das Material nach Materialart, darunter
-die Zuschnitte – eine Karte je Massaufnahme, offene und teilweise erledigte
-zuerst. <span class="tasten">✂️ Zuschnitt öffnen</span> führt direkt in die
-Zuschnittansicht genau dieser Massaufnahme. Dort wird nichts neu gerechnet: es
-ist dieselbe Liste, die auch das PDF druckt.</p>
+die Zuschnitte – eine Karte je Massaufnahme, offene und teilweise zugeschnittene
+zuerst. <b>Die Zuschnittliste steht seit Version 3.25 gleich auf der Karte</b>,
+genau wie in der Werkstatt: Seite öffnen, Stück antippen, fertig. Gerechnet wird
+dabei nichts – es ist dieselbe Liste wie im Register „Zuschnitt“ und im PDF.</p>
+<p>Zugeklappt bleibt sie nur, wenn <b>alles geschnitten</b> ist oder die
+Massaufnahme <b>noch nicht freigegeben</b> ist; dann steht dort
+<span class="tasten">▸ Zuschnittliste zeigen</span>. Eine noch nicht freigegebene
+Massaufnahme trägt ihren Arbeitsstatus und den Hinweis, dass hier noch nichts
+geschnitten werden sollte – blockiert wird nichts.</p>
 <p><b>Ein Tap auf eine Positionsnummer hakt dieses Stück als zugeschnitten
 ab</b>, nochmals tippen nimmt den Haken zurück. Bei mehreren gleichen
-Zuschnitten steht daneben „2/3 erledigt“ und <span class="tasten">✓ alle</span>
-hakt die ganze Zeile ab. Wer wann abgehakt hat, steht im Änderungsverlauf.</p>
+Zuschnitten steht daneben „2/3 zugeschnitten“ und
+<span class="tasten">✓ alle</span> hakt die ganze Zeile ab. Die Seite zeichnet
+sich dabei nicht neu, es springt also nichts weg. Wer wann abgehakt hat, steht
+im Änderungsverlauf.</p>
+<p><span class="tasten">✂️ Im Formular</span> öffnet die Massaufnahme auf ihrem
+Zuschnitt-Register; <span class="tasten">Abbrechen</span> führt von dort wieder
+auf diese Seite zurück. <span class="tasten">🖨️ Rüstliste</span> druckt das
+Blatt dieser einen Massaufnahme, die Überschrift der Seite das des ganzen
+Projekts.</p>
 <p><b>Zugeschnitten entsteht nur so</b> – nicht dadurch, dass Material
 reserviert oder verfügbar ist. Das sind getrennte Dinge: <i>Material</i> ist
 benötigt/verfügbar/reserviert, <i>Zuschnitt</i> ist offen/teilweise/vollständig,

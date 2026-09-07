@@ -53,6 +53,32 @@ function pmatPlanRoh(m){
  const d=(m&&m.data)||{};
  return d.rollen||d.zuschnitt||null;
 }
+// v3.25: Der gespeicherte Zuschnittplan EINER Massaufnahme, in der Form, die
+// zuListeHtml()/zuschnittHtml() erwarten. Gerechnet wird nichts - genommen
+// wird, was beim Speichern abgelegt wurde.
+//
+// Diese Rechnung stand bis v3.24 ZWEIMAL byteweise gleich da: als
+// werkZuschnittPlan() in js/51 und als rlPlan() in js/58. Mit der Seite
+// "Material & Zuschnitt" waere sie ein drittes Mal noetig geworden. Sie
+// liegt deshalb jetzt EINMAL hier, wo auch pmatPlanRoh und pmatStuecke
+// wohnen; die beiden alten Namen sind nur noch Durchreichen.
+//
+// erledigtFuer sagt js/33, dass hier abgehakt werden darf: es ist genau eine
+// Aufnahme mit ihren eigenen Stuecknummern (siehe CLAUDE.md 120.4 - der
+// projektweite Sammelplan traegt sammel:true und darf es nicht).
+function pmatPlanFuer(m){
+ if(typeof zuPlanAusGespeichert!=="function")return null;
+ const r=pmatPlanRoh(m); if(!r)return null;
+ const d=(m&&m.data)||{};
+ const breite=(r.abwicklung!==undefined&&r.abwicklung!==null)?r.abwicklung
+             :((d.abwicklung!==undefined&&d.abwicklung!==null)?d.abwicklung:null);
+ const p=zuPlanAusGespeichert(r,breite,"Stück");
+ if(!p||!(p.gruppen||[]).length)return null;
+ p.erledigtFuer=(m&&m.id!==undefined)?m.id:null;
+ p.material=pmatMaterialName(d.material);
+ return p;
+}
+
 // Die einzelnen Zuschnittstuecke eines gespeicherten Plans, mit ihrer
 // Streifenbreite. Beide historischen Formen (gruppen bzw. flach) werden
 // gelesen - dieselbe Unterscheidung wie zuPlanAusGespeichert() in js/33.

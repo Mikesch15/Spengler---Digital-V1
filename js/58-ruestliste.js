@@ -36,15 +36,11 @@ function rlMm(v){return Math.round(rlZahl(v)).toLocaleString("de-CH")}
 
 // Der gespeicherte Plan einer Massaufnahme in der Form, die zuGruppen()
 // erwartet - exakt derselbe Weg wie werkZuschnittPlan() in js/51.
+// v3.25: dieselbe eine Rechnung wie am Bildschirm (pmatPlanFuer, js/48).
+// Die zwei Zusatzfelder, die sie setzt (material, erledigtFuer), braucht der
+// Ausdruck nicht - er baut seine Tabelle selbst aus zuGruppen().
 function rlPlan(m){
- if(typeof pmatPlanRoh!=="function"||typeof zuPlanAusGespeichert!=="function")return null;
- const r=pmatPlanRoh(m); if(!r)return null;
- const d=(m&&m.data)||{};
- const breite=(r.abwicklung!==undefined&&r.abwicklung!==null)?r.abwicklung
-             :((d.abwicklung!==undefined&&d.abwicklung!==null)?d.abwicklung:null);
- const p=zuPlanAusGespeichert(r,breite,"Stück");
- if(!p||!(p.gruppen||[]).length)return null;
- return p;
+ return (typeof pmatPlanFuer==="function")?pmatPlanFuer(m):null;
 }
 function rlTyp(t){
  return (typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[t])||t||"Massaufnahme";

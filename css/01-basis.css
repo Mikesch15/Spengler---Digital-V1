@@ -1018,6 +1018,14 @@ input:has(+ .winkel-knopf){min-width:70px}
 .mz-balken-innen{height:100%;background:var(--blue);border-radius:5px}
 .mz-balken-innen.mz-voll{background:var(--green)}
 .mz-warn{font-size:12px;color:var(--red);font-weight:700;margin-top:6px;word-break:break-word}
+/* v3.25: "Noch nicht freigegeben" ist ein Hinweis, kein Fehler - deshalb
+   ruhiger als die rote Warnung darueber. */
+.mz-warn.mz-warn-still{color:var(--muted);font-weight:600}
+/* v3.25: Die Knopfzeile unter der Zuschnittliste. Die globale mz-knopf-Regel
+   (volle Breite) gilt hier ausdruecklich nicht - es sind zwei Knoepfe
+   nebeneinander, die auf schmalen Geraeten umbrechen duerfen. */
+.mz-karte-akt{margin-top:8px;gap:6px}
+.mz-karte-akt button{width:auto;flex:1 1 auto;min-width:0;min-height:40px;font-size:12px}
 .mz-rest{font-size:12px;margin:8px 0 4px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .mz-kompakt{line-height:1.5}
 .mz-details{margin:10px 0}

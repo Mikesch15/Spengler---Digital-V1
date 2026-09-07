@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.24";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.25";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.24<br>
+  Version 3.25<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -528,15 +528,15 @@ an Ort und Stelle und bietet einem Administrator dort gleich den Schalter an
 <figure><img src="bilder/38-projektmodule.png"><figcaption>Hauptschalter und sieben Untermodule. Ein Untermodul ohne seine Grundlage bleibt gesperrt und sagt auch warum.</figcaption></figure>
 
 <h3>Material &amp; Zuschnitt – die eine Arbeitsseite</h3>
-<figure><img src="bilder/42-matzu.png"><figcaption>Oben vier Kennzahlen, darunter das Material, dann jede Massaufnahme mit ihrem Zuschnittfortschritt.</figcaption></figure>
+<figure><img src="bilder/42-matzu.png"><figcaption>Oben vier Kennzahlen, darunter das Material, dann jede Massaufnahme mit ihrer Zuschnittliste. Oben eine freigegebene Rinne mit offener, antippbarer Liste, darunter ein noch nicht freigegebenes Einlaufblech mit zugeklappter Liste und dem Hinweis dazu.</figcaption></figure>
 <p>Im Projekt-Cockpit steht dafür <strong>eine</strong> Karte:</p>
 <p class="mitte"><strong>🧱 MATERIAL &amp; ZUSCHNITT</strong><br>
-Material: 3 Positionen<br>Zuschnitt: 7 von 12 erledigt<br>5 Zuschnitte offen<br>
+Material: 3 Positionen<br>Zuschnitt: 7 von 12 zugeschnitten<br>5 Zuschnitte offen<br>
 <span class="tasten">🧱 Material &amp; Zuschnitt öffnen</span></p>
 <p>Die Seite beantwortet in wenigen Sekunden: <em>Was muss für dieses Objekt
 zugeschnitten werden, aus welcher Massaufnahme kommt es, und was ist davon schon
 erledigt?</em> Ganz oben stehen vier Kennzahlen – Materialpositionen, Zuschnitt offen,
-Zuschnitt erledigt, Massaufnahmen. Darunter zwei Bereiche:</p>
+Zugeschnitten, Massaufnahmen. Darunter zwei Bereiche:</p>
 <p><strong>MATERIAL</strong> – je Material eine Karte mit dem Bedarf und dem
 Reservierungsstand, dazu genau <em>eine</em> passende Aktion:
 <span class="tasten">📦 Material reservieren</span>, wenn noch nichts reserviert ist,
@@ -544,21 +544,36 @@ sonst <span class="tasten">Reservierung ändern</span>. Wer und wann ist Detaili
 und steht nicht in der Hauptansicht.</p>
 <p><strong>ZUSCHNITT NACH MASSAUFNAHME</strong> – jede Massaufnahme als Karte, mit
 ihrer Art, ihrem Titel, ihrem Material, der Zahl der Zuschnitte und dem Fortschritt
-(<em>2 von 4 erledigt</em>). <strong>Offene und teilweise erledigte stehen zuoberst</strong>,
-vollständige darunter. Ist die Freigabe nach einer Änderung verfallen (Kapitel 9), steht
-das rot auf der Karte – ein überholter Stand darf nicht unbemerkt als aktueller Zuschnitt
-gelten.</p>
-<p><span class="tasten">Zuschnitt öffnen</span> springt direkt in die vorhandene
-Zuschnittansicht dieser Massaufnahme. Es ist <strong>dieselbe</strong> Ansicht wie im
-Register „Zuschnitt“ – keine zweite Darstellung, keine zweite Rechnung.
+(<em>2 von 4 zugeschnitten</em>). <strong>Offene und teilweise zugeschnittene stehen
+zuoberst</strong>, vollständige darunter. Ist die Freigabe nach einer Änderung verfallen
+(Kapitel 9), steht das rot auf der Karte – ein überholter Stand darf nicht unbemerkt als
+aktueller Zuschnitt gelten.</p>
+<p><strong>Seit Version 3.25 steht die Zuschnittliste gleich auf der Karte</strong> –
+genauso wie in der Werkstatt. Man muss also nicht mehr erst in die Massaufnahme wechseln,
+um ein Stück abzuhaken: Seite öffnen, Stück antippen, fertig. Es ist <strong>dieselbe</strong>
+Liste wie im Register „Zuschnitt“ und in der Werkstatt – keine zweite Darstellung, keine
+zweite Rechnung.</p>
+<p>Zugeklappt bleibt die Liste in genau zwei Fällen, und beide kommen aus den Daten:
+wenn <strong>alles geschnitten</strong> ist, und wenn die Massaufnahme <strong>noch nicht
+freigegeben</strong> ist. Dann steht dort <span class="tasten">▸ Zuschnittliste zeigen</span>
+– man kommt also immer heran, sie drängt sich nur nicht auf.</p>
+<p><span class="tasten">✂️ Im Formular</span> öffnet die Massaufnahme selbst auf ihrem
+Register „Zuschnitt“ – für alles, was über das Abhaken hinausgeht.
+<span class="tasten">🖨️ Rüstliste</span> druckt das Blatt dieser einen Massaufnahme
+(Kapitel 10), die Überschrift der Seite das des ganzen Projekts.
 <span class="tasten">Reststücke verfügbar: 5</span> steht als eine einzige Zeile da; ein
 Reststück wird nie automatisch eingeplant.</p>
+<div class="hin"><strong>Noch nicht freigegeben.</strong> Eine Massaufnahme, die noch in
+Bearbeitung ist, trägt auf der Karte ihren Arbeitsstatus und den Satz „Noch nicht
+freigegeben – hier sollte noch nichts geschnitten werden.“ Blockiert wird nichts – wer
+weiss, was er tut, klappt die Liste auf und hakt ab. Aber niemand schneidet mehr
+versehentlich nach einem Stand, den noch niemand freigegeben hat.</div>
 
 <h4>Ein Tap = zugeschnitten</h4>
 <p>In der Zuschnittansicht ist <strong>jede Positionsnummer ein Knopf</strong>. Ein Tipp
 darauf hakt genau dieses Stück als zugeschnitten ab, es wird grün mit einem Häkchen. Ein
 zweiter Tipp nimmt den Haken zurück.</p>
-<p>Bei mehreren gleichen Zuschnitten steht der Stand daneben – <em>1/3 erledigt</em> –
+<p>Bei mehreren gleichen Zuschnitten steht der Stand daneben – <em>1/3 zugeschnitten</em> –
 und <span class="tasten">alle</span> hakt die ganze Gruppe in einem Tipp ab. Die
 einzelnen Stücke bleiben trotzdem einzeln abhakbar; der Fortschritt schlägt sofort bis
 auf die Karte und ins Cockpit durch.</p>
@@ -569,6 +584,11 @@ echte Bestätigung an der Werkbank. Und die drei Angaben bleiben getrennt:
 <strong>Zuschnitt</strong> (offen · teilweise · vollständig) und
 <strong>Werkstatt</strong> (gerüstet · montiert). Es gibt kein Feld mehr, in dem alles
 zusammen ausgewählt wird.</div>
+<p>Beim Abhaken zeichnet sich die Seite <strong>nicht</strong> neu – sie zieht nur die
+Zahlen nach. So springt unter dem Finger nichts weg, und die gerade angetippte Nummer
+bleibt stehen. Wer über <span class="tasten">✂️ Im Formular</span> in die Massaufnahme
+wechselt, landet mit <span class="tasten">Abbrechen</span> wieder auf dieser Seite und
+nicht im Cockpit.</p>
 <p>Passt ein abgehaktes Stück nicht mehr zum aktuellen Plan – weil die Massaufnahme
 danach geändert wurde –, steht das als Hinweis da, statt den Haken stillschweigend als
 gültig zu zeigen.</p>
@@ -1127,7 +1147,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.24</strong>, Stand 7. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.25</strong>, Stand 7. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

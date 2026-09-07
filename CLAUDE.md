@@ -17,11 +17,20 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.21, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.25, Branch `main`.**
+
+Die Versionsnummer dieses Abschnitts blieb zwischen Version 3.21 und 3.24
+stehen, obwohl der Code weiterlief – die Abschnitte 127 bis 129 waren
+bereits geschrieben. Beim Aufräumen im Rahmen von Version 3.25 wurde sie
+gegen `index.html` und `sw.js` geprüft und nachgezogen; der Auftrag ging
+dabei von 3.23 aus, tatsächlich stand `main` auf **3.24**.
+
+Massgeblich ist immer die Versionsnummer in `index.html` und `sw.js` –
+beide müssen gleich sein, ein Prüfstand erzwingt das.
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.21**
+- sichtbare App-Version: **3.25**
 - **Es wird ausschliesslich direkt auf `main` gearbeitet und
   veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
   Feature-Branch, kein Pull Request.
@@ -21775,6 +21784,195 @@ Zuschnitt, keine Packrechnung berührt.
   (unverändert aus §121.10). Sie ist danach eine gewöhnliche Materialzeile.
 - Der **Preis** einer freien Position bleibt leer und wird im Rapport
   nachgetragen – die App kennt für ein Blech ohne Katalogposition keinen.
+- Vom Ideenzettel weiterhin offen: Reststücke wirklich verrechnen,
+  Bestellliste je Lieferant, Mitarbeiterliste zusammenführen, Übersicht für
+  Ausmass und Rapporte, Offerten. Dazu die Punkte, die nur der Betreiber
+  erledigen kann: Schnittfuge eintragen, die projektlosen Massaufnahmen
+  zuordnen, die abgeleiteten Reservierungszeilen wegräumen,
+  Leaked-Password-Schutz, eigene Domain.
+
+## 130. PRODUKTIONSABLAUF: DIE LISTE STEHT DORT, WO GESCHNITTEN WIRD — VERSION 3.25
+
+Auftrag vom 07.09.2026: den bestehenden Ablauf **Massaufnahme → Freigabe →
+Material & Zuschnitt → Zuschnitt je Massaufnahme → Stück abhaken → Werkstatt
+→ Rüstliste** aus der Sicht eines Mitarbeiters auf dem Handy durchspielen und
+UX-seitig verbessern. Ausdrücklich **keine neue Grossfunktion**, keine zweite
+Status- oder Reservierungslogik, keine Berechnung anfassen – und: *„Wenn du
+bei der Prüfung feststellst, dass eine Änderung keinen klaren Nutzen bringt:
+NICHT ändern."*
+
+**Keine Schemaänderung, keine Migration, keine RLS-Änderung, keine neue
+Datenbankfunktion, keine Fachrechnung verändert.**
+
+### 130.1 Die Auftragsangabe stimmte nicht ganz
+
+Der Auftrag geht von Version **3.23** aus. `main` stand tatsächlich auf
+**3.24** – die Abschnitte 127 bis 129 waren bereits geschrieben und
+veröffentlicht. Der Kopf dieses Dokuments stand seinerseits noch auf 3.21.
+
+Beides ist jetzt in Ordnung: der Kopf nennt die Version, die `index.html` und
+`sw.js` tragen, und sagt ausdrücklich, dass diese beiden die massgebliche
+Quelle sind (ein Prüfstand erzwingt ihre Gleichheit). Erfunden wurde dabei
+nichts – nur die Zahl korrigiert und der Grund benannt.
+
+### 130.2 Der Ablauf, gemessen statt vermutet
+
+Durchgespielt in echtem Chromium gegen die echte `index.html`, mit gezählten
+Klicks und gezählten Bedienelementen:
+
+| Weg zum ersten abhakbaren Stück | bis v3.24 |
+|---|---|
+| **A** Projekte → Projekt → Material & Zuschnitt → „✂️ Zuschnitt öffnen" | **4 Klicks**, und auf der Seite selbst **0** abhakbare Nummern |
+| **B** Werkstatt → Projekt | **1 Klick**, **3** abhakbare Nummern |
+
+Der Bereich, der ausdrücklich „Material **& Zuschnitt**" heisst, war damit der
+**längere** Weg zum Zuschneiden – und der einzige der beiden, auf dem sich
+nichts abhaken liess. Wer dort landete, musste erst in die Massaufnahme
+wechseln.
+
+Fünf weitere Befunde, alle im Browser bzw. am Quelltext gemessen:
+
+| Befund | Beleg |
+|---|---|
+| **Kontextverlust auf dem Rückweg** | „Abbrechen" führte ins **Cockpit** (`measEditReturnTo="projectCockpit"`), nicht auf die Seite – mitten im Ablauf ein Umweg |
+| **Zwei Wörter für dieselbe Tatsache** | Seite und Cockpit sagten „erledigt", Werkstatt und Rüstliste „zugeschnitten" |
+| **Freigabe unsichtbar** | eine noch in Bearbeitung stehende Massaufnahme sah auf der Seite genau aus wie eine freigegebene – auf der Seite, die zum Schneiden einlädt. Die Werkstatt macht es richtig (sie zeigt nur freigegebene) |
+| **Rüstliste nur über die Werkstatt** | eine Firma mit Zuschnitt-, aber **ohne** Werkstattmodul kam gar nicht an sie heran |
+| **Derselbe Plan zweimal gebaut** | `werkZuschnittPlan()` (js/51) und `rlPlan()` (js/58) waren **byteweise gleich**; mit der Seite wäre es ein drittes Mal geworden |
+
+### 130.3 Geändert wurde, was gemessen ein Problem war
+
+**Die Zuschnittliste steht jetzt auf der Karte** – genau wie in der Werkstatt
+seit v3.21. Damit sind es **3 Klicks statt 4**, und das erste Stück ist
+sofort antippbar.
+
+Gezeichnet wird sie von `zuListeHtml()` (js/33) aus dem **gespeicherten** Plan
+über `pmatPlanFuer()` (js/48). Es entsteht **keine zweite Darstellung und
+keine zweite Rechnung**: `ebaPackeInStreifen()` (js/29) bleibt die einzige
+Packrechnung, `zeSetzen()` (js/56) der einzige Schreibweg, `mwBadge()` (js/44)
+die einzige Statusvokabel.
+
+**Zugeklappt bleibt die Liste in genau zwei Fällen, beide aus den Daten:**
+alles geschnitten, oder noch nicht freigegeben. Der Knopf „▸ Zuschnittliste
+zeigen" holt sie in beiden Fällen sofort – es wird **nichts blockiert**. Der
+Aufklappzustand hält, bis die Seite geschlossen wird (`mzOffenKarte`, gleiche
+Rolle wie `werkOffenKarte` in der Werkstatt).
+
+**Die Freigabe steht auf der Karte**: derselbe Badge wie in Werkstatt und
+Firmenübersicht, dazu bei einer noch nicht freigegebenen Massaufnahme der
+Satz „Noch nicht freigegeben – hier sollte noch nichts geschnitten werden."
+`mzFreigegeben()` liest **den einen** Arbeitsstatus aus js/44 – es entsteht
+keine zweite Statuskette. Ist der Arbeitsablauf der Firma ausgeschaltet, gibt
+es keine Freigabe, und es wird auch keine behauptet.
+
+**Der Rückweg führt auf die Seite zurück.** Eine weitere Verzweigung in der
+bestehenden `measEditZurueck()` (js/24), genau wie `"werkstatt"` sie in v3.09
+bekommen hat – keine zweite Navigation.
+
+**Eine Vokabel: „zugeschnitten".** Kartenstand, Gruppenstand, Kennzahl und
+Cockpit-Zeile sagen jetzt dasselbe wie Werkstatt und Rüstliste. `mzStandText()`
+ist dabei die **eine** Stelle, an der der Satz entsteht – damit Zeichnen und
+Nachführen nicht auseinanderlaufen können (dasselbe Muster wie `werkStandText`
+in js/51).
+
+**Nach einem Haken zeichnet sich die Seite nicht neu.** `mzStandAuffrischen()`
+zieht nur die Zahlen nach; sonst spränge die Liste unter dem Finger weg und
+die gerade angetippte Nummer wäre ersetzt – genau die Falle, die die Werkstatt
+in v3.21 gelöst hat. Nur wenn eine Karte fertig geworden ist **und** niemand
+an ihr abhakt, wird neu gezeichnet.
+
+**Die Rüstliste ist auch ohne Werkstattmodul erreichbar** – je Massaufnahme
+„🖨️ Rüstliste", in der Überschrift die des ganzen Projekts. Gedruckt wird über
+`ruestlisteMassaufnahme()`/`ruestlisteProjekt()` (js/58), die bestehenden zwei
+Einstiege, **kein zweiter Druckweg**.
+
+**Der doppelte Plan-Bauer ist zusammengeführt.** `pmatPlanFuer()` liegt jetzt
+**einmal** in js/48, wo auch `pmatPlanRoh` und `pmatStuecke` wohnen; js/51 und
+js/58 reichen nur noch durch. Geprüft: js/58 baut seine Tabelle selbst aus
+`zuGruppen(plan)` und fasst die zwei Zusatzfelder (`material`, `erledigtFuer`)
+nicht an – der Ausdruck ändert sich dadurch nicht.
+
+### 130.4 Was bewusst NICHT geändert wurde
+
+- **Keine Berechnung, keine Stückliste, kein Zuschnitt, keine Packrechnung,
+  keine Abwicklung.** Die zwölf Fachmodule (`js/11`–`js/40`), `js/33`,
+  `js/29`, `js/49` sind nicht im Diff.
+- **Der projektweite Sammelplan bleibt nicht abhakbar** (§120.4) – dort sind
+  die Nummern über das ganze Projekt neu vergeben und gehören zu keiner
+  einzelnen Massaufnahme.
+- **Das Abhaken bleibt am Modulschalter** (§127) – bei ausgeschaltetem Modul
+  keine Knöpfe, dafür der Grund und, für Administratoren, der Schalter daneben.
+- **„📦 Material reservieren" wurde nicht angefasst.** Ich hielt den Klick
+  zunächst für wirkungslos und habe es **gemessen** statt vermutet: er scrollt
+  die Einzelheiten ins Bild (`modalScroll: 708`, sichtbar). Also kein Fehler –
+  und nach der Regel des Auftrags kein Grund zu ändern.
+- **Materialzustand und Produktionsfortschritt bleiben getrennt.** Der Status
+  einer Reservierung ist weiterhin `benoetigt → verfuegbar → reserviert →
+  zugeschnitten → geruestet` (js/50), der Zuschnittstand kommt weiterhin
+  ausschliesslich aus `zuschnitt_erledigt` (js/56). Nichts davon wurde
+  vermischt.
+- **Keine Feature-Ausweitung** in Richtung Offerte/Auftrag.
+
+### 130.5 Getestet
+
+- **`pruefstaende/pruefstand-ablauf-v3-25.js` – 49/49**, echtes Chromium gegen
+  die echte `index.html`, Abschnitte A bis I: drei Klicks bis zum ersten
+  abhakbaren Stück; die freigegebene Karte zeigt „Zu rüsten" mit offener Liste,
+  die noch nicht freigegebene „In Bearbeitung" mit dem Hinweis und
+  zugeklappter, aber erreichbarer Liste; „zugeschnitten" überall; ein Tipp
+  schreibt genau **einmal**, ohne `company_id`, mit den Massen als Beleg, und
+  die angetippte Nummer wird **nicht** ersetzt; Rückziel `matZu` und das
+  tatsächliche Landen auf der Seite; Rüstliste ohne Werkstattmodul;
+  Modulschalter weiterhin respektiert; `pmatPlanFuer` ist der einzige
+  Plan-Bauer (`zuPlanAusGespeichert(` kommt in js/51, js/56 und js/58
+  **null**mal vor) und der Sammelplan bleibt nicht abhakbar; fünf
+  Bildschirmbreiten von 320 bis 1280 px ohne Überlauf, Trefferflächen ≥ 34 px.
+- **Sechs Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um; **keine bricht ihn ab** (§78):
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | Inline-Liste entfernt (Stand bis v3.24) | 37/43 |
+  | Freigabe-Badge und Hinweis entfernt | 46/49 |
+  | Rückziel wieder `projectCockpit` | 47/49 |
+  | Wortwahl zurück auf „erledigt" | 46/49 |
+  | nach dem Haken wieder ganz neu zeichnen | 48/49 |
+  | Plan-Bauer wieder dupliziert | 48/49 |
+
+- **`pruefstand-material-zuschnitt-v3-15.js` – 62/62**: elf **überholte**
+  Erwartungen nachgezogen, keine davon ein Codefehler – sie beschrieben genau
+  das, was der Auftrag ändern liess (siebenmal „erledigt", die Kennzahl, der
+  Knopfname, das Rückziel). Die Rückweg-Prüfung wurde dabei **verschärft**:
+  sie prüft jetzt nicht nur den gesetzten Wert, sondern dass man wirklich
+  wieder auf der Seite landet.
+
+### 130.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/56-material-zuschnitt.js` | Liste auf der Karte, Freigabe sichtbar, eine Vokabel, Nachziehen statt Neuzeichnen, Rüstliste, Rückziel |
+| `js/48-projekt-material.js` | `pmatPlanFuer()` – der eine Plan-Bauer |
+| `js/51-werkstatt.js`, `js/58-ruestliste.js` | reichen nur noch durch |
+| `js/24-projekt-cockpit.js` | eine Verzweigung für das Rückziel `matZu` |
+| `css/01-basis.css` | ruhiger Hinweis, Knopfzeile unter der Liste |
+| `js/41-hilfe.js` | Hilfetext „Material & Zuschnitt" nachgezogen, PDF-Verweis |
+| `index.html`, `sw.js` | Version 3.25 |
+| `pruefstaende/pruefstand-ablauf-v3-25.js` | **neu** |
+| `pruefstaende/pruefstand-material-zuschnitt-v3-15.js` | überholte Erwartungen |
+| `CLAUDE.md`, `anleitung/*` | Kopf korrigiert, Abschnitt 10 nachgezogen, PDF v3.25 |
+
+### 130.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert.
+- Die Seite lädt weiterhin **alle** Massaufnahmen des Projekts samt `data`.
+  Bei den realen Mengen unproblematisch; die Überlegung aus §126.10 gilt
+  unverändert auch hier.
+- Der Verlauf schreibt **eine Zeile je abgehaktem Stück** (§120.13,
+  unverändert) – gebündelt wird nur bei der Anzeige (§128.3).
 - Vom Ideenzettel weiterhin offen: Reststücke wirklich verrechnen,
   Bestellliste je Lieferant, Mitarbeiterliste zusammenführen, Übersicht für
   Ausmass und Rapporte, Offerten. Dazu die Punkte, die nur der Betreiber

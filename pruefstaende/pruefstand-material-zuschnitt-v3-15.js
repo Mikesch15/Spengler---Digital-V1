@@ -101,7 +101,9 @@ const seite=(page)=>page.evaluate(()=>{
    karten:[...$("matZuBody").querySelectorAll(".mz-karte")].map(k=>({
      titel:(k.querySelector(".mz-karte-titel")||{}).textContent,
      text:(k.innerText||"").replace(/\s+/g," ").trim(),
-     knopf:(k.querySelector("button")||{}).textContent})),
+     // v3.25: Die Karte traegt jetzt die Zuschnittliste - der erste Knopf
+     // waere eine Positionsnummer. Gelesen werden deshalb ALLE Knoepfe.
+     knopf:[...k.querySelectorAll("button")].map(x=>x.textContent).join(" | ")})),
    tabellenImHaupt:$("matZuBody").querySelectorAll("table").length,
    details:[...m.querySelectorAll("details.mz-details")].map(d=>({id:d.id,hidden:d.hidden,offen:d.open}))};
 });
@@ -169,7 +171,7 @@ const seite=(page)=>page.evaluate(()=>{
    hoehe:Math.round($("cockpitMatZuOeffnen").getBoundingClientRect().height)}));
  p(!z.hidden,"mit eingeschaltetem Modul steht die Karte da",z);
  p(/Material: 2 Positionen/.test(z.text),"sie nennt die Materialpositionen",z.text);
- p(/Zuschnitt: 0 von 6 erledigt/.test(z.text),"und den Zuschnittfortschritt",z.text);
+ p(/Zuschnitt: 0 von 6 zugeschnitten/.test(z.text),"und den Zuschnittfortschritt",z.text);
  p(/6 Zuschnitte offen/.test(z.text),"und wie viele offen sind",z.text);
  p(/Material & Zuschnitt öffnen/i.test(z.knopf)&&z.hoehe>=44,"ein grosser Knopf fuehrt auf die Seite",z);
 
@@ -178,7 +180,7 @@ const seite=(page)=>page.evaluate(()=>{
  await page.evaluate(()=>openMaterialZuschnitt(7)); await page.waitForTimeout(250);
  let s=await seite(page);
  p(s.offen,"die Seite geht auf");
- p(JSON.stringify(s.kennzahlen)===JSON.stringify(["Materialpositionen","Zuschnitt offen","Zuschnitt erledigt","Massaufnahmen"]),
+ p(JSON.stringify(s.kennzahlen)===JSON.stringify(["Materialpositionen","Zuschnitt offen","Zugeschnitten","Massaufnahmen"]),
    "oben stehen genau die vier Kennzahlen",s.kennzahlen);
  p(/MATERIAL/i.test(s.text)&&/ZUSCHNITT NACH MASSAUFNAHME/i.test(s.text),"beide Bereiche mit klarer Ueberschrift",s.text.slice(0,200));
  p(s.tabellenImHaupt===0,"die Hauptansicht ist eine Kartenliste, KEINE Tabelle",s.tabellenImHaupt);
@@ -188,9 +190,9 @@ const seite=(page)=>page.evaluate(()=>{
  const zuK=s.karten.filter(k=>/Einlaufblech|Mauerabdeckung/.test(k.titel));
  p(zuK.length===2,"je Massaufnahme mit Zuschnitt eine Karte",zuK.map(k=>k.titel));
  p(!s.karten.some(k=>/Skizze/.test(k.titel)),"eine Massaufnahme ohne Zuschnitt erscheint dort nicht");
- p(!!zuK[0]&&/4 Zuschnitte/.test(zuK[0].text)&&/0 von 4 erledigt/.test(zuK[0].text),"Anzahl und Fortschritt je Karte",zuK[0]);
+ p(!!zuK[0]&&/4 Zuschnitte/.test(zuK[0].text)&&/0 von 4 zugeschnitten/.test(zuK[0].text),"Anzahl und Fortschritt je Karte",zuK[0]);
  p(!!zuK[0]&&/Titanzink/.test(zuK[0].text),"das Material der Massaufnahme steht dabei",zuK[0]);
- p(!!zuK[0]&&/Zuschnitt öffnen/.test(zuK[0].knopf||""),"und ein Knopf fuehrt in die Zuschnittansicht",zuK[0]);
+ p(!!zuK[0]&&/Im Formular/.test(zuK[0].knopf||""),"und ein Knopf fuehrt in die Zuschnittansicht",zuK[0]);
  p(/Freigabe verfallen/.test(zuK.map(k=>k.text).join(" ")),"eine verfallene Freigabe ist deutlich gekennzeichnet");
  p(/Reststücke verfügbar: 2/.test(s.text),"Reststuecke nur als eine Zeile",s.text.slice(0,600));
  p(s.details.length===3&&s.details.every(d=>!d.hidden&&!d.offen),
@@ -246,7 +248,7 @@ const seite=(page)=>page.evaluate(()=>{
  p(k.knoepfe.length===4,"jedes Stueck ist einzeln abhakbar",k.knoepfe.length);
  p(k.knoepfe.length>0&&k.knoepfe.every(x=>x.meas==="11"),"jeder Haken kennt seine Massaufnahme",k.knoepfe[0]);
  p(k.knoepfe.length>0&&k.knoepfe.every(x=>x.h>=34&&x.w>=34),"grosse Trefferflaeche",k.knoepfe[0]);
- p(k.stand.some(t=>/0\/2 erledigt/.test(t)),"gruppierte gleiche Zuschnitte zeigen den Stand",k.stand);
+ p(k.stand.some(t=>/0\/2 zugeschnitten/.test(t)),"gruppierte gleiche Zuschnitte zeigen den Stand",k.stand);
  p(k.alle>0,"und lassen sich in einem Tap ganz abhaken",k.alle);
 
  await tipp(page,'#probe [data-ze-nr="1"]'); await page.waitForTimeout(200);
@@ -260,7 +262,7 @@ const seite=(page)=>page.evaluate(()=>{
  k=await page.evaluate(()=>({an:[...document.querySelectorAll("#probe [data-ze-nr]")].map(x=>x.classList.contains("ze-ok")),
    stand:[...document.querySelectorAll("#probe [data-ze-stand]")].map(x=>x.textContent)}));
  p(k.an[0]===true&&k.an.filter(Boolean).length===1,"genau dieses Stueck ist markiert",k.an);
- p(k.stand.some(t=>/1\/2 erledigt/.test(t)),"der Gruppenstand folgt sofort",k.stand);
+ p(k.stand.some(t=>/1\/2 zugeschnitten/.test(t)),"der Gruppenstand folgt sofort",k.stand);
 
  await tipp(page,'#probe [data-ze-nr="1"]'); await page.waitForTimeout(200);
  k=await page.evaluate(()=>[...document.querySelectorAll("#probe [data-ze-nr]")].map(x=>x.classList.contains("ze-ok")));
@@ -271,18 +273,18 @@ const seite=(page)=>page.evaluate(()=>{
  r=await page.evaluate(()=>window.__ruf.filter(x=>x.art==="upsert"));
  p(r.length===1&&!!r[0]&&r[0].rows.length===2,'"alle" schreibt die ganze Gruppe in einem Aufruf',r);
  k=await page.evaluate(()=>[...document.querySelectorAll("#probe [data-ze-stand]")].map(x=>x.textContent));
- p(k.some(t=>/2\/2 erledigt/.test(t)),"und die Gruppe ist danach vollstaendig",k);
+ p(k.some(t=>/2\/2 zugeschnitten/.test(t)),"und die Gruppe ist danach vollstaendig",k);
 
  // ---- E · Der Fortschritt schlaegt bis in die Seite und die Karte durch ---
  console.log("\nE · Fortschritt");
  await page.evaluate(()=>openMaterialZuschnitt(7)); await page.waitForTimeout(250);
  s=await seite(page);
  const zk=s.karten.find(k=>/Einlaufblech/.test(k.titel));
- p(!!zk&&/2 von 4 erledigt/.test(zk.text),"die Karte zeigt den Teilfortschritt",zk);
- p(/Zuschnitt erledigt 2 von 6/i.test(s.text.replace(/\s+/g," ")),"die Kennzahl auch",s.text.slice(0,400));
+ p(!!zk&&/2 von 4 zugeschnitten/.test(zk.text),"die Karte zeigt den Teilfortschritt",zk);
+ p(/Zugeschnitten 2 von 6/i.test(s.text.replace(/\s+/g," ")),"die Kennzahl auch",s.text.slice(0,400));
  await page.evaluate(()=>cockpitMatZuStand());
  z=await page.evaluate(()=>($("cockpitMatZuText").innerText||"").replace(/\s+/g," ").trim());
- p(/Zuschnitt: 2 von 6 erledigt/.test(z)&&/4 Zuschnitte offen/.test(z),"und die Cockpit-Karte",z);
+ p(/Zuschnitt: 2 von 6 zugeschnitten/.test(z)&&/4 Zuschnitte offen/.test(z),"und die Cockpit-Karte",z);
 
  // ---- F · Keine zweite Rechnung ------------------------------------------
  console.log("\nF · keine zweite Rechnung");
@@ -315,7 +317,14 @@ const seite=(page)=>page.evaluate(()=>{
    register:typeof ebaSchritt!=="undefined"?ebaSchritt:null}));
  p(z.seiteZu&&z.formular,"der Knopf oeffnet die Massaufnahme",z);
  p(z.register===4,"und stellt auf ihr Zuschnitt-Register",z);
- p(z.zurueck==="projectCockpit","der Rueckweg fuehrt ins Projekt",z);
+ p(z.zurueck==="matZu","der Rueckweg fuehrt auf die Seite zurueck, nicht ins Cockpit",z);
+ // v3.25: und er tut es auch wirklich - bis v3.24 landete man im Cockpit und
+ // musste "Material & Zuschnitt" erneut oeffnen.
+ await page.evaluate(()=>{$("measurementEditModal").hidden=true;return measEditZurueck()});
+ await page.waitForTimeout(600);
+ z=await page.evaluate(()=>({seite:!$("matZuModal").hidden,
+   knoepfe:document.querySelectorAll("#matZuBody [data-ze-nr]").length}));
+ p(z.seite&&z.knoepfe>0,"und landet mit der Zuschnittliste wieder dort",z);
  await page.evaluate(()=>{$("measurementEditModal").hidden=true});
 
  // ---- H · Fehler der Datenbank -------------------------------------------

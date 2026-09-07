@@ -393,17 +393,10 @@ function werkHatZuschnitt(g){
 // was beim Speichern abgelegt wurde (dieselben zwei Funktionen, die auch der
 // Ausdruck in js/16 verwendet). erledigtFuer sagt js/33, dass hier abgehakt
 // werden darf: es ist genau eine Aufnahme mit ihren eigenen Stuecknummern.
+// v3.25: Die Rechnung selbst steht seit dieser Fassung EINMAL in js/48
+// (pmatPlanFuer) - sie war bis v3.24 hier und in js/58 byteweise dieselbe.
 function werkZuschnittPlan(m){
- if(typeof pmatPlanRoh!=="function"||typeof zuPlanAusGespeichert!=="function")return null;
- const r=pmatPlanRoh(m); if(!r)return null;
- const d=(m&&m.data)||{};
- const breite=(r.abwicklung!==undefined&&r.abwicklung!==null)?r.abwicklung
-             :((d.abwicklung!==undefined&&d.abwicklung!==null)?d.abwicklung:null);
- const p=zuPlanAusGespeichert(r,breite,"Stück");
- if(!p||!(p.gruppen||[]).length)return null;
- p.erledigtFuer=m.id;
- p.material=(typeof pmatMaterialName==="function")?pmatMaterialName(d.material):"";
- return p;
+ return (typeof pmatPlanFuer==="function")?pmatPlanFuer(m):null;
 }
 // Eine Karte je Massaufnahme: Kopf mit Fortschritt, darunter die abhakbare
 // Liste. Bewusst nur zuListeHtml() - Rollenvergleich, Belegung und das

@@ -148,7 +148,7 @@ function zeMarkierungAuffrischen(root){
   const feld=z.querySelector("[data-ze-stand]");
   if(!feld)return;
   const fertig=knoepfe.filter(b=>b.classList.contains("ze-ok")).length;
-  feld.textContent=fertig+"/"+knoepfe.length+" erledigt";
+  feld.textContent=fertig+"/"+knoepfe.length+" zugeschnitten";
   feld.classList.toggle("ze-stand-ok",knoepfe.length>0&&fertig>=knoepfe.length);
  });
 }
@@ -208,6 +208,7 @@ async function zeSetzen(mid,nrListe,an,masse){
  // Finger weg, und ein versehentlicher Haken waere nur ueber einen
  // zusaetzlichen Klick zurueckzunehmen.
  if(typeof werkOffenKarte!=="undefined")werkOffenKarte.add(Number(mid));
+ if(typeof mzOffenKarte!=="undefined")mzOffenKarte.add(Number(mid));
  return {fehler:null,anzahl:data.length};
 }
 
@@ -244,6 +245,7 @@ async function zeEinreihen(mid,zeilen){
  zeCache.set(Number(mid),karte);
  zeGeladen.add(Number(mid));
  if(typeof werkOffenKarte!=="undefined")werkOffenKarte.add(Number(mid));
+ if(typeof mzOffenKarte!=="undefined")mzOffenKarte.add(Number(mid));
  return {ok:true};
 }
 // Die Massaufnahme zu einer Id - aus dem, was gerade geladen ist. Nur fuer
@@ -311,9 +313,11 @@ document.addEventListener("click",async e=>{
   if(r&&r.offline)return;
  }
  zeMarkierungAuffrischen();
- // Die zentrale Seite nur neu zeichnen, wenn sie wirklich offen ist - sonst
- // wuerde in ein verstecktes Fenster gerendert.
- if(mzSeiteOffen()&&typeof mzAuffrischen==="function")mzAuffrischen();
+ // v3.25: Die Seite traegt die Liste jetzt selbst. Sie wird deshalb NICHT
+ // mehr neu gezeichnet - das haette die gerade angetippte Nummer ersetzt.
+ // Nachgezogen werden nur die Zahlen (dasselbe Vorgehen wie in der
+ // Werkstatt seit v3.21).
+ if(typeof mzStandAuffrischen==="function")mzStandAuffrischen();
  if(typeof cockpitMatZuStand==="function")cockpitMatZuStand();
 });
 
@@ -434,25 +438,123 @@ function mzFortschrittHtml(s){
  const p=s.gesamt?Math.round(s.erledigt/s.gesamt*100):0;
  return `<div class="mz-balken"><div class="mz-balken-innen${s.fertig?" mz-voll":""}" style="width:${p}%"></div></div>`;
 }
+// v3.25: Ist diese Massaufnahme freigegeben?
+// Die Seite zeigte bis v3.24 eine noch in Bearbeitung stehende Massaufnahme
+// genau wie eine freigegebene - auf der Seite, die zum Schneiden einlaedt.
+// Die Werkstatt macht das richtig (sie zeigt nur freigegebene ueberhaupt an),
+// hier fehlte es. Es wird NICHTS blockiert und keine zweite Statuskette
+// gebaut: gelesen wird der eine Arbeitsstatus aus js/44, gesagt wird er.
+// Ist der Arbeitsablauf der Firma ausgeschaltet, gibt es keine Freigabe -
+// dann wird auch keine behauptet.
+function mzFreigegeben(m){
+ if(typeof mwAktiv!=="function"||!mwAktiv())return true;
+ return (m&&m.workflow_status||"in_bearbeitung")!=="in_bearbeitung";
+}
+// Welche Karte hat der Benutzer ausdruecklich aufgeklappt? Gleiche Rolle wie
+// werkOffenKarte in der Werkstatt (v3.21) - und derselbe Grund: wer gerade
+// abhakt, behaelt seine Liste, auch wenn das letzte Stueck sie fertig macht.
+const mzOffenKarte=new Set();
 function mzZuschnittKarteHtml(k){
  const m=k.m, s=k.stand;
- const warn=(m.freigabe_verfallen&&typeof mwAktiv==="function"&&mwAktiv())
+ const frei=mzFreigegeben(m);
+ const verfallen=!!(m.freigabe_verfallen&&typeof mwAktiv==="function"&&mwAktiv());
+ const warn=verfallen
   ? `<div class="mz-warn">⚠️ Freigabe verfallen – dieser Stand ist nicht mehr freigegeben.</div>`:"";
  const alt=s.veraltet
   ? `<div class="mz-warn">⚠️ ${s.veraltet} Haken passt nicht mehr zum jetzigen Zuschnitt.</div>`:"";
+ // Derselbe Badge wie in der Werkstatt und in der Firmenuebersicht - eine
+ // Vokabel fuer denselben Stand.
+ const badge=(typeof mwAktiv==="function"&&mwAktiv()&&typeof mwBadge==="function")
+  ? `<div class="mz-karte-zeile">${mwBadge(m.workflow_status)}</div>`:"";
+ const nochNicht=(!frei&&!verfallen)
+  ? `<div class="mz-warn mz-warn-still">Noch nicht freigegeben – hier sollte noch nichts geschnitten werden.</div>`:"";
+ // v3.25: Die Liste steht auf der Karte, genau wie in der Werkstatt seit
+ // v3.21 - gezeichnet von zuListeHtml() (js/33) aus dem GESPEICHERTEN Plan
+ // (pmatPlanFuer, js/48). Es wird nichts gerechnet und nichts zweitgebaut.
+ // Zugeklappt bleibt sie in genau zwei Faellen, beide aus den Daten:
+ // alles geschnitten, oder noch nicht freigegeben. Wer sie trotzdem sehen
+ // will, klappt sie auf - der Zustand haelt, bis die Seite geschlossen wird.
+ const plan=(typeof pmatPlanFuer==="function")?pmatPlanFuer(m):null;
+ const offen=mzOffenKarte.has(Number(m.id));
+ const zeigen=plan&&(offen||(frei&&!s.fertig));
+ const liste=!plan?""
+  :(zeigen?(typeof zuListeHtml==="function"?zuListeHtml(plan):"")
+   :`<button type="button" class="werk-zu-auf" data-mz-karte="${esc(m.id)}">▸ Zuschnittliste zeigen${s.fertig?" (alles geschnitten)":""}</button>`);
  return `<div class="mz-karte${s.fertig?" mz-karte-fertig":""}">
   <div class="mz-karte-titel">${esc(mzArt(m))}</div>
   <div class="mz-karte-zeile">${esc(mzMatName(m))} · <span class="mz-zahl">${s.gesamt}</span> Zuschnitt${s.gesamt===1?"":"e"}</div>
-  <div class="mz-karte-zeile mz-stand">${s.erledigt} von ${s.gesamt} erledigt${s.fertig?" ✓":""}</div>
-  ${mzFortschrittHtml(s)}
-  ${warn}${alt}
-  <button type="button" class="blue mz-knopf" data-mz-zuschnitt="${esc(m.id)}">✂️ Zuschnitt öffnen</button>
+  ${badge}
+  <div class="mz-karte-zeile mz-stand" data-mz-stand="${esc(m.id)}">${mzStandText(s)}</div>
+  <div data-mz-balken="${esc(m.id)}">${mzFortschrittHtml(s)}</div>
+  ${warn}${alt}${nochNicht}
+  ${liste}
+  <div class="bar mz-karte-akt">
+   <button type="button" class="gray" data-mz-zuschnitt="${esc(m.id)}">✂️ Im Formular</button>
+   ${plan?`<button type="button" class="gray" data-mz-druck="${esc(m.id)}" title="Rüstliste dieser Massaufnahme drucken">🖨️ Rüstliste</button>`:""}
+  </div>
  </div>`;
+}
+// Der Stand als Text - EINE Stelle, damit das Zeichnen und das spaetere
+// Nachfuehren nicht auseinanderlaufen koennen (dasselbe Muster wie
+// werkStandText in js/51). "zugeschnitten" ist dabei dasselbe Wort, das die
+// Werkstatt und die Ruestliste verwenden.
+function mzStandText(s){
+ if(!s||!s.gesamt)return "keine Stücke";
+ if(typeof zeAbhakenMoeglich==="function"&&!zeAbhakenMoeglich())
+  return s.gesamt+" Stück";
+ return (s.fertig?"✓ ":"")+s.erledigt+" von "+s.gesamt+" zugeschnitten";
+}
+// Nach einem Haken nur die Zahlen nachziehen, NICHT die Seite neu zeichnen -
+// sonst spraenge sie unter dem Finger weg und die gerade angetippte Nummer
+// waere weg (genau die Falle, die die Werkstatt in v3.21 geloest hat).
+function mzStandAuffrischen(){
+ if(!mzSeiteOffen())return;
+ const box=$("matZuBody"); if(!box)return;
+ const liste=mzListe();
+ box.querySelectorAll("[data-mz-stand]").forEach(el=>{
+  const m=liste.find(x=>x&&Number(x.id)===Number(el.dataset.mzStand));
+  if(m)el.textContent=mzStandText(zeStand(m));
+ });
+ box.querySelectorAll("[data-mz-balken]").forEach(el=>{
+  const m=liste.find(x=>x&&Number(x.id)===Number(el.dataset.mzBalken));
+  if(m)el.innerHTML=mzFortschrittHtml(zeStand(m));
+ });
+ mzKennzahlenAuffrischen();
+ // Ist eine Karte fertig geworden, klappt ihre Liste zu - aber NUR, wenn
+ // niemand gerade an ihr abhakt.
+ const zuklappen=liste.some(m=>{
+  if(!m||mzOffenKarte.has(Number(m.id)))return false;
+  if(!box.querySelector('[data-ze-meas="'+m.id+'"]'))return false;
+  return zeStand(m).fertig;
+ });
+ if(zuklappen)mzAuffrischen();
 }
 
 // ---- Die Seite ------------------------------------------------------------
 function mzKennzahlHtml(label,wert){
  return `<div class="mz-kennzahl"><label>${esc(label)}</label><div class="ra-wert">${esc(wert)}</div></div>`;
+}
+// Die vier Kennzahlen oben. Eigene Funktion, damit sie nach einem Haken
+// mitgehen, ohne dass die ganze Seite neu gezeichnet wird.
+function mzKennzahlenAuffrischen(){
+ const feld=$("matZuKennzahlen"); if(!feld)return;
+ const liste=mzListe();
+ const matAn=(typeof pmAktiv==="function")&&pmAktiv("material");
+ const zuAn=(typeof pmAktiv==="function")&&pmAktiv("zuschnitt");
+ const ges=zeStandListe(liste);
+ const kz=[];
+ if(matAn){
+  const gruppen=mzMatGruppen();
+  kz.push(mzKennzahlHtml("Materialpositionen",String(gruppen.reduce((s,g)=>s+g.positionen.length,0))));
+ }
+ if(zuAn){
+  kz.push(mzKennzahlHtml("Zuschnitt offen",String(ges.offen)));
+  // v3.25: "zugeschnitten" - dasselbe Wort wie in der Werkstatt und auf der
+  // Ruestliste. "erledigt" stand hier fuer genau dieselbe Tatsache.
+  kz.push(mzKennzahlHtml("Zugeschnitten",ges.gesamt?ges.erledigt+" von "+ges.gesamt:"–"));
+ }
+ kz.push(mzKennzahlHtml("Massaufnahmen",String(liste.length)));
+ feld.innerHTML=kz.join("");
 }
 function mzAuffrischen(){
  const box=$("matZuBody"); if(!box)return;
@@ -464,15 +566,7 @@ function mzAuffrischen(){
  const karten=zuAn?mzZuschnittKarten():[];
  const ges=zeStandListe(liste);
 
- // Wenige Kennzahlen oben - genau die vier des Auftrags.
- const kz=[];
- if(matAn)kz.push(mzKennzahlHtml("Materialpositionen",String(gruppen.reduce((s,g)=>s+g.positionen.length,0))));
- if(zuAn){
-  kz.push(mzKennzahlHtml("Zuschnitt offen",String(ges.offen)));
-  kz.push(mzKennzahlHtml("Zuschnitt erledigt",ges.gesamt?ges.erledigt+" von "+ges.gesamt:"–"));
- }
- kz.push(mzKennzahlHtml("Massaufnahmen",String(liste.length)));
- $("matZuKennzahlen").innerHTML=kz.join("");
+ mzKennzahlenAuffrischen();
 
  // Eine Gruppe ohne Position hat nichts zu reservieren - eine Karte mit
  // einem Knopf, der nichts bewirkt, waere Laerm. In den Einzelheiten unten
@@ -495,7 +589,11 @@ function mzAuffrischen(){
   }
  }
  if(zuAn){
-  teile.push(`<h3 class="mz-titel">✂️ Zuschnitt nach Massaufnahme</h3>`);
+  // v3.25: die Ruestliste des ganzen Projekts - dieselbe Funktion, die die
+  // Werkstatt seit v3.23 verwendet (ruestlisteProjekt, js/58).
+  teile.push(`<h3 class="mz-titel">✂️ Zuschnitt nach Massaufnahme`
+   +(karten.length?` <button type="button" class="gray mz-klein" data-mz-druck-projekt="1">🖨️ Rüstliste</button>`:"")
+   +`</h3>`);
   teile.push(karten.length?karten.map(mzZuschnittKarteHtml).join("")
    :`<div class="small">Noch nichts zuzuschneiden – keine Massaufnahme dieses Projekts hat einen gespeicherten Zuschnitt.</div>`);
  }else if(ges.gesamt>0){
@@ -524,6 +622,7 @@ async function openMaterialZuschnitt(projectId){
  const id=projectId||(typeof cockpitProjectId!=="undefined"?cockpitProjectId:null);
  if(!id||!mzModulAn())return;
  mzProjectId=id;
+ mzOffenKarte.clear();
  const p=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))
   ?allProjects.find(x=>String(x.id)===String(id)):null;
  if($("matZuTitel"))$("matZuTitel").textContent=p
@@ -556,7 +655,7 @@ function cockpitMatZuStand(){
  const zeilen=[];
  if(matAn)zeilen.push("Material: "+pos+" Position"+(pos===1?"":"en"));
  if(zuAn){
-  zeilen.push("Zuschnitt: "+(ges.gesamt?ges.erledigt+" von "+ges.gesamt+" erledigt":"noch keiner"));
+  zeilen.push("Zuschnitt: "+(ges.gesamt?ges.erledigt+" von "+ges.gesamt+" zugeschnitten":"noch keiner"));
   if(ges.offen>0)zeilen.push(ges.offen+" Zuschnitt"+(ges.offen===1?"":"e")+" offen");
  }
  if($("cockpitMatZuText"))$("cockpitMatZuText").innerHTML=zeilen.map(esc).join("<br>");
@@ -571,10 +670,32 @@ function cockpitMatZuStand(){
 
 // ---- Bedienung ------------------------------------------------------------
 if($("matZuModal")){
- $("matZuModal").addEventListener("click",e=>{
-  const t=e.target.closest?e.target.closest("[data-mz-zuschnitt],[data-mz-resv]"):null;
+ $("matZuModal").addEventListener("click",async e=>{
+  const t=e.target.closest
+   ?e.target.closest("[data-mz-zuschnitt],[data-mz-resv],[data-mz-karte],[data-mz-druck],[data-mz-druck-projekt]"):null;
   if(!t)return;
   if(t.dataset.mzZuschnitt!==undefined){mzZuschnittOeffnen(Number(t.dataset.mzZuschnitt));return}
+  // v3.25: eine zugeklappte Liste aufklappen - sie bleibt offen, bis die
+  // Seite geschlossen wird.
+  if(t.dataset.mzKarte!==undefined){
+   mzOffenKarte.add(Number(t.dataset.mzKarte));
+   mzAuffrischen(); zeMarkierungAuffrischen();
+   return;
+  }
+  // v3.25: Die Ruestliste war bis v3.24 nur ueber die Werkstatt zu drucken.
+  // Eine Firma mit Zuschnitt, aber ohne Werkstattmodul kam gar nicht an sie
+  // heran. Gedruckt wird ueber die bestehenden zwei Einstiege aus js/58 -
+  // kein zweiter Druckweg.
+  if(t.dataset.mzDruck!==undefined){
+   const m=mzListe().find(x=>Number(x.id)===Number(t.dataset.mzDruck));
+   if(m&&typeof ruestlisteMassaufnahme==="function")await ruestlisteMassaufnahme(m);
+   return;
+  }
+  if(t.dataset.mzDruckProjekt!==undefined){
+   const mit=mzListe().filter(x=>(typeof pmatPlanFuer==="function")&&!!pmatPlanFuer(x));
+   if(mit.length&&typeof ruestlisteProjekt==="function")await ruestlisteProjekt(mzProjectId,mit);
+   return;
+  }
   // Reservierung und Reststuecke stehen als Einzelheiten auf derselben
   // Seite - hingesprungen wird, statt eine zweite Ansicht zu bauen.
   const ziel=$("matZuDetailsReservierung");
@@ -615,7 +736,11 @@ function mzZuschnittOeffnen(id){
  const m=mzListe().find(x=>Number(x.id)===Number(id));
  if(!m)return;
  $("matZuModal").hidden=true;
- if(typeof measEditReturnTo!=="undefined")measEditReturnTo="projectCockpit";
+ // v3.25: Zurueck fuehrt auf DIESE Seite - bis v3.24 landete man im Cockpit
+ // und musste "Material & Zuschnitt" erneut oeffnen. Eine weitere
+ // Verzweigung in der bestehenden measEditZurueck (js/24), wie "werkstatt"
+ // sie in v3.09 bekommen hat - keine zweite Navigation.
+ if(typeof measEditReturnTo!=="undefined")measEditReturnTo="matZu";
  if(typeof openMeasurement==="function")openMeasurement(m);
  const r=mzZuschnittRegister(m.type);
  if(r){try{r.setzen(r.nr)}catch(x){console.error("Zuschnitt-Register",x)}}
