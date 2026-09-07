@@ -82,9 +82,18 @@ const liste=[];
                         {id:3,name:"Stahl verzinkt",legacy_key:"stahl",max_abstand_mm:8000,ab_fixpunkt_mm:4000}];
   blechRollenbreiten=[1000,670,500,330,250];
   settings.rates=[["Meister",98],["Vorarbeiter",88],["Monteur",76],["Lernender",42]];
+  // Demo-Katalog. Er ist bewusst nach dem Muster eines echten Katalogs
+  // aufgebaut (Blech in m² mit der Dicke in der Dimension, Halbfabrikate in
+  // Stk. mit der Groesse), damit die Bilder zeigen, was die App wirklich
+  // vorschlaegt - ein Katalog mit fuenf Zeilen faende naturgemaess nichts.
   settings.materials=[["101.10","Titanzink Band 0.7 mm","0.7 mm","m2",38.5],
                       ["101.20","Titanzink Rinne halbrund 333","333 mm","m",42.0],
+                      ["103.01","Titanzinkblech blank","0.70","m2",38.5],
+                      ["103.02","Titanzinkblech blank","0.80","m2",42.9],
+                      ["102.01","Kupferblech","0.60","m2",71.2],
                       ["204.05","Kupfer Band 0.6 mm","0.6 mm","m2",71.2],
+                      ["202.10","Rinnenhalter Titanzink","333 mm","Stk",6.4],
+                      ["202.60","Dehnungselement Titanzink","333 mm","Stk",34.5],
                       ["301.40","Bohrschraube nichtrostend","4.5 × 35 mm","Stk",0.42],
                       ["305.10","Dichtband Butyl","15 mm × 10 m","Rolle",18.9]];
   settings.employees=["Andrea Beispiel","Beat Muster"];
@@ -99,6 +108,13 @@ const liste=[];
   $("startCompanyLine").textContent="Muster Spenglerei AG";
   $("startScreen").hidden=false;
   if(typeof markierePflichtfelder==="function")markierePflichtfelder();
+  // Die Beispielfirma arbeitet mit dem erweiterten Ablauf (Abschnitt 10) -
+  // sonst zeigte der Startbildschirm den Werkstatt-Knopf nicht, den der Text
+  // daneben beschreibt.
+  if(typeof pmUebernehmen==="function")
+   pmUebernehmen({haupt:true,material:true,zuschnitt:true,reservierung:true,
+                  werkstatt:true,vorlagen:true,serien:true,versionierung:true});
+  if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
  });
 
  await schuss("02-start","#startScreen");

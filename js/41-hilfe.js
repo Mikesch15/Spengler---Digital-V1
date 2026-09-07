@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.23.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.24.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -956,10 +956,24 @@ anhaken, wenn an einem anderen Tag noch einmal Material gebraucht wurde.</p>
 <p>Übernommen wird als gewöhnliche Materialzeile: Bezeichnung, Dimension,
 Einheit und Preis kommen wie immer aus dem Katalog. Das Datum ist das der
 Massaufnahme.</p>
-<p>Steht bei einer Massaufnahme „Kein Material erfasst", ist dort noch nichts
-eingetragen. Was die Massaufnahme <b>ausrechnet</b> (Ausmass, Zuschnitte),
-erscheint hier bewusst nicht – dafür gibt es keine Artikelnummer, und eine
-erfundene wäre schlimmer als keine.</p>`},
+<p><b>Seit Version 3.24</b> stehen auch die <b>berechneten Blechzuschnitte</b>
+und die <b>Halbfabrikate</b> zur Auswahl – bei einer Rinne halbrund also
+Halter, Innen- und Aussenwinkel, Einhänge- und Schiebestutzen, Rinnenböden
+und Dehnungsstücke, bei den übrigen Arten z. B. Haltebleche, Schieber oder
+Bleilappen. Reine Rechenwerte (Abwicklung, Flächen, Stückzahlen) erscheinen
+nicht – die holt niemand aus dem Lager.</p>
+<p><b>Die Position schlägt die App vor.</b> Sie sucht im Materialkatalog nach
+der Einheit, der Grösse und dem Material. Ist sie sich sicher, ist die Zeile
+vorgewählt und es steht „✓ Vorschlag der App" daneben. Sonst steht dort
+„Vorschlag – bitte prüfen" und nichts ist vorgewählt – Sie entscheiden mit
+einem Tipp. Die Auswahl lässt sich immer ändern.</p>
+<p>Findet die App <b>nichts Passendes</b>, geht die Zeile als <b>freie
+Position</b> (999.9x) mit ihrer Bezeichnung in den Rapport. Dort ist noch der
+Preis einzutragen. Eine Katalognummer wird nie erfunden.</p>
+<p>Beim Blech entscheiden Sie, was verrechnet wird: die <b>Summe der
+Zuschnitte</b> oder die Fläche <b>ab Rolle</b> mit Verschnitt. Beide Zahlen
+stehen im gespeicherten Zuschnittplan – die App wählt keine
+Abrechnungsgrundlage still aus.</p>`},
 
 "einst-mitarbeiter":{titel:"Mitarbeiter",text:`
 <p>Hier werden Mitarbeiterkonten angelegt. Der Benutzername ist

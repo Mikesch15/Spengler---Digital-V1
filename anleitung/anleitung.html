@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.23";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.24";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.23<br>
+  Version 3.24<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -115,6 +115,9 @@ Anmelden wieder selbst eines.</div>
 <table>
 <tr><th>Knopf</th><th>Wozu</th></tr>
 <tr><td>📁 Projekte</td><td>Der Haupteinstieg. Hier beginnt jede Arbeit.</td></tr>
+<tr><td>🔧 Werkstatt</td><td>Gleich gross daneben: der Arbeitsplatz zum Rüsten und
+Zuschneiden (Abschnitt 10). Nur da, wenn die Firma das Werkstattmodul eingeschaltet hat.
+Zeigt beim Öffnen, was einem selbst zugeteilt ist.</td></tr>
 <tr><td>🔍 Suche</td><td>Findet einen Eintrag über alle Projekte hinweg.</td></tr>
 <tr><td>⚙️ Einstellungen</td><td>Firma, Material, Masse, Mitarbeiter.</td></tr>
 <tr><td>💬 Feedback geben</td><td>Rückmeldung an die Firma bzw. den Betreiber.</td></tr>
@@ -659,6 +662,14 @@ ausgeschlossen ist.</div>
 <p>Dieselbe Arbeitsliste wie auf der Startseite, nur aus Sicht der Werkstatt: nach
 Projekt statt nach Person. Rüsten und Montieren werden hier genauso bestätigt wie auf
 der Startseite; es ist derselbe Arbeitsablauf, nur eine zweite Sicht darauf.</p>
+<p>Erreichbar ist sie seit Version 3.24 über den grossen Knopf
+<span class="tasten">🔧 Werkstatt</span> auf dem Startbildschirm, gleich neben
+<span class="tasten">📁 Projekte</span>. Er erscheint nur, wenn die Firma das
+Werkstattmodul eingeschaltet hat.</p>
+<div class="hin"><strong>Vorgabe: nur die eigenen.</strong> Beim Öffnen zeigt die
+Werkstatt, was einem selbst zum Rüsten oder Montieren zugeteilt ist – der Filter steht
+auf <span class="tasten">Nur meine</span>. Mit <span class="tasten">Alle</span> sieht
+man, was im Betrieb sonst noch ansteht; diese Wahl wird auf dem Gerät gemerkt.</div>
 
 <h4>Der rote Faden</h4>
 <p>Ganz oben steht, was insgesamt ansteht – etwa <em>2 × reservieren · 3 × rüsten</em>.
@@ -749,8 +760,9 @@ PDF der App.</div>
 
 <h4>Der Filter bleibt gemerkt</h4>
 <p>Oben stehen vier Filter: <em>Alle</em>, <em>Zu rüsten</em>, <em>Zu montieren</em> und
-<em>Nur meine</em>. Der zuletzt gewählte wird auf dem Gerät gemerkt – wer immer nur
-rüstet, sieht beim nächsten Öffnen wieder seine Liste.</p>
+<em>Nur meine</em>. Vorgewählt ist seit Version 3.24 <em>Nur meine</em>. Der zuletzt
+gewählte wird auf dem Gerät gemerkt – wer immer nur rüstet, sieht beim nächsten Öffnen
+wieder seine Liste.</p>
 
 <h4>Material und Reservierungen</h4>
 <p>Ganz unten klappt <span class="tasten">Material und Reservierungen</span> auf, was
@@ -879,17 +891,46 @@ schlägt beim Tippen die nächste noch freie Nummer vor.</div>
 <h3>Material aus den Massaufnahmen übernehmen</h3>
 <figure><img src="bilder/44-rmat-uebernehmen.png"><figcaption>Was in den Massaufnahmen dieses Objekts erfasst wurde – zum Anhaken.</figcaption></figure>
 <p><span class="tasten">🧱 Aus Massaufnahmen übernehmen</span> zeigt alles, was in den
-Massaufnahmen <strong>dieses Projekts</strong> unter <em>Material für den
-Regierapport</em> steht (Abschnitt 8), nach Massaufnahme gruppiert. Angehakt wird, was
-in den Rapport soll; <span class="tasten">Übernehmen</span> legt daraus Materialzeilen an.</p>
-<p>Beim Öffnen ist nichts vorgewählt. Eine Position, die bereits im Rapport steht, ist
-gekennzeichnet – doppelt übernehmen lässt sie sich trotzdem, das entscheidet die Person.
-Übernommene Zeilen sind danach ganz gewöhnliche Materialzeilen und frei änderbar.</p>
-<div class="warn">Übernommen wird nur, was in den Massaufnahmen <strong>von Hand</strong>
-erfasst wurde. Blech aus dem Zuschnitt hat keine EDV-Nummer und wird deshalb nicht
-angeboten – eine erfundene Nummer wäre schlechter als keine.</div>
-<p>Ohne gewähltes Projekt bleibt der Knopf wirkungslos und sagt das; hat noch keine
-Massaufnahme des Projekts Material erfasst, steht das ebenfalls da.</p>
+Massaufnahmen <strong>dieses Projekts</strong> steht, nach Massaufnahme gruppiert.
+Angehakt wird, was in den Rapport soll; <span class="tasten">Übernehmen</span> legt
+daraus Materialzeilen an. Seit Version 3.24 sind das <strong>drei</strong> Arten:</p>
+<table>
+<tr><th>Art</th><th>Woher</th></tr>
+<tr><td>Von Hand erfasst</td><td>Die Liste <em>Material für den Regierapport</em> aus
+der Massaufnahme (Abschnitt 8) – Schrauben, Dichtband, Kleber.</td></tr>
+<tr><td>Blechzuschnitte</td><td>Der <strong>gespeicherte</strong> Zuschnittplan, als
+Fläche in m²: Länge × Breite über alle Stücke. Es wird nichts neu gerechnet.</td></tr>
+<tr><td>Halbfabrikate</td><td>Was die Massaufnahme selbst als Teil ausweist – bei der
+Rinne halbrund also Halter, Winkel, Stutzen, Böden und Dehnungsstücke. Abgeleitete
+Masse wie Abwicklung, Blechfläche oder Stückzahl sind ausdrücklich <strong>nicht</strong>
+dabei.</td></tr>
+</table>
+<h3>Netto oder brutto beim Blech</h3>
+<p>Für die Blechzeile stehen beide Zahlen bereit: <strong>netto</strong> ist die Summe
+der Zuschnitte, <strong>brutto</strong> die Fläche ab Rolle mit Verschnitt. Vorgewählt
+ist netto; umschalten lässt es sich in der Zeile. Die App entscheidet nicht selbst,
+worauf abgerechnet wird.</p>
+<h3>Die App schlägt die Position vor</h3>
+<p>Zu jeder Zeile sucht die App im Materialkatalog die passende EDV-Nr. – über
+Bezeichnung, Dimension, Einheit und Material. Zwei Fälle:</p>
+<table>
+<tr><th>Fall</th><th>Was die App tut</th></tr>
+<tr><td>Ein Treffer sitzt deutlich vorne</td><td>Die Position ist gesetzt, die Zeile
+<strong>vorgewählt</strong>. Änderbar bleibt sie trotzdem.</td></tr>
+<tr><td>Mehrere kommen in Frage oder keiner passt gut</td><td>Der beste steht als
+<em>Vorschlag</em> da, die Zeile ist <strong>nicht</strong> vorgewählt. Die Person
+entscheidet.</td></tr>
+</table>
+<div class="hin">Passt keine Katalogposition, wird die Zeile als <strong>freie Position
+999.9x</strong> übernommen – mit ihrer Bezeichnung und Menge, aber ohne Preis. So geht
+keine Zeile verloren, und es wird keine Katalognummer erfunden. Den Preis trägt man im
+Rapport nach.</div>
+<p>Eine Position, die bereits im Rapport steht, ist gekennzeichnet – doppelt übernehmen
+lässt sie sich trotzdem, das entscheidet die Person. Übernommene Zeilen sind danach ganz
+gewöhnliche Materialzeilen und frei änderbar.</p>
+<p>Ohne gewähltes Projekt bleibt der Knopf wirkungslos und sagt das; hat eine
+Massaufnahme weder Material noch einen gespeicherten Zuschnitt noch ein Ausmass, steht
+das ebenfalls da.</p>
 
 <p>Unten stehen Sachbearbeiter, MWST und die Summen exkl./inkl. MWST.
 <span class="tasten">🖨 PDF / Drucken</span> erzeugt das Blatt für den Kunden.</p>
@@ -1086,7 +1127,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.23</strong>, Stand 7. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.24</strong>, Stand 7. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

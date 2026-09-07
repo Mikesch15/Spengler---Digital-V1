@@ -97,8 +97,13 @@
      Starteinstiege mehr. Diese Arbeiten gehoeren zu einem Projekt und
      werden ueber Projekte -> Projekt oeffnen -> Cockpit gestartet.
      Die Module selbst und ihre Uebersichts-Modals bleiben unveraendert. -->
-<div class="start-nav">
+<div class="start-nav" id="startNav">
 <button type="button" class="start-nav-btn blue" id="startOpenProjects"><span class="start-nav-icon">📁</span><span>Projekte</span></button>
+<!-- v3.24: Die Werkstatt ist ein eigener Arbeitsplatz, kein Nebeneintrag.
+     Sie steht deshalb als grosser Knopf neben den Projekten - sichtbar nur,
+     wenn das Untermodul "Werkstatt" eingeschaltet ist (js/47). Der kleine
+     graue Knopf weiter unten ist damit entfallen. -->
+<button type="button" class="start-nav-btn blue" id="navWerkstatt" hidden><span class="start-nav-icon">🔧</span><span>Werkstatt</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
 <button id="openGlobalSearch" class="gray">🔍 Suche</button>
@@ -113,13 +118,12 @@
      admin_alle_massaufnahmen() prueft serverseitig noch einmal. -->
 <!-- v3.09: nur wenn das Untermodul "Werkstatt" eingeschaltet ist
      (js/47-projektmodule.js). Standard ist AUS. -->
-<button id="navWerkstatt" class="gray" hidden>🔧 Werkstatt</button>
 <button id="navAdminMeas" class="gray" hidden>📋 Alle Massaufnahmen</button>
 <button id="navSystemAdmin" class="gray" hidden>⚙️ System-Administration</button>
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.23</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.24</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1560,7 +1564,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.23.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 66 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.24.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 67 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -2030,7 +2034,8 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <div id="rmatModal" class="modal" hidden>
 <div class="card">
 <h2>🧱 Material aus den Massaufnahmen <button type="button" class="hilfe-knopf no-print" data-hilfe="rmat-uebernehmen">i</button></h2>
-<div class="small">Angeboten wird, was in den Massaufnahmen dieses Projekts unter „Material für den Regierapport“ erfasst ist. Bereits im Rapport stehende EDV-Nummern sind nicht vorgewählt.</div>
+<div class="small">Angeboten wird alles, was die Massaufnahmen dieses Projekts hergeben: von Hand erfasstes Material, die berechneten Blechzuschnitte und die Halbfabrikate (bei einer Rinne z. B. Halter, Winkel, Stutzen, Böden und Dehnungsstücke).</div>
+<div class="small">Zu jeder gerechneten Position schlägt die App eine EDV-Nr. aus dem Katalog vor. Wo sie sich sicher ist, ist die Zeile vorgewählt; sonst steht „Vorschlag – bitte prüfen“ daneben und Sie entscheiden. Findet sie nichts Passendes, geht die Zeile als freie Position (999.9x) mit ihrer Bezeichnung – es wird keine Katalognummer erfunden.</div>
 <div class="bar no-print">
 <button type="button" id="rmatAlle" class="gray">Alle auswählen</button>
 <button type="button" id="rmatKeine" class="gray">Keine auswählen</button>
@@ -2113,7 +2118,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.23.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.24.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

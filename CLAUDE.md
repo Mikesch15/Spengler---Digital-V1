@@ -21548,3 +21548,236 @@ Die historischen Angaben „seit Version 3.22" in Kapitel 10 bleiben stehen
   Betreiber erledigen kann: Schnittfuge eintragen, die acht projektlosen
   Massaufnahmen zuordnen, die abgeleiteten Reservierungszeilen wegräumen,
   Leaked-Password-Schutz, eigene Domain.
+
+## 129. ZUSCHNITTE UND HALBFABRIKATE IN DEN REGIERAPPORT — VERSION 3.24
+
+Zwei Rückmeldungen des Betriebs vom 07.09.2026:
+
+> „im regierapport, material aus massaufnahme übernehmen. dort müssen auch die
+> berechneten blechzuschnitte und bei rinnen, die halbfabrikate übernommen
+> werden können. falls dies nicht automatisch geht weil es nicht zugeordnet
+> werden kann, muss ein vorschlag von der app kommen zu welcher position die
+> materialie zugeordnet werden sollen"
+
+> „die werkstattansicht sollte ein grosser button sein unter objekte und
+> standartmässig sollen nur die eigenen oder die einem zugeteilten
+> massaufnahmen zu sehen sein"
+
+**Keine Schemaänderung, keine Migration, keine RLS-/Storage-Änderung, keine
+neue Datenbankfunktion, keine Fachrechnung verändert.**
+
+### 129.1 Was bis v3.23 fehlte – und warum
+
+`§121.10` hielt ausdrücklich fest: „Bewusst keine Ausmass-Positionen zum
+Übernehmen. Sie haben keine EDV-Nummer; eine erfundene wäre schlechter als
+keine." Der Einwand war richtig, die Folgerung zu eng: **niemand hatte die App
+gefragt, ob sie die Nummer finden kann.**
+
+Angeboten werden jetzt drei Arten:
+
+| Art | Woher, ohne eine Zeile neu zu rechnen |
+|---|---|
+| Von Hand erfasst | `measurements.rapport_material` (v3.16), unverändert |
+| **Blechzuschnitte** | `pmatStuecke()` (js/48) über den **gespeicherten** Plan: Σ Länge × Breite je Stück |
+| **Halbfabrikate** | `data.ausmass`, gefiltert mit `pmatTeilVon()` (js/48) – dieselbe Regel wie die Reservierung seit v3.17/v3.18 |
+
+Bei der Rinne halbrund sind das genau die Teile aus der Meldung: Halter,
+Innen-/Aussenwinkel, Einhänge- und Schiebestutzen, Rinnenböden und
+Dehnungsstücke. Abgeleitete Masse (Abwicklung, Blechfläche, Stückzahl) sind
+**nicht** dabei – nur ein ausdrückliches `teil:false` fällt weg, ein Datensatz
+ohne das Feld läuft über den Rückfall aus §123.
+
+**Gerechnet wird nichts.** Die Fläche kommt aus den gespeicherten Stücken, die
+Bruttofläche aus `rollen.bestes.flaeche` – steht sie dort nicht, wird sie auch
+nicht nachgerechnet. Ein einmal gedrucktes Blatt bleibt gleich.
+
+### 129.2 Blech ist eine Fläche, netto und brutto
+
+Blech wird in m² bezogen, und der Blechverbrauch-Dialog rechnet seit je
+`l × b × Anzahl / 1'000'000` (js/08). Die Blechzeile folgt genau dem.
+
+Beide Zahlen stehen bereit: **netto** die Summe der Zuschnitte, **brutto** die
+Fläche ab Rolle mit Verschnitt. Vorgewählt ist netto, umschalten geht in der
+Zeile. **Die App entscheidet nicht selbst, worauf abgerechnet wird** – das ist
+eine kaufmännische Frage, keine technische.
+
+Jede Zuschnittgruppe zählt mit **ihrer** Breite. Beim Freien Profil und bei der
+Lukarne hat jedes Segment seine eigene Abwicklung; eine einzige angenommene
+Breite gäbe eine falsche Zahl (im Prüfstand mit 1,17 m² gegen 1,35 m² belegt).
+
+### 129.3 Die Position wird vorgeschlagen, nicht behauptet
+
+`rmatBewerte()` bewertet jede Katalogzeile nach Name, Dimension, Einheit und
+Material. Drei Regeln, jede aus einer **Messung** gegen den echten
+372-Zeilen-Katalog der Firma (nur lesend):
+
+- **Der Name ist die Bedingung, nicht der Bonus.** Ohne diese Regel gewann
+  „Rinnenhalter Kupfer" bei Innenwinkel, Schiebestutzen, Rinnenboden **und**
+  Dehnungsstück – Grösse (+30) und Material (+25) allein reichten schon für
+  55 Punkte, ganz ohne Namensbezug. Eine Zeile, deren Name nichts mit der
+  Position zu tun hat, ist deshalb gar kein Kandidat (`if(wp===0)return null`).
+- **Ein ganzes Wort schlägt einen Wortstamm.** „Rinnenboden links 330" bekam
+  danach immer noch „Rinnenhalter Kupfer" [63] vor „Rinnenboden gerade" [53].
+  Sortiert wird deshalb zuerst nach `vollTreffer`.
+- **Die Einheit ist ein hartes Filter**, kein Punktabzug: eine Position in
+  Stk. ist für eine Fläche in m² kein Kandidat.
+
+Zwei Zustände, klar unterschieden:
+
+| Fall | Was die App tut |
+|---|---|
+| ≥ 50 Punkte, ein ganzes langes Wort trifft, ≥ 15 Punkte Vorsprung | Position gesetzt, Zeile **vorgewählt** |
+| sonst, ab 20 Punkten | „Vorschlag – bitte prüfen", Zeile **nicht** vorgewählt |
+| nichts über 20 Punkten | **freie Position 999.9x** |
+
+Die freie Position (v2.65/v2.66) ist der ehrliche Rückfall: die Zeile geht
+nicht verloren, sie trägt Bezeichnung und Menge, und es wird **keine
+Katalognummer erfunden**. Den Preis trägt man im Rapport nach.
+
+**Gemessen und dabei eine falsche Annahme korrigiert:** ich hielt es zunächst
+für einen Fehler, dass „Blech Titanzink" im Demo-Katalog nichts findet. Gegen
+den echten Katalog nachgerechnet: `103.01 Titanzinkblech blank 0.70 m²` wird
+sehr wohl gefunden (32 Punkte, als Vorschlag). Der Demo-Katalog der Anleitung
+hatte schlicht keine Zeile, deren Name „blech" enthält – er ist jetzt nach dem
+Muster eines echten Katalogs aufgebaut, damit die Bilder zeigen, was die App
+wirklich tut.
+
+### 129.4 Die Werkstatt ist ein Arbeitsplatz, kein Nebeneintrag
+
+Der graue Nebenknopf ist weg. Auf dem Startbildschirm steht jetzt neben
+**📁 Projekte** gleich gross **🔧 Werkstatt** (gemessen: beide 178 × 112 px).
+Beide liegen in einem eigenen `#startNav`-Raster – die Klasse `.start-nav`
+teilen sich drei verschiedene Oberflächen (Startbildschirm, die
+Zwölfer-Typenauswahl der Massaufnahme, die Zweier-Auswahl des Ausmasses), eine
+Änderung an ihr hätte alle drei getroffen.
+
+**Fünfter Fall derselben CSS-Falle** (nach §59, §71.5, §115.9, §120.9):
+`.start-nav-btn{display:flex}` ist eine Autorenregel und schlägt das
+`[hidden]{display:none}` des Browsers – der Knopf wäre bei **jeder** Firma
+sichtbar gewesen, auch ohne Werkstattmodul. Vorher gemessen und mit
+`.start-nav-btn[hidden]{display:none!important}` geschlossen; ohne Modul misst
+er nachweislich `{b:0,h:0,d:"none"}`.
+
+**Vorgabe ist „Nur meine"** (`WERK_FILTER_VORGABE`). Wer die Werkstatt öffnet,
+sieht, was ihm selbst zum Rüsten oder Montieren zugeteilt ist; „Alle" zeigt den
+Rest, und diese Wahl wird wie bisher auf dem Gerät gemerkt. Ist nichts
+zugeteilt, sagt der Leerzustand das ausdrücklich und nennt den Weg zu „Alle" –
+statt einer leeren Liste, die aussieht, als sei nichts zu tun.
+
+### 129.5 Getestet
+
+- **`pruefstaende/pruefstand-rapport-zuschnitt-v3-24.js` – 52/52**, echtes
+  Chromium gegen die echte `index.html`, mit den **echten** Katalogzeilen der
+  Firma: der Vorschlag für sechs reale Bezeichnungen, die drei Arten im
+  Angebot, dass abgeleitete Masse fehlen, die Blechmenge aus dem gespeicherten
+  Plan (netto **und** brutto), je Gruppe mit ihrer Breite, genau **eine**
+  Abfrage ohne `company_id`, die Vorwahl, die Übernahme samt freier Position,
+  der Wechsel netto → brutto, der Werkstatt-Knopf und die Filtervorgabe,
+  Bildschirmbreiten.
+- **Zwölf Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um; keine bricht ihn ab (§78):
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | Name ist nicht mehr Bedingung | 48/50 |
+  | Einheit nicht mehr hartes Filter | 46/50 |
+  | ein blosser Wortstamm gilt als sicher | 50/51 |
+  | Angebot ignoriert `pmatTeilVon` | 49/51 |
+  | eine angenommene Breite statt der Breite jeder Gruppe | 51/52 |
+  | Übernahme erfindet eine Katalognummer | 50/52 |
+  | `data` fällt aus der Abfrage | 34/53 |
+  | Unsichere sind vorgewählt | 50/52 |
+  | `.start-nav-btn[hidden]` entfernt | 51/52 |
+  | Filtervorgabe zurück auf „alle" | 51/52 |
+  | die App schlägt gar nichts mehr vor | 38/52 |
+  | eine gemerkte Wahl wird überschrieben | 51/52 |
+
+- **Vier Prüfungen waren zuerst wertlos** und wurden geschärft, bevor sie
+  bissen: (1) die Regel „ein ganzes langes Wort muss stimmen" hatte keinen
+  Testfall, der daran hängt – ergänzt um „Aufschraubhalter 330 mm" gegen
+  „Rinnenhalter", die nur die Endung teilen; (2) die Breitenprüfung war
+  blind, weil alle Stücke der Vorlage 250 mm breit waren – ergänzt um ein
+  Freies Profil mit zwei Gruppen (300 und 180 mm); (3) `select()` wurde von
+  der Supabase-Attrappe **ignoriert**, eine vergessene Spalte wäre nie
+  aufgefallen – die Attrappe liefert jetzt nur die genannten Spalten, wie
+  PostgREST; (4) drei Zugriffe liessen den Lauf abstürzen statt fehlschlagen.
+- **Volle Regression grün** – alle **49** Prüfstände im Repo.
+- **Drei überholte Erwartungen** nachgezogen, keine davon ein Codefehler: der
+  Leerzustand des Übernahme-Dialogs nennt seit v3.24 auch Zuschnitt und
+  Ausmass (`rapport-v3-16`), und zwei Werkstatt-Prüfstände setzten `werkFilter`
+  vor dem Öffnen – `openWerkstatt()` liest seither den gemerkten Wert, sie
+  legen ihn jetzt ausdrücklich im `localStorage` ab
+  (`werkstatt-v3-09`, `ruestliste-offline-v3-23`).
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.23-Stand gerendert (die Fusszeile enthält die Uhrzeit, §100.6) – **DOM,
+  Text und Bild byteidentisch** (DOM `362521bc9031f3c2`, 6797 Zeichen; Text
+  `50b6b9cbcb83450f`; Bild `89ddd538a70a00d1`, 48 122 Bytes), bestätigt durch
+  einen Kontrolllauf desselben Codes. `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle js-Dateien, `sw.js`, alle 49 Prüfstände und die
+  Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung in `index.html`
+  ausgeglichen (Tiefe 0, Minimum 0); keine doppelten Element-IDs; jede
+  js-Datei in `index.html` **und** in der Service-Worker-Liste; Version 3.24
+  überall gleich.
+- **Kein Schreibzugriff auf die Datenbank** in dieser Runde – gelesen wurde
+  nur der Materialkatalog, um den Vorschlag gegen echte Zeilen zu messen.
+
+### 129.6 Anleitung
+
+Nach Regel §108.1 mitgeführt: der Übernahme-Abschnitt komplett neu (drei
+Arten, netto/brutto, der Vorschlag, die freie Position) – der bisherige
+Warnkasten sagte das **Gegenteil** des neuen Verhaltens; dazu der
+Werkstatt-Knopf in der Startbildschirm-Tabelle und die Filtervorgabe im
+Werkstatt-Abschnitt. Alle 52 Bilder neu erzeugt, PDF v3.24 mit **67 Seiten**
+(vorher 66), keine leere. Die fünf Verweise nachgezogen, das alte PDF
+gelöscht. `pruefstand-hilfe-v3-03` (68/68) erzwingt das mechanisch – mit
+Gegenprobe bestätigt: Version hochsetzen ohne die Anleitung → 64/68.
+
+Zwei Bilder mussten dafür repräsentativ werden: der Demo-Katalog (§129.3) und
+der Startbildschirm, der die Module der Beispielfirma jetzt von Anfang an
+eingeschaltet hat – sonst zeigte er den Werkstatt-Knopf nicht, den der Text
+daneben beschreibt.
+
+### 129.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/57-rapport-material.js` | drei Arten im Angebot, Bewertung und Vorschlag, netto/brutto, Übernahme mit freier Position |
+| `js/51-werkstatt.js` | Filtervorgabe „meine", eigener Leerzustand |
+| `index.html` | `#startNav` mit zwei grossen Knöpfen, Erklärtext im Dialog, Version 3.24 |
+| `css/01-basis.css` | `.rmat-*`, `.start-nav-btn[hidden]`, zweispaltiges `#startNav` |
+| `js/41-hilfe.js` | Hilfetext „Material aus den Massaufnahmen" neu, PDF-Verweis |
+| `sw.js` | Cache-Version 3.24 |
+| `pruefstaende/pruefstand-rapport-zuschnitt-v3-24.js` | **neu** |
+| drei bestehende Prüfstände | überholte Erwartungen (§129.5) |
+| `anleitung/*` | Übernahme-Abschnitt, Startbildschirm, Werkstatt, Demo-Katalog, PDF v3.24 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/48-projekt-material.js`,
+`js/33-zuschnitt.js`, `js/29-einlaufblech-aufnahme.js` sowie sämtliche
+Fachdateien `js/10`–`js/40` – keine Berechnung, keine Stückliste, kein
+Zuschnitt, keine Packrechnung berührt.
+
+### 129.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und der Vorschlag gegen
+  den echten Materialkatalog (nur lesend).
+- **Der Vorschlag ist an einem Katalog gemessen, nicht an vielen.** Er trifft
+  die Zeilen der Firma PETER KÜNZI AG; ein anders benannter Lieferantenkatalog
+  kann öfter beim „bitte prüfen" landen. Das ist die vorsichtige Richtung –
+  im Zweifel schlägt die App vor, statt zu behaupten.
+- Eine übernommene Zeile trägt **keinen Verweis** auf die Massaufnahme
+  (unverändert aus §121.10). Sie ist danach eine gewöhnliche Materialzeile.
+- Der **Preis** einer freien Position bleibt leer und wird im Rapport
+  nachgetragen – die App kennt für ein Blech ohne Katalogposition keinen.
+- Vom Ideenzettel weiterhin offen: Reststücke wirklich verrechnen,
+  Bestellliste je Lieferant, Mitarbeiterliste zusammenführen, Übersicht für
+  Ausmass und Rapporte, Offerten. Dazu die Punkte, die nur der Betreiber
+  erledigen kann: Schnittfuge eintragen, die projektlosen Massaufnahmen
+  zuordnen, die abgeleiteten Reservierungszeilen wegräumen,
+  Leaked-Password-Schutz, eigene Domain.

@@ -111,6 +111,10 @@ const vorbereiten=async(page,module,alsAdmin)=>{
   $("appRoot").hidden=false;$("authScreen").hidden=true;$("startScreen").hidden=false;
   $("settingsModal").hidden=true;$("measurementEditModal").hidden=true;
   $("projectCockpitModal").hidden=true;$("werkstattModal").hidden=true;
+  // Seit v3.24 ist die Vorgabe "meine"; openWerkstatt() liest den gemerkten
+  // Wert. Diese Pruefungen gelten dem Inhalt der Werkstatt, nicht dem Filter -
+  // sie stellen ihn deshalb ausdruecklich (und dauerhaft) auf "alle".
+  try{localStorage.setItem("sd_werkFilter","alle")}catch(e){}
   werkOffen=null; werkGrundlage=null; werkFilter="alle";
   werkstattKnopfAktualisieren();
   window.__ruf=[];

@@ -361,7 +361,11 @@ const MESS=[
  p(z.kaesten===3,"alle drei Materialzeilen der beiden Massaufnahmen",z);
  p(z.gewaehlt===3,"beim Oeffnen ist alles gewaehlt",z);
  p(/\(3\)/.test(z.knopf),"die Zahl am Knopf ist die Zahl der Zeilen",z.knopf);
- p(/Kein Material erfasst/.test(z.text),"eine Massaufnahme ohne Liste sagt das und nennt den Weg",z.text);
+ // Seit v3.24 deckt der Dialog auch Zuschnitte und Halbfabrikate ab - der
+ // Leerzustand nennt deshalb alle drei. Geprueft wird die Eigenschaft:
+ // er sagt, dass nichts da ist, UND nennt den Weg.
+ p(/Kein Material/.test(z.text)&&/Material für den Regierapport/.test(z.text),
+   "eine Massaufnahme ohne Liste sagt das und nennt den Weg",z.text);
  p(/Schraube/.test(z.text)&&/Rinnenhalter/.test(z.text),"die Bezeichnung kommt aus dem Katalog",z.text.slice(0,200));
 
  // D2: Uebernehmen -> Zeilen im Rapport, mit dem Datum der Massaufnahme.

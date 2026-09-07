@@ -34,11 +34,16 @@ const WERK_LIMIT=300;
 // (v3.07), kein Firmendatum.
 const WERK_FILTER_SPEICHER="sd_werkFilter";
 const WERK_FILTER_ERLAUBT=["alle","ruesten","montieren","meine"];
+// v3.24: Vorgabe ist "Nur meine" - wer in die Werkstatt geht, will seine
+// eigene Arbeit sehen, nicht die des ganzen Betriebs. Eine bereits
+// getroffene Wahl bleibt bestehen; nur wer noch nie gefiltert hat, startet
+// hier. "Alle" ist einen Tipp entfernt und der Leerzustand sagt das.
+const WERK_FILTER_VORGABE="meine";
 function werkFilterGemerkt(){
  try{
   const v=localStorage.getItem(WERK_FILTER_SPEICHER);
-  return WERK_FILTER_ERLAUBT.indexOf(v)>=0?v:"alle";
- }catch(e){ return "alle" }
+  return WERK_FILTER_ERLAUBT.indexOf(v)>=0?v:WERK_FILTER_VORGABE;
+ }catch(e){ return WERK_FILTER_VORGABE }
 }
 function werkFilterMerken(v){
  try{ localStorage.setItem(WERK_FILTER_SPEICHER,v) }catch(e){}
@@ -546,7 +551,9 @@ function renderWerkstatt(){
  if(!gruppen.length){
   h+=`<div class="small" style="color:var(--muted)">${werkFilter==="alle"
     ?"In der Werkstatt liegt gerade nichts an. Hier erscheint, was freigegeben und zum Rüsten oder Montieren eingeteilt ist."
-    :"Nichts, das zu diesem Filter passt."}</div>`;
+    :(werkFilter==="meine"
+      ?"Dir ist gerade nichts zum Rüsten oder Montieren zugeteilt. Mit „Alle“ siehst du, was im Betrieb sonst noch ansteht."
+      :"Nichts, das zu diesem Filter passt.")}</div>`;
   box.innerHTML=h; return 0;
  }
  // Der roteste Faden ueberhaupt: was zuerst drankommt, steht oben.

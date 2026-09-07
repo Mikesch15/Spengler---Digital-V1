@@ -130,6 +130,10 @@ const vorbereiten=async(page,module,ze,mess)=>{
   $("appRoot").hidden=false;$("authScreen").hidden=true;$("startScreen").hidden=false;
   $("settingsModal").hidden=true;$("measurementEditModal").hidden=true;
   $("projectCockpitModal").hidden=true;$("werkstattModal").hidden=true;
+  // Seit v3.24 ist die Vorgabe "meine"; openWerkstatt() liest den gemerkten
+  // Wert. Diese Pruefungen gelten dem Ruesten selbst, nicht dem Filter -
+  // sie stellen ihn deshalb ausdruecklich (und dauerhaft) auf "alle".
+  try{localStorage.setItem("sd_werkFilter","alle")}catch(e){}
   werkOffen=null; werkGrundlage=null; werkFilter="alle"; werkOffenKarte.clear();
   werkstattKnopfAktualisieren();
   window.__ruf=[]; window.__druck=[];
@@ -537,7 +541,7 @@ const druckHtml=(page)=>page.evaluate(()=>(window.__druck||[]).filter(x=>x&&x.le
   const f2=await page.evaluate(()=>({aktiv:werkFilter,
     chip:!!document.querySelector('[data-werk-filter="meine"].aktiv')}));
   p(f2.aktiv==="meine"&&f2.chip,"und beim nächsten Öffnen wieder gesetzt",f2);
-  await page.evaluate(()=>{localStorage.removeItem("sd_werkFilter")});
+  await page.evaluate(()=>{localStorage.setItem("sd_werkFilter","alle")});
  }
 
  // =========================================================================

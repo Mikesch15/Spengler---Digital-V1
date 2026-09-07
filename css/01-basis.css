@@ -264,6 +264,13 @@ label.feedback-pick span{flex:1 1 auto;min-width:0;word-break:break-word;text-tr
 .start-nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:26px 10px;border-radius:14px;font-size:14px;font-weight:800;text-align:center;line-height:1.3}
 .start-nav-btn small{font-weight:600;font-size:10px;opacity:.85}
 .start-nav-icon{font-size:34px;line-height:1}
+/* v3.24: .start-nav-btn setzt display:flex und wuerde das [hidden] des
+   Browsers schlagen - der Werkstatt-Knopf waere fuer jeden sichtbar.
+   Fuenfter Fall derselben Falle (CLAUDE.md 59, 71.5, 115.9). Gemessen. */
+.start-nav-btn[hidden]{display:none!important}
+/* Der Startbildschirm hat je nach Firma einen oder zwei grosse Einstiege -
+   die Typ-Auswahlen darunter behalten ihre drei festen Spalten. */
+#startNav{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
 #topUserBar{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px}
 .report-topnav{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
 .report-topnav button{padding:7px 12px;font-size:12px}
@@ -1084,6 +1091,28 @@ button.ze-ein{min-height:34px;padding:4px 12px;font-size:12px;
 }
 .rmat-wahl-text{display:flex;flex-direction:column;gap:2px;min-width:0;word-break:break-word}
 .rmat-schon{color:var(--red)}
+
+/* v3.24  Zuschnitte und Halbfabrikate uebernehmen.
+   Je Zeile eine Positionsauswahl - die App SCHLAEGT VOR, sie behauptet
+   nicht. Die globalen Grundregeln fuer label/select werden hier
+   ausdruecklich zurueckgesetzt (CLAUDE.md 72.5). */
+.rmat-art{
+  font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+  color:var(--muted);margin:8px 0 2px;
+}
+.rmat-wahl-block{border-left:2px solid var(--line);padding-left:6px;margin-bottom:6px}
+.rmat-pos{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 6px 4px 34px}
+.rmat-pos select{flex:1 1 240px;min-width:0;min-height:36px;font-size:12px}
+.rmat-pos-fest{padding:0 6px 4px 34px;font-size:12px;color:var(--muted);word-break:break-word}
+.rmat-sicher{font-size:11px;color:var(--green);font-weight:700}
+.rmat-unsicher{font-size:11px;color:#a35a06;font-weight:700}
+html.dark .rmat-unsicher{color:#e0a35c}
+.rmat-basis{display:flex;flex-wrap:wrap;gap:10px;padding:0 6px 4px 34px}
+.rmat-basis label{
+  display:flex;align-items:center;gap:5px;cursor:pointer;
+  text-transform:none;font-size:12px;font-weight:400;color:inherit;letter-spacing:0;
+}
+.rmat-basis input[type="radio"]{width:18px;height:18px;min-height:0;padding:0;border:0;margin:0;flex:0 0 auto}
 
 /* Werkstatt: Zuschnitt direkt abhaken (v3.20). Eine Karte je Massaufnahme -
    Kopf mit Fortschritt, darunter die abhakbare Liste aus js/33.
