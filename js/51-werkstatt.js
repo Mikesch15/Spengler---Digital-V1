@@ -273,6 +273,12 @@ function werkAufnahmeHtml(a,jetztK){
    .filter(Boolean).join(" · ");
  // v3.09 Abschnitt 15: auf welcher freigegebenen Fassung liegt die Arbeit?
  // Nur wenn die Versionierung eingeschaltet ist - sonst gibt es keine.
+ // v3.20: Ein Klick von der Werkstatt direkt in die Zuschnittliste dieser
+ // Massaufnahme - mit dem Stand daneben, damit man sieht, was noch offen ist.
+ const zStand=(typeof pmAktiv==="function"&&pmAktiv("zuschnitt"))?werkZuStand(a):{gesamt:0,erledigt:0};
+ const zuKnopf=zStand.gesamt
+   ?`<button type="button" data-werk-mess="${a.id}" data-werk-zu="1" data-werk-zu-knopf="${a.id}">✂️ Zuschnitt ${zStand.erledigt}/${zStand.gesamt}</button>`
+   :"";
  const nr=werkFassung(a.id);
  const fassung=(nr===null)?"":(verfallen
    ? ` · <span style="color:var(--red)">Fassung ${nr} nicht mehr aktuell</span>`
@@ -285,8 +291,79 @@ function werkAufnahmeHtml(a,jetztK){
   </div>
   <div class="werk-zeile-akt">
    ${aktion}
+   ${zuKnopf}
    <button type="button" class="gray" data-werk-mess="${a.id}">Öffnen</button>
   </div>
+ </div>`;
+}
+
+// v3.20: Der gespeicherte Zuschnittplan EINER Massaufnahme, in der Form, die
+// zuschnittHtml/zuListeHtml erwarten. Gerechnet wird nichts - genommen wird,
+// was beim Speichern abgelegt wurde (dieselben zwei Funktionen, die auch der
+// Ausdruck in js/16 verwendet). erledigtFuer sagt js/33, dass hier abgehakt
+// werden darf: es ist genau eine Aufnahme mit ihren eigenen Stuecknummern.
+function werkZuschnittPlan(m){
+ if(typeof pmatPlanRoh!=="function"||typeof zuPlanAusGespeichert!=="function")return null;
+ const r=pmatPlanRoh(m); if(!r)return null;
+ const d=(m&&m.data)||{};
+ const breite=(r.abwicklung!==undefined&&r.abwicklung!==null)?r.abwicklung
+             :((d.abwicklung!==undefined&&d.abwicklung!==null)?d.abwicklung:null);
+ const p=zuPlanAusGespeichert(r,breite,"Stück");
+ if(!p||!(p.gruppen||[]).length)return null;
+ p.erledigtFuer=m.id;
+ p.material=(typeof pmatMaterialName==="function")?pmatMaterialName(d.material):"";
+ return p;
+}
+// Eine Karte je Massaufnahme: Kopf mit Fortschritt, darunter die abhakbare
+// Liste. Bewusst nur zuListeHtml() - Rollenvergleich, Belegung und das
+// Reststuecke-Lager gehoeren ins Projekt, nicht an die Abkantbank.
+function werkGesamtText(liste){
+ const g=(typeof zeStandListe==="function")?zeStandListe(liste):null;
+ return (g&&g.gesamt)?(esc(g.erledigt)+" von "+esc(g.gesamt)+" zugeschnitten"):"";
+}
+// Nach jedem Abhaken nur die Zahlen nachziehen, nicht die ganze Werkstatt neu
+// zeichnen - sonst spraenge die Seite unter dem Finger weg. Die Knoepfe selbst
+// malt zeMarkierungAuffrischen() aus js/56.
+function werkZuschnittStandAuffrischen(){
+ const box=$("werkstattBody"); if(!box)return;
+ const liste=(werkGrundlage&&werkGrundlage.aufnahmen)||[];
+ box.querySelectorAll("[data-werk-zu-stand]").forEach(el=>{
+  const m=liste.find(x=>x&&Number(x.id)===Number(el.dataset.werkZuStand));
+  if(m)el.innerHTML=werkStandText(m);
+ });
+ box.querySelectorAll("[data-werk-zu-ges]").forEach(el=>{el.innerHTML=werkGesamtText(liste)});
+ box.querySelectorAll("[data-werk-zu-knopf]").forEach(el=>{
+  const m=liste.find(x=>x&&Number(x.id)===Number(el.dataset.werkZuKnopf));
+  if(!m)return;
+  const s=werkZuStand(m);
+  el.textContent="✂️ Zuschnitt "+s.erledigt+"/"+s.gesamt;
+ });
+}
+function werkZuStand(m){
+ return (typeof zeStand==="function")?zeStand(m):{gesamt:0,erledigt:0,offen:0,veraltet:0,fertig:false};
+}
+// Der Stand als Text - EINE Stelle, damit das Zeichnen und das spaetere
+// Nachfuehren nicht auseinanderlaufen koennen.
+function werkStandText(m){
+ const s=werkZuStand(m);
+ if(!s.gesamt)return "keine Stücke";
+ return (s.fertig?"✓ ":"")+esc(s.erledigt)+" von "+esc(s.gesamt)+" zugeschnitten"
+  +(s.veraltet?' · <span style="color:var(--red)">'+esc(s.veraltet)+" Haken passen nicht mehr zum Plan</span>":"");
+}
+function werkZuschnittKarteHtml(m){
+ const plan=werkZuschnittPlan(m); if(!plan)return "";
+ const stand=werkZuStand(m);
+ const verfallen=!!m.freigabe_verfallen&&typeof mwAktiv==="function"&&mwAktiv();
+ return `<div class="werk-zu-karte${stand.fertig?" werk-zu-fertig":""}">
+  <div class="werk-zu-kopf">
+   <div class="werk-zu-titel"><b>${esc(werkTyp(m.type))}</b>${m.title?" · "+esc(m.title):""}
+    ${plan.material?'<span class="small" style="color:var(--muted)"> · '+esc(plan.material)+"</span>":""}
+    <div class="small werk-zu-text" style="color:var(--muted)" data-werk-zu-stand="${m.id}">${werkStandText(m)}</div>
+   </div>
+   <button type="button" class="gray" data-werk-mess="${m.id}" data-werk-zu="1">✂️ Im Formular öffnen</button>
+  </div>
+  ${verfallen?'<div class="small" style="color:var(--red)">Diese Massaufnahme wurde nach der Freigabe geändert – vor dem Zuschneiden erneut freigeben lassen.</div>':""}
+  ${(typeof zuListeHtml==="function")?zuListeHtml(plan):""}
  </div>`;
 }
 
@@ -313,7 +390,15 @@ function werkGrundlageHtml(g){
  }
 
  if(typeof pmAktiv==="function"&&pmAktiv("reservierung")){
-  const res=werkReservierungen.filter(r=>r.project_id===g.projectId);
+  const alle=werkReservierungen.filter(r=>r.project_id===g.projectId);
+  // v3.20: An der Abkantbank zaehlt, was man aus dem Lager holt - Blech,
+  // Halbfabrikate, Zuschnitte. Abgeleitete Masse (Abwicklung, Flaeche,
+  // Stueckzahl) sind Rechenergebnisse und stehen hier nicht. Sie koennen
+  // aus einer Uebernahme vor v3.18 noch in der Datenbank liegen; aufgeraeumt
+  // werden sie im Projekt (Material & Zuschnitt), nicht hier.
+  const res=(typeof resvAbgeleitet==="function")
+    ?alle.filter(r=>!resvAbgeleitet(r,liste)):alle;
+  const weg=alle.length-res.length;
   h+='<div class="werk-block" data-werk-block="reservieren"><div class="small werk-block-titel"><b>2 · Reservierungen</b> – was für das Projekt zurückgelegt ist</div>';
   h+=res.length?('<div class="scroll"><table class="eb-table pmat-tab"><thead><tr>'
     +'<th>Material</th><th>Position</th><th>Menge</th><th>Status</th></tr></thead><tbody>'
@@ -323,6 +408,10 @@ function werkGrundlageHtml(g){
       +`<td>${(typeof resvBadge==="function")?resvBadge(r.status):esc(r.status)}</td></tr>`).join("")
     +'</tbody></table></div>')
    :'<div class="small" style="color:var(--muted)">Für dieses Projekt ist noch nichts reserviert.</div>';
+  if(weg)h+='<div class="small" style="color:var(--muted);margin-top:4px">'+esc(weg)
+    +' abgeleitete '+(weg===1?"Zeile":"Zeilen")+' (Abwicklung, Fläche, Stückzahl) '
+    +(weg===1?"ist":"sind")+' hier weggelassen – daraus holt niemand etwas aus dem Lager. '
+    +'Aufräumen lassen sie sich im Projekt unter „Material &amp; Zuschnitt“.</div>';
   const reste=(typeof reststuecke!=="undefined"&&Array.isArray(reststuecke))
     ?reststuecke.filter(r=>r.reserviert_fuer_project_id===g.projectId&&!r.verbraucht):[];
   h+=reste.length
@@ -332,15 +421,20 @@ function werkGrundlageHtml(g){
     :'<div class="small" style="color:var(--muted);margin-top:4px">Kein Reststück für dieses Projekt reserviert.</div>';
   h+="</div>";
  }
- if(typeof pmAktiv==="function"&&pmAktiv("zuschnitt")&&typeof pzuSammeln==="function"){
-  const {materialien}=pzuSammeln(liste);
-  h+='<div class="werk-block" data-werk-block="zuschneiden"><div class="small werk-block-titel"><b>3 · Zuschnitt</b> – wie es zu schneiden ist</div>';
-  h+=materialien.length?materialien.map(M=>{
-    const plan=(typeof pzuPlan==="function")?pzuPlan(M):null;
-    // zuschnittHtml zeigt das Reststuecke-Lager selbst - hier waere es doppelt.
-    return `<div class="pzu-material"><div class="pmat-kopf"><b>${esc(M.material)}</b></div>`
-      +((plan&&typeof zuschnittHtml==="function")?zuschnittHtml(plan):"")+"</div>";
-   }).join("")
+ if(typeof pmAktiv==="function"&&pmAktiv("zuschnitt")){
+  // v3.20: Beim Ruesten zaehlt zuerst, was zu schneiden ist - und dass es
+  // sich SOFORT abhaken laesst. Deshalb steht hier nicht mehr der
+  // projektweite Sammelplan (dort sind die Stuecknummern neu vergeben und
+  // gehoeren zu verschiedenen Aufnahmen, ein Haken waere nicht eindeutig -
+  // CLAUDE.md 120.4), sondern je Massaufnahme ihre EIGENE Liste. Damit ist
+  // jede Positionsnummer derselbe Abhak-Knopf wie im Formular: dieselbe
+  // Darstellung aus js/33, dieselbe Abhak-Schicht aus js/56, keine zweite.
+  const mitZ=liste.filter(m=>werkZuschnittPlan(m));
+  h+='<div class="werk-block" data-werk-block="zuschneiden"><div class="small werk-block-titel">'
+   +'<b>3 · Zuschnitt</b> – abhaken, was geschnitten ist'
+   +' <span class="werk-zu-stand" data-werk-zu-ges="1">'+werkGesamtText(liste)+'</span>'
+   +'</div>';
+  h+=mitZ.length?mitZ.map(m=>werkZuschnittKarteHtml(m)).join("")
    :'<div class="small" style="color:var(--muted)">Nichts zuzuschneiden – keine Massaufnahme hat einen gespeicherten Zuschnitt.</div>';
   h+="</div>";
  }
@@ -510,6 +604,13 @@ document.addEventListener("click",async e=>{
   if(typeof measEditReturnTo!=="undefined")measEditReturnTo="werkstatt";
   const m=$("werkstattModal"); if(m)m.hidden=true;
   if(typeof openMeasurement==="function")openMeasurement(data);
+  // v3.20: Kommt der Klick aus dem Zuschnitt, direkt in dessen Register -
+  // dieselbe Sprungtabelle wie auf der Seite "Material & Zuschnitt".
+  if(mess.dataset.werkZu&&typeof mzZuschnittRegister==="function"){
+   const r=mzZuschnittRegister(data.type);
+   if(r){try{r.setzen(r.nr)}catch(x){console.error("Zuschnitt-Register",x)}}
+   if(typeof zeNachziehen==="function")zeNachziehen();
+  }
   return;
  }
 });

@@ -20738,3 +20738,232 @@ gelöscht. `pruefstand-hilfe-v3-03` (68/68) erzwingt das mechanisch.
   Hand abgehakt werden. Bewusst so gelassen, weil der Auftrag ausdrücklich nur
   das Setzen betraf; ob das Abhaken die Ecke ganz auflösen soll, gehört in den
   Praxistest.
+
+## 125. WERKSTATT: ZUSCHNITTE SOFORT ABHAKEN — VERSION 3.20
+
+Zwei Rückmeldungen des Betriebs am 7.9.2026:
+
+> „zum rüsten, ist es das wichtigste das man sofort die zuschnitte sehen und
+> abhaken kann"
+
+> „man muss einfacher aus der werkstattansicht sofort in die zuschnittliste
+> kommen um die zugeschnittenen bleche abzuhaken … ausserdem wird die
+> reservieren liste immernoch nicht so angezeigt, dass nur das blech und die
+> halbfabrikate angezeigt wird, bei einlaufblech zb. darf nur die gava halter
+> und die zuschnitte angezeigt werden"
+
+**Keine Schemaänderung, keine Migration, keine RLS-Änderung, keine neue
+Datenbankfunktion, keine Fachrechnung verändert.**
+
+### 125.1 Was die Werkstatt bis v3.19 zeigte
+
+Block 3 „Zuschnitt" rechnete den **projektweiten Sammelplan**
+(`pzuSammeln()` → `pzuPlan()`) und zeigte ihn über `zuschnittHtml()`. Der
+trägt seit v3.15 ausdrücklich `sammel:true` – dort sind die
+Positionsnummern über das ganze Projekt neu durchnummeriert und gehören zu
+keiner einzelnen Massaufnahme mehr, also **darf** dort nicht abgehakt werden
+(§120.4). Wer rüstete, sah eine Liste, die sich nicht anfassen liess, und
+musste den Umweg über Projekt → Material & Zuschnitt → Massaufnahme →
+Register „Zuschnitt" gehen.
+
+### 125.2 Je Massaufnahme ein eigener Plan – dann geht das Abhaken
+
+`werkZuschnittPlan(m)` (js/51) baut den Plan **je Massaufnahme** aus dem
+gespeicherten Datensatz:
+
+```js
+const r=pmatPlanRoh(m);                      // was die Aufnahme gespeichert hat
+const p=zuPlanAusGespeichert(r,breite,"Stück");
+p.erledigtFuer=m.id;                          // <- macht die Nummern antippbar
+```
+
+`erledigtFuer` ist genau der Schalter aus v3.15: `zuErledigtFuer(p)` in js/33
+macht jede Positionsnummer zu einem Knopf, sobald der Plan zu **einer**
+Massaufnahme gehört. Damit gilt in der Werkstatt dieselbe Bedienung wie im
+Register: ein Tipp = zugeschnitten, ein zweiter nimmt es zurück, `alle` für
+eine Gruppe gleicher Zuschnitte.
+
+**Es entsteht keine zweite Darstellung und keine zweite Rechnung**:
+`zuListeHtml()` (js/33) bleibt die einzige Zuschnittliste,
+`ebaPackeInStreifen()` (js/29) die einzige Packrechnung, `pmatPlanRoh()`
+(js/48) die einzige Quelle für das, was eine Aufnahme gespeichert hat, und
+`zeSetzen()` (js/56) der einzige Schreibweg. Der Prüfstand belegt das am
+Quelltext.
+
+Der **projektweite** Plan bleibt unangetastet und weiterhin nicht abhakbar –
+er ist als Zuschnitt-Übersicht gedacht, nicht als Abhak-Liste.
+
+### 125.3 Der Stand steht dort, wo man ihn braucht
+
+Drei Stellen, alle aus **einer** Quelle (`zeStand()` aus js/56):
+
+| Ort | Text |
+|---|---|
+| Blocküberschrift | „2 von 7 zugeschnitten" (ganzes Projekt) |
+| Karte je Massaufnahme | „3 von 4 zugeschnitten", fertige Karte grün umrandet |
+| Zeile der Massaufnahme | Knopf „✂️ Zuschnitt 3/4" |
+
+Nachgezogen wird **ohne Neuzeichnen** (`werkZuschnittStandAuffrischen()`
+setzt die drei Stellen an Ort und Stelle) – sonst spränge die Liste bei
+jedem Tipp und die gerade angetippte Position wäre weg.
+
+**Ein Haken, nicht zwei.** Der erste Entwurf hatte die Auffrischung an zwei
+Stellen (nach dem Schreiben **und** im Beobachter). Die Gegenprobe blieb
+grün, egal welche der beiden ich entfernte – zwei Wege, von denen jeder
+allein genügt, sind keine Absicherung. Jetzt hängt sie an **einer** Stelle
+in `zeNachziehen()` (js/56); der Beobachter läuft nach jedem Zeichnen einer
+Zuschnittliste und nach jedem Abhaken. Die Gegenprobe beisst seither (35/38),
+und ein neuer Testblock prüft, dass ein **vorher schon gesetzter** Haken beim
+Öffnen der Werkstatt erscheint.
+
+### 125.4 Der Knopf in der Zeile springt ins Register
+
+`✂️ Zuschnitt 3/4` öffnet die Massaufnahme und stellt sie direkt auf ihr
+Zuschnitt-Register – über `mzZuschnittRegister(type)` aus js/56, dieselbe
+Funktion, die auch die Seite „Material & Zuschnitt" benutzt. Welches Register
+das ist, wird nicht als Zahl hinterlegt, sondern in der Registertabelle des
+Moduls gesucht; wird dort je eines eingefügt, wandert es mit. Rückziel bleibt
+`"werkstatt"`.
+
+Der Knopf erscheint nur, wenn das Zuschnittmodul eingeschaltet ist und die
+Aufnahme wirklich Zuschnitte hat.
+
+### 125.5 Die Reservierungsliste in der Werkstatt war ungefiltert
+
+Der Filter aus v3.17/v3.18 (`resvAbgeleitet()`) sass nur im Projekt-Cockpit.
+Die Werkstatt zeigte **jede** Zeile – bei einem Einlaufblech also auch
+Abwicklung, Blechfläche, Stückzahl und Blechstösse.
+
+Behoben mit derselben Funktion, nicht mit einer zweiten:
+
+```js
+const alle=werkReservierungen.filter(r=>r.project_id===g.projectId);
+const res=alle.filter(r=>!resvAbgeleitet(r,liste));
+```
+
+`resvAbgeleitet(r,liste)` nimmt die Liste der Massaufnahmen jetzt
+**ausdrücklich entgegen** – die Werkstatt hat ihre eigenen
+(`werkGrundlage.aufnahmen`) und nicht den Cockpit-Cache. Ohne Angabe bleibt
+es beim bisherigen Verhalten.
+
+Weggelassenes wird **gezählt und genannt**, nicht stillschweigend
+unterschlagen: „4 abgeleitete Masse (Abwicklung, Flächen, Stückzahlen) sind
+nicht aufgeführt." Sonst hielte jemand die fehlenden Zeilen für einen Fehler.
+
+**Beim Einlaufblech bleiben damit genau die Haltebleche (GAVA Blech) und die
+Zuschnitte** – exakt das, was die Rückmeldung verlangt.
+
+### 125.6 Der Rückfall aus v3.18 war schon richtig
+
+Die Rückmeldung klang nach einem Fehler im Filter. Gegen die
+**Produktivdatenbank** nachgesehen (nur lesend), statt zu vermuten:
+`pmatTeilRueckfall("einlaufblech_gerade", …)` sagt für die real
+gespeicherten Bezeichnungen genau einmal „Teil" – bei „Haltebleche (GAVA
+Blech)". Der Filter arbeitet also korrekt.
+
+Was der Betrieb sah, waren **bestehende Zeilen** (ids 61–80), angelegt vor
+v3.18 bzw. am selben Morgen von einem noch zwischengespeicherten Stand. Für
+sie gibt es seit v3.18 den Knopf „🧹 Abgeleitete Masse entfernen" im Projekt
+– die App räumt bewusst nichts von selbst weg (§123.8). Die echte Lücke war
+die ungefilterte **Werkstattansicht**, und die ist geschlossen.
+
+### 125.7 Zwei Fehler, beide gemessen statt gelesen
+
+- **Bei 320 px liefen sieben Elemente aus dem Bild.** Zwei Ursachen: die
+  Fortschrittsleiste scrollt seitwärts (Absicht seit §115.4, im Prüfstand
+  ausgenommen) – und `.werk-zeile-akt{flex:0 0 auto}` konnte mit einem
+  **dritten** Knopf nicht mehr schrumpfen. Das war ein echter, von mir
+  eingeführter Fehler; behoben mit `flex:1 1 auto;min-width:0;flex-wrap:wrap`.
+  Vierter Fall derselben Falle nach §88.5/§89.5/§117.5/§118.5.
+- **Meine Testdaten hatten kein `data.pieces`** – der live gerechnete Plan
+  blieb leer und meldete zwei Fehlschläge, die keine waren.
+
+### 125.8 Getestet
+
+- **`pruefstaende/pruefstand-werkstatt-zuschnitt-v3-20.js` – 38/38**, echtes
+  Chromium gegen die echte `index.html`: die Liste steht je Massaufnahme in
+  Block 3 und ist antippbar, die Positionsnummern gehören zur richtigen
+  Aufnahme, der projektweite Plan bleibt **nicht** antippbar, ein Tipp ergibt
+  **einen** `upsert` ohne `company_id` mit den Massen als Beleg und
+  `onConflict:"measurement_id,stueck_nr"`, der Stand folgt in Karte, Block
+  und Zeile, der Sprung ins Register mit Rückziel, ein vorher gesetzter Haken
+  erscheint beim Öffnen, die Reservierung zeigt nur die zwei echten Zeilen und
+  nennt die vier weggelassenen, ausgeschaltetes Modul zeigt nichts, vier
+  Bildschirmbreiten, keine JavaScript-Fehler.
+- **Sieben Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um; keine bricht ihn ab.
+- **Volle Regression: 46 von 47 Prüfständen grün.** Die eine Ausnahme ist
+  `excel-import-v3-04` – **SheetJS lässt sich in diesem Container nicht
+  laden**, beide CDNs sind gesperrt; gegen den unveränderten HEAD-Stand
+  nachgemessen, identischer Fehlschlag, die Einbindungszeile ist nicht im
+  Diff (bekannt seit §121.6).
+- **Zwei überholte Erwartungen** in `pruefstand-werkstatt-v3-09` nachgezogen,
+  keine davon ein Codefehler: die Prüfung las den Zuschnitt über
+  `.pmat-kopf b` (es gibt dort keinen Sammelplan mehr) und zählte vier
+  `data-werk-mess`-Knöpfe (die Zeile hat jetzt zwei). Beide prüfen seither
+  die **Eigenschaft** statt einer Zahl – dass Block 3 genau die Aufnahmen mit
+  gespeichertem Zuschnitt zeigt, und dass die **verschiedenen**
+  Massaufnahme-Ids stimmen. Mit Gegenprobe bestätigt, dass die erste
+  weiterhin beisst (53/54).
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.19-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, §100.6) – **DOM, Text und Bild byteidentisch**
+  (DOM `b6fd4d0632008486`, Text `d417e240b7aa06cc`, Bild `6d4ce45026dadab6`,
+  59 308 Bytes, Höhe 721 px), bestätigt durch einen Kontrolllauf desselben
+  Codes. `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+  `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 59 `js/*.js`, `sw.js`, alle 47 Prüfstände und die
+  Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung in `index.html`
+  ausgeglichen (Tiefe 0, Minimum 0); keine doppelten Element-IDs; alle 59
+  js-Dateien in `index.html` **und** in der Service-Worker-Liste; kein
+  `data-hilfe` ohne Text; Version 3.20 in `index.html`, `sw.js`,
+  `js/41-hilfe.js` und `anleitung/README.md` gleich.
+- **Kein Schreibzugriff auf die Datenbank** in dieser Runde – gelesen wurden
+  nur die bestehenden Reservierungszeilen und das Ausmass der beiden
+  Massaufnahmen, die eines haben.
+
+### 125.9 Anleitung
+
+Nach Regel §108.1 mitgeführt: der Werkstatt-Abschnitt beschreibt das
+Abhaken direkt in der Rüstansicht und den Sprung ins Register, dazu der
+Hinweis, dass abgeleitete Masse dort nicht mehr auftauchen. Alle Bilder neu
+erzeugt, PDF v3.20 mit **65 Seiten**, keine leere. Die fünf Verweise
+nachgezogen, das alte PDF gelöscht. `pruefstand-hilfe-v3-03` (68/68)
+erzwingt das mechanisch.
+
+### 125.10 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/51-werkstatt.js` | Plan je Massaufnahme statt Sammelplan, Stand in drei Stellen, Sprungknopf, Reservierung gefiltert |
+| `js/50-reservierung.js` | `resvAbgeleitet(r,liste)` nimmt die Aufnahmenliste entgegen |
+| `js/56-material-zuschnitt.js` | **ein** Haken in `zeNachziehen()`, der den Werkstatt-Stand nachzieht |
+| `css/01-basis.css` | `.werk-zu-*`, `.werk-zeile-akt` umbruchfähig (125.7) |
+| `js/41-hilfe.js` | Hilfetext „Werkstatt" erweitert, PDF-Verweis |
+| `index.html`, `sw.js` | Version 3.20 |
+| `pruefstaende/pruefstand-werkstatt-zuschnitt-v3-20.js` | **neu** |
+| `pruefstaende/pruefstand-werkstatt-v3-09.js` | überholte Erwartungen (125.8) |
+| `anleitung/*` | Werkstatt-Abschnitt, PDF v3.20 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/48-projekt-material.js`,
+`js/49-projekt-zuschnitt.js`, `js/33-zuschnitt.js`, `js/29`–`js/40` sowie
+sämtliche Fachdateien – keine Berechnung, keine Stückliste, kein Zuschnitt,
+keine Packrechnung berührt.
+
+### 125.11 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und die Datenbankseite
+  per SQL (nur lesend).
+- **Die bestehenden Reservierungszeilen sind noch da** (§125.6) – der Betrieb
+  entfernt sie mit dem Knopf aus v3.18. In der Werkstatt fallen sie ab sofort
+  nicht mehr auf, im Projekt stehen sie gekennzeichnet.
+- Der projektweite Sammelplan bleibt nicht abhakbar (§120.4). Wer alles auf
+  einen Blick will, sieht ihn weiterhin auf der Seite „Material & Zuschnitt".
+- Der Verlauf schreibt **eine Zeile je abgehaktem Stück** (§120.13,
+  unverändert).

@@ -354,6 +354,15 @@ const liste=[];
  await schuss("40-werkstatt","#werkstattModal .card",{warte:1000,breite:900});
  // v3.12: der rote Faden - naechster Schritt, Stationen, markierte Zeilen.
  await schuss("38-werkstatt-faden","#werkstattModal .werk-projekt",{warte:400,breite:900});
+ // v3.20: die Ruestgrundlage aufklappen - dort steht die abhakbare
+ // Zuschnittliste je Massaufnahme.
+ await page.evaluate(()=>{
+  const k=document.querySelector("#werkstattBody [data-werk-auf]");
+  if(k)k.click();
+ });
+ await page.waitForTimeout(900);
+ await schuss("43-werkstatt-abhaken",'#werkstattModal [data-werk-block="zuschneiden"]',
+   {warte:600,breite:900});
  await page.evaluate(()=>{$("werkstattModal").hidden=true});
 
  // Freigegebene Fassungen in der Massaufnahme.

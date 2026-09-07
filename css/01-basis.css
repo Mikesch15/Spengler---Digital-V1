@@ -861,7 +861,8 @@ tr.resv-gewaehlt td:first-child{border-left:3px solid var(--blue)}
 .werk-zeile{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;
  justify-content:space-between;padding:6px 0;border-top:1px solid var(--card-line);min-width:0}
 .werk-zeile-info{flex:1 1 200px;min-width:0;word-break:break-word}
-.werk-zeile-akt{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px}
+.werk-zeile-akt{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;gap:6px;
+ justify-content:flex-end}
 .werk-zeile-akt button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
 .werk-grundlage{margin-top:8px;border-top:2px solid var(--line);padding-top:8px}
 .werk-block{margin-bottom:10px}
@@ -1074,3 +1075,12 @@ button.ze-alle{min-height:30px;padding:2px 8px;font-size:11px;text-transform:non
 }
 .rmat-wahl-text{display:flex;flex-direction:column;gap:2px;min-width:0;word-break:break-word}
 .rmat-schon{color:var(--red)}
+
+/* Werkstatt: Zuschnitt direkt abhaken (v3.20). Eine Karte je Massaufnahme -
+   Kopf mit Fortschritt, darunter die abhakbare Liste aus js/33. */
+.werk-zu-karte{border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0;background:var(--card)}
+.werk-zu-karte.werk-zu-fertig{border-color:var(--green)}
+.werk-zu-kopf{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:4px}
+.werk-zu-titel{flex:1 1 190px;min-width:0;word-break:break-word}
+.werk-zu-kopf button{flex:0 0 auto;min-height:38px}
+.werk-zu-stand{color:var(--muted);font-weight:400}

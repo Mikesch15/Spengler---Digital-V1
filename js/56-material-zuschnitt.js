@@ -194,6 +194,12 @@ async function zeNachziehen(){
   });
   if(ids.size)await zeLaden([...ids]);
   zeMarkierungAuffrischen();
+  // v3.20: In der Werkstatt steht der Stand als Text ("2 von 3 zugeschnitten").
+  // Hier - und nur hier - wird er nachgezogen: der Beobachter laeuft nach JEDEM
+  // Zeichnen einer Zuschnittliste und auch nach jedem Abhaken (das veraendert
+  // den DOM). Nur die Zahlen, nicht die ganze Werkstatt - sonst spraenge die
+  // Seite unter dem Finger weg.
+  if(typeof werkZuschnittStandAuffrischen==="function")werkZuschnittStandAuffrischen();
  }finally{zeLaeuft=false}
 }
 if(typeof MutationObserver!=="undefined"){

@@ -130,12 +130,16 @@ function resvQuelleHtml(r){
 // ueber ihre Massaufnahme und ihre Bezeichnung, mit pmatTeilVon() als der
 // einen Quelle (js/48). Ein Zuschnitt ist nie abgeleitet, und ohne Zuordnung
 // zu genau einer Massaufnahme sagt die App NICHTS - sie raet nicht.
-function resvAbgeleitet(r){
+// v3.20: liste ist optional - die Werkstatt hat ihre eigenen Aufnahmen
+// (werkGrundlage.aufnahmen) und nicht den Cockpit-Cache. Ohne Angabe gilt
+// wie bisher der Cache des offenen Projekts.
+function resvAbgeleitet(r,liste){
  if(!r)return false;
  if(r.laenge_mm!==null&&r.laenge_mm!==undefined)return false;   // Zuschnitt
  if(typeof pmatTeilVon!=="function")return false;
  const id=r.measurement_id; if(!id)return false;
- const m=(projectMeasurementsCache||[]).find(x=>x&&x.id===id);
+ const quelle=Array.isArray(liste)?liste:(projectMeasurementsCache||[]);
+ const m=quelle.find(x=>x&&x.id===id);
  const zeilen=(m&&m.data&&Array.isArray(m.data.ausmass))?m.data.ausmass:null;
  if(!zeilen)return false;
  const bez=String(r.bezeichnung||"").trim();

@@ -284,15 +284,19 @@ const stand=page=>page.evaluate(()=>{
     const td=tr.querySelectorAll("td");
     return (td[0]?td[0].textContent:"")+"|"+(td[1]?td[1].textContent:"");
   }):[];
-  const zsoll=pzuSammeln(liste).materialien.map(M=>M.material).sort().join(",");
+  // v3.20: Block 3 zeigt je Massaufnahme ihre eigene Liste (abhakbar),
+  // nicht mehr die projektweiten Materialgruppen. Geprueft wird deshalb,
+  // dass genau die Aufnahmen mit gespeichertem Zuschnitt dastehen.
+  const zsoll=liste.filter(m=>werkZuschnittPlan(m)).map(m=>m.id).sort().join(",");
   const zblock=$("werkstattBody").querySelector('[data-werk-block="zuschneiden"]');
-  const zist=zblock?[...zblock.querySelectorAll(".pmat-kopf b")].map(x=>x.textContent).sort().join(","):"";
+  const zist=zblock?[...zblock.querySelectorAll("[data-werk-zu-stand]")]
+    .map(x=>Number(x.dataset.werkZuStand)).sort().join(","):"";
   return {soll:soll.sort(),ist:ist.sort(),zsoll,zist};
  });
  p(gleich.soll.length>0&&JSON.stringify(gleich.soll)===JSON.stringify(gleich.ist),
    "die gezeigten Materialzeilen sind genau die von pmatSammeln",gleich);
  p(gleich.zsoll.length>0&&gleich.zsoll===gleich.zist,
-   "und der Zuschnitt genau der von pzuSammeln",{s:gleich.zsoll,i:gleich.zist});
+   "Block 3 zeigt genau die Aufnahmen mit gespeichertem Zuschnitt",{s:gleich.zsoll,i:gleich.zist});
 
  await klick(page,'[data-werk-auf="7"]');
  await page.waitForTimeout(80);
@@ -334,9 +338,9 @@ const stand=page=>page.evaluate(()=>{
  s=await stand(page);
  p(s.zeilen.length===4,"und zurueck auf alle");
  p(s.projektknopf.length>=2&&[...new Set(s.projektknopf)].sort().join()==="7,8"
-   &&s.messknopf.length===4,
+   &&[...new Set(s.messknopf)].sort().join()==="11,12,13,16",
    "kein Sackgasse: Projekt und Massaufnahme sind erreichbar",
-   {pr:s.projektknopf.length,me:s.messknopf.length});
+   {pr:s.projektknopf.length,me:[...new Set(s.messknopf)].sort()});
 
  console.log("\nJ · Fehler und Hilfe");
  await page.evaluate(()=>{window.__db.fehler="permission denied"});
