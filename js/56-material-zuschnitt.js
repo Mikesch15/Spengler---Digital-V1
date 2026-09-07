@@ -134,9 +134,14 @@ function zeStandListe(liste){
 function zeMarkierungAuffrischen(root){
  const w=root||document;
  w.querySelectorAll("[data-ze-nr]").forEach(b=>{
-  const an=zeIstErledigt(b.dataset.zeMeas,b.dataset.zeNr);
+  const z=zeZeilen(b.dataset.zeMeas).get(Number(b.dataset.zeNr));
+  const an=!!(z&&z.erledigt);
   b.setAttribute("aria-pressed",an?"true":"false");
   b.classList.toggle("ze-ok",an);
+  // v3.23: Wartet der Haken noch auf die Uebertragung? Dann sieht man das -
+  // er ist gesetzt, steht aber noch nicht in der Datenbank.
+  b.classList.toggle("ze-wartet",!!(z&&z.wartet));
+  b.title=zeHakenTitel(b.dataset.zeNr,z);
  });
  w.querySelectorAll("[data-ze-zeile]").forEach(z=>{
   const knoepfe=[...z.querySelectorAll("[data-ze-nr]")];
@@ -148,14 +153,47 @@ function zeMarkierungAuffrischen(root){
  });
 }
 
-// Ein Stueck abhaken oder den Haken zurueckziehen. Geschrieben wird als
+// v3.23: WER hat abgehakt und WANN. Steht seit v3.15 in der Datenbank
+// (created_by/updated_by/updated_at), war aber nirgends zu sehen - bei zwei
+// Leuten in der Werkstatt ist genau das die Frage. Aufgeloest wird ueber das
+// bereits geladene profileName() (js/01), keine zusaetzliche Abfrage.
+function zeHakenTitel(nr,z){
+ if(!z||!z.erledigt)return "Stück "+nr+" als zugeschnitten abhaken";
+ if(z.wartet)return "Stück "+nr+" abgehakt – wartet noch auf die Übertragung";
+ const wer=(z.updated_by||z.created_by)&&typeof profileName==="function"
+   ?(profileName(z.updated_by||z.created_by)||"Unbekannter Benutzer"):"";
+ const wann=zeZeitKurz(z.updated_at||z.created_at);
+ const teile=[wer,wann].filter(Boolean).join(", ");
+ return "Stück "+nr+" zugeschnitten"+(teile?" – "+teile:"")+" · nochmals tippen nimmt den Haken zurück";
+}
+function zeZeitKurz(iso){
+ if(!iso)return "";
+ const d=new Date(iso);
+ if(isNaN(d.getTime()))return "";
+ return d.toLocaleString("de-CH",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+}
+
+// Ein Stueck abhaken oder den Haken zurueckziehen.// Ein Stueck abhaken oder den Haken zurueckziehen. Geschrieben wird als
 // upsert auf (measurement_id, stueck_nr) - company_id kommt aus dem
 // Default my_company_id(), created_by/updated_by aus dem Trigger.
 async function zeSetzen(mid,nrListe,an,masse){
- if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Das Abhaken"))return {offline:true};
  const zeilen=(nrListe||[]).map(nr=>Object.assign({measurement_id:Number(mid),
    stueck_nr:Number(nr),erledigt:!!an},(masse&&masse[nr])||{}));
  if(!zeilen.length)return {fehler:null,anzahl:0};
+ // v3.23: Ohne Verbindung wird nicht mehr abgesagt. Eine Werkstatt liegt oft
+ // im Untergeschoss - genau dort wurde das Abhaken gebraucht und ging nicht.
+ // Der Haken wandert in die Warteschlange (js/43) und wird uebertragen,
+ // sobald wieder Netz da ist. Beim Senden prueft wsHakenPasst(), ob die
+ // Positionsnummer noch dasselbe Blech meint; passt sie nicht, wird NICHTS
+ // geschrieben und die Person entscheidet. Genau dafuer liegt der Beleg
+ // (Laenge/Breite/Merkmal) seit v3.15 an jedem Haken.
+ if(typeof wsIstOffline==="function"&&wsIstOffline()&&typeof wsEinreihen==="function"){
+  const w=await zeEinreihen(mid,zeilen);
+  if(w.ok)return {fehler:null,anzahl:zeilen.length,wartet:true};
+  // Kein Weg in die Warteschlange (IndexedDB gesperrt, keine Firma) - dann
+  // die alte, klare Absage statt eines stillen Fehlschlags.
+  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Das Abhaken"))return {offline:true};
+ }
  const {data,error}=await sb.from("zuschnitt_erledigt")
   .upsert(zeilen,{onConflict:"measurement_id,stueck_nr"}).select();
  if(error){console.error("zuschnitt_erledigt schreiben",error);return {fehler:error.message}}
@@ -173,7 +211,55 @@ async function zeSetzen(mid,nrListe,an,masse){
  return {fehler:null,anzahl:data.length};
 }
 
-// v3.22: "Jetzt einschalten" am Hinweis. Laeuft ueber pmSchnellEin() und
+// Nach dem Uebertragen: die wartenden Haken sind echte Zeilen geworden.
+// Zwischenspeicher leeren und frisch holen, statt den Stand zu erraten.
+async function zeNachUebertragung(){
+ zeCache=new Map(); zeGeladen=new Set();
+ if(typeof zeNachziehen==="function")await zeNachziehen();
+}
+
+// Einen oder mehrere Haken in die Warteschlange legen.// Einen oder mehrere Haken in die Warteschlange legen. Ein Schluessel je
+// Stueck - zweimal tippen darf keinen zweiten Eintrag ergeben, sonst stuenden
+// beim Uebertragen zwei widersprechende Haken fuer dasselbe Blech.
+async function zeEinreihen(mid,zeilen){
+ const m=zeMassaufnahme(mid);
+ const titel=zeTitel(m);
+ let ok=0;
+ for(const z of zeilen){
+  const r=await wsEinreihen({
+   tabelle:"zuschnitt_erledigt",
+   art:"upsert",
+   schluessel:`zuschnitt_erledigt:${z.measurement_id}:${z.stueck_nr}`,
+   payload:z,
+   titel:`Stück ${z.stueck_nr}${z.erledigt?"":" zurückgenommen"}${titel?" – "+titel:""}`
+  });
+  if(r&&r.ok)ok++;
+ }
+ if(!ok)return {ok:false};
+ // Der Haken erscheint sofort - sonst sieht es aus, als haette der Tipp
+ // nichts bewirkt. Er ist als wartend gekennzeichnet, damit niemand glaubt,
+ // er stuende schon in der Datenbank.
+ const karte=zeCache.get(Number(mid))||new Map();
+ zeilen.forEach(z=>karte.set(Number(z.stueck_nr),Object.assign({},z,{wartet:true})));
+ zeCache.set(Number(mid),karte);
+ zeGeladen.add(Number(mid));
+ if(typeof werkOffenKarte!=="undefined")werkOffenKarte.add(Number(mid));
+ return {ok:true};
+}
+// Die Massaufnahme zu einer Id - aus dem, was gerade geladen ist. Nur fuer
+// die Beschriftung des Warteschlangen-Eintrags, nichts Fachliches.
+function zeMassaufnahme(mid){
+ const suchen=l=>Array.isArray(l)?l.find(x=>x&&Number(x.id)===Number(mid)):null;
+ return suchen(typeof projectMeasurementsCache!=="undefined"?projectMeasurementsCache:null)
+   ||suchen(typeof werkZeilen!=="undefined"?werkZeilen:null)||null;
+}
+function zeTitel(m){
+ if(!m)return "";
+ const art=(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[m.type])||m.type||"";
+ return [art,(m.title||"").trim()].filter(Boolean).join(" · ");
+}
+
+// v3.22: "Jetzt einschalten" am Hinweis.// v3.22: "Jetzt einschalten" am Hinweis. Laeuft ueber pmSchnellEin() und
 // damit ueber set_projektmodule() - kein zweiter Schreibweg, und die
 // Datenbank prueft den Administrator selbst. Danach frischt pmNachAenderung()
 // alle Ansichten auf, die vom Schalter abhaengen.

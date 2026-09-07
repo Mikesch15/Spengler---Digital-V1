@@ -21341,3 +21341,210 @@ Modulprüfung steht jetzt **vor** beiden Zweigen.
 - Die Massaufnahme 54 (Testfirma) hat gar keinen gespeicherten Rollenplan
   (`data` ohne `rollen`) – dort gibt es folglich auch nichts abzuhaken. Sie
   wurde zuletzt am 03.09. gespeichert; ein erneutes Speichern legt den Plan an.
+
+## 128. WERKSTATT: RÜSTLISTE DRUCKEN, OHNE NETZ ABHAKEN — VERSION 3.23
+
+Umsetzung der sechs Werkstatt-Ideen (A1–A6) aus der Rückfrage nach v3.22,
+dazu die Ergänzung des Betriebs: *„bei punkt 2 rüstliste drucken, wäre aber
+auch sinnvoll es nur für eine massaufnahme drucken zu können"*. **Keine
+Schemaänderung, keine Migration, keine RLS-Änderung, keine neue
+Datenbankfunktion, keine Fachrechnung verändert.**
+
+### 128.1 A2 · Die Rüstliste (js/58-ruestliste.js)
+
+Nicht jede Werkstatt hat ein Tablet an der Abkantbank. **🖨️ Rüstliste** im
+Projektkopf erzeugt ein PDF mit allen Zuschnitten des Projekts – je
+Massaufnahme ein Abschnitt, je Stück eine Zeile mit **Kästchen zum Abhaken
+von Hand** und einer Spalte für Bemerkungen. Das kleine **🖨️** an einer
+Karte druckt **nur diese eine** Massaufnahme.
+
+**Kein zweiter Druckweg.** Kopf (`pdfKopfHtml`), Stylesheet
+(`PDF_LAYOUT_CSS`), Fusszeile (`pdfFooterHtml`) und das Öffnen des Fensters
+(`pdfDruckVorbereiten`, js/35) sind dieselben wie bei jedem anderen PDF.
+Gerechnet wird **nichts**: `rlPlan()` nimmt `pmatPlanRoh()` (js/48) und
+`zuPlanAusGespeichert()` (js/33) – dieselben zwei Funktionen, die auch die
+Werkstattansicht benutzt. Der Listenauswahl-Dialog entfällt bewusst
+(`{listen:"alle"}`): auf einer Rüstliste gibt es nichts zu wählen.
+
+Was in der App schon abgehakt ist, druckt **bereits angekreuzt**; unter jedem
+Abschnitt steht der Stand. Ist das Modul „Zuschnitt und Abhaken" aus, sagt das
+Dokument das ausdrücklich, statt einen falschen Stand zu behaupten.
+
+### 128.2 A1 · Abhaken ohne Verbindung
+
+Bis v3.22 hat `zeSetzen()` (js/56) ohne Netz **abgesagt**. Eine Werkstatt
+liegt oft im Untergeschoss – genau dort wurde das Abhaken gebraucht.
+
+Der Haken wandert jetzt in die bestehende Warteschlange (js/43), erscheint
+sofort gestrichelt mit Sanduhr (`.ze-wartet`) und wird übertragen, sobald
+wieder Netz da ist. **Keine zweite Warteschlange**: `zuschnitt_erledigt` ist
+in `WS_NAMEN` aufgenommen, ein Eintrag je Stück mit dem Schlüssel
+`zuschnitt_erledigt:<mid>:<nr>` – zweimal tippen ergibt deshalb **einen**
+Eintrag mit dem zuletzt gewählten Zustand, nicht zwei.
+
+**Der Beleg macht die Prüfung erst möglich.** Seit v3.15 liegen Länge, Breite
+und Merkmal an jedem Haken. `wsHakenPasst()` vergleicht sie beim Senden gegen
+den **jetzigen** Plan der Massaufnahme:
+
+| Fall | Ergebnis |
+|---|---|
+| Zuschnitt unverändert | wird übertragen, verlässt die Warteschlange |
+| Stück misst jetzt anders | **nichts** wird geschrieben, Konflikt mit dem Grund („Stück 1 hat jetzt ein anderes Mass") |
+| Stück gibt es nicht mehr | ebenso, mit eigenem Grund |
+| „Meine Fassung nehmen" | schreibt ihn dann doch |
+
+Ohne den Beleg wäre nur eines von beidem möglich: alles blind überschreiben
+oder alles zum Konflikt machen. Genau das zeigt die Gegenprobe (128.5).
+
+Lässt sich IndexedDB nicht öffnen (privates Fenster), bleibt es bei der alten,
+klaren Absage aus js/27 – **kein stiller Fehlschlag**.
+
+### 128.3 A3 bis A6 · Vier Kleinigkeiten
+
+- **A3 · „Rüsten bestätigen" unter der fertigen Liste.** Sind alle Stücke
+  abgehakt, steht dort der nächste Schritt mit Knopf – dort, wo der Blick
+  ohnehin ist. Der Knopf trägt `data-aufgabe="ruesten"`, geht also durch
+  **denselben** Handler wie die Aufgabenzentrale; es gibt keinen zweiten
+  Bestätigungsweg. Wer nicht eingeteilt ist, sieht denselben Satz **ohne**
+  Knopf, dafür mit dem Namen der zuständigen Person. Bei verfallener Freigabe
+  (v3.06) erscheint die Leiste gar nicht.
+- **A4 · Wer hat abgehakt.** `zeHakenTitel()` nennt Person und Zeitpunkt aus
+  `updated_by`/`updated_at` – Daten, die seit v3.15 ohnehin gespeichert sind.
+  Keine neue Spalte.
+- **A5 · Der Verlauf bündelt.** Zwölf abgehakte Stücke ergaben zwölf Zeilen.
+  `verlaufBuendeln()` (js/23) fasst zusammen: **dieselbe Person, dieselbe
+  Massaufnahme, dieselbe Aktion, aufeinanderfolgend und höchstens 30 Minuten
+  vom jüngsten Eintrag des Bündels** – „12 Stücke zugeschnitten · 08:12 –
+  08:19". **Reine Anzeige**: in der Datenbank steht weiterhin jeder Haken
+  einzeln, `write_audit_log()` ist unverändert.
+- **A6 · Der Filter bleibt gemerkt.** Den Filter „Nur meine" gab es schon –
+  er fing aber bei jedem Öffnen wieder bei „Alle" an. Er liegt jetzt je Gerät
+  im `localStorage`, wie die übrigen Ansichtssachen (v3.07).
+
+### 128.4 Zwei Schwächen im Prüfstand, beide vor der Freigabe geschlossen
+
+- **Die Prüfung „es verwendet den gemeinsamen Druckweg" war eine
+  Zeichenketten-Suche im Quelltext.** Die Gegenprobe (eigenes
+  `window.open()` statt `pdfDruckVorbereiten`) blieb **grün** – der Name
+  stand ja noch im Kommentar. Ersetzt durch eine **Messung**: die beiden
+  Funktionen werden im Browser umhüllt und gezählt; gedruckt wird genau
+  einmal über den gemeinsamen Weg.
+- **Der Beleg wurde nur auf Vorhandensein geprüft.** Die Gegenprobe „Beleg
+  fehlt" ergab einen einzigen Fehlschlag. Ergänzt um zwei
+  Ende-zu-Ende-Prüfungen über den echten Finger-Weg: offline abhaken →
+  Zuschnitt ändern → senden muss ein Konflikt sein; und die Gegenrichtung,
+  offline abhaken → Zuschnitt **unverändert** → muss glatt durchgehen. Erst
+  damit fällt auf, dass ohne Beleg **jede** ehrliche Übertragung fälschlich
+  zum Konflikt würde.
+
+### 128.5 Getestet
+
+- **`pruefstaende/pruefstand-ruestliste-offline-v3-23.js` – 71/71**, echtes
+  Chromium gegen die echte `index.html`: die Rüstliste (gemeinsamer Weg
+  gemessen, keine zweite Rechnung, ein Projektknopf und einer je Karte, Kopf
+  mit „RÜSTLISTE"/Adresse/Firma, beide Massaufnahmen auf dem Projektblatt,
+  vier leere Kästchen, „1'200 × 250 mm", das Einzelblatt enthält nur die eine
+  mit drei Kästchen, ein schon abgehaktes Stück druckt angekreuzt, ohne Modul
+  eine ausdrückliche Warnung), das Abhaken ohne Netz (ein Eintrag, `upsert`,
+  **null** Datenbankaufrufe, Beleg dabei, **nie** eine `company_id`, sofort
+  sichtbar als wartend, zweimal tippen ergibt einen Eintrag), die
+  Beleg-Prüfung samt beider Ende-zu-Ende-Richtungen, die Fertig-Leiste, das
+  Wer/Wann, die Bündelung, der gemerkte Filter, vier Bildschirmbreiten.
+- **Zehn Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | `zeSetzen` sagt offline wieder ab (v3.22) | 58/67 |
+  | `wsHakenPasst` prüft den Beleg nicht | 61/67 |
+  | der Beleg reist nicht mit | 68/70 |
+  | keine Leiste unter der fertigen Liste | 64/70 |
+  | der Haken sagt nicht mehr wer/wann | 66/70 |
+  | der Verlauf bündelt nicht | 66/70 |
+  | der Filter wird nicht gemerkt | 68/70 |
+  | die einzelne Rüstliste druckt das ganze Projekt | 65/70 |
+  | das Kästchen ist immer leer | 69/70 |
+  | eigener Druckweg statt `pdfDruckVorbereiten` | 70/71 |
+
+  Eine davon liess den Prüfstand zuerst **abstürzen** statt fehlschlagen –
+  ein abgebrochener Lauf sieht aus wie „keine Fehler" (§78); die Stelle ist
+  abgesichert, danach biss sie.
+- **Volle Regression grün** – alle **48** Prüfstände im Repo, rund 4900
+  bestandene Prüfungen, **0** Fehlschläge (`hilfe-v3-03` lief in der Serie
+  noch vor dem Bau des PDFs und ist danach mit 68/68 bestätigt).
+  `excel-import-v3-04` lief diesmal durch (11/11) – die CDN-Sperre aus §121.6
+  war offenbar vorübergehend.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.22-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, §100.6) – **DOM, Text, Höhe und Bild byteidentisch**
+  (DOM `42fb3c56f4ab5649`, 6827 Zeichen; Text `303e1b04b7f92139`; Bild
+  `d01c3dafdbe0920b`, 54 556 Bytes; Höhe 731 px), bestätigt durch einen
+  Kontrolllauf desselben Codes. `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 60 `js/*.js`, `sw.js`, alle 48 Prüfstände und die
+  Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung in `index.html`
+  ausgeglichen (Tiefe 0, Minimum 0); keine doppelten Element-IDs; alle 60
+  js-Dateien in `index.html` **und** in der Service-Worker-Liste; kein
+  `data-hilfe` ohne Text; Version 3.23 in `index.html`, `sw.js`,
+  `js/41-hilfe.js` und `anleitung/README.md` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 128.6 Anleitung
+
+Nach Regel §108.1 mitgeführt: der Werkstatt-Abschnitt bekommt „Wenn alles
+geschnitten ist", „Wer hat was abgehakt", „Abhaken ohne Verbindung", „Die
+Rüstliste zum Ausdrucken" (mit dem neuen Bild `46-ruestliste`) und „Der
+Filter bleibt gemerkt"; der Verlauf-Abschnitt die Bündelungsregel samt dem
+Hinweis, dass in der Datenbank nichts verloren geht; die Offline-Tabelle die
+Zeile „Zuschnitte in der Werkstatt abhaken".
+
+`schuss.js` erzeugt das neue Bild aus dem **echten** Ausdruck: `window.open`
+wird abgefangen, das erzeugte Dokument in eine frische Seite gelegt und
+fotografiert. Alle 52 Bilder neu erzeugt, PDF v3.23 mit **66 Seiten** (vorher
+64), keine leere. Die fünf Verweise nachgezogen, das alte PDF gelöscht.
+`pruefstand-hilfe-v3-03` (68/68) erzwingt das mechanisch.
+
+Die historischen Angaben „seit Version 3.22" in Kapitel 10 bleiben stehen
+(§126.7).
+
+### 128.7 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/58-ruestliste.js` | **neu** – Rüstliste für Projekt und einzelne Massaufnahme |
+| `js/51-werkstatt.js` | zwei Druckknöpfe, Fertig-Leiste, gemerkter Filter |
+| `js/56-material-zuschnitt.js` | Abhaken ohne Netz, wartender Haken, wer/wann |
+| `js/43-warteschlange.js` | `zuschnitt_erledigt` als erlaubte Tabelle, `wsHakenPasst()`, Art `upsert` |
+| `js/23-verlauf.js` | Bündelung der Zuschnitt-Haken (nur Anzeige) |
+| `css/01-basis.css` | `.werk-fertig*`, wartender Haken |
+| `js/41-hilfe.js` | „Werkstatt" und „Verlauf" nachgezogen, PDF-Verweis |
+| `index.html`, `sw.js` | Script-Tag, Version 3.23, Seitenzahl |
+| `anleitung/*` | Werkstatt und Verlauf, neues Bild, PDF v3.23 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/33-zuschnitt.js`,
+`js/48-projekt-material.js`, `js/49-projekt-zuschnitt.js`,
+`js/50-reservierung.js` sowie sämtliche Fachdateien `js/11`–`js/40`.
+
+### 128.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert.
+- **Ein echter Tag ohne Netz steht weiterhin aus** (§109.11, unverändert) –
+  das Abhaken ohne Verbindung ist gegen die Attrappe geprüft, nicht im
+  Betrieb.
+- Die **Bemerkungsspalte** der Rüstliste ist leer zum Ausfüllen von Hand.
+  Was dort steht, kommt **nicht** in die App zurück – dafür bräuchte es eine
+  Erfassung, und die wäre der Umweg, den die Liste gerade vermeiden soll.
+- Der Verlauf bündelt bisher nur **Zuschnitt-Haken**. Andere Häufungen (etwa
+  eine Sammelreservierung, §118.9) bleiben Zeile für Zeile stehen.
+- Vom Ideenzettel offen und **nicht** Teil dieser Runde: Reststücke wirklich
+  verrechnen, Bestellliste je Lieferant, Mitarbeiterliste zusammenführen,
+  Übersicht für Ausmass und Rapporte, Offerten. Dazu die Punkte, die nur der
+  Betreiber erledigen kann: Schnittfuge eintragen, die acht projektlosen
+  Massaufnahmen zuordnen, die abgeleiteten Reservierungszeilen wegräumen,
+  Leaked-Password-Schutz, eigene Domain.

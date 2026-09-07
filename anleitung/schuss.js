@@ -360,6 +360,35 @@ const liste=[];
  // deshalb die erste Karte genommen, die eine Liste zeigt.
  await schuss("43-werkstatt-abhaken",'#werkstattModal .werk-karte:has(.zu-liste)',
    {warte:600,breite:900});
+ // v3.23: die Ruestliste zum Ausdrucken. Sie entsteht in einem eigenen
+ // Fenster - hier wird window.open abgefangen, das erzeugte Dokument in eine
+ // frische Seite gelegt und fotografiert. Es ist also der echte Ausdruck.
+ const rl=await page.evaluate(async()=>{
+  let raus="";
+  const echt=window.open;
+  window.open=function(){const d={write(h){raus+=h},close(){}};
+    return {document:d,focus(){},print(){},set onload(f){}}};
+  const k=document.querySelector("#werkstattBody [data-werk-druck]");
+  if(k)k.click();
+  await new Promise(r=>setTimeout(r,600));
+  window.open=echt;
+  return raus;
+ }).catch(()=>"");
+ if(rl&&rl.length>400){
+  const seite=await b.newPage({viewport:{width:900,height:900},deviceScaleFactor:2,
+    locale:"de-CH",timezoneId:"Europe/Zurich"});
+  await seite.setContent(rl,{waitUntil:"load"});
+  await seite.waitForTimeout(400);
+  const h=await seite.evaluate(()=>Math.ceil(document.body.scrollHeight));
+  await seite.setViewportSize({width:900,height:Math.min(Math.max(h,500),3000)});
+  await seite.waitForTimeout(200);
+  const datei=path.join(AUS,"46-ruestliste.png");
+  await seite.screenshot({path:datei});
+  await seite.close();
+  liste.push("46-ruestliste");
+  console.log("  46-ruestliste  "+Math.round(fs.statSync(datei).size/1024)+" kB");
+ } else console.log("  FEHLT: 46-ruestliste (kein Ausdruck entstanden)");
+
  await page.evaluate(()=>{$("werkstattModal").hidden=true});
 
  // Freigegebene Fassungen in der Massaufnahme.

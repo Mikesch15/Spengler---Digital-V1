@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.22";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.23";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.22<br>
+  Version 3.23<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -707,6 +707,51 @@ spränge sie unter dem Finger weg.</p>
 <span class="tasten">✂️ Im Formular</span> <strong>direkt</strong> in ihr
 Zuschnitt-Register. <span class="tasten">Zurück</span> führt in die Werkstatt.</p>
 
+<h4>Wenn alles geschnitten ist</h4>
+<p>Sind alle Stücke einer Massaufnahme abgehakt, steht unter der Liste eine Leiste mit
+dem nächsten Schritt: <em>Alle 3 Stück sind geschnitten. Als nächstes: das Rüsten
+bestätigen.</em> Der Knopf <span class="tasten">✓ Rüsten bestätigen</span> steht direkt
+daneben – dort, wo der Blick ohnehin ist.</p>
+<p>Bestätigen darf ihn die eingeteilte Person oder ein Administrator. Wer nicht
+eingeteilt ist, sieht denselben Satz ohne Knopf, dafür mit dem Namen der zuständigen
+Person. Ist die Freigabe verfallen, erscheint die Leiste gar nicht – dann ist zuerst
+die Massaufnahme wieder freizugeben.</p>
+
+<h4>Wer hat was abgehakt</h4>
+<p>Ein Tipp auf eine bereits abgehakte Nummer zeigt es an: <em>Stück 2 · zugeschnitten
+von Bruno Muster am 07.09.2026 08:14 · Tippen nimmt den Haken zurück.</em> So lässt
+sich am nächsten Tag nachvollziehen, wer welches Blech geschnitten hat.</p>
+
+<h4>Abhaken ohne Verbindung</h4>
+<p>Eine Werkstatt liegt oft im Untergeschoss. Das Abhaken geht deshalb <strong>auch
+ohne Verbindung</strong>: der Haken erscheint sofort, gestrichelt und mit einem
+Sanduhr-Zeichen, und wandert in die Warteschlange auf dem Gerät. Übertragen wird er,
+sobald wieder Netz da ist – siehe <em>22 · Ohne Internet</em>.</p>
+<div class="hin">Beim Übertragen prüft die App, ob die Positionsnummer noch
+<strong>dasselbe Blech</strong> meint. Wurde der Zuschnitt in der Zwischenzeit geändert,
+wird <strong>nichts</strong> geschrieben: der Haken bleibt als Konflikt stehen und nennt
+den Grund (<em>Stück 1 hat jetzt ein anderes Mass</em>). Die Person entscheidet dann
+selbst. Möglich ist das, weil an jedem Haken Länge und Breite als Beleg mitreisen.</div>
+
+<h4>Die Rüstliste zum Ausdrucken</h4>
+<figure><img src="bilder/46-ruestliste.png"><figcaption>Die Rüstliste – jedes Stück mit einem Kästchen zum Abhaken von Hand.</figcaption></figure>
+<p>Nicht jede Werkstatt hat ein Tablet an der Abkantbank. <span class="tasten">🖨️
+Rüstliste</span> im Projektkopf erzeugt deshalb ein PDF mit allen Zuschnitten des
+Projekts – je Massaufnahme ein Abschnitt, je Stück eine Zeile mit <strong>Kästchen zum
+Abhaken von Hand</strong> und einer Spalte für Bemerkungen.</p>
+<p>Das kleine <span class="tasten">🖨️</span> an einer Karte druckt nur
+<strong>diese eine Massaufnahme</strong> – praktisch, wenn jemand nur ein Blech
+mitnimmt.</p>
+<div class="hin">Was in der App schon abgehakt ist, druckt <strong>bereits
+angekreuzt</strong>. Unter jedem Abschnitt steht der Stand (<em>2 von 3 bereits
+zugeschnitten</em>). Kopf, Schrift und Fusszeile sind dieselben wie bei jedem anderen
+PDF der App.</div>
+
+<h4>Der Filter bleibt gemerkt</h4>
+<p>Oben stehen vier Filter: <em>Alle</em>, <em>Zu rüsten</em>, <em>Zu montieren</em> und
+<em>Nur meine</em>. Der zuletzt gewählte wird auf dem Gerät gemerkt – wer immer nur
+rüstet, sieht beim nächsten Öffnen wieder seine Liste.</p>
+
 <h4>Material und Reservierungen</h4>
 <p>Ganz unten klappt <span class="tasten">Material und Reservierungen</span> auf, was
 für dieses Projekt gebraucht wird – dieselben Zahlen wie im Projekt selbst, es wird
@@ -876,6 +921,13 @@ Jede Massaufnahme hat zusätzlich ihren eigenen Verlauf.</p>
 <p>Bei einer Änderung steht dabei, <strong>welches Feld</strong> sich wie geändert hat.
 Zwei Filter (Entität und Aktion) lassen sich frei kombinieren. Gezeigt werden die
 letzten 50 Einträge.</p>
+<p>Wer eine Massaufnahme mit zwölf Zuschnitten abhakt, erzeugt zwölf Einträge. Damit
+der Verlauf lesbar bleibt, werden solche <strong>Zuschnitt-Haken zusammengefasst</strong>:
+<em>12 Stücke zugeschnitten · 08:12 – 08:19</em>. Gebündelt wird nur, was wirklich
+zusammengehört – dieselbe Person, dieselbe Massaufnahme, dieselbe Aktion und höchstens
+eine halbe Stunde auseinander.</p>
+<div class="hin">Das ist <strong>nur die Anzeige</strong>. In der Datenbank steht
+weiterhin jeder einzelne Haken mit seinem eigenen Zeitpunkt – es geht nichts verloren.</div>
 <p class="klein">Ein gelöschter Eintrag bleibt im Verlauf stehen – die Historie
 verschwindet nicht mit ihm. Wurde ein Mitarbeiter entfernt, steht dort
 „Unbekannter Benutzer“.</p>
@@ -1000,6 +1052,7 @@ beim nächsten Anmelden oder über den Knopf <em>Jetzt übertragen</em>.</p>
 <tr><td>Massaufnahme, Ausmass und Rapport erfassen – mit Fotos</td><td>Fotos ansehen, PDF mit Fotos</td></tr>
 <tr><td>Feedback schreiben</td><td>Anmelden ohne bestehende Sitzung</td></tr>
 <tr><td>Alle Rechenmodule – Abwicklung, Stückliste, Zuschnitt, Winkel</td><td>Suche über die Datenbank, Verlauf</td></tr>
+<tr><td>Zuschnitte in der Werkstatt abhaken</td><td>Rüsten und Montieren bestätigen</td></tr>
 </table>
 <div class="warn">Solange etwas in der Warteschlange steht, ist es <strong>noch nicht in
 der Datenbank</strong>. Bitte das Gerät nicht zurücksetzen, den Browser-Speicher nicht
@@ -1033,7 +1086,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.22</strong>, Stand 7. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.23</strong>, Stand 7. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

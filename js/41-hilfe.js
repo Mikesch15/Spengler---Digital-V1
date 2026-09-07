@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.22.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.23.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -211,7 +211,25 @@ im Streifen des Projekts und ganz oben für alle Projekte zusammen.
 Ist an einer Massaufnahme <b>alles geschnitten</b>, klappt ihre Liste zu und
 die Karte wird grün – was noch offen ist, steht damit vorne. „▸ Zuschnittliste
 zeigen" holt sie zurück. Wer gerade an einer Karte abhakt, behält sie offen,
-auch wenn das letzte Stück sie fertig macht.
+auch wenn das letzte Stück sie fertig macht. Unter der fertigen Liste steht
+dann <b>„✓ Rüsten bestätigen"</b> – der Schritt, der als nächstes ohnehin
+kommt, dort wo man gerade hinschaut. Bestätigt wird nichts von selbst.
+
+<b>Ohne Verbindung</b> lässt sich weiter abhaken. Der Haken wird gestrichelt
+dargestellt und wandert in die Warteschlange; übertragen wird er, sobald
+wieder Netz da ist. Hat sich der Zuschnitt zwischenzeitlich geändert, wird
+<b>nichts</b> geschrieben – der Eintrag bleibt als Konflikt stehen und ist zu
+entscheiden.
+
+Wer auf einem Haken verweilt, sieht, <b>wer ihn gesetzt hat und wann</b>.
+
+<b>„🖨️ Rüstliste"</b> im Projektkopf druckt ein Blatt zum Mitnehmen: alle
+Zuschnitte mit Kästchen zum Abhaken von Hand, bereits geschnittene Stücke
+angekreuzt. Das <b>🖨️</b> an einer Karte druckt dasselbe für nur diese eine
+Massaufnahme.
+
+Der gewählte Filter (Alle, Zu rüsten, Zu montieren, Nur meine) bleibt auf
+diesem Gerät gemerkt.
 
 Wer die ganze Massaufnahme sehen will, kommt mit <b>„✂️ Im Formular"</b> direkt
 in ihr Zuschnitt-Register; „Zurück" führt in die Werkstatt.
@@ -471,6 +489,11 @@ eigenen Verlauf.</p>
 <p>Bei einer Änderung steht dabei, <b>welches Feld</b> sich wie geändert
 hat. Die zwei Filterreihen (Entität und Aktion) lassen sich frei
 kombinieren.</p>
+<p>Abgehakte <b>Zuschnittstücke</b> werden in der Anzeige zusammengefasst:
+statt 41 gleicher Zeilen steht „41 Stücke zugeschnitten" mit der Zeitspanne.
+Gebündelt wird nur, was von derselben Person, an derselben Massaufnahme und
+innerhalb einer halben Stunde passiert ist. In der Datenbank steht weiterhin
+jede einzelne Zeile – zusammengefasst wird nur, was man liest.</p>
 <p>Ein gelöschter Eintrag bleibt im Verlauf stehen. Wurde ein Mitarbeiter
 entfernt, steht dort "Unbekannter Benutzer". Gezeigt werden die letzten
 50 Einträge.</p>`},

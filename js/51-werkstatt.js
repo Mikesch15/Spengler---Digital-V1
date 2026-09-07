@@ -28,6 +28,21 @@
 
 const WERK_STATUS=["freigegeben","zu_ruesten","geruestet","zu_montieren"];
 const WERK_LIMIT=300;
+// v3.23: Der gewaehlte Filter wird je Geraet gemerkt. Wer in der Werkstatt
+// immer nur die eigenen Auftraege sieht, soll ihn nicht bei jedem Oeffnen neu
+// setzen muessen. Reine Ansichtssache - wie "Aufgaben auf dem Startbildschirm"
+// (v3.07), kein Firmendatum.
+const WERK_FILTER_SPEICHER="sd_werkFilter";
+const WERK_FILTER_ERLAUBT=["alle","ruesten","montieren","meine"];
+function werkFilterGemerkt(){
+ try{
+  const v=localStorage.getItem(WERK_FILTER_SPEICHER);
+  return WERK_FILTER_ERLAUBT.indexOf(v)>=0?v:"alle";
+ }catch(e){ return "alle" }
+}
+function werkFilterMerken(v){
+ try{ localStorage.setItem(WERK_FILTER_SPEICHER,v) }catch(e){}
+}
 let werkZeilen=[];        // leichte Liste, ohne data
 let werkReservierungen=[];
 // v3.09 Auftrag Abschnitt 15: welche freigegebene Fassung liegt der Zeile
@@ -35,7 +50,7 @@ let werkReservierungen=[];
 let werkFassungen=[];
 let werkOffen=null;       // aufgeklapptes Projekt
 let werkGrundlage=null;   // {projectId, aufnahmen:[...]}
-let werkFilter="alle";
+let werkFilter=werkFilterGemerkt();
 // v3.21: Eine fertig geschnittene Karte klappt ihre Liste zu - sonst waere
 // die Werkstatt bei vielen erledigten Massaufnahmen unnoetig lang. Wer sie
 // wieder aufklappt, steht hier drin; es geht nichts verloren.
@@ -330,6 +345,7 @@ function werkAufnahmeHtml(a,jetztK){
    </div>
    <div class="werk-karte-akt">
     ${aktion}
+    ${plan?`<button type="button" class="gray" data-werk-druck-mess="${a.id}" title="Rüstliste dieser Massaufnahme drucken">🖨️</button>`:""}
     <button type="button" class="gray" data-werk-mess="${a.id}"${plan?' data-werk-zu="1"':""}>${plan?"✂️ Im Formular":"Öffnen"}</button>
    </div>
   </div>
@@ -337,7 +353,34 @@ function werkAufnahmeHtml(a,jetztK){
   ${plan?(stand.fertig&&!werkOffenKarte.has(a.id)
     ? `<button type="button" class="werk-zu-auf" data-werk-karte="${a.id}">▸ Zuschnittliste zeigen (alles geschnitten)</button>`
     : (typeof zuListeHtml==="function"?zuListeHtml(plan):"")):""}
+  ${werkFertigLeisteHtml(a,plan,stand,verfallen)}
  </div>`;
+}
+
+// v3.23: Alles geschnitten - und der naechste Schritt ist genau dieser eine.
+// Bis v3.22 stand "Ruesten bestaetigen" klein oben in der Kopfzeile, zwischen
+// zwei anderen Knoepfen. Wer gerade das letzte Stueck abgehakt hat, soll den
+// Schritt dort finden, wo er hinschaut: unter der fertigen Liste.
+// KEIN Automatismus - gemeldet wird nur, was jemand ausdruecklich bestaetigt,
+// und geschrieben wird ueber denselben Weg wie in der Kopfzeile
+// (data-aufgabe -> aufgabeAusfuehren in js/45).
+function werkFertigLeisteHtml(a,plan,stand,verfallen){
+ if(!plan||verfallen||!stand||!stand.fertig)return "";
+ if(a.workflow_status!=="zu_ruesten")return "";
+ const darf=(a.ruester_id===werkIch())||(typeof isAdmin==="function"&&isAdmin());
+ const satz=`Alle ${stand.gesamt} Stück sind geschnitten.`;
+ if(!darf)return `<div class="werk-fertig werk-fertig-still">✓ ${esc(satz)}
+  Bestätigen kann das ${esc(a.ruester_id&&typeof profileName==="function"
+    ?profileName(a.ruester_id):"der eingeteilte Rüster")}.</div>`;
+ return `<div class="werk-fertig">
+  <span class="werk-fertig-satz">✓ ${esc(satz)} Als nächstes: das Rüsten bestätigen.</span>
+  <button type="button" class="blue werk-fertig-knopf" data-aufgabe="ruesten" data-aufgabe-id="${a.id}">✓ Rüsten bestätigen</button>
+ </div>`;
+}
+// Hat dieses Projekt ueberhaupt etwas zu ruesten? Nur dann gibt es eine
+// Ruestliste zum Drucken - ein leeres Blatt waere kein Blatt.
+function werkHatZuschnitt(g){
+ return ((g&&g.aufnahmen)||[]).some(a=>!!werkZuschnittPlan(a));
 }
 
 // v3.20: Der gespeicherte Zuschnittplan EINER Massaufnahme, in der Form, die
@@ -521,6 +564,7 @@ function renderWerkstatt(){
      ${g.unter?`<div class="small" style="color:var(--muted)">${esc(g.unter)}</div>`:""}
      ${zahl?`<div class="small">${esc(zahl)}</div>`:""}</div>
     <div class="werk-kopf-akt">
+     ${werkHatZuschnitt(g)?`<button type="button" class="gray" data-werk-druck="${g.projectId||0}">🖨️ Rüstliste</button>`:""}
      ${g.projectId?`<button type="button" class="gray" data-werk-projekt="${g.projectId}">📂 Projekt</button>`:""}
     </div>
    </div>
@@ -556,7 +600,7 @@ async function werkstattOeffnen(){
  // Gleiches Muster wie auOeffnen() in js/46.
  const m=$("werkstattModal");
  if(m)m.hidden=false;
- werkOffen=null; werkGrundlage=null; werkFilter="alle";
+ werkOffen=null; werkGrundlage=null; werkFilter=werkFilterGemerkt();
  // Jede neue Sitzung an der Abkantbank faengt frisch an: fertige Karten sind
  // wieder zugeklappt, bis jemand sie ausdruecklich oeffnet.
  werkOffenKarte.clear();
@@ -591,11 +635,33 @@ document.addEventListener("click",async e=>{
  if(start){werkstattOeffnen();return}
 
  const filter=e.target.closest("[data-werk-filter]");
- if(filter){werkFilter=filter.dataset.werkFilter;renderWerkstatt();return}
+ if(filter){werkFilter=filter.dataset.werkFilter;werkFilterMerken(werkFilter);renderWerkstatt();return}
 
  // Eine fertige Karte wieder aufklappen (v3.21).
  const karte=e.target.closest("[data-werk-karte]");
  if(karte){werkOffenKarte.add(Number(karte.dataset.werkKarte));renderWerkstatt();return}
+
+ // v3.23: Ruestliste drucken - Projekt oder einzelne Massaufnahme.
+ // Gedruckt wird ueber js/58, das dafuer denselben Kopf, dasselbe
+ // Stylesheet und denselben Fensterweg verwendet wie jedes andere PDF.
+ const druck=e.target.closest("[data-werk-druck]");
+ if(druck){
+  const id=Number(druck.dataset.werkDruck)||null;
+  const g=werkGruppen().find(x=>(x.projectId||0)===(id||0));
+  if(!g||typeof ruestlisteProjekt!=="function")return;
+  druck.disabled=true;
+  try{ await ruestlisteProjekt(id,g.aufnahmen) }finally{ druck.disabled=false }
+  return;
+ }
+ const druckM=e.target.closest("[data-werk-druck-mess]");
+ if(druckM){
+  const id=Number(druckM.dataset.werkDruckMess);
+  const m=(werkZeilen||[]).find(x=>Number(x.id)===id);
+  if(!m||typeof ruestlisteMassaufnahme!=="function")return;
+  druckM.disabled=true;
+  try{ await ruestlisteMassaufnahme(m) }finally{ druckM.disabled=false }
+  return;
+ }
 
  const auf=e.target.closest("[data-werk-auf]");
  if(auf){

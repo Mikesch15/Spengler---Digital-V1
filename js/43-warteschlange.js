@@ -115,6 +115,11 @@ async function wsAlle(){
 // getAll(). Landete die Massaufnahme vorne, meldete das Senden fuer sie
 // "wartet" und sie ging erst eine Runde spaeter durch. Kein Datenverlust,
 // aber fuer den Benutzer ein unerklaerliches "1 wartet noch".
+// Die erste temporaere ID, auf die ein Eintrag zeigt (oder null).
+function wsErsteTmp(payload){
+ const k=Object.keys(payload||{}).find(x=>wsIstTmp(payload[x]));
+ return k?String(payload[k]):null;
+}
 function wsSortieren(liste){
  const nach=liste.slice().sort((a,b)=>String(a.erstellt).localeCompare(String(b.erstellt)));
  const erg=[], offen=nach.slice(), fertig=new Set();
@@ -123,7 +128,9 @@ function wsSortieren(liste){
   let bewegt=false;
   for(let i=0;i<offen.length;){
    const e=offen[i];
-   const braucht=(e.payload && wsIstTmp(e.payload.project_id))?String(e.payload.project_id):null;
+   // v3.23: JEDE temporaere ID im Payload zaehlt, nicht nur project_id - ein
+   // abgehaktes Stueck haengt an measurement_id.
+   const braucht=wsErsteTmp(e.payload);
    if(!braucht || fertig.has(braucht)){
     erg.push(e);
     if(e.tmpId)fertig.add(String(e.tmpId));
@@ -159,7 +166,7 @@ function wsIstTmp(id){ return typeof id==="string"&&id.indexOf("tmp-")===0 }
 // und DEFAULT my_company_id()), aber eine Warteschlange soll erst gar nicht
 // in Tabellen schreiben koennen, fuer die sie nie gedacht war.
 const WS_NAMEN={projects:"Projekt",measurements:"Massaufnahme",ausmass:"Ausmass",
- reports:"Regierapport",feedback:"Feedback"};
+ reports:"Regierapport",feedback:"Feedback",zuschnitt_erledigt:"Zuschnitt abgehakt"};
 function wsName(t){ return WS_NAMEN[t]||t }
 function wsTabelleErlaubt(t){ return Object.prototype.hasOwnProperty.call(WS_NAMEN,String(t)) }
 
@@ -186,7 +193,8 @@ async function wsEinreihen(o){
   schluessel,
   firma,
   tabelle:o.tabelle,
-  art:o.zielId?"update":"insert",
+  // v3.23: "upsert" fuer das Abhaken - der Aufrufer sagt es ausdruecklich.
+  art:o.art||(o.zielId?"update":"insert"),
   zielId:o.zielId||null,
   // Die temporaere ID bleibt beim Ersetzen dieselbe - sonst zeigten bereits
   // eingereihte Massaufnahmen auf ein Projekt, das es nicht mehr gibt.
@@ -256,6 +264,31 @@ function wsOrdner(tabelle,payload,id){
  return null;
 }
 
+// Passt der Haken noch zum jetzigen Zuschnittplan? Verglichen wird der
+// mitgespeicherte Beleg (Laenge/Breite) mit dem Stueck, das die Nummer HEUTE
+// bezeichnet. Ohne Pruefmoeglichkeit (pmatStuecke fehlt) wird nicht blockiert -
+// dann ist der Haken so gut wie einer, der online gesetzt worden waere.
+async function wsHakenPasst(payload,entschieden){
+ const {data,error}=await sb.from("measurements").select("id,data")
+   .eq("id",payload.measurement_id).maybeSingle();
+ if(error)return {ok:false,fehler:error.message};
+ if(!data)return {ok:false,fehler:"Die Massaufnahme existiert nicht mehr."};
+ if(entschieden)return {ok:true};
+ if(typeof pmatStuecke!=="function")return {ok:true};
+ const stuecke=pmatStuecke(data);
+ if(!stuecke.length)return {ok:true};   // kein Plan mehr - nicht ueberdeuten
+ const s=stuecke.find(x=>Number(x.nr)===Number(payload.stueck_nr));
+ if(!s)return {ok:false,text:"Stück "+payload.stueck_nr
+   +" gibt es im jetzigen Zuschnitt nicht mehr. Der Haken wurde nicht gesetzt."};
+ const l=Number(payload.laenge_mm), b=Number(payload.breite_mm);
+ const gleich=(a,c)=>!Number.isFinite(a)||!Number.isFinite(Number(c))||Math.round(a)===Math.round(Number(c));
+ if(!gleich(l,s.laenge)||!gleich(b,s.breite))
+  return {ok:false,text:"Stück "+payload.stueck_nr+" hat jetzt ein anderes Mass ("
+   +Math.round(Number(s.laenge)||0)+" mm statt "+Math.round(l||0)
+   +" mm). Der Zuschnitt wurde nach dem Abhaken geändert."};
+ return {ok:true};
+}
+
 async function wsSendeEinen(e){
  // Auch beim Senden noch einmal - der Eintrag lag zwischenzeitlich auf dem
  // Geraet und koennte veraendert worden sein.
@@ -263,6 +296,24 @@ async function wsSendeEinen(e){
  const payload=wsErsetzeIds(e.payload);
  if(wsHaengtAn(payload))return {status:"wartet"};
  const jetzt=new Date().toISOString();
+
+ // v3.23: Ein abgehaktes Zuschnittstueck. Die Positionsnummer allein reicht
+ // nicht: wurde die Massaufnahme zwischenzeitlich geaendert, kann dieselbe
+ // Nummer inzwischen zu einem anderen Blech gehoeren. Genau dafuer liegt seit
+ // v3.15 der Beleg (Laenge, Breite, Merkmal) an jedem Haken - er wird hier
+ // gegen den jetzigen Plan geprueft. Passt er nicht, wird NICHTS geschrieben:
+ // der Eintrag bleibt als Konflikt stehen und die Person entscheidet.
+ if(e.art==="upsert"){
+  const pruef=await wsHakenPasst(payload,e.konfliktEntschieden);
+  if(pruef.fehler)return {status:"fehler",fehler:pruef.fehler};
+  if(!pruef.ok)return {status:"konflikt",serverStand:null,text:pruef.text};
+  const {data,error}=await sb.from(e.tabelle)
+   .upsert([payload],{onConflict:"measurement_id,stueck_nr"}).select();
+  if(error)return {status:"fehler",fehler:error.message};
+  if(!data||!data.length)
+   return {status:"fehler",fehler:"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"};
+  return {status:"ok",id:data[0].id};
+ }
 
  if(e.art==="update"){
   // Konfliktpruefung: hat jemand anderes den Datensatz zwischenzeitlich
@@ -343,7 +394,7 @@ async function wsSynchronisieren(){
     bericht.hinweis=(bericht.hinweis||[]).concat(r.fehler);
    }
    else if(r.status==="konflikt"){
-    e.konflikt={serverStand:r.serverStand,erkannt:new Date().toISOString()};
+    e.konflikt={serverStand:r.serverStand,text:r.text||null,erkannt:new Date().toISOString()};
     await wsLegen(e); bericht.konflikt++;
    }
    else if(r.status==="wartet"){ bericht.wartet++; }
@@ -358,6 +409,12 @@ async function wsSynchronisieren(){
  // angelegten Projekte und Massaufnahmen sichtbar werden.
  if(bericht.gesendet&&typeof loadAllData==="function"){
   try{ await loadAllData() }catch(e){}
+ }
+ // v3.23: Uebertragene Haken sind jetzt echte Zeilen - der Zwischenspeicher
+ // in js/56 haelt sie noch als "wartet". Er wird geleert und neu geholt,
+ // damit die Anzeige nicht faelschlich "wartet noch" behauptet.
+ if(bericht.gesendet&&typeof zeNachUebertragung==="function"){
+  try{ await zeNachUebertragung() }catch(e){}
  }
  // v3.06: Beim Senden kann eine Freigabe verfallen sein (der Trigger prueft
  // erst jetzt) - die Aufgabenzentrale muss das mitbekommen.
@@ -409,7 +466,8 @@ async function wsListeZeichnen(){
 <div class="ws-kopf"><b>${esc(wsName(e.tabelle))}${e.art==="update"?" (Änderung)":""}</b>
 <span class="ws-zeit">${esc(wsZeitText(e.erstellt))}</span></div>
 <div class="ws-titel">${esc(e.titel||"ohne Bezeichnung")}</div>
-${konf?`<div class="ws-meldung">Jemand anderes hat diesen Datensatz zwischenzeitlich geändert.
+${konf?`<div class="ws-meldung">${esc(e.konflikt.text
+  ||"Jemand anderes hat diesen Datensatz zwischenzeitlich geändert.")}
 Es wurde nichts überschrieben. Bitte entscheiden:</div>
 <div class="ws-knoepfe"><button class="blue" data-ws-nehmen="${esc(e.id)}">Meine Fassung nehmen</button>
 <button class="red" data-ws-weg="${esc(e.id)}">Meine Fassung verwerfen</button></div>`

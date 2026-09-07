@@ -1026,6 +1026,10 @@ button.zu-nr.zu-nr-hak{min-height:34px;min-width:34px;padding:2px 8px;cursor:poi
  border:1.5px solid var(--line);background:var(--card-bg);color:var(--ink)}
 button.zu-nr.zu-nr-hak.ze-ok{border-color:var(--green);background:var(--green);color:#fff}
 button.zu-nr.zu-nr-hak.ze-ok::before{content:"✓ "}
+/* v3.23: gesetzt, aber noch nicht uebertragen - gestrichelt statt voll. */
+button.zu-nr.zu-nr-hak.ze-ok.ze-wartet{background:none;color:var(--green);
+ border-style:dashed}
+button.zu-nr.zu-nr-hak.ze-ok.ze-wartet::before{content:"⧗ "}
 .ze-stand{font-size:11px;color:var(--muted);white-space:nowrap}
 .ze-stand.ze-stand-ok{color:var(--green);font-weight:700}
 button.ze-alle{min-height:30px;padding:2px 8px;font-size:11px;text-transform:none;
@@ -1107,3 +1111,13 @@ button.ze-ein{min-height:34px;padding:4px 12px;font-size:12px;
 .werk-zu-auf{width:100%;text-align:left;background:none;border:1px dashed var(--line);
  border-radius:8px;color:var(--muted);font-size:12px;min-height:38px;padding:6px 8px;
  text-transform:none;letter-spacing:0;cursor:pointer;margin-top:4px}
+/* v3.23 Werkstatt: alles geschnitten - der naechste Schritt gehoert unter die
+   fertige Liste, nicht klein oben in die Kopfzeile. */
+.werk-fertig{margin-top:8px;padding:9px 11px;border-radius:9px;
+ border:1px solid var(--green);background:rgba(46,160,67,.08);
+ display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.werk-fertig-satz{flex:1 1 200px;min-width:0;font-size:12.5px;font-weight:600;
+ color:var(--green);word-break:break-word}
+.werk-fertig-knopf{flex:0 0 auto;width:auto;min-height:42px;padding:8px 14px}
+.werk-fertig-still{color:var(--muted);font-weight:400;border-color:var(--line);
+ background:none;font-size:12px}

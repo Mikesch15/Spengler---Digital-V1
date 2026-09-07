@@ -241,6 +241,7 @@ function verlaufChangesHtml(row){
 // einen verständlichen Text erzeugen (nie rohe JSON-Metadaten, nie
 // versuchen den evtl. gelöschten Datensatz nachzuladen).
 function verlaufEntryText(row){
+ if(row._buendel&&row._buendel.length>1)return verlaufBuendelText(row);
  if(row.description)return esc(row.description);
  const label=VERLAUF_ENTITY_LABELS[row.entity_type]||"Datensatz";
  const aktion=(VERLAUF_ACTION_LABELS[row.action]||row.action).toLowerCase();
@@ -263,11 +264,72 @@ function verlaufEntryHtml(row,withEntityBadge){
 <span class="verlauf-entry-badges">${entityBadge}<span class="verlauf-entry-action">${esc(aktion)}</span></span>
 </div>
 <div class="verlauf-entry-desc">${verlaufEntryText(row)}</div>
-${verlaufChangesHtml(row)}
+${(row._buendel&&row._buendel.length>1)?"":verlaufChangesHtml(row)}
 </div>`;
 }
 
-// Zustand je Container (geladene Zeilen + aktuelle Filter), damit die
+// v3.23: Abgehakte Zuschnittstuecke buendeln.
+// Ein Blech mit 41 Stuecken erzeugt 41 Verlaufseintraege - alle von derselben
+// Person, innerhalb weniger Minuten, alle mit demselben Text. Der Verlauf war
+// danach nicht mehr lesbar.
+//
+// Gebuendelt wird NUR die ANZEIGE. In der Datenbank steht weiterhin eine Zeile
+// je Stueck - das ist richtig, jedes Stueck wurde wirklich abgehakt, und ein
+// spaeterer Bericht darf sich darauf verlassen. Zusammengefasst wird nur, was
+// wirklich zusammengehoert: derselbe Benutzer, dieselbe Massaufnahme,
+// dieselbe Aktion, hoechstens VERLAUF_BUENDEL_MINUTEN auseinander und
+// unmittelbar hintereinander in der Liste. Sobald etwas anderes dazwischen
+// steht, faengt ein neues Buendel an - so kann nichts verdeckt werden.
+const VERLAUF_BUENDEL_MINUTEN=30;
+function verlaufBuendelbar(r){
+ return r&&r.entity_type==="zuschnitt";
+}
+function verlaufBuendeln(rows){
+ const raus=[];
+ (rows||[]).forEach(r=>{
+  const letzte=raus[raus.length-1];
+  const passt=letzte&&letzte._buendel&&verlaufBuendelbar(r)
+   &&letzte.entity_type===r.entity_type
+   &&letzte.action===r.action
+   &&String(letzte.user_id||"")===String(r.user_id||"")
+   &&String(letzte.project_id||"")===String(r.project_id||"")
+   &&letzte._buendelBezug===verlaufBuendelBezug(r)
+   // Verglichen wird gegen den JUENGSTEN Eintrag des Buendels, nicht gegen den
+   // zuletzt hinzugefuegten - sonst koennte sich eine Kette ueber Stunden
+   // ziehen, solange nur jeder einzelne Abstand klein genug ist.
+   &&Math.abs(new Date(letzte.created_at)-new Date(r.created_at))<=VERLAUF_BUENDEL_MINUTEN*60000;
+  if(passt){
+   letzte._buendel.push(r);
+   // Der Eintrag traegt den Zeitpunkt des JUENGSTEN Stuecks (die Liste ist
+   // absteigend sortiert) und die Spanne bis zum aeltesten.
+   letzte._buendelVon=r.created_at;
+   return;
+  }
+  if(!verlaufBuendelbar(r)){raus.push(r);return}
+  raus.push(Object.assign({},r,{_buendel:[r],_buendelVon:r.created_at,
+    _buendelBezug:verlaufBuendelBezug(r)}));
+ });
+ return raus;
+}
+// Woran haengt das Buendel? Bei einem Zuschnitt an der Massaufnahme, damit
+// Stuecke zweier Massaufnahmen nie in einer Zeile landen.
+function verlaufBuendelBezug(r){
+ return String(r.entity_id||"");
+}
+// Der Text eines gebuendelten Eintrags. Genannt werden die Anzahl und die
+// Zeitspanne - beides steht wirklich in den Daten, es wird nichts geglaettet.
+function verlaufBuendelText(row){
+ const n=(row._buendel||[]).length;
+ // Die Liste ist absteigend: row.created_at ist der juengste Eintrag,
+ // _buendelVon der aelteste. Genannt wird die Spanne von alt nach neu.
+ const aeltest=verlaufFormatWann(row._buendelVon);
+ const juengst=verlaufFormatWann(row.created_at);
+ const spanne=(aeltest&&juengst&&aeltest!==juengst)?(aeltest+" – "+juengst):juengst;
+ const was=(row.action==="deleted")?"Haken zurückgenommen":"Stücke zugeschnitten";
+ return esc(n+" "+was+" · "+spanne);
+}
+
+// Zustand je Container (geladene Zeilen + aktuelle Filter), damit die// Zustand je Container (geladene Zeilen + aktuelle Filter), damit die
 // Filter rein clientseitig umschalten - keine erneute Abfrage pro Klick.
 const verlaufState=new WeakMap();
 
@@ -281,7 +343,7 @@ function renderVerlaufFiltered(box){
  if(st.actionFilter==="bild")rows=rows.filter(r=>VERLAUF_BILD_ACTIONS.indexOf(r.action)>=0);
  else if(st.actionFilter!=="alle")rows=rows.filter(r=>r.action===st.actionFilter);
  if(st.entityFilter&&st.entityFilter!=="alle")rows=rows.filter(r=>r.entity_type===st.entityFilter);
- list.innerHTML=rows.length?rows.map(r=>verlaufEntryHtml(r,st.combined)).join(""):'<div class="empty">Keine Einträge für diesen Filter.</div>';
+ list.innerHTML=rows.length?verlaufBuendeln(rows).map(r=>verlaufEntryHtml(r,st.combined)).join(""):'<div class="empty">Keine Einträge für diesen Filter.</div>';
 }
 
 function verlaufFiltersHtml(withEntityFilter){
