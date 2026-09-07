@@ -21200,3 +21200,144 @@ das alte PDF gelöscht. `pruefstand-hilfe-v3-03` erzwingt das mechanisch.
   Betrieb entfernt die abgeleiteten mit dem Knopf aus v3.18.
 - Der Verlauf schreibt **eine Zeile je abgehaktem Stück** (§120.13,
   unverändert).
+
+## 127. DER MODULSCHALTER DARF DAS ABHAKEN NICHT STUMM BLOCKIEREN — VERSION 3.22
+
+Zum dritten Mal gemeldet: *„ich kanm die stücke aber immernoch nicht abhake
+und ich komme nicht direkt zur stückliste/zuschnittliste"*. Diesmal war die
+Ursache **weder ein Anzeigefehler noch ein alter Browser-Vorrat**, sondern eine
+Einstellung – und dass die App ihr Fehlen verschwieg. **Keine Schemaänderung,
+keine Migration, keine RLS-Änderung, keine neue Datenbankfunktion, keine
+Fachrechnung verändert.**
+
+### 127.1 Gemessen, nicht vermutet
+
+Direkt gegen die Produktivdatenbank (nur lesend):
+
+```
+PETER KÜNZI AG · app_settings.projektmodule (updated_at 07.09. 07:02:56)
+  haupt true · material true · werkstatt true · vorlagen true · serien true
+  versionierung true · zuschnitt FALSE · reservierung FALSE
+```
+
+Der Betrieb hat das Untermodul **zuschnitt** heute Morgen ausgeschaltet –
+sichtbar beim Aufräumen der Reservierungsliste, vier Minuten nach dem
+v3.21-Push. Damit gilt in **jeder** Version seit v3.15:
+
+| Stelle | Wirkung mit `zuschnitt:false` |
+|---|---|
+| `zeAktiv()` (js/56) | false |
+| `zuErledigtFuer()` (js/33) | `null` → keine Positionsnummer ist ein Knopf |
+| js/51 Zeile 315 | `plan=null` → **gar keine Liste**, kein Sprungknopf |
+
+Also: nicht abhakbar **und** nicht erreichbar – genau die Meldung, in der
+Massaufnahme, auf der Seite „Material & Zuschnitt" **und** in der Werkstatt.
+
+Dass der Schalter der Grund war, ist auch an den Daten ablesbar: die
+Massaufnahme 87 trägt **11 gesetzte Haken**, alle vom 06.09. zwischen 20:08
+und 20:09 – damals ging es. Seither kein einziger mehr.
+
+### 127.2 Warum der Schalter überhaupt umgelegt wurde
+
+Er hiess **„Projektweiter Zuschnitt"**, und sein Text sagte: „Fasst die
+Zuschnitte des ganzen Projekts zu einem Rollenblech-Plan zusammen." Nach einer
+Zusammenfassung, die man ohne Verlust abschalten kann. Dass daran das
+**Abhaken** hängt, stand nirgends.
+
+Das ist ein Benennungsfehler von mir aus v3.09. Behoben: das Modul heisst jetzt
+**„Zuschnitt und Abhaken"**, und der Text nennt ausdrücklich, dass sich nur
+damit einzelne Zuschnitte abhaken lassen – in der Massaufnahme, auf der Seite
+und in der Werkstatt.
+
+### 127.3 Die Liste hängt nicht mehr am Projektmodul
+
+Der Rollenplan gehört zur **Massaufnahme**: er wird dort gerechnet und
+gespeichert, seit v2.74 und lange bevor es Projektmodule gab. Das Modul
+„zuschnitt" ist laut Abschnitt 114 der **projektweite** Zuschnitt – etwas
+anderes.
+
+Deshalb zeichnet die Werkstatt ihre Zuschnittliste jetzt **immer**
+(`werkZuschnittPlan(a)` ohne `pmAktiv`-Bedingung). Nur das **Abhaken** hängt
+weiter am Modul. Der Sprung „✂️ Im Formular" ins Zuschnitt-Register ist damit
+ebenfalls immer da – das Register existiert ohnehin unabhängig.
+
+### 127.4 Statt stiller Leere: der Grund, mit Schalter daneben
+
+`zeAbhakenGrund()` / `zeAbhakenHinweisHtml()` (js/56) sind **eine** Quelle für
+alle drei Stellen. Angehängt wird der Hinweis genau **einmal**, in
+`zuListeHtml()` (js/33) – dadurch gilt er für Register, Seite und Werkstatt,
+ohne dass eine der Stellen ihn selbst kennt:
+
+```
+🔒 Zum Abhaken der Zuschnitte muss das Modul „Zuschnitt und Abhaken"
+   eingeschaltet sein.            [ Jetzt einschalten ]
+```
+
+Der Knopf erscheint nur für Administratoren und läuft über `pmSchnellEin()`
+(js/47) → `pmSpeichern()` → **`set_projektmodule()`**. **Kein zweiter
+Schreibweg**: dieselbe Datenbankfunktion, die den Administrator serverseitig
+prüft und die Abhängigkeiten normalisiert (`zuschnitt` braucht `material`, das
+wird mitgesetzt). Schlägt sie fehl, wird der alte Stand zurückgestellt.
+
+Beim **projektweiten Sammelplan** (`p.sammel`) schweigt der Hinweis – dort ist
+das Abhaken auch mit eingeschaltetem Modul nicht vorgesehen (Abschnitt 120.4).
+
+### 127.5 Keine falsche Zahl, wo nichts geladen ist
+
+Ohne eingeschaltetes Modul entstehen keine `data-ze-nr`-Knöpfe, also lädt
+`zeNachziehen()` auch keine Haken. „0 von 41 zugeschnitten" wäre dann eine
+**falsche Aussage** – die Massaufnahme 87 hat real 11 Haken. `werkStandText()`
+und `werkJetztText()` nennen deshalb nur die Stückzahl („41 Stück", „✂️ 3 Stück
+zuzuschneiden"), solange nicht abgehakt werden kann.
+
+### 127.6 Ein echter Fehler, den der Prüfstand gefunden hat
+
+Nachdem die Werkstatt `erledigtFuer` unabhängig vom Modul setzte, waren die
+Positionsnummern **trotzdem antippbar** – `zuErledigtFuer()` prüfte das Modul
+nur im Zweig ohne `erledigtFuer`. Ein Tipp hätte in `zeSetzen()` geschrieben.
+Gemessen, nicht gelesen: der Prüfstand meldete `{"knoepfe":4}` statt 0. Die
+Modulprüfung steht jetzt **vor** beiden Zweigen.
+
+### 127.7 Getestet
+
+- **`pruefstand-werkstatt-zuschnitt-v3-20.js` – 57/57** (vorher 47): Abschnitt
+  E ist von „ohne Modul gibt es nichts" auf die neue Eigenschaft umgestellt
+  (Liste ja, Abhaken nein, Grund da, Schalter da, Sprung erreichbar, keine
+  falsche 0), dazu ein neuer Abschnitt E2 für den Schnellschalter (genau **ein**
+  `set_projektmodule`, **kein** direktes Schreiben auf `app_settings`,
+  `zuschnitt` an, `material` bleibt an).
+- **`pruefstand-material-zuschnitt-v3-15.js` – 61/61** (vorher 56): neuer
+  Abschnitt A2 für die Seite.
+- **Sechs Gegenproben**, jede baut einen echten Fehler ein:
+
+  | Gegenprobe | Ergebnis |
+  |---|---|
+  | `zuErledigtFuer` prüft das Modul nicht (127.6) | 56/57 |
+  | kein Hinweis | 50/53 |
+  | Liste hängt wieder am Modul (v3.21) | 48/53 |
+  | Schnellschalter schreibt direkt auf `app_settings` | 53/57 |
+  | Stand behauptet wieder „0 von n" | 56/57 |
+  | Seite lässt den Bereich wieder still weg | 57/61 |
+
+- Volle Regression, Regierapport-Ausdruck byteidentisch, `node --check`,
+  `<div>`-Balance, keine doppelten IDs, Version 3.22 überall gleich – siehe
+  Abschlussbericht.
+- **Kein Schreibzugriff auf die Datenbank** in dieser Runde – gelesen wurden
+  Projektmodule, Massaufnahmen, Haken, Projekte und Profile.
+
+### 127.8 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+- **Der Betrieb kann sofort weiterarbeiten**, ohne auf diese Version zu warten:
+  Einstellungen → Allgemein → Erweiterter Ablauf → **Zuschnitt und Abhaken**
+  einschalten. Die 11 Haken der Massaufnahme 87 sind unverändert gespeichert
+  und danach wieder sichtbar.
+- Das Abhaken bleibt bewusst am Modul (Grundsatz aus 114.1: bei AUS verhält
+  sich die App wie bis 3.08). Wäre dem Betrieb ein Abhaken **ohne** jeden
+  Schalter lieber, ist das eine Produktentscheidung – sie ändert eine Zeile in
+  `zeAbhakenMoeglich()`.
+- Die Massaufnahme 54 (Testfirma) hat gar keinen gespeicherten Rollenplan
+  (`data` ohne `rollen`) – dort gibt es folglich auch nichts abzuhaken. Sie
+  wurde zuletzt am 03.09. gespeichert; ein erneutes Speichern legt den Plan an.

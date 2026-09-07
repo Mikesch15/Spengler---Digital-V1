@@ -89,8 +89,12 @@ function zuGruppen(p){
 // gehoeren zu verschiedenen Aufnahmen, ein Haken waere dort nicht eindeutig.
 function zuErledigtFuer(p){
  if(p&&p.sammel)return null;
+ // v3.22: Das Modul entscheidet IMMER - auch wenn der Aufrufer eine
+ // Massaufnahme nennt. Seit die Werkstatt ihre Liste unabhaengig vom Modul
+ // zeichnet (erledigtFuer ist dort immer gesetzt), waeren die Nummern sonst
+ // antippbar, obwohl das Abhaken ausgeschaltet ist - vom Pruefstand gefunden.
+ if(typeof zeAbhakenMoeglich==="function"&&!zeAbhakenMoeglich())return null;
  if(p&&p.erledigtFuer!==undefined)return p.erledigtFuer;
- if(typeof zeAbhakenMoeglich!=="function"||!zeAbhakenMoeglich())return null;
  return (typeof zeOffeneMassaufnahme==="function")?zeOffeneMassaufnahme():null;
 }
 function zuGruppenZeileHtml(g,einheit,p){
@@ -131,6 +135,22 @@ ${zusatz.length?`<span class="zu-zusatz">${zusatz.join(" · ")}</span>`:""}
 </div>`;
 }
 // Die Liste selbst - Kopf (welche Rolle), Zeilen, Fuss (wie viele Tafeln).
+// v3.22: Warum sind die Positionsnummern hier nicht antippbar? Bis v3.21
+// verschwand das Abhaken kommentarlos, sobald das Untermodul "zuschnitt" aus
+// war. Der Hinweis steht jetzt genau EINMAL - hier, unter der Liste, und gilt
+// damit fuer das Register, die Seite "Material & Zuschnitt" und die Werkstatt.
+// Beim projektweiten Sammelplan (p.sammel) wird bewusst geschwiegen: dort ist
+// das Abhaken auch mit eingeschaltetem Modul nicht vorgesehen (CLAUDE.md 120.4).
+function zuAbhakenHinweis(p){
+ if(p&&p.sammel)return "";
+ if(typeof zeAbhakenHinweisHtml!=="function")return "";
+ // Nur wo ueberhaupt abgehakt werden koennte: die Liste gehoert zu genau
+ // einer Massaufnahme.
+ const eine=(p&&p.erledigtFuer!==undefined&&p.erledigtFuer!==null)
+   ||(typeof zeOffeneMassaufnahme==="function"&&zeOffeneMassaufnahme());
+ if(!eine)return "";
+ return zeAbhakenHinweisHtml();
+}
 function zuListeHtml(p){
  const gruppen=zuGruppen(p);
  if(!gruppen.length)return "";
@@ -150,6 +170,7 @@ function zuListeHtml(p){
 <div class="zu-liste-kopf">${esc(kopf)}</div>
 ${gruppen.map(g=>zuGruppenZeileHtml(g,p.einheit,p)).join("")}
 ${fuss?`<div class="zu-liste-fuss">${esc(fuss)}</div>`:""}
+${zuAbhakenHinweis(p)}
 </div>`;
 }
 function zuKennzahl(label,wert,klein){

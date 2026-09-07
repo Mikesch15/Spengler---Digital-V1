@@ -130,6 +130,30 @@ const seite=(page)=>page.evaluate(()=>{
  await page.evaluate(()=>openMaterialZuschnitt(7));
  p(await page.evaluate(()=>$("matZuModal").hidden),"und die Seite laesst sich nicht oeffnen");
 
+ // ---- A2 · Nur das Zuschnittmodul aus -------------------------------------
+ // v3.22: Bis v3.21 verschwand der ganze Zuschnittteil kommentarlos, sobald
+ // das Untermodul aus war - obwohl es sehr wohl etwas zuzuschneiden gibt.
+ // Jetzt steht dort der Grund und, fuer Administratoren, der Schalter.
+ console.log("\nA2 · Nur Zuschnitt aus: Grund statt stiller Leere");
+ await anmelden(page,{haupt:true,material:true,reservierung:true});
+ await page.evaluate(()=>openMaterialZuschnitt(7));
+ await page.waitForTimeout(400);
+ const a2=await page.evaluate(()=>{
+  const b=$("matZuBody");
+  const h=b.querySelector(".ze-aus-hinweis");
+  return {offen:!$("matZuModal").hidden,
+    text:b.innerText,
+    hinweis:h?h.innerText.trim():"",
+    einKnopf:!!b.querySelector("[data-ze-ein]")};
+ });
+ p(a2.offen,"die Seite laesst sich oeffnen (Material ist an)",a2.offen);
+ p(/Zuschnitt nach Massaufnahme/.test(a2.text),"die Ueberschrift steht da",a2.text.slice(0,200));
+ p(/Zuschnitt/.test(a2.text)&&/\d/.test(a2.text),"und sagt, wie viele Zuschnitte es gibt");
+ p(/abhaken/i.test(a2.hinweis)&&/eingeschaltet/i.test(a2.hinweis),
+   "der Grund steht dabei",a2.hinweis);
+ p(a2.einKnopf,"ein Administrator kann es dort einschalten",a2.einKnopf);
+ await page.evaluate(()=>{$("matZuModal").hidden=true});
+
  // ---- B · Cockpit: eine kompakte Karte -----------------------------------
  console.log("\nB · Cockpit");
  await anmelden(page,ALLE);

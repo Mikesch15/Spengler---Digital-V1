@@ -312,7 +312,13 @@ function werkAufnahmeHtml(a,jetztK){
  // Die Zuschnittliste steht SOFORT da - kein Aufklappen, kein zweiter Klick.
  // Der Plan ist der gespeicherte dieser einen Aufnahme, deshalb duerfen die
  // Positionsnummern abgehakt werden (erledigtFuer, siehe CLAUDE.md 120.4).
- const plan=(typeof pmAktiv==="function"&&pmAktiv("zuschnitt"))?werkZuschnittPlan(a):null;
+ // v3.22: Die Liste haengt NICHT mehr am Untermodul "zuschnitt". Der
+ // Rollenplan gehoert zur Massaufnahme selbst - er wird dort gerechnet und
+ // gespeichert, lange bevor es Projektmodule gab. Wer die Werkstatt an hat,
+ // soll sehen, was zu schneiden ist. Nur das ABHAKEN haengt weiter am Modul
+ // (zeAbhakenMoeglich); fehlt es, steht der Grund unter der Liste statt
+ // stiller Leere - genau die Falle, die im Betrieb zugeschnappt ist.
+ const plan=werkZuschnittPlan(a);
  const stand=werkZuStand(a);
  return `<div class="werk-karte${dran?" werk-karte-jetzt":""}${plan&&stand.fertig?" werk-zu-fertig":""}">
   <div class="werk-karte-kopf">
@@ -365,8 +371,12 @@ function werkJetztText(){
  gruppen.forEach(g=>{const k=werkNaechster(g).k; if(k!=="fertig")zaehlung[k]=(zaehlung[k]||0)+1});
  const zt=Object.keys(zaehlung).map(k=>zaehlung[k]+" × "+WERK_SCHRITT_TEXT[k]).join(" · ");
  const zu=(typeof zeStandListe==="function")?zeStandListe(werkZeilen||[]):null;
- const zuText=(zu&&zu.gesamt)
-   ?'<span class="werk-jetzt-zu">✂️ '+esc(zu.erledigt)+" von "+esc(zu.gesamt)+" Stück zugeschnitten</span>":"";
+ // Ohne eingeschaltetes Abhaken sind keine Haken geladen - dann wird hier
+ // keine Zahl behauptet (siehe werkStandText).
+ const abhaken=(typeof zeAbhakenMoeglich!=="function")||zeAbhakenMoeglich();
+ const zuText=(zu&&zu.gesamt&&abhaken)
+   ?'<span class="werk-jetzt-zu">✂️ '+esc(zu.erledigt)+" von "+esc(zu.gesamt)+" Stück zugeschnitten</span>"
+   :((zu&&zu.gesamt)?'<span class="werk-jetzt-zu">✂️ '+esc(zu.gesamt)+" Stück zuzuschneiden</span>":"");
  return (zt?"<b>Jetzt dran:</b> "+esc(zt)
    :"<b>Nichts offen</b> – in der Werkstatt wartet gerade kein Schritt.")+zuText;
 }
@@ -402,6 +412,11 @@ function werkZuStand(m){
 function werkStandText(m){
  const s=werkZuStand(m);
  if(!s.gesamt)return "keine Stücke";
+ // v3.22: Ist das Abhaken ausgeschaltet, sind gar keine Haken geladen. Dann
+ // waere "0 von 41 zugeschnitten" eine FALSCHE Aussage - es kann sehr wohl
+ // abgehakt sein, die App weiss es hier nur nicht. Also nur die Stueckzahl.
+ if(typeof zeAbhakenMoeglich==="function"&&!zeAbhakenMoeglich())
+  return esc(s.gesamt)+(s.gesamt===1?" Stück":" Stück");
  return (s.fertig?"✓ ":"")+esc(s.erledigt)+" von "+esc(s.gesamt)+" zugeschnitten"
   +(s.veraltet?' · <span style="color:var(--red)">'+esc(s.veraltet)+" Haken passen nicht mehr zum Plan</span>":"");
 }

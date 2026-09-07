@@ -1031,6 +1031,19 @@ button.zu-nr.zu-nr-hak.ze-ok::before{content:"✓ "}
 button.ze-alle{min-height:30px;padding:2px 8px;font-size:11px;text-transform:none;
  letter-spacing:0;background:transparent;border:1px solid var(--line);color:var(--muted)}
 
+/* v3.22: Warum hier nicht abgehakt werden kann. Bis v3.21 verschwand das
+   Abhaken kommentarlos, sobald das Untermodul "zuschnitt" aus war - der
+   Ruester sah eine Liste, die sich nicht anfassen liess. Der Hinweis steht
+   unter der Liste, der Schnellschalter daneben.
+   Die globale button-Regel (Zeile 23) setzt fette Grossschrift und viel
+   Polsterung - beides hier ausdruecklich zurueck (CLAUDE.md 72.5/107). */
+.ze-aus-hinweis{margin-top:8px;padding:8px 10px;border-radius:8px;
+ background:var(--bg2);border:1px solid var(--line);color:var(--muted);
+ display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+button.ze-ein{min-height:34px;padding:4px 12px;font-size:12px;
+ text-transform:none;letter-spacing:0;font-weight:700;
+ background:var(--blue);color:#fff;border:0}
+
 /* ---------------------------------------------------------------------------
    v3.16  Material fuer den Regierapport
    ---------------------------------------------------------------------------

@@ -290,14 +290,57 @@ async function mehrAuf(page){
     "und es steht ehrlich da, dass zwei weggelassen sind",r.text.slice(0,400));
  }
 
- console.log("\nE · Modul aus: nichts davon");
+ // v3.22: UEBERHOLTE ERWARTUNG. Bis v3.21 verschwand ohne das Untermodul
+ // "zuschnitt" die ganze Liste - kommentarlos. Genau das ist im Betrieb
+ // passiert: der Schalter wurde ausgeschaltet, und niemand konnte mehr
+ // abhaken, ohne zu wissen warum. Der Rollenplan gehoert zur Massaufnahme,
+ // nicht zum Projektmodul; die Liste steht deshalb jetzt IMMER da. Nur das
+ // Abhaken haengt am Modul - und der Grund steht darunter.
+ console.log("\nE · Modul aus: Liste ja, Abhaken nein - mit Begruendung");
  await vorbereiten(page,{haupt:true,werkstatt:true,material:true,reservierung:true},[]);
  if(await werkstattAuf(page)){
-  const aus=await page.evaluate(()=>({
-   knoepfe:document.querySelectorAll("#werkstattBody [data-ze-nr]").length,
-   zuKnopf:!!document.querySelector('#werkstattBody [data-werk-mess][data-werk-zu]')
-  }));
-  p(!aus.knoepfe&&!aus.zuKnopf,"ohne das Zuschnittmodul weder Liste noch Knopf",aus);
+  const aus=await page.evaluate(()=>{
+   const box=$("werkstattBody");
+   const h=box.querySelector(".ze-aus-hinweis");
+   return {
+    listen:box.querySelectorAll(".zu-liste").length,
+    knoepfe:box.querySelectorAll("[data-ze-nr]").length,
+    zuKnopf:!!box.querySelector('[data-werk-mess][data-werk-zu]'),
+    hinweis:h?h.innerText.trim():"",
+    einKnopf:!!box.querySelector("[data-ze-ein]"),
+    stand:(box.querySelector("[data-werk-zu-stand]")||{}).innerText||""
+   };
+  });
+  p(aus.listen>0,"die Zuschnittliste steht trotzdem da",aus);
+  p(aus.knoepfe===0,"aber keine Positionsnummer ist antippbar",aus);
+  p(/abhaken/i.test(aus.hinweis)&&/eingeschaltet/i.test(aus.hinweis),
+    "der Grund steht unter der Liste",aus.hinweis);
+  p(aus.einKnopf,"und ein Administrator kann es dort einschalten",aus);
+  p(aus.zuKnopf,"der Sprung ins Zuschnitt-Register bleibt erreichbar",aus);
+  // Ohne geladene Haken waere "0 von 3 zugeschnitten" eine falsche Aussage.
+  p(!/0 von/.test(aus.stand),"der Stand behauptet keine 0 Haken",aus.stand);
+ }
+
+ console.log("\nE2 · Der Schnellschalter schreibt ueber set_projektmodule");
+ await vorbereiten(page,{haupt:true,werkstatt:true,material:true,reservierung:true},[]);
+ if(await werkstattAuf(page)){
+  await page.evaluate(()=>{window.__ruf=[]});
+  const da=await sichtbar(page,"#werkstattBody [data-ze-ein]");
+  p(da,"der Schalter ist sichtbar");
+  if(da){
+   await page.click("#werkstattBody [data-ze-ein]",{timeout:4000}).catch(()=>{});
+   await page.waitForTimeout(500);
+   const r=await page.evaluate(()=>({
+    rpc:window.__ruf.filter(x=>x.rpc==="set_projektmodule"),
+    direkt:window.__ruf.filter(x=>x.tabelle==="app_settings"&&x.op!=="select").length
+   }));
+   p(r.rpc.length===1,"genau ein Aufruf von set_projektmodule",r.rpc.length);
+   p(r.direkt===0,"kein direktes Schreiben auf app_settings",r.direkt);
+   p(!!(r.rpc[0]&&r.rpc[0].args&&r.rpc[0].args.p_module&&r.rpc[0].args.p_module.zuschnitt===true),
+     "zuschnitt wird eingeschaltet",r.rpc[0]&&r.rpc[0].args);
+   p(!!(r.rpc[0]&&r.rpc[0].args&&r.rpc[0].args.p_module&&r.rpc[0].args.p_module.material===true),
+     "und das noetige Material bleibt an",r.rpc[0]&&r.rpc[0].args);
+  }
  }
 
  console.log("\nF · Breiten");

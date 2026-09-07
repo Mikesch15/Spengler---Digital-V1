@@ -42,6 +42,33 @@ let zeFormularId=null;
 function zeAktiv(){return (typeof pmAktiv==="function")&&pmAktiv("zuschnitt")}
 // Abgehakt wird nur im Formular EINER Massaufnahme.
 function zeAbhakenMoeglich(){return zeAktiv()}
+
+// v3.22: WARUM kann hier nicht abgehakt werden? Bis v3.21 verschwand die
+// Moeglichkeit kommentarlos, sobald das Untermodul "zuschnitt" aus war - der
+// Ruester sah eine Liste, die sich nicht anfassen liess, und nichts sagte ihm
+// den Grund. Genau das ist im Betrieb passiert: der Schalter wurde beim
+// Aufraeumen ausgeschaltet, und danach ging das Abhaken nirgends mehr.
+// Eine Quelle fuer alle drei Anzeigestellen (Register, Werkstatt, Seite).
+function zeAbhakenGrund(){
+ if(zeAbhakenMoeglich())return null;
+ if(typeof pmHaupt==="function"&&!pmHaupt())
+  return {grund:"haupt",
+   text:"Zum Abhaken der Zuschnitte muss der erweiterte Ablauf eingeschaltet sein."};
+ return {grund:"zuschnitt",
+  text:"Zum Abhaken der Zuschnitte muss das Modul „Zuschnitt und Abhaken\u201c eingeschaltet sein."};
+}
+// Darf ich den Schalter selbst umlegen? Reine Bedienfuehrung - die Grenze ist
+// die Datenbank, set_projektmodule() prueft den Administrator selbst.
+function zeDarfEinschalten(){return (typeof isAdmin!=="function")||isAdmin()}
+// Der Hinweis als fertiges Stueck HTML, mit Schnellschalter fuer Administratoren.
+function zeAbhakenHinweisHtml(){
+ const g=zeAbhakenGrund();
+ if(!g)return "";
+ const knopf=zeDarfEinschalten()
+  ?` <button type="button" class="ze-ein" data-ze-ein="${g.grund}">Jetzt einschalten</button>`
+  :" Ein Administrator kann das in den Einstellungen ändern.";
+ return `<div class="small ze-aus-hinweis">🔒 ${esc(g.text)}${knopf}</div>`;
+}
 function zeOffeneMassaufnahme(){return zeFormularId}
 function zeFormularAuf(id){zeFormularId=id||null}
 
@@ -145,6 +172,25 @@ async function zeSetzen(mid,nrListe,an,masse){
  if(typeof werkOffenKarte!=="undefined")werkOffenKarte.add(Number(mid));
  return {fehler:null,anzahl:data.length};
 }
+
+// v3.22: "Jetzt einschalten" am Hinweis. Laeuft ueber pmSchnellEin() und
+// damit ueber set_projektmodule() - kein zweiter Schreibweg, und die
+// Datenbank prueft den Administrator selbst. Danach frischt pmNachAenderung()
+// alle Ansichten auf, die vom Schalter abhaengen.
+document.addEventListener("click",async e=>{
+ const t=e.target.closest?e.target.closest("[data-ze-ein]"):null;
+ if(!t)return;
+ e.preventDefault(); e.stopPropagation();
+ if(typeof pmSchnellEin!=="function"){alert("Die Einstellung ist gerade nicht verfügbar.");return}
+ t.disabled=true;
+ const r=await pmSchnellEin(t.dataset.zeEin==="haupt"?"haupt":"zuschnitt");
+ t.disabled=false;
+ if(!r||!r.ok){alert((r&&r.text)||"Das Modul konnte nicht eingeschaltet werden.");return}
+ // Die Stelle, an der der Hinweis stand, neu zeichnen - je nachdem, wo wir sind.
+ if(typeof renderWerkstatt==="function"&&$("werkstattModal")&&!$("werkstattModal").hidden)renderWerkstatt();
+ else if(typeof mzAuffrischen==="function"&&mzSeiteOffen())mzAuffrischen();
+ else if(typeof showMeasTypeSection==="function"&&$("measType"))showMeasTypeSection($("measType").value);
+},true);
 
 // Klick auf eine Positionsnummer bzw. auf "alle" - ein Tap = erledigt.
 // Delegiert am Dokument, damit es in jedem Modul und auf der zentralen
@@ -366,6 +412,14 @@ function mzAuffrischen(){
   teile.push(`<h3 class="mz-titel">✂️ Zuschnitt nach Massaufnahme</h3>`);
   teile.push(karten.length?karten.map(mzZuschnittKarteHtml).join("")
    :`<div class="small">Noch nichts zuzuschneiden – keine Massaufnahme dieses Projekts hat einen gespeicherten Zuschnitt.</div>`);
+ }else if(ges.gesamt>0){
+  // v3.22: Der Bereich verschwand bis v3.21 kommentarlos, sobald das Modul
+  // aus war - obwohl es sehr wohl etwas zuzuschneiden gibt. Statt stiller
+  // Leere der Grund und, fuer Administratoren, der Schalter daneben.
+  teile.push(`<h3 class="mz-titel">✂️ Zuschnitt nach Massaufnahme</h3>`);
+  teile.push(`<div class="small">Dieses Projekt hat <b>${esc(ges.gesamt)}</b> Zuschnitt${ges.gesamt===1?"":"e"} aus `
+   +`${esc(ges.aufnahmen)} Massaufnahme${ges.aufnahmen===1?"":"n"}.</div>`
+   +zeAbhakenHinweisHtml());
  }
  box.innerHTML=teile.join("");
  mzEinzelheitenSichtbarkeit(matAn,zuAn,resvAn);

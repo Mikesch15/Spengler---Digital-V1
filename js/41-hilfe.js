@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.21.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.22.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -102,6 +102,12 @@ Arbeiten und die <b>Versionierung</b> der Massaufnahme.</p>
 verhält sich die App genau wie vorher – es gibt keine neuen Pflichtfelder,
 keine neuen Karten, keine Reservierungs- und keine Versionierungspflicht. Wer
 das nicht braucht, muss nichts tun.</p>
+<p><b>Wichtig beim Modul „Zuschnitt und Abhaken“:</b> daran hängt nicht nur
+die projektweite Zusammenfassung, sondern auch das <b>Abhaken einzelner
+Zuschnitte</b> – in der Massaufnahme, auf der Seite „Material &amp; Zuschnitt“
+und in der Werkstatt. Ist es aus, steht die Zuschnittliste zwar da, die
+Positionsnummern lassen sich aber nicht antippen. Die App sagt das an Ort und
+Stelle und bietet Administratoren dort gleich den Schalter an.</p>
 <p>Der Hauptschalter gibt die sieben Untermodule frei; jedes lässt sich
 einzeln ein- und ausschalten. Einige bauen aufeinander auf: der projektweite
 Zuschnitt und die Reservierung brauchen die Materialübersicht,
@@ -179,6 +185,11 @@ Zugeschnitten, Gerüstet, Montiert. Ein Häkchen heisst erledigt, das blaue
 Dreieck ist der Schritt, der jetzt dran ist. Die Projekte stehen in genau
 dieser Reihenfolge: was zuerst drankommt, steht oben. Die Massaufnahmen, um
 die es beim jetzigen Schritt geht, sind blau markiert und stehen zuoberst.
+
+Die <b>Zuschnittliste steht in jeder Karte sofort da</b> – auch dann, wenn das
+Modul „Zuschnitt und Abhaken“ aus ist. Abhaken lässt sie sich in diesem Fall
+nicht; warum, steht unter der Liste, und ein Administrator kann das Modul dort
+mit einem Tipp einschalten.
 
 Eine Station erscheint nur, wenn das zugehörige Modul eingeschaltet ist –
 sonst gäbe es dazu keinen ablesbaren Zustand. Reserviert und Zugeschnitten

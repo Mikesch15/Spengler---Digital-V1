@@ -27,8 +27,14 @@
 const PM_MODULE=[
  {key:"material",     name:"Projektweite Materialübersicht",
   text:"Führt das Material aller Massaufnahmen eines Projekts zusammen."},
- {key:"zuschnitt",    name:"Projektweiter Zuschnitt", braucht:"material",
-  text:"Fasst die Zuschnitte des ganzen Projekts zu einem Rollenblech-Plan zusammen."},
+ // v3.22: Der Name hiess bis v3.21 nur "Projektweiter Zuschnitt" und der Text
+ // sprach von einer Zusammenfassung. Dass daran auch das ABHAKEN der einzelnen
+ // Stuecke haengt, stand nirgends - im Betrieb wurde der Schalter deshalb beim
+ // Aufraeumen ausgeschaltet, und danach liess sich nirgends mehr abhaken.
+ {key:"zuschnitt",    name:"Zuschnitt und Abhaken", braucht:"material",
+  text:"Fasst die Zuschnitte des ganzen Projekts zu einem Rollenblech-Plan zusammen. "
+      +"Nur mit diesem Modul lassen sich einzelne Zuschnitte als geschnitten abhaken – "
+      +"in der Massaufnahme, auf der Seite „Material & Zuschnitt“ und in der Werkstatt."},
  {key:"reservierung", name:"Materialreservierung",    braucht:"material",
   text:"Material und Reststücke für ein Projekt reservieren."},
  {key:"werkstatt",    name:"Werkstatt-/Rüstansicht",
@@ -148,6 +154,27 @@ async function pmSpeichern(){
  return true;
 }
 if($("savePmModule"))$("savePmModule").onclick=pmSpeichern;
+
+// v3.22: Ein Modul dort einschalten, wo sein Fehlen auffaellt - ohne dass
+// jemand erst die Einstellungen suchen muss. Kein zweiter Schreibweg: es
+// laeuft ueber dasselbe pmSpeichern() und damit ueber set_projektmodule(),
+// das den Administrator serverseitig prueft und die Abhaengigkeiten
+// normalisiert. Der Schalter hier bleibt reine Bedienung.
+async function pmSchnellEin(key){
+ if(key!=="haupt"&&PM_KEYS.indexOf(key)<0)return {ok:false,text:"Unbekanntes Modul."};
+ const vorher={...projektModule};
+ projektModule.haupt=true;
+ if(key!=="haupt"){
+  projektModule[key]=true;
+  // Was das Modul braucht, muss mit an - sonst weist die Datenbank es ab.
+  const m=PM_MODULE.find(x=>x.key===key);
+  if(m&&m.braucht)projektModule[m.braucht]=true;
+ }
+ const ok=await pmSpeichern();
+ if(!ok){projektModule=vorher; renderProjektmodule(); return {ok:false,
+   text:"Das Modul konnte nicht eingeschaltet werden. Fehlt die nötige Berechtigung?"}}
+ return {ok:true};
+}
 
 // Nach einer Aenderung alles auffrischen, was von den Schaltern abhaengt.
 // Jede Stelle ist einzeln abgesichert, damit eine noch nicht gebaute
