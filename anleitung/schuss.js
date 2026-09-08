@@ -99,7 +99,11 @@ const liste=[];
    {id:2,material_id:2,artikel_id:5,bezeichnung:"Kupferblech",staerke_mm:0.6,
     ausfuehrung:"blank",laenge_mm:2000,breite_mm:1000,menge:4,einheit:"Tafel",notiz:null},
    {id:3,material_id:3,artikel_id:null,bezeichnung:"Stahlblech verzinkt",staerke_mm:0.75,
-    ausfuehrung:"verzinkt",laenge_mm:null,breite_mm:1000,menge:2,einheit:"Rolle",notiz:"Restrolle"}];
+    ausfuehrung:"verzinkt",laenge_mm:null,breite_mm:1000,menge:2,einheit:"Rolle",notiz:"Restrolle"},
+   // v3.31: eine zweite Staerke derselben Art - sonst zeigte das Bild der
+   // Materialstaerke eine Auswahl mit genau einem Eintrag.
+   {id:4,material_id:1,artikel_id:4,bezeichnung:"Titanzinkblech blank",staerke_mm:0.8,
+    ausfuehrung:"blank",laenge_mm:null,breite_mm:null,menge:null,einheit:null,notiz:null}];
   // Das Reststuecke-Lager fuellt sonst loadAllData(), das hier nicht laeuft.
   if(typeof reststuecke!=="undefined")reststuecke=window.__demo.reststuecke.slice();
   settings.rates=[["Meister",98],["Vorarbeiter",88],["Monteur",76],["Lernender",42]];
@@ -180,6 +184,29 @@ const liste=[];
  });
  await page.evaluate(()=>ebaSetzeSchritt(1));
  await schussEB("07-eb-1-grunddaten");
+ // v3.31: die Materialstaerke. Sie haengt an JEDEM Materialfeld und kommt
+ // ausschliesslich aus dem Materialbestand - im Registerschuss waere sie zu
+ // klein, deshalb ein eigenes Bild.
+ await page.evaluate(()=>{
+  const f=$("eba_material");
+  if(f){f.value="1";f.dispatchEvent(new Event("change",{bubbles:true}))}
+  // Der change zeichnet das Register neu - das alte Element haengt danach
+  // nicht mehr im Dokument. Deshalb neu holen, sonst faende die ID ein
+  // verwaistes Element und das Bild waere leer.
+  const g=$("eba_material");
+  // Eine gewaehlte Staerke - der leere Zustand waere fuer das Bild wenig
+  // aussagekraeftig. 0,7 mm steht im Demo-Materialbestand, erfunden ist sie
+  // dort so wenig wie hier.
+  if(typeof measStaerkeSetzen==="function")measStaerkeSetzen(0.7);
+  if(typeof measStaerkeFelderSetzen==="function")measStaerkeFelderSetzen();
+  // Material und Staerke stehen als zwei Zellen nebeneinander - fotografiert
+  // wird ihr gemeinsamer Rahmen, damit die Herkunft der Auswahl zu sehen ist.
+  const zelle=g?g.parentElement:null;
+  const rahmen=zelle?zelle.parentElement:null;
+  if(rahmen)rahmen.id="__staerkeSchuss";
+ });
+ await schuss("51-materialstaerke","#__staerkeSchuss",{warte:300,breite:700});
+ await page.evaluate(()=>{const e=$("__staerkeSchuss"); if(e)e.removeAttribute("id")});
  await page.evaluate(()=>ebaSetzeSchritt(2));
  await schussEB("08-eb-2-geometrie");
  // v3.12: der Umrechner "Winkel im Meter" - er haengt an JEDEM Winkelfeld.

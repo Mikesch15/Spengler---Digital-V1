@@ -17,7 +17,7 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.30, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.31, Branch `main`.**
 
 Die Versionsnummer dieses Abschnitts blieb zwischen Version 3.21 und 3.24
 stehen, obwohl der Code weiterlief – die Abschnitte 127 bis 129 waren
@@ -32,7 +32,7 @@ beide müssen gleich sein, ein Prüfstand erzwingt das.
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.30**
+- sichtbare App-Version: **3.31**
 - **Es wird ausschliesslich direkt auf `main` gearbeitet und
   veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
   Feature-Branch, kein Pull Request.
@@ -81,7 +81,7 @@ Bestehende Funktionen dürfen bei Änderungen nicht einfach entfernt oder durch 
 
 ## 3. MASSAUFNAHME – vollständige aktuelle Funktionsliste
 
-Die **Massaufnahme besteht aktuell aus ELF Funktionen**:
+Die **Massaufnahme besteht aktuell aus ZWÖLF Funktionen**:
 
 1. **Skizze / Foto**
 2. **Einlaufblech gerade**
@@ -94,8 +94,9 @@ Die **Massaufnahme besteht aktuell aus ELF Funktionen**:
 9. **Einfassung Rund**
 10. **Kehle**
 11. **Rinne**
+12. **Kamineinfassung**
 
-Diese elf Funktionen müssen bei Refactorings, Tests, Berechtigungen, PDF-Ausgabe, Speichern/Laden und zukünftiger Weiterentwicklung berücksichtigt werden.
+Diese zwölf Funktionen müssen bei Refactorings, Tests, Berechtigungen, PDF-Ausgabe, Speichern/Laden und zukünftiger Weiterentwicklung berücksichtigt werden.
 
 Die Auswahl wird im aktuellen `main` über `data-choose-meas-type` abgebildet. Die zugehörigen Typen sind:
 
@@ -110,6 +111,12 @@ Die Auswahl wird im aktuellen `main` über `data-choose-meas-type` abgebildet. D
 - `einfassung_rund`
 - `kehle`
 - `rinne`
+- `kamineinfassung`
+
+Die zwölfte Art (Kamineinfassung) kam mit Version 2.90 dazu (Abschnitt 94);
+dieser Abschnitt hinkte bis Version 3.31 nach und ist dort nachgezogen worden.
+Elf der zwölf Arten werden über Register erfasst – ohne ist nur Skizze/Foto,
+und zwar bewusst (Abschnitt 89.1).
 
 ### 3.1 Skizze / Foto
 
@@ -618,7 +625,7 @@ Vor einer grösseren Änderung:
 
 **Nicht einfach alte oder vereinfachte Versionen aus anderen Branches übernehmen.**
 
-Insbesondere bei Massaufnahmen immer prüfen, ob alle elf Funktionen noch funktionieren:
+Insbesondere bei Massaufnahmen immer prüfen, ob alle zwölf Funktionen noch funktionieren:
 
 - Skizze/Foto
 - Einlaufblech gerade
@@ -631,6 +638,7 @@ Insbesondere bei Massaufnahmen immer prüfen, ob alle elf Funktionen noch funkti
 - Einfassung Rund
 - Kehle
 - Rinne
+- Kamineinfassung
 
 ## 17. Git-Regeln
 
@@ -23104,3 +23112,289 @@ Bild ehrlich „keine Skizze" – der Text daneben beschreibt aber den Grundriss
   Punkte, die nur der Betreiber erledigen kann: Schnittfuge eintragen, den
   Materialbestand füllen, `reste_im_zuschnitt` einschalten, die projektlosen
   Massaufnahmen zuordnen, Leaked-Password-Schutz, eigene Domain.
+
+## 136. MATERIALBESTAND OHNE MENGEN, MATERIALSTÄRKE JE MASSAUFNAHME — VERSION 3.31
+
+Gemeldet am 08.09.2026: *„bei den materialbestand einstellungen, sind von mir
+aus gesehen keine mengen und längen und grössen nötig, es dient ja
+ausschliesslich dazu festzulegen welche materialien die firma an lager hat …
+ausserdem müsste dan in jeder massaufnahme die materialdicke zusätzlich
+erfasst werden können, diese sollte aus genau dieser liste geholt werden"*
+
+Zwei Teile, die zusammengehören: die Liste sagt, **welche** Materialien es
+gibt – und genau daraus wählt die Massaufnahme ihre Stärke. **Eine Migration
+(eine nullbare Spalte), keine RLS-Änderung, keine neue Datenbankfunktion,
+keine zweite Packrechnung, keine Fachrechnung verändert, kein Fachmodul
+angefasst.**
+
+### 136.1 Teil A – die Liste ist kein Lagerbestand
+
+Menge, Länge, Breite und Einheit sind aus dem Formular und aus der Anzeige
+verschwunden. Das ist keine Vereinfachung, sondern die Korrektur einer
+falschen Benennung: **abgebucht wurde nie etwas** (§132.10), die Liste war von
+Anfang an ein Verzeichnis der geführten Materialien. Eine Zeile liest sich
+jetzt „Titanzink · 0,7 mm · blank" statt mit angehängten Tafelmassen und einer
+Stückzahl, die niemand pflegt.
+
+**Die vier Datenbankspalten bleiben stehen** (`laenge_mm`, `breite_mm`,
+`menge`, `einheit`) – nichts wird gelöscht, sie werden nur nicht mehr
+geschrieben und nicht mehr angezeigt. Dieselbe Zurückhaltung wie bei
+`app_settings.module_test` (§75.10) und `permission_settings` (§20.8).
+
+### 136.2 Teil B – die Stärke gehört an die Massaufnahme
+
+`measurement_materials` kennt nur die **Materialart** (Titanzink, Kupfer …) –
+weder Stärke noch Ausführung (§132.2). Genau daran musste der Restabgleich
+aufgeben, sobald eine Firma zwei Stärken derselben Art führt: er meldete
+`mehrdeutig` und zog gar keinen Rest ab.
+
+Migration `measurements_staerke_mm_v3_31`: eine nullbare Spalte
+`measurements.staerke_mm numeric`.
+
+**Warum eine eigene Spalte und nicht ein Feld in `data`:**
+
+| | eigene Spalte | Feld in `data` |
+|---|---|---|
+| Speichern | **eine** Zeile in `base` (js/16) | zwölf Payload-Zweige |
+| Freigabe-Verfall (v3.06) | steuerbar – siehe unten | **jede** Ersterfassung kippt die Freigabe |
+
+Der Verfall ist der ausschlaggebende Punkt. Jede Änderung an `data` setzt eine
+freigegebene Massaufnahme zurück (§111.2). Die Stärke erstmals einzutragen ist
+aber eine **Ergänzung**, keine Änderung der Masse. Der bestehende Guard-Trigger
+ist deshalb an seinem Anker um eine Zeile erweitert:
+
+```sql
+or ( old.staerke_mm is not null
+     and new.staerke_mm is distinct from old.staerke_mm )
+```
+
+`NULL → 0,7` lässt die Freigabe stehen, `0,7 → 0,8` kippt sie – letzteres zu
+Recht, denn danach wird ein anderes Blech geschnitten.
+
+### 136.3 Kein Fachmodul angefasst
+
+Zwölf Arten, zwölf Material-Auswahlfelder – aber **keine** der zwölf Dateien
+ist im Diff. `js/61-materialstaerke.js` trägt die Feldliste zentral und hängt
+das Stärkefeld über einen MutationObserver an; gleiches Muster wie
+`WINKEL_FELDER` in js/55 (§117.3) und `HILFE_TEXTE` in js/41 (§108.2).
+
+Die Liste ist **einzeln aufgezählt und nicht über die Klasse
+`.meas-material-select`** ermittelt – gemessen, nicht aus dem Namensschema
+geraten: die trägt zwar zehn Felder, aber sieben davon stehen in den
+versteckten Stummel-Blöcken (`#ebStummel`, `#rinneStummel`, `#madStummel`,
+`#lukStummel`, `#einfStummel`, `#ebkStummel`, `#fpStummel`), damit die alten
+Fachdateien unverändert laden können (§104.2, §105.1). Das **sichtbare** Feld
+bauen die Register-Module dort selbst, mit eigener id.
+
+**Eine Wahrheit: `measStaerke`, nicht das DOM.** Kehle (js/34) und Kamin
+(js/37) zeichnen ihr Register bei jeder Eingabe neu und rissen ein
+eingehängtes Feld samt Wert mit; ausserdem gibt es zwölf Auswahlfelder im
+Dokument, aber immer nur **eine** offene Massaufnahme. Das eingehängte Feld
+ist deshalb nur die Anzeige.
+
+### 136.4 Es wird nichts erfunden
+
+Die Auswahl kommt **ausschliesslich** aus dem Materialbestand der Firma –
+keine Vorgabewerte, nichts hart verdrahtet:
+
+| Lage | was das Feld sagt |
+|---|---|
+| kein Material gewählt | „Zuerst das Material wählen – die Stärken kommen aus dem Materialbestand." |
+| Material ohne Bestandseintrag | „Für dieses Material ist im Materialbestand keine Stärke hinterlegt (Einstellungen → Allgemein → Materialbestand)." |
+| gespeicherter Wert, den der Bestand nicht (mehr) führt | steht mit dem Zusatz **„(nicht im Materialbestand)"** in der Liste |
+
+Der letzte Fall ist die wichtigere Hälfte: ein gespeicherter Wert fällt
+**nicht** stillschweigend auf leer, wenn jemand den Bestand aufräumt.
+
+### 136.5 Die Stärke macht den Bedarf eindeutig
+
+`restBedarfMerkmale(materialId, staerke)` (js/42) grenzt den Bestand auf die
+erfasste Stärke ein. Damit löst sich die Sackgasse aus §132.2:
+
+| Bestand | ohne Stärke | mit 0,6 mm |
+|---|---|---|
+| Titanzink nur 0,7 | eindeutig | eindeutig |
+| Kupfer 0,6 **und** 0,8 | `mehrdeutig` – kein Rest wird abgezogen | eindeutig, es zieht den 0,6er Rest ab |
+| Kupfer 0,6/0,8, erfasst 0,9 | – | `staerke-nicht-im-lager`, **kein** Ausweichen |
+
+Der letzte Fall ist neu und ausdrücklich ein eigener Grund: eine Stärke, die
+der Bestand nicht führt, ist ein Hinweis an den Betrieb, kein Anlass, auf eine
+andere auszuweichen. Das erfüllt die Vorgabe aus §132.2 wörtlich – *„0,70 mm
+darf NICHT automatisch für 0,80 mm verwendet werden."*
+
+Die Stärke reist in den Vorabzug (`ebaVorabzug`, js/29) und an einen
+eingelagerten Rest mit. **Der projektweite Sammelplan bekommt ausdrücklich
+keine** (`staerke:null` in js/49) – er gehört zu mehreren Massaufnahmen, und
+eine davon abzuleiten wäre geraten.
+
+### 136.6 Ein echter Fehler, gefunden beim Durchreichen
+
+`pmatPlanFuer()` (js/48) legte in `plan.material` den **Namen** ab, während
+die zwölf Module überall die **ID** verwenden. `restNummer("Titanzink")` ist
+`null` – also meldete der Restabgleich in Werkstatt und Rüstliste **immer**
+„für diese Massaufnahme ist kein Material gewählt", auch wenn eines gewählt
+war. Der Fehler besteht seit v3.15 und ist nie aufgefallen, weil
+`reste_im_zuschnitt` bei keiner Firma eingeschaltet ist (§132.10) – latent,
+wie schon das nicht gespeicherte `ausResten` in §134.1(c).
+
+Jetzt: `p.material` = ID, `p.materialName` daneben, `p.materialText` =
+„Titanzink · 0,7 mm" für die Anzeige. Werkstatt (js/51) und Rüstliste (js/58)
+zeigen seither Material **und** Stärke, ebenso der PDF-Kopf (js/16).
+
+### 136.7 Getestet
+
+- **`pruefstaende/pruefstand-materialstaerke-v3-31.js` – 50/50**, echtes
+  Chromium gegen die echte `index.html`, sieben Abschnitte: das Lagerformular
+  ohne die vier Felder und ohne die vier Schlüssel im Schreibaufruf, **nie**
+  eine `company_id`, `lagBeschreibung` = „Titanzink · 0,7 mm · blank" · genau
+  **ein sichtbares** Stärkefeld in **allen zwölf** Arten, mit Info-Knopf,
+  Optionen aus dem Bestand, ehrlichen Hinweisen und dem behaltenen
+  Nicht-im-Bestand-Wert · `base` **und beide** Payloads (am Quelltext), Öffnen,
+  Füllen, Zurücksetzen · die Eindeutigkeit in allen vier Lagen inklusive der
+  Rest-Auswahl im echten `ebaVorabzug` · `plan.material` ist die ID und der
+  Restabgleich sagt nicht mehr „kein Material" · Schweizer Schreibweise,
+  Werkstatt, Rüstliste, PDF-Kopf · vier Bildschirmbreiten.
+- **13 Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um; keine bricht ihn ab (§78).
+- **Vier eigene Fehler kamen dabei heraus, nicht aus dem Lesen**: (1) der
+  Prüfstand brach zweimal ab (§78) – `lies()`, `b3` und der E-Abschnitt sind
+  jetzt abgesichert; (2) **null sichtbare Stärkefelder in allen zwölf Arten**
+  – gemessen statt geraten: `#measurementEditModal` war noch `hidden`, also
+  war `offsetParent` null; (3) der Fall „Material ohne Bestandseintrag" prüfte
+  gar nichts, weil ein Eintrag in `measurementMaterials` kein `<option>`
+  erzeugt; (4) mein Testplan legte den Rollenplan unter
+  `rollen.bestes.streifen` ab – `zuPlanAusGespeichert` liest `r.streifen` /
+  `r.verteilung.streifen` / `r.gruppen`.
+- **Zwei überholte Erwartungen** nachgezogen, keine davon ein Codefehler,
+  keine abgeschwächt: `lager-reste-v3-27` (71/71) verlangt jetzt das
+  **Gegenteil** – die Abmessung darf in der Lagerzeile **nicht** mehr stehen;
+  `hilfe-v3-03` (68/68) wartet zwei rAF ab und lässt die Feld-Info-Knöpfe
+  ausser Betracht (das neue Stärkefeld bringt in Register 1 von Rinne und
+  Ort-/Seitenblechen einen zweiten sichtbaren Knopf mit). Beide Gegenproben
+  bestätigen, dass sie weiterhin beissen.
+- **Ein dritter Prüfstand war rot – und zwar schon vorher.**
+  `excel-import-v3-04` meldete `sb.from(...).select(...).eq(...).not is not a
+  function`. **Gegen den unveränderten v3.30-Stand nachgemessen** (Archivkopie
+  über `git archive HEAD`, ohne den Arbeitsbaum anzufassen): identischer
+  Fehlschlag. Es ist eine Lücke in der **Attrappe** dieses Prüfstands, nicht in
+  der App – seit v3.29 fragt `js/05-daten-laden.js` die verbrauchten Reste mit
+  `.not(...)` ab (§134.5), und die Attrappe kennt die Methode nicht. Sie fiel
+  bis jetzt nur nicht auf, weil die JavaScript-Fehler-Prüfung manchmal vor der
+  unbehandelten Zusage lief; dreimal wiederholt schlägt sie **immer** fehl. Eine
+  Zeile in der Attrappe (`q.not=()=>q;`), danach 31/31. **Der Code der App war
+  nicht betroffen.**
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.30-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, §100.6) – **DOM, Text und Bild byteidentisch**
+  (DOM `a679bcba7a2433d8`, 6843 Zeichen; Text `cdfb689582baea54`; Bild
+  `92921a9e6860d73e`, 50 620 Bytes; Höhe 731 px), bestätigt durch einen
+  Kontrolllauf desselben Codes.
+- **Volle Regression grün** – alle **57** Prüfstände im Verzeichnis, jeder mit
+  **Beendigungscode 0** (§132.7), rund 5100 bestandene Prüfungen. Darunter die,
+  die dieselben Daten benutzen: `lager-reste-v3-27` 71/71,
+  `reste-schnittfuge-v3-26` 74/74, `restverwendung-v3-29` 64/64,
+  `werkstatt-liste-v3-30` 58/58, `werkstatt-zuschnitt-v3-20` 58/58,
+  `ruestliste-offline-v3-23` 71/71, `hilfe-v3-03` 68/68.
+- `node --check` über alle 63 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); keine doppelten Element-IDs; alle 63 js-Dateien in `index.html`
+  **und** in der Service-Worker-Liste; Version 3.31 in `index.html`, `sw.js`,
+  `js/41-hilfe.js` und `anleitung/README.md` gleich.
+- Alle Schreibtests gegen die Datenbank liefen in `begin; … rollback;`.
+  `get_advisors(security)`: **keine neue Art** von Warnung – die Migration
+  legt keine `SECURITY DEFINER`-Funktion an.
+
+### 136.8 Anleitung
+
+Nach Regel §108.1 mitgeführt: neuer Unterabschnitt „Die Materialstärke der
+Massaufnahme" mit dem Bild `51-materialstaerke` und den drei ehrlichen
+Leerzuständen, dazu der Hinweis, dass ein **Wechsel** der Stärke die Freigabe
+kippt, das Erstmals-Eintragen aber nicht; im Einstellungs-Kapitel drei
+Passagen neu geschrieben (die Liste führt keine Mengen mehr, sie speist die
+Auswahl in der Massaufnahme). PDF v3.31 mit **74 Seiten**, keine leere. Die
+fünf Verweise nachgezogen, das alte PDF gelöscht.
+`pruefstand-hilfe-v3-03` (68/68) erzwingt das mechanisch.
+
+`anleitung/schuss.js` musste dafür zweimal nachgebessert werden, beides am
+**erzeugten Bild** gesehen: der `change` auf `#eba_material` zeichnet das
+Register neu und verwaist den Knoten, den das Skript hielt (er wird jetzt
+danach neu geholt), und ohne `measStaerkeSetzen(0.7)` zeigte das Bild
+„– keine Angabe –".
+
+**Der Prüfstand `anleitung/pruef.js` war in dieser Runde nicht lauffähig** –
+`@napi-rs/canvas` und `pdfjs-dist` fehlen im Container, und nach dem
+Nachinstallieren stürzt pdfjs 4 in `paintChar` ab (`InvalidArg`). Die
+Seitenzahl und „keine leere Seite" sind stattdessen über Text- und
+Bildoperatoren je Seite gemessen. `pruef.js` selbst wurde **nicht** verändert.
+
+### 136.9 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migration `measurements_staerke_mm_v3_31` | Spalte, Guard-Regel für den Verfall |
+| `js/61-materialstaerke.js` | **neu** – Feldliste, Beobachter, die eine Wahrheit |
+| `js/59-lagerbestand.js` | Menge/Länge/Breite/Einheit aus Formular, Anzeige und Schreibaufruf |
+| `js/16-massaufnahme-formular.js` | `base` + beide Payloads, Material und Stärke im PDF-Kopf |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `js/42-reste.js` | Stärke grenzt den Bedarf ein, neuer Grund, `restPlanStaerke` |
+| `js/29-einlaufblech-aufnahme.js` | `ebaVorabzug` füllt die Stärke, wenn der Aufrufer nichts sagt |
+| `js/49-projekt-zuschnitt.js` | **1 Zeile**: ausdrücklich `staerke:null` |
+| `js/48-projekt-material.js` | ID statt Name (§136.6), Name und Text daneben, Stärke am Plan |
+| `js/51-werkstatt.js`, `js/58-ruestliste.js` | zeigen Material **mit** Stärke |
+| `js/41-hilfe.js` | „meas-staerke" neu, „lagerbestand" neu geschrieben |
+| `index.html`, `sw.js` | Script-Tag, Version 3.31 |
+| `pruefstaende/pruefstand-materialstaerke-v3-31.js` | **neu** |
+| zwei bestehende Prüfstände | überholte Erwartungen (§136.7) |
+| `pruefstaende/pruefstand-excel-import-v3-04.js` | eine Zeile Attrappe (`.not`), Lücke seit v3.29 (§136.7) |
+| `anleitung/*` | neuer Unterabschnitt, drei Passagen, neues Bild, PDF v3.31 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/33-zuschnitt.js`,
+`js/50-reservierung.js`, `js/56-material-zuschnitt.js`, `js/60-ruestskizze.js`
+sowie **alle zwölf Fachmodule** – keine Berechnung, keine Stückliste, kein
+Zuschnitt, keine Packrechnung berührt.
+
+### 136.10 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und die Datenbankseite
+  per SQL gegen das echte Produktivschema.
+- **Der Materialbestand ist bei beiden Firmen leer.** Solange das so ist,
+  bietet das Stärkefeld überall „keine Stärke hinterlegt" an – es sagt das
+  ausdrücklich und nennt den Weg, aber der ganze Nutzen hängt daran, dass der
+  Betrieb die Liste einmal füllt. Ebenso steht `reste_im_zuschnitt` weiterhin
+  auf `false` (§132.10), der Vorabzug ist also noch nie mit echten Daten
+  gelaufen.
+- **Bestehende Massaufnahmen tragen keine Stärke** (die Spalte ist neu). Sie
+  bleiben unverändert; die Stärke lässt sich beim nächsten Öffnen nachtragen,
+  ohne dass die Freigabe kippt (§136.2).
+- **Die Ausführung** (blank, vorbewittert …) wird an der Massaufnahme
+  weiterhin **nicht** erfasst. Führt eine Firma dieselbe Art und Stärke in
+  zwei Ausführungen, bleibt es bei `mehrdeutig`. Das war nicht Teil der
+  Meldung und wurde deshalb nicht mitgebaut; die Erweiterung wäre ein zweites
+  Feld nach demselben Muster.
+- **„＋ Rest von Hand erfassen" verwendet weiterhin `prompt()`** (§133.7,
+  unverändert).
+- Vom Ideenzettel weiterhin offen: Bestellliste je Lieferant, Mitarbeiterliste
+  zusammenführen, Übersicht für Ausmass und Rapporte, Offerten. Dazu die
+  Punkte, die nur der Betreiber erledigen kann: Schnittfuge eintragen, den
+  Materialbestand füllen, `reste_im_zuschnitt` einschalten, die projektlosen
+  Massaufnahmen zuordnen, Leaked-Password-Schutz, eigene Domain.
+
+### 136.11 Nebenbei nachgezogen: Abschnitt 3 nannte elf statt zwölf Arten
+
+Beim Schreiben dieses Abschnitts fiel auf, dass der **Referenzteil oben**
+(Abschnitt 3 und Abschnitt 16) seit Version 2.90 hinterherhinkte: er führte
+elf Massaufnahme-Arten und liess die **Kamineinfassung** (`kamineinfassung`,
+Abschnitt 94) aus – in der Funktionsliste, in der Typenliste und in der
+Prüfliste „alle elf Funktionen". Beides ist nachgezogen; gezählt sind jetzt
+zwölf, wie in `MEAS_TYPE_LABELS` (js/01) und in der Auswahl im HTML.
+
+Dieselbe Art Drift wie bei der Versionsnummer im Kopf (Abschnitt 2/132.1) –
+und derselbe Merksatz: **massgeblich ist der Code**, nicht der Fliesstext
+dieses Dokuments. Wer eine Zahl daraus übernimmt, prüft sie gegen
+`MEAS_TYPE_LABELS`.

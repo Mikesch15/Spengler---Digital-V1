@@ -363,7 +363,7 @@ function werkAufnahmeHtml(a,jetztK){
    <span class="werk-karte-pfeil">${offen?"▾":"▸"}</span>
    <div class="werk-karte-info">
     <b>${esc(werkTyp(a.type))}</b>${a.title?" · "+esc(a.title):""}
-    ${plan&&plan.material?`<span class="small" style="color:var(--muted)"> · ${esc(plan.material)}</span>`:""}
+    ${plan&&plan.materialText?`<span class="small" style="color:var(--muted)"> · ${esc(plan.materialText)}</span>`:""}
     <div class="small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${plan?' · <span class="werk-zu-text" data-werk-zu-stand="'+a.id+'">'+werkStandText(a)+"</span>":""}${fassung}</div>
    </div>
    ${aktion?`<div class="werk-karte-akt">${aktion}</div>`:""}

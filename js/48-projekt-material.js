@@ -78,7 +78,23 @@ function pmatPlanFuer(m){
  // v3.26: Woher der Plan stammt - fuer die Herkunft eines eingelagerten
  // Restes (js/42). Reine Zusatzangabe, die Rechnung beruehrt sie nicht.
  p.projektFuer=(m&&m.project_id!==undefined)?m.project_id:null;
- p.material=pmatMaterialName(d.material);
+ // v3.31: die Materialstaerke dieser Massaufnahme. Sie macht den Bedarf
+ // eindeutig und wandert an einen eingelagerten Rest mit. Ausdruecklich
+ // immer gesetzt - auch als null, damit sich "nicht erfasst" von "gehoert
+ // zu keiner einzelnen Massaufnahme" unterscheiden laesst (js/42).
+ p.staerkeFuer=(m&&m.staerke_mm!==undefined)?m.staerke_mm:null;
+ // v3.31: plan.material ist die Material-ID - genau wie in den zwoelf
+ // Modulen. Bis v3.30 stand hier der NAME, und restBlockHtml() (js/42)
+ // bekam ihn als "materialId": restNummer("Titanzink") ist null, der
+ // Restabgleich meldete deshalb auf der Seite "Material & Zuschnitt" und in
+ // der Werkstatt immer "kein Material gewaehlt". Gemessen, nicht vermutet.
+ // Der lesbare Name steht jetzt daneben.
+ p.material=(d.material===undefined)?null:d.material;
+ p.materialName=pmatMaterialName(d.material);
+ // v3.31: Material und Staerke fuer die Anzeige - eine Stelle fuer
+ // Werkstatt und Ruestliste.
+ p.materialText=[p.materialName,(typeof measStaerkeText==="function")?measStaerkeText(p.staerkeFuer):""]
+   .filter(x=>x&&x!=="Ohne Material").join(" · ");
  return p;
 }
 

@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.30";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.31";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.30<br>
+  Version 3.31<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -400,9 +400,35 @@ Massaufnahmen einmal öffnen und neu speichern.</p>
 verwendet, wenn <strong>Materialart, Stärke und Ausführung</strong> genau passen –
 0,70 mm Titanzink blank ist <strong>kein</strong> Ersatz für 0,80 mm Titanzink oder für
 vorbewittertes. Woher die App Stärke und Ausführung des Bedarfs kennt, steht im
-<strong>Materialbestand</strong> (Abschnitt 18): ist dort für eine Materialart genau
-eine Kombination hinterlegt, ist der Bedarf eindeutig. Stehen mehrere da oder gar keine,
-<strong>rät die App nicht</strong> – sie sagt es und zieht keinen Rest ab.</div>
+<strong>Materialbestand</strong> (Abschnitt 18) und – seit Version 3.31 – in der
+<strong>Materialstärke der Massaufnahme selbst</strong> (siehe unten). Ist die Stärke
+erfasst, ist der Bedarf eindeutig, auch wenn der Betrieb dasselbe Material in mehreren
+Stärken führt. Fehlt sie und stehen mehrere Stärken im Bestand, <strong>rät die App
+nicht</strong> – sie sagt es und zieht keinen Rest ab.</div>
+
+<h4>Die Materialstärke der Massaufnahme</h4>
+<figure><img src="bilder/51-materialstaerke.png"><figcaption>Die Materialstärke steht direkt neben dem Material – zur Auswahl steht nur, was der Materialbestand führt.</figcaption></figure>
+<p>In <strong>jeder</strong> der zwölf Massaufnahme-Arten steht direkt unter dem
+Materialfeld die <strong>Materialstärke</strong>. Zur Auswahl stehen ausschliesslich die
+Stärken, die für dieses Material im <strong>Materialbestand</strong> hinterlegt sind
+(Abschnitt 18) – die App bietet nichts an, was der Betrieb gar nicht führt, und sie
+erfindet auch keine Zahl.</p>
+<ul>
+<li>Ist für das Material <strong>keine</strong> Stärke hinterlegt, sagt das Feld das und
+bleibt leer – statt eine Vorgabe zu erfinden.</li>
+<li>Ist <strong>noch kein Material</strong> gewählt, steht dort, dass die Stärken aus
+dem Materialbestand kommen.</li>
+<li>Trägt eine ältere Massaufnahme eine Stärke, die der Bestand nicht (mehr) führt,
+bleibt sie sichtbar und wird als <em>nicht im Materialbestand</em> gekennzeichnet – sie
+verschwindet nicht still.</li>
+</ul>
+<p>Die Stärke steht danach überall dort, wo sie gebraucht wird: im Kopf des Massaufnahme-PDF,
+auf der Karte in der Werkstatt und in der Rüstliste, jeweils neben dem Material. Und sie
+macht den Restabgleich eindeutig (siehe oben).</p>
+<div class="hin">Die Stärke <strong>nachträglich zu ändern</strong> ist eine wesentliche
+Änderung: eine bereits freigegebene Massaufnahme muss danach erneut freigegeben werden
+(Abschnitt 9). Sie zum <em>ersten Mal</em> einzutragen zählt nicht dazu – sonst würde
+das Nachtragen einer fehlenden Angabe die Freigabe kippen.</div>
 
 <h3>6 · Ausmass</h3>
 <figure><img src="bilder/11-eb-5-ausmass.png"><figcaption>Das Ausmass entsteht ohne zweite Eingabe aus dem, was erfasst wurde – ohne Artikelnummern und ohne Preise.</figcaption></figure>
@@ -1125,28 +1151,34 @@ seine Zahlen.</div>
 
 <figure><img src="bilder/49-lager.png"><figcaption>Das Register „Lager“: Materialbestand und Reststücke an einem Ort.</figcaption></figure>
 <div class="hin"><strong>Materialbestand oder Reststück – was ist was?</strong>
-Der <strong>Materialbestand</strong> ist <em>neues</em> Material, wie es eingekauft
-wird: ganze Tafeln, Rollen, Stangen, mit einer Menge. Ein <strong>Reststück</strong> ist
+Der <strong>Materialbestand</strong> sagt, <em>welche</em> Materialien der Betrieb führt –
+Materialart, Stärke, Ausführung. Ein <strong>Reststück</strong> ist
 ein einzelnes, konkretes Stück, das beim Zuschnitt <em>übrig geblieben</em> ist – mit
 genau einer Länge und einer Breite, meistens von einer bestimmten Massaufnahme. Der
-Bestand sagt der App, welche Stärken und Ausführungen es im Betrieb überhaupt gibt; die
+Bestand sagt der App, welche Stärken und Ausführungen es im Betrieb überhaupt gibt – und
+damit auch, was in der Massaufnahme als Materialstärke zur Auswahl steht; die
 Reststücke sind das, was sie beim Rechnen tatsächlich abziehen kann. Vom Bestand wird
-<strong>nichts</strong> abgebucht, ein Reststück dagegen ist nach der Verwendung
-verbraucht.</div>
+<strong>nichts</strong> abgebucht (er führt seit Version 3.31 gar keine Menge mehr), ein
+Reststück dagegen ist nach der Verwendung verbraucht.</div>
 
 <p>Das Register <strong>📦 Lager</strong> hat zwei Karten. Unter
 <strong>Materialbestand</strong> steht, was an neuem Material im Betrieb liegt – je Zeile
-Artikel aus dem Materialkatalog der Firma, Materialart, <strong>Stärke</strong>,
-<strong>Ausführung</strong> (blank, vorbewittert, verzinkt …), Abmessung und Menge.
+Artikel aus dem Materialkatalog der Firma, Materialart, <strong>Stärke</strong> und
+<strong>Ausführung</strong> (blank, vorbewittert, verzinkt …).
 Das ist <strong>keine Lagerverwaltung</strong>: es wird nichts abgebucht und nichts
-bestellt. Der Bestand hat einen zweiten, wichtigen Zweck – er sagt der App, welche
-Stärke und welche Ausführung eine Materialart im Betrieb überhaupt hat. Nur dadurch kann
-sie beim Zuschnitt entscheiden, ob ein Rest wirklich passt (Abschnitt 5).</p>
+bestellt. Die Liste legt fest, <strong>welche</strong> Materialien der Betrieb führt –
+seit Version 3.31 deshalb <strong>ohne Menge, Länge und Breite</strong>. Sie hatte nie
+eine Wirkung, und eine Zahl, die niemand pflegt, ist schlechter als keine. Der Bestand
+hat dafür zwei klare Aufgaben: er sagt der App, welche <strong>Stärken</strong> in der
+Massaufnahme zur Auswahl stehen (Abschnitt 5), und er entscheidet beim Zuschnitt, ob ein
+Rest wirklich passt.</p>
 <div class="hin">Sind für eine Materialart <strong>mehrere</strong> Kombinationen aus
 Stärke und Ausführung hinterlegt – etwa Titanzink 0,70 blank und 0,80 vorbewittert –,
-kann die App aus der Massaufnahme allein nicht ableiten, welche gemeint ist. Sie sagt das
-dann ausdrücklich und <strong>zieht keinen Rest ab</strong>, statt zu raten. Der Zuschnitt
-selbst funktioniert unverändert weiter.</div>
+entscheidet die <strong>Materialstärke der Massaufnahme</strong> (Abschnitt 5), welche
+gemeint ist. Ist sie dort nicht erfasst, sagt die App das ausdrücklich und
+<strong>zieht keinen Rest ab</strong>, statt zu raten. Der Zuschnitt selbst funktioniert
+unverändert weiter. Was der Bestand gar nicht führt, wird auch nicht ersetzt: eine
+Massaufnahme mit 0,80 mm nimmt keinen 0,70er Rest.</div>
 <p>Die zweite Karte sind die <strong>Reststücke</strong> – dieselbe Liste wie bisher, nur
 jetzt neben dem Materialbestand statt unter „Allgemein“. Jeder Rest trägt Material,
 Stärke, Ausführung, Länge, Breite und seine Herkunft. Fehlt einem älteren Rest die Stärke
@@ -1297,7 +1329,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.30</strong>, Stand 8. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.31</strong>, Stand 8. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

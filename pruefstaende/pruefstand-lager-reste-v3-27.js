@@ -385,10 +385,12 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
   const tab=document.querySelector('[data-settings-tab="lager"]');
   return {tab:!!tab,panel:!!document.querySelector('[data-settings-panel="lager"]'),
     text:t,hatStaerke:/0,7 mm/.test(t),hatAusf:/blank/.test(t),
-    hatMass:/2.000 × 1.000 mm/.test(t)};
+    // v3.31: Menge und Abmessung sind bewusst weg - die Liste legt fest,
+    // WELCHE Materialien die Firma fuehrt, sie ist keine Bestandsfuehrung.
+    hatMass:!/2.000 × 1.000 mm/.test(t)&&!/Tafel/.test(t)};
  });
  p(r.tab&&r.panel,"20 · das Register Lager gibt es",r);
- p(r.hatStaerke&&r.hatAusf&&r.hatMass,"20 · Staerke, Ausfuehrung und Abmessung stehen in der Zeile",
+ p(r.hatStaerke&&r.hatAusf&&r.hatMass,"20 · Staerke und Ausfuehrung stehen in der Zeile, Menge und Abmessung nicht mehr",
    {text:r.text.slice(0,150)});
 
  // Fehlende Merkmale werden ausdruecklich benannt, nicht verschwiegen.
@@ -416,8 +418,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
  r=await page.evaluate(async()=>{
   window.__schreib=[]; lagFormularOeffnen({});
   $("lag_material").value="2"; $("lag_staerke").value="0.7";
-  $("lag_ausfuehrung").value="blank"; $("lag_laenge").value="2000";
-  $("lag_breite").value="1000"; $("lag_menge").value="3";
+  $("lag_ausfuehrung").value="blank";
   await lagSpeichern();
   return {n:window.__schreib.length,eintrag:window.__schreib[0]||null,
     offen:!$("lagerFormModal").hidden};

@@ -123,6 +123,9 @@ function buildMeasurementFromForm(){
   // v3.16: Material fuer den Regierapport. Steht in base und gilt damit
   // fuer alle zwoelf Zweige - eine Stelle, nicht zwoelf.
   rapport_material:(typeof measRapportMaterialAusFormular==="function")?measRapportMaterialAusFormular():[],
+  // v3.31: Materialstaerke. Steht wie rapport_material in base und gilt
+  // damit fuer alle zwoelf Zweige - eine Stelle, nicht zwoelf.
+  staerke_mm:(typeof measStaerkeGet==="function")?measStaerkeGet():null,
  };
  if(type==="einlaufblech_gerade"){
   const massA=Number($("eb_massA").value)||0;
@@ -420,7 +423,10 @@ $("saveMeasurement").onclick=async()=>{
      data:form.data||{},
      // v3.16: auch offline mitgeben - sonst waere die Materialliste nach
      // der Uebertragung weg.
-     rapport_material:form.rapport_material||[]},
+     rapport_material:form.rapport_material||[],
+     // v3.31: auch offline mitgeben - sonst waere die Staerke nach der
+     // Uebertragung weg.
+     staerke_mm:form.staerke_mm===undefined?null:form.staerke_mm},
    // Fotos und Skizzen reisen als data:-URLs mit und werden erst beim
    // Senden hochgeladen - offline gibt es weder Zeilen-ID noch Storage.
    bilder:{photo_paths:measPhotos.slice(),sketch_paths:measSketches.slice()}
@@ -490,6 +496,10 @@ $("saveMeasurement").onclick=async()=>{
    // ausdruecklich aufgebaut - ohne diese Zeile ginge die Liste beim
    // Speichern verloren, obwohl sie im Formular steht.
    rapport_material:form.rapport_material||[],
+   // v3.31: Der Speicher-Payload wird hier ausdruecklich aufgebaut - ohne
+   // diese Zeile ginge die Staerke beim Speichern verloren, obwohl sie im
+   // Formular steht.
+   staerke_mm:form.staerke_mm===undefined?null:form.staerke_mm,
    updated_by:currentProfile?currentProfile.id:null,
    updated_at:jetzt
   };
@@ -635,6 +645,9 @@ function pdfKopfHtml(opt){
  const zeilen=[];
  if(o.unterart)zeilen.push([o.dokumenttyp,o.unterart]);
  if(bez&&bez!==adresse)zeilen.push(["Bezeichnung",bez]);
+ // v3.31: Material und Staerke gehoeren auf jedes Blatt - EINE Stelle
+ // statt zwoelf Druckzweige.
+ if(o.material)zeilen.push(["Material",o.material]);
  if(o.bearbeiter)zeilen.push(["Bearbeiter",o.bearbeiter]);
  const datum=pdfDatumKurz(o.datum);
  return `<div class="pdf-head">
@@ -891,10 +904,24 @@ ${sketchSrcs.map((s2,i)=>`<div class="sketch-page"><div class="eb-section-head">
  const cell2=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
  // Exakt derselbe zentrale Kopf wie beim jeweils anderen Dokumenttyp
  // (pdfKopfHtml, js/16) - nur Dokumenttyp und Unterart unterscheiden sich.
+ // v3.31: Material und Staerke in den Kopf - eine Stelle statt zwoelf
+ // Druckzweige. data.material fuehren alle zwoelf Arten, die Staerke steht
+ // seit v3.31 in einer eigenen Spalte. Fehlt eines von beiden, wird es
+ // weggelassen statt erfunden.
+ const matZeile=(function(){
+  const t=[];
+  const mm=(m.data&&m.data.material)?
+   ((typeof findMeasurementMaterial==="function")?findMeasurementMaterial(m.data.material):null):null;
+  if(mm&&mm.name)t.push(mm.name);
+  const st=(typeof measStaerkeText==="function")?measStaerkeText(m.staerke_mm):"";
+  if(st)t.push(st);
+  return t.join(" · ");
+ })();
  const kopfHtml=pdfKopfHtml({
   datensatz:m,projekt:proj,bezeichnung:m.title,
   dokumenttyp:"Massaufnahme",unterart:typeLabels[m.type]||m.type,
   datum:m.date||"",
+  material:matZeile,
   bearbeiter:currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"",
   logoSrc
  });

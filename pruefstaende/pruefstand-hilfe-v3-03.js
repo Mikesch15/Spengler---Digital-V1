@@ -218,9 +218,17 @@ const ARTEN=[
    const gesehen={};
    for(let n=1;n<=reg.length;n++){
     (0,eval)(a.setz)(n);
+    // Die Register-Module zeichnen neu, das Staerkefeld haengt sich per
+    // requestAnimationFrame nach - ohne dieses Warten waeren die zwoelf
+    // Arten unterschiedlich weit, wenn gemessen wird.
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     const w=document.getElementById(a.wurzel);
     const k=[...w.querySelectorAll(".hilfe-knopf[data-hilfe]")]
-      .filter(x=>x.offsetParent!==null);
+      .filter(x=>x.offsetParent!==null)
+      // v3.31: der Info-Knopf der Materialstaerke gehoert zu einem FELD,
+      // nicht zur Registerkarte. Geprueft wird hier die Karte - jeder
+      // andere zusaetzliche Knopf faellt weiterhin auf.
+      .filter(x=>!x.closest("[data-meas-staerke-block]"));
     gesehen[n]=k.length===1?k[0].dataset.hilfe:k.length;
     if(k.length!==1)doppelt.push(n+":"+k.length);
    }

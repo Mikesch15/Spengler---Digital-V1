@@ -434,6 +434,7 @@ function newMeasurementWithType(type){
  measSketches=[];
  // v3.16: Material fuer den Regierapport - eine neue Aufnahme hat keines.
  if(typeof measRapportMaterialZuruecksetzen==="function")measRapportMaterialZuruecksetzen();
+ if(typeof measStaerkeZuruecksetzen==="function")measStaerkeZuruecksetzen();
  renderMeasPhotoGallery();
  // Neue Aufnahme: der Foto-/Skizzenbereich der Register-Arten startet
  // wieder zugeklappt.
@@ -641,6 +642,8 @@ function openMeasurement(m){
  // v3.16: aus der Spalte, NICHT aus data - eine vor v3.16 gespeicherte
  // Aufnahme hat die Spalte nicht und oeffnet mit leerer Liste.
  if(typeof measRapportMaterialFuellen==="function")measRapportMaterialFuellen(m);
+ // v3.31: Die Staerke steht in einer eigenen Spalte, nicht in data.
+ if(typeof measStaerkeSetzen==="function")measStaerkeSetzen(m.staerke_mm);
  if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(m.type);
  // Alle Fachfelder aus m.data fuellen - dieselbe Stelle, die auch die
  // Vorlagen-Kopie benutzt (v3.04).

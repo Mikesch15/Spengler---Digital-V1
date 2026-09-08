@@ -45,8 +45,12 @@ function rlPlan(m){
 function rlTyp(t){
  return (typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[t])||t||"Massaufnahme";
 }
+// v3.31: Material UND Staerke - beim Ruesten muss klar sein, welches Blech
+// vom Stapel genommen wird. Die Staerke steht seit v3.31 an der Massaufnahme.
 function rlMaterial(m){
- return (typeof pmatMaterialName==="function")?pmatMaterialName(((m&&m.data)||{}).material):"";
+ const name=(typeof pmatMaterialName==="function")?pmatMaterialName(((m&&m.data)||{}).material):"";
+ const st=(typeof measStaerkeText==="function")?measStaerkeText(m&&m.staerke_mm):"";
+ return [name&&name!=="Ohne Material"?name:"",st].filter(Boolean).join(" · ");
 }
 // Ist dieses Stück schon zugeschnitten? Kommt aus dem bereits geladenen
 // Haken-Zwischenspeicher (js/56) - es wird dafür nichts nachgeladen.

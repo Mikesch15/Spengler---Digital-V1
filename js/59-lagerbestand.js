@@ -23,7 +23,6 @@
 
 function lagZahl(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function lagNummer(v){const n=Number(v);return Number.isFinite(n)&&n>0?n:null}
-function lagMm(v){return Math.round(lagZahl(v)).toLocaleString("de-CH")}
 
 // Der Artikel einer Firma - dort stehen Staerke (dim) und Ausfuehrung (im
 // Namen) bereits. Wird ein Artikel gewaehlt, uebernimmt das Formular sie als
@@ -54,6 +53,12 @@ function lagMaterialName(id){
 
 // Die Zeile, wie sie im Lager steht. Nur echte Angaben - fehlt eine, wird sie
 // weggelassen statt erfunden.
+// v3.31: Menge, Laenge und Breite sind hier bewusst KEIN Thema mehr. Die
+// Liste legt fest, WELCHE Materialien die Firma fuehrt - sie ist kein
+// Lagerbestand im Sinne einer Bestandsfuehrung und war es nie (es wurde nie
+// etwas abgebucht). Die Spalten laenge_mm, breite_mm, menge und einheit
+// bleiben in der Datenbank stehen: nichts wird geloescht, sie werden nur
+// nicht mehr geschrieben und nicht mehr angezeigt.
 function lagBeschreibung(l){
  const t=[];
  const bez=(l.bezeichnung||"").trim()||lagMaterialName(l.material_id)||"Material";
@@ -61,12 +66,6 @@ function lagBeschreibung(l){
  const st=lagNummer(l.staerke_mm);
  if(st!==null)t.push(String(st).replace(".",",")+" mm");
  if((l.ausfuehrung||"").trim())t.push(l.ausfuehrung.trim());
- const L=lagZahl(l.laenge_mm), B=lagZahl(l.breite_mm);
- if(L>0&&B>0)t.push(lagMm(L)+" × "+lagMm(B)+" mm");
- else if(B>0)t.push(lagMm(B)+" mm breit");
- else if(L>0)t.push(lagMm(L)+" mm lang");
- const menge=lagZahl(l.menge);
- if(menge>0)t.push(menge.toLocaleString("de-CH")+" "+((l.einheit||"Stk.").trim()));
  return t.join(" · ");
 }
 
@@ -155,14 +154,12 @@ function lagFormularHtml(l){
  <div><label>Bezeichnung</label><input id="lag_bezeichnung" type="text" value="${esc(l.bezeichnung||"")}" placeholder="z. B. Titanzink vorbewittert"></div>
  <div><label>Stärke (mm)</label><input id="lag_staerke" type="number" step="0.05" min="0" value="${l.staerke_mm==null?"":l.staerke_mm}" placeholder="0.70"></div>
  <div><label>Oberfläche / Ausführung</label><input id="lag_ausfuehrung" type="text" value="${esc(l.ausfuehrung||"")}" placeholder="z. B. blank, vorbewittert"></div>
- <div><label>Länge (mm)</label><input id="lag_laenge" type="number" step="10" min="0" value="${l.laenge_mm==null?"":l.laenge_mm}"></div>
- <div><label>Breite (mm)</label><input id="lag_breite" type="number" step="10" min="0" value="${l.breite_mm==null?"":l.breite_mm}"></div>
- <div><label>Menge</label><input id="lag_menge" type="number" step="1" min="0" value="${l.menge==null?"":l.menge}"></div>
- <div><label>Einheit</label><input id="lag_einheit" type="text" value="${esc(l.einheit||"Stk.")}"></div>
  <div class="wide"><label>Notiz</label><input id="lag_notiz" type="text" value="${esc(l.notiz||"")}" placeholder="z. B. Regal 3"></div>
 </div>
-<div class="small" style="color:var(--muted);margin-top:4px">Materialart, Stärke und Ausführung zusammen machen den
-Bedarf eindeutig. Nur dann darf die App ein passendes Reststück verwenden – 0,70 mm ist kein Ersatz für 0,80 mm.</div>`;
+<div class="small" style="color:var(--muted);margin-top:4px">Diese Liste sagt nur, <b>welche</b> Materialien die Firma
+führt – keine Mengen, keine Tafelgrössen. Materialart, Stärke und Ausführung zusammen machen den Bedarf eindeutig: nur dann
+darf die App ein passendes Reststück verwenden, und nur diese Stärken stehen in der Massaufnahme zur Auswahl.
+0,70 mm ist kein Ersatz für 0,80 mm.</div>`;
 }
 
 function lagFormularOeffnen(l){
@@ -210,10 +207,6 @@ function lagFormularWerte(){
   bezeichnung:z("lag_bezeichnung")||null,
   staerke_mm:n("lag_staerke"),
   ausfuehrung:z("lag_ausfuehrung")||null,
-  laenge_mm:n("lag_laenge"),
-  breite_mm:n("lag_breite"),
-  menge:n("lag_menge")||0,
-  einheit:z("lag_einheit")||null,
   notiz:z("lag_notiz")||null
  };
 }

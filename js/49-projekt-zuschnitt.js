@@ -79,7 +79,10 @@ function pzuSammeln(liste){
   M.ausResten=[];
   M.gruppen.forEach(g=>{
    const vor=(typeof ebaVorabzug==="function")
-    ?ebaVorabzug(g.stuecke,{material:M.materialId,abwicklung:g.breite})
+    // v3.31: ausdruecklich OHNE Staerke - diese Gruppe kann Stuecke aus
+    // mehreren Massaufnahmen enthalten, eine gemeinsame Staerke waere
+    // geraten. Der Abgleich bleibt hier so streng wie bis v3.30.
+    ?ebaVorabzug(g.stuecke,{material:M.materialId,abwicklung:g.breite,staerke:null})
     :{bleche:g.stuecke,ausResten:[],abschnittLaenge:0};
    g.stuecke=vor.bleche||[];
    (vor.ausResten||[]).forEach(x=>M.ausResten.push(x));

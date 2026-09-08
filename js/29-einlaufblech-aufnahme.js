@@ -271,7 +271,14 @@ function ebaPackeInStreifen(bleche,L,budget){
 // kuerzer.
 function ebaVorabzug(bleche,kontext){
  const liste=(bleche||[]).slice();
- const v=(typeof restVorabzug==="function")?restVorabzug(liste,kontext)
+ // v3.31: Die Materialstaerke steht seit v3.31 an der Massaufnahme selbst
+ // und macht den Bedarf eindeutig, wo der Materialbestand mehrere Staerken
+ // fuehrt. Alle zwoelf Aufrufer sind das offene Formular; der projektweite
+ // Plan (js/49) rechnet ueber mehrere Massaufnahmen und setzt sie
+ // ausdruecklich selbst auf null.
+ const k=Object.assign({},kontext||{});
+ if(k.staerke===undefined&&typeof measStaerkeGet==="function")k.staerke=measStaerkeGet();
+ const v=(typeof restVorabzug==="function")?restVorabzug(liste,k)
    :{bleche:liste,ausResten:[],grund:"aus"};
  const l=(v.bleche||[]).map(x=>Number(x&&x.laenge)||0).filter(x=>x>0);
  v.abschnittLaenge=l.length?Math.max.apply(null,l):0;

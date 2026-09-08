@@ -27,6 +27,7 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  from:(t)=>{const z={t};const q={};
   q.insert=d=>{z.op="insert";z.daten=d;return q};
   q.select=()=>{if(!z.op)z.op="select";return q}; q.eq=()=>q; q.order=()=>q; q.limit=()=>q;
+  q.not=()=>q; // seit v3.29 fragt js/05 die verbrauchten Reste mit .not(...) ab
   const lauf=()=>{window.__db.log.push({t,op:z.op,daten:z.daten});
    if(window.__db.fehler)return {data:null,error:{message:window.__db.fehler}};
    if(z.op==="insert")return {data:window.__db.leer?[]:(z.daten||[]).map((x,i)=>Object.assign({id:i+1},x)),error:null};

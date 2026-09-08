@@ -75,14 +75,31 @@ function restMerkmalText(m){
  if(m.ausfuehrung)t.push(m.ausfuehrung);
  return t.join(" · ");
 }
-// Was fuer diese Materialart im Lager steht.
-function restBedarfMerkmale(materialId){
+// Was fuer diese Materialart im Materialbestand steht.
+//
+// v3.31: staerke ist die an der Massaufnahme erfasste Materialstaerke
+// (measurements.staerke_mm). Ist sie bekannt, wird der Bestand darauf
+// eingegrenzt - genau das loest die Mehrdeutigkeit, an der der Abgleich bis
+// v3.30 aufgeben musste, wenn eine Firma zwei Staerken derselben Art fuehrt.
+// Ohne Angabe bleibt es beim bisherigen Verhalten. Nennt die Massaufnahme
+// eine Staerke, die der Bestand nicht fuehrt, wird das ausdruecklich
+// gemeldet statt auf irgendeine andere auszuweichen.
+function restBedarfMerkmale(materialId,staerke){
  const mid=restNummer(materialId);
  if(mid===null)return {eindeutig:false,grund:"ohne-material",merkmale:null,gefunden:[]};
- const eintraege=(typeof lagerbestand!=="undefined"?lagerbestand:[]||[])
+ const st=restNummer(staerke);
+ const alle=(typeof lagerbestand!=="undefined"?lagerbestand:[]||[])
    .filter(l=>restNummer(l.material_id)===mid);
- if(!eintraege.length)
+ if(!alle.length)
   return {eindeutig:false,grund:"kein-lager",merkmale:null,gefunden:[],material:mid};
+ const eintraege=st===null?alle
+   :alle.filter(l=>{const x=restNummer(l.staerke_mm);return x!==null&&Math.abs(x-st)<1e-6});
+ if(!eintraege.length)
+  return {eindeutig:false,grund:"staerke-nicht-im-lager",merkmale:null,
+          gefunden:alle.map(l=>({staerke:restNummer(l.staerke_mm),
+            ausfuehrung:restNormText(l.ausfuehrung)||null,artikel:restNummer(l.artikel_id),
+            text:restMerkmalText(restMerkmale(l))})),
+          material:mid,staerke:st};
  const map={};
  eintraege.forEach(l=>{
   const m=restMerkmale(l);
@@ -126,7 +143,8 @@ const REST_WARUM_TEXT={
  "ohne-material":"für diese Massaufnahme ist kein Material gewählt",
  "kein-lager":"für dieses Material steht nichts im Lagerbestand",
  "mehrdeutig":"im Lagerbestand stehen mehrere Stärken/Ausführungen",
- "unvollstaendig":"im Lagerbestand fehlen Stärke oder Ausführung"
+ "unvollstaendig":"im Lagerbestand fehlen Stärke oder Ausführung",
+ "staerke-nicht-im-lager":"diese Materialstärke steht nicht im Materialbestand"
 };
 const REST_GRUND_TEXT={
  "aus":"Reststücke werden laut Einstellung nicht in die Zuschnittplanung einbezogen.",
@@ -499,7 +517,7 @@ function restVorabzug(bleche,kontext){
   return restVorabzugAus(bleche,"ohne-packrechnung");
  const A=restZahl(kontext&&kontext.abwicklung);
  if(A<=0)return restVorabzugAus(bleche,"ohne-breite");
- const bedarf=restBedarfMerkmale(kontext&&kontext.material);
+ const bedarf=restBedarfMerkmale(kontext&&kontext.material,kontext&&kontext.staerke);
  if(!bedarf.eindeutig)return restVorabzugAus(bleche,bedarf.grund,bedarf);
  // Kleinste Flaeche zuerst: so werden kleine Reste aufgebraucht und die
  // grossen bleiben fuer groessere Auftraege erhalten.
@@ -553,12 +571,12 @@ function restKandidaten(plan){
 // exakt passen. Ein Rest, der nur breit genug ist, wird weiterhin gezeigt -
 // aber ausdruecklich als "nicht automatisch verwendbar" gekennzeichnet, mit
 // dem Grund. Stillschweigend uebergangen wird nichts.
-function restPassend(breite,laengen,material){
+function restPassend(breite,laengen,material,staerke){
  const b=restZahl(breite);
  const l=(laengen||[]).map(restZahl).filter(x=>x>0);
  if(b<=0||!l.length)return [];
  const laengste=Math.max.apply(null,l);
- const bedarf=restBedarfMerkmale(material);
+ const bedarf=restBedarfMerkmale(material,staerke);
  return (reststuecke||[]).filter(r=>!r.verbraucht
    &&restZahl(r.breite_mm)>=b-1e-9
    &&restZahl(r.laenge_mm)>=Math.min.apply(null,l)-1e-9)
@@ -587,6 +605,16 @@ function restPlanBezug(plan){
  if(!Number.isFinite(pid)||pid<=0)pid=null;
  return {measurement_id:mid,project_id:pid};
 }
+// v3.31: Die Materialstaerke, die zu diesem Plan gehoert. Ein gespeicherter
+// Plan traegt sie seit v3.31 selbst (pmatPlanFuer, js/48) - auch als null,
+// wenn die Massaufnahme keine erfasst hat. Nur wenn der Plan gar nichts dazu
+// sagt, ist es das offene Formular. Der projektweite Sammelplan gehoert zu
+// mehreren Massaufnahmen und bekommt ausdruecklich keine.
+function restPlanStaerke(plan){
+ if(plan&&plan.sammel)return null;
+ if(plan&&plan.staerkeFuer!==undefined)return restNummer(plan.staerkeFuer);
+ return (typeof measStaerkeGet==="function")?restNummer(measStaerkeGet()):null;
+}
 // Ist von genau dieser Massaufnahme schon etwas im Lager? Der Knopf laesst
 // sich sonst nach jedem Neuzeichnen erneut druecken und legt dieselben Reste
 // ein zweites Mal an.
@@ -610,7 +638,8 @@ function restBlockHtml(plan,material){
  }
  const suchBreite=plan.art==="stange"?restZahl(plan.breite)
    :(breiten.length?Math.min.apply(null,breiten):0);
- const passend=suchBreite>0?restPassend(suchBreite,laengen,material):[];
+ const staerke=restPlanStaerke(plan);
+ const passend=suchBreite>0?restPassend(suchBreite,laengen,material,staerke):[];
  const alle=restAlle(plan);
  const kandidaten=restKandidaten(plan);
  const klein=alle.filter(x=>x.zuKlein&&x.laenge_mm>0);
@@ -649,7 +678,7 @@ function restBlockHtml(plan,material){
    +kandidaten.map(k=>`<div class="small" style="color:var(--muted)">• ${k.anzahl>1?k.anzahl+" × ":""}${restMm(k.laenge_mm)} × ${restMm(k.breite_mm)} mm – ${esc(k.quelle)}</div>`).join("")
    +(schon
      ?`<div class="small rest-schon" style="margin-top:4px">✓ Von dieser Massaufnahme ${schon===1?"ist bereits ein Rest":"sind bereits "+schon+" Reste"} im Lager – es wird nichts doppelt eingelagert.</div>`
-     :`<div class="bar" style="margin-top:4px"><button type="button" class="gray" data-rest-einlagern="${esc(JSON.stringify({k:kandidaten,m:material||null,b:bezug}))}">📥 Reste ins Lager aufnehmen</button></div>`);
+     :`<div class="bar" style="margin-top:4px"><button type="button" class="gray" data-rest-einlagern="${esc(JSON.stringify({k:kandidaten,m:material||null,b:bezug,s:staerke}))}">📥 Reste ins Lager aufnehmen</button></div>`);
  }
  // v3.26: Was zu klein ist, verschwindet nicht mehr stillschweigend. Es ist
  // echter Verschnitt - aber es wird gesagt, wie viel und warum.
@@ -696,12 +725,16 @@ document.addEventListener("click",async e=>{
  const mat=daten.m?findMeasurementMaterial(daten.m):null;
  // Die Merkmale des Lagerbestands, sofern sie fuer diese Materialart
  // eindeutig sind (siehe restBedarfMerkmale).
- const bm=restBedarfMerkmale(mat?mat.id:null);
+ // v3.31: Die Massaufnahme kennt ihre Materialstaerke jetzt selbst. Sie
+ // grenzt den Bestand ein - und wenn er trotzdem nicht eindeutig ist, ist
+ // sie immer noch die verlaesslichere Angabe als gar keine.
+ const stMass=restNummer(daten.s);
+ const bm=restBedarfMerkmale(mat?mat.id:null,stMass);
  const merk=bm.eindeutig?bm.merkmale:null;
  const {fehler,anzahl,offline}=await restEinlagern(
   (daten.k||[]).map(k=>({laenge_mm:k.laenge_mm,breite_mm:k.breite_mm,anzahl:k.anzahl,
     material_id:mat?mat.id:null,material_name:mat?mat.name:null,
-    artikel_id:merk?merk.artikel:null,staerke_mm:merk?merk.staerke:null,
+    artikel_id:merk?merk.artikel:null,staerke_mm:merk?merk.staerke:stMass,
     ausfuehrung:merk?merk.ausfuehrung:null})),
   restHerkunftText(bezug),bezug);
  b.disabled=false;

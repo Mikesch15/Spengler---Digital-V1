@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.30.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.31.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1108,25 +1108,45 @@ Ausführung kennt, steht im Register <b>📦 Lager</b> unter Materialbestand.</p
 kämen. Ob ein Rest wirklich verbraucht ist, bleibt ein ausdrücklicher Klick.</p>`},
 
 "lagerbestand":{titel:"Materialbestand",text:`
-<p><b>Materialbestand oder Reststück?</b> Der Bestand ist <b>neues</b> Material,
-wie es eingekauft wird – ganze Tafeln, Rollen, Stangen, mit einer Menge. Ein
-<b>Reststück</b> ist ein einzelnes, konkretes Stück, das beim Zuschnitt übrig
-geblieben ist, mit genau einer Länge und Breite. Vom Bestand wird nichts
-abgebucht; ein Reststück ist nach der Verwendung verbraucht.</p>
-<p>Was an <b>neuem</b> Material im Betrieb liegt – Tafeln, Rollen, Stangen.
-Ausdrücklich <b>keine</b> Lagerverwaltung: es wird nichts automatisch
-abgebucht, nichts bestellt und kein Bestand fortgeschrieben.</p>
-<p>Der eigentliche Zweck ist ein anderer. Eine Massaufnahme kennt nur die
+<p>Diese Liste legt fest, <b>welche</b> Materialien die Firma führt – Materialart,
+Stärke und Ausführung. Sonst nichts: seit Version 3.31 <b>keine Mengen, keine
+Längen, keine Tafelgrössen</b>. Es war nie eine Lagerverwaltung, es wurde nie
+etwas abgebucht, und die Zahlen dort haben nichts bewirkt.</p>
+<p><b>Materialbestand oder Reststück?</b> Der Bestand sagt, was der Betrieb
+grundsätzlich führt. Ein <b>Reststück</b> ist ein einzelnes, konkretes Stück,
+das beim Zuschnitt übrig geblieben ist, mit genau einer Länge und Breite – und
+nach der Verwendung ist es verbraucht.</p>
+<p>Wofür die Liste gebraucht wird: Eine Massaufnahme kennt nur die
 <b>Materialart</b> („Titanzink“) – Stärke und Ausführung stehen dort nirgends.
-Erst wenn hier eingetragen ist, welche Stärke und welche Ausführung die Firma
-für diese Materialart führt, weiss die App, was ein passender Rest ist.</p>
-<p>Führt eine Materialart <b>mehrere</b> Kombinationen (0,70 <i>und</i> 0,80),
-wird für sie <b>kein</b> Rest automatisch verwendet – die App rät nicht,
-welche gemeint war. Das steht dann als Hinweis in der Liste.</p>
+Was hier steht, ist deshalb zweierlei: die Auswahl für die <b>Materialstärke</b>
+in der Massaufnahme, und die Grundlage dafür, was ein passender Rest ist.</p>
+<p>Führt eine Materialart <b>mehrere</b> Stärken (0,70 <i>und</i> 0,80), war
+bis Version 3.30 für sie kein Rest automatisch verwendbar – die App rät nicht,
+welche gemeint war. Seit die Massaufnahme ihre Stärke selbst nennt, ist die
+Frage in der Regel beantwortet.</p>
 <p>Materialarten kommen aus den Massaufnahme-Materialien, Artikel aus dem
 Materialkatalog der Firma. Beides ist firmeneigen und wird hier nicht neu
 erfunden. Wird ein Artikel gewählt, schlägt das Formular Stärke und
 Bezeichnung vor – beides bleibt frei änderbar.</p>`},
+
+"meas-staerke":{titel:"Materialstärke",text:`
+<p>Welche Stärke das Blech dieser Massaufnahme hat. Die Auswahl kommt
+<b>ausschliesslich</b> aus dem Materialbestand der Firma (Einstellungen →
+Allgemein → Materialbestand) – es wird nichts vorgeschlagen, was der Betrieb
+nicht führt, und nichts erfunden.</p>
+<p>Steht für das gewählte Material dort noch nichts, sagt das Feld das
+ausdrücklich. Dann ist zuerst der Materialbestand dran; die Massaufnahme
+lässt sich trotzdem ohne Stärke speichern.</p>
+<p>Wofür sie gebraucht wird: sie macht den Bedarf eindeutig. Führt die Firma
+0,70 <b>und</b> 0,80 mm derselben Art, konnte die App bis Version 3.30 kein
+Reststück zuordnen. Mit der Stärke an der Massaufnahme geht das – und ein
+eingelagerter Rest bekommt sie gleich mit.</p>
+<p>Sie steht ausserdem im Kopf des Ausdrucks, in der Werkstatt und auf der
+Rüstliste: wer rüstet, muss wissen, welches Blech vom Stapel kommt.</p>
+<p><b>Achtung:</b> Wird die Stärke nach der Freigabe <i>geändert</i>, verfällt
+die Freigabe – der Rüster hätte sonst das falsche Blech gerüstet. Sie zum
+ersten Mal einzutragen ist dagegen kein Verfall, da fehlte vorher nur die
+Angabe.</p>`},
 
 "rest-verwendet":{titel:"Zuletzt verwendete Reste",text:`
 <p>Ein Rest, der für eine Massaufnahme gebraucht wurde, verschwindet aus dem
