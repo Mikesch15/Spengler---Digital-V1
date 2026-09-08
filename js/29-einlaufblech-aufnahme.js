@@ -307,6 +307,171 @@ function ebaAusRestenSpeicher(liste){
     merkmal:st.merkmal||"",hinweis:st.hinweis||""}))
  })).filter(x=>x.stuecke.length);
 }
+// ---- Rolle oder Tafel (v3.33) ---------------------------------------------
+// Bis v3.32 rechnete der Zuschnitt AUSSCHLIESSLICH mit Rollenblech: ein
+// Abschnitt wird abgezogen, so lang wie das laengste Stueck, und quer in
+// Streifen der Abwicklungsbreite geteilt. Eine Tafel hat dagegen eine feste
+// Laenge UND eine feste Breite.
+//
+// Der Schluessel ist eine geometrische Beobachtung: eine Tafel ist genau ein
+// Abschnitt mit fester Laenge und fester Breite - also exakt die Form, fuer
+// die ebaVerteile() gebaut ist. Es entsteht deshalb KEINE zweite
+// Packrechnung; es aendert sich nur, woher L und B kommen:
+//
+//   Rolle:  B = Rollenbreite (firmenweit)   L = laengstes Stueck
+//   Tafel:  B = Tafelbreite (am Material)   L = Tafellaenge
+//
+// Dasselbe Argument wie bei den Reststuecken in v3.27 (CLAUDE.md 132.5).
+//
+// Woher die Form kommt: aus dem Materialbestand (js/59) ueber
+// restBedarfForm() (js/42) - dieselbe Quelle, die schon Staerke und
+// Ausfuehrung liefert. Was dort nicht eindeutig ist, wird NICHT geraten:
+// dann bleibt es beim bisherigen Verhalten (Rolle), und die Anzeige sagt
+// warum. Eine ausdrueckliche Wahl an der Massaufnahme (js/61) schlaegt den
+// Bestand - der Zuschneider weiss besser, was auf dem Bock liegt.
+function ebaFormatText(f){
+ if(!f)return "";
+ return f.laenge===null
+  ? Math.round(f.breite).toLocaleString("de-CH")+" mm"
+  : Math.round(f.laenge).toLocaleString("de-CH")+" × "+Math.round(f.breite).toLocaleString("de-CH")+" mm";
+}
+function ebaRollenFormate(){
+ return ebaRollenAktiv().map(B=>({breite:B,laenge:null,text:ebaFormatText({breite:B,laenge:null})}));
+}
+function ebaFormate(kontext){
+ const k=kontext||{};
+ // Die ausdrueckliche Wahl an der Massaufnahme, wenn es sie gibt.
+ let wahl=k.form;
+ if(wahl===undefined&&typeof measZuschnittFormGet==="function")wahl=measZuschnittFormGet();
+ let staerke=k.staerke;
+ if(staerke===undefined&&typeof measStaerkeGet==="function")staerke=measStaerkeGet();
+ const bedarf=(typeof restBedarfForm==="function")
+   ? restBedarfForm(k.material,staerke)
+   : {form:null,grund:"kein-lager",formate:[]};
+ const form=(wahl==="rolle"||wahl==="tafel")?wahl:bedarf.form;
+ if(form==="tafel"){
+  const formate=(bedarf.formate||[]).map(f=>({breite:f.breite,laenge:f.laenge,text:f.text}));
+  if(formate.length)
+   return {form:"tafel",formate,grund:"",quelle:wahl?"wahl":"bestand",bedarf};
+  // Tafel gewaehlt, aber kein Format hinterlegt: es wird keines erfunden.
+  // Gerechnet wird weiter mit der Rolle, und das steht ausdruecklich da.
+  return {form:"rolle",formate:ebaRollenFormate(),
+          grund:wahl?"tafel-ohne-format":(bedarf.grund||"tafel-ohne-format"),
+          quelle:"rueckfall",bedarf};
+ }
+ if(form==="rolle")
+  return {form:"rolle",formate:ebaRollenFormate(),grund:"",
+          quelle:wahl?"wahl":"bestand",bedarf};
+ return {form:"rolle",formate:ebaRollenFormate(),grund:bedarf.grund||"ohne-form",
+         quelle:"rueckfall",bedarf};
+}
+
+// Der EINE Formatplan fuer alle zehn Rollen-Module - Einzelbreite wie
+// Gruppen. gruppen ist [{breite, bleche:[{nr,laenge,merkmal,hinweis}]}];
+// bei genau einer Gruppe kommen die Felder zusaetzlich flach zurueck, damit
+// die bestehende Darstellung (js/33) unveraendert damit arbeitet.
+//
+// Gepackt wird je Abschnittlaenge EINMAL und danach aus dem Zwischenspeicher
+// bedient: bei der Rolle haengt L nicht vom Format ab, bei der Tafel schon.
+function ebaFormatPlan(opt){
+ const o=opt||{};
+ const gruppen=(o.gruppen||[]).filter(g=>g&&(g.bleche||[]).length&&Number(g.breite)>0);
+ const formate=(o.formate||[]).filter(f=>f&&Number(f.breite)>0);
+ const netto=Number(o.netto)||0;
+ const leer={moeglich:[],zuSchmal:formate.map(f=>f.breite),zuLang:[],zuKurz:[],bestes:null,
+             gruppen:gruppen.map(g=>Object.assign({},g,{streifen:[],abschnittLaenge:0})),
+             netto,optimal:true,form:o.form==="tafel"?"tafel":"rolle",formate};
+ if(!gruppen.length||!formate.length)return leer;
+ const cache={};
+ const packe=(gi,L)=>{
+  const k=gi+"|"+L;
+  if(!cache[k])cache[k]=ebaPackeInStreifen(gruppen[gi].bleche,L);
+  return cache[k];
+ };
+ const laengstes=g=>{
+  const l=(g.bleche||[]).map(x=>Number(x.laenge)||0).filter(x=>x>0);
+  return l.length?Math.max.apply(null,l):0;
+ };
+ // zuKurz: Formate, die an einem zu langen Stueck scheitern. Nur bei der
+ // Tafel moeglich - bei der Rolle ist L das laengste Stueck.
+ const moeglich=[], zuSchmal=[], zuKurz=[];
+ formate.forEach(f=>{
+  const zeilen=[]; let flaeche=0, schmal=false, lang=null;
+  for(let gi=0;gi<gruppen.length;gi++){
+   const g=gruppen[gi];
+   const jeAbschnitt=ebaStreifenJeAbschnitt(f.breite,g.breite);
+   if(jeAbschnitt<1){schmal=true;break}
+   const L=f.laenge===null?laengstes(g):f.laenge;
+   // Nur bei der Tafel moeglich: ein Stueck ist laenger als die Tafel. Es
+   // wird nicht stillschweigend gekuerzt - das Format faellt weg.
+   const zu=(g.bleche||[]).filter(x=>(Number(x.laenge)||0)>L+1e-6);
+   if(zu.length){lang={format:f,stuecke:zu.map(x=>({nr:x.nr,laenge:x.laenge})),laenge:L};break}
+   const v=packe(gi,L);
+   const streifen=v.streifen||[];
+   const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
+   const rollenLaenge=abschnitte*L;
+   flaeche+=f.breite*rollenLaenge/1e6;
+   zeilen.push({breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
+     abschnittLaenge:L,rollenLaenge,streifen:streifen.length,
+     ungenutzteStreifen:abschnitte*jeAbschnitt-streifen.length,
+     restBreite:ebaRestBreite(f.breite,g.breite,jeAbschnitt)});
+  }
+  if(schmal){zuSchmal.push(f.breite);return}
+  if(lang){zuKurz.push(lang);return}
+  const e={breite:f.breite,laenge:f.laenge,text:f.text||ebaFormatText(f),
+    zeilen,flaeche,verschnitt:flaeche-netto,
+    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,
+    rollenLaenge:zeilen.reduce((s,x)=>s+x.rollenLaenge,0)};
+  if(zeilen.length===1)Object.assign(e,zeilen[0],{breite:f.breite,laenge:f.laenge});
+  moeglich.push(e);
+ });
+ moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
+ const best=moeglich[0]||null;
+ // Passt gar kein Format, sagt die Liste, welche Stuecke selbst im laengsten
+ // nicht unterkommen - das ist die Angabe, die die Werkstatt braucht.
+ // Die gemeinsame Darstellung (js/33) erwartet dafuer [{nr,laenge}].
+ let zuLang=[];
+ if(!moeglich.length&&zuKurz.length){
+  const l=zuKurz.slice().sort((a,b)=>b.laenge-a.laenge)[0];
+  zuLang=l.stuecke||[];
+ }
+ // Die Packung des BESTEN Formats ist die, mit der gearbeitet wird.
+ // Passt KEIN Format, wird trotzdem gepackt - mit dem laengsten Stueck als
+ // Abschnittlaenge, also genau wie im Rollenmodell bis v3.32. Sonst haette
+ // die Gruppe keine Streifen, und die Zuschnittliste (js/33 baut sie aus
+ // gruppen[].streifen[]) verschwaende ganz: der Zuschneider saehe nur noch
+ // die Warnung und nicht mehr, WAS zu schneiden ist. Vom Pruefstand gefunden.
+ const gefuellt=gruppen.map((g,gi)=>{
+  const z=best?best.zeilen[gi]:null;
+  const L=z?z.abschnittLaenge:laengstes(g);
+  const v=(L>0)?packe(gi,L):{streifen:[],optimal:true};
+  return Object.assign({},g,{abschnittLaenge:L,streifen:v.streifen||[],
+    optimal:v.optimal!==false,
+    jeAbschnitt:z?z.jeAbschnitt:1,abschnitte:z?z.abschnitte:0,
+    rollenLaenge:z?z.rollenLaenge:0,verteilung:v});
+ });
+ return {moeglich,zuSchmal,zuLang,zuKurz,bestes:best,gruppen:gefuellt,netto,
+         optimal:gefuellt.every(g=>g.optimal!==false),
+         form:o.form==="tafel"?"tafel":"rolle",formate};
+}
+
+// Der Leertext haengt an der Form: ohne Rollenbreite bzw. ohne Tafelformat
+// laesst sich gar nichts planen, und mit hinterlegten Formaten passt keines.
+// EINE Stelle fuer alle zehn Rollen-Module - sonst haetten zehn Module zehn
+// verschiedene Saetze fuer dieselbe Lage.
+function ebaLeerText(fm,ohneStuecke){
+ if(ohneStuecke)return ohneStuecke;
+ const tafel=!!(fm&&fm.form==="tafel");
+ if(!(fm&&(fm.formate||[]).length))
+  return tafel?"Es ist kein Tafelformat hinterlegt (Einstellungen → Allgemein → Materialbestand)."
+             :"Es ist keine Rollenbreite hinterlegt.";
+ return tafel?"Kein hinterlegtes Tafelformat passt zu diesem Zuschnitt – zu schmal oder zu kurz."
+            :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung.";
+}
+
+// ACHTUNG, historischer Name: das ist NICHT die Laenge einer Tafel, sondern
+// das laengste Stueck - so hiess die Abschnittlaenge im Rollenmodell seit
+// v2.87. Die echte Tafellaenge kommt seit v3.33 aus ebaFormate().
 function ebaTafelLaenge(){
  const l=(ebA.stuecke||[]).map(p=>ebaZahl(p.laenge)).filter(x=>x>0);
  return l.length?Math.max.apply(null,l):0;
@@ -334,6 +499,15 @@ function ebaGehrungText(p){
  if(r)return "Gehrung rechts";
  return "";
 }
+// Ohne Stuecke gibt es keinen Plan - die FORM steht aber trotzdem fest. Ohne
+// diese Stelle haetten die Module in ihrem leeren Rueckgabepfad immer "rolle"
+// gemeldet, und der Registername sowie der Leertext haetten bei Tafelmaterial
+// faelschlich von der Rolle gesprochen.
+function ebaFormLeer(material){
+ const f=(typeof ebaFormate==="function")?ebaFormate({material}):null;
+ return f?{form:f.form,formGrund:f.grund,formQuelle:f.quelle,formate:f.formate||[]}
+        :{form:"rolle",formGrund:"",formQuelle:"",formate:[]};
+}
 function ebaRollenPlan(){
  const A=ebaZahl(ebA.abwicklung);
  // "merkmal" entscheidet in der gemeinsamen Zuschnittliste (js/33), ob zwei
@@ -342,35 +516,19 @@ function ebaRollenPlan(){
  const alleBleche=(ebA.stuecke||[]).map((p,i)=>({nr:i+1,laenge:ebaZahl(p.laenge),
    merkmal:ebaGehrungText(p)}))
   .filter(x=>x.laenge>0);
- const vor=ebaVorabzug(alleBleche,{material:(typeof ebA!=="undefined"&&ebA)?ebA.material:null,abwicklung:A});
+ const material=(typeof ebA!=="undefined"&&ebA)?ebA.material:null;
+ const vor=ebaVorabzug(alleBleche,{material,abwicklung:A});
  const bleche=vor.bleche;
- const L=vor.abschnittLaenge||ebaTafelLaenge();
- const breiten=ebaRollenAktiv();
- if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abschnittLaenge:L,
-          ausResten:vor.ausResten};
- // Die Streifen haengen nur an der Abschnittlaenge, nicht an der Rollenbreite -
- // deshalb wird EINMAL gepackt.
- const v=ebaPackeInStreifen(bleche,L);
- const streifen=v.streifen||[];
- const moeglich=[], zuSchmal=[];
- const netto=ebaFlaecheM2();
- breiten.forEach(B=>{
-  const jeAbschnitt=ebaStreifenJeAbschnitt(B,A);
-  if(jeAbschnitt<1){zuSchmal.push(B);return}
-  const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
-  const rollenLaenge=abschnitte*L;
-  const flaeche=B*rollenLaenge/1e6;
-  moeglich.push({breite:B,jeTafel:jeAbschnitt,jeAbschnitt,
-   abschnitte,abschnittLaenge:L,rollenLaenge,
-   streifen:streifen.length, ungenutzteStreifen:abschnitte*jeAbschnitt-streifen.length,
-   restBreite:ebaRestBreite(B,A,jeAbschnitt),
-   flaeche, verschnitt:flaeche-netto,
-   anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
- });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.abschnitte-y.abschnitte||y.breite-x.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null,
-         abschnittLaenge:L,verteilung:v,streifen,netto,optimal:v.optimal!==false,
+ // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
+ // der Massaufnahme - gerechnet wird beides mit derselben Packrechnung.
+ const fm=ebaFormate({material,abwicklung:A});
+ const p=ebaFormatPlan({gruppen:[{breite:A,bleche}],formate:fm.formate,
+                        form:fm.form,netto:ebaFlaecheM2()});
+ const g=p.gruppen[0]||{streifen:[],abschnittLaenge:0,verteilung:{streifen:[]}};
+ return {moeglich:p.moeglich,zuSchmal:p.zuSchmal,zuLang:p.zuLang,zuKurz:p.zuKurz,bestes:p.bestes,
+         abschnittLaenge:g.abschnittLaenge||vor.abschnittLaenge||ebaTafelLaenge(),
+         verteilung:g.verteilung,streifen:g.streifen,netto:p.netto,optimal:p.optimal,
+         form:p.form,formGrund:fm.grund,formQuelle:fm.quelle,formate:p.formate,
          ausResten:vor.ausResten};
 }
 
@@ -566,24 +724,26 @@ function ebaZuschnittPlan(){
  const plan=ebaRollenPlan();
  const best=plan.bestes;
  const A=ebaZahl(ebA.abwicklung);
- return {art:"rolle", einheit:"Stück",
+ const fm={form:plan.form,formate:plan.formate||[]};
+ return {art:plan.form, form:plan.form,
+  formGrund:plan.formGrund, formQuelle:plan.formQuelle,
+  einheit:"Stück",
   material:(typeof ebA!=="undefined")?(ebA.material):null,
-  einleitung:ZU_EINLEITUNG_ROLLE,
-  quelle:ZU_QUELLE_ROLLE,
-  leer:!(ebA.stuecke||[]).length?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."
-      :(!ebaRollenAktiv().length?"Es ist keine Rollenbreite hinterlegt."
-      :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
+  einleitung:zuEinleitung(plan.form),
+  quelle:zuQuelle(plan.form),
+  leer:ebaLeerText(fm,(ebA.stuecke||[]).length?"":"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."),
   streifenbreiten:[A],
   gruppen:(plan.streifen||[]).length?[{breite:A,abschnittLaenge:plan.abschnittLaenge,
     jeAbschnitt:best?best.jeAbschnitt:1, abschnitte:best?best.abschnitte:0,
     rollenLaenge:best?best.rollenLaenge:0, streifen:plan.streifen}]:[],
   moeglich:plan.moeglich, netto:ebaFlaecheM2(),
-  zuSchmal:plan.zuSchmal, zuLang:(plan.verteilung||{}).zuLang||[],
+  zuSchmal:plan.zuSchmal, zuLang:plan.zuLang||[], zuKurz:plan.zuKurz||[],
   ausResten:plan.ausResten||[],
   optimal:plan.optimal!==false};
 }
 function ebaZuschnittHtml(){
- return zuRollenAuswahlHtml(ebA.rollenAuswahl,"data-eba-rolle")+zuschnittHtml(ebaZuschnittPlan());
+ const plan=ebaZuschnittPlan();
+ return zuAuswahlHtml(ebA.rollenAuswahl,"data-eba-rolle",plan.art)+zuschnittHtml(plan);
 }
 
 // ---- Register --------------------------------------------------------------
@@ -612,7 +772,7 @@ function ebaSchrittInhalt(){
  if(ebaSchritt===1)return ebaKarte("1 · Grunddaten",ebaGrunddatenHtml());
  if(ebaSchritt===2)return ebaKarte("2 · Geometrie",ebaGeometrieHtml());
  if(ebaSchritt===3)return ebaKarte("3 · Stücke",ebaStueckeHtml());
- if(ebaSchritt===4)return ebaKarte("4 · Zuschnitt aus Rollenblech",ebaZuschnittHtml());
+ if(ebaSchritt===4)return ebaKarte(zuTitel(4,ebaFormLeer(ebA.material).form),ebaZuschnittHtml());
  if(ebaSchritt===5)return ebaKarte("5 · Ausmass und Material",ebaAusmassHtml());
  return ebaKarte("6 · Kontrolle",ebaKontrolleHtml());
 }
@@ -933,6 +1093,10 @@ function ebaZusatzDaten(){
   // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
   kontrolle:ebaPruefungen(),
   rollen:{auswahl:(ebA.rollenAuswahl||[]).slice(),
+          // v3.33: ohne die Form kann der Ausdruck spaeter nicht sagen, ob
+          // von der Rolle oder aus der Tafel geschnitten wurde.
+          form:plan.form, formGrund:plan.formGrund||"", formQuelle:plan.formQuelle||"",
+          formLaenge:plan.bestes?(plan.bestes.laenge||null):null,
           abschnittLaenge:plan.abschnittLaenge,
           abschnitte:plan.bestes?plan.bestes.abschnitte:0,
           jeAbschnitt:plan.bestes?plan.bestes.jeAbschnitt:1,

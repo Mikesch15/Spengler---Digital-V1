@@ -121,10 +121,10 @@ function lukaFlaecheM2(){
 // Es gibt in der App nur EINE.
 function lukaRollenPlan(){
  const bleche=lukaBleche();
- const breiten=lukaRollenbreiten();
  const netto=lukaFlaecheM2();
- if(!bleche.length||!breiten.length)
-  return {gruppen:[],moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
+ if(!bleche.length||typeof ebaFormatPlan!=="function")
+  return {gruppen:[],moeglich:[],zuSchmal:[],bestes:null,netto,optimal:true,
+          ...ebaFormLeer(lukA&&lukA.material)};
  // Nach Zuschnittbreite gruppieren - gepackt wird erst je Rollenbreite, denn
  // erst die entscheidet, wie viele Streifen nebeneinander liegen.
  const nach=new Map();
@@ -147,53 +147,36 @@ function lukaRollenPlan(){
    :{bleche:nach.get(B),ausResten:[],abschnittLaenge:0};
   const liste=vor.bleche||[];
   (vor.ausResten||[]).forEach(x=>ausResten.push(x));
-  if(!liste.length)return {breite:B,stuecke:[],abschnittLaenge:0,streifen:[]};
-  const L=vor.abschnittLaenge||Math.max.apply(null,liste.map(x=>x.laenge));
-  const v=ebaPackeInStreifen(liste,L);
-  if(v.optimal===false)optimal=false;
-  return {breite:B,stuecke:liste,abschnittLaenge:L,streifen:v.streifen||[]};
+  return {breite:B,stuecke:liste,bleche:liste};
  // Eine Gruppe, deren Scharen vollstaendig aus Resten kommen, hat fuer die
  // Rolle nichts mehr - sie faellt raus.
  }).filter(g=>g.stuecke.length);
- const moeglich=[], zuSchmal=[];
- breiten.forEach(R=>{
-  const zeilen=[]; let flaeche=0, passt=true;
-  gruppen.forEach(gr=>{
-   const jeAbschnitt=ebaStreifenJeAbschnitt(R,gr.breite);
-   if(jeAbschnitt<1){passt=false;return}
-   const abschnitte=Math.ceil(gr.streifen.length/jeAbschnitt);
-   const rollenLaenge=abschnitte*gr.abschnittLaenge;
-   flaeche+=R*rollenLaenge/1e6;
-   zeilen.push({breite:gr.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
-     abschnittLaenge:gr.abschnittLaenge,rollenLaenge,
-     streifen:gr.streifen.length,restBreite:ebaRestBreite(R,gr.breite,jeAbschnitt)});
-  });
-  if(!passt){zuSchmal.push(R);return}
-  moeglich.push({breite:R,zeilen,flaeche,verschnitt:flaeche-netto,
-    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,
-    rollenLaenge:zeilen.reduce((s,x)=>s+x.rollenLaenge,0)});
- });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
- const best=moeglich[0]||null;
- const gefuellt=gruppen.map((g,i)=>Object.assign({},g,{
-   jeAbschnitt:best?best.zeilen[i].jeAbschnitt:1,
-   abschnitte:best?best.zeilen[i].abschnitte:0,
-   rollenLaenge:best?best.zeilen[i].rollenLaenge:0}));
- return {gruppen:gefuellt,moeglich,zuSchmal,bestes:best,netto,optimal,ausResten};
+ // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
+ // der Massaufnahme. Gepackt wird weiterhin je Zuschnittbreite mit DERSELBEN
+ // Packrechnung (ebaPackeInStreifen, js/29) - es gibt in der App nur EINE.
+ const fm=ebaFormate({material:(typeof lukA!=="undefined"&&lukA)?lukA.material:null});
+ const p=ebaFormatPlan({gruppen,formate:fm.formate,form:fm.form,netto});
+ if(p.optimal===false)optimal=false;
+ return {gruppen:p.gruppen,moeglich:p.moeglich,zuSchmal:p.zuSchmal,
+         zuLang:p.zuLang,zuKurz:p.zuKurz,bestes:p.bestes,netto:p.netto,optimal,
+         form:p.form,formGrund:fm.grund,formQuelle:fm.quelle,formate:p.formate,
+         ausResten};
 }
 // Der Plan in der gemeinsamen Form (js/33) - damit sieht der Zuschnitt in
 // allen Arten gleich aus.
 function lukaZuschnittPlan(){
  const rp=lukaRollenPlan();
- return {art:"rolle", einheit:"Schar",
+ return {art:rp.form, form:rp.form,
+  formGrund:rp.formGrund, formQuelle:rp.formQuelle,
+  einheit:"Schar",
   material:(typeof lukA!=="undefined")?(lukA.material):null,
-  einleitung:ZU_EINLEITUNG_ROLLE, quelle:ZU_QUELLE_ROLLE,
-  leer:!lukaScharen().length?"Noch nichts zuzuschneiden – bitte zuerst die Geometrie erfassen."
-      :(!lukaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."
-      :"Keine hinterlegte Rollenbreite ist so breit wie die Zuschnittbreite."),
+  einleitung:zuEinleitung(rp.form), quelle:zuQuelle(rp.form),
+  leer:ebaLeerText({form:rp.form,formate:rp.formate||[]},
+        lukaScharen().length?"":"Noch nichts zuzuschneiden – bitte zuerst die Geometrie erfassen."),
   streifenbreiten:rp.gruppen.map(g=>g.breite),
   gruppen:rp.gruppen, moeglich:rp.moeglich, netto:rp.netto,
   ausResten:rp.ausResten||[],
+  zuLang:rp.zuLang||[], zuKurz:rp.zuKurz||[],
   zuSchmal:rp.zuSchmal, optimal:rp.optimal!==false};
 }
 
@@ -260,8 +243,14 @@ function lukaPruefungen(){
  const kurz=g.scharen.filter(s=>s.zuschnittLaenge<=0.5);
  if(kurz.length)
   m.push({art:"warnung",text:kurz.length+" Schar(en) laufen an der Spitze auf null aus."});
- if(lukaBleche().length&&!lukaRollenbreiten().length)
-  m.push({art:"warnung",text:"Es ist keine Rollenbreite hinterlegt – der Materialbedarf wird nicht gerechnet."});
+ // v3.33: Rolle oder Tafel - die Meldung nennt, woraus wirklich geschnitten
+ // wird, statt in jedem Fall von der Rolle zu sprechen.
+ if(lukaBleche().length){
+  const rp=lukaRollenPlan(), tafel=rp.form==="tafel";
+  if(!(rp.formate||[]).length)
+   m.push({art:"warnung",text:"Es ist "+(tafel?"kein Tafelformat":"keine Rollenbreite")
+     +" hinterlegt – der Materialbedarf wird nicht gerechnet."});
+ }
  return m;
 }
 
@@ -435,8 +424,11 @@ function lukaKopfInhalt(){
  if(lukaSchritt===1)return lukaKarte("1 · Grunddaten",lukaGrunddatenHtml());
  if(lukaSchritt===2)return lukaKarte("2 · Geometrie",lukaGeometrieHtml());
  if(lukaSchritt===3)return lukaKarte("3 · Scharen",lukaScharenHtml());
- if(lukaSchritt===4)return lukaKarte("4 · Zuschnitt aus Rollenblech",
-   zuRollenAuswahlHtml(lukA.rollenAuswahl,"data-luka-rolle")+zuschnittHtml(lukaZuschnittPlan()));
+ if(lukaSchritt===4){
+  const lzp=lukaZuschnittPlan();
+  return lukaKarte(zuTitel(4,lzp.art),
+   zuAuswahlHtml(lukA.rollenAuswahl,"data-luka-rolle",lzp.art)+zuschnittHtml(lzp));
+ }
  if(lukaSchritt===5)return lukaKarte("5 · Ausmass und Material",lukaAusmassHtml());
  return lukaKarte("6 · Kontrolle",lukaKontrolleHtml());
 }
@@ -552,6 +544,10 @@ function lukaZusatzDaten(){
   kontrolle:lukaPruefungen(),
   zuschnitt:{auswahl:(lukA.rollenAuswahl||[]).slice(),
              breiten:lukaRollenbreiten(),
+             // v3.33: ohne die Form kann der Ausdruck nicht sagen, ob von der
+             // Rolle oder aus der Tafel geschnitten wurde.
+             form:rp.form, formGrund:rp.formGrund||"", formQuelle:rp.formQuelle||"",
+             formLaenge:rp.bestes?(rp.bestes.laenge||null):null,
              netto:Number(rp.netto.toFixed(3)),
              bestes:rp.bestes||null,
              moeglich:rp.moeglich||[],

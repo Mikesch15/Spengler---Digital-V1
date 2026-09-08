@@ -31,6 +31,44 @@
 //    zuSchmal:[mm], zuLang:[{nr,laenge}], optimal}
 // ============================================================================
 
+// ---- Rolle oder Tafel (v3.33) ---------------------------------------------
+// art ist seit v3.33 "rolle", "tafel" oder "stange". Rolle und Tafel sind
+// geometrisch dasselbe (Streifen aus einer Flaeche) und laufen deshalb durch
+// dieselbe Darstellung - nur die Woerter unterscheiden sich, und die stehen
+// hier an EINER Stelle statt verstreut im Markup.
+//
+// Der Unterschied in der Sache: von der Rolle wird ein Abschnitt abgezogen,
+// so lang wie das laengste Blech; eine Tafel hat eine feste Laenge, in die
+// alles hineinpassen muss.
+function zuFlach(p){return !!p&&p.art!=="stange"}
+// Ein Plan traegt die Form unter ZWEI Namen: "art" (historisch, seit v2.85)
+// und "form" (seit v3.33, so steht sie auch im gespeicherten Datensatz). Die
+// Module setzen immer beide gleich - wer aber nur den gespeicherten Wert zur
+// Hand hat (der PDF-Kopf in js/16), reicht {form:...} herein. Bis das hier
+// beide las, druckte der Kopf bei Tafelmaterial "Rollenblech". Gemessen,
+// nicht vermutet.
+function zuIstTafel(p){return !!p&&(p.art==="tafel"||p.form==="tafel")}
+// Die Woerter je Art. Ein "Abschnitt" von der Rolle ist bei der Tafel die
+// Tafel selbst - deshalb heisst dieselbe Zahl einmal "3 × 2'070 mm ab Rolle"
+// und einmal "3 Tafeln".
+const ZU_WORT={
+ rolle:{quelle:"Rolle",einheit:"Rollenbreite",abschnitt:"Abschnitt",abschnitte:"Abschnitte",
+        ab:"ab Rolle",kopf:"Rollenblech",vergleich:"Rolle",str:"Str./Abschn."},
+ tafel:{quelle:"Tafel",einheit:"Tafelformat",abschnitt:"Tafel",abschnitte:"Tafeln",
+        ab:"aus Tafeln",kopf:"Tafel",vergleich:"Tafel",str:"Str./Tafel"}
+};
+function zuWort(p){return ZU_WORT[zuIstTafel(p)?"tafel":"rolle"]}
+// Das Format als Text: bei der Rolle nur die Breite, bei der Tafel L × B.
+function zuFormatText(x,p){
+ if(!x)return "–";
+ const b=zuZahl(x.breite);
+ if(b<=0)return "–";
+ const l=zuZahl(x.laenge);
+ // Normales Leerzeichen wie in der Kopfzeile bis v3.32 - der Rollenfall soll
+ // sich Zeichen fuer Zeichen gleich lesen und gleich drucken.
+ return (zuIstTafel(p)&&l>0)?(zuMm(l)+" × "+zuMm(b)+" mm"):(zuMm(b)+" mm");
+}
+
 const zuZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const zuMm=v=>Math.round(zuZahl(v)).toLocaleString("de-CH");
 const zuMeter=v=>(zuZahl(v)/1000).toFixed(2).replace(".",",");
@@ -62,7 +100,7 @@ function zuMasse(laenge,breite){
 //   n   Streifen je Abschnitt        ab  Abschnitte
 //   restBreite  seitlicher Rand      fugeQuer  B − n·A − restBreite
 function zuGeometrie(p){
- if(!p||p.art!=="rolle")return [];
+ if(!zuFlach(p))return [];
  const best=(p.moeglich||[])[0];
  if(!best)return [];
  const B=zuZahl(best.breite);
@@ -168,7 +206,7 @@ function zuBilanz(p){
  // Die Rollenzahlen oben beschreiben nur, was neu von der Rolle kommt.
  const ausR=(p.ausResten||[]).reduce((a,x)=>a
    +(x.stuecke||[]).reduce((b,st)=>b+zuZahl(st.laenge),0)*zuZahl(x.breite||0),0);
- return {einheit:"m²",art:"rolle",
+ return {einheit:"m²",art:zuIstTafel(p)?"tafel":"rolle",
   brutto:brutto/1e6,zuschnitte:netto/1e6,fuge:fuge/1e6,fugeBekannt:true,
   verwertbar:gut/1e6,zuKlein:klein/1e6,verlust:(fuge+klein)/1e6,reste,
   ausResten:ausR/1e6,ausRestenAnzahl:(p.ausResten||[]).length,
@@ -328,12 +366,15 @@ function zuListeHtml(p){
  if(!gruppen.length)return "";
  const bestes=(p.moeglich||[])[0];
  let kopf="Zuschnittliste", fuss="";
- if(p.art==="rolle"&&bestes){
-  kopf="Rollenblech "+zuMm(bestes.breite)+" mm";
+ if(zuFlach(p)&&bestes){
+  const w=zuWort(p);
+  // Die Kopfzeile sagt ausdruecklich, WORAUS geschnitten wird - das ist die
+  // erste Frage in der Werkstatt.
+  kopf=w.kopf+" "+zuFormatText(bestes,p);
   const ab=zuAbschnittText(bestes,p);
   const st=zuStreifenZahl(bestes,p);
-  fuss=(ab!=="–"?ab+" ab Rolle":"")
-    +(st>0?(ab!=="–"?" · ":"")+st+" Streifen je Abschnitt":"");
+  fuss=(ab!=="–"?ab+" "+w.ab:"")
+    +(st>0?(ab!=="–"?" · ":"")+st+" Streifen je "+w.abschnitt:"");
  }else if(p.art==="stange"){
   kopf="Zuschnittliste";
   fuss=(p.stangen||[]).length+" Stange"+((p.stangen||[]).length===1?"":"n");
@@ -368,15 +409,17 @@ bezogen – es ist <b>kein Streifen von der Rolle</b> zu schneiden.</div>`;
  const bestes=(p.moeglich||[])[0];
  const ab=zuAbschnittText(bestes,p);
  const streifen=(p.gruppen||[]).reduce((s,g)=>s+(g.streifen||[]).length,0);
+ const w=zuWort(p), tafel=zuIstTafel(p);
  return `<div class="grid zu-kennzahlen">
 ${zuKennzahl(b.length>1?"Streifenbreiten":"Streifenbreite",breiteText)}
-${zuKennzahl("Ab Rolle",esc(ab),ab.length>12)}
+${zuKennzahl(tafel?"Aus Tafeln":"Ab Rolle",esc(ab),ab.length>12)}
 ${zuKennzahl("Streifen gesamt",streifen)}
 ${zuKennzahl("Blech netto",zuQm(p.netto)+" m²")}
 </div>
 <div class="small zu-hinweis">Auf <b>${esc(breiteText)}</b> muss der Streifen
-geschnitten werden – das ist die Abwicklung des Profils. Von der Rolle werden
-<b>${esc(ab)}</b> abgezogen; jeder Abschnitt ist so lang wie das längste Blech.</div>`;
+geschnitten werden – das ist die Abwicklung des Profils. ${tafel
+ ?`Geschnitten wird aus <b>Tafeln</b> (${esc(bestes?zuFormatText(bestes,p):"–")}); jedes Stück muss in die Tafellänge passen.`
+ :`Von der Rolle werden <b>${esc(ab)}</b> abgezogen; jeder Abschnitt ist so lang wie das längste Blech.`}</div>`;
 }
 
 function zuMeldungenHtml(p){
@@ -386,14 +429,32 @@ function zuMeldungenHtml(p){
   const br=p.art==="stange"?p.breite:((p.streifenbreiten||[])[0]);
   const namen=zuLang.map(x=>(x&&x.nr!==undefined)
     ?p.einheit+" "+x.nr+" ("+zuMasse(x.laenge,br)+")":zuMasse(x,br)).join(", ");
-  h+=`<div class="ra-fehler">Zu lang für eine ${p.art==="stange"?"Stange":"Tafel"}: ${esc(namen)}.
+  const wo=p.art==="stange"?"Stange":(zuIstTafel(p)?"Tafel":"einen Abschnitt");
+  h+=`<div class="ra-fehler">Zu lang für ${p.art==="stange"||zuIstTafel(p)?"eine ":""}${wo}: ${esc(namen)}.
 Diese ${p.einheit==="Segment"?"Segmente sind":"Stücke sind"} im Plan <b>nicht</b> enthalten.</div>`;
  }
- if(p.art==="rolle"&&!(p.moeglich||[]).length){
+ // v3.33: Formate, die zwar breit genug waeren, an denen aber ein Stueck zu
+ // lang ist. Nur bei der Tafel moeglich - und es gehoert gesagt, warum ein
+ // Format fehlt, statt es lautlos wegzulassen.
+ (p.zuKurz||[]).forEach(k=>{
+  h+=`<div class="small zu-hinweis">Zu kurz: ${esc(zuFormatText(k.format,p))} –
+${esc((k.stuecke||[]).map(x=>p.einheit+" "+x.nr).join(", "))} ${(k.stuecke||[]).length===1?"passt":"passen"}
+nicht in ${esc(zuMm(k.laenge))} mm Länge.</div>`;
+ });
+ if(zuFlach(p)&&!(p.moeglich||[]).length){
   const b=(p.streifenbreiten||[]).filter(x=>zuZahl(x)>0);
-  h+=`<div class="ra-warnung">Keine hinterlegte Rollenbreite ist so breit wie
-${b.length>1?"die breiteste Abwicklung":"die Abwicklung"} (${esc(b.length?zuMm(Math.max.apply(null,b)):"–")} mm).
-Der Zuschnitt lässt sich so <b>nicht</b> aus dem hinterlegten Rollenblech schneiden.</div>`;
+  const w=zuWort(p);
+  h+=`<div class="ra-warnung">${zuIstTafel(p)?"Keine hinterlegte Tafel":"Keine hinterlegte Rollenbreite"} ist so breit wie
+${b.length>1?"die breiteste Abwicklung":"die Abwicklung"} (${esc(b.length?zuMm(Math.max.apply(null,b)):"–")} mm)${
+zuIstTafel(p)?" oder lang genug für die Stücke":""}.
+Der Zuschnitt lässt sich so <b>nicht</b> aus dem hinterlegten ${esc(zuIstTafel(p)?"Tafelmaterial":"Rollenblech")} schneiden.</div>`;
+ }
+ // Warum die Form so gewaehlt wurde. Steht ausdruecklich da, statt
+ // stillschweigend Rollenblech anzunehmen (js/29 ebaFormate).
+ if(p.formGrund&&typeof restFormGrundText==="function"){
+  const t=restFormGrundText(p.formGrund);
+  if(t)h+=`<div class="small zu-hinweis">${esc(t)} Gerechnet wird deshalb mit
+<b>${esc(zuWort(p).quelle)}</b>.</div>`;
  }
  if((p.zuSchmal||[]).length)
   h+=`<div class="small zu-hinweis">Zu schmal für dieses Profil: ${esc(p.zuSchmal.map(x=>zuMm(x)+" mm").join(", "))}.</div>`;
@@ -481,7 +542,7 @@ ${esc(zuMm(p.summeStuecke))} mm Zuschnitt – <b>${esc(zuMm(p.verschnitt))} mm</
  }
  if(!(p.moeglich||[]).length)return "";   // Meldung steht in zuMeldungenHtml
  const zeilen=p.moeglich.map((x,i)=>`<tr${i===0?' class="ra-dila-zeile"':""}>
-<td>${esc(zuMm(x.breite))} mm</td>
+<td>${esc(zuFormatText(x,p))}</td>
 <td>${esc(zuStreifenZahl(x,p)||"–")}</td>
 <td>${esc(zuAbschnittText(x,p))}</td>
 <td><b>${esc(zuQm(x.verschnitt))} m²</b></td>
@@ -490,11 +551,12 @@ ${esc(zuMm(p.summeStuecke))} mm Zuschnitt – <b>${esc(zuMm(p.verschnitt))} mm</
  // Die Blechflaeche steht bewusst NICHT als eigene Spalte: sie ist
  // netto + Verschnitt, und netto steht als Kennzahl direkt darueber. Sechs
  // Spalten brechen auf dem Handy die Ueberschriften mitten im Wort.
+ const w=zuWort(p);
  return `<div class="scroll"><table class="eb-table ra-tab zu-vergleich">
-<thead><tr><th>Rolle</th><th>Str./Abschn.</th><th>Ab Rolle</th><th>Verschnitt</th><th>Anteil</th></tr></thead>
+<thead><tr><th>${esc(w.vergleich)}</th><th>${esc(w.str)}</th><th>${esc(zuIstTafel(p)?"Tafeln":"Ab Rolle")}</th><th>Verschnitt</th><th>Anteil</th></tr></thead>
 <tbody>${zeilen}</tbody></table></div>
-<div class="ra-ok">Am wenigsten Material: <b>${esc(zuMm(b0.breite))} mm</b> –
-${esc(zuAbschnittText(b0,p))} ab Rolle, ${esc(zuQm(b0.flaeche))} m² Blech,
+<div class="ra-ok">Am wenigsten Material: <b>${esc(zuFormatText(b0,p))}</b> –
+${esc(zuAbschnittText(b0,p))} ${esc(w.ab)}, ${esc(zuQm(b0.flaeche))} m² Blech,
 <b>${esc(zuQm(b0.verschnitt))} m²</b> Verschnitt (${esc(zuZahl(b0.anteil).toFixed(0))} %).</div>`;
 }
 
@@ -540,12 +602,12 @@ function zuBelegungHtml(p){
    const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
    const ab=zuAbschnitte(g,p);
    return `${eine?"":`<div class="small zu-gruppe"><b>Streifenbreite ${esc(zuMm(g.breite))} mm</b>
-· ${esc(zuAbschnittText(g,p))} ab Rolle</div>`}
+· ${esc(zuAbschnittText(g,p))} ${esc(zuWort(p).ab)}</div>`}
 <div class="zu-belegung">${(g.streifen||[]).map((s,i)=>{
     const belegt=(s.stuecke||[]).reduce((a,x)=>a+zuZahl(x.laenge),0);
     // Streifen 1..je gehoeren zum ersten Abschnitt, je+1..2je zum zweiten.
     const titel=(ab.n>1)
-      ?"Abschnitt "+(Math.floor(i/je)+1)+" · Streifen "+(i%je+1)
+      ?zuWort(p).abschnitt+" "+(Math.floor(i/je)+1)+" · Streifen "+(i%je+1)
       :"Streifen "+(i+1);
     return zuPlatzHtml(titel,s.stuecke,g.breite,e,belegt,
       zuZahl(s.rest)||Math.max(0,L-belegt));
@@ -656,7 +718,7 @@ ${zuListeHtml(p)}
 ${zuMeldungenHtml(p)}
 ${zuBilanzHtml(p)}
 ${reste}
-<details class="zu-details"><summary>Einzelheiten: Rollenbreiten vergleichen, Belegung der Streifen</summary>
+<details class="zu-details"><summary>Einzelheiten: ${esc(zuIstTafel(p)?"Tafelformate":"Rollenbreiten")} vergleichen, Belegung der Streifen</summary>
 <div class="info">${p.einleitung||""}${p.zusatz?" "+p.zusatz:""}</div>
 ${zuKennzahlenHtml(p)}
 ${zuPlanTabelleHtml(p)}
@@ -676,6 +738,21 @@ const ZU_EINLEITUNG_STANGE="Aus welchen Normlängen die Stücke geschnitten werd
 const ZU_QUELLE_ROLLE="Blechlager aus <b>Einstellungen → Allgemein → Rollenbreiten des "
  +"Blechlagers</b> (firmenweit, gilt für alle Arten).";
 const ZU_QUELLE_STANGE="Normlängen aus <b>Einstellungen → Massaufnahmen → Rinne</b>.";
+// v3.33: dieselbe Rechnung, andere Herkunft des Materials.
+const ZU_EINLEITUNG_TAFEL="Aus <b>Tafeln</b> werden quer <b>Streifen der Abwicklungsbreite</b> "
+ +"geteilt. Anders als bei der Rolle hat eine Tafel eine <b>feste Länge</b>: jedes Stück muss "
+ +"hineinpassen. In einem Streifen dürfen mehrere Stücke hintereinander liegen, solange sie "
+ +"zusammen in eine Tafel passen – jedes Blech wird auf seine genaue Länge geschnitten.";
+const ZU_QUELLE_TAFEL="Tafelformate aus dem <b>Materialbestand</b> (Einstellungen → Allgemein → "
+ +"Materialbestand), Eintrag mit Form <b>Tafel</b> und Format.";
+// Einleitung und Quelle je Art - damit kein Modul sie selbst zusammensucht.
+function zuEinleitung(form){return form==="tafel"?ZU_EINLEITUNG_TAFEL:ZU_EINLEITUNG_ROLLE}
+function zuQuelle(form){return form==="tafel"?ZU_QUELLE_TAFEL:ZU_QUELLE_ROLLE}
+// Der Registername nennt, WORAUS geschnitten wird. Eine Stelle fuer alle elf
+// Register-Module - sonst haetten elf Module elf Schreibweisen fuer dasselbe.
+function zuTitel(nr,form){
+ return nr+" · Zuschnitt aus "+(form==="tafel"?"Tafelmaterial":"Rollenblech");
+}
 
 // ---------------------------------------------------------------------------
 // Dieselbe Zuschnittliste im Ausdruck
@@ -708,7 +785,13 @@ function zuPlanAusGespeichert(r,breite,einheit){
  }
  const optimal=r.optimal===false?false
    :((r.verteilung&&r.verteilung.optimal===false)?false:true);
- return {art:"rolle",einheit:einheit||"Stück",
+ // v3.33: die Form steht seit v3.33 im gespeicherten Plan. Ein aelterer
+ // Plan hat sie nicht - dann ist es Rollenblech, so wie er gerechnet wurde.
+ // Es wird NICHTS nachgerechnet.
+ const form=(r.form==="tafel")?"tafel":"rolle";
+ return {art:form,form,formLaenge:r.formLaenge||null,
+  formGrund:r.formGrund||"",formQuelle:r.formQuelle||"",
+  einheit:einheit||"Stück",
   streifenbreiten:gruppen.map(g=>zuZahl(g.breite)).filter(x=>x>0),
   gruppen,moeglich:r.moeglich||[],netto:r.netto,
   rollenLaenge:r.rollenLaenge,abschnittLaenge:r.abschnittLaenge,
@@ -739,13 +822,14 @@ function zuDruckHtml(r,breite,einheit,zusatz){
 <td>${esc(bem.join(" · "))||"–"}</td></tr>`;
  }).join("");
  const b0=(p.moeglich||[])[0];
+ const w=zuWort(p), tafel=zuIstTafel(p);
  const abText=zuAbschnittText(b0,p);
- const kopf=b0?"Rollenblech "+zuMm(b0.breite)+" mm"
-   +(abText!=="–"?" · "+abText+" ab Rolle":"")
-   +(zuStreifenZahl(b0,p)>0?" · "+zuStreifenZahl(b0,p)+" Streifen je Abschnitt":""):"";
+ const kopf=b0?w.kopf+" "+zuFormatText(b0,p)
+   +(abText!=="–"?" · "+abText+" "+w.ab:"")
+   +(zuStreifenZahl(b0,p)>0?" · "+zuStreifenZahl(b0,p)+" Streifen je "+w.abschnitt:""):"";
  const vergleich=(p.moeglich||[]).length?`<table class="eb-cutlist">
-<thead><tr><th>Rollenbreite</th><th>Streifen je Abschnitt</th><th>Ab Rolle</th><th>Fläche (m²)</th><th>Verschnitt (m²)</th></tr></thead>
-<tbody>${p.moeglich.map((x,i)=>`<tr><td>${esc(zuMm(x.breite))} mm${i===0?" (beste)":""}</td>
+<thead><tr><th>${esc(w.einheit)}</th><th>Streifen je ${esc(w.abschnitt)}</th><th>${esc(tafel?"Tafeln":"Ab Rolle")}</th><th>Fläche (m²)</th><th>Verschnitt (m²)</th></tr></thead>
+<tbody>${p.moeglich.map((x,i)=>`<tr><td>${esc(zuFormatText(x,p))}${i===0?" (beste)":""}</td>
 <td>${esc(zuStreifenZahl(x,p)||"–")}</td>
 <td>${esc(zuAbschnittText(x,p))}</td>
 <td>${esc(zuQm(x.flaeche))}</td><td>${esc(zuQm(x.verschnitt))}</td></tr>`).join("")}</tbody>
@@ -767,15 +851,21 @@ function zuDruckHtml(r,breite,einheit,zusatz){
   }).join("")}</tbody>
 </table>`;
  }).join("");
- return `<div class="eb-section-head">Zuschnitt aus Rollenblech</div>
+ // Die Ueberschrift sagt ausdruecklich, WORAUS geschnitten wird - im
+ // Ausdruck ist das die erste Angabe, die die Werkstatt braucht.
+ return `<div class="eb-section-head">Zuschnitt aus ${tafel?"Tafelmaterial":"Rollenblech"}</div>
 <table class="eb-cutlist">
 <thead><tr><th>Anzahl</th><th>Zuschnitt L × B (mm)</th><th>${esc(eh)} Nr.</th><th>Bemerkung</th></tr></thead>
 <tbody>${zeilen}</tbody>
 </table>
-<div class="note">${kopf?esc(kopf)+". ":""}Von der Rolle werden Abschnitte abgezogen und
-quer in Streifen der Abwicklungsbreite geteilt. Ein Abschnitt ist so lang wie das längste
-Blech; in einem Streifen dürfen mehrere Stücke hintereinander liegen. Die Streifennummer
-&quot;2.3&quot; heisst: Abschnitt 2, Streifen 3.${zusatz?" "+zusatz:""}${p.optimal===false
+<div class="note">${kopf?esc(kopf)+". ":""}${tafel
+ ?`Aus Tafeln werden quer Streifen der Abwicklungsbreite geteilt. Eine Tafel hat eine feste
+Länge; jedes Stück muss hineinpassen. In einem Streifen dürfen mehrere Stücke hintereinander
+liegen. Die Streifennummer &quot;2.3&quot; heisst: Tafel 2, Streifen 3.`
+ :`Von der Rolle werden Abschnitte abgezogen und quer in Streifen der Abwicklungsbreite
+geteilt. Ein Abschnitt ist so lang wie das längste Blech; in einem Streifen dürfen mehrere
+Stücke hintereinander liegen. Die Streifennummer &quot;2.3&quot; heisst: Abschnitt 2,
+Streifen 3.`}${zusatz?" "+zusatz:""}${p.optimal===false
   ?" Beste gefundene Verteilung – nicht nachweislich die günstigste.":""}</div>
 ${vergleich}${belegung}`;
 }
@@ -805,6 +895,13 @@ function zuRollenGefiltert(gewaehlt){
 // Merkt sich, ob der Kasten offen war. Nach jedem Haken zeichnet das Modul
 // neu - ohne das wuerde der Kasten dabei jedes Mal zuklappen.
 let zuRollenAuf=false, zuRollenFuer="";
+// v3.33: Bei Tafelmaterial gibt es keine Rollenbreite zu waehlen - die
+// Formate kommen aus dem Materialbestand (Laenge UND Breite). Die
+// Rollenauswahl waere dort irrefuehrend, deshalb entfaellt sie ganz.
+function zuAuswahlHtml(gewaehlt,attribut,form){
+ if(form==="tafel")return "";
+ return zuRollenAuswahlHtml(gewaehlt,attribut);
+}
 function zuRollenAuswahlHtml(gewaehlt,attribut){
  if(attribut!==zuRollenFuer){zuRollenFuer=attribut;zuRollenAuf=false}
  const lager=zuLagerbreiten();

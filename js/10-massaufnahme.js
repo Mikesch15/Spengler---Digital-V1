@@ -435,6 +435,8 @@ function newMeasurementWithType(type){
  // v3.16: Material fuer den Regierapport - eine neue Aufnahme hat keines.
  if(typeof measRapportMaterialZuruecksetzen==="function")measRapportMaterialZuruecksetzen();
  if(typeof measStaerkeZuruecksetzen==="function")measStaerkeZuruecksetzen();
+ // v3.33: Rolle oder Tafel - eine neue Aufnahme steht auf "automatisch".
+ if(typeof measZuschnittFormZuruecksetzen==="function")measZuschnittFormZuruecksetzen();
  renderMeasPhotoGallery();
  // Neue Aufnahme: der Foto-/Skizzenbereich der Register-Arten startet
  // wieder zugeklappt.
@@ -644,6 +646,8 @@ function openMeasurement(m){
  if(typeof measRapportMaterialFuellen==="function")measRapportMaterialFuellen(m);
  // v3.31: Die Staerke steht in einer eigenen Spalte, nicht in data.
  if(typeof measStaerkeSetzen==="function")measStaerkeSetzen(m.staerke_mm);
+ // v3.33: die Wahl Rolle/Tafel steht ebenfalls in einer eigenen Spalte.
+ if(typeof measZuschnittFormSetzen==="function")measZuschnittFormSetzen(m.zuschnitt_form);
  if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(m.type);
  // Alle Fachfelder aus m.data fuellen - dieselbe Stelle, die auch die
  // Vorlagen-Kopie benutzt (v3.04).

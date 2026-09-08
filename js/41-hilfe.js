@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.32.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.33.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -563,23 +563,29 @@ Stück zu Stück nicht ändern.</p>
 Geschützt → Material). Bei Rinne Halbrund und Mauerabdeckung steuert es
 zusätzlich die Dehnungsabstände.</p>`},
 
-"reg-zuschnitt":{titel:"Zuschnitt aus Rollenblech",text:`
+"reg-zuschnitt":{titel:"Zuschnitt aus Rolle oder Tafel",text:`
+<p>Ob aus <b>Rollenblech</b> oder aus <b>Tafelmaterial</b> geschnitten wird,
+steht im Registernamen und in jeder Überschrift. Woher die Entscheidung kommt,
+erklärt der Info-Knopf beim Feld <i>Rolle oder Tafel</i> in den Grunddaten.</p>
 <p>So kommt die Rechnung zustande:</p>
 <ul>
-<li>Von der Rolle wird ein <b>Abschnitt</b> abgezogen – immer so lang wie das
-längste Blech.</li>
+<li>Aus dem Ausgangsmaterial wird ein <b>Abschnitt</b> abgezogen – von der
+Rolle so lang wie das längste Blech, bei einer Tafel so lang wie die Tafel
+selbst.</li>
 <li>Der Abschnitt wird quer in <b>Streifen</b> der Abwicklungsbreite
 geteilt.</li>
 <li>In einem Streifen dürfen mehrere Stücke hintereinander liegen, solange
 sie zusammen in einen Abschnitt passen.</li>
 </ul>
-<p>Die App probiert alle hinterlegten Rollenbreiten durch und hebt die
-materialsparendste hervor. Unter <i>Einzelheiten</i> stehen der Vergleich
-aller Breiten und die Belegung jedes Streifens.</p>
-<p>Über <i>Rollen für diese Massaufnahme</i> lässt sich einschränken,
-welche Rollen auf diese Baustelle mitkommen.</p>
-<p>Die <b>Schnittfuge</b> ist mitgerechnet, sowohl beim Längsteilen der Rolle
-als auch zwischen zwei Stücken im selben Streifen. Steht sie auf 0 mm, kostet
+<p>Die App probiert alle hinterlegten Rollenbreiten beziehungsweise
+Tafelformate durch und hebt das materialsparendste hervor. Unter
+<i>Einzelheiten</i> stehen der Vergleich aller Formate und die Belegung jedes
+Streifens.</p>
+<p>Bei Rollenmaterial lässt sich über <i>Rollen für diese Massaufnahme</i>
+einschränken, welche Rollen auf diese Baustelle mitkommen. Bei Tafelmaterial
+gibt es diese Wahl nicht – dort ist das Format durch die Tafel gegeben.</p>
+<p>Die <b>Schnittfuge</b> ist mitgerechnet, sowohl beim Längsteilen des
+Ausgangsmaterials als auch zwischen zwei Stücken im selben Streifen. Steht sie auf 0 mm, kostet
 sie nichts – einzustellen unter <i>Einstellungen → Allgemein</i>.</p>
 <p>Die <b>Materialbilanz</b> darunter zerlegt das Ausgangsmaterial lückenlos in
 Zuschnitte, Schnittfuge, verwertbare Reste und zu kleinen Verschnitt. Die vier
@@ -1156,6 +1162,31 @@ Rüstliste: wer rüstet, muss wissen, welches Blech vom Stapel kommt.</p>
 die Freigabe – der Rüster hätte sonst das falsche Blech gerüstet. Sie zum
 ersten Mal einzutragen ist dagegen kein Verfall, da fehlte vorher nur die
 Angabe.</p>`},
+
+"meas-zuschnitt-form":{titel:"Rolle oder Tafel",text:`
+<p>Woraus das Blech dieser Massaufnahme geschnitten wird. Die Wahl gilt für
+den <b>gesamten</b> Zuschnitt: Registername, Formatvergleich, Belegung,
+Materialbilanz, PDF und Rüstliste sagen danach einheitlich, ob von der Rolle
+oder aus der Tafel geschnitten wird.</p>
+<p><b>Automatisch (Materialbestand)</b> ist die Vorgabe. Dann entscheidet der
+Materialbestand der Firma: ist für Material und Stärke dort ein Tafelformat
+hinterlegt, wird aus der Tafel geschnitten, sonst von der Rolle. Steht im
+Bestand noch nichts, bleibt es bei der Rolle – das Feld sagt das
+ausdrücklich.</p>
+<p><b>Rolle</b> oder <b>Tafel</b> überstimmt den Bestand für genau diese
+Massaufnahme. Wird <i>Tafel</i> gewählt, ohne dass ein Tafelformat hinterlegt
+ist, rechnet die App weiterhin von der Rolle und nennt den Grund – es wird
+<b>kein Format erfunden</b>.</p>
+<p>Der Unterschied in der Rechnung: von der Rolle ist der Abschnitt so lang
+wie das längste Blech, bei einer Tafel ist er so lang wie die Tafel. Alles
+Übrige – Streifen quer, mehrere Stücke hintereinander, Schnittfuge, Reste –
+bleibt gleich.</p>
+<p>Das Feld erscheint nicht bei <i>Skizze/Foto</i> (dort wird nichts gerechnet)
+und nicht bei <i>Rinne Halbrund</i> (die bezieht ein fertiges Profil in
+Normlängen – dort gibt es weder Rollenbreite noch Tafelformat).</p>
+<p><b>Achtung:</b> Wird die Wahl nach der Freigabe <i>geändert</i>, verfällt
+die Freigabe – der Rüster hätte sonst das falsche Ausgangsmaterial geholt. Sie
+zum ersten Mal zu treffen ist dagegen kein Verfall.</p>`},
 
 "rest-verwendet":{titel:"Zuletzt verwendete Reste",text:`
 <p>Ein Rest, der für eine Massaufnahme gebraucht wurde, verschwindet aus dem

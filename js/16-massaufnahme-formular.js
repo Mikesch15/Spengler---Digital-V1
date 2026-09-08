@@ -126,6 +126,9 @@ function buildMeasurementFromForm(){
   // v3.31: Materialstaerke. Steht wie rapport_material in base und gilt
   // damit fuer alle zwoelf Zweige - eine Stelle, nicht zwoelf.
   staerke_mm:(typeof measStaerkeGet==="function")?measStaerkeGet():null,
+  // v3.33: Rolle oder Tafel. Steht ebenfalls in base - eine Stelle, nicht
+  // zwoelf. null heisst "automatisch": dann entscheidet der Materialbestand.
+  zuschnitt_form:(typeof measZuschnittFormGet==="function")?measZuschnittFormGet():null,
  };
  if(type==="einlaufblech_gerade"){
   const massA=Number($("eb_massA").value)||0;
@@ -426,7 +429,10 @@ $("saveMeasurement").onclick=async()=>{
      rapport_material:form.rapport_material||[],
      // v3.31: auch offline mitgeben - sonst waere die Staerke nach der
      // Uebertragung weg.
-     staerke_mm:form.staerke_mm===undefined?null:form.staerke_mm},
+     staerke_mm:form.staerke_mm===undefined?null:form.staerke_mm,
+     // v3.33: auch offline mitgeben - sonst waere die Wahl Rolle/Tafel nach
+     // der Uebertragung weg.
+     zuschnitt_form:form.zuschnitt_form===undefined?null:form.zuschnitt_form},
    // Fotos und Skizzen reisen als data:-URLs mit und werden erst beim
    // Senden hochgeladen - offline gibt es weder Zeilen-ID noch Storage.
    bilder:{photo_paths:measPhotos.slice(),sketch_paths:measSketches.slice()}
@@ -500,6 +506,9 @@ $("saveMeasurement").onclick=async()=>{
    // diese Zeile ginge die Staerke beim Speichern verloren, obwohl sie im
    // Formular steht.
    staerke_mm:form.staerke_mm===undefined?null:form.staerke_mm,
+   // v3.33: Der Speicher-Payload wird hier ausdruecklich aufgebaut - ohne
+   // diese Zeile ginge die Wahl Rolle/Tafel beim Speichern verloren.
+   zuschnitt_form:form.zuschnitt_form===undefined?null:form.zuschnitt_form,
    updated_by:currentProfile?currentProfile.id:null,
    updated_at:jetzt
   };
@@ -915,6 +924,12 @@ ${sketchSrcs.map((s2,i)=>`<div class="sketch-page"><div class="eb-section-head">
   if(mm&&mm.name)t.push(mm.name);
   const st=(typeof measStaerkeText==="function")?measStaerkeText(m.staerke_mm):"";
   if(st)t.push(st);
+  // v3.33: Rolle oder Tafel. Genommen wird der GESPEICHERTE Plan
+  // (pmatPlanRoh, js/48) - nicht die heutige Einstellung; ein einmal
+  // gedrucktes Blatt bleibt damit gleich. Arten ohne Rollen-/Tafelplan
+  // (Skizze/Foto, Rinne Halbrund mit Normlaengen) bekommen nichts angedichtet.
+  const roh=(typeof pmatPlanRoh==="function")?pmatPlanRoh(m):null;
+  if(roh&&typeof zuWort==="function")t.push(zuWort({form:roh.form}).kopf);
   return t.join(" · ");
  })();
  const kopfHtml=pdfKopfHtml({

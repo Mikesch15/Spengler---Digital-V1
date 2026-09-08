@@ -93,17 +93,20 @@ const liste=[];
   restMindestbreite=100; resteImZuschnitt=true;
   // v3.27: der Materialbestand. Er ist zugleich die Bruecke, ueber die die App
   // Staerke und Ausfuehrung eines Bedarfs kennt (Abschnitt 18). Erfunden.
+  // v3.33: jede Zeile traegt ihre Form. Menge und Einheit gibt es seit v3.31
+  // nicht mehr - sie stehen hier deshalb auch nicht.
   if(typeof lagerbestand!=="undefined")lagerbestand=[
    {id:1,material_id:1,artikel_id:3,bezeichnung:"Titanzinkblech blank",staerke_mm:0.7,
-    ausfuehrung:"blank",laenge_mm:2000,breite_mm:1000,menge:12,einheit:"Tafel",notiz:null},
+    ausfuehrung:"blank",form:"tafel",laenge_mm:2000,breite_mm:1000,notiz:null},
    {id:2,material_id:2,artikel_id:5,bezeichnung:"Kupferblech",staerke_mm:0.6,
-    ausfuehrung:"blank",laenge_mm:2000,breite_mm:1000,menge:4,einheit:"Tafel",notiz:null},
+    ausfuehrung:"blank",form:"tafel",laenge_mm:2000,breite_mm:1000,notiz:null},
    {id:3,material_id:3,artikel_id:null,bezeichnung:"Stahlblech verzinkt",staerke_mm:0.75,
-    ausfuehrung:"verzinkt",laenge_mm:null,breite_mm:1000,menge:2,einheit:"Rolle",notiz:"Restrolle"},
+    ausfuehrung:"verzinkt",form:"rolle",laenge_mm:null,breite_mm:null,notiz:"Restrolle"},
    // v3.31: eine zweite Staerke derselben Art - sonst zeigte das Bild der
-   // Materialstaerke eine Auswahl mit genau einem Eintrag.
+   // Materialstaerke eine Auswahl mit genau einem Eintrag. v3.33: als Rolle,
+   // damit im Bild beide Formen nebeneinander stehen.
    {id:4,material_id:1,artikel_id:4,bezeichnung:"Titanzinkblech blank",staerke_mm:0.8,
-    ausfuehrung:"blank",laenge_mm:null,breite_mm:null,menge:null,einheit:null,notiz:null}];
+    ausfuehrung:"blank",form:"rolle",laenge_mm:null,breite_mm:null,notiz:null}];
   // Das Reststuecke-Lager fuellt sonst loadAllData(), das hier nicht laeuft.
   if(typeof reststuecke!=="undefined")reststuecke=window.__demo.reststuecke.slice();
   settings.rates=[["Meister",98],["Vorarbeiter",88],["Monteur",76],["Lernender",42]];
@@ -206,7 +209,18 @@ const liste=[];
   if(rahmen)rahmen.id="__staerkeSchuss";
  });
  await schuss("51-materialstaerke","#__staerkeSchuss",{warte:300,breite:700});
- await page.evaluate(()=>{const e=$("__staerkeSchuss"); if(e)e.removeAttribute("id")});
+ // v3.33: die Wahl Rolle/Tafel steht direkt daneben. Fotografiert wird der
+ // Block selbst - im Bild oben ginge er neben Material und Staerke unter.
+ // Gezeigt wird der Zustand "automatisch": darunter steht dann, was der
+ // Materialbestand fuer dieses Material sagt.
+ await page.evaluate(()=>{
+  const f=document.querySelector("#__staerkeSchuss [data-meas-zform-block]");
+  if(f)f.id="__formSchuss";
+ });
+ await schuss("52-rolle-tafel","#__formSchuss",{warte:300,breite:620});
+ await page.evaluate(()=>{
+  ["__staerkeSchuss","__formSchuss"].forEach(i=>{const e=$(i); if(e)e.removeAttribute("id")});
+ });
  await page.evaluate(()=>ebaSetzeSchritt(2));
  await schussEB("08-eb-2-geometrie");
  // v3.12: der Umrechner "Winkel im Meter" - er haengt an JEDEM Winkelfeld.

@@ -111,50 +111,39 @@ function anbaRollenPlan(){
  const vor=ebaVorabzug(alleBleche,{material:(typeof anbaMaterialWert==="function")?anbaMaterialWert():null,
    abwicklung:alleBleche.length?alleBleche[0].breite:0});
  const bleche=vor.bleche;
- const breiten=anbaRollenbreiten();
  const netto=anbaFlaecheM2();
- if(!bleche.length||!breiten.length||typeof ebaPackeInStreifen!=="function")
-  return {gruppen:[],moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true,
+ if(!bleche.length||typeof ebaFormatPlan!=="function")
+  return {gruppen:[],moeglich:[],zuSchmal:[],bestes:null,netto,optimal:true,
+          ...ebaFormLeer((typeof anbaMaterialWert==="function")?anbaMaterialWert():null),
           ausResten:vor.ausResten};
  const B=bleche[0].breite;
- // Ein Abschnitt ist so lang wie das laengste Stueck.
- const L=vor.abschnittLaenge||Math.max.apply(null,bleche.map(x=>x.laenge));
- const v=ebaPackeInStreifen(bleche,L);
- const gruppe={breite:B,stuecke:bleche,abschnittLaenge:L,streifen:v.streifen||[]};
- const moeglich=[], zuSchmal=[];
- breiten.forEach(R=>{
-  const jeAbschnitt=ebaStreifenJeAbschnitt(R,B);
-  if(jeAbschnitt<1){zuSchmal.push(R);return}
-  const abschnitte=Math.ceil(gruppe.streifen.length/jeAbschnitt);
-  const rollenLaenge=abschnitte*L;
-  const flaeche=R*rollenLaenge/1e6;
-  moeglich.push({breite:R,flaeche,verschnitt:flaeche-netto,
-    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,rollenLaenge,
-    zeilen:[{breite:B,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,abschnittLaenge:L,
-      rollenLaenge,streifen:gruppe.streifen.length,restBreite:ebaRestBreite(R,B,jeAbschnitt)}]});
- });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
- const best=moeglich[0]||null;
- const gefuellt=Object.assign({},gruppe,{
-   jeAbschnitt:best?best.zeilen[0].jeAbschnitt:1,
-   abschnitte:best?best.zeilen[0].abschnitte:0,
-   rollenLaenge:best?best.zeilen[0].rollenLaenge:0});
- return {gruppen:[gefuellt],moeglich,zuSchmal,bestes:best,netto,
-   optimal:v.optimal!==false,ausResten:vor.ausResten};
+ // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
+ // der Massaufnahme - gerechnet wird beides mit DERSELBEN Packrechnung.
+ const fm=ebaFormate({material:(typeof anbaMaterialWert==="function")?anbaMaterialWert():null,
+   abwicklung:B});
+ const p=ebaFormatPlan({gruppen:[{breite:B,stuecke:bleche,bleche}],
+   formate:fm.formate,form:fm.form,netto});
+ return {gruppen:p.gruppen,moeglich:p.moeglich,zuSchmal:p.zuSchmal,
+   zuLang:p.zuLang,zuKurz:p.zuKurz,bestes:p.bestes,netto:p.netto,
+   optimal:p.optimal,form:p.form,formGrund:fm.grund,formQuelle:fm.quelle,
+   formate:p.formate,ausResten:vor.ausResten};
 }
 // Der Plan in der gemeinsamen Form (js/33).
 function anbaZuschnittPlan(){
  const rp=anbaRollenPlan();
- return {art:"rolle", einheit:"Stück",
+ return {art:rp.form, form:rp.form,
+  formGrund:rp.formGrund, formQuelle:rp.formQuelle,
+  einheit:"Stück",
   material:(typeof anbaMaterialWert==="function")?(anbaMaterialWert()||null):null,
-  einleitung:(typeof ZU_EINLEITUNG_ROLLE==="string")?ZU_EINLEITUNG_ROLLE:"",
-  quelle:(typeof ZU_QUELLE_ROLLE==="string")?ZU_QUELLE_ROLLE:"",
-  leer:!anbaBleche().length
-    ?"Noch nichts zuzuschneiden – bitte zuerst Segmente mit einer Länge erfassen."
-    :(!anbaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."
-    :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
+  einleitung:(typeof zuEinleitung==="function")?zuEinleitung(rp.form):"",
+  quelle:(typeof zuQuelle==="function")?zuQuelle(rp.form):"",
+  leer:(typeof ebaLeerText==="function")
+    ?ebaLeerText({form:rp.form,formate:rp.formate||[]},
+       anbaBleche().length?"":"Noch nichts zuzuschneiden – bitte zuerst Segmente mit einer Länge erfassen.")
+    :"",
   streifenbreiten:rp.gruppen.map(g=>g.breite),
   gruppen:rp.gruppen, moeglich:rp.moeglich, netto:rp.netto,
+  zuLang:rp.zuLang||[], zuKurz:rp.zuKurz||[],
   zuSchmal:rp.zuSchmal, ausResten:(rp.ausResten||[]), optimal:rp.optimal!==false};
 }
 
@@ -226,11 +215,16 @@ function anbaPruefungen(){
   m.push({art:"fehler",text:"Die Überlappung ist grösser oder gleich der Stücklänge."});
  if(e.art==="bleilappen"&&!(anbaZahl(e.lattenabstand)>0))
   m.push({art:"warnung",text:"Ohne Lattenabstand kann die Anzahl Bleilappen nicht berechnet werden."});
- if(anbaBleche().length&&!anbaRollenbreiten().length)
-  m.push({art:"warnung",text:"Es ist keine Rollenbreite hinterlegt – der Materialbedarf wird nicht gerechnet."});
  const plan=anbaRollenPlan();
- if(plan.zuSchmal.length&&!plan.bestes)
-  m.push({art:"warnung",text:"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung ("
+ // v3.33: die Meldung nennt, woraus wirklich geschnitten wird.
+ const anbaTafel=plan.form==="tafel";
+ if(anbaBleche().length&&!(plan.formate||[]).length)
+  m.push({art:"warnung",text:"Es ist "+(anbaTafel?"kein Tafelformat":"keine Rollenbreite")
+    +" hinterlegt – der Materialbedarf wird nicht gerechnet."});
+ else if(anbaBleche().length&&!plan.bestes)
+  m.push({art:"warnung",text:(anbaTafel
+    ?"Kein hinterlegtes Tafelformat passt zu diesem Zuschnitt ("
+    :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung (")
     +anbaMm(erg.abwicklung)+" mm)."});
  return m;
 }
@@ -320,9 +314,10 @@ function renderAnschlussblechAufnahme(){
  }
  if(anbaSchritt===5){
   const z=$("anba_seite5");
-  if(z)z.innerHTML=anbaKarte("5 · Zuschnitt aus Rollenblech",
-    ((typeof zuRollenAuswahlHtml==="function")?zuRollenAuswahlHtml(anbaRollenAuswahl,"data-anba-rolle"):"")
-    +((typeof zuschnittHtml==="function")?zuschnittHtml(anbaZuschnittPlan()):""));
+  const azp=anbaZuschnittPlan();
+  if(z)z.innerHTML=anbaKarte(zuTitel(5,azp.art),
+    ((typeof zuAuswahlHtml==="function")?zuAuswahlHtml(anbaRollenAuswahl,"data-anba-rolle",azp.art):"")
+    +((typeof zuschnittHtml==="function")?zuschnittHtml(azp):""));
  }
  if(anbaSchritt===6){
   const z=$("anba_seite6");
@@ -406,6 +401,10 @@ function anbaZusatzDaten(){
   kontrolle:anbaPruefungen(),
   zuschnitt:{auswahl:(anbaRollenAuswahl||[]).slice(),
              breiten:anbaRollenbreiten(),
+             // v3.33: ohne die Form kann der Ausdruck nicht sagen, ob von der
+             // Rolle oder aus der Tafel geschnitten wurde.
+             form:rp.form, formGrund:rp.formGrund||"", formQuelle:rp.formQuelle||"",
+             formLaenge:rp.bestes?(rp.bestes.laenge||null):null,
              netto:Number(rp.netto.toFixed(3)),
              bestes:rp.bestes||null,
              moeglich:rp.moeglich||[],

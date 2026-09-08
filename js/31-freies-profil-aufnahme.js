@@ -212,12 +212,10 @@ function fpaZuschnittGruppen(){
    :{bleche:g.stuecke,ausResten:[],abschnittLaenge:0};
   g.stuecke=vor.bleche||[];
   (vor.ausResten||[]).forEach(x=>ausResten.push(x));
-  if(!g.stuecke.length){g.abschnittLaenge=0;g.streifen=[];g.optimal=true;return}
-  g.abschnittLaenge=vor.abschnittLaenge||Math.max.apply(null,g.stuecke.map(x=>x.laenge));
-  const v=(typeof ebaPackeInStreifen==="function")
-   ?ebaPackeInStreifen(g.stuecke,g.abschnittLaenge):{streifen:[],optimal:true};
-  g.streifen=v.streifen||[];
-  g.optimal=v.optimal!==false;
+  // Gepackt wird erst in fpaRollenPlan() ueber ebaFormatPlan (js/29) - bei
+  // Tafelmaterial haengt die Abschnittlaenge am Format, nicht am laengsten
+  // Stueck, und darf deshalb hier noch nicht festgelegt werden.
+  g.bleche=g.stuecke;
  });
  // Eine Gruppe, deren Stuecke vollstaendig aus Resten kommen, hat fuer die
  // Rolle nichts mehr - sie faellt raus, sonst rechnete die Rollenrechnung mit
@@ -226,37 +224,19 @@ function fpaZuschnittGruppen(){
 }
 function fpaRollenPlan(){
  const {gruppen,ohne,ausResten}=fpaZuschnittGruppen();
- const breiten=fpaRollen();
  const netto=fpaFlaecheM2();
- if(!gruppen.length||!breiten.length)
-  return {gruppen,ohne,ausResten,moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
- const moeglich=[], zuSchmal=[];
- breiten.forEach(B=>{
-  const zeilen=[]; let flaeche=0, passt=true;
-  gruppen.forEach(g=>{
-   const jeAbschnitt=ebaStreifenJeAbschnitt(B,g.breite);
-   if(jeAbschnitt<1){passt=false;return}
-   const abschnitte=Math.ceil(g.streifen.length/jeAbschnitt);
-   const rollenLaenge=abschnitte*g.abschnittLaenge;
-   flaeche+=B*rollenLaenge/1e6;
-   zeilen.push({breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
-                abschnittLaenge:g.abschnittLaenge,rollenLaenge,
-                streifen:g.streifen.length,restBreite:ebaRestBreite(B,g.breite,jeAbschnitt)});
-  });
-  if(!passt){zuSchmal.push(B);return}
-  moeglich.push({breite:B,zeilen,flaeche,verschnitt:flaeche-netto,
-                 anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,
-                 rollenLaenge:zeilen.reduce((s,x)=>s+x.rollenLaenge,0)});
- });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
- // Die Abschnittzahl der besten Rolle ist die, mit der gearbeitet wird.
- const best=moeglich[0]||null;
- const gefuellt=gruppen.map((g,i)=>Object.assign({},g,{
-   jeAbschnitt:best?best.zeilen[i].jeAbschnitt:1,
-   abschnitte:best?best.zeilen[i].abschnitte:0,
-   rollenLaenge:best?best.zeilen[i].rollenLaenge:0}));
- return {gruppen:gefuellt,ohne,ausResten,moeglich,zuSchmal,bestes:best,netto,
-         optimal:gruppen.every(g=>g.optimal)};
+ if(!gruppen.length||typeof ebaFormatPlan!=="function")
+  return {gruppen,ohne,ausResten,moeglich:[],zuSchmal:[],bestes:null,netto,optimal:true,
+          ...ebaFormLeer((typeof fpA!=="undefined"&&fpA)?fpA.material:null)};
+ // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
+ // der Massaufnahme. Gepackt wird weiterhin je Streifenbreite mit DERSELBEN
+ // Packrechnung (ebaPackeInStreifen, js/29) - es gibt in der App nur EINE.
+ const fm=ebaFormate({material:(typeof fpA!=="undefined"&&fpA)?fpA.material:null});
+ const p=ebaFormatPlan({gruppen,formate:fm.formate,form:fm.form,netto});
+ return {gruppen:p.gruppen,ohne,ausResten,moeglich:p.moeglich,zuSchmal:p.zuSchmal,
+         zuLang:p.zuLang,zuKurz:p.zuKurz,bestes:p.bestes,netto:p.netto,
+         optimal:p.optimal,
+         form:p.form,formGrund:fm.grund,formQuelle:fm.quelle,formate:p.formate};
 }
 
 // ---- Kontrolle -------------------------------------------------------------
@@ -436,9 +416,9 @@ Alles entsteht aus dieser Aufnahme – keine zweite Eingabe, keine Artikelnummer
 // Abwicklung, es kann also mehrere Streifenbreiten geben.
 function fpaZuschnittPlan(){
  const p=fpaRollenPlan();
- const breiten=fpaRollen();
+ const breiten=(p.formate||[]).map(f=>f.text||"");
  // "Streifen je Tafel" ist nur bei EINER Streifenbreite eine einzelne Zahl.
- const moeglich=(p.moeglich||[]).map(m=>({breite:m.breite,
+ const moeglich=(p.moeglich||[]).map(m=>({breite:m.breite,laenge:m.laenge,text:m.text,
    jeTafel:(m.zeilen&&m.zeilen.length===1)?m.zeilen[0].jeTafel:undefined,
    streifen:(m.zeilen||[]).reduce((s,z)=>s+z.jeAbschnitt,0),
    rollenLaenge:m.rollenLaenge,
@@ -450,20 +430,23 @@ function fpaZuschnittPlan(){
    flaeche:m.flaeche, verschnitt:m.verschnitt, anteil:m.anteil}));
  const zusatz="Segmente mit gleicher Streifenbreite werden zusammen gepackt."
   +(fpaKonisch()?" Konisch: die Streifenbreite ist die grössere der beiden Abwicklungen – der Zuschnitt muss das breitere Ende enthalten.":"");
- return {art:"rolle", einheit:"Segment",
+ return {art:p.form, form:p.form,
+  formGrund:p.formGrund, formQuelle:p.formQuelle,
+  einheit:"Segment",
   material:(typeof fpA!=="undefined")?(fpA.material):null,
-  einleitung:ZU_EINLEITUNG_ROLLE, zusatz,
-  quelle:ZU_QUELLE_ROLLE+(breiten.length?" Hinterlegt: "+esc(breiten.join(", "))+" mm.":""),
+  einleitung:zuEinleitung(p.form), zusatz,
+  quelle:zuQuelle(p.form)+(breiten.length?" Hinterlegt: "+esc(breiten.join(" · "))+".":""),
   leer:"Noch nichts zuzuschneiden – es braucht mindestens ein Segment mit Länge und Massen (Register 5).",
   streifenbreiten:(p.gruppen||[]).map(g=>g.breite),
   gruppen:p.gruppen||[], moeglich, netto:p.netto,
-  zuSchmal:p.zuSchmal, zuLang:[], optimal:p.optimal!==false,
+  zuSchmal:p.zuSchmal, zuLang:p.zuLang||[], zuKurz:p.zuKurz||[],
+  optimal:p.optimal!==false,
   ausResten:p.ausResten||[],
   ohne:p.ohne||[]};
 }
 function fpaZuschnittHtml(){
- const kasten=zuRollenAuswahlHtml(fpA.rollenAuswahl,"data-fpa-rolle");
  const p=fpaZuschnittPlan();
+ const kasten=zuAuswahlHtml(fpA.rollenAuswahl,"data-fpa-rolle",p.art);
  // Segmente ohne Laenge oder ohne Masse werden nicht stillschweigend
  // mitgerechnet, sondern mit ihrer Nummer genannt.
  const ohne=p.ohne.length?`<div class="ra-warnung">${p.ohne.length} Segment(e) ohne Länge oder ohne
@@ -515,7 +498,7 @@ function fpaSchrittInhalt(){
  if(fpaSchritt===3)return fpaKarte("3 · Profilzeichnung",fpaZeichnungHtml());
  if(fpaSchritt===4)return fpaKarte("4 · Skizze → Profil",fpaSkizzeHtml());
  if(fpaSchritt===5)return fpaKarte("5 · Segmente",fpaSegmenteHtml());
- if(fpaSchritt===6)return fpaKarte("6 · Zuschnitt aus Rollenblech",fpaZuschnittHtml());
+ if(fpaSchritt===6)return fpaKarte(zuTitel(6,ebaFormLeer(fpA.material).form),fpaZuschnittHtml());
  if(fpaSchritt===7)return fpaKarte("7 · Ausmass und Material",fpaAusmassHtml());
  return fpaKarte("8 · Kontrolle",fpaKontrolleHtml());
 }
@@ -755,6 +738,10 @@ function fpaZusatzDaten(){
   // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
   kontrolle:fpaPruefungen(),
   zuschnitt:{auswahl:(fpA.rollenAuswahl||[]).slice(),breiten:fpaRollen(),
+             // v3.33: ohne die Form kann der Ausdruck nicht sagen, ob von der
+             // Rolle oder aus der Tafel geschnitten wurde.
+             form:plan.form, formGrund:plan.formGrund||"", formQuelle:plan.formQuelle||"",
+             formLaenge:plan.bestes?(plan.bestes.laenge||null):null,
              netto:Number(plan.netto.toFixed(3)),
              bestes:plan.bestes||null,
              moeglich:plan.moeglich||[],

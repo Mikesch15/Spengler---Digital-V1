@@ -167,10 +167,10 @@ function einfaRollenbreiten(){
 }
 function einfaRollenPlan(){
  const bleche=einfaBleche();
- const breiten=einfaRollenbreiten();
  const netto=einfaFlaecheM2();
- if(!bleche.length||!breiten.length)
-  return {gruppen:[],moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
+ if(!bleche.length||typeof ebaFormatPlan!=="function")
+  return {gruppen:[],moeglich:[],zuSchmal:[],bestes:null,netto,optimal:true,
+          ...ebaFormLeer(einfA&&einfA.material),ausResten:[]};
  const nach=new Map();
  bleche.forEach(x=>{
   if(!nach.has(x.breite))nach.set(x.breite,[]);
@@ -180,61 +180,47 @@ function einfaRollenPlan(){
  // je Gruppe mit DEREN Zuschnittbreite, denn ein Rest muss dazu passen.
  // Gerechnet wird in restVorabzug() (js/42) mit der bestehenden Packrechnung;
  // bei ausgeschalteter Einstellung kommt die Liste unveraendert zurueck.
- let optimal=true;
  const ausResten=[];
  const gruppen=Array.from(nach.keys()).sort((a,b)=>b-a).map(B=>{
   const vor=(typeof ebaVorabzug==="function")
    ?ebaVorabzug(nach.get(B),{material:einfA&&einfA.material,abwicklung:B})
-   :{bleche:nach.get(B),ausResten:[],abschnittLaenge:0};
+   :{bleche:nach.get(B),ausResten:[]};
   const liste=vor.bleche||[];
   (vor.ausResten||[]).forEach(x=>ausResten.push(x));
-  if(!liste.length)return {breite:B,stuecke:[],abschnittLaenge:0,streifen:[]};
-  const L=vor.abschnittLaenge||Math.max.apply(null,liste.map(x=>x.laenge));
-  const v=ebaPackeInStreifen(liste,L);
-  if(v.optimal===false)optimal=false;
-  return {breite:B,stuecke:liste,abschnittLaenge:L,streifen:v.streifen||[]};
- // Eine Gruppe, deren Stuecke vollstaendig aus Resten kommen, hat fuer die
- // Rolle nichts mehr - sie faellt raus.
+  // Gepackt wird erst in ebaFormatPlan (js/29) - bei Tafelmaterial haengt die
+  // Abschnittlaenge am Format, nicht am laengsten Stueck.
+  return {breite:B,stuecke:liste,bleche:liste};
  }).filter(g=>g.stuecke.length);
- const moeglich=[], zuSchmal=[];
- breiten.forEach(R=>{
-  const zeilen=[]; let flaeche=0, passt=true;
-  gruppen.forEach(gr=>{
-   const jeAbschnitt=ebaStreifenJeAbschnitt(R,gr.breite);
-   if(jeAbschnitt<1){passt=false;return}
-   const abschnitte=Math.ceil(gr.streifen.length/jeAbschnitt);
-   const rollenLaenge=abschnitte*gr.abschnittLaenge;
-   flaeche+=R*rollenLaenge/1e6;
-   zeilen.push({breite:gr.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
-     abschnittLaenge:gr.abschnittLaenge,rollenLaenge,
-     streifen:gr.streifen.length,restBreite:ebaRestBreite(R,gr.breite,jeAbschnitt)});
-  });
-  if(!passt){zuSchmal.push(R);return}
-  moeglich.push({breite:R,zeilen,flaeche,verschnitt:flaeche-netto,
-    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,
-    rollenLaenge:zeilen.reduce((s,x)=>s+x.rollenLaenge,0)});
- });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
- const best=moeglich[0]||null;
- const gefuellt=gruppen.map((g,i)=>Object.assign({},g,{
-   jeAbschnitt:best?best.zeilen[i].jeAbschnitt:1,
-   abschnitte:best?best.zeilen[i].abschnitte:0,
-   rollenLaenge:best?best.zeilen[i].rollenLaenge:0}));
- return {gruppen:gefuellt,moeglich,zuSchmal,bestes:best,netto,optimal,ausResten};
+ if(!gruppen.length)
+  return {gruppen:[],moeglich:[],zuSchmal:[],bestes:null,netto,optimal:true,
+          ...ebaFormLeer(einfA&&einfA.material),ausResten};
+ // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
+ // der Massaufnahme. Gepackt wird weiterhin mit DERSELBEN Packrechnung.
+ const fm=ebaFormate({material:einfA&&einfA.material});
+ const p=ebaFormatPlan({gruppen,formate:fm.formate,form:fm.form,netto});
+ return {gruppen:p.gruppen,moeglich:p.moeglich,zuSchmal:p.zuSchmal,
+         zuLang:p.zuLang,zuKurz:p.zuKurz,bestes:p.bestes,netto:p.netto,
+         optimal:p.optimal,ausResten,
+         form:p.form,formGrund:fm.grund,formQuelle:fm.quelle,formate:p.formate};
 }
 function einfaZuschnittPlan(){
  const rp=einfaRollenPlan();
- return {art:"rolle", einheit:"Einfassung",
+ const fm={form:rp.form,formate:rp.formate||[]};
+ const breiten=(rp.formate||[]).map(f=>f.text||"");
+ return {art:rp.form, form:rp.form,
+  formGrund:rp.formGrund, formQuelle:rp.formQuelle,
+  einheit:"Einfassung",
   material:(typeof einfA!=="undefined")?(einfA.material):null,
-  einleitung:(typeof ZU_EINLEITUNG_ROLLE!=="undefined")?ZU_EINLEITUNG_ROLLE:"",
-  quelle:(typeof ZU_QUELLE_ROLLE!=="undefined")?ZU_QUELLE_ROLLE:"",
-  leer:!einfaBleche().length?"Noch nichts zuzuschneiden – bitte zuerst eine Einfassung erfassen."
-      :(!einfaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."
-      :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
-  streifenbreiten:rp.gruppen.map(g=>g.breite),
-  gruppen:rp.gruppen, moeglich:rp.moeglich, netto:rp.netto,
+  einleitung:(typeof zuEinleitung==="function")?zuEinleitung(rp.form):"",
+  quelle:((typeof zuQuelle==="function")?zuQuelle(rp.form):"")
+    +(breiten.length?" Hinterlegt: "+esc(breiten.join(" · "))+".":""),
+  leer:(typeof ebaLeerText==="function")
+    ?ebaLeerText(fm,einfaBleche().length?"":"Noch nichts zuzuschneiden – bitte zuerst eine Einfassung erfassen."):"",
+  streifenbreiten:(rp.gruppen||[]).map(g=>g.breite),
+  gruppen:rp.gruppen||[], moeglich:rp.moeglich||[], netto:rp.netto,
   ausResten:rp.ausResten||[],
-  zuSchmal:rp.zuSchmal, optimal:rp.optimal!==false};
+  zuSchmal:rp.zuSchmal, zuLang:rp.zuLang||[], zuKurz:rp.zuKurz||[],
+  optimal:rp.optimal!==false};
 }
 
 // ---- Ausmass --------------------------------------------------------------
@@ -308,10 +294,16 @@ function einfaPruefungen(){
    m.push({art:"fehler",text:nr+"Die Stückzahl muss mindestens 1 sein."});
  });
  if(einfaBleche().length){
-  if(!einfaRollenbreiten().length)
-   m.push({art:"warnung",text:"Es ist keine Rollenbreite hinterlegt – der Materialbedarf wird nicht gerechnet."});
-  else if(!einfaRollenPlan().bestes)
-   m.push({art:"fehler",text:"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."});
+  // v3.33: Rolle oder Tafel - die Meldung nennt, woraus wirklich geschnitten
+  // wird, statt in jedem Fall von der Rolle zu sprechen.
+  const rp=einfaRollenPlan(), tafel=rp.form==="tafel";
+  if(!(rp.formate||[]).length)
+   m.push({art:"warnung",text:"Es ist "+(tafel?"kein Tafelformat":"keine Rollenbreite")
+     +" hinterlegt – der Materialbedarf wird nicht gerechnet."});
+  else if(!rp.bestes)
+   m.push({art:"fehler",text:tafel
+     ?"Kein hinterlegtes Tafelformat passt zu diesem Zuschnitt – zu schmal oder zu kurz."
+     :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."});
  }
  return m;
 }
@@ -421,9 +413,12 @@ gesamten Einfassung, <b>Breite</b> die Abwicklung des Querschnitts.</div>
 ${einfaKennzahlenHtml()}`;
 }
 function einfaZuschnittHtml(){
- const wahl=(typeof zuRollenAuswahlHtml==="function")
-   ?zuRollenAuswahlHtml(einfA.rollenAuswahl,"data-einfa-rolle"):"";
- return wahl+((typeof zuschnittHtml==="function")?zuschnittHtml(einfaZuschnittPlan()):"");
+ // Bei Tafelmaterial gibt es keine Rollenbreite zu waehlen (zuAuswahlHtml,
+ // js/33) - die Formate kommen dort aus dem Materialbestand.
+ const plan=einfaZuschnittPlan();
+ const wahl=(typeof zuAuswahlHtml==="function")
+   ?zuAuswahlHtml(einfA.rollenAuswahl,"data-einfa-rolle",plan.art):"";
+ return wahl+((typeof zuschnittHtml==="function")?zuschnittHtml(plan):"");
 }
 function einfaAusmassHtml(){
  const z=einfaAusmassZeilen();
@@ -492,8 +487,13 @@ function renderEinfassungAufnahme(){
  // echte Benutzereingabe, deshalb wird er verworfen.
  einfaZeichnet=true;
  try{
+  // Register 4 nennt, WORAUS geschnitten wird (zuTitel, js/33) - die uebrigen
+  // behalten ihren Kurznamen aus EINFA_REGISTER.
+  const titel=(r.nr===4&&typeof zuTitel==="function")
+    ?zuTitel(r.nr,(typeof ebaFormLeer==="function")?ebaFormLeer(einfA&&einfA.material).form:"rolle")
+    :(r.nr+" · "+r.kurz);
   ziel.innerHTML=einfaRegisterHtml()
-   +einfaKarte(r.nr+" · "+r.kurz,inhalt?inhalt():"")
+   +einfaKarte(titel,inhalt?inhalt():"")
    +`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="einfa_zurueck"${einfaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="einfa_weiter">${esc(weiter)}</button>
@@ -668,6 +668,10 @@ function einfaDaten(){
   kontrolle:einfaPruefungen(),
   rollen:{auswahl:(a.rollenAuswahl||[]).slice(),
     breiten:einfaRollenbreiten(),
+    // v3.33: ohne die Form kann der Ausdruck nicht sagen, ob von der Rolle
+    // oder aus der Tafel geschnitten wurde.
+    form:plan.form, formGrund:plan.formGrund||"", formQuelle:plan.formQuelle||"",
+    formLaenge:plan.bestes?(plan.bestes.laenge||null):null,
     netto:Number((plan.netto||0).toFixed(3)),
     bestes:plan.bestes||null,
     moeglich:plan.moeglich||[],

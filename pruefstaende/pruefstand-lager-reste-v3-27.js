@@ -387,7 +387,11 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
     text:t,hatStaerke:/0,7 mm/.test(t),hatAusf:/blank/.test(t),
     // v3.31: Menge und Abmessung sind bewusst weg - die Liste legt fest,
     // WELCHE Materialien die Firma fuehrt, sie ist keine Bestandsfuehrung.
-    hatMass:!/2.000 × 1.000 mm/.test(t)&&!/Tafel/.test(t)};
+    // v3.33: das WORT "Tafel" darf jetzt vorkommen - es ist die Form des
+    // Materials (Rolle oder Tafel) bzw. steht im Hinweis, wenn sie fehlt.
+    // Geprueft wird deshalb weiterhin das, worum es geht: keine Abmessung
+    // (2'000 × 1'000 mm) und keine Menge ("5 Tafeln") in der Zeile.
+    hatMass:!/2.000 × 1.000 mm/.test(t)&&!/\b5\s*Tafeln\b/.test(t)&&!/Menge/.test(t)};
  });
  p(r.tab&&r.panel,"20 · das Register Lager gibt es",r);
  p(r.hatStaerke&&r.hatAusf&&r.hatMass,"20 · Staerke und Ausfuehrung stehen in der Zeile, Menge und Abmessung nicht mehr",

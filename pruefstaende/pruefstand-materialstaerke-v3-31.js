@@ -117,9 +117,19 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
           menge:/lag_menge/.test(h),einheit:/lag_einheit/.test(h),
           material:/lag_material/.test(h),staerke:/lag_staerke/.test(h),
           ausf:/lag_ausfuehrung/.test(h),
+          form:/lag_form/.test(h),
+          // Beide Tafelfelder muessen ohne gewaehlte Tafel "hidden" tragen.
+          tafelVersteckt:(h.match(/data-lag-tafelmass="1" hidden/g)||[]).length===2,
           zweck:/welche<\/b> Materialien die Firma/.test(h)};
  });
- p(!a1.laenge&&!a1.breite&&!a1.menge&&!a1.einheit,"Formular hat weder Laenge, Breite, Menge noch Einheit",a1);
+ // v3.33: Tafellaenge und -breite gibt es wieder - aber NUR fuer Tafelmaterial
+ // (das Format ist dort die Rechengroesse) und nur eingeblendet, wenn "Tafel"
+ // gewaehlt ist. Menge und Einheit bleiben weg: die Liste ist keine
+ // Bestandsfuehrung. Geprueft wird deshalb beides, nicht weniger.
+ p(!a1.menge&&!a1.einheit,"Formular hat weder Menge noch Einheit",a1);
+ p(a1.form,"die Form (Rolle oder Tafel) ist da",a1);
+ p(a1.laenge&&a1.breite&&a1.tafelVersteckt,
+   "Tafellaenge und -breite gibt es, sind bei Rollenmaterial aber ausgeblendet",a1);
  p(a1.material&&a1.staerke&&a1.ausf,"Materialart, Staerke und Ausfuehrung sind geblieben",a1);
  p(a1.zweck,"der Erklaertext sagt, wofuer die Liste da ist",a1);
 
@@ -130,11 +140,17 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
   $("lag_ausfuehrung").value="blank";
   await lagSpeichern();
   const s=(window.__schreib||[]).filter(x=>x.t==="lagerbestand");
-  return {anzahl:s.length,schluessel:s.length?Object.keys(s[0].d):[]};
+  return {anzahl:s.length,schluessel:s.length?Object.keys(s[0].d):[],
+          laengeWert:s.length?s[0].d.laenge_mm:undefined,
+          breiteWert:s.length?s[0].d.breite_mm:undefined};
  });
  p(a2.anzahl===1,"genau ein Schreibvorgang",a2);
- p(!a2.schluessel.some(k=>["laenge_mm","breite_mm","menge","einheit"].indexOf(k)>=0),
-   "keiner der vier Schluessel wird gesendet",a2);
+ p(!a2.schluessel.some(k=>["menge","einheit"].indexOf(k)>=0),
+   "Menge und Einheit werden nicht gesendet",a2);
+ // v3.33: die Tafelmasse reisen mit, bei Rollenmaterial aber ausdruecklich
+ // als null - es wird kein Format erfunden.
+ p(a2.laengeWert===null&&a2.breiteWert===null,
+   "bei Rollenmaterial sind Tafellaenge und -breite null",a2);
  p(a2.schluessel.indexOf("company_id")<0,"nie eine company_id vom Client",a2);
  p(a2.schluessel.indexOf("staerke_mm")>=0,"die Staerke wird gesendet",a2);
 
@@ -335,7 +351,10 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
  });
  p(e1&&e1.material===2,"plan.material ist die Material-ID (bis v3.30 stand dort der Name)",e1);
  p(e1&&e1.name==="Titanzink","der lesbare Name steht daneben",e1);
- p(e1&&e1.text==="Titanzink · 0,7 mm","und Material samt Staerke als ein Text",e1);
+ // v3.33: dazu die Form - genau das ist die Angabe, die in der Werkstatt und
+ // auf der Ruestliste fehlte ("woraus wird geschnitten").
+ p(e1&&e1.text==="Titanzink · 0,7 mm · Rollenblech",
+   "und Material, Staerke und Form als ein Text",e1);
  p(e1&&e1.st===0.7,"die Staerke der Massaufnahme reist am Plan mit",e1);
 
  const e2=await page.evaluate(()=>{

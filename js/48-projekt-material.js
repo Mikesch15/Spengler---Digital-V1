@@ -93,7 +93,11 @@ function pmatPlanFuer(m){
  p.materialName=pmatMaterialName(d.material);
  // v3.31: Material und Staerke fuer die Anzeige - eine Stelle fuer
  // Werkstatt und Ruestliste.
- p.materialText=[p.materialName,(typeof measStaerkeText==="function")?measStaerkeText(p.staerkeFuer):""]
+ // v3.33: dazu Rolle oder Tafel - der Betrieb muss beim Ruesten sehen, WORAUS
+ // geschnitten wird. Das Wort kommt aus ZU_WORT (js/33), es gibt keine zweite
+ // Schreibweise; p.form hat zuPlanAusGespeichert() aus dem Datensatz gelesen.
+ const formWort=(typeof zuWort==="function")?zuWort(p).kopf:"";
+ p.materialText=[p.materialName,(typeof measStaerkeText==="function")?measStaerkeText(p.staerkeFuer):"",formWort]
    .filter(x=>x&&x!=="Ohne Material").join(" · ");
  return p;
 }

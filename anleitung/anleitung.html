@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.32";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.33";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.32<br>
+  Version 3.33<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -429,6 +429,34 @@ macht den Restabgleich eindeutig (siehe oben).</p>
 Änderung: eine bereits freigegebene Massaufnahme muss danach erneut freigegeben werden
 (Abschnitt 9). Sie zum <em>ersten Mal</em> einzutragen zählt nicht dazu – sonst würde
 das Nachtragen einer fehlenden Angabe die Freigabe kippen.</div>
+
+<h4>Rolle oder Tafel</h4>
+<figure><img src="bilder/52-rolle-tafel.png"><figcaption>Neben der Stärke steht, woraus geschnitten wird. „Automatisch“ nimmt, was der Materialbestand für dieses Material sagt.</figcaption></figure>
+<p>Blech kommt entweder <strong>von der Rolle</strong> oder als <strong>Tafel</strong>.
+Für den Zuschnitt ist das ein Unterschied: von der Rolle wird ein Abschnitt in der Länge
+des längsten Stücks abgezogen, aus einer Tafel wird in ein <em>festes</em> Format
+geschnitten. Wo die Rolle nur eine Breite hat, hat die Tafel Länge <em>und</em> Breite –
+und was nicht hineinpasst, passt eben nicht.</p>
+<p>Erfasst wird das an zwei Stellen:</p>
+<ul>
+<li>Im <strong>Materialbestand</strong> (Abschnitt 18) trägt jede Zeile ihre Form. Bei
+<em>Tafel</em> kommen Tafellänge und -breite dazu; bei <em>Rolle</em> sind diese beiden
+Felder ausgeblendet, weil es sie dort nicht gibt.</li>
+<li>In der <strong>Massaufnahme</strong> steht neben der Stärke das Feld
+<strong>Zuschnitt aus</strong>. Es steht auf <em>automatisch</em> – dann gilt, was der
+Materialbestand für dieses Material und diese Stärke sagt. Wer es für diese eine
+Massaufnahme anders braucht, stellt es hier von Hand auf Rolle oder Tafel.</li>
+</ul>
+<p>Der Zuschnitt rechnet danach mit dem, was gewählt ist, und <strong>schreibt es
+hin</strong>: das Register heisst „Zuschnitt aus Tafeln“ statt „Zuschnitt aus
+Rollenblech“, die Übersicht nennt die Tafel mit ihrem Format
+(<em>2'000 × 1'000 mm</em>) statt nur mit einer Breite, und dieselbe Angabe steht in der
+Werkstatt, in der Rüstliste und im Kopf des PDF.</p>
+<div class="hin"><strong>Ohne Format wird nichts erfunden.</strong> Ist im
+Materialbestand <em>Tafel</em> hinterlegt, aber kein Format eingetragen, rechnet die App
+mit der Rolle weiter – und sagt ausdrücklich, warum. Sie denkt sich keine Tafelgrösse
+aus. Dasselbe gilt, wenn zu einem Material gar nichts im Bestand steht: dann bleibt es
+bei der Rolle, mit einem Hinweis, wo die Angabe hingehört.</div>
 
 <h3>6 · Ausmass</h3>
 <figure><img src="bilder/11-eb-5-ausmass.png"><figcaption>Das Ausmass entsteht ohne zweite Eingabe aus dem, was erfasst wurde – ohne Artikelnummern und ohne Preise.</figcaption></figure>
@@ -1185,15 +1213,23 @@ Reststück dagegen ist nach der Verwendung verbraucht.</div>
 
 <p>Das Register <strong>📦 Lager</strong> hat zwei Karten. Unter
 <strong>Materialbestand</strong> steht, was an neuem Material im Betrieb liegt – je Zeile
-Artikel aus dem Materialkatalog der Firma, Materialart, <strong>Stärke</strong> und
-<strong>Ausführung</strong> (blank, vorbewittert, verzinkt …).
+Artikel aus dem Materialkatalog der Firma, Materialart, <strong>Stärke</strong>,
+<strong>Ausführung</strong> (blank, vorbewittert, verzinkt …) und – seit Version 3.33 –
+die <strong>Form</strong>: <strong>Rolle</strong> oder <strong>Tafel</strong>. Bei einer
+Tafel kommen <strong>Tafellänge</strong> und <strong>Tafelbreite</strong> dazu; bei
+Rollenmaterial sind diese beiden Felder ausgeblendet, weil es sie dort nicht gibt.
 Das ist <strong>keine Lagerverwaltung</strong>: es wird nichts abgebucht und nichts
 bestellt. Die Liste legt fest, <strong>welche</strong> Materialien der Betrieb führt –
 seit Version 3.31 deshalb <strong>ohne Menge, Länge und Breite</strong>. Sie hatte nie
 eine Wirkung, und eine Zahl, die niemand pflegt, ist schlechter als keine. Der Bestand
-hat dafür zwei klare Aufgaben: er sagt der App, welche <strong>Stärken</strong> in der
-Massaufnahme zur Auswahl stehen (Abschnitt 5), und er entscheidet beim Zuschnitt, ob ein
-Rest wirklich passt.</p>
+hat dafür drei klare Aufgaben: er sagt der App, welche <strong>Stärken</strong> in der
+Massaufnahme zur Auswahl stehen (Abschnitt 5), er entscheidet beim Zuschnitt, ob ein
+Rest wirklich passt, und er sagt, ob aus der <strong>Rolle</strong> oder aus einer
+<strong>Tafel</strong> geschnitten wird.</p>
+<div class="hin"><strong>Tafel ohne Format.</strong> Wer <em>Tafel</em> wählt, aber
+Länge und Breite nicht einträgt, bekommt keinen erfundenen Zuschnitt: die App rechnet
+dann mit der Rolle weiter und schreibt den Grund dazu. Erst mit einem eingetragenen
+Format wird wirklich in Tafeln geplant.</div>
 <div class="hin">Sind für eine Materialart <strong>mehrere</strong> Kombinationen aus
 Stärke und Ausführung hinterlegt – etwa Titanzink 0,70 blank und 0,80 vorbewittert –,
 entscheidet die <strong>Materialstärke der Massaufnahme</strong> (Abschnitt 5), welche
@@ -1351,7 +1387,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.32</strong>, Stand 8. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.33</strong>, Stand 8. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
@@ -1372,6 +1408,11 @@ Kontrolle.</li>
 jeder Rest wird ausgewiesen (Abschnitt 8). Ob Reste aus dem Lager vom Bedarf abgezogen
 werden, entscheidet seit Version 3.27 ein Schalter je Firma – ohne ihn werden sie nur
 vorgeschlagen, und der Plan bleibt, wie er ist.</li>
+<li>Ob aus der <strong>Rolle</strong> oder aus einer <strong>Tafel</strong> geschnitten
+wird, kommt seit Version 3.33 aus dem Materialbestand und lässt sich je Massaufnahme
+übersteuern (Abschnitt 5). Ist <em>Tafel</em> gewählt, aber kein Format hinterlegt,
+rechnet die App mit der Rolle weiter und sagt warum – sie erfindet <strong>keine
+Tafelgrösse</strong>.</li>
 <li>Der <strong>Materialbestand</strong> ist ein Nachschlagewerk, <strong>keine
 Lagerverwaltung</strong>: es wird nichts abgebucht, nichts bestellt und keine Menge
 automatisch fortgeschrieben.</li>

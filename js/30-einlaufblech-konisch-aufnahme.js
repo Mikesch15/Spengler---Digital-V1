@@ -140,32 +140,17 @@ function ebkaRollenPlan(){
 // bei ausgeschalteter Einstellung kommt die Liste unveraendert zurueck.
  const vor=ebaVorabzug(alleBleche,{material:(typeof ebkA!=="undefined"&&ebkA)?ebkA.material:null,abwicklung:A});
  const bleche=vor.bleche;
- const L=vor.abschnittLaenge||ebkaTafelLaenge();
- const breiten=ebkaRollen();
- if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abschnittLaenge:L,
-          ausResten:vor.ausResten};
- // Ein Abschnitt ist so lang wie das laengste Stueck - die Streifen haengen
- // deshalb nicht an der Rollenbreite und werden EINMAL gepackt.
- const v=ebaPackeInStreifen(bleche,L);
- const streifen=v.streifen||[];
- const moeglich=[], zuSchmal=[];
- const netto=ebkaFlaecheM2();
- breiten.forEach(B=>{
-  const jeAbschnitt=ebaStreifenJeAbschnitt(B,A);
-  if(jeAbschnitt<1){zuSchmal.push(B);return}
-  const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
-  const rollenLaenge=abschnitte*L;
-  const flaeche=B*rollenLaenge/1e6;
-  moeglich.push({breite:B,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,abschnittLaenge:L,
-   rollenLaenge, streifen:streifen.length,
-   restBreite:ebaRestBreite(B,A,jeAbschnitt),
-   flaeche, verschnitt:flaeche-netto,
-   anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
- });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.abschnitte-y.abschnitte||y.breite-x.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null,abschnittLaenge:L,
-         verteilung:v,streifen,netto,optimal:v.optimal!==false,
+ // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
+ // der Massaufnahme. Gerechnet wird beides mit DERSELBEN Packrechnung - eine
+ // Tafel ist geometrisch ein Abschnitt mit fester Laenge und fester Breite.
+ const fm=ebaFormate({material:(typeof ebkA!=="undefined"&&ebkA)?ebkA.material:null,abwicklung:A});
+ const p=ebaFormatPlan({gruppen:[{breite:A,bleche}],formate:fm.formate,
+                        form:fm.form,netto:ebkaFlaecheM2()});
+ const g=p.gruppen[0]||{streifen:[],abschnittLaenge:0,verteilung:{streifen:[]}};
+ return {moeglich:p.moeglich,zuSchmal:p.zuSchmal,zuLang:p.zuLang,zuKurz:p.zuKurz,bestes:p.bestes,
+         abschnittLaenge:g.abschnittLaenge||vor.abschnittLaenge||ebkaTafelLaenge(),
+         verteilung:g.verteilung,streifen:g.streifen,netto:p.netto,optimal:p.optimal,
+         form:p.form,formGrund:fm.grund,formQuelle:fm.quelle,formate:p.formate,
          ausResten:vor.ausResten};
 }
 
@@ -402,25 +387,27 @@ function ebkaZuschnittPlan(){
  const plan=ebkaRollenPlan();
  const best=plan.bestes;
  const A=ebkaZahl(ebkA.abwicklung);
- return {art:"rolle", einheit:"Stück",
+ return {art:plan.form, form:plan.form,
+  formGrund:plan.formGrund, formQuelle:plan.formQuelle,
+  einheit:"Stück",
   material:(typeof ebkA!=="undefined")?(ebkA.material):null,
-  einleitung:ZU_EINLEITUNG_ROLLE,
+  einleitung:zuEinleitung(plan.form),
   zusatz:"Die Konizität wird innerhalb des Streifens angerissen und ändert die benötigte Fläche nicht.",
-  quelle:ZU_QUELLE_ROLLE,
-  leer:!(ebkA.stuecke||[]).length?"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."
-      :(!(ebkaRollen()).length?"Es ist keine Rollenbreite hinterlegt."
-      :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
+  quelle:zuQuelle(plan.form),
+  leer:ebaLeerText({form:plan.form,formate:plan.formate||[]},
+        (ebkA.stuecke||[]).length?"":"Noch nichts zuzuschneiden – bitte zuerst Stücke erfassen."),
   streifenbreiten:[A],
   gruppen:(plan.streifen||[]).length?[{breite:A,abschnittLaenge:plan.abschnittLaenge,
     jeAbschnitt:best?best.jeAbschnitt:1, abschnitte:best?best.abschnitte:0,
     rollenLaenge:best?best.rollenLaenge:0, streifen:plan.streifen}]:[],
   moeglich:plan.moeglich, netto:ebkaFlaecheM2(),
-  zuSchmal:plan.zuSchmal, zuLang:(plan.verteilung||{}).zuLang||[],
+  zuSchmal:plan.zuSchmal, zuLang:plan.zuLang||[], zuKurz:plan.zuKurz||[],
   ausResten:(plan.ausResten||[]),
   optimal:plan.optimal!==false};
 }
 function ebkaZuschnittHtml(){
- return zuRollenAuswahlHtml(ebkA.rollenAuswahl,"data-ebka-rolle")+zuschnittHtml(ebkaZuschnittPlan());
+ const plan=ebkaZuschnittPlan();
+ return zuAuswahlHtml(ebkA.rollenAuswahl,"data-ebka-rolle",plan.art)+zuschnittHtml(plan);
 }
 
 // ---- Register --------------------------------------------------------------
@@ -449,7 +436,7 @@ function ebkaSchrittInhalt(){
  if(ebkaSchritt===1)return ebkaKarte("1 · Grunddaten",ebkaGrunddatenHtml());
  if(ebkaSchritt===2)return ebkaKarte("2 · Geometrie",ebkaGeometrieHtml());
  if(ebkaSchritt===3)return ebkaKarte("3 · Stücke und Aufteilung",ebkaStueckeHtml());
- if(ebkaSchritt===4)return ebkaKarte("4 · Zuschnitt aus Rollenblech",ebkaZuschnittHtml());
+ if(ebkaSchritt===4)return ebkaKarte(zuTitel(4,ebaFormLeer(ebkA.material).form),ebkaZuschnittHtml());
  if(ebkaSchritt===5)return ebkaKarte("5 · Ausmass und Material",ebkaAusmassHtml());
  return ebkaKarte("6 · Kontrolle",ebkaKontrolleHtml());
 }
@@ -767,6 +754,10 @@ function ebkaZusatzDaten(){
   // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
   kontrolle:ebkaPruefungen(),
   rollen:{auswahl:(ebkA.rollenAuswahl||[]).slice(),
+          // v3.33: ohne die Form kann der Ausdruck nicht sagen, ob von der
+          // Rolle oder aus der Tafel geschnitten wurde.
+          form:plan.form, formGrund:plan.formGrund||"", formQuelle:plan.formQuelle||"",
+          formLaenge:plan.bestes?(plan.bestes.laenge||null):null,
           abschnittLaenge:plan.abschnittLaenge,
           abschnitte:plan.bestes?plan.bestes.abschnitte:0,
           jeAbschnitt:plan.bestes?plan.bestes.jeAbschnitt:1,

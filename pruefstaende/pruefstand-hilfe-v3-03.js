@@ -225,10 +225,12 @@ const ARTEN=[
     const w=document.getElementById(a.wurzel);
     const k=[...w.querySelectorAll(".hilfe-knopf[data-hilfe]")]
       .filter(x=>x.offsetParent!==null)
-      // v3.31: der Info-Knopf der Materialstaerke gehoert zu einem FELD,
-      // nicht zur Registerkarte. Geprueft wird hier die Karte - jeder
-      // andere zusaetzliche Knopf faellt weiterhin auf.
-      .filter(x=>!x.closest("[data-meas-staerke-block]"));
+      // v3.31/v3.33: die Info-Knoepfe der Materialstaerke und der Wahl
+      // Rolle/Tafel gehoeren zu einem FELD, nicht zur Registerkarte.
+      // Geprueft wird hier die Karte - jeder andere zusaetzliche Knopf
+      // faellt weiterhin auf (Gegenprobe: ein zweiter Kartenknopf).
+      .filter(x=>!x.closest("[data-meas-staerke-block]"))
+      .filter(x=>!x.closest("[data-meas-zform-block]"));
     gesehen[n]=k.length===1?k[0].dataset.hilfe:k.length;
     if(k.length!==1)doppelt.push(n+":"+k.length);
    }

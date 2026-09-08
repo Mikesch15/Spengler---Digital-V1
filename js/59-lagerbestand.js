@@ -19,6 +19,19 @@
 //
 // Nichts davon ist hart verdrahtet: Materialarten kommen aus
 // measurement_materials, Artikel aus materials - beide firmenspezifisch.
+//
+// v3.33: Dazu kommt die FORM - Rolle oder Tafel. Bis v3.32 rechnete der
+// Zuschnitt ausschliesslich mit Rollenblech (Abschnitt abziehen, quer in
+// Streifen teilen). Eine Tafel hat dagegen eine feste Laenge; geometrisch ist
+// sie nichts anderes als ein Abschnitt mit fester Laenge und fester Breite.
+// Deshalb stehen bei 'tafel' Laenge und Breite hier am Eintrag - und zwar in
+// den Spalten laenge_mm/breite_mm, die es seit v3.27 gibt (v3.31 hat sie nur
+// aus dem Formular genommen, nie geloescht). Es kommt keine neue Massspalte
+// dazu.
+//
+// Bei 'rolle' bleibt es bei den firmenweiten Rollenbreiten (Einstellungen ->
+// Allgemein): eine Rolle hat keine feste Laenge, und ihre Breite gehoert zum
+// Lager der ganzen Firma, nicht zum einzelnen Artikel.
 // ---------------------------------------------------------------------------
 
 function lagZahl(v){const n=Number(v);return Number.isFinite(n)?n:0}
@@ -51,6 +64,38 @@ function lagMaterialName(id){
  return m?m.name:"";
 }
 
+// ---- Rolle oder Tafel (v3.33) ---------------------------------------------
+// Genau zwei Werte, dieselben wie in der Datenbank-Constraint. NULL heisst
+// "nicht angegeben" - dann verhaelt sich der Zuschnitt wie bis v3.32 (Rolle).
+const LAG_FORMEN=Object.freeze([
+ {wert:"rolle",text:"Rolle"},
+ {wert:"tafel",text:"Tafel"}
+]);
+function lagForm(v){
+ const t=String(v===null||v===undefined?"":v).trim().toLowerCase();
+ return (t==="rolle"||t==="tafel")?t:null;
+}
+function lagFormText(v){
+ const f=lagForm(v);
+ const e=LAG_FORMEN.find(x=>x.wert===f);
+ return e?e.text:"";
+}
+// Das Tafelformat als Text - nur wenn beide Masse da sind, sonst nichts.
+function lagTafelText(l){
+ const a=lagNummer(l&&l.laenge_mm), b=lagNummer(l&&l.breite_mm);
+ return (a!==null&&b!==null)?(lagMm(a)+" × "+lagMm(b)+" mm"):"";
+}
+function lagMm(v){return Math.round(lagZahl(v)).toLocaleString("de-CH")}
+// Ein bestehender Eintrag ohne Form: die Firma hat die Angabe bis v3.32
+// mangels Feld teils in die NOTIZ geschrieben ("Rolle", "Tafel"). Das wird
+// beim Bearbeiten als VORSCHLAG uebernommen und ausdruecklich als solcher
+// gekennzeichnet - gespeichert wird erst, wenn jemand bestaetigt. Geraten
+// wird also nichts, und in der Datenbank aendert sich von allein nichts.
+function lagFormAusNotiz(l){
+ if(lagForm(l&&l.form)!==null)return null;
+ return lagForm((l&&l.notiz)||"");
+}
+
 // Die Zeile, wie sie im Lager steht. Nur echte Angaben - fehlt eine, wird sie
 // weggelassen statt erfunden.
 // v3.31: Menge, Laenge und Breite sind hier bewusst KEIN Thema mehr. Die
@@ -66,6 +111,15 @@ function lagBeschreibung(l){
  const st=lagNummer(l.staerke_mm);
  if(st!==null)t.push(String(st).replace(".",",")+" mm");
  if((l.ausfuehrung||"").trim())t.push(l.ausfuehrung.trim());
+ // v3.33: die Form gehoert an die Zeile - sie entscheidet, WIE der Zuschnitt
+ // gerechnet wird. Bei einer Tafel steht das Format dabei, bei einer Rolle
+ // nicht: eine Rolle hat keine feste Laenge, und ihre Breite kommt aus den
+ // firmenweiten Rollenbreiten.
+ const f=lagFormText(l&&l.form);
+ if(f){
+  const tf=lagForm(l&&l.form)==="tafel"?lagTafelText(l):"";
+  t.push(tf?(f+" "+tf):f);
+ }
  return t.join(" · ");
 }
 
@@ -77,6 +131,19 @@ function lagFehlt(l){
  if(lagNummer(l.material_id)===null)f.push("Materialart");
  if(lagNummer(l.staerke_mm)===null)f.push("Stärke");
  if(!(l.ausfuehrung||"").trim())f.push("Ausführung");
+ if(lagForm(l&&l.form)===null)f.push("Form (Rolle oder Tafel)");
+ return f;
+}
+
+// Eine Tafel ohne Format ist fuer die Planung wertlos: der Zuschnitt braucht
+// Laenge UND Breite, sonst weiss er nicht, worin er die Stuecke unterbringt.
+// Steht ausdruecklich an der Zeile, statt beim Rechnen stillschweigend auf
+// Rollenblech zurueckzufallen.
+function lagTafelFehlt(l){
+ if(lagForm(l&&l.form)!=="tafel")return [];
+ const f=[];
+ if(lagNummer(l&&l.laenge_mm)===null)f.push("Länge");
+ if(lagNummer(l&&l.breite_mm)===null)f.push("Breite");
  return f;
 }
 
@@ -122,12 +189,14 @@ function renderLagerbestand(){
  }
  box.innerHTML=warnung+liste.map(l=>{
   const fehlt=lagFehlt(l);
+  const tafelFehlt=lagTafelFehlt(l);
   const a=lagArtikel(l.artikel_id);
   return `<div class="report-row">
  <div class="report-row-info">
   <b>${esc(lagBeschreibung(l))}</b>
   <span class="small" style="color:var(--muted)">${esc(a?lagArtikelText(a):(lagMaterialName(l.material_id)||"ohne Materialart"))}${l.notiz?" · "+esc(l.notiz):""}</span>
   ${fehlt.length?`<span class="small lag-fehlt" style="color:var(--red)">Ohne ${esc(fehlt.join(" und "))} macht dieser Eintrag den Bedarf nicht eindeutig.</span>`:""}
+  ${tafelFehlt.length?`<span class="small lag-tafel-fehlt" style="color:var(--red)">Tafel ohne ${esc(tafelFehlt.join(" und "))} – damit lässt sich kein Zuschnitt planen.</span>`:""}
  </div>
  <div class="report-row-actions">
   <button type="button" class="gray" data-lager-bearbeiten="${l.id}">✏️ Bearbeiten</button>
@@ -148,18 +217,36 @@ function lagFormularHtml(l){
  const artListe=lagArtikelListe();
  const artOpt=`<option value="">– keiner –</option>`+artListe.map(a=>
    `<option value="${a.id}"${String(a.id)===String(l.artikel_id||"")?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("");
+ // v3.33: Form. Ein Altbestand ohne Form bekommt einen VORSCHLAG aus der
+ // Notiz - die Firma hat dort improvisiert, solange das Feld fehlte. Es wird
+ // nichts automatisch migriert: der Vorschlag steht sichtbar da und wird
+ // erst durch Speichern zum Wert.
+ const vorschlag=lagFormAusNotiz(l);
+ const form=lagForm(l&&l.form)||vorschlag||"";
+ const formOpt=`<option value="">– nicht angegeben –</option>`+LAG_FORMEN.map(f=>
+   `<option value="${f.wert}"${f.wert===form?" selected":""}>${f.text}</option>`).join("");
+ const tafel=form==="tafel";
  return `<div class="grid">
  <div><label>Materialart</label><select id="lag_material">${matOpt}</select></div>
  <div><label>Artikel aus dem Katalog</label><select id="lag_artikel">${artOpt}</select></div>
  <div><label>Bezeichnung</label><input id="lag_bezeichnung" type="text" value="${esc(l.bezeichnung||"")}" placeholder="z. B. Titanzink vorbewittert"></div>
  <div><label>Stärke (mm)</label><input id="lag_staerke" type="number" step="0.05" min="0" value="${l.staerke_mm==null?"":l.staerke_mm}" placeholder="0.70"></div>
  <div><label>Oberfläche / Ausführung</label><input id="lag_ausfuehrung" type="text" value="${esc(l.ausfuehrung||"")}" placeholder="z. B. blank, vorbewittert"></div>
+ <div><label>Form</label><select id="lag_form">${formOpt}</select></div>
+ <div class="lag-tafelmass" data-lag-tafelmass="1"${tafel?"":" hidden"}><label>Tafellänge (mm)</label><input id="lag_laenge" type="number" step="1" min="0" value="${l.laenge_mm==null?"":l.laenge_mm}" placeholder="2000"></div>
+ <div class="lag-tafelmass" data-lag-tafelmass="1"${tafel?"":" hidden"}><label>Tafelbreite (mm)</label><input id="lag_breite" type="number" step="1" min="0" value="${l.breite_mm==null?"":l.breite_mm}" placeholder="1000"></div>
  <div class="wide"><label>Notiz</label><input id="lag_notiz" type="text" value="${esc(l.notiz||"")}" placeholder="z. B. Regal 3"></div>
 </div>
-<div class="small" style="color:var(--muted);margin-top:4px">Diese Liste sagt nur, <b>welche</b> Materialien die Firma
-führt – keine Mengen, keine Tafelgrössen. Materialart, Stärke und Ausführung zusammen machen den Bedarf eindeutig: nur dann
+${vorschlag&&lagForm(l&&l.form)===null?`<div class="small lag-form-vorschlag" style="color:var(--blue);margin-top:4px">Aus der Notiz
+ vorgeschlagen: <b>${esc(lagFormText(vorschlag))}</b>. Bitte prüfen – erst mit dem Speichern wird daraus der Wert.</div>`:""}
+<div class="small" style="color:var(--muted);margin-top:4px">Diese Liste sagt, <b>welche</b> Materialien die Firma
+führt – keine Mengen. Materialart, Stärke und Ausführung zusammen machen den Bedarf eindeutig: nur dann
 darf die App ein passendes Reststück verwenden, und nur diese Stärken stehen in der Massaufnahme zur Auswahl.
-0,70 mm ist kein Ersatz für 0,80 mm.</div>`;
+0,70 mm ist kein Ersatz für 0,80 mm.</div>
+<div class="small" style="color:var(--muted);margin-top:4px"><b>Rolle oder Tafel</b> entscheidet, wie der Zuschnitt
+gerechnet wird. Von der <b>Rolle</b> wird ein Abschnitt abgezogen, so lang wie das längste Stück, und quer in Streifen
+geteilt – die Breiten stehen firmenweit unter Einstellungen → Allgemein. Eine <b>Tafel</b> hat eine feste Länge und
+Breite; die gehören deshalb hier an den Eintrag.</div>`;
 }
 
 function lagFormularOeffnen(l){
@@ -190,6 +277,13 @@ function lagFormularOeffnen(l){
   // vorgeschlagen. Eintragen muss sie die Firma selbst.
   if(au&&!au.value)au.placeholder="aus \""+(a.name||"")+"\" eintragen";
  };
+ // Die Tafelmasse gehoeren nur zur Tafel. Bei einer Rolle blieben sie leer
+ // stehen und wuerden fragen lassen, ob man sie ausfuellen muss.
+ const fm=$("lag_form");
+ if(fm)fm.onchange=()=>{
+  const tafel=lagForm(fm.value)==="tafel";
+  box.querySelectorAll("[data-lag-tafelmass]").forEach(el=>{el.hidden=!tafel});
+ };
 }
 
 function lagFormularSchliessen(){
@@ -207,6 +301,11 @@ function lagFormularWerte(){
   bezeichnung:z("lag_bezeichnung")||null,
   staerke_mm:n("lag_staerke"),
   ausfuehrung:z("lag_ausfuehrung")||null,
+  form:lagForm(z("lag_form")),
+  // Bei einer Rolle werden die Masse ausdruecklich auf null gesetzt: ein
+  // stehengebliebener Tafelwert wuerde den Zuschnitt sonst falsch rechnen.
+  laenge_mm:lagForm(z("lag_form"))==="tafel"?n("lag_laenge"):null,
+  breite_mm:lagForm(z("lag_form"))==="tafel"?n("lag_breite"):null,
   notiz:z("lag_notiz")||null
  };
 }
@@ -219,6 +318,12 @@ async function lagSpeichern(){
  const zeig=t=>{if(fehler){fehler.textContent=t;fehler.hidden=!t}};
  const w=lagFormularWerte();
  if(w.material_id===null&&!w.bezeichnung){zeig("Bitte eine Materialart wählen oder eine Bezeichnung eintragen.");return}
+ // Eine Tafel ohne Format laesst sich nicht planen - das wird hier gesagt,
+ // statt beim Rechnen stillschweigend auf Rollenblech zurueckzufallen.
+ if(w.form==="tafel"&&(w.laenge_mm===null||w.breite_mm===null)){
+  zeig("Bitte Länge und Breite der Tafel eintragen – ohne das Format lässt sich kein Zuschnitt planen.");return}
+ if(w.form==="tafel"&&(w.laenge_mm<=0||w.breite_mm<=0)){
+  zeig("Länge und Breite der Tafel müssen grösser als 0 sein.");return}
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Der Lagereintrag"))return;
  const id=lagBearbeitet&&lagBearbeitet.id;
  const {data,error}=id

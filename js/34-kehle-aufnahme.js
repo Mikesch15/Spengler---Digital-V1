@@ -167,46 +167,37 @@ function keaRollenPlan(){
 // Gerechnet wird in restVorabzug() (js/42) mit der bestehenden Packrechnung;
 // bei ausgeschalteter Einstellung kommt die Liste unveraendert zurueck.
  const vor=ebaVorabzug(keaBleche(),{material:kehleA&&kehleA.material,abwicklung:A});
- const bleche=vor.bleche, L=vor.abschnittLaenge||keaTafelLaenge();
- const breiten=keaRollenbreiten(), netto=keaFlaecheM2();
- if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto,
-          abschnittLaenge:L,ausResten:vor.ausResten};
- const v=ebaPackeInStreifen(bleche,L);
- const streifen=v.streifen||[];
- const moeglich=[], zuSchmal=[];
- breiten.forEach(B=>{
-  const jeAbschnitt=ebaStreifenJeAbschnitt(B,A);
-  if(jeAbschnitt<1){zuSchmal.push(B);return}
-  const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
-  const rollenLaenge=abschnitte*L;
-  const flaeche=B*rollenLaenge/1e6;
-  moeglich.push({breite:B,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,abschnittLaenge:L,
-   rollenLaenge, streifen:streifen.length,
-   restBreite:ebaRestBreite(B,A,jeAbschnitt),flaeche,verschnitt:flaeche-netto,
-   anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
- });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.abschnitte-y.abschnitte||y.breite-x.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null,abwicklung:A,netto,
-         abschnittLaenge:L,verteilung:v,streifen,optimal:v.optimal!==false,
+ const bleche=vor.bleche, netto=keaFlaecheM2();
+ // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
+ // der Massaufnahme - gerechnet wird beides mit DERSELBEN Packrechnung.
+ const fm=ebaFormate({material:kehleA&&kehleA.material,abwicklung:A});
+ const p=ebaFormatPlan({gruppen:[{breite:A,bleche}],formate:fm.formate,
+                        form:fm.form,netto});
+ const g=p.gruppen[0]||{streifen:[],abschnittLaenge:0,verteilung:{streifen:[]}};
+ return {moeglich:p.moeglich,zuSchmal:p.zuSchmal,zuLang:p.zuLang,zuKurz:p.zuKurz,
+         bestes:p.bestes,abwicklung:A,netto:p.netto,
+         abschnittLaenge:g.abschnittLaenge||vor.abschnittLaenge||keaTafelLaenge(),
+         verteilung:g.verteilung,streifen:g.streifen,optimal:p.optimal,
+         form:p.form,formGrund:fm.grund,formQuelle:fm.quelle,formate:p.formate,
          ausResten:vor.ausResten};
 }
 // Der Plan in der gemeinsamen Form (js/33) - damit sieht der Zuschnitt in
 // allen Arten gleich aus.
 function keaZuschnittPlan(){
  const rp=keaRollenPlan(), best=rp.bestes;
- return {art:"rolle", einheit:"Stück",
+ return {art:rp.form, form:rp.form,
+  formGrund:rp.formGrund, formQuelle:rp.formQuelle,
+  einheit:"Stück",
   material:(typeof kehleA!=="undefined")?(kehleA.material):null,
-  einleitung:ZU_EINLEITUNG_ROLLE, quelle:ZU_QUELLE_ROLLE,
-  leer:!keaBleche().length?"Noch nichts zuzuschneiden – bitte zuerst Segmente erfassen."
-      :(!keaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."
-      :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
+  einleitung:zuEinleitung(rp.form), quelle:zuQuelle(rp.form),
+  leer:ebaLeerText({form:rp.form,formate:rp.formate||[]},
+        keaBleche().length?"":"Noch nichts zuzuschneiden – bitte zuerst Segmente erfassen."),
   streifenbreiten:[rp.abwicklung],
   gruppen:(rp.streifen||[]).length?[{breite:rp.abwicklung,abschnittLaenge:rp.abschnittLaenge,
     jeAbschnitt:best?best.jeAbschnitt:1, abschnitte:best?best.abschnitte:0,
     rollenLaenge:best?best.rollenLaenge:0, streifen:rp.streifen}]:[],
   moeglich:rp.moeglich, netto:rp.netto,
-  zuSchmal:rp.zuSchmal, zuLang:(rp.verteilung||{}).zuLang||[],
+  zuSchmal:rp.zuSchmal, zuLang:rp.zuLang||[], zuKurz:rp.zuKurz||[],
   ausResten:(rp.ausResten||[]),
   optimal:rp.optimal!==false};
 }
@@ -283,10 +274,12 @@ function keaPruefungen(){
      +" mm festgelegt, aber kein solches Stück in der Liste."});
  });
  const rp=keaRollenPlan();
- if(keaBleche().length&&!rp.moeglich.length&&keaRollenbreiten().length)
-  m.push({art:"warnung",text:"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung ("+keaMm(keaAbwicklung())+" mm)."});
- if(keaBleche().length&&!keaRollenbreiten().length)
-  m.push({art:"warnung",text:"Es ist keine Rollenbreite hinterlegt – der Materialbedarf wird nicht gerechnet."});
+ // v3.33: die Meldung nennt, woraus wirklich geschnitten wird.
+ const keaTafel=rp.form==="tafel";
+ if(keaBleche().length&&!rp.moeglich.length&&(rp.formate||[]).length)
+  m.push({art:"warnung",text:(keaTafel?"Kein hinterlegtes Tafelformat passt":"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung")+" ("+keaMm(keaAbwicklung())+" mm)."});
+ if(keaBleche().length&&!(rp.formate||[]).length)
+  m.push({art:"warnung",text:"Es ist "+(keaTafel?"kein Tafelformat":"keine Rollenbreite")+" hinterlegt – der Materialbedarf wird nicht gerechnet."});
  return m;
 }
 
@@ -459,7 +452,11 @@ function keaKopfInhalt(){
  if(keaSchritt===1)return keaKarte("1 · Grunddaten",keaGrunddatenHtml());
  if(keaSchritt===2)return keaKarte("2 · Winkel",keaWinkelHtml()+keaFuehrenderWinkelHtml());
  if(keaSchritt===3)return keaKarte("3 · Segmente",keaSegmenteHtml());
- if(keaSchritt===4)return keaKarte("4 · Zuschnitt aus Rollenblech",zuRollenAuswahlHtml(kehleA.rollenAuswahl,"data-kea-rolle")+zuschnittHtml(keaZuschnittPlan()));
+ if(keaSchritt===4){
+  const kzp=keaZuschnittPlan();
+  return keaKarte(zuTitel(4,kzp.art),
+   zuAuswahlHtml(kehleA.rollenAuswahl,"data-kea-rolle",kzp.art)+zuschnittHtml(kzp));
+ }
  if(keaSchritt===5)return keaKarte("5 · Ausmass und Material",keaAusmassHtml());
  return keaKarte("6 · Kontrolle",keaKontrolleHtml());
 }
@@ -642,6 +639,10 @@ function keaZusatzDaten(){
   // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
   kontrolle:keaPruefungen(),
   rollen:{auswahl:(kehleA.rollenAuswahl||[]).slice(),abwicklung:rp.abwicklung,
+          // v3.33: ohne die Form kann der Ausdruck nicht sagen, ob von der
+          // Rolle oder aus der Tafel geschnitten wurde.
+          form:rp.form, formGrund:rp.formGrund||"", formQuelle:rp.formQuelle||"",
+          formLaenge:rp.bestes?(rp.bestes.laenge||null):null,
           abschnittLaenge:rp.abschnittLaenge,
           abschnitte:rp.bestes?rp.bestes.abschnitte:0,
           jeAbschnitt:rp.bestes?rp.bestes.jeAbschnitt:1,

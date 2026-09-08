@@ -17,7 +17,7 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.32, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.33, Branch `main`.**
 
 Die Versionsnummer dieses Abschnitts blieb zwischen Version 3.21 und 3.24
 stehen, obwohl der Code weiterlief – die Abschnitte 127 bis 129 waren
@@ -32,7 +32,7 @@ beide müssen gleich sein, ein Prüfstand erzwingt das.
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.32**
+- sichtbare App-Version: **3.33**
 - **Es wird ausschliesslich direkt auf `main` gearbeitet und
   veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
   Feature-Branch, kein Pull Request.
@@ -23629,3 +23629,263 @@ Berechnung, keine Stückliste, kein Zuschnitt, keine Packrechnung berührt.
   Punkte, die nur der Betreiber erledigen kann: Schnittfuge eintragen, den
   Materialbestand füllen, `reste_im_zuschnitt` einschalten, die projektlosen
   Massaufnahmen zuordnen, Leaked-Password-Schutz, eigene Domain.
+
+## 138. MATERIALBESTAND: ROLLE ODER TAFEL — VERSION 3.33
+
+Ansage des Betriebs: *„beim material erfassen muss auch ausgewählt werden
+können, ob es rollen oder tafelmaterial ist. dies muss dann in den
+massaufnahmen im gesamten zuschnitt auch berücksichtigt werden und angegeben
+werden, ob von der rolle oder aus der tafel geschnitten werden soll"*
+
+Drei Teile, alle umgesetzt: die Form am Materialbestand, die Form in der
+Rechnung, die Form in der Ausgabe. **Zwei Migrationen (additiv), keine
+RLS-Änderung, keine neue Datenbankfunktion, keine zweite Packrechnung, keine
+zweite Zuschnittdarstellung, keine Fachrechnung verändert.**
+
+### 138.1 Warum eine Tafel keine zweite Rechnung braucht
+
+Der Zuschnitt aus Rollenblech rechnet seit v2.89 (Abschnitt 93) mit
+**Abschnitten**: von der Rolle wird ein Abschnitt abgezogen, so lang wie das
+längste Stück, und quer in Streifen der Abwicklungsbreite geteilt.
+
+Eine Tafel ist geometrisch **genau dasselbe** – nur ist ihre Länge nicht
+abgeleitet, sondern gegeben:
+
+| | Abschnittlänge L | Streifen je Abschnitt |
+|---|---|---|
+| Rolle | längstes Stück | `ebaStreifenJeAbschnitt(Rollenbreite, A)` |
+| **Tafel** | **Tafellänge** | `ebaStreifenJeAbschnitt(Tafelbreite, A)` |
+
+`ebaPackeInStreifen(bleche, L)` und `ebaVerteile(stuecke, k, L, budget)` in
+js/29 bleiben deshalb unverändert die **einzige** Packrechnung – dieselbe
+Beobachtung, mit der schon der Rest-Vorabzug in v3.27 ohne zweite Rechnung
+auskam (Abschnitt 132.5). Ein Stück, das länger ist als die Tafel, wird wie
+bisher benannt und **nicht** stillschweigend weggelassen.
+
+### 138.2 Datenmodell (Migration `material_form_rolle_tafel_v3_33`)
+
+`lagerbestand` bekommt `form text` (nullbar) mit
+`check (form is null or form in ('rolle','tafel'))` – eine bestehende Zeile
+ohne Angabe bleibt damit gültig und gilt als Rolle, es wird nichts
+nachgetragen. Dazu werden die seit v3.31 nicht mehr
+geschriebenen Spalten `laenge_mm`/`breite_mm` wieder verwendet – **als
+Tafelformat**, nicht als Bestand:
+
+| Form | `laenge_mm` / `breite_mm` |
+|---|---|
+| `rolle` | leer – die Rollenbreiten stehen firmenweit in `app_settings.blech_rollenbreiten` (v2.74) |
+| `tafel` | das Format der Tafel, z. B. 2000 × 1000 |
+
+Damit kommt **keine neue Tabelle** dazu und keine zweite Mengenlogik zurück:
+die Liste bleibt ein Verzeichnis der geführten Materialien (Abschnitt 136.1),
+sie sagt jetzt zusätzlich, in welcher Form sie geführt werden.
+
+`measurements` bekommt `zuschnitt_form text` mit derselben
+CHECK-Werteliste. **`NULL` ist „automatisch"** – es gibt dafür bewusst keinen
+eigenen Wert, sonst gäbe es zwei Schreibweisen für „nicht festgelegt".
+Eigene Spalte statt eines Feldes in
+`data`, aus demselben Grund wie die Materialstärke in v3.31 (Abschnitt 136.2):
+eine Ergänzung darf die Freigabe nicht kippen. Die Migration
+`measurement_workflow_guard_zuschnitt_form_v3_33` erweitert den bestehenden
+Guard-Trigger um eine Zeile nach demselben Muster:
+
+```sql
+or ( old.zuschnitt_form is not null
+     and new.zuschnitt_form is distinct from old.zuschnitt_form )
+```
+
+`NULL → tafel` lässt die Freigabe stehen, `rolle → tafel` kippt sie – zu
+Recht, danach wird aus einem anderen Ausgangsmaterial geschnitten.
+
+### 138.3 „Automatisch" heisst: der Materialbestand entscheidet
+
+`ebaFormate(kontext)` (js/29) ist die **eine** Stelle, an der die Form eines
+Zuschnitts bestimmt wird. Sie liefert `{form, formate, grund, quelle, bedarf}`:
+
+| Lage | Ergebnis |
+|---|---|
+| an der Massaufnahme steht `rolle` oder `tafel` | genau das, `quelle:"massaufnahme"` |
+| `automatisch` (Vorgabe) und der Bestand ist eindeutig | die Form aus dem Bestand, `quelle:"bestand"` |
+| `automatisch` und der Bestand kennt beides | `rolle`, mit ausdrücklichem Grund |
+| **`tafel` gewählt, aber kein Format hinterlegt** | **Rückfall auf `rolle`** mit dem Grund – **es wird kein Tafelformat erfunden** |
+| kein Bestandseintrag | `rolle`, mit dem Hinweis, wo es einzutragen wäre |
+
+Der vierte Fall ist der wichtigste: eine Tafelgrösse zu raten wäre schlimmer
+als weiterzurechnen wie bisher. Die App sagt stattdessen, **warum** sie mit
+der Rolle rechnet – dieselbe Zurückhaltung wie beim Stärke-Abgleich in v3.31
+(„Für dieses Material ist keine Stärke hinterlegt", Abschnitt 136.4).
+
+`ebaFormatPlan(opt)` setzt das um: bei `rolle` läuft alles unverändert weiter,
+bei `tafel` wird je Format eine Variante gerechnet und die materialsparendste
+genommen. Der Rest-Vorabzug aus v3.27 hängt davor und bleibt unberührt.
+
+### 138.4 Kein Fachmodul angefasst
+
+Das Formfeld hängt – wie das Stärkefeld seit v3.31 – zentral in
+**js/61-materialstaerke.js**: `MEAS_FORM_FELDER` ist `MEAS_MATERIAL_FELDER`
+ohne die zwei Arten, die gar nichts schneiden (`#foto_material`,
+`#ra_material` – Skizze/Foto und die Rinne halbrund beziehen ein fertiges
+Profil). Zehn Arten bekommen es, angehängt über denselben MutationObserver.
+**Keine der zwölf Fachdateien ist im Diff.**
+
+Die Wahrheit steht in `measZuschnittForm`, nicht im DOM – Kehle (js/34) und
+Kamin (js/37) zeichnen ihr Register bei jeder Eingabe neu und rissen ein
+eingehängtes Feld sonst samt Wert mit (dieselbe Lehre wie in Abschnitt 136.3).
+
+Die zehn Register-Module rufen `ebaFormatPlan()` statt der Rollenrechnung –
+je eine Zeile – und reichen `form`, `formate` und `formGrund` in ihren
+Speicher-Payload durch.
+
+### 138.5 Woraus geschnitten wird, steht überall
+
+| Ort | Text |
+|---|---|
+| Registertitel | „5 · Zuschnitt aus **Tafelmaterial**" statt „aus Rollenblech" (`zuTitel`) |
+| Zuschnittliste (js/33) | Einleitungssatz, Kennzahlen, Spaltenkopf und Fusszeile nennen die Tafel: „aus Tafeln" statt „ab Rolle", „Str./Tafel" statt „Str./Abschn." |
+| Werkstatt (js/51) und Rüstliste (js/58) | Material · Stärke · **Form** |
+| PDF-Kopf (js/16) | dieselbe Angabe |
+| Rückfall | der Grund steht am Plan und wird angezeigt, nicht verschluckt |
+
+Die Darstellung ist unverändert `zuschnittHtml()` / `zuDruckHtml()` aus js/33
+(Abschnitt 90) – **keine zweite Zuschnittdarstellung**, die Texte kommen aus
+dem Plan.
+
+### 138.6 Drei echte Regressionen, alle beim Messen gefunden
+
+- **js/29 – Streifen bei nicht passendem Format.** Passte kein Format, blieb
+  die Streifenzahl auf dem Wert der letzten Variante stehen statt auf der
+  Rollenrechnung. Gefunden, weil der Prüfstand die Streifen je Abschnitt
+  gegen `ebaStreifenJeAbschnitt` nachrechnet. Gegenprobe A (Fix
+  zurückgenommen): `register-zuschnitt-v2-80` 364/369, rc=1.
+- **js/61 – Dauerschleife.** Der Beobachter verglich den erzeugten Block über
+  `innerHTML` und hängte ihn deshalb bei jeder Änderung erneut ein, was den
+  Beobachter erneut auslöste. Behoben über einen Signaturvergleich (Material,
+  Stärke, Form). Gegenprobe B: `materialstaerke-v3-31` 61 ok / 1
+  fehlgeschlagen, rc=1.
+- **js/33 – geschütztes Leerzeichen.** In der neuen Formatangabe stand ein
+  gewöhnliches Leerzeichen zwischen Zahl und Einheit; die Zeile brach dort um
+  (dieselbe Falle wie in Abschnitt 88.3). In js/33 muss es ein echtes Zeichen
+  sein, weil `esc()` eine HTML-Entität als Text ausgeben würde.
+
+### 138.7 Getestet
+
+- **`pruefstaende/pruefstand-rolle-tafel-v3-33.js` – 74/74**, echtes Chromium
+  gegen die echte `index.html`: das Lagerformular mit Form und Format (und
+  ohne Format bei Rolle), `ebaFormate` in allen sechs Lagen, `ebaFormatPlan`
+  gegen die von Hand nachgerechnete Tafelvariante, die Streifen je Abschnitt
+  gegen `ebaStreifenJeAbschnitt`, ein zu langes Stück wird benannt, das
+  Formfeld in genau den zehn Arten (und **nicht** bei Skizze/Foto und Rinne
+  halbrund), `base` und beide Payloads, Öffnen/Füllen/Zurücksetzen, die
+  Ausgabe an allen fünf Stellen, der Rückfall mit Grund, vier
+  Bildschirmbreiten.
+- **12 Gegenproben** (G1–G12), jede baut einen echten Fehler ein und wirft den
+  Prüfstand um; **keine bricht ihn ab** (Abschnitt 78). Dazu die drei
+  Gegenproben A–C aus 138.6 und 138.8.
+- **Vier überholte Erwartungen** nachgezogen, keine abgeschwächt:
+  `register-zuschnitt-v2-80` (373/373, kennt jetzt beide Formen),
+  `lager-reste-v3-27` (71/71), `materialstaerke-v3-31` (53/53, dabei
+  **verschärft**), `hilfe-v3-03` (68/68, siehe 138.8).
+- **Volle Regression grün** – alle **58** Prüfstände, jeder mit
+  **Beendigungscode 0** (Abschnitt 132.7), zweimal gelaufen.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.32-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, Abschnitt 100.6) – **DOM, Text und Bild byteidentisch**
+  (DOM `7ca1d80d0f6416cf`, 6797 Zeichen; Text `3e971023db581084`; Bild
+  `89ddd538a70a00d1`, 48 122 Bytes), bestätigt durch einen Kontrolllauf
+  desselben Codes. `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+  `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 64 `js/*.js`, `sw.js` und alle Prüfstände:
+  fehlerfrei; `<div>`-Verschachtelung in `index.html` ausgeglichen (Tiefe 0,
+  Minimum 0); 840 Element-IDs, keine doppelten; alle 64 js-Dateien in
+  `index.html` **und** in der Service-Worker-Liste; kein `data-hilfe` ohne
+  Text; Version 3.33 in `index.html`, `sw.js`, `js/41-hilfe.js` und
+  `anleitung/README.md` gleich.
+- Alle Schreibtests gegen die Datenbank liefen in `begin; … rollback;`.
+
+### 138.8 Der Hilfe-Prüfstand war rot – und hatte eine überholte Erwartung
+
+`hilfe-v3-03` meldete 48/68: Register 1 hatte in genau den zehn Arten mit
+Formfeld **zwei** Info-Knöpfe statt einem. **Gemessen statt geraten**: es sind
+drei verschiedene – `reg-grunddaten` an der Karte, `meas-staerke` am
+Stärkeblock (seit v3.31) und `meas-zuschnitt-form` am Formblock.
+
+Ein Info-Knopf an einem **Feld** ist etwas anderes als der Knopf der
+Registerkarte. Die Prüfung lässt die beiden Feldblöcke deshalb ausser
+Betracht (`[data-meas-staerke-block]`, `[data-meas-zform-block]`) und prüft
+weiterhin die Karte. **Gegenprobe C** (ein zweiter Kartenknopf): 66/68 – die
+Prüfung ist also nicht abgeschwächt.
+
+### 138.9 Anleitung
+
+Nach Regel 108.1 mitgeführt: neuer Unterabschnitt „Rolle oder Tafel" mit dem
+Bild `52-rolle-tafel` und dem Hinweiskasten **„Ohne Format wird nichts
+erfunden"**, im Einstellungs-Kapitel Form und Tafelformat ergänzt sowie die
+„drei klaren Aufgaben" des Materialbestands, die Schlussliste um einen Punkt
+erweitert. Alle 57 Bilder neu erzeugt, PDF v3.33 mit **76 Seiten** (vorher
+75), keine leere. Die fünf Verweise und die Seitenzahl nachgezogen, das alte
+PDF gelöscht. `pruefstand-hilfe-v3-03` erzwingt das mechanisch – mit
+Gegenprobe bestätigt: Version hochsetzen ohne die Anleitung → 64/68.
+
+**`anleitung/pruef.js` ist weiterhin nicht lauffähig** (pdfjs stürzt in
+`paintChar` ab, Abschnitt 136.8). Seitenzahl und „keine leere Seite" sind
+stattdessen über die Text- und Bildoperatoren je Seite gemessen; `pruef.js`
+selbst wurde **nicht** verändert.
+
+Der Demo-Bestand in `schuss.js` trägt jetzt je Zeile eine Form (zwei Tafeln,
+zwei Rollen) und **keine** Menge/Einheit mehr – die gibt es seit v3.31 nicht.
+Eine Verbindung zur Produktivdatenbank baut es weiterhin **nicht** auf.
+
+### 138.10 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migrationen `material_form_rolle_tafel_v3_33`, `measurement_workflow_guard_zuschnitt_form_v3_33` | Form am Bestand, Form an der Massaufnahme, Guard-Regel |
+| `js/29-einlaufblech-aufnahme.js` | `ebaFormate`, `ebaFormatPlan`, `ebaFormLeer` |
+| `js/30`, `js/31`, `js/32`, `js/34`, `js/36`–`js/40` | je eine Zeile: `ebaFormatPlan()` statt der Rollenrechnung, Form mitspeichern |
+| `js/61-materialstaerke.js` | `MEAS_FORM_FELDER`, Formfeld, Signaturvergleich (138.6) |
+| `js/33-zuschnitt.js` | Kennzahlen, Fusszeile und Druckvariante nennen die Form |
+| `js/16-massaufnahme-formular.js` | `base` + beide Payloads, Form im PDF-Kopf |
+| `js/10-massaufnahme.js` | **2 Zeilen**: Zurücksetzen und Füllen |
+| `js/48`, `js/58`, `js/42` | Form am Plan, in der Rüstliste, am eingelagerten Rest |
+| `js/59-lagerbestand.js` | Form und Tafelformat im Formular und in der Anzeige |
+| `js/41-hilfe.js` | zwei Hilfetexte, PDF-Verweis |
+| `index.html`, `sw.js` | Version 3.33, Seitenzahl |
+| `pruefstaende/pruefstand-rolle-tafel-v3-33.js` | **neu** |
+| vier bestehende Prüfstände | überholte Erwartungen (138.7/138.8) |
+| `anleitung/*` | neuer Unterabschnitt, Einstellungs-Kapitel, neues Bild, PDF v3.33 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/49-projekt-zuschnitt.js`,
+`js/50-reservierung.js`, `js/51-werkstatt.js`, `js/56-material-zuschnitt.js`,
+`js/60-ruestskizzen.js`, `js/62-masse.js` sowie **alle zwölf Fachmodule** –
+keine Berechnung, keine Stückliste, kein Zuschnitt, keine Packrechnung
+berührt.
+
+### 138.11 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert, und die Datenbankseite
+  per SQL gegen das echte Produktivschema.
+- **Der Materialbestand ist bei beiden Firmen leer** (Abschnitt 136.10,
+  unverändert). Solange das so ist, rechnet „automatisch" überall mit der
+  Rolle – und sagt das ausdrücklich. Der ganze Nutzen hängt daran, dass der
+  Betrieb die Liste einmal füllt. Ebenso steht `reste_im_zuschnitt`
+  weiterhin auf `false`.
+- **Bestehende Massaufnahmen tragen keine Form** (die Spalte ist neu). Sie
+  rechnen unverändert wie bisher; die Form lässt sich beim nächsten Öffnen
+  nachtragen, ohne dass die Freigabe kippt (138.2).
+- **Eine Tafel wird ganz oder gar nicht verplant.** Bleibt am Ende eine halbe
+  Tafel übrig, entsteht daraus **kein** automatisches Reststück – dieselbe
+  bewusste Grenze wie beim Teilverbrauch eines Restes (Abschnitt 132.10).
+- **Die Ausführung** (blank, vorbewittert …) wird an der Massaufnahme
+  weiterhin nicht erfasst (Abschnitt 136.10, unverändert).
+- Vom Ideenzettel weiterhin offen: Bestellliste je Lieferant,
+  Mitarbeiterliste zusammenführen, Übersicht für Ausmass und Rapporte,
+  Offerten. Dazu die Punkte, die nur der Betreiber erledigen kann:
+  Schnittfuge eintragen, den Materialbestand füllen (jetzt mit Form),
+  `reste_im_zuschnitt` einschalten, die projektlosen Massaufnahmen zuordnen,
+  Leaked-Password-Schutz, eigene Domain.

@@ -72,10 +72,15 @@ function rlBlockHtml(m,plan){
  const mat=rlMaterial(m);
  if(mat)kopfzeile.push(mat);
  if(bestes){
-  kopfzeile.push("Rollenblech "+rlMm(bestes.breite)+" mm");
+  // v3.33: Rolle oder Tafel steht auf dem Blatt - in der Werkstatt muss
+  // ablesbar sein, WORAUS geschnitten wird. Die Woerter kommen aus ZU_WORT
+  // (js/33), es gibt keine zweite Schreibweise.
+  const w=(typeof zuWort==="function")?zuWort(plan):null;
+  kopfzeile.push((w?w.kopf:"Rollenblech")+" "
+    +((typeof zuFormatText==="function")?zuFormatText(bestes,plan):rlMm(bestes.breite)+" mm"));
   if(typeof zuAbschnittText==="function"){
    const ab=zuAbschnittText(bestes,plan);
-   if(ab&&ab!=="–")kopfzeile.push(ab+" ab Rolle");
+   if(ab&&ab!=="–")kopfzeile.push(ab+" "+(w?w.ab:"ab Rolle"));
   }
  }
  let offen=0, gesamt=0;

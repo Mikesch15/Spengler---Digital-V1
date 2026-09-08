@@ -115,6 +115,54 @@ function restBedarfMerkmale(materialId,staerke){
  return {eindeutig:false,material:mid,gefunden:liste,merkmale:null,
          grund:liste.length>1?"mehrdeutig":"unvollstaendig"};
 }
+// ---- Rolle oder Tafel (v3.33) ---------------------------------------------
+// Bis v3.32 rechnete der Zuschnitt ausschliesslich mit Rollenblech. Woher
+// die Form kommt: aus demselben Materialbestand, der schon Staerke und
+// Ausfuehrung liefert (js/59) - es gibt keine zweite Quelle und nichts hart
+// Verdrahtetes.
+//
+// Wie bei restBedarfMerkmale gilt: was nicht eindeutig ist, wird NICHT
+// geraten. Fuehrt eine Firma dieselbe Materialart als Rolle UND als Tafel,
+// bleibt es beim bisherigen Verhalten (Rolle) und die Anzeige sagt warum.
+//
+// staerke grenzt den Bestand ein, genau wie in restBedarfMerkmale - sonst
+// waere eine Firma mit 0,7er Rolle und 0,8er Tafel immer mehrdeutig.
+function restTafelFormat(l){
+ const la=restNummer(l&&l.laenge_mm), br=restNummer(l&&l.breite_mm);
+ if(la===null||br===null)return null;
+ return {laenge:la, breite:br,
+         text:Math.round(la).toLocaleString("de-CH")+" × "+Math.round(br).toLocaleString("de-CH")+" mm"};
+}
+function restBedarfForm(materialId,staerke){
+ const mid=restNummer(materialId);
+ if(mid===null)return {form:null,grund:"ohne-material",formate:[],material:null};
+ const st=restNummer(staerke);
+ const alle=(typeof lagerbestand!=="undefined"?lagerbestand:[]||[])
+   .filter(l=>restNummer(l.material_id)===mid);
+ if(!alle.length)return {form:null,grund:"kein-lager",formate:[],material:mid};
+ const eintraege=st===null?alle
+   :alle.filter(l=>{const x=restNummer(l.staerke_mm);return x!==null&&Math.abs(x-st)<1e-6});
+ if(!eintraege.length)
+  return {form:null,grund:"staerke-nicht-im-lager",formate:[],material:mid,staerke:st};
+ const formen=new Set();
+ eintraege.forEach(l=>{const f=restNormText(l.form);if(f==="rolle"||f==="tafel")formen.add(f)});
+ if(!formen.size)return {form:null,grund:"ohne-form",formate:[],material:mid};
+ if(formen.size>1)return {form:null,grund:"form-mehrdeutig",formate:[],material:mid,
+                          gefunden:Array.from(formen)};
+ const form=Array.from(formen)[0];
+ if(form==="rolle")return {form:"rolle",grund:"",formate:[],material:mid};
+ // Tafel: nur Eintraege MIT vollstaendigem Format sind planbar. Fehlt es
+ // ueberall, wird kein Format erfunden - es wird gesagt, dass es fehlt.
+ const map={};
+ eintraege.forEach(l=>{
+  const f=restTafelFormat(l);
+  if(f&&!map[f.laenge+"|"+f.breite])map[f.laenge+"|"+f.breite]=f;
+ });
+ const formate=Object.keys(map).map(k=>map[k]).sort((a,b)=>(b.laenge*b.breite)-(a.laenge*a.breite));
+ if(!formate.length)return {form:null,grund:"tafel-ohne-format",formate:[],material:mid};
+ return {form:"tafel",grund:"",formate,material:mid};
+}
+
 // Passt dieser Rest zu diesem Bedarf? Alles muss ausdruecklich bekannt sein -
 // eine fehlende Angabe ist ein Nein, kein stillschweigendes Ja.
 function restPasstZu(r,bedarf){
@@ -146,6 +194,17 @@ const REST_WARUM_TEXT={
  "unvollstaendig":"im Lagerbestand fehlen Stärke oder Ausführung",
  "staerke-nicht-im-lager":"diese Materialstärke steht nicht im Materialbestand"
 };
+// v3.33: warum die Form nicht eindeutig ist. Wird angezeigt, statt
+// stillschweigend Rollenblech anzunehmen.
+const REST_FORM_TEXT={
+ "ohne-material":"Für diese Massaufnahme ist kein Material gewählt.",
+ "kein-lager":"Für dieses Material steht nichts im Materialbestand.",
+ "staerke-nicht-im-lager":"Diese Materialstärke steht nicht im Materialbestand.",
+ "ohne-form":"Im Materialbestand ist für dieses Material nicht angegeben, ob es Rolle oder Tafel ist.",
+ "form-mehrdeutig":"Dieses Material steht im Materialbestand als Rolle und als Tafel – es wird nichts geraten.",
+ "tafel-ohne-format":"Für die Tafel fehlt im Materialbestand das Format (Länge und Breite)."
+};
+function restFormGrundText(grund){return REST_FORM_TEXT[grund]||""}
 const REST_GRUND_TEXT={
  "aus":"Reststücke werden laut Einstellung nicht in die Zuschnittplanung einbezogen.",
  "ohne-material":"Für diese Massaufnahme ist kein Material gewählt.",

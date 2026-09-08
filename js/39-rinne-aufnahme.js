@@ -127,10 +127,10 @@ function rpaRollenbreiten(){
 // dieselbe Breite hat.
 function rpaRollenPlan(){
  const bleche=rpaBleche();
- const breiten=rpaRollenbreiten();
  const netto=rpaFlaecheM2();
- if(!bleche.length||!breiten.length||typeof ebaPackeInStreifen!=="function")
-  return {gruppen:[],moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
+ if(!bleche.length||typeof ebaFormatPlan!=="function")
+  return {gruppen:[],moeglich:[],zuSchmal:[],bestes:null,netto,optimal:true,
+          ...ebaFormLeer((typeof rpaMaterialWert==="function")?rpaMaterialWert():null)};
  const nach=new Map();
  bleche.forEach(x=>{
   if(!nach.has(x.breite))nach.set(x.breite,[]);
@@ -149,55 +149,49 @@ function rpaRollenPlan(){
   const liste=vor.bleche||[];
   (vor.ausResten||[]).forEach(x=>ausResten.push(x));
   if(!liste.length)return {breite:B,stuecke:[],abschnittLaenge:0,streifen:[]};
-  const L=vor.abschnittLaenge||Math.max.apply(null,liste.map(x=>x.laenge));
-  const v=ebaPackeInStreifen(liste,L);
-  if(v.optimal===false)optimal=false;
-  return {breite:B,stuecke:liste,abschnittLaenge:L,streifen:v.streifen||[]};
+  return {breite:B,stuecke:liste,bleche:liste};
  // Eine Gruppe, deren Stuecke vollstaendig aus Resten kommen, hat fuer die
  // Rolle nichts mehr - sie faellt raus.
  }).filter(g=>g.stuecke.length);
- const moeglich=[], zuSchmal=[];
- breiten.forEach(R=>{
-  const zeilen=[]; let flaeche=0, passt=true;
-  gruppen.forEach(gr=>{
-   const jeAbschnitt=ebaStreifenJeAbschnitt(R,gr.breite);
-   if(jeAbschnitt<1){passt=false;return}
-   const abschnitte=Math.ceil(gr.streifen.length/jeAbschnitt);
-   const rollenLaenge=abschnitte*gr.abschnittLaenge;
-   flaeche+=R*rollenLaenge/1e6;
-   zeilen.push({breite:gr.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
-     abschnittLaenge:gr.abschnittLaenge,rollenLaenge,
-     streifen:gr.streifen.length,restBreite:ebaRestBreite(R,gr.breite,jeAbschnitt)});
-  });
-  if(!passt){zuSchmal.push(R);return}
-  moeglich.push({breite:R,zeilen,flaeche,verschnitt:flaeche-netto,
-    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,
-    rollenLaenge:zeilen.reduce((s,x)=>s+x.rollenLaenge,0)});
- });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
- const best=moeglich[0]||null;
- const gefuellt=gruppen.map((g,i)=>Object.assign({},g,{
-   jeAbschnitt:best?best.zeilen[i].jeAbschnitt:1,
-   abschnitte:best?best.zeilen[i].abschnitte:0,
-   rollenLaenge:best?best.zeilen[i].rollenLaenge:0}));
- return {gruppen:gefuellt,moeglich,zuSchmal,bestes:best,netto,optimal,ausResten};
+ // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
+ // der Massaufnahme. Gepackt wird weiterhin je Gruppe mit DERSELBEN
+ // Packrechnung (ebaPackeInStreifen, js/29) - es gibt in der App nur EINE.
+ const fm=ebaFormate({material:rpaMaterialWert()});
+ const p=ebaFormatPlan({gruppen,formate:fm.formate,form:fm.form,netto});
+ if(p.optimal===false)optimal=false;
+ return {gruppen:p.gruppen,moeglich:p.moeglich,zuSchmal:p.zuSchmal,
+         zuLang:p.zuLang,zuKurz:p.zuKurz,bestes:p.bestes,netto:p.netto,optimal,
+         form:p.form,formGrund:fm.grund,formQuelle:fm.quelle,formate:p.formate,
+         ausResten};
 }
 // Der Plan in der gemeinsamen Form (js/33) - damit sieht der Zuschnitt in
 // allen Arten gleich aus.
 function rpaZuschnittPlan(){
  const rp=rpaRollenPlan();
- return {art:"rolle", einheit:"Stück",
+ return {art:rp.form, form:rp.form,
+  formGrund:rp.formGrund, formQuelle:rp.formQuelle,
+  einheit:"Stück",
   material:($("rp_material")?$("rp_material").value:null)||null,
-  einleitung:(typeof ZU_EINLEITUNG_ROLLE==="string")?ZU_EINLEITUNG_ROLLE:"",
-  quelle:(typeof ZU_QUELLE_ROLLE==="string")?ZU_QUELLE_ROLLE:"",
-  leer:!rpaBleche().length
-    ?"Noch nichts zuzuschneiden – bitte zuerst Rinnenstücke mit einer Länge M/M erfassen."
-    :(!rpaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt."
-    :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
+  einleitung:(typeof zuEinleitung==="function")?zuEinleitung(rp.form):"",
+  quelle:(typeof zuQuelle==="function")?zuQuelle(rp.form):"",
+  leer:(typeof ebaLeerText==="function")
+    ?ebaLeerText({form:rp.form,formate:rp.formate||[]},
+       rpaBleche().length?"":"Noch nichts zuzuschneiden – bitte zuerst Rinnenstücke mit einer Länge M/M erfassen.")
+    :"",
   streifenbreiten:rp.gruppen.map(g=>g.breite),
   gruppen:rp.gruppen, moeglich:rp.moeglich, netto:rp.netto,
   ausResten:rp.ausResten||[],
+  zuLang:rp.zuLang||[], zuKurz:rp.zuKurz||[],
   zuSchmal:rp.zuSchmal, optimal:rp.optimal!==false};
+}
+
+// Bei Tafelmaterial gibt es keine Rollenbreite zu waehlen (js/33).
+function rpaZuschnittHtml(){
+ if(typeof zuschnittHtml!=="function")return "";
+ const plan=rpaZuschnittPlan();
+ return ((typeof zuAuswahlHtml==="function")
+   ?zuAuswahlHtml(rpaRollenAuswahl,"data-rpa-rolle",plan.art):"")
+  +zuschnittHtml(plan);
 }
 
 // ---- Ausmass ----------------------------------------------------------------
@@ -286,12 +280,16 @@ function rpaPruefungen(){
    m.push({art:"warnung",text:"Stück "+(i+1)+": ohne Mass "+leer.join(", ")
      +" – es wird mit 0 gerechnet."});
  });
- if(rpaBleche().length&&!rpaRollenbreiten().length)
-  m.push({art:"warnung",text:"Es ist keine Rollenbreite hinterlegt – der Materialbedarf "
-    +"wird nicht gerechnet."});
  const plan=rpaRollenPlan();
- if(plan.zuSchmal.length&&!plan.bestes)
-  m.push({art:"warnung",text:"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."});
+ // v3.33: die Meldung nennt, woraus wirklich geschnitten wird.
+ const rpaTafel=plan.form==="tafel";
+ if(rpaBleche().length&&!(plan.formate||[]).length)
+  m.push({art:"warnung",text:"Es ist "+(rpaTafel?"kein Tafelformat":"keine Rollenbreite")
+    +" hinterlegt – der Materialbedarf wird nicht gerechnet."});
+ else if(rpaBleche().length&&!plan.bestes)
+  m.push({art:"warnung",text:rpaTafel
+    ?"Kein hinterlegtes Tafelformat passt zu diesem Zuschnitt."
+    :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."});
  return m;
 }
 
@@ -381,9 +379,8 @@ function renderRinneAufnahmeRegister(){
  }
  if(rpaSchritt===4){
   const z=$("rpa_seite4");
-  if(z)z.innerHTML=rpaKarte("4 · Zuschnitt aus Rollenblech",
-    ((typeof zuRollenAuswahlHtml==="function")?zuRollenAuswahlHtml(rpaRollenAuswahl,"data-rpa-rolle"):"")
-    +((typeof zuschnittHtml==="function")?zuschnittHtml(rpaZuschnittPlan()):""));
+  if(z)z.innerHTML=rpaKarte(zuTitel(4,ebaFormLeer(rpaMaterialWert()).form),
+    rpaZuschnittHtml());
  }
  if(rpaSchritt===5){
   const z=$("rpa_seite5");
@@ -467,6 +464,10 @@ function rpaZusatzDaten(){
   kontrolle:rpaPruefungen(),
   zuschnitt:{auswahl:(rpaRollenAuswahl||[]).slice(),
              breiten:rpaRollenbreiten(),
+             // v3.33: ohne die Form kann der Ausdruck nicht sagen, ob von der
+             // Rolle oder aus der Tafel geschnitten wurde.
+             form:rp.form, formGrund:rp.formGrund||"", formQuelle:rp.formQuelle||"",
+             formLaenge:rp.bestes?(rp.bestes.laenge||null):null,
              netto:Number(rp.netto.toFixed(3)),
              bestes:rp.bestes||null,
              moeglich:rp.moeglich||[],

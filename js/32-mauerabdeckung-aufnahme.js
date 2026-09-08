@@ -187,29 +187,18 @@ function madaRollenPlan(){
 // bei ausgeschalteter Einstellung kommt die Liste unveraendert zurueck.
  const vor=ebaVorabzug(alleBleche,{material:madA&&madA.material,abwicklung:A});
  const bleche=vor.bleche;
- const L=vor.abschnittLaenge||madaTafelLaenge();
- const breiten=madaRollenbreiten();
  const netto=bleche.reduce((s,x)=>s+x.laenge,0)*A/1e6;
- if(A<=0||!bleche.length||!breiten.length)
-  return {moeglich:[],zuSchmal:breiten.slice(),bestes:null,abwicklung:A,netto,
-          abschnittLaenge:L,ausResten:vor.ausResten};
- const v=ebaPackeInStreifen(bleche,L);
- const streifen=v.streifen||[];
- const moeglich=[], zuSchmal=[];
- breiten.forEach(B=>{
-  const jeAbschnitt=ebaStreifenJeAbschnitt(B,A);
-  if(jeAbschnitt<1){zuSchmal.push(B);return}
-  const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
-  const rollenLaenge=abschnitte*L;
-  const flaeche=B*rollenLaenge/1e6;
-  moeglich.push({breite:B,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,abschnittLaenge:L,
-   rollenLaenge, streifen:streifen.length,
-   restBreite:ebaRestBreite(B,A,jeAbschnitt),flaeche,verschnitt:flaeche-netto,
-   anteil:flaeche>0?(flaeche-netto)/flaeche*100:0});
- });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.abschnitte-y.abschnitte||y.breite-x.breite);
- return {moeglich,zuSchmal,bestes:moeglich[0]||null,abwicklung:A,netto,
-         abschnittLaenge:L,verteilung:v,streifen,optimal:v.optimal!==false,
+ // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
+ // der Massaufnahme - gerechnet wird beides mit DERSELBEN Packrechnung.
+ const fm=ebaFormate({material:madA&&madA.material,abwicklung:A});
+ const p=ebaFormatPlan({gruppen:[{breite:A,bleche}],formate:fm.formate,
+                        form:fm.form,netto});
+ const g=p.gruppen[0]||{streifen:[],abschnittLaenge:0,verteilung:{streifen:[]}};
+ return {moeglich:p.moeglich,zuSchmal:p.zuSchmal,zuLang:p.zuLang,zuKurz:p.zuKurz,
+         bestes:p.bestes,abwicklung:A,netto:p.netto,
+         abschnittLaenge:g.abschnittLaenge||vor.abschnittLaenge||madaTafelLaenge(),
+         verteilung:g.verteilung,streifen:g.streifen,optimal:p.optimal,
+         form:p.form,formGrund:fm.grund,formQuelle:fm.quelle,formate:p.formate,
          ausResten:vor.ausResten};
 }
 
@@ -300,13 +289,17 @@ function madaPruefungen(){
  });
  if(st.length){
   const rp=madaRollenPlan();
-  if(rp.verteilung&&rp.verteilung.zuLang&&rp.verteilung.zuLang.length)
-   fehlt("Zuschnitt: Stück "+rp.verteilung.zuLang.map(x=>x.nr).join(", ")
-     +" ist länger als die Tafel.");
-  if(!madaRollenbreiten().length)
-   warn("Zuschnitt: keine Rollenbreite hinterlegt – der Materialbedarf wird nicht gerechnet.");
+  // v3.33: Rolle oder Tafel - die Meldung nennt, woraus wirklich geschnitten
+  // wird, statt in jedem Fall von der Rolle zu sprechen.
+  const tafel=rp.form==="tafel", wort=tafel?"Tafel":"Rolle";
+  if((rp.zuLang||[]).length)
+   fehlt("Zuschnitt: Stück "+rp.zuLang.map(x=>x.nr).join(", ")
+     +" ist länger als "+(tafel?"die Tafel":"ein Abschnitt")+".");
+  if(!(rp.formate||[]).length)
+   warn("Zuschnitt: "+(tafel?"kein Tafelformat":"keine Rollenbreite")
+     +" hinterlegt – der Materialbedarf wird nicht gerechnet.");
   else if(!rp.moeglich.length)
-   warn("Zuschnitt: keine Rolle ist breit genug für eine Abwicklung von "
+   warn("Zuschnitt: keine "+wort+" ist breit genug für eine Abwicklung von "
      +Math.round(rp.abwicklung)+" mm.");
   else if(rp.verteilung&&rp.verteilung.optimal===false)
    warn("Zuschnitt: die Suche wurde abgebrochen – die gezeigte Verteilung ist die beste gefundene, nicht sicher die beste mögliche.");
@@ -504,24 +497,26 @@ function madaZuschnittPlan(){
  const rp=madaRollenPlan();
  const best=rp.bestes;
  const bleche=madaBleche();
- return {art:"rolle", einheit:"Stück",
+ return {art:rp.form, form:rp.form,
+  formGrund:rp.formGrund, formQuelle:rp.formQuelle,
+  einheit:"Stück",
   material:(typeof madA!=="undefined")?(madA.material):null,
-  einleitung:ZU_EINLEITUNG_ROLLE,
-  quelle:ZU_QUELLE_ROLLE,
-  leer:!bleche.length?"Noch kein Zuschnittstück – zuerst den Verlauf erfassen."
-      :(!madaRollenbreiten().length?"Es ist keine Rollenbreite hinterlegt. Unter Einstellungen → Allgemein → Rollenbreiten des Blechlagers mindestens eine wählen."
-      :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung."),
+  einleitung:zuEinleitung(rp.form),
+  quelle:zuQuelle(rp.form),
+  leer:ebaLeerText({form:rp.form,formate:rp.formate||[]},
+        bleche.length?"":"Noch kein Zuschnittstück – zuerst den Verlauf erfassen."),
   streifenbreiten:[rp.abwicklung],
   gruppen:(rp.streifen||[]).length?[{breite:rp.abwicklung,abschnittLaenge:rp.abschnittLaenge,
     jeAbschnitt:best?best.jeAbschnitt:1, abschnitte:best?best.abschnitte:0,
     rollenLaenge:best?best.rollenLaenge:0, streifen:rp.streifen}]:[],
   moeglich:rp.moeglich, netto:rp.netto,
-  zuSchmal:rp.zuSchmal, zuLang:(rp.verteilung||{}).zuLang||[],
+  zuSchmal:rp.zuSchmal, zuLang:rp.zuLang||[], zuKurz:rp.zuKurz||[],
   ausResten:(rp.ausResten||[]),
   optimal:rp.optimal!==false};
 }
 function madaZuschnittHtml(){
- return zuRollenAuswahlHtml(madA.rollenAuswahl,"data-mada-rolle")+zuschnittHtml(madaZuschnittPlan());
+ const plan=madaZuschnittPlan();
+ return zuAuswahlHtml(madA.rollenAuswahl,"data-mada-rolle",plan.art)+zuschnittHtml(plan);
 }
 function madaAusmassHtml(){
  const z=madaAusmassZeilen();
@@ -582,7 +577,7 @@ function madaSchrittInhalt(){
  if(madaSchritt===3)return madaKarte("3 · Boden",madaBodenSchieberHtml());
  if(madaSchritt===4)return madaKarte("4 · Profil / Querschnitt",madaProfilHtml());
  if(madaSchritt===5)return madaKarte("5 · Stückliste / Zuschnitt",madaStuecklisteHtml());
- if(madaSchritt===6)return madaKarte("6 · Zuschnitt aus Rollenblech",madaZuschnittHtml());
+ if(madaSchritt===6)return madaKarte(zuTitel(6,ebaFormLeer(madA.material).form),madaZuschnittHtml());
  if(madaSchritt===7)return madaKarte("7 · Ausmass",madaAusmassHtml());
  return madaKarte("8 · Kontrolle",madaKontrolleHtml());
 }
@@ -811,6 +806,10 @@ function madaZusatzDaten(){
   // kann, ohne ihn neu zu rechnen - genauso wie Ausmass und Rollenplan.
   kontrolle:madaPruefungen(),
   rollen:{auswahl:(madA.rollenAuswahl||[]).slice(),breiten:madaRollenbreiten(),
+          // v3.33: ohne die Form kann der Ausdruck nicht sagen, ob von der
+          // Rolle oder aus der Tafel geschnitten wurde.
+          form:plan.form, formGrund:plan.formGrund||"", formQuelle:plan.formQuelle||"",
+          formLaenge:plan.bestes?(plan.bestes.laenge||null):null,
           abwicklung:plan.abwicklung,
           abschnittLaenge:plan.abschnittLaenge,
           abschnitte:plan.bestes?plan.bestes.abschnitte:0,

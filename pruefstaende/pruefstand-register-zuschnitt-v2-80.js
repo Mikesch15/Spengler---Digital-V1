@@ -167,7 +167,10 @@ const auf=async(page,a)=>{
   ra:String(raZuschnittHtml), eba:String(ebaZuschnittHtml),
   ebka:String(ebkaZuschnittHtml), fpa:String(fpaZuschnittHtml),
   mada:String(madaZuschnittHtml), kea:String(keaKopfInhalt),
-  rpa:String(renderRinneAufnahmeRegister),
+  // v3.33: Der Aufruf steht nicht mehr in der Renderfunktion, sondern in
+  // rpaZuschnittHtml() - wie in den uebrigen Modulen. Geprueft wird
+  // dieselbe Eigenschaft, nur an der Funktion, die den Zuschnitt baut.
+  rpa:String(rpaZuschnittHtml),
   anba:String(renderAnschlussblechAufnahme)
  }));
  Object.keys(quellen).forEach(k=>p(quellen[k].indexOf("zuschnittHtml(")>=0,
