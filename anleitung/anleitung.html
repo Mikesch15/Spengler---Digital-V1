@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.31";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.32";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.31<br>
+  Version 3.32<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -860,6 +860,28 @@ gehen Enter und die Leertaste genauso.</p>
 <div class="hin"><strong>Nicht jede Art hat eine Zeichnung.</strong> Kehle rechnet nur,
 Skizze / Foto hält das Foto selbst – dort steht das ausdrücklich da, statt einen leeren
 Rahmen zu zeigen. Es sind dieselben Zeichnungen wie im PDF, aus derselben Quelle.</div>
+
+<h4>Die Skizze trägt ihre Masse</h4>
+<p>Bis Version 3.31 zeigten mehrere Zeichnungen nur ihre Bezeichnungen – „A", „Restbreite",
+„Umschlag", die Buchstaben des Rinnenprofils. Man sah die Form, aber nicht die Zahl, und
+musste dafür ins Formular zurück. Seit Version 3.32 steht das Mass in der Zeichnung:</p>
+<table>
+<tr><th>Zeichnung</th><th>Was angeschrieben wird</th></tr>
+<tr><td>Einlaufblech gerade · Schnitt</td><td>Mass A, Winkel, Restbreite, beide Umschläge</td></tr>
+<tr><td>Einlaufblech konisch · Schnitt</td><td>Mass links und rechts, Winkel, Abwicklung</td></tr>
+<tr><td>Grundriss (gerade, konisch, Rinne, Mauerabdeckung)</td><td>die Länge jedes Stücks</td></tr>
+<tr><td>Rinne · Profilskizze</td><td>die Fixmasse und die variablen Masse A, B, C mit ihrem Wert</td></tr>
+<tr><td>Kamineinfassung · Schnitt</td><td>zusätzlich <strong>Breite vorne</strong> und <strong>Breite hinten</strong></td></tr>
+</table>
+<div class="hin"><strong>Angeschrieben wird nur, was wirklich erfasst ist.</strong> Manche
+Zeichnungen setzen einen Ersatzwert ein, damit die Form auch ohne Eingabe erkennbar
+bleibt – dieser Ersatzwert wird <strong>nie</strong> als Mass ausgegeben. Fehlt ein Wert,
+steht dort die Bezeichnung ohne Zahl, etwa „Restbreite" statt „Restbreite 90".</div>
+<p>Wo eine Zahl zu stehen kommt, entscheidet die App so, dass sich <strong>keine zwei
+Masse verdecken</strong>. Reicht der Platz an der ersten Stelle nicht, weicht die Zahl
+weiter nach aussen aus, und ein feiner gestrichelter Strich zeigt, wozu sie gehört. Im
+Grundriss lagen Masszahl und Positionsnummer bis Version 3.31 übereinander – das ist
+damit behoben.</p>
 <p><strong>Jede Positionsnummer ist ein Knopf</strong> – ein Tipp hakt dieses Blech als
 zugeschnitten ab, ein zweiter nimmt es zurück. Sind mehrere gleiche Zuschnitte
 zusammengefasst, hakt <span class="tasten">alle</span> die ganze Gruppe ab.</p>
@@ -1329,7 +1351,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.31</strong>, Stand 8. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.32</strong>, Stand 8. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

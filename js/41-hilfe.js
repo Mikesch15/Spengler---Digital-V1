@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.31.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.32.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -193,6 +193,15 @@ Schnitt) und der <b>Grundriss</b>, soweit es für diese Art einen gibt, darunter
 die <b>abhakbare Zuschnittliste</b>. Bewusst nichts sonst aus der
 Massaufnahme – Notiz, Fotos und alle Eingabemasse bleiben im Formular, das
 sich mit „✂️ Im Formular öffnen“ erreichen lässt.
+
+Die Skizze trägt seit Version 3.32 ihre <b>Masse</b>: Mass A, Restbreite und
+die Umschläge beim Einlaufblech, die variablen Masse A/B/C beim Rinnenprofil,
+die Stücklängen im Grundriss und bei der Kamineinfassung zusätzlich die
+Breite vorne und hinten. Angeschrieben wird nur, was wirklich erfasst ist –
+steht ein Wert nicht im Datensatz, bleibt es bei der Bezeichnung ohne Zahl.
+Wo eine Zahl zu stehen kommt, entscheidet die App so, dass sich keine zwei
+Masse verdecken; reicht der Platz nicht, weicht die Zahl weiter nach aussen
+aus und ein feiner Strich zeigt, wozu sie gehört.
 
 Nicht jede Art hat eine Zeichnung. Kehle und Skizze/Foto rechnen nur
 beziehungsweise halten das Foto selbst; dort steht das ausdrücklich da,

@@ -427,6 +427,14 @@ bitte die seitliche Höhe sowie B und C eingeben.</div>`;
  if(keilS&&keilE)fahne((keilS[0]+keilE[0])/2,(keilS[1]+keilE[1])/2,-40,-22,"Keil = "+zahl(keil));
  fahne(vTop[0],vTop[1],24,16,"Winkel vorne "+kamaZahl(kamaWinkelDach(q,"winkelVorne"))+"°");
  fahne(hTop[0],hTop[1],-24,16,"Winkel hinten "+kamaZahl(kamaWinkelDach(q,"winkelHinten"))+"°");
+ // Breite vorne und hinten (Zuschnittlaenge von Vorder- und Hinterteil).
+ // Sie liegen QUER zu diesem Laengsschnitt und lassen sich hier nicht als
+ // Masslinie zeichnen - deshalb als Fahne an der jeweiligen Wand, nach
+ // aussen, damit sie den Winkel-Fahnen an den Wandkoepfen nicht ins Gehege
+ // kommen. Angeschrieben wird nur, was wirklich erfasst ist.
+ const bV=kamaZahl(q.breiteVorne), bH=kamaZahl(q.breiteHinten);
+ if(bV>0)fahne(vFuss[0]+(vTop[0]-vFuss[0])*0.45,H*0.45,-34,-14,"Breite vorne = "+zahl(bV));
+ if(bH>0)fahne(hFuss[0]+(hTop[0]-hFuss[0])*0.45,H*0.45,34,-14,"Breite hinten = "+zahl(bH));
 
  const seiteTxt=q.getrennt?(seite==="r"?" · rechte Seite":" · linke Seite"):"";
  const fuss="Kamineinfassung · Schnitt längs des Dachs"+seiteTxt+" · Dach waagerecht dargestellt";

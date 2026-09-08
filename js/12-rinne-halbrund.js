@@ -255,17 +255,24 @@ function generateRinneGrundriss(segments,dilas,boundaries,enden){
  const toSvg=p=>[pad+(p.x-minX)*scale,pad+(p.y-minY)*scale];
  const svgW=target+2*pad,svgH=target+2*pad;
  let lines="",labels="",arrows="";
+ // Wo schon eine Beschriftung steht, damit sich keine zwei Masse
+ // ueberdecken. Zuerst wird alles angemeldet, was an seiner Stelle stehen
+ // MUSS (Positionsnummern, Anschlusssymbole, Bodenzeichen); die Masszahlen
+ // weichen danach aus. Siehe js/62-masse.js.
+ const belegt=[];
+ const segMitte=[];
  for(let i=0;i<segments.length;i++){
   const [x1,y1]=toSvg(pts[i]),[x2,y2]=toSvg(pts[i+1]);
   lines+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#17202a" stroke-width="4" stroke-linecap="round"/>`;
   const mx=(x1+x2)/2,my=(y1+y2)/2;
   const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1;
   const ux=dx/len,uy=dy/len;
-  const px=-uy,py=ux,off=15;
-  const lx=mx-px*off,ly=my-py*off;
+  const px=-uy,py=ux;
   let angleDeg=Math.atan2(dy,dx)*180/Math.PI;
   if(angleDeg>90||angleDeg<-90)angleDeg+=180;
-  labels+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="12" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(segments[i].laenge||0)}</text>`;
+  // Die Zahl wird erst gesetzt, wenn feststeht, wo die Positionsnummern
+  // liegen - sonst steht sie auf ihnen (gemessen: "6000" auf "1").
+  segMitte.push({mx,my,ux,uy,px,py,len,angleDeg,text:String(segments[i].laenge||0)});
   // Blickrichtungs-Pfeil auf der Gegenseite der Massbeschriftung: Spitze beruehrt das Segment
   const shaftFar=24,headLen=9,headWidth=5;
   const farX=mx+px*shaftFar,farY=my+py*shaftFar;
@@ -282,6 +289,7 @@ function generateRinneGrundriss(segments,dilas,boundaries,enden){
   const ux=dx/len, uy=dy/len;      // zeigt ins Innere der Linie
   const nx=-uy, ny=ux;             // quer dazu
   const halb=11;
+  massBelegen(belegt,px1-ux*16,py1-uy*16,text,11,0);
   return `<line x1="${(px1+nx*halb).toFixed(1)}" y1="${(py1+ny*halb).toFixed(1)}" x2="${(px1-nx*halb).toFixed(1)}" y2="${(py1-ny*halb).toFixed(1)}" stroke="#0f766e" stroke-width="5" stroke-linecap="round"/>`
    +`<text x="${(px1-ux*16).toFixed(1)}" y="${(py1-uy*16).toFixed(1)}" font-size="11" fill="#0f766e" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700">${esc(text)}</text>`;
  };
@@ -292,6 +300,8 @@ function generateRinneGrundriss(segments,dilas,boundaries,enden){
   const sp=toSvg(pts[i]),ep=toSvg(pts[i+1]);
   const linksF=rinneFittingTypes.find(f=>f.id===Number(segments[i].linksTyp));
   const rechtsF=rinneFittingTypes.find(f=>f.id===Number(segments[i].rechtsTyp));
+  if(linksF&&linksF.symbol)massBelegen(belegt,sp[0],sp[1],"xx",20,0);
+  if(rechtsF&&rechtsF.symbol)massBelegen(belegt,ep[0],ep[1],"xx",20,0);
   if(linksF&&linksF.symbol)symbols+=`<circle cx="${sp[0].toFixed(1)}" cy="${sp[1].toFixed(1)}" r="11" fill="#fff" stroke="#68737d" stroke-width="1.5"/><text x="${sp[0].toFixed(1)}" y="${(sp[1]+3).toFixed(1)}" font-size="8" fill="#17202a" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${esc(linksF.symbol)}</text>`;
   if(rechtsF&&rechtsF.symbol)symbols+=`<circle cx="${ep[0].toFixed(1)}" cy="${ep[1].toFixed(1)}" r="11" fill="#fff" stroke="#68737d" stroke-width="1.5"/><text x="${ep[0].toFixed(1)}" y="${(ep[1]+3).toFixed(1)}" font-size="8" fill="#17202a" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${esc(rechtsF.symbol)}</text>`;
  }
@@ -323,9 +333,19 @@ function generateRinneGrundriss(segments,dilas,boundaries,enden){
    const p=svgPosAt(mid);
    const nx=-p.uy,ny=p.ux,off=13;
    const qx=p.x-nx*off,qy=p.y-ny*off;
+   massBelegen(belegt,qx,qy,"xx",16,0);
    posNummern+=`<circle cx="${qx.toFixed(1)}" cy="${qy.toFixed(1)}" r="9" fill="#1769aa"/><text x="${qx.toFixed(1)}" y="${(qy+3.2).toFixed(1)}" font-size="9" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
   }
  }
+ // Jetzt erst die Segmentlaengen: sie weichen dem aus, was schon steht.
+ // Grundabstand 30 statt der frueheren 15 - die Positionsnummer sitzt auf
+ // derselben Seite bei 13 und hat Radius 9, reicht also bis 22.
+ segMitte.forEach(sm=>{
+  const k=massKandidaten(sm.mx,sm.my,sm.ux,sm.uy,-sm.px,-sm.py,30,sm.len);
+  const pl=massPlatz(belegt,k,sm.text,12,sm.angleDeg);
+  labels+=`<line x1="${sm.mx.toFixed(1)}" y1="${sm.my.toFixed(1)}" x2="${pl.x.toFixed(1)}" y2="${pl.y.toFixed(1)}" stroke="#9bb0c1" stroke-width="0.8" stroke-dasharray="2 2"/>`;
+  labels+=`<text x="${pl.x.toFixed(1)}" y="${pl.y.toFixed(1)}" font-size="12" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" paint-order="stroke" stroke="#fff" stroke-width="3" stroke-linejoin="round" transform="rotate(${sm.angleDeg.toFixed(1)} ${pl.x.toFixed(1)} ${pl.y.toFixed(1)})">${esc(sm.text)}</text>`;
+ });
  // Dilas als kleine orange Rauten entlang des Verlaufs zeichnen
  let dilaMarks="";
  for(const d of dilas){
@@ -345,14 +365,27 @@ function generateRinneGrundriss(segments,dilas,boundaries,enden){
    if(gap<=0)continue;
    const mid=(kette[i]+kette[i+1])/2;
    const pMid=svgPosAt(mid);
-   const nx=-pMid.uy,ny=pMid.ux,off=13;
-   const lx=pMid.x+nx*off,ly=pMid.y+ny*off;
+   const nx=-pMid.uy,ny=pMid.ux;
    let angleDeg=Math.atan2(pMid.uy,pMid.ux)*180/Math.PI;
    if(angleDeg>90||angleDeg<-90)angleDeg+=180;
-   dilaMasse+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="9.5" fill="#b45a09" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" transform="rotate(${angleDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})">${esc(gap)}</text>`;
+   // Auf dieser Seite liegt der Blickrichtungs-Pfeil (Schaft 9 bis 24),
+   // deshalb faengt der Abstand erst bei 32 an.
+   const k=massKandidaten(pMid.x,pMid.y,pMid.ux,pMid.uy,nx,ny,32,0);
+   const pl=massPlatz(belegt,k,String(gap),9.5,angleDeg);
+   dilaMasse+=`<line x1="${pMid.x.toFixed(1)}" y1="${pMid.y.toFixed(1)}" x2="${pl.x.toFixed(1)}" y2="${pl.y.toFixed(1)}" stroke="#e6c8a0" stroke-width="0.8" stroke-dasharray="2 2"/>`;
+   dilaMasse+=`<text x="${pl.x.toFixed(1)}" y="${pl.y.toFixed(1)}" font-size="9.5" fill="#b45a09" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" paint-order="stroke" stroke="#fff" stroke-width="2.6" stroke-linejoin="round" transform="rotate(${angleDeg.toFixed(1)} ${pl.x.toFixed(1)} ${pl.y.toFixed(1)})">${esc(gap)}</text>`;
   }
  }
- return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${labels}${posNummern}${symbols}${boeden}${dilaMarks}${dilaMasse}</svg>`;
+ // Die Masse weichen jetzt nach aussen aus - der Ausschnitt muss ihnen
+ // folgen, sonst stehen sie ausserhalb des Bildes.
+ let vx0=0, vy0=0, vx1=svgW, vy1=svgH;
+ belegt.forEach(b=>{
+  if(b.x<vx0)vx0=b.x; if(b.y<vy0)vy0=b.y;
+  if(b.x+b.w>vx1)vx1=b.x+b.w; if(b.y+b.h>vy1)vy1=b.y+b.h;
+ });
+ const vbX=Math.round(vx0-6), vbY=Math.round(vy0-6);
+ const vbW=Math.round(vx1-vx0+12), vbH=Math.round(vy1-vy0+12);
+ return `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${labels}${posNummern}${symbols}${boeden}${dilaMarks}${dilaMasse}</svg>`;
 }
 function renderRinneSegmentsTable(){
  const options=rinneFittingTypes.map(f=>`<option value="${f.id}">${esc(f.symbol?f.symbol+" – ":"")}${esc(f.name)}</option>`).join("");

@@ -270,13 +270,20 @@ const RINNE_BEISPIELMASS = 200;
 function rinneProfilPunkte(profil, masse) {
   const segs = (profil || []).map(rinneSegment);
   const varListe = rinneVariable(segs);
-  const wert = i => {
+  // Das TATSAECHLICH erfasste Mass - oder null, wenn keines vorliegt.
+  // Nur damit wird beschriftet; RINNE_BEISPIELMASS dient ausschliesslich der
+  // Zeichnung und darf nie als Mass angeschrieben werden.
+  const echt = i => {
     const seg = segs[i];
     if (seg.art === "fix") return rinneZahl(seg.laenge);
     const pos = varListe.findIndex(v => v.index === i);
     const m = Array.isArray(masse) ? masse[pos] : undefined;
     const n = Number(m);
-    return Number.isFinite(n) && n !== 0 ? n : RINNE_BEISPIELMASS;
+    return Number.isFinite(n) && n !== 0 ? n : null;
+  };
+  const wert = i => {
+    const e = echt(i);
+    return e === null ? RINNE_BEISPIELMASS : e;
   };
   const pts = [[0, 0]];
   const segmente = [];
@@ -289,7 +296,7 @@ function rinneProfilPunkte(profil, masse) {
     const w = rinneZahl(seg.winkel);
     const umschlag = Math.abs(((w % 360) + 360) % 360 - 180) < 0.5;
     segmente.push({
-      index: i, name: seg.name, art: seg.art, laenge: l, echteLaenge: seg.art === "fix" ? rinneZahl(seg.laenge) : null,
+      index: i, name: seg.name, art: seg.art, laenge: l, echteLaenge: echt(i),
       buchstabe: seg.art === "var" ? (varListe.find(v => v.index === i) || {}).buchstabe : null,
       von: p, bis: q, richtung, umschlag,
       // Ein Umschlag laeuft geometrisch exakt auf dem vorherigen Segment
@@ -399,6 +406,8 @@ function rinneSvg(profil, masse, titel) {
   enden.forEach(([a0, b0]) => merken(Math.min(a0[0], b0[0]) - 3, Math.min(a0[1], b0[1]) - 3,
     Math.max(a0[0], b0[0]) + 3, Math.max(a0[1], b0[1]) + 3));
 
+  // Schon gesetzte Beschriftungen dieser Zeichnung (js/62-masse.js).
+  const beschriftet = [];
   let g = "";
   const strich = (d) => `<path d="${d}" fill="none" stroke="${farbe.blech}" stroke-width="3.4"
     stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -439,20 +448,36 @@ function rinneSvg(profil, masse, titel) {
     const [a0, b0] = enden[i];
     const mx = (a0[0] + b0[0]) / 2, my = (a0[1] + b0[1]) / 2;
     const rad = seg.richtung * Math.PI / 180;
-    const stufe = 38 + (i % 2) * 26;
-    const nx = Math.sin(rad) * stufe, ny = -Math.cos(rad) * stufe;
+    // Auch ein variables Segment wird angeschrieben, sobald ein Stueck
+    // erfasst ist ("A 127" statt nur "A"). Ohne erfasstes Mass bleibt es beim
+    // Buchstaben - der Beispielwert der Zeichnung wird nie angeschrieben.
+    const varMass = Number.isFinite(seg.echteLaenge) ? " " + zahl(seg.echteLaenge) : "";
     const beschriftung = seg.art === "var"
-      ? (seg.buchstabe + (seg.name ? " · " + seg.name : ""))
+      ? (seg.buchstabe + varMass + (seg.name ? " · " + seg.name : ""))
       : ((seg.name ? seg.name + " " : "") + zahl(seg.echteLaenge));
-    const tx = mx + nx, ty = my + ny;
+    // Wo die Zahl steht, entscheidet js/62-masse.js: erst die uebliche Stufe,
+    // sonst weiter nach aussen. Bei zwei gleich langen Segmenten dicht
+    // nebeneinander (zwei "Keil 40") landeten sie sonst uebereinander.
     const breite = beschriftung.length * 7.4;
-    // Der Text steht NEBEN dem Linienende, nicht mittig darauf - sonst
-    // laeuft der Fuehrungsstrich mitten durch die Beschriftung.
-    const waagerecht = Math.abs(nx) > Math.abs(ny) * 0.6;
-    const anker = waagerecht ? (nx < 0 ? "end" : "start") : "middle";
-    const ax = tx + (waagerecht ? (nx < 0 ? -5 : 5) : 0);
-    const ay = ty + (waagerecht ? 4 : (ny < 0 ? -6 : 15));
-    const links = anker === "end" ? ax - breite : (anker === "start" ? ax : ax - breite / 2);
+    let tx = 0, ty = 0, nx = 0, ny = 0, ax = 0, ay = 0, links = 0, anker = "middle", kasten = null;
+    const stufen = [38 + (i % 2) * 26, 38 + ((i + 1) % 2) * 26, 90, 116, 142];
+    for (let sI = 0; sI < stufen.length; sI++) {
+      const st = stufen[sI];
+      nx = Math.sin(rad) * st; ny = -Math.cos(rad) * st;
+      tx = mx + nx; ty = my + ny;
+      // Der Text steht NEBEN dem Linienende, nicht mittig darauf - sonst
+      // laeuft der Fuehrungsstrich mitten durch die Beschriftung.
+      const waagerecht = Math.abs(nx) > Math.abs(ny) * 0.6;
+      anker = waagerecht ? (nx < 0 ? "end" : "start") : "middle";
+      ax = tx + (waagerecht ? (nx < 0 ? -5 : 5) : 0);
+      ay = ty + (waagerecht ? 4 : (ny < 0 ? -6 : 15));
+      links = anker === "end" ? ax - breite : (anker === "start" ? ax : ax - breite / 2);
+      kasten = { x: links, y: ay - 13, w: breite, h: 17 };
+      const frei = typeof massKollidiert !== "function"
+        || !beschriftet.some(b => massKollidiert(kasten, b, 3));
+      if (frei || sI === stufen.length - 1) break;
+    }
+    beschriftet.push(kasten);
     merken(mx - 3, my - 3, mx + 3, my + 3);
     merken(links, ay - 13, links + breite, ay + 4);
     g += `<line x1="${mx.toFixed(1)}" y1="${my.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}"

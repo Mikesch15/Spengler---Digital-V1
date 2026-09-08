@@ -109,7 +109,12 @@ function generateEbkGrundriss(pieces){
  const scale=Math.min(target/w,target/h);
  const toSvg=pt=>[pad+(pt.x-minX)*scale,pad+(pt.y-minY)*scale];
  const svgW=target+2*pad,svgH=target+2*pad;
- let lines="",joints="",labels="",arrows="",endzugaben="";
+ let lines="",joints="",labels="",arrows="",endzugaben="",masse="";
+ // Bis v3.31 stand hier nur die Positionsnummer - ein Grundriss ganz ohne
+ // Zahl. Die Laenge steht jetzt daneben und weicht aus, statt die Nummer
+ // zu ueberdecken (siehe js/62-masse.js).
+ const belegt=[];
+ const stueckMitte=[];
 
  for(let i=0;i<pieces.length;i++){
   const [x1,y1]=toSvg(pts[i]),[x2,y2]=toSvg(pts[i+1]);
@@ -159,6 +164,10 @@ function generateEbkGrundriss(pieces){
   const px=-uy,py=ux,off=15;
 
   const lx=mx-px*off,ly=my-py*off;
+  massBelegen(belegt,lx,ly,"xx",18,0);
+  let wDeg=Math.atan2(dy,dx)*180/Math.PI;
+  if(wDeg>90||wDeg<-90)wDeg+=180;
+  stueckMitte.push({mx,my,ux,uy,px,py,len,wDeg,text:String(Math.round(Number(pieces[i].laenge)||0))});
   labels+=`<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="10" fill="#1769aa"/><text x="${lx.toFixed(1)}" y="${(ly+3.5).toFixed(1)}" font-size="10" fill="#fff" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" font-weight="700">${i+1}</text>`;
 
   // EXAKT WIE IM RINNENMODUL: roter Blickrichtungs-Pfeil
@@ -171,6 +180,21 @@ function generateEbkGrundriss(pieces){
   arrows+=`<polygon points="${mx.toFixed(1)},${my.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)} ${p3x.toFixed(1)},${p3y.toFixed(1)}" fill="#b42318"/>`;
  }
 
- const ansichtsPfeil=ansichtsPfeilSvg("links",svgW,svgH);
- return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${joints}${endzugaben}${labels}${ansichtsPfeil}</svg>`;
+ // Die Laengen erst jetzt, wenn alle Positionsnummern angemeldet sind.
+ stueckMitte.forEach(sm=>{
+  if(!(Number(sm.text)>0))return;
+  const k=massKandidaten(sm.mx,sm.my,sm.ux,sm.uy,-sm.px,-sm.py,32,sm.len);
+  const pl=massPlatz(belegt,k,sm.text,12,sm.wDeg);
+  masse+=`<line x1="${sm.mx.toFixed(1)}" y1="${sm.my.toFixed(1)}" x2="${pl.x.toFixed(1)}" y2="${pl.y.toFixed(1)}" stroke="#9bb0c1" stroke-width="0.8" stroke-dasharray="2 2"/>`;
+  masse+=`<text x="${pl.x.toFixed(1)}" y="${pl.y.toFixed(1)}" font-size="12" fill="#1769aa" font-family="Arial,Helvetica,sans-serif" text-anchor="middle" dominant-baseline="middle" font-weight="700" paint-order="stroke" stroke="#fff" stroke-width="3" stroke-linejoin="round" transform="rotate(${sm.wDeg.toFixed(1)} ${pl.x.toFixed(1)} ${pl.y.toFixed(1)})">${sm.text}</text>`;
+ });
+ let vx0=0, vy0=0, vx1=svgW, vy1=svgH;
+ belegt.forEach(b=>{
+  if(b.x<vx0)vx0=b.x; if(b.y<vy0)vy0=b.y;
+  if(b.x+b.w>vx1)vx1=b.x+b.w; if(b.y+b.h>vy1)vy1=b.y+b.h;
+ });
+ const vbX=Math.round(vx0-6), vbY=Math.round(vy0-6);
+ const vbW=Math.round(vx1-vx0+12), vbH=Math.round(vy1-vy0+12);
+ const ansichtsPfeil=ansichtsPfeilSvg("links",vbW,vbH,vbX,vbY);
+ return `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${joints}${endzugaben}${masse}${labels}${ansichtsPfeil}</svg>`;
 }

@@ -17,7 +17,7 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.31, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.32, Branch `main`.**
 
 Die Versionsnummer dieses Abschnitts blieb zwischen Version 3.21 und 3.24
 stehen, obwohl der Code weiterlief – die Abschnitte 127 bis 129 waren
@@ -32,7 +32,7 @@ beide müssen gleich sein, ein Prüfstand erzwingt das.
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.31**
+- sichtbare App-Version: **3.32**
 - **Es wird ausschliesslich direkt auf `main` gearbeitet und
   veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
   Feature-Branch, kein Pull Request.
@@ -23398,3 +23398,234 @@ Dieselbe Art Drift wie bei der Versionsnummer im Kopf (Abschnitt 2/132.1) –
 und derselbe Merksatz: **massgeblich ist der Code**, nicht der Fliesstext
 dieses Dokuments. Wer eine Zahl daraus übernimmt, prüft sie gegen
 `MEAS_TYPE_LABELS`.
+
+## 137. DIE SKIZZEN IN DER RÜSTANSICHT SIND VERMASST — VERSION 3.32
+
+Gemeldet am 08.09.2026: *„die schnittskizzen in der rüstansicht sind immernoch
+nicht vermasst und bei der kamineinfassung muss dort auch die breite hinten und
+vorne stehen und schau darauf das sich nirgends zwei masse verdecken"*
+
+Alle drei Punkte waren zutreffend – der dritte ist genau der offene Punkt aus
+Abschnitt 135.9. **Keine Schemaänderung, keine Migration, keine RLS-Änderung,
+keine neue Datenbankfunktion, keine Fachrechnung verändert.**
+
+### 137.1 Der Befund, gemessen statt vermutet
+
+In echtem Chromium gegen die echte `index.html`, mit
+`getBoundingClientRect()` über **alle** `<text>`-Elemente jeder Zeichnung aller
+zwölf Arten. Bewusst nicht `getBBox()` – das liefert den Kasten **vor** der
+eigenen Transformation und verglichen sich sonst gedrehter mit ungedrehtem
+Text in zwei verschiedenen Koordinatensystemen.
+
+**Vier echte Überdeckungen**, alle im Grundriss:
+
+| Stelle | Überdeckung |
+|---|---|
+| Rinne Halbrund · Grundriss | „6000" über „1" · 41 px² |
+| Rinne Halbrund · Grundriss | „6000" über „2" · 41 px² |
+| Mauerabdeckung · Grundriss | „8000" über „1" · 41 px² |
+| Mauerabdeckung · Grundriss | „4000" über „2" · 50 px² |
+
+Genau der Befund aus 135.9 („3⬤0"): die Masszahl steht bei `off=15`, die
+Positionsnummer bei `off=13` – **beide auf derselben Seite** der Linie, und bei
+einem Stück je Segment auch noch an derselben Stelle.
+
+**Fünf Zeichnungen trugen überhaupt keine Zahl** – sie zeigten nur ihre
+Bezeichnungen:
+
+| Zeichnung | zeigte |
+|---|---|
+| Einlaufblech gerade · Schnitt | „A", „Winkel" – kein Mass A, keine Restbreite, keine Umschläge |
+| Einlaufblech konisch · Schnitt | dasselbe |
+| Grundriss (gerade, konisch) | keine Stücklängen |
+| Rinne · Profilskizze | nur die Buchstaben A/B/C ohne Wert |
+| Kamineinfassung · Schnitt | keine Breite vorne/hinten |
+
+Die Anleitung nannte sie seit v3.30 bereits „die **vermasste** Skizze" – das
+war zu diesem Zeitpunkt schlicht nicht wahr und ist mitkorrigiert.
+
+### 137.2 Eine Stelle entscheidet, wo eine Zahl steht: js/62-masse.js
+
+Eine grössere Zahl in `off` wäre geraten gewesen. Stattdessen ein kleiner
+Platzhalter-Rechner – **kein Rechenwerk für Masse**, es geht ausschliesslich
+darum, **wo** eine Zahl zu stehen kommt:
+
+```js
+const belegt=[];                                  // je Zeichnung eine Liste
+massBelegen(belegt,x,y,text,groesse,winkel);      // steht fest (Positionsnummer)
+massPlatz(belegt,kandidaten,text,groesse,winkel); // erster freier Platz
+massKandidaten(mx,my,ux,uy,nx,ny,ab,laenge);      // Ausweichstellen entlang einer Strecke
+```
+
+`massKasten()` schätzt den Textkasten und dreht ihn mit; `massKollidiert()`
+prüft mit etwas Luft. Ist **kein** Platz frei, wird der letzte genommen und das
+ehrlich gemeldet (`frei:false`) – eine Zahl wegzulassen wäre schlechter als
+eine, die eng steht.
+
+Dasselbe Vorgehen, das `js/12b` für das Mauerabdeckungs-Profil seit v2.79 hat –
+nur steht es jetzt an **einer** Stelle statt in jeder Datei neu. Der Prüfstand
+hält mechanisch fest, dass js/62 die einzige Quelle ist.
+
+### 137.3 Was jetzt angeschrieben wird
+
+| Zeichnung | Masse |
+|---|---|
+| Einlaufblech gerade · Schnitt | Mass A, Winkel, Restbreite, beide Umschläge |
+| Einlaufblech konisch · Schnitt | Mass links und rechts, Winkel, Abwicklung |
+| Grundriss (gerade, konisch, Rinne, Mauerabdeckung) | die Länge jedes Stücks |
+| Rinne · Profilskizze | Fixmasse **und** die variablen Masse A/B/C mit ihrem Wert |
+| Kamineinfassung · Schnitt | zusätzlich **Breite vorne** und **Breite hinten** |
+
+Die Kamin-Masse liegen **quer** zu diesem Längsschnitt und können deshalb keine
+Masslinie bekommen – sie stehen als Fahne an der jeweiligen Wand, wie die
+beiden Winkel daneben.
+
+### 137.4 Ein Ersatzwert wird nie als Mass ausgegeben
+
+Mehrere Zeichner setzen einen Platzhalter ein, damit die Form auch ohne Eingabe
+erkennbar bleibt (js/11 zeichnet ohne Mass A mit 120 mm, js/26 mit
+`RINNE_BEISPIELMASS`). Dieser Wert darf **niemals** als Zahl erscheinen –
+sonst stünde in der Zeichnung ein Mass, das niemand erfasst hat.
+
+Deshalb trennt js/26 seit v3.32 ausdrücklich:
+
+```js
+// Das TATSAECHLICH erfasste Mass - oder null, wenn keines vorliegt.
+const echt = i => { … return Number.isFinite(n) && n !== 0 ? n : null; };
+const wert = i => { const e = echt(i); return e === null ? RINNE_BEISPIELMASS : e; };
+```
+
+`wert()` zeichnet, `echt()` schreibt an. Dasselbe in js/11: `Number(massA)>0`
+entscheidet über „A = 120" gegen „A". Der Prüfstand prüft **beide Richtungen** –
+mit Werten muss die Zahl da sein, ohne Werte darf keine da sein.
+
+### 137.5 Ausweichen statt Verdecken
+
+Zwei Muster, je nach Zeichnung:
+
+- **Grundriss und Schnitte**: die Positionsnummer meldet sich mit
+  `massBelegen()` an ihrem festen Platz an, die Masszahl sucht sich mit
+  `massPlatz()` den ersten freien. Ein feiner gestrichelter Strich zeigt, wozu
+  sie gehört, wenn sie ausgewichen ist.
+- **Rinne · Profilskizze**: die Beschriftungen liegen dicht beieinander (bis zu
+  neun Segmente). Sie probieren fünf Stufen nach aussen durch und nehmen die
+  erste, die frei ist:
+
+```js
+const stufen = [38 + (i % 2) * 26, 38 + ((i + 1) % 2) * 26, 90, 116, 142];
+```
+
+Die viewBox wächst dabei aus `belegt` mit – ohne das wäre eine ausgewichene
+Zahl abgeschnitten worden.
+
+### 137.6 Der Ausdruck bekommt dasselbe, ohne eine Zeile mehr
+
+`js/60-ruestskizzen.js` ist seit v3.30 die **eine** Quelle für Skizze und
+Grundriss und speist Werkstattansicht **und** `printMeasurement()` (js/16) über
+`rsSvg(m,titel)`. Weil die Vermassung in den Zeichenfunktionen selbst sitzt,
+tragen Bildschirm und PDF sie automatisch gemeinsam – es gibt **keine zweite
+Zusammenstellung**, die auseinanderlaufen könnte.
+
+### 137.7 Getestet
+
+- **`pruefstaende/pruefstand-vermassung-v3-32.js` – 54/54**, echtes Chromium
+  gegen die echte `index.html`, Abschnitte A–L: **keine** Überdeckung über alle
+  zwölf Arten (jedes `<text>` gegen jedes andere, gemessen mit
+  `getBoundingClientRect`) und ausdrücklich an den vier gemeldeten Stellen ·
+  jede Zeichnung trägt eine Zahl · Einlaufblech gerade mit **und ohne** Werte
+  (Platzhalter nie angeschrieben) · konisch · Grundriss · Rinne (A 127 / B 192 /
+  C 202, und ohne Stück nur der Buchstabe) · ein bewusst enges Profil mit fünf
+  „Kante 20" · Kamin (Breite vorne/hinten, bestehende Masse unverändert, keine
+  Fahne ohne Wert) · js/62 ist die einzige Platzierungsquelle und in
+  `index.html` wie im SHELL registriert · `rsSvg` speist das PDF und „A 127"
+  steht wirklich im gedruckten SVG · vier Bildschirmbreiten · keine
+  JavaScript-Fehler.
+- **Zehn Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um.
+- **Zwei davon waren zuerst wertlos** und wurden geschärft, bevor sie
+  angenommen wurden:
+  1. „jede Zeichnung trägt mindestens eine Zahl" ging für einen Grundriss
+     durch, der nur die Positionsnummern „1"/„2" trug – eine Positionsnummer
+     ist keine Vermassung. Verschärft auf
+     `/\d/.test(t) && !/^\d{1,2}$/.test(t.trim())`; die Gegenprobe biss danach
+     dreimal statt zweimal.
+  2. Die Gegenprobe zur js/26-Ausweichlogik (`stufen=[38]`) blieb **grün** –
+     das Standardprofil kollidiert auch ohne Ausweichen nicht, die neue Logik
+     war damit unbewiesen. Erst ein eigens enges Profil („Rinne enge
+     Segmente", fünfmal „Kante 20") deckt sie ab; danach meldet sie vier
+     Überdeckungen à 620 px².
+- **Volle Regression grün** – alle **57** Prüfstände, jeder mit
+  **Beendigungscode 0** (Abschnitt 132.7). Keine bestehende Erwartung musste
+  abgeschwächt werden.
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.31-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, Abschnitt 100.6) – **DOM, Text, Höhe und Bild
+  byteidentisch** (DOM `9cd3eebdc6ade698`, 6665 Zeichen; Text
+  `faf721899c029d70`; Bild `96244a3edce6dcb3`, 45 401 Bytes; Höhe 716 px),
+  bestätigt durch einen Kontrolllauf desselben Codes. `js/06-rapport.js`,
+  `js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 64 `js/*.js`, `sw.js`, alle Prüfstände und die
+  Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung in `index.html`
+  ausgeglichen (Tiefe 0, Minimum 0); keine doppelten Element-IDs (840); alle
+  64 js-Dateien in `index.html` **und** in der Service-Worker-Liste; kein
+  `data-hilfe` ohne Text; Version 3.32 in `index.html`, `sw.js`,
+  `js/41-hilfe.js` und `anleitung/README.md` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+### 137.8 Anleitung
+
+Nach Regel 108.1 mitgeführt: der Werkstatt-Abschnitt bekommt „Die Skizze trägt
+ihre Masse" mit der Tabelle je Zeichnung, dem Hinweis, dass nur wirklich
+Erfasstes angeschrieben wird, und der Ausweichregel. Die bis dahin **falsche**
+Behauptung „die vermasste Skizze" ist damit eingelöst. Alle 57 Bilder neu
+erzeugt, PDF v3.32 mit **75 Seiten** (vorher 74), keine leere. Die fünf
+Verweise und die Seitenzahl nachgezogen, das alte PDF gelöscht.
+`pruefstand-hilfe-v3-03` (68/68) erzwingt das mechanisch.
+
+Die historischen Angaben „seit Version 3.31" bleiben unverändert stehen
+(Abschnitt 126.7).
+
+### 137.9 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/62-masse.js` | **neu** – die eine Stelle für Platz und Kollisionsprüfung |
+| `js/11-einlaufblech-gerade.js` | Mass A, Restbreite, beide Umschläge; viewBox aus `belegt` |
+| `js/12-rinne-halbrund.js` | Stücklängen im Grundriss, Ausweichen gegen die Positionsnummer |
+| `js/13-einlaufblech-konisch.js` | Masse im Schnitt und im Grundriss |
+| `js/26-rinne.js` | `echt()`/`wert()` getrennt, variable Masse angeschrieben, fünfstufiges Ausweichen |
+| `js/37-kamin-aufnahme.js` | Breite vorne und hinten als Fahne |
+| `js/41-hilfe.js` | Werkstatt-Hilfetext um die Vermassung, PDF-Verweis |
+| `index.html`, `sw.js` | Script-Tag, SHELL, Version 3.32, Seitenzahl |
+| `pruefstaende/pruefstand-vermassung-v3-32.js` | **neu** |
+| `anleitung/*` | Werkstatt-Abschnitt, PDF v3.32 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/33-zuschnitt.js`,
+`js/60-ruestskizzen.js` sowie alle übrigen Fach- und Registermodule – keine
+Berechnung, keine Stückliste, kein Zuschnitt, keine Packrechnung berührt.
+
+### 137.10 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert.
+- **Die Kollisionsprüfung schätzt den Textkasten**, sie misst ihn nicht: die
+  Breite wird aus Zeichenzahl × Schriftgrösse × 0,58 gerechnet. Für die
+  verwendeten Schriften und Grössen trifft das gut genug (im Browser gegen die
+  echten Rechtecke gemessen: keine Überdeckung), aber es ist eine Schätzung –
+  eine echte Messung ginge nur im Browser und stünde damit dem PDF-Ausdruck
+  nicht zur Verfügung, der dieselbe SVG-Zeichenkette bekommt.
+- Reicht keine Ausweichstelle, wird die letzte genommen (`frei:false`) und die
+  Zahl steht eng. Bei den realen Profilen kommt das nicht vor; ein Profil mit
+  sehr vielen sehr kurzen Segmenten könnte es auslösen.
+- Die übrigen Zeichnungen (Lukarne, Freies Profil, Ort-/Seitenbleche,
+  Einfassung Rund) trugen ihre Masse bereits und sind unverändert.
+- Vom Ideenzettel weiterhin offen: Bestellliste je Lieferant, Mitarbeiterliste
+  zusammenführen, Übersicht für Ausmass und Rapporte, Offerten. Dazu die
+  Punkte, die nur der Betreiber erledigen kann: Schnittfuge eintragen, den
+  Materialbestand füllen, `reste_im_zuschnitt` einschalten, die projektlosen
+  Massaufnahmen zuordnen, Leaked-Password-Schutz, eigene Domain.
