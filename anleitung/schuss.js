@@ -410,10 +410,18 @@ const liste=[];
  await schuss("40-werkstatt","#werkstattModal .card",{warte:1000,breite:900});
  // v3.12: der rote Faden - naechster Schritt, Stationen, markierte Zeilen.
  await schuss("38-werkstatt-faden","#werkstattModal .werk-projekt",{warte:400,breite:900});
- // v3.21: die abhakbare Zuschnittliste steht seit dem Umbau SOFORT in der
- // Karte jeder Massaufnahme - nichts aufzuklappen. Ist an einer Aufnahme
- // schon alles geschnitten, klappt ihre Liste zu; fuer das Bild wird
- // deshalb die erste Karte genommen, die eine Liste zeigt.
+ // v3.30: die Werkstatt ist zuerst eine Liste - ein Tipp auf die Zeile
+ // oeffnet Skizze, Grundriss und die abhakbare Zuschnittliste. Fuer das Bild
+ // wird die erste Zeile geoeffnet, die danach wirklich eine Liste zeigt.
+ await page.evaluate(async()=>{
+  for(const k of [...document.querySelectorAll("#werkstattBody [data-werk-karte]")]){
+   k.click();
+   await new Promise(r=>setTimeout(r,250));
+   if(k.closest(".werk-karte").querySelector(".zu-liste"))return;
+   k.click();
+   await new Promise(r=>setTimeout(r,150));
+  }
+ });
  await schuss("43-werkstatt-abhaken",'#werkstattModal .werk-karte:has(.zu-liste)',
    {warte:600,breite:900});
  // v3.23: die Ruestliste zum Ausdrucken. Sie entsteht in einem eigenen

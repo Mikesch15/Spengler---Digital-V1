@@ -17,7 +17,7 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.29, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.30, Branch `main`.**
 
 Die Versionsnummer dieses Abschnitts blieb zwischen Version 3.21 und 3.24
 stehen, obwohl der Code weiterlief – die Abschnitte 127 bis 129 waren
@@ -32,7 +32,7 @@ beide müssen gleich sein, ein Prüfstand erzwingt das.
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.29**
+- sichtbare App-Version: **3.30**
 - **Es wird ausschliesslich direkt auf `main` gearbeitet und
   veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
   Feature-Branch, kein Pull Request.
@@ -22881,3 +22881,226 @@ Berechnung, keine Stückliste, kein Zuschnitt, keine Packrechnung berührt.
   erzeugt kein Folgereststück (§132.10, unverändert).
 - **„＋ Rest von Hand erfassen" verwendet weiterhin `prompt()`** (§133.7,
   unverändert) – nicht gemeldet, deshalb nicht mit angefasst.
+
+## 135. WERKSTATT ALS LISTE + SKIZZE UND GRUNDRISS BEIM RÜSTEN — VERSION 3.30
+
+Ansage des Betriebs: *„ich fände es gut wenn in der werkstattansicht nur die
+projekte mit den entsprechenden massaufnahmen zu sehen währen. wenn man dan
+auf eine klickt könnte sich die zuschnittliste öffnen und was dann auch noch
+sinnvoll währe, währe wen man dort auch direkt die vermasste profilskizze und
+den Grundriss (wenn vorhanden) sehen würde, aber ohne zu viele zusätzliche
+infos aus der massaufnahme. wirklich nur das was man zum rüsten braucht"*
+
+**Keine Schemaänderung, keine Migration, keine RLS-Änderung, keine neue
+Datenbankfunktion, keine zweite Zeichenlogik, keine Fachrechnung verändert.**
+
+### 135.1 Die Kehrtwende gegenüber v3.21 – und warum sie keine ist
+
+Abschnitt 126 hat die Liste bewusst **in jede Karte** gelegt („die Liste steht
+ohne einen Klick da"). Jetzt ist sie wieder zugeklappt. Das ist kein
+Zurückrudern: die Forderung aus v3.21 lautete *„mit einem klick direkt in die
+abhakbare zuschnittliste"* – und genau das gilt weiter. Ein Tipp auf die Karte
+öffnet **beides zugleich**: Zuschnittliste **und** Skizzen. Was sich ändert,
+ist der Zustand davor: bei fünf Massaufnahmen war der Bildschirm vorher ein
+Meter lang, bevor man überhaupt wusste, welche man rüstet.
+
+Der Prüfstand hält beides mechanisch fest: zugeklappt **0** Zuschnittlisten und
+**0** Skizzen, nach **genau einem** Tipp beides da.
+
+### 135.2 „Wenn vorhanden" – aus dem Code beantwortet, nicht geraten
+
+Welche Art welche Zeichnung hat, steht in den Druckzweigen von js/16. Daraus
+die vollständige Tabelle (sie steht im Kopf von js/60):
+
+| Art | Profil/Schnitt | Grundriss |
+|---|---|---|
+| Einlaufblech gerade | Schnittskizze | ja |
+| Einlaufblech konisch | Schnittskizze | ja |
+| Rinne Halbrund | – | ja |
+| Mauerabdeckung | Profil (Querschnitt) | ja |
+| Freies Profil | Profil | – |
+| Lukarne | Plan | – |
+| Ort-/Seitenbleche | Schnitt | – |
+| Einfassung Rund | Schnitt | – |
+| Kamineinfassung | Schnitt | – |
+| Rinne (Zuschnittliste) | Profilskizze | – |
+| **Kehle** | – | – (rechnet nur) |
+| **Skizze / Foto** | – | – (hat Foto/Skizze) |
+
+Zehn von zwölf Arten haben eine Zeichnung, vier davon zusätzlich einen
+Grundriss. Bei den zwei übrigen steht ausdrücklich **„Für diese Art gibt es
+keine Skizze."** – statt einer leeren Fläche, bei der niemand weiss, ob etwas
+fehlt oder ob nichts da ist. Fehlen einer Art die nötigen Masse, liefert der
+Zeichner ohnehin keinen SVG-Text, und der Eintrag entfällt.
+
+### 135.3 Eine Quelle: js/60-ruestskizzen.js
+
+`rsSkizzen(m)` stellt die Zeichnungen zusammen – **aus dem gespeicherten
+Datensatz**, mit denselben Zeichenfunktionen wie der Ausdruck
+(`einlaufblechDiagramSvg`, `generateEbkGrundriss`, `generateRinneGrundriss`,
+`madProfilSvgAus`, `generateProfilDiagramSvg`, `lukPlanSvg`, …). Die zwölf
+Fachdateien sind **nicht** angefasst.
+
+Und der Ausdruck geht denselben Weg: die **13** Zeichnungsaufrufe in
+`printMeasurement()` (js/16) sind durch `rsSvg(m,"<Titel>")` ersetzt. Damit
+gibt es keine zweite Zusammenstellung, die auseinanderlaufen könnte – genau
+der Fehler, den Abschnitt 130.3 beim doppelten Plan-Bauer aufräumen musste.
+Der Prüfstand belegt es an beiden Enden: js/51 ruft **keinen** Zeichner selbst,
+js/16 ruft `rsSvg` mindestens zehnmal.
+
+**Belegt, dass der Ausdruck dadurch gleich bleibt**: alle 13 Druckfälle
+(`pruefstaende/faelle-druck.js`, alle zwölf Arten) wurden vor und nach dem
+Umbau erzeugt und byteweise verglichen. Zwei Testdatensätze waren dabei zu
+dünn, um überhaupt eine Zeichnung zu erzeugen (Lukarne mit `winkel:60`,
+Mauerabdeckung ohne `profil`) – erst mit realistischen Werten deckt der
+Vergleich die Zeichnungen wirklich ab. Die Gegenprobe (ein Aufruf falsch
+verdrahtet) schlägt seither fehl.
+
+### 135.4 Der Leerraum der festen viewBox
+
+Abschnitt 63.6 hatte gemessen, dass eine Zeichnung nur rund ein Fünftel ihrer
+`viewBox` füllt (Rinne-Grundriss: 291 von 368 Einheiten leer), und den Weg
+offengelassen: *„liesse sich im Druckdokument beheben, ohne die
+Zeichenfunktionen anzufassen"*.
+
+`rsZuschneiden(wurzel)` (js/60) tut das jetzt für die Werkstatt: **nach** dem
+Einfügen wird über `getBBox()` gemessen, was wirklich gezeichnet ist, und die
+`viewBox` mit 3 % Rand darauf gesetzt. Vorher geht es nicht – ein SVG, das
+nicht im Dokument hängt, hat keine Bounding-Box. Füllt der Inhalt ohnehin über
+80 %, bleibt alles, wie es ist.
+
+**Zweiter, weniger offensichtlicher Teil:** die Zeichner geben SVGs **ohne**
+`width`/`height` aus. Im Blockfluss wird die Breite dadurch zur vollen
+Containerbreite, und `max-height` deckelt danach die Höhe – eine hohe, schmale
+Zeichnung steht klein in einem breiten, leeren Rahmen. `aspect-ratio` hilft
+dagegen **nicht** (gemessen: gesetzt, ohne Wirkung – es greift erst, wenn die
+Breite nicht schon durch `auto` bestimmt ist). `rsVerhaeltnis()` liest deshalb
+die `max-height` aus dem berechneten Stil und rechnet daraus die passende
+`max-width`. Die Zahl steht damit **nur** im CSS.
+
+### 135.5 Was zugeklappt steht – und was nicht
+
+| Zugeklappt | Erst nach dem Tipp |
+|---|---|
+| Art · Titel · Material | Rüster und Monteur |
+| Status, Zuschnittstand, **Fassung** | Skizzen |
+| Warnung bei verfallener Freigabe | Zuschnittliste zum Abhaken |
+| „✓ Rüsten bestätigen" | Fertig-Leiste, Rüstliste, „Im Formular öffnen" |
+
+**Die Fassung steht bewusst in der zugeklappten Zeile.** Im ersten Entwurf lag
+sie im Klappteil – der `versionen`-Prüfstand hat das sofort gemeldet, und zu
+Recht: Abschnitt 114.4 verlangt, dass **jede Zeile** sie nennt, damit „ein
+Zuschnitt oder ein Rüstvorgang nicht unbemerkt auf einem überholten Stand
+weiterläuft". Das war eine echte Regression und keine überholte Erwartung.
+
+Der Kopf ist ein `role="button"` mit `aria-expanded`, per **Enter und
+Leertaste** bedienbar, mindestens 34 px hoch. Ein Klick auf den Aktionsknopf
+darin klappt **nicht** mit auf.
+
+Die automatische Zuklappen-Regel aus v3.21 („fertige Karte klappt zu") ist
+entfallen – bei einer Liste, die ohnehin zugeklappt startet, wäre sie eine
+zweite, konkurrierende Steuerung. Die fertige Karte wird stattdessen grün
+markiert, **ohne** neu zu zeichnen (sonst spränge die Liste unter dem Finger
+weg, CLAUDE.md 66.1).
+
+### 135.6 Getestet
+
+- **`pruefstaende/pruefstand-werkstatt-liste-v3-30.js` – 58/58**, echtes
+  Chromium gegen die echte `index.html`, Abschnitte A–K: zugeklappt nur die
+  Liste (5 Karten, 0 Klappteile, 0 Zuschnittlisten, 0 Skizzen, alle
+  `aria-expanded=false`) · **ein** Tipp öffnet beides · sonst nichts (keine
+  Notiz, keine Eingabemasse, keine Bilder) · zweiter Tipp schliesst · „wenn
+  vorhanden" je Art · die Quellenprüfungen aus 135.3 · die viewBox füllt
+  danach mindestens die Hälfte und die Zeichnung behält ihr Seitenverhältnis
+  (±25 %) · Tastatur · vier Bildschirmbreiten · keine JavaScript-Fehler.
+  Geklickt wird über `elementFromPoint`, nie mit `page.click` – ein verdecktes
+  Element würde den Lauf sonst hängen lassen, und ein hängender Lauf sieht aus
+  wie „keine Fehler" (CLAUDE.md 78).
+- **Zehn Gegenproben**, jede baut einen echten Fehler ein und wirft den
+  Prüfstand um (49/51/50/44/56/56/54/53/57/57). **Zwei davon waren zuerst
+  wertlos**: eine wurde gar nicht eingebaut, weil mein Ankertext mehrfach
+  vorkam (der Lauf meldete 58/58 – eine nicht ausgeführte Gegenprobe sieht aus
+  wie eine bestandene), und eine prüfte „keine Zeichnung höher als 240 px",
+  was das CSS ohnehin garantiert. Beide nachgeschärft, danach bissen sie.
+- **Volle Regression grün** – alle **55** Prüfstände, jeder mit
+  **Beendigungscode 0** (CLAUDE.md 132.7).
+- **Regierapport nachweislich unverändert**: unter `media:print` mit
+  ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+  v3.29-Stand gerendert, mit angeglichener Versionsnummer (die Fusszeile
+  enthält die Uhrzeit, CLAUDE.md 100.6) – **DOM, Text und Bild byteidentisch**
+  (DOM `64b502a274ae0c1a`, 6797 Zeichen; Text `3d0e4927130fabee`; Bild
+  `89ddd538a70a00d1`, 48 122 Bytes). Ein erster Kontrolllauf war über die
+  Minutengrenze gefallen; **nachgemessen statt weggewunken**: der Unterschied
+  lag ausschliesslich in der gedruckten Uhrzeit, ein zweiter Lauf ist Zeichen
+  für Zeichen identisch. `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`
+  und `css/03-druck.css` sind nicht im Diff.
+- `node --check` über alle 62 `js/*.js`, `sw.js`, alle Prüfstände und die
+  Anleitungs-Skripte: fehlerfrei; `<div>`-Verschachtelung in `index.html`
+  ausgeglichen (Tiefe 0, Minimum 0); keine doppelten Element-IDs (840); alle
+  62 js-Dateien in `index.html` **und** in der Service-Worker-Liste; kein
+  `data-hilfe` ohne Text; Version 3.30 in `index.html`, `sw.js`,
+  `js/41-hilfe.js` und `anleitung/README.md` gleich.
+- **Kein Datenbankzugriff** in dieser Runde – weder lesend noch schreibend.
+
+**Drei überholte Erwartungen** nachgezogen, keine davon abgeschwächt: die
+Prüfstände `ruestliste-offline-v3-23` (71/71), `werkstatt-v3-09` (54/54) und
+`werkstatt-zuschnitt-v3-20` (58/58) griffen auf Inhalte zu, die jetzt im
+Klappteil liegen. Sie öffnen die Karten vorher und prüfen danach unverändert
+dasselbe. Der Massaufnahme-Knopf ist **einen Tipp** entfernt, nicht
+verschwunden – die „keine Sackgasse"-Prüfung gilt also weiterhin.
+
+### 135.7 Anleitung
+
+Nach Regel 108.1 mitgeführt: der Werkstatt-Abschnitt komplett neu geschrieben
+(Liste, ein Tipp, was dann erscheint, was bewusst **nicht** erscheint,
+Tastatur, der Hinweis für Kehle und Skizze/Foto). Alle 56 Bilder neu erzeugt,
+PDF v3.30 mit **73 Seiten**, keine leere. Die fünf Verweise und die Seitenzahl
+nachgezogen, das alte PDF gelöscht. `pruefstand-hilfe-v3-03` (68/68) erzwingt
+das mechanisch – mit Gegenprobe bestätigt: Version hochsetzen ohne die
+Anleitung → 64/68.
+
+**Der Demo-Datensatz der Rinne hatte keine Segmente** und zeigte deshalb im
+Bild ehrlich „keine Skizze" – der Text daneben beschreibt aber den Grundriss.
+`stub.js` bekommt dafür erfundene Demo-Masse (wie schon der Demo-Katalog in
+129.6); eine Verbindung zur Produktivdatenbank baut es weiterhin **nicht** auf.
+
+### 135.8 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/60-ruestskizzen.js` | **neu** – die eine Quelle für Skizze und Grundriss, viewBox-Beschnitt, Breitenrechnung |
+| `js/51-werkstatt.js` | Karte klappt auf, Skizzen, Fassung in der sichtbaren Zeile, Tastatur |
+| `js/16-massaufnahme-formular.js` | 13 Zeichnungsaufrufe → `rsSvg()` |
+| `css/01-basis.css` | Kopf als Schalter, Klappteil, Skizzenfläche |
+| `js/41-hilfe.js` | Hilfetext „Werkstatt", PDF-Verweis |
+| `index.html`, `sw.js` | Script-Tag, SHELL, Version 3.30 |
+| `pruefstaende/faelle-druck.js` | **neu** – 13 gemeinsame Druckfälle |
+| `pruefstaende/pruefstand-werkstatt-liste-v3-30.js` | **neu** |
+| drei bestehende Prüfstände | überholte Erwartungen (135.6) |
+| `anleitung/*` | Werkstatt-Abschnitt, Demo-Masse, PDF v3.30 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport) sowie sämtliche Fachdateien `js/10`–`js/15`,
+`js/17`, `js/19`–`js/50` und `js/52`–`js/59`.
+
+### 135.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert ausgehende
+  HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder
+  vorherigen Sitzung. **Das wird ausdrücklich nicht als getestet behauptet.**
+  Geprüft ist die Oberfläche in echtem Chromium gegen die echte `index.html`
+  mit einer Attrappe, die jeden Aufruf protokolliert.
+- **Im Grundriss überlappen Massbeschriftung und Positionskreis** an engen
+  Stellen („3⬤0"). Das war der Verdacht auf einen neuen Fehler durch den
+  viewBox-Beschnitt – **gemessen mit und ohne Beschnitt: identisch vier
+  Kollisionen**. Es liegt in `generateRinneGrundriss` (js/12, geschützte
+  Fachdatei), besteht seit langem und ist auch im PDF so. Bewusst nicht
+  angefasst; eine Behebung wäre eine eigene Runde an der Fachdatei.
+- Die Skizzen zeigen den **gespeicherten** Stand. Wird eine Massaufnahme
+  geändert, aber nicht erneut freigegeben, warnt die Karte (v3.06) – die
+  Zeichnung selbst wird davon nicht rot.
+- Vom Ideenzettel weiterhin offen: Bestellliste je Lieferant, Mitarbeiterliste
+  zusammenführen, Übersicht für Ausmass und Rapporte, Offerten. Dazu die
+  Punkte, die nur der Betreiber erledigen kann: Schnittfuge eintragen, den
+  Materialbestand füllen, `reste_im_zuschnitt` einschalten, die projektlosen
+  Massaufnahmen zuordnen, Leaked-Password-Schutz, eigene Domain.

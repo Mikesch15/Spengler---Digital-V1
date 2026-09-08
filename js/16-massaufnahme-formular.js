@@ -918,11 +918,11 @@ ${d.gava&&d.gava.aktiv?`<tr>${cell("Haltebleche (GAVA)",esc(d.gava.gerechnet??"�
 <div class="eb-diagram-row">
  <div class="eb-diagram">
   <div class="eb-diagram-title">Schnittskizze</div>
-  ${einlaufblechDiagramSvg(d.winkel,d.massA,d.restBreite,einlaufblechSettings.umschlag_oben,einlaufblechSettings.umschlag_unten)}
+  ${rsSvg(m,"Schnittskizze")}
  </div>
  <div class="eb-diagram">
   <div class="eb-diagram-title">Grundriss</div>
-  ${generateEbkGrundriss(pieces)}
+  ${rsSvg(m,"Grundriss")}
  </div>
 </div>
 ${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausmass</div>
@@ -959,7 +959,7 @@ ${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausma
 <tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
 </table>`:""}
 <div class="eb-section-head">Grundriss</div>
-<div class="eb-diagram">${generateRinneGrundriss(segs,dilas,d.boundaries||[])}</div>
+<div class="eb-diagram">${rsSvg(m,"Grundriss")}</div>
 <div class="eb-section-head">Dilatationselemente</div>
 ${(()=>{
  if(!segs.length)return '<div class="note">Keine Segmente vorhanden.</div>';
@@ -1020,9 +1020,9 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${(()=>{const pr=d.profil||{};const vg=(typeof madBiegeVorgabe==="function")?madBiegeVorgabe(pr.gef||0):{links:90,rechts:90};return cell("Biegewinkel links",esc(pr.wL??vg.links)+"°")+cell("Biegewinkel rechts",esc(pr.wR??vg.rechts)+"°");})()}</tr>
 </table>
 <div class="eb-section-head">Profil (Querschnitt)</div>
-<div class="eb-diagram">${madProfilSvgAus(d.profil)}</div>
+<div class="eb-diagram">${rsSvg(m,"Profil (Querschnitt)")}</div>
 <div class="eb-section-head">Grundriss</div>
-<div class="eb-diagram">${generateRinneGrundriss(segs,d.schieber||[],d.boundaries||[],{anfang:!!(segs[0]&&segs[0].bodenLinks),ende:!!(segs[segs.length-1]&&segs[segs.length-1].bodenRechts)})}</div>
+<div class="eb-diagram">${rsSvg(m,"Grundriss")}</div>
 <div class="eb-section-head">Segmente</div>
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th><th>Boden Anfang</th><th>Boden Ende</th></tr></thead>
@@ -1066,7 +1066,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Material",matName)}${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}</tr>
 </table>
 <div class="eb-section-head">Plan</div>
-<div class="eb-diagram">${lukPlanSvg(g,{fuerDruck:true})}</div>
+<div class="eb-diagram">${rsSvg(m,"Plan")}</div>
 <div class="eb-section-head">Scharen</div>
 <table class="eb-cutlist">
 <thead><tr><th rowspan="2">Pos.</th><th colspan="3">Linke Kante</th><th colspan="3">Rechte Kante</th><th rowspan="2">Zuschnitt B &#215; L</th></tr><tr><th>&#8593; ab HR</th><th>&#8595; ab HR</th><th>H&#246;he</th><th>&#8593; ab HR</th><th>&#8595; ab HR</th><th>H&#246;he</th></tr></thead>
@@ -1103,7 +1103,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Material",matName)}<td></td></tr>
 </table>
 <div class="eb-section-head">Schnitt</div>
-<div class="eb-diagram">${anbZeichnung(d)}</div>
+<div class="eb-diagram">${rsSvg(m,"Schnitt")}</div>
 ${segmente.length?`<div class="eb-section-head">Segmente</div>
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Segmentlänge (mm)</th><th>Knick</th></tr></thead>
@@ -1161,7 +1161,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Lattenabstand",esc(Math.round(d.lattenabstand||0))+" mm")}<td></td></tr>
 </table>
 <div class="eb-section-head">Schnitt</div>
-<div class="eb-diagram">${einfZeichnung(d)}</div>
+<div class="eb-diagram">${rsSvg(m,"Schnitt")}</div>
 <div class="eb-section-head">Masse</div>
 <table class="eb-cutlist">
 <thead><tr><th>Mass</th><th>Bedeutung</th><th>Wert</th></tr></thead>
@@ -1221,11 +1221,11 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="eb-diagram-row">
  <div class="eb-diagram">
   <div class="eb-diagram-title">Schnittskizze</div>
-  ${einlaufblechDiagramSvg(d.dachneigung,repMass,restBreite,einlaufblechKonischSettings.umschlag_oben,einlaufblechKonischSettings.umschlag_unten)}
+  ${rsSvg(m,"Schnittskizze")}
  </div>
  <div class="eb-diagram">
   <div class="eb-diagram-title">Grundriss</div>
-  ${generateEbkGrundriss(pieces)}
+  ${rsSvg(m,"Grundriss")}
  </div>
 </div>
 ${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausmass</div>
@@ -1274,7 +1274,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Material",matName)}<td></td></tr>
 </table>
 <div class="eb-section-head">Profil</div>
-<div class="eb-diagram">${generateProfilDiagramSvg(schenkel)}</div>
+<div class="eb-diagram">${rsSvg(m,"Profil")}</div>
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th></tr></thead>
 <tbody>${schenkel.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(s.winkel||0)}</td></tr>`).join("")}</tbody>
@@ -1340,7 +1340,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   };
   const summeZuschnitt=stuecke.reduce((s2,st)=>s2+Number(wert(st).z||0),0);
   const erstes=stuecke[0];
-  const skizze=rinneSvg(w.profil,erstes?erstes.links:null,null);
+  const skizze=rsSvg(m,"Profilskizze");
   const kopfMasse=varListe.length?varListe.map(v=>v.buchstabe).join(" / "):"\u2013";
   const formel=(varListe.length?varListe.map(v=>v.buchstabe).join(" + ")+" + ":"")+mm(fix)+" mm";
   bodyHtml=`${kopfHtml}
@@ -1408,11 +1408,11 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   // Die Skizze wird aus dem GESPEICHERTEN Datensatz gezeichnet. Fehlen die
   // dafuer noetigen Masse, liefert kamaSkizze() einen Hinweis statt einer
   // Zeichnung - der gehoert nicht ins PDF, deshalb die Pruefung auf <svg.
-  const kamSkizze=st=>{
-   const h=(typeof kamaSkizze==="function")?kamaSkizze(Object.assign({},d,{skizzeSeite:st})):"";
-   return /^<svg/.test(String(h).trim())?`<div class="eb-diagram">${h}</div>`:"";
+  const kamSkizze=titel=>{
+   const h=rsSvg(m,titel);
+   return h?`<div class="eb-diagram">${h}</div>`:"";
   };
-  const kamSchnitt=kamSkizze("l")+(d.getrennt?kamSkizze("r"):"");
+  const kamSchnitt=kamSkizze("Schnitt")+(d.getrennt?kamSkizze("Schnitt rechts"):"");
   bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">

@@ -152,7 +152,20 @@ const klick=async(page,sel,was)=>{
 async function werkstattAuf(page){
  if(!await klick(page,"#navWerkstatt","Werkstatt-Knopf"))return false;
  await page.waitForTimeout(600);
+ await kartenAuf(page);
  return true;
+}
+// Seit v3.30 ist die Werkstatt eine Liste: die Karte klappt erst auf einen
+// Tipp auf. Zuschnittliste, Ruestlisten-Knopf und Fertig-Leiste liegen darin,
+// also einmal alle oeffnen - geprueft wird danach unveraendert dasselbe.
+async function kartenAuf(page){
+ const ids=await page.evaluate(()=>[...document.querySelectorAll("#werkstattBody [data-werk-karte]")]
+   .map(e=>e.dataset.werkKarte));
+ for(const id of ids){
+  try{ await page.click('#werkstattBody [data-werk-karte="'+id+'"]',{timeout:4000}) }catch(e){}
+  await page.waitForTimeout(120);
+ }
+ await page.waitForTimeout(300);
 }
 const druckHtml=(page)=>page.evaluate(()=>(window.__druck||[]).filter(x=>x&&x.length).slice(-1)[0]||"");
 
@@ -467,9 +480,8 @@ const druckHtml=(page)=>page.evaluate(()=>(window.__druck||[]).filter(x=>x&&x.le
  await vorbereiten(page,MODULE,ALLE);
  if(await werkstattAuf(page)){
   await page.waitForTimeout(700);
-  // Die Karte ist fertig und deshalb zugeklappt (v3.21) - erst aufklappen.
-  await klick(page,'[data-werk-karte="11"]',"fertige Karte aufklappen");
-  await page.waitForTimeout(600);
+  // Seit v3.30 hat werkstattAuf() bereits alle Karten geoeffnet - ein
+  // zusaetzlicher Klick wuerde sie wieder zuklappen.
   const d=await page.evaluate(()=>{
    const k=document.querySelector('#werkstattBody [data-ze-meas="11"][data-ze-nr="1"]');
    return {titel:k?k.title:"",ok:!!k&&k.classList.contains("ze-ok")};

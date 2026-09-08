@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.29.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.30.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -186,10 +186,22 @@ Dreieck ist der Schritt, der jetzt dran ist. Die Projekte stehen in genau
 dieser Reihenfolge: was zuerst drankommt, steht oben. Die Massaufnahmen, um
 die es beim jetzigen Schritt geht, sind blau markiert und stehen zuoberst.
 
-Die <b>Zuschnittliste steht in jeder Karte sofort da</b> – auch dann, wenn das
-Modul „Zuschnitt und Abhaken“ aus ist. Abhaken lässt sie sich in diesem Fall
-nicht; warum, steht unter der Liste, und ein Administrator kann das Modul dort
-mit einem Tipp einschalten.
+Die Werkstatt ist zuerst eine <b>Liste</b>: je Projekt seine Massaufnahmen,
+mehr nicht. Ein Tipp auf eine Zeile klappt sie auf – und dann steht alles da,
+was zum Rüsten gebraucht wird: die <b>vermasste Skizze</b> (Profil oder
+Schnitt) und der <b>Grundriss</b>, soweit es für diese Art einen gibt, darunter
+die <b>abhakbare Zuschnittliste</b>. Bewusst nichts sonst aus der
+Massaufnahme – Notiz, Fotos und alle Eingabemasse bleiben im Formular, das
+sich mit „✂️ Im Formular öffnen“ erreichen lässt.
+
+Nicht jede Art hat eine Zeichnung. Kehle und Skizze/Foto rechnen nur
+beziehungsweise halten das Foto selbst; dort steht das ausdrücklich da,
+statt einen leeren Rahmen zu zeigen.
+
+Die Zuschnittliste erscheint auch dann, wenn das Modul „Zuschnitt und
+Abhaken“ aus ist. Abhaken lässt sie sich in diesem Fall nicht; warum, steht
+unter der Liste, und ein Administrator kann das Modul dort mit einem Tipp
+einschalten.
 
 Eine Station erscheint nur, wenn das zugehörige Modul eingeschaltet ist –
 sonst gäbe es dazu keinen ablesbaren Zustand. Reserviert und Zugeschnitten

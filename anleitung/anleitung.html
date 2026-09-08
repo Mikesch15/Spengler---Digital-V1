@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.29";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.30";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.29<br>
+  Version 3.30<br>
   Stand 6. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -804,10 +804,10 @@ innerhalb des Projekts zuoberst.</p>
 trägt der Streifen einen Knopf, der genau das für das ganze Projekt auf einmal erledigt –
 <span class="tasten">📦 Alle reservieren (5)</span>. Es ist derselbe Vorgang wie im Projekt
 selbst, nur ohne den Umweg dorthin.</p>
-<div class="hin">Die <strong>Zuschnittliste steht in jeder Karte sofort da</strong> –
-seit Version 3.22 auch dann, wenn das Modul „Zuschnitt und Abhaken“ aus ist. Abhaken
-lässt sie sich in diesem Fall nicht; warum, steht unter der Liste, und ein Administrator
-kann das Modul dort mit einem Tipp einschalten.</div>
+<div class="hin">Die <strong>Zuschnittliste erscheint auch dann</strong>, wenn das
+Modul „Zuschnitt und Abhaken“ aus ist – seit Version 3.22. Abhaken lässt sie sich in
+diesem Fall nicht; warum, steht unter der Liste, und ein Administrator kann das Modul
+dort mit einem Tipp einschalten.</div>
 
 <div class="hin">Eine Station erscheint nur, wenn das zugehörige Modul eingeschaltet
 ist. Reserviert und Zugeschnitten kommen aus dem Status der Reservierungen, Gerüstet
@@ -815,12 +815,26 @@ und Montiert aus dem Arbeitsstatus der Massaufnahmen. Ist für ein Projekt
 <strong>gar nichts</strong> reserviert, sagen die Daten dazu nichts – die beiden
 Stationen stehen dann auf „–" und werden nicht als nächster Schritt verlangt.</div>
 
-<h4>Die Zuschnittliste steht sofort da</h4>
-<figure><img src="bilder/43-werkstatt-abhaken.png"><figcaption>Je Massaufnahme eine Karte, die Zuschnittliste darin ohne einen weiteren Klick.</figcaption></figure>
-<p>Beim Rüsten zählt zuerst, <em>was</em> zu schneiden ist – und dass es sich sofort
-abhaken lässt. Je Massaufnahme steht deshalb eine <strong>Karte</strong>, und die
-Zuschnittliste steht <strong>darin</strong>: kein Aufklappen, kein zweiter Klick.
-<strong>Jede Positionsnummer ist ein Knopf</strong> – ein Tipp hakt dieses Blech als
+<h4>Eine Liste – und ein Tipp öffnet, was zum Rüsten gebraucht wird</h4>
+<figure><img src="bilder/43-werkstatt-abhaken.png"><figcaption>Ein Tipp auf die Zeile öffnet Skizze, Grundriss und die abhakbare Zuschnittliste.</figcaption></figure>
+<p>Die Werkstatt ist seit Version 3.30 zuerst eine <strong>Liste</strong>: je Projekt
+seine Massaufnahmen, jede mit Art, Bezeichnung, Material, Status und Zuschnittstand –
+mehr nicht. So sieht man mit einem Blick, was ansteht, ohne durch geöffnete Listen zu
+scrollen.</p>
+<p><strong>Ein Tipp auf eine Zeile</strong> klappt sie auf, und dann steht alles da,
+was zum Rüsten gebraucht wird:</p>
+<ul>
+<li>die <strong>vermasste Skizze</strong> – Profil oder Schnitt, je nach Art,</li>
+<li>der <strong>Grundriss</strong>, soweit es für diese Art einen gibt,</li>
+<li>die <strong>abhakbare Zuschnittliste</strong>.</li>
+</ul>
+<p>Bewusst nichts sonst aus der Massaufnahme: Notiz, Fotos und alle Eingabemasse
+bleiben im Formular. Ein zweiter Tipp klappt die Zeile wieder zu; mit der Tastatur
+gehen Enter und die Leertaste genauso.</p>
+<div class="hin"><strong>Nicht jede Art hat eine Zeichnung.</strong> Kehle rechnet nur,
+Skizze / Foto hält das Foto selbst – dort steht das ausdrücklich da, statt einen leeren
+Rahmen zu zeigen. Es sind dieselben Zeichnungen wie im PDF, aus derselben Quelle.</div>
+<p><strong>Jede Positionsnummer ist ein Knopf</strong> – ein Tipp hakt dieses Blech als
 zugeschnitten ab, ein zweiter nimmt es zurück. Sind mehrere gleiche Zuschnitte
 zusammengefasst, hakt <span class="tasten">alle</span> die ganze Gruppe ab.</p>
 <p>Der Stand steht an drei Stellen und zieht nach jedem Tipp sofort nach: auf der Karte
@@ -828,11 +842,10 @@ zusammengefasst, hakt <span class="tasten">alle</span> die ganze Gruppe ab.</p>
 Projekte zusammen (<em>✂️ 7 von 12 Stück zugeschnitten</em>).</p>
 <div class="hin">Es ist derselbe Haken wie im Formular der Massaufnahme, keine zweite
 Liste: was hier abgehakt wird, steht dort ebenfalls abgehakt – und umgekehrt.</div>
-<p>Ist an einer Massaufnahme <strong>alles geschnitten</strong>, klappt ihre Liste zu
-und die Karte wird grün – was noch offen ist, steht damit vorne.
-<span class="tasten">▸ Zuschnittliste zeigen</span> holt sie zurück. Wer gerade an einer
-Karte abhakt, behält sie offen, auch wenn das letzte Stück sie fertig macht: sonst
-spränge sie unter dem Finger weg.</p>
+<p>Ist an einer Massaufnahme <strong>alles geschnitten</strong>, wird ihre Zeile grün
+gekennzeichnet – was noch offen ist, bleibt damit erkennbar. Wer gerade an einer Zeile
+abhakt, behält sie offen, auch wenn das letzte Stück sie fertig macht: sonst spränge
+sie unter dem Finger weg.</p>
 <p>Wer die ganze Massaufnahme sehen will, kommt mit
 <span class="tasten">✂️ Im Formular</span> <strong>direkt</strong> in ihr
 Zuschnitt-Register. <span class="tasten">Zurück</span> führt in die Werkstatt.</p>
@@ -1284,7 +1297,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">24 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.29</strong>, Stand 7. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.30</strong>, Stand 8. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

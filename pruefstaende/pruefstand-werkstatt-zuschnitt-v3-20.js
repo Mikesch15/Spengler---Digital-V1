@@ -136,12 +136,28 @@ const klick=async(page,sel,was)=>{
  try{await page.click(sel,{timeout:4000});return true}
  catch(e){p(false,(was||"Element")+" anklickbar ("+sel+")",String(e).slice(0,140));return false}
 };
-// v3.21: NUR die Werkstatt oeffnen. Die Zuschnittkarten muessen danach ohne
-// jeden weiteren Klick dastehen - das ist die Eigenschaft, um die es geht.
+// v3.21: NUR die Werkstatt oeffnen. Die Zuschnittkarten mussten danach ohne
+// jeden weiteren Klick dastehen.
+// v3.30 UEBERHOLT: die Werkstatt ist jetzt zuerst eine LISTE, und ein Tipp
+// auf den Kartenkopf oeffnet Skizzen und Zuschnittliste. Geprueft werden
+// danach unveraendert dieselben Eigenschaften - nur mit diesem einen Tipp
+// davor. Dass die Liste vorher NICHT da ist und mit genau EINEM Tipp
+// erscheint, prueft pruefstand-werkstatt-liste-v3-30.js.
 async function werkstattAuf(page){
  if(!await klick(page,"#navWerkstatt","Werkstatt-Knopf"))return false;
  await page.waitForTimeout(600);
+ await kartenAuf(page);
  return true;
+}
+// Alle Kartenkoepfe antippen - je einer je Massaufnahme.
+async function kartenAuf(page){
+ const ids=await page.evaluate(()=>[...document.querySelectorAll("#werkstattBody [data-werk-karte]")]
+   .map(e=>e.dataset.werkKarte));
+ for(const id of ids){
+  try{ await page.click('#werkstattBody [data-werk-karte="'+id+'"]',{timeout:4000}) }catch(e){}
+  await page.waitForTimeout(120);
+ }
+ await page.waitForTimeout(300);
 }
 // Material und Reservierungen liegen seit v3.21 in einem zugeklappten
 // Bereich - fuer die Pruefungen dort einmal aufklappen.
@@ -391,23 +407,28 @@ async function mehrAuf(page){
   p(h.mehrKnopf&&h.grundlageZu,"Material und Reservierungen liegen zugeklappt darunter",h);
   p(/0 von 4 Stück geschnitten/.test(h.streifen),
     "der naechste Schritt nennt die Stuecke, nicht die Materialpositionen",h.streifen);
-  // Alles geschnitten -> die Liste klappt zu, laesst sich aber wieder oeffnen.
+  // Alles geschnitten. Bis v3.29 klappte eine fertige Karte ihre Liste von
+  // selbst zu; seit v3.30 ist ohnehin JEDE Karte zugeklappt, und ein Tipp
+  // oeffnet sie. Geprueft wird deshalb dasselbe wie vorher - der Stand steht
+  // trotzdem da, und ein Tipp bringt die Liste vollstaendig zurueck.
   const f=await page.evaluate(async()=>{
    const alle=[1,2,3].map(n=>({id:900+n,measurement_id:11,stueck_nr:n,erledigt:true,
      laenge_mm:[1200,700,2000][n-1],breite_mm:250}));
    window.__db.ze=alle; if(typeof zeCache!=="undefined"){zeCache.clear();zeGeladen.clear()}
-   await werkstattNeuLaden(); await new Promise(r=>setTimeout(r,400));
+   await werkstattOeffnen(); await new Promise(r=>setTimeout(r,600));
    const k=[...document.querySelectorAll(".werk-karte")].find(x=>/Einlaufblech/.test(x.innerText));
    const auf=k?k.querySelector("[data-werk-karte]"):null;
    const vor={zu:!!auf, knoepfe:k?k.querySelectorAll("[data-ze-nr]").length:-1,
-     stand:k?(k.querySelector("[data-werk-zu-stand]")||{}).textContent||"":""};
+     stand:k?(k.querySelector("[data-werk-zu-stand]")||{}).textContent||"":"",
+     gruen:k?k.classList.contains("werk-zu-fertig"):false};
    if(auf){auf.click();await new Promise(r=>setTimeout(r,300))}
    const k2=[...document.querySelectorAll(".werk-karte")].find(x=>/Einlaufblech/.test(x.innerText));
    return {...vor, nachher:k2?k2.querySelectorAll("[data-ze-nr]").length:-1};
   });
-  p(f.zu&&f.knoepfe===0,"eine fertig geschnittene Karte klappt ihre Liste zu",f);
+  p(f.zu&&f.knoepfe===0,"die Karte startet zugeklappt (v3.30)",f);
+  p(f.gruen,"eine fertig geschnittene Karte ist gruen gekennzeichnet",f);
   p(/3 von 3 zugeschnitten/.test(f.stand),"der Stand steht trotzdem da",f.stand);
-  p(f.nachher===3,"ein Tipp klappt sie wieder auf - es geht nichts verloren",f);
+  p(f.nachher===3,"ein Tipp klappt sie auf - es geht nichts verloren",f);
   // Und der Fall, der an der Abkantbank wehtut: das LETZTE Stueck abhaken.
   // Die Liste muss stehen bleiben - sonst spraenge sie unter dem Finger weg
   // und ein versehentlicher Haken waere nur ueber einen Extraklick zurueck.
@@ -416,8 +437,12 @@ async function mehrAuf(page){
                    {id:952,measurement_id:11,stueck_nr:2,erledigt:true,laenge_mm:700,breite_mm:250}];
    if(typeof zeCache!=="undefined"){zeCache.clear();zeGeladen.clear()}
    await werkstattOeffnen(); await new Promise(r=>setTimeout(r,600));
+   // v3.30: erst die Karte oeffnen - das ist der eine Tipp.
+   const kopf=document.querySelector('#werkstattBody [data-werk-karte="11"]');
+   if(!kopf)return {fehlt:"Kartenkopf"};
+   kopf.click(); await new Promise(r=>setTimeout(r,400));
    const k=document.querySelector('#werkstattBody [data-ze-meas="11"][data-ze-nr="3"]');
-   if(!k)return {fehlt:true};
+   if(!k)return {fehlt:"Stueck 3"};
    k.click(); await new Promise(r=>setTimeout(r,600));
    const karte=[...document.querySelectorAll(".werk-karte")].find(x=>/Einlaufblech/.test(x.innerText));
    return {knoepfe:karte?karte.querySelectorAll("[data-ze-nr]").length:-1,

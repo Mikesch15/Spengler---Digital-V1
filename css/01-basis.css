@@ -1153,8 +1153,31 @@ html.dark .rmat-unsicher{color:#e0a35c}
  background:var(--card)}
 .werk-karte.werk-zu-fertig{border-color:var(--green)}
 .werk-karte-jetzt{border-left:4px solid var(--blue)}
-.werk-karte-kopf{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:4px}
+/* v3.30: Der Kopf ist der Schalter - deshalb eine ordentliche Trefferflaeche
+   und ein Zeiger. Die globalen Grundregeln fuer Knoepfe greifen hier nicht,
+   weil es ein div mit role="button" ist (ein echter button duerfte die
+   Aktionsknoepfe darin nicht enthalten). */
+.werk-karte-kopf{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:4px;
+ cursor:pointer;min-height:40px;padding:2px}
+.werk-karte-kopf:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+.werk-karte-pfeil{flex:0 0 auto;color:var(--muted);font-size:13px;line-height:1.5;width:14px}
 .werk-karte-info{flex:1 1 190px;min-width:0;word-break:break-word}
+.werk-karte-warn{color:var(--red);padding:0 2px 4px}
+.werk-karte-body{border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
+.werk-karte-fuss{margin-top:8px}
+.werk-karte-fuss button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
+/* Die vermasste Skizze und der Grundriss - nebeneinander, wenn Platz ist,
+   sonst untereinander. Die Zeichner geben ihre eigene Breite mit; hier wird
+   nur die Hoehe begrenzt, damit die Zuschnittliste darunter im Bild bleibt. */
+.werk-skizzen{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:2px 0 8px}
+.werk-skizze{flex:1 1 240px;max-width:420px;margin:0;text-align:center}
+.werk-skizze figcaption{font-size:11px;color:var(--muted);text-transform:uppercase;
+ letter-spacing:.4px;margin-bottom:2px}
+/* max-height ist zugleich die Quelle, aus der js/60 (rsVerhaeltnis) die
+   passende Breite rechnet - sonst steht eine hohe, schmale Zeichnung klein
+   in einem breiten, leeren Rahmen. Die Zahl steht deshalb nur hier. */
+.werk-skizze svg{max-width:100%;height:auto;max-height:230px}
+.werk-skizze-leer{color:var(--muted);margin-bottom:6px}
 .werk-karte-akt{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;gap:6px;
  justify-content:flex-end}
 .werk-karte-akt button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}

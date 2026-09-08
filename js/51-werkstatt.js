@@ -56,9 +56,10 @@ let werkFassungen=[];
 let werkOffen=null;       // aufgeklapptes Projekt
 let werkGrundlage=null;   // {projectId, aufnahmen:[...]}
 let werkFilter=werkFilterGemerkt();
-// v3.21: Eine fertig geschnittene Karte klappt ihre Liste zu - sonst waere
-// die Werkstatt bei vielen erledigten Massaufnahmen unnoetig lang. Wer sie
-// wieder aufklappt, steht hier drin; es geht nichts verloren.
+// v3.30: Welche Karten gerade offen sind. Bis v3.29 hiess das "diese fertige
+// Karte wurde wieder aufgeklappt" - seit die Werkstatt eine Liste ist, ist es
+// schlicht der Aufklappzustand. Er gilt fuer die Sitzung an der Abkantbank
+// und faengt bei jedem Oeffnen der Werkstatt wieder bei "alles zu" an.
 const werkOffenKarte=new Set();
 let werkLauf=0;
 let werkFehler=null;
@@ -301,11 +302,22 @@ function werkZeileJetzt(a,k){
 function werkTyp(t){
  return (typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[t])||t||"Massaufnahme";
 }
-// v3.21: EINE Karte je Massaufnahme - Kopf, sofort sichtbare abhakbare
-// Zuschnittliste, Aktionsknoepfe. Bis v3.20 waren das zwei getrennte
-// Darstellungen: eine duenne Zeile oben und, zwei Klicks weiter unten in der
-// Ruestgrundlage, die eigentliche Liste. An der Abkantbank zaehlt genau das
-// Umgekehrte: die Stuecke zuerst, alles andere danach.
+// v3.30: Die Werkstatt ist zuerst eine LISTE - Projekte mit ihren
+// Massaufnahmen, sonst nichts. Ein Tipp auf eine Massaufnahme oeffnet, was
+// zum Ruesten gebraucht wird: die vermasste Skizze und den Grundriss (wenn
+// die Art einen hat) und darunter die abhakbare Zuschnittliste.
+//
+// Das ist die bewusste Umkehrung von v3.21, wo die Liste auf JEDER Karte
+// sofort stand. Der Grund von damals ("mit einem Klick in die abhakbare
+// Zuschnittliste") bleibt erfuellt: der Kartenkopf IST dieser eine Klick.
+// Bei mehreren Massaufnahmen war die Werkstatt sonst mehrere Bildschirme
+// lang, bevor man ueberhaupt sah, was alles ansteht.
+//
+// Was zugeklappt sichtbar bleibt, ist genau das, was man zum Auswaehlen
+// braucht: Art, Bezeichnung, Material, Status, Stand - und eine verfallene
+// Freigabe, die nie unbemerkt bleiben darf (CLAUDE.md 111).
+// Die Skizzen kommen aus rsSkizzen() in js/60 - derselbe Zusammenbau, den
+// auch der Ausdruck verwendet. Es wird nichts zweitgezeichnet.
 function werkAufnahmeHtml(a,jetztK){
  const verfallen=!!a.freigabe_verfallen;
  const dran=werkZeileJetzt(a,jetztK||"");
@@ -325,6 +337,8 @@ function werkAufnahmeHtml(a,jetztK){
    .filter(Boolean).join(" · ");
  // v3.09 Abschnitt 15: auf welcher freigegebenen Fassung liegt die Arbeit?
  // Nur wenn die Versionierung eingeschaltet ist - sonst gibt es keine.
+ // Sie steht in der ZUGEKLAPPTEN Zeile, nicht im Klappteil: ein Zuschnitt darf
+ // nicht unbemerkt auf einem ueberholten Stand weiterlaufen (CLAUDE.md 114.4).
  const nr=werkFassung(a.id);
  const fassung=(nr===null)?"":(verfallen
    ? ` · <span style="color:var(--red)">Fassung ${nr} nicht mehr aktuell</span>`
@@ -340,26 +354,46 @@ function werkAufnahmeHtml(a,jetztK){
  // stiller Leere - genau die Falle, die im Betrieb zugeschnappt ist.
  const plan=werkZuschnittPlan(a);
  const stand=werkZuStand(a);
- return `<div class="werk-karte${dran?" werk-karte-jetzt":""}${plan&&stand.fertig?" werk-zu-fertig":""}">
-  <div class="werk-karte-kopf">
+ const offen=werkOffenKarte.has(a.id);
+ // Zugeklappt steht nur, was zum Auswaehlen noetig ist. Alles Weitere -
+ // Skizzen, Liste, Fertig-Leiste, Drucken, Sprung ins Formular - erscheint
+ // erst beim Oeffnen. Der Kopf ist der Schalter dafuer.
+ return `<div class="werk-karte${dran?" werk-karte-jetzt":""}${offen?" werk-karte-offen":""}${plan&&stand.fertig?" werk-zu-fertig":""}">
+  <div class="werk-karte-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-werk-karte="${a.id}">
+   <span class="werk-karte-pfeil">${offen?"▾":"▸"}</span>
    <div class="werk-karte-info">
     <b>${esc(werkTyp(a.type))}</b>${a.title?" · "+esc(a.title):""}
     ${plan&&plan.material?`<span class="small" style="color:var(--muted)"> · ${esc(plan.material)}</span>`:""}
-    <div class="small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${wer?" · "+wer:""}${fassung}</div>
-    ${plan?`<div class="small werk-zu-text" data-werk-zu-stand="${a.id}">${werkStandText(a)}</div>`:""}
+    <div class="small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${plan?' · <span class="werk-zu-text" data-werk-zu-stand="'+a.id+'">'+werkStandText(a)+"</span>":""}${fassung}</div>
    </div>
-   <div class="werk-karte-akt">
-    ${aktion}
-    ${plan?`<button type="button" class="gray" data-werk-druck-mess="${a.id}" title="Rüstliste dieser Massaufnahme drucken">🖨️</button>`:""}
-    <button type="button" class="gray" data-werk-mess="${a.id}"${plan?' data-werk-zu="1"':""}>${plan?"✂️ Im Formular":"Öffnen"}</button>
-   </div>
+   ${aktion?`<div class="werk-karte-akt">${aktion}</div>`:""}
   </div>
-  ${verfallen?'<div class="small" style="color:var(--red)">Diese Massaufnahme wurde nach der Freigabe geändert. Sie muss erneut freigegeben werden, bevor daran weitergearbeitet wird.</div>':""}
-  ${plan?(stand.fertig&&!werkOffenKarte.has(a.id)
-    ? `<button type="button" class="werk-zu-auf" data-werk-karte="${a.id}">▸ Zuschnittliste zeigen (alles geschnitten)</button>`
-    : (typeof zuListeHtml==="function"?zuListeHtml(plan):"")):""}
-  ${werkFertigLeisteHtml(a,plan,stand,verfallen)}
+  ${verfallen?'<div class="small werk-karte-warn">Diese Massaufnahme wurde nach der Freigabe geändert. Sie muss erneut freigegeben werden, bevor daran weitergearbeitet wird.</div>':""}
+  ${offen?`<div class="werk-karte-body">
+   ${wer?`<div class="small" style="color:var(--muted)">${wer}</div>`:""}
+   ${werkSkizzenHtml(a)}
+   ${plan?(typeof zuListeHtml==="function"?zuListeHtml(plan):""):'<div class="small" style="color:var(--muted)">Für diese Massaufnahme ist kein Zuschnitt gespeichert.</div>'}
+   ${werkFertigLeisteHtml(a,plan,stand,verfallen)}
+   <div class="bar werk-karte-fuss">
+    ${plan?`<button type="button" class="gray" data-werk-druck-mess="${a.id}">🖨️ Rüstliste</button>`:""}
+    <button type="button" class="gray" data-werk-mess="${a.id}"${plan?' data-werk-zu="1"':""}>${plan?"✂️ Im Formular öffnen":"Massaufnahme öffnen"}</button>
+   </div>
+  </div>`:""}
  </div>`;
+}
+
+// Die vermasste Profil-/Schnittskizze und der Grundriss - genau das, was
+// beim Ruesten gebraucht wird, und sonst nichts aus der Massaufnahme.
+// Zusammengestellt wird von rsSkizzen() in js/60, also von derselben Stelle
+// wie im Ausdruck. Hat eine Art keine Zeichnung (Kehle rechnet nur, Skizze /
+// Foto hat gar keine), steht das ausdruecklich da - statt einer leeren
+// Flaeche, bei der niemand weiss, ob etwas fehlt.
+function werkSkizzenHtml(a){
+ if(typeof rsSkizzen!=="function")return "";
+ const liste=rsSkizzen(a);
+ if(!liste.length)return '<div class="small werk-skizze-leer">Für diese Art gibt es keine Skizze.</div>';
+ return '<div class="werk-skizzen">'+liste.map(s=>
+   `<figure class="werk-skizze"><figcaption>${esc(s.titel)}</figcaption>${s.svg}</figure>`).join("")+"</div>";
 }
 
 // v3.23: Alles geschnitten - und der naechste Schritt ist genau dieser eine.
@@ -435,15 +469,16 @@ function werkZuschnittStandAuffrischen(){
   if(m)el.innerHTML=werkStandText(m);
  });
  box.querySelectorAll("[data-werk-jetzt]").forEach(el=>{el.innerHTML=werkJetztText()});
- // Die Haken kommen erst nach dem Zeichnen aus der Datenbank. Ist eine Karte
- // dadurch fertig geworden, klappt ihre Liste zu - aber NUR, wenn niemand
- // gerade an ihr abhakt: sonst spraenge sie unter dem Finger weg.
- const zuklappen=(werkZeilen||[]).some(m=>{
-  if(!m||werkOffenKarte.has(m.id))return false;
-  if(!box.querySelector('[data-ze-meas="'+m.id+'"]'))return false;   // Liste schon zu
-  return werkZuStand(m).fertig;
+ // v3.30: Hier wird NICHT mehr neu gezeichnet. Eine Karte, die jemand
+ // geoeffnet hat, bleibt offen - auch wenn das letzte Stueck sie fertig
+ // macht. Bis v3.29 klappte sie an dieser Stelle von selbst zu, weil alle
+ // Karten offen waren und die Werkstatt sonst zu lang wurde. Jetzt sind sie
+ // ohnehin zugeklappt, und ein Zuklappen unter dem Finger waere nur laestig.
+ box.querySelectorAll(".werk-karte").forEach(el=>{
+  const b=el.querySelector("[data-werk-karte]");
+  const m=b?liste.find(x=>x&&Number(x.id)===Number(b.dataset.werkKarte)):null;
+  if(m)el.classList.toggle("werk-zu-fertig",!!werkZuschnittPlan(m)&&werkZuStand(m).fertig);
  });
- if(zuklappen)renderWerkstatt();
 }
 function werkZuStand(m){
  return (typeof zeStand==="function")?zeStand(m):{gesamt:0,erledigt:0,offen:0,veraltet:0,fertig:false};
@@ -580,6 +615,9 @@ function renderWerkstatt(){
   </div>`;
  }).join("");
  box.innerHTML=h;
+ // Der Leerraum der festen viewBox wird erst NACH dem Einfuegen weggeschnitten
+ // - vorher gibt getBBox nichts her (js/60, dort steht auch der Grund).
+ if(typeof rsZuschneiden==="function")rsZuschneiden(box);
  return gruppen.length;
 }
 
@@ -637,9 +675,16 @@ document.addEventListener("click",async e=>{
  const filter=e.target.closest("[data-werk-filter]");
  if(filter){werkFilter=filter.dataset.werkFilter;werkFilterMerken(werkFilter);renderWerkstatt();return}
 
- // Eine fertige Karte wieder aufklappen (v3.21).
+ // v3.30: Der Kartenkopf klappt auf und zu. Ein Klick auf einen Knopf IM
+ // Kopf (Rüsten bestätigen) darf das nicht ausloesen - der hat seinen
+ // eigenen Weg ueber data-aufgabe.
  const karte=e.target.closest("[data-werk-karte]");
- if(karte){werkOffenKarte.add(Number(karte.dataset.werkKarte));renderWerkstatt();return}
+ if(karte&&!e.target.closest("button[data-aufgabe]")){
+  const id=Number(karte.dataset.werkKarte);
+  if(werkOffenKarte.has(id))werkOffenKarte.delete(id); else werkOffenKarte.add(id);
+  renderWerkstatt();
+  return;
+ }
 
  // v3.23: Ruestliste drucken - Projekt oder einzelne Massaufnahme.
  // Gedruckt wird ueber js/58, das dafuer denselben Kopf, dasselbe
@@ -727,6 +772,17 @@ document.addEventListener("click",async e=>{
   }
   return;
  }
+});
+
+// Der Kartenkopf ist ein role="button" - er muss auch mit der Tastatur
+// bedienbar sein (Enter und Leertaste), wie jeder echte Knopf.
+document.addEventListener("keydown",e=>{
+ if(e.key!=="Enter"&&e.key!==" ")return;
+ if(!e.target||!e.target.closest)return;
+ const k=e.target.closest("[data-werk-karte]");
+ if(!k||e.target.closest("button"))return;
+ e.preventDefault();
+ k.click();
 });
 
 if($("werkstattAktualisieren"))$("werkstattAktualisieren").onclick=()=>werkstattNeuLaden();

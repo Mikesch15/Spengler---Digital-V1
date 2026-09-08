@@ -348,6 +348,16 @@ const stand=page=>page.evaluate(()=>{
  await page.waitForTimeout(60);
  s=await stand(page);
  p(s.zeilen.length===4,"und zurueck auf alle");
+ // Seit v3.30 liegt der Massaufnahme-Knopf im Klappteil - er ist einen Tipp
+ // entfernt, nicht verschwunden. Deshalb erst alle Karten oeffnen und danach
+ // unveraendert dasselbe pruefen.
+ for(const id of await page.evaluate(()=>[...document.querySelectorAll("#werkstattBody [data-werk-karte]")]
+     .map(e=>e.dataset.werkKarte))){
+  try{ await page.click('#werkstattBody [data-werk-karte="'+id+'"]',{timeout:4000}) }catch(e){}
+  await page.waitForTimeout(100);
+ }
+ await page.waitForTimeout(300);
+ s=await stand(page);
  p(s.projektknopf.length>=2&&[...new Set(s.projektknopf)].sort().join()==="7,8"
    &&[...new Set(s.messknopf)].sort().join()==="11,12,13,16",
    "kein Sackgasse: Projekt und Massaufnahme sind erreichbar",
