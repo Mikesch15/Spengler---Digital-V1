@@ -17,7 +17,7 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.33, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.34, Branch `main`.**
 
 Die Versionsnummer dieses Abschnitts blieb zwischen Version 3.21 und 3.24
 stehen, obwohl der Code weiterlief – die Abschnitte 127 bis 129 waren
@@ -32,7 +32,7 @@ beide müssen gleich sein, ein Prüfstand erzwingt das.
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.33**
+- sichtbare App-Version: **3.34**
 - **Es wird ausschliesslich direkt auf `main` gearbeitet und
   veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
   Feature-Branch, kein Pull Request.
@@ -63,6 +63,12 @@ Die aktuelle `main`-Version enthält unter anderem:
 - **Trial-/Firmenstatus-Lifecycle** (abgelaufene/deaktivierte Firmen
   verlieren serverseitig den normalen Zugriff, ohne dass Daten gelöscht
   werden, siehe Abschnitt 35)
+- **Offerte als eigenständiger Projektbestandteil** (VOR der Massaufnahme
+  in der Zielkette PROJEKT → OFFERTE → MASSAUFNAHME → … → AUSMASS;
+  Foto-Import wie beim bestehenden Ausmass-Register, ausschliesslich für
+  einzeln über `feature_access` freigeschaltete Mitarbeiter sichtbar und
+  nutzbar – RLS-abgesichert, kein UI-Verstecken allein, siehe
+  Abschnitt 139)
 
 Mindestens ein Betreiber-System-Admin ist für die System-Administration
 aktiviert (Tabelle `system_admins` ist nicht leer) – Details siehe
@@ -23889,3 +23895,330 @@ berührt.
   Schnittfuge eintragen, den Materialbestand füllen (jetzt mit Form),
   `reste_im_zuschnitt` einschalten, die projektlosen Massaufnahmen zuordnen,
   Leaked-Password-Schutz, eigene Domain.
+
+## 139. OFFERTE ALS EIGENSTÄNDIGER PROJEKTBESTANDTEIL — VERSION 3.34
+
+Auftrag vom 08.09.2026: Offerte als **eigenständiger Projektbestandteil**,
+vor der Massaufnahme in der künftigen Kette
+`PROJEKT → OFFERTE → MASSAUFNAHME → BERECHNUNG → MATERIAL & ZUSCHNITT →
+ZUSCHNITT → STÜCK ABHAKEN → WERKSTATT/RÜSTLISTE → RÜSTEN/MONTIEREN →
+AUSMASS` (Ausmass rückt an das Ende). **Ausdrücklich nur dieser eine
+Schritt** – keine automatische Offerte-→-Ausmass-Übernahme, keine neue
+Ausmass-Funktion, keine Preis-/Abrechnungslogik, kein
+Geplant/Ausgeführt-Vergleich. Diese Grenze wird eingehalten: das
+bestehende Ausmass-Register (`js/17-ausmass.js`) ist **byteweise
+unverändert** – per `git diff` bestätigt.
+
+**Zweite, ebenso harte Vorgabe**: die Funktion ist zunächst
+**ausschliesslich für den Projektinhaber** freigeschaltet. Kein
+clientseitiges „if user == …“, kein blosses UI-Verstecken – Zugriff und
+Schreiboperationen müssen durch RLS abgesichert bleiben.
+
+### 139.1 Wiederverwendete Importlogik – nichts doppelt gebaut
+
+Vor dem Bauen geprüft, welche Fotoerkennungslogik bereits existiert: das
+Ausmass-Register „Offerte erfassen“ (`js/17-ausmass.js`) hat seit
+Abschnitt 78.10 (v2.70) eine funktionierende KI-Positionserkennung aus
+Fotos, aufgerufen über die Edge Function `extract-offer-positions`
+(v4, siehe Abschnitt 78.5 – Zeitgrenze, harte Prüfung der Antwort, keine
+geratenen Positionen).
+
+```js
+async function recognizePhoto(src){ … fetch(EDGE_URL,{…}) … }
+```
+
+**Diese Funktion ist unverändert in `js/63-angebote.js` übernommen** –
+kein Nachbau, keine zweite Erkennungslogik, keine geänderte Edge
+Function. Ebenso `uploadMeasurementImage(dataUrl,folder)`
+(`js/10-massaufnahme.js`), wiederverwendet mit dem neuen Ordner
+`"angebote-photo"`. Beide Dateien sind **nicht im Diff** – die
+Wiederverwendung geschieht ausschliesslich durch Aufruf aus der neuen
+Datei heraus, nicht durch Kopieren.
+
+### 139.2 Datenmodell – eine neue Tabelle, klar getrennt
+
+Vier Migrationen: `feature_access_v3_34`, `angebote_v3_34`,
+`storage_angebote_photo_v3_34`, `feature_access_grant_mike_v3_34`.
+
+```sql
+create table public.angebote(
+  id bigint generated always as identity primary key,
+  company_id uuid not null default my_company_id() references companies(id) on delete cascade,
+  project_id bigint references projects(id) on delete set null,
+  title text not null default '', date date not null default current_date, note text not null default '',
+  positions jsonb not null default '[]'::jsonb,
+  photo_path text, photo_paths jsonb not null default '[]'::jsonb,
+  created_by uuid references profiles(id) on delete set null, created_at timestamptz not null default now(),
+  updated_by uuid references profiles(id) on delete set null, updated_at timestamptz not null default now());
+```
+
+`project_id` ist – anders als in einem ersten Entwurf dieses Abschnitts
+behauptet – bewusst **nullable** mit `ON DELETE SET NULL`, genau wie bei
+`measurements`/`ausmass`/`reports` (Abschnitt 36–37): wird ein Projekt
+gelöscht, verwaist die Offerte statt mitgelöscht zu werden, ihre
+Historie bleibt erhalten. Die Projektzuordnung ist deshalb **keine
+Datenbank-Constraint, sondern eine Client-Vorgabe**: der
+Speichern-Handler in `js/63-angebote.js` bricht mit
+`if(!angSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. …
+");return}` ab, bevor überhaupt ein `insert`/`update` abgesetzt wird –
+über die reguläre Oberfläche lässt sich eine Offerte damit nicht ohne
+Projekt anlegen, aber die Datenbank selbst würde es zulassen (ein
+direkter API-Aufruf mit `project_id:null` würde nicht von RLS
+blockiert). Das ist dieselbe, aus Abschnitt 113.1 bekannte Lücke wie bei
+den acht projektlosen Massaufnahmen – dort ebenfalls nur clientseitig
+vorausgesetzt, nicht serverseitig erzwungen (siehe dazu 139.9).
+`company_id` kommt **nie** vom Client (`DEFAULT my_company_id()`),
+Trigger `set_creator_editor_meta_angebote` erzwingt `created_by`/
+`created_at`/`updated_by`/`updated_at` serverseitig (gleiches Muster wie
+bei allen Fachtabellen seit v2.28).
+
+Bewusst **eine flache Tabelle statt einer Versionskette**: der Auftrag
+lässt „mehrere Offerten/Versionen je Projekt“ ausdrücklich nur zu, wenn
+das ohne Overengineering geht – mehrere Zeilen mit demselben `project_id`
+erfüllen das bereits, ohne eine zweite Versionierungsarchitektur neben
+der bestehenden `measurement_versionen` (v3.09, Abschnitt 114 Phase 6)
+aufzubauen. Ein „Offerte → Ausmass“-Feld existiert **nicht** – die
+spätere Übernahme bleibt architektonisch möglich (`positions` ist
+strukturell kompatibel zu `ausmass.positions`), ist aber nicht gebaut.
+
+Storage: neuer Ordner-Zweig `angebote-photo/<company>/…` in
+`storage_object_insert_allowed()` – dieselbe geschlossene Positivliste
+wie seit v2.48 (Abschnitt 56), keine Lockerung der übrigen Pfade.
+
+### 139.3 Zugriffssteuerung – zwei restriktive Policies zusätzlich zum bestehenden Muster
+
+Neue Tabelle `feature_access` (`profile_id`, `feature`, `granted`,
+`granted_by`, `UNIQUE(profile_id,feature)`), RLS aktiv, Trigger
+`enforce_feature_access_company()` erzwingt `company_id` serverseitig
+(gleiches Muster wie `enforce_permission_override_company()`,
+Abschnitt 20.6).
+
+`angebote` trägt **sechs** Policies, nicht nur zwei – am echten Schema
+nachgeprüft (`pg_policies`), nicht nur an der Migration abgelesen. Vier
+davon sind **permissiv** und folgen exakt dem Muster jeder anderen
+Fachtabelle (`angebote_select_permission`/`_insert_permission`/
+`_update_permission`/`_delete_permission`, über `has_permission
+('angebote','view'/'edit')`) – das ist bewusst **keine** Abweichung,
+sondern Konsistenz mit dem bestehenden Berechtigungssystem. Zusätzlich,
+und das ist der eigentliche neue Baustein, **zwei restriktive** Policies,
+die sich mit den permissiven per UND verknüpfen (Postgres-RLS-Semantik:
+eine Zeile ist nur sichtbar/schreibbar, wenn mindestens eine permissive
+Policy zustimmt UND jede restriktive zustimmt):
+
+```sql
+create policy tenant_boundary_angebote on angebote as restrictive for all
+  using(company_id = my_company_id());
+create policy feature_boundary_angebote on angebote as restrictive for all
+  using(exists(select 1 from feature_access fa
+    where fa.profile_id = auth.uid() and fa.feature = 'angebote' and fa.granted));
+```
+
+**`has_permission()` selbst hat einen eingebauten Admin-Bypass** – direkt
+am Funktionskörper (`pg_get_functiondef`) nachgelesen: für jeden
+Administrator der eigenen Firma liefert sie für **jede** Ressource
+`true`, unabhängig davon, ob überhaupt eine `permission_settings`-Zeile
+dafür existiert. Ein Firmenadministrator besteht die vier permissiven
+Policies auf `angebote` also automatisch, genau wie bei jeder anderen
+Tabelle – **anders als in einem ersten Entwurf dieses Abschnitts
+behauptet, wird der Admin-Bypass hier also NICHT umgangen**. Was den
+Zugriff trotzdem sperrt, ist ausschliesslich die zweite, unabhängige
+restriktive Policy `feature_boundary_angebote`: ein Administrator ohne
+eigene `feature_access`-Zeile scheitert an ihr, unabhängig davon, was
+die permissiven Policies erlauben. Das im Auftrag verlangte Ergebnis
+(„AUS → niemand sieht/nutzt es, AN → nur wer freigeschaltet ist“) ist
+damit korrekt erreicht – nur der Mechanismus ist ein anderer als
+zunächst dokumentiert: nicht „kein Admin-Bypass“, sondern „ein zweites,
+unabhängiges Schloss zusätzlich zum bestehenden Bypass“.
+
+**Eine echte, bisher unentdeckte Einschränkung, direkt an den Daten
+gefunden**: `permission_settings` hat **keine einzige Zeile** für
+`resource='angebote'` (alle 14 bestehenden Ressourcen geprüft, keine
+passt). Für eine Person mit `role='employee'` liefert `has_permission()`
+ohne eigenen Admin-Bypass und ohne passende `permission_settings`-/
+`permission_overrides`-Zeile deshalb `false` – die vier permissiven
+Policies lassen einen Mitarbeiter also **nicht** durch, selbst mit einer
+`granted=true`-Zeile in `feature_access`. **Der neue Schalter in
+`js/05a-rechte.js` funktioniert damit heute nur zuverlässig für
+Administratoren** (wie Mike Ledermann, den einzigen und vom Auftrag
+ausdrücklich vorgesehenen Empfänger) – eine Freischaltung für eine
+`role='employee'`-Person würde die Karte im Cockpit zwar anzeigen
+(`checkOfferteZugriff()` prüft nur `feature_access`, nicht zusätzlich
+`has_permission()`), jeder tatsächliche Lese-/Schreibversuch würde aber
+serverseitig an den permissiven Policies scheitern. Der Schalter im
+Formular unterscheidet dabei nicht nach der Rolle der Zielperson (siehe
+139.4) – als offener Punkt in 139.9 aufgenommen.
+
+Seed: genau eine Zeile für Mike Ledermann
+(`profile_id='665e202d-5fae-42e9-8d8f-677348931e82'`, `feature='angebote'`,
+`granted=true`) – identifiziert wie in Abschnitt 25.5 über den
+bestehenden, real angemeldeten Projektinhaber, keine geratene UUID. Da
+er `role='admin'` ist, funktioniert die Freischaltung für ihn
+lückenlos, wie oben beschrieben.
+
+### 139.4 Oberfläche – ein Häkchen entscheidet, kein toter Knopf
+
+`js/63-angebote.js` (neu): `checkOfferteZugriff()` liest `feature_access`
+(reines `select`, RLS-gefiltert) und blendet **die ganze Karte**
+`#cockpitAngeboteCard` per `hidden` ein/aus – nicht nur den Inhalt. Für
+einen nicht freigeschalteten Mitarbeiter existiert damit **kein**
+sichtbares, funktionsloses Element im Cockpit (Auftragsvorgabe wörtlich
+erfüllt). Aufgerufen aus `afterLogin()` (js/03), wie `checkSystemAdmin()`
+seit Abschnitt 25.3 – reines Lesen, kein Schreibzugriff.
+
+`loadProjectAngebote()` bricht **zusätzlich** clientseitig ab, wenn
+`offerteZugriff` falsch ist – kein Netzwerkaufruf ins Leere, aber das ist
+Bequemlichkeit, nicht die Sicherheitsgrenze (die liegt ausschliesslich in
+den beiden restriktiven RLS-Policies aus 139.3).
+
+Freischaltung je Mitarbeiter: `js/05a-rechte.js`, neuer Schalter in der
+Mitarbeiterverwaltung, sichtbar nur für Administratoren (`darfVergeben`).
+Schreibweg ist ein gewöhnliches `upsert` auf `feature_access` –
+**keine** `SECURITY DEFINER`-Funktion (die würde RLS umgehen müssen),
+0 geschriebene Zeilen gelten **nicht** als Erfolg (Abschnitt 24.1).
+
+Integration ins bestehende Cockpit: `js/63-angebote.js` trägt sich selbst
+in `COCKPIT_BEREICHE` (js/24) ein, **ohne** `js/24-projekt-cockpit.js`
+anzufassen – dieselbe Erweiterungstechnik wie bei den Projektmodulen aus
+v3.09. Standard-Klappzustand zugeklappt (`COCKPIT_KLAPP_VORGABE`,
+Abschnitt 116 – nur „Arbeitsstand“ ist die eine Ausnahme).
+
+### 139.5 Getestet
+
+**`pruefstaende/pruefstand-angebote-v3-34.js` – 78/78**, echtes Chromium
+gegen die echte `index.html`, mit einer Attrappe, die jeden
+Supabase-Aufruf protokolliert: Karte unsichtbar ohne Freigabe (kein
+funktionsloser Button, kein Netzwerkaufruf), Karte sichtbar und nutzbar
+mit Freigabe, Import über die **wiederverwendete, unveränderte**
+`recognizePhoto()`, Projektzuordnung, Speichern (inkl. der 0-Zeilen-
+Prüfung), Wiederladen nach Neuladen der Seite, Öffnen/Einsehen einer
+gespeicherten Offerte, Fehlerbehandlung bei einer misslungenen
+Fotoerkennung (verständliche Meldung statt geratener Positionen),
+`company_id` **nie** vom Client, `project_id` **immer** gesetzt, beide
+Policies einzeln nachvollzogen.
+
+**Datenbankseite** (`begin; … rollback;`, Wegwerf-Firma, PETER KÜNZI AG
+nur gelesen): ein nicht freigeschalteter Mitarbeiter sieht über
+`select * from angebote` **0 Zeilen**, auch mit bekannter fremder oder
+eigener `project_id`; ein Insert ohne Freigabe wird abgewiesen
+(`feature_boundary_angebote`); ein Insert mit gefälschter `company_id`
+wird abgewiesen (`tenant_boundary_angebote`); nach Erteilen der Freigabe
+(`feature_access`-Zeile in derselben Transaktion) funktionieren
+Select/Insert/Update; `get_advisors(security)` zeigt für die beiden neuen
+`SECURITY DEFINER`-Trigger-Funktionen (`enforce_angebote_projekt_firma`,
+`enforce_feature_access_company`) **dieselbe** bereits bekannte, seit
+`enforce_permission_override_company()` (Abschnitt 20.6) akzeptierte
+Warnungsart – keine neue Art von Warnung.
+
+**Volle Regression grün** – alle 59 Prüfstände im Repo, jeder mit
+Beendigungscode 0. `pruefstand-cockpit-zurueck-v3-11.js` (nachgezogen,
+überholte Erwartung, keine abgeschwächt, siehe 139.6) meldet zusätzlich
+**ausdrücklich**, dass die Offerte-Karte für einen nicht freigeschalteten
+Testbenutzer vollständig unsichtbar bleibt (`kartenSichtbar===false`) –
+eine neue, schärfere Prüfung, keine entfernte.
+
+**Regierapport nachweislich unverändert**: unter `media:print` mit
+ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+v3.33-Stand (Commit `5ea3e4c`, eigener Git-Worktree) gerendert, mit
+angeglichener Versionsnummer (die Fusszeile enthält die Uhrzeit,
+Abschnitt 100.6) – **DOM, Text und Bild byteidentisch** (DOM
+`8400567a5d9ec466`, 6797 Zeichen; Text `54b9e2f58cd9e4fc`; Bild
+`89ddd538a70a00d1`, 48 122 Bytes), bestätigt durch einen Kontrolllauf
+desselben Codes. `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+`css/03-druck.css` sind nicht im Diff.
+
+`node --check` über alle js-Dateien (inkl. der neuen `js/63-angebote.js`)
+und alle Prüfstände: fehlerfrei; `<div>`-Verschachtelung in `index.html`
+ausgeglichen; keine doppelten Element-IDs; `js/63-angebote.js` in
+`index.html` **und** in der Service-Worker-Liste; Version 3.34 in
+`index.html`, `sw.js`, `js/41-hilfe.js` und `anleitung/README.md` gleich.
+
+Alle Schreibtests gegen die Datenbank liefen in `begin; … rollback;`.
+
+### 139.6 Zwei kleine Integrationsstellen ausserhalb von js/63
+
+- `js/03-login.js`: `checkOfferteZugriff()` nach `checkSystemAdmin()`
+  aufgerufen; `goToStart()` schliesst `#angebotEditModal` mit und setzt
+  `angEditReturnTo` zurück – gleiches Muster wie bei jedem anderen Modal.
+- `js/18-app-start.js`: die „ungespeicherte Änderungen“-Warnung
+  (`beforeunload`) berücksichtigt jetzt auch `#angebotEditModal` – **eine**
+  Zeile, dieselbe Stelle wie für Massaufnahme/Ausmass/Rapport.
+- `pruefstaende/pruefstand-cockpit-zurueck-v3-11.js`: überholte Erwartung
+  nachgezogen (sieben statt sechs Cockpit-Abschnitte, seit
+  `js/63-angebote.js` `COCKPIT_BEREICHE` ergänzt), **zusätzlich** um eine
+  neue Prüfung erweitert statt nur angepasst (siehe 139.5).
+
+**Keine Fachdatei angefasst**: `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js`, `css/03-druck.css` (Regierapport),
+`js/17-ausmass.js` (Ausmass, byteweise unverändert), `js/24-projekt-
+cockpit.js` sowie sämtliche zwölf Massaufnahme-Fachmodule – keine
+Berechnung, keine Stückliste, kein Zuschnitt, keine Packrechnung berührt.
+
+### 139.7 Anleitung
+
+Nach Regel 108.1 mitgeführt: neuer Abschnitt „7 · Die Offerte“ (die
+folgenden Kapitel um eins verschoben, Querverweise nachgezogen), neue
+Glossarzeile „Offerte“, zwei neue Bildschirmfotos
+(`37-offerte-karte.png`, `38-offerte-formular.png`) aus dem **echten**
+Cockpit erzeugt (`schuss.js`, Demozustand über `offerteZugriff=true` und
+`cockpitBereichAktualisieren("angebote")` – letzteres bewusst statt eines
+direkten `loadProjectAngebote()`-Aufrufs, weil nur der Wrapper auch die
+Anzahl im Kartenkopf nachzieht, siehe 139.8). Alle Bilder neu erzeugt,
+PDF v3.34 mit **80 Seiten** (vorher 76), keine leere Seite (über
+`pdfjs-dist`-Metadaten bestätigt: `doc.numPages===80`; `anleitung/
+pruef.js` bleibt wie seit Abschnitt 136.8 wegen eines `pdfjs`-Absturzes
+in `paintChar` nicht lauffähig und wurde nicht verändert). Sechs Stellen
+nachgezogen (`index.html` ×2 inkl. Seitenzahl, `js/41-hilfe.js` ×1,
+`anleitung/README.md` ×3 – zwei beim ersten Durchgang, dazu eine dritte,
+vom ursprünglichen Suchmuster übersehene Stelle, die nur die Seitenzahl
+ohne die Zeichenkette „v3.33“ nannte) und das alte PDF gelöscht.
+`pruefstand-hilfe-v3-03.js` (68/68) erzwingt das mechanisch.
+
+### 139.8 Zwei selbst gefundene Fehler in der Dokumentationsgenerierung
+
+Kein Fehler der App selbst, sondern des Screenshot-Skripts – beim
+Ansehen der erzeugten Bilder gefunden, nicht durch Lesen des Codes:
+
+1. **Der Anzahl-Zähler der Karte zeigte „0“ statt „1“.** `js/24`s
+   `cockpitBereichAktualisieren(key)` lädt UND setzt den Kartenzähler
+   (`cockpitZeigeAnzahl`); ein direkter Aufruf von `loadProjectAngebote()`
+   allein aktualisiert nur den Listeninhalt. Behoben in `schuss.js`
+   (Dokumentationsskript, **keine** App-Datei).
+2. **Widersprüchlicher Demo-Text.** Die erfundene Beispiel-Notiz
+   behauptete „aus zwei Fotos erkannt“, während die Bildergalerie
+   „Noch kein Foto“ zeigte (`photo_paths` in der Demo-Attrappe bewusst
+   leer, da `storage.createSignedUrl` in der Attrappe immer fehlschlägt).
+   Text in `anleitung/stub.js` neutral umformuliert.
+
+### 139.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Geprüft ist die Oberfläche in echtem Chromium
+  gegen die echte `index.html` mit einer Attrappe, die jeden Aufruf
+  protokolliert, und die Datenbankseite per SQL gegen das echte
+  Produktivschema.
+- **Nur eine Person ist freigeschaltet** (Mike Ledermann) – wie
+  ausdrücklich verlangt. Weitere Freischaltungen laufen über den neuen
+  Schalter in der Mitarbeiterverwaltung, ohne Codeänderung.
+- **„Offerte → Ausmass“-Übernahme ist bewusst nicht gebaut** – der
+  Auftrag schliesst das für diese Runde ausdrücklich aus. `positions`
+  ist strukturell mit `ausmass.positions` kompatibel, eine spätere
+  Übernahme bräuchte dafür keine Schemaänderung an `angebote`.
+- **Keine Preis-/Abrechnungslogik, kein Geplant/Ausgeführt-Vergleich** –
+  ebenfalls ausdrücklich ausserhalb dieses Auftrags.
+- Die acht seit Abschnitt 113.1 bekannten projektlosen Massaufnahmen
+  bleiben unverändert offen (§113.6) – bei `angebote` ist dieselbe Lücke
+  strukturell ebenfalls möglich (`project_id` ist nullable, siehe 139.2),
+  wird aber ausschliesslich durch die Client-Prüfung in
+  `js/63-angebote.js` verhindert, nicht durch eine Datenbank-Constraint.
+- **`feature_access` funktioniert heute nur für Administratoren
+  zuverlässig** (siehe 139.3) – `permission_settings` hat keine Zeile für
+  `resource='angebote'`, ein freigeschalteter Mitarbeiter (`role=
+  'employee'`) sähe die Karte, aber jeder Lese-/Schreibversuch würde an
+  den vier permissiven Policies scheitern. Für den aktuellen Auftrag (nur
+  Mike Ledermann, ein Administrator) ist das folgenlos; für eine spätere
+  Freischaltung an Mitarbeiter bräuchte es zusätzlich eine
+  `permission_settings`- oder `permission_overrides`-Zeile für
+  `resource='angebote'`, oder der Schalter in `js/05a-rechte.js` müsste
+  auf Administratoren beschränkt werden.

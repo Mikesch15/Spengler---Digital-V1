@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.33</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.34</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -347,6 +347,11 @@
 <div class="arbeitsstand klapp open" id="cockpitStandBox">
 <div class="arbeitsstand-titel klapp-kopf" data-klapp="stand" role="button" tabindex="0" aria-expanded="true">Arbeitsstand<span class="klapp-chevron">›</span></div>
 <div class="klapp-body">
+<!-- v3.34: Offerte als eigenstaendiger Projektbestandteil, VOR der
+     Massaufnahme (Zielkette: PROJEKT -> OFFERTE -> MASSAUFNAHME -> ...).
+     hidden per Vorgabe - checkOfferteZugriff() (js/63) schaltet sie nur
+     fuer freigeschaltete Benutzer sichtbar, siehe COCKPIT_BEREICHE.angebote. -->
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="angebote" id="cockpitStandAngeboteZeile" hidden><span class="arbeitsstand-marke" id="cockpitAngeboteMark">○</span><span class="arbeitsstand-name">🧾 Offerte</span><span class="arbeitsstand-wert" id="cockpitAngeboteStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="meas"><span class="arbeitsstand-marke" id="cockpitMeasMark">○</span><span class="arbeitsstand-name">📐 Massaufnahmen</span><span class="arbeitsstand-wert" id="cockpitMeasStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="am"><span class="arbeitsstand-marke" id="cockpitAmMark">○</span><span class="arbeitsstand-name">📏 Ausmass</span><span class="arbeitsstand-wert" id="cockpitAmStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="rep"><span class="arbeitsstand-marke" id="cockpitRepMark">○</span><span class="arbeitsstand-name">📋 Regierapporte</span><span class="arbeitsstand-wert" id="cockpitRepStand">–</span></button>
@@ -381,6 +386,19 @@
      Welcher Abschnitt offen ist, merkt sich das Geraet - der zusaetzliche
      Tipp faellt damit im Alltag genau einmal an. -->
 <div id="cockpitWorkArea">
+<!-- v3.34: Offerte als eigenstaendiger Projektbestandteil. hidden per
+     Vorgabe - checkOfferteZugriff() (js/63-angebote.js) schaltet die Karte
+     nur fuer freigeschaltete Benutzer sichtbar. Kein UI-Verstecken allein:
+     die Tabelle angebote traegt zusaetzlich zwei restriktive RLS-Policies
+     (tenant_boundary_angebote UND feature_boundary_angebote), siehe
+     js/63-angebote.js Kopfkommentar. -->
+<div class="card klapp" id="cockpitAngeboteCard" hidden>
+<h2 class="klapp-kopf" data-klapp="angebote" role="button" tabindex="0" aria-expanded="false">🧾 Offerte<span id="cockpitAngeboteCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-angebote">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<div class="bar"><button class="blue" id="cockpitNeueOfferte">＋ Offerte importieren</button></div>
+<div id="cockpitAngeboteBody"></div>
+</div>
+</div>
 <div class="card klapp" id="cockpitMeasCard">
 <h2 class="klapp-kopf" data-klapp="meas" role="button" tabindex="0" aria-expanded="false">📐 Massaufnahmen<span id="cockpitMeasCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-meas">i</button><span class="klapp-chevron">›</span></h2>
 <div class="klapp-body">
@@ -1582,6 +1600,60 @@ einer wirkt nicht auf die anderen.</div>
 </div>
 </div>
 
+<!-- OFFERTE als eigenstaendiger Projektbestandteil (v3.34, js/63-angebote.js).
+     Nur ueber #cockpitNeueOfferte bzw. "Offnen" einer bestehenden Zeile
+     erreichbar - beide sind nur sichtbar, wenn checkOfferteZugriff() den
+     Zugriff bestaetigt hat. Bewusst schlanker als das Ausmass-Formular:
+     kein Typenwaehler (nur eine Art), kein Verlauf-Umschalter (V1). -->
+<div id="angebotEditModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2 id="angTitelH2">🧾 Neue Offerte</h2>
+<div id="angMetaInfo" class="small" style="color:var(--muted);margin-bottom:6px" hidden></div>
+<div class="grid" style="margin-bottom:8px">
+<div><label>Datum</label><input type="date" id="angDate"></div>
+<div class="wide"><label>Bezeichnung</label><input id="angTitle" data-pflicht="1" placeholder="z. B. Offerte Muster AG"></div>
+<div class="wide"><label>Projekt</label>
+<div class="search"><input id="angProjectSearch" data-pflicht="1" placeholder="Projekt suchen …" autocomplete="off"><div id="angProjectResults" class="suggest"></div></div>
+<div class="small" id="angProjectSelectedLabel">Kein Projekt ausgewählt</div>
+</div>
+</div>
+
+<h2 style="margin-top:4px">Erkannte Positionen <button type="button" class="hilfe-knopf no-print" data-hilfe="ang-ki">i</button></h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:14%"><col style="width:50%"><col style="width:16%"><col style="width:14%"><col style="width:6%"></colgroup>
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th></th></tr></thead>
+<tbody id="angPositionsBody"></tbody>
+</table>
+</div>
+<div class="bar"><button type="button" class="gray" id="angAddPosition">＋ Position hinzufügen</button></div>
+<div class="small" id="angPositionsSummary"></div>
+
+<div id="angMedienBereich" style="margin-top:10px">
+<h2 style="margin-top:4px">📷 Fotos der Offerte</h2>
+<label>Fotos (mehrere möglich)</label>
+<label class="cockpit-new blue cockpit-upload">📷 Fotos aufnehmen oder wählen<input type="file" id="angPhotoInput" accept="image/*" capture="environment" multiple hidden></label>
+<div id="angPhotoGallery" class="sketch-gallery"></div>
+<div class="bar" style="margin-top:6px">
+<button type="button" class="blue" id="angRecognizeAll" hidden>🔎 Alle Fotos erkennen</button>
+</div>
+<div class="small" id="angRecognizeStatus"></div>
+</div>
+
+<div class="grid" style="margin-top:8px">
+<div class="wide"><label>Notiz</label><textarea id="angNote" placeholder="Hinweise …"></textarea></div>
+</div>
+
+<div class="bar">
+<button id="saveAngebot" class="green">💾 Speichern</button>
+<button id="cancelAngebot" class="gray">Abbrechen</button>
+<button id="startFromAngebotEdit" class="gray">🏠 Start</button>
+</div>
+</div>
+</div>
+</div>
+
 <!-- SETTINGS -->
 <div id="settingsModal" class="modal" hidden>
 <div class="modalbox">
@@ -1602,7 +1674,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.33.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 76 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.34.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 80 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -2183,7 +2255,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.33.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.34.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2264,6 +2336,7 @@ nicht neu installieren.</div>
 <script src="js/60-ruestskizzen.js"></script>
 <script src="js/61-materialstaerke.js"></script>
 <script src="js/62-masse.js"></script>
+<script src="js/63-angebote.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

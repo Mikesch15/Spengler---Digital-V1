@@ -34,15 +34,26 @@ const BEARBEITEN_OPTIONEN=[
 
 let rollenVorgaben=[];   // Inhalt von permission_settings
 let alleOverrides=[];    // Inhalt von permission_overrides
+let alleFeatureAccess=[];// v3.34: Inhalt von feature_access (Offerte-Zugriff je Mitarbeiter)
 let meineRechte={};      // { rapport:{sehen:"alle",bearbeiten:"eigene"}, ... , kataloge:true, admin:false }
 
 async function ladeRechteTabellen(){
- const [vor,ovr]=await Promise.all([
+ const [vor,ovr,fa]=await Promise.all([
   sb.from("permission_settings").select("*"),
-  sb.from("permission_overrides").select("*")
+  sb.from("permission_overrides").select("*"),
+  sb.from("feature_access").select("*")
  ]);
  rollenVorgaben=vor.data||[];
  alleOverrides=ovr.data||[];
+ alleFeatureAccess=fa.data||[];
+}
+
+// v3.34: hat dieser Mitarbeiter die Offerten-Funktion freigeschaltet?
+// feature_access ist bewusst getrennt vom Rechte-Modell oben (permission_
+// overrides/-settings) - siehe js/63-angebote.js fuer die Begruendung.
+function offerteZugriffVon(profilId){
+ const zeile=alleFeatureAccess.find(x=>x.profile_id===profilId&&x.feature==="angebote");
+ return !!(zeile&&zeile.granted);
 }
 
 // Rohwerte für einen Mitarbeiter und eine Tabelle zusammensuchen
@@ -173,6 +184,17 @@ function renderMitarbeiterSettings(){
      ${settings.rates.map((r,ri)=>`<option value="${esc(rateIds[ri])}"${(p&&String(p.rate_id)===String(rateIds[ri]))?" selected":""}>${esc(r[0])} · CHF ${money(r[1])}</option>`).join("")}
     </select>
    </div>`;
+  // v3.34: Offerte-Zugriff. Bewusst NICHT wie "Administrator" oben von
+  // istAdmin abhaengig gemacht - ein Administrator hat diese Freigabe nicht
+  // automatisch, sie ist eigens zu vergeben (feature_boundary_angebote
+  // prueft granted=true unabhaengig von der Rolle). Fuer Nicht-Administratoren
+  // dieser Ansicht faellt der Schalter ganz weg statt nur deaktiviert zu sein
+  // - kein funktionsloses Element fuer jemanden, der es ohnehin nicht
+  // aendern darf.
+  const offerteSchalter=darfVergeben?`<label class="rechte-schalter">
+    <input type="checkbox" data-emp-angebot="${i}"${offerteZugriffVon(employeeIds[i])?" checked":""}>
+    Offerte-Zugriff – darf Offerten importieren, ansehen und einem Projekt zuordnen
+   </label>`:"";
   return `<div class="rechte-zeile">
    <div class="rechte-kopf">
     <input data-set-emp="${i}" value="${esc(e)}">
@@ -180,6 +202,7 @@ function renderMitarbeiterSettings(){
     <button class="red" data-del-emp="${i}">Löschen</button>
    </div>
    ${funktion}
+   ${offerteSchalter}
    <details class="rechte-details">
     <summary>Rechte${istAdmin?" – Administrator":""}</summary>
     ${block}
@@ -278,5 +301,47 @@ if($("employeeSettings")){
   // Der angemeldete Benutzer aendert seine eigene Funktion: die Vorbelegung
   // neuer Arbeitspositionen haengt daran.
   if(currentProfile&&currentProfile.id===profil.id)currentProfile.rate_id=data[0].rate_id;
+ });
+}
+
+// ---------------------------------------------------------------------------
+// v3.34  Offerte-Zugriff je Mitarbeiter speichern (Feature-Freischaltung)
+// ---------------------------------------------------------------------------
+// feature_access ist ABSICHTLICH getrennt vom Rechte-Modell oben
+// (permission_overrides/-settings) - siehe Kopf von js/63-angebote.js:
+// "Ohne den Auftrag zu verletzen (kein clientseitiges if-Verstecken) reicht
+// eine Ausnahme im bestehenden Rechte-Modell hier nicht, weil dessen
+// Ressourcen fest auf reports/measurements/ausmass zugeschnitten sind."
+// Ein gewoehnliches upsert - dieselbe Absicherung wie beim Feld "Funktion"
+// oben: KEINE SECURITY-DEFINER-Funktion (die wuerde RLS umgehen), company_id
+// wird NIE vom Client geschickt (der Trigger enforce_feature_access_company()
+// setzt sie serverseitig aus profiles.company_id), 0 geschriebene Zeilen
+// gelten ausdruecklich NICHT als Erfolg (CLAUDE.md 24.1).
+if($("employeeSettings")){
+ $("employeeSettings").addEventListener("change",async e=>{
+  const feld=e.target.closest?e.target.closest("[data-emp-angebot]"):null;
+  if(!feld)return;
+  const i=Number(feld.dataset.empAngebot);
+  const profilId=employeeIds[i];
+  if(!profilId)return;
+  const neu=feld.checked;
+  const {data,error}=await sb.from("feature_access")
+    .upsert({profile_id:profilId,feature:"angebote",granted:neu,
+             granted_by:currentProfile?currentProfile.id:null},
+            {onConflict:"profile_id,feature"})
+    .select("id,profile_id,feature,granted");
+  if(error||!data||!data.length){
+   feld.checked=!neu;
+   alert(error?("Der Offerte-Zugriff konnte nicht gespeichert werden: "+error.message)
+              :"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");
+   return;
+  }
+  const zeile=alleFeatureAccess.find(x=>x.profile_id===profilId&&x.feature==="angebote");
+  if(zeile)zeile.granted=data[0].granted; else alleFeatureAccess.push(data[0]);
+  // Der angemeldete Benutzer aendert seinen eigenen Zugriff: Cockpit-Karte
+  // und Arbeitsstand-Zeile sofort nachziehen, ohne dass er sich neu anmelden
+  // muss.
+  if(currentProfile&&currentProfile.id===profilId&&typeof checkOfferteZugriff==="function")
+   await checkOfferteZugriff();
  });
 }

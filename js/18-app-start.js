@@ -22,7 +22,7 @@ if("serviceWorker" in navigator){
 
 // ---- Warnung vor Datenverlust bei ungespeicherten Änderungen ----
 document.addEventListener("input",e=>{
- if(!$("reportScreen").hidden||!$("measurementEditModal").hidden||!$("ausmassEditModal").hidden)isDirty=true;
+ if(!$("reportScreen").hidden||!$("measurementEditModal").hidden||!$("ausmassEditModal").hidden||!$("angebotEditModal").hidden)isDirty=true;
 });
 window.addEventListener("beforeunload",e=>{
  if(!isDirty)return;

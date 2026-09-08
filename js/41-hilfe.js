@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.33.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.34.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -496,6 +496,16 @@ Auswahl der zwölf Fachfunktionen.</p>
 das PDF, das Kreuz löscht. Steht bei einem Eintrag ein Foto-Hinweis, lassen
 sich die Bilder direkt ansehen, ohne die Massaufnahme zu öffnen.</p>`},
 
+"cockpit-angebote":{titel:"Offerte im Projekt",text:`
+<p>Alle Offerten dieses Projekts. Diese Karte ist nur sichtbar, wenn die
+Offertenfunktion für dich freigeschaltet ist – ein Administrator schaltet
+das in den Mitarbeiter-Einstellungen frei.</p>
+<p>Eine Offerte hält fest, <b>was dem Kunden angeboten wurde</b> – unabhängig
+von Massaufnahme, Produktion und Ausmass. Eine bestehende Offerte lässt sich
+per Foto einlesen, die erkannten Positionen werden vor dem Speichern
+angezeigt und lassen sich bearbeiten.</p>
+<p>Je Eintrag: <b>Öffnen</b> zum Ansehen/Weiterbearbeiten, das Kreuz löscht.</p>`},
+
 "cockpit-am":{titel:"Ausmass im Projekt",text:`
 <p>Alle Ausmasse dieses Projekts – "Offerte erfassen" und
 "Blitzschutzausmass".</p>
@@ -849,6 +859,12 @@ kommen Bezeichnung und Einheit aus dem Katalog.</p>`},
 vorgeschlagen.</p>
 <p>Das Ergebnis wird zuerst gezeigt und erst nach Bestätigung übernommen –
 bitte vor dem Übernehmen durchsehen.</p>`},
+
+"ang-ki":{titel:"Positionen aus einem Foto",text:`
+<p>Ein Foto der bestehenden Offerte wird ausgewertet und als Positionen
+vorgeschlagen – dieselbe Erkennung wie beim Ausmass "Offerte erfassen".</p>
+<p>Das Ergebnis landet in der Tabelle darüber und lässt sich dort vor dem
+Speichern noch prüfen und korrigieren.</p>`},
 
 // ---- Regierapport -------------------------------------------------------
 "rapport-kopf":{titel:"Regieauftrag",text:`

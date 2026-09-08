@@ -163,6 +163,34 @@ const liste=[];
  await page.waitForTimeout(300);
  await schuss("05-cockpit-arbeit","#cockpitWorkArea");
 
+ // ---------- v3.34 Offerte (nur fuer freigeschaltete Benutzer sichtbar) --
+ // offerteZugriff wird wie in js/63-angebote.js beschrieben ausschliesslich
+ // ueber feature_access gesetzt - hier direkt zugewiesen (dasselbe Vorgehen
+ // wie bei ebA.stuecke oben: Zustand direkt setzen statt den Netzwerkweg
+ // ueber die Attrappe nachzubauen). loadProjectAngebote() selbst ist die
+ // ECHTE Funktion und rendert die erfundene Demo-Offerte aus stub.js.
+ await page.evaluate(async()=>{
+  offerteZugriff=true;
+  if($("cockpitAngeboteCard"))$("cockpitAngeboteCard").hidden=false;
+  const k=document.querySelector('#cockpitAngeboteCard .klapp-kopf[data-klapp]');
+  if(k&&!k.closest(".klapp").classList.contains("open"))k.click();
+  // Der Weg, den die App auch selbst nimmt: cockpitBereichAktualisieren()
+  // laedt (loadProjectAngebote) UND setzt die Anzahl im Kopf der Karte -
+  // ein blosser Aufruf von loadProjectAngebote() allein liesse die "0"
+  // aus der ersten Ladung (vor der Freigabe) stehen.
+  await cockpitBereichAktualisieren("angebote");
+ });
+ await schuss("37-offerte-karte","#cockpitAngeboteCard",{warte:400});
+ // Das Formular: eine bereits erkannte Offerte, wie sie nach "Alle Fotos
+ // erkennen" und vor dem Speichern aussieht - die Positionen lassen sich an
+ // dieser Stelle noch pruefen und von Hand korrigieren.
+ await page.evaluate(()=>{
+  $("cockpitAngeboteCard").querySelector('[data-open-project-angebot="1"]').click();
+ });
+ await page.waitForTimeout(300);
+ await schuss("38-offerte-formular","#angebotEditModal .modalbox",{warte:400});
+ await page.evaluate(()=>{$("angebotEditModal").hidden=true;$("projectCockpitModal").hidden=false});
+
  // ---------- Massaufnahme-Auswahl ----------
  await page.evaluate(()=>{$("projectCockpitModal").hidden=true;$("measTypeChooserModal").hidden=false});
  await schuss("06-massaufnahme-auswahl","#measTypeChooserModal .modalbox");

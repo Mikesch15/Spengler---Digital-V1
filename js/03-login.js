@@ -99,6 +99,10 @@ async function afterLogin(){
  // Vorgezogen (früher erst nach dem appRoot-Aufbau geprüft): wird gleich für
  // die Firmenstatus-Prüfung gebraucht, System-Admins sind davon ausgenommen.
  if(typeof checkSystemAdmin==="function")await checkSystemAdmin();
+ // v3.34: Offerten-Zugriff (feature_access) - wie checkSystemAdmin() rein
+ // lesend, blendet nur die (ohnehin per RLS abgesicherten) Cockpit-
+ // Elemente ein/aus. Siehe js/63-angebote.js.
+ if(typeof checkOfferteZugriff==="function")await checkOfferteZugriff();
  // Wer sein Passwort noch nie selbst gesetzt hat, muss das zuerst tun.
  if(profile&&profile.passwort_gesetzt===false){
   $("authScreen").hidden=true;
@@ -164,6 +168,7 @@ function goToStart(){
  $("sheetModal").hidden=true;
  $("ausmassModal").hidden=true;
  $("ausmassEditModal").hidden=true;
+ $("angebotEditModal").hidden=true;         // v3.34
  $("measTypeChooserModal").hidden=true;
  $("amTypeChooserModal").hidden=true;
  $("globalSearchModal").hidden=true;
@@ -186,6 +191,7 @@ function goToStart(){
  if(typeof pdfListenSchliessen==="function"&&!$("pdfListenModal").hidden)pdfListenSchliessen(null);
  measEditReturnTo="measurementsModal";
  amEditReturnTo="ausmassModal";
+ angEditReturnTo="cockpitAngebote";
  reportReturnTo="reportsModal";
  $("backFromReportEdit").hidden=true;
  showStart();

@@ -113,15 +113,30 @@ const abschnitt=(s,key)=>s.abschnitte.find(a=>a.key===key)||{};
  let s=await stand(page);
  // v3.15: die drei Modulkarten (Material, Zuschnitt, Reservierung) stehen
  // nicht mehr im Cockpit, sondern auf der Seite MATERIAL & ZUSCHNITT -
- // genau das verlangt der Auftrag zu v3.15. Es bleiben sechs Abschnitte;
- // ueberholte Erwartung, kein Codefehler.
- const SOLL=["stand","meas","am","rep","files","verlauf"];
+ // genau das verlangt der Auftrag zu v3.15. Es bleiben sechs Abschnitte.
+ // v3.34: js/63-angebote.js ergaenzt COCKPIT_BEREICHE beim Laden um den
+ // siebten Abschnitt "angebote" (js/24-projekt-cockpit.js selbst bleibt
+ // dabei unveraendert, siehe pruefstand-angebote-v3-34.js) - fuer einen
+ // berechtigten Benutzer ist das jetzt ein siebter klappbarer Abschnitt.
+ // Beides ueberholte Erwartung, kein Codefehler.
+ const SOLL=["stand","angebote","meas","am","rep","files","verlauf"];
  p(SOLL.every(k=>s.abschnitte.some(a=>a.key===k))&&s.abschnitte.length===SOLL.length,
    "jeder Bereich ist ein klappbarer Abschnitt",s.abschnitte.map(a=>a.key));
  const zu=s.abschnitte.filter(a=>a.kartenSichtbar&&!a.offen).map(a=>a.key);
  p(zu.indexOf("meas")>=0&&zu.indexOf("am")>=0&&zu.indexOf("rep")>=0
    &&zu.indexOf("files")>=0&&zu.indexOf("verlauf")>=0,
    "die Arbeitsbereiche und der Verlauf starten zugeklappt",zu);
+ // v3.34: "angebote" gehoert bewusst NICHT in diese Liste. Der Abschnitt
+ // existiert zwar als klappbarer Abschnitt im DOM (siehe SOLL oben), aber
+ // dieser Test setzt keine Offerte-Freigabe (kein offerteZugriff, kein
+ // feature_access-Eintrag) - js/63-angebote.js blendet die ganze Karte
+ // dann ueber "kartenSichtbar" komplett aus (cockpitAngeboteCard.hidden),
+ // nicht nur zugeklappt. Genau das ist die gewollte Zugriffssperre aus
+ // dem Auftrag ("kein funktionsloser Button sichtbar"), kein Fehler
+ // dieses Tests - pruefstand-angebote-v3-34.js deckt den berechtigten
+ // Fall (Karte sichtbar UND zugeklappt) bereits vollstaendig ab.
+ p(s.abschnitte.find(a=>a.key==="angebote").kartenSichtbar===false,
+   "die Offerte-Karte bleibt fuer einen nicht freigeschalteten Benutzer vollstaendig unsichtbar (nicht nur zugeklappt)");
  p(abschnitt(s,"stand").offen===true,"der Arbeitsstand bleibt offen - er IST die Uebersicht");
  p(s.abschnitte.filter(a=>a.kartenSichtbar).every(a=>a.offen===a.koerperSichtbar),
    "zugeklappt ist der Inhalt wirklich weg (gemessen, nicht nur hidden)",

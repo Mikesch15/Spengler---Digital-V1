@@ -66,6 +66,16 @@ window.__demo={
   {id:1,company_id:"c1",name:"Standardrinne Reiheneinfamilienhaus",type:"rinne_halbrund",notiz:"Grösse 333, Titanzink",data:{material:1,rinneAbwicklung:333,groesse:333},created_by:"u1",created_at:"2026-08-10T09:00:00Z",updated_by:"u1",updated_at:"2026-08-10T09:00:00Z"},
   {id:2,company_id:"c1",name:"Lukarne Standard 1.50 m",type:"lukarne",notiz:null,data:{material:1,hoehe:1500,laengeOben:4000,winkel:100,achsabstand:500},created_by:"u2",created_at:"2026-08-24T11:30:00Z",updated_by:"u2",updated_at:"2026-08-24T11:30:00Z"}
  ],
+ // v3.34 Offerte: eine Beispiel-Offerte mit erkannten Positionen. Wie
+ // ueberall hier vollstaendig erfunden, keine echte Firma/Preise.
+ angebote:[
+  {id:1,project_id:1,title:"Offerte Sanierung Dach Nord",date:"2026-08-20",note:"Positionen aus der bestehenden Offerte erkannt und geprüft.",
+   positions:[
+    {pos:"1",description:"Rinne halbrund, Titanzink 0.7 mm",quantity:18.4,unit:"m"},
+    {pos:"2",description:"Einlaufblech gerade, Abwicklung 250 mm",quantity:6.2,unit:"m"},
+    {pos:"3",description:"Rinnenhalter",quantity:24,unit:"Stk."}],
+   photo_paths:[],photo_path:null,created_by:"u1",created_at:"2026-08-20T09:00:00Z",updated_by:"u1",updated_at:"2026-08-20T09:30:00Z"}
+ ],
  companies:[{id:"c1",name:"Muster Spenglerei AG",slug:"muster-spenglerei",subscription_status:"active",trial_days:30,trial_started_at:"2026-08-01T00:00:00Z",trial_ends_at:"2026-08-31T00:00:00Z",created_at:"2026-08-01T00:00:00Z",is_active:true}]
 };
 
