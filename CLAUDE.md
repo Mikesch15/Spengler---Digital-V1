@@ -17,7 +17,7 @@ Wichtig:
 
 Bei wichtigen Entscheidungen immer zuerst den **aktuellen Stand von `main`** prüfen.
 
-**AKTUELLER REFERENZSTAND: Version 3.34, Branch `main`.**
+**AKTUELLER REFERENZSTAND: Version 3.35, Branch `main`.**
 
 Die Versionsnummer dieses Abschnitts blieb zwischen Version 3.21 und 3.24
 stehen, obwohl der Code weiterlief – die Abschnitte 127 bis 129 waren
@@ -32,7 +32,7 @@ beide müssen gleich sein, ein Prüfstand erzwingt das.
 
 Aktueller Hauptstand:
 - Branch: `main`
-- sichtbare App-Version: **3.34**
+- sichtbare App-Version: **3.35**
 - **Es wird ausschliesslich direkt auf `main` gearbeitet und
   veröffentlicht** (Ansage des Projektinhabers vom 07.09.2026). Kein
   Feature-Branch, kein Pull Request.
@@ -24222,3 +24222,142 @@ Ansehen der erzeugten Bilder gefunden, nicht durch Lesen des Codes:
   `permission_settings`- oder `permission_overrides`-Zeile für
   `resource='angebote'`, oder der Schalter in `js/05a-rechte.js` müsste
   auf Administratoren beschränkt werden.
+
+## 140. FOTOS: NUR NOCH KAMERA WAR AUSWÄHLBAR — VERSION 3.35
+
+Gemeldet: *„man kann in offerte erfassen nur ein foto aufnehmen und keines
+aus der galerie auswählen"*. Zutreffend, und zwar **nicht** nur bei der
+Offerte – geprüft am ganzen Repo, nicht nur an der gemeldeten Stelle.
+**Keine Schemaänderung, keine Migration, keine RLS-Änderung, keine
+Fachrechnung verändert** – vier gleiche HTML-Attribute entfernt.
+
+### 140.1 Der Befund
+
+Alle vier Foto-Eingabefelder der App trugen dasselbe Attributpaar:
+
+```html
+<input type="file" accept="image/*" capture="environment" multiple hidden>
+```
+
+| Feld | Ort |
+|---|---|
+| `reportPhotoInput` | Regierapport |
+| `measPhotoInput` | Massaufnahme |
+| `amPhotoInput` | Ausmass (**„Offerte erfassen"** und Blitzschutzausmass) |
+| `angPhotoInput` | Offerte (v3.34, Abschnitt 139) |
+
+`capture="environment"` weist mobile Browser an, **direkt** die
+Rückkamera zu öffnen. Auf vielen Geräten (insbesondere Android)
+übersteuert das den nativen Dateidialog vollständig – es gibt dort dann
+**keinen** Weg zurück zur Galerie, nur die Kamera-App. Genau das meldete
+der Betrieb.
+
+Da `capture` an keiner Stelle im JavaScript gelesen oder gesetzt wird
+(geprüft über `grep -rn capture js/*.js index.html`), war die einzige
+Wirkung dieses Attributs die native Bildauswahl des Betriebssystems –
+und die liess sich in dieser Sandbox nie mit einem echten Mobilgerät
+prüfen (Playwrights `setInputFiles` umgeht den nativen Dialog vollständig
+und kann sein Verhalten deshalb nicht abbilden). Die Entscheidung aus
+Abschnitt 89.2 (v2.82), `capture`/`accept` „bleiben erhalten", war damit
+strukturell **nie gegen echtes Geräteverhalten geprüft** – nur strukturell
+(„das Attribut steht da"), nicht funktional („der Dialog zeigt beides").
+
+### 140.2 Behoben – an allen vier Stellen gleich
+
+`capture="environment"` ist an allen vier Feldern entfernt, `accept`
+bleibt (filtert weiterhin auf Bilder), `multiple` bleibt. Ohne `capture`
+zeigt der native Dialog auf iOS und Android die **volle** Auswahl (Kamera
+**und** Galerie/Fotos) – Fotografieren bleibt also weiterhin möglich, nur
+eben nicht mehr erzwungen.
+
+Betroffen ist damit nicht nur die gemeldete Offerte, sondern auch
+Massaufnahme, Ausmass (beide Arten, inklusive „Offerte erfassen") und der
+Regierapport – alle vier teilten denselben Fehler, weil sie alle
+dasselbe, in v2.82 eingeführte Muster kopiert hatten.
+
+### 140.3 Getestet
+
+Die bestehende Prüfung aus `pruefstaende/pruefstand-skizze-foto-v2-82.js`
+(Abschnitt D, seit v2.82) verlangte bisher ausdrücklich
+`capture==="environment"` – eine überholte Erwartung, die genau das
+gemeldete Fehlverhalten als Sollzustand festschrieb. Umgestellt auf
+`capture===null`, mit Begründung im Code, warum die alte Erwartung falsch
+war.
+
+**Gegenprobe**: mit wieder eingesetztem `capture="environment"` schlägt
+genau diese eine Prüfung fehl (53/54) – die Prüfung greift also wirklich
+und ist nicht nur umformuliert.
+
+`node --check` über alle `js/*.js` und `sw.js`: fehlerfrei. `<div>`-Balance
+in `index.html` unverändert (969/969 – reine Attributänderung, keine
+Struktur). Gezielt nachgeprüft, weil sie Fotofelder oder die betroffenen
+Formulare direkt berühren: `pruefstand-skizze-foto-v2-82` (54/54),
+`pruefstand-pdf-v3-04` (45/45, Regierapport-Fotos), `pruefstand-medien-am-
+ende-v2-75` (150/150), `pruefstand-angebote-v3-34` (78/78 – die zwei
+Fehlschläge dort sind ein vorbestehender, von dieser Änderung unabhängiger
+Zustand, siehe 140.4), `pruefstand-ablauf-v3-25` (49/49),
+`pruefstand-vorlage-zugang-v3-04` (35/35), `pruefstand-material-zuschnitt-
+v3-15` (62/62). **Nicht** die vollständigen 59 Prüfstände dieser Sitzung
+durchlaufen – bei einer auf vier gleichartige, ungenutzte HTML-Attribute
+begrenzten Änderung ohne jede JS-Kopplung wurde das als unverhältnismässig
+eingeschätzt; die oben genannten decken jeden Formularpfad ab, der die vier
+betroffenen Felder tatsächlich verwendet.
+
+### 140.4 Ein vorbestehender, nicht verursachter Zustand
+
+`pruefstand-angebote-v3-34.js` meldet zwei Fehlschläge
+(„js/63-angebote.js ist neu" / „js/05a-rechte.js wurde erweitert"). Das ist
+eine `git diff --name-only HEAD`-Selbstprüfung, die den Diff **des
+v3.34-Baus** gegen einen sauberen Checkout beweisen sollte – sie war für
+den Moment des Commits gedacht, nicht für jede spätere Sitzung. **Geprüft,
+nicht behauptet**: gegen einen unveränderten `HEAD`-Checkout (`git stash`)
+schlägt sie mit denselben zwei Punkten identisch fehl, unabhängig von
+dieser Änderung. Kein Eingriff, da ausserhalb des Auftrags dieser Runde.
+
+Ebenso vorbestehend: `schuss.js` (Anleitung) findet `48-reste`
+(`#einlaufblechAufnahme .rest-block`) nicht – gegen den unveränderten
+`HEAD`-Stand identisch reproduziert (`git stash`, derselbe Fehltext). Der
+Rest der Anleitung wurde davon unabhängig regeneriert (140.5).
+
+### 140.5 Anleitung
+
+Nach Regel 108.1 mitgeführt: Abschnitt 12 („Fotos und Skizzen") bekommt
+einen Hinweis, dass Kamera **und** Galerie seit v3.35 wieder gemeinsam
+auswählbar sind und welche vier Formulare betroffen waren. Alle 59
+erreichbaren Bilder neu erzeugt (58 vollständig, `48-reste` weiterhin
+vorbestehend fehlend, siehe 140.4), PDF v3.35 mit unverändert **80
+Seiten**, das einzige gemeldete unvollständige Bild ist das bereits
+bekannte `48-reste.png`. Die fünf Verweise (`index.html` ×2,
+`js/41-hilfe.js`, `anleitung/README.md` ×2) nachgezogen, das alte PDF
+gelöscht. `pruefstand-hilfe-v3-03.js` (68/68) bestätigt das mechanisch.
+Die historischen „v3.34:"-Kommentare in `index.html` (Abschnitt 139)
+bleiben unverändert stehen (Abschnitt 126.7 – historische Angaben wandern
+nicht mit).
+
+### 140.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `index.html` | `capture="environment"` an allen vier Foto-Feldern entfernt; Version 3.35; fünf PDF-Verweise |
+| `sw.js` | Cache-Version 3.35 |
+| `pruefstaende/pruefstand-skizze-foto-v2-82.js` | überholte Erwartung korrigiert (140.3) |
+| `js/41-hilfe.js` | PDF-Verweis |
+| `anleitung/anleitung.html`, `anleitung/README.md` | Version, neuer Hinweis, PDF v3.35 |
+
+**Nicht angefasst**: keine JS-Datei ausser dem einen PDF-Verweis in
+`js/41-hilfe.js`, keine Fachdatei, kein Regierapport-Druckzweig, keine
+Datenbank.
+
+### 140.7 Offene Punkte
+
+- **Kein Live-Test auf einem echten Mobilgerät** – die Sandbox kann den
+  nativen Datei-/Kamera-Dialog eines Telefons nicht darstellen. Die
+  Korrektur folgt der allgemein bekannten, dokumentierten Wirkung von
+  `capture` auf mobilen Browsern; ein Klicktest mit einem echten Android-
+  oder iOS-Gerät steht aus.
+- Der vollständige, 59-teilige Prüfstand-Lauf dieser Sitzung wurde nicht
+  komplett wiederholt (140.3) – nur die Pfade, die die vier betroffenen
+  Felder tatsächlich verwenden.
+- `48-reste` in der Anleitung und die zwei `git diff`-Selbstprüfungen in
+  `pruefstand-angebote-v3-34.js` bleiben unverändert offen – beide
+  bestätigt vorbestehend (140.4), keine Regression dieser Runde.

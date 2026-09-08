@@ -146,8 +146,14 @@ const sicht=(page,id)=>page.evaluate(i=>{
  p(!!knopf&&knopf.zeiger==="pointer","der Zeiger zeigt, dass er anklickbar ist",knopf&&knopf.zeiger);
  p(!!knopf&&knopf.feldDrin&&knopf.feldId==="measPhotoInput"&&knopf.feldVersteckt===true,
    "das Dateifeld steckt darin und ist versteckt",knopf);
- p(!!knopf&&knopf.capture==="environment"&&/image/.test(knopf.accept||""),
-   "Kamera und Bildfilter bleiben erhalten",knopf);
+ // Ueberholte Erwartung seit v3.35 (siehe Abschnitt 140): capture="environment"
+ // zwang mobile Browser auf viele Geraeten direkt in die Kamera-App und liess
+ // sich dort NICHT mehr auf die Galerie umschalten - genau der gemeldete
+ // Fehler ("nur ein Foto aufnehmen, keines aus der Galerie waehlen"). Ohne
+ // capture zeigt der Browser die volle native Auswahl (Kamera UND Galerie),
+ // der Bildfilter accept="image/*" bleibt.
+ p(!!knopf&&knopf.capture===null&&/image/.test(knopf.accept||""),
+   "kein capture - der Browser zeigt Kamera UND Galerie zur Auswahl",knopf);
  // Ein Klick auf den Knopf loest wirklich das Dateifeld aus.
  const loest=await page.evaluate(()=>new Promise(res=>{
   // Ohne Knopf sauber "nein" melden statt den Lauf abzubrechen - ein
