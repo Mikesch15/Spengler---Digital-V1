@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.35.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.36.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -409,6 +409,24 @@ freigegeben werden. So baut niemand nach einem Stand, den es nicht mehr gibt.
 Rüster und Monteur bleiben eingeteilt und sind nach der erneuten Freigabe
 sofort wieder dran. Bezeichnung, Notiz, Datum und ein <i>zusätzliches</i>
 Foto ändern nichts an der Freigabe.</p>`},
+
+"ausfuehrung":{titel:"Geplant → Ausgeführt",text:`
+<p>Neben dem Arbeitsstatus zeigt dieser Abschnitt <b>je Position</b> der
+Ausmass-Liste, was tatsächlich ausgeführt wurde – unabhängig davon, wie weit
+der Arbeitsstatus insgesamt ist. Eine Rinne kann vollständig fertig sein,
+während ein Stutzen daneben noch fehlt.</p>
+<p><b>Die ursprüngliche Planung wird dabei nie überschrieben.</b> Was
+tatsächlich ausgeführt wurde, steht als eigener Wert daneben – geplant
+12.40 m, ausgeführt 11.80 m bleiben beide sichtbar, auch später noch.</p>
+<p>Drei Zustände je Position: <b>○ Nicht ausgeführt</b>, <b>◐ Teilweise</b>,
+<b>✓ Vollständig</b>. Dazu die ausgeführte Menge und, bei einer Abweichung,
+eine Bemerkung – warum wurde geändert.</p>
+<p>Ändert sich die Massaufnahme später so, dass sich die geplante Menge
+einer Position ändert, steht das als Hinweis an der Zeile: die letzte
+Erfassung galt für einen anderen Planwert.</p>
+<p>Verschwindet eine Position ganz aus dem Plan (z. B. weil die Massaufnahme
+umgebaut wurde), bleibt ihre Ausführung unter „Frühere Positionen" sichtbar
+– nichts geht verloren.</p>`},
 
 "winkel-meter":{titel:"Winkel im Meter (i.M.)",text:`
 <p>Neben jedem Winkelfeld steht ein kleiner Knopf <b>i.M.</b> Er rechnet

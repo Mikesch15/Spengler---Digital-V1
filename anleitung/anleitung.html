@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.35";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.36";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.35<br>
+  Version 3.36<br>
   Stand 8. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -666,6 +666,40 @@ Stand.</div>
 Aufgabe <strong>„Erneut freigeben – nach der Freigabe geändert“</strong> ganz oben in
 der Liste, weil eingeteilte Leute darauf warten. Im Projekt-Cockpit steht neben der
 Massaufnahme <strong>„⚠️ Freigabe verfallen“</strong> in Rot.</p>
+
+<h3>Geplant → Ausgeführt: je Position ein eigener Stand</h3>
+<p>Der Arbeitsstatus sagt, wo die <strong>ganze</strong> Massaufnahme steht. Der
+Abschnitt <strong>📋 Ausführung</strong> darunter geht einen Schritt weiter: er zeigt
+<strong>je Position</strong> der Ausmass-Liste, was davon tatsächlich ausgeführt wurde
+– unabhängig davon, wie weit der Arbeitsstatus insgesamt ist. Eine Rinne kann
+vollständig montiert sein, während ein einzelner Stutzen daneben noch fehlt.</p>
+<figure><img src="bilder/44-ausfuehrung.png"><figcaption>Geplant → Ausgeführt: zwei Positionen, zwei unabhängige Stände. Die geplante Menge bleibt dabei unverändert stehen.</figcaption></figure>
+<p>Drei Zustände je Position:</p>
+<table>
+<tr><th>Zeichen</th><th>Status</th><th>Heisst</th></tr>
+<tr><td>○</td><td>Nicht ausgeführt</td><td>noch nichts gemacht</td></tr>
+<tr><td>◐</td><td>Teilweise</td><td>ein Teil ist fertig, der Rest folgt noch</td></tr>
+<tr><td>✓</td><td>Vollständig</td><td>genau wie geplant erledigt</td></tr>
+</table>
+<p>Dazu lässt sich die <strong>tatsächlich ausgeführte Menge</strong> eintragen und,
+wenn sie von der Planung abweicht, eine <strong>Bemerkung</strong> – warum wurde
+weniger, mehr oder anders ausgeführt.</p>
+<div class="hin"><strong>Die ursprüngliche Planung wird dabei nie überschrieben.</strong>
+Geplant 12.40 m und ausgeführt 11.80 m stehen beide dauerhaft nebeneinander – auch
+später noch, und auch wenn die Massaufnahme längst abgeschlossen ist.</div>
+<p>Ändert sich die Massaufnahme später so, dass sich die geplante Menge einer Position
+ändert, steht das als Hinweis direkt an der Zeile: die letzte Erfassung galt noch für
+einen anderen Planwert. Verschwindet eine Position ganz aus dem Plan – etwa weil die
+Massaufnahme umgebaut wurde –, bleibt ihre bisherige Ausführung unter
+<strong>„Frühere Positionen“</strong> sichtbar, aber ohne Eingabefelder: sie lässt
+sich nicht mehr ändern, nur noch nachlesen.</p>
+<div class="hin">Dieser Abschnitt erscheint nur, solange der Arbeitsablauf für die
+Firma eingeschaltet ist (siehe „Wenn die Firma ohne diesen Ablauf arbeitet“ oben), und
+wird über denselben Schalter mit ein- und ausgeblendet.</div>
+<p>Diese Grundlage ist bewusst schlank gehalten: eine spätere Version könnte darauf
+ein Ausmass aufbauen, das die tatsächlich ausgeführten Mengen übernimmt – dafür ist
+diese Version <strong>keine</strong> automatische Übernahme, sie schafft nur die
+Datenlage dafür.</p>
 
 <h3>Der Überblick für den Chef</h3>
 <p>Ein Firmenadministrator hat auf dem Startbildschirm zusätzlich den Knopf
@@ -1447,7 +1481,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">25 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.35</strong>, Stand 8. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.36</strong>, Stand 8. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

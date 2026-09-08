@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.35</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.36</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1432,6 +1432,13 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
      Gezeichnet von js/44-workflow.js, erst wenn die Massaufnahme
      gespeichert ist - vorher gibt es keinen Workflow. -->
 <div id="measWorkflowBereich" class="mw-bereich" hidden></div>
+<!-- v3.36 Geplant -> Ausgefuehrt je Position, js/64-ausfuehrung.js -->
+<div id="measAusfuehrungBereich" hidden>
+<div class="card">
+<h2>📋 Ausführung <button type="button" class="hilfe-knopf no-print" data-hilfe="ausfuehrung">i</button></h2>
+<div id="measAusfuehrungBody"></div>
+</div>
+</div>
 <!-- v3.09 Freigegebene Fassungen und Versionsvergleich, js/53-versionen.js -->
 <div id="measVersionenBereich" hidden>
 <div class="card">
@@ -1674,7 +1681,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.35.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 80 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.36.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 81 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -2255,7 +2262,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.35.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.36.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2337,6 +2344,7 @@ nicht neu installieren.</div>
 <script src="js/61-materialstaerke.js"></script>
 <script src="js/62-masse.js"></script>
 <script src="js/63-angebote.js"></script>
+<script src="js/64-ausfuehrung.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

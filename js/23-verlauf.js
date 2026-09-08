@@ -26,13 +26,15 @@ const VERLAUF_ENTITY_LABELS={project:"Projekt",measurement:"Massaufnahme",ausmas
  // v3.09: dieselbe Historie, nur drei weitere Arten - kein zweites Protokoll.
  reservierung:"Reservierung",reststueck:"Reststück",vorlage:"Vorlage",
  // v3.15: ein abgehaktes Zuschnittstueck.
- zuschnitt:"Zuschnitt"};
+ zuschnitt:"Zuschnitt",
+ // v3.36: Ausfuehrungsstand je Position (Geplant -> Ausgefuehrt).
+ ausfuehrung:"Ausführung"};
 // v2.35: dieselben Symbole, die bereits in den jeweiligen Hauptbereichen
 // verwendet werden (index.html: "📁 Projekte", "📐 Massaufnahme",
 // "📏 Ausmass", "📋 Regierapport") - keine neue Symbolsprache, dezente
 // Kennzeichnung der Entität statt Farbcodierung (Auftrag Abschnitt 9).
 const VERLAUF_ENTITY_ICONS={project:"📁",measurement:"📐",ausmass:"📏",report:"📋",
- reservierung:"📦",reststueck:"♻️",vorlage:"📄",zuschnitt:"✂️"};
+ reservierung:"📦",reststueck:"♻️",vorlage:"📄",zuschnitt:"✂️",ausfuehrung:"📋"};
 
 // v2.33: Feld-Diffing. Bewusst nur dasselbe kleine, zuverlässige Feld-Set,
 // das write_audit_log() serverseitig vergleicht (siehe CLAUDE.md
@@ -49,6 +51,10 @@ const VERLAUF_FIELD_LABELS={
  vorlage:{name:"Name",notiz:"Notiz",type:"Art",vorlage_data:"Masse"},
  // v3.15: das Abhaken eines Zuschnittstuecks.
  zuschnitt:{erledigt:"Zugeschnitten"},
+ // v3.36: Geplant -> Ausgefuehrt je Position. Exakt die vier Felder, die
+ // write_audit_log() fuer entity_type='ausfuehrung' tatsaechlich diffed
+ // (kein einheit/position_bezeichnung - die werden nicht mitgeschrieben).
+ ausfuehrung:{status:"Status",ausgefuehrte_menge:"Ausgeführte Menge",bemerkung:"Bemerkung",geplante_menge:"Geplante Menge"},
  measurement:{
   title:"Bezeichnung",date:"Datum",note:"Notiz / Masse",
   // v3.05 Arbeitsworkflow (Freigabe, Zuweisung, Ruesten, Montage)
@@ -223,6 +229,11 @@ function verlaufChangesHtml(row){
    wert=`${esc(c.old?"zugeschnitten":"offen")} → ${esc(c.new?"zugeschnitten":"offen")}`;
   }else if(row.entity_type==="reststueck"&&c.field==="verbraucht"){
    wert=`${esc(c.old?"verbraucht":"im Lager")} → ${esc(c.new?"verbraucht":"im Lager")}`;
+  }else if(row.entity_type==="ausfuehrung"&&c.field==="status"){
+   // v3.36: deutsche Bezeichnung des Ausfuehrungsstands - gleiches Muster
+   // wie reservierung/status oben, nur mit dem Vokabular aus js/64.
+   const n=v=>(typeof ausfStatusText==="function")?ausfStatusText(v):String(v||"-");
+   wert=`${esc(n(c.old))} → ${esc(n(c.new))}`;
   }else if(row.entity_type==="measurement"&&(c.field==="photo"||c.field==="sketches")){
    const text=verlaufBildWert(row,c);
    if(text===null)return;

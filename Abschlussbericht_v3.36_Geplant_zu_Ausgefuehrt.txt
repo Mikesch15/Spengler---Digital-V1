@@ -1,0 +1,338 @@
+ABSCHLUSSBERICHT — Version 3.36
+Geplant → Ausgeführt je Position
+Spengler-DIGITAL, Repo Mikesch15/Spengler---Digital-V1, Branch main
+Datum: 08.09.2026
+
+=================================================================
+1. AUSGANGSLAGE
+=================================================================
+Auftrag: Claude_Auftrag_Geplant_zu_Ausgefuehrt.txt — nächster
+Entwicklungsschritt in der Zielkette
+
+  PROJEKT → OFFERTE → MASSAUFNAHME → BERECHNUNG → MATERIAL & ZUSCHNITT
+  → ZUSCHNITT → STÜCK ABHAKEN → WERKSTATT/RÜSTLISTE → RÜSTEN/MONTIEREN
+  → AUSGEFÜHRT → AUSMASS
+
+Ziel: sauber zwischen GEPLANT (Massaufnahme/Berechnung) und TATSÄCHLICH
+AUSGEFÜHRT unterscheiden, als Vorbereitung für ein SPÄTERES, in dieser
+Runde ausdrücklich NICHT gebautes Ausmass, das auf ausgeführten Werten
+aufbauen könnte. Harte Vorgaben: keine automatische Offerte→Ausmass-
+Übernahme, keine neue Ausmass-Funktion, keine Preis-/Abrechnungslogik,
+keine zweite Berechnungs-/Packlogik neben den bestehenden zentralen
+Funktionen (ebaPackeInStreifen/ebaVerteile in js/29, zuschnittHtml/
+zuPlanAusGespeichert in js/33, pmatPlanFuer in js/48).
+
+=================================================================
+2. GEPRÜFTER REPOSITORY-STAND / AKTUELLE VERSION
+=================================================================
+main-HEAD zu Beginn: Commit ff906b7, Version 3.35 ("Fotos — Kamera UND
+Galerie statt nur Kamera"). CLAUDE.md vollständig gelesen (140 Abschnitte)
+und als fachliche Grundlage verwendet. Nach dieser Runde: Version 3.36,
+CLAUDE.md um Abschnitt 141 ergänzt.
+
+=================================================================
+3. FACHLICHES MODELL
+=================================================================
+- GEPLANT = die Massaufnahme selbst, unverändert (Berechnung/Register).
+- AUSGEFÜHRT = ein eigener Datensatz je Position der Ausmass-Liste einer
+  Massaufnahme, mit drei Zuständen: Nicht ausgeführt (○) / Teilweise (◐)
+  / Vollständig (✓) — die im Auftrag geforderte Mindestgranularität.
+- Granularität: Positionsebene (Ausmass-Zeile), nicht Massaufnahme- oder
+  Projektebene — eine Rinne kann vollständig fertig sein, während ein
+  Stutzen daneben noch fehlt.
+- Erfasst je Position: geplante Menge + Einheit (als Beleg mitgespeichert,
+  aus dem Moment der Erfassung), ausgeführte Menge, Status, Bemerkung bei
+  Abweichung, Ersteller/Zeitpunkt, Bearbeiter/Zeitpunkt (serverseitig
+  erzwungen, wie bei jeder anderen Fachtabelle seit v2.28).
+- KERNREGEL wörtlich umgesetzt: die geplante Menge wird NIE überschrieben.
+  Ein Beispiel wie "Geplant 12,40 m / Ausgeführt 11,80 m" bleibt dauerhaft
+  als zwei getrennte, gleichzeitig sichtbare Werte bestehen.
+- Verwaiste Positionen (aus dem Plan verschwunden, z. B. weil die
+  Massaufnahme umgebaut wurde): bleiben lesbar unter "Frühere Positionen",
+  ohne Eingabefelder — nichts wird gelöscht, nichts mehr änderbar.
+- Veraltete Erfassungen (Position existiert weiter, aber die geplante
+  Menge hat sich seither geändert): eigener Hinweis an der Zeile, alte
+  Erfassung bleibt bis zur Aktualisierung stehen.
+- KEINE komplexe Versionierungs-/Änderungshistorie gebaut (wie im Auftrag
+  verlangt), die Architektur (eigene Tabelle, eigene Zeile je Position,
+  serverseitige created/updated-Spalten, Verlaufsprotokoll über
+  write_audit_log) verhindert eine spätere Erweiterung dazu aber nicht.
+- Ausmass-Vorbereitung: Positionsnummer, Bezeichnung und ausgeführte Menge
+  liegen strukturell so vor, dass ein SPÄTERES Ausmass-Feature darauf
+  aufbauen könnte — es wurde bewusst KEINE automatische Übernahme, keine
+  neue Ausmass-Position-Erzeugung und keine geänderte Ausmass-Logik
+  gebaut. js/17-ausmass.js ist byteweise unverändert.
+
+=================================================================
+4. GETROFFENE ENTSCHEIDUNGEN
+=================================================================
+- Eigene Tabelle `ausfuehrungen` statt eines Feldes in measurements.data:
+  ein Schreiben in data hätte über den bestehenden Freigabe-Verfall-
+  Mechanismus (v3.06) jede reine Ausführungserfassung fälschlich als
+  Massänderung gewertet und die Freigabe gekippt.
+- Architektur 1:1 nach dem Vorbild der bestehenden Tabelle
+  `zuschnitt_erledigt` (v3.15) übernommen — keine neue Systematik.
+- Schreibweg: gewöhnliches, RLS-geprüftes `.upsert()` auf die Tabelle,
+  KEINE SECURITY DEFINER-Funktion — ein normaler, berechtigungsgeprüfter
+  Schreibvorgang braucht keine RLS-Umgehung.
+- Positionsdaten werden ausschliesslich live aus
+  buildMeasurementFromForm().ausmass gelesen (dieselbe Quelle wie
+  Material & Zuschnitt seit v3.15/v3.17) — keine zweite Positionsliste,
+  kein Zurückschreiben in measurements.
+- Sichtbarkeit hängt am bestehenden Arbeitsablauf-Schalter (mwAktiv(),
+  v3.05/v3.07) — konsistent mit dem übrigen Produktionsworkflow.
+
+=================================================================
+5. TECHNISCHE UMSETZUNG
+=================================================================
+Neues Modul js/64-ausfuehrung.js:
+- AUSF_STATUS = {nicht_ausgefuehrt, teilweise, vollstaendig} mit Text/
+  Farbe/Zeichen (○/◐/✓).
+- ausfLaden(messungId): filtert ausfuehrungen ausschliesslich nach
+  measurement_id, verlässt sich für die Firmengrenze vollständig auf RLS.
+- ausfAllePositionen()/ausfLivePosition(nr): lesen den LIVE-Plan aus
+  buildMeasurementFromForm(), niemals aus einem Zwischenspeicher.
+- ausfZeileHtml(pos): rendert immer alle 3 Status-Chips; nur der aktive
+  Chip trägt die Klasse .aktiv, dataset.ausfStatus zeigt den echten Stand.
+- veraltet-Logik: vergleicht die beim Erfassen gespeicherte
+  geplante_menge/einheit gegen den aktuellen Live-Plan.
+- ausfVerwaistHtml(z): rendert verwaiste Zeilen ganz ohne interaktive
+  Elemente.
+- ausfSchreiben(nr,ueberschreibung): der einzige Schreibweg, ein
+  vollständiges .upsert() mit onConflict:"measurement_id,position_nr";
+  behandelt Fehler UND den 0-Zeilen-Fall (CLAUDE.md §24.1), ohne bei
+  einem Fehlschlag Cache oder DOM zu verändern.
+- ausfNeuLaden(): externer Einstiegspunkt, aufgerufen aus
+  js/10-massaufnahme.js an zwei Stellen (Öffnen und Anlegen einer
+  Massaufnahme).
+- Ereignis-Bindung einmalig am äusseren Wrapper #measAusfuehrungBereich
+  (gleiches Muster wie js/53-versionen.js).
+
+index.html: neuer Bereich #measAusfuehrungBereich direkt unter der
+Arbeitsstatus-Karte, mit Info-Knopf (data-hilfe="ausfuehrung").
+
+=================================================================
+6. GEÄNDERTE DATEIEN
+=================================================================
+- index.html (neuer Bereich, Version 3.36, PDF-Verweise)
+- sw.js (Cache-Version 3.36, neue Datei im SHELL)
+- js/10-massaufnahme.js (2 Aufrufstellen ausfNeuLaden())
+- js/23-verlauf.js (Bezeichnung für ausfuehrung-Verlaufseinträge)
+- js/41-hilfe.js (neuer Hilfetext "ausfuehrung", HILFE_PDF-Verweis)
+- css/01-basis.css (Stile für Status-Chips/Bereich)
+- CLAUDE.md (neuer Abschnitt 141)
+- anleitung/anleitung.html, anleitung/stub.js, anleitung/schuss.js,
+  anleitung/README.md (neuer Unterabschnitt, Demo-Daten, Screenshot,
+  Versionsstand)
+
+=================================================================
+7. NEUE DATEIEN
+=================================================================
+- js/64-ausfuehrung.js
+- pruefstaende/pruefstand-ausfuehrung-v3-36.js
+- anleitung/Spengler-DIGITAL-Anleitung-v3.36.pdf (81 Seiten; das alte
+  v3.35-PDF wurde gelöscht)
+- Abschlussbericht_v3.36_Geplant_zu_Ausgefuehrt.txt (dieses Dokument)
+
+=================================================================
+8. DATENBANKMIGRATIONEN
+=================================================================
+Beide Migrationen wurden bereits gegen die Produktivdatenbank
+angewendet (über Supabase MCP; keine lokal abgelegten SQL-Dateien, wie
+im gesamten übrigen Repo-Verlauf üblich):
+
+1) ausfuehrungen_v3_36
+   - Neue Tabelle ausfuehrungen: id, company_id (DEFAULT
+     my_company_id(), NIE vom Client), measurement_id (FK auf
+     measurements, ON DELETE CASCADE), position_nr, position_bezeichnung,
+     geplante_menge, einheit, status (CHECK auf die drei Werte, Default
+     'nicht_ausgefuehrt'), ausgefuehrte_menge, bemerkung, created_by/_at,
+     updated_by/_at (FK auf profiles, ON DELETE SET NULL),
+     UNIQUE(measurement_id, position_nr).
+   - RLS aktiv: 1 restriktive tenant_boundary_ausfuehrungen-Policy
+     (company_id = my_company_id()) + 4 permissive
+     has_permission('projects', view/edit)-Policies — insgesamt 5
+     Policies, exakt gegen das echte Schema geprüft.
+   - 2 Trigger: set_creator_editor_meta_ausfuehrungen (erzwingt
+     created_by/_at, updated_by/_at serverseitig) sowie eine
+     Firmenprüfung über die zugehörige Massaufnahme.
+
+2) write_audit_log()-Erweiterung
+   - Neuer Zweig für entity_type='ausfuehrung', am bestehenden Anker
+     gepatcht (kein zweiter Schreiber). Feld-Diffs für: status,
+     ausgefuehrte_menge, bemerkung, geplante_menge.
+
+Beide Migrationen wurden unabhängig gegen die LIVE-Produktionsdatenbank
+re-verifiziert (0 Zeilen in ausfuehrungen zu Beginn, exakt 5 RLS-
+Policies, exakt 2 Trigger).
+
+=================================================================
+9. RLS-/SICHERHEITSPRÜFUNGEN (§8/§12)
+=================================================================
+Alle Tests per begin;...rollback;-Simulation gegen das ECHTE
+Produktivschema (set local role authenticated; set local
+request.jwt.claims), mit echten Firmen/Profilen: PETER KÜNZI AG
+(company_id b0057c43-02b3-4af5-b392-f3c5332edd6a), Admin Mike Ledermann,
+Mitarbeiter Phillipp Wegmueller; Testfirma (900acf27-8106-4390-803f-
+64853b72d7e9), Admin Max Mustermann. Reale Massaufnahme id=87 (project_id
+3, Typ einlaufblech_gerade, 4 Ausmass-Positionen).
+
+Bestätigt:
+(a) Firmenfremde Isolation: Testfirma sieht über SELECT auf ausfuehrungen
+    von Massaufnahme 87 (PETER KÜNZI AG) 0 Zeilen und kann dort auch
+    nichts einfügen.
+(b) company_id-Injection-Schutz: ein Insert mit gefälschter, fremder
+    company_id wird von der restriktiven Policy abgewiesen; ein
+    korrekter, impliziter Insert (ohne company_id im Payload, per
+    DEFAULT gesetzt) gelingt und lässt sich anschliessend wieder löschen.
+(c) Unbefugter Mitarbeiter-Schreibzugriff verhindert: Admin legt Position
+    1 an; Mitarbeiter mit Standardrechten (can_edit=true über
+    permission_settings) legt Position 2 an — funktioniert korrekt,
+    solange die Rechte es zulassen. Nach explizitem Entzug von can_edit
+    über eine permission_overrides-Zeile für genau diesen Mitarbeiter:
+    ein erneuter Schreibversuch (auch auf die EIGENE, zuvor selbst
+    angelegte Zeile) wird von RLS blockiert — 0 geänderte Zeilen, korrekt
+    als "kein Erfolg" behandelt (nicht nur error geprüft, sondern die
+    Zeilenzahl).
+Verlauf (audit_log) bestätigt korrekt geschrieben für alle Vorgänge.
+
+get_advisors(security): keine neue Art von Warnung gegenüber dem Stand
+vor dieser Runde. Die beiden neuen Trigger-Funktionen zeigen dieselbe,
+bereits seit CLAUDE.md Abschnitt 20.6 bekannte und akzeptierte
+Warnungsart wie jede andere Firmenprüfungs-Funktion im System.
+
+=================================================================
+10. TESTS / KONKRETE TESTERGEBNISSE
+=================================================================
+pruefstaende/pruefstand-ausfuehrung-v3-36.js (echtes Chromium, echte
+index.html mit protokollierender Supabase-Attrappe):
+  49 bestanden, 0 fehlgeschlagen (Exit-Code 0)
+Deckt ab: Sichtbarkeit am Arbeitsablauf-Schalter, alle drei Status-Chips
+je Zeile, den einzigen Schreibweg (genau ein upsert, company_id nie vom
+Client, korrekte Behandlung des 0-Zeilen-Falls), veraltete Positionen
+mit Hinweistext, verwaiste Positionen ohne interaktive Elemente,
+Live-Lesen des Plans ohne Rückschreiben nach measurements.
+
+DB-Sicherheitstest test_v3_36_live.sql (echtes Produktivschema, per
+begin;...rollback;): alle in Abschnitt 9 genannten Fälle bestanden.
+
+Regierapport-Byte-Identität (CLAUDE.md §100.6-Konvention): beide Stände
+in EINEM Skriptaufruf gerendert (v3.35-Baseline aus Commit ff906b7 via
+git archive, aktueller Stand), unter media:print mit ausgelöstem
+beforeprint-Ereignis:
+  DOM  gleich: true
+  Text gleich: true
+  Bild gleich: true (Hash 89ddd538a70a00d1, 48122 Bytes)
+  Kontrolllauf reproduzierbar: true
+js/06-rapport.js und js/08-katalog-blitzschutz.js sind nicht im Diff.
+
+=================================================================
+11. REGRESSIONSERGEBNIS (§10 Checkliste)
+=================================================================
+Vollständiger Lauf aller 60 realen Prüfstände im Verzeichnis
+pruefstaende/ (jeweils bis Exit-Code gemessen, nicht nur Fehlerzahl,
+CLAUDE.md §132.7):
+
+- 58 von 60 Dateien: Exit-Code 0, vollständig bestanden.
+- pruefstand-hilfe-v3-03.js: nach Abschluss der Anleitungsaktualisierung
+  ebenfalls 68/68 bestanden, Exit-Code 0 (der zuvor durchlaufende G2-
+  Abschnitt "Anleitung ist auf dem Stand der App" verlangt genau diese
+  Aktualisierung und ist jetzt erfüllt).
+- pruefstand-angebote-v3-34.js: 73 bestanden, 5 fehlgeschlagen — dies
+  ist ein bereits VOR dieser Runde bestehender, unabhängiger Zustand
+  (CLAUDE.md §140.4): eine `git diff --name-only HEAD`-basierte
+  Selbstprüfung, die exklusiv an den Commit-Moment von Version 3.34
+  gebunden ist und gegen JEDEN späteren, unveränderten HEAD-Checkout
+  identisch fehlschlägt. Unabhängig re-verifiziert: dieselben 5
+  Fehlschläge treten auch gegen einen sauberen, unveränderten
+  HEAD-Stand ohne jede v3.36-Änderung auf. Ausserhalb des Auftrags
+  dieser Runde (§11 "Scope nicht ausweiten"), NICHT behoben.
+
+Damit sind alle im Auftrag §10 geforderten Punkte abgedeckt: bestehende
+Massaufnahmen funktionieren unverändert; geplante Werte bleiben
+unverändert; Speichern/Laden/Neuladen der Ausführung funktioniert;
+vollständig/teilweise/nicht-ausgeführt korrekt; Abweichungsanzeige
+korrekt; mehrere Positionen mit unterschiedlichem Status gleichzeitig
+korrekt; bestehende Berechnung unverändert; bestehender Zuschnittplan
+unverändert; Material & Zuschnitt unverändert; Werkstatt/Rüstliste
+unverändert; Stück-Abhaken unverändert; bestehendes Ausmass unverändert
+(js/17-ausmass.js byteweise unverändert); bestehende Offerte unverändert;
+Regierapport byteidentisch; Rechte/RLS korrekt geprüft;
+company_id-Injection blockiert; komplette bestehende Regressionssuite
+bleibt grün (bis auf den einen dokumentierten, vorbestehenden,
+unabhängigen Ausnahmefall).
+
+=================================================================
+12. BEKANNTE EINSCHRÄNKUNGEN
+=================================================================
+- Kein Live-Klicktest gegen die echte Supabase-Produktivinstanz möglich
+  — die Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+  nfgryuzkpwjfmdlmevuy.supabase.co, wie in jeder vorherigen Sitzung.
+  Das wird hier ausdrücklich NICHT als getestet behauptet. Geprüft wurde
+  die Oberfläche in echtem Chromium gegen die echte index.html mit einer
+  protokollierenden Attrappe, und die Datenbankseite per SQL-Simulation
+  gegen das echte Produktivschema.
+- pruefstand-angebote-v3-34.js bleibt mit seinem bereits vorbestehenden,
+  unabhängigen Selbsttest-Fehlschlag stehen (siehe Abschnitt 11).
+
+=================================================================
+13. NICHT IMPLEMENTIERTE PUNKTE (bewusst, laut Auftrag)
+=================================================================
+- Keine automatische Offerte→Ausmass-Übernahme.
+- Keine neue Ausmass-Funktion, keine Änderung an js/17-ausmass.js.
+- Keine Preis-/Abrechnungslogik.
+- Keine komplexe Versionierungs-/Änderungshistorie für die Ausführung
+  (nur Ersteller/Bearbeiter + Verlaufsprotokoll, wie im Auftrag als
+  ausreichend markiert).
+- Keine zweite Berechnungs-/Packlogik — ebaPackeInStreifen/ebaVerteile,
+  zuschnittHtml/zuPlanAusGespeichert und pmatPlanFuer sind unangetastet
+  und bleiben die alleinigen zentralen Funktionen.
+
+=================================================================
+14. OFFENE PUNKTE
+=================================================================
+- pruefstand-angebote-v3-34.js's 5 Fehlschläge bleiben unverändert offen
+  (vorbestehend, ausserhalb dieses Auftrags, siehe Abschnitt 11).
+- 48-reste.png in der Anleitung bleibt unverändert fehlend (vorbestehend
+  seit v3.35, CLAUDE.md §140.4, unabhängig von dieser Runde bestätigt).
+
+=================================================================
+15. NÄCHSTE SINNVOLLE SCHRITTE (priorisiert)
+=================================================================
+
+1) Ausmass auf Basis ausgeführter Werte
+   Was?      Ein neuer, eigenständiger Ausmass-Erstellungsweg, der als
+             Ausgangspunkt die erfassten ausgeführten Mengen je Position
+             anbietet (nicht automatisch übernimmt — mit ausdrücklicher
+             Bestätigung je Position durch den Anwender).
+   Warum jetzt? Genau der in diesem Auftrag vorbereitete nächste Schritt
+             — die Datenlage (Positionsnummer, Bezeichnung, ausgeführte
+             Menge) liegt jetzt bereit.
+   Nutzen?   Schliesst die Kette PROJEKT→...→AUSGEFÜHRT→AUSMASS.
+   Abhängigkeiten? Braucht eine bewusste, eigene fachliche Entscheidung
+             zur Ausmass-Struktur (nicht Teil dieses Auftrags).
+
+2) Abweichungsübersicht auf Projektebene
+   Was?      Eine kompakte Ansicht "wo wurde wie stark von der Planung
+             abgewichen?" über alle Massaufnahmen eines Projekts.
+   Warum jetzt? Die Datengrundlage (ausfuehrungen-Tabelle je Position)
+             existiert bereits vollständig.
+   Nutzen?   Schneller Überblick für den Chef, ohne jede Massaufnahme
+             einzeln zu öffnen.
+   Abhängigkeiten? Keine — reine Leseerweiterung auf bestehender Tabelle.
+
+3) Ausführungsstatus in der Werkstatt-/Rüstliste sichtbar machen
+   Was?      Den Ausführungsstatus je Position zusätzlich in der
+             bestehenden Werkstatt-/Rüstliste (js/51/js/58) anzeigen.
+   Warum jetzt? Naheliegende Ergänzung der bereits gebauten Grundlage,
+             ohne die zentrale Zuschnitt-/Packlogik zu berühren.
+   Nutzen?   Ein Blick genügt, um Planung, Zuschnitt UND Ausführung
+             gemeinsam zu sehen.
+   Abhängigkeiten? Reine Leseerweiterung, keine neue Schreiblogik nötig.
+
+IDEEN (nicht automatisch umzusetzen):
+- Fotobeleg je Ausführungsposition (z. B. Foto der montierten Rinne).
+- Export einer Abweichungsliste als PDF (Geplant vs. Ausgeführt) analog
+  zur bestehenden Rüstliste.
+- Firmenweite Auswertung "durchschnittliche Abweichung Geplant/
+  Ausgeführt je Massaufnahme-Art" für spätere Kalkulationsgenauigkeit.

@@ -423,6 +423,7 @@ function newMeasurementWithType(type){
  // ihrer Zuschnittansicht abgehakt werden kann. Eine neue hat noch keine.
  if(typeof zeFormularAuf==="function")zeFormularAuf(null);
  if(typeof verNeuLaden==="function")verNeuLaden();   // v3.09 Fassungen
+ if(typeof ausfNeuLaden==="function")ausfNeuLaden();   // v3.36 Geplant/Ausgefuehrt
  $("printMeasurementBtn").hidden=false;
  $("measType").value=type;
  showMeasTypeSection(type);
@@ -662,5 +663,6 @@ function openMeasurement(m){
  if(typeof mwStandAusZeile==="function"){mwStandAusZeile(m);renderMeasWorkflow()}
  if(typeof zeFormularAuf==="function")zeFormularAuf(m.id);
  if(typeof verNeuLaden==="function")verNeuLaden();   // v3.09 Fassungen
+ if(typeof ausfNeuLaden==="function")ausfNeuLaden();   // v3.36 Geplant/Ausgefuehrt
  updateMeasFormTitle();
 }

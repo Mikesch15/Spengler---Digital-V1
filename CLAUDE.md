@@ -24361,3 +24361,186 @@ Datenbank.
 - `48-reste` in der Anleitung und die zwei `git diff`-Selbstprüfungen in
   `pruefstand-angebote-v3-34.js` bleiben unverändert offen – beide
   bestätigt vorbestehend (140.4), keine Regression dieser Runde.
+
+## 141. GEPLANT → AUSGEFÜHRT JE POSITION — VERSION 3.36
+
+Auftrag: `PROJEKT → OFFERTE → MASSAUFNAHME → BERECHNUNG → MATERIAL &
+ZUSCHNITT → ZUSCHNITT → STÜCK ABHAKEN → WERKSTATT/RÜSTLISTE →
+RÜSTEN/MONTIEREN → **AUSGEFÜHRT** → AUSMASS`. Diese Runde baut genau den
+neuen, fett markierten Schritt – **keine automatische Ausmass-Übernahme,
+keine neue Ausmass-Funktion, keine Preis-/Abrechnungslogik**, wie im
+Auftrag ausdrücklich untersagt. `js/17-ausmass.js` ist **byteweise
+unverändert**.
+
+### 141.1 Die eine Kernregel
+
+*„Die ursprüngliche Massaufnahme bzw. Planung darf NICHT durch die
+tatsächliche Ausführung überschrieben werden."* Geplant 12,40 m gegen
+ausgeführt 11,80 m stehen **beide** dauerhaft und getrennt – nicht als
+Historie, sondern als zwei gleichzeitig gültige Werte. Die Ausführung
+liegt deshalb in einer **eigenen** Tabelle, nicht als Feld in
+`measurements.data` – ein Schreiben dorthin hätte über den Freigabe-
+Verfall (v3.06) sonst jede Ausführungserfassung als Massänderung gewertet.
+
+### 141.2 Positionsebene statt Gesamtstatus
+
+Der Auftrag verlangt ausdrücklich, dass eine einzelne Rinne fertig sein
+kann, während ein Stutzen daneben noch fehlt – ein globaler
+Projektstatus reicht dafür nicht. Die Positionen sind **dieselben**, die
+das Ausmass jeder Massaufnahme ohnehin schon liefert
+(`buildMeasurementFromForm().ausmass`, dieselbe Quelle wie Material &
+Zuschnitt seit v3.15/v3.17 – `pos`, `bezeichnung`, `menge`, `einheit`,
+`herkunft`, `teil`). **Keine zweite Positionsliste**: `js/64-
+ausfuehrung.js` liest live über `buildMeasurementFromForm()`, schreibt
+aber nie in `measurements` zurück.
+
+Drei Zustände (`AUSF_STATUS`): **○ Nicht ausgeführt**, **◐ Teilweise**,
+**✓ Vollständig** – die Mindestgranularität aus dem Auftrag, nicht mehr.
+
+### 141.3 Datenmodell – Migration `ausfuehrungen_v3_36`
+
+Eine neue Tabelle nach dem **exakten** Vorbild von `zuschnitt_erledigt`
+(v3.15, Abschnitt 120.5) – bewusst dieselbe Architektur, nicht neu
+erfunden:
+
+```sql
+create table public.ausfuehrungen(
+  id bigint generated always as identity primary key,
+  company_id uuid not null default my_company_id() references companies(id) on delete cascade,
+  measurement_id bigint not null references measurements(id) on delete cascade,
+  position_nr integer not null,
+  position_bezeichnung text, geplante_menge text, einheit text,
+  status text not null default 'nicht_ausgefuehrt'
+    check(status in('nicht_ausgefuehrt','teilweise','vollstaendig')),
+  ausgefuehrte_menge text, bemerkung text,
+  created_by uuid references profiles(id) on delete set null, created_at timestamptz not null default now(),
+  updated_by uuid references profiles(id) on delete set null, updated_at timestamptz not null default now(),
+  constraint ausfuehrungen_position_uk unique(measurement_id,position_nr));
+```
+
+`company_id` kommt **nie** vom Client (`DEFAULT my_company_id()`), eine
+restriktive `tenant_boundary_ausfuehrungen`-Policy plus die vier
+üblichen `has_permission('projects',…)`-Policies (fünf Policies
+insgesamt, am echten Schema nachgezählt), zwei Trigger
+(`set_creator_editor_meta_ausfuehrungen`, Firmenprüfung über die
+Massaufnahme). Geplante Menge und Einheit werden **mitgespeichert** als
+Beleg – daran erkennt die Oberfläche, ob sich die Planung seither
+geändert hat (141.5), ohne die aktuelle Massaufnahme zurückzurechnen.
+
+`write_audit_log()` um einen `ausfuehrung`-Zweig erweitert (am
+bestehenden Anker gepatcht, kein zweiter Schreiber): Feld-Diffs für
+`status`, `ausgefuehrte_menge`, `bemerkung`, `geplante_menge`.
+
+### 141.4 Schreibweg – ein `upsert`, kein DEFINER
+
+`ausfSchreiben(nr,ueberschreibung)` in js/64: **ein**
+`.upsert(zeile,{onConflict:"measurement_id,position_nr"})` über die
+gewöhnliche, RLS-geprüfte Tabelle – **keine** `SECURITY DEFINER`-
+Funktion, das wäre eine unnötige Umgehung von RLS für einen ganz
+normalen, berechtigungsgeprüften Schreibvorgang. 0 geschriebene Zeilen
+gelten **nicht** als Erfolg (Abschnitt 24.1): der Client prüft das
+Ergebnis, nicht nur `error`.
+
+### 141.5 Verwaiste und veraltete Positionen
+
+Verschwindet eine Position ganz aus dem Plan (Massaufnahme umgebaut),
+bleibt ihre Ausführung unter „Frühere Positionen" **lesbar, aber ohne
+Eingabefelder** (`ausfVerwaistHtml`) – nichts wird gelöscht, nichts lässt
+sich mehr ändern. Ändert sich nur die **Menge** einer weiterhin
+existierenden Position, erscheint ein Hinweis an der Zeile
+(„Die Planung wurde seither geändert – bei der Erfassung: …, jetzt: …"),
+die Erfassung bleibt aber stehen, bis sie jemand aktualisiert.
+
+### 141.6 Sichtbarkeit
+
+`ausfAktiv()` hängt an `mwAktiv()` – demselben Schalter wie der gesamte
+Arbeitsablauf (Abschnitt 112.3): ohne eingeschalteten Ablauf keine
+Ausführungserfassung. Der Bereich `#measAusfuehrungBereich` sitzt direkt
+unter der Arbeitsstatus-Karte (js/44) und wird von
+`js/10-massaufnahme.js` aus über `ausfNeuLaden()` beim Öffnen und beim
+Anlegen aufgerufen (zwei Aufrufstellen).
+
+### 141.7 Getestet
+
+**`pruefstaende/pruefstand-ausfuehrung-v3-36.js` – 49/49**, echtes
+Chromium gegen die echte `index.html` mit protokollierender Attrappe:
+Sichtbarkeit am Schalter, alle drei Status-Chips je Zeile, Schreibweg
+(genau ein `upsert`, `company_id` **nie** vom Client, 0-Zeilen-Fall),
+veraltete Positionen mit Hinweis, verwaiste Positionen ohne
+Eingabefelder, Live-Lesen des Plans ohne Rückschreiben nach
+`measurements`.
+
+**Datenbankseite** (`begin; … rollback;`, echtes Produktivschema,
+PETER KÜNZI AG/Testfirma, Massaufnahme `id=87`): Admin legt Position 1
+an; Mitarbeiter mit Standardrechten legt Position 2 an; nach Entzug von
+`can_edit` über `permission_overrides` wird ein erneuter Schreibversuch
+serverseitig abgewiesen, die eigene Zeile bleibt bei 0 geänderten
+Zeilen; Testfirma sieht **0** Zeilen und kann nicht einfügen; ein
+Insert mit gefälschter `company_id` wird abgewiesen; ein korrekter,
+impliziter Insert gelingt und lässt sich löschen; der Verlauf zeigt den
+Eintrag korrekt.
+
+**Regression**: alle 60 Prüfstände im Verzeichnis laufen mit
+Beendigungscode 0, **ausser** zwei bereits vor dieser Runde bestehenden,
+unabhängigen Zuständen: `pruefstand-angebote-v3-34.js` (ein an den
+exakten v3.34-Commit-Moment gebundener `git diff`-Strukturselbsttest,
+gegen einen sauberen `HEAD`-Checkout identisch fehlschlagend, siehe
+Abschnitt 140.4 – ausserhalb dieses Auftrags) und die bis eben offene
+`pruefstand-hilfe-v3-03.js`-Anleitungsprüfung, die nach der
+Anleitungsaktualisierung (141.8) jetzt ebenfalls grün ist.
+
+**Regierapport nachweislich unverändert**: unter `media:print` mit
+ausgelöstem `beforeprint` **in einem Aufruf hintereinander** gegen den
+v3.35-Stand (`ff906b7`) gerendert – **DOM, Text und Bild byteidentisch**
+(Bild `89ddd538a70a00d1`, 48 122 Bytes), bestätigt durch einen
+Kontrolllauf desselben Codes. `js/06-rapport.js` und
+`js/08-katalog-blitzschutz.js` sind nicht im Diff.
+
+`get_advisors(security)`: keine neue Art von Warnung – die zwei neuen
+`SECURITY DEFINER`-Trigger-Funktionen erscheinen mit derselben, bereits
+bekannten Warnungsart wie jede andere Firmenprüfungs-Funktion seit
+Abschnitt 20.6.
+
+### 141.8 Anleitung
+
+Nach Regel 108.1 mitgeführt: neuer Unterabschnitt „Geplant → Ausgeführt:
+je Position ein eigener Stand" in Kapitel 10, mit dem 12,40-m/11,80-m-
+Beispiel aus dem Auftrag, der Status-Tabelle und dem Hinweis, dass die
+Grundlage bewusst schlank bleibt (keine automatische Ausmass-Übernahme).
+Ein neues Bildschirmfoto (`44-ausfuehrung`), PDF v3.36 mit **81 Seiten**,
+keine leere Seite (über pdfjs-Textinhalt/Bildoperatoren je Seite
+gemessen – `pruef.js` bleibt wegen des bekannten `paintChar`-Absturzes
+unbenutzt, siehe Abschnitt 136.8). Die fünf Verweise nachgezogen, das
+alte PDF gelöscht. `pruefstand-hilfe-v3-03` (68/68) erzwingt das
+mechanisch.
+
+### 141.9 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migration `ausfuehrungen_v3_36` | neue Tabelle, RLS, Trigger |
+| Migration (write_audit_log-Erweiterung) | `ausfuehrung`-Zweig |
+| `js/64-ausfuehrung.js` | **neu** – Statuslogik, Live-Plan, Schreibweg |
+| `js/10-massaufnahme.js` | zwei Aufrufstellen `ausfNeuLaden()` |
+| `js/23-verlauf.js` | Bezeichnung für `ausfuehrung`-Einträge |
+| `js/41-hilfe.js` | Hilfetext „ausfuehrung", PDF-Verweis |
+| `index.html`, `css/01-basis.css`, `sw.js` | Bereich, Stile, Version 3.36 |
+| `pruefstaende/pruefstand-ausfuehrung-v3-36.js` | **neu** |
+| `anleitung/*` | neuer Unterabschnitt, neues Bild, PDF v3.36 |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css`, `js/17-ausmass.js` sowie sämtliche zwölf
+Massaufnahme-Fachmodule und die Packrechnung (`js/29`, `js/33`,
+`js/48`) – keine Berechnung, keine Stückliste, kein Zuschnitt berührt.
+
+### 141.10 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`.
+  **Das wird ausdrücklich nicht als getestet behauptet.**
+- **Kein Ausmass-Übernahmeweg gebaut** – ausdrücklich nicht Teil dieses
+  Auftrags. Die Datenlage (Positionsnummer, Bezeichnung, ausgeführte
+  Menge) ist so gehalten, dass eine spätere Version darauf aufbauen
+  könnte, ohne dass diese Runde etwas vorgreift.
+- `pruefstand-angebote-v3-34.js`s zwei Fehlschläge bleiben unverändert
+  offen – vorbestehend, unabhängig von dieser Runde (Abschnitt 140.4).

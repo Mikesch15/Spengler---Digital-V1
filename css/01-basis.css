@@ -727,6 +727,28 @@ html.dark .mw-warnung{border-color:#f08b80;color:#f08b80}
  margin:8px 0 0;line-height:1.45;color:var(--green);word-break:break-word}
 .mw-hinweis[hidden]{display:none}
 
+/* ---- v3.36 Geplant -> Ausgefuehrt je Position ---------------------------
+   Wiederverwendet .mw-badge/.mw-grau/.mw-orange/.mw-gruen (js/64 ausfBadge())
+   und .mw-fehler/.mw-zeile/.mw-label/.mw-zeit (js/44) - keine zweite Badge-
+   oder Wer/Wann-Darstellung. */
+.ausf-bereich{margin-top:14px}
+.ausf-zeile{border:1px solid var(--card-line);border-radius:9px;padding:8px 10px;
+ margin:0 0 8px;min-width:0}
+.ausf-zeile-kopf{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;
+ margin-bottom:4px}
+.ausf-bez{font-weight:700;flex:1 1 auto;min-width:0;word-break:break-word}
+.ausf-geplant{font-size:11px;color:var(--muted);white-space:nowrap}
+.ausf-veraltet{font-size:11px;color:#a35a06;font-weight:700;margin:2px 0 6px;
+ word-break:break-word}
+html.dark .ausf-veraltet{color:#e0a35c}
+.ausf-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.ausf-chip{padding:5px 9px;font-size:10.5px;min-height:30px;
+ background:var(--blue-light);color:var(--blue-dark);border-radius:9px;border:0}
+.ausf-chip.aktiv{background:var(--blue);color:#fff}
+.ausf-felder{display:flex;flex-wrap:wrap;gap:8px}
+.ausf-felder label{flex:1 1 160px;min-width:0}
+.ausf-zeile-verwaist{opacity:.85}
+
 /* ---- v3.05 Persoenliche Aufgaben auf der Startseite --------------------- */
 .aufgabe{border:1px solid var(--card-line);border-left:4px solid var(--muted);
  border-radius:10px;padding:9px 11px;margin-bottom:8px;background:var(--card-bg)}
