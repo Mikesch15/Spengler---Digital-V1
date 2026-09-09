@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.36";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.37";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.36<br>
+  Version 3.37<br>
   Stand 8. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -270,6 +270,41 @@ Rückfrage.</p>
 <div class="hin">Eine spätere Übernahme „Offerte → Ausmass“ ist absichtlich nicht
 gebaut. Was am Ende ausgeführt und verrechnet wird, wird weiterhin im Ausmass
 selbst erfasst (Abschnitt 15).</div>
+
+<h3>7.1 · Leistungen und Ausmass-Vorbereitung</h3>
+<p>Zwischen der Offerte und der Massaufnahme steht seit Version 3.37 eine eigene,
+schlanke Ebene: die <strong>Leistung</strong>. Eine Leistung ist die konkrete
+Arbeit, die auf der Baustelle ausgeführt wird – nicht das kaufmännische
+Offertenangebot und nicht die technische Massaufnahme, sondern das Bindeglied
+dazwischen. Sie liegt auf der Cockpit-Karte <strong>„📋 Leistungen“</strong>.</p>
+<p>Eine Leistung lässt sich <strong>optional</strong> mit einer Position aus einer
+bereits erfassten Offerte verknüpfen – muss aber nicht: eine
+<strong>Zusatzleistung</strong>, die nie offeriert wurde, ist genauso ein
+gewöhnlicher Eintrag. Ebenso lässt sich eine Leistung mit einer oder mehreren
+Massaufnahmen verknüpfen, um festzuhalten, welche technische Erfassung zu ihr
+gehört – ohne dass dabei auch nur ein Feld der Massaufnahme selbst angefasst
+wird. Der Ausführungsstatus (offen/in Arbeit/erledigt) wird an der Leistung
+geführt, nicht an einzelnen Massaufnahme-Positionen.</p>
+<div class="warn">Eine Massaufnahme bleibt in jedem Fall ausschliesslich eine
+technische Erfassung. Ihre Werte – Stücke, Blechstösse, Zuschnitte, Masse –
+werden <strong>zu keinem Zeitpunkt automatisch</strong> zu Leistungen oder zu
+Ausmasspositionen. Was am Ende tatsächlich abgerechnet wird, entscheidet immer
+ein Mensch, nie die App von selbst.</div>
+<h3>Die Ausmass-Vorbereitung: bewusst auswählen statt automatisch übernehmen</h3>
+<p>Die zweite neue Karte, <strong>„📐 Ausmass-Vorbereitung“</strong>, zeigt alle
+Kandidaten, die sich für ein Ausmass eignen könnten – zusammengetragen sowohl
+aus den erfassten Leistungen als auch aus den technischen Werten der
+Massaufnahmen des Projekts. Jede Zeile trägt sichtbar, woher sie stammt
+(„Quelle: Leistung“ bzw. „Quelle: Massaufnahme“). Angehakt wird von Hand,
+Position für Position; erst ein Klick auf <span class="tasten">In neues
+Ausmass übernehmen</span> legt daraus eine neue Ausmass-Position an – und
+zwar ausschliesslich für die tatsächlich angehakten Zeilen, nie für alle
+Kandidaten auf einmal.</p>
+<div class="hin">Die Massaufnahme selbst wird durch diese Auswahl nicht
+verändert – sie liefert nur die Datengrundlage, aus der ausgewählt wird. Eine
+einmal übernommene Position lässt sich im Ausmass wie gewohnt weiter
+bearbeiten (Abschnitt 15); das Ausmass-Modul selbst ist dafür unverändert
+geblieben.</div>
 
 <h2 class="seite">8 · Massaufnahme – die zwölf Funktionen</h2>
 <figure><img src="bilder/06-massaufnahme-auswahl.png"><figcaption>Die Auswahl beim Anlegen einer Massaufnahme.</figcaption></figure>
@@ -1481,7 +1516,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">25 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.36</strong>, Stand 8. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.37</strong>, Stand 9. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

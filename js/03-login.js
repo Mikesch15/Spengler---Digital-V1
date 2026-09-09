@@ -169,6 +169,7 @@ function goToStart(){
  $("ausmassModal").hidden=true;
  $("ausmassEditModal").hidden=true;
  $("angebotEditModal").hidden=true;         // v3.34
+ $("leistungEditModal").hidden=true;        // v3.37
  $("measTypeChooserModal").hidden=true;
  $("amTypeChooserModal").hidden=true;
  $("globalSearchModal").hidden=true;
@@ -192,6 +193,7 @@ function goToStart(){
  measEditReturnTo="measurementsModal";
  amEditReturnTo="ausmassModal";
  angEditReturnTo="cockpitAngebote";
+ leiEditReturnTo="cockpitLeistungen";       // v3.37
  reportReturnTo="reportsModal";
  $("backFromReportEdit").hidden=true;
  showStart();

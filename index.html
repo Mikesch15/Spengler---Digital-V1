@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.36</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.37</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -352,6 +352,11 @@
      hidden per Vorgabe - checkOfferteZugriff() (js/63) schaltet sie nur
      fuer freigeschaltete Benutzer sichtbar, siehe COCKPIT_BEREICHE.angebote. -->
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="angebote" id="cockpitStandAngeboteZeile" hidden><span class="arbeitsstand-marke" id="cockpitAngeboteMark">○</span><span class="arbeitsstand-name">🧾 Offerte</span><span class="arbeitsstand-wert" id="cockpitAngeboteStand">–</span></button>
+<!-- v3.37: Leistungen (Auftrag "Leistungen + zentrale Ausmass-Vorbereitung").
+     Kein Feature-Schalter noetig (anders als bei der Offerte) - immer
+     sichtbar, sobald das Projekt geladen ist. -->
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="leistungen" id="cockpitStandLeistungenZeile"><span class="arbeitsstand-marke" id="cockpitLeistungenMark">○</span><span class="arbeitsstand-name">🧩 Leistungen</span><span class="arbeitsstand-wert" id="cockpitLeistungenStand">–</span></button>
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="ausmassVorbereitung" id="cockpitStandAusmassVorbZeile"><span class="arbeitsstand-marke" id="cockpitAusmassVorbMark">○</span><span class="arbeitsstand-name">🧮 Ausmass-Vorbereitung</span><span class="arbeitsstand-wert" id="cockpitAusmassVorbStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="meas"><span class="arbeitsstand-marke" id="cockpitMeasMark">○</span><span class="arbeitsstand-name">📐 Massaufnahmen</span><span class="arbeitsstand-wert" id="cockpitMeasStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="am"><span class="arbeitsstand-marke" id="cockpitAmMark">○</span><span class="arbeitsstand-name">📏 Ausmass</span><span class="arbeitsstand-wert" id="cockpitAmStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="rep"><span class="arbeitsstand-marke" id="cockpitRepMark">○</span><span class="arbeitsstand-name">📋 Regierapporte</span><span class="arbeitsstand-wert" id="cockpitRepStand">–</span></button>
@@ -399,6 +404,17 @@
 <div id="cockpitAngeboteBody"></div>
 </div>
 </div>
+<!-- v3.37: Leistungen - eigene Ebene zwischen Offerte und Massaufnahme.
+     Eine Leistung ist eine konkrete auszufuehrende Arbeit; sie kann aus
+     einer Offertenposition entstehen oder eine Zusatzleistung ohne
+     Offertenbezug sein. Kein Feature-Schalter noetig, siehe js/65. -->
+<div class="card klapp" id="cockpitLeistungenCard">
+<h2 class="klapp-kopf" data-klapp="leistungen" role="button" tabindex="0" aria-expanded="false">🧩 Leistungen<span id="cockpitLeistungenCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-leistungen">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<div class="bar"><button class="blue" id="cockpitNeueLeistung">＋ Neue Leistung</button></div>
+<div id="cockpitLeistungenBody"></div>
+</div>
+</div>
 <div class="card klapp" id="cockpitMeasCard">
 <h2 class="klapp-kopf" data-klapp="meas" role="button" tabindex="0" aria-expanded="false">📐 Massaufnahmen<span id="cockpitMeasCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-meas">i</button><span class="klapp-chevron">›</span></h2>
 <div class="klapp-body">
@@ -417,6 +433,17 @@
 <div class="bar"><button id="cockpitMatZuOeffnen" class="blue mz-knopf">🧱 Material &amp; Zuschnitt öffnen</button></div>
 </div>
 
+<!-- v3.37: Ausmass-Vorbereitung - zentrale Uebersicht der Kandidaten aus
+     Leistungen und aus den technischen Massaufnahme-Werten
+     (measurements.data.ausmass). KEINE automatische Uebernahme: der
+     Benutzer haakt an, was tatsaechlich ins Ausmass soll. Die Auswahl
+     veraendert die Massaufnahme nicht - siehe js/65-leistungen.js. -->
+<div class="card klapp" id="cockpitAusmassVorbCard">
+<h2 class="klapp-kopf" data-klapp="ausmassVorbereitung" role="button" tabindex="0" aria-expanded="false">🧮 Ausmass-Vorbereitung<span id="cockpitAusmassVorbCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-ausmass-vorbereitung">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<div id="cockpitAusmassVorbBody"></div>
+</div>
+</div>
 <div class="card klapp" id="cockpitAmCard">
 <h2 class="klapp-kopf" data-klapp="am" role="button" tabindex="0" aria-expanded="false">📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-am">i</button><span class="klapp-chevron">›</span></h2>
 <div class="klapp-body">
@@ -1661,6 +1688,48 @@ einer wirkt nicht auf die anderen.</div>
 </div>
 </div>
 
+<!-- v3.37: Leistungen - konkrete auszufuehrende Arbeit, optional mit einer
+     Offertenposition verknuepft, optional mit einer oder mehreren
+     Massaufnahmen. Ausfuehrung liegt hier auf Leistungsebene (Status,
+     ausgefuehrte Menge, Bemerkung) - NICHT an einzelnen Massaufnahme-
+     Positionen, siehe js/65-leistungen.js. -->
+<div id="leistungEditModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>🧩 Leistung <button type="button" class="hilfe-knopf no-print" data-hilfe="leistung">i</button></h2>
+<div class="grid" style="margin-bottom:8px">
+<div class="wide"><label>Bezeichnung</label><input id="leiBezeichnung" data-pflicht="1" placeholder="z. B. Dachentwässerung komplett"></div>
+<div><label>Menge</label><input id="leiMenge" placeholder="z. B. 1.00"></div>
+<div><label>Einheit</label><input id="leiEinheit" placeholder="z. B. m, Stk., pausch."></div>
+<div class="wide"><label>Offertenposition (optional) <button type="button" class="hilfe-knopf no-print" data-hilfe="leistung-angebot">i</button></label>
+<select id="leiAngebotPosition"></select>
+</div>
+</div>
+
+<h2 style="margin-top:4px">Ausführung</h2>
+<div class="grid" style="margin-bottom:8px">
+<div><label>Status</label>
+<select id="leiStatus">
+<option value="nicht_ausgefuehrt">○ Nicht ausgeführt</option>
+<option value="teilweise">◐ Teilweise</option>
+<option value="vollstaendig">✓ Vollständig</option>
+</select>
+</div>
+<div><label>Ausgeführte Menge</label><input id="leiAusgefuehrteMenge" placeholder="z. B. 24.50 m"></div>
+<div class="wide"><label>Bemerkung</label><textarea id="leiBemerkung" placeholder="Hinweise …"></textarea></div>
+</div>
+
+<h2 style="margin-top:4px">Verknüpfte Massaufnahmen</h2>
+<div id="leiMassaufnahmenListe"></div>
+
+<div class="bar">
+<button id="leiSpeichernBtn" class="green">💾 Speichern</button>
+<button id="leiAbbrechenBtn" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
 <!-- SETTINGS -->
 <div id="settingsModal" class="modal" hidden>
 <div class="modalbox">
@@ -1681,7 +1750,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
 App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
 Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.36.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 81 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.37.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 82 Seiten)</a></div>
 
 <h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
 <div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
@@ -2262,7 +2331,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.36.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.37.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2345,6 +2414,7 @@ nicht neu installieren.</div>
 <script src="js/62-masse.js"></script>
 <script src="js/63-angebote.js"></script>
 <script src="js/64-ausfuehrung.js"></script>
+<script src="js/65-leistungen.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

@@ -24544,3 +24544,152 @@ Massaufnahme-Fachmodule und die Packrechnung (`js/29`, `js/33`,
   könnte, ohne dass diese Runde etwas vorgreift.
 - `pruefstand-angebote-v3-34.js`s zwei Fehlschläge bleiben unverändert
   offen – vorbestehend, unabhängig von dieser Runde (Abschnitt 140.4).
+
+## 142. LEISTUNGEN + ZENTRALE AUSMASS-VORBEREITUNG — VERSION 3.37
+
+Korrektur des in Abschnitt 141 gebauten Ausführungsmodells: Version 3.36
+band „Geplant → Ausgeführt" direkt an einzelne Massaufnahme-Positionen.
+Fachlich falsch – eine Massaufnahme ist eine rein **technische** Erfassung,
+ihre Werte dürfen nie automatisch zu Ausmass- oder Leistungspositionen
+werden. Neue Kette:
+
+    PROJEKT → OFFERTE → LEISTUNGEN → MASSAUFNAHME (rein technisch)
+            → AUSMASS-VORBEREITUNG (Mensch wählt aus) → AUSMASS
+
+Auftrag ausdrücklich eng begrenzt: keine neue Preis-/Rechnungslogik, keine
+zweite Ausmass-Berechnung, keine automatische Offerte→Ausmass- oder
+Massaufnahme→Ausmass-Übernahme, keine neuen Massaufnahme-Fachmodule, kein
+Refactoring über das Nötige hinaus.
+
+### 142.1 Leistungen – eigene Ebene, keine Kopie der Offerte
+
+Neue Tabelle `leistungen`: `project_id`, `bezeichnung`, `menge`, `einheit`,
+`status` (`nicht_ausgefuehrt`/`teilweise`/`vollstaendig`),
+`ausgefuehrte_menge`, `bemerkung`, dazu `angebot_id`/`angebot_position` als
+**Schnappschuss-Verknüpfung** zu einer Offertenposition – kein Fremdschlüssel
+auf eine einzelne Zeile in `angebote.positions` (das ist ein freies
+jsonb-Array ohne eigene Zeilen-ID), sondern die Offerten-ID plus die
+Positionsnummer als Text. Beides ist **optional**: eine Zusatzleistung ohne
+jeden Offertenbezug ist ein gewöhnlicher Datensatz mit
+`angebot_id = angebot_position = NULL`.
+
+Die Ausführung (Status, ausgeführte Menge, Bemerkung) liegt **direkt an der
+Leistung** – keine zweite Tabelle wie `ausfuehrungen` in v3.36, weil die
+Leistung selbst schon die richtige Granularität für „ausgeführt" ist.
+
+`leistung_massaufnahmen` (nur `leistung_id`, `measurement_id`) verknüpft eine
+Leistung mit einer oder mehreren Massaufnahmen, rein informativ – **kein**
+Feld der Massaufnahme wird dabei gelesen, verändert oder kopiert.
+
+### 142.2 Ausmass-Vorbereitung – der Mensch entscheidet, nicht die App
+
+`ausmass_kandidaten` sammelt mögliche Positionen aus zwei Quellen –
+Leistungen (`quelle_typ='leistung'`) und den technischen
+`measurements.data.ausmass[]`-Werten (`quelle_typ='massaufnahme'`,
+`measurement_id`+`measurement_pos`) – und markiert jede Zeile ausdrücklich
+mit ihrer Herkunft. Die Kandidatenliste selbst verändert nichts; erst ein
+Klick auf **„In neues Ausmass übernehmen"** legt aus den **angehakten**
+Zeilen (nie automatisch aus allen) eine neue `ausmass`-Zeile
+(`type='offerte_erfassen'`) an und schreibt die zugehörigen
+`ausmass_kandidaten`-Zeilen fest. Das bestehende Ausmass-Modul
+(`js/17-ausmass.js`) ist dafür **byteweise unverändert** – es bekommt nur
+eine zusätzliche, ganz gewöhnliche Zeile zum Bearbeiten.
+
+Feldform bewusst identisch zu `angebote.positions[]`
+(`pos`/`description`/`quantity`/`unit`) bzw. zu `measurements.data.ausmass[]`
+(`pos`/`bezeichnung`/`menge`/`einheit`) – beim Übernehmen umbenannt
+(`bezeichnung→description`, `menge→quantity`, `einheit→unit`), nie
+zurückgeschrieben.
+
+### 142.3 RLS – dasselbe Muster wie jede andere Projekttabelle
+
+Alle drei neuen Tabellen tragen eine restriktive `tenant_boundary_<tabelle>`-
+Policy (Firmengrenze über das verknüpfte Projekt, live gegen das echte
+Schema per `pg_policies` geprüft) plus die vier üblichen
+`has_permission('projects', …)`-Policies. `set_creator_editor_meta()` (seit
+v2.28) ist unverändert an `leistungen` angehängt. `write_audit_log()`
+bekommt einen `leistung`-Zweig (`audit_log_entity_type_check` um
+`'leistung'` erweitert) – **kein zweiter Schreiber**, derselbe Trigger wie
+für jede andere Entität.
+
+### 142.4 Integration ohne js/24 anzufassen
+
+`js/65-leistungen.js` trägt sich selbst in `COCKPIT_BEREICHE` ein (zwei
+Abschnitte: „leistungen" und „ausmassVorbereitung") – dieselbe
+Erweiterungstechnik wie `js/63-angebote.js` in v3.34. **Anders als bei der
+Offerte gibt es keinen Feature-Schalter**: Leistungen/Ausmass-Vorbereitung
+laufen über die gewöhnliche Projekt-Berechtigung und sind für jeden mit
+Projektzugriff sichtbar, sobald ein Projekt geöffnet ist.
+
+`ausfuehrungen`/`js/64-ausfuehrung.js` aus v3.36 sind **unverändert stehen
+geblieben** – keine Daten zerstört, kein blindes Löschen. Beide Systeme
+laufen nebeneinander; welches ein Betrieb tatsächlich nutzt, ist ihm
+überlassen (die Positions-genaue Ausführung aus v3.36 bleibt möglich, die
+Leistungsebene ist zusätzlich da).
+
+### 142.5 Getestet
+
+**`pruefstaende/pruefstand-leistungen-v3-37.js` – 41/41**, echtes Chromium
+mit protokollierender Attrappe, alle 14 im Auftrag genannten Testpunkte
+abgedeckt (Leistung anlegen, optionale Offertenverknüpfung, Zusatzleistung
+ohne Offerte, Verknüpfung mit Massaufnahmen, Massaufnahme bleibt technisch
+unverändert, Blechstösse/Zuschnitte werden nicht automatisch übernommen,
+Ausmass-Vorbereitung zeigt Kandidaten mit Quelle, Auswahl per Hand, Auswahl
+verändert die Massaufnahme nicht, Ausführung auf Leistungsebene).
+
+**Zwei Gegenproben** (house convention: bewusst einen echten Fehler
+einbauen, exakt den erwarteten Fehlschlag messen, zurücksetzen, wieder
+grün): `company_id` clientseitig mitgeschickt → 2 Fehlschläge; „In neues
+Ausmass übernehmen" nimmt alle Kandidaten statt der angehakten → genau 3
+Fehlschläge in Abschnitt 6 (Tests 6/9). Beide zurückgesetzt, danach wieder
+41/0.
+
+**Regression**: alle Prüfstände im Ordner erneut gelaufen. Eine echte,
+legitime veraltete Erwartung gefunden und korrigiert:
+`pruefstand-cockpit-zurueck-v3-11.js` kannte die zwei neuen
+`COCKPIT_BEREICHE`-Abschnitte nicht (`SOLL`-Liste ergänzt, mit Kommentar
+warum sie – anders als „angebote" – ohne Feature-Schalter immer sichtbar
+sind) → danach 51/51. Zwei Fehlschläge bestätigt **vorbestehend und
+unabhängig** von dieser Runde (`git stash`-Vergleich gegen den
+unveränderten v3.36-Stand liefert dieselben Fehlschläge):
+`pruefstand-angebote-v3-34.js` (Abschnitt 140.4, an den v3.34-Commit
+gebunden) und `pruefstand-medien-am-ende-v2-75.js` (drei
+„sb.from is not a function"-Konsolenfehler, reproduzierbar auf dem
+Baseline-Commit). Keine dieser beiden Dateien wurde angefasst.
+
+**Regierapport**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js` und
+`css/03-druck.css` sind **nicht im Diff**; die `index.html`-Änderungen
+betreffen ausschliesslich das Projekt-Cockpit und ein neues
+`#leistungEditModal` (alle neuen Info-Knöpfe tragen `no-print`) – kein
+druckrelevantes Element berührt.
+
+### 142.6 Anleitung
+
+Nach Regel 108.1 mitgeführt: neuer Unterabschnitt „7.1 · Leistungen und
+Ausmass-Vorbereitung" direkt nach Kapitel 7 (Offerte) eingefügt – bewusst
+**kein** neues, durchnummeriertes Kapitel, um die rund 35 bestehenden
+„(Abschnitt N)"-Querverweise in den Kapiteln 8–24 nicht anfassen zu müssen
+(reines Scope-Minimierungsargument, keine inhaltliche Kürzung). Screenshots
+und PDF v3.37 (82 Seiten) neu erzeugt, fünf Verweise nachgezogen, altes PDF
+gelöscht. `pruefstand-hilfe-v3-03` bestätigt: 68/68.
+
+### 142.7 Live-Supabase-Tests
+
+Wie in jeder vorherigen Runde: die Sandbox erlaubt keinen echten
+Browser-Klicktest gegen `nfgryuzkpwjfmdlmevuy.supabase.co`. **Das wird
+nicht behauptet.** Geprüft wurde ausschliesslich über den simulierten
+Playwright-Prüfstand (Attrappe statt echtem Supabase) und – für die
+RLS-Policy-Struktur selbst – per direkter SQL-Abfrage gegen das echte
+Produktivschema in einer früheren Sitzung dieser Session.
+
+### 142.8 Offene Punkte
+
+- Kein Live-Klicktest gegen Supabase möglich, siehe 142.7.
+- **Keine Ausmass-Übernahme aus Offerte oder Massaufnahme automatisiert** –
+  ausdrücklich Auftragsvorgabe, nicht Zeitmangel.
+- `js/64-ausfuehrung.js`/`ausfuehrungen` aus v3.36 bleiben parallel
+  bestehen; ob ein Betrieb künftig nur noch die Leistungsebene nutzt, ist
+  eine spätere, bewusste Entscheidung.
+- `pruefstand-angebote-v3-34.js` und `pruefstand-medien-am-ende-v2-75.js`
+  bleiben unverändert offen – vorbestehend, unabhängig von dieser Runde.
+  offen – vorbestehend, unabhängig von dieser Runde (Abschnitt 140.4).

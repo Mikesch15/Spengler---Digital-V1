@@ -28,13 +28,16 @@ const VERLAUF_ENTITY_LABELS={project:"Projekt",measurement:"Massaufnahme",ausmas
  // v3.15: ein abgehaktes Zuschnittstueck.
  zuschnitt:"Zuschnitt",
  // v3.36: Ausfuehrungsstand je Position (Geplant -> Ausgefuehrt).
- ausfuehrung:"Ausführung"};
+ ausfuehrung:"Ausführung",
+ // v3.37: Leistung (Projekt -> Leistungen -> Massaufnahmen -> Ausmass).
+ leistung:"Leistung"};
 // v2.35: dieselben Symbole, die bereits in den jeweiligen Hauptbereichen
 // verwendet werden (index.html: "📁 Projekte", "📐 Massaufnahme",
 // "📏 Ausmass", "📋 Regierapport") - keine neue Symbolsprache, dezente
 // Kennzeichnung der Entität statt Farbcodierung (Auftrag Abschnitt 9).
 const VERLAUF_ENTITY_ICONS={project:"📁",measurement:"📐",ausmass:"📏",report:"📋",
- reservierung:"📦",reststueck:"♻️",vorlage:"📄",zuschnitt:"✂️",ausfuehrung:"📋"};
+ reservierung:"📦",reststueck:"♻️",vorlage:"📄",zuschnitt:"✂️",ausfuehrung:"📋",
+ leistung:"🧩"};
 
 // v2.33: Feld-Diffing. Bewusst nur dasselbe kleine, zuverlässige Feld-Set,
 // das write_audit_log() serverseitig vergleicht (siehe CLAUDE.md
@@ -55,6 +58,9 @@ const VERLAUF_FIELD_LABELS={
  // write_audit_log() fuer entity_type='ausfuehrung' tatsaechlich diffed
  // (kein einheit/position_bezeichnung - die werden nicht mitgeschrieben).
  ausfuehrung:{status:"Status",ausgefuehrte_menge:"Ausgeführte Menge",bemerkung:"Bemerkung",geplante_menge:"Geplante Menge"},
+ // v3.37: Leistungen - dieselben drei Status-Werte wie ausfuehrung.status,
+ // deshalb unten dieselbe Uebersetzung (ausfStatusText) wiederverwendet.
+ leistung:{status:"Status",bezeichnung:"Bezeichnung",ausgefuehrte_menge:"Ausgeführte Menge",bemerkung:"Bemerkung",angebot_id:"Offertenposition"},
  measurement:{
   title:"Bezeichnung",date:"Datum",note:"Notiz / Masse",
   // v3.05 Arbeitsworkflow (Freigabe, Zuweisung, Ruesten, Montage)
@@ -232,6 +238,12 @@ function verlaufChangesHtml(row){
   }else if(row.entity_type==="ausfuehrung"&&c.field==="status"){
    // v3.36: deutsche Bezeichnung des Ausfuehrungsstands - gleiches Muster
    // wie reservierung/status oben, nur mit dem Vokabular aus js/64.
+   const n=v=>(typeof ausfStatusText==="function")?ausfStatusText(v):String(v||"-");
+   wert=`${esc(n(c.old))} → ${esc(n(c.new))}`;
+  }else if(row.entity_type==="leistung"&&c.field==="status"){
+   // v3.37: leistungen.status verwendet dieselben drei Werte wie
+   // ausfuehrung.status (nicht_ausgefuehrt/teilweise/vollstaendig) - keine
+   // zweite Uebersetzungstabelle, dieselbe Funktion aus js/64.
    const n=v=>(typeof ausfStatusText==="function")?ausfStatusText(v):String(v||"-");
    wert=`${esc(n(c.old))} → ${esc(n(c.new))}`;
   }else if(row.entity_type==="measurement"&&(c.field==="photo"||c.field==="sketches")){

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.36.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.37.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -523,6 +523,44 @@ von Massaufnahme, Produktion und Ausmass. Eine bestehende Offerte lässt sich
 per Foto einlesen, die erkannten Positionen werden vor dem Speichern
 angezeigt und lassen sich bearbeiten.</p>
 <p>Je Eintrag: <b>Öffnen</b> zum Ansehen/Weiterbearbeiten, das Kreuz löscht.</p>`},
+
+// v3.37: Leistungen + zentrale Ausmass-Vorbereitung. Neue Ebene zwischen
+// Offerte und Massaufnahme - siehe js/65-leistungen.js.
+"cockpit-leistungen":{titel:"Leistungen im Projekt",text:`
+<p>Eine <b>Leistung</b> ist eine konkrete auszuführende Arbeit – z. B.
+"Dachentwässerung komplett" oder "Mauerabdeckung Nordseite". Sie kann aus
+einer Offertenposition entstehen, muss aber nicht: eine Zusatzleistung ohne
+Offertenbezug ist genauso möglich.</p>
+<p>Eine Massaufnahme bleibt dabei immer <b>rein technisch</b> (Stücke,
+Zuschnitte, Blechfläche …) – diese Werte werden nirgends automatisch in eine
+Leistung kopiert. Eine Leistung lässt sich mit einer oder mehreren
+Massaufnahmen verknüpfen, ohne dass sich an der Massaufnahme selbst etwas
+ändert.</p>
+<p>Der <b>Ausführungsstatus</b> (Nicht ausgeführt/Teilweise/Vollständig,
+ausgeführte Menge, Bemerkung) gehört zur Leistung – nicht zu einzelnen
+Massaufnahme-Positionen.</p>`},
+
+"leistung":{titel:"Leistung erfassen",text:`
+<p>Bezeichnung ist die einzige Pflichtangabe. Menge/Einheit sind optional
+(z. B. "24.50 m" oder "1.00 Stk.").</p>
+<p>Eine Offertenposition ist optional wählbar – ohne Auswahl ist es eine
+Zusatzleistung. Die Ausführung wird direkt hier festgehalten, unabhängig
+von den technischen Werten der verknüpften Massaufnahmen.</p>`},
+
+"leistung-angebot":{titel:"Aus einer Offertenposition",text:`
+<p>Die Liste zeigt alle Positionen der Offerten dieses Projekts. Eine
+Auswahl übernimmt Bezeichnung, Menge und Einheit als Vorschlag – die
+Offertenposition selbst bleibt unverändert, es wird nur eine Referenz
+gespeichert.</p>`},
+
+"cockpit-ausmass-vorbereitung":{titel:"Ausmass-Vorbereitung",text:`
+<p>Zentrale Übersicht aller Kandidaten für das Ausmass – aus Leistungen und
+aus den technischen Werten der Massaufnahmen (z. B. Blechfläche). <b>Nichts
+davon landet automatisch im Ausmass.</b></p>
+<p>Erst ein Häkchen und "Übernehmen" legt ein neues Ausmass mit genau den
+ausgewählten Positionen an. Die Massaufnahme selbst wird dabei nicht
+verändert, und eine bereits übernommene Position erscheint hier nicht
+noch einmal.</p>`},
 
 "cockpit-am":{titel:"Ausmass im Projekt",text:`
 <p>Alle Ausmasse dieses Projekts – "Offerte erfassen" und
