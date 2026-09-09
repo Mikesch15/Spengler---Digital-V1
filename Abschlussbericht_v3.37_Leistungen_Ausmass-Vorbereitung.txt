@@ -1,0 +1,539 @@
+ABSCHLUSSBERICHT
+Leistungen + zentrale Ausmass-Vorbereitung — Version 3.37
+Spengler-DIGITAL
+Datum: 09.09.2026
+Git-Commit: f3d0e7f "Leistungen + zentrale Ausmass-Vorbereitung (v3.37)"
+Branch: main
+
+
+================================================================
+1. AUSGANGSLAGE
+================================================================
+
+Vorherige Version (v3.36, CLAUDE.md Abschnitt 141) hatte "Geplant ->
+Ausgefuehrt" direkt an einzelne Massaufnahme-Positionen gehaengt
+(neue Tabelle ausfuehrungen, Statusfelder je Position innerhalb
+einer Massaufnahme).
+
+Der aktuelle Auftrag (Claude_Auftrag_Leistungen_Ausmass_Vorbereitung.txt,
+09.09.2026) stellt fest, dass dieser Ansatz fachlich falsch ist:
+eine Massaufnahme ist eine rein technische Erfassung. Ihre Werte
+(Stuecke, Blechstoesse, Zuschnitte, Masse) duerfen zu keinem
+Zeitpunkt automatisch zu Leistungen oder zu Ausmasspositionen werden.
+
+Geforderte neue Struktur:
+
+  PROJEKT -> OFFERTE (Offertenpositionen)
+          -> LEISTUNGEN (konkrete auszufuehrende Arbeiten)
+          -> MASSAUFNAHMEN (rein technische Erfassung, unveraendert)
+          -> AUSMASS (zentrale Auswahl/Zusammenstellung fuer die Abrechnung)
+
+Kernprinzip laut Auftrag: NICHT "Massaufnahme -> automatisch Ausmass",
+SONDERN "Leistungen / technische Massaufnahmewerte / Zusatzleistungen
+-> AUSMASS-VORBEREITUNG -> Benutzer waehlt aus -> AUSMASS".
+
+Der Auftrag verlangte ausdruecklich, v3.36s ausfuehrungen-Tabelle und
+zugehoerigen Code NICHT blind zu loeschen, sondern zu pruefen, was
+minimal weiterverwendet werden kann, und bestehende Daten nicht zu
+zerstoeren.
+
+
+================================================================
+2. TATSAECHLICH UMGESETZTE AENDERUNGEN
+================================================================
+
+2.1 Neue Ebene "Leistungen"
+----------------------------
+Eigenstaendige Tabelle `leistungen`, je Zeile eine konkrete Arbeit:
+
+  - project_id (Pflichtbezug zum Projekt)
+  - bezeichnung, menge, einheit, bemerkung
+  - status, ausgefuehrte_menge  (Ausfuehrung liegt HIER, auf
+    Leistungsebene - nicht mehr an Massaufnahme-Positionen)
+  - angebot_id, angebot_position  (optionale Verknuepfung zu einer
+    Position einer bereits erfassten Offerte - als Snapshot/Label,
+    kein Fremdschluessel auf ein Einzelelement, da Offertenpositionen
+    nur als jsonb-Array ohne eigene Zeilen-ID existieren)
+  - created_by/at, updated_by/at (ueber set_creator_editor_meta())
+
+Eine Leistung kann:
+  - aus einer Offertenposition abgeleitet werden (angebot_id +
+    angebot_position gesetzt),
+  - als Zusatzleistung ganz ohne Offertenbezug angelegt werden
+    (beide Felder NULL),
+  - waehrend eine Offertenposition ohne zugehoerige Leistung stehen
+    bleiben kann (keine Pflichtverknuepfung in die andere Richtung).
+
+Verknuepfungstabelle `leistung_massaufnahmen` (leistung_id,
+measurement_id) - rein informativ, ordnet einer Leistung eine oder
+mehrere Massaufnahmen zu, OHNE dass dabei auch nur ein Feld der
+Massaufnahme selbst angefasst wird.
+
+2.2 Neue Ebene "Ausmass-Vorbereitung"
+--------------------------------------
+Tabelle `ausmass_kandidaten`: zeigt Kandidaten aus zwei Quellen
+gleichzeitig, unterschieden ueber `quelle_typ` ('leistung' oder
+'massaufnahme'):
+
+  - project_id
+  - quelle_typ, leistung_id (bei Quelle Leistung),
+    measurement_id + measurement_pos (bei Quelle Massaufnahme)
+  - bezeichnung, menge, einheit  (Anzeigewerte, umbenannt aus dem
+    jeweiligen Quellformat - description/quantity/unit bei Offerten-
+    Positionen, bezeichnung/menge/einheit bei Massaufnahme-Ausmass -
+    NIEMALS in die Quelle zurueckgeschrieben)
+  - ausmass_id (gesetzt, sobald die Zeile tatsaechlich uebernommen
+    wurde)
+
+Jede angezeigte Zeile traegt sichtbar "Quelle: Leistung" bzw.
+"Quelle: Massaufnahme". Der Benutzer waehlt von Hand per Kaestchen
+aus; erst ein Klick auf "In neues Ausmass uebernehmen" legt eine
+NEUE Ausmass-Zeile (type='offerte_erfassen', Titel "Ausmass-
+Vorbereitung <Datum>") an und schreibt Kandidaten-Zeilen nur fuer die
+tatsaechlich angehakten Positionen - nie fuer alle Kandidaten auf
+einmal, nie automatisch.
+
+Die urspruengliche Massaufnahme wird durch diese Auswahl NICHT
+veraendert - `js/17-ausmass.js` (bestehendes Ausmass-Modul) ist
+byteweise unveraendert.
+
+2.3 v3.36 (Ausfuehrung je Massaufnahme-Position)
+--------------------------------------------------
+Wie vom Auftrag verlangt NICHT geloescht. Tabelle `ausfuehrungen` und
+`js/64-ausfuehrung.js` bleiben vollstaendig bestehen und funktions-
+faehig; sie koexistieren einfach neben der neuen, auf Leistungsebene
+liegenden Ausfuehrungserfassung. Keine Migration/Konvertierung
+zwischen beiden Systemen wurde vorgenommen (siehe Abschnitt 6,
+"nicht umgesetzte Punkte").
+
+2.4 UI-Integration
+--------------------
+Zwei neue Karten im bestehenden Projekt-Cockpit:
+  - "Leistungen" (Anlegen/Bearbeiten/Loeschen, Verknuepfung mit
+    Offertenposition und Massaufnahmen)
+  - "Ausmass-Vorbereitung" (Kandidatenliste beider Quellen, Auswahl,
+    Uebernahme-Knopf)
+
+Integration erfolgt ueber die bestehende COCKPIT_BEREICHE-
+Selbstregistrierung (js/65-leistungen.js traegt sich selbst ein),
+OHNE js/24-projekt-cockpit.js anzufassen - keine neue Navigation,
+keine UI-Neugestaltung.
+
+Anders als bei der Offerte (v3.34, ueber feature_access nur fuer
+einzeln freigeschaltete Mitarbeiter sichtbar) sind Leistungen und
+Ausmass-Vorbereitung ueber die normalen Projekt-Berechtigungen fuer
+jeden mit Projektzugriff sichtbar - kein zusaetzlicher Feature-
+Schalter noetig.
+
+
+================================================================
+3. GEAENDERTE / NEU ERSTELLTE DATEIEN
+================================================================
+
+Neu:
+  - js/65-leistungen.js                          (Kernlogik UI/Daten)
+  - pruefstaende/pruefstand-leistungen-v3-37.js   (Testsuite, 41 Tests)
+
+Geaendert:
+  - CLAUDE.md                (neuer Abschnitt 142, Dokumentation)
+  - index.html                (zwei Cockpit-Karten, neues Modal
+                                #leistungEditModal, Versionsnummer)
+  - js/03-login.js            (unveraendert-notwendige Anbindung)
+  - js/23-verlauf.js          (Bezeichnung fuer 'leistung'-Eintraege
+                                im Aenderungsverlauf)
+  - js/41-hilfe.js            (HILFE_PDF-Verweis auf v3.37-PDF)
+  - pruefstaende/pruefstand-cockpit-zurueck-v3-11.js
+                                (an neue Cockpit-Karten angepasst)
+  - sw.js                     (Cache-Version 3.37)
+  - anleitung/anleitung.html  (neuer Unterabschnitt 7.1)
+  - anleitung/README.md       (PDF-Dateiname aktualisiert)
+
+Ersetzt (git rename):
+  - anleitung/Spengler-DIGITAL-Anleitung-v3.36.pdf
+    -> anleitung/Spengler-DIGITAL-Anleitung-v3.37.pdf
+    (82 Seiten, neu gebaut aus der aktualisierten Anleitung)
+
+NICHT angefasst (bewusst):
+  - js/17-ausmass.js           (bestehendes Ausmass-Modul, byteweise
+                                 unveraendert - per git diff bestaetigt)
+  - js/64-ausfuehrung.js        (v3.36-Logik, bleibt bestehen)
+  - alle 12 Massaufnahme-Fachmodule
+  - js/06-rapport.js, js/08-katalog-blitzschutz.js, css/03-druck.css
+    (Regierapport-Druckpfad - siehe Abschnitt 5.4)
+
+
+================================================================
+4. DATENBANK / MIGRATIONEN
+================================================================
+
+Neue Tabellen (per SQL-Migration angelegt, Details siehe MCP-
+Migrationsverlauf des Supabase-Projekts):
+
+  - leistungen
+  - leistung_massaufnahmen
+  - ausmass_kandidaten
+
+Keine bestehende Tabelle wurde geloescht oder umstrukturiert.
+v3.36s ausfuehrungen-Tabelle ist unveraendert vorhanden. Keine
+bestehenden Daten wurden veraendert oder entfernt.
+
+write_audit_log() wurde um einen neuen Zweig fuer entity_type =
+'leistung' erweitert; audit_log_entity_type_check entsprechend um
+den Wert 'leistung' ergaenzt. Kein neuer Trigger-Mechanismus - die
+bestehende Audit-Log-Infrastruktur wird direkt weiterverwendet.
+
+set_creator_editor_meta() (bestehender, generischer Trigger seit
+v2.28) wird unveraendert an leistungen angehaengt - kein neuer
+Trigger-Code.
+
+
+================================================================
+5. RLS / PERMISSIONS
+================================================================
+
+Fuer jede der drei neuen Tabellen (leistungen, leistung_massaufnahmen,
+ausmass_kandidaten) gilt das bestehende Standardmuster des Projekts,
+1:1 uebernommen:
+
+  - EINE restriktive Policy tenant_boundary_<tabelle>, die prueft,
+    dass die Zeile ueber ihren project_id-Bezug zur Firma des
+    aufrufenden Benutzers gehoert (Doppelpruefung: eigenes
+    company_id-Feld UND unabhaengige Subquery gegen projects).
+  - VIER permissive Policies ueber has_permission('projects','view'
+    | 'edit') fuer SELECT/INSERT/UPDATE/DELETE - identisch zum
+    Muster jeder anderen projektgebundenen Tabelle im System.
+
+Keine neue Rollen- oder Berechtigungslogik. Keine Aenderung an
+bestehenden Policies anderer Tabellen.
+
+5.1 Live-SQL-RLS-Verifikation (durchgefuehrt)
+------------------------------------------------
+Direkt gegen das Produktivschema (nfgryuzkpwjfmdlmevuy) per SQL
+geprueft:
+  - pg_policies fuer tenant_boundary_leistungen bestaetigt die
+    doppelte Pruefung (eigenes company_id UND projects-Subquery).
+  - Dasselbe Muster fuer leistung_massaufnahmen und
+    ausmass_kandidaten bestaetigt.
+
+5.2 Gegenprobe 1: RLS-Leck
+------------------------------
+In einer Testversion wurde die tenant_boundary-Policy testweise
+entfernt/geschwaecht, um zu pruefen, ob der eigene Testfall das
+erkennt. Ergebnis: 2 Testfaelle schlugen sofort fehl (Firma-A-
+Benutzer sah/schrieb Firma-B-Daten). Nach Wiederherstellung der
+korrekten Policy: wieder 41/41 gruen.
+
+5.3 Gegenprobe 2: Automatische Vollmengen-Uebernahme
+--------------------------------------------------------
+In einer Testversion wurde "In neues Ausmass uebernehmen" so
+veraendert, dass es ALLE Kandidaten statt nur der angehakten
+uebernimmt (Verstoss gegen die explizite Auswahlpflicht des
+Auftrags). Ergebnis: genau 3 Testfaelle (Abschnitt "Tests 6 & 9")
+schlugen fehl. Nach Wiederherstellung der korrekten Auswahl-Logik:
+wieder 41/41 gruen.
+
+5.4 Regierapport-Druckpfad
+------------------------------
+Der Regierapport-Druck (js/06-rapport.js, js/08-katalog-
+blitzschutz.js, css/03-druck.css) ist in keiner Weise im Diff
+enthalten. Zusaetzlich wurde der vollstaendige index.html-Diff
+manuell durchgesehen: alle Aenderungen betreffen ausschliesslich
+Cockpit-UI-Elemente (zwei neue Karten, ein neues Modal); jede neue
+Bedienelementgruppe traegt die Klasse no-print. Auf Grundlage dieser
+strukturellen Pruefung (keine beruehrte Druckdatei, keine
+druckrelevante Markup-Aenderung) wird geschlussfolgert, dass der
+Regierapport-Ausdruck unveraendert bleibt. Es wurde bewusst KEIN
+vollstaendiger Byte-Hash-Vergleich per Playwright durchgefuehrt
+(wie in fruaeheren Versionen ueblich), da dies angesichts der
+kompletten Abwesenheit jeder Aenderung an druckrelevanten Dateien
+als unverhaeltnismaessiger Ressourceneinsatz eingeschaetzt wurde
+(Auftrag: "Nutze die Claude-Nutzungslimits sparsam").
+
+
+================================================================
+6. TESTS + ERGEBNISSE
+================================================================
+
+6.1 Eigener Pruefstand
+--------------------------
+pruefstaende/pruefstand-leistungen-v3-37.js: 41 bestanden, 0
+fehlgeschlagen.
+
+Deckt alle 14 im Auftrag geforderten Testpunkte ab:
+  1. Leistung anlegen                                    - OK
+  2. Optionale Offertenposition-Verknuepfung              - OK
+  3. Zusatzleistung ohne Offerte anlegen                  - OK
+  4. Leistung mit Massaufnahme verknuepfen                - OK
+  5. Massaufnahme bleibt technisch unveraendert            - OK
+  6. Blechstoesse/Zuschnitte werden NICHT automatisch
+     Ausmasspositionen                                    - OK
+  7. Ausmass-Vorbereitung zeigt Kandidaten (beide Quellen) - OK
+  8. Benutzer kann auswaehlen (Kaestchen je Zeile)         - OK
+  9. Auswahl veraendert Massaufnahme NICHT                 - OK
+ 10. Ausfuehrung liegt auf Leistungsebene                  - OK
+ 11. Alle 12 Massaufnahme-Funktionen bleiben erhalten       - OK
+     (ueber die volle Regressionssuite bestaetigt, siehe 6.2)
+ 12. Bestehende Ausmass-/Berechnungslogik funktioniert      - OK
+     (js/17-ausmass.js byteweise unveraendert + Regression)
+ 13. RLS/Firmenabgrenzung funktioniert                      - OK
+     (siehe 5.1-5.3)
+ 14. Bestehende Regressionstests weiter ausfuehren          - OK
+     (siehe 6.2)
+
+Keine Testfaelle wurden abgeschwaecht, um sie gruen zu bekommen.
+
+6.2 Vollstaendige Regression
+--------------------------------
+Alle Pruefstaende im Verzeichnis pruefstaende/ (60 Dateien) wurden
+in einem Durchlauf ausgefuehrt.
+
+Ergebnis: 58 von 60 Dateien mit Exit-Code 0 (vollstaendig bestanden).
+
+Zwei Dateien mit Exit-Code != 0 - BEIDE bereits VOR dieser Aufgabe
+bestehend und unabhaengig vom aktuellen Auftrag:
+
+  a) pruefstand-angebote-v3-34.js (74 bestanden, 4 fehlgeschlagen)
+     Ein an den exakten v3.34-Commit-Moment gebundener git-diff-
+     Selbsttest (prueft `git diff --name-only HEAD` gegen den exakten
+     v3.34-Dateisatz und sucht die woertliche Zeichenkette "3.34" in
+     index.html/sw.js). Per Design dazu bestimmt, auf jedem spaeteren
+     main-Stand fehlzuschlagen (siehe CLAUDE.md Abschnitt 140.4-
+     Praezedenzfall). Ueber `git stash -u` gegen den echten,
+     unveraenderten v3.36-Ausgangsstand verifiziert: identisches
+     Fehlschlagmuster, also keine durch diese Aufgabe verursachte
+     Regression.
+
+  b) pruefstand-medien-am-ende-v2-75.js (149 bestanden, 1
+     fehlgeschlagen)
+     Einzelner Fehlschlag "keine Seitenfehler", ausgeloest durch drei
+     "Uncaught (in promise) TypeError: sb.from is not a function"-
+     Konsolenfehler. Ebenfalls per `git stash -u` gegen den
+     unveraenderten v3.36-Ausgangsstand verifiziert: exakt dasselbe
+     Fehlschlagmuster bereits vor dieser Aufgabe vorhanden - keine
+     durch diese Aufgabe verursachte Regression.
+
+Insbesondere gruen (Auszug relevanter Pruefstaende):
+  - pruefstand-cockpit-zurueck-v3-11.js: 51/51 (an neue Cockpit-
+    Karten angepasst, KEINE Assertion abgeschwaecht, nur die neue
+    Kartenanzahl beruecksichtigt)
+  - pruefstand-hilfe-v3-03.js: 68/68 (Anleitung-Version-Konsistenz-
+    pruefung, inkl. Abschnitt "G2 - Anleitung ist auf dem Stand der
+    App": App-Version aus index.html gelesen, Anleitung traegt
+    aktuelle Version, jeder Verweis nennt diese Version, keine
+    veraltete Anleitung im Ordner)
+  - Alle 12 Massaufnahme-Fachmodul-Pruefstaende: gruen (Nachweis
+    fuer Testpunkt 11)
+  - pruefstand-ausfuehrung-v3-36.js: 49/49 gruen (Nachweis, dass die
+    NICHT geloeschte v3.36-Logik weiterhin funktioniert)
+
+
+================================================================
+7. BEKANNTE EINSCHRAENKUNGEN
+================================================================
+
+- angebot_id/angebot_position sind ein Snapshot/Label, kein echter
+  Fremdschluessel auf ein einzelnes Element - da Offertenpositionen
+  nur als jsonb-Array ohne eigene Zeilen-ID existieren, kann eine
+  Aenderung/Loeschung einer Offertenposition NICHT automatisch an
+  verknuepfte Leistungen propagiert werden. Das ist eine bewusste,
+  minimale Loesung ohne Schemaaenderung an der bestehenden
+  angebote-Tabelle.
+
+- Zwei parallele Ausfuehrungssysteme existieren nun nebeneinander:
+  v3.36s positionsgenaue Ausfuehrung an Massaufnahmen
+  (ausfuehrungen-Tabelle, js/64-ausfuehrung.js) und die neue,
+  leistungsbezogene Ausfuehrung (leistungen.status). Es gibt KEINE
+  automatische Verbindung/Synchronisation zwischen beiden. Dies
+  entspricht der ausdruecklichen Auftragsvorgabe ("nicht blind
+  loeschen"), stellt aber aus fachlicher Sicht zwei getrennte
+  Sichten auf "Ausfuehrung" dar, die ein Betrieb aktuell parallel
+  fuehren muesste, falls beide genutzt werden.
+
+- Die Ausmass-Vorbereitung liest Massaufnahme-Ausmasswerte live aus
+  dem jeweils aktuellen Stand der Massaufnahme. Aendert sich eine
+  Massaufnahme nach dem Anlegen von Kandidaten, aber vor der
+  Uebernahme, zeigt die Kandidatenliste automatisch die neuen Werte -
+  das ist beabsichtigtes Verhalten (keine veraltete Kopie), sollte
+  dem Betrieb aber bewusst sein.
+
+
+================================================================
+8. AUSDRUECKLICH NICHT UMGESETZTE PUNKTE
+================================================================
+
+(Alle gemaess expliziter Auftragsvorgabe "KEINE NEBENARBEITEN"
+bewusst NICHT gebaut - kein Uebersehen, sondern Einhaltung der
+Auftragsgrenzen)
+
+  - Keine neue Preis-/Rechnungslogik
+  - Keine komplette Neuentwicklung des Ausmasses
+  - Keine automatische Offerte -> Ausmass-Uebernahme
+  - Keine automatische Massaufnahme -> Ausmass-Uebernahme
+  - Keine neuen Massaufnahme-Fachmodule
+  - Keine zweite Berechnungs-/Packlogik
+  - Keine komplette UI-Neugestaltung
+  - Keine allgemeinen Refactorings
+  - Keine Migration/Konvertierung von v3.36-ausfuehrungen-Daten in
+    das neue Leistungssystem (v3.36-Daten bleiben unangetastet
+    bestehen, wie im Auftrag verlangt)
+  - Keine Lieferantenbestellung, Mitarbeiterverwaltungsaenderung
+    oder andere Roadmap-Themen
+
+
+================================================================
+9. GIT COMMIT / VERSION
+================================================================
+
+Commit:  f3d0e7f
+Branch:  main
+Version: 3.37 (index.html, sw.js Cache-Version, js/41-hilfe.js
+         HILFE_PDF, Anleitung durchgaengig)
+
+Commit-Nachricht enthaelt die vorgeschriebene Attribution:
+  Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+  Claude-Session: https://claude.ai/code/session_01VnR1Nt5Nbwdpe6VHqewVna
+
+
+================================================================
+10. NICHT MOEGLICHE LIVE-TESTS
+================================================================
+
+Ein echter Live-Klicktest im Browser gegen die Produktiv-Supabase-
+Instanz war in dieser Sandbox-Umgebung NICHT moeglich (keine
+ausgehende Verbindung zu einem echten Browser-Frontend gegen die
+lebende Produktionsumgebung mit echtem Benutzerklick).
+
+Was stattdessen durchgefuehrt wurde und was diese Einschraenkung
+kompensiert:
+
+  a) Simulierte Browser-Tests (Playwright, echte Browser-Engine,
+     echtes HTML/CSS/JS der Anwendung, gegen eine protokollierende
+     Supabase-Attrappe statt der echten Datenbank): 41/41 im eigenen
+     Pruefstand, inkl. zweier Gegenproben mit absichtlich
+     eingebauten Fehlern.
+
+  b) Echte Live-SQL-Verifikation direkt gegen das Produktivschema
+     der echten Supabase-Instanz (nfgryuzkpwjfmdlmevuy) fuer die
+     RLS-Policy-Struktur (pg_policies-Abfragen, siehe Abschnitt 5.1).
+     Dies ist eine echte Pruefung gegen die lebende Datenbank, aber
+     KEIN Klicktest im Browser.
+
+Es wird ausdruecklich NICHT behauptet, dass ein echter Klick in
+einem echten Browser gegen die echte Produktionsumgebung
+durchgefuehrt wurde. Diese Einschraenkung besteht bei jeder Aufgabe
+in dieser Sandbox-Umgebung und ist kein Spezifikum dieser Aufgabe.
+
+
+================================================================
+IDEEN FUER DIE NAECHSTEN SCHRITTE
+================================================================
+
+Die folgenden Punkte sind AUSDRUECKLICH NICHT UMGESETZT. Es sind
+Ideen zur Diskussion, keine Auftraege und keine Empfehlung, sie
+sofort umzusetzen. Sie leiten sich aus dem tatsaechlichen
+Endzustand dieses Repositorys ab.
+
+--------------------------------------------------------------
+Idee 1: Praxistest mit einem echten Betrieb VOR jeder weiteren
+Erweiterung
+--------------------------------------------------------------
+Was:      Bevor an Leistungen/Ausmass-Vorbereitung weitergebaut
+          wird, den aktuellen Stand mit einem echten Anwender im
+          echten Arbeitsalltag durchspielen lassen: Offerte
+          erfassen, Leistungen daraus ableiten, Zusatzleistung
+          anlegen, Massaufnahme verknuepfen, Ausmass-Vorbereitung
+          nutzen, tatsaechlich abrechnen.
+Warum jetzt: Die Architektur ist neu und wurde bisher nur simuliert
+          getestet (Abschnitt 10). Ein echter Anwendungsfall koennte
+          zeigen, ob die Trennung Leistung/Massaufnahme/Ausmass-
+          Vorbereitung im echten Arbeitsablauf tatsaechlich Sinn
+          ergibt, bevor mehr Code darauf aufbaut.
+Nutzen:   Verhindert, dass auf einer fachlich moeglicherweise noch
+          unpassenden Grundlage weiter aufgebaut wird - genau die
+          Lehre aus dem fehlgeschlagenen v3.36-Ansatz.
+Abhaengigkeiten: Keine technischen - reine Nutzungsentscheidung des
+          Betreibers. SOLLTE VOR JEDER WEITEREN ERWEITERUNG
+          STATTFINDEN.
+
+--------------------------------------------------------------
+Idee 2: Klare Entscheidung ueber die zwei parallelen
+Ausfuehrungssysteme
+--------------------------------------------------------------
+Was:      Bewusst entscheiden, ob kuenftig NUR die leistungsbezogene
+          Ausfuehrung (v3.37) oder NUR die positionsgenaue
+          Ausfuehrung an Massaufnahmen (v3.36, ausfuehrungen-Tabelle)
+          verwendet werden soll - oder ob beide dauerhaft
+          nebeneinander bestehen bleiben sollen, mit klar getrennten
+          Anwendungsfaellen.
+Warum jetzt: Aktuell existieren zwei technisch unabhaengige "Wo
+          stehen wir?"-Antworten im selben System, ohne dass die
+          App selbst eine Brechnung dazwischen anbietet. Das ist ein
+          bewusst offen gelassener Zustand aus dieser Aufgabe
+          (Abschnitt 7), aber je laenger beide parallel genutzt
+          werden, desto schwerer wird eine spaetere Vereinheitlichung.
+Nutzen:   Vermeidet Verwirrung im taeglichen Betrieb ("wo trage ich
+          den Fortschritt ein?") und schafft Klarheit fuer alle
+          weiteren Ausbaustufen.
+Abhaengigkeiten: Idee 1 (Praxistest) sollte zuerst zeigen, welches
+          der beiden Systeme im echten Alltag tatsaechlich gebraucht
+          wird.
+
+--------------------------------------------------------------
+Idee 3: Offertenpositionen mit einer echten Zeilen-ID versehen
+--------------------------------------------------------------
+Was:      angebote.positions von einem reinen jsonb-Array ohne
+          Zeilen-Identitaet auf ein Format mit einer stabilen ID je
+          Position umstellen (z.B. ein zusaetzliches "id"-Feld je
+          Array-Eintrag).
+Warum jetzt: Aktuell verknuepft eine Leistung sich nur ueber einen
+          text-Snapshot (angebot_position) mit einer Offertenposition
+          - keine echte, verlaessliche Referenz. Aendert sich die
+          Position spaeter (Umbenennung, Loeschung), bemerkt die
+          verknuepfte Leistung das nicht.
+Nutzen:   Robustere, nachvollziehbare Verknuepfung zwischen Offerte
+          und Leistung; wuerde spaeter auch eine echte
+          "Was wurde aus dieser Offertenposition?"-Ansicht
+          ermoeglichen.
+Abhaengigkeiten: Betrifft die bestehende Offerte-Datenstruktur
+          (v3.34) und muesste vorsichtig geprueft werden, ob
+          bestehende Offerten-Datensaetze davon betroffen waeren.
+          Kein Auftrag dieser Sitzung - nur eine Idee.
+
+--------------------------------------------------------------
+Idee 4: Sichtbare Verknuepfung "Diese Ausmass-Position stammt aus
+Leistung X" in der bestehenden Ausmass-Ansicht
+--------------------------------------------------------------
+Was:      Im bestehenden Ausmass-Modul (js/17-ausmass.js) an einer
+          uebernommenen Position anzeigen, aus welcher Leistung bzw.
+          welcher Massaufnahme-Position sie urspruenglich stammt
+          (ueber ausmass_kandidaten.ausmass_id lesbar).
+Warum jetzt: Aktuell ist die Herkunft einer Ausmass-Zeile nach der
+          Uebernahme nur in ausmass_kandidaten sichtbar, nicht im
+          Ausmass-Modul selbst - fuer den Anwender im Alltag also
+          unsichtbar.
+Nutzen:   Nachvollziehbarkeit: warum steht diese Position im
+          Ausmass, was war ihre Quelle.
+Abhaengigkeiten: Erfordert eine (kleine) Erweiterung von
+          js/17-ausmass.js, was der aktuelle Auftrag ausdruecklich
+          vermeiden wollte ("bestehendes Modul moeglichst
+          unangetastet"). Sollte deshalb erst nach einer bewussten
+          Entscheidung angegangen werden, nicht nebenbei.
+
+--------------------------------------------------------------
+Idee 5: Uebersicht "Offene Leistungen je Projekt" auf Cockpit- oder
+Projektlistenebene
+--------------------------------------------------------------
+Was:      Eine kompakte Kennzahl/Ansicht, die zeigt, wie viele
+          Leistungen eines Projekts noch offen/in Arbeit/erledigt
+          sind - aehnlich wie es fuer Massaufnahmen bereits eine
+          Arbeitsstand-Ansicht gibt.
+Warum jetzt: Mit Leistungen als neuer Ebene fehlt aktuell eine
+          Sammelansicht ueber mehrere Leistungen eines Projekts
+          hinweg (aktuell nur Einzelkarten in der Leistungen-Liste).
+Nutzen:   Schneller Ueberblick ueber den Fortschritt eines Projekts
+          auf Leistungsebene, ohne jede einzelne Leistung oeffnen zu
+          muessen.
+Abhaengigkeiten: Idee 1 (Praxistest) und Idee 2 (Klaerung der
+          Ausfuehrungssysteme) sollten zuerst zeigen, ob und wie
+          Leistungsstatus im Alltag tatsaechlich genutzt wird, bevor
+          eine zusaetzliche Uebersicht darauf aufbaut.
