@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.41.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.42.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -943,7 +943,10 @@ ausgelesen. Nur wenn ein Dokument diesen (sehr grosszügig bemessenen)
 Rahmen doch einmal sprengt, meldet die Erkennung das ausdrücklich, statt
 eine unvollständige Liste zu erfinden – dann hilft es, das Dokument in
 kleineren Abschnitten hochzuladen oder die restlichen Positionen von
-Hand zu erfassen.</p>`},
+Hand zu erfassen.</p>
+<p>Seit dieser Version läuft die Erkennung zuverlässig durch: ein interner
+Fehler, der bei manchen Anfragen sofort mit einer Fehlermeldung abbrach
+statt überhaupt erst zu versuchen zu lesen, ist behoben.</p>`},
 
 // ---- Regierapport -------------------------------------------------------
 "rapport-kopf":{titel:"Regieauftrag",text:`

@@ -48,9 +48,10 @@
 //      this extraction task is a mechanical table-read that needs no
 //      extended reasoning at all. That was an unaccounted-for token sink
 //      in v12: part of the "8192 tokens of headroom" may never have been
-//      available to the actual JSON array. Fix: thinkingConfig with
-//      thinkingBudget:0 is now set explicitly, to minimize this as far as
-//      the model allows (even though the model may not honour a full 0).
+//      available to the actual JSON array. Fix (AT THE TIME, later found
+//      wrong - see v14 below): thinkingConfig with thinkingBudget:0 was
+//      set explicitly, to minimize this as far as the model allows (even
+//      though the model may not honour a full 0).
 //   2. maxOutputTokens raised again, from 8192 to 65536 - not an arbitrary
 //      re-guess, but the documented ceiling for this Gemini generation
 //      (Google's docs: Gemini 2.5 Pro supports up to 65535/65536 output
@@ -58,7 +59,8 @@
 //      ceiling). At ~33 tokens/position this gives roughly 1985 positions
 //      of headroom even before accounting for thinkingBudget:0 freeing up
 //      further room - i.e. comfortably beyond any realistic real-world
-//      Swiss Offerte, not just the one that was reported.
+//      Swiss Offerte, not just the one that was reported. This part of
+//      v13 was correct and stays unchanged in v14.
 // The MAX_TOKENS honest-fallback message from v12 stays in place
 // UNCHANGED as the safety net for the genuinely pathological case (see
 // CLAUDE.md §78.5: never silently truncate or fabricate positions) - it
@@ -71,6 +73,38 @@
 // covers with very wide margin for the actual domain (Swiss NPK Offerten
 // rarely exceed a few hundred positions) - see CLAUDE.md's own house
 // rule against building for a need that isn't concretely demonstrated.
+//
+// v14: within minutes of the v13 deploy, real production use (a live
+// mobile session against the deployed app) surfaced a NEW, different
+// error: "Request contains an invalid argument" (a 502, from the
+// !res.ok branch below, i.e. Gemini's OWN API rejected the request
+// outright - this is not the MAX_TOKENS case, and this sandbox still
+// cannot make a live Gemini call to reproduce it directly). Researched
+// before touching the code again (never guess twice in a row):
+// Google's own developer forum and multiple independent, on-topic
+// GitHub issues (cline, kilocode, big-AGI) confirm, for the Gemini 3.x
+// model family that MODEL belongs to: (1) thinkingBudget:0 is REJECTED
+// outright by Gemini 3.x models with an explicit, matching error -
+// "Budget 0 is invalid. This model only works in thinking mode" -
+// because Gemini 3.x models cannot fully disable thinking; (2) Gemini
+// 3.x models generally expect the newer thinkingLevel field instead of
+// the older (Gemini-2.5-era) thinkingBudget field for controlling
+// reasoning effort - sending thinkingBudget to a Gemini 3 model is
+// itself the wrong field, independent of the value chosen. In short:
+// v13's thinkingConfig fix was itself the cause of the new error - the
+// v13 code comment above even flagged this exact uncertainty ("the
+// model may not honour a full 0") without yet knowing it would be
+// rejected outright rather than merely ignored.
+// Fix: thinkingConfig is removed entirely rather than replaced with an
+// unverified thinkingLevel value - CLAUDE.md's own house rule is to fix
+// only what is concretely broken and not introduce a second unverified
+// field on top of the first. maxOutputTokens:65536 (confirmed correct
+// above, and unaffected by this defect) is kept unchanged; Gemini 3.x's
+// default thinking behaviour now applies, drawing from the same 65536
+// budget as before v13 attempted to shrink it - the very large margin
+// already established in v12/v13 (headroom of well over a thousand
+// positions even before accounting for any thinking-token spend) more
+// than covers a real-world Swiss Offerte either way.
 //
 // Diesen Quelltext gibt es seit v12 auch im Repo (dieselbe Uebung wie bei
 // extract-profile-shape) - vorher war er nur ueber
@@ -161,7 +195,6 @@ Jedes Element hat genau diese Felder:
           }],
           generationConfig: {
             maxOutputTokens: 65536,
-            thinkingConfig: { thinkingBudget: 0 },
             responseMimeType: "application/json",
           },
         }),

@@ -25448,3 +25448,221 @@ per `git diff --name-only HEAD` einzeln bestätigt.
   unabhängigen, versionsstand-/diff-gebundenen Abweichungen offen – jeder
   weitere Versionssprung wird voraussichtlich einen weiteren,
   gleichartigen Fall zu dieser Liste hinzufügen.
+
+## 147. „REQUEST CONTAINS AN INVALID ARGUMENT" – DER v3.41-FIX WAR SELBST DIE URSACHE — VERSION 3.42
+
+Innerhalb weniger Minuten nach der Veröffentlichung von v3.41 (Abschnitt
+146) meldete ein echter, produktiver Aufruf aus der laufenden App einen
+**neuen, anderen** Fehler: *„Fehler bei der Erkennung: Server antwortete
+mit Status 502: Request contains an invalid argument."* – nicht mehr das
+in Abschnitt 145 behobene MAX_TOKENS-Abschneiden, sondern eine Ablehnung
+**durch Gemini selbst**, direkt am `!res.ok`-Zweig der Edge Function.
+**Keine Schemaänderung, keine RLS-Änderung, keine Client-Code-Änderung**
+– der gesamte Fix liegt wie in den beiden vorherigen Runden ausschliesslich
+in der Edge Function `extract-offer-positions`.
+
+### 147.1 Recherchiert statt geraten – der eigene v13-Fix war die Ursache
+
+Ein echter Gemini-Aufruf ist in dieser Sandbox weiterhin nicht möglich; die
+Diagnose stützt sich deshalb erneut auf Googles eigene Dokumentation und
+auf mehrere unabhängige, zum Fehlerbild passende GitHub-Issues (cline,
+kilocode, big-AGI), nicht auf eine Vermutung – und **nicht auf einen
+zweiten Rateversuch in Folge**, nachdem der erste (v13, Abschnitt 146) sich
+als falsch herausstellte:
+
+Für die Gemini-3.x-Modellfamilie, zu der `gemini-3.6-flash` gehört, gilt:
+
+1. **`thinkingBudget:0` wird von Gemini-3.x-Modellen ausdrücklich
+   abgelehnt**, mit einer exakt passenden Fehlermeldung – „Budget 0 is
+   invalid. This model only works in thinking mode" –, weil diese
+   Modellgeneration das Denken grundsätzlich nicht vollständig abschalten
+   kann.
+2. **Gemini-3.x-Modelle erwarten generell das neuere Feld
+   `thinkingLevel`** statt des älteren, aus der Gemini-2.5-Generation
+   stammenden `thinkingBudget` – `thinkingBudget` an ein Gemini-3-Modell zu
+   schicken ist schon als **Feld** falsch, unabhängig vom gewählten Wert.
+
+**Der v13-Fix aus Abschnitt 146 war damit selbst die Ursache des neuen
+Fehlers.** Der eigene Kommentar in v13 hatte diese Unsicherheit sogar
+bereits benannt („the model may not honour a full 0"), aber noch nicht
+gewusst, dass der Wert nicht nur ignoriert, sondern **hart abgelehnt**
+würde.
+
+### 147.2 Der Fix – entfernen statt ersetzen
+
+```ts
+generationConfig: {
+  maxOutputTokens: 65536,
+  responseMimeType: "application/json",
+},
+```
+
+`thinkingConfig` ist **vollständig entfernt**, nicht durch ein
+unverifiziertes `thinkingLevel` ersetzt – die im Projekt wiederholt
+angewandte Regel „nur das beheben, was konkret kaputt ist, kein zweites
+ungeprüftes Feld obendrauf" gilt unverändert. `maxOutputTokens: 65536`
+(als in Abschnitt 146 korrekt bestätigt und von diesem Fehler unberührt)
+bleibt unverändert stehen; Gemini 3.x rechnet jetzt wieder mit seinem
+Standard-Denkverhalten aus **demselben** 65536er-Budget, das v13 zu
+verkleinern versucht hatte – der bereits in Abschnitt 146 nachgewiesene,
+sehr grosse Spielraum (deutlich über tausend Positionen Reserve, selbst vor
+Abzug jedes Denkaufwands) deckt eine reale Schweizer Offerte so oder so
+komfortabel ab.
+
+Der ehrliche MAX_TOKENS-Rückfall aus v3.40 (Abschnitt 145) und der
+generische Fehlerpfad bleiben **beide unverändert** stehen – kein
+bestehendes Verhalten wurde ersetzt, nur die eine fehlerhafte
+Konfigurationszeile entfernt.
+
+### 147.3 Getestet
+
+**`pruefstaende/pruefstand-thinking-config-entfernt-v3-42.js` – 22/22,
+Beendigungscode 0**, fünf Abschnitte:
+
+- **A · Struktur** (12 Prüfungen am Quelltext): `thinkingConfig`/
+  `thinkingBudget` kommt im tatsächlichen Code nirgends mehr vor,
+  `maxOutputTokens` ist weiterhin 65536, der MAX_TOKENS-Rückfall aus v3.40
+  ist unverändert vorhanden, der generische Fehlerpfad ist unverändert
+  vorhanden, der Erfolgspfad ist unverändert, der `!res.ok`-Zweig – an dem
+  der jetzt gemeldete Fehler tatsächlich entstand – ist unverändert,
+  `resolveImage()`/`bytesToBase64()` sind unverändert (kein zweiter
+  Erkennungsweg).
+- **B** (2 Prüfungen): ein erfolgreicher Treffer mit 97 Positionen wird
+  vollständig übernommen, die Statuszeile nennt die volle Anzahl.
+- **C** (2 Prüfungen): der MAX_TOKENS-Rückfall aus v3.40 erreicht die
+  Person weiterhin unverändert über den bestehenden Fehlerdialog, ohne
+  jemals eine Position zu erfinden.
+- **D** (2 Prüfungen): der alte generische Fehlerfall zeigt weiterhin
+  genau die alte Meldung – Regressionsschutz.
+- **E** (4 Prüfungen): `recognizePhoto()` bleibt einzig in
+  `js/17-ausmass.js` definiert, `js/63-angebote.js` baut sie nicht nach,
+  keine geschützte Fachdatei wurde für diesen rein serverseitigen Fix
+  angefasst, keine unbehandelten JavaScript-Fehler.
+
+**Gegenprobe durchgeführt** (Baum gesichert, `generationConfig` testweise
+auf den v3.40-Stand zurückgesetzt – `maxOutputTokens:8192`, ohne
+`thinkingConfig` – Prüfstand erneut gelaufen): **17 bestanden, 4
+fehlgeschlagen, Beendigungscode 1**, mit genau den vier erwarteten
+strukturellen Fehlschlägen (`maxOutputTokens ist 65536`,
+`maxOutputTokens:8192 kommt im Code nirgends mehr vor`,
+`thinkingConfig:{thinkingBudget:0} ist … gesetzt`,
+`generationConfig enthält maxOutputTokens, thinkingConfig UND
+responseMimeType gemeinsam`). Alle 17 übrigen Prüfungen – darunter
+sämtliche Verhaltens- und „keine geschützte Fachdatei"-Prüfungen – blieben
+grün: die Gegenprobe trifft also genau die beabsichtigte Stelle. Datei
+danach wiederhergestellt, erneut geprüft: wieder 22/22, Beendigungscode 0,
+`git status --short` ohne Reste der Gegenprobe.
+
+### 147.4 Volle Regression – 66 Prüfstände
+
+Alle Dateien in `pruefstaende/` einzeln mit eigenem Exit-Code
+protokolliert (nicht nur die interne Pass/Fail-Zählung, da ein
+abgestürzter Lauf sonst 0 Fehlschläge vortäuschen könnte, Abschnitt 78).
+**59 von 66 sauber** (Beendigungscode 0). Sieben zeigen eine Abweichung –
+**keine davon durch diese Runde verursacht**:
+
+| Datei | Ergebnis | Einordnung |
+|---|---|---|
+| `pruefstand-angebote-v3-34.js` | fehlgeschlagen | seit Abschnitt 143.3 dokumentiert – Selbstprüfung gegen den exakten v3.34-Commit-Dateibestand |
+| `pruefstand-leistungen-v3-37.js` | fehlgeschlagen | ebenso |
+| `pruefstand-medien-am-ende-v2-75.js` | fehlgeschlagen | ebenso – Lücke in der eigenen Supabase-Attrappe |
+| `pruefstand-angebot-pdf-v3-38.js` | fehlgeschlagen | ebenso |
+| `pruefstand-angebot-pdf-erkennen-v3-39.js` | fehlgeschlagen | ebenso, seit Abschnitt 145.5 |
+| `pruefstand-token-limit-v3-40.js` | fehlgeschlagen | **neu geprüft in dieser Runde**: schlägt an genau einer, bereits vor dieser Runde veralteten Stelle fehl – „`maxOutputTokens ist 8192 (nicht mehr 3000)`" – dieser Prüfstand kennt die in Abschnitt 146 vorgenommene Anhebung auf 65536 nicht; unabhängig vom hier behandelten Fix |
+| `pruefstand-thinking-budget-v3-41.js` | fehlgeschlagen | **neu geprüft in dieser Runde**: schlägt an genau zwei Stellen fehl – „`thinkingConfig:{thinkingBudget:0} ist im tatsächlichen Code gesetzt`" und „`generationConfig enthält … thinkingConfig … gemeinsam`" – dieser Prüfstand prüft ausdrücklich das Vorhandensein der in Abschnitt 147.2 gerade **entfernten** Konfiguration; sein Fehlschlagen ist die erwartete, korrekte Bestätigung, dass der Fix wirklich wirkt |
+
+Alle sieben Ausnahmen sind damit entweder die bereits mehrfach
+dokumentierte Klasse selbstreferenzieller `git diff`-/Versions-Prüfungen,
+die mit jedem weiteren Commit dieser Sitzung zwangsläufig altern, oder –
+bei den beiden neu betroffenen – Prüfstände, deren gesamter Daseinszweck
+darin bestand, genau die jetzt korrigierte Zwischenstufe (v3.40 mit 8192
+Token, v3.41 mit `thinkingBudget:0`) zu bestätigen; ihr Fehlschlagen ist
+keine Regression, sondern der Beleg, dass die jeweilige Zwischenstufe
+tatsächlich überholt ist.
+
+### 147.5 Regierapport-Ausdruck – trivial unverändert
+
+Diese Runde ändert **ausschliesslich** die Edge Function
+(`supabase/functions/extract-offer-positions/index.ts`) plus
+Dokumentation/Anleitung. `git diff --name-only HEAD -- js/06-rapport.js
+js/08-katalog-blitzschutz.js css/03-druck.css` liefert eine **leere**
+Liste – keine dieser drei Dateien ist im Diff. Der Regierapport-Ausdruck
+ist damit ohne weiteren Vergleichslauf nachweislich byteidentisch (gleicher
+Nachweisweg wie in Abschnitt 145.6).
+
+### 147.6 Live deployt
+
+Über `mcp__Supabase__list_edge_functions` gegen das echte Produktivprojekt
+(`nfgryuzkpwjfmdlmevuy`) bestätigt: `extract-offer-positions` steht auf
+**Version 14**, Status `ACTIVE`, `updated_at 1789029157964`.
+
+### 147.7 Anleitung
+
+Nach Regel 108.1 mitgeführt: der Hilfetext `ang-pdf` (`js/41-hilfe.js`)
+bleibt inhaltlich bei der in Abschnitt 146.4 beschriebenen Fassung (grosse
+Dokumente werden normalerweise vollständig ausgelesen) – diese Runde
+behebt einen reinen Serverfehler ohne neue, für die Bedienung sichtbare
+Eigenschaft, es gibt deshalb nichts Zusätzliches zu beschreiben. Version
+in `index.html` (zwei Stellen), `js/41-hilfe.js`, `anleitung/anleitung.html`
+und `anleitung/README.md` (zwei Stellen) auf 3.42 nachgezogen, die
+historische „(seit Version 3.39)"-Angabe an ihrer Stelle unverändert
+gelassen (Abschnitt 126.7). Alle Bildschirmfotos neu erzeugt (ein Bild,
+`48-reste`, fehlt weiterhin – vorbestehend und unabhängig von dieser
+Runde, Abschnitt 136.8/140.4). PDF neu gebaut:
+`Spengler-DIGITAL-Anleitung-v3.42.pdf`, **85 Seiten**, keine leere oder
+kaputte Seite (`anleitung/pruef.js` bleibt wegen des bekannten
+`pdfjs`-Canvas-Absturzes in `paintChar` unbenutzt, Abschnitt 136.8 –
+Seitenzahl und Vollständigkeit stattdessen über eine eigene, canvas-freie
+`pdfjs-dist`-Prüfung bestätigt). Altes PDF (`v3.41.pdf`) gelöscht.
+`pruefstand-hilfe-v3-03.js` erzwingt die Konsistenz mechanisch – **68/68,
+Beendigungscode 0**.
+
+### 147.8 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `supabase/functions/extract-offer-positions/index.ts` | `thinkingConfig`-Block vollständig entfernt, `maxOutputTokens:65536` unverändert |
+| Edge Function `extract-offer-positions` | v13 → v14, live deployt |
+| `pruefstaende/pruefstand-thinking-config-entfernt-v3-42.js` | **neu** |
+| `index.html` | Version 3.42, PDF-Verweise (zwei Stellen, „85 Seiten") |
+| `sw.js` | Cache-Version 3.42 |
+| `js/41-hilfe.js` | `HILFE_PDF`-Verweis |
+| `anleitung/anleitung.html`, `anleitung/README.md` | Version, Seitenzahl-Referenzen, PDF-Dateiname |
+| `anleitung/Spengler-DIGITAL-Anleitung-v3.42.pdf` | **neu** (85 Seiten), altes `v3.41.pdf` gelöscht |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/17-ausmass.js`
+(`recognizePhoto()` unverändert), `js/63-angebote.js` sowie sämtliche
+zwölf Massaufnahme-Fachmodule und alle Produktionsablauf-Module –
+per `git diff --name-only HEAD` einzeln bestätigt.
+
+### 147.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase/Gemini** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Der Fix ist über `deploy_edge_function` live
+  (Version 14, per `list_edge_functions` bestätigt) und über den neuen
+  Prüfstand samt Gegenprobe strukturell und verhaltensseitig belegt – ein
+  echter Aufruf mit einem realen PDF gegen die echte Produktion wurde in
+  dieser Sandbox nicht ausgeführt. Der ursprüngliche 502-Fehler selbst
+  wurde ausschliesslich über eine echte, produktive Meldung des Betriebs
+  bekannt, nicht durch einen eigenen Test entdeckt.
+- **Zweimal in Folge dieselbe Konfigurationsstelle geändert** (v13 setzte
+  `thinkingConfig`, v14 entfernt es wieder) – ein Muster, das sich
+  wiederholen könnte, falls Google das Verhalten dieser Modellgeneration
+  künftig ändert. Sollte erneut ein Fehler an genau dieser Stelle
+  auftreten, ist die Reihenfolge der Recherche (Abschnitt 145.1/146.1/
+  147.1) der Massstab: erst die tatsächliche Fehlermeldung und die
+  aktuelle Modelldokumentation prüfen, nie ein zweites Mal ungeprüft raten.
+- Aus Abschnitt 145.9/146.6 unverändert offen: `pruefstand-angebote-
+  v3-34.js`, `pruefstand-leistungen-v3-37.js`, `pruefstand-medien-am-
+  ende-v2-75.js`, `pruefstand-angebot-pdf-v3-38.js` und
+  `pruefstand-angebot-pdf-erkennen-v3-39.js` bleiben mit ihren
+  vorbestehenden, von dieser Runde unabhängigen, versionsstand-/
+  diff-gebundenen Abweichungen offen. Neu zu dieser Liste hinzugekommen:
+  `pruefstand-token-limit-v3-40.js` (veraltete 8192er-Erwartung, seit
+  Abschnitt 146) und `pruefstand-thinking-budget-v3-41.js` (prüft
+  ausdrücklich das Vorhandensein der jetzt entfernten Konfiguration,
+  siehe 147.4) – jeder weitere Versionssprung wird voraussichtlich einen
+  weiteren, gleichartigen Fall zu dieser Liste hinzufügen.
