@@ -25926,3 +25926,196 @@ per `git diff --name-only HEAD` einzeln bestätigt.
   fett gedruckte Zwischentitel im PDF werden nicht mit erkannt. Bewusst
   als eigene, spätere Version zurückgestellt, bis dieser Fix vollständig
   abgeschlossen und dokumentiert ist.
+
+## 149. POSITIONSERKENNUNG: GANZER ABSATZ + FETTE ZWISCHENTITEL — VERSION 3.44
+
+Umsetzung des in Abschnitt 148.9 zurückgestellten Punkts: die
+Positionserkennung aus PDF/Foto (§78.5, zuletzt §144–148) las bisher je
+Position nur die **eine Zeile mit der Positionsnummer** – bei einer
+mehrzeiligen Position (Kurztitel + Fliesstext mit Material, Ausführung,
+Mass, Bemerkung darunter) ging der Rest verloren. Fett gedruckte
+Zwischentitel/Abschnittsüberschriften einer Offerte (z. B. „Bedachung",
+„Spenglerarbeiten Dach Nord") wurden ausserdem entweder ignoriert oder
+fälschlich als eigene, mengen- und einheitslose Position ausgegeben.
+**Keine Schemaänderung, keine RLS-Änderung, keine Client-Code-Änderung**
+– der gesamte Fix liegt wie in den fünf vorherigen Runden ausschliesslich
+im Prompt-Text der Edge Function `extract-offer-positions`.
+
+### 149.1 Kein neues Feld – alles bleibt in „description"
+
+`js/17-ausmass.js`s `recognizePhoto()` (die einzige, geschützte
+Konsumentin dieser Funktion, seit §144.1 unverändert auch von
+`js/63-angebote.js` wiederverwendet) `.map()`t die Antwort strikt auf
+genau vier feste Felder (`pos`, `description`, `quantity`, `unit`). Ein
+neues JSON-Feld hätte dort geändert werden müssen – **das war
+ausdrücklich nicht das Ziel**. Beide Anforderungen sind deshalb
+vollständig in den bestehenden `description`-Text gefaltet, ohne die
+Antwortstruktur anzurühren.
+
+### 149.2 Der neue Prompt-Absatz
+
+Direkt zwischen der bestehenden Feldbeschreibung und der seit v11
+bestehenden Anweisung „Überschriften, Zwischentitel, Summenzeilen …
+NICHT als eigene Position aufnehmen" eingefügt (`index.ts`, Zeile
+277–279):
+
+```
+Wichtig für "description" - eine Position ist oft mehrzeilig:
+- Eine einzelne Position besteht häufig aus einer ersten Zeile mit
+  Positionsnummer/Kurztitel, gefolgt von einer oder mehreren
+  Fliesstext-Zeilen (Material, Ausführung, Masse, Bemerkungen), bevor
+  Menge/Einheit/Preis stehen oder die nächste Position beginnt. Nimm
+  den GESAMTEN zusammengehörigen Text dieser Position in "description"
+  auf, nicht nur die erste Zeile mit der Positionsnummer - verbinde
+  alle Zeilen zu einem lesbaren, zusammenhängenden Fliesstext.
+- Das Dokument kann fett gedruckte Zwischentitel/Abschnittsüberschriften
+  enthalten (z.B. "Bedachung", "Spenglerarbeiten Dach Nord",
+  "Kamineinfassungen"), die selbst keine eigene Position mit
+  Menge/Einheit sind, sondern nur eine Gruppe nachfolgender Positionen
+  einleiten. Gib einen solchen Zwischentitel NICHT als eigenes
+  Array-Element aus. Stelle seinen Text stattdessen jeder Position, die
+  darunter steht, in "description" voran, getrennt durch " – " (z.B.
+  "Bedachung – Biberschwanzziegel liefern und verlegen ..."), damit der
+  fachliche Zusammenhang erhalten bleibt. Wechselt der Zwischentitel im
+  Dokument, gilt der neue Titel ab dort für die folgenden Positionen,
+  bis der nächste Zwischentitel kommt.
+```
+
+Die bereits bestehende Anweisung, Zwischentitel **nicht** als eigene
+Position auszugeben, bleibt unverändert direkt danach stehen – der neue
+Absatz ergänzt sie um das **Wie** (Titel dem Folgetext voranstellen statt
+ihn einfach zu verwerfen), ohne sie zu ersetzen. `generationConfig`
+(`maxOutputTokens:65536`, `thinkingConfig:{thinkingLevel:"LOW"}`,
+`responseMimeType:"application/json"`) ist **unverändert** aus v15
+(§148.2) übernommen – dieser Fix betrifft ausschliesslich den
+Prompt-Text, keine der drei bereits mehrfach einzeln recherchierten und
+korrigierten Modellparameter.
+
+### 149.3 Getestet
+
+**`pruefstaende/pruefstand-absatz-zwischentitel-v3-44.js` – 43/43,
+Beendigungscode 0**, fünf Abschnitte:
+
+- **A · Struktur** (Prüfungen am Quelltext): der neue Absatz ist
+  vollständig im tatsächlichen Prompt-Text vorhanden (Mehrzeiligkeit,
+  „GESAMTEN zusammengehörigen Text", das Verbot der ersten-Zeile-only-
+  Lesart, das Verbinden zu einem Fliesstext; die Erklärung fett gedruckter
+  Zwischentitel, das Verbot eines eigenen Array-Elements dafür, das
+  Voranstellen mit dem Trennzeichen „ – ", das Rollen auf einen neuen
+  Zwischentitel bis zum nächsten) · die bestehende v11-Anweisung
+  „NICHT als eigene Position aufnehmen" bleibt unverändert stehen ·
+  `generationConfig` ist unverändert aus v15 · der Erfolgspfad, der
+  MAX_TOKENS-Rückfall aus v3.40 (§145) und der generische Fehlerpfad sind
+  unverändert.
+- **B · Verhalten – erfolgreicher Treffer mit mehrzeiligen Positionen und
+  Zwischentitel** (Mock-Antwort über die reale Client-Kette): eine
+  gelieferte, bereits zusammengefasste `description` wird vollständig
+  und unverändert übernommen – kein clientseitiges Kürzen, Zerlegen oder
+  erneutes Zusammensetzen irgendwo im Weg.
+- **C · Verhalten – MAX_TOKENS** (§145): das Sicherheitsnetz bleibt
+  unverändert wirksam.
+- **D · Verhalten – generischer Fehlerfall**: Regressionsschutz,
+  unverändert.
+- **E · Struktur**: `recognizePhoto()` bleibt einzig in
+  `js/17-ausmass.js` definiert, `js/63-angebote.js` baut sie nicht nach,
+  keine geschützte Fachdatei wurde für diesen rein serverseitigen Fix
+  angefasst, keine unbehandelten JavaScript-Fehler.
+
+**Gegenprobe vollständig durchgeführt** (nach dem im Prüfstand selbst
+dokumentierten 4-Schritte-Verfahren, Muster §88.8): Baum gesichert
+(`/tmp/index.ts.bak-v344`), der neue Absatz aus `index.ts` entfernt (Stand
+entspricht danach wieder exakt v15), Prüfstand erneut ausgeführt – **34
+bestanden, 9 fehlgeschlagen, Beendigungscode 1**, mit genau den neun
+erwarteten strukturellen Fehlschlägen aus Abschnitt A (Mehrzeiligkeit,
+„GESAMTEN zusammengehörigen Text", die Erste-Zeile-Warnung, das Verbinden
+zu einem Fliesstext, die Beschreibung fett gedruckter Zwischentitel, das
+Verbot eines eigenen Array-Elements, das Voranstellen, das Trennzeichen,
+das Rollen auf einen neuen Zwischentitel) – alle 34 übrigen Prüfungen,
+darunter sämtliche Verhaltens- und Fachdatei-Prüfungen aus B–E, blieben
+grün. Datei aus der Sicherung wiederhergestellt (`diff` bestätigt
+Zeichen-für-Zeichen-Identität mit der Sicherung), Prüfstand ein letztes
+Mal ausgeführt: wieder **43 bestanden, 0 fehlgeschlagen, Beendigungscode
+0**. Die Gegenprobe belegt damit, dass der Prüfstand den Fix wirklich
+misst und nicht nur vorbeiläuft.
+
+**Regierapport-Ausdruck**: `git diff --name-only HEAD -- js/06-rapport.js
+js/08-katalog-blitzschutz.js css/03-druck.css` liefert eine **leere**
+Liste – keine dieser drei Dateien ist im Diff dieser Runde. Der
+Regierapport-Ausdruck ist damit ohne weiteren Vergleichslauf nachweislich
+unverändert (gleicher Nachweisweg wie in §145.6/§147.5/§148.5).
+
+**Volle Regression**: alle Dateien in `pruefstaende/` mit eigenem
+Beendigungscode protokolliert (nicht nur die interne Pass/Fail-Zählung,
+§78/§132.7). Die schon aus den fünf vorherigen Runden bekannten,
+versionsstand-/`git diff`-gebundenen Selbstprüfungen bleiben mit
+denselben, unveränderten, von dieser Runde unabhängigen Fehlschlägen
+bestehen (`pruefstand-angebote-v3-34.js`, `pruefstand-leistungen-v3-37.js`,
+`pruefstand-medien-am-ende-v2-75.js`, `pruefstand-angebot-pdf-v3-38.js`,
+`pruefstand-angebot-pdf-erkennen-v3-39.js`, `pruefstand-token-limit-
+v3-40.js`, `pruefstand-thinking-budget-v3-41.js`, `pruefstand-thinking-
+config-entfernt-v3-42.js`) – jeder weitere Versionssprung fügt dieser
+seit §140.4 dokumentierten Klasse erwartungsgemäss einen weiteren Eintrag
+hinzu, zuletzt absehbar `pruefstand-thinking-level-v3-43.js`, dessen
+eigener Daseinszweck genau die inzwischen um eine Version ältere
+Momentaufnahme war.
+
+### 149.4 Live deployt
+
+Über `mcp__Supabase__list_edge_functions` gegen das echte
+Produktivprojekt (`nfgryuzkpwjfmdlmevuy`) bestätigt: `extract-offer-
+positions` steht auf **Version 16**, Status `ACTIVE`.
+
+### 149.5 Anleitung
+
+Nach Regel 108.1 mitgeführt: der Hilfetext `ang-pdf` (`js/41-hilfe.js`)
+und der entsprechende Abschnitt in `anleitung/anleitung.html` nennen
+jetzt ausdrücklich, dass eine mehrzeilige Position vollständig gelesen
+wird und dass fett gedruckte Zwischentitel automatisch dem Text der
+jeweils folgenden Positionen vorangestellt werden, statt selbst als
+Position zu erscheinen. Version in `index.html` (zwei Stellen),
+`js/41-hilfe.js`, `anleitung/anleitung.html` und `anleitung/README.md`
+auf 3.44 nachgezogen, alle historischen „seit Version X"-Angaben
+unverändert gelassen (§126.7). PDF neu gebaut:
+`Spengler-DIGITAL-Anleitung-v3.44.pdf`, altes PDF (v3.43) gelöscht.
+`pruefstand-hilfe-v3-03.js` erzwingt die Konsistenz mechanisch.
+
+### 149.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `supabase/functions/extract-offer-positions/index.ts` | neuer Prompt-Absatz (149.2), `generationConfig` unverändert |
+| Edge Function `extract-offer-positions` | v15 → v16, live deployt |
+| `pruefstaende/pruefstand-absatz-zwischentitel-v3-44.js` | **neu** |
+| `index.html`, `sw.js` | Version 3.44, PDF-Verweise |
+| `js/41-hilfe.js` | Hilfetext `ang-pdf` erweitert, `HILFE_PDF`-Verweis |
+| `anleitung/anleitung.html`, `anleitung/README.md` | Version, neuer Absatz, PDF-Dateiname |
+| `anleitung/Spengler-DIGITAL-Anleitung-v3.44.pdf` | **neu**, altes `v3.43.pdf` gelöscht |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/17-ausmass.js`
+(`recognizePhoto()` unverändert), `js/63-angebote.js` sowie sämtliche
+zwölf Massaufnahme-Fachmodule und alle Produktionsablauf-Module –
+per `git diff --name-only HEAD` einzeln bestätigt.
+
+### 149.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase/Gemini** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Der Fix ist über `deploy_edge_function` live
+  (Version 16, per `list_edge_functions` bestätigt) und über den neuen
+  Prüfstand samt vollständig durchgeführter Gegenprobe strukturell und
+  verhaltensseitig belegt – ein echter Aufruf mit einer realen,
+  mehrzeiligen Offerte samt Zwischentiteln gegen die echte Produktion
+  wurde in dieser Sandbox nicht ausgeführt.
+- **Wie zuverlässig Gemini die neue Anweisung tatsächlich befolgt, lässt
+  sich von hier aus nicht messen.** Der Prompt ist so klar und konkret
+  wie möglich formuliert (mit Beispielen für beide Fälle), aber anders als
+  bei den rein technischen Konfigurationsfehlern aus §145–148 ist dies
+  eine inhaltliche Anweisung an das Sprachmodell, keine überprüfbare
+  API-Einstellung – ihre tatsächliche Trefferquote zeigt sich erst im
+  echten Betrieb.
+- Aus §148.9 unverändert offen: dieselbe, bereits mehrfach dokumentierte
+  Klasse selbstreferenzieller `git diff`-/Versionsstand-Prüfungen wächst
+  mit jedem weiteren Versionssprung erwartungsgemäss um einen weiteren
+  Eintrag (149.3).

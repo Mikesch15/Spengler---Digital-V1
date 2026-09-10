@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.43.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.44.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -953,7 +953,18 @@ bevor überhaupt eine Antwort ankam – die KI brauchte für ihre eigene,
 unsichtbare Vorüberlegung länger, als die mobile Verbindung offen blieb.
 Die Erkennung ist jetzt gezielt auf schnelles Lesen einer Tabelle statt
 auf langes Nachdenken eingestellt; auch das ändert an der Bedienung
-selbst nichts.</p>`},
+selbst nichts.</p>
+<p>Seit Version 3.44 erfasst die Erkennung jede Position vollständig: eine
+Position besteht in vielen Offerten aus einer ersten Zeile mit
+Positionsnummer und einem oder mehreren Fliesstext-Zeilen darunter
+(Material, Ausführung, Masse, Bemerkungen) – vorher wurde oft nur die
+erste Zeile übernommen, jetzt landet der ganze zusammengehörige Text in
+der Beschreibung. Fett gedruckte Zwischentitel im Dokument (z. B.
+"Bedachung" oder "Spenglerarbeiten Dach Nord") werden dabei erkannt und
+nicht mehr als eigene, unbrauchbare Position ausgegeben – ihr Text wird
+stattdessen den darunterstehenden Positionen als Bezug vorangestellt, bis
+der nächste Zwischentitel folgt. Auch das ändert an der Bedienung selbst
+nichts.</p>`},
 
 // ---- Regierapport -------------------------------------------------------
 "rapport-kopf":{titel:"Regieauftrag",text:`

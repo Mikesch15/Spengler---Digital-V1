@@ -152,6 +152,54 @@
 // maxOutputTokens:65536 is unchanged; the MAX_TOKENS honest-fallback
 // message from v12 is unchanged.
 //
+// v16: Folgeverbesserung, die der Betrieb schon waehrend der v11-v15-
+// Fehlerbehebung gemeldet hatte und die bewusst zurueckgestellt wurde,
+// bis die Erkennung ueberhaupt zuverlaessig durchlief (CLAUDE.md §147.9/
+// §148.9): die tatsaechlich ERKANNTEN Positionen waren fachlich
+// unvollstaendig, auch wenn kein technischer Fehler mehr auftrat. Zwei
+// konkrete, vom Betrieb genannte Symptome an echten NPK-Offerten:
+//   1. Je Position wurde nur die eine Zeile mit der Positionsnummer
+//      gelesen, nicht der ganze dazugehoerige Absatz. Eine reale
+//      Offerte-Position besteht oft aus mehreren Zeilen (Kurztitel,
+//      danach Fliesstext mit Material/Ausfuehrung/Massen), bevor
+//      Menge/Einheit/Preis stehen - die Folgezeilen wurden bisher
+//      stillschweigend nicht mit in "description" aufgenommen.
+//   2. Fett gedruckte Zwischentitel/Abschnittsueberschriften im PDF
+//      (z.B. "Bedachung", "Spenglerarbeiten Dach Nord") wurden von der
+//      bestehenden Anweisung "Ueberschriften ... NICHT als Position
+//      aufnehmen" ueberhaupt erfasst - das war beabsichtigt, sie sollen
+//      nicht als eigene Zeile erscheinen -, aber ihr fachlicher Kontext
+//      ging dabei vollstaendig verloren, statt an den darunterstehenden
+//      Positionen erhalten zu bleiben.
+// Architektonische Randbedingung (direkt am Code geprueft, nicht
+// angenommen): js/17-ausmass.js's recognizePhoto() - die EINE, von
+// js/63-angebote.js unveraendert wiederverwendete Konsumentenfunktion -
+// liest per .map() aus jeder Gemini-Antwort strikt genau die vier
+// Felder pos/description/quantity/unit heraus; jedes zusaetzliche
+// JSON-Feld wuerde dort stillschweigend verworfen. Eine Loesung durfte
+// deshalb kein neues Feld einfuehren und musste ohne jede Aenderung an
+// js/17-ausmass.js oder js/63-angebote.js auskommen (beide bleiben
+// unveraendert - CLAUDE.md's Grundsatz, geschuetzte Dateien nicht
+// anzufassen, wenn es nicht zwingend noetig ist).
+// Fix, ausschliesslich im Gemini-Prompt-Text: zwei neue, explizite
+// Anweisungen fuer das Feld "description", beide falten die fehlende
+// Information in dieses EINE bestehende Feld:
+//   1. Es wird jetzt ausdruecklich verlangt, alle zu einer Position
+//      gehoerenden Fliesstext-Zeilen bis zur naechsten Positionsnummer
+//      bzw. bis Menge/Einheit/Preis zu einem zusammenhaengenden Text zu
+//      verbinden, statt nur die erste Zeile zu lesen.
+//   2. Ein erkannter fett gedruckter Zwischentitel wird weiterhin NICHT
+//      als eigene Position ausgegeben (unveraendertes Verhalten), aber
+//      sein Text wird jetzt jeder darunterstehenden Position in
+//      "description" vorangestellt (getrennt durch " – "), bis ein
+//      neuer Zwischentitel folgt - der fachliche Zusammenhang bleibt
+//      dadurch erhalten, ohne ein neues Feld zu brauchen.
+// generationConfig (maxOutputTokens:65536, thinkingConfig:
+// {thinkingLevel:"LOW"}) ist unveraendert aus v15 uebernommen - dieser
+// Fix aendert ausschliesslich den Prompt-Text, nicht das Anfrageformat,
+// das Antwortformat, die Fehlerbehandlung oder den MAX_TOKENS-Notfall
+// aus v12.
+//
 // Diesen Quelltext gibt es seit v12 auch im Repo (dieselbe Uebung wie bei
 // extract-profile-shape) - vorher war er nur ueber
 // mcp__Supabase__get_edge_function abrufbar (CLAUDE.md §31.6/§144.3
@@ -225,7 +273,12 @@ Lies ALLE Positionszeilen aus der Tabelle heraus und gib sie als reines JSON-Arr
 Kein Erklärtext, kein Markdown-Codeblock, nur das Array selbst.
 Jedes Element hat genau diese Felder:
 {"pos":"<Positionsnummer als Text, falls vorhanden, sonst leerer String>","description":"<Bezeichnung/Beschreibung der Position>","quantity":<Menge als Zahl, falls nicht lesbar: 0>,"unit":"<Einheit, z.B. Stk, m2, m, h, kg>"}
-Überschriften, Summenzeilen, MWST-Zeilen und Titelzeilen NICHT als Position aufnehmen, nur echte, einzeln aufgeführte Leistungspositionen.`;
+
+Wichtig für "description" - eine Position ist oft mehrzeilig:
+- Eine einzelne Position besteht häufig aus einer ersten Zeile mit Positionsnummer/Kurztitel, gefolgt von einer oder mehreren Fliesstext-Zeilen (Material, Ausführung, Masse, Bemerkungen), bevor Menge/Einheit/Preis stehen oder die nächste Position beginnt. Nimm den GESAMTEN zusammengehörigen Text dieser Position in "description" auf, nicht nur die erste Zeile mit der Positionsnummer - verbinde alle Zeilen zu einem lesbaren, zusammenhängenden Fliesstext.
+- Das Dokument kann fett gedruckte Zwischentitel/Abschnittsüberschriften enthalten (z.B. "Bedachung", "Spenglerarbeiten Dach Nord", "Kamineinfassungen"), die selbst keine eigene Position mit Menge/Einheit sind, sondern nur eine Gruppe nachfolgender Positionen einleiten. Gib einen solchen Zwischentitel NICHT als eigenes Array-Element aus. Stelle seinen Text stattdessen jeder Position, die darunter steht, in "description" voran, getrennt durch " – " (z.B. "Bedachung – Biberschwanzziegel liefern und verlegen ..."), damit der fachliche Zusammenhang erhalten bleibt. Wechselt der Zwischentitel im Dokument, gilt der neue Titel ab dort für die folgenden Positionen, bis der nächste Zwischentitel kommt.
+
+Überschriften, Zwischentitel, Summenzeilen, MWST-Zeilen und Titelzeilen NICHT als eigene Position aufnehmen, nur echte, einzeln aufgeführte Leistungspositionen.`;
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
