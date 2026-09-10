@@ -207,68 +207,132 @@
 // aendert, MUSS sie erneut per mcp__Supabase__deploy_edge_function
 // veroeffentlichen - eine lokale Aenderung allein hat keine Wirkung.
 
-const MODEL = "gemini-3.6-flash";
+// v17: ein produktiver 400er ("Kein gueltiges Bild/PDF uebergeben.") wurde
+// gemeldet, obwohl der zugrundeliegende Client-Fehler laengst behoben war -
+// js/17-ausmass.js's recognizePhoto() sendet seit einer lokalen, bisher
+// unveroeffentlichten Korrektur bereits body:{image:src}. Direkter
+// Abgleich per mcp__Supabase__get_edge_function ergab: die HIER im Repo
+// eingecheckte Datei war seit v12 strukturell veraltet und wich an mehreren
+// Stellen vom tatsaechlich live deployten Code ab - insbesondere las der
+// Server-Handler weiterhin body.image_base64 statt body.image. Nur der
+// Kommentar oben (dieser Changelog) war zutreffend und deckungsgleich mit
+// dem Live-Stand; der Code darunter war es nicht. Root Cause des vom
+// Nutzer gemeldeten Fehlers war deshalb ein reiner Feldnamen-Mismatch
+// zwischen dem (noch nicht committeten) Client-Fix und DIESER veralteten
+// Repo-Kopie - nicht dem tatsaechlich live laufenden Server, der bereits
+// body.image erwartete.
+//
+// Ehrlich dokumentiert, weil es in dieser Sitzung selbst passiert ist:
+// der ERSTE Versuch, diese Datei mit dem Live-Stand in Deckung zu bringen,
+// war selbst unvollstaendig und hat die Datei kurzzeitig in einen
+// nicht lauffaehigen Zustand gebracht (ein bearbeiteter Kopfteil traf auf
+// unveraendert stehen gebliebenen alten Code darunter, der auf inzwischen
+// entfernte Bezeichner wie GEMINI_API_KEY/mimeType/base64Data verwies, dazu
+// eine offene geschweifte Klammer ohne zugehoeriges try). Das wurde beim
+// erneuten, vollstaendigen Gegenlesen dieser Datei noch in derselben
+// Sitzung gefunden, bevor irgendetwas deployt oder committet wurde - siehe
+// CLAUDE.md's Grundsatz, jede Aenderung tatsaechlich zu verifizieren statt
+// nur den eigenen vorherigen Schritt anzunehmen. Der folgende Code ist das
+// Ergebnis eines zweiten, vollstaendigen Abgleichs per
+// mcp__Supabase__get_edge_function gegen den bestaetigten Live-Stand v16 -
+// Zeile fuer Zeile, nicht nur der Kopfteil:
+//   - json() als benannte Funktion statt Arrow-Function (rein stilistisch,
+//     funktional identisch).
+//   - corsHeaders um "Access-Control-Allow-Methods": "POST, OPTIONS"
+//     ergaenzt.
+//   - resolveImage() gibt bei jedem Fehlschlag still null zurueck statt zu
+//     werfen (kein try/catch-Unterschied mehr zwischen Bild-Ladefehlern und
+//     echten Serverfehlern); Rueckgabeform {mimeType,data}|null statt
+//     {mimeType,base64Data}.
+//   - Deno.serve prueft die Methode jetzt explizit (405 "Nur POST
+//     erlaubt." fuer alles ausser POST/OPTIONS).
+//   - Das kritische Feld: body.image statt body.image_base64.
+//   - Fehlermeldung bei fehlendem Bild: "Kein gueltiges Bild/PDF
+//     uebergeben." statt "Kein Bild übermittelt." (entspricht exakt dem
+//     gemeldeten Fehlertext).
+//   - Der Gemini-Aufruf ist jetzt in einen AbortController mit 25s-Timeout
+//     gefasst; ein Abbruch liefert 504 "Zeitüberschreitung bei der
+//     Erkennung (25s)." statt eines haengenden Requests.
+//   - Der !res.ok-Zweig liest die Antwort jetzt als Rohtext (res.text(),
+//     auf 300 Zeichen gekuerzt) statt sie zwingend als JSON zu parsen -
+//     eine Nicht-JSON-Fehlerantwort von Gemini fuehrte vorher zu einem
+//     zusaetzlichen, verschleiernden Parse-Fehler.
+//   - Der Markdown-Codeblock-Trim vor JSON.parse(raw) ist entfallen (im
+//     Live-Code nie vorhanden - responseMimeType:"application/json"
+//     erzwingt bereits reines JSON ohne Codeblock-Huelle).
+//   - Der catch-Block unterscheidet jetzt AbortError (504) von jedem
+//     anderen Fehler (weiterhin 500).
+// generationConfig und der komplette Prompt-Text (inkl. der v16-Absatz-/
+// Zwischentitel-Logik) waren bereits identisch zum Live-Stand und bleiben
+// unveraendert.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
   return btoa(binary);
 }
 
-async function resolveImage(input: string): Promise<{ mimeType: string; base64Data: string }> {
-  const dataUrlMatch = input.match(/^data:([^;]+);base64,(.+)$/s);
-  if (dataUrlMatch) {
-    return { mimeType: dataUrlMatch[1], base64Data: dataUrlMatch[2] };
+async function resolveImage(src: string): Promise<{ mimeType: string; data: string } | null> {
+  if (!src) return null;
+  const dataMatch = /^data:([^;]+);base64,(.+)$/s.exec(src);
+  if (dataMatch) {
+    return { mimeType: dataMatch[1], data: dataMatch[2] };
   }
-
-  if (/^https?:\/\//i.test(input)) {
-    const imageRes = await fetch(input);
-    if (!imageRes.ok) {
-      throw new Error(`Bild konnte nicht geladen werden (HTTP ${imageRes.status}).`);
-    }
-    const contentType = imageRes.headers.get("content-type")?.split(";")[0]?.trim() || "image/jpeg";
-    if (!contentType.startsWith("image/")) {
-      throw new Error(`Die Bild-URL lieferte keinen Bildinhalt (${contentType}).`);
-    }
-    const bytes = new Uint8Array(await imageRes.arrayBuffer());
-    if (!bytes.length) throw new Error("Das Bild ist leer.");
-    return { mimeType: contentType, base64Data: bytesToBase64(bytes) };
+  if (/^https?:\/\//i.test(src)) {
+    const res = await fetch(src);
+    if (!res.ok) return null;
+    const mimeType = res.headers.get("content-type") || "image/jpeg";
+    if (!mimeType.startsWith("image/")) return null;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    return { mimeType, data: bytesToBase64(buf) };
   }
-
-  throw new Error("Ungültiges Bildformat: erwartet eine data:-URL oder HTTP(S)-Bild-URL.");
+  return null;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+const MODEL = "gemini-3.6-flash";
 
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return json({ ok: false, error: "Nur POST erlaubt." }, 405);
+  }
+
+  let body: { image?: string };
   try {
-    const { image_base64 } = await req.json();
-    if (!image_base64 || typeof image_base64 !== "string") {
-      return json({ ok: false, error: "Kein Bild übermittelt." }, 400);
-    }
+    body = await req.json();
+  } catch {
+    return json({ ok: false, error: "Ungueltiger Request-Body." }, 400);
+  }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      return json({ ok: false, error: "GEMINI_API_KEY ist auf dem Server nicht gesetzt." }, 500);
-    }
+  const image = await resolveImage(String(body.image || ""));
+  if (!image) {
+    return json({ ok: false, error: "Kein gueltiges Bild/PDF uebergeben." }, 400);
+  }
 
-    const { mimeType, base64Data } = await resolveImage(image_base64);
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) {
+    return json({ ok: false, error: "Serverkonfiguration unvollstaendig (kein API-Key)." }, 500);
+  }
 
-    const prompt = `Du bekommst das Foto oder PDF-Dokument (ggf. mehrseitig) einer Offerte oder Rechnung eines Spenglerbetriebs.
+  const prompt = `Du bekommst das Foto oder PDF-Dokument (ggf. mehrseitig) einer Offerte oder Rechnung eines Spenglerbetriebs.
 Lies ALLE Positionszeilen aus der Tabelle heraus und gib sie als reines JSON-Array zurück.
 Kein Erklärtext, kein Markdown-Codeblock, nur das Array selbst.
 Jedes Element hat genau diese Felder:
@@ -280,18 +344,25 @@ Wichtig für "description" - eine Position ist oft mehrzeilig:
 
 Überschriften, Zwischentitel, Summenzeilen, MWST-Zeilen und Titelzeilen NICHT als eigene Position aufnehmen, nur echte, einzeln aufgeführte Leistungspositionen.`;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+
+  try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              { inline_data: { mime_type: mimeType, data: base64Data } },
-            ],
-          }],
+          contents: [
+            {
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: image.mimeType, data: image.data } },
+              ],
+            },
+          ],
           generationConfig: {
             maxOutputTokens: 65536,
             thinkingConfig: { thinkingLevel: "LOW" },
@@ -300,39 +371,46 @@ Wichtig für "description" - eine Position ist oft mehrzeilig:
         }),
       },
     );
+    clearTimeout(timeout);
 
-    const data = await res.json();
     if (!res.ok) {
-      return json({
-        ok: false,
-        error: data?.error?.message || "Anfrage an Gemini fehlgeschlagen.",
-        geminiStatus: res.status,
-      }, 502);
+      const errText = await res.text().catch(() => "");
+      return json({ ok: false, error: `Server antwortete mit Status ${res.status}: ${errText.slice(0, 300)}` }, 502);
     }
 
+    const data = await res.json();
     const candidate = data?.candidates?.[0];
-    const finishReason = candidate?.finishReason;
-
-    let raw = candidate?.content?.parts?.[0]?.text || "[]";
-    raw = raw.trim().replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+    const raw = candidate?.content?.parts?.[0]?.text ?? "";
 
     let positions: unknown;
     try {
       positions = JSON.parse(raw);
-      if (!Array.isArray(positions)) throw new Error("Antwort war kein Array.");
     } catch {
-      if (finishReason === "MAX_TOKENS") {
+      if (candidate?.finishReason === "MAX_TOKENS") {
         return json({
           ok: false,
-          error: "Das Dokument enthält zu viele Positionen für eine einzelne Erkennung – die Antwort der KI wurde mitten im Satz abgeschnitten. Bitte das Dokument in kleineren Abschnitten hochladen oder die Positionen für diesen Teil von Hand erfassen.",
-          geminiFinishReason: finishReason,
+          error:
+            "Das Dokument enthält zu viele Positionen für eine einzelne Erkennung – die Antwort der KI wurde mitten im Satz abgeschnitten. Bitte das Dokument in kleineren Abschnitten hochladen oder die Positionen für diesen Teil von Hand erfassen.",
+          geminiFinishReason: candidate?.finishReason ?? null,
         }, 502);
       }
-      return json({ ok: false, error: "Antwort der KI konnte nicht als Liste gelesen werden.", raw }, 502);
+      return json({
+        ok: false,
+        error: "Antwort der KI konnte nicht als Liste gelesen werden.",
+        raw: String(raw).slice(0, 500),
+      }, 502);
+    }
+
+    if (!Array.isArray(positions)) {
+      return json({ ok: false, error: "Antwort der KI war kein Array." }, 502);
     }
 
     return json({ ok: true, positions });
   } catch (err) {
-    return json({ ok: false, error: String(err) }, 500);
+    clearTimeout(timeout);
+    if ((err as Error)?.name === "AbortError") {
+      return json({ ok: false, error: "Zeitüberschreitung bei der Erkennung (25s)." }, 504);
+    }
+    return json({ ok: false, error: `Unerwarteter Fehler: ${(err as Error)?.message ?? String(err)}` }, 500);
   }
 });

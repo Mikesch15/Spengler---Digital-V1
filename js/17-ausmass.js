@@ -103,7 +103,7 @@ async function recognizePhoto(src){
    "Authorization":`Bearer ${SUPABASE_ANON_KEY}`,
    "apikey":SUPABASE_ANON_KEY
   },
-  body:JSON.stringify({image_base64:src})
+  body:JSON.stringify({image:src})
  });
  const text=await res.text();
  let data=null;
