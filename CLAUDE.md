@@ -24873,3 +24873,173 @@ selbst wurde über den Supabase-MCP-Server angewendet und ihr Vorhandensein
 - `pruefstand-angebote-v3-34.js`, `pruefstand-leistungen-v3-37.js` und
   `pruefstand-medien-am-ende-v2-75.js` bleiben mit ihren vorbestehenden,
   von dieser Runde unabhängigen Abweichungen offen (Abschnitt 143.3).
+
+## 144. AUS DEM PDF DER OFFERTE AUCH DIE POSITIONEN ERKENNEN — VERSION 3.39
+
+Rückmeldung des Betriebs zu v3.38: *„das ist noch nicht das was ich
+wollte... aus dem pdf sollen jetzt auch die positionen importiert werden
+wie mit einem foto"*. v3.38 hatte dem Offerte-Formular nur das **Ablegen**
+eines PDFs gegeben (Abschnitt 143) – die KI-Positionserkennung, die für
+Fotos bereits seit Version 2.70 existiert (Abschnitt 78.5,
+`recognizePhoto()` in `js/17-ausmass.js`), lief für ein hochgeladenes PDF
+nicht mit. **Keine Schemaänderung, keine RLS-Änderung, keine zweite
+Erkennungslogik, keine geänderte Fachdatei.**
+
+### 144.1 Wiederverwendet, nicht nachgebaut
+
+`recognizePhoto(dataUrl)` bleibt **unverändert** dort, wo sie seit
+Version 2.70 steht: `js/17-ausmass.js`, eine der geschützten
+Ausmass-Dateien. `js/63-angebote.js` ruft sie unverändert auf – **kein**
+zweiter Aufruf der Edge Function, kein eigener Prompt, keine eigene
+Bildaufbereitung. Neu sind ausschliesslich zwei kleine Hilfsfunktionen
+in `js/63-angebote.js` selbst:
+
+- `fileZuDataUrl(file)` – liest eine `File`/einen `Blob` in eine
+  `data:<mime>;base64,…`-URL ein (`FileReader`, `readAsDataURL`).
+- `angPdfDatenUrlFuerErkennung()` – liefert diese Data-URL entweder aus
+  der gerade ausgewählten, noch nicht hochgeladenen Datei, oder – wenn
+  die Offerte bereits ein gespeichertes PDF trägt – indem sie den echten
+  Pfad zuerst über `storageSignedUrl()` (dieselbe Funktion, die auch
+  „Öffnen" verwendet) auflöst und die Bytes dann per `fetch()` lädt. In
+  beiden Fällen geht **eine echte `data:application/pdf;base64,…`-URL**
+  an `recognizePhoto()` – niemals der blosse Speicherpfad, den die
+  Edge Function nicht auflösen könnte.
+
+Der neue Knopf „🔎 Positionen erkennen" erscheint nur, wenn tatsächlich
+ein PDF vorliegt (neu gewählt oder bereits gespeichert) – kein
+funktionsloses Element ohne PDF.
+
+### 144.2 Eine eigene, striktere Grössengrenze nur für die Erkennung
+
+`ANG_PDF_ERKENNEN_MAX_BYTES = 15*1024*1024` (`ANG_PDF_ERKENNEN_MAX_TEXT
+= "15 MB"`), unabhängig von `MAX_DATEI_BYTES`/`MAX_DATEI_TEXT` (50 MB,
+`js/09-projekte.js`, seit Abschnitt 56 die allgemeine Grenze für den
+reinen Storage-Upload). Grund: Gemini nimmt Bilddaten über
+`inline_data` mit einer praktischen Grenze von rund 20 MB entgegen, und
+Base64 bläht die Rohgrösse um rund ein Drittel auf – 15 MB roh ist der
+Sicherheitsabstand **speziell für den Erkennungsaufruf**, unabhängig
+von der grosszügigeren Ablage-Grenze. Über 15 MB wird die Edge Function
+gar nicht erst gerufen; die Meldung nennt **beide** Zahlen („15 MB
+Erkennung, 50 MB Upload"), damit klar ist, warum eine erfolgreich
+hochgeladene Datei trotzdem nicht erkannt werden kann. Geprüft für
+beide Fälle: eine frisch gewählte, noch nicht hochgeladene 16-MB-Datei
+**und** ein bereits gespeichertes PDF, dessen tatsächliche Grösse erst
+nach dem Laden über die signierte URL bekannt ist (20 MB) – die Edge
+Function wird in keinem der beiden Fälle gerufen.
+
+### 144.3 Edge Function `extract-offer-positions` — Version 11
+
+Am Produktivprojekt (`nfgryuzkpwjfmdlmevuy`) über
+`list_edge_functions`/`get_edge_function` verifiziert: **Version 11**,
+Status `ACTIVE`, `updated_at 1789013632084`. Die Änderung gegenüber
+Version 10 beschränkt sich **ausschliesslich** auf den Gemini-Prompt-Text
+im `Deno.serve`-Handler – verallgemeinert von reinem Foto-Wortlaut auf
+„das Foto oder PDF-Dokument (ggf. mehrseitig)". `resolveImage()` selbst
+ist **unverändert** (im vollständigen Quelltext gegengelesen): sie löst
+jede `data:<mimeType>;base64,<data>`-URL bereits generisch über einen
+regulären Ausdruck auf, unabhängig vom `mimeType` – nur der
+`https?://`-Fetch-Zweig war je auf `image/*` beschränkt, und der wird
+von dieser Funktion gar nicht benutzt (Offerte-PDFs kommen ausschliesslich
+als Data-URL an). Das Anfrage-/Antwortformat (`{ok, positions}` mit
+`pos`/`description`/`quantity`/`unit`) ist unverändert – dieselbe
+Struktur, die auch die Foto-Erkennung liefert.
+
+### 144.4 Getestet
+
+**Neuer Prüfstand `pruefstaende/pruefstand-angebot-pdf-erkennen-v3-39.js`
+– 28/28**, echtes Chromium gegen die echte `index.html` mit einer
+protokollierenden Attrappe: kein Knopf ohne PDF · frisch gewähltes PDF
+wird **ohne Storage-Upload** erkannt, die gelieferten Positionen werden
+angehängt und die Statuszeile nennt die Anzahl · ein bereits
+gespeichertes PDF wird über `storageSignedUrl()`+`fetch()` geladen, mit
+exakt dem gespeicherten Pfad · beide Grössengrenzen-Fälle aus 144.2 ·
+drei Fehlerfälle (keine signierte URL, `fetch()` liefert einen
+Fehlerstatus, Edge Function meldet `ok:false`) – in keinem Fall wird
+eine Position erfunden, die App zeigt jeweils eine verständliche
+Meldung · der Knopf ist während der laufenden Erkennung gesperrt (kein
+Doppelklick-Doppelaufruf) und danach wieder frei · strukturell:
+`recognizePhoto()` bleibt einzig in `js/17-ausmass.js` definiert,
+`js/63-angebote.js` baut sie nicht nach, keine geschützte Fachdatei
+wurde angefasst.
+
+**Zwei Gegenproben**, jede baut einen echten Fehler ein, misst den
+Fehlschlag und wird danach vollständig zurückgesetzt:
+
+| Gegenprobe | Ergebnis | betroffen |
+|---|---|---|
+| die 15-MB-Erkennungsgrenze entfernt (nur noch `fileZuDataUrl` ohne Prüfung) | **24 bestanden, 4 fehlgeschlagen** | genau die vier Grössengrenzen-Prüfungen aus Abschnitt 5/6 |
+| vor der Erkennung ein unnötiger `storage.upload()`-Aufruf eingebaut | **27 bestanden, 1 fehlgeschlagen** | genau „die Erkennung lädt das PDF NICHT in den Storage hoch" |
+
+Beide Male wurde die Datei aus einer vorherigen Sicherung
+(`js/63-angebote.js.bak`) wiederhergestellt und per `git diff --stat`
+gegen den beabsichtigten Feature-Stand bestätigt (unverändert `+80`
+Zeilen gegenüber `HEAD` vor dieser Runde, keine Testreste).
+
+### 144.5 Volle Regression – 64 Prüfstände
+
+Alle Dateien in `pruefstaende/` einzeln mit eigenem Zeitlimit
+ausgeführt (Hintergrundlauf, `exit`-Code je Datei protokolliert). **60
+von 64 sauber** (Beendigungscode 0). Vier zeigen eine Abweichung – **alle
+vier sind Selbstprüfungen, die den exakten Versionsstand ihres eigenen
+Feature-Commits voraussetzen und deshalb bei jedem weiteren
+Versionssprung zwangsläufig altern; keine ist durch diese Runde
+verursacht:**
+
+| Datei | Ergebnis | Einordnung |
+|---|---|---|
+| `pruefstand-angebote-v3-34.js` | 75/3 | bereits in Abschnitt 143.3 als vorbestehend dokumentiert |
+| `pruefstand-leistungen-v3-37.js` | 40/1 | ebenso |
+| `pruefstand-medien-am-ende-v2-75.js` | 149/150 | ebenso (Lücke in der eigenen Supabase-Attrappe) |
+| `pruefstand-angebot-pdf-v3-38.js` | 61/2 | **neu aufgetreten** – die beiden Fehlschläge sind wörtlich „index.html nennt Version 3.38"/„sw.js trägt die Cache-Version 3.38"; die App steht inzwischen auf 3.39 |
+
+Die vierte Zeile wurde **nicht** ungeprüft übernommen: gegen den
+Commit-Stand unmittelbar vor dieser Runde (`git stash`) liefert
+`pruefstand-angebot-pdf-v3-38.js` **ebenfalls** 61/2 – dort schlagen zwei
+andere, ebenso commit-gebundene Prüfungen fehl („js/63-angebote.js
+selbst ist geändert" / „index.html, sw.js und js/41-hilfe.js wurden …
+ergänzt"), weil die Datei sich gegen sich selbst ohne Unterschied
+vergleicht. Derselbe Fehlschlags-**Count** (2), aber eine andere
+**Ursache** – in beiden Fällen ein reiner Artefakt der jeweiligen
+Selbstprüfung, kein durch diese Runde verursachtes Verhalten.
+`pruefstand-hilfe-v3-03.js` steht nach der in Abschnitt 143 bereits
+abgeschlossenen Anleitungs-Synchronisierung bei **68/68**.
+
+**Regierapport-Ausdruck**: `js/06-rapport.js`,
+`js/08-katalog-blitzschutz.js` und `css/03-druck.css` sind nicht im
+Diff dieser Runde (unverändert seit v3.38, Abschnitt 143.4).
+
+### 144.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/63-angebote.js` | `fileZuDataUrl()`, `angPdfDatenUrlFuerErkennung()`, Erkennen-Knopf, Grössengrenze für die Erkennung |
+| Edge Function `extract-offer-positions` | v10 → v11, ausschliesslich der Gemini-Prompt-Wortlaut |
+| `js/41-hilfe.js` | Hilfetext `ang-pdf` um die Erkennung ergänzt |
+| `index.html`, `sw.js` | Version 3.39, PDF-Verweise |
+| `pruefstaende/pruefstand-angebot-pdf-erkennen-v3-39.js` | **neu** |
+| `anleitung/*` | Kapitel 7 um die PDF-Erkennung ergänzt, PDF v3.39 (84 Seiten) |
+
+**Nicht angefasst**: `js/17-ausmass.js` (`recognizePhoto()` unverändert),
+`js/06-rapport.js`, `js/08-katalog-blitzschutz.js`, `css/03-druck.css`
+sowie sämtliche zwölf Massaufnahme-Fachmodule.
+
+### 144.7 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Geprüft ist die Oberfläche in echtem Chromium
+  gegen die echte `index.html` mit einer Attrappe, die jeden Aufruf
+  protokolliert; die Edge Function selbst wurde nur über ihre
+  Metadaten und ihren Quelltext verifiziert, nicht mit einem echten
+  PDF gegen Gemini aufgerufen.
+- Ein mehrseitiges PDF wird von Gemini als Ganzes interpretiert – die
+  App selbst zerlegt es nicht in Einzelseiten und trifft keine Auswahl,
+  welche Seite die Positionen enthält.
+- `pruefstand-angebote-v3-34.js`, `pruefstand-leistungen-v3-37.js`,
+  `pruefstand-medien-am-ende-v2-75.js` und jetzt zusätzlich
+  `pruefstand-angebot-pdf-v3-38.js` bleiben mit ihren vorbestehenden,
+  von dieser Runde unabhängigen, versionsstand-gebundenen Abweichungen
+  offen (Abschnitt 144.5) – jeder weitere Versionssprung wird
+  voraussichtlich einen weiteren, gleichartigen Fall zu dieser Liste
+  hinzufügen.

@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.38";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.39";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.38<br>
+  Version 3.39<br>
   Stand 9. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -265,10 +265,10 @@ eine Position von Hand erfassen.</p>
 <p>Zusätzlich zu den Fotos gibt es einen eigenen Bereich <strong>„📄 PDF der
 Offerte“</strong>: hier lässt sich das <strong>eigentliche Offert-Dokument</strong>
 als PDF ablegen – so, wie es dem Kunden vorliegt oder geschickt wurde. Das ist
-bewusst etwas anderes als die Fotos oben: die Fotos dienen ausschliesslich der
-Positionserkennung, das PDF ist das fertige Dokument selbst und wird von der
-App nicht ausgewertet.</p>
-<figure><img src="bilder/39-offerte-pdf.png"><figcaption>Ein hochgeladenes PDF, mit Öffnen- und Entfernen-Knopf.</figcaption></figure>
+bewusst etwas anderes als die Fotos oben: die Fotos dienen der
+Positionserkennung, das PDF ist zunächst einmal das fertige Dokument selbst,
+zum Aufbewahren und wieder Öffnen.</p>
+<figure><img src="bilder/39-offerte-pdf.png"><figcaption>Ein hochgeladenes PDF, mit Öffnen-, Entfernen- und (seit Version 3.39) Erkennen-Knopf.</figcaption></figure>
 <p><span class="tasten">📄 PDF hochladen</span> öffnet die Dateiauswahl des
 Geräts; ausgewählt werden kann nur eine <strong>einzelne PDF-Datei</strong> mit
 höchstens 50 MB. Die Datei wird <strong>nicht sofort</strong> hochgeladen,
@@ -280,6 +280,24 @@ einem neuen Tab ansehen; das Kreuz entfernt es wieder aus der Offerte.</p>
 neues hochgeladen, ersetzt es beim Speichern das vorherige. Fotos und PDF sind
 unabhängig voneinander – eine Offerte kann Fotos ohne PDF haben, ein PDF ohne
 Fotos, oder beides zusammen.</div>
+<h3>Positionen auch aus dem PDF erkennen (seit Version 3.39)</h3>
+<p>Sobald ein PDF ausgewählt oder bereits gespeichert ist, erscheint neben
+<span class="tasten">Öffnen</span> und <span class="tasten">✕</span> ein
+dritter Knopf: <span class="tasten">🔎 Positionen erkennen</span>. Er nutzt
+<strong>dieselbe Erkennung wie bei den Fotos</strong> – dieselbe Bilderkennung,
+dieselbe strenge Prüfung der Antwort, dieselbe Vorsicht: erkennt die App
+nichts Eindeutiges, liefert sie lieber gar nichts als geratene Zahlen. Ein Klick
+liest das PDF ein, schickt es zur Erkennung und trägt jede gefundene Position
+zusätzlich zu den bereits vorhandenen in die Liste ein – bestehende Positionen
+werden dabei nie verändert oder gelöscht. Darunter steht, wie viele Positionen
+gefunden wurden; sie stehen wie bei den Fotos <strong>zur Prüfung</strong> in
+der Liste und lassen sich vor dem Speichern noch von Hand korrigieren.</p>
+<figure><img src="bilder/40-offerte-pdf-erkannt.png"><figcaption>Nach „Positionen erkennen“: eine neue Position ist dazugekommen, die Meldung nennt die Anzahl.</figcaption></figure>
+<div class="hin">Ein sehr grosses PDF (über 15 MB) lässt sich weiterhin
+hochladen, aber nicht zur Erkennung schicken – das ist eine eigene, engere
+Grenze nur für die Erkennung selbst und unabhängig von der 50-MB-Grenze für
+das Hochladen. Die App sagt das an Ort und Stelle, statt den Versuch einfach
+scheitern zu lassen.</div>
 <h3>Speichern, öffnen, löschen</h3>
 <p>Eine Offerte gehört <strong>immer genau einem Projekt</strong>; ohne gewähltes
 Projekt lässt sich nicht speichern. Auf der Karte im Cockpit steht danach jede
@@ -1535,7 +1553,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">25 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.38</strong>, Stand 9. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.39</strong>, Stand 10. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

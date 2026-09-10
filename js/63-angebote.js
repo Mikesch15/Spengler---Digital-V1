@@ -23,6 +23,12 @@
 // - Fotoerkennung: recognizePhoto() bleibt unveraendert in js/17-ausmass.js
 //   (ruft die bestehende Edge Function extract-offer-positions auf) und
 //   wird hier unveraendert aufgerufen.
+// - PDF-Erkennung (v3.39): DIESELBE recognizePhoto()-Funktion, ohne jede
+//   Aenderung an ihr oder an der Edge Function - eine "data:application/
+//   pdf;base64,..."-URL passiert resolveImage() dort bereits unveraendert
+//   (keine mimeType-Pruefung fuer data:-URLs). Neu ist nur
+//   angPdfDatenUrlFuerErkennung(), das aus einer frisch gewaehlten oder
+//   bereits gespeicherten PDF-Datei eine solche URL erzeugt.
 // - Foto-Upload: uploadMeasurementImage() (js/10-massaufnahme.js), Ordner
 //   "angebote-photo" - storage_object_insert_allowed()/
 //   storage_object_is_own_company() kennen diesen Ordner bereits.
@@ -252,6 +258,61 @@ if($("angRecognizeAll")){
  };
 }
 
+// ---- PDF -> Positionen (v3.39) --------------------------------------
+// Auftrag: "aus dem pdf sollen jetzt auch die positionen importiert
+// werden wie mit einem foto". recognizePhoto() (js/17-ausmass.js) ist
+// dafuer UNVERAENDERT wiederverwendbar: die Edge Function
+// extract-offer-positions liest den mimeType direkt aus der "data:"-URL
+// und reicht ihn ungeprueft an Gemini weiter (resolveImage() hat fuer
+// data:-URLs KEINE Bildformat-Einschraenkung, nur fuer https?://-URLs -
+// am echten Funktionskoerper verifiziert). Es war also keine Aenderung
+// an recognizePhoto() oder der Edge Function noetig, nur ein neuer Weg,
+// eine gueltige "data:application/pdf;base64,..."-URL zu erzeugen.
+//
+// Eine eigene, KLEINERE Groessengrenze fuer die Erkennung selbst (anders
+// als MAX_DATEI_BYTES/MAX_DATEI_TEXT, die 50 MB fuer den reinen Upload
+// erlauben): Gemini begrenzt eine inline_data-Anfrage auf praktisch rund
+// 20 MB, und Base64 blaeht die Rohbytes um ca. 1/3 auf - ein 50-MB-PDF
+// wuerde die Erkennungsanfrage also verlaesslich zum Scheitern bringen.
+const ANG_PDF_ERKENNEN_MAX_BYTES=15*1024*1024;
+const ANG_PDF_ERKENNEN_MAX_TEXT="15 MB";
+
+function fileZuDataUrl(fileOderBlob){
+ return new Promise((resolve,reject)=>{
+  const r=new FileReader();
+  r.onload=()=>resolve(r.result);
+  r.onerror=()=>reject(new Error("Die Datei konnte nicht gelesen werden."));
+  r.readAsDataURL(fileOderBlob);
+ });
+}
+
+// Liefert eine gueltige PDF-"data:"-URL fuer die KI-Erkennung - egal ob
+// das PDF gerade erst ausgewaehlt wurde (angPdfNewFile, noch NICHT im
+// Storage) oder bereits gespeichert ist (angPdfExisting, nur ein
+// Speicherpfad). Fuer den gespeicherten Fall werden die echten Bytes
+// ueber die signierte URL geholt (storageSignedUrl() + fetch() + Blob) -
+// ein blosser Speicherpfad wuerde an resolveImage() scheitern (derselbe
+// Fehlertyp, der bei bereits gespeicherten FOTOS in js/17-ausmass.js
+// besteht, siehe CLAUDE.md - hier bewusst NICHT repliziert).
+async function angPdfDatenUrlFuerErkennung(){
+ let quelle=null;
+ if(angPdfNewFile){
+  quelle=angPdfNewFile;
+ }else if(angPdfExisting&&angPdfExisting.path){
+  const url=await storageSignedUrl(angPdfExisting.path);
+  if(!url)throw new Error("PDF konnte nicht geladen werden.");
+  const res=await fetch(url);
+  if(!res.ok)throw new Error(`PDF konnte nicht geladen werden (Status ${res.status}).`);
+  quelle=await res.blob();
+ }
+ if(!quelle)throw new Error("Kein PDF vorhanden.");
+ const groesse=Number(quelle.size)||0;
+ if(groesse>ANG_PDF_ERKENNEN_MAX_BYTES){
+  throw new Error(`Das PDF ist für die Positionserkennung zu gross (${formatFileSize(groesse)}). Erlaubt sind höchstens ${ANG_PDF_ERKENNEN_MAX_TEXT} für die Erkennung (unabhängig vom 50-MB-Limit für den reinen Upload).`);
+ }
+ return await fileZuDataUrl(quelle);
+}
+
 // ---- PDF der Offerte (eigenes Dokument, kein Foto) -----------------
 // dateiEndung()/dateiZuGross()/formatFileSize()/MAX_DATEI_TEXT kommen aus
 // js/09-projekte.js (dort seit v2.48/v2.49 die eine Quelle fuer
@@ -273,6 +334,7 @@ function renderAngPdfBereich(){
   box.innerHTML=`<div class="report-row">
 <div class="report-row-info"><b>📕 ${esc(angPdfNewFile.name)}</b><span>${formatFileSize(angPdfNewFile.size)} · wird beim Speichern hochgeladen</span></div>
 <div class="report-row-actions">
+<button type="button" class="gray" data-ang-pdf-erkennen title="Positionen aus diesem PDF erkennen">🔎 Positionen erkennen</button>
 <button type="button" class="red" data-ang-pdf-entfernen title="Auswahl verwerfen">✕</button>
 </div>
 </div>`;
@@ -281,6 +343,7 @@ function renderAngPdfBereich(){
 <div class="report-row-info"><b>📕 ${esc(angPdfExisting.name||"Offerte.pdf")}</b></div>
 <div class="report-row-actions">
 <button type="button" class="blue" data-ang-pdf-oeffnen>Öffnen</button>
+<button type="button" class="gray" data-ang-pdf-erkennen title="Positionen aus diesem PDF erkennen">🔎 Positionen erkennen</button>
 <button type="button" class="red" data-ang-pdf-entfernen title="Entfernen">✕</button>
 </div>
 </div>`;
@@ -320,6 +383,23 @@ if($("angPdfBereich")){
    if(url&&fenster)fenster.location.href=url;
    else if(fenster)fenster.close();
    if(!url)alert("PDF konnte nicht geöffnet werden.");
+   return;
+  }
+  const erkennen=e.target.closest("[data-ang-pdf-erkennen]");
+  if(erkennen){
+   erkennen.disabled=true;
+   if($("angRecognizeStatus"))$("angRecognizeStatus").textContent="Erkenne Positionen aus dem PDF … das kann einige Sekunden dauern.";
+   try{
+    const dataUrl=await angPdfDatenUrlFuerErkennung();
+    const found=await recognizePhoto(dataUrl);
+    angPositions=angPositions.concat(found);
+    renderAngPositionsTable();
+    if($("angRecognizeStatus"))$("angRecognizeStatus").textContent=`${found.length} Position(en) aus dem PDF erkannt. Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.`;
+   }catch(err){
+    if($("angRecognizeStatus"))$("angRecognizeStatus").textContent="";
+    alert("Fehler bei der Erkennung: "+(err.message||err));
+   }
+   erkennen.disabled=false;
   }
  });
 }

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.38.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.39.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -923,13 +923,20 @@ vorgeschlagen – dieselbe Erkennung wie beim Ausmass "Offerte erfassen".</p>
 Speichern noch prüfen und korrigieren.</p>`},
 
 "ang-pdf":{titel:"PDF der Offerte",text:`
-<p>Hier wird das eigentliche Offert-Dokument als PDF hochgeladen – anders
-als die Fotos oben (die dienen nur der Positionserkennung), ist das PDF
+<p>Hier wird das eigentliche Offert-Dokument als PDF hochgeladen – das ist
 das fertige Dokument selbst, so wie es dem Kunden vorliegt oder geschickt
 wurde.</p>
 <p>Höchstens 50 MB. Ein bereits hochgeladenes PDF lässt sich öffnen oder
 entfernen; ein neu gewähltes wird erst beim Speichern der Offerte
-tatsächlich hochgeladen.</p>`},
+tatsächlich hochgeladen.</p>
+<p>"🔎 Positionen erkennen" liest die Positionen direkt aus diesem PDF
+heraus – dieselbe Erkennung wie bei einem Foto, auch mehrseitige
+PDF-Dokumente werden dabei ausgewertet. Für die Erkennung selbst gilt eine
+eigene, kleinere Grenze von 15 MB (unabhängig vom 50-MB-Limit für den
+reinen Upload) – ein sehr grosses PDF lässt sich also weiterhin hochladen
+und ablegen, aber nicht mehr automatisch auslesen. Das Ergebnis landet wie
+bei den Fotos in der Tabelle darüber und lässt sich dort vor dem
+Speichern noch prüfen und korrigieren.</p>`},
 
 // ---- Regierapport -------------------------------------------------------
 "rapport-kopf":{titel:"Regieauftrag",text:`

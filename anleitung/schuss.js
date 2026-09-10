@@ -190,9 +190,21 @@ const liste=[];
  await page.waitForTimeout(300);
  await schuss("38-offerte-formular","#angebotEditModal .modalbox",{warte:400});
  // v3.38: das PDF der Offerte - unabhaengig von den Fotos, mit Oeffnen- und
- // Entfernen-Knopf. Die Demo-Offerte traegt seit stub.js bereits pdf_path/
- // pdf_name, openAngebot() hat renderAngPdfBereich() darueber schon gefuellt.
+ // Entfernen-Knopf sowie (seit v3.39) dem Knopf "Positionen erkennen".
+ // Die Demo-Offerte traegt seit stub.js bereits pdf_path/pdf_name,
+ // openAngebot() hat renderAngPdfBereich() darueber schon gefuellt.
  await schuss("39-offerte-pdf","#angPdfMedienBereich",{warte:300});
+ // v3.39: das Ergebnis, nachdem "Positionen erkennen" am PDF gedrueckt
+ // wurde - dieselbe Erkennung wie beim Foto (recognizePhoto()), hier direkt
+ // simuliert (kein echter KI-Aufruf in der Anleitung, siehe stub.js). Eine
+ // vierte Position kommt dazu, die Statuszeile nennt die erkannte Anzahl.
+ await page.evaluate(()=>{
+  angPositions=angPositions.concat([{pos:"4",description:"Kaminanschluss, Ort- und Seitenblech",quantity:1,unit:"Stk."}]);
+  renderAngPositionsTable();
+  if($("angRecognizeStatus"))$("angRecognizeStatus").textContent=
+   "1 Position(en) aus dem PDF erkannt. Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.";
+ });
+ await schuss("40-offerte-pdf-erkannt","#angebotEditModal .modalbox",{warte:300});
  await page.evaluate(()=>{$("angebotEditModal").hidden=true;$("projectCockpitModal").hidden=false});
 
  // ---------- Massaufnahme-Auswahl ----------
