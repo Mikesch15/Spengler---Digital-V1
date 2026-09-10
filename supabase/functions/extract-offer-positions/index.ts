@@ -1,0 +1,167 @@
+// Supabase Edge Function: extract-offer-positions
+// Accepts a data: URL or a public HTTP(S) image URL and sends the image to Gemini.
+// Gemini API key stays server-side in Supabase Secrets.
+//
+// v11: prompt text generalized to also cover PDF documents (possibly
+// multi-page) - the client can now send a "data:application/pdf;base64,..."
+// URL for a quote's PDF file (v3.39, js/63-angebote.js), not just a photo.
+// resolveImage() itself needed NO change: it already passes any data:-URL
+// through unmodified (only https?:// URLs are restricted to image/*), and
+// Gemini's inline_data accepts application/pdf the same way it accepts
+// image/*. The request/response contract is unchanged.
+//
+// v12: fixes a real production bug reported against a genuine, dense
+// Swiss NPK-format Offerte PDF (~90+ line-item positions across 13 pages).
+// Root cause, confirmed via edge logs (a real 502 at 2026-09-10T05:16:46Z)
+// plus direct inspection of the attached PDF: maxOutputTokens:3000 was far
+// too low for a document this size. At roughly 30-35 output tokens per
+// JSON position object, ~90 positions land almost exactly on that 3000
+// ceiling - Gemini's response gets cut off mid-array, JSON.parse() fails,
+// and the (unhelpful, misleading) generic "Antwort der KI konnte nicht als
+// Liste gelesen werden" error was shown, with no indication that the real
+// cause was simply "too many positions for the token budget".
+// Fix, in order of the project's usual layered-defense style (raise the
+// realistic ceiling first, then be honest if it's STILL not enough - never
+// silently guess/fabricate positions, see CLAUDE.md §78.5):
+//   1. maxOutputTokens raised from 3000 to 8192 (comfortably covers this
+//      real document's ~90 positions many times over: ~8192/33 ≈ 248
+//      positions of headroom).
+//   2. Gemini's finishReason is now read from the candidate. If parsing
+//      still fails AND finishReason==="MAX_TOKENS", the client gets an
+//      honest, specific, actionable message instead of the generic one -
+//      naming the real cause (too many positions, response cut off) and
+//      suggesting the document be split into smaller sections, rather than
+//      inventing or silently truncating a partial position list.
+// The success path (ok:true) and the request/response contract for a
+// normal-sized document are otherwise completely unchanged.
+//
+// Diesen Quelltext gibt es seit v12 auch im Repo (dieselbe Uebung wie bei
+// extract-profile-shape) - vorher war er nur ueber
+// mcp__Supabase__get_edge_function abrufbar (CLAUDE.md §31.6/§144.3
+// dokumentiert das ausdruecklich als bekannte Luecke). Wer diese Datei
+// aendert, MUSS sie erneut per mcp__Supabase__deploy_edge_function
+// veroeffentlichen - eine lokale Aenderung allein hat keine Wirkung.
+
+const MODEL = "gemini-3.6-flash";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function resolveImage(input: string): Promise<{ mimeType: string; base64Data: string }> {
+  const dataUrlMatch = input.match(/^data:([^;]+);base64,(.+)$/s);
+  if (dataUrlMatch) {
+    return { mimeType: dataUrlMatch[1], base64Data: dataUrlMatch[2] };
+  }
+
+  if (/^https?:\/\//i.test(input)) {
+    const imageRes = await fetch(input);
+    if (!imageRes.ok) {
+      throw new Error(`Bild konnte nicht geladen werden (HTTP ${imageRes.status}).`);
+    }
+    const contentType = imageRes.headers.get("content-type")?.split(";")[0]?.trim() || "image/jpeg";
+    if (!contentType.startsWith("image/")) {
+      throw new Error(`Die Bild-URL lieferte keinen Bildinhalt (${contentType}).`);
+    }
+    const bytes = new Uint8Array(await imageRes.arrayBuffer());
+    if (!bytes.length) throw new Error("Das Bild ist leer.");
+    return { mimeType: contentType, base64Data: bytesToBase64(bytes) };
+  }
+
+  throw new Error("Ungültiges Bildformat: erwartet eine data:-URL oder HTTP(S)-Bild-URL.");
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const { image_base64 } = await req.json();
+    if (!image_base64 || typeof image_base64 !== "string") {
+      return json({ ok: false, error: "Kein Bild übermittelt." }, 400);
+    }
+
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      return json({ ok: false, error: "GEMINI_API_KEY ist auf dem Server nicht gesetzt." }, 500);
+    }
+
+    const { mimeType, base64Data } = await resolveImage(image_base64);
+
+    const prompt = `Du bekommst das Foto oder PDF-Dokument (ggf. mehrseitig) einer Offerte oder Rechnung eines Spenglerbetriebs.
+Lies ALLE Positionszeilen aus der Tabelle heraus und gib sie als reines JSON-Array zurück.
+Kein Erklärtext, kein Markdown-Codeblock, nur das Array selbst.
+Jedes Element hat genau diese Felder:
+{"pos":"<Positionsnummer als Text, falls vorhanden, sonst leerer String>","description":"<Bezeichnung/Beschreibung der Position>","quantity":<Menge als Zahl, falls nicht lesbar: 0>,"unit":"<Einheit, z.B. Stk, m2, m, h, kg>"}
+Überschriften, Summenzeilen, MWST-Zeilen und Titelzeilen NICHT als Position aufnehmen, nur echte, einzeln aufgeführte Leistungspositionen.`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inline_data: { mime_type: mimeType, data: base64Data } },
+            ],
+          }],
+          generationConfig: {
+            maxOutputTokens: 8192,
+            responseMimeType: "application/json",
+          },
+        }),
+      },
+    );
+
+    const data = await res.json();
+    if (!res.ok) {
+      return json({
+        ok: false,
+        error: data?.error?.message || "Anfrage an Gemini fehlgeschlagen.",
+        geminiStatus: res.status,
+      }, 502);
+    }
+
+    const candidate = data?.candidates?.[0];
+    const finishReason = candidate?.finishReason;
+
+    let raw = candidate?.content?.parts?.[0]?.text || "[]";
+    raw = raw.trim().replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+
+    let positions: unknown;
+    try {
+      positions = JSON.parse(raw);
+      if (!Array.isArray(positions)) throw new Error("Antwort war kein Array.");
+    } catch {
+      if (finishReason === "MAX_TOKENS") {
+        return json({
+          ok: false,
+          error: "Das Dokument enthält zu viele Positionen für eine einzelne Erkennung – die Antwort der KI wurde mitten im Satz abgeschnitten. Bitte das Dokument in kleineren Abschnitten hochladen oder die Positionen für diesen Teil von Hand erfassen.",
+          geminiFinishReason: finishReason,
+        }, 502);
+      }
+      return json({ ok: false, error: "Antwort der KI konnte nicht als Liste gelesen werden.", raw }, 502);
+    }
+
+    return json({ ok: true, positions });
+  } catch (err) {
+    return json({ ok: false, error: String(err) }, 500);
+  }
+});

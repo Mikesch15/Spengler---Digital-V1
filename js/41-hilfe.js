@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.39.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.40.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -936,7 +936,12 @@ eigene, kleinere Grenze von 15 MB (unabhängig vom 50-MB-Limit für den
 reinen Upload) – ein sehr grosses PDF lässt sich also weiterhin hochladen
 und ablegen, aber nicht mehr automatisch auslesen. Das Ergebnis landet wie
 bei den Fotos in der Tabelle darüber und lässt sich dort vor dem
-Speichern noch prüfen und korrigieren.</p>`},
+Speichern noch prüfen und korrigieren.</p>
+<p>Enthält das Dokument sehr viele Positionen (etwa 90 oder mehr auf
+mehreren Seiten), meldet die Erkennung das ausdrücklich, statt eine
+unvollständige Liste zu erfinden – dann hilft es, das Dokument in
+kleineren Abschnitten hochzuladen oder die restlichen Positionen von
+Hand zu erfassen.</p>`},
 
 // ---- Regierapport -------------------------------------------------------
 "rapport-kopf":{titel:"Regieauftrag",text:`

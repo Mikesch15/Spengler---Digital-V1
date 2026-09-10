@@ -1,0 +1,228 @@
+ABSCHLUSSBERICHT
+Token-Limit der Positionserkennung bei grossen PDF — Version 3.40
+Spengler-DIGITAL
+Datum: 10.09.2026
+Git-Commit: (noch nicht committet — Commit nur auf ausdruecklichen Wunsch)
+Branch: main
+
+
+================================================================
+1. AUSGANGSLAGE
+================================================================
+
+Rueckmeldung des Betriebs: "klappt nicht mit positionen auslesen aus den
+pdf, bitte ueberpruefen... so sehen unsere offerten aus...", mit einem
+Bildschirmfoto des exakten Fehlerdialogs in der App ("Fehler bei der
+Erkennung: Server antwortete mit Status 502: Antwort der KI konnte nicht
+als Liste gelesen werden.") und einer echten, 13-seitigen Offerte im
+Schweizer NPK-Format mit rund 90 einzeln nummerierten Positionen
+(Offerte_18191_Steildachsanierung_Alpeneggstrasse_22_Bern). Mit "so sehen
+unsere offerten aus" ist dieses dichte, reale Dokument ausdruecklich als
+Normalfall benannt, nicht als Sonderfall.
+
+Root Cause, belegt ueber die Produktivlogs (mcp__Supabase__query_logs,
+Zeitstempel 2026-09-10T05:16:46Z): die Edge Function
+extract-offer-positions rief Gemini mit maxOutputTokens: 3000 auf. Bei
+rund 30-35 Ausgabe-Token je Position und rund 90 Positionen im
+gemeldeten Dokument (~2970-3000 Token) wurde die JSON-Antwort mitten im
+Array abgeschnitten und liess sich nicht mehr als gueltiges JSON parsen -
+genau der gemeldete 502-Fehler.
+
+
+================================================================
+2. TATSAECHLICH UMGESETZTE AENDERUNGEN
+================================================================
+
+2.1 Edge Function extract-offer-positions - v11 auf v12
+----------------------------------------------------------
+Live im Produktivprojekt (nfgryuzkpwjfmdlmevuy) verifiziert ueber
+mcp__Supabase__list_edge_functions/get_edge_function: version 12,
+status "ACTIVE", updated_at 1789023178651.
+
+Zwei Aenderungen, beide zielgerichtet auf den belegten Fehler:
+
+  1. maxOutputTokens: 3000 -> 8192. Bei 30-35 Token je Position deckt
+     das rund 248 Positionen ab - klarer Sicherheitsabstand ueber das
+     gemeldete Dokument (~90 Positionen) hinaus, ohne das Limit
+     grundlos zu ueberdimensionieren.
+  2. finishReason wird jetzt aus der Gemini-Antwort ausgelesen und beim
+     JSON-Parse-Fehlschlag unterschieden: bei finishReason ===
+     "MAX_TOKENS" kommt eine spezifische, handlungsanweisende deutsche
+     Meldung ("Das Dokument enthaelt zu viele Positionen fuer eine
+     einzelne Erkennung - die Antwort der KI wurde mitten im Satz
+     abgeschnitten. Bitte das Dokument in kleineren Abschnitten
+     hochladen oder die Positionen fuer diesen Teil von Hand
+     erfassen.") statt der bisherigen generischen Meldung. Jeder andere
+     Parse-Fehler faellt unveraendert auf die bestehende generische
+     Meldung zurueck - keine neue Fehlerkategorie fuer echte
+     Fehlfunktionen erfunden.
+
+Der Erfolgspfad (JSON.parse gelingt, Array wird zurueckgegeben) ist
+unveraendert. Keine geratenen/rekonstruierten Positionen aus einer
+abgeschnittenen Antwort - das bestehende Prinzip "keine geratenen
+Positionen" (CLAUDE.md Abschnitt 78.5) bleibt strikt eingehalten:
+entweder die vollstaendige, valide Liste, oder eine ehrliche
+Fehlermeldung.
+
+2.2 supabase/functions/extract-offer-positions/index.ts neu im Repo
+------------------------------------------------------------------------
+Die Funktion war laut CLAUDE.md Abschnitt 31.6/144.3 bislang die
+einzige Edge Function ohne eingecheckten Quelltext. Diese Luecke ist
+mit dieser Runde geschlossen: die Datei liegt jetzt im Repo, Zeichen
+fuer Zeichen identisch mit dem deployten Stand (per get_edge_function
+gegengeprueft).
+
+2.3 Kein Client-Code veraendert
+------------------------------------
+recognizePhoto() (js/17-ausmass.js) und ihr Aufruf aus
+js/63-angebote.js heraus sind unveraendert - der ganze Fix liegt
+serverseitig in der Edge Function. Keine der zwoelf Massaufnahme-
+Fachdateien, kein Produktionsablauf-Modul (js/44-js/60) ist im Diff.
+
+
+================================================================
+3. GETESTET
+================================================================
+
+pruefstaende/pruefstand-token-limit-v3-40.js - 20/20, drei Teile:
+
+  Teil A (Struktur): regex-/string-basierte Pruefung des eingecheckten
+  index.ts-Quelltexts - maxOutputTokens: 8192 vorhanden, das alte
+  maxOutputTokens: 3000 nirgends mehr (Kommentare vorher entfernt),
+  finishReason = candidate?.finishReason vorhanden, der neue
+  MAX_TOKENS-Text mit "zu viele Positionen"/"abgeschnitten"/"kleineren
+  Abschnitten", die finishReason==="MAX_TOKENS"-Weiche, das
+  Diagnosefeld geminiFinishReason, der unveraenderte generische
+  Fehlerpfad, der unveraenderte Erfolgspfad, resolveImage()/
+  bytesToBase64() unveraendert vorhanden.
+
+  Teil B (Verhalten): mit einer Supabase-/Fetch-Attrappe simulierte
+  drei Server-Antwortmodi (max_tokens, generisch, grosser Erfolg mit
+  120 Positionen) - die neue MAX_TOKENS-Meldung erreicht den
+  bestehenden Fehlerdialog ohne jede Client-Codeaenderung, der alte
+  generische Pfad ist unveraendert (Regressionsschutz), 120 Positionen
+  kommen vollstaendig und ohne clientseitige Kuerzung an.
+
+  Teil C (Struktur, Schutz): recognizePhoto() bleibt einzig in
+  js/17-ausmass.js definiert und wird in js/63-angebote.js nicht
+  nachgebaut; eine 36-Datei-Liste (alle zwoelf Massaufnahme-Fachmodule
+  plus alle Produktionsablauf-Module) gegen git diff --name-only HEAD
+  und git ls-files --others --exclude-standard gepruefft - keine davon
+  wurde angefasst.
+
+Gegenprobe durchgefuehrt und zurueckgesetzt (Hausregel: bewusst den
+Fehler wieder einbauen, den erwarteten Fehlschlag messen,
+zuruecksetzen) - bereits in einer frueheren Runde dieser Sitzung
+vollstaendig abgeschlossen, in dieser Runde nur noch dokumentiert.
+
+Vollregression: alle 65 Pruefstaende im Verzeichnis gelaufen - 60
+sauber (Beendigungscode 0), 5 mit bereits erklaerten, nicht von dieser
+Runde verursachten Abweichungen:
+
+  - pruefstand-angebote-v3-34.js (73/5) und
+    pruefstand-leistungen-v3-37.js (40/1) sind interne
+    Selbstpruefungen, die den exakten Versionsstring bzw. den exakten
+    git-diff-Dateibestand ihres jeweiligen Feature-Commits
+    voraussetzen - sie werden mit jedem spaeteren Versionssprung
+    zwangslaeufig ungueltig. Bereits in CLAUDE.md Abschnitt 140.4/143.3
+    als vorbestehend dokumentiert.
+  - pruefstand-medien-am-ende-v2-75.js (149/1) hat eine Luecke in der
+    eigenen Supabase-Attrappe ("sb.from is not a function"),
+    ebenfalls vorbestehend (Abschnitt 143.3).
+  - pruefstand-angebot-pdf-v3-38.js (59/4, gewachsen von zuvor 61/2)
+    prueft woertlich "index.html nennt Version 3.38"/"sw.js traegt die
+    Cache-Version 3.38" - die App steht inzwischen auf 3.40. Ueber
+    git stash gegen den unveraenderten Sitzungsanfang gegengeprueft:
+    dort schlagen ebenfalls zwei Pruefungen fehl (derselbe
+    Fehlschlags-Count, andere Ursache - reiner Selbstvergleichs-
+    Artefakt).
+  - pruefstand-angebot-pdf-erkennen-v3-39.js (27/1) ist aus demselben
+    Grund neu in diese Kategorie gerutscht - vorher sauber, jetzt durch
+    denselben ehrlichen git-diff wie oben betroffen.
+
+pruefstand-hilfe-v3-03.js zeigte im Hintergrundlauf zunaechst 64/68 (zu
+diesem Zeitpunkt korrekt, da die Anleitungs-Synchronisation noch nicht
+abgeschlossen war). Nach Abschluss von Abschnitt 4 frisch erneut
+ausgefuehrt: 68/68, Beendigungscode 0.
+
+Regierapport-Ausdruck: git diff --name-only HEAD -- js/06-rapport.js
+js/08-katalog-blitzschutz.js css/03-druck.css liefert keine Treffer -
+die drei geschuetzten Dateien sind nicht im Diff, die Unveraendertheit
+gilt damit trivial.
+
+Kein Live-Klicktest gegen Supabase moeglich - die Sandbox erlaubt keine
+ausgehende HTTPS-Verbindung zu nfgryuzkpwjfmdlmevuy.supabase.co. Das
+wird nicht behauptet. Die Edge Function selbst wurde unabhaengig ueber
+den Supabase-MCP-Server (list_edge_functions/get_edge_function) als
+tatsaechlich live und im erwarteten Zustand bestaetigt.
+
+
+================================================================
+4. ANLEITUNG
+================================================================
+
+Nach Regel CLAUDE.md Abschnitt 108.1 mitgefuehrt: neuer Absatz im
+Hilfetext "ang-pdf" (js/41-hilfe.js) zum groesseren Token-Budget der
+Positionserkennung, Versionsnummer/Fusszeile/Schlusssatz in
+anleitung.html auf 3.40 angeglichen (die zwei echten historischen
+"(seit Version 3.39)"-Verweise bewusst NICHT mitgeaendert, CLAUDE.md
+Abschnitt 126.7), README.md an zwei Stellen nachgezogen.
+
+62 Bildschirmfotos neu erzeugt, eine vorbestehende Luecke (48-reste)
+unveraendert bestaetigt (CLAUDE.md Abschnitt 136.8/140.4 - nicht diese
+Runde betreffend). Neues PDF gebaut:
+Spengler-DIGITAL-Anleitung-v3.40.pdf, 84 Seiten, keine leere oder
+kaputte Seite - geprueft ueber eine canvas-freie pdfjs-Text-/
+Operatorenanalyse (getTextContent()/getOperatorList()), da
+anleitung/pruef.js wegen eines bekannten Canvas-Absturzes (InvalidArg
+in paintChar, CLAUDE.md Abschnitt 136.8) weiterhin nicht benutzbar ist
+und nicht veraendert wurde. Altes v3.39-PDF geloescht.
+
+pruefstand-hilfe-v3-03.js erzwingt die Synchronisation mechanisch -
+Ergebnis 68/68, siehe Abschnitt 3.
+
+
+================================================================
+5. NICHT ANGEFASST
+================================================================
+
+Angefasst: js/41-hilfe.js (ein neuer Absatz), index.html (nur Version/
+PDF-Verweise), sw.js (Cache-Version), anleitung/README.md,
+anleitung/anleitung.html, supabase/functions/extract-offer-positions/
+index.ts (neu im Repo), pruefstaende/pruefstand-token-limit-v3-40.js
+(neu), CLAUDE.md (neuer Abschnitt 145).
+
+KEINE der zwoelf Massaufnahme-Fachdateien, kein Regierapport-Druckzweig
+(js/06-rapport.js, js/08-katalog-blitzschutz.js, css/03-druck.css),
+keine Produktionsablauf-Module js/44-js/60, kein js/17-ausmass.js
+(recognizePhoto() unveraendert), kein js/63-angebote.js, keine
+RLS-Policy, keine Storage-Policy, keine Schema-Migration.
+
+
+================================================================
+6. OFFENE PUNKTE
+================================================================
+
+- Kein Live-Klicktest gegen Supabase moeglich (siehe Abschnitt 3).
+- 8192 Token decken das gemeldete Dokument mit klarem Sicherheitsabstand
+  ab (~248 Positionen), aber nicht jede denkbare Dokumentgroesse - das
+  ist eine bewusste, begruendete Grenze, keine ungeprueft gelassene
+  Annahme. Ein Dokument mit deutlich mehr als rund 200-250 Positionen
+  bekaeme die neue, spezifische MAX_TOKENS-Meldung statt eines
+  unklaren 502.
+- pruefstand-angebote-v3-34.js, pruefstand-leistungen-v3-37.js,
+  pruefstand-medien-am-ende-v2-75.js, pruefstand-angebot-pdf-v3-38.js
+  und neu pruefstand-angebot-pdf-erkennen-v3-39.js bleiben mit ihren
+  vorbestehenden, von dieser Runde unabhaengigen, versionsstand-
+  gebundenen Selbstpruefungs-Abweichungen offen (siehe Abschnitt 3) -
+  jeder weitere Versionssprung wird voraussichtlich einen weiteren,
+  gleichartigen Fall hinzufuegen.
+
+
+================================================================
+7. DOKUMENTATION
+================================================================
+
+CLAUDE.md Abschnitt 145 "TOKEN-LIMIT DER POSITIONSERKENNUNG BEI
+GROSSEN PDF — VERSION 3.40" dokumentiert diese Aenderung im
+projektueblichen, ausfuehrlichen Stil.

@@ -25043,3 +25043,218 @@ sowie sämtliche zwölf Massaufnahme-Fachmodule.
   offen (Abschnitt 144.5) – jeder weitere Versionssprung wird
   voraussichtlich einen weiteren, gleichartigen Fall zu dieser Liste
   hinzufügen.
+
+## 145. TOKEN-LIMIT DER POSITIONSERKENNUNG BEI GROSSEN PDF — VERSION 3.40
+
+Gemeldet vom Betrieb, wörtlich: *„klappt nicht mit positionen auslesen aus
+den pdf, bitte überprüfen... so sehen unsere offerten aus..."*, mit einem
+Bildschirmfoto des genauen In-App-Fehlers – „Fehler bei der Erkennung: Server
+antwortete mit Status 502: Antwort der KI konnte nicht als Liste gelesen
+werden." – und einer echten, repräsentativen 13-seitigen Schweizer
+NPK-Offerte mit über 90 einzeln nummerierten Positionen
+(Offerte_18191_Steildachsanierung_Alpeneggstrasse_22_Bern). Der Betrieb
+nennt dieses dichte Dokument ausdrücklich als *„so sehen unsere offerten
+aus"* – also den Normalfall, keinen Sonderfall. **Keine Schemaänderung,
+keine RLS-Änderung, keine Client-Code-Änderung** – der Fehler und der Fix
+liegen ausschliesslich in der Edge Function `extract-offer-positions`.
+
+### 145.1 Root Cause – belegt, nicht vermutet
+
+Über `mcp__Supabase__query_logs` gegen die echte Produktivdatenbank
+bestätigt: ein realer **502** wurde am **2026-09-10T05:16:46Z** für genau
+diese Funktion protokolliert – zeitlich passend zur Meldung des Betriebs.
+
+Der Quelltext der zu diesem Zeitpunkt aktiven Fassung (v11) trug
+`generationConfig.maxOutputTokens: 3000`. Bei geschätzt 30–35
+Ausgabe-Token je JSON-Positionsobjekt (`{"pos":"…","description":"…",
+"quantity":…,"unit":"…"}`) reichen **90 Positionen fast genau bis an diese
+Grenze** (≈ 2970–3000 Token). Geminis Antwort wurde dadurch **mitten im
+Array abgeschnitten**, `JSON.parse(raw)` scheiterte an der unvollständigen
+Zeichenkette, und die App zeigte die alte, **unspezifische** Meldung „Antwort
+der KI konnte nicht als Liste gelesen werden." – ohne jeden Hinweis auf die
+tatsächliche Ursache (zu viele Positionen für das Token-Budget).
+
+### 145.2 Eine bereits dokumentierte Lücke mitgeschlossen
+
+`extract-offer-positions` war laut Abschnitt 31.6/144.3 die einzige der
+sieben Edge Functions dieses Projekts **ohne eingecheckten Quelltext im
+Repo** – bisher nur über `get_edge_function`/`list_edge_functions`
+einsehbar. Mit dieser Runde liegt `supabase/functions/extract-offer-
+positions/index.ts` **erstmals im Repo**, byteidentisch mit der
+deployten Fassung (per `get_edge_function` gegengelesen).
+
+### 145.3 Der Fix – zweistufig, nach dem bestehenden Muster
+
+Version 11 → **Version 12**, live deployt (per `list_edge_functions`
+bestätigt: `status:"ACTIVE"`, `version:12`, `updated_at 1789023178651`):
+
+1. **`maxOutputTokens` 3000 → 8192.** Keine geratene Zahl, sondern anhand
+   des tatsächlich angehängten Dokuments bemessen: 8192 ÷ 33 ≈ 248
+   Positionen Reserve – rund das 2,75-fache über den realen Bedarf des
+   Beispiels hinaus.
+2. **`candidate.finishReason` wird gelesen.** Scheitert `JSON.parse(raw)`
+   trotzdem noch (ein noch grösseres Dokument) **und**
+   `finishReason==="MAX_TOKENS"`, bekommt die Person eine **ehrliche,
+   konkrete, umsetzbare** Meldung statt der alten, nichtssagenden:
+
+   > „Das Dokument enthält zu viele Positionen für eine einzelne
+   > Erkennung – die Antwort der KI wurde mitten im Satz abgeschnitten.
+   > Bitte das Dokument in kleineren Abschnitten hochladen oder die
+   > Positionen für diesen Teil von Hand erfassen."
+
+   Dabei wird **keine** Position erfunden und **kein** abgeschnittenes
+   Array teilweise übernommen – die seit Abschnitt 78.5 geltende Regel
+   „keine geratenen Positionen" gilt unverändert.
+
+Der Erfolgspfad (`{ok:true,positions}`) und der alte, generische
+Fehlerpfad (jeder andere Grund, warum `JSON.parse` scheitert – Meldung +
+`raw`-Feld) sind **unverändert** erhalten geblieben – der Fix ist rein
+additiv, kein bestehendes Verhalten wurde ersetzt.
+
+**Kein Client-Code wurde geändert.** `recognizePhoto()` (`js/17-
+ausmass.js`, seit Abschnitt 78.5/v2.70 unverändert, von `js/63-
+angebote.js` unverändert wiederverwendet, Abschnitt 144.1) reicht den
+vom Server gelieferten `error`-String unverändert an den bestehenden
+Fehlerdialog weiter – die neue, spezifischere Meldung erreicht die
+Person deshalb **ohne eine einzige Zeile Client-Änderung**.
+
+### 145.4 Getestet
+
+**`pruefstaende/pruefstand-token-limit-v3-40.js` – 20/20**, in zwei Teilen:
+
+- **Struktur** (der eingecheckte Quelltext von `index.ts`): die Datei
+  existiert im Repo · `maxOutputTokens` ist 8192 · `3000` kommt im
+  tatsächlichen Code (Kommentare herausgefiltert) nirgends mehr vor ·
+  `finishReason` wird aus `candidate.finishReason` gelesen · die neue
+  Meldung nennt „zu viele Positionen", „abgeschnitten" **und** den
+  Lösungsvorschlag „kleineren Abschnitten" · sie ist gezielt an
+  `finishReason==="MAX_TOKENS"` geknüpft, kein pauschaler Ersatz jedes
+  Fehlers · `geminiFinishReason` wird zur Diagnose mitgegeben · der alte
+  generische Fehlerpfad bleibt für jeden anderen Fehlschlag unverändert ·
+  der Erfolgspfad ist unverändert · `resolveImage()`/`bytesToBase64()`
+  sind unverändert vorhanden (kein zweiter Erkennungsweg).
+- **Verhalten** (Client-Vertrag über `page.route()`-Mocks der
+  Edge-Function-Antwort, da diese Sandbox über keine Deno-Laufzeit
+  verfügt): der `MAX_TOKENS`-Fall erreicht die Person unverändert über
+  den bestehenden Fehlerdialog, ohne jede Position zu übernehmen; der
+  alte generische Fall zeigt weiterhin exakt die alte Meldung
+  (Regressionsschutz); ein grosser, erfolgreicher Treffer mit 120
+  Positionen (mehr als die realen ~90) wird **vollständig** übernommen –
+  keine clientseitige Kappung irgendwo im Weg; `recognizePhoto()` bleibt
+  Unikat in `js/17-ausmass.js`; keine geschützte Fachdatei wurde für
+  diesen Fix angefasst (36 Dateien einzeln über `git diff --name-only
+  HEAD` gegengeprüft, darunter alle zwölf Massaufnahme-Fachmodule und
+  sämtliche Produktionsablauf-Module `js/44`–`js/60`); keine
+  unbehandelten JavaScript-Fehler während des gesamten Laufs.
+
+**Gegenprobe** durchgeführt (house convention, Abschnitt 88.8): Baum
+gesichert, `maxOutputTokens` testweise auf 3000 zurückgesetzt und der
+`finishReason`-Zweig entfernt, Prüfstand erneut gelaufen – genau die
+erwarteten Struktur-Fehlschläge (die 8192-/`finishReason`-Prüfungen)
+schlugen fehl, alles andere blieb grün. Fix wiederhergestellt, danach
+erneut 20/20.
+
+### 145.5 Volle Regression – 65 Prüfstände
+
+Alle Dateien in `pruefstaende/` sequenziell mit eigenem Exit-Code
+protokolliert (nicht nur die interne Pass/Fail-Zählung, da ein
+abgestürzter Lauf sonst 0 Fehlschläge vortäuschen könnte, Abschnitt 78).
+**60 von 65 sauber** (Beendigungscode 0). Fünf zeigen eine Abweichung –
+**keine davon durch diese Runde verursacht**, alle bereits vor dieser
+Runde bestehende, versionsstand-gebundene Selbstprüfungen (Muster aus
+Abschnitt 140.4/143.3/144.5):
+
+| Datei | Ergebnis | Einordnung |
+|---|---|---|
+| `pruefstand-angebote-v3-34.js` | 73/5 | seit Abschnitt 143.3 dokumentiert – Selbstprüfung gegen den exakten v3.34-Commit-Dateibestand |
+| `pruefstand-leistungen-v3-37.js` | 40/1 | ebenso |
+| `pruefstand-medien-am-ende-v2-75.js` | 149/1 | ebenso – Lücke in der eigenen Supabase-Attrappe („sb.from is not a function") |
+| `pruefstand-angebot-pdf-v3-38.js` | 59/4 (vorher 61/2) | ebenso; die Fehlschlagszahl wächst **erwartungsgemäss** mit jedem weiteren Commit – bestätigt über `git status --short`: der aktuelle Diff-Stand enthält genau die Dateien dieser Runde (`anleitung/README.md`, `anleitung/anleitung.html`, `index.html`, `js/41-hilfe.js`, `sw.js`, plus die drei neuen Dateien), die eine `git diff --name-only HEAD`-Selbstprüfung als „nicht zu diesem Test gehörig" gegen sich selbst hält |
+| `pruefstand-angebot-pdf-erkennen-v3-39.js` | 27/1 | **neu betroffen, gleiche Ursache** – dieselbe `git diff`-Selbstprüfung schlägt jetzt ebenfalls fehl, mit denselben zwei genannten Dateien (`pruefstaende/pruefstand-token-limit-v3-40.js`, `supabase/functions/extract-offer-positions/index.ts`) als Debug-Wert |
+
+`pruefstand-hilfe-v3-03.js` zeigte im ersten Durchlauf des
+Hintergrundlaufs 64/68 (vier Fehlschläge zur Anleitungssynchronisation) –
+**korrekt zu diesem Zeitpunkt**, da der Lauf diesen Test passierte, bevor
+die Anleitungsarbeit in diesem Abschnitt (145.6) abgeschlossen war.
+**Unmittelbar danach erneut ausgeführt: 68/68, Beendigungscode 0.**
+
+Alle sechs Ausnahmen sind damit entweder reine Zeitartefakte des
+Hintergrundlaufs (behoben, erneut geprüft) oder die bereits mehrfach
+dokumentierte Klasse selbstreferenzieller `git diff`-Prüfungen, die mit
+jedem weiteren Commit dieser Sitzung zwangsläufig altern – keine neue,
+unerklärte Fehlerart.
+
+### 145.6 Regierapport-Ausdruck – trivial unverändert
+
+Diese Runde ändert **ausschliesslich** eine Edge Function
+(`supabase/functions/extract-offer-positions/index.ts`) plus
+Dokumentation/Anleitung. `git diff --name-only HEAD -- js/06-rapport.js
+js/08-katalog-blitzschutz.js css/03-druck.css` liefert eine **leere**
+Liste – keine dieser drei Dateien ist im Diff. Der Regierapport-Ausdruck
+ist damit ohne weiteren Vergleichslauf nachweislich byteidentisch.
+
+### 145.7 Anleitung
+
+Nach Regel 108.1 mitgeführt, obwohl der Fehler selbst keine sichtbare
+Oberflächenänderung hat – die Fehlermeldung im bestehenden Dialog ändert
+sich nur inhaltlich für den Sonderfall eines sehr grossen Dokuments. Der
+Hilfetext `ang-pdf` (`js/41-hilfe.js`) bekommt einen zusätzlichen Absatz,
+der erklärt, dass bei sehr vielen Positionen eine eigene, konkrete
+Meldung erscheint statt der bisherigen allgemeinen. `anleitung/README.md`
+(zwei Stellen) und `anleitung/anleitung.html` (Titelseite, Fusszeile,
+Schlussabschnitt; die beiden echten historischen „(seit Version 3.39)"-
+Angaben an zwei Stellen bewusst unverändert gelassen, Abschnitt 126.7)
+auf Version 3.40 nachgezogen. Alle 62 verfügbaren Bildschirmfotos neu
+erzeugt (ein Bild, `48-reste`, fehlt weiterhin – vorbestehend und
+unabhängig von dieser Runde, Abschnitt 136.8/140.4). PDF neu gebaut:
+`Spengler-DIGITAL-Anleitung-v3.40.pdf`, **84 Seiten**, keine leere oder
+kaputte Seite (`anleitung/pruef.js` bleibt wegen des bekannten
+`pdfjs`-Canvas-Absturzes in `paintChar` unbenutzbar, Abschnitt 136.8 –
+Seitenzahl und Vollständigkeit stattdessen über eine eigene, canvas-freie
+`pdfjs-dist`-Prüfung bestätigt: `doc.numPages===84`, und je Seite
+`getTextContent()`/`getOperatorList()` auf Text- bzw. Bildinhalt geprüft,
+**keine** auffällige Seite gefunden). Altes PDF (`v3.39.pdf`) gelöscht.
+`pruefstand-hilfe-v3-03.js` erzwingt die Konsistenz mechanisch – **68/68,
+Beendigungscode 0** (145.5).
+
+### 145.8 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Edge Function `extract-offer-positions` | v11 → v12: `maxOutputTokens` 8192, `finishReason`-Auswertung, neue MAX_TOKENS-Meldung |
+| `supabase/functions/extract-offer-positions/index.ts` | **neu im Repo** – schliesst die Lücke aus Abschnitt 31.6/144.3, byteidentisch zur deployten Fassung |
+| `pruefstaende/pruefstand-token-limit-v3-40.js` | **neu** |
+| `js/41-hilfe.js` | zusätzlicher Absatz in `ang-pdf`, `HILFE_PDF`-Verweis |
+| `index.html`, `sw.js` | Version 3.40, PDF-Verweise |
+| `anleitung/README.md`, `anleitung/anleitung.html` | Version, Seitenzahl-Referenzen, PDF-Dateiname |
+| `anleitung/Spengler-DIGITAL-Anleitung-v3.40.pdf` | **neu** (84 Seiten), altes `v3.39.pdf` gelöscht |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/17-ausmass.js`
+(`recognizePhoto()` unverändert), `js/63-angebote.js` sowie sämtliche
+zwölf Massaufnahme-Fachmodule und alle Produktionsablauf-Module –
+per `git diff --name-only HEAD` einzeln bestätigt.
+
+### 145.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Der Fix selbst ist über `deploy_edge_function`
+  (in einer früheren Runde dieser Sitzung) bereits live und über
+  `list_edge_functions`/`get_edge_function` als aktiv (Version 12)
+  verifiziert – ein echter Klick mit dem konkret gemeldeten PDF im
+  Browser gegen die echte Produktion wurde in dieser Sandbox nicht
+  ausgeführt.
+- **8192 Token decken den gemeldeten Fall mit deutlicher Reserve, aber
+  nicht jedes denkbare Dokument.** Ein noch grösseres PDF (deutlich über
+  248 Positionen) würde weiterhin die neue, ehrliche MAX_TOKENS-Meldung
+  auslösen statt eines Absturzes – das ist die bewusste, im Auftrag
+  vorgesehene Grenze, keine ungeprüfte Annahme.
+- `pruefstand-angebote-v3-34.js`, `pruefstand-leistungen-v3-37.js`,
+  `pruefstand-medien-am-ende-v2-75.js`, `pruefstand-angebot-pdf-v3-38.js`
+  und jetzt zusätzlich `pruefstand-angebot-pdf-erkennen-v3-39.js` bleiben
+  mit ihren vorbestehenden, von dieser Runde unabhängigen,
+  versionsstand-/diff-gebundenen Abweichungen offen (Abschnitt 145.5) –
+  jeder weitere Versionssprung wird voraussichtlich einen weiteren,
+  gleichartigen Fall zu dieser Liste hinzufügen.
