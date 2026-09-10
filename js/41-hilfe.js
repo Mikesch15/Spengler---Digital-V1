@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.42.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.43.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -944,9 +944,16 @@ Rahmen doch einmal sprengt, meldet die Erkennung das ausdrücklich, statt
 eine unvollständige Liste zu erfinden – dann hilft es, das Dokument in
 kleineren Abschnitten hochzuladen oder die restlichen Positionen von
 Hand zu erfassen.</p>
-<p>Seit dieser Version läuft die Erkennung zuverlässig durch: ein interner
+<p>Seit Version 3.42 läuft die Erkennung zuverlässig durch: ein interner
 Fehler, der bei manchen Anfragen sofort mit einer Fehlermeldung abbrach
-statt überhaupt erst zu versuchen zu lesen, ist behoben.</p>`},
+statt überhaupt erst zu versuchen zu lesen, ist behoben.</p>
+<p>Seit Version 3.43 ist ein zweiter, seltenerer Fall behoben: bei
+manchen Mobilverbindungen brach die Erkennung mit „Failed to fetch" ab,
+bevor überhaupt eine Antwort ankam – die KI brauchte für ihre eigene,
+unsichtbare Vorüberlegung länger, als die mobile Verbindung offen blieb.
+Die Erkennung ist jetzt gezielt auf schnelles Lesen einer Tabelle statt
+auf langes Nachdenken eingestellt; auch das ändert an der Bedienung
+selbst nichts.</p>`},
 
 // ---- Regierapport -------------------------------------------------------
 "rapport-kopf":{titel:"Regieauftrag",text:`

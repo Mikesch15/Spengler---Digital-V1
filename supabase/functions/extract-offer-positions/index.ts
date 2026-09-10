@@ -106,6 +106,52 @@
 // positions even before accounting for any thinking-token spend) more
 // than covers a real-world Swiss Offerte either way.
 //
+// v15: real production use of v14 (the same real, dense 13-page/90+-
+// position Offerte PDF, on the actual live mobile device) surfaced a
+// THIRD, again different failure: the raw browser error "Failed to
+// fetch" - a client/network-layer TypeError thrown by fetch() itself,
+// BEFORE any HTTP response is received (unlike v11/v12's 502s, which
+// did complete a round-trip and got logged server-side). Diagnosed via
+// Supabase's own function_edge_logs/edge_logs (not guessed): for both
+// production attempts under v14, a CORS OPTIONS preflight to this
+// function succeeded (200), but NO corresponding POST ever appears in
+// function_edge_logs at any status - the actual POST request never
+// reached this function at all. The immediately preceding step (the
+// client fetching the PDF's bytes from a Supabase Storage signed URL)
+// is independently confirmed to have succeeded first, so the failure is
+// specifically in the client's fetch() call to THIS function, not in
+// loading the PDF.
+// Researched rather than guessed (the direct, hard-learned lesson from
+// getting v13's thinkingConfig wrong twice in a row): "Failed to fetch"
+// is a well-documented symptom of the network connection failing or
+// being dropped before a response arrives - and mobile cellular
+// connections are documented to be materially less tolerant of a POST
+// left open for a long time than desktop connections. v14's default
+// (MEDIUM) thinking behaviour on this dense document is very likely
+// running considerably LONGER than the 14-33s execution times that were
+// actually logged under v11/v12 (which used thinkingBudget:0, however
+// ineffectively) - and that extra duration is the most plausible
+// explanation for why THIS specific real mobile session's connection
+// died with zero server-side trace, exactly matching every piece of log
+// evidence gathered.
+// Also researched (not assumed) rather than reusing v13's mistake:
+// Google's OWN current docs for gemini-3.6-flash confirm the model DOES
+// support the newer thinkingLevel field (LOW/MEDIUM/HIGH; MEDIUM is the
+// default), and explicitly recommend LOW for exactly this kind of task
+// - "fast transcript-focused searches or basic metadata extraction" -
+// which is precisely what reading a table of positions/quantities/units
+// out of a PDF is: a mechanical table-read, not multi-step reasoning.
+// (The docs also confirm thinkingLevel and thinkingBudget must never be
+// combined in one Gemini-3 request - not a concern here, since
+// thinkingBudget is not sent at all.)
+// Fix: thinkingLevel:"LOW" is added to generationConfig, to reduce
+// Gemini's actual processing time for this task (and so reduce how long
+// the client's fetch() has to stay open on an unreliable mobile
+// connection) - a verified, model-documented setting for this exact use
+// case, not a repeat of v13's unverified thinkingBudget:0 guess.
+// maxOutputTokens:65536 is unchanged; the MAX_TOKENS honest-fallback
+// message from v12 is unchanged.
+//
 // Diesen Quelltext gibt es seit v12 auch im Repo (dieselbe Uebung wie bei
 // extract-profile-shape) - vorher war er nur ueber
 // mcp__Supabase__get_edge_function abrufbar (CLAUDE.md §31.6/§144.3
@@ -195,6 +241,7 @@ Jedes Element hat genau diese Felder:
           }],
           generationConfig: {
             maxOutputTokens: 65536,
+            thinkingConfig: { thinkingLevel: "LOW" },
             responseMimeType: "application/json",
           },
         }),

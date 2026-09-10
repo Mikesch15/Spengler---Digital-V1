@@ -25666,3 +25666,263 @@ per `git diff --name-only HEAD` einzeln bestätigt.
   ausdrücklich das Vorhandensein der jetzt entfernten Konfiguration,
   siehe 147.4) – jeder weitere Versionssprung wird voraussichtlich einen
   weiteren, gleichartigen Fall zu dieser Liste hinzufügen.
+
+## 148. „FAILED TO FETCH" AUF DEM ECHTEN MOBILGERÄT — VERSION 3.43
+
+Kaum war v3.42 (Abschnitt 147) veröffentlicht, meldete der Betrieb einen
+**dritten, wieder anderen** Fehler beim Antippen von „🔎 Positionen
+erkennen" auf einem hochgeladenen Offerte-PDF – diesmal live auf dem
+eigenen Android-Handy, unterwegs über Swisscom-Mobilfunk bei Bern:
+`Fehler bei der Erkennung: Failed to fetch`. Kein Server-Statuscode mehr
+wie bei v11/v12 (502, Abschnitt 145) – eine reine Browser-Fehlermeldung,
+die entsteht, **bevor** überhaupt eine Antwort eintrifft. **Keine
+Schemaänderung, keine RLS-Änderung, keine Client-Code-Änderung** – der
+gesamte Fix liegt wie in den drei vorherigen Runden ausschliesslich in
+der Edge Function `extract-offer-positions`.
+
+### 148.1 Recherchiert statt geraten – die Logs, nicht die Vermutung
+
+„Failed to fetch" wird vom Browser selbst geworfen, wenn `fetch()`
+**keine** Antwort bekommt – anders als ein HTTP-Fehlercode, der eine
+abgeschlossene Anfrage voraussetzt. Statt zu raten, wurde zuerst in
+Supabases eigenen `function_edge_logs`/`edge_logs` nachgesehen
+(`mcp__Supabase__query_logs` gegen das echte Produktivprojekt): für
+beide betroffenen Versuche unter v14 ist der CORS-OPTIONS-Preflight zu
+dieser Funktion erfolgreich protokolliert (200) – aber **keine**
+zugehörige POST-Anfrage taucht in `function_edge_logs` auf, auf **keinem**
+Statuscode. Die eigentliche Anfrage hat die Funktion also nie erreicht.
+Der unmittelbar vorangehende Schritt (die PDF-Bytes über eine signierte
+Storage-URL zu laden) ist unabhängig als erfolgreich bestätigt – der
+Fehler sitzt gezielt im `fetch()`-Aufruf an **diese** Funktion, nicht im
+Laden des PDFs.
+
+Auch die Erklärung dafür wurde recherchiert, nicht angenommen – die
+harte Lehre aus dem zweimal falsch geratenen `thinkingConfig` in v13/v14
+(Abschnitte 146/147): „Failed to fetch" ist ein dokumentiertes Symptom
+einer Verbindung, die abbricht oder abgebrochen wird, bevor eine Antwort
+zurückkommt – und mobile Datenverbindungen sind dafür bekannt, deutlich
+weniger tolerant gegenüber einer lange offen bleibenden POST-Anfrage zu
+sein als eine Desktop-Verbindung. v14s **Standard**-Denkverhalten
+(MEDIUM, da `thinkingConfig` in v14 komplett entfernt worden war) läuft
+auf diesem dichten Dokument sehr wahrscheinlich deutlich länger als die
+tatsächlich protokollierten 14–33 Sekunden aus v11/v12 (die – wenn auch
+wirkungslos – `thinkingBudget:0` gesetzt hatten) – und genau diese
+zusätzliche Dauer erklärt am plausibelsten, warum ausgerechnet diese
+reale, mobile Sitzung ohne jede serverseitige Spur abbrach, exakt passend
+zu jedem Beleg aus den Logs.
+
+Ebenfalls recherchiert statt geraten – und bewusst **nicht** dieselbe
+Art Fehler wie in v13 wiederholt: Googles eigene, aktuelle Dokumentation
+zu `gemini-3.6-flash` bestätigt, dass das Modell das **neuere** Feld
+`thinkingLevel` (`LOW`/`MEDIUM`/`HIGH`, Standard `MEDIUM`) unterstützt,
+und empfiehlt `LOW` ausdrücklich für genau diese Art Aufgabe – „schnelle,
+transkriptbezogene Suchen oder einfache Metadaten-Extraktion". Eine
+Positions-/Mengen-/Einheitentabelle aus einem PDF abzulesen ist genau
+das: ein mechanisches Ablesen, kein mehrstufiges Schlussfolgern. Die
+Dokumentation stellt zudem ausdrücklich klar, dass `thinkingLevel` und
+`thinkingBudget` bei Gemini 3 **nie** gemeinsam geschickt werden dürfen
+– hier ohnehin kein Thema, da `thinkingBudget` gar nicht mehr gesendet
+wird.
+
+### 148.2 Der Fix – ein dokumentiertes Feld statt einer zweiten Vermutung
+
+```ts
+generationConfig: {
+  maxOutputTokens: 65536,
+  thinkingConfig: { thinkingLevel: "LOW" },
+  responseMimeType: "application/json",
+},
+```
+
+`maxOutputTokens:65536` bleibt unverändert aus Abschnitt 146 stehen – der
+dort nachgewiesene, sehr grosse Spielraum ist von diesem Fehler unberührt.
+`thinkingConfig:{thinkingLevel:"LOW"}` ist neu und **verifiziert**, nicht
+wie v13s `thinkingBudget:0` ein ungeprüfter Versuch: das reduziert
+Geminis tatsächliche Bearbeitungszeit für diese Aufgabe (und damit, wie
+lange `fetch()` auf einer unzuverlässigen Mobilverbindung offen bleiben
+muss), über ein für genau diesen Anwendungsfall dokumentiertes Feld.
+Der ehrliche MAX_TOKENS-Rückfall aus v3.40 (Abschnitt 145) bleibt
+**unverändert** stehen – kein bestehendes Verhalten wurde ersetzt, nur
+eine Konfigurationszeile ergänzt.
+
+### 148.3 Getestet
+
+**Neuer Prüfstand `pruefstaende/pruefstand-thinking-level-v3-43.js`**,
+fünf Abschnitte, 22 Prüfungen insgesamt:
+
+- **A · Struktur** (12 Prüfungen am Quelltext): `thinkingConfig:
+  {thinkingLevel:"LOW"}` ist im tatsächlichen Code vorhanden ·
+  `thinkingBudget` kommt nirgends mehr vor – der v13-Fehler (falsches
+  Feld) darf nicht zurückkehren · `maxOutputTokens` ist weiterhin 65536 ·
+  `generationConfig` enthält **genau** `maxOutputTokens`,
+  `thinkingConfig` und `responseMimeType`, kein weiterer Rest · der
+  MAX_TOKENS-Rückfall aus v3.40 liest weiterhin `finishReason` ·
+  die v3.40-Meldung samt Bedingung und Diagnosefeld ist unverändert ·
+  der alte, generische Fehlerpfad bleibt für jeden anderen Fehlschlag
+  unverändert · der Erfolgspfad ist unverändert · der `!res.ok`-Zweig
+  (dort, wo v14s Fehler tatsächlich entstand) ist unverändert ·
+  `resolveImage()`/`bytesToBase64()` sind unverändert (kein zweiter
+  Erkennungsweg).
+- **B · Verhalten – erfolgreicher Treffer** (2 Prüfungen): 97 Positionen
+  werden vollständig übernommen, keine clientseitige Kappung.
+- **C · Verhalten – MAX_TOKENS** (2 Prüfungen): das Sicherheitsnetz aus
+  v3.40 erreicht die Person weiterhin unverändert, ohne je eine Position
+  zu erfinden.
+- **D · Verhalten – generischer Fehlerfall** (2 Prüfungen):
+  Regressionsschutz, unverändert.
+- **E · Struktur** (4 Prüfungen): `recognizePhoto()` bleibt einzig in
+  `js/17-ausmass.js` definiert, `js/63-angebote.js` baut sie nicht nach,
+  keine geschützte Fachdatei wurde für diesen rein serverseitigen Fix
+  angefasst, keine unbehandelten JavaScript-Fehler.
+
+**Gegenprobe durchgeführt** (Baum gesichert nach
+`/tmp/index.ts.bak-v343`, `thinkingConfig:{thinkingLevel:"LOW"}` aus
+`index.ts` entfernt, Prüfstand erneut ausgeführt): **20 bestanden, 2
+fehlgeschlagen, `EXIT=1`**, mit genau den beiden erwarteten
+strukturellen Fehlschlägen:
+
+```
+FEHLGESCHLAGEN: thinkingConfig:{thinkingLevel:"LOW"} ist im tatsaechlichen
+  Code (Kommentare entfernt) vorhanden
+FEHLGESCHLAGEN: generationConfig enthaelt GENAU maxOutputTokens,
+  thinkingConfig und responseMimeType - kein weiterer Rest
+  ["maxOutputTokens","responseMimeType"]
+```
+
+Alle 20 übrigen Prüfungen – darunter sämtliche Verhaltens- (B/C/D) und
+alle vier „keine geschützte Fachdatei"-Prüfungen (E) – blieben grün: die
+Gegenprobe trifft also genau die beabsichtigte Stelle und nichts sonst.
+Datei danach aus der Sicherung wiederhergestellt (per `grep -n
+"thinkingConfig:"` gegengeprüft), Prüfstand erneut ausgeführt: wieder
+**22 bestanden, 0 fehlgeschlagen, `EXIT=0`**, `git status --short` ohne
+Reste der Gegenprobe.
+
+### 148.4 Volle Regression – 68 Prüfstände
+
+Alle Dateien in `pruefstaende/` einzeln mit eigenem Exit-Code
+protokolliert (nicht nur die interne Pass/Fail-Zählung, Abschnitt 78).
+**60 von 68 sauber** (Beendigungscode 0). Acht zeigen eine Abweichung –
+**keine davon durch diese Runde verursacht**, alle aus der bereits
+mehrfach dokumentierten Klasse selbstreferenzieller
+`git diff`-/Versionsstand-Prüfungen bzw. Prüfungen, deren gesamter
+Daseinszweck darin bestand, eine inzwischen überholte Zwischenstufe zu
+bestätigen:
+
+| Datei | Einordnung |
+|---|---|
+| `pruefstand-angebote-v3-34.js` | seit Abschnitt 143.3 dokumentiert – Selbstprüfung gegen den exakten v3.34-Commit-Dateibestand |
+| `pruefstand-leistungen-v3-37.js` | ebenso |
+| `pruefstand-medien-am-ende-v2-75.js` | ebenso – Lücke in der eigenen Supabase-Attrappe |
+| `pruefstand-angebot-pdf-v3-38.js` | ebenso |
+| `pruefstand-angebot-pdf-erkennen-v3-39.js` | ebenso, seit Abschnitt 145.5 |
+| `pruefstand-token-limit-v3-40.js` | seit Abschnitt 146.6 – kennt die spätere Anhebung auf 65536 nicht |
+| `pruefstand-thinking-budget-v3-41.js` | seit Abschnitt 147.4 – prüft ausdrücklich das Vorhandensein des in v3.42 entfernten `thinkingBudget:0`; sein Fehlschlagen bestätigt, dass diese Zwischenstufe tatsächlich überholt ist |
+| `pruefstand-thinking-config-entfernt-v3-42.js` | **neu betroffen, gleiche Ursache** – prüft ausdrücklich, dass **kein** `thinkingConfig` gesetzt ist; genau das hat diese Runde bewusst wieder ergänzt (§148.2), sein Fehlschlagen ist deshalb das erwartete, korrekte Signal, dass v3.42 selbst eine mittlerweile überholte Zwischenstufe war |
+
+`pruefstand-thinking-level-v3-43.js` selbst läuft im vollen
+Regressionslauf sauber durch (`EXIT=0`).
+
+### 148.5 Regierapport-Ausdruck – trivial unverändert
+
+Diese Runde ändert **ausschliesslich** die Edge Function
+(`supabase/functions/extract-offer-positions/index.ts`) plus
+Dokumentation/Anleitung. `git diff --name-only HEAD -- js/06-rapport.js
+js/08-katalog-blitzschutz.js css/03-druck.css` liefert eine **leere**
+Liste – keine dieser drei Dateien ist im Diff. Der Regierapport-Ausdruck
+ist damit ohne weiteren Vergleichslauf nachweislich byteidentisch
+(gleicher Nachweisweg wie in Abschnitt 145.6/147.5).
+
+### 148.6 Live deployt
+
+Über `mcp__Supabase__list_edge_functions` gegen das echte
+Produktivprojekt (`nfgryuzkpwjfmdlmevuy`) bestätigt:
+`extract-offer-positions` steht auf **Version 15**, Status `ACTIVE`,
+`updated_at 1789036329315`. Der Betrieb hat den Fix bereits live im
+Feld bestätigt – „jetzt funktioniert es!" – bevor diese Runde begann.
+
+### 148.7 Anleitung
+
+Nach Regel 108.1 mitgeführt: der Hilfetext `ang-pdf`
+(`js/41-hilfe.js`) bekommt einen weiteren Absatz für den jetzt behobenen
+Fall, ohne den vorherigen zu überschreiben – dabei wurde die frühere,
+inzwischen mehrdeutig gewordene Formulierung „Seit **dieser** Version
+läuft die Erkennung zuverlässig durch" korrekt auf „Seit **Version
+3.42**" umdatiert (Abschnitt 126.7: eine „seit dieser Version"-Aussage
+beschreibt einen bestimmten Zeitpunkt und darf bei einem weiteren
+Versionssprung nicht stillschweigend mitwandern). Derselbe Absatz ist
+wortgleich als neuer Kapitel-Unterabschnitt in `anleitung/anleitung.html`
+übernommen. Version in `index.html` (zwei Stellen), `js/41-hilfe.js`,
+`anleitung/anleitung.html` (drei Stellen: Titelseite, Fusszeile,
+Schlussabschnitt) und `anleitung/README.md` (zwei Stellen) auf 3.43
+nachgezogen. Alle Bildschirmfotos neu erzeugt (ein Bild, `48-reste`,
+fehlt weiterhin – vorbestehend und unabhängig von dieser Runde,
+Abschnitt 136.8/140.4). PDF neu gebaut:
+`Spengler-DIGITAL-Anleitung-v3.43.pdf`, unverändert **85 Seiten**
+(keine neue Bildschirmseite, da der Fix keine für die Bedienung
+sichtbare Eigenschaft hat), keine leere oder kaputte Seite (canvas-freie
+Text-/Operator-Prüfung, `anleitung/pruef.js` bleibt wegen des bekannten
+`pdfjs`-Canvas-Absturzes in `paintChar` unbenutzt, Abschnitt 136.8).
+Altes PDF (`v3.42.pdf`) gelöscht. `pruefstand-hilfe-v3-03.js` erzwingt
+die Konsistenz mechanisch – **68/68, Beendigungscode 0**.
+
+### 148.8 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `supabase/functions/extract-offer-positions/index.ts` | `thinkingConfig:{thinkingLevel:"LOW"}` ergänzt, `maxOutputTokens:65536` unverändert |
+| Edge Function `extract-offer-positions` | v14 → v15, live deployt |
+| `pruefstaende/pruefstand-thinking-level-v3-43.js` | **neu** |
+| `index.html` | Version 3.43, PDF-Verweise (zwei Stellen, „85 Seiten") |
+| `sw.js` | Cache-Version 3.43 |
+| `js/41-hilfe.js` | zusätzlicher Absatz in `ang-pdf`, veraltete Formulierung umdatiert, `HILFE_PDF`-Verweis |
+| `anleitung/anleitung.html`, `anleitung/README.md` | Version, Seitenzahl-Referenzen, PDF-Dateiname, neuer Kapitel-Absatz |
+| `anleitung/Spengler-DIGITAL-Anleitung-v3.43.pdf` | **neu** (85 Seiten), altes `v3.42.pdf` gelöscht |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/17-ausmass.js`
+(`recognizePhoto()` unverändert), `js/63-angebote.js` sowie sämtliche
+zwölf Massaufnahme-Fachmodule und alle Produktionsablauf-Module –
+per `git diff --name-only HEAD` einzeln bestätigt.
+
+### 148.9 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase/Gemini aus dieser Sandbox** – die
+  Sandbox blockiert ausgehende HTTPS-Verbindungen zu
+  `nfgryuzkpwjfmdlmevuy.supabase.co`, wie in jeder vorherigen Sitzung.
+  **Das wird ausdrücklich nicht als hier getestet behauptet.** Bestätigt
+  ist der Fix dagegen **echt und live**: der Betreiber selbst hat ihn auf
+  seinem Mobilgerät nachvollzogen und ausdrücklich zurückgemeldet, dass
+  die Erkennung jetzt funktioniert – der stärkste Nachweis, den ein
+  mobil auftretender Netzwerkfehler in diesem Projekt bisher bekommen
+  hat.
+- **`thinkingLevel:"LOW"` reduziert die Denkzeit, garantiert aber keine
+  feste Obergrenze.** Bei einem noch grösseren oder komplexeren Dokument
+  bleibt ein Restrisiko einer erneut zu langen Verbindung bestehen – das
+  ist eine Wahrscheinlichkeitsreduktion anhand dokumentierten
+  Modellverhaltens, keine harte Garantie.
+- **Dreimal in Folge dieselbe Konfigurationsstelle geändert** (v13 setzte
+  `thinkingBudget:0`, v14 entfernte `thinkingConfig` ganz, v15 ergänzt
+  `thinkingLevel:"LOW"`) – ein Muster, das sich wiederholen könnte, falls
+  Google das Verhalten dieser Modellgeneration künftig erneut ändert.
+  Sollte erneut ein Fehler an genau dieser Stelle auftreten, gilt
+  unverändert die Reihenfolge aus 145.1/146.1/147.1/148.1: erst die
+  tatsächliche Fehlermeldung (hier zusätzlich: die echten Supabase-Logs)
+  und die aktuelle Modelldokumentation prüfen, nie ein weiteres Mal
+  ungeprüft raten.
+- Aus Abschnitt 145.9/146.6/147.9 unverändert offen:
+  `pruefstand-angebote-v3-34.js`, `pruefstand-leistungen-v3-37.js`,
+  `pruefstand-medien-am-ende-v2-75.js`, `pruefstand-angebot-pdf-v3-38.js`
+  und `pruefstand-angebot-pdf-erkennen-v3-39.js` bleiben mit ihren
+  vorbestehenden, von dieser Runde unabhängigen, versionsstand-/
+  diff-gebundenen Abweichungen offen. Neu zu dieser Liste hinzugekommen:
+  `pruefstand-token-limit-v3-40.js`, `pruefstand-thinking-budget-v3-41.js`
+  und `pruefstand-thinking-config-entfernt-v3-42.js` (Abschnitt 148.4) –
+  jeder weitere Versionssprung wird voraussichtlich einen weiteren,
+  gleichartigen Fall zu dieser Liste hinzufügen.
+- Aus Abschnitt 147.9 weiterhin unverändert offen und noch nicht
+  begonnen: die vom Betrieb bereits gemeldete Folgeverbesserung der
+  Positionserkennung selbst – aktuell wird je Position nur die Zeile mit
+  der Positionsnummer gelesen, nicht der ganze zugehörige Absatz, und
+  fett gedruckte Zwischentitel im PDF werden nicht mit erkannt. Bewusst
+  als eigene, spätere Version zurückgestellt, bis dieser Fix vollständig
+  abgeschlossen und dokumentiert ist.
