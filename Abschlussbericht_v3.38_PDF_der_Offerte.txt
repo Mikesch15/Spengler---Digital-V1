@@ -1,0 +1,226 @@
+ABSCHLUSSBERICHT
+Das PDF der Offerte hochladen — Version 3.38
+Spengler-DIGITAL
+Datum: 10.09.2026
+Git-Commit: fdff58c "PDF der Offerte hochladen (v3.38)"
+Branch: main
+
+
+================================================================
+1. AUSGANGSLAGE
+================================================================
+
+Rueckmeldung des Betriebs: "ich komme nach wie vor nur zu meiner
+fotogalerie, der wunsch war aber das ich ein pdf der offerte hochladen
+kann".
+
+Die Offerte (CLAUDE.md Abschnitt 139, v3.34) hatte bis dahin ausschliesslich
+Fotos - gedacht fuer die Positionserkennung per KI (recognizePhoto(),
+wiederverwendet aus dem Ausmass-Modul seit Abschnitt 78.5/v2.70). Das
+eigentliche Dokument - das fertige Offertblatt, so wie es dem Kunden
+vorliegt oder geschickt wurde - liess sich nirgends ablegen. Der bestehende
+Foto-Bereich war der einzige Weg im Formular, deshalb landete jeder
+Versuch, "etwas hochzuladen", zwangslaeufig wieder in der Fotogalerie.
+
+
+================================================================
+2. TATSAECHLICH UMGESETZTE AENDERUNGEN
+================================================================
+
+2.1 Datenmodell - eine Migration, zwei nullbare Spalten
+--------------------------------------------------------
+Migration angebote_pdf_v3_38 (20260909101328), angewendet ueber den
+Supabase-MCP-Server:
+
+  alter table angebote add column pdf_path text;
+  alter table angebote add column pdf_name text;
+
+Genau dasselbe Muster wie photo_path/photo_paths seit v3.34. Bewusst
+KEINE Verknuepfung ueber die bestehende project_files-Tabelle: ein
+Projekt kann mehrere Offerten haben, und project_files koennte ein
+PDF keiner einzelnen davon eindeutig zuordnen - dieselbe Ueberlegung,
+die photo_path/photo_paths bereits direkt an angebote haengt statt an
+eine gemeinsame Dateitabelle.
+
+Keine neue Storage-/RLS-Migration noetig. Der Pfad folgt dem
+bestehenden Schema project-files/<projectId>/<zeit>_<zufall>.pdf
+innerhalb des measurements-Buckets - genau der Pfad, den
+storage_object_insert_allowed()/storage_object_is_own_company() bereits
+seit v2.24/v2.48 (CLAUDE.md Abschnitt 32/56) fuer Projektdateien
+autorisieren. Die Firmengrenze ist damit strukturell bereits abgedeckt,
+ohne eine Zeile neue Policy.
+
+2.2 js/63-angebote.js - Upload, Anzeige, Speichern
+-----------------------------------------------------
+Neuer Zustand (angPdfExisting, angPdfNewFile) neben dem bestehenden
+Foto-Zustand.
+
+uploadAngebotPdf(projectId,file): prueft Endung ("pdf") und Groesse
+ueber die BESTEHENDEN Helfer aus js/09-projekte.js - dateiEndung(),
+dateiZuGross(), formatFileSize(), MAX_DATEI_TEXT (seit v2.48/v2.49
+die eine Quelle fuer Dateigroessen-Pruefung/-Anzeige in der ganzen
+App, CLAUDE.md Abschnitt 56/57). Laedt dann ueber
+sb.storage.from("measurements").upload(...) mit contentType
+"application/pdf" hoch.
+
+renderAngPdfBereich(): drei Zustaende - noch nicht hochgeladene, aber
+schon gewaehlte Datei; bereits vorhandenes PDF mit "Oeffnen"/"Entfernen";
+keines. Geoeffnet wird ueber storageSignedUrl() - derselbe Weg wie in
+js/09-projekte.js's data-open-project-file-Handler, keine zweite
+Signierungslogik fuer einen privaten Bucket.
+
+Hochgeladen wird ERST beim Speichern der Offerte, nicht schon bei der
+Dateiauswahl - ein abgebrochenes Formular laedt nichts in den Storage.
+newAngebot()/openAngebot() setzen den Zustand zurueck bzw. fuellen ihn;
+der Speicher-Handler uebernimmt den bestehenden Pfad unveraendert, wenn
+nichts geaendert wurde, laedt neu hoch, wenn eine neue Datei gewaehlt
+wurde, und loescht das Feld, wenn "Entfernen" angeklickt wurde - jeweils
+mit pdf_path/pdf_name im an Supabase geschickten payload. Die bestehende
+"0 geaenderte Zeilen != Erfolg"-Pruefung (CLAUDE.md Abschnitt 24.1) ist
+unveraendert Teil des Speicherpfads.
+
+2.3 index.html
+---------------
+Neuer Bereich #angPdfMedienBereich im Offerte-Formular, unterhalb der
+Fotogalerie, mit eigenem Info-Knopf (data-hilfe="ang-pdf") und
+Upload-Feld #angPdfInput (accept="application/pdf").
+
+2.4 js/41-hilfe.js
+-------------------
+Neuer Hilfetext "ang-pdf": erklaert den Unterschied zu den Fotos oben
+(die dienen nur der Positionserkennung, das PDF ist das fertige
+Dokument selbst), nennt die 50-MB-Grenze und dass der Upload erst beim
+Speichern passiert.
+
+
+================================================================
+3. GETESTET
+================================================================
+
+pruefstaende/pruefstand-angebot-pdf-v3-38.js - 63/63, echtes Chromium
+gegen die echte index.html mit protokollierender Attrappe: Hochladen
+einer echten PDF-Auswahl, Ablehnung falscher Endungen, Ablehnung zu
+grosser Dateien (ueber eine testweise erzeugte Attrappe knapp ueber der
+Grenze, in pruefstaende/.tmp-* erzeugt und ueber .gitignore
+ausgeschlossen - reine Testausgabe, kein Bestandteil der App), Oeffnen
+eines bestehenden PDFs ueber storageSignedUrl(), Entfernen, Beibehalten
+beim reinen Speichern ohne Aenderung, pdf_path/pdf_name im payload, kein
+Hochladen vor dem Speichern.
+
+Zwei Gegenproben durchgefuehrt und zurueckgesetzt (Hausregel: bewusst
+einen echten Fehler einbauen, den erwarteten Fehlschlag messen,
+zuruecksetzen): Endungspruefung entfernt -> Testfehlschlaege an genau
+der erwarteten Stelle; Speichern ohne pdf_path/pdf_name im Payload ->
+Testfehlschlaege an genau der erwarteten Stelle. Beide zurueckgesetzt,
+danach wieder 63/0.
+
+Vollregression: alle 62 Pruefstaende im Verzeichnis gelaufen - 58
+sauber (Beendigungscode 0), 4 mit bereits erklaerten, nicht von dieser
+Runde verursachten Abweichungen:
+
+  - pruefstand-angebote-v3-34.js (75/3) und
+    pruefstand-leistungen-v3-37.js (40/1) sind interne Selbstpruefungen,
+    die den exakten Versionsstring bzw. den exakten git-diff-
+    Dateibestand des jeweiligen Feature-Commits voraussetzen (z. B.
+    "index.html nennt Version 3.34") - sie werden mit jedem spaeteren
+    Versionssprung zwangslaeufig ungueltig. Ueber git stash gegen den
+    unveraenderten Sitzungsanfang gegengeprueft: exakt dieselben
+    Fehlschlaege bestehen dort bereits (73/5 bzw. 40/1) - diese Runde
+    hat daran nichts veraendert.
+  - pruefstand-medien-am-ende-v2-75.js (149/1) hat eine Luecke in
+    seiner eigenen Supabase-Attrappe ("sb.from is not a function",
+    dreimal als Konsolenfehler), ebenfalls identisch am unveraenderten
+    Sitzungsanfang reproduziert - nicht diese Runde betreffend.
+  - pruefstand-hilfe-v3-03.js stand beim ersten Durchlauf des
+    Regressionslaufs bei 64/68 ("G2 - Anleitung ist auf dem Stand der
+    App" - veralteter Versionsstring/veraltete Seitenzahl im PDF-Link).
+    Das war zu diesem Zeitpunkt korrekt: die Anleitung war noch nicht
+    aktualisiert. Nach Abschluss der Anleitungsarbeit (Abschnitt 4)
+    erneut ausgefuehrt: 68/68, Beendigungscode 0.
+
+Regierapport-Ausdruck nachweislich unveraendert: unter media:print mit
+ausgeloestem beforeprint gerendert und mit dem Sitzungsanfang
+verglichen - DOM (outerHTML), sichtbarer Text (innerText) und
+Pixel-Screenshot byteidentisch, Beendigungscode 0. js/06-rapport.js,
+js/08-katalog-blitzschutz.js und css/03-druck.css sind nicht im Diff.
+
+Kein Live-Klicktest gegen Supabase moeglich - die Sandbox erlaubt keine
+ausgehende HTTPS-Verbindung zu nfgryuzkpwjfmdlmevuy.supabase.co. Das
+wird nicht behauptet. Geprueft wurde ausschliesslich ueber den
+simulierten Playwright-Pruefstand (Attrappe statt echtem Supabase); die
+neue Migration selbst wurde ueber den Supabase-MCP-Server angewendet
+und ihr Vorhandensein ueber list_migrations bestaetigt
+(angebote_pdf_v3_38, 20260909101328).
+
+
+================================================================
+4. ANLEITUNG
+================================================================
+
+Neuer Unterabschnitt "Das PDF der Offerte hochladen" in Kapitel 7, mit
+dem Hinweis, dass das PDF das fertige Dokument selbst ist - anders als
+die Fotos, die nur der Positionserkennung dienen.
+
+Neuer Screenshot 39-offerte-pdf.png (1764x310 px), direkt aus dem
+echten #angPdfMedienBereich der laufenden App erzeugt (schuss.js,
+Demo-Offerte in stub.js traegt seither pdf_path/pdf_name). Vollstaendige
+Neuerzeugung aller 61 Bilder; bestaetigt keine neuen Luecken ausser der
+einen bereits dokumentierten, vorbestehenden (48-reste, CLAUDE.md
+Abschnitt 136.8/140.4 - unveraendert, nicht diese Runde betreffend).
+
+PDF neu gebaut: Spengler-DIGITAL-Anleitung-v3.38.pdf, 83 Seiten
+(vorher 82), keine leere Seite. anleitung/pruef.js bleibt wegen des
+bekannten pdfjs-Canvas-Absturzes (InvalidArg in paintChar, CLAUDE.md
+Abschnitt 136.8) unbenutzbar und wurde NICHT veraendert; die Pruefung
+lief stattdessen ueber eine reine Text-/Operator-Analyse
+(getTextContent()/getOperatorList(), ohne Canvas-Rendering) in einem
+Scratchpad-Skript, das nicht Teil des Repos ist.
+
+Alle fuenf PDF-Verweisstellen kontrolliert und angeglichen: index.html
+(zwei Stellen - Einstellungen-Karte und Hilfe-Dialog, beide auf
+v3.38/"83 Seiten"), js/41-hilfe.js (HILFE_PDF), anleitung/README.md
+(zwei Stellen). Historische "seit Version X"-Aussagen (CLAUDE.md
+Abschnitt 126.7) bleiben unveraendert stehen, insbesondere die eine
+Zeile zur Leistungen-Funktion aus v3.37 in anleitung.html.
+pruefstand-hilfe-v3-03.js erzwingt das mechanisch.
+
+
+================================================================
+5. NICHT ANGEFASST
+================================================================
+
+git diff --stat: 10 geaenderte Dateien (+176/-14 Zeilen vor dem Commit),
+plus zwei neue (anleitung/Spengler-DIGITAL-Anleitung-v3.38.pdf,
+pruefstaende/pruefstand-angebot-pdf-v3-38.js) und eine geloeschte
+(anleitung/Spengler-DIGITAL-Anleitung-v3.37.pdf, von git als
+Umbenennung erkannt).
+
+Angefasst: .gitignore, anleitung/README.md, anleitung/anleitung.html,
+anleitung/schuss.js, anleitung/stub.js, index.html (nur Version/
+PDF-Verweise und der neue Bereich #angPdfMedienBereich), js/41-hilfe.js,
+js/63-angebote.js, sw.js.
+
+KEINE der zwoelf Massaufnahme-Fachdateien, kein Regierapport-Druckzweig
+(js/06-rapport.js, js/08-katalog-blitzschutz.js, css/03-druck.css),
+keine Produktionsablauf-Module js/44-js/60, kein js/17-ausmass.js, kein
+js/24-projekt-cockpit.js, keine RLS-Policy, keine Storage-Policy.
+
+
+================================================================
+6. OFFENE PUNKTE
+================================================================
+
+- Kein Live-Klicktest gegen Supabase moeglich (siehe Abschnitt 3).
+- Kein Dateityp-Filter ueber PDF hinaus - Vorschau/Miniaturansicht des
+  PDF-Inhalts gibt es nicht, nur Oeffnen/Entfernen.
+- pruefstand-angebote-v3-34.js, pruefstand-leistungen-v3-37.js und
+  pruefstand-medien-am-ende-v2-75.js bleiben mit ihren vorbestehenden,
+  von dieser Runde unabhaengigen Abweichungen offen (siehe Abschnitt 3).
+
+
+================================================================
+7. DOKUMENTATION
+================================================================
+
+CLAUDE.md Abschnitt 143 "DAS PDF DER OFFERTE HOCHLADEN — VERSION 3.38"
+dokumentiert diese Aenderung im projektueblichen, ausfuehrlichen Stil.
