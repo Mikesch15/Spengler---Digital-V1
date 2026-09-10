@@ -189,6 +189,10 @@ const liste=[];
  });
  await page.waitForTimeout(300);
  await schuss("38-offerte-formular","#angebotEditModal .modalbox",{warte:400});
+ // v3.38: das PDF der Offerte - unabhaengig von den Fotos, mit Oeffnen- und
+ // Entfernen-Knopf. Die Demo-Offerte traegt seit stub.js bereits pdf_path/
+ // pdf_name, openAngebot() hat renderAngPdfBereich() darueber schon gefuellt.
+ await schuss("39-offerte-pdf","#angPdfMedienBereich",{warte:300});
  await page.evaluate(()=>{$("angebotEditModal").hidden=true;$("projectCockpitModal").hidden=false});
 
  // ---------- Massaufnahme-Auswahl ----------

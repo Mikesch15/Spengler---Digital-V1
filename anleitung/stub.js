@@ -74,7 +74,13 @@ window.__demo={
     {pos:"1",description:"Rinne halbrund, Titanzink 0.7 mm",quantity:18.4,unit:"m"},
     {pos:"2",description:"Einlaufblech gerade, Abwicklung 250 mm",quantity:6.2,unit:"m"},
     {pos:"3",description:"Rinnenhalter",quantity:24,unit:"Stk."}],
-   photo_paths:[],photo_path:null,created_by:"u1",created_at:"2026-08-20T09:00:00Z",updated_by:"u1",updated_at:"2026-08-20T09:30:00Z"}
+   photo_paths:[],photo_path:null,
+   // v3.38: das eigentliche Offert-Dokument als PDF, unabhaengig von den
+   // Fotos (die dienen nur der Positionserkennung). Erfundener Pfad -
+   // storageSignedUrl() faende dazu in der Attrappe ohnehin keine echte
+   // Datei, fuer den Bildschirmfoto-Bereich reicht die Anzeige der Zeile.
+   pdf_path:"project-files/1/offerte-sanierung-dach-nord.pdf",pdf_name:"Offerte Sanierung Dach Nord.pdf",
+   created_by:"u1",created_at:"2026-08-20T09:00:00Z",updated_by:"u1",updated_at:"2026-08-20T09:30:00Z"}
  ],
  // v3.36 Geplant -> Ausgefuehrt: je Ausmass-Position der Massaufnahme 12 ein
  // eigener, unabhaengiger Ausfuehrungsstand - die geplante Menge bleibt dabei

@@ -18,3 +18,8 @@
 # Binaerdaten gehoeren nicht in die Versionsverwaltung. Eingecheckt sind
 # nur das fertige PDF und die Skripte.
 /anleitung/bilder/
+
+# Grosse Testdateien, die ein Pruefstand beim Laufen selbst erzeugt (z. B.
+# eine 50-MB-PDF-Attrappe fuer die Groessenpruefung des Offerte-Uploads).
+# Reine Testausgabe, kein Bestandteil der App.
+/pruefstaende/.tmp-*

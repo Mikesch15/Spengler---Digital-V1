@@ -66,6 +66,24 @@ let currentAngebotId=null;
 let currentAngebotMeta={};
 let angEditReturnTo="cockpitAngebote";
 let projectAngeboteCache=[];
+// ---- PDF der Offerte (v3.38) --------------------------------------
+// Getrennt von den Fotos (die dienen der KI-Positionserkennung, das PDF
+// ist das eigentliche Offert-Dokument zum Ablegen/Weitergeben).
+// angPdfExisting  = {path,name} des bereits GESPEICHERTEN PDFs, oder null.
+// angPdfNewFile   = ausgewaehltes File-Objekt, das beim Speichern erst
+//                   hochgeladen wird - noch NICHTS im Storage/DB.
+// Liegt bewusst NICHT in "project_files" (das ist eine projektweite,
+// von der Offerte unabhaengige Liste - ein Projekt kann mehrere Offerten
+// haben, project_files koennte die Zuordnung nicht eindeutig abbilden),
+// sondern als eigene Spalte auf der angebote-Zeile selbst - exakt wie
+// photo_path/photo_paths bereits seit v3.34. Pfad "project-files/
+// <projectId>/…": dieser Pfad ist ueber storage_object_insert_allowed()/
+// storage_object_is_own_company() bereits REIN STRUKTURELL autorisiert
+// (Pfadsegmente + Projekt-Firmenzugehoerigkeit), unabhaengig davon, ob
+// eine project_files-Zeile existiert - am echten Funktionskoerper
+// verifiziert, siehe CLAUDE.md. Keine neue Storage-/RLS-Migration noetig.
+let angPdfExisting=null;
+let angPdfNewFile=null;
 
 // Wird aus afterLogin() (js/03-login.js) aufgerufen, wie checkSystemAdmin().
 // Fragt die Zugriffs-Tabelle direkt ab (keine RPC noetig - die Zeile
@@ -234,6 +252,78 @@ if($("angRecognizeAll")){
  };
 }
 
+// ---- PDF der Offerte (eigenes Dokument, kein Foto) -----------------
+// dateiEndung()/dateiZuGross()/formatFileSize()/MAX_DATEI_TEXT kommen aus
+// js/09-projekte.js (dort seit v2.48/v2.49 die eine Quelle fuer
+// Groessengrenze/Formatierung, siehe CLAUDE.md 56/57) - lediglich als
+// globale Funktionen aufgerufen, js/09 selbst wird nicht angefasst.
+async function uploadAngebotPdf(projectId,file){
+ if(dateiEndung(file)!=="pdf")throw new Error("Nur PDF-Dateien können hier hochgeladen werden.");
+ if(typeof dateiZuGross==="function"&&dateiZuGross(file))
+  throw new Error(`Die Datei ist zu gross (${formatFileSize(file.size)}). Erlaubt sind höchstens ${MAX_DATEI_TEXT} pro Datei.`);
+ const path=`project-files/${projectId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.pdf`;
+ const {error}=await sb.storage.from("measurements").upload(path,file,{contentType:"application/pdf",upsert:false});
+ if(error)throw error;
+ return path;
+}
+function renderAngPdfBereich(){
+ const box=$("angPdfBereich");
+ if(!box)return;
+ if(angPdfNewFile){
+  box.innerHTML=`<div class="report-row">
+<div class="report-row-info"><b>📕 ${esc(angPdfNewFile.name)}</b><span>${formatFileSize(angPdfNewFile.size)} · wird beim Speichern hochgeladen</span></div>
+<div class="report-row-actions">
+<button type="button" class="red" data-ang-pdf-entfernen title="Auswahl verwerfen">✕</button>
+</div>
+</div>`;
+ }else if(angPdfExisting&&angPdfExisting.path){
+  box.innerHTML=`<div class="report-row">
+<div class="report-row-info"><b>📕 ${esc(angPdfExisting.name||"Offerte.pdf")}</b></div>
+<div class="report-row-actions">
+<button type="button" class="blue" data-ang-pdf-oeffnen>Öffnen</button>
+<button type="button" class="red" data-ang-pdf-entfernen title="Entfernen">✕</button>
+</div>
+</div>`;
+ }else{
+  box.innerHTML='<div class="small" style="color:var(--muted)">Noch kein PDF hochgeladen.</div>';
+ }
+}
+if($("angPdfInput")){
+ $("angPdfInput").addEventListener("change",e=>{
+  const file=(e.target.files||[])[0];
+  e.target.value="";
+  if(!file)return;
+  if(dateiEndung(file)!=="pdf"){alert("Bitte nur eine PDF-Datei auswählen.");return}
+  if(typeof dateiZuGross==="function"&&dateiZuGross(file)){
+   alert(`Die Datei ist zu gross (${formatFileSize(file.size)}). Erlaubt sind höchstens ${MAX_DATEI_TEXT} pro Datei.`);
+   return;
+  }
+  angPdfNewFile=file;
+  renderAngPdfBereich();
+ });
+}
+if($("angPdfBereich")){
+ $("angPdfBereich").addEventListener("click",async e=>{
+  if(e.target.closest("[data-ang-pdf-entfernen]")){
+   if(angPdfNewFile)angPdfNewFile=null;
+   else angPdfExisting=null;
+   renderAngPdfBereich();
+   return;
+  }
+  const oeffnen=e.target.closest("[data-ang-pdf-oeffnen]");
+  if(oeffnen&&angPdfExisting&&angPdfExisting.path){
+   // Bucket ist privat: window.open() muss synchron im Klick bleiben,
+   // sonst blockieren Popup-Blocker - gleiches Muster wie beim Oeffnen
+   // einer Projektdatei (js/09-projekte.js, data-open-project-file).
+   const fenster=window.open("","_blank");
+   const url=await storageSignedUrl(angPdfExisting.path);
+   if(url&&fenster)fenster.location.href=url;
+   else if(fenster)fenster.close();
+   if(!url)alert("PDF konnte nicht geöffnet werden.");
+  }
+ });
+}
+
 // ---- Projektauswahl (gleiche Bausteine wie bei Massaufnahme/Ausmass) --
 function setAngProjectField(projId){
  angSelectedProjectId=projId||null;
@@ -285,6 +375,10 @@ function newAngebot(){
  renderAngPhotoGallery();
  angPositions=[];
  renderAngPositionsTable();
+ angPdfExisting=null;
+ angPdfNewFile=null;
+ if($("angPdfInput"))$("angPdfInput").value="";
+ renderAngPdfBereich();
  setAngProjectField(cockpitProjectId);
  $("angebotEditModal").hidden=false;
  updateAngFormTitle();
@@ -302,6 +396,10 @@ function openAngebot(a){
  renderAngPhotoGallery();
  angPositions=Array.isArray(a.positions)?a.positions.map(p=>({...p})):[];
  renderAngPositionsTable();
+ angPdfExisting=a.pdf_path?{path:a.pdf_path,name:a.pdf_name||"Offerte.pdf"}:null;
+ angPdfNewFile=null;
+ if($("angPdfInput"))$("angPdfInput").value="";
+ renderAngPdfBereich();
  if($("angRecognizeStatus"))$("angRecognizeStatus").textContent="";
  angEditReturnTo="cockpitAngebote";
  $("angebotEditModal").hidden=false;
@@ -350,6 +448,16 @@ if($("saveAngebot")){
    for(const p of angPhotos){
     photoUrls.push(p.startsWith("data:")?await uploadMeasurementImage(p,"angebote-photo"):p);
    }
+   // Neues PDF erst JETZT hochladen (nicht schon bei der Auswahl) - erst
+   // wenn wirklich gespeichert wird, entsteht eine Storage-Datei. Ohne
+   // Auswahl bleibt ein bereits gespeichertes PDF unveraendert stehen;
+   // wurde es entfernt (angPdfExisting===null), wird pdf_path/pdf_name null.
+   let pdfPath=angPdfExisting?angPdfExisting.path:null;
+   let pdfName=angPdfExisting?angPdfExisting.name:null;
+   if(angPdfNewFile){
+    pdfPath=await uploadAngebotPdf(angSelectedProjectId,angPdfNewFile);
+    pdfName=angPdfNewFile.name;
+   }
    const payload={
     project_id:angSelectedProjectId,
     title,
@@ -357,7 +465,9 @@ if($("saveAngebot")){
     date:$("angDate").value||new Date().toISOString().slice(0,10),
     photo_path:photoUrls[0]||null,
     photo_paths:photoUrls,
-    positions:angPositions
+    positions:angPositions,
+    pdf_path:pdfPath,
+    pdf_name:pdfName
    };
    // 0 betroffene Zeilen gelten NICHT als Erfolg (CLAUDE.md 24.1): ein von
    // RLS blockiertes Schreiben meldet in PostgREST keinen Fehler, es
@@ -374,6 +484,8 @@ if($("saveAngebot")){
     currentAngebotId=data[0].id;
     currentAngebotMeta={created_by:data[0].created_by,created_at:data[0].created_at,updated_by:data[0].updated_by,updated_at:data[0].updated_at};
    }
+   angPdfExisting=pdfPath?{path:pdfPath,name:pdfName}:null;
+   angPdfNewFile=null;
    $("angebotEditModal").hidden=true;
    await angEditZurueck();
    isDirty=false;
