@@ -1,0 +1,75 @@
+# ============================================================
+# SPENGLER-DIGITAL – CLAUDE CONTEXT
+# Historische / nicht für jede Aufgabe relevante Dateien
+# ============================================================
+
+# ------------------------------------------------------------
+# HISTORISCHE PROJEKTBERICHTE
+# ------------------------------------------------------------
+Abschlussbericht_*.txt
+Bericht_*.txt
+Aenderungen_*.txt
+
+# ------------------------------------------------------------
+# ALTE DOKUMENTATION
+# ------------------------------------------------------------
+NOTIZEN.md
+berichte/
+anleitung/
+
+# ------------------------------------------------------------
+# PROTOTYPEN / EXPERIMENTE
+# ------------------------------------------------------------
+prototyp/
+prototyp-einlaufblech/
+pruefstaende/
+
+# ------------------------------------------------------------
+# ALTE HTML-VERSIONEN / EXPORTS
+# ------------------------------------------------------------
+rapport_v*.html
+rapport_v*.png
+spengler-digital-regierapport-v*.html
+
+# ------------------------------------------------------------
+# ARCHIVE / BACKUPS
+# ------------------------------------------------------------
+**/backup/
+**/backups/
+**/archive/
+**/archiv/
+**/old/
+**/alte-version/
+
+**/*backup*
+**/*Backup*
+**/*_backup*
+**/*_Backup*
+**/*_old*
+**/*_OLD*
+
+# ------------------------------------------------------------
+# BINÄRDATEIEN
+# ------------------------------------------------------------
+*.zip
+*.xls
+*.xlsx
+*.xlsm
+
+# Bilder nur ignorieren, wenn sie nicht für die aktuelle
+# Entwicklung benötigt werden
+# *.png
+# *.jpg
+# *.jpeg
+# *.webp
+
+# ------------------------------------------------------------
+# ENTWICKLUNGS- / BUILD-DATEIEN
+# ------------------------------------------------------------
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.vscode/
+.idea/
