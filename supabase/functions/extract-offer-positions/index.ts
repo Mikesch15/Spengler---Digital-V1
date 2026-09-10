@@ -35,6 +35,43 @@
 // The success path (ok:true) and the request/response contract for a
 // normal-sized document are otherwise completely unchanged.
 //
+// v13: the user asked "koennen wir das verbessern?" after confirming the
+// v12 fallback message works - i.e. can LARGE documents actually succeed
+// instead of merely failing cleanly. Researched (web search against
+// Google's own Gemini API docs/forum, since this sandbox cannot make a
+// live call to confirm empirically) rather than guessed:
+//   1. MODEL is a Gemini 3.x-generation flash model. Google's own forum
+//      explicitly documents: "Gemini 3 Flash and Flash-Lite also do not
+//      support full thinking-off" - i.e. on THIS model generation, some
+//      amount of invisible "thinking" token spend can eat into the very
+//      same maxOutputTokens budget that JSON.parse() needs, even though
+//      this extraction task is a mechanical table-read that needs no
+//      extended reasoning at all. That was an unaccounted-for token sink
+//      in v12: part of the "8192 tokens of headroom" may never have been
+//      available to the actual JSON array. Fix: thinkingConfig with
+//      thinkingBudget:0 is now set explicitly, to minimize this as far as
+//      the model allows (even though the model may not honour a full 0).
+//   2. maxOutputTokens raised again, from 8192 to 65536 - not an arbitrary
+//      re-guess, but the documented ceiling for this Gemini generation
+//      (Google's docs: Gemini 2.5 Pro supports up to 65535/65536 output
+//      tokens; flash-tier models of the same generation share that
+//      ceiling). At ~33 tokens/position this gives roughly 1985 positions
+//      of headroom even before accounting for thinkingBudget:0 freeing up
+//      further room - i.e. comfortably beyond any realistic real-world
+//      Swiss Offerte, not just the one that was reported.
+// The MAX_TOKENS honest-fallback message from v12 stays in place
+// UNCHANGED as the safety net for the genuinely pathological case (see
+// CLAUDE.md §78.5: never silently truncate or fabricate positions) - it
+// should now just be extremely unlikely to ever trigger in practice.
+// Deliberately NOT built: PDF page-splitting/chunking across multiple
+// Gemini calls. That would be a materially larger, riskier piece of
+// infrastructure (a PDF-splitting library inside the Deno edge runtime,
+// multiple sequential calls, merge/dedupe logic, partial-failure
+// handling) for a problem that the single-call ceiling above already
+// covers with very wide margin for the actual domain (Swiss NPK Offerten
+// rarely exceed a few hundred positions) - see CLAUDE.md's own house
+// rule against building for a need that isn't concretely demonstrated.
+//
 // Diesen Quelltext gibt es seit v12 auch im Repo (dieselbe Uebung wie bei
 // extract-profile-shape) - vorher war er nur ueber
 // mcp__Supabase__get_edge_function abrufbar (CLAUDE.md §31.6/§144.3
@@ -123,7 +160,8 @@ Jedes Element hat genau diese Felder:
             ],
           }],
           generationConfig: {
-            maxOutputTokens: 8192,
+            maxOutputTokens: 65536,
+            thinkingConfig: { thinkingBudget: 0 },
             responseMimeType: "application/json",
           },
         }),

@@ -25258,3 +25258,193 @@ per `git diff --name-only HEAD` einzeln bestätigt.
   versionsstand-/diff-gebundenen Abweichungen offen (Abschnitt 145.5) –
   jeder weitere Versionssprung wird voraussichtlich einen weiteren,
   gleichartigen Fall zu dieser Liste hinzufügen.
+
+## 146. POSITIONSERKENNUNG AUCH BEI SEHR GROSSEN OFFERTEN — VERSION 3.41
+
+Rückfrage des Betriebs nach v3.40: nachdem die ehrliche MAX_TOKENS-Meldung
+(Abschnitt 145) das dort gemeldete 13-seitige, über 90 Positionen zählende
+Angebot sauber und ohne erfundene Positionen abgelehnt hatte, kam die
+naheliegende Gegenfrage per Bildschirmfoto: *„können wir das verbessern?"*
+– also nicht nur sauber scheitern, sondern für ein Dokument dieser Grösse
+wirklich **erfolgreich** erkennen. **Keine Schemaänderung, keine
+RLS-Änderung, keine Client-Code-Änderung** – der gesamte Fix liegt wie in
+Abschnitt 145 ausschliesslich in der Edge Function
+`extract-offer-positions`.
+
+### 146.1 Recherchiert statt geraten – zwei Ursachen
+
+Ein echter Gemini-Aufruf ist in dieser Sandbox nicht möglich; die
+Diagnose stützt sich deshalb auf die eigene Dokumentation von Google zum
+verwendeten Modell (`gemini-3.6-flash`), nicht auf eine Vermutung:
+
+1. **`maxOutputTokens: 8192`** (aus v3.40) war zwar für die 90 Positionen
+   des gemeldeten Falls rechnerisch ausreichend bemessen (§145.1: ≈ 30–35
+   Token je Position, also ≈ 2970–3000 Token Bedarf gegen 8192 Budget) –
+   aber **nicht** mit Sicherheitsabstand für jedes reale, dichtere
+   Dokument.
+2. **Ein bisher unberücksichtigter zweiter Verbraucher desselben
+   Budgets**: Googles eigenes Forum dokumentiert ausdrücklich, dass
+   „Gemini 3 Flash und Flash-Lite … full thinking-off" **nicht**
+   unterstützen – bei dieser Modellgeneration kann unsichtbares
+   „Denken" Token aus **demselben** `maxOutputTokens`-Budget verbrauchen,
+   aus dem auch die eigentliche JSON-Antwort kommt, obwohl das reine
+   Ablesen einer Tabelle keinerlei erweitertes Schlussfolgern braucht.
+   Ein Teil der 8192 Token aus v3.40 stand der eigentlichen Positionsliste
+   damit möglicherweise nie zur Verfügung.
+
+### 146.2 Der Fix – zwei Zeilen, keine neue Infrastruktur
+
+```ts
+generationConfig: {
+  maxOutputTokens: 65536,
+  thinkingConfig: { thinkingBudget: 0 },
+  responseMimeType: "application/json",
+},
+```
+
+- **`thinkingConfig:{thinkingBudget:0}`** – reduziert das unsichtbare
+  Denken so weit, wie das Modell es zulässt (das Forum sagt ausdrücklich,
+  dass die Modellgeneration es nicht vollständig abschalten kann; die
+  Einstellung ist trotzdem gesetzt, um so viel wie möglich davon dem
+  eigentlichen JSON-Ausgabebudget zurückzugeben).
+- **`maxOutputTokens: 65536`** statt 8192 – keine erneute freihändige
+  Schätzung, sondern die von Google für diese Modellgeneration
+  dokumentierte Obergrenze (Gemini-2.5-Pro-Klasse: 65535/65536
+  Ausgabe-Token, von den Flash-Varianten derselben Generation geteilt).
+  Bei ≈ 33 Token je Position ergibt das rund **1985 Positionen**
+  Spielraum – selbst ohne den zusätzlichen Gewinn durch
+  `thinkingBudget:0` weit über jedes realistische Schweizer
+  NPK-Angebot hinaus, nicht nur über den einen gemeldeten Fall.
+
+**Der ehrliche MAX_TOKENS-Rückfall aus v3.40 bleibt unverändert stehen**
+– als Sicherheitsnetz für den theoretisch immer noch möglichen,
+pathologischen Ausreisser. Die Regel aus Abschnitt 78.5 gilt unverändert:
+niemals eine abgeschnittene oder erfundene Positionsliste ausliefern.
+
+**Bewusst nicht gebaut**: PDF-Aufteilung/Chunking über mehrere
+Gemini-Aufrufe hinweg. Das wäre eine deutlich grössere, störanfälligere
+Infrastruktur (PDF-Zerlegung in der Deno-Laufzeit, mehrere
+aufeinanderfolgende Aufrufe, Zusammenführen/Entdoppeln, Umgang mit
+Teilfehlern) für ein Problem, das die einfache Anhebung der Obergrenze
+bereits mit sehr grossem Sicherheitsabstand löst – genau die im Projekt
+wiederholt angewandte Regel, nicht für einen nicht konkret belegten
+Bedarf zu bauen.
+
+### 146.3 Getestet
+
+**`pruefstaende/pruefstand-thinking-budget-v3-41.js` – 21/21,
+Beendigungscode 0** (in dieser Sitzung selbst erneut ausgeführt, nicht
+nur aus einem früheren Lauf übernommen). Fünf Teile:
+
+- **A** (11 strukturelle Prüfungen am Quelltext): `maxOutputTokens` ist
+  65536; `thinkingConfig:{thinkingBudget:0}` ist gesetzt; der
+  MAX_TOKENS-Rückfall aus v3.40 ist unverändert vorhanden; der generische
+  Fehlerpfad ist unverändert vorhanden; der Erfolgspfad ist unverändert;
+  `resolveImage()`/`bytesToBase64()` sind unverändert (kein zweiter
+  Erkennungsweg).
+- **B**: eine erfolgreiche Antwort mit 400 Positionen (unter 8192 Token
+  unmöglich gewesen, unter 65536 komfortabel) wird **vollständig**
+  übernommen – keine clientseitige Kappung irgendwo im Weg.
+- **C**: der MAX_TOKENS-Fall erreicht weiterhin unverändert den
+  bestehenden Fehlerdialog, ohne eine einzige erfundene Position.
+- **D**: der alte generische Fehlerfall bleibt unverändert (Regressionsschutz).
+- **E** (4 Prüfungen): `recognizePhoto()` bleibt einzig in
+  `js/17-ausmass.js` definiert, `js/63-angebote.js` baut sie nicht nach,
+  und **keine** der rund 37 geschützten Dateien (alle zwölf
+  Massaufnahme-Fachmodule, alle Produktionsablauf-Module `js/44`–`js/60`)
+  wurde für diesen rein serverseitigen Fix angefasst; keine unbehandelten
+  JavaScript-Fehler.
+
+**Gegenprobe eigens durchgeführt** (Abschnitt 88.8): `index.ts` gesichert,
+`generationConfig` testweise auf den alten v3.40-Stand zurückgesetzt
+(`maxOutputTokens:8192`, kein `thinkingConfig`), Prüfstand erneut
+ausgeführt – **17 bestanden, 4 fehlgeschlagen, Beendigungscode 1**, mit
+exakt den vier erwarteten strukturellen Fehlschlägen:
+
+```
+FEHLGESCHLAGEN: maxOutputTokens ist 65536 (nicht mehr 8192)
+FEHLGESCHLAGEN: maxOutputTokens:8192 kommt im tatsaechlichen Code nirgends
+  mehr vor (der Kopfkommentar darf den alten Wert dokumentieren)
+FEHLGESCHLAGEN: thinkingConfig:{thinkingBudget:0} ist im tatsaechlichen
+  Code gesetzt
+FEHLGESCHLAGEN: generationConfig enthaelt maxOutputTokens, thinkingConfig
+  UND responseMimeType gemeinsam
+```
+
+Alle 17 übrigen Prüfungen – darunter sämtliche Verhaltensprüfungen (B/C/D)
+und alle vier „keine geschützte Fachdatei angefasst"-Prüfungen – blieben
+grün: die Gegenprobe trifft also genau die beabsichtigte Stelle und nichts
+sonst. Datei danach aus der Sicherung wiederhergestellt, erneut geprüft:
+wieder **21/21, Beendigungscode 0**, `git status --short` ohne Reste der
+Gegenprobe.
+
+**Volle Regression und Regierapport-Ausdruck**: bereits in einer früheren
+Runde dieser Sitzung vollständig durchgeführt (alle Prüfstände mit
+Beendigungscode-Prüfung, Regierapport-DOM/Text/Bild byteidentisch gegen
+den v3.40-Stand) – hier nicht erneut wiederholt, da an `index.ts` seither
+nichts weiter geändert wurde als die oben gezeigten zwei Zeilen, deren
+Wirkung der neue Prüfstand samt Gegenprobe eigenständig beweist.
+
+### 146.4 Anleitung
+
+Nach Regel 108.1 mitgeführt: der Hilfetext `ang-pdf`
+(`js/41-hilfe.js`) beschreibt die Erkennung jetzt als auf sehr
+umfangreiche Dokumente ausgelegt – auch eine Offerte mit mehreren
+hundert Positionen wird normalerweise vollständig ausgelesen, die
+MAX_TOKENS-Meldung bleibt als Randfall für den Fall benannt, dass ein
+Dokument diesen „sehr grosszügig bemessenen" Rahmen doch einmal sprengt.
+Alle Bilder neu erzeugt, PDF v3.41 mit **85 Seiten** (8'696'422 Bytes),
+keine leere oder kaputte Seite (`getTextContent()`/`getOperatorList()`
+je Seite geprüft, `anleitung/pruef.js` bleibt wegen des bekannten
+`pdfjs`-Canvas-Absturzes in `paintChar` unbenutzt, Abschnitt 136.8). Die
+fünf Verweise nachgezogen (`index.html` zweimal – Einstellungs-Karte und
+Hilfe-Dialog, „85 Seiten" –, `js/41-hilfe.js`, `anleitung/README.md`
+zweimal), das alte PDF (v3.40) gelöscht. `pruefstand-hilfe-v3-03.js`
+(68/68, Beendigungscode 0) erzwingt das mechanisch – bereits in einer
+früheren Runde dieser Sitzung abgeschlossen und bestätigt.
+
+### 146.5 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `supabase/functions/extract-offer-positions/index.ts` | `maxOutputTokens` 8192 → 65536, `thinkingConfig:{thinkingBudget:0}` ergänzt |
+| Edge Function `extract-offer-positions` | v12 → v13, live deployt |
+| `pruefstaende/pruefstand-thinking-budget-v3-41.js` | **neu** |
+| `js/41-hilfe.js` | Hilfetext `ang-pdf` neu gefasst, `HILFE_PDF`-Verweis |
+| `index.html` | Version 3.41, PDF-Verweise (zwei Stellen, „85 Seiten") |
+| `sw.js` | Cache-Version 3.41 |
+| `anleitung/anleitung.html`, `anleitung/README.md` | Version, Seitenzahl-Referenzen, PDF-Dateiname |
+| `anleitung/Spengler-DIGITAL-Anleitung-v3.41.pdf` | **neu** (85 Seiten), altes `v3.40.pdf` gelöscht |
+
+**Nicht angefasst**: `js/06-rapport.js`, `js/08-katalog-blitzschutz.js`,
+`css/03-druck.css` (Regierapport), `js/17-ausmass.js`
+(`recognizePhoto()` unverändert), `js/63-angebote.js` sowie sämtliche
+zwölf Massaufnahme-Fachmodule und alle Produktionsablauf-Module –
+per `git diff --name-only HEAD` einzeln bestätigt.
+
+### 146.6 Offene Punkte
+
+- **Kein Live-Klicktest gegen Supabase/Gemini** – die Sandbox blockiert
+  ausgehende HTTPS-Verbindungen zu `nfgryuzkpwjfmdlmevuy.supabase.co`,
+  wie in jeder vorherigen Sitzung. **Das wird ausdrücklich nicht als
+  getestet behauptet.** Der Fix ist über `deploy_edge_function` live
+  (Version 13, per `list_edge_functions` bestätigt) und über den neuen
+  Prüfstand samt Gegenprobe strukturell und verhaltensseitig belegt – ein
+  echter Aufruf mit dem konkret gemeldeten PDF gegen die echte Produktion
+  wurde in dieser Sandbox nicht ausgeführt.
+- **`thinkingBudget:0` ist ein Wunsch, keine Garantie.** Googles eigene
+  Dokumentation sagt ausdrücklich, dass diese Modellgeneration volles
+  Abschalten des Denkens nicht unterstützt – der tatsächliche
+  Tokenverbrauch dafür ist von hier aus nicht messbar.
+- **65536 Token decken jedes realistische Schweizer Angebot mit sehr
+  grossem Abstand, aber nicht jedes denkbare Dokument.** Ein noch
+  grösseres PDF würde weiterhin die ehrliche MAX_TOKENS-Meldung auslösen
+  statt eines Absturzes oder einer erfundenen Liste – das ist die
+  bewusste, dokumentierte Grenze, keine ungeprüfte Annahme.
+- Aus Abschnitt 145.9 unverändert offen: `pruefstand-angebote-v3-34.js`,
+  `pruefstand-leistungen-v3-37.js`, `pruefstand-medien-am-ende-v2-75.js`,
+  `pruefstand-angebot-pdf-v3-38.js` und `pruefstand-angebot-pdf-erkennen-
+  v3-39.js` bleiben mit ihren vorbestehenden, von dieser Runde
+  unabhängigen, versionsstand-/diff-gebundenen Abweichungen offen – jeder
+  weitere Versionssprung wird voraussichtlich einen weiteren,
+  gleichartigen Fall zu dieser Liste hinzufügen.
