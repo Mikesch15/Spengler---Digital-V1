@@ -55,6 +55,22 @@
 //     Feldnamen A-D/Knick sind dieselbe Modellierung wie in js/37 - keine
 //     Uebernahme wortwoertlicher Bezeichnungen aus der Vorlage, denn die hat
 //     keine.
+//   * v3.60: E (Aufbug hinten) und Anreiff (vorne) direkt aus den LINE- und
+//     DIMENSION-Entitaeten der Vorlage vermessen (Projektion wie oben, in
+//     REALEN mm nach Multiplikation mit dem gefundenen Massstab 3.0 - die
+//     rohen Koordinaten liegen im Papierformat 1:3, waehrend die DIMENSION-
+//     Werte (Gruppencode 42) bereits echte mm sind). Ergebnis, GENAU
+//     entgegen der ersten Annahme (v3.59, senkrechter Haken beidseits):
+//       - E bleibt SENKRECHT (90 Grad, wie die Kamineinfassung), sein
+//         Umschlag ist aber eine EINZELNE 45-Grad-Schraege von der Spitze
+//         zurueck Richtung Dach (kein rechtwinkliger Haken).
+//       - Der Anreiff ist KEIN senkrechter Aufbug, sondern eine FLACHE,
+//         25 Grad nach UNTEN (unters Dach) abgewinkelte Kante - seine
+//         Spitze liegt GENAU bei t=-A (A misst in der Vorlage bis zu dieser
+//         Spitze, nicht bis zu einem Punkt davor). Der Umschlag liegt als
+//         zweite, dazu PARALLELE Linie knapp darunter an (angelegter
+//         180-Grad-Saum, kein Haken) - beide Linien zeigen im Winkel in
+//         dieselbe Richtung, nicht spiegelbildlich zueinander.
 //
 // Die Dachneigung selbst wird NICHT erfasst und auch nicht gebraucht: alle
 // Masse liegen im Dachsystem (dieselbe Begruendung wie im Kopf von js/37).
@@ -222,7 +238,17 @@ function dfaBleilappen(){
 // Argument der gespeicherte Datensatz.
 const DFA_SAUM_RUECKLAUF=10;   // fester waagrechter Ruecklauf am Saum, siehe Kopf
 const DFA_HINTERKANTE_RUECKLAUF=10; // Abstand vor der Hinterkante, ab dem die verdeckte Oberkante auf das Dach zurueckfaellt
-const DFA_FOLD_RUECKLAUF=10;   // fester waagrechter Ruecklauf am 180-Grad-Umschlag von E und Anreiff (rein zeichnerisch, wie DFA_SAUM_RUECKLAUF)
+// Anreiff und E-Umschlag: Winkel direkt aus der DXF-Vorlage vermessen (siehe
+// Kopf). Der Anreiff ist KEIN senkrechter Haken, sondern eine flache, nach
+// UNTEN abgewinkelte Kante (25° unters Dach) - die Spitze liegt GENAU bei
+// t=-A (A reicht in der Vorlage bis zu dieser Spitze, nicht bis zu einem
+// Punkt davor). Der Umschlag liegt als zweite, dazu parallele Linie knapp
+// darunter an (angelegter 180-Grad-Saum, kein Haken). Der Aufbug hinten (E)
+// bleibt senkrecht wie bei der Kamineinfassung; sein Umschlag ist dagegen
+// eine einzelne 45-Grad-Schraege von der Spitze zurueck Richtung Dach.
+const DFA_ANREIFF_WINKEL=25*Math.PI/180;
+const DFA_E_UMSCHLAG_WINKEL=45*Math.PI/180;
+const DFA_ANREIFF_SPALT=3; // rein zeichnerischer Abstand des Umschlags unter dem Anreiff
 function dfaSkizze(quelle){
  const q=quelle||dfaA;
  const seite=q.getrennt?(q.skizzeSeite==="r"?"r":"l"):"l";
@@ -255,16 +281,20 @@ eingeben.</div>`;
  const Qf=P(L-bu,av);                      // Fuss der Schraege, auf Hoehe vorne
  const M2=P(L-DFA_HINTERKANTE_RUECKLAUF,av); // 10 mm vor der Hinterkante
  const N=P(L-DFA_HINTERKANTE_RUECKLAUF,0);   // faellt hier auf das Dach zurueck
- // Anreiff vorne (vor A) und 90-Grad-Aufbug hinten (E, hinter D) - je ein
- // kleiner Haken mit eigenem 180-Grad-Umschlag an der Spitze. E folgt exakt
- // der Kamineinfassung (linie(P(L+D,0),P(L+D,E)) mit fahne "E = ... · 90°"),
- // der Umschlag ist eine NEUE Ergaenzung, die Kamins E nicht kennt: ein
- // waagrechter Ruecklauf (rein zeichnerisch, wie beim Saum) und danach ein
- // Stueck zurueck nach unten um den Umschlag-Betrag.
+ // 90-Grad-Aufbug hinten (E, hinter D) - senkrecht wie bei der
+ // Kamineinfassung (linie(P(L+D,0),P(L+D,E)) mit fahne "E = ... · 90°");
+ // sein Umschlag ist eine einzelne 45-Grad-Schraege von der Spitze zurueck
+ // Richtung Dach (aus der DXF vermessen), kein rechtwinkliger Haken.
  const E0=P(L+D,0), E1=P(L+D,E);
- const E2=P(L+D-DFA_FOLD_RUECKLAUF,E), E3=P(L+D-DFA_FOLD_RUECKLAUF,E-eUmschlag);
- const F0=P(-A,0), F1=P(-A,anreiff);
- const F2=P(-A+DFA_FOLD_RUECKLAUF,anreiff), F3=P(-A+DFA_FOLD_RUECKLAUF,anreiff-anreiffUmschlag);
+ const E2=P(E1[0]-eUmschlag*Math.cos(DFA_E_UMSCHLAG_WINKEL),E1[1]-eUmschlag*Math.sin(DFA_E_UMSCHLAG_WINKEL));
+ // Anreiff vorne (vor A) - eine flache, 25 Grad nach UNTEN abgewinkelte
+ // Kante, deren Spitze GENAU bei t=-A liegt (A reicht in der Vorlage bis zu
+ // dieser Spitze). Der Umschlag ist eine zweite, dazu parallele Linie, die
+ // knapp darunter anliegt (angelegter Saum statt Haken).
+ const arDx=Math.cos(DFA_ANREIFF_WINKEL), arDy=Math.sin(DFA_ANREIFF_WINKEL);
+ const F1=P(-A,-anreiff*arDy), F0=P(F1[0]+anreiff*arDx,0);
+ const Fu1=P(F1[0],F1[1]-DFA_ANREIFF_SPALT);
+ const Fu0=P(Fu1[0]+anreiffUmschlag*arDx,Fu1[1]+anreiffUmschlag*arDy);
  const dachVon=-A-Math.max(60,A*0.25), dachBis=L+D+Math.max(60,D*0.25);
 
  let xMin=dachVon,xMax=dachBis,yMin=0,yMax=Math.max(av,ah);
@@ -349,12 +379,13 @@ eingeben.</div>`;
   g+=linie(P(knickHinten,0),P(knickHinten,av),ANB_FARBE.bau,1.6,"7 5");
  }
  // 90-Grad-Aufbug hinten (E) - exakt wie bei der Kamineinfassung - mit
- // eigenem 180-Grad-Umschlag an der Spitze (Haken).
+ // einer 45-Grad-Schraege als Umschlag an der Spitze (aus der DXF).
  if(E>0)g+=linie(E0,E1,ANB_FARBE.blech,3.4);
- if(E>0&&eUmschlag>0){g+=linie(E1,E2,ANB_FARBE.blech,2.4); g+=linie(E2,E3,ANB_FARBE.blech,2.4)}
- // Anreiff vorne (vor A) - spiegelbildlich zu E, mit eigenem Umschlag.
+ if(E>0&&eUmschlag>0)g+=linie(E1,E2,ANB_FARBE.blech,2.4);
+ // Anreiff vorne (vor A) - flache, 25-Grad-Schraege nach unten, Spitze bei
+ // t=-A; der Umschlag liegt als zweite, parallele Linie knapp darunter an.
  if(anreiff>0)g+=linie(F0,F1,ANB_FARBE.blech,3.4);
- if(anreiff>0&&anreiffUmschlag>0){g+=linie(F1,F2,ANB_FARBE.blech,2.4); g+=linie(F2,F3,ANB_FARBE.blech,2.4)}
+ if(anreiff>0&&anreiffUmschlag>0)g+=linie(Fu0,Fu1,ANB_FARBE.blech,2.4);
 
  // Masse. Jede Bemassung bekommt eine EIGENE Hoehenbahn, von unten (Dach)
  // nach oben aufsteigend geordnet, damit sich nichts gegenseitig verdeckt:
