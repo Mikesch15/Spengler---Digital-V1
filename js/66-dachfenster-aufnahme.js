@@ -23,10 +23,12 @@
 //   Schraege hinten      t 906 -> 944, h  0 -> 120    (Trapezform, GEWOLLT)
 //   Kopf hinten          t 944 -> 1034,h 120          (waagerecht)
 //   Hintere Aufbordung   t=1034,       h 120 -> 0     (senkrecht)
-//   Ueberlappung waag.   t 1034 -> 1018, h 120         (gestrichelt)
-//   Ueberlappung senkr.  t=1018,       h 120 -> 105    (gestrichelt)
+//   Ueberlappung waag.   t 1034 -> 1024, h 120         (gestrichelt)
+//   Ueberlappung senkr.  t=1024,       h 120 -> 105    (gestrichelt)
 //
-// Die Zuordnung wurde mit dem Anwender geklaert (v3.52):
+// Die Zuordnung wurde mit dem Anwender geklaert (v3.52, Ueberlappung waag.
+// v3.53 auf 10 mm korrigiert - der Anwender hat den Abstand der beiden
+// lotrechten Striche ganz rechts direkt aus der Vorlage genannt):
 //   * ALLE diese Linien zusammen sind die EINE senkrechte Aufbordung - wie bei
 //     der Kamineinfassung, nur mit einer Stufe (Saum vorne) und einer
 //     bewusst TRAPEZFOERMIGEN Kopfform hinten statt eines einfachen Rechtecks.
@@ -80,7 +82,7 @@ const DFA_STANDARD=Object.freeze({
  saum_vorne:50,          // Rueckschlag am oberen Rand der vorderen Aufbordung
  breite_oben:90,         // Kopfbreite der hinteren Aufbordung (Trapez oben)
  breite_unten:125,       // Fussbreite der hinteren Aufbordung (Trapez unten)
- ueberlappung_t:16,      // Ueberlappung, waagrechter Absatz
+ ueberlappung_t:10,      // Ueberlappung, waagrechter Absatz
  ueberlappung_h:15,      // Ueberlappung, senkrechter Absatz
  auf_vorne:80,           // Aufbordungshoehe vorne (talseitig), Vorgabe
  auf_hinten:120          // Aufbordungshoehe hinten (bergseitig), Vorgabe
@@ -382,6 +384,16 @@ function dfaAusmassZeilen(){
  const Ll=dfaSeite("laenge","l"), Lr=dfaSeite("laenge","r");
  if(Ll>0)zeile("Länge Seitenteil"+(dfaA.getrennt?" links":""),dfaMm(Ll),"mm","erfasste Länge längs Dach");
  if(dfaA.getrennt&&Lr>0)zeile("Länge Seitenteil rechts",dfaMm(Lr),"mm","erfasste Länge längs Dach");
+ // v3.53: der Umfang der Einfassung, wie sie in der Dachschräge liegt - genau
+ // wie bei der Kamineinfassung (js/37) sind alle vier Seiten bereits im
+ // Dachsystem gemessen, es braucht deshalb keine Umrechnung der Dachneigung.
+ // Zwei Seitenlaengen (links, rechts) plus die beiden Zuschnittbreiten vorne
+ // und hinten - bei nicht getrennten Seiten ist links=rechts, die Rechnung
+ // bleibt dieselbe.
+ const bv=dfaZahl(dfaA.breiteVorne), bh=dfaZahl(dfaA.breiteHinten);
+ if(Ll>0&&Lr>0&&bv>0&&bh>0)
+  zeile("Umfang, in der Dachschräge gemessen",dfaMm(Ll+Lr+bv+bh),"mm",
+    "Länge links + Länge rechts + Breite vorne + Breite hinten");
  return z;
 }
 function dfaMaterialTabelle(){
