@@ -390,10 +390,8 @@ bitte die seitliche Höhe sowie B und C eingeben.</div>`;
  };
 
  let g="";
- // Dach, mit Pfeilspitzen an beiden Enden wie in der Vorlage.
+ // Dach, ohne Pfeilspitzen (auf Wunsch entfernt).
  g+=linie(P(dachVon,0),P(dachBis,0),ANB_FARBE.deckLinie,3);
- g+=`<path d="M${X(dachVon)} ${Y(0)} l11 -4 l0 8 Z" fill="${ANB_FARBE.deckLinie}"/>`;
- g+=`<path d="M${X(dachBis)} ${Y(0)} l-11 -4 l0 8 Z" fill="${ANB_FARBE.deckLinie}"/>`;
  // Kamin: Vorderkant, Schnittkante oben, Hinterkant.
  g+=linie(vFuss,vTop,ANB_FARBE.bau,3);
  g+=linie(vTop,hTop,ANB_FARBE.bau,3);
@@ -406,8 +404,9 @@ bitte die seitliche Höhe sowie B und C eingeben.</div>`;
   g+=linie(P(knickVorne,0),P(knickVorne,H),ANB_FARBE.bau,1.6);
   g+=linie(P(knickHinten,0),P(knickHinten,H),ANB_FARBE.bau,1.6,"7 5");
  }
- // 90-Grad-Aufbug am hinteren Blechende.
- if(E>0)g+=linie(P(L+D,0),P(L+D,E),ANB_FARBE.blech,3.4);
+ // 90-Grad-Aufbug am hinteren Blechende. Schwarz (deckLinie) statt der
+ // roten Blechlinie, auf Wunsch des Anwenders.
+ if(E>0)g+=linie(P(L+D,0),P(L+D,E),ANB_FARBE.deckLinie,3.4);
 
  // Masse. Die Fahnen zeigen nach INNEN in den leeren Kamin - aussen waere
  // die Zeichnung sonst doppelt so breit und der Text entsprechend klein.

@@ -341,10 +341,8 @@ eingeben.</div>`;
  };
 
  let g="";
- // Dach, mit Pfeilspitzen wie bei der Kamineinfassung.
+ // Dach, ohne Pfeilspitzen (auf Wunsch entfernt).
  g+=linie(P(dachVon,0),P(dachBis,0),ANB_FARBE.deckLinie,3);
- g+=`<path d="M${X(dachVon)} ${Y(0)} l11 -4 l0 8 Z" fill="${ANB_FARBE.deckLinie}"/>`;
- g+=`<path d="M${X(dachBis)} ${Y(0)} l-11 -4 l0 8 Z" fill="${ANB_FARBE.deckLinie}"/>`;
  // Vordere Aufbordung mit Saum.
  g+=linie(P0,P1,ANB_FARBE.bau,3);
  g+=linie(P1,P2,ANB_FARBE.bau,3);
@@ -379,13 +377,14 @@ eingeben.</div>`;
   g+=linie(P(knickHinten,0),P(knickHinten,av),ANB_FARBE.bau,1.6,"7 5");
  }
  // 90-Grad-Aufbug hinten (E) - exakt wie bei der Kamineinfassung - mit
- // einer 45-Grad-Schraege als Umschlag an der Spitze (aus der DXF).
- if(E>0)g+=linie(E0,E1,ANB_FARBE.blech,3.4);
- if(E>0&&eUmschlag>0)g+=linie(E1,E2,ANB_FARBE.blech,2.4);
+ // einer 45-Grad-Schraege als Umschlag an der Spitze (aus der DXF). Schwarz
+ // (deckLinie) statt der roten Blechlinie, auf Wunsch des Anwenders.
+ if(E>0)g+=linie(E0,E1,ANB_FARBE.deckLinie,3.4);
+ if(E>0&&eUmschlag>0)g+=linie(E1,E2,ANB_FARBE.deckLinie,2.4);
  // Anreiff vorne (vor A) - flache, 25-Grad-Schraege nach unten, Spitze bei
  // t=-A; der Umschlag liegt als zweite, parallele Linie knapp darunter an.
- if(anreiff>0)g+=linie(F0,F1,ANB_FARBE.blech,3.4);
- if(anreiff>0&&anreiffUmschlag>0)g+=linie(Fu0,Fu1,ANB_FARBE.blech,2.4);
+ if(anreiff>0)g+=linie(F0,F1,ANB_FARBE.deckLinie,3.4);
+ if(anreiff>0&&anreiffUmschlag>0)g+=linie(Fu0,Fu1,ANB_FARBE.deckLinie,2.4);
 
  // Masse. Jede Bemassung bekommt eine EIGENE Hoehenbahn, von unten (Dach)
  // nach oben aufsteigend geordnet, damit sich nichts gegenseitig verdeckt:
