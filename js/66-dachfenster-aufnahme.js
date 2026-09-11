@@ -227,11 +227,14 @@ eingeben.</div>`;
  // Knick: Vorderkant bei B-Ue, Hinterkant bei B - exakt wie bei der
  // Kamineinfassung (knickVorne=B-Ue, knickHinten=B).
  const knickVorne=B-Ue, knickHinten=B;
- // Trapezform hinten: die Schraege steigt von der Hoehe vorne (av) auf die
- // Hoehe hinten (ah) - die Aufbordung ist durchgehend, nur die Kopfform
- // aendert sich am Ende. Fuss der Schraege bei L-bu, Kopf bei L-bo bis L,
- // Fuss der senkrechten Rueckseite bei L (= Hinterkant Aufbordung).
- const Q0=P(L-bu,av), Q1=P(L-bo,ah), Q2=P(L,ah), Q3=P(L,0);
+ // Trapezform hinten: die VORDERE SCHRAEGE LAEUFT BIS AUFS DACH (Fuss bei
+ // Hoehe 0, nicht auf Hoehe vorne) - die Aufbordung faellt kurz vor der
+ // Schraege auf das Dach zurueck und steigt danach durchgehend bis zur
+ // Hoehe hinten. M ist der Punkt, an dem die durchgehende Oberkante (auf
+ // Hoehe vorne) auf das Dach zurueckfaellt, direkt ueber dem Fuss der
+ // Schraege.
+ const M=P(L-bu,av);
+ const Q0=P(L-bu,0), Q1=P(L-bo,ah), Q2=P(L,ah), Q3=P(L,0);
  const dachVon=-A-Math.max(60,A*0.25), dachBis=L+D+Math.max(60,D*0.25);
 
  let xMin=dachVon,xMax=dachBis,yMin=0,yMax=Math.max(av,ah);
@@ -286,9 +289,11 @@ eingeben.</div>`;
  g+=linie(P0,P1,ANB_FARBE.bau,3);
  g+=linie(P1,P2,ANB_FARBE.bau,3);
  g+=linie(P2,P3,ANB_FARBE.bau,3);
- // Durchgehende Oberkante von der vorderen Aufbordung bis zum Fuss der
- // hinteren Schraege - der Knick (unten) liegt auf diesem Abschnitt.
- g+=linie(P1,Q0,ANB_FARBE.bau,2);
+ // Durchgehende Oberkante von der vorderen Aufbordung bis M (der Knick liegt
+ // auf diesem Abschnitt), dann zurueck auf das Dach - erst danach beginnt
+ // die Schraege der hinteren Aufbordung, von ganz unten.
+ g+=linie(P1,M,ANB_FARBE.bau,2);
+ g+=linie(M,Q0,ANB_FARBE.bau,2);
  // Trapezform hinten.
  g+=linie(Q0,Q1,ANB_FARBE.bau,3);
  g+=linie(Q1,Q2,ANB_FARBE.bau,3);
@@ -301,11 +306,23 @@ eingeben.</div>`;
   g+=linie(P(knickHinten,0),P(knickHinten,av),ANB_FARBE.bau,1.6,"7 5");
  }
 
- // Masse. A und D zeigen nach INNEN, wie beim Kamin.
+ // Masse. Jede Bemassung bekommt eine EIGENE Hoehenbahn, von unten (Dach)
+ // nach oben aufsteigend geordnet, damit sich nichts gegenseitig verdeckt:
+ //   Dach/A/D (0)  <  Breite unten (-34, unter dem Dach)
+ //   Knick (av*0.5)  <  B (av+34)  <  Breite oben (ah+34)  <  C (ganz oben)
+ // A und D zeigen nach INNEN, wie beim Kamin.
  if(A>0){g+=anbMassWaag(-A,0,0,"A = "+zahl(A),X,Y,true); merkMassWaag(-A,0,0,"A = "+zahl(A),true)}
  if(D>0){g+=anbMassWaag(L,L+D,0,"D = "+zahl(D),X,Y,true); merkMassWaag(L,L+D,0,"D = "+zahl(D),true)}
- if(B>0){g+=anbMassWaag(0,knickHinten,av+26,"B = "+zahl(B),X,Y,false); merkMassWaag(0,knickHinten,av+26,"B = "+zahl(B),false)}
- if(C>0){g+=anbMassWaag(knickVorne,L,Math.max(av,ah)+58,"C = "+zahl(C),X,Y,false); merkMassWaag(knickVorne,L,Math.max(av,ah)+58,"C = "+zahl(C),false)}
+ g+=anbMassWaag(Q0[0],Q3[0],-34,"Breite unten = "+zahl(bu),X,Y,true);
+ merkMassWaag(Q0[0],Q3[0],-34,"Breite unten = "+zahl(bu),true);
+ if(knickDa){
+  g+=anbMassWaag(knickVorne,knickHinten,av*0.5,"Knick "+zahl(Ue),X,Y,false);
+  merkMassWaag(knickVorne,knickHinten,av*0.5,"Knick "+zahl(Ue),false);
+ }
+ if(B>0){g+=anbMassWaag(0,knickHinten,av+34,"B = "+zahl(B),X,Y,false); merkMassWaag(0,knickHinten,av+34,"B = "+zahl(B),false)}
+ g+=anbMassWaag(Q1[0],Q2[0],ah+34,"Breite oben = "+zahl(bo),X,Y,false);
+ merkMassWaag(Q1[0],Q2[0],ah+34,"Breite oben = "+zahl(bo),false);
+ if(C>0){g+=anbMassWaag(knickVorne,L,Math.max(av,ah)+72,"C = "+zahl(C),X,Y,false); merkMassWaag(knickVorne,L,Math.max(av,ah)+72,"C = "+zahl(C),false)}
  g+=anbMassSenk(0,av,dachVon-56,"Aufbordung vorne = "+zahl(av),X,Y);
  merkMassSenk(0,av,dachVon-56,"Aufbordung vorne = "+zahl(av));
  g+=anbMassSenk(0,ah,dachBis+22,"Aufbordung hinten = "+zahl(ah),X,Y);
@@ -314,14 +331,6 @@ eingeben.</div>`;
   const fahneS=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
   fahneS(0,av-saum/2,-40,-8,"Saum = "+zahl(saum));
  }
- if(knickDa){
-  g+=anbMassWaag(knickVorne,knickHinten,av*0.5,"Knick "+zahl(Ue),X,Y,false);
-  merkMassWaag(knickVorne,knickHinten,av*0.5,"Knick "+zahl(Ue),false);
- }
- g+=anbMassWaag(Q1[0],Q2[0],ah+26,"Breite oben = "+zahl(bo),X,Y,false);
- merkMassWaag(Q1[0],Q2[0],ah+26,"Breite oben = "+zahl(bo),false);
- g+=anbMassWaag(Q0[0],Q3[0],0-26,"Breite unten = "+zahl(bu),X,Y,true);
- merkMassWaag(Q0[0],Q3[0],0-26,"Breite unten = "+zahl(bu),true);
 
  const seiteTxt=q.getrennt?(seite==="r"?" · rechte Seite":" · linke Seite"):"";
  const fuss="Dachfenstereinfassung · Seitenteil im Schnitt längs des Dachs"+seiteTxt+" · Dach waagerecht dargestellt";
