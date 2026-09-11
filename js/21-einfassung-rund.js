@@ -217,23 +217,29 @@ function einfBerechnen(e) {
   const massSeitlich = Math.max(0, Number(s.mass_seitlich) || 0);
   const breiteGesamt = durchmesser > 0 ? Math.round(durchmesser + 2 * umschlag + 2 * massSeitlich) : null;
 
-  // Anzahl Bleilappen = Umfang des Rohrs geteilt durch den Lattenabstand.
-  // AUFGERUNDET, nicht abgerundet: die Lappen muessen den ganzen Umfang
-  // abdecken. Abrunden liess einen Rest unbedeckt (bei einem 200er Rohr
-  // ergab es 1 Lappen fuer 628 mm Umfang) - das war der gemeldete Fehler.
-  // Ohne Lattenabstand ist die Zahl nicht bestimmbar; dann bleibt sie null
-  // und die Anzeige zeigt "-", statt eine erfundene Zahl zu nennen.
+  // Anzahl Bleilappen: a und b liegen in der Dachschraege (siehe Kopf der
+  // Datei) - der Umfang der Einfassung auf dem Dach ist deshalb laenglich,
+  // nicht rund wie das Rohr selbst. Nach Ansage des Betriebs zaehlt dafuer
+  // a + b, verdoppelt (beide Seiten der Einfassung brauchen Lappen) - nicht
+  // der Rohrdurchmesser (v3.68, gemeldeter Rechenfehler: vorher wurde nur
+  // mit dem Rohrumfang PI x Durchmesser gerechnet).
+  // AUFGERUNDET, nicht abgerundet: die Lappen muessen die ganze Laenge
+  // abdecken (siehe die Korrektur in v2.70). Ohne Lattenabstand oder ohne
+  // a/b ist die Zahl nicht bestimmbar; dann bleibt sie null und die Anzeige
+  // zeigt "-", statt eine erfundene Zahl zu nennen.
+  const massA = Number(e.a) || 0, massB = Number(e.b) || 0;
   let anzahlBleilappen = null;
   const lattenabstand = Number(e.lattenabstand) || 0;
-  if (Number.isFinite(durchmesser) && durchmesser > 0 && Number.isFinite(lattenabstand) && lattenabstand > 0) {
-    anzahlBleilappen = Math.max(1, Math.ceil((Math.PI * durchmesser) / lattenabstand));
+  if (massA > 0 && massB > 0 && Number.isFinite(lattenabstand) && lattenabstand > 0) {
+    anzahlBleilappen = Math.max(1, Math.ceil((2 * (massA + massB)) / lattenabstand));
   }
 
   const warnungen = [];
-  if (!(Number(e.a) > 0)) warnungen.push("Mass a fehlt oder ist 0.");
+  if (!(massA > 0)) warnungen.push("Mass a fehlt oder ist 0.");
+  if (!(massB > 0)) warnungen.push("Mass b fehlt oder ist 0.");
   if (!(Number(e.c) > 0)) warnungen.push("Mass c (Aufbug) fehlt oder ist 0.");
   if (!(durchmesser > 0)) warnungen.push("Bitte den Rohrdurchmesser eingeben.");
-  if (durchmesser > 0 && !(lattenabstand > 0))
+  if (massA > 0 && massB > 0 && !(lattenabstand > 0))
     warnungen.push("Ohne Lattenabstand kann die Anzahl Bleilappen nicht berechnet werden.");
 
   return {
