@@ -390,8 +390,10 @@ bitte die seitliche Höhe sowie B und C eingeben.</div>`;
  };
 
  let g="";
- // Dach, ohne Pfeilspitzen (auf Wunsch entfernt).
- g+=linie(P(dachVon,0),P(dachBis,0),ANB_FARBE.deckLinie,3);
+ // Dach, ohne Pfeilspitzen und ohne den unnoetigen Ueberstand vorne/hinten -
+ // die Linie endet dort, wo A bzw. der E-Aufbug tatsaechlich beginnt
+ // (dachVon/dachBis dienen nur noch als Abstand fuer den Zeichenrand).
+ g+=linie(P(-A,0),P(L+D,0),ANB_FARBE.deckLinie,3);
  // Kamin: Vorderkant, Schnittkante oben, Hinterkant.
  g+=linie(vFuss,vTop,ANB_FARBE.bau,3);
  g+=linie(vTop,hTop,ANB_FARBE.bau,3);

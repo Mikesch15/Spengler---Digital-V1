@@ -341,8 +341,12 @@ eingeben.</div>`;
  };
 
  let g="";
- // Dach, ohne Pfeilspitzen (auf Wunsch entfernt).
- g+=linie(P(dachVon,0),P(dachBis,0),ANB_FARBE.deckLinie,3);
+ // Dach, ohne Pfeilspitzen (auf Wunsch entfernt) und ohne den unnoetigen
+ // Ueberstand vorne/hinten - die Linie endet dort, wo der Anreiff- bzw.
+ // E-Umschlag tatsaechlich beginnt (F0/E0), nicht erst beim Rand der
+ // Zeichnung (dachVon/dachBis dienen nur noch als Abstand fuer die
+ // Aufbordungs-Bemassung und den Zeichenrand).
+ g+=linie(P(F0[0],0),P(E0[0],0),ANB_FARBE.deckLinie,3);
  // Vordere Aufbordung mit Saum.
  g+=linie(P0,P1,ANB_FARBE.bau,3);
  g+=linie(P1,P2,ANB_FARBE.bau,3);
