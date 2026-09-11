@@ -127,7 +127,11 @@ async function loadProjectAngebote(projectId){
 // mit "quantity" den Betrag je Zeile und die Summe aller Betraege das
 // Total. Beide Felder sind rein additiv - bereits gespeicherte Offerten
 // ohne diese Felder zeigen einfach 0.00 bzw. keine Abschnittsueberschrift.
-let angSektionZu=new Set(); // Titel der zugeklappten Abschnitte
+// Titel der Abschnitte, die der Benutzer in DIESER Offerte per Klick
+// aufgeklappt hat. Standard ist zugeklappt (nicht in der Menge -> zu) -
+// so bleibt bei vielen Abschnitten sofort ein Ueberblick sichtbar, statt
+// einer langen, unuebersichtlichen Liste.
+let angSektionOffen=new Set();
 
 function angBetrag(p){
  return (Number(p.quantity)||0)*(Number(p.preis)||0);
@@ -136,10 +140,12 @@ function angTotal(){
  return angPositions.reduce((summe,p)=>summe+angBetrag(p),0);
 }
 // Setzt die Klapp-Zustaende zurueck, wenn eine (andere) Offerte geoeffnet
-// oder neu angelegt wird - sonst koennte ein beim letzten Mal zugeklappter
-// Abschnitt einer voellig anderen Offerte hier faelschlich zugeklappt bleiben.
+// oder neu angelegt wird - sonst koennte ein bei einer anderen Offerte
+// aufgeklappter Abschnitt hier faelschlich offen erscheinen. Die ganze
+// Liste ("Erkannte Positionen") bleibt dabei weiterhin offen, nur die
+// einzelnen Abschnitte starten zugeklappt (angSektionOffen leer).
 function angPositionsAufklappen(){
- angSektionZu=new Set();
+ angSektionOffen=new Set();
  const box=$("angPositionsKlapp");
  if(box){
   box.classList.add("open");
@@ -173,9 +179,9 @@ function renderAngPositionsTable(){
    if(titel){
     let j=i;
     while(j<angPositions.length&&(angPositions[j].abschnitt||"").trim()===titel)j++;
-    const zu=angSektionZu.has(titel);
-    html+=`<tr><td colspan="7"><div class="klapp-kopf ang-sek-kopf${zu?"":" open"}" data-ang-sek-toggle="${esc(titel)}" role="button" tabindex="0"><b>${esc(titel)}</b><span class="klapp-chevron">›</span></div></td></tr>`;
-    for(let k=i;k<j;k++)html+=angPositionZeileHtml(angPositions[k],k,zu,titel);
+    const offen=angSektionOffen.has(titel);
+    html+=`<tr><td colspan="7"><div class="klapp-kopf ang-sek-kopf${offen?" open":""}" data-ang-sek-toggle="${esc(titel)}" role="button" tabindex="0"><b>${esc(titel)}</b><span class="klapp-chevron">›</span></div></td></tr>`;
+    for(let k=i;k<j;k++)html+=angPositionZeileHtml(angPositions[k],k,!offen,titel);
     i=j;
    }else{
     html+=angPositionZeileHtml(angPositions[i],i,false,"");
@@ -216,7 +222,7 @@ if($("angPositionsBody")){
   if(sek){
    const titel=sek.dataset.angSekToggle;
    const offen=!sek.classList.contains("open");
-   if(offen)angSektionZu.delete(titel);else angSektionZu.add(titel);
+   if(offen)angSektionOffen.add(titel);else angSektionOffen.delete(titel);
    sek.classList.toggle("open",offen);
    $("angPositionsBody").querySelectorAll("[data-ang-sek-row]").forEach(tr=>{
     if(tr.dataset.angSekRow===titel)tr.style.display=offen?"":"none";

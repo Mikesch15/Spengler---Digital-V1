@@ -942,9 +942,10 @@ vorgeschlagen – dieselbe Erkennung wie beim Ausmass "Offerte erfassen".</p>
 <p>Das Ergebnis landet in der Tabelle darüber und lässt sich dort vor dem
 Speichern noch prüfen und korrigieren.</p>
 <p>Fett gedruckte Zwischentitel im Dokument (z. B. "Bedachung") werden als
-eigene, klappbare Abschnitte mit fett gedrucktem Titel dargestellt – ein
-Klick auf den Titel klappt den Abschnitt auf oder zu. Die ganze Liste lässt
-sich über die Überschrift "Erkannte Positionen" ebenso auf- und zuklappen.</p>
+eigene, klappbare Abschnitte mit fett gedrucktem Titel dargestellt – zur
+besseren Übersicht standardmässig zugeklappt. Ein Klick auf den Titel klappt
+den jeweiligen Abschnitt auf oder zu. Die ganze Liste lässt sich über die
+Überschrift "Erkannte Positionen" ebenso auf- und zuklappen.</p>
 <p>Wird ein Einzelpreis erkannt (oder von Hand eingetragen), erscheint
 daneben automatisch der Betrag (Menge × Preis) sowie das Total über alle
 Positionen.</p>
