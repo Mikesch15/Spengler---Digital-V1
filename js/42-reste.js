@@ -528,9 +528,13 @@ function restAlle(plan){
  gruppen.forEach((g,gi)=>{
   const A=restZahl(g.breite), L=geoFuer[gi]?geoFuer[gi].L
     :(restZahl(g.abschnittLaenge)||restZahl(plan.abschnittLaenge));
+  // jeAbschnitt: bei genau einem Streifen je Abschnitt zieht js/29 jeden
+  // Streifen nur so lang wie noetig - kein "Rest bis zum laengsten Stueck
+  // der Gruppe" als Reststueck (siehe zuStreifenRestEcht, js/33).
+  const n=geoFuer[gi]?geoFuer[gi].jeAbschnitt:restZahl(g.jeAbschnitt);
   if(A<=0)return;
   (g.streifen||[]).forEach((st,i)=>{
-   const w=(typeof zuStreifenRest==="function")?zuStreifenRest(st,L)
+   const w=(typeof zuStreifenRestEcht==="function")?zuStreifenRestEcht(st,L,n)
      :{rest:restZahl(st.rest)};
    if(w.rest>0)nimm(w.rest,A,1,"Streifen "+(i+1)+woFuer(A));
   });

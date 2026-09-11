@@ -411,7 +411,20 @@ function ebaFormatPlan(opt){
    const v=packe(gi,L);
    const streifen=v.streifen||[];
    const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
-   const rollenLaenge=abschnitte*L;
+   // Bei jeAbschnitt===1 passt genau EIN Streifen auf die volle Breite - es
+   // wird nichts quer aufgeteilt, und jeder Streifen ist sein EIGENER,
+   // unabhaengiger Abzug von der Rolle/Tafel. Gezogen wird dann nur so viel,
+   // wie er tatsaechlich braucht (steckt schon in seinem "rest"), nicht die
+   // Laenge des laengsten Stuecks der ganzen Gruppe. Ab zwei Streifen je
+   // Abschnitt bleibt die bisherige Regel: ein Abschnitt wird als EIN Stueck
+   // quer abgezogen, seine Streifen haben deshalb zwingend alle dieselbe
+   // Laenge L. Gemeldet (11.09.2026): eine 250er Rolle (Breite = Abwicklung,
+   // jeAbschnitt=1) wurde dadurch faelschlich als genauso verschnittreich
+   // bewertet wie eine breitere Rolle, obwohl sich hier jedes Stueck einzeln
+   // exakt zuschneiden liesse.
+   const rollenLaenge=jeAbschnitt===1
+    ?streifen.reduce((s,st)=>s+Math.max(0,L-(Number(st.rest)||0)),0)
+    :abschnitte*L;
    flaeche+=f.breite*rollenLaenge/1e6;
    zeilen.push({breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
      abschnittLaenge:L,rollenLaenge,streifen:streifen.length,

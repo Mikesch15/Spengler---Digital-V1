@@ -130,7 +130,13 @@ function zuGeometrie(p){
   // Materialbilanz stellt sich dann gar nicht erst auf, statt zu schätzen.
   // Der seitliche Rand braucht diese Angaben nicht: er steht mit restBreite
   // und Rollenlänge im Plan und darf deshalb nicht mit verschwinden.
-  const RL=(ab>0&&L>0)?ab*L:(rl>0?rl:0);
+  // Bei jeAbschnitt===1 (n===1) zieht js/29 ebaFormatPlan jeden Streifen nur
+  // so lang, wie er tatsaechlich braucht - "ab*L" (alle Abschnitte auf die
+  // Laenge des laengsten Stuecks der Gruppe aufgerundet) waere dort zu lang.
+  // Die schon richtig aufsummierte Rollenlaenge steht in diesem Fall bereits
+  // im Plan (rl) und wird direkt uebernommen, statt neu (und falsch) aus
+  // ab*L hergeleitet zu werden.
+  const RL=(n===1&&rl>0)?rl:((ab>0&&L>0)?ab*L:(rl>0?rl:0));
   raus.push({B,A,L,jeAbschnitt:n,abschnitte:ab,rollenLaenge:RL,
    restBreite:rb,frei:(n>0&&ab>0)?Math.max(0,n*ab-streifen.length):0,
    fugeQuer:(n>0)?Math.max(0,B-n*A-rb):0,streifen,index:i,
@@ -149,6 +155,21 @@ function zuStreifenRest(st,L){
   return {summe,rest:Math.max(0,L-summe),fuge:0};
  const rest=Math.max(0,zuZahl(st.rest));
  return {summe,rest,fuge:Math.max(0,L-summe-rest)};
+}
+// Reeller Rest je Streifen - anders als zuStreifenRest() beruecksichtigt das
+// hier auch jeAbschnitt. Bei genau einem Streifen je Abschnitt (Rolle/Tafel
+// so schmal wie die Abwicklung) zieht js/29 ebaFormatPlan jeden Streifen nur
+// so lang, wie er tatsaechlich braucht - der Rest bis zur Abschnittlaenge der
+// GRUPPE (das laengste Stueck) ist dort KEIN Verschnitt, er wurde nie von der
+// Rolle abgezogen. Nur die Schnittfuge INNERHALB des Streifens (zwischen
+// mehreren zusammengelegten Stuecken) bleibt echter Verlust. Ab zwei
+// Streifen je Abschnitt muessen dagegen alle Streifen eines Abschnitts
+// gleich lang sein - der wird als EIN Stueck quer abgezogen, die bisherige
+// Regel bleibt dort unveraendert.
+function zuStreifenRestEcht(st,L,jeAbschnitt){
+ if(Number(jeAbschnitt)===1)
+  return zuStreifenRest(Object.assign({},st,{rest:0}),Math.max(0,zuZahl(L)-zuZahl(st&&st.rest)));
+ return zuStreifenRest(st,L);
 }
 
 // ---------------------------------------------------------------------------
@@ -193,7 +214,7 @@ function zuBilanz(p){
   brutto+=g.B*g.rollenLaenge;
   fuge+=g.fugeQuer*g.rollenLaenge;
   (g.streifen||[]).forEach(st=>{
-   const w=zuStreifenRest(st,g.L);
+   const w=zuStreifenRestEcht(st,g.L,g.jeAbschnitt);
    netto+=w.summe*g.A;
    fuge+=w.fuge*g.A;
   });
