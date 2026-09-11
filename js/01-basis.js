@@ -215,7 +215,7 @@ let lukZugabeLaenge=0;
 const MEAS_TYPE_LABELS=Object.freeze({
  skizze_foto:"Skizze/Foto",
  einlaufblech_gerade:"Einlaufblech gerade",
- rinne_halbrund:"Rinne Halbrund",
+ rinne_halbrund:"Dachrinne",
  einlaufblech_konisch:"Einlaufblech konisch",
  freies_profil:"Freies Profil",
  mauerabdeckung:"Mauerabdeckung",

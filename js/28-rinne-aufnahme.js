@@ -203,6 +203,9 @@ let rinneA=raLeer();
 function raLeer(){
  return {
   material:String(measurementMaterialOrFallback(null).id||""),
+  // v3.49: Halbrund oder eckige Ausfuehrung - reine Auswahl/Anzeige, an der
+  // Rechnung (Verlauf, Fixpunkte, Dehnung, Stueckliste) aendert sie nichts.
+  ausfuehrung:"halbrund",
   groesse:"330",
   gesamtlaengeManuell_mm:null,
   // Winkel UND Stutzen sitzen am ENDE ihres Abschnitts – der Übergang IST
@@ -221,6 +224,9 @@ function raAusData(d){
  if(!d||typeof d!=="object")return a;
  if(d.material!==undefined&&d.material!==null&&d.material!=="")
   a.material=String(measurementMaterialOrFallback(d.material).id||"");
+ // Aeltere Aufnahmen kennen kein ausfuehrung-Feld - vor dieser Auswahl gab
+ // es nur die runde Form, deshalb ist das der Rueckfall.
+ a.ausfuehrung=d.ausfuehrung==="eckig"?"eckig":"halbrund";
  const g=String(d.groesse||d.rinneAbwicklung||"330");
  a.groesse=RA_GROESSEN.some(x=>x.wert===g)?g:"330";
  if(d.gesamtlaengeManuell_mm!==undefined)a.gesamtlaengeManuell_mm=d.gesamtlaengeManuell_mm;
@@ -436,7 +442,11 @@ function raKomponenten(a){
  const innen=ecken.filter(e=>e.art==="innen").length;
  const aussen=ecken.filter(e=>e.art==="aussen").length;
  const liste=[];
- if(L>0)liste.push({schluessel:"rinne",bezeichnung:`Rinne halbrund${gz} ${raMaterialText(a)}`,
+ // v3.49: "Dachrinne" statt "Rinne halbrund" - die Ausfuehrung (halbrund/
+ // eckig) steht jetzt zusaetzlich in der Bezeichnung, die Rechnung bleibt
+ // unveraendert (siehe raLeer/raAusData).
+ const ausText=a.ausfuehrung==="eckig"?"eckig":"halbrund";
+ if(L>0)liste.push({schluessel:"rinne",bezeichnung:`Dachrinne ${ausText}${gz} ${raMaterialText(a)}`,
                     menge:Math.round(L)/1000,einheit:"m",herkunft:"Verlauf"});
  const nHalter=raHalterAnzahl(a);
  if(nHalter>0)liste.push({schluessel:"halter",bezeichnung:`Rinnenhalter${gz}`+(a.halter.typ?` (${a.halter.typ})`:""),
@@ -594,8 +604,11 @@ function raGrunddatenHtml(){
   `<option value="${esc(g.wert)}"${g.wert===a.groesse?" selected":""}>${esc(g.text)}</option>`).join("");
  const L=raGesamtlaenge(a);
  const fehlt=raFehlendeTypen();
+ const ausOpt=`<option value="halbrund"${a.ausfuehrung==="halbrund"?" selected":""}>Halbrund</option>`
+   +`<option value="eckig"${a.ausfuehrung==="eckig"?" selected":""}>Eckig</option>`;
  return `<div class="grid">
 ${raFeld("Material",`<select id="ra_material">${matOpt}</select>`)}
+${raFeld("Ausführung",`<select id="ra_ausfuehrung">${ausOpt}</select>`)}
 ${raFeld("Rinnengrösse",`<select id="ra_groesse">${rgOpt}</select>`)}
 ${raFeld("Gesamtlänge gemessen (mm, optional)",
   `<input id="ra_gesamt" type="number" inputmode="numeric" step="1" value="${a.gesamtlaengeManuell_mm??""}" placeholder="nur zur Kontrolle">`)}
@@ -603,7 +616,7 @@ ${raFeld("Aus den Abschnitten",`<div class="ra-wert">${L>0?esc(raMm(L))+" mm":"�
 </div>
 ${fehlt.length?`<div class="info ra-warn"><b>Anschlusstypen fehlen im Katalog:</b> ${esc(fehlt.join(", "))}.
 Ohne sie werden Fixpunkte und Zuschlagsmasse an diesen Stellen nicht mitgerechnet.
-Sie lassen sich in <b>Einstellungen → Massaufnahmen → Rinne</b> anlegen.</div>`:""}`;
+Sie lassen sich in <b>Einstellungen → Massaufnahmen → Dachrinne</b> anlegen.</div>`:""}`;
 }
 
 function raVerlaufHtml(){
@@ -774,7 +787,7 @@ function raStuecklisteHtml(){
    +`<td>${edit?`<button type="button" class="red ra-weg" data-ra-dila-del="${s.dilaIndex}" title="Dehnungselement löschen">✕</button>`:""}</td></tr>`;
  }).join("");
  return `<div class="info">Rechnet unverändert die Funktion der laufenden App. Die Zuschnittmasse je Element stehen in
-<b>Einstellungen → Massaufnahmen → Rinne</b>.</div>
+<b>Einstellungen → Massaufnahmen → Dachrinne</b>.</div>
 <div class="scroll"><table class="eb-table ra-tab">
 <thead><tr><th>Nr.</th><th>Von → Bis</th><th>Abstand (mm)</th><th>Zuschnitt (Länge × Breite)</th><th></th></tr></thead>
 <tbody>${zeilen||'<tr><td colspan="5">Noch nichts zu berechnen.</td></tr>'}</tbody></table></div>
@@ -830,7 +843,7 @@ function raZuschnittHtml(){
  if(normen===null||!normen.length)
   return `<div class="info ra-warn">Für <b>${esc(raMaterialText(a))} ${esc(raGroesseText(a))}</b> ist keine
 Normlänge hinterlegt. Der Materialbedarf wird deshalb <b>nicht</b> gerechnet – er würde sonst auf einer
-geratenen Stangenlänge beruhen. Einzutragen unter <b>Einstellungen → Massaufnahmen → Rinne</b>.</div>`;
+geratenen Stangenlänge beruhen. Einzutragen unter <b>Einstellungen → Massaufnahmen → Dachrinne</b>.</div>`;
  return zuschnittHtml(raZuschnittPlan());
 }
 // ---- Register: durch die Massaufnahme führen ------------------------------
@@ -1013,6 +1026,7 @@ function raVerdrahten(){
    return;
   }
   if(t.id==="ra_material")a.material=t.value;
+  else if(t.id==="ra_ausfuehrung")a.ausfuehrung=t.value==="eckig"?"eckig":"halbrund";
   else if(t.id==="ra_groesse")a.groesse=t.value;
   else if(t.id==="ra_bodenLinks")a.rinnenboden.links=t.checked;
   else if(t.id==="ra_bodenRechts")a.rinnenboden.rechts=t.checked;
@@ -1110,6 +1124,7 @@ function rinneAufnahmeZusatzDaten(){
  const plan=normen&&normen.length?raNormErgebnis(a):null;
  return {
   groesse:a.groesse,
+  ausfuehrung:a.ausfuehrung,
   gesamtlaengeManuell_mm:a.gesamtlaengeManuell_mm,
   halter:{anzahl:a.halter.anzahl,abstand_mm:a.halter.abstand_mm,typ:a.halter.typ},
   rinnenboden:{links:!!a.rinnenboden.links,rechts:!!a.rinnenboden.rechts},

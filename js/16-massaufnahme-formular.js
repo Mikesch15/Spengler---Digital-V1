@@ -1020,7 +1020,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Rinnengrösse",esc(d.groesse||d.rinneAbwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}</tr>
+<tr>${cell("Rinnengrösse",esc(d.groesse||d.rinneAbwicklung||"–")+" mm")}${cell("Gesamtlänge",esc(d.gesamtlaenge||0)+" mm")}${cell("Ausführung",d.ausfuehrung==="eckig"?"Eckig":"Halbrund")}</tr>
 <tr>${cell("Material",esc(matTab.label))}${cell("Dilatationselemente",dilas.length?esc(dilas.length)+" Stück"+(d.dilasManuell?" (von Hand)":""):"Keine nötig")}
 ${d.halter?cell("Rinnenhalter",esc(Math.round(Number(d.halter.anzahl!=null&&d.halter.anzahl!==""?d.halter.anzahl:(Number(d.gesamtlaenge||0)>0&&Number(d.halter.abstand_mm)>0?Math.floor(Number(d.gesamtlaenge)/Number(d.halter.abstand_mm))+1:0))||0))+" Stk."+(d.halter.abstand_mm?" à "+esc(d.halter.abstand_mm)+" mm":"")):"<td></td>"}</tr>
 ${d.rinnenboden?`<tr>${cell("Rinnenboden links",d.rinnenboden.links?"ja":"nein")}${cell("Rinnenboden rechts",d.rinnenboden.rechts?"ja":"nein")}<td></td></tr>`:""}

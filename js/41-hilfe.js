@@ -626,7 +626,7 @@ eine Skizze lässt sich frei aufziehen.</p>
 <p>Was für die ganze Massaufnahme gilt: Material und die Masse, die sich von
 Stück zu Stück nicht ändern.</p>
 <p>Das <b>Material</b> kommt aus dem Katalog der Firma (Einstellungen →
-Geschützt → Material). Bei Rinne Halbrund und Mauerabdeckung steuert es
+Geschützt → Material). Bei Dachrinne und Mauerabdeckung steuert es
 zusätzlich die Dehnungsabstände.</p>`},
 
 "reg-zuschnitt":{titel:"Zuschnitt aus Rolle oder Tafel",text:`
@@ -746,7 +746,7 @@ das steht dann ausdrücklich dabei.</p>`},
 Profil in <b>Normlängen</b> bezogen. Deshalb rechnet die App hier mit
 Stangen statt mit Streifen.</p>
 <p>Welche Längen es je Material und Grösse gibt, steht in den Einstellungen
-unter "Rinne Halbrund". Ist dort nichts hinterlegt, wird nicht gerechnet –
+unter "Dachrinne". Ist dort nichts hinterlegt, wird nicht gerechnet –
 die App sagt, wo es einzutragen ist, statt eine Länge zu erfinden.</p>`},
 
 "fp-profil":{titel:"Profil",text:`
@@ -1077,10 +1077,10 @@ Mal in die Liste – vorher prüfen, ob sie schon da ist.</p>`},
 <p>Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt
 <b>firmenweit</b>.</p>
 <p>Die beiden Zahlenfelder (maximaler Abstand und Abstand ab Fixpunkt) werden
-nur bei "Rinne Halbrund" und "Mauerabdeckung" für die Dehnungsabstände
+nur bei "Dachrinne" und "Mauerabdeckung" für die Dehnungsabstände
 gebraucht – bei allen anderen Arten leer lassen.</p>`},
 
-"einst-rinne-typen":{titel:"Rinne Halbrund",text:`
+"einst-rinne-typen":{titel:"Dachrinne",text:`
 <p><b>Normlängen:</b> in welchen Längen das Rinnenprofil je Material und
 Grösse bezogen wird. Ist nichts hinterlegt, rechnet die App den
 Materialbedarf nicht – statt mit einer geratenen Stangenlänge.</p>
@@ -1121,7 +1121,7 @@ anhaken, wenn an einem anderen Tag noch einmal Material gebraucht wurde.</p>
 Einheit und Preis kommen wie immer aus dem Katalog. Das Datum ist das der
 Massaufnahme.</p>
 <p><b>Seit Version 3.24</b> stehen auch die <b>berechneten Blechzuschnitte</b>
-und die <b>Halbfabrikate</b> zur Auswahl – bei einer Rinne halbrund also
+und die <b>Halbfabrikate</b> zur Auswahl – bei einer Dachrinne also
 Halter, Innen- und Aussenwinkel, Einhänge- und Schiebestutzen, Rinnenböden
 und Dehnungsstücke, bei den übrigen Arten z. B. Haltebleche, Schieber oder
 Bleilappen. Reine Rechenwerte (Abwicklung, Flächen, Stückzahlen) erscheinen
@@ -1298,7 +1298,7 @@ wie das längste Blech, bei einer Tafel ist er so lang wie die Tafel. Alles
 Übrige – Streifen quer, mehrere Stücke hintereinander, Schnittfuge, Reste –
 bleibt gleich.</p>
 <p>Das Feld erscheint nicht bei <i>Skizze/Foto</i> (dort wird nichts gerechnet)
-und nicht bei <i>Rinne Halbrund</i> (die bezieht ein fertiges Profil in
+und nicht bei <i>Dachrinne</i> (die bezieht ein fertiges Profil in
 Normlängen – dort gibt es weder Rollenbreite noch Tafelformat).</p>
 <p><b>Achtung:</b> Wird die Wahl nach der Freigabe <i>geändert</i>, verfällt
 die Freigabe – der Rüster hätte sonst das falsche Ausgangsmaterial geholt. Sie
@@ -1378,7 +1378,7 @@ function hilfeKnopf(key){
 
 // Der Info-Knopf einer Register-Karte. Er erscheint nur bei der HAUPTKARTE
 // eines Registers - deren Titel beginnt mit der Registernummer ("4 · ...").
-// Ein Register mit mehreren Karten (Rinne Halbrund, Register 3) bekommt so
+// Ein Register mit mehreren Karten (Dachrinne, Register 3) bekommt so
 // genau einen Knopf statt drei.
 function hilfeKarte(titel,register){
  const m=/^\s*(\d+)\s*[·.]/.exec(String(titel||""));

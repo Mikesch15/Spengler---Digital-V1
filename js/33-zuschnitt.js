@@ -737,7 +737,7 @@ const ZU_EINLEITUNG_STANGE="Aus welchen Normlängen die Stücke geschnitten werd
  +"möglichst wenig übrig bleibt. Mehrere Stücke dürfen aus derselben Stange kommen.";
 const ZU_QUELLE_ROLLE="Blechlager aus <b>Einstellungen → Allgemein → Rollenbreiten des "
  +"Blechlagers</b> (firmenweit, gilt für alle Arten).";
-const ZU_QUELLE_STANGE="Normlängen aus <b>Einstellungen → Massaufnahmen → Rinne</b>.";
+const ZU_QUELLE_STANGE="Normlängen aus <b>Einstellungen → Massaufnahmen → Dachrinne</b>.";
 // v3.33: dieselbe Rechnung, andere Herkunft des Materials.
 const ZU_EINLEITUNG_TAFEL="Aus <b>Tafeln</b> werden quer <b>Streifen der Abwicklungsbreite</b> "
  +"geteilt. Anders als bei der Rolle hat eine Tafel eine <b>feste Länge</b>: jedes Stück muss "
