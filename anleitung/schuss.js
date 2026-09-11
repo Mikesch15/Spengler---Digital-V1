@@ -424,8 +424,6 @@ const liste=[];
  // v3.10: der Streifen ganz oben - er beantwortet die Frage "was jetzt?"
  await schuss("35-schritt","#measNaechsterSchritt",{warte:400,breite:760});
  await schuss("31-workflow","#measWorkflowBereich",{warte:500,breite:760});
- // v3.36: Geplant -> Ausgefuehrt je Position - unter dem Arbeitsstatus.
- await schuss("44-ausfuehrung","#measAusfuehrungBereich",{warte:500,breite:760});
  await page.evaluate(()=>{$("measurementEditModal").hidden=true;$("startScreen").hidden=false});
  await page.evaluate(()=>{
   // Der angemeldete Benutzer ist u1 - er hat eine eigene Massaufnahme

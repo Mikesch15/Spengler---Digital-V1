@@ -82,13 +82,6 @@ window.__demo={
    pdf_path:"project-files/1/offerte-sanierung-dach-nord.pdf",pdf_name:"Offerte Sanierung Dach Nord.pdf",
    created_by:"u1",created_at:"2026-08-20T09:00:00Z",updated_by:"u1",updated_at:"2026-08-20T09:30:00Z"}
  ],
- // v3.36 Geplant -> Ausgefuehrt: je Ausmass-Position der Massaufnahme 12 ein
- // eigener, unabhaengiger Ausfuehrungsstand - die geplante Menge bleibt dabei
- // unveraendert stehen, auch wenn sie von der ausgefuehrten abweicht.
- ausfuehrungen:[
-  {id:1,company_id:"c1",measurement_id:12,position_nr:1,position_bezeichnung:"Einlaufblech gerade, Abwicklung 250 mm",geplante_menge:"6,20",einheit:"m",status:"teilweise",ausgefuehrte_menge:"5,80",bemerkung:"Letztes Stück wird erst nächste Woche montiert.",created_by:"u2",created_at:"2026-09-02T11:00:00Z",updated_by:"u2",updated_at:"2026-09-02T11:00:00Z"},
-  {id:2,company_id:"c1",measurement_id:12,position_nr:2,position_bezeichnung:"Stücke (Zuschnitte)",geplante_menge:4,einheit:"Stk.",status:"vollstaendig",ausgefuehrte_menge:4,bemerkung:"",created_by:"u2",created_at:"2026-09-02T11:00:00Z",updated_by:"u2",updated_at:"2026-09-02T11:00:00Z"}
- ],
  companies:[{id:"c1",name:"Muster Spenglerei AG",slug:"muster-spenglerei",subscription_status:"active",trial_days:30,trial_started_at:"2026-08-01T00:00:00Z",trial_ends_at:"2026-08-31T00:00:00Z",created_at:"2026-08-01T00:00:00Z",is_active:true}]
 };
 
