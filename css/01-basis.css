@@ -196,6 +196,8 @@ html.dark .pstatus-storniert{color:#f08b80}
    klar beschriftete Neu-Knoepfe ueber voller Breite. */
 /* Aus der globalen Suche geoeffneter Treffer (v2.40): kurz hervorheben */
 .report-row.treffer{outline:2px solid var(--blue);outline-offset:1px;background:#fff}
+/* Ausmass "Offerte erfassen" (v3.48): fertig markierte Position dezent gruen. */
+.am-pos-fertig{background:#eaf7f0}
 .cockpit-count{float:right;font-size:11px;font-weight:900;color:var(--blue);background:var(--blue-light);border-radius:999px;padding:1px 9px;min-width:20px;text-align:center}
 .cockpit-new{display:block;width:100%;min-height:44px;text-align:center;line-height:24px}
 /* Klappbare Abschnitte im Projekt-Cockpit (v3.11). Gleiche Bildsprache wie

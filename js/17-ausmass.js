@@ -10,14 +10,16 @@ let ausmassListProjectId=null;
 let ausmassCache=[];
 
 function renderAmPositionsTable(){
- $("amPositionsBody").innerHTML=amPositions.map((p,i)=>`<tr>
+ $("amPositionsBody").innerHTML=amPositions.map((p,i)=>`<tr${p.fertig?' class="am-pos-fertig"':""}>
 <td><input data-am-pos="${i}" value="${esc(p.pos||"")}"></td>
 <td><input data-am-desc="${i}" value="${esc(p.description||"")}">${(p.massQuelle&&p.massQuelle.length)?`<div class="small" style="color:var(--muted)">📐 ${esc(p.massQuelle.map(q=>q.name).join(" + "))}</div>`:""}</td>
 <td><input data-am-qty="${i}" type="number" step=".01" value="${p.quantity||0}"></td>
 <td><input data-am-unit="${i}" value="${esc(p.unit||"")}"></td>
+<td style="text-align:center"><input type="checkbox" data-am-fertig="${i}" ${p.fertig?"checked":""} title="Position fertig"></td>
 <td><button type="button" class="gray" data-am-pick="${i}" style="padding:6px 8px" title="Aus Massaufnahme übernehmen">📐</button><button type="button" class="red" data-am-del="${i}" style="padding:6px 8px">×</button></td>
-</tr>`).join("")||'<tr><td colspan="5" class="small">Noch keine Positionen. Foto aufnehmen und "Positionen erkennen" klicken, oder manuell hinzufügen.</td></tr>';
- $("amPositionsSummary").textContent=amPositions.length?`${amPositions.length} Positionen`:"";
+</tr>`).join("")||'<tr><td colspan="6" class="small">Noch keine Positionen. Foto aufnehmen und "Positionen erkennen" klicken, oder manuell hinzufügen.</td></tr>';
+ const nFertig=amPositions.filter(p=>p.fertig).length;
+ $("amPositionsSummary").textContent=amPositions.length?`${amPositions.length} Positionen, ${nFertig} fertig`:"";
 }
 function showAmTypeSection(type){
  $("amTypeOfferte").hidden=(type!=="offerte_erfassen");
@@ -73,6 +75,15 @@ $("amPositionsBody").addEventListener("input",e=>{
  else if(e.target.dataset.amUnit!==undefined)amPositions[i].unit=e.target.value;
  else if(e.target.dataset.amQty!==undefined){amPositions[i].quantity=Number(e.target.value)||0;delete amPositions[i].massQuelle}
 });
+// v3.48: Position als fertig markieren. Eigener "change"-Handler, weil
+// Checkboxen (anders als die Text-/Zahlenfelder oben) darueber zuverlaessig
+// ausgeloest werden.
+$("amPositionsBody").addEventListener("change",e=>{
+ const i=Number(e.target.dataset.amFertig);
+ if(Number.isNaN(i)||!amPositions[i])return;
+ amPositions[i].fertig=e.target.checked;
+ renderAmPositionsTable();
+});
 $("amPositionsBody").addEventListener("click",e=>{
  const del=e.target.closest("[data-am-del]");
  if(del){amPositions.splice(Number(del.dataset.amDel),1);renderAmPositionsTable();return}
@@ -81,6 +92,15 @@ $("amPositionsBody").addEventListener("click",e=>{
 });
 $("amAddPosition").onclick=()=>{
  amPositions.push({pos:"",description:"",quantity:0,unit:""});
+ renderAmPositionsTable();
+};
+// v3.48: alle Positionen auf einmal fertig markieren bzw. zuruecksetzen.
+$("amAllFertig").onclick=()=>{
+ amPositions.forEach(p=>p.fertig=true);
+ renderAmPositionsTable();
+};
+$("amKeineFertig").onclick=()=>{
+ amPositions.forEach(p=>{delete p.fertig});
  renderAmPositionsTable();
 };
 
@@ -545,8 +565,8 @@ async function printAusmass(a,opt){
 </table>`;
  }else{
   positionsHtml=`<table class="am-cutlist">
-<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
-<tbody>${positions.map(p=>`<tr><td>${esc(p.pos||"")}</td><td>${esc(p.description||"")}</td><td>${esc(p.quantity||0)}</td><td>${esc(p.unit||"")}</td></tr>`).join("")}</tbody>
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Fertig</th></tr></thead>
+<tbody>${positions.map(p=>`<tr><td>${esc(p.pos||"")}</td><td>${esc(p.description||"")}</td><td>${esc(p.quantity||0)}</td><td>${esc(p.unit||"")}</td><td>${p.fertig?"✓":"–"}</td></tr>`).join("")}</tbody>
 </table>`;
  }
  // Exakt derselbe zentrale Kopf wie beim jeweils anderen Dokumenttyp

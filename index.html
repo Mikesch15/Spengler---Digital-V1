@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.47</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.48</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1587,12 +1587,16 @@ einer wirkt nicht auf die anderen.</div>
 <h2 style="margin-top:4px">Erkannte Positionen <button type="button" class="hilfe-knopf no-print" data-hilfe="am-ki">i</button></h2>
 <div class="scroll">
 <table class="eb-table">
-<colgroup><col style="width:14%"><col style="width:44%"><col style="width:16%"><col style="width:14%"><col style="width:12%"></colgroup>
-<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th></th></tr></thead>
+<colgroup><col style="width:12%"><col style="width:39%"><col style="width:14%"><col style="width:12%"><col style="width:11%"><col style="width:12%"></colgroup>
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Fertig</th><th></th></tr></thead>
 <tbody id="amPositionsBody"></tbody>
 </table>
 </div>
-<div class="bar"><button type="button" class="gray" id="amAddPosition">＋ Position hinzufügen</button></div>
+<div class="bar">
+<button type="button" class="gray" id="amAddPosition">＋ Position hinzufügen</button>
+<button type="button" class="gray" id="amAllFertig">✓ Alle fertig</button>
+<button type="button" class="gray" id="amKeineFertig">Alle zurücksetzen</button>
+</div>
 <div class="small" id="amPositionsSummary"></div>
 </div>
 
