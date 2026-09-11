@@ -14,6 +14,41 @@ let fsCtx=null;
 const SKETCH_W=1000,SKETCH_H=1414; // festes A4-Hochformat-Seitenverhältnis, unabhängig vom Zoom
 let sketchFitScale=1,sketchZoom=1,sketchPanMode=false;
 
+// ---- Strichstärke + Radiergummi als Knoepfe (v3.74) --------------------
+// Statt eines <select> zyklisch per Knopfdruck durch die Staerken; statt
+// eines "Loeschen"-Knopfs (loescht die ganze Zeichenflaeche) ein Radiergummi
+// fuer einzelne Korrekturen - die Zeichenflaeche ist EIN geflachtes Canvas
+// (Hintergrundfoto + Striche zusammen, kein eigener Hintergrund-Layer), das
+// Radieren "malt" deshalb technisch mit Weiss statt echter Transparenz zu
+// erzeugen - optisch identisch zum bisherigen Loeschen, nur lokal begrenzt.
+const SKETCH_WIDTHS=[{v:2,label:"Dünn"},{v:4,label:"Mittel"},{v:8,label:"Dick"},{v:16,label:"Sehr dick"}];
+let sketchWidthIndex=1; // "Mittel" (4), wie bisher der Vorgabewert im <select>
+let sketchEraseMode=false;
+function updateSketchWidthBtn(){
+ if($("fsSketchWidthBtn"))$("fsSketchWidthBtn").textContent=SKETCH_WIDTHS[sketchWidthIndex].label;
+}
+function updateSketchColorSwatch(){
+ if($("fsSketchColorSwatch"))$("fsSketchColorSwatch").style.background=$("fsSketchColor").value;
+}
+function updateSketchEraseBtn(){
+ if($("fsSketchErase"))$("fsSketchErase").classList.toggle("active",sketchEraseMode);
+}
+if($("fsSketchColorBtn"))$("fsSketchColorBtn").onclick=()=>$("fsSketchColor").click();
+if($("fsSketchColor"))$("fsSketchColor").addEventListener("input",()=>{
+ updateSketchColorSwatch();
+ // Eine bewusst gewaehlte Farbe heisst "jetzt zeichnen", nicht radieren.
+ sketchEraseMode=false;updateSketchEraseBtn();
+});
+if($("fsSketchWidthBtn"))$("fsSketchWidthBtn").onclick=()=>{
+ sketchWidthIndex=(sketchWidthIndex+1)%SKETCH_WIDTHS.length;
+ updateSketchWidthBtn();
+};
+if($("fsSketchErase"))$("fsSketchErase").onclick=()=>{
+ sketchEraseMode=!sketchEraseMode;
+ updateSketchEraseBtn();
+};
+updateSketchWidthBtn();updateSketchColorSwatch();updateSketchEraseBtn();
+
 // ---- Private Storage-Dateien anzeigen --------------------------
 // Der Bucket "measurements" ist privat: ein gespeicherter Pfad lässt sich
 // nicht mehr direkt als <img src> verwenden, dafür braucht es eine kurz
@@ -152,6 +187,7 @@ async function openSketchFullscreen(bgSrc,editIndex,doneCallback){
  overlay.hidden=false;
  canvas.width=SKETCH_W;canvas.height=SKETCH_H;
  setPanMode(false);
+ sketchEraseMode=false;updateSketchEraseBtn();
  // Vor requestAnimationFrame auflösen: ein gespeicherter Pfad/eine alte
  // URL ist im privaten Bucket erst nach dem Signieren als <img> ladbar.
  const resolvedBg=(typeof bgSrc==="string"&&bgSrc)?await storageSignedUrl(bgSrc):null;
@@ -237,8 +273,8 @@ async function openSketchFullscreen(bgSrc,editIndex,doneCallback){
   }
   if(drawing&&fsCtx){
    const p=pos(e);
-   fsCtx.strokeStyle=$("fsSketchColor").value;
-   fsCtx.lineWidth=Number($("fsSketchWidth").value);
+   fsCtx.strokeStyle=sketchEraseMode?"#ffffff":$("fsSketchColor").value;
+   fsCtx.lineWidth=SKETCH_WIDTHS[sketchWidthIndex].v;
    fsCtx.beginPath();fsCtx.moveTo(lastX,lastY);fsCtx.lineTo(p.x,p.y);fsCtx.stroke();
    lastX=p.x;lastY=p.y;
    e.preventDefault();
@@ -254,10 +290,6 @@ async function openSketchFullscreen(bgSrc,editIndex,doneCallback){
  canvas.addEventListener("pointerup",endPointer);
  canvas.addEventListener("pointercancel",endPointer);
 })();
-$("fsSketchClear").onclick=()=>{
- if(!fsCtx)return;
- fsCtx.fillStyle="#fff";fsCtx.fillRect(0,0,SKETCH_W,SKETCH_H);
-};
 $("fsSketchCancel").onclick=()=>{sketchDoneCallback=null;$("sketchFullscreen").hidden=true};
 $("fsSketchDone").onclick=()=>{
  const dataUrl=$("fsSketchCanvas").toDataURL("image/png");

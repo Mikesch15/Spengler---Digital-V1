@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.73</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.74</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -2340,9 +2340,10 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <div id="sketchFullscreen" class="sketch-fullscreen" hidden>
 <div class="sketch-fs-toolbar">
 <div class="sketch-fs-tools">
-<input type="color" id="fsSketchColor" value="#17202a" title="Farbe">
-<select id="fsSketchWidth" title="Strichstärke"><option value="2">dünn</option><option value="4" selected>mittel</option><option value="8">dick</option><option value="16">sehr dick</option></select>
-<button type="button" class="gray" id="fsSketchClear">Löschen</button>
+<input type="color" id="fsSketchColor" value="#17202a" title="Farbe" hidden>
+<button type="button" class="gray" id="fsSketchColorBtn" title="Farbe"><span id="fsSketchColorSwatch" class="sketch-color-swatch"></span> Farbe</button>
+<button type="button" class="gray" id="fsSketchWidthBtn" title="Strichstärke">Mittel</button>
+<button type="button" class="gray" id="fsSketchErase" title="Radieren">🧹 Radieren</button>
 <button type="button" class="gray" id="fsZoomOut" title="Verkleinern">－</button>
 <span id="fsZoomLabel" class="sketch-zoom-label">100%</span>
 <button type="button" class="gray" id="fsZoomIn" title="Vergrössern">＋</button>

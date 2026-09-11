@@ -293,6 +293,12 @@ label.feedback-pick span{flex:1 1 auto;min-width:0;word-break:break-word;text-tr
 .sketch-fs-toolbar select,.sketch-fs-toolbar input[type=color]{width:auto;min-height:38px}
 .sketch-fs-toolbar button{padding:9px 14px;flex:0 0 auto}
 .sketch-zoom-label{font-size:12px;font-weight:800;color:var(--muted);min-width:38px;text-align:center}
+/* Farbe/Breite/Radieren als richtige Knoepfe (v3.74) statt roher Formfelder -
+   #fsSketchColor bleibt als verstecktes echtes Farbfeld bestehen (bester
+   nativer Farbwaehler auf dem Handy), der sichtbare Knopf loest nur dessen
+   .click() aus und zeigt die aktuelle Farbe als kleines Quadrat an. */
+.sketch-color-swatch{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid #0003;vertical-align:-2px;background:#17202a}
+#fsSketchErase.active{background:var(--blue);color:#fff}
 #fsPanFloating{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:50;padding:12px 20px;border-radius:999px;font-size:14px;font-weight:900;background:var(--green);color:#fff;box-shadow:0 4px 16px #0004;white-space:nowrap}
 #fsPanFloating.active{background:var(--blue)}
 #fsSketchDone{font-size:14px;font-weight:900;padding:10px 20px;box-shadow:0 3px 10px #16845c66}
