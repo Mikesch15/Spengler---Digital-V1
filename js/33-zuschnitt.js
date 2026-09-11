@@ -589,7 +589,12 @@ ${esc(zuAbschnittText(b0,p))} ${esc(w.ab)}, ${esc(zuQm(b0.flaeche))} m² Blech,
 function zuPlatzStueckeHtml(stuecke,breite,einheit){
  if(!stuecke||!stuecke.length)return `<div class="zu-platz-leer">leer</div>`;
  return stuecke.map(x=>{
-  const zusatz=[x.merkmal,x.hinweis].filter(Boolean).join(" · ");
+  // v3.80: ein zu langes Stueck wird automatisch geteilt (ebaBlecheGeteilt,
+  // js/29) - "Teil 2/3 von 6'234 mm" zeigt, dass diese Zeile nicht das ganze
+  // Stueck ist, ohne die Nummer selbst zu aendern (Ruestliste/Abhaken
+  // kennen weiterhin nur die EINE Stuecknummer).
+  const teil=x.tafelTeil?`Teil ${x.tafelTeil.teil}/${x.tafelTeil.teile} von ${zuMm(x.tafelTeil.ursprung)} mm`:"";
+  const zusatz=[x.merkmal,x.hinweis,teil].filter(Boolean).join(" · ");
   return `<div class="zu-platz-stueck">
 <span class="zu-nr">${esc(x.nr===undefined||x.nr===null?"?":x.nr)}</span>
 <span class="zu-platz-mass">${esc(zuMasse(x.laenge,x.breite!==undefined?x.breite:breite))}</span>
@@ -610,8 +615,12 @@ function zuBelegungHtml(p){
  if(p.art==="stange"){
   const st=p.stangen||[];
   if(!st.length)return "";
+  // v3.80: die Normlaenge steht im Titel ("Stange 1 · 6'000 mm"), nicht nur
+  // "belegt"/"Rest" - bei der Stange (anders als bei Rolle/Tafel) koennen
+  // MEHRERE verschiedene Laengen im selben Plan gemischt sein (z. B. zwei
+  // 5'000er und eine 6'000er Stange), das war bisher nicht zu sehen.
   return `<h2 style="margin-top:14px">So liegen die ${wort} in den Stangen</h2>
-<div class="zu-belegung">${st.map((s,i)=>zuPlatzHtml("Stange "+(i+1),s.stuecke,p.breite,e,
+<div class="zu-belegung">${st.map((s,i)=>zuPlatzHtml("Stange "+(i+1)+" · "+zuMm(s.laenge)+" mm",s.stuecke,p.breite,e,
    zuZahl(s.laenge)-zuZahl(s.rest),s.rest)).join("")}</div>`;
  }
  const gruppen=p.gruppen||[];

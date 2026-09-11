@@ -368,6 +368,42 @@ function ebaFormate(kontext){
          quelle:"rueckfall",bedarf};
 }
 
+// v3.80: ein Stueck, das laenger ist als die Tafel, wird automatisch in
+// gleich lange Teilstuecke geteilt, die alle auf die Tafel passen - statt
+// das Format als unbrauchbar zu verwerfen. Nur bei der Tafel ueberhaupt
+// moeglich: bei der Rolle ist L bereits das laengste Stueck (laengstes()),
+// "zu lang" kommt dort nie vor. Der Rest (laenge - n*teil) wird auf die
+// ERSTEN Teilstuecke verteilt (je hoechstens 1mm mehr als die uebrigen),
+// damit die Summe exakt der Ursprungslaenge entspricht und kein Teilstueck
+// die Tafellaenge ueberschreitet. Jedes Teilstueck traegt die Nummer des
+// Ursprungsstuecks weiter (tafelTeil) - Ruestliste/Abhaken/Materialbilanz
+// kennen dadurch weiterhin nur die EINE Stuecknummer, wie ueberall sonst
+// auch; ein Teilstueck gilt als Teil derselben Position, nicht als eigene.
+// Kann von Hand ueberstimmt werden: traegt ein Blech ein Feld
+// tafelTeilungManuell (Array eigener Laengen, Summe = Ursprungslaenge), wird
+// NICHT gleichmaessig geteilt, sondern genau diese Laengen verwendet.
+function ebaBlecheGeteilt(bleche,L){
+ if(!(L>0))return bleche||[];
+ const out=[];
+ (bleche||[]).forEach(x=>{
+  const laenge=Number(x.laenge)||0;
+  if(!(laenge>L+1e-6)){out.push(x);return}
+  const manuell=Array.isArray(x.tafelTeilungManuell)
+   ?x.tafelTeilungManuell.map(v=>Number(v)||0).filter(v=>v>0):null;
+  if(manuell&&manuell.length){
+   manuell.forEach((teil,j)=>out.push(Object.assign({},x,{laenge:teil,
+     tafelTeil:{von:x.nr,teil:j+1,teile:manuell.length,ursprung:laenge,manuell:true}})));
+   return;
+  }
+  const n=Math.ceil(laenge/L);
+  const basis=Math.floor(laenge/n), rest=laenge-basis*n;
+  for(let j=0;j<n;j++){
+   out.push(Object.assign({},x,{laenge:basis+(j<rest?1:0),
+     tafelTeil:{von:x.nr,teil:j+1,teile:n,ursprung:laenge}}));
+  }
+ });
+ return out;
+}
 // Der EINE Formatplan fuer alle zehn Rollen-Module - Einzelbreite wie
 // Gruppen. gruppen ist [{breite, bleche:[{nr,laenge,merkmal,hinweis}]}];
 // bei genau einer Gruppe kommen die Felder zusaetzlich flach zurueck, damit
@@ -387,15 +423,16 @@ function ebaFormatPlan(opt){
  const cache={};
  const packe=(gi,L)=>{
   const k=gi+"|"+L;
-  if(!cache[k])cache[k]=ebaPackeInStreifen(gruppen[gi].bleche,L);
+  if(!cache[k])cache[k]=ebaPackeInStreifen(ebaBlecheGeteilt(gruppen[gi].bleche,L),L);
   return cache[k];
  };
  const laengstes=g=>{
   const l=(g.bleche||[]).map(x=>Number(x.laenge)||0).filter(x=>x>0);
   return l.length?Math.max.apply(null,l):0;
  };
- // zuKurz: Formate, die an einem zu langen Stueck scheitern. Nur bei der
- // Tafel moeglich - bei der Rolle ist L das laengste Stueck.
+ // zuKurz: Formate, die an einem zu langen Stueck scheitern wuerden -
+ // seit v3.80 nur noch der defensive Rueckfall fuer L<=0 (Datenfehler), da
+ // ein zu langes Stueck sonst automatisch geteilt wird (ebaBlecheGeteilt).
  const moeglich=[], zuSchmal=[], zuKurz=[];
  formate.forEach(f=>{
   const zeilen=[]; let flaeche=0, schmal=false, lang=null;
@@ -404,11 +441,8 @@ function ebaFormatPlan(opt){
    const jeAbschnitt=ebaStreifenJeAbschnitt(f.breite,g.breite);
    if(jeAbschnitt<1){schmal=true;break}
    const L=f.laenge===null?laengstes(g):f.laenge;
-   // Nur bei der Tafel moeglich: ein Stueck ist laenger als die Tafel. Es
-   // wird nicht stillschweigend gekuerzt - das Format faellt weg.
-   const zu=(g.bleche||[]).filter(x=>(Number(x.laenge)||0)>L+1e-6);
-   if(zu.length){lang={format:f,stuecke:zu.map(x=>({nr:x.nr,laenge:x.laenge})),laenge:L};break}
    const v=packe(gi,L);
+   if(v.streifen===null){lang={format:f,stuecke:(v.zuLang||[]).map(x=>({nr:x.nr,laenge:x.laenge})),laenge:L};break}
    const streifen=v.streifen||[];
    const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
    // Bei jeAbschnitt===1 passt genau EIN Streifen auf die volle Breite - es

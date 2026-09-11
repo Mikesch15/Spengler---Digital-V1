@@ -133,7 +133,8 @@ const profil=async(page,liste)=>{
  p(c1.feldM==="3"&&c1.feldK==="nein"&&c1.feldA==="links","und in den alten Feldern",c1);
 
  console.log("\nD · Profil aufnehmen");
- await reg(page,2);
+ // v3.80: "Skizze → Profil" rueckt auf Platz 2, "Profil aufnehmen" damit auf 3.
+ await reg(page,3);
  const plus=await klick(page,"#fpa_plus");
  await klick(page,"#fpa_plus");
  p(plus==="ok","Schenkel hinzufuegen ist bedienbar",plus);
@@ -246,30 +247,33 @@ const profil=async(page,liste)=>{
  // Aufraeumen: die folgenden Abschnitte erwarten einen leeren Segmentstand.
  await page.evaluate(()=>{fpA.segmente=[];fpSegmente=fpA.segmente;renderFreiesProfilAufnahme()});
  await profil(page,[{laenge:20,winkel:0},{laenge:150,winkel:90},{laenge:40,winkel:-90}]);
- await reg(page,3);
+ // v3.80: "Zeichnung" ist jetzt Register 4 (Skizze auf 2, Profil auf 3 gerueckt).
+ await reg(page,4);
  const z3=await page.evaluate(()=>({svg:/<svg/.test($("fpa_profilGross").innerHTML),
   pfeil:/b42318/.test($("fpa_profilGross").innerHTML),zeilen:document.querySelectorAll("#fpa_kopf tbody tr").length}));
- p(z3.svg&&z3.zeilen===3,"Register 3 zeigt Zeichnung und Uebersicht",z3);
+ p(z3.svg&&z3.zeilen===3,"Register 4 zeigt Zeichnung und Uebersicht",z3);
  p(z3.pfeil,"der Ansichtspfeil ist gezeichnet",z3);
  await waehle(page,"#fpa_ansicht2","keiner");
  const ohnePfeil=await page.evaluate(()=>({a:fpA.ansicht,pfeil:/b42318/.test($("fpa_profilGross").innerHTML)}));
  p(ohnePfeil.a==="keiner"&&!ohnePfeil.pfeil,"Ansichtsrichtung wirkt",ohnePfeil);
 
  console.log("\nF · Skizze → Profil");
+ // v3.80: "Skizze → Profil" ist jetzt Register 2 (vorher 4). Register 1
+ // (Grunddaten) dient hier nur als Gegenprobe "nicht Skizze".
  const boxLage=await page.evaluate(()=>{
-  fpaSetzeSchritt(3);
+  fpaSetzeSchritt(1);
   const a=document.getElementById("fpaSkizzeBox");
-  const inR3=a?!a.hidden:null;
-  fpaSetzeSchritt(4);
+  const inR1=a?!a.hidden:null;
+  fpaSetzeSchritt(2);
   const el=document.getElementById("fpaSkizzeBox");
   // Verschwindet der Block beim Neuzeichnen, ist genau das der Fehlschlag -
   // und kein Abbruch des Pruefstands.
-  if(!el)return {weg:true,inR3,inR4:false,imZiel:false,vorKopf:false};
-  return {inR3,inR4:!el.hidden,
+  if(!el)return {weg:true,inR1,inR2:false,imZiel:false,vorKopf:false};
+  return {inR1,inR2:!el.hidden,
    imZiel:$("freiesProfilAufnahme").contains(el),
    vorKopf:!!$("fpa_kopf")&&!$("fpa_kopf").contains(el)};
  });
- p(boxLage.inR3===false&&boxLage.inR4===true,"der Erkennungs-Block erscheint nur in Register 4",boxLage);
+ p(boxLage.inR1===false&&boxLage.inR2===true,"der Erkennungs-Block erscheint nur in Register 2",boxLage);
  p(boxLage.imZiel&&boxLage.vorKopf,"er haengt im Ziel, aber NICHT im neu geschriebenen Kopf",boxLage);
  // Kein blindes .click(): verschwindet der Block (weil er faelschlich in
  // einen neu geschriebenen Container gehaengt wurde), soll das ein sauberer
@@ -293,7 +297,7 @@ const profil=async(page,liste)=>{
    "die erkannte Form steht danach im Modell",uebernahme);
  p(uebernahme.gleich,"und Modell und fpSchenkel sind wieder dasselbe Array",uebernahme);
  const nachZeichnen=await page.evaluate(()=>{
-  fpaSetzeSchritt(2); fpaSetzeSchritt(4);
+  fpaSetzeSchritt(3); fpaSetzeSchritt(2);
   return fpA.schenkel.length;
  });
  p(nachZeichnen===3,"die Uebernahme ueberlebt das Neuzeichnen",nachZeichnen);

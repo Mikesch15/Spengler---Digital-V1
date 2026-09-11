@@ -87,6 +87,49 @@ function raNormlaengenFuer(a){
  const liste=quelle.map(v=>Math.round(raZahl(v))).filter(v=>v>0);
  return liste.length?Array.from(new Set(liste)).sort((x,y)=>x-y):[];
 }
+// v3.80: welche der hinterlegten Normlaengen fuer DIESE Massaufnahme
+// tatsaechlich gerechnet werden - wie die Rollenauswahl beim Blech (js/33
+// zuRollenGefiltert). Leer = alle hinterlegten Normlaengen; eine getroffene
+// Auswahl, die (z. B. nach einer Aenderung in den Einstellungen) keine
+// hinterlegte Laenge mehr trifft, faellt auf "alle" zurueck statt leer zu
+// rechnen.
+function raNormlaengenGefiltert(a){
+ const alle=raNormlaengenFuer(a);
+ if(!Array.isArray(alle)||!alle.length)return alle;
+ const w=(Array.isArray(a.normlaengenAuswahl)?a.normlaengenAuswahl:[]).map(raZahl).filter(x=>x>0);
+ if(!w.length)return alle;
+ const genommen=alle.filter(x=>w.indexOf(x)>=0);
+ return genommen.length?genommen:alle;
+}
+// Der aufklappbare Auswahlkasten, im selben Aufbau wie die Rollenauswahl
+// beim Blech (js/33 zuRollenAuswahlHtml) - eigener Offen/Zu-Zustand, damit
+// beide Kaesten unabhaengig voneinander bleiben.
+let raNormAuswahlAuf=false;
+function raNormAuswahlHtml(a){
+ const alle=raNormlaengenFuer(a);
+ if(!Array.isArray(alle)||!alle.length)return "";
+ const genommen=raNormlaengenGefiltert(a);
+ const alleGenommen=genommen.length===alle.length;
+ return `<details class="zu-rollen"${raNormAuswahlAuf?" open":""}><summary>Normlängen für diese Massaufnahme:
+<b>${esc(genommen.map(x=>raMm(x)+" mm").join(" · "))}</b>${alleGenommen?" (alle hinterlegten)":""}</summary>
+<div class="small">Ohne Haken werden alle hinterlegten Normlängen gerechnet – abgewählte Längen kommen im
+Verschnittvergleich nicht mehr vor, z. B. wenn gerade keine Stange dieser Länge am Lager ist.</div>
+<div class="zu-rollen-liste">${alle.map(x=>`<label class="zu-rolle">
+<input type="checkbox" data-ra-norm-auswahl="${x}"${genommen.indexOf(x)>=0?" checked":""}>
+<span>${esc(raMm(x))} mm</span></label>`).join("")}</div>
+</details>`;
+}
+// Derselbe generische Klick wie zuRollenKlick (js/33), nur mit eigenem
+// Offen/Zu-Merker statt dem der Rollenauswahl.
+function raNormKlick(target){
+ if(!target||!target.hasAttribute||!target.hasAttribute("data-ra-norm-auswahl"))return null;
+ const wurzel=target.closest(".zu-rollen")||document;
+ const an=Array.from(wurzel.querySelectorAll("[data-ra-norm-auswahl]"))
+   .filter(e=>e.checked).map(e=>Number(e.getAttribute("data-ra-norm-auswahl")))
+   .filter(x=>Number.isFinite(x)&&x>0);
+ raNormAuswahlAuf=true;
+ return an;
+}
 
 // ---- Verschnitt-Optimierung -----------------------------------------------
 // Aus welchen Normlängen lassen sich alle Zuschnitte so schneiden, dass
@@ -216,7 +259,10 @@ function raLeer(){
   halter:{anzahl:null,abstand_mm:"",typ:""},
   rinnenboden:{links:true,rechts:true},
   dehnung:{art:"keine",anzahl:0},
-  dilasManuell:null      // null = gerechnet, sonst die Liste von Hand
+  dilasManuell:null,     // null = gerechnet, sonst die Liste von Hand
+  // v3.80: welche der hinterlegten Normlaengen fuer DIESE Massaufnahme
+  // gerechnet werden - leer = alle (wie die Rollenauswahl beim Blech).
+  normlaengenAuswahl:[]
  };
 }
 // Aus einem gespeicherten Datensatz. Ältere Aufnahmen kennen nur segments,
@@ -253,6 +299,8 @@ function raAusData(d){
   a.dilasManuell=d.dilasManuell.map(x=>({posAbStart:raZahl(x&&x.posAbStart)}));
  else if(Array.isArray(d.dilas)&&!d.dilasManuell&&d.dilasVonHand)
   a.dilasManuell=d.dilas.map(x=>({posAbStart:raZahl(x&&x.posAbStart)}));
+ if(Array.isArray(d.normlaengenAuswahl))
+  a.normlaengenAuswahl=d.normlaengenAuswahl.map(raZahl).filter(x=>x>0);
  return a;
 }
 
@@ -405,7 +453,7 @@ function raStueckliste(a){
 function raZuschnitte(a){
  return raStueckliste(a).map(s=>Math.round(raZahl(s.zuschnitt))).filter(v=>v>0);
 }
-function raNormErgebnis(a){return raNormPlan(raZuschnitte(a),raNormlaengenFuer(a))}
+function raNormErgebnis(a){return raNormPlan(raZuschnitte(a),raNormlaengenGefiltert(a))}
 
 // ---- Plausibilität ---------------------------------------------------------
 function raPruefungen(a){
@@ -891,7 +939,7 @@ function raZuschnittHtml(){
   return `<div class="info ra-warn">Für <b>${esc(raMaterialText(a))} ${esc(raGroesseText(a))}</b> ist keine
 Normlänge hinterlegt. Der Materialbedarf wird deshalb <b>nicht</b> gerechnet – er würde sonst auf einer
 geratenen Stangenlänge beruhen. Einzutragen unter <b>Einstellungen → Massaufnahmen → Dachrinne</b>.</div>`;
- return zuschnittHtml(raZuschnittPlan());
+ return raNormAuswahlHtml(a)+zuschnittHtml(raZuschnittPlan());
 }
 // ---- Register: durch die Massaufnahme führen ------------------------------
 // Sechs Register wie in der Testapp. Immer nur eines ist sichtbar; die Daten
@@ -1100,6 +1148,11 @@ function raVerdrahten(){
    const i=Number(d.raUebF);
    if(a.segmente[i]&&a.segmente[i].stutzen)a.segmente[i].stutzen.fallrohr=t.value;
   }
+  else if(t.dataset&&t.dataset.raNormAuswahl!==undefined){
+   const w=raNormKlick(t);
+   if(w===null)return;
+   a.normlaengenAuswahl=w;
+  }
   else return;
   renderRinneAufnahme();
  });
@@ -1181,6 +1234,10 @@ function rinneAufnahmeZusatzDaten(){
    ? a.dilasManuell.map(x=>({posAbStart:Math.round(raZahl(x.posAbStart))})):null,
   ausmass:raAusmassZeilen(a),
   normlaengen:normen,
+  // v3.80: welche der hinterlegten Normlaengen fuer DIESE Massaufnahme
+  // gerechnet wurden - leer = alle. Ohne dieses Feld wuerde ein
+  // Wiederoeffnen die getroffene Auswahl verlieren.
+  normlaengenAuswahl:Array.isArray(a.normlaengenAuswahl)?a.normlaengenAuswahl.slice():[],
   normplan:plan?{stangen:plan.stangen,gesamt:plan.gesamt,verschnitt:plan.verschnitt,
                  summeStuecke:plan.summeStuecke,optimal:plan.optimal,zuLang:plan.zuLang}:null,
   // v3.79: derselbe Plan wie normplan, nur mit Stücknummern und der Form, die

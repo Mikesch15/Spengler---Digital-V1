@@ -293,14 +293,22 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    "das Tafelformat traegt Laenge UND Breite, die Rollenbreite nur die Breite",e);
 
  // =========================================================== F
- console.log("F · Was nicht passt, wird gemeldet - nicht weggelassen");
+ // v3.80: ein zu langes Stueck wird nicht mehr abgelehnt (zuLang), sondern
+ // automatisch in gleich lange, tafelgerechte Teilstuecke geteilt - Feedback
+ // vom 11.09.2026 ("wenn ein Profil zu lang fuer eine Tafel ist, soll es
+ // automatisch in gleich lange Stuecke geteilt werden").
+ console.log("F · Ein zu langes Stueck wird automatisch geteilt, nicht mehr abgelehnt");
  const f=await page.evaluate(()=>{
   const out={};
   measZuschnittFormSetzen("tafel");
   ebA.stuecke=[{laenge:2500},{laenge:1200},{laenge:800}];   // 2500 > Tafel 2000
   const p1=ebaZuschnittPlan();
   out.zuLang={liste:p1.zuLang,leer:p1.leer,moeglich:(p1.moeglich||[]).length};
-  out.zuLangImHtml=/2.500/.test(zuschnittHtml(p1))&&/zu lang/i.test(zuschnittHtml(p1));
+  const streifen=(p1.gruppen&&p1.gruppen[0]&&p1.gruppen[0].streifen)||[];
+  const geteilt=[]; streifen.forEach(s=>(s.stuecke||[]).forEach(x=>{if(x.tafelTeil&&x.tafelTeil.von===1)geteilt.push(x)}));
+  out.geteilt={anzahl:geteilt.length,laengen:geteilt.map(x=>x.laenge),
+   summe:geteilt.reduce((a,x)=>a+x.laenge,0),alleUnterTafel:geteilt.every(x=>x.laenge<=2000)};
+  out.htmlZeigtTeil=/Teil 1\/2/.test(zuschnittHtml(p1))&&/Teil 2\/2/.test(zuschnittHtml(p1));
   ebA.abwicklung=1200; ebA.stuecke=[{laenge:800}];          // breiter als die Tafel
   const p2=ebaZuschnittPlan();
   out.zuSchmal={liste:p2.zuSchmal,moeglich:(p2.moeglich||[]).length};
@@ -309,12 +317,14 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   measZuschnittFormZuruecksetzen();
   return out;
  });
- p((f.zuLang.liste||[]).length===1&&f.zuLang.liste[0].laenge===2500,
-   "ein Stueck, das nicht in die Tafel passt, steht in zuLang",f.zuLang);
- p(f.zuLang.moeglich===0,"und es entsteht kein Plan, der es verschweigt",f.zuLang);
- p(f.zuLangImHtml,"die Liste nennt es mit seinem Mass",f);
+ p((f.zuLang.liste||[]).length===0,
+   "ein zu langes Stueck steht seit v3.80 NICHT mehr in zuLang",f.zuLang);
+ p(f.zuLang.moeglich>0,"stattdessen entsteht ein brauchbarer Plan (automatisch geteilt)",f.zuLang);
+ p(f.geteilt.anzahl===2&&f.geteilt.summe===2500&&f.geteilt.alleUnterTafel,
+   "das 2500mm-Stueck wird in zwei gleich lange, tafelgerechte Teilstuecke (je 1250mm) geteilt",f.geteilt);
+ p(f.htmlZeigtTeil,"die Teilung steht sichtbar in der Darstellung (Teil 1/2, Teil 2/2)",f);
  p((f.zuSchmal.liste||[]).length===1&&f.zuSchmal.moeglich===0,
-   "eine zu schmale Tafel wird ebenso gemeldet",f.zuSchmal);
+   "eine zu schmale Tafel wird weiterhin gemeldet (Breite laesst sich nicht teilen)",f.zuSchmal);
  p(f.zuSchmalImHtml,"und das steht in der Darstellung",f);
 
  // =========================================================== G

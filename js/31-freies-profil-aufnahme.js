@@ -35,9 +35,13 @@
 // die fachlichen Schritte zuerst, danach Zuschnitt, Ausmass und zuletzt die
 // Kontrolle. Segmente und Ausmass waren bis v2.79 ein Register - sie sind
 // jetzt getrennt, damit das Ausmass ueberall an derselben Stelle steht.
+// v3.80: "Skizze → Profil" rueckt auf Platz 2, vor "Profil" - wer ein Profil
+// per Foto/Skizze erkennen laesst, tut das ZUERST, bevor er von Hand
+// nacharbeitet (Feedback 11.09.2026).
 const FPA_REGISTER=[
- {nr:1,kurz:"Grunddaten",hilfe:"reg-grunddaten"},{nr:2,kurz:"Profil",hilfe:"fp-profil"},{nr:3,kurz:"Zeichnung",hilfe:"fp-zeichnung"},
- {nr:4,kurz:"Skizze → Profil",hilfe:"fp-skizze"},{nr:5,kurz:"Segmente",hilfe:"fp-segmente"},
+ {nr:1,kurz:"Grunddaten",hilfe:"reg-grunddaten"},{nr:2,kurz:"Skizze → Profil",hilfe:"fp-skizze"},
+ {nr:3,kurz:"Profil",hilfe:"fp-profil"},{nr:4,kurz:"Zeichnung",hilfe:"fp-zeichnung"},
+ {nr:5,kurz:"Segmente",hilfe:"fp-segmente"},
  {nr:6,kurz:"Zuschnitt",hilfe:"reg-zuschnitt"},{nr:7,kurz:"Ausmass",hilfe:"reg-ausmass"},{nr:8,kurz:"Kontrolle",hilfe:"reg-kontrolle"}
 ];
 // Die Kontrolle ist immer das LETZTE Register - die Marke haengt deshalb an
@@ -499,15 +503,15 @@ function fpaRegisterHtml(){
 }
 function fpaSchrittInhalt(){
  if(fpaSchritt===1)return fpaKarte("1 · Grunddaten",fpaGrunddatenHtml());
- if(fpaSchritt===2)return fpaKarte("2 · Profil aufnehmen",fpaProfilHtml());
- if(fpaSchritt===3)return fpaKarte("3 · Profilzeichnung",fpaZeichnungHtml());
- if(fpaSchritt===4)return fpaKarte("4 · Skizze → Profil",fpaSkizzeHtml());
+ if(fpaSchritt===2)return fpaKarte("2 · Skizze → Profil",fpaSkizzeHtml());
+ if(fpaSchritt===3)return fpaKarte("3 · Profil aufnehmen",fpaProfilHtml());
+ if(fpaSchritt===4)return fpaKarte("4 · Profilzeichnung",fpaZeichnungHtml());
  if(fpaSchritt===5)return fpaKarte("5 · Segmente",fpaSegmenteHtml());
  if(fpaSchritt===6)return fpaKarte(zuTitel(6,ebaFormLeer(fpA.material).form),fpaZuschnittHtml());
  if(fpaSchritt===7)return fpaKarte("7 · Ausmass und Material",fpaAusmassHtml());
  return fpaKarte("8 · Kontrolle",fpaKontrolleHtml());
 }
-// Der Erkennungs-Block aus dem HTML gehört in Register 4, darf aber NICHT in
+// Der Erkennungs-Block aus dem HTML gehört in Register 2, darf aber NICHT in
 // einen Container, der per innerHTML neu geschrieben wird: js/14 hat seine
 // Klick-Handler beim Laden an die Knöpfe gehängt, und ein Neuschreiben würde
 // sie samt Element vernichten. Deshalb ein festes Gerüst aus drei Teilen.
@@ -520,7 +524,7 @@ function fpaGeruest(){
 }
 function fpaSkizzeBoxZeigen(){
  const box=$("fpaSkizzeBox"); if(!box)return;
- box.hidden=fpaSchritt!==4;
+ box.hidden=fpaSchritt!==2;
 }
 function renderFreiesProfilAufnahme(){
  const ziel=$("freiesProfilAufnahme");
