@@ -208,6 +208,7 @@ function dfaBleilappen(){
 // Trapezform hinten. Ohne Argument wird der laufende Zustand gezeichnet, mit
 // Argument der gespeicherte Datensatz.
 const DFA_SAUM_RUECKLAUF=10;   // fester waagrechter Ruecklauf am Saum, siehe Kopf
+const DFA_HINTERKANTE_RUECKLAUF=10; // Abstand vor der Hinterkante, ab dem die verdeckte Oberkante auf das Dach zurueckfaellt
 function dfaSkizze(quelle){
  const q=quelle||dfaA;
  const seite=q.getrennt?(q.skizzeSeite==="r"?"r":"l"):"l";
@@ -228,13 +229,15 @@ eingeben.</div>`;
  // Kamineinfassung (knickVorne=B-Ue, knickHinten=B).
  const knickVorne=B-Ue, knickHinten=B;
  // Trapezform hinten: die VORDERE SCHRAEGE LAEUFT BIS AUFS DACH (Fuss bei
- // Hoehe 0, nicht auf Hoehe vorne) - die Aufbordung faellt kurz vor der
- // Schraege auf das Dach zurueck und steigt danach durchgehend bis zur
- // Hoehe hinten. M ist der Punkt, an dem die durchgehende Oberkante (auf
- // Hoehe vorne) auf das Dach zurueckfaellt, direkt ueber dem Fuss der
- // Schraege.
- const M=P(L-bu,av);
+ // Hoehe 0, nicht auf Hoehe vorne).
  const Q0=P(L-bu,0), Q1=P(L-bo,ah), Q2=P(L,ah), Q3=P(L,0);
+ // Die durchgehende Oberkante (auf Hoehe vorne) laeuft NICHT nur bis zum Fuss
+ // der Schraege - sie liegt von dort an HINTER der sichtbaren Schraege
+ // (deshalb gestrichelt, verdeckte Kante, gleiches Prinzip wie der Knick) und
+ // laeuft erst 10 mm vor der Hinterkante (Q2/Q3) auf das Dach zurueck.
+ const Qf=P(L-bu,av);                      // Fuss der Schraege, auf Hoehe vorne
+ const M2=P(L-DFA_HINTERKANTE_RUECKLAUF,av); // 10 mm vor der Hinterkante
+ const N=P(L-DFA_HINTERKANTE_RUECKLAUF,0);   // faellt hier auf das Dach zurueck
  const dachVon=-A-Math.max(60,A*0.25), dachBis=L+D+Math.max(60,D*0.25);
 
  let xMin=dachVon,xMax=dachBis,yMin=0,yMax=Math.max(av,ah);
@@ -289,11 +292,15 @@ eingeben.</div>`;
  g+=linie(P0,P1,ANB_FARBE.bau,3);
  g+=linie(P1,P2,ANB_FARBE.bau,3);
  g+=linie(P2,P3,ANB_FARBE.bau,3);
- // Durchgehende Oberkante von der vorderen Aufbordung bis M (der Knick liegt
- // auf diesem Abschnitt), dann zurueck auf das Dach - erst danach beginnt
- // die Schraege der hinteren Aufbordung, von ganz unten.
- g+=linie(P1,M,ANB_FARBE.bau,2);
- g+=linie(M,Q0,ANB_FARBE.bau,2);
+ // Durchgehende Oberkante von der vorderen Aufbordung bis zum Fuss der
+ // Schraege (der Knick liegt auf diesem Abschnitt) - SICHTBAR, weil noch vor
+ // der Schraege. Ab dort liegt sie HINTER der Schraege - GESTRICHELT, bis sie
+ // 10 mm vor der Hinterkante auf das Dach zurueckfaellt.
+ g+=linie(P1,Qf,ANB_FARBE.bau,2);
+ if(M2[0]>Qf[0]){
+  g+=linie(Qf,M2,ANB_FARBE.bau,1.6,"7 5");
+  g+=linie(M2,N,ANB_FARBE.bau,1.6,"7 5");
+ }
  // Trapezform hinten.
  g+=linie(Q0,Q1,ANB_FARBE.bau,3);
  g+=linie(Q1,Q2,ANB_FARBE.bau,3);
