@@ -223,6 +223,7 @@ const MEAS_TYPE_LABELS=Object.freeze({
  anschlussblech:"Ort- und Seitenbleche",
  einfassung_rund:"Einfassung Rund",
  kamineinfassung:"Kamineinfassung",
+ dachfenstereinfassung:"Dachfenstereinfassung",
  kehle:"Kehle",
  rinne:"Rinne"
 });
@@ -243,6 +244,7 @@ const MEAS_TYPE_SETTINGS_SECTION=Object.freeze({
  anschlussblech:"anschlussblech",
  einfassung_rund:"einfassung-rund",
  kamineinfassung:"kamineinfassung",
+ dachfenstereinfassung:"dachfenstereinfassung",
  kehle:"kehle",                    // Stoss/Ueberlappung, seit v2.83
  rinne:"rinne-profil"               // Standardprofil & Ansetztypen
 });

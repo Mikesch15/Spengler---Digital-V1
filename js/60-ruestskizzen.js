@@ -29,6 +29,7 @@
 //   anschlussblech         Schnitt                       -
 //   einfassung_rund        Schnitt                       -
 //   kamineinfassung        Schnitt                       -
+//   dachfenstereinfassung  Schnitt                       -
 //   rinne                  Profilskizze                  -
 //   kehle                  -                             -   (rechnet nur)
 //   skizze_foto            -                             -   (Foto/Skizze)
@@ -104,6 +105,11 @@ const RS_SKIZZEN={
   if(typeof kamaSkizze!=="function")return;
   rsEintrag(liste,"Schnitt",()=>kamaSkizze(Object.assign({},d,{skizzeSeite:"l"})));
   if(d.getrennt)rsEintrag(liste,"Schnitt rechts",()=>kamaSkizze(Object.assign({},d,{skizzeSeite:"r"})));
+ },
+ dachfenstereinfassung(d,liste){
+  if(typeof dfaSkizze!=="function")return;
+  rsEintrag(liste,"Schnitt",()=>dfaSkizze(Object.assign({},d,{skizzeSeite:"l"})));
+  if(d.getrennt)rsEintrag(liste,"Schnitt rechts",()=>dfaSkizze(Object.assign({},d,{skizzeSeite:"r"})));
  },
  rinne(d,liste){
   if(typeof rinneSvg!=="function"||typeof rinneWerte!=="function")return;

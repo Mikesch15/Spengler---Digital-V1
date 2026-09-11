@@ -43,6 +43,7 @@ function showMeasTypeSection(type){
  $("measTypeAnschlussblech").hidden=(type!=="anschlussblech");
  $("measTypeEinfassungRund").hidden=(type!=="einfassung_rund");
  $("measTypeKamin").hidden=(type!=="kamineinfassung");
+ $("measTypeDachfenster").hidden=(type!=="dachfenstereinfassung");
  $("measTypeKehle").hidden=(type!=="kehle");
  $("measTypeRinneProfil").hidden=(type!=="rinne");
  if(type==="einlaufblech_gerade"&&typeof renderEinlaufblechAufnahme==="function")renderEinlaufblechAufnahme();
@@ -58,6 +59,7 @@ function showMeasTypeSection(type){
  if(type==="einfassung_rund"){renderEinfResult();
   if(typeof renderEinfassungAufnahme==="function")renderEinfassungAufnahme();}
  if(type==="kamineinfassung"&&typeof renderKaminAufnahme==="function")renderKaminAufnahme();
+ if(type==="dachfenstereinfassung"&&typeof renderDfaAufnahme==="function")renderDfaAufnahme();
  if(type==="kehle"&&typeof renderKehleAufnahme==="function")renderKehleAufnahme();
  if(type==="rinne"){renderRinneResult();
   if(typeof renderRinneAufnahmeRegister==="function")renderRinneAufnahmeRegister();}
@@ -101,6 +103,7 @@ const MEAS_MEDIEN_LETZTES_REGISTER={
  kehle:               ()=>keaSchritt  >=KEA_REGISTER.length,
  lukarne:             ()=>lukaSchritt >=LUKA_REGISTER.length,
  kamineinfassung:     ()=>kamSchritt  >=KAM_REGISTER.length,
+ dachfenstereinfassung:()=>dfaSchritt >=DFA_REGISTER.length,
  einfassung_rund:     ()=>einfaSchritt>=EINFA_REGISTER.length,
  rinne:               ()=>rpaSchritt  >=RPA_REGISTER.length,
  anschlussblech:      ()=>anbaSchritt >=ANBA_REGISTER.length
@@ -300,6 +303,12 @@ function buildMeasurementFromForm(){
   return {...base,...measMedienAusFormular(),
    data:(typeof kamaDaten==="function")?kamaDaten():{}};
  }
+ if(type==="dachfenstereinfassung"){
+  // Neues Modul (v3.52): alle Werte kommen aus js/66, es gibt kein altes
+  // Formular, auf das zurueckgefallen werden muesste.
+  return {...base,...measMedienAusFormular(),
+   data:(typeof dfaDaten==="function")?dfaDaten():{}};
+ }
  if(type==="kehle"){
   // Nur die drei Eingaben sind Nutzereingabe; die Excel-Resultate werden
   // mitgespeichert, damit ein spaeter gedrucktes PDF unveraendert bleibt
@@ -416,6 +425,12 @@ $("saveMeasurement").onclick=async()=>{
   // ist, blockiert auch das Speichern.
   if(typeof kamaPruefungen==="function"){
    const f=kamaPruefungen().filter(x=>x.art==="fehler");
+   if(f.length){alert(f.map(x=>x.text).join("\n"));return}
+  }
+ }
+ if(type==="dachfenstereinfassung"){
+  if(typeof dfaPruefungen==="function"){
+   const f=dfaPruefungen().filter(x=>x.art==="fehler");
    if(f.length){alert(f.map(x=>x.text).join("\n"));return}
   }
  }
@@ -1508,6 +1523,59 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Kaminlänge längs Dach",(d.kaminLaenge?(d.getrennt?mm(d.kaminLaenge.l)+" / "+mm(d.kaminLaenge.r):mm(d.kaminLaenge.l)):"–")+" mm")}${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}</tr>
 </table>
 ${kamSchnitt?`<div class="eb-section-head">Schnitt</div>${kamSchnitt}`:""}
+${teile.length?`<div class="eb-section-head">Stückliste</div>
+<table class="eb-cutlist">
+<thead><tr><th>Nr.</th><th>Teil</th><th>Zuschnitt L × B (mm)</th><th>Abwicklung aus</th></tr></thead>
+<tbody>${teile.map(t=>`<tr><td>${esc(t.nr)}</td><td>${esc(t.name)}${t.seite?" "+esc(t.seite):""}</td>
+<td>${esc(pdfLxB(t.laenge,t.breite))}</td>
+<td>${esc((t.teile||[]).filter(x=>Number(x.wert)>0).map(x=>x.name+" "+Math.round(Number(x.wert))).join(" + ")||"–")}</td></tr>`).join("")}</tbody>
+</table>`:""}
+${(Array.isArray(bl.zeilen)&&bl.zeilen.length&&bl.gesamt!==null&&bl.gesamt!==undefined)?`<div class="eb-section-head">Bleilappen</div>
+<table class="eb-cutlist">
+<thead><tr><th>Seitenteil</th><th>Länge (mm)</th><th>Bleilappen</th></tr></thead>
+<tbody>${bl.zeilen.map(x=>`<tr><td>${esc(x.name)}</td><td>${mm(x.laenge)}</td><td>${x.anzahl===null?"–":esc(x.anzahl)}</td></tr>`).join("")}
+<tr><td colspan="2">Gesamt</td><td>${esc(bl.gesamt)}</td></tr></tbody>
+</table>
+<div class="note" style="font-size:8pt;color:#68737d">Je Seitenteil aufgerundet aus Länge ÷ Lattenabstand (${mm(bl.lattenabstand||d.lattenabstand)} mm).</div>`:""}
+${zuDruckHtml(d.rollen,0,"Teil")}
+${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
+<table class="eb-cutlist">
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
+<tbody>${d.ausmass.map(z=>`<tr><td>${esc(z.pos)}</td><td>${esc(z.bezeichnung)}</td><td>${esc(z.menge)}</td><td>${esc(z.einheit)}</td></tr>`).join("")}</tbody>
+</table>`:""}
+${m.note?`<div class="eb-section-head">Notiz</div>
+<div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="dachfenstereinfassung"){
+  // Gedruckt wird ausschliesslich, was beim Speichern abgelegt wurde -
+  // gleiches Vorgehen wie bei der Kamineinfassung (js/37) direkt darüber.
+  const d=m.data||{};
+  const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  const mm=v=>esc(Math.round(Number(v)||0));
+  const paar=k=>{
+   const w=d[k]||{};
+   return d.getrennt?(mm(w.l)+" / "+mm(w.r)):mm(w.l);
+  };
+  const seitenTxt=d.getrennt?" (links / rechts)":"";
+  const teile=Array.isArray(d.zuschnitte)?d.zuschnitte:[];
+  const bl=d.bleilappen||{};
+  const deckName=((typeof EINF_DECKUNGEN==="object"&&EINF_DECKUNGEN[d.deckung])||{}).name||"–";
+  const matName=esc((findMeasurementMaterial(d.material)||{}).name||"–");
+  const dfaSkizze=titel=>{
+   const h=rsSvg(m,titel);
+   return h?`<div class="eb-diagram">${h}</div>`:"";
+  };
+  const dfaSchnitt=dfaSkizze("Schnitt")+(d.getrennt?dfaSkizze("Schnitt rechts"):"");
+  bodyHtml=`${kopfHtml}
+<div class="eb-section-head">Angaben</div>
+<table class="eb-info-table">
+<tr>${cell("Deckungsmaterial",esc(deckName))}${cell("Material",matName)}</tr>
+<tr>${cell("Länge Seitenteil"+seitenTxt,paar("laenge")+" mm")}${cell("Saum vorne",mm(d.saumVorne)+" mm")}</tr>
+<tr>${cell("Aufbordungshöhe vorne"+seitenTxt,paar("aufVorne")+" mm")}${cell("Aufbordungshöhe hinten"+seitenTxt,paar("aufHinten")+" mm")}</tr>
+<tr>${cell("Breite oben / unten (Trapez hinten)",mm(d.breiteOben)+" / "+mm(d.breiteUnten)+" mm")}${cell("Überlappung waagr. / senkr.",mm(d.ueberlappungT)+" / "+mm(d.ueberlappungH)+" mm")}</tr>
+<tr>${cell("Breite vorne / hinten",mm(d.breiteVorne)+" / "+mm(d.breiteHinten)+" mm")}${cell("Umschlag vorne / hinten / Seite",mm(d.umschlagVorne)+" / "+mm(d.umschlagHinten)+" / "+mm(d.umschlagSeite)+" mm")}</tr>
+<tr>${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}<td></td></tr>
+</table>
+${dfaSchnitt?`<div class="eb-section-head">Schnitt</div>${dfaSchnitt}`:""}
 ${teile.length?`<div class="eb-section-head">Stückliste</div>
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Teil</th><th>Zuschnitt L × B (mm)</th><th>Abwicklung aus</th></tr></thead>

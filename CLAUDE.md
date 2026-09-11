@@ -110,6 +110,7 @@ Massaufnahme-Arten:
 - Anschlussblech
 - Einfassung rund
 - Kamineinfassung
+- Dachfenstereinfassung
 - Kehle
 - Rinne (Profil)
 

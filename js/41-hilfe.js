@@ -581,8 +581,8 @@ entfernt, steht dort "Unbekannter Benutzer". Gezeigt werden die letzten
 
 // ---- Massaufnahme allgemein --------------------------------------------
 "meas-arten":{titel:"Welche Funktion?",text:`
-<p>Zwölf Fachfunktionen. <b>Skizze/Foto</b> rechnet nichts und dient nur der
-Dokumentation; die übrigen elf führen dich über <b>Register</b> Schritt
+<p>Dreizehn Fachfunktionen. <b>Skizze/Foto</b> rechnet nichts und dient nur der
+Dokumentation; die übrigen zwölf führen dich über <b>Register</b> Schritt
 für Schritt durch die Erfassung.</p>
 <p>Die Art lässt sich später nicht mehr wechseln – eine falsch gewählte
 Massaufnahme wird gelöscht und neu angelegt.</p>`},
@@ -824,6 +824,29 @@ Massaufnahme.</p>`},
 "kam-stueckliste":{titel:"Stückliste",text:`
 <p>Sechs Zuschnitte: Vorderteil, Hinterteil und je zwei Seitenteile vorne und
 hinten.</p>
+<p>Die <b>Bleilappen</b> werden je Seitenteil aus Zuschnittlänge und
+Lattenabstand gerechnet und aufgerundet – ein abgerundeter Wert würde die
+Länge nicht decken.</p>`},
+
+"dfa-masse":{titel:"Fenstermasse",text:`
+<p>Die senkrechte Aufbordung des Dachfensters, längs des Dachs gemessen –
+gleiches Prinzip wie bei der Kamineinfassung. Vorne (talseitig) ist sie
+<b>niedriger</b> und hat oben einen <b>Saum</b> (Rückschlag); hinten
+(bergseitig) ist sie <b>höher</b> und bewusst <b>trapezförmig</b> – Breite
+oben ist kleiner als Breite unten.</p>
+<p>Die <b>Länge</b> ist die Länge des Seitenteils von der vorderen bis zur
+hinteren Aufbordung.</p>`},
+
+"dfa-umschlaege":{titel:"Umschläge",text:`
+<p>Die Zugaben, die in die Abwicklung der vier Teile eingehen. Vorbelegt sind
+die Werte aus den Einstellungen; hier gelten sie nur für diese
+Massaufnahme.</p>
+<p><b>Breite vorne/hinten</b> sind die Zuschnittlängen von Vorderteil und
+Hinterteil – sie laufen quer zum Fenster.</p>`},
+
+"dfa-stueckliste":{titel:"Stückliste",text:`
+<p>Vier Zuschnitte: Vorderteil, Hinterteil und je ein Seitenteil links und
+rechts.</p>
 <p>Die <b>Bleilappen</b> werden je Seitenteil aus Zuschnittlänge und
 Lattenabstand gerechnet und aufgerundet – ein abgerundeter Wert würde die
 Länge nicht decken.</p>`},

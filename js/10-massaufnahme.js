@@ -508,6 +508,7 @@ function newMeasurementWithType(type){
  if(typeof keaZuruecksetzen==="function")keaZuruecksetzen();
  if(typeof lukaZuruecksetzen==="function")lukaZuruecksetzen();
  if(typeof kamaZuruecksetzen==="function")kamaZuruecksetzen();
+ if(typeof dfaZuruecksetzen==="function")dfaZuruecksetzen();
  rinneFormularZuruecksetzen();
  if(typeof rpaZuruecksetzen==="function")rpaZuruecksetzen();
  $("rp_material").value="";
@@ -612,6 +613,7 @@ function measFelderAusData(m){
  kehleFormularFuellen(m.type==="kehle"?d:null);
  if(typeof keaFuellen==="function")keaFuellen(m.type==="kehle"?d:null);
  if(typeof kamaFuellen==="function")kamaFuellen(m.type==="kamineinfassung"?d:null);
+ if(typeof dfaFuellen==="function")dfaFuellen(m.type==="dachfenstereinfassung"?d:null);
  rinneFormularFuellen(m.type==="rinne"?d:null);
  if(typeof rpaFuellen==="function")rpaFuellen(m.type==="rinne"?d:null);
  $("rp_material").value=(m.type==="rinne"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
