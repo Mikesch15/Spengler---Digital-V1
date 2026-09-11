@@ -834,7 +834,9 @@ wie bei der Kamineinfassung. <b>B</b> und <b>C</b> überlappen sich im Knick –
 die Länge des Seitenteils ist deshalb B + C minus der Überlappung.</p>
 <p>Vorne (talseitig) ist die Aufbordung <b>niedriger</b> und hat oben einen
 <b>Saum</b> (Rückschlag); hinten (bergseitig) ist sie <b>höher</b> und bewusst
-<b>trapezförmig</b> – Breite oben ist kleiner als Breite unten.</p>`},
+<b>trapezförmig</b> – Breite oben ist kleiner als Breite unten.</p>
+<p>An der oberen Ecke sitzt ein kleiner gestrichelter <b>Strich</b> – Rand-Abstand
+ist der Abstand ab der Ecke, Rand-Strich seine Länge.</p>`},
 
 "dfa-umschlaege":{titel:"Umschläge",text:`
 <p>Die Zugaben, die in die Abwicklung der vier Teile eingehen. Vorbelegt sind

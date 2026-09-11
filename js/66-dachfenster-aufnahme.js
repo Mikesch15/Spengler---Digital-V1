@@ -94,6 +94,8 @@ const DFA_STANDARD=Object.freeze({
  saum_vorne:50,          // Rueckschlag am oberen Rand der vorderen Aufbordung
  breite_oben:90,         // Kopfbreite der hinteren Aufbordung (Trapez oben)
  breite_unten:125,       // Fussbreite der hinteren Aufbordung (Trapez unten)
+ rand_abstand:15,        // obere Ecke bis zum gestrichelten Strich am Kopf
+ rand_strich:12,         // Laenge dieses Strichs (senkrecht)
  ueberlappung:120,       // Ueberlappung der Seitenteile (Knick) - wie kam
  mass_vorne:183,         // A, vorne auf Deckmaterial bis Vorderkant Aufbordung
  mass_hinten:200,        // D, Hinterkant Aufbordung bis hinten unter Deckmaterial
@@ -131,6 +133,7 @@ function dfaLeer(){
   getrennt:false, skizzeSeite:"l",
   a:s.mass_vorne, d:s.mass_hinten, ueberlappung:s.ueberlappung,
   saumVorne:s.saum_vorne, breiteOben:s.breite_oben, breiteUnten:s.breite_unten,
+  randAbstand:s.rand_abstand, randStrich:s.rand_strich,
   umschlagVorne:s.umschlag_vorne, umschlagHinten:s.umschlag_hinten, umschlagSeite:s.umschlag_seite,
   breiteVorne:"", breiteHinten:"",
   b:{l:"",r:""}, c:{l:"",r:""},
@@ -178,7 +181,8 @@ function dfaZuschnitte(){
   {name:"Saum oben",wert:dfaZahl(a.saumVorne)}]);
  dazu("Hinterteil","hinten","",a.breiteHinten,[
   {name:"Umschlag hinten",wert:dfaZahl(a.umschlagHinten)},
-  {name:"Aufbordungshöhe hinten",wert:dfaAufHintenMax()}]);
+  {name:"Aufbordungshöhe hinten",wert:dfaAufHintenMax()},
+  {name:"Rand-Strich am Kopf",wert:dfaZahl(a.randStrich)}]);
  DFA_SEITEN.forEach(s=>{
   const h=Math.max(dfaSeite("aufVorne",s.k),dfaSeite("aufHinten",s.k));
   dazu("Seitenteil","seite",s.name,dfaLaenge(s.k),[
@@ -215,6 +219,7 @@ function dfaSkizze(quelle){
  const A=dfaZahl(q.a), D=dfaZahl(q.d), Ue=dfaZahl(q.ueberlappung);
  const av=dfaSeite("aufVorne",seite,q), ah=dfaSeite("aufHinten",seite,q);
  const saum=dfaZahl(q.saumVorne), bo=dfaZahl(q.breiteOben), bu=dfaZahl(q.breiteUnten);
+ const randAbstand=dfaZahl(q.randAbstand), randStrich=dfaZahl(q.randStrich);
  const B=dfaSeite("b",seite,q), C=dfaSeite("c",seite,q);
  const L=dfaLaenge(seite,q);
  if(!(av>0&&ah>0)||!(L>0)||!(bu>bo))
@@ -305,6 +310,15 @@ eingeben.</div>`;
  g+=linie(Q0,Q1,ANB_FARBE.bau,3);
  g+=linie(Q1,Q2,ANB_FARBE.bau,3);
  g+=linie(Q2,Q3,ANB_FARBE.bau,3);
+ // Strich am Kopf: von der oberen Ecke (Q2) aus randAbstand nach vorne, dann
+ // randStrich nach unten - gestrichelt, wie vom Anwender direkt am Foto
+ // gezeigt.
+ const strichDa=randAbstand>0&&randStrich>0&&Q2[0]-randAbstand>Q1[0];
+ let Rs=null;
+ if(strichDa){
+  Rs=P(Q2[0]-randAbstand,ah);
+  g+=linie(Rs,P(Rs[0],ah-randStrich),ANB_FARBE.bau,1.6,"7 5");
+ }
  // Knick: Vorderkant voll, Hinterkant gestrichelt (verdeckte Kante) - exakt
  // dasselbe Prinzip wie bei der Kamineinfassung.
  const knickDa=Ue>0&&knickVorne>0&&knickHinten<=L;
@@ -327,6 +341,10 @@ eingeben.</div>`;
   merkMassWaag(knickVorne,knickHinten,av*0.5,"Knick "+zahl(Ue),false);
  }
  if(B>0){g+=anbMassWaag(0,knickHinten,av+34,"B = "+zahl(B),X,Y,false); merkMassWaag(0,knickHinten,av+34,"B = "+zahl(B),false)}
+ if(strichDa){
+  const fahneR=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
+  fahneR(Rs[0],ah-randStrich/2,-46,14,"Rand "+zahl(randAbstand)+" / "+zahl(randStrich));
+ }
  g+=anbMassWaag(Q1[0],Q2[0],ah+34,"Breite oben = "+zahl(bo),X,Y,false);
  merkMassWaag(Q1[0],Q2[0],ah+34,"Breite oben = "+zahl(bo),false);
  if(C>0){g+=anbMassWaag(knickVorne,L,Math.max(av,ah)+72,"C = "+zahl(C),X,Y,false); merkMassWaag(knickVorne,L,Math.max(av,ah)+72,"C = "+zahl(C),false)}
@@ -475,6 +493,7 @@ function dfaPruefungen(){
  });
  [["a","Mass A"],["d","Mass D"],["ueberlappung","Überlappung"],
   ["saumVorne","Saum vorne"],["breiteOben","Breite oben"],["breiteUnten","Breite unten"],
+  ["randAbstand","Rand-Abstand"],["randStrich","Rand-Strich"],
   ["breiteVorne","Breite vorne"],["breiteHinten","Breite hinten"],
   ["umschlagVorne","Umschlag vorne"],["umschlagHinten","Umschlag hinten"],
   ["umschlagSeite","Umschlag seitlich"],["lattenabstand","Lattenabstand"]].forEach(([k,name])=>{
@@ -595,6 +614,8 @@ ${dfaSeitenFeld("Aufbordungshöhe hinten (bergseitig)","dfa_aufHinten",true)}
 ${dfaZahlFeld("Saum/Rückschlag oben, vorne","dfa_saumVorne",a.saumVorne)}
 ${dfaZahlFeld("Breite oben, hintere Aufbordung (Kopf)","dfa_breiteOben",a.breiteOben,"1",true)}
 ${dfaZahlFeld("Breite unten, hintere Aufbordung (Fuss)","dfa_breiteUnten",a.breiteUnten,"1",true)}
+${dfaZahlFeld("Rand-Abstand · obere Ecke bis Strich am Kopf","dfa_randAbstand",a.randAbstand)}
+${dfaZahlFeld("Rand-Strich · Länge des Strichs am Kopf","dfa_randStrich",a.randStrich)}
 </div>
 <div class="small" style="color:var(--muted);margin-top:4px">B und C überlappen sich im
 Knick – die Länge ist deshalb B + C − Überlappung.</div>
@@ -686,6 +707,7 @@ ${seitig("Aufbordungshöhe vorne","aufVorne","mm")}
 ${seitig("Aufbordungshöhe hinten","aufHinten","mm")}
 ${zeile("Saum vorne",dfaMm(a.saumVorne)+" mm")}
 ${zeile("Breite oben / unten (Trapez hinten)",dfaMm(a.breiteOben)+" / "+dfaMm(a.breiteUnten)+" mm")}
+${zeile("Rand-Abstand / Rand-Strich am Kopf",dfaMm(a.randAbstand)+" / "+dfaMm(a.randStrich)+" mm")}
 ${zeile("Breite vorne / hinten",dfaMm(a.breiteVorne)+" / "+dfaMm(a.breiteHinten)+" mm")}
 ${zeile("Umschlag vorne / hinten / Seite",dfaMm(a.umschlagVorne)+" / "+dfaMm(a.umschlagHinten)+" / "+dfaMm(a.umschlagSeite)+" mm")}
 ${zeile("Blechfläche",dfaQm(dfaFlaecheM2())+" m²")}
@@ -791,6 +813,7 @@ function dfaLive(){
 // Zuordnung Eingabefeld -> Zustand. Seitenfelder tragen "_l" bzw. "_r".
 const DFA_FELDER={dfa_a:"a",dfa_d:"d",dfa_ueberlappung:"ueberlappung",
  dfa_saumVorne:"saumVorne",dfa_breiteOben:"breiteOben",dfa_breiteUnten:"breiteUnten",
+ dfa_randAbstand:"randAbstand",dfa_randStrich:"randStrich",
  dfa_breiteVorne:"breiteVorne",dfa_breiteHinten:"breiteHinten",
  dfa_umschlagVorne:"umschlagVorne",dfa_umschlagHinten:"umschlagHinten",
  dfa_umschlagSeite:"umschlagSeite",dfa_lattenabstand:"lattenabstand"};
@@ -882,6 +905,8 @@ function applyDfaSettings(){
  setzen("dfasSaumVorne",s.saum_vorne);
  setzen("dfasBreiteOben",s.breite_oben);
  setzen("dfasBreiteUnten",s.breite_unten);
+ setzen("dfasRandAbstand",s.rand_abstand);
+ setzen("dfasRandStrich",s.rand_strich);
  setzen("dfasUeberlappung",s.ueberlappung);
  setzen("dfasMassVorne",s.mass_vorne);
  setzen("dfasMassHinten",s.mass_hinten);
@@ -902,6 +927,8 @@ function applyDfaSettings(){
    saum_vorne:zahl("dfasSaumVorne")||0,
    breite_oben:zahl("dfasBreiteOben")||0,
    breite_unten:zahl("dfasBreiteUnten")||0,
+   rand_abstand:zahl("dfasRandAbstand")||0,
+   rand_strich:zahl("dfasRandStrich")||0,
    ueberlappung:zahl("dfasUeberlappung")||0,
    mass_vorne:zahl("dfasMassVorne")||0,
    mass_hinten:zahl("dfasMassHinten")||0,
@@ -936,6 +963,7 @@ function dfaDaten(){
   getrennt:!!a.getrennt,
   a:dfaZahl(a.a), d:dfaZahl(a.d), ueberlappung:dfaZahl(a.ueberlappung),
   saumVorne:dfaZahl(a.saumVorne), breiteOben:dfaZahl(a.breiteOben), breiteUnten:dfaZahl(a.breiteUnten),
+  randAbstand:dfaZahl(a.randAbstand), randStrich:dfaZahl(a.randStrich),
   breiteVorne:dfaZahl(a.breiteVorne), breiteHinten:dfaZahl(a.breiteHinten),
   umschlagVorne:dfaZahl(a.umschlagVorne), umschlagHinten:dfaZahl(a.umschlagHinten), umschlagSeite:dfaZahl(a.umschlagSeite),
   b:paar("b"), c:paar("c"), aufVorne:paar("aufVorne"), aufHinten:paar("aufHinten"),
@@ -977,7 +1005,7 @@ function dfaFuellen(d){
  const nimm=(k,ziel)=>{if(w[k]===0||w[k])a[ziel||k]=w[k]};
  a.material=w.material??"";
  if(w.deckung&&(typeof EINF_DECKUNGEN!=="object"||EINF_DECKUNGEN[w.deckung]))a.deckung=w.deckung;
- ["lattenabstand","a","d","ueberlappung","saumVorne","breiteOben","breiteUnten",
+ ["lattenabstand","a","d","ueberlappung","saumVorne","breiteOben","breiteUnten","randAbstand","randStrich",
   "breiteVorne","breiteHinten","umschlagVorne","umschlagHinten","umschlagSeite"].forEach(k=>nimm(k));
  a.getrennt=!!w.getrennt;
  ["b","c","aufVorne","aufHinten"].forEach(k=>{
