@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.45</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.46</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1639,13 +1639,15 @@ einer wirkt nicht auf die anderen.</div>
 </div>
 
 <!-- v3.45: Laengen/Stueckzahlen einer Massaufnahme-Position (data.ausmass)
-     in eine Offerte-Position des Ausmasses uebernehmen. -->
+     in eine Offerte-Position des Ausmasses uebernehmen.
+     v3.46: Vorauswahl passender Zeilen + Addieren statt Ersetzen. -->
 <div id="amMassPickModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
 <h2>📐 Aus Massaufnahme übernehmen</h2>
 <div><label>Massaufnahme</label><select id="amMassPickSelect"></select></div>
 <div id="amMassPickRows" style="margin-top:8px"></div>
+<label style="display:block;margin-top:8px"><input type="checkbox" id="amMassPickAddieren"> Zur vorhandenen Menge addieren (statt zu ersetzen)</label>
 <div class="bar">
 <button type="button" class="green" id="amMassPickApply">Übernehmen</button>
 <button type="button" class="gray" id="amMassPickCancel">Abbrechen</button>

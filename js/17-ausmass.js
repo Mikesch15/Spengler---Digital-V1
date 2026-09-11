@@ -12,7 +12,7 @@ let ausmassCache=[];
 function renderAmPositionsTable(){
  $("amPositionsBody").innerHTML=amPositions.map((p,i)=>`<tr>
 <td><input data-am-pos="${i}" value="${esc(p.pos||"")}"></td>
-<td><input data-am-desc="${i}" value="${esc(p.description||"")}"></td>
+<td><input data-am-desc="${i}" value="${esc(p.description||"")}">${(p.massQuelle&&p.massQuelle.length)?`<div class="small" style="color:var(--muted)">📐 ${esc(p.massQuelle.map(q=>q.name).join(" + "))}</div>`:""}</td>
 <td><input data-am-qty="${i}" type="number" step=".01" value="${p.quantity||0}"></td>
 <td><input data-am-unit="${i}" value="${esc(p.unit||"")}"></td>
 <td><button type="button" class="gray" data-am-pick="${i}" style="padding:6px 8px" title="Aus Massaufnahme übernehmen">📐</button><button type="button" class="red" data-am-del="${i}" style="padding:6px 8px">×</button></td>
@@ -71,7 +71,7 @@ $("amPositionsBody").addEventListener("input",e=>{
  if(e.target.dataset.amPos!==undefined)amPositions[i].pos=e.target.value;
  else if(e.target.dataset.amDesc!==undefined)amPositions[i].description=e.target.value;
  else if(e.target.dataset.amUnit!==undefined)amPositions[i].unit=e.target.value;
- else if(e.target.dataset.amQty!==undefined)amPositions[i].quantity=Number(e.target.value)||0;
+ else if(e.target.dataset.amQty!==undefined){amPositions[i].quantity=Number(e.target.value)||0;delete amPositions[i].massQuelle}
 });
 $("amPositionsBody").addEventListener("click",e=>{
  const del=e.target.closest("[data-am-del]");
@@ -117,6 +117,22 @@ $("amOfferteResults").addEventListener("click",e=>{
 // ---- v3.45: Ausmass-Zeilen einer Massaufnahme (data.ausmass) in eine ----
 // Offerte-Position uebernehmen. Es wird nichts neu gerechnet - dieselbe
 // Quelle, aus der auch pmatSammeln() (js/48) schoepft.
+//
+// v3.46: Zeilen, deren Bezeichnung zur Offerte-Position passt, werden
+// beim Oeffnen vorausgewaehlt (amZeilePasstZuPosition) - reine Vorschlaege,
+// abwaehlbar. "Zur vorhandenen Menge addieren" erlaubt mehrere Aufrufe
+// nacheinander (z. B. aus zwei Massaufnahmen), statt jedesmal zu ersetzen.
+// Jede Uebernahme merkt sich ihre Herkunft in p.massQuelle - reine
+// Zusatzangabe fuer die Anzeige, geht in kein bestehendes Feld.
+function amZeilePasstZuPosition(bez,beschreibung){
+ const a=String(bez||"").toLowerCase().trim();
+ const b=String(beschreibung||"").toLowerCase().trim();
+ if(!a||!b)return false;
+ if(a===b||a.includes(b)||b.includes(a))return true;
+ const wa=a.split(/[^a-zäöüß0-9]+/i).filter(w=>w.length>=4);
+ const wb=b.split(/[^a-zäöüß0-9]+/i).filter(w=>w.length>=4);
+ return wa.some(w=>wb.includes(w));
+}
 let amMassPickIndex=null;
 let amMassPickMeasurementsList=[];
 async function amOpenMassPick(i){
@@ -136,16 +152,24 @@ async function amOpenMassPick(i){
   const art=(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[m.type])||m.type||"Massaufnahme";
   return `<option value="${m.id}">${esc(art)}${m.title?" · "+esc(m.title):""}</option>`;
  }).join("");
+ // v3.46: die erste Massaufnahme vorauswaehlen, die mindestens eine zur
+ // Position passende Zeile hat - reiner Vorschlag, umschaltbar.
+ const beschreibung=amPositions[i]&&amPositions[i].description;
+ const treffer=amMassPickMeasurementsList.find(m=>(m.data.ausmass||[]).some(z=>amZeilePasstZuPosition(z.bezeichnung,beschreibung)));
+ if(treffer)$("amMassPickSelect").value=String(treffer.id);
  renderAmMassPickRows();
+ $("amMassPickAddieren").checked=false;
  $("amMassPickModal").hidden=false;
 }
 function renderAmMassPickRows(){
  const m=amMassPickMeasurementsList.find(x=>x.id===Number($("amMassPickSelect").value));
  const rows=(m&&m.data&&Array.isArray(m.data.ausmass))?m.data.ausmass:[];
+ const beschreibung=amPositions[amMassPickIndex]&&amPositions[amMassPickIndex].description;
  $("amMassPickRows").innerHTML=rows.map((z,i)=>{
   const zahl=typeof pmatZahl==="function"?pmatZahl(z.menge):Number(z.menge);
   const txt=(zahl===null||zahl===undefined||Number.isNaN(zahl))?esc(String(z.menge??"")):(typeof pmatFormat==="function"?pmatFormat(zahl):String(zahl));
-  return `<label style="display:block;padding:4px 0"><input type="checkbox" data-am-mass-row="${i}"> ${esc(z.bezeichnung||"")} – ${txt} ${esc(z.einheit||"")}</label>`;
+  const vorausgewaehlt=amZeilePasstZuPosition(z.bezeichnung,beschreibung);
+  return `<label style="display:block;padding:4px 0"><input type="checkbox" data-am-mass-row="${i}"${vorausgewaehlt?" checked":""}> ${esc(z.bezeichnung||"")} – ${txt} ${esc(z.einheit||"")}</label>`;
  }).join("")||'<div class="small">Keine Ausmass-Zeilen in dieser Massaufnahme.</div>';
 }
 $("amMassPickSelect").addEventListener("change",renderAmMassPickRows);
@@ -154,18 +178,23 @@ $("amMassPickApply").onclick=()=>{
  const rows=(m&&m.data&&Array.isArray(m.data.ausmass))?m.data.ausmass:[];
  const boxen=[...$("amMassPickRows").querySelectorAll("[data-am-mass-row]:checked")];
  if(!boxen.length){alert("Bitte mindestens eine Zeile auswählen.");return}
- let summe=0,einheit="";
+ let summe=0,einheit="",bezeichnungen=[];
  boxen.forEach(b=>{
   const z=rows[Number(b.dataset.amMassRow)];
   if(!z)return;
   const zahl=typeof pmatZahl==="function"?pmatZahl(z.menge):Number(z.menge);
   if(zahl!==null&&zahl!==undefined&&!Number.isNaN(zahl))summe+=zahl;
   if(!einheit&&z.einheit)einheit=z.einheit;
+  if(z.bezeichnung)bezeichnungen.push(z.bezeichnung);
  });
  const p=amPositions[amMassPickIndex];
  if(p){
-  p.quantity=Math.round(summe*1000)/1000;
+  const addieren=$("amMassPickAddieren").checked;
+  p.quantity=Math.round(((addieren?(Number(p.quantity)||0):0)+summe)*1000)/1000;
   if(!p.unit&&einheit)p.unit=einheit;
+  const art=(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[m&&m.type])||(m&&m.type)||"Massaufnahme";
+  if(!addieren||!Array.isArray(p.massQuelle))p.massQuelle=[];
+  p.massQuelle.push({name:art+(m&&m.title?" · "+m.title:""),zeilen:bezeichnungen.join(", ")});
  }
  $("amMassPickModal").hidden=true;
  renderAmPositionsTable();
