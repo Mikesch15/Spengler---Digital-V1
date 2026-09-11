@@ -32,8 +32,12 @@ function einlaufblechDiagramSvg(winkel,massA,restBreite,umschlagOben,umschlagUnt
  const scale=150/Math.max(mA,rB,1);
  const aLen=Math.max(30,mA*scale);
  const rLen=Math.max(30,rB*scale);
- const foldU=Math.max(14,uU*scale);
- const foldO=Math.max(14,uO*scale);
+ // Die Umschlaege sind in der Realitaet oft klein gegenueber Mass A/Restbreite
+ // und wuerden im gemeinsamen Massstab kaum sichtbar. Deshalb ein eigener,
+ // grosszuegigerer Faktor plus hoehere Mindestlaenge - der wirkliche Wert
+ // (uU/uO) bleibt bestimmend, nur besser lesbar.
+ const foldU=Math.max(20,uU*scale*1.6);
+ const foldO=Math.max(20,uO*scale*1.6);
 
  const aEnd=addV([cx,cy],dirVec(180),aLen);
  const hU=hairpin(aEnd,180,foldU);

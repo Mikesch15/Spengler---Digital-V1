@@ -539,13 +539,19 @@ function ebaRollenPlan(){
 // eingegeben, es gibt keine Artikelnummern und keine Preise.
 function ebaAusmassZeilen(){
  const a=ebA, z=[], L=ebaGesamtlaenge();
+ // v3.75: das Ausmass ist die gedeckte Dachlaenge, nicht die Summe der
+ // Zuschnittlaengen - Stosszugabe (Ueberlappung), Gehrungs- und Endzugaben
+ // verlaengern nur den Zuschnitt, nicht die tatsaechlich gedeckte Strecke.
+ // p.stossStoss traegt genau diese Laenge schon (siehe ebaGehrung/ebaEndzugabe:
+ // beide aendern nur p.laenge, nie p.stossStoss).
+ const LAusmass=(a.stuecke||[]).reduce((s,p)=>s+ebaZahl(p.stossStoss),0);
  let pos=0;
  // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird (Halbfabrikat,
  // gekaufter Artikel), oder ein abgeleitetes Mass. Die Reservierung nimmt nur
  // Teile. Ohne vierten Wert gilt "abgeleitet" - eine Zahl ueber die Arbeit ist
  // nichts, was jemand aus dem Lager holt.
  const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
- if(L>0)zeile("Einlaufblech gerade, Abwicklung "+ebaMm(a.abwicklung)+" mm",ebaMeter(L),"m","Summe der Zuschnittlängen");
+ if(LAusmass>0)zeile("Einlaufblech gerade, Abwicklung "+ebaMm(a.abwicklung)+" mm",ebaMeter(LAusmass),"m","Summe Länge Stoss/Stoss, ohne Zugaben");
  if((a.stuecke||[]).length)zeile("Stücke (Zuschnitte)",a.stuecke.length,"Stk.","Stückliste");
  const gehrungen=ebaGehrungAnzahl(a.stuecke);
  if(gehrungen)zeile("Gehrungen",gehrungen,"Stk.","je Ecke, nicht je Haken");
@@ -906,11 +912,18 @@ function ebaGehrung(i,seite,an){
  const war=!!p[key];
  p[key]=!!an;
  if(an&&!war){
-  p.laenge=ebaZahl(p.laenge)+zugabe; p.winkel=90;
+  p.laenge=ebaZahl(p.laenge)+zugabe;
+  // Der Winkel (Richtungsaenderung NACH diesem Stueck, siehe Grundriss) gehoert
+  // geometrisch immer zu dem Stueck VOR der Ecke - bei "rechts" ist das dieses
+  // Stueck selbst, bei "links" das vorherige. Beide zu setzen zeichnete bis
+  // v3.75 eine zweite, erfundene Ecke in den Grundriss (gemeldet: "es sollte
+  // nur eine Gehrung erstellt werden").
+  if(seite==="rechts")p.winkel=90;
   const nachbar=seite==="links"?ebA.stuecke[i-1]:ebA.stuecke[i+1];
   const nkey=seite==="links"?"gehrungRechts":"gehrungLinks";
   if(nachbar&&!nachbar[nkey]){
-   nachbar[nkey]=true; nachbar.laenge=ebaZahl(nachbar.laenge)+zugabe; nachbar.winkel=90;
+   nachbar[nkey]=true; nachbar.laenge=ebaZahl(nachbar.laenge)+zugabe;
+   if(seite==="links")nachbar.winkel=90;
   }
  }else if(!an&&war){
   p.laenge=Math.max(0,ebaZahl(p.laenge)-zugabe);

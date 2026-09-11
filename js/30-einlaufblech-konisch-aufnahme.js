@@ -159,13 +159,18 @@ function ebkaRollenPlan(){
 // eingegeben, es gibt keine Artikelnummern und keine Preise.
 function ebkaAusmassZeilen(){
  const a=ebkA, z=[], L=ebkaGesamtlaenge();
+ // v3.75: dieselbe Umstellung wie beim geraden Einlaufblech (js/29) - das
+ // Ausmass ist die gedeckte Dachlaenge, nicht die Summe der Zuschnittlaengen.
+ // p.stossStoss bleibt von Stosszugabe (Ueberlappung), Gehrungs- und
+ // Endzugabe unberuehrt (siehe ebkaGehrung/ebkaEndzugabe).
+ const LAusmass=(a.stuecke||[]).reduce((s,p)=>s+ebkaZahl(p.stossStoss),0);
  let pos=0;
  // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird (Halbfabrikat,
  // gekaufter Artikel), oder ein abgeleitetes Mass. Die Reservierung nimmt nur
  // Teile. Ohne vierten Wert gilt "abgeleitet" - eine Zahl ueber die Arbeit ist
  // nichts, was jemand aus dem Lager holt.
  const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
- if(L>0)zeile("Einlaufblech konisch, Abwicklung "+ebkaMm(a.abwicklung)+" mm",ebkaMeter(L),"m","Summe der Zuschnittlängen");
+ if(LAusmass>0)zeile("Einlaufblech konisch, Abwicklung "+ebkaMm(a.abwicklung)+" mm",ebkaMeter(LAusmass),"m","Summe Länge Stoss/Stoss, ohne Zugaben");
  if((a.stuecke||[]).length)zeile("Stücke (Zuschnitte)",a.stuecke.length,"Stk.","Stückliste");
  // Eine Gehrung ist eine ECKE, kein Haken - dieselbe Regel wie beim geraden
  // Blech, mit derselben Funktion aus js/29. Keine zweite Zaehlweise.
@@ -568,11 +573,15 @@ function ebkaGehrung(i,seite,an){
  const war=!!p[key];
  p[key]=!!an;
  if(an&&!war){
-  p.laenge=ebkaZahl(p.laenge)+zugabe; p.winkel=90;
+  p.laenge=ebkaZahl(p.laenge)+zugabe;
+  // Derselbe Winkel gehoert immer nur EINEM Stueck - dem vor der Ecke (siehe
+  // js/29 ebaGehrung). Sonst entsteht im Grundriss eine zweite, erfundene Ecke.
+  if(seite==="rechts")p.winkel=90;
   const nachbar=seite==="links"?ebkA.stuecke[i-1]:ebkA.stuecke[i+1];
   const nkey=seite==="links"?"gehrungRechts":"gehrungLinks";
   if(nachbar&&!nachbar[nkey]){
-   nachbar[nkey]=true; nachbar.laenge=ebkaZahl(nachbar.laenge)+zugabe; nachbar.winkel=90;
+   nachbar[nkey]=true; nachbar.laenge=ebkaZahl(nachbar.laenge)+zugabe;
+   if(seite==="links")nachbar.winkel=90;
   }
  }
  else if(!an&&war)p.laenge=Math.max(0,ebkaZahl(p.laenge)-zugabe);

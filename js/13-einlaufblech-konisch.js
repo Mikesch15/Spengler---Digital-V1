@@ -195,6 +195,8 @@ function generateEbkGrundriss(pieces){
  });
  const vbX=Math.round(vx0-6), vbY=Math.round(vy0-6);
  const vbW=Math.round(vx1-vx0+12), vbH=Math.round(vy1-vy0+12);
- const ansichtsPfeil=ansichtsPfeilSvg("links",vbW,vbH,vbX,vbY);
- return `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${joints}${endzugaben}${masse}${labels}${ansichtsPfeil}</svg>`;
+ // Kein Ansichtspfeil hier: der Grundriss ist bereits eine Aufsicht, im
+ // Unterschied zur Schnittzeichnung (js/11) braucht es keine zusaetzliche
+ // "von links betrachtet"-Angabe.
+ return `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" style="width:100%;max-width:340px;display:block;margin:6px auto" xmlns="http://www.w3.org/2000/svg">${lines}${arrows}${joints}${endzugaben}${masse}${labels}</svg>`;
 }
