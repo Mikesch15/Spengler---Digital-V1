@@ -176,6 +176,13 @@ Weitere Regeln:
 - Nach Änderungen Versionsstand und Cache beachten.
 - Keine bestehenden Tabellen, Policies oder Funktionen ohne
   Prüfung ersetzen.
+- Diese Anleitung (`CLAUDE.md`) so knapp wie möglich halten. Sie
+  wird bei jeder Session automatisch in den Kontext geladen und
+  kostet dadurch bei jeder Aufgabe Tokens – neue Versions-Details,
+  Abschlussberichte, Fehlerbehebungs-Protokolle und Verlauf gehören
+  in `PROJECT_STATE.md` bzw. `CHANGELOG_HISTORIE.md`, nicht in
+  diese Datei. Nicht wieder zu einem grossen, langsamen
+  Tokenfresser anwachsen lassen.
 
 Bei jeder Aufgabe zuerst kurz feststellen: Welche Dateien sind
 betroffen? Wie funktioniert die bestehende Lösung? Was muss
@@ -219,3 +226,12 @@ Workflow-Details) steht in **`PROJECT_STATE.md`** und wird dort
 gepflegt, nicht hier. Diese Datei (`CLAUDE.md`) beschreibt nur
 dauerhafte Regeln und Architektur und wird nicht mit jeder Version
 erweitert.
+
+Das ist bewusst so aufgeteilt und keine Formsache: `CLAUDE.md` lädt
+bei jeder Session automatisch in den Kontext und kostet dadurch bei
+jeder einzelnen Aufgabe Tokens, egal wie klein die Aufgabe ist.
+Deshalb bleibt diese Datei dauerhaft schlank; ausführliche
+Fehlerbehebungs-Protokolle, Versions-Changelogs und
+Abschlussberichte gehören nach `CHANGELOG_HISTORIE.md` bzw. in
+eigene `Abschlussbericht_*`-Dateien. `CLAUDE.md` soll nie wieder zu
+einem riesigen Tokenfresser anwachsen.
