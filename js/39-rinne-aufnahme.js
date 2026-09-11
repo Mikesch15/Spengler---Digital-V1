@@ -253,11 +253,17 @@ function rpaPruefungen(){
   m.push({art:"warnung",text:"Das Profil hat kein variables Mass – die Abwicklung ist dann bei "
     +"jedem Stück gleich (nur die Fixmasse)."});
  profil.forEach((seg,i)=>{
+  // v3.66: ein fixes Segment ohne Laenge ist jetzt ein Fehler (Pflichtfeld),
+  // keine blosse Warnung mehr.
   if(seg.art==="fix"&&!(rpaZahl(seg.laenge)>0))
-   m.push({art:"warnung",text:"Segment "+(i+1)+(seg.name?" („"+seg.name+"“)":"")
+   m.push({art:"fehler",text:"Segment "+(i+1)+(seg.name?" („"+seg.name+"“)":"")
      +" ist fix, hat aber keine Länge."});
   if(rpaZahl(seg.laenge)<0)
    m.push({art:"fehler",text:"Segment "+(i+1)+" hat eine negative Länge."});
+  // Der Winkel darf bewusst 0° sein ("gerade weiter") - aber nicht leer.
+  if(seg.winkel===""||seg.winkel===null||seg.winkel===undefined)
+   m.push({art:"fehler",text:"Segment "+(i+1)+(seg.name?" („"+seg.name+"“)":"")
+     +": der Winkel fehlt (0° eingeben, falls gerade weiter)."});
  });
  if(!stuecke.length){
   m.push({art:"fehler",text:"Es ist noch kein Rinnenstück erfasst."});
@@ -276,9 +282,11 @@ function rpaPruefungen(){
    if(l===""||l===null||l===undefined)leer.push(v.buchstabe+" links");
    if(r===""||r===null||r===undefined)leer.push(v.buchstabe+" rechts");
   });
+  // v3.66: ein fehlendes variables Mass ist jetzt ein Fehler, kein blosser
+  // Hinweis mehr - "wird mit 0 gerechnet" ist genau das stille Verhalten,
+  // das kein Mass mehr vergessen werden darf.
   if(leer.length)
-   m.push({art:"warnung",text:"Stück "+(i+1)+": ohne Mass "+leer.join(", ")
-     +" – es wird mit 0 gerechnet."});
+   m.push({art:"fehler",text:"Stück "+(i+1)+": Mass "+leer.join(", ")+" fehlt."});
  });
  const plan=rpaRollenPlan();
  // v3.33: die Meldung nennt, woraus wirklich geschnitten wird.

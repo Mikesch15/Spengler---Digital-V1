@@ -46,9 +46,17 @@ const MADA_PROFIL_VORGABE=Object.freeze({
  saum:10, windexponiert:false
 });
 function madaLeer(){
+ // v3.66: die Profilmasse waren bisher mit MADA_PROFIL_VORGABE (frueher fest
+ // im Formular stehende Werte) vorausgefuellt - eine neue Aufnahme startet
+ // jetzt mit leeren Feldern, damit jedes Mass bewusst gemessen und
+ // eingetragen werden muss. MADA_PROFIL_VORGABE bleibt fuer madaAusData()
+ // (alte, gespeicherte Aufnahmen ohne eigenes Profil) unveraendert.
  // rollenAuswahl: leer = das ganze Blechlager der Firma.
  return {material:"",segmente:[],schieberManuell:false,schieber:[],
-         profil:{...MADA_PROFIL_VORGABE},rollenAuswahl:[]};
+         profil:{breite:"",gefaelle:"",hoeheLinks:"",hoeheRechts:"",
+                 umschlagLinks:"",umschlagRechts:"",biegeLinks:"",biegeRechts:"",
+                 saum:"",windexponiert:false},
+         rollenAuswahl:[]};
 }
 let madA=madaLeer();
 
@@ -118,9 +126,10 @@ function madaZuschnittSumme(){return madaStueckliste().reduce((s,x)=>s+madaZahl(
 
 // ---- Verlauf bearbeiten ----------------------------------------------------
 function madaSegmentAnhaengen(){
- // Wie bisher: das erste Segment ohne Richtungsaenderung, jedes weitere mit
- // 90 Grad als Vorgabe.
- madA.segmente.push({laenge:0,winkel:madA.segmente.length?90:0,
+ // v3.66: Laenge und Winkel starten leer statt mit einer Vorgabe wie
+ // "90 Grad" oder "0 mm" - beides sind echte Masse und muessen bewusst
+ // eingetragen werden.
+ madA.segmente.push({laenge:"",winkel:"",
    bodenLinks:false,bodenRechts:false});
  madaSchieberNeu();
 }
@@ -240,10 +249,21 @@ function madaPruefungen(){
  if(!seg.length)fehlt("Noch kein Segment erfasst – ohne Verlauf gibt es weder Schieber noch Zuschnitt.");
  seg.forEach((s,i)=>{
   const L2=Number(s.laenge);
-  if(!Number.isFinite(L2)||L2<=0)fehlt("Segment "+(i+1)+": keine gültige Länge.");
-  const w=Number(s.winkel);
-  if(!Number.isFinite(w))fehlt("Segment "+(i+1)+": Winkel ist keine Zahl.");
-  else if(Math.abs(w)>180)fehlt("Segment "+(i+1)+": Winkel "+w+"° liegt ausserhalb von ±180°.");
+  if(s.laenge===""||s.laenge===null||s.laenge===undefined)
+   fehlt("Segment "+(i+1)+": die Länge fehlt.");
+  else if(!Number.isFinite(L2)||L2<=0)fehlt("Segment "+(i+1)+": keine gültige Länge.");
+  // Das letzte Segment hat keinen Winkel mehr (Feld ist deaktiviert) - nur
+  // bei allen anderen ist er ein Pflichtmass.
+  const letztes=i===seg.length-1;
+  if(!letztes){
+   if(s.winkel===""||s.winkel===null||s.winkel===undefined)
+    fehlt("Segment "+(i+1)+": der Winkel zum nächsten Segment fehlt.");
+   else{
+    const w=Number(s.winkel);
+    if(!Number.isFinite(w))fehlt("Segment "+(i+1)+": Winkel ist keine Zahl.");
+    else if(Math.abs(w)>180)fehlt("Segment "+(i+1)+": Winkel "+w+"° liegt ausserhalb von ±180°.");
+   }
+  }
  });
  const L=madaGesamtlaenge();
  if(seg.length&&L<=0)fehlt("Die Gesamtlänge ist 0 mm.");
@@ -265,10 +285,21 @@ function madaPruefungen(){
     +" Schieber. Die Rechnung nach SIA 271 käme auf "+auto+".");
  }
 
- const m=madaProfilMasse();
- if(!m.breite)fehlt("Profil: keine Gesamtbreite eingegeben.");
- if(!m.hL)fehlt("Profil: keine Höhe für den linken Schenkel eingegeben.");
- if(!m.hR)warn("Profil: keine Höhe für den rechten Schenkel eingegeben.");
+ const p=madA.profil||{}, m=madaProfilMasse();
+ // v3.66: alle neun Profilmasse sind Pflichtfelder - 0 ist bei manchen
+ // (Gefaelle, Umschlaegen, Saum, Biegewinkel) ein gueltiger Wert, darum die
+ // reine Leer-Pruefung auf dem rohen Profil statt auf den gerechneten
+ // Massen (die ein leeres Feld sonst stillschweigend zu 0 machen wuerden).
+ const fehltLeer=(wert,text)=>{if(wert===""||wert===null||wert===undefined)fehlt(text)};
+ fehltLeer(p.breite,"Profil: die Gesamtbreite fehlt.");
+ fehltLeer(p.gefaelle,"Profil: das Gefälle fehlt.");
+ fehltLeer(p.hoeheLinks,"Profil: die Höhe für den linken Schenkel fehlt.");
+ fehltLeer(p.hoeheRechts,"Profil: die Höhe für den rechten Schenkel fehlt.");
+ fehltLeer(p.umschlagLinks,"Profil: der Umschlag links fehlt.");
+ fehltLeer(p.umschlagRechts,"Profil: der Umschlag rechts fehlt.");
+ fehltLeer(p.biegeLinks,"Profil: der Biegewinkel links fehlt.");
+ fehltLeer(p.biegeRechts,"Profil: der Biegewinkel rechts fehlt.");
+ fehltLeer(p.saum,"Profil: der Saum fehlt.");
  [["breite","Gesamtbreite"],["hL","Höhe links"],["hR","Höhe rechts"],
   ["umL","Umschlag links"],["umR","Umschlag rechts"],["saum","Saum"]].forEach(([k,t])=>{
   if(m[k]<0)fehlt("Profil: "+t+" ist negativ.");
@@ -362,10 +393,10 @@ function madaSegmentKarte(s,i,anzahl){
  </span>
 </div>
 <div class="grid">
-${madaFeld("Länge (mm)",`<input type="number" inputmode="numeric" step="1" data-mada-laenge="${i}" value="${madaZahl(s.laenge)}" data-pflicht="1">`)}
+${madaFeld("Länge (mm)",`<input type="number" inputmode="numeric" step="1" data-mada-laenge="${i}" value="${s.laenge===""||s.laenge===null||s.laenge===undefined?"":madaZahl(s.laenge)}" data-pflicht="1">`)}
 ${madaFeld(letzte?"Winkel – am letzten Segment folgt nichts mehr":"Ecke zum nächsten Segment (°)",
  `<div style="display:flex;gap:6px;align-items:stretch">
-<input type="number" inputmode="numeric" step="1" data-mada-winkel="${i}" value="${madaZahl(s.winkel)}"${letzte?" disabled":""} style="flex:1 1 auto;min-width:0">
+<input type="number" inputmode="numeric" step="1" data-mada-winkel="${i}" value="${s.winkel===""||s.winkel===null||s.winkel===undefined?"":madaZahl(s.winkel)}"${letzte?" disabled":' data-pflicht="1"'} style="flex:1 1 auto;min-width:0">
 <button type="button" class="gray" data-mada-flip="${i}" title="Winkel umkehren"${letzte?" disabled":""} style="flex:0 0 auto;padding:0 12px">🔄</button></div>`)}
 </div>
 ${i===0||letzte?`<div style="display:flex;flex-wrap:wrap;gap:6px 20px">
@@ -435,14 +466,14 @@ ${madA.schieberManuell?`<div class="bar">
 
 const MADA_PROFIL_FELDER=[
  {k:"breite",        t:"Gesamtbreite (mm)",           pflicht:true},
- {k:"gefaelle",      t:"Gefälle nach rechts (°)"},
+ {k:"gefaelle",      t:"Gefälle nach rechts (°)",     pflicht:true},
  {k:"hoeheLinks",    t:"Höhe Schenkel links (mm)",    pflicht:true},
- {k:"hoeheRechts",   t:"Höhe Schenkel rechts (mm)"},
- {k:"umschlagLinks", t:"Umschlag links (mm, 135°)"},
- {k:"umschlagRechts",t:"Umschlag rechts (mm, 90°)"},
- {k:"biegeLinks",    t:"Biegewinkel links (°)"},
- {k:"biegeRechts",   t:"Biegewinkel rechts (°)"},
- {k:"saum",          t:"Saum 180° beidseitig (mm)"}
+ {k:"hoeheRechts",   t:"Höhe Schenkel rechts (mm)",   pflicht:true},
+ {k:"umschlagLinks", t:"Umschlag links (mm, 135°)",   pflicht:true},
+ {k:"umschlagRechts",t:"Umschlag rechts (mm, 90°)",   pflicht:true},
+ {k:"biegeLinks",    t:"Biegewinkel links (°)",       pflicht:true},
+ {k:"biegeRechts",   t:"Biegewinkel rechts (°)",      pflicht:true},
+ {k:"saum",          t:"Saum 180° beidseitig (mm)",   pflicht:true}
 ];
 function madaProfilHtml(){
  const p=madA.profil, m=madaProfilMasse(), vg=madBiegeVorgabe(m.gef);
@@ -645,12 +676,12 @@ function madaVerdrahten(){
   const t=e.target, d=t.dataset||{}, a=madA;
   if(d.madaLaenge!==undefined){
    const s=a.segmente[Number(d.madaLaenge)];
-   if(s){s.laenge=madaZahl(t.value);madaSchieberNeu();madaLive()}
+   if(s){s.laenge=t.value===""?"":madaZahl(t.value);madaSchieberNeu();madaLive()}
    return;
   }
   if(d.madaWinkel!==undefined){
    const s=a.segmente[Number(d.madaWinkel)];
-   if(s){s.winkel=madaZahl(t.value);madaSchieberNeu();madaLive()}
+   if(s){s.winkel=t.value===""?"":madaZahl(t.value);madaSchieberNeu();madaLive()}
    return;
   }
   if(d.madaProfil!==undefined){

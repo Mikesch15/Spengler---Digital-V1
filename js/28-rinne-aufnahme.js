@@ -210,8 +210,10 @@ function raLeer(){
   gesamtlaengeManuell_mm:null,
   // Winkel UND Stutzen sitzen am ENDE ihres Abschnitts – der Übergang IST
   // die Segmentgrenze des bestehenden Moduls.
-  segmente:[{laenge:0,linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null}],
-  halter:{anzahl:null,abstand_mm:500,typ:""},
+  segmente:[{laenge:"",linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null}],
+  // v3.66: der Halterabstand war bisher mit 500 mm vorbelegt - er startet
+  // jetzt leer, damit er bewusst eingetragen werden muss.
+  halter:{anzahl:null,abstand_mm:"",typ:""},
   rinnenboden:{links:true,rechts:true},
   dehnung:{art:"keine",anzahl:0},
   dilasManuell:null      // null = gerechnet, sonst die Liste von Hand
@@ -378,12 +380,17 @@ function raPruefungen(a){
  const meldungen=[];
  const L=raGesamtlaenge(a);
  const segs=a.segmente||[];
- if(!segs.length||L<=0)meldungen.push({art:"fehler",text:"Es ist noch kein Rinnenabschnitt mit einer Länge erfasst."});
+ if(!segs.length)meldungen.push({art:"fehler",text:"Es ist noch kein Rinnenabschnitt mit einer Länge erfasst."});
  segs.forEach((s,i)=>{
-  if(raZahl(s.laenge)<0)meldungen.push({art:"fehler",text:`Abschnitt ${i+1} hat eine negative Länge.`});
+  // v3.66: jeder Abschnitt braucht seine eigene Länge - die Summe allein
+  // kann einen leeren einzelnen Abschnitt verdecken.
+  if(s.laenge===""||s.laenge===null||s.laenge===undefined)
+   meldungen.push({art:"fehler",text:`Abschnitt ${i+1}: die Länge fehlt.`});
+  else if(raZahl(s.laenge)<0)meldungen.push({art:"fehler",text:`Abschnitt ${i+1} hat eine negative Länge.`});
   const w=raZahl(s.winkel);
   if(w<-180||w>180)meldungen.push({art:"fehler",text:`Der Winkel nach Abschnitt ${i+1} liegt ausserhalb von −180° bis 180°.`});
  });
+ if(segs.length&&L<=0)meldungen.push({art:"fehler",text:"Die Gesamtlänge ist 0 mm."});
  if(L>0&&L<300)meldungen.push({art:"warnung",text:`Die Gesamtlänge von ${raMm(L)} mm ist auffällig kurz – bitte prüfen.`});
  if(L>200000)meldungen.push({art:"warnung",text:`Die Gesamtlänge von ${raMeter(L)} m ist auffällig lang – bitte prüfen.`});
  // Manuelle Gesamtlänge gegen die Summe der Abschnitte
@@ -405,11 +412,14 @@ function raPruefungen(a){
   if(raZahl(e.anzahl)<1)meldungen.push({art:"fehler",
    text:`${name} ${i+1} hat keine gültige Anzahl.`});
  });
- if(raZahl(a.halter.abstand_mm)<0)meldungen.push({art:"fehler",text:"Der Halterabstand darf nicht negativ sein."});
+ // v3.66: der Halterabstand hat keinen Vorgabewert mehr - er ist Pflicht.
+ if(a.halter.abstand_mm===""||a.halter.abstand_mm===null||a.halter.abstand_mm===undefined)
+  meldungen.push({art:"fehler",text:"Der Halterabstand fehlt."});
+ else if(raZahl(a.halter.abstand_mm)<=0)meldungen.push({art:"fehler",text:"Der Halterabstand muss grösser als 0 sein."});
  if(a.halter.anzahl!==null&&a.halter.anzahl!==""&&raZahl(a.halter.anzahl)<0)
   meldungen.push({art:"fehler",text:"Die Halteranzahl darf nicht negativ sein."});
- if(a.dehnung.art==="dehnungsstueck"&&raZahl(a.dehnung.anzahl)<0)
-  meldungen.push({art:"fehler",text:"Die Anzahl Dehnungsstücke darf nicht negativ sein."});
+ if(a.dehnung.art==="dehnungsstueck"&&!(raZahl(a.dehnung.anzahl)>0))
+  meldungen.push({art:"fehler",text:"Die Anzahl Dehnungsstücke fehlt."});
  // Von Hand gesetzte Dehnungselemente: sie werden NICHT stillschweigend
  // zurechtgerückt, sondern gemeldet – wer eingreift, soll sehen, was er tut.
  if(Array.isArray(a.dilasManuell)){
@@ -629,7 +639,7 @@ function raVerlaufHtml(){
 <div class="ra-zeile-kopf"><b>Abschnitt ${i+1}</b>
 ${a.segmente.length>1?`<button type="button" class="red ra-weg" data-ra-seg-del="${i}">✕</button>`:""}</div>
 <div class="grid">
-${raFeld("Länge (mm)",`<input data-ra-seg-laenge="${i}" type="number" inputmode="numeric" step="1" value="${seg.laenge||''}" placeholder="0">`)}
+${raFeld("Länge (mm)",`<input data-ra-seg-laenge="${i}" type="number" data-pflicht="1" inputmode="numeric" step="1" value="${seg.laenge||''}">`)}
 </div></div>`);
   if(i>=a.segmente.length-1)return;
   const art=raUebergangArt(seg), st=seg.stutzen||{};
@@ -678,7 +688,7 @@ Im Grundriss: ABL = Einhängestutzen &nbsp;·&nbsp; SS = Schiebestutzen &nbsp;·
 function raKomponentenHtml(){
  const a=rinneA, L=raGesamtlaenge(a), vorschlag=raHalterVorschlag(a);
  return `<div class="grid">
-${raFeld("Halterabstand (mm)",`<input id="ra_halterAbstand" type="number" inputmode="numeric" step="10" value="${a.halter.abstand_mm||""}">`)}
+${raFeld("Halterabstand (mm)",`<input id="ra_halterAbstand" type="number" data-pflicht="1" inputmode="numeric" step="10" value="${a.halter.abstand_mm||""}">`)}
 ${raFeld("Anzahl Halter",`<input id="ra_halterAnzahl" type="number" inputmode="numeric" step="1" value="${a.halter.anzahl??""}" placeholder="${vorschlag??""}">`)}
 ${raFeld("Haltertyp (optional)",`<input id="ra_halterTyp" value="${esc(a.halter.typ||"")}" placeholder="z. B. Aufschraubhalter">`,true)}
 </div>
@@ -698,7 +708,7 @@ ${raFeld("Dehnung",`<select id="ra_dehnungArt">
 <option value="keine"${a.dehnung.art==="keine"?" selected":""}>Keine</option>
 <option value="dehnungsstueck"${a.dehnung.art==="dehnungsstueck"?" selected":""}>Dehnungsstück</option></select>`)}
 ${a.dehnung.art==="dehnungsstueck"?raFeld("Anzahl Dehnungsstücke",
-  `<input id="ra_dehnungAnzahl" type="number" inputmode="numeric" step="1" value="${a.dehnung.anzahl||''}" placeholder="0">`):""}
+  `<input id="ra_dehnungAnzahl" type="number" data-pflicht="1" inputmode="numeric" step="1" value="${a.dehnung.anzahl||''}">`):""}
 </div>
 <div class="ra-dehnung">
 ${dila.dilas.length
@@ -967,7 +977,7 @@ function raLive(){
 // Eine einzige Stelle für alle Ereignisse innerhalb von #measTypeRinne.
 // Tippen (input) ändert nur das Modell und die abgeleiteten Anzeigen,
 // Auswählen (change) und Klicken zeichnen neu.
-function raNeuesSegment(){return {laenge:0,linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null}}
+function raNeuesSegment(){return {laenge:"",linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null}}
 function raAnhaengen(art){
  const a=rinneA, segs=a.segmente;
  const letzte=segs[segs.length-1];
@@ -991,11 +1001,11 @@ function raVerdrahten(){
   const t=e.target, d=t.dataset||{}, a=rinneA;
   let live=false;
   if(t.id==="ra_gesamt")a.gesamtlaengeManuell_mm=t.value===""?null:raZahl(t.value);
-  else if(t.id==="ra_halterAbstand")a.halter.abstand_mm=raZahl(t.value);
+  else if(t.id==="ra_halterAbstand")a.halter.abstand_mm=t.value===""?"":raZahl(t.value);
   else if(t.id==="ra_halterAnzahl")a.halter.anzahl=t.value===""?null:raZahl(t.value);
   else if(t.id==="ra_halterTyp")a.halter.typ=t.value;
   else if(t.id==="ra_dehnungAnzahl")a.dehnung.anzahl=raZahl(t.value);
-  else if(d.raSegLaenge!==undefined){a.segmente[Number(d.raSegLaenge)].laenge=raZahl(t.value);live=true;}
+  else if(d.raSegLaenge!==undefined){a.segmente[Number(d.raSegLaenge)].laenge=t.value===""?"":raZahl(t.value);live=true;}
   else if(d.raUebWinkel!==undefined){
    const i=Number(d.raUebWinkel), alt=raZahl(a.segmente[i].winkel);
    a.segmente[i].winkel=(alt<0?-1:1)*Math.abs(raZahl(t.value));

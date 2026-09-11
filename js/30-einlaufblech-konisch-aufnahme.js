@@ -327,8 +327,8 @@ function ebkaStueckeHtml(){
 <div class="grid">
 ${ebkaFeld("Länge Stoss/Stoss (mm)",`<input data-ebka-stoss="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.stossStoss||0)}">`)}
 ${ebkaFeld("Zuschnittlänge (mm) × "+ebkaMm(a.abwicklung)+" mm breit",`<input data-ebka-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.laenge||0)}">`)}
-${ebkaFeld("Mass links (mm)",`<input data-ebka-ml="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.massLinks||0)}">`)}
-${ebkaFeld("Mass rechts (mm)",`<input data-ebka-mr="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.massRechts||0)}">`)}
+${ebkaFeld("Mass links (mm)",`<input data-ebka-ml="${i}" type="number" data-pflicht="1" inputmode="numeric" step="1" value="${p.massLinks===""||p.massLinks===null||p.massLinks===undefined?"":esc(p.massLinks)}">`)}
+${ebkaFeld("Mass rechts (mm)",`<input data-ebka-mr="${i}" type="number" data-pflicht="1" inputmode="numeric" step="1" value="${p.massRechts===""||p.massRechts===null||p.massRechts===undefined?"":esc(p.massRechts)}">`)}
 ${ebkaFeld("Winkel (°)",`<div style="display:flex;gap:4px;align-items:center"><input data-ebka-winkel="${i}" type="number" inputmode="numeric" step="1" value="${esc(p.winkel||0)}" style="flex:1"><button type="button" class="gray ra-weg" data-ebka-flip="${i}" title="Winkel umkehren">🔄</button></div>`)}
 ${ebkaFeld("Konizität (rechts − links)",`<div class="ra-wert ebka-kon">${kon>0?"+":""}${esc(ebkaMm(kon))} mm</div>`)}
 </div>
@@ -536,9 +536,15 @@ function ebkaLive(){
 function ebkaNeuesStueck(){
  const stoss=ebkaZahl(einlaufblechKonischSettings.stoss_laenge)||2000;
  const prev=(ebkA.stuecke||[])[ebkA.stuecke.length-1];
+ // v3.66: Mass links/rechts haben keinen Vorgabewert mehr - nur die
+ // Verkettung (rechtes Mass des Vorstuecks = linkes Mass hier) bleibt, denn
+ // sie gibt ein bereits gemessenes, echtes Mass weiter statt eines zu raten.
+ const mlVorgabe=prev
+   ?(prev.massRechts===""||prev.massRechts===null||prev.massRechts===undefined?"":ebkaZahl(prev.massRechts))
+   :"";
  return {laenge:stoss+ebkaZahl(einlaufblechKonischSettings.ueberlappung),stossStoss:stoss,
          gehrungLinks:false,gehrungRechts:false,winkel:0,
-         massLinks:prev?ebkaZahl(prev.massRechts):0,massRechts:0};
+         massLinks:mlVorgabe,massRechts:""};
 }
 // Aufteilung unverändert über splitLengthIntoPieces() aus js/13 - dieselbe
 // Funktion, die auch das bestehende Modul benutzt.
@@ -547,7 +553,7 @@ function ebkaStueckeAusGesamtlaenge(L){
  return splitLengthIntoPieces(L).map((len,i,alle)=>({
   laenge:len, stossStoss:i===alle.length-1?len:stoss,
   gehrungLinks:false, gehrungRechts:false, winkel:0,
-  massLinks:0, massRechts:0
+  massLinks:"", massRechts:""
  }));
 }
 // Gehrung: dieselbe Regel wie in js/14 – Zugabe auf die Länge, Winkel 90.
@@ -588,14 +594,14 @@ function ebkaEndzugabe(position){
 // genau wie im bestehenden Modul (js/14, ebkMr-Handler).
 function ebkaMassRechtsSetzen(i,wert){
  const p=(ebkA.stuecke||[])[i]; if(!p)return;
- p.massRechts=ebkaZahl(wert);
+ p.massRechts=wert===""?"":ebkaZahl(wert);
  const n=ebkA.stuecke[i+1];
  if(n){
   n.massLinks=p.massRechts;
   // Das Feld des nächsten Stücks mitziehen, ohne die Liste neu zu zeichnen –
   // sonst verliert das gerade bearbeitete Feld den Fokus.
   const feld=document.querySelector('[data-ebka-ml="'+(i+1)+'"]');
-  if(feld)feld.value=String(n.massLinks);
+  if(feld)feld.value=n.massLinks===""?"":String(n.massLinks);
  }
 }
 // "Fertig" führt zum Rest des Formulars (Fotos, Notiz, Speichern) – es
@@ -631,7 +637,7 @@ function ebkaVerdrahten(){
    if(feld)feld.value=String(p.laenge);
   }
   else if(d.ebkaMl!==undefined){
-   const p=a.stuecke[Number(d.ebkaMl)]; if(p)p.massLinks=ebkaZahl(t.value);
+   const p=a.stuecke[Number(d.ebkaMl)]; if(p)p.massLinks=t.value===""?"":ebkaZahl(t.value);
   }
   else if(d.ebkaMr!==undefined){ebkaMassRechtsSetzen(Number(d.ebkaMr),t.value)}
   else if(d.ebkaWinkel!==undefined){

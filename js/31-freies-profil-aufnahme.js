@@ -256,7 +256,12 @@ function fpaPruefungen(){
   if(!Number.isFinite(l))m.push({art:"fehler",text:"Schenkel "+(i+1)+": die Länge ist keine gültige Zahl."});
   else if(l<0)m.push({art:"fehler",text:"Schenkel "+(i+1)+": negative Länge."});
   else if(l===0)m.push({art:"fehler",text:"Schenkel "+(i+1)+": Länge 0 – bitte das Mass eintragen."});
-  if(!Number.isFinite(w))m.push({art:"fehler",text:"Schenkel "+(i+1)+": der Winkel ist keine gültige Zahl."});
+  // v3.66: 0° ist beim Winkel ein gueltiger Wert ("gerade weiter") - nur beim
+  // ersten Schenkel ist er ohnehin bedeutungslos. Bei allen anderen darf er
+  // aber nicht leer/vergessen sein - das waere sonst ein stiller 0°.
+  if(i>0&&(s.winkel===""||s.winkel===null||s.winkel===undefined))
+   m.push({art:"fehler",text:"Schenkel "+(i+1)+": der Winkel fehlt (0° eingeben, falls gerade weiter)."});
+  else if(!Number.isFinite(w))m.push({art:"fehler",text:"Schenkel "+(i+1)+": der Winkel ist keine gültige Zahl."});
   else if(w<-180||w>180)m.push({art:"fehler",text:"Schenkel "+(i+1)+": Winkel ausserhalb von −180° bis 180°."});
  });
  if(sch.length&&fpaZahl(sch[0].winkel)!==0)
@@ -315,8 +320,8 @@ function fpaProfilHtml(){
 <span class="small">${esc(fpaMm(s.laenge))} mm · ${esc(fpaMm(s.winkel))}°${um?" · Umschlag":""}${i===0?" · Startschenkel":""}</span>
 <button type="button" class="red ra-weg" data-fpa-weg="${i}" title="Schenkel löschen">✕</button></div>
 <div class="grid">
-${fpaFeld("Länge (mm)",`<input data-fpa-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(s.laenge||0)}">`)}
-${fpaFeld("Winkel (°)",`<input data-fpa-winkel="${i}" type="number" inputmode="numeric" step="1" value="${esc(s.winkel||0)}">`)}
+${fpaFeld("Länge (mm)",`<input data-fpa-laenge="${i}" type="number" data-pflicht="1" inputmode="numeric" step="1" value="${s.laenge===""||s.laenge===null||s.laenge===undefined?"":esc(s.laenge)}">`)}
+${fpaFeld("Winkel (°)",`<input data-fpa-winkel="${i}" type="number"${i>0?' data-pflicht="1"':""} inputmode="numeric" step="1" value="${s.winkel===""||s.winkel===null||s.winkel===undefined?"":esc(s.winkel)}">`)}
 </div>
 <div class="bar">
 <button type="button" class="gray" data-fpa-flip="${i}" title="Winkel umkehren">🔄 Richtung umkehren</button>
@@ -564,7 +569,9 @@ function fpaNeuerSchenkel(){
   alert("Höchstens "+grenze+" Schenkel – das ist die Grenze der bestehenden Prüfung.");
   return;
  }
- fpA.schenkel.push({laenge:0,winkel:0});
+ // v3.66: keine Vorgabe mehr - Laenge und Winkel muessen bewusst
+ // eingetragen werden, damit kein Schenkel unbemerkt bei "0" bleibt.
+ fpA.schenkel.push({laenge:"",winkel:""});
  renderFreiesProfilAufnahme();
 }
 function fpaAbschluss(){
@@ -587,7 +594,7 @@ function fpaVerdrahten(){
   if(d.fpaLaenge!==undefined){
    const i=Number(d.fpaLaenge), s=a.schenkel[i]; if(!s)return;
    const alt=fpaZahl(s.laenge), neu=fpaZahl(t.value);
-   s.laenge=neu;
+   s.laenge=t.value===""?"":neu;
    // Dieselbe Regel wie in js/14: das Mass wandert ins Segment mit, solange
    // dort noch nichts oder noch der alte Wert steht.
    const konisch=fpaKonisch(), feld=konisch?"links":"mass";
@@ -599,7 +606,7 @@ function fpaVerdrahten(){
    });
   }
   else if(d.fpaWinkel!==undefined){
-   const s=a.schenkel[Number(d.fpaWinkel)]; if(s)s.winkel=fpaZahl(t.value);
+   const s=a.schenkel[Number(d.fpaWinkel)]; if(s)s.winkel=t.value===""?"":fpaZahl(t.value);
   }
   else if(d.fpaSegLaenge!==undefined){
    const seg=a.segmente[Number(d.fpaSegLaenge)]; if(seg)seg.laenge=fpaZahl(t.value);

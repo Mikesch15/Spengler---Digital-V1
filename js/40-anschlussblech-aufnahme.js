@@ -201,20 +201,40 @@ function anbaPruefungen(){
   m.push({art:"fehler",text:"Das Mass a fehlt – ohne es lässt sich das Blech nicht speichern."});
  // Die Mindestmasse der Norm sind ein Fehler, keine Geschmacksfrage.
  (erg.warnungen||[]).forEach(t=>m.push({art:"fehler",text:t}));
+ // v3.66: alle Masse (auch b, c, d ... je nach Art) und die Anschluss-
+ // masse (Aufkantungen usw.) sind Pflichtfelder ohne Vorgabewert mehr.
+ // anbaEingaben() macht aus einem leeren Feld schon eine 0 - hier wird
+ // deshalb der rohe Feldwert gebraucht.
+ const roh=(typeof anbEingabenRoh==="function")?anbEingabenRoh():{};
+ const fehltLeer=(wert,text)=>{if(wert===""||wert===null||wert===undefined)m.push({art:"fehler",text})};
+ const schema=(typeof ANB_ARTEN==="object"&&ANB_ARTEN[e.art])?ANB_ARTEN[e.art].masse:null;
+ if(schema)Object.keys(schema).forEach(k=>{
+  if(k==="a")return;   // eigene Meldung oben
+  fehltLeer(roh[k],"Mass "+k+" fehlt.");
+ });
+ fehltLeer(roh.stossLaenge,"Die Stücklänge fehlt.");
+ fehltLeer(roh.ueberlappung,"Die Überlappung am Stoss fehlt.");
+ if(e.art!=="steck"&&e.art!=="pv_seite"){
+  if(e.ausfuehrung==="ort"){
+   fehltLeer(roh.ortAufkantung,"Die Aufkantung über Dach fehlt.");
+   fehltLeer(roh.ortOben,"Der Übergriff Ortbrett fehlt.");
+   fehltLeer(roh.ortStirn,"Die Stirnhöhe fehlt.");
+   fehltLeer(roh.ortNase,"Die Wassernase fehlt.");
+  }else fehltLeer(roh.wandAufkantung,"Die Aufkantung an der Wand fehlt.");
+ }
+ if(e.art==="bleilappen")fehltLeer(roh.lattenabstand,"Der Lattenabstand fehlt.");
  const segmente=Array.isArray(e.segmente)?e.segmente.filter(s=>anbaZahl(s.laenge)>0):[];
  if(!segmente.length)
   m.push({art:"fehler",text:"Es ist noch kein Segment mit einer Länge erfasst – ohne Länge gibt es keine Stückliste."});
  (Array.isArray(e.segmente)?e.segmente:[]).forEach((s,i)=>{
-  if(anbaZahl(s.laenge)<0)m.push({art:"fehler",text:"Segment "+(i+1)+" hat eine negative Länge."});
+  if(s.laenge===""||s.laenge===null||s.laenge===undefined)
+   m.push({art:"fehler",text:"Segment "+(i+1)+": die Länge fehlt."});
+  else if(anbaZahl(s.laenge)<0)m.push({art:"fehler",text:"Segment "+(i+1)+" hat eine negative Länge."});
   if(s.knick&&!(anbaZahl(s.knickWinkel)!==0||anbaZahl(s.knickMass)!==0))
    m.push({art:"warnung",text:"Segment "+(i+1)+" ist als Knick markiert, hat aber weder Winkel noch Mass."});
  });
- if(!(anbaZahl(e.stossLaenge)>0))
-  m.push({art:"fehler",text:"Die Stücklänge fehlt."});
- else if(anbaZahl(e.ueberlappung)>=anbaZahl(e.stossLaenge))
+ if(roh.stossLaenge!==""&&roh.ueberlappung!==""&&anbaZahl(e.ueberlappung)>=anbaZahl(e.stossLaenge))
   m.push({art:"fehler",text:"Die Überlappung ist grösser oder gleich der Stücklänge."});
- if(e.art==="bleilappen"&&!(anbaZahl(e.lattenabstand)>0))
-  m.push({art:"warnung",text:"Ohne Lattenabstand kann die Anzahl Bleilappen nicht berechnet werden."});
  const plan=anbaRollenPlan();
  // v3.33: die Meldung nennt, woraus wirklich geschnitten wird.
  const anbaTafel=plan.form==="tafel";

@@ -536,10 +536,10 @@ function renderRinneProfilTabelle() {
 <option value="var"${seg.art === "var" ? " selected" : ""}>variabel</option>
 </select></td>
 <td>${seg.art === "fix"
-      ? `<input type="number" step="1" inputmode="decimal" data-rp-seg="laenge" data-rp-i="${i}" value="${rinneEsc(seg.laenge)}">`
+      ? `<input type="number" step="1" data-pflicht="1" inputmode="decimal" data-rp-seg="laenge" data-rp-i="${i}" value="${seg.laenge === "" || seg.laenge === null || seg.laenge === undefined ? "" : rinneEsc(seg.laenge)}">`
       : `<span class="small rp-var">je Stück</span>`}</td>
 <td class="rp-winkel"><div>
-<input type="number" step="1" inputmode="decimal" data-rp-seg="winkel" data-rp-i="${i}" value="${rinneEsc(seg.winkel)}">
+<input type="number" step="1" data-pflicht="1" inputmode="decimal" data-rp-seg="winkel" data-rp-i="${i}" value="${seg.winkel === "" || seg.winkel === null || seg.winkel === undefined ? "" : rinneEsc(seg.winkel)}">
 <button type="button" class="gray" data-rp-flip="${i}" title="Winkel umkehren">🔄</button>
 <button type="button" class="gray" data-rp-umschlag="${i}" title="Umschlag: Winkel auf 180° setzen">180°</button>
 </div></td>
@@ -551,6 +551,9 @@ function renderRinneProfilTabelle() {
 </tr>`;
   }).join("") || `<tr><td colspan="6" class="small">Noch kein Segment. „＋ Segment hinzufügen" klicken.</td></tr>`;
 
+  // v3.66: die Zeilen entstehen erst hier zur Laufzeit - der rote Stern
+  // muss danach gesetzt werden (gleiches Vorgehen wie in js/20/js/29/js/30).
+  if (typeof markierePflichtfelder === "function") markierePflichtfelder($("rp_profilBody"));
   renderRinneProfilInfo();
 }
 
@@ -588,7 +591,7 @@ function renderRinneStueckTabelle() {
   }
 
   const feld = (seite, i, j, wert) =>
-    `<td class="rp-varzelle"><input type="number" step="1" inputmode="decimal"`
+    `<td class="rp-varzelle"><input type="number" step="1" data-pflicht="1" inputmode="decimal"`
     + ` data-rp-feld="${seite}" data-rp-i="${i}" data-rp-j="${j}"`
     + ` placeholder="${rinneEsc(varListe[j].buchstabe)}" aria-label="${rinneEsc(varListe[j].buchstabe)}"`
     + ` value="${wert === "" || wert === null || wert === undefined ? "" : rinneEsc(wert)}"></td>`;
@@ -599,7 +602,7 @@ function renderRinneStueckTabelle() {
     return `<tr>
 <td>${i + 1}</td>
 ${varListe.map((v, j) => feld("links", i, j, (st.links || [])[j])).join("")}
-<td><input type="number" step="1" inputmode="decimal" data-rp-feld="laenge" data-rp-i="${i}" value="${st.laenge === "" || st.laenge === null || st.laenge === undefined ? "" : rinneEsc(st.laenge)}"></td>
+<td><input type="number" step="1" data-pflicht="1" inputmode="decimal" data-rp-feld="laenge" data-rp-i="${i}" value="${st.laenge === "" || st.laenge === null || st.laenge === undefined ? "" : rinneEsc(st.laenge)}"></td>
 ${varListe.map((v, j) => feld("rechts", i, j, (st.rechts || [])[j])).join("")}
 <td><select data-rp-feld="ansetzL" data-rp-i="${i}">${rinneAnsetzOptions(st.ansetzL)}</select></td>
 <td><select data-rp-feld="ansetzR" data-rp-i="${i}">${rinneAnsetzOptions(st.ansetzR)}</select></td>
@@ -609,6 +612,9 @@ ${varListe.map((v, j) => feld("rechts", i, j, (st.rechts || [])[j])).join("")}
 <td><button type="button" class="gray" data-rp-del="${i}" title="Stück löschen">×</button></td>
 </tr>`;
   }).join("") || `<tr><td colspan="${spaltenZahl}" class="small">Noch kein Rinnenstück erfasst.</td></tr>`;
+
+  // v3.66: dieselbe Nachbehandlung wie bei der Profiltabelle.
+  if (typeof markierePflichtfelder === "function") markierePflichtfelder($("rp_stueckeBody"));
 
   if ($("rp_summary")) {
     const anzahl = rinneStuecke.length;
@@ -757,7 +763,11 @@ function applyRinneProfilSettings() {
   }
 
   if ($("rp_addSegment")) $("rp_addSegment").onclick = () => {
-    rinneProfil.push(rinneSegment({ name: "", art: "fix", laenge: 0, winkel: 0 }));
+    // v3.66: ein neues Segment startet mit leerer Laenge/leerem Winkel statt
+    // mit "0" - kein Mass soll wie bereits eingetragen aussehen, bevor es
+    // gemessen wurde. rinneSegment() wuerde "" sofort zu 0 normalisieren,
+    // deshalb hier bewusst ohne diese Funktion.
+    rinneProfil.push({ name: "", art: "fix", laenge: "", winkel: "" });
     rinneStueckeAnpassen();
     renderRinneResult();
     dirty();

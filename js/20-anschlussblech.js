@@ -121,10 +121,13 @@ function anbStandardwerte(art, deckung, vorhanden) {
   const e = { art: art, deckung: deckung };
   const masse = (ANB_ARTEN[art] || ANB_ARTEN.rinne).masse;
   Object.keys(masse).forEach(k => {
-    const min = anbMindestmass(art, k, deckung);
+    // v3.66: kein Vorgabewert mehr (weder Mindestmass noch Standardwert) -
+    // ein Mass, das noch nie eingetragen wurde, bleibt leer, damit es
+    // bewusst gemessen werden muss. Der Mindestwert steht weiterhin als
+    // Hinweistext unter dem Feld.
     e[k] = (vorhanden && vorhanden[k] !== undefined && vorhanden[k] !== "")
       ? Number(vorhanden[k])
-      : (min !== null ? min : masse[k].std);
+      : "";
   });
   return e;
 }
@@ -666,18 +669,22 @@ function anbVorgabe() {
   const s = anschlussblechSettings || ANSCHLUSSBLECH_STANDARD;
   const deckung = ANB_DECKUNGEN[s.deckung] ? s.deckung : "pfanne";
   const art = anbArtenFuer(deckung)[0];
+  // v3.66: die Firmen-Einstellungen sind nur noch ein Richtwert (weiterhin
+  // in Einstellungen zu sehen) und fuellen eine neue Aufnahme nicht mehr
+  // automatisch aus - saum/aufkantungen/stossmasse/lattenabstand starten
+  // leer und muessen bewusst eingetragen werden.
   const w = {
     ausfuehrung: "seite", deckung: deckung, art: art,
     deckHoehe: ANB_DECKUNGEN[deckung].hoehe,
-    a: 50, b: 50, c: 10, d: 30,
-    saum: s.saum,
-    wandAufkantung: s.wand_aufkantung,
-    ortAufkantung: s.ort_aufkantung, ortOben: s.ort_oben,
-    ortStirn: s.ort_stirn, ortNase: s.ort_nase,
-    laenge: 0, stossLaenge: s.stoss_laenge, ueberlappung: s.ueberlappung,
+    a: "", b: "", c: "", d: "",
+    saum: "",
+    wandAufkantung: "",
+    ortAufkantung: "", ortOben: "",
+    ortStirn: "", ortNase: "",
+    laenge: 0, stossLaenge: "", ueberlappung: "",
     restSchwelle: s.rest_schwelle, gehrungszugabe: s.gehrungszugabe,
     firstgehrung: false,
-    lattenabstand: s.lattenabstand
+    lattenabstand: ""
   };
   return Object.assign(w, anbStandardwerte(art, deckung, {}));
 }
@@ -696,25 +703,30 @@ function renderAnbSegmenteTable() {
   if (!$("anb_segmenteBody")) return;
   $("anb_segmenteBody").innerHTML = anbSegmente.map((s, i) => `<tr>
 <td>${i + 1}</td>
-<td><input data-anbseg-laenge="${i}" type="number" step="1" inputmode="numeric" value="${s.laenge || 0}"></td>
+<td><input data-anbseg-laenge="${i}" type="number" data-pflicht="1" inputmode="numeric" step="1" value="${s.laenge === "" || s.laenge === null || s.laenge === undefined ? "" : s.laenge}"></td>
 <td style="text-align:center"><input data-anbseg-knick="${i}" type="checkbox" ${s.knick ? "checked" : ""}></td>
 <td><input data-anbseg-winkel="${i}" type="number" step="1" inputmode="numeric" value="${s.knickWinkel || 0}"${s.knick ? "" : " hidden"}></td>
 <td><input data-anbseg-mass="${i}" type="number" step="1" inputmode="numeric" value="${s.knickMass || 0}"${s.knick ? "" : " hidden"}></td>
 <td><button type="button" class="red" data-anbseg-del="${i}" style="padding:6px 8px">×</button></td>
 </tr>`).join("") || '<tr><td colspan="6" class="small">Noch keine Segmente. "＋ Segment hinzufügen".</td></tr>';
+  // v3.66: die Zeilen entstehen erst hier zur Laufzeit - der rote Stern
+  // muss danach gesetzt werden.
+  if (typeof markierePflichtfelder === "function") markierePflichtfelder($("anb_segmenteBody"));
   const sumEl = $("anb_segmenteSummary");
   if (sumEl) sumEl.textContent = anbSegmente.length ? `${anbSegmente.length} Segment(e) · Gesamtlänge ${anbGesamtlaenge()} mm` : "";
   renderAnbResult();
 }
 if ($("anb_addSegment")) $("anb_addSegment").onclick = () => {
-  anbSegmente.push({ laenge: 0, knick: false, knickWinkel: 0, knickMass: 0 });
+  // v3.66: die Laenge startet leer statt mit "0" - Winkel/Mass ab
+  // Vorderkante bleiben wie bisher reine Dokumentation ohne Pflicht.
+  anbSegmente.push({ laenge: "", knick: false, knickWinkel: 0, knickMass: 0 });
   renderAnbSegmenteTable();
 };
 if ($("anb_segmenteBody")) {
   $("anb_segmenteBody").addEventListener("input", e => {
     const i = Number(e.target.dataset.anbsegLaenge ?? e.target.dataset.anbsegWinkel ?? e.target.dataset.anbsegMass);
     if (Number.isNaN(i) || !anbSegmente[i]) return;
-    if (e.target.dataset.anbsegLaenge !== undefined) anbSegmente[i].laenge = Number(e.target.value) || 0;
+    if (e.target.dataset.anbsegLaenge !== undefined) anbSegmente[i].laenge = e.target.value === "" ? "" : (Number(e.target.value) || 0);
     else if (e.target.dataset.anbsegWinkel !== undefined) anbSegmente[i].knickWinkel = Number(e.target.value) || 0;
     else if (e.target.dataset.anbsegMass !== undefined) anbSegmente[i].knickMass = Number(e.target.value) || 0;
     const sumEl = $("anb_segmenteSummary");
@@ -769,6 +781,21 @@ function anbEingabenAusFeldern() {
     .forEach(el => { e[el.dataset.anb] = Number(el.value) || 0; });
   return Object.assign(vorgabe, e);
 }
+// v3.66: dieselben Felder als reine Feldwerte (String, ohne Zahl-Rundung) -
+// fuer die Pflichtfeld-Pruefung in js/40, die zwischen "leer" und "bewusst
+// 0" unterscheiden muss. anbEingabenAusFeldern() macht daraus wie gewohnt
+// immer eine Zahl.
+function anbEingabenRoh() {
+  if (!$("anb_deckung")) return {};
+  const wert = id => $(id) ? $(id).value : "";
+  const roh = {
+    saum: wert("anb_saum"), stossLaenge: wert("anb_stossLaenge"),
+    ueberlappung: wert("anb_ueberlappung"), lattenabstand: wert("anb_lattenabstand")
+  };
+  document.querySelectorAll("#anb_masse [data-anb],#anb_abschluss [data-anb]")
+    .forEach(el => { roh[el.dataset.anb] = el.value; });
+  return roh;
+}
 
 // Die festen Felder aus einem Wertesatz füllen.
 function anbFesteFelderFuellen(w) {
@@ -783,10 +810,11 @@ function anbFesteFelderFuellen(w) {
     .map(k => `<option value="${k}"${k === w.art ? " selected" : ""}>${anbEsc(ANB_ARTEN[k].name)}</option>`).join("");
   $("anb_ausfuehrung").value = w.ausfuehrung === "ort" ? "ort" : "seite";
   $("anb_ausfuehrung").disabled = w.art === "steck" || w.art === "pv_seite";
-  $("anb_saum").value = Math.round(w.saum);
-  $("anb_stossLaenge").value = Math.round(w.stossLaenge);
-  $("anb_ueberlappung").value = Math.round(w.ueberlappung);
-  $("anb_lattenabstand").value = Math.round(w.lattenabstand || 0);
+  const leerWert = v => (v === "" || v === null || v === undefined) ? "" : Math.round(Number(v) || 0);
+  $("anb_saum").value = leerWert(w.saum);
+  $("anb_stossLaenge").value = leerWert(w.stossLaenge);
+  $("anb_ueberlappung").value = leerWert(w.ueberlappung);
+  $("anb_lattenabstand").value = leerWert(w.lattenabstand);
   $("anb_lattenabstandField").hidden = w.art !== "bleilappen";
   if ($("anb_firstgehrung")) $("anb_firstgehrung").checked = !!w.firstgehrung;
 }
@@ -799,8 +827,9 @@ function anbMassfelderZeichnen(w) {
   Object.keys(art.masse).forEach(k => {
     const min = anbMindestmass(w.art, k, w.deckung);
     const zusatz = (k === "a" && art.hinweisA) ? ", " + art.hinweisA : "";
+    const wert = (w[k] === "" || w[k] === null || w[k] === undefined) ? "" : Math.round(Number(w[k]) || 0);
     h += `<div><label>${k} · ${anbEsc(art.masse[k].text || "")}${zusatz} (mm)</label>
-<input type="number" step="1" inputmode="numeric" data-anb="${k}"${k === "a" ? ' data-pflicht="1"' : ""} value="${Math.round(Number(w[k]) || 0)}">
+<input type="number" step="1" data-pflicht="1" inputmode="numeric" data-anb="${k}" value="${wert}">
 <div class="small">${min !== null ? "mindestens " + min + " mm" : "Mass am Bau nehmen"}</div></div>`;
   });
   $("anb_masse").innerHTML = h;
@@ -810,7 +839,7 @@ function anbMassfelderZeichnen(w) {
 
   const ort = w.ausfuehrung === "ort" && w.art !== "steck" && w.art !== "pv_seite";
   const feld = (id, label, wert) => `<div><label>${label} (mm)</label>
-<input type="number" step="1" inputmode="numeric" data-anb="${id}" value="${Math.round(Number(wert) || 0)}"></div>`;
+<input type="number" step="1" data-pflicht="1" inputmode="numeric" data-anb="${id}" value="${(wert === "" || wert === null || wert === undefined) ? "" : Math.round(Number(wert) || 0)}"></div>`;
   let f;
   if (w.art === "steck") {
     f = `<div class="wide small">Das Steckblech wird beidseitig gesäumt eingeschoben – es hat weder Wand- noch Ortabkantung.</div>`;

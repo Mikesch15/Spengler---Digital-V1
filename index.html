@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.65</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.66</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1161,7 +1161,7 @@ mindestens eines von beiden ist nötig.</div>
 <div class="grid" id="anb_masse"></div>
 <div class="grid" id="anb_abschluss" style="margin-top:8px"></div>
 <div class="grid" style="margin-top:8px">
-<div><label>Umschlag am Blechende (mm)</label><input id="anb_saum" type="number" step="1" inputmode="numeric"></div>
+<div><label>Umschlag am Blechende (mm)</label><input id="anb_saum" type="number" data-pflicht="1" step="1" inputmode="numeric"></div>
 </div>
 <div id="anb_zeichnung" class="eb-diagram-box" style="margin-top:12px"></div>
 <div id="anb_warnung" class="small"></div>
@@ -1186,9 +1186,9 @@ mindestens eines von beiden ist nötig.</div>
 <div id="anba_seite4" class="anba-seite" hidden>
 <div class="card"><h2>4 &middot; St&uuml;ckliste <button type="button" class="hilfe-knopf no-print" data-hilfe="anb-stueckliste">i</button></h2>
 <div class="grid">
-<div><label>St&uuml;ckl&auml;nge (mm)</label><input id="anb_stossLaenge" type="number" step="1" inputmode="numeric"></div>
-<div><label>&Uuml;berlappung am Stoss (mm)</label><input id="anb_ueberlappung" type="number" step="1" inputmode="numeric"></div>
-<div id="anb_lattenabstandField"><label>Lattenabstand (mm)</label><input id="anb_lattenabstand" type="number" step="1" inputmode="numeric"></div>
+<div><label>St&uuml;ckl&auml;nge (mm)</label><input id="anb_stossLaenge" type="number" data-pflicht="1" step="1" inputmode="numeric"></div>
+<div><label>&Uuml;berlappung am Stoss (mm)</label><input id="anb_ueberlappung" type="number" data-pflicht="1" step="1" inputmode="numeric"></div>
+<div id="anb_lattenabstandField"><label>Lattenabstand (mm)</label><input id="anb_lattenabstand" type="number" data-pflicht="1" step="1" inputmode="numeric"></div>
 </div>
 <label class="rechte-schalter"><input type="checkbox" id="anb_firstgehrung"> Endst&uuml;ck mit Firstgehrung (Zuschlag aus den Einstellungen)</label>
 <h2 style="margin-top:14px">Ergebnis</h2>
