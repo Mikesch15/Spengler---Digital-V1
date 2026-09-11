@@ -847,15 +847,21 @@ dazu; sie gehen in die Abwicklung der Seitenteile ein, haben aber keinen
 Vorgabewert.</p>`},
 
 "dfa-umschlaege":{titel:"Umschläge",text:`
-<p>Die Zugaben, die in die Abwicklung der sechs Teile eingehen. Vorbelegt sind
+<p>Die Zugaben, die in die Abwicklung der acht Teile eingehen. Vorbelegt sind
 die Werte aus den Einstellungen; hier gelten sie nur für diese
 Massaufnahme.</p>
-<p><b>Breite vorne/hinten</b> sind die Zuschnittlängen von Vorderteil und
-Hinterteil – sie laufen quer zum Fenster, unabhängig von A, B, C und D.</p>`},
+<p><b>Breite vorne/hinten</b> sind vom Anwender erfasste Fenstermasse – die
+tatsächliche Zuschnittlänge von Vorderteil und Hinterteil kommt zusätzlich
+dazu, sie reicht seitlich bis zu den Seitenteilen (2× Umschlag Seite + F
+links/rechts + G links/rechts dazu).</p>`},
 
 "dfa-stueckliste":{titel:"Stückliste",text:`
-<p>Sechs Zuschnitte: Vorderteil, Hinterteil und je zwei Seitenteile (vorne und
-hinten) links und rechts – genau wie bei der Kamineinfassung.</p>
+<p>Acht Zuschnitte: Vorderteil, Hinterteil und je DREI Seitenteile (vorne,
+Mitte, hinten) links und rechts.</p>
+<p><b>Seitenteil Mitte</b> und <b>Seitenteil hinten</b> teilen sich das, was
+bisher ein einziges Stück war: hinten sind die letzten 10 mm bis zur
+Hinterkant Aufbordung (die zweite gestrichelte Linie in der Skizze), Mitte
+der Rest davor.</p>
 <p>Die <b>Bleilappen</b> werden je Seitenteil aus Zuschnittlänge und
 Lattenabstand gerechnet und aufgerundet – ein abgerundeter Wert würde die
 Länge nicht decken.</p>`},

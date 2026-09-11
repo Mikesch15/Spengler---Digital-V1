@@ -78,18 +78,24 @@
 // (voll = Vorderkant, gestrichelt = Hinterkant) genau wie beim Knick der
 // Kamineinfassung.
 //
-// Sechs Zuschnitte, genau wie bei der Kamineinfassung: Vorderteil und
-// Hinterteil (quer zum Fenster, Breite = vom Anwender erfasste
-// Zuschnittlaenge, Abwicklung aus Umschlag + Aufbordung + Saum), dazu JE
-// SEITE ZWEI Seitenteile - "Seitenteil vorne" (Laenge B, bis zum Knick) und
-// "Seitenteil hinten" (Laenge C, ab dem Knick) - NICHT ein durchgehendes
-// Stueck ueber B+C-Knick. Die Abwicklung jedes Seitenteils besteht aus
-// Umschlag + F (seitlich bis Deckmaterial) + G (seitlich unter Deckmaterial)
-// + der GROESSEREN der beiden Aufbordungshoehen dieser Seite - dieselbe
-// Vereinfachung wie bei der Kamineinfassung, die durchgehend mit der
-// groesseren Hoehe rechnet statt eine ueber die Laenge veraenderliche
+// Acht Zuschnitte (v3.64, nach Rueckmeldung des Anwenders - mehr als bei der
+// Kamineinfassung, die nur sechs hat): Vorderteil und Hinterteil (quer zum
+// Fenster), dazu JE SEITE DREI Seitenteile statt zwei - "Seitenteil vorne"
+// (Laenge B, bis zum Knick), "Seitenteil Mitte" (Vorderkant Knick bis 10mm
+// vor der Hinterkant Aufbordung - der "zweiten gestrichelten Linie") und
+// "Seitenteil hinten" (die letzten 10mm bis zur Hinterkant Aufbordung
+// selbst, dem schraegen Trapezstrich). Die Abwicklung jedes Seitenteils
+// besteht aus Umschlag + F (seitlich bis Deckmaterial) + G (seitlich unter
+// Deckmaterial) + der GROESSEREN der beiden Aufbordungshoehen dieser Seite -
+// dieselbe Vereinfachung wie bei der Kamineinfassung, die durchgehend mit
+// der groesseren Hoehe rechnet statt eine ueber die Laenge veraenderliche
 // Blechbreite anzunehmen. F und G sind, wie bei der Kamineinfassung, reine
-// Aufnahme-Masse ohne Vorgabewert (v3.63).
+// Aufnahme-Masse ohne Vorgabewert (v3.63). Vorderteil/Hinterteil bekommen
+// seit v3.64 ihre Zuschnittlaenge nicht mehr nur aus Breite vorne/hinten,
+// sondern zusaetzlich der seitlichen Zugabe (2x Umschlag Seite + F links +
+// F rechts + G links + G rechts) - sie reichen seitlich bis zu den
+// Seitenteilen. Hinterteil bekommt in der Abwicklung zusaetzlich
+// Rand-Abstand und D dazu.
 // ===========================================================================
 
 const DFA_REGISTER=[
@@ -186,15 +192,25 @@ function dfaLaenge(seite,quelle){
  return dfaSeite("b",seite,q)+dfaSeite("c",seite,q)-dfaZahl(q.ueberlappung);
 }
 
-// ---- Die sechs Zuschnitte -----------------------------------------------------
-// Vorderteil und Hinterteil laufen quer zum Fenster, ihre Breite (Zuschnitt-
-// laenge) wird direkt erfasst (wie Kamins Breite vorne/hinten). Jede Seite
-// wird - genau wie bei der Kamineinfassung - in ZWEI Zuschnitte geteilt:
-// Seitenteil vorne (Laenge B, bis zum Knick) und Seitenteil hinten (Laenge
-// C, ab dem Knick) - nicht EIN durchgehendes Stueck ueber die ganze Laenge
-// B+C-Knick. Die Abwicklung jedes Seitenteils bekommt zusaetzlich F (seitlich
-// bis Deckmaterial) und G (seitlich unter Deckmaterial) dazu - dieselben
-// zwei Masse wie bei der Kamineinfassung, dort ebenfalls ohne Vorgabewert.
+// ---- Die acht Zuschnitte -----------------------------------------------------
+// Nach Rueckmeldung des Anwenders (v3.64): jede Seite hat DREI Zuschnitte,
+// nicht zwei - dieselbe Ueberlappungs-Logik wie bisher (B und die Seitenteile
+// laufen um die Knickbreite ineinander), aber der hintere Teil (bisher
+// "Seitenteil hinten" = C) wird selbst nochmals geteilt:
+//   Seitenteil vorne  - Vorderkant Aufbordung bis Hinterkant Knick, Laenge B
+//                        (unveraendert, erste gestrichelte Linie = Knick hinten)
+//   Seitenteil Mitte  - Vorderkant Knick bis 10mm vor der Hinterkant Auf-
+//                        bordung (die "zweite gestrichelte Linie", derselbe
+//                        Ruecklauf wie bei der Oberkante in der Skizze),
+//                        Laenge C - DFA_HINTERKANTE_RUECKLAUF
+//   Seitenteil hinten - die letzten DFA_HINTERKANTE_RUECKLAUF (10mm) bis zur
+//                        Hinterkant Aufbordung selbst (schraeger Trapezstrich)
+// Vorderteil und Hinterteil (quer zum Fenster) bekommen ihre Zuschnittlaenge
+// neu NICHT mehr direkt aus Breite vorne/hinten, sondern zuzueglich dessen,
+// was seitlich noch dazugehoert: 2x Umschlag Seite + F links + F rechts +
+// G links + G rechts (bei nicht getrennten Seiten ist das dasselbe wie
+// "2x Umschlag + 2x F + 2x G"). Hinterteil bekommt zusaetzlich Rand-Abstand
+// und D in die Abwicklung (Umschlag hinten bleibt bestehen).
 function dfaZuschnitte(){
  const a=dfaA, z=[];
  const teilBreite=t=>t.reduce((s,x)=>s+dfaZahl(x.wert),0);
@@ -205,16 +221,22 @@ function dfaZuschnitte(){
    teile,
    merkmal:name, hinweis:seite||""});
  };
- dazu("Vorderteil","vorne","",a.breiteVorne,[
+ // Seitliche Zugabe fuer Vorder-/Hinterteil: beide Seiten zusammengezaehlt
+ // (bei nicht getrennten Seiten ist links=rechts, ergibt also "2x").
+ const seitlicheZugabe=2*dfaZahl(a.umschlagSeite)
+   +dfaSeite("f","l")+dfaSeite("f","r")+dfaSeite("g","l")+dfaSeite("g","r");
+ dazu("Vorderteil","vorne","",dfaZahl(a.breiteVorne)+seitlicheZugabe,[
   {name:"Umschlag vorne",wert:dfaZahl(a.umschlagVorne)},
   {name:"Aufbordungshöhe vorne",wert:dfaAufVorneMax()},
   {name:"Saum oben",wert:dfaZahl(a.saumVorne)},
   {name:"Anreiff",wert:dfaZahl(a.anreiff)},
   {name:"Umschlag Anreiff",wert:dfaZahl(a.anreiffUmschlag)}]);
- dazu("Hinterteil","hinten","",a.breiteHinten,[
+ dazu("Hinterteil","hinten","",dfaZahl(a.breiteHinten)+seitlicheZugabe,[
   {name:"Umschlag hinten",wert:dfaZahl(a.umschlagHinten)},
   {name:"Aufbordungshöhe hinten",wert:dfaAufHintenMax()},
+  {name:"Rand-Abstand",wert:dfaZahl(a.randAbstand)},
   {name:"Rand-Strich am Kopf",wert:dfaZahl(a.randStrich)},
+  {name:"D · Hinterkant Aufbordung bis Aufbug",wert:dfaZahl(a.d)},
   {name:"Aufbug hinten (E)",wert:dfaZahl(a.e)},
   {name:"Umschlag Aufbug",wert:dfaZahl(a.eUmschlag)}]);
  DFA_SEITEN.forEach(s=>{
@@ -225,7 +247,8 @@ function dfaZuschnitte(){
    {name:"Mass F · bis Deckmaterial",wert:dfaSeite("f",s.k)},
    {name:"Aufbordungshöhe (grösseres Mass)",wert:h}];
   dazu("Seitenteil vorne","seite",s.name,dfaSeite("b",s.k),teile.map(x=>Object.assign({},x)));
-  dazu("Seitenteil hinten","seite",s.name,dfaSeite("c",s.k),teile.map(x=>Object.assign({},x)));
+  dazu("Seitenteil Mitte","seite",s.name,Math.max(0,dfaSeite("c",s.k)-DFA_HINTERKANTE_RUECKLAUF),teile.map(x=>Object.assign({},x)));
+  dazu("Seitenteil hinten","seite",s.name,dfaSeite("c",s.k)>0?DFA_HINTERKANTE_RUECKLAUF:0,teile.map(x=>Object.assign({},x)));
  });
  return z;
 }
@@ -762,8 +785,8 @@ berechnet werden – bitte in den Grunddaten eintragen.</div>`
 <tr><td colspan="2"><b>Gesamt</b></td><td><b>${bl.gesamt}</b></td></tr></tbody></table></div>
 <div class="small" style="color:var(--muted);margin-top:4px">Je Seitenteil aufgerundet aus
 Länge ÷ Lattenabstand (${dfaMm(bl.lattenabstand)} mm) – ein Lappen je Ziegelreihe.</div>`;
- return `<div class="info">Sechs Zuschnitte: Vorderteil, Hinterteil und je zwei Seitenteile
-(vorne und hinten) links und rechts. Die Abwicklung entsteht aus den erfassten Massen –
+ return `<div class="info">Acht Zuschnitte: Vorderteil, Hinterteil und je drei Seitenteile
+(vorne, Mitte, hinten) links und rechts. Die Abwicklung entsteht aus den erfassten Massen –
 hier wird nichts von Hand eingegeben.</div>
 <div class="scroll"><table class="eb-table ra-tab">
 <thead><tr><th>Nr.</th><th>Teil</th><th>Zuschnitt (Länge × Breite)</th><th>Abwicklung aus</th></tr></thead>
