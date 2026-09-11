@@ -265,6 +265,60 @@
 // generationConfig und der komplette Prompt-Text (inkl. der v16-Absatz-/
 // Zwischentitel-Logik) waren bereits identisch zum Live-Stand und bleiben
 // unveraendert.
+//
+// v18: gemeldet unmittelbar nach dem v17-Deploy: "jetzt gab es eine
+// zeitbegrenzung (25 sekunden) und wurde dan abgebrochen" - der in v17 neu
+// eingefuehrte 25s-AbortController (siehe oben) brach jetzt echte,
+// erfolgreiche, nur etwas laengere Erkennungen vorzeitig ab, statt nur
+// echte Haenger abzufangen.
+// Nicht geraten, sondern an zwei Belegen festgemacht:
+//   1. mcp__Supabase__query_logs gegen function_edge_logs dieser Funktion
+//      (Projekt nfgryuzkpwjfmdlmevuy) zeigt einen ECHTEN, erfolgreichen,
+//      nicht abgebrochenen Aufruf (deployment_id endet auf _15, POST|200,
+//      2026-09-10T10:40:35.803Z) mit exec_ms:"29485" - also 29,485
+//      Sekunden fuer eine tatsaechlich gelungene Erkennung. Unter dem
+//      damals live laufenden Stand _17 wurden dagegen zwei echte
+//      Produktivauftraege exakt vom neuen 25s-Timeout abgebrochen
+//      (POST|504, exec_ms:"25097" bzw. "25104") - beide liegen weit unter
+//      den bewiesenen 29,485s, die ein echter Erfolg braucht. 25s war
+//      damit nachweislich zu knapp bemessen, nicht nur vermutet.
+//   2. mcp__Supabase__search_docs gegen Supabases eigene Dokumentation
+//      ("Edge Function 'wall clock time limit reached'") bestaetigt die
+//      Plattform-Obergrenze selbst: 150 Sekunden Wall-Clock-Zeit auf dem
+//      Free-Plan, 400 Sekunden auf bezahlten Plans (eine getrennte,
+//      2-Sekunden-CPU-Aktivzeit-Grenze bindet eine I/O-lastige Funktion
+//      wie diese - sie wartet auf fetch(), nicht auf eigene Berechnung -
+//      nicht). mcp__Supabase__get_organization bestaetigt: dieses Projekt
+//      laeuft auf dem Free-Plan, also gilt hier die 150s-Obergrenze.
+// Fix: der eigene AbortController-Timeout wird von 25000ms auf 90000ms
+// (90 Sekunden) angehoben - keine erneute freihaendige Schaetzung, sondern
+// mit deutlichem, aber nicht ueberzogenem Sicherheitsabstand in beide
+// Richtungen gewaehlt: rund das Dreifache des einen belegten, echten
+// Erfolgswerts (29,485s) als Puffer nach oben, UND weiterhin 60 Sekunden
+// Abstand nach unten zur Plattform-Obergrenze von 150s auf diesem
+// Free-Plan-Projekt - damit der eigene, informative 504-Fehler zuverlaessig
+// VOR einem harten, unkontrollierten Plattform-Abbruch greift, statt mit
+// ihm zu wetteifern. Der passende Fehlertext im catch-Block ("(25s)") ist
+// entsprechend auf "(90s)" nachgezogen. Der MAX_TOKENS-Notfall aus v12, der
+// generische Fehlerpfad und der Erfolgspfad sind unveraendert.
+//
+// v19: kein fachlicher Fix, sondern ein offen dokumentierter eigener
+// Deploy-Fehler waehrend der Auslieferung von v18. Beim Beheben eines
+// ZodErrors von mcp__Supabase__deploy_edge_function (files[0] brauchte ein
+// "name"-Feld, es war nur "path" mitgegeben) wurde ein erster Testaufruf mit
+// files:[{"name":"index.ts","content":"PLACEHOLDER"}] abgesetzt - gedacht nur
+// als Formpruefung, ob der Parameter jetzt akzeptiert wird. Das Werkzeug hat
+// aber KEINEN Testmodus: der Aufruf hat den woertlichen Text "PLACEHOLDER"
+// sofort als echten, produktiven Funktionscode ausgeliefert (Supabase
+// meldete status:"ACTIVE", version:18). Innerhalb derselben Aktion bemerkt,
+// sofort durch einen zweiten Deploy mit dem echten, oben stehenden v18-Inhalt
+// korrigiert (version:19). Anhand der beiden updated_at-Zeitstempel
+// (1789071023140 bzw. 1789071103255) war die Funktion rund 80 Sekunden lang
+// mit reinem Platzhaltertext live - ohne dass in dieser Zeit eine eigene
+// Log-Abfrage lief, die eine tatsaechliche Auswirkung auf echte Anfragen
+// belegt oder ausschliesst. Fachlich aendert sich an v18 nichts; die Lehre:
+// deploy_edge_function niemals fuer eine reine Formpruefung mit
+// Platzhalterinhalt aufrufen, da es sofort produktiv wirkt.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -345,7 +399,7 @@ Wichtig für "description" - eine Position ist oft mehrzeilig:
 Überschriften, Zwischentitel, Summenzeilen, MWST-Zeilen und Titelzeilen NICHT als eigene Position aufnehmen, nur echte, einzeln aufgeführte Leistungspositionen.`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
+  const timeout = setTimeout(() => controller.abort(), 90000);
 
   try {
     const res = await fetch(
@@ -409,7 +463,7 @@ Wichtig für "description" - eine Position ist oft mehrzeilig:
   } catch (err) {
     clearTimeout(timeout);
     if ((err as Error)?.name === "AbortError") {
-      return json({ ok: false, error: "Zeitüberschreitung bei der Erkennung (25s)." }, 504);
+      return json({ ok: false, error: "Zeitüberschreitung bei der Erkennung (90s)." }, 504);
     }
     return json({ ok: false, error: `Unerwarteter Fehler: ${(err as Error)?.message ?? String(err)}` }, 500);
   }
