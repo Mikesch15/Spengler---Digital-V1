@@ -836,7 +836,11 @@ die Länge des Seitenteils ist deshalb B + C minus der Überlappung.</p>
 <b>Saum</b> (Rückschlag); hinten (bergseitig) ist sie <b>höher</b> und bewusst
 <b>trapezförmig</b> – Breite oben ist kleiner als Breite unten.</p>
 <p>An der oberen Ecke sitzt ein kleiner gestrichelter <b>Strich</b> – Rand-Abstand
-ist der Abstand ab der Ecke, Rand-Strich seine Länge.</p>`},
+ist der Abstand ab der Ecke, Rand-Strich seine Länge.</p>
+<p>Ganz hinten, hinter D, sitzt ein kleiner <b>90°-Aufbug (E)</b> – genau wie bei
+der Kamineinfassung – mit einem eigenen <b>180°-Umschlag</b> an seiner Spitze.
+Ganz vorne, vor A, sitzt spiegelbildlich der <b>Anreiff</b>, ebenfalls mit
+eigenem 180°-Umschlag.</p>`},
 
 "dfa-umschlaege":{titel:"Umschläge",text:`
 <p>Die Zugaben, die in die Abwicklung der vier Teile eingehen. Vorbelegt sind

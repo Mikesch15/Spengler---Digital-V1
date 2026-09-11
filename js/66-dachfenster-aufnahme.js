@@ -100,7 +100,11 @@ const DFA_STANDARD=Object.freeze({
  mass_vorne:183,         // A, vorne auf Deckmaterial bis Vorderkant Aufbordung
  mass_hinten:200,        // D, Hinterkant Aufbordung bis hinten unter Deckmaterial
  auf_vorne:80,           // Aufbordungshoehe vorne (talseitig), Vorgabe
- auf_hinten:120          // Aufbordungshoehe hinten (bergseitig), Vorgabe
+ auf_hinten:120,         // Aufbordungshoehe hinten (bergseitig), Vorgabe
+ e:35,                   // Mass vom 90-Grad-Aufbug hinten, hinter D - wie kam
+ e_umschlag:15,          // Umschlag (180 Grad) an der Spitze des Aufbugs hinten
+ anreiff:15,             // Anreiff vorne, vor A
+ anreiff_umschlag:10     // Umschlag (180 Grad) an der Spitze des Anreiffs vorne
 });
 const DFA_EINSTELLUNGEN="sd_dfaSettings";
 let dfaSettings=dfaEinstellungenLaden();
@@ -134,6 +138,7 @@ function dfaLeer(){
   a:s.mass_vorne, d:s.mass_hinten, ueberlappung:s.ueberlappung,
   saumVorne:s.saum_vorne, breiteOben:s.breite_oben, breiteUnten:s.breite_unten,
   randAbstand:s.rand_abstand, randStrich:s.rand_strich,
+  e:s.e, eUmschlag:s.e_umschlag, anreiff:s.anreiff, anreiffUmschlag:s.anreiff_umschlag,
   umschlagVorne:s.umschlag_vorne, umschlagHinten:s.umschlag_hinten, umschlagSeite:s.umschlag_seite,
   breiteVorne:"", breiteHinten:"",
   b:{l:"",r:""}, c:{l:"",r:""},
@@ -178,11 +183,15 @@ function dfaZuschnitte(){
  dazu("Vorderteil","vorne","",a.breiteVorne,[
   {name:"Umschlag vorne",wert:dfaZahl(a.umschlagVorne)},
   {name:"Aufbordungshöhe vorne",wert:dfaAufVorneMax()},
-  {name:"Saum oben",wert:dfaZahl(a.saumVorne)}]);
+  {name:"Saum oben",wert:dfaZahl(a.saumVorne)},
+  {name:"Anreiff",wert:dfaZahl(a.anreiff)},
+  {name:"Umschlag Anreiff",wert:dfaZahl(a.anreiffUmschlag)}]);
  dazu("Hinterteil","hinten","",a.breiteHinten,[
   {name:"Umschlag hinten",wert:dfaZahl(a.umschlagHinten)},
   {name:"Aufbordungshöhe hinten",wert:dfaAufHintenMax()},
-  {name:"Rand-Strich am Kopf",wert:dfaZahl(a.randStrich)}]);
+  {name:"Rand-Strich am Kopf",wert:dfaZahl(a.randStrich)},
+  {name:"Aufbug hinten (E)",wert:dfaZahl(a.e)},
+  {name:"Umschlag Aufbug",wert:dfaZahl(a.eUmschlag)}]);
  DFA_SEITEN.forEach(s=>{
   const h=Math.max(dfaSeite("aufVorne",s.k),dfaSeite("aufHinten",s.k));
   dazu("Seitenteil","seite",s.name,dfaLaenge(s.k),[
@@ -213,6 +222,7 @@ function dfaBleilappen(){
 // Argument der gespeicherte Datensatz.
 const DFA_SAUM_RUECKLAUF=10;   // fester waagrechter Ruecklauf am Saum, siehe Kopf
 const DFA_HINTERKANTE_RUECKLAUF=10; // Abstand vor der Hinterkante, ab dem die verdeckte Oberkante auf das Dach zurueckfaellt
+const DFA_FOLD_RUECKLAUF=10;   // fester waagrechter Ruecklauf am 180-Grad-Umschlag von E und Anreiff (rein zeichnerisch, wie DFA_SAUM_RUECKLAUF)
 function dfaSkizze(quelle){
  const q=quelle||dfaA;
  const seite=q.getrennt?(q.skizzeSeite==="r"?"r":"l"):"l";
@@ -220,6 +230,8 @@ function dfaSkizze(quelle){
  const av=dfaSeite("aufVorne",seite,q), ah=dfaSeite("aufHinten",seite,q);
  const saum=dfaZahl(q.saumVorne), bo=dfaZahl(q.breiteOben), bu=dfaZahl(q.breiteUnten);
  const randAbstand=dfaZahl(q.randAbstand), randStrich=dfaZahl(q.randStrich);
+ const E=dfaZahl(q.e), eUmschlag=dfaZahl(q.eUmschlag);
+ const anreiff=dfaZahl(q.anreiff), anreiffUmschlag=dfaZahl(q.anreiffUmschlag);
  const B=dfaSeite("b",seite,q), C=dfaSeite("c",seite,q);
  const L=dfaLaenge(seite,q);
  if(!(av>0&&ah>0)||!(L>0)||!(bu>bo))
@@ -243,6 +255,16 @@ eingeben.</div>`;
  const Qf=P(L-bu,av);                      // Fuss der Schraege, auf Hoehe vorne
  const M2=P(L-DFA_HINTERKANTE_RUECKLAUF,av); // 10 mm vor der Hinterkante
  const N=P(L-DFA_HINTERKANTE_RUECKLAUF,0);   // faellt hier auf das Dach zurueck
+ // Anreiff vorne (vor A) und 90-Grad-Aufbug hinten (E, hinter D) - je ein
+ // kleiner Haken mit eigenem 180-Grad-Umschlag an der Spitze. E folgt exakt
+ // der Kamineinfassung (linie(P(L+D,0),P(L+D,E)) mit fahne "E = ... · 90°"),
+ // der Umschlag ist eine NEUE Ergaenzung, die Kamins E nicht kennt: ein
+ // waagrechter Ruecklauf (rein zeichnerisch, wie beim Saum) und danach ein
+ // Stueck zurueck nach unten um den Umschlag-Betrag.
+ const E0=P(L+D,0), E1=P(L+D,E);
+ const E2=P(L+D-DFA_FOLD_RUECKLAUF,E), E3=P(L+D-DFA_FOLD_RUECKLAUF,E-eUmschlag);
+ const F0=P(-A,0), F1=P(-A,anreiff);
+ const F2=P(-A+DFA_FOLD_RUECKLAUF,anreiff), F3=P(-A+DFA_FOLD_RUECKLAUF,anreiff-anreiffUmschlag);
  const dachVon=-A-Math.max(60,A*0.25), dachBis=L+D+Math.max(60,D*0.25);
 
  let xMin=dachVon,xMax=dachBis,yMin=0,yMax=Math.max(av,ah);
@@ -326,6 +348,13 @@ eingeben.</div>`;
   g+=linie(P(knickVorne,0),P(knickVorne,av),ANB_FARBE.bau,1.6);
   g+=linie(P(knickHinten,0),P(knickHinten,av),ANB_FARBE.bau,1.6,"7 5");
  }
+ // 90-Grad-Aufbug hinten (E) - exakt wie bei der Kamineinfassung - mit
+ // eigenem 180-Grad-Umschlag an der Spitze (Haken).
+ if(E>0)g+=linie(E0,E1,ANB_FARBE.blech,3.4);
+ if(E>0&&eUmschlag>0){g+=linie(E1,E2,ANB_FARBE.blech,2.4); g+=linie(E2,E3,ANB_FARBE.blech,2.4)}
+ // Anreiff vorne (vor A) - spiegelbildlich zu E, mit eigenem Umschlag.
+ if(anreiff>0)g+=linie(F0,F1,ANB_FARBE.blech,3.4);
+ if(anreiff>0&&anreiffUmschlag>0){g+=linie(F1,F2,ANB_FARBE.blech,2.4); g+=linie(F2,F3,ANB_FARBE.blech,2.4)}
 
  // Masse. Jede Bemassung bekommt eine EIGENE Hoehenbahn, von unten (Dach)
  // nach oben aufsteigend geordnet, damit sich nichts gegenseitig verdeckt:
@@ -355,6 +384,18 @@ eingeben.</div>`;
  if(saum>0){
   const fahneS=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
   fahneS(0,av-saum/2,-40,-8,"Saum = "+zahl(saum));
+ }
+ // Hoch ueber der Zeichnung (wie C, nur noch hoeher) und zur Mitte hin
+ // ausgerichtet - der Platz rechts von E bzw. links von Anreiff ist durch
+ // die neue Bemassung "Aufbordung hinten/vorne" belegt (die es bei der
+ // Kamineinfassung nicht gibt), der Platz zur Mitte hin ist frei.
+ if(E>0){
+  const fahneE=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
+  fahneE(E1[0],E1[1],-8,-95,"E = "+zahl(E)+" · 90°"+(eUmschlag>0?" / Umschlag "+zahl(eUmschlag):""));
+ }
+ if(anreiff>0){
+  const fahneF=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
+  fahneF(F1[0],F1[1],8,-95,"Anreiff = "+zahl(anreiff)+(anreiffUmschlag>0?" / Umschlag "+zahl(anreiffUmschlag):""));
  }
 
  const seiteTxt=q.getrennt?(seite==="r"?" · rechte Seite":" · linke Seite"):"";
@@ -494,6 +535,8 @@ function dfaPruefungen(){
  [["a","Mass A"],["d","Mass D"],["ueberlappung","Überlappung"],
   ["saumVorne","Saum vorne"],["breiteOben","Breite oben"],["breiteUnten","Breite unten"],
   ["randAbstand","Rand-Abstand"],["randStrich","Rand-Strich"],
+  ["e","Aufbug hinten"],["eUmschlag","Umschlag Aufbug"],
+  ["anreiff","Anreiff vorne"],["anreiffUmschlag","Umschlag Anreiff"],
   ["breiteVorne","Breite vorne"],["breiteHinten","Breite hinten"],
   ["umschlagVorne","Umschlag vorne"],["umschlagHinten","Umschlag hinten"],
   ["umschlagSeite","Umschlag seitlich"],["lattenabstand","Lattenabstand"]].forEach(([k,name])=>{
@@ -616,6 +659,10 @@ ${dfaZahlFeld("Breite oben, hintere Aufbordung (Kopf)","dfa_breiteOben",a.breite
 ${dfaZahlFeld("Breite unten, hintere Aufbordung (Fuss)","dfa_breiteUnten",a.breiteUnten,"1",true)}
 ${dfaZahlFeld("Rand-Abstand · obere Ecke bis Strich am Kopf","dfa_randAbstand",a.randAbstand)}
 ${dfaZahlFeld("Rand-Strich · Länge des Strichs am Kopf","dfa_randStrich",a.randStrich)}
+${dfaZahlFeld("E · 90°-Aufbug hinten, hinter D","dfa_e",a.e)}
+${dfaZahlFeld("Umschlag am Aufbug hinten (180°)","dfa_eUmschlag",a.eUmschlag)}
+${dfaZahlFeld("Anreiff vorne, vor A","dfa_anreiff",a.anreiff)}
+${dfaZahlFeld("Umschlag am Anreiff vorne (180°)","dfa_anreiffUmschlag",a.anreiffUmschlag)}
 </div>
 <div class="small" style="color:var(--muted);margin-top:4px">B und C überlappen sich im
 Knick – die Länge ist deshalb B + C − Überlappung.</div>
@@ -708,6 +755,8 @@ ${seitig("Aufbordungshöhe hinten","aufHinten","mm")}
 ${zeile("Saum vorne",dfaMm(a.saumVorne)+" mm")}
 ${zeile("Breite oben / unten (Trapez hinten)",dfaMm(a.breiteOben)+" / "+dfaMm(a.breiteUnten)+" mm")}
 ${zeile("Rand-Abstand / Rand-Strich am Kopf",dfaMm(a.randAbstand)+" / "+dfaMm(a.randStrich)+" mm")}
+${zeile("Aufbug hinten (E) / Umschlag",dfaMm(a.e)+" / "+dfaMm(a.eUmschlag)+" mm")}
+${zeile("Anreiff vorne / Umschlag",dfaMm(a.anreiff)+" / "+dfaMm(a.anreiffUmschlag)+" mm")}
 ${zeile("Breite vorne / hinten",dfaMm(a.breiteVorne)+" / "+dfaMm(a.breiteHinten)+" mm")}
 ${zeile("Umschlag vorne / hinten / Seite",dfaMm(a.umschlagVorne)+" / "+dfaMm(a.umschlagHinten)+" / "+dfaMm(a.umschlagSeite)+" mm")}
 ${zeile("Blechfläche",dfaQm(dfaFlaecheM2())+" m²")}
@@ -814,6 +863,7 @@ function dfaLive(){
 const DFA_FELDER={dfa_a:"a",dfa_d:"d",dfa_ueberlappung:"ueberlappung",
  dfa_saumVorne:"saumVorne",dfa_breiteOben:"breiteOben",dfa_breiteUnten:"breiteUnten",
  dfa_randAbstand:"randAbstand",dfa_randStrich:"randStrich",
+ dfa_e:"e",dfa_eUmschlag:"eUmschlag",dfa_anreiff:"anreiff",dfa_anreiffUmschlag:"anreiffUmschlag",
  dfa_breiteVorne:"breiteVorne",dfa_breiteHinten:"breiteHinten",
  dfa_umschlagVorne:"umschlagVorne",dfa_umschlagHinten:"umschlagHinten",
  dfa_umschlagSeite:"umschlagSeite",dfa_lattenabstand:"lattenabstand"};
@@ -907,6 +957,10 @@ function applyDfaSettings(){
  setzen("dfasBreiteUnten",s.breite_unten);
  setzen("dfasRandAbstand",s.rand_abstand);
  setzen("dfasRandStrich",s.rand_strich);
+ setzen("dfasE",s.e);
+ setzen("dfasEUmschlag",s.e_umschlag);
+ setzen("dfasAnreiff",s.anreiff);
+ setzen("dfasAnreiffUmschlag",s.anreiff_umschlag);
  setzen("dfasUeberlappung",s.ueberlappung);
  setzen("dfasMassVorne",s.mass_vorne);
  setzen("dfasMassHinten",s.mass_hinten);
@@ -929,6 +983,10 @@ function applyDfaSettings(){
    breite_unten:zahl("dfasBreiteUnten")||0,
    rand_abstand:zahl("dfasRandAbstand")||0,
    rand_strich:zahl("dfasRandStrich")||0,
+   e:zahl("dfasE")||0,
+   e_umschlag:zahl("dfasEUmschlag")||0,
+   anreiff:zahl("dfasAnreiff")||0,
+   anreiff_umschlag:zahl("dfasAnreiffUmschlag")||0,
    ueberlappung:zahl("dfasUeberlappung")||0,
    mass_vorne:zahl("dfasMassVorne")||0,
    mass_hinten:zahl("dfasMassHinten")||0,
@@ -964,6 +1022,7 @@ function dfaDaten(){
   a:dfaZahl(a.a), d:dfaZahl(a.d), ueberlappung:dfaZahl(a.ueberlappung),
   saumVorne:dfaZahl(a.saumVorne), breiteOben:dfaZahl(a.breiteOben), breiteUnten:dfaZahl(a.breiteUnten),
   randAbstand:dfaZahl(a.randAbstand), randStrich:dfaZahl(a.randStrich),
+  e:dfaZahl(a.e), eUmschlag:dfaZahl(a.eUmschlag), anreiff:dfaZahl(a.anreiff), anreiffUmschlag:dfaZahl(a.anreiffUmschlag),
   breiteVorne:dfaZahl(a.breiteVorne), breiteHinten:dfaZahl(a.breiteHinten),
   umschlagVorne:dfaZahl(a.umschlagVorne), umschlagHinten:dfaZahl(a.umschlagHinten), umschlagSeite:dfaZahl(a.umschlagSeite),
   b:paar("b"), c:paar("c"), aufVorne:paar("aufVorne"), aufHinten:paar("aufHinten"),
@@ -1006,6 +1065,7 @@ function dfaFuellen(d){
  a.material=w.material??"";
  if(w.deckung&&(typeof EINF_DECKUNGEN!=="object"||EINF_DECKUNGEN[w.deckung]))a.deckung=w.deckung;
  ["lattenabstand","a","d","ueberlappung","saumVorne","breiteOben","breiteUnten","randAbstand","randStrich",
+  "e","eUmschlag","anreiff","anreiffUmschlag",
   "breiteVorne","breiteHinten","umschlagVorne","umschlagHinten","umschlagSeite"].forEach(k=>nimm(k));
  a.getrennt=!!w.getrennt;
  ["b","c","aufVorne","aufHinten"].forEach(k=>{
