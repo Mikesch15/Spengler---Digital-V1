@@ -840,18 +840,22 @@ ist der Abstand ab der Ecke, Rand-Strich seine Länge.</p>
 <p>Ganz hinten, hinter D, sitzt ein kleiner <b>90°-Aufbug (E)</b> – genau wie bei
 der Kamineinfassung – mit einem eigenen <b>180°-Umschlag</b> an seiner Spitze.
 Ganz vorne, vor A, sitzt spiegelbildlich der <b>Anreiff</b>, ebenfalls mit
-eigenem 180°-Umschlag.</p>`},
+eigenem 180°-Umschlag.</p>
+<p>Bei den <b>seitlichen Massen</b> kommen – genau wie bei der Kamineinfassung –
+<b>F</b> (seitlich bis Deckmaterial) und <b>G</b> (seitlich unter Deckmaterial)
+dazu; sie gehen in die Abwicklung der Seitenteile ein, haben aber keinen
+Vorgabewert.</p>`},
 
 "dfa-umschlaege":{titel:"Umschläge",text:`
-<p>Die Zugaben, die in die Abwicklung der vier Teile eingehen. Vorbelegt sind
+<p>Die Zugaben, die in die Abwicklung der sechs Teile eingehen. Vorbelegt sind
 die Werte aus den Einstellungen; hier gelten sie nur für diese
 Massaufnahme.</p>
 <p><b>Breite vorne/hinten</b> sind die Zuschnittlängen von Vorderteil und
 Hinterteil – sie laufen quer zum Fenster, unabhängig von A, B, C und D.</p>`},
 
 "dfa-stueckliste":{titel:"Stückliste",text:`
-<p>Vier Zuschnitte: Vorderteil, Hinterteil und je ein Seitenteil links und
-rechts.</p>
+<p>Sechs Zuschnitte: Vorderteil, Hinterteil und je zwei Seitenteile (vorne und
+hinten) links und rechts – genau wie bei der Kamineinfassung.</p>
 <p>Die <b>Bleilappen</b> werden je Seitenteil aus Zuschnittlänge und
 Lattenabstand gerechnet und aufgerundet – ein abgerundeter Wert würde die
 Länge nicht decken.</p>`},
