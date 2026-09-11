@@ -175,8 +175,10 @@ function ebkaAusmassZeilen(){
  if(stoss)zeile("Blechstösse",stoss,"Stk.","je Übergang zwischen zwei Stücken");
  if(L>0)zeile("Blechfläche",ebkaFlaecheM2().toFixed(2).replace(".",","),"m²","Gesamtlänge × Abwicklung");
  const letzte=(a.stuecke||[])[a.stuecke.length-1];
- if(letzte&&ebkaZahl(letzte.endzugabeStart))zeile("Endzugabe erstes Stück",ebkaMm(letzte.endzugabeStart),"mm","Einstellung Endzugabe");
- if(letzte&&ebkaZahl(letzte.endzugabeEnd))zeile("Endzugabe letztes Stück",ebkaMm(letzte.endzugabeEnd),"mm","Einstellung Endzugabe");
+ // v3.47: als Stück gezaehlt (nicht als mm) - dieselbe Umstellung wie beim
+ // geraden Einlaufblech (js/29), siehe dort.
+ if(letzte&&ebkaZahl(letzte.endzugabeStart))zeile("Endzugabe erstes Stück",1,"Stk.","Einstellung Endzugabe "+ebkaMm(letzte.endzugabeStart)+" mm");
+ if(letzte&&ebkaZahl(letzte.endzugabeEnd))zeile("Endzugabe letztes Stück",1,"Stk.","Einstellung Endzugabe "+ebkaMm(letzte.endzugabeEnd)+" mm");
  return z;
 }
 

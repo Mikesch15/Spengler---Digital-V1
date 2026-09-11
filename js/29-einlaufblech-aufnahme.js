@@ -554,8 +554,12 @@ function ebaAusmassZeilen(){
  if(nG!==null)zeile("Haltebleche (GAVA Blech)",nG,"Stk.",
    (a.gava.anzahl?"Eingabe":"Länge ÷ Abstand "+ebaMm(a.gava.abstand_mm)+" mm"),true);
  const letzte=(a.stuecke||[])[a.stuecke.length-1];
- if(letzte&&ebaZahl(letzte.endzugabeStart))zeile("Endzugabe erstes Stück",ebaMm(letzte.endzugabeStart),"mm","Einstellung Endzugabe");
- if(letzte&&ebaZahl(letzte.endzugabeEnd))zeile("Endzugabe letztes Stück",ebaMm(letzte.endzugabeEnd),"mm","Einstellung Endzugabe");
+ // v3.47: als Stück gezaehlt (nicht als mm) - so laesst sich eine Endzugabe
+ // ueber mehrere Massaufnahmen hinweg zusammenzaehlen (z. B. fuer eine
+ // Offerte-Position "Endzugaben"). Das Mass selbst steht weiterhin in der
+ // Herkunft, es geht nichts verloren.
+ if(letzte&&ebaZahl(letzte.endzugabeStart))zeile("Endzugabe erstes Stück",1,"Stk.","Einstellung Endzugabe "+ebaMm(letzte.endzugabeStart)+" mm");
+ if(letzte&&ebaZahl(letzte.endzugabeEnd))zeile("Endzugabe letztes Stück",1,"Stk.","Einstellung Endzugabe "+ebaMm(letzte.endzugabeEnd)+" mm");
  return z;
 }
 
