@@ -283,7 +283,8 @@ function renderRinneFittingSettings(){
  $("rinneFittingSettings").innerHTML=rinneFittingTypes.map((f,i)=>`<div class="settingrow">
 <input data-set-rinne-symbol="${i}" value="${esc(f.symbol||"")}" placeholder="Symbol" style="max-width:70px">
 <input data-set-rinne-name="${i}" value="${esc(f.name||"")}" placeholder="Bezeichnung">
-<input data-set-rinne-mass="${i}" type="number" step="1" value="${f.mass_mm||0}" placeholder="Mass mm" style="max-width:90px">
+<input data-set-rinne-mass="${i}" type="number" step="1" value="${f.mass_mm||0}" placeholder="Zuschnitt mm" style="max-width:90px">
+<input data-set-rinne-ausmass="${i}" type="number" step="1" value="${f.ausmass_mass_mm||0}" placeholder="Ausmass mm" style="max-width:90px">
 <input data-set-rinne-angle="${i}" type="number" step="1" value="${f.angle_deg||0}" placeholder="Winkel °" style="max-width:90px">
 <label class="small" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input data-set-rinne-fixpunkt="${i}" type="checkbox" ${f.is_fixpunkt?"checked":""}> Fixpunkt?</label>
 <label class="small" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input data-set-rinne-schiebestutzen="${i}" type="checkbox" ${f.is_schiebestutzen?"checked":""}> Schiebestutzen?</label>
@@ -291,7 +292,7 @@ function renderRinneFittingSettings(){
 </div>`).join("")||'<div class="empty">Noch keine Anschlusstypen.</div>';
 }
 $("newRinneFitting").onclick=async()=>{
- const {error}=await sb.from("rinne_fitting_types").insert({name:"Neuer Typ",mass_mm:0,symbol:"",angle_deg:0,is_fixpunkt:false,is_schiebestutzen:false});
+ const {error}=await sb.from("rinne_fitting_types").insert({name:"Neuer Typ",mass_mm:0,ausmass_mass_mm:0,symbol:"",angle_deg:0,is_fixpunkt:false,is_schiebestutzen:false});
  if(error){alert("Fehler: "+error.message);return}
  const {data}=await sb.from("rinne_fitting_types").select("*").order("name");
  rinneFittingTypes=data||[];
@@ -310,12 +311,15 @@ $("rinneFittingSettings").addEventListener("click",e=>{
  });
 });
 $("rinneFittingSettings").addEventListener("input",e=>{
- const i=Number(e.target.dataset.setRinneSymbol??e.target.dataset.setRinneName??e.target.dataset.setRinneMass??e.target.dataset.setRinneAngle);
+ const i=Number(e.target.dataset.setRinneSymbol??e.target.dataset.setRinneName??e.target.dataset.setRinneMass??e.target.dataset.setRinneAusmass??e.target.dataset.setRinneAngle);
  if(Number.isNaN(i)||!rinneFittingTypes[i])return;
  const id=rinneFittingTypes[i].id;
  if(e.target.dataset.setRinneSymbol!==undefined){rinneFittingTypes[i].symbol=e.target.value;debouncedRinneFittingUpdate(id,{symbol:e.target.value,updated_at:new Date().toISOString()})}
  else if(e.target.dataset.setRinneName!==undefined){rinneFittingTypes[i].name=e.target.value;debouncedRinneFittingUpdate(id,{name:e.target.value,updated_at:new Date().toISOString()})}
  else if(e.target.dataset.setRinneMass!==undefined){rinneFittingTypes[i].mass_mm=Number(e.target.value)||0;debouncedRinneFittingUpdate(id,{mass_mm:Number(e.target.value)||0,updated_at:new Date().toISOString()})}
+ // v3.79: eigener Ausmass-Wert je Anschlusstyp - wirkt NUR auf die
+ // Ausmass-Laenge (raAusmassZugabe, js/28), nicht auf den Zuschnitt (mass_mm).
+ else if(e.target.dataset.setRinneAusmass!==undefined){rinneFittingTypes[i].ausmass_mass_mm=Number(e.target.value)||0;debouncedRinneFittingUpdate(id,{ausmass_mass_mm:Number(e.target.value)||0,updated_at:new Date().toISOString()})}
  else if(e.target.dataset.setRinneAngle!==undefined){rinneFittingTypes[i].angle_deg=Number(e.target.value)||0;debouncedRinneFittingUpdate(id,{angle_deg:Number(e.target.value)||0,updated_at:new Date().toISOString()})}
 });
 $("rinneFittingSettings").addEventListener("change",e=>{
@@ -334,7 +338,7 @@ $("saveRinneFittings").onclick=async()=>{
  $("saveRinneFittings").disabled=true;
  try{
   const results=await Promise.all(rinneFittingTypes.map(f=>sb.from("rinne_fitting_types").update({
-   symbol:f.symbol,name:f.name,mass_mm:Number(f.mass_mm)||0,angle_deg:Number(f.angle_deg)||0,is_fixpunkt:!!f.is_fixpunkt,is_schiebestutzen:!!f.is_schiebestutzen,updated_at:new Date().toISOString()
+   symbol:f.symbol,name:f.name,mass_mm:Number(f.mass_mm)||0,ausmass_mass_mm:Number(f.ausmass_mass_mm)||0,angle_deg:Number(f.angle_deg)||0,is_fixpunkt:!!f.is_fixpunkt,is_schiebestutzen:!!f.is_schiebestutzen,updated_at:new Date().toISOString()
   }).eq("id",f.id)));
   const err=results.find(r=>r.error);
   if(err)throw err.error;
@@ -411,6 +415,8 @@ function renderSettings(){
  $("protectedTabBtn").hidden=!isAdmin();
  const dilaFeld=$("rinneDilaMassInput");
  if(dilaFeld)dilaFeld.value=rinneDilaMass;
+ const dilaAusmassFeld=$("rinneDilaAusmassMassInput");
+ if(dilaAusmassFeld)dilaAusmassFeld.value=rinneDilaAusmassMass;
  if(typeof renderRinneNormSettings==="function")renderRinneNormSettings();
  // Schnittfuge, Rest-Mindestlaenge und das Reststuecke-Lager (v3.04, js/42).
  if(typeof renderSchnittfugeFelder==="function")renderSchnittfugeFelder();

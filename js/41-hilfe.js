@@ -1106,9 +1106,14 @@ gebraucht – bei allen anderen Arten leer lassen.</p>`},
 <p><b>Normlängen:</b> in welchen Längen das Rinnenprofil je Material und
 Grösse bezogen wird. Ist nichts hinterlegt, rechnet die App den
 Materialbedarf nicht – statt mit einer geratenen Stangenlänge.</p>
-<p><b>Anschlusstypen:</b> Ecken und Stutzen mit ihrem Zuschlag. Ob ein Typ ein
-<b>Fixpunkt</b> ist, entscheidet, ob er die Rinne für die Dehnungsberechnung
-teilt.</p>`},
+<p><b>Dilatationselement (Dila):</b> zwei getrennte Werte – der eine wirkt nur
+auf den <b>Zuschnitt</b> (Materialbedarf), der andere nur auf die
+<b>Ausmass</b>-Länge (was in der Massaufnahme als Meterzahl erscheint). Beide
+sind unabhängig voneinander.</p>
+<p><b>Anschlusstypen:</b> Ecken und Stutzen, je mit zwei Werten – einem
+Zuschlag für den <b>Zuschnitt</b> und einem eigenen, unabhängigen Zuschlag nur
+für die <b>Ausmass</b>-Länge. Ob ein Typ ein <b>Fixpunkt</b> ist, entscheidet,
+ob er die Rinne für die Dehnungsberechnung teilt.</p>`},
 
 "einst-sicherung":{titel:"Datensicherung",text:`
 <p>Speichert die Einstellungen und Kataloge als Datei auf diesem Gerät.</p>

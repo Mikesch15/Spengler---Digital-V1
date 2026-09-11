@@ -261,6 +261,38 @@ function raZuschnittBreite(a){return raZahl(a&&a.groesse)}
 function raGroesseText(a){const g=RA_GROESSEN.find(x=>x.wert===a.groesse);return g?g.text:"–"}
 function raMaterialText(a){const m=findMeasurementMaterial(a.material);return m?m.name:"–"}
 function raGesamtlaenge(a){return (a.segmente||[]).reduce((s,seg)=>s+raZahl(seg.laenge),0)}
+// ---- Ausmass-Zugabe je Anschlusstyp (v3.79) --------------------------------
+// Feedback 11.09.2026: "für das ausmass brauchen alle anschlusstypen so wie
+// die dila in den einstellungen eine mass position die nur für die länge für
+// das ausmass dazugerechnet oder abgezogen wird". Eigene, zweite Werte -
+// unabhängig vom Zuschnitt-Mass (mass_mm je Anschlusstyp, rinneDilaMass für
+// die Dila): diese hier verändern AUSSCHLIESSLICH die Ausmass-Länge weiter
+// unten (raKomponenten), nicht den Zuschnitt (raGesamtlaenge/Stückliste
+// bleiben unverändert).
+//
+// Jeder Grenzpunkt des Verlaufs (Start, jede Segmentgrenze, Ende) zählt genau
+// EINMAL - anders als beim Zuschnitt, wo dieselbe Ecke fuer BEIDE angrenzenden
+// Stücke zählt (siehe berechneRinneStueckliste, js/12). raSynchronisiere haelt
+// linksTyp/rechtsTyp einer inneren Grenze immer gleich (dieselbe ID auf
+// beiden Seiten), deshalb reicht hier EINE Seite je Grenze.
+function raAusmassMassVon(typId){
+ const f=rinneFittingTypes.find(x=>x.id===Number(typId));
+ return f?raZahl(f.ausmass_mass_mm):0;
+}
+function raAusmassZugabe(a){
+ const segs=raRechenSegmente(a);
+ if(!segs.length)return 0;
+ let z=raAusmassMassVon(segs[0].linksTyp);
+ for(let i=0;i<segs.length-1;i++)z+=raAusmassMassVon(segs[i].rechtsTyp);
+ z+=raAusmassMassVon(segs[segs.length-1].rechtsTyp);
+ z+=raDilas(a).dilas.length*raZahl(rinneDilaAusmassMass);
+ return z;
+}
+// Die Länge, die im Ausmass erscheint - roh gemessen, plus/minus die
+// Ausmass-Zugaben. Nie negativ: eine Dachrinne kürzer als 0 gibt es nicht.
+function raAusmassLaenge(a){
+ return Math.max(0,raGesamtlaenge(a)+raAusmassZugabe(a));
+}
 function raUebergangArt(seg){
  if(!seg)return "gerade";
  if(seg.stutzen&&seg.stutzen.art)return seg.stutzen.art;
@@ -456,8 +488,13 @@ function raKomponenten(a){
  // eckig) steht jetzt zusaetzlich in der Bezeichnung, die Rechnung bleibt
  // unveraendert (siehe raLeer/raAusData).
  const ausText=a.ausfuehrung==="eckig"?"eckig":"halbrund";
+ // v3.79: die Ausmass-Länge ist die gemessene Verlaufslänge PLUS die
+ // Ausmass-Zugaben je Anschlusstyp und Dila (raAusmassZugabe) - unabhängig
+ // vom Zuschnitt, der weiterhin mit der reinen Verlaufslänge (L) rechnet.
+ const zugabe=raAusmassZugabe(a);
  if(L>0)liste.push({schluessel:"rinne",bezeichnung:`Dachrinne ${ausText}${gz} ${raMaterialText(a)}`,
-                    menge:Math.round(L)/1000,einheit:"m",herkunft:"Verlauf"});
+                    menge:Math.round(raAusmassLaenge(a))/1000,einheit:"m",
+                    herkunft:zugabe?"Verlauf, inkl. Ausmass-Zugaben Anschlusstypen":"Verlauf"});
  const nHalter=raHalterAnzahl(a);
  if(nHalter>0)liste.push({schluessel:"halter",bezeichnung:`Rinnenhalter${gz}`+(a.halter.typ?` (${a.halter.typ})`:""),
                           menge:nHalter,einheit:"Stk.",herkunft:a.halter.anzahl?"Eingabe":"Vorschlag aus Länge/Abstand"});
@@ -1145,7 +1182,15 @@ function rinneAufnahmeZusatzDaten(){
   ausmass:raAusmassZeilen(a),
   normlaengen:normen,
   normplan:plan?{stangen:plan.stangen,gesamt:plan.gesamt,verschnitt:plan.verschnitt,
-                 summeStuecke:plan.summeStuecke,optimal:plan.optimal,zuLang:plan.zuLang}:null
+                 summeStuecke:plan.summeStuecke,optimal:plan.optimal,zuLang:plan.zuLang}:null,
+  // v3.79: derselbe Plan wie normplan, nur mit Stücknummern und der Form, die
+  // pmatPlanRoh()/pmatPlanFuer() (js/48) erwarten (art:"stange", wie
+  // raZuschnittPlan() sie für die Bildschirmanzeige ohnehin schon baut). Ohne
+  // dieses Feld fand die Werkstatt, die Materialbilanz auf der Seite
+  // "Material & Zuschnitt" und die Rüstliste (js/58) für eine Dachrinne nichts
+  // zum Abhaken - obwohl der Plan längst berechnet wird. Kein zweiter
+  // Packlauf: dieselbe Funktion wie am Bildschirm (raZuschnittHtml).
+  zuschnitt:normen&&normen.length?raZuschnittPlan():null
  };
 }
 

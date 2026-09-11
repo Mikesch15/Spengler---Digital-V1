@@ -231,6 +231,11 @@ function renderMeasMaterialOptions(){
 // Mass des Dilatationselements (Rinne Halbrund), je angrenzendem Stück.
 // Negativ = wird abgezogen. Firmenweit, kommt aus app_settings.
 let rinneDilaMass=-165;
+// v3.79: eigener, zweiter Wert NUR für die Ausmass-Länge (Feedback
+// 11.09.2026) - unabhängig vom obigen rinneDilaMass, das ausschliesslich den
+// Zuschnitt betrifft. 0 = keine Änderung, nichts wird erfunden, solange die
+// Firma keinen Wert einträgt.
+let rinneDilaAusmassMass=0;
 // Rinnen-Normlängen je Material und Grösse als Firmeneinstellung:
 // {"<material_id>|<groesse>":[laengen_mm]}. Leer = Vorgabe der App.
 let rinneNormlaengen={};

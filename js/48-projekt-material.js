@@ -73,7 +73,10 @@ function pmatPlanFuer(m){
  const breite=(r.abwicklung!==undefined&&r.abwicklung!==null)?r.abwicklung
              :((d.abwicklung!==undefined&&d.abwicklung!==null)?d.abwicklung:null);
  const p=zuPlanAusGespeichert(r,breite,"Stück");
- if(!p||!(p.gruppen||[]).length)return null;
+ // v3.79: ein Normlaengen-Plan (art:"stange", Rinne halbrund) hat keine
+ // gruppen - er hat stangen. Beide Formen pruefen, sonst waere fuer diese
+ // Art nie ein Plan da (siehe zuFlach, js/33).
+ if(!p||!((p.art==="stange"?p.stangen:p.gruppen)||[]).length)return null;
  p.erledigtFuer=(m&&m.id!==undefined)?m.id:null;
  // v3.26: Woher der Plan stammt - fuer die Herkunft eines eingelagerten
  // Restes (js/42). Reine Zusatzangabe, die Rechnung beruehrt sie nicht.
@@ -96,7 +99,9 @@ function pmatPlanFuer(m){
  // v3.33: dazu Rolle oder Tafel - der Betrieb muss beim Ruesten sehen, WORAUS
  // geschnitten wird. Das Wort kommt aus ZU_WORT (js/33), es gibt keine zweite
  // Schreibweise; p.form hat zuPlanAusGespeichert() aus dem Datensatz gelesen.
- const formWort=(typeof zuWort==="function")?zuWort(p).kopf:"";
+ // v3.79: bei Normlaengen (art:"stange") gibt es kein Rolle/Tafel - zuFlach()
+ // ist dieselbe Unterscheidung, die auch js/33 selbst dafuer benutzt.
+ const formWort=(typeof zuWort==="function"&&typeof zuFlach==="function"&&zuFlach(p))?zuWort(p).kopf:"";
  p.materialText=[p.materialName,(typeof measStaerkeText==="function")?measStaerkeText(p.staerkeFuer):"",formWort]
    .filter(x=>x&&x!=="Ohne Material").join(" · ");
  return p;
@@ -115,15 +120,19 @@ function pmatStuecke(m){
     merkmal:x.merkmal||"",hinweis:x.hinweis||"",nr:x.nr});
   }));
  };
- // Drei historische Formen, alle in echten Datensaetzen vorhanden:
+ // Vier historische Formen, alle in echten Datensaetzen vorhanden:
  //   gruppen[]            - je Gruppe eine eigene Breite (Freies Profil,
  //                          Lukarne, Rinne, Kamin, Einfassung)
  //   streifen[]           - flach, eine Breite fuer alles (Einlaufblech)
  //   verteilung.streifen  - aeltere Fassung derselben flachen Form (Kehle)
+ //   stangen[]            - eindimensional (art:"stange", Rinne halbrund,
+ //                          v3.79) - dieselbe Form wie streifen[], nur mit
+ //                          fester Rollenbreite statt Abwicklung.
  // Bei den flachen Formen steht die Breite entweder im Plan selbst
  // (rollen.abwicklung) oder daneben im Datensatz (data.abwicklung) - genau
  // die beiden Werte, die auch js/16 an zuDruckHtml() uebergibt.
- if(Array.isArray(r.gruppen)&&r.gruppen.length)r.gruppen.forEach(g=>ausStreifen(g.streifen,g.breite));
+ if(r.art==="stange")ausStreifen(r.stangen,r.breite);
+ else if(Array.isArray(r.gruppen)&&r.gruppen.length)r.gruppen.forEach(g=>ausStreifen(g.streifen,g.breite));
  else{
   const d=(m&&m.data)||{};
   const breite=(r.abwicklung!==undefined&&r.abwicklung!==null)?r.abwicklung

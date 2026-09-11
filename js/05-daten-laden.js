@@ -72,6 +72,7 @@ async function loadAllData(){
   logoUrl=geladen.appSettings.logo_url||"";
   defaultVat=geladen.appSettings.default_vat||"8.1 %";
   if(geladen.appSettings.rinne_dila_mass_mm!==null&&geladen.appSettings.rinne_dila_mass_mm!==undefined)rinneDilaMass=Number(geladen.appSettings.rinne_dila_mass_mm)||0;
+  if(geladen.appSettings.rinne_dila_ausmass_mass_mm!==null&&geladen.appSettings.rinne_dila_ausmass_mass_mm!==undefined)rinneDilaAusmassMass=Number(geladen.appSettings.rinne_dila_ausmass_mass_mm)||0;
   rinneNormlaengen=(geladen.appSettings.rinne_normlaengen&&typeof geladen.appSettings.rinne_normlaengen==="object")?geladen.appSettings.rinne_normlaengen:{};
   blechRollenbreiten=Array.isArray(geladen.appSettings.blech_rollenbreiten)?geladen.appSettings.blech_rollenbreiten.map(Number).filter(x=>Number.isFinite(x)&&x>0):[];
   workflowAktiv=(geladen.appSettings.workflow_aktiv!==false);   // v3.07, Vorgabe ein

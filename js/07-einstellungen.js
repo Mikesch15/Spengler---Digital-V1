@@ -162,11 +162,15 @@ $("saveLukMasse").addEventListener("click",async()=>{
 });
 $("saveRinneDilaMass").onclick=async()=>{
  const wert=Number($("rinneDilaMassInput").value)||0;
+ // v3.79: der zweite, eigene Ausmass-Wert der Dila haengt am selben Knopf -
+ // beide Felder gehoeren fachlich zusammen, ein zweiter Knopf waere nur Laerm.
+ const wertAusmass=Number($("rinneDilaAusmassMassInput").value)||0;
  $("saveRinneDilaMass").disabled=true;
- const {fehler}=await speichereAppSettings({rinne_dila_mass_mm:wert});
+ const {fehler}=await speichereAppSettings({rinne_dila_mass_mm:wert,rinne_dila_ausmass_mass_mm:wertAusmass});
  $("saveRinneDilaMass").disabled=false;
  if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
  rinneDilaMass=wert;
+ rinneDilaAusmassMass=wertAusmass;
  if(typeof renderRinneResult==="function"&&rinneSegments.length)renderRinneResult();
  if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();
  alert("Gespeichert (gilt für alle).");

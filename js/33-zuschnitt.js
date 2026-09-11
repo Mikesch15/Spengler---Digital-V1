@@ -794,6 +794,16 @@ function zuTitel(nr,form){
 // Planform von oben - ein aelterer Datensatz druckt weiterhin SEINE Zahlen.
 function zuPlanAusGespeichert(r,breite,einheit){
  if(!r)return null;
+ // v3.79: Normlaengen (Rinne halbrund) sind eindimensional (art:"stange",
+ // js/29 ebaZuschnittPlan-Gegenstueck raZuschnittPlan) - keine Rolle/Tafel mit
+ // gruppen/streifen. zuAlleStuecke() (oben) liest p.stangen direkt, deshalb
+ // reicht es, den gespeicherten Plan unveraendert durchzureichen.
+ if(r.art==="stange")
+  return {art:"stange",einheit:einheit||r.einheit||"Stück",
+   breite:zuZahl(breite)||zuZahl(r.breite),
+   stangen:Array.isArray(r.stangen)?r.stangen:[],
+   gesamt:r.gesamt,summeStuecke:r.summeStuecke,verschnitt:r.verschnitt,
+   zuLang:r.zuLang||[],optimal:r.optimal!==false};
  let gruppen=[];
  if(Array.isArray(r.gruppen)&&r.gruppen.length)gruppen=r.gruppen;
  else{
