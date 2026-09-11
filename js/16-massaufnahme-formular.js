@@ -1,4 +1,34 @@
 "use strict";
+
+/*
+ * MASSAUFNAHME-FORMULAR
+ *
+ * Zentrale Formularlogik für die verschiedenen Massaufnahme-Arten.
+ *
+ * Grundprinzip:
+ * - Bestehende Fachmodule liefern Berechnungen und Eingaben.
+ * - Dieses Modul verbindet Formular, Datenmodell und Darstellung.
+ * - Gemeinsame Daten wie Fotos/Skizzen, Regierapport-Material,
+ *   Materialstärke und Zuschnittform werden zentral verarbeitet.
+ *
+ * Unterstützte Massaufnahme-Arten:
+ * - Skizze / Foto
+ * - Einlaufblech gerade
+ * - Rinne halbrund
+ * - Einlaufblech konisch
+ * - Freies Profil
+ * - Mauerabdeckung
+ * - Lukarne
+ * - Anschlussblech
+ * - Einfassung rund
+ * - Kamineinfassung
+ * - Kehle
+ * - Rinne
+ *
+ * Bestehende Fachfunktionen und Datenstrukturen nicht duplizieren.
+ * Alte gespeicherte Massaufnahmen müssen weiterhin geöffnet werden können.
+ */
+
 function showMeasTypeSection(type){
  $("measTypeFoto").hidden=(type!=="skizze_foto");
  // Die Statuszeile der Skizze/Foto-Aufnahme sagt, was tatsaechlich erfasst

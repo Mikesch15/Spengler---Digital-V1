@@ -1,68 +1,33 @@
 "use strict";
-// ---- Offerte als eigenstaendiger Projektbestandteil (v3.34) -----
-//
-// Ziel-Prozesskette (Auftrag vom 08.09.2026):
-//   PROJEKT -> OFFERTE -> MASSAUFNAHME -> BERECHNUNG -> MATERIAL & ZUSCHNITT
-//   -> ZUSCHNITT -> STUECK ABHAKEN -> WERKSTATT/RUESTLISTE
-//   -> RUESTEN/MONTIEREN -> AUSMASS
-//
-// Dieser Auftrag endet bewusst bei PROJEKT -> EIGENE OFFERTE. Ausmass wird
-// NICHT angefasst (js/17-ausmass.js ist unveraendert) - es bleibt ein
-// spaeterer Schritt ganz am Ende der bestehenden Kette.
-//
-// Fachlich strikt getrennt (Auftrag):
-//   Offerte      = was dem Kunden angeboten wurde.
-//   Massaufnahme = was aufgenommen/ermittelt wurde.
-//   Produktion   = was daraus hergestellt wird.
-//   Ausmass      = was am Ende tatsaechlich ausgefuehrt/verrechnet wird.
-// Eine spaetere "Offerte -> Ausmass"-Uebernahme bleibt architektonisch
-// moeglich (die Offerte ist eine eigene Zeile mit eigenen Positionen),
-// wird in dieser Version aber NICHT gebaut.
-//
-// Wiederverwendet, nichts doppelt gebaut:
-// - Fotoerkennung: recognizePhoto() bleibt unveraendert in js/17-ausmass.js
-//   (ruft die bestehende Edge Function extract-offer-positions auf) und
-//   wird hier unveraendert aufgerufen.
-// - PDF-Erkennung (v3.39): DIESELBE recognizePhoto()-Funktion, ohne jede
-//   Aenderung an ihr oder an der Edge Function - eine "data:application/
-//   pdf;base64,..."-URL passiert resolveImage() dort bereits unveraendert
-//   (keine mimeType-Pruefung fuer data:-URLs). Neu ist nur
-//   angPdfDatenUrlFuerErkennung(), das aus einer frisch gewaehlten oder
-//   bereits gespeicherten PDF-Datei eine solche URL erzeugt.
-// - Foto-Upload: uploadMeasurementImage() (js/10-massaufnahme.js), Ordner
-//   "angebote-photo" - storage_object_insert_allowed()/
-//   storage_object_is_own_company() kennen diesen Ordner bereits.
-// - Projektsuche/-vorschlag: searchProjects()/projektVorschlagHtml()/
-//   positionSuggest() (js/01,09,06) unveraendert.
-// - Vorschaubilder: resolveSignedThumbnails() (js/10), signierte URLs wie
-//   ueberall sonst, keine oeffentliche URL.
-// - Cockpit-Einbindung: COCKPIT_BEREICHE (js/24-projekt-cockpit.js) wird
-//   um den Schluessel "angebote" ERGAENZT (reine Objekt-Mutation, kein
-//   einziger Eingriff in js/24 noetig) - damit gelten Anzeige, Klapp-
-//   Mechanik, Bereichs-Aktualisierung und Tastaturbedienung automatisch.
-//
-// Berechtigung (Auftrag: "zunaechst ausschliesslich fuer mich"):
-// Kein clientseitiges "if user==...". Die vier PERMISSIVEN Policies auf
-// angebote (select/insert/update/delete_permission) sind das normale
-// has_permission()-Muster jeder anderen Fachtabelle - has_permission()
-// gewaehrt Admins darin wie ueberall automatisch Zugriff, das ist HIER
-// NICHT anders. Was die Freischaltung erzwingt, ist eine ZWEITE,
-// unabhaengige Ebene: zwei RESTRIKTIVE Policies, UND-verknuepft mit den
-// permissiven:
-//   tenant_boundary_angebote     (company_id = my_company_id())
-//   feature_boundary_angebote    (EXISTS ... feature_access ... granted)
-// feature_boundary_angebote sperrt JEDEN ohne eigene feature_access-Zeile,
-// auch einen Administrator - der Admin-Bypass in has_permission() wird
-// also nicht umgangen, sondern durch dieses zweite, unabhaengige Schloss
-// zusaetzlich ueberstimmt. ACHTUNG (echte Luecke, siehe CLAUDE.md 139.3):
-// permission_settings hat KEINE Zeile fuer resource='angebote' - fuer
-// role='employee' liefert has_permission() deshalb false, selbst mit
-// granted=true in feature_access. Der Schalter funktioniert damit heute
-// nur zuverlaessig fuer role='admin' (wie den einzigen Empfaenger Mike
-// Ledermann). Freigeschaltet wird ausschliesslich ueber eine echte Zeile
-// in feature_access - siehe js/05a-rechte.js. UI-seitig steuert
-// offerteZugriff nur die Sichtbarkeit; ohne Freigabe entsteht gar kein
-// funktionsloser Knopf (Auftrag).
+
+/*
+ * OFFERTEN
+ *
+ * Dieses Modul verwaltet Offerten als eigenständigen Bestandteil eines Projekts.
+ *
+ * Fachliche Trennung:
+ * - Offerte      = dem Kunden angeboten
+ * - Massaufnahme = aufgenommen / ermittelt
+ * - Produktion   = daraus hergestellt
+ * - Ausmass      = tatsächlich ausgeführt / verrechnet
+ *
+ * Bestehende Funktionen werden wiederverwendet:
+ * - recognizePhoto() für die Positions-Erkennung
+ * - uploadMeasurementImage() für Foto-Uploads
+ * - searchProjects() / projektVorschlagHtml() / positionSuggest()
+ * - resolveSignedThumbnails() für Vorschaubilder
+ * - COCKPIT_BEREICHE für die Cockpit-Integration
+ *
+ * PDF- und Foto-Import verwenden möglichst dieselbe Positionsstruktur.
+ *
+ * Der Zugriff wird über die bestehende Berechtigungs- und RLS-Logik
+ * abgesichert. Die Frontend-Sichtbarkeit ist keine Sicherheitsgrenze.
+ *
+ * Keine parallele Erkennungs-, Upload-, Projekt- oder Berechtigungslogik
+ * aufbauen, wenn bestehende Funktionen verwendet werden können.
+ */
+
+// Aktuelle Offerten-Funktionalität 
 
 let offerteZugriff=false;
 let angSelectedProjectId=null;
