@@ -15,7 +15,7 @@ function renderAmPositionsTable(){
 <td><input data-am-desc="${i}" value="${esc(p.description||"")}"></td>
 <td><input data-am-qty="${i}" type="number" step=".01" value="${p.quantity||0}"></td>
 <td><input data-am-unit="${i}" value="${esc(p.unit||"")}"></td>
-<td><button type="button" class="red" data-am-del="${i}" style="padding:6px 8px">×</button></td>
+<td><button type="button" class="gray" data-am-pick="${i}" style="padding:6px 8px" title="Aus Massaufnahme übernehmen">📐</button><button type="button" class="red" data-am-del="${i}" style="padding:6px 8px">×</button></td>
 </tr>`).join("")||'<tr><td colspan="5" class="small">Noch keine Positionen. Foto aufnehmen und "Positionen erkennen" klicken, oder manuell hinzufügen.</td></tr>';
  $("amPositionsSummary").textContent=amPositions.length?`${amPositions.length} Positionen`:"";
 }
@@ -75,12 +75,102 @@ $("amPositionsBody").addEventListener("input",e=>{
 });
 $("amPositionsBody").addEventListener("click",e=>{
  const del=e.target.closest("[data-am-del]");
- if(del){amPositions.splice(Number(del.dataset.amDel),1);renderAmPositionsTable();}
+ if(del){amPositions.splice(Number(del.dataset.amDel),1);renderAmPositionsTable();return}
+ const pick=e.target.closest("[data-am-pick]");
+ if(pick)amOpenMassPick(Number(pick.dataset.amPick));
 });
 $("amAddPosition").onclick=()=>{
  amPositions.push({pos:"",description:"",quantity:0,unit:""});
  renderAmPositionsTable();
 };
+
+// ---- v3.45: bestehende Offerte in die Positionsliste einlesen ----------
+// Liest die Positionen einer gespeicherten Offerte (Tabelle "angebote",
+// dieselbe Positionsstruktur pos/description/quantity/unit wie hier) fuer
+// das aktuell gewaehlte Projekt ein - keine neue Positionsstruktur, siehe
+// CLAUDE.md "Offerten".
+let amOfferteListCache=[];
+$("amLoadOfferteBtn").onclick=async()=>{
+ if(!amSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen.");return}
+ const {data,error}=await sb.from("angebote").select("id,title,positions,date").eq("project_id",amSelectedProjectId).order("date",{ascending:false});
+ if(error){alert("Fehler beim Laden der Offerten: "+error.message);return}
+ amOfferteListCache=data||[];
+ const box=$("amOfferteResults");
+ box.hidden=false;
+ box.innerHTML=amOfferteListCache.length
+  ?amOfferteListCache.map(a=>`<div class="item" data-pick-am-angebot="${a.id}"><b>${esc(a.title||"Ohne Bezeichnung")}</b><span>${(a.positions||[]).length} Position(en)${a.date?" · "+esc(a.date):""}</span></div>`).join("")
+  :'<div class="small">Keine Offerte zu diesem Projekt gefunden.</div>';
+};
+$("amOfferteResults").addEventListener("click",e=>{
+ const it=e.target.closest("[data-pick-am-angebot]");if(!it)return;
+ const ang=amOfferteListCache.find(a=>a.id===Number(it.dataset.pickAmAngebot));
+ if(!ang)return;
+ const neu=Array.isArray(ang.positions)?ang.positions.map(p=>({...p})):[];
+ if(amPositions.length)
+  amPositions=confirm("Vorhandene Positionen ersetzen? Abbrechen fügt die Offerte-Positionen stattdessen an.")?neu:amPositions.concat(neu);
+ else amPositions=neu;
+ renderAmPositionsTable();
+ $("amOfferteResults").hidden=true;
+ $("amOfferteResults").innerHTML="";
+});
+
+// ---- v3.45: Ausmass-Zeilen einer Massaufnahme (data.ausmass) in eine ----
+// Offerte-Position uebernehmen. Es wird nichts neu gerechnet - dieselbe
+// Quelle, aus der auch pmatSammeln() (js/48) schoepft.
+let amMassPickIndex=null;
+let amMassPickMeasurementsList=[];
+async function amOpenMassPick(i){
+ if(!amSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen.");return}
+ amMassPickIndex=i;
+ const cacheOk=Array.isArray(projectMeasurementsCache)&&projectMeasurementsCache.length
+   &&projectMeasurementsCache[0].project_id===amSelectedProjectId;
+ let liste=cacheOk?projectMeasurementsCache:null;
+ if(!liste){
+  const {data,error}=await sb.from("measurements").select("*").eq("project_id",amSelectedProjectId).order("date",{ascending:false});
+  if(error){alert("Fehler beim Laden der Massaufnahmen: "+error.message);return}
+  liste=data||[];
+ }
+ amMassPickMeasurementsList=liste.filter(m=>Array.isArray(m.data&&m.data.ausmass)&&m.data.ausmass.length);
+ if(!amMassPickMeasurementsList.length){alert("Dieses Projekt hat keine Massaufnahme mit Ausmass-Zeilen.");return}
+ $("amMassPickSelect").innerHTML=amMassPickMeasurementsList.map(m=>{
+  const art=(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[m.type])||m.type||"Massaufnahme";
+  return `<option value="${m.id}">${esc(art)}${m.title?" · "+esc(m.title):""}</option>`;
+ }).join("");
+ renderAmMassPickRows();
+ $("amMassPickModal").hidden=false;
+}
+function renderAmMassPickRows(){
+ const m=amMassPickMeasurementsList.find(x=>x.id===Number($("amMassPickSelect").value));
+ const rows=(m&&m.data&&Array.isArray(m.data.ausmass))?m.data.ausmass:[];
+ $("amMassPickRows").innerHTML=rows.map((z,i)=>{
+  const zahl=typeof pmatZahl==="function"?pmatZahl(z.menge):Number(z.menge);
+  const txt=(zahl===null||zahl===undefined||Number.isNaN(zahl))?esc(String(z.menge??"")):(typeof pmatFormat==="function"?pmatFormat(zahl):String(zahl));
+  return `<label style="display:block;padding:4px 0"><input type="checkbox" data-am-mass-row="${i}"> ${esc(z.bezeichnung||"")} – ${txt} ${esc(z.einheit||"")}</label>`;
+ }).join("")||'<div class="small">Keine Ausmass-Zeilen in dieser Massaufnahme.</div>';
+}
+$("amMassPickSelect").addEventListener("change",renderAmMassPickRows);
+$("amMassPickApply").onclick=()=>{
+ const m=amMassPickMeasurementsList.find(x=>x.id===Number($("amMassPickSelect").value));
+ const rows=(m&&m.data&&Array.isArray(m.data.ausmass))?m.data.ausmass:[];
+ const boxen=[...$("amMassPickRows").querySelectorAll("[data-am-mass-row]:checked")];
+ if(!boxen.length){alert("Bitte mindestens eine Zeile auswählen.");return}
+ let summe=0,einheit="";
+ boxen.forEach(b=>{
+  const z=rows[Number(b.dataset.amMassRow)];
+  if(!z)return;
+  const zahl=typeof pmatZahl==="function"?pmatZahl(z.menge):Number(z.menge);
+  if(zahl!==null&&zahl!==undefined&&!Number.isNaN(zahl))summe+=zahl;
+  if(!einheit&&z.einheit)einheit=z.einheit;
+ });
+ const p=amPositions[amMassPickIndex];
+ if(p){
+  p.quantity=Math.round(summe*1000)/1000;
+  if(!p.unit&&einheit)p.unit=einheit;
+ }
+ $("amMassPickModal").hidden=true;
+ renderAmPositionsTable();
+};
+$("amMassPickCancel").onclick=()=>{$("amMassPickModal").hidden=true};
 
 function renderAmPhotoGallery(){
  $("amPhotoGallery").innerHTML=amPhotos.map((src,i)=>`<div class="sketch-thumb-wrap">
@@ -216,6 +306,8 @@ function newAusmassWithType(type){
  renderAmPositionsTable();
  amBzPositions=[];
  renderBzPositionsTable();
+ $("amOfferteResults").hidden=true;
+ $("amOfferteResults").innerHTML="";
  setAmProjectField(currentProjectId);
  $("ausmassModal").hidden=true;
  $("ausmassEditModal").hidden=false;
@@ -262,6 +354,8 @@ function openAusmass(a){
   amBzPositions=[];
  }
  $("amRecognizeStatus").textContent="";
+ $("amOfferteResults").hidden=true;
+ $("amOfferteResults").innerHTML="";
  $("ausmassModal").hidden=true;
  $("ausmassEditModal").hidden=false;
  updateAmFormTitle();

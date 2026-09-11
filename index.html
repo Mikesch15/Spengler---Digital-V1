@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.44</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.45</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1580,10 +1580,14 @@ einer wirkt nicht auf die anderen.</div>
 </div>
 
 <div id="amTypeOfferte">
+<div class="bar" style="margin-bottom:8px">
+<button type="button" class="gray" id="amLoadOfferteBtn">📥 Offerte einlesen</button>
+</div>
+<div id="amOfferteResults" hidden></div>
 <h2 style="margin-top:4px">Erkannte Positionen <button type="button" class="hilfe-knopf no-print" data-hilfe="am-ki">i</button></h2>
 <div class="scroll">
 <table class="eb-table">
-<colgroup><col style="width:14%"><col style="width:50%"><col style="width:16%"><col style="width:14%"><col style="width:6%"></colgroup>
+<colgroup><col style="width:14%"><col style="width:44%"><col style="width:16%"><col style="width:14%"><col style="width:12%"></colgroup>
 <thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th></th></tr></thead>
 <tbody id="amPositionsBody"></tbody>
 </table>
@@ -1629,6 +1633,22 @@ einer wirkt nicht auf die anderen.</div>
 <button id="cancelAusmass" class="gray">Abbrechen</button>
 <button id="ausmassEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
 <button id="startFromAusmassEdit" class="gray">🏠 Start</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- v3.45: Laengen/Stueckzahlen einer Massaufnahme-Position (data.ausmass)
+     in eine Offerte-Position des Ausmasses uebernehmen. -->
+<div id="amMassPickModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📐 Aus Massaufnahme übernehmen</h2>
+<div><label>Massaufnahme</label><select id="amMassPickSelect"></select></div>
+<div id="amMassPickRows" style="margin-top:8px"></div>
+<div class="bar">
+<button type="button" class="green" id="amMassPickApply">Übernehmen</button>
+<button type="button" class="gray" id="amMassPickCancel">Abbrechen</button>
 </div>
 </div>
 </div>
