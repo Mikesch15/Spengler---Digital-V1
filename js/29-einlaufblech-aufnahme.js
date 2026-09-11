@@ -70,7 +70,9 @@ function ebaLeer(){
   material:"", abwicklung:250, montage:"links",
   massA:"", winkel:"", gesamtlaenge:"",
   stuecke:[],
-  gava:{aktiv:false,abstand_mm:ebaGavaVorgabe(),anzahl:null},
+  // v3.65: der GAVA-Abstand ist nur noch ein Richtwert (Einstellungen) - er
+  // wird nicht mehr vorausgefuellt, auch nicht beim Anlegen.
+  gava:{aktiv:false,abstand_mm:"",anzahl:null},
   // rollenAuswahl: leer = das ganze Blechlager der Firma (nichts abgewaehlt).
   rollenAuswahl:[]
  };
@@ -592,6 +594,10 @@ function ebaPruefungen(){
   });
  }
  if(!a.material)m.push({art:"warnung",text:"Kein Material gewählt – die Materialübersicht bleibt unvollständig."});
+ // v3.65: der GAVA-Abstand hat keinen Vorgabewert mehr - solange die
+ // Haltebleche aktiv sind, muss er eingetragen sein.
+ if(a.gava&&a.gava.aktiv&&!(ebaZahl(a.gava.abstand_mm)>0))
+  m.push({art:"fehler",text:"GAVA-Abstand fehlt – Pflichtfeld, solange Haltebleche aktiv sind."});
  return m;
 }
 
@@ -692,7 +698,7 @@ function ebaGavaHtml(){
  return `<div class="ra-dehnung">
 <label class="ra-schalter"><input type="checkbox" id="eba_gavaAktiv"${g.aktiv?" checked":""}> GAVA Blech (Haltebleche)</label>
 ${g.aktiv?`<div class="grid">
-${ebaFeld("Abstand (mm)",`<input id="eba_gavaAbstand" type="number" inputmode="numeric" step="1" value="${esc(g.abstand_mm||"")}">`)}
+${ebaFeld("Abstand (mm)",`<input id="eba_gavaAbstand" type="number" data-pflicht="1" inputmode="numeric" step="1" value="${esc(g.abstand_mm||"")}">`)}
 ${ebaFeld("Anzahl (leer = gerechnet)",`<input id="eba_gavaAnzahl" type="number" inputmode="numeric" step="1" value="${g.anzahl===null||g.anzahl===undefined?"":esc(g.anzahl)}">`)}
 </div>
 <div class="ra-dehnung-zahl"><span>Haltebleche</span><b id="eba_wGava">${n===null?"–":esc(n)+" Stk."}</b>
@@ -982,7 +988,9 @@ function ebaVerdrahten(){
   if(t.id==="eba_montage"){a.montage=t.value; renderEinlaufblechAufnahme(); return}
   if(t.id==="eba_gavaAktiv"){
    a.gava.aktiv=!!t.checked;
-   if(a.gava.aktiv&&!ebaZahl(a.gava.abstand_mm))a.gava.abstand_mm=ebaGavaVorgabe();
+   // v3.65: der Firmenwert ist nur noch ein Richtwert (Einstellungen) - beim
+  // Aktivieren bleibt das Feld leer, damit der Abstand bewusst eingetragen
+  // werden muss und nicht stillschweigend uebernommen wird.
    renderEinlaufblechAufnahme(); return;
   }
   if(d.ebaGl!==undefined){ebaGehrung(Number(d.ebaGl),"links",t.checked); renderEinlaufblechAufnahme(); return}

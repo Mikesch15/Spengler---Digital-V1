@@ -95,7 +95,11 @@ function keaSegmente(){return kehleA.segmente||[]}
 function keaSummeLaenge(){return keaSegmente().reduce((s,x)=>s+keaZahl(x.laenge),0)}
 function keaSummeZuschnitt(){return keaSegmente().reduce((s,x)=>s+keaZuschnittLaenge(x),0)}
 function keaNeuesSegment(rolle,laenge){
- return {laenge:keaZahl(laenge),ueberlappung:keaUeberlappungVorgabe(),
+ // v3.65: die Ueberlappung aus den Einstellungen ist nur noch ein Richtwert
+ // (keaUeberlappungVorgabe bleibt fuer die Anzeige/Info und fuer
+ // keaAusLaengeAufteilen erhalten) - ein neues Segment startet leer, damit
+ // sie fuer jedes Segment bewusst eingetragen werden muss.
+ return {laenge:keaZahl(laenge),ueberlappung:"",
          rolle:rolle||null};
 }
 // Traufstueck und Firststueck: die Laenge wird BEIM ANLEGEN uebernommen und
@@ -255,7 +259,12 @@ function keaPruefungen(){
  if(!segs.length)m.push({art:"fehler",text:"Es ist noch kein Segment erfasst."});
  segs.forEach((s,i)=>{
   if(!(keaZahl(s.laenge)>0))m.push({art:"fehler",text:"Segment "+(i+1)+": die Länge fehlt oder ist 0."});
-  if(keaZahl(s.ueberlappung)<0)m.push({art:"fehler",text:"Segment "+(i+1)+": negative Überlappung."});
+  // v3.65: nur das letzte Segment hat keine Ueberlappung mehr (Regel wie
+  // bisher) - bei allen anderen darf sie nicht mehr leer/vergessen sein.
+  const istLetztes=i===segs.length-1;
+  if(!istLetztes&&(s.ueberlappung===""||s.ueberlappung===null||s.ueberlappung===undefined))
+   m.push({art:"fehler",text:"Segment "+(i+1)+": die Überlappung fehlt."});
+  else if(keaZahl(s.ueberlappung)<0)m.push({art:"fehler",text:"Segment "+(i+1)+": negative Überlappung."});
  });
  // Die Vorlage rechnet die Kehllaenge A aus. Weicht die Summe der Segmente
  // deutlich davon ab, ist das ein Hinweis - kein Fehler: die Kehle kann
@@ -348,7 +357,7 @@ function keaSegmenteHtml(){
  const zeilen=segs.map((s,i)=>`<tr>
 <td>${i+1}${keaRolleText(s)?`<div class="kea-rolle" title="${esc(keaRolleText(s))}">${esc(KEA_ROLLE_KURZ[s.rolle])}</div>`:""}</td>
 <td><input data-kea-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(keaZahl(s.laenge))}"></td>
-<td><input data-kea-ueb="${i}" type="number" inputmode="numeric" step="1" value="${esc(keaZahl(s.ueberlappung))}"></td>
+<td><input data-kea-ueb="${i}" type="number"${i<segs.length-1?' data-pflicht="1"':""} inputmode="numeric" step="1" value="${s.ueberlappung===""||s.ueberlappung===null||s.ueberlappung===undefined?"":esc(keaZahl(s.ueberlappung))}"></td>
 <td><div class="zu-lb"><b data-kea-zu="${i}">${esc(keaMm(keaZuschnittLaenge(s)))}</b><span class="zu-lb-breite">mm × ${esc(keaMm(keaAbwicklung()))}&nbsp;mm</span></div></td>
 <td class="p-mitte"><button type="button" class="red ra-weg" data-kea-weg="${i}" title="Segment löschen">✕</button></td>
 </tr>`).join("");
@@ -540,7 +549,7 @@ function keaVerdrahten(){
   }
   else if(d.keaUeb!==undefined){
    const i=Number(d.keaUeb);
-   if(a.segmente[i])a.segmente[i].ueberlappung=keaZahl(t.value);
+   if(a.segmente[i])a.segmente[i].ueberlappung=t.value===""?"":keaZahl(t.value);
   }
   else if(t.id==="kea_trauf"){a.traufLaenge=keaZahl(t.value); keaKnoepfe(); return}
   else if(t.id==="kea_first"){a.firstLaenge=keaZahl(t.value); keaKnoepfe(); return}
@@ -595,7 +604,10 @@ function keaVerdrahten(){
   if(t.id==="kea_firstPlus"){
    if(!(keaFirstLaenge()>0)||keaHatRolle("first"))return;
    const vor=a.segmente[a.segmente.length-1];
-   if(vor&&!keaZahl(vor.ueberlappung))vor.ueberlappung=keaUeberlappungVorgabe();
+   // v3.65: keine stille Uebernahme des Richtwerts mehr - das bisher letzte
+   // Segment ist jetzt nicht mehr das letzte und braucht eine echte
+   // Ueberlappung; die Kontrolle meldet das, bis sie von Hand eingetragen ist.
+   if(vor&&!keaZahl(vor.ueberlappung))vor.ueberlappung="";
    const st=keaNeuesSegment("first",keaFirstLaenge()); st.ueberlappung=0;
    a.segmente.push(st);
    renderKehleAufnahme(); return;

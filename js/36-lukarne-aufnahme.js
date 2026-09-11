@@ -43,13 +43,18 @@ const lukaQm=v=>lukaZahl(v).toFixed(2).replace(".",",");
 // Die firmenweiten Vorgaben aus den Einstellungen - sie werden beim Anlegen
 // einmal uebernommen und sind danach je Aufnahme frei aenderbar.
 function lukaLeer(){
+ // v3.65: die Einstellungen (lukAchsabstand/lukHilfsriss/lukZugabeLaenge/
+ // lukZugabeBreite) sind nur noch ein Richtwert, den der Aufnehmer in den
+ // Einstellungen nachschlagen kann - sie fuellen die Aufnahme nicht mehr
+ // vor. So steht am Anfang nichts Zaehlbares im Feld und kein Mass kann
+ // versehentlich uebernommen statt gemessen werden.
  return {
   material:"", seite:"rechts",
   hoehe:"", laengeOben:"", winkel:95,
-  achsabstand:(typeof lukAchsabstand!=="undefined"?lukAchsabstand:500),
-  hilfsriss:(typeof lukHilfsriss!=="undefined"?lukHilfsriss:0),
-  zugabeLaenge:(typeof lukZugabeLaenge!=="undefined"?lukZugabeLaenge:0),
-  zugabeBreite:(typeof lukZugabeBreite!=="undefined"?lukZugabeBreite:0),
+  achsabstand:"",
+  hilfsriss:"",
+  zugabeLaenge:"",
+  zugabeBreite:"",
   // rollenAuswahl: leer = das ganze Blechlager der Firma (nichts abgewaehlt).
   rollenAuswahl:[]
  };
@@ -224,6 +229,14 @@ function lukaPruefungen(){
  if(!(w>=90&&w<180))
   m.push({art:"fehler",text:"Der obere Innenwinkel muss zwischen 90° und 180° liegen."});
  if(!(lukaZahl(a.achsabstand)>0))m.push({art:"fehler",text:"Der Achsabstand der Scharen fehlt."});
+ // v3.65: Hilfsriss und die beiden Zugaben duerfen bewusst 0 sein - dann
+ // fehlt aber nicht ihr Wert, sondern nur die Zahl "0" selbst. lukaZahl()
+ // wuerde ein leeres Feld ebenfalls zu 0 machen, darum hier der reine
+ // Leer-Vergleich statt einer Pruefung auf "> 0".
+ const fehltLeer=(wert,text)=>{if(wert===""||wert===null||wert===undefined)m.push({art:"fehler",text})};
+ fehltLeer(a.hilfsriss,"Der Hilfsriss fehlt (0 eingeben, falls keiner gewünscht).");
+ fehltLeer(a.zugabeLaenge,"Die Längenzugabe Zuschnitt fehlt (0 eingeben, falls keine gewünscht).");
+ fehltLeer(a.zugabeBreite,"Die Breitenzugabe Zuschnitt fehlt (0 eingeben, falls keine gewünscht).");
  if(lukaZahl(a.zugabeLaenge)<0||lukaZahl(a.zugabeBreite)<0)
   m.push({art:"fehler",text:"Eine Zugabe kann nicht negativ sein."});
  if(!g)return m;
@@ -310,9 +323,9 @@ ${lukaZahlFeld("Vordere Höhe H (mm)","luka_hoehe",a.hoehe,"1",true)}
 ${lukaZahlFeld("Obere Länge L (mm)","luka_laengeOben",a.laengeOben,"1",true)}
 ${lukaZahlFeld("Oberer Innenwinkel α (°)","luka_winkel",a.winkel,"0.1",true)}
 ${lukaZahlFeld("Achsabstand Scharen (mm)","luka_achsabstand",a.achsabstand,"1",true)}
-${lukaZahlFeld("Hilfsriss unter Oberkante (mm)","luka_hilfsriss",a.hilfsriss)}
-${lukaZahlFeld("Längenzugabe Zuschnitt (mm)","luka_zugabeLaenge",a.zugabeLaenge)}
-${lukaZahlFeld("Breitenzugabe Zuschnitt (mm)","luka_zugabeBreite",a.zugabeBreite)}
+${lukaZahlFeld("Hilfsriss unter Oberkante (mm)","luka_hilfsriss",a.hilfsriss,"1",true)}
+${lukaZahlFeld("Längenzugabe Zuschnitt (mm)","luka_zugabeLaenge",a.zugabeLaenge,"1",true)}
+${lukaZahlFeld("Breitenzugabe Zuschnitt (mm)","luka_zugabeBreite",a.zugabeBreite,"1",true)}
 </div>
 ${kennzahlen}
 ${hinweis}

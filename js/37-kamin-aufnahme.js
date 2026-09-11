@@ -108,18 +108,24 @@ function kamEinstellungenSichern(w){
 // Seitenabhaengige Masse stehen als {l,r} da. Ohne "getrennt" gilt der linke
 // Wert fuer beide Seiten - so entsteht nie ein zweiter, unbemerkt leerer Wert.
 function kamaLeer(){
+ // v3.65: die Einstellungen (kaminSettings) sind nur noch ein RICHTWERT, den
+ // der Anwender in den Einstellungen nachschlagen kann - sie fuellen die
+ // Aufnahme selbst nicht mehr vor. So kann kein Mass unbemerkt uebernommen
+ // werden, ohne dass der Anwender es fuer DIESEN Bau tatsaechlich eingibt;
+ // jedes Zahlenfeld ist deshalb ab jetzt ein Pflichtfeld (siehe
+ // kamaMasseHtml/kamaUmschlaegeHtml und kamaPruefungen).
  const s=kaminSettings||KAMIN_STANDARD;
  return {
-  material:"", deckung:s.deckung, lattenabstand:s.lattenabstand,
+  material:"", deckung:s.deckung, lattenabstand:"",
   getrennt:false, skizzeSeite:"l",
-  a:s.mass_vorne, d:s.mass_hinten, e:s.aufbug_hinten, keil:"",
+  a:"", d:"", e:"", keil:"",
   // Der laufende Zustand traegt IMMER den Innenwinkel Dach/Wand - das Merkmal
   // sagt das, damit kamaWinkelDach() ihn nicht faelschlich als alten Datensatz
   // umrechnet.
   winkelBezug:"dach", winkelVorne:"", winkelHinten:"",
   breiteVorne:"", breiteHinten:"",
-  umschlagVorne:s.umschlag_vorne, umschlagHinten:s.umschlag_hinten,
-  umschlagSeite:s.umschlag_seite, ueberlappung:s.ueberlappung,
+  umschlagVorne:"", umschlagHinten:"",
+  umschlagSeite:"", ueberlappung:"",
   b:{l:"",r:""}, c:{l:"",r:""}, f:{l:"",r:""}, g:{l:"",r:""}, hoehe:{l:"",r:""},
   // rollenAuswahl: leer = das ganze Blechlager der Firma (nichts abgewaehlt).
   rollenAuswahl:[]
@@ -575,16 +581,29 @@ function kamaMaterialTabelle(){
 function kamaPruefungen(){
  const m=[], a=kamA;
  const fehlt=(wert,text)=>{if(!(kamaZahl(wert)>0))m.push({art:"fehler",text})};
+ // v3.65: fuer Masse, bei denen 0 ein gueltiger, bewusst eingegebener Wert
+ // sein kann (z.B. kein Keil, kein Umschlag), zaehlt nur echtes LEER-SEIN
+ // als "fehlt" - nicht "ist nicht groesser als 0" wie bei fehlt() oben.
+ const fehltLeer=(wert,text)=>{if(wert===""||wert===null||wert===undefined)m.push({art:"fehler",text})};
  if(!a.material)m.push({art:"warnung",text:"Es ist noch kein Material gewählt."});
  fehlt(a.a,"Mass A (vorne auf Deckmaterial bis Vorderkant Kamin) fehlt.");
  fehlt(a.d,"Mass D (Hinterkant Kamin bis hinten unter Deckmaterial) fehlt.");
  fehlt(a.breiteVorne,"Die Breite vorne (Zuschnittlänge Vorderteil) fehlt.");
  fehlt(a.breiteHinten,"Die Breite hinten (Zuschnittlänge Hinterteil) fehlt.");
+ fehltLeer(a.e,"Mass E (90°-Aufbug hinten) fehlt.");
+ fehltLeer(a.keil,"Keil hinterkant Kamin fehlt (0 eingeben, falls kein Keil vorhanden ist).");
+ fehltLeer(a.ueberlappung,"Überlappung der Seitenteile (Knick) fehlt.");
+ fehltLeer(a.umschlagVorne,"Umschlag vorne fehlt.");
+ fehltLeer(a.umschlagHinten,"Umschlag hinten fehlt.");
+ fehltLeer(a.umschlagSeite,"Umschlag seitlich fehlt.");
+ fehltLeer(a.lattenabstand,"Lattenabstand fehlt.");
  KAM_SEITEN.forEach(s=>{
   const zusatz=a.getrennt?" ("+s.name+")":"";
   fehlt(kamaSeite("b",s.k),"Mass B, Zuschnittlänge Seitenteil vorne"+zusatz+", fehlt.");
   fehlt(kamaSeite("c",s.k),"Mass C, Zuschnittlänge Seitenteil hinten"+zusatz+", fehlt.");
   fehlt(kamaSeite("hoehe",s.k),"Die seitliche Höhe"+zusatz+" fehlt.");
+  fehltLeer(kamaSeitenRoh("f",s.k),"Mass F, seitlich bis Deckmaterial"+zusatz+", fehlt.");
+  fehltLeer(kamaSeitenRoh("g",s.k),"Mass G, seitlich unter Deckmaterial"+zusatz+", fehlt.");
   if(!a.getrennt)return;
  });
  [["a","Mass A"],["d","Mass D"],["e","Mass E"],["keil","Keil"],
@@ -724,7 +743,7 @@ Keil und Aufbug. Deckmaterial und Lattenabstand werden für die Bleilappen gebra
 <div class="grid">
 ${kamaFeld("Material",`<select id="kam_material" data-pflicht="1">${matOpt}</select>`,true)}
 ${kamaFeld("Deckungsmaterial",`<select id="kam_deckung">${deckOpt}</select>`)}
-${kamaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","kam_lattenabstand",a.lattenabstand)}
+${kamaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","kam_lattenabstand",a.lattenabstand,"1",true)}
 </div>
 <label class="kam-schalter"><input type="checkbox" id="kam_getrennt"${a.getrennt?" checked":""}>
 <span>Links und rechts getrennt erfassen</span></label>
@@ -765,10 +784,10 @@ den Knick, damit die beiden an ihn grenzenden Abbüge gleich sind.</div>
 ${kamaZahlFeld("A · vorne auf Deckmaterial bis Vorderkant Kamin","kam_a",a.a,"1",true)}
 ${kamaSeitenFeld("B · Vorderkant Kamin bis Hinterkant Knick","kam_b",true)}
 ${kamaSeitenFeld("C · Vorderkant Knick bis Hinterkant Kamin","kam_c",true)}
-${kamaZahlFeld("Überlappung der Seitenteile (Knick)","kam_ueberlappung",a.ueberlappung)}
+${kamaZahlFeld("Überlappung der Seitenteile (Knick)","kam_ueberlappung",a.ueberlappung,"1",true)}
 ${kamaZahlFeld("D · Hinterkant Kamin bis hinten unter Deckmaterial","kam_d",a.d,"1",true)}
-${kamaZahlFeld("E · Mass vom 90°-Aufbug hinten","kam_e",a.e)}
-${kamaZahlFeld("Keil hinterkant Kamin","kam_keil",a.keil)}
+${kamaZahlFeld("E · Mass vom 90°-Aufbug hinten","kam_e",a.e,"1",true)}
+${kamaZahlFeld("Keil hinterkant Kamin","kam_keil",a.keil,"1",true)}
 ${kamaZahlFeld("Winkel Dach/Wand vorne (°) · stumpf","kam_winkelVorne",a.winkelVorne,"0.1",true)}
 ${kamaZahlFeld("Winkel Dach/Wand hinten (°) · spitz","kam_winkelHinten",a.winkelHinten,"0.1",true)}
 </div>
@@ -776,8 +795,8 @@ ${kamaZahlFeld("Winkel Dach/Wand hinten (°) · spitz","kam_winkelHinten",a.wink
 Knick – die Kaminlänge ist deshalb B + C − Überlappung.</div>
 <h2 style="margin-top:14px">Seitliche Masse</h2>
 <div class="grid">
-${kamaSeitenFeld("F · seitlich bis Deckmaterial","kam_f")}
-${kamaSeitenFeld("G · seitlich unter Deckmaterial","kam_g")}
+${kamaSeitenFeld("F · seitlich bis Deckmaterial","kam_f",true)}
+${kamaSeitenFeld("G · seitlich unter Deckmaterial","kam_g",true)}
 ${kamaSeitenFeld("Seitliche Höhe","kam_hoehe",true)}
 </div>
 ${kamaKennzahlenHtml()}
@@ -793,9 +812,9 @@ function kamaUmschlaegeHtml(){
  return `<div class="info">Die Umschläge stecken in der Abwicklung, die Breiten sind die
 Zuschnittlängen von Vorder- und Hinterteil. Die Seitenteile bekommen ihre Länge aus B und C.</div>
 <div class="grid">
-${kamaZahlFeld("Umschlag vorne","kam_umschlagVorne",a.umschlagVorne)}
-${kamaZahlFeld("Umschlag hinten","kam_umschlagHinten",a.umschlagHinten)}
-${kamaZahlFeld("Umschlagbreite seitlich (beide Seiten gleich)","kam_umschlagSeite",a.umschlagSeite)}
+${kamaZahlFeld("Umschlag vorne","kam_umschlagVorne",a.umschlagVorne,"1",true)}
+${kamaZahlFeld("Umschlag hinten","kam_umschlagHinten",a.umschlagHinten,"1",true)}
+${kamaZahlFeld("Umschlagbreite seitlich (beide Seiten gleich)","kam_umschlagSeite",a.umschlagSeite,"1",true)}
 ${kamaZahlFeld("Breite vorne · Zuschnittlänge Vorderteil","kam_breiteVorne",a.breiteVorne,"1",true)}
 ${kamaZahlFeld("Breite hinten · Zuschnittlänge Hinterteil","kam_breiteHinten",a.breiteHinten,"1",true)}
 </div>

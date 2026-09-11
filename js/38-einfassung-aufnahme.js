@@ -68,14 +68,19 @@ function einfaWinkelIntern(anzeige){
 }
 
 function einfaNeue(){
- const v=(typeof einfVorgabe==="function")?einfVorgabe():{durchmesser:110,winkel:30,a:250,b:200,c:35};
- return {bez:"",durchmesser:v.durchmesser,winkel:v.winkel,a:v.a,b:v.b,c:v.c,anzahl:1};
+ // v3.65: Ø, Winkel, a, b, c waren bisher mit einfVorgabe() (teils Firmen-
+ // Richtwert aus den Einstellungen) vorausgefuellt - eine neue Einfassung
+ // startet jetzt leer, damit jedes Mass bewusst gemessen und eingetragen
+ // werden muss. einfVorgabe() selbst bleibt fuer js/21 unveraendert.
+ return {bez:"",durchmesser:"",winkel:"",a:"",b:"",c:"",anzahl:1};
 }
 function einfaLeer(){
  const s=(typeof einfassungSettings==="object"&&einfassungSettings)
    ||(typeof EINFASSUNG_STANDARD==="object"?EINFASSUNG_STANDARD:{deckung:"biber_einfach",lattenabstand:330});
  return {
-  material:"", deckung:s.deckung, lattenabstand:s.lattenabstand,
+  // v3.65: der Lattenabstand ist nur noch ein Richtwert (Einstellungen) -
+  // die Eindeckungsart bleibt vorbelegt, sie ist eine Auswahl und kein Mass.
+  material:"", deckung:s.deckung, lattenabstand:"",
   einfassungen:[einfaNeue()], aktiv:0, rollenAuswahl:[]
  };
 }
@@ -262,7 +267,7 @@ function einfaPruefungen(){
  if(!q.material)m.push({art:"warnung",text:"Es ist noch kein Material gewählt."});
  if(!q.deckung)m.push({art:"warnung",text:"Es ist noch keine Eindeckungsart gewählt."});
  if(!(einfaZahl(q.lattenabstand)>0))
-  m.push({art:"warnung",text:"Ohne Lattenabstand kann die Anzahl Bleilappen nicht berechnet werden."});
+  m.push({art:"fehler",text:"Lattenabstand fehlt – ohne ihn kann die Anzahl Bleilappen nicht berechnet werden."});
  const liste=einfaListe(q);
  if(!liste.length)m.push({art:"fehler",text:"Es ist noch keine Einfassung erfasst."});
  liste.forEach((e,i)=>{
@@ -271,6 +276,8 @@ function einfaPruefungen(){
    m.push({art:"fehler",text:nr+"Der Rohrdurchmesser fehlt."});
   if(!(einfaZahl(e.a)>0))
    m.push({art:"fehler",text:nr+"Mass a fehlt (vorne bis Mitte Rohr)."});
+  if(!(einfaZahl(e.b)>0))
+   m.push({art:"fehler",text:nr+"Mass b fehlt (ab Mitte Rohr bis hinten)."});
   if(!(einfaZahl(e.c)>0))
    m.push({art:"fehler",text:nr+"Mass c fehlt (Aufbug)."});
   // Der Winkel hat seine eigene Prüfung (er ist intern die Dachneigung und
@@ -352,7 +359,7 @@ Deckmaterial und Lattenabstand werden für die Bleilappen gebraucht.</div>
 <div class="grid">
 ${einfaFeld("Material",`<select id="einfa_material" data-pflicht="1">${matOpt}</select>`,true)}
 ${einfaFeld("Eindeckungsart",`<select id="einfa_deckung">${deckOpt}</select>`)}
-${einfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","einfa_lattenabstand",a.lattenabstand)}
+${einfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","einfa_lattenabstand",a.lattenabstand,"1",true)}
 </div>
 <div class="bar" style="margin-top:8px">
 <button type="button" class="gray" id="einfa_einstellungen">⚙️ Einstellungen</button>
@@ -372,7 +379,7 @@ ${einfaFeld("Bezeichnung",`<input id="einfa_bez_${i}" type="text" value="${esc(e
 ${einfaZahlFeld("Ø Standrohr (mm)","einfa_durchmesser_"+i,e.durchmesser,"1",true)}
 ${einfaZahlFeld("Winkel Dach/Rohr (°)","einfa_winkel_"+i,einfaWinkelAnzeige(e.winkel),"0.1",true)}
 ${einfaZahlFeld("a · vorne bis Mitte Rohr (mm)","einfa_a_"+i,e.a,"1",true)}
-${einfaZahlFeld("b · ab Mitte Rohr bis hinten (mm)","einfa_b_"+i,e.b)}
+${einfaZahlFeld("b · ab Mitte Rohr bis hinten (mm)","einfa_b_"+i,e.b,"1",true)}
 ${einfaZahlFeld("c · Aufbug 90°, oben Umschlag 135° (mm)","einfa_c_"+i,e.c,"1",true)}
 ${einfaZahlFeld("Stückzahl","einfa_anzahl_"+i,e.anzahl)}
 </div>
