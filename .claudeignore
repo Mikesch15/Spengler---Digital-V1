@@ -16,6 +16,7 @@ Aenderungen_*.txt
 NOTIZEN.md
 berichte/
 anleitung/
+CHANGELOG_HISTORIE.md
 
 # ------------------------------------------------------------
 # PROTOTYPEN / EXPERIMENTE
@@ -23,6 +24,36 @@ anleitung/
 prototyp/
 prototyp-einlaufblech/
 pruefstaende/
+
+# ------------------------------------------------------------
+# GENERIERTE PDF-TESTAUSGABEN
+# ------------------------------------------------------------
+pdf/
+
+# ------------------------------------------------------------
+# ALTE ROOT-SCREENSHOTS / EINZELBELEGE (historische Feedback-
+# und Debug-Bilder, nicht Teil der aktuellen App, keine Referenz
+# aus js/, index.html oder manifest.json)
+# ------------------------------------------------------------
+cockpit_kopf68.png
+feedback_handy.png
+freipos_handy.png
+freipos_material.png
+gap_4.6.png
+gap_6.png
+gap_7.png
+gap_8.png
+kehle_360.png
+module_sysadmin.png
+pdf_rinne_eigen.png
+projekte_abstand69.png
+rinne58_unten.png
+rinne_desktop.png
+rinne_handy.png
+rinne_skizze.png
+seitenzahl.pdf
+umschlag_beide.png
+umschlag_zoom.png
 
 # ------------------------------------------------------------
 # ALTE HTML-VERSIONEN / EXPORTS
