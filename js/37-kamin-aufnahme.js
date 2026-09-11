@@ -551,6 +551,16 @@ function kamaAusmassZeilen(){
  const Ll=kamaKaminLaenge("l"), Lr=kamaKaminLaenge("r");
  if(Ll>0)zeile("Kaminlänge längs Dach"+(kamA.getrennt?" links":""),kamaMm(Ll),"mm","B + C − Überlappung");
  if(kamA.getrennt&&Lr>0)zeile("Kaminlänge längs Dach rechts",kamaMm(Lr),"mm","B + C − Überlappung");
+ // v3.51: der Umfang des Kamins, wie er in der Dachschräge liegt - alle vier
+ // Seiten des Kamins sind bereits im Dachsystem gemessen (siehe Kopf dieser
+ // Datei), es braucht deshalb keine Umrechnung der Dachneigung. Zwei
+ // Seitenlaengen (links, rechts) plus die beiden Zuschnittbreiten vorne und
+ // hinten - bei nicht getrennten Seiten ist links=rechts, die Rechnung bleibt
+ // dieselbe.
+ const bv=kamaZahl(kamA.breiteVorne), bh=kamaZahl(kamA.breiteHinten);
+ if(Ll>0&&Lr>0&&bv>0&&bh>0)
+  zeile("Kaminumfang, in der Dachschräge gemessen",kamaMm(Ll+Lr+bv+bh),"mm",
+    "Länge links + Länge rechts + Breite vorne + Breite hinten");
  return z;
 }
 function kamaMaterialTabelle(){
