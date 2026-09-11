@@ -44,31 +44,21 @@ let feedbackSort="offen";
 let feedbackAuswahl=new Set();
 
 // ---------------------------------------------------------------------------
-// Zwei Ansichten, EINE Umsetzung  (v2.70, Feedback 1)
+// Betreiber-Ansicht  (v2.70, seit v3.75 die einzige Ansicht)
 // ---------------------------------------------------------------------------
-// "firma"     – Einstellungen → Feedback: der Firmenadmin sieht das Feedback
-//               SEINER Firma. Gelesen ueber die normale Abfrage, die
-//               Firmengrenze erzwingt allein die restriktive RLS.
-// "betreiber" – System-Administration: der Betreiber sieht das Feedback ALLER
-//               Firmen. Gelesen ueber system_admin_all_feedback(), das
-//               is_system_admin() serverseitig prueft. Ohne diese Ansicht
-//               erreicht ihn Feedback aus einer Kundenfirma nie - genau das
-//               war gemeldet ("Feedback funktioniert nicht mit anderer firma").
-// Sortierung, Auswahl, Zaehlzeile und beide Downloads sind fuer beide
-// Ansichten derselbe Code; verschieden sind nur die Element-IDs, die
-// Firmenspalte und der Schreibweg.
+// System-Administration: der Betreiber sieht das Feedback ALLER Firmen.
+// Gelesen ueber system_admin_all_feedback(), das is_system_admin()
+// serverseitig prueft. Das fruehere "firma"-Register in den Einstellungen
+// (der Firmenadmin sah dort nur das Feedback seiner eigenen Firma) wurde
+// entfernt, weil diese Funktion jetzt vollstaendig in der
+// System-Administration abgedeckt ist.
 const FEEDBACK_ANSICHTEN={
- firma:{schluessel:"firma",liste:"feedbackList",info:"feedbackCountInfo",
-        bars:["feedbackSortBar","feedbackPickBar","feedbackExportBar"],
-        xlsx:"feedbackExportXlsx",txt:"feedbackExportTxt",
-        mitFirma:false,darfLoeschen:true},
  betreiber:{schluessel:"betreiber",liste:"sysFeedbackList",info:"sysFeedbackCountInfo",
         bars:["sysFeedbackSortBar","sysFeedbackPickBar","sysFeedbackExportBar"],
         xlsx:"sysFeedbackExportXlsx",txt:"sysFeedbackExportTxt",
         mitFirma:true,darfLoeschen:false}
 };
-let feedbackAnsicht=FEEDBACK_ANSICHTEN.firma;
-function istBetreiberAnsicht(){return feedbackAnsicht.schluessel==="betreiber"}
+let feedbackAnsicht=FEEDBACK_ANSICHTEN.betreiber;
 function feedbackFirma(f){
  return (f&&f.company_name)?String(f.company_name):"Unbekannte Firma";
 }
@@ -105,30 +95,6 @@ function feedbackStatusText(f){return f&&f.resolved?"Erledigt":"Offen"}
 function feedbackSortiert(){
  const s=FEEDBACK_SORTIERUNGEN[feedbackSort]||FEEDBACK_SORTIERUNGEN.offen;
  return feedbackCache.slice().sort(s.fn);
-}
-
-// opt.behalten=true: die bestehende Auswahl beibehalten (nach "erledigt"
-// oder "geloescht" neu geladen). Ohne Angabe - also beim Oeffnen des
-// Bereichs - ist wieder alles ausgewaehlt.
-async function renderFeedbackList(opt){
- if(!isAdmin())return;
- feedbackAnsicht=FEEDBACK_ANSICHTEN.firma;
- if(feedbackSort==="firma")feedbackSort="offen";   // Firmenspalte gibt es hier nicht
- $(feedbackAnsicht.liste).innerHTML='<div class="small">Lädt…</div>';
- const {data,error}=await sb.from("feedback").select("*,profiles(first_name,last_name)");
- if(error){
-  feedbackCache=[];feedbackAuswahl=new Set();
-  $(feedbackAnsicht.liste).innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;
-  renderFeedbackKopf(true);
-  return;
- }
- feedbackCache=data||[];
- const ids=new Set(feedbackCache.map(f=>f.id));
- feedbackAuswahl=(opt&&opt.behalten)
-  // Nur noch vorhandene IDs behalten - ein geloeschtes Feedback faellt raus.
-  ?new Set([...feedbackAuswahl].filter(id=>ids.has(id)))
-  :new Set(ids);
- renderFeedbackRows();
 }
 
 // Betreiber-Ansicht: Feedback ALLER Firmen, ueber die serverseitig
@@ -347,10 +313,9 @@ $("openFeedback").onclick=()=>{
  $("feedbackModal").hidden=false;
 };
 $("cancelFeedback").onclick=()=>{$("feedbackModal").hidden=true};
-// Liste neu laden - je nach Ansicht ueber die RLS-Abfrage oder die
-// geschuetzte Betreiber-Funktion.
+// Liste neu laden - ueber die geschuetzte Betreiber-Funktion.
 function feedbackNeuLaden(opt){
- return istBetreiberAnsicht()?renderFeedbackBetreiberListe(opt):renderFeedbackList(opt);
+ return renderFeedbackBetreiberListe(opt);
 }
 
 async function feedbackListeHandler(e){
@@ -358,19 +323,11 @@ async function feedbackListeHandler(e){
  if(toggle){
   const id=Number(toggle.dataset.feedbackToggle);
   const neuerStatus=toggle.dataset.resolved!=="1";
-  if(istBetreiberAnsicht()){
-   // Fremde Firma: nur ueber die serverseitig geschuetzte Funktion.
-   const {data,error}=await sb.rpc("system_admin_set_feedback_resolved",
-     {p_id:id,p_resolved:neuerStatus});
-   if(error){alert("Fehler: "+error.message);return}
-   if(!data){alert("Es wurde nichts geändert. Fehlt die nötige Berechtigung?");return}
-  }else{
-   // Ein von RLS blockiertes UPDATE meldet keinen Fehler, es betrifft
-   // still 0 Zeilen (siehe CLAUDE.md 24.1) - deshalb das Ergebnis pruefen.
-   const {data,error}=await sb.from("feedback").update({resolved:neuerStatus}).eq("id",id).select();
-   if(error){alert("Fehler: "+error.message);return}
-   if(!data||!data.length){alert("Es wurde nichts geändert. Fehlt die nötige Berechtigung?");return}
-  }
+  // Fremde Firma: nur ueber die serverseitig geschuetzte Funktion.
+  const {data,error}=await sb.rpc("system_admin_set_feedback_resolved",
+    {p_id:id,p_resolved:neuerStatus});
+  if(error){alert("Fehler: "+error.message);return}
+  if(!data){alert("Es wurde nichts geändert. Fehlt die nötige Berechtigung?");return}
   feedbackNeuLaden({behalten:true});
   return;
  }

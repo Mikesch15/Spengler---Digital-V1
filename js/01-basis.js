@@ -155,9 +155,6 @@ function isAdmin(){
  // Administrator ist, wer das Recht "admin" hat (siehe 05a-rechte.js).
  return !!(currentProfile&&currentProfile.role==="admin");
 }
-// renderFeedbackList() liegt seit v2.63 in js/02-feedback.js, zusammen
-// mit Sortierung und Export. Aufgerufen wird sie erst durch einen Klick
-// (Einstellungen -> Feedback), also lange nachdem js/02 geladen ist.
 let companyName="PETER KÜNZI AG";
 let companyAddress="";
 let logoUrl="";

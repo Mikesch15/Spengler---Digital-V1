@@ -408,7 +408,6 @@ async function registerEmployee(vor,nach){
 }
 
 function renderSettings(){
- $("feedbackTabBtn").hidden=!isAdmin();
  $("protectedTabBtn").hidden=!isAdmin();
  const dilaFeld=$("rinneDilaMassInput");
  if(dilaFeld)dilaFeld.value=rinneDilaMass;
@@ -416,6 +415,14 @@ function renderSettings(){
  // Schnittfuge, Rest-Mindestlaenge und das Reststuecke-Lager (v3.04, js/42).
  if(typeof renderSchnittfugeFelder==="function")renderSchnittfugeFelder();
  if(typeof renderRestLager==="function")renderRestLager();
+ // Materialbestand (v3.27, js/59): fehlte hier bisher komplett - die Liste
+ // wurde nur nach einem Speichern/Loeschen innerhalb derselben Sitzung neu
+ // gezeichnet (renderLagerbestand() stand nur in lagSpeichern()/loeschen()),
+ // beim blossen Oeffnen der Einstellungen (bzw. nach einem Neuladen der App)
+ // aber nie. #lagerListe blieb dadurch leer, obwohl lagerbestand[] (aus
+ // js/05-daten-laden.js) laengst geladen war - gemeldeter Fehler "wird nicht
+ // angezeigt".
+ if(typeof renderLagerbestand==="function")renderLagerbestand();
  const madBoden=$("madBodenMassInput"),madSchieber=$("madSchieberMassInput");
  if(madBoden)madBoden.value=madBodenMass;
  if(madSchieber)madSchieber.value=madSchieberMass;

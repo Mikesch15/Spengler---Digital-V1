@@ -79,7 +79,6 @@ $("settingsModal").addEventListener("click",e=>{
    $("protectedDenied").hidden=isAdmin();
    $("protectedContent").hidden=!isAdmin();
   }
-  if(tab.dataset.settingsTab==="feedback")renderFeedbackList();
  }
 });
 $("logoInput").addEventListener("change",async e=>{

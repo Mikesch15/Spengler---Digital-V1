@@ -570,16 +570,6 @@ const liste=[];
  await schuss("25-feedback","#feedbackModal .modalbox",{warte:700});
  await page.evaluate(()=>{$("feedbackModal").hidden=true});
 
- // Die Liste der Rueckmeldungen liegt im Einstellungs-Register "Feedback"
- // und ist nur fuer Firmenadministratoren sichtbar.
- await page.evaluate(()=>{
-  openSettingsTo("feedback","");
-  $("feedbackTabBtn").hidden=false;
-  if(typeof renderFeedbackList==="function")renderFeedbackList();
- });
- await schuss("25b-feedback-liste","#settingsModal .modalbox",{warte:900});
- await page.evaluate(()=>{$("settingsModal").hidden=true});
-
  // ---------- Aenderungsverlauf im Cockpit ----------
  await page.evaluate(()=>{
   $("feedbackModal").hidden=true; $("projectCockpitModal").hidden=false;

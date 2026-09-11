@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.74</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.75</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1769,20 +1769,22 @@ einer wirkt nicht auf die anderen.</div>
 <button type="button" class="settings-tab active" data-settings-tab="general">Allgemein</button>
 <button type="button" class="settings-tab" data-settings-tab="measurements">Massaufnahmen</button>
 <button type="button" class="settings-tab" data-settings-tab="ausmass">Ausmass</button>
-<button type="button" class="settings-tab" data-settings-tab="lager">📦 Lager</button>
-<button type="button" class="settings-tab" data-settings-tab="protected" id="protectedTabBtn" hidden>🔒 Geschützt</button>
-<button type="button" class="settings-tab" data-settings-tab="feedback" id="feedbackTabBtn" hidden>💬 Feedback</button>
+<button type="button" class="settings-tab" data-settings-tab="lager">Lager</button>
+<button type="button" class="settings-tab" data-settings-tab="protected" id="protectedTabBtn" hidden>Geschützt</button>
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="general">
-<h2 style="margin-top:0">📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2>
-<div class="info">Die vollständige Bedienungsanleitung als PDF – alle Bereiche der
-App mit Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
-Internet geht.</div>
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.44.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 85 Seiten)</a></div>
 
-<h2 style="margin-top:18px">Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2>
-<div class="info">Diese Anzeige-Einstellungen gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
+<div class="settings-section" data-section="anleitung">
+<div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.44.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 85 Seiten)</a></div>
+</div>
+</div>
+
+<div class="settings-section" data-section="anzeige">
+<div class="settings-section-head" data-toggle-section="anzeige"><h2>Anzeige <button type="button" class="hilfe-knopf no-print" data-hilfe="einstellungen">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div class="grid">
 <div><label>Anzahl "Letzte Einträge" auf dem Startbildschirm</label><input id="recentCountInput" type="number" min="1" max="20" step="1"></div>
 <div><label>Dunkler Modus</label><select id="darkModeInput"><option value="nein">Aus</option><option value="ja">An</option></select></div>
@@ -1791,31 +1793,23 @@ Internet geht.</div>
 <div><label>Aufgaben auf dem Startbildschirm</label><select id="aufgabenOffenInput"><option value="zu">Zugeklappt (nur die Zeile)</option><option value="auf">Geöffnet (Liste sichtbar)</option></select></div>
 </div>
 <div class="bar"><button id="saveRecentCount" class="green">💾 Speichern</button></div>
+</div>
+</div>
 
-<h2 style="margin-top:18px">Arbeitsablauf der Massaufnahme <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-workflow">i</button></h2>
-<div class="info">Freigabe durch den Aufnehmer, Zuweisung von Rüster und Monteur,
-Bestätigung von Rüsten und Montage – und die Aufgabenliste auf dem
-Startbildschirm. Gilt für die ganze Firma. Wer ohne diesen Ablauf arbeitet,
-schaltet ihn hier aus; dann verschwindet er aus der Massaufnahme und vom
-Startbildschirm. <b>Es wird dabei nichts gelöscht</b> – der Stand bereits
-laufender Massaufnahmen bleibt gespeichert und ist wieder da, sobald der
-Ablauf erneut eingeschaltet wird. Ändern kann das nur ein Administrator.</div>
+<div class="settings-section" data-section="workflow">
+<div class="settings-section-head" data-toggle-section="workflow"><h2>Arbeitsablauf der Massaufnahme <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-workflow">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div class="grid">
 <div><label>Arbeitsablauf verwenden</label><select id="workflowAktivInput"><option value="ja">Ein</option><option value="nein">Aus</option></select></div>
 </div>
 <div class="bar"><button id="saveWorkflowAktiv" class="green">💾 Speichern</button></div>
 <div class="small" id="workflowAktivHinweis" style="margin-top:4px" hidden></div>
+</div>
+</div>
 
-<h2 style="margin-top:18px">Erweiterter Projekt-/Material-/Werkstattworkflow <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-projektmodule">i</button></h2>
-<div class="info">Führt Material, Zuschnitt, Reservierung und Werkstatt eines
-ganzen Projekts zusammen und ergänzt Vorlagen, Serienaufnahmen und die
-Versionierung der Massaufnahme. <b>Standardmässig aus.</b> Solange der
-Hauptschalter aus ist, verhält sich die App genau wie bisher – keine neuen
-Pflichtfelder, keine neuen Karten, keine Reservierungs- oder
-Versionierungspflicht. <b>Beim Ausschalten wird nichts gelöscht</b>: bereits
-erfasste Reservierungen, Vorlagen und Versionen bleiben gespeichert und sind
-wieder da, sobald der Ablauf erneut eingeschaltet wird. Gilt für die ganze
-Firma; ändern kann das nur ein Administrator.</div>
+<div class="settings-section" data-section="projektmodule">
+<div class="settings-section-head" data-toggle-section="projektmodule"><h2>Erweiterter Projekt-/Material-/Werkstattworkflow <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-projektmodule">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div class="grid">
 <div><label>Erweiterten Ablauf verwenden</label><select id="pmHauptInput"><option value="nein">Aus</option><option value="ja">Ein</option></select></div>
 </div>
@@ -1823,18 +1817,21 @@ Firma; ändern kann das nur ein Administrator.</div>
 <div id="pmListe" class="pm-liste" hidden></div>
 <div class="bar"><button id="savePmModule" class="green">💾 Speichern</button></div>
 <div class="small" id="pmHinweis" style="margin-top:4px" hidden></div>
+</div>
+</div>
 
-<h2 style="margin-top:16px">Rollenbreiten des Blechlagers <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-rollen">i</button></h2>
-<div class="info">Welche Blechrollen die Firma an Lager führt. Gilt für die ganze
-Firma und für alle Massaufnahmen. In der einzelnen Massaufnahme lässt sich im
-Register „Zuschnitt“ auswählen, welche davon dort verwendet werden.</div>
+<div class="settings-section" data-section="rollenbreiten">
+<div class="settings-section-head" data-toggle-section="rollenbreiten"><h2>Rollenbreiten des Blechlagers <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-rollen">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div id="eb_rollenbreiten" class="bar" style="flex-wrap:wrap"></div>
 <div class="bar"><button id="saveBlechRollenbreiten" class="green">💾 Rollenbreiten speichern</button><button type="button" id="resetBlechRollenbreiten" class="gray">↩️ Standard (1000 / 670)</button></div>
 <div class="small" id="eb_rollenHinweis" style="margin-top:4px"></div>
+</div>
+</div>
 
-<h2 style="margin-top:16px">Schnittfuge und Reste <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-schnittfuge">i</button></h2>
-<div class="info">Beides gilt für die ganze Firma und für jede Massaufnahme mit
-Rollenblech-Zuschnitt.</div>
+<div class="settings-section" data-section="schnittfuge">
+<div class="settings-section-head" data-toggle-section="schnittfuge"><h2>Schnittfuge und Reste <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-schnittfuge">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div class="grid">
 <div><label>Schnittfuge (mm)</label><input id="set_schnittfuge" type="number" step="0.5" min="0" max="50" placeholder="0"></div>
 <div><label>Reste aufheben ab Länge (mm)</label><input id="set_restMindest" type="number" step="10" min="0" max="20000" placeholder="1000"></div>
@@ -1847,15 +1844,16 @@ Wird die Verwendung eingeschaltet, ziehen passende Reste den Bedarf ab, <b>bevor
 verbucht wird dabei nichts, das bleibt ein ausdrücklicher Klick.</div>
 <div class="bar"><button id="saveSchnittfuge" class="green">💾 Speichern</button></div>
 <div class="small" id="set_schnittfugeHinweis" style="margin-top:4px" hidden></div>
+<div class="small" style="color:var(--muted);margin-top:8px">Das Lager selbst – Materialbestand und Reststücke – steht im Register <b>Lager</b>.</div>
+</div>
+</div>
 
-<div class="small" style="color:var(--muted);margin-top:8px">Das Lager selbst – Materialbestand und Reststücke – steht im Register <b>📦 Lager</b>.</div>
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="measurements" hidden>
 <div class="settings-section" data-section="material">
 <div class="settings-section-head" data-toggle-section="material"><h2>Material <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-material">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt firmenweit für alle. Die beiden Zahlenfelder werden nur bei "Dachrinne" und "Mauerabdeckung" für die Dehnungsabstände nach SIA 271 gebraucht – bei allen anderen Arten leer lassen.</div>
 <div id="measMaterialSettings"></div>
 <div class="bar" style="margin-bottom:14px"><button id="newMeasMaterial" class="gray">＋ Material hinzufügen</button></div>
 </div>
@@ -1863,21 +1861,13 @@ verbucht wird dabei nichts, das bleibt ein ausdrücklicher Klick.</div>
 <div class="settings-section" data-section="vorlagen" id="vorlagenKarte" hidden>
 <div class="settings-section-head" data-toggle-section="vorlagen"><h2>Vorlagen <button type="button" class="hilfe-knopf no-print" data-hilfe="vorlagen-bibliothek">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Wiederkehrende Massaufnahmen als Vorlage. Eine Vorlage enthält
-<b>nur die Masse einer Art</b> – kein Projekt, keine Adresse, keine
-Bezeichnung, keine Notiz, kein Datum, keine Fotos und keinen Arbeitsstatus.
-Eine daraus erzeugte Massaufnahme ist vollständig eigenständig: eine spätere
-Änderung an der Vorlage verändert bereits erfasste Massaufnahmen <b>nicht</b>.
-Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
-„📄 Als Vorlage speichern“. Gilt für die ganze Firma.</div>
 <div id="vorlagenListe"></div>
 <div class="small" id="vorlagenHinweis" style="margin-top:6px" hidden></div>
 </div>
 </div>
-<div class="settings-section open" data-section="einlaufblech">
+<div class="settings-section" data-section="einlaufblech">
 <div class="settings-section-head" data-toggle-section="einlaufblech"><h2>Einlaufblech gerade <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Diese Werte gelten nur für dieses Gerät/diesen Browser, nicht für alle Mitarbeiter.</div>
 <div class="grid">
 <div><label>Länge Stoss bis Stoss (mm)</label><input id="eb_stossLaenge" type="number" step="1"></div>
 <div><label>Überlappung (mm)</label><input id="eb_ueberlappung" type="number" step="1"></div>
@@ -1895,7 +1885,6 @@ Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
 <div class="settings-section" data-section="einlaufblech-konisch">
 <div class="settings-section-head" data-toggle-section="einlaufblech-konisch"><h2>Einlaufblech konisch <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Eigene Werte für "Einlaufblech konisch", unabhängig von "Einlaufblech gerade". Gilt nur für dieses Gerät/diesen Browser.</div>
 <div class="grid">
 <div><label>Länge Stoss bis Stoss (mm)</label><input id="ebks_stossLaenge" type="number" step="1"></div>
 <div><label>Überlappung (mm)</label><input id="ebks_ueberlappung" type="number" step="1"></div>
@@ -1912,7 +1901,6 @@ Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
 <div class="settings-section" data-section="kehle">
 <div class="settings-section-head" data-toggle-section="kehle"><h2>Kehle <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Zuschnittmasse für die Segmente eines Kehlblechs. Die Überlappung wird bei einem neuen Segment vorgeschlagen und lässt sich dort jederzeit überschreiben. Gilt nur für dieses Gerät/diesen Browser.</div>
 <div class="grid">
 <div><label>Länge Stoss bis Stoss (mm)</label><input id="keas_stossLaenge" type="number" step="1"></div>
 <div><label>Überlappung (mm)</label><input id="keas_ueberlappung" type="number" step="1"></div>
@@ -1926,7 +1914,6 @@ Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
 <div class="settings-section" data-section="mauerabdeckung">
 <div class="settings-section-head" data-toggle-section="mauerabdeckung"><h2>Mauerabdeckung <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Diese Masse gelten für alle Mitarbeiter. Sie werden jedem Stück zugerechnet, das an einen Boden oder einen Schieber grenzt. Negativer Wert = Abzug.</div>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Mass Boden (mm)</label><input id="madBodenMassInput" type="number" step="1"></div>
 <div><label>Mass Schieber (mm)</label><input id="madSchieberMassInput" type="number" step="1"></div>
@@ -1938,7 +1925,6 @@ Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
 <div class="settings-section" data-section="lukarne">
 <div class="settings-section-head" data-toggle-section="lukarne"><h2>Lukarne Seitenverkleidung <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Diese Werte gelten für alle Mitarbeiter. Achsabstand und Hilfsriss werden bei einer neuen Massaufnahme vorgeschlagen und lassen sich dort jederzeit überschreiben. Die Zugaben werden dem Zuschnitt jeder Schar zugerechnet – 0 = Zuschnitt entspricht dem gemessenen Mass. Negativer Wert = Abzug.</div>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Achsabstand (mm)</label><input id="lukAchsabstandInput" type="number" step="1"></div>
 <div><label>Standard-Hilfsriss (mm)</label><input id="lukHilfsrissInput" type="number" step="1"></div>
@@ -1952,7 +1938,6 @@ Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
 <div class="settings-section" data-section="anschlussblech">
 <div class="settings-section-head" data-toggle-section="anschlussblech"><h2>Ort- und Seitenbleche <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
-<div class="info">Eigene Werte des Moduls &bdquo;Ort- und Seitenbleche&ldquo; &ndash; unabh&auml;ngig von den Einlaufblechen. Sie werden bei einer neuen Massaufnahme vorgeschlagen und lassen sich dort jederzeit &uuml;berschreiben. Die Anschlussmasse a bis d kommen aus den Mindestmassen der gew&auml;hlten Anschlussart und stehen deshalb nicht hier. Gilt nur f&uuml;r dieses Ger&auml;t.</div>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="anbsDeckung"></select></div>
 <div><label>Umschlag am Blechende (mm)</label><input id="anbsSaum" type="number" step="1"></div>
@@ -1980,7 +1965,6 @@ Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
 <div class="settings-section" data-section="einfassung-rund">
 <div class="settings-section-head" data-toggle-section="einfassung-rund"><h2>Einfassung Rund <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
-<div class="info">Eigene Werte des Moduls &bdquo;Einfassung Rund&ldquo;. Umschlag und Mass seitlich neben Rohr z&auml;hlen je 2&times; in die Breite der gesamten Einfassung; Umschlag ist ausserdem die L&auml;nge des vorderen 180&deg;- und des oberen 135&deg;-Umschlags in der Zeichnung. <b>a, b und c</b> sind Vorgabewerte f&uuml;r eine neue Einfassung; sie werden beim Anlegen einmal &uuml;bernommen und sind danach je Einfassung frei &auml;nderbar &ndash; bereits gespeicherte Massaufnahmen bleiben unver&auml;ndert. Gilt nur f&uuml;r dieses Ger&auml;t.</div>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="einfsDeckung"></select></div>
 <div><label>Umschlag (mm)</label><input id="einfsUmschlag" type="number" step="1"></div>
@@ -2000,7 +1984,6 @@ Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
 <div class="settings-section" data-section="kamineinfassung">
 <div class="settings-section-head" data-toggle-section="kamineinfassung"><h2>Kamineinfassung <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
-<div class="info">Vorgabewerte f&uuml;r neue Kamineinfassungen. Sie werden beim Anlegen einmal &uuml;bernommen und sind danach je Massaufnahme frei &auml;nderbar. <b>Bereits gespeicherte Massaufnahmen bleiben unver&auml;ndert.</b> Gilt nur f&uuml;r dieses Ger&auml;t.</div>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="kamsDeckung"></select></div>
 <div><label>Lattenabstand Bleilappen (mm)</label><input id="kamsLattenabstand" type="number" step="1"></div>
@@ -2022,7 +2005,6 @@ Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
 <div class="settings-section" data-section="dachfenstereinfassung">
 <div class="settings-section-head" data-toggle-section="dachfenstereinfassung"><h2>Dachfenstereinfassung <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
-<div class="info">Vorgabewerte f&uuml;r neue Dachfenstereinfassungen. Sie werden beim Anlegen einmal &uuml;bernommen und sind danach je Massaufnahme frei &auml;nderbar. <b>Bereits gespeicherte Massaufnahmen bleiben unver&auml;ndert.</b> Gilt nur f&uuml;r dieses Ger&auml;t.</div>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="dfasDeckung"></select></div>
 <div><label>Lattenabstand Bleilappen (mm)</label><input id="dfasLattenabstand" type="number" step="1"></div>
@@ -2054,7 +2036,6 @@ Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
 <div class="settings-section" data-section="rinne-profil">
 <div class="settings-section-head" data-toggle-section="rinne-profil"><h2>Rinne &ndash; Standardprofil &amp; Ansetztypen <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">&rsaquo;</span></div>
 <div class="settings-section-body">
-<div class="info">Werte der Vorlage &bdquo;Zuschnittliste Rinnen&ldquo;. Die Ansetztypen werden zur L&auml;nge M/M addiert bzw. davon abgezogen (<b>Zuschnitt = L&auml;nge + Ansetzen L + Ansetzen R</b>). Gilt nur f&uuml;r dieses Ger&auml;t. <b>Bereits gespeicherte Rinnen-Massaufnahmen bleiben unver&auml;ndert</b> &ndash; sie behalten Profil und Werte, die beim Speichern gegolten haben.</div>
 <h2 style="font-size:12px;margin-top:6px">Standardprofil f&uuml;r neue Massaufnahmen</h2>
 <div class="small" id="rpsProfilInfo" style="margin-bottom:10px"></div>
 <div class="info" style="margin-bottom:10px">Das Profil selbst wird direkt in der Massaufnahme bearbeitet. Dort legt der Knopf &bdquo;Als Vorgabe speichern&ldquo; das aktuelle Profil als Vorgabe f&uuml;r neue Rinnen fest.</div>
@@ -2077,7 +2058,6 @@ Angelegt wird eine Vorlage in einer geöffneten Massaufnahme über
 <div class="settings-section" data-section="rinne">
 <div class="settings-section-head" data-toggle-section="rinne"><h2>Dachrinne – Anschlusstypen <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-rinne-typen">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Diese Anschlusstypen stehen bei "Dachrinne" links/rechts pro Segment zur Auswahl. Das Mass wird zur eingegebenen Länge dazugerechnet (positiv) oder abgezogen (negativ). Der Winkel wird beim Auswählen als "rechter" Anschlusstyp eines Segments automatisch ins Winkel-Feld übernommen (z. B. Innenecke 90° → 90). Gilt firmenweit für alle.</div>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Mass Dilatationselement (mm)</label><input id="rinneDilaMassInput" type="number" step="1"></div>
 </div>
@@ -2107,43 +2087,38 @@ abgezogen (−). Beispiel: eine Aussenecke mit −110 mm verkürzt das anschlies
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="ausmass" hidden>
-<div class="empty">Der Blitzschutzausmass-Materialkatalog findet sich jetzt im Register "🔒 Geschützt".</div>
+<div class="empty">Der Blitzschutzausmass-Materialkatalog findet sich jetzt im Register "Geschützt".</div>
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="lager" hidden>
-<div class="card">
-<h2>Materialbestand <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerbestand">i</button></h2>
-<div class="info">Was an neuem Material im Betrieb liegt – Tafeln, Rollen, Stangen.
-Gedacht als Nachschlagewerk für den Zuschnitt, <b>nicht</b> als Lagerverwaltung:
-es wird nichts automatisch abgebucht. Material, Stärke und Ausführung kommen aus
-den bestehenden Listen der Firma und werden hier nicht neu erfunden.</div>
+
+<div class="settings-section" data-section="lagerbestand">
+<div class="settings-section-head" data-toggle-section="lagerbestand"><h2>Materialbestand <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerbestand">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div id="lagerListe"></div>
 <div class="bar"><button type="button" id="lagerNeu" class="green">＋ Material erfassen</button></div>
 <div class="small" id="lagerHinweis" style="margin-top:4px" hidden></div>
 </div>
-<div class="card">
-<h2>Reststücke <button type="button" class="hilfe-knopf no-print" data-hilfe="reststuecke">i</button></h2>
-<div class="info">Reste, die beim Zuschnitt übrig bleiben und sich noch verwenden
-lassen. Aus dem Register „Zuschnitt“ einer Massaufnahme lassen sie sich mit
-einem Klick hier aufnehmen; beim nächsten Zuschnitt werden passende Reste
-vorgeschlagen.</div>
+</div>
+
+<div class="settings-section" data-section="reststuecke">
+<div class="settings-section-head" data-toggle-section="reststuecke"><h2>Reststücke <button type="button" class="hilfe-knopf no-print" data-hilfe="reststuecke">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div id="restLagerListe"></div>
 <div class="bar"><button type="button" id="restLagerNeu" class="gray">＋ Rest von Hand erfassen</button></div>
 <div class="small" id="restLagerHinweis" style="margin-top:4px" hidden></div>
 <div id="restVerwendetBlock" hidden>
 <h3 style="margin:14px 0 4px">Zuletzt verwendet <button type="button" class="hilfe-knopf no-print" data-hilfe="rest-verwendet">i</button></h3>
-<div class="small" style="color:var(--muted);margin-bottom:4px">Reste, die für eine
-Massaufnahme gebraucht wurden. Sie sind aus dem Lager verschwunden – hier steht,
-wofür.</div>
 <div id="restVerwendetListe"></div>
 </div>
 </div>
+</div>
+
 </div>
 <div class="settings-tab-panel" data-settings-panel="protected" hidden>
 <div class="settings-section" data-section="sicherung">
 <div class="settings-section-head" data-toggle-section="sicherung"><h2>Datensicherung <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-sicherung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Lädt alle Daten als eine Datei auf dieses Gerät. Sinnvoll einmal im Monat und immer vor einer Änderung an der Datenbank.</div>
 <div class="bar" style="margin-bottom:14px"><button id="datenSichern" class="green">⬇️ Sicherung herunterladen</button></div>
 <div id="sicherungInfo" class="small"></div>
 </div>
@@ -2152,10 +2127,9 @@ wofür.</div>
 <div id="protectedDenied" class="info">Dieser Bereich (Funktionen/Stundenansätze, Materialkataloge, Firma, Mitarbeiter) ist nur für Administratoren zugänglich.</div>
 
 <div id="protectedContent" hidden>
-<div class="settings-section open" data-section="company">
+<div class="settings-section" data-section="company">
 <div class="settings-section-head" data-toggle-section="company"><h2>Firma <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-firma">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Diese Angaben erscheinen auf dem Startbildschirm und im Briefkopf der ausgedruckten Rapporte/PDFs. Änderungen gelten sofort für alle Mitarbeiter auf allen Geräten.</div>
 <div class="grid">
 <div class="wide"><label>Firmenname</label><input id="companyNameInput" data-pflicht="1" placeholder="z. B. PETER KÜNZI AG"></div>
 <div class="wide"><label>Firmenadresse</label><textarea id="companyAddressInput" placeholder="Strasse, PLZ Ort, Telefon"></textarea></div>
@@ -2240,7 +2214,6 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <div class="settings-section" data-section="blitzschutz">
 <div class="settings-section-head" data-toggle-section="blitzschutz"><h2>Blitzschutzausmass – Materialkatalog (Arthur Flury AG) <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-blitzschutz">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Katalog für die Funktion "Blitzschutzausmass". Wird ohne Preise geführt, es werden dort nur Mengen erfasst.</div>
 <div class="grid" style="margin-bottom:8px">
 <div class="wide"><label>Material suchen</label><input id="bzMaterialSearch" placeholder="Artikel-Nr. oder Bezeichnung"></div>
 </div>
@@ -2270,28 +2243,6 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 </div>
 </div>
 </div>
-</div>
-
-<div class="settings-tab-panel" data-settings-panel="feedback" hidden>
-<div class="info">Nur für dich als Admin sichtbar. Zeigt alle Feedback-Meldungen, die über den "💬 Feedback"-Button in der App eingereicht wurden.</div>
-<div class="bar feedback-sort" id="feedbackSortBar" style="margin-top:9px" hidden>
-<button type="button" class="gray active" data-feedback-sort="offen">Offen zuerst</button>
-<button type="button" class="gray" data-feedback-sort="neu">Neueste zuerst</button>
-<button type="button" class="gray" data-feedback-sort="alt">Älteste zuerst</button>
-<button type="button" class="gray" data-feedback-sort="modul">Modul (A–Z)</button>
-<button type="button" class="gray" data-feedback-sort="person">Mitarbeiter (A–Z)</button>
-</div>
-<div class="bar" id="feedbackPickBar" style="margin-top:6px" hidden>
-<button type="button" class="gray" data-feedback-pickall="1">☑ Alle auswählen</button>
-<button type="button" class="gray" data-feedback-pickall="0">☐ Keine auswählen</button>
-<button type="button" class="gray" data-feedback-pickall="offen">Nur offene</button>
-</div>
-<div class="bar" id="feedbackExportBar" style="margin-top:6px" hidden>
-<button type="button" id="feedbackExportXlsx" class="gray">📊 Als Excel herunterladen</button>
-<button type="button" id="feedbackExportTxt" class="gray">📄 Als Textdatei herunterladen</button>
-</div>
-<div class="small" id="feedbackCountInfo" style="color:var(--muted);margin-top:6px"></div>
-<div id="feedbackList"></div>
 </div>
 
 <div class="bar"><button id="closeSettings" class="green">✓ Fertig</button><button id="startFromSettings" class="gray">🏠 Start</button></div>
