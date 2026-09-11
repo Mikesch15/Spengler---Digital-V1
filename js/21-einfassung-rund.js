@@ -220,9 +220,10 @@ function einfBerechnen(e) {
   // Anzahl Bleilappen: a und b liegen in der Dachschraege (siehe Kopf der
   // Datei) - der Umfang der Einfassung auf dem Dach ist deshalb laenglich,
   // nicht rund wie das Rohr selbst. Nach Ansage des Betriebs zaehlt dafuer
-  // a + b, verdoppelt (beide Seiten der Einfassung brauchen Lappen) - nicht
-  // der Rohrdurchmesser (v3.68, gemeldeter Rechenfehler: vorher wurde nur
-  // mit dem Rohrumfang PI x Durchmesser gerechnet).
+  // a + b, aufgerundet durch den Lattenabstand geteilt, und DANACH
+  // verdoppelt (beide Seiten der Einfassung brauchen Lappen) - nicht der
+  // Rohrdurchmesser (v3.68, gemeldeter Rechenfehler: vorher wurde nur mit
+  // dem Rohrumfang PI x Durchmesser gerechnet).
   // AUFGERUNDET, nicht abgerundet: die Lappen muessen die ganze Laenge
   // abdecken (siehe die Korrektur in v2.70). Ohne Lattenabstand oder ohne
   // a/b ist die Zahl nicht bestimmbar; dann bleibt sie null und die Anzeige
@@ -231,7 +232,7 @@ function einfBerechnen(e) {
   let anzahlBleilappen = null;
   const lattenabstand = Number(e.lattenabstand) || 0;
   if (massA > 0 && massB > 0 && Number.isFinite(lattenabstand) && lattenabstand > 0) {
-    anzahlBleilappen = Math.max(1, Math.ceil((2 * (massA + massB)) / lattenabstand));
+    anzahlBleilappen = Math.max(1, Math.ceil((massA + massB) / lattenabstand) * 2);
   }
 
   const warnungen = [];
