@@ -346,6 +346,34 @@
 // generationConfig, Timeout, Fehlerbehandlung und der MAX_TOKENS-Notfall aus
 // v12 sind unveraendert; nur der Prompt-Text und das JSON-Schema darin
 // aendern sich.
+//
+// v22: gemeldet "manchmal gehts und manchmal nicht" mit einem Screenshot
+// des tatsaechlichen Fehlers: "Server antwortete mit Status 502: Server
+// antwortete mit Status 503: {"error":{"code":503,"message":"This model is
+// currently experiencing high demand. Spikes in demand are usually
+// temporary. Please try again later.","status":"UNAVAILABLE"}}". Das ist
+// KEIN Fehler dieser Funktion oder des Requests, sondern Gemini meldet
+// selbst einen voruebergehenden Kapazitaetsengpass (von Google selbst als
+// "usually temporary" dokumentiert) - der bisherige Code hat diesen 503
+// beim ERSTEN Versuch ungeprueft als 502 an den Client durchgereicht, statt
+// es (wie von Google fuer genau diesen Fall empfohlen) einfach nochmals zu
+// versuchen.
+// Fix: bis zu 3 Versuche mit kurzer Pause dazwischen (500ms, dann 1500ms),
+// aber NUR bei Status 503 (UNAVAILABLE/ueberlastet) oder 429
+// (RESOURCE_EXHAUSTED/Rate-Limit) - beides von Google selbst als
+// transiente, wiederholungswuerdige Fehler dokumentiert. Ein echter,
+// dauerhafter Fehler (z.B. 400 bei einer fehlerhaften Anfrage, 401 bei
+// falschem Key) wird weiterhin sofort und unveraendert gemeldet - ein
+// erneuter Versuch wuerde daran nichts aendern und nur unnoetig Zeit
+// kosten. Alle Versuche teilen sich denselben AbortController/90s-Timeout
+// von oben (v18) - es entsteht kein zusaetzliches Zeitbudget, nur die
+// bereits vorhandene, grosszuegig bemessene Zeit wird besser genutzt statt
+// beim ersten Ueberlast-Fehler sofort aufzugeben. Ein echter 503 antwortet
+// erfahrungsgemaess sehr schnell (kein Haengen wie bei einer tatsaechlichen
+// Erkennung), das Zeitbudget fuer einen letzten, erfolgreichen Versuch
+// bleibt also praktisch vollstaendig erhalten.
+// Alles andere (Prompt, generationConfig, JSON-Parsing, MAX_TOKENS-Notfall,
+// Fehlermeldungen) ist unveraendert.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -431,37 +459,46 @@ Wichtig für "abschnitt":
   const timeout = setTimeout(() => controller.abort(), 90000);
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-      {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
+    const geminiBody = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: image.mimeType, data: image.data } },
+          ],
+        },
+      ],
+      generationConfig: {
+        maxOutputTokens: 65536,
+        thinkingConfig: { thinkingLevel: "LOW" },
+        responseMimeType: "application/json",
+      },
+    });
+
+    let res: Response | undefined;
+    let errText = "";
+    const maxVersuche = 3;
+    for (let versuch = 1; versuch <= maxVersuche; versuch++) {
+      res = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: prompt },
-                { inline_data: { mime_type: image.mimeType, data: image.data } },
-              ],
-            },
-          ],
-          generationConfig: {
-            maxOutputTokens: 65536,
-            thinkingConfig: { thinkingLevel: "LOW" },
-            responseMimeType: "application/json",
-          },
-        }),
-      },
-    );
+        body: geminiBody,
+      });
+      if (res.ok) break;
+      errText = await res.text().catch(() => "");
+      const ueberlastet = res.status === 503 || res.status === 429;
+      if (!ueberlastet || versuch === maxVersuche) break;
+      await new Promise((resolve) => setTimeout(resolve, versuch === 1 ? 500 : 1500));
+    }
     clearTimeout(timeout);
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      return json({ ok: false, error: `Server antwortete mit Status ${res.status}: ${errText.slice(0, 300)}` }, 502);
+    if (!res!.ok) {
+      return json({ ok: false, error: `Server antwortete mit Status ${res!.status}: ${errText.slice(0, 300)}` }, 502);
     }
 
-    const data = await res.json();
+    const data = await res!.json();
     const candidate = data?.candidates?.[0];
     const raw = candidate?.content?.parts?.[0]?.text ?? "";
 
