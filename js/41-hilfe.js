@@ -829,20 +829,19 @@ Lattenabstand gerechnet und aufgerundet – ein abgerundeter Wert würde die
 Länge nicht decken.</p>`},
 
 "dfa-masse":{titel:"Fenstermasse",text:`
-<p>Die senkrechte Aufbordung des Dachfensters, längs des Dachs gemessen –
-gleiches Prinzip wie bei der Kamineinfassung. Vorne (talseitig) ist sie
-<b>niedriger</b> und hat oben einen <b>Saum</b> (Rückschlag); hinten
-(bergseitig) ist sie <b>höher</b> und bewusst <b>trapezförmig</b> – Breite
-oben ist kleiner als Breite unten.</p>
-<p>Die <b>Länge</b> ist die Länge des Seitenteils von der vorderen bis zur
-hinteren Aufbordung.</p>`},
+<p>Die Masse längs des Dachs, von vorne nach hinten – genau gleich vermasst
+wie bei der Kamineinfassung. <b>B</b> und <b>C</b> überlappen sich im Knick –
+die Länge des Seitenteils ist deshalb B + C minus der Überlappung.</p>
+<p>Vorne (talseitig) ist die Aufbordung <b>niedriger</b> und hat oben einen
+<b>Saum</b> (Rückschlag); hinten (bergseitig) ist sie <b>höher</b> und bewusst
+<b>trapezförmig</b> – Breite oben ist kleiner als Breite unten.</p>`},
 
 "dfa-umschlaege":{titel:"Umschläge",text:`
 <p>Die Zugaben, die in die Abwicklung der vier Teile eingehen. Vorbelegt sind
 die Werte aus den Einstellungen; hier gelten sie nur für diese
 Massaufnahme.</p>
 <p><b>Breite vorne/hinten</b> sind die Zuschnittlängen von Vorderteil und
-Hinterteil – sie laufen quer zum Fenster.</p>`},
+Hinterteil – sie laufen quer zum Fenster, unabhängig von A, B, C und D.</p>`},
 
 "dfa-stueckliste":{titel:"Stückliste",text:`
 <p>Vier Zuschnitte: Vorderteil, Hinterteil und je ein Seitenteil links und

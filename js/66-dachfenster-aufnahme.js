@@ -5,58 +5,70 @@
 // Gleiches Prinzip wie die Kamineinfassung (js/37): eine senkrechte Aufbordung
 // wird eingefasst, Deckungsmaterial und Lattenabstand bestimmen die Anzahl
 // Bleilappen, Zuschnitt/PDF laufen ueber dieselben gemeinsamen Bausteine
-// (js/29, js/33, js/35). Anders als beim rechteckigen Kamin gibt es keine vier
-// Wände mit gemeinsamer Höhe, sondern zwei Seitenteile, deren Aufbordung
-// LAENGS DES DACHS von vorne (talseitig, niedrig) nach hinten (bergseitig,
-// hoch) ansteigt - genau das zeigt die Vorlage.
+// (js/29, js/33, js/35). Die Laengsmasse sind - auf ausdruecklichen Wunsch
+// des Anwenders - GENAU GLEICH vermasst wie bei der Kamineinfassung: A, B, C,
+// D und eine Ueberlappung (Knick), aus der sich die Laenge ergibt
+// (Laenge = B + C - Knick, wie kamaKaminLaenge() in js/37).
 //
 // GRUNDLAGE: Dachfenstereinfassung_Schnitt.dxf
 // Die Datei enthaelt keinen Text und keine Bemassungs-Beschriftung, nur Linien
 // und 16 Bemassungen (Wert bereits masstabsbereinigt). Auf die Dachlinie
-// projiziert (t = laengs des Dachs, h = senkrecht darueber - siehe Kopf von
-// js/37 fuer dieselbe Projektion) ergibt sich EIN Seitenteil-Schnitt:
+// projiziert (t = laengs des Dachs, h = senkrecht darueber, NULL = Dachlinie -
+// siehe Kopf von js/37 fuer dieselbe Projektion) ergibt sich fuer EIN
+// Seitenteil, von vorne (t=0) nach hinten:
 //
-//   Dach              waagerecht dargestellt, wie bei der Kamineinfassung
-//   Vordere Aufbordung   t=0,          h  0 -> 80    (senkrecht)
-//   Saum (Rueckschlag)   t=0,          h 80 -> 30     (senkrecht zurueck)
-//   Saum-Ruecklauf       t=0 -> 10,    h 30           (waagerecht, fest)
-//   Schraege hinten      t 906 -> 944, h  0 -> 120    (Trapezform, GEWOLLT)
-//   Kopf hinten          t 944 -> 1034,h 120          (waagerecht)
-//   Hintere Aufbordung   t=1034,       h 120 -> 0     (senkrecht)
-//   Ueberlappung waag.   t 1034 -> 1024, h 120         (gestrichelt)
-//   Ueberlappung senkr.  t=1024,       h 120 -> 105    (gestrichelt)
+//   Vorderkant Aufbordung   t=0            h  0 -> 80   (senkrecht + Saum/
+//                                                         Ruecklauf, siehe unten)
+//   A  (Bemassung)          t -183 -> 0                 (Referenz auf
+//                                                         Deckmaterial bis hierher)
+//   Knick, Vorderkant       t=183.1 ab Vorderkant Aufbordung
+//   B  (Bemassung)          t=0 -> 250     (Vorderkant Aufbordung bis
+//                                            HINTERKANT Knick)
+//   Knick, Hinterkant       t=250 ab Vorderkant Aufbordung (gestrichelt -
+//                                            verdeckte Kante wie bei js/37)
+//   C  (Bemassung)          t=130 -> 600   (VORDERKANT Knick, t=130, bis
+//                                            Hinterkant Aufbordung, t=600 -
+//                                            eucl. 469.9, siehe unten)
+//   Hinterkant Aufbordung   t=600          h steigt via Trapezform auf 120
+//                                            und faellt senkrecht auf 0
+//   D  (Bemassung)          t=600 -> 800   (Hinterkant Aufbordung bis
+//                                            hinten unter Deckmaterial)
 //
-// Die Zuordnung wurde mit dem Anwender geklaert (v3.52, Ueberlappung waag.
-// v3.53 auf 10 mm korrigiert - der Anwender hat den Abstand der beiden
-// lotrechten Striche ganz rechts direkt aus der Vorlage genannt):
-//   * ALLE diese Linien zusammen sind die EINE senkrechte Aufbordung - wie bei
-//     der Kamineinfassung, nur mit einer Stufe (Saum vorne) und einer
-//     bewusst TRAPEZFOERMIGEN Kopfform hinten statt eines einfachen Rechtecks.
-//   * Die Trapezform hinten ist Absicht (nicht auszugleichen).
-//   * Es gibt ZWEI SEPARAT ERFASSBARE SEITEN (links und rechts), wie bei der
-//     Kamineinfassung ueber "getrennt".
-//   * Der zweite rechtwinklige Strich (waagrecht + senkrecht, von der oberen
-//     hinteren Ecke aus) ist die UEBERLAPPUNG - gestrichelt, gleiches Prinzip
-//     wie der "Knick" bei der Kamineinfassung (js/37, dort: volle Linie =
-//     sichtbare Kante, gestrichelt = verdeckte Kante des ueberlappenden
-//     Blechs).
+// Gegenprobe: B + C - Knick = 250 + 469.885 - 120 = 599.885 ~ 600 mm - GENAU
+// die Laenge der durchgezeichneten Dachlinie in der Vorlage (600.00 mm). Das
+// bestaetigt die Zuordnung zweifelsfrei (v3.55).
+//
+// Die Zuordnung wurde mit dem Anwender geklaert:
+//   * v3.52: ALLE Linien zusammen sind die EINE senkrechte Aufbordung - wie
+//     bei der Kamineinfassung, mit einer Stufe (Saum vorne) und einer bewusst
+//     TRAPEZFOERMIGEN Kopfform hinten statt eines einfachen Rechtecks (Absicht,
+//     nicht auszugleichen). Zwei separat erfassbare Seiten (links/rechts) wie
+//     bei der Kamineinfassung ueber "getrennt".
+//   * v3.55: die Laengsmasse sind GENAU GLEICH vermasst wie bei der
+//     Kamineinfassung - A, B, C, D und die Ueberlappung (Knick), keine
+//     einzelne "Laenge" mehr. Der Knick liegt zwei Drittel vorne im Lauf
+//     (t=183..433 ab Referenz), nicht am hinteren Eck wie zunaechst
+//     angenommen - die vormals dort modellierte "Ueberlappung waagrecht/
+//     senkrecht" (10/15 mm) entfaellt ersatzlos, sie war eine Fehldeutung
+//     eines kleinen Rand-Details, nicht die eigentliche Ueberlappung.
 //   * Die genaue Aufteilung in Vorderteil/Hinterteil/Seitenteile und die
-//     Feldnamen sind eine Modellierung fuer diese App (Auftrag: "mach's, wie
-//     du's fuer richtig haeltst, Kamineinfassung als Vorbild") - keine
+//     Feldnamen A-D/Knick sind dieselbe Modellierung wie in js/37 - keine
 //     Uebernahme wortwoertlicher Bezeichnungen aus der Vorlage, denn die hat
 //     keine.
 //
 // Die Dachneigung selbst wird NICHT erfasst und auch nicht gebraucht: alle
 // Masse liegen im Dachsystem (dieselbe Begruendung wie im Kopf von js/37).
-// Die Skizze zeichnet das Dach deshalb waagerecht.
+// Die Skizze zeichnet das Dach deshalb waagerecht, mit den zwei Knick-Linien
+// (voll = Vorderkant, gestrichelt = Hinterkant) genau wie beim Knick der
+// Kamineinfassung.
 //
 // Vier Zuschnitte: Vorderteil und Hinterteil (quer zum Fenster, Breite = vom
 // Anwender erfasste Zuschnittlaenge, Abwicklung aus Umschlag + Aufbordung +
-// Saum bzw. Ueberlappung), dazu je ein Seitenteil links und rechts (Laenge
-// laengs Dach, Abwicklung aus Umschlag + der GROESSEREN der beiden
-// Aufbordungshoehen dieser Seite - dieselbe Vereinfachung wie bei der
-// Kamineinfassung, die durchgehend mit der groesseren Hoehe rechnet statt
-// eine ueber die Laenge veraenderliche Blechbreite anzunehmen).
+// Saum), dazu je ein Seitenteil links und rechts (Laenge = B+C-Knick laengs
+// Dach, Abwicklung aus Umschlag + der GROESSEREN der beiden Aufbordungshoehen
+// dieser Seite - dieselbe Vereinfachung wie bei der Kamineinfassung, die
+// durchgehend mit der groesseren Hoehe rechnet statt eine ueber die Laenge
+// veraenderliche Blechbreite anzunehmen).
 // ===========================================================================
 
 const DFA_REGISTER=[
@@ -82,8 +94,9 @@ const DFA_STANDARD=Object.freeze({
  saum_vorne:50,          // Rueckschlag am oberen Rand der vorderen Aufbordung
  breite_oben:90,         // Kopfbreite der hinteren Aufbordung (Trapez oben)
  breite_unten:125,       // Fussbreite der hinteren Aufbordung (Trapez unten)
- ueberlappung_t:10,      // Ueberlappung, waagrechter Absatz
- ueberlappung_h:15,      // Ueberlappung, senkrechter Absatz
+ ueberlappung:120,       // Ueberlappung der Seitenteile (Knick) - wie kam
+ mass_vorne:183,         // A, vorne auf Deckmaterial bis Vorderkant Aufbordung
+ mass_hinten:200,        // D, Hinterkant Aufbordung bis hinten unter Deckmaterial
  auf_vorne:80,           // Aufbordungshoehe vorne (talseitig), Vorgabe
  auf_hinten:120          // Aufbordungshoehe hinten (bergseitig), Vorgabe
 });
@@ -103,20 +116,24 @@ function dfaEinstellungenSichern(w){
 }
 
 // ---- Zustand ---------------------------------------------------------------
-// Laenge und die beiden Aufbordungshoehen sind seitenabhaengig (wie Kamins
-// "hoehe") - ohne "getrennt" gilt links fuer beide Seiten. Saum, Trapezmasse,
-// Ueberlappung und Umschlaege sind Konstruktionsmasse des Einfassungs-
-// Systems und deshalb NICHT seitenabhaengig (wie Kamins Ueberlappung/E).
+// A und D sind Masse dieser einen Aufnahme - die Vorgabe fuellt sie beim
+// Anlegen nur vor und ist danach frei aenderbar (wie bei der Kamineinfassung).
+// B, C und die beiden Aufbordungshoehen sind seitenabhaengig (wie Kamins b/c/
+// hoehe) - ohne "getrennt" gilt links fuer beide Seiten und bleiben deshalb
+// wie dort standardmaessig LEER (ein erfundener Wert waere fuer den
+// jeweiligen Bau falsch). Saum, Trapezmasse, Knick und Umschlaege sind
+// Konstruktionsmasse des Einfassungs-Systems und deshalb NICHT seitenabhaengig
+// (wie Kamins Ueberlappung).
 function dfaLeer(){
  const s=dfaSettings||DFA_STANDARD;
  return {
   material:"", deckung:s.deckung, lattenabstand:s.lattenabstand,
   getrennt:false, skizzeSeite:"l",
+  a:s.mass_vorne, d:s.mass_hinten, ueberlappung:s.ueberlappung,
   saumVorne:s.saum_vorne, breiteOben:s.breite_oben, breiteUnten:s.breite_unten,
-  ueberlappungT:s.ueberlappung_t, ueberlappungH:s.ueberlappung_h,
   umschlagVorne:s.umschlag_vorne, umschlagHinten:s.umschlag_hinten, umschlagSeite:s.umschlag_seite,
   breiteVorne:"", breiteHinten:"",
-  laenge:{l:"",r:""},
+  b:{l:"",r:""}, c:{l:"",r:""},
   aufVorne:{l:s.auf_vorne,r:s.auf_vorne}, aufHinten:{l:s.auf_hinten,r:s.auf_hinten},
   rollenAuswahl:[]
  };
@@ -133,11 +150,18 @@ function dfaSeite(feld,seite,quelle){
 }
 function dfaAufVorneMax(){ return Math.max(dfaSeite("aufVorne","l"),dfaSeite("aufVorne","r")) }
 function dfaAufHintenMax(){ return Math.max(dfaSeite("aufHinten","l"),dfaSeite("aufHinten","r")) }
+// Laenge laengs Dach - B und C ueberlappen sich um die Knickbreite, exakt wie
+// kamaKaminLaenge() in js/37.
+function dfaLaenge(seite,quelle){
+ const q=quelle||dfaA;
+ return dfaSeite("b",seite,q)+dfaSeite("c",seite,q)-dfaZahl(q.ueberlappung);
+}
 
 // ---- Die vier Zuschnitte -----------------------------------------------------
 // Vorderteil und Hinterteil laufen quer zum Fenster, ihre Breite (Zuschnitt-
 // laenge) wird direkt erfasst (wie Kamins Breite vorne/hinten). Die
-// Seitenteile bekommen ihre Laenge laengs Dach von der jeweiligen Seite.
+// Seitenteile bekommen ihre Laenge (B+C-Knick) laengs Dach von der jeweiligen
+// Seite.
 function dfaZuschnitte(){
  const a=dfaA, z=[];
  const teilBreite=t=>t.reduce((s,x)=>s+dfaZahl(x.wert),0);
@@ -154,12 +178,10 @@ function dfaZuschnitte(){
   {name:"Saum oben",wert:dfaZahl(a.saumVorne)}]);
  dazu("Hinterteil","hinten","",a.breiteHinten,[
   {name:"Umschlag hinten",wert:dfaZahl(a.umschlagHinten)},
-  {name:"Aufbordungshöhe hinten",wert:dfaAufHintenMax()},
-  {name:"Überlappung waagrecht",wert:dfaZahl(a.ueberlappungT)},
-  {name:"Überlappung senkrecht",wert:dfaZahl(a.ueberlappungH)}]);
+  {name:"Aufbordungshöhe hinten",wert:dfaAufHintenMax()}]);
  DFA_SEITEN.forEach(s=>{
   const h=Math.max(dfaSeite("aufVorne",s.k),dfaSeite("aufHinten",s.k));
-  dazu("Seitenteil","seite",s.name,dfaSeite("laenge",s.k),[
+  dazu("Seitenteil","seite",s.name,dfaLaenge(s.k),[
    {name:"Umschlag Seite",wert:dfaZahl(a.umschlagSeite)},
    {name:"Aufbordungshöhe (grösseres Mass)",wert:h}]);
  });
@@ -181,31 +203,36 @@ function dfaBleilappen(){
 
 // ---- Schnittskizze nach der DXF -----------------------------------------------
 // Gezeichnet werden die Elemente der Vorlage fuer EIN Seitenteil: Dach mit
-// Pfeilen, vordere Aufbordung mit Saum, die Trapezform hinten, und die
-// gestrichelte Ueberlappung. Ohne Argument wird der laufende Zustand
-// gezeichnet, mit Argument der gespeicherte Datensatz.
+// Pfeilen, vordere Aufbordung mit Saum, der Knick (voll = Vorderkant,
+// gestrichelt = Hinterkant - exakt wie kamaSkizze() in js/37), die
+// Trapezform hinten. Ohne Argument wird der laufende Zustand gezeichnet, mit
+// Argument der gespeicherte Datensatz.
 const DFA_SAUM_RUECKLAUF=10;   // fester waagrechter Ruecklauf am Saum, siehe Kopf
 function dfaSkizze(quelle){
  const q=quelle||dfaA;
  const seite=q.getrennt?(q.skizzeSeite==="r"?"r":"l"):"l";
+ const A=dfaZahl(q.a), D=dfaZahl(q.d), Ue=dfaZahl(q.ueberlappung);
  const av=dfaSeite("aufVorne",seite,q), ah=dfaSeite("aufHinten",seite,q);
  const saum=dfaZahl(q.saumVorne), bo=dfaZahl(q.breiteOben), bu=dfaZahl(q.breiteUnten);
- const ut=dfaZahl(q.ueberlappungT), uh=dfaZahl(q.ueberlappungH);
- const L=dfaSeite("laenge",seite,q);
+ const B=dfaSeite("b",seite,q), C=dfaSeite("c",seite,q);
+ const L=dfaLaenge(seite,q);
  if(!(av>0&&ah>0)||!(L>0)||!(bu>bo))
   return `<div class="ra-warnung">Für die Schnittskizze fehlen noch Masse: bitte
-Länge, beide Aufbordungshöhen sowie Breite oben/unten (unten grösser als oben)
+B, C, beide Aufbordungshöhen sowie Breite oben/unten (unten grösser als oben)
 eingeben.</div>`;
 
  const P=(x,y)=>[x,y];
  // Vordere Aufbordung mit Saum (Fuss bei 0).
  const P0=P(0,0), P1=P(0,av), P2=P(0,Math.max(0,av-saum)), P3=P(DFA_SAUM_RUECKLAUF,Math.max(0,av-saum));
- // Trapezform hinten: Fuss der Schraege bei L-bu, Kopf bei L-bo bis L, Fuss der
- // senkrechten Rueckseite bei L.
- const Q0=P(L-bu,0), Q1=P(L-bo,ah), Q2=P(L,ah), Q3=P(L,0);
- // Ueberlappung: waagrechter, dann senkrechter Absatz von der oberen hinteren Ecke.
- const R1=P(L-ut,ah), R2=P(L-ut,Math.max(0,ah-uh));
- const dachVon=-Math.max(60,av*0.6), dachBis=L+Math.max(60,ah*0.6);
+ // Knick: Vorderkant bei B-Ue, Hinterkant bei B - exakt wie bei der
+ // Kamineinfassung (knickVorne=B-Ue, knickHinten=B).
+ const knickVorne=B-Ue, knickHinten=B;
+ // Trapezform hinten: die Schraege steigt von der Hoehe vorne (av) auf die
+ // Hoehe hinten (ah) - die Aufbordung ist durchgehend, nur die Kopfform
+ // aendert sich am Ende. Fuss der Schraege bei L-bu, Kopf bei L-bo bis L,
+ // Fuss der senkrechten Rueckseite bei L (= Hinterkant Aufbordung).
+ const Q0=P(L-bu,av), Q1=P(L-bo,ah), Q2=P(L,ah), Q3=P(L,0);
+ const dachVon=-A-Math.max(60,A*0.25), dachBis=L+D+Math.max(60,D*0.25);
 
  let xMin=dachVon,xMax=dachBis,yMin=0,yMax=Math.max(av,ah);
  xMin-=70; xMax+=40; yMin-=40; yMax+=70;
@@ -259,34 +286,42 @@ eingeben.</div>`;
  g+=linie(P0,P1,ANB_FARBE.bau,3);
  g+=linie(P1,P2,ANB_FARBE.bau,3);
  g+=linie(P2,P3,ANB_FARBE.bau,3);
+ // Durchgehende Oberkante von der vorderen Aufbordung bis zum Fuss der
+ // hinteren Schraege - der Knick (unten) liegt auf diesem Abschnitt.
+ g+=linie(P1,Q0,ANB_FARBE.bau,2);
  // Trapezform hinten.
  g+=linie(Q0,Q1,ANB_FARBE.bau,3);
  g+=linie(Q1,Q2,ANB_FARBE.bau,3);
  g+=linie(Q2,Q3,ANB_FARBE.bau,3);
- // Ueberlappung: gestrichelt, wie der Knick bei der Kamineinfassung.
- if(ut>0&&uh>0){
-  g+=linie(Q2,R1,ANB_FARBE.blech,3,"7 5");
-  g+=linie(R1,R2,ANB_FARBE.blech,3,"7 5");
+ // Knick: Vorderkant voll, Hinterkant gestrichelt (verdeckte Kante) - exakt
+ // dasselbe Prinzip wie bei der Kamineinfassung.
+ const knickDa=Ue>0&&knickVorne>0&&knickHinten<=L;
+ if(knickDa){
+  g+=linie(P(knickVorne,0),P(knickVorne,av),ANB_FARBE.bau,1.6);
+  g+=linie(P(knickHinten,0),P(knickHinten,av),ANB_FARBE.bau,1.6,"7 5");
  }
 
- // Masse.
+ // Masse. A und D zeigen nach INNEN, wie beim Kamin.
+ if(A>0){g+=anbMassWaag(-A,0,0,"A = "+zahl(A),X,Y,true); merkMassWaag(-A,0,0,"A = "+zahl(A),true)}
+ if(D>0){g+=anbMassWaag(L,L+D,0,"D = "+zahl(D),X,Y,true); merkMassWaag(L,L+D,0,"D = "+zahl(D),true)}
+ if(B>0){g+=anbMassWaag(0,knickHinten,av+26,"B = "+zahl(B),X,Y,false); merkMassWaag(0,knickHinten,av+26,"B = "+zahl(B),false)}
+ if(C>0){g+=anbMassWaag(knickVorne,L,Math.max(av,ah)+58,"C = "+zahl(C),X,Y,false); merkMassWaag(knickVorne,L,Math.max(av,ah)+58,"C = "+zahl(C),false)}
  g+=anbMassSenk(0,av,dachVon-56,"Aufbordung vorne = "+zahl(av),X,Y);
  merkMassSenk(0,av,dachVon-56,"Aufbordung vorne = "+zahl(av));
+ g+=anbMassSenk(0,ah,dachBis+22,"Aufbordung hinten = "+zahl(ah),X,Y);
+ merkMassSenk(0,ah,dachBis+22,"Aufbordung hinten = "+zahl(ah));
  if(saum>0){
   const fahneS=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
   fahneS(0,av-saum/2,-40,-8,"Saum = "+zahl(saum));
  }
- g+=anbMassWaag(0,L,-30,"Länge = "+zahl(L),X,Y,true); merkMassWaag(0,L,-30,"Länge = "+zahl(L),true);
- g+=anbMassSenk(0,ah,dachBis+22,"Aufbordung hinten = "+zahl(ah),X,Y);
- merkMassSenk(0,ah,dachBis+22,"Aufbordung hinten = "+zahl(ah));
- g+=anbMassWaag(Q1[0],Q2[0],ah+22,"Breite oben = "+zahl(bo),X,Y,false);
- merkMassWaag(Q1[0],Q2[0],ah+22,"Breite oben = "+zahl(bo),false);
+ if(knickDa){
+  g+=anbMassWaag(knickVorne,knickHinten,av*0.5,"Knick "+zahl(Ue),X,Y,false);
+  merkMassWaag(knickVorne,knickHinten,av*0.5,"Knick "+zahl(Ue),false);
+ }
+ g+=anbMassWaag(Q1[0],Q2[0],ah+26,"Breite oben = "+zahl(bo),X,Y,false);
+ merkMassWaag(Q1[0],Q2[0],ah+26,"Breite oben = "+zahl(bo),false);
  g+=anbMassWaag(Q0[0],Q3[0],0-26,"Breite unten = "+zahl(bu),X,Y,true);
  merkMassWaag(Q0[0],Q3[0],0-26,"Breite unten = "+zahl(bu),true);
- if(ut>0&&uh>0){
-  const fahneU=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
-  fahneU(R1[0],(R1[1]+R2[1])/2,-36,-18,"Überlappung = "+zahl(ut)+" / "+zahl(uh));
- }
 
  const seiteTxt=q.getrennt?(seite==="r"?" · rechte Seite":" · linke Seite"):"";
  const fuss="Dachfenstereinfassung · Seitenteil im Schnitt längs des Dachs"+seiteTxt+" · Dach waagerecht dargestellt";
@@ -381,9 +416,9 @@ function dfaAusmassZeilen(){
  const bl=dfaBleilappen();
  if(bl.gesamt!==null)
   zeile("Bleilappen",String(bl.gesamt),"Stk.","je Seitenteil aufgerundet aus Länge ÷ Lattenabstand",true);
- const Ll=dfaSeite("laenge","l"), Lr=dfaSeite("laenge","r");
- if(Ll>0)zeile("Länge Seitenteil"+(dfaA.getrennt?" links":""),dfaMm(Ll),"mm","erfasste Länge längs Dach");
- if(dfaA.getrennt&&Lr>0)zeile("Länge Seitenteil rechts",dfaMm(Lr),"mm","erfasste Länge längs Dach");
+ const Ll=dfaLaenge("l"), Lr=dfaLaenge("r");
+ if(Ll>0)zeile("Länge Seitenteil"+(dfaA.getrennt?" links":""),dfaMm(Ll),"mm","B + C − Überlappung");
+ if(dfaA.getrennt&&Lr>0)zeile("Länge Seitenteil rechts",dfaMm(Lr),"mm","B + C − Überlappung");
  // v3.53: der Umfang der Einfassung, wie sie in der Dachschräge liegt - genau
  // wie bei der Kamineinfassung (js/37) sind alle vier Seiten bereits im
  // Dachsystem gemessen, es braucht deshalb keine Umrechnung der Dachneigung.
@@ -406,6 +441,8 @@ function dfaPruefungen(){
  const m=[], a=dfaA;
  const fehlt=(wert,text)=>{if(!(dfaZahl(wert)>0))m.push({art:"fehler",text})};
  if(!a.material)m.push({art:"warnung",text:"Es ist noch kein Material gewählt."});
+ fehlt(a.a,"Mass A (vorne auf Deckmaterial bis Vorderkant Aufbordung) fehlt.");
+ fehlt(a.d,"Mass D (Hinterkant Aufbordung bis hinten unter Deckmaterial) fehlt.");
  fehlt(a.breiteVorne,"Die Breite vorne (Zuschnittlänge Vorderteil) fehlt.");
  fehlt(a.breiteHinten,"Die Breite hinten (Zuschnittlänge Hinterteil) fehlt.");
  fehlt(a.breiteOben,"Breite oben (Kopf der hinteren Aufbordung) fehlt.");
@@ -414,31 +451,43 @@ function dfaPruefungen(){
   m.push({art:"fehler",text:"Breite unten muss grösser sein als Breite oben – sonst ist es kein Trapez."});
  DFA_SEITEN.forEach(s=>{
   const zusatz=a.getrennt?" ("+s.name+")":"";
-  fehlt(dfaSeite("laenge",s.k),"Die Länge des Seitenteils"+zusatz+" fehlt.");
+  fehlt(dfaSeite("b",s.k),"Mass B, Vorderkant Aufbordung bis Hinterkant Knick"+zusatz+", fehlt.");
+  fehlt(dfaSeite("c",s.k),"Mass C, Vorderkant Knick bis Hinterkant Aufbordung"+zusatz+", fehlt.");
   fehlt(dfaSeite("aufVorne",s.k),"Die Aufbordungshöhe vorne"+zusatz+" fehlt.");
   fehlt(dfaSeite("aufHinten",s.k),"Die Aufbordungshöhe hinten"+zusatz+" fehlt.");
   if(!a.getrennt)return;
  });
- [["saumVorne","Saum vorne"],["breiteOben","Breite oben"],["breiteUnten","Breite unten"],
-  ["ueberlappungT","Überlappung waagrecht"],["ueberlappungH","Überlappung senkrecht"],
+ [["a","Mass A"],["d","Mass D"],["ueberlappung","Überlappung"],
+  ["saumVorne","Saum vorne"],["breiteOben","Breite oben"],["breiteUnten","Breite unten"],
   ["breiteVorne","Breite vorne"],["breiteHinten","Breite hinten"],
   ["umschlagVorne","Umschlag vorne"],["umschlagHinten","Umschlag hinten"],
   ["umschlagSeite","Umschlag seitlich"],["lattenabstand","Lattenabstand"]].forEach(([k,name])=>{
   if(dfaZahl(a[k])<0)m.push({art:"fehler",text:name+" kann nicht negativ sein."});
  });
  DFA_SEITEN.forEach(s=>{
-  ["laenge","aufVorne","aufHinten"].forEach(k=>{
+  ["b","c","aufVorne","aufHinten"].forEach(k=>{
    if(dfaSeite(k,s.k)<0)m.push({art:"fehler",text:"Ein seitliches Mass ist negativ ("+s.name+")."});
   });
   if(dfaSeite("aufVorne",s.k)>0&&dfaSeite("aufHinten",s.k)>0&&dfaZahl(a.saumVorne)>=dfaSeite("aufVorne",s.k))
    m.push({art:"warnung",text:"Der Saum vorne"+(a.getrennt?" ("+s.name+")":"")
      +" ist nicht kleiner als die Aufbordungshöhe vorne – der Saum liefe dann bis auf das Dach zurück."});
  });
+ DFA_SEITEN.forEach(s=>{
+  const L=dfaLaenge(s.k);
+  const zusatz=a.getrennt?" ("+s.name+")":"";
+  if(dfaSeite("b",s.k)>0&&dfaSeite("c",s.k)>0&&!(L>0))
+   m.push({art:"fehler",text:"B + C ist nicht grösser als die Überlappung"+zusatz
+     +" – daraus ergibt sich keine Länge."});
+  if(dfaZahl(a.ueberlappung)>0&&dfaSeite("b",s.k)>0&&dfaSeite("b",s.k)<=dfaZahl(a.ueberlappung))
+   m.push({art:"warnung",text:"Mass B"+zusatz+" ist nicht grösser als die Überlappung – "
+     +"der Knick läge dann vor der Vorderkant Aufbordung."});
+  if(!a.getrennt)return;
+ });
  if(!(dfaZahl(a.lattenabstand)>0))
   m.push({art:"warnung",text:"Ohne Lattenabstand kann die Anzahl Bleilappen nicht berechnet werden."});
  if(!a.deckung)m.push({art:"warnung",text:"Es ist noch kein Deckmaterial gewählt."});
  if(a.getrennt){
-  const gleich=["laenge","aufVorne","aufHinten"].every(k=>dfaSeite(k,"l")===dfaSeite(k,"r"));
+  const gleich=["b","c","aufVorne","aufHinten"].every(k=>dfaSeite(k,"l")===dfaSeite(k,"r"));
   if(gleich)m.push({art:"warnung",text:"Links und rechts werden getrennt erfasst, "
     +"sind aber überall gleich – der Schalter kann ausgeschaltet werden."});
  }
@@ -493,17 +542,18 @@ ${dfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","dfa_lattenabstand",a
 <label class="kam-schalter"><input type="checkbox" id="dfa_getrennt"${a.getrennt?" checked":""}>
 <span>Links und rechts getrennt erfassen</span></label>
 <div class="small" style="color:var(--muted);margin-top:2px">Ohne Haken gilt jedes seitliche
-Mass für beide Seiten. Mit Haken bekommen Länge und beide Aufbordungshöhen je zwei Felder.</div>
+Mass für beide Seiten. Mit Haken bekommen B, C und beide Aufbordungshöhen je zwei Felder.</div>
 <div class="bar" style="margin-top:8px">
 <button type="button" class="gray" id="dfa_einstellungen">⚙️ Standardwerte</button>
 </div>`;
 }
 function dfaKennzahlenHtml(){
  const wert=(l,v)=>`<div><label>${esc(l)}</label><div class="ra-wert">${esc(v)}</div></div>`;
+ const Ll=dfaLaenge("l"), Lr=dfaLaenge("r");
  const bl=dfaBleilappen();
  return `<div class="grid ra-kennzahlen" id="dfa_kennzahlen">
-${wert("Aufbordungshöhe vorne (grösseres Mass)",dfaAufVorneMax()>0?dfaMm(dfaAufVorneMax())+" mm":"–")}
-${wert("Aufbordungshöhe hinten (grösseres Mass)",dfaAufHintenMax()>0?dfaMm(dfaAufHintenMax())+" mm":"–")}
+${wert("Länge Seitenteil"+(dfaA.getrennt?" links":""),Ll>0?dfaMm(Ll)+" mm":"–")}
+${dfaA.getrennt?wert("Länge Seitenteil rechts",Lr>0?dfaMm(Lr)+" mm":"–"):""}
 ${wert("Anzahl Bleilappen",bl.gesamt!==null?String(bl.gesamt):"–")}
 </div>`;
 }
@@ -513,20 +563,25 @@ function dfaMasseHtml(){
 <button type="button" class="gray${a.skizzeSeite!=="r"?" blue":""}" data-dfa-skizze="l">Linke Seite</button>
 <button type="button" class="gray${a.skizzeSeite==="r"?" blue":""}" data-dfa-skizze="r">Rechte Seite</button>
 </div>`:"";
- return `<div class="info">Alle Masse in mm, längs des Dachs gemessen (Dachneigung
-selbst wird nicht erfasst, sie steckt bereits in diesen Massen). Vorne (talseitig)
-ist die Aufbordung niedriger und hat oben einen Saum; hinten (bergseitig) ist sie
-höher und bewusst trapezförmig – Breite oben ist kleiner als Breite unten.</div>
+ return `<div class="info">Alle Masse in mm, längs des Dachs gemessen - genau gleich
+vermasst wie bei der Kamineinfassung. <b>B</b> und <b>C</b> überlappen sich im Knick –
+die Länge des Seitenteils ist deshalb B + C − Überlappung. Vorne (talseitig) ist die
+Aufbordung niedriger und hat oben einen Saum; hinten (bergseitig) ist sie höher und
+bewusst trapezförmig – Breite oben ist kleiner als Breite unten.</div>
 <div class="grid">
-${dfaSeitenFeld("Länge des Seitenteils, längs Dach","dfa_laenge",true)}
+${dfaZahlFeld("A · vorne auf Deckmaterial bis Vorderkant Aufbordung","dfa_a",a.a,"1",true)}
+${dfaSeitenFeld("B · Vorderkant Aufbordung bis Hinterkant Knick","dfa_b",true)}
+${dfaSeitenFeld("C · Vorderkant Knick bis Hinterkant Aufbordung","dfa_c",true)}
+${dfaZahlFeld("Überlappung der Seitenteile (Knick)","dfa_ueberlappung",a.ueberlappung)}
+${dfaZahlFeld("D · Hinterkant Aufbordung bis hinten unter Deckmaterial","dfa_d",a.d,"1",true)}
 ${dfaSeitenFeld("Aufbordungshöhe vorne (talseitig)","dfa_aufVorne",true)}
 ${dfaSeitenFeld("Aufbordungshöhe hinten (bergseitig)","dfa_aufHinten",true)}
 ${dfaZahlFeld("Saum/Rückschlag oben, vorne","dfa_saumVorne",a.saumVorne)}
 ${dfaZahlFeld("Breite oben, hintere Aufbordung (Kopf)","dfa_breiteOben",a.breiteOben,"1",true)}
 ${dfaZahlFeld("Breite unten, hintere Aufbordung (Fuss)","dfa_breiteUnten",a.breiteUnten,"1",true)}
-${dfaZahlFeld("Überlappung, waagrechter Absatz","dfa_ueberlappungT",a.ueberlappungT)}
-${dfaZahlFeld("Überlappung, senkrechter Absatz","dfa_ueberlappungH",a.ueberlappungH)}
 </div>
+<div class="small" style="color:var(--muted);margin-top:4px">B und C überlappen sich im
+Knick – die Länge ist deshalb B + C − Überlappung.</div>
 ${dfaKennzahlenHtml()}
 <h2 style="margin-top:14px">Schnitt</h2>
 ${seitenWahl}
@@ -539,7 +594,7 @@ function dfaUmschlaegeHtml(){
 <td>${dfaMm(x.laenge)}</td><td><b>${dfaMm(x.breite)}</b></td></tr>`;
  return `<div class="info">Die Umschläge stecken in der Abwicklung, die Breiten sind die
 Zuschnittlängen von Vorder- und Hinterteil. Die Seitenteile bekommen ihre Länge aus
-der jeweiligen Seite.</div>
+B und C.</div>
 <div class="grid">
 ${dfaZahlFeld("Umschlag vorne","dfa_umschlagVorne",a.umschlagVorne)}
 ${dfaZahlFeld("Umschlag hinten","dfa_umschlagHinten",a.umschlagHinten)}
@@ -607,12 +662,14 @@ function dfaKontrolleHtml(){
  const uebersicht=`<div class="scroll"><table class="eb-table ra-tab"><tbody>
 ${zeile("Material",dfaMaterialText())}
 ${zeile("Deckungsmaterial",dfaDeckungText())}
-${seitig("Länge Seitenteil","laenge","mm")}
+${zeile("A / D",dfaMm(a.a)+" / "+dfaMm(a.d)+" mm")}
+${seitig("B · Vorderkant Aufbordung bis Hinterkant Knick","b","mm")}
+${seitig("C · Vorderkant Knick bis Hinterkant Aufbordung","c","mm")}
+${zeile("Überlappung Knick",dfaMm(a.ueberlappung)+" mm")}
 ${seitig("Aufbordungshöhe vorne","aufVorne","mm")}
 ${seitig("Aufbordungshöhe hinten","aufHinten","mm")}
 ${zeile("Saum vorne",dfaMm(a.saumVorne)+" mm")}
 ${zeile("Breite oben / unten (Trapez hinten)",dfaMm(a.breiteOben)+" / "+dfaMm(a.breiteUnten)+" mm")}
-${zeile("Überlappung waagrecht / senkrecht",dfaMm(a.ueberlappungT)+" / "+dfaMm(a.ueberlappungH)+" mm")}
 ${zeile("Breite vorne / hinten",dfaMm(a.breiteVorne)+" / "+dfaMm(a.breiteHinten)+" mm")}
 ${zeile("Umschlag vorne / hinten / Seite",dfaMm(a.umschlagVorne)+" / "+dfaMm(a.umschlagHinten)+" / "+dfaMm(a.umschlagSeite)+" mm")}
 ${zeile("Blechfläche",dfaQm(dfaFlaecheM2())+" m²")}
@@ -715,12 +772,13 @@ function dfaLive(){
   }
  }
 }
-const DFA_FELDER={dfa_saumVorne:"saumVorne",dfa_breiteOben:"breiteOben",dfa_breiteUnten:"breiteUnten",
- dfa_ueberlappungT:"ueberlappungT",dfa_ueberlappungH:"ueberlappungH",
+// Zuordnung Eingabefeld -> Zustand. Seitenfelder tragen "_l" bzw. "_r".
+const DFA_FELDER={dfa_a:"a",dfa_d:"d",dfa_ueberlappung:"ueberlappung",
+ dfa_saumVorne:"saumVorne",dfa_breiteOben:"breiteOben",dfa_breiteUnten:"breiteUnten",
  dfa_breiteVorne:"breiteVorne",dfa_breiteHinten:"breiteHinten",
  dfa_umschlagVorne:"umschlagVorne",dfa_umschlagHinten:"umschlagHinten",
  dfa_umschlagSeite:"umschlagSeite",dfa_lattenabstand:"lattenabstand"};
-const DFA_SEITENFELDER={dfa_laenge:"laenge",dfa_aufVorne:"aufVorne",dfa_aufHinten:"aufHinten"};
+const DFA_SEITENFELDER={dfa_b:"b",dfa_c:"c",dfa_aufVorne:"aufVorne",dfa_aufHinten:"aufHinten"};
 function dfaFeldZuweisen(id,wert){
  if(DFA_FELDER[id]!==undefined){dfaA[DFA_FELDER[id]]=wert;return true}
  const m=/^(dfa_[a-zA-Z]+)_(l|r)$/.exec(id);
@@ -808,8 +866,9 @@ function applyDfaSettings(){
  setzen("dfasSaumVorne",s.saum_vorne);
  setzen("dfasBreiteOben",s.breite_oben);
  setzen("dfasBreiteUnten",s.breite_unten);
- setzen("dfasUeberlappungT",s.ueberlappung_t);
- setzen("dfasUeberlappungH",s.ueberlappung_h);
+ setzen("dfasUeberlappung",s.ueberlappung);
+ setzen("dfasMassVorne",s.mass_vorne);
+ setzen("dfasMassHinten",s.mass_hinten);
  setzen("dfasAufVorne",s.auf_vorne);
  setzen("dfasAufHinten",s.auf_hinten);
 }
@@ -827,8 +886,9 @@ function applyDfaSettings(){
    saum_vorne:zahl("dfasSaumVorne")||0,
    breite_oben:zahl("dfasBreiteOben")||0,
    breite_unten:zahl("dfasBreiteUnten")||0,
-   ueberlappung_t:zahl("dfasUeberlappungT")||0,
-   ueberlappung_h:zahl("dfasUeberlappungH")||0,
+   ueberlappung:zahl("dfasUeberlappung")||0,
+   mass_vorne:zahl("dfasMassVorne")||0,
+   mass_hinten:zahl("dfasMassHinten")||0,
    auf_vorne:zahl("dfasAufVorne")||0,
    auf_hinten:zahl("dfasAufHinten")||0
   };
@@ -848,6 +908,8 @@ function applyDfaSettings(){
 })();
 
 // ---- Speichern / Laden ----------------------------------------------------
+// Alles, was gerechnet wurde, wird mitgespeichert - ein spaeter gedrucktes
+// PDF bleibt dadurch gleich, auch wenn eine Einstellung geaendert wird.
 function dfaDaten(){
  const a=dfaA;
  const rp=dfaRollenPlan();
@@ -856,11 +918,12 @@ function dfaDaten(){
  return {
   material:a.material, deckung:a.deckung, lattenabstand:dfaZahl(a.lattenabstand),
   getrennt:!!a.getrennt,
+  a:dfaZahl(a.a), d:dfaZahl(a.d), ueberlappung:dfaZahl(a.ueberlappung),
   saumVorne:dfaZahl(a.saumVorne), breiteOben:dfaZahl(a.breiteOben), breiteUnten:dfaZahl(a.breiteUnten),
-  ueberlappungT:dfaZahl(a.ueberlappungT), ueberlappungH:dfaZahl(a.ueberlappungH),
   breiteVorne:dfaZahl(a.breiteVorne), breiteHinten:dfaZahl(a.breiteHinten),
   umschlagVorne:dfaZahl(a.umschlagVorne), umschlagHinten:dfaZahl(a.umschlagHinten), umschlagSeite:dfaZahl(a.umschlagSeite),
-  laenge:paar("laenge"), aufVorne:paar("aufVorne"), aufHinten:paar("aufHinten"),
+  b:paar("b"), c:paar("c"), aufVorne:paar("aufVorne"), aufHinten:paar("aufHinten"),
+  laenge:{l:dfaLaenge("l"),r:dfaLaenge("r")},
   zuschnitte:dfaZuschnitte(),
   bleilappen:bl,
   flaeche_m2:Number(dfaFlaecheM2().toFixed(3)),
@@ -891,13 +954,17 @@ function dfaZuruecksetzen(){
 function dfaFuellen(d){
  const w=d||{};
  const a=dfaLeer();
+ // Wie bei der Kamineinfassung: A und D gelten fuer eine NEUE Aufnahme aus
+ // den Einstellungen, bei einem gespeicherten Datensatz wird nichts erfunden
+ // - fehlt eines der beiden dort, bleibt es leer.
+ a.a=""; a.d="";
  const nimm=(k,ziel)=>{if(w[k]===0||w[k])a[ziel||k]=w[k]};
  a.material=w.material??"";
  if(w.deckung&&(typeof EINF_DECKUNGEN!=="object"||EINF_DECKUNGEN[w.deckung]))a.deckung=w.deckung;
- ["lattenabstand","saumVorne","breiteOben","breiteUnten","ueberlappungT","ueberlappungH",
+ ["lattenabstand","a","d","ueberlappung","saumVorne","breiteOben","breiteUnten",
   "breiteVorne","breiteHinten","umschlagVorne","umschlagHinten","umschlagSeite"].forEach(k=>nimm(k));
  a.getrennt=!!w.getrennt;
- ["laenge","aufVorne","aufHinten"].forEach(k=>{
+ ["b","c","aufVorne","aufHinten"].forEach(k=>{
   const v=w[k];
   if(v&&typeof v==="object")a[k]={l:(v.l===0||v.l)?v.l:"",r:(v.r===0||v.r)?v.r:""};
   else if(v===0||v)a[k]={l:v,r:v};
