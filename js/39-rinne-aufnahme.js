@@ -448,6 +448,7 @@ function rpaVerdrahten(){
   if(reg){rpaSetzeSchritt(reg.dataset.rpaSchritt);return}
   if(t.id==="rpa_zurueck"){rpaSetzeSchritt(rpaSchritt-1);return}
   if(t.id==="rpa_weiter"){
+   if(!pflichtPruefenUndSpringen(wurzel))return;
    if(rpaSchritt>=RPA_REGISTER.length)rpaAbschluss();
    else rpaSetzeSchritt(rpaSchritt+1);
    return;

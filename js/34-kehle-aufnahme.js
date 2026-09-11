@@ -357,7 +357,7 @@ function keaSegmenteHtml(){
  const zeilen=segs.map((s,i)=>`<tr>
 <td>${i+1}${keaRolleText(s)?`<div class="kea-rolle" title="${esc(keaRolleText(s))}">${esc(KEA_ROLLE_KURZ[s.rolle])}</div>`:""}</td>
 <td><input data-kea-laenge="${i}" type="number" inputmode="numeric" step="1" value="${esc(keaZahl(s.laenge))}"></td>
-<td><input data-kea-ueb="${i}" type="number"${i<segs.length-1?' data-pflicht="1"':""} inputmode="numeric" step="1" value="${s.ueberlappung===""||s.ueberlappung===null||s.ueberlappung===undefined?"":esc(keaZahl(s.ueberlappung))}"></td>
+<td><input id="kea_ueb_${i}" data-kea-ueb="${i}" type="number"${i<segs.length-1?' data-pflicht="1"':""} inputmode="numeric" step="1" value="${s.ueberlappung===""||s.ueberlappung===null||s.ueberlappung===undefined?"":esc(keaZahl(s.ueberlappung))}">${(i<segs.length-1&&(s.ueberlappung===""||s.ueberlappung===null||s.ueberlappung===undefined)&&typeof vorschlagChip==="function")?vorschlagChip("kea_ueb_"+i,keaUeberlappungVorgabe()):""}</td>
 <td><div class="zu-lb"><b data-kea-zu="${i}">${esc(keaMm(keaZuschnittLaenge(s)))}</b><span class="zu-lb-breite">mm × ${esc(keaMm(keaAbwicklung()))}&nbsp;mm</span></div></td>
 <td class="p-mitte"><button type="button" class="red ra-weg" data-kea-weg="${i}" title="Segment löschen">✕</button></td>
 </tr>`).join("");
@@ -591,6 +591,7 @@ function keaVerdrahten(){
   if(schritt){keaSetzeSchritt(Number(schritt.dataset.keaSchritt));return}
   if(t.id==="kea_zurueck"){keaSetzeSchritt(keaSchritt-1);return}
   if(t.id==="kea_weiter"){
+   if(!pflichtPruefenUndSpringen(wurzel))return;
    if(keaSchritt>=KEA_REGISTER.length){keaAbschluss();return}
    keaSetzeSchritt(keaSchritt+1); return;
   }

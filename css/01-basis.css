@@ -388,6 +388,14 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
    damit er auch auf einem Handy sicher zu sehen ist. Der Stern steht im
    Label, nie im Eingabewert - er kann also nicht mitgetippt werden. */
 .pflicht-stern{color:var(--red);font-weight:900;font-size:13px;line-height:1;margin-left:3px;vertical-align:baseline}
+/* Vorschlag-Chip (v3.67): zeigt den Firmen-Richtwert neben einem leeren
+   Pflichtfeld, wird aber nur nach Antippen uebernommen - kein stilles
+   Vorausfuellen mehr. */
+.vorschlag-chip{display:inline-block;margin:3px 6px 0 0;padding:2px 9px;
+ border:1px solid var(--blue);border-radius:999px;background:var(--blue-light);
+ color:var(--blue);font-size:11px;font-weight:700;line-height:1.6;
+ cursor:pointer}
+.vorschlag-chip:active{background:var(--blue);color:#fff}
 /* Offline-Hinweis (v2.70): deutlich, aber nicht alarmierend. Steht ganz
    oben und nimmt auf dem Handy die volle Breite ein. */
 .offline-hinweis{background:#fff4e5;border:1px solid #f0c48a;color:#8a5300;

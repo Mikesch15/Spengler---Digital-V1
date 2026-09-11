@@ -651,6 +651,7 @@ function fpaVerdrahten(){
   if(d.fpaSchritt!==undefined){fpaSetzeSchritt(d.fpaSchritt);return}
   if(t.id==="fpa_zurueck"){if(fpaSchritt>1)fpaSetzeSchritt(fpaSchritt-1);return}
   if(t.id==="fpa_weiter"){
+   if(!pflichtPruefenUndSpringen(wurzel))return;
    if(fpaSchritt<FPA_REGISTER.length)fpaSetzeSchritt(fpaSchritt+1);
    else fpaAbschluss();
    return;

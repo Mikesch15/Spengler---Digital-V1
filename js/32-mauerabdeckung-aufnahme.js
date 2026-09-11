@@ -479,8 +479,12 @@ function madaProfilHtml(){
  const p=madA.profil, m=madaProfilMasse(), vg=madBiegeVorgabe(m.gef);
  const h=madaNormHinweise();
  return `<div class="grid">
-${MADA_PROFIL_FELDER.map(f=>madaFeld(f.t,
-  `<input type="number" inputmode="numeric" step="1" data-mada-profil="${f.k}" value="${p[f.k]===""?"":madaZahl(p[f.k])}"${f.pflicht?' data-pflicht="1"':""}>`)).join("")}
+${MADA_PROFIL_FELDER.map(f=>{
+  const leer=p[f.k]===""||p[f.k]===null||p[f.k]===undefined;
+  const chip=(leer&&typeof vorschlagChip==="function")?vorschlagChip("mada_profil_"+f.k,MADA_PROFIL_VORGABE[f.k]):"";
+  return madaFeld(f.t,
+   `<input id="mada_profil_${f.k}" type="number" inputmode="numeric" step="1" data-mada-profil="${f.k}" value="${leer?"":madaZahl(p[f.k])}"${f.pflicht?' data-pflicht="1"':""}>${chip}`);
+ }).join("")}
 ${madaFeld("Abwicklung",`<div class="ra-wert" id="mada_abwicklung">${madaMm(m.abwicklung)} mm</div>`)}
 </div>
 <label class="ra-schalter"><input type="checkbox" id="mada_wind"${p.windexponiert?" checked":""}> Windexponierte Lage</label>
@@ -740,6 +744,7 @@ function madaVerdrahten(){
   if(d.madaSchritt!==undefined){madaSetzeSchritt(d.madaSchritt);return}
   if(t.id==="mada_zurueck"){madaSetzeSchritt(madaSchritt-1);return}
   if(t.id==="mada_weiter"){
+   if(!pflichtPruefenUndSpringen(wurzel))return;
    if(madaSchritt>=MADA_REGISTER.length){madaAbschluss();return}
    madaSetzeSchritt(madaSchritt+1); return;
   }

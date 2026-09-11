@@ -677,6 +677,7 @@ function ebkaVerdrahten(){
   if(d.ebkaSchritt!==undefined){ebkaSetzeSchritt(d.ebkaSchritt); return}
   if(t.id==="ebka_zurueck"){if(ebkaSchritt>1)ebkaSetzeSchritt(ebkaSchritt-1); return}
   if(t.id==="ebka_weiter"){
+   if(!pflichtPruefenUndSpringen(wurzel))return;
    if(ebkaSchritt>=EBKA_REGISTER.length)ebkaAbschluss();
    else ebkaSetzeSchritt(ebkaSchritt+1);
    return;

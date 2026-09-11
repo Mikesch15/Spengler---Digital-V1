@@ -92,6 +92,65 @@ function markierePflichtfelder(wurzel){
  return gesetzt;
 }
 
+// v3.67: "Weiter" soll nicht stillschweigend ueber ein leeres Pflichtfeld
+// hinwegblaettern - das noetigt der Installateur sonst dazu, erst am
+// letzten Register (Kontrolle) zu merken, dass vorne etwas fehlt.
+// ersteUngueltigePflicht() nutzt die vom Browser gefuehrte Gueltigkeit
+// (required, siehe markierePflichtfelder oben) und ueberspringt versteckte
+// Felder (z. B. ein Mass, das nur bei aktivem Kaestchen gezeigt wird).
+function ersteUngueltigePflicht(wurzel){
+ const bereich=wurzel||document;
+ if(!bereich||!bereich.querySelectorAll)return null;
+ const felder=bereich.querySelectorAll("[data-pflicht]");
+ for(let i=0;i<felder.length;i++){
+  const f=felder[i];
+  if(f.offsetParent===null)continue;
+  if(typeof f.checkValidity==="function"&&!f.checkValidity())return f;
+ }
+ return null;
+}
+// Springt zum ersten fehlenden Pflichtfeld und meldet es zurueck (false).
+// true heisst: alles im sichtbaren Bereich ist ausgefuellt, weiterblaettern
+// ist unbedenklich.
+function pflichtPruefenUndSpringen(wurzel){
+ const f=ersteUngueltigePflicht(wurzel);
+ if(!f)return true;
+ if(f.scrollIntoView)f.scrollIntoView({block:"center",behavior:"smooth"});
+ if(typeof f.reportValidity==="function")f.reportValidity();
+ else if(f.focus)f.focus();
+ return false;
+}
+
+// v3.67: ein kleiner Chip neben einem leeren Pflichtfeld, das einen
+// Firmen-Richtwert hat (Einstellungen oder Katalog). Antippen uebernimmt
+// den Wert - der Nutzer sieht die Zahl vorher und bestaetigt sie aktiv,
+// statt dass sie schon unbemerkt im Feld steht. feldId muss die id des
+// Zahlenfelds sein.
+function vorschlagChip(feldId,wert){
+ const n=Number(wert);
+ if(wert===""||wert===null||wert===undefined||!Number.isFinite(n))return "";
+ return `<button type="button" class="vorschlag-chip no-print" data-vorschlag-fuer="${feldId}" `
+  +`data-vorschlag-wert="${n}" title="Richtwert übernehmen">Richtwert ${n}</button>`;
+}
+// Eine einzige, ganz oben delegierte Stelle fuer alle Vorschlag-Chips der
+// App - jedes Modul erzeugt nur die Chip-Markierung, das Uebernehmen passiert
+// hier zentral. dispatchEvent statt direktem Aufruf, damit jedes Modul mit
+// seinem eigenen, bereits vorhandenen input/change-Handler reagiert.
+document.addEventListener("click",e=>{
+ const chip=e.target.closest(".vorschlag-chip");
+ if(!chip)return;
+ const feld=document.getElementById(chip.dataset.vorschlagFuer);
+ if(!feld)return;
+ feld.value=chip.dataset.vorschlagWert;
+ feld.dispatchEvent(new Event("input",{bubbles:true}));
+ feld.dispatchEvent(new Event("change",{bubbles:true}));
+ feld.focus();
+ // Der Chip verschwindet sofort, auch wenn das Modul das Feld aus
+ // Fokus-Gruenden nicht komplett neu zeichnet (siehe die vielen "live"-
+ // Funktionen in den Aufnahme-Modulen).
+ chip.remove();
+});
+
 function isAdmin(){
  // Administrator ist, wer das Recht "admin" hat (siehe 05a-rechte.js).
  return !!(currentProfile&&currentProfile.role==="admin");

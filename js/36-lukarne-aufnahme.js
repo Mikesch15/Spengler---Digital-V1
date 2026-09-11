@@ -276,10 +276,12 @@ function lukaKarte(titel,inhalt){
 function lukaFeld(label,inhalt,voll){
  return `<div${voll?' style="grid-column:1/-1"':""}><label>${esc(label)}</label>${inhalt}</div>`;
 }
-function lukaZahlFeld(label,id,wert,schritt,pflicht){
+function lukaZahlFeld(label,id,wert,schritt,pflicht,vorschlag){
+ const leer=wert===""||wert===null||wert===undefined;
+ const chip=(leer&&typeof vorschlagChip==="function")?vorschlagChip(id,vorschlag):"";
  return lukaFeld(label,`<input id="${id}" type="number" step="${schritt||1}"${
    pflicht?' data-pflicht="1"':""} inputmode="${
-   (schritt&&schritt!=="1")?"decimal":"numeric"}" value="${wert===""||wert===null||wert===undefined?"":esc(wert)}">`);
+   (schritt&&schritt!=="1")?"decimal":"numeric"}" value="${leer?"":esc(wert)}">${chip}`);
 }
 function lukaGrunddatenHtml(){
  const a=lukA;
@@ -322,10 +324,10 @@ ab der jede Schar nach oben und unten abgemessen wird.</div>
 ${lukaZahlFeld("Vordere Höhe H (mm)","luka_hoehe",a.hoehe,"1",true)}
 ${lukaZahlFeld("Obere Länge L (mm)","luka_laengeOben",a.laengeOben,"1",true)}
 ${lukaZahlFeld("Oberer Innenwinkel α (°)","luka_winkel",a.winkel,"0.1",true)}
-${lukaZahlFeld("Achsabstand Scharen (mm)","luka_achsabstand",a.achsabstand,"1",true)}
-${lukaZahlFeld("Hilfsriss unter Oberkante (mm)","luka_hilfsriss",a.hilfsriss,"1",true)}
-${lukaZahlFeld("Längenzugabe Zuschnitt (mm)","luka_zugabeLaenge",a.zugabeLaenge,"1",true)}
-${lukaZahlFeld("Breitenzugabe Zuschnitt (mm)","luka_zugabeBreite",a.zugabeBreite,"1",true)}
+${lukaZahlFeld("Achsabstand Scharen (mm)","luka_achsabstand",a.achsabstand,"1",true,lukAchsabstand)}
+${lukaZahlFeld("Hilfsriss unter Oberkante (mm)","luka_hilfsriss",a.hilfsriss,"1",true,lukHilfsriss)}
+${lukaZahlFeld("Längenzugabe Zuschnitt (mm)","luka_zugabeLaenge",a.zugabeLaenge,"1",true,lukZugabeLaenge)}
+${lukaZahlFeld("Breitenzugabe Zuschnitt (mm)","luka_zugabeBreite",a.zugabeBreite,"1",true,lukZugabeBreite)}
 </div>
 ${kennzahlen}
 ${hinweis}
@@ -531,6 +533,7 @@ function lukaVerdrahten(){
   if(reg){lukaSetzeSchritt(reg.dataset.lukaSchritt);return}
   if(t.id==="luka_zurueck"){lukaSetzeSchritt(lukaSchritt-1);return}
   if(t.id==="luka_weiter"){
+   if(!pflichtPruefenUndSpringen(wurzel))return;
    if(lukaSchritt>=LUKA_REGISTER.length)lukaAbschluss();
    else lukaSetzeSchritt(lukaSchritt+1);
    return;

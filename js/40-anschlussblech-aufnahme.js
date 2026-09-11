@@ -397,6 +397,7 @@ function anbaVerdrahten(){
   if(reg){anbaSetzeSchritt(reg.dataset.anbaSchritt);return}
   if(t.id==="anba_zurueck"){anbaSetzeSchritt(anbaSchritt-1);return}
   if(t.id==="anba_weiter"){
+   if(!pflichtPruefenUndSpringen(wurzel))return;
    if(anbaSchritt>=ANBA_REGISTER.length)anbaAbschluss();
    else anbaSetzeSchritt(anbaSchritt+1);
    return;

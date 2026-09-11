@@ -326,11 +326,13 @@ function einfaKarte(titel,inhalt){
  const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,EINFA_REGISTER):"";
  return `<div class="card"><h2>${esc(titel)}${h}</h2>${inhalt}</div>`;
 }
-function einfaZahlFeld(label,id,wert,schritt,pflicht){
+function einfaZahlFeld(label,id,wert,schritt,pflicht,vorschlag){
+ const leer=wert===""||wert===null||wert===undefined;
+ const chip=(leer&&typeof vorschlagChip==="function")?vorschlagChip(id,vorschlag):"";
  return einfaFeld(label,`<input id="${id}" type="number" step="${schritt||1}"${
    pflicht?' data-pflicht="1"':""} inputmode="${
    (schritt&&schritt!=="1")?"decimal":"numeric"}" value="${
-   wert===""||wert===null||wert===undefined?"":esc(wert)}">`);
+   leer?"":esc(wert)}">${chip}`);
 }
 function einfaKennzahlenHtml(){
  const wert=(l,v)=>`<div><label>${esc(l)}</label><div class="ra-wert">${esc(v)}</div></div>`;
@@ -359,7 +361,7 @@ Deckmaterial und Lattenabstand werden für die Bleilappen gebraucht.</div>
 <div class="grid">
 ${einfaFeld("Material",`<select id="einfa_material" data-pflicht="1">${matOpt}</select>`,true)}
 ${einfaFeld("Eindeckungsart",`<select id="einfa_deckung">${deckOpt}</select>`)}
-${einfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","einfa_lattenabstand",a.lattenabstand,"1",true)}
+${einfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","einfa_lattenabstand",a.lattenabstand,"1",true,(einfassungSettings||{}).lattenabstand)}
 </div>
 <div class="bar" style="margin-top:8px">
 <button type="button" class="gray" id="einfa_einstellungen">⚙️ Einstellungen</button>
@@ -378,9 +380,9 @@ function einfaEinfassungenHtml(){
 ${einfaFeld("Bezeichnung",`<input id="einfa_bez_${i}" type="text" value="${esc(e.bez||"")}">`)}
 ${einfaZahlFeld("Ø Standrohr (mm)","einfa_durchmesser_"+i,e.durchmesser,"1",true)}
 ${einfaZahlFeld("Winkel Dach/Rohr (°)","einfa_winkel_"+i,einfaWinkelAnzeige(e.winkel),"0.1",true)}
-${einfaZahlFeld("a · vorne bis Mitte Rohr (mm)","einfa_a_"+i,e.a,"1",true)}
-${einfaZahlFeld("b · ab Mitte Rohr bis hinten (mm)","einfa_b_"+i,e.b,"1",true)}
-${einfaZahlFeld("c · Aufbug 90°, oben Umschlag 135° (mm)","einfa_c_"+i,e.c,"1",true)}
+${einfaZahlFeld("a · vorne bis Mitte Rohr (mm)","einfa_a_"+i,e.a,"1",true,(einfassungSettings||{}).mass_a)}
+${einfaZahlFeld("b · ab Mitte Rohr bis hinten (mm)","einfa_b_"+i,e.b,"1",true,(einfassungSettings||{}).mass_b)}
+${einfaZahlFeld("c · Aufbug 90°, oben Umschlag 135° (mm)","einfa_c_"+i,e.c,"1",true,(einfassungSettings||{}).mass_c)}
 ${einfaZahlFeld("Stückzahl","einfa_anzahl_"+i,e.anzahl)}
 </div>
 <div class="bar" style="margin-top:6px">
@@ -624,6 +626,7 @@ function einfaVerdrahten(){
   }
   if(t.id==="einfa_zurueck"){einfaSetzeSchritt(einfaSchritt-1);return}
   if(t.id==="einfa_weiter"){
+   if(!pflichtPruefenUndSpringen(wurzel))return;
    if(einfaSchritt>=EINFA_REGISTER.length)einfaAbschluss();
    else einfaSetzeSchritt(einfaSchritt+1);
    return;

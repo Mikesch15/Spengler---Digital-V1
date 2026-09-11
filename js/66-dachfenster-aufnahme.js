@@ -688,20 +688,22 @@ function dfaKarte(titel,inhalt){
 function dfaFeld(label,inhalt,voll){
  return `<div${voll?' style="grid-column:1/-1"':""}><label>${esc(label)}</label>${inhalt}</div>`;
 }
-function dfaZahlFeld(label,id,wert,schritt,pflicht){
+function dfaZahlFeld(label,id,wert,schritt,pflicht,vorschlag){
+ const leer=wert===""||wert===null||wert===undefined;
+ const chip=(leer&&typeof vorschlagChip==="function")?vorschlagChip(id,vorschlag):"";
  return dfaFeld(label,`<input id="${id}" type="number" step="${schritt||1}"${
    pflicht?' data-pflicht="1"':""} inputmode="${
    (schritt&&schritt!=="1")?"decimal":"numeric"}" value="${
-   wert===""||wert===null||wert===undefined?"":esc(wert)}">`);
+   leer?"":esc(wert)}">${chip}`);
 }
-function dfaSeitenFeld(label,basis,pflicht){
+function dfaSeitenFeld(label,basis,pflicht,vorschlag){
  const feld=(typeof DFA_SEITENFELDER==="object"&&DFA_SEITENFELDER[basis])
    ||String(basis).replace(/^dfa_/,"");
  const w=dfaA[feld]||{l:"",r:""};
  if(!dfaA.getrennt)
-  return dfaZahlFeld(label,basis+"_l",w.l,"1",pflicht);
- return dfaZahlFeld(label+" · links",basis+"_l",w.l,"1",pflicht)
-   +dfaZahlFeld(label+" · rechts",basis+"_r",w.r,"1",pflicht);
+  return dfaZahlFeld(label,basis+"_l",w.l,"1",pflicht,vorschlag);
+ return dfaZahlFeld(label+" · links",basis+"_l",w.l,"1",pflicht,vorschlag)
+   +dfaZahlFeld(label+" · rechts",basis+"_r",w.r,"1",pflicht,vorschlag);
 }
 function dfaGrunddatenHtml(){
  const a=dfaA;
@@ -717,7 +719,7 @@ Lattenabstand werden für die Bleilappen gebraucht.</div>
 <div class="grid">
 ${dfaFeld("Material",`<select id="dfa_material" data-pflicht="1">${matOpt}</select>`,true)}
 ${dfaFeld("Deckungsmaterial",`<select id="dfa_deckung">${deckOpt}</select>`)}
-${dfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","dfa_lattenabstand",a.lattenabstand,"1",true)}
+${dfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","dfa_lattenabstand",a.lattenabstand,"1",true,dfaSettings.lattenabstand)}
 </div>
 <label class="kam-schalter"><input type="checkbox" id="dfa_getrennt"${a.getrennt?" checked":""}>
 <span>Links und rechts getrennt erfassen</span></label>
@@ -749,22 +751,22 @@ die Länge des Seitenteils ist deshalb B + C − Überlappung. Vorne (talseitig)
 Aufbordung niedriger und hat oben einen Saum; hinten (bergseitig) ist sie höher und
 bewusst trapezförmig – Breite oben ist kleiner als Breite unten.</div>
 <div class="grid">
-${dfaZahlFeld("A · vorne auf Deckmaterial bis Vorderkant Aufbordung","dfa_a",a.a,"1",true)}
+${dfaZahlFeld("A · vorne auf Deckmaterial bis Vorderkant Aufbordung","dfa_a",a.a,"1",true,dfaSettings.mass_vorne)}
 ${dfaSeitenFeld("B · Vorderkant Aufbordung bis Hinterkant Knick","dfa_b",true)}
 ${dfaSeitenFeld("C · Vorderkant Knick bis Hinterkant Aufbordung","dfa_c",true)}
-${dfaZahlFeld("Überlappung der Seitenteile (Knick)","dfa_ueberlappung",a.ueberlappung,"1",true)}
-${dfaZahlFeld("D · Hinterkant Aufbordung bis hinten unter Deckmaterial","dfa_d",a.d,"1",true)}
-${dfaSeitenFeld("Aufbordungshöhe vorne (talseitig)","dfa_aufVorne",true)}
-${dfaSeitenFeld("Aufbordungshöhe hinten (bergseitig)","dfa_aufHinten",true)}
-${dfaZahlFeld("Saum/Rückschlag oben, vorne","dfa_saumVorne",a.saumVorne,"1",true)}
-${dfaZahlFeld("Breite oben, hintere Aufbordung (Kopf)","dfa_breiteOben",a.breiteOben,"1",true)}
-${dfaZahlFeld("Breite unten, hintere Aufbordung (Fuss)","dfa_breiteUnten",a.breiteUnten,"1",true)}
-${dfaZahlFeld("Rand-Abstand · obere Ecke bis Strich am Kopf","dfa_randAbstand",a.randAbstand,"1",true)}
-${dfaZahlFeld("Rand-Strich · Länge des Strichs am Kopf","dfa_randStrich",a.randStrich,"1",true)}
-${dfaZahlFeld("E · 90°-Aufbug hinten, hinter D","dfa_e",a.e,"1",true)}
-${dfaZahlFeld("Umschlag am Aufbug hinten (180°)","dfa_eUmschlag",a.eUmschlag,"1",true)}
-${dfaZahlFeld("Anreiff vorne, vor A","dfa_anreiff",a.anreiff,"1",true)}
-${dfaZahlFeld("Umschlag am Anreiff vorne (180°)","dfa_anreiffUmschlag",a.anreiffUmschlag,"1",true)}
+${dfaZahlFeld("Überlappung der Seitenteile (Knick)","dfa_ueberlappung",a.ueberlappung,"1",true,dfaSettings.ueberlappung)}
+${dfaZahlFeld("D · Hinterkant Aufbordung bis hinten unter Deckmaterial","dfa_d",a.d,"1",true,dfaSettings.mass_hinten)}
+${dfaSeitenFeld("Aufbordungshöhe vorne (talseitig)","dfa_aufVorne",true,dfaSettings.auf_vorne)}
+${dfaSeitenFeld("Aufbordungshöhe hinten (bergseitig)","dfa_aufHinten",true,dfaSettings.auf_hinten)}
+${dfaZahlFeld("Saum/Rückschlag oben, vorne","dfa_saumVorne",a.saumVorne,"1",true,dfaSettings.saum_vorne)}
+${dfaZahlFeld("Breite oben, hintere Aufbordung (Kopf)","dfa_breiteOben",a.breiteOben,"1",true,dfaSettings.breite_oben)}
+${dfaZahlFeld("Breite unten, hintere Aufbordung (Fuss)","dfa_breiteUnten",a.breiteUnten,"1",true,dfaSettings.breite_unten)}
+${dfaZahlFeld("Rand-Abstand · obere Ecke bis Strich am Kopf","dfa_randAbstand",a.randAbstand,"1",true,dfaSettings.rand_abstand)}
+${dfaZahlFeld("Rand-Strich · Länge des Strichs am Kopf","dfa_randStrich",a.randStrich,"1",true,dfaSettings.rand_strich)}
+${dfaZahlFeld("E · 90°-Aufbug hinten, hinter D","dfa_e",a.e,"1",true,dfaSettings.e)}
+${dfaZahlFeld("Umschlag am Aufbug hinten (180°)","dfa_eUmschlag",a.eUmschlag,"1",true,dfaSettings.e_umschlag)}
+${dfaZahlFeld("Anreiff vorne, vor A","dfa_anreiff",a.anreiff,"1",true,dfaSettings.anreiff)}
+${dfaZahlFeld("Umschlag am Anreiff vorne (180°)","dfa_anreiffUmschlag",a.anreiffUmschlag,"1",true,dfaSettings.anreiff_umschlag)}
 </div>
 <div class="small" style="color:var(--muted);margin-top:4px">B und C überlappen sich im
 Knick – die Länge ist deshalb B + C − Überlappung.</div>
@@ -787,9 +789,9 @@ function dfaUmschlaegeHtml(){
 Zuschnittlängen von Vorder- und Hinterteil. Die Seitenteile bekommen ihre Länge aus
 B und C.</div>
 <div class="grid">
-${dfaZahlFeld("Umschlag vorne","dfa_umschlagVorne",a.umschlagVorne,"1",true)}
-${dfaZahlFeld("Umschlag hinten","dfa_umschlagHinten",a.umschlagHinten,"1",true)}
-${dfaZahlFeld("Umschlagbreite seitlich (beide Seiten gleich)","dfa_umschlagSeite",a.umschlagSeite,"1",true)}
+${dfaZahlFeld("Umschlag vorne","dfa_umschlagVorne",a.umschlagVorne,"1",true,dfaSettings.umschlag_vorne)}
+${dfaZahlFeld("Umschlag hinten","dfa_umschlagHinten",a.umschlagHinten,"1",true,dfaSettings.umschlag_hinten)}
+${dfaZahlFeld("Umschlagbreite seitlich (beide Seiten gleich)","dfa_umschlagSeite",a.umschlagSeite,"1",true,dfaSettings.umschlag_seite)}
 ${dfaZahlFeld("Breite vorne · Zuschnittlänge Vorderteil","dfa_breiteVorne",a.breiteVorne,"1",true)}
 ${dfaZahlFeld("Breite hinten · Zuschnittlänge Hinterteil","dfa_breiteHinten",a.breiteHinten,"1",true)}
 </div>
@@ -1026,6 +1028,7 @@ function dfaVerdrahten(){
   if(sk){dfaA.skizzeSeite=sk.dataset.dfaSkizze==="r"?"r":"l"; renderDfaAufnahme(); return}
   if(t.id==="dfa_zurueck"){dfaSetzeSchritt(dfaSchritt-1);return}
   if(t.id==="dfa_weiter"){
+   if(!pflichtPruefenUndSpringen(wurzel))return;
    if(dfaSchritt>=DFA_REGISTER.length)dfaAbschluss();
    else dfaSetzeSchritt(dfaSchritt+1);
    return;

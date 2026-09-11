@@ -815,6 +815,17 @@ function anbFesteFelderFuellen(w) {
   $("anb_stossLaenge").value = leerWert(w.stossLaenge);
   $("anb_ueberlappung").value = leerWert(w.ueberlappung);
   $("anb_lattenabstand").value = leerWert(w.lattenabstand);
+  // v3.67: Vorschlag-Chip mit dem Firmen-Richtwert neben jedem leeren Feld -
+  // Antippen uebernimmt ihn (js/01-basis.js), er wird nie still uebernommen.
+  const s = anschlussblechSettings || ANSCHLUSSBLECH_STANDARD;
+  const chip = (elId, feldId, leer, wert) => {
+    const el = $(elId);
+    if (el) el.innerHTML = (leer && typeof vorschlagChip === "function") ? vorschlagChip(feldId, wert) : "";
+  };
+  chip("anb_saumChip", "anb_saum", w.saum === "" || w.saum === null || w.saum === undefined, s.saum);
+  chip("anb_stossLaengeChip", "anb_stossLaenge", w.stossLaenge === "" || w.stossLaenge === null || w.stossLaenge === undefined, s.stoss_laenge);
+  chip("anb_ueberlappungChip", "anb_ueberlappung", w.ueberlappung === "" || w.ueberlappung === null || w.ueberlappung === undefined, s.ueberlappung);
+  chip("anb_lattenabstandChip", "anb_lattenabstand", w.lattenabstand === "" || w.lattenabstand === null || w.lattenabstand === undefined, s.lattenabstand);
   $("anb_lattenabstandField").hidden = w.art !== "bleilappen";
   if ($("anb_firstgehrung")) $("anb_firstgehrung").checked = !!w.firstgehrung;
 }
@@ -827,9 +838,13 @@ function anbMassfelderZeichnen(w) {
   Object.keys(art.masse).forEach(k => {
     const min = anbMindestmass(w.art, k, w.deckung);
     const zusatz = (k === "a" && art.hinweisA) ? ", " + art.hinweisA : "";
-    const wert = (w[k] === "" || w[k] === null || w[k] === undefined) ? "" : Math.round(Number(w[k]) || 0);
+    const leer = w[k] === "" || w[k] === null || w[k] === undefined;
+    const wert = leer ? "" : Math.round(Number(w[k]) || 0);
+    // v3.67: kein echter "Standardwert" hier - der Mindestwert der Norm ist
+    // das Naechstbeste, was sich anbieten laesst.
+    const chip = (leer && min !== null && typeof vorschlagChip === "function") ? vorschlagChip("anb_masse_" + k, min) : "";
     h += `<div><label>${k} · ${anbEsc(art.masse[k].text || "")}${zusatz} (mm)</label>
-<input type="number" step="1" data-pflicht="1" inputmode="numeric" data-anb="${k}" value="${wert}">
+<input id="anb_masse_${k}" type="number" step="1" data-pflicht="1" inputmode="numeric" data-anb="${k}" value="${wert}">${chip}
 <div class="small">${min !== null ? "mindestens " + min + " mm" : "Mass am Bau nehmen"}</div></div>`;
   });
   $("anb_masse").innerHTML = h;
@@ -838,20 +853,25 @@ function anbMassfelderZeichnen(w) {
   if (typeof markierePflichtfelder === "function") markierePflichtfelder($("anb_masse"));
 
   const ort = w.ausfuehrung === "ort" && w.art !== "steck" && w.art !== "pv_seite";
-  const feld = (id, label, wert) => `<div><label>${label} (mm)</label>
-<input type="number" step="1" data-pflicht="1" inputmode="numeric" data-anb="${id}" value="${(wert === "" || wert === null || wert === undefined) ? "" : Math.round(Number(wert) || 0)}"></div>`;
+  const s2 = anschlussblechSettings || ANSCHLUSSBLECH_STANDARD;
+  const feld = (id, label, wert, vorschlag) => {
+    const leer = wert === "" || wert === null || wert === undefined;
+    const chip = (leer && typeof vorschlagChip === "function") ? vorschlagChip("anb_" + id, vorschlag) : "";
+    return `<div><label>${label} (mm)</label>
+<input id="anb_${id}" type="number" step="1" data-pflicht="1" inputmode="numeric" data-anb="${id}" value="${leer ? "" : Math.round(Number(wert) || 0)}">${chip}</div>`;
+  };
   let f;
   if (w.art === "steck") {
     f = `<div class="wide small">Das Steckblech wird beidseitig gesäumt eingeschoben – es hat weder Wand- noch Ortabkantung.</div>`;
   } else if (w.art === "pv_seite") {
     f = `<div class="wide small">Das Blech liegt frei unter dem Deckmaterial und steht senkrecht bis zur PV-Schiene hoch – es hat weder Wand- noch Ortabkantung.</div>`;
   } else if (ort) {
-    f = feld("ortAufkantung", "Aufkantung über Dach", w.ortAufkantung)
-      + feld("ortOben", "Übergriff Ortbrett", w.ortOben)
-      + feld("ortStirn", "Stirnhöhe", w.ortStirn)
-      + feld("ortNase", "Wassernase", w.ortNase);
+    f = feld("ortAufkantung", "Aufkantung über Dach", w.ortAufkantung, s2.ort_aufkantung)
+      + feld("ortOben", "Übergriff Ortbrett", w.ortOben, s2.ort_oben)
+      + feld("ortStirn", "Stirnhöhe", w.ortStirn, s2.ort_stirn)
+      + feld("ortNase", "Wassernase", w.ortNase, s2.ort_nase);
   } else {
-    f = feld("wandAufkantung", "Aufkantung an der Wand", w.wandAufkantung)
+    f = feld("wandAufkantung", "Aufkantung an der Wand", w.wandAufkantung, s2.wand_aufkantung)
       + `<div class="small" style="align-self:end">Zählt in der Abwicklung mit, wird in der Zeichnung aber angeschnitten.</div>`;
   }
   $("anb_abschluss").innerHTML = f;
