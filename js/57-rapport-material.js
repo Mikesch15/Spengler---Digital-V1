@@ -93,6 +93,16 @@ if($("measRapportMaterialBody")){
   }
   if(qty!==undefined){measRapportMaterial[Number(qty)].qty=e.target.value;isDirty=true}
  });
+ // Ohne dies verlor das EDV-Nr.-Feld beim Klick auf einen Vorschlag zuerst
+ // den Fokus (mousedown auf dem nicht fokussierbaren Vorschlag-div) - das
+ // loeste "change" und damit renderMeasRapportMaterial() aus, WEG war die
+ // gerade angeklickte Vorschlagszeile, BEVOR ihr eigener Klick verarbeitet
+ // wurde. Gemeldet als "Auswahl eines Produkts wird häufig nicht
+ // angenommen". preventDefault haelt den Fokus im Eingabefeld, "change"
+ // feuert dann gar nicht erst.
+ $("measRapportMaterialBody").addEventListener("mousedown",e=>{
+  if(e.target.closest&&e.target.closest("[data-rmat-pick]"))e.preventDefault();
+ });
  // Die Vorschlagsliste steht ueber der Zeile und wuerde sonst das Mengenfeld
  // verdecken: der globale "ausserhalb geklickt"-Schliesser in js/07 greift
  // nicht, weil der Klick dann die Liste selbst trifft. Im Browser gemessen.
