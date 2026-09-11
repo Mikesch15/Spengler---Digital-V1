@@ -940,7 +940,17 @@ bitte vor dem Übernehmen durchsehen.</p>`},
 <p>Ein Foto der bestehenden Offerte wird ausgewertet und als Positionen
 vorgeschlagen – dieselbe Erkennung wie beim Ausmass "Offerte erfassen".</p>
 <p>Das Ergebnis landet in der Tabelle darüber und lässt sich dort vor dem
-Speichern noch prüfen und korrigieren.</p>`},
+Speichern noch prüfen und korrigieren.</p>
+<p>Fett gedruckte Zwischentitel im Dokument (z. B. "Bedachung") werden als
+eigene, klappbare Abschnitte mit fett gedrucktem Titel dargestellt – ein
+Klick auf den Titel klappt den Abschnitt auf oder zu. Die ganze Liste lässt
+sich über die Überschrift "Erkannte Positionen" ebenso auf- und zuklappen.</p>
+<p>Wird ein Einzelpreis erkannt (oder von Hand eingetragen), erscheint
+daneben automatisch der Betrag (Menge × Preis) sowie das Total über alle
+Positionen.</p>
+<p>"🗑 Alle Positionen löschen" entfernt die ganze Liste auf einmal – nach
+Rückfrage, zum Beispiel um mit einer neuen Erkennung von vorne zu
+beginnen.</p>`},
 
 "ang-pdf":{titel:"PDF der Offerte",text:`
 <p>Hier wird das eigentliche Offert-Dokument als PDF hochgeladen – das ist

@@ -216,6 +216,12 @@ html.dark .pstatus-storniert{color:#f08b80}
 .klapp.open>.klapp-body{display:block}
 .arbeitsstand-titel.klapp-kopf{padding:9px 10px;min-height:36px}
 .arbeitsstand-titel.klapp-kopf .klapp-chevron{font-size:15px}
+/* Abschnitte in der Offerten-Positionsliste (v3.71): ein .klapp-kopf als
+   eigene Kopfzeile IN einer Tabellenzelle statt als direktes Kind von
+   .klapp - .klapp.open>.klapp-kopf greift hier nicht, deshalb dreht sich
+   der Winkel ueber eine eigene .open-Klasse direkt am Kopf. */
+.ang-sek-kopf .klapp-chevron{font-size:15px}
+.ang-sek-kopf.open .klapp-chevron{transform:rotate(90deg)}
 label.cockpit-upload{cursor:pointer;border-radius:9px;padding:10px 13px;font-weight:800;font-size:12px;
  text-transform:none;letter-spacing:0}
 .verlauf-filters button{padding:5px 9px;font-size:10.5px;background:var(--blue-light);color:var(--blue-dark)}

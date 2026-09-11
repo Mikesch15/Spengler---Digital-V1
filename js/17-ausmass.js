@@ -253,7 +253,9 @@ async function recognizePhoto(src){
   pos:p.pos||"",
   description:p.description||"",
   quantity:Number(p.quantity)||0,
-  unit:p.unit||""
+  unit:p.unit||"",
+  preis:Number(p.price)||0,
+  abschnitt:p.abschnitt||""
  }));
 }
 

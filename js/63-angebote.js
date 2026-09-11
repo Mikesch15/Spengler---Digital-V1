@@ -121,35 +121,146 @@ async function loadProjectAngebote(projectId){
 }
 
 // ---- Positionstabelle (identischer Aufbau wie amPositionsBody) ---
-function renderAngPositionsTable(){
- if(!$("angPositionsBody"))return;
- $("angPositionsBody").innerHTML=angPositions.map((p,i)=>`<tr>
+// v3.71: "abschnitt" (fett gedruckter Zwischentitel aus der Erkennung, seit
+// Edge-Function-v20/recognizePhoto()) gruppiert aufeinanderfolgende
+// Positionen zu klappbaren Bloecken; "preis" (Einzelpreis) ergibt zusammen
+// mit "quantity" den Betrag je Zeile und die Summe aller Betraege das
+// Total. Beide Felder sind rein additiv - bereits gespeicherte Offerten
+// ohne diese Felder zeigen einfach 0.00 bzw. keine Abschnittsueberschrift.
+let angSektionZu=new Set(); // Titel der zugeklappten Abschnitte
+
+function angBetrag(p){
+ return (Number(p.quantity)||0)*(Number(p.preis)||0);
+}
+function angTotal(){
+ return angPositions.reduce((summe,p)=>summe+angBetrag(p),0);
+}
+// Setzt die Klapp-Zustaende zurueck, wenn eine (andere) Offerte geoeffnet
+// oder neu angelegt wird - sonst koennte ein beim letzten Mal zugeklappter
+// Abschnitt einer voellig anderen Offerte hier faelschlich zugeklappt bleiben.
+function angPositionsAufklappen(){
+ angSektionZu=new Set();
+ const box=$("angPositionsKlapp");
+ if(box){
+  box.classList.add("open");
+  const kopf=box.querySelector("[data-klapp='ang-positionen']");
+  if(kopf)kopf.setAttribute("aria-expanded","true");
+ }
+}
+function angPositionZeileHtml(p,i,versteckt,sektionTitel){
+ return `<tr${versteckt?' style="display:none"':""}${sektionTitel?` data-ang-sek-row="${esc(sektionTitel)}"`:""}>
 <td><input data-ang-pos="${i}" value="${esc(p.pos||"")}"></td>
 <td><input data-ang-desc="${i}" value="${esc(p.description||"")}"></td>
 <td><input data-ang-qty="${i}" type="number" step=".01" value="${p.quantity||0}"></td>
 <td><input data-ang-unit="${i}" value="${esc(p.unit||"")}"></td>
+<td><input data-ang-preis="${i}" type="number" step=".01" value="${p.preis||0}"></td>
+<td class="small" style="text-align:right;white-space:nowrap" data-ang-betrag="${i}">${money(angBetrag(p))}</td>
 <td><button type="button" class="red" data-ang-del="${i}" style="padding:6px 8px">×</button></td>
-</tr>`).join("")||'<tr><td colspan="5" class="small">Noch keine Positionen. Foto aufnehmen und "Alle Fotos erkennen" klicken, oder manuell hinzufügen.</td></tr>';
+</tr>`;
+}
+function renderAngPositionsTable(){
+ if(!$("angPositionsBody"))return;
+ if(!angPositions.length){
+  $("angPositionsBody").innerHTML='<tr><td colspan="7" class="small">Noch keine Positionen. Foto aufnehmen und "Alle Fotos erkennen" klicken, oder manuell hinzufügen.</td></tr>';
+ }else{
+  // Aufeinanderfolgende Positionen mit demselben (nicht leeren) Abschnitts-
+  // titel bilden EINEN klappbaren Block mit fett gedrucktem Titel; Positionen
+  // ohne Titel (manuell hinzugefuegt, oder aus einer Erkennung vor v3.71 ohne
+  // dieses Feld) erscheinen wie bisher ohne Kopfzeile.
+  let html="",i=0;
+  while(i<angPositions.length){
+   const titel=(angPositions[i].abschnitt||"").trim();
+   if(titel){
+    let j=i;
+    while(j<angPositions.length&&(angPositions[j].abschnitt||"").trim()===titel)j++;
+    const zu=angSektionZu.has(titel);
+    html+=`<tr><td colspan="7"><div class="klapp-kopf ang-sek-kopf${zu?"":" open"}" data-ang-sek-toggle="${esc(titel)}" role="button" tabindex="0"><b>${esc(titel)}</b><span class="klapp-chevron">›</span></div></td></tr>`;
+    for(let k=i;k<j;k++)html+=angPositionZeileHtml(angPositions[k],k,zu,titel);
+    i=j;
+   }else{
+    html+=angPositionZeileHtml(angPositions[i],i,false,"");
+    i++;
+   }
+  }
+  $("angPositionsBody").innerHTML=html;
+ }
  $("angPositionsSummary").textContent=angPositions.length?`${angPositions.length} Positionen`:"";
+ if($("angPositionsTotal"))$("angPositionsTotal").textContent=angPositions.length?`Total: CHF ${money(angTotal())}`:"";
+}
+// Menge/Preis wirken sich auf den Betrag dieser Zeile und das Total aus -
+// beide werden gezielt aktualisiert statt die ganze Tabelle neu zu
+// rendern, damit der Eingabefokus beim Tippen nicht verloren geht.
+function angAktualisiereBetrag(i){
+ const p=angPositions[i];
+ if(!p)return;
+ const zelle=$("angPositionsBody").querySelector(`[data-ang-betrag="${i}"]`);
+ if(zelle)zelle.textContent=money(angBetrag(p));
+ if($("angPositionsTotal"))$("angPositionsTotal").textContent=`Total: CHF ${money(angTotal())}`;
 }
 if($("angPositionsBody")){
  $("angPositionsBody").addEventListener("input",e=>{
-  const i=Number(e.target.dataset.angPos??e.target.dataset.angDesc??e.target.dataset.angQty??e.target.dataset.angUnit);
+  const i=Number(e.target.dataset.angPos??e.target.dataset.angDesc??e.target.dataset.angQty??e.target.dataset.angUnit??e.target.dataset.angPreis);
   if(Number.isNaN(i)||!angPositions[i])return;
+  let mengenAenderung=false;
   if(e.target.dataset.angPos!==undefined)angPositions[i].pos=e.target.value;
   else if(e.target.dataset.angDesc!==undefined)angPositions[i].description=e.target.value;
   else if(e.target.dataset.angUnit!==undefined)angPositions[i].unit=e.target.value;
-  else if(e.target.dataset.angQty!==undefined)angPositions[i].quantity=Number(e.target.value)||0;
+  else if(e.target.dataset.angQty!==undefined){angPositions[i].quantity=Number(e.target.value)||0;mengenAenderung=true;}
+  else if(e.target.dataset.angPreis!==undefined){angPositions[i].preis=Number(e.target.value)||0;mengenAenderung=true;}
+  if(mengenAenderung)angAktualisiereBetrag(i);
  });
  $("angPositionsBody").addEventListener("click",e=>{
   const del=e.target.closest("[data-ang-del]");
-  if(del){angPositions.splice(Number(del.dataset.angDel),1);renderAngPositionsTable();}
+  if(del){angPositions.splice(Number(del.dataset.angDel),1);renderAngPositionsTable();return}
+  const sek=e.target.closest("[data-ang-sek-toggle]");
+  if(sek){
+   const titel=sek.dataset.angSekToggle;
+   const offen=!sek.classList.contains("open");
+   if(offen)angSektionZu.delete(titel);else angSektionZu.add(titel);
+   sek.classList.toggle("open",offen);
+   $("angPositionsBody").querySelectorAll("[data-ang-sek-row]").forEach(tr=>{
+    if(tr.dataset.angSekRow===titel)tr.style.display=offen?"":"none";
+   });
+  }
+ });
+ $("angPositionsBody").addEventListener("keydown",e=>{
+  if(e.key!=="Enter"&&e.key!==" "&&e.key!=="Spacebar")return;
+  const k=e.target.closest?e.target.closest("[data-ang-sek-toggle]"):null;
+  if(!k)return;
+  e.preventDefault();
+  k.click();
+ });
+}
+if($("angPositionsKlapp")){
+ $("angPositionsKlapp").addEventListener("click",e=>{
+  const k=e.target.closest("[data-klapp='ang-positionen']");
+  if(!k)return;
+  const box=k.closest(".klapp");
+  if(!box)return;
+  const offen=!box.classList.contains("open");
+  box.classList.toggle("open",offen);
+  k.setAttribute("aria-expanded",offen?"true":"false");
+ });
+ $("angPositionsKlapp").addEventListener("keydown",e=>{
+  if(e.key!=="Enter"&&e.key!==" "&&e.key!=="Spacebar")return;
+  const k=e.target.closest?e.target.closest("[data-klapp='ang-positionen']"):null;
+  if(!k)return;
+  e.preventDefault();
+  k.click();
  });
 }
 if($("angAddPosition"))$("angAddPosition").onclick=()=>{
- angPositions.push({pos:"",description:"",quantity:0,unit:""});
+ angPositions.push({pos:"",description:"",quantity:0,unit:"",preis:0,abschnitt:""});
  renderAngPositionsTable();
 };
+if($("angDeleteAllPositions")){
+ $("angDeleteAllPositions").onclick=()=>{
+  if(!angPositions.length)return;
+  if(!confirm(`Wirklich alle ${angPositions.length} Position(en) löschen?`))return;
+  angPositions=[];
+  renderAngPositionsTable();
+ };
+}
 
 // ---- Fotos + Erkennung (recognizePhoto() unveraendert aus js/17) -
 function renderAngPhotoGallery(){
@@ -419,6 +530,7 @@ function newAngebot(){
  angPhotos=[];
  renderAngPhotoGallery();
  angPositions=[];
+ angPositionsAufklappen();
  renderAngPositionsTable();
  angPdfExisting=null;
  angPdfNewFile=null;
@@ -440,6 +552,7 @@ function openAngebot(a){
  angPhotos=(a.photo_paths&&a.photo_paths.length)?[...a.photo_paths]:(a.photo_path?[a.photo_path]:[]);
  renderAngPhotoGallery();
  angPositions=Array.isArray(a.positions)?a.positions.map(p=>({...p})):[];
+ angPositionsAufklappen();
  renderAngPositionsTable();
  angPdfExisting=a.pdf_path?{path:a.pdf_path,name:a.pdf_name||"Offerte.pdf"}:null;
  angPdfNewFile=null;

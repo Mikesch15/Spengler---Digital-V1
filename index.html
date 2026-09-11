@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.70</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.71</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1677,16 +1677,24 @@ einer wirkt nicht auf die anderen.</div>
 </div>
 </div>
 
-<h2 style="margin-top:4px">Erkannte Positionen <button type="button" class="hilfe-knopf no-print" data-hilfe="ang-ki">i</button></h2>
+<div class="klapp open" id="angPositionsKlapp">
+<h2 class="klapp-kopf" data-klapp="ang-positionen" role="button" tabindex="0" aria-expanded="true" style="margin-top:4px">Erkannte Positionen <button type="button" class="hilfe-knopf no-print" data-hilfe="ang-ki">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
 <div class="scroll">
 <table class="eb-table">
-<colgroup><col style="width:14%"><col style="width:50%"><col style="width:16%"><col style="width:14%"><col style="width:6%"></colgroup>
-<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th></th></tr></thead>
+<colgroup><col style="width:12%"><col style="width:36%"><col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:6%"></colgroup>
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Preis</th><th>Betrag</th><th></th></tr></thead>
 <tbody id="angPositionsBody"></tbody>
 </table>
 </div>
-<div class="bar"><button type="button" class="gray" id="angAddPosition">＋ Position hinzufügen</button></div>
+<div class="bar">
+<button type="button" class="gray" id="angAddPosition">＋ Position hinzufügen</button>
+<button type="button" class="red" id="angDeleteAllPositions">🗑 Alle Positionen löschen</button>
+</div>
 <div class="small" id="angPositionsSummary"></div>
+<div class="small" id="angPositionsTotal" style="font-weight:800"></div>
+</div>
+</div>
 
 <div id="angMedienBereich" style="margin-top:10px">
 <h2 style="margin-top:4px">📷 Fotos der Offerte</h2>

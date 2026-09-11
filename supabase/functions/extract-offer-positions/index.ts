@@ -319,6 +319,33 @@
 // belegt oder ausschliesst. Fachlich aendert sich an v18 nichts; die Lehre:
 // deploy_edge_function niemals fuer eine reine Formpruefung mit
 // Platzhalterinhalt aufrufen, da es sofort produktiv wirkt.
+//
+// v20: Auftrag "die ganze liste der eingelesenen positionen sollte
+// einklappbar sein, die einzelnen abschnitte in der liste ebenfalls
+// (fettgeschriebene titel), preise und total duerfen hier auch stehen".
+// Damit js/63-angebote.js Abschnitte wirklich als eigene, klappbare Bloecke
+// darstellen kann, reicht das bisherige Verhalten aus v16 nicht mehr: dort
+// wurde ein fett gedruckter Zwischentitel nur in "description" hineingefaltet
+// (".. – .."), der fachliche Zusammenhang blieb also nur als Text erhalten,
+// nicht als eigenes, auswertbares Feld. Zwei neue, rein additive Felder:
+//   - "abschnitt": derselbe Zwischentitel wie bisher, jetzt aber als EIGENES
+//     Feld statt in "description" hineingefaltet - weiterhin KEINE eigene
+//     Zeile fuer den Titel selbst (unveraendert gegenueber v16).
+//   - "price": der Einzelpreis der Position, falls im Dokument lesbar
+//     (Swiss NPK-Offerten fuehren haeufig eine Preis-Spalte); wie bei
+//     "quantity" 0, wenn nicht lesbar oder nicht vorhanden - keine erfundene
+//     Zahl.
+// js/17-ausmass.js's recognizePhoto() (die eine, von js/63-angebote.js
+// unveraendert wiederverwendete Konsumentenfunktion, siehe v16-Kommentar
+// oben) wird IM SELBEN Arbeitsschritt um genau diese zwei Felder erweitert -
+// rein additiv, die bestehenden vier Felder (pos/description/quantity/unit)
+// und ihr Verhalten fuer die Ausmass-eigene Fotoerkennung sind unveraendert.
+// Alte, bereits gespeicherte Offerten ohne diese Felder zeigen client-seitig
+// einfach 0.00 bzw. keine Abschnittsueberschrift - kein Fehler, keine
+// Migration noetig (JSONB-Spalte "positions", kein Schema).
+// generationConfig, Timeout, Fehlerbehandlung und der MAX_TOKENS-Notfall aus
+// v12 sind unveraendert; nur der Prompt-Text und das JSON-Schema darin
+// aendern sich.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -390,11 +417,13 @@ Deno.serve(async (req: Request) => {
 Lies ALLE Positionszeilen aus der Tabelle heraus und gib sie als reines JSON-Array zurück.
 Kein Erklärtext, kein Markdown-Codeblock, nur das Array selbst.
 Jedes Element hat genau diese Felder:
-{"pos":"<Positionsnummer als Text, falls vorhanden, sonst leerer String>","description":"<Bezeichnung/Beschreibung der Position>","quantity":<Menge als Zahl, falls nicht lesbar: 0>,"unit":"<Einheit, z.B. Stk, m2, m, h, kg>"}
+{"pos":"<Positionsnummer als Text, falls vorhanden, sonst leerer String>","description":"<Bezeichnung/Beschreibung der Position>","quantity":<Menge als Zahl, falls nicht lesbar: 0>,"unit":"<Einheit, z.B. Stk, m2, m, h, kg>","price":<Einzelpreis als Zahl, falls im Dokument lesbar, sonst 0>,"abschnitt":"<zugehöriger fett gedruckter Zwischentitel, falls vorhanden, sonst leerer String>"}
 
 Wichtig für "description" - eine Position ist oft mehrzeilig:
 - Eine einzelne Position besteht häufig aus einer ersten Zeile mit Positionsnummer/Kurztitel, gefolgt von einer oder mehreren Fliesstext-Zeilen (Material, Ausführung, Masse, Bemerkungen), bevor Menge/Einheit/Preis stehen oder die nächste Position beginnt. Nimm den GESAMTEN zusammengehörigen Text dieser Position in "description" auf, nicht nur die erste Zeile mit der Positionsnummer - verbinde alle Zeilen zu einem lesbaren, zusammenhängenden Fliesstext.
-- Das Dokument kann fett gedruckte Zwischentitel/Abschnittsüberschriften enthalten (z.B. "Bedachung", "Spenglerarbeiten Dach Nord", "Kamineinfassungen"), die selbst keine eigene Position mit Menge/Einheit sind, sondern nur eine Gruppe nachfolgender Positionen einleiten. Gib einen solchen Zwischentitel NICHT als eigenes Array-Element aus. Stelle seinen Text stattdessen jeder Position, die darunter steht, in "description" voran, getrennt durch " – " (z.B. "Bedachung – Biberschwanzziegel liefern und verlegen ..."), damit der fachliche Zusammenhang erhalten bleibt. Wechselt der Zwischentitel im Dokument, gilt der neue Titel ab dort für die folgenden Positionen, bis der nächste Zwischentitel kommt.
+
+Wichtig für "abschnitt":
+- Das Dokument kann fett gedruckte Zwischentitel/Abschnittsüberschriften enthalten (z.B. "Bedachung", "Spenglerarbeiten Dach Nord", "Kamineinfassungen"), die selbst keine eigene Position mit Menge/Einheit sind, sondern nur eine Gruppe nachfolgender Positionen einleiten. Gib einen solchen Zwischentitel NICHT als eigenes Array-Element aus. Trage seinen Text stattdessen bei JEDER Position, die darunter steht, unverändert in das Feld "abschnitt" ein (NICHT in "description" einfügen), damit der fachliche Zusammenhang als eigenes Feld erhalten bleibt. Wechselt der Zwischentitel im Dokument, gilt der neue Titel ab dort für die folgenden Positionen, bis der nächste Zwischentitel kommt. Steht eine Position unter keinem Zwischentitel, bleibt "abschnitt" ein leerer String.
 
 Überschriften, Zwischentitel, Summenzeilen, MWST-Zeilen und Titelzeilen NICHT als eigene Position aufnehmen, nur echte, einzeln aufgeführte Leistungspositionen.`;
 
