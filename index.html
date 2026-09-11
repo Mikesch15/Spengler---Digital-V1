@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.72</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.73</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -357,7 +357,6 @@
      Kein Feature-Schalter noetig (anders als bei der Offerte) - immer
      sichtbar, sobald das Projekt geladen ist. -->
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="leistungen" id="cockpitStandLeistungenZeile"><span class="arbeitsstand-marke" id="cockpitLeistungenMark">○</span><span class="arbeitsstand-name">🧩 Leistungen</span><span class="arbeitsstand-wert" id="cockpitLeistungenStand">–</span></button>
-<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="ausmassVorbereitung" id="cockpitStandAusmassVorbZeile"><span class="arbeitsstand-marke" id="cockpitAusmassVorbMark">○</span><span class="arbeitsstand-name">🧮 Ausmass-Vorbereitung</span><span class="arbeitsstand-wert" id="cockpitAusmassVorbStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="meas"><span class="arbeitsstand-marke" id="cockpitMeasMark">○</span><span class="arbeitsstand-name">📐 Massaufnahmen</span><span class="arbeitsstand-wert" id="cockpitMeasStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="am"><span class="arbeitsstand-marke" id="cockpitAmMark">○</span><span class="arbeitsstand-name">📏 Ausmass</span><span class="arbeitsstand-wert" id="cockpitAmStand">–</span></button>
 <button type="button" class="arbeitsstand-zeile" data-cockpit-goto="rep"><span class="arbeitsstand-marke" id="cockpitRepMark">○</span><span class="arbeitsstand-name">📋 Regierapporte</span><span class="arbeitsstand-wert" id="cockpitRepStand">–</span></button>
@@ -428,23 +427,14 @@
      Sie ERSETZT sie - die ausfuehrlichen Ansichten stehen unveraendert auf
      der Seite "Material & Zuschnitt", nur nicht mehr als eigene Karten
      davor. Standard ist AUS: ohne eingeschaltetes Modul gibt es sie nicht. -->
-<div class="card" id="cockpitMatZuCard" hidden>
-<h2>🧱 Material &amp; Zuschnitt <button type="button" class="hilfe-knopf no-print" data-hilfe="matzu">i</button></h2>
+<div class="card klapp" id="cockpitMatZuCard" hidden>
+<h2 class="klapp-kopf" data-klapp="matzu" role="button" tabindex="0" aria-expanded="false">🧱 Material &amp; Zuschnitt <button type="button" class="hilfe-knopf no-print" data-hilfe="matzu">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
 <div class="small mz-kompakt" id="cockpitMatZuText"></div>
 <div class="bar"><button id="cockpitMatZuOeffnen" class="blue mz-knopf">🧱 Material &amp; Zuschnitt öffnen</button></div>
 </div>
+</div>
 
-<!-- v3.37: Ausmass-Vorbereitung - zentrale Uebersicht der Kandidaten aus
-     Leistungen und aus den technischen Massaufnahme-Werten
-     (measurements.data.ausmass). KEINE automatische Uebernahme: der
-     Benutzer haakt an, was tatsaechlich ins Ausmass soll. Die Auswahl
-     veraendert die Massaufnahme nicht - siehe js/65-leistungen.js. -->
-<div class="card klapp" id="cockpitAusmassVorbCard">
-<h2 class="klapp-kopf" data-klapp="ausmassVorbereitung" role="button" tabindex="0" aria-expanded="false">🧮 Ausmass-Vorbereitung<span id="cockpitAusmassVorbCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-ausmass-vorbereitung">i</button><span class="klapp-chevron">›</span></h2>
-<div class="klapp-body">
-<div id="cockpitAusmassVorbBody"></div>
-</div>
-</div>
 <div class="card klapp" id="cockpitAmCard">
 <h2 class="klapp-kopf" data-klapp="am" role="button" tabindex="0" aria-expanded="false">📏 Ausmass<span id="cockpitAmCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-am">i</button><span class="klapp-chevron">›</span></h2>
 <div class="klapp-body">

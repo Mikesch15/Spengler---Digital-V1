@@ -1,5 +1,5 @@
 /* ==========================================================================
-   LEISTUNGEN + ZENTRALE AUSMASS-VORBEREITUNG — Version 3.37
+   LEISTUNGEN — Version 3.37
    ==========================================================================
    Auftrag vom 09.09.2026: "Geplant -> Ausgefuehrt" haengt in v3.36 direkt an
    den Positionen einer Massaufnahme - das ist fachlich falsch. Eine
@@ -9,9 +9,6 @@
 
    Neue Struktur:
      PROJEKT -> OFFERTE -> LEISTUNGEN -> MASSAUFNAHMEN -> AUSMASS
-   Kernprinzip:
-     Leistungen / technische Massaufnahmewerte / Zusatzleistungen
-       -> AUSMASS-VORBEREITUNG -> Benutzer waehlt aus -> AUSMASS
 
    KEIN Feature-Schalter noetig: anders als bei Angeboten (js/63, eigene
    Tabelle "feature_access", weil zunaechst nur eine einzelne Person Zugriff
@@ -39,33 +36,6 @@
    neue Leistungs-Ausfuehrung ("ist die Leistung 'Dachentwaesserung'
    fertig?").
 
-   "Uebernehmen"-Mechanik (Ausmass-Vorbereitung -> Ausmass):
-   Es wird bewusst KEINE bestehende Ausmass-Zeile "ergaenzt" (das koennte
-   fremde, bereits erfasste Positionen verfaelschen), sondern bei jedem
-   Klick auf "Uebernehmen" ein NEUES ausmass-Dokument angelegt
-   (type:'offerte_erfassen', title "Ausmass-Vorbereitung <Datum>"). Das
-   bestehende Ausmass-Modul (js/17-ausmass.js) bleibt dadurch komplett
-   unangetastet - es sieht nur ein ganz gewoehnliches, neues Dokument.
-
-   Feldform-Abgleich (WICHTIG, spart eine Fehlerquelle):
-   - Leistungen und angebote.positions[] verwenden zufaellig bereits exakt
-     dieselbe Form wie ausmass.positions[] bei type='offerte_erfassen':
-     {pos, description, quantity, unit} - keine Umbenennung noetig.
-   - measurements.data.ausmass[] verwendet dagegen die Form
-     {pos, bezeichnung, menge, einheit, herkunft, teil} - hier wird beim
-     Uebernehmen ausdruecklich umbenannt:
-       description = bezeichnung, quantity = menge, unit = einheit.
-   Diese Umbenennung ist eine reine Kopie beim Uebernehmen, sie schreibt
-   niemals in measurements zurueck - die Massaufnahme selbst bleibt
-   unveraendert (Auftrag: "Die Auswahl darf die urspruengliche Massaufnahme
-   NICHT veraendern").
-
-   Kandidaten fuer die Ausmass-Vorbereitung werden bei jedem Oeffnen frisch
-   berechnet (Leistungen + measurements.data.ausmass), nicht zwischen-
-   gespeichert - eine bereits genommene Position (in ausmass_kandidaten
-   verzeichnet) wird aus der Kandidatenliste ausgeschlossen, damit dieselbe
-   Position nicht zweimal ins Ausmass wandert.
-
    "Neue Leistung"-Knopf bewusst OHNE data-cockpit-new (wie schon bei
    Angeboten in js/63 begruendet und hier durch Lesen des tatsaechlichen
    Klick-Handlers in js/24-projekt-cockpit.js empirisch bestaetigt): der
@@ -73,6 +43,17 @@
    anderen Wert - auch "leistung" - faelschlich in den Ausmass-Typen-
    waehler leiten. Eigener Knopf mit eigenem Handler stattdessen, exakt
    nach dem Muster von #cockpitNeueOfferte.
+
+   Auftrag (heute): "entferne ausmass vorbereitung komplett" - die zentrale
+   Ausmass-Vorbereitung (Kandidatenliste aus Leistungen/Massaufnahme-Werten
+   zum Anhaken, "Uebernehmen" ins Ausmass) ist deshalb komplett aus dem
+   Projekt-Cockpit entfernt (Karte, Arbeitsstand-Zeile, COCKPIT_BEREICHE-
+   Eintrag, leim*-Funktionen). Ein neues Ausmass wird wieder ausschliesslich
+   ueber den bestehenden, unveraenderten Weg in js/17-ausmass.js angelegt
+   ("＋ Neues Ausmass"). Die Tabelle "ausmass_kandidaten" bleibt bewusst in
+   der Datenbank bestehen (keine Migration/kein Drop ohne ausdruecklichen
+   Auftrag, CLAUDE.md) - sie wird nur nicht mehr befuellt. Leistungen selbst
+   sind davon unberuehrt und funktionieren unveraendert weiter.
    ========================================================================== */
 
 let projectLeistungenCache=[];
@@ -253,115 +234,6 @@ async function leiLoeschen(id){
  const {error}=await sb.from("leistungen").delete().eq("id",id);
  if(error){alert("Fehler beim Löschen: "+error.message);return}
  await cockpitBereichAktualisieren("leistungen");
- // Eine geloeschte Leistung darf nicht als Kandidat in einer bereits
- // offenen Ausmass-Vorbereitung stehen bleiben - deshalb hier mit
- // aktualisieren, nicht nur die Leistungsliste.
- await cockpitBereichAktualisieren("ausmassVorbereitung");
-}
-
-/* ==========================================================================
-   AUSMASS-VORBEREITUNG
-   Zentrale Uebersicht: alle nicht bereits uebernommenen Kandidaten aus
-   Leistungen und aus measurements.data.ausmass, zum Anhaken. Wird bei jedem
-   Oeffnen frisch berechnet, nichts wird zwischengespeichert ausser dem, was
-   der Benutzer tatsaechlich uebernimmt (ausmass_kandidaten).
-   ========================================================================== */
-
-let leimKandidaten=[]; // {key,quelle,bezeichnung,menge,einheit,leistungId,measurementId,measurementPos}
-let leimAusgewaehlt=new Set();
-
-if(typeof COCKPIT_BEREICHE==="object"&&COCKPIT_BEREICHE){
- COCKPIT_BEREICHE.ausmassVorbereitung={
-  count:"cockpitAusmassVorbCount",body:"cockpitAusmassVorbBody",card:"cockpitAusmassVorbCard",
-  mark:"cockpitAusmassVorbMark",stand:"cockpitAusmassVorbStand",leer:"Keine Kandidaten",
-  load:id=>leimLaden(id)
- };
-}
-
-async function leimLaden(projectId){
- const box=$("cockpitAusmassVorbBody");
- if(!box)return undefined;
- box.innerHTML="Lädt…";
- leimKandidaten=[];
- leimAusgewaehlt=new Set();
-
- const [{data:leistungen,error:e1},{data:messungen,error:e2},{data:bereits,error:e3}]=await Promise.all([
-  sb.from("leistungen").select("id,bezeichnung,menge,einheit").eq("project_id",projectId),
-  sb.from("measurements").select("id,type,title,data").eq("project_id",projectId),
-  sb.from("ausmass_kandidaten").select("quelle_typ,leistung_id,measurement_id,measurement_pos").eq("project_id",projectId)
- ]);
- if(e1||e2||e3){box.innerHTML=`<div class="error">Fehler: ${esc((e1||e2||e3).message)}</div>`;return undefined}
-
- const genommenLeistung=new Set((bereits||[]).filter(b=>b.quelle_typ==="leistung").map(b=>b.leistung_id));
- const genommenMess=new Set((bereits||[]).filter(b=>b.quelle_typ==="massaufnahme").map(b=>`${b.measurement_id}:${b.measurement_pos}`));
-
- for(const l of (leistungen||[])){
-  if(genommenLeistung.has(l.id))continue;
-  if(!l.bezeichnung)continue;
-  leimKandidaten.push({
-   key:`leistung:${l.id}`,quelle:"Leistung",bezeichnung:l.bezeichnung,
-   menge:l.menge||"",einheit:l.einheit||"",leistungId:l.id,measurementId:null,measurementPos:null
-  });
- }
- for(const m of (messungen||[])){
-  const liste=(m.data&&Array.isArray(m.data.ausmass))?m.data.ausmass:[];
-  for(const p of liste){
-   const posKey=`${m.id}:${p.pos}`;
-   if(genommenMess.has(posKey))continue;
-   if(!p.bezeichnung)continue;
-   leimKandidaten.push({
-    key:`mess:${posKey}`,quelle:"Massaufnahme",bezeichnung:p.bezeichnung,
-    menge:p.menge!=null?String(p.menge):"",einheit:p.einheit||"",
-    leistungId:null,measurementId:m.id,measurementPos:p.pos
-   });
-  }
- }
-
- leimRenderListe();
- return leimKandidaten.length;
-}
-
-function leimRenderListe(){
- const box=$("cockpitAusmassVorbBody");
- if(!box)return;
- if(!leimKandidaten.length){box.innerHTML=`<div class="muted">Keine Kandidaten für die Ausmass-Vorbereitung.</div>`;return}
- box.innerHTML=`
-  <div id="leimListe">
-  ${leimKandidaten.map(k=>`
-   <label class="check-row">
-    <input type="checkbox" data-leim-key="${esc(k.key)}" ${leimAusgewaehlt.has(k.key)?"checked":""}>
-    <b>${esc(k.bezeichnung)}</b>
-    <span class="muted">${esc(k.menge||"")} ${esc(k.einheit||"")} · Quelle: ${esc(k.quelle)}</span>
-   </label>`).join("")}
-  </div>
-  <div class="bar"><button type="button" class="blue" id="leimUebernehmenBtn">✓ Ausgewählte ins Ausmass übernehmen</button></div>`;
-}
-
-async function leimUebernehmen(){
- const gewaehlt=leimKandidaten.filter(k=>leimAusgewaehlt.has(k.key));
- if(!gewaehlt.length){alert("Bitte mindestens eine Position auswählen.");return}
- const positions=gewaehlt.map((k,i)=>({
-  pos:String(i+1),description:k.bezeichnung,quantity:k.menge||"",unit:k.einheit||""
- }));
- const heute=new Date().toISOString().slice(0,10);
- const {data:neu,error:ausErr}=await sb.from("ausmass").insert({
-  project_id:cockpitProjectId,type:"offerte_erfassen",
-  title:`Ausmass-Vorbereitung ${heute}`,positions
- }).select();
- if(ausErr){alert("Fehler beim Anlegen des Ausmasses: "+ausErr.message);return}
- if(!neu||!neu.length){alert("Es wurde nichts angelegt. Fehlt die nötige Berechtigung?");return}
- const ausmassId=neu[0].id;
- const kandidatenRows=gewaehlt.map(k=>({
-  project_id:cockpitProjectId,
-  quelle_typ:k.leistungId?"leistung":"massaufnahme",
-  leistung_id:k.leistungId,measurement_id:k.measurementId,measurement_pos:k.measurementPos,
-  bezeichnung:k.bezeichnung,menge:k.menge||null,einheit:k.einheit||null,ausmass_id:ausmassId
- }));
- const {data:ins,error:insErr}=await sb.from("ausmass_kandidaten").insert(kandidatenRows).select();
- if(insErr){alert("Das Ausmass wurde angelegt, die Zuordnung ist aber fehlgeschlagen: "+insErr.message);return}
- if(!ins||ins.length!==kandidatenRows.length){alert("Nicht alle Positionen konnten zugeordnet werden.");return}
- await Promise.all([cockpitBereichAktualisieren("am"),cockpitBereichAktualisieren("ausmassVorbereitung")]);
- alert(`✓ ${gewaehlt.length} Position(en) ins neue Ausmass "Ausmass-Vorbereitung ${heute}" übernommen.`);
 }
 
 document.addEventListener("change",e=>{
@@ -370,17 +242,10 @@ document.addEventListener("change",e=>{
   const id=Number(cb.dataset.leiMess);
   if(cb.checked){if(leiAusgewaehlteMassaufnahmen.indexOf(id)<0)leiAusgewaehlteMassaufnahmen.push(id)}
   else{leiAusgewaehlteMassaufnahmen=leiAusgewaehlteMassaufnahmen.filter(x=>x!==id)}
-  return;
- }
- const kb=e.target.closest?e.target.closest("[data-leim-key]"):null;
- if(kb){
-  const key=kb.dataset.leimKey;
-  if(kb.checked)leimAusgewaehlt.add(key);else leimAusgewaehlt.delete(key);
  }
 });
 
 document.addEventListener("click",e=>{
- if(e.target.closest&&e.target.closest("#leimUebernehmenBtn")){leimUebernehmen();return}
  const openBtn=e.target.closest?e.target.closest("[data-open-project-leistung]"):null;
  if(openBtn){
   const l=projectLeistungenCache.find(x=>String(x.id)===openBtn.dataset.openProjectLeistung);

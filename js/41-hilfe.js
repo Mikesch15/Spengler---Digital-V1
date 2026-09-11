@@ -535,15 +535,6 @@ Auswahl übernimmt Bezeichnung, Menge und Einheit als Vorschlag – die
 Offertenposition selbst bleibt unverändert, es wird nur eine Referenz
 gespeichert.</p>`},
 
-"cockpit-ausmass-vorbereitung":{titel:"Ausmass-Vorbereitung",text:`
-<p>Zentrale Übersicht aller Kandidaten für das Ausmass – aus Leistungen und
-aus den technischen Werten der Massaufnahmen (z. B. Blechfläche). <b>Nichts
-davon landet automatisch im Ausmass.</b></p>
-<p>Erst ein Häkchen und "Übernehmen" legt ein neues Ausmass mit genau den
-ausgewählten Positionen an. Die Massaufnahme selbst wird dabei nicht
-verändert, und eine bereits übernommene Position erscheint hier nicht
-noch einmal.</p>`},
-
 "cockpit-am":{titel:"Ausmass im Projekt",text:`
 <p>Alle Ausmasse dieses Projekts – "Offerte erfassen" und
 "Blitzschutzausmass".</p>
