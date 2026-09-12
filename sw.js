@@ -15,8 +15,16 @@ const SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png",
+  // ?v=1 hier absichtlich, unabhaengig von der CACHE-Versionsnummer oben:
+  // Chrome/Android prueft installierte PWAs nur gelegentlich auf ein
+  // geaendertes Manifest und aktualisiert das Home-Bildschirm-Icon nur,
+  // wenn sich die Icon-URL selbst eindeutig unterscheidet. Bei einem
+  // erneuten Logo-Wechsel diese Zahl (hier UND in manifest.json UND in
+  // index.html) einfach weiterzaehlen. Auf iOS greift das nicht - dort
+  // wird ein einmal zum Home-Bildschirm hinzugefuegtes Icon nie neu
+  // geladen, das lässt sich von der App-Seite aus nicht beeinflussen.
+  "./icon-192.png?v=1",
+  "./icon-512.png?v=1",
   "./css/01-basis.css",
   "./css/02-responsive.css",
   "./css/03-druck.css",
