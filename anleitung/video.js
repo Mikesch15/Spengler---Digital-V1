@@ -282,12 +282,9 @@ const BREITE=1280,HOEHE=800;
  await wait(1400);
  await klicke('[data-choose-meas-type="einlaufblech_gerade"]',{warte:600});
 
- await beschriften("Titel und Projekt","Titel eintippen, Projekt aus der Vorschlagsliste wählen.");
+ await beschriften("Titel und Projekt","Aus dem Cockpit heraus ist das Projekt schon vorbelegt - nur der Titel wird eingetippt.");
  await tippe("#measTitle","Einlaufblech Traufe Nord");
- await klicke("#measProjectSearch",{warte:300});
- await page.keyboard.type("Sanierung",{delay:45});
  await wait(400);
- await klicke('[data-pick-meas-project="1"]',{warte:400});
 
  await beschriften("1 · Grunddaten","Material, Stärke, Abwicklung und Montage - Register 1.");
  await waehle("#eba_material","1");
@@ -333,9 +330,6 @@ const BREITE=1280,HOEHE=800;
  await klicke('[data-cockpit-new="meas"]',{warte:500});
  await klicke('[data-choose-meas-type="rinne_halbrund"]',{warte:600});
  await tippe("#measTitle","Rinne Nordseite");
- await klicke("#measProjectSearch",{warte:300});
- await page.keyboard.type("Sanierung",{delay:45}); await wait(400);
- await klicke('[data-pick-meas-project="1"]',{warte:400});
 
  await beschriften("Rinne: Verlauf","Abschnitt eintragen, dann „+ Ecke“/„+ Einhängestutzen“ markiert den Übergang zum nächsten.");
  await klicke('[data-ra-schritt="2"]',{warte:500});
@@ -358,9 +352,6 @@ const BREITE=1280,HOEHE=800;
  await klicke('[data-cockpit-new="meas"]',{warte:500});
  await klicke('[data-choose-meas-type="kehle"]',{warte:600});
  await tippe("#measTitle","Kehle Lukarne Ost");
- await klicke("#measProjectSearch",{warte:300});
- await page.keyboard.type("Sanierung",{delay:45}); await wait(400);
- await klicke('[data-pick-meas-project="1"]',{warte:400});
 
  await beschriften("Kehle: Winkel","Material, Abwicklung, Firstgehrung und die drei Masse NH/NL/GL.");
  await waehle("#kea_material","1");
