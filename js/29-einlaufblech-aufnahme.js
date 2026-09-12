@@ -595,7 +595,16 @@ function ebaFormatPlan(opt){
   // v3.83: hat die beste Zeile mehrere Abschnittlaengen (teile), muss auch
   // die Darstellung mit derselben Packung (packeMehrfach) arbeiten - sonst
   // zeigt die Zuschnittliste eine andere Aufteilung als die Materialbilanz.
-  if(z&&z.teile){
+  // NUR ab jeAbschnitt>=2: packeMehrfach (ebaPackeMehrereAbschnitte) ist
+  // ausschliesslich fuer den Fall mehrerer Streifen je Abschnitt gebaut. Bei
+  // jeAbschnitt===1 traegt z.teile seit der Anzeige-Korrektur oben (echte
+  // Laenge je Streifen) ebenfalls "teile", aber die tatsaechliche Packung
+  // bleibt die normale packe(gi,L) unten - sonst wird hier eine fuer diesen
+  // Fall nie vorgesehene Packung eingesetzt und die Zuschnittliste zeigt eine
+  // FALSCHE Aufteilung (gefunden 12.09.2026 an Kamin/Rinne-Zuschnitt: zwei
+  // kurze Stuecke, die eigentlich denselben Streifen teilen, standen dann auf
+  // getrennten Streifen).
+  if(z&&z.teile&&z.jeAbschnitt>=2){
    const mp=packeMehrfach(gi,z.jeAbschnitt);
    return Object.assign({},g,{abschnittLaenge:z.abschnittLaenge,streifen:mp.streifen,
      optimal:mp.optimal!==false,
@@ -607,7 +616,12 @@ function ebaFormatPlan(opt){
   return Object.assign({},g,{abschnittLaenge:L,streifen:v.streifen||[],
     optimal:v.optimal!==false,
     jeAbschnitt:z?z.jeAbschnitt:1,abschnitte:z?z.abschnitte:0,
-    rollenLaenge:z?z.rollenLaenge:0,verteilung:v});
+    rollenLaenge:z?z.rollenLaenge:0,verteilung:v,
+    // die tatsaechliche Packung (v.streifen) bleibt unveraendert - teile
+    // wird hier nur fuer die Anzeige (zuAbschnitte/zuAbschnittText in js/33)
+    // durchgereicht, damit "N × Laenge ab Rolle" bei jeAbschnitt===1 mit
+    // gemischten Laengen dieselben echten Laengen zeigt wie oben berechnet.
+    teile:z?z.teile:null});
  });
  return {moeglich,zuSchmal,zuLang,zuKurz,bestes:best,gruppen:gefuellt,netto,
          optimal:gefuellt.every(g=>g.optimal!==false),
