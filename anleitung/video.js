@@ -1,8 +1,8 @@
-// Videoanleitung (v2): ECHTES Durchklicken statt aneinandergereihter
-// Zustaende. Ein sichtbarer, animierter Mauszeiger bewegt sich zu echten
-// Knoepfen/Feldern der echten index.html und klickt/tippt dort wirklich -
-// dieselbe Attrappe wie schuss.js (stub.js), keine Verbindung zur echten
-// Datenbank, alle Daten erfunden.
+// Videoanleitung (v3): echtes Durchklicken MIT deutscher Sprachausgabe statt
+// Text-Untertiteln. Ein sichtbarer, animierter Mauszeiger bewegt sich zu
+// echten Knoepfen/Feldern der echten index.html und klickt/tippt dort
+// wirklich - dieselbe Attrappe wie schuss.js (stub.js), keine Verbindung zur
+// echten Datenbank, alle Daten erfunden.
 //
 // Was ECHT ist: jede Navigation (Menues, Register-Reiter, "+"-Knoepfe,
 // Kaestchen zum Auf-/Zuklappen), jede Eingabe in ein Textfeld, jede Auswahl
@@ -12,17 +12,32 @@
 // Massaufnahme (die Attrappe kennt kein echtes Insert/Update mit
 // Rueckgabewert), eine echte KI-Positionserkennung an einem PDF (kein
 // echter Netzwerkaufruf in dieser Anleitung). An diesen Stellen wird kurz
-// beschriftet, dass hier simuliert wird.
+// gesagt, dass hier simuliert wird.
+//
+// Sprachausgabe: lokale, klassische Sprachsynthese (espeak-ng mit einer
+// mbrola-Stimme, kein Cloud-Dienst, keine Internetverbindung noetig) - klingt
+// spuerbar synthetisch, nicht wie eine natuerliche menschliche Stimme, aber
+// funktioniert offline und ohne API-Schluessel. Jeder gesprochene Text wird
+// einmalig erzeugt (Cache nach Inhalt, in AUS/sprache/*.wav) und seine echte
+// Laenge abgewartet, bevor die naechste Aktion beginnt. Die Startzeit jedes
+// Clips (relativ zum Aufnahmebeginn) wird in AUS/sprachspuren.json notiert -
+// vertonen.js baut daraus die fertige Tonspur und mischt sie unters Video.
 //
 // Aufruf:  SP=<Ordner mit node_modules> AUS=anleitung/video-out STUB=anleitung/stub.js \
 //          node anleitung/video.js
+//          danach: AUS=anleitung/video-out node anleitung/vertonen.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
-const path=require("path"),fs=require("fs");
+const path=require("path"),fs=require("fs"),crypto=require("crypto");
+const {execFileSync}=require("child_process");
 const APP="file://"+path.join(process.cwd(),"index.html");
 const AUS=process.env.AUS||"anleitung/video-out";
 const STUB=fs.readFileSync(process.env.STUB,"utf8");
 fs.mkdirSync(AUS,{recursive:true});
 const BREITE=1280,HOEHE=800;
+const STIMME=process.env.STIMME||"mb-de3";
+const TEMPO=process.env.TEMPO||"145";
+const SPRACHE_DIR=path.join(AUS,"sprache");
+fs.mkdirSync(SPRACHE_DIR,{recursive:true});
 
 (async()=>{
  const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
@@ -32,12 +47,34 @@ const BREITE=1280,HOEHE=800;
   locale:"de-CH",timezoneId:"Europe/Zurich"
  });
  const page=await kontext.newPage();
+ const aufnahmeStart=Date.now();
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e))); page.on("dialog",d=>d.accept());
  await kontext.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
 
  // ---------------------------------------------------------------------
+ // Sprachausgabe: Text -> WAV-Clip (gecacht nach Inhalt) -> Laenge in ms.
+ // Laeuft synchron in Node, nicht im Browser - beeinflusst die Aufnahme
+ // selbst nicht, nur die Wartezeiten drumherum.
+ // ---------------------------------------------------------------------
+ const sprachSpuren=[];
+ function sprich(text){
+  if(!text)return 0;
+  const hash=crypto.createHash("md5").update(text).digest("hex").slice(0,16);
+  const datei=path.join(SPRACHE_DIR,hash+".wav");
+  if(!fs.existsSync(datei)){
+   execFileSync("espeak-ng",["-v",STIMME,"-s",TEMPO,"-w",datei,text]);
+  }
+  const dauerStr=execFileSync("ffprobe",
+   ["-v","error","-show_entries","format=duration","-of","csv=p=0",datei]).toString().trim();
+  const dauerMs=Math.round(parseFloat(dauerStr)*1000)||0;
+  sprachSpuren.push({start_ms:Date.now()-aufnahmeStart,datei,dauer_ms:dauerMs,text});
+  return dauerMs;
+ }
+
+ // ---------------------------------------------------------------------
  // Sichtbarer Mauszeiger + Texttafel - beides rein optisch, beeinflusst
- // die App selbst nicht.
+ // die App selbst nicht. Die Texttafel bleibt als Lesehilfe/Untertitel
+ // stehen, auch wenn jetzt zusaetzlich gesprochen wird.
  // ---------------------------------------------------------------------
  async function oberflaecheEinbauen(){
   await page.evaluate(()=>{
@@ -76,21 +113,30 @@ const BREITE=1280,HOEHE=800;
    }
   });
  }
+ // Kapitelkarte: kurzer, gesprochener Titel, mindestens so lang eingeblendet
+ // wie das Sprechen dauert (plus Mindestdauer fuer Lesbarkeit).
  async function kapitel(titel){
   await oberflaecheEinbauen();
   await page.evaluate(t=>{
    const k=document.getElementById("__capkopf");
    k.textContent=t; k.style.display="block";
   },titel);
-  await page.waitForTimeout(1600);
+  const dauer=sprich(titel);
+  await page.waitForTimeout(Math.max(1300,dauer+500));
   await page.evaluate(()=>{document.getElementById("__capkopf").style.display="none"});
  }
+ // Beschriftung: setzt die Texttafel UND spricht denselben Text - wartet
+ // hier direkt so lange, wie das Sprechen dauert. Die eigentliche Aktion
+ // (Klick/Eingabe) danach im Skript beginnt daher erst, wenn die Erklaerung
+ // zu Ende gesprochen ist, statt gleichzeitig mit ihr.
  async function beschriften(titel,text){
   await oberflaecheEinbauen();
   await page.evaluate(([t,x])=>{
    document.getElementById("__captitel").textContent=t;
    document.getElementById("__captext").textContent=x;
   },[titel,text]);
+  const dauer=sprich(text);
+  await page.waitForTimeout(Math.max(500,dauer+450));
  }
  async function ripple(){
   await page.evaluate(()=>{
@@ -165,10 +211,10 @@ const BREITE=1280,HOEHE=800;
  // der angemeldete Zustand hergestellt, wie ihn ein echtes Login liefern
  // wuerde.
  // ---------------------------------------------------------------------
- await beschriften("Anmeldung","E‑Mail und Passwort - jede Firma sieht ausschliesslich ihre eigenen Daten.");
+ await beschriften("Anmeldung","E-Mail und Passwort. Jede Firma sieht ausschliesslich ihre eigenen Daten.");
  await tippe("#loginUser","andrea.beispiel@muster-spenglerei.ch");
  await tippe("#loginPass","••••••••••");
- await wait(500);
+ await wait(400);
 
  await page.evaluate(()=>{
   currentProfile={id:"u1",role:"admin",first_name:"Andrea",last_name:"Beispiel",company_id:"c1"};
@@ -224,16 +270,14 @@ const BREITE=1280,HOEHE=800;
  });
  await oberflaecheEinbauen();
  await beschriften("Startbildschirm","Übersicht, globale Suche, eigene Aufgaben und der Zugang zur Werkstatt.");
- await wait(1400);
 
  // ---------------------------------------------------------------------
  // Projekte - echtes Oeffnen der Liste und eines Projekts.
  // ---------------------------------------------------------------------
  await kapitel("Projekte");
- await beschriften("Projekte öffnen","Ein Klick auf „Projekte“ zeigt alle Projekte der Firma.");
+ await beschriften("Projekte öffnen","Ein Klick auf Projekte zeigt alle Projekte der Firma.");
  await klicke("#startOpenProjects",{warte:500});
  await beschriften("Projektliste","Auftragsnummer, Kunde, Objekt und Status je Projekt.");
- await wait(1400);
  await beschriften("Projekt öffnen","Ein Klick auf ein Projekt führt ins Cockpit.");
  await klicke('[data-open-cockpit="1"]',{warte:700});
 
@@ -241,34 +285,30 @@ const BREITE=1280,HOEHE=800;
  // Cockpit - echtes Auf-/Zuklappen der Arbeitsbereiche.
  // ---------------------------------------------------------------------
  await beschriften("Projekt‑Cockpit","Kopfdaten oben, darunter jeder Arbeitsbereich einzeln aufklappbar.");
- await wait(1000);
  await beschriften("Massaufnahmen aufklappen","Ein Klick auf die Überschrift öffnet den Bereich.");
- await klicke('.klapp-kopf[data-klapp="meas"]',{warte:500});
- await wait(1200);
+ await klicke('.klapp-kopf[data-klapp="meas"]',{warte:600});
 
  // ---------------------------------------------------------------------
  // Offerte - echtes Aufklappen + Oeffnen. Die Positionserkennung selbst
- // (echter KI-Aufruf) wird simuliert, das steht in der Beschriftung.
+ // (echter KI-Aufruf) wird simuliert, das steht in der Ansage.
  // ---------------------------------------------------------------------
  await kapitel("Offerte");
  await page.evaluate(()=>{offerteZugriff=true; if($("cockpitAngeboteCard"))$("cockpitAngeboteCard").hidden=false});
- await beschriften("Offerte aufklappen","Offerten mit PDF und/oder Fotos - die KI erkennt daraus die Positionen.");
+ await beschriften("Offerte aufklappen","Offerten mit PDF und, oder Fotos. Die KI erkennt daraus die Positionen.");
  await klicke('.klapp-kopf[data-klapp="angebote"]',{warte:400});
  await page.evaluate(async()=>{if(typeof cockpitBereichAktualisieren==="function")await cockpitBereichAktualisieren("angebote")});
- await wait(600);
  await beschriften("Offerte öffnen","Ein Klick öffnet die erfasste Offerte.");
  await klicke('[data-open-project-angebot="1"]',{warte:700});
- await beschriften("Erkannte Positionen","Die von der KI erkannten Positionen - vor dem Speichern prüfen und bei Bedarf korrigieren.");
- await wait(1600);
- await beschriften("Positionen aus dem PDF (simuliert)","Dieselbe Erkennung funktioniert auch direkt am hinterlegten PDF - hier ohne echten KI-Aufruf simuliert.");
+ await beschriften("Erkannte Positionen","Die von der KI erkannten Positionen. Vor dem Speichern prüfen und bei Bedarf korrigieren.");
+ await beschriften("Positionen aus dem PDF, simuliert","Dieselbe Erkennung funktioniert auch direkt am hinterlegten PDF. Hier ohne echten KI-Aufruf simuliert.");
  await page.evaluate(()=>{
   angPositions=angPositions.concat([{pos:"4",description:"Kaminanschluss, Ort- und Seitenblech",quantity:1,unit:"Stk."}]);
   renderAngPositionsTable();
   if($("angRecognizeStatus"))$("angRecognizeStatus").textContent=
    "1 Position(en) aus dem PDF erkannt. Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.";
  });
- await wait(1400);
- await beschriften("Zurück ins Cockpit","„Abbrechen“ schliesst die Offerte wieder.");
+ await wait(700);
+ await beschriften("Zurück ins Cockpit","Abbrechen schliesst die Offerte wieder.");
  await klicke("#cancelAngebot",{warte:500});
  await page.evaluate(()=>{$("projectCockpitModal").hidden=false});
 
@@ -278,27 +318,23 @@ const BREITE=1280,HOEHE=800;
  await kapitel("Massaufnahme erfassen");
  await beschriften("Neue Massaufnahme","Aus dem Cockpit direkt eine neue Massaufnahme anlegen.");
  await klicke('[data-cockpit-new="meas"]',{warte:500});
- await beschriften("13 Massaufnahme‑Arten","Vom Einlaufblech über Rinne, Kehle und Mauerabdeckung bis zur freien Skizze.");
- await wait(1400);
+ await beschriften("Dreizehn Massaufnahme-Arten","Vom Einlaufblech über Rinne, Kehle und Mauerabdeckung bis zur freien Skizze.");
  await klicke('[data-choose-meas-type="einlaufblech_gerade"]',{warte:600});
 
- await beschriften("Titel und Projekt","Aus dem Cockpit heraus ist das Projekt schon vorbelegt - nur der Titel wird eingetippt.");
+ await beschriften("Titel und Projekt","Aus dem Cockpit heraus ist das Projekt schon vorbelegt. Nur der Titel wird eingetippt.");
  await tippe("#measTitle","Einlaufblech Traufe Nord");
- await wait(400);
 
- await beschriften("1 · Grunddaten","Material, Stärke, Abwicklung und Montage - Register 1.");
+ await beschriften("Eins. Grunddaten","Material, Stärke, Abwicklung und Montage. Register eins.");
  await waehle("#eba_material","1");
  await waehle("#eba_abwicklung","250");
  await waehle("#eba_montage","links");
- await wait(900);
 
- await beschriften("2 · Geometrie","Weiter zum nächsten Register - per Klick auf den Reiter.");
+ await beschriften("Zwei. Geometrie","Weiter zum nächsten Register, per Klick auf den Reiter.");
  await klicke('[data-eba-schritt="2"]',{warte:700});
  await tippe("#eba_massA","120");
  await tippe("#eba_winkel","25");
- await wait(1000);
 
- await beschriften("3 · Stücke","Mit „+ Stück hinzufügen“ wird Zeile für Zeile die Stückliste aufgebaut.");
+ await beschriften("Drei. Stücke","Mit Stück hinzufügen wird Zeile für Zeile die Stückliste aufgebaut.");
  await klicke('[data-eba-schritt="3"]',{warte:500});
  await klicke("#eba_stueckPlus",{warte:400});
  await tippe('[data-eba-laenge="0"]',"2070");
@@ -306,32 +342,28 @@ const BREITE=1280,HOEHE=800;
  await tippe('[data-eba-laenge="1"]',"2000");
  await klicke("#eba_stueckPlus",{warte:400});
  await tippe('[data-eba-laenge="2"]',"1400");
- await wait(900);
 
- await beschriften("4 · Zuschnitt","Abschnitte, Materialbilanz und verwertbare Reststücke - direkt aus der Stückliste gerechnet.");
+ await beschriften("Vier. Zuschnitt","Abschnitte, Materialbilanz und verwertbare Reststücke. Direkt aus der Stückliste gerechnet.");
  await klicke('[data-eba-schritt="4"]',{warte:800});
- await wait(1600);
 
- await beschriften("5 · Ausmass","Entsteht automatisch - keine Mengen von Hand zweimal erfassen.");
+ await beschriften("Fünf. Ausmass","Entsteht automatisch. Keine Mengen von Hand zweimal erfassen.");
  await klicke('[data-eba-schritt="5"]',{warte:700});
- await wait(1000);
 
- await beschriften("6 · Kontrolle","Fehlende Angaben auf einen Blick, bevor gespeichert wird.");
+ await beschriften("Sechs. Kontrolle","Fehlende Angaben auf einen Blick, bevor gespeichert wird.");
  await klicke('[data-eba-schritt="6"]',{warte:700});
- await wait(1000);
 
- await beschriften("Zurück ins Cockpit","„Abbrechen“ schliesst die Massaufnahme - in echt würde hier gespeichert.");
+ await beschriften("Zurück ins Cockpit","Abbrechen schliesst die Massaufnahme. In echt würde hier gespeichert.");
  await klicke("#cancelMeasurement",{warte:600});
 
  // ---------------------------------------------------------------------
  // Rinne halbrund - Verlauf komplett ueber die echten "+"-Knoepfe gebaut.
  // ---------------------------------------------------------------------
- await kapitel("Weitere Massaufnahme‑Arten");
+ await kapitel("Weitere Massaufnahme-Arten");
  await klicke('[data-cockpit-new="meas"]',{warte:500});
  await klicke('[data-choose-meas-type="rinne_halbrund"]',{warte:600});
  await tippe("#measTitle","Rinne Nordseite");
 
- await beschriften("Rinne: Verlauf","Abschnitt eintragen, dann „+ Ecke“/„+ Einhängestutzen“ markiert den Übergang zum nächsten.");
+ await beschriften("Rinne. Verlauf","Abschnitt eintragen, dann Ecke oder Einhängestutzen markiert den Übergang zum nächsten.");
  await klicke('[data-ra-schritt="2"]',{warte:500});
  await tippe('[data-ra-seg-laenge="0"]',"6000");
  await klicke("#ra_addEcke",{warte:400});
@@ -340,10 +372,8 @@ const BREITE=1280,HOEHE=800;
  await klicke("#ra_addEin",{warte:400});
  await klicke("#ra_addSeg",{warte:400});
  await tippe('[data-ra-seg-laenge="2"]',"4500");
- await wait(1200);
- await beschriften("Rinne: Stückliste","Normlängen und Verschnitt werden direkt aus dem Verlauf berechnet.");
+ await beschriften("Rinne. Stückliste","Normlängen und Verschnitt werden direkt aus dem Verlauf berechnet.");
  await klicke('[data-ra-schritt="4"]',{warte:700});
- await wait(1400);
  await klicke("#cancelMeasurement",{warte:500});
 
  // ---------------------------------------------------------------------
@@ -353,16 +383,15 @@ const BREITE=1280,HOEHE=800;
  await klicke('[data-choose-meas-type="kehle"]',{warte:600});
  await tippe("#measTitle","Kehle Lukarne Ost");
 
- await beschriften("Kehle: Grunddaten","Material, Abwicklung - Firstgehrung ist standardmässig angekreuzt.");
+ await beschriften("Kehle. Grunddaten","Material und Abwicklung. Firstgehrung ist standardmässig angekreuzt.");
  await waehle("#kea_material","1");
  await waehle("#kea_abwicklung","500");
- await wait(700);
- await beschriften("Kehle: Winkel","Mit Firstgehrung rechnet die App aus den drei Massen NH/NL/GL.");
+ await beschriften("Kehle. Winkel","Mit Firstgehrung rechnet die App aus den drei Massen. Neigung Hauptdach, Neigung Lukarne, Gefällslänge.");
  await klicke('[data-kea-schritt="2"]',{warte:700});
  await tippe("#kea_nh","42.5");
  await tippe("#kea_nl","23.5");
  await tippe("#kea_gl","1500");
- await wait(1400);
+ await wait(600);
  await klicke("#cancelMeasurement",{warte:500});
 
  // ---------------------------------------------------------------------
@@ -371,11 +400,10 @@ const BREITE=1280,HOEHE=800;
  await kapitel("Ausmass");
  await page.evaluate(()=>{$("measurementEditModal").hidden=true;$("projectCockpitModal").hidden=false});
  await klicke('.klapp-kopf[data-klapp="am"]',{warte:500});
- await beschriften("Eigenständiges Ausmass","Für Arbeiten ohne eigene Massaufnahme - z. B. Blitzschutz.");
+ await beschriften("Eigenständiges Ausmass","Für Arbeiten ohne eigene Massaufnahme. Zum Beispiel Blitzschutz.");
  await klicke('[data-cockpit-new="am"]',{warte:500});
  await klicke('[data-choose-am-type="blitzschutz_ausmass"]',{warte:600});
  await tippe("#amTitle","Blitzschutz Hauptdach");
- await wait(1000);
  await klicke("#cancelAusmass",{warte:500});
  await page.evaluate(()=>{$("projectCockpitModal").hidden=false});
 
@@ -386,8 +414,7 @@ const BREITE=1280,HOEHE=800;
  await page.evaluate(()=>{$("projectCockpitModal").hidden=true;$("startScreen").hidden=false});
  await beschriften("Globale Suche","Ein Suchbegriff findet Projekte, Massaufnahmen und Rapporte gleichzeitig.");
  await klicke("#openGlobalSearch",{warte:500});
- await tippe("#globalSearchInput","Bahnhof",{warte:900});
- await wait(900);
+ await tippe("#globalSearchInput","Bahnhof",{warte:700});
  await klicke("#closeGlobalSearch",{warte:400});
 
  await page.evaluate(()=>{
@@ -405,9 +432,7 @@ const BREITE=1280,HOEHE=800;
   openMeasurement(m);
  });
  await beschriften("Nächster Schritt","Ein Streifen oben in jeder Massaufnahme sagt jederzeit, was als Nächstes zu tun ist.");
- await wait(1600);
- await beschriften("Workflow","Freigeben, Rüsten, Montieren - der ganze Ablauf mit Zuständigkeiten.");
- await wait(1400);
+ await beschriften("Workflow","Freigeben, Rüsten, Montieren. Der ganze Ablauf mit Zuständigkeiten.");
  await klicke("#cancelMeasurement",{warte:500});
  // measEditReturnTo steht hier noch auf "projectCockpit" (letzter echter
  // Aufruf ueber den Cockpit-Weg) - cancelMeasurement fuehrt daher ins
@@ -421,16 +446,13 @@ const BREITE=1280,HOEHE=800;
  // ---------------------------------------------------------------------
  await kapitel("Einstellungen");
  await klicke("#settings",{warte:500});
- await beschriften("Einstellungen: Allgemein","Firmendaten, Ansätze, Materialkatalog, Rollenbreiten.");
- await wait(1200);
- await beschriften("Einstellungen: Massaufnahmen","Zuschlagsmasse und Vorgaben je Massaufnahme‑Art.");
+ await beschriften("Einstellungen. Allgemein","Firmendaten, Ansätze, Materialkatalog, Rollenbreiten.");
+ await beschriften("Einstellungen. Massaufnahmen","Zuschlagsmasse und Vorgaben je Massaufnahme-Art.");
  await klicke('[data-settings-tab="measurements"]',{warte:600});
- await wait(1200);
- await beschriften("Einstellungen: Lager","Materialbestand und Reststücke‑Lager.");
+ await beschriften("Einstellungen. Lager","Materialbestand und Reststücke-Lager.");
  await klicke('[data-settings-tab="lager"]',{warte:600});
  await page.evaluate(()=>{if(typeof renderLagerbestand==="function")renderLagerbestand();
    if(typeof renderRestLager==="function")renderRestLager()});
- await wait(1400);
  await klicke("#closeSettings",{warte:500});
 
  // ---------------------------------------------------------------------
@@ -438,7 +460,7 @@ const BREITE=1280,HOEHE=800;
  // ---------------------------------------------------------------------
  await kapitel("Material und Zuschnitt");
  await page.evaluate(()=>{$("startScreen").hidden=true;$("projectCockpitModal").hidden=false;cockpitProjectId=1});
- await beschriften("Material & Zuschnitt öffnen","Material und Zuschnitt aller Massaufnahmen eines Projekts zusammengefasst.");
+ await beschriften("Material und Zuschnitt öffnen","Material und Zuschnitt aller Massaufnahmen eines Projekts zusammengefasst.");
  // Die zentrale Seite liegt in einem eigenen Modal (#matZuModal), nicht im
  // Cockpit selbst - der Knopf dafuer haengt am Arbeitsstand-Streifen und ist
  // nur sichtbar, wenn das Untermodul Zuschnitt Positionen zeigt. Direkt
@@ -447,11 +469,10 @@ const BREITE=1280,HOEHE=800;
   if(typeof reststuecke!=="undefined")reststuecke=window.__demo.reststuecke.slice();
   if(typeof openMaterialZuschnitt==="function")await openMaterialZuschnitt(1);
  });
- await wait(1600);
  await beschriften("Materialreservierung","Ein Klick auf die Überschrift öffnet, was schon reserviert, zugeschnitten oder noch offen ist.");
  await klicke("#matZuDetailsReservierung summary",{warte:600});
  await page.evaluate(async()=>{if(typeof resvCockpitLaden==="function")await resvCockpitLaden(1)});
- await wait(1400);
+ await wait(700);
  await klicke("#matZuZurueck",{warte:500});
  // matZuZurueck schliesst nur das Modal - darunter liegt das Cockpit, nicht
  // der Startbildschirm (#navWerkstatt sitzt dort). Wie ein Klick auf
@@ -460,15 +481,13 @@ const BREITE=1280,HOEHE=800;
 
  await kapitel("Werkstatt");
  await klicke("#navWerkstatt",{warte:700});
- await beschriften("Werkstatt‑ und Rüstansicht","Alle zu rüstenden und zu montierenden Massaufnahmen, projektweise gruppiert.");
- await wait(1200);
+ await beschriften("Werkstatt- und Rüstansicht","Alle zu rüstenden und zu montierenden Massaufnahmen, projektweise gruppiert.");
  await beschriften("Skizze, Grundriss, Abhaken","Ein Klick auf eine Zeile öffnet Rüstskizze und Zuschnittliste.");
  const karteAuf=await page.evaluate(()=>{
   const karten=[...document.querySelectorAll("#werkstattBody [data-werk-karte]")];
   return karten.length?karten[0].dataset.werkKarte:null;
  });
  if(karteAuf)await klicke(`[data-werk-karte="${karteAuf}"]`,{warte:900});
- await wait(1400);
  await klicke("#closeWerkstatt",{warte:500});
 
  // ---------------------------------------------------------------------
@@ -484,8 +503,7 @@ const BREITE=1280,HOEHE=800;
   await page.evaluate(()=>{if(typeof auOeffnen==="function")auOeffnen()});
   await wait(500);
  });
- await beschriften("Firmenadmin‑Übersicht","Der Firmenadmin sieht alle Massaufnahmen aller Mitarbeitenden auf einen Blick.");
- await wait(1600);
+ await beschriften("Firmenadmin-Übersicht","Der Firmenadmin sieht alle Massaufnahmen aller Mitarbeitenden auf einen Blick.");
  await klicke("#closeAdminMeas",{warte:500}).catch(async()=>{
   await page.evaluate(()=>{$("adminMeasModal").hidden=true});
  });
@@ -495,8 +513,8 @@ const BREITE=1280,HOEHE=800;
  // ---------------------------------------------------------------------
  await kapitel("Spengler‑DIGITAL");
  await page.evaluate(()=>{$("startScreen").hidden=false});
- await beschriften("Offline‑fähig, für Handy und Tablet","Die App funktioniert auch ohne Verbindung und passt sich jeder Bildschirmgrösse an.");
- await wait(2000);
+ await beschriften("Offline-fähig, für Handy und Tablet","Die App funktioniert auch ohne Verbindung und passt sich jeder Bildschirmgrösse an.");
+ await wait(500);
 
  await page.evaluate(()=>{
   ["__capbar","__capkopf","__cursor"].forEach(id=>{const e=document.getElementById(id); if(e)e.remove()});
@@ -507,6 +525,11 @@ const BREITE=1280,HOEHE=800;
  await kontext.close();
  await b.close();
  const endgueltig=videoPfad?await videoPfad:null;
+
+ const spurenPfad=path.join(AUS,"sprachspuren.json");
+ fs.writeFileSync(spurenPfad,JSON.stringify(sprachSpuren,null,1));
+
  console.log("\nFehler auf der Seite: "+(fehler.length?fehler.join(" | "):"keine"));
  console.log("Video: "+(endgueltig||"(kein Pfad - recordVideo aktiv?)"));
+ console.log("Sprachspuren: "+spurenPfad+" ("+sprachSpuren.length+" Clips)");
 })();
