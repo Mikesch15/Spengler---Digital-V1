@@ -290,12 +290,12 @@ const BREITE=1280,HOEHE=800;
  await waehle("#eba_material","1");
  await waehle("#eba_abwicklung","250");
  await waehle("#eba_montage","links");
- await tippe("#eba_massA","120");
- await tippe("#eba_winkel","25");
  await wait(900);
 
  await beschriften("2 · Geometrie","Weiter zum nächsten Register - per Klick auf den Reiter.");
  await klicke('[data-eba-schritt="2"]',{warte:700});
+ await tippe("#eba_massA","120");
+ await tippe("#eba_winkel","25");
  await wait(1000);
 
  await beschriften("3 · Stücke","Mit „+ Stück hinzufügen“ wird Zeile für Zeile die Stückliste aufgebaut.");
@@ -353,16 +353,15 @@ const BREITE=1280,HOEHE=800;
  await klicke('[data-choose-meas-type="kehle"]',{warte:600});
  await tippe("#measTitle","Kehle Lukarne Ost");
 
- await beschriften("Kehle: Winkel","Material, Abwicklung, Firstgehrung und die drei Masse NH/NL/GL.");
+ await beschriften("Kehle: Grunddaten","Material, Abwicklung - Firstgehrung ist standardmässig angekreuzt.");
  await waehle("#kea_material","1");
  await waehle("#kea_abwicklung","500");
- await klicke("#kea_firstgehrung",{warte:400});
+ await wait(700);
+ await beschriften("Kehle: Winkel","Mit Firstgehrung rechnet die App aus den drei Massen NH/NL/GL.");
+ await klicke('[data-kea-schritt="2"]',{warte:700});
  await tippe("#kea_nh","42.5");
  await tippe("#kea_nl","23.5");
  await tippe("#kea_gl","1500");
- await wait(1200);
- await beschriften("Kehle: berechnete Winkel","Aus den drei Massen rechnet die App automatisch Winkel und Zuschnitt.");
- await klicke('[data-kea-schritt="2"]',{warte:700});
  await wait(1400);
  await klicke("#cancelMeasurement",{warte:500});
 
