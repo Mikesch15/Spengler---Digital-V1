@@ -126,11 +126,18 @@ $("saveMadMasse").addEventListener("click",async()=>{
  const knopf=$("saveMadMasse");
  const boden=Number($("madBodenMassInput").value)||0;
  const schieber=Number($("madSchieberMassInput").value)||0;
+ // v3.82: die beiden Ausmass-Zugaben haengen am selben Knopf wie die
+ // Zuschnitt-Masse - beide Werte gehoeren fachlich zusammen (wie bei der
+ // Rinne seit v3.79, saveRinneDilaMass).
+ const bodenAusmass=Number($("madBodenAusmassMassInput").value)||0;
+ const schieberAusmass=Number($("madSchieberAusmassMassInput").value)||0;
  knopf.disabled=true;
  try{
-  const {fehler}=await speichereAppSettings({mad_boden_mass_mm:boden,mad_schieber_mass_mm:schieber});
+  const {fehler}=await speichereAppSettings({mad_boden_mass_mm:boden,mad_schieber_mass_mm:schieber,
+    mad_boden_ausmass_mass_mm:bodenAusmass,mad_schieber_ausmass_mass_mm:schieberAusmass});
   if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
   madBodenMass=boden;madSchieberMass=schieber;
+  madBodenAusmassMass=bodenAusmass;madSchieberAusmassMass=schieberAusmass;
   if(typeof renderMadResult==="function"&&madSegments.length)renderMadResult();
   alert("Gespeichert (gilt für alle).");
  }catch(err){

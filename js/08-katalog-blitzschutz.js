@@ -432,6 +432,9 @@ function renderSettings(){
  const madBoden=$("madBodenMassInput"),madSchieber=$("madSchieberMassInput");
  if(madBoden)madBoden.value=madBodenMass;
  if(madSchieber)madSchieber.value=madSchieberMass;
+ const madBodenAusmass=$("madBodenAusmassMassInput"),madSchieberAusmass=$("madSchieberAusmassMassInput");
+ if(madBodenAusmass)madBodenAusmass.value=madBodenAusmassMass;
+ if(madSchieberAusmass)madSchieberAusmass.value=madSchieberAusmassMass;
  const lukA=$("lukAchsabstandInput"),lukH=$("lukHilfsrissInput"),lukB=$("lukZugabeBreiteInput"),lukL=$("lukZugabeLaengeInput");
  if(lukA)lukA.value=lukAchsabstand;
  if(lukH)lukH.value=lukHilfsriss;

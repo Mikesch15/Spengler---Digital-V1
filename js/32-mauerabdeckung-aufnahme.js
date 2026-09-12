@@ -214,6 +214,16 @@ function madaRollenPlan(){
 // ---- Ausmass ---------------------------------------------------------------
 // Entsteht ausschliesslich aus der Aufnahme. Nichts wird ein zweites Mal
 // eingegeben, es gibt keine Artikelnummern und keine Preise.
+// v3.82: eigene, unabhaengige Ausmass-Zugabe fuer Boden und Schieber (wie
+// rinneDilaAusmassMass seit v3.79 bei der Rinne) - madBodenMass/
+// madSchieberMass wirken weiterhin nur auf den Zuschnitt (Materialbedarf,
+// berechneMadStueckliste), diese Funktion nur auf die Ausmass-Laenge. Jeder
+// Boden/Schieber zaehlt hier GENAU EINMAL - anders als beim Zuschnitt, wo
+// ein Schieber als Zugabe an BEIDE angrenzenden Stuecke geht (also doppelt
+// in die Summe der Zuschnittlaengen eingeht).
+function madaAusmassZugabe(){
+ return madaBoeden()*Number(madBodenAusmassMass||0)+madaSchieberAktiv().length*Number(madSchieberAusmassMass||0);
+}
 function madaAusmassZeilen(){
  const L=madaGesamtlaenge();
  if(!L)return [];
@@ -224,7 +234,9 @@ function madaAusmassZeilen(){
  // Teile. Ohne vierten Wert gilt "abgeleitet" - eine Zahl ueber die Arbeit ist
  // nichts, was jemand aus dem Lager holt.
  const zeile=(bez,menge,einheit,herkunft,teil)=>z.push({pos:++pos,bezeichnung:bez,menge,einheit,herkunft,teil:teil===true});
- zeile("Mauerabdeckung "+madaMaterialText(),madaMeter(L),"m","Summe der Segmentlängen");
+ const zugabe=madaAusmassZugabe();
+ zeile("Mauerabdeckung "+madaMaterialText(),madaMeter(Math.max(0,L+zugabe)),"m",
+   zugabe?"Summe der Segmentlängen, inkl. Ausmass-Zugaben Boden/Schieber":"Summe der Segmentlängen");
  zeile("Blech (Abwicklung "+madaMm(madaProfilMasse().abwicklung)+" mm)",
    madaQm(madaFlaecheM2()),"m²","Gesamtlänge × Abwicklung");
  if(st.length)zeile("Zuschnitte",String(st.length),"Stk.","Stückliste");

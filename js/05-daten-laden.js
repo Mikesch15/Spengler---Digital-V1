@@ -91,6 +91,8 @@ async function loadAllData(){
   resteImZuschnitt=(geladen.appSettings.reste_im_zuschnitt===true);
   if(geladen.appSettings.mad_boden_mass_mm!==null&&geladen.appSettings.mad_boden_mass_mm!==undefined)madBodenMass=Number(geladen.appSettings.mad_boden_mass_mm)||0;
   if(geladen.appSettings.mad_schieber_mass_mm!==null&&geladen.appSettings.mad_schieber_mass_mm!==undefined)madSchieberMass=Number(geladen.appSettings.mad_schieber_mass_mm)||0;
+  if(geladen.appSettings.mad_boden_ausmass_mass_mm!==null&&geladen.appSettings.mad_boden_ausmass_mass_mm!==undefined)madBodenAusmassMass=Number(geladen.appSettings.mad_boden_ausmass_mass_mm)||0;
+  if(geladen.appSettings.mad_schieber_ausmass_mass_mm!==null&&geladen.appSettings.mad_schieber_ausmass_mass_mm!==undefined)madSchieberAusmassMass=Number(geladen.appSettings.mad_schieber_ausmass_mass_mm)||0;
   if(geladen.appSettings.luk_achsabstand_mm!==null&&geladen.appSettings.luk_achsabstand_mm!==undefined)lukAchsabstand=Number(geladen.appSettings.luk_achsabstand_mm)||500;
   if(geladen.appSettings.luk_hilfsriss_mm!==null&&geladen.appSettings.luk_hilfsriss_mm!==undefined)lukHilfsriss=Number(geladen.appSettings.luk_hilfsriss_mm)||0;
   if(geladen.appSettings.luk_zugabe_breite_mm!==null&&geladen.appSettings.luk_zugabe_breite_mm!==undefined)lukZugabeBreite=Number(geladen.appSettings.luk_zugabe_breite_mm)||0;

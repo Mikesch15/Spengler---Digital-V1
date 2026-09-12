@@ -264,6 +264,11 @@ let resteImZuschnitt=false;
 // Masse für die Mauerabdeckung, firmenweit aus app_settings.
 let madBodenMass=0;
 let madSchieberMass=0;
+// v3.82: eigene, unabhaengige Ausmass-Zugaben (wie rinneDilaAusmassMass seit
+// v3.79) - madBodenMass/madSchieberMass wirken weiterhin nur auf den
+// Zuschnitt (Materialbedarf), diese beiden nur auf die Ausmass-Laenge.
+let madBodenAusmassMass=0;
+let madSchieberAusmassMass=0;
 // Lukarne Seitenverkleidung, firmenweit aus app_settings.
 // Achsabstand und Hilfsriss sind Vorschlagswerte für eine neue Massaufnahme,
 // die Zugaben werden dem Zuschnitt jeder Schar zugerechnet.
