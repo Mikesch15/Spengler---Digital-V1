@@ -399,6 +399,12 @@ const BREITE=1280,HOEHE=800;
  await beschriften("Workflow","Freigeben, Rüsten, Montieren - der ganze Ablauf mit Zuständigkeiten.");
  await wait(1400);
  await klicke("#cancelMeasurement",{warte:500});
+ // measEditReturnTo steht hier noch auf "projectCockpit" (letzter echter
+ // Aufruf ueber den Cockpit-Weg) - cancelMeasurement fuehrt daher ins
+ // Cockpit zurueck statt auf den Startbildschirm. Fuer die naechste Szene
+ // (Einstellungen, ein Startbildschirm-Knopf) wird das hier gerade so
+ // hergestellt, wie ein Klick auf "Start" es auch taete.
+ await page.evaluate(()=>{$("projectCockpitModal").hidden=true;$("startScreen").hidden=false});
 
  // ---------------------------------------------------------------------
  // Einstellungen - echte Reiter.
@@ -437,6 +443,10 @@ const BREITE=1280,HOEHE=800;
  await page.evaluate(async()=>{if(typeof resvCockpitLaden==="function")await resvCockpitLaden(1)});
  await wait(1400);
  await klicke("#matZuZurueck",{warte:500});
+ // matZuZurueck schliesst nur das Modal - darunter liegt das Cockpit, nicht
+ // der Startbildschirm (#navWerkstatt sitzt dort). Wie ein Klick auf
+ // "Start"/"Zurueck" es auch taete.
+ await page.evaluate(()=>{$("projectCockpitModal").hidden=true;$("startScreen").hidden=false});
 
  await kapitel("Werkstatt");
  await klicke("#navWerkstatt",{warte:700});
