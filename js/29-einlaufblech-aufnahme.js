@@ -260,6 +260,63 @@ function ebaPackeInStreifen(bleche,L,budget){
  }
  return {streifen:gierig,optimal:true};
 }
+// v3.83: bei der Rolle darf jeder Abschnitt (jeder Querschnitt ueber die
+// volle Rollenbreite) eine ANDERE Laenge haben - so lang wie das laengste
+// Stueck, das auf ihm liegt. Bisher wurde IMMER das laengste Stueck der
+// GANZEN Gruppe als Abschnittlaenge verwendet, auch fuer Abschnitte, die
+// nur kuerzere Stuecke enthielten - das kostete unnoetig Material, sobald
+// mehrere Streifen nebeneinander passen (jeAbschnitt>=2) und die
+// Stuecklaengen stark streuen. Gemeldet 11.09.2026 (Mauerabdeckung): vier
+// 4'020mm- und vier 2'510mm-Stuecke auf einer 1000er Rolle (jeAbschnitt=2)
+// wurden bisher 4x auf 4'020mm abgezogen (16'080mm) statt 2x auf 4'020mm
+// und 2x auf 2'510mm (13'060mm) - "es dürfen alle abgezogenen Tafeln
+// unterschiedlich lang sein, einfach so lang wie das längste Stück auf
+// dieser Tafel".
+//
+// Nur fuer die Rolle (die Tafel hat eine feste, vom Materialbestand
+// vorgegebene Laenge - das ist keine Rechenvereinfachung, sondern eine
+// echte physische Grenze) und nur ab jeAbschnitt>=2: bei genau einem
+// Streifen je Abschnitt gilt bereits dieselbe Idee (jeder Streifen zieht
+// nur, was er braucht, s. ebaFormatPlan) und bleibt bewusst unveraendert -
+// dort steckt eine eigene, bereits gepruefte Rechnung (Fund vom
+// 11.09.2026 zur 250er Rolle).
+//
+// Regel statt Suche: das jeweils laengste noch offene Stueck eroeffnet
+// einen neuen Abschnitt und legt dessen Laenge fest; die uebrigen Plaetze
+// dieses Abschnitts (jeAbschnitt Streifen insgesamt) werden mit den
+// naechstgroessten noch offenen Stuecken aufgefuellt (first fit), solange
+// sie noch hineinpassen. Nicht das globale Optimum (das waere eine
+// eigene Suche wie raPasst/raGierig bei der Rinne), aber genau die Regel
+// aus der Rueckmeldung und in der Praxis nah am Optimum.
+function ebaPackeMehrereAbschnitte(bleche,jeAbschnitt,budget){
+ const stuecke=ebaStueckliste(bleche);
+ if(!stuecke.length)return {abschnitte:[],streifen:[],optimal:true};
+ const fuge=ebaSchnittfuge();
+ const roh=x=>ebaZahl(x.laenge);
+ const offen=stuecke.slice();
+ const abschnitte=[];
+ let schritte=0; const grenze=budget||200000; let ausBudget=false;
+ while(offen.length){
+  if(++schritte>grenze){ausBudget=true;break}
+  const L=roh(offen[0]);
+  const lanes=Array.from({length:Math.max(1,jeAbschnitt)},()=>({stuecke:[],rest:L}));
+  lanes[0].stuecke.push(offen.shift()); lanes[0].rest-=L;
+  for(let i=0;i<offen.length;){
+   const st=offen[i], laenge=roh(st);
+   let platziert=false;
+   for(const lane of lanes){
+    const kosten=laenge+(lane.stuecke.length?fuge:0);
+    if(lane.rest>=kosten-1e-9){lane.stuecke.push(st);lane.rest-=kosten;offen.splice(i,1);platziert=true;break}
+   }
+   if(!platziert)i++;
+  }
+  const nr=abschnitte.length+1;
+  abschnitte.push({laenge:L,
+    streifen:lanes.filter(l=>l.stuecke.length).map(l=>Object.assign({},l,{abschnittLaenge:L,abschnittNr:nr}))});
+ }
+ const streifen=[]; abschnitte.forEach(a=>a.streifen.forEach(s=>streifen.push(s)));
+ return {abschnitte,streifen,optimal:!ausBudget};
+}
 // ---- Reststuecke als Eingang (v3.27) --------------------------------------
 // Der EINE Einstiegspunkt fuer alle Rollen-Module. Gerechnet wird in
 // restVorabzug() (js/42) mit ebaVerteile() und ebaStreifenJeAbschnitt() von
@@ -426,6 +483,15 @@ function ebaFormatPlan(opt){
   if(!cache[k])cache[k]=ebaPackeInStreifen(ebaBlecheGeteilt(gruppen[gi].bleche,L),L);
   return cache[k];
  };
+ // v3.83: die Rolle mit mehreren Abschnittlaengen (jeAbschnitt>=2) - eigener
+ // Zwischenspeicher, weil das Ergebnis eine andere Form hat (abschnitte[]
+ // statt eine feste Streifenzahl bei fester Laenge).
+ const cacheMehrfach={};
+ const packeMehrfach=(gi,je)=>{
+  const k=gi+"|m|"+je;
+  if(!cacheMehrfach[k])cacheMehrfach[k]=ebaPackeMehrereAbschnitte(gruppen[gi].bleche,je);
+  return cacheMehrfach[k];
+ };
  const laengstes=g=>{
   const l=(g.bleche||[]).map(x=>Number(x.laenge)||0).filter(x=>x>0);
   return l.length?Math.max.apply(null,l):0;
@@ -440,30 +506,45 @@ function ebaFormatPlan(opt){
    const g=gruppen[gi];
    const jeAbschnitt=ebaStreifenJeAbschnitt(f.breite,g.breite);
    if(jeAbschnitt<1){schmal=true;break}
-   const L=f.laenge===null?laengstes(g):f.laenge;
-   const v=packe(gi,L);
-   if(v.streifen===null){lang={format:f,stuecke:(v.zuLang||[]).map(x=>({nr:x.nr,laenge:x.laenge})),laenge:L};break}
-   const streifen=v.streifen||[];
-   const abschnitte=Math.ceil(streifen.length/jeAbschnitt);
-   // Bei jeAbschnitt===1 passt genau EIN Streifen auf die volle Breite - es
-   // wird nichts quer aufgeteilt, und jeder Streifen ist sein EIGENER,
-   // unabhaengiger Abzug von der Rolle/Tafel. Gezogen wird dann nur so viel,
-   // wie er tatsaechlich braucht (steckt schon in seinem "rest"), nicht die
-   // Laenge des laengsten Stuecks der ganzen Gruppe. Ab zwei Streifen je
-   // Abschnitt bleibt die bisherige Regel: ein Abschnitt wird als EIN Stueck
-   // quer abgezogen, seine Streifen haben deshalb zwingend alle dieselbe
-   // Laenge L. Gemeldet (11.09.2026): eine 250er Rolle (Breite = Abwicklung,
-   // jeAbschnitt=1) wurde dadurch faelschlich als genauso verschnittreich
-   // bewertet wie eine breitere Rolle, obwohl sich hier jedes Stueck einzeln
-   // exakt zuschneiden liesse.
-   const rollenLaenge=jeAbschnitt===1
-    ?streifen.reduce((s,st)=>s+Math.max(0,L-(Number(st.rest)||0)),0)
-    :abschnitte*L;
+   const istRolle=f.laenge===null;
+   let L, streifen, abschnitte, rollenLaenge, teile=null;
+   if(istRolle&&jeAbschnitt>=2){
+    // v3.83: mehrere unterschiedlich lange Abschnitte statt einer einzigen,
+    // am laengsten Stueck der GANZEN Gruppe orientierten Laenge - siehe
+    // ebaPackeMehrereAbschnitte.
+    const mp=packeMehrfach(gi,jeAbschnitt);
+    streifen=mp.streifen; abschnitte=mp.abschnitte.length;
+    rollenLaenge=mp.abschnitte.reduce((s,a)=>s+a.laenge,0);
+    const jeLaenge={};
+    mp.abschnitte.forEach(a=>{jeLaenge[a.laenge]=(jeLaenge[a.laenge]||0)+1});
+    teile=Object.keys(jeLaenge).map(Number).sort((x,y)=>y-x).map(l=>({n:jeLaenge[l],laenge:l}));
+    L=teile.length?teile[0].laenge:0;
+   }else{
+    L=istRolle?laengstes(g):f.laenge;
+    const v=packe(gi,L);
+    if(v.streifen===null){lang={format:f,stuecke:(v.zuLang||[]).map(x=>({nr:x.nr,laenge:x.laenge})),laenge:L};break}
+    streifen=v.streifen||[];
+    abschnitte=Math.ceil(streifen.length/jeAbschnitt);
+    // Bei jeAbschnitt===1 passt genau EIN Streifen auf die volle Breite - es
+    // wird nichts quer aufgeteilt, und jeder Streifen ist sein EIGENER,
+    // unabhaengiger Abzug von der Rolle/Tafel. Gezogen wird dann nur so viel,
+    // wie er tatsaechlich braucht (steckt schon in seinem "rest"), nicht die
+    // Laenge des laengsten Stuecks der ganzen Gruppe. Bei der Tafel (feste
+    // Laenge) und den uebrigen Faellen bleibt die bisherige Regel: ein
+    // Abschnitt wird als EIN Stueck quer abgezogen, seine Streifen haben
+    // deshalb zwingend alle dieselbe Laenge L. Gemeldet (11.09.2026): eine
+    // 250er Rolle (Breite = Abwicklung, jeAbschnitt=1) wurde dadurch
+    // faelschlich als genauso verschnittreich bewertet wie eine breitere
+    // Rolle, obwohl sich hier jedes Stueck einzeln exakt zuschneiden liesse.
+    rollenLaenge=jeAbschnitt===1
+     ?streifen.reduce((s,st)=>s+Math.max(0,L-(Number(st.rest)||0)),0)
+     :abschnitte*L;
+   }
    flaeche+=f.breite*rollenLaenge/1e6;
    zeilen.push({breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
      abschnittLaenge:L,rollenLaenge,streifen:streifen.length,
      ungenutzteStreifen:abschnitte*jeAbschnitt-streifen.length,
-     restBreite:ebaRestBreite(f.breite,g.breite,jeAbschnitt)});
+     restBreite:ebaRestBreite(f.breite,g.breite,jeAbschnitt),teile});
   }
   if(schmal){zuSchmal.push(f.breite);return}
   if(lang){zuKurz.push(lang);return}
@@ -492,6 +573,16 @@ function ebaFormatPlan(opt){
  // die Warnung und nicht mehr, WAS zu schneiden ist. Vom Pruefstand gefunden.
  const gefuellt=gruppen.map((g,gi)=>{
   const z=best?best.zeilen[gi]:null;
+  // v3.83: hat die beste Zeile mehrere Abschnittlaengen (teile), muss auch
+  // die Darstellung mit derselben Packung (packeMehrfach) arbeiten - sonst
+  // zeigt die Zuschnittliste eine andere Aufteilung als die Materialbilanz.
+  if(z&&z.teile){
+   const mp=packeMehrfach(gi,z.jeAbschnitt);
+   return Object.assign({},g,{abschnittLaenge:z.abschnittLaenge,streifen:mp.streifen,
+     optimal:mp.optimal!==false,
+     jeAbschnitt:z.jeAbschnitt,abschnitte:z.abschnitte,
+     rollenLaenge:z.rollenLaenge,verteilung:mp,teile:z.teile});
+  }
   const L=z?z.abschnittLaenge:laengstes(g);
   const v=(L>0)?packe(gi,L):{streifen:[],optimal:true};
   return Object.assign({},g,{abschnittLaenge:L,streifen:v.streifen||[],

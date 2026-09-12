@@ -136,7 +136,11 @@ function zuGeometrie(p){
   // Die schon richtig aufsummierte Rollenlaenge steht in diesem Fall bereits
   // im Plan (rl) und wird direkt uebernommen, statt neu (und falsch) aus
   // ab*L hergeleitet zu werden.
-  const RL=(n===1&&rl>0)?rl:((ab>0&&L>0)?ab*L:(rl>0?rl:0));
+  // v3.83: dieselbe Falle bei mehreren Abschnittlaengen (teile) - dort ist L
+  // nur die LAENGSTE vorkommende Laenge, "ab*L" wuerde JEDEN Abschnitt auf
+  // die laengste Laenge aufrunden statt seine eigene zu zaehlen.
+  const mehrereLaengen=(Array.isArray(g.teile)&&g.teile.length)||(Array.isArray(z.teile)&&z.teile.length);
+  const RL=(n===1||mehrereLaengen)&&rl>0?rl:((ab>0&&L>0)?ab*L:(rl>0?rl:0));
   raus.push({B,A,L,jeAbschnitt:n,abschnitte:ab,rollenLaenge:RL,
    restBreite:rb,frei:(n>0&&ab>0)?Math.max(0,n*ab-streifen.length):0,
    fugeQuer:(n>0)?Math.max(0,B-n*A-rb):0,streifen,index:i,
@@ -495,6 +499,16 @@ sie ist nicht nachweislich die günstigste.</div>`;
 // weil er genau so gerechnet wurde. Es wird nichts nachgerechnet.
 function zuAbschnitte(x,p){
  if(!x)return {n:0,laenge:0};
+ // v3.83: bei der Rolle kann EINE Zeile selbst mehrere unterschiedliche
+ // Abschnittlaengen tragen (mehrere Streifen je Abschnitt, je nach Stueck
+ // unterschiedlich lang - ebaPackeMehrereAbschnitte, js/29) - dieselbe
+ // "teile"-Darstellung wie unten bei mehreren Streifenbreiten, nur eine
+ // Ebene tiefer (eine einzige Streifenbreite, mehrere Laengen).
+ if(Array.isArray(x.teile)&&x.teile.length){
+  const gleich=x.teile.every(t=>t.laenge===x.teile[0].laenge);
+  return gleich?{n:x.teile.reduce((a,t)=>a+t.n,0),laenge:x.teile[0].laenge}
+               :{n:0,laenge:0,teile:x.teile};
+ }
  const zeilen=Array.isArray(x.zeilen)?x.zeilen:null;
  if(zeilen&&zeilen.length){
   const teile=zeilen.map(z=>zuAbschnitte(z,p)).filter(t=>t.n>0);
@@ -630,17 +644,38 @@ function zuBelegungHtml(p){
   +gruppen.map(g=>{
    const L=zuZahl(g.abschnittLaenge)||zuZahl(g.tafelLaenge)||zuZahl(g.rollenLaenge);
    const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
-   const ab=zuAbschnitte(g,p);
+   // v3.83: die Anzahl Abschnitte entscheidet ueber "Abschnitt N · Streifen M"
+   // vs. nur "Streifen N" - direkt aus g.abschnitte, nicht aus zuAbschnitte():
+   // bei mehreren unterschiedlichen Abschnittlaengen (teile) liefert
+   // zuAbschnitte() dafuer bewusst kein einzelnes n (siehe dort).
+   const mehrereAbschnitte=zuZahl(g.abschnitte)>1;
+   let letzterAbschnitt=null, indexImAbschnitt=0;
    return `${eine?"":`<div class="small zu-gruppe"><b>Streifenbreite ${esc(zuMm(g.breite))} mm</b>
 · ${esc(zuAbschnittText(g,p))} ${esc(zuWort(p).ab)}</div>`}
 <div class="zu-belegung">${(g.streifen||[]).map((s,i)=>{
     const belegt=(s.stuecke||[]).reduce((a,x)=>a+zuZahl(x.laenge),0);
-    // Streifen 1..je gehoeren zum ersten Abschnitt, je+1..2je zum zweiten.
-    const titel=(ab.n>1)
+    let titel;
+    // v3.83: bei mehreren Abschnittlaengen (ebaPackeMehrereAbschnitte, js/29)
+    // traegt jeder Streifen seine eigene Abschnittnummer - die alte Regel
+    // "Streifen 1..je gehoeren zum ersten Abschnitt" geht davon aus, dass
+    // jeder Abschnitt gleich viele Streifen hat, was hier nicht mehr gilt
+    // (ein Abschnitt mit weniger passenden Stuecken hat weniger Streifen).
+    if(s.abschnittNr!==undefined){
+     if(s.abschnittNr!==letzterAbschnitt){letzterAbschnitt=s.abschnittNr;indexImAbschnitt=0}
+     indexImAbschnitt++;
+     titel=zuWort(p).abschnitt+" "+s.abschnittNr+" · Streifen "+indexImAbschnitt;
+    }else{
+     // Streifen 1..je gehoeren zum ersten Abschnitt, je+1..2je zum zweiten.
+     titel=mehrereAbschnitte
       ?zuWort(p).abschnitt+" "+(Math.floor(i/je)+1)+" · Streifen "+(i%je+1)
       :"Streifen "+(i+1);
-    return zuPlatzHtml(titel,s.stuecke,g.breite,e,belegt,
-      zuZahl(s.rest)||Math.max(0,L-belegt));
+    }
+    // v3.83: s.rest kann legitim 0 sein (Streifen exakt ausgenutzt) - das
+    // waere mit "||" faelschlich als 0 verworfen und durch L-belegt ersetzt,
+    // was bei mehreren Abschnittlaengen NICHT mehr automatisch 0 waere.
+    const kapazitaet=zuZahl(s.abschnittLaenge)||L;
+    const rest=(s.rest===undefined||s.rest===null)?Math.max(0,kapazitaet-belegt):zuZahl(s.rest);
+    return zuPlatzHtml(titel,s.stuecke,g.breite,e,belegt,rest);
    }).join("")||'<div class="zu-platz-leer">–</div>'}</div>`;
   }).join("");
 }
