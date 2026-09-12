@@ -392,6 +392,16 @@ const BREITE=1280,HOEHE=800;
 
  await page.evaluate(()=>{
   const m=window.__demo.measurements.find(x=>x.id===12);
+  // measEditReturnTo traegt hier noch den Wert der letzten "echten"
+  // Massaufnahme-Szene ("measurementsModal", von measEditZurueck() am
+  // Ende jedes Abbrechens gesetzt) - ein Klick auf ein Suchergebnis
+  // (js/04-start-suche.js) setzt es ebensowenig neu, es bliebe also beim
+  // echten Ablauf zufaellig auf dem letzten Stand haengen. Hier bewusst
+  // wie beim Aufruf aus der Startseite gesetzt, weil diese Szene aus dem
+  // Startbildschirm heraus (Suche) angestossen wird - sonst landet
+  // "Abbrechen" gleich danach in der Massaufnahmen-Uebersicht statt auf
+  // dem Startbildschirm.
+  measEditReturnTo="startScreen";
   openMeasurement(m);
  });
  await beschriften("Nächster Schritt","Ein Streifen oben in jeder Massaufnahme sagt jederzeit, was als Nächstes zu tun ist.");
