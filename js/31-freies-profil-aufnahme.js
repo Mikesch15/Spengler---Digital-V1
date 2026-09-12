@@ -824,7 +824,10 @@ function fpaZusatzDaten(){
                streifen:(g.streifen||[]).map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",
                  // v3.81: die Tafel-Teilinfo mitspeichern, sonst zeigt ein
                  // spaeter gedrucktes, gecachtes Blatt "Teil 2/3" nicht mehr an.
-                 tafelTeil:x.tafelTeil||null})),rest:s.rest}))})),
+                 tafelTeil:x.tafelTeil||null})),rest:s.rest,
+                 // v3.85: abschnittLaenge/abschnittNr je Streifen mitspeichern -
+                 // siehe js/29 ebaZusatzDaten fuer die ausfuehrliche Begruendung.
+                 abschnittLaenge:s.abschnittLaenge,abschnittNr:s.abschnittNr}))})),
              optimal:plan.optimal!==false,
           // v3.29: die Stuecke aus vorhandenen Resten - sie fielen bis v3.28
           // beim Speichern weg und fehlten dadurch im gespeicherten Plan ganz.

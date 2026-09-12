@@ -26313,3 +26313,65 @@ Speichern-Knopf.
   Migration wurde über `apply_migration`/`execute_sql` angewendet und
   verifiziert (beide bestehenden Firmen-Zeilen zeigen 100/0), ein echter
   Klick-Test gegen die Produktion war nicht möglich.
+
+## 152. GESPEICHERTER ROLLENPLAN VERLOR DIE ABSCHNITTLÄNGE JE STREIFEN — VERSION 3.85
+
+### 152.1 Fund
+
+Bei der anschliessenden Untersuchung einer weiteren Nutzer-Rückmeldung
+(projektweiter Zuschnitt) fiel auf: keines der elf Rollen-Module
+speichert die in v3.83 neu eingeführten Streifen-Felder
+`abschnittLaenge`/`abschnittNr` (`ebaPackeMehrereAbschnitte`, js/29) beim
+Ablegen des Plans in `data.rollen`/`data.zuschnitt`. Alle elf Module
+schreiben den Streifen nur als `{stuecke, rest}` weg – dieselbe Zeile in
+allen elf Dateien (`js/29,30,31,32,34,36,37,38,39,40,66`).
+
+**Auswirkung**: solange die App den Plan LIVE neu rechnet (jede
+Bildschirmanzeige beim Bearbeiten), ist alles korrekt – das haben die
+Prüfstände von v3.83/v3.84 bereits bestätigt. Aber sobald ein
+gespeicherter Plan mit mehreren Abschnittlängen (jeAbschnitt≥2,
+unterschiedlich lange Stücke) NEU GELADEN wird – beim erneuten Öffnen
+einer Massaufnahme, beim Ausdruck, oder beim projektweiten Zuschnitt
+(js/49, der die gespeicherten Pläne über `pmatStuecke`/`zuGeometrie`
+liest) –, fehlten die beiden Felder in den wiederhergestellten Streifen.
+`zuBilanz()`/`restAlle()` (js/33/js/42) fielen dadurch beim Neuladen auf
+die (falsche) Gruppen-Länge zurück und rechneten wieder zu viel
+Schnittfuge – exakt der Fehler, der in §150 für die LIVE-Rechnung bereits
+behoben wurde, kehrte beim SPEICHERN/LADEN unbemerkt zurück.
+
+### 152.2 Fix
+
+In allen elf betroffenen Dateien speichert der Streifen jetzt zusätzlich
+`abschnittLaenge:s.abschnittLaenge,abschnittNr:s.abschnittNr`. Bei
+`jeAbschnitt===1` und bei der Tafel bleiben beide Felder `undefined`
+(werden beim Speichern als JSON stillschweigend weggelassen) – für diese
+längst korrekten Fälle ändert sich nichts. `zuPlanAusGespeichert()`
+(js/33) reicht `gruppen`/`streifen` bereits unverändert durch und brauchte
+keine Anpassung.
+
+### 152.3 Getestet
+
+Gegenprobe (Playwright, ad-hoc): dasselbe 11.09.2026-Szenario (4×
+4'020 mm + 4× 2'510 mm, 1'000-mm-Rolle, 460 mm Abwicklung) live gerechnet,
+in der NEUEN Speicherform abgelegt, über `zuPlanAusGespeichert()`
+wiederhergestellt und `zuBilanz()` erneut aufgerufen: Bilanz geht exakt
+auf (`aufgeht:true`, `fuge:0`). Zur Kontrolle dieselbe Wiederherstellung
+mit der ALTEN (vor diesem Fix üblichen) Speicherform ohne die beiden
+Felder: Bilanz geht NICHT auf (`aufgeht:false`, `fuge:2.78 m²` erfunden) –
+das belegt, dass der Fix tatsächlich nötig war und wirkt.
+
+Volle Regression aller elf betroffenen Module (Prüfstände) erneut
+gelaufen: alle Werte unverändert gegenüber dem Stand nach §150/§151 –
+keine neue Abweichung durch diesen Fix.
+
+### 152.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/29-einlaufblech-aufnahme.js`, `js/30-einlaufblech-konisch-aufnahme.js`, `js/31-freies-profil-aufnahme.js`, `js/32-mauerabdeckung-aufnahme.js`, `js/34-kehle-aufnahme.js`, `js/36-lukarne-aufnahme.js`, `js/37-kamin-aufnahme.js`, `js/38-einfassung-aufnahme.js`, `js/39-rinne-aufnahme.js`, `js/40-anschlussblech-aufnahme.js`, `js/66-dachfenster-aufnahme.js` | Zusatzdaten-Funktion speichert `abschnittLaenge`/`abschnittNr` je Streifen mit |
+| `index.html`, `sw.js` | Version 3.85 |
+
+### 152.5 Offene Punkte
+
+- Keine – rein clientseitiger Fix ohne Datenbankänderung, kein Live-Test
+  gegen Supabase nötig.

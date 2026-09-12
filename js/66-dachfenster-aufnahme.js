@@ -1153,10 +1153,12 @@ function dfaDaten(){
           moeglich:rp.moeglich||[],
           gruppen:(rp.gruppen||[]).map(g=>({breite:g.breite,rollenLaenge:g.rollenLaenge,
             abschnittLaenge:g.abschnittLaenge,jeAbschnitt:g.jeAbschnitt,abschnitte:g.abschnitte,
+            // v3.85: abschnittLaenge/abschnittNr je Streifen mitspeichern -
+            // siehe js/29 ebaZusatzDaten fuer die ausfuehrliche Begruendung.
             streifen:(g.streifen||[]).map(s=>({
               stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,breite:x.breite,
                 merkmal:x.merkmal||"",hinweis:x.hinweis||""})),
-              rest:s.rest}))})),
+              rest:s.rest,abschnittLaenge:s.abschnittLaenge,abschnittNr:s.abschnittNr}))})),
           optimal:rp.optimal!==false,
           ausResten:ebaAusRestenSpeicher(rp.ausResten)}
  };

@@ -1269,7 +1269,14 @@ function ebaZusatzDaten(){
           bestes:plan.bestes||null,
           moeglich:plan.moeglich||[],
           streifen:(plan.streifen||[]).map(s=>({
-            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})), rest:s.rest})),
+            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})), rest:s.rest,
+            // v3.85: bei mehreren Abschnittlaengen (ebaPackeMehrereAbschnitte,
+            // v3.83) traegt jeder Streifen seine EIGENE Abschnittlaenge - ohne
+            // sie hier mitzuspeichern wuerde ein spaeter aus dem gespeicherten
+            // Plan neu gezeichneter oder gedruckter Zuschnitt (zuBilanz/
+            // restAlle, js/33+js/42) faelschlich wieder die laengste der
+            // Gruppe fuer jeden Streifen annehmen.
+            abschnittLaenge:s.abschnittLaenge,abschnittNr:s.abschnittNr})),
           optimal:plan.optimal!==false,
           // v3.29: die Stuecke, die aus vorhandenen Resten geschnitten
           // werden. Ohne sie fehlen sie im gespeicherten Plan ganz.

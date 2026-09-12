@@ -662,8 +662,11 @@ function keaZusatzDaten(){
           rollenLaenge:rp.bestes?rp.bestes.rollenLaenge:0,netto:rp.netto,
           moeglich:rp.moeglich||[],
           bestes:rp.bestes,zuSchmal:rp.zuSchmal,optimal:rp.optimal!==false,
+          // v3.85: abschnittLaenge/abschnittNr je Streifen mitspeichern -
+          // siehe js/29 ebaZusatzDaten fuer die ausfuehrliche Begruendung.
           streifen:(rp.streifen||[]).map(s=>({
-            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})),rest:s.rest})),
+            stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",hinweis:x.hinweis||""})),rest:s.rest,
+            abschnittLaenge:s.abschnittLaenge,abschnittNr:s.abschnittNr})),
           // v3.29: die Stuecke aus vorhandenen Resten - sie fielen bis v3.28
           // beim Speichern weg und fehlten dadurch im gespeicherten Plan ganz.
           ausResten:ebaAusRestenSpeicher(rp.ausResten)}
