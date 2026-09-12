@@ -316,14 +316,19 @@ const liste=[];
   newMeasurementWithType("rinne_halbrund");
   $("measurementEditModal").hidden=false; setMeasProjectField(1);
   $("measTitle").value="Rinne Nordseite";
-  rinneA.material="1"; rinneA.groesse=333; rinneA.gesamtlaenge_mm=18000;
-  rinneA.verlauf=[{art:"abschnitt",laenge:6000},
-                  {art:"uebergang",typ:"ecke_aussen"},
-                  {art:"abschnitt",laenge:7500},
-                  {art:"uebergang",typ:"einhaengestutzen"},
-                  {art:"abschnitt",laenge:4500}];
+  rinneA.material="1"; rinneA.groesse=333; rinneA.gesamtlaengeManuell_mm=18000;
+  // v3.86: an das aktuelle Datenmodell angepasst (js/28-rinne-aufnahme.js,
+  // raLeer/raUebergangArt) - Winkel und Stutzen sitzen am ENDE ihres eigenen
+  // Segments, es gibt kein separates "verlauf"-Array mehr. Die alte Form
+  // (rinneA.verlauf/gesamtlaenge_mm/halter.aktiv) liess "Noch kein Abschnitt
+  // erfasst" stehen - das Modul kennt diese Felder gar nicht mehr.
+  rinneA.segmente=[
+   {laenge:6000,winkel:-90,stutzen:null},
+   {laenge:7500,winkel:0,stutzen:{art:"einhaenge",durchmesser:"100",anzahl:1,fallrohr:"80",bemerkung:""}},
+   {laenge:4500,winkel:0,stutzen:null}
+  ];
   rinneA.rinnenboden={links:true,rechts:true};
-  rinneA.halter={aktiv:true,abstand_mm:800};
+  rinneA.halter={anzahl:22,abstand_mm:800,typ:""};
   renderRinneAufnahme();
   raSetzeSchritt(2);
  });

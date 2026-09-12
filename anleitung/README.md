@@ -49,3 +49,21 @@ für die Anleitung nie ein echter Kundendatensatz verwendet werden.
 
 Bei einer neuen Version: Versionsnummer in `anleitung.html` (Titelseite,
 Fusszeile, Abschnitt 22) anpassen und die Datei umbenennen.
+
+## Videoanleitung
+
+`video.js` erzeugt zusätzlich ein stummes Bildschirmvideo (WebM): dieselbe
+Attrappe (`stub.js`), derselbe Demozustand wie bei den Bildschirmfotos, nur
+statt eines Fotos je Stelle eine kurze Texttafel unten im Bild und eine
+Wartezeit, während durchgehend aufgezeichnet wird (Playwrights eigenes,
+mitgeliefertes ffmpeg - kein Systempaket nötig).
+
+    SP=<Ordner mit node_modules> AUS=anleitung/video-out STUB=anleitung/stub.js \
+    node anleitung/video.js
+
+Das fertige Video liegt danach unter `anleitung/video-out/*.webm` (Dateiname
+wird von Playwright vergeben) - wie die Bildschirmfotos bewusst **nicht**
+im Repo eingecheckt (mehrere MB, in wenigen Minuten neu erzeugbar).
+
+Enthält dieselben erfundenen Demodaten wie die Bildschirmfotos - siehe
+"Wichtig" oben.
