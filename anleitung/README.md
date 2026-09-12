@@ -52,18 +52,40 @@ Fusszeile, Abschnitt 22) anpassen und die Datei umbenennen.
 
 ## Videoanleitung
 
-`video.js` erzeugt zusätzlich ein stummes Bildschirmvideo (WebM): dieselbe
-Attrappe (`stub.js`), derselbe Demozustand wie bei den Bildschirmfotos, nur
-statt eines Fotos je Stelle eine kurze Texttafel unten im Bild und eine
-Wartezeit, während durchgehend aufgezeichnet wird (Playwrights eigenes,
-mitgeliefertes ffmpeg - kein Systempaket nötig).
+`video.js` erzeugt ein Bildschirmvideo mit echtem Durchklicken: dieselbe
+Attrappe (`stub.js`), derselbe Demozustand wie bei den Bildschirmfotos, aber
+ein sichtbarer, animierter Mauszeiger bewegt sich zu den echten Knöpfen und
+Feldern der echten `index.html` und klickt/tippt dort wirklich (echte
+`page.mouse`/`page.keyboard`-Ereignisse, kein `dispatchEvent()` und kein
+direktes Setzen von `.value`). Dazu läuft eine gesprochene deutsche
+Erklärung: `espeak-ng` mit einer `mbrola`-Stimme (lokal, ohne
+Internetverbindung und ohne API-Schlüssel - klingt deshalb hörbar
+synthetisch, nicht wie eine natürliche Stimme). Jeder Text wird einmalig als
+WAV-Clip erzeugt (Cache nach Inhalt in `AUS/sprache/*.wav`), seine echte
+Länge abgewartet, und Clip-Datei + Startzeitpunkt werden in
+`AUS/sprachspuren.json` notiert.
+
+Vorbereitung einmalig (systemweit, nicht nur im Node-Ordner):
+
+    apt-get install -y espeak-ng mbrola mbrola-de3 ffmpeg
+
+Dann:
 
     SP=<Ordner mit node_modules> AUS=anleitung/video-out STUB=anleitung/stub.js \
     node anleitung/video.js
 
-Das fertige Video liegt danach unter `anleitung/video-out/*.webm` (Dateiname
-wird von Playwright vergeben) - wie die Bildschirmfotos bewusst **nicht**
-im Repo eingecheckt (mehrere MB, in wenigen Minuten neu erzeugbar).
+    AUS=anleitung/video-out node anleitung/vertonen.js
+
+Der erste Schritt zeichnet das stumme Bildschirmvideo auf (Playwrights
+eigenes, mitgeliefertes ffmpeg kann nur WebM/VP8 ohne Ton). Der zweite Schritt
+(`vertonen.js`) baut aus `sprachspuren.json` mit dem echten, systemweiten
+ffmpeg eine Tonspur (jeder Clip per `adelay` an seinen Startzeitpunkt
+verschoben, dann mit `amix` gemischt) und muxt sie zum fertigen
+`AUS/Spengler-DIGITAL-Videoanleitung.mp4` (H.264/AAC, läuft überall).
+
+Video, Sprach-Clips und die fertige MP4 liegen bewusst **nicht** im Repo
+(mehrere MB, in wenigen Minuten neu erzeugbar). Nur die Skripte sind
+eingecheckt.
 
 Enthält dieselben erfundenen Demodaten wie die Bildschirmfotos - siehe
 "Wichtig" oben.
