@@ -198,7 +198,12 @@ function fpaZuschnittGruppen(){
   const ab=fpaAbwicklungSegment(seg);
   const merkmal=fpaKonisch()
    ?("Abwicklung "+Math.round(ab.links)+" / "+Math.round(ab.rechts)+" mm"):"";
-  g.stuecke.push({nr:i+1,laenge,merkmal});
+  // v3.81: ist ein Segment zu lang fuer die Tafel, teilt ebaBlecheGeteilt
+  // (js/29) es automatisch in gleich lange Teilstuecke - hier von Hand
+  // uebersteuerbar (fpaTafelTeilungHtml), Summe = Segmentlaenge.
+  const teilungManuell=Array.isArray(seg.tafelTeilungManuell)
+   ?seg.tafelTeilungManuell.slice():null;
+  g.stuecke.push({nr:i+1,laenge,merkmal,tafelTeilungManuell:teilungManuell});
  });
  gruppen.sort((a,b)=>b.breite-a.breite);
  // v3.27: passende Reststuecke fallen VOR der Rollenrechnung aus dem Bedarf -
@@ -453,6 +458,38 @@ function fpaZuschnittPlan(){
   ausResten:p.ausResten||[],
   ohne:p.ohne||[]};
 }
+// v3.81: ein Segment, das laenger ist als die Tafel, wird automatisch in
+// gleich lange Teilstuecke geteilt (ebaBlecheGeteilt, js/29) - hier von Hand
+// uebersteuerbar (Feedback 11.09.2026: "es sollen die Längen aber danach
+// auch von Hand noch angepasst werden können"). Nur bei Freies Profil, wo
+// ein einzelnes Segment lang genug wird, dass die Frage ueberhaupt
+// vorkommt; bei den uebrigen Massaufnahmen bleibt es bei der Automatik.
+function fpaTafelTeilungHtml(p){
+ const je={};
+ (p.gruppen||[]).forEach(g=>(g.streifen||[]).forEach(s=>(s.stuecke||[]).forEach(x=>{
+  if(!x.tafelTeil)return;
+  const von=x.tafelTeil.von;
+  if(!je[von])je[von]={ursprung:x.tafelTeil.ursprung,manuell:!!x.tafelTeil.manuell,teile:[]};
+  je[von].teile[x.tafelTeil.teil-1]=Math.round(x.laenge);
+ })));
+ const nrn=Object.keys(je).map(Number).sort((a,b)=>a-b);
+ if(!nrn.length)return "";
+ return `<div class="ra-warnung" style="margin-top:10px"><b>Zu lang für die Tafel – automatisch geteilt</b>
+${nrn.map(nr=>{
+  const info=je[nr];
+  return `<div style="margin-top:8px">Segment ${nr} (${esc(zuMm(info.ursprung))} mm) – ${info.teile.length}
+Teilstücke, ${info.manuell?"von Hand angepasst":"automatisch gleich lang"}:
+<div class="zu-rollen-liste" style="margin-top:4px">${info.teile.map((l,j)=>
+  `<label class="zu-rolle"><span>Teil ${j+1}</span>
+<input type="number" min="1" step="1" inputmode="numeric" style="width:80px"
+data-fpa-teilung="${nr}_${j}" value="${l}"> mm</label>`).join("")}</div>
+<div style="margin-top:4px">
+<button type="button" class="gray" data-fpa-teilung-uebernehmen="${nr}">Übernehmen</button>
+${info.manuell?`<button type="button" class="gray" data-fpa-teilung-auto="${nr}">↻ Automatisch (gleich lang)</button>`:""}
+</div></div>`;
+}).join("")}
+</div>`;
+}
 function fpaZuschnittHtml(){
  const p=fpaZuschnittPlan();
  const kasten=zuAuswahlHtml(fpA.rollenAuswahl,"data-fpa-rolle",p.art);
@@ -460,7 +497,7 @@ function fpaZuschnittHtml(){
  // mitgerechnet, sondern mit ihrer Nummer genannt.
  const ohne=p.ohne.length?`<div class="ra-warnung">${p.ohne.length} Segment(e) ohne Länge oder ohne
 Masse werden nicht gerechnet: Nummer ${esc(p.ohne.map(x=>x.nr).join(", "))}.</div>`:"";
- return kasten+zuschnittHtml(p)+ohne;
+ return kasten+zuschnittHtml(p)+fpaTafelTeilungHtml(p)+ohne;
 }
 function fpaKontrolleHtml(){
  const m=fpaPruefungen();
@@ -707,6 +744,31 @@ function fpaVerdrahten(){
    if(seg)(seg.massen||[]).forEach(m=>{m.rechts=fpaZahl(m.links)});
    renderFreiesProfilAufnahme(); return;
   }
+  // v3.81: die von Hand angepasste Tafel-Teilung eines zu langen Segments
+  // uebernehmen - die Summe muss der Segmentlaenge entsprechen, sonst
+  // stuende ein falscher Materialbedarf in der Zuschnittliste.
+  if(d.fpaTeilungUebernehmen!==undefined){
+   const nr=Number(d.fpaTeilungUebernehmen), seg=a.segmente[nr-1];
+   if(!seg)return;
+   const felder=Array.from(wurzel.querySelectorAll('[data-fpa-teilung^="'+nr+'_"]'))
+     .sort((x,y)=>Number(x.dataset.fpaTeilung.split("_")[1])-Number(y.dataset.fpaTeilung.split("_")[1]));
+   const werte=felder.map(f=>fpaZahl(f.value));
+   if(!werte.length||werte.some(v=>!(v>0))){
+    alert("Jedes Teilstück braucht eine Länge grösser 0.");return;
+   }
+   const summe=werte.reduce((s,v)=>s+v,0), ziel=Math.round(fpaZahl(seg.laenge));
+   if(Math.abs(summe-ziel)>werte.length){
+    alert("Die Summe der Teilstücke ("+summe+" mm) muss der Segmentlänge entsprechen ("+ziel+" mm).");
+    return;
+   }
+   seg.tafelTeilungManuell=werte;
+   renderFreiesProfilAufnahme(); return;
+  }
+  if(d.fpaTeilungAuto!==undefined){
+   const nr=Number(d.fpaTeilungAuto), seg=a.segmente[nr-1];
+   if(seg)seg.tafelTeilungManuell=null;
+   renderFreiesProfilAufnahme(); return;
+  }
  });
 }
 
@@ -759,7 +821,10 @@ function fpaZusatzDaten(){
              moeglich:plan.moeglich||[],
              gruppen:plan.gruppen.map(g=>({breite:g.breite,rollenLaenge:g.rollenLaenge,
                abschnittLaenge:g.abschnittLaenge,jeAbschnitt:g.jeAbschnitt,abschnitte:g.abschnitte,
-               streifen:(g.streifen||[]).map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||""})),rest:s.rest}))})),
+               streifen:(g.streifen||[]).map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,merkmal:x.merkmal||"",
+                 // v3.81: die Tafel-Teilinfo mitspeichern, sonst zeigt ein
+                 // spaeter gedrucktes, gecachtes Blatt "Teil 2/3" nicht mehr an.
+                 tafelTeil:x.tafelTeil||null})),rest:s.rest}))})),
              optimal:plan.optimal!==false,
           // v3.29: die Stuecke aus vorhandenen Resten - sie fielen bis v3.28
           // beim Speichern weg und fehlten dadurch im gespeicherten Plan ganz.
