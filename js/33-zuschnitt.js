@@ -517,13 +517,28 @@ function zuAbschnitte(x,p){
  }
  const zeilen=Array.isArray(x.zeilen)?x.zeilen:null;
  if(zeilen&&zeilen.length){
-  const teile=zeilen.map(z=>zuAbschnitte(z,p)).filter(t=>t.n>0);
-  if(!teile.length)return {n:0,laenge:0};
   // Mehrere Streifenbreiten (Freies Profil, Lukarne): je Breite ein eigener
-  // Abschnitt. Sind sie gleich lang, wird zusammengezaehlt, sonst aufgezaehlt.
-  const gleich=teile.every(t=>t.laenge===teile[0].laenge);
-  return gleich?{n:teile.reduce((a,t)=>a+t.n,0),laenge:teile[0].laenge}
-               :{n:0,laenge:0,teile};
+  // Abschnitt. Eine einzelne Breite kann selbst schon mehrere Laengen
+  // mitbringen (teile, siehe oben) - die werden hier EINZELN aufgenommen,
+  // nicht als eine Zeile mit n=0 stillschweigend verworfen (gefunden
+  // 12.09.2026: eine Breite mit gemischten Laengen verschwand komplett aus
+  // der Anzeige, weil nur nach t.n>0 gefiltert wurde).
+  const alle=[];
+  zeilen.forEach(z=>{
+   const t=zuAbschnitte(z,p);
+   if(Array.isArray(t.teile))t.teile.forEach(e=>alle.push(e));
+   else if(t.n>0)alle.push({n:t.n,laenge:t.laenge});
+  });
+  if(!alle.length)return {n:0,laenge:0};
+  const gleich=alle.every(t=>t.laenge===alle[0].laenge);
+  if(gleich)return {n:alle.reduce((a,t)=>a+t.n,0),laenge:alle[0].laenge};
+  // Unterschiedliche Laengen (aus einer oder mehreren Zeilen): nach Laenge
+  // zusammenzaehlen, damit dieselbe Laenge aus zwei Breiten nicht doppelt
+  // dasteht.
+  const nach={};
+  alle.forEach(t=>{nach[t.laenge]=(nach[t.laenge]||0)+t.n});
+  const teile=Object.keys(nach).map(Number).sort((a,b)=>b-a).map(l=>({n:nach[l],laenge:l}));
+  return {n:0,laenge:0,teile};
  }
  const laenge=zuZahl(x.abschnittLaenge)||zuZahl(x.tafelLaenge)
    ||zuZahl(p&&p.abschnittLaenge)||zuZahl(((p&&p.gruppen)||[])[0]&&(p.gruppen[0].abschnittLaenge||p.gruppen[0].tafelLaenge));

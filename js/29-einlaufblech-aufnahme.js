@@ -539,6 +539,25 @@ function ebaFormatPlan(opt){
     rollenLaenge=jeAbschnitt===1
      ?streifen.reduce((s,st)=>s+Math.max(0,L-(Number(st.rest)||0)),0)
      :abschnitte*L;
+    // Die Anzeige (js/33, zuAbschnitte/zuAbschnittText) las bisher nur
+    // abschnittLaenge/abschnitte und zeigte deshalb "4 × <laengstes Stueck>"
+    // an, auch wenn - wie oben bei rollenLaenge bereits richtig gerechnet -
+    // nur EIN Streifen wirklich so lang ist und die anderen kuerzer sind
+    // (mehrere kuerzere Stuecke passen zusammen in einen Streifen). Gemeldet
+    // 12.09.2026 (Lukarne Seitenverkleidung): "4 × 1'530 mm + 1 × 49 mm ab
+    // Rolle" stand da, obwohl nur rund 4'744mm statt 4×1'530mm=6'120mm
+    // gezogen wurden - die Materialbilanz war schon korrekt, nur der
+    // Anzeigetext nicht. Je Streifen wird deshalb jetzt seine ECHTE Laenge
+    // (L minus Rest) gruppiert, genau wie beim Fall mit mehreren Streifen
+    // je Abschnitt oben (teile).
+    if(jeAbschnitt===1){
+     const jeLaenge={};
+     streifen.forEach(st=>{
+      const echt=Math.max(0,L-(Number(st.rest)||0));
+      jeLaenge[echt]=(jeLaenge[echt]||0)+1;
+     });
+     teile=Object.keys(jeLaenge).map(Number).sort((x,y)=>y-x).map(l=>({n:jeLaenge[l],laenge:l}));
+    }
    }
    flaeche+=f.breite*rollenLaenge/1e6;
    zeilen.push({breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
