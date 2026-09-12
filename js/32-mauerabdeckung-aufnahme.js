@@ -94,7 +94,7 @@ function madaMaterialTabelle(){return madMaterialTabelle(madA.material)}
 function madaStueckliste(){
  const {boundaries}=madaVerlaufDaten();
  return berechneMadStueckliste(madA.segmente||[],madaSchieberAktiv(),boundaries,
-   madBodenMass,madSchieberMass);
+   madBodenMass,madSchieberMass,madGehrungMass);
 }
 function madaGesamtlaenge(){return computeMadBoundaries(madA.segmente||[]).gesamtlaenge}
 function madaEndenMitBoden(){
@@ -222,7 +222,10 @@ function madaRollenPlan(){
 // ein Schieber als Zugabe an BEIDE angrenzenden Stuecke geht (also doppelt
 // in die Summe der Zuschnittlaengen eingeht).
 function madaAusmassZugabe(){
- return madaBoeden()*Number(madBodenAusmassMass||0)+madaSchieberAktiv().length*Number(madSchieberAusmassMass||0);
+ return madaBoeden()*Number(madBodenAusmassMass||0)+madaSchieberAktiv().length*Number(madSchieberAusmassMass||0)
+   // v3.84: dieselbe Idee fuer die Gehrung - eigener, unabhaengiger
+   // Ausmass-Wert, jede Ecke zaehlt einmal.
+   +madaEcken()*Number(madGehrungAusmassMass||0);
 }
 function madaAusmassZeilen(){
  const L=madaGesamtlaenge();
@@ -389,6 +392,7 @@ hier nicht neu festgelegt.</div>
 <tr><td>Max. Abstand ab einer Ecke oder einem Boden</td><td style="text-align:right"><b>${madaMeter(t.abEcke)} m</b></td></tr>
 <tr><td>Zugabe je Boden</td><td style="text-align:right"><b>${madaMm(madBodenMass)} mm</b></td></tr>
 <tr><td>Zugabe je Schieberseite</td><td style="text-align:right"><b>${madaMm(madSchieberMass)} mm</b></td></tr>
+<tr><td>Zugabe je Gehrung (Ecke)</td><td style="text-align:right"><b>${madaMm(madGehrungMass)} mm</b></td></tr>
 </tbody></table></div>
 <div class="bar"><button type="button" class="gray" id="mada_einst">⚙️ Einstellungen</button></div>`;
 }
@@ -525,8 +529,8 @@ function madaStuecklisteHtml(){
 <td style="text-align:right"><b>${madaMm(x.zuschnitt)}&nbsp;mm</b> × ${madaMm(B)}&nbsp;mm</td>
 <td style="text-align:right">${madaMm(x.pos)}</td></tr>`).join("");
  return `<div class="info">Zuschnitt = Abstand + Zugabe je Ende. Zugabe je Boden
-${madaMm(madBodenMass)} mm, je Schieberseite ${madaMm(madSchieberMass)} mm
-(Einstellungen → Massaufnahmen).</div>
+${madaMm(madBodenMass)} mm, je Schieberseite ${madaMm(madSchieberMass)} mm, je Gehrung (Ecke)
+${madaMm(madGehrungMass)} mm (Einstellungen → Massaufnahmen).</div>
 <div class="scroll"><table class="eb-table ra-tab">
 <thead><tr><th>Nr.</th><th>Von → Bis</th><th style="text-align:right">Abstand (mm)</th><th style="text-align:right">Zuschnitt (Länge × Breite)</th><th style="text-align:right">Position ab Start</th></tr></thead>
 <tbody>${zeilen}</tbody></table></div>
@@ -584,6 +588,7 @@ zweite Eingabe. Ohne Artikelnummern und ohne Preise.</div>
 <tr><td>Max. Abstand ab einer Ecke oder einem Boden</td><td style="text-align:right"><b>${madaMeter(t.abEcke)} m</b></td></tr>
 <tr><td>Zugabe je Boden</td><td style="text-align:right"><b>${madaMm(madBodenMass)} mm</b></td></tr>
 <tr><td>Zugabe je Schieberseite</td><td style="text-align:right"><b>${madaMm(madSchieberMass)} mm</b></td></tr>
+<tr><td>Zugabe je Gehrung (Ecke)</td><td style="text-align:right"><b>${madaMm(madGehrungMass)} mm</b></td></tr>
 </tbody></table></div>`;
 }
 

@@ -218,7 +218,13 @@ function zuBilanz(p){
   brutto+=g.B*g.rollenLaenge;
   fuge+=g.fugeQuer*g.rollenLaenge;
   (g.streifen||[]).forEach(st=>{
-   const w=zuStreifenRestEcht(st,g.L,g.jeAbschnitt);
+   // v3.83: bei mehreren Abschnittlaengen (ebaPackeMehrereAbschnitte, js/29)
+   // traegt jeder Streifen seine EIGENE Abschnittlaenge (st.abschnittLaenge) -
+   // g.L ist dort nur die laengste vorkommende Laenge der Gruppe. Wuerde hier
+   // trotzdem g.L verwendet, wuerde fuer Streifen aus kuerzeren Abschnitten
+   // zu viel Schnittfuge (L−Summe−Rest) errechnet, die Bilanz ginge nicht auf.
+   const stL=(st.abschnittLaenge!==undefined&&st.abschnittLaenge!==null)?zuZahl(st.abschnittLaenge):g.L;
+   const w=zuStreifenRestEcht(st,stL,g.jeAbschnitt);
    netto+=w.summe*g.A;
    fuge+=w.fuge*g.A;
   });

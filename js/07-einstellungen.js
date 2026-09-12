@@ -131,13 +131,18 @@ $("saveMadMasse").addEventListener("click",async()=>{
  // Rinne seit v3.79, saveRinneDilaMass).
  const bodenAusmass=Number($("madBodenAusmassMassInput").value)||0;
  const schieberAusmass=Number($("madSchieberAusmassMassInput").value)||0;
+ // v3.84: dieselbe Idee fuer die Gehrung (Ecke) - am selben Knopf.
+ const gehrung=Number($("madGehrungMassInput").value)||0;
+ const gehrungAusmass=Number($("madGehrungAusmassMassInput").value)||0;
  knopf.disabled=true;
  try{
   const {fehler}=await speichereAppSettings({mad_boden_mass_mm:boden,mad_schieber_mass_mm:schieber,
-    mad_boden_ausmass_mass_mm:bodenAusmass,mad_schieber_ausmass_mass_mm:schieberAusmass});
+    mad_boden_ausmass_mass_mm:bodenAusmass,mad_schieber_ausmass_mass_mm:schieberAusmass,
+    mad_gehrung_mass_mm:gehrung,mad_gehrung_ausmass_mass_mm:gehrungAusmass});
   if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
   madBodenMass=boden;madSchieberMass=schieber;
   madBodenAusmassMass=bodenAusmass;madSchieberAusmassMass=schieberAusmass;
+  madGehrungMass=gehrung;madGehrungAusmassMass=gehrungAusmass;
   if(typeof renderMadResult==="function"&&madSegments.length)renderMadResult();
   alert("Gespeichert (gilt für alle).");
  }catch(err){

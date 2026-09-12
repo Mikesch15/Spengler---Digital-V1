@@ -225,11 +225,17 @@ const segmente=async(page,liste)=>{await page.evaluate(l=>{
  const tausend=(plan.moeglich||[]).find(x=>x.breite===1000);
  p(tausend&&Math.abs(tausend.flaeche-4.14)<1e-6,"die 1000er Rolle ergäbe 4,14 m²",tausend);
  // Nachweis, dass wirklich die GEMEINSAME Packrechnung gerufen wird.
+ // v3.83: bei jeAbschnitt>=2 (hier: 670/265=2) uebernimmt die neue, ebenso
+ // gemeinsame ebaPackeMehrereAbschnitte() (mehrere unterschiedlich lange
+ // Abschnitte statt einer festen Laenge) - deshalb beide zaehlen.
  const gerufen=await page.evaluate(()=>{
-  const echt=window.ebaPackeInStreifen; let n=0;
+  const echt=window.ebaPackeInStreifen, echtMehrfach=window.ebaPackeMehrereAbschnitte;
+  let n=0;
   window.ebaPackeInStreifen=function(){n++;return echt.apply(null,arguments)};
+  window.ebaPackeMehrereAbschnitte=function(){n++;return echtMehrfach.apply(null,arguments)};
   anbaRollenPlan();
   window.ebaPackeInStreifen=echt;
+  window.ebaPackeMehrereAbschnitte=echtMehrfach;
   return n;
  });
  p(gerufen>0,"ebaPackeInStreifen aus js/29 wird tatsächlich gerufen",gerufen);

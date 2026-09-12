@@ -275,18 +275,22 @@ const text=page=>page.evaluate(()=>$("kehleAufnahme").innerText);
  p(/500/.test(zu.kenn[0]||""),"und nennt die Abwicklung 500 mm",zu.kenn[0]);
  p(Math.abs(zu.netto-2.7965)<1e-4,"Blech netto = 5593 mm x 500 mm = 2.80 m2",zu.netto);
  // Seit v2.89 wird die Rolle in Abschnitte geschnitten, jeder so lang wie das
- // laengste Blech. Von Hand: Zuschnitte 2070, 2070, 1453 -> Abschnitt 2070,
- // drei Streifen (nichts passt hintereinander in 2070).
- //   Rolle 1000 ÷ 500 = 2 Streifen je Abschnitt -> 2 Abschnitte -> 4'140 mm
- //   -> 1000 x 4140 = 4.14 m2
+ // laengste Blech. Von Hand: Zuschnitte 2070, 2070, 1453 -> laengstes Stueck
+ // 2070, drei Streifen (nichts passt hintereinander in 2070).
+ //   Rolle 1000 ÷ 500 = 2 Streifen je Abschnitt -> 2 Abschnitte.
+ // Seit v3.83 (ebaPackeMehrereAbschnitte) darf jeder Abschnitt seine EIGENE
+ // Laenge haben statt beide auf 2070 aufzurunden: 2070 (Streifen 2070+2070)
+ // + 1453 (Streifen 1453) = 3'523 mm, statt bis v3.82 2 × 2'070 = 4'140 mm.
  p(zu.bestes&&zu.bestes.breite===1000&&zu.bestes.jeAbschnitt===2
    &&zu.bestes.abschnitte===2&&zu.bestes.abschnittLaenge===2070,
    "beste Rolle 1000 mm: 2 × 2'070 mm ab Rolle",zu.bestes);
- p(zu.bestes&&Math.abs(zu.bestes.flaeche-4.14)<1e-6&&Math.abs(zu.bestes.verschnitt-1.3435)<1e-4,
-   "4.14 m2 Blech, 1.34 m2 Verschnitt",zu.bestes);
- // Rolle 670 ÷ 500 = 1 Streifen je Abschnitt -> 3 Abschnitte -> 6'210 mm.
+ p(zu.bestes&&Math.abs(zu.bestes.flaeche-3.523)<1e-6&&Math.abs(zu.bestes.verschnitt-0.7265)<1e-4,
+   "3.523 m2 Blech, 0.73 m2 Verschnitt",zu.bestes);
+ // Rolle 670 ÷ 500 = 1 Streifen je Abschnitt -> js/29 zieht seit v3.80 jeden
+ // Streifen nur so lang, wie er tatsaechlich braucht: 2070+2070+1453 = 5'593 mm
+ // (nicht 3 × 2070 = 6'210 mm, das waere schon vor v3.83 zu lang gewesen).
  const r670=zu.moeglich.find(m=>m[0]===670);
- p(!!r670&&r670[1]===1&&r670[2]===6210,"670 mm: 3 × 2'070 mm ab Rolle",r670);
+ p(!!r670&&r670[1]===1&&r670[2]===5593,"670 mm: jeder Streifen nur so lang wie noetig, 5'593 mm",r670);
  p(!/NaN|undefined|Infinity/.test(zu.txt),"kein NaN im Zuschnitt",
    {t:(zu.txt.match(/NaN|undefined|Infinity/)||[""])[0]});
  // Es gibt in der App nur EINE Packrechnung. Beweis: sie wird tatsaechlich

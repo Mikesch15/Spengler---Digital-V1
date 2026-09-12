@@ -65,16 +65,27 @@ function calcMadSchieber(segments,material){
 }
 
 // ---- Zuschnitt je Stück ----
-function berechneMadStueckliste(segments,schieber,boundaries,bodenMass,schieberMass){
+// v3.84: gehrungMass ist die Zugabe an einer ECKE (Segment mit Winkel != 0,
+// dazwischen im Verlauf) - bisher bekam eine Ecke gar keine Zugabe, obwohl
+// dort ein Gehrschnitt anfaellt. Wie Boden/Schieber je Seite, nur eben an
+// jeder inneren Ecke statt an den Aussenenden oder an einem Schieber.
+function berechneMadStueckliste(segments,schieber,boundaries,bodenMass,schieberMass,gehrungMass){
  const segGrenzen=[0];
  let acc=0;
  (segments||[]).forEach(s=>{acc+=Number(s.laenge)||0;segGrenzen.push(acc)});
- const bm=Number(bodenMass)||0, sm=Number(schieberMass)||0;
+ const bm=Number(bodenMass)||0, sm=Number(schieberMass)||0, gm=Number(gehrungMass)||0;
  // Boden zählt nur an den beiden Aussenenden des ganzen Verlaufs
  const bodenLinksSeite=[],bodenRechtsSeite=[];
+ // Gehrung zählt nur an einer INNEREN Grenze mit Winkel != 0 - direkt aus dem
+ // Winkel des vorangehenden Segments, unabhaengig davon, wie "boundaries"
+ // dieselbe Grenze intern typisiert (dort steht "ecke" auch fuer einen
+ // Boden am Anfang/Ende, weil beides als Fixpunkt fuer den Max-Abstand
+ // gilt - das ist eine andere Frage als "gibt es hier einen Gehrschnitt").
+ const gehrungAnGrenze=[];
  segGrenzen.forEach((pos,i)=>{
   bodenLinksSeite[i] =(i===segGrenzen.length-1&&segments[i-1]&&segments[i-1].bodenRechts)?bm:0;
   bodenRechtsSeite[i]=(i===0&&segments[0]&&segments[0].bodenLinks)?bm:0;
+  gehrungAnGrenze[i]=(i>0&&i<segGrenzen.length-1&&segments[i-1]&&Number(segments[i-1].winkel)!==0)?gm:0;
  });
  const punkte=[];
  segGrenzen.forEach((pos,i)=>{
@@ -87,8 +98,8 @@ function berechneMadStueckliste(segments,schieber,boundaries,bodenMass,schieberM
  for(let i=1;i<punkte.length;i++){
   const prev=punkte[i-1],cur=punkte[i];
   const abstand=cur.pos-prev.pos;
-  const zugabeLinks =prev.art==="grenze"?bodenRechtsSeite[prev.grenzIndex]:sm;
-  const zugabeRechts=cur.art==="grenze"?bodenLinksSeite[cur.grenzIndex]:sm;
+  const zugabeLinks =prev.art==="grenze"?(bodenRechtsSeite[prev.grenzIndex]+gehrungAnGrenze[prev.grenzIndex]):sm;
+  const zugabeRechts=cur.art==="grenze"?(bodenLinksSeite[cur.grenzIndex]+gehrungAnGrenze[cur.grenzIndex]):sm;
   stuecke.push({
    nr:i,
    von:prev.art==="grenze"?prev.label:`Schieber ${punkte.slice(0,i).filter(p=>p.art==="schieber").length}`,
@@ -346,7 +357,7 @@ function renderMadAuswertung(){
  const {schieber,tabelle,boundaries,gesamtlaenge}=calcMadSchieber(madSegments,material);
  // Automatisch gesetzte Schieber übernehmen, sofern nicht von Hand angepasst
  if(!$("mad_manuell").checked)madSchieber=schieber;
- const stuecke=berechneMadStueckliste(madSegments,madSchieber,boundaries,madBodenMass,madSchieberMass);
+ const stuecke=berechneMadStueckliste(madSegments,madSchieber,boundaries,madBodenMass,madSchieberMass,madGehrungMass);
  zeigeMadProfil();
  const endenMitBoden={
   anfang:!!(madSegments[0]&&madSegments[0].bodenLinks),

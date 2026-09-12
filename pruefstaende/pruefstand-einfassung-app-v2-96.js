@@ -352,11 +352,17 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  p(rp.gruppen.length===2,"zwei Streifenbreiten (zwei Abwicklungen)",rp.gruppen);
  p(rp.bestes!==null,"eine Rollenbreite passt",rp);
  // Der Plan muss WIRKLICH aus der gemeinsamen Packrechnung kommen.
+ // v3.83: bei jeAbschnitt>=2 uebernimmt die ebenso gemeinsame
+ // ebaPackeMehrereAbschnitte() (mehrere unterschiedlich lange Abschnitte
+ // statt einer festen Laenge) - deshalb beide zaehlen.
  const gemeinsam=await page.evaluate(()=>{
-  const alt=window.ebaPackeInStreifen; let gerufen=0;
+  const alt=window.ebaPackeInStreifen, altMehrfach=window.ebaPackeMehrereAbschnitte;
+  let gerufen=0;
   window.ebaPackeInStreifen=function(){gerufen++;return alt.apply(this,arguments)};
+  window.ebaPackeMehrereAbschnitte=function(){gerufen++;return altMehrfach.apply(this,arguments)};
   einfaRollenPlan();
   window.ebaPackeInStreifen=alt;
+  window.ebaPackeMehrereAbschnitte=altMehrfach;
   return gerufen;
  });
  p(gemeinsam>0,"ebaPackeInStreifen (js/29) wird wirklich gerufen",gemeinsam);

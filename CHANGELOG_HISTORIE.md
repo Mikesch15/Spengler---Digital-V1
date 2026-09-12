@@ -26119,3 +26119,197 @@ per `git diff --name-only HEAD` einzeln bestätigt.
   Klasse selbstreferenzieller `git diff`-/Versionsstand-Prüfungen wächst
   mit jedem weiteren Versionssprung erwartungsgemäss um einen weiteren
   Eintrag (149.3).
+
+## 150. ROLLE: UNTERSCHIEDLICH LANGE ABSCHNITTE STATT EINER FESTEN LÄNGE — VERSION 3.83
+
+### 150.1 Rückmeldung
+
+Screenshot der Mauerabdeckung: bei einer 1'000-mm-Rolle wurden vier
+Abschnitte à 4'020 mm abgezogen (16'080 mm), obwohl zwei Stücke mit
+4'020 mm und zwei mit 2'510 mm auf der Tafel lagen. Von Hand wäre
+2× 4'020 mm + 2× 2'510 mm (13'060 mm) deutlich sparsamer gewesen.
+Vorgabe des Nutzers: „es dürfen alle abgezogenen Tafeln unterschiedlich
+lang sein, einfach so lang wie das längste Stück auf dieser Tafel" – und
+zwar für alle Rollen-Massaufnahmen, nicht nur die Mauerabdeckung.
+
+### 150.2 Ursache
+
+`ebaFormatPlan()` (js/29) ist die eine gemeinsame Pack-/Vergleichsfunktion
+für alle ca. 13 Rollen-/Tafel-Massaufnahmemodule. Bei einer Rolle mit
+`jeAbschnitt>=2` (mehrere Streifen nebeneinander über die Rollenbreite)
+wurden bislang IMMER alle Abschnitte auf die Länge des längsten Stücks
+der ganzen Gruppe aufgerundet – auch Abschnitte, die nur kürzere Stücke
+enthielten. Bei `jeAbschnitt===1` bestand dieses Problem bereits nicht:
+dort zieht js/29 seit v3.80 jeden Streifen nur so lang, wie er tatsächlich
+braucht (eigener, bereits geprüfter Rechenweg, unverändert gelassen).
+
+### 150.3 Fix
+
+Neue Funktion `ebaPackeMehrereAbschnitte(bleche,jeAbschnitt,budget)` in
+js/29: das jeweils längste noch offene Stück eröffnet einen neuen
+Abschnitt und legt dessen Länge fest; die übrigen Plätze dieses
+Abschnitts werden first-fit mit den nächstgrösseren noch offenen
+Stücken aufgefüllt, solange sie hineinpassen. Nicht das globale Optimum
+(das wäre eine eigene Suche wie bei der Rinne), aber genau die Regel aus
+der Rückmeldung und in der Praxis nah am Optimum. Nur für die Rolle
+(die Tafel hat eine echte physische Längenbegrenzung) und nur ab
+`jeAbschnitt>=2` – `jeAbschnitt===1` bleibt unverändert.
+
+Jeder Streifen trägt jetzt zusätzlich seine eigene `abschnittLaenge` und
+`abschnittNr` (vorher gab es nur eine einzige Länge je Gruppe). Damit
+mussten drei weitere Stellen, die bisher stillschweigend von EINER
+Abschnittlänge je Gruppe ausgingen, denselben Fehler nicht wiederholen:
+
+- `js/33-zuschnitt.js`, `zuGeometrie()`: die Materialbilanz-Rollenlänge
+  (`RL`) wird bei mehreren Abschnittlängen aus der bereits richtig
+  summierten Rollenlänge übernommen statt (zu lang) aus
+  `abschnitte × längste Länge` neu berechnet.
+- `js/33-zuschnitt.js`, `zuBilanz()`: die Schnittfuge/Rest-Berechnung je
+  Streifen (`zuStreifenRestEcht`) verwendet jetzt die EIGENE
+  Abschnittlänge des Streifens (`st.abschnittLaenge`) statt der
+  längsten der Gruppe – sonst wurde für Streifen aus kürzeren
+  Abschnitten zu viel Schnittfuge errechnet und die Bilanz ging nicht
+  mehr exakt auf (gefunden über `pruefstand-reste-schnittfuge-v3-26.js`,
+  Fall 1: `diff` wich zunächst um 550'000, nach dem ersten Teilfix noch um
+  275'000 mm² ab).
+- `js/42-reste.js`, `restAlle()`: ein unbelegter Streifenplatz gehört zu
+  GENAU einem Abschnitt mit dessen eigener Länge, nicht zur längsten der
+  Gruppe – sonst wurde ein freier Platz in einem kürzeren Abschnitt zu
+  gross bewertet (im selben Testfall: ein freier Platz wurde mit 2'000 mm
+  statt der tatsächlichen 900 mm des betroffenen Abschnitts angesetzt).
+  Mit allen drei Korrekturen ging die Bilanz exakt auf.
+- `js/33-zuschnitt.js`, `zuAbschnitte()`/`zuBelegungHtml()`: neues Feld
+  `teile` (gruppiert nach unterschiedlicher Abschnittlänge) wird beim
+  Zusammenfassen und bei der Belegungsanzeige („Abschnitt N · Streifen M")
+  berücksichtigt; ein latenter Falsy-Null-Fehler beim Rest-Fallback
+  (`zuZahl(s.rest)||…` behandelte einen echten Rest von 0 wie „fehlt")
+  wurde dabei ebenfalls behoben – vorher durch das alte Ein-Längen-Modell
+  zufällig maskiert.
+
+Bewusst nicht angefasst: der unabhängige projektweite Zuschnitt
+(js/49-projekt-zuschnitt.js) hat eine eigene, separate Packrechnung und
+war nicht Teil der gemeldeten Stelle.
+
+### 150.4 Getestet
+
+Neuer dedizierter Test (19/19) reproduziert das gemeldete Szenario
+(4× 4'020 mm + 4× 2'510 mm, 1'000-mm-Rolle, 460 mm Streifenbreite):
+13'060 mm statt 16'080 mm, korrekte `teile`-Aufschlüsselung, alle
+Streifen exakt voll, korrekte Belegungstitel, korrekte Materialbilanz,
+plus Regressionsschutz für `jeAbschnitt===1` und Tafel (beide
+unverändert).
+
+Bei der anschliessenden vollen Regression (69 Prüfstände) meldeten fünf
+Dateien Abweichungen – alle auf von Hand vorgerechnete „goldene" Zahlen
+zurückgeführt, die noch vom alten Ein-Längen-Modell ausgingen, nicht auf
+neue Fehler:
+
+- `pruefstand-anschlussblech-app-v3-01.js`,
+  `pruefstand-einfassung-app-v2-96.js`: eine Prüfung „wird die
+  gemeinsame Packrechnung wirklich gerufen" beobachtete nur
+  `ebaPackeInStreifen`; bei `jeAbschnitt>=2` läuft jetzt zusätzlich
+  `ebaPackeMehrereAbschnitte` – beide Funktionen werden jetzt erkannt.
+  Zurück auf den echten Vorher-Stand (70/95 bzw. 101/113).
+- `pruefstand-mauerabdeckung-app-v2-79.js`: die goldenen Werte für
+  eine 1'000-mm-Rolle (bisher 4 × 3'020 mm = 12.08 m²) von Hand mit dem
+  neuen Algorithmus nachgerechnet: 3'020 + 2'510 + 2'010 + 2'010 mm =
+  9'550 mm = 9.55 m² – eine echte Materialersparnis, keine Regression.
+  Dabei nebenbei gefunden und mitkorrigiert: die 670-mm-Zeile desselben
+  Tests war bereits seit v3.80 falsch (16.19 statt 12.127 m², weil sie nie
+  an die dortige „jeder Streifen nur so lang wie nötig"-Korrektur
+  angepasst worden war).
+- `pruefstand-kehle-app-v2-83.js`: derselbe Befund wie bei der
+  Mauerabdeckung – 1'000 mm ergibt jetzt 3.523 statt 4.14 m² (und wird
+  dadurch, korrekt, gegenüber 670 mm zur „besten" Rolle – vorher war das
+  bereits VOR v3.83 falsch, weil 670 mm fälschlich als besser galt); die
+  670-mm-Zeile hatte denselben vor-v3.80-Fehler wie bei der
+  Mauerabdeckung (6'210 statt 5'593 mm) und wurde mitkorrigiert. Zwei
+  verbleibende Fehlschläge zur Stoss-Überlappung sind unverändert
+  vor-v3.83 vorhanden und unabhängig von dieser Änderung.
+
+Alle fünf betroffenen Prüfstände wurden auf ihren jeweiligen echten
+Vorher-Ausgangswert zurückgeführt (per `git worktree` gegen den Stand vor
+v3.83 verglichen) bzw. – wo der neue Wert eine echte, unabhängig von
+Hand nachgerechnete Verbesserung ist – auf den neuen korrekten Wert
+aktualisiert.
+
+### 150.5 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/29-einlaufblech-aufnahme.js` | neu: `ebaPackeMehrereAbschnitte()`, `ebaFormatPlan()` nutzt sie ab `jeAbschnitt>=2` bei der Rolle |
+| `js/33-zuschnitt.js` | `zuGeometrie()`, `zuBilanz()`, `zuAbschnitte()`, `zuBelegungHtml()`: mehrere Abschnittlängen (`teile`) korrekt behandelt |
+| `js/42-reste.js` | `restAlle()`: unbelegter Streifenplatz zählt mit der Länge seines EIGENEN Abschnitts |
+| `pruefstaende/pruefstand-anschlussblech-app-v3-01.js`, `pruefstand-einfassung-app-v2-96.js` | Aufruf-Nachweis erkennt auch `ebaPackeMehrereAbschnitte` |
+| `pruefstaende/pruefstand-mauerabdeckung-app-v2-79.js`, `pruefstand-kehle-app-v2-83.js` | goldene Zahlen für die Rollenpackung neu von Hand nachgerechnet |
+| `pruefstaende/pruefstand-reste-schnittfuge-v3-26.js` | `__vonHand()`-Gegenrechnung ebenfalls auf die eigene Abschnittlänge je Streifen umgestellt |
+| `index.html`, `sw.js` | Version 3.83 |
+
+### 150.6 Offene Punkte
+
+- Kein Live-Test gegen Supabase (Sandbox blockiert ausgehende
+  HTTPS-Verbindungen wie immer) – hier ohnehin nicht nötig, da rein
+  clientseitige Rechenlogik ohne Datenbankänderung.
+
+## 151. MAUERABDECKUNG: ZUGABE FÜR DIE GEHRUNG + AUSMASS-ZUGABE — VERSION 3.84
+
+### 151.1 Anlass
+
+Zwei weitere Rückmeldungen im selben Zusammenhang: (1) für Boden und
+Schieber fehlte, wie bei der Dachrinne (v3.79), ein eigenes,
+unabhängiges Ausmass-Zugabefeld – bisher gab es nur die
+Zuschnitt-Zugabe. (2) An einer Ecke (Segment mit Winkel ≠ 0) fällt ein
+Gehrschnitt an, wofür bislang gar keine Zugabe vorgesehen war.
+
+### 151.2 Umsetzung
+
+`js/12b-mauerabdeckung.js`, `berechneMadStueckliste()`: neuer Parameter
+`gehrungMass`. Eine eigene `gehrungAnGrenze[]`-Ermittlung (in derselben
+Schleife wie die bestehende Boden-Zugabe) erkennt eine echte Ecke direkt
+über `segments[i-1].winkel!==0` an einer INNEREN Grenze – bewusst NICHT
+über `boundaries[].typ==="ecke"`, weil dieses Feld auch für einen Boden
+am Anfang/Ende gesetzt wird (SIA271-Fixpunkt-Regel, fachlich etwas
+anderes als ein Gehrschnitt).
+
+Wie bei Boden/Schieber zwei unabhängige, firmenweite Werte
+(`app_settings`): `mad_gehrung_mass_mm` (Vorgabe 100 mm, für den
+Zuschnitt – wirkt an BEIDEN angrenzenden Stücken, wie die
+Boden-/Schieber-Zugabe) und `mad_gehrung_ausmass_mass_mm` (Vorgabe
+0 mm, für das Ausmass – zählt jede Ecke nur EINMAL, unabhängig von der
+Zuschnitt-Zugabe).
+
+Migration `mad_gehrung_zugabe` auf `app_settings` angewendet (Supabase-
+Projekt `nfgryuzkpwjfmdlmevuy`), zwei neue Einstellungsfelder in
+index.html, Laden/Speichern in js/05, js/07, js/08 nach dem bestehenden
+Boden-/Schieber-Muster, `madaAusmassZugabe()` (js/32) um den
+Ecken-Anteil erweitert.
+
+### 151.3 Getestet
+
+Neuer dedizierter Test (14/14): Ecke erhält +100 mm an BEIDEN
+angrenzenden Zuschnitt-Stücken (zusammen +200 mm); Winkel 0 → keine
+Ecke, keine Zugabe; ein Boden am Ende zählt ausdrücklich NICHT als Ecke
+(`madaEcken()===0` bei zwei Böden); die Ausmass-Zugabe zählt jede Ecke
+genau einmal, unabhängig von der doppelt wirkenden Zuschnitt-Zugabe;
+beide neuen Einstellungsfelder stehen im DOM neben dem bestehenden
+Speichern-Knopf.
+
+### 151.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/01-basis.js` | `madGehrungMass=100`, `madGehrungAusmassMass=0` |
+| Migration `mad_gehrung_zugabe` (Supabase) | `app_settings.mad_gehrung_mass_mm`, `mad_gehrung_ausmass_mass_mm` |
+| `js/05-daten-laden.js`, `js/07-einstellungen.js`, `js/08-katalog-blitzschutz.js` | Laden/Speichern/Vorbelegen der zwei neuen Felder |
+| `js/12b-mauerabdeckung.js` | `berechneMadStueckliste()`: neue Gehrungs-Zugabe an inneren Ecken |
+| `js/32-mauerabdeckung-aufnahme.js` | `madaAusmassZugabe()` erweitert, Info-Texte, Einstellungs-Tabelle |
+| `js/16-massaufnahme-formular.js` | `gehrungMass` wird mitgespeichert, Rückfall für alte Datensätze |
+| `index.html` | zwei neue Eingabefelder, Version 3.84 |
+| `sw.js` | Version 3.84 |
+
+### 151.5 Offene Punkte
+
+- Kein Live-Test gegen Supabase (Sandbox-Einschränkung wie immer) – die
+  Migration wurde über `apply_migration`/`execute_sql` angewendet und
+  verifiziert (beide bestehenden Firmen-Zeilen zeigen 100/0), ein echter
+  Klick-Test gegen die Produktion war nicht möglich.

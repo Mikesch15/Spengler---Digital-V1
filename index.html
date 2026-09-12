@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.83</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.84</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1919,9 +1919,12 @@ verbucht wird dabei nichts, das bleibt ein ausdrücklicher Klick.</div>
 <div><label>Mass Schieber – Zuschnitt (mm)</label><input id="madSchieberMassInput" type="number" step="1"></div>
 <div><label>Mass Boden – Ausmass (mm)</label><input id="madBodenAusmassMassInput" type="number" step="1"></div>
 <div><label>Mass Schieber – Ausmass (mm)</label><input id="madSchieberAusmassMassInput" type="number" step="1"></div>
+<div><label>Mass Gehrung – Zuschnitt (mm)</label><input id="madGehrungMassInput" type="number" step="1"></div>
+<div><label>Mass Gehrung – Ausmass (mm)</label><input id="madGehrungAusmassMassInput" type="number" step="1"></div>
 </div>
 <div class="small" style="margin-bottom:8px">Zuschnitt: wird dem angrenzenden Stück abgezogen/zugeschlagen - betrifft nur den Materialbedarf.
-Ausmass: eigener, unabhängiger Wert, der nur die Ausmass-Länge der Mauerabdeckung verändert - betrifft nicht den Zuschnitt.</div>
+Ausmass: eigener, unabhängiger Wert, der nur die Ausmass-Länge der Mauerabdeckung verändert - betrifft nicht den Zuschnitt.
+Gehrung: gilt an jeder Ecke (Segment mit Winkel ≠ 0), zusätzlich zu Boden (an den Enden) und Schieber.</div>
 <div class="bar" style="margin-bottom:14px"><button id="saveMadMasse" class="green">💾 Masse speichern</button></div>
 </div>
 </div>

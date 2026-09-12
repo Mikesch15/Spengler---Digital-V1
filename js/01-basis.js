@@ -269,6 +269,12 @@ let madSchieberMass=0;
 // Zuschnitt (Materialbedarf), diese beiden nur auf die Ausmass-Laenge.
 let madBodenAusmassMass=0;
 let madSchieberAusmassMass=0;
+// v3.84: Zugabe fuer die Gehrung an einer Ecke (Segment mit Winkel != 0) -
+// bisher bekam eine Ecke gar keine Zugabe, obwohl dort ein Gehrschnitt
+// anfaellt. Vorgabe 100mm fuer den Zuschnitt (Materialbedarf), 0mm fuers
+// Ausmass - wie bei Boden/Schieber ein eigener, unabhaengiger Wert.
+let madGehrungMass=100;
+let madGehrungAusmassMass=0;
 // Lukarne Seitenverkleidung, firmenweit aus app_settings.
 // Achsabstand und Hilfsriss sind Vorschlagswerte für eine neue Massaufnahme,
 // die Zugaben werden dem Zuschnitt jeder Schar zugerechnet.

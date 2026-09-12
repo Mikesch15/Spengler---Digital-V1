@@ -69,7 +69,10 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
    g.forEach(x=>{ brutto+=x.B*x.rollenLaenge; fuge+=x.fugeQuer*x.rollenLaenge;
     (x.streifen||[]).forEach(st=>{
      const s=(st.stuecke||[]).reduce((a,y)=>a+Number(y.laenge||0),0);
-     zu+=s*x.A; fuge+=Math.max(0,x.L-s-Number(st.rest||0))*x.A; }); });
+     // v3.83: bei mehreren Abschnittlaengen traegt der Streifen seine eigene
+     // Abschnittlaenge (st.abschnittLaenge) - x.L ist nur die laengste der Gruppe.
+     const L=(st.abschnittLaenge!==undefined&&st.abschnittLaenge!==null)?Number(st.abschnittLaenge):x.L;
+     zu+=s*x.A; fuge+=Math.max(0,L-s-Number(st.rest||0))*x.A; }); });
    const r=restAlle(pl);
    const f=y=>Number(y.laenge_mm)*Number(y.breite_mm)*Math.max(1,y.anzahl||1);
    const gut=r.filter(y=>!y.zuKlein).reduce((a,y)=>a+f(y),0);

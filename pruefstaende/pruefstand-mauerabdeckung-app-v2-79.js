@@ -82,6 +82,11 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
    {id:6,name:"Stahl, verzinkt",legacy_key:"stahl_verzinkt",max_abstand_mm:8000,ab_fixpunkt_mm:4000}];
   blechRollenbreiten=[];          // -> Standard 1000 / 670
   madBodenMass=0; madSchieberMass=10;   // Stand der laufenden App
+  // v3.84: die Gehrung-Zugabe ist standardmaessig 100mm (Ecke) - dieser
+  // Pruefstand rechnet seine Zahlen von Hand ohne sie nach, deshalb hier
+  // ausdruecklich auf 0 gesetzt (eigene Faelle fuer die Gehrung-Zugabe
+  // stehen im dedizierten Test).
+  madGehrungMass=0; madGehrungAusmassMass=0;
   $("appRoot").hidden=false;$("authScreen").hidden=true;
   if(typeof renderMeasMaterialOptions==="function")renderMeasMaterialOptions();
   $("measurementEditModal").hidden=false;
@@ -400,20 +405,27 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
  p(rp.abw===460,"Abwicklung 460 mm ist die Streifenbreite",rp);
  // Seit v2.89 wird die Rolle in Abschnitte geschnitten, jeder so lang wie das
  // laengste Blech. Von Hand: acht Stuecke (3020, 2510, 2510, 2020, 4x 2010),
- // Summe 18'100 mm, Abwicklung 460, Abschnitt 3020.
+ // Summe 18'100 mm, Abwicklung 460, laengstes Stueck 3020.
  // Zwei Stuecke passen nie hintereinander in 3020 (2010+2010 = 4020) ->
  // acht Streifen.
  p(rp.summe===18100,"Summe der Zuschnitte 18'100 mm",rp.summe);
  p(Math.abs(rp.netto-18100*460/1e6)<1e-6,"netto = Summe × Abwicklung = 8.326 m²",rp.netto);
  const r1000=rp.moeglich.find(m=>m[0]===1000), r670=rp.moeglich.find(m=>m[0]===670);
  p(!!r1000&&!!r670,"beide Standardrollen stehen in der Liste",rp.moeglich);
- // 1000 ÷ 460 = 2 Streifen je Abschnitt -> 4 Abschnitte -> 4 x 3020 = 12'080
- p(!!r1000&&r1000[1]===2&&r1000[2]===4&&r1000[3]===3020&&Math.abs(r1000[4]-12.08)<1e-6,
-   "1'000 mm: 2 Streifen je Abschnitt, 4 × 3'020 mm, 12.08 m²",r1000);
- // 670 ÷ 460 = 1 Streifen je Abschnitt -> 8 Abschnitte
- p(!!r670&&r670[1]===1&&r670[2]===8&&r670[3]===3020&&Math.abs(r670[4]-670*8*3020/1e6)<1e-4,
-   "670 mm: 1 Streifen je Abschnitt, 8 × 3'020 mm, 16.19 m²",r670);
- p(!!r1000&&Math.abs(r1000[5]-(12.08-rp.netto))<1e-6,"Verschnitt = Blechflaeche - Zuschnitte netto",
+ // 1000 ÷ 460 = 2 Streifen je Abschnitt -> 4 Abschnitte. Seit v3.83 (ebaPacke-
+ // MehrereAbschnitte) darf jeder Abschnitt seine EIGENE Laenge haben statt
+ // alle auf das laengste Stueck (3020) der Gruppe aufzurunden: von Hand
+ // nachgerechnet ergibt der gierige Algorithmus 3020+2510+2010+2010 = 9'550 mm
+ // (statt bis v3.82 4 × 3'020 = 12'080 mm) - 2.53 m² weniger Material.
+ p(!!r1000&&r1000[1]===2&&r1000[2]===4&&r1000[3]===3020&&Math.abs(r1000[4]-9.55)<1e-6,
+   "1'000 mm: 2 Streifen je Abschnitt, unterschiedliche Abschnittlaengen, 9.55 m²",r1000);
+ // 670 ÷ 460 = 1 Streifen je Abschnitt -> 8 Abschnitte. Bei jeAbschnitt=1
+ // zieht js/29 (ebaFormatPlan) jeden Streifen schon seit v3.80 nur so lang,
+ // wie er tatsaechlich braucht - die Rollenlaenge ist die Summe der acht
+ // Stuecke selbst (18'100 mm), nicht 8 × 3'020 mm.
+ p(!!r670&&r670[1]===1&&r670[2]===8&&r670[3]===3020&&Math.abs(r670[4]-670*18100/1e6)<1e-4,
+   "670 mm: 1 Streifen je Abschnitt, jeder nur so lang wie noetig, 12.127 m²",r670);
+ p(!!r1000&&Math.abs(r1000[5]-(r1000[4]-rp.netto))<1e-6,"Verschnitt = Blechflaeche - Zuschnitte netto",
    {r1000,netto:rp.netto});
  p(rp.bestes===1000,"die breitere Rolle braucht weniger Material und steht zuoberst",rp);
  // Jedes Stueck taucht in der Belegung genau EINMAL auf, mit seiner Nummer.

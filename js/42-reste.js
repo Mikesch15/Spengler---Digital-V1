@@ -541,10 +541,34 @@ function restAlle(plan){
  });
  geo.forEach(g=>{
   const wo=woFuer(g.A);
-  // 2) Streifenplaetze, die im letzten Abschnitt gar nicht belegt werden -
-  //    volle Streifen ueber die ganze Abschnittlaenge.
-  if(g.frei>0)nimm(g.L,g.A,g.frei,g.frei===1?"ungenutzter Streifen"+wo
-    :g.frei+" ungenutzte Streifen"+wo);
+  // 2) Streifenplaetze, die gar nicht belegt werden - volle Streifen ueber
+  //    die ganze Abschnittlaenge. Bei mehreren Abschnittlaengen (v3.83,
+  //    ebaPackeMehrereAbschnitte) gehoert ein unbelegter Platz zu GENAU
+  //    einem Abschnitt mit dessen EIGENER Laenge (st.abschnittLaenge) - mit
+  //    g.L (der laengsten der Gruppe) waere ein freier Platz in einem
+  //    kuerzeren Abschnitt zu gross bewertet und die Bilanz ginge nicht auf.
+  if(g.frei>0){
+   const proAbschnitt=new Map();
+   (g.streifen||[]).forEach(st=>{
+    const nr=st.abschnittNr;
+    if(nr===undefined||nr===null)return;
+    const L=restZahl(st.abschnittLaenge)||g.L;
+    if(!proAbschnitt.has(nr))proAbschnitt.set(nr,{laenge:L,belegt:0});
+    proAbschnitt.get(nr).belegt++;
+   });
+   if(proAbschnitt.size){
+    const nachLaenge=new Map();
+    proAbschnitt.forEach(v=>{
+     const frei=Math.max(0,restZahl(g.jeAbschnitt)-v.belegt);
+     if(frei>0)nachLaenge.set(v.laenge,(nachLaenge.get(v.laenge)||0)+frei);
+    });
+    nachLaenge.forEach((anzahl,laenge)=>nimm(laenge,g.A,anzahl,
+      anzahl===1?"ungenutzter Streifen"+wo:anzahl+" ungenutzte Streifen"+wo));
+   }else{
+    nimm(g.L,g.A,g.frei,g.frei===1?"ungenutzter Streifen"+wo
+      :g.frei+" ungenutzte Streifen"+wo);
+   }
+  }
   // 3) Der seitliche Rand der Rolle ueber die ganze Rollenlaenge.
   if(g.restBreite>0)nimm(g.rollenLaenge,g.restBreite,1,
     "seitlicher Rest der "+restMm(g.B)+"er Rolle"+wo);
