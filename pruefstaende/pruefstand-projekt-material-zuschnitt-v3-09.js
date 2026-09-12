@@ -192,29 +192,38 @@ const stand=page=>page.evaluate(()=>{
  }
 
  console.log("\nE · Zuschnitt: dieselbe Packrechnung, dieselbe Darstellung");
- // Beweis, dass wirklich die gemeinsamen Funktionen gerufen werden.
+ // Beweis, dass wirklich die gemeinsamen Funktionen gerufen werden. Seit
+ // v3.86 laeuft pzuRollenPlan() ueber ebaFormatPlan() (js/29) wie jedes
+ // einzelne Modul - je nach jeAbschnitt ruft das ebaPackeInStreifen() ODER
+ // (ab jeAbschnitt>=2, seit v3.83) ebaPackeMehrereAbschnitte(); beide sind
+ // gleichermassen die EINE gemeinsame Packrechnung, keine zweite.
  await page.evaluate(()=>{
   window.__pack=0; window.__zeig=0;
-  const o=window.ebaPackeInStreifen, d=window.zuschnittHtml;
+  const o=window.ebaPackeInStreifen, oM=window.ebaPackeMehrereAbschnitte, d=window.zuschnittHtml;
   window.ebaPackeInStreifen=function(){window.__pack++;return o.apply(this,arguments)};
+  window.ebaPackeMehrereAbschnitte=function(){window.__pack++;return oM.apply(this,arguments)};
   window.zuschnittHtml=function(){window.__zeig++;return d.apply(this,arguments)};
  });
  await vorbereiten(page,{haupt:true,material:true,zuschnitt:true},0);
  s=await stand(page);
  let ruf=await page.evaluate(()=>({pack:window.__pack,zeig:window.__zeig}));
- p(ruf.pack>0,"ebaPackeInStreifen() aus js/29 wird wirklich gerufen",ruf);
+ p(ruf.pack>0,"ebaPackeInStreifen()/ebaPackeMehrereAbschnitte() aus js/29 wird wirklich gerufen",ruf);
  p(ruf.zeig>0,"zuschnittHtml() aus js/33 wird wirklich gerufen",ruf);
  p(s.zuHidden===false&&s.zuHoehe>0,"die Zuschnittkarte ist sichtbar");
  p(s.zuMaterialien.length===2,"je Material ein eigener Plan - nie vermischt",s.zuMaterialien);
 
  // Von Hand nachgerechnet, Titanzink, Schnittfuge 0:
  //   Stuecke 1200 (Aufn. 11), 700 (Aufn. 11), 400 (Aufn. 12), Breite 250
- //   Abschnitt = laengstes Stueck = 1200
- //   Packung: [1200] und [700+400=1100 <= 1200]  -> 2 Streifen
- //   Rolle 1000: floor(1000/250)=4 Streifen je Abschnitt -> ceil(2/4)=1
- //     Abschnitt, Rollenlaenge 1200, Flaeche 1000*1200/1e6 = 1,200 m2
- //   Rolle  670: floor(670/250) =2 Streifen je Abschnitt -> ceil(2/2)=1
- //     Abschnitt, Rollenlaenge 1200, Flaeche  670*1200/1e6 = 0,804 m2
+ //   Laengstes Stueck 1200, jeAbschnitt>=2 bei beiden Rollen - gierige
+ //   Packung mit ebaPackeMehrereAbschnitte (v3.83): [1200] und
+ //   [700+400=1100 <= 1200] -> 2 Streifen, EIN Abschnitt (1200 mm) bei
+ //   beiden Rollenbreiten (die 3 Stuecke passen bei jeAbschnitt=2 UND =4
+ //   in einen einzigen Abschnitt - kein Unterschied zum alten Ein-Laengen-
+ //   Modell in diesem konkreten Fall).
+ //   Rolle 1000: floor(1000/250)=4 Streifen je Abschnitt, Rollenlaenge 1200,
+ //     Flaeche 1000*1200/1e6 = 1,200 m2
+ //   Rolle  670: floor(670/250) =2 Streifen je Abschnitt, Rollenlaenge 1200,
+ //     Flaeche  670*1200/1e6 = 0,804 m2
  //   Netto (1200+700+400)*250/1e6 = 0,575 m2
  //   Die 670er braucht weniger Blech und ist deshalb die bessere Rolle:
  //     Verschnitt 0,804 - 0,575 = 0,229 m2 gegen 0,625 m2 bei der 1000er.
@@ -224,10 +233,11 @@ const stand=page=>page.evaluate(()=>{
   if(!M||!M.gruppen||!M.gruppen.length)
    return {fehlt:true,gefunden:alle.map(x=>x.material)};
   const r=pzuRollenPlan(M);
+  const g0=(r.gruppen||[])[0]||{streifen:[]};
   return {breiten:M.gruppen.map(g=>g.breite),
-   abschnitt:M.gruppen[0].abschnittLaenge,
-   streifen:M.gruppen[0].streifen.map(st=>st.stuecke.map(x=>x.laenge)),
-   quellenJeStreifen:M.gruppen[0].streifen.map(st=>[...new Set(st.stuecke.map(x=>x.quelleId))]),
+   abschnitt:g0.abschnittLaenge,
+   streifen:g0.streifen.map(st=>st.stuecke.map(x=>x.laenge)),
+   quellenJeStreifen:g0.streifen.map(st=>[...new Set(st.stuecke.map(x=>x.quelleId))]),
    beste:r.bestes?{breite:r.bestes.breite,flaeche:Math.round(r.bestes.flaeche*1000)/1000,
      rollenLaenge:r.bestes.rollenLaenge,verschnitt:Math.round(r.bestes.verschnitt*1000)/1000}:null,
    alle:(r.moeglich||[]).map(x=>({breite:x.breite,flaeche:Math.round(x.flaeche*1000)/1000})),
@@ -267,7 +277,11 @@ const stand=page=>page.evaluate(()=>{
  let mitFuge=await page.evaluate(()=>{
   const M=pzuSammeln(projectMeasurementsCache).materialien.find(x=>x.material==="Titanzink");
   if(!M||!M.gruppen||!M.gruppen.length)return null;   // sauber fehlschlagen, nicht abbrechen
-  return M.gruppen[0].streifen.map(st=>st.stuecke.map(x=>x.laenge));
+  // Seit v3.86 gepackt in pzuRollenPlan() (ebaFormatPlan) - M.gruppen[0]
+  // selbst traegt kein streifen[] mehr, das kommt erst aus dem Rueckgabewert.
+  const r=pzuRollenPlan(M);
+  const g0=(r.gruppen||[])[0]||{streifen:[]};
+  return g0.streifen.map(st=>st.stuecke.map(x=>x.laenge));
  });
  p(!!mitFuge&&mitFuge.length===3,"mit 300 mm Schnittfuge braucht es drei Streifen statt zwei",mitFuge);
  await vorbereiten(page,{haupt:true,material:true,zuschnitt:true},0);
@@ -304,6 +318,95 @@ const stand=page=>page.evaluate(()=>{
   p(m.ueber===0&&!m.scrollt,w+" px: nichts laeuft seitlich hinaus",m);
  }
  await page.setViewportSize({width:1200,height:900});
+
+ console.log("\nJ · Auswahl, Rüstliste und Abhaken (v3.86)");
+ await vorbereiten(page,{haupt:true,material:true,zuschnitt:true},0);
+ // Ohne gespeicherte Ausschlussliste sind alle drei Massaufnahmen markiert -
+ // "leer = alle", wie ueberall sonst in der App (zuRollenGefiltert & Co.).
+ let auswahl=await page.evaluate(()=>{
+  const box=$("cockpitZuschnittBody");
+  const kaesten=[...box.querySelectorAll("[data-pzu-auswahl]")];
+  return {anzahl:kaesten.length,
+   alleAn:kaesten.every(c=>c.checked),
+   ids:kaesten.map(c=>c.dataset.pzuAuswahl).sort()};
+ });
+ p(auswahl.anzahl===3,"drei Kaestchen - eines je Massaufnahme",auswahl);
+ p(auswahl.alleAn,"ohne gespeicherte Auswahl sind alle angehakt",auswahl);
+ p(JSON.stringify(auswahl.ids)===JSON.stringify(["11","12","13"]),"mit den drei bekannten ids",auswahl.ids);
+
+ // Aufnahme 12 (Dach Süd, 400 mm) ausgeschlossen: die Titanzink-Zusammen-
+ // fassung darf nur noch das Stueck aus Aufnahme 11 zeigen.
+ await page.evaluate(()=>{
+  const proj=allProjects.find(x=>x.id===7);
+  proj.zuschnitt_ausschluss=[12];
+  pmSichtbarkeitAuffrischen();
+ });
+ let ausgeschlossen=await page.evaluate(()=>{
+  const box=$("cockpitZuschnittBody");
+  const kasten12=box.querySelector('[data-pzu-auswahl="12"]');
+  const M=pzuSammeln(pzuAusgewaehlteListe(projectMeasurementsCache)).materialien
+    .find(x=>x.material==="Titanzink");
+  return {angehakt12:kasten12?kasten12.checked:null,
+   quellen:M?M.quellen.map(x=>x.id):null,
+   stuecke:M?M.gruppen[0].stuecke.map(x=>x.laenge):null};
+ });
+ p(ausgeschlossen.angehakt12===false,"das Kaestchen von Aufnahme 12 ist jetzt abgehakt",ausgeschlossen);
+ p(JSON.stringify(ausgeschlossen.quellen)===JSON.stringify([11]),
+   "die Titanzink-Gruppe kommt jetzt nur noch aus Aufnahme 11",ausgeschlossen);
+ p(JSON.stringify(ausgeschlossen.stuecke)===JSON.stringify([1200,700]),
+   "das 400-mm-Stueck aus Aufnahme 12 ist draussen",ausgeschlossen);
+
+ // Ein Klick auf ein Kaestchen speichert die Auswahl (pzuAuswahlSpeichern)
+ // und zeichnet neu - unabhaengig davon, ob die Attrappe die Zeile wirklich
+ // zurueckspiegelt (das prueft nur, DASS gespeichert wird, nicht die Antwort
+ // der Datenbank selbst).
+ let klickStand=await page.evaluate(async()=>{
+  window.__pzuGespeichert=null;
+  const echt=window.pzuAuswahlSpeichern;
+  window.pzuAuswahlSpeichern=async(ids)=>{window.__pzuGespeichert=ids;return echt(ids)};
+  const box=$("cockpitZuschnittBody");
+  const kasten12=box.querySelector('[data-pzu-auswahl="12"]');
+  kasten12.checked=true;
+  kasten12.dispatchEvent(new Event("change",{bubbles:true}));
+  await new Promise(r=>setTimeout(r,50));
+  window.pzuAuswahlSpeichern=echt;
+  return {gespeichert:window.__pzuGespeichert};
+ });
+ p(Array.isArray(klickStand.gespeichert)&&klickStand.gespeichert.length===0,
+   "Kaestchen wieder angehakt -> leere Ausschlussliste wird gespeichert",klickStand);
+ await page.evaluate(()=>{allProjects.find(x=>x.id===7).zuschnitt_ausschluss=[];pmSichtbarkeitAuffrischen()});
+
+ // Ruestliste: derselbe ruestlisteProjekt() wie bei Werkstatt und der Seite
+ // "Material & Zuschnitt" (js/58) - hier mit der eigenen Auswahl statt allen.
+ await page.evaluate(()=>{allProjects.find(x=>x.id===7).zuschnitt_ausschluss=[12];pmSichtbarkeitAuffrischen()});
+ let druck=await page.evaluate(async()=>{
+  window.__ruestProjekt=null;
+  const echt=window.ruestlisteProjekt;
+  window.ruestlisteProjekt=async(pid,aufnahmen)=>{window.__ruestProjekt={pid,ids:aufnahmen.map(x=>x.id)}};
+  const btn=$("cockpitZuschnittBody").querySelector("[data-pzu-druck]");
+  const da=!!btn;
+  if(btn)btn.click();
+  await new Promise(r=>setTimeout(r,50));
+  window.ruestlisteProjekt=echt;
+  return {daBtn:da,ruf:window.__ruestProjekt};
+ });
+ p(druck.daBtn,"der Ruestlisten-Knopf ist da");
+ p(!!druck.ruf&&druck.ruf.pid===7,"ruestlisteProjekt() wird mit der Projekt-id gerufen",druck.ruf);
+ p(!!druck.ruf&&JSON.stringify(druck.ruf.ids.sort())===JSON.stringify([11,13]),
+   "und nur mit den AUSGEWAEHLTEN Massaufnahmen (12 ist draussen)",druck.ruf);
+ await page.evaluate(()=>{allProjects.find(x=>x.id===7).zuschnitt_ausschluss=[];pmSichtbarkeitAuffrischen()});
+
+ // Abhaken direkt aus der Herkunft: origNr (die STABILE Nummer IN der
+ // Massaufnahme), nicht die hier neu vergebene, nur fuer diese Ansicht
+ // gueltige Nummer - siehe pzuHerkunftHtml.
+ let hak=await page.evaluate(()=>{
+  const btns=[...$("cockpitZuschnittBody").querySelectorAll(".zu-nr-hak")];
+  return btns.map(b=>({meas:b.dataset.zeMeas,nr:b.dataset.zeNr}));
+ });
+ p(hak.some(x=>x.meas==="11"&&x.nr==="1")&&hak.some(x=>x.meas==="11"&&x.nr==="2"),
+   "Aufnahme 11 hat abhakbare Stuecke 1 und 2 (ihre EIGENEN Nummern)",hak);
+ p(hak.some(x=>x.meas==="12"&&x.nr==="1"),
+   "Aufnahme 12 hat ihr eigenes Stueck 1 - eigene Nummernkreise ueberschneiden sich nicht",hak);
 
  p(jsFehler.length===0,"keine JavaScript-Fehler",jsFehler);
  await browser.close();

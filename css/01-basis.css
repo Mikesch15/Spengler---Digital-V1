@@ -851,6 +851,12 @@ button.pmat-quelle:hover{border-color:var(--blue)}
 .pzu-herkunft{margin-top:10px}
 .pzu-quelle{margin-bottom:8px}
 .pzu-quelle .small{margin-top:2px;color:var(--muted);word-break:break-word}
+/* v3.86: Auswahl, welche Massaufnahmen in den projektweiten Zuschnitt
+   eingehen - eine einfache Kaestchenliste vor den Materialgruppen. */
+.pzu-auswahl{border:1px solid var(--line);border-radius:10px;padding:10px;
+ margin-bottom:12px;background:var(--card)}
+.pzu-auswahl-zeile{display:flex;align-items:center;gap:8px;
+ font-size:13px;padding:4px 0;word-break:break-word}
 /* v3.09 Materialreservierung. Die Aktionsspalte darf nicht umbrechen, die
    Zeile selbst schon - sonst laeuft sie auf dem Handy seitlich hinaus. */
 .resv-akt{white-space:nowrap}

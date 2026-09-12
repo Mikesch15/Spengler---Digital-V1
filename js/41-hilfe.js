@@ -91,6 +91,16 @@ Stücke mit gleicher Streifenbreite zusammen gepackt.</p>
 <p>Unter „Herkunft der Stücke“ steht, welches Stück aus welcher Massaufnahme
 kommt. Ist die Freigabe einer beteiligten Massaufnahme verfallen, steht das
 dort – dann sollte vor dem Zuschneiden erst wieder freigegeben werden.</p>
+<p><b>Auswahl:</b> mit den Kästchen bei „Berücksichtigte Massaufnahmen“ lässt
+sich eine Massaufnahme vorübergehend ausschliessen, z. B. wenn sie noch
+nicht bestätigt ist. Die Auswahl wird am Projekt gespeichert und bleibt
+auch nach dem erneuten Öffnen erhalten – neu angelegte Massaufnahmen sind
+automatisch dabei.</p>
+<p>Der Knopf „🖨️ Rüstliste“ druckt genau die ausgewählten Massaufnahmen –
+derselbe Ausdruck wie bei „Material & Zuschnitt“ und der Werkstatt. Unter
+„Herkunft der Stücke“ lässt sich jedes Stück direkt abhaken; das Häkchen
+gehört dabei immer zu seiner eigenen Massaufnahme (ihrer eigenen
+Stücknummer), nicht zu einer hier neu vergebenen Zählung.</p>
 `},
 "einst-projektmodule":{titel:"Erweiterter Projekt-/Material-/Werkstattworkflow",text:`
 <p>Dieser Block führt zusammen, was heute je Massaufnahme einzeln dasteht:

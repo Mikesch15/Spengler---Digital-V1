@@ -26375,3 +26375,116 @@ keine neue Abweichung durch diesen Fix.
 
 - Keine – rein clientseitiger Fix ohne Datenbankänderung, kein Live-Test
   gegen Supabase nötig.
+
+## 153. PROJEKTWEITER ZUSCHNITT: GEMEINSAME PACKRECHNUNG, AUSWAHL, RÜSTLISTE UND ABHAKEN — VERSION 3.86
+
+### 153.1 Rückmeldung
+
+„Den projektweiten Zuschnitt müsste auch genau so funktionieren [wie die
+v3.83-Optimierung] und dort wäre auch sinnvoll, wenn ausgewählt werden
+könnte, welche Massaufnahmen berücksichtigt werden sollen und man dann
+eine Rüstliste drucken und abhaken könnte.“
+
+### 153.2 Bestandsaufnahme
+
+`js/49-projekt-zuschnitt.js` hatte trotz seines Kommentars „ES GIBT KEINE
+ZWEITE BERECHNUNG“ eine eigene, vereinfachte Formatauswahl-Schicht:
+`pzuRollenPlan()` packte selbst mit `ebaPackeInStreifen()` (einer
+festen Abschnittlänge) und rechnete `abschnitte = ceil(streifen/jeAbschnitt)`
+von Hand – genau die Formel, die v3.83 bei jeder einzelnen Massaufnahme
+ablöste. Dadurch fehlten hier zwei Dinge, die jedes andere Modul längst
+hatte: die v3.83-Optimierung für unterschiedliche Abschnittlängen, und
+Tafelmaterial überhaupt (nur Rollenbreiten aus den Einstellungen wurden
+berücksichtigt). Eine Auswahl, welche Massaufnahmen mitzählen, gab es
+nicht – immer alle. Drucken und Abhaken gab es auf dieser Seite gar nicht.
+
+### 153.3 Gemeinsame Packrechnung
+
+`pzuSammeln()` packt nicht mehr selbst – sie gruppiert nur noch nach
+Material und Streifenbreite und zieht Reststücke vor ab (`ebaVorabzug()`,
+unverändert). `pzuRollenPlan()` ruft stattdessen `ebaFormate()` +
+`ebaFormatPlan()` (js/29) auf, genau wie jedes einzelne Modul (Vorbild:
+`fpaRollenPlan()`, js/31, für mehrere Streifenbreiten). `pzuPlan()`
+übernimmt `ebaFormatPlan()`'s `moeglich` jetzt unverändert – die Form
+stimmt bereits mit dem überein, was js/33 erwartet, eine eigene Umformung
+war seit jeher unnötig zusätzliche Arbeit.
+
+Damit bekommt der projektweite Zuschnitt automatisch: die v3.83-
+Optimierung für unterschiedliche Abschnittlängen, echte Tafel-
+Unterstützung aus dem Materialbestand, und denselben Cache/dieselbe
+Struktur wie überall sonst.
+
+### 153.4 Auswahl, welche Massaufnahmen mitzählen
+
+Neue Spalte `projects.zuschnitt_ausschluss` (jsonb-Array, Vorgabe `[]`) –
+bewusst eine AUSSCHLUSSLISTE, nicht eine Einschlussliste: „leer = alle“,
+dieselbe Regel wie überall sonst in der App (`zuRollenGefiltert` &
+Ähnliches). Eine neu angelegte Massaufnahme ist dadurch automatisch
+dabei, ohne dass die gespeicherte Auswahl nachgezogen werden müsste.
+
+Eine Kästchenliste („Berücksichtigte Massaufnahmen“) vor den
+Materialgruppen lässt jede Massaufnahme einzeln abwählen. Ein Klick
+speichert die neue Ausschlussliste sofort am Projekt (`pzuAuswahlSpeichern`)
+und zeichnet die Zusammenfassung neu. Die Auswahl bleibt damit über
+Sitzungen hinweg erhalten, wie ausdrücklich verlangt.
+
+### 153.5 Rüstliste drucken
+
+Neuer Knopf „🖨️ Rüstliste“ direkt auf dieser Seite. Er ruft
+`ruestlisteProjekt()` (js/58) – dieselbe Funktion, die Werkstatt und die
+Seite „Material & Zuschnitt“ bereits verwenden – mit genau der
+AUSGEWÄHLTEN Teilmenge der Massaufnahmen. Keine zweite Druckfunktion:
+`ruestlisteProjekt()`/`rlBlockHtml()` blieben unverändert, sie drucken
+je Massaufnahme einen eigenen Block mit ihren eigenen, stabilen
+Stücknummern – genau wie bisher.
+
+### 153.6 Abhaken aus der Herkunft
+
+Der zusammengefasste Plan selbst bleibt bewusst NICHT abhakbar (`sammel:
+true`, unverändert – seine Stücknummern sind für diese Ansicht neu
+vergeben und je Material nicht eindeutig einer Massaufnahme zuordenbar).
+Unter „Herkunft der Stücke“ trägt aber jedes Stück jetzt zusätzlich seine
+STABILE, ursprüngliche Nummer (`origNr`, aus dem gespeicherten Plan der
+jeweiligen Massaufnahme selbst) – und darüber lässt es sich abhaken, mit
+genau demselben Mechanismus wie überall sonst (`data-ze-meas`/`data-ze-nr`,
+`zeSetzen()`, js/56) – keine zweite Abhak-Logik, nur eine weitere
+Anzeigestelle für die bestehende.
+
+### 153.7 Getestet
+
+`pruefstand-projekt-material-zuschnitt-v3-09.js`, Abschnitt E, auf die
+neue Rechnung umgestellt (`ebaPackeInStreifen`/`ebaPackeMehrereAbschnitte`
+statt nur ersterer; `M.gruppen[0]` durch `pzuRollenPlan(M).gruppen[0]`
+ersetzt, da die Gruppe selbst nicht mehr vorgepackt wird) – alle
+von Hand nachgerechneten Werte (0,804 m² / 0,229 m² Verschnitt, 670 mm
+als beste Rolle) bleiben in diesem konkreten Fall unverändert, weil hier
+alle Stücke ohnehin in einen einzigen Abschnitt passen.
+
+Neuer Abschnitt J (12 Prüfungen): Auswahl-Kästchen vorhanden und mit
+„leer = alle“ vorbelegt; Ausschluss einer Massaufnahme entfernt genau
+ihre Stücke aus der Materialgruppe; ein Klick auf ein Kästchen speichert
+die neue Liste; der Rüstlisten-Knopf ruft `ruestlisteProjekt()` mit
+genau der ausgewählten Teilmenge; die Herkunft zeigt abhakbare Stücke mit
+den EIGENEN Nummern jeder Massaufnahme (keine Überschneidung zwischen
+verschiedenen Massaufnahmen). Die vier anderen Prüfstände, die
+`pzuSammeln`/`pzuPlan` direkt aufrufen (`pruefstand-werkstatt-zuschnitt-
+v3-20.js`, `pruefstand-ablauf-v3-25.js`), prüfen nur `plan.sammel===true`
+und blieben unverändert bestehen. Volle Regression (69 Prüfstände)
+unverändert bis auf die hier beschriebenen, erwarteten Verbesserungen.
+
+### 153.8 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migration `projekt_zuschnitt_ausschluss` (Supabase) | `projects.zuschnitt_ausschluss jsonb default '[]'` |
+| `js/49-projekt-zuschnitt.js` | `pzuSammeln`/`pzuRollenPlan`/`pzuPlan` auf `ebaFormate`/`ebaFormatPlan` umgestellt; Auswahl-Kästchen, Speichern, Rüstlisten-Knopf, abhakbare Herkunft (origNr) |
+| `css/01-basis.css` | `.pzu-auswahl`/`.pzu-auswahl-zeile` |
+| `js/41-hilfe.js` | Hilfetext „cockpit-zuschnitt“ um Auswahl/Rüstliste/Abhaken erweitert |
+| `pruefstaende/pruefstand-projekt-material-zuschnitt-v3-09.js` | Abschnitt E an die neue Rechnung angepasst, neuer Abschnitt J |
+| `index.html`, `sw.js` | Version 3.86 |
+
+### 153.9 Offene Punkte
+
+- Kein Live-Test gegen Supabase (Sandbox-Einschränkung wie immer) – die
+  Migration wurde über `apply_migration`/`execute_sql` angewendet und
+  verifiziert (alle bestehenden Projektzeilen zeigen `[]`).

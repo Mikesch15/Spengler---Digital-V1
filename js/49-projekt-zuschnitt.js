@@ -37,6 +37,14 @@ function pzuQuelle(m){
 // Darstellung eine reine Beschriftung und zerlegt die Gruppe NICHT (v2.85),
 // "merkmal" dagegen trennt - dort steht weiter, was die Massaufnahme selbst
 // als unterscheidende Bearbeitung abgelegt hat.
+//
+// v3.86: hier wird NICHT MEHR selbst gepackt (das war bis v3.85 eine eigene,
+// vereinfachte Rechnung ohne Tafel-Unterstuetzung und ohne die v3.83-
+// Optimierung fuer mehrere Abschnittlaengen). Gepackt wird jetzt in
+// pzuRollenPlan() ueber ebaFormatPlan() (js/29) - dieselbe EINE Packrechnung
+// wie bei jeder einzelnen Massaufnahme. Hier werden nur noch gruppiert und
+// die Reststuecke vorab abgezogen; "bleche" ist das Feld, das ebaFormatPlan
+// erwartet (wie bei fpaZuschnittGruppen, js/31).
 function pzuSammeln(liste){
  const nachMaterial=new Map();
  const ohne=[];
@@ -61,13 +69,15 @@ function pzuSammeln(liste){
    if(!(breite>0)){ohne.push({id:m.id,text:pzuQuelle(m),grund:"keine Streifenbreite gespeichert"});return}
    let g=M.gruppen.find(x=>x.breite===breite);
    if(!g){g={breite,stuecke:[]};M.gruppen.push(g)}
-   g.stuecke.push({nr:++nr,laenge:s.laenge,merkmal:s.merkmal||"",
+   // origNr ist die STABILE, urspruengliche Stuecknummer aus der eigenen
+   // Massaufnahme (pmatStuecke liefert sie unveraendert) - "nr" daneben ist
+   // die neu vergebene, fortlaufende Nummer fuer DIESE zusammengefasste
+   // Ansicht. Das Abhaken (pzuHerkunftHtml) braucht origNr+quelleId, weil nur
+   // die Kombination ueber alle Massaufnahmen hinweg eindeutig bleibt.
+   g.stuecke.push({nr:++nr,origNr:s.nr,laenge:s.laenge,merkmal:s.merkmal||"",
      hinweis:pzuQuelle(m),quelleId:m.id});
   });
  });
- // Je Gruppe EINMAL packen: der Abschnitt ist so lang wie das laengste
- // Stueck dieser Streifenbreite, die Verteilung haengt damit nicht an der
- // Rollenbreite (v2.89). Gepackt wird mit der gemeinsamen Funktion.
  const raus=[...nachMaterial.values()].map(M=>{
   M.gruppen.sort((a,b)=>b.breite-a.breite);
   // v3.27: passende Reststuecke fallen VOR der Rollenrechnung aus dem Bedarf -
@@ -83,17 +93,13 @@ function pzuSammeln(liste){
     // mehreren Massaufnahmen enthalten, eine gemeinsame Staerke waere
     // geraten. Der Abgleich bleibt hier so streng wie bis v3.30.
     ?ebaVorabzug(g.stuecke,{material:M.materialId,abwicklung:g.breite,staerke:null})
-    :{bleche:g.stuecke,ausResten:[],abschnittLaenge:0};
+    :{bleche:g.stuecke,ausResten:[]};
    g.stuecke=vor.bleche||[];
    (vor.ausResten||[]).forEach(x=>M.ausResten.push(x));
-   if(!g.stuecke.length){g.abschnittLaenge=0;g.streifen=[];g.optimal=true;g.zuLang=[];return}
-   g.abschnittLaenge=vor.abschnittLaenge||Math.max.apply(null,g.stuecke.map(x=>x.laenge));
-   const v=(typeof ebaPackeInStreifen==="function")
-    ?ebaPackeInStreifen(g.stuecke,g.abschnittLaenge)
-    :{streifen:[],optimal:true};
-   g.streifen=v.streifen||[];
-   g.optimal=v.optimal!==false;
-   g.zuLang=v.zuLang||[];
+   // Gepackt wird erst in pzuRollenPlan() ueber ebaFormatPlan (js/29) - bei
+   // Tafelmaterial haengt die Abschnittlaenge am Format, nicht am laengsten
+   // Stueck, und darf deshalb hier noch nicht festgelegt werden.
+   g.bleche=g.stuecke;
   });
   // Eine Gruppe, deren Stuecke vollstaendig aus Resten kommen, hat fuer die
   // Rolle nichts mehr - sie faellt raus.
@@ -113,83 +119,67 @@ function pzuNetto(M){
  return s/1e6;
 }
 
-// Der Rollenplan einer Materialgruppe. Gleiches Vorgehen wie
-// fpaRollenPlan() beim Freien Profil, nur ueber mehrere Massaufnahmen.
+// Der Rollen-/Tafelplan einer Materialgruppe. v3.86: gerechnet wird nicht
+// mehr mit einer eigenen, vereinfachten Formel, sondern mit ebaFormate()/
+// ebaFormatPlan() (js/29) - genau wie bei jeder einzelnen Massaufnahme
+// (siehe fpaRollenPlan, js/31, fuer das gleiche Muster bei mehreren
+// Streifenbreiten). Das bringt zwei Dinge automatisch mit, die die alte
+// eigene Rechnung nicht hatte: Tafelmaterial aus dem Materialbestand (bisher
+// gab es hier NUR Rollenbreiten), und die v3.83-Optimierung fuer mehrere
+// Abschnittlaengen bei jeAbschnitt>=2.
 function pzuRollenPlan(M){
- const breiten=(typeof zuRollenGefiltert==="function")?zuRollenGefiltert(null)
-   :((typeof blechRollenbreiten!=="undefined"&&Array.isArray(blechRollenbreiten))?blechRollenbreiten.slice():[]);
  const netto=pzuNetto(M);
- if(!M.gruppen.length||!breiten.length)
-  return {gruppen:M.gruppen,moeglich:[],zuSchmal:breiten.slice(),bestes:null,netto,optimal:true};
- const moeglich=[], zuSchmal=[];
- breiten.forEach(B=>{
-  const zeilen=[]; let flaeche=0, passt=true;
-  M.gruppen.forEach(g=>{
-   const jeAbschnitt=(typeof ebaStreifenJeAbschnitt==="function")?ebaStreifenJeAbschnitt(B,g.breite):0;
-   if(jeAbschnitt<1){passt=false;return}
-   const abschnitte=Math.ceil(g.streifen.length/jeAbschnitt);
-   const rollenLaenge=abschnitte*g.abschnittLaenge;
-   flaeche+=B*rollenLaenge/1e6;
-   zeilen.push({breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
-                abschnittLaenge:g.abschnittLaenge,rollenLaenge,
-                streifen:g.streifen.length,restBreite:ebaRestBreite(B,g.breite,jeAbschnitt)});
-  });
-  if(!passt){zuSchmal.push(B);return}
-  moeglich.push({breite:B,zeilen,flaeche,verschnitt:flaeche-netto,
-                 anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,
-                 rollenLaenge:zeilen.reduce((s,x)=>s+x.rollenLaenge,0)});
- });
- moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
- const best=moeglich[0]||null;
- const gefuellt=M.gruppen.map((g,i)=>Object.assign({},g,{
-   jeAbschnitt:best?best.zeilen[i].jeAbschnitt:1,
-   abschnitte:best?best.zeilen[i].abschnitte:0,
-   rollenLaenge:best?best.zeilen[i].rollenLaenge:0}));
- return {gruppen:gefuellt,moeglich,zuSchmal,bestes:best,netto,
-         optimal:M.gruppen.every(g=>g.optimal!==false)};
+ if(!M.gruppen.length||typeof ebaFormatPlan!=="function")
+  return {gruppen:M.gruppen,moeglich:[],zuSchmal:[],zuLang:[],zuKurz:[],bestes:null,netto,optimal:true,
+          ...((typeof ebaFormLeer==="function")?ebaFormLeer(M.materialId):{form:"rolle",formGrund:"",formQuelle:"",formate:[]})};
+ const fm=ebaFormate({material:M.materialId,staerke:null});
+ const p=ebaFormatPlan({gruppen:M.gruppen,formate:fm.formate,form:fm.form,netto});
+ return {gruppen:p.gruppen,moeglich:p.moeglich,zuSchmal:p.zuSchmal,zuLang:p.zuLang,zuKurz:p.zuKurz,
+         bestes:p.bestes,netto:p.netto,optimal:p.optimal,
+         form:p.form,formGrund:fm.grund,formQuelle:fm.quelle,formate:p.formate};
 }
 
-// Der Plan in der Form, die zuschnittHtml() erwartet.
+// Der Plan in der Form, die zuschnittHtml() erwartet - seit v3.86 identisch
+// mit dem, was jedes einzelne Modul liefert: ebaFormatPlan()'s "moeglich" hat
+// bereits genau die Form, die js/33 braucht, eine Umformung wie bis v3.85
+// ist nicht mehr noetig.
 function pzuPlan(M){
  const p=pzuRollenPlan(M);
- const moeglich=(p.moeglich||[]).map(m=>({breite:m.breite,
-   jeTafel:(m.zeilen&&m.zeilen.length===1)?m.zeilen[0].jeTafel:undefined,
-   streifen:(m.zeilen||[]).reduce((s,z)=>s+z.jeAbschnitt,0),
-   rollenLaenge:m.rollenLaenge,
-   zeilen:(m.zeilen||[]).map(z=>({breite:z.breite,jeTafel:z.jeTafel,jeAbschnitt:z.jeAbschnitt,
-     abschnitte:z.abschnitte,abschnittLaenge:z.abschnittLaenge,rollenLaenge:z.rollenLaenge,
-     // v3.26: der seitliche Rand je Streifenbreite. Fiel bisher hier weg,
-     // deshalb kannte restKandidaten() ihn bei mehreren Breiten gar nicht.
-     restBreite:z.restBreite})),
-   flaeche:m.flaeche,verschnitt:m.verschnitt,anteil:m.anteil}));
- const zuLang=[];
- (p.gruppen||[]).forEach(g=>(g.zuLang||[]).forEach(x=>zuLang.push(x)));
- return {art:"rolle", einheit:"Stück",
+ return {art:p.form||"rolle", form:p.form||"rolle", einheit:"Stück",
   // v3.15: Zusammenfassung ueber mehrere Massaufnahmen - hier wird NICHT
-  // abgehakt, die Stuecknummern sind neu vergeben und nicht eindeutig.
+  // ueber die (neu vergebene) Stuecknummer abgehakt, siehe pzuHerkunftHtml.
   sammel:true,
   material:M.material,
-  einleitung:(typeof ZU_EINLEITUNG_ROLLE!=="undefined")?ZU_EINLEITUNG_ROLLE:"",
+  einleitung:(typeof zuEinleitung==="function")?zuEinleitung(p.form):"",
   zusatz:"Zusammengefasst über "+M.quellen.length+" Massaufnahme"+(M.quellen.length===1?"":"n")
         +" dieses Projekts. Stücke mit gleicher Streifenbreite werden zusammen gepackt; "
         +"jedes Stück behält seine Herkunft.",
-  quelle:(typeof ZU_QUELLE_ROLLE!=="undefined")?ZU_QUELLE_ROLLE:"",
-  leer:"Für dieses Material ist noch nichts zuzuschneiden.",
+  quelle:(typeof zuQuelle==="function")?zuQuelle(p.form):"",
+  leer:(typeof ebaLeerText==="function")?ebaLeerText({form:p.form,formate:p.formate},""):"",
   streifenbreiten:(p.gruppen||[]).map(g=>g.breite),
-  gruppen:p.gruppen||[], moeglich, netto:p.netto,
+  gruppen:p.gruppen||[], moeglich:p.moeglich||[], netto:p.netto,
   ausResten:M.ausResten||[],
-  zuSchmal:p.zuSchmal, zuLang, optimal:p.optimal!==false};
+  zuSchmal:p.zuSchmal||[], zuLang:p.zuLang||[], zuKurz:p.zuKurz||[],
+  optimal:p.optimal!==false,
+  formGrund:p.formGrund||"", formQuelle:p.formQuelle||"", formate:p.formate||[]};
 }
 
 // Herkunft: welches Stueck stammt aus welcher Massaufnahme. Damit ist die
 // Entstehung jedes Zuschnitts nachvollziehbar (Auftrag Abschnitt 5), und
 // von hier fuehrt ein Weg zurueck in die Massaufnahme (Abschnitt 16).
+//
+// v3.86: die Stuecknummer je Herkunft ist jetzt abhakbar - ueber origNr (die
+// stabile, urspruengliche Nummer IN DER MASSAUFNAHME), nicht ueber die hier
+// neu vergebene, nur fuer diese Ansicht gueltige "nr". Derselbe Klick-Weg wie
+// ueberall sonst (zeSetzen/data-ze-*, js/56) - keine zweite Abhak-Logik, nur
+// eine weitere Anzeigestelle dafuer.
 function pzuHerkunftHtml(M){
  const nach=new Map();
  (M.gruppen||[]).forEach(g=>(g.stuecke||[]).forEach(x=>{
   if(!nach.has(x.quelleId))nach.set(x.quelleId,[]);
-  nach.get(x.quelleId).push({nr:x.nr,laenge:x.laenge,breite:g.breite,merkmal:x.merkmal});
+  nach.get(x.quelleId).push({nr:x.nr,origNr:x.origNr,laenge:x.laenge,breite:g.breite,merkmal:x.merkmal});
  }));
+ const abhakenAn=(typeof zeAbhakenMoeglich==="function")&&zeAbhakenMoeglich();
  return `<div class="pzu-herkunft"><div class="pmat-unter">Herkunft der Stücke</div>`+
   [...nach.entries()].map(([id,st])=>{
    const m=M.quellen.find(x=>x.id===id);
@@ -198,13 +188,70 @@ function pzuHerkunftHtml(M){
    const warn=(m&&m.freigabe_verfallen&&typeof mwAktiv==="function"&&mwAktiv())
     ? `<span class="mw-badge mw-rot">Freigabe verfallen</span>`
       +`<span class="small" style="color:var(--red)"> – dieser Stand ist nicht mehr freigegeben</span>`:"";
+   const stueckHtml=s=>{
+    const basis=(typeof zuMasse==="function"?zuMasse(s.laenge,s.breite):s.laenge+" × "+s.breite+" mm")
+      +(s.merkmal?" · "+s.merkmal:"");
+    const nrHtml=(!abhakenAn||s.origNr===undefined||s.origNr===null)
+     ?esc(s.origNr)
+     :`<button type="button" class="zu-nr zu-nr-hak" aria-pressed="false"`
+      +` data-ze-meas="${esc(id)}" data-ze-nr="${esc(s.origNr)}"`
+      +` data-ze-l="${esc(s.laenge)}" data-ze-b="${esc(s.breite||"")}"`
+      +` data-ze-m="${esc(s.merkmal||"")}"`
+      +` title="Stück ${esc(s.origNr)} als zugeschnitten abhaken">${esc(s.origNr)}</button>`;
+    return esc(basis)+" (Stück "+nrHtml+")";
+   };
    return `<div class="pzu-quelle">
     <button type="button" class="pmat-quelle" data-pzu-open="${esc(id)}">Massaufnahme: ${esc(m?pzuQuelle(m):("#"+id))}</button>
     ${warn}
-    <div class="small">${st.map(s=>esc((typeof zuMasse==="function"?zuMasse(s.laenge,s.breite):s.laenge+" × "+s.breite+" mm")
-      +" (Stück "+s.nr+")"+(s.merkmal?" · "+s.merkmal:""))).join(" · ")}</div>
+    <div class="small">${st.map(stueckHtml).join(" · ")}</div>
    </div>`;
   }).join("")+`</div>`;
+}
+
+// ---- Auswahl: welche Massaufnahmen zaehlen mit? ----------------------------
+// v3.86: bisher gingen IMMER alle Massaufnahmen des Projekts in die
+// Zusammenfassung ein. Die Auswahl ist die AUSSCHLUSSLISTE (projects.
+// zuschnitt_ausschluss, jsonb-Array von Massaufnahme-ids) - leer heisst
+// "alle drin", genau wie ueberall sonst in der App (z. B. zuRollenGefiltert,
+// js/33). So bleibt eine neu angelegte Massaufnahme automatisch dabei, ohne
+// dass die gespeicherte Auswahl nachgezogen werden muss.
+function pzuHatPlan(m){
+ const d=(m&&m.data)||{};
+ return !!(d.rollen||d.zuschnitt);
+}
+function pzuAusschlussListe(){
+ const proj=(typeof cockpitProject==="function")?cockpitProject():null;
+ const a=proj&&Array.isArray(proj.zuschnitt_ausschluss)?proj.zuschnitt_ausschluss:[];
+ return new Set(a.map(Number));
+}
+function pzuAusgewaehlteListe(liste){
+ const ausschluss=pzuAusschlussListe();
+ return (liste||[]).filter(m=>!ausschluss.has(Number(m.id)));
+}
+// Wird dauerhaft gespeichert (Auftrag: Auswahl soll fuer die naechste
+// Ruestliste/Abhaken-Sitzung erhalten bleiben, nicht nur fuer den aktuellen
+// Ausdruck) - eine Spalte am Projekt, dieselbe Firmen-RLS wie das Projekt
+// selbst.
+async function pzuAuswahlSpeichern(ausschlussIds){
+ if(typeof cockpitProjectId==="undefined"||!cockpitProjectId||typeof sb==="undefined"||!sb)return;
+ const {data,error}=await sb.from("projects").update({zuschnitt_ausschluss:ausschlussIds})
+   .eq("id",cockpitProjectId).select();
+ if(error){console.error("projects.zuschnitt_ausschluss speichern",error);return}
+ if(data&&data.length&&typeof allProjects!=="undefined"&&Array.isArray(allProjects)){
+  const idx=allProjects.findIndex(x=>x.id===cockpitProjectId);
+  if(idx>=0)allProjects[idx]=data[0];
+ }
+}
+function pzuAuswahlHtml(alle){
+ if(!alle.length)return "";
+ const ausschluss=pzuAusschlussListe();
+ return `<div class="pzu-auswahl">
+  <div class="pmat-unter">Berücksichtigte Massaufnahmen</div>
+  ${alle.map(m=>`<label class="pzu-auswahl-zeile">
+    <input type="checkbox" data-pzu-auswahl="${esc(m.id)}" ${ausschluss.has(Number(m.id))?"":"checked"}>
+    ${esc(pzuQuelle(m))}${pzuHatPlan(m)?"":` <span class="small" style="color:var(--muted)">(noch kein Zuschnitt)</span>`}
+   </label>`).join("")}
+ </div>`;
 }
 
 function renderProjektZuschnitt(){
@@ -215,23 +262,32 @@ function renderProjektZuschnitt(){
  if(karte)karte.hidden=!an;
  if(!an){box.innerHTML="";return 0}
 
- const liste=Array.isArray(projectMeasurementsCache)?projectMeasurementsCache:[];
- const {materialien,ohne}=pzuSammeln(liste);
+ const alle=Array.isArray(projectMeasurementsCache)?projectMeasurementsCache:[];
+ const ausgewaehlt=pzuAusgewaehlteListe(alle);
+ const {materialien,ohne}=pzuSammeln(ausgewaehlt);
  if($("cockpitZuschnittCount"))$("cockpitZuschnittCount").textContent=String(materialien.length);
  if(typeof cockpitModulStand==="function")cockpitModulStand();
+ const auswahlHtml=pzuAuswahlHtml(alle);
+ // Der Ruestlisten-Druck (js/58) ist derselbe, den Werkstatt und die Seite
+ // "Material & Zuschnitt" bereits verwenden - hier nur mit der eigenen
+ // Auswahl statt "alle" bzw. der Werkstatt-Statusfilterung.
+ const mitPlan=ausgewaehlt.filter(m=>pzuHatPlan(m));
+ const druckHtml=mitPlan.length
+   ?`<button type="button" class="gray mz-klein" data-pzu-druck="1" title="Rüstliste der ausgewählten Massaufnahmen drucken">🖨️ Rüstliste</button>`:"";
  if(!materialien.length){
-  box.innerHTML=`<div class="small">Noch nichts zuzuschneiden – keine der Massaufnahmen dieses Projekts hat einen gespeicherten Zuschnitt.</div>`;
+  box.innerHTML=auswahlHtml+druckHtml+
+   `<div class="small">Noch nichts zuzuschneiden – keine der ausgewählten Massaufnahmen dieses Projekts hat einen gespeicherten Zuschnitt.</div>`;
   return 0;
  }
- box.innerHTML=materialien.map(M=>{
+ box.innerHTML=auswahlHtml+druckHtml+materialien.map(M=>{
   const plan=pzuPlan(M);
   // zuschnittHtml() zeigt das Reststuecke-Lager bereits selbst (js/33
   // ruft restBlockHtml auf) - hier waere es doppelt.
-  const liste=(typeof zuschnittHtml==="function")?zuschnittHtml(plan):"";
+  const htmlListe=(typeof zuschnittHtml==="function")?zuschnittHtml(plan):"";
   return `<div class="pzu-material">
    <div class="pmat-kopf"><b>${esc(M.material)}</b>
     <span class="small">${M.quellen.length} Massaufnahme${M.quellen.length===1?"":"n"}</span></div>
-   ${liste}
+   ${htmlListe}
    ${pzuHerkunftHtml(M)}
   </div>`;
  }).join("")+(ohne.length?`<div class="small" style="color:var(--muted);margin-top:8px">
@@ -239,16 +295,39 @@ function renderProjektZuschnitt(){
  return materialien.length;
 }
 
-// Zurueck in die verursachende Massaufnahme - ueber den bestehenden Weg.
+// Zurueck in die verursachende Massaufnahme - ueber den bestehenden Weg. Der
+// Ruestlisten-Druck (v3.86) nutzt denselben Klick-Bereich.
 if($("cockpitZuschnittBody")){
- $("cockpitZuschnittBody").addEventListener("click",e=>{
-  const b=e.target.closest?e.target.closest("[data-pzu-open]"):null;
-  if(!b)return;
-  const id=Number(b.dataset.pzuOpen);
-  const m=(projectMeasurementsCache||[]).find(x=>x.id===id);
-  if(!m)return;
-  measEditReturnTo="projectCockpit";
-  if(typeof openMeasurement==="function")openMeasurement(m);
+ $("cockpitZuschnittBody").addEventListener("click",async e=>{
+  const oeffnen=e.target.closest?e.target.closest("[data-pzu-open]"):null;
+  if(oeffnen){
+   const id=Number(oeffnen.dataset.pzuOpen);
+   const m=(projectMeasurementsCache||[]).find(x=>x.id===id);
+   if(!m)return;
+   measEditReturnTo="projectCockpit";
+   if(typeof openMeasurement==="function")openMeasurement(m);
+   return;
+  }
+  const druck=e.target.closest?e.target.closest("[data-pzu-druck]"):null;
+  if(druck){
+   const alle=Array.isArray(projectMeasurementsCache)?projectMeasurementsCache:[];
+   const mit=pzuAusgewaehlteListe(alle).filter(m=>(typeof pmatPlanFuer==="function")&&!!pmatPlanFuer(m));
+   if(mit.length&&typeof ruestlisteProjekt==="function"&&typeof cockpitProjectId!=="undefined")
+    await ruestlisteProjekt(cockpitProjectId,mit);
+   return;
+  }
+ });
+ // v3.86: die Auswahl-Checkboxen speichern sich selbst und zeichnen die
+ // Zusammenfassung neu - "leer=alle" (pzuAusschlussListe) bleibt dabei
+ // die eine Quelle, keine zweite Auswahl-Ablage.
+ $("cockpitZuschnittBody").addEventListener("change",async e=>{
+  const cb=e.target.closest?e.target.closest("[data-pzu-auswahl]"):null;
+  if(!cb)return;
+  const id=Number(cb.dataset.pzuAuswahl);
+  const ausschluss=pzuAusschlussListe();
+  if(cb.checked)ausschluss.delete(id); else ausschluss.add(id);
+  await pzuAuswahlSpeichern([...ausschluss]);
+  if(typeof renderProjektZuschnitt==="function")renderProjektZuschnitt();
  });
 }
 
