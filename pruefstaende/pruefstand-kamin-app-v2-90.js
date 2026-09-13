@@ -34,7 +34,7 @@ const setz=async(page,o)=>{await page.evaluate(x=>{Object.assign(kamA,x);renderK
 const FALL={
  material:"2", deckung:"biber_einfach", lattenabstand:330,
  getrennt:false,
- a:300, d:250, e:60, keil:80,
+ a:{l:300,r:300}, d:{l:250,r:250}, e:60, keil:80,
  winkelVorne:115, winkelHinten:65,
  breiteVorne:900, breiteHinten:900,
  umschlagVorne:20, umschlagHinten:20, umschlagSeite:20, ueberlappung:120,
@@ -160,29 +160,35 @@ const FALL={
  await setz(page,FALL);
  await reg(page,2);
  const einfach=await page.evaluate(()=>({
+  a:!!document.getElementById("kam_a_l"),ar:!!document.getElementById("kam_a_r"),
   b:!!document.getElementById("kam_b_l"),
-  br:!!document.getElementById("kam_b_r")
+  br:!!document.getElementById("kam_b_r"),
+  d:!!document.getElementById("kam_d_l"),dr:!!document.getElementById("kam_d_r")
  }));
  p(einfach.b&&!einfach.br,"ohne Schalter genau EIN Feld je seitlichem Mass",einfach);
+ p(einfach.a&&!einfach.ar&&einfach.d&&!einfach.dr,
+   "ohne Schalter genau EIN Feld auch fuer A und D",einfach);
  await page.evaluate(()=>{kamA.getrennt=true;renderKaminAufnahme()});
  await page.waitForTimeout(180);
  const doppelt=await page.evaluate(()=>({
+  a:!!document.getElementById("kam_a_l"),ar:!!document.getElementById("kam_a_r"),
   b:!!document.getElementById("kam_b_l"),br:!!document.getElementById("kam_b_r"),
   c:!!document.getElementById("kam_c_l"),cr:!!document.getElementById("kam_c_r"),
+  d:!!document.getElementById("kam_d_l"),dr:!!document.getElementById("kam_d_r"),
   f:!!document.getElementById("kam_f_l"),fr:!!document.getElementById("kam_f_r"),
   g:!!document.getElementById("kam_g_l"),gr:!!document.getElementById("kam_g_r"),
   h:!!document.getElementById("kam_hoehe_l"),hr:!!document.getElementById("kam_hoehe_r")
  }));
- p(Object.keys(doppelt).every(k=>doppelt[k]),"mit Schalter je zwei Felder (B, C, F, G, Höhe)",doppelt);
+ p(Object.keys(doppelt).every(k=>doppelt[k]),"mit Schalter je zwei Felder (A, B, C, D, F, G, Höhe)",doppelt);
  await page.evaluate(()=>{kamA.getrennt=false;renderKaminAufnahme()});
  await page.waitForTimeout(150);
 
  console.log("\nD · Masse eintippen, ohne Fokus zu verlieren");
  await reg(page,2);
- await tippe(page,"#kam_a","300");
+ await tippe(page,"#kam_a_l","300");
  const fok1=await page.evaluate(()=>({id:document.activeElement&&document.activeElement.id,
-   wert:($("kam_a")||{}).value, zustand:kamA.a}));
- p(fok1.id==="kam_a"&&fok1.wert==="300","A vollstaendig getippt, Fokus bleibt",fok1);
+   wert:($("kam_a_l")||{}).value, zustand:kamA.a}));
+ p(fok1.id==="kam_a_l"&&fok1.wert==="300","A vollstaendig getippt, Fokus bleibt",fok1);
  await tippe(page,"#kam_hoehe_l","400");
  const fok2=await page.evaluate(()=>({id:document.activeElement&&document.activeElement.id,
    wert:($("kam_hoehe_l")||{}).value, links:kamA.hoehe.l, rechts:kamA.hoehe.r}));
@@ -225,8 +231,8 @@ const FALL={
    "F, G und die seitliche Hoehe bleiben unter 'Seitliche Masse'",lage);
  {const r=lage.reihe||[];
   const i=id=>r.indexOf(id);
-  p(i("kam_a")>=0&&i("kam_b_l")>i("kam_a")&&i("kam_c_l")>i("kam_b_l")
-    &&i("kam_ueberlappung")>i("kam_c_l")&&i("kam_d")>i("kam_ueberlappung"),
+  p(i("kam_a_l")>=0&&i("kam_b_l")>i("kam_a_l")&&i("kam_c_l")>i("kam_b_l")
+    &&i("kam_ueberlappung")>i("kam_c_l")&&i("kam_d_l")>i("kam_ueberlappung"),
     "Reihenfolge folgt dem Dachverlauf: A, B, C, Ueberlappung, D",r);}
  // Auch mit getrennten Seiten bleiben B und C oben.
  await setz(page,Object.assign({},FALL,{getrennt:true}));
@@ -509,11 +515,11 @@ const FALL={
    "und genau diese Werte stehen in den Einstellungen",vorgabe.s);
  await reg(page,2);
  const vf=await page.evaluate(()=>{const w=i=>{const e=document.getElementById(i);return e?e.value:"FEHLT"};
-   return {a:w("kam_a"),d:w("kam_d"),e:w("kam_e")}});
+   return {a:w("kam_a_l"),d:w("kam_d_l"),e:w("kam_e")}});
  p(vf.a==="250"&&vf.d==="200"&&vf.e==="35","die Vorgaben stehen auch in den Feldern",vf);
  // Aendern muss weiterhin gehen - es ist eine Vorgabe, keine feste Zahl.
- await tippe(page,"#kam_a","300");
- const vg=await page.evaluate(()=>({feld:($("kam_a")||{}).value,zustand:kamA.a}));
+ await tippe(page,"#kam_a_l","300");
+ const vg=await page.evaluate(()=>({feld:($("kam_a_l")||{}).value,zustand:kamA.a.l}));
  p(vg.feld==="300"&&String(vg.zustand)==="300","die Vorgabe ist frei ueberschreibbar",vg);
  // Die drei Werte sind echte Einstellungen: geaendert und gespeichert muessen
  // sie in der naechsten neuen Aufnahme stehen.
@@ -667,7 +673,8 @@ const FALL={
   return {typ:m.type,titel:m.title,d:m.data};
  });
  p(sp.typ==="kamineinfassung","Typ im Payload",sp.typ);
- p(sp.d.a===300&&sp.d.d===250&&sp.d.e===60&&sp.d.keil===80,"Masse gespeichert",sp.d);
+ p(sp.d.a.l===300&&sp.d.a.r===300&&sp.d.d.l===250&&sp.d.d.r===250
+   &&sp.d.e===60&&sp.d.keil===80,"Masse gespeichert",sp.d);
  p(sp.d.getrennt===true&&sp.d.b.l===500&&sp.d.b.r===600,"links und rechts getrennt gespeichert",sp.d.b);
  p(Array.isArray(sp.d.zuschnitte)&&sp.d.zuschnitte.length===6,"sechs Zuschnitte gespeichert",
    (sp.d.zuschnitte||[]).length);
@@ -677,11 +684,11 @@ const FALL={
  p(typeof sp.d.flaeche_m2==="number","Blechflaeche gespeichert",sp.d.flaeche_m2);
  const wieder=await page.evaluate(d=>{
   kamaFuellen(d);
-  return {a:kamA.a,getrennt:kamA.getrennt,bl:kamA.b.l,br:kamA.b.r,
+  return {al:kamA.a.l,ar:kamA.a.r,getrennt:kamA.getrennt,bl:kamA.b.l,br:kamA.b.r,
     teile:kamaZuschnitte().map(x=>x.laenge+"x"+x.breite),schritt:kamSchritt};
  },sp.d);
- p(String(wieder.a)==="300"&&wieder.getrennt===true&&String(wieder.br)==="600",
-   "Wiederoeffnen stellt den Stand her",wieder);
+ p(String(wieder.al)==="300"&&String(wieder.ar)==="300"&&wieder.getrennt===true
+   &&String(wieder.br)==="600","Wiederoeffnen stellt den Stand her",wieder);
  const gesp=Array.isArray(sp.d.zuschnitte)?sp.d.zuschnitte.map(x=>x.laenge+"x"+x.breite):null;
  p(gesp!==null&&JSON.stringify(wieder.teile)===JSON.stringify(gesp),
    "dieselben Zuschnitte nach dem Wiederoeffnen",{gesp,neu:wieder.teile});
@@ -696,18 +703,22 @@ const FALL={
  const felderAuf=await page.evaluate(()=>{
   const w=i=>{const e=document.getElementById(i);return e?e.value:"FEHLT"};
   return {getrennt:!!kamA.getrennt,
+    al:w("kam_a_l"),ar:w("kam_a_r"),
     bl:w("kam_b_l"),br:w("kam_b_r"),cl:w("kam_c_l"),
     fl:w("kam_f_l"),gl:w("kam_g_l"),hl:w("kam_hoehe_l"),hr:w("kam_hoehe_r")};
  });
  p(felderAuf.bl==="500"&&felderAuf.br==="600",
    "nach dem Oeffnen zeigen die B-Felder links 500 und rechts 600",felderAuf);
+ p(felderAuf.al==="300"&&felderAuf.ar==="300",
+   "nach dem Oeffnen zeigen die A-Felder links und rechts 300",felderAuf);
  p(felderAuf.hl==="400"&&felderAuf.hr==="450",
    "nach dem Oeffnen zeigen die Hoehen-Felder 400 und 450",felderAuf);
  p(felderAuf.cl==="400"&&felderAuf.fl==="150"&&felderAuf.gl==="100",
    "C, F und G stehen ebenfalls in ihren Feldern",felderAuf);
  const leerD=await page.evaluate(()=>{kamaFuellen({});return {a:kamA.a,teile:kamaZuschnitte().length,
    pruef:kamaPruefungen().filter(x=>x.art==="fehler").length>0}});
- p(leerD.a===""&&leerD.pruef,"ein Datensatz ohne Masse oeffnet ohne etwas zu erfinden",leerD);
+ p(leerD.a.l===""&&leerD.a.r===""&&leerD.pruef,
+   "ein Datensatz ohne Masse oeffnet ohne etwas zu erfinden",leerD);
 
  console.log("\nM · Fotos erst nach 'Fertig'");
  await setz(page,FALL);
