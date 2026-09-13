@@ -116,7 +116,14 @@ function zuGeometrie(p){
   let ab=Math.round(zuZahl(g.abschnitte)||zuZahl(z.abschnitte)||0);
   const rl=zuZahl(g.rollenLaenge)||zuZahl(z.rollenLaenge);
   if(!ab&&rl>0&&L>0)ab=Math.round(rl/L);
-  if(!ab&&n>0&&streifen.length)ab=Math.ceil(streifen.length/n);
+  // v3.87: eine Gruppe, die bei der Trittbrett-Mischung komplett anderswo
+  // mitfaehrt, hat absichtlich 0 Abschnitte UND 0 Rollenlaenge - das ist kein
+  // aelterer, unvollstaendiger Plan. Die Schaetzung unten (Streifenzahl durch
+  // jeAbschnitt) gilt deshalb nur, wenn rollenLaenge NIRGENDS angegeben ist -
+  // ist sie es (und sei es als 0), zaehlt genau das.
+  const rlAngegeben=(g.rollenLaenge!==undefined&&g.rollenLaenge!==null)
+    ||(z.rollenLaenge!==undefined&&z.rollenLaenge!==null);
+  if(!ab&&!rlAngegeben&&n>0&&streifen.length)ab=Math.ceil(streifen.length/n);
   if(A<=0)return;
   // Der seitliche Rand steht im Plan, sobald er dort gespeichert wurde - er
   // gehört zu genau diesem Plan. Fehlt er (ältere Pläne), bleibt B − n·A;
@@ -124,6 +131,17 @@ function zuGeometrie(p){
   // richtig ist.
   const rb=(z.restBreite!==undefined&&z.restBreite!==null)
     ?Math.max(0,zuZahl(z.restBreite)):((n>0)?Math.max(0,B-n*A):0);
+  // v3.87: liegt in diesem Abschnitt ein Gast einer anderen Abwicklungsbreite
+  // (Trittbrett-Mischung, js/29 ebaMischeAbschnitte), belegt der einen Teil
+  // von B-n*A produktiv - das ist kein Verschnitt dieser Gruppe mehr. Die
+  // Laengsschnittfuge kommt deshalb ab jetzt direkt aus dem Plan
+  // (js/29 rechnet sie exakt: die eigenen (n-1) Fugen plus eine je Gast), statt
+  // sie unveraendert aus B-n*A-restBreite zurueckzurechnen - das wuerde bei
+  // einem Gast dessen ganze Breite faelschlich mitzaehlen (seine Flaeche
+  // steht schon unter seiner EIGENEN Gruppe im Netto). Fehlt querFuge (aeltere
+  // Plaene, vor v3.87), bleibt die alte Rueckrechnung unveraendert gueltig -
+  // sie war fuer den ungemischten Fall immer schon richtig.
+  const qf=(z.querFuge!==undefined&&z.querFuge!==null)?Math.max(0,zuZahl(z.querFuge)):null;
   // v3.26: ein Eintrag entsteht auch dann, wenn Abschnittlänge oder
   // Streifenzahl fehlen (ältere gespeicherte Pläne). Was sich daraus NICHT
   // ableiten lässt, bleibt 0 und wird über "voll" ausgewiesen - die
@@ -141,10 +159,14 @@ function zuGeometrie(p){
   // die laengste Laenge aufrunden statt seine eigene zu zaehlen.
   const mehrereLaengen=(Array.isArray(g.teile)&&g.teile.length)||(Array.isArray(z.teile)&&z.teile.length);
   const RL=(n===1||mehrereLaengen)&&rl>0?rl:((ab>0&&L>0)?ab*L:(rl>0?rl:0));
+  // v3.87: eine bei der Mischung komplett anderswo mitfahrende Gruppe hat
+  // absichtlich abschnitte=0 und RL=0 - das ist vollstaendig bekannt, kein
+  // aelterer Plan ohne Angabe. rlAngegeben (oben) unterscheidet genau das.
+  const voll=L>0&&n>=1&&(rlAngegeben||(ab>=1&&RL>0));
   raus.push({B,A,L,jeAbschnitt:n,abschnitte:ab,rollenLaenge:RL,
    restBreite:rb,frei:(n>0&&ab>0)?Math.max(0,n*ab-streifen.length):0,
-   fugeQuer:(n>0)?Math.max(0,B-n*A-rb):0,streifen,index:i,
-   voll:L>0&&n>=1&&ab>=1&&RL>0});
+   fugeQuer:qf!==null?qf:((n>0)?Math.max(0,B-n*A-rb):0),streifen,index:i,
+   voll});
  });
  return raus;
 }
@@ -170,7 +192,18 @@ function zuStreifenRest(st,L){
 // Streifen je Abschnitt muessen dagegen alle Streifen eines Abschnitts
 // gleich lang sein - der wird als EIN Stueck quer abgezogen, die bisherige
 // Regel bleibt dort unveraendert.
+// v3.87: ein Streifen, der bei der Trittbrett-Mischung (js/29,
+// ebaMischeAbschnitte) als Gast in einem laengeren, fremden Abschnitt mitfaehrt,
+// traegt "mischungsGast" - sein rest/abschnittLaenge ist dann schon die fertige,
+// echte Aufteilung (die Laenge des Abschnitts, in dem er wirklich liegt, nicht
+// die seiner eigenen Gruppe). Die jeAbschnitt=1-Sonderregel unten wuerde diesen
+// Rest faelschlich komplett zur Schnittfuge erklaeren (sie geht davon aus, dass
+// bei jeAbschnitt=1 NIE mehr als das Stueck selbst von der Rolle abgezogen
+// wird - bei einem Gast stimmt das nicht mehr, er wird ja innerhalb des
+// laengeren Wirt-Abschnitts mitgeschnitten). Ein Gast braucht deshalb immer die
+// normale Rechnung: rest ist bereits der echte, verwertbare Rest.
 function zuStreifenRestEcht(st,L,jeAbschnitt){
+ if(st&&st.mischungsGast)return zuStreifenRest(st,L);
  if(Number(jeAbschnitt)===1)
   return zuStreifenRest(Object.assign({},st,{rest:0}),Math.max(0,zuZahl(L)-zuZahl(st&&st.rest)));
  return zuStreifenRest(st,L);

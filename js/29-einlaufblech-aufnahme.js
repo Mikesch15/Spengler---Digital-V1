@@ -461,6 +461,220 @@ function ebaBlecheGeteilt(bleche,L){
  });
  return out;
 }
+// v3.87: Trittbrett-Mischung - unterschiedliche Abwicklungsbreiten duerfen sich
+// einen Abschnitt teilen, wenn ihre Breiten zusammen in die Rollenbreite passen.
+// Gemeldet (13.09.2026, Kamineinfassung): ein 500x436mm-Vorderteil liess auf
+// einer 670er Rolle 234mm Restbreite liegen, waehrend zwei 200x270mm-Seitenteile
+// einen eigenen, kurzen Abschnitt bekamen - obwohl (in anderen Faellen als
+// diesem, wo 234mm schlicht nicht reichen) genau diese Restbreite ein kuerzeres
+// Teil einer ANDEREN Abwicklungsbreite haette mittragen koennen. Bis v3.86
+// behandelte ebaFormatPlan jede Abwicklungsbreite als vollkommen unabhaengige
+// Spur von der Rolle; das aendert sich hier, ohne die Packung INNERHALB einer
+// Gruppe (ebaPackeInStreifen/ebaPackeMehrereAbschnitte) anzutasten.
+//
+// "Einheit" fuer die Mischung ist die einzelne SPUR (ein Streifen einer
+// Abwicklungsbreite ueber seine ECHTE Laenge - L minus Rest, wie bei der
+// Anzeige-Korrektur vom 12.09.2026), NICHT der ganze, ggf. mehrspurige
+// Abschnitt: eine Spur, die auf ihre EIGENE Breite hochgerechnet schon fast
+// die ganze Rollenbreite fuellt (jeAbschnitt Spuren nebeneinander sind per
+// Definition von ebaStreifenJeAbschnitt so viele, wie irgend hineinpassen),
+// wuerde in KEINER anderen Gruppe je Platz finden - gemischt werden kann nur
+// auf Ebene einzelner Spuren, deren Fugen zueinander die Clusterbildung selbst
+// zaehlt (gleich, ob zwei Spuren zur selben oder zu verschiedenen Gruppen
+// gehoeren).
+//
+// Regel statt Suche (wie ebaPackeMehrereAbschnitte: "nicht das globale Optimum,
+// aber nah dran"): Spuren werden LAENGSTE ZUERST verteilt, jede sucht sich per
+// Best-Fit den bereits eroeffneten Cluster mit der knapp ausreichenden
+// Restbreite; passt keine, eroeffnet sie einen neuen. Weil laengste zuerst
+// verarbeitet werden, muss ein Cluster nie nachtraeglich wachsen - seine Laenge
+// steht mit seiner ersten (laengsten, "Wirt") Spur fest; jede spaeter
+// dazukommende ("Gast") ist hoechstens so lang und "faehrt kostenlos mit": sie
+// braucht keinen eigenen Abzug von der Rolle. Genau deshalb minimiert dieselbe
+// Regel automatisch auch die Gesamt-Rollenlaenge, ohne eine gesonderte Suche
+// dafuer zu brauchen - sie ist exakt die Summe der Wirte-Laengen.
+//
+// SICHERHEITSNETZ: weil hier Spuren MEHRERER Gruppen in eine gemeinsame,
+// laengste-zuerst sortierte Liste geraten, kann die eigene, bisher optimale
+// Packung EINER Gruppe (ebaPackeMehrereAbschnitte) im Einzelfall auseinander-
+// gerissen werden, ohne dass sich anderswo ein Gast findet - das waere eine
+// Verschlechterung. Deshalb wird die gemischte Verteilung nur uebernommen,
+// wenn sie NACHWEISLICH weniger Rollenlaenge braucht als die unveraenderte,
+// je Gruppe unabhaengige Rechnung (ebaFormatZeilen unten rechnet beide und
+// vergleicht) - sonst bleibt es exakt beim bisherigen Ergebnis. Eine
+// erschoepfende Suche ueber alle Kombinationen waere NP-schwer und bei
+// groesseren Stücklisten unverhaeltnismaessig langsam; das ist derselbe
+// Kompromiss, den das Projekt bei ebaPackeMehrereAbschnitte schon bewusst
+// getroffen hat.
+function ebaMischeAbschnitte(einheiten,R){
+ const fuge=ebaSchnittfuge();
+ const liste=(einheiten||[]).filter(e=>e&&e.laenge>0&&e.effektivBreite>0)
+   .slice().sort((a,b)=>b.laenge-a.laenge);
+ const cluster=[];
+ liste.forEach(e=>{
+  let bestI=-1,bestRest=Infinity;
+  for(let i=0;i<cluster.length;i++){
+   const c=cluster[i];
+   const zusatz=e.effektivBreite+fuge; // der Cluster hat schon >=1 Mitglied
+   const rest=R-c.breiteBelegt-zusatz;
+   if(rest>=-1e-9&&rest<bestRest){bestRest=rest;bestI=i}
+  }
+  if(bestI>=0){
+   const c=cluster[bestI];
+   c.mitglieder.push(e); c.breiteBelegt+=e.effektivBreite+fuge;
+  }else{
+   cluster.push({laenge:e.laenge,breiteBelegt:e.effektivBreite,mitglieder:[e]});
+  }
+ });
+ cluster.forEach(c=>{
+  c.restBreite=Math.max(0,R-c.breiteBelegt);
+  c.mitglieder.forEach((e,i)=>{e.wirt=(i===0); e.cluster=c});
+ });
+ return cluster;
+}
+// Ein Formatkandidat, vollstaendig gerechnet: jede Gruppe mit ihrer eigenen
+// Packung (ebaPackeInStreifen/ebaPackeMehrereAbschnitte, unveraendert) UND -
+// nur bei der Rolle und nur, wenn es mehr als eine Gruppe gibt - dem Versuch,
+// ihre Spuren ueber die Trittbrett-Mischung neu auf Abschnitte zu verteilen.
+// Eine Stelle fuer beides, statt zwei Kopien (Ranking der Formate und die
+// spaetere Ausgabe des besten) - genau eine solche Doppelung war schon einmal
+// die Ursache eines Unterschieds zwischen Zuschnittliste und Materialbilanz
+// (gefunden 12.09.2026 an Kamin/Rinne-Zuschnitt).
+function ebaFormatZeilen(gruppen,f,packe,packeMehrfach,laengstes){
+ const istRolle=f.laenge===null;
+ const roh=[]; let schmal=false, lang=null;
+ for(let gi=0;gi<gruppen.length;gi++){
+  const g=gruppen[gi];
+  const jeAbschnitt=ebaStreifenJeAbschnitt(f.breite,g.breite);
+  if(jeAbschnitt<1){schmal=true;break}
+  let L, streifen, optimalGruppe=true, mp=null, rollenLaengeBasis, teileBasis=null, abschnitteBasis;
+  if(istRolle&&jeAbschnitt>=2){
+   mp=packeMehrfach(gi,jeAbschnitt);
+   streifen=mp.streifen;
+   optimalGruppe=mp.optimal!==false;
+   abschnitteBasis=mp.abschnitte.length;
+   rollenLaengeBasis=mp.abschnitte.reduce((s,a)=>s+a.laenge,0);
+   const jeLaenge={};
+   mp.abschnitte.forEach(a=>{jeLaenge[a.laenge]=(jeLaenge[a.laenge]||0)+1});
+   teileBasis=Object.keys(jeLaenge).map(Number).sort((x,y)=>y-x).map(l=>({n:jeLaenge[l],laenge:l}));
+   L=teileBasis.length?teileBasis[0].laenge:0;
+  }else{
+   L=istRolle?laengstes(g):f.laenge;
+   const v=(L>0)?packe(gi,L):{streifen:[],optimal:true};
+   if(v.streifen===null){lang={format:f,stuecke:(v.zuLang||[]).map(x=>({nr:x.nr,laenge:x.laenge})),laenge:L};break}
+   streifen=v.streifen||[];
+   optimalGruppe=v.optimal!==false;
+   abschnitteBasis=Math.ceil(streifen.length/jeAbschnitt);
+   rollenLaengeBasis=jeAbschnitt===1
+    ?streifen.reduce((s,st)=>s+Math.max(0,L-(Number(st.rest)||0)),0)
+    :abschnitteBasis*L;
+   if(jeAbschnitt===1){
+    const jeLaenge={};
+    streifen.forEach(st=>{
+     const echt=Math.max(0,L-(Number(st.rest)||0));
+     jeLaenge[echt]=(jeLaenge[echt]||0)+1;
+    });
+    teileBasis=Object.keys(jeLaenge).map(Number).sort((x,y)=>y-x).map(l=>({n:jeLaenge[l],laenge:l}));
+   }
+  }
+  // Spuren fuer die Mischung: nur bei der Rolle - eine Tafel hat eine feste,
+  // vom Materialbestand vorgegebene Laenge, das ist eine echte physische
+  // Grenze, keine Rechenvereinfachung (wie schon bei ebaFormate). Bei
+  // jeAbschnitt>=2 ist jede Spur in mp.streifen bereits einzeln vorhanden -
+  // ihre eigene Laenge ist die ihres Abschnitts (mehrere Spuren desselben
+  // Abschnitts teilen sich diese Laenge, wie bisher).
+  let einheitenGruppe=[];
+  if(istRolle){
+   einheitenGruppe=mp
+    ?streifen.map(st=>({gi,ref:st,laenge:ebaZahl(st.abschnittLaenge)||L,effektivBreite:g.breite}))
+    :streifen.map(st=>({gi,ref:st,laenge:Math.max(0,L-(Number(st.rest)||0)),effektivBreite:g.breite}))
+      .filter(e=>e.laenge>0);
+  }
+  roh.push({gi,g,jeAbschnitt,L,streifen,optimalGruppe,einheitenGruppe,
+    rollenLaengeBasis,teileBasis,abschnitteBasis});
+ }
+ if(schmal)return {schmal:f.breite};
+ if(lang)return {lang};
+ // Ohne Mischung (Tafel, oder nur eine Gruppe): die bisherige, je Gruppe
+ // unabhaengige Rechnung bleibt unveraendert die Antwort - fuer alle Module
+ // mit nur einer Abwicklungsbreite (die meisten) aendert sich damit nichts.
+ const baueOhneMischung=()=>{
+  let flaeche=0;
+  const zeilen=roh.map(r=>{
+   flaeche+=f.breite*r.rollenLaengeBasis/1e6;
+   return {breite:r.g.breite,jeTafel:r.jeAbschnitt,jeAbschnitt:r.jeAbschnitt,
+     abschnitte:r.abschnitteBasis,abschnittLaenge:r.L,rollenLaenge:r.rollenLaengeBasis,
+     streifen:r.streifen,optimal:r.optimalGruppe,
+     ungenutzteStreifen:r.abschnitteBasis*r.jeAbschnitt-r.streifen.length,
+     restBreite:ebaRestBreite(f.breite,r.g.breite,r.jeAbschnitt),teile:r.teileBasis};
+  });
+  return {zeilen,flaeche};
+ };
+ if(!istRolle||roh.length<2)return baueOhneMischung();
+ const flaecheBasis=f.breite*roh.reduce((s,r)=>s+r.rollenLaengeBasis,0)/1e6;
+ const alleEinheiten=[]; roh.forEach(r=>alleEinheiten.push.apply(alleEinheiten,r.einheitenGruppe));
+ ebaMischeAbschnitte(alleEinheiten,f.breite);
+ const flaecheGemischt=f.breite*roh.reduce((s,r)=>
+   s+r.einheitenGruppe.filter(e=>e.wirt).reduce((s2,e)=>s2+e.laenge,0),0)/1e6;
+ if(!(flaecheGemischt<flaecheBasis-1e-9))return baueOhneMischung();
+ // Mischung uebernehmen: sie braucht nachweislich weniger Rollenlaenge.
+ const fuge=ebaSchnittfuge();
+ let flaeche=0;
+ const zeilen=roh.map(r=>{
+  const {g,jeAbschnitt,L,streifen,optimalGruppe,einheitenGruppe}=r;
+  const wirte=einheitenGruppe.filter(e=>e.wirt);
+  const rollenLaenge=wirte.reduce((s,e)=>s+e.laenge,0);
+  const jeLaenge={};
+  wirte.forEach(e=>{jeLaenge[e.laenge]=(jeLaenge[e.laenge]||0)+1});
+  const teile=Object.keys(jeLaenge).map(Number).sort((x,y)=>y-x).map(l=>({n:jeLaenge[l],laenge:l}));
+  // restBreite ist der wirklich noch freie, verwertbare Rand (js/42 restAlle
+  // bietet ihn als Reststueck an) - bei einer gemischten Einheit ist das
+  // GENAU der Rest des Clusters, NICHT mehr B-n*A: ein Gast belegt einen Teil
+  // dieses Randes produktiv, das ist kein Rest mehr. Laengengewichtet ueber
+  // die eigenen Wirt-Spuren, falls diese Gruppe mehrere Abschnitte mit
+  // unterschiedlichem Mischungsergebnis hat. Ohne eigene Wirt-Spur (jede Spur
+  // dieser Gruppe faehrt anderswo mit, moeglich bei jeAbschnitt=1: die Gruppe
+  // kann dann nicht einmal ihre EIGENEN Spuren buendeln) bleiben beide 0 -
+  // sie werden gleich mit rollenLaenge=0 multipliziert, also folgenlos.
+  const restBreite=rollenLaenge>0
+    ?wirte.reduce((s,e)=>s+e.cluster.restBreite*e.laenge,0)/rollenLaenge:0;
+  // querFuge ist die davon UNABHAENGIGE, laengsseitige Schnittfuge: die
+  // Schnitte ZWISCHEN allen Spuren desselben Clusters (gleich, ob eigene oder
+  // fremde Gruppe) - EIN Schnitt je zusaetzliches Mitglied. Ohne diese zweite,
+  // eigene Groesse wuerde zuGeometrie() (js/33) sie aus B-n*A-restBreite
+  // zurueckrechnen und dabei faelschlich die GANZE Breite eines Gastes mit
+  // hineinrechnen - der Gast ist aber produktiv genutztes Material, kein
+  // Verschnitt (seine Flaeche zaehlt schon unter seiner EIGENEN Gruppe zum
+  // Netto).
+  const querFuge=rollenLaenge>0
+    ?wirte.reduce((s,e)=>s+(e.cluster.mitglieder.length-1)*fuge*e.laenge,0)/rollenLaenge:0;
+  flaeche+=f.breite*rollenLaenge/1e6;
+  // Ein Gast wird jetzt aus einem laengeren Abschnitt geschnitten, als seine
+  // EIGENE Gruppe je gebraucht haette (er "faehrt mit") - sein Streifen
+  // bekommt deshalb eine KOPIE mit der neuen, echten Abschnittlaenge und dem
+  // daraus folgenden (groesseren) Rest; das Original bleibt unveraendert im
+  // Zwischenspeicher (packe/packeMehrfach sind ueber mehrere Formate hinweg
+  // gemeinsam genutzt - eine Aenderung am Original wuerde ein SPAETER
+  // geprueftes Format mit einer fremden Mischung verunreinigen). Der Wirt
+  // braucht keine Kopie: seine eigene Laenge IST die Clusterlaenge, sein
+  // Streifen stimmt bereits. mischungsGast sagt zuStreifenRestEcht (js/33),
+  // dass rest/abschnittLaenge hier schon die fertige, echte Aufteilung sind -
+  // nicht die "bei jeAbschnitt=1 wird nichts abgezogen"-Sonderregel anwenden,
+  // die sonst die ganze Gastbreite faelschlich zur Schnittfuge zaehlen wuerde.
+  const streifenFinal=streifen.map(st=>{
+   const e=einheitenGruppe.find(x=>x.ref===st);
+   if(!e||e.wirt)return st;
+   const summe=(st.stuecke||[]).reduce((s,x)=>s+ebaZahl(x.laenge),0);
+   return Object.assign({},st,{abschnittLaenge:e.cluster.laenge,
+     rest:Math.max(0,e.cluster.laenge-summe),mischungsGast:true});
+  });
+  return {breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte:wirte.length,
+    abschnittLaenge:L,rollenLaenge,streifen:streifenFinal,optimal:optimalGruppe,
+    ungenutzteStreifen:Math.max(0,wirte.length*jeAbschnitt-streifen.length),
+    restBreite,querFuge,teile};
+ });
+ return {zeilen,flaeche};
+}
 // Der EINE Formatplan fuer alle zehn Rollen-Module - Einzelbreite wie
 // Gruppen. gruppen ist [{breite, bleche:[{nr,laenge,merkmal,hinweis}]}];
 // bei genau einer Gruppe kommen die Felder zusaetzlich flach zurueck, damit
@@ -496,82 +710,20 @@ function ebaFormatPlan(opt){
   const l=(g.bleche||[]).map(x=>Number(x.laenge)||0).filter(x=>x>0);
   return l.length?Math.max.apply(null,l):0;
  };
- // zuKurz: Formate, die an einem zu langen Stueck scheitern wuerden -
- // seit v3.80 nur noch der defensive Rueckfall fuer L<=0 (Datenfehler), da
- // ein zu langes Stueck sonst automatisch geteilt wird (ebaBlecheGeteilt).
  const moeglich=[], zuSchmal=[], zuKurz=[];
  formate.forEach(f=>{
-  const zeilen=[]; let flaeche=0, schmal=false, lang=null;
-  for(let gi=0;gi<gruppen.length;gi++){
-   const g=gruppen[gi];
-   const jeAbschnitt=ebaStreifenJeAbschnitt(f.breite,g.breite);
-   if(jeAbschnitt<1){schmal=true;break}
-   const istRolle=f.laenge===null;
-   let L, streifen, abschnitte, rollenLaenge, teile=null;
-   if(istRolle&&jeAbschnitt>=2){
-    // v3.83: mehrere unterschiedlich lange Abschnitte statt einer einzigen,
-    // am laengsten Stueck der GANZEN Gruppe orientierten Laenge - siehe
-    // ebaPackeMehrereAbschnitte.
-    const mp=packeMehrfach(gi,jeAbschnitt);
-    streifen=mp.streifen; abschnitte=mp.abschnitte.length;
-    rollenLaenge=mp.abschnitte.reduce((s,a)=>s+a.laenge,0);
-    const jeLaenge={};
-    mp.abschnitte.forEach(a=>{jeLaenge[a.laenge]=(jeLaenge[a.laenge]||0)+1});
-    teile=Object.keys(jeLaenge).map(Number).sort((x,y)=>y-x).map(l=>({n:jeLaenge[l],laenge:l}));
-    L=teile.length?teile[0].laenge:0;
-   }else{
-    L=istRolle?laengstes(g):f.laenge;
-    const v=packe(gi,L);
-    if(v.streifen===null){lang={format:f,stuecke:(v.zuLang||[]).map(x=>({nr:x.nr,laenge:x.laenge})),laenge:L};break}
-    streifen=v.streifen||[];
-    abschnitte=Math.ceil(streifen.length/jeAbschnitt);
-    // Bei jeAbschnitt===1 passt genau EIN Streifen auf die volle Breite - es
-    // wird nichts quer aufgeteilt, und jeder Streifen ist sein EIGENER,
-    // unabhaengiger Abzug von der Rolle/Tafel. Gezogen wird dann nur so viel,
-    // wie er tatsaechlich braucht (steckt schon in seinem "rest"), nicht die
-    // Laenge des laengsten Stuecks der ganzen Gruppe. Bei der Tafel (feste
-    // Laenge) und den uebrigen Faellen bleibt die bisherige Regel: ein
-    // Abschnitt wird als EIN Stueck quer abgezogen, seine Streifen haben
-    // deshalb zwingend alle dieselbe Laenge L. Gemeldet (11.09.2026): eine
-    // 250er Rolle (Breite = Abwicklung, jeAbschnitt=1) wurde dadurch
-    // faelschlich als genauso verschnittreich bewertet wie eine breitere
-    // Rolle, obwohl sich hier jedes Stueck einzeln exakt zuschneiden liesse.
-    rollenLaenge=jeAbschnitt===1
-     ?streifen.reduce((s,st)=>s+Math.max(0,L-(Number(st.rest)||0)),0)
-     :abschnitte*L;
-    // Die Anzeige (js/33, zuAbschnitte/zuAbschnittText) las bisher nur
-    // abschnittLaenge/abschnitte und zeigte deshalb "4 × <laengstes Stueck>"
-    // an, auch wenn - wie oben bei rollenLaenge bereits richtig gerechnet -
-    // nur EIN Streifen wirklich so lang ist und die anderen kuerzer sind
-    // (mehrere kuerzere Stuecke passen zusammen in einen Streifen). Gemeldet
-    // 12.09.2026 (Lukarne Seitenverkleidung): "4 × 1'530 mm + 1 × 49 mm ab
-    // Rolle" stand da, obwohl nur rund 4'744mm statt 4×1'530mm=6'120mm
-    // gezogen wurden - die Materialbilanz war schon korrekt, nur der
-    // Anzeigetext nicht. Je Streifen wird deshalb jetzt seine ECHTE Laenge
-    // (L minus Rest) gruppiert, genau wie beim Fall mit mehreren Streifen
-    // je Abschnitt oben (teile).
-    if(jeAbschnitt===1){
-     const jeLaenge={};
-     streifen.forEach(st=>{
-      const echt=Math.max(0,L-(Number(st.rest)||0));
-      jeLaenge[echt]=(jeLaenge[echt]||0)+1;
-     });
-     teile=Object.keys(jeLaenge).map(Number).sort((x,y)=>y-x).map(l=>({n:jeLaenge[l],laenge:l}));
-    }
-   }
-   flaeche+=f.breite*rollenLaenge/1e6;
-   zeilen.push({breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte,
-     abschnittLaenge:L,rollenLaenge,streifen:streifen.length,
-     ungenutzteStreifen:abschnitte*jeAbschnitt-streifen.length,
-     restBreite:ebaRestBreite(f.breite,g.breite,jeAbschnitt),teile});
-  }
-  if(schmal){zuSchmal.push(f.breite);return}
-  if(lang){zuKurz.push(lang);return}
+  const r=ebaFormatZeilen(gruppen,f,packe,packeMehrfach,laengstes);
+  if(r.schmal!==undefined){zuSchmal.push(r.schmal);return}
+  if(r.lang){zuKurz.push(r.lang);return}
+  // Fuer den Formatvergleich (moeglich) reicht die StreifenZAHL - die ganze
+  // Liste braucht nur das gewaehlte beste Format (gefuellt unten). Genau die
+  // bisherige Unterscheidung, jetzt aus einer gemeinsamen Rechnung befuellt.
+  const zeilenSchlank=r.zeilen.map(z=>Object.assign({},z,{streifen:z.streifen.length}));
   const e={breite:f.breite,laenge:f.laenge,text:f.text||ebaFormatText(f),
-    zeilen,flaeche,verschnitt:flaeche-netto,
-    anteil:flaeche>0?(flaeche-netto)/flaeche*100:0,
-    rollenLaenge:zeilen.reduce((s,x)=>s+x.rollenLaenge,0)};
-  if(zeilen.length===1)Object.assign(e,zeilen[0],{breite:f.breite,laenge:f.laenge});
+    zeilen:zeilenSchlank,flaeche:r.flaeche,verschnitt:r.flaeche-netto,
+    anteil:r.flaeche>0?(r.flaeche-netto)/r.flaeche*100:0,
+    rollenLaenge:r.zeilen.reduce((s,x)=>s+x.rollenLaenge,0)};
+  if(zeilenSchlank.length===1)Object.assign(e,zeilenSchlank[0],{breite:f.breite,laenge:f.laenge});
   moeglich.push(e);
  });
  moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
@@ -584,44 +736,27 @@ function ebaFormatPlan(opt){
   const l=zuKurz.slice().sort((a,b)=>b.laenge-a.laenge)[0];
   zuLang=l.stuecke||[];
  }
- // Die Packung des BESTEN Formats ist die, mit der gearbeitet wird.
+ // Die Packung des BESTEN Formats ist die, mit der gearbeitet wird - dieselbe
+ // Rechnung wie oben (ebaFormatZeilen ist deterministisch, packe/packeMehrfach
+ // sind memoisiert), diesmal mit den vollen Streifen statt nur der Zahl.
  // Passt KEIN Format, wird trotzdem gepackt - mit dem laengsten Stueck als
  // Abschnittlaenge, also genau wie im Rollenmodell bis v3.32. Sonst haette
  // die Gruppe keine Streifen, und die Zuschnittliste (js/33 baut sie aus
  // gruppen[].streifen[]) verschwaende ganz: der Zuschneider saehe nur noch
  // die Warnung und nicht mehr, WAS zu schneiden ist. Vom Pruefstand gefunden.
+ const voll=best?ebaFormatZeilen(gruppen,{breite:best.breite,laenge:best.laenge},packe,packeMehrfach,laengstes):null;
  const gefuellt=gruppen.map((g,gi)=>{
-  const z=best?best.zeilen[gi]:null;
-  // v3.83: hat die beste Zeile mehrere Abschnittlaengen (teile), muss auch
-  // die Darstellung mit derselben Packung (packeMehrfach) arbeiten - sonst
-  // zeigt die Zuschnittliste eine andere Aufteilung als die Materialbilanz.
-  // NUR ab jeAbschnitt>=2: packeMehrfach (ebaPackeMehrereAbschnitte) ist
-  // ausschliesslich fuer den Fall mehrerer Streifen je Abschnitt gebaut. Bei
-  // jeAbschnitt===1 traegt z.teile seit der Anzeige-Korrektur oben (echte
-  // Laenge je Streifen) ebenfalls "teile", aber die tatsaechliche Packung
-  // bleibt die normale packe(gi,L) unten - sonst wird hier eine fuer diesen
-  // Fall nie vorgesehene Packung eingesetzt und die Zuschnittliste zeigt eine
-  // FALSCHE Aufteilung (gefunden 12.09.2026 an Kamin/Rinne-Zuschnitt: zwei
-  // kurze Stuecke, die eigentlich denselben Streifen teilen, standen dann auf
-  // getrennten Streifen).
-  if(z&&z.teile&&z.jeAbschnitt>=2){
-   const mp=packeMehrfach(gi,z.jeAbschnitt);
-   return Object.assign({},g,{abschnittLaenge:z.abschnittLaenge,streifen:mp.streifen,
-     optimal:mp.optimal!==false,
-     jeAbschnitt:z.jeAbschnitt,abschnitte:z.abschnitte,
-     rollenLaenge:z.rollenLaenge,verteilung:mp,teile:z.teile});
-  }
-  const L=z?z.abschnittLaenge:laengstes(g);
+  const z=(voll&&!voll.schmal&&!voll.lang)?voll.zeilen[gi]:null;
+  if(z)return Object.assign({},g,{abschnittLaenge:z.abschnittLaenge,streifen:z.streifen,
+    optimal:z.optimal,jeAbschnitt:z.jeAbschnitt,abschnitte:z.abschnitte,
+    rollenLaenge:z.rollenLaenge,restBreite:z.restBreite,querFuge:z.querFuge,
+    verteilung:{streifen:z.streifen,optimal:z.optimal},teile:z.teile});
+  const L=laengstes(g);
   const v=(L>0)?packe(gi,L):{streifen:[],optimal:true};
   return Object.assign({},g,{abschnittLaenge:L,streifen:v.streifen||[],
     optimal:v.optimal!==false,
-    jeAbschnitt:z?z.jeAbschnitt:1,abschnitte:z?z.abschnitte:0,
-    rollenLaenge:z?z.rollenLaenge:0,verteilung:v,
-    // die tatsaechliche Packung (v.streifen) bleibt unveraendert - teile
-    // wird hier nur fuer die Anzeige (zuAbschnitte/zuAbschnittText in js/33)
-    // durchgereicht, damit "N × Laenge ab Rolle" bei jeAbschnitt===1 mit
-    // gemischten Laengen dieselben echten Laengen zeigt wie oben berechnet.
-    teile:z?z.teile:null});
+    jeAbschnitt:1,abschnitte:0,rollenLaenge:0,
+    verteilung:{streifen:v.streifen||[],optimal:v.optimal!==false},teile:null});
  });
  return {moeglich,zuSchmal,zuLang,zuKurz,bestes:best,gruppen:gefuellt,netto,
          optimal:gefuellt.every(g=>g.optimal!==false),
