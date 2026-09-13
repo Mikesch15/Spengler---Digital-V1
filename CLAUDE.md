@@ -173,7 +173,10 @@ Weitere Regeln:
 - Bestehende Supabase-RLS berücksichtigen.
 - Bestehende Offline-Funktionen beachten.
 - Service Worker bei neuen Frontend-Dateien berücksichtigen.
-- Nach Änderungen Versionsstand und Cache beachten.
+- Jede auf `main` gepushte fachliche Änderung erhöht den
+  Versionsstand (in `index.html`/`sw.js` sowie in
+  `PROJECT_STATE.md`) und beachtet den Cache (Service Worker,
+  App-Shell-Liste).
 - Keine bestehenden Tabellen, Policies oder Funktionen ohne
   Prüfung ersetzen.
 - Committete Änderungen werden immer direkt auf `main` gepusht,
