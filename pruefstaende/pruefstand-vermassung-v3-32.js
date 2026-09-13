@@ -179,14 +179,20 @@ const ZUSATZ=[
  p(rz0&&!rz0.texte.some(t=>/^A 200$/.test(t)),"das Beispielmass der Zeichnung wird nie angeschrieben",rz0&&rz0.texte);
 
  console.log("\nH · Kamineinfassung: Breite vorne und hinten");
+ // v3.87: alle Masse der Kamineinfassung wurden von vorne nach hinten neu
+ // durchnummeriert (kamaBuchstabe/KAM_MASSLISTE, js/37) - die Buchstaben
+ // werden hier aus der Quelle geholt, nicht als frueherer Stand verdoppelt.
+ const kbst=await page.evaluate(()=>["a","b","c","d","hoehe","keil","breiteVorne","breiteHinten"]
+  .reduce((o,k)=>{o[k]=kamaBuchstabe(k);return o},{}));
  const ks=finde(alle,"Kamineinfassung","Schnitt");
- p(ks&&ks.texte.includes("Breite vorne = 900"),"die Breite vorne steht in der Skizze",ks&&ks.texte);
- p(ks&&ks.texte.includes("Breite hinten = 900"),"die Breite hinten steht in der Skizze",ks&&ks.texte);
- ["A = 300","D = 250","B = 500","C = 400","Höhe = 400","Keil = 80"].forEach(t=>
-  p(ks&&ks.texte.includes(t),"das bestehende Mass bleibt: "+t,ks&&ks.texte));
+ p(ks&&ks.texte.includes(kbst.breiteVorne+" = 900"),"die Breite vorne steht in der Skizze",ks&&ks.texte);
+ p(ks&&ks.texte.includes(kbst.breiteHinten+" = 900"),"die Breite hinten steht in der Skizze",ks&&ks.texte);
+ [["a",300],["d",250],["b",500],["c",400],["hoehe",400],["keil",80]].forEach(([k,v])=>
+  p(ks&&ks.texte.includes(kbst[k]+" = "+v),"das bestehende Mass bleibt: "+kbst[k]+" = "+v,ks&&ks.texte));
  p(ks&&ks.kollisionen.length===0,"die zwei neuen Fahnen verdecken nichts",ks&&ks.kollisionen);
  const k0=finde(zus,"Kamin ohne Breiten","Schnitt");
- p(k0&&!k0.texte.some(t=>/^Breite /.test(t)),"ohne erfasste Breite steht keine Fahne da",k0&&k0.texte);
+ p(k0&&!k0.texte.some(t=>t.indexOf(kbst.breiteVorne+" = ")===0||t.indexOf(kbst.breiteHinten+" = ")===0),
+   "ohne erfasste Breite steht keine Fahne da",k0&&k0.texte);
 
  console.log("\nG2 · Enge Segmente weichen aus");
  const re=finde(zus,"Rinne enge Segmente","Profilskizze");

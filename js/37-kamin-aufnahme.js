@@ -253,7 +253,7 @@ function kamaZuschnitte(){
  const hv=kamaHoeheMitWinkel(h,kamaWvIntern(a));
  dazu("Vorderteil","vorne","",a.breiteVorne,[
   {name:"Umschlag vorne",wert:kamaZahl(a.umschlagVorne)},
-  {name:"Mass A",wert:kamaADurchgehend()},
+  {name:"Mass "+kamaBuchstabe("a"),wert:kamaADurchgehend()},
   {name:"Seitliche Höhe mit Winkel vorne",wert:hv===null?0:hv}]);
 
  // Hinten beginnt die Wand ERST UEBER DEM KEIL - der Keil ueberwindet den
@@ -263,8 +263,8 @@ function kamaZuschnitte(){
  const hh=kamaHoeheMitWinkel(restH>0?restH:0,kamaWhIntern(a));
  dazu("Hinterteil","hinten","",a.breiteHinten,[
   {name:"Umschlag hinten",wert:kamaZahl(a.umschlagHinten)},
-  {name:"Mass E · 90°-Aufbug",wert:kamaZahl(a.e)},
-  {name:"Mass D",wert:kamaDDurchgehend()},
+  {name:"Mass "+kamaBuchstabe("e")+" · 90°-Aufbug",wert:kamaZahl(a.e)},
+  {name:"Mass "+kamaBuchstabe("d"),wert:kamaDDurchgehend()},
   {name:"Keil",wert:kamaZahl(a.keil)},
   {name:"Wand über dem Keil, mit Winkel hinten",wert:hh===null?0:hh}]);
 
@@ -273,8 +273,8 @@ function kamaZuschnitte(){
  KAM_SEITEN.forEach(s=>{
   const teile=[
    {name:"Umschlag Seite",wert:kamaZahl(a.umschlagSeite)},
-   {name:"Mass G · unter Deckmaterial",wert:kamaSeite("g",s.k)},
-   {name:"Mass F · bis Deckmaterial",wert:kamaSeite("f",s.k)},
+   {name:"Mass "+kamaBuchstabe("g")+" · unter Deckmaterial",wert:kamaSeite("g",s.k)},
+   {name:"Mass "+kamaBuchstabe("f")+" · bis Deckmaterial",wert:kamaSeite("f",s.k)},
    {name:"Seitliche Höhe",wert:kamaSeite("hoehe",s.k)}];
   dazu("Seitenteil vorne","seite",s.name,kamaSeite("b",s.k),teile.map(x=>Object.assign({},x)));
   dazu("Seitenteil hinten","seite",s.name,kamaSeite("c",s.k),teile.map(x=>Object.assign({},x)));
@@ -322,7 +322,8 @@ function kamaSkizze(quelle){
  const L=kamaKaminLaenge(seite,q);
  if(!(H>0)||!(L>0))
   return `<div class="ra-warnung">Für die Schnittskizze fehlen noch Masse:
-bitte die seitliche Höhe sowie B und C eingeben.</div>`;
+bitte die seitliche Höhe sowie ${kamaBuchstabe("b")} und ${kamaBuchstabe("c")}
+eingeben.</div>`;
 
  const rad=g=>g*Math.PI/180;
  // Wandrichtungen, jeweils vom Fusspunkt nach oben. BEIDE Waende neigen sich
@@ -428,30 +429,30 @@ bitte die seitliche Höhe sowie B und C eingeben.</div>`;
 
  // Masse. Die Fahnen zeigen nach INNEN in den leeren Kamin - aussen waere
  // die Zeichnung sonst doppelt so breit und der Text entsprechend klein.
- if(A>0){g+=anbMassWaag(-A,0,0,"A = "+zahl(A),X,Y,true); merkMassWaag(-A,0,0,"A = "+zahl(A),true)}
- if(D>0){g+=anbMassWaag(L,L+D,0,"D = "+zahl(D),X,Y,true); merkMassWaag(L,L+D,0,"D = "+zahl(D),true)}
- if(B>0){g+=anbMassWaag(0,knickHinten,H+26,"B = "+zahl(B),X,Y,false); merkMassWaag(0,knickHinten,H+26,"B = "+zahl(B),false)}
- if(C>0){g+=anbMassWaag(knickVorne,L,H+58,"C = "+zahl(C),X,Y,false); merkMassWaag(knickVorne,L,H+58,"C = "+zahl(C),false)}
- g+=anbMassSenk(0,H,xMin+56,"Höhe = "+zahl(H),X,Y); merkMassSenk(0,H,xMin+56,"Höhe = "+zahl(H));
+ if(A>0){g+=anbMassWaag(-A,0,0,kamaBuchstabe("a")+" = "+zahl(A),X,Y,true); merkMassWaag(-A,0,0,kamaBuchstabe("a")+" = "+zahl(A),true)}
+ if(D>0){g+=anbMassWaag(L,L+D,0,kamaBuchstabe("d")+" = "+zahl(D),X,Y,true); merkMassWaag(L,L+D,0,kamaBuchstabe("d")+" = "+zahl(D),true)}
+ if(B>0){g+=anbMassWaag(0,knickHinten,H+26,kamaBuchstabe("b")+" = "+zahl(B),X,Y,false); merkMassWaag(0,knickHinten,H+26,kamaBuchstabe("b")+" = "+zahl(B),false)}
+ if(C>0){g+=anbMassWaag(knickVorne,L,H+58,kamaBuchstabe("c")+" = "+zahl(C),X,Y,false); merkMassWaag(knickVorne,L,H+58,kamaBuchstabe("c")+" = "+zahl(C),false)}
+ g+=anbMassSenk(0,H,xMin+56,kamaBuchstabe("hoehe")+" = "+zahl(H),X,Y); merkMassSenk(0,H,xMin+56,kamaBuchstabe("hoehe")+" = "+zahl(H));
  if(knickDa){
-  g+=anbMassWaag(knickVorne,knickHinten,H*0.5,"Knick "+zahl(Ue),X,Y,false);
-  merkMassWaag(knickVorne,knickHinten,H*0.5,"Knick "+zahl(Ue),false);
+  g+=anbMassWaag(knickVorne,knickHinten,H*0.5,kamaBuchstabe("ueberlappung")+" = "+zahl(Ue),X,Y,false);
+  merkMassWaag(knickVorne,knickHinten,H*0.5,kamaBuchstabe("ueberlappung")+" = "+zahl(Ue),false);
  }
  const fahne=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
  // E und Keil liegen dicht beieinander: E zeigt nach rechts oben, der Keil
  // nach links oben - sonst schieben sich die beiden Texte uebereinander.
- if(E>0)fahne(L+D,E,8,-22,"E = "+zahl(E)+" · 90°");
- if(keilS&&keilE)fahne((keilS[0]+keilE[0])/2,(keilS[1]+keilE[1])/2,-40,-22,"Keil = "+zahl(keil));
- fahne(vTop[0],vTop[1],24,16,"Winkel vorne "+kamaZahl(kamaWinkelDach(q,"winkelVorne"))+"°");
- fahne(hTop[0],hTop[1],-24,16,"Winkel hinten "+kamaZahl(kamaWinkelDach(q,"winkelHinten"))+"°");
+ if(E>0)fahne(L+D,E,8,-22,kamaBuchstabe("e")+" = "+zahl(E)+" · 90°");
+ if(keilS&&keilE)fahne((keilS[0]+keilE[0])/2,(keilS[1]+keilE[1])/2,-40,-22,kamaBuchstabe("keil")+" = "+zahl(keil));
+ fahne(vTop[0],vTop[1],24,16,kamaBuchstabe("winkelVorne")+" = "+kamaZahl(kamaWinkelDach(q,"winkelVorne"))+"°");
+ fahne(hTop[0],hTop[1],-24,16,kamaBuchstabe("winkelHinten")+" = "+kamaZahl(kamaWinkelDach(q,"winkelHinten"))+"°");
  // Breite vorne und hinten (Zuschnittlaenge von Vorder- und Hinterteil).
  // Sie liegen QUER zu diesem Laengsschnitt und lassen sich hier nicht als
  // Masslinie zeichnen - deshalb als Fahne an der jeweiligen Wand, nach
  // aussen, damit sie den Winkel-Fahnen an den Wandkoepfen nicht ins Gehege
  // kommen. Angeschrieben wird nur, was wirklich erfasst ist.
  const bV=kamaZahl(q.breiteVorne), bH=kamaZahl(q.breiteHinten);
- if(bV>0)fahne(vFuss[0]+(vTop[0]-vFuss[0])*0.45,H*0.45,-34,-14,"Breite vorne = "+zahl(bV));
- if(bH>0)fahne(hFuss[0]+(hTop[0]-hFuss[0])*0.45,H*0.45,34,-14,"Breite hinten = "+zahl(bH));
+ if(bV>0)fahne(vFuss[0]+(vTop[0]-vFuss[0])*0.45,H*0.45,-34,-14,kamaBuchstabe("breiteVorne")+" = "+zahl(bV));
+ if(bH>0)fahne(hFuss[0]+(hTop[0]-hFuss[0])*0.45,H*0.45,34,-14,kamaBuchstabe("breiteHinten")+" = "+zahl(bH));
 
  const seiteTxt=q.getrennt?(seite==="r"?" · rechte Seite":" · linke Seite"):"";
  const fuss="Kamineinfassung · Schnitt längs des Dachs"+seiteTxt+" · Dach waagerecht dargestellt";
@@ -566,8 +567,9 @@ function kamaAusmassZeilen(){
  if(bl.gesamt!==null)
   zeile("Bleilappen",String(bl.gesamt),"Stk.","je Seitenteil aufgerundet aus Länge ÷ Lattenabstand",true);
  const Ll=kamaKaminLaenge("l"), Lr=kamaKaminLaenge("r");
- if(Ll>0)zeile("Kaminlänge längs Dach"+(kamA.getrennt?" links":""),kamaMm(Ll),"mm","B + C − Überlappung");
- if(kamA.getrennt&&Lr>0)zeile("Kaminlänge längs Dach rechts",kamaMm(Lr),"mm","B + C − Überlappung");
+ const bcFormel=kamaBuchstabe("b")+" + "+kamaBuchstabe("c")+" − Überlappung";
+ if(Ll>0)zeile("Kaminlänge längs Dach"+(kamA.getrennt?" links":""),kamaMm(Ll),"mm",bcFormel);
+ if(kamA.getrennt&&Lr>0)zeile("Kaminlänge längs Dach rechts",kamaMm(Lr),"mm",bcFormel);
  // v3.51: der Umfang des Kamins, wie er in der Dachschräge liegt - alle vier
  // Seiten des Kamins sind bereits im Dachsystem gemessen (siehe Kopf dieser
  // Datei), es braucht deshalb keine Umrechnung der Dachneigung. Zwei
@@ -596,33 +598,32 @@ function kamaPruefungen(){
  // als "fehlt" - nicht "ist nicht groesser als 0" wie bei fehlt() oben.
  const fehltLeer=(wert,text)=>{if(wert===""||wert===null||wert===undefined)m.push({art:"fehler",text})};
  if(!a.material)m.push({art:"warnung",text:"Es ist noch kein Material gewählt."});
- fehlt(a.breiteVorne,"Die Breite vorne (Zuschnittlänge Vorderteil) fehlt.");
- fehlt(a.breiteHinten,"Die Breite hinten (Zuschnittlänge Hinterteil) fehlt.");
- fehltLeer(a.e,"Mass E (90°-Aufbug hinten) fehlt.");
- fehltLeer(a.keil,"Keil hinterkant Kamin fehlt (0 eingeben, falls kein Keil vorhanden ist).");
- fehltLeer(a.ueberlappung,"Überlappung der Seitenteile (Knick) fehlt.");
- fehltLeer(a.umschlagVorne,"Umschlag vorne fehlt.");
- fehltLeer(a.umschlagHinten,"Umschlag hinten fehlt.");
- fehltLeer(a.umschlagSeite,"Umschlag seitlich fehlt.");
+ fehlt(a.breiteVorne,kamaBuchstabe("breiteVorne")+" · Die Breite vorne (Zuschnittlänge Vorderteil) fehlt.");
+ fehlt(a.breiteHinten,kamaBuchstabe("breiteHinten")+" · Die Breite hinten (Zuschnittlänge Hinterteil) fehlt.");
+ fehltLeer(a.e,"Mass "+kamaBuchstabe("e")+" (90°-Aufbug hinten) fehlt.");
+ fehltLeer(a.keil,"Keil ("+kamaBuchstabe("keil")+") hinterkant Kamin fehlt (0 eingeben, falls kein Keil vorhanden ist).");
+ fehltLeer(a.ueberlappung,kamaBuchstabe("ueberlappung")+" · Überlappung der Seitenteile (Knick) fehlt.");
+ fehltLeer(a.umschlagVorne,kamaBuchstabe("umschlagVorne")+" · Umschlag vorne fehlt.");
+ fehltLeer(a.umschlagHinten,kamaBuchstabe("umschlagHinten")+" · Umschlag hinten fehlt.");
+ fehltLeer(a.umschlagSeite,kamaBuchstabe("umschlagSeite")+" · Umschlag seitlich fehlt.");
  fehltLeer(a.lattenabstand,"Lattenabstand fehlt.");
  KAM_SEITEN.forEach(s=>{
   const zusatz=a.getrennt?" ("+s.name+")":"";
-  fehlt(kamaSeite("a",s.k),"Mass A, vorne auf Deckmaterial bis Vorderkant Kamin"+zusatz+", fehlt.");
-  fehlt(kamaSeite("b",s.k),"Mass B, Zuschnittlänge Seitenteil vorne"+zusatz+", fehlt.");
-  fehlt(kamaSeite("c",s.k),"Mass C, Zuschnittlänge Seitenteil hinten"+zusatz+", fehlt.");
-  fehlt(kamaSeite("d",s.k),"Mass D, Hinterkant Kamin bis hinten unter Deckmaterial"+zusatz+", fehlt.");
-  fehlt(kamaSeite("hoehe",s.k),"Die seitliche Höhe"+zusatz+" fehlt.");
-  fehltLeer(kamaSeitenRoh("f",s.k),"Mass F, seitlich bis Deckmaterial"+zusatz+", fehlt.");
-  fehltLeer(kamaSeitenRoh("g",s.k),"Mass G, seitlich unter Deckmaterial"+zusatz+", fehlt.");
+  fehlt(kamaSeite("a",s.k),"Mass "+kamaBuchstabe("a")+", vorne auf Deckmaterial bis Vorderkant Kamin"+zusatz+", fehlt.");
+  fehlt(kamaSeite("b",s.k),"Mass "+kamaBuchstabe("b")+", Zuschnittlänge Seitenteil vorne"+zusatz+", fehlt.");
+  fehlt(kamaSeite("c",s.k),"Mass "+kamaBuchstabe("c")+", Zuschnittlänge Seitenteil hinten"+zusatz+", fehlt.");
+  fehlt(kamaSeite("d",s.k),"Mass "+kamaBuchstabe("d")+", Hinterkant Kamin bis hinten unter Deckmaterial"+zusatz+", fehlt.");
+  fehlt(kamaSeite("hoehe",s.k),"Die seitliche Höhe ("+kamaBuchstabe("hoehe")+")"+zusatz+" fehlt.");
+  fehltLeer(kamaSeitenRoh("f",s.k),"Mass "+kamaBuchstabe("f")+", seitlich bis Deckmaterial"+zusatz+", fehlt.");
+  fehltLeer(kamaSeitenRoh("g",s.k),"Mass "+kamaBuchstabe("g")+", seitlich unter Deckmaterial"+zusatz+", fehlt.");
   if(!a.getrennt)return;
  });
- [["e","Mass E"],["keil","Keil"],
-  ["breiteVorne","Breite vorne"],["breiteHinten","Breite hinten"],
-  ["umschlagVorne","Umschlag vorne"],["umschlagHinten","Umschlag hinten"],
-  ["umschlagSeite","Umschlag seitlich"],["ueberlappung","Überlappung"],
-  ["lattenabstand","Lattenabstand"]].forEach(([k,name])=>{
-  if(kamaZahl(a[k])<0)m.push({art:"fehler",text:name+" kann nicht negativ sein."});
+ ["e","keil","breiteVorne","breiteHinten","umschlagVorne","umschlagHinten",
+  "umschlagSeite","ueberlappung"].forEach(k=>{
+  if(kamaZahl(a[k])<0)m.push({art:"fehler",text:kamaBuchstabe(k)+" · "
+    +KAM_MASSLISTE.find(x=>x[0]===k)[1]+" kann nicht negativ sein."});
  });
+ if(kamaZahl(a.lattenabstand)<0)m.push({art:"fehler",text:"Lattenabstand kann nicht negativ sein."});
  KAM_SEITEN.forEach(s=>{
   ["a","b","c","d","f","g","hoehe"].forEach(k=>{
    if(kamaSeite(k,s.k)<0)m.push({art:"fehler",text:"Ein seitliches Mass ist negativ ("+s.name+")."});
@@ -634,8 +635,8 @@ function kamaPruefungen(){
  // lotrechten Kamin auf einem geneigten Dach ist das praktisch nie der Fall,
  // und dann fehlt dem Blech die ganze Verlaengerung.
  [["winkelVorne","Winkel Dach/Wand vorne",115],["winkelHinten","Winkel Dach/Wand hinten",65]]
-  .forEach(([k,name,bsp])=>{
-  const w=kamaZahl(a[k]);
+  .forEach(([k,name0,bsp])=>{
+  const w=kamaZahl(a[k]), name=kamaBuchstabe(k)+" · "+name0;
   if(a[k]===""||a[k]===null||a[k]===undefined)
    m.push({art:"fehler",text:name+" fehlt. Er wird zwischen Dachfläche und Kaminwand "
      +"gemessen – auf einem 25°-Dach z. B. "+bsp+"°."});
@@ -682,10 +683,10 @@ function kamaPruefungen(){
   const L=kamaKaminLaenge(s.k);
   const zusatz=a.getrennt?" ("+s.name+")":"";
   if(kamaSeite("b",s.k)>0&&kamaSeite("c",s.k)>0&&!(L>0))
-   m.push({art:"fehler",text:"B + C ist nicht grösser als die Überlappung"+zusatz
+   m.push({art:"fehler",text:kamaBuchstabe("b")+" + "+kamaBuchstabe("c")+" ist nicht grösser als die Überlappung"+zusatz
      +" – daraus ergibt sich keine Kaminlänge."});
   if(kamaZahl(a.ueberlappung)>0&&kamaSeite("b",s.k)>0&&kamaSeite("b",s.k)<=kamaZahl(a.ueberlappung))
-   m.push({art:"warnung",text:"Mass B"+zusatz+" ist nicht grösser als die Überlappung – "
+   m.push({art:"warnung",text:"Mass "+kamaBuchstabe("b")+zusatz+" ist nicht grösser als die Überlappung – "
      +"der Knick läge dann vor der Vorderkant Kamin."});
   if(!a.getrennt)return;
  });
@@ -706,6 +707,68 @@ function kamaPruefungen(){
      +" hinterlegt – der Materialbedarf wird nicht gerechnet."});
  }
  return m;
+}
+
+// ---- Durchnummerierung aller Masse (A, B, C, ...) --------------------------
+// Eine EINZIGE, geordnete Liste ist die Quelle fuer den Buchstaben jedes
+// Masses - der Buchstabe ergibt sich rein aus der Position in dieser Liste
+// (A=Index 0, B=Index 1, ...), nie aus einer zweiten, separat gepflegten
+// Zuordnung. Reihenfolge: laengs des Dachs von vorne nach hinten, seitliche/
+// quer liegende Masse jeweils direkt neben dem laengs liegenden Mass, zu dem
+// sie gehoeren - analog zur Dachfenstereinfassung (js/66).
+const KAM_MASSLISTE=[
+ ["a","vorne auf Deckmaterial bis Vorderkant Kamin"],
+ ["umschlagVorne","Umschlag vorne"],
+ ["hoehe","Seitliche Höhe"],
+ ["winkelVorne","Winkel Dach/Wand vorne (°) · stumpf"],
+ ["b","Vorderkant Kamin bis Hinterkant Knick"],
+ ["ueberlappung","Überlappung der Seitenteile (Knick)"],
+ ["c","Vorderkant Knick bis Hinterkant Kamin"],
+ ["f","seitlich bis Deckmaterial"],
+ ["g","seitlich unter Deckmaterial"],
+ ["umschlagSeite","Umschlagbreite seitlich"],
+ ["d","Hinterkant Kamin bis hinten unter Deckmaterial"],
+ ["keil","Keil hinterkant Kamin"],
+ ["winkelHinten","Winkel Dach/Wand hinten (°) · spitz"],
+ ["umschlagHinten","Umschlag hinten"],
+ ["e","90°-Aufbug hinten"],
+ ["breiteVorne","Breite vorne · Zuschnittlänge Vorderteil"],
+ ["breiteHinten","Breite hinten · Zuschnittlänge Hinterteil"]
+];
+function kamaBuchstabe(k){
+ const i=KAM_MASSLISTE.findIndex(x=>x[0]===k);
+ return i>=0?String.fromCharCode(65+i):"?";
+}
+// Feste, nur zur Anschauung dienende Beispielwerte fuer die Uebersichts-
+// Skizze - unabhaengig vom laufenden Zustand, damit sie auch bei einer
+// leeren oder halb ausgefuellten Aufnahme immer vollstaendig und lesbar
+// bleibt. Kein Bezug zu einer echten Aufnahme.
+function kamaUebersichtQuelle(){
+ return Object.assign(kamaLeer(),{
+  getrennt:false, skizzeSeite:"l", winkelBezug:"dach",
+  a:{l:250,r:250}, d:{l:200,r:200}, e:35, keil:35,
+  winkelVorne:115, winkelHinten:65,
+  breiteVorne:300, breiteHinten:300,
+  umschlagVorne:20, umschlagHinten:20, umschlagSeite:20, ueberlappung:120,
+  b:{l:150,r:150}, c:{l:241,r:241}, f:{l:10,r:10}, g:{l:20,r:20}, hoehe:{l:250,r:250}
+ });
+}
+function kamaUebersichtHtml(){
+ const zeilen=KAM_MASSLISTE.map(([k,name])=>
+  `<tr><td><b>${esc(kamaBuchstabe(k))}</b></td><td>${esc(name)}</td></tr>`).join("");
+ return `<details class="kam-uebersicht" style="margin-bottom:12px">
+<summary>Übersicht: alle Masse mit Buchstabe (A, B, C, …) anzeigen</summary>
+<div class="info" style="margin-top:8px">Beispielskizze mit Beispielwerten - zeigt
+nur, wo jeder Buchstabe liegt, nicht die aktuelle Aufnahme. Die seitlichen Masse
+(${kamaBuchstabe("f")}, ${kamaBuchstabe("g")}), die Umschlagbreite seitlich
+(${kamaBuchstabe("umschlagSeite")}) sowie ${kamaBuchstabe("breiteVorne")} und
+${kamaBuchstabe("breiteHinten")} stehen quer zu dieser Schnittzeichnung und sind
+deshalb nur in der Tabelle darunter aufgeführt.</div>
+<div class="eb-diagram-box eb-diagram-scroll" style="margin-top:8px">${kamaSkizze(kamaUebersichtQuelle())}</div>
+<div class="scroll" style="margin-top:8px"><table class="eb-table ra-tab"><tbody>
+${zeilen}
+</tbody></table></div>
+</details>`;
 }
 
 // ---- Anzeige --------------------------------------------------------------
@@ -760,7 +823,9 @@ ${kamaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","kam_lattenabstand",
 <label class="kam-schalter"><input type="checkbox" id="kam_getrennt"${a.getrennt?" checked":""}>
 <span>Links und rechts getrennt erfassen</span></label>
 <div class="small" style="color:var(--muted);margin-top:2px">Ohne Haken gilt jedes seitliche
-Mass für beide Seiten. Mit Haken bekommen A, B, C, D, F, G und die seitliche Höhe je zwei Felder.</div>
+Mass für beide Seiten. Mit Haken bekommen ${kamaBuchstabe("a")}, ${kamaBuchstabe("b")},
+${kamaBuchstabe("c")}, ${kamaBuchstabe("d")}, ${kamaBuchstabe("f")}, ${kamaBuchstabe("g")}
+und die seitliche Höhe (${kamaBuchstabe("hoehe")}) je zwei Felder.</div>
 <div class="bar" style="margin-top:8px">
 <button type="button" class="gray" id="kam_einstellungen">⚙️ Standardwerte</button>
 </div>`;
@@ -785,31 +850,31 @@ function kamaMasseHtml(){
 <button type="button" class="gray${a.skizzeSeite!=="r"?" blue":""}" data-kam-skizze="l">Linke Seite</button>
 <button type="button" class="gray${a.skizzeSeite==="r"?" blue":""}" data-kam-skizze="r">Rechte Seite</button>
 </div>`:"";
- return `<div class="info">Alle Masse in mm, längs des Dachs gemessen. Die beiden Winkel
-sind die, die am Bau abgegriffen werden: der Winkel <b>zwischen Dachfläche und
-Kaminwand</b>, je auf seiner Seite. Vorne (talseitig) ist er <b>stumpf</b>, hinten
-(bergseitig) <b>spitz</b>; bei einem lotrechten Kamin ergeben beide zusammen 180°.
-Auf einem 25°-Dach also <b>115° vorne und 65° hinten</b>. <b>90°</b> hiesse, die Wand
-stünde senkrecht auf dem Dach. Der Keil braucht keinen eigenen Winkel: er halbiert
-den Knick, damit die beiden an ihn grenzenden Abbüge gleich sind.</div>
+ return kamaUebersichtHtml()+`<div class="info">Alle Masse in mm, längs des Dachs gemessen. Die
+beiden Winkel sind die, die am Bau abgegriffen werden: der Winkel <b>zwischen Dachfläche und
+Kaminwand</b>, je auf seiner Seite. Vorne ist er <b>stumpf</b>, hinten <b>spitz</b>; bei einem
+lotrechten Kamin ergeben beide zusammen 180°. Auf einem 25°-Dach also <b>115° vorne und 65°
+hinten</b>. <b>90°</b> hiesse, die Wand stünde senkrecht auf dem Dach. Der Keil braucht keinen
+eigenen Winkel: er halbiert den Knick, damit die beiden an ihn grenzenden Abbüge gleich sind.</div>
 <div class="grid">
-${kamaSeitenFeld("A · vorne auf Deckmaterial bis Vorderkant Kamin","kam_a",true,kaminSettings.mass_vorne)}
-${kamaSeitenFeld("B · Vorderkant Kamin bis Hinterkant Knick","kam_b",true)}
-${kamaSeitenFeld("C · Vorderkant Knick bis Hinterkant Kamin","kam_c",true)}
-${kamaZahlFeld("Überlappung der Seitenteile (Knick)","kam_ueberlappung",a.ueberlappung,"1",true,kaminSettings.ueberlappung)}
-${kamaSeitenFeld("D · Hinterkant Kamin bis hinten unter Deckmaterial","kam_d",true,kaminSettings.mass_hinten)}
-${kamaZahlFeld("E · Mass vom 90°-Aufbug hinten","kam_e",a.e,"1",true,kaminSettings.aufbug_hinten)}
-${kamaZahlFeld("Keil hinterkant Kamin","kam_keil",a.keil,"1",true)}
-${kamaZahlFeld("Winkel Dach/Wand vorne (°) · stumpf","kam_winkelVorne",a.winkelVorne,"0.1",true)}
-${kamaZahlFeld("Winkel Dach/Wand hinten (°) · spitz","kam_winkelHinten",a.winkelHinten,"0.1",true)}
+${kamaSeitenFeld(kamaBuchstabe("a")+" · vorne auf Deckmaterial bis Vorderkant Kamin","kam_a",true,kaminSettings.mass_vorne)}
+${kamaSeitenFeld(kamaBuchstabe("b")+" · Vorderkant Kamin bis Hinterkant Knick","kam_b",true)}
+${kamaSeitenFeld(kamaBuchstabe("c")+" · Vorderkant Knick bis Hinterkant Kamin","kam_c",true)}
+${kamaZahlFeld(kamaBuchstabe("ueberlappung")+" · Überlappung der Seitenteile (Knick)","kam_ueberlappung",a.ueberlappung,"1",true,kaminSettings.ueberlappung)}
+${kamaSeitenFeld(kamaBuchstabe("d")+" · Hinterkant Kamin bis hinten unter Deckmaterial","kam_d",true,kaminSettings.mass_hinten)}
+${kamaZahlFeld(kamaBuchstabe("e")+" · Mass vom 90°-Aufbug hinten","kam_e",a.e,"1",true,kaminSettings.aufbug_hinten)}
+${kamaZahlFeld(kamaBuchstabe("keil")+" · Keil hinterkant Kamin","kam_keil",a.keil,"1",true)}
+${kamaZahlFeld(kamaBuchstabe("winkelVorne")+" · Winkel Dach/Wand vorne (°) · stumpf","kam_winkelVorne",a.winkelVorne,"0.1",true)}
+${kamaZahlFeld(kamaBuchstabe("winkelHinten")+" · Winkel Dach/Wand hinten (°) · spitz","kam_winkelHinten",a.winkelHinten,"0.1",true)}
 </div>
-<div class="small" style="color:var(--muted);margin-top:4px">B und C überlappen sich im
-Knick – die Kaminlänge ist deshalb B + C − Überlappung.</div>
+<div class="small" style="color:var(--muted);margin-top:4px">${kamaBuchstabe("b")} und
+${kamaBuchstabe("c")} überlappen sich im Knick – die Kaminlänge ist deshalb
+${kamaBuchstabe("b")} + ${kamaBuchstabe("c")} − ${kamaBuchstabe("ueberlappung")}.</div>
 <h2 style="margin-top:14px">Seitliche Masse</h2>
 <div class="grid">
-${kamaSeitenFeld("F · seitlich bis Deckmaterial","kam_f",true)}
-${kamaSeitenFeld("G · seitlich unter Deckmaterial","kam_g",true)}
-${kamaSeitenFeld("Seitliche Höhe","kam_hoehe",true)}
+${kamaSeitenFeld(kamaBuchstabe("f")+" · seitlich bis Deckmaterial","kam_f",true)}
+${kamaSeitenFeld(kamaBuchstabe("g")+" · seitlich unter Deckmaterial","kam_g",true)}
+${kamaSeitenFeld(kamaBuchstabe("hoehe")+" · Seitliche Höhe","kam_hoehe",true)}
 </div>
 ${kamaKennzahlenHtml()}
 <h2 style="margin-top:14px">Schnitt</h2>
@@ -822,13 +887,14 @@ function kamaUmschlaegeHtml(){
  const zeile=x=>`<tr><td>${esc(x.name)}${x.seite?" "+esc(x.seite):""}</td>
 <td>${kamaMm(x.laenge)}</td><td><b>${kamaMm(x.breite)}</b></td></tr>`;
  return `<div class="info">Die Umschläge stecken in der Abwicklung, die Breiten sind die
-Zuschnittlängen von Vorder- und Hinterteil. Die Seitenteile bekommen ihre Länge aus B und C.</div>
+Zuschnittlängen von Vorder- und Hinterteil. Die Seitenteile bekommen ihre Länge aus
+${kamaBuchstabe("b")} und ${kamaBuchstabe("c")}.</div>
 <div class="grid">
-${kamaZahlFeld("Umschlag vorne","kam_umschlagVorne",a.umschlagVorne,"1",true,kaminSettings.umschlag_vorne)}
-${kamaZahlFeld("Umschlag hinten","kam_umschlagHinten",a.umschlagHinten,"1",true,kaminSettings.umschlag_hinten)}
-${kamaZahlFeld("Umschlagbreite seitlich (beide Seiten gleich)","kam_umschlagSeite",a.umschlagSeite,"1",true,kaminSettings.umschlag_seite)}
-${kamaZahlFeld("Breite vorne · Zuschnittlänge Vorderteil","kam_breiteVorne",a.breiteVorne,"1",true)}
-${kamaZahlFeld("Breite hinten · Zuschnittlänge Hinterteil","kam_breiteHinten",a.breiteHinten,"1",true)}
+${kamaZahlFeld(kamaBuchstabe("umschlagVorne")+" · Umschlag vorne","kam_umschlagVorne",a.umschlagVorne,"1",true,kaminSettings.umschlag_vorne)}
+${kamaZahlFeld(kamaBuchstabe("umschlagHinten")+" · Umschlag hinten","kam_umschlagHinten",a.umschlagHinten,"1",true,kaminSettings.umschlag_hinten)}
+${kamaZahlFeld(kamaBuchstabe("umschlagSeite")+" · Umschlagbreite seitlich (beide Seiten gleich)","kam_umschlagSeite",a.umschlagSeite,"1",true,kaminSettings.umschlag_seite)}
+${kamaZahlFeld(kamaBuchstabe("breiteVorne")+" · Breite vorne · Zuschnittlänge Vorderteil","kam_breiteVorne",a.breiteVorne,"1",true)}
+${kamaZahlFeld(kamaBuchstabe("breiteHinten")+" · Breite hinten · Zuschnittlänge Hinterteil","kam_breiteHinten",a.breiteHinten,"1",true)}
 </div>
 <h2 style="margin-top:14px">Vorschau</h2>
 <div class="scroll" id="kam_vorschau"><table class="eb-table ra-tab">
@@ -890,20 +956,20 @@ function kamaKontrolleHtml(){
  const uebersicht=`<div class="scroll"><table class="eb-table ra-tab"><tbody>
 ${zeile("Material",kamaMaterialText())}
 ${zeile("Deckungsmaterial",kamaDeckungText())}
-${seitig("A · vorne auf Deckmaterial bis Vorderkant Kamin","a","mm")}
-${seitig("D · Hinterkant Kamin bis hinten unter Deckmaterial","d","mm")}
-${zeile("E · 90°-Aufbug / Keil",kamaMm(a.e)+" / "+kamaMm(a.keil)+" mm")}
+${seitig(kamaBuchstabe("a")+" · vorne auf Deckmaterial bis Vorderkant Kamin","a","mm")}
+${seitig(kamaBuchstabe("d")+" · Hinterkant Kamin bis hinten unter Deckmaterial","d","mm")}
+${zeile(kamaBuchstabe("e")+" / "+kamaBuchstabe("keil")+" · 90°-Aufbug / Keil",kamaMm(a.e)+" / "+kamaMm(a.keil)+" mm")}
 ${kamaZahl(a.keil)>0?zeile("Keil: Abbug / Höhenanteil",
    kamaKeilAbbug(kamaWhIntern(a)).toFixed(1).replace(".",",")+"° / "
    +kamaMm(kamaKeilHoehe(a.keil,kamaWhIntern(a)))+" mm"):""}
-${zeile("Winkel Dach/Wand vorne / hinten",kamaZahl(a.winkelVorne)+"° / "+kamaZahl(a.winkelHinten)+"°")}
-${seitig("B · Seitenteil vorne","b","mm")}
-${seitig("C · Seitenteil hinten","c","mm")}
-${seitig("F / G","f","mm")}
-${seitig("Seitliche Höhe","hoehe","mm")}
-${zeile("Überlappung Knick",kamaMm(a.ueberlappung)+" mm")}
-${zeile("Breite vorne / hinten",kamaMm(a.breiteVorne)+" / "+kamaMm(a.breiteHinten)+" mm")}
-${zeile("Umschlag vorne / hinten / Seite",kamaMm(a.umschlagVorne)+" / "+kamaMm(a.umschlagHinten)+" / "+kamaMm(a.umschlagSeite)+" mm")}
+${zeile(kamaBuchstabe("winkelVorne")+" / "+kamaBuchstabe("winkelHinten")+" · Winkel Dach/Wand vorne / hinten",kamaZahl(a.winkelVorne)+"° / "+kamaZahl(a.winkelHinten)+"°")}
+${seitig(kamaBuchstabe("b")+" · Seitenteil vorne","b","mm")}
+${seitig(kamaBuchstabe("c")+" · Seitenteil hinten","c","mm")}
+${seitig(kamaBuchstabe("f")+" / "+kamaBuchstabe("g"),"f","mm")}
+${seitig(kamaBuchstabe("hoehe")+" · Seitliche Höhe","hoehe","mm")}
+${zeile(kamaBuchstabe("ueberlappung")+" · Überlappung Knick",kamaMm(a.ueberlappung)+" mm")}
+${zeile(kamaBuchstabe("breiteVorne")+" / "+kamaBuchstabe("breiteHinten")+" · Breite vorne / hinten",kamaMm(a.breiteVorne)+" / "+kamaMm(a.breiteHinten)+" mm")}
+${zeile(kamaBuchstabe("umschlagVorne")+" / "+kamaBuchstabe("umschlagHinten")+" / "+kamaBuchstabe("umschlagSeite")+" · Umschlag vorne / hinten / Seite",kamaMm(a.umschlagVorne)+" / "+kamaMm(a.umschlagHinten)+" / "+kamaMm(a.umschlagSeite)+" mm")}
 ${zeile("Blechfläche",kamaQm(kamaFlaecheM2())+" m²")}
 ${zeile("Bleilappen",bl.gesamt!==null?String(bl.gesamt):"–")}
 </tbody></table></div>`;

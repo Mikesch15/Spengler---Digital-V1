@@ -810,12 +810,15 @@ tatsächlich rechnet.</p>`},
 die übrigen. Sie ist als solche gekennzeichnet.</p>`},
 
 "kam-masse":{titel:"Kaminmasse",text:`
-<p>Die Masse längs des Dachs, von vorne nach hinten. <b>B</b> und <b>C</b>
-überlappen sich im Knick – die Kaminlänge ist deshalb B + C minus der
-Überlappung.</p>
-<p>Die beiden <b>Winkel</b> sind der Innenwinkel zwischen Dachfläche und
-Kaminwand: vorne stumpf, hinten spitz. Auf einem 25°-Dach mit lotrechtem
-Kamin also 115° und 65°; zusammen ergeben sie dann 180°.</p>`},
+<p>Alle Masse sind der Reihe nach von vorne (A) nach hinten (Q) durchnummeriert -
+die aufklappbare Übersicht am Anfang dieses Registers zeigt eine Beispielskizze
+mit allen Buchstaben.</p>
+<p>Die Masse längs des Dachs, von vorne nach hinten. <b>E</b> und <b>G</b>
+überlappen sich im Knick – die Kaminlänge ist deshalb E + G minus der
+Überlappung (F).</p>
+<p>Die beiden <b>Winkel</b> (D vorne, M hinten) sind der Innenwinkel zwischen
+Dachfläche und Kaminwand: vorne stumpf, hinten spitz. Auf einem 25°-Dach mit
+lotrechtem Kamin also 115° und 65°; zusammen ergeben sie dann 180°.</p>`},
 
 "kam-umschlaege":{titel:"Umschläge",text:`
 <p>Die Zugaben, die in die Abwicklung der sechs Teile eingehen. Vorbelegt sind
@@ -830,20 +833,25 @@ Lattenabstand gerechnet und aufgerundet – ein abgerundeter Wert würde die
 Länge nicht decken.</p>`},
 
 "dfa-masse":{titel:"Fenstermasse",text:`
+<p>Alle Masse sind der Reihe nach von vorne (A) nach hinten (W) durchnummeriert -
+die aufklappbare Übersicht am Anfang dieses Registers zeigt eine Beispielskizze
+mit allen Buchstaben.</p>
 <p>Die Masse längs des Dachs, von vorne nach hinten – genau gleich vermasst
-wie bei der Kamineinfassung. <b>B</b> und <b>C</b> überlappen sich im Knick –
-die Länge des Seitenteils ist deshalb B + C minus der Überlappung.</p>
-<p>Vorne (talseitig) ist die Aufbordung <b>niedriger</b> und hat oben einen
-<b>Saum</b> (Rückschlag); hinten (bergseitig) ist sie <b>höher</b> und bewusst
-<b>trapezförmig</b> – Breite oben ist kleiner als Breite unten.</p>
-<p>An der oberen Ecke sitzt ein kleiner gestrichelter <b>Strich</b> – Rand-Abstand
-ist der Abstand ab der Ecke, Rand-Strich seine Länge.</p>
-<p>Ganz hinten, hinter D, sitzt ein kleiner <b>90°-Aufbug (E)</b> – genau wie bei
-der Kamineinfassung – mit einem eigenen <b>180°-Umschlag</b> an seiner Spitze.
-Ganz vorne, vor A, sitzt spiegelbildlich der <b>Anreiff</b>, ebenfalls mit
-eigenem 180°-Umschlag.</p>
+wie bei der Kamineinfassung. <b>G</b> und <b>I</b> überlappen sich im Knick –
+die Länge des Seitenteils ist deshalb G + I minus der Überlappung (H).</p>
+<p>Vorne ist die Aufbordung <b>niedriger</b> (D · Aufbordungshöhe vorne) und hat
+oben einen Saum (Rückschlag); hinten ist sie <b>höher</b> (Q · Aufbordungshöhe
+hinten) und bewusst <b>trapezförmig</b> – Breite oben (M) ist kleiner als Breite
+unten (N). Die <b>F · Aufbordungshöhe Seite</b> gilt für die ganze Seite und
+wird nicht links/rechts getrennt erfasst.</p>
+<p>An der oberen Ecke sitzt ein kleiner gestrichelter Strich – Rand-Abstand (O)
+ist der Abstand ab der Ecke, Rand-Strich (P) seine Länge.</p>
+<p>Ganz hinten, hinter S, sitzt ein kleiner <b>90°-Aufbug (T)</b> – genau wie bei
+der Kamineinfassung – mit einem eigenen 180°-Umschlag (U) an seiner Spitze.
+Ganz vorne, vor C, sitzt spiegelbildlich der <b>Anreiff (A)</b>, ebenfalls mit
+eigenem 180°-Umschlag (B).</p>
 <p>Bei den <b>seitlichen Massen</b> kommen – genau wie bei der Kamineinfassung –
-<b>F</b> (seitlich bis Deckmaterial) und <b>G</b> (seitlich unter Deckmaterial)
+<b>J</b> (seitlich bis Deckmaterial) und <b>K</b> (seitlich unter Deckmaterial)
 dazu; sie gehen in die Abwicklung der Seitenteile ein, haben aber keinen
 Vorgabewert.</p>`},
 
@@ -851,10 +859,10 @@ Vorgabewert.</p>`},
 <p>Die Zugaben, die in die Abwicklung der acht Teile eingehen. Vorbelegt sind
 die Werte aus den Einstellungen; hier gelten sie nur für diese
 Massaufnahme.</p>
-<p><b>Breite vorne/hinten</b> sind vom Anwender erfasste Fenstermasse – die
+<p><b>Breite vorne/hinten (V/W)</b> sind vom Anwender erfasste Fenstermasse – die
 tatsächliche Zuschnittlänge von Vorderteil und Hinterteil kommt zusätzlich
-dazu, sie reicht seitlich bis zu den Seitenteilen (2× Umschlag Seite + F
-links/rechts + G links/rechts dazu).</p>`},
+dazu, sie reicht seitlich bis zu den Seitenteilen (2× Umschlag Seite (L) + J
+links/rechts + K links/rechts dazu).</p>`},
 
 "dfa-stueckliste":{titel:"Stückliste",text:`
 <p>Acht Zuschnitte: Vorderteil, Hinterteil und je DREI Seitenteile (vorne,

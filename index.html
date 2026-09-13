@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.87</div>
+<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.88</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1994,13 +1994,13 @@ Gehrung: gilt an jeder Ecke (Segment mit Winkel ≠ 0), zusätzlich zu Boden (an
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="kamsDeckung"></select></div>
 <div><label>Lattenabstand Bleilappen (mm)</label><input id="kamsLattenabstand" type="number" step="1"></div>
-<div><label>Umschlag vorne (mm)</label><input id="kamsUmschlagVorne" type="number" step="1"></div>
-<div><label>Umschlag hinten (mm)</label><input id="kamsUmschlagHinten" type="number" step="1"></div>
-<div><label>Umschlag seitlich (mm)</label><input id="kamsUmschlagSeite" type="number" step="1"></div>
-<div><label>&Uuml;berlappung der Seitenteile (mm)</label><input id="kamsUeberlappung" type="number" step="1"></div>
+<div><label>B &middot; Umschlag vorne (mm)</label><input id="kamsUmschlagVorne" type="number" step="1"></div>
+<div><label>N &middot; Umschlag hinten (mm)</label><input id="kamsUmschlagHinten" type="number" step="1"></div>
+<div><label>J &middot; Umschlag seitlich (mm)</label><input id="kamsUmschlagSeite" type="number" step="1"></div>
+<div><label>F &middot; &Uuml;berlappung der Seitenteile (mm)</label><input id="kamsUeberlappung" type="number" step="1"></div>
 <div><label>A &middot; vorne auf Deckmaterial (mm)</label><input id="kamsMassVorne" type="number" step="1"></div>
-<div><label>D &middot; hinten unter Deckmaterial (mm)</label><input id="kamsMassHinten" type="number" step="1"></div>
-<div><label>E &middot; 90&deg;-Aufbug hinten (mm)</label><input id="kamsAufbugHinten" type="number" step="1"></div>
+<div><label>K &middot; hinten unter Deckmaterial (mm)</label><input id="kamsMassHinten" type="number" step="1"></div>
+<div><label>O &middot; 90&deg;-Aufbug hinten (mm)</label><input id="kamsAufbugHinten" type="number" step="1"></div>
 </div>
 <div class="bar" style="margin-bottom:14px">
 <button id="saveKaminSettings" class="green">💾 Werte speichern</button>
@@ -2015,23 +2015,23 @@ Gehrung: gilt an jeder Ecke (Segment mit Winkel ≠ 0), zusätzlich zu Boden (an
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="dfasDeckung"></select></div>
 <div><label>Lattenabstand Bleilappen (mm)</label><input id="dfasLattenabstand" type="number" step="1"></div>
-<div><label>Umschlag vorne (mm)</label><input id="dfasUmschlagVorne" type="number" step="1"></div>
-<div><label>Umschlag hinten (mm)</label><input id="dfasUmschlagHinten" type="number" step="1"></div>
-<div><label>Umschlag seitlich (mm)</label><input id="dfasUmschlagSeite" type="number" step="1"></div>
-<div><label>&Uuml;berlappung der Seitenteile (mm)</label><input id="dfasUeberlappung" type="number" step="1"></div>
-<div><label>A &middot; vorne auf Deckmaterial (mm)</label><input id="dfasMassVorne" type="number" step="1"></div>
-<div><label>D &middot; hinten unter Deckmaterial (mm)</label><input id="dfasMassHinten" type="number" step="1"></div>
-<div><label>Saum/R&uuml;ckschlag vorne (mm)</label><input id="dfasSaumVorne" type="number" step="1"></div>
-<div><label>Breite oben, Aufbordung hinten (mm)</label><input id="dfasBreiteOben" type="number" step="1"></div>
-<div><label>Breite unten, Aufbordung hinten (mm)</label><input id="dfasBreiteUnten" type="number" step="1"></div>
-<div><label>Rand-Abstand, obere Ecke bis Strich am Kopf (mm)</label><input id="dfasRandAbstand" type="number" step="1"></div>
-<div><label>Rand-Strich, Länge am Kopf (mm)</label><input id="dfasRandStrich" type="number" step="1"></div>
-<div><label>E &middot; 90&deg;-Aufbug hinten, hinter D (mm)</label><input id="dfasE" type="number" step="1"></div>
-<div><label>Umschlag am Aufbug hinten, 180&deg; (mm)</label><input id="dfasEUmschlag" type="number" step="1"></div>
-<div><label>Anreiff vorne, vor A (mm)</label><input id="dfasAnreiff" type="number" step="1"></div>
-<div><label>Umschlag am Anreiff vorne, 180&deg; (mm)</label><input id="dfasAnreiffUmschlag" type="number" step="1"></div>
-<div><label>Aufbordungsh&ouml;he vorne, Vorgabe (mm)</label><input id="dfasAufVorne" type="number" step="1"></div>
-<div><label>Aufbordungsh&ouml;he hinten, Vorgabe (mm)</label><input id="dfasAufHinten" type="number" step="1"></div>
+<div><label>E &middot; Umschlag vorne (mm)</label><input id="dfasUmschlagVorne" type="number" step="1"></div>
+<div><label>R &middot; Umschlag hinten (mm)</label><input id="dfasUmschlagHinten" type="number" step="1"></div>
+<div><label>L &middot; Umschlag seitlich (mm)</label><input id="dfasUmschlagSeite" type="number" step="1"></div>
+<div><label>H &middot; &Uuml;berlappung der Seitenteile (mm)</label><input id="dfasUeberlappung" type="number" step="1"></div>
+<div><label>C &middot; vorne auf Deckmaterial (mm)</label><input id="dfasMassVorne" type="number" step="1"></div>
+<div><label>S &middot; hinten unter Deckmaterial (mm)</label><input id="dfasMassHinten" type="number" step="1"></div>
+<div><label>D &middot; Aufbordungsh&ouml;he vorne, Vorgabe (mm)</label><input id="dfasSaumVorne" type="number" step="1"></div>
+<div><label>M &middot; Breite oben, Aufbordung hinten (mm)</label><input id="dfasBreiteOben" type="number" step="1"></div>
+<div><label>N &middot; Breite unten, Aufbordung hinten (mm)</label><input id="dfasBreiteUnten" type="number" step="1"></div>
+<div><label>O &middot; Rand-Abstand, obere Ecke bis Strich am Kopf (mm)</label><input id="dfasRandAbstand" type="number" step="1"></div>
+<div><label>P &middot; Rand-Strich, L&auml;nge am Kopf (mm)</label><input id="dfasRandStrich" type="number" step="1"></div>
+<div><label>T &middot; 90&deg;-Aufbug hinten, hinter S (mm)</label><input id="dfasE" type="number" step="1"></div>
+<div><label>U &middot; Umschlag am Aufbug hinten, 180&deg; (mm)</label><input id="dfasEUmschlag" type="number" step="1"></div>
+<div><label>A &middot; Anreiff vorne, vor C (mm)</label><input id="dfasAnreiff" type="number" step="1"></div>
+<div><label>B &middot; Umschlag am Anreiff vorne, 180&deg; (mm)</label><input id="dfasAnreiffUmschlag" type="number" step="1"></div>
+<div><label>F &middot; Aufbordungsh&ouml;he Seite, Vorgabe (mm)</label><input id="dfasAufVorne" type="number" step="1"></div>
+<div><label>Q &middot; Aufbordungsh&ouml;he hinten, Vorgabe (mm)</label><input id="dfasAufHinten" type="number" step="1"></div>
 </div>
 <div class="bar" style="margin-bottom:14px">
 <button id="saveDfaSettings" class="green">💾 Werte speichern</button>

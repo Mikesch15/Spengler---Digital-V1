@@ -557,13 +557,21 @@ const FALL={
  });
  p(sk.svg,"die Skizze ist eine SVG");
  const hat=t=>sk.html.indexOf(t)>=0;
- p(hat("A = 300")&&hat("D = 250"),"A und D bemasst");
- p(hat("B = 500")&&hat("C = 400"),"B und C bemasst");
- p(hat("Höhe = 400"),"seitliche Höhe bemasst");
- p(hat("Keil = 80"),"Keil bemasst");
- p(hat("E = 60"),"E · 90°-Aufbug bemasst");
- p(hat("Winkel vorne 115°")&&hat("Winkel hinten 65°"),"beide Winkel beschriftet");
- p(hat("Knick 120"),"Knick als Masskette zwischen den beiden Kanten");
+ // v3.87: alle Masse der Kamineinfassung wurden von vorne nach hinten neu
+ // durchnummeriert (kamaBuchstabe/KAM_MASSLISTE) - A/D/B/C/E/Hoehe/Keil/
+ // Winkel/Knick sind seither andere Buchstaben als vor dieser Aenderung, die
+ // Werte selbst sind unveraendert. Die Buchstaben werden aus der Quelle
+ // selbst geholt (nicht hier verdoppelt), damit eine spaetere Umsortierung
+ // der Liste diesen Pruefstand nicht stillschweigend falsch macht.
+ const bst=await page.evaluate(()=>["a","b","c","d","e","hoehe","keil","winkelVorne","winkelHinten","ueberlappung"]
+  .reduce((o,k)=>{o[k]=kamaBuchstabe(k);return o},{}));
+ p(hat(bst.a+" = 300")&&hat(bst.d+" = 250"),"A und D bemasst");
+ p(hat(bst.b+" = 500")&&hat(bst.c+" = 400"),"B und C bemasst");
+ p(hat(bst.hoehe+" = 400"),"seitliche Höhe bemasst");
+ p(hat(bst.keil+" = 80"),"Keil bemasst");
+ p(hat(bst.e+" = 60"),"E · 90°-Aufbug bemasst");
+ p(hat(bst.winkelVorne+" = 115°")&&hat(bst.winkelHinten+" = 65°"),"beide Winkel beschriftet");
+ p(hat(bst.ueberlappung+" = 120"),"Knick als Masskette zwischen den beiden Kanten");
  p(/stroke-dasharray="7 5"/.test(sk.html),"Hinterkant Knick gestrichelt (verdeckte Kante)");
  p(!/NaN|Infinity/.test(sk.html),"kein NaN in der Skizze");
  const skLeer=await page.evaluate(()=>{const alt=kamA;kamA=kamaLeer();

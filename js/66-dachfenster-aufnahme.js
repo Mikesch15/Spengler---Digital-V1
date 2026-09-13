@@ -126,8 +126,8 @@ const DFA_STANDARD=Object.freeze({
  ueberlappung:120,       // Ueberlappung der Seitenteile (Knick) - wie kam
  mass_vorne:183,         // A, vorne auf Deckmaterial bis Vorderkant Aufbordung
  mass_hinten:200,        // D, Hinterkant Aufbordung bis hinten unter Deckmaterial
- auf_vorne:80,           // Aufbordungshoehe vorne (talseitig), Vorgabe
- auf_hinten:120,         // Aufbordungshoehe hinten (bergseitig), Vorgabe
+ auf_vorne:80,           // Aufbordungshoehe Seite, Vorgabe
+ auf_hinten:120,         // Aufbordungshoehe hinten, Vorgabe
  e:35,                   // Mass vom 90-Grad-Aufbug hinten, hinter D - wie kam
  e_umschlag:15,          // Umschlag (180 Grad) an der Spitze des Aufbugs hinten
  anreiff:15,             // Anreiff vorne, vor A
@@ -175,7 +175,7 @@ function dfaLeer(){
   umschlagVorne:"", umschlagHinten:"", umschlagSeite:"",
   breiteVorne:"", breiteHinten:"",
   b:{l:"",r:""}, c:{l:"",r:""}, f:{l:"",r:""}, g:{l:"",r:""},
-  aufVorne:{l:"",r:""}, aufHinten:{l:"",r:""},
+  aufVorne:"", aufHinten:"",
   rollenAuswahl:[]
  };
 }
@@ -197,12 +197,11 @@ function dfaSeiteRoh(feld,seite,quelle){
  if(!w||typeof w!=="object")return w;
  return q.getrennt?(seite==="r"?w.r:w.l):w.l;
 }
-function dfaAufVorneMax(){ return Math.max(dfaSeite("aufVorne","l"),dfaSeite("aufVorne","r")) }
-function dfaAufHintenMax(){ return Math.max(dfaSeite("aufHinten","l"),dfaSeite("aufHinten","r")) }
-// D speist das eine durchgehende Hinterteil, auch wenn es links und rechts
-// getrennt erfasst wird. Dieselbe Regel wie bei den Aufbordungshoehen: mit
-// der GROESSEREN Seite rechnen - ein zu kurzer Zuschnitt waere unbrauchbar,
-// ein zu langer laesst sich kuerzen.
+// A und D speisen je ein durchgehendes Teil (Vorder-/Hinterteil), auch wenn
+// sie links und rechts getrennt erfasst werden. Dieselbe Regel wie bei den
+// Aufbordungshoehen: mit der GROESSEREN Seite rechnen - ein zu kurzer
+// Zuschnitt waere unbrauchbar, ein zu langer laesst sich kuerzen.
+function dfaADurchgehend(){ return Math.max(dfaSeite("a","l"),dfaSeite("a","r")) }
 function dfaDDurchgehend(){ return Math.max(dfaSeite("d","l"),dfaSeite("d","r")) }
 // Laenge laengs Dach - B und C ueberlappen sich um die Knickbreite, exakt wie
 // kamaKaminLaenge() in js/37.
@@ -246,24 +245,25 @@ function dfaZuschnitte(){
    +dfaSeite("f","l")+dfaSeite("f","r")+dfaSeite("g","l")+dfaSeite("g","r");
  dazu("Vorderteil","vorne","",dfaZahl(a.breiteVorne)+seitlicheZugabe,[
   {name:"Umschlag vorne",wert:dfaZahl(a.umschlagVorne)},
-  {name:"Aufbordungshöhe vorne",wert:dfaAufVorneMax()},
-  {name:"Saum oben",wert:dfaZahl(a.saumVorne)},
+  {name:"Aufbordungshöhe Seite",wert:dfaZahl(a.aufVorne)},
+  {name:"Aufbordungshöhe vorne",wert:dfaZahl(a.saumVorne)},
+  {name:dfaBuchstabe("a")+" · vorne auf Deckmaterial bis Vorderkant Aufbordung",wert:dfaADurchgehend()},
   {name:"Anreiff",wert:dfaZahl(a.anreiff)},
   {name:"Umschlag Anreiff",wert:dfaZahl(a.anreiffUmschlag)}]);
  dazu("Hinterteil","hinten","",dfaZahl(a.breiteHinten)+seitlicheZugabe,[
   {name:"Umschlag hinten",wert:dfaZahl(a.umschlagHinten)},
-  {name:"Aufbordungshöhe hinten",wert:dfaAufHintenMax()},
+  {name:"Aufbordungshöhe hinten",wert:dfaZahl(a.aufHinten)},
   {name:"Rand-Abstand",wert:dfaZahl(a.randAbstand)},
   {name:"Rand-Strich am Kopf",wert:dfaZahl(a.randStrich)},
-  {name:"D · Hinterkant Aufbordung bis Aufbug",wert:dfaDDurchgehend()},
-  {name:"Aufbug hinten (E)",wert:dfaZahl(a.e)},
+  {name:dfaBuchstabe("d")+" · Hinterkant Aufbordung bis Aufbug",wert:dfaDDurchgehend()},
+  {name:"Aufbug hinten ("+dfaBuchstabe("e")+")",wert:dfaZahl(a.e)},
   {name:"Umschlag Aufbug",wert:dfaZahl(a.eUmschlag)}]);
  DFA_SEITEN.forEach(s=>{
-  const h=Math.max(dfaSeite("aufVorne",s.k),dfaSeite("aufHinten",s.k));
+  const h=Math.max(dfaZahl(a.aufVorne),dfaZahl(a.aufHinten));
   const teile=[
    {name:"Umschlag Seite",wert:dfaZahl(a.umschlagSeite)},
-   {name:"Mass G · unter Deckmaterial",wert:dfaSeite("g",s.k)},
-   {name:"Mass F · bis Deckmaterial",wert:dfaSeite("f",s.k)},
+   {name:"Mass "+dfaBuchstabe("g")+" · unter Deckmaterial",wert:dfaSeite("g",s.k)},
+   {name:"Mass "+dfaBuchstabe("f")+" · bis Deckmaterial",wert:dfaSeite("f",s.k)},
    {name:"Aufbordungshöhe (grösseres Mass)",wert:h}];
   dazu("Seitenteil vorne","seite",s.name,dfaSeite("b",s.k),teile.map(x=>Object.assign({},x)));
   dazu("Seitenteil Mitte","seite",s.name,Math.max(0,dfaSeite("c",s.k)-DFA_HINTERKANTE_RUECKLAUF),teile.map(x=>Object.assign({},x)));
@@ -308,7 +308,7 @@ function dfaSkizze(quelle){
  const q=quelle||dfaA;
  const seite=q.getrennt?(q.skizzeSeite==="r"?"r":"l"):"l";
  const A=dfaSeite("a",seite,q), D=dfaSeite("d",seite,q), Ue=dfaZahl(q.ueberlappung);
- const av=dfaSeite("aufVorne",seite,q), ah=dfaSeite("aufHinten",seite,q);
+ const av=dfaZahl(q.aufVorne), ah=dfaZahl(q.aufHinten);
  const saum=dfaZahl(q.saumVorne), bo=dfaZahl(q.breiteOben), bu=dfaZahl(q.breiteUnten);
  const randAbstand=dfaZahl(q.randAbstand), randStrich=dfaZahl(q.randStrich);
  const E=dfaZahl(q.e), eUmschlag=dfaZahl(q.eUmschlag);
@@ -317,8 +317,8 @@ function dfaSkizze(quelle){
  const L=dfaLaenge(seite,q);
  if(!(av>0&&ah>0)||!(L>0)||!(bu>bo))
   return `<div class="ra-warnung">Für die Schnittskizze fehlen noch Masse: bitte
-B, C, beide Aufbordungshöhen sowie Breite oben/unten (unten grösser als oben)
-eingeben.</div>`;
+${dfaBuchstabe("b")}, ${dfaBuchstabe("c")}, beide Aufbordungshöhen sowie Breite
+oben/unten (unten grösser als oben) eingeben.</div>`;
 
  const P=(x,y)=>[x,y];
  // Vordere Aufbordung mit Saum (Fuss bei 0).
@@ -450,29 +450,29 @@ eingeben.</div>`;
  //   Dach/A/D (0)  <  Breite unten (-34, unter dem Dach)
  //   Knick (av*0.5)  <  B (av+34)  <  Breite oben (ah+34)  <  C (ganz oben)
  // A und D zeigen nach INNEN, wie beim Kamin.
- if(A>0){g+=anbMassWaag(-A,0,0,"A = "+zahl(A),X,Y,true); merkMassWaag(-A,0,0,"A = "+zahl(A),true)}
- if(D>0){g+=anbMassWaag(L,L+D,0,"D = "+zahl(D),X,Y,true); merkMassWaag(L,L+D,0,"D = "+zahl(D),true)}
- g+=anbMassWaag(Q0[0],Q3[0],-34,"Breite unten = "+zahl(bu),X,Y,true);
- merkMassWaag(Q0[0],Q3[0],-34,"Breite unten = "+zahl(bu),true);
+ if(A>0){g+=anbMassWaag(-A,0,0,dfaBuchstabe("a")+" = "+zahl(A),X,Y,true); merkMassWaag(-A,0,0,dfaBuchstabe("a")+" = "+zahl(A),true)}
+ if(D>0){g+=anbMassWaag(L,L+D,0,dfaBuchstabe("d")+" = "+zahl(D),X,Y,true); merkMassWaag(L,L+D,0,dfaBuchstabe("d")+" = "+zahl(D),true)}
+ g+=anbMassWaag(Q0[0],Q3[0],-34,dfaBuchstabe("breiteUnten")+" = "+zahl(bu),X,Y,true);
+ merkMassWaag(Q0[0],Q3[0],-34,dfaBuchstabe("breiteUnten")+" = "+zahl(bu),true);
  if(knickDa){
-  g+=anbMassWaag(knickVorne,knickHinten,av*0.5,"Knick "+zahl(Ue),X,Y,false);
-  merkMassWaag(knickVorne,knickHinten,av*0.5,"Knick "+zahl(Ue),false);
+  g+=anbMassWaag(knickVorne,knickHinten,av*0.5,dfaBuchstabe("ueberlappung")+" = "+zahl(Ue),X,Y,false);
+  merkMassWaag(knickVorne,knickHinten,av*0.5,dfaBuchstabe("ueberlappung")+" = "+zahl(Ue),false);
  }
- if(B>0){g+=anbMassWaag(0,knickHinten,av+34,"B = "+zahl(B),X,Y,false); merkMassWaag(0,knickHinten,av+34,"B = "+zahl(B),false)}
+ if(B>0){g+=anbMassWaag(0,knickHinten,av+34,dfaBuchstabe("b")+" = "+zahl(B),X,Y,false); merkMassWaag(0,knickHinten,av+34,dfaBuchstabe("b")+" = "+zahl(B),false)}
  if(strichDa){
   const fahneR=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
-  fahneR(Rs[0],ah-randStrich/2,-46,14,"Rand "+zahl(randAbstand)+" / "+zahl(randStrich));
+  fahneR(Rs[0],ah-randStrich/2,-46,14,dfaBuchstabe("randAbstand")+" / "+dfaBuchstabe("randStrich")+" = "+zahl(randAbstand)+" / "+zahl(randStrich));
  }
- g+=anbMassWaag(Q1[0],Q2[0],ah+34,"Breite oben = "+zahl(bo),X,Y,false);
- merkMassWaag(Q1[0],Q2[0],ah+34,"Breite oben = "+zahl(bo),false);
- if(C>0){g+=anbMassWaag(knickVorne,L,Math.max(av,ah)+72,"C = "+zahl(C),X,Y,false); merkMassWaag(knickVorne,L,Math.max(av,ah)+72,"C = "+zahl(C),false)}
- g+=anbMassSenk(0,av,dachVon-56,"Aufbordung vorne = "+zahl(av),X,Y);
- merkMassSenk(0,av,dachVon-56,"Aufbordung vorne = "+zahl(av));
- g+=anbMassSenk(0,ah,dachBis+22,"Aufbordung hinten = "+zahl(ah),X,Y);
- merkMassSenk(0,ah,dachBis+22,"Aufbordung hinten = "+zahl(ah));
+ g+=anbMassWaag(Q1[0],Q2[0],ah+34,dfaBuchstabe("breiteOben")+" = "+zahl(bo),X,Y,false);
+ merkMassWaag(Q1[0],Q2[0],ah+34,dfaBuchstabe("breiteOben")+" = "+zahl(bo),false);
+ if(C>0){g+=anbMassWaag(knickVorne,L,Math.max(av,ah)+72,dfaBuchstabe("c")+" = "+zahl(C),X,Y,false); merkMassWaag(knickVorne,L,Math.max(av,ah)+72,dfaBuchstabe("c")+" = "+zahl(C),false)}
+ g+=anbMassSenk(0,av,dachVon-56,dfaBuchstabe("aufVorne")+" = "+zahl(av),X,Y);
+ merkMassSenk(0,av,dachVon-56,dfaBuchstabe("aufVorne")+" = "+zahl(av));
+ g+=anbMassSenk(0,ah,dachBis+22,dfaBuchstabe("aufHinten")+" = "+zahl(ah),X,Y);
+ merkMassSenk(0,ah,dachBis+22,dfaBuchstabe("aufHinten")+" = "+zahl(ah));
  if(saum>0){
   const fahneS=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
-  fahneS(0,av-saum/2,-40,-8,"Saum = "+zahl(saum));
+  fahneS(0,av-saum/2,-40,-8,dfaBuchstabe("saumVorne")+" = "+zahl(saum));
  }
  // Hoch ueber der Zeichnung (wie C, nur noch hoeher) und zur Mitte hin
  // ausgerichtet - der Platz rechts von E bzw. links von Anreiff ist durch
@@ -480,11 +480,11 @@ eingeben.</div>`;
  // Kamineinfassung nicht gibt), der Platz zur Mitte hin ist frei.
  if(E>0){
   const fahneE=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
-  fahneE(E1[0],E1[1],-8,-95,"E = "+zahl(E)+" · 90°"+(eUmschlag>0?" / Umschlag "+zahl(eUmschlag):""));
+  fahneE(E1[0],E1[1],-8,-95,dfaBuchstabe("e")+" = "+zahl(E)+" · 90°"+(eUmschlag>0?" / "+dfaBuchstabe("eUmschlag")+" = "+zahl(eUmschlag):""));
  }
  if(anreiff>0){
   const fahneF=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
-  fahneF(F1[0],F1[1],8,-95,"Anreiff = "+zahl(anreiff)+(anreiffUmschlag>0?" / Umschlag "+zahl(anreiffUmschlag):""));
+  fahneF(F1[0],F1[1],8,-95,dfaBuchstabe("anreiff")+" = "+zahl(anreiff)+(anreiffUmschlag>0?" / "+dfaBuchstabe("anreiffUmschlag")+" = "+zahl(anreiffUmschlag):""));
  }
 
  const seiteTxt=q.getrennt?(seite==="r"?" · rechte Seite":" · linke Seite"):"";
@@ -581,8 +581,9 @@ function dfaAusmassZeilen(){
  if(bl.gesamt!==null)
   zeile("Bleilappen",String(bl.gesamt),"Stk.","je Seitenteil aufgerundet aus Länge ÷ Lattenabstand",true);
  const Ll=dfaLaenge("l"), Lr=dfaLaenge("r");
- if(Ll>0)zeile("Länge Seitenteil"+(dfaA.getrennt?" links":""),dfaMm(Ll),"mm","B + C − Überlappung");
- if(dfaA.getrennt&&Lr>0)zeile("Länge Seitenteil rechts",dfaMm(Lr),"mm","B + C − Überlappung");
+ const bcFormel=dfaBuchstabe("b")+" + "+dfaBuchstabe("c")+" − Überlappung";
+ if(Ll>0)zeile("Länge Seitenteil"+(dfaA.getrennt?" links":""),dfaMm(Ll),"mm",bcFormel);
+ if(dfaA.getrennt&&Lr>0)zeile("Länge Seitenteil rechts",dfaMm(Lr),"mm",bcFormel);
  // v3.53: der Umfang der Einfassung, wie sie in der Dachschräge liegt - genau
  // wie bei der Kamineinfassung (js/37) sind alle vier Seiten bereits im
  // Dachsystem gemessen, es braucht deshalb keine Umrechnung der Dachneigung.
@@ -609,62 +610,60 @@ function dfaPruefungen(){
  // "fehlt" - nicht "ist nicht groesser als 0" wie bei fehlt() oben.
  const fehltLeer=(wert,text)=>{if(wert===""||wert===null||wert===undefined)m.push({art:"fehler",text})};
  if(!a.material)m.push({art:"warnung",text:"Es ist noch kein Material gewählt."});
- fehlt(a.breiteVorne,"Die Breite vorne (Zuschnittlänge Vorderteil) fehlt.");
- fehlt(a.breiteHinten,"Die Breite hinten (Zuschnittlänge Hinterteil) fehlt.");
- fehlt(a.breiteOben,"Breite oben (Kopf der hinteren Aufbordung) fehlt.");
- fehlt(a.breiteUnten,"Breite unten (Fuss der hinteren Aufbordung) fehlt.");
- fehltLeer(a.ueberlappung,"Überlappung der Seitenteile (Knick) fehlt.");
- fehltLeer(a.saumVorne,"Saum/Rückschlag vorne fehlt.");
- fehltLeer(a.randAbstand,"Rand-Abstand fehlt.");
- fehltLeer(a.randStrich,"Rand-Strich fehlt.");
- fehltLeer(a.e,"Mass E (90°-Aufbug hinten) fehlt.");
- fehltLeer(a.eUmschlag,"Umschlag am Aufbug hinten fehlt.");
- fehltLeer(a.anreiff,"Anreiff vorne fehlt.");
- fehltLeer(a.anreiffUmschlag,"Umschlag am Anreiff vorne fehlt.");
- fehltLeer(a.umschlagVorne,"Umschlag vorne fehlt.");
- fehltLeer(a.umschlagHinten,"Umschlag hinten fehlt.");
- fehltLeer(a.umschlagSeite,"Umschlag seitlich fehlt.");
+ fehlt(a.breiteVorne,dfaBuchstabe("breiteVorne")+" · Die Breite vorne (Zuschnittlänge Vorderteil) fehlt.");
+ fehlt(a.breiteHinten,dfaBuchstabe("breiteHinten")+" · Die Breite hinten (Zuschnittlänge Hinterteil) fehlt.");
+ fehlt(a.breiteOben,dfaBuchstabe("breiteOben")+" · Breite oben (Kopf der hinteren Aufbordung) fehlt.");
+ fehlt(a.breiteUnten,dfaBuchstabe("breiteUnten")+" · Breite unten (Fuss der hinteren Aufbordung) fehlt.");
+ fehltLeer(a.ueberlappung,dfaBuchstabe("ueberlappung")+" · Überlappung der Seitenteile (Knick) fehlt.");
+ fehltLeer(a.saumVorne,dfaBuchstabe("saumVorne")+" · Aufbordungshöhe vorne fehlt.");
+ fehlt(a.aufVorne,dfaBuchstabe("aufVorne")+" · Aufbordungshöhe Seite fehlt.");
+ fehlt(a.aufHinten,dfaBuchstabe("aufHinten")+" · Aufbordungshöhe hinten fehlt.");
+ fehltLeer(a.randAbstand,dfaBuchstabe("randAbstand")+" · Rand-Abstand fehlt.");
+ fehltLeer(a.randStrich,dfaBuchstabe("randStrich")+" · Rand-Strich fehlt.");
+ fehltLeer(a.e,dfaBuchstabe("e")+" · 90°-Aufbug hinten fehlt.");
+ fehltLeer(a.eUmschlag,dfaBuchstabe("eUmschlag")+" · Umschlag am Aufbug hinten fehlt.");
+ fehltLeer(a.anreiff,dfaBuchstabe("anreiff")+" · Anreiff vorne fehlt.");
+ fehltLeer(a.anreiffUmschlag,dfaBuchstabe("anreiffUmschlag")+" · Umschlag am Anreiff vorne fehlt.");
+ fehltLeer(a.umschlagVorne,dfaBuchstabe("umschlagVorne")+" · Umschlag vorne fehlt.");
+ fehltLeer(a.umschlagHinten,dfaBuchstabe("umschlagHinten")+" · Umschlag hinten fehlt.");
+ fehltLeer(a.umschlagSeite,dfaBuchstabe("umschlagSeite")+" · Umschlag seitlich fehlt.");
  fehltLeer(a.lattenabstand,"Lattenabstand fehlt.");
  if(dfaZahl(a.breiteOben)>0&&dfaZahl(a.breiteUnten)>0&&dfaZahl(a.breiteUnten)<=dfaZahl(a.breiteOben))
   m.push({art:"fehler",text:"Breite unten muss grösser sein als Breite oben – sonst ist es kein Trapez."});
  DFA_SEITEN.forEach(s=>{
   const zusatz=a.getrennt?" ("+s.name+")":"";
-  fehlt(dfaSeite("a",s.k),"Mass A, vorne auf Deckmaterial bis Vorderkant Aufbordung"+zusatz+", fehlt.");
-  fehlt(dfaSeite("b",s.k),"Mass B, Vorderkant Aufbordung bis Hinterkant Knick"+zusatz+", fehlt.");
-  fehlt(dfaSeite("c",s.k),"Mass C, Vorderkant Knick bis Hinterkant Aufbordung"+zusatz+", fehlt.");
-  fehlt(dfaSeite("d",s.k),"Mass D, Hinterkant Aufbordung bis hinten unter Deckmaterial"+zusatz+", fehlt.");
-  fehlt(dfaSeite("aufVorne",s.k),"Die Aufbordungshöhe vorne"+zusatz+" fehlt.");
-  fehlt(dfaSeite("aufHinten",s.k),"Die Aufbordungshöhe hinten"+zusatz+" fehlt.");
-  fehltLeer(dfaSeiteRoh("f",s.k),"Mass F, seitlich bis Deckmaterial"+zusatz+", fehlt.");
-  fehltLeer(dfaSeiteRoh("g",s.k),"Mass G, seitlich unter Deckmaterial"+zusatz+", fehlt.");
+  fehlt(dfaSeite("a",s.k),"Mass "+dfaBuchstabe("a")+", vorne auf Deckmaterial bis Vorderkant Aufbordung"+zusatz+", fehlt.");
+  fehlt(dfaSeite("b",s.k),"Mass "+dfaBuchstabe("b")+", Vorderkant Aufbordung bis Hinterkant Knick"+zusatz+", fehlt.");
+  fehlt(dfaSeite("c",s.k),"Mass "+dfaBuchstabe("c")+", Vorderkant Knick bis Hinterkant Aufbordung"+zusatz+", fehlt.");
+  fehlt(dfaSeite("d",s.k),"Mass "+dfaBuchstabe("d")+", Hinterkant Aufbordung bis hinten unter Deckmaterial"+zusatz+", fehlt.");
+  fehltLeer(dfaSeiteRoh("f",s.k),"Mass "+dfaBuchstabe("f")+", seitlich bis Deckmaterial"+zusatz+", fehlt.");
+  fehltLeer(dfaSeiteRoh("g",s.k),"Mass "+dfaBuchstabe("g")+", seitlich unter Deckmaterial"+zusatz+", fehlt.");
   if(!a.getrennt)return;
  });
- [["ueberlappung","Überlappung"],
-  ["saumVorne","Saum vorne"],["breiteOben","Breite oben"],["breiteUnten","Breite unten"],
-  ["randAbstand","Rand-Abstand"],["randStrich","Rand-Strich"],
-  ["e","Aufbug hinten"],["eUmschlag","Umschlag Aufbug"],
-  ["anreiff","Anreiff vorne"],["anreiffUmschlag","Umschlag Anreiff"],
-  ["breiteVorne","Breite vorne"],["breiteHinten","Breite hinten"],
-  ["umschlagVorne","Umschlag vorne"],["umschlagHinten","Umschlag hinten"],
-  ["umschlagSeite","Umschlag seitlich"],["lattenabstand","Lattenabstand"]].forEach(([k,name])=>{
-  if(dfaZahl(a[k])<0)m.push({art:"fehler",text:name+" kann nicht negativ sein."});
+ ["ueberlappung","saumVorne","aufVorne","aufHinten","breiteOben","breiteUnten",
+  "randAbstand","randStrich","e","eUmschlag","anreiff","anreiffUmschlag",
+  "breiteVorne","breiteHinten","umschlagVorne","umschlagHinten","umschlagSeite"
+  ].forEach(k=>{
+  if(dfaZahl(a[k])<0)m.push({art:"fehler",text:dfaBuchstabe(k)+" · "
+    +DFA_MASSLISTE.find(x=>x[0]===k)[1]+" kann nicht negativ sein."});
  });
+ if(dfaZahl(a.lattenabstand)<0)m.push({art:"fehler",text:"Lattenabstand kann nicht negativ sein."});
  DFA_SEITEN.forEach(s=>{
-  ["a","b","c","d","f","g","aufVorne","aufHinten"].forEach(k=>{
+  ["a","b","c","d","f","g"].forEach(k=>{
    if(dfaSeite(k,s.k)<0)m.push({art:"fehler",text:"Ein seitliches Mass ist negativ ("+s.name+")."});
   });
-  if(dfaSeite("aufVorne",s.k)>0&&dfaSeite("aufHinten",s.k)>0&&dfaZahl(a.saumVorne)>=dfaSeite("aufVorne",s.k))
-   m.push({art:"warnung",text:"Der Saum vorne"+(a.getrennt?" ("+s.name+")":"")
-     +" ist nicht kleiner als die Aufbordungshöhe vorne – der Saum liefe dann bis auf das Dach zurück."});
  });
+ if(dfaZahl(a.aufVorne)>0&&dfaZahl(a.aufHinten)>0&&dfaZahl(a.saumVorne)>=dfaZahl(a.aufVorne))
+  m.push({art:"warnung",text:"Die Aufbordungshöhe vorne ist nicht kleiner als die "
+    +"Aufbordungshöhe Seite – der Saum liefe dann bis auf das Dach zurück."});
  DFA_SEITEN.forEach(s=>{
   const L=dfaLaenge(s.k);
   const zusatz=a.getrennt?" ("+s.name+")":"";
   if(dfaSeite("b",s.k)>0&&dfaSeite("c",s.k)>0&&!(L>0))
-   m.push({art:"fehler",text:"B + C ist nicht grösser als die Überlappung"+zusatz
+   m.push({art:"fehler",text:dfaBuchstabe("b")+" + "+dfaBuchstabe("c")+" ist nicht grösser als die Überlappung"+zusatz
      +" – daraus ergibt sich keine Länge."});
   if(dfaZahl(a.ueberlappung)>0&&dfaSeite("b",s.k)>0&&dfaSeite("b",s.k)<=dfaZahl(a.ueberlappung))
-   m.push({art:"warnung",text:"Mass B"+zusatz+" ist nicht grösser als die Überlappung – "
+   m.push({art:"warnung",text:"Mass "+dfaBuchstabe("b")+zusatz+" ist nicht grösser als die Überlappung – "
      +"der Knick läge dann vor der Vorderkant Aufbordung."});
   if(!a.getrennt)return;
  });
@@ -672,7 +671,7 @@ function dfaPruefungen(){
   m.push({art:"warnung",text:"Ohne Lattenabstand kann die Anzahl Bleilappen nicht berechnet werden."});
  if(!a.deckung)m.push({art:"warnung",text:"Es ist noch kein Deckmaterial gewählt."});
  if(a.getrennt){
-  const gleich=["a","b","c","d","f","g","aufVorne","aufHinten"].every(k=>dfaSeite(k,"l")===dfaSeite(k,"r"));
+  const gleich=["a","b","c","d","f","g"].every(k=>dfaSeite(k,"l")===dfaSeite(k,"r"));
   if(gleich)m.push({art:"warnung",text:"Links und rechts werden getrennt erfasst, "
     +"sind aber überall gleich – der Schalter kann ausgeschaltet werden."});
  }
@@ -683,6 +682,75 @@ function dfaPruefungen(){
      +" hinterlegt – der Materialbedarf wird nicht gerechnet."});
  }
  return m;
+}
+
+// ---- Durchnummerierung aller Masse (A, B, C, ...) --------------------------
+// Eine EINZIGE, geordnete Liste ist die Quelle fuer den Buchstaben jedes
+// Masses - der Buchstabe ergibt sich rein aus der Position in dieser Liste
+// (A=Index 0, B=Index 1, ...), nie aus einer zweiten, separat gepflegten
+// Zuordnung. Reihenfolge: laengs des Dachs von vorne (Anreiff) nach hinten
+// (Umschlag am Aufbug), seitliche/quer liegende Masse jeweils direkt neben
+// dem laengs liegenden Mass, zu dem sie gehoeren.
+const DFA_MASSLISTE=[
+ ["anreiff","Anreiff vorne"],
+ ["anreiffUmschlag","Umschlag am Anreiff vorne (180°)"],
+ ["a","vorne auf Deckmaterial bis Vorderkant Aufbordung"],
+ ["saumVorne","Aufbordungshöhe vorne"],
+ ["umschlagVorne","Umschlag vorne"],
+ ["aufVorne","Aufbordungshöhe Seite"],
+ ["b","Vorderkant Aufbordung bis Hinterkant Knick"],
+ ["ueberlappung","Überlappung der Seitenteile (Knick)"],
+ ["c","Vorderkant Knick bis Hinterkant Aufbordung"],
+ ["f","seitlich bis Deckmaterial"],
+ ["g","seitlich unter Deckmaterial"],
+ ["umschlagSeite","Umschlagbreite seitlich"],
+ ["breiteOben","Breite oben, hintere Aufbordung (Kopf)"],
+ ["breiteUnten","Breite unten, hintere Aufbordung (Fuss)"],
+ ["randAbstand","Rand-Abstand, obere Ecke bis Strich am Kopf"],
+ ["randStrich","Rand-Strich, Länge des Strichs am Kopf"],
+ ["aufHinten","Aufbordungshöhe hinten"],
+ ["umschlagHinten","Umschlag hinten"],
+ ["d","Hinterkant Aufbordung bis hinten unter Deckmaterial"],
+ ["e","90°-Aufbug hinten"],
+ ["eUmschlag","Umschlag am Aufbug hinten (180°)"],
+ ["breiteVorne","Breite vorne · Zuschnittlänge Vorderteil"],
+ ["breiteHinten","Breite hinten · Zuschnittlänge Hinterteil"]
+];
+function dfaBuchstabe(k){
+ const i=DFA_MASSLISTE.findIndex(x=>x[0]===k);
+ return i>=0?String.fromCharCode(65+i):"?";
+}
+// Feste, nur zur Anschauung dienende Beispielwerte fuer die Uebersichts-
+// Skizze - unabhaengig vom laufenden Zustand, damit sie auch bei einer
+// leeren oder halb ausgefuellten Aufnahme immer vollstaendig und lesbar
+// bleibt. Kein Bezug zu einer echten Aufnahme.
+function dfaUebersichtQuelle(){
+ return Object.assign(dfaLeer(),{
+  getrennt:false, skizzeSeite:"l",
+  a:180, d:200, ueberlappung:120, saumVorne:50,
+  breiteOben:90, breiteUnten:125, randAbstand:15, randStrich:12,
+  e:35, eUmschlag:15, anreiff:15, anreiffUmschlag:10,
+  aufVorne:80, aufHinten:120,
+  b:{l:300,r:300}, c:{l:400,r:400}, f:{l:10,r:10}, g:{l:20,r:20}
+ });
+}
+function dfaUebersichtHtml(){
+ const zeilen=DFA_MASSLISTE.map(([k,name])=>
+  `<tr><td><b>${esc(dfaBuchstabe(k))}</b></td><td>${esc(name)}</td></tr>`).join("");
+ return `<details class="dfa-uebersicht" style="margin-bottom:12px">
+<summary>Übersicht: alle Masse mit Buchstabe (A, B, C, …) anzeigen</summary>
+<div class="info" style="margin-top:8px">Beispielskizze mit Beispielwerten -
+zeigt nur, wo jeder Buchstabe liegt, nicht die aktuelle Aufnahme. Die
+seitlichen Masse (${dfaBuchstabe("f")}, ${dfaBuchstabe("g")}), die
+Umschlagbreite seitlich (${dfaBuchstabe("umschlagSeite")}) sowie
+${dfaBuchstabe("breiteVorne")} und ${dfaBuchstabe("breiteHinten")} stehen quer
+zu dieser Schnittzeichnung und sind deshalb nur in der Tabelle darunter
+aufgeführt.</div>
+<div class="eb-diagram-box eb-diagram-scroll" style="margin-top:8px">${dfaSkizze(dfaUebersichtQuelle())}</div>
+<div class="scroll" style="margin-top:8px"><table class="eb-table ra-tab"><tbody>
+${zeilen}
+</tbody></table></div>
+</details>`;
 }
 
 // ---- Anzeige --------------------------------------------------------------
@@ -718,9 +786,9 @@ function dfaGrunddatenHtml(){
  const deckOpt=Object.keys((typeof EINF_DECKUNGEN==="object"?EINF_DECKUNGEN:{}))
   .map(k=>`<option value="${esc(k)}"${k===a.deckung?" selected":""}>${esc(EINF_DECKUNGEN[k].name)}</option>`).join("");
  return `<div class="info">Einfassung eines Dachfensters. Erfasst wird die
-senkrechte Aufbordung: vorne (talseitig, mit Saum) niedriger, hinten (bergseitig,
-mit Trapezform) höher – dazwischen die beiden Seitenteile. Deckmaterial und
-Lattenabstand werden für die Bleilappen gebraucht.</div>
+senkrechte Aufbordung: vorne (mit Saum) niedriger, hinten (mit Trapezform)
+höher – dazwischen die beiden Seitenteile. Deckmaterial und Lattenabstand
+werden für die Bleilappen gebraucht.</div>
 <div class="grid">
 ${dfaFeld("Material",`<select id="dfa_material" data-pflicht="1">${matOpt}</select>`,true)}
 ${dfaFeld("Deckungsmaterial",`<select id="dfa_deckung">${deckOpt}</select>`)}
@@ -729,7 +797,7 @@ ${dfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","dfa_lattenabstand",a
 <label class="kam-schalter"><input type="checkbox" id="dfa_getrennt"${a.getrennt?" checked":""}>
 <span>Links und rechts getrennt erfassen</span></label>
 <div class="small" style="color:var(--muted);margin-top:2px">Ohne Haken gilt jedes seitliche
-Mass für beide Seiten. Mit Haken bekommen A, B, C, D, F, G und beide Aufbordungshöhen je zwei Felder.</div>
+Mass für beide Seiten. Mit Haken bekommen A, B, C, D, F und G je zwei Felder.</div>
 <div class="bar" style="margin-top:8px">
 <button type="button" class="gray" id="dfa_einstellungen">⚙️ Standardwerte</button>
 </div>`;
@@ -750,35 +818,35 @@ function dfaMasseHtml(){
 <button type="button" class="gray${a.skizzeSeite!=="r"?" blue":""}" data-dfa-skizze="l">Linke Seite</button>
 <button type="button" class="gray${a.skizzeSeite==="r"?" blue":""}" data-dfa-skizze="r">Rechte Seite</button>
 </div>`:"";
- return `<div class="info">Alle Masse in mm, längs des Dachs gemessen - genau gleich
-vermasst wie bei der Kamineinfassung. <b>B</b> und <b>C</b> überlappen sich im Knick –
-die Länge des Seitenteils ist deshalb B + C − Überlappung. Vorne (talseitig) ist die
-Aufbordung niedriger und hat oben einen Saum; hinten (bergseitig) ist sie höher und
-bewusst trapezförmig – Breite oben ist kleiner als Breite unten.</div>
+ return dfaUebersichtHtml()+`<div class="info">Alle Masse in mm, längs des Dachs gemessen - genau
+gleich vermasst wie bei der Kamineinfassung. <b>${dfaBuchstabe("b")}</b> und <b>${dfaBuchstabe("c")}</b>
+überlappen sich im Knick – die Länge des Seitenteils ist deshalb ${dfaBuchstabe("b")} + ${dfaBuchstabe("c")}
+− ${dfaBuchstabe("ueberlappung")}. Vorne ist die Aufbordung niedriger und hat oben einen Saum; hinten
+ist sie höher und bewusst trapezförmig – Breite oben ist kleiner als Breite unten.</div>
 <div class="grid">
-${dfaSeitenFeld("A · vorne auf Deckmaterial bis Vorderkant Aufbordung","dfa_a",true,dfaSettings.mass_vorne)}
-${dfaSeitenFeld("B · Vorderkant Aufbordung bis Hinterkant Knick","dfa_b",true)}
-${dfaSeitenFeld("C · Vorderkant Knick bis Hinterkant Aufbordung","dfa_c",true)}
-${dfaZahlFeld("Überlappung der Seitenteile (Knick)","dfa_ueberlappung",a.ueberlappung,"1",true,dfaSettings.ueberlappung)}
-${dfaSeitenFeld("D · Hinterkant Aufbordung bis hinten unter Deckmaterial","dfa_d",true,dfaSettings.mass_hinten)}
-${dfaSeitenFeld("Aufbordungshöhe vorne (talseitig)","dfa_aufVorne",true,dfaSettings.auf_vorne)}
-${dfaSeitenFeld("Aufbordungshöhe hinten (bergseitig)","dfa_aufHinten",true,dfaSettings.auf_hinten)}
-${dfaZahlFeld("Saum/Rückschlag oben, vorne","dfa_saumVorne",a.saumVorne,"1",true,dfaSettings.saum_vorne)}
-${dfaZahlFeld("Breite oben, hintere Aufbordung (Kopf)","dfa_breiteOben",a.breiteOben,"1",true,dfaSettings.breite_oben)}
-${dfaZahlFeld("Breite unten, hintere Aufbordung (Fuss)","dfa_breiteUnten",a.breiteUnten,"1",true,dfaSettings.breite_unten)}
-${dfaZahlFeld("Rand-Abstand · obere Ecke bis Strich am Kopf","dfa_randAbstand",a.randAbstand,"1",true,dfaSettings.rand_abstand)}
-${dfaZahlFeld("Rand-Strich · Länge des Strichs am Kopf","dfa_randStrich",a.randStrich,"1",true,dfaSettings.rand_strich)}
-${dfaZahlFeld("E · 90°-Aufbug hinten, hinter D","dfa_e",a.e,"1",true,dfaSettings.e)}
-${dfaZahlFeld("Umschlag am Aufbug hinten (180°)","dfa_eUmschlag",a.eUmschlag,"1",true,dfaSettings.e_umschlag)}
-${dfaZahlFeld("Anreiff vorne, vor A","dfa_anreiff",a.anreiff,"1",true,dfaSettings.anreiff)}
-${dfaZahlFeld("Umschlag am Anreiff vorne (180°)","dfa_anreiffUmschlag",a.anreiffUmschlag,"1",true,dfaSettings.anreiff_umschlag)}
+${dfaSeitenFeld(dfaBuchstabe("a")+" · vorne auf Deckmaterial bis Vorderkant Aufbordung","dfa_a",true,dfaSettings.mass_vorne)}
+${dfaSeitenFeld(dfaBuchstabe("b")+" · Vorderkant Aufbordung bis Hinterkant Knick","dfa_b",true)}
+${dfaSeitenFeld(dfaBuchstabe("c")+" · Vorderkant Knick bis Hinterkant Aufbordung","dfa_c",true)}
+${dfaZahlFeld(dfaBuchstabe("ueberlappung")+" · Überlappung der Seitenteile (Knick)","dfa_ueberlappung",a.ueberlappung,"1",true,dfaSettings.ueberlappung)}
+${dfaSeitenFeld(dfaBuchstabe("d")+" · Hinterkant Aufbordung bis hinten unter Deckmaterial","dfa_d",true,dfaSettings.mass_hinten)}
+${dfaZahlFeld(dfaBuchstabe("aufVorne")+" · Aufbordungshöhe Seite","dfa_aufVorne",a.aufVorne,"1",true,dfaSettings.auf_vorne)}
+${dfaZahlFeld(dfaBuchstabe("aufHinten")+" · Aufbordungshöhe hinten","dfa_aufHinten",a.aufHinten,"1",true,dfaSettings.auf_hinten)}
+${dfaZahlFeld(dfaBuchstabe("saumVorne")+" · Aufbordungshöhe vorne","dfa_saumVorne",a.saumVorne,"1",true,dfaSettings.saum_vorne)}
+${dfaZahlFeld(dfaBuchstabe("breiteOben")+" · Breite oben, hintere Aufbordung (Kopf)","dfa_breiteOben",a.breiteOben,"1",true,dfaSettings.breite_oben)}
+${dfaZahlFeld(dfaBuchstabe("breiteUnten")+" · Breite unten, hintere Aufbordung (Fuss)","dfa_breiteUnten",a.breiteUnten,"1",true,dfaSettings.breite_unten)}
+${dfaZahlFeld(dfaBuchstabe("randAbstand")+" · Rand-Abstand · obere Ecke bis Strich am Kopf","dfa_randAbstand",a.randAbstand,"1",true,dfaSettings.rand_abstand)}
+${dfaZahlFeld(dfaBuchstabe("randStrich")+" · Rand-Strich · Länge des Strichs am Kopf","dfa_randStrich",a.randStrich,"1",true,dfaSettings.rand_strich)}
+${dfaZahlFeld(dfaBuchstabe("e")+" · 90°-Aufbug hinten, hinter "+dfaBuchstabe("d"),"dfa_e",a.e,"1",true,dfaSettings.e)}
+${dfaZahlFeld(dfaBuchstabe("eUmschlag")+" · Umschlag am Aufbug hinten (180°)","dfa_eUmschlag",a.eUmschlag,"1",true,dfaSettings.e_umschlag)}
+${dfaZahlFeld(dfaBuchstabe("anreiff")+" · Anreiff vorne, vor "+dfaBuchstabe("a"),"dfa_anreiff",a.anreiff,"1",true,dfaSettings.anreiff)}
+${dfaZahlFeld(dfaBuchstabe("anreiffUmschlag")+" · Umschlag am Anreiff vorne (180°)","dfa_anreiffUmschlag",a.anreiffUmschlag,"1",true,dfaSettings.anreiff_umschlag)}
 </div>
-<div class="small" style="color:var(--muted);margin-top:4px">B und C überlappen sich im
-Knick – die Länge ist deshalb B + C − Überlappung.</div>
+<div class="small" style="color:var(--muted);margin-top:4px">${dfaBuchstabe("b")} und ${dfaBuchstabe("c")}
+überlappen sich im Knick – die Länge ist deshalb ${dfaBuchstabe("b")} + ${dfaBuchstabe("c")} − ${dfaBuchstabe("ueberlappung")}.</div>
 <h2 style="margin-top:14px">Seitliche Masse</h2>
 <div class="grid">
-${dfaSeitenFeld("F · seitlich bis Deckmaterial","dfa_f",true)}
-${dfaSeitenFeld("G · seitlich unter Deckmaterial","dfa_g",true)}
+${dfaSeitenFeld(dfaBuchstabe("f")+" · seitlich bis Deckmaterial","dfa_f",true)}
+${dfaSeitenFeld(dfaBuchstabe("g")+" · seitlich unter Deckmaterial","dfa_g",true)}
 </div>
 ${dfaKennzahlenHtml()}
 <h2 style="margin-top:14px">Schnitt</h2>
@@ -792,13 +860,13 @@ function dfaUmschlaegeHtml(){
 <td>${dfaMm(x.laenge)}</td><td><b>${dfaMm(x.breite)}</b></td></tr>`;
  return `<div class="info">Die Umschläge stecken in der Abwicklung, die Breiten sind die
 Zuschnittlängen von Vorder- und Hinterteil. Die Seitenteile bekommen ihre Länge aus
-B und C.</div>
+${dfaBuchstabe("b")} und ${dfaBuchstabe("c")}.</div>
 <div class="grid">
-${dfaZahlFeld("Umschlag vorne","dfa_umschlagVorne",a.umschlagVorne,"1",true,dfaSettings.umschlag_vorne)}
-${dfaZahlFeld("Umschlag hinten","dfa_umschlagHinten",a.umschlagHinten,"1",true,dfaSettings.umschlag_hinten)}
-${dfaZahlFeld("Umschlagbreite seitlich (beide Seiten gleich)","dfa_umschlagSeite",a.umschlagSeite,"1",true,dfaSettings.umschlag_seite)}
-${dfaZahlFeld("Breite vorne · Zuschnittlänge Vorderteil","dfa_breiteVorne",a.breiteVorne,"1",true)}
-${dfaZahlFeld("Breite hinten · Zuschnittlänge Hinterteil","dfa_breiteHinten",a.breiteHinten,"1",true)}
+${dfaZahlFeld(dfaBuchstabe("umschlagVorne")+" · Umschlag vorne","dfa_umschlagVorne",a.umschlagVorne,"1",true,dfaSettings.umschlag_vorne)}
+${dfaZahlFeld(dfaBuchstabe("umschlagHinten")+" · Umschlag hinten","dfa_umschlagHinten",a.umschlagHinten,"1",true,dfaSettings.umschlag_hinten)}
+${dfaZahlFeld(dfaBuchstabe("umschlagSeite")+" · Umschlagbreite seitlich (beide Seiten gleich)","dfa_umschlagSeite",a.umschlagSeite,"1",true,dfaSettings.umschlag_seite)}
+${dfaZahlFeld(dfaBuchstabe("breiteVorne")+" · Breite vorne · Zuschnittlänge Vorderteil","dfa_breiteVorne",a.breiteVorne,"1",true)}
+${dfaZahlFeld(dfaBuchstabe("breiteHinten")+" · Breite hinten · Zuschnittlänge Hinterteil","dfa_breiteHinten",a.breiteHinten,"1",true)}
 </div>
 <h2 style="margin-top:14px">Vorschau</h2>
 <div class="scroll" id="dfa_vorschau"><table class="eb-table ra-tab">
@@ -860,22 +928,22 @@ function dfaKontrolleHtml(){
  const uebersicht=`<div class="scroll"><table class="eb-table ra-tab"><tbody>
 ${zeile("Material",dfaMaterialText())}
 ${zeile("Deckungsmaterial",dfaDeckungText())}
-${seitig("A · vorne auf Deckmaterial bis Vorderkant Aufbordung","a","mm")}
-${seitig("B · Vorderkant Aufbordung bis Hinterkant Knick","b","mm")}
-${seitig("C · Vorderkant Knick bis Hinterkant Aufbordung","c","mm")}
-${zeile("Überlappung Knick",dfaMm(a.ueberlappung)+" mm")}
-${seitig("D · Hinterkant Aufbordung bis hinten unter Deckmaterial","d","mm")}
-${seitig("F · seitlich bis Deckmaterial","f","mm")}
-${seitig("G · seitlich unter Deckmaterial","g","mm")}
-${seitig("Aufbordungshöhe vorne","aufVorne","mm")}
-${seitig("Aufbordungshöhe hinten","aufHinten","mm")}
-${zeile("Saum vorne",dfaMm(a.saumVorne)+" mm")}
-${zeile("Breite oben / unten (Trapez hinten)",dfaMm(a.breiteOben)+" / "+dfaMm(a.breiteUnten)+" mm")}
-${zeile("Rand-Abstand / Rand-Strich am Kopf",dfaMm(a.randAbstand)+" / "+dfaMm(a.randStrich)+" mm")}
-${zeile("Aufbug hinten (E) / Umschlag",dfaMm(a.e)+" / "+dfaMm(a.eUmschlag)+" mm")}
-${zeile("Anreiff vorne / Umschlag",dfaMm(a.anreiff)+" / "+dfaMm(a.anreiffUmschlag)+" mm")}
-${zeile("Breite vorne / hinten",dfaMm(a.breiteVorne)+" / "+dfaMm(a.breiteHinten)+" mm")}
-${zeile("Umschlag vorne / hinten / Seite",dfaMm(a.umschlagVorne)+" / "+dfaMm(a.umschlagHinten)+" / "+dfaMm(a.umschlagSeite)+" mm")}
+${seitig(dfaBuchstabe("a")+" · vorne auf Deckmaterial bis Vorderkant Aufbordung","a","mm")}
+${seitig(dfaBuchstabe("b")+" · Vorderkant Aufbordung bis Hinterkant Knick","b","mm")}
+${seitig(dfaBuchstabe("c")+" · Vorderkant Knick bis Hinterkant Aufbordung","c","mm")}
+${zeile(dfaBuchstabe("ueberlappung")+" · Überlappung Knick",dfaMm(a.ueberlappung)+" mm")}
+${seitig(dfaBuchstabe("d")+" · Hinterkant Aufbordung bis hinten unter Deckmaterial","d","mm")}
+${seitig(dfaBuchstabe("f")+" · seitlich bis Deckmaterial","f","mm")}
+${seitig(dfaBuchstabe("g")+" · seitlich unter Deckmaterial","g","mm")}
+${zeile(dfaBuchstabe("aufVorne")+" · Aufbordungshöhe Seite",dfaMm(a.aufVorne)+" mm")}
+${zeile(dfaBuchstabe("aufHinten")+" · Aufbordungshöhe hinten",dfaMm(a.aufHinten)+" mm")}
+${zeile(dfaBuchstabe("saumVorne")+" · Aufbordungshöhe vorne",dfaMm(a.saumVorne)+" mm")}
+${zeile(dfaBuchstabe("breiteOben")+" / "+dfaBuchstabe("breiteUnten")+" · Breite oben / unten (Trapez hinten)",dfaMm(a.breiteOben)+" / "+dfaMm(a.breiteUnten)+" mm")}
+${zeile(dfaBuchstabe("randAbstand")+" / "+dfaBuchstabe("randStrich")+" · Rand-Abstand / Rand-Strich am Kopf",dfaMm(a.randAbstand)+" / "+dfaMm(a.randStrich)+" mm")}
+${zeile(dfaBuchstabe("e")+" / "+dfaBuchstabe("eUmschlag")+" · Aufbug hinten / Umschlag",dfaMm(a.e)+" / "+dfaMm(a.eUmschlag)+" mm")}
+${zeile(dfaBuchstabe("anreiff")+" / "+dfaBuchstabe("anreiffUmschlag")+" · Anreiff vorne / Umschlag",dfaMm(a.anreiff)+" / "+dfaMm(a.anreiffUmschlag)+" mm")}
+${zeile(dfaBuchstabe("breiteVorne")+" / "+dfaBuchstabe("breiteHinten")+" · Breite vorne / hinten",dfaMm(a.breiteVorne)+" / "+dfaMm(a.breiteHinten)+" mm")}
+${zeile(dfaBuchstabe("umschlagVorne")+" / "+dfaBuchstabe("umschlagHinten")+" / "+dfaBuchstabe("umschlagSeite")+" · Umschlag vorne / hinten / Seite",dfaMm(a.umschlagVorne)+" / "+dfaMm(a.umschlagHinten)+" / "+dfaMm(a.umschlagSeite)+" mm")}
 ${zeile("Blechfläche",dfaQm(dfaFlaecheM2())+" m²")}
 ${zeile("Bleilappen",bl.gesamt!==null?String(bl.gesamt):"–")}
 </tbody></table></div>`;
@@ -978,13 +1046,14 @@ function dfaLive(){
 }
 // Zuordnung Eingabefeld -> Zustand. Seitenfelder tragen "_l" bzw. "_r".
 const DFA_FELDER={dfa_ueberlappung:"ueberlappung",
+ dfa_aufVorne:"aufVorne",dfa_aufHinten:"aufHinten",
  dfa_saumVorne:"saumVorne",dfa_breiteOben:"breiteOben",dfa_breiteUnten:"breiteUnten",
  dfa_randAbstand:"randAbstand",dfa_randStrich:"randStrich",
  dfa_e:"e",dfa_eUmschlag:"eUmschlag",dfa_anreiff:"anreiff",dfa_anreiffUmschlag:"anreiffUmschlag",
  dfa_breiteVorne:"breiteVorne",dfa_breiteHinten:"breiteHinten",
  dfa_umschlagVorne:"umschlagVorne",dfa_umschlagHinten:"umschlagHinten",
  dfa_umschlagSeite:"umschlagSeite",dfa_lattenabstand:"lattenabstand"};
-const DFA_SEITENFELDER={dfa_a:"a",dfa_b:"b",dfa_c:"c",dfa_d:"d",dfa_f:"f",dfa_g:"g",dfa_aufVorne:"aufVorne",dfa_aufHinten:"aufHinten"};
+const DFA_SEITENFELDER={dfa_a:"a",dfa_b:"b",dfa_c:"c",dfa_d:"d",dfa_f:"f",dfa_g:"g"};
 function dfaFeldZuweisen(id,wert){
  if(DFA_FELDER[id]!==undefined){dfaA[DFA_FELDER[id]]=wert;return true}
  const m=/^(dfa_[a-zA-Z]+)_(l|r)$/.exec(id);
@@ -1143,7 +1212,8 @@ function dfaDaten(){
   e:dfaZahl(a.e), eUmschlag:dfaZahl(a.eUmschlag), anreiff:dfaZahl(a.anreiff), anreiffUmschlag:dfaZahl(a.anreiffUmschlag),
   breiteVorne:dfaZahl(a.breiteVorne), breiteHinten:dfaZahl(a.breiteHinten),
   umschlagVorne:dfaZahl(a.umschlagVorne), umschlagHinten:dfaZahl(a.umschlagHinten), umschlagSeite:dfaZahl(a.umschlagSeite),
-  b:paar("b"), c:paar("c"), f:paar("f"), g:paar("g"), aufVorne:paar("aufVorne"), aufHinten:paar("aufHinten"),
+  b:paar("b"), c:paar("c"), f:paar("f"), g:paar("g"),
+  aufVorne:dfaZahl(a.aufVorne), aufHinten:dfaZahl(a.aufHinten),
   laenge:{l:dfaLaenge("l"),r:dfaLaenge("r")},
   zuschnitte:dfaZuschnitte(),
   bleilappen:bl,
@@ -1180,16 +1250,27 @@ function dfaFuellen(d){
  // Wie bei der Kamineinfassung: A und D gelten fuer eine NEUE Aufnahme aus
  // den Einstellungen, bei einem gespeicherten Datensatz wird nichts erfunden
  // - fehlt eines der beiden dort, bleiben sie leer. dfaLeer() setzt a und d
- // bereits auf {l:"",r:""}, das Einlesen unten (zusammen mit b/c/f/g/
- // aufVorne/aufHinten) uebernimmt nur, was tatsaechlich gespeichert war.
+ // bereits auf {l:"",r:""}, das Einlesen unten (zusammen mit b/c/f/g)
+ // uebernimmt nur, was tatsaechlich gespeichert war.
  const nimm=(k,ziel)=>{if(w[k]===0||w[k])a[ziel||k]=w[k]};
  a.material=w.material??"";
  if(w.deckung&&(typeof EINF_DECKUNGEN!=="object"||EINF_DECKUNGEN[w.deckung]))a.deckung=w.deckung;
  ["lattenabstand","ueberlappung","saumVorne","breiteOben","breiteUnten","randAbstand","randStrich",
   "e","eUmschlag","anreiff","anreiffUmschlag",
   "breiteVorne","breiteHinten","umschlagVorne","umschlagHinten","umschlagSeite"].forEach(k=>nimm(k));
+ // aufVorne/aufHinten sind seit dieser Version nicht mehr seitenabhaengig.
+ // Aeltere Datensaetze koennen sie noch als {l,r}-Objekt tragen (aus der Zeit,
+ // als sie ueber "Links und rechts getrennt erfassen" liefen) - dort wird das
+ // GROESSERE Mass uebernommen (dieselbe Regel wie das frueher verwendete
+ // Maximum aus beiden Seiten), damit sich am gerechneten Ergebnis nichts
+ // aendert.
+ ["aufVorne","aufHinten"].forEach(k=>{
+  const v=w[k];
+  if(v&&typeof v==="object")a[k]=Math.max(dfaZahl(v.l),dfaZahl(v.r));
+  else if(v===0||v)a[k]=v;
+ });
  a.getrennt=!!w.getrennt;
- ["a","b","c","d","f","g","aufVorne","aufHinten"].forEach(k=>{
+ ["a","b","c","d","f","g"].forEach(k=>{
   const v=w[k];
   if(v&&typeof v==="object")a[k]={l:(v.l===0||v.l)?v.l:"",r:(v.r===0||v.r)?v.r:""};
   else if(v===0||v)a[k]={l:v,r:v};
