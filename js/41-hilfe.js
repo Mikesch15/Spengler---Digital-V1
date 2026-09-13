@@ -844,8 +844,8 @@ oben einen Saum (Rückschlag); hinten ist sie <b>höher</b> (Q · Aufbordungshö
 hinten) und bewusst <b>trapezförmig</b> – Breite oben (M) ist kleiner als Breite
 unten (N). Die <b>F · Aufbordungshöhe Seite</b> gilt für die ganze Seite und
 wird nicht links/rechts getrennt erfasst.</p>
-<p>An der oberen Ecke sitzt ein kleiner gestrichelter Strich – Rand-Abstand (O)
-ist der Abstand ab der Ecke, Rand-Strich (P) seine Länge.</p>
+<p>An der oberen Ecke sitzt ein kleiner gestrichelter Strich – Abdeckkappe oben (O)
+ist der Abstand ab der Ecke, Abdeckkappe nach unten (P) seine Länge.</p>
 <p>Ganz hinten, hinter S, sitzt ein kleiner <b>90°-Aufbug (T)</b> – genau wie bei
 der Kamineinfassung – mit einem eigenen 180°-Umschlag (U) an seiner Spitze.
 Ganz vorne, vor C, sitzt spiegelbildlich der <b>Anreiff (A)</b>, ebenfalls mit

@@ -26488,3 +26488,88 @@ unverändert bis auf die hier beschriebenen, erwarteten Verbesserungen.
 - Kein Live-Test gegen Supabase (Sandbox-Einschränkung wie immer) – die
   Migration wurde über `apply_migration`/`execute_sql` angewendet und
   verifiziert (alle bestehenden Projektzeilen zeigen `[]`).
+
+## 154. DACHFENSTEREINFASSUNG: MASS D UMGEKEHRT VERMASST + SIEBEN UMBENENNUNGEN — VERSION 3.89
+
+### 154.1 Anlass
+
+Rückmeldung des Anwenders nach Durchsicht der live veröffentlichten
+App (v3.88, die Umnummerierung aller Masse auf A–W): Mass D (der Saum/
+Rückschlag am oberen Rand der vorderen Aufbordung) war in der Skizze als
+Fahne AB der Saum-Spitze bemasst, während es am Bau von unten (Wandfuss)
+nach oben bis zum Beginn des Falzes gemessen wird. Ausserdem hiessen
+mehrere Masse noch nach der alten, internen Konstruktionslogik
+("Aufbordung") statt nach dem tatsächlichen Bezugspunkt ("Dachfenster"/
+"Einfassung"), was beim Ablesen am Bau zu Verwechslungen führen konnte.
+
+### 154.2 Umsetzung
+
+`js/66-dachfenster-aufnahme.js`, `dfaSkizze()`: die Fahne für Mass D
+(`anbFahne`, Ansatzpunkt bei der Saum-Mitte) durch eine echte, vom
+Wandfuss (y=0) bis zum Falzbeginn (y=av−saum) laufende Masskette
+(`anbMassSenk`) ersetzt – exakt dieselbe Bauart wie F/Q, nur enger an
+der Zeichnung platziert (`dachVon-28` statt `dachVon-56`), damit sich
+die beiden Massketten nicht überdecken. Mass F (die Gesamthöhe der
+vorderen Aufbordung) und alle Formeln/Abwicklungen bleiben unverändert –
+es ändert sich ausschliesslich, WIE D in der Skizze abgelesen wird,
+nicht sein Wert oder seine Verwendung.
+
+Sieben reine Umbenennungen (Beschriftung, kein Rechenweg betroffen), an
+allen duplizierten Stellen (`DFA_MASSLISTE`, `dfaZuschnitte()`,
+`dfaPruefungen()`, `dfaMasseHtml()`, `dfaUmschlaegeHtml()`,
+`dfaKontrolleHtml()`, `index.html`-Einstellungen, `js/41-hilfe.js`)
+nachgezogen:
+
+| Buchstabe | Alt | Neu |
+|---|---|---|
+| C (`a`) | vorne auf Deckmaterial bis Vorderkant Aufbordung | vorne auf Deckmaterial bis Vorderkant Dachfenster |
+| G (`b`) | Vorderkant Aufbordung bis Hinterkant Knick | Vorderkant Dachfenster bis Hinterkant Knick |
+| I (`c`) | Vorderkant Knick bis Hinterkant Aufbordung | Vorderkant Knick bis Hinterkant Dachfenster |
+| S (`d`) | Hinterkant Aufbordung bis hinten unter Deckmaterial | Hinterkant Dachfenster bis Hinterkant Einfassung |
+| O (`randAbstand`) | Rand-Abstand | Abdeckkappe oben |
+| P (`randStrich`) | Rand-Strich | Abdeckkappe nach unten |
+| E (`umschlagVorne`) | Umschlag vorne | Winkel auf Fensterrahmen |
+
+Mass F ("Aufbordungshöhe Seite", die Gesamthöhe) und Mass Q
+("Aufbordungshöhe hinten") behalten ihre bisherige Bezeichnung – sie
+beschreiben tatsächlich die Aufbordung selbst, anders als C/G/I/S.
+
+### 154.3 Getestet
+
+Direktes Aufrufen der betroffenen Funktionen über einen Playwright-
+Kanal (echtes `index.html`, Supabase gestubbt): alle sieben neuen
+Bezeichnungen erscheinen an jeder erwarteten Stelle (Fenstermasse-,
+Umschläge-, Kontrolle- und Übersichts-Register), keine alte
+"Aufbordung"/"Rand-Abstand"/"Rand-Strich"-Formulierung mehr für C/G/I/
+S/O/P; die Buchstaben-Zuordnung (C/G/I/S/O/P/E/R) stimmt mit der vom
+Anwender genannten überein. Die Schnittskizze rendert mit der neuen
+Mass-D-Masskette ohne JavaScript-Fehler und ohne Überdeckung mit Mass F
+(`pathArrowCount` bestätigt beide Massketten separat gezeichnet).
+`pruefstand-vermassung-v3-32.js` (prüft u. a. `dfaSkizze()` über die
+Rüstskizzen) läuft 54/54 durch. Volle Regression aller 69 Prüfstände:
+28 Dateien melden einen Fehlschlag – jeder einzelne wurde gegen den
+unveränderten Stand (vor diesem Commit) gegengeprüft und schlägt dort
+identisch fehl (u. a. `pruefstand-kamin-app-v2-90.js` 150/155,
+`pruefstand-hilfe-v3-03.js` 62/68, `pruefstand-mauerabdeckung-app-v2-79.js`
+138/146, `pruefstand-rinne-app-v2-71.js` 103/104) – durchweg bereits
+vorher bestehende, unabhängige Lücken (u. a. veraltete Anleitungs-
+Versionsangabe, edge-function-seitige Prüfungen gegen einen
+überholten Code-Stand), keine davon durch diese Änderung neu entstanden.
+
+### 154.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/66-dachfenster-aufnahme.js` | Mass-D-Masskette (`anbMassSenk` statt `anbFahne`); sieben Umbenennungen in `DFA_MASSLISTE`, `dfaZuschnitte()`, `dfaPruefungen()`, `dfaMasseHtml()`, `dfaUmschlaegeHtml()`, `dfaKontrolleHtml()` |
+| `index.html` | Einstellungs-Labels C/E/O/P nachgezogen, Version 3.89 |
+| `js/41-hilfe.js` | Hilfetext „dfa-masse“ (Abdeckkappe oben/nach unten) |
+| `sw.js` | Version 3.89 |
+
+### 154.5 Offene Punkte
+
+- Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
+  immer).
+- Die Masse R (Umschlag hinten), E, L, J/K und V/W stehen weiterhin nur
+  in der Legende, nicht in der Schnittskizze selbst – bereits vor
+  diesem Commit so, unverändert; ein Ausbau der Skizze um diese Masse
+  wurde vom Anwender nicht verlangt und deshalb nicht angegangen.
