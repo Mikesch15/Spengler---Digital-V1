@@ -176,6 +176,9 @@ Weitere Regeln:
 - Nach Änderungen Versionsstand und Cache beachten.
 - Keine bestehenden Tabellen, Policies oder Funktionen ohne
   Prüfung ersetzen.
+- Committete Änderungen werden immer direkt auf `main` gepusht,
+  ausser der Anwender nennt ausdrücklich einen anderen Branch oder
+  verlangt einen Pull Request.
 - Diese Anleitung (`CLAUDE.md`) so knapp wie möglich halten. Sie
   wird bei jeder Session automatisch in den Kontext geladen und
   kostet dadurch bei jeder Aufgabe Tokens – neue Versions-Details,
