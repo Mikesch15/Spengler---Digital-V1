@@ -272,6 +272,42 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    "und onConflict:'profile_id,feature' - trifft dieselbe UNIQUE-Constraint wie der Offerte-Schalter",vergeben.upsert&&vergeben.upsert.o);
  p(vergeben.angebotUpsertAusgeloest===false,"der Lager-Schalter loest KEINEN zweiten Aufruf fuer 'angebote' aus - beide Schalter sind unabhaengig",vergeben);
 
+ // ---- 8 · Direkter Einstieg von der Startseite (v3.101) -----------------
+ console.log("\n8 · Startseiten-Knopf folgt derselben Freigabe, oeffnet Einstellungen->Lagerverwaltung");
+ await page.evaluate(async()=>{window.__lese.feature_access=[];await checkLagerZugriff()});
+ z=await page.evaluate(()=>({versteckt:$("navLagerverwaltung").hidden}));
+ p(z.versteckt===true,"ohne Freigabe bleibt auch der Startseiten-Knopf versteckt",z);
+ await page.evaluate(async()=>{
+  window.__lese.feature_access=[{profile_id:"u2",feature:"lager",granted:true}];
+  await checkLagerZugriff();
+ });
+ z=await page.evaluate(()=>({versteckt:$("navLagerverwaltung").hidden}));
+ p(z.versteckt===false,"mit Freigabe erscheint der Startseiten-Knopf",z);
+ z=await page.evaluate(()=>{
+  window.__settingsAufruf=null;
+  const original=window.openSettingsTo;
+  window.openSettingsTo=(tab,section)=>{window.__settingsAufruf={tab,section}};
+  $("navLagerverwaltung").click();
+  const aufruf=window.__settingsAufruf;
+  window.openSettingsTo=original;
+  return aufruf;
+ });
+ p(z&&z.tab==="lager"&&z.section==="lagerverwaltung","ein Klick navigiert direkt zum Register Lagerverwaltung in den Einstellungen",z);
+
+ // ---- 9 · Buchen-/Formular-Dialog erscheint VOR den Einstellungen -------
+ // (v3.101 Fehlerbehebung: beide Dialoge stehen in index.html vor
+ // #settingsModal - bei gleichem z-index waere das spaeter im DOM stehende
+ // #settingsModal sonst obendrauf, waehrend die Einstellungen, aus denen
+ // heraus man sie oeffnet, im Hintergrund offen bleiben.)
+ console.log("\n9 · Buchen-/Formular-Dialog liegt ueber den (bereits offenen) Einstellungen");
+ z=await page.evaluate(()=>({
+  buchen:Number(getComputedStyle($("lagerBuchenModal")).zIndex),
+  formular:Number(getComputedStyle($("lagerFormModal")).zIndex),
+  einstellungen:Number(getComputedStyle($("settingsModal")).zIndex)
+ }));
+ p(z.buchen>z.einstellungen,"lagerBuchenModal hat einen hoeheren z-index als settingsModal",z);
+ p(z.formular>z.einstellungen,"lagerFormModal ebenso",z);
+
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");
  const quelltext=require("fs").readFileSync(repo+"/js/68-lagerverwaltung.js","utf8");

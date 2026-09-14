@@ -104,6 +104,11 @@
      wenn das Untermodul "Werkstatt" eingeschaltet ist (js/47). Der kleine
      graue Knopf weiter unten ist damit entfallen. -->
 <button type="button" class="start-nav-btn blue" id="navWerkstatt" hidden><span class="start-nav-icon">🔧</span><span>Werkstatt</span></button>
+<!-- v3.101: direkter Einstieg fuer Mitarbeitende mit Lager-Zugriff (statt
+     ueber Einstellungen -> Lagerverwaltung suchen zu muessen). Sichtbarkeit
+     setzt checkLagerZugriff() in js/68-lagerverwaltung.js, wie bei den
+     anderen bedingt sichtbaren Knoepfen hier. -->
+<button type="button" class="start-nav-btn blue" id="navLagerverwaltung" hidden><span class="start-nav-icon">📦</span><span>Lagerverwaltung</span></button>
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
 <button id="openGlobalSearch" class="gray">🔍 Suche</button>
@@ -123,7 +128,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.100</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.101</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->

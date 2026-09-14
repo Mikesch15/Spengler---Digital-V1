@@ -72,6 +72,11 @@ td input,td select{min-height:34px;font-size:12px}
 .projekt-vorschlag span{display:block;margin-top:2px;word-break:break-word}
 .empty{text-align:center;color:var(--muted);padding:20px;font-size:12px;border:1px dashed var(--line);border-radius:10px;background:#fbfcfd}
 .modal{position:fixed;inset:0;background:linear-gradient(180deg,#f2f5f8,#e8edf1 240px,var(--bg) 480px);background-attachment:fixed;z-index:500;padding:14px 9px 40px;overflow:auto;animation:fadeIn .15s ease-out}.modalbox{max-width:920px;margin:auto;padding:0}
+/* v3.101: Diese beiden Dialoge werden aus den Einstellungen heraus geoeffnet,
+   die dabei bereits offen bleiben (kein modal.hidden=true davor). Bei
+   gleichem z-index gewinnt im DOM das spaeter stehende Element - #settingsModal
+   steht in index.html nach diesen beiden, sie erschienen deshalb dahinter. */
+#lagerFormModal,#lagerBuchenModal{z-index:501}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .settingrow{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;margin:6px 0;display:grid;grid-template-columns:1.3fr .9fr auto;gap:8px;align-items:center}
 .settingrow.emp-row{grid-template-columns:1fr auto}

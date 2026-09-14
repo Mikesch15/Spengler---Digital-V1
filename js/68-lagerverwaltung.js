@@ -34,8 +34,14 @@ async function checkLagerZugriff(){
   }catch(e){lagerverwaltungZugriff=false;}
  }
  if($("lagerverwaltungSection"))$("lagerverwaltungSection").hidden=!lagerverwaltungZugriff;
+ if($("navLagerverwaltung"))$("navLagerverwaltung").hidden=!lagerverwaltungZugriff;
  if(lagerverwaltungZugriff)await lagerBewegungenLaden();
 }
+
+// v3.101: direkter Einstieg von der Startseite statt ueber Einstellungen ->
+// Lagerverwaltung suchen zu muessen - navigiert wie der bestehende
+// Einstellungen-Kurzweg (z. B. js/04-start-suche.js) direkt zum Register.
+if($("navLagerverwaltung"))$("navLagerverwaltung").onclick=()=>openSettingsTo("lager","lagerverwaltung");
 
 function lagerZahl(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function lagerZahlText(v){

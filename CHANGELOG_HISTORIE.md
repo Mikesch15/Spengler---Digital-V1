@@ -27730,3 +27730,89 @@ Volle Regression aller Prüfstände lief im Anschluss unverändert durch
 - Kein Name/Zeitstempel wird zur Unterschrift mitgespeichert - nur das
   Bild selbst. Der Zeitpunkt ergibt sich weiterhin aus `updated_at` des
   Rapports.
+
+## 167. FEHLERBEHEBUNG: DRUCK-DOPPELUNG, DIALOG HINTER EINSTELLUNGEN, LAGER-STARTKNOPF — VERSION 3.101
+
+### 167.1 Anlass
+
+Direktes Anwender-Feedback (Screenshot des PDF-Exports) nach v3.100:
+
+1. Im ausgedruckten Regierapport erschien die Unterschriften-**Erfassung**
+   (Karte mit "✍️ Unterschriften", Vorschaubildern und "✓ Unterschrieben.")
+   zusätzlich zu den korrekten, kleinen Unterschriftsbildern über den
+   Zeilen "Ort, Datum · Unterschrift Auftraggeber" / "Unterschrift
+   ausführender Mitarbeiter" - obwohl die Erfassungskarte `no-print` trägt.
+2. "Material buchen" (Lagerverwaltung) öffnet sich hinter dem gerade
+   offenen Einstellungen-Fenster.
+3. Wunsch: Lagerverwaltung soll direkt von der Startseite aus erreichbar
+   sein, nicht nur über Einstellungen → Lagerverwaltung.
+
+### 167.2 Root Cause 1 - Druck-Doppelung
+
+`css/03-druck.css` enthält `.no-print{display:none!important}` (Zeile 6)
+UND, weiter unten, `.card{display:block!important}` (für Section-Karten
+im Ausdruck). Beide Regeln haben dieselbe CSS-Spezifität (je ein
+Klassenselektor) UND `!important` - bei Gleichstand gewinnt im
+Stylesheet die **später stehende** Regel. Da `.card` nach `.no-print`
+steht, gewann `.card` gegen `.no-print` für jedes Element, das beide
+Klassen trägt. Die neue Unterschriften-Erfassungskarte
+(`<div class="card no-print" id="reportSigCard">`) war das erste
+Element in dieser App, das diese Kombination überhaupt verwendet - alle
+bisherigen `no-print`-Blöcke waren keine `.card`. Behoben durch eine
+zusätzliche, spezifischere Regel `.card.no-print{display:none!important}`
+(zwei Klassen schlagen eine), direkt nach den `.card`-Regeln platziert.
+
+### 167.3 Root Cause 2 - Dialog hinter den Einstellungen
+
+Alle `.modal`-Dialoge teilen sich denselben `z-index:500`. Bei gleichem
+z-index bestimmt die DOM-Reihenfolge die Stapelung - das später im HTML
+stehende Element liegt oben. `#lagerBuchenModal` und `#lagerFormModal`
+stehen beide VOR `#settingsModal` in `index.html`, werden aber aus den
+bereits offenen Einstellungen heraus geöffnet (kein `settingsModal.hidden
+=true` davor, wie es auch die anderen Sub-Dialoge der Einstellungen nicht
+tun). `#settingsModal` lag deshalb immer obendrauf. Behoben mit einer
+gezielten Regel `#lagerFormModal,#lagerBuchenModal{z-index:501}` -
+betrifft nur diese beiden, keine Verschiebung im HTML nötig.
+
+### 167.4 Neu: Direkter Einstieg von der Startseite
+
+Ein dritter Knopf neben "Projekte" und "Werkstatt" im bestehenden
+`#startNav` (`#navLagerverwaltung`, dasselbe `.start-nav-btn`-Muster wie
+`#navWerkstatt`). Sichtbarkeit folgt exakt derselben Prüfung wie der
+Abschnitt in den Einstellungen (`checkLagerZugriff()` in
+`js/68-lagerverwaltung.js`) - kein zweiter Zugriffsweg, nur ein
+zusätzlicher Einstiegspunkt. Ein Klick ruft den bereits bestehenden
+Einstellungen-Kurzweg `openSettingsTo("lager","lagerverwaltung")` auf
+(dasselbe Muster wie der bestehende Regierapport-Kurzweg zu den
+Ansätzen).
+
+### 167.5 Getestet
+
+`pruefstand-rapport-unterschrift-v3-100.js` um Abschnitt B2 ergänzt:
+`page.emulateMedia({media:"print"})` bestätigt, dass die Erfassungskarte
+mit vorhandener Unterschrift `display:none` bleibt und stattdessen genau
+das dafür vorgesehene `<img>` im `report-foot` erscheint (30 Prüfungen,
+alle bestanden). `pruefstand-lagerverwaltung-v3-98.js` um Abschnitt 8
+(Startseiten-Knopf folgt derselben Freigabe, Klick navigiert korrekt)
+und Abschnitt 9 (z-index von `lagerBuchenModal`/`lagerFormModal` höher
+als `settingsModal`) ergänzt (30 Prüfungen, alle bestanden). Volle
+Regression aller Prüfstände lief im Anschluss unverändert durch.
+
+### 167.6 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `css/03-druck.css` | `.card.no-print{display:none!important}` |
+| `css/01-basis.css` | `#lagerFormModal,#lagerBuchenModal{z-index:501}` |
+| `index.html` | neuer Knopf `#navLagerverwaltung` im Start-Nav, Versionsbump 3.101 |
+| `js/68-lagerverwaltung.js` | Knopf-Sichtbarkeit in `checkLagerZugriff()`, Klick-Handler auf `openSettingsTo` |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.101"]` ergänzt |
+| `sw.js` | Cache-Version 3.101 |
+| `PROJECT_STATE.md` | Versionsstand 3.101 |
+| `pruefstaende/pruefstand-rapport-unterschrift-v3-100.js` | Abschnitt B2 ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitte 8 und 9 ergänzt |
+
+### 167.7 Offene Punkte
+
+Keine bekannt - beide gemeldeten Fehler sind auf ihre Root Cause
+zurückgeführt und gezielt behoben, nicht symptomatisch umgangen.

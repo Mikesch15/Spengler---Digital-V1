@@ -145,6 +145,23 @@ const sketchStubben=(page)=>page.evaluate((fixDataUrl)=>{
  p(z.mitarbeiter===STUB_UNTERSCHRIFT&&z.client===STUB_UNTERSCHRIFT,"beide Unterschriften bestehen unabhaengig nebeneinander",z);
 
  // =========================================================================
+ // B2 · Fehlerbehebung v3.101: die Erfassungskarte (no-print) darf NICHT
+ // mitgedruckt werden, auch wenn eine Unterschrift vorliegt. Ursache des
+ // gemeldeten Fehlers: ".card{display:block!important}" stand in
+ // css/03-druck.css NACH ".no-print{display:none!important}" - bei
+ // gleicher Spezifitaet gewann die spaeter stehende .card-Regel.
+ // =========================================================================
+ console.log("\nB2 · Die Erfassungskarte selbst wird nicht mitgedruckt (Fehlerbehebung v3.101)");
+ await page.emulateMedia({media:"print"});
+ z=await page.evaluate(()=>({
+  karteAnzeige:getComputedStyle($("reportSigCard")).display,
+  druckBildClientAnzeige:getComputedStyle($("sigPrintClient")).display
+ }));
+ p(z.karteAnzeige==="none","die no-print-Erfassungskarte bleibt im Druck unsichtbar, auch mit vorhandener Unterschrift",z);
+ p(z.druckBildClientAnzeige==="block","stattdessen zeigt genau das dafuer vorgesehene Druck-Bild im report-foot",z);
+ await page.emulateMedia({media:"screen"});
+
+ // =========================================================================
  // C · Loeschen
  // =========================================================================
  console.log("\nC · Loeschen einer Unterschrift");
