@@ -367,6 +367,31 @@ ${einfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","einfa_lattenabstan
 <button type="button" class="gray" id="einfa_einstellungen">⚙️ Einstellungen</button>
 </div>`;
 }
+// v3.93: kurze Uebersicht ueber alle Masse mit Beispielskizze - dasselbe
+// Prinzip wie bei Kamin-/Dachfenstereinfassung (dfaUebersichtHtml/
+// kamaUebersichtHtml), aber OHNE die dortige durchgehende Buchstabenreihe:
+// a/b/c sind hier bereits fest vergeben, Durchmesser und Winkel haben nie
+// einen eigenen Buchstaben gebraucht - es wird nichts umbenannt, nur
+// zusammengefasst dargestellt. einfZeichnung() beschriftet a/b/c/Ø bereits
+// selbst (siehe js/21), ein fixes Beispiel genuegt deshalb als Bildquelle.
+function einfaUebersichtHtml(){
+ const beispiel={durchmesser:110,winkel:25,a:120,b:100,c:80};
+ const zeilen=[
+  ["Ø","Ø Standrohr"],
+  ["Winkel","Winkel Dach/Rohr"],
+  ["a","vorne bis Mitte Rohr"],
+  ["b","ab Mitte Rohr bis hinten"],
+  ["c","Aufbug 90°, oben Umschlag 135°"]
+ ].map(([sym,name])=>`<tr><td><b>${esc(sym)}</b></td><td>${esc(name)}</td></tr>`).join("");
+ return `<details class="einfa-uebersicht" style="margin-bottom:12px">
+<summary>Übersicht: alle Masse anzeigen</summary>
+<div class="info" style="margin-top:8px">Beispielskizze mit Beispielwerten - zeigt nur, wo
+jedes Mass liegt, nicht die aktuelle Aufnahme.</div>
+<div class="eb-diagram-box eb-diagram-scroll" style="margin-top:8px">${
+  typeof einfZeichnung==="function"?einfZeichnung(beispiel):""}</div>
+<div class="scroll" style="margin-top:8px"><table class="eb-table ra-tab"><tbody>${zeilen}</tbody></table></div>
+</details>`;
+}
 function einfaEinfassungenHtml(){
  const a=einfA;
  const liste=einfaListe();
@@ -391,7 +416,7 @@ ${einfaZahlFeld("Stückzahl","einfa_anzahl_"+i,e.anzahl)}
 </div></div>`;
  }).join("");
  const aktiv=liste[a.aktiv]||liste[0];
- return `<div class="info">Jede Einfassung bekommt ihre eigenen Masse. Sind mehrere Rohre
+ return einfaUebersichtHtml()+`<div class="info">Jede Einfassung bekommt ihre eigenen Masse. Sind mehrere Rohre
 gleich, genügt eine Zeile mit der passenden <b>Stückzahl</b>. Der Schnitt zeigt die gerade
 gewählte Einfassung.<br>
 Der <b>Winkel Dach/Rohr</b> wird zwischen Dachfläche und Rohr auf der Talseite gemessen und ist

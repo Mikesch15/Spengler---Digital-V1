@@ -26858,3 +26858,62 @@ bekannten Fehlschläge, keine neuen). Volle Regression über
   Rahmen dieser Änderung hinausgeht.
 - Massen-Übersicht auf vier weitere Module (Rinne, Einfassung rund,
   Lukarne, Freies Profil) steht noch aus.
+
+## 158. MASSEN-ÜBERSICHT AUF EINFASSUNG RUND UND LUKARNE AUSGEWEITET — VERSION 3.93
+
+### 158.1 Anlass
+
+Fortsetzung von v3.91 (Idee 3 von 5): die in v3.88 eingeführte
+aufklappbare "Übersicht"-Karte mit Beispielskizze (Kamin, Dachfenster)
+sollte auf weitere Massaufnahme-Arten ausgeweitet werden. Recherche vor
+der Umsetzung ergab: Rinne (Zuschnittliste, js/39/js/26) und Freies
+Profil (js/31/js/14) haben keine feste Massliste - beide arbeiten mit
+einer variablen Anzahl frei benannter Profilpunkte/-segmente
+(`rinneBuchstabe()` erzeugt Buchstaben dynamisch je nach Segmentzahl),
+eine feste Kamin/Dachfenster-Übersicht passt dort strukturell nicht und
+wurde deshalb übersprungen. Einfassung rund (js/38/js/21) und Lukarne
+(js/36/js/19) haben dagegen feste, aber bereits fest vergebene Symbole
+(a/b/c/Ø/Winkel bzw. H/L/α) - hier wurde NICHTS umbenannt, nur eine
+Übersichtskarte ergänzt, wie mit dem Anwender per Rückfrage geklärt.
+
+### 158.2 Umsetzung
+
+Je Modul eine neue Funktion `einfaUebersichtHtml()`/`lukaUebersichtHtml()`,
+vor die bestehende Masse-Eingabekarte gehängt (`einfaEinfassungenHtml()`
+bzw. `lukaGeometrieHtml()`). Beide nutzen die bestehende, stateless
+Zeichenfunktion des jeweiligen Fachmoduls (`einfZeichnung()` in js/21,
+`lukPlanSvg()` in js/19) mit einem festen Beispieldatensatz statt
+eigener Zeichenlogik - beide Funktionen beschriften ihre Masse (a/b/c/Ø
+bzw. H/L/A/α/HR) bereits selbst auf dem SVG. Für Lukarne läuft das
+Beispiel zusätzlich durch die bestehende `berechneLukarne()`, da
+`lukPlanSvg()` ein bereits gerechnetes Ergebnis braucht, kein rohes
+Eingabeobjekt. Eine Tabelle darunter listet alle Pflichtfelder mit
+Symbol (soweit vorhanden) und Klartext-Beschreibung.
+
+### 158.3 Getestet
+
+Direktaufruf beider neuer Funktionen per Playwright gegen die echte
+`index.html`: `<details>`/`<svg>` vorhanden, alle erwarteten
+Bezeichnungen im HTML, keine JavaScript-Fehler. Prüfstände
+`pruefstand-einfassung-app-v2-96.js` (101/113) und
+`pruefstand-lukarne-app-v2-87.js` (80/82) vorher/nachher verglichen
+(`git stash`): identisches Ergebnis, dieselben bereits bekannten
+Fehlschläge, keine neuen. Volle Regression über `ci-lauf.js`: 39/68,
+genau die 29 bekannten Fehlschläge, keine neue Regression.
+
+### 158.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/38-einfassung-aufnahme.js` | `einfaUebersichtHtml()` ergänzt, in `einfaEinfassungenHtml()` eingehängt |
+| `js/36-lukarne-aufnahme.js` | `lukaUebersichtHtml()` ergänzt, in `lukaGeometrieHtml()` eingehängt |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.93"]` ergänzt |
+| `index.html`, `sw.js`, `PROJECT_STATE.md` | Version 3.93 |
+
+### 158.5 Offene Punkte
+
+- Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
+  immer).
+- Rinne (Zuschnittliste) und Freies Profil bleiben ohne feste
+  Massen-Übersicht (siehe 158.1) - damit ist Idee 3 von 5 aus v3.91
+  für die zwei strukturell passenden Module abgeschlossen.

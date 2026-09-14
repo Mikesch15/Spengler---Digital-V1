@@ -302,6 +302,37 @@ und in der Scharentabelle nur die Ansicht – gerechnet wird gleich.</div>
 <button type="button" class="gray" id="luka_einstellungen">⚙️ Standardwerte und Zugaben</button>
 </div>`;
 }
+// v3.93: kurze Uebersicht ueber alle Masse mit Beispielskizze - dasselbe
+// Prinzip wie bei Kamin-/Dachfenstereinfassung (kamaUebersichtHtml/
+// dfaUebersichtHtml) und Einfassung rund (einfaUebersichtHtml), aber ohne
+// deren durchgehende Buchstabenreihe: H, L und α sind hier bereits fest
+// vergeben, Achsabstand/Hilfsriss/Zugaben hatten nie einen eigenen
+// Buchstaben - es wird nichts umbenannt, nur zusammengefasst dargestellt.
+// lukPlanSvg() beschriftet H/L/A/α/HR bereits selbst (siehe js/19), ein
+// fixes Beispiel genuegt deshalb als Bildquelle - dieselbe Rechnung
+// (berechneLukarne) wie in der echten Aufnahme, nicht nachgebaut.
+function lukaUebersichtHtml(){
+ const beispiel=berechneLukarne({hoehe:1200,laengeOben:800,winkel:100,
+   achsabstand:300,hilfsrissWunsch:150,seite:"rechts",
+   zugabeLaenge:0,zugabeBreite:0});
+ const zeilen=[
+  ["H","Vordere Höhe, senkrechte Kante"],
+  ["L","Obere Länge bis zur Spitze"],
+  ["α","Oberer Innenwinkel zwischen Ober- und Vorderkante"],
+  ["Achsabstand","Waagerechter Abstand der Scharen"],
+  ["Hilfsriss","Waagerechte Reisslinie unter der Oberkante, ab der jede Schar gemessen wird"],
+  ["Längenzugabe","Zugabe auf die Zuschnittlänge jeder Schar"],
+  ["Breitenzugabe","Zugabe auf die Zuschnittbreite jeder Schar"]
+ ].map(([sym,name])=>`<tr><td><b>${esc(sym)}</b></td><td>${esc(name)}</td></tr>`).join("");
+ return `<details class="luka-uebersicht" style="margin-bottom:12px">
+<summary>Übersicht: alle Masse anzeigen</summary>
+<div class="info" style="margin-top:8px">Beispielskizze mit Beispielwerten - zeigt nur, wo
+jedes Mass liegt, nicht die aktuelle Aufnahme.</div>
+<div class="eb-diagram-box eb-diagram-scroll" style="margin-top:8px">${
+  typeof lukPlanSvg==="function"?lukPlanSvg(beispiel):""}</div>
+<div class="scroll" style="margin-top:8px"><table class="eb-table ra-tab"><tbody>${zeilen}</tbody></table></div>
+</details>`;
+}
 function lukaGeometrieHtml(){
  const a=lukA, g=lukaErgebnis();
  const wert=(l,v)=>`<div><label>${esc(l)}</label><div class="ra-wert">${v}</div></div>`;
@@ -317,7 +348,7 @@ und Achsabstand eingeben. Der obere Innenwinkel muss zwischen 90° und 180° lie
 noch ${lukaMm(g.maxHilfsriss)} mm hoch. Der gewünschte Hilfsriss von ${lukaMm(g.hilfsrissWunsch)} mm
 würde sie nicht mehr schneiden – gerechnet wird mit <b>${lukaMm(g.hilfsriss)} mm</b>.</div>`
   : `<div class="ra-ok">Der Hilfsriss schneidet alle Scharen.</div>`):"";
- return `<div class="info">Vordere Kante senkrecht, obere Kante im Innenwinkel α dazu,
+ return lukaUebersichtHtml()+`<div class="info">Vordere Kante senkrecht, obere Kante im Innenwinkel α dazu,
 beide treffen sich hinten in der Spitze. Der Hilfsriss ist die waagerechte Reisslinie,
 ab der jede Schar nach oben und unten abgemessen wird.</div>
 <div class="grid">
