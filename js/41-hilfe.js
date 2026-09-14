@@ -1328,6 +1328,22 @@ Materialkatalog der Firma. Beides ist firmeneigen und wird hier nicht neu
 erfunden. Wird ein Artikel gewählt, schlägt das Formular Stärke und
 Bezeichnung vor – beides bleibt frei änderbar.</p>`},
 
+"lagerverwaltung":{titel:"Lagerverwaltung",text:`
+<p>Der aktuelle Bestand je Artikel aus dem Materialbestand oben – anders
+als dort ist das hier eine echte Bestandsführung mit Mengen.</p>
+<p>Der Bestand ist <b>immer</b> die Summe aller Buchungen (Zugang, Abgang,
+Korrektur) – nie ein Feld zum Überschreiben. Eine Buchung bleibt für immer
+stehen; ein Fehler wird durch eine neue Korrektur-Buchung ausgeglichen,
+nie durch Ändern einer bestehenden Buchung. So lässt sich der Bestand
+jederzeit nachvollziehen, statt einer Zahl vertrauen zu müssen, die
+niemand mehr erklären kann.</p>
+<p>Sichtbar ist dieser Bereich nur für Mitarbeitende mit eigens
+freigeschaltetem <b>Lager-Zugriff</b> (Einstellungen → Mitarbeiter) –
+unabhängig von den übrigen Rechten, wie beim Offerte-Zugriff. Auch ein
+Administrator braucht diese Freigabe eigens.</p>
+<p>Ein Artikel, der noch nicht im Materialbestand steht, muss zuerst dort
+angelegt werden – die Lagerverwaltung bucht nur auf bestehende Artikel.</p>`},
+
 "meas-staerke":{titel:"Materialstärke",text:`
 <p>Welche Stärke das Blech dieser Massaufnahme hat. Die Auswahl kommt
 <b>ausschliesslich</b> aus dem Materialbestand der Firma (Einstellungen →

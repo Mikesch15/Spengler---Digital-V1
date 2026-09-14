@@ -55,6 +55,12 @@ function offerteZugriffVon(profilId){
  const zeile=alleFeatureAccess.find(x=>x.profile_id===profilId&&x.feature==="angebote");
  return !!(zeile&&zeile.granted);
 }
+// v3.98: dieselbe Freischaltung fuer die Lagerverwaltung - siehe
+// js/68-lagerverwaltung.js.
+function lagerZugriffVon(profilId){
+ const zeile=alleFeatureAccess.find(x=>x.profile_id===profilId&&x.feature==="lager");
+ return !!(zeile&&zeile.granted);
+}
 
 // Rohwerte für einen Mitarbeiter und eine Tabelle zusammensuchen
 function rohRecht(profil,resource){
@@ -196,6 +202,12 @@ function renderMitarbeiterSettings(){
     <input type="checkbox" data-emp-angebot="${i}"${offerteZugriffVon(employeeIds[i])?" checked":""}>
     Offerte-Zugriff – darf Offerten importieren, ansehen und einem Projekt zuordnen
    </label>`:"";
+  // v3.98: Lagerverwaltung-Zugriff, dasselbe Muster wie der Offerte-Schalter
+  // direkt darueber - ein eigenes Ein/Aus, unabhaengig von "Kataloge".
+  const lagerSchalter=darfVergeben?`<label class="rechte-schalter">
+    <input type="checkbox" data-emp-lager="${i}"${lagerZugriffVon(employeeIds[i])?" checked":""}>
+    Lager-Zugriff – darf die Lagerverwaltung sehen und Bewegungen buchen
+   </label>`:"";
   return `<div class="rechte-zeile">
    <div class="rechte-kopf">
     <input data-set-emp="${i}" value="${esc(e)}">
@@ -204,6 +216,7 @@ function renderMitarbeiterSettings(){
    </div>
    ${funktion}
    ${offerteSchalter}
+   ${lagerSchalter}
    <details class="rechte-details">
     <summary>Rechte${istAdmin?" – Administrator":""}</summary>
     ${block}
@@ -344,5 +357,37 @@ if($("employeeSettings")){
   // muss.
   if(currentProfile&&currentProfile.id===profilId&&typeof checkOfferteZugriff==="function")
    await checkOfferteZugriff();
+ });
+}
+
+// ---------------------------------------------------------------------------
+// v3.98  Lager-Zugriff je Mitarbeiter speichern (Feature-Freischaltung)
+// ---------------------------------------------------------------------------
+// Identisch zum Offerte-Zugriff oben, nur feature:"lager" statt "angebote" -
+// dieselbe Absicherung (kein SECURITY DEFINER, company_id serverseitig,
+// 0 geschriebene Zeilen gelten nicht als Erfolg).
+if($("employeeSettings")){
+ $("employeeSettings").addEventListener("change",async e=>{
+  const feld=e.target.closest?e.target.closest("[data-emp-lager]"):null;
+  if(!feld)return;
+  const i=Number(feld.dataset.empLager);
+  const profilId=employeeIds[i];
+  if(!profilId)return;
+  const neu=feld.checked;
+  const {data,error}=await sb.from("feature_access")
+    .upsert({profile_id:profilId,feature:"lager",granted:neu,
+             granted_by:currentProfile?currentProfile.id:null},
+            {onConflict:"profile_id,feature"})
+    .select("id,profile_id,feature,granted");
+  if(error||!data||!data.length){
+   feld.checked=!neu;
+   alert(error?("Der Lager-Zugriff konnte nicht gespeichert werden: "+error.message)
+              :"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");
+   return;
+  }
+  const zeile=alleFeatureAccess.find(x=>x.profile_id===profilId&&x.feature==="lager");
+  if(zeile)zeile.granted=data[0].granted; else alleFeatureAccess.push(data[0]);
+  if(currentProfile&&currentProfile.id===profilId&&typeof checkLagerZugriff==="function")
+   await checkLagerZugriff();
  });
 }

@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.97</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.98</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -620,6 +620,34 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div class="bar">
 <button id="lagerFormSpeichern" class="green">💾 Speichern</button>
 <button id="lagerFormAbbrechen" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- v3.98: Lagerverwaltung - Buchung erfassen (Zugang/Abgang/Korrektur).
+     Eine Buchung ist unveraenderlich; ein Fehler wird durch eine neue
+     Korrektur-Buchung ausgeglichen, siehe js/68-lagerverwaltung.js. -->
+<div id="lagerBuchenModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>Bewegung buchen <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button></h2>
+<div class="small" id="lagerBuchenArtikel" style="margin-bottom:8px"></div>
+<div class="grid">
+<div><label>Art</label>
+<select id="lagerBuchenArt">
+<option value="zugang">Zugang (z. B. Lieferung)</option>
+<option value="abgang">Abgang (z. B. Verbrauch)</option>
+<option value="korrektur">Korrektur (z. B. Inventur)</option>
+</select>
+</div>
+<div><label>Menge</label><input id="lagerBuchenMenge" type="number" step="any"></div>
+<div class="wide"><label>Grund / Bemerkung</label><input id="lagerBuchenGrund" type="text" placeholder="z. B. Lieferschein-Nr., Baustelle, Inventur vom …"></div>
+</div>
+<div class="small" id="lagerBuchenFehler" style="color:var(--red)" hidden></div>
+<div class="bar">
+<button id="lagerBuchenSpeichern" class="green">💾 Buchen</button>
+<button id="lagerBuchenAbbrechen" class="gray">Abbrechen</button>
 </div>
 </div>
 </div>
@@ -2137,6 +2165,20 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 </div>
 </div>
 
+<!-- v3.98: Lagerverwaltung Phase 1 - Bewegungs-Ledger auf dem bestehenden
+     Materialbestand-Katalog (oben). Nur sichtbar mit feature_access
+     ("lager", siehe js/05a-rechte.js) - Sichtbarkeit wird von
+     checkLagerZugriff() in js/68-lagerverwaltung.js gesetzt, deshalb
+     "hidden" hier als Vorgabe, bis die Prüfung durchgelaufen ist. -->
+<div class="settings-section" data-section="lagerverwaltung" id="lagerverwaltungSection" hidden>
+<div class="settings-section-head" data-toggle-section="lagerverwaltung"><h2>🏭 Lagerverwaltung <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Bestand je Artikel aus dem Materialbestand oben, geführt über einzelne Buchungen (Zugang/Abgang/Korrektur) statt einer Zahl zum Überschreiben – jede Buchung bleibt stehen, auch eine Korrektur.</div>
+<div id="lagerverwaltungListe"></div>
+<div class="small" id="lagerverwaltungHinweis" style="margin-top:4px" hidden></div>
+</div>
+</div>
+
 <div class="settings-section" data-section="reststuecke">
 <div class="settings-section-head" data-toggle-section="reststuecke"><h2>Reststücke <button type="button" class="hilfe-knopf no-print" data-hilfe="reststuecke">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
@@ -2466,6 +2508,7 @@ nicht neu installieren.</div>
 <script src="js/65-leistungen.js"></script>
 <script src="js/66-dachfenster-aufnahme.js"></script>
 <script src="js/67-was-ist-neu.js"></script>
+<script src="js/68-lagerverwaltung.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

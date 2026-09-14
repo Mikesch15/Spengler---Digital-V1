@@ -103,6 +103,9 @@ async function afterLogin(){
  // lesend, blendet nur die (ohnehin per RLS abgesicherten) Cockpit-
  // Elemente ein/aus. Siehe js/63-angebote.js.
  if(typeof checkOfferteZugriff==="function")await checkOfferteZugriff();
+ // v3.98: Lagerverwaltung-Zugriff (feature_access) - dasselbe Muster wie
+ // Offerten-Zugriff direkt darueber. Siehe js/68-lagerverwaltung.js.
+ if(typeof checkLagerZugriff==="function")await checkLagerZugriff();
  // Wer sein Passwort noch nie selbst gesetzt hat, muss das zuerst tun.
  if(profile&&profile.passwort_gesetzt===false){
   $("authScreen").hidden=true;

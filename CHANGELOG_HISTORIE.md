@@ -27413,3 +27413,117 @@ Stand.
 ### 163.5 Offene Punkte
 
 - Keine. Reiner Client-Zustand (Layout), keine Datenbankänderung nötig.
+
+## 164. LAGERVERWALTUNG PHASE 1: BEWEGUNGS-LEDGER MIT EIGENEM ZUGRIFFS-SCHALTER — VERSION 3.98
+
+### 164.1 Anlass
+
+"Ich überlege, ob es sinnvoll wäre, eine Art Lagerverwaltung einzubauen"
+- gefolgt von "starte gleich mit Phase 1 aber so dass ich das ganze
+Lagerverwaltungs-Modul einstellen kann, wer es sehen kann und wer nicht."
+
+Vor dem Bauen recherchiert: bis Version 3.31 gab es in `lagerbestand`
+bereits `menge`/`einheit`-Spalten - wurden BEWUSST wieder entfernt
+(Kommentar in `js/59-lagerbestand.js`: *"es war nie eine Lagerverwaltung,
+es wurde nie etwas abgebucht, und die Zahlen dort haben nichts
+bewirkt"*). Die Lehre daraus: eine Zahl, die nie mit echten Zu-/Abgängen
+mitläuft, täuscht falsche Sicherheit vor. Phase 1 baut deshalb bewusst
+NICHT auf einem Mengenfeld auf, sondern auf einem unveränderlichen
+Bewegungs-Ledger.
+
+### 164.2 Datenmodell
+
+Neue Tabelle `lagerbestand_bewegungen` (Migration
+`lagerverwaltung_phase1_bewegungen`): `lagerbestand_id` (Fremdschlüssel auf
+den bestehenden Materialbestand-Katalog), `art` (`zugang`/`abgang`/
+`korrektur`), `menge` (signiert: Zugang immer positiv, Abgang immer
+negativ, Korrektur beliebig - per CHECK-Constraint erzwungen), `grund`,
+`created_by`/`created_at`. Der aktuelle Bestand ist IMMER die Summe der
+Buchungen (client-seitig berechnet, wie `zuBilanz()` und andere Summen in
+dieser App) - kein editierbares Feld. Bewusst KEIN Update/Delete in der
+RLS: eine Buchung bleibt stehen, ein Fehler wird durch eine neue
+Korrektur-Buchung ausgeglichen, nie durch Ändern der Vergangenheit.
+
+Firmengrenze: `tenant_boundary_lagerbestand_bewegungen` (RESTRICTIVE,
+`company_id = my_company_id()`, `company_id` serverseitig per DEFAULT
+gesetzt, nie vom Client) plus `enforce_lager_bewegung_firma()` (Trigger,
+verhindert eine Buchung auf einen Katalog-Eintrag einer anderen Firma -
+dasselbe Muster wie das bereits bestehende `enforce_lager_firma()` für
+`lagerbestand` selbst).
+
+### 164.3 Sichtbarkeit: eigener Zugriffs-Schalter je Mitarbeiter
+
+Wörtliche Anforderung: "einstellen kann wer es sehen kann und wer
+nicht." Exakt das bereits produktiv bewährte Muster des
+Offerte-Zugriffs (`js/63-angebote.js`, Abschnitt 122-128 dieser Datei)
+wiederverwendet: neue RESTRICTIVE Policy `feature_boundary_lager` auf
+`lagerbestand_bewegungen`, die `feature_access` mit `feature='lager'`
+und `granted=true` verlangt - unabhängig vom bestehenden Rechte-Modell
+(`permission_settings`/`permission_overrides`). Auch ein Administrator
+braucht diese Freigabe eigens, wie beim Offerte-Zugriff (kein
+automatischer Zugriff über die Administrator-Rolle). Innerhalb dieser
+beiden restriktiven Schranken (Firma + Feature) sind Lesen und Buchen
+für jeden Freigeschalteten frei - bewusst KEINE zusätzliche Kopplung an
+die bestehende "Kataloge"-Berechtigung (`materials`), damit der neue
+Schalter ein vollständiges, unabhängiges Ein/Aus bleibt, wie angefragt.
+
+`js/05a-rechte.js`: `lagerZugriffVon()` (analog `offerteZugriffVon()`),
+ein neuer Schalter "Lager-Zugriff" in der Mitarbeiterliste, ein eigener
+`change`-Handler mit `upsert` auf `feature_access` (`feature:"lager"`) -
+Kopie des Offerte-Musters, nur der Feature-Schlüssel unterscheidet sich.
+`js/03-login.js`: `checkLagerZugriff()` nach dem Login aufgerufen, wie
+`checkOfferteZugriff()`.
+
+### 164.4 Oberfläche
+
+Neuer Abschnitt "🏭 Lagerverwaltung" in den Einstellungen (Register
+"Allgemein" → dort wo auch der Materialbestand-Katalog steht), mit
+`hidden` als Vorgabe und `checkLagerZugriff()`/`renderSettings()` als
+Sichtbarkeits-Schalter (`js/68-lagerverwaltung.js`, neues Modul). Je
+Artikel aus dem Materialbestand: aktueller Bestand, die letzten fünf
+Buchungen, ein "📦 Buchen"-Knopf öffnet einen Dialog (Art, Menge, Grund).
+Der Benutzer gibt bei Zugang/Abgang immer eine positive Menge ein - die
+Richtung kommt aus der gewählten Art, damit niemand an ein Minuszeichen
+denken muss; bei Korrektur zählt die Eingabe unverändert (auch negativ
+möglich, für eine Inventur-Abweichung nach unten).
+
+### 164.5 Getestet
+
+Neuer Prüfstand `pruefstaende/pruefstand-lagerverwaltung-v3-98.js`
+(25 Prüfungen, generische Attrappe wie in `pruefstand-angebote-v3-34.js`):
+Sichtbarkeit bleibt ohne Freigabe versteckt (auch für einen
+Administrator), wird mit `granted:true` sichtbar; Bestand ist
+nachweislich die Summe mehrerer Buchungen; Zugang/Abgang/Korrektur setzen
+die richtige Richtung; eine Buchung ohne Menge wird abgelehnt, bevor
+überhaupt geschrieben wird; der Rechte-Schalter erscheint nur für
+Administratoren, ist unabhängig vom Offerte-Schalter, und der Client
+schreibt/liest `company_id` an keiner Stelle selbst. Volle Regression
+(`pruefstaende/ci-lauf.js`) danach durchlaufen: 42/71, alle 29
+Fehlschläge bereits vorher bekannt, keine neue Abweichung.
+`mcp__Supabase__get_advisors` (security) nach der Migration geprüft:
+keine neuen Befunde durch `lagerbestand_bewegungen`.
+
+### 164.6 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migration `lagerverwaltung_phase1_bewegungen` | neue Tabelle `lagerbestand_bewegungen`, Trigger, RLS |
+| `js/68-lagerverwaltung.js` | neu: Bestandsanzeige, Buchen-Dialog, `checkLagerZugriff()` |
+| `js/05a-rechte.js` | `lagerZugriffVon()`, Lager-Schalter in der Mitarbeiterliste, `change`-Handler |
+| `js/03-login.js` | `checkLagerZugriff()` nach dem Login |
+| `js/08-katalog-blitzschutz.js` | `renderLagerverwaltung()` in `renderSettings()` |
+| `index.html` | neuer Abschnitt "Lagerverwaltung", Buchen-Dialog, Versionsbump 3.98 |
+| `sw.js` | neuer Shell-Eintrag js/68, Cache-Version 3.98 |
+| `js/41-hilfe.js` | Hilfetext `lagerverwaltung` |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.98"]` ergänzt |
+| `PROJECT_STATE.md` | Versionsstand 3.98 |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | neu, 25 Prüfungen |
+
+### 164.7 Offene Punkte
+
+- Phase 2 (automatische Abbuchung aus abgeschlossenen Zuschnittplänen)
+  ist bewusst zurückgestellt, bis sich Phase 1 im echten Betrieb bewährt
+  hat - siehe Absprache mit dem Anwender.
+- Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
+  immer) - die serverseitige Absicherung folgt exakt dem bereits
+  produktiv bewährten Muster des Offerte-Zugriffs.

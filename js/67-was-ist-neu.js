@@ -32,7 +32,8 @@ const WIN_CHANGELOG={
   "Regierapport: die Spalten Datum, MA und Funktion in der Tabelle sind breiter, damit der Inhalt vollständig lesbar ist."],
  "3.96":["Systemadministration: Feedback lässt sich jetzt auch für fremde Firmen löschen.",
   "Fehler behoben: verwaiste Dateien im Speicher liessen sich nicht endgültig löschen."],
- "3.97":["Regierapport: das Datumsfeld in der Material-Tabelle ist jetzt breiter und richtig beschriftet."]
+ "3.97":["Regierapport: das Datumsfeld in der Material-Tabelle ist jetzt breiter und richtig beschriftet."],
+ "3.98":["Neu: Lagerverwaltung (Phase 1) - Bestand je Artikel aus dem Materialbestand, geführt über einzelne Buchungen (Zugang/Abgang/Korrektur) statt einer Zahl zum Überschreiben. Sichtbar nur für eigens freigeschaltete Mitarbeitende (Einstellungen → Mitarbeiter → Lager-Zugriff)."]
 };
 
 function winVersionVergleich(a,b){

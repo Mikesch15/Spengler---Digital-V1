@@ -429,6 +429,10 @@ function renderSettings(){
  // js/05-daten-laden.js) laengst geladen war - gemeldeter Fehler "wird nicht
  // angezeigt".
  if(typeof renderLagerbestand==="function")renderLagerbestand();
+ // Lagerverwaltung (v3.98, js/68): dasselbe Muster wie renderLagerbestand()
+ // direkt darueber - die Liste braucht lagerbestand[] (js/05-daten-laden.js),
+ // deshalb hier erneut zeichnen statt nur beim Login.
+ if(typeof renderLagerverwaltung==="function")renderLagerverwaltung();
  const madBoden=$("madBodenMassInput"),madSchieber=$("madSchieberMassInput");
  if(madBoden)madBoden.value=madBodenMass;
  if(madSchieber)madSchieber.value=madSchieberMass;
