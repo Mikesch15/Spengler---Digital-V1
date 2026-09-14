@@ -27527,3 +27527,107 @@ keine neuen Befunde durch `lagerbestand_bewegungen`.
 - Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
   immer) - die serverseitige Absicherung folgt exakt dem bereits
   produktiv bewährten Muster des Offerte-Zugriffs.
+
+## 165. TÄGLICHE AUTOMATISCHE BENACHRICHTIGUNG BEI VERWAISTEN DATEIEN — VERSION 3.99
+
+### 165.1 Anlass
+
+Fortsetzung des Ideengesprächs zu Abschnitt 164: "melde mir das per Mail"
+für verwaiste Speicher-Dateien (Idee 2 aus der Liste), statt nur den
+manuellen Knopf in der Systemadministration (Abschnitt 162) zu haben. Der
+Anwender hatte noch keinen E-Mail-Anbieter - Resend gewählt (kostenloses
+Kontingent, einfache API), Konto und `RESEND_API_KEY` als Supabase-Secret
+vom Anwender selbst eingerichtet, Empfänger `mik.ledermann@gmail.com`.
+
+### 165.2 Nebenbei gefunden und behoben: fehlende Referenzen für Offerten
+
+Beim Nachlesen von `system_admin_verwaiste_storage()` (Grundlage für die
+neue Automatik) aufgefallen: die Referenzliste prüfte `angebote.pdf_path`,
+`angebote.photo_path` und `angebote.photo_paths` **nicht** - eine
+Offerten-PDF oder ein Offerten-Foto konnte dadurch fälschlich als
+"verwaist" erscheinen und über den (seit v3.96 tatsächlich funktionierenden)
+Löschknopf entfernt werden, obwohl sie noch verwendet wird. Für beide
+betroffenen Funktionen behoben (siehe 165.3), damit die manuelle Liste in
+der Systemadministration und der neue automatische Check immer dasselbe,
+korrekte Ergebnis liefern.
+
+### 165.3 Umsetzung
+
+**Datenbank:** `system_admin_verwaiste_storage()` um die drei fehlenden
+Referenzen ergänzt. Neue Funktion `system_cron_verwaiste_storage()` -
+inhaltlich identisch, aber OHNE `is_system_admin()`-Prüfung (es gibt beim
+automatischen Check keinen angemeldeten Benutzer, `auth.uid()` wäre NULL)
+und stattdessen per `REVOKE ALL ... FROM public, anon, authenticated` /
+`GRANT EXECUTE ... TO service_role` auf die `service_role` beschränkt -
+dieselbe Vertrauensgrenze wie beim tatsächlichen Löschen
+(`system-admin-storage-aufraeumen`, ebenfalls nur per `service_role`
+erreichbar).
+
+**Edge Function `system-admin-storage-cron`** (neu, `verify_jwt:false` -
+es gibt keinen Benutzer-JWT, den Supabase hier prüfen könnte): abgesichert
+stattdessen durch einen geteilten, zufällig erzeugten Schlüssel
+(`x-cron-secret`-Header), den nur der Cronjob kennt - dasselbe Prinzip wie
+ein Webhook-Secret. Liest `system_cron_verwaiste_storage()` über die
+eigene `SUPABASE_SERVICE_ROLE_KEY` (wie jede Edge Function in dieser App
+automatisch zur Verfügung hat). Findet sie nichts: keine Mail, kein
+täglicher "alles in Ordnung"-Spam. Findet sie etwas: eine Mail über die
+Resend-API (`RESEND_API_KEY`) mit Anzahl, Gesamtgrösse und den ersten 30
+Pfaden. **Es wird nichts automatisch gelöscht** - das bleibt bewusst der
+manuelle Knopf in der Systemadministration, der Betreiber entscheidet
+selbst (unverändertes Prinzip aus Abschnitt 162).
+
+**pg_cron + pg_net:** beide Extensions aktiviert (waren installierbar,
+aber nicht aktiv). Ein Cronjob (`storage-verwaist-taeglich`, täglich
+06:00 UTC) ruft über `net.http_post()` die neue Edge Function auf - der in
+Supabase übliche Weg, einen Cronjob eine Edge Function auslösen zu lassen
+(pg_cron kann selbst kein HTTP). Der geteilte Schlüssel steht dafür direkt
+in der gespeicherten Cronjob-SQL (wie in Supabase-eigenen Anleitungen für
+dieses Muster üblich) - bewusst NICHT der mächtige `service_role`-Key
+selbst, sondern ein eigens dafür erzeugter, zweckgebundener Wert mit
+geringerer Tragweite, falls er je einsehbar würde.
+
+### 165.4 Getestet
+
+Kein lokaler Prüfstand möglich - reine Server-Infrastruktur (Edge
+Function, Cronjob, pg_net), kein Client-Code geändert. Stattdessen
+**live gegen die echte Produktion geprüft** (stärkerer Beweis als ein
+lokaler Mock): derselbe `net.http_post()`-Aufruf, den der Cronjob täglich
+ausführt, einmal manuell abgesetzt und die Antwort aus
+`net._http_response` gelesen - Ergebnis `{"ok":true,"gefunden":15,
+"mailVersendet":true}`, HTTP 200. Die 15 gefundenen Dateien sind die
+echten, bereits aus Abschnitt 162 bekannten verwaisten Objekte im
+Produktivspeicher. Der Cronjob selbst wurde über `cron.job` als aktiv
+bestätigt (`jobname:'storage-verwaist-taeglich'`, `schedule:'0 6 * * *'`,
+`active:true`).
+
+### 165.5 Geänderte Dateien
+
+Rein serverseitig - keine Datei in diesem Repository geändert ausser der
+Dokumentation/Versionsmarkierung:
+
+| Ort | Änderung |
+|---|---|
+| Migration `verwaiste_storage_angebote_refs_und_cron_funktion` | `system_admin_verwaiste_storage()` korrigiert (angebote-Referenzen ergänzt), neue Funktion `system_cron_verwaiste_storage()` |
+| Migration `taeglicher_storage_check_cron` | Extensions `pg_cron`/`pg_net` aktiviert, Cronjob `storage-verwaist-taeglich` |
+| Edge Function `system-admin-storage-cron` (v1) | neu: täglicher Check + Resend-Mail |
+| `index.html` | Versionsbump 3.99 |
+| `sw.js` | Cache-Version 3.99 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.99"]` ergänzt |
+| `PROJECT_STATE.md` | Versionsstand 3.99 |
+
+### 165.6 Offene Punkte
+
+- Der Resend-Testabsender (`onboarding@resend.dev`) sendet nur an die
+  beim Resend-Konto selbst hinterlegte Adresse - für eine spätere
+  eigene Absenderadresse (z. B. `info@spengler-digital.ch`) braucht es
+  eine verifizierte eigene Domain bei Resend (DNS-Einträge); dann in
+  `index.ts` die Konstante `VON` anpassen und neu deployen.
+- Empfängeradresse (`BENACHRICHTIGEN_AN`) ist aktuell fest im
+  Funktionscode hinterlegt (`mik.ledermann@gmail.com`), nicht als
+  Einstellung in der App - eine bewusste Vereinfachung für diesen
+  ersten Anlauf, auf ausdrücklichen Wunsch direkt umgesetzt statt als
+  Secret/Einstellung. Bei Bedarf lässt sich das später in eine echte
+  Firmen-Einstellung überführen.
+- Noch nicht durch den echten täglichen Lauf um 06:00 UTC bestätigt
+  (nur der manuelle Test-Aufruf) - der Anwender sollte den Eingang der
+  Test-Mail selbst bestätigen.

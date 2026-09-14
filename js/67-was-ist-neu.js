@@ -33,7 +33,9 @@ const WIN_CHANGELOG={
  "3.96":["Systemadministration: Feedback lässt sich jetzt auch für fremde Firmen löschen.",
   "Fehler behoben: verwaiste Dateien im Speicher liessen sich nicht endgültig löschen."],
  "3.97":["Regierapport: das Datumsfeld in der Material-Tabelle ist jetzt breiter und richtig beschriftet."],
- "3.98":["Neu: Lagerverwaltung (Phase 1) - Bestand je Artikel aus dem Materialbestand, geführt über einzelne Buchungen (Zugang/Abgang/Korrektur) statt einer Zahl zum Überschreiben. Sichtbar nur für eigens freigeschaltete Mitarbeitende (Einstellungen → Mitarbeiter → Lager-Zugriff)."]
+ "3.98":["Neu: Lagerverwaltung (Phase 1) - Bestand je Artikel aus dem Materialbestand, geführt über einzelne Buchungen (Zugang/Abgang/Korrektur) statt einer Zahl zum Überschreiben. Sichtbar nur für eigens freigeschaltete Mitarbeitende (Einstellungen → Mitarbeiter → Lager-Zugriff)."],
+ "3.99":["Neu: der Betreiber wird jetzt täglich automatisch per E-Mail benachrichtigt, wenn verwaiste Dateien im Speicher gefunden werden - es wird dabei nichts automatisch gelöscht.",
+  "Fehler behoben: eine Offerten-PDF oder ein Offerten-Foto konnte fälschlich als „verwaist” gemeldet werden, obwohl sie noch von einer Offerte verwendet wird."]
 };
 
 function winVersionVergleich(a,b){
