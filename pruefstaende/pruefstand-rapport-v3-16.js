@@ -543,6 +543,20 @@ const MESS=[
  p(z.tt==="none","die Auswahlzeile steht nicht in GROSSBUCHSTABEN",z);
  await page.evaluate(()=>{$("rmatModal").hidden=true});
 
+ // G: die Material-Tabelle hatte denselben Fehlnamen ("Pos." statt
+ // "Datum") und dieselbe zu knappe Spaltenbreite wie zuvor die
+ // Ausfuehrende-Arbeiten-Tabelle (v3.95) - hier fuer die Datumsspalte
+ // vor dem EDV-Nr.-Feld behoben (v3.97).
+ console.log("\nG · Material-Tabelle: Datumsspalte richtig beschriftet und breit genug");
+ z=await page.evaluate(()=>{
+  mats.length=0; mats.push({date:"2026-09-14",no:"",qty:0}); renderMain();
+  $("reportScreen").hidden=false;
+  return {kopf:document.querySelector(".mat-table thead th").textContent,
+    breitePx:document.querySelector('[data-mat-date="0"]').closest("td").getBoundingClientRect().width};
+ });
+ p(z.kopf==="Datum","die Kopfzeile sagt jetzt \"Datum\" statt \"Pos.\"",z);
+ p(z.breitePx>=90,"die Spalte ist breit genug fuer ein Datumsfeld (mind. 90px)",z);
+
  p(fehler.length===0,"keine JavaScript-Fehler im ganzen Lauf",fehler.slice(0,3));
  console.log("\n"+ok+" ok, "+fail+" fehlgeschlagen");
  await b.close();

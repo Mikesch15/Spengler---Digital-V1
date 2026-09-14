@@ -41,7 +41,10 @@ table{width:100%;border-collapse:collapse;min-width:1000px;table-layout:fixed}
    <select> lange Namen (z. B. "Mike Ledermann") sonst ohne Auslassungspunkte
    hart abschneidet, per Bildschirm-Probe mit Playwright nachgemessen. */
 .work-table col.c-pos{width:11%}.work-table col.c-desc{width:35%}.work-table col.c-emp{width:15%}.work-table col.c-func{width:11%}.work-table col.c-std{width:6%}.work-table col.c-rate{width:9%}.work-table col.c-total{width:9%}.work-table col.c-del{width:4%}
-.mat-table col.m-pos{width:7%}.mat-table col.m-edv{width:11%}.mat-table col.m-material{width:43%}.mat-table col.m-dim{width:6.5%}.mat-table col.m-unit{width:6%}.mat-table col.m-qty{width:6%}.mat-table col.m-price{width:7.5%}.mat-table col.m-total{width:8%}.mat-table col.m-del{width:5%}
+/* v3.97: Datum (m-pos, wie beim work-table zuvor ein Fehlname aus der
+   Zeit ohne Datumsspalte) verbreitert, damit das Datumsfeld nicht mehr
+   knapp anliegt - siehe dieselbe Korrektur beim work-table (v3.95). */
+.mat-table col.m-pos{width:11%}.mat-table col.m-edv{width:11%}.mat-table col.m-material{width:39%}.mat-table col.m-dim{width:6.5%}.mat-table col.m-unit{width:6%}.mat-table col.m-qty{width:6%}.mat-table col.m-price{width:7.5%}.mat-table col.m-total{width:8%}.mat-table col.m-del{width:5%}
 .work-table td:last-child,.work-table th:last-child,.mat-table td:last-child,.mat-table th:last-child{text-align:left}
 .work-table td:last-child button,.mat-table td:last-child button{padding:6px 9px}
 input[type=date]{font-size:11px;padding-left:4px;padding-right:2px;width:100%;min-width:0}

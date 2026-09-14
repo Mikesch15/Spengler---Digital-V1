@@ -31,7 +31,8 @@ const WIN_CHANGELOG={
  "3.95":["Regierapport: die Mitarbeiter-Auswahl in der Tabelle zeigt jetzt den vollen Namen statt nur des Kürzels - im gedruckten Rapport steht weiterhin nur das Kürzel.",
   "Regierapport: die Spalten Datum, MA und Funktion in der Tabelle sind breiter, damit der Inhalt vollständig lesbar ist."],
  "3.96":["Systemadministration: Feedback lässt sich jetzt auch für fremde Firmen löschen.",
-  "Fehler behoben: verwaiste Dateien im Speicher liessen sich nicht endgültig löschen."]
+  "Fehler behoben: verwaiste Dateien im Speicher liessen sich nicht endgültig löschen."],
+ "3.97":["Regierapport: das Datumsfeld in der Material-Tabelle ist jetzt breiter und richtig beschriftet."]
 };
 
 function winVersionVergleich(a,b){

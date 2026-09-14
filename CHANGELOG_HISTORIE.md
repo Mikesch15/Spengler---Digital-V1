@@ -27362,3 +27362,54 @@ Abweichungen, die beiden neuen kommen automatisch dazu
   Löschvorgang in Produktion bestätigt (dafür fehlt der
   Netzwerkzugriff aus der Sandbox) - ein erster echter Löschversuch
   durch den Anwender ist der abschliessende Beweis.
+
+## 163. REGIERAPPORT: DATUMSFELD IN DER MATERIAL-TABELLE VERBREITERT — VERSION 3.97
+
+### 163.1 Anlass
+
+"Bitte das Datumfeld im Material auch verbreitern." Direkte Fortsetzung
+von Abschnitt 161 (v3.95): dort wurde die Datumsspalte der Tabelle
+"Ausführende Arbeiten" (`.work-table`) verbreitert und ihr Fehlname
+"Pos." auf "Datum" korrigiert. Dieselben zwei Fehler steckten
+unverändert in der zweiten Tabelle desselben Regierapport-Formulars,
+der Material-Tabelle (`.mat-table`): Kopfzeile "Pos." für eine Spalte,
+deren Zelle tatsächlich ein `<input type="date" data-mat-date>` ist
+(`js/06-rapport.js`, `renderMain()`), und eine mit 7 % zu knapp
+bemessene Spaltenbreite (`css/01-basis.css`, `.mat-table col.m-pos`).
+
+### 163.2 Umsetzung
+
+`index.html`: Kopfzeile der Material-Tabelle "Pos." → "Datum".
+`css/01-basis.css`: `.mat-table col.m-pos` von 7 % auf 11 % verbreitert
+(gleiche Breite wie die Datumsspalte der Ausführende-Arbeiten-Tabelle),
+im Gegenzug `.mat-table col.m-material` (die Bezeichnungs-Spalte, mit
+Abstand die breiteste) von 43 % auf 39 % reduziert - Summe bleibt 100 %.
+Die Druckbreiten (`css/03-druck.css`, `.mat-table col.m-pos{width:23mm}`)
+bleiben unverändert richtig, da im Druck weiterhin nur das reine Datum
+steht, dessen Platzbedarf durch diese Änderung nicht wächst.
+
+### 163.3 Getestet
+
+`pruefstaende/pruefstand-rapport-v3-16.js`, neuer Abschnitt G: prüft,
+dass die Kopfzeile jetzt "Datum" statt "Pos." zeigt und die
+Datumszelle mindestens 90 px breit ist (per Playwright-Bildschirmfoto
+vorab bestätigt: das Feld liegt jetzt bequem, vorher eng am Rand).
+Datei komplett durchlaufen: 83/83 (79 aus v3.94 + 2 aus v3.95 + 2 neue),
+keine Regression. Volle Regression (`pruefstaende/ci-lauf.js`) danach
+erneut durchlaufen, keine neue Abweichung gegenüber dem vorherigen
+Stand.
+
+### 163.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `index.html` | Versionsbump 3.97; Kopfzeile Material-Tabelle "Pos." → "Datum" |
+| `sw.js` | Cache-Version 3.97 |
+| `css/01-basis.css` | `.mat-table col.m-pos` verbreitert, `.m-material` entsprechend reduziert |
+| `pruefstaende/pruefstand-rapport-v3-16.js` | neuer Abschnitt G, zwei neue Prüfungen |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.97"]` ergänzt |
+| `PROJECT_STATE.md` | Versionsstand 3.97 |
+
+### 163.5 Offene Punkte
+
+- Keine. Reiner Client-Zustand (Layout), keine Datenbankänderung nötig.
