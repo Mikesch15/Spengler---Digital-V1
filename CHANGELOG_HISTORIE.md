@@ -27816,3 +27816,156 @@ Regression aller Prüfstände lief im Anschluss unverändert durch.
 
 Keine bekannt - beide gemeldeten Fehler sind auf ihre Root Cause
 zurückgeführt und gezielt behoben, nicht symptomatisch umgangen.
+
+## 168. LAGERVERWALTUNG: ARTIKELBASIS KORRIGIERT + BARCODE EIN-/AUSSCANNEN — VERSION 3.102
+
+### 168.1 Anlass
+
+Direktes Anwender-Feedback nach v3.101, drei Punkte:
+
+1. "Material soll per Strichcode ein- und ausgescannt werden können."
+2. "Mach dir Gedanken, ob die App irgendwie merken kann, wenn jemand ein
+   Produkt vergessen hat auszuscannen."
+3. "Der Materialbestand soll nichts mit der Lagerverwaltung direkt zu tun
+   haben - der Materialbestand ist nur das Blechmaterial, das die Firma
+   führt, und erklärt, ob es Rollen oder Tafelware ist und in welchen
+   Dicken und Formaten es geführt wird."
+
+Punkt 3 ist eine Architekturkorrektur: die Lagerverwaltung (v3.98) baute
+versehentlich auf `lagerbestand` auf (dem Blech-Materialbestand aus
+js/59-lagerbestand.js: Rolle/Tafel, Stärke, Ausführung, Masse). Das ist
+fachlich falsch - die Lagerverwaltung soll allgemeines Material erfassen
+(Schrauben, Dichtband, Rinnenhalter usw.), nicht Blech.
+
+### 168.2 Architekturkorrektur (Punkt 3)
+
+Keine dritte, doppelte Katalogtabelle gebaut. Es gibt bereits den
+richtigen Katalog: `materials` (EDV-Nr./Bezeichnung/Dim./Einheit/Preis),
+seit langem die Artikelliste für Regierapport und Blechverbrauch. Die
+zusammengeführte Liste liefert weiterhin `lagArtikelListe()`
+(js/59-lagerbestand.js) - dieselbe Funktion, die schon das
+Materialbestand-Formular für seine eigene (davon unabhängige)
+Artikel-Auswahl nutzt.
+
+`lagerbestand_bewegungen.lagerbestand_id` (FK auf `lagerbestand`) wurde zu
+`material_id` (FK auf `materials`) umbenannt, der Trigger
+`enforce_lager_bewegung_firma()` prüft die Firmenzugehörigkeit jetzt über
+`materials` statt `lagerbestand`. Sauberer Schnitt ohne Datenmigration -
+`lagerbestand_bewegungen` hatte zum Zeitpunkt der Migration noch 0 Zeilen
+(die Funktion war erst seit v3.98 live). `lagerbestand` (der
+Blech-Materialbestand) bleibt unverändert bestehen und hat mit der
+Lagerverwaltung ab jetzt nichts mehr zu tun - RLS/Rechte/Oberfläche dort
+sind unangetastet.
+
+### 168.3 Barcode ein-/ausscannen (Punkt 1)
+
+Neue Spalte `materials.barcode` (text, nullable, UNIQUE je Firma über
+einen partiellen Index `where barcode is not null` - ein Barcode muss
+eindeutig sein, sonst wäre ein Scan nicht mehr zuordenbar). Im
+Material-Katalog (Einstellungen → Material) lässt sich ein Barcode jetzt
+manuell eintragen oder per Kamera scannen.
+
+In der Lagerverwaltung zwei neue Knöpfe "📥 Einscannen"/"📤 Ausscannen"
+statt eines einzelnen generischen "Scannen": der erkannte Barcode wird in
+`lagArtikelListe()` gesucht, bei Treffer öffnet sich der Buchen-Dialog
+direkt mit der passenden Art (Zugang/Abgang) - der Benutzer bestätigt nur
+noch die Menge. Kein Treffer: eine klare Meldung ("Kein Artikel mit
+diesem Barcode gefunden…") statt eines stillen Fehlschlags.
+
+**Technisch:** eine einzige, generische `barcodeScannen(callback)` in
+js/01-basis.js (genutzt von Lagerverwaltung UND Material-Katalog), auf
+Basis von `@zxing/library` (dieselbe cdn.jsdelivr.net-Quelle wie
+supabase-js/xlsx, siehe index.html). Anders als supabase-js/xlsx wird die
+Bibliothek NICHT bei jedem App-Start geladen, sondern erst beim ersten
+Scan (die Funktion wird selten gebraucht). Kein Zugriff auf die Kamera
+oder ein Ladefehler (kein Netz) führen zu einer klar sichtbaren Meldung
+im Scan-Overlay, nicht zu einem stillen Hängenbleiben.
+
+**Nur Handy-/Tablet-Kamera** (Entscheidung des Anwenders) - kein externer
+USB-/Bluetooth-Scanner. Bei Bedarf liesse sich das Eingabefeld später
+zusätzlich für Tastatur-Eingaben eines externen Scanners öffnen, ohne an
+der Datenspeicherung etwas zu ändern.
+
+**z-index-Lehre:** beim Einbau des Scan-Overlays fiel auf, dass die
+Lösung für "Dialog öffnet hinter den Einstellungen" aus 167.3
+(`#lagerBuchenModal{z-index:501}`, ad-hoc weiter oben im Stylesheet
+eingefügt) nicht die bereits seit v3.28 bestehende, dafür vorgesehene
+Sammelstelle "Dialoge, die ÜBER einem anderen Dialog stehen" nutzte (dort
+steht z. B. `#lagerFormModal{z-index:700}` bereits seit v3.28, für
+denselben Fall). Mit v3.102 nachgezogen: `#lagerBuchenModal` steht jetzt
+ebenfalls dort mit `z-index:700` (siebter dokumentierter Fall derselben
+Falle), die ad-hoc-Regel aus v3.101 wurde entfernt. `#barcodeScanOverlay`
+bekam `z-index:1500` (über allen Dialogen, unter dem Hilfefenster).
+
+### 168.4 Gedanken zu "vergessen auszuscannen" (Punkt 2)
+
+Bewusst **keine automatische Erkennung gebaut**. Eine verpasste
+Scan-Aktion ist ein fehlendes Ereignis - es gibt buchstäblich nichts in
+den Buchungsdaten, das darauf hindeutet, dass sie hätte stattfinden
+sollen (anders als z. B. eine fehlgeschlagene Buchung, die einen Fehler
+hinterlässt). Eine "Erkennung" auf dieser Grundlage würde entweder nichts
+finden oder falsche Treffer erzeugen - dieselbe Lehre wie beim entfernten
+`lagerbestand.menge`-Feld (siehe js/59: eine Zahl ohne echte Buchungen
+täuscht Sicherheit vor, die nicht da ist).
+
+Stattdessen zwei bewusste Entscheidungen:
+
+- **Reibung senken statt Fehler erkennen**: "Einscannen"/"Ausscannen"
+  öffnen den Buchen-Dialog direkt mit vorbelegter Richtung - der Scan
+  selbst ist die schnellstmögliche Aktion, die dem Vergessen am
+  wenigsten Raum lässt.
+- **Die bestehende Korrektur-Buchung bleibt der eigentliche
+  Abgleichsmechanismus.** Eine periodische Inventur (Korrektur-Buchung)
+  deckt angesammelte verpasste Scans zuverlässiger auf als jeder
+  Versuch, sie einzeln zu erraten.
+
+Nicht gebaut, aber als mögliche spätere Ergänzung im Kopf behalten (nur
+auf ausdrücklichen Wunsch): eine ungewöhnlich grosse Korrektur-Buchung
+optisch hervorheben, als Hinweis "hier könnten Scans gefehlt haben" -
+ohne das als verlässliche Erkennung zu behaupten.
+
+### 168.5 Getestet
+
+`pruefstand-lagerverwaltung-v3-98.js` grundlegend überarbeitet: die
+Abschnitte 2-9 nutzen jetzt `settings.materials`/`materialIds` statt
+eines `lagerbestand`-Arrays; zwei neue Abschnitte 10 (Einscannen/
+Ausscannen: bekannter Barcode öffnet den Buchen-Dialog mit der richtigen
+Art und dem richtigen Artikel, unbekannter Barcode meldet sich klar,
+kein Dialog öffnet sich) und 11 (Material-Katalog: Barcode-Feld zeigt den
+hinterlegten Wert, Scan-Knopf schreibt einen neuen Code sofort - nicht
+debounced - in Feld, State und Datenbank). Die echte Kamera/ZXing-Logik
+wird dabei gestubbt (`window.barcodeScannen` ersetzt), wie schon bei der
+digitalen Unterschrift (v3.100) mit `openSketchFullscreen` - geprüft wird
+die Verdrahtung, nicht die Hardware-Ansteuerung. 39 Prüfungen, alle
+bestanden. Volle Regression aller Prüfstände lief im Anschluss
+unverändert durch.
+
+### 168.6 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| Migration `lagerverwaltung_auf_materials_umgezogen` | `lagerbestand_bewegungen.lagerbestand_id` → `material_id` (FK auf `materials`), `enforce_lager_bewegung_firma()` angepasst, `materials.barcode` + partieller UNIQUE-Index |
+| `js/05-daten-laden.js` | `settings.materials`-Tupel um `m[5]=barcode` erweitert |
+| `js/59-lagerbestand.js` | `lagArtikelListe()` gibt `barcode` mit zurück |
+| `js/68-lagerverwaltung.js` | komplett auf `materials`/`lagArtikelListe()` umgestellt, Einscannen/Ausscannen |
+| `js/01-basis.js` | neue `barcodeScannen()`-Infrastruktur (ZXing, Kamera-Overlay) |
+| `js/07-einstellungen.js` | Barcode-Feld in der Materialzeile |
+| `js/08-katalog-blitzschutz.js` | Eingabe-/Scan-Handler für das Barcode-Feld |
+| `index.html` | Scan-Overlay, Einscannen/Ausscannen-Knöpfe, Barcode-Feld, Versionsbump 3.102 |
+| `css/01-basis.css` | Scan-Overlay-Styling, `#lagerBuchenModal` in die bestehende z-index-Sammelstelle verschoben (statt der v3.101-Ad-hoc-Regel) |
+| `js/41-hilfe.js` | Hilfetexte `lagerverwaltung`/`einst-rapportmaterial` aktualisiert |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.102"]` ergänzt |
+| `sw.js` | Cache-Version 3.102 |
+| `PROJECT_STATE.md` | Versionsstand 3.102 |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | grundlegend überarbeitet, zwei neue Abschnitte |
+
+### 168.7 Offene Punkte
+
+- Nur Kamera-Scan, kein externer USB-/Bluetooth-Scanner (Entscheidung des
+  Anwenders für diesen Anlauf).
+- Keine automatische "vergessen auszuscannen"-Erkennung (siehe 168.4) -
+  bewusste Entscheidung, kein technisches Versäumnis.
+- Ein bereits vergebener Barcode lässt sich nicht abfragen, bevor er
+  gespeichert wird - ein Speicherfehler wegen Doppelvergabe zeigt sich
+  erst nach dem Scan/der Eingabe (klare Fehlermeldung, aber kein
+  Vorab-Check).

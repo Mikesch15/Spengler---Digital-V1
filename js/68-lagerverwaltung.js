@@ -1,15 +1,22 @@
 "use strict";
 // ---------------------------------------------------------------------------
-// Lagerverwaltung Phase 1 (v3.98)
+// Lagerverwaltung Phase 1 (v3.98, Artikelbasis korrigiert in v3.102)
 //
-// Baut auf dem bestehenden Materialbestand-Katalog (js/59-lagerbestand.js,
-// Tabelle lagerbestand) auf - der sagt WELCHE Materialien die Firma fuehrt,
-// aber bewusst KEINE Menge (siehe Kommentar dort: bis v3.31 gab es menge/
-// einheit, wurden wieder entfernt, weil eine Zahl ohne echte Buchungen
-// falsche Sicherheit vortaeuscht).
+// v3.98 baute versehentlich auf lagerbestand auf (dem Blech-Materialbestand:
+// Rolle/Tafel, Staerke, Ausfuehrung, Masse - js/59-lagerbestand.js). Das ist
+// fachlich falsch: die Lagerverwaltung soll ALLGEMEINES Material erfassen
+// (Schrauben, Dichtband, Rinnenhalter etc.), nicht Blech. lagerbestand hat
+// mit der Lagerverwaltung nichts zu tun und bleibt unveraendert bestehen.
 //
-// Diesmal deshalb: der Bestand ist NIE ein editierbares Feld, sondern immer
-// die Summe ueber lagerbestand_bewegungen (Zugang positiv, Abgang negativ,
+// Seit v3.102 baut die Lagerverwaltung stattdessen auf materials auf - der
+// Artikelliste der Firma (EDV-Nr./Bezeichnung/Dim./Einheit/Preis), die im
+// Regierapport und beim Blechverbrauch laengst verwendet wird. Die
+// zusammengefuehrte Liste liefert lagArtikelListe() (js/59) - dieselbe
+// Funktion, die auch das Materialbestand-Formular fuer seine
+// Artikel-Auswahl nutzt. Keine dritte, doppelte Katalogtabelle.
+//
+// Der Bestand ist weiterhin NIE ein editierbares Feld, sondern immer die
+// Summe ueber lagerbestand_bewegungen (Zugang positiv, Abgang negativ,
 // Korrektur signiert). Eine Buchung ist unveraenderlich - ein Fehler wird
 // durch eine neue Korrektur-Buchung ausgeglichen, nie durch Aendern der
 // Vergangenheit (kein Update/Delete in der RLS, siehe Migration).
@@ -18,6 +25,16 @@
 // der Offerte-Zugriff (js/63-angebote.js) - ein Ein/Aus je Mitarbeiter,
 // unabhaengig vom bestehenden Rechte-Modell. Auch ein Administrator braucht
 // die Freigabe eigens.
+//
+// Barcode-Scan (v3.102): "Einscannen"/"Ausscannen" oeffnen die Kamera
+// (barcodeScannen() aus js/01-basis.js), suchen den erkannten Code in
+// lagArtikelListe() und oeffnen bei Treffer direkt den Buchen-Dialog mit
+// vorbelegter Art - der Benutzer bestaetigt nur noch die Menge. Eine
+// verpasste Scan-Aktion laesst sich grundsaetzlich NICHT im Nachhinein aus
+// den Buchungsdaten erkennen (sie hinterlaesst ja gerade kein Ereignis) -
+// deshalb hier bewusst auf moeglichst wenig Reibung gesetzt statt auf eine
+// Erkennung, die falsche Sicherheit vortaeuschen wuerde (dieselbe Lehre wie
+// beim entfernten lagerbestand.menge, siehe js/59).
 // ---------------------------------------------------------------------------
 
 let lagerverwaltungZugriff=false;
@@ -69,11 +86,11 @@ async function lagerBewegungenLaden(){
  renderLagerverwaltung();
 }
 
-function lagerBewegungenVon(lagerbestandId){
- return lagerBewegungen.filter(b=>String(b.lagerbestand_id)===String(lagerbestandId));
+function lagerBewegungenVon(materialId){
+ return lagerBewegungen.filter(b=>String(b.material_id)===String(materialId));
 }
-function lagerBestandVon(lagerbestandId){
- return lagerBewegungenVon(lagerbestandId).reduce((s,b)=>s+lagerZahl(b.menge),0);
+function lagerBestandVon(materialId){
+ return lagerBewegungenVon(materialId).reduce((s,b)=>s+lagerZahl(b.menge),0);
 }
 const LAGER_ART_TEXT={zugang:"Zugang",abgang:"Abgang",korrektur:"Korrektur"};
 function lagerBewegungZeile(b){
@@ -82,28 +99,28 @@ function lagerBewegungZeile(b){
  return `${esc(datum)} · ${esc(LAGER_ART_TEXT[b.art]||b.art)} · ${vz}${lagerZahlText(b.menge)}${b.grund?" · "+esc(b.grund):""}<br>`;
 }
 
-// Wiederverwendet lagBeschreibung()/lagArtikel()/lagArtikelText() aus
-// js/59-lagerbestand.js - dieselbe Darstellung wie im Materialbestand
-// selbst, keine zweite Beschriftungslogik.
+// Wiederverwendet lagArtikelListe()/lagArtikel()/lagArtikelText() aus
+// js/59-lagerbestand.js - dieselbe Artikelliste wie im Materialbestand-
+// Formular, keine zweite Katalog-/Beschriftungslogik.
 function renderLagerverwaltung(){
  const box=$("lagerverwaltungListe");
  if(!box)return;
- const liste=(typeof lagerbestand!=="undefined"?lagerbestand:[])||[];
+ const liste=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
  if(!liste.length){
-  box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Noch kein Material im Materialbestand erfasst - dort zuerst einen Artikel anlegen.</div>`;
+  box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Noch kein Material im Material-Katalog erfasst - dort (Einstellungen → Material) zuerst einen Artikel anlegen.</div>`;
   return;
  }
- box.innerHTML=liste.map(l=>{
-  const bestand=lagerBestandVon(l.id);
-  const letzte=lagerBewegungenVon(l.id).slice(0,5);
+ box.innerHTML=liste.map(a=>{
+  const bestand=lagerBestandVon(a.id);
+  const letzte=lagerBewegungenVon(a.id).slice(0,5);
   return `<div class="report-row">
  <div class="report-row-info">
-  <b>${esc(typeof lagBeschreibung==="function"?lagBeschreibung(l):(l.bezeichnung||"Material"))}</b>
+  <b>${esc(lagArtikelText(a))}</b>
   <span class="small" style="color:var(--muted)">Bestand: <b>${lagerZahlText(bestand)}</b></span>
   <span class="small" style="color:var(--muted)">${letzte.length?letzte.map(lagerBewegungZeile).join(""):"Noch keine Buchung."}</span>
  </div>
  <div class="report-row-actions">
-  <button type="button" class="blue" data-lager-buchen="${l.id}">📦 Buchen</button>
+  <button type="button" class="blue" data-lager-buchen="${a.id}">📦 Buchen</button>
  </div>
 </div>`;
  }).join("");
@@ -112,17 +129,23 @@ function renderLagerverwaltung(){
 // ---- Buchen-Dialog -----------------------------------------------------
 let lagerBuchenArtikelId=null;
 
-function lagerBuchenOeffnen(lagerbestandId){
- lagerBuchenArtikelId=lagerbestandId;
- const l=(typeof lagerbestand!=="undefined"?lagerbestand:[]).find(x=>String(x.id)===String(lagerbestandId));
- $("lagerBuchenArtikel").textContent=l
-  ?((typeof lagBeschreibung==="function"?lagBeschreibung(l):(l.bezeichnung||"Material"))+" · aktueller Bestand: "+lagerZahlText(lagerBestandVon(lagerbestandId)))
+// vorbelegteArt (v3.102): nach einem Scan ist die Richtung schon bekannt -
+// "zugang"/"abgang" wird dann direkt gesetzt, der Benutzer bestaetigt nur
+// noch die Menge. Ohne Scan (Knopf "Buchen" in der Liste) bleibt es wie
+// bisher bei "zugang" als Ausgangswert, frei aenderbar.
+function lagerBuchenOeffnen(materialId,vorbelegteArt){
+ lagerBuchenArtikelId=materialId;
+ const a=(typeof lagArtikel==="function")?lagArtikel(materialId):null;
+ $("lagerBuchenArtikel").textContent=a
+  ?(lagArtikelText(a)+" · aktueller Bestand: "+lagerZahlText(lagerBestandVon(materialId)))
   :"";
- $("lagerBuchenArt").value="zugang";
+ $("lagerBuchenArt").value=(vorbelegteArt==="abgang"||vorbelegteArt==="korrektur")?vorbelegteArt:"zugang";
  $("lagerBuchenMenge").value="";
  $("lagerBuchenGrund").value="";
  $("lagerBuchenFehler").hidden=true;
  $("lagerBuchenModal").hidden=false;
+ // Direkt ins Mengenfeld - nach einem Scan will niemand erst hintippen.
+ if(vorbelegteArt)setTimeout(()=>{try{$("lagerBuchenMenge").focus()}catch(e){}},50);
 }
 function lagerBuchenSchliessen(){
  $("lagerBuchenModal").hidden=true;
@@ -134,6 +157,29 @@ $("lagerverwaltungListe").addEventListener("click",e=>{
  const b=e.target.closest("[data-lager-buchen]");
  if(b)lagerBuchenOeffnen(b.dataset.lagerBuchen);
 });
+
+// ---- Einscannen / Ausscannen (v3.102) -----------------------------------
+// Barcode -> Artikel in lagArtikelListe() suchen -> Buchen-Dialog direkt mit
+// der passenden Art oeffnen. Kein Treffer: klare Meldung statt stillem
+// Nichtstun - der Benutzer soll nie raetseln, ob der Scan "funktioniert hat".
+function lagerArtikelZuBarcode(code){
+ const liste=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ return liste.find(a=>a.barcode&&a.barcode===code)||null;
+}
+function lagerScannenUndBuchen(art){
+ if(typeof barcodeScannen!=="function")return;
+ barcodeScannen(code=>{
+  const a=lagerArtikelZuBarcode(code);
+  if(!a){
+   lagerHinweis("Kein Artikel mit diesem Barcode gefunden ("+code+") - bitte manuell auswählen oder den Barcode im Material-Katalog eintragen.",true);
+   return;
+  }
+  lagerHinweis("");
+  lagerBuchenOeffnen(a.id,art);
+ });
+}
+if($("lagerEinscannen"))$("lagerEinscannen").onclick=()=>lagerScannenUndBuchen("zugang");
+if($("lagerAusscannen"))$("lagerAusscannen").onclick=()=>lagerScannenUndBuchen("abgang");
 
 $("lagerBuchenSpeichern").onclick=async()=>{
  const fehler=$("lagerBuchenFehler");
@@ -154,7 +200,7 @@ $("lagerBuchenSpeichern").onclick=async()=>{
  else if(art==="korrektur")menge=eingabe;
  const grund=$("lagerBuchenGrund").value.trim();
  const {data,error}=await sb.from("lagerbestand_bewegungen").insert({
-  lagerbestand_id:Number(lagerBuchenArtikelId),art,menge,grund:grund||null
+  material_id:Number(lagerBuchenArtikelId),art,menge,grund:grund||null
  }).select("*");
  if(error||!data||!data.length){
   fehler.textContent=error?("Konnte nicht gebucht werden: "+error.message)

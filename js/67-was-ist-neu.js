@@ -40,7 +40,10 @@ const WIN_CHANGELOG={
   "Ohne digitale Unterschrift bleibt der Ausdruck unverändert - die Linie zum Unterschreiben von Hand steht weiterhin da."],
  "3.101":["Fehler behoben: die Unterschriften-Erfassung wurde im Ausdruck fälschlich doppelt mitgedruckt.",
   "Fehler behoben: der Buchen-Dialog in der Lagerverwaltung öffnete sich hinter den Einstellungen.",
-  "Neu: Lagerverwaltung ist jetzt direkt von der Startseite aus erreichbar (mit Lager-Zugriff)."]
+  "Neu: Lagerverwaltung ist jetzt direkt von der Startseite aus erreichbar (mit Lager-Zugriff)."],
+ "3.102":["Neu: Material lässt sich in der Lagerverwaltung jetzt per Kamera ein- und ausscannen - ein hinterlegter Barcode öffnet direkt den Buchen-Dialog mit der richtigen Richtung.",
+  "Neu: ein Barcode lässt sich im Material-Katalog (Einstellungen → Material) ebenfalls per Kamera hinterlegen.",
+  "Die Lagerverwaltung führt jetzt denselben Material-Katalog wie der Regierapport (Schrauben, Dichtband usw.) - der Blech-Materialbestand ist davon unabhängig und bleibt unverändert."]
 };
 
 function winVersionVergleich(a,b){

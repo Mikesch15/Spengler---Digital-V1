@@ -1231,7 +1231,10 @@ behält seine Beträge.</p>`},
 <p>Der Materialkatalog für den Regierapport, mit EDV-Nr., Bezeichnung,
 Dimension, Einheit und Preis. Gilt <b>firmenweit</b>.</p>
 <p>Material, das hier fehlt, lässt sich im Rapport über die freien Nummern
-999.90 bis 999.99 direkt eintragen.</p>`},
+999.90 bis 999.99 direkt eintragen.</p>
+<p>Derselbe Katalog ist die Grundlage der Lagerverwaltung. Ein hier
+hinterlegter <b>Barcode</b> (Feld beim Artikel, per Kamera einscannbar)
+macht den Artikel dort per Ein-/Ausscannen direkt buchbar.</p>`},
 
 "einst-blitzschutz":{titel:"Blitzschutz-Katalog",text:`
 <p>Der Artikelkatalog für das Blitzschutzausmass. Lässt sich als Excel-Datei
@@ -1339,14 +1342,22 @@ erfunden. Wird ein Artikel gewählt, schlägt das Formular Stärke und
 Bezeichnung vor – beides bleibt frei änderbar.</p>`},
 
 "lagerverwaltung":{titel:"Lagerverwaltung",text:`
-<p>Der aktuelle Bestand je Artikel aus dem Materialbestand oben – anders
-als dort ist das hier eine echte Bestandsführung mit Mengen.</p>
+<p>Der aktuelle Bestand je Artikel aus dem Material-Katalog (Einstellungen
+→ Material) – Schrauben, Dichtband, Rinnenhalter usw. Mit dem
+Blech-Materialbestand weiter oben in den Einstellungen hat das nichts zu
+tun: der zeigt nur, welches Blech die Firma führt (Rolle/Tafel, Stärke),
+ohne Mengenführung.</p>
 <p>Der Bestand ist <b>immer</b> die Summe aller Buchungen (Zugang, Abgang,
 Korrektur) – nie ein Feld zum Überschreiben. Eine Buchung bleibt für immer
 stehen; ein Fehler wird durch eine neue Korrektur-Buchung ausgeglichen,
 nie durch Ändern einer bestehenden Buchung. So lässt sich der Bestand
 jederzeit nachvollziehen, statt einer Zahl vertrauen zu müssen, die
 niemand mehr erklären kann.</p>
+<p>📥 <b>Einscannen</b> / 📤 <b>Ausscannen</b> öffnen die Kamera, suchen den
+erkannten Barcode im Material-Katalog und öffnen den Buchen-Dialog direkt
+mit der passenden Richtung – nur die Menge muss noch bestätigt werden.
+Ein Barcode wird einmalig im Material-Katalog hinterlegt (Feld "Barcode"
+bei einem Artikel, ebenfalls per Kamera).</p>
 <p>Sichtbar ist dieser Bereich nur für Mitarbeitende mit eigens
 freigeschaltetem <b>Lager-Zugriff</b> (Einstellungen → Mitarbeiter) –
 unabhängig von den übrigen Rechten, wie beim Offerte-Zugriff. Auch ein

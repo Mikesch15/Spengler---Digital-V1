@@ -1,5 +1,5 @@
 "use strict";
-// ---- Pruefstand: Lagerverwaltung Phase 1 (v3.98) --------------------------
+// ---- Pruefstand: Lagerverwaltung Phase 1 (v3.98, Artikelbasis + Barcode v3.102) --
 //
 // Prueft:
 //  1  Sichtbarkeit ueber feature_access (feature:"lager") - dasselbe Muster
@@ -12,6 +12,23 @@
 //  4  Eine Buchung ohne Menge wird abgelehnt, bevor ueberhaupt geschrieben wird.
 //  5  Rechte-Oberflaeche (js/05a-rechte.js): eigener Lager-Schalter je
 //     Mitarbeiter, unabhaengig vom Offerte-Schalter.
+//  8  Direkter Einstieg von der Startseite (v3.101).
+//  9  Buchen-/Formular-Dialog liegt ueber den Einstellungen (v3.101/v3.102).
+//  10 Einscannen/Ausscannen (v3.102): Barcode -> Artikel -> Buchen-Dialog
+//     mit vorbelegter Art; unbekannter Barcode meldet sich klar statt still
+//     zu scheitern. Die echte Kamera/ZXing-Logik wird dabei GESTUBBT
+//     (window.barcodeScannen ersetzt) - genau wie openSketchFullscreen beim
+//     Unterschrift-Pruefstand: geprueft wird die Verdrahtung, nicht die
+//     Hardware-Ansteuerung.
+//  11 Material-Katalog (Einstellungen): Barcode-Feld und Scan-Knopf je
+//     Artikel.
+//
+// WICHTIGSTE AENDERUNG SEIT v3.98: Die Lagerverwaltung baute urspruenglich
+// auf lagerbestand auf (dem Blech-Materialbestand). Das war fachlich falsch
+// - seit v3.102 baut sie auf materials auf (der Artikelliste der Firma,
+// ueber lagArtikelListe() aus js/59-lagerbestand.js), lagerbestand hat mit
+// der Lagerverwaltung nichts mehr zu tun. Dieser Pruefstand nutzt deshalb
+// settings.materials/materialIds statt eines globalen lagerbestand-Arrays.
 //
 // WAS HIER NICHT GEPRUEFT WIRD: die serverseitige RLS (tenant_boundary_
 // lagerbestand_bewegungen, feature_boundary_lager, die Firmen-Konsistenz-
@@ -92,6 +109,15 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
      const antwort=zeilen.map((x,i)=>Object.assign({id:800+i},x));
      return Promise.resolve({data:antwort,error:null});
     }};
+   },
+   update:patch=>{
+    const g={};
+    g.eq=(f,v)=>{
+     window.__schreib.push({t,op:"update",patch,eq:[[f,v]]});
+     if(window.__updateFehler&&window.__updateFehler[t])return Promise.resolve({error:{message:"kaputt"}});
+     return Promise.resolve({error:null});
+    };
+    return g;
    }
   });
   return kette;
@@ -128,10 +154,11 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    {id:"u2",role:"admin",first_name:"Mike",last_name:"Ledermann",company_id:"f1"}
   ];
   meineRechte={admin:false};
-  settings={employees:["Anna Muster","Mike Ledermann"],rates:[],materials:[]};
+  settings={employees:["Anna Muster","Mike Ledermann"],rates:[],
+   // [edv_nr,name,dim,unit,price,barcode] - m[5]=barcode seit v3.102.
+   materials:[["205.30","Dichtband 15 mm","15 mm","m",2.80,"4006381333931"]]};
+  materialIds=[1];
   employeeIds=["u1","u2"];
-  lagerbestand=[{id:1,bezeichnung:"Titanzink vorbewittert",material_id:null,artikel_id:null,
-    staerke_mm:0.7,ausfuehrung:"vorbewittert",form:"rolle",notiz:""}];
   $("appRoot").hidden=false; $("authScreen").hidden=true;
  });
 
@@ -166,9 +193,9 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  console.log("\n3 · Bestand = Summe der Buchungen, nie eine editierbare Zahl");
  await page.evaluate(()=>{
   window.__lese.lagerbestand_bewegungen=[
-   {id:1,lagerbestand_id:1,art:"zugang",menge:10,grund:"Lieferung",created_at:"2026-09-01T08:00:00Z"},
-   {id:2,lagerbestand_id:1,art:"abgang",menge:-3,grund:"Baustelle Muster",created_at:"2026-09-05T08:00:00Z"},
-   {id:3,lagerbestand_id:1,art:"korrektur",menge:-1,grund:"Inventur",created_at:"2026-09-10T08:00:00Z"}
+   {id:1,material_id:1,art:"zugang",menge:10,grund:"Lieferung",created_at:"2026-09-01T08:00:00Z"},
+   {id:2,material_id:1,art:"abgang",menge:-3,grund:"Baustelle Muster",created_at:"2026-09-05T08:00:00Z"},
+   {id:3,material_id:1,art:"korrektur",menge:-1,grund:"Inventur",created_at:"2026-09-10T08:00:00Z"}
   ];
   lagerBewegungen=window.__lese.lagerbestand_bewegungen.slice();
   renderLagerverwaltung();
@@ -178,7 +205,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   bestand:lagerBestandVon(1)
  }));
  p(z.bestand===6,"10 Zugang - 3 Abgang - 1 Korrektur ergibt 6",z);
- p(/6/.test(z.text)&&/Titanzink/.test(z.text),"der Bestand und die Bezeichnung stehen in der Liste",z.text.slice(0,200));
+ p(/6/.test(z.text)&&/Dichtband/.test(z.text),"der Bestand und die Bezeichnung (aus dem Material-Katalog) stehen in der Liste",z.text.slice(0,200));
  p(/Lieferung/.test(z.text)&&/Inventur/.test(z.text),"die letzten Buchungen mit ihrem Grund stehen dabei",z.text.slice(0,400));
 
  // ---- 4 · Buchen: Zugang/Abgang/Korrektur -------------------------------
@@ -199,7 +226,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  }
  let r=await buchen("zugang",5,"Lieferschein 123");
  p(!!r.insert,"Zugang loest genau einen insert() auf lagerbestand_bewegungen aus",r);
- p(r.d&&r.d.lagerbestand_id===1&&r.d.art==="zugang"&&r.d.menge===5&&r.d.grund==="Lieferschein 123",
+ p(r.d&&r.d.material_id===1&&r.d.art==="zugang"&&r.d.menge===5&&r.d.grund==="Lieferschein 123",
    "Zugang: die eingegebene positive Menge bleibt positiv",r.d);
  p(r.modalZu===true,"der Dialog schliesst nach erfolgreichem Buchen",r);
 
@@ -307,6 +334,84 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  }));
  p(z.buchen>z.einstellungen,"lagerBuchenModal hat einen hoeheren z-index als settingsModal",z);
  p(z.formular>z.einstellungen,"lagerFormModal ebenso",z);
+
+ // ---- 10 · Einscannen/Ausscannen (v3.102) --------------------------------
+ console.log("\n10 · Einscannen/Ausscannen: Barcode -> Artikel -> vorbelegter Buchen-Dialog");
+ // barcodeScannen wird gestubbt (siehe Kopfkommentar) - ruft den Callback
+ // sofort mit einem fest hinterlegten Code auf, ohne echte Kamera/ZXing.
+ const scanStubben=code=>page.evaluate(c=>{
+  window.__scanAufrufe=window.__scanAufrufe||[];
+  window.barcodeScannen=cb=>{window.__scanAufrufe.push(true);cb(c)};
+ },code);
+
+ await scanStubben("4006381333931"); // bekannter Barcode des Testartikels
+ z=await page.evaluate(()=>{
+  window.__scanAufrufe=[];
+  $("lagerEinscannen").click();
+  return {
+   aufgerufen:window.__scanAufrufe.length===1,
+   modalOffen:!$("lagerBuchenModal").hidden,
+   art:$("lagerBuchenArt").value,
+   artikelId:lagerBuchenArtikelId
+  };
+ });
+ p(z.aufgerufen,"Einscannen ruft barcodeScannen() auf",z);
+ p(z.modalOffen&&z.art==="zugang"&&z.artikelId===1,
+   "bekannter Barcode oeffnet den Buchen-Dialog direkt mit Art=Zugang fuer den richtigen Artikel",z);
+ await page.evaluate(()=>{$("lagerBuchenModal").hidden=true});
+
+ await scanStubben("4006381333931");
+ z=await page.evaluate(()=>{
+  $("lagerAusscannen").click();
+  return {modalOffen:!$("lagerBuchenModal").hidden,art:$("lagerBuchenArt").value};
+ });
+ p(z.modalOffen&&z.art==="abgang","Ausscannen oeffnet denselben Dialog mit Art=Abgang",z);
+ await page.evaluate(()=>{$("lagerBuchenModal").hidden=true});
+
+ await scanStubben("KEIN-TREFFER-999");
+ z=await page.evaluate(()=>{
+  $("lagerEinscannen").click();
+  return {
+   modalGeschlossen:$("lagerBuchenModal").hidden,
+   hinweisSichtbar:!$("lagerverwaltungHinweis").hidden,
+   hinweisText:$("lagerverwaltungHinweis").textContent
+  };
+ });
+ p(z.modalGeschlossen,"ein unbekannter Barcode oeffnet KEINEN Buchen-Dialog",z);
+ p(z.hinweisSichtbar&&/nicht gefunden|Barcode/.test(z.hinweisText),
+   "stattdessen erscheint eine klare Meldung statt eines stillen Fehlschlags",z);
+
+ // ---- 11 · Material-Katalog: Barcode-Feld + Scan-Knopf (v3.102) ---------
+ console.log("\n11 · Material-Katalog: Barcode-Feld und Scan-Knopf je Artikel");
+ await page.evaluate(()=>{
+  meineRechte={admin:true};
+  materialFilter="";materialPage=0;materialExpanded=new Set([0]);
+  renderMaterialSettings();
+ });
+ z=await page.evaluate(()=>({
+  feldWert:document.querySelector('[data-set-mbarcode="0"]').value,
+  scanKnopfDa:!!document.querySelector('[data-scan-mbarcode="0"]')
+ }));
+ p(z.feldWert==="4006381333931","das Barcode-Feld zeigt den hinterlegten Wert",z);
+ p(z.scanKnopfDa,"daneben steht ein Scan-Knopf",z);
+
+ await scanStubben("NEUER-CODE-42");
+ const barcodeGespeichert=await page.evaluate(async()=>{
+  window.__schreib=[];
+  document.querySelector('[data-scan-mbarcode="0"]').click();
+  await new Promise(r=>setTimeout(r,50));
+  const update=window.__schreib.find(x=>x.op==="update"&&x.t==="materials");
+  return {
+   feldWert:document.querySelector('[data-set-mbarcode="0"]').value,
+   stateWert:settings.materials[0][5],
+   update,
+   eqId:update&&update.eq&&update.eq[0]&&update.eq[0][1]
+  };
+ });
+ p(barcodeGespeichert.feldWert==="NEUER-CODE-42"&&barcodeGespeichert.stateWert==="NEUER-CODE-42",
+   "ein gescannter Code landet im Feld und im State",barcodeGespeichert);
+ p(!!barcodeGespeichert.update&&barcodeGespeichert.update.patch.barcode==="NEUER-CODE-42"&&barcodeGespeichert.eqId===1,
+   "und wird direkt (nicht debounced) fuer den richtigen Artikel gespeichert",barcodeGespeichert);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

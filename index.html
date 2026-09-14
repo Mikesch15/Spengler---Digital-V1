@@ -128,7 +128,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.101</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.102</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -2198,15 +2198,22 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 </div>
 </div>
 
-<!-- v3.98: Lagerverwaltung Phase 1 - Bewegungs-Ledger auf dem bestehenden
-     Materialbestand-Katalog (oben). Nur sichtbar mit feature_access
-     ("lager", siehe js/05a-rechte.js) - Sichtbarkeit wird von
-     checkLagerZugriff() in js/68-lagerverwaltung.js gesetzt, deshalb
-     "hidden" hier als Vorgabe, bis die Prüfung durchgelaufen ist. -->
+<!-- v3.98: Lagerverwaltung Phase 1 - Bewegungs-Ledger auf dem Material-
+     Katalog der Firma (Einstellungen -> Material, s. u. NICHT der
+     Blech-Materialbestand oben - der hat mit der Lagerverwaltung seit
+     v3.102 bewusst nichts zu tun, siehe js/68-lagerverwaltung.js). Nur
+     sichtbar mit feature_access ("lager", siehe js/05a-rechte.js) -
+     Sichtbarkeit wird von checkLagerZugriff() in js/68-lagerverwaltung.js
+     gesetzt, deshalb "hidden" hier als Vorgabe, bis die Prüfung
+     durchgelaufen ist. -->
 <div class="settings-section" data-section="lagerverwaltung" id="lagerverwaltungSection" hidden>
 <div class="settings-section-head" data-toggle-section="lagerverwaltung"><h2>🏭 Lagerverwaltung <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="info">Bestand je Artikel aus dem Materialbestand oben, geführt über einzelne Buchungen (Zugang/Abgang/Korrektur) statt einer Zahl zum Überschreiben – jede Buchung bleibt stehen, auch eine Korrektur.</div>
+<div class="info">Bestand je Artikel aus dem Material-Katalog (Einstellungen → Material), geführt über einzelne Buchungen (Zugang/Abgang/Korrektur) statt einer Zahl zum Überschreiben – jede Buchung bleibt stehen, auch eine Korrektur.</div>
+<div class="bar">
+<button type="button" id="lagerEinscannen" class="green">📥 Einscannen</button>
+<button type="button" id="lagerAusscannen" class="blue">📤 Ausscannen</button>
+</div>
 <div id="lagerverwaltungListe"></div>
 <div class="small" id="lagerverwaltungHinweis" style="margin-top:4px" hidden></div>
 </div>
@@ -2420,6 +2427,22 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <canvas id="fsSketchCanvas"></canvas>
 </div>
 <button type="button" id="fsPanFloating" title="Zeichnen / Verschieben umschalten">✏️ Zeichnen</button>
+</div>
+
+<!-- Barcode-Scan per Kamera (v3.102) - eine einzige Stelle fuer die
+     Lagerverwaltung UND das Hinterlegen eines Barcodes im Material-Katalog
+     (siehe barcodeScannen() in js/01-basis.js). Eigener, hoher z-index: wird
+     oft aus einem bereits offenen Dialog heraus geoeffnet (Lehre aus v3.101,
+     wo genau das beim Buchen-Dialog vergessen ging). -->
+<div id="barcodeScanOverlay" class="barcode-scan-overlay" hidden>
+<div class="barcode-scan-box">
+<div class="bar" style="justify-content:space-between;align-items:center">
+<span style="color:#fff;font-weight:700">📷 Barcode scannen</span>
+<button type="button" id="barcodeScanAbbrechen" class="gray">Abbrechen</button>
+</div>
+<video id="barcodeScanVideo" playsinline muted></video>
+<div id="barcodeScanStatus" class="barcode-scan-status"></div>
+</div>
 </div>
 
 

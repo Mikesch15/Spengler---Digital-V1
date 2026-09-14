@@ -72,11 +72,6 @@ td input,td select{min-height:34px;font-size:12px}
 .projekt-vorschlag span{display:block;margin-top:2px;word-break:break-word}
 .empty{text-align:center;color:var(--muted);padding:20px;font-size:12px;border:1px dashed var(--line);border-radius:10px;background:#fbfcfd}
 .modal{position:fixed;inset:0;background:linear-gradient(180deg,#f2f5f8,#e8edf1 240px,var(--bg) 480px);background-attachment:fixed;z-index:500;padding:14px 9px 40px;overflow:auto;animation:fadeIn .15s ease-out}.modalbox{max-width:920px;margin:auto;padding:0}
-/* v3.101: Diese beiden Dialoge werden aus den Einstellungen heraus geoeffnet,
-   die dabei bereits offen bleiben (kein modal.hidden=true davor). Bei
-   gleichem z-index gewinnt im DOM das spaeter stehende Element - #settingsModal
-   steht in index.html nach diesen beiden, sie erschienen deshalb dahinter. */
-#lagerFormModal,#lagerBuchenModal{z-index:501}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .settingrow{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;margin:6px 0;display:grid;grid-template-columns:1.3fr .9fr auto;gap:8px;align-items:center}
 .settingrow.emp-row{grid-template-columns:1fr auto}
@@ -316,6 +311,15 @@ label.feedback-pick span{flex:1 1 auto;min-width:0;word-break:break-word;text-tr
 #fsSketchDone{font-size:14px;font-weight:900;padding:10px 20px;box-shadow:0 3px 10px #16845c66}
 .sketch-viewport{flex:1 1 auto;overflow:auto;background:#dbe1e5;display:flex;align-items:flex-start;justify-content:center;padding:14px;touch-action:pan-x pan-y}
 #fsSketchCanvas{background:#fff;box-shadow:0 2px 14px #0002;flex:0 0 auto;touch-action:none}
+/* Barcode-Scan-Kamera (v3.102) - eigenes, einfaches Vollbild statt .modal,
+   weil hier ein <video> statt einer .modalbox sitzt. z-index nur ueber die
+   ID-Regel weiter unten (siehe "Dialoge, die UEBER einem anderen Dialog
+   stehen"), damit alle Ausnahmen an einer Stelle stehen. */
+.barcode-scan-overlay{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;padding:14px}
+.barcode-scan-overlay[hidden]{display:none}
+.barcode-scan-box{width:100%;max-width:520px}
+.barcode-scan-box video{width:100%;border-radius:10px;background:#111;margin-top:8px}
+.barcode-scan-status{color:#fff;margin-top:8px;text-align:center;font-size:13px;min-height:18px}
 .sketch-gallery{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0}
 .sketch-thumb-wrap{position:relative;width:84px;height:118px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
 .sketch-thumb{width:100%;height:100%;object-fit:contain}
@@ -1272,6 +1276,19 @@ html.dark .rmat-unsicher{color:#e0a35c}
    der Seite "Material & Zuschnitt" - derselbe Fall, deshalb dieselbe Ebene.
    Fuenfter Fall der Falle aus 133.5: gemessen, nicht aus der Zahl gelesen. */
 #restVerwendenModal{z-index:700}
+/* v3.101/v3.102: "Material buchen" (Lagerverwaltung) oeffnet ebenfalls aus
+   den Einstellungen heraus - sechster Fall derselben Falle. In v3.101
+   zunaechst als eigene, ad-hoc z-index:501-Regel weiter oben im Stylesheet
+   behoben; beim Barcode-Umbau (v3.102) aufgefallen, dass es diese Sammel-
+   stelle fuer genau dieses Problem schon seit v3.28 gibt - deshalb hier
+   nachgezogen statt zwei verschiedene Loesungen fuer denselben Fall zu
+   pflegen. */
+#lagerBuchenModal{z-index:700}
+/* v3.102: der Kamera-Scan wird u. a. AUS #lagerBuchenModal (700) und aus
+   dem Material-Katalog in den Einstellungen (500) heraus geoeffnet - siebter
+   Fall derselben Falle, wieder gemessen statt geraten: er muss ueber beiden
+   liegen, darf aber unter dem Hilfefenster (2500) bleiben. */
+#barcodeScanOverlay{z-index:1500}
 
 /* Das Hilfefenster ist von JEDEM Schirm aus erreichbar - auch aus den vier
    hochgesetzten Dialogen (700/750) und aus der Skizzen-Vollbildansicht

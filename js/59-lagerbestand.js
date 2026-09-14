@@ -47,7 +47,7 @@ function lagNummer(v){const n=Number(v);return Number.isFinite(n)&&n>0?n:null}
 function lagArtikelListe(){
  const roh=(typeof settings==="object"&&settings&&Array.isArray(settings.materials))?settings.materials:[];
  const ids=(typeof materialIds!=="undefined"&&Array.isArray(materialIds))?materialIds:[];
- return roh.map((m,i)=>({id:ids[i]||null,edv_nr:m[0],name:m[1],dim:m[2],unit:m[3]}))
+ return roh.map((m,i)=>({id:ids[i]||null,edv_nr:m[0],name:m[1],dim:m[2],unit:m[3],barcode:m[5]||""}))
            .filter(a=>a.id!==null);
 }
 function lagArtikel(id){

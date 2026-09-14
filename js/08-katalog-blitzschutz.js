@@ -512,6 +512,7 @@ $("materialSettings").addEventListener("input",e=>{
  if(e.target.dataset.setMdim!==undefined){settings.materials[i][2]=e.target.value;debouncedMaterialUpdate(id,{dim:e.target.value})}
  if(e.target.dataset.setMunit!==undefined){settings.materials[i][3]=e.target.value;debouncedMaterialUpdate(id,{unit:e.target.value})}
  if(e.target.dataset.setMprice!==undefined){settings.materials[i][4]=Number(e.target.value)||0;debouncedMaterialUpdate(id,{price:Number(e.target.value)||0})}
+ if(e.target.dataset.setMbarcode!==undefined){settings.materials[i][5]=e.target.value;debouncedMaterialUpdate(id,{barcode:e.target.value||null})}
  updateTotals();
 });
 $("employeeSettings").addEventListener("click",async e=>{
@@ -538,6 +539,22 @@ $("materialSettings").addEventListener("click",async e=>{
   const i=Number(head.dataset.toggleMat);
   materialExpanded.has(i)?materialExpanded.delete(i):materialExpanded.add(i);
   renderMaterialSettings();
+ }
+ // v3.102: Barcode per Kamera hinterlegen statt abzutippen. Anders als bei
+ // den uebrigen Feldern NICHT debounced und mit sichtbarer Fehlermeldung -
+ // ein Scan ist ein bewusster, einmaliger Vorgang, und ein doppelt
+ // vergebener Barcode (UNIQUE je Firma) waere sonst still verschluckt.
+ const scan=e.target.closest("[data-scan-mbarcode]");
+ if(scan&&typeof barcodeScannen==="function"){
+  const i=Number(scan.dataset.scanMbarcode);
+  barcodeScannen(async code=>{
+   settings.materials[i][5]=code;
+   const feld=document.querySelector(`[data-set-mbarcode="${i}"]`);
+   if(feld)feld.value=code;
+   const {error}=await sb.from("materials").update({barcode:code}).eq("id",materialIds[i]);
+   if(error)alert("Der Barcode konnte nicht gespeichert werden: "+error.message
+     +(/duplicate|unique/i.test(error.message||"")?"\n\nDieser Barcode ist bereits einem anderen Artikel zugeordnet.":""));
+  });
  }
 });
 

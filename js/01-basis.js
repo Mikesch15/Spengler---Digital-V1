@@ -551,3 +551,76 @@ async function edgeFunctionErrorMessage(error,fallback){
  }
  return (error&&error.message)||fallback||"Unbekannter Fehler.";
 }
+
+// ---------------------------------------------------------------------------
+// Barcode-Scan ueber die Geraetekamera (v3.102)
+//
+// Eine einzige Stelle statt mehrfacher Kamera-Logik - genutzt von der
+// Lagerverwaltung (js/68, Artikel per Scan buchen) und vom Material-Katalog
+// in den Einstellungen (js/08, Barcode an einem Artikel hinterlegen).
+//
+// Die Bibliothek (ZXing, dieselbe cdn.jsdelivr.net-Quelle wie supabase-js
+// und xlsx) wird erst beim ERSTEN Scan nachgeladen, nicht bei jedem
+// App-Start - anders als die beiden anderen, wird sie nicht auf jedem
+// Bildschirm gebraucht.
+// ---------------------------------------------------------------------------
+let zxingLadenPromise=null;
+function zxingLaden(){
+ if(typeof ZXing!=="undefined")return Promise.resolve();
+ if(zxingLadenPromise)return zxingLadenPromise;
+ zxingLadenPromise=new Promise((resolve,reject)=>{
+  const s=document.createElement("script");
+  s.src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js";
+  s.onload=()=>{ if(typeof ZXing!=="undefined")resolve(); else reject(new Error("Scan-Bibliothek antwortet nicht.")) };
+  s.onerror=()=>{ zxingLadenPromise=null; reject(new Error("Scan-Bibliothek konnte nicht geladen werden - Internetverbindung prüfen.")) };
+  document.head.appendChild(s);
+ });
+ return zxingLadenPromise;
+}
+
+let barcodeScanCodeReader=null, barcodeScanControls=null;
+
+// Kamera stoppen und Overlay schliessen. Sicher mehrfach aufrufbar (z. B.
+// einmal beim erfolgreichen Scan, einmal beim Abbrechen-Klick danach).
+function barcodeScanSchliessen(){
+ try{ if(barcodeScanControls&&barcodeScanControls.stop)barcodeScanControls.stop(); }catch(e){}
+ try{ if(barcodeScanCodeReader&&barcodeScanCodeReader.reset)barcodeScanCodeReader.reset(); }catch(e){}
+ barcodeScanControls=null;
+ if($("barcodeScanOverlay"))$("barcodeScanOverlay").hidden=true;
+}
+if($("barcodeScanAbbrechen"))$("barcodeScanAbbrechen").onclick=barcodeScanSchliessen;
+
+// Oeffnet die Kamera und ruft callback(code) GENAU EINMAL mit dem erkannten
+// Text auf, dann schliesst sich das Overlay von selbst. Ein Abbrechen-Klick
+// ruft callback nicht auf. Fehler (kein Netz, keine Kamera-Freigabe) werden
+// sichtbar im Overlay gemeldet statt still zu scheitern.
+async function barcodeScannen(callback){
+ const overlay=$("barcodeScanOverlay"), status=$("barcodeScanStatus"), video=$("barcodeScanVideo");
+ if(!overlay||!video)return;
+ overlay.hidden=false;
+ if(status){status.textContent="Bibliothek wird geladen …";status.style.color="#fff"}
+ try{
+  await zxingLaden();
+ }catch(err){
+  if(status){status.textContent=(err&&err.message)?err.message:"Scan-Bibliothek konnte nicht geladen werden.";status.style.color="#ffb3b3"}
+  return;
+ }
+ if(status){status.textContent="Kamera wird gestartet …";status.style.color="#fff"}
+ try{
+  barcodeScanCodeReader=new ZXing.BrowserMultiFormatReader();
+  await barcodeScanCodeReader.decodeFromVideoDevice(undefined,video,(result,err,controls)=>{
+   barcodeScanControls=controls;
+   if(result){
+    const text=result.getText();
+    barcodeScanSchliessen();
+    callback(text);
+   }
+  });
+  if(status)status.textContent="Code in den Rahmen halten …";
+ }catch(err){
+  const meldung=(err&&err.name==="NotAllowedError")
+   ?"Kein Zugriff auf die Kamera - bitte in den Geräteeinstellungen erlauben."
+   :(err&&err.message)?err.message:"Kamera konnte nicht gestartet werden.";
+  if(status){status.textContent=meldung;status.style.color="#ffb3b3"}
+ }
+}
