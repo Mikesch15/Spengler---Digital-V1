@@ -125,15 +125,20 @@ const MESS=[
  p(z.w.rateName==="Polier","seine hinterlegte Funktion ist vorbelegt",z.w);
  p(z.ansatz===118,"und damit sein Stundenansatz",z);
 
- // A2: In der Tabelle steht er wirklich - mit seinen Initialen.
+ // A2: In der Tabelle steht er wirklich - mit vollem Namen in der Auswahl
+ // (v3.94, vorher nur Initialen dort) und seinem Kuerzel daneben fuer den
+ // Druck (das Auswahlfeld selbst ist .no-print).
  await page.evaluate(()=>{works.push(neueArbeitsposition());renderMain()});
  z=await page.evaluate(()=>{
   const emp=document.querySelector('[data-w-emp="0"]');
   const rate=document.querySelector('[data-w-rate="0"]');
-  return {emp:emp.value,initialen:emp.options[emp.selectedIndex].textContent,
+  const kuerzel=emp.closest("td").querySelector(".print-only");
+  return {emp:emp.value,optionstext:emp.options[emp.selectedIndex].textContent,
+    empIstNoPrint:emp.classList.contains("no-print"),kuerzel:kuerzel?kuerzel.textContent:null,
     rate:rate.value,ansatzZelle:document.querySelector('[data-work-rate-cell="0"]').textContent};
  });
- p(z.emp==="Mike Ledermann"&&z.initialen==="ML","die Zeile zeigt seine Initialen",z);
+ p(z.emp==="Mike Ledermann"&&z.optionstext==="Mike Ledermann","die Auswahl zeigt den vollen Namen",z);
+ p(z.empIstNoPrint&&z.kuerzel==="ML","die Auswahl ist nur am Bildschirm sichtbar, daneben steht das Kuerzel fuer den Druck",z);
  p(z.rate==="Polier"&&/118/.test(z.ansatzZelle),"und seinen Ansatz",z);
 
  // A2b (v3.94): Wird in der Zeile ein ANDERER Mitarbeiter mit eigener
@@ -154,6 +159,17 @@ const MESS=[
  });
  p(z.rateWert==="SM FZ"&&z.rateName==="SM FZ","beim Wechsel auf einen anderen Mitarbeiter wird dessen hinterlegte Funktion uebernommen",z);
  p(/126/.test(z.ansatzZelle),"und der Ansatz wird mitgezogen",z);
+
+ // Das Kuerzel fuer den Druck (renderMain() zeichnet nicht neu, nur die
+ // Zelle selbst) wird zwar NICHT live nachgefuehrt (kein renderMain()-Aufruf
+ // im change-Handler) - erst der naechste renderMain() (z.B. Weiter/Neuladen)
+ // zeigt "TT". Das ist bewusst so (siehe Kommentar im change-Handler:
+ // "no full table redraw while typing/selecting") und wird hier bestaetigt,
+ // damit eine kuenftige Aenderung daran nicht unbemerkt durchrutscht.
+ z=await page.evaluate(()=>{renderMain();
+  return document.querySelector('[data-w-emp="0"]').closest("td").querySelector(".print-only").textContent;
+ });
+ p(z==="TT","nach dem naechsten Zeichnen zeigt das Kuerzel den neuen Mitarbeiter",z);
 
  // A2c: Wechsel auf einen Mitarbeiter OHNE hinterlegte Funktion aendert die
  // Funktion NICHT - es wird nichts geraten, die bisherige Auswahl bleibt.

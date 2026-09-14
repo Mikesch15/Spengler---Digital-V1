@@ -35,8 +35,12 @@ button:disabled{opacity:.45;cursor:not-allowed;filter:none}
 .scroll{overflow:auto;border:1px solid var(--line);border-radius:10px}
 table{width:100%;border-collapse:collapse;min-width:1000px;table-layout:fixed}
 /* Spaltenbreiten in der App, abgestimmt auf den tatsächlichen Inhalt je Spalte.
-   Pos. wird unten für den Bildschirm zusätzlich fix auf 23mm gesetzt (gleich wie im PDF). */
-.work-table col.c-pos{width:7%}.work-table col.c-desc{width:54%}.work-table col.c-emp{width:5.5%}.work-table col.c-func{width:8.5%}.work-table col.c-std{width:5%}.work-table col.c-rate{width:7%}.work-table col.c-total{width:8.5%}.work-table col.c-del{width:4.5%}
+   v3.95: Datum/MA/Funktion breiter, seit MA den vollen Namen zur Auswahl zeigt
+   (siehe renderMain(), js/06-rapport.js) statt nur der Initialen - vorher
+   passte dort kaum mehr als ein Buchstabe. MA extra breit (15%), weil ein
+   <select> lange Namen (z. B. "Mike Ledermann") sonst ohne Auslassungspunkte
+   hart abschneidet, per Bildschirm-Probe mit Playwright nachgemessen. */
+.work-table col.c-pos{width:11%}.work-table col.c-desc{width:35%}.work-table col.c-emp{width:15%}.work-table col.c-func{width:11%}.work-table col.c-std{width:6%}.work-table col.c-rate{width:9%}.work-table col.c-total{width:9%}.work-table col.c-del{width:4%}
 .mat-table col.m-pos{width:7%}.mat-table col.m-edv{width:11%}.mat-table col.m-material{width:43%}.mat-table col.m-dim{width:6.5%}.mat-table col.m-unit{width:6%}.mat-table col.m-qty{width:6%}.mat-table col.m-price{width:7.5%}.mat-table col.m-total{width:8%}.mat-table col.m-del{width:5%}
 .work-table td:last-child,.work-table th:last-child,.mat-table td:last-child,.mat-table th:last-child{text-align:left}
 .work-table td:last-child button,.mat-table td:last-child button{padding:6px 9px}

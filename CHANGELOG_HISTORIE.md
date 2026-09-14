@@ -27153,3 +27153,92 @@ durchlaufen: 79/79, keine Regression gegenüber vorher.
 
 - Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
   immer) - reiner Client-Zustand, keine Datenbankänderung nötig.
+
+## 161. REGIERAPPORT: MITARBEITER MIT VOLLEM NAMEN AUSWÄHLEN, SPALTEN LESBAR — VERSION 3.95
+
+### 161.1 Anlass
+
+"Im Regierapport möchte ich die Mitarbeiter mit vollem Namen auswählen
+können, es sollen danach aber nur die Initialien im Rapport stehen. Und
+passe alle Felder im Regierapport so an, dass der ganze Text darin zu
+sehen ist - vor allem Datum, MA und Funktion passen jetzt nicht." Zwei
+Teile: (1) das Auswahlfeld für den Mitarbeiter in der Tabelle
+"Ausführende Arbeiten" zeigte als Options-Text nur das Kürzel (`initials(e)`)
+- bei mehreren Mitarbeitern mit ähnlichem Kürzel schwer auseinanderzuhalten
+- der gedruckte/exportierte Rapport soll aber weiterhin nur das Kürzel
+zeigen, wie bisher; (2) mehrere Spalten der Tabelle waren zu schmal für
+ihren tatsächlichen Inhalt.
+
+### 161.2 Umsetzung
+
+`#workBody` (`index.html`) ist EINE Markup-Struktur für Bildschirm UND
+Druck zugleich - es gibt keine separate Druckvorlage, die Sichtbarkeit
+wird rein über CSS-Klassen beim Drucken gesteuert (bestehendes Muster,
+z. B. `#printProjectLine`). Dasselbe Muster wird hier wiederverwendet: in
+`renderMain()` (js/06-rapport.js) zeigt das `<select data-w-emp>` jetzt
+den vollen Namen als Options-Text UND -Wert (`settings.employees`
+unverändert als Datenquelle), trägt aber neu die Klasse `.no-print`
+(bestehende Regel in css/03-druck.css: `.no-print{display:none!important}`
+beim Drucken). Daneben steht ein neuer `<span class="print-only">` mit dem
+Kürzel (`initials(w.employee)`, dieselbe bestehende Funktion wie bisher) -
+`.print-only` ist normal unsichtbar (`css/01-basis.css`) und wird beim
+Drucken sichtbar (`css/03-druck.css`). Der `change`-Handler des Feldes
+zeichnet die Zeile bewusst nicht komplett neu (kein voller `renderMain()`-
+Aufruf beim Tippen/Wählen, bestehendes Verhalten) - das Kürzel im
+`.print-only`-Span zieht daher erst beim nächsten `renderMain()`-Aufruf
+(z. B. "Weiter", Neuladen) nach, nicht sofort; das ist unverändert
+dasselbe Verhalten wie bei allen anderen Feldern dieser Zeile und wird im
+Prüfstand ausdrücklich bestätigt.
+
+Nebenbei beim Lesen des Markups gefunden: die Kopfzeile der Tabelle
+beschriftete die erste Spalte mit "Pos.", obwohl die Zelle je Zeile
+(`data-w-date`) tatsächlich ein Datumsfeld ist - ein bestehender, nicht
+selbst verursachter Beschriftungsfehler, korrigiert auf "Datum"
+(`index.html`).
+
+Spaltenbreiten (`css/01-basis.css`, `.work-table col.*`, nur die
+Bildschirmdarstellung - die Druckbreiten in `css/03-druck.css` bleiben
+unverändert richtig, da im Druck weiterhin nur das kurze Kürzel steht):
+Datum, MA und Funktion verbreitert (11 %/15 %/11 % statt 7 %/5.5 %/8.5 %),
+Beschreibung im Gegenzug von 54 % auf 35 % reduziert. MA bekam dabei
+bewusst mehr als Datum/Funktion (15 % statt z. B. 11 %): eine erste Probe
+per Playwright-Bildschirmfoto zeigte, dass ein `<select>` einen langen
+Namen ("Mike Lederman" statt "Mike Ledermann") ohne Auslassungspunkte
+hart am Feldrand abschneidet, wenn die Spalte zu knapp bemessen ist - das
+wäre dieselbe Lücke wie vorher, nur eine Stufe später. Nach der
+Korrektur zeigt dieselbe Probe den vollen Namen ohne Abschnitt. Die
+bestehende horizontale Scroll-Ausweichlösung (`.scroll{overflow:auto}`
+mit `table{min-width:1000px}`) bleibt die Absicherung für schmale
+Bildschirme, wie schon bisher bei dieser Tabelle.
+
+### 161.3 Getestet
+
+`pruefstaende/pruefstand-rapport-v3-16.js`, Abschnitt A: A2 umgeschrieben
+(prüft jetzt vollen Namen als Options-Text UND -Wert, `.no-print` auf dem
+Auswahlfeld, Kürzel im `.print-only`-Span daneben, statt wie bisher nur
+das Kürzel als Options-Text); nach A2b (Mitarbeiterwechsel mitten in der
+Zeile) eine neue Prüfung ergänzt, die bestätigt, dass das Kürzel erst nach
+dem nächsten `renderMain()`-Aufruf den neuen Mitarbeiter zeigt - bewusstes
+Verhalten, nicht ein Fehler, damit eine künftige Änderung daran nicht
+unbemerkt durchrutscht. Datei komplett durchlaufen: 81/81 (79 vorher + 2
+neue), keine Regression. Volle Regression (`pruefstaende/ci-lauf.js`)
+danach erneut laufen lassen: 39/68 wie vorher, alle 29 Fehlschläge bereits
+vorher bekannt (Sandbox ohne Supabase/Netzwerk-Zugriff), keine neue
+Abweichung.
+
+### 161.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `index.html` | Versionsbump 3.95; Kopfzeile "Pos." → "Datum" korrigiert |
+| `sw.js` | Cache-Version 3.95 |
+| `css/01-basis.css` | Spaltenbreiten `.work-table col.*` an Datum/MA/Funktion angepasst |
+| `js/06-rapport.js` | Mitarbeiter-Auswahl zeigt vollen Namen (`.no-print`), Kürzel daneben in `.print-only`-Span |
+| `pruefstaende/pruefstand-rapport-v3-16.js` | A2 umgeschrieben, eine neue Prüfung nach A2b |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.95"]` ergänzt |
+| `PROJECT_STATE.md` | Versionsstand 3.95 |
+
+### 161.5 Offene Punkte
+
+- Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
+  immer) - reiner Client-Zustand, keine Datenbankänderung nötig.

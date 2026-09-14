@@ -94,6 +94,11 @@ function searchMaterials(q){
  return (!q?settings.materials:settings.materials.filter(x=>String(x[0]).toLowerCase().startsWith(q)||String(x[1]).toLowerCase().includes(q))).slice(0,15)
 }
 
+// v3.94: die Mitarbeiter-Auswahl zeigt jetzt den vollen Namen (vorher nur
+// Initialen in der Liste - kaum auseinanderzuhalten). Im gedruckten Rapport
+// soll weiterhin nur das Kuerzel stehen: das Auswahlfeld ist deshalb
+// .no-print, daneben steht ein .print-only-Kuerzel (dasselbe Muster wie
+// printProjectLine in index.html).
 function renderMain(){
   sortWorksLive();
   sortMaterialsLive();
@@ -101,7 +106,7 @@ function renderMain(){
 <tr>
 <td><input data-w-date="${i}" type="date" value="${esc(w.date||"")}"></td>
 <td><input data-w-desc="${i}" value="${esc(w.desc)}" placeholder="Arbeit"></td>
-<td><select data-w-emp="${i}">${settings.employees.map(e=>`<option value="${esc(e)}" ${e===w.employee?"selected":""}>${esc(initials(e))}</option>`).join("")}</select></td>
+<td><select class="no-print" data-w-emp="${i}">${settings.employees.map(e=>`<option value="${esc(e)}" ${e===w.employee?"selected":""}>${esc(e)}</option>`).join("")}</select><span class="print-only">${esc(initials(w.employee))}</span></td>
 <td><select data-w-rate="${i}">${settings.rates.map(r=>`<option ${r[0]===w.rateName?"selected":""}>${esc(r[0])}</option>`).join("")}</select></td>
 <td><input data-w-hours="${i}" type="number" step=".25" min="0" value="${w.hours}"></td>
 <td class="money" data-work-rate-cell="${i}">${money(rateFor(w.rateName))}</td>
