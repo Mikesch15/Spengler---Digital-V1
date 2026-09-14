@@ -111,6 +111,7 @@ async function applyRechte(){
  });
  b.classList.toggle("recht-einstellungen-ansehen",!meineRechte.kataloge);
  b.classList.toggle("ist-admin",!!meineRechte.admin);
+ if(typeof renderMeasTypeChooser==="function")renderMeasTypeChooser();
  applyModuleTest();
 }
 

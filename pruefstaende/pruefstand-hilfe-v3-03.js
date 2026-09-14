@@ -57,11 +57,16 @@ const ARTEN=[
  p(g.texte>=60,"mindestens 60 Erklaerungen hinterlegt",g.texte);
 
  // Jeder Text hat Titel und Inhalt, und der Inhalt sagt mehr als der Titel.
+ // v3.94: text kann bei Kamin/Dachfenster eine FUNKTION sein statt einer
+ // festen Zeichenkette (die genannten Buchstaben kommen dann live aus
+ // KAM_MASSLISTE/DFA_MASSLISTE, js/41-hilfe.js hilfeOeffnen()) - vor jeder
+ // Pruefung des Inhalts deshalb erst auswerten.
  const inhalt=await page.evaluate(()=>{
   const schlecht=[];
+  const textVon=t=>typeof t.text==="function"?t.text():t.text;
   Object.keys(HILFE_TEXTE).forEach(k=>{
    const t=HILFE_TEXTE[k];
-   const roh=String(t&&t.text||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim();
+   const roh=String(t&&textVon(t)||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim();
    if(!t||!t.titel||!t.text)schlecht.push(k+" (unvollstaendig)");
    else if(roh.length<80)schlecht.push(k+" (nur "+roh.length+" Zeichen)");
   });
@@ -75,8 +80,9 @@ const ARTEN=[
   // echte deutsche Woerter, in denen ae/oe/ue nur zufaellig vorkommt
   const erlaubt=/^(neu|neue|neuen|neueste|quer|zuerst|steuert|Mauerabdeckung|Neue|Dauer|dauer|bauen|aufbauen|Bauen|aktuell|blau|blaue|blauen|genau|genaue|genauen|Frau|Quelle|Quellen|quelle)/i;
   const treffer=[];
+  const textVon=t=>typeof t.text==="function"?t.text():t.text;
   Object.keys(HILFE_TEXTE).forEach(k=>{
-   const s=HILFE_TEXTE[k].titel+" "+HILFE_TEXTE[k].text.replace(/<[^>]*>/g," ");
+   const s=HILFE_TEXTE[k].titel+" "+textVon(HILFE_TEXTE[k]).replace(/<[^>]*>/g," ");
    (s.match(/[A-Za-zÄÖÜäöüß]+/g)||[]).forEach(w=>{
     if(echt.test(w)&&!erlaubt.test(w)&&!/[ÄÖÜäöü]/.test(w))treffer.push(k+": "+w);
    });

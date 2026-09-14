@@ -38,6 +38,9 @@ const EINFA_REGISTER=[
 // Registerzahl, nicht an einer festen Nummer.
 const EINFA_KONTROLLE=EINFA_REGISTER.length;
 let einfaSchritt=1;
+// v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
+// Grenze dieser Anzeige.
+let einfaBestaetigt=new Set();
 
 const einfaZahl=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const einfaMm=v=>Math.round(einfaZahl(v)).toLocaleString("de-CH");
@@ -496,7 +499,7 @@ function einfaRegisterHtml(){
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${
       fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===einfaSchritt?" aktiv":""}" data-einfa-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(einfaBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function renderEinfassungAufnahme(){
@@ -652,6 +655,7 @@ function einfaVerdrahten(){
   if(t.id==="einfa_zurueck"){einfaSetzeSchritt(einfaSchritt-1);return}
   if(t.id==="einfa_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   einfaBestaetigt.add(einfaSchritt);
    if(einfaSchritt>=EINFA_REGISTER.length)einfaAbschluss();
    else einfaSetzeSchritt(einfaSchritt+1);
    return;
@@ -728,6 +732,7 @@ function einfaDaten(){
 function einfaZuruecksetzen(){
  einfA=einfaLeer();
  einfaSchritt=1;
+ einfaBestaetigt=new Set();
  renderEinfassungAufnahme();
 }
 function einfaFuellen(d){
@@ -751,5 +756,8 @@ function einfaFuellen(d){
  if(w.rollen&&Array.isArray(w.rollen.auswahl))a.rollenAuswahl=w.rollen.auswahl.slice();
  einfA=a;
  einfaSchritt=1;
+ // v3.94: siehe dfaFuellen (js/66) fuer die Begruendung.
+ einfaBestaetigt=einfaPruefungen().some(x=>x.art==="fehler")
+  ?new Set():new Set(EINFA_REGISTER.filter(r=>r.nr!==EINFA_KONTROLLE).map(r=>r.nr));
  renderEinfassungAufnahme();
 }

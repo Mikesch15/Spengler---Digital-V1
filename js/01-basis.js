@@ -131,6 +131,20 @@ function pflichtPruefenUndSpringen(wurzel){
 // was es heute nicht gibt. Die bestehende "Weiter"-Sperre
 // (pflichtPruefenUndSpringen) verhindert schon, dass ein Register mit einer
 // Luecke verlassen wird - das genuegt hier als Grundlage.
+//
+// v3.94: raRegisterHakenHtml() ergaenzt genau darauf aufbauend einen kleinen
+// Haken am Register-Knopf, OHNE die obige Grenze aufzuheben: ein Register
+// gilt als "bestaetigt", sobald es per "Weiter" erfolgreich verlassen wurde
+// (dann hat die Weiter-Sperre es schon geprueft) bzw. beim Oeffnen einer
+// gespeicherten Aufnahme ohne Fehler in Pruefungen(). Wird DANACH ein Feld in
+// einem bereits bestaetigten Register wieder geleert, verschwindet der Haken
+// NICHT von selbst - das waere die echte, hier bewusst nicht gebaute
+// Vollstaendigkeitspruefung. Jedes Modul haelt sein eigenes bestaetigt-Set
+// (z.B. dfaBestaetigt) und uebergibt es hier nur zur Anzeige.
+function raRegisterHakenHtml(bestaetigt,nr){
+ return (bestaetigt&&bestaetigt.has(nr))
+  ?'<span class="ra-register-haken" title="Bereits ausgefüllt">✓</span>':"";
+}
 function raFortschrittHtml(schritt,gesamt){
  if(!(gesamt>1))return "";
  const proz=Math.max(0,Math.min(100,Math.round((schritt/gesamt)*100)));
@@ -346,6 +360,63 @@ const AM_TYPE_SETTINGS_SECTION=Object.freeze({
 // Module in Entwicklung: nur für Administratoren sichtbar.
 // Schlüssel: "meas:<art>" bzw. "am:<art>" -> true = versteckt für alle anderen.
 let moduleImTest={};
+// v3.94: unter welcher Kategorie (Steildach/Flachdach/Allgemein) eine
+// Massaufnahme-Art bei der Auswahl einer neuen Massaufnahme erscheint.
+// Gilt für alle Firmen (Systemadmin-Einstellung, wie moduleImTest), wird
+// mit derselben system_settings-Zeile geladen. MEAS_KATEGORIEN_STANDARD ist
+// nur der Ausgangswert, bevor ein Systemadmin ihn je bearbeitet hat -
+// measKategorien (die geladene Firmen-uebergreifende Einstellung) hat
+// immer Vorrang, siehe measKategorie().
+const MEAS_KATEGORIEN=Object.freeze(["steildach","flachdach","allgemein"]);
+const MEAS_KATEGORIEN_LABELS=Object.freeze({steildach:"Steildach",flachdach:"Flachdach",allgemein:"Allgemein"});
+const MEAS_KATEGORIEN_STANDARD=Object.freeze({
+ skizze_foto:"allgemein",
+ einlaufblech_gerade:"steildach",
+ rinne_halbrund:"steildach",
+ einlaufblech_konisch:"steildach",
+ freies_profil:"allgemein",
+ mauerabdeckung:"flachdach",
+ lukarne:"steildach",
+ anschlussblech:"flachdach",
+ einfassung_rund:"flachdach",
+ kamineinfassung:"steildach",
+ dachfenstereinfassung:"steildach",
+ kehle:"steildach",
+ rinne:"steildach"
+});
+let measKategorien={};
+function measKategorie(art){
+ const k=(measKategorien&&measKategorien[art])||MEAS_KATEGORIEN_STANDARD[art]||"allgemein";
+ return MEAS_KATEGORIEN.includes(k)?k:"allgemein";
+}
+// Dieselben Symbole wie bisher in der (bis v3.93 statischen) Kartenauswahl.
+const MEAS_TYPE_ICONS=Object.freeze({
+ skizze_foto:"📷", einlaufblech_gerade:"📐", rinne_halbrund:"🏠",
+ einlaufblech_konisch:"📐", freies_profil:"📐", mauerabdeckung:"🧱",
+ lukarne:"🏚️", anschlussblech:"📐", einfassung_rund:"⭕",
+ kamineinfassung:"🧱", dachfenstereinfassung:"🪟", kehle:"📏", rinne:"🚰"
+});
+// v3.94: die Kartenauswahl fuer eine neue Massaufnahme nach Kategorie
+// gruppiert (Steildach/Flachdach/Allgemein, siehe MEAS_KATEGORIEN_STANDARD/
+// measKategorien) statt einer einzigen langen Liste. Wird nach dem Login
+// einmal gerufen (js/05a-rechte.js applyRechte(), nach applyModuleTest())
+// - die Sichtbarkeits-Sperre selbst bleibt in applyModuleTest() unveraendert,
+// sie greift ueber [data-choose-meas-type] unabhaengig von der Gruppierung.
+function renderMeasTypeChooser(){
+ const box=$("measTypeChooserBody");
+ if(!box)return;
+ const gruppen={steildach:[],flachdach:[],allgemein:[]};
+ Object.keys(MEAS_TYPE_LABELS).forEach(art=>gruppen[measKategorie(art)].push(art));
+ box.innerHTML=MEAS_KATEGORIEN.map(kat=>{
+  if(!gruppen[kat].length)return "";
+  const knoepfe=gruppen[kat].map(art=>
+   `<button type="button" class="start-nav-btn blue" data-choose-meas-type="${esc(art)}"><span class="start-nav-icon">${esc(MEAS_TYPE_ICONS[art]||"📐")}</span><span>${esc(MEAS_TYPE_LABELS[art])}</span></button>`).join("");
+  return `<div class="settings-section open" data-section="meastype-${kat}">
+<div class="settings-section-head" data-toggle-section="meastype-${kat}"><h2>${esc(MEAS_KATEGORIEN_LABELS[kat])}</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body"><div class="start-nav">${knoepfe}</div></div>
+</div>`;
+ }).join("");
+}
 // ID der eigenen app_settings-Zeile. Wird beim Laden gesetzt und beim
 // Speichern als WHERE-Bedingung gebraucht - PostgREST weist ein UPDATE
 // ohne Filter ab ("UPDATE requires a WHERE clause").

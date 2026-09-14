@@ -33,6 +33,13 @@ const ANBA_REGISTER=[
 // Registerzahl, nicht an einer festen Nummer.
 const ANBA_KONTROLLE=ANBA_REGISTER.length;
 let anbaSchritt=1;
+// v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
+// Grenze dieser Anzeige. Anders als dort wird beim Laden eines gespeicherten
+// Datensatzes HIER nichts vorbelegt: anbaPruefungen() liest ueber
+// anbaEingaben() aus den (Alt-)Formularfeldern, die von anbaFuellen() nicht
+// selbst gesetzt werden - ein Vorbelegen an dieser Stelle koennte deshalb
+// noch den Stand VOR dem Befuellen der Felder pruefen.
+let anbaBestaetigt=new Set();
 // true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
 // einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
 // ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
@@ -314,7 +321,7 @@ function anbaRegisterHtml(){
   const marke=r.nr===ANBA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===anbaSchritt?" aktiv":""}" data-anba-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(anbaBestaetigt,r.nr)}</button>`;
  }).join("");
 }
 // Die Register 1 bis 4 stehen FEST im HTML (siehe Kopf dieser Datei) und
@@ -400,6 +407,7 @@ function anbaVerdrahten(){
   if(t.id==="anba_zurueck"){anbaSetzeSchritt(anbaSchritt-1);return}
   if(t.id==="anba_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   anbaBestaetigt.add(anbaSchritt);
    if(anbaSchritt>=ANBA_REGISTER.length)anbaAbschluss();
    else anbaSetzeSchritt(anbaSchritt+1);
    return;
@@ -450,6 +458,7 @@ function anbaZusatzDaten(){
 function anbaZuruecksetzen(){
  anbaRollenAuswahl=[];
  anbaSchritt=1;
+ anbaBestaetigt=new Set();
  renderAnschlussblechAufnahme();
 }
 function anbaFuellen(d){
@@ -459,5 +468,6 @@ function anbaFuellen(d){
  const rq=(w.zuschnitt&&w.zuschnitt.auswahl);
  anbaRollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  anbaSchritt=1;
+ anbaBestaetigt=new Set();
  renderAnschlussblechAufnahme();
 }

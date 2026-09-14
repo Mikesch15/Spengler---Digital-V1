@@ -106,6 +106,11 @@ const DFA_REGISTER=[
 ];
 const DFA_KONTROLLE=DFA_REGISTER.length;
 let dfaSchritt=1;
+// v3.94: welche Register schon einmal per "Weiter" bestaetigt wurden (bzw.
+// bei einer geladenen Aufnahme ohne Fehler waren) - nur fuer den kleinen
+// Haken am Register-Knopf, siehe raRegisterHakenHtml()/Kommentar in
+// js/01-basis.js fuer die bewusste Grenze dieser Anzeige.
+let dfaBestaetigt=new Set();
 // Siehe kamaZeichnet (js/37) fuer die Begruendung dieser Sperre.
 let dfaZeichnet=false;
 
@@ -992,7 +997,7 @@ function dfaRegisterHtml(){
   const marke=r.nr===DFA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===dfaSchritt?" aktiv":""}" data-dfa-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(dfaBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function dfaKopfInhalt(){
@@ -1119,6 +1124,7 @@ function dfaVerdrahten(){
   if(t.id==="dfa_zurueck"){dfaSetzeSchritt(dfaSchritt-1);return}
   if(t.id==="dfa_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   dfaBestaetigt.add(dfaSchritt);
    if(dfaSchritt>=DFA_REGISTER.length)dfaAbschluss();
    else dfaSetzeSchritt(dfaSchritt+1);
    return;
@@ -1141,7 +1147,36 @@ function dfaVerdrahten(){
 }
 
 // ---- Einstellungsseite ----------------------------------------------------
+// v3.94: dieselbe Umstellung wie applyKaminSettings() (js/37) - die
+// Firmen-Einstellungen-Labels kommen jetzt live aus DFA_MASSLISTE statt aus
+// von Hand getipptem Text. Zwei Felder nennen zusaetzlich einen ANDEREN
+// Buchstaben zur Einordnung ("hinter R", "vor C") - dieser Verweis wird
+// ebenfalls live berechnet (dfaBuchstabe), damit er nach einer kuenftigen
+// Massaenderung nicht wie einst Mass R (v3.90) veraltet stehen bleibt.
+function dfaEinstellungenLabelBefuellen(){
+ const setzen=(id,k)=>{const el=$(id); if(el)el.textContent=dfaMassLabel(k)};
+ setzen("dfasUmschlagVorne_lbl","umschlagVorne");
+ setzen("dfasUmschlagSeite_lbl","umschlagSeite");
+ setzen("dfasUeberlappung_lbl","ueberlappung");
+ setzen("dfasMassVorne_lbl","a");
+ setzen("dfasMassHinten_lbl","d");
+ setzen("dfasSaumVorne_lbl","saumVorne");
+ setzen("dfasBreiteOben_lbl","breiteOben");
+ setzen("dfasBreiteUnten_lbl","breiteUnten");
+ setzen("dfasRandAbstand_lbl","randAbstand");
+ setzen("dfasRandStrich_lbl","randStrich");
+ setzen("dfasE_lbl","e");
+ setzen("dfasEUmschlag_lbl","eUmschlag");
+ setzen("dfasAnreiff_lbl","anreiff");
+ setzen("dfasAnreiffUmschlag_lbl","anreiffUmschlag");
+ setzen("dfasAufVorne_lbl","aufVorne");
+ setzen("dfasAufHinten_lbl","aufHinten");
+ const ref=(id,k)=>{const el=$(id); if(el)el.textContent=dfaBuchstabe(k)};
+ ref("dfasE_ref","d");
+ ref("dfasAnreiff_ref","a");
+}
 function applyDfaSettings(){
+ dfaEinstellungenLabelBefuellen();
  if(!$("dfasUmschlagVorne"))return;
  const s=dfaSettings;
  const sel=$("dfasDeckung");
@@ -1255,6 +1290,7 @@ function dfaDaten(){
 function dfaZuruecksetzen(){
  dfaA=dfaLeer();
  dfaSchritt=1;
+ dfaBestaetigt=new Set();
  renderDfaAufnahme();
 }
 function dfaFuellen(d){
@@ -1293,5 +1329,10 @@ function dfaFuellen(d){
  a.rollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  dfaA=a;
  dfaSchritt=1;
+ // v3.94: eine geladene Aufnahme, die beim Speichern schon fehlerfrei war,
+ // zeigt den Haken gleich an allen Registern ausser der Kontrolle selbst -
+ // ohne Fehler in dfaPruefungen() gibt es dort nichts nachzuholen.
+ dfaBestaetigt=dfaPruefungen().some(x=>x.art==="fehler")
+  ?new Set():new Set(DFA_REGISTER.filter(r=>r.nr!==DFA_KONTROLLE).map(r=>r.nr));
  renderDfaAufnahme();
 }

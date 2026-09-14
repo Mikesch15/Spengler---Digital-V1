@@ -26917,3 +26917,239 @@ genau die 29 bekannten Fehlschläge, keine neue Regression.
 - Rinne (Zuschnittliste) und Freies Profil bleiben ohne feste
   Massen-Übersicht (siehe 158.1) - damit ist Idee 3 von 5 aus v3.91
   für die zwei strukturell passenden Module abgeschlossen.
+
+## 159. REGISTER-HAKEN, KATEGORISIERTE MASSAUFNAHME-AUSWAHL, PROJEKTFILTER, ZENTRALE TEXTQUELLE FÜR EINSTELLUNGEN/HILFE, SYSTEMADMIN AUFGERÄUMT — VERSION 3.94
+
+### 159.1 Anlass
+
+Fünf weitere, vom Anwender ausgewählte Ideen aus einer neuen Vorschlagsliste:
+(2) die in v3.92 bewusst ausgesparte Anbindung der Firmen-Einstellungen-Labels
+und der Hilfe-Texte an die zentrale Massliste (siehe 157.5), (3) ein Haken an
+Registern, die schon einmal ausgefüllt wurden, (5) ein Filter nach
+Massaufnahme-Art in der Projektliste - dazu zwei vom Anwender direkt
+genannte, neue Wünsche: die Kartenauswahl einer neuen Massaufnahme nach
+Steildach/Flachdach/Allgemein gruppieren, mit einer neuen Systemadmin-Karte
+zur Zuordnung, und die Systemadmin-Seite genauso aufklappbar machen wie die
+normalen Firmen-Einstellungen.
+
+### 159.2 Zentrale Textquelle: Einstellungen-Labels und Hilfe (Idee 2)
+
+`index.html`: alle Kamin-/Dachfenster-Firmeneinstellungen-Labels, die einen
+Massbuchstaben nennen, sind jetzt `<span id="…_lbl"></span>` statt festem
+Text; `kamaEinstellungenLabelBefuellen()` (js/37) und
+`dfaEinstellungenLabelBefuellen()` (js/66) befüllen sie bei jedem Aufruf von
+`applyKaminSettings()`/`applyDfaSettings()` live aus `kamaMassLabel()`/
+`dfaMassLabel()` (v3.92). Zwei Felder nennen zusätzlich einen ANDEREN
+Buchstaben zur Einordnung ("hinter R", "vor C") - dieser Verweis kommt jetzt
+ebenfalls live aus `dfaBuchstabe()` statt fest im Text zu stehen: genau
+dieses Muster (ein Buchstabe fest getippt, der sich durch eine spätere
+Massänderung verschiebt) hatte 1:1 zur R/U-Verwechslung geführt, die zur
+Entfernung von Mass R in v3.90 führte (siehe CLAUDE.md 155) - der Verweis auf
+"R" war zufällig weiterhin richtig (R bezeichnet seit v3.90 ein anderes
+Mass), aber nur durch Zufall.
+
+`js/41-hilfe.js`: die Erklärungstexte `kam-masse`, `dfa-masse` und
+`dfa-umschlaege` (die einzigen drei mit eingestreuten Massbuchstaben) sind
+jetzt Funktionen statt fester Zeichenketten - `hilfeOeffnen()` wertet sie
+erst beim Öffnen aus, nicht beim Laden der Datei. Das ist nötig, weil
+`dfaBuchstabe()` erst mit js/66 verfügbar ist, das NACH js/41 lädt (eine
+direkte Verwendung in der Objekt-Literal-Zeichenkette hätte beim Parsen
+sofort geworfen); Funktionen umgehen dieses Ladereihenfolge-Problem, ohne
+die Script-Tags in `index.html` umzusortieren. `kam-masse` hat keine solche
+Abhängigkeit (js/37 lädt vor js/41), bekommt aber aus Konsistenzgründen
+dieselbe Funktions-Form.
+
+`pruefstaende/pruefstand-hilfe-v3-03.js` prüfte `HILFE_TEXTE[k].text` bisher
+als feste Zeichenkette (`.replace(...)` direkt auf `text`) - mit den drei
+neuen Funktionswerten wäre das ein `TypeError` gewesen. Angepasst: ein
+`textVon(t)`-Helfer wertet eine Funktion zuerst aus, bevor der bestehende
+Inhalts- und Umlaut-Check weiterläuft - die Prüfungen selbst sind
+unverändert.
+
+### 159.3 Register-Haken (Idee 3)
+
+`raRegisterHakenHtml(bestaetigt, nr)` (js/01-basis.js, direkt neben
+`raFortschrittHtml()`) liefert einen kleinen Haken (✓) für ein Register, das
+im übergebenen Set steht. Jedes der zwölf Massaufnahme-Module hält jetzt ein
+eigenes `xxxBestaetigt`-Set:
+
+- wird ein Element hinzugefügt, sobald "Weiter" ein Register erfolgreich
+  verlässt (die bestehende Weiter-Sperre `pflichtPruefenUndSpringen()` hat es
+  dann bereits geprüft),
+- wird beim Öffnen einer gespeicherten Aufnahme komplett vorbelegt (alle
+  Register ausser der Kontrolle selbst), WENN `xxxPruefungen()` dafür keinen
+  Fehler meldet - eine gespeicherte, valide Aufnahme zeigt die Haken also
+  sofort, nicht erst nach erneutem Durchklicken,
+- wird beim Zurücksetzen (neue, leere Aufnahme) komplett geleert.
+
+Bewusste Grenze (wie bei `raFortschrittHtml()` selbst): wird danach ein Feld
+in einem bereits bestätigten Register wieder geleert, verschwindet der Haken
+NICHT von selbst - eine echte Vollständigkeitsprüfung würde eine
+Zuordnung jedes Pruefungen()-Eintrags zu einer Registernummer brauchen, die
+es heute nicht gibt (siehe Kommentar bei `raFortschrittHtml()`, v3.91).
+
+Zwei Ausnahmen bei der Vorbelegung: Anschlussblech (js/40) und Rinne
+Zuschnittliste (js/39) laden ihre Werte in bestehende, ausserhalb der
+Aufnahme-Datei stehende Formularfelder (`anbaEingaben()`/entsprechend lesen
+per `$(...)` aus dem DOM), die von `anbaFuellen()`/`rpaFuellen()` selbst
+nicht gesetzt werden - eine Vorbelegung an dieser Stelle könnte noch den
+Stand VOR dem eigentlichen Befüllen der Felder prüfen. Dort bleibt das Set
+beim Laden leer; der Haken erscheint erst, sobald der Anwender einmal durch
+"Weiter" geht. Dokumentiert im Code an `anbaBestaetigt`/`rpaBestaetigt`.
+
+CSS: `.ra-register-haken` (css/01-basis.css, neben `.ra-register-punkt`).
+
+### 159.4 Massaufnahme-Auswahl nach Kategorie, Systemadmin-Zuordnung (neuer Wunsch)
+
+Neue, system-weite Einstellung `system_settings.meas_kategorien` (jsonb,
+gleiches Muster wie `module_test` seit v2.67): eine Zeile für das ganze
+System, geschrieben nur über `system_admin_set_meas_kategorien()`
+(SECURITY DEFINER, prüft `is_system_admin()`), gelesen im selben Zug wie
+`module_test` beim Laden (js/05-daten-laden.js). `MEAS_KATEGORIEN_STANDARD`
+(js/01-basis.js) ist der fachlich begründete Ausgangswert je Massaufnahme-
+Art (z. B. Einfassung Rund/Anschlussblech/Mauerabdeckung → Flachdach,
+Kamin-/Dachfenstereinfassung/Lukarne/Rinne/Einlaufblech → Steildach,
+Skizze-Foto/Freies Profil → Allgemein) - ein Startwert, keine feste Regel:
+`measKategorie(art)` bevorzugt immer die geladene Systemadmin-Einstellung,
+falls vorhanden.
+
+`renderMeasTypeChooser()` (js/01-basis.js) baut die bisher statische
+13-Buttons-Liste in `index.html` (`#measTypeChooserBody`) jetzt zur
+Ladezeit aus drei aufklappbaren `.settings-section`-Karten (Steildach/
+Flachdach/Allgemein, je nur wenn die Kategorie mindestens eine Art enthält)
+- Buttons, `data-choose-meas-type`-Attribute und die bestehende
+Sichtbarkeits-Sperre `applyModuleTest()` (js/05a-rechte.js) bleiben
+unverändert, sie wirken weiterhin über den Selektor, unabhängig von der
+neuen Gruppierung. Aufgerufen einmalig in `applyRechte()`, vor
+`applyModuleTest()`.
+
+Neue Karte "🏔️ Massaufnahme-Arten zuordnen" in der System-Administration
+(`renderSysKategorienListe()`/`saveSysKategorien`, js/22-system-admin.js):
+ein Dropdown je Art, Speichern schreibt die komplette Zuordnung über die
+neue RPC. Wirkt sofort auf die Kartenauswahl (`renderMeasTypeChooser()`
+läuft erneut nach dem nächsten Login bzw. kann bei Bedarf direkt aufgerufen
+werden).
+
+### 159.5 Projektliste: Filter nach Massaufnahme-Art (Idee 5)
+
+`ladeProjectMeasTypen()` (js/09-projekte.js) lädt einmalig
+`measurements.select("project_id,type")` und baut eine
+`Map<project_id, Set<Art>>` - anders als der bestehende Statusfilter (der
+komplett aus dem schon geladenen `allProjects` kommt) eine bewusste,
+zusätzliche, aber EINMALIGE Abfrage, da die Art anders als der Status nicht
+auf dem Projekt selbst steht. Wird beim ersten Anzeigen der Projektliste
+angestossen (ohne await, wie `renderRecentProjects()`), bleibt danach für
+die Sitzung stehen. `renderProjectArtFilter()` erscheint nach demselben
+Muster wie `renderProjectStatusFilter()` nur, wenn mehr als eine Art in der
+aktuellen (bereits such- und statusgefilterten) Ansicht vorkommt.
+
+### 159.6 Systemadmin-Einstellungen aufklappbar (neuer Wunsch)
+
+Die vier echten Inhaltskarten der System-Administration (Firmenverwaltung,
+Feedback aller Firmen, Module in Entwicklung, Verwaiste Dateien) sind jetzt
+`.settings-section` statt flacher `.card`-Blöcke - exakt dasselbe Markup wie
+in den normalen Firmen-Einstellungen (js/07-einstellungen.js) und der
+bereits bestehenden Firmendetail-Ansicht (`#systemAdminCompanyModal`). Der
+Umschalt-Klick-Handler ist bereits ein globaler `document`-Listener
+(js/07-einstellungen.js) und musste nicht angepasst werden. Die neue
+Kategorien-Karte (159.4) nutzt von Anfang an dasselbe Muster.
+
+### 159.7 Getestet
+
+Playwright-Direktaufruf (mit einem vollständigen UMD-Supabase-Stub statt des
+bisher unvollständigen, das erlaubte diesmal auch `$`-abhängige Funktionen
+zu testen, nicht nur reine String-Bausteine): `renderMeasTypeChooser()`
+liefert drei Sektionen mit allen 13 Buttons, Auf-/Zuklappen beider neuer
+Kartentypen funktioniert über den bestehenden globalen Handler,
+`renderSysKategorienListe()`/Speichern-Fluss, `kamaEinstellungenLabelBefuellen()`/
+`dfaEinstellungenLabelBefuellen()` liefern exakt die von Hand nachgerechneten
+Buchstaben+Texte, die beiden lazy-`HILFE_TEXTE`-Funktionen liefern die
+erwarteten Buchstaben, der Projekt-Art-Filter filtert korrekt (3 Projekte →
+1 nach Filter), `raRegisterHakenHtml()` zeigt/verbirgt den Haken korrekt bei
+Zurücksetzen/Bestätigen. `pruefstand-hilfe-v3-03.js` nach der Anpassung
+weiterhin exakt 62/68 (dieselben 6 bekannten Fehlschläge). Volle Regression
+über `ci-lauf.js`: keine neue Regression gegenüber der Baseline.
+
+### 159.8 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migration `system_settings_meas_kategorien` | Spalte `meas_kategorien`, Funktion `system_admin_set_meas_kategorien()` |
+| `js/01-basis.js` | `MEAS_KATEGORIEN*`, `measKategorie()`, `MEAS_TYPE_ICONS`, `renderMeasTypeChooser()`, `raRegisterHakenHtml()` |
+| `js/05-daten-laden.js` | `meas_kategorien` mitgeladen |
+| `js/05a-rechte.js` | `renderMeasTypeChooser()` nach Login gerufen |
+| `js/09-projekte.js` | `ladeProjectMeasTypen()`, `renderProjectArtFilter()`, Filter in `renderProjectList()` |
+| `js/22-system-admin.js` | `renderSysKategorienListe()`/`saveSysKategorien` |
+| `js/37-kamin-aufnahme.js`, `js/66-dachfenster-aufnahme.js` | `…EinstellungenLabelBefuellen()`, `kamBestaetigt`/`dfaBestaetigt` |
+| `js/28,29,30,31,32,34,36,38,39,40-*-aufnahme.js` | je `xxxBestaetigt`-Set, Haken-Anzeige, Bestätigen bei "Weiter" |
+| `js/41-hilfe.js` | drei Texte als Funktion, `hilfeOeffnen()` wertet sie aus |
+| `pruefstaende/pruefstand-hilfe-v3-03.js` | an Funktions-`text` angepasst |
+| `index.html` | Einstellungslabels als Span, Kartenauswahl dynamisch, Systemadmin aufklappbar, neue Kategorien-Karte, Version 3.94 |
+| `css/01-basis.css` | `.ra-register-haken` |
+| `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Version 3.94 |
+
+### 159.9 Offene Punkte
+
+- Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
+  immer) - die Migration wurde über die Supabase-MCP-Werkzeuge direkt am
+  echten Projekt angewendet und die neue Spalte/Funktion verifiziert.
+- `MEAS_KATEGORIEN_STANDARD` ist ein fachlich begründeter, aber von Claude
+  gewählter Startwert (nicht vom Anwender bestätigt) - über die neue
+  Systemadmin-Karte sofort änderbar.
+- Anschlussblech und Rinne (Zuschnittliste) zeigen den Haken einer bereits
+  gespeicherten, vollständigen Aufnahme erst nach dem ersten Durchklicken
+  (siehe 159.3) - eine spätere Anpassung müsste dafür erst prüfen, wann genau
+  ihre Alt-Formularfelder befüllt sind.
+- Der Haken bleibt stehen, wenn ein bereits bestätigtes Register nachträglich
+  wieder geleert wird (siehe 159.3) - bewusste Grenze, wie bei der
+  Fortschrittsanzeige selbst (v3.91).
+
+## 160. REGIERAPPORT: HINTERLEGTE FUNKTION AUCH BEIM WECHSEL IN DER ZEILE — VERSION 3.94
+
+### 160.1 Anlass
+
+"Kleine Ergänzung, die hinterlegte Mitarbeiter Funktion muss im Regierapport
+automatisch zugeteilt werden wenn derjenige ausgewählt wird" - Fortsetzung
+von v3.16 (FB2, Abschnitt 26 dieser Datei): dort wurde die hinterlegte
+Funktion (`profiles.rate_id`) nur beim ANLEGEN einer neuen Arbeitsposition
+übernommen (`neueArbeitsposition()`), über den angemeldeten Benutzer selbst.
+Wurde in einer bestehenden Zeile nachträglich ein ANDERER Mitarbeiter
+gewählt, blieb die zuvor eingestellte Funktion unverändert stehen - genau
+das war die Lücke.
+
+### 160.2 Umsetzung
+
+Neue Funktion `profilFunktionVonName(name)` (js/06-rapport.js, direkt neben
+`profilFunktion(p)`): dieselbe Nachschau über `profiles.rate_id`, aber
+ausgehend vom Namen, wie er in einer Zeile steht, statt vom bereits
+geladenen Profilobjekt - Nachschlage-Grundlage ist `allProfiles`, dieselbe
+bereits geladene, RLS-gefilterte Mitarbeiterliste wie überall sonst in der
+App. Im `change`-Handler des Mitarbeiter-Auswahlfelds einer Zeile
+(`data-w-emp`) wird nach dem Setzen von `employee` sofort geprüft, ob der
+NEU gewählte Mitarbeiter eine hinterlegte Funktion hat; wenn ja, wird
+`rateName` der Zeile UND das sichtbare Auswahlfeld (`data-w-rate`) auf
+diese Funktion gesetzt. Hat er keine hinterlegte Funktion, bleibt die
+Zeile unverändert - es wird nichts geraten, genau wie beim bestehenden
+Verhalten in `neueArbeitsposition()`.
+
+### 160.3 Getestet
+
+`pruefstaende/pruefstand-rapport-v3-16.js`, Abschnitt A, um zwei Fälle
+ergänzt (A2b/A2c): Wechsel auf einen Mitarbeiter mit hinterlegter Funktion
+("SM FZ") übernimmt Funktion UND Stundenansatz in der Zeile; ein
+anschliessender Wechsel auf einen Mitarbeiter OHNE hinterlegte Funktion
+lässt die zuvor übernommene Funktion unverändert stehen. Datei komplett
+durchlaufen: 79/79, keine Regression gegenüber vorher.
+
+### 160.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/06-rapport.js` | `profilFunktionVonName()`, Funktion beim Mitarbeiterwechsel in der Zeile übernehmen |
+| `pruefstaende/pruefstand-rapport-v3-16.js` | zwei neue Prüfungen (A2b/A2c) |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.94"]` ergänzt |
+
+### 160.5 Offene Punkte
+
+- Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
+  immer) - reiner Client-Zustand, keine Datenbankänderung nötig.

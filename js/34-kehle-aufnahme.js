@@ -35,6 +35,9 @@ const KEA_REGISTER=[
 // der Registerzahl, nicht an einer festen Nummer.
 const KEA_KONTROLLE=KEA_REGISTER.length;
 let keaSchritt=1;
+// v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
+// Grenze dieser Anzeige.
+let keaBestaetigt=new Set();
 // true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
 // einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
 // ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
@@ -454,7 +457,7 @@ function keaRegisterHtml(){
   const marke=r.nr===KEA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===keaSchritt?" aktiv":""}" data-kea-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(keaBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function keaKopfInhalt(){
@@ -592,6 +595,7 @@ function keaVerdrahten(){
   if(t.id==="kea_zurueck"){keaSetzeSchritt(keaSchritt-1);return}
   if(t.id==="kea_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   keaBestaetigt.add(keaSchritt);
    if(keaSchritt>=KEA_REGISTER.length){keaAbschluss();return}
    keaSetzeSchritt(keaSchritt+1); return;
   }
@@ -675,6 +679,7 @@ function keaZusatzDaten(){
 function keaZuruecksetzen(){
  kehleA=keaLeer();
  keaSchritt=1;
+ keaBestaetigt=new Set();
  renderKehleAufnahme();
 }
 function keaFuellen(d){
@@ -704,5 +709,8 @@ function keaFuellen(d){
  })):[];
  kehleA=a;
  keaSchritt=1;
+ // v3.94: siehe dfaFuellen (js/66) fuer die Begruendung.
+ keaBestaetigt=keaPruefungen().some(x=>x.art==="fehler")
+  ?new Set():new Set(KEA_REGISTER.filter(r=>r.nr!==KEA_KONTROLLE).map(r=>r.nr));
  renderKehleAufnahme();
 }

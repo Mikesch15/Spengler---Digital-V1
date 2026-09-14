@@ -34,6 +34,9 @@ const EBA_REGISTER=[
 // der Registerzahl, nicht an einer festen Nummer.
 const EBA_KONTROLLE=EBA_REGISTER.length;
 let ebaSchritt=1;
+// v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
+// Grenze dieser Anzeige.
+let ebaBestaetigt=new Set();
 // true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
 // einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
 // ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
@@ -1087,7 +1090,7 @@ function ebaRegisterHtml(){
   const marke=r.nr===EBA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===ebaSchritt?" aktiv":""}" data-eba-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(ebaBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function ebaSchrittInhalt(){
@@ -1335,6 +1338,7 @@ function ebaVerdrahten(){
   if(t.id==="eba_zurueck"){if(ebaSchritt>1)ebaSetzeSchritt(ebaSchritt-1); return}
   if(t.id==="eba_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   ebaBestaetigt.add(ebaSchritt);
    if(ebaSchritt>=EBA_REGISTER.length)ebaAbschluss();
    else ebaSetzeSchritt(ebaSchritt+1);
    return;
@@ -1403,8 +1407,11 @@ function ebaAusData(d){
 // Nach dem Setzen wird neu gezeichnet - sonst zeigt das Register noch den
 // vorherigen Stand (showMeasTypeSection laeuft in openMeasurement VOR dem
 // Fuellen).
-function ebaZuruecksetzen(){ebA=ebaLeer(); ebaSchritt=1; ebaRinneListeFuer=undefined; ebPieces=ebA.stuecke; ebaVerdrahten(); renderEinlaufblechAufnahme()}
-function ebaFuellen(d){ebA=ebaAusData(d); ebaSchritt=1; ebaRinneListeFuer=undefined; ebPieces=ebA.stuecke; ebaVerdrahten(); renderEinlaufblechAufnahme()}
+function ebaZuruecksetzen(){ebA=ebaLeer(); ebaSchritt=1; ebaBestaetigt=new Set(); ebaRinneListeFuer=undefined; ebPieces=ebA.stuecke; ebaVerdrahten(); renderEinlaufblechAufnahme()}
+// v3.94: siehe dfaFuellen (js/66) fuer die Begruendung.
+function ebaFuellen(d){ebA=ebaAusData(d); ebaSchritt=1;
+ ebaBestaetigt=ebaPruefungen().some(x=>x.art==="fehler")?new Set():new Set(EBA_REGISTER.filter(r=>r.nr!==EBA_KONTROLLE).map(r=>r.nr));
+ ebaRinneListeFuer=undefined; ebPieces=ebA.stuecke; ebaVerdrahten(); renderEinlaufblechAufnahme()}
 
 // ---- Zusatzfelder für den Speicher-Payload ---------------------------------
 // js/16 schreibt weiterhin genau dieselben acht Felder wie bisher und hängt

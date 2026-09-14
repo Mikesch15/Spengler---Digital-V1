@@ -561,6 +561,12 @@ table.zu-vergleich td{white-space:nowrap}
 .ra-register-punkt{width:8px;height:8px;border-radius:50%;background:#d9822b;flex:0 0 auto}
 .ra-register-punkt.fehler{background:#b42318}
 .ra-register-knopf.aktiv .ra-register-punkt{box-shadow:0 0 0 2px #fff}
+/* v3.94: Haken an einem Register, das schon einmal per "Weiter" verlassen
+   wurde bzw. (bei einer geladenen Aufnahme) beim Oeffnen fehlerfrei war -
+   siehe raFortschrittHtml()/Kommentar in js/01-basis.js fuer die bewusste
+   Grenze dieser Anzeige. */
+.ra-register-haken{font-size:12px;font-weight:900;color:#1a7f37;flex:0 0 auto}
+.ra-register-knopf.aktiv .ra-register-haken{color:#fff}
 /* Fortschrittsbalken ueber der Registerleiste (v3.91, js/01-basis.js
    raFortschrittHtml) - zeigt nur die Position im Ablauf, siehe Kommentar dort. */
 .ra-fortschritt{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;

@@ -48,6 +48,9 @@ const FPA_REGISTER=[
 // der Registerzahl, nicht an einer festen Nummer.
 const FPA_KONTROLLE=FPA_REGISTER.length;
 let fpaSchritt=1;
+// v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
+// Grenze dieser Anzeige.
+let fpaBestaetigt=new Set();
 // true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
 // einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
 // ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
@@ -535,7 +538,7 @@ function fpaRegisterHtml(){
   const marke=r.nr===FPA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===fpaSchritt?" aktiv":""}" data-fpa-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(fpaBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function fpaSchrittInhalt(){
@@ -693,6 +696,7 @@ function fpaVerdrahten(){
   if(t.id==="fpa_zurueck"){if(fpaSchritt>1)fpaSetzeSchritt(fpaSchritt-1);return}
   if(t.id==="fpa_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   fpaBestaetigt.add(fpaSchritt);
    if(fpaSchritt<FPA_REGISTER.length)fpaSetzeSchritt(fpaSchritt+1);
    else fpaAbschluss();
    return;
@@ -789,12 +793,15 @@ function fpaAusData(d){
  return a;
 }
 function fpaZuruecksetzen(){
- fpA=fpaLeer(); fpaSchritt=1;
+ fpA=fpaLeer(); fpaSchritt=1; fpaBestaetigt=new Set();
  fpSchenkel=fpA.schenkel; fpSegmente=fpA.segmente;
  fpaVerdrahten(); renderFreiesProfilAufnahme();
 }
 function fpaFuellen(d){
  fpA=fpaAusData(d); fpaSchritt=1;
+ // v3.94: siehe dfaFuellen (js/66) fuer die Begruendung.
+ fpaBestaetigt=fpaPruefungen().some(x=>x.art==="fehler")
+  ?new Set():new Set(FPA_REGISTER.filter(r=>r.nr!==FPA_KONTROLLE).map(r=>r.nr));
  fpSchenkel=fpA.schenkel; fpSegmente=fpA.segmente;
  fpaVerdrahten(); renderFreiesProfilAufnahme();
 }

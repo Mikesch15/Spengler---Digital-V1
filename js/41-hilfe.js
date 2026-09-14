@@ -809,14 +809,19 @@ tatsächlich rechnet.</p>`},
 <p>Die letzte Schar ist die <b>Restbreite</b> und deshalb meist schmaler als
 die übrigen. Sie ist als solche gekennzeichnet.</p>`},
 
-"kam-masse":{titel:"Kaminmasse",text:`
-<p>Alle Masse sind der Reihe nach von vorne (A) nach hinten (Q) durchnummeriert -
-die aufklappbare Übersicht am Anfang dieses Registers zeigt eine Beispielskizze
-mit allen Buchstaben.</p>
-<p>Die Masse längs des Dachs, von vorne nach hinten. <b>E</b> und <b>G</b>
-überlappen sich im Knick – die Kaminlänge ist deshalb E + G minus der
-Überlappung (F).</p>
-<p>Die beiden <b>Winkel</b> (D vorne, M hinten) sind der Innenwinkel zwischen
+// v3.94: text als Funktion statt fester Zeichenkette - die genannten
+// Buchstaben kommen live aus KAM_MASSLISTE (kamaBuchstabe), siehe
+// hilfeOeffnen() fuer die Begruendung.
+"kam-masse":{titel:"Kaminmasse",text:()=>`
+<p>Alle Masse sind der Reihe nach von vorne (${kamaBuchstabe("a")}) nach hinten
+(${kamaBuchstabe("breiteHinten")}) durchnummeriert - die aufklappbare Übersicht
+am Anfang dieses Registers zeigt eine Beispielskizze mit allen Buchstaben.</p>
+<p>Die Masse längs des Dachs, von vorne nach hinten. <b>${kamaBuchstabe("b")}</b>
+und <b>${kamaBuchstabe("c")}</b> überlappen sich im Knick – die Kaminlänge ist
+deshalb ${kamaBuchstabe("b")} + ${kamaBuchstabe("c")} minus der Überlappung
+(${kamaBuchstabe("ueberlappung")}).</p>
+<p>Die beiden <b>Winkel</b> (${kamaBuchstabe("winkelVorne")} vorne,
+${kamaBuchstabe("winkelHinten")} hinten) sind der Innenwinkel zwischen
 Dachfläche und Kaminwand: vorne stumpf, hinten spitz. Auf einem 25°-Dach mit
 lotrechtem Kamin also 115° und 65°; zusammen ergeben sie dann 180°.</p>`},
 
@@ -832,37 +837,54 @@ hinten.</p>
 Lattenabstand gerechnet und aufgerundet – ein abgerundeter Wert würde die
 Länge nicht decken.</p>`},
 
-"dfa-masse":{titel:"Fenstermasse",text:`
-<p>Alle Masse sind der Reihe nach von vorne (A) nach hinten (V) durchnummeriert -
-die aufklappbare Übersicht am Anfang dieses Registers zeigt eine Beispielskizze
-mit allen Buchstaben.</p>
+// v3.94: text als Funktion statt fester Zeichenkette - die genannten
+// Buchstaben kommen live aus DFA_MASSLISTE (dfaBuchstabe), siehe
+// hilfeOeffnen() fuer die Begruendung. Insbesondere "hinter R"/"vor C"
+// verweisen auf einen ANDEREN Buchstaben als den des eigenen Absatzes - vor
+// v3.94 stand hier "R" fest getippt, obwohl genau dieser Buchstabe durch die
+// Entfernung von Mass R in v3.90 einem ANDEREN Mass zugewiesen wurde (siehe
+// CLAUDE.md 155). Zufällig noch richtig, aber genau die Gefahr, die diese
+// Umstellung beseitigt.
+"dfa-masse":{titel:"Fenstermasse",text:()=>`
+<p>Alle Masse sind der Reihe nach von vorne (${dfaBuchstabe("anreiff")}) nach
+hinten (${dfaBuchstabe("breiteHinten")}) durchnummeriert - die aufklappbare
+Übersicht am Anfang dieses Registers zeigt eine Beispielskizze mit allen
+Buchstaben.</p>
 <p>Die Masse längs des Dachs, von vorne nach hinten – genau gleich vermasst
-wie bei der Kamineinfassung. <b>G</b> und <b>I</b> überlappen sich im Knick –
-die Länge des Seitenteils ist deshalb G + I minus der Überlappung (H).</p>
-<p>Vorne ist die Aufbordung <b>niedriger</b> (D · Aufbordungshöhe vorne) und hat
-oben einen Saum (Rückschlag); hinten ist sie <b>höher</b> (Q · Aufbordungshöhe
-hinten) und bewusst <b>trapezförmig</b> – Breite oben (M) ist kleiner als Breite
-unten (N). Die <b>F · Aufbordungshöhe Seite</b> gilt für die ganze Seite und
-wird nicht links/rechts getrennt erfasst.</p>
-<p>An der oberen Ecke sitzt ein kleiner gestrichelter Strich – Abdeckkappe oben (O)
-ist der Abstand ab der Ecke, Abdeckkappe nach unten (P) seine Länge.</p>
-<p>Ganz hinten, hinter R, sitzt ein kleiner <b>90°-Aufbug (S)</b> – genau wie bei
-der Kamineinfassung – mit einem eigenen 180°-Umschlag (T) an seiner Spitze.
-Ganz vorne, vor C, sitzt spiegelbildlich der <b>Anreiff (A)</b>, ebenfalls mit
-eigenem 180°-Umschlag (B).</p>
+wie bei der Kamineinfassung. <b>${dfaBuchstabe("b")}</b> und
+<b>${dfaBuchstabe("c")}</b> überlappen sich im Knick – die Länge des
+Seitenteils ist deshalb ${dfaBuchstabe("b")} + ${dfaBuchstabe("c")} minus der
+Überlappung (${dfaBuchstabe("ueberlappung")}).</p>
+<p>Vorne ist die Aufbordung <b>niedriger</b> (${dfaMassLabel("saumVorne")}) und
+hat oben einen Saum (Rückschlag); hinten ist sie <b>höher</b>
+(${dfaMassLabel("aufHinten")}) und bewusst <b>trapezförmig</b> – Breite oben
+(${dfaBuchstabe("breiteOben")}) ist kleiner als Breite unten
+(${dfaBuchstabe("breiteUnten")}). Die <b>${dfaMassLabel("aufVorne")}</b> gilt
+für die ganze Seite und wird nicht links/rechts getrennt erfasst.</p>
+<p>An der oberen Ecke sitzt ein kleiner gestrichelter Strich –
+${dfaBezeichnung("randAbstand")} (${dfaBuchstabe("randAbstand")}) ist der
+Abstand ab der Ecke, ${dfaBezeichnung("randStrich")} (${dfaBuchstabe("randStrich")})
+seine Länge.</p>
+<p>Ganz hinten, hinter ${dfaBuchstabe("d")}, sitzt ein kleiner
+<b>90°-Aufbug (${dfaBuchstabe("e")})</b> – genau wie bei der Kamineinfassung –
+mit einem eigenen 180°-Umschlag (${dfaBuchstabe("eUmschlag")}) an seiner
+Spitze. Ganz vorne, vor ${dfaBuchstabe("a")}, sitzt spiegelbildlich der
+<b>Anreiff (${dfaBuchstabe("anreiff")})</b>, ebenfalls mit eigenem
+180°-Umschlag (${dfaBuchstabe("anreiffUmschlag")}).</p>
 <p>Bei den <b>seitlichen Massen</b> kommen – genau wie bei der Kamineinfassung –
-<b>J</b> (seitlich bis Deckmaterial) und <b>K</b> (seitlich unter Deckmaterial)
-dazu; sie gehen in die Abwicklung der Seitenteile ein, haben aber keinen
-Vorgabewert.</p>`},
+<b>${dfaBuchstabe("f")}</b> (seitlich bis Deckmaterial) und
+<b>${dfaBuchstabe("g")}</b> (seitlich unter Deckmaterial) dazu; sie gehen in
+die Abwicklung der Seitenteile ein, haben aber keinen Vorgabewert.</p>`},
 
-"dfa-umschlaege":{titel:"Umschläge",text:`
+"dfa-umschlaege":{titel:"Umschläge",text:()=>`
 <p>Die Zugaben, die in die Abwicklung der acht Teile eingehen. Vorbelegt sind
 die Werte aus den Einstellungen; hier gelten sie nur für diese
 Massaufnahme.</p>
-<p><b>Breite vorne/hinten (U/V)</b> sind vom Anwender erfasste Fenstermasse – die
-tatsächliche Zuschnittlänge von Vorderteil und Hinterteil kommt zusätzlich
-dazu, sie reicht seitlich bis zu den Seitenteilen (2× Umschlag Seite (L) + J
-links/rechts + K links/rechts dazu).</p>`},
+<p><b>Breite vorne/hinten (${dfaBuchstabe("breiteVorne")}/${dfaBuchstabe("breiteHinten")})</b>
+sind vom Anwender erfasste Fenstermasse – die tatsächliche Zuschnittlänge von
+Vorderteil und Hinterteil kommt zusätzlich dazu, sie reicht seitlich bis zu
+den Seitenteilen (2× Umschlag Seite (${dfaBuchstabe("umschlagSeite")}) +
+${dfaBuchstabe("f")} links/rechts + ${dfaBuchstabe("g")} links/rechts dazu).</p>`},
 
 "dfa-stueckliste":{titel:"Stückliste",text:`
 <p>Acht Zuschnitte: Vorderteil, Hinterteil und je DREI Seitenteile (vorne,
@@ -1401,6 +1423,12 @@ deshalb nicht zweimal einlagern.</p>`},
 gemeinsam. So lässt sich eine noch nicht fertige Funktion ausliefern, ohne
 dass sie bei Mitarbeitern auftaucht.</p>`},
 
+"sysadmin-kategorien":{titel:"Massaufnahme-Arten zuordnen",text:`
+<p>Legt für <b>alle Firmen gemeinsam</b> fest, unter welcher Kategorie
+(Steildach, Flachdach, Allgemein) eine Massaufnahme-Art in der Auswahl
+erscheint, wenn jemand eine neue Massaufnahme anlegt. Rein sortierend – es
+wird dadurch keine Art gesperrt oder verändert.</p>`},
+
 "anleitung":{titel:"Anleitung",text:`
 <p>Die vollständige Bedienungsanleitung als PDF – alle Bereiche der App mit
 Bildschirmfotos, Begriffserklärungen und einem Kapitel dazu, was ohne
@@ -1451,7 +1479,13 @@ function hilfeOeffnen(key){
  const modal=document.getElementById("hilfeModal");
  if(!t||!modal)return false;
  document.getElementById("hilfeTitel").textContent=t.titel;
- document.getElementById("hilfeText").innerHTML=t.text;
+ // v3.94: text ist bei Kamin/Dachfenster (kam-*/dfa-*) eine Funktion statt
+ // einer festen Zeichenkette, damit die genannten Buchstaben live aus
+ // KAM_MASSLISTE/DFA_MASSLISTE kommen (kamaBuchstabe()/dfaBuchstabe()) statt
+ // hier erneut getippt zu sein - siehe CLAUDE.md 157.1 fuer die R/U-Verwechs-
+ // lung, die genau das vermeiden soll. Wird erst BEIM OEFFNEN ausgewertet,
+ // nicht beim Laden dieser Datei - js/66 (dfaBuchstabe) laedt NACH js/41.
+ document.getElementById("hilfeText").innerHTML=typeof t.text==="function"?t.text():t.text;
  modal.hidden=false;
  const zu=document.getElementById("hilfeSchliessen");
  if(zu)zu.focus();

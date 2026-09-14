@@ -136,6 +136,34 @@ const MESS=[
  p(z.emp==="Mike Ledermann"&&z.initialen==="ML","die Zeile zeigt seine Initialen",z);
  p(z.rate==="Polier"&&/118/.test(z.ansatzZelle),"und seinen Ansatz",z);
 
+ // A2b (v3.94): Wird in der Zeile ein ANDERER Mitarbeiter mit eigener
+ // hinterlegter Funktion gewaehlt, uebernimmt die Zeile automatisch dessen
+ // Funktion - nicht nur beim Anlegen, auch beim spaeteren Wechsel. Direkt per
+ // evaluate+dispatchEvent gesetzt (wie an anderen Stellen dieser Datei),
+ // nicht ueber waehle()/selectOption - das Element ist zu diesem Zeitpunkt
+ // nicht "actionable" im Sinn von Playwright.
+ z=await page.evaluate(()=>{
+  const t=allProfiles.find(p=>p.id==="u3"); if(t)t.rate_id=2; // "SM FZ"
+  const s=document.querySelector('[data-w-emp="0"]');
+  s.value="Test Test"; s.dispatchEvent(new Event("change",{bubbles:true}));
+  return {
+   rateWert:document.querySelector('[data-w-rate="0"]').value,
+   rateName:works[0].rateName,
+   ansatzZelle:document.querySelector('[data-work-rate-cell="0"]').textContent
+  };
+ });
+ p(z.rateWert==="SM FZ"&&z.rateName==="SM FZ","beim Wechsel auf einen anderen Mitarbeiter wird dessen hinterlegte Funktion uebernommen",z);
+ p(/126/.test(z.ansatzZelle),"und der Ansatz wird mitgezogen",z);
+
+ // A2c: Wechsel auf einen Mitarbeiter OHNE hinterlegte Funktion aendert die
+ // Funktion NICHT - es wird nichts geraten, die bisherige Auswahl bleibt.
+ z=await page.evaluate(()=>{
+  const s=document.querySelector('[data-w-emp="0"]');
+  s.value="Anna Bucher"; s.dispatchEvent(new Event("change",{bubbles:true}));
+  return {rateWert:document.querySelector('[data-w-rate="0"]').value,rateName:works[0].rateName};
+ });
+ p(z.rateWert==="SM FZ"&&z.rateName==="SM FZ","ohne hinterlegte Funktion bleibt die bisherige Auswahl stehen",z);
+
  // A3: Ohne hinterlegte Funktion bleibt es beim bisherigen Verhalten.
  await anmelden(page,{rateIds:RATE_IDS,meineFunktion:null,defaultRate:"Spe1"});
  z=await page.evaluate(()=>neueArbeitsposition());

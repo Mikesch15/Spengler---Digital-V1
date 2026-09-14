@@ -27,6 +27,9 @@ const LUKA_REGISTER=[
 // Registerzahl, nicht an einer festen Nummer.
 const LUKA_KONTROLLE=LUKA_REGISTER.length;
 let lukaSchritt=1;
+// v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
+// Grenze dieser Anzeige.
+let lukaBestaetigt=new Set();
 // true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
 // einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
 // ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
@@ -463,7 +466,7 @@ function lukaRegisterHtml(){
   const marke=r.nr===LUKA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===lukaSchritt?" aktiv":""}" data-luka-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(lukaBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function lukaKopfInhalt(){
@@ -565,6 +568,7 @@ function lukaVerdrahten(){
   if(t.id==="luka_zurueck"){lukaSetzeSchritt(lukaSchritt-1);return}
   if(t.id==="luka_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   lukaBestaetigt.add(lukaSchritt);
    if(lukaSchritt>=LUKA_REGISTER.length)lukaAbschluss();
    else lukaSetzeSchritt(lukaSchritt+1);
    return;
@@ -615,6 +619,7 @@ function lukaZusatzDaten(){
 function lukaZuruecksetzen(){
  lukA=lukaLeer();
  lukaSchritt=1;
+ lukaBestaetigt=new Set();
  renderLukarneAufnahme();
 }
 function lukaFuellen(d){
@@ -639,5 +644,8 @@ function lukaFuellen(d){
  a.rollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  lukA=a;
  lukaSchritt=1;
+ // v3.94: siehe dfaFuellen (js/66) fuer die Begruendung.
+ lukaBestaetigt=lukaPruefungen().some(x=>x.art==="fehler")
+  ?new Set():new Set(LUKA_REGISTER.filter(r=>r.nr!==LUKA_KONTROLLE).map(r=>r.nr));
  renderLukarneAufnahme();
 }

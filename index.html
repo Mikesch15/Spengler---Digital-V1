@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.93</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.94</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -132,21 +132,7 @@
 <div class="card">
 <h2>📐 Neue Massaufnahme <button type="button" class="hilfe-knopf no-print" data-hilfe="meas-arten">i</button></h2>
 <div class="info">Welche Funktion?</div>
-<div class="start-nav">
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="skizze_foto"><span class="start-nav-icon">📷</span><span>Skizze/Foto</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="einlaufblech_gerade"><span class="start-nav-icon">📐</span><span>Einlaufblech gerade</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="rinne_halbrund"><span class="start-nav-icon">🏠</span><span>Dachrinne</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="einlaufblech_konisch"><span class="start-nav-icon">📐</span><span>Einlaufblech konisch</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="freies_profil"><span class="start-nav-icon">📐</span><span>Freies Profil</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="mauerabdeckung"><span class="start-nav-icon">🧱</span><span>Mauerabdeckung</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="lukarne"><span class="start-nav-icon">🏚️</span><span>Lukarne Seitenverkleidung</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="anschlussblech"><span class="start-nav-icon">📐</span><span>Ort- und Seitenbleche</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="einfassung_rund"><span class="start-nav-icon">⭕</span><span>Einfassung Rund</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="kamineinfassung"><span class="start-nav-icon">🧱</span><span>Kamineinfassung</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="dachfenstereinfassung"><span class="start-nav-icon">🪟</span><span>Dachfenstereinfassung</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="kehle"><span class="start-nav-icon">📏</span><span>Kehle</span></button>
-<button type="button" class="start-nav-btn blue" data-choose-meas-type="rinne"><span class="start-nav-icon">🚰</span><span>Rinne</span></button>
-</div>
+<div id="measTypeChooserBody"></div>
 <div class="bar" style="margin-top:14px;justify-content:center">
 <button type="button" id="chooseFromVorlage" class="blue" hidden>📄 Aus Vorlage</button>
 <button id="cancelMeasTypeChooser" class="gray">Abbrechen</button>
@@ -308,6 +294,10 @@
      mehr als ein Status vorkommt oder ein Filter aktiv ist - siehe
      renderProjectStatusFilter() in js/09-projekte.js. -->
 <div id="projectStatusFilter" class="status-filter" hidden></div>
+<!-- Art-Filter (v3.94): erscheint nur, wenn in der aktuellen Ansicht mehr
+     als eine Massaufnahme-Art vorkommt - siehe renderProjectArtFilter()
+     in js/09-projekte.js. -->
+<div id="projectArtFilter" class="status-filter" hidden></div>
 <div id="projectList"></div>
 <div class="bar"><button id="closeProjects" class="green">✓ Fertig</button><button id="startFromProjects" class="gray">🏠 Start</button></div>
 </div>
@@ -722,8 +712,13 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div id="systemAdminModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>⚙️ Spengler-DIGITAL Administration <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin">i</button></h2>
+<h2>⚙️ Spengler-DIGITAL Administration</h2>
 <div class="info">Firmenverwaltung für den Betreiber von Spengler-DIGITAL. Unabhängig von der normalen Firmenadmin-Rolle.</div>
+</div>
+
+<div class="settings-section open" data-section="sysadmin-firmen">
+<div class="settings-section-head" data-toggle-section="sysadmin-firmen"><h2>🏢 Firmenverwaltung <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div class="bar" style="margin-bottom:10px"><button type="button" id="sysAdminOpenRegister" class="green">🏢 Neue Firma registrieren</button></div>
 <div class="grid" style="margin-bottom:10px">
 <div class="wide"><label>Suche (Firmenname)</label><input id="sysAdminSearchInput" placeholder="Firmenname…"></div>
@@ -741,9 +736,11 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div id="sysAdminListSuccess" class="small" style="color:var(--green)" hidden></div>
 <div id="systemAdminCompanyList"></div>
 </div>
+</div>
 
-<div class="card">
-<h2>💬 Feedback aller Firmen <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin-feedback">i</button></h2>
+<div class="settings-section" data-section="sysadmin-feedback">
+<div class="settings-section-head" data-toggle-section="sysadmin-feedback"><h2>💬 Feedback aller Firmen <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin-feedback">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div class="info">Zeigt das Feedback <b>aller</b> Firmen, inklusive Firma und Absender. Sichtbar nur für System-Administratoren; die Prüfung läuft serverseitig. Löschen ist hier bewusst nicht möglich – das Feedback gehört der jeweiligen Firma.</div>
 <div class="bar feedback-sort" id="sysFeedbackSortBar" style="margin-top:9px" hidden>
 <button type="button" class="gray active" data-feedback-sort="offen">Offen zuerst</button>
@@ -765,21 +762,36 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div class="small" id="sysFeedbackCountInfo" style="color:var(--muted);margin-top:6px"></div>
 <div id="sysFeedbackList"></div>
 </div>
+</div>
 
-<div class="card">
-<h2>🧪 Module in Entwicklung <button type="button" class="hilfe-knopf no-print" data-hilfe="module-test">i</button></h2>
+<div class="settings-section" data-section="sysadmin-modultest">
+<div class="settings-section-head" data-toggle-section="sysadmin-modultest"><h2>🧪 Module in Entwicklung <button type="button" class="hilfe-knopf no-print" data-hilfe="module-test">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div class="info">Gilt für <b>alle Firmen</b>. Angehakte Module sind nur für Administratoren sichtbar – alle anderen sehen den Knopf gar nicht erst. Gedacht für Funktionen, die noch nicht fertig sind.</div>
 <div id="moduleTestListe"></div>
 <div id="moduleTestHinweis" class="small" style="color:var(--green)" hidden></div>
 <div class="bar"><button id="saveModuleTest" class="green">💾 Speichern</button></div>
 </div>
+</div>
 
-<div class="card">
-<h2>🗑 Verwaiste Dateien im Speicher <button type="button" class="hilfe-knopf no-print" data-hilfe="verwaiste-dateien">i</button></h2>
+<div class="settings-section" data-section="sysadmin-kategorien">
+<div class="settings-section-head" data-toggle-section="sysadmin-kategorien"><h2>🏔️ Massaufnahme-Arten zuordnen <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin-kategorien">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Gilt für <b>alle Firmen</b>. Bestimmt, unter welcher Kategorie (Steildach, Flachdach, Allgemein) eine Massaufnahme-Art beim Anlegen einer neuen Massaufnahme erscheint.</div>
+<div id="sysKategorienListe"></div>
+<div id="sysKategorienHinweis" class="small" style="color:var(--green)" hidden></div>
+<div class="bar"><button id="saveSysKategorien" class="green">💾 Speichern</button></div>
+</div>
+</div>
+
+<div class="settings-section" data-section="sysadmin-storage">
+<div class="settings-section-head" data-toggle-section="sysadmin-storage"><h2>🗑 Verwaiste Dateien im Speicher <button type="button" class="hilfe-knopf no-print" data-hilfe="verwaiste-dateien">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
 <div class="info">Dateien, auf die <b>keine Massaufnahme, kein Ausmass, kein Projekt und keine Firma</b> mehr zeigt – meist ersetzte Firmenlogos oder Reste aus der Zeit vor der Pfadumstellung. Sie sind für niemanden mehr erreichbar, belegen aber Speicher. Es wird nichts automatisch gelöscht.</div>
 <div class="bar"><button type="button" id="sysStorageLaden" class="gray">🔍 Verwaiste Dateien suchen</button></div>
 <div id="sysStorageListe"></div>
 <div id="sysStorageHinweis" class="small" hidden></div>
+</div>
 </div>
 
 <div class="card">
@@ -2009,13 +2021,13 @@ Gehrung: gilt an jeder Ecke (Segment mit Winkel ≠ 0), zusätzlich zu Boden (an
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="kamsDeckung"></select></div>
 <div><label>Lattenabstand Bleilappen (mm)</label><input id="kamsLattenabstand" type="number" step="1"></div>
-<div><label>B &middot; Umschlag vorne (mm)</label><input id="kamsUmschlagVorne" type="number" step="1"></div>
-<div><label>N &middot; Umschlag hinten (mm)</label><input id="kamsUmschlagHinten" type="number" step="1"></div>
-<div><label>J &middot; Umschlag seitlich (mm)</label><input id="kamsUmschlagSeite" type="number" step="1"></div>
-<div><label>F &middot; &Uuml;berlappung der Seitenteile (mm)</label><input id="kamsUeberlappung" type="number" step="1"></div>
-<div><label>A &middot; vorne auf Deckmaterial (mm)</label><input id="kamsMassVorne" type="number" step="1"></div>
-<div><label>K &middot; hinten unter Deckmaterial (mm)</label><input id="kamsMassHinten" type="number" step="1"></div>
-<div><label>O &middot; 90&deg;-Aufbug hinten (mm)</label><input id="kamsAufbugHinten" type="number" step="1"></div>
+<div><label><span id="kamsUmschlagVorne_lbl"></span> (mm)</label><input id="kamsUmschlagVorne" type="number" step="1"></div>
+<div><label><span id="kamsUmschlagHinten_lbl"></span> (mm)</label><input id="kamsUmschlagHinten" type="number" step="1"></div>
+<div><label><span id="kamsUmschlagSeite_lbl"></span> (mm)</label><input id="kamsUmschlagSeite" type="number" step="1"></div>
+<div><label><span id="kamsUeberlappung_lbl"></span> (mm)</label><input id="kamsUeberlappung" type="number" step="1"></div>
+<div><label><span id="kamsMassVorne_lbl"></span> (mm)</label><input id="kamsMassVorne" type="number" step="1"></div>
+<div><label><span id="kamsMassHinten_lbl"></span> (mm)</label><input id="kamsMassHinten" type="number" step="1"></div>
+<div><label><span id="kamsAufbugHinten_lbl"></span> (mm)</label><input id="kamsAufbugHinten" type="number" step="1"></div>
 </div>
 <div class="bar" style="margin-bottom:14px">
 <button id="saveKaminSettings" class="green">💾 Werte speichern</button>
@@ -2030,22 +2042,22 @@ Gehrung: gilt an jeder Ecke (Segment mit Winkel ≠ 0), zusätzlich zu Boden (an
 <div class="grid" style="margin-bottom:10px">
 <div><label>Standard-Deckmaterial</label><select id="dfasDeckung"></select></div>
 <div><label>Lattenabstand Bleilappen (mm)</label><input id="dfasLattenabstand" type="number" step="1"></div>
-<div><label>E &middot; Winkel auf Fensterrahmen (mm)</label><input id="dfasUmschlagVorne" type="number" step="1"></div>
-<div><label>L &middot; Umschlag seitlich (mm)</label><input id="dfasUmschlagSeite" type="number" step="1"></div>
-<div><label>H &middot; &Uuml;berlappung der Seitenteile (mm)</label><input id="dfasUeberlappung" type="number" step="1"></div>
-<div><label>C &middot; vorne auf Deckmaterial bis Vorderkant Dachfenster (mm)</label><input id="dfasMassVorne" type="number" step="1"></div>
-<div><label>R &middot; Hinterkant Dachfenster bis Hinterkant Einfassung (mm)</label><input id="dfasMassHinten" type="number" step="1"></div>
-<div><label>D &middot; Aufbordungsh&ouml;he vorne, Vorgabe (mm)</label><input id="dfasSaumVorne" type="number" step="1"></div>
-<div><label>M &middot; Breite oben, Aufbordung hinten (mm)</label><input id="dfasBreiteOben" type="number" step="1"></div>
-<div><label>N &middot; Breite unten, Aufbordung hinten (mm)</label><input id="dfasBreiteUnten" type="number" step="1"></div>
-<div><label>O &middot; Abdeckkappe oben (mm)</label><input id="dfasRandAbstand" type="number" step="1"></div>
-<div><label>P &middot; Abdeckkappe nach unten (mm)</label><input id="dfasRandStrich" type="number" step="1"></div>
-<div><label>S &middot; 90&deg;-Aufbug hinten, hinter R (mm)</label><input id="dfasE" type="number" step="1"></div>
-<div><label>T &middot; Umschlag am Aufbug hinten, 180&deg; (mm)</label><input id="dfasEUmschlag" type="number" step="1"></div>
-<div><label>A &middot; Anreiff vorne, vor C (mm)</label><input id="dfasAnreiff" type="number" step="1"></div>
-<div><label>B &middot; Umschlag am Anreiff vorne, 180&deg; (mm)</label><input id="dfasAnreiffUmschlag" type="number" step="1"></div>
-<div><label>F &middot; Aufbordungsh&ouml;he Seite, Vorgabe (mm)</label><input id="dfasAufVorne" type="number" step="1"></div>
-<div><label>Q &middot; Aufbordungsh&ouml;he hinten, Vorgabe (mm)</label><input id="dfasAufHinten" type="number" step="1"></div>
+<div><label><span id="dfasUmschlagVorne_lbl"></span> (mm)</label><input id="dfasUmschlagVorne" type="number" step="1"></div>
+<div><label><span id="dfasUmschlagSeite_lbl"></span> (mm)</label><input id="dfasUmschlagSeite" type="number" step="1"></div>
+<div><label><span id="dfasUeberlappung_lbl"></span> (mm)</label><input id="dfasUeberlappung" type="number" step="1"></div>
+<div><label><span id="dfasMassVorne_lbl"></span> (mm)</label><input id="dfasMassVorne" type="number" step="1"></div>
+<div><label><span id="dfasMassHinten_lbl"></span> (mm)</label><input id="dfasMassHinten" type="number" step="1"></div>
+<div><label><span id="dfasSaumVorne_lbl"></span>, Vorgabe (mm)</label><input id="dfasSaumVorne" type="number" step="1"></div>
+<div><label><span id="dfasBreiteOben_lbl"></span> (mm)</label><input id="dfasBreiteOben" type="number" step="1"></div>
+<div><label><span id="dfasBreiteUnten_lbl"></span> (mm)</label><input id="dfasBreiteUnten" type="number" step="1"></div>
+<div><label><span id="dfasRandAbstand_lbl"></span> (mm)</label><input id="dfasRandAbstand" type="number" step="1"></div>
+<div><label><span id="dfasRandStrich_lbl"></span> (mm)</label><input id="dfasRandStrich" type="number" step="1"></div>
+<div><label><span id="dfasE_lbl"></span>, hinter <span id="dfasE_ref"></span> (mm)</label><input id="dfasE" type="number" step="1"></div>
+<div><label><span id="dfasEUmschlag_lbl"></span> (mm)</label><input id="dfasEUmschlag" type="number" step="1"></div>
+<div><label><span id="dfasAnreiff_lbl"></span>, vor <span id="dfasAnreiff_ref"></span> (mm)</label><input id="dfasAnreiff" type="number" step="1"></div>
+<div><label><span id="dfasAnreiffUmschlag_lbl"></span> (mm)</label><input id="dfasAnreiffUmschlag" type="number" step="1"></div>
+<div><label><span id="dfasAufVorne_lbl"></span>, Vorgabe (mm)</label><input id="dfasAufVorne" type="number" step="1"></div>
+<div><label><span id="dfasAufHinten_lbl"></span>, Vorgabe (mm)</label><input id="dfasAufHinten" type="number" step="1"></div>
 </div>
 <div class="bar" style="margin-bottom:14px">
 <button id="saveDfaSettings" class="green">💾 Werte speichern</button>

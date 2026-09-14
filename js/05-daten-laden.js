@@ -12,7 +12,8 @@ async function loadAllData(){
   sb.from("measurement_materials").select("*").order("name"),
   // "Module in Entwicklung" ist seit v2.67 eine Betreiber-Einstellung
   // (eine Zeile fuer das ganze System), nicht mehr eine je Firma.
-  sb.from("system_settings").select("module_test").maybeSingle(),
+  // meas_kategorien (v3.94) im selben Zug mitgeladen - gleiches Muster.
+  sb.from("system_settings").select("module_test,meas_kategorien").maybeSingle(),
   // Das Restsuecke-Lager (v3.04). RLS grenzt auf die eigene Firma ein,
   // der Client filtert bewusst nicht selbst nach company_id.
   sb.from("reststuecke").select("*").eq("verbraucht",false).order("laenge_mm",{ascending:false}),
@@ -104,6 +105,7 @@ async function loadAllData(){
  // PostgREST lehnt ein UPDATE ohne WHERE-Bedingung ab.
  appSettingsId=(geladen.appSettings&&geladen.appSettings.id!=null)?geladen.appSettings.id:null;
  moduleImTest=(sysRes&&sysRes.data&&sysRes.data.module_test)||{};
+ measKategorien=(sysRes&&sysRes.data&&sysRes.data.meas_kategorien)||{};
  blitzschutzMaterials=geladen.bz||[];
  rinneFittingTypes=geladen.rinne||[];
  measurementMaterials=geladen.measMaterials||[];

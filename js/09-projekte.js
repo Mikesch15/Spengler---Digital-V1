@@ -186,6 +186,49 @@ function renderProjectStatusFilter(list){
  const knopf=(wert,text)=>`<button type="button" data-project-status-filter="${wert}"${projectStatusFilter===wert?' class="aktiv"':""}>${esc(text)}</button>`;
  box.innerHTML=knopf("alle","Alle")+PROJEKT_STATUS.map(s=>knopf(s.wert,s.icon+" "+s.label)).join("");
 }
+// Art-Filter (v3.94): welche Massaufnahme-Art(en) ein Projekt hat, steht
+// anders als der Status NICHT schon in allProjects - dafuer eine eigene,
+// EINMALIGE Abfrage (project_id, type), die dann wie allProjects nur noch
+// im Speicher gefiltert wird. null = noch nicht geladen; wird beim ersten
+// Anzeigen der Projektliste angestossen (siehe unten) und bleibt fuer die
+// Dauer der Sitzung stehen - eine zwischenzeitlich neu erfasste Massaufnahme
+// taucht darin erst nach einem Neuladen der Seite auf, genau wie allProjects
+// selbst zwischen zwei Ladevorgaengen nicht "live" ist.
+let projectMeasTypen=null;
+let projectMeasTypenLaedt=false;
+async function ladeProjectMeasTypen(){
+ if(projectMeasTypen||projectMeasTypenLaedt)return;
+ projectMeasTypenLaedt=true;
+ try{
+  const {data,error}=await sb.from("measurements").select("project_id,type");
+  if(error)throw error;
+  const map=new Map();
+  (data||[]).forEach(m=>{
+   if(!map.has(m.project_id))map.set(m.project_id,new Set());
+   map.get(m.project_id).add(m.type);
+  });
+  projectMeasTypen=map;
+  renderProjectList();
+ }catch(err){
+  console.error("Massaufnahme-Arten fuer Filter:",err);
+ }finally{
+  projectMeasTypenLaedt=false;
+ }
+}
+let projectArtFilter="alle";
+function renderProjectArtFilter(list){
+ const box=$("projectArtFilter");
+ if(!box)return;
+ if(!projectMeasTypen){box.hidden=true;box.innerHTML="";return}
+ const vorhanden=new Set();
+ list.forEach(p=>{(projectMeasTypen.get(p.id)||[]).forEach(t=>vorhanden.add(t))});
+ const zeigen=vorhanden.size>1||projectArtFilter!=="alle";
+ box.hidden=!zeigen;
+ if(!zeigen){box.innerHTML="";return}
+ const knopf=(wert,text)=>`<button type="button" data-project-art-filter="${esc(wert)}"${projectArtFilter===wert?' class="aktiv"':""}>${esc(text)}</button>`;
+ const arten=[...vorhanden].sort((a,b)=>(MEAS_TYPE_LABELS[a]||a).localeCompare(MEAS_TYPE_LABELS[b]||b));
+ box.innerHTML=knopf("alle","Alle")+arten.map(t=>knopf(t,MEAS_TYPE_LABELS[t]||t)).join("");
+}
 // Lokale Suche der Projektliste (v2.47) - rein clientseitig auf dem
 // bereits geladenen, RLS-gefilterten allProjects, keine Abfrage.
 let projectSucheText="";
@@ -193,6 +236,11 @@ function renderProjectList(){
  // Schnellzugriff mit auffrischen (v2.41). Bewusst ohne await - die
  // Projektliste selbst soll nicht auf die Abfragen warten.
  renderRecentProjects().catch(err=>console.error("Schnellzugriff:",err));
+ // v3.94: die Massaufnahme-Arten fuer den Art-Filter werden beim ersten
+ // Anzeigen der Liste nachgeladen (nicht schon beim Start der App) - ohne
+ // await, wie renderRecentProjects oben; das Ergebnis loest ein erneutes
+ // renderProjectList() aus.
+ if(!projectMeasTypen)ladeProjectMeasTypen();
  // v2.47: Aktive und archivierte Projekte sind zwei getrennte Ansichten.
  // Archivierte tauchen nicht mehr zwischen den aktiven auf; umgeschaltet
  // wird bewusst ueber den Knopf. archived und Geschaeftsstatus bleiben
@@ -206,7 +254,10 @@ function renderProjectList(){
  if(anlegen)anlegen.hidden=showArchivedProjects;
  const gefunden=sichtbar.filter(p=>projektPasstZuSuche(p,projectSucheText));
  renderProjectStatusFilter(gefunden);
- const list=projectStatusFilter==="alle"?gefunden:gefunden.filter(p=>projektStatusInfo(p).wert===projectStatusFilter);
+ const nachStatus=projectStatusFilter==="alle"?gefunden:gefunden.filter(p=>projektStatusInfo(p).wert===projectStatusFilter);
+ renderProjectArtFilter(nachStatus);
+ const list=projectArtFilter==="alle"?nachStatus
+  :nachStatus.filter(p=>(projectMeasTypen&&projectMeasTypen.get(p.id)||new Set()).has(projectArtFilter));
  $("projectList").innerHTML=list.map(p=>{
   // v2.68: Wer wann erstellt/geaendert hat, steht NICHT mehr in der Liste.
   // In einer Uebersicht sucht man ein Projekt, nicht seine Historie - die
@@ -251,6 +302,12 @@ $("projectStatusFilter").addEventListener("click",e=>{
  const b=e.target.closest("[data-project-status-filter]");
  if(!b)return;
  projectStatusFilter=b.dataset.projectStatusFilter;
+ renderProjectList();
+});
+$("projectArtFilter").addEventListener("click",e=>{
+ const b=e.target.closest("[data-project-art-filter]");
+ if(!b)return;
+ projectArtFilter=b.dataset.projectArtFilter;
  renderProjectList();
 });
 // ---- Kurzinfos fuer die Cockpit-Listen (v2.39) -----------------

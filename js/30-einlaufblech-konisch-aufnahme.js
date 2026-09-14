@@ -40,6 +40,9 @@ const EBKA_REGISTER=[
 // der Registerzahl, nicht an einer festen Nummer.
 const EBKA_KONTROLLE=EBKA_REGISTER.length;
 let ebkaSchritt=1;
+// v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
+// Grenze dieser Anzeige.
+let ebkaBestaetigt=new Set();
 // true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
 // einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
 // ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
@@ -436,7 +439,7 @@ function ebkaRegisterHtml(){
   const marke=r.nr===EBKA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===ebkaSchritt?" aktiv":""}" data-ebka-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(ebkaBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function ebkaSchrittInhalt(){
@@ -687,6 +690,7 @@ function ebkaVerdrahten(){
   if(t.id==="ebka_zurueck"){if(ebkaSchritt>1)ebkaSetzeSchritt(ebkaSchritt-1); return}
   if(t.id==="ebka_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   ebkaBestaetigt.add(ebkaSchritt);
    if(ebkaSchritt>=EBKA_REGISTER.length)ebkaAbschluss();
    else ebkaSetzeSchritt(ebkaSchritt+1);
    return;
@@ -748,12 +752,16 @@ function ebkaAusData(d){
 // vorherigen Stand (showMeasTypeSection läuft in openMeasurement VOR dem
 // Füllen).
 function ebkaZuruecksetzen(){
- ebkA=ebkaLeer(); ebkaSchritt=1; ebkaRinneListeFuer=undefined;
+ ebkA=ebkaLeer(); ebkaSchritt=1; ebkaBestaetigt=new Set(); ebkaRinneListeFuer=undefined;
  ebkPieces=ebkA.stuecke;
  ebkaVerdrahten(); renderEinlaufblechKonischAufnahme();
 }
 function ebkaFuellen(d){
- ebkA=ebkaAusData(d); ebkaSchritt=1; ebkaRinneListeFuer=undefined;
+ ebkA=ebkaAusData(d); ebkaSchritt=1;
+ // v3.94: siehe dfaFuellen (js/66) fuer die Begruendung.
+ ebkaBestaetigt=ebkaPruefungen().some(x=>x.art==="fehler")
+  ?new Set():new Set(EBKA_REGISTER.filter(r=>r.nr!==EBKA_KONTROLLE).map(r=>r.nr));
+ ebkaRinneListeFuer=undefined;
  ebkPieces=ebkA.stuecke;
  ebkaVerdrahten(); renderEinlaufblechKonischAufnahme();
 }

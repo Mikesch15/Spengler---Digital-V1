@@ -64,6 +64,9 @@ const KAM_REGISTER=[
 // Registerzahl, nicht an einer festen Nummer.
 const KAM_KONTROLLE=KAM_REGISTER.length;
 let kamSchritt=1;
+// v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
+// Grenze dieser Anzeige.
+let kamBestaetigt=new Set();
 // true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
 // einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
 // ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
@@ -1014,7 +1017,7 @@ function kamaRegisterHtml(){
   const marke=r.nr===KAM_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===kamSchritt?" aktiv":""}" data-kam-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(kamBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function kamaKopfInhalt(){
@@ -1149,6 +1152,7 @@ function kamaVerdrahten(){
   if(t.id==="kam_zurueck"){kamaSetzeSchritt(kamSchritt-1);return}
   if(t.id==="kam_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   kamBestaetigt.add(kamSchritt);
    if(kamSchritt>=KAM_REGISTER.length)kamaAbschluss();
    else kamaSetzeSchritt(kamSchritt+1);
    return;
@@ -1171,7 +1175,26 @@ function kamaVerdrahten(){
 }
 
 // ---- Einstellungsseite ----------------------------------------------------
+// v3.94: die Firmen-Einstellungen-Labels (index.html) kamen bisher als
+// eigener, von Hand getippter Text - siehe CLAUDE.md 157.5 fuer die Begruen-
+// dung, warum das gefaehrlich ist (Verwechslung von Mass R/U in v3.90). Die
+// Buchstaben selbst waren dort schon immer korrekt (kamaBuchstabe() ist
+// index-basiert, es gab bei Kamin nie eine Massentfernung wie bei Dachfenster
+// v3.90), aber der Text daneben konnte unbemerkt vom Original abweichen -
+// z.B. stand "Umschlag seitlich" statt "Umschlagbreite seitlich". Ab hier
+// kommt der Text bei jedem Aufruf live aus KAM_MASSLISTE.
+function kamaEinstellungenLabelBefuellen(){
+ const setzen=(id,k)=>{const el=$(id); if(el)el.textContent=kamaMassLabel(k)};
+ setzen("kamsUmschlagVorne_lbl","umschlagVorne");
+ setzen("kamsUmschlagHinten_lbl","umschlagHinten");
+ setzen("kamsUmschlagSeite_lbl","umschlagSeite");
+ setzen("kamsUeberlappung_lbl","ueberlappung");
+ setzen("kamsMassVorne_lbl","a");
+ setzen("kamsMassHinten_lbl","d");
+ setzen("kamsAufbugHinten_lbl","e");
+}
 function applyKaminSettings(){
+ kamaEinstellungenLabelBefuellen();
  if(!$("kamsUmschlagVorne"))return;
  const s=kaminSettings;
  const sel=$("kamsDeckung");
@@ -1276,6 +1299,7 @@ function kamaDaten(){
 function kamaZuruecksetzen(){
  kamA=kamaLeer();
  kamSchritt=1;
+ kamBestaetigt=new Set();
  renderKaminAufnahme();
 }
 function kamaFuellen(d){
@@ -1312,5 +1336,8 @@ function kamaFuellen(d){
  a.rollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  kamA=a;
  kamSchritt=1;
+ // v3.94: siehe dfaFuellen (js/66) fuer die Begruendung.
+ kamBestaetigt=kamaPruefungen().some(x=>x.art==="fehler")
+  ?new Set():new Set(KAM_REGISTER.filter(r=>r.nr!==KAM_KONTROLLE).map(r=>r.nr));
  renderKaminAufnahme();
 }

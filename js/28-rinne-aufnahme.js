@@ -963,6 +963,9 @@ const RA_REGISTER=[
 // der Registerzahl, nicht an einer festen Nummer.
 const RA_KONTROLLE=RA_REGISTER.length;
 let raSchritt=1;
+// v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
+// Grenze dieser Anzeige.
+let raBestaetigt=new Set();
 // true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
 // einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
 // ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
@@ -1001,7 +1004,7 @@ function raRegisterHtml(){
   const marke=r.nr===RA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===raSchritt?" aktiv":""}" data-ra-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(raBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function raSchrittInhalt(){
@@ -1165,6 +1168,7 @@ function raVerdrahten(){
   if(t.id==="ra_zurueck"){raSetzeSchritt(raSchritt-1);return}
   if(t.id==="ra_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   raBestaetigt.add(raSchritt);
    if(raSchritt>=RA_REGISTER.length){raAbschluss();return}
    raSetzeSchritt(raSchritt+1);return;
   }
@@ -1205,12 +1209,16 @@ function raVerdrahten(){
 function rinneAufnahmeZuruecksetzen(){
  rinneA=raLeer();
  raSchritt=1;
+ raBestaetigt=new Set();
  raVerdrahten();
  renderRinneAufnahme();
 }
 function rinneAufnahmeFuellen(d){
  rinneA=raAusData(d);
  raSchritt=1;
+ // v3.94: siehe dfaFuellen (js/66) fuer die Begruendung.
+ raBestaetigt=raPruefungen(rinneA).some(x=>x.art==="fehler")
+  ?new Set():new Set(RA_REGISTER.filter(r=>r.nr!==RA_KONTROLLE).map(r=>r.nr));
  raVerdrahten();
  renderRinneAufnahme();
 }

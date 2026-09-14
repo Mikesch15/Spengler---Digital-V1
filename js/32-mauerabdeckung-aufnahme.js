@@ -25,6 +25,9 @@ const MADA_REGISTER=[
 // deshalb an der Registerzahl und nicht an einer festen Nummer.
 const MADA_KONTROLLE=MADA_REGISTER.length;
 let madaSchritt=1;
+// v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
+// Grenze dieser Anzeige.
+let madaBestaetigt=new Set();
 // true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
 // einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
 // ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
@@ -620,7 +623,7 @@ function madaRegisterHtml(){
   const marke=r.nr===MADA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Fehler":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===madaSchritt?" aktiv":""}" data-mada-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(madaBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function madaSchrittInhalt(){
@@ -762,6 +765,7 @@ function madaVerdrahten(){
   if(t.id==="mada_zurueck"){madaSetzeSchritt(madaSchritt-1);return}
   if(t.id==="mada_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   madaBestaetigt.add(madaSchritt);
    if(madaSchritt>=MADA_REGISTER.length){madaAbschluss();return}
    madaSetzeSchritt(madaSchritt+1); return;
   }
@@ -835,13 +839,16 @@ function madaAusData(d){
  return a;
 }
 function madaZuruecksetzen(){
- madA=madaLeer(); madaSchritt=1;
+ madA=madaLeer(); madaSchritt=1; madaBestaetigt=new Set();
  madA.material=String(measurementMaterialOrFallback(null).id||"");
  madSegments=madA.segmente; madSchieber=[];
  madaVerdrahten(); renderMauerabdeckungAufnahme();
 }
 function madaFuellen(d){
  madA=madaAusData(d); madaSchritt=1;
+ // v3.94: siehe dfaFuellen (js/66) fuer die Begruendung.
+ madaBestaetigt=madaPruefungen().some(x=>x.art==="fehler")
+  ?new Set():new Set(MADA_REGISTER.filter(r=>r.nr!==MADA_KONTROLLE).map(r=>r.nr));
  madSegments=madA.segmente; madSchieber=madA.schieber;
  madaVerdrahten(); renderMauerabdeckungAufnahme();
 }

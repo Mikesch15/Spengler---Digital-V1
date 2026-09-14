@@ -38,6 +38,15 @@ function profilFunktion(p){
  const i=rateIds.indexOf(Number(p.rate_id));
  return (i>=0&&settings.rates[i])?settings.rates[i][0]:"";
 }
+// v3.94: dieselbe hinterlegte Funktion, aber ausgehend vom Namen, wie er in
+// einer Arbeitsposition-Zeile steht (works[i].employee) - fuer den Fall, dass
+// im Regierapport ein ANDERER Mitarbeiter als der angemeldete ausgewaehlt
+// wird (siehe Aenderungs-Handler unten). allProfiles ist die bereits
+// geladene, RLS-gefilterte Mitarbeiterliste (js/01-basis.js).
+function profilFunktionVonName(name){
+ const p=allProfiles.find(x=>`${x.first_name} ${x.last_name}`===name);
+ return p?profilFunktion(p):"";
+}
 // Der angemeldete Benutzer, so wie er in der Mitarbeiterliste steht. Steht er
 // dort nicht (z. B. ein Firmenadmin ohne Profil in der Liste), wird NICHT
 // irgendjemand genommen - dann bleibt es beim bisherigen ersten Eintrag.
@@ -195,7 +204,20 @@ $("workBody").addEventListener("change",e=>{
  if(e.target.dataset.wDate!==undefined){sortWorksLive();renderMain();return}
  const i=Number(e.target.dataset.wEmp??e.target.dataset.wRate);
  if(Number.isNaN(i))return;
- if(e.target.dataset.wEmp!==undefined)works[i].employee=e.target.value;
+ if(e.target.dataset.wEmp!==undefined){
+  works[i].employee=e.target.value;
+  // Die hinterlegte Funktion des neu gewaehlten Mitarbeiters automatisch
+  // uebernehmen - genau wie schon beim Anlegen einer neuen Arbeitsposition
+  // (neueArbeitsposition()). Nur wenn er tatsaechlich eine hinterlegte
+  // Funktion hat; sonst bleibt die bisherige Auswahl in der Zeile stehen,
+  // es wird nichts erfunden.
+  const funktion=profilFunktionVonName(works[i].employee);
+  if(funktion){
+   works[i].rateName=funktion;
+   const rateSelect=document.querySelector(`[data-w-rate="${i}"]`);
+   if(rateSelect)rateSelect.value=funktion;
+  }
+ }
  if(e.target.dataset.wRate!==undefined)works[i].rateName=e.target.value;
  const rateCell=document.querySelector(`[data-work-rate-cell="${i}"]`);
  const totalCell=document.querySelector(`[data-work-total="${i}"]`);

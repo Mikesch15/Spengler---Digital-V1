@@ -54,6 +54,8 @@ $("navSystemAdmin").onclick=async()=>{
  $("sysAdminFilterStatus").value="";
  renderModuleTestListe();
  if(typeof moduleTestHinweis==="function")moduleTestHinweis("");
+ if(typeof renderSysKategorienListe==="function")renderSysKategorienListe();
+ if(typeof sysKategorienHinweis==="function")sysKategorienHinweis("");
  await renderSystemAdminList();
  // Feedback aller Firmen (v2.70): nutzt denselben Code wie die Firmenansicht
  // in js/02-feedback.js, nur mit der geschuetzten Betreiber-Abfrage.
@@ -361,6 +363,56 @@ $("saveModuleTest").addEventListener("click",async()=>{
    :"✓ Gespeichert – kein Modul in Entwicklung (gilt für alle Firmen).");
  }catch(err){
   moduleTestHinweis("Fehler beim Speichern: "+(err&&err.message?err.message:err),true);
+ }finally{
+  knopf.disabled=false;
+ }
+});
+
+// ---------------------------------------------------------------------------
+// Massaufnahme-Arten -> Kategorie (v3.94)
+// ---------------------------------------------------------------------------
+// Gleiches Muster wie "Module in Entwicklung": EINE Zeile fuer das ganze
+// System (system_settings.meas_kategorien), geschrieben nur ueber
+// system_admin_set_meas_kategorien() (SECURITY DEFINER, prueft
+// is_system_admin()). Bestimmt, unter welcher der drei Kategorien
+// (Steildach/Flachdach/Allgemein) eine Massaufnahme-Art bei der Auswahl
+// einer neuen Massaufnahme erscheint (js/16-massaufnahme-formular.js).
+function renderSysKategorienListe(){
+ const box=$("sysKategorienListe");
+ if(!box)return;
+ const opt=k=>MEAS_KATEGORIEN.map(x=>`<option value="${esc(x)}"${x===k?" selected":""}>${esc(MEAS_KATEGORIEN_LABELS[x])}</option>`).join("");
+ box.innerHTML=Object.keys(MEAS_TYPE_LABELS).map(art=>
+  `<div class="grid" style="grid-template-columns:1fr auto;align-items:center;gap:8px;margin-bottom:4px">
+<div>${esc(MEAS_TYPE_LABELS[art])}</div>
+<select data-meas-kategorie="${esc(art)}">${opt(measKategorie(art))}</select>
+</div>`).join("");
+}
+
+function sysKategorienHinweis(text,fehler){
+ const el=$("sysKategorienHinweis");
+ if(!el)return;
+ el.textContent=text||"";
+ el.style.color=fehler?"var(--red)":"var(--green)";
+ el.hidden=!text;
+}
+
+$("saveSysKategorien").addEventListener("click",async()=>{
+ const knopf=$("saveSysKategorien");
+ const neu={};
+ document.querySelectorAll("[data-meas-kategorie]").forEach(sel=>{
+  neu[sel.dataset.measKategorie]=sel.value;
+ });
+ knopf.disabled=true;
+ sysKategorienHinweis("");
+ try{
+  const {data,error}=await sb.rpc("system_admin_set_meas_kategorien",{p_kategorien:neu});
+  if(error){sysKategorienHinweis("Konnte nicht gespeichert werden: "+error.message,true);return}
+  if(!data){sysKategorienHinweis("Es wurde nichts gespeichert.",true);return}
+  measKategorien=(data.meas_kategorien)||{};
+  renderSysKategorienListe();
+  sysKategorienHinweis("✓ Gespeichert – gilt für alle Firmen.");
+ }catch(err){
+  sysKategorienHinweis("Fehler beim Speichern: "+(err&&err.message?err.message:err),true);
  }finally{
   knopf.disabled=false;
  }

@@ -34,6 +34,9 @@ const RPA_REGISTER=[
 // Registerzahl, nicht an einer festen Nummer.
 const RPA_KONTROLLE=RPA_REGISTER.length;
 let rpaSchritt=1;
+// v3.94: siehe anbaBestaetigt (js/40) fuer die Begruendung, warum hier beim
+// Laden eines gespeicherten Datensatzes nichts vorbelegt wird.
+let rpaBestaetigt=new Set();
 // true, solange die Registerflaeche neu gezeichnet wird. Chromium feuert auf
 // einem Eingabefeld, das gerade den Fokus hat, beim Ersetzen des Inhalts noch
 // ein change - und der Knoten meldet sich dabei als weiterhin im Dokument
@@ -367,7 +370,7 @@ function rpaRegisterHtml(){
   const marke=r.nr===RPA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===rpaSchritt?" aktiv":""}" data-rpa-schritt="${r.nr}">`
-   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}</button>`;
+   +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(rpaBestaetigt,r.nr)}</button>`;
  }).join("");
 }
 // Die Register 1 bis 3 stehen FEST im HTML (siehe Kopf dieser Datei) und
@@ -451,6 +454,7 @@ function rpaVerdrahten(){
   if(t.id==="rpa_zurueck"){rpaSetzeSchritt(rpaSchritt-1);return}
   if(t.id==="rpa_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
+   rpaBestaetigt.add(rpaSchritt);
    if(rpaSchritt>=RPA_REGISTER.length)rpaAbschluss();
    else rpaSetzeSchritt(rpaSchritt+1);
    return;
@@ -501,6 +505,7 @@ function rpaZusatzDaten(){
 function rpaZuruecksetzen(){
  rpaRollenAuswahl=[];
  rpaSchritt=1;
+ rpaBestaetigt=new Set();
  renderRinneAufnahmeRegister();
 }
 function rpaFuellen(d){
@@ -510,5 +515,6 @@ function rpaFuellen(d){
  const rq=(w.zuschnitt&&w.zuschnitt.auswahl);
  rpaRollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  rpaSchritt=1;
+ rpaBestaetigt=new Set();
  renderRinneAufnahmeRegister();
 }
