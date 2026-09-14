@@ -117,7 +117,7 @@ const dfaQm=v=>dfaZahl(v).toFixed(2).replace(".",",");
 const DFA_STANDARD=Object.freeze({
  deckung:"biber_einfach",
  lattenabstand:330,
- umschlag_vorne:20, umschlag_hinten:20, umschlag_seite:20,
+ umschlag_vorne:20, umschlag_seite:20,
  saum_vorne:50,          // Rueckschlag am oberen Rand der vorderen Aufbordung
  breite_oben:90,         // Kopfbreite der hinteren Aufbordung (Trapez oben)
  breite_unten:125,       // Fussbreite der hinteren Aufbordung (Trapez unten)
@@ -172,7 +172,7 @@ function dfaLeer(){
   saumVorne:"", breiteOben:"", breiteUnten:"",
   randAbstand:"", randStrich:"",
   e:"", eUmschlag:"", anreiff:"", anreiffUmschlag:"",
-  umschlagVorne:"", umschlagHinten:"", umschlagSeite:"",
+  umschlagVorne:"", umschlagSeite:"",
   breiteVorne:"", breiteHinten:"",
   b:{l:"",r:""}, c:{l:"",r:""}, f:{l:"",r:""}, g:{l:"",r:""},
   aufVorne:"", aufHinten:"",
@@ -251,7 +251,6 @@ function dfaZuschnitte(){
   {name:"Anreiff",wert:dfaZahl(a.anreiff)},
   {name:"Umschlag Anreiff",wert:dfaZahl(a.anreiffUmschlag)}]);
  dazu("Hinterteil","hinten","",dfaZahl(a.breiteHinten)+seitlicheZugabe,[
-  {name:"Umschlag hinten",wert:dfaZahl(a.umschlagHinten)},
   {name:"Aufbordungshöhe hinten",wert:dfaZahl(a.aufHinten)},
   {name:"Abdeckkappe oben",wert:dfaZahl(a.randAbstand)},
   {name:"Abdeckkappe nach unten",wert:dfaZahl(a.randStrich)},
@@ -630,7 +629,6 @@ function dfaPruefungen(){
  fehltLeer(a.anreiff,dfaBuchstabe("anreiff")+" · Anreiff vorne fehlt.");
  fehltLeer(a.anreiffUmschlag,dfaBuchstabe("anreiffUmschlag")+" · Umschlag am Anreiff vorne fehlt.");
  fehltLeer(a.umschlagVorne,dfaBuchstabe("umschlagVorne")+" · Winkel auf Fensterrahmen fehlt.");
- fehltLeer(a.umschlagHinten,dfaBuchstabe("umschlagHinten")+" · Umschlag hinten fehlt.");
  fehltLeer(a.umschlagSeite,dfaBuchstabe("umschlagSeite")+" · Umschlag seitlich fehlt.");
  fehltLeer(a.lattenabstand,"Lattenabstand fehlt.");
  if(dfaZahl(a.breiteOben)>0&&dfaZahl(a.breiteUnten)>0&&dfaZahl(a.breiteUnten)<=dfaZahl(a.breiteOben))
@@ -647,7 +645,7 @@ function dfaPruefungen(){
  });
  ["ueberlappung","saumVorne","aufVorne","aufHinten","breiteOben","breiteUnten",
   "randAbstand","randStrich","e","eUmschlag","anreiff","anreiffUmschlag",
-  "breiteVorne","breiteHinten","umschlagVorne","umschlagHinten","umschlagSeite"
+  "breiteVorne","breiteHinten","umschlagVorne","umschlagSeite"
   ].forEach(k=>{
   if(dfaZahl(a[k])<0)m.push({art:"fehler",text:dfaBuchstabe(k)+" · "
     +DFA_MASSLISTE.find(x=>x[0]===k)[1]+" kann nicht negativ sein."});
@@ -714,7 +712,6 @@ const DFA_MASSLISTE=[
  ["randAbstand","Abdeckkappe oben"],
  ["randStrich","Abdeckkappe nach unten"],
  ["aufHinten","Aufbordungshöhe hinten"],
- ["umschlagHinten","Umschlag hinten"],
  ["d","Hinterkant Dachfenster bis Hinterkant Einfassung"],
  ["e","90°-Aufbug hinten"],
  ["eUmschlag","Umschlag am Aufbug hinten (180°)"],
@@ -868,7 +865,6 @@ Zuschnittlängen von Vorder- und Hinterteil. Die Seitenteile bekommen ihre Läng
 ${dfaBuchstabe("b")} und ${dfaBuchstabe("c")}.</div>
 <div class="grid">
 ${dfaZahlFeld(dfaBuchstabe("umschlagVorne")+" · Winkel auf Fensterrahmen","dfa_umschlagVorne",a.umschlagVorne,"1",true,dfaSettings.umschlag_vorne)}
-${dfaZahlFeld(dfaBuchstabe("umschlagHinten")+" · Umschlag hinten","dfa_umschlagHinten",a.umschlagHinten,"1",true,dfaSettings.umschlag_hinten)}
 ${dfaZahlFeld(dfaBuchstabe("umschlagSeite")+" · Umschlagbreite seitlich (beide Seiten gleich)","dfa_umschlagSeite",a.umschlagSeite,"1",true,dfaSettings.umschlag_seite)}
 ${dfaZahlFeld(dfaBuchstabe("breiteVorne")+" · Breite vorne · Zuschnittlänge Vorderteil","dfa_breiteVorne",a.breiteVorne,"1",true)}
 ${dfaZahlFeld(dfaBuchstabe("breiteHinten")+" · Breite hinten · Zuschnittlänge Hinterteil","dfa_breiteHinten",a.breiteHinten,"1",true)}
@@ -948,7 +944,7 @@ ${zeile(dfaBuchstabe("randAbstand")+" / "+dfaBuchstabe("randStrich")+" · Abdeck
 ${zeile(dfaBuchstabe("e")+" / "+dfaBuchstabe("eUmschlag")+" · Aufbug hinten / Umschlag",dfaMm(a.e)+" / "+dfaMm(a.eUmschlag)+" mm")}
 ${zeile(dfaBuchstabe("anreiff")+" / "+dfaBuchstabe("anreiffUmschlag")+" · Anreiff vorne / Umschlag",dfaMm(a.anreiff)+" / "+dfaMm(a.anreiffUmschlag)+" mm")}
 ${zeile(dfaBuchstabe("breiteVorne")+" / "+dfaBuchstabe("breiteHinten")+" · Breite vorne / hinten",dfaMm(a.breiteVorne)+" / "+dfaMm(a.breiteHinten)+" mm")}
-${zeile(dfaBuchstabe("umschlagVorne")+" / "+dfaBuchstabe("umschlagHinten")+" / "+dfaBuchstabe("umschlagSeite")+" · Winkel auf Fensterrahmen / Umschlag hinten / Seite",dfaMm(a.umschlagVorne)+" / "+dfaMm(a.umschlagHinten)+" / "+dfaMm(a.umschlagSeite)+" mm")}
+${zeile(dfaBuchstabe("umschlagVorne")+" / "+dfaBuchstabe("umschlagSeite")+" · Winkel auf Fensterrahmen / Umschlag Seite",dfaMm(a.umschlagVorne)+" / "+dfaMm(a.umschlagSeite)+" mm")}
 ${zeile("Blechfläche",dfaQm(dfaFlaecheM2())+" m²")}
 ${zeile("Bleilappen",bl.gesamt!==null?String(bl.gesamt):"–")}
 </tbody></table></div>`;
@@ -1056,7 +1052,7 @@ const DFA_FELDER={dfa_ueberlappung:"ueberlappung",
  dfa_randAbstand:"randAbstand",dfa_randStrich:"randStrich",
  dfa_e:"e",dfa_eUmschlag:"eUmschlag",dfa_anreiff:"anreiff",dfa_anreiffUmschlag:"anreiffUmschlag",
  dfa_breiteVorne:"breiteVorne",dfa_breiteHinten:"breiteHinten",
- dfa_umschlagVorne:"umschlagVorne",dfa_umschlagHinten:"umschlagHinten",
+ dfa_umschlagVorne:"umschlagVorne",
  dfa_umschlagSeite:"umschlagSeite",dfa_lattenabstand:"lattenabstand"};
 const DFA_SEITENFELDER={dfa_a:"a",dfa_b:"b",dfa_c:"c",dfa_d:"d",dfa_f:"f",dfa_g:"g"};
 function dfaFeldZuweisen(id,wert){
@@ -1142,7 +1138,6 @@ function applyDfaSettings(){
  const setzen=(id,wert)=>{const el=$(id); if(el&&document.activeElement!==el)el.value=wert};
  setzen("dfasLattenabstand",s.lattenabstand);
  setzen("dfasUmschlagVorne",s.umschlag_vorne);
- setzen("dfasUmschlagHinten",s.umschlag_hinten);
  setzen("dfasUmschlagSeite",s.umschlag_seite);
  setzen("dfasSaumVorne",s.saum_vorne);
  setzen("dfasBreiteOben",s.breite_oben);
@@ -1168,7 +1163,6 @@ function applyDfaSettings(){
    deckung:$("dfasDeckung").value,
    lattenabstand:zahl("dfasLattenabstand")||0,
    umschlag_vorne:zahl("dfasUmschlagVorne")||0,
-   umschlag_hinten:zahl("dfasUmschlagHinten")||0,
    umschlag_seite:zahl("dfasUmschlagSeite")||0,
    saum_vorne:zahl("dfasSaumVorne")||0,
    breite_oben:zahl("dfasBreiteOben")||0,
@@ -1216,7 +1210,7 @@ function dfaDaten(){
   randAbstand:dfaZahl(a.randAbstand), randStrich:dfaZahl(a.randStrich),
   e:dfaZahl(a.e), eUmschlag:dfaZahl(a.eUmschlag), anreiff:dfaZahl(a.anreiff), anreiffUmschlag:dfaZahl(a.anreiffUmschlag),
   breiteVorne:dfaZahl(a.breiteVorne), breiteHinten:dfaZahl(a.breiteHinten),
-  umschlagVorne:dfaZahl(a.umschlagVorne), umschlagHinten:dfaZahl(a.umschlagHinten), umschlagSeite:dfaZahl(a.umschlagSeite),
+  umschlagVorne:dfaZahl(a.umschlagVorne), umschlagSeite:dfaZahl(a.umschlagSeite),
   b:paar("b"), c:paar("c"), f:paar("f"), g:paar("g"),
   aufVorne:dfaZahl(a.aufVorne), aufHinten:dfaZahl(a.aufHinten),
   laenge:{l:dfaLaenge("l"),r:dfaLaenge("r")},
@@ -1262,7 +1256,7 @@ function dfaFuellen(d){
  if(w.deckung&&(typeof EINF_DECKUNGEN!=="object"||EINF_DECKUNGEN[w.deckung]))a.deckung=w.deckung;
  ["lattenabstand","ueberlappung","saumVorne","breiteOben","breiteUnten","randAbstand","randStrich",
   "e","eUmschlag","anreiff","anreiffUmschlag",
-  "breiteVorne","breiteHinten","umschlagVorne","umschlagHinten","umschlagSeite"].forEach(k=>nimm(k));
+  "breiteVorne","breiteHinten","umschlagVorne","umschlagSeite"].forEach(k=>nimm(k));
  // aufVorne/aufHinten sind seit dieser Version nicht mehr seitenabhaengig.
  // Aeltere Datensaetze koennen sie noch als {l,r}-Objekt tragen (aus der Zeit,
  // als sie ueber "Links und rechts getrennt erfassen" liefen) - dort wird das

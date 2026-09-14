@@ -833,7 +833,7 @@ Lattenabstand gerechnet und aufgerundet – ein abgerundeter Wert würde die
 Länge nicht decken.</p>`},
 
 "dfa-masse":{titel:"Fenstermasse",text:`
-<p>Alle Masse sind der Reihe nach von vorne (A) nach hinten (W) durchnummeriert -
+<p>Alle Masse sind der Reihe nach von vorne (A) nach hinten (V) durchnummeriert -
 die aufklappbare Übersicht am Anfang dieses Registers zeigt eine Beispielskizze
 mit allen Buchstaben.</p>
 <p>Die Masse längs des Dachs, von vorne nach hinten – genau gleich vermasst
@@ -846,8 +846,8 @@ unten (N). Die <b>F · Aufbordungshöhe Seite</b> gilt für die ganze Seite und
 wird nicht links/rechts getrennt erfasst.</p>
 <p>An der oberen Ecke sitzt ein kleiner gestrichelter Strich – Abdeckkappe oben (O)
 ist der Abstand ab der Ecke, Abdeckkappe nach unten (P) seine Länge.</p>
-<p>Ganz hinten, hinter S, sitzt ein kleiner <b>90°-Aufbug (T)</b> – genau wie bei
-der Kamineinfassung – mit einem eigenen 180°-Umschlag (U) an seiner Spitze.
+<p>Ganz hinten, hinter R, sitzt ein kleiner <b>90°-Aufbug (S)</b> – genau wie bei
+der Kamineinfassung – mit einem eigenen 180°-Umschlag (T) an seiner Spitze.
 Ganz vorne, vor C, sitzt spiegelbildlich der <b>Anreiff (A)</b>, ebenfalls mit
 eigenem 180°-Umschlag (B).</p>
 <p>Bei den <b>seitlichen Massen</b> kommen – genau wie bei der Kamineinfassung –
@@ -859,7 +859,7 @@ Vorgabewert.</p>`},
 <p>Die Zugaben, die in die Abwicklung der acht Teile eingehen. Vorbelegt sind
 die Werte aus den Einstellungen; hier gelten sie nur für diese
 Massaufnahme.</p>
-<p><b>Breite vorne/hinten (V/W)</b> sind vom Anwender erfasste Fenstermasse – die
+<p><b>Breite vorne/hinten (U/V)</b> sind vom Anwender erfasste Fenstermasse – die
 tatsächliche Zuschnittlänge von Vorderteil und Hinterteil kommt zusätzlich
 dazu, sie reicht seitlich bis zu den Seitenteilen (2× Umschlag Seite (L) + J
 links/rechts + K links/rechts dazu).</p>`},

@@ -26573,3 +26573,94 @@ Versionsangabe, edge-function-seitige Prüfungen gegen einen
   in der Legende, nicht in der Schnittskizze selbst – bereits vor
   diesem Commit so, unverändert; ein Ausbau der Skizze um diese Masse
   wurde vom Anwender nicht verlangt und deshalb nicht angegangen.
+
+## 155. DACHFENSTEREINFASSUNG: MASS R (UMSCHLAG HINTEN) ALS ÜBERFLÜSSIG ENTFERNT — VERSION 3.90
+
+### 155.1 Anlass
+
+Direkte Rückfrage des Anwenders zur Übersicht aus v3.89: Mass R
+("Umschlag hinten", der Rand-Umschlag ganz am hinteren Ende des
+Hinterteil-Blechs) und Mass U ("Umschlag am Aufbug hinten") klangen in
+der Beschriftung verwechselbar. Nach Erläuterung der tatsächlichen
+Geometrie (R und das damalige U sitzen an entgegengesetzten Enden
+derselben Hinterteil-Abwicklung, nicht an derselben Stelle) hat der
+Anwender entschieden: R ist trotzdem überflüssig – das Hinterteil
+braucht nur O, P, Q, S, T, U (die neuen, nach dem Wegfall von R
+nachgerutschten Buchstaben) und keinen zusätzlichen Umschlag am
+hinteren Blechrand.
+
+### 155.2 Umsetzung
+
+Vor der Umsetzung zwei Rückfragen an den Anwender gestellt und
+bestätigt bekommen, weil die Änderung über eine reine Umbenennung
+hinausgeht: (1) R fliesst aktuell in die berechnete Zuschnittlänge des
+Hinterteils ein – nach Entfernen wird diese Länge für jede Aufnahme mit
+einem R-Wert kleiner, auch beim erneuten Öffnen bereits gespeicherter
+Aufnahmen. Bestätigt: gewollt, R war ein Fehler. (2) Der Wegfall von R
+lässt alle nachfolgenden Buchstaben automatisch eine Stelle nach vorne
+rutschen (S→R, T→S, U→T, V→U, W→V), weil `dfaBuchstabe()` die Buchstaben
+ausschliesslich aus der Position in `DFA_MASSLISTE` ableitet. Bestätigt:
+soll automatisch passieren, wie bisher.
+
+`umschlagHinten` vollständig aus `js/66-dachfenster-aufnahme.js`
+entfernt: `DFA_MASSLISTE`-Eintrag, `dfaLeer()`, `DFA_STANDARD.umschlag_hinten`,
+die Hinterteil-Summe in `dfaZuschnitte()`, das Pflichtfeld in
+`dfaPruefungen()` (inkl. der beiden Iterations-Arrays für die
+Negativ-Prüfung und fürs Wiedereinlesen), das Eingabefeld in
+`dfaUmschlaegeHtml()` samt `DFA_FELDER`-Eintrag, die kombinierte Zeile
+in `dfaKontrolleHtml()`, die Einstellungs-Synchronisation
+(`applyDfaSettings()`/Speichern-Handler) sowie das zugehörige
+Eingabefeld in `index.html`. Für bereits gespeicherte Aufnahmen mit
+einem alten `umschlagHinten`-Wert: `dfaFuellen()` liest das Feld schlicht
+nicht mehr ein (aus der Übernahme-Liste entfernt) – der Rohwert bleibt
+im gespeicherten JSON stehen, zählt aber ab sofort nirgends mehr mit,
+exakt wie vom Anwender bestätigt.
+
+Alle direkt betroffenen Buchstaben-Referenzen in Fliesstext
+nachgezogen: `index.html`-Einstellungslabels für Mass d (S→R, inkl. der
+Referenz "hinter S"→"hinter R"), Mass e (T→S) und eUmschlag (U→T);
+`js/41-hilfe.js`s "dfa-masse"-Text ("nach hinten (W)"→"(V)", "hinter
+S"/"90°-Aufbug (T)"/"180°-Umschlag (U)"→R/S/T) und "dfa-umschlaege"-Text
+("Breite vorne/hinten (V/W)"→"(U/V)"). Die kombinierte
+"Umschlag vorne/hinten/Seite"-Zelle im Rapport-Druck
+(`js/16-massaufnahme-formular.js`, Dachfenster-Zweig) auf "Umschlag
+vorne/Seite" gekürzt – die GLEICHNAMIGE Zelle im Kamin-Zweig direkt
+darüber referenziert Kamins eigenes, unverändertes `umschlagHinten`
+(js/37) und blieb unangetastet.
+
+### 155.3 Getestet
+
+Direkter Playwright-Aufruf: `dfaBuchstabe()` liefert nach dem Wegfall
+von R exakt die erwartete verschobene Zuordnung (d→R, e→S, eUmschlag→T,
+breiteVorne→U, breiteHinten→V); `dfaA.umschlagHinten` ist nach
+`dfaZuruecksetzen()` `undefined`; die Hinterteil-Abwicklung in
+`dfaZuschnitte()` enthält kein "Umschlag hinten"-Glied mehr; das
+Eingabefeld `dfasUmschlagHinten` existiert nicht mehr im DOM; ein
+simulierter ALTER Datensatz mit `umschlagHinten:99` lädt über
+`dfaFuellen()` fehlerfrei und ohne dass der Wert irgendwo einfliesst
+(Rückfall wie vom Anwender gewünscht). `pruefstand-vermassung-v3-32.js`
+(prüft u. a. die Dachfenster-Rüstskizze) läuft weiterhin 54/54 durch.
+Volle Regression aller 69 Prüfstände: dieselben 28 Fehlschläge wie vor
+dieser Änderung (Zeile für Zeile identisch, u. a.
+`pruefstand-hilfe-v3-03.js` unverändert 62/68) – keine neue Regression.
+
+### 155.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/66-dachfenster-aufnahme.js` | `umschlagHinten` vollständig entfernt (Masseliste, Zustand, Standardwert, Abwicklung, Pflichtprüfung, Feld, Einstellungen); Buchstaben-Referenzen in Kommentaren unverändert (rein historische DXF-Analyse, nicht Teil der aktuellen Beschriftung) |
+| `index.html` | Einstellungsfeld für R entfernt, Labels für R/S/T (neu) nachgezogen, Version 3.90 |
+| `js/41-hilfe.js` | "dfa-masse"/"dfa-umschlaege"-Texte auf die verschobenen Buchstaben angepasst |
+| `js/16-massaufnahme-formular.js` | Dachfenster-Druckzelle ohne Umschlag hinten |
+| `sw.js` | Version 3.90 |
+
+### 155.5 Offene Punkte
+
+- Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
+  immer).
+- Bereits gespeicherte Aufnahmen mit einem echten (von Null
+  verschiedenen) R-Wert zeigen beim nächsten Öffnen eine kleinere
+  Hinterteil-Zuschnittlänge als beim ursprünglichen Speichern – vom
+  Anwender ausdrücklich so gewollt (R war ein Fehler), aber falls
+  dadurch ein bereits gedrucktes/geschnittenes Teil zu kurz erscheint,
+  ist das eine rückwirkende Neuberechnung, kein Datenverlust.

@@ -1573,7 +1573,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Länge Seitenteil"+seitenTxt,paar("laenge")+" mm")}${cell("Saum vorne",mm(d.saumVorne)+" mm")}</tr>
 <tr>${cell("Aufbordungshöhe vorne"+seitenTxt,paar("aufVorne")+" mm")}${cell("Aufbordungshöhe hinten"+seitenTxt,paar("aufHinten")+" mm")}</tr>
 <tr>${cell("Breite oben / unten (Trapez hinten)",mm(d.breiteOben)+" / "+mm(d.breiteUnten)+" mm")}${cell("Überlappung waagr. / senkr.",mm(d.ueberlappungT)+" / "+mm(d.ueberlappungH)+" mm")}</tr>
-<tr>${cell("Breite vorne / hinten",mm(d.breiteVorne)+" / "+mm(d.breiteHinten)+" mm")}${cell("Umschlag vorne / hinten / Seite",mm(d.umschlagVorne)+" / "+mm(d.umschlagHinten)+" / "+mm(d.umschlagSeite)+" mm")}</tr>
+<tr>${cell("Breite vorne / hinten",mm(d.breiteVorne)+" / "+mm(d.breiteHinten)+" mm")}${cell("Umschlag vorne / Seite",mm(d.umschlagVorne)+" / "+mm(d.umschlagSeite)+" mm")}</tr>
 <tr>${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}<td></td></tr>
 </table>
 ${dfaSchnitt?`<div class="eb-section-head">Schnitt</div>${dfaSchnitt}`:""}
