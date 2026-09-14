@@ -26782,3 +26782,79 @@ identisch mit der bekannten Liste, keine neue Regression.
 - Massen-Übersicht auf vier weitere Module und die Umstellung der
   Kamin/Dachfenster-Massbezeichnungen auf eine einzige Textquelle
   stehen noch aus (deutlich grösserer Umbau, siehe 156.1).
+
+## 157. KAMIN/DACHFENSTER: EINE TEXTQUELLE FÜR MASSBEZEICHNUNGEN — VERSION 3.92
+
+### 157.1 Anlass
+
+Fortsetzung von v3.91 (Idee 4 von 5): dieselbe Massbezeichnung stand bei
+Kamin (js/37) und Dachfenster (js/66) an bis zu sechs Stellen erneut
+getippt (Zuschnitte-Namen, Pruefungen-Meldungen, Formular-Feldlabels,
+Kontrolle-Zeilen). Genau dieses Muster hatte in v3.89/v3.90 zur
+Verwechslung von Mass R und U beigetragen. Ziel: jede Stelle bezieht
+den Text aus der ohnehin bestehenden `DFA_MASSLISTE`/`KAM_MASSLISTE`
+statt ihn erneut zu tippen.
+
+### 157.2 Umsetzung
+
+Zwei neue Funktionen je Modul: `dfaBezeichnung(k)`/`kamaBezeichnung(k)`
+(reiner Beschreibungstext aus der Masseliste) und
+`dfaMassLabel(k)`/`kamaMassLabel(k)` (`Buchstabe · Beschreibung`, das
+mit Abstand häufigste Muster). Vor dem Ersetzen wurde JEDE einzelne
+Fundstelle einzeln mit der Masseliste verglichen statt blind ersetzt -
+das war nötig, weil sich zeigte, dass nicht jeder gleich aussehende
+Text tatsächlich dasselbe meint:
+
+- Echte, woertlich identische Duplikate (die meisten Formular-Feldlabels,
+  mehrere Pruefungen-Meldungen, einzelne Kontrolle-Zeilen) wurden auf
+  die neue Funktion umgestellt.
+- Mehrere Pflichtfeld-Meldungen hatten bereits vom Masseliste-Text
+  ABWEICHENDEN Text (z. B. Kamin/Dachfenster `umschlagSeite`:
+  "Umschlag seitlich fehlt." statt "Umschlagbreite seitlich fehlt.") -
+  echte, unbemerkte Drift, die durch diese Umstellung jetzt behoben
+  ist (sichtbarer, aber gewollter Text-Unterschied gegenüber vorher).
+- Etliche Stellen sehen nur AEHNLICH aus, meinen aber etwas anderes,
+  und blieben bewusst eigener Text: kombinierte Zwei-Mass-Zeilen in der
+  dichten Kontrolle-Tabelle (z. B. "Abdeckkappe oben / nach unten"),
+  bewusst abgekürzte Bezeichnungen in der Zuschnitt-Aufschlüsselung
+  (z. B. "Mass G · unter Deckmaterial" statt "seitlich unter
+  Deckmaterial"), und bei Kamin sogar zwei Faelle, wo dieselbe Letter
+  in Pruefung und Kontrolle etwas VOELLIG anderes meint als in der
+  Masseliste (Mass B/C: "Zuschnittlänge Seitenteil vorne/hinten" bzw.
+  "Seitenteil vorne/hinten" statt der Knick-Definition aus der
+  Masseliste) - ein Beleg dafuer, dass ein blindes Suchen-und-Ersetzen
+  hier tatsaechlich Bedeutung veraendert haette.
+
+### 157.3 Getestet
+
+Nach jeder Modul-Umstellung per Playwright-Direktaufruf verglichen:
+alle als "echtes Duplikat" identifizierten Stellen liefern exakt den
+erwarteten (teils bewusst korrigierten) Text; die bewusst als "eigener
+Text" belassenen Stellen wurden per Gegenprobe NICHT veraendert.
+`pruefstand-vermassung-v3-32.js` weiterhin 54/54,
+`pruefstand-kamin-app-v2-90.js` weiterhin exakt 150/155 (dieselben 5
+bekannten Fehlschläge, keine neuen). Volle Regression über
+`ci-lauf.js`: keine neue Regression gegenüber der Baseline.
+
+### 157.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `js/66-dachfenster-aufnahme.js` | `dfaBezeichnung()`/`dfaMassLabel()` ergänzt, ca. 45 Fundstellen auf die neue Funktion umgestellt |
+| `js/37-kamin-aufnahme.js` | `kamaBezeichnung()`/`kamaMassLabel()` ergänzt, ca. 35 Fundstellen umgestellt |
+| `sw.js` | Version 3.92 |
+
+### 157.5 Offene Punkte
+
+- Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
+  immer).
+- `index.html`-Einstellungslabels und `js/41-hilfe.js`-Fliesstext bleiben
+  bewusst eigener, von Hand gepflegter Text (siehe v3.89-Erfahrung:
+  Buchstaben können sich verschieben, die dort verwendeten Buchstaben
+  werden dort weiterhin über `dfaBuchstabe()`/`kamaBuchstabe()` gelesen,
+  nur die Beschreibungstexte selbst sind statisch) - eine vollständige
+  Umstellung dieser beiden Stellen auf die gemeinsame Quelle würde
+  bedeuten, `index.html` zur Laufzeit aus JS zu befüllen, was über den
+  Rahmen dieser Änderung hinausgeht.
+- Massen-Übersicht auf vier weitere Module (Rinne, Einfassung rund,
+  Lukarne, Freies Profil) steht noch aus.
