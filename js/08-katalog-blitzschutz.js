@@ -401,13 +401,23 @@ $("measMaterialSettings").addEventListener("input",e=>{
  }
 });
 
-async function registerEmployee(vor,nach){
+// v3.103: email ist optional - ohne sie bleibt alles wie bisher (Konto nur
+// per Benutzername, Zugangsdaten stehen nur im Alert zum Weitergeben). Mit
+// E-Mail wird sie zusaetzlich zum Benutzernamen als Login-Kennung hinterlegt
+// (siehe resolve-login-email) und die Zugangsdaten werden per Resend
+// verschickt (mailVersendet in der Antwort - Resend im Testmodus verschickt
+// aktuell nur an die beim Resend-Konto selbst hinterlegte Adresse, siehe
+// CHANGELOG_HISTORIE.md, deshalb bleibt der Alert-Text so oder so die
+// verlaessliche Quelle).
+async function registerEmployee(vor,nach,email){
  vor=(vor||"").trim();nach=(nach||"").trim();
+ email=(email||"").trim();
  if(!vor||!nach)return false;
- const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach}});
+ const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach,email:email||undefined}});
  if(error){alert("Fehler: "+(await edgeFunctionErrorMessage(error,"Mitarbeiter konnte nicht angelegt werden.")));return false}
  if(!data?.ok){alert("Fehler: "+(data?.error||"Mitarbeiter konnte nicht angelegt werden."));return false}
- alert("Konto erstellt.\n\nBenutzername: "+data.username+"\nPasswort: "+data.password+"\n\nBitte notieren.");
+ const mailZeile=email?("\n\n"+(data.mailVersendet?"Die Zugangsdaten wurden zusätzlich an "+email+" gesendet.":"Die Zugangsdaten konnten NICHT per E-Mail an "+email+" gesendet werden - bitte manuell weitergeben.")):"";
+ alert("Konto erstellt.\n\nBenutzername: "+data.username+"\nPasswort: "+data.password+"\n\nBitte notieren."+mailZeile);
  return true;
 }
 
@@ -469,7 +479,10 @@ $("materialNext").onclick=()=>{materialPage++;renderMaterialSettings()};
 $("newEmployee").onclick=async()=>{
  const vor=prompt("Vorname des neuen Mitarbeiters?");if(!vor)return;
  const nach=prompt("Nachname des neuen Mitarbeiters?");if(!nach)return;
- if(await registerEmployee(vor,nach)){await loadAllData();renderSettings();renderMain()}
+ // v3.103: optional - leer lassen und OK/Abbrechen sind beide gueltig,
+ // nur eine ungueltige E-Mail wird von der Edge Function abgelehnt.
+ const email=prompt("E-Mail-Adresse des neuen Mitarbeiters? (optional - für Zugangsdaten per E-Mail und als zusätzliche Anmeldeadresse; leer lassen, wenn nicht gewünscht)")||"";
+ if(await registerEmployee(vor,nach,email)){await loadAllData();renderSettings();renderMain()}
 };
 $("newRate").onclick=async()=>{
  // UNIQUE(company_id,name) verhindert einen zweiten Eintrag mit demselben

@@ -1248,6 +1248,18 @@ Firmenadministratoren.</p>
 vollständige Löschung. Es gibt bewusst <b>keinen</b> Zugriff auf Projekte,
 Massaufnahmen oder Fotos einzelner Kundenfirmen.</p>`},
 
+"sysadmin-einladungen":{titel:"Einladungslinks",text:`
+<p>Eine Alternative zu "Neue Firma registrieren": statt die Firma selbst
+anzulegen, erzeugst du einen Link und verschickst ihn selbst (per Mail,
+WhatsApp o. ä.) an die Person, die die Firma anlegen soll.</p>
+<p>Ein Link funktioniert genau <b>einmal</b> und ist <b>7 Tage</b> gültig.
+Die eingeladene Person füllt das Formular selbst aus und wählt dabei ihr
+eigenes Passwort - anders als bei der direkten Registrierung wird dafür
+keine E-Mail mit Zugangsdaten verschickt, sie hat ihr Passwort ja gerade
+selbst eingegeben.</p>
+<p>Ein noch nicht verwendeter, noch gültiger Link lässt sich jederzeit
+zurückziehen.</p>`},
+
 "sysadmin-feedback":{titel:"Feedback aller Firmen",text:`
 <p>Die Rückmeldungen aus allen Firmen – der Weg, auf dem Pilotbetriebe
 Probleme melden.</p>

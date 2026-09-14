@@ -79,7 +79,65 @@ async function renderSystemAdminList(){
  // Mitarbeiterzahl getrennt für die Detailansicht.
  (countsRes.data||[]).forEach(r=>{sysAdminUserCounts[r.company_id]={user_count:r.user_count,admin_count:r.admin_count,employee_count:r.employee_count}});
  sysAdminRenderFilteredList();
+ if(typeof renderSysAdminEinladungen==="function")await renderSysAdminEinladungen();
 }
+
+// ---- Einladungslinks (v3.103) -------------------------------------------
+// Gezielte, einmal verwendbare Alternative zur direkten Registrierung -
+// der System-Admin erzeugt den Link und verschickt ihn selbst; die
+// eingeladene Person legt die Firma selbst an (#companyInviteScreen,
+// js/69-email-auth.js) und waehlt dabei ihr eigenes Passwort.
+function sysAdminZufallsToken(){
+ const bytes=new Uint8Array(24);
+ crypto.getRandomValues(bytes);
+ return Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+$("sysAdminEinladungErzeugen").onclick=async()=>{
+ $("sysAdminEinladungErzeugen").disabled=true;
+ try{
+  const token=sysAdminZufallsToken();
+  const ablauf=new Date(Date.now()+7*24*60*60*1000).toISOString();
+  const {error}=await sb.from("company_invites").insert({
+   token,created_by:currentProfile?currentProfile.id:null,expires_at:ablauf
+  });
+  if(error){alert("Fehler: "+error.message);return}
+  const link=location.origin+location.pathname+"?einladung="+token;
+  await renderSysAdminEinladungen();
+  // Zwischenablage nicht immer verfuegbar (z. B. ohne HTTPS) - deshalb
+  // zusaetzlich per alert() anzeigen, damit der Link so oder so lesbar ist.
+  try{ await navigator.clipboard.writeText(link); }catch(e){}
+  alert("Einladungslink erzeugt (in die Zwischenablage kopiert, falls möglich):\n\n"+link+"\n\n7 Tage gültig, einmal verwendbar.");
+ }finally{
+  $("sysAdminEinladungErzeugen").disabled=false;
+ }
+};
+async function renderSysAdminEinladungen(){
+ const box=$("sysAdminEinladungListe");
+ if(!box)return;
+ const {data,error}=await sb.from("company_invites").select("*").order("created_at",{ascending:false});
+ if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
+ const liste=data||[];
+ if(!liste.length){box.innerHTML='<div class="empty">Noch keine Einladungslinks erzeugt.</div>';return}
+ box.innerHTML=liste.map(e=>{
+  const abgelaufen=new Date(e.expires_at).getTime()<Date.now();
+  const status=e.used_at?"✓ verwendet am "+sysAdminFmtDate(e.used_at)
+   :(abgelaufen?"abgelaufen":"offen bis "+sysAdminFmtDate(e.expires_at));
+  const link=location.origin+location.pathname+"?einladung="+e.token;
+  return `<div class="settingrow" style="display:block;padding:8px 10px">
+<div class="small" style="word-break:break-all">${esc(link)}</div>
+<div class="small" style="color:var(--muted)">Erzeugt: ${sysAdminFmtDate(e.created_at)} · ${esc(status)}</div>
+${(!e.used_at&&!abgelaufen)?`<button type="button" class="red" data-einladung-loeschen="${e.id}" style="margin-top:4px">Zurückziehen</button>`:""}
+</div>`;
+ }).join("");
+}
+$("sysAdminEinladungListe").addEventListener("click",async e=>{
+ const b=e.target.closest("[data-einladung-loeschen]");
+ if(!b)return;
+ if(!confirm("Diesen Einladungslink zurückziehen? Er funktioniert danach nicht mehr."))return;
+ const {error}=await sb.from("company_invites").delete().eq("id",b.dataset.einladungLoeschen);
+ if(error){alert("Fehler: "+error.message);return}
+ await renderSysAdminEinladungen();
+});
 
 function sysAdminRenderFilteredList(){
  const box=$("systemAdminCompanyList");
@@ -260,7 +318,7 @@ $("sysAdminConfirmDelete").onclick=async()=>{
 function sysAdminResetRegisterForm(){
  $("companyRegisterError").textContent="";
  $("regCompanyName").value="";$("regFirstName").value="";$("regLastName").value="";
- $("regEmail").value="";$("regPassword").value="";$("regPassword2").value="";
+ $("regEmail").value="";
 }
 $("sysAdminOpenRegister").onclick=()=>{
  sysAdminResetRegisterForm();
@@ -277,23 +335,25 @@ $("companyRegisterBtn").onclick=async()=>{
  const vor=$("regFirstName").value.trim();
  const nach=$("regLastName").value.trim();
  const email=$("regEmail").value.trim().toLowerCase();
- const pw1=$("regPassword").value,pw2=$("regPassword2").value;
  if(!companyName){$("companyRegisterError").textContent="Bitte einen Firmennamen eingeben.";return}
  if(!vor||!nach){$("companyRegisterError").textContent="Bitte Vor- und Nachname eingeben.";return}
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$("companyRegisterError").textContent="Bitte eine gültige E-Mail-Adresse eingeben.";return}
- if(pw1.length<8){$("companyRegisterError").textContent="Das Passwort muss mindestens 8 Zeichen haben.";return}
- if(pw1!==pw2){$("companyRegisterError").textContent="Die beiden Passwort-Eingaben stimmen nicht überein.";return}
  $("companyRegisterBtn").disabled=true;
  try{
+  // v3.103: kein Passwort mehr vom System-Admin - wird serverseitig erzeugt
+  // und per E-Mail verschickt (siehe register-company).
   const {data,error}=await sb.functions.invoke("register-company",{body:{
-   company_name:companyName,first_name:vor,last_name:nach,email,password:pw1
+   company_name:companyName,first_name:vor,last_name:nach,email
   }});
   if(error){$("companyRegisterError").textContent=await edgeFunctionErrorMessage(error,"Registrierung fehlgeschlagen.");return}
   if(!data?.ok){$("companyRegisterError").textContent=data?.error||"Registrierung fehlgeschlagen.";return}
   $("systemAdminRegisterModal").hidden=true;
   $("systemAdminModal").hidden=false;
   await renderSystemAdminList();
-  sysAdminShowListSuccess("Firma "+data.company.name+" wurde registriert (Admin: "+data.user.email+").");
+  const mailZeile=data.mailVersendet
+   ?"Die Zugangsdaten wurden per E-Mail verschickt."
+   :"Die Zugangsdaten-Mail konnte NICHT verschickt werden - Passwort: "+data.passwort+" (bitte manuell weitergeben).";
+  sysAdminShowListSuccess("Firma "+data.company.name+" wurde registriert (Admin: "+data.user.email+"). "+mailZeile);
  }catch(err){
   $("companyRegisterError").textContent=(err&&err.message)?err.message:String(err);
  }finally{

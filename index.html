@@ -41,6 +41,61 @@
      Die Neu-Firmenregistrierung liegt vorerst ausschliesslich im
      System-Administration-Bereich (siehe #systemAdminRegisterModal,
      js/22-system-admin.js) - nicht mehr hier am Login. -->
+<!-- Passwort vergessen (v3.103): nur ein Link, klappt darunter ein kleines
+     Formular auf - kein eigener Bildschirmwechsel. Funktioniert nur fuer
+     Konten mit hinterlegter E-Mail (siehe js/69-email-auth.js); der feste
+     Hinweistext gilt IMMER, unabhaengig vom Ergebnis - kein Rueckschluss
+     darauf, ob ein Konto gefunden wurde (siehe Edge Function password-reset). -->
+<div class="small" style="margin-top:8px"><a href="#" id="pwVergessenLink">Passwort vergessen?</a></div>
+<div id="pwVergessenBox" hidden style="margin-top:8px">
+<div class="grid">
+<div class="wide"><label>Benutzername oder E-Mail</label><input id="pwVergessenLogin" placeholder="max.muster oder E-Mail"></div>
+</div>
+<div class="bar"><button type="button" id="pwVergessenSenden" class="blue">Link anfordern</button></div>
+<div class="small" style="color:var(--muted);margin-top:4px">Funktioniert nur, wenn zu deinem Konto eine E-Mail-Adresse hinterlegt ist. Ohne hinterlegte E-Mail wende dich bitte an deinen Firmenadministrator.</div>
+<div class="small" id="pwVergessenStatus" style="margin-top:4px"></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Neues Passwort setzen (v3.103): erscheint anstelle des Login-Bildschirms,
+     wenn die URL ?reset=<token> enthaelt (Link aus der Passwort-Reset-Mail). -->
+<div id="passwordResetScreen" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<div class="brand">SPENGLER-DIGITAL</div>
+<h1>Neues Passwort setzen</h1>
+<div class="grid">
+<div class="wide"><label>Neues Passwort</label><input id="prNeuesPasswort" type="password" autocomplete="new-password"></div>
+<div class="wide"><label>Neues Passwort wiederholen</label><input id="prNeuesPasswort2" type="password" autocomplete="new-password"></div>
+</div>
+<div class="bar"><button type="button" id="prSpeichern" class="blue">Passwort speichern</button></div>
+<div class="small" id="prError" style="color:var(--red)"></div>
+</div>
+</div>
+</div>
+
+<!-- Firma per Einladungslink anlegen (v3.103): erscheint anstelle des
+     Login-Bildschirms, wenn die URL ?einladung=<token> enthaelt. Dieselben
+     Felder wie frueher die oeffentliche Registrierung (siehe CHANGELOG_HISTORIE.md
+     Abschnitt 28) - jetzt aber nur mit gueltigem, gezielt verschicktem Token
+     statt fuer jeden Besucher offen. Die Person waehlt ihr Passwort selbst. -->
+<div id="companyInviteScreen" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<div class="brand">SPENGLER-DIGITAL</div>
+<h1>Firma anlegen</h1>
+<div class="grid">
+<div class="wide"><label>Firmenname</label><input id="ciCompanyName"></div>
+<div><label>Vorname</label><input id="ciFirstName"></div>
+<div><label>Nachname</label><input id="ciLastName"></div>
+<div class="wide"><label>E-Mail</label><input id="ciEmail" type="email" autocomplete="email"></div>
+<div><label>Passwort</label><input id="ciPassword" type="password" autocomplete="new-password"></div>
+<div><label>Passwort wiederholen</label><input id="ciPassword2" type="password" autocomplete="new-password"></div>
+</div>
+<div class="bar"><button type="button" id="ciSubmit" class="blue">Firma anlegen</button></div>
+<div class="small" id="ciError" style="color:var(--red)"></div>
 </div>
 </div>
 </div>
@@ -799,6 +854,20 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 </div>
 </div>
 
+<!-- Einladungslinks (v3.103): gezielte, einmal verwendbare Alternative zur
+     direkten Registrierung oben - der System-Admin erzeugt einen Link und
+     verschickt ihn selbst (per Mail, WhatsApp o. ä.), die eingeladene
+     Person legt die Firma dann selbst an (#companyInviteScreen) und waehlt
+     dabei ihr eigenes Passwort. Siehe js/22-system-admin.js. -->
+<div class="settings-section" data-section="sysadmin-einladungen">
+<div class="settings-section-head" data-toggle-section="sysadmin-einladungen"><h2>🔗 Einladungslinks <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin-einladungen">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Ein Link erlaubt genau eine Firmenanlage, 7 Tage gültig. Die eingeladene Person wählt ihr eigenes Passwort - es wird keine E-Mail damit verschickt.</div>
+<div class="bar" style="margin-bottom:10px"><button type="button" id="sysAdminEinladungErzeugen" class="green">🔗 Einladungslink erzeugen</button></div>
+<div id="sysAdminEinladungListe"></div>
+</div>
+</div>
+
 <div class="settings-section" data-section="sysadmin-feedback">
 <div class="settings-section-head" data-toggle-section="sysadmin-feedback"><h2>💬 Feedback aller Firmen <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin-feedback">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
@@ -861,25 +930,26 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 </div>
 </div>
 
-<!-- Firmenregistrierung: vorerst ausschliesslich über den System-Admin-
-     Bereich erreichbar (siehe Auftrag "Geschützter Einstellungsbereich +
-     Neue Firma registrieren"). Verwendet weiterhin dieselbe register-
-     company Edge Function wie zuvor der öffentliche Login-Flow - die
-     Formularfelder sind bewusst unverändert (regCompanyName, regFirstName,
-     ...), damit sich der Einstiegspunkt später wieder leicht verschieben
-     lässt, ohne die Logik neu zu bauen. -->
+<!-- Firmenregistrierung durch einen System-Admin: verwendet weiterhin
+     dieselbe register-company Edge Function wie zuvor der öffentliche
+     Login-Flow (siehe Auftrag "Geschützter Einstellungsbereich + Neue
+     Firma registrieren"). v3.103: kein Passwort-Feld mehr - das Passwort
+     wird serverseitig automatisch erzeugt (wie bei einem neuen
+     Mitarbeiter) und per E-Mail an die angegebene Adresse verschickt;
+     alternativ dazu kann jetzt auch ein gezielter Einladungslink erzeugt
+     werden (#sysAdminEinladungErzeugen weiter unten in
+     #systemAdminModal), bei dem die eingeladene Person ihr Passwort
+     selbst wählt (#companyInviteScreen). -->
 <div id="systemAdminRegisterModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
 <h2>🏢 Neue Firma registrieren</h2>
-<div class="info">Legt eine neue Firma mit 30 Tagen Testphase an. Der eigene System-Admin-Zugang bleibt dabei unverändert bestehen – es findet keine automatische Anmeldung als neue Firma statt.</div>
+<div class="info">Legt eine neue Firma mit 30 Tagen Testphase an. Der eigene System-Admin-Zugang bleibt dabei unverändert bestehen – es findet keine automatische Anmeldung als neue Firma statt. Das Passwort wird automatisch erzeugt und an die angegebene E-Mail-Adresse verschickt.</div>
 <div class="grid">
 <div class="wide"><label>Firmenname</label><input id="regCompanyName" data-pflicht="1" autocomplete="organization"></div>
 <div><label>Vorname</label><input id="regFirstName" data-pflicht="1" autocomplete="given-name"></div>
 <div><label>Nachname</label><input id="regLastName" data-pflicht="1" autocomplete="family-name"></div>
 <div class="wide"><label>E-Mail</label><input id="regEmail" data-pflicht="1" type="email" autocomplete="email"></div>
-<div><label>Passwort</label><input id="regPassword" data-pflicht="1" type="password" autocomplete="new-password"></div>
-<div><label>Passwort bestätigen</label><input id="regPassword2" data-pflicht="1" type="password" autocomplete="new-password"></div>
 </div>
 <div class="bar">
 <button id="companyRegisterBtn" class="green">Firma registrieren</button>
@@ -2565,6 +2635,7 @@ nicht neu installieren.</div>
 <script src="js/66-dachfenster-aufnahme.js"></script>
 <script src="js/67-was-ist-neu.js"></script>
 <script src="js/68-lagerverwaltung.js"></script>
+<script src="js/69-email-auth.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

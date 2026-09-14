@@ -8,7 +8,11 @@ markierePflichtfelder();
 if(typeof hilfeKnoepfeBeschriften==="function")hilfeKnoepfeBeschriften();
 
 // ---- Start: bestehende Sitzung prüfen -------------------------
+// v3.103: ?reset=... bzw. ?einladung=... in der URL zeigen einen der
+// beiden neuen, oeffentlich erreichbaren Bildschirme (siehe
+// js/69-email-auth.js) statt der normalen Anmeldung/Sitzungspruefung.
 (async()=>{
+ if(typeof emailAuthBootWeiche==="function"&&emailAuthBootWeiche())return;
  const {data:{session}}=await sb.auth.getSession();
  if(session)await afterLogin();
 })();

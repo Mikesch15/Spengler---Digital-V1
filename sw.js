@@ -98,7 +98,8 @@ const SHELL = [
   "./js/65-leistungen.js",
   "./js/66-dachfenster-aufnahme.js",
   "./js/67-was-ist-neu.js",
-  "./js/68-lagerverwaltung.js"
+  "./js/68-lagerverwaltung.js",
+  "./js/69-email-auth.js"
 ];
 
 self.addEventListener("install", event => {

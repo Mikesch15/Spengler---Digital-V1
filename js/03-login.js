@@ -17,6 +17,24 @@ function usernameToEmail(u){
  if(u.includes("@"))return u.toLowerCase();
  return u.toLowerCase().replace(/\s+/g,"")+"@nfgryuzkpwjfmdlmevuy.supabase.co";
 }
+// v3.103: ein Mitarbeiter kann zusaetzlich zum Benutzernamen eine echte
+// E-Mail hinterlegt haben (profiles.email) - seine tatsaechliche Auth-
+// E-Mail bleibt dabei die Pseudo-Adresse oben (kein riskanter Umzug).
+// Bei einer Eingabe MIT "@" muss deshalb serverseitig aufgeloest werden,
+// welche echte Auth-E-Mail dazugehoert - resolve-login-email uebernimmt
+// das. Schlaegt die Anfrage fehl (z. B. offline), faellt es auf das
+// bisherige Verhalten zurueck (Eingabe direkt als E-Mail verwenden) -
+// das deckt weiterhin den Fall "selbst registrierter Firmenadmin" ab und
+// blockiert die Anmeldung nicht.
+async function loginEmailAufloesen(u){
+ const einfach=usernameToEmail(u);
+ if(!u.includes("@"))return einfach;
+ try{
+  const {data,error}=await sb.functions.invoke("resolve-login-email",{body:{login:u}});
+  if(!error&&data&&data.email)return data.email;
+ }catch(e){/* siehe oben - Ausfallebene unten */}
+ return einfach;
+}
 function showLoginErr(msg){$("loginError").textContent=msg||""}
 
 $("loginBtn").onclick=async()=>{
@@ -24,7 +42,8 @@ $("loginBtn").onclick=async()=>{
  const u=$("loginUser").value.trim(), p=$("loginPass").value;
  if(!u||!p){showLoginErr("Bitte Benutzername und Passwort eingeben.");return}
  $("loginBtn").disabled=true;
- const {error}=await sb.auth.signInWithPassword({email:usernameToEmail(u),password:p});
+ const email=await loginEmailAufloesen(u);
+ const {error}=await sb.auth.signInWithPassword({email,password:p});
  $("loginBtn").disabled=false;
  if(error){showLoginErr("Benutzername oder Passwort falsch.");return}
  await afterLogin();
