@@ -974,7 +974,7 @@ function dfaRegisterHtml(){
  const pr=dfaPruefungen();
  const fehler=pr.filter(x=>x.art==="fehler").length;
  const warn=pr.length-fehler;
- return `<div class="ra-register" id="dfa_register">`+DFA_REGISTER.map(r=>{
+ return raFortschrittHtml(dfaSchritt,DFA_REGISTER.length)+`<div class="ra-register" id="dfa_register">`+DFA_REGISTER.map(r=>{
   const marke=r.nr===DFA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===dfaSchritt?" aktiv":""}" data-dfa-schritt="${r.nr}">`

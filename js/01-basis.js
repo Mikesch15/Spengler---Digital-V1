@@ -121,6 +121,24 @@ function pflichtPruefenUndSpringen(wurzel){
  return false;
 }
 
+// v3.91: Fortschrittsbalken fuer mehrstufige Register-Formulare (alle
+// Massaufnahme-Arten) - eine gemeinsame Stelle statt einer eigenen Kopie je
+// Modul. Zeigt die Position im Ablauf (Register X von Y), KEINE
+// Vollstaendigkeitspruefung aller uebrigen Register: nur das gerade aktive
+// Register steht im DOM, die anderen sind es nicht - eine echte "so viele
+// Register sind schon fehlerfrei" -Anzeige muesste je Modul jeden Eintrag
+// aus dessen eigener Pruefungen()-Funktion einer Registernummer zuordnen,
+// was es heute nicht gibt. Die bestehende "Weiter"-Sperre
+// (pflichtPruefenUndSpringen) verhindert schon, dass ein Register mit einer
+// Luecke verlassen wird - das genuegt hier als Grundlage.
+function raFortschrittHtml(schritt,gesamt){
+ if(!(gesamt>1))return "";
+ const proz=Math.max(0,Math.min(100,Math.round((schritt/gesamt)*100)));
+ return `<div class="ra-fortschritt">Register ${schritt} von ${gesamt}
+<div class="ra-fortschritt-bahn"><div class="ra-fortschritt-balken" style="width:${proz}%"></div></div>
+</div>`;
+}
+
 // v3.67: ein kleiner Chip neben einem leeren Pflichtfeld, das einen
 // Firmen-Richtwert hat (Einstellungen oder Katalog). Antippen uebernimmt
 // den Wert - der Nutzer sieht die Zahl vorher und bestaetigt sie aktiv,

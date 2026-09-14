@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.90</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.91</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -702,6 +702,19 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 </div>
 </div>
 
+<!-- "Was ist neu": kurzer, rein informativer Hinweis nach einem Update
+     (js/67-was-ist-neu.js). Wird ausschliesslich lokal (localStorage)
+     gesteuert, keine Rueckwirkung auf Daten oder Berechnung. -->
+<div id="wasIstNeuModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>🆕 Was ist neu</h2>
+<div id="wasIstNeuBody"></div>
+<div class="bar"><button id="wasIstNeuFertig" class="green">✓ Fertig</button></div>
+</div>
+</div>
+</div>
+
 <!-- SYSTEM-ADMINISTRATION: nur für Benutzer in system_admins erreichbar
      (is_system_admin()). Verwaltet ausschliesslich companies (Trial/
      Status) - keine Projekt-/Massaufnahme-/Fotodaten. Getrennt von der
@@ -1130,6 +1143,7 @@ mindestens eines von beiden ist nötig.</div>
      hier und werden von js/40 nur ein- und ausgeblendet; geschrieben
      wird ausschliesslich in #anba_seite5 bis #anba_seite7.
      =================================================================== -->
+<div id="anba_fortschritt"></div>
 <div class="ra-register" id="anba_register"></div>
 
 <div id="anba_seite1" class="anba-seite" hidden>
@@ -1235,6 +1249,7 @@ mindestens eines von beiden ist nötig.</div>
      und werden von js/39 nur ein- und ausgeblendet; geschrieben wird
      ausschliesslich in #rpa_seite4 bis #rpa_seite6.
      =================================================================== -->
+<div id="rpa_fortschritt"></div>
 <div class="ra-register" id="rpa_register"></div>
 
 <div id="rpa_seite1" class="rpa-seite" hidden>
@@ -2438,6 +2453,7 @@ nicht neu installieren.</div>
 <script src="js/64-ausfuehrung.js"></script>
 <script src="js/65-leistungen.js"></script>
 <script src="js/66-dachfenster-aufnahme.js"></script>
+<script src="js/67-was-ist-neu.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

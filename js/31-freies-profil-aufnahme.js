@@ -531,7 +531,7 @@ function fpaRegisterHtml(){
  const pr=fpaPruefungen();
  const fehler=pr.filter(m=>m.art==="fehler").length;
  const warn=pr.length-fehler;
- return `<div class="ra-register" id="fpa_register">`+FPA_REGISTER.map(r=>{
+ return raFortschrittHtml(fpaSchritt,FPA_REGISTER.length)+`<div class="ra-register" id="fpa_register">`+FPA_REGISTER.map(r=>{
   const marke=r.nr===FPA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===fpaSchritt?" aktiv":""}" data-fpa-schritt="${r.nr}">`

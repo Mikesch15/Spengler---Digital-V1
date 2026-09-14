@@ -997,7 +997,7 @@ function raRegisterHtml(){
  const p=raPruefungen(rinneA);
  const fehler=p.filter(m=>m.art==="fehler").length;
  const warn=p.length-fehler;
- return `<div class="ra-register" id="ra_register">`+RA_REGISTER.map(r=>{
+ return raFortschrittHtml(raSchritt,RA_REGISTER.length)+`<div class="ra-register" id="ra_register">`+RA_REGISTER.map(r=>{
   const marke=r.nr===RA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===raSchritt?" aktiv":""}" data-ra-schritt="${r.nr}">`

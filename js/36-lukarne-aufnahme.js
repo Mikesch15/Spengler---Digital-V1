@@ -428,7 +428,7 @@ function lukaRegisterHtml(){
  const pr=lukaPruefungen();
  const fehler=pr.filter(x=>x.art==="fehler").length;
  const warn=pr.length-fehler;
- return `<div class="ra-register" id="luka_register">`+LUKA_REGISTER.map(r=>{
+ return raFortschrittHtml(lukaSchritt,LUKA_REGISTER.length)+`<div class="ra-register" id="luka_register">`+LUKA_REGISTER.map(r=>{
   const marke=r.nr===LUKA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===lukaSchritt?" aktiv":""}" data-luka-schritt="${r.nr}">`

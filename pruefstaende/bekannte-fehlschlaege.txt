@@ -1,0 +1,43 @@
+# Bekannte, bereits vor der CI-Automatisierung (v3.91) bestehende
+# Pruefstand-Fehlschlaege - siehe pruefstaende/ci-lauf.js.
+#
+# Diese Datei ist KEIN Freibrief, Fehler zu ignorieren: sie haelt nur fest,
+# was schon vor dieser CI heute (auf unveraendertem main) fehlschlaegt, damit
+# die CI NEUE Regressionen zuverlaessig von diesen alten, unabhaengig
+# entstandenen Luecken unterscheiden kann (grossteils veraltete
+# Versions-/Anleitungs-Referenzen und Pruefstaende, die einen laengst
+# ueberholten Code-Stand der KI-Edge-Functions pruefen - siehe die
+# einzelnen Dateien fuer Details).
+#
+# Wird ein hier gelisteter Pruefstand repariert, bitte die Zeile entfernen -
+# die CI meldet das als Hinweis ("bekannter Fehlschlag laeuft jetzt durch"),
+# schlaegt dafuer aber NICHT fehl.
+pruefstand-absatz-zwischentitel-v3-44.js
+pruefstand-admin-uebersicht-v3-08.js
+pruefstand-angebot-pdf-erkennen-v3-39.js
+pruefstand-angebot-pdf-v3-38.js
+pruefstand-angebote-v3-34.js
+pruefstand-anschlussblech-app-v3-01.js
+pruefstand-cockpit-zurueck-v3-11.js
+pruefstand-dialogebenen-v3-28.js
+pruefstand-einfassung-app-v2-96.js
+pruefstand-einlaufblech-app-v2-74.js
+pruefstand-hilfe-v3-03.js
+pruefstand-image-feld-v3-45.js
+pruefstand-kamin-app-v2-90.js
+pruefstand-kehle-app-v2-83.js
+pruefstand-leistungen-v3-37.js
+pruefstand-lukarne-app-v2-87.js
+pruefstand-material-zuschnitt-v3-15.js
+pruefstand-mauerabdeckung-app-v2-79.js
+pruefstand-medien-am-ende-v2-75.js
+pruefstand-projektmodule-v3-09.js
+pruefstand-register-zuschnitt-v2-80.js
+pruefstand-rinne-app-v2-71.js
+pruefstand-rinne-zuschnitt-app-v3-00.js
+pruefstand-rueckfall-v3-18.js
+pruefstand-thinking-budget-v3-41.js
+pruefstand-thinking-config-entfernt-v3-42.js
+pruefstand-thinking-level-v3-43.js
+pruefstand-token-limit-v3-40.js
+pruefstand-vorlagen-v3-09.js

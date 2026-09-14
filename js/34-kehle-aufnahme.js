@@ -450,7 +450,7 @@ function keaRegisterHtml(){
  const pr=keaPruefungen();
  const fehler=pr.filter(x=>x.art==="fehler").length;
  const warn=pr.length-fehler;
- return `<div class="ra-register" id="kea_register">`+KEA_REGISTER.map(r=>{
+ return raFortschrittHtml(keaSchritt,KEA_REGISTER.length)+`<div class="ra-register" id="kea_register">`+KEA_REGISTER.map(r=>{
   const marke=r.nr===KEA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===keaSchritt?" aktiv":""}" data-kea-schritt="${r.nr}">`

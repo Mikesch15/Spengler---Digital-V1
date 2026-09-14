@@ -133,6 +133,8 @@ async function afterLogin(){
  renderMain();
  await applyRechte();
  showStart();
+ // v3.91 "Was ist neu" - rein informativ, siehe js/67-was-ist-neu.js.
+ if(typeof winPruefen==="function")winPruefen();
  // Was ohne Verbindung erfasst wurde, jetzt uebertragen (v3.04). Erst hier -
  // vorher steht die company_id des Aufrufers noch nicht fest, und ohne sie
  // duerfte die Warteschlange gar nicht gelesen werden.

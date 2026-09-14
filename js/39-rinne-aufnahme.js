@@ -381,6 +381,8 @@ function renderRinneAufnahmeRegister(){
  rpaZeichnet=true;
  try{
  if(leiste)leiste.innerHTML=rpaRegisterHtml();
+ const fortschritt=$("rpa_fortschritt");
+ if(fortschritt)fortschritt.innerHTML=raFortschrittHtml(rpaSchritt,RPA_REGISTER.length);
  for(let n=1;n<=RPA_REGISTER.length;n++){
   const seite=$("rpa_seite"+n);
   if(seite)seite.hidden=(n!==rpaSchritt);

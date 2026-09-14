@@ -1083,7 +1083,7 @@ function ebaRegisterHtml(){
  const p=ebaPruefungen();
  const fehler=p.filter(m=>m.art==="fehler").length;
  const warn=p.length-fehler;
- return `<div class="ra-register" id="eba_register">`+EBA_REGISTER.map(r=>{
+ return raFortschrittHtml(ebaSchritt,EBA_REGISTER.length)+`<div class="ra-register" id="eba_register">`+EBA_REGISTER.map(r=>{
   const marke=r.nr===EBA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===ebaSchritt?" aktiv":""}" data-eba-schritt="${r.nr}">`

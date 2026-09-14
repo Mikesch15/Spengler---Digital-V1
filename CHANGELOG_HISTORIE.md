@@ -26664,3 +26664,121 @@ dieser Änderung (Zeile für Zeile identisch, u. a.
   Anwender ausdrücklich so gewollt (R war ein Fehler), aber falls
   dadurch ein bereits gedrucktes/geschnittenes Teil zu kurz erscheint,
   ist das eine rückwirkende Neuberechnung, kein Datenverlust.
+
+## 156. CI-AUTOMATISIERUNG, "WAS IST NEU" UND FORTSCHRITTSANZEIGE — VERSION 3.91
+
+### 156.1 Anlass
+
+Auf die Frage des Anwenders nach allgemeinen Ideen für eine
+übersichtlichere, einfacher zu bedienende App wurden fünf Vorschläge
+gemacht; der Anwender bat darum, alle umzusetzen. Drei davon liessen
+sich mit vertretbarem Risiko sofort umsetzen (dieser Eintrag); die
+beiden übrigen – die Massen-Übersicht auf vier weitere Module
+auszuweiten und die Massbezeichnungen bei Kamin/Dachfenster auf eine
+einzige Textquelle umzustellen – sind ein Vielfaches grösser (vier
+neue Buchstaben-/Legende-Systeme von Grund auf bzw. ein Umbau zweier
+bereits produktiv genutzter Rechenmodule) und werden separat
+angegangen.
+
+### 156.2 Umsetzung
+
+**CI: automatische Prüfstand-Läufe** (`.github/workflows/pruefstaende.yml`,
+`pruefstaende/ci-lauf.js`, `pruefstaende/bekannte-fehlschlaege.txt`):
+bei jedem Push/PR laufen alle 68 Prüfstände (Node + Playwright-Core +
+Chromium, `npx playwright-core install --with-deps chromium`). Damit
+die CI nicht wegen der immer schon bestehenden 29 unabhängigen
+Fehlschläge (veraltete Anleitungs-Versionsangaben, Edge-Function-
+Prüfungen gegen einen überholten Code-Stand u. Ä.) dauerhaft rot ist,
+hält `bekannte-fehlschlaege.txt` diese 29 namentlich fest;
+`ci-lauf.js` vergleicht jeden Lauf dagegen und schlägt nur bei einer
+NEUEN, nicht gelisteten Regression fehl – ein vormals bekannter
+Fehlschlag, der wieder durchläuft, wird als Hinweis gemeldet, nicht
+als Fehler.
+
+**"Was ist neu"** (`js/67-was-ist-neu.js`, `index.html` neues Modal
+`wasIstNeuModal`, Aufruf in `js/03-login.js` nach `showStart()`): beim
+ersten Login nach einem Versionswechsel erscheint ein kurzer Hinweis
+mit einer handverlesenen Kurzfassung der Änderungen seit der zuletzt
+gesehenen Version (`WIN_CHANGELOG`, lokal in localStorage gemerkt,
+`sd_letzteGesehenVersion`). Ein ganz neues Gerät sieht beim allerersten
+Start nichts (nur die aktuelle Version wird gemerkt) - eine neue
+Installation muss nicht die gesamte Versionsgeschichte durchklicken.
+Dabei fiel auf: `js/07-einstellungen.js` griff für den Sicherungs-
+Zeitstempel schon seit längerem auf ein nicht existierendes
+`#appVersion`-Element zu (`$("appVersion")?...`, lief still auf einen
+leeren String) - die Versionszeile in `index.html` trägt jetzt
+`id="appVersion"`, was auch diese bereits bestehende, bisher
+wirkungslose Stelle repariert.
+
+**Fortschrittsanzeige** (`js/01-basis.js` `raFortschrittHtml()`, neue
+CSS-Klassen `.ra-fortschritt*` in `css/01-basis.css`): eine einzige,
+gemeinsame Funktion statt zwölf einzelner Kopien, in alle zwölf
+Register-Module eingebunden (Dachfenster, Kamin, Einlaufblech gerade/
+konisch, Anschlussblech, Rinne halbrund, Rinne (Zuschnittliste),
+Einfassung rund, Lukarne, Kehle, Mauerabdeckung, Freies Profil) - zeigt
+"Register X von Y" mit einem schmalen Balken über der Registerleiste.
+Bewusst KEINE Vollständigkeitsprüfung aller übrigen Register: nur das
+aktive Register steht im DOM, die anderen nicht - eine echte "so viele
+Register sind schon fehlerfrei ausgefüllt"-Anzeige bräuchte je Modul
+eine Zuordnung jedes Pruefungen()-Eintrags zu einer Registernummer, die
+es heute nicht gibt und die den Rahmen dieser Änderung gesprengt hätte.
+Die bestehende "Weiter"-Sperre (`pflichtPruefenUndSpringen`, v3.67)
+verhindert weiterhin, dass ein Register mit einer Lücke verlassen
+wird. Zehn Module binden die Anzeige direkt in ihre bestehende
+`xxxRegisterHtml()`-Funktion ein; zwei (Anschlussblech, Rinne
+(Zuschnittliste)) rendern ihre Registerleiste in ein FEST in
+`index.html` stehendes Element - dort wurde ein zusätzliches
+Geschwister-Element ergänzt und in der jeweiligen `render...()`-
+Funktion separat befüllt.
+
+### 156.3 Getestet
+
+CI-Skript lokal gegen den unveränderten Stand laufen lassen: 39/68
+laufen durch, 29 Fehlschläge, alle 29 bereits in
+`bekannte-fehlschlaege.txt` geführt, Exit-Code 0 (keine neue
+Regression). "Was ist neu" per Playwright-Direktaufruf geprüft: erster
+Start zeigt nichts und merkt nur die Version; ein Sprung von 3.88 auf
+3.91 zeigt die Einträge für 3.89, 3.90 und 3.91; dieselbe Version
+zweimal zeigt nichts erneut; der Fertig-Knopf schliesst den Dialog.
+Dabei zunächst selbst eine Regression verursacht und behoben: ein
+verschachteltes `<span>` um die Versionszahl hätte den bestehenden
+`/>Version ([0-9]+\.[0-9]+)</`-Rohtext-Regext von
+`pruefstand-hilfe-v3-03.js` gebrochen - stattdessen bekam das
+UMGEBENDE `<div>` die `id`, der Rohtext bleibt unverändert, die Zahl
+wird in `winAktuelleVersion()` per eigenem Regex aus dem vollen Text
+gelesen. Fortschrittsanzeige per Playwright in allen zwölf Modulen
+direkt aufgerufen (inkl. der beiden Sonderfälle mit fest in
+`index.html` stehender Registerleiste) - überall erscheint die
+erwartete "Register X von Y"-Zeile mit korrektem Prozentwert.
+`pruefstand-vermassung-v3-32.js` weiterhin 54/54. Volle Regression
+(69 Prüfstände über `ci-lauf.js`): 39/68 durch, alle 29 Fehlschläge
+identisch mit der bekannten Liste, keine neue Regression.
+
+### 156.4 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `.github/workflows/pruefstaende.yml` | Neuer GitHub-Actions-Workflow |
+| `pruefstaende/ci-lauf.js` | Neuer CI-Runner mit Baseline-Vergleich |
+| `pruefstaende/bekannte-fehlschlaege.txt` | Liste der 29 bereits bestehenden Fehlschläge |
+| `js/67-was-ist-neu.js` | Neues Modul: Versionsvergleich, `WIN_CHANGELOG`, Anzeige |
+| `index.html` | `id="appVersion"` auf die Versionszeile, neues Modal `wasIstNeuModal`, Geschwister-Elemente `anba_fortschritt`/`rpa_fortschritt` |
+| `js/03-login.js` | Aufruf `winPruefen()` nach `showStart()` |
+| `js/01-basis.js` | Neue Funktion `raFortschrittHtml()` |
+| `css/01-basis.css` | Neue Klassen `.ra-fortschritt`, `.ra-fortschritt-bahn`, `.ra-fortschritt-balken` |
+| `js/66-dachfenster-aufnahme.js`, `js/37-kamin-aufnahme.js`, `js/29-einlaufblech-aufnahme.js`, `js/30-einlaufblech-konisch-aufnahme.js`, `js/40-anschlussblech-aufnahme.js`, `js/39-rinne-aufnahme.js`, `js/38-einfassung-aufnahme.js`, `js/36-lukarne-aufnahme.js`, `js/34-kehle-aufnahme.js`, `js/32-mauerabdeckung-aufnahme.js`, `js/31-freies-profil-aufnahme.js`, `js/28-rinne-aufnahme.js` | `raFortschrittHtml()` in die jeweilige Registerleiste eingebunden |
+| `sw.js` | Neuer Shell-Eintrag `js/67-was-ist-neu.js`, Version 3.91 |
+
+### 156.5 Offene Punkte
+
+- Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
+  immer).
+- `WIN_CHANGELOG` ist eine von Hand gepflegte Kurzfassung - bei jeder
+  künftigen, versionserhöhenden Änderung muss dort ein Eintrag ergänzt
+  werden, sonst zeigt "Was ist neu" für diese Version nichts (kein
+  Fehler, nur ein stiller Leerlauf).
+- Die Fortschrittsanzeige zeigt die Position im Ablauf, nicht die
+  Vollständigkeit aller Register - siehe Begründung oben.
+- Massen-Übersicht auf vier weitere Module und die Umstellung der
+  Kamin/Dachfenster-Massbezeichnungen auf eine einzige Textquelle
+  stehen noch aus (deutlich grösserer Umbau, siehe 156.1).

@@ -1,0 +1,28 @@
+name: Prüfstände
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pruefstaende:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Playwright-Core installieren
+        run: npm install playwright-core@latest --no-save
+
+      - name: Chromium installieren
+        run: npx playwright-core install --with-deps chromium
+
+      - name: Alle Prüfstände laufen lassen
+        env:
+          SP: ${{ github.workspace }}
+        run: node pruefstaende/ci-lauf.js

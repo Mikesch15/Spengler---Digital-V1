@@ -616,7 +616,7 @@ function madaRegisterHtml(){
  const pr=madaPruefungen();
  const fehler=pr.filter(m=>m.art==="fehler").length;
  const warn=pr.length-fehler;
- return `<div class="ra-register" id="mada_register">`+MADA_REGISTER.map(r=>{
+ return raFortschrittHtml(madaSchritt,MADA_REGISTER.length)+`<div class="ra-register" id="mada_register">`+MADA_REGISTER.map(r=>{
   const marke=r.nr===MADA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Fehler":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===madaSchritt?" aktiv":""}" data-mada-schritt="${r.nr}">`

@@ -561,6 +561,13 @@ table.zu-vergleich td{white-space:nowrap}
 .ra-register-punkt{width:8px;height:8px;border-radius:50%;background:#d9822b;flex:0 0 auto}
 .ra-register-punkt.fehler{background:#b42318}
 .ra-register-knopf.aktiv .ra-register-punkt{box-shadow:0 0 0 2px #fff}
+/* Fortschrittsbalken ueber der Registerleiste (v3.91, js/01-basis.js
+   raFortschrittHtml) - zeigt nur die Position im Ablauf, siehe Kommentar dort. */
+.ra-fortschritt{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;
+ letter-spacing:.03em;margin:2px 0 0}
+.ra-fortschritt-bahn{height:5px;background:var(--blue-light);border-radius:999px;
+ margin-top:4px;overflow:hidden}
+.ra-fortschritt-balken{height:100%;background:var(--blue);border-radius:999px;transition:width .2s}
 .ra-blaettern{justify-content:space-between;margin-top:14px}
 .ra-blaettern button{flex:1 1 46%;min-height:46px;font-weight:700}
 

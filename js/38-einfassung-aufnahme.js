@@ -466,7 +466,7 @@ function einfaRegisterHtml(){
  const m=einfaPruefungen();
  const fehler=m.filter(x=>x.art==="fehler").length;
  const warn=m.length-fehler;
- return `<div class="ra-register" id="einfa_register">`+EINFA_REGISTER.map(r=>{
+ return raFortschrittHtml(einfaSchritt,EINFA_REGISTER.length)+`<div class="ra-register" id="einfa_register">`+EINFA_REGISTER.map(r=>{
   const marke=r.nr===EINFA_KONTROLLE&&m.length
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${
       fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";

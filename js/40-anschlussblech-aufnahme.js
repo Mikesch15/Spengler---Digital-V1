@@ -328,6 +328,8 @@ function renderAnschlussblechAufnahme(){
  anbaZeichnet=true;
  try{
  if(leiste)leiste.innerHTML=anbaRegisterHtml();
+ const fortschritt=$("anba_fortschritt");
+ if(fortschritt)fortschritt.innerHTML=raFortschrittHtml(anbaSchritt,ANBA_REGISTER.length);
  for(let n=1;n<=ANBA_REGISTER.length;n++){
   const seite=$("anba_seite"+n);
   if(seite)seite.hidden=(n!==anbaSchritt);

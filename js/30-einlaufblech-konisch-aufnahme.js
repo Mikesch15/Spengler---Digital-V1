@@ -432,7 +432,7 @@ function ebkaRegisterHtml(){
  const pr=ebkaPruefungen();
  const fehler=pr.filter(m=>m.art==="fehler").length;
  const warn=pr.length-fehler;
- return `<div class="ra-register" id="ebka_register">`+EBKA_REGISTER.map(r=>{
+ return raFortschrittHtml(ebkaSchritt,EBKA_REGISTER.length)+`<div class="ra-register" id="ebka_register">`+EBKA_REGISTER.map(r=>{
   const marke=r.nr===EBKA_KONTROLLE&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===ebkaSchritt?" aktiv":""}" data-ebka-schritt="${r.nr}">`
