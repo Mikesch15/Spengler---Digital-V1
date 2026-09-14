@@ -399,3 +399,45 @@ document.addEventListener("click",e=>{
  isDirty=true;
  renderReportFotos();
 });
+
+// ---------------------------------------------------------------------------
+// Digitale Unterschrift im Regierapport (v3.100)
+//
+// Nutzt die bestehende Skizzenflaeche (openSketchFullscreen aus
+// js/10-massaufnahme.js) im bereits vorhandenen Callback-Modus (siehe
+// js/14-freies-profil.js, fp_sketchRecognize) - keine neue Zeichenflaeche.
+// Gespeichert wird das Ergebnis direkt als data:-URL auf der Rapport-Zeile
+// (reports.signature_client / .signature_employee), nicht im Storage: eine
+// Unterschrift ist winzig, ein Upload-Umweg wie bei den Rapport-Fotos waere
+// hier unnoetig. Ohne Unterschrift bleibt der Ausdruck unveraendert (siehe
+// css/03-druck.css) - eine von Hand unterschriebene Papierkopie funktioniert
+// weiterhin genauso wie bisher.
+let signatureClient=null, signatureEmployee=null;
+
+function renderSignatures(){
+ [["Client",signatureClient],["Employee",signatureEmployee]].forEach(([wer,src])=>{
+  const thumb=$("sigThumb"+wer), status=$("sigStatus"+wer), clear=$("sigClear"+wer);
+  const printImg=$("sigPrint"+wer);
+  if(thumb){thumb.src=src||"";thumb.style.display=src?"inline-block":"none"}
+  if(status)status.textContent=src?"✓ Unterschrieben.":"Noch keine Unterschrift.";
+  if(clear)clear.hidden=!src;
+  if(printImg){
+   printImg.src=src||"";
+   printImg.hidden=!src;
+   const block=printImg.closest(".sig-block");
+   if(block)block.classList.toggle("hat-unterschrift",!!src);
+  }
+ });
+}
+function unterschriftErfassen(wer){
+ if(typeof openSketchFullscreen!=="function")return;
+ openSketchFullscreen(null,null,dataUrl=>{
+  if(wer==="Client")signatureClient=dataUrl; else signatureEmployee=dataUrl;
+  isDirty=true;
+  renderSignatures();
+ });
+}
+if($("sigBtnClient"))$("sigBtnClient").onclick=()=>unterschriftErfassen("Client");
+if($("sigBtnEmployee"))$("sigBtnEmployee").onclick=()=>unterschriftErfassen("Employee");
+if($("sigClearClient"))$("sigClearClient").onclick=()=>{signatureClient=null;isDirty=true;renderSignatures()};
+if($("sigClearEmployee"))$("sigClearEmployee").onclick=()=>{signatureEmployee=null;isDirty=true;renderSignatures()};

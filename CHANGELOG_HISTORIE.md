@@ -27631,3 +27631,102 @@ Dokumentation/Versionsmarkierung:
 - Noch nicht durch den echten täglichen Lauf um 06:00 UTC bestätigt
   (nur der manuelle Test-Aufruf) - der Anwender sollte den Eingang der
   Test-Mail selbst bestätigen.
+
+## 166. DIGITALE UNTERSCHRIFT IM REGIERAPPORT — VERSION 3.100
+
+### 166.1 Anlass
+
+Letzter offener Punkt aus der Ideenliste vom 14.09.2026 ("Setze das alles
+um, bis auf den Barcode-Scan"): Auftraggeber und ausführender Mitarbeiter
+sollen direkt auf dem Gerät unterschreiben können, statt nur auf dem
+Papierausdruck mit dem Stift.
+
+### 166.2 Umsetzung
+
+**Keine neue Zeichenfläche gebaut.** Die App hat bereits eine getestete,
+mehrfach genutzte Skizzenfläche (`openSketchFullscreen` in
+`js/10-massaufnahme.js`, A4-Hochformat-Canvas mit Stift/Radierer/Zoom) und
+bereits einen Callback-Modus dafür (`js/14-freies-profil.js`, KI-
+Formerkennung aus einer Skizze). Die Unterschrift ruft genau diesen
+bestehenden Callback-Modus auf (`openSketchFullscreen(null,null,dataUrl=>
+{...})`) statt eine eigene, ungetestete Zeichenfläche parallel
+aufzubauen (CLAUDE.md: "Bestehende Module sollen grundsätzlich erweitert
+werden, anstatt unnötig parallel neue Systeme aufzubauen").
+
+**Speicherung:** anders als die Rapport-Fotos (`photo_paths` → Storage-
+Pfad) wird die Unterschrift bewusst NICHT in den Storage hochgeladen,
+sondern als `data:image/png;base64`-URL direkt in zwei neuen Spalten der
+Zeile gespeichert (`reports.signature_client`,
+`reports.signature_employee`, beide nullable text). Eine Unterschrift ist
+eine winzige, überwiegend weisse PNG-Zeichnung - ein eigener Upload-Umweg
+mit Speicherpfad-Konvention und Storage-Policy wäre hier unverhältnismässig.
+
+**Oberfläche:** eine neue Karte "✍️ Unterschriften" (no-print, wie die
+Foto-Erfassung direkt darüber) mit je einem "Unterschreiben"-Knopf,
+Vorschau und "Löschen"-Knopf für Auftraggeber und Mitarbeiter. Im
+bestehenden, bereits vorhandenen `report-foot`-Druckbereich (bisher zwei
+leere Linien zum Unterschreiben von Hand) steht je ein zusätzliches,
+standardmässig verstecktes `<img>` - erst wenn eine digitale Unterschrift
+vorliegt, wird es sichtbar geschaltet und die Linie per CSS-Klasse
+(`.hat-unterschrift`) ausgeblendet. **Ohne digitale Unterschrift ändert
+sich am Ausdruck nichts** - die Linie zum Unterschreiben von Hand bleibt
+exakt wie zuvor, weil das Bild dann schlicht `hidden` bleibt. Ein bereits
+gedruckter/handschriftlich unterschriebener Rapport funktioniert also
+unverändert weiter.
+
+**Speichern/Laden/Zurücksetzen:** an allen drei bestehenden Stellen, an
+denen auch die Rapport-Fotos behandelt werden, symmetrisch ergänzt -
+`js/08-katalog-blitzschutz.js` (Speichern-Payload inkl. Warteschlangen-
+Payload für offline, sowie "Alles löschen"), `js/09-projekte.js`
+(`openReport()` lädt beide Felder aus der Datenbank, ohne etwas
+anzudichten, wenn eines fehlt) und `js/04-start-suche.js` ("Neuer
+Rapport" setzt beide zurück, damit eine fremde Unterschrift nicht stehen
+bleibt).
+
+### 166.3 Getestet
+
+Neuer Prüfstand `pruefstand-rapport-unterschrift-v3-100.js` (28 Prüfungen,
+alle bestanden): Ausgangszustand ohne Unterschrift bleibt unverändert
+(kein Bild, keine `hat-unterschrift`-Klasse, Leerzeile unangetastet);
+Klick auf "Unterschreiben" ruft `openSketchFullscreen` korrekt im
+Callback-Modus auf (die echte Zeichenfläche selbst wird dabei gestubbt -
+das echte Zeichnen mit dem Finger auf dem Canvas zu simulieren wäre eine
+fragile Pointer-Choreografie und prüft nicht die hier tatsächlich neue
+Verdrahtung); Vorschau/Löschen-Knopf/Druck-Bild/Status-Text reagieren
+korrekt; beide Unterschriften bestehen unabhängig nebeneinander; Speichern
+schreibt beide Felder in den Datenbank-Payload; Laden eines gespeicherten
+Rapports stellt sie wieder her, ohne eine fehlende Unterschrift zu
+erfinden; "Alles löschen" und "Neuer Rapport" setzen beide zurück.
+
+Volle Regression aller Prüfstände lief im Anschluss unverändert durch
+(siehe CI-Protokoll dieses Laufs).
+
+### 166.4 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| Migration `regierapport_digitale_unterschrift` | `reports.signature_client`, `reports.signature_employee` (text, nullable) |
+| `index.html` | neue Karte "✍️ Unterschriften", print-only `<img>` je Unterschrift im bestehenden `report-foot`, Versionsbump 3.100 |
+| `css/01-basis.css` | Layout der Unterschriften-Karte |
+| `css/03-druck.css` | Bild statt Leerzeile im Ausdruck, wenn signiert |
+| `js/06-rapport.js` | `signatureClient`/`signatureEmployee`-State, `renderSignatures()`, `unterschriftErfassen()` |
+| `js/08-katalog-blitzschutz.js` | Speichern-Payload (online + Warteschlange), "Alles löschen" |
+| `js/09-projekte.js` | `openReport()` lädt beide Felder |
+| `js/04-start-suche.js` | "Neuer Rapport" setzt beide zurück |
+| `js/41-hilfe.js` | neuer Hilfe-Text `rapport-unterschriften` |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.100"]` ergänzt |
+| `sw.js` | Cache-Version 3.100 (keine neue Datei im App-Shell nötig - alle geänderten Dateien standen schon drin) |
+| `PROJECT_STATE.md` | Versionsstand 3.100 |
+| `pruefstaende/pruefstand-rapport-unterschrift-v3-100.js` | neuer Prüfstand |
+
+### 166.5 Offene Punkte
+
+- Die Zeichenfläche ist die bestehende A4-Hochformat-Fläche (für
+  Skizzen ausgelegt) - für eine Unterschrift grösser als nötig, aber
+  bewusst wiederverwendet statt eine eigene, kleinere Fläche parallel
+  zu bauen (siehe 166.2). Sollte sich das in der Praxis als unhandlich
+  erweisen, liesse sich später eine eigene, kompaktere Unterschriftsfläche
+  ergänzen, ohne an der Datenspeicherung etwas zu ändern.
+- Kein Name/Zeitstempel wird zur Unterschrift mitgespeichert - nur das
+  Bild selbst. Der Zeitpunkt ergibt sich weiterhin aus `updated_at` des
+  Rapports.

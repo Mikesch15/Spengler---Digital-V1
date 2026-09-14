@@ -123,7 +123,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.99</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.100</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -237,9 +237,37 @@
 <div id="reportFotoGalerie" class="sketch-gallery"></div>
 </div>
 
+<!-- Digitale Unterschrift (v3.100): Erfassung on-screen (Karte oben, no-print),
+     Ergebnis landet als print-only <img> hier im bestehenden report-foot.
+     Ohne Unterschrift bleibt diese Stelle exakt wie zuvor (Leerzeile zum
+     Unterschreiben von Hand) - byteidentisch zum alten Ausdruck. -->
+<div class="card no-print" id="reportSigCard">
+<h2>✍️ Unterschriften <button type="button" class="hilfe-knopf no-print" data-hilfe="rapport-unterschriften">i</button></h2>
+<div class="sig-capture-row">
+<div class="sig-capture">
+<div class="small" style="color:var(--muted)">Auftraggeber</div>
+<img id="sigThumbClient" style="display:none;max-width:160px;max-height:110px;border:1px solid var(--line);border-radius:8px;background:#fff;margin:6px 0">
+<div class="small" id="sigStatusClient" style="color:var(--muted)">Noch keine Unterschrift.</div>
+<div class="bar">
+<button type="button" class="blue" id="sigBtnClient">✍️ Unterschreiben</button>
+<button type="button" class="red" id="sigClearClient" hidden>✕ Löschen</button>
+</div>
+</div>
+<div class="sig-capture">
+<div class="small" style="color:var(--muted)">Ausführender Mitarbeiter</div>
+<img id="sigThumbEmployee" style="display:none;max-width:160px;max-height:110px;border:1px solid var(--line);border-radius:8px;background:#fff;margin:6px 0">
+<div class="small" id="sigStatusEmployee" style="color:var(--muted)">Noch keine Unterschrift.</div>
+<div class="bar">
+<button type="button" class="blue" id="sigBtnEmployee">✍️ Unterschreiben</button>
+<button type="button" class="red" id="sigClearEmployee" hidden>✕ Löschen</button>
+</div>
+</div>
+</div>
+</div>
+
 <div class="report-foot">
-<div class="sig-block"><div class="sig-line"></div><div class="sig-label">Ort, Datum · Unterschrift Auftraggeber</div></div>
-<div class="sig-block"><div class="sig-line"></div><div class="sig-label">Unterschrift ausführender Mitarbeiter</div></div>
+<div class="sig-block"><img id="sigPrintClient" class="sig-print-img" hidden><div class="sig-line"></div><div class="sig-label">Ort, Datum · Unterschrift Auftraggeber</div></div>
+<div class="sig-block"><img id="sigPrintEmployee" class="sig-print-img" hidden><div class="sig-line"></div><div class="sig-label">Unterschrift ausführender Mitarbeiter</div></div>
 </div>
 <div class="pdf-foot" id="reportFooterBar"></div>
 

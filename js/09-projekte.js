@@ -631,6 +631,13 @@ function openReport(r,returnTo){
   reportPhotos=Array.isArray(r.photo_paths)?r.photo_paths.slice():[];
   if(typeof renderReportFotos==="function")renderReportFotos();
  }
+ // Unterschriften zum Rapport (v3.100). Ein Rapport ohne Unterschrift bleibt
+ // ohne Bild - genau wie bei den Fotos wird nichts angedichtet.
+ if(typeof signatureClient!=="undefined"){
+  signatureClient=r.signature_client||null;
+  signatureEmployee=r.signature_employee||null;
+  if(typeof renderSignatures==="function")renderSignatures();
+ }
  $("projectsModal").hidden=true;
  $("projectCockpitModal").hidden=true;
  $("reportsModal").hidden=true;

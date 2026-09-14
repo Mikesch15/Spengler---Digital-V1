@@ -331,6 +331,8 @@ label.feedback-pick span{flex:1 1 auto;min-width:0;word-break:break-word;text-tr
 .report-foot{display:none}
 .pdf-foot{display:none}
 .print-rate-block{display:none}
+.sig-capture-row{display:flex;flex-wrap:wrap;gap:16px}
+.sig-capture{flex:1 1 200px;min-width:180px}
 
 
 /* Kehle (v2.52) – Hauptresultate b/c/d dominieren, alles Weitere bleibt

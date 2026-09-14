@@ -1283,6 +1283,16 @@ stehen im Ausdruck vor den Unterschriften.</p>
 <p>Ein Rapport muss dafür einem Projekt zugeordnet sein: der Speicherort
 hängt am Projekt, so wie bei den Massaufnahmen.</p>`},
 
+"rapport-unterschriften":{titel:"Unterschriften",text:`
+<p>Auftraggeber und ausführender Mitarbeiter können direkt auf dem Gerät
+unterschreiben – mit dem Finger oder Stift auf demselben Feld, das auch
+für Skizzen verwendet wird.</p>
+<p>Eine erfasste Unterschrift erscheint im Ausdruck <b>anstelle</b> der
+leeren Linie. Ohne digitale Unterschrift bleibt die Linie wie bisher zum
+Unterschreiben von Hand auf dem Papierausdruck.</p>
+<p>„✕ Löschen” entfernt nur die digitale Unterschrift in diesem Formular –
+erst „Speichern” schreibt die Änderung in den Rapport.</p>`},
+
 "einst-schnittfuge":{titel:"Schnittfuge und Reste",text:`
 <p>Die <b>Schnittfuge</b> ist die Breite, die Schere oder Säge beim Trennen
 wegnimmt. Sie wird bei jedem Schnitt abgezogen – sowohl beim Längsteilen der

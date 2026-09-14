@@ -145,6 +145,9 @@ $("newReport").onclick=()=>{
  // Fotos eines vorherigen Rapports duerfen nicht stehen bleiben (v3.04).
  if(typeof reportPhotos!=="undefined"){reportPhotos=[];
   if(typeof renderReportFotos==="function")renderReportFotos()}
+ // Unterschriften eines vorherigen Rapports ebenso nicht (v3.100).
+ if(typeof signatureClient!=="undefined"){signatureClient=null;signatureEmployee=null;
+  if(typeof renderSignatures==="function")renderSignatures()}
  renderProjectSelect();
  renderMain();
  $("reportsModal").hidden=true;

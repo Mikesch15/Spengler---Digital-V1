@@ -196,6 +196,12 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
 }
 .sig-block .sig-line{border-top:.5pt solid #17202a!important;margin-top:15mm!important}
 .sig-block .sig-label{font-size:6pt!important;color:#68737d!important;margin-top:1mm!important;text-transform:uppercase!important;letter-spacing:.03em!important}
+/* Digitale Unterschrift (v3.100): ohne Unterschrift bleibt die Leerzeile
+   oben unveraendert (sig-print-img bleibt hidden). Mit Unterschrift ersetzt
+   das Bild die Leerzeile optisch - die Linie wird dafuer ausgeblendet. */
+.sig-block .sig-print-img{display:none}
+.sig-block.hat-unterschrift .sig-print-img{display:block!important;max-height:16mm!important;max-width:70mm!important;object-fit:contain!important;margin-top:4mm!important}
+.sig-block.hat-unterschrift .sig-line{border-top:none!important;margin-top:1mm!important}
 
 /* Kleine Fusszeile ganz unten auf jeder Seite: Firma, erstellt/geändert von,
    Druckdatum. Gleiche Darstellung wie bei Massaufnahme- und Ausmass-PDFs. */

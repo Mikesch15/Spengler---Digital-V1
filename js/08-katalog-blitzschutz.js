@@ -613,7 +613,9 @@ $("save").onclick=async()=>{
    titel:`${($("date").value||"")} · ${proj?(proj.object||proj.name):""}`.trim(),
    payload:{project_id:currentProjectId,date:$("date").value||null,
      order_no:$("orderNo").value,customer:$("customer").value,object:$("object").value,
-     vat:$("vat").value,work_entries:works,material_entries:mats},
+     vat:$("vat").value,work_entries:works,material_entries:mats,
+     signature_client:(typeof signatureClient!=="undefined")?signatureClient:null,
+     signature_employee:(typeof signatureEmployee!=="undefined")?signatureEmployee:null},
    bilder:{photo_paths:(typeof reportPhotos!=="undefined")?reportPhotos.slice():[]}
   });
   if(!r.ok){
@@ -638,6 +640,8 @@ $("save").onclick=async()=>{
   vat:$("vat").value,
   work_entries:works,
   material_entries:mats,
+  signature_client:(typeof signatureClient!=="undefined")?signatureClient:null,
+  signature_employee:(typeof signatureEmployee!=="undefined")?signatureEmployee:null,
   updated_by:currentProfile?currentProfile.id:null,
   updated_at:new Date().toISOString()
  };
@@ -679,4 +683,5 @@ $("save").onclick=async()=>{
 };
 $("clear").onclick=()=>{if(confirm("Wirklich alle Rapportdaten löschen?")){works=[neueArbeitsposition()];mats=[];currentReportId=null;
  if(typeof reportPhotos!=="undefined"){reportPhotos=[];if(typeof renderReportFotos==="function")renderReportFotos()}
+ if(typeof signatureClient!=="undefined"){signatureClient=null;signatureEmployee=null;if(typeof renderSignatures==="function")renderSignatures()}
  updateVerlaufToggleVisibility($("reportVerlaufToggle"),$("reportVerlaufBody"),null);renderMain()}};
