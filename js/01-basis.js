@@ -608,14 +608,41 @@ async function barcodeScannen(callback){
  if(status){status.textContent="Kamera wird gestartet …";status.style.color="#fff"}
  try{
   barcodeScanCodeReader=new ZXing.BrowserMultiFormatReader();
-  await barcodeScanCodeReader.decodeFromVideoDevice(undefined,video,(result,err,controls)=>{
+  const aufTreffer=(result,err,controls)=>{
    barcodeScanControls=controls;
    if(result){
     const text=result.getText();
     barcodeScanSchliessen();
     callback(text);
    }
-  });
+  };
+  // Kamera-Autofokus (v3.104): decodeFromVideoDevice(undefined,...) liess
+  // die Kamera-Wahl UND ihre Voreinstellungen komplett dem Browser - ohne
+  // ausdrueckliche Vorgabe blieb die Rueckkamera auf mehreren Geraeten auf
+  // Dauer-unscharf stehen (kein Autofokus fuer einen reinen Video-Stream).
+  // facingMode waehlt gezielt die Rueckkamera, focusMode:continuous
+  // fordert Dauerautofokus an, wo Geraet/Browser das unterstuetzen - sonst
+  // wird die Vorgabe von selbst ignoriert (kein Fehler). Bei einer zu
+  // engen Vorgabe (OverconstrainedError) wird schrittweise gelockert statt
+  // sofort komplett auf die alte, vorgabenlose Methode zurueckzufallen -
+  // eine bereits erteilte Kamera-Freigabe darf dabei nicht zu einem
+  // zweiten Berechtigungsdialog fuehren.
+  if(typeof barcodeScanCodeReader.decodeFromConstraints==="function"){
+   try{
+    await barcodeScanCodeReader.decodeFromConstraints(
+     {video:{facingMode:{ideal:"environment"},advanced:[{focusMode:"continuous"}]}},
+     video,aufTreffer);
+   }catch(engErr){
+    if(engErr&&engErr.name==="OverconstrainedError"){
+     await barcodeScanCodeReader.decodeFromConstraints(
+      {video:{facingMode:{ideal:"environment"}}},video,aufTreffer);
+    }else{
+     throw engErr;
+    }
+   }
+  }else{
+   await barcodeScanCodeReader.decodeFromVideoDevice(undefined,video,aufTreffer);
+  }
   if(status)status.textContent="Code in den Rahmen halten …";
  }catch(err){
   const meldung=(err&&err.name==="NotAllowedError")

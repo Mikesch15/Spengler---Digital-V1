@@ -28150,3 +28150,79 @@ bestehende Fehlschläge - keine neuen).
   Einschränkung, siehe 169.6 und Abschnitt 165.6).
 - Kein Live-Test gegen die echte Supabase-/Resend-Produktion aus dieser
   Sandbox möglich (siehe 169.6).
+
+## 170. LAGERVERWALTUNG: ARTIKELLISTE KLAPPBAR + BARCODE-KAMERA-FOKUS — VERSION 3.104
+
+### 170.1 Anlass
+
+Zwei direkte Anwender-Rückmeldungen nach v3.102/v3.103:
+
+1. "In Materialverwaltung die komplette Materialliste zuklappbar machen."
+2. "Die Kamera des Barcodescanners stellt nicht richtig scharf und es
+   lässt sich so nicht scannen."
+
+### 170.2 Lagerverwaltung: Artikelliste klappbar (Punkt 1)
+
+`renderLagerverwaltung()` (js/68-lagerverwaltung.js) zeigte bisher JEDEN
+Artikel aus dem Material-Katalog dauerhaft mit seinen letzten fünf
+Buchungen - bei einer grösseren Artikelliste wurde die Seite entsprechend
+lang. Jetzt dasselbe Klapp-Karten-Muster wie in der Werkstatt (seit
+v3.30, js/51-werkstatt.js, `werkOffenKarte`): jede Zeile ist eine
+`.lager-karte`, standardmässig zugeklappt und zeigt nur Bezeichnung und
+Bestand; ein Klick auf den Kopf (auch per Tastatur, Enter/Leertaste)
+klappt die letzten Buchungen auf. Der Knopf "📦 Buchen" bleibt bewusst
+IM Kopf sichtbar, damit die häufigste Aktion kein Aufklappen braucht -
+ein Klick darauf löst nicht zusätzlich das Auf-/Zuklappen aus (dieselbe
+Ausnahme wie beim Werkstatt-Kartenkopf für "Rüsten bestätigen").
+
+### 170.3 Barcode-Scan: Kamera-Autofokus (Punkt 2)
+
+`barcodeScannen()` (js/01-basis.js) rief bisher
+`decodeFromVideoDevice(undefined, video, …)` auf - das überlässt dem
+Browser sowohl die Kamerawahl als auch deren Voreinstellungen, ohne
+Autofokus ausdrücklich anzufordern. Auf mehreren Geräten blieb die
+Kamera dadurch dauerhaft unscharf. Jetzt wird, wo verfügbar,
+`decodeFromConstraints()` mit `facingMode:{ideal:"environment"}`
+(gezielt die Rückkamera) und `advanced:[{focusMode:"continuous"}]`
+(Dauerautofokus) verwendet. Eine zu enge Vorgabe
+(`OverconstrainedError`) wird schrittweise gelockert (zuerst ohne die
+Fokus-Vorgabe, mit `decodeFromVideoDevice(undefined,…)` als letzter
+Rückfall für Browser ohne `decodeFromConstraints`) statt bei jedem
+Fehler sofort auf die alte, vorgabenlose Methode zurückzufallen - eine
+bereits erteilte Kamera-Freigabe darf dabei nicht zu einem zweiten
+Berechtigungsdialog führen (deshalb wird nur bei `OverconstrainedError`
+aufgefangen, jeder andere Fehler - z. B. eine verweigerte Freigabe -
+bleibt unverändert sichtbar im Scan-Overlay).
+
+**Grenze:** `focusMode:"continuous"` wird von Gerät/Browser bei
+Nichtunterstützung stillschweigend ignoriert (keine Fehlermeldung, kein
+Absturz) - auf Geräten, deren Kamera-Treiber diese Vorgabe grundsätzlich
+nicht kennt, bleibt das Scharfstellen weiterhin wie zuvor. Kein
+Live-Test mit einer echten Gerätekamera aus dieser Sandbox möglich
+(bestehende Einschränkung); die Verdrahtung (`barcodeScannen()` bleibt
+für Lagerverwaltung und Material-Katalog gestubbt) ist geprüft, das
+tatsächliche Scharfstellverhalten nicht.
+
+### 170.4 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js` erweitert: die
+Artikelliste steht zunächst zugeklappt (Buchungen mit ihrem Grund noch
+nicht im Text), ein Klick auf den Kartenkopf klappt sie auf (Pfeil dreht
+sich, Buchungen erscheinen im Text) und wieder zu. Der Barcode-Scan
+selbst bleibt wie bisher gestubbt (`window.barcodeScannen` ersetzt) -
+geprüft wird die Verdrahtung, nicht die Kamera-Ansteuerung. 42
+Prüfungen, alle bestanden. Volle Regression aller Prüfstände lief im
+Anschluss unverändert durch (44 grün, 29 bekannte Fehlschläge, keine
+neuen).
+
+### 170.5 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/68-lagerverwaltung.js` | `renderLagerverwaltung()` klappbar (`lagerOffenArtikel`), Klick-/Tastatur-Handler für `data-lager-karte` |
+| `css/01-basis.css` | neue `.lager-karte*`-Klassen (dasselbe Muster wie `.werk-karte*`) |
+| `js/01-basis.js` | `barcodeScannen()`: `decodeFromConstraints()` mit `facingMode`/`focusMode:continuous`, gestufter Rückfall bei `OverconstrainedError` |
+| `sw.js` | Cache-Version 3.104 |
+| `PROJECT_STATE.md` | Versionsstand 3.104 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.104"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 3 um die Klapp-Prüfungen erweitert |

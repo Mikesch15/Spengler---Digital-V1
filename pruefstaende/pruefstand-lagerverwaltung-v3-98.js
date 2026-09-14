@@ -206,7 +206,26 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  }));
  p(z.bestand===6,"10 Zugang - 3 Abgang - 1 Korrektur ergibt 6",z);
  p(/6/.test(z.text)&&/Dichtband/.test(z.text),"der Bestand und die Bezeichnung (aus dem Material-Katalog) stehen in der Liste",z.text.slice(0,200));
- p(/Lieferung/.test(z.text)&&/Inventur/.test(z.text),"die letzten Buchungen mit ihrem Grund stehen dabei",z.text.slice(0,400));
+ // v3.104: die Karte ist standardmaessig zugeklappt - die letzten Buchungen
+ // stehen erst nach dem Aufklappen im Text (dasselbe Muster wie die
+ // Werkstatt-Karte, js/51-werkstatt.js).
+ p(!/Lieferung/.test(z.text)&&!/Inventur/.test(z.text),"zugeklappt stehen die einzelnen Buchungen noch nicht im Text",z.text.slice(0,200));
+ z=await page.evaluate(()=>{
+  // renderLagerverwaltung() ersetzt das innerHTML komplett - "kopf" muss
+  // deshalb NACH dem Klick neu gesucht werden, sonst zeigt die alte,
+  // inzwischen aus dem DOM entfernte Referenz weiterhin den alten Pfeil.
+  document.querySelector('[data-lager-karte="1"]').click();
+  const kopfNeu=document.querySelector('[data-lager-karte="1"]');
+  return {pfeil:kopfNeu.querySelector(".lager-karte-pfeil").textContent,text:$("lagerverwaltungListe").textContent};
+ });
+ p(z.pfeil==="▾","ein Klick auf den Kartenkopf klappt ihn auf (Pfeil dreht sich)",z);
+ p(/Lieferung/.test(z.text)&&/Inventur/.test(z.text),"aufgeklappt stehen die letzten Buchungen mit ihrem Grund im Text",z.text.slice(0,400));
+ z=await page.evaluate(()=>{
+  document.querySelector('[data-lager-karte="1"]').click();
+  const kopfNeu=document.querySelector('[data-lager-karte="1"]');
+  return {pfeil:kopfNeu.querySelector(".lager-karte-pfeil").textContent};
+ });
+ p(z.pfeil==="▸","ein zweiter Klick klappt sie wieder zu",z);
 
  // ---- 4 · Buchen: Zugang/Abgang/Korrektur -------------------------------
  console.log("\n4 · Buchen setzt die richtige Richtung");

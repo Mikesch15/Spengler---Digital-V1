@@ -47,7 +47,9 @@ const WIN_CHANGELOG={
  "3.103":["Neu: beim Anlegen einer neuen Firma wird das Startpasswort automatisch erzeugt und dem Admin per E-Mail zugeschickt.",
   "Neu: beim Anlegen eines Mitarbeiters lässt sich optional eine E-Mail hinterlegen - sie wird zur zusätzlichen Anmelde-Adresse und die Zugangsdaten werden zugeschickt.",
   "Neu: „Passwort vergessen“ auf dem Anmeldebildschirm - ein Link per E-Mail führt zum Setzen eines neuen Passworts (nur bei hinterlegter E-Mail).",
-  "Neu: Systemadministration kann Einladungslinks erzeugen, mit denen jemand selbst eine neue Firma anlegt."]
+  "Neu: Systemadministration kann Einladungslinks erzeugen, mit denen jemand selbst eine neue Firma anlegt."],
+ "3.104":["Lagerverwaltung: die Artikelliste ist jetzt klappbar - jede Zeile zeigt zunächst nur Bezeichnung und Bestand, ein Klick zeigt die letzten Buchungen.",
+  "Fehler behoben: die Kamera beim Barcode-Scan stellte auf manchen Geräten nicht scharf."]
 };
 
 function winVersionVergleich(a,b){

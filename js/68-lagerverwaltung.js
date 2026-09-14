@@ -102,6 +102,13 @@ function lagerBewegungZeile(b){
 // Wiederverwendet lagArtikelListe()/lagArtikel()/lagArtikelText() aus
 // js/59-lagerbestand.js - dieselbe Artikelliste wie im Materialbestand-
 // Formular, keine zweite Katalog-/Beschriftungslogik.
+//
+// v3.104: die Liste ist jetzt je Artikel klappbar (dasselbe Karten-Muster
+// wie js/51-werkstatt.js, werkOffenKarte) - bei vielen Artikeln stand vorher
+// jede Zeile immer mit ihren letzten Buchungen offen da. Der Buchen-Knopf
+// bleibt im Kopf sichtbar, damit die haeufigste Aktion kein Aufklappen
+// braucht (wie beim Werkstatt-Knopf "Rüsten bestätigen").
+let lagerOffenArtikel=new Set();
 function renderLagerverwaltung(){
  const box=$("lagerverwaltungListe");
  if(!box)return;
@@ -112,16 +119,23 @@ function renderLagerverwaltung(){
  }
  box.innerHTML=liste.map(a=>{
   const bestand=lagerBestandVon(a.id);
+  // String(): data-Attribute liefern beim Klick immer einen String, a.id ist
+  // je nach Herkunft eine Zahl - Set.has() vergleicht sonst strikt und faende
+  // nie einen Treffer (dieselbe Falle wie bei lagerBewegungenVon()/String()).
+  const offen=lagerOffenArtikel.has(String(a.id));
   const letzte=lagerBewegungenVon(a.id).slice(0,5);
-  return `<div class="report-row">
- <div class="report-row-info">
-  <b>${esc(lagArtikelText(a))}</b>
-  <span class="small" style="color:var(--muted)">Bestand: <b>${lagerZahlText(bestand)}</b></span>
-  <span class="small" style="color:var(--muted)">${letzte.length?letzte.map(lagerBewegungZeile).join(""):"Noch keine Buchung."}</span>
- </div>
- <div class="report-row-actions">
+  return `<div class="lager-karte">
+ <div class="lager-karte-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-lager-karte="${a.id}">
+  <span class="lager-karte-pfeil">${offen?"▾":"▸"}</span>
+  <div class="lager-karte-info">
+   <b>${esc(lagArtikelText(a))}</b>
+   <span class="small" style="color:var(--muted);display:block">Bestand: <b>${lagerZahlText(bestand)}</b></span>
+  </div>
   <button type="button" class="blue" data-lager-buchen="${a.id}">📦 Buchen</button>
  </div>
+ ${offen?`<div class="lager-karte-body">
+  <span class="small" style="color:var(--muted)">${letzte.length?letzte.map(lagerBewegungZeile).join(""):"Noch keine Buchung."}</span>
+ </div>`:""}
 </div>`;
  }).join("");
 }
@@ -154,8 +168,28 @@ function lagerBuchenSchliessen(){
 $("lagerBuchenAbbrechen").onclick=lagerBuchenSchliessen;
 
 $("lagerverwaltungListe").addEventListener("click",e=>{
+ // Der Buchen-Knopf sitzt IM Kartenkopf - ein Klick darauf darf nicht
+ // zusaetzlich die Karte auf-/zuklappen (dasselbe Muster wie beim
+ // Werkstatt-Kartenkopf, js/51-werkstatt.js).
  const b=e.target.closest("[data-lager-buchen]");
- if(b)lagerBuchenOeffnen(b.dataset.lagerBuchen);
+ if(b){lagerBuchenOeffnen(b.dataset.lagerBuchen);return}
+ const karte=e.target.closest("[data-lager-karte]");
+ if(karte){
+  const id=karte.dataset.lagerKarte;
+  if(lagerOffenArtikel.has(id))lagerOffenArtikel.delete(id); else lagerOffenArtikel.add(id);
+  renderLagerverwaltung();
+ }
+});
+
+// Der Kartenkopf ist ein role="button" - auch mit der Tastatur bedienbar
+// (Enter/Leertaste), wie der Werkstatt-Kartenkopf.
+document.addEventListener("keydown",e=>{
+ if(e.key!=="Enter"&&e.key!==" ")return;
+ if(!e.target||!e.target.closest)return;
+ const k=e.target.closest("[data-lager-karte]");
+ if(!k||e.target.closest("button"))return;
+ e.preventDefault();
+ k.click();
 });
 
 // ---- Einscannen / Ausscannen (v3.102) -----------------------------------

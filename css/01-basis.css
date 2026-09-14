@@ -1225,6 +1225,19 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .werk-karte-body{border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
 .werk-karte-fuss{margin-top:8px}
 .werk-karte-fuss button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
+/* Lagerverwaltung (v3.104): dieselbe Klapp-Karte wie die Werkstatt (oben) -
+   bei vielen Artikeln stand vorher jede Zeile immer mit ihren letzten
+   Buchungen offen da. Der Buchen-Knopf bleibt im Kopf sichtbar, damit die
+   haeufigste Aktion kein Aufklappen braucht. */
+.lager-karte{border:1px solid var(--line);border-radius:8px;padding:8px;margin:8px 0;
+ background:var(--card)}
+.lager-karte-kopf{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+ cursor:pointer;min-height:40px;padding:2px}
+.lager-karte-kopf:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+.lager-karte-pfeil{flex:0 0 auto;color:var(--muted);font-size:13px;line-height:1.5;width:14px}
+.lager-karte-info{flex:1 1 190px;min-width:0;word-break:break-word}
+.lager-karte-kopf button{width:auto;min-height:38px;padding:6px 10px;font-size:12px;flex:0 0 auto}
+.lager-karte-body{border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
 /* Die vermasste Skizze und der Grundriss - nebeneinander, wenn Platz ist,
    sonst untereinander. Die Zeichner geben ihre eigene Breite mit; hier wird
    nur die Hoehe begrenzt, damit die Zuschnittliste darunter im Bild bleibt. */
