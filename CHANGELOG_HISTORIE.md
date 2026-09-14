@@ -27969,3 +27969,184 @@ unverändert durch.
   gespeichert wird - ein Speicherfehler wegen Doppelvergabe zeigt sich
   erst nach dem Scan/der Eingabe (klare Fehlermeldung, aber kein
   Vorab-Check).
+
+## 169. E-MAIL-GESTÜTZTE ANMELDUNG: ZUGANGSDATEN PER MAIL, PASSWORT VERGESSEN, EINLADUNGSLINKS — VERSION 3.103
+
+### 169.1 Anlass
+
+Direktes Anwender-Feedback, vier zusammenhängende Wünsche in einer
+Nachricht:
+
+1. Beim Anlegen einer neuen Firma automatisch eine E-Mail mit den
+   Admin-Zugangsdaten an die angegebene Adresse verschicken.
+2. Beim Anlegen eines neuen Mitarbeiters ebenso die Zugangsdaten
+   zumailen - E-Mail dabei aber weiterhin optional, kein Pflichtfeld.
+3. "Passwort vergessen" auf dem Anmeldebildschirm per E-Mail.
+4. Die Möglichkeit, jemandem einen Link zu schicken, über den die Person
+   selbst eine neue Firma anlegen kann.
+
+Vor dem Bau drei Rückfragen gestellt und beantwortet (Kurzfassung): eine
+beim Mitarbeiter hinterlegte E-Mail wird die echte Login-Adresse;
+"Passwort vergessen" läuft über eine eigene Edge Function + Resend statt
+Supabase-Bordmittel; der Firma-Einladungslink ist ein gezielt erzeugter,
+einmal verwendbarer Link (kein wieder frei zugänglicher öffentlicher
+Registrierungsweg wie vor der 2020er-Einschränkung, siehe Abschnitt 28).
+Anwender-Vorgabe zur Reihenfolge: alle vier Phasen durchgehend bauen,
+erst am Ende melden.
+
+### 169.2 Phase 1 - Firma erstellen: Passwort automatisch, E-Mail an den Admin
+
+Das Passwort-Feld im System-Admin-Formular "Firma erstellen" (bisher
+`#regPassword`/`#regPassword2`) ist entfallen. Die Edge Function
+`register-company` generiert das Startpasswort jetzt serverseitig
+(`generiertesPasswort()`, dieselbe Systematik wie das bestehende
+`neuesStartpasswort()` für Mitarbeiter) und verschickt es per Resend an
+die angegebene Firmen-E-Mail. Die Antwort trägt `mailVersendet` und (nur
+auf diesem System-Admin-Pfad) das erzeugte `passwort` als Fallback, falls
+der Versand fehlschlägt oder nicht möglich ist - die Oberfläche zeigt in
+jedem Fall eine der beiden Meldungen, nie ein stilles "fertig".
+
+### 169.3 Phase 2 - Mitarbeiter: optionale echte E-Mail als zusätzliche Login-Adresse
+
+`registerEmployee()` (js/08-katalog-blitzschutz.js) nimmt jetzt einen
+dritten, optionalen Parameter E-Mail entgegen; das Anlage-Formular fragt
+sie zusätzlich ab, aber ohne Pflicht. Bewusst **nicht** die bestehende,
+deterministische Pseudo-Domain-Login-Adresse
+(`vorname.nachname@…supabase.co`) ersetzt - das hätte Supabase Auths
+Ein-Adresse-pro-Konto-Grenze verletzt und das bestehende
+Benutzername-Login riskiert. Stattdessen: `profiles.email` (neue,
+nullable, eindeutige Spalte) speichert die echte Adresse nur als
+Nachschlage-Eintrag. Meldet sich jemand mit einer Adresse mit "@" an,
+löst die neue Edge Function `resolve-login-email` sie serverseitig auf
+die tatsächliche Auth-Adresse auf, bevor der eigentliche Login-Aufruf
+läuft (js/03-login.js) - für reine Benutzernamen (kein "@") bleibt die
+bisherige, rein clientseitige Zuordnung unverändert, ohne unnötigen
+Serverumweg. `smart-action` verschickt bei angegebener E-Mail ebenfalls
+die Zugangsdaten per Resend (`mailVersendet` in der Antwort).
+
+### 169.4 Phase 3 - Passwort vergessen auf dem Anmeldebildschirm
+
+Neuer, einklappbarer Bereich "Passwort vergessen?" auf dem
+Anmeldebildschirm. "Link anfordern" ruft die neue Edge Function
+`password-reset` (`action:"request"`) auf; die Antwort ist **immer**
+derselbe generische Hinweistext, unabhängig davon, ob ein Konto mit
+dieser E-Mail existiert - keine Information über Kontoexistenz wird
+preisgegeben. Serverseitig wird bei Treffer (`profiles.email`) ein
+zeitlich begrenzter Token in der neuen Tabelle `password_reset_tokens`
+angelegt (30 Minuten gültig) und ein Link mit diesem Token per Resend
+verschickt. Der Link öffnet die App mit `?reset=…`; die neue
+Boot-Weiche `emailAuthBootWeiche()` (js/69-email-auth.js, aufgerufen aus
+js/18-app-start.js vor der normalen Sitzungsprüfung) zeigt daraufhin
+einen eigenen Bildschirm zum Setzen eines neuen Passworts, unabhängig von
+einer eventuell noch bestehenden anderen Sitzung im selben Browser. Das
+Setzen selbst läuft über `password-reset` mit `action:"confirm"` -
+prüft Token (vorhanden/nicht verbraucht/nicht abgelaufen), setzt das
+Passwort über die Admin-API, markiert den Token als verbraucht. Reine
+Benutzername-Konten ohne hinterlegte E-Mail bleiben weiterhin auf den
+bestehenden Weg über einen Administrator angewiesen (Einstellungen →
+"Passwort zurücksetzen") - dort steht dazu bereits ein fester
+Hinweistext.
+
+### 169.5 Phase 4 - Einladungslink für neue Firmen
+
+System-Administration → neuer Bereich "🔗 Einladungslinks": ein Klick
+erzeugt einen Eintrag in der neuen Tabelle `company_invites` (Token,
+Ersteller, Ablaufdatum), der Link (`?einladung=…`) lässt sich kopieren
+und versenden; ein "Zurückziehen"-Knopf löscht den Eintrag wieder. Ruft
+jemand den Link auf, zeigt dieselbe Boot-Weiche wie in 169.4 den neuen
+Bildschirm "Firma anlegen" - dort wählt die Person selbst Name/E-Mail
+**und ihr eigenes Passwort** (anders als Phase 1, wo das System-Admin
+kein Passwort mehr sieht). `register-company` läuft jetzt zweigleisig:
+entweder eine gültige System-Admin-Sitzung (Phase 1, Passwort wird
+generiert) oder ein gültiger `invite_token` aus `company_invites`
+(Phase 4, selbst gewähltes Passwort, Token wird nach Gebrauch sofort als
+verbraucht markiert, kein zweites Mal einlösbar). Dafür musste
+`register-company` von `verify_jwt:true` auf `false` umgestellt werden,
+da der Einladungs-Pfad ohne eingeloggte Sitzung aufgerufen wird - die
+Zugriffsprüfung erfolgt jetzt vollständig in der Funktion selbst (gültige
+System-Admin-JWT ODER gültiger, nicht abgelaufener/nicht verbrauchter
+Invite-Token; alles andere wird abgelehnt). Damit lebt dieselbe
+Grundidee wieder auf, die 2020 bewusst und zeitlich befristet auf
+System-Admins eingeschränkt wurde (Abschnitt 28) - jetzt aber gezielt
+und einmal verwendbar statt uneingeschränkt öffentlich.
+
+### 169.6 Bewusst nicht gebaut / Grenzen
+
+- **Keine Live-Tests der neuen Edge Functions gegen Produktion.**
+  Ausgehende HTTPS-Verbindungen zu Supabase/Resend sind aus dieser
+  Entwicklungs-Sandbox heraus nicht möglich (bestehende, dokumentierte
+  Einschränkung, siehe Abschnitt 6 in CLAUDE.md). Migrationen und Edge
+  Functions wurden direkt über die Supabase-MCP-Werkzeuge angewendet
+  bzw. deployed und serverseitig gegen die bestehende Struktur geprüft,
+  aber der komplette Weg inkl. tatsächlichem Mailversand liess sich von
+  hier aus nicht end-to-end ausführen.
+- **Resend-Sandbox-Absender.** Wie schon in Abschnitt 165.6 (tägliche
+  Benachrichtigung, v3.99) beschrieben, liefert der aktuell verwendete
+  Sandbox-Absender `onboarding@resend.dev` nur an die beim Resend-Konto
+  selbst hinterlegte Adresse aus. Alle drei neuen Mailversand-Wege
+  (Firma-Zugangsdaten, Mitarbeiter-Zugangsdaten, Passwort-Reset-Link)
+  behandeln den Versand deshalb konsequent als Best-Effort
+  (`mailVersendet:true/false` in der Antwort) und lassen in jedem
+  Formular eine nicht-mailabhängige Rückfallebene stehen (Anzeige des
+  generierten Passworts auf dem Bildschirm bzw. der feste
+  Passwort-vergessen-Hinweistext) - erst mit einer verifizierten
+  Sendedomain werden Mails an beliebige neue Adressen tatsächlich
+  ankommen.
+- Der Einladungslink hat aktuell keine Mengenbegrenzung/kein
+  Whitelisting der Ziel-E-Mail - wer den Link kennt, kann ihn bis zum
+  Ablauf einmal einlösen. Für den beschriebenen Anwendungsfall (gezielt
+  an eine Person verschickt) ausreichend; eine Empfänger-Bindung wäre
+  eine mögliche spätere Ergänzung, nur auf ausdrücklichen Wunsch.
+
+### 169.7 Getestet
+
+Neuer `pruefstaende/pruefstand-email-auth-v3-103.js`, 32 Prüfungen, alle
+bestanden: Login-Auflösung (Benutzername bleibt clientseitig, "@"-Eingabe
+geht über `resolve-login-email`, Netzfehler fällt auf die Original-
+Eingabe zurück), Passwort-vergessen-Formular (Ein-/Ausklappen, fester
+Statustext, clientseitige Längen-/Übereinstimmungsprüfung, Aufruf mit
+Token und neuem Passwort), Boot-Weiche für `?reset=`/`?einladung=` sowie
+deren Ausbleiben ohne Parameter, Einladungs-Formular (Validierung,
+Aufruf mit `invite_token` und selbst gewähltem Passwort), System-Admin-
+Einladungsverwaltung (Erzeugen/Anzeigen/Zurückziehen), Firma-Erstellung
+ohne Passwortfeld mit `mailVersendet`-Meldung, sowie Mitarbeiteranlage
+mit optionaler E-Mail (inkl. der Prüfung, dass eine leer gelassene
+E-Mail als `undefined`, nicht als leerer String, verschickt wird).
+Zwei echte, im Test aufgedeckte Fallstricke dabei behoben (kein
+Anwendungscode-Fehler, sondern Testtechnik): ein `page.evaluate()`, das
+über einen echten `location.href`-Redirect bei Erfolg lief, zerstörte
+den Playwright-Ausführungskontext - die betroffenen zwei Testfälle
+prüfen den korrekten Funktionsaufruf deshalb bewusst über eine
+Fehlerantwort des Stubs, die den Erfolgspfad (und damit den Redirect)
+nicht auslöst. Volle Regression aller 73 Prüfstände lief im Anschluss
+unverändert durch (44 grün, 29 bekannte, vor dieser Änderung bereits
+bestehende Fehlschläge - keine neuen).
+
+### 169.8 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| Migration `email_login_passwort_reset_einladungen` | `profiles.email` (nullable, UNIQUE-Index), neue Tabellen `password_reset_tokens` und `company_invites` (mit RLS) |
+| Edge Function `resolve-login-email` (neu) | löst eine Login-Eingabe mit "@" auf die tatsächliche Auth-E-Mail auf |
+| Edge Function `password-reset` (neu) | `action:"request"` (immer gleiche Antwort, Token+Mail bei Treffer) und `action:"confirm"` (Token prüfen, Passwort setzen) |
+| Edge Function `register-company` (geändert, `verify_jwt:false`) | zweigleisig: System-Admin-Pfad (generiertes Passwort, Mail) ODER `invite_token`-Pfad (selbst gewähltes Passwort) |
+| Edge Function `smart-action` (geändert) | optionaler `email`-Parameter, Eindeutigkeitsprüfung, `profiles.email`, Zugangsdaten-Mail |
+| `index.html` | Passwort-vergessen-Bereich im Anmeldebildschirm, neue Bildschirme `#passwordResetScreen`/`#companyInviteScreen`, Einladungslinks-Bereich in der System-Administration, Passwort-Felder aus der Firma-Erstellung entfernt |
+| `js/03-login.js` | `loginEmailAufloesen()` vor dem Login-Aufruf |
+| `js/18-app-start.js` | `emailAuthBootWeiche()` vor der Sitzungsprüfung |
+| `js/69-email-auth.js` (neu) | Boot-Weiche, Passwort-vergessen-Formular, Passwort-setzen-Formular, Einladungs-Formular |
+| `js/08-katalog-blitzschutz.js` | `registerEmployee()` mit optionalem E-Mail-Parameter |
+| `js/22-system-admin.js` | Firma-Erstellung ohne Passwortfeld, Einladungslinks erzeugen/anzeigen/zurückziehen |
+| `js/41-hilfe.js` | Hilfetext für Einladungslinks |
+| `sw.js` | App-Shell um `js/69-email-auth.js` ergänzt, Cache-Version 3.103 |
+| `pruefstaende/pruefstand-email-auth-v3-103.js` (neu) | 32 Prüfungen zu allen vier Phasen |
+
+### 169.9 Offene Punkte
+
+- Kein Empfänger-gebundenes Whitelisting beim Einladungslink (siehe
+  169.6).
+- Mailversand an beliebige Adressen funktioniert erst mit einer
+  verifizierten Resend-Sendedomain (bestehende, wiederholt dokumentierte
+  Einschränkung, siehe 169.6 und Abschnitt 165.6).
+- Kein Live-Test gegen die echte Supabase-/Resend-Produktion aus dieser
+  Sandbox möglich (siehe 169.6).

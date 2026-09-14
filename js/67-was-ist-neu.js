@@ -43,7 +43,11 @@ const WIN_CHANGELOG={
   "Neu: Lagerverwaltung ist jetzt direkt von der Startseite aus erreichbar (mit Lager-Zugriff)."],
  "3.102":["Neu: Material lässt sich in der Lagerverwaltung jetzt per Kamera ein- und ausscannen - ein hinterlegter Barcode öffnet direkt den Buchen-Dialog mit der richtigen Richtung.",
   "Neu: ein Barcode lässt sich im Material-Katalog (Einstellungen → Material) ebenfalls per Kamera hinterlegen.",
-  "Die Lagerverwaltung führt jetzt denselben Material-Katalog wie der Regierapport (Schrauben, Dichtband usw.) - der Blech-Materialbestand ist davon unabhängig und bleibt unverändert."]
+  "Die Lagerverwaltung führt jetzt denselben Material-Katalog wie der Regierapport (Schrauben, Dichtband usw.) - der Blech-Materialbestand ist davon unabhängig und bleibt unverändert."],
+ "3.103":["Neu: beim Anlegen einer neuen Firma wird das Startpasswort automatisch erzeugt und dem Admin per E-Mail zugeschickt.",
+  "Neu: beim Anlegen eines Mitarbeiters lässt sich optional eine E-Mail hinterlegen - sie wird zur zusätzlichen Anmelde-Adresse und die Zugangsdaten werden zugeschickt.",
+  "Neu: „Passwort vergessen“ auf dem Anmeldebildschirm - ein Link per E-Mail führt zum Setzen eines neuen Passworts (nur bei hinterlegter E-Mail).",
+  "Neu: Systemadministration kann Einladungslinks erzeugen, mit denen jemand selbst eine neue Firma anlegt."]
 };
 
 function winVersionVergleich(a,b){
