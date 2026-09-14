@@ -27242,3 +27242,123 @@ Abweichung.
 
 - Kein Live-Test gegen Supabase/Produktion (Sandbox-Einschränkung wie
   immer) - reiner Client-Zustand, keine Datenbankänderung nötig.
+
+## 162. SYSTEMADMINISTRATION: FEEDBACK LÖSCHEN, VERWAISTE DATEIEN LASSEN SICH JETZT WIRKLICH LÖSCHEN — VERSION 3.96
+
+### 162.1 Anlass
+
+"Ich will die Feedbacks in der Systemadministration löschen können und die
+verwaisten Dateien lassen sich auch nicht löschen." Zwei getrennte
+Probleme in der Systemadministration:
+
+1. In der Betreiber-Ansicht ("Feedback aller Firmen") gab es bewusst
+   keinen Löschknopf (`darfLoeschen:false`) - eingeführt, weil ein
+   direktes `sb.from("feedback").delete()` an der RESTRICTIVE
+   RLS-Policy `tenant_boundary_feedback` scheitert, sobald das Feedback
+   einer ANDEREN Firma gehört (`qual: company_id = my_company_id()`,
+   `polcmd: ALL` - per SQL gegen das echte Produktivschema geprüft). Der
+   Anwender wollte trotzdem löschen können, nicht nur den Filter.
+2. Der Knopf "Alle N endgültig löschen" bei den verwaisten
+   Speicher-Dateien lieferte immer "Die Dateien konnten nicht
+   vollständig entfernt werden." - unabhängig davon, welche Dateien es
+   waren oder wer es versuchte.
+
+### 162.2 Feedback löschen - Umsetzung
+
+Neue SECURITY DEFINER-Funktion `system_admin_delete_feedback(p_id
+bigint)` (Migration `system_admin_delete_feedback`), exakt nach dem
+bereits etablierten Muster von `system_admin_set_feedback_resolved()`
+und `system_admin_set_module_test()`: prüft `is_system_admin()`, löscht
+sonst die Zeile. Eine SECURITY DEFINER-Funktion läuft als
+Funktionseigentümer und ist davon nicht betroffen wie eine RESTRICTIVE
+Policy einen normalen Client-Aufruf blockiert - dieselbe Lösung, die
+schon für das Erledigt-Umschalten über eine fremde Firma hinweg
+funktioniert.
+
+`js/02-feedback.js`: `FEEDBACK_ANSICHTEN.betreiber.darfLoeschen` auf
+`true`; der Löschknopf ruft jetzt `sb.rpc("system_admin_delete_feedback",
+{p_id})` statt des vorherigen direkten `sb.from("feedback").delete()`.
+Veralteter Hinweistext ("Löschen ist hier bewusst nicht möglich") in
+`index.html` und der zugehörigen Hilfe (`js/41-hilfe.js`,
+`sysadmin-feedback`) entfernt bzw. durch eine Beschreibung der neuen
+Möglichkeit ersetzt.
+
+### 162.3 Verwaiste Dateien - Root Cause und Fix
+
+Die Edge Function `system-admin-storage-aufraeumen` rief für die
+eigentliche Löschung
+```
+POST {SUPABASE_URL}/storage/v1/object/remove/{bucket}
+```
+auf. Diesen Pfad gibt es in der Storage-API **nicht** - geprüft direkt
+gegen den öffentlichen Quellcode von `supabase/storage`
+(`src/http/routes/object/deleteObjects.ts`): der echte Bulk-Löschweg ist
+```
+DELETE {SUPABASE_URL}/storage/v1/object/{bucket}   Body: {"prefixes":[...]}
+```
+(`fastify.delete('/:bucketName', ...)`) - derselbe Weg, den auch
+`supabase.storage.from(bucket).remove(paths)` im JS-Client intern
+verwendet. Der bisherige Aufruf lief also bei JEDEM Versuch in einen
+404, den die Funktion als generischen 500er mit der Meldung "Die Dateien
+konnten nicht vollständig entfernt werden." weiterreichte - unabhängig
+von Rechten, Firma oder den betroffenen Pfaden. Behoben durch Methode
+`POST`→`DELETE` und Pfad `.../object/remove/{bucket}`→`.../object/{bucket}`
+in `index.ts`; als Version 2 auf das Projekt deployt. Die übrige
+Sicherheitslogik (zwei unabhängige Prüfungen: echter Aufrufer gegen
+`system_admins`, massgebliche Pfadliste aus
+`system_admin_verwaiste_storage()` statt vom Client) war bereits korrekt
+und bleibt unverändert.
+
+### 162.4 Getestet
+
+Zwei neue Prüfstände (Direkt-Engine gegen die echte `index.html`, Muster
+wie überall in dieser Sitzung):
+
+- `pruefstaende/pruefstand-feedback-loeschen-v3-95.js` (11 Prüfungen):
+  Löschknopf erscheint jetzt, Klick fragt nach und ruft
+  `system_admin_delete_feedback` mit der richtigen ID statt eines
+  direkten Tabellenzugriffs, ein Fehler von der RPC wird angezeigt statt
+  stillschweigend verschluckt.
+- `pruefstaende/pruefstand-verwaiste-dateien-v3-95.js` (12 Prüfungen):
+  Liste laden, Löschen ruft die Edge Function mit genau den geladenen
+  Pfaden auf, Erfolg leert die Liste mit Anzahl-Meldung, ein Fehler (wie
+  der jetzt behobene 404) wird angezeigt und die Liste bleibt stehen.
+
+Ein echter Test GEGEN die Storage-API selbst war von der Sandbox aus
+nicht möglich (kein Netzwerkzugriff auf Supabase, siehe CLAUDE.md) - die
+eigentliche Korrektur des Endpunkts wurde stattdessen gegen den echten,
+öffentlichen Quellcode der Storage-API verifiziert, nicht gegen einen
+Live-Aufruf. Das ist ausdrücklich vermerkt, damit das nicht als
+durchgeführter Live-Test missverstanden wird.
+
+Volle Regression (`pruefstaende/ci-lauf.js`) im Anschluss erneut
+durchlaufen: alle bisherigen Prüfstände weiterhin ohne neue
+Abweichungen, die beiden neuen kommen automatisch dazu
+(`fs.readdirSync`-basierte Erkennung, keine manuelle Liste zu pflegen).
+
+### 162.5 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| Migration `system_admin_delete_feedback` | neue SECURITY DEFINER-Funktion |
+| Edge Function `system-admin-storage-aufraeumen` (v2) | Storage-Löschweg korrigiert (POST .../remove/{bucket} → DELETE .../{bucket}) |
+| `js/02-feedback.js` | `darfLoeschen:true`, Löschen über die neue RPC |
+| `index.html` | Versionsbump 3.96; veralteter Hinweistext bei "Feedback aller Firmen" entfernt |
+| `sw.js` | Cache-Version 3.96 |
+| `js/41-hilfe.js` | Hilfetext `sysadmin-feedback` aktualisiert |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.96"]` ergänzt |
+| `PROJECT_STATE.md` | Versionsstand 3.96 |
+| `pruefstaende/pruefstand-feedback-loeschen-v3-95.js` | neu, 11 Prüfungen |
+| `pruefstaende/pruefstand-verwaiste-dateien-v3-95.js` | neu, 12 Prüfungen |
+
+### 162.6 Offene Punkte
+
+- Kein Live-Test gegen Supabase/Produktion für die neue Feedback-RPC
+  (Sandbox-Einschränkung) - die serverseitige Prüfung folgt exakt dem
+  bereits produktiv bewährten Muster mehrerer anderer
+  `system_admin_*`-Funktionen dieser Sitzung.
+- Der Storage-Endpunkt-Fix ist gegen den öffentlichen Quellcode der
+  Storage-API verifiziert, aber noch nicht durch einen tatsächlichen
+  Löschvorgang in Produktion bestätigt (dafür fehlt der
+  Netzwerkzugriff aus der Sandbox) - ein erster echter Löschversuch
+  durch den Anwender ist der abschliessende Beweis.

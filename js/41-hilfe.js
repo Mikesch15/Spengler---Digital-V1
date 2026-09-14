@@ -1248,8 +1248,9 @@ Massaufnahmen oder Fotos einzelner Kundenfirmen.</p>`},
 "sysadmin-feedback":{titel:"Feedback aller Firmen",text:`
 <p>Die Rückmeldungen aus allen Firmen – der Weg, auf dem Pilotbetriebe
 Probleme melden.</p>
-<p>Löschen ist hier bewusst nicht möglich: das Feedback gehört der
-jeweiligen Firma.</p>`},
+<p>Über <b>Löschen</b> lässt sich ein erledigtes oder irrtümlich
+eingegangenes Feedback endgültig entfernen – auch das einer fremden
+Firma, geprüft serverseitig gegen die System-Administratoren-Liste.</p>`},
 
 "verwaiste-dateien":{titel:"Verwaiste Dateien im Speicher",text:`
 <p>Beim Wechseln des Firmenlogos oder aus der Zeit vor der Pfadumstellung

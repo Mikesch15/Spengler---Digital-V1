@@ -56,7 +56,7 @@ const FEEDBACK_ANSICHTEN={
  betreiber:{schluessel:"betreiber",liste:"sysFeedbackList",info:"sysFeedbackCountInfo",
         bars:["sysFeedbackSortBar","sysFeedbackPickBar","sysFeedbackExportBar"],
         xlsx:"sysFeedbackExportXlsx",txt:"sysFeedbackExportTxt",
-        mitFirma:true,darfLoeschen:false}
+        mitFirma:true,darfLoeschen:true}
 };
 let feedbackAnsicht=FEEDBACK_ANSICHTEN.betreiber;
 function feedbackFirma(f){
@@ -333,13 +333,14 @@ async function feedbackListeHandler(e){
  }
  const del=e.target.closest("[data-feedback-del]");
  if(del){
-  // In der Betreiber-Ansicht gibt es bewusst keinen Loeschknopf: das
-  // Feedback gehoert der jeweiligen Firma.
   if(!feedbackAnsicht.darfLoeschen)return;
   if(!confirm("Dieses Feedback wirklich löschen?"))return;
-  const {data,error}=await sb.from("feedback").delete().eq("id",Number(del.dataset.feedbackDel)).select();
+  // Fremde Firma: die RESTRICTIVE Policy tenant_boundary_feedback blockiert
+  // ein direktes DELETE ausserhalb der eigenen Firma auch fuer Admins -
+  // deshalb ueber dieselbe serverseitig geschuetzte Funktion wie beim
+  // Erledigt-Umschalten (system_admin_set_feedback_resolved).
+  const {error}=await sb.rpc("system_admin_delete_feedback",{p_id:Number(del.dataset.feedbackDel)});
   if(error){alert("Fehler: "+error.message);return}
-  if(!data||!data.length){alert("Es wurde nichts gelöscht. Fehlt die nötige Berechtigung?");return}
   feedbackNeuLaden({behalten:true});
  }
 }
