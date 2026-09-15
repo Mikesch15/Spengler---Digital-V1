@@ -1374,14 +1374,13 @@ stehen; ein Fehler wird durch eine neue Korrektur-Buchung ausgeglichen,
 nie durch Ändern einer bestehenden Buchung. So lässt sich der Bestand
 jederzeit nachvollziehen, statt einer Zahl vertrauen zu müssen, die
 niemand mehr erklären kann.</p>
-<p>📥 <b>Einscannen</b> / 📤 <b>Ausscannen</b> öffnen die Kamera, suchen den
-erkannten Barcode unter den Produkten und öffnen den Buchen-Dialog direkt
-mit der passenden Richtung – nur die Menge muss noch bestätigt werden.
-Stellt die Kamera einen Code partout nicht scharf, hilft der Knopf
-"📷 Andere Kamera-App verwenden" – er öffnet die eigentliche Kamera-App
-des Geräts statt der Live-Vorschau in der Webseite und liefert damit oft
-ein schärferes Foto. Klappt auch das nicht, lässt sich der Code unten im
-Kamerabild auch von Hand eintippen ("Code funktioniert nicht? Hier
+<p>📥 <b>Einscannen</b> / 📤 <b>Ausscannen</b> öffnen direkt die Kamera-App des
+Geräts – ohne zusätzlichen Klick –, suchen den erkannten Barcode unter den
+Produkten und öffnen den Buchen-Dialog direkt mit der passenden Richtung –
+nur die Menge muss noch bestätigt werden. Bricht die Kamera-App ohne Foto
+ab oder ist ein zweiter Versuch nötig, holt der Knopf "📷 Foto (erneut)
+aufnehmen" sie erneut. Klappt auch das nicht, lässt sich der Code unten
+auch von Hand eintippen ("Code funktioniert nicht? Hier
 eintippen") – funktioniert unabhängig von der Kamera immer. Kennt die App
 den Barcode noch nicht, bietet <b>Einscannen</b> direkt an,
 daraus ein <b>🏷️ neues Produkt</b> anzulegen: Bezeichnung eingeben, eine

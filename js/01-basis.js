@@ -819,6 +819,17 @@ async function barcodeScannen(callback){
  const overlay=$("barcodeScanOverlay"), status=$("barcodeScanStatus"), video=$("barcodeScanVideo");
  if(!overlay||!video)return;
  overlay.hidden=false;
+ barcodeScanAktuellerCallback=callback;
+ // v3.119: die native Kamera-App sofort automatisch oeffnen, ohne dass der
+ // Anwender extra auf "Andere Kamera-App verwenden" tippen muss - genau der
+ // Weg, der sich als zuverlaessig scharf bestaetigt hat. Ein programmatischer
+ // Klick auf das Datei-Feld wird von Browsern nur als "echter" Klick
+ // akzeptiert, solange er noch innerhalb desselben Nutzer-Klicks passiert -
+ // deshalb HIER, vor dem ersten "await", nicht erst nach dem Laden der
+ // Bibliothek. Die Web-Kamera-Vorschau unten laeuft parallel im Hintergrund
+ // weiter (unveraendert) - bricht der Anwender die native Kamera-App ohne
+ // Foto ab, landet er auf dieser Vorschau statt auf einem leeren Bildschirm.
+ if($("barcodeScanNativeInput"))$("barcodeScanNativeInput").click();
  if(status){status.textContent="Bibliothek wird geladen …";status.style.color="#fff"}
  try{
   await zxingLaden();
@@ -829,7 +840,6 @@ async function barcodeScannen(callback){
  if(status){status.textContent="Kamera wird gestartet …";status.style.color="#fff"}
  try{
   barcodeScanCodeReader=new ZXing.BrowserMultiFormatReader();
-  barcodeScanAktuellerCallback=callback;
   const aufTreffer=(result,err,controls)=>{
    barcodeScanControls=controls;
    if(result){

@@ -62,7 +62,11 @@
 //     bislang von try/catch-Bloecken still verschluckt; erst v3.115s
 //     sichtbare Statusmeldung machte ihn ueberhaupt bemerkbar. Neue
 //     Hilfsfunktion barcodeScanBildElement() baut jetzt ein echtes
-//     <img>-Element auf, wie es die Bibliothek erwartet.
+//     <img>-Element auf, wie es die Bibliothek erwartet. v3.119 macht die
+//     native Kamera-App zum automatischen Standardweg: barcodeScannen()
+//     loest den Klick auf das versteckte Datei-Feld jetzt selbst aus,
+//     sofort beim Oeffnen des Overlays - der Anwender muss nicht mehr
+//     zuerst auf einen Knopf tippen.
 //
 // WICHTIGSTE AENDERUNG SEIT v3.98: Die Lagerverwaltung baute urspruenglich
 // auf lagerbestand auf (dem Blech-Materialbestand). Das war fachlich falsch
@@ -434,8 +438,14 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  console.log("\n10 · Einscannen/Ausscannen: Barcode -> Produkt -> vorbelegter Buchen-Dialog");
  // barcodeScannen wird gestubbt (siehe Kopfkommentar) - ruft den Callback
  // sofort mit einem fest hinterlegten Code auf, ohne echte Kamera/ZXing.
+ // barcodeScannen ist als "function" (nicht const/let) global auf window -
+ // window.barcodeScannen=... ueberschreibt deshalb die echte Funktion
+ // DAUERHAFT, nicht nur fuer diesen Test. Die echte Funktion wird deshalb
+ // einmalig gesichert, damit Abschnitt 13b sie spaeter fuer einen echten
+ // Aufruf zurueckholen kann (siehe dort).
  const scanStubben=code=>page.evaluate(c=>{
   window.__scanAufrufe=window.__scanAufrufe||[];
+  if(!window.__barcodeScannenEcht)window.__barcodeScannenEcht=window.barcodeScannen;
   window.barcodeScannen=cb=>{window.__scanAufrufe.push(true);cb(c)};
  },code);
 
@@ -834,6 +844,41 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(z.schnellerErfolg==="XYZ","ein Versprechen, das vor dem Zeitlimit erfolgreich ist, wird unveraendert durchgereicht",z);
  p(z.schnellerFehler==="echter Fehler","ein Versprechen, das vor dem Zeitlimit mit einem echten Fehler abbricht, wird nicht verschluckt",z);
  p(/Zeitueberschreitung/.test(z.zeitlimitFehler||""),"ein Versprechen, das NIE von selbst fertig wird (wie ZXings unbegrenzte interne Wiederholung), wird nach dem Zeitlimit trotzdem mit einer klaren Meldung abgebrochen statt die App haengen zu lassen",z);
+
+ // v3.119: barcodeScannen() (der echte Einstieg, den Einscannen/Ausscannen
+ // aufrufen - in Abschnitt 10 zugunsten der stillgelegten ZXing/Netzwerk-
+ // Abhaengigkeit gestubbt, siehe dortiger Kommentar) soll die native
+ // Kamera-App jetzt sofort automatisch oeffnen, ohne dass der Anwender
+ // zuerst auf einen Knopf tippen muss. Ein programmatischer Klick auf das
+ // Datei-Feld wird von Browsern nur akzeptiert, wenn er noch innerhalb des
+ // urspruenglichen Nutzer-Klicks passiert - deshalb muss er VOR jedem
+ // "await" in der Funktion passieren. Getestet wird das hier direkt an der
+ // ECHTEN Funktion (window.__barcodeScannenEcht aus Abschnitt 10, siehe
+ // dortiger Kommentar - window.barcodeScannen zeigt seit Abschnitt 10
+ // dauerhaft auf den Stub), indem der Klick auf das Datei-Feld abgefangen
+ // wird und sofort - ohne die Funktion abzuwarten - geprueft wird, ob er
+ // bereits ausgeloest wurde.
+ console.log("\n13b · Kamera-App oeffnet sich automatisch (v3.119)");
+ z=await page.evaluate(async()=>{
+  const echteBarcodeScannen=window.__barcodeScannenEcht;
+  const input=$("barcodeScanNativeInput");
+  let geklickt=false;
+  const echterClick=input.click.bind(input);
+  input.click=()=>{geklickt=true};
+  const aufruf=echteBarcodeScannen(()=>{});
+  const sofort={
+   geklicktSofort:geklickt,
+   overlayOffen:!$("barcodeScanOverlay").hidden,
+   callbackGesetzt:typeof barcodeScanAktuellerCallback==="function"
+  };
+  await aufruf; // laesst den (im Testnetz zwangslaeufig scheiternden) ZXing-Ladeversuch sauber abschliessen
+  input.click=echterClick;
+  barcodeScanSchliessen();
+  return sofort;
+ });
+ p(z.geklicktSofort===true,"barcodeScannen() klickt das versteckte native Datei-Feld sofort, noch bevor irgendetwas anderes abgewartet wird",z);
+ p(z.overlayOffen===true,"das Scan-Overlay ist zu diesem Zeitpunkt bereits geoeffnet",z);
+ p(z.callbackGesetzt===true,"der callback ist zu diesem Zeitpunkt bereits hinterlegt, damit ein sehr schnell zurueckkommendes Foto nicht verloren gehen kann",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

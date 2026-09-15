@@ -29533,3 +29533,72 @@ Volle Regression aller Prüfstände im Anschluss ohne neue Fehlschläge.
 | `PROJECT_STATE.md` | Versionsstand 3.118 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.118"]` ergänzt |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | neuer Abschnitt 12b: 5 neue Prüfungen für die Positionssuche |
+
+## 185. KAMERA-APP OEFFNET SICH SOFORT AUTOMATISCH — VERSION 3.119
+
+### 185.1 Anlass
+
+Nach dem Erfolg von v3.117 (Barcode-Scan funktioniert jetzt zuverlässig
+über "📷 Andere Kamera-App verwenden") bat der Anwender um den letzten
+Schliff: der zusätzliche Klick auf diesen Knopf soll entfallen - die
+Geräte-Kamera-App soll sich beim Öffnen des Scan-Overlays direkt von
+selbst öffnen.
+
+### 185.2 Umsetzung
+
+`barcodeScannen()` (js/01-basis.js) löst den Klick auf das versteckte
+native Datei-Feld (`#barcodeScanNativeInput`) jetzt selbst aus - ganz am
+Anfang der Funktion, VOR jedem `await`. Das ist kein Zufall: ein
+programmatischer `.click()` auf ein Datei-Feld akzeptieren Browser nur,
+solange er noch innerhalb desselben, echten Nutzer-Klicks passiert (hier:
+der Klick auf "📥 Einscannen"/"📤 Ausscannen") - ein `await` davor (z. B.
+auf das Laden der ZXing-Bibliothek) würde diesen Zusammenhang für den
+Browser unsichtbar machen und den Klick stillschweigend wirkungslos
+werden lassen. Das Laden der Bibliothek läuft weiterhin parallel dazu im
+Hintergrund weiter; bis der Anwender mit dem Foto von der Kamera-App
+zurückkommt, ist es praktisch immer längst fertig.
+
+Die bestehende Web-Kamera-Vorschau (`decodeFromConstraints` u. a.) bleibt
+unverändert im Hintergrund bestehen - bricht der Anwender die native
+Kamera-App ohne Foto ab, landet er auf dieser Vorschau statt auf einem
+leeren Bildschirm, mit allen bisherigen Rückwegen (Tippen zum
+Fokussieren, manuelle Eingabe). Der bisherige Knopf "📷 Andere Kamera-App
+verwenden" bleibt bestehen und unverändert verdrahtet, dient jetzt aber
+als manueller Rückweg für einen zweiten Versuch - umbenannt in "📷 Foto
+(erneut) aufnehmen", da er nicht mehr die einzige Möglichkeit ist, die
+Kamera-App zu öffnen.
+
+### 185.3 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, neuer Abschnitt 13b:
+3 neue Prüfungen direkt an der ECHTEN `barcodeScannen()`-Funktion (nicht
+am Stub aus Abschnitt 10) - der Klick auf das native Datei-Feld erfolgt
+bereits, bevor irgendetwas anderes abgewartet wird, das Overlay ist zu
+diesem Zeitpunkt bereits offen, und der Callback ist bereits hinterlegt.
+Dabei fiel auf: `barcodeScannen` ist als `function`-Deklaration global auf
+`window` erreichbar - der Stub aus Abschnitt 10 (`window.barcodeScannen =
+...`) überschreibt die echte Funktion deshalb DAUERHAFT für den Rest des
+Testlaufs, nicht nur für die dortigen Tests. Behoben durch einmaliges
+Sichern der echten Funktion (`window.__barcodeScannenEcht`) beim ersten
+Stub-Aufruf, damit Abschnitt 13b sie für einen echten Aufruf zurückholen
+kann - eine reine Testverbesserung, keine Änderung an der App selbst. 93
+Prüfungen in diesem Prüfstand, alle bestanden. Volle Regression aller
+Prüfstände im Anschluss ohne neue Fehlschläge.
+
+**Ehrliche Grenze:** ob der automatische Klick auf allen Geräten/Browsern
+zuverlässig als "echter" Nutzer-Klick durchgeht, kann aus dieser Sandbox
+nicht abschliessend zugesichert werden - die Web-Kamera-Vorschau im
+Hintergrund fängt einen solchen Fall aber auf, statt dass der Anwender vor
+einem leeren Overlay steht.
+
+### 185.4 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | `barcodeScannen()`: Klick auf `#barcodeScanNativeInput` jetzt ganz am Anfang, vor dem Laden der Bibliothek |
+| `index.html` | Knopf umbenannt zu "📷 Foto (erneut) aufnehmen" |
+| `js/41-hilfe.js` | Hilfetext an den automatischen Kamera-Start angepasst |
+| `sw.js` | Cache-Version 3.119 |
+| `PROJECT_STATE.md` | Versionsstand 3.119 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.119"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 10: echte `barcodeScannen()` wird vor dem ersten Stub gesichert; neuer Abschnitt 13b: 3 neue Prüfungen |

@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.118</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.119</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -2549,8 +2549,13 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
      des Geraets statt der Web-Vorschau oben - komplett unabhaengig von
      getUserMedia/ImageCapture und deren Eigenheiten. capture="environment"
      oeffnet auf Mobilgeraeten direkt die Kamera-App (nicht die Dateiauswahl),
-     das aufgenommene Foto wird danach genauso auf einen Barcode untersucht. -->
-<button type="button" id="barcodeScanNativeKamera" class="gray" style="width:100%;margin-top:8px">📷 Andere Kamera-App verwenden (falls unscharf)</button>
+     das aufgenommene Foto wird danach genauso auf einen Barcode untersucht.
+     v3.119: barcodeScannen() (js/01-basis.js) loest den Klick auf dieses
+     versteckte Feld jetzt selbst automatisch aus, sobald das Overlay
+     oeffnet - der Knopf hier bleibt als manueller Rueckweg bestehen, falls
+     die native Kamera-App abgebrochen wurde oder ein zweiter Versuch noetig
+     ist. -->
+<button type="button" id="barcodeScanNativeKamera" class="gray" style="width:100%;margin-top:8px">📷 Foto (erneut) aufnehmen</button>
 <input type="file" accept="image/*" capture="environment" id="barcodeScanNativeInput" hidden>
 <!-- v3.114: verlaesslicher Rueckweg unabhaengig von jeder Kamera-Eigenheit -
      falls die Kamera einen Code partout nicht scharf bekommt, kann er hier
