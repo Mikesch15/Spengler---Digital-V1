@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.117</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.118</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -753,7 +753,9 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div class="info">Ein Produkt gehört zu genau einer Materialposition aus dem Katalog, wird aber einzeln geführt und gebucht - z. B. mehrere Rohrbogen-Varianten unter derselben Regierapport-Position.</div>
 <div class="grid">
 <div class="wide"><label>Bezeichnung</label><input id="lagerNeuesProduktBezeichnung" data-pflicht="1" placeholder="z. B. Rohrbogen 87° 100mm"></div>
-<div class="wide"><label>Materialposition</label><select id="lagerNeuesProduktMaterial" data-pflicht="1"></select></div>
+<div class="wide"><label>Materialposition</label>
+<input id="lagerNeuesProduktMaterialSuche" placeholder="🔍 Position suchen …" style="margin-bottom:4px">
+<select id="lagerNeuesProduktMaterial" data-pflicht="1"></select></div>
 <div class="wide"><label>Barcode</label><div class="bar" style="gap:6px">
 <input id="lagerNeuesProduktBarcode" placeholder="per Kamera oder manuell">
 <button type="button" class="gray" id="lagerNeuesProduktScan">📷</button>

@@ -387,17 +387,37 @@ $("lagerBuchenSpeichern").onclick=async()=>{
 // muss dann noch gewaehlt werden; (2) "＋ Weiteres Produkt" innerhalb einer
 // bereits aufgeklappten Position ruft dies mit der Position vorbelegt auf,
 // der Barcode wird dann per Scan/Eingabe im Formular selbst ergaenzt.
+let lagerNeuesProduktMaterialListeVoll=[];
 function lagerNeuesProduktOeffnen(materialId,barcode){
  const fehler=$("lagerNeuesProduktFehler");
  if(fehler)fehler.hidden=true;
  $("lagerNeuesProduktBezeichnung").value="";
  $("lagerNeuesProduktBarcode").value=barcode||"";
- const liste=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
- $("lagerNeuesProduktMaterial").innerHTML=`<option value="">– bitte wählen –</option>`+
-  liste.map(a=>`<option value="${a.id}"${String(a.id)===String(materialId||"")?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("");
+ lagerNeuesProduktMaterialListeVoll=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ if($("lagerNeuesProduktMaterialSuche"))$("lagerNeuesProduktMaterialSuche").value="";
+ lagerNeuesProduktMaterialRendern(lagerNeuesProduktMaterialListeVoll,materialId);
  $("lagerNeuesProduktModal").hidden=false;
  setTimeout(()=>{try{$("lagerNeuesProduktBezeichnung").focus()}catch(e){}},50);
 }
+function lagerNeuesProduktMaterialRendern(liste,materialId){
+ $("lagerNeuesProduktMaterial").innerHTML=`<option value="">– bitte wählen –</option>`+
+  liste.map(a=>`<option value="${a.id}"${String(a.id)===String(materialId||"")?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("");
+}
+// v3.118: bei einem grossen Materialkatalog ist eine lange, unsortierte
+// Auswahlliste unpraktisch - die Suche filtert die sichtbaren Optionen live
+// nach EDV-Nr./Bezeichnung/Dim. (derselbe Text wie lagArtikelText() anzeigt).
+// Die bereits gewaehlte Position bleibt beim Weitertippen immer in der Liste,
+// damit eine einmal getroffene Auswahl nicht durch das Filtern verloren geht.
+if($("lagerNeuesProduktMaterialSuche"))$("lagerNeuesProduktMaterialSuche").addEventListener("input",()=>{
+ const begriff=$("lagerNeuesProduktMaterialSuche").value.trim().toLowerCase();
+ const aktuelleId=$("lagerNeuesProduktMaterial").value;
+ let liste=lagerNeuesProduktMaterialListeVoll;
+ if(begriff){
+  liste=lagerNeuesProduktMaterialListeVoll.filter(a=>
+   String(a.id)===String(aktuelleId)||lagArtikelText(a).toLowerCase().includes(begriff));
+ }
+ lagerNeuesProduktMaterialRendern(liste,aktuelleId);
+});
 function lagerNeuesProduktSchliessen(){
  $("lagerNeuesProduktModal").hidden=true;
 }

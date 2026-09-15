@@ -28,7 +28,10 @@
 //     Gruppe mit eigenen, einzeln buchbaren Unter-Karten je Produkt.
 //  12 Neues Produkt erfassen (v3.106): per "＋ Weiteres Produkt" und per
 //     unbekanntem Barcode - legt lager_varianten an und oeffnet danach
-//     direkt den Buchen-Dialog fuer Zugang.
+//     direkt den Buchen-Dialog fuer Zugang. v3.118 ergaenzt ein Suchfeld
+//     ueber der Materialpositions-Auswahl, das die Liste live nach
+//     EDV-Nr./Bezeichnung/Dim. filtert, ohne eine bereits getroffene
+//     Auswahl beim Weitertippen zu verlieren.
 //  13 Tippen-zum-Fokussieren (v3.113, komplett umgebaut, js/01-basis.js):
 //     zwei fruehere Versuche (v3.108: zweiter gleichzeitiger
 //     getUserMedia()-Zugriff VOR dem Stoppen des ersten Streams; v3.111:
@@ -577,6 +580,55 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  z=await page.evaluate(()=>$("lagerverwaltungListe").textContent);
  p(/3 Produkte/.test(z),"die Position zeigt jetzt 3 Produkte in der Liste",z);
  await page.evaluate(()=>{$("lagerBuchenModal").hidden=true});
+
+ // v3.118: bei einem groesseren Materialkatalog ist die reine Auswahlliste
+ // unpraktisch - ein Suchfeld filtert die sichtbaren Positionen live.
+ console.log("\n12b · Materialposition im Neues-Produkt-Formular suchen");
+ z=await page.evaluate(()=>{
+  lagerNeuesProduktOeffnen(null,"");
+  return {anzahlOptionenVoll:$("lagerNeuesProduktMaterial").options.length};
+ });
+ p(z.anzahlOptionenVoll===3,"ohne Suchbegriff zeigt die Liste alle Positionen (Platzhalter + 2 Materialien)",z);
+
+ z=await page.evaluate(()=>{
+  $("lagerNeuesProduktMaterialSuche").value="Dichtband";
+  $("lagerNeuesProduktMaterialSuche").dispatchEvent(new Event("input"));
+  const texte=[...$("lagerNeuesProduktMaterial").options].map(o=>o.textContent);
+  return {anzahl:$("lagerNeuesProduktMaterial").options.length,texte};
+ });
+ p(z.anzahl===2&&z.texte.some(t=>/Dichtband/.test(t))&&!z.texte.some(t=>/Rohrbogen/.test(t)),
+   "die Eingabe 'Dichtband' filtert die Liste auf den Platzhalter plus die passende Position",z);
+
+ z=await page.evaluate(()=>{
+  $("lagerNeuesProduktMaterialSuche").value="300";
+  $("lagerNeuesProduktMaterialSuche").dispatchEvent(new Event("input"));
+  const texte=[...$("lagerNeuesProduktMaterial").options].map(o=>o.textContent);
+  return {texte};
+ });
+ p(z.texte.some(t=>/Rohrbogen/.test(t))&&!z.texte.some(t=>/Dichtband/.test(t)),
+   "die Suche wirkt auch auf die EDV-Nr. ('300' findet '300.10 Rohrbogen'), nicht nur auf die Bezeichnung",z);
+
+ z=await page.evaluate(()=>{
+  $("lagerNeuesProduktMaterialSuche").value="gibtesnicht";
+  $("lagerNeuesProduktMaterialSuche").dispatchEvent(new Event("input"));
+  return {anzahl:$("lagerNeuesProduktMaterial").options.length};
+ });
+ p(z.anzahl===1,"ein Suchbegriff ohne Treffer laesst nur den Platzhalter uebrig, statt eines Fehlers",z);
+
+ // eine bereits getroffene Auswahl darf beim Weitertippen nicht verloren
+ // gehen, auch wenn sie selbst nicht mehr zum Suchbegriff passt
+ z=await page.evaluate(()=>{
+  lagerNeuesProduktOeffnen(2,"");
+  $("lagerNeuesProduktMaterialSuche").value="Dichtband";
+  $("lagerNeuesProduktMaterialSuche").dispatchEvent(new Event("input"));
+  return {
+   ausgewaehlt:$("lagerNeuesProduktMaterial").value,
+   texte:[...$("lagerNeuesProduktMaterial").options].map(o=>o.textContent)
+  };
+ });
+ p(z.ausgewaehlt==="2"&&z.texte.some(t=>/Rohrbogen/.test(t)),
+   "eine bereits vorbelegte Position bleibt beim Weitertippen ausgewaehlt, auch wenn sie selbst nicht zum Suchbegriff passt",z);
+ await page.evaluate(()=>{lagerNeuesProduktSchliessen()});
 
  // ---- 13 · Tippen-zum-Fokussieren (v3.113, komplett umgebaut) ------------
  console.log("\n13 · Tippen-zum-Fokussieren (Kamera-Nahfokus)");

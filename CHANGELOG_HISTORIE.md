@@ -29482,3 +29482,54 @@ Fehlschläge.
 | `PROJECT_STATE.md` | Versionsstand 3.117 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.117"]` ergänzt |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13: 3 neue Prüfungen für `barcodeScanMitZeitlimit()` |
+
+## 184. NEUES PRODUKT: MATERIALPOSITION SUCHEN — VERSION 3.118
+
+### 184.1 Anlass
+
+Nachdem der Barcode-Scan mit v3.117 endlich zuverlässig funktioniert,
+bat der Anwender um die letzte fehlende Kleinigkeit im "Neues Produkt
+erfassen"-Formular (js/68-lagerverwaltung.js, ausgelöst z. B. durch einen
+unbekannten Barcode beim Einscannen): die Auswahl der Materialposition
+war bisher eine reine, unsortierte Liste aller Positionen aus dem
+Material-Katalog der Firma - bei einem grösseren Katalog unpraktisch,
+vor allem am Handy.
+
+### 184.2 Umsetzung
+
+Neues Textfeld "🔍 Position suchen …" direkt über der bestehenden
+Auswahlliste (index.html). Die bestehende Auswahlliste (`<select>`)
+bleibt als tatsächliches Formularfeld erhalten - nur ihre sichtbaren
+`<option>`-Einträge werden bei jeder Eingabe neu aus der vollständigen
+Liste gefiltert (`lagerNeuesProduktMaterialRendern()`, js/68-lagerverwaltung.js),
+nach genau dem Text, den `lagArtikelText()` auch anzeigt (EDV-Nr. +
+Bezeichnung + Abmessung), unabhängig von Gross-/Kleinschreibung. Eine
+bereits getroffene Auswahl - insbesondere die von "＋ Weiteres Produkt"
+vorbelegte Position - bleibt beim Weitertippen immer in der Liste
+enthalten, auch wenn ihr Text selbst nicht mehr zum Suchbegriff passt,
+damit eine Auswahl durch Filtern nie verloren geht. Kein neues
+Datenmodell, keine neue Anfrage an die Datenbank - die Filterung
+arbeitet ausschliesslich mit der bereits geladenen `lagArtikelListe()`.
+
+### 184.3 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, neuer Abschnitt 12b:
+5 neue Prüfungen - ohne Suchbegriff zeigt die Liste alle Positionen,
+ein Suchbegriff filtert auf die passende Bezeichnung, die Suche wirkt
+auch auf die EDV-Nr., ein Suchbegriff ohne Treffer lässt nur den
+Platzhalter übrig (kein Fehler), und eine bereits vorbelegte Position
+bleibt beim Weitertippen ausgewählt, selbst wenn sie nicht mehr zum
+Suchbegriff passt. 90 Prüfungen in diesem Prüfstand, alle bestanden.
+Volle Regression aller Prüfstände im Anschluss ohne neue Fehlschläge.
+
+### 184.4 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `index.html` | neues Suchfeld `#lagerNeuesProduktMaterialSuche` über der Materialpositions-Auswahl |
+| `js/68-lagerverwaltung.js` | neue Funktion `lagerNeuesProduktMaterialRendern()`; Live-Filterung per `input`-Ereignis, Auswahl bleibt beim Filtern erhalten |
+| `js/41-hilfe.js` | Hinweis auf das Suchfeld im Lagerverwaltung-Hilfetext ergänzt |
+| `sw.js` | Cache-Version 3.118 |
+| `PROJECT_STATE.md` | Versionsstand 3.118 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.118"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | neuer Abschnitt 12b: 5 neue Prüfungen für die Positionssuche |

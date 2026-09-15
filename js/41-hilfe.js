@@ -1385,8 +1385,10 @@ Kamerabild auch von Hand eintippen ("Code funktioniert nicht? Hier
 eintippen") – funktioniert unabhängig von der Kamera immer. Kennt die App
 den Barcode noch nicht, bietet <b>Einscannen</b> direkt an,
 daraus ein <b>🏷️ neues Produkt</b> anzulegen: Bezeichnung eingeben, eine
-Materialposition aus dem Katalog wählen, fertig – anschliessend geht es
-gleich weiter zum ersten Zugang. Dasselbe Formular öffnet sich auch über
+Materialposition aus dem Katalog wählen (das Suchfeld darüber filtert bei
+einem grossen Katalog nach EDV-Nr. oder Bezeichnung), fertig –
+anschliessend geht es gleich weiter zum ersten Zugang. Dasselbe Formular
+öffnet sich auch über
 "＋ Weiteres Produkt" innerhalb einer bereits aufgeklappten Position, dort
 mit vorbelegter Position.</p>
 <p>Sichtbar ist dieser Bereich nur für Mitarbeitende mit eigens
