@@ -755,6 +755,34 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(z.istImg===true&&z.istCanvas===false,"barcodeScanBildElement() liefert ein echtes <img>-Element (nicht ein <canvas>) - genau das, was decodeFromImageElement() laut ZXing-API verlangt",z);
  p(z.breite===1&&z.hoehe===1,"das <img>-Element hat die Abmessungen der uebergebenen Bilddatei tatsaechlich geladen (naturalWidth/naturalHeight), ist also fertig einsatzbereit fuer den Dekodierversuch",z);
 
+ // v3.117: ZXing wiederholt decodeFromImageElement() bei einer
+ // Checksum-/FormatException OHNE eingebaute Obergrenze automatisch per
+ // setTimeout - ein Foto, das wiederholt genau diesen Fehler ausloest,
+ // koennte die Auswertung sonst unbegrenzt lange "haengen" lassen, ohne je
+ // eine Rueckmeldung zu zeigen. barcodeScanMitZeitlimit() stellt sicher,
+ // dass immer irgendeine Rueckmeldung erscheint.
+ z=await page.evaluate(async()=>{
+  const ergebnis={};
+  // schneller Erfolg VOR dem Limit muss durchgereicht werden
+  try{
+   const wert=await barcodeScanMitZeitlimit(Promise.resolve("XYZ"),1000);
+   ergebnis.schnellerErfolg=wert;
+  }catch(e){ ergebnis.schnellerErfolgFehler=e.message; }
+  // ein Fehler VOR dem Limit muss durchgereicht werden, nicht verschluckt
+  try{
+   await barcodeScanMitZeitlimit(Promise.reject(new Error("echter Fehler")),1000);
+  }catch(e){ ergebnis.schnellerFehler=e.message; }
+  // ein Versprechen, das NIE von selbst fertig wird, muss nach dem Limit
+  // trotzdem mit einer klaren Meldung abgebrochen werden
+  try{
+   await barcodeScanMitZeitlimit(new Promise(()=>{}),150);
+  }catch(e){ ergebnis.zeitlimitFehler=e.message; }
+  return ergebnis;
+ });
+ p(z.schnellerErfolg==="XYZ","ein Versprechen, das vor dem Zeitlimit erfolgreich ist, wird unveraendert durchgereicht",z);
+ p(z.schnellerFehler==="echter Fehler","ein Versprechen, das vor dem Zeitlimit mit einem echten Fehler abbricht, wird nicht verschluckt",z);
+ p(/Zeitueberschreitung/.test(z.zeitlimitFehler||""),"ein Versprechen, das NIE von selbst fertig wird (wie ZXings unbegrenzte interne Wiederholung), wird nach dem Zeitlimit trotzdem mit einer klaren Meldung abgebrochen statt die App haengen zu lassen",z);
+
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");
  const quelltext=require("fs").readFileSync(repo+"/js/68-lagerverwaltung.js","utf8");

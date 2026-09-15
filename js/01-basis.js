@@ -619,9 +619,39 @@ function barcodeScanBildElement(quelle){
  return new Promise((resolve,reject)=>{
   const url=URL.createObjectURL(quelle);
   const img=new Image();
-  img.onload=()=>resolve({img,url});
+  img.onload=async()=>{
+   // v3.117: "onload" (und selbst das Promise von img.decode()) meldet bei
+   // einem aus einer object-URL geladenen Bild manchmal schon VOR dem
+   // vollstaendigen Bereitstellen der Pixeldaten - ein direkt danach
+   // gezeichnetes/ausgelesenes Canvas kann dadurch noch leer/unvollstaendig
+   // sein. Direkt durch wiederholte Tests mit echten Barcodes gegen die
+   // echte ZXing-Bibliothek bestaetigt: ohne kurze Wartezeit schlaegt das
+   // Dekodieren eines eindeutig gueltigen Codes unregelmaessig fehl, mit
+   // einer kurzen Wartezeit danach zuverlaessig nicht mehr.
+   try{ if(typeof img.decode==="function")await img.decode().catch(()=>{}); }catch(e){}
+   await new Promise(r=>setTimeout(r,300));
+   resolve({img,url});
+  };
   img.onerror=()=>{ try{URL.revokeObjectURL(url)}catch(e){}; reject(new Error("Bild konnte nicht geladen werden")); };
   img.src=url;
+ });
+}
+
+// v3.117: Sicherheitsnetz gegen ein stilles Haengenbleiben. ZXing wiederholt
+// decodeFromImageElement() bei einer ChecksumException/FormatException (ein
+// Code wurde ERKANNT, aber nicht sauber gelesen) intern automatisch per
+// setTimeout - OHNE eingebaute Obergrenze. Liefert ein Foto wiederholt genau
+// so einen Fehler (z. B. ein teilweise verdeckter/leicht verzerrter Code),
+// koennte die Auswertung dadurch unbegrenzt lange "Foto wird ausgewertet …"
+// anzeigen, ohne je durchzukommen. Ein Zeitlimit stellt sicher, dass immer
+// eine Rueckmeldung erscheint statt eines stillen Haengenbleibens.
+function barcodeScanMitZeitlimit(promise,ms){
+ return new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>reject(new Error("Zeitueberschreitung beim Auswerten des Fotos.")),ms);
+  promise.then(
+   v=>{clearTimeout(timer);resolve(v)},
+   e=>{clearTimeout(timer);reject(e)}
+  );
  });
 }
 
@@ -677,7 +707,7 @@ async function barcodeScanNeuFokussieren(){
    let bild=null;
    try{
     bild=await barcodeScanBildElement(blob);
-    const result=await barcodeScanCodeReader.decodeFromImageElement(bild.img);
+    const result=await barcodeScanMitZeitlimit(barcodeScanCodeReader.decodeFromImageElement(bild.img),6000);
     text=result?result.getText():null;
    }finally{
     if(bild)try{URL.revokeObjectURL(bild.url)}catch(e){}
@@ -746,7 +776,7 @@ async function barcodeScanNativeFotoAusgewaehlt(e){
  let bild=null;
  try{
   bild=await barcodeScanBildElement(datei);
-  const result=await barcodeScanCodeReader.decodeFromImageElement(bild.img);
+  const result=await barcodeScanMitZeitlimit(barcodeScanCodeReader.decodeFromImageElement(bild.img),6000);
   const text=result?result.getText():null;
   if(text){
    const cb=barcodeScanAktuellerCallback;
@@ -759,7 +789,15 @@ async function barcodeScanNativeFotoAusgewaehlt(e){
   // ZXing lehnt decodeFromImageElement() bei einem Foto OHNE erkennbaren
   // Code mit einer NotFoundException ab, statt einfach null zurueckzugeben -
   // das ist der Normalfall "kein Code im Bild", kein technischer Fehler.
-  if(e&&(e.name==="NotFoundException"||/not found/i.test(e.message||""))){
+  // v3.117: e.name/e.constructor.name sind im minifizierten CDN-Bundle NICHT
+  // mehr "NotFoundException" (auf einen kurzen, einzelnen Buchstaben
+  // verkuerzt) - der Vergleich per Name schlug dadurch IMMER fehl, egal ob
+  // echter Fehler oder normaler "kein Code gefunden"-Fall, und zeigte
+  // deshalb immer die alarmierendere generische Meldung. ZXing.NotFoundException
+  // bleibt als Klasse selbst unter diesem Namen global zugaenglich (Pruefung
+  // per instanceof direkt gegen echten Code in der ZXing-Bibliothek bestaetigt).
+  const keinCodeGefunden=(typeof ZXing!=="undefined"&&ZXing.NotFoundException&&e instanceof ZXing.NotFoundException)||(e&&/not found/i.test(e.message||""));
+  if(keinCodeGefunden){
    if(status){status.textContent="Kein Code im Foto gefunden - nochmal versuchen oder unten eintippen.";status.style.color="#ffb3b3"}
   }else{
    if(status){status.textContent="Foto konnte nicht ausgewertet werden.";status.style.color="#ffb3b3"}

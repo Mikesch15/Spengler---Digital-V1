@@ -29369,3 +29369,116 @@ Live-Test aus dieser Sandbox möglich.
 | `PROJECT_STATE.md` | Versionsstand 3.116 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.116"]` ergänzt |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13: 2 neue Prüfungen für `barcodeScanBildElement()` |
+
+## 183. FEHLERMELDUNG WAR FALSCH KLASSIFIZIERT + ZEITLIMIT-SICHERHEITSNETZ — VERSION 3.117
+
+### 183.1 Rückmeldung zu v3.116
+
+Nach v3.116 meldete der Anwender: "Es heisst immernoch foto konnte nicht
+ausgewertet werden." Das war der Anlass für eine deutlich tiefere
+Untersuchung als in den bisherigen Versionen dieser Serie - diesmal NICHT
+nur am Quelltext, sondern mit der ECHTEN ZXing-Bibliothek (per `npm pack
+@zxing/library@0.20.0` geladen, genau die Version, die auch die App per
+CDN lädt) und ECHTEN, computergenerierten Barcodes (EAN-13 und QR),
+ausgeführt im selben Playwright/Chromium, das auch die Prüfstände nutzt.
+Das ist die erste Version dieser ganzen Serie, in der tatsächlich ein
+Foto - wenn auch kein echtes Kamerafoto - durch die echte Bibliothek
+dekodiert wurde, statt nur die Verdrahtung zu prüfen.
+
+### 183.2 Fund 1: die Fehlermeldung war fest verdrahtet falsch
+
+`barcodeScanNativeFotoAusgewaehlt()` (js/01-basis.js) prüfte seit v3.116
+`e.name==="NotFoundException"`, um zwischen "kein Code im Bild" (normaler
+Fall) und einem echten technischen Fehler zu unterscheiden. Der Test mit
+der echten Bibliothek zeigte: im minifizierten CDN-Bundle heisst diese
+Fehlerklasse zur Laufzeit NICHT mehr "NotFoundException", sondern ist auf
+einen einzelnen Buchstaben verkürzt (`e.name` liefert z. B. `"N"`). Der
+Namensvergleich schlug dadurch **immer** fehl - unabhängig davon, ob
+wirklich kein Code im Bild war oder ein echter Fehler auftrat, zeigte die
+App deshalb immer dieselbe, generische Meldung "Foto konnte nicht
+ausgewertet werden." Behoben durch einen `instanceof ZXing.NotFoundException`-Vergleich
+gegen die Klasse selbst, die - anders als ihr Name - im
+globalen `ZXing`-Objekt unter genau diesem Bezeichner erreichbar bleibt
+(direkt gegen die echte Bibliothek bestätigt).
+
+### 183.3 Fund 2: ein mögliches, unbegrenztes stilles Haengenbleiben
+
+Bei der Untersuchung fiel ausserdem auf: `decodeFromImageElement()`
+wiederholt einen Dekodierversuch bei einer `ChecksumException`/
+`FormatException` (ein Code wurde ERKANNT, aber nicht sauber gelesen -
+z. B. teilweise verdeckt oder leicht verzerrt) **automatisch und ohne
+eingebaute Obergrenze** über ein internes `setTimeout`. Liefert ein Foto
+wiederholt genau diesen Fehlertyp, könnte die Auswertung dadurch
+theoretisch unbegrenzt lange laufen, ohne dass die Statusmeldung "Foto
+wird ausgewertet …" je durch eine andere ersetzt wird - ein stilles
+Hängenbleiben ohne jede Rückmeldung, was schlimmer wäre als eine falsche
+Fehlermeldung. Neue Hilfsfunktion `barcodeScanMitZeitlimit(versprechen,ms)`
+(js/01-basis.js) bricht einen Dekodierversuch nach 6 Sekunden mit einer
+klaren Meldung ab, falls die Bibliothek selbst nicht rechtzeitig
+fertig wird.
+
+### 183.4 Untersucht, aber NICHT abschliessend geklärt: Dekodier-Zuverlässigkeit selbst
+
+Bei den Tests mit der echten Bibliothek zeigte sich zusätzlich ein
+drittes, tieferliegendes Verhalten: `decodeFromImageElement()`/
+`decodeFromImageUrl()` scheiterten in der Playwright/Chromium-Testumgebung
+teils auch an eindeutig gültigen, sauber erzeugten Testbildern (sowohl
+EAN-13 als auch QR), während ein von Hand nachgebauter, tieferliegender
+Aufruf derselben Bibliotheksfunktionen (ohne den High-Level-Wrapper)
+gelegentlich erfolgreich war. Eine systematische Suche nach der genauen
+Ursache (Zeitpunkt des Bild-Ladens, `object`- vs. direkte URL, Canvas-
+Einstellungen wie `willReadFrequently`, Einbindung ins DOM, Wiederholung
+des Aufrufs) ergab **keine einzelne, eindeutig reproduzierbare Erklärung**
+- die Ergebnisse waren zwischen ansonsten identischen Testläufen
+widersprüchlich. Das deutet auf eine Unzuverlässigkeit hin, die entweder
+spezifisch für diese gekapselte Sandbox-Umgebung ist (kein echtes GPU/
+Display, keine reale Mobilkamera) oder tiefer in dieser Bibliotheksversion
+selbst liegt - in beiden Fällen ausserhalb dessen, was durch eine gezielte
+Codeänderung mit Sicherheit behoben werden kann, ohne die eigentliche
+Ursache eindeutig zu kennen. Die in v3.117 belassene kurze Wartezeit in
+`barcodeScanBildElement()` (300 ms nach dem Laden des Fotos, ergänzt um
+`img.decode()`) bleibt als plausible, risikoarme Massnahme bestehen, ohne
+dass sie in den eigenen Tests zuverlässig einen Unterschied gemacht hätte.
+
+### 183.5 Ehrliche Einordnung
+
+Zwei der drei in dieser Version untersuchten Punkte sind eindeutig
+bestätigte, korrigierte Programmfehler (Fund 1 und Fund 2 oben) - keine
+Vermutungen, sondern durch Quelltext UND Laufzeitverhalten der echten
+Bibliothek nachgewiesen. Der dritte Punkt (183.4) bleibt eine offene
+Frage: ob das eigentliche Foto-Scannen beim Anwender jetzt zuverlässig
+funktioniert, kann aus dieser Sandbox weiterhin nicht abschliessend
+zugesichert werden. Sollte weiterhin "Foto konnte nicht ausgewertet
+werden." erscheinen, ist zumindest jetzt sichergestellt, dass diese
+Meldung auch wirklich einen echten Fehler bedeutet (dank Fund 1) und
+nicht endlos ohne jede Rückmeldung hängen bleibt (dank Fund 2). Die
+manuelle Code-Eingabe aus v3.114 bleibt weiterhin der einzige Weg in
+dieser gesamten Versionsreihe, der mit Sicherheit funktioniert.
+
+### 183.6 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 13: 3 neue
+Prüfungen für `barcodeScanMitZeitlimit()` - ein vor dem Zeitlimit
+erfolgreiches Versprechen wird unverändert durchgereicht, ein vor dem
+Zeitlimit fehlschlagendes Versprechen wird nicht verschluckt, und ein
+Versprechen, das nie von selbst fertig wird (wie ZXings unbegrenzte
+interne Wiederholung), wird nach Ablauf des Limits trotzdem mit einer
+klaren Meldung abgebrochen. 85 Prüfungen in diesem Prüfstand, alle
+bestanden. Ausserdem, ausserhalb der üblichen Prüfstand-Struktur (die
+`barcodeScanCodeReader` immer als `null` stubbt): ein eigens erstelltes,
+manuelles Testskript, das die ECHTE ZXing-Bibliothek und die ECHTE
+Funktion `barcodeScanNativeFotoAusgewaehlt()` aus js/01-basis.js lädt und
+mit einem echten EAN-13-Testbild sowie einem leeren (codelosen) Testbild
+aufruft - bestätigt die korrekte Fehlerklassifizierung aus Fund 1 in
+beiden Fällen. Volle Regression aller Prüfstände im Anschluss ohne neue
+Fehlschläge.
+
+### 183.7 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | `NotFoundException`-Erkennung auf `instanceof ZXing.NotFoundException` umgestellt; neue Funktion `barcodeScanMitZeitlimit()`; beide Dekodieraufrufe damit abgesichert; kurze Wartezeit in `barcodeScanBildElement()` nach `img.decode()` ergänzt |
+| `sw.js` | Cache-Version 3.117 |
+| `PROJECT_STATE.md` | Versionsstand 3.117 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.117"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13: 3 neue Prüfungen für `barcodeScanMitZeitlimit()` |
