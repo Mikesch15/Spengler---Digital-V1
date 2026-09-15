@@ -28656,3 +28656,90 @@ erneutes Ausprobieren vor Ort feststellen.
   (`track.getPhotoCapabilities()`/`setOptions()`) - nicht gebaut, nur als
   möglicher nächster Schritt festgehalten, falls die Rückmeldung das
   nahelegt.
+
+## 175. FEHLERBEHEBUNG: KAMERA STELLT WEITERHIN NICHT SCHARF (3) — VERSION 3.109
+
+### 175.1 Anlass
+
+Rückmeldung des Anwenders nach v3.108: "Geht immer noch nicht 🤣". Statt
+erneut zu raten, wurde gezielt nachgefragt: Stellt die normale
+Kamera-App des Geräts auf demselben Barcode aus derselben Distanz scharf?
+Antwort: **Ja, problemlos.** Das ist der entscheidende Befund - das
+Objektiv/der Mindest-Fokusabstand ist nicht das Problem (das hätte auch
+die native Kamera-App betroffen). Der Unterschied muss also im
+Aufnahmepfad selbst liegen: eine native Kamera-App verwendet für die
+eigentliche Aufnahme einen **Einzelbild-Fokussier-dann-Aufnehmen-Pfad**,
+während `getUserMedia`-Videostreams (worauf sich v3.104-v3.108
+ausschliesslich stützten) auf **Dauerautofokus während der laufenden
+Vorschau** angewiesen sind - ein bekannter, auf mehreren Android-Geräten
+qualitativ schlechterer Pfad als die Einzelbildaufnahme einer Kamera-App.
+
+### 175.2 Lösung: Stufe 3 - Einzelfoto per ImageCapture
+
+`barcodeScanFotoVersuch()` (neu, js/01-basis.js) nutzt die
+**`ImageCapture`-API** (`new ImageCapture(track)`, `capture.takePhoto()`)
+- dieselbe Web-Plattform-Schnittstelle, über die auch native Kamera-Apps
+im Web ein Einzelfoto mit dem Foto-Aufnahmepfad (statt dem
+Vorschau-Autofokus-Pfad) erzeugen. Das aufgenommene Foto wird auf ein
+`<canvas>` gezeichnet und direkt mit dem bereits laufenden ZXing-Reader
+(`decodeFromImageElement()`) auf einen Barcode untersucht. Wird einer
+gefunden, gilt der Scan als erledigt - Overlay schliesst, derselbe
+`callback` wie bei einem normalen Video-Treffer wird aufgerufen (dafür
+merkt sich `barcodeScannen()` den `callback` jetzt in
+`barcodeScanAktuellerCallback`, da `barcodeScanFotoVersuch()` ausserhalb
+des ursprünglichen ZXing-Treffer-Callbacks läuft).
+
+`barcodeScanNeuFokussieren()` wird zu einer echten drei-Stufen-Geste: nach
+Stufe 1 (`focusDistance`-Pulse) und Stufe 2 (Stream-Neustart) läuft Stufe 3
+IMMER zusätzlich, unabhängig vom Ergebnis der beiden anderen - selbst wenn
+Stufe 1/2 nichts bewirken, kann Stufe 3 allein bereits einen Treffer
+liefern, weil sie einen komplett anderen (den tatsächlich funktionierenden)
+Aufnahmepfad verwendet. Unterstützt der Browser `ImageCapture` nicht (z. B.
+iOS Safari, wo die API noch experimentell ist), wird Stufe 3 übersprungen -
+kein Fehler, Stufen 1/2 laufen unverändert weiter.
+
+### 175.3 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 13 um 3
+Prüfungen erweitert: `window.ImageCapture` wird gestubbt und geprüft, dass
+ein Klick sie mit dem aktuellen Video-Track konstruiert und `takePhoto()`
+aufruft - unabhängig vom Ergebnis der Stufen 1/2; ein weiterer Fall prüft,
+dass ohne `ImageCapture`-Unterstützung kein Fehler auftritt und Stufe 1/2
+unverändert weiterlaufen. 12 Prüfungen in Abschnitt 13 (vorher 9), 76
+Prüfungen insgesamt in diesem Prüfstand, alle bestanden. Zusätzlich wurde
+vor dem Hinzufügen der neuen Prüfungen bestätigt, dass die bereits
+bestehenden Stufe-1/2-Prüfungen mit der ECHTEN (nicht gestubbten)
+Chromium-`ImageCapture`-API auf einem kameralosen `canvas`-Track weiterhin
+fehlerfrei und innerhalb des Test-Zeitfensters durchlaufen (Stufe 3 wird
+dort ungestubbt mitausgeführt und liefert dabei erwartungsgemäss keinen
+Treffer, wirft aber auch keinen Fehler). Volle Regression aller Prüfstände
+im Anschluss ohne neue Fehlschläge.
+
+**Ehrliche Grenze:** weiterhin kein Live-Test mit einer echten
+Gerätekamera aus dieser Sandbox möglich. Die `ImageCapture`-API ist auf
+Chromium/Android gut unterstützt, gilt aber weiterhin nicht überall als
+vollständig stabil (z. B. iOS Safari); da diese dritte Stufe direkt auf
+den bestätigt funktionierenden nativen Aufnahmepfad des Anwender-Geräts
+zielt, ist die Erwartung hoch, dass sie das gemeldete Problem behebt - die
+endgültige Bestätigung kann aber nur der Anwender selbst am Gerät geben.
+
+### 175.4 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | neue Funktion `barcodeScanFotoVersuch()` (Stufe 3, `ImageCapture`); `barcodeScanNeuFokussieren()` ruft sie zusätzlich nach Stufe 1/2 auf; `barcodeScannen()` merkt sich `callback` in `barcodeScanAktuellerCallback` |
+| `sw.js` | Cache-Version 3.109 |
+| `PROJECT_STATE.md` | Versionsstand 3.109 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.109"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13 um 3 Prüfungen erweitert (Stufe 3) |
+
+### 175.5 Offene Punkte
+
+- Kein Live-Test mit echter Kamera möglich (siehe 175.3) - Rückmeldung des
+  Anwenders nach diesem Fix ist weiterhin der einzige verlässliche Test.
+- Hilft auch Stufe 3 nicht, wäre der nächste sinnvolle Schritt, die
+  eigentliche Barcode-Erkennung komplett auf Einzelfoto-Aufnahmen
+  umzustellen (regelmässige `takePhoto()`-Aufrufe statt/zusätzlich zum
+  laufenden Video-Scan) statt sie nur als Tipp-Geste anzubieten - deutlich
+  grösserer Eingriff, bewusst nicht vorgezogen, solange nicht klar ist, ob
+  er nötig ist.

@@ -29,14 +29,16 @@
 //  12 Neues Produkt erfassen (v3.106): per "＋ Weiteres Produkt" und per
 //     unbekanntem Barcode - legt lager_varianten an und oeffnet danach
 //     direkt den Buchen-Dialog fuer Zugang.
-//  13 Tippen-zum-Fokussieren (v3.107, verstaerkt: v3.108, js/01-basis.js):
-//     ein Klick auf das Kamerabild stoesst die Fokussuche in zwei Stufen
-//     aktiv neu an - mit einem GESTUBBTEN MediaStreamTrack (kein echter
-//     Kamera-Zugriff, siehe Abschnitt 10) wird geprueft, dass Stufe 1 die
-//     richtigen applyConstraints()-Aufrufe ausloest UND dass Stufe 2 (v3.108)
-//     unabhaengig davon einen kompletten Stream-Neustart ueber
+//  13 Tippen-zum-Fokussieren (v3.107, verstaerkt: v3.108, v3.109,
+//     js/01-basis.js): ein Klick auf das Kamerabild stoesst die Fokussuche
+//     in DREI Stufen aktiv neu an - mit einem GESTUBBTEN MediaStreamTrack
+//     (kein echter Kamera-Zugriff, siehe Abschnitt 10) wird geprueft, dass
+//     Stufe 1 die richtigen applyConstraints()-Aufrufe ausloest, Stufe 2
+//     (v3.108) unabhaengig davon einen kompletten Stream-Neustart ueber
 //     navigator.mediaDevices.getUserMedia() anstoesst und den alten Stream
-//     danach stoppt.
+//     danach stoppt, und Stufe 3 (v3.109) unabhaengig von beiden zusaetzlich
+//     ein Einzelfoto per ImageCapture aufnimmt (der native Aufnahmepfad
+//     einer Foto-App statt des Dauerautofokus-Pfads eines Video-Streams).
 //
 // WICHTIGSTE AENDERUNG SEIT v3.98: Die Lagerverwaltung baute urspruenglich
 // auf lagerbestand auf (dem Blech-Materialbestand). Das war fachlich falsch
@@ -629,6 +631,50 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(z.fehler===null,"ein fehlschlagender Stream-Neustart wirft keinen sichtbaren Fehler",z);
  p(z.alterGestoppt===false&&z.srcObjectUnveraendert===true,
    "und der bisherige Stream bleibt unveraendert aktiv",z);
+
+ // Stufe 3 (v3.109): Einzelfoto per ImageCapture, unabhaengig von den
+ // Ergebnissen der Stufen 1/2 - window.ImageCapture wird gestubbt (die echte
+ // Browser-API existiert zwar in Chromium, liefert aber fuer einen
+ // kameralosen canvas-Track kein verwertbares Foto; hier wird nur geprueft,
+ // dass ein Klick sie ueberhaupt ansteuert).
+ z=await page.evaluate(async()=>{
+  let konstruiertMitTrack=null, fotoAufgenommen=false;
+  window.ImageCapture=class{
+   constructor(t){konstruiertMitTrack=t}
+   async takePhoto(){fotoAufgenommen=true;return new Blob(["x"],{type:"image/png"})}
+  };
+  const stream=document.createElement("canvas").captureStream();
+  const track=stream.getVideoTracks()[0];
+  track.applyConstraints=async()=>{};
+  track.getCapabilities=()=>({focusMode:["continuous"]});
+  track.stop=()=>{};
+  $("barcodeScanVideo").srcObject=stream;
+  navigator.mediaDevices.getUserMedia=async()=>document.createElement("canvas").captureStream();
+  $("barcodeScanVideo").click();
+  await new Promise(r=>setTimeout(r,350));
+  return {konstruiertMitTrackVorhanden:!!konstruiertMitTrack,fotoAufgenommen};
+ });
+ p(z.konstruiertMitTrackVorhanden===true,"Stufe 3: ein Klick erzeugt ein ImageCapture auf dem aktuellen Video-Track",z);
+ p(z.fotoAufgenommen===true,"und nimmt darueber ein Einzelfoto auf - unabhaengig vom Ergebnis der Stufen 1/2",z);
+
+ z=await page.evaluate(async()=>{
+  // Ohne ImageCapture-Unterstuetzung (aeltere/andere Browser) darf Stufe 3
+  // keinen Fehler werfen - Stufen 1/2 laufen unveraendert weiter.
+  delete window.ImageCapture;
+  const stream=document.createElement("canvas").captureStream();
+  const track=stream.getVideoTracks()[0];
+  const aufrufe=[];
+  track.applyConstraints=async c=>{aufrufe.push(c)};
+  track.getCapabilities=()=>({focusMode:["continuous"]});
+  track.stop=()=>{};
+  $("barcodeScanVideo").srcObject=stream;
+  navigator.mediaDevices.getUserMedia=async()=>document.createElement("canvas").captureStream();
+  let fehler=null;
+  try{ $("barcodeScanVideo").click(); await new Promise(r=>setTimeout(r,350)); }catch(e){fehler=e}
+  return {fehler,aufrufeLaenge:aufrufe.length};
+ });
+ p(z.fehler===null&&z.aufrufeLaenge===1,
+   "ohne ImageCapture-Unterstuetzung im Browser laeuft Stufe 1/2 unveraendert weiter, kein Fehler",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");
