@@ -28916,3 +28916,63 @@ Fehlschläge.
   Umbau auf durchgehende Einzelfoto-Erkennung statt Video-Scan,
   bereits in Abschnitt 175.5 als möglicher, deutlich grösserer nächster
   Schritt festgehalten) angegangen werden.
+
+## 178. ENDGÜLTIGER RÜCKBAU: EINZELFOTO IST DIE URSACHE — VERSION 3.112
+
+### 178.1 Ergebnis des isolierten Tests aus v3.111
+
+Der in v3.111 bewusst isolierte Test (ausschliesslich
+`ImageCapture.takePhoto()` auf dem bestehenden, nie ersetzten Track,
+ohne jeden Stream-Wechsel) ergab ein eindeutiges Ergebnis: der Anwender
+meldete erneut ein komplett schwarzes Kamerabild nach dem Tipp. Damit ist
+geklärt, was in Abschnitt 176.2 offengelassen wurde: **nicht nur** der
+Stream-Neustart aus v3.108 war ursächlich - `ImageCapture.takePhoto()`
+**selbst**, unabhängig davon, ob gleichzeitig ein zweiter Stream
+angefordert wird, destabilisiert die Kamera-Vorschau auf diesem
+Gerät/Browser. Beide getesteten aktiven Kamera-Eingriffe sind damit
+unabhängig voneinander als Ursache bestätigt.
+
+### 178.2 Endgültiger Rückbau
+
+`barcodeScanNeuFokussieren()` (js/01-basis.js) macht wieder
+ausschliesslich das, was v3.107/v3.110 taten - eine rein additive
+Vorgabe-Änderung (`applyConstraints()`) auf dem bestehenden, nie
+ersetzten Track. `barcodeScanFotoVersuch()` und die dafür eingeführte
+Variable `barcodeScanAktuellerCallback` wurden erneut vollständig
+entfernt. Damit sind jetzt **beide** in dieser Versionsreihe
+ausprobierten aktiven Fokussier-Mechanismen (Stream-Neustart,
+Einzelfoto) endgültig verworfen - es bleibt nur die harmlose, aber auf
+dem Gerät des Anwenders wirkungslose Vorgabe-Änderung.
+
+### 178.3 Stand der Dinge und weiteres Vorgehen
+
+Das ursprüngliche Unschärfe-Problem bei sehr kurzer Distanz bleibt damit
+weiterhin ungelöst. Zwei der naheliegendsten Lösungsansätze sind jetzt
+nachweislich als auf diesem Gerät unsicher ausgeschlossen. Bevor ein
+weiterer Lösungsversuch unternommen wird, wird mit dem Anwender
+besprochen, wie weiter vorgegangen werden soll - kein drittes
+Blind-Experiment ohne vorherige Absprache. Mögliche Richtungen für ein
+künftiges Gespräch: den Barcode etwas weiter von der Kamera weghalten
+(Zwischenlösung, kein Code-Fix nötig), oder ein grösserer, bewusst
+gewollter Umbau der Scan-Logik (siehe 175.5/177.5) - beides mit klaren
+Kompromissen, die zuerst abgewogen werden sollten, statt ungefragt
+weiterzubauen.
+
+### 178.4 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 13 auf den
+reinen v3.107-Umfang zurückgebaut (die 4 in v3.111 hinzugekommenen
+Prüfungen für den entfernten Einzelfoto-Versuch gelöscht). 4 Prüfungen in
+Abschnitt 13, 67 Prüfungen insgesamt in diesem Prüfstand (vorher 71),
+alle bestanden. Volle Regression aller Prüfstände im Anschluss ohne neue
+Fehlschläge.
+
+### 178.5 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | `barcodeScanFotoVersuch()` und `barcodeScanAktuellerCallback` erneut entfernt; `barcodeScanNeuFokussieren()` wieder auf v3.107/v3.110-Stand |
+| `sw.js` | Cache-Version 3.112 |
+| `PROJECT_STATE.md` | Versionsstand 3.112 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.112"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13 auf v3.107-Umfang zurückgebaut (4 Prüfungen entfernt) |

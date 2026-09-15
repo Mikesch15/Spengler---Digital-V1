@@ -29,17 +29,19 @@
 //  12 Neues Produkt erfassen (v3.106): per "＋ Weiteres Produkt" und per
 //     unbekanntem Barcode - legt lager_varianten an und oeffnet danach
 //     direkt den Buchen-Dialog fuer Zugang.
-//  13 Tippen-zum-Fokussieren (v3.107, Rueckbau v3.110, js/01-basis.js): ein
-//     Klick auf das Kamerabild stoesst die Fokussuche aktiv neu an - mit
-//     einem GESTUBBTEN MediaStreamTrack (kein echter Kamera-Zugriff, siehe
-//     Abschnitt 10) wird geprueft, dass die richtigen applyConstraints()-
-//     Aufrufe ausgeloest werden. Der Stream-Neustart aus v3.108 (zweiter
-//     gleichzeitiger getUserMedia()-Zugriff) fuehrte beim Anwender zu einem
-//     schwarzen Kamerabild und wurde in v3.110 zurueckgebaut. v3.111 fuehrt
-//     GEZIELT NUR den Einzelfoto-Versuch aus v3.109 wieder ein (ImageCapture
-//     arbeitet auf dem bestehenden, nie ersetzten Track, kein zweiter
-//     Stream-Zugriff) - unabhaengig davon, ob die Vorgabe-Aenderung auf dem
-//     Geraet des Anwenders etwas bewirkt (laut dessen Rueckmeldung nicht).
+//  13 Tippen-zum-Fokussieren (v3.107, endgueltiger Rueckbau v3.112,
+//     js/01-basis.js): ein Klick auf das Kamerabild stoesst die Fokussuche
+//     aktiv neu an - mit einem GESTUBBTEN MediaStreamTrack (kein echter
+//     Kamera-Zugriff, siehe Abschnitt 10) wird geprueft, dass die richtigen
+//     applyConstraints()-Aufrufe ausgeloest werden. ZWEI unabhaengige
+//     aktive Kamera-Eingriffe wurden ausprobiert und beide vom Anwender als
+//     Ursache eines schwarzen Kamerabilds bestaetigt: der Stream-Neustart
+//     aus v3.108 (zweiter gleichzeitiger getUserMedia()-Zugriff, zurueck-
+//     gebaut in v3.110) und der isolierte ImageCapture.takePhoto()-Versuch
+//     aus v3.111 (zurueckgebaut in v3.112). Es bleibt endgueltig nur die
+//     rein additive Vorgabe-Aenderung auf dem bestehenden Track - auf dem
+//     Geraet des Anwenders laut dessen Rueckmeldung wirkungslos, aber die
+//     einzige nachweislich sichere Option.
 //
 // WICHTIGSTE AENDERUNG SEIT v3.98: Die Lagerverwaltung baute urspruenglich
 // auf lagerbestand auf (dem Blech-Materialbestand). Das war fachlich falsch
@@ -558,21 +560,23 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(/3 Produkte/.test(z),"die Position zeigt jetzt 3 Produkte in der Liste",z);
  await page.evaluate(()=>{$("lagerBuchenModal").hidden=true});
 
- // ---- 13 · Tippen-zum-Fokussieren (v3.107, Rueckbau v3.110, v3.111) ------
+ // ---- 13 · Tippen-zum-Fokussieren (v3.107, Rueckbau v3.110/v3.112) -------
  console.log("\n13 · Tippen-zum-Fokussieren (Kamera-Nahfokus)");
- // v3.108 (Stream-Neustart) fuehrte beim Anwender zu einem komplett
- // schwarzen Kamerabild und wurde in v3.110 zurueckgebaut. v3.111 fuehrt
- // GEZIELT NUR den Einzelfoto-Versuch aus v3.109 wieder ein (ImageCapture
- // arbeitet laut Spezifikation auf dem BESTEHENDEN, weiterlaufenden Track,
- // ohne ihn zu ersetzen) - OHNE den riskanten zweiten, gleichzeitigen
- // getUserMedia()-Zugriff aus v3.108, der als wahrscheinlichste Ursache des
- // schwarzen Bilds gilt. Kein echter Kamera-Zugriff in dieser Umgebung -
- // srcObject verlangt aber ein echtes MediaStream-Objekt (ein einfaches
- // {getVideoTracks(){...}} wird vom Browser abgelehnt). captureStream() auf
- // einem <canvas> liefert einen echten MediaStream mit einem echten
- // Video-Track OHNE Kamera; dessen applyConstraints()/getCapabilities()
- // werden anschliessend ueberschrieben (normale JS-Eigenschaften, auch auf
- // nativen Objekten ueberschreibbar), window.ImageCapture ebenso.
+ // v3.108 (Stream-Neustart) UND v3.111 (isolierter ImageCapture.takePhoto()-
+ // Versuch, ohne Stream-Neustart) fuehrten beim Anwender BEIDE unabhaengig
+ // voneinander zu einem komplett schwarzen Kamerabild - damit ist bestaetigt,
+ // dass nicht nur der Stream-Neustart, sondern takePhoto() selbst auf
+ // diesem Geraet/Browser unsicher ist. Endgueltig zurueckgebaut auf den
+ // reinen v3.107-Stand: eine rein additive Vorgabe-Aenderung auf dem
+ // BESTEHENDEN Track, kein Stream-Ersatz, keine Fotoaufnahme. Kein echter
+ // Kamera-Zugriff in dieser Umgebung - srcObject verlangt aber ein echtes
+ // MediaStream-Objekt (ein einfaches {getVideoTracks(){...}} wird vom
+ // Browser abgelehnt). captureStream() auf einem <canvas> liefert einen
+ // echten MediaStream mit einem echten Video-Track OHNE Kamera; dessen
+ // applyConstraints()/getCapabilities() werden anschliessend ueberschrieben
+ // (normale JS-Eigenschaften, auch auf nativen Objekten ueberschreibbar).
+ // Geprueft wird nur, dass ein Klick auf das Kamerabild die richtigen
+ // applyConstraints()-Aufrufe ausloest - nicht die echte Hardware-Ansteuerung.
  z=await page.evaluate(async()=>{
   const aufrufe=[];
   const stream=document.createElement("canvas").captureStream();
@@ -603,50 +607,6 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  });
  p(z.aufrufe.length===1&&z.aufrufe[0].advanced[0].focusMode==="continuous",
    "ohne bekannten manuellen Fokusabstand nur der einzelne continuous-Aufruf, kein Fehler",z);
-
- // v3.111: Einzelfoto per ImageCapture - unabhaengig vom Ergebnis der
- // Vorgabe-Aenderung oben. window.ImageCapture wird gestubbt (die echte
- // Browser-API existiert zwar in Chromium, liefert aber fuer einen
- // kameralosen canvas-Track kein verwertbares Foto); geprueft wird nur,
- // dass ein Klick sie mit dem AKTUELLEN (nie ersetzten) Video-Track
- // ansteuert - kein Stream-Wechsel findet dabei statt.
- z=await page.evaluate(async()=>{
-  let konstruiertMitTrack=null, fotoAufgenommen=false;
-  window.ImageCapture=class{
-   constructor(t){konstruiertMitTrack=t}
-   async takePhoto(){fotoAufgenommen=true;return new Blob(["x"],{type:"image/png"})}
-  };
-  const stream=document.createElement("canvas").captureStream();
-  const track=stream.getVideoTracks()[0];
-  track.applyConstraints=async()=>{};
-  track.getCapabilities=()=>({focusMode:["continuous"]});
-  $("barcodeScanVideo").srcObject=stream;
-  $("barcodeScanVideo").click();
-  await new Promise(r=>setTimeout(r,350));
-  return {konstruiertMitDemselbenTrack:konstruiertMitTrack===track,fotoAufgenommen,
-   srcObjectUnveraendert:$("barcodeScanVideo").srcObject===stream};
- });
- p(z.konstruiertMitDemselbenTrack===true,"Einzelfoto: ImageCapture wird mit dem AKTUELLEN, nie ersetzten Video-Track konstruiert",z);
- p(z.fotoAufgenommen===true,"und nimmt darueber ein Einzelfoto auf",z);
- p(z.srcObjectUnveraendert===true,"das Kamerabild haengt danach unveraendert am selben Stream - kein Stream-Wechsel",z);
-
- z=await page.evaluate(async()=>{
-  // Ohne ImageCapture-Unterstuetzung (aeltere/andere Browser) darf der
-  // Einzelfoto-Versuch keinen Fehler werfen - die Vorgabe-Aenderung oben
-  // laeuft unveraendert weiter.
-  delete window.ImageCapture;
-  const stream=document.createElement("canvas").captureStream();
-  const track=stream.getVideoTracks()[0];
-  const aufrufe=[];
-  track.applyConstraints=async c=>{aufrufe.push(c)};
-  track.getCapabilities=()=>({focusMode:["continuous"]});
-  $("barcodeScanVideo").srcObject=stream;
-  let fehler=null;
-  try{ $("barcodeScanVideo").click(); await new Promise(r=>setTimeout(r,350)); }catch(e){fehler=e}
-  return {fehler,aufrufeLaenge:aufrufe.length};
- });
- p(z.fehler===null&&z.aufrufeLaenge===1,
-   "ohne ImageCapture-Unterstuetzung im Browser kein Fehler, Vorgabe-Aenderung laeuft weiter",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

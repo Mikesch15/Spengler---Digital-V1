@@ -578,7 +578,7 @@ function zxingLaden(){
  return zxingLadenPromise;
 }
 
-let barcodeScanCodeReader=null, barcodeScanControls=null, barcodeScanAktuellerCallback=null;
+let barcodeScanCodeReader=null, barcodeScanControls=null;
 
 // Dieselbe Wunsch-Vorgabe wie beim ersten Oeffnen (siehe barcodeScannen) -
 // eigene Funktion, damit sie an genau einer Stelle steht.
@@ -601,64 +601,28 @@ function barcodeScanSchliessen(){
 }
 if($("barcodeScanAbbrechen"))$("barcodeScanAbbrechen").onclick=barcodeScanSchliessen;
 
-// v3.111: gezielte, ISOLIERTE Wiedereinfuehrung des Einzelfoto-Ansatzes aus
-// v3.109 - der Anwender bestaetigte zwischenzeitlich, dass die reine
-// Vorgabe-Aenderung (v3.107/v3.110) auf seinem Geraet wirkungslos bleibt
-// (kein manueller Fokusabstand bekannt), waehrend seine normale
-// Kamera-App auf demselben Barcode aus derselben Distanz problemlos
-// scharfstellt. Bewusst OHNE den Stream-Neustart aus v3.108 (der einen
-// ZWEITEN, gleichzeitigen navigator.mediaDevices.getUserMedia()-Zugriff
-// auf dieselbe Kamera brauchte) - das war die deutlich riskantere der
-// beiden v3.108/v3.109-Aenderungen und der wahrscheinlichste Grund fuer
-// das schwarze Kamerabild, das zum Rueckbau in v3.110 fuehrte.
-// ImageCapture.takePhoto() dagegen arbeitet laut MediaCapture-Image-
-// Spezifikation ausdruecklich auf dem BESTEHENDEN, weiterlaufenden Track,
-// ohne ihn zu ersetzen - Foto- und Video-Nutzung desselben Tracks
-// GLEICHZEITIG ist der vorgesehene Regelfall dieser API, kein Sonderfall
-// wie der zweite Stream-Zugriff aus v3.108. Damit ist dieser Versuch
-// architektonisch klar von der Ursache des vorigen Fehlers getrennt.
-async function barcodeScanFotoVersuch(){
- if(typeof ImageCapture==="undefined")return null;
- const video=$("barcodeScanVideo");
- const stream=video&&video.srcObject;
- const track=stream&&stream.getVideoTracks&&stream.getVideoTracks()[0];
- if(!track)return null;
- try{
-  const capture=new ImageCapture(track);
-  const blob=await capture.takePhoto();
-  if(!barcodeScanCodeReader||typeof barcodeScanCodeReader.decodeFromImageElement!=="function")return null;
-  const bitmap=await createImageBitmap(blob);
-  const canvas=document.createElement("canvas");
-  canvas.width=bitmap.width;canvas.height=bitmap.height;
-  canvas.getContext("2d").drawImage(bitmap,0,0);
-  const result=await barcodeScanCodeReader.decodeFromImageElement(canvas);
-  return result?result.getText():null;
- }catch(e){return null}
-}
-
-// Tippen-zum-Fokussieren: zuerst die (auf den meisten Geraeten wirkungslose,
-// aber harmlose) Vorgabe-Aenderung auf dem bestehenden Track, danach IMMER
-// zusaetzlich der Einzelfoto-Versuch oben - unabhaengig davon, ob die
-// Vorgabe-Aenderung etwas bewirkt hat.
+// v3.112: RUECKBAU. Der Anwender bestaetigte, dass auch der in v3.111
+// isolierte Einzelfoto-Versuch (ImageCapture.takePhoto() OHNE Stream-
+// Neustart) das Kamerabild schwarz werden liess - damit ist geklaert, dass
+// nicht der Stream-Neustart aus v3.108 die (alleinige) Ursache war, sondern
+// takePhoto() selbst auf diesem Geraet/Browser unsicher ist. Beide
+// getesteten aktiven Eingriffe in den Kamera-Stream (Stream-Neustart,
+// Einzelfoto) sind damit als Ursache fuer ein schwarzes Bild bestaetigt.
+// Es bleibt endgueltig nur die urspruengliche, rein additive
+// Vorgabe-Aenderung auf dem bestehenden Track (kein neuer Stream, keine
+// Fotoaufnahme, der Track wird nie angetastet) - siehe v3.107/v3.110.
 async function barcodeScanNeuFokussieren(){
  const video=$("barcodeScanVideo");
  const track=video&&video.srcObject&&video.srcObject.getVideoTracks&&video.srcObject.getVideoTracks()[0];
- if(track&&track.applyConstraints){
-  try{
-   const caps=(typeof track.getCapabilities==="function")?track.getCapabilities():null;
-   if(caps&&caps.focusDistance&&caps.focusMode&&caps.focusMode.indexOf("manual")!==-1){
-    await track.applyConstraints({advanced:[{focusMode:"manual",focusDistance:caps.focusDistance.min}]});
-    await new Promise(r=>setTimeout(r,250));
-   }
-   await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
-  }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
- }
- const text=await barcodeScanFotoVersuch();
- if(text){
-  const cb=barcodeScanAktuellerCallback;
-  barcodeScanSchliessen();
-  if(cb)cb(text);
- }
+ if(!track||!track.applyConstraints)return;
+ try{
+  const caps=(typeof track.getCapabilities==="function")?track.getCapabilities():null;
+  if(caps&&caps.focusDistance&&caps.focusMode&&caps.focusMode.indexOf("manual")!==-1){
+   await track.applyConstraints({advanced:[{focusMode:"manual",focusDistance:caps.focusDistance.min}]});
+   await new Promise(r=>setTimeout(r,250));
+  }
+  await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
+ }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
 }
 if($("barcodeScanVideo"))$("barcodeScanVideo").addEventListener("click",barcodeScanNeuFokussieren);
 
@@ -680,7 +644,6 @@ async function barcodeScannen(callback){
  if(status){status.textContent="Kamera wird gestartet …";status.style.color="#fff"}
  try{
   barcodeScanCodeReader=new ZXing.BrowserMultiFormatReader();
-  barcodeScanAktuellerCallback=callback;
   const aufTreffer=(result,err,controls)=>{
    barcodeScanControls=controls;
    if(result){
