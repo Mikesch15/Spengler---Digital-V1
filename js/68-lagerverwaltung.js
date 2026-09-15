@@ -98,7 +98,14 @@ async function lagerVariantenLaden(){
  }
  lagerVarianten=data||[];
 }
+// v3.127: archivierte Produkte sind ueberall weg, wo gebucht oder gewaehlt
+// wird - sie erscheinen NUR in der Lagerverwaltung selbst, und auch dort nur
+// auf ausdruecklichen Wunsch. Der Filter steht deshalb hier, an der EINEN
+// Stelle, die alle Verbraucher benutzen (Liste, Ausbuchen-Dialog, Scan).
 function lagerVariantenVonMaterial(materialId){
+ return lagerVariantenVonMaterialAlle(materialId).filter(v=>!v.archiviert);
+}
+function lagerVariantenVonMaterialAlle(materialId){
  return lagerVarianten.filter(v=>String(v.material_id)===String(materialId));
 }
 function lagerVariante(varianteId){
@@ -180,6 +187,24 @@ let lagerListeVersteckt=false;
 // jedes einzelne Produkt darunter (Bezeichnung, Barcode). Wer den Barcode
 // abliest, findet das Produkt damit auch von Hand, wenn die Kamera streikt.
 let lagerSuche="";
+// v3.127: archivierte Produkte auf Wunsch einblenden (zum Wieder-Aktivieren).
+let lagerArchivZeigen=false;
+if($("lagerArchivZeigen"))$("lagerArchivZeigen").onclick=()=>{
+ lagerArchivZeigen=!lagerArchivZeigen;
+ renderLagerverwaltung();
+};
+// Der Knopf je Produkt. Beschriftung und Verhalten haengen daran, ob es
+// schon Buchungen gibt - das entscheidet die Datenbank ohnehin (der
+// Fremdschluessel steht auf NO ACTION), die App sagt es nur vorher.
+function lagerProduktAktionen(v){
+ const gebucht=lagerBewegungenVon(v.id).length;
+ if(v.archiviert){
+  return `<button type="button" class="gray" data-lager-aktivieren="${v.id}">\u21ba Wieder aktivieren</button>`;
+ }
+ return gebucht
+  ?`<button type="button" class="gray" data-lager-archivieren="${v.id}">\u{1F4E6} Archivieren</button>`
+  :`<button type="button" class="red" data-lager-loeschen="${v.id}">\u{1F5D1} L\u00f6schen</button>`;
+}
 function lagerPasstZurSuche(a,varianten){
  const q=String(lagerSuche||"").trim().toLowerCase();
  if(!q)return true;
@@ -197,17 +222,18 @@ function lagerVarianteZeile(v,gruppiert){
  const offen=lagerOffenArtikel.has(String(v.id));
  const letzte=lagerBewegungenVon(v.id).slice(0,5);
  const klasse=gruppiert?"lager-variante":"lager-karte";
- return `<div class="${klasse}">
+ return `<div class="${klasse}${v.archiviert?" lager-archiviert":""}">
  <div class="${klasse}-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-lager-karte="${v.id}">
   <span class="lager-karte-pfeil">${offen?"▾":"▸"}</span>
   <div class="lager-karte-info">
-   <b>${esc(v.bezeichnung)}</b>
+   <b>${esc(v.bezeichnung)}</b>${v.archiviert?' <span class="lager-archiviert-marke">(archiviert)</span>':""}
    <span class="small" style="color:var(--muted);display:block">Bestand: <b>${lagerZahlText(bestand)}</b></span>
   </div>
-  <button type="button" class="blue" data-lager-buchen="${v.id}">📦 Buchen</button>
+  ${v.archiviert?"":`<button type="button" class="blue" data-lager-buchen="${v.id}">📦 Buchen</button>`}
  </div>
  ${offen?`<div class="lager-karte-body">
   <span class="small" style="color:var(--muted)">${letzte.length?letzte.map(lagerBewegungZeile).join(""):"Noch keine Buchung."}</span>
+  <div class="bar" style="margin-top:6px">${lagerProduktAktionen(v)}</div>
  </div>`:""}
 </div>`;
 }
@@ -217,7 +243,8 @@ function renderLagerverwaltung(){
  const alle=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
  // v3.124: gesucht wird vor allem anderen. Eine leere Suche aendert nichts.
  const suchtext=String(lagerSuche||"").trim();
- const liste=suchtext?alle.filter(a=>lagerPasstZurSuche(a,lagerVariantenVonMaterial(a.id))):alle;
+ const liste=suchtext?alle.filter(a=>lagerPasstZurSuche(a,
+   lagerArchivZeigen?lagerVariantenVonMaterialAlle(a.id):lagerVariantenVonMaterial(a.id))):alle;
  const stand=$("lagerSucheStand");
  if(stand){
   stand.textContent=suchtext?(liste.length+" von "+alle.length+" Positionen gefunden"):"";
@@ -228,6 +255,15 @@ function renderLagerverwaltung(){
   // Waehrend einer Suche waere "Alle zuklappen" widersinnig - die Trefferliste
   // ist ja gerade das, was man sehen will.
   $("lagerAlleZuklappen").hidden=!alle.length||!!suchtext;
+ }
+ // v3.127: das Archiv ist nur dann ein Thema, wenn ueberhaupt etwas darin
+ // liegt - sonst waere der Knopf ein Versprechen auf eine leere Liste.
+ if($("lagerArchivZeigen")){
+  const archiviert=lagerVarianten.filter(v=>v.archiviert).length;
+  $("lagerArchivZeigen").hidden=!archiviert;
+  $("lagerArchivZeigen").textContent=lagerArchivZeigen
+   ?("\u{1F4E6} Archiv ausblenden ("+archiviert+")")
+   :("\u{1F4E6} Archiv anzeigen ("+archiviert+")");
  }
  if(!alle.length){
   box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Noch kein Material im Material-Katalog erfasst - dort (Einstellungen → Material) zuerst einen Artikel anlegen.</div>`;
@@ -243,7 +279,7 @@ function renderLagerverwaltung(){
   return;
  }
  box.innerHTML=liste.map(a=>{
-  const varianten=lagerVariantenVonMaterial(a.id);
+  const varianten=lagerArchivZeigen?lagerVariantenVonMaterialAlle(a.id):lagerVariantenVonMaterial(a.id);
   if(varianten.length<=1){
    if(!varianten.length){
     // Randfall: eine Position ganz ohne Standard-Variante (z. B. gerade
@@ -262,18 +298,18 @@ function renderLagerverwaltung(){
    const bestand=lagerBestandVon(v.id);
    const offen=lagerOffenArtikel.has(String(v.id));
    const letzte=lagerBewegungenVon(v.id).slice(0,5);
-   return `<div class="lager-karte">
+   return `<div class="lager-karte${v.archiviert?" lager-archiviert":""}">
  <div class="lager-karte-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-lager-karte="${v.id}">
   <span class="lager-karte-pfeil">${offen?"▾":"▸"}</span>
   <div class="lager-karte-info">
-   <b>${esc(lagArtikelText(a))}</b>
+   <b>${esc(lagArtikelText(a))}</b>${v.archiviert?' <span class="lager-archiviert-marke">(archiviert)</span>':""}
    <span class="small" style="color:var(--muted);display:block">Bestand: <b>${lagerZahlText(bestand)}</b></span>
   </div>
-  <button type="button" class="blue" data-lager-buchen="${v.id}">📦 Buchen</button>
+  ${v.archiviert?"":`<button type="button" class="blue" data-lager-buchen="${v.id}">📦 Buchen</button>`}
  </div>
  ${offen?`<div class="lager-karte-body">
   <span class="small" style="color:var(--muted)">${letzte.length?letzte.map(lagerBewegungZeile).join(""):"Noch keine Buchung."}</span>
-  <div class="bar" style="margin-top:6px"><button type="button" class="gray" data-lager-neues-produkt="${a.id}">＋ Weiteres Produkt zu dieser Position</button></div>
+  <div class="bar" style="margin-top:6px">${lagerProduktAktionen(v)}<button type="button" class="gray" data-lager-neues-produkt="${a.id}">＋ Weiteres Produkt zu dieser Position</button></div>
  </div>`:""}
 </div>`;
   }
@@ -414,6 +450,12 @@ if($("lagerAlleZuklappen"))$("lagerAlleZuklappen").onclick=()=>{
  lagerListeVersteckt=!lagerListeVersteckt;
  renderLagerverwaltung();
 };
+// v3.127: der im Hilfetext seit v3.124 versprochene, aber nie gebaute
+// Einstieg. Ohne Materialposition und ohne Barcode - beides wird im Dialog
+// selbst gewaehlt bzw. neu angelegt.
+if($("lagerNeuesProduktStart"))$("lagerNeuesProduktStart").onclick=()=>{
+ lagerNeuesProduktOeffnen(null,"");
+};
 
 $("lagerverwaltungListe").addEventListener("click",e=>{
  // Buchen- und Neues-Produkt-Knopf sitzen IM Kartenkopf bzw. -koerper - ein
@@ -462,6 +504,21 @@ function lagerScannenUndBuchen(art){
     return;
    }
    lagerHinweis("Kein Produkt mit diesem Barcode gefunden ("+code+") - beim Einscannen (Zugang) lässt sich daraus ein neues Produkt anlegen.",true);
+   return;
+  }
+  // v3.127: ein archiviertes Produkt ist nicht buchbar - der Barcode klebt
+  // aber weiter auf der Ware. Statt stumm zu buchen oder stumm abzulehnen:
+  // sagen, was los ist, und das Wieder-Aktivieren gleich anbieten.
+  if(v.archiviert){
+   lagerHinweis("");
+   if(!confirm("Das Produkt „"+v.bezeichnung+"“ ist archiviert und wird nicht mehr bebucht.\n\n"
+     +"Soll es wieder aktiviert und die Buchung gemacht werden?")){
+    lagerHinweis("Produkt „"+v.bezeichnung+"“ ist archiviert - nicht gebucht.",true);
+    return;
+   }
+   lagerProduktArchivSetzen(v.id,false).then(()=>{
+    if(!v.archiviert)lagerBuchenOeffnen(v.id,art);
+   });
    return;
   }
   lagerHinweis("");
@@ -1534,3 +1591,116 @@ ${(typeof pdfFooterHtml==="function")?pdfFooterHtml({project_id:projectId||null}
 if($("cockpitLagerDruck"))$("cockpitLagerDruck").onclick=()=>{
  lagerZusammenfassungDrucken(typeof cockpitProjectId!=="undefined"?cockpitProjectId:null);
 };
+
+// ---- v3.127: Produkte loeschen, archivieren, wieder aktivieren -----------
+//
+// Die Regel folgt der Unveraenderlichkeit der Buchungen (seit v3.98):
+//  ohne Buchungen -> das Produkt wird wirklich geloescht.
+//  mit Buchungen  -> es wird ARCHIVIERT. Der Fremdschluessel
+//                    lagerbestand_bewegungen.variante_id steht auf NO ACTION,
+//                    die Datenbank wuerde ein Loeschen ohnehin verweigern -
+//                    und das ist richtig so: die Bestandsgeschichte darf
+//                    nicht verschwinden. Ein archiviertes Produkt ist
+//                    ueberall weg, wo gebucht oder gewaehlt wird, und laesst
+//                    sich jederzeit wieder aktivieren.
+async function lagerProduktLoeschen(varianteId){
+ const v=lagerVariante(varianteId);
+ if(!v)return;
+ if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Ein Produkt zu löschen"))return;
+ const gebucht=lagerBewegungenVon(v.id).length;
+ if(gebucht){
+  // Sollte die Oberflaeche je daneben liegen, faengt es hier auf, statt die
+  // Datenbank mit einem Fremdschluessel-Fehler antworten zu lassen.
+  alert("Für dieses Produkt gibt es bereits "+gebucht+" Buchung"+(gebucht===1?"":"en")+".\n\n"
+   +"Es lässt sich deshalb nicht löschen – die Bestandsgeschichte würde verschwinden. "
+   +"Stattdessen archivieren: dann ist es überall weg, wo gebucht wird, die Buchungen bleiben aber stehen.");
+  return;
+ }
+ if(!confirm("Produkt „"+v.bezeichnung+"“ endgültig löschen?\n\nEs gibt dazu keine Buchung – es verschwindet vollständig."))return;
+ const {error}=await sb.from("lager_varianten").delete().eq("id",v.id);
+ if(error){
+  lagerHinweis("Konnte nicht gelöscht werden: "+error.message,true);
+  return;
+ }
+ lagerVarianten=lagerVarianten.filter(x=>String(x.id)!==String(v.id));
+ lagerHinweis("Produkt „"+v.bezeichnung+"“ gelöscht.");
+ renderLagerverwaltung();
+ lagerPositionAufraeumenAnbieten(v.material_id);
+}
+async function lagerProduktArchivSetzen(varianteId,archiviert){
+ const v=lagerVariante(varianteId);
+ if(!v)return;
+ if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Ein Produkt zu ändern"))return;
+ if(archiviert&&!confirm("Produkt „"+v.bezeichnung+"“ archivieren?\n\n"
+   +"Es verschwindet aus der Liste und aus allen Auswahlfeldern. Die "
+   +lagerBewegungenVon(v.id).length+" Buchung(en) und der Bestandsverlauf bleiben erhalten. "
+   +"Rückgängig machen geht jederzeit über „📦 Archiv anzeigen“."))return;
+ const {error}=await sb.from("lager_varianten").update({archiviert:!!archiviert}).eq("id",v.id);
+ if(error){
+  lagerHinweis("Konnte nicht geändert werden: "+error.message,true);
+  return;
+ }
+ v.archiviert=!!archiviert;
+ lagerHinweis("Produkt „"+v.bezeichnung+"“ "+(archiviert?"archiviert":"wieder aktiviert")+".");
+ renderLagerverwaltung();
+ // Beim Archivieren wird die Katalogposition ABSICHTLICH nicht angeboten:
+ // das Produkt liegt ja noch da (mitsamt seinen Buchungen) und braucht seine
+ // Position weiter. Aufgeraeumt wird nur nach einem echten Loeschen.
+}
+
+// Bleibt eine Materialposition ohne aktives Produkt zurueck, bietet die App
+// an, auch die KATALOGPOSITION zu entfernen. Das wirkt in den Regie-Katalog
+// hinein (Regierapport, Offerte, Massaufnahme) - deshalb ausdruecklich
+// gefragt, mit Nennung der Folgen, und nur mit dem Recht, den Katalog zu
+// aendern. Wer ablehnt, behaelt eine Position ohne Produkt; die Liste zeigt
+// dafuer seit v3.106 "Noch kein Produkt erfasst".
+async function lagerPositionAufraeumenAnbieten(materialId){
+ if(!materialId||!lagerDarfPositionAnlegen())return;
+ if(lagerVariantenVonMaterialAlle(materialId).length)return;
+ const a=(typeof lagArtikel==="function")?lagArtikel(materialId):null;
+ if(!a)return;
+ // Der Blech-Materialbestand und die Reststuecke zeigen mit artikel_id auf
+ // diese Position; der Fremdschluessel steht dort auf SET NULL. Die
+ // Eintraege bleiben also bestehen, verlieren aber ihre Zuordnung - das ist
+ // eine Folge, die der Anwender vorher wissen muss. Der Blech-Bestand ist im
+ // Browser geladen, also wird er konkret gezaehlt; die Reststuecke sind es
+ // nicht und werden deshalb nur benannt, nicht geschaetzt.
+ const blech=((typeof lagerbestand!=="undefined"?lagerbestand:[])||[])
+   .filter(l=>String(l.artikel_id||"")===String(materialId)).length;
+ if(!confirm("Zur Materialposition „"+lagArtikelText(a)+"“ gibt es jetzt kein Produkt mehr.\n\n"
+  +"Soll die Position auch aus dem MATERIAL-KATALOG entfernt werden?\n\n"
+  +"Achtung: der Katalog wird auch vom Regierapport, von Offerten und von "
+  +"Massaufnahmen benutzt. Bereits geschriebene Rapporte und Offerten ändern "
+  +"sich dadurch nicht, aber die Position lässt sich danach nicht mehr auswählen.\n\n"
+  +(blech?(blech+" Eintrag/Einträge im Blech-Materialbestand verlieren dadurch ihre Zuordnung zu dieser Position (sie bleiben bestehen).\n\n"):"")
+  +"Dasselbe gilt für Reststücke, die auf diese Position zeigen.\n\n"
+  +"Abbrechen lässt die Position stehen – ohne Produkt."))return;
+ const {error}=await sb.from("materials").delete().eq("id",materialId);
+ if(error){
+  lagerHinweis("Die Materialposition konnte nicht entfernt werden: "+error.message
+   +(/permission|policy|row-level/i.test(error.message||"")?" Dafür fehlt das Recht, den Material-Katalog zu ändern.":""),true);
+  return;
+ }
+ // settings.materials/materialIds nachziehen - derselbe Grund wie beim
+ // Anlegen (v3.124): der Katalog wird zeilenweise bearbeitet, nicht als
+ // Ganzes zurueckgeschrieben.
+ if(typeof materialIds!=="undefined"&&Array.isArray(materialIds)){
+  const i=materialIds.findIndex(id=>String(id)===String(materialId));
+  if(i>=0){
+   materialIds.splice(i,1);
+   if(typeof settings==="object"&&settings&&Array.isArray(settings.materials))settings.materials.splice(i,1);
+  }
+ }
+ lagerNeuesProduktMaterialListeVoll=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ lagerHinweis("Materialposition „"+lagArtikelText(a)+"“ aus dem Katalog entfernt.");
+ renderLagerverwaltung();
+}
+
+if($("lagerverwaltungListe"))$("lagerverwaltungListe").addEventListener("click",e=>{
+ const weg=e.target.closest?e.target.closest("[data-lager-loeschen]"):null;
+ if(weg){e.stopPropagation();lagerProduktLoeschen(weg.dataset.lagerLoeschen);return}
+ const arch=e.target.closest?e.target.closest("[data-lager-archivieren]"):null;
+ if(arch){e.stopPropagation();lagerProduktArchivSetzen(arch.dataset.lagerArchivieren,true);return}
+ const akt=e.target.closest?e.target.closest("[data-lager-aktivieren]"):null;
+ if(akt){e.stopPropagation();lagerProduktArchivSetzen(akt.dataset.lagerAktivieren,false)}
+});

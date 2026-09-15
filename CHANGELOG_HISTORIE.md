@@ -30372,3 +30372,137 @@ belegt das **Verhalten**, nicht die Abstimmung der Zahlen.
 | `js/41-hilfe.js` | `lager-suche` um Nummernvergabe und Trefferliste erweitert |
 | `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.126 |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 17 neu, 12b/16b umgeschrieben |
+
+## 193. v3.127 – Produkte löschen/archivieren, der fehlende Knopf, und ein RLS-Fehler
+
+Zwei Meldungen des Anwenders in einem Zug: *"Und ich möchte produkte auch
+ganz aus der materialverwaltung löschen können, auch untergeordnete
+produkte. Und in der lagerverwalting steht im infoknopf zum suchen, dass ein
+button da sei um ein neues produkt hinzuzufügen. Der ist aber nicht da"*.
+Bei der Recherche zur ersten kam ein dritter Punkt dazu, der schwerer wiegt
+als beide Meldungen zusammen.
+
+### 193.1 Zuerst: ein Sicherheitsfehler auf `lager_varianten`
+
+Vor dem Bauen war zu klären, wer ein Produkt überhaupt löschen darf – also
+ein Blick auf die Policies der Tabelle. Dabei fiel auf:
+
+```
+tenant_boundary_lager_varianten    polpermissive = true
+feature_boundary_lager_varianten   polpermissive = true
+```
+
+Beide Schranken waren **PERMISSIVE** und zugleich die **einzigen** Policies
+der Tabelle. Permissive Policies werden ODER-verknüpft. Die Tabelle hat
+damit nicht "gleiche Firma UND Lager-Recht" verlangt, sondern "gleiche Firma
+**ODER** Lager-Recht" – und weil jeder, der die Lagerverwaltung überhaupt
+sieht, das Lager-Recht hat, band die Firmengrenze faktisch nicht. Ein
+Lager-Benutzer konnte die Produkte **aller** Firmen lesen und ändern.
+
+Der Fehler stammt aus der Migration zu v3.106 (Varianten je Materialposition),
+nicht aus dieser Arbeit. Zum Vergleich geprüft: `lagerbestand_bewegungen`,
+`materials` und `projects` haben ihre Mandantengrenze korrekt als
+RESTRICTIVE – nur die neue Tabelle war daneben.
+
+Migration `lager_varianten_firmengrenze_und_archiv`:
+
+- beide Schranken neu als `as restrictive for all` (Firma, Feature),
+- vier permissive Policies je Befehl (`select`/`insert`/`update`/`delete`),
+  damit überhaupt etwas erlaubt ist – ohne mindestens eine permissive Policy
+  verweigert RLS alles,
+- Spalte `archiviert boolean not null default false`.
+
+Ergebnis nachgeprüft: 2 restriktive + 4 permissive, also dieselbe Bauart wie
+bei `lagerbestand_bewegungen`. `update`/`delete` gibt es hier zusätzlich,
+weil ein Produkt Stammdaten sind – eine Buchung ist es nicht, die bleibt
+weiterhin unveränderlich.
+
+### 193.2 Löschen oder archivieren – die Regel folgt den Buchungen
+
+Der Anwender hat sich bei der Rückfrage für "Archivieren statt löschen"
+entschieden. Die Regel steht jetzt an genau einer Stelle
+(`lagerProduktAktionen(v)`) und richtet sich danach, ob es Buchungen gibt:
+
+| Zustand | Knopf | Wirkung |
+| --- | --- | --- |
+| keine Buchung | 🗑 Löschen | Zeile wird wirklich gelöscht |
+| mit Buchungen | 📦 Archivieren | `archiviert=true`, Buchungen bleiben |
+| archiviert | ↺ Wieder aktivieren | `archiviert=false` |
+
+Das ist keine Vorsichtsmassnahme, sondern folgt der Datenbank: der
+Fremdschlüssel `lagerbestand_bewegungen.variante_id` steht auf NO ACTION, ein
+Löschen würde ohnehin abgewiesen. Wichtiger ist der fachliche Grund – eine
+Buchung ist ein Beleg. Ein gelöschtes Produkt würde frühere Bestände,
+Projekt-Zusammenfassungen und Inventuren rückwirkend verfälschen.
+`lagerProduktLoeschen()` prüft die Buchungen deshalb selbst und erklärt den
+Weg über das Archiv, statt die Datenbank mit einem Fremdschlüssel-Fehler
+antworten zu lassen.
+
+Ein archiviertes Produkt ist überall weg, wo gewählt oder gebucht wird: die
+Trennung sitzt in `lagerVariantenVonMaterial()` (ohne Archiv) gegenüber dem
+neuen `lagerVariantenVonMaterialAlle()` (mit). Alle vier Auswahlwege – Liste,
+Ausbuchen-Dialog der Massaufnahme, Positionsliste, Zeilenaufbau – hängen an
+der ersten Funktion und brauchten deshalb keine eigene Anpassung.
+
+Die Liste zeichnet eine Position auf **zwei** Wegen: flach (genau ein
+Produkt) und als Gruppe (mehrere). Beim Bauen war zuerst nur der Gruppenfall
+markiert - die flache Karte zeigte weiter "📦 Buchen" auf einem archivierten
+Produkt. Beim Durchlesen des eigenen Diffs aufgefallen, behoben, und der
+Prüfstand prüft seither beide Zeichenwege getrennt.
+
+Ein Fall blieb offen und ist eigens behandelt: der **Barcode klebt weiter auf
+der Ware**. Ein Scan findet das archivierte Produkt also nach wie vor.
+`lagerScannenUndBuchen()` bucht dann weder stumm noch lehnt es stumm ab,
+sondern nennt den Zustand und bietet das Wieder-Aktivieren gleich mit an.
+
+### 193.3 Die Katalogposition
+
+Der Anwender wollte ausdrücklich auch die übergeordnete Position entfernen
+können ("auch untergeordnete produkte" – gemeint war beides), auf Rückfrage
+mit "Ja, mit ausdrücklicher Warnung". `lagerPositionAufraeumenAnbieten()`
+fragt deshalb nach einem **Löschen** (nicht nach einem Archivieren – dort
+liegt das Produkt ja noch und braucht seine Position weiter), wenn danach
+keine Variante mehr übrig ist, nennt die Folgen für Regierapport, Offerte und
+Massaufnahme und verlangt das Recht, den Material-Katalog zu ändern
+(`lagerDarfPositionAnlegen()`). Wer ablehnt, behält eine Position ohne
+Produkt – die Liste zeigt dafür seit v3.106 "Noch kein Produkt erfasst".
+`settings.materials`/`materialIds` werden wie beim Anlegen (v3.124)
+zeilenweise nachgezogen.
+
+Eine Folge ist dabei eigens sichtbar gemacht: `lagerbestand.artikel_id` und
+`reststuecke.artikel_id` zeigen mit ON DELETE **SET NULL** auf `materials`.
+Diese Einträge bleiben also bestehen, verlieren aber ihre Zuordnung. Der
+Blech-Bestand ist im Browser geladen und wird deshalb konkret gezählt
+("1 Eintrag verliert die Zuordnung"); die Reststücke sind es nicht und werden
+nur benannt - eine Zahl, die niemand geprüft hat, wäre schlechter als keine.
+`lager_varianten.material_id` steht dagegen auf CASCADE; weil die Nachfrage
+aber nur kommt, wenn gar keine Variante mehr da ist (auch keine archivierte),
+kann dort nichts mitgerissen werden.
+
+### 193.4 Der Knopf, den es nie gab
+
+Der Hilfetext `lager-suche` behauptete seit v3.124, im Dialog stehe unten
+"➕ Neue Materialposition anlegen" – das stimmt, aber **in den Dialog kam man
+gar nicht**, ohne vorher eine Position aufzuklappen ("＋ Weiteres Produkt")
+oder einen unbekannten Barcode einzuscannen. Für ein Produkt, das man noch
+gar nicht einsortiert hat, ist beides kein Weg. `＋ Neues Produkt` steht
+jetzt oben in der Leiste und ruft `lagerNeuesProduktOeffnen(null,"")` – ohne
+Position, ohne Barcode, beides wird im Dialog selbst gewählt. Der Hilfetext
+ist entsprechend berichtigt, samt der Feststellung, dass er den Knopf
+verfrüht genannt hatte.
+
+Daneben steht `📦 Archiv anzeigen (n)` – aber nur, wenn wirklich etwas im
+Archiv liegt. Ein Knopf, der auf eine leere Liste zeigt, ist ein leeres
+Versprechen.
+
+### 193.5 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| Migration `lager_varianten_firmengrenze_und_archiv` | RESTRICTIVE Schranken + 4 permissive Policies, Spalte `archiviert` |
+| `js/68-lagerverwaltung.js` | `lagerVariantenVonMaterialAlle()`, `lagerArchivZeigen`, `lagerProduktAktionen()`, `lagerProduktLoeschen()`, `lagerProduktArchivSetzen()`, `lagerPositionAufraeumenAnbieten()`, Archiv-Zustand in Karte/Suche/Scan, Knopf `lagerNeuesProduktStart` |
+| `index.html` | `＋ Neues Produkt` und `📦 Archiv anzeigen` in der Leiste, Version 3.127 |
+| `css/01-basis.css` | `.lager-archiviert`, `.lager-archiviert-marke` |
+| `js/41-hilfe.js` | `lager-suche`: Einstieg berichtigt, Löschen/Archivieren und der RLS-Fehler dokumentiert |
+| `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.127 |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 18 neu (Löschen/Archivieren/Aktivieren, neuer Knopf) |

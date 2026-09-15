@@ -1266,6 +1266,13 @@ html.dark .rmat-unsicher{color:#e0a35c}
  cursor:pointer;min-height:38px;padding:2px}
 .lager-variante-kopf:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
 .lager-variante-kopf button{width:auto;min-height:36px;padding:6px 10px;font-size:12px;flex:0 0 auto}
+/* v3.127: archiviertes Produkt. Es bleibt lesbar (der Bestand steht ja noch
+   dran und die Buchungen sind Pflicht-Historie), tritt aber sichtbar zurueck
+   und ist nicht mehr buchbar. Nicht ausblenden per opacity allein - der Text
+   muss auch bei Sonnenlicht auf dem Dach noch lesbar sein. */
+.lager-archiviert{border-style:dashed;background:var(--bg)}
+.lager-archiviert .lager-karte-info>b{color:var(--muted);font-weight:600}
+.lager-archiviert-marke{color:var(--muted);font-size:11px;white-space:nowrap}
 /* Die vermasste Skizze und der Grundriss - nebeneinander, wenn Platz ist,
    sonst untereinander. Die Zeichner geben ihre eigene Breite mit; hier wird
    nur die Hoehe begrenzt, damit die Zuschnittliste darunter im Bild bleibt. */

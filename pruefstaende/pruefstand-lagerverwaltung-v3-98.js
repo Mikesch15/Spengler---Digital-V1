@@ -166,6 +166,23 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
     g.eq=(f,v)=>{
      window.__schreib.push({t,op:"update",patch,eq:[[f,v]]});
      if(window.__updateFehler&&window.__updateFehler[t])return Promise.resolve({error:{message:"kaputt"}});
+     // v3.127: die Lesespur muss die Aenderung mitbekommen, sonst zeigt eine
+     // spaetere Pruefung noch den alten Stand (archiviert bleibt sonst false).
+     if(window.__lese&&window.__lese[t])
+      window.__lese[t].forEach(z=>{if(z[f]===v)Object.assign(z,patch)});
+     return Promise.resolve({error:null});
+    };
+    return g;
+   },
+   // v3.127: Loeschen gibt es erst, seit ein Produkt (und auf Nachfrage
+   // seine Katalogposition) wirklich entfernt werden kann.
+   delete:()=>{
+    const g={};
+    g.eq=(f,v)=>{
+     window.__schreib.push({t,op:"delete",eq:[[f,v]]});
+     if(window.__deleteFehler&&window.__deleteFehler[t])return Promise.resolve({error:{message:"kaputt"}});
+     if(window.__lese&&window.__lese[t])
+      window.__lese[t]=window.__lese[t].filter(z=>z[f]!==v);
      return Promise.resolve({error:null});
     };
     return g;
@@ -1629,6 +1646,310 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    "ein Klick auf eine Gruppe uebernimmt deren naechste freie Nummer",z);
  p(z.nachTippen==="252.22",
    "eine bewusst gewaehlte Gruppe wird durch Weitertippen nicht wieder umgeworfen",z);
+
+
+ // ---- 18 · Produkt loeschen / archivieren / wieder aktivieren (v3.127) ---
+ // Die Regel folgt der Unveraenderlichkeit der Buchungen: ohne Buchung wird
+ // wirklich geloescht, mit Buchungen wird ARCHIVIERT. Der Fremdschluessel
+ // lagerbestand_bewegungen.variante_id steht auf NO ACTION - die Datenbank
+ // wuerde ein Loeschen ohnehin abweisen. Wichtiger ist der fachliche Grund:
+ // eine Buchung ist ein Beleg, kein Entwurf.
+ console.log("\n18 · Produkte loeschen, archivieren, wieder aktivieren");
+ await page.evaluate(()=>{
+  meineRechte={admin:false,kataloge:true};
+  settings.materials=[
+   ["301.01","Rinnenboden Kupfer","250","St",0],
+   ["301.02","Rinnenboden Titanzink","250","St",0]
+  ];
+  materialIds=[3001,3002];
+  window.__lese.materials=[{id:3001},{id:3002}];
+  window.__lese.lager_varianten=[
+   // 3001: zwei Produkte - eines gebucht, eines unberuehrt.
+   {id:"v-gebucht",material_id:3001,bezeichnung:"Boden Kupfer gebucht",barcode:"111",archiviert:false},
+   {id:"v-frei",material_id:3001,bezeichnung:"Boden Kupfer unberuehrt",barcode:"222",archiviert:false},
+   // 3002: das EINZIGE Produkt seiner Position, ohne Buchung.
+   {id:"v-einzeln",material_id:3002,bezeichnung:"Boden Titanzink einzeln",barcode:"333",archiviert:false}
+  ];
+  window.__lese.lagerbestand_bewegungen=[
+   {id:"b1",variante_id:"v-gebucht",art:"zugang",menge:10,grund:"Einkauf",created_at:"2026-09-01T08:00:00Z"}
+  ];
+  lagerVarianten=window.__lese.lager_varianten.slice();
+  lagerBewegungen=window.__lese.lagerbestand_bewegungen.slice();
+  lagerSuche=""; lagerListeVersteckt=false; lagerArchivZeigen=false;
+  renderLagerverwaltung();
+ });
+
+ // Welcher Knopf angeboten wird, haengt allein an den Buchungen.
+ z=await page.evaluate(()=>{
+  // Bei zwei Produkten je Position ist der Positionskopf eine eigene
+  // Klappebene ("m"+material_id) - beide muessen offen sein, sonst steht
+  // die Produktkarte gar nicht im DOM.
+  const knopf=id=>{
+   lagerOffenArtikel.add("m3001"); lagerOffenArtikel.add("m3002");
+   lagerOffenArtikel.add(String(id)); renderLagerverwaltung();
+   const el=document.querySelector('#lagerverwaltungListe [data-lager-loeschen="'+id+'"]')
+     ||document.querySelector('#lagerverwaltungListe [data-lager-archivieren="'+id+'"]')
+     ||document.querySelector('#lagerverwaltungListe [data-lager-aktivieren="'+id+'"]');
+   return el?{art:el.dataset.lagerLoeschen?"loeschen":(el.dataset.lagerArchivieren?"archivieren":"aktivieren"),
+     text:el.textContent}:null;
+  };
+  return {gebucht:knopf("v-gebucht"),frei:knopf("v-frei")};
+ });
+ p(z.gebucht&&z.gebucht.art==="archivieren",
+   "ein Produkt MIT Buchungen bekommt 'Archivieren' - nicht 'Loeschen'",z.gebucht);
+ p(z.frei&&z.frei.art==="loeschen",
+   "ein Produkt OHNE jede Buchung bekommt 'Loeschen' - da ist nichts zu verlieren",z.frei);
+
+ // Gegenprobe zur Regel selbst: waere die Buchung weg, kippte der Knopf.
+ z=await page.evaluate(async()=>{
+  const gesichert=lagerBewegungen.slice();
+  lagerBewegungen=[];
+  lagerOffenArtikel.add("m3001"); lagerOffenArtikel.add("v-gebucht");
+  renderLagerverwaltung();
+  const jetzt=!!document.querySelector('#lagerverwaltungListe [data-lager-loeschen="v-gebucht"]');
+  lagerBewegungen=gesichert; renderLagerverwaltung();
+  return {jetzt};
+ });
+ p(z.jetzt===true,
+   "Gegenprobe: ohne die Buchung waere DASSELBE Produkt loeschbar - der Knopf haengt wirklich an den Buchungen, nicht am Zufall",z);
+
+ // Loeschen trotz Buchungen wird abgefangen, bevor die Datenbank es tut.
+ z=await page.evaluate(async()=>{
+  window.__schreib=[];
+  const alt=window.confirm; window.confirm=()=>true;
+  const gesagt=[]; const altA=window.alert; window.alert=t=>gesagt.push(String(t));
+  await lagerProduktLoeschen("v-gebucht");
+  window.confirm=alt; window.alert=altA;
+  return {gesagt,schreib:window.__schreib.slice(),
+   nochDa:lagerVarianten.some(v=>String(v.id)==="v-gebucht")};
+ });
+ p(z.schreib.length===0,
+   "ein gebuchtes Produkt wird auch bei direktem Aufruf NICHT geloescht - es geht gar kein Schreibbefehl raus",z.schreib);
+ p(z.nochDa===true&&z.gesagt.length===1&&/archivieren/i.test(z.gesagt[0]),
+   "stattdessen erklaert die App den Weg ueber das Archiv, statt die Datenbank mit einem Fremdschluessel-Fehler antworten zu lassen",z.gesagt);
+
+ // Archivieren: die Buchungen bleiben, das Produkt verschwindet aus der Liste.
+ z=await page.evaluate(async()=>{
+  window.__schreib=[];
+  const alt=window.confirm; window.confirm=()=>true;
+  await lagerProduktArchivSetzen("v-gebucht",true);
+  window.confirm=alt;
+  const up=window.__schreib.find(x=>x.op==="update"&&x.t==="lager_varianten");
+  const del=window.__schreib.find(x=>x.op==="delete");
+  return {patch:up?up.patch:null,eq:up?up.eq:null,gabDelete:!!del,
+   buchungenNoch:lagerBewegungenVon("v-gebucht").length,
+   sichtbar:!!document.querySelector('#lagerverwaltungListe [data-lager-buchen="v-gebucht"]'),
+   inAuswahl:lagerVariantenVonMaterial(3001).map(v=>String(v.id)),
+   mitArchiv:lagerVariantenVonMaterialAlle(3001).map(v=>String(v.id))};
+ });
+ p(z.patch&&z.patch.archiviert===true&&z.eq[0][0]==="id"&&z.eq[0][1]==="v-gebucht",
+   "Archivieren setzt archiviert=true auf genau diesem Produkt",z);
+ p(z.gabDelete===false&&z.buchungenNoch===1,
+   "und loescht nichts - die Buchung bleibt als Beleg stehen",z);
+ p(z.sichtbar===false,"das archivierte Produkt ist nicht mehr bebuchbar",z);
+ p(z.inAuswahl.indexOf("v-gebucht")<0&&z.mitArchiv.indexOf("v-gebucht")>=0,
+   "es faellt aus lagerVariantenVonMaterial() heraus (die Quelle aller Auswahlwege) und steht nur noch in ...Alle()",z);
+
+ // Der Archiv-Knopf zeigt nur auf etwas, das es auch gibt.
+ z=await page.evaluate(()=>{
+  lagerOffenArtikel.add("m3001"); lagerOffenArtikel.add("v-gebucht");
+  renderLagerverwaltung();
+  const a={versteckt:$("lagerArchivZeigen").hidden,text:$("lagerArchivZeigen").textContent};
+  const ohneArchiv=[...document.querySelectorAll("#lagerverwaltungListe .lager-archiviert")].length;
+  $("lagerArchivZeigen").click();
+  const mitArchiv=[...document.querySelectorAll("#lagerverwaltungListe .lager-archiviert")].length;
+  const text2=$("lagerArchivZeigen").textContent;
+  return {a,ohneArchiv,mitArchiv,text2};
+ });
+ p(z.a.versteckt===false&&/\(1\)/.test(z.a.text),
+   "sobald etwas im Archiv liegt, erscheint 'Archiv anzeigen' mit der Anzahl",z.a);
+ p(z.ohneArchiv===0&&z.mitArchiv===1&&/ausblenden/.test(z.text2),
+   "erst ein Klick zeigt das archivierte Produkt - abgesetzt markiert, nicht mitten in der Liste",z);
+
+ // Eine Position mit GENAU EINEM Produkt wird flach gezeichnet, nicht als
+ // Gruppe - ein zweiter Codeweg, der dieselbe Regel einhalten muss. Genau
+ // hier fehlte die Markierung zuerst: die flache Karte zeigte noch "Buchen".
+ z=await page.evaluate(()=>{
+  lagerArchivZeigen=true;
+  // Der Zustand der uebrigen Pruefungen wird dafuer nur geliehen, nicht
+  // ueberschrieben - danach steht er wieder genau so da wie vorher.
+  const gesichert=lagerVarianten.slice();
+  const gesichertLese=window.__lese.lager_varianten.slice();
+  lagerVarianten=[
+   {id:"v-flach",material_id:3002,bezeichnung:"Einziges Produkt",barcode:"444",archiviert:true}
+  ];
+  renderLagerverwaltung();
+  const karte=document.querySelector("#lagerverwaltungListe .lager-karte.lager-archiviert");
+  const r={karteDa:!!karte,
+   buchbar:!!document.querySelector('#lagerverwaltungListe [data-lager-buchen="v-flach"]'),
+   marke:!!(karte&&karte.querySelector(".lager-archiviert-marke"))};
+  lagerVarianten=gesichert; window.__lese.lager_varianten=gesichertLese;
+  renderLagerverwaltung();
+  return r;
+ });
+ p(z.karteDa===true&&z.marke===true,
+   "auch die flache Karte (Position mit genau einem Produkt) ist als archiviert markiert",z);
+ p(z.buchbar===false,
+   "und zeigt keinen Buchen-Knopf - die Regel gilt auf BEIDEN Zeichenwegen, nicht nur im Gruppenfall",z);
+
+ // Wieder aktivieren - der Rueckweg muss es geben, sonst waere Archivieren
+ // eine Einbahnstrasse.
+ z=await page.evaluate(async()=>{
+  lagerOffenArtikel.add("m3001"); lagerOffenArtikel.add("v-gebucht");
+  renderLagerverwaltung();
+  const knopf=document.querySelector('#lagerverwaltungListe [data-lager-aktivieren="v-gebucht"]');
+  window.__schreib=[];
+  const alt=window.confirm; window.confirm=()=>true;
+  if(knopf)knopf.click();
+  await new Promise(r=>setTimeout(r,60));
+  window.confirm=alt;
+  const up=window.__schreib.find(x=>x.op==="update"&&x.t==="lager_varianten");
+  return {knopfDa:!!knopf,patch:up?up.patch:null,
+   wiederBuchbar:!!document.querySelector('#lagerverwaltungListe [data-lager-buchen="v-gebucht"]')};
+ });
+ p(z.knopfDa===true&&z.patch&&z.patch.archiviert===false,
+   "am archivierten Produkt steht 'Wieder aktivieren' und es setzt archiviert zurueck",z);
+ p(z.wiederBuchbar===true,"danach ist es sofort wieder bebuchbar",z);
+
+ // Loeschen ohne Buchungen: die Zeile verschwindet wirklich. Die Position
+ // hat danach noch ein zweites Produkt - es darf also NICHT nach der
+ // Katalogposition gefragt werden.
+ z=await page.evaluate(async()=>{
+  lagerArchivZeigen=false;
+  window.__schreib=[];
+  const gefragt=[]; const alt=window.confirm;
+  window.confirm=t=>{gefragt.push(String(t));return true};
+  await lagerProduktLoeschen("v-frei");
+  window.confirm=alt;
+  const del=window.__schreib.find(x=>x.op==="delete"&&x.t==="lager_varianten");
+  return {del:del?del.eq:null,gefragt,
+   wegAusState:!lagerVarianten.some(v=>String(v.id)==="v-frei"),
+   materialGeloescht:window.__schreib.some(x=>x.op==="delete"&&x.t==="materials"),
+   positionNoch:settings.materials.length};
+ });
+ p(z.del&&z.del[0][0]==="id"&&z.del[0][1]==="v-frei"&&z.wegAusState===true,
+   "ein Produkt ohne Buchung wird wirklich geloescht und ist danach aus der Liste",z);
+ p(z.gefragt.length===1,
+   "gefragt wird genau einmal - nach dem Produkt, nicht nach der Katalogposition: die hat ja noch ein zweites Produkt",z.gefragt);
+ p(z.materialGeloescht===false&&z.positionNoch===2,
+   "der Material-Katalog bleibt dabei unangetastet",z);
+
+ // War es das LETZTE Produkt der Position, wird zusaetzlich nach der
+ // Katalogposition gefragt - mit ausdruecklicher Warnung, so vom Anwender
+ // entschieden.
+ z=await page.evaluate(async()=>{
+  window.__schreib=[];
+  const gefragt=[]; const alt=window.confirm;
+  window.confirm=t=>{gefragt.push(String(t));return true};
+  await lagerProduktLoeschen("v-einzeln");
+  window.confirm=alt;
+  return {gefragt,
+   materialDel:window.__schreib.find(x=>x.op==="delete"&&x.t==="materials"),
+   positionen:settings.materials.map(m=>m[0]),ids:materialIds.slice()};
+ });
+ p(z.gefragt.length===2&&/MATERIAL-KATALOG/.test(z.gefragt[1]),
+   "war es das letzte Produkt seiner Position, fragt die App zusaetzlich nach der Katalogposition",z.gefragt);
+ p(/Regierapport/.test(z.gefragt[1])&&/Offerten/.test(z.gefragt[1]),
+   "und nennt dabei ausdruecklich, was sonst noch am Katalog haengt",z.gefragt[1]);
+ p(z.materialDel&&z.materialDel.eq[0][1]===3002,
+   "erst nach dem Ja wird die Position wirklich entfernt",z);
+ p(z.positionen.length===1&&z.positionen[0]==="301.01"&&z.ids.length===1&&z.ids[0]===3001,
+   "settings.materials und materialIds werden zeilenweise nachgezogen - nicht als Ganzes zurueckgeschrieben",z);
+
+ // Gegenprobe: ein Nein laesst die Position stehen.
+ z=await page.evaluate(async()=>{
+  settings.materials=[["302.01","Testposition","x","St",0]];
+  materialIds=[3003];
+  window.__lese.materials=[{id:3003}];
+  window.__schreib=[];
+  const alt=window.confirm; window.confirm=()=>false;
+  await lagerPositionAufraeumenAnbieten(3003);
+  window.confirm=alt;
+  return {schreib:window.__schreib.slice(),noch:settings.materials.length};
+ });
+ p(z.schreib.length===0&&z.noch===1,
+   "Gegenprobe: wer die Nachfrage verneint, behaelt die Position - ohne Produkt",z);
+
+ // Der Blech-Materialbestand zeigt mit artikel_id auf die Position, der
+ // Fremdschluessel steht dort auf SET NULL: der Eintrag bleibt, verliert aber
+ // seine Zuordnung. Das muss in der Warnung stehen, nicht erst auffallen.
+ z=await page.evaluate(async()=>{
+  // lagerbestand ist eine lexikalische Bindung in js/59 - window.lagerbestand
+  // waere eine zweite, davon unabhaengige Eigenschaft.
+  lagerbestand=[{id:1,artikel_id:3003,material_id:null},
+                {id:2,artikel_id:9999,material_id:null}];
+  let gefragt=""; const alt=window.confirm;
+  window.confirm=t=>{gefragt=String(t);return false};
+  await lagerPositionAufraeumenAnbieten(3003);
+  window.confirm=alt;
+  let ohne=""; const alt2=window.confirm;
+  lagerbestand=[{id:2,artikel_id:9999,material_id:null}];
+  window.confirm=t=>{ohne=String(t);return false};
+  await lagerPositionAufraeumenAnbieten(3003);
+  window.confirm=alt2;
+  return {gefragt,ohne};
+ });
+ p(/1 Eintrag/.test(z.gefragt)&&/Blech-Materialbestand/.test(z.gefragt),
+   "zeigt der Blech-Materialbestand auf die Position, nennt die Warnung die betroffene Anzahl",z.gefragt);
+ p(/Restst/.test(z.gefragt),
+   "und die Reststuecke werden benannt - sie sind hier nicht geladen, also wird keine Zahl behauptet",z.gefragt);
+ p(!/Blech-Materialbestand/.test(z.ohne),
+   "Gegenprobe: zeigt nichts darauf, steht die Zeile auch nicht da - gezaehlt wird wirklich, nicht pauschal gewarnt",z.ohne);
+
+ // Ohne das Recht am Material-Katalog kommt die Nachfrage gar nicht.
+ z=await page.evaluate(async()=>{
+  meineRechte={admin:false,kataloge:false};
+  window.__schreib=[];
+  const gefragt=[]; const alt=window.confirm;
+  window.confirm=t=>{gefragt.push(String(t));return true};
+  await lagerPositionAufraeumenAnbieten(3003);
+  window.confirm=alt;
+  meineRechte={admin:false,kataloge:true};
+  return {gefragt,schreib:window.__schreib.slice()};
+ });
+ p(z.gefragt.length===0&&z.schreib.length===0,
+   "ohne das Recht, den Material-Katalog zu aendern, wird gar nicht erst gefragt",z);
+
+ // Der Knopf, den es bis v3.127 nicht gab, obwohl die Hilfe ihn nannte.
+ z=await page.evaluate(()=>{
+  const k=$("lagerNeuesProduktStart");
+  if(!k)return {da:false};
+  settings.materials=[["301.01","Rinnenboden Kupfer","250","St",0]];
+  materialIds=[3001];
+  k.click();
+  const offen=!$("lagerNeuesProduktModal").hidden;
+  const r={da:true,text:k.textContent,offen,
+   artikel:typeof lagerNeuesProduktArtikel==="undefined"?"?":lagerNeuesProduktArtikel,
+   barcode:$("lagerNeuesProduktBarcode").value};
+  lagerNeuesProduktSchliessen();
+  return r;
+ });
+ p(z.da===true&&/Neues Produkt/.test(z.text||""),
+   "in der Leiste der Lagerverwaltung steht '+ Neues Produkt' - der Einstieg, den der Hilfetext seit v3.124 nannte, ohne dass es ihn gab",z);
+ p(z.offen===true&&z.artikel===null&&z.barcode==="",
+   "er oeffnet den Dialog ohne Position und ohne Barcode - beides wird dort gewaehlt",z);
+
+ // Der Barcode klebt weiter auf der Ware: ein Scan findet das archivierte
+ // Produkt. Weder stumm buchen noch stumm ablehnen.
+ z=await page.evaluate(async()=>{
+  window.__lese.lager_varianten=[
+   {id:"v-arch",material_id:3001,bezeichnung:"Archivierter Boden",barcode:"999",archiviert:true}
+  ];
+  lagerVarianten=window.__lese.lager_varianten.slice();
+  lagerBuchenSchliessen();
+  window.barcodeScannen=cb=>cb("999");
+  const alt=window.confirm; let gefragt="";
+  window.confirm=t=>{gefragt=String(t);return false};
+  lagerScannenUndBuchen("abgang");
+  await new Promise(r=>setTimeout(r,60));
+  window.confirm=alt;
+  return {gefragt,hinweis:$("lagerverwaltungHinweis").textContent,
+   dialogOffen:!$("lagerBuchenModal").hidden};
+ });
+ p(/archiviert/.test(z.gefragt)&&/wieder aktiviert/.test(z.gefragt),
+   "ein Scan auf ein archiviertes Produkt nennt den Zustand und bietet das Wieder-Aktivieren an",z);
+ p(z.dialogOffen===false&&/archiviert/.test(z.hinweis),
+   "wer ablehnt, bucht nicht - und erfaehrt warum, statt vor einer stummen Oberflaeche zu stehen",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

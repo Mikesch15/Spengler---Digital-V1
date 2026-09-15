@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.126</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.127</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -2374,6 +2374,12 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 <button type="button" id="lagerEinscannen" class="green">📥 Einscannen</button>
 <button type="button" id="lagerAusscannen" class="blue">📤 Ausscannen</button>
 <button type="button" id="lagerAlleZuklappen" class="gray">⯆ Alle zuklappen</button>
+<!-- v3.127: Der Hilfetext zur Suche nannte diesen Knopf schon, es gab ihn aber
+     nur innerhalb einer aufgeklappten Position ("＋ Weiteres Produkt") und
+     ueber einen unbekannten Barcode. Hier ist der fehlende, immer erreichbare
+     Einstieg; die Materialposition wird im Dialog selbst gesucht/angelegt. -->
+<button type="button" id="lagerNeuesProduktStart" class="gray">＋ Neues Produkt</button>
+<button type="button" id="lagerArchivZeigen" class="gray" hidden>📦 Archiv anzeigen</button>
 </div>
 <!-- v3.124: Suche ueber Position UND Produkt. Bei 372 Materialpositionen
      ist Scrollen kein Bedienweg mehr. -->

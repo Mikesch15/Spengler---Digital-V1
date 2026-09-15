@@ -1237,6 +1237,13 @@ Materialposition (EDV-Nr., Bezeichnung, Dimension) und jedes einzelne
 das Produkt damit auch von Hand, wenn die Kamera streikt.</p>
 <p>Solange gesucht wird, ist „Alle zuklappen“ ausgeblendet – die Trefferliste
 ist ja gerade das, was man sehen will.</p>
+<h3>Ein neues Produkt erfassen</h3>
+<p>Über der Liste steht <b>＋ Neues Produkt</b>. Das ist seit Version 3.127
+der erste, immer erreichbare Weg dorthin – vorher führten nur zwei
+Umwege hin: „＋ Weiteres Produkt“ <i>innerhalb</i> einer aufgeklappten
+Position, oder ein Scan, dessen Barcode noch keinem Produkt gehört. Der
+Hilfetext nannte diesen Knopf schon seit Version 3.124, es gab ihn nur
+nicht – das ist nachgeholt.</p>
 <h3>Produkte ausserhalb der Regiematerialliste</h3>
 <p>Nicht jedes Lagerprodukt steht im Regie-Katalog. Im Dialog
 „🏷️ Neues Produkt erfassen“ steht unten in der Positionsauswahl deshalb
@@ -1264,7 +1271,33 @@ Nummer aber nur – sie lässt sich frei ändern. Eine bereits vergebene Nummer
 lehnt die App ab und nennt die Position, die sie schon trägt.</p>
 <p>Anlegen kann das nur, wer auch den <b>Material-Katalog ändern</b> darf
 (Einstellungen → Mitarbeiter). Sonst erscheint die Möglichkeit gar nicht
-erst.</p>`},
+erst.</p>
+<h3>Produkt entfernen: löschen oder archivieren</h3>
+<p>Ein aufgeklapptes Produkt zeigt unten einen Knopf. <b>Welchen</b>, hängt
+davon ab, ob es schon Buchungen gibt:</p>
+<p><b>🗑 Löschen</b> – nur bei einem Produkt <b>ohne jede Buchung</b>.
+Dann ist nichts zu verlieren, es verschwindet ganz.</p>
+<p><b>📦 Archivieren</b> – sobald gebucht wurde. Das Produkt
+verschwindet aus der Liste und lässt sich nicht mehr bebuchen, seine
+Buchungen bleiben aber vollständig stehen. Das ist Absicht: eine Buchung
+ist Beleg, kein Entwurf – ein gelöschtes Produkt würde frühere Bestände,
+Projekt-Zusammenfassungen und Inventuren rückwirkend verfälschen. Liegt
+etwas im Archiv, erscheint oben <b>📦 Archiv anzeigen</b>; dort steht je
+Produkt <b>↺ Wieder aktivieren</b>.</p>
+<p>War das <b>gelöschte</b> Produkt das letzte seiner Materialposition,
+fragt die App zusätzlich, ob auch die <b>Katalogposition selbst</b> weg
+soll. Nach einem Archivieren kommt diese Frage nicht – das Produkt liegt
+ja noch da und braucht seine Position weiter. Vorsicht: die Position ist Teil des Material-Katalogs
+und kann in Regierapporten, Offerten und Massaufnahmen verrechnet sein –
+deshalb steht die Warnung ausdrücklich da und es passiert nichts ohne
+Bestätigung. Sie nennt auch, wie viele Einträge im <b>Blech-Materialbestand</b>
+auf die Position zeigen: die bleiben bestehen, verlieren aber ihre Zuordnung.
+Dasselbe gilt für <b>Reststücke</b>.</p>
+<p><b>Zur Sicherheit</b>: Bis Version 3.126 haben die beiden Schranken auf
+der Produkt-Tabelle (eigene Firma / Lager-Berechtigung) <i>oder</i>-verknüpft
+statt <i>und</i>-verknüpft gegriffen – die Firmengrenze band dadurch
+faktisch nicht. Mit Version 3.127 ist das auf dieselbe Bauart umgestellt,
+die die Buchungen schon immer hatten (beide Schranken müssen zutreffen).</p>`},
 
 "cockpit-lager":{titel:"Material ab Lager",text:`
 <p>Was für <b>dieses Projekt</b> ab Lager gebucht wurde – je Produkt

@@ -82,7 +82,10 @@ const WIN_CHANGELOG={
   "Neu: Produkte, die gar nicht in der Regiematerialliste stehen, lassen sich jetzt erfassen. Im Dialog 'Neues Produkt' gibt es dazu 'Neue Materialposition anlegen' - die EDV-Nr. schlägt die App aus einem eigenen Nummernkreis vor (999.01, 999.02 …) und bleibt änderbar."],
  "3.125":["Ab Lager ausbuchen: die Materialposition eines Halbfabrikats wird jetzt direkt beim Tippen gefunden. Die Treffer stehen sofort als Liste da und werden angetippt - vorher musste man nach der Eingabe noch das Auswahlfeld aufklappen."],
  "3.126":["Neue Materialposition: die EDV-Nr. wird jetzt aus der PASSENDEN Katalogruppe vorgeschlagen. Ein neuer Rinnenboden bekommt die nächste freie Nummer bei 203 (Rinnenzubehör), eine Holzschraube bei 826 - mit Begründung darunter. Passen mehrere Gruppen gleich gut, legt die App sie als Knöpfe nebeneinander statt zu raten.",
-  "Auch im Dialog 'Neues Produkt' erscheinen die Treffer zur Materialposition jetzt sofort beim Tippen - dort stand noch das alte Auswahlfeld."]
+  "Auch im Dialog 'Neues Produkt' erscheinen die Treffer zur Materialposition jetzt sofort beim Tippen - dort stand noch das alte Auswahlfeld."],
+ "3.127":["Lagerverwaltung: Produkte lassen sich jetzt entfernen. Ohne Buchung wird wirklich gelöscht; sobald gebucht wurde, wird ARCHIVIERT - das Produkt verschwindet aus allen Listen, die Buchungen bleiben als Beleg stehen und '📦 Archiv anzeigen' holt es jederzeit zurück. War es das letzte Produkt seiner Position, lässt sich auf Nachfrage auch die Katalogposition entfernen.",
+  "Der Knopf '＋ Neues Produkt' steht jetzt oben in der Lagerverwaltung. Die Hilfe hatte ihn schon genannt, es gab ihn aber nur innerhalb einer aufgeklappten Position.",
+  "Sicherheit: die Firmengrenze auf der Produkt-Tabelle hat seit v3.106 nicht richtig gebunden (die beiden Schranken waren oder- statt und-verknüpft). Das ist behoben - Produkte sind jetzt so abgesichert wie die Buchungen."]
 };
 
 function winVersionVergleich(a,b){
