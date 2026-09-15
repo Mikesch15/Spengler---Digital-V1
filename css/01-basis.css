@@ -1198,8 +1198,16 @@ button.ze-ein{min-height:34px;padding:4px 12px;font-size:12px;
 .rmat-wahl-block{border-left:2px solid var(--line);padding-left:6px;margin-bottom:6px}
 .rmat-pos{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 6px 4px 34px}
 .rmat-pos select{flex:1 1 240px;min-width:0;min-height:36px;font-size:12px}
-/* v3.121: Suchfeld vor dem Positions-Auswahlfeld (Ausbuchen-Dialog) */
+/* v3.121: Suchfeld vor der Positionswahl (Ausbuchen-Dialog) */
 .rmat-pos input[type="search"]{flex:1 1 160px;min-width:0;min-height:36px;font-size:12px}
+/* v3.125: die Trefferliste darunter. Sie steht IMMER da (nicht als
+   aufklappendes Auswahlfeld) und aendert sich mit jedem Zeichen - deshalb
+   eine eigene Zeile ueber die volle Breite, mit Hoehenbegrenzung, damit acht
+   Treffer den Dialog nicht auseinanderziehen. */
+.meas-lager-treffer-liste{flex:1 1 100%;max-height:196px;overflow:auto;
+  display:flex;flex-direction:column;gap:4px;margin-top:2px}
+button.meas-lager-treffer{text-align:left;font-size:12px;font-weight:700;
+  padding:8px 10px;min-height:38px;word-break:break-word}
 .rmat-pos-fest{padding:0 6px 4px 34px;font-size:12px;color:var(--muted);word-break:break-word}
 .rmat-sicher{font-size:11px;color:var(--green);font-weight:700}
 .rmat-unsicher{font-size:11px;color:#a35a06;font-weight:700}

@@ -30195,3 +30195,79 @@ die dritte um.
 | `js/41-hilfe.js` | neuer Hilfetext `lager-suche` |
 | `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.124 |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitte 16/16b |
+
+---
+
+## 191. v3.125 – Treffer erscheinen sofort beim Tippen
+
+### 191.1 Anlass
+
+> „Im aus lager ausbuchen im den massaufnahmen soll wenn man nach etwas sucht,
+> das sofort nach der eingabe auftauchen und nicht erst wenn man dan ins
+> materialfeld klickt"
+
+### 191.2 Befund: das falsche Bauteil
+
+v3.121 hatte für die Materialposition eines Halbfabrikats ein Suchfeld **vor
+einem `<select>`** gesetzt. Der Code war nicht kaputt – der `input`-Handler
+filterte dessen `<option>`-Liste bei jedem Tastendruck, und der Prüfstand
+belegte das auch. Nur nützt das nichts: **ein `<select>` zeigt seine Liste
+erst, wenn man es aufklappt.** Der Anwender tippte also, sah nichts, und
+musste zusätzlich auf das Auswahlfeld tippen, um das Ergebnis zu sehen.
+
+Ein Auswahlfeld ist für eine Suche schlicht das falsche Bauteil. Dieselbe
+Kombination steht seit v3.118 auch im Produkt-Formular; dort ist sie
+weniger störend (man wählt einmal statt je Zeile), sie wurde hier aber
+unverändert übernommen und war dadurch an der falschen Stelle.
+
+### 191.3 Was jetzt da steht
+
+An die Stelle des `<select>` tritt eine **Trefferliste**, die immer sichtbar
+ist und sich mit jedem Zeichen ändert:
+
+- Ohne Suchbegriff stehen die ersten acht Positionen da – nicht gar nichts.
+  Wer nur wenige Produkte im Lager hat, soll nicht erst tippen müssen.
+- Beim Tippen bleiben nur die passenden übrig; gibt es mehr als acht, sagt
+  eine Zeile, wie viele weitere es sind.
+- Ohne Treffer steht das da, statt einer leeren Fläche.
+- Ein Treffer wird **angetippt** – das wählt die Position, leitet die
+  Produktliste neu ab (genau ein Produkt steht damit fest, bei mehreren
+  wählt weiterhin der Anwender) und ersetzt die Suche durch die gewählte
+  Position als Text, mit einem Knopf „✏️ Position ändern".
+- Beim Ändern bleibt der Suchbegriff stehen – wer die Position wechselt,
+  sucht meist in derselben Gegend weiter.
+
+Beim Tippen wird weiterhin **nur die Trefferliste dieser einen Zeile** neu
+gezeichnet, nicht der ganze Dialog: ein voller Neuaufbau nähme dem Suchfeld
+den Fokus (dieselbe Lehre wie beim Mengenfeld, js/57).
+
+### 191.4 Eine Stolperstelle beim Umbau
+
+`measLagerPositionSetzen()` landete zunächst **innerhalb** des
+`if($("measLagerListe")){…}`-Blocks. In einer Datei mit `"use strict"` ist
+eine Funktionsdeklaration im Block blockgebunden und von aussen nicht
+sichtbar – der Prüfstand brach mit `measLagerPositionSetzen is not defined`
+ab. Die Funktion steht jetzt ausserhalb, mit einem Kommentar, warum.
+
+### 191.5 Prüfungen
+
+Prüfstand `pruefstand-lagerverwaltung-v3-98.js` von 174 auf 181 Prüfungen;
+Abschnitt 14b auf die neue Bedienung umgeschrieben. Die entscheidende
+Prüfung bildet genau die Meldung ab: nach dem **blossen Tippen, ohne jeden
+weiteren Klick**, stehen nur noch die passenden Treffer da. Dazu: es gibt
+kein `<select>` mehr, das Suchfeld behält den Fokus, ein Antippen wählt, und
+„Position ändern" führt zurück.
+
+Gegenprobe durchgeführt: wird das Neuzeichnen der Trefferliste beim Tippen
+abgeschaltet – also das Verhalten von v3.124 nachgestellt –, fallen vier
+Prüfungen um, darunter die entscheidende.
+
+### 191.6 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/68-lagerverwaltung.js` | `measLagerTrefferListe()`/`measLagerTrefferHtml()` statt `measLagerPositionOptionen()`, `measLagerPositionHtml()` neu, Klick-Handler für Treffer und „Position ändern", `measLagerPositionSetzen()` |
+| `css/01-basis.css` | `.meas-lager-treffer-liste`, `button.meas-lager-treffer` |
+| `js/41-hilfe.js` | `meas-lager-ausbuchen` nachgezogen |
+| `index.html`, `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.125 |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 14b neu |

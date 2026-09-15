@@ -1209,9 +1209,11 @@ bei einer Dachrinne also Rinnenböden, Stutzen, Rinnenhalter, Innen- und
 Aussenwinkel und Dehnungsstücke. <b>Blech und gerechnete Zuschnitte gehören
 weiterhin nicht ins Lager</b> – das Lager führt allgemeines Material.</p>
 <p>Ein Halbfabrikat trägt <b>keine EDV-Nr.</b>, nur eine Bezeichnung
-(„Rinnenboden links Ø 333"). Deshalb steht dort ein eigenes
-<b>Auswahlfeld für die Materialposition</b>, mit Suchfeld davor, weil ein
-Material-Katalog lang sein kann. Die App schlägt eine Position vor – nach
+(„Rinnenboden links Ø 333"). Deshalb steht dort ein <b>Suchfeld</b> für die
+Materialposition. <b>Seit Version 3.125</b> erscheinen die Treffer
+<b>sofort beim Tippen</b> – darunter als Liste zum Antippen, ohne dass man
+erst ein Auswahlfeld aufklappen muss. Ist die Position gewählt, steht sie
+als Text da und lässt sich mit „Position ändern“ wieder öffnen. Die App schlägt eine Position vor – nach
 derselben Bewertung wie beim Übernehmen in den Regierapport –, wählt sie
 aber nur dann von selbst, wenn der Treffer eindeutig ist und die Position im
 Lager genau ein Produkt hat. Ohne gewählte Position wird eine Zeile

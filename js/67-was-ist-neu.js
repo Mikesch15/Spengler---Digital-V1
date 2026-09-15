@@ -79,7 +79,8 @@ const WIN_CHANGELOG={
   "Neu im Projekt: die Karte 'Material ab Lager' zeigt je Produkt, was für dieses Projekt verbraucht wurde, und lässt sich als Materialzusammenfassung drucken.",
   "Wird direkt aus einer Massaufnahme ausgebucht, ordnet die App das Projekt automatisch zu - dort wird nicht gefragt."],
  "3.124":["Lagerverwaltung: neues Suchfeld über der Liste. Gesucht wird in EDV-Nr., Bezeichnung, Dimension, Produktname UND Barcode - bei über 370 Positionen ist Scrollen kein Bedienweg mehr.",
-  "Neu: Produkte, die gar nicht in der Regiematerialliste stehen, lassen sich jetzt erfassen. Im Dialog 'Neues Produkt' gibt es dazu 'Neue Materialposition anlegen' - die EDV-Nr. schlägt die App aus einem eigenen Nummernkreis vor (999.01, 999.02 …) und bleibt änderbar."]
+  "Neu: Produkte, die gar nicht in der Regiematerialliste stehen, lassen sich jetzt erfassen. Im Dialog 'Neues Produkt' gibt es dazu 'Neue Materialposition anlegen' - die EDV-Nr. schlägt die App aus einem eigenen Nummernkreis vor (999.01, 999.02 …) und bleibt änderbar."],
+ "3.125":["Ab Lager ausbuchen: die Materialposition eines Halbfabrikats wird jetzt direkt beim Tippen gefunden. Die Treffer stehen sofort als Liste da und werden angetippt - vorher musste man nach der Eingabe noch das Auswahlfeld aufklappen."]
 };
 
 function winVersionVergleich(a,b){

@@ -901,27 +901,53 @@ function measLagerSchliessen(){
 // Das Auswahlfeld der Materialposition - nur fuer Halbfabrikate, die keine
 // EDV-Nr. mitbringen. Mit Suchfeld, weil ein Material-Katalog lang sein kann
 // (dieselbe Loesung wie beim Produkt-Formular, v3.118).
-function measLagerPositionOptionen(z){
+// v3.125: Die Treffer erscheinen SOFORT beim Tippen.
+//
+// Bis v3.124 stand hier ein <select>. Das Suchfeld filterte dessen Optionen
+// zwar bei jedem Tastendruck, aber ein <select> zeigt seine Liste erst, wenn
+// man es aufklappt - der Anwender tippte also und sah nichts, bis er
+// zusaetzlich auf das Auswahlfeld tippte. Genau so gemeldet. Ein
+// Auswahlfeld ist fuer eine Suche das falsche Bauteil; es steht jetzt eine
+// Trefferliste da, die sich mit jedem Zeichen aendert.
+const MEAS_LAGER_TREFFER_MAX=8;
+function measLagerTrefferListe(z){
  const begriff=String(z.suche||"").trim().toLowerCase();
- const gewaehlt=z.artikel?String(z.artikel.id):"";
  const liste=begriff
-  // Die bereits gewaehlte Position bleibt IMMER in der Liste - sonst wuerde
-  // eine Suche sie stillschweigend abwaehlen.
-  ?z.positionen.filter(a=>String(a.id)===gewaehlt||lagArtikelText(a).toLowerCase().includes(begriff))
+  ?z.positionen.filter(a=>lagArtikelText(a).toLowerCase().includes(begriff))
   :z.positionen;
- return `<option value="">– Position wählen –</option>`+
-  liste.map(a=>`<option value="${esc(a.id)}"${String(a.id)===gewaehlt?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("");
+ return {begriff,liste,gezeigt:liste.slice(0,MEAS_LAGER_TREFFER_MAX)};
+}
+function measLagerTrefferHtml(z){
+ if(!z.positionen.length){
+  return `<div class="small" style="color:var(--muted)">Im Lager ist noch keine Materialposition mit einem Produkt erfasst.</div>`;
+ }
+ const {begriff,liste,gezeigt}=measLagerTrefferListe(z);
+ if(!liste.length){
+  return `<div class="small" style="color:var(--muted)">Kein Treffer für „${esc(begriff)}“.</div>`;
+ }
+ // Ohne Suchbegriff stehen die ersten Positionen da, nicht gar nichts - wer
+ // nur wenige Produkte im Lager hat, soll nicht erst tippen muessen.
+ const rest=liste.length-gezeigt.length;
+ return gezeigt.map(a=>`<button type="button" class="gray meas-lager-treffer" data-meas-lager-waehlen="${esc(z.id)}" data-meas-lager-artikel="${esc(a.id)}">${esc(lagArtikelText(a))}</button>`).join("")
+  +(rest>0?`<div class="small" style="color:var(--muted)">… ${rest} weitere – bitte genauer suchen.</div>`:"");
 }
 function measLagerPositionHtml(z){
- const hinweis=z.artikel
-  ?(z.vorschlagSicher?`<span class="rmat-sicher">✓ Vorschlag der App</span>`:"")
-  :(z.vorschlag
-    ?`<span class="rmat-unsicher">Vorschlag: ${esc(z.vorschlag)} – bitte prüfen und wählen</span>`
-    :`<span class="rmat-unsicher">Keine passende Position gefunden – bitte selbst wählen.</span>`);
+ // Ist die Position gewaehlt, braucht es keine Liste mehr - sie steht als
+ // Text da und laesst sich mit einem Knopf wieder oeffnen.
+ if(z.artikel){
+  return `<div class="rmat-pos">
+   <div class="small">Position: <b>${esc(lagArtikelText(z.artikel))}</b></div>
+   ${z.vorschlagSicher?`<span class="rmat-sicher">✓ Vorschlag der App</span>`:""}
+   <button type="button" class="gray" data-meas-lager-position-aendern="${esc(z.id)}">✏️ Position ändern</button>
+  </div>`;
+ }
+ const hinweis=z.vorschlag
+  ?`<span class="rmat-unsicher">Vorschlag: ${esc(z.vorschlag)} – bitte prüfen und wählen</span>`
+  :`<span class="rmat-unsicher">Keine passende Position gefunden – bitte selbst wählen.</span>`;
  return `<div class="rmat-pos">
   <input type="search" placeholder="Position suchen …" data-meas-lager-suche="${esc(z.id)}" value="${esc(z.suche||"")}">
-  <select data-meas-lager-position="${esc(z.id)}">${measLagerPositionOptionen(z)}</select>
   ${hinweis}
+  <div class="meas-lager-treffer-liste" data-meas-lager-treffer="${esc(z.id)}">${measLagerTrefferHtml(z)}</div>
  </div>`;
 }
 
@@ -989,6 +1015,20 @@ function measLagerKnopfStand(){
  knopf.disabled=n===0;
 }
 
+// v3.121/v3.125: die Materialposition eines Halbfabrikats. Mit ihr wechselt
+// auch die Produktliste - hat die neue Position genau ein Produkt, steht es
+// damit fest, sonst waehlt wieder der Anwender. Bewusst AUSSERHALB des
+// if-Blocks: eine Funktionsdeklaration darin waere in "use strict"
+// blockgebunden und von aussen nicht erreichbar.
+function measLagerPositionSetzen(z,a){
+ if(!z)return;
+ z.artikel=a||null;
+ z.no=a?String(a.edv_nr):"";
+ if(a&&a.unit)z.einheit=a.unit;
+ z.varianten=a?lagerVariantenVonMaterial(a.id):[];
+ z.varianteId=z.varianten.length===1?String(z.varianten[0].id):"";
+ if(!z.varianteId)z.gewaehlt=false;
+}
 if($("measLagerListe")){
  $("measLagerListe").addEventListener("change",e=>{
   const wahl=e.target.dataset.measLagerWahl;
@@ -1010,21 +1050,23 @@ if($("measLagerListe")){
    renderMeasLagerListe();
    return;
   }
-  // v3.121: die Materialposition eines Halbfabrikats. Mit ihr wechselt auch
-  // die Produktliste - hat die neue Position genau ein Produkt, steht es
-  // damit fest, sonst waehlt wieder der Anwender.
-  const position=e.target.dataset.measLagerPosition;
-  if(position!==undefined){
-   const z=measLagerZeilen.find(x=>x.id===position);
-   if(z){
-    const a=z.positionen.find(x=>String(x.id)===String(e.target.value))||null;
-    z.artikel=a;
-    z.no=a?String(a.edv_nr):"";
-    z.einheit=a&&a.unit?a.unit:z.einheit;
-    z.varianten=a?lagerVariantenVonMaterial(a.id):[];
-    z.varianteId=z.varianten.length===1?String(z.varianten[0].id):"";
-    if(!z.varianteId)z.gewaehlt=false;
-   }
+ });
+ // v3.125: Die Materialposition wird jetzt durch Antippen eines Treffers
+ // gewaehlt, nicht mehr aus einem Auswahlfeld.
+ $("measLagerListe").addEventListener("click",e=>{
+  const waehlen=e.target.closest?e.target.closest("[data-meas-lager-waehlen]"):null;
+  if(waehlen){
+   const z=measLagerZeilen.find(x=>x.id===waehlen.dataset.measLagerWaehlen);
+   if(z)measLagerPositionSetzen(z,z.positionen.find(a=>String(a.id)===String(waehlen.dataset.measLagerArtikel))||null);
+   renderMeasLagerListe();
+   return;
+  }
+  const aendern=e.target.closest?e.target.closest("[data-meas-lager-position-aendern]"):null;
+  if(aendern){
+   const z=measLagerZeilen.find(x=>x.id===aendern.dataset.measLagerPositionAendern);
+   // Die Suche bleibt stehen - wer die Position wechselt, sucht meist in
+   // derselben Gegend weiter.
+   if(z)measLagerPositionSetzen(z,null);
    renderMeasLagerListe();
   }
  });
@@ -1036,11 +1078,12 @@ if($("measLagerListe")){
    const z=measLagerZeilen.find(x=>x.id===suche);
    if(!z)return;
    z.suche=e.target.value;
-   // Nur die Optionen dieses einen Auswahlfeldes neu setzen. Ein voller
-   // Neuaufbau der Liste wuerde dem Suchfeld den Fokus nehmen - dieselbe
-   // Lehre wie beim Mengenfeld unten.
-   const sel=$("measLagerListe").querySelector('[data-meas-lager-position="'+z.id+'"]');
-   if(sel)sel.innerHTML=measLagerPositionOptionen(z);
+   // v3.125: NUR die Trefferliste dieser einen Zeile neu zeichnen. Ein
+   // voller Neuaufbau wuerde dem Suchfeld den Fokus nehmen (dieselbe Lehre
+   // wie beim Mengenfeld unten) - und die Treffer muessen waehrend des
+   // Tippens sichtbar werden, nicht erst danach.
+   const box=$("measLagerListe").querySelector('[data-meas-lager-treffer="'+z.id+'"]');
+   if(box)box.innerHTML=measLagerTrefferHtml(z);
    return;
   }
   const menge=e.target.dataset.measLagerMenge;

@@ -1033,32 +1033,80 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(!!bodenL&&bodenL.no===""&&bodenL.gewaehlt===false&&/413\.20/.test(bodenL.vorschlag),
    "ein unsicherer Treffer wird nur als Vorschlag genannt, aber NICHT gewaehlt - die App raet nicht",bodenL);
 
- // Die Suche filtert die Positionsliste, ohne die getroffene Wahl zu verlieren.
+ // v3.125: Die Treffer erscheinen SOFORT beim Tippen. Bis v3.124 stand hier
+ // ein <select>: das Suchfeld filterte dessen Optionen zwar bei jedem
+ // Zeichen, aber ein Auswahlfeld zeigt seine Liste erst beim Aufklappen -
+ // der Anwender tippte und sah nichts. Genau so gemeldet.
  z=await page.evaluate(()=>{
   const zeile=measLagerZeilen.find(x=>/Rinnenboden links/.test(x.bezeichnung));
   const feld=document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]');
-  const sel=()=>document.querySelector('[data-meas-lager-position="'+zeile.id+'"]');
-  const alle=sel().options.length;
+  const treffer=()=>[...document.querySelectorAll('[data-meas-lager-treffer="'+zeile.id+'"] [data-meas-lager-waehlen]')]
+    .map(b=>b.textContent.trim());
+  const vorher=treffer();
   feld.value="rinnenboden";
   feld.dispatchEvent(new Event("input",{bubbles:true}));
-  const gefiltert=[...sel().options].map(o=>o.textContent);
-  // Jetzt die Position waehlen und danach nach etwas ganz anderem suchen.
-  const s2=sel(); s2.value=String(zeile.positionen.find(a=>a.edv_nr==="413.20").id);
-  s2.dispatchEvent(new Event("change",{bubbles:true}));
-  const nachWahl={no:zeile.no,anzahlVarianten:zeile.varianten.length,varianteId:zeile.varianteId};
-  const feld2=document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]');
-  feld2.value="dichtband";
-  feld2.dispatchEvent(new Event("input",{bubbles:true}));
-  const nachFremdsuche=[...sel().options].map(o=>o.value);
-  return {alle,gefiltert,nachWahl,nachFremdsuche,
-   gewaehlteId:String(zeile.artikel?zeile.artikel.id:"")};
+  return {vorher,nachher:treffer(),
+   keinSelect:!document.querySelector('[data-meas-lager-position]'),
+   fokusBleibt:document.activeElement===feld||document.body.contains(feld)};
  });
- p(z.gefiltert.length<z.alle&&z.gefiltert.some(t=>/Rinnenboden/.test(t)),
-   "das Suchfeld filtert die Positionsliste der Zeile",z);
- p(z.nachWahl.no==="413.20"&&z.nachWahl.anzahlVarianten===2&&z.nachWahl.varianteId==="",
-   "mit der Position wechselt die Produktliste - bei zwei Produkten waehlt weiterhin der Anwender",z.nachWahl);
- p(z.nachFremdsuche.indexOf(z.gewaehlteId)>=0,
-   "eine bereits gewaehlte Position bleibt in der Liste, auch wenn die Suche sie nicht mehr trifft",z);
+ p(z.keinSelect===true,
+   "die Positionswahl ist kein Auswahlfeld mehr - ein <select> zeigt seine Treffer erst beim Aufklappen",z);
+ p(z.vorher.length>0,
+   "schon ohne Suchbegriff stehen Treffer da, statt einer leeren Flaeche",z.vorher);
+ p(z.nachher.length>0&&z.nachher.length<=z.vorher.length&&z.nachher.every(t=>/Rinnenboden/i.test(t)),
+   "nach dem blossen Tippen - ohne jeden weiteren Klick - stehen nur noch die passenden Treffer da",z);
+ p(z.fokusBleibt===true,
+   "das Suchfeld bleibt dabei stehen und verliert den Fokus nicht (nur die Trefferliste wird neu gezeichnet)",z);
+
+ z=await page.evaluate(()=>{
+  const zeile=measLagerZeilen.find(x=>/Rinnenboden links/.test(x.bezeichnung));
+  const feld=document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]');
+  feld.value="gibtesnicht";
+  feld.dispatchEvent(new Event("input",{bubbles:true}));
+  const box=document.querySelector('[data-meas-lager-treffer="'+zeile.id+'"]');
+  return {text:box.innerText,knoepfe:box.querySelectorAll("[data-meas-lager-waehlen]").length};
+ });
+ p(z.knoepfe===0&&/Kein Treffer/.test(z.text),
+   "ohne Treffer steht das da, statt einer leeren Flaeche",z);
+
+ // Einen Treffer antippen waehlt die Position - und mit ihr die Produktliste.
+ z=await page.evaluate(()=>{
+  const zeile=measLagerZeilen.find(x=>/Rinnenboden links/.test(x.bezeichnung));
+  const feld=document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]');
+  feld.value="rinnenboden";
+  feld.dispatchEvent(new Event("input",{bubbles:true}));
+  const knopf=document.querySelector('[data-meas-lager-treffer="'+zeile.id+'"] [data-meas-lager-waehlen]');
+  const text=knopf.textContent.trim();
+  knopf.click();
+  return {text,no:zeile.no,anzahlVarianten:zeile.varianten.length,varianteId:zeile.varianteId,
+   suchfeldWeg:!document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]'),
+   aendernDa:!!document.querySelector('[data-meas-lager-position-aendern="'+zeile.id+'"]')};
+ });
+ p(z.no==="413.20","ein Antippen des Treffers waehlt die Position",z);
+ p(z.anzahlVarianten===2&&z.varianteId==="",
+   "mit der Position wechselt die Produktliste - bei zwei Produkten waehlt weiterhin der Anwender",z);
+ p(z.suchfeldWeg===true&&z.aendernDa===true,
+   "danach steht die Position als Text da, mit einem Knopf zum Aendern - die Suche ist erledigt",z);
+
+ // Und der Weg zurueck.
+ z=await page.evaluate(()=>{
+  const zeile=measLagerZeilen.find(x=>/Rinnenboden links/.test(x.bezeichnung));
+  document.querySelector('[data-meas-lager-position-aendern="'+zeile.id+'"]').click();
+  return {no:zeile.no,gewaehlt:zeile.gewaehlt,
+   suchfeldDa:!!document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]'),
+   sucheErhalten:(document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]')||{}).value};
+ });
+ p(z.no===""&&z.gewaehlt===false&&z.suchfeldDa===true,
+   "'Position aendern' oeffnet die Suche wieder und nimmt die Zeile aus der Buchung",z);
+ p(z.sucheErhalten==="rinnenboden",
+   "der Suchbegriff bleibt dabei stehen - wer wechselt, sucht meist in derselben Gegend weiter",z);
+
+ // Danach wieder waehlen, damit die folgende Buchung dieselbe bleibt.
+ await page.evaluate(()=>{
+  const zeile=measLagerZeilen.find(x=>/Rinnenboden links/.test(x.bezeichnung));
+  measLagerPositionSetzen(zeile,zeile.positionen.find(a=>a.edv_nr==="413.20"));
+  renderMeasLagerListe();
+ });
 
  // Produkt waehlen, anhaken, buchen - zusammen mit dem erfassten Material.
  const ausbuchen2=await page.evaluate(async()=>{
