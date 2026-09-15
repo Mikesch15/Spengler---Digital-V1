@@ -227,6 +227,23 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  });
  p(z.pfeil==="▸","ein zweiter Klick klappt sie wieder zu",z);
 
+ // v3.104: "Alle zuklappen" blendet die GESAMTE Liste aus (keine einzige
+ // Artikel-Karte mehr sichtbar), nicht nur die Buchungen einer Karte.
+ z=await page.evaluate(()=>{
+  $("lagerAlleZuklappen").click();
+  return {knopfText:$("lagerAlleZuklappen").textContent,karten:document.querySelectorAll(".lager-karte").length,
+   text:$("lagerverwaltungListe").textContent};
+ });
+ p(z.karten===0,"nach \"Alle zuklappen\" ist keine einzige Artikel-Karte mehr im DOM",z);
+ p(!/Dichtband/.test(z.text),"auch die Bezeichnung steht nicht mehr im Text - die Liste ist wirklich leer, nicht nur eingeklappt",z.text);
+ p(/⯈ Alle anzeigen/.test(z.knopfText),"der Knopf zeigt jetzt \"Alle anzeigen\" an",z.knopfText);
+ z=await page.evaluate(()=>{
+  $("lagerAlleZuklappen").click();
+  return {knopfText:$("lagerAlleZuklappen").textContent,karten:document.querySelectorAll(".lager-karte").length};
+ });
+ p(z.karten>0,"\"Alle anzeigen\" zeigt die Artikel-Karten wieder",z);
+ p(/⯆ Alle zuklappen/.test(z.knopfText),"der Knopf zeigt wieder \"Alle zuklappen\" an",z.knopfText);
+
  // ---- 4 · Buchen: Zugang/Abgang/Korrektur -------------------------------
  console.log("\n4 · Buchen setzt die richtige Richtung");
  async function buchen(art,eingabe,grund){

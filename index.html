@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.104</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.105</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -864,6 +864,7 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div class="settings-section-body">
 <div class="info">Ein Link erlaubt genau eine Firmenanlage, 7 Tage gültig. Die eingeladene Person wählt ihr eigenes Passwort - es wird keine E-Mail damit verschickt.</div>
 <div class="bar" style="margin-bottom:10px"><button type="button" id="sysAdminEinladungErzeugen" class="green">🔗 Einladungslink erzeugen</button></div>
+<div class="small" id="sysAdminEinladungStatus" style="margin-bottom:8px"></div>
 <div id="sysAdminEinladungListe"></div>
 </div>
 </div>
@@ -2283,6 +2284,7 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 <div class="bar">
 <button type="button" id="lagerEinscannen" class="green">📥 Einscannen</button>
 <button type="button" id="lagerAusscannen" class="blue">📤 Ausscannen</button>
+<button type="button" id="lagerAlleZuklappen" class="gray">⯆ Alle zuklappen</button>
 </div>
 <div id="lagerverwaltungListe"></div>
 <div class="small" id="lagerverwaltungHinweis" style="margin-top:4px" hidden></div>

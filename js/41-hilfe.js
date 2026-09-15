@@ -1375,7 +1375,11 @@ freigeschaltetem <b>Lager-Zugriff</b> (Einstellungen → Mitarbeiter) –
 unabhängig von den übrigen Rechten, wie beim Offerte-Zugriff. Auch ein
 Administrator braucht diese Freigabe eigens.</p>
 <p>Ein Artikel, der noch nicht im Materialbestand steht, muss zuerst dort
-angelegt werden – die Lagerverwaltung bucht nur auf bestehende Artikel.</p>`},
+angelegt werden – die Lagerverwaltung bucht nur auf bestehende Artikel.</p>
+<p>Jede Zeile lässt sich antippen, um die letzten Buchungen ein-/
+auszublenden. Bei einer längeren Artikelliste blendet <b>Alle
+zuklappen</b> die gesamte Liste auf einen Schlag aus – "Alle anzeigen"
+holt sie zurück.</p>`},
 
 "meas-staerke":{titel:"Materialstärke",text:`
 <p>Welche Stärke das Blech dieser Massaufnahme hat. Die Auswahl kommt

@@ -616,26 +616,28 @@ async function barcodeScannen(callback){
     callback(text);
    }
   };
-  // Kamera-Autofokus (v3.104): decodeFromVideoDevice(undefined,...) liess
-  // die Kamera-Wahl UND ihre Voreinstellungen komplett dem Browser - ohne
-  // ausdrueckliche Vorgabe blieb die Rueckkamera auf mehreren Geraeten auf
-  // Dauer-unscharf stehen (kein Autofokus fuer einen reinen Video-Stream).
-  // facingMode waehlt gezielt die Rueckkamera, focusMode:continuous
-  // fordert Dauerautofokus an, wo Geraet/Browser das unterstuetzen - sonst
-  // wird die Vorgabe von selbst ignoriert (kein Fehler). Bei einer zu
-  // engen Vorgabe (OverconstrainedError) wird schrittweise gelockert statt
-  // sofort komplett auf die alte, vorgabenlose Methode zurueckzufallen -
-  // eine bereits erteilte Kamera-Freigabe darf dabei nicht zu einem
-  // zweiten Berechtigungsdialog fuehren.
+  // Kamera-Autofokus (v3.104, verstaerkt): decodeFromVideoDevice(undefined,...)
+  // liess die Kamera-Wahl UND ihre Voreinstellungen komplett dem Browser -
+  // ohne ausdrueckliche Vorgabe blieb die Rueckkamera auf mehreren Geraeten
+  // auf Dauer-unscharf stehen (kein Autofokus fuer einen reinen
+  // Video-Stream, oft zusaetzlich eine sehr niedrige Standardaufloesung).
+  // facingMode waehlt gezielt die Rueckkamera, eine hoehere ideale
+  // Aufloesung UND focusMode:continuous fordern Dauerautofokus an, wo
+  // Geraet/Browser das unterstuetzen - sonst wird die Vorgabe von selbst
+  // ignoriert (kein Fehler). Bei einer zu engen Vorgabe
+  // (OverconstrainedError) wird schrittweise gelockert statt sofort
+  // komplett auf die alte, vorgabenlose Methode zurueckzufallen - eine
+  // bereits erteilte Kamera-Freigabe darf dabei nicht zu einem zweiten
+  // Berechtigungsdialog fuehren.
+  const wunschKonstraint={video:{facingMode:{ideal:"environment"},
+   width:{ideal:1920},height:{ideal:1080},advanced:[{focusMode:"continuous"}]}};
+  const engerKonstraint={video:{facingMode:{ideal:"environment"}}};
   if(typeof barcodeScanCodeReader.decodeFromConstraints==="function"){
    try{
-    await barcodeScanCodeReader.decodeFromConstraints(
-     {video:{facingMode:{ideal:"environment"},advanced:[{focusMode:"continuous"}]}},
-     video,aufTreffer);
+    await barcodeScanCodeReader.decodeFromConstraints(wunschKonstraint,video,aufTreffer);
    }catch(engErr){
     if(engErr&&engErr.name==="OverconstrainedError"){
-     await barcodeScanCodeReader.decodeFromConstraints(
-      {video:{facingMode:{ideal:"environment"}}},video,aufTreffer);
+     await barcodeScanCodeReader.decodeFromConstraints(engerKonstraint,video,aufTreffer);
     }else{
      throw engErr;
     }
@@ -643,6 +645,15 @@ async function barcodeScannen(callback){
   }else{
    await barcodeScanCodeReader.decodeFromVideoDevice(undefined,video,aufTreffer);
   }
+  // Manche Browser/Kameras setzen "advanced"-Vorgaben aus getUserMedia nur
+  // teilweise um, akzeptieren dieselbe Vorgabe aber ueber applyConstraints()
+  // auf dem laufenden Track. Zusaetzlicher, rein defensiver Versuch - ohne
+  // Wirkung, wenn nicht unterstuetzt (kein Fehler, kein zweiter Dialog, es
+  // wird ja kein neuer Stream angefordert).
+  try{
+   const track=video.srcObject&&video.srcObject.getVideoTracks&&video.srcObject.getVideoTracks()[0];
+   if(track&&track.applyConstraints)await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
+  }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
   if(status)status.textContent="Code in den Rahmen halten …";
  }catch(err){
   const meldung=(err&&err.name==="NotAllowedError")

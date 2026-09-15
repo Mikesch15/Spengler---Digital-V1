@@ -49,7 +49,10 @@ const WIN_CHANGELOG={
   "Neu: „Passwort vergessen“ auf dem Anmeldebildschirm - ein Link per E-Mail führt zum Setzen eines neuen Passworts (nur bei hinterlegter E-Mail).",
   "Neu: Systemadministration kann Einladungslinks erzeugen, mit denen jemand selbst eine neue Firma anlegt."],
  "3.104":["Lagerverwaltung: die Artikelliste ist jetzt klappbar - jede Zeile zeigt zunächst nur Bezeichnung und Bestand, ein Klick zeigt die letzten Buchungen.",
-  "Fehler behoben: die Kamera beim Barcode-Scan stellte auf manchen Geräten nicht scharf."]
+  "Fehler behoben: die Kamera beim Barcode-Scan stellte auf manchen Geräten nicht scharf."],
+ "3.105":["Fehler behoben: beim Erzeugen eines Einladungslinks fehlte auf manchen Geräten jede Rückmeldung - der Erfolg/Fehler steht jetzt direkt im Formular statt in einer Meldung, die dort stumm blieb.",
+  "Neu: Lagerverwaltung - „Alle zuklappen” blendet die komplette Artikelliste auf einen Schlag aus.",
+  "Kamera-Fokus beim Barcode-Scan weiter verbessert."]
 };
 
 function winVersionVergleich(a,b){

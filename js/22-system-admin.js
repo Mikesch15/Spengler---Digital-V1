@@ -94,19 +94,35 @@ function sysAdminZufallsToken(){
 }
 $("sysAdminEinladungErzeugen").onclick=async()=>{
  $("sysAdminEinladungErzeugen").disabled=true;
+ const status=$("sysAdminEinladungStatus");
+ if(status){status.textContent="";status.style.color=""}
  try{
   const token=sysAdminZufallsToken();
   const ablauf=new Date(Date.now()+7*24*60*60*1000).toISOString();
   const {error}=await sb.from("company_invites").insert({
    token,created_by:currentProfile?currentProfile.id:null,expires_at:ablauf
   });
-  if(error){alert("Fehler: "+error.message);return}
+  if(error){
+   if(status){status.textContent="Fehler: "+error.message;status.style.color="var(--red)"}
+   return;
+  }
   const link=location.origin+location.pathname+"?einladung="+token;
+  // v3.104: renderSysAdminEinladungen() (weiter unten) zeigt den neuen Link
+  // bereits sichtbar in der Liste - das ist die eigentliche Erfolgs-
+  // Rueckmeldung. alert() wurde bewusst entfernt: in einer als PWA zum
+  // Home-Bildschirm hinzugefuegten App (standalone-Modus) unterdruecken
+  // manche mobilen Browser (v. a. iOS Safari) window.alert() lautlos - ein
+  // Klick auf den Knopf wirkte dann so, als waere "nichts passiert",
+  // obwohl der Link im Hintergrund bereits angelegt war.
   await renderSysAdminEinladungen();
-  // Zwischenablage nicht immer verfuegbar (z. B. ohne HTTPS) - deshalb
-  // zusaetzlich per alert() anzeigen, damit der Link so oder so lesbar ist.
-  try{ await navigator.clipboard.writeText(link); }catch(e){}
-  alert("Einladungslink erzeugt (in die Zwischenablage kopiert, falls möglich):\n\n"+link+"\n\n7 Tage gültig, einmal verwendbar.");
+  let kopiert=false;
+  try{ await navigator.clipboard.writeText(link); kopiert=true; }catch(e){}
+  if(status){
+   status.textContent="Einladungslink erzeugt"+(kopiert?" und in die Zwischenablage kopiert":"")+" - er steht auch unten in der Liste (7 Tage gültig, einmal verwendbar).";
+   status.style.color="var(--green)";
+  }
+ }catch(err){
+  if(status){status.textContent="Fehler: "+((err&&err.message)||err);status.style.color="var(--red)"}
  }finally{
   $("sysAdminEinladungErzeugen").disabled=false;
  }

@@ -28226,3 +28226,118 @@ neuen).
 | `PROJECT_STATE.md` | Versionsstand 3.104 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.104"]` ergänzt |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 3 um die Klapp-Prüfungen erweitert |
+
+## 171. FEHLERBEHEBUNG: EINLADUNGSLINK OHNE RÜCKMELDUNG, LISTE WEITER NICHT ZUKLAPPBAR, KAMERA-FOKUS — VERSION 3.105
+
+### 171.1 Anlass
+
+Direktes Anwender-Feedback nach v3.104, alle drei Punkte betrafen
+Funktionen aus v3.102-v3.104:
+
+1. "Kamera fokussiert noch immer nicht."
+2. "Einladungslink lässt sich nicht generieren, es geschieht nichts beim
+   draufklicken."
+3. "Lagerverwaltungsliste ist immer noch nicht klappbar, ich möchte, dass
+   man alle Produkte zuklappen kann, so dass keines mehr zu sehen ist."
+
+### 171.2 Root-Cause Einladungslink: `alert()` in einer installierten PWA
+
+Backend (Migration, RLS-Policy `company_invites_nur_system_admin`,
+`is_system_admin()`) und die Klick-Verdrahtung selbst wurden gegen die
+echte Produktionsdatenbank bzw. per Playwright gegen die echten
+`index.html`/`js`-Dateien geprüft - beides war unauffällig, der Klick
+löste Insert und Listen-Update zuverlässig aus. Die einzige sichtbare
+Erfolgs- **und** Fehler-Rückmeldung hing bislang jedoch komplett an
+`alert()` - und `window.alert()`/`confirm()`/`prompt()` werden von
+mehreren mobilen Browsern (vor allem iOS Safari) in einer zum
+Home-Bildschirm hinzugefügten, im **Standalone-Modus** laufenden PWA
+lautlos unterdrückt. Ein Klick auf "Einladungslink erzeugen" konnte damit
+- egal ob die Datenbank-Schreibaktion erfolgreich war oder nicht - exakt
+wie "es passiert nichts" wirken.
+
+**Behoben**: `$("sysAdminEinladungErzeugen").onclick` (js/22-system-admin.js)
+verlässt sich nicht mehr auf `alert()`. Eine neue Zeile
+`#sysAdminEinladungStatus` unter dem Knopf zeigt Erfolg (grün, inkl.
+Hinweis auf die Zwischenablage, falls verfügbar) oder Fehler (rot) direkt
+im Formular an - genau das Muster, das die neueren E-Mail-Auth-Bildschirme
+aus v3.103 (js/69-email-auth.js, `#prError`/`#ciError`) bereits verwenden.
+Die neu erzeugte Einladung erscheint ausserdem unverändert sofort in der
+Liste darunter (`renderSysAdminEinladungen()`) - das war schon vorher die
+eigentliche, zuverlässige Bestätigung.
+
+### 171.3 Lagerverwaltung: "Alle zuklappen" für die GESAMTE Liste
+
+v3.104 machte jede Artikel-Zeile einzeln klappbar (Kopf mit Name/Bestand
+bleibt immer sichtbar, nur die Buchungen klappen auf/zu). Der Anwender
+wollte ausdrücklich mehr: die **komplette** Liste soll sich auf einen
+Schlag ausblenden lassen, "sodass keines mehr zu sehen ist" - nicht nur
+die Buchungsdetails. Neuer Knopf "⯆ Alle zuklappen" /
+"⯈ Alle anzeigen" über der Liste (`js/68-lagerverwaltung.js`,
+`lagerListeVersteckt`): im eingeklappten Zustand steht dort nur noch ein
+einzeiliger Hinweis mit der Artikelanzahl, keine einzige `.lager-karte`
+mehr im DOM.
+
+### 171.4 Kamera-Fokus: verstärkte Vorgabe + Nachbesserung am Track
+
+Die v3.104-Vorgabe (`decodeFromConstraints` mit `facingMode`/
+`focusMode:continuous`) reichte auf mindestens einem getesteten Gerät
+nicht aus. Zwei zusätzliche, rein additive Massnahmen in
+`barcodeScannen()` (js/01-basis.js):
+
+- Eine höhere ideale Auflösung (`width:1920`/`height:1080`) wird mit
+  angefordert - eine sehr niedrige Standardauflösung wählt auf manchen
+  Geräten intern eine andere, nicht-autofokussierende Kamera-Pipeline
+  (z. B. die für Videotelefonie statt für Fotos/Scans optimierte).
+- Nach dem Start des Streams wird zusätzlich versucht, `focusMode:
+  "continuous"` direkt über `track.applyConstraints()` auf dem laufenden
+  Video-Track zu setzen - manche Browser/Kamera-Treiber übernehmen eine
+  "advanced"-Vorgabe aus den ursprünglichen `getUserMedia`-Constraints nur
+  unvollständig, akzeptieren dieselbe Vorgabe aber nachträglich auf dem
+  Track. Beides schlägt bei Nichtunterstützung still fehl (kein Fehler,
+  kein zweiter Berechtigungsdialog).
+
+**Ehrliche Grenze**: `focusMode` ist keine vom W3C standardisierte,
+sondern eine browser-/geräteabhängige Erweiterung. Auf einer Kamera bzw.
+einem Browser, der weder die anfängliche Vorgabe noch die nachträgliche
+`applyConstraints()` unterstützt, bleibt das Fokussieren dem
+Kamera-Treiber überlassen wie zuvor - das lässt sich von der App aus
+nicht erzwingen. Kein Live-Test mit einer echten Gerätekamera aus dieser
+Sandbox möglich (wie schon in 170.3 dokumentiert); die Rückmeldung nach
+diesem Fix ist erneut nötig.
+
+### 171.5 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js` um fünf neue Prüfungen
+zu "Alle zuklappen"/"Alle anzeigen" erweitert (keine `.lager-karte` mehr
+im DOM, Text ohne Artikelbezeichnung, Knopfbeschriftung wechselt in
+beide Richtungen) - 47 Prüfungen, alle bestanden.
+`pruefstaende/pruefstand-email-auth-v3-103.js` unverändert erneut
+durchgelaufen (32 Prüfungen), die Einladungserzeugung dort prüft weiterhin
+den korrekten Datenbank-Aufruf, jetzt zusätzlich ohne auf `alert()`
+angewiesen zu sein. Volle Regression aller Prüfstände im Anschluss ohne
+neue Fehlschläge.
+
+### 171.6 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/22-system-admin.js` | `sysAdminEinladungErzeugen`-Handler: `alert()` durch Inline-Status (`#sysAdminEinladungStatus`) ersetzt |
+| `index.html` | `#sysAdminEinladungStatus` ergänzt, neuer Knopf `#lagerAlleZuklappen` |
+| `js/68-lagerverwaltung.js` | `lagerListeVersteckt` + Knopf-Handler, `renderLagerverwaltung()` blendet bei Bedarf die komplette Liste aus |
+| `js/01-basis.js` | `barcodeScannen()`: ideale Auflösung ergänzt, zusätzlicher `track.applyConstraints()`-Versuch nach Stream-Start |
+| `js/41-hilfe.js` | Hilfetext "Lagerverwaltung" um Klapp-Hinweis ergänzt |
+| `sw.js` | Cache-Version 3.105 |
+| `PROJECT_STATE.md` | Versionsstand 3.105 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.105"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | fünf neue Prüfungen zu "Alle zuklappen" |
+
+### 171.7 Offene Punkte
+
+- Kamera-Fokus bleibt von dieser Sandbox aus nicht mit echter Hardware
+  testbar - Rückmeldung des Anwenders nach diesem Fix ist der einzige
+  verlässliche Test.
+- Sollte `focusMode` auf dem konkreten Gerät des Anwenders grundsätzlich
+  nicht unterstützt sein, bliebe als nächster Schritt nur eine manuelle
+  Tippen-zum-Fokussieren-Geste auf dem Video-Element (nicht plattformweit
+  standardisiert, müsste geräteweise getestet werden) - nicht gebaut, nur
+  als möglicher nächster Schritt festgehalten.

@@ -107,14 +107,26 @@ function lagerBewegungZeile(b){
 // wie js/51-werkstatt.js, werkOffenKarte) - bei vielen Artikeln stand vorher
 // jede Zeile immer mit ihren letzten Buchungen offen da. Der Buchen-Knopf
 // bleibt im Kopf sichtbar, damit die haeufigste Aktion kein Aufklappen
-// braucht (wie beim Werkstatt-Knopf "Rüsten bestätigen").
+// braucht (wie beim Werkstatt-Knopf "Rüsten bestätigen"). Zusaetzlich dazu
+// ein Knopf "Alle zuklappen", der die GESAMTE Liste (alle Artikel-Karten)
+// auf einen Schlag ausblendet - fuer eine grosse Artikelliste, bei der auch
+// die zugeklappten Koepfe (Name + Bestand) noch zu viel Platz brauchen.
 let lagerOffenArtikel=new Set();
+let lagerListeVersteckt=false;
 function renderLagerverwaltung(){
  const box=$("lagerverwaltungListe");
  if(!box)return;
  const liste=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ if($("lagerAlleZuklappen")){
+  $("lagerAlleZuklappen").textContent=lagerListeVersteckt?"⯈ Alle anzeigen":"⯆ Alle zuklappen";
+  $("lagerAlleZuklappen").hidden=!liste.length;
+ }
  if(!liste.length){
   box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Noch kein Material im Material-Katalog erfasst - dort (Einstellungen → Material) zuerst einen Artikel anlegen.</div>`;
+  return;
+ }
+ if(lagerListeVersteckt){
+  box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Liste eingeklappt (${liste.length} Artikel) - "Alle anzeigen" zeigt sie wieder.</div>`;
   return;
  }
  box.innerHTML=liste.map(a=>{
@@ -166,6 +178,11 @@ function lagerBuchenSchliessen(){
  lagerBuchenArtikelId=null;
 }
 $("lagerBuchenAbbrechen").onclick=lagerBuchenSchliessen;
+
+if($("lagerAlleZuklappen"))$("lagerAlleZuklappen").onclick=()=>{
+ lagerListeVersteckt=!lagerListeVersteckt;
+ renderLagerverwaltung();
+};
 
 $("lagerverwaltungListe").addEventListener("click",e=>{
  // Der Buchen-Knopf sitzt IM Kartenkopf - ein Klick darauf darf nicht
