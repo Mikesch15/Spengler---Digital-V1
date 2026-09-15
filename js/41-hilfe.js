@@ -1224,6 +1224,31 @@ wird das am Buchungsgrund, den die App selbst schreibt; dort steht später
 auch in der Lagerverwaltung, aus welcher Massaufnahme die Buchung stammt.</p>
 <p>Sichtbar ist der Knopf nur mit der <b>Lager-Freigabe</b>.</p>`},
 
+"lager-suche":{titel:"Material suchen und erfassen",text:`
+<p>Das Suchfeld über der Liste durchsucht <b>beide Ebenen</b>: die
+Materialposition (EDV-Nr., Bezeichnung, Dimension) und jedes einzelne
+<b>Produkt</b> darunter samt <b>Barcode</b>. Wer den Barcode abliest, findet
+das Produkt damit auch von Hand, wenn die Kamera streikt.</p>
+<p>Solange gesucht wird, ist „Alle zuklappen“ ausgeblendet – die Trefferliste
+ist ja gerade das, was man sehen will.</p>
+<h3>Produkte ausserhalb der Regiematerialliste</h3>
+<p>Nicht jedes Lagerprodukt steht im Regie-Katalog. Im Dialog
+„🏷️ Neues Produkt erfassen“ steht unten in der Positionsauswahl deshalb
+<b>➕ Neue Materialposition anlegen</b>. Damit entsteht eine richtige
+Katalogposition – kein zweites, getrenntes Lager-Verzeichnis. Sie steht
+danach überall zur Verfügung und lässt sich auch im Regierapport
+verrechnen.</p>
+<p>Die <b>EDV-Nr.</b> schlägt die App aus einem eigenen Nummernkreis vor:
+<b>999.01</b>, <b>999.02</b> und so weiter. Der Katalog benutzt durchgehend
+das Format NNN.NN mit den Gruppen 100 bis 990; 999 ist frei und hält
+dasselbe Format ein. Eine Nummer wie „1.000.00“ würde als Text <b>vor</b>
+„100.01“ einsortiert und fällt aus jeder Sortierung. Vorgeschlagen ist die
+Nummer aber nur – sie lässt sich frei ändern. Eine bereits vergebene Nummer
+lehnt die App ab und nennt die Position, die sie schon trägt.</p>
+<p>Anlegen kann das nur, wer auch den <b>Material-Katalog ändern</b> darf
+(Einstellungen → Mitarbeiter). Sonst erscheint die Möglichkeit gar nicht
+erst.</p>`},
+
 "cockpit-lager":{titel:"Material ab Lager",text:`
 <p>Was für <b>dieses Projekt</b> ab Lager gebucht wurde – je Produkt
 zusammengefasst, darunter die einzelnen Buchungen mit Datum.</p>

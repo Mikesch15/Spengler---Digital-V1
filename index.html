@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.123</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.124</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -781,6 +781,20 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div class="wide"><label>Materialposition</label>
 <input id="lagerNeuesProduktMaterialSuche" placeholder="🔍 Position suchen …" style="margin-bottom:4px">
 <select id="lagerNeuesProduktMaterial" data-pflicht="1"></select></div>
+<!-- v3.124: Produkte, die in der Regiematerialliste nicht vorkommen. Statt
+     eines zweiten Datenmodells entsteht eine richtige Katalogposition -
+     dadurch lässt sie sich später auch im Regierapport verrechnen. Die
+     EDV-Nr. schlägt die App aus einem eigenen Lager-Nummernkreis vor. -->
+<div class="wide" id="lagerNeuePositionBlock" hidden>
+<div class="info">Diese Position wird neu im <b>Material-Katalog</b> angelegt (Einstellungen → Material) und steht danach überall zur Verfügung, auch im Regierapport.</div>
+<div class="grid">
+<div><label>EDV-Nr.<span class="pflicht-stern">*</span></label><input id="lagerNeuePositionNr" placeholder="999.01"></div>
+<div><label>Einheit</label><input id="lagerNeuePositionEinheit" placeholder="Stk."></div>
+<div class="wide"><label>Bezeichnung<span class="pflicht-stern">*</span></label><input id="lagerNeuePositionName" placeholder="z. B. Spezialschraube"></div>
+<div><label>Dimension</label><input id="lagerNeuePositionDim" placeholder="z. B. 4,5 × 35 mm"></div>
+<div><label>Preis</label><input id="lagerNeuePositionPreis" type="number" step="any" placeholder="0"></div>
+</div>
+</div>
 <div class="wide"><label>Barcode</label><div class="bar" style="gap:6px">
 <input id="lagerNeuesProduktBarcode" placeholder="per Kamera oder manuell">
 <button type="button" class="gray" id="lagerNeuesProduktScan">📷</button>
@@ -2347,7 +2361,7 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
      gesetzt, deshalb "hidden" hier als Vorgabe, bis die Prüfung
      durchgelaufen ist. -->
 <div class="settings-section" data-section="lagerverwaltung" id="lagerverwaltungSection" hidden>
-<div class="settings-section-head" data-toggle-section="lagerverwaltung"><h2>🏭 Lagerverwaltung <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-head" data-toggle-section="lagerverwaltung"><h2>🏭 Lagerverwaltung <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button> <button type="button" class="hilfe-knopf no-print" data-hilfe="lager-suche">🔍</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div class="info">Bestand je Artikel aus dem Material-Katalog (Einstellungen → Material), geführt über einzelne Buchungen (Zugang/Abgang/Korrektur) statt einer Zahl zum Überschreiben – jede Buchung bleibt stehen, auch eine Korrektur.</div>
 <div class="bar">
@@ -2355,6 +2369,10 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 <button type="button" id="lagerAusscannen" class="blue">📤 Ausscannen</button>
 <button type="button" id="lagerAlleZuklappen" class="gray">⯆ Alle zuklappen</button>
 </div>
+<!-- v3.124: Suche ueber Position UND Produkt. Bei 372 Materialpositionen
+     ist Scrollen kein Bedienweg mehr. -->
+<input id="lagerSuche" type="search" placeholder="🔍 Material suchen (EDV-Nr., Bezeichnung, Dim., Produkt, Barcode) …" style="margin-top:6px">
+<div class="small" id="lagerSucheStand" style="color:var(--muted);margin:4px 0" hidden></div>
 <div id="lagerverwaltungListe"></div>
 <div class="small" id="lagerverwaltungHinweis" style="margin-top:4px" hidden></div>
 </div>

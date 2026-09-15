@@ -173,6 +173,25 @@ function lagerBewegungZeile(b){
 // er nie mit einer Varianten-ID kollidiert).
 let lagerOffenArtikel=new Set();
 let lagerListeVersteckt=false;
+
+// ---- v3.124: Suche ueber die ganze Lagerliste ----------------------------
+// Bei 372 Materialpositionen ist Scrollen kein Bedienweg mehr. Gesucht wird
+// ueber BEIDE Ebenen: die Materialposition (EDV-Nr./Bezeichnung/Dim.) und
+// jedes einzelne Produkt darunter (Bezeichnung, Barcode). Wer den Barcode
+// abliest, findet das Produkt damit auch von Hand, wenn die Kamera streikt.
+let lagerSuche="";
+function lagerPasstZurSuche(a,varianten){
+ const q=String(lagerSuche||"").trim().toLowerCase();
+ if(!q)return true;
+ if(lagArtikelText(a).toLowerCase().includes(q))return true;
+ return (varianten||[]).some(v=>
+  String(v.bezeichnung||"").toLowerCase().includes(q)
+  ||String(v.barcode||"").toLowerCase().includes(q));
+}
+if($("lagerSuche"))$("lagerSuche").addEventListener("input",()=>{
+ lagerSuche=$("lagerSuche").value;
+ renderLagerverwaltung();
+});
 function lagerVarianteZeile(v,gruppiert){
  const bestand=lagerBestandVon(v.id);
  const offen=lagerOffenArtikel.has(String(v.id));
@@ -195,17 +214,32 @@ function lagerVarianteZeile(v,gruppiert){
 function renderLagerverwaltung(){
  const box=$("lagerverwaltungListe");
  if(!box)return;
- const liste=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ const alle=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ // v3.124: gesucht wird vor allem anderen. Eine leere Suche aendert nichts.
+ const suchtext=String(lagerSuche||"").trim();
+ const liste=suchtext?alle.filter(a=>lagerPasstZurSuche(a,lagerVariantenVonMaterial(a.id))):alle;
+ const stand=$("lagerSucheStand");
+ if(stand){
+  stand.textContent=suchtext?(liste.length+" von "+alle.length+" Positionen gefunden"):"";
+  stand.hidden=!suchtext;
+ }
  if($("lagerAlleZuklappen")){
   $("lagerAlleZuklappen").textContent=lagerListeVersteckt?"⯈ Alle anzeigen":"⯆ Alle zuklappen";
-  $("lagerAlleZuklappen").hidden=!liste.length;
+  // Waehrend einer Suche waere "Alle zuklappen" widersinnig - die Trefferliste
+  // ist ja gerade das, was man sehen will.
+  $("lagerAlleZuklappen").hidden=!alle.length||!!suchtext;
  }
- if(!liste.length){
+ if(!alle.length){
   box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Noch kein Material im Material-Katalog erfasst - dort (Einstellungen → Material) zuerst einen Artikel anlegen.</div>`;
   return;
  }
- if(lagerListeVersteckt){
-  box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Liste eingeklappt (${liste.length} Artikel) - "Alle anzeigen" zeigt sie wieder.</div>`;
+ if(suchtext&&!liste.length){
+  box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Kein Treffer für „${esc(suchtext)}“. Gesucht wird in EDV-Nr., Bezeichnung, Dimension, Produktname und Barcode.</div>`;
+  return;
+ }
+ // Die Suche schlaegt das Zuklappen: wer sucht, will die Treffer sehen.
+ if(lagerListeVersteckt&&!suchtext){
+  box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Liste eingeklappt (${alle.length} Artikel) - "Alle anzeigen" zeigt sie wieder.</div>`;
   return;
  }
  box.innerHTML=liste.map(a=>{
@@ -492,14 +526,71 @@ function lagerNeuesProduktOeffnen(materialId,barcode){
  $("lagerNeuesProduktBarcode").value=barcode||"";
  lagerNeuesProduktMaterialListeVoll=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
  if($("lagerNeuesProduktMaterialSuche"))$("lagerNeuesProduktMaterialSuche").value="";
+ ["lagerNeuePositionNr","lagerNeuePositionName","lagerNeuePositionDim",
+  "lagerNeuePositionEinheit","lagerNeuePositionPreis"].forEach(id=>{if($(id))$(id).value=""});
+ lagerNeuePositionBlockZeigen(false);
  lagerNeuesProduktMaterialRendern(lagerNeuesProduktMaterialListeVoll,materialId);
  $("lagerNeuesProduktModal").hidden=false;
  setTimeout(()=>{try{$("lagerNeuesProduktBezeichnung").focus()}catch(e){}},50);
 }
-function lagerNeuesProduktMaterialRendern(liste,materialId){
- $("lagerNeuesProduktMaterial").innerHTML=`<option value="">– bitte wählen –</option>`+
-  liste.map(a=>`<option value="${a.id}"${String(a.id)===String(materialId||"")?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("");
+// ---- v3.124: Produkte, die in der Regiematerialliste nicht vorkommen ----
+// Statt eines zweiten Datenmodells (ein Produkt ohne Materialposition,
+// material_id waere dafuer nullable zu machen) entsteht eine richtige
+// KATALOGPOSITION. Vorteile: nichts weiter unten muss angepasst werden, die
+// Position laesst sich danach auch im Regierapport verrechnen, und die
+// Lagerverwaltung bleibt bei EINEM Modell (CLAUDE.md: keine doppelten
+// Datenmodelle).
+//
+// Damit so eine Position nicht mit der Regieliste kollidiert, schlaegt die
+// App eine Nummer aus einem eigenen Kreis vor: 999.xx. Der Katalog benutzt
+// durchgehend das Format NNN.NN mit den Gruppen 100 bis 990 - 999 ist frei,
+// haelt aber dasselbe Format ein (ein "1.000.00" wuerde als Text VOR
+// "100.01" einsortiert und faellt aus jeder Sortierung). Die Nummer bleibt
+// frei aenderbar; vorgeschlagen ist sie, nicht vorgeschrieben.
+const LAGER_EIGENE_GRUPPE="999";
+function lagerNaechsteFreieEdvNr(){
+ const liste=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ let hoechste=0;
+ liste.forEach(a=>{
+  const m=/^999\.(\d+)$/.exec(String(a.edv_nr||"").trim());
+  if(m)hoechste=Math.max(hoechste,parseInt(m[1],10));
+ });
+ return LAGER_EIGENE_GRUPPE+"."+String(hoechste+1).padStart(2,"0");
 }
+// Darf dieser Benutzer ueberhaupt eine Katalogposition anlegen? Das
+// entscheidet dasselbe Recht wie in den Einstellungen (materials-Insert
+// verlangt serverseitig has_permission('materials','edit')). Steht es nicht
+// zur Verfuegung, wird die Moeglichkeit gar nicht erst angeboten - besser
+// als eine Fehlermeldung aus der Datenbank.
+function lagerDarfPositionAnlegen(){
+ return !!(typeof meineRechte!=="undefined"&&meineRechte&&meineRechte.kataloge);
+}
+const LAGER_NEUE_POSITION="__neu";
+function lagerNeuePositionBlockZeigen(an){
+ const box=$("lagerNeuePositionBlock");
+ if(!box)return;
+ box.hidden=!an;
+ if(an&&$("lagerNeuePositionNr")&&!$("lagerNeuePositionNr").value){
+  $("lagerNeuePositionNr").value=lagerNaechsteFreieEdvNr();
+  if($("lagerNeuePositionEinheit")&&!$("lagerNeuePositionEinheit").value)
+   $("lagerNeuePositionEinheit").value="Stk.";
+  // Die Bezeichnung der Position folgt der des Produkts, solange sie leer
+  // ist - meistens ist sie dieselbe, und Tippen auf dem Handy ist muehsam.
+  if($("lagerNeuePositionName")&&!$("lagerNeuePositionName").value)
+   $("lagerNeuePositionName").value=$("lagerNeuesProduktBezeichnung").value.trim();
+ }
+}
+function lagerNeuesProduktMaterialRendern(liste,materialId){
+ const neu=lagerDarfPositionAnlegen()
+  ?`<option value="${LAGER_NEUE_POSITION}"${materialId===LAGER_NEUE_POSITION?" selected":""}>➕ Neue Materialposition anlegen …</option>`
+  :"";
+ $("lagerNeuesProduktMaterial").innerHTML=`<option value="">– bitte wählen –</option>`+
+  liste.map(a=>`<option value="${a.id}"${String(a.id)===String(materialId||"")?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("")
+  +neu;
+}
+if($("lagerNeuesProduktMaterial"))$("lagerNeuesProduktMaterial").addEventListener("change",()=>{
+ lagerNeuePositionBlockZeigen($("lagerNeuesProduktMaterial").value===LAGER_NEUE_POSITION);
+});
 // v3.118: bei einem grossen Materialkatalog ist eine lange, unsortierte
 // Auswahlliste unpraktisch - die Suche filtert die sichtbaren Optionen live
 // nach EDV-Nr./Bezeichnung/Dim. (derselbe Text wie lagArtikelText() anzeigt).
@@ -514,6 +605,10 @@ if($("lagerNeuesProduktMaterialSuche"))$("lagerNeuesProduktMaterialSuche").addEv
    String(a.id)===String(aktuelleId)||lagArtikelText(a).toLowerCase().includes(begriff));
  }
  lagerNeuesProduktMaterialRendern(liste,aktuelleId);
+ // Die Suche filtert Katalogpositionen - der Eintrag "Neue Materialposition
+ // anlegen" ist keine und bleibt deshalb immer stehen (lagerNeuesProdukt-
+ // MaterialRendern haengt ihn unabhaengig von der Liste an).
+ lagerNeuePositionBlockZeigen($("lagerNeuesProduktMaterial").value===LAGER_NEUE_POSITION);
 });
 function lagerNeuesProduktSchliessen(){
  $("lagerNeuesProduktModal").hidden=true;
@@ -523,14 +618,67 @@ if($("lagerNeuesProduktScan"))$("lagerNeuesProduktScan").onclick=()=>{
  if(typeof barcodeScannen!=="function")return;
  barcodeScannen(code=>{$("lagerNeuesProduktBarcode").value=code});
 };
+// Legt die Katalogposition an und meldet ihre id zurueck (oder null bei
+// einem Fehler - die Meldung steht dann bereits im Dialog).
+//
+// settings.materials/materialIds werden HIER nachgezogen, wie es js/08 nach
+// seinem eigenen Insert auch tut: der Material-Katalog wird zeilenweise
+// bearbeitet, nicht als Ganzes zurueckgeschrieben - ohne das Nachziehen
+// kaeme die neue Position erst nach dem naechsten Laden in den Auswahllisten
+// an, und lagArtikelListe() (js/59) wuesste bis dahin nichts von ihr.
+async function lagerNeuePositionAnlegen(fehler,produktName){
+ const nr=$("lagerNeuePositionNr")?$("lagerNeuePositionNr").value.trim():"";
+ const name=($("lagerNeuePositionName")?$("lagerNeuePositionName").value.trim():"")||produktName;
+ const dim=$("lagerNeuePositionDim")?$("lagerNeuePositionDim").value.trim():"";
+ const einheit=($("lagerNeuePositionEinheit")?$("lagerNeuePositionEinheit").value.trim():"")||"Stk.";
+ const preis=lagerZahl(($("lagerNeuePositionPreis")?$("lagerNeuePositionPreis").value:"").replace(",","."));
+ if(!nr){fehler.textContent="Bitte eine EDV-Nr. f\u00fcr die neue Materialposition eingeben.";fehler.hidden=false;return null}
+ if(!name){fehler.textContent="Bitte eine Bezeichnung f\u00fcr die neue Materialposition eingeben.";fehler.hidden=false;return null}
+ const schon=((typeof lagArtikelListe==="function"?lagArtikelListe():[])||[])
+  .find(a=>String(a.edv_nr||"").trim().toLowerCase()===nr.toLowerCase());
+ if(schon){
+  fehler.textContent="Die EDV-Nr. "+nr+" gibt es bereits ("+lagArtikelText(schon)
+   +"). Bitte eine andere Nummer w\u00e4hlen \u2013 oder oben direkt diese Position ausw\u00e4hlen.";
+  fehler.hidden=false;
+  return null;
+ }
+ const {data,error}=await sb.from("materials")
+  .insert({edv_nr:nr,name,dim,unit:einheit,price:preis}).select("*");
+ if(error||!data||!data.length){
+  fehler.textContent=error
+   ?("Die Materialposition konnte nicht angelegt werden: "+error.message
+     +(/permission|policy|row-level/i.test(error.message||"")
+       ?"\n\nDaf\u00fcr fehlt das Recht, den Material-Katalog zu \u00e4ndern."
+       :""))
+   :"Die Materialposition wurde nicht angelegt.";
+  fehler.hidden=false;
+  return null;
+ }
+ const m=data[0];
+ if(typeof settings==="object"&&settings&&Array.isArray(settings.materials)){
+  settings.materials.push([m.edv_nr,m.name,m.dim,m.unit,m.price]);
+ }
+ if(typeof materialIds!=="undefined"&&Array.isArray(materialIds))materialIds.push(m.id);
+ lagerNeuesProduktMaterialListeVoll=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ return m.id;
+}
+
 if($("lagerNeuesProduktSpeichern"))$("lagerNeuesProduktSpeichern").onclick=async()=>{
  const fehler=$("lagerNeuesProduktFehler");
  fehler.hidden=true;
  const bezeichnung=$("lagerNeuesProduktBezeichnung").value.trim();
- const materialId=$("lagerNeuesProduktMaterial").value;
+ let materialId=$("lagerNeuesProduktMaterial").value;   // v3.124: kann noch wechseln
  const barcode=$("lagerNeuesProduktBarcode").value.trim();
  if(!bezeichnung){fehler.textContent="Bitte eine Bezeichnung eingeben.";fehler.hidden=false;return}
  if(!materialId){fehler.textContent="Bitte eine Materialposition auswählen.";fehler.hidden=false;return}
+ // v3.124: katalogfremdes Produkt - zuerst entsteht die Katalogposition,
+ // danach haengt das Produkt wie jedes andere daran. Zwei Schritte, aber
+ // EIN Datenmodell.
+ if(materialId===LAGER_NEUE_POSITION){
+  const neu=await lagerNeuePositionAnlegen(fehler,bezeichnung);
+  if(!neu)return;
+  materialId=neu;
+ }
  const {data,error}=await sb.from("lager_varianten").insert({
   material_id:Number(materialId),bezeichnung,barcode:barcode||null
  }).select("*");

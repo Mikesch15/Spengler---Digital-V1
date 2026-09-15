@@ -77,7 +77,9 @@ const WIN_CHANGELOG={
   "Vorher entschied das Gerät selbst, was ein Antippen öffnet - je nach Modell kam nur die Kamera oder nur die Galerie."],
  "3.123":["Lagerverwaltung: beim Buchen wird jetzt das Objekt/Projekt verlangt. 'Werkstatt / Lager' ist dabei eine ausdrückliche Wahl - so fällt keine Buchung stillschweigend aus der Auswertung.",
   "Neu im Projekt: die Karte 'Material ab Lager' zeigt je Produkt, was für dieses Projekt verbraucht wurde, und lässt sich als Materialzusammenfassung drucken.",
-  "Wird direkt aus einer Massaufnahme ausgebucht, ordnet die App das Projekt automatisch zu - dort wird nicht gefragt."]
+  "Wird direkt aus einer Massaufnahme ausgebucht, ordnet die App das Projekt automatisch zu - dort wird nicht gefragt."],
+ "3.124":["Lagerverwaltung: neues Suchfeld über der Liste. Gesucht wird in EDV-Nr., Bezeichnung, Dimension, Produktname UND Barcode - bei über 370 Positionen ist Scrollen kein Bedienweg mehr.",
+  "Neu: Produkte, die gar nicht in der Regiematerialliste stehen, lassen sich jetzt erfassen. Im Dialog 'Neues Produkt' gibt es dazu 'Neue Materialposition anlegen' - die EDV-Nr. schlägt die App aus einem eigenen Nummernkreis vor (999.01, 999.02 …) und bleibt änderbar."]
 };
 
 function winVersionVergleich(a,b){

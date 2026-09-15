@@ -1271,6 +1271,150 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(/Verbraucht = ausgebucht/.test(z.html),
    "und es sagt ausdruecklich, was die Zahl bedeutet und was NICHT mitgezaehlt ist",z.html.slice(-300));
 
+
+ // ---- 16 · Suche in der Lagerverwaltung (v3.124) -------------------------
+ // 372 Materialpositionen im Produktivkatalog - Scrollen ist dort kein
+ // Bedienweg mehr. Gesucht wird ueber BEIDE Ebenen: Position und Produkt.
+ console.log("\n16 · Suche in der Lagerverwaltung");
+ z=await page.evaluate(()=>{
+  lagerSuche=""; lagerListeVersteckt=false;
+  lagerVarianten=window.__lese.lager_varianten.slice();
+  renderLagerverwaltung();
+  const zaehle=()=>document.querySelectorAll("#lagerverwaltungListe .lager-karte").length;
+  const suche=t=>{const f=$("lagerSuche");f.value=t;f.dispatchEvent(new Event("input",{bubbles:true}));return zaehle()};
+  const alle=zaehle();
+  return {alle,
+   nachName:suche("Dichtband"),
+   textNachName:$("lagerverwaltungListe").innerText,
+   standNachName:$("lagerSucheStand").textContent,
+   nachNr:suche("300.10"),
+   nachProdukt:suche("87°"),
+   nachBarcode:suche("4006381333931"),
+   ohneTreffer:suche("gibtesnicht"),
+   textOhne:$("lagerverwaltungListe").innerText,
+   zuklappenVersteckt:$("lagerAlleZuklappen").hidden,
+   zurueck:suche(""),
+   zuklappenWieder:$("lagerAlleZuklappen").hidden};
+ });
+ p(z.alle>z.nachName&&z.nachName===1,"die Suche nach der Bezeichnung findet genau die eine Position",z);
+ p(/Dichtband/.test(z.textNachName),"und zeigt sie auch an",z.textNachName);
+ p(/1 von /.test(z.standNachName),"darueber steht, wie viele von wie vielen gefunden wurden",z.standNachName);
+ p(z.nachNr===1,"die Suche nach der EDV-Nr. findet die Position",z);
+ p(z.nachProdukt===1,"die Suche nach einer PRODUKTbezeichnung findet die Position darueber - nicht nur der Positionsname zaehlt",z);
+ p(z.nachBarcode===1,"und die Suche nach dem Barcode findet sie ebenfalls - ein Rueckweg, wenn die Kamera streikt",z);
+ p(z.ohneTreffer===0&&/Kein Treffer/.test(z.textOhne),
+   "ohne Treffer steht das da, statt einer leeren Flaeche",z);
+ p(z.zuklappenVersteckt===true,
+   "waehrend einer Suche ist 'Alle zuklappen' ausgeblendet - die Trefferliste ist ja das Gesuchte",z);
+ p(z.zurueck===z.alle&&z.zuklappenWieder===false,
+   "eine geleerte Suche stellt die ganze Liste wieder her",z);
+
+ // Die Suche schlaegt das Zuklappen - sonst waere ein Treffer unsichtbar.
+ z=await page.evaluate(()=>{
+  lagerListeVersteckt=true;
+  const f=$("lagerSuche"); f.value="Dichtband";
+  f.dispatchEvent(new Event("input",{bubbles:true}));
+  const mitSuche=document.querySelectorAll("#lagerverwaltungListe .lager-karte").length;
+  f.value=""; f.dispatchEvent(new Event("input",{bubbles:true}));
+  const ohneSuche=document.querySelectorAll("#lagerverwaltungListe .lager-karte").length;
+  lagerListeVersteckt=false; renderLagerverwaltung();
+  return {mitSuche,ohneSuche};
+ });
+ p(z.mitSuche===1&&z.ohneSuche===0,
+   "bei eingeklappter Liste zeigt eine Suche den Treffer trotzdem - ohne Suche bleibt sie eingeklappt",z);
+
+ // ---- 16b · Produkte ausserhalb der Regiematerialliste -------------------
+ // Statt eines zweiten Datenmodells entsteht eine richtige Katalogposition.
+ console.log("\n16b · Neue Materialposition aus der Lagerverwaltung");
+ z=await page.evaluate(()=>{
+  meineRechte={admin:false,kataloge:true};
+  lagerNeuesProduktOeffnen(null,"");
+  const sel=$("lagerNeuesProduktMaterial");
+  return {werte:[...sel.options].map(o=>o.value),
+   letzterText:sel.options[sel.options.length-1].textContent,
+   blockVersteckt:$("lagerNeuePositionBlock").hidden,
+   vorschlag:lagerNaechsteFreieEdvNr()};
+ });
+ p(z.werte[z.werte.length-1]==="__neu"&&/Neue Materialposition/.test(z.letzterText),
+   "ganz unten in der Positionsauswahl steht 'Neue Materialposition anlegen'",z);
+ p(z.blockVersteckt===true,"das Formular dafuer ist erst einmal zu",z);
+ p(z.vorschlag==="999.01",
+   "vorgeschlagen wird die erste freie Nummer aus dem eigenen Lager-Nummernkreis 999.xx",z.vorschlag);
+
+ z=await page.evaluate(()=>{
+  $("lagerNeuesProduktBezeichnung").value="Spezialschraube A2";
+  const sel=$("lagerNeuesProduktMaterial");
+  sel.value="__neu";
+  sel.dispatchEvent(new Event("change",{bubbles:true}));
+  return {offen:!$("lagerNeuePositionBlock").hidden,
+   nr:$("lagerNeuePositionNr").value,
+   name:$("lagerNeuePositionName").value,
+   einheit:$("lagerNeuePositionEinheit").value};
+ });
+ p(z.offen===true,"die Wahl oeffnet das Formular",z);
+ p(z.nr==="999.01","die EDV-Nr. ist vorgeschlagen, nicht leer",z);
+ p(z.name==="Spezialschraube A2",
+   "die Bezeichnung folgt der des Produkts - auf dem Handy tippt niemand dasselbe zweimal",z);
+ p(z.einheit==="Stk.","und die Einheit hat einen brauchbaren Ausgangswert",z);
+
+ // Eine bereits vergebene Nummer wird abgelehnt, statt einen Konflikt zu bauen.
+ z=await page.evaluate(async()=>{
+  $("lagerNeuePositionNr").value="205.30";
+  window.__schreib=[];
+  $("lagerNeuesProduktSpeichern").click();
+  await new Promise(r=>setTimeout(r,60));
+  return {geschrieben:window.__schreib.filter(x=>x.op==="insert").length,
+   fehler:$("lagerNeuesProduktFehler").textContent};
+ });
+ p(z.geschrieben===0&&/205\.30/.test(z.fehler)&&/bereits/.test(z.fehler),
+   "eine schon vergebene EDV-Nr. wird abgelehnt und die App nennt die Position, die sie traegt",z);
+
+ // Der gute Fall: erst die Position, dann das Produkt daran.
+ const neuePos=await page.evaluate(async()=>{
+  $("lagerNeuePositionNr").value="999.01";
+  $("lagerNeuePositionDim").value="4,5 × 35 mm";
+  $("lagerNeuePositionPreis").value="0.35";
+  $("lagerNeuesProduktBarcode").value="SCHR-A2-45";
+  window.__schreib=[];
+  const vorherMat=settings.materials.length;
+  $("lagerNeuesProduktSpeichern").click();
+  await new Promise(r=>setTimeout(r,80));
+  const inserts=window.__schreib.filter(x=>x.op==="insert");
+  return {
+   reihenfolge:inserts.map(x=>x.t),
+   // Die Attrappe reicht insert() als Array weiter - erste Zeile nehmen.
+   material:((inserts.find(x=>x.t==="materials")||{}).d||[])[0],
+   variante:((inserts.find(x=>x.t==="lager_varianten")||{}).d||[])[0],
+   katalogGewachsen:settings.materials.length-vorherMat,
+   idsGewachsen:materialIds.length,
+   imKatalog:settings.materials.some(m=>m[0]==="999.01"),
+   zu:$("lagerNeuesProduktModal").hidden};
+ });
+ p(JSON.stringify(neuePos.reihenfolge)===JSON.stringify(["materials","lager_varianten"]),
+   "zuerst entsteht die Katalogposition, danach haengt das Produkt daran - zwei Schritte, EIN Datenmodell",neuePos.reihenfolge);
+ p(!!neuePos.material&&neuePos.material.edv_nr==="999.01"
+   &&neuePos.material.name==="Spezialschraube A2"&&neuePos.material.unit==="Stk.",
+   "die Katalogposition wird mit den eingegebenen Angaben geschrieben",neuePos.material);
+ p(neuePos.katalogGewachsen===1&&neuePos.imKatalog===true,
+   "settings.materials wird sofort nachgezogen - sonst kaeme die neue Position erst nach dem naechsten Laden an",neuePos);
+ p(!!neuePos.variante&&neuePos.variante.barcode==="SCHR-A2-45",
+   "das Produkt haengt an der neuen Position und traegt seinen Barcode",neuePos.variante);
+ p(neuePos.zu===true,"der Dialog schliesst danach",neuePos);
+
+ // Ohne das Recht, den Katalog zu aendern, wird die Moeglichkeit gar nicht
+ // erst angeboten - besser als eine Fehlermeldung aus der Datenbank.
+ z=await page.evaluate(()=>{
+  meineRechte={admin:false,kataloge:false};
+  lagerNeuesProduktOeffnen(null,"");
+  const sel=$("lagerNeuesProduktMaterial");
+  const da=[...sel.options].some(o=>o.value==="__neu");
+  lagerNeuesProduktSchliessen();
+  meineRechte={admin:false,kataloge:true};
+  return {da};
+ });
+ p(z.da===false,
+   "ohne das Recht, den Material-Katalog zu aendern, erscheint 'Neue Materialposition' gar nicht",z);
+
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");
  const quelltext=require("fs").readFileSync(repo+"/js/68-lagerverwaltung.js","utf8");

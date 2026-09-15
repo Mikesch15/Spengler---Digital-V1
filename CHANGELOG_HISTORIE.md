@@ -30098,3 +30098,100 @@ wirklich belegt.
 | `js/41-hilfe.js` | neuer Hilfetext `cockpit-lager`, `meas-lager-ausbuchen` ergänzt |
 | `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.123 |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitte 15/15b, acht bestehende Prüfungen nachgezogen |
+
+---
+
+## 190. v3.124 – Suche in der Lagerverwaltung, Produkte ausserhalb der Regieliste
+
+### 190.1 Anlass
+
+> „Ausserdem sollte in der materialverwaltung nach materialien gesucht werden
+> können. Es soll auch möglich sein, produkte zu erfassen die nicht in der
+> regiematerialliste sind (zb position 1.000.00 oder vielleicht hast du eine
+> bessere idee)"
+
+Der Produktivkatalog zählt **372 Materialpositionen** und 373 Produkte.
+Scrollen ist dort kein Bedienweg mehr; die Suche war überfällig.
+
+### 190.2 Suche über beide Ebenen
+
+Das neue Feld über der Liste durchsucht die **Materialposition** (EDV-Nr.,
+Bezeichnung, Dimension – derselbe Text, den `lagArtikelText()` anzeigt) **und
+jedes einzelne Produkt** darunter, samt **Barcode**. Der Barcode ist bewusst
+dabei: wer ihn ablesen kann, findet das Produkt damit auch von Hand, wenn die
+Kamera streikt – nach der Versionsreihe v3.107–v3.117 ein Rückweg, den die
+App haben sollte.
+
+Über der Liste steht, wie viele von wie vielen Positionen gefunden wurden.
+Ohne Treffer steht das da, samt der Angabe, worin gesucht wurde – statt einer
+leeren Fläche. Während einer Suche ist „Alle zuklappen" ausgeblendet, und eine
+Suche **schlägt** einen eingeklappten Zustand: wer sucht, will die Treffer
+sehen, nicht den Hinweis, dass die Liste zugeklappt ist.
+
+### 190.3 Produkte ausserhalb der Regiematerialliste
+
+Der Anwender hat die empfohlene Variante gewählt: **eine richtige
+Katalogposition anlegen**, mit vorgeschlagener Nummer.
+
+Die naheliegende Alternative wäre ein Produkt **ohne** Materialposition
+gewesen (`lager_varianten.material_id` nullable). Dagegen sprach mehr als der
+Migrationsaufwand: es hätte ein zweites Datenmodell neben dem bestehenden
+eröffnet (CLAUDE.md: keine doppelten Datenmodelle), jede Stelle, die heute
+von Position zu Produkt läuft, hätte einen Sonderfall bekommen, und das
+Produkt wäre im Regierapport nicht verrechenbar gewesen – es käme dort gar
+nicht vor.
+
+So entsteht stattdessen eine echte Position im Material-Katalog. Ablauf:
+zuerst `materials`, danach `lager_varianten` daran – zwei Schritte, **ein**
+Datenmodell. `settings.materials`/`materialIds` werden sofort nachgezogen,
+genau wie js/08 es nach seinem eigenen Insert tut; der Katalog wird
+zeilenweise bearbeitet, nicht als Ganzes zurückgeschrieben, und ohne das
+Nachziehen wüsste `lagArtikelListe()` (js/59) bis zum nächsten Laden nichts
+von der neuen Position.
+
+### 190.4 Der Nummernkreis: warum 999.xx und nicht 1.000.00
+
+Der Vorschlag des Anwenders lautete „1.000.00". Nachgesehen: der Katalog
+benutzt durchgehend das Format **NNN.NN**, mit den Gruppen 100 bis 990 (371
+von 372 Positionen; die eine Ausnahme heisst „Neue Nr." und stammt vom
+Anlegen-Knopf in den Einstellungen). Gruppe **999** ist frei.
+
+„1.000.00" würde als **Text** vor „100.01" einsortiert – die App sortiert und
+vergleicht EDV-Nummern als Zeichenkette, die Position fiele damit aus jeder
+Sortierung und stünde am Anfang statt am Ende. `999.xx` hält dasselbe Format
+ein, kollidiert mit keiner Gruppe und steht am Ende, wo eine Lager-eigene
+Position hingehört.
+
+Vorgeschlagen wird die erste freie Nummer (`999.01`, `999.02`, …), berechnet
+aus dem vorhandenen Katalog. Sie bleibt **frei änderbar** – vorgeschlagen ist
+nicht vorgeschrieben, wer 1.000.00 will, trägt es ein. Eine bereits vergebene
+Nummer lehnt die App ab und nennt die Position, die sie schon trägt, statt
+einen Konflikt in der Datenbank zu bauen.
+
+Die Bezeichnung der Position folgt der des Produkts, solange sie leer ist –
+meistens ist sie dieselbe, und auf dem Handy tippt niemand dasselbe zweimal.
+
+### 190.5 Rechte
+
+`materials`-Insert verlangt serverseitig `has_permission('materials','edit')`.
+Die Möglichkeit erscheint deshalb nur, wenn `meineRechte.kataloge` gilt –
+dasselbe Recht, das auch die Einstellungen bewacht. Das ist besser, als die
+Datenbank ablehnen zu lassen; sollte es trotzdem dazu kommen, nennt die
+Fehlermeldung ausdrücklich das fehlende Recht.
+
+### 190.6 Prüfungen
+
+Prüfstand von 150 auf 174 Prüfungen (Abschnitte 16 und 16b). Gegenproben
+durchgeführt: wird die Produkt-/Barcode-Ebene aus der Suche entfernt, fallen
+zwei Prüfungen um; wird die Doppelt-Erkennung der EDV-Nr. abgeschaltet, fällt
+die dritte um.
+
+### 190.7 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/68-lagerverwaltung.js` | `lagerSuche`/`lagerPasstZurSuche()` und Filter in `renderLagerverwaltung()`, `lagerNaechsteFreieEdvNr()`, `lagerDarfPositionAnlegen()`, `lagerNeuePositionBlockZeigen()`, `lagerNeuePositionAnlegen()` |
+| `index.html` | Suchfeld + Trefferzeile, Formular für die neue Position, Version 3.124 |
+| `js/41-hilfe.js` | neuer Hilfetext `lager-suche` |
+| `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.124 |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitte 16/16b |
