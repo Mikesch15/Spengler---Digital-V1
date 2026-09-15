@@ -28341,3 +28341,137 @@ neue Fehlschläge.
   Tippen-zum-Fokussieren-Geste auf dem Video-Element (nicht plattformweit
   standardisiert, müsste geräteweise getestet werden) - nicht gebaut, nur
   als möglicher nächster Schritt festgehalten.
+
+## 172. LAGERVERWALTUNG: MEHRERE PRODUKTE JE MATERIALPOSITION — VERSION 3.106
+
+### 172.1 Anlass
+
+Direkter Anwender-Auftrag: "Zu einer Position aus der Materialliste sollen
+mehrere Produkte erfasst werden können (z. B. bei Rohrbögen gibt es
+verschiedene Rohrbögen, die aber zur selben Regiematerial-Position
+gehören) - sie sollen aber alle einzeln gebucht und abgebucht werden
+können." Dazu die Zukunftsperspektive: aus in Massaufnahmen erfassten
+Positionen soll später (mit Rückfrage) automatisch aus dem Lager
+ausgebucht werden können - dafür müssen die Produkte weiterhin einzeln
+abbuchbar bleiben.
+
+Vor dem Bau zwei Rückfragen gestellt und beantwortet: neue Produkte sollen
+primär per Barcode erfasst und danach einer Materialposition zugeordnet
+werden (nicht über ein separates Verwaltungsformular in den
+Einstellungen); und es gilt ein **einheitliches Modell** - jede
+Materialposition hat ab jetzt zwingend mindestens ein Produkt, nicht nur
+optional bei Bedarf.
+
+### 172.2 Datenmodell
+
+Neue Tabelle `lager_varianten` (id, `material_id` → `materials.id`,
+`company_id`, `bezeichnung`, `barcode`, plus dieselben
+created_by/created_at/updated_by/updated_at-Spalten wie
+`lagerbestand_bewegungen`). Dieselbe Firmen- und Feature-Grenze wie
+`lagerbestand_bewegungen` (RLS-Policies `tenant_boundary_lager_varianten`
+und `feature_boundary_lager_varianten`, Trigger
+`enforce_lager_variante_firma()` prüft wie `enforce_lager_bewegung_firma()`
+die Firmenzugehörigkeit der referenzierten Materialposition). Barcode
+UNIQUE je Firma (`lager_varianten_company_barcode_key`), wie zuvor bei
+`materials.barcode`.
+
+**Einheitliches Modell durchgezogen:** `lagerbestand_bewegungen.material_id`
+wurde zu `variante_id` umgestellt (FK auf `lager_varianten` statt
+`materials`) - jede Buchung hängt jetzt an einem konkreten Produkt, nie
+mehr direkt an einer Materialposition. Für jede der 372 bestehenden
+Materialpositionen legte die Migration automatisch genau eine
+Standard-Variante an (Bezeichnung = Materialname, Barcode übernommen -
+der stand zu diesem Zeitpunkt noch bei keiner einzigen Position),
+verlustfrei bei den 4 bereits vorhandenen Buchungen (Stand vor dieser
+Migration). `materials.barcode` (v3.102) entfällt dadurch vollständig -
+der Barcode identifiziert seither immer ein konkretes Produkt
+(`lager_varianten.barcode`), nie mehr eine ganze Position; damit auch das
+Barcode-Feld samt Scan-Knopf im Material-Katalog (Einstellungen →
+Material, seit v3.102) und die Barcode-Spalte in `settings.materials`
+(`m[5]`, js/05-daten-laden.js) - eine echte Korrektur der Granularität
+statt eines doppelten Datenmodells, dieselbe Art Korrektur wie schon beim
+Umzug der Lagerverwaltung von `lagerbestand` auf `materials` in v3.102.
+
+### 172.3 Oberfläche: unverändert, wo möglich - gruppiert, wo nötig
+
+Hat eine Materialposition weiterhin nur ihre eine Standard-Variante, sieht
+ihre Karte in der Lagerverwaltung **exakt** so aus wie vor v3.106 (Name,
+Bestand, Buchen-Knopf direkt im Kopf) - keine sichtbare Änderung für den
+ganz überwiegenden Teil des Katalogs. Erst sobald eine zweite Variante
+dazukommt, wird der Kartenkopf zur reinen Gruppen-Überschrift
+(Positionsname, Produktanzahl, Bestand gesamt - selbst nicht mehr direkt
+buchbar) und jedes Produkt bekommt darunter eine eigene, einzeln buchbare
+Unter-Karte (`.lager-variante`, dasselbe Klapp-Muster wie `.lager-karte`
+aus v3.104) mit eigenem Bestand, eigener Buchungshistorie und eigenem
+Buchen-Knopf.
+
+### 172.4 Neues Produkt erfassen
+
+Zwei gleichwertige Wege zum neuen Formular "🏷️ Neues Produkt erfassen"
+(`#lagerNeuesProduktModal`): (1) ein **unbekannter Barcode beim
+Einscannen** (Zugang) öffnet es direkt mit dem gescannten Barcode
+vorausgefüllt - nur noch Bezeichnung eintippen und eine Materialposition
+aus dem Katalog wählen; (2) **"＋ Weiteres Produkt"** innerhalb einer
+bereits aufgeklappten Position öffnet dasselbe Formular mit bereits
+vorbelegter Position - Barcode und Bezeichnung folgen dann per Scan/
+Eingabe. Nach dem Anlegen öffnet sich automatisch der Buchen-Dialog mit
+Art "Zugang", da ein neu erfasstes Produkt ja noch keinen Bestand hat.
+**Bewusst nicht symmetrisch beim Ausscannen** (Abgang): ein unbekannter
+Barcode dort bleibt bei der reinen Meldung, weil ein noch nie erfasstes
+Produkt keinen Bestand haben kann, den man abbuchen könnte.
+
+### 172.5 Bezug zur künftigen automatischen Ausbuchung aus Massaufnahmen
+
+Ausdrücklich **nicht** Teil dieser Version - der Anwender selbst
+bezeichnete das als Zukunftsperspektive ("in Zukunft möchte ich dann...").
+Das hier gelegte Fundament (jede Materialposition hat mindestens eine,
+jedes Produkt hat genau eine eindeutige, einzeln buchbare Variante) ist
+aber genau die Voraussetzung dafür: eine künftige automatische Ausbuchung
+aus einer Massaufnahme-Position müsste weiterhin ein konkretes Produkt
+(eine `lager_varianten`-Zeile) treffen, nicht nur die Materialposition -
+und der Anwender bleibt weiterhin in der Lage, jedes Produkt manuell
+einzeln zu buchen, unabhängig davon, ob und wie eine Automatik das später
+ergänzt.
+
+### 172.6 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js` grundlegend erweitert:
+neue Abschnitte 11 (mehrere Produkte je Position - Gruppen-Darstellung,
+eigene Buchung je Produkt, Bestand strikt getrennt) und 12 (neues Produkt
+erfassen über beide Wege, inkl. Validierung ohne Bezeichnung). Abschnitt
+10 (Einscannen/Ausscannen) erweitert um den unbekannten Barcode sowohl
+beim Einscannen (öffnet das neue Formular) als auch beim Ausscannen
+(bleibt bei der Meldung). Der bisherige Abschnitt 11 (Barcode-Feld im
+Material-Katalog) entfällt ersatzlos - das Feld selbst wurde entfernt.
+63 Prüfungen, alle bestanden. Volle Regression aller Prüfstände im
+Anschluss ohne neue Fehlschläge.
+
+### 172.7 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| Migration `lagerverwaltung_varianten_je_materialposition` | neue Tabelle `lager_varianten` (RLS, Trigger, UNIQUE-Barcode je Firma), `lagerbestand_bewegungen.material_id` → `variante_id`, Standard-Variante je Materialposition erzeugt, `materials.barcode` entfernt |
+| `js/68-lagerverwaltung.js` | vollständig auf Varianten umgestellt: Laden/Rendern gruppiert, Buchen je Variante, Barcode-Suche über Varianten, neue Funktionen `lagerNeuesProduktOeffnen()`/`lagerVariantenLaden()`/`lagerVariantenVonMaterial()` |
+| `js/05-daten-laden.js` | `settings.materials`-Tupel wieder ohne Barcode-Spalte |
+| `js/59-lagerbestand.js` | `lagArtikelListe()` gibt keinen Barcode mehr zurück |
+| `js/07-einstellungen.js` | Barcode-Feld im Material-Katalog entfernt |
+| `js/08-katalog-blitzschutz.js` | zugehöriger Eingabe-/Scan-Handler entfernt |
+| `index.html` | neues `#lagerNeuesProduktModal`, neuer Knopf im Kartenkopf-Kontext ("＋ Weiteres Produkt") |
+| `css/01-basis.css` | neue `.lager-variante*`-Klassen, `#lagerNeuesProduktModal` in die z-index-Sammelstelle |
+| `js/41-hilfe.js` | Hilfetexte "Lagerverwaltung" und "Material (Regierapport)" aktualisiert |
+| `sw.js` | Cache-Version 3.106 |
+| `PROJECT_STATE.md` | Versionsstand 3.106 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.106"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | grundlegend erweitert (neue Abschnitte 11+12, Fixtur auf Varianten umgestellt) |
+
+### 172.8 Offene Punkte
+
+- Automatische Ausbuchung aus Massaufnahme-Positionen ist bewusst nicht
+  gebaut (siehe 172.5) - reine Zukunftsperspektive des Anwenders.
+- Kein Massen-Umbenennen/-Verschieben von Produkten zwischen
+  Materialpositionen (ein Produkt wird bei der Anlage einer Position fest
+  zugeordnet) - für den beschriebenen Anwendungsfall nicht nötig, wäre bei
+  Bedarf eine spätere, kleine Ergänzung.
+- Kein Live-Test mit einer echten Kamera aus dieser Sandbox möglich
+  (bestehende Einschränkung) - die Verdrahtung des Scan-zu-neues-Produkt-
+  Wegs ist geprüft, das tatsächliche Scannen nicht.

@@ -52,7 +52,10 @@ const WIN_CHANGELOG={
   "Fehler behoben: die Kamera beim Barcode-Scan stellte auf manchen Geräten nicht scharf."],
  "3.105":["Fehler behoben: beim Erzeugen eines Einladungslinks fehlte auf manchen Geräten jede Rückmeldung - der Erfolg/Fehler steht jetzt direkt im Formular statt in einer Meldung, die dort stumm blieb.",
   "Neu: Lagerverwaltung - „Alle zuklappen” blendet die komplette Artikelliste auf einen Schlag aus.",
-  "Kamera-Fokus beim Barcode-Scan weiter verbessert."]
+  "Kamera-Fokus beim Barcode-Scan weiter verbessert."],
+ "3.106":["Neu: Lagerverwaltung - eine Materialposition kann jetzt mehrere, einzeln buchbare Produkte enthalten (z. B. verschiedene Rohrbogen-Varianten unter derselben Position).",
+  "Neu: ein unbekannter Barcode beim Einscannen bietet direkt an, daraus ein neues Produkt anzulegen und einer Materialposition zuzuordnen.",
+  "Der Barcode eines Artikels wird jetzt beim einzelnen Produkt in der Lagerverwaltung hinterlegt, nicht mehr im Material-Katalog."]
 };
 
 function winVersionVergleich(a,b){

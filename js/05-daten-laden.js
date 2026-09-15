@@ -61,9 +61,7 @@ async function loadAllData(){
  const profiles=geladen.profiles||[];
  settings.rates=rates.map(r=>[r.name,r.value]);
  rateIds=rates.map(r=>r.id);
- // m[5]=barcode (v3.102, fuer die Lagerverwaltung) - dieselbe positionelle
- // Erweiterung wie beim Rest des Tupels, kein zweites Feld/Array dafuer.
- settings.materials=materials.map(m=>[m.edv_nr,m.name,m.dim,m.unit,m.price,m.barcode||""]);
+ settings.materials=materials.map(m=>[m.edv_nr,m.name,m.dim,m.unit,m.price]);
  materialIds=materials.map(m=>m.id);
  settings.employees=profiles.map(p=>`${p.first_name} ${p.last_name}`);
  employeeIds=profiles.map(p=>p.id);

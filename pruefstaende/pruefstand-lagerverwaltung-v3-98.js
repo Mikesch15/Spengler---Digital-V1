@@ -1,5 +1,6 @@
 "use strict";
-// ---- Pruefstand: Lagerverwaltung Phase 1 (v3.98, Artikelbasis + Barcode v3.102) --
+// ---- Pruefstand: Lagerverwaltung Phase 1 (v3.98, Artikelbasis + Barcode
+// v3.102, mehrere Produkte je Position v3.106) --------------------------
 //
 // Prueft:
 //  1  Sichtbarkeit ueber feature_access (feature:"lager") - dasselbe Muster
@@ -14,25 +15,37 @@
 //     Mitarbeiter, unabhaengig vom Offerte-Schalter.
 //  8  Direkter Einstieg von der Startseite (v3.101).
 //  9  Buchen-/Formular-Dialog liegt ueber den Einstellungen (v3.101/v3.102).
-//  10 Einscannen/Ausscannen (v3.102): Barcode -> Artikel -> Buchen-Dialog
-//     mit vorbelegter Art; unbekannter Barcode meldet sich klar statt still
-//     zu scheitern. Die echte Kamera/ZXing-Logik wird dabei GESTUBBT
-//     (window.barcodeScannen ersetzt) - genau wie openSketchFullscreen beim
-//     Unterschrift-Pruefstand: geprueft wird die Verdrahtung, nicht die
+//  10 Einscannen/Ausscannen (v3.102, auf Produkte umgestellt v3.106):
+//     Barcode -> Produkt -> Buchen-Dialog mit vorbelegter Art; ein
+//     unbekannter Barcode beim Einscannen bietet an, daraus ein neues
+//     Produkt anzulegen, beim Ausscannen meldet er sich nur klar. Die echte
+//     Kamera/ZXing-Logik wird dabei GESTUBBT (window.barcodeScannen
+//     ersetzt) - genau wie openSketchFullscreen beim Unterschrift-
+//     Pruefstand: geprueft wird die Verdrahtung, nicht die
 //     Hardware-Ansteuerung.
-//  11 Material-Katalog (Einstellungen): Barcode-Feld und Scan-Knopf je
-//     Artikel.
+//  11 Mehrere Produkte je Materialposition (v3.106): eine Position mit nur
+//     einer Variante bleibt flach wie bisher, ab der zweiten wird sie zur
+//     Gruppe mit eigenen, einzeln buchbaren Unter-Karten je Produkt.
+//  12 Neues Produkt erfassen (v3.106): per "＋ Weiteres Produkt" und per
+//     unbekanntem Barcode - legt lager_varianten an und oeffnet danach
+//     direkt den Buchen-Dialog fuer Zugang.
 //
 // WICHTIGSTE AENDERUNG SEIT v3.98: Die Lagerverwaltung baute urspruenglich
 // auf lagerbestand auf (dem Blech-Materialbestand). Das war fachlich falsch
 // - seit v3.102 baut sie auf materials auf (der Artikelliste der Firma,
 // ueber lagArtikelListe() aus js/59-lagerbestand.js), lagerbestand hat mit
-// der Lagerverwaltung nichts mehr zu tun. Dieser Pruefstand nutzt deshalb
-// settings.materials/materialIds statt eines globalen lagerbestand-Arrays.
+// der Lagerverwaltung nichts mehr zu tun. Seit v3.106 hat jede
+// Materialposition mindestens eine (einzeln buchbare) Variante in
+// lager_varianten; lagerbestand_bewegungen zeigt auf lager_varianten
+// (variante_id) statt direkt auf materials (materials.barcode entfiel).
+// Dieser Pruefstand nutzt deshalb settings.materials/materialIds (ohne
+// Barcode-Spalte) plus ein eigenes window.__lese.lager_varianten statt eines
+// globalen lagerbestand-Arrays.
 //
 // WAS HIER NICHT GEPRUEFT WIRD: die serverseitige RLS (tenant_boundary_
-// lagerbestand_bewegungen, feature_boundary_lager, die Firmen-Konsistenz-
-// pruefung enforce_lager_bewegung_firma()) - die wurde beim Anlegen der
+// lagerbestand_bewegungen/lager_varianten, feature_boundary_lager/
+// lager_varianten, die Firmen-Konsistenzpruefungen enforce_lager_bewegung_
+// firma()/enforce_lager_variante_firma()) - die wurden beim Anlegen der
 // Migration gegen das echte Produktivschema entworfen (exaktes Abbild von
 // feature_boundary_angebote, das bereits produktiv laeuft). Hier wird nur
 // geprueft, dass der Client company_id an KEINER Stelle selbst mitschickt.
@@ -142,12 +155,21 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  await page.goto("file://"+repo+"/index.html");
  await page.waitForFunction(()=>typeof checkLagerZugriff==="function"
   &&typeof renderLagerverwaltung==="function"&&typeof lagerBuchenOeffnen==="function"
-  &&typeof renderMitarbeiterSettings==="function"&&typeof lagerZugriffVon==="function",
+  &&typeof renderMitarbeiterSettings==="function"&&typeof lagerZugriffVon==="function"
+  &&typeof lagerNeuesProduktOeffnen==="function",
   null,{timeout:15000});
  await page.waitForTimeout(200);
 
  await page.evaluate(()=>{
-  window.__lese={lagerbestand_bewegungen:[],feature_access:[]};
+  window.__lese={lagerbestand_bewegungen:[],feature_access:[],
+   // v3.106: material_id 1 hat genau eine Standard-Variante (flache
+   // Darstellung), material_id 2 hat zwei Varianten (Gruppen-Darstellung,
+   // Abschnitt 11).
+   lager_varianten:[
+    {id:501,material_id:1,bezeichnung:"Dichtband 15 mm",barcode:"4006381333931"},
+    {id:601,material_id:2,bezeichnung:"Rohrbogen 87° 100mm",barcode:"ROHR-87-100"},
+    {id:602,material_id:2,bezeichnung:"Rohrbogen 45° 100mm",barcode:"ROHR-45-100"}
+   ]};
   currentProfile={id:"u1",role:"employee",first_name:"Anna",last_name:"Muster",company_id:"f1"};
   allProfiles=[
    {id:"u1",role:"employee",first_name:"Anna",last_name:"Muster",company_id:"f1"},
@@ -155,9 +177,12 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   ];
   meineRechte={admin:false};
   settings={employees:["Anna Muster","Mike Ledermann"],rates:[],
-   // [edv_nr,name,dim,unit,price,barcode] - m[5]=barcode seit v3.102.
-   materials:[["205.30","Dichtband 15 mm","15 mm","m",2.80,"4006381333931"]]};
-  materialIds=[1];
+   // [edv_nr,name,dim,unit,price] - seit v3.106 ohne Barcode-Spalte, der
+   // Barcode gehoert jetzt zum einzelnen Produkt (lager_varianten), nicht
+   // mehr zur Materialposition.
+   materials:[["205.30","Dichtband 15 mm","15 mm","m",2.80],
+              ["300.10","Rohrbogen","","Stk",4.50]]};
+  materialIds=[1,2];
   employeeIds=["u1","u2"];
   $("appRoot").hidden=false; $("authScreen").hidden=true;
  });
@@ -193,16 +218,16 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  console.log("\n3 · Bestand = Summe der Buchungen, nie eine editierbare Zahl");
  await page.evaluate(()=>{
   window.__lese.lagerbestand_bewegungen=[
-   {id:1,material_id:1,art:"zugang",menge:10,grund:"Lieferung",created_at:"2026-09-01T08:00:00Z"},
-   {id:2,material_id:1,art:"abgang",menge:-3,grund:"Baustelle Muster",created_at:"2026-09-05T08:00:00Z"},
-   {id:3,material_id:1,art:"korrektur",menge:-1,grund:"Inventur",created_at:"2026-09-10T08:00:00Z"}
+   {id:1,variante_id:501,art:"zugang",menge:10,grund:"Lieferung",created_at:"2026-09-01T08:00:00Z"},
+   {id:2,variante_id:501,art:"abgang",menge:-3,grund:"Baustelle Muster",created_at:"2026-09-05T08:00:00Z"},
+   {id:3,variante_id:501,art:"korrektur",menge:-1,grund:"Inventur",created_at:"2026-09-10T08:00:00Z"}
   ];
   lagerBewegungen=window.__lese.lagerbestand_bewegungen.slice();
   renderLagerverwaltung();
  });
  z=await page.evaluate(()=>({
   text:$("lagerverwaltungListe").textContent,
-  bestand:lagerBestandVon(1)
+  bestand:lagerBestandVon(501)
  }));
  p(z.bestand===6,"10 Zugang - 3 Abgang - 1 Korrektur ergibt 6",z);
  p(/6/.test(z.text)&&/Dichtband/.test(z.text),"der Bestand und die Bezeichnung (aus dem Material-Katalog) stehen in der Liste",z.text.slice(0,200));
@@ -214,15 +239,15 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   // renderLagerverwaltung() ersetzt das innerHTML komplett - "kopf" muss
   // deshalb NACH dem Klick neu gesucht werden, sonst zeigt die alte,
   // inzwischen aus dem DOM entfernte Referenz weiterhin den alten Pfeil.
-  document.querySelector('[data-lager-karte="1"]').click();
-  const kopfNeu=document.querySelector('[data-lager-karte="1"]');
+  document.querySelector('[data-lager-karte="501"]').click();
+  const kopfNeu=document.querySelector('[data-lager-karte="501"]');
   return {pfeil:kopfNeu.querySelector(".lager-karte-pfeil").textContent,text:$("lagerverwaltungListe").textContent};
  });
  p(z.pfeil==="▾","ein Klick auf den Kartenkopf klappt ihn auf (Pfeil dreht sich)",z);
  p(/Lieferung/.test(z.text)&&/Inventur/.test(z.text),"aufgeklappt stehen die letzten Buchungen mit ihrem Grund im Text",z.text.slice(0,400));
  z=await page.evaluate(()=>{
-  document.querySelector('[data-lager-karte="1"]').click();
-  const kopfNeu=document.querySelector('[data-lager-karte="1"]');
+  document.querySelector('[data-lager-karte="501"]').click();
+  const kopfNeu=document.querySelector('[data-lager-karte="501"]');
   return {pfeil:kopfNeu.querySelector(".lager-karte-pfeil").textContent};
  });
  p(z.pfeil==="▸","ein zweiter Klick klappt sie wieder zu",z);
@@ -249,7 +274,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  async function buchen(art,eingabe,grund){
   return await page.evaluate(async({art,eingabe,grund})=>{
    window.__schreib=[];
-   lagerBuchenOeffnen(1);
+   lagerBuchenOeffnen(501);
    $("lagerBuchenArt").value=art;
    $("lagerBuchenMenge").value=String(eingabe);
    $("lagerBuchenGrund").value=grund||"";
@@ -262,7 +287,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  }
  let r=await buchen("zugang",5,"Lieferschein 123");
  p(!!r.insert,"Zugang loest genau einen insert() auf lagerbestand_bewegungen aus",r);
- p(r.d&&r.d.material_id===1&&r.d.art==="zugang"&&r.d.menge===5&&r.d.grund==="Lieferschein 123",
+ p(r.d&&r.d.variante_id===501&&r.d.art==="zugang"&&r.d.menge===5&&r.d.grund==="Lieferschein 123",
    "Zugang: die eingegebene positive Menge bleibt positiv",r.d);
  p(r.modalZu===true,"der Dialog schliesst nach erfolgreichem Buchen",r);
 
@@ -278,7 +303,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  console.log("\n5 · Eine Buchung ohne Menge wird abgelehnt");
  const leer=await page.evaluate(async()=>{
   window.__schreib=[];
-  lagerBuchenOeffnen(1);
+  lagerBuchenOeffnen(501);
   $("lagerBuchenArt").value="zugang";
   $("lagerBuchenMenge").value="";
   $("lagerBuchenSpeichern").click();
@@ -371,8 +396,8 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(z.buchen>z.einstellungen,"lagerBuchenModal hat einen hoeheren z-index als settingsModal",z);
  p(z.formular>z.einstellungen,"lagerFormModal ebenso",z);
 
- // ---- 10 · Einscannen/Ausscannen (v3.102) --------------------------------
- console.log("\n10 · Einscannen/Ausscannen: Barcode -> Artikel -> vorbelegter Buchen-Dialog");
+ // ---- 10 · Einscannen/Ausscannen (v3.102, auf Produkte umgestellt v3.106) --
+ console.log("\n10 · Einscannen/Ausscannen: Barcode -> Produkt -> vorbelegter Buchen-Dialog");
  // barcodeScannen wird gestubbt (siehe Kopfkommentar) - ruft den Callback
  // sofort mit einem fest hinterlegten Code auf, ohne echte Kamera/ZXing.
  const scanStubben=code=>page.evaluate(c=>{
@@ -380,7 +405,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   window.barcodeScannen=cb=>{window.__scanAufrufe.push(true);cb(c)};
  },code);
 
- await scanStubben("4006381333931"); // bekannter Barcode des Testartikels
+ await scanStubben("4006381333931"); // bekannter Barcode des Testprodukts
  z=await page.evaluate(()=>{
   window.__scanAufrufe=[];
   $("lagerEinscannen").click();
@@ -388,12 +413,12 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    aufgerufen:window.__scanAufrufe.length===1,
    modalOffen:!$("lagerBuchenModal").hidden,
    art:$("lagerBuchenArt").value,
-   artikelId:lagerBuchenArtikelId
+   varianteId:lagerBuchenVarianteId
   };
  });
  p(z.aufgerufen,"Einscannen ruft barcodeScannen() auf",z);
- p(z.modalOffen&&z.art==="zugang"&&z.artikelId===1,
-   "bekannter Barcode oeffnet den Buchen-Dialog direkt mit Art=Zugang fuer den richtigen Artikel",z);
+ p(z.modalOffen&&z.art==="zugang"&&z.varianteId===501,
+   "bekannter Barcode oeffnet den Buchen-Dialog direkt mit Art=Zugang fuer das richtige Produkt",z);
  await page.evaluate(()=>{$("lagerBuchenModal").hidden=true});
 
  await scanStubben("4006381333931");
@@ -404,50 +429,123 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(z.modalOffen&&z.art==="abgang","Ausscannen oeffnet denselben Dialog mit Art=Abgang",z);
  await page.evaluate(()=>{$("lagerBuchenModal").hidden=true});
 
+ // Unbekannter Barcode BEIM AUSSCANNEN (Abgang): kein Bestand ohne
+ // vorherigen Zugang moeglich - bleibt bei der reinen Meldung.
  await scanStubben("KEIN-TREFFER-999");
  z=await page.evaluate(()=>{
-  $("lagerEinscannen").click();
+  $("lagerAusscannen").click();
   return {
    modalGeschlossen:$("lagerBuchenModal").hidden,
+   neuesProduktGeschlossen:$("lagerNeuesProduktModal").hidden,
    hinweisSichtbar:!$("lagerverwaltungHinweis").hidden,
    hinweisText:$("lagerverwaltungHinweis").textContent
   };
  });
- p(z.modalGeschlossen,"ein unbekannter Barcode oeffnet KEINEN Buchen-Dialog",z);
+ p(z.modalGeschlossen&&z.neuesProduktGeschlossen,"ein unbekannter Barcode beim Ausscannen oeffnet KEINEN Dialog",z);
  p(z.hinweisSichtbar&&/nicht gefunden|Barcode/.test(z.hinweisText),
    "stattdessen erscheint eine klare Meldung statt eines stillen Fehlschlags",z);
 
- // ---- 11 · Material-Katalog: Barcode-Feld + Scan-Knopf (v3.102) ---------
- console.log("\n11 · Material-Katalog: Barcode-Feld und Scan-Knopf je Artikel");
- await page.evaluate(()=>{
-  meineRechte={admin:true};
-  materialFilter="";materialPage=0;materialExpanded=new Set([0]);
-  renderMaterialSettings();
- });
- z=await page.evaluate(()=>({
-  feldWert:document.querySelector('[data-set-mbarcode="0"]').value,
-  scanKnopfDa:!!document.querySelector('[data-scan-mbarcode="0"]')
- }));
- p(z.feldWert==="4006381333931","das Barcode-Feld zeigt den hinterlegten Wert",z);
- p(z.scanKnopfDa,"daneben steht ein Scan-Knopf",z);
-
- await scanStubben("NEUER-CODE-42");
- const barcodeGespeichert=await page.evaluate(async()=>{
-  window.__schreib=[];
-  document.querySelector('[data-scan-mbarcode="0"]').click();
-  await new Promise(r=>setTimeout(r,50));
-  const update=window.__schreib.find(x=>x.op==="update"&&x.t==="materials");
+ // Unbekannter Barcode BEIM EINSCANNEN (Zugang): bietet direkt an, daraus
+ // ein neues Produkt anzulegen - siehe Abschnitt 12.
+ await scanStubben("NEU-777");
+ z=await page.evaluate(()=>{
+  $("lagerEinscannen").click();
   return {
-   feldWert:document.querySelector('[data-set-mbarcode="0"]').value,
-   stateWert:settings.materials[0][5],
-   update,
-   eqId:update&&update.eq&&update.eq[0]&&update.eq[0][1]
+   neuesProduktOffen:!$("lagerNeuesProduktModal").hidden,
+   barcodeVorbelegt:$("lagerNeuesProduktBarcode").value,
+   materialVorbelegt:$("lagerNeuesProduktMaterial").value
   };
  });
- p(barcodeGespeichert.feldWert==="NEUER-CODE-42"&&barcodeGespeichert.stateWert==="NEUER-CODE-42",
-   "ein gescannter Code landet im Feld und im State",barcodeGespeichert);
- p(!!barcodeGespeichert.update&&barcodeGespeichert.update.patch.barcode==="NEUER-CODE-42"&&barcodeGespeichert.eqId===1,
-   "und wird direkt (nicht debounced) fuer den richtigen Artikel gespeichert",barcodeGespeichert);
+ p(z.neuesProduktOffen,"ein unbekannter Barcode beim Einscannen oeffnet das Neues-Produkt-Formular",z);
+ p(z.barcodeVorbelegt==="NEU-777","der gescannte Barcode ist darin vorausgefuellt",z);
+ p(z.materialVorbelegt==="","die Materialposition ist noch nicht vorbelegt - muss gewaehlt werden",z);
+ await page.evaluate(()=>{$("lagerNeuesProduktModal").hidden=true});
+
+ // ---- 11 · Mehrere Produkte je Materialposition (v3.106) ----------------
+ console.log("\n11 · Mehrere Produkte je Position: Gruppen-Darstellung");
+ z=await page.evaluate(()=>({
+  text:$("lagerverwaltungListe").textContent,
+  karten:document.querySelectorAll(".lager-karte").length,
+  variantenImDom:document.querySelectorAll(".lager-variante").length
+ }));
+ p(z.karten===2,"zwei Karten: eine flache Position (Dichtband) und eine Gruppe (Rohrbogen)",z);
+ p(/Rohrbogen/.test(z.text)&&/2 Produkte/.test(z.text),"die Rohrbogen-Gruppe zeigt Positionsname und Produktanzahl",z.text);
+ p(z.variantenImDom===0,"die einzelnen Produkte stehen erst nach dem Aufklappen der Gruppe im DOM",z);
+
+ z=await page.evaluate(()=>{
+  document.querySelector('[data-lager-karte="m2"]').click();
+  return {
+   varianten:Array.from(document.querySelectorAll(".lager-variante")).map(el=>el.textContent),
+   buchenKnoepfeInGruppe:document.querySelectorAll('.lager-variante [data-lager-buchen]').length
+  };
+ });
+ p(z.varianten.length===2,"aufgeklappt erscheinen beide Produkte als eigene Unter-Karten",z);
+ p(z.varianten.some(t=>/87°/.test(t))&&z.varianten.some(t=>/45°/.test(t)),
+   "mit ihrer jeweils eigenen Bezeichnung",z.varianten);
+ p(z.buchenKnoepfeInGruppe===2,"jedes Produkt hat einen eigenen Buchen-Knopf",z);
+
+ const buchenRohrbogen87=await page.evaluate(async()=>{
+  window.__schreib=[];
+  document.querySelector('[data-lager-buchen="601"]').click();
+  const artikelText=$("lagerBuchenArtikel").textContent;
+  $("lagerBuchenArt").value="zugang";
+  $("lagerBuchenMenge").value="12";
+  $("lagerBuchenSpeichern").click();
+  await new Promise(r=>setTimeout(r,50));
+  const insert=window.__schreib.find(x=>x.op==="insert"&&x.t==="lagerbestand_bewegungen");
+  return {artikelText,d:insert&&insert.d[0]};
+ });
+ p(/Rohrbogen/.test(buchenRohrbogen87.artikelText)&&/87°/.test(buchenRohrbogen87.artikelText),
+   "der Buchen-Dialog nennt Position UND Produktname, damit klar ist, welches Produkt gemeint ist",buchenRohrbogen87);
+ p(buchenRohrbogen87.d&&buchenRohrbogen87.d.variante_id===601,
+   "gebucht wird auf die Variante (601), nicht auf die Materialposition (2)",buchenRohrbogen87.d);
+ z=await page.evaluate(()=>({bestand601:lagerBestandVon(601),bestand602:lagerBestandVon(602)}));
+ p(z.bestand601===12&&z.bestand602===0,
+   "der Bestand ist je Produkt getrennt - das zweite Produkt bleibt bei 0",z);
+
+ // ---- 12 · Neues Produkt erfassen (v3.106) -------------------------------
+ console.log("\n12 · Neues Produkt erfassen und einer Position zuordnen");
+ z=await page.evaluate(()=>{
+  document.querySelector('[data-lager-neues-produkt="2"]').click();
+  return {
+   offen:!$("lagerNeuesProduktModal").hidden,
+   materialVorbelegt:$("lagerNeuesProduktMaterial").value
+  };
+ });
+ p(z.offen,"\"＋ Weiteres Produkt\" innerhalb einer Position oeffnet dasselbe Formular",z);
+ p(z.materialVorbelegt==="2","diesmal ist die Materialposition (Rohrbogen) bereits vorbelegt",z);
+
+ z=await page.evaluate(async()=>{
+  $("lagerNeuesProduktBezeichnung").value="";
+  $("lagerNeuesProduktSpeichern").click();
+  await new Promise(r=>setTimeout(r,20));
+  return {fehlerSichtbar:!$("lagerNeuesProduktFehler").hidden,offenGeblieben:!$("lagerNeuesProduktModal").hidden};
+ });
+ p(z.fehlerSichtbar&&z.offenGeblieben,"ohne Bezeichnung wird nichts angelegt, das Formular bleibt offen",z);
+
+ const neuesProdukt=await page.evaluate(async()=>{
+  window.__schreib=[];
+  $("lagerNeuesProduktBezeichnung").value="Rohrbogen 30° 100mm";
+  $("lagerNeuesProduktBarcode").value="ROHR-30-100";
+  $("lagerNeuesProduktSpeichern").click();
+  await new Promise(r=>setTimeout(r,50));
+  const insert=window.__schreib.find(x=>x.op==="insert"&&x.t==="lager_varianten");
+  return {
+   insert,d:insert&&insert.d[0],
+   modalZu:$("lagerNeuesProduktModal").hidden,
+   buchenOffen:!$("lagerBuchenModal").hidden,
+   buchenArt:$("lagerBuchenArt").value
+  };
+ });
+ p(!!neuesProdukt.insert,"ein insert() auf lager_varianten wird ausgeloest",neuesProdukt);
+ p(neuesProdukt.d&&neuesProdukt.d.material_id===2&&neuesProdukt.d.bezeichnung==="Rohrbogen 30° 100mm"&&neuesProdukt.d.barcode==="ROHR-30-100",
+   "mit der gewaehlten Position, Bezeichnung und dem Barcode",neuesProdukt.d);
+ p(neuesProdukt.modalZu===true,"das Neues-Produkt-Formular schliesst nach dem Anlegen",neuesProdukt);
+ p(neuesProdukt.buchenOffen&&neuesProdukt.buchenArt==="zugang",
+   "direkt danach oeffnet sich der Buchen-Dialog mit Art=Zugang fuer das neue Produkt",neuesProdukt);
+ z=await page.evaluate(()=>$("lagerverwaltungListe").textContent);
+ p(/3 Produkte/.test(z),"die Position zeigt jetzt 3 Produkte in der Liste",z);
+ await page.evaluate(()=>{$("lagerBuchenModal").hidden=true});
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

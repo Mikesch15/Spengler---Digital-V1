@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.105</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.106</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -736,6 +736,33 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div class="bar">
 <button id="lagerBuchenSpeichern" class="green">💾 Buchen</button>
 <button id="lagerBuchenAbbrechen" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- v3.106: Lagerverwaltung - neues Produkt erfassen und einer bestehenden
+     Materialposition zuordnen. Mehrere Produkte koennen zur selben Position
+     gehoeren (z. B. verschiedene Rohrboegen zum Regierapport-Material
+     "Rohrbogen") - jedes einzeln mit eigenem Bestand und Barcode, siehe
+     js/68-lagerverwaltung.js. -->
+<div id="lagerNeuesProduktModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>🏷️ Neues Produkt erfassen <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button></h2>
+<div class="info">Ein Produkt gehört zu genau einer Materialposition aus dem Katalog, wird aber einzeln geführt und gebucht - z. B. mehrere Rohrbogen-Varianten unter derselben Regierapport-Position.</div>
+<div class="grid">
+<div class="wide"><label>Bezeichnung</label><input id="lagerNeuesProduktBezeichnung" data-pflicht="1" placeholder="z. B. Rohrbogen 87° 100mm"></div>
+<div class="wide"><label>Materialposition</label><select id="lagerNeuesProduktMaterial" data-pflicht="1"></select></div>
+<div class="wide"><label>Barcode</label><div class="bar" style="gap:6px">
+<input id="lagerNeuesProduktBarcode" placeholder="per Kamera oder manuell">
+<button type="button" class="gray" id="lagerNeuesProduktScan">📷</button>
+</div></div>
+</div>
+<div class="small" id="lagerNeuesProduktFehler" style="color:var(--red)" hidden></div>
+<div class="bar">
+<button type="button" id="lagerNeuesProduktSpeichern" class="green">✅ Anlegen</button>
+<button type="button" id="lagerNeuesProduktAbbrechen" class="gray">Abbrechen</button>
 </div>
 </div>
 </div>
@@ -2501,11 +2528,12 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <button type="button" id="fsPanFloating" title="Zeichnen / Verschieben umschalten">✏️ Zeichnen</button>
 </div>
 
-<!-- Barcode-Scan per Kamera (v3.102) - eine einzige Stelle fuer die
-     Lagerverwaltung UND das Hinterlegen eines Barcodes im Material-Katalog
-     (siehe barcodeScannen() in js/01-basis.js). Eigener, hoher z-index: wird
-     oft aus einem bereits offenen Dialog heraus geoeffnet (Lehre aus v3.101,
-     wo genau das beim Buchen-Dialog vergessen ging). -->
+<!-- Barcode-Scan per Kamera (v3.102, seit v3.106 ausschliesslich fuer die
+     Lagerverwaltung - materials.barcode entfiel, jedes Produkt in
+     lager_varianten traegt seinen eigenen Barcode) - siehe barcodeScannen()
+     in js/01-basis.js. Eigener, hoher z-index: wird oft aus einem bereits
+     offenen Dialog heraus geoeffnet (Lehre aus v3.101, wo genau das beim
+     Buchen-Dialog vergessen ging). -->
 <div id="barcodeScanOverlay" class="barcode-scan-overlay" hidden>
 <div class="barcode-scan-box">
 <div class="bar" style="justify-content:space-between;align-items:center">

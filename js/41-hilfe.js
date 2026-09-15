@@ -1232,9 +1232,11 @@ behält seine Beträge.</p>`},
 Dimension, Einheit und Preis. Gilt <b>firmenweit</b>.</p>
 <p>Material, das hier fehlt, lässt sich im Rapport über die freien Nummern
 999.90 bis 999.99 direkt eintragen.</p>
-<p>Derselbe Katalog ist die Grundlage der Lagerverwaltung. Ein hier
-hinterlegter <b>Barcode</b> (Feld beim Artikel, per Kamera einscannbar)
-macht den Artikel dort per Ein-/Ausscannen direkt buchbar.</p>`},
+<p>Derselbe Katalog ist die Grundlage der Lagerverwaltung: jede Position hier
+kann dort ein oder mehrere einzeln buchbare Produkte haben (z. B.
+verschiedene Rohrbogen-Varianten unter der Position "Rohrbogen"). Barcode
+und Bezeichnung des Produkts stehen dafür in der Lagerverwaltung selbst,
+nicht hier im Regierapport-Katalog.</p>`},
 
 "einst-blitzschutz":{titel:"Blitzschutz-Katalog",text:`
 <p>Der Artikelkatalog für das Blitzschutzausmass. Lässt sich als Excel-Datei
@@ -1354,11 +1356,18 @@ erfunden. Wird ein Artikel gewählt, schlägt das Formular Stärke und
 Bezeichnung vor – beides bleibt frei änderbar.</p>`},
 
 "lagerverwaltung":{titel:"Lagerverwaltung",text:`
-<p>Der aktuelle Bestand je Artikel aus dem Material-Katalog (Einstellungen
+<p>Der aktuelle Bestand je Produkt aus dem Material-Katalog (Einstellungen
 → Material) – Schrauben, Dichtband, Rinnenhalter usw. Mit dem
 Blech-Materialbestand weiter oben in den Einstellungen hat das nichts zu
 tun: der zeigt nur, welches Blech die Firma führt (Rolle/Tafel, Stärke),
 ohne Mengenführung.</p>
+<p>Eine Position aus dem Material-Katalog kann <b>mehrere einzeln buchbare
+Produkte</b> enthalten – z. B. mehrere Rohrbogen-Varianten unter derselben
+Regierapport-Position "Rohrbogen". Hat eine Position nur ein Produkt, sieht
+ihre Karte ganz normal aus (Name, Bestand, Buchen-Knopf). Ab dem zweiten
+Produkt wird der Kartenkopf zur Übersicht der Position (Anzahl Produkte,
+Bestand gesamt) und jedes Produkt bekommt darunter seine eigene Karte mit
+eigenem Bestand und eigenem Buchen-Knopf.</p>
 <p>Der Bestand ist <b>immer</b> die Summe aller Buchungen (Zugang, Abgang,
 Korrektur) – nie ein Feld zum Überschreiben. Eine Buchung bleibt für immer
 stehen; ein Fehler wird durch eine neue Korrektur-Buchung ausgeglichen,
@@ -1366,19 +1375,24 @@ nie durch Ändern einer bestehenden Buchung. So lässt sich der Bestand
 jederzeit nachvollziehen, statt einer Zahl vertrauen zu müssen, die
 niemand mehr erklären kann.</p>
 <p>📥 <b>Einscannen</b> / 📤 <b>Ausscannen</b> öffnen die Kamera, suchen den
-erkannten Barcode im Material-Katalog und öffnen den Buchen-Dialog direkt
+erkannten Barcode unter den Produkten und öffnen den Buchen-Dialog direkt
 mit der passenden Richtung – nur die Menge muss noch bestätigt werden.
-Ein Barcode wird einmalig im Material-Katalog hinterlegt (Feld "Barcode"
-bei einem Artikel, ebenfalls per Kamera).</p>
+Kennt die App den Barcode noch nicht, bietet <b>Einscannen</b> direkt an,
+daraus ein <b>🏷️ neues Produkt</b> anzulegen: Bezeichnung eingeben, eine
+Materialposition aus dem Katalog wählen, fertig – anschliessend geht es
+gleich weiter zum ersten Zugang. Dasselbe Formular öffnet sich auch über
+"＋ Weiteres Produkt" innerhalb einer bereits aufgeklappten Position, dort
+mit vorbelegter Position.</p>
 <p>Sichtbar ist dieser Bereich nur für Mitarbeitende mit eigens
 freigeschaltetem <b>Lager-Zugriff</b> (Einstellungen → Mitarbeiter) –
 unabhängig von den übrigen Rechten, wie beim Offerte-Zugriff. Auch ein
 Administrator braucht diese Freigabe eigens.</p>
-<p>Ein Artikel, der noch nicht im Materialbestand steht, muss zuerst dort
-angelegt werden – die Lagerverwaltung bucht nur auf bestehende Artikel.</p>
+<p>Ein Produkt, dessen Materialposition noch nicht im Katalog steht, muss
+zuerst dort angelegt werden – die Lagerverwaltung bucht nur auf bestehende
+Positionen.</p>
 <p>Jede Zeile lässt sich antippen, um die letzten Buchungen ein-/
-auszublenden. Bei einer längeren Artikelliste blendet <b>Alle
-zuklappen</b> die gesamte Liste auf einen Schlag aus – "Alle anzeigen"
+auszublenden. Bei einer längeren Liste blendet <b>Alle
+zuklappen</b> alle Karten auf einen Schlag aus – "Alle anzeigen"
 holt sie zurück.</p>`},
 
 "meas-staerke":{titel:"Materialstärke",text:`

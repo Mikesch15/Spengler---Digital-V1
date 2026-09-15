@@ -1238,6 +1238,15 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .lager-karte-info{flex:1 1 190px;min-width:0;word-break:break-word}
 .lager-karte-kopf button{width:auto;min-height:38px;padding:6px 10px;font-size:12px;flex:0 0 auto}
 .lager-karte-body{border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
+/* v3.106: mehrere Produkte je Materialposition - dieselbe Klapp-Karte, nur
+   eingerueckt und mit dezenterem Rahmen, damit die Zugehoerigkeit zur
+   umgebenden Position erkennbar bleibt. */
+.lager-variante{border:1px solid var(--line);border-radius:8px;padding:6px;
+ margin:6px 0 6px 14px;background:var(--bg)}
+.lager-variante-kopf{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+ cursor:pointer;min-height:38px;padding:2px}
+.lager-variante-kopf:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+.lager-variante-kopf button{width:auto;min-height:36px;padding:6px 10px;font-size:12px;flex:0 0 auto}
 /* Die vermasste Skizze und der Grundriss - nebeneinander, wenn Platz ist,
    sonst untereinander. Die Zeichner geben ihre eigene Breite mit; hier wird
    nur die Hoehe begrenzt, damit die Zuschnittliste darunter im Bild bleibt. */
@@ -1297,9 +1306,13 @@ html.dark .rmat-unsicher{color:#e0a35c}
    nachgezogen statt zwei verschiedene Loesungen fuer denselben Fall zu
    pflegen. */
 #lagerBuchenModal{z-index:700}
-/* v3.102: der Kamera-Scan wird u. a. AUS #lagerBuchenModal (700) und aus
-   dem Material-Katalog in den Einstellungen (500) heraus geoeffnet - siebter
-   Fall derselben Falle, wieder gemessen statt geraten: er muss ueber beiden
+/* v3.106: "Neues Produkt erfassen" oeffnet ebenfalls aus den Einstellungen
+   heraus (und schliesst mitunter direkt in #lagerBuchenModal weiter) -
+   achter Fall derselben Falle. */
+#lagerNeuesProduktModal{z-index:700}
+/* v3.102: der Kamera-Scan wird u. a. AUS #lagerBuchenModal/#lagerNeuesProduktModal
+   (700) und aus den Einstellungen selbst (500) heraus geoeffnet - siebter
+   Fall derselben Falle, wieder gemessen statt geraten: er muss ueber allen
    liegen, darf aber unter dem Hilfefenster (2500) bleiben. */
 #barcodeScanOverlay{z-index:1500}
 

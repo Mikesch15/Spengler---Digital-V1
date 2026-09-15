@@ -422,10 +422,6 @@ function renderMaterialSettings(){
 <div><label>Dim.</label><input data-set-mdim="${i}" value="${esc(m[2])}" placeholder="Dim." ${ro}></div>
 <div><label>Einheit</label><input data-set-munit="${i}" value="${esc(m[3])}" placeholder="Einheit" ${ro}></div>
 <div><label>Preis</label><input data-set-mprice="${i}" type="number" step=".01" value="${m[4]}" placeholder="Preis" ${ro}></div>
-<div><label>Barcode</label><div class="bar" style="gap:6px">
-<input data-set-mbarcode="${i}" value="${esc(m[5]||"")}" placeholder="für die Lagerverwaltung" ${ro}>
-${isAdmin()?`<button type="button" class="gray" data-scan-mbarcode="${i}">📷</button>`:""}
-</div></div>
 ${isAdmin()?`<button class="red" data-del-material="${i}">Löschen</button>`:""}
 </div>
 </div>`}).join("")||'<div class="empty">Keine Materialien gefunden.</div>';
