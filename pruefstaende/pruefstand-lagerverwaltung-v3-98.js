@@ -29,16 +29,14 @@
 //  12 Neues Produkt erfassen (v3.106): per "＋ Weiteres Produkt" und per
 //     unbekanntem Barcode - legt lager_varianten an und oeffnet danach
 //     direkt den Buchen-Dialog fuer Zugang.
-//  13 Tippen-zum-Fokussieren (v3.107, verstaerkt: v3.108, v3.109,
-//     js/01-basis.js): ein Klick auf das Kamerabild stoesst die Fokussuche
-//     in DREI Stufen aktiv neu an - mit einem GESTUBBTEN MediaStreamTrack
-//     (kein echter Kamera-Zugriff, siehe Abschnitt 10) wird geprueft, dass
-//     Stufe 1 die richtigen applyConstraints()-Aufrufe ausloest, Stufe 2
-//     (v3.108) unabhaengig davon einen kompletten Stream-Neustart ueber
-//     navigator.mediaDevices.getUserMedia() anstoesst und den alten Stream
-//     danach stoppt, und Stufe 3 (v3.109) unabhaengig von beiden zusaetzlich
-//     ein Einzelfoto per ImageCapture aufnimmt (der native Aufnahmepfad
-//     einer Foto-App statt des Dauerautofokus-Pfads eines Video-Streams).
+//  13 Tippen-zum-Fokussieren (v3.107, js/01-basis.js): ein Klick auf das
+//     Kamerabild stoesst die Fokussuche aktiv neu an - mit einem
+//     GESTUBBTEN MediaStreamTrack (kein echter Kamera-Zugriff, siehe
+//     Abschnitt 10) wird nur geprueft, dass die richtigen
+//     applyConstraints()-Aufrufe ausgeloest werden. Die in v3.108/v3.109
+//     zusaetzlich eingebauten Stufen (Stream-Neustart, Einzelfoto per
+//     ImageCapture) fuehrten beim Anwender zu einem schwarzen Kamerabild
+//     und wurden in v3.110 wieder zurueckgebaut.
 //
 // WICHTIGSTE AENDERUNG SEIT v3.98: Die Lagerverwaltung baute urspruenglich
 // auf lagerbestand auf (dem Blech-Materialbestand). Das war fachlich falsch
@@ -557,41 +555,37 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(/3 Produkte/.test(z),"die Position zeigt jetzt 3 Produkte in der Liste",z);
  await page.evaluate(()=>{$("lagerBuchenModal").hidden=true});
 
- // ---- 13 · Tippen-zum-Fokussieren (v3.107, verstaerkt v3.108) ------------
+ // ---- 13 · Tippen-zum-Fokussieren (v3.107, Rueckbau in v3.110) -----------
  console.log("\n13 · Tippen-zum-Fokussieren (Kamera-Nahfokus)");
- // Kein echter Kamera-Zugriff in dieser Umgebung - srcObject verlangt aber
- // ein echtes MediaStream-Objekt (ein einfaches {getVideoTracks(){...}}
- // wird vom Browser abgelehnt). captureStream() auf einem <canvas> liefert
- // einen echten MediaStream mit einem echten Video-Track OHNE Kamera; dessen
- // applyConstraints()/getCapabilities()/stop() werden anschliessend
- // ueberschrieben (normale JS-Eigenschaften, auch auf nativen Objekten
- // ueberschreibbar), navigator.mediaDevices.getUserMedia() ebenso, um den
- // Stream-Neustart (Stufe 2, v3.108) ohne echte Kamera zu pruefen. Geprueft
- // wird nur die Verdrahtung - nicht die echte Hardware-Ansteuerung.
+ // v3.108 (Stream-Neustart) und v3.109 (ImageCapture-Einzelfoto) fuehrten
+ // beim Anwender zu einem komplett schwarzen Kamerabild nach dem Tippen -
+ // beide griffen aktiv in den laufenden Kamera-Stream ein. Zurueckgebaut auf
+ // den v3.107-Stand: eine rein additive Vorgabe-Aenderung auf dem
+ // BESTEHENDEN Track, kein Stream-Ersatz, keine Fotoaufnahme. Kein echter
+ // Kamera-Zugriff in dieser Umgebung - srcObject verlangt aber ein echtes
+ // MediaStream-Objekt (ein einfaches {getVideoTracks(){...}} wird vom
+ // Browser abgelehnt). captureStream() auf einem <canvas> liefert einen
+ // echten MediaStream mit einem echten Video-Track OHNE Kamera; dessen
+ // applyConstraints()/getCapabilities() werden anschliessend ueberschrieben
+ // (normale JS-Eigenschaften, auch auf nativen Objekten ueberschreibbar).
+ // Geprueft wird nur, dass ein Klick auf das Kamerabild die richtigen
+ // applyConstraints()-Aufrufe ausloest - nicht die echte Hardware-Ansteuerung.
  z=await page.evaluate(async()=>{
   const aufrufe=[];
   const stream=document.createElement("canvas").captureStream();
   const track=stream.getVideoTracks()[0];
   track.applyConstraints=async c=>{aufrufe.push(c)};
   track.getCapabilities=()=>({focusMode:["continuous","manual"],focusDistance:{min:0.05,max:1,step:0.01}});
-  let alterGestoppt=false;
-  track.stop=()=>{alterGestoppt=true};
   $("barcodeScanVideo").srcObject=stream;
-  let neustarts=0;
-  const neuerStream=document.createElement("canvas").captureStream();
-  navigator.mediaDevices.getUserMedia=async()=>{neustarts++;return neuerStream};
   $("barcodeScanVideo").click();
   await new Promise(r=>setTimeout(r,350));
-  return {aufrufe,neustarts,alterGestoppt,srcObjectIstNeu:$("barcodeScanVideo").srcObject===neuerStream};
+  return {aufrufe};
  });
- p(z.aufrufe.length===2,"mit bekanntem manuellem Fokusabstand: Stufe 1 loest zwei applyConstraints()-Aufrufe aus",z);
+ p(z.aufrufe.length===2,"mit bekanntem manuellem Fokusabstand: ein Klick loest zwei applyConstraints()-Aufrufe aus",z);
  p(z.aufrufe[0]&&z.aufrufe[0].advanced&&z.aufrufe[0].advanced[0].focusMode==="manual"&&z.aufrufe[0].advanced[0].focusDistance===0.05,
    "erster Aufruf stellt manuell auf den naechstmoeglichen (nahen) Fokusabstand",z.aufrufe[0]);
  p(z.aufrufe[1]&&z.aufrufe[1].advanced&&z.aufrufe[1].advanced[0].focusMode==="continuous",
    "zweiter Aufruf schaltet gleich wieder auf Dauerautofokus zurueck",z.aufrufe[1]);
- p(z.neustarts===1,"Stufe 2: unabhaengig von Stufe 1 wird genau ein Stream-Neustart ueber getUserMedia() angestossen",z);
- p(z.srcObjectIstNeu===true,"das Kamerabild haengt danach am neuen Stream",z);
- p(z.alterGestoppt===true,"der alte Stream wird nach dem Neustart gestoppt (kein doppelter Kamerazugriff)",z);
 
  z=await page.evaluate(async()=>{
   const aufrufe=[];
@@ -600,81 +594,12 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   track.applyConstraints=async c=>{aufrufe.push(c)};
   track.getCapabilities=()=>({focusMode:["continuous"]}); // kein manueller Fokusabstand bekannt
   $("barcodeScanVideo").srcObject=stream;
-  let neustarts=0;
-  const neuerStream=document.createElement("canvas").captureStream();
-  navigator.mediaDevices.getUserMedia=async()=>{neustarts++;return neuerStream};
   $("barcodeScanVideo").click();
   await new Promise(r=>setTimeout(r,350));
-  return {aufrufe,neustarts,srcObjectIstNeu:$("barcodeScanVideo").srcObject===neuerStream};
+  return {aufrufe};
  });
  p(z.aufrufe.length===1&&z.aufrufe[0].advanced[0].focusMode==="continuous",
-   "ohne bekannten manuellen Fokusabstand bei Stufe 1 nur der einzelne continuous-Aufruf, kein Fehler",z);
- p(z.neustarts===1&&z.srcObjectIstNeu===true,
-   "Stufe 2 (Stream-Neustart) greift trotzdem, unabhaengig von Stufe 1",z);
-
- z=await page.evaluate(async()=>{
-  // Kein Neustart-Fehler sichtbar, wenn getUserMedia() fehlschlaegt (z. B.
-  // kein zweiter gleichzeitiger Kamerazugriff moeglich) - der alte Stream
-  // bleibt dann unveraendert aktiv, kein zweiter Berechtigungsdialog.
-  const stream=document.createElement("canvas").captureStream();
-  const track=stream.getVideoTracks()[0];
-  track.applyConstraints=async()=>{};
-  track.getCapabilities=()=>({focusMode:["continuous"]});
-  let alterGestoppt=false;
-  track.stop=()=>{alterGestoppt=true};
-  $("barcodeScanVideo").srcObject=stream;
-  navigator.mediaDevices.getUserMedia=async()=>{throw new Error("kein zweiter Kamerazugriff")};
-  let fehler=null;
-  try{ $("barcodeScanVideo").click(); await new Promise(r=>setTimeout(r,350)); }catch(e){fehler=e}
-  return {fehler,alterGestoppt,srcObjectUnveraendert:$("barcodeScanVideo").srcObject===stream};
- });
- p(z.fehler===null,"ein fehlschlagender Stream-Neustart wirft keinen sichtbaren Fehler",z);
- p(z.alterGestoppt===false&&z.srcObjectUnveraendert===true,
-   "und der bisherige Stream bleibt unveraendert aktiv",z);
-
- // Stufe 3 (v3.109): Einzelfoto per ImageCapture, unabhaengig von den
- // Ergebnissen der Stufen 1/2 - window.ImageCapture wird gestubbt (die echte
- // Browser-API existiert zwar in Chromium, liefert aber fuer einen
- // kameralosen canvas-Track kein verwertbares Foto; hier wird nur geprueft,
- // dass ein Klick sie ueberhaupt ansteuert).
- z=await page.evaluate(async()=>{
-  let konstruiertMitTrack=null, fotoAufgenommen=false;
-  window.ImageCapture=class{
-   constructor(t){konstruiertMitTrack=t}
-   async takePhoto(){fotoAufgenommen=true;return new Blob(["x"],{type:"image/png"})}
-  };
-  const stream=document.createElement("canvas").captureStream();
-  const track=stream.getVideoTracks()[0];
-  track.applyConstraints=async()=>{};
-  track.getCapabilities=()=>({focusMode:["continuous"]});
-  track.stop=()=>{};
-  $("barcodeScanVideo").srcObject=stream;
-  navigator.mediaDevices.getUserMedia=async()=>document.createElement("canvas").captureStream();
-  $("barcodeScanVideo").click();
-  await new Promise(r=>setTimeout(r,350));
-  return {konstruiertMitTrackVorhanden:!!konstruiertMitTrack,fotoAufgenommen};
- });
- p(z.konstruiertMitTrackVorhanden===true,"Stufe 3: ein Klick erzeugt ein ImageCapture auf dem aktuellen Video-Track",z);
- p(z.fotoAufgenommen===true,"und nimmt darueber ein Einzelfoto auf - unabhaengig vom Ergebnis der Stufen 1/2",z);
-
- z=await page.evaluate(async()=>{
-  // Ohne ImageCapture-Unterstuetzung (aeltere/andere Browser) darf Stufe 3
-  // keinen Fehler werfen - Stufen 1/2 laufen unveraendert weiter.
-  delete window.ImageCapture;
-  const stream=document.createElement("canvas").captureStream();
-  const track=stream.getVideoTracks()[0];
-  const aufrufe=[];
-  track.applyConstraints=async c=>{aufrufe.push(c)};
-  track.getCapabilities=()=>({focusMode:["continuous"]});
-  track.stop=()=>{};
-  $("barcodeScanVideo").srcObject=stream;
-  navigator.mediaDevices.getUserMedia=async()=>document.createElement("canvas").captureStream();
-  let fehler=null;
-  try{ $("barcodeScanVideo").click(); await new Promise(r=>setTimeout(r,350)); }catch(e){fehler=e}
-  return {fehler,aufrufeLaenge:aufrufe.length};
- });
- p(z.fehler===null&&z.aufrufeLaenge===1,
-   "ohne ImageCapture-Unterstuetzung im Browser laeuft Stufe 1/2 unveraendert weiter, kein Fehler",z);
+   "ohne bekannten manuellen Fokusabstand nur der einzelne continuous-Aufruf, kein Fehler",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

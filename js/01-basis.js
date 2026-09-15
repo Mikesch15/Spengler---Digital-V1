@@ -578,23 +578,17 @@ function zxingLaden(){
  return zxingLadenPromise;
 }
 
-let barcodeScanCodeReader=null, barcodeScanControls=null, barcodeScanAktuellerCallback=null;
+let barcodeScanCodeReader=null, barcodeScanControls=null;
 
 // Dieselbe Wunsch-Vorgabe wie beim ersten Oeffnen (siehe barcodeScannen) -
-// wird auch fuer den Stream-Neustart beim Tippen-zum-Fokussieren gebraucht,
-// deshalb in eine eigene Funktion ausgelagert statt zweimal hingeschrieben.
+// eigene Funktion, damit sie an genau einer Stelle steht.
 function barcodeScanWunschKonstraint(){
  return {video:{facingMode:{ideal:"environment"},
   width:{ideal:1920},height:{ideal:1080},advanced:[{focusMode:"continuous"}]}};
 }
 
 // Kamera stoppen und Overlay schliessen. Sicher mehrfach aufrufbar (z. B.
-// einmal beim erfolgreichen Scan, einmal beim Abbrechen-Klick danach). Stoppt
-// den Stream direkt ueber das <video>-Element (nicht nur ueber die
-// ZXing-Controls) - seit v3.107 kann ein Tippen-zum-Fokussieren einen neuen
-// Stream in denselben <video> eingehaengt haben, von dem die urspruenglichen
-// ZXing-Controls nichts wissen; ohne diesen direkten Stopp bliebe die Kamera
-// nach dem Schliessen aktiv.
+// einmal beim erfolgreichen Scan, einmal beim Abbrechen-Klick danach).
 function barcodeScanSchliessen(){
  try{ if(barcodeScanControls&&barcodeScanControls.stop)barcodeScanControls.stop(); }catch(e){}
  try{ if(barcodeScanCodeReader&&barcodeScanCodeReader.reset)barcodeScanCodeReader.reset(); }catch(e){}
@@ -607,102 +601,35 @@ function barcodeScanSchliessen(){
 }
 if($("barcodeScanAbbrechen"))$("barcodeScanAbbrechen").onclick=barcodeScanSchliessen;
 
-// v3.109: direkter Versuch per EINZELFOTO statt Dauerautofokus. Der
-// Anwender bestaetigte, dass die normale Kamera-App seines Geraets auf
-// demselben Barcode aus derselben Distanz problemlos scharfstellt - das
-// Problem liegt also nicht am Objektiv/Mindestabstand, sondern daran, dass
-// der DAUERAUTOFOKUS eines laufenden Video-Streams (was Stufe 1/2 unten
-// ansteuern) auf diesem Geraet schlechter nachfuehrt als die
-// EINZELBILD-Aufnahme einer Kamera-App. Die `ImageCapture`-API
-// (`takePhoto()`) nutzt denselben Einzelbild-Aufnahmepfad wie eine
-// Foto-App (inkl. deren eigenem Fokussier-vor-Aufnahme-Verhalten), nicht
-// den Dauerautofokus-Pfad des Vorschau-Streams - das erklaert den
-// beobachteten Unterschied. Ein aufgenommenes Foto wird direkt auf
-// Barcodes untersucht; wird einer gefunden, gilt der Scan als erledigt,
-// ganz ohne auf den laufenden Video-Autofokus angewiesen zu sein.
-async function barcodeScanFotoVersuch(){
- if(typeof ImageCapture==="undefined")return null;
- const video=$("barcodeScanVideo");
- const stream=video&&video.srcObject;
- const track=stream&&stream.getVideoTracks&&stream.getVideoTracks()[0];
- if(!track)return null;
- try{
-  const capture=new ImageCapture(track);
-  const blob=await capture.takePhoto();
-  if(!barcodeScanCodeReader||typeof barcodeScanCodeReader.decodeFromImageElement!=="function")return null;
-  const bitmap=await createImageBitmap(blob);
-  const canvas=document.createElement("canvas");
-  canvas.width=bitmap.width;canvas.height=bitmap.height;
-  canvas.getContext("2d").drawImage(bitmap,0,0);
-  const result=await barcodeScanCodeReader.decodeFromImageElement(canvas);
-  return result?result.getText():null;
- }catch(e){return null}
-}
-
-// v3.107 (verstaerkt nach Anwender-Rueckmeldung "stellt immer noch nicht
-// scharf"): Tippen-zum-Fokussieren in drei Stufen. Auf mehreren Geraeten
-// haengt der Dauerautofokus (focusMode:"continuous") bei sehr kurzer Distanz
-// fest und stellt nicht mehr automatisch nach, obwohl die Vorgabe beim Start
-// gesetzt wurde.
-//
-// Stufe 1 (schnell, aber nicht auf jedem Geraet wirksam): unterstuetzt die
-// Kamera einen manuellen Fokusabstand (focusDistance), wird kurz auf den
-// naechstmoeglichen Wert (Nahbereich) gestellt und sofort wieder auf
-// "continuous" zurueckgesetzt.
-//
-// Stufe 2 (robuster, greift unabhaengig davon, ob Stufe 1 etwas bewirkt hat):
-// ein KOMPLETT NEUER Kamera-Stream wird angefordert und in denselben
-// laufenden <video> eingehaengt - der laufende ZXing-Scan liest die Bilder
-// direkt vom <video>-Element und merkt vom Stream-Wechsel nichts, deshalb
-// muss der Scan-Vorgang dafuer nicht neu gestartet werden. Viele
-// Kamera-Treiber fuehren beim STREAM-START einen frischen Autofokus-Sweep
-// durch, der beim laufenden Dauerautofokus mitten im Betrieb bei sehr
-// kurzer Distanz oft ausbleibt - focusDistance ist dafuer nicht noetig, das
-// deckt Geraete ab, bei denen Stufe 1 wirkungslos bleibt. Der alte Stream
-// wird danach gestoppt, damit nicht zwei Kamerazugriffe gleichzeitig aktiv
-// bleiben. Schlaegt die Neuanforderung fehl (z. B. kein zweiter Zugriff
-// moeglich), bleibt der bisherige Stream unveraendert aktiv - kein Fehler
-// sichtbar, kein zweiter Berechtigungsdialog, da die Kamera bereits erlaubt
-// ist.
-//
-// Stufe 3 (v3.109, siehe barcodeScanFotoVersuch oben): unabhaengig vom
-// Ergebnis der ersten beiden Stufen wird zusaetzlich ein Einzelfoto
-// aufgenommen und direkt auf einen Barcode untersucht - wird einer
-// gefunden, gilt der Scan als erledigt (Overlay schliesst, callback wird
-// wie bei einem normalen Video-Treffer aufgerufen).
+// v3.110: RUECKBAU auf v3.107. Die in v3.108 (kompletter Stream-Neustart)
+// und v3.109 (ImageCapture-Einzelfoto) zusaetzlich eingebauten Stufen haben
+// beim Anwender dazu gefuehrt, dass das Kamerabild nach einem Tipp
+// vollstaendig schwarz blieb - schlimmer als das urspruengliche
+// Unschaerfe-Problem, das sie beheben sollten. Beide Stufen griffen aktiv
+// in den laufenden Kamera-Stream ein (ein zweiter gleichzeitiger
+// getUserMedia()-Zugriff bzw. ein takePhoto() waehrend die Vorschau laeuft)
+// - auf diesem Geraet/Browser fuehrte das offenbar zu einer
+// Hardware-/Treiber-Kollision statt zu einer Verbesserung. Es bleibt nur
+// die urspruengliche, rein additive Vorgabe-Aenderung auf dem BESTEHENDEN
+// Track (kein neuer Stream, keine Fotoaufnahme, der Track wird nie
+// ersetzt): unterstuetzt die Kamera einen manuellen Fokusabstand
+// (focusDistance), wird kurz auf den naechstmoeglichen Wert (Nahbereich)
+// gestellt und sofort wieder auf "continuous" zurueckgesetzt - dieser
+// Wertwechsel zwingt einige Kamera-Treiber zu einer frischen Fokussuche.
+// Kennt die Kamera keinen manuellen Fokusabstand, bleibt es beim einfachen
+// "continuous"-Aufruf - kein Fehler, keine Aenderung am Stream.
 async function barcodeScanNeuFokussieren(){
  const video=$("barcodeScanVideo");
- const alterStream=video&&video.srcObject;
- const track=alterStream&&alterStream.getVideoTracks&&alterStream.getVideoTracks()[0];
- if(!track)return;
- if(track.applyConstraints){
-  try{
-   const caps=(typeof track.getCapabilities==="function")?track.getCapabilities():null;
-   if(caps&&caps.focusDistance&&caps.focusMode&&caps.focusMode.indexOf("manual")!==-1){
-    await track.applyConstraints({advanced:[{focusMode:"manual",focusDistance:caps.focusDistance.min}]});
-    await new Promise(r=>setTimeout(r,250));
-   }
-   await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
-  }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
- }
- if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
-  try{
-   const neuerStream=await navigator.mediaDevices.getUserMedia(barcodeScanWunschKonstraint());
-   video.srcObject=neuerStream;
-   // play() bewusst NICHT abgewartet: das Video startet asynchron im
-   // Hintergrund, ein haengendes/abgelehntes play()-Promise (z. B. weil die
-   // Nutzeraktivierung aus dem Klick zu diesem Zeitpunkt schon verbraucht
-   // ist) darf das Stoppen des alten Streams direkt darunter nicht verzoegern.
-   if(typeof video.play==="function")video.play().catch(()=>{});
-   try{ alterStream.getTracks().forEach(t=>t.stop()); }catch(e){}
-  }catch(e){/* Neustart fehlgeschlagen - alter Stream bleibt aktiv, kein Fehler sichtbar */}
- }
- const text=await barcodeScanFotoVersuch();
- if(text){
-  const cb=barcodeScanAktuellerCallback;
-  barcodeScanSchliessen();
-  if(cb)cb(text);
- }
+ const track=video&&video.srcObject&&video.srcObject.getVideoTracks&&video.srcObject.getVideoTracks()[0];
+ if(!track||!track.applyConstraints)return;
+ try{
+  const caps=(typeof track.getCapabilities==="function")?track.getCapabilities():null;
+  if(caps&&caps.focusDistance&&caps.focusMode&&caps.focusMode.indexOf("manual")!==-1){
+   await track.applyConstraints({advanced:[{focusMode:"manual",focusDistance:caps.focusDistance.min}]});
+   await new Promise(r=>setTimeout(r,250));
+  }
+  await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
+ }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
 }
 if($("barcodeScanVideo"))$("barcodeScanVideo").addEventListener("click",barcodeScanNeuFokussieren);
 
@@ -724,7 +651,6 @@ async function barcodeScannen(callback){
  if(status){status.textContent="Kamera wird gestartet …";status.style.color="#fff"}
  try{
   barcodeScanCodeReader=new ZXing.BrowserMultiFormatReader();
-  barcodeScanAktuellerCallback=callback;
   const aufTreffer=(result,err,controls)=>{
    barcodeScanControls=controls;
    if(result){

@@ -28743,3 +28743,93 @@ endgültige Bestätigung kann aber nur der Anwender selbst am Gerät geben.
   laufenden Video-Scan) statt sie nur als Tipp-Geste anzubieten - deutlich
   grösserer Eingriff, bewusst nicht vorgezogen, solange nicht klar ist, ob
   er nötig ist.
+
+## 176. RÜCKBAU: KAMERABILD WURDE NACH TIPP SCHWARZ — VERSION 3.110
+
+### 176.1 Anlass
+
+Rückmeldung des Anwenders nach v3.109 (mit Screenshot): nach einem Tipp
+auf das Kamerabild zum Fokussieren blieb die gesamte Vorschau **komplett
+schwarz** - kein Live-Bild mehr, nicht nur unscharf. Das ist eine
+deutlich schwerwiegendere Regression als das ursprüngliche
+Unschärfe-Problem, das v3.108/v3.109 beheben sollten.
+
+### 176.2 Root-Cause (Verdacht, nicht abschliessend beweisbar aus der Sandbox)
+
+Beide in v3.108 und v3.109 zusätzlich eingebauten Stufen griffen aktiv in
+den laufenden Kamera-Stream ein:
+
+- **Stufe 2 (v3.108):** ein zweiter, gleichzeitiger
+  `navigator.mediaDevices.getUserMedia()`-Aufruf, während der erste Stream
+  noch aktiv war (das Stoppen des alten Streams erfolgte erst NACH
+  erfolgreichem Start des neuen).
+- **Stufe 3 (v3.109):** `ImageCapture.takePhoto()` auf dem laufenden
+  Track, während die Video-Vorschau parallel weiterlief.
+
+Beide Muster sind auf Mobilgeräten bekannte Risikoquellen: viele
+Kamera-Treiber/-HALs unterstützen entweder keinen zweiten gleichzeitigen
+Zugriff auf dieselbe physische Kamera sauber, oder wechseln für eine
+Einzelbild-Aufnahme kurzzeitig in einen anderen internen Kameramodus, der
+die laufende Vorschau unterbricht - offenbar mit einer Fehlfunktion
+(dauerhaft schwarzes Bild statt eines kurzen Rucklers) auf dem Gerät des
+Anwenders. Eine abschliessende Diagnose, welche der beiden Stufen genau
+verantwortlich war, ist aus dieser Sandbox mangels echter Kamera nicht
+möglich - beide sind plausible, unabhängige Kandidaten.
+
+### 176.3 Entscheidung: Rückbau statt weiterer Versuche
+
+Statt eine dritte Runde ungetesteter Kamera-Eingriffe zu bauen, wurde auf
+den v3.107-Stand zurückgebaut: `barcodeScanNeuFokussieren()`
+(js/01-basis.js) macht wieder ausschliesslich das, was v3.107 tat - eine
+rein additive Vorgabe-Änderung (`applyConstraints()`) auf dem BESTEHENDEN,
+nie ersetzten Track. Kein zweiter `getUserMedia()`-Aufruf, keine
+`ImageCapture`/`takePhoto()`-Aufnahme, kein Ersetzen von `video.srcObject`
+mehr. `barcodeScanFotoVersuch()` (Stufe 3) und der Stream-Neustart-Block
+(Stufe 2) wurden vollständig entfernt, ebenso die dafür eingeführte
+Variable `barcodeScanAktuellerCallback`, die ausschliesslich von Stufe 3
+gebraucht wurde. `barcodeScanWunschKonstraint()` bleibt bestehen (wird
+weiterhin von `barcodeScannen()` beim ersten Öffnen der Kamera genutzt).
+
+Begründung für den bewussten Verzicht auf einen erneuten Lösungsversuch in
+dieser Version: eine funktionierende, aber gelegentlich unscharfe Kamera
+ist für den Anwender klar besser als eine, die nach einer Bedienhandlung
+komplett schwarz bleibt. Ein Feature, das den gemeldeten Fehler nicht
+zuverlässig behebt, aber dafür einen neuen, schwereren Fehler einführt,
+ist ein Rückschritt - deshalb Rückbau zuerst, weitere Versuche erst nach
+Rücksprache mit dem Anwender.
+
+### 176.4 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 13 auf den
+ursprünglichen v3.107-Umfang zurückgebaut (die 8 in v3.108/v3.109
+hinzugekommenen Prüfungen für Stream-Neustart und Einzelfoto entfernt, da
+die dazugehörige Funktionalität nicht mehr existiert). 4 Prüfungen in
+Abschnitt 13, 67 Prüfungen insgesamt in diesem Prüfstand (vorher 76),
+alle bestanden. Volle Regression aller Prüfstände im Anschluss ohne neue
+Fehlschläge.
+
+### 176.5 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | `barcodeScanNeuFokussieren()` auf v3.107-Stand zurückgebaut; `barcodeScanFotoVersuch()` entfernt; Stream-Neustart-Block entfernt; `barcodeScanAktuellerCallback` entfernt |
+| `sw.js` | Cache-Version 3.110 |
+| `PROJECT_STATE.md` | Versionsstand 3.110 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.110"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13 auf v3.107-Umfang zurückgebaut (8 Prüfungen entfernt) |
+
+### 176.6 Offene Punkte
+
+- Das ursprüngliche Unschärfe-Problem bei sehr kurzer Distanz ist damit
+  NICHT gelöst - nur die durch v3.108/v3.109 verursachte schwerwiegendere
+  Regression. Der Anwender kann als Zwischenlösung den Barcode etwas
+  weiter von der Kamera weghalten.
+- Ein neuer Lösungsversuch für die Unschärfe sollte deutlich vorsichtiger
+  vorgehen: einzeln zuschaltbar, mit klarer Rückmeldung an den Anwender
+  vor jedem Test, statt mehrere ungetestete Kamera-Eingriffe auf einmal
+  zu stapeln - diese Sitzung hat gezeigt, dass genau das (stapelweises
+  Hinzufügen ohne Zwischenbestätigung) zu einer immer schwereren
+  Fehlerkette geführt hat, statt das ursprüngliche Problem zu lösen.
+- Kein Live-Test mit echter Kamera aus dieser Sandbox möglich - auch der
+  Rückbau selbst kann nur strukturell (Prüfstand), nicht am echten Gerät
+  bestätigt werden.
