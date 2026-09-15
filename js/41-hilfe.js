@@ -1191,11 +1191,23 @@ zwingend das, was in der Massaufnahme erfasst ist. Gehören zu einer
 Materialposition mehrere Produkte (z. B. verschiedene Rohrbogen), muss das
 richtige ausgewählt werden; die App rät nicht und wählt solche Zeilen auch
 nicht von sich aus vor.</p>
-<p>Angeboten wird nur, was im <b>Material-Katalog</b> steht und im Lager ein
-Produkt hat. <b>Blech und gerechnete Zuschnitte gehören nicht ins Lager</b> –
-das Lager führt allgemeines Material. Zeilen, die sich nicht buchen lassen,
-werden trotzdem mit dem Grund angezeigt, damit keine Position stillschweigend
-fehlt.</p>
+<p>Angeboten wird zweierlei. Erstens das <b>von Hand erfasste Material</b>:
+dort steht die EDV-Nr. bereits fest, angeboten wird, was im
+<b>Material-Katalog</b> steht und im Lager ein Produkt hat. Zweitens
+– <b>seit Version 3.121</b> – die <b>Halbfabrikate</b> der Massaufnahme:
+bei einer Dachrinne also Rinnenböden, Stutzen, Rinnenhalter, Innen- und
+Aussenwinkel und Dehnungsstücke. <b>Blech und gerechnete Zuschnitte gehören
+weiterhin nicht ins Lager</b> – das Lager führt allgemeines Material.</p>
+<p>Ein Halbfabrikat trägt <b>keine EDV-Nr.</b>, nur eine Bezeichnung
+(„Rinnenboden links Ø 333"). Deshalb steht dort ein eigenes
+<b>Auswahlfeld für die Materialposition</b>, mit Suchfeld davor, weil ein
+Material-Katalog lang sein kann. Die App schlägt eine Position vor – nach
+derselben Bewertung wie beim Übernehmen in den Regierapport –, wählt sie
+aber nur dann von selbst, wenn der Treffer eindeutig ist und die Position im
+Lager genau ein Produkt hat. Ohne gewählte Position wird eine Zeile
+<b>nicht</b> gebucht.</p>
+<p>Zeilen, die sich nicht buchen lassen, werden trotzdem mit dem Grund
+angezeigt, damit keine Position stillschweigend fehlt.</p>
 <p>Wurde für dieselbe Massaufnahme schon einmal ausgebucht, steht das als
 <b>Warnung</b> oben im Dialog – ein zweites Mal bucht zusätzlich aus. Erkannt
 wird das am Buchungsgrund, den die App selbst schreibt; dort steht später

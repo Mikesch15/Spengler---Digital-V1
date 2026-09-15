@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.120</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.121</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -2506,8 +2506,8 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <div id="measLagerModal" class="modal" hidden>
 <div class="card">
 <h2>📤 Material ab Lager ausbuchen <button type="button" class="hilfe-knopf no-print" data-hilfe="meas-lager-ausbuchen">i</button></h2>
-<div class="small">Bucht das von Hand erfasste Material dieser Massaufnahme als <b>Abgang</b> im Lager. Angeboten wird nur, was im Material-Katalog steht und im Lager ein Produkt hat – Blech und gerechnete Zuschnitte gehören nicht ins Lager.</div>
-<div class="small">Gehören zu einer Position mehrere Produkte, wählen Sie das richtige aus. Die Menge ist frei änderbar – gebucht wird genau das, was hier steht.</div>
+<div class="small">Bucht Material dieser Massaufnahme als <b>Abgang</b> im Lager: das von Hand erfasste Material und die <b>Halbfabrikate</b> (bei einer Dachrinne also Rinnenböden, Stutzen, Rinnenhalter, Winkel, Dehnungsstücke). Das Blech selbst und die gerechneten Zuschnitte bleiben aussen vor – die gehören nicht ins Lager.</div>
+<div class="small">Ein Halbfabrikat trägt keine EDV-Nr.: dort wählen Sie die Materialposition selbst (mit Suchfeld). Die App schlägt eine vor, wählt sie aber nur bei einem eindeutigen Treffer. Gehören zu einer Position mehrere Produkte, wählen Sie das richtige aus. Die Menge ist frei änderbar – gebucht wird genau das, was hier steht.</div>
 <div id="measLagerWarnung" class="small" style="color:var(--red);margin-top:6px" hidden></div>
 <div id="measLagerListe"></div>
 <div id="measLagerFehler" class="small" style="color:var(--red)" hidden></div>

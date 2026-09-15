@@ -464,16 +464,34 @@ if($("lagerNeuesProduktSpeichern"))$("lagerNeuesProduktSpeichern").onclick=async
 // heilen. Deshalb ein eigener Knopf in der Massaufnahme, ein Dialog zum
 // Pruefen und erst dann die Buchung.
 //
-// Quelle sind AUSSCHLIESSLICH die von Hand erfassten Materialzeilen der
-// Massaufnahme (measRapportMaterial aus js/57, gespeichert in
-// measurements.rapport_material). Die gerechneten Blechzuschnitte und
-// Halbfabrikate bleiben bewusst aussen vor: das Lager fuehrt allgemeines
-// Material, kein Blech (siehe Kopfkommentar dieser Datei).
+// Zwei Quellen (v3.121):
+//
+//  1. Die von Hand erfassten Materialzeilen der Massaufnahme
+//     (measRapportMaterial aus js/57, gespeichert in
+//     measurements.rapport_material). Sie tragen bereits eine EDV-Nr.
+//  2. Die HALBFABRIKATE der Massaufnahme - bei einer Dachrinne also
+//     Rinnenboeden, Stutzen, Rinnenhalter, Innen-/Aussenwinkel und
+//     Dehnungsstuecke. Quelle ist rmatTeileZeilen() (js/57), dieselbe
+//     Funktion, aus der auch der Regierapport-Dialog seine Halbfabrikate
+//     zieht - es gibt dafuer keine zweite Ableitung.
+//
+// Die gerechneten Blechzuschnitte bleiben weiterhin aussen vor: das Lager
+// fuehrt allgemeines Material, kein Blech (siehe Kopfkommentar dieser
+// Datei). rmatZuschnittFlaeche()/rmatRollenFlaeche() werden hier deshalb
+// bewusst NICHT aufgerufen.
 //
 // Die Zeile traegt eine EDV-Nr., das Lager bucht auf ein PRODUKT
 // (lager_varianten). Dazwischen liegt die Materialposition: EDV-Nr. ->
 // lagArtikelListe() -> material_id -> lagerVariantenVonMaterial(). Hat eine
 // Position mehrere Produkte, waehlt der Anwender - die App raet nicht.
+//
+// Ein Halbfabrikat traegt KEINE EDV-Nr., sondern nur eine Bezeichnung
+// ("Rinnenboden links Ø 333"). Die Materialposition dazu waehlt deshalb der
+// Anwender - mit Suchfeld, weil ein Material-Katalog lang sein kann. Die App
+// schlaegt eine Position vor, aber nur ueber dieselbe Bewertung wie der
+// Regierapport-Dialog (rmatVorschlaege/rmatIstSicher, js/57), und sie waehlt
+// nur dann vor, wenn dieser Vorschlag dort als SICHER gilt UND die Position
+// im Lager genau ein Produkt hat. Geraten wird nichts.
 let measLagerZeilen=[];
 
 function measLagerMarke(id){return "(#MA"+id+")"}
@@ -490,10 +508,18 @@ function measLagerBeschriftung(){
  return art+(titel?" · "+titel:"");
 }
 
-// Baut die Vorschlagszeilen. Jede Materialzeile der Massaufnahme wird zu
-// genau einer Zeile - auch die nicht buchbaren, damit niemand raetselt,
-// warum eine Position fehlt.
-function measLagerZeilenBauen(){
+// Die Materialpositionen, die ueberhaupt zur Wahl stehen: nur solche, fuer
+// die im Lager mindestens ein Produkt erfasst ist. Alles andere liesse sich
+// gar nicht buchen und waere im Auswahlfeld nur Ballast.
+function measLagerPositionsListe(){
+ const artikel=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ return artikel.filter(a=>lagerVariantenVonMaterial(a.id).length>0);
+}
+
+// Die von Hand erfassten Materialzeilen. Jede wird zu genau einer Zeile -
+// auch die nicht buchbaren, damit niemand raetselt, warum eine Position
+// fehlt.
+function measLagerErfassteZeilen(){
  const roh=(typeof measRapportMaterial!=="undefined"&&Array.isArray(measRapportMaterial))?measRapportMaterial:[];
  const artikel=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
  return roh.map((z,i)=>{
@@ -502,7 +528,7 @@ function measLagerZeilenBauen(){
   const a=no?artikel.find(x=>String(x.edv_nr).trim()===no):null;
   const varianten=a?lagerVariantenVonMaterial(a.id):[];
   return {
-   id:"z"+i, no, menge,
+   id:"z"+i, art:"erfasst", no, menge,
    artikel:a,
    bezeichnung:a?lagArtikelText(a):(no||"(ohne EDV-Nr.)"),
    einheit:a&&a.unit?a.unit:"",
@@ -518,6 +544,62 @@ function measLagerZeilenBauen(){
    gewaehlt:false
   };
  });
+}
+
+// Die Halbfabrikate der Massaufnahme (v3.121). Gelesen wird der LIVE-Stand
+// des Formulars: buildMeasurementFromForm() (js/16) baut denselben
+// Datensatz, der beim Speichern in die Datenbank ginge - inklusive
+// data.ausmass. Dadurch passt der Dialog zu dem, was gerade auf dem
+// Bildschirm steht, genau wie bei measRapportMaterial oben.
+function measLagerTeilZeilen(positionen){
+ if(typeof rmatTeileZeilen!=="function")return [];
+ let m=null;
+ // Ein Formular, das gerade nicht vollstaendig ist, darf den Dialog nicht
+ // zerreissen - dann gibt es eben keine Halbfabrikate.
+ try{ m=(typeof buildMeasurementFromForm==="function")?buildMeasurementFromForm():null; }
+ catch(e){ m=null; }
+ if(!m||!m.data)return [];
+ let teile=[];
+ try{ teile=rmatTeileZeilen(m)||[]; }catch(e){ teile=[]; }
+ const matName=(typeof rmatMatName==="function")?rmatMatName(m):"";
+ return teile.map((t,i)=>{
+  const menge=lagerZahl(t.menge);
+  // Derselbe Vorschlag wie im Regierapport-Dialog - eine Bewertung, nicht
+  // zwei, damit beide Stellen dieselbe Position nennen.
+  let v=[];
+  try{ v=(typeof rmatVorschlaege==="function")?rmatVorschlaege(t.bezeichnung,t.einheit,matName):[]; }
+  catch(e){ v=[]; }
+  const sicher=(typeof rmatIstSicher==="function")?rmatIstSicher(v):false;
+  // Vorgewaehlt wird nur ein SICHERER Vorschlag, der im Lager auch wirklich
+  // als Position mit Produkt existiert.
+  const a=(sicher&&v.length)
+   ?(positionen.find(x=>String(x.edv_nr).trim()===String(v[0].no).trim())||null)
+   :null;
+  const varianten=a?lagerVariantenVonMaterial(a.id):[];
+  return {
+   id:"t"+i, art:"teil", no:a?String(a.edv_nr):"", menge,
+   artikel:a,
+   bezeichnung:t.bezeichnung,
+   einheit:t.einheit||"",
+   positionen,
+   // Der beste Vorschlag als Text - auch dann, wenn er nicht uebernommen
+   // wurde. Der Anwender soll sehen, was die App gefunden hat.
+   vorschlag:v.length?(v[0].no+" \u00b7 "+v[0].name):"",
+   vorschlagSicher:sicher,
+   suche:"",
+   varianten,
+   varianteId:varianten.length===1?String(varianten[0].id):"",
+   grund:!positionen.length?"Im Lager ist noch keine Materialposition mit einem Produkt erfasst."
+    :!menge?"Diese Zeile hat keine Menge."
+    :"",
+   gewaehlt:false
+  };
+ });
+}
+
+function measLagerZeilenBauen(){
+ const positionen=measLagerPositionsListe();
+ return measLagerErfassteZeilen().concat(measLagerTeilZeilen(positionen));
 }
 
 async function measLagerOeffnen(){
@@ -540,8 +622,11 @@ async function measLagerOeffnen(){
  await lagerBewegungenLaden();
  measLagerZeilen=measLagerZeilenBauen();
  // Vorgewaehlt ist, was ohne Rueckfrage buchbar ist - eine Position mit
- // mehreren Produkten gehoert ausdruecklich NICHT dazu.
- measLagerZeilen.forEach(z=>{z.gewaehlt=!z.grund&&z.varianten.length===1});
+ // mehreren Produkten gehoert ausdruecklich NICHT dazu. Bei einem
+ // Halbfabrikat (v3.121) heisst das zusaetzlich: nur wenn die App die
+ // Materialposition oben als SICHER gefunden hat. Ohne Position bleibt die
+ // Zeile sichtbar, aber unangehakt.
+ measLagerZeilen.forEach(z=>{z.gewaehlt=!z.grund&&z.varianten.length===1&&!!z.varianteId});
  const frueher=measLagerFruehereBuchungen(currentMeasurementId);
  const warnung=$("measLagerWarnung");
  if(frueher.length){
@@ -560,6 +645,33 @@ function measLagerSchliessen(){
  measLagerZeilen=[];
 }
 
+// Das Auswahlfeld der Materialposition - nur fuer Halbfabrikate, die keine
+// EDV-Nr. mitbringen. Mit Suchfeld, weil ein Material-Katalog lang sein kann
+// (dieselbe Loesung wie beim Produkt-Formular, v3.118).
+function measLagerPositionOptionen(z){
+ const begriff=String(z.suche||"").trim().toLowerCase();
+ const gewaehlt=z.artikel?String(z.artikel.id):"";
+ const liste=begriff
+  // Die bereits gewaehlte Position bleibt IMMER in der Liste - sonst wuerde
+  // eine Suche sie stillschweigend abwaehlen.
+  ?z.positionen.filter(a=>String(a.id)===gewaehlt||lagArtikelText(a).toLowerCase().includes(begriff))
+  :z.positionen;
+ return `<option value="">– Position wählen –</option>`+
+  liste.map(a=>`<option value="${esc(a.id)}"${String(a.id)===gewaehlt?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("");
+}
+function measLagerPositionHtml(z){
+ const hinweis=z.artikel
+  ?(z.vorschlagSicher?`<span class="rmat-sicher">✓ Vorschlag der App</span>`:"")
+  :(z.vorschlag
+    ?`<span class="rmat-unsicher">Vorschlag: ${esc(z.vorschlag)} – bitte prüfen und wählen</span>`
+    :`<span class="rmat-unsicher">Keine passende Position gefunden – bitte selbst wählen.</span>`);
+ return `<div class="rmat-pos">
+  <input type="search" placeholder="Position suchen …" data-meas-lager-suche="${esc(z.id)}" value="${esc(z.suche||"")}">
+  <select data-meas-lager-position="${esc(z.id)}">${measLagerPositionOptionen(z)}</select>
+  ${hinweis}
+ </div>`;
+}
+
 function measLagerZeileHtml(z){
  const bestand=z.varianteId?lagerBestandVon(z.varianteId):null;
  const nachher=(bestand!==null)?bestand-Math.abs(z.menge):null;
@@ -569,7 +681,12 @@ function measLagerZeileHtml(z){
    <div class="small" style="color:var(--muted)">${esc(z.grund)}</div>
   </div>`;
  }
- const auswahl=z.varianten.length>1
+ const auswahl=!z.varianten.length
+  // Nur bei Halbfabrikaten moeglich: solange keine Position gewaehlt ist,
+  // gibt es auch kein Produkt. Die Zeile bleibt sichtbar und waehlbar,
+  // gebucht wird sie aber erst mit Position und Produkt.
+  ?`<div class="small" style="color:var(--muted)">Ohne Materialposition wird diese Zeile nicht gebucht.</div>`
+  :z.varianten.length>1
   ?`<select data-meas-lager-variante="${esc(z.id)}">
      <option value="">– Produkt wählen –</option>
      ${z.varianten.map(v=>`<option value="${v.id}"${String(v.id)===z.varianteId?" selected":""}>${esc(v.bezeichnung)} · Bestand ${esc(lagerZahlText(lagerBestandVon(v.id)))}</option>`).join("")}
@@ -580,6 +697,7 @@ function measLagerZeileHtml(z){
    <input type="checkbox" data-meas-lager-wahl="${esc(z.id)}"${z.gewaehlt?" checked":""}>
    <span class="rmat-wahl-text"><b>${esc(z.bezeichnung)}</b></span>
   </label>
+  ${z.art==="teil"?measLagerPositionHtml(z):""}
   ${auswahl}
   <div class="bar" style="gap:6px;align-items:center;margin-top:4px">
    <label class="small" style="margin:0">Menge</label>
@@ -591,13 +709,19 @@ function measLagerZeileHtml(z){
  </div>`;
 }
 
+const MEAS_LAGER_ART_TITEL={erfasst:"Von Hand erfasst",teil:"Halbfabrikate und Teile"};
 function renderMeasLagerListe(){
  const box=$("measLagerListe");
  if(!box)return;
  if(!measLagerZeilen.length){
-  box.innerHTML='<div class="small">In dieser Massaufnahme ist unter „Material für den Regierapport“ noch nichts erfasst – es gibt nichts auszubuchen.</div>';
+  box.innerHTML='<div class="small">In dieser Massaufnahme ist weder unter „Material für den Regierapport“ etwas erfasst, noch ergibt sie Halbfabrikate – es gibt nichts auszubuchen.</div>';
  }else{
-  box.innerHTML=measLagerZeilen.map(measLagerZeileHtml).join("");
+  box.innerHTML=["erfasst","teil"].map(art=>{
+   const zeilen=measLagerZeilen.filter(z=>z.art===art);
+   if(!zeilen.length)return "";
+   return `<div class="rmat-art">${esc(MEAS_LAGER_ART_TITEL[art])}</div>`
+    +zeilen.map(measLagerZeileHtml).join("");
+  }).join("");
  }
  measLagerKnopfStand();
 }
@@ -631,11 +755,41 @@ if($("measLagerListe")){
     if(!z.varianteId)z.gewaehlt=false;
    }
    renderMeasLagerListe();
+   return;
+  }
+  // v3.121: die Materialposition eines Halbfabrikats. Mit ihr wechselt auch
+  // die Produktliste - hat die neue Position genau ein Produkt, steht es
+  // damit fest, sonst waehlt wieder der Anwender.
+  const position=e.target.dataset.measLagerPosition;
+  if(position!==undefined){
+   const z=measLagerZeilen.find(x=>x.id===position);
+   if(z){
+    const a=z.positionen.find(x=>String(x.id)===String(e.target.value))||null;
+    z.artikel=a;
+    z.no=a?String(a.edv_nr):"";
+    z.einheit=a&&a.unit?a.unit:z.einheit;
+    z.varianten=a?lagerVariantenVonMaterial(a.id):[];
+    z.varianteId=z.varianten.length===1?String(z.varianten[0].id):"";
+    if(!z.varianteId)z.gewaehlt=false;
+   }
+   renderMeasLagerListe();
   }
  });
  // Die Menge waehrend des Tippens NICHT neu zeichnen - sonst verliert das
  // Feld den Fokus (dieselbe Lehre wie bei der Materialzeile, js/57).
  $("measLagerListe").addEventListener("input",e=>{
+  const suche=e.target.dataset.measLagerSuche;
+  if(suche!==undefined){
+   const z=measLagerZeilen.find(x=>x.id===suche);
+   if(!z)return;
+   z.suche=e.target.value;
+   // Nur die Optionen dieses einen Auswahlfeldes neu setzen. Ein voller
+   // Neuaufbau der Liste wuerde dem Suchfeld den Fokus nehmen - dieselbe
+   // Lehre wie beim Mengenfeld unten.
+   const sel=$("measLagerListe").querySelector('[data-meas-lager-position="'+z.id+'"]');
+   if(sel)sel.innerHTML=measLagerPositionOptionen(z);
+   return;
+  }
   const menge=e.target.dataset.measLagerMenge;
   if(menge===undefined)return;
   const z=measLagerZeilen.find(x=>x.id===menge);

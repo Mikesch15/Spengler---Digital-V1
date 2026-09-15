@@ -898,7 +898,9 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   // mehreren, 999.99 -> nicht im Katalog, letzte Zeile ohne Menge.
   measRapportMaterial=[{no:"205.30",qty:5},{no:"300.10",qty:3},
                        {no:"999.99",qty:1},{no:"205.30",qty:0}];
-  const zeilen=measLagerZeilenBauen();
+  // v3.121: die Liste traegt jetzt zwei Herkuenfte. Hier geprueft wird der
+  // von Hand erfasste Teil - die Halbfabrikate kommen in 14b.
+  const zeilen=measLagerZeilenBauen().filter(x=>x.art==="erfasst");
   return zeilen.map(x=>({no:x.no,menge:x.menge,grund:x.grund,
    varianteId:x.varianteId,anzahlVarianten:x.varianten.length}));
  });
@@ -967,6 +969,127 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  });
  p(z.versteckt===false&&/bereits ausgebucht/.test(z.text),
    "ein zweiter Anlauf warnt sichtbar, dass fuer diese Massaufnahme schon ausgebucht wurde",z);
+
+
+ // ---- 14b · Halbfabrikate mit ausbuchen (v3.121) -------------------------
+ // Der Anwender hat die Abgrenzung von v3.120 korrigiert: Halbfabrikate
+ // (bei einer Dachrinne Rinnenboeden, Stutzen, Halter, Winkel) gehoeren
+ // sehr wohl ins Lager, nur das BLECH selbst nicht. Quelle ist
+ // rmatTeileZeilen() (js/57) - dieselbe Funktion wie im
+ // Regierapport-Dialog, keine zweite Ableitung.
+ console.log("\n14b · Halbfabrikate der Massaufnahme mit ausbuchen");
+ z=await page.evaluate(async()=>{
+  // Katalog und Lager um zwei Halbfabrikat-Positionen erweitern:
+  //  412.10 Rinnenhalter -> genau EIN Produkt (eindeutiger Treffer)
+  //  413.20 Rinnenboden  -> ZWEI Produkte (links/rechts)
+  settings.materials=settings.materials.concat([
+   ["412.10","Rinnenhalter alle Materialien","330 mm","Stk",6.50],
+   ["413.20","Rinnenboden","330 mm","Stk",9.90]]);
+  materialIds=[1,2,3,4];
+  window.__lese.lager_varianten=window.__lese.lager_varianten.concat([
+   {id:701,material_id:3,bezeichnung:"Rinnenhalter 330 verzinkt",barcode:"RH-330"},
+   {id:801,material_id:4,bezeichnung:"Rinnenboden links 330",barcode:"RB-L-330"},
+   {id:802,material_id:4,bezeichnung:"Rinnenboden rechts 330",barcode:"RB-R-330"}]);
+  // Eine echte Dachrinne im Formular - der Zustand des Moduls selbst,
+  // buildMeasurementFromForm() (js/16) macht daraus data.ausmass.
+  currentMeasurementId=78;
+  $("measType").value="rinne_halbrund";
+  $("measTitle").value="Dachrinne Nord";
+  measRapportMaterial=[{no:"205.30",qty:4}];
+  rinneA=raLeer();
+  rinneA.groesse="330";
+  rinneA.segmente=[{laenge:"6000",linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null},
+                   {laenge:"4000",linksTyp:"",rechtsTyp:"",winkel:0,stutzen:null}];
+  rinneA.halter={anzahl:21,abstand_mm:"500",typ:""};
+  rinneA.rinnenboden={links:true,rechts:true};
+  await measLagerOeffnen();
+  return measLagerZeilen.map(x=>({art:x.art,bez:x.bezeichnung,menge:x.menge,
+   einheit:x.einheit,no:x.no,grund:x.grund,varianteId:x.varianteId,
+   anzahlVarianten:x.varianten.length,gewaehlt:x.gewaehlt,vorschlag:x.vorschlag||""}));
+ });
+ const erfasst=z.filter(x=>x.art==="erfasst");
+ const teile=z.filter(x=>x.art==="teil");
+ p(erfasst.length===1&&erfasst[0].no==="205.30",
+   "das von Hand erfasste Material steht unveraendert weiter in der Liste",erfasst);
+ p(teile.length>=3,"die Halbfabrikate der Massaufnahme kommen dazu - eine Zeile je Teil",teile);
+ p(teile.some(x=>/Rinnenhalter/.test(x.bez)&&x.menge===21)
+   &&teile.some(x=>/Rinnenboden links/.test(x.bez))
+   &&teile.some(x=>/Rinnenboden rechts/.test(x.bez)),
+   "Rinnenhalter und beide Rinnenboeden stehen mit ihrer gerechneten Menge da",teile);
+
+ const blech=teile.find(x=>/^Dachrinne/.test(x.bez));
+ p(!!blech,"auch die Blech-Zeile der Dachrinne wird angezeigt statt still zu verschwinden",teile);
+ p(!!blech&&blech.no===""&&blech.varianteId===""&&blech.gewaehlt===false,
+   "das Blech selbst bleibt ohne Materialposition und unangehakt - es gehoert nicht ins Lager",blech);
+
+ const halter=teile.find(x=>/Rinnenhalter/.test(x.bez));
+ p(!!halter&&halter.no==="412.10"&&halter.varianteId==="701"&&halter.gewaehlt===true,
+   "ein eindeutiger Katalogtreffer mit genau EINEM Lager-Produkt wird vorgewaehlt",halter);
+ const bodenL=teile.find(x=>/Rinnenboden links/.test(x.bez));
+ p(!!bodenL&&bodenL.no===""&&bodenL.gewaehlt===false&&/413\.20/.test(bodenL.vorschlag),
+   "ein unsicherer Treffer wird nur als Vorschlag genannt, aber NICHT gewaehlt - die App raet nicht",bodenL);
+
+ // Die Suche filtert die Positionsliste, ohne die getroffene Wahl zu verlieren.
+ z=await page.evaluate(()=>{
+  const zeile=measLagerZeilen.find(x=>/Rinnenboden links/.test(x.bezeichnung));
+  const feld=document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]');
+  const sel=()=>document.querySelector('[data-meas-lager-position="'+zeile.id+'"]');
+  const alle=sel().options.length;
+  feld.value="rinnenboden";
+  feld.dispatchEvent(new Event("input",{bubbles:true}));
+  const gefiltert=[...sel().options].map(o=>o.textContent);
+  // Jetzt die Position waehlen und danach nach etwas ganz anderem suchen.
+  const s2=sel(); s2.value=String(zeile.positionen.find(a=>a.edv_nr==="413.20").id);
+  s2.dispatchEvent(new Event("change",{bubbles:true}));
+  const nachWahl={no:zeile.no,anzahlVarianten:zeile.varianten.length,varianteId:zeile.varianteId};
+  const feld2=document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]');
+  feld2.value="dichtband";
+  feld2.dispatchEvent(new Event("input",{bubbles:true}));
+  const nachFremdsuche=[...sel().options].map(o=>o.value);
+  return {alle,gefiltert,nachWahl,nachFremdsuche,
+   gewaehlteId:String(zeile.artikel?zeile.artikel.id:"")};
+ });
+ p(z.gefiltert.length<z.alle&&z.gefiltert.some(t=>/Rinnenboden/.test(t)),
+   "das Suchfeld filtert die Positionsliste der Zeile",z);
+ p(z.nachWahl.no==="413.20"&&z.nachWahl.anzahlVarianten===2&&z.nachWahl.varianteId==="",
+   "mit der Position wechselt die Produktliste - bei zwei Produkten waehlt weiterhin der Anwender",z.nachWahl);
+ p(z.nachFremdsuche.indexOf(z.gewaehlteId)>=0,
+   "eine bereits gewaehlte Position bleibt in der Liste, auch wenn die Suche sie nicht mehr trifft",z);
+
+ // Produkt waehlen, anhaken, buchen - zusammen mit dem erfassten Material.
+ const ausbuchen2=await page.evaluate(async()=>{
+  const zeile=measLagerZeilen.find(x=>/Rinnenboden links/.test(x.bezeichnung));
+  const sel=document.querySelector('[data-meas-lager-variante="'+zeile.id+'"]');
+  sel.value="801";
+  sel.dispatchEvent(new Event("change",{bubbles:true}));
+  const box=document.querySelector('[data-meas-lager-wahl="'+zeile.id+'"]');
+  box.checked=true;
+  box.dispatchEvent(new Event("change",{bubbles:true}));
+  window.__schreib=[];
+  $("measLagerBuchenBtn").click();
+  await new Promise(r=>setTimeout(r,60));
+  const ins=window.__schreib.find(x=>x.op==="insert"&&x.t==="lagerbestand_bewegungen");
+  return {zeilen:ins?ins.d:null};
+ });
+ p(!!ausbuchen2.zeilen&&ausbuchen2.zeilen.some(d=>d.variante_id===801&&d.menge===-1),
+   "ein Halbfabrikat wird auf das gewaehlte Produkt ausgebucht",ausbuchen2.zeilen);
+ p(!!ausbuchen2.zeilen&&ausbuchen2.zeilen.some(d=>d.variante_id===701&&d.menge===-21)
+   &&ausbuchen2.zeilen.some(d=>d.variante_id===501&&d.menge===-4),
+   "Halbfabrikate und von Hand erfasstes Material gehen gemeinsam in EINER Anfrage weg",ausbuchen2.zeilen);
+ p(!!ausbuchen2.zeilen&&ausbuchen2.zeilen.every(d=>/\(#MA78\)/.test(d.grund||"")),
+   "auch diese Buchungen tragen die Marke dieser Massaufnahme im Grund",ausbuchen2.zeilen);
+
+ // Gegenprobe: ohne gewaehlte Position ist eine Halbfabrikat-Zeile nicht buchbar.
+ z=await page.evaluate(async()=>{
+  await measLagerOeffnen();
+  const zeile=measLagerZeilen.find(x=>/^Dachrinne/.test(x.bezeichnung));
+  zeile.gewaehlt=true;                       // von Hand angehakt, aber ohne Position
+  const buchbar=measLagerBuchbar().map(x=>x.bezeichnung);
+  measLagerSchliessen();
+  return {buchbar,dabei:buchbar.some(b=>/^Dachrinne/.test(b))};
+ });
+ p(z.dabei===false,
+   "eine angehakte Zeile OHNE Materialposition wird trotzdem nicht gebucht",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

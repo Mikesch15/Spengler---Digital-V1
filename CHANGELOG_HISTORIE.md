@@ -29711,3 +29711,140 @@ mit denselben Feldern.
 | `PROJECT_STATE.md` | Versionsstand 3.120 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.120"]` ergänzt |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | neuer Abschnitt 14 (14 Prüfungen), Abschnitt 2 um 2 Prüfungen erweitert |
+
+---
+
+## 187. v3.121 – Halbfabrikate im Ausbuchen-Dialog
+
+### 187.1 Anlass
+
+v3.120 bot im Dialog „Ab Lager ausbuchen" ausschliesslich das **von Hand
+erfasste** Material der Massaufnahme an (`measRapportMaterial`, js/57). Die
+Begründung im Abschlussbericht dazu lautete: Blech und gerechnete Zuschnitte
+gehören nicht ins Lager.
+
+Der Anwender hat diese Abgrenzung korrigiert – sie war zu breit:
+
+> „Aber bei dachrinne zum beispiel könnten die halbfabrikate wie böden,
+> stutzen, häken und winkel ebenfalls eingebunden werden aber alles was
+> blech ist hast du recht, das wird nicht benötigt"
+
+Halbfabrikate sind genau das, was ein Spenglerbetrieb am Lager führt. Der
+Ausschluss war für Blech richtig und für die Halbfabrikate falsch.
+
+### 187.2 Quelle der Halbfabrikate – keine zweite Ableitung
+
+Die Halbfabrikate kommen aus `rmatTeileZeilen(m)` (js/57) – **derselben**
+Funktion, aus der der Regierapport-Dialog seit v3.24 seine Halbfabrikate
+zieht. Es wurde ausdrücklich keine zweite Ableitung gebaut; damit können die
+beiden Stellen nicht auseinanderlaufen. `rmatTeileZeilen()` liest
+`data.ausmass` und lässt über `pmatTeilVon()` (js/48) nur durch, was das
+Modul selbst als Teil ausweist – bei einer Dachrinne also Rinnenhalter,
+Innen-/Aussenwinkel, Einhänge- und Schiebestutzen, Rinnenböden und
+Dehnungsstücke (`raKomponenten`, js/28).
+
+`rmatZuschnittFlaeche()` und `rmatRollenFlaeche()` – die **Blech**-Quellen
+desselben Moduls – werden hier bewusst NICHT aufgerufen. Das ist der ganze
+Unterschied zum Regierapport-Dialog, und er steht als Kommentar im Kopf des
+Blocks in js/68.
+
+Gelesen wird der **Live-Stand des Formulars**: `buildMeasurementFromForm()`
+(js/16) baut denselben Datensatz, der beim Speichern in die Datenbank ginge,
+inklusive `data.ausmass`. Dadurch passt der Dialog zu dem, was gerade auf
+dem Bildschirm steht – genauso wie `measRapportMaterial` es schon tat. Der
+Aufruf steht in einem `try`: ein Formular, das gerade nicht vollständig ist,
+darf den Dialog nicht zerreissen, dann gibt es eben keine Halbfabrikate.
+
+### 187.3 Das eigentliche Problem: ein Halbfabrikat hat keine EDV-Nr.
+
+Eine von Hand erfasste Materialzeile trägt eine EDV-Nr.; daraus wird über
+`lagArtikelListe()` → `material_id` → `lagerVariantenVonMaterial()` das
+Lager-Produkt. Ein Halbfabrikat trägt nur eine **Bezeichnung**
+(„Rinnenboden links Ø 333"). Die Kette beginnt dort also einen Schritt
+früher.
+
+Gelöst wie folgt, bewusst ohne zu raten:
+
+- Jede Halbfabrikat-Zeile bekommt ein eigenes **Auswahlfeld für die
+  Materialposition**, mit einem **Suchfeld** davor (ein Material-Katalog kann
+  lang sein – dieselbe Lösung wie im Produkt-Formular, v3.118). Zur Wahl
+  stehen nur Positionen, für die im Lager überhaupt ein Produkt erfasst ist
+  (`measLagerPositionsListe()`); alles andere liesse sich gar nicht buchen.
+- Die App **schlägt** eine Position vor, über `rmatVorschlaege()` /
+  `rmatIstSicher()` (js/57) – wieder dieselbe Bewertung wie im
+  Regierapport-Dialog, keine zweite.
+- **Vorgewählt** wird eine Position nur, wenn dieser Vorschlag dort als
+  SICHER gilt UND die Position im Lager genau ein Produkt hat. Sonst steht
+  der Vorschlag als Text da („Vorschlag: 412.10 · Rinnenhalter – bitte prüfen
+  und wählen"), das Feld bleibt leer und die Zeile unangehakt.
+- Ohne gewählte Position wird die Zeile **nicht** gebucht
+  (`measLagerBuchbar()` verlangt unverändert `varianteId`).
+
+Das ist genau das, was der Anwender bei v3.120 verlangt hatte
+(„gegebenenfalls positionen anpassen kann/muss"), nur eine Stufe früher
+angesetzt.
+
+### 187.4 Warum Blech trotzdem nicht ausgefiltert wird
+
+Naheliegend wäre gewesen, die Blech-Zeile einer Dachrinne („Dachrinne
+halbrund Ø 333 Titanzink", Einheit m) per Namen oder Einheit auszusortieren.
+Das wurde bewusst NICHT gebaut: eine Namensregel wäre über zwölf
+Massaufnahme-Arten hinweg raten, und sie würde bei jedem neuen Modul still
+falsch liegen.
+
+Stattdessen erledigt es die Architektur von selbst: die Blech-Zeile findet
+keine Materialposition mit Lager-Produkt (das Lager führt kein Blech – siehe
+Kopfkommentar js/68), also bleibt sie leer und unangehakt. Wer umgekehrt
+**fertige** Rinnen am Lager führt, kann die Position von Hand wählen und
+bucht sie aus. Die Entscheidung bleibt beim Menschen, die App behauptet
+nichts.
+
+### 187.5 Oberfläche
+
+- Die Liste ist jetzt in zwei Blöcke geteilt („Von Hand erfasst",
+  „Halbfabrikate und Teile"), mit denselben Klassen wie der
+  Regierapport-Dialog (`.rmat-art`, `.rmat-pos`).
+- Das Suchfeld löst **keinen** Neuaufbau der Liste aus – es setzt nur die
+  `<option>`-Liste des eigenen Auswahlfeldes neu. Ein voller Neuaufbau würde
+  dem Feld den Fokus nehmen (dieselbe Lehre wie beim Mengenfeld, js/57).
+- Die bereits gewählte Position bleibt immer in der gefilterten Liste – sonst
+  würde eine Suche sie stillschweigend abwählen.
+- Wechselt die Position, wird die Produktliste neu abgeleitet: genau ein
+  Produkt steht damit fest, bei mehreren wählt wieder der Anwender.
+
+### 187.6 Was unverändert blieb
+
+- Der Buchungsweg selbst: eine Anfrage für alle gewählten Zeilen, `art`
+  `abgang`, negative Menge, Buchungsgrund mit der Marke `(#MA<id>)`.
+- Die Warnung bei einem zweiten Anlauf.
+- Die von Hand erfassten Zeilen: gleiche IDs (`z0`, `z1`, …), gleiche
+  Gründe, gleiche Vorauswahl. Die alten Prüfungen aus Abschnitt 14 laufen
+  unverändert weiter, lediglich gegen den nach Herkunft gefilterten Teil der
+  Liste.
+- Blech und gerechnete Zuschnitte werden weiterhin nicht angeboten.
+
+### 187.7 Prüfungen
+
+Prüfstand `pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 14
+um einen Teil 14b erweitert (Halbfabrikate). Geprüft wird unter anderem:
+dass eine Dachrinnen-Massaufnahme ihre Halbfabrikate als eigene Zeilen
+anbietet; dass die Blech-Zeile ohne Position und unangehakt bleibt; dass
+ein sicherer Katalogtreffer mit genau einem Produkt vorgewählt wird und ein
+unsicherer nicht; dass die Suche die Optionen filtert, ohne die bereits
+gewählte Position zu verlieren; dass ein Positionswechsel die Produktliste
+neu ableitet; und dass eine Halbfabrikat-Zeile mit gewählter Position
+zusammen mit dem von Hand erfassten Material in **einer** Anfrage gebucht
+wird.
+
+### 187.8 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/68-lagerverwaltung.js` | `measLagerZeilenBauen()` in `measLagerErfassteZeilen()` + `measLagerTeilZeilen()` geteilt, `measLagerPositionsListe()`, `measLagerPositionHtml()`/`measLagerPositionOptionen()`, Blöcke je Herkunft, Ereignisse für Positionswahl und Suche |
+| `index.html` | Beschreibungstext im Dialog, Version 3.121 |
+| `css/01-basis.css` | Suchfeld in `.rmat-pos` |
+| `js/41-hilfe.js` | Hilfetext `meas-lager-ausbuchen` erweitert |
+| `sw.js` | Cache-Version 3.121 |
+| `PROJECT_STATE.md` | Versionsstand 3.121 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.121"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 14b (Halbfabrikate) |
