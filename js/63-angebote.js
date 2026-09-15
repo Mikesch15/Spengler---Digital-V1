@@ -282,7 +282,8 @@ function renderAngPhotoGallery(){
  if($("angRecognizeAll"))$("angRecognizeAll").hidden=angPhotos.length===0;
 }
 if($("angPhotoInput")){
- $("angPhotoInput").addEventListener("change",async e=>{
+ // v3.122: derselbe Handler fuer BEIDE Felder (Kamera und Galerie).
+ fotoFelderVerdrahten("angPhotoInput",async e=>{
   const files=Array.from(e.target.files||[]);
   if(!files.length)return;
   for(const file of files){
@@ -291,7 +292,7 @@ if($("angPhotoInput")){
     angPhotos.push(dataUrl);
    }catch(err){alert("Foto konnte nicht geladen werden: "+err.message)}
   }
-  $("angPhotoInput").value="";
+  fotoFelderLeeren("angPhotoInput");
   renderAngPhotoGallery();
  });
 }
@@ -531,7 +532,7 @@ function newAngebot(){
  $("angTitle").value="";
  $("angNote").value="";
  $("angDate").value=new Date().toISOString().slice(0,10);
- if($("angPhotoInput"))$("angPhotoInput").value="";
+ fotoFelderLeeren("angPhotoInput");
  if($("angRecognizeStatus"))$("angRecognizeStatus").textContent="";
  angPhotos=[];
  renderAngPhotoGallery();
@@ -554,7 +555,7 @@ function openAngebot(a){
  $("angNote").value=a.note||"";
  $("angDate").value=a.date||new Date().toISOString().slice(0,10);
  setAngProjectField(a.project_id);
- if($("angPhotoInput"))$("angPhotoInput").value="";
+ fotoFelderLeeren("angPhotoInput");
  angPhotos=(a.photo_paths&&a.photo_paths.length)?[...a.photo_paths]:(a.photo_path?[a.photo_path]:[]);
  renderAngPhotoGallery();
  angPositions=Array.isArray(a.positions)?a.positions.map(p=>({...p})):[];

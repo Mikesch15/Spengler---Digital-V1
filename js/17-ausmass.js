@@ -259,7 +259,8 @@ async function recognizePhoto(src){
  }));
 }
 
-$("amPhotoInput").addEventListener("change",async e=>{
+// v3.122: derselbe Handler fuer BEIDE Felder (Kamera und Galerie).
+fotoFelderVerdrahten("amPhotoInput",async e=>{
  const files=Array.from(e.target.files||[]);
  if(!files.length)return;
  for(const file of files){
@@ -268,7 +269,7 @@ $("amPhotoInput").addEventListener("change",async e=>{
    amPhotos.push(dataUrl);
   }catch(err){alert("Foto konnte nicht geladen werden: "+err.message)}
  }
- $("amPhotoInput").value="";
+ fotoFelderLeeren("amPhotoInput");
  renderAmPhotoGallery();
 });
 $("amPhotoGallery").addEventListener("click",async e=>{
@@ -348,7 +349,7 @@ function newAusmassWithType(type){
  $("amTitle").value="";
  $("amNote").value="";
  $("amDate").value=new Date().toISOString().slice(0,10);
- $("amPhotoInput").value="";
+ fotoFelderLeeren("amPhotoInput");
  $("amRecognizeStatus").textContent="";
  amPhotos=[];
  amWsNeueMarke();
@@ -391,7 +392,7 @@ function openAusmass(a){
  $("amType").value=a.type||"offerte_erfassen";
  showAmTypeSection($("amType").value);
  setAmProjectField(a.project_id);
- $("amPhotoInput").value="";
+ fotoFelderLeeren("amPhotoInput");
  amWsNeueMarke();
  amPhotos=(a.photo_paths&&a.photo_paths.length)?[...a.photo_paths]:(a.photo_path?[a.photo_path]:[]);
  renderAmPhotoGallery();

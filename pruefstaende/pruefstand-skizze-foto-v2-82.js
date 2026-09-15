@@ -122,63 +122,121 @@ const sicht=(page,id)=>page.evaluate(i=>{
  p(!!st&&/Noch kein Foto/i.test(st.text),
    "nach dem Umschalten der Art stimmt sie auch",st&&st.text);
 
- // ---- D · Der Foto-Knopf sieht aus wie jeder andere Knopf ----------------
- console.log("\nD · Foto-Knopf wie jeder andere Datei-Knopf");
- const knopf=await page.evaluate(()=>{
-  const l=document.querySelector("#measMedienBereich label.cockpit-upload");
-  if(!l)return null;
-  const s=getComputedStyle(l), r=l.getBoundingClientRect();
-  const inp=l.querySelector('input[type=file]');
-  return {text:l.innerText.replace(/\s+/g," ").trim(),
-   hoehe:Math.round(r.height),breite:Math.round(r.width),
-   transform:s.textTransform,zeiger:s.cursor,
-   feldDrin:!!inp,feldId:inp?inp.id:null,feldVersteckt:inp?inp.hidden:null,
-   capture:inp?inp.getAttribute("capture"):null,
-   accept:inp?inp.getAttribute("accept"):null};
+ // ---- D · Zwei Wege zum Foto: Kamera ODER Galerie (v3.122) --------------
+ // Vorgeschichte, damit sie nicht ein drittes Mal im Kreis laeuft:
+ //  v2.82  ein Knopf mit capture="environment" -> zwang mobile Browser
+ //         direkt in die Kamera-App, die Galerie war nicht erreichbar.
+ //  v3.35  capture entfernt -> der Browser SOLLTE nun beides anbieten. Auf
+ //         einem Teil der Geraete (und in der installierten PWA) fuehrt
+ //         derselbe Knopf aber stumm in die Galerie, ohne die Kamera auch
+ //         nur zu nennen. Dieselbe Geraeteabhaengigkeit kostete beim
+ //         Barcode-Scan die Versionsreihe v3.107-v3.115.
+ //  v3.122 gar keine Geraetewahl mehr: ZWEI beschriftete Knoepfe, je ein
+ //         eigenes Feld. Der eine traegt capture, der andere nicht. Damit
+ //         ist beides erreichbar, egal was das Geraet von sich aus anbietet.
+ console.log("\nD · Foto aufnehmen ODER aus der Galerie waehlen");
+ const quellen=await page.evaluate(()=>{
+  const lies=bereich=>{
+   const box=document.querySelector(bereich+" .foto-quellen");
+   if(!box)return null;
+   return Array.from(box.querySelectorAll("label")).map(l=>{
+    const inp=l.querySelector('input[type=file]')
+      ||(l.getAttribute("for")?document.getElementById(l.getAttribute("for")):null);
+    const s=getComputedStyle(l), r=l.getBoundingClientRect();
+    return {text:l.innerText.replace(/\s+/g," ").trim(),
+     hoehe:Math.round(r.height),transform:s.textTransform,zeiger:s.cursor,
+     feldId:inp?inp.id:null,versteckt:inp?inp.hidden:null,
+     capture:inp?inp.getAttribute("capture"):null,
+     accept:inp?inp.getAttribute("accept"):null,
+     mehrere:inp?inp.multiple:null};
+   });
+  };
+  return {meas:lies("#measMedienBereich"),am:lies("#amMedienBereich"),
+          ang:lies("#angMedienBereich"),rapport:lies("#reportFotoBereich")};
  });
- p(!!knopf,"der Foto-Knopf ist da",knopf);
- p(!!knopf&&knopf.hoehe>=44,"er ist mindestens 44 px hoch (Baustelle, Handschuhe)",knopf&&knopf.hoehe);
- p(!!knopf&&knopf.breite>300,"und ueber die volle Breite",knopf&&knopf.breite);
- p(!!knopf&&/foto/i.test(knopf.text)&&!/choose file|no file/i.test(knopf.text),
-   "er ist deutsch beschriftet, nicht das nackte Browser-Feld",knopf&&knopf.text);
- p(!!knopf&&knopf.transform==="none",
-   "kein GROSSBUCHSTABEN-Text - wie die uebrigen Knoepfe",knopf&&knopf.transform);
- p(!!knopf&&knopf.zeiger==="pointer","der Zeiger zeigt, dass er anklickbar ist",knopf&&knopf.zeiger);
- p(!!knopf&&knopf.feldDrin&&knopf.feldId==="measPhotoInput"&&knopf.feldVersteckt===true,
-   "das Dateifeld steckt darin und ist versteckt",knopf);
- // Ueberholte Erwartung seit v3.35 (siehe Abschnitt 140): capture="environment"
- // zwang mobile Browser auf viele Geraeten direkt in die Kamera-App und liess
- // sich dort NICHT mehr auf die Galerie umschalten - genau der gemeldete
- // Fehler ("nur ein Foto aufnehmen, keines aus der Galerie waehlen"). Ohne
- // capture zeigt der Browser die volle native Auswahl (Kamera UND Galerie),
- // der Bildfilter accept="image/*" bleibt.
- p(!!knopf&&knopf.capture===null&&/image/.test(knopf.accept||""),
-   "kein capture - der Browser zeigt Kamera UND Galerie zur Auswahl",knopf);
- // Ein Klick auf den Knopf loest wirklich das Dateifeld aus.
+ const bereiche=[["Massaufnahme",quellen.meas,"measPhotoInput"],
+                 ["Ausmass",quellen.am,"amPhotoInput"],
+                 ["Offerte",quellen.ang,"angPhotoInput"],
+                 ["Regierapport",quellen.rapport,"reportPhotoInput"]];
+ bereiche.forEach(([name,liste,feldId])=>{
+  p(!!liste&&liste.length===2,name+": zwei Knoepfe statt einem",liste);
+  if(!liste||liste.length!==2)return;
+  const kamera=liste.find(x=>x.feldId===feldId+"Kamera");
+  const galerie=liste.find(x=>x.feldId===feldId);
+  p(!!kamera&&kamera.capture==="environment"&&/image/.test(kamera.accept||""),
+    name+": der Kamera-Knopf traegt capture=environment und oeffnet damit die Kamera-App",kamera);
+  p(!!kamera&&/aufnehmen/i.test(kamera.text),
+    name+": er sagt auch, dass er ein Foto AUFNIMMT",kamera&&kamera.text);
+  p(!!galerie&&galerie.capture===null&&galerie.mehrere===true,
+    name+": der Galerie-Knopf traegt KEIN capture und erlaubt weiterhin mehrere Fotos",galerie);
+  p(!!galerie&&/galerie/i.test(galerie.text),
+    name+": und er sagt, dass er in die Galerie fuehrt",galerie&&galerie.text);
+  p(liste.every(x=>x.versteckt===true),
+    name+": beide Dateifelder bleiben versteckt - sichtbar sind nur die Knoepfe",liste);
+  // Hoehe nur dort, wo der Bereich gerade wirklich auf dem Bildschirm ist -
+  // ein Knopf in einem versteckten Bildschirm meldet 0 und wuerde sonst
+  // einen Fehler vortaeuschen. Die Massaufnahme ist hier sichtbar, sie
+  // traegt die Messung stellvertretend fuer alle vier (gleiche Klassen).
+  p(liste.every(x=>x.hoehe===0||x.hoehe>=44),
+    name+": kein Knopf ist zu flach zum Treffen (Baustelle, Handschuhe)",liste.map(x=>x.hoehe));
+  p(liste.every(x=>x.transform==="none"&&x.zeiger==="pointer"),
+    name+": beide sehen aus und verhalten sich wie jeder andere Knopf",liste);
+ });
+
+ p(!!quellen.meas&&quellen.meas.length===2&&quellen.meas.every(x=>x.hoehe>=44),
+   "auf dem sichtbaren Bildschirm sind beide Knoepfe tatsaechlich mindestens 44 px hoch",
+   quellen.meas&&quellen.meas.map(x=>x.hoehe));
+
+ // Ein Klick auf JEDEN der beiden Knoepfe loest auch wirklich SEIN Feld aus.
  const loest=await page.evaluate(()=>new Promise(res=>{
-  // Ohne Knopf sauber "nein" melden statt den Lauf abzubrechen - ein
-  // abgebrochener Pruefstand sieht aus wie "keine Fehler".
-  const inp=document.getElementById("measPhotoInput");
-  const l=inp&&inp.closest("label.cockpit-upload");
-  if(!l){res(false);return}
-  let ausgeloest=false;
-  inp.addEventListener("click",()=>{ausgeloest=true},{once:true});
-  l.click();
-  setTimeout(()=>res(ausgeloest),120);
+  const treffer={};
+  const pruefe=(id)=>{
+   const inp=document.getElementById(id);
+   const l=inp&&(inp.closest("label.cockpit-upload")
+     ||document.querySelector('label[for="'+id+'"]'));
+   if(!l){treffer[id]=false;return}
+   treffer[id]=false;
+   inp.addEventListener("click",()=>{treffer[id]=true},{once:true});
+   l.click();
+  };
+  pruefe("measPhotoInput"); pruefe("measPhotoInputKamera");
+  setTimeout(()=>res(treffer),150);
  }));
- p(loest,"ein Klick auf den Knopf oeffnet die Dateiauswahl",loest);
- // Derselbe Knopf im Ausmass - sonst waere die App an einer Stelle neu und
- // an der anderen alt.
- const am=await page.evaluate(()=>{
-  const l=document.querySelector("#amMedienBereich label.cockpit-upload");
-  if(!l)return null;
-  const inp=l.querySelector('input[type=file]');
-  return {text:l.innerText.replace(/\s+/g," ").trim(),
-    transform:getComputedStyle(l).textTransform,
-    feldId:inp?inp.id:null,versteckt:inp?inp.hidden:null,mehrere:inp?inp.multiple:null};
+ p(loest.measPhotoInput===true&&loest.measPhotoInputKamera===true,
+   "beide Knoepfe oeffnen die zu IHNEN gehoerende Auswahl",loest);
+
+ // Und beide landen im selben Handler - sonst waere der Kamera-Knopf eine
+ // huebsche Attrappe. Geprueft mit einer echten Bilddatei ueber DataTransfer.
+ const uebernommen=await page.evaluate(async()=>{
+  const bild=async()=>{
+   const c=document.createElement("canvas"); c.width=4; c.height=4;
+   c.getContext("2d").fillRect(0,0,4,4);
+   const b=await new Promise(r=>c.toBlob(r,"image/png"));
+   return new File([b],"probe.png",{type:"image/png"});
+  };
+  const schick=async id=>{
+   const dt=new DataTransfer(); dt.items.add(await bild());
+   const f=document.getElementById(id);
+   f.files=dt.files;
+   f.dispatchEvent(new Event("change",{bubbles:true}));
+   await new Promise(r=>setTimeout(r,400));
+  };
+  measPhotos=[];
+  await schick("measPhotoInputKamera");
+  const nachKamera=measPhotos.length;
+  await schick("measPhotoInput");
+  return {nachKamera,nachGalerie:measPhotos.length,
+    feldGeleert:document.getElementById("measPhotoInputKamera").value===""};
  });
- p(!!am&&am.feldId==="amPhotoInput"&&am.versteckt===true&&am.mehrere===true,
-   "Ausmass: derselbe Knopf, Mehrfachauswahl bleibt",am);
+ p(uebernommen.nachKamera===1,
+   "ein ueber den Kamera-Knopf gewaehltes Foto wird uebernommen - beide Felder teilen sich EINEN Handler",uebernommen);
+ p(uebernommen.nachGalerie===2,
+   "und der Galerie-Knopf arbeitet unveraendert weiter",uebernommen);
+ p(uebernommen.feldGeleert===true,
+   "das benutzte Feld wird geleert, damit dieselbe Datei erneut gewaehlt werden kann",uebernommen);
+ p(await page.evaluate(()=>typeof fotoFelderVerdrahten==="function"&&typeof fotoFelderLeeren==="function"),
+   "die Verdrahtung liegt an EINER zentralen Stelle (js/01-basis.js), nicht viermal kopiert");
+
  // Kein nacktes Dateifeld mehr sichtbar in der App.
  const nackt=await page.evaluate(()=>Array.from(document.querySelectorAll('input[type=file]'))
    .filter(e=>!e.hidden&&e.offsetParent!==null).map(e=>e.id||"(ohne id)"));

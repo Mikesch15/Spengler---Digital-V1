@@ -602,7 +602,12 @@ sich nicht speichern. Alle übrigen sind freiwillig.</p>`},
 <p>Auf einem Foto lässt sich direkt zeichnen (Stiftsymbol an der Kachel),
 eine Skizze lässt sich frei aufziehen.</p>
 <p>Bei den Funktionen mit Registern erscheint dieser Bereich erst im
-<b>letzten Register</b>. Der Knopf "Fertig" springt direkt dorthin.</p>`},
+<b>letzten Register</b>. Der Knopf "Fertig" springt direkt dorthin.</p>
+<p><b>Seit Version 3.122</b> gibt es zwei getrennte Knöpfe:
+„📷 Foto aufnehmen" öffnet direkt die <b>Kamera</b> des Geräts,
+„🖼️ Aus Galerie wählen" die <b>Galerie</b> – dort auch mehrere
+Fotos auf einmal. Vorher entschied das Gerät selbst, was ein Antippen
+öffnet, und bot je nach Modell nur eines von beidem an.</p>`},
 
 // ---- Register, die in mehreren Funktionen gleich sind --------------------
 "reg-grunddaten":{titel:"Grunddaten",text:`
@@ -1334,7 +1339,12 @@ Einstellungen, Kataloge) brauchen weiterhin eine Verbindung.</p>`},
 Eingriff oder die ausgeführte Arbeit. Sie werden <b>mitgedruckt</b> und
 stehen im Ausdruck vor den Unterschriften.</p>
 <p>Ein Rapport muss dafür einem Projekt zugeordnet sein: der Speicherort
-hängt am Projekt, so wie bei den Massaufnahmen.</p>`},
+hängt am Projekt, so wie bei den Massaufnahmen.</p>
+<p><b>Seit Version 3.122</b> gibt es zwei getrennte Knöpfe:
+„📷 Foto aufnehmen" öffnet direkt die <b>Kamera</b> des Geräts,
+„🖼️ Aus Galerie wählen" die <b>Galerie</b> – dort auch mehrere
+Fotos auf einmal. Vorher entschied das Gerät selbst, was ein Antippen
+öffnet, und bot je nach Modell nur eines von beidem an.</p>`},
 
 "rapport-unterschriften":{titel:"Unterschriften",text:`
 <p>Auftraggeber und ausführender Mitarbeiter können direkt auf dem Gerät

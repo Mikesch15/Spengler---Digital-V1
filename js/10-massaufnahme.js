@@ -330,7 +330,10 @@ function resizeImageFile(file,maxDim,quality,format){
   reader.readAsDataURL(file);
  });
 }
-$("measPhotoInput").addEventListener("change",async e=>{
+// v3.122: derselbe Handler fuer BEIDE Felder (Kamera und Galerie). Er
+// arbeitet mit e.target, nicht mit einer festen Feld-Id - welches der beiden
+// Felder das Foto geliefert hat, ist ihm deshalb gleich.
+fotoFelderVerdrahten("measPhotoInput",async e=>{
  const dateien=Array.from(e.target.files||[]);
  if(!dateien.length)return;
  const pq=photoQualitySettings();
@@ -461,7 +464,7 @@ function newMeasurementWithType(type){
  $("measTitle").value="";
  $("measNote").value="";
  $("measDate").value=new Date().toISOString().slice(0,10);
- $("measPhotoInput").value="";
+ fotoFelderLeeren("measPhotoInput");
  measPhotos=[];
  measSketches=[];
  // v3.16: Material fuer den Regierapport - eine neue Aufnahme hat keines.
@@ -668,7 +671,7 @@ function openMeasurement(m){
  if(typeof measMedienZuruecksetzen==="function")measMedienZuruecksetzen();
  showMeasTypeSection($("measType").value);
  setMeasProjectField(m.project_id);
- $("measPhotoInput").value="";
+ fotoFelderLeeren("measPhotoInput");
  // Aeltere Aufnahmen haben nur photo_path - sie oeffnen mit genau diesem
  // einen Foto, es wird keines erfunden.
  measPhotos=(m.photo_paths&&m.photo_paths.length)?[...m.photo_paths]:(m.photo_path?[m.photo_path]:[]);

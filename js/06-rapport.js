@@ -382,7 +382,8 @@ function renderReportFotos(){
  reportFotoStatus();
 }
 if($("reportPhotoInput")){
- $("reportPhotoInput").addEventListener("change",async e=>{
+ // v3.122: derselbe Handler fuer BEIDE Felder (Kamera und Galerie).
+ fotoFelderVerdrahten("reportPhotoInput",async e=>{
   const dateien=Array.from(e.target.files||[]);
   e.target.value="";
   for(const f of dateien){

@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.121</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.122</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -290,7 +290,14 @@
 <div id="reportFotoBereich">
 <div class="no-print">
 <h2 style="margin-top:14px">📷 Fotos zum Rapport <button type="button" class="hilfe-knopf no-print" data-hilfe="rapport-fotos">i</button></h2>
-<label class="cockpit-upload" for="reportPhotoInput">＋ Foto hinzufügen</label>
+<!-- v3.122: zwei Wege statt einem. Das linke Feld traegt capture="environment"
+     und oeffnet damit die Kamera-App, das rechte ohne capture die Galerie.
+     Beide haengen am selben change-Handler (js/06-rapport.js). -->
+<div class="bar foto-quellen">
+<label class="cockpit-upload blue" for="reportPhotoInputKamera">📷 Foto aufnehmen</label>
+<label class="cockpit-upload gray" for="reportPhotoInput">🖼️ Aus Galerie wählen</label>
+</div>
+<input id="reportPhotoInputKamera" type="file" accept="image/*" capture="environment" hidden>
 <input id="reportPhotoInput" type="file" accept="image/*" multiple hidden>
 <div class="small" id="reportFotoStatus" style="color:var(--muted)"></div>
 </div>
@@ -1611,7 +1618,10 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <div class="meas-columns">
 <div>
 <label>Fotos (mehrere möglich)</label>
-<label class="cockpit-new blue cockpit-upload">📷 Fotos aufnehmen oder wählen<input type="file" id="measPhotoInput" accept="image/*" multiple hidden></label>
+<div class="bar foto-quellen">
+<label class="cockpit-new blue cockpit-upload">📷 Foto aufnehmen<input type="file" id="measPhotoInputKamera" accept="image/*" capture="environment" hidden></label>
+<label class="cockpit-new gray cockpit-upload">🖼️ Aus Galerie wählen<input type="file" id="measPhotoInput" accept="image/*" multiple hidden></label>
+</div>
 <div id="measPhotoGallery" class="sketch-gallery"></div>
 </div>
 <div>
@@ -1801,7 +1811,10 @@ einer wirkt nicht auf die anderen.</div>
 <div id="amMedienBereich" style="margin-top:10px">
 <h2 style="margin-top:4px">📷 Fotos</h2>
 <label>Fotos (mehrere möglich)</label>
-<label class="cockpit-new blue cockpit-upload">📷 Fotos aufnehmen oder wählen<input type="file" id="amPhotoInput" accept="image/*" multiple hidden></label>
+<div class="bar foto-quellen">
+<label class="cockpit-new blue cockpit-upload">📷 Foto aufnehmen<input type="file" id="amPhotoInputKamera" accept="image/*" capture="environment" hidden></label>
+<label class="cockpit-new gray cockpit-upload">🖼️ Aus Galerie wählen<input type="file" id="amPhotoInput" accept="image/*" multiple hidden></label>
+</div>
 <div id="amPhotoGallery" class="sketch-gallery"></div>
 <div class="bar" style="margin-top:6px">
 <button type="button" class="blue" id="amRecognizeAll" hidden>🔎 Alle Fotos erkennen</button>
@@ -1883,7 +1896,10 @@ einer wirkt nicht auf die anderen.</div>
 <div id="angMedienBereich" style="margin-top:10px">
 <h2 style="margin-top:4px">📷 Fotos der Offerte</h2>
 <label>Fotos (mehrere möglich)</label>
-<label class="cockpit-new blue cockpit-upload">📷 Fotos aufnehmen oder wählen<input type="file" id="angPhotoInput" accept="image/*" multiple hidden></label>
+<div class="bar foto-quellen">
+<label class="cockpit-new blue cockpit-upload">📷 Foto aufnehmen<input type="file" id="angPhotoInputKamera" accept="image/*" capture="environment" hidden></label>
+<label class="cockpit-new gray cockpit-upload">🖼️ Aus Galerie wählen<input type="file" id="angPhotoInput" accept="image/*" multiple hidden></label>
+</div>
 <div id="angPhotoGallery" class="sketch-gallery"></div>
 <div class="bar" style="margin-top:6px">
 <button type="button" class="blue" id="angRecognizeAll" hidden>🔎 Alle Fotos erkennen</button>

@@ -554,7 +554,17 @@ async function loadProjectFiles(projectId){
  const list=(data||[]).slice().sort((a,b)=>
   new Date(b.updated_at||b.created_at||0)-new Date(a.updated_at||a.created_at||0));
  projectFilesCache=list;
- const knopf=`<div class="bar"><label class="cockpit-new blue cockpit-upload">＋ Datei/Foto hinzufügen<input type="file" multiple data-upload-file="${projectId}" hidden></label></div>`;
+ // v3.122: zwei Wege, wie ueberall sonst beim Foto. Beide Felder tragen
+ // data-upload-file - der delegierte change-Handler unten kennt sie deshalb
+ // schon, ohne dass dort etwas zu aendern waere. Das Kamera-Feld traegt
+ // accept/capture und liefert genau EIN frisches Foto; das andere bleibt
+ // unveraendert fuer Dateien jeder Art und mehrere auf einmal.
+ const knopf=`<div class="bar foto-quellen">`
+  +`<label class="cockpit-new blue cockpit-upload">📷 Foto aufnehmen`
+  +`<input type="file" accept="image/*" capture="environment" data-upload-file="${projectId}" hidden></label>`
+  +`<label class="cockpit-new gray cockpit-upload">📎 Datei oder Foto wählen`
+  +`<input type="file" multiple data-upload-file="${projectId}" hidden></label>`
+  +`</div>`;
  const grenze=`<div class="small" style="color:var(--muted);margin:-2px 0 6px">Höchstens ${MAX_DATEI_TEXT} pro Datei.</div>`;
  // Ergebnis des letzten Uploads, einmalig anzeigen (v2.49).
  const status=projectFilesStatus

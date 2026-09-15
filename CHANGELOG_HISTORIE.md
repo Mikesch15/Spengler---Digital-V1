@@ -29848,3 +29848,125 @@ wird.
 | `PROJECT_STATE.md` | Versionsstand 3.121 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.121"]` ergänzt |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 14b (Halbfabrikate) |
+
+---
+
+## 188. v3.122 – Foto aufnehmen ODER aus der Galerie wählen
+
+### 188.1 Anlass
+
+> „wenn ein foto hochgeladen werden soll, soll man auswählen können ob aus der
+> galerie oder ein neues foto aufnehmen"
+
+### 188.2 Warum das dritte Mal, und warum es diesmal hält
+
+Diese Stelle ist schon zweimal umgebaut worden:
+
+- **v2.82** – ein Knopf mit `capture="environment"`. Das zwang mobile Browser
+  direkt in die Kamera-App; die Galerie war nicht mehr erreichbar. Gemeldet
+  als „nur ein Foto aufnehmen, keines aus der Galerie wählen".
+- **v3.35** (Abschnitt 140) – `capture` entfernt. Die Erwartung: ohne `capture`
+  zeigt der Browser von sich aus die volle Auswahl (Kamera UND Galerie).
+
+Die Erwartung von v3.35 stimmt nicht überall. Auf einem Teil der Android-
+Geräte – und in der installierten PWA – führt derselbe Knopf stumm in die
+Galerie, ohne die Kamera auch nur zu nennen. Genau diese Geräteabhängigkeit
+hat beim Barcode-Scan die Versionsreihe v3.107–v3.115 gekostet; dort war die
+Lösung am Ende ein eigenes Feld mit `capture="environment"`, das die native
+Kamera-App zuverlässig öffnet.
+
+Beide bisherigen Fassungen hatten denselben Konstruktionsfehler: **ein** Feld,
+und die Wahl lag beim Gerät. v3.122 nimmt dem Gerät die Wahl ab. Es gibt
+**zwei** beschriftete Knöpfe mit je einem eigenen Feld:
+
+| Knopf | Feld | Attribute |
+| --- | --- | --- |
+| 📷 Foto aufnehmen | `<id>Kamera` | `accept="image/*" capture="environment"` |
+| 🖼️ Aus Galerie wählen | `<id>` | `accept="image/*" multiple` |
+
+Damit ist beides erreichbar, egal was das Gerät von sich aus anbietet – und
+keiner der beiden bisherigen Fehler kann zurückkommen, weil keiner der beiden
+Wege den anderen mehr verdeckt.
+
+Der Kamera-Weg liefert immer genau **ein** Foto. Das ist die Natur von
+`capture`, kein Mangel: die Kamera-App nimmt ein Bild auf und gibt es zurück.
+Mehrere Fotos auf einmal gibt es weiterhin über die Galerie.
+
+### 188.3 Eine Stelle, nicht vier
+
+Fotos werden an vier Stellen hochgeladen: Massaufnahme (`measPhotoInput`),
+Ausmass (`amPhotoInput`), Offerte (`angPhotoInput`) und Regierapport
+(`reportPhotoInput`). Die Verdrahtung liegt trotzdem an **einer** Stelle, in
+`js/01-basis.js`:
+
+```js
+function fotoFelder(feldId){ return [$(feldId),$(feldId+"Kamera")].filter(Boolean) }
+function fotoFelderVerdrahten(feldId,handler){ ... }   // beide Felder, EIN Handler
+function fotoFelderLeeren(feldId){ ... }               // beide Felder zurücksetzen
+```
+
+Die vier bestehenden `change`-Handler wurden **nicht** angefasst – sie
+arbeiten ohnehin mit `e.target` statt mit einer festen Feld-Id und wissen
+deshalb gar nicht, welches der beiden Felder das Foto geliefert hat. Geändert
+hat sich nur die Zeile, die sie registriert
+(`$("x").addEventListener("change",…)` → `fotoFelderVerdrahten("x",…)`), und
+die sechs Stellen, die beim Zurücksetzen eines Formulars das Feld leeren
+(`$("x").value=""` → `fotoFelderLeeren("x")`). Ohne diese sechs hätte sich
+nach einem Formular-Reset dieselbe Datei nicht erneut wählen lassen.
+
+Am Regierapport behält das Galerie-Feld sein `label[for=…]` statt im Label zu
+stecken – zwei bestehende Prüfungen in `pruefstand-pdf-v3-04.js` suchen den
+Knopf genau darüber und sollten dafür nicht umgeschrieben werden müssen.
+
+Eine fünfte Stelle kam dazu: die **Projekt-Dateien** im Cockpit
+(„＋ Datei/Foto hinzufügen"). Sie nimmt Dateien jeder Art, ein Foto ist dort
+nur eine davon – deshalb heißen die Knöpfe hier „📷 Foto aufnehmen" und
+„📎 Datei oder Foto wählen", und nur das Kamera-Feld trägt `accept="image/*"`.
+Der `change`-Handler dort ist delegiert und greift über das Attribut
+`data-upload-file`; das zweite Feld trägt dasselbe Attribut und ist damit
+ohne jede Änderung am Handler angebunden. Ein Zurücksetzen entfällt, weil die
+Liste nach dem Upload ohnehin neu gezeichnet wird.
+
+### 188.4 Oberfläche
+
+Die beiden Knöpfe stehen in einer `.bar.foto-quellen` nebeneinander und
+brechen auf schmalen Geräten untereinander um. Die eigene CSS-Regel
+(`flex:1 1 190px; width:auto`) ist nötig, weil `.cockpit-new` sonst mit
+`width:100%` jeden Knopf auf eine eigene Zeile zwingen würde. Der Kamera-Knopf
+ist blau (der übliche Hauptweg), der Galerie-Knopf grau.
+
+### 188.5 Was unverändert blieb
+
+Verarbeitung, Verkleinerung (`resizeImageFile`, `photoQualitySettings`),
+Galerie-Kacheln, „Auf Foto zeichnen", Entfernen, Statuszeile, Speicher-Payload
+(`photo_path`/`photo_paths`), Mehrfachauswahl über die Galerie, Druck. Das
+Logo-Feld in den Einstellungen und der PDF-Upload der Offerte bleiben ebenfalls
+unangetastet – ein Logo und ein Offert-PDF werden nicht fotografiert.
+
+### 188.6 Prüfungen
+
+`pruefstand-skizze-foto-v2-82.js`, Abschnitt D vollständig neu geschrieben
+(die alte Erwartung „genau ein Knopf, kein capture" ist mit diesem Auftrag
+überholt; die Vorgeschichte steht als Kommentar darüber, damit sie nicht ein
+viertes Mal im Kreis läuft). Geprüft wird für **alle vier** Bereiche: zwei
+Knöpfe statt einem, `capture="environment"` nur am Kamera-Feld, `multiple`
+und kein `capture` am Galerie-Feld, beide Felder versteckt, beide Knöpfe
+deutsch beschriftet und gross genug zum Treffen. Dazu funktional: ein Klick
+löst jeweils *sein* Feld aus, und eine über `DataTransfer` echt eingespielte
+Bilddatei am **Kamera**-Feld landet in `measPhotos` – der Kamera-Knopf ist
+also keine Attrappe, sondern hängt wirklich am selben Handler. 82/82 grün.
+
+### 188.7 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/01-basis.js` | `fotoFelder()`, `fotoFelderVerdrahten()`, `fotoFelderLeeren()` |
+| `index.html` | vier Foto-Bereiche auf zwei Knöpfe umgestellt, Version 3.122 |
+| `css/01-basis.css` | `.foto-quellen>label` |
+| `js/06-rapport.js`, `js/10-massaufnahme.js`, `js/17-ausmass.js`, `js/63-angebote.js` | Registrierung und Zurücksetzen über die zentralen Helfer |
+| `js/09-projekte.js` | Projekt-Dateien: zweiter Knopf mit Kamera-Feld (gleiches `data-upload-file`) |
+| `js/41-hilfe.js` | Hilfetexte `medien` und `rapport-fotos` ergänzt |
+| `sw.js` | Cache-Version 3.122 |
+| `PROJECT_STATE.md` | Versionsstand 3.122 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.122"]` |
+| `pruefstaende/pruefstand-skizze-foto-v2-82.js` | Abschnitt D neu |

@@ -211,6 +211,35 @@ document.documentElement.classList.toggle("dark",darkMode);
 function photoQualitySettings(){
  return photoQuality==="hoch"?{maxDim:2200,quality:0.9}:{maxDim:1400,quality:0.75};
 }
+
+// ---- v3.122: Foto aufnehmen ODER aus der Galerie waehlen ------------------
+// Ein einzelnes <input type="file" accept="image/*"> ueberlaesst die Wahl dem
+// Geraet. Darauf ist kein Verlass: auf manchen Android-Geraeten - und in der
+// installierten PWA - fuehrt derselbe Knopf direkt in die Galerie, ohne die
+// Kamera ueberhaupt anzubieten. Genau dieses Verhalten hat beim Barcode-Scan
+// schon eine ganze Versionsreihe gekostet (v3.115: erst ein eigenes Feld mit
+// capture="environment" oeffnete zuverlaessig die native Kamera-App).
+//
+// Jeder Foto-Knopf hat deshalb ZWEI Felder, die sich nicht auf die
+// Geraetewahl verlassen:
+//   <id>Kamera  mit capture="environment" -> oeffnet die Kamera-App. Immer
+//               genau EIN Foto; das ist die Natur von capture, kein Mangel.
+//   <id>        ohne capture, mit multiple -> Galerie/Dateien, mehrere Fotos.
+//
+// Beide teilen sich denselben change-Handler: es gibt weiterhin nur EINE
+// Stelle je Bereich, die ein Foto verarbeitet, und der Handler arbeitet
+// ohnehin mit e.target, nicht mit einer festen Feld-Id.
+function fotoFelder(feldId){
+ return [$(feldId),$(feldId+"Kamera")].filter(Boolean);
+}
+function fotoFelderVerdrahten(feldId,handler){
+ fotoFelder(feldId).forEach(el=>el.addEventListener("change",handler));
+}
+// Beide Felder leeren. Noetig nach dem Uebernehmen und beim Zuruecksetzen des
+// Formulars - sonst laesst sich dieselbe Datei kein zweites Mal waehlen.
+function fotoFelderLeeren(feldId){
+ fotoFelder(feldId).forEach(el=>{el.value=""});
+}
 const EINLAUFBLECH_STANDARD=Object.freeze({stoss_laenge:2000,ueberlappung:70,gehrungszugabe:100,umschlag_oben:12,umschlag_unten:12,rest_schwelle:500,end_zugabe:10,gava_abstand:500});
 // Standardwerte für beide Einlaufblech-Typen. Gespeicherte Werte des Geräts
 // haben Vorrang – zurücksetzen geht über den Knopf in den Einstellungen.
