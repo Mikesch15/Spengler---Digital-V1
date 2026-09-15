@@ -1238,6 +1238,13 @@ das Produkt damit auch von Hand, wenn die Kamera streikt.</p>
 <p>Solange gesucht wird, ist „Alle zuklappen“ ausgeblendet – die Trefferliste
 ist ja gerade das, was man sehen will.</p>
 <h3>Ein neues Produkt erfassen</h3>
+<p><b>Seit Version 3.128</b> bleibt das Suchfeld für die Materialposition
+<b>immer</b> stehen – auch dann, wenn schon eine Position gewählt oder
+vorbelegt ist. Bis dahin verschwand es genau in dem Moment, und wer den
+Dialog über „＋ Weiteres Produkt zu dieser Position“ öffnete, bekam es nie zu
+Gesicht. Tippen öffnet die Treffer, ein Klick wechselt die Position; danach
+ist die Suche wieder leer und die Liste zu. Dasselbe gilt im
+Ausbuchen-Dialog der Massaufnahme.</p>
 <p>Über der Liste steht <b>＋ Neues Produkt</b>. Das ist seit Version 3.127
 der erste, immer erreichbare Weg dorthin – vorher führten nur zwei
 Umwege hin: „＋ Weiteres Produkt“ <i>innerhalb</i> einer aufgeklappten

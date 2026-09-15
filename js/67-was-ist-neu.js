@@ -85,7 +85,9 @@ const WIN_CHANGELOG={
   "Auch im Dialog 'Neues Produkt' erscheinen die Treffer zur Materialposition jetzt sofort beim Tippen - dort stand noch das alte Auswahlfeld."],
  "3.127":["Lagerverwaltung: Produkte lassen sich jetzt entfernen. Ohne Buchung wird wirklich gelöscht; sobald gebucht wurde, wird ARCHIVIERT - das Produkt verschwindet aus allen Listen, die Buchungen bleiben als Beleg stehen und '📦 Archiv anzeigen' holt es jederzeit zurück. War es das letzte Produkt seiner Position, lässt sich auf Nachfrage auch die Katalogposition entfernen.",
   "Der Knopf '＋ Neues Produkt' steht jetzt oben in der Lagerverwaltung. Die Hilfe hatte ihn schon genannt, es gab ihn aber nur innerhalb einer aufgeklappten Position.",
-  "Sicherheit: die Firmengrenze auf der Produkt-Tabelle hat seit v3.106 nicht richtig gebunden (die beiden Schranken waren oder- statt und-verknüpft). Das ist behoben - Produkte sind jetzt so abgesichert wie die Buchungen."]
+  "Sicherheit: die Firmengrenze auf der Produkt-Tabelle hat seit v3.106 nicht richtig gebunden (die beiden Schranken waren oder- statt und-verknüpft). Das ist behoben - Produkte sind jetzt so abgesichert wie die Buchungen."],
+ "3.128":["Im Dialog 'Neues Produkt erfassen' steht das Suchfeld für die Materialposition jetzt IMMER da - auch dann, wenn die Position schon vorbelegt ist. Bisher verschwand es genau dann, und wer den Dialog über '＋ Weiteres Produkt zu dieser Position' öffnete, bekam es nie zu sehen. Tippen öffnet die Treffer, ein Klick wechselt die Position.",
+  "Dasselbe im Ausbuchen-Dialog der Massaufnahme: auch dort bleibt das Suchfeld nach der Wahl stehen, statt nur einen '✏️ Position ändern'-Knopf zu hinterlassen."]
 };
 
 function winVersionVergleich(a,b){

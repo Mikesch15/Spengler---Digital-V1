@@ -30506,3 +30506,73 @@ Versprechen.
 | `js/41-hilfe.js` | `lager-suche`: Einstieg berichtigt, Löschen/Archivieren und der RLS-Fehler dokumentiert |
 | `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.127 |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 18 neu (Löschen/Archivieren/Aktivieren, neuer Knopf) |
+
+## 194. v3.128 – Das Suchfeld für die Materialposition bleibt stehen
+
+Meldung des Anwenders, direkt nach v3.127: *"Auch in der karte neues produkt
+erfassen muss nach positionen gesucht werden können"*.
+
+### 194.1 Die Suche gab es – man bekam sie nur nie zu sehen
+
+Erste Reaktion beim Lesen: das gibt es doch seit v3.126. Das Suchfeld
+`lagerNeuesProduktMaterialSuche` steht im Dialog, ist verdrahtet, die Treffer
+erscheinen beim Tippen. Also nachgesehen, statt zu widersprechen – und der
+Grund stand in `lagerNeuesProduktMaterialRendern()`:
+
+```js
+const fertig = !!lagerNeuesProduktArtikel || lagerNeuesProduktNeuePosition;
+if (suche) suche.hidden = fertig;
+```
+
+Sobald eine Position gewählt ist, verschwindet das Suchfeld. Und
+`lagerNeuesProduktOeffnen(materialId, …)` setzt die Position **vorweg**,
+wenn der Dialog aus einer Position heraus geöffnet wird – also über
+„＋ Weiteres Produkt zu dieser Position", den üblichen Weg. Wer so
+hereinkommt, sieht nie ein Suchfeld: nur den Positionsnamen und einen
+kleinen `✏️ ändern`-Knopf daneben. Genau das hat der Anwender gemeldet.
+
+Der `＋ Neues Produkt`-Knopf aus v3.127 öffnet ohne Vorbelegung und zeigt die
+Suche deshalb – nur behebt das den anderen Weg nicht.
+
+### 194.2 Die Regel
+
+Das Suchfeld bleibt **immer** stehen. Ist schon eine Position gewählt, ändert
+sich nur der Platzhalter („🔍 Andere Position suchen …") und die Trefferliste
+bleibt zu, bis wirklich etwas eingetippt ist – sonst stünde unter der Wahl
+dauerhaft eine Liste, die niemand braucht. Nach einer Wahl wird die Suche
+geleert und die Liste klappt zu; sie steht also nie zwischen der gewählten
+Position und dem nächsten Feld.
+
+Der `✏️ ändern`-Knopf bleibt – er hebt die Wahl auf. Er ist nur nicht mehr
+der einzige Weg zur Suche.
+
+### 194.3 Dieselbe Konstruktion im Ausbuchen-Dialog
+
+`measLagerPositionHtml()` (js/68) hatte exakt dasselbe Muster: gewählt →
+Suchfeld weg, nur noch `✏️ Position ändern`. Das ist dieselbe Meldung an
+einer zweiten Stelle, und es ist dieselbe Lehre wie bei v3.125/v3.126, wo
+genau ein solcher Zwilling übersehen wurde und der Anwender ein zweites Mal
+melden musste. Deshalb hier gleich mit umgestellt, nach derselben Regel.
+
+### 194.4 Zwei bewusst geänderte Verträge im Prüfstand
+
+Zwei bestehende Prüfungen behaupteten das alte Verhalten und mussten
+mitgeändert werden – das ist der Sinn der Änderung, keine Anpassung an einen
+Fehlschlag:
+
+| bisher | jetzt |
+| --- | --- |
+| „danach steht die Position als Text da – die Suche ist erledigt" (`suchfeldWeg===true`) | das Feld bleibt, nur die Trefferliste klappt zu |
+| „der Suchbegriff bleibt stehen – wer wechselt, sucht meist in derselben Gegend weiter" | das Feld ist leer, geleert schon bei der Wahl |
+
+Der zweite Punkt kostet ein erneutes Tippen, wenn man über `✏️ ändern`
+wechselt. Dafür ist das Feld jetzt jederzeit da, statt nur über diesen Knopf –
+der Tausch ist bewusst.
+
+### 194.5 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/68-lagerverwaltung.js` | `lagerNeuesProduktMaterialRendern()` (Feld bleibt, Liste klappt), Input-Handler, Wahl leert die Suche; `measLagerPositionHtml()` und sein Input-Handler nach derselben Regel |
+| `index.html`, `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.128 |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 19 neu, zwei Verträge in 12b/14b umgestellt |

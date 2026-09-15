@@ -669,12 +669,16 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   document.querySelector('#lagerNeuesProduktTreffer [data-lager-produkt-artikel]').click();
   return {gewaehlt:lagerNeuesProduktArtikel?String(lagerNeuesProduktArtikel.id):"",
    text:$("lagerNeuesProduktGewaehlt").innerText,
-   sucheWeg:$("lagerNeuesProduktMaterialSuche").hidden,
-   trefferWeg:$("lagerNeuesProduktTreffer").hidden};
+   sucheDa:!$("lagerNeuesProduktMaterialSuche").hidden,
+   sucheLeer:$("lagerNeuesProduktMaterialSuche").value==="",
+   trefferZu:$("lagerNeuesProduktTreffer").hidden};
  });
  p(z.gewaehlt==="1"&&/Dichtband/.test(z.text),"ein Antippen des Treffers waehlt die Position",z);
- p(z.sucheWeg===true&&z.trefferWeg===true,
-   "danach steht die Position als Text da - die Suche ist erledigt",z);
+ // v3.128: GEAENDERTER VERTRAG - bis v3.127 verschwand hier auch das
+ // Suchfeld. Genau das hat der Anwender gemeldet: wer den Dialog mit
+ // vorbelegter Position oeffnet, bekam es nie zu sehen. Siehe Abschnitt 19.
+ p(z.sucheDa===true&&z.trefferZu===true&&z.sucheLeer===true,
+   "danach steht die Position als Text da, die Trefferliste klappt zu - das Suchfeld bleibt aber stehen",z);
 
  z=await page.evaluate(()=>{
   $("lagerNeuesProduktGewaehlt").querySelector("[data-lager-produkt-aendern]").click();
@@ -1122,14 +1126,22 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   const text=knopf.textContent.trim();
   knopf.click();
   return {text,no:zeile.no,anzahlVarianten:zeile.varianten.length,varianteId:zeile.varianteId,
-   suchfeldWeg:!document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]'),
+   suchfeldDa:!!document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]'),
+   sucheLeer:(document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]')||{}).value==="",
+   trefferZu:(document.querySelector('[data-meas-lager-treffer="'+zeile.id+'"]')||{}).hidden,
    aendernDa:!!document.querySelector('[data-meas-lager-position-aendern="'+zeile.id+'"]')};
  });
  p(z.no==="413.20","ein Antippen des Treffers waehlt die Position",z);
  p(z.anzahlVarianten===2&&z.varianteId==="",
    "mit der Position wechselt die Produktliste - bei zwei Produkten waehlt weiterhin der Anwender",z);
- p(z.suchfeldWeg===true&&z.aendernDa===true,
-   "danach steht die Position als Text da, mit einem Knopf zum Aendern - die Suche ist erledigt",z);
+ // v3.128: GEAENDERTER VERTRAG. Bis v3.127 verschwand das Suchfeld hier
+ // ("die Suche ist erledigt"). Der Anwender hat gemeldet, dass genau das im
+ // Produkt-Dialog den Suchweg verstellt; dieselbe Konstruktion steht hier,
+ // also gilt dieselbe Regel: das Feld bleibt, nur die Trefferliste klappt zu.
+ p(z.suchfeldDa===true&&z.aendernDa===true,
+   "danach steht die Position als Text da - das Suchfeld bleibt aber erreichbar, nicht nur der Aendern-Knopf",z);
+ p(z.sucheLeer===true&&z.trefferZu===true,
+   "die Suche ist geleert und die Trefferliste zu - sie steht nicht zwischen Position und Mengenfeld",z);
 
  // Und der Weg zurueck.
  z=await page.evaluate(()=>{
@@ -1140,9 +1152,14 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    sucheErhalten:(document.querySelector('[data-meas-lager-suche="'+zeile.id+'"]')||{}).value};
  });
  p(z.no===""&&z.gewaehlt===false&&z.suchfeldDa===true,
-   "'Position aendern' oeffnet die Suche wieder und nimmt die Zeile aus der Buchung",z);
- p(z.sucheErhalten==="rinnenboden",
-   "der Suchbegriff bleibt dabei stehen - wer wechselt, sucht meist in derselben Gegend weiter",z);
+   "'Position aendern' hebt die Wahl auf und nimmt die Zeile aus der Buchung",z);
+ // v3.128: GEAENDERTER VERTRAG. Bis v3.127 stand der Suchbegriff hier noch
+ // im Feld, weil ihn nur dieser Knopf zuruecksetzte. Seit die WAHL ihn leert
+ // (damit die Trefferliste nicht offen stehen bleibt), ist er auch hier leer.
+ // Das kostet ein erneutes Tippen - dafuer ist das Feld jetzt jederzeit da,
+ // statt nur ueber diesen Knopf.
+ p(z.sucheErhalten==="",
+   "das Feld ist dabei leer - geleert wurde es schon bei der Wahl",z);
 
  // Danach wieder waehlen, damit die folgende Buchung dieselbe bleibt.
  await page.evaluate(()=>{
@@ -1950,6 +1967,75 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    "ein Scan auf ein archiviertes Produkt nennt den Zustand und bietet das Wieder-Aktivieren an",z);
  p(z.dialogOffen===false&&/archiviert/.test(z.hinweis),
    "wer ablehnt, bucht nicht - und erfaehrt warum, statt vor einer stummen Oberflaeche zu stehen",z);
+
+
+ // ---- 19 · Suchfeld bleibt stehen, auch bei gewaehlter Position (v3.128) --
+ // Gemeldet: "Auch in der Karte neues Produkt erfassen muss nach Positionen
+ // gesucht werden koennen". Ursache war nicht die Suche selbst (die gibt es
+ // seit v3.126), sondern dass das Feld verschwand, sobald eine Position
+ // gewaehlt war - und ueber "＋ Weiteres Produkt zu dieser Position" ist sie
+ // von Anfang an vorbelegt. Man bekam das Suchfeld also nie zu Gesicht.
+ console.log("\n19 · Position suchen, auch wenn schon eine gewaehlt ist");
+ await page.evaluate(()=>{
+  meineRechte={admin:false,kataloge:true};
+  settings.materials=[
+   ["401.01","Dachrinne Kupfer","250","m1",0],
+   ["402.01","Rinnenhalter Kupfer","250","St",0],
+   ["403.01","Rinnenboden Kupfer","250","St",0]
+  ];
+  materialIds=[4001,4002,4003];
+ });
+
+ // Der gemeldete Weg: Dialog MIT vorbelegter Position.
+ z=await page.evaluate(()=>{
+  lagerNeuesProduktOeffnen(4001,"");
+  const s=$("lagerNeuesProduktMaterialSuche");
+  return {sichtbar:!s.hidden,platzhalter:s.placeholder,
+   trefferZu:$("lagerNeuesProduktTreffer").hidden,
+   gewaehlt:$("lagerNeuesProduktGewaehlt").innerText};
+ });
+ p(z.sichtbar===true,
+   "auch mit vorbelegter Position steht das Suchfeld da - genau der gemeldete Fall",z);
+ p(/Andere Position/.test(z.platzhalter),
+   "der Platzhalter sagt, wozu es hier dient",z.platzhalter);
+ p(z.trefferZu===true&&/401\.01/.test(z.gewaehlt),
+   "die Trefferliste bleibt zu, solange nichts getippt ist - die gewaehlte Position steht oben",z);
+
+ // Tippen oeffnet die Treffer, ein Klick wechselt die Position.
+ z=await page.evaluate(()=>{
+  const s=$("lagerNeuesProduktMaterialSuche");
+  s.value="Rinnenboden";
+  s.dispatchEvent(new Event("input",{bubbles:true}));
+  const offen=!$("lagerNeuesProduktTreffer").hidden;
+  const knoepfe=[...$("lagerNeuesProduktTreffer").querySelectorAll("[data-lager-produkt-artikel]")]
+    .map(b=>b.textContent);
+  const k=$("lagerNeuesProduktTreffer").querySelector('[data-lager-produkt-artikel="4003"]');
+  if(k)k.click();
+  return {offen,knoepfe,
+   jetzt:$("lagerNeuesProduktGewaehlt").innerText,
+   sucheLeer:$("lagerNeuesProduktMaterialSuche").value==="",
+   wiederZu:$("lagerNeuesProduktTreffer").hidden};
+ });
+ p(z.offen===true&&z.knoepfe.length===1&&/403\.01/.test(z.knoepfe[0]),
+   "Tippen oeffnet die Treffer und filtert sie - ohne Umweg ueber „ändern“",z);
+ p(/403\.01/.test(z.jetzt),"ein Klick wechselt die Position wirklich",z);
+ p(z.sucheLeer===true&&z.wiederZu===true,
+   "nach der Wahl ist die Suche geleert und die Liste wieder zu - sie steht nicht dauerhaft im Weg",z);
+
+ // Gegenprobe: ohne Vorbelegung war und bleibt alles offen.
+ z=await page.evaluate(()=>{
+  lagerNeuesProduktOeffnen(null,"");
+  const s=$("lagerNeuesProduktMaterialSuche");
+  const r={sichtbar:!s.hidden,platzhalter:s.placeholder,
+   trefferOffen:!$("lagerNeuesProduktTreffer").hidden,
+   anzahl:$("lagerNeuesProduktTreffer").querySelectorAll("[data-lager-produkt-artikel]").length};
+  lagerNeuesProduktSchliessen();
+  return r;
+ });
+ p(z.sichtbar===true&&z.trefferOffen===true&&z.anzahl===3,
+   "ohne Vorbelegung stehen Feld UND Liste von Anfang an da - wie bisher",z);
+ p(!/Andere Position/.test(z.platzhalter),
+   "und der Platzhalter ist dort der schlichte „Position suchen“",z.platzhalter);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

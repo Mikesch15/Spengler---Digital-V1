@@ -841,14 +841,27 @@ function lagerNeuesProduktTrefferHtml(){
   +(rest>0?`<div class="small" style="color:var(--muted)">… ${rest} weitere – bitte genauer suchen.</div>`:"")
   +neu;
 }
+// v3.128: Das Suchfeld bleibt IMMER stehen - auch dann, wenn schon eine
+// Position gewaehlt ist. Bis v3.127 verschwand es in dem Moment, und wer den
+// Dialog ueber "＋ Weiteres Produkt zu dieser Position" oeffnete (der
+// uebliche Weg), bekam es nie zu sehen: die Position war ja vorbelegt. Der
+// einzige Rueckweg war ein kleiner "✏️ ändern"-Knopf neben dem Namen -
+// gemeldet vom Anwender ("Auch in der Karte neues Produkt erfassen muss nach
+// Positionen gesucht werden koennen"). Die Trefferliste bleibt bei einer
+// bereits gewaehlten Position zu, solange nichts eingetippt ist - sonst
+// stuende unter der Wahl dauerhaft eine Liste, die niemand braucht.
 function lagerNeuesProduktMaterialRendern(){
  const box=$("lagerNeuesProduktTreffer"), gewaehlt=$("lagerNeuesProduktGewaehlt");
  const suche=$("lagerNeuesProduktMaterialSuche");
  const fertig=!!lagerNeuesProduktArtikel||lagerNeuesProduktNeuePosition;
- if(suche)suche.hidden=fertig;
+ const begriff=suche?String(suche.value||"").trim():"";
+ if(suche){
+  suche.hidden=false;
+  suche.placeholder=fertig?"\u{1F50D} Andere Position suchen …":"\u{1F50D} Position suchen …";
+ }
  if(box){
-  box.hidden=fertig;
-  if(!fertig)box.innerHTML=lagerNeuesProduktTrefferHtml();
+  box.hidden=fertig&&!begriff;
+  if(!box.hidden)box.innerHTML=lagerNeuesProduktTrefferHtml();
  }
  if(gewaehlt){
   gewaehlt.hidden=!fertig;
@@ -864,7 +877,13 @@ function lagerNeuesProduktMaterialRendern(){
 // Trefferliste, damit das Suchfeld den Fokus behaelt.
 if($("lagerNeuesProduktMaterialSuche"))$("lagerNeuesProduktMaterialSuche").addEventListener("input",()=>{
  const box=$("lagerNeuesProduktTreffer");
- if(box)box.innerHTML=lagerNeuesProduktTrefferHtml();
+ if(!box)return;
+ // v3.128: auch bei schon gewaehlter Position - genau dafuer steht das Feld
+ // jetzt da. Eine geleerte Suche klappt die Liste wieder zu.
+ const begriff=String($("lagerNeuesProduktMaterialSuche").value||"").trim();
+ const fertig=!!lagerNeuesProduktArtikel||lagerNeuesProduktNeuePosition;
+ box.hidden=fertig&&!begriff;
+ if(!box.hidden)box.innerHTML=lagerNeuesProduktTrefferHtml();
 });
 if($("lagerNeuesProduktTreffer"))$("lagerNeuesProduktTreffer").addEventListener("click",e=>{
  const neu=e.target.closest?e.target.closest("[data-lager-produkt-neu]"):null;
@@ -879,6 +898,9 @@ if($("lagerNeuesProduktTreffer"))$("lagerNeuesProduktTreffer").addEventListener(
  lagerNeuesProduktNeuePosition=false;
  lagerNeuesProduktArtikel=lagerNeuesProduktMaterialListeVoll
    .find(x=>String(x.id)===String(a.dataset.lagerProduktArtikel))||null;
+ // Die Suche hat ihren Zweck erfuellt - geleert klappt die Liste zu und das
+ // Feld steht fuer den naechsten Wechsel wieder bereit.
+ if($("lagerNeuesProduktMaterialSuche"))$("lagerNeuesProduktMaterialSuche").value="";
  lagerNeuesProduktMaterialRendern();
 });
 if($("lagerNeuesProduktGewaehlt"))$("lagerNeuesProduktGewaehlt").addEventListener("click",e=>{
@@ -1211,13 +1233,18 @@ function measLagerTrefferHtml(z){
   +(rest>0?`<div class="small" style="color:var(--muted)">… ${rest} weitere – bitte genauer suchen.</div>`:"");
 }
 function measLagerPositionHtml(z){
- // Ist die Position gewaehlt, braucht es keine Liste mehr - sie steht als
- // Text da und laesst sich mit einem Knopf wieder oeffnen.
+ // Ist die Position gewaehlt, steht sie als Text da. Das Suchfeld bleibt
+ // v3.128 trotzdem stehen - dieselbe Aenderung wie im Produkt-Dialog und aus
+ // demselben Grund: ein "✏️ ändern"-Knopf allein ist kein Suchweg. Die
+ // Trefferliste klappt nur auf, wenn wirklich etwas eingetippt ist.
  if(z.artikel){
+  const begriff=String(z.suche||"").trim();
   return `<div class="rmat-pos">
    <div class="small">Position: <b>${esc(lagArtikelText(z.artikel))}</b></div>
    ${z.vorschlagSicher?`<span class="rmat-sicher">✓ Vorschlag der App</span>`:""}
    <button type="button" class="gray" data-meas-lager-position-aendern="${esc(z.id)}">✏️ Position ändern</button>
+   <input type="search" placeholder="Andere Position suchen …" data-meas-lager-suche="${esc(z.id)}" value="${esc(z.suche||"")}">
+   <div class="meas-lager-treffer-liste" data-meas-lager-treffer="${esc(z.id)}"${begriff?"":" hidden"}>${begriff?measLagerTrefferHtml(z):""}</div>
   </div>`;
  }
  const hinweis=z.vorschlag
@@ -1336,15 +1363,23 @@ if($("measLagerListe")){
   const waehlen=e.target.closest?e.target.closest("[data-meas-lager-waehlen]"):null;
   if(waehlen){
    const z=measLagerZeilen.find(x=>x.id===waehlen.dataset.measLagerWaehlen);
-   if(z)measLagerPositionSetzen(z,z.positionen.find(a=>String(a.id)===String(waehlen.dataset.measLagerArtikel))||null);
+   if(z){
+    measLagerPositionSetzen(z,z.positionen.find(a=>String(a.id)===String(waehlen.dataset.measLagerArtikel))||null);
+    // v3.128: nach der Wahl ist die Suche erledigt - geleert klappt die
+    // Trefferliste zu, statt dauerhaft zwischen der gewaehlten Position und
+    // dem Mengenfeld zu stehen. Dasselbe im Produkt-Dialog.
+    z.suche="";
+   }
    renderMeasLagerListe();
    return;
   }
   const aendern=e.target.closest?e.target.closest("[data-meas-lager-position-aendern]"):null;
   if(aendern){
    const z=measLagerZeilen.find(x=>x.id===aendern.dataset.measLagerPositionAendern);
-   // Die Suche bleibt stehen - wer die Position wechselt, sucht meist in
-   // derselben Gegend weiter.
+   // Die Wahl wird aufgehoben, das leere Suchfeld steht wieder bereit. Bis
+   // v3.127 stand hier "die Suche bleibt stehen" - seit die Wahl sie leert
+   // (s. o.) ist sie das ohnehin nicht mehr, und das Feld ist jetzt auch
+   // ohne diesen Knopf erreichbar.
    if(z)measLagerPositionSetzen(z,null);
    renderMeasLagerListe();
   }
@@ -1362,7 +1397,12 @@ if($("measLagerListe")){
    // wie beim Mengenfeld unten) - und die Treffer muessen waehrend des
    // Tippens sichtbar werden, nicht erst danach.
    const box=$("measLagerListe").querySelector('[data-meas-lager-treffer="'+z.id+'"]');
-   if(box)box.innerHTML=measLagerTrefferHtml(z);
+   if(box){
+    // v3.128: bei schon gewaehlter Position ist die Liste zu, bis getippt
+    // wird - und klappt wieder zu, wenn die Suche geleert wird.
+    box.hidden=!!z.artikel&&!String(z.suche||"").trim();
+    box.innerHTML=box.hidden?"":measLagerTrefferHtml(z);
+   }
    return;
   }
   const menge=e.target.dataset.measLagerMenge;
