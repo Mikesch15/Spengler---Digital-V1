@@ -30576,3 +30576,70 @@ der Tausch ist bewusst.
 | `js/68-lagerverwaltung.js` | `lagerNeuesProduktMaterialRendern()` (Feld bleibt, Liste klappt), Input-Handler, Wahl leert die Suche; `measLagerPositionHtml()` und sein Input-Handler nach derselben Regel |
 | `index.html`, `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.128 |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 19 neu, zwei Verträge in 12b/14b umgestellt |
+
+## 195. v3.129 – Klappbare Abschnittstitel im Ausmass „Offerte erfassen"
+
+Meldung des Anwenders: *"Im ausmass, offerte erfassen muss wie bei offerte
+die fettgeschriebenen titel einklapbar sein"*.
+
+### 195.1 Das Feld war da, die Darstellung nicht
+
+Die Positionen tragen seit v3.44 ein Feld `abschnitt` – den fett gedruckten
+Zwischentitel aus der Foto-/PDF-Erkennung. Die **Offerte**
+(`js/63-angebote.js`) gruppiert danach seit v3.71 zu klappbaren Blöcken. Das
+**Ausmass** (`js/17-ausmass.js`) bekam das Feld auf beiden Wegen geliefert –
+
+- aus der eigenen Erkennung (`abschnitt: p.abschnitt||""`, js/17),
+- aus einer eingelesenen Offerte (`amOfferteResults` übernimmt die Positionen
+  unverändert mit `{...p}`) –
+
+zeichnete aber weiterhin eine flache Liste. Das Feld wurde also mitgeführt,
+gespeichert und beim nächsten Öffnen wieder geladen, nur nie angezeigt.
+
+### 195.2 Dasselbe Muster, nicht ein zweites
+
+Umgesetzt ist bewusst die Konstruktion aus js/63, nicht eine eigene:
+
+- dieselben Klassen `.klapp-kopf .ang-sek-kopf` – die CSS steht weiterhin nur
+  einmal da (css/01-basis.css, Zeilen 231–236), es kam **keine** neue Klasse
+  dazu,
+- dieselbe Vorgabe: **zugeklappt**, damit bei einer langen Offerte sofort ein
+  Überblick da steht,
+- derselbe Rückfall: Positionen **ohne** Titel bleiben flach – ältere
+  Datensätze und von Hand hinzugefügte Zeilen bekommen keine erfundene
+  Überschrift,
+- dieselbe Gruppierung nach **aufeinanderfolgenden** Zeilen: derselbe Titel an
+  zwei getrennten Stellen ergibt zwei Blöcke, die Reihenfolge der Offerte
+  bleibt erhalten,
+- dasselbe Umschalten ohne Neuzeichnen (nur `tr.style.display`), damit ein
+  gerade bearbeitetes Feld den Fokus nicht verliert,
+- dieselbe Tastaturbedienung (`role="button"`, Enter/Leertaste).
+
+### 195.3 Eine Ergänzung gegenüber der Offerte: der Stand im Kopf
+
+Ein Unterschied zur Offerte ist begründet: im Ausmass wird jede Position vor
+Ort **abgehakt** (`fertig`, seit v3.48). Ein zugeklappter Block, der nicht
+verrät, ob er schon erledigt ist, wäre beim Abhaken eher im Weg als eine
+Hilfe. Der Kopf nennt deshalb den Stand – „3/8 fertig". Die Offerte hat kein
+`fertig` und braucht das nicht.
+
+Der Klapp-Zustand überlebt das Abhaken: der `change`-Handler zeichnet die
+ganze Tabelle neu, `amSektionOffen` ist aber Zustand des Moduls, nicht des
+DOM. Beim Öffnen eines **anderen** Ausmasses wird er zurückgesetzt
+(`amSektionenZuruecksetzen()`, vor beiden Zweigen – ein Blitzschutz-Ausmass
+dazwischen darf nichts vererben).
+
+### 195.4 Was ausdrücklich nicht betroffen ist
+
+`printAusmass()` baut seine Tabelle direkt aus `a.positions` und nicht aus dem
+Bildschirm-DOM. Der Ausdruck ist von der Klappung deshalb unberührt – eine
+zugeklappte Liste druckt vollständig.
+
+### 195.5 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/17-ausmass.js` | `amSektionOffen`, `amSektionenZuruecksetzen()`, `amPositionZeileHtml()`, `amSektionStand()`, `renderAmPositionsTable()` gruppiert, `amSektionUmschalten()` + Klick-/Tastatur-Handler |
+| `js/41-hilfe.js` | `am-positionen` um die Blöcke und den Stand im Titel erweitert |
+| `index.html`, `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.129 |
+| `pruefstaende/pruefstand-ausmass-abschnitte-v3-129.js` | neu, 19 Prüfungen |

@@ -964,7 +964,16 @@ PDF drucken.</p>`},
 
 "am-positionen":{titel:"Erfasste Positionen",text:`
 <p>Je Zeile Position, Beschreibung, Menge und Einheit. Beim Blitzschutzausmass
-kommen Bezeichnung und Einheit aus dem Katalog.</p>`},
+kommen Bezeichnung und Einheit aus dem Katalog.</p>
+<p><b>Seit Version 3.129</b> bilden die <b>fett gedruckten Titel</b> aus der
+Offerte klappbare Blöcke – genau wie in der Offerte selbst. Sie starten
+<b>zugeklappt</b>, damit bei einer langen Offerte sofort ein Überblick da
+steht statt einer endlosen Liste; ein Tippen auf den Titel klappt den Block
+auf.</p>
+<p>Im Titel steht, wie viele Positionen des Blocks schon <b>fertig</b> sind
+(z. B. „3/8 fertig“). So sieht man auch zugeklappt, wo noch Arbeit liegt.
+Positionen <b>ohne</b> Titel – von Hand hinzugefügte oder ältere – stehen
+weiterhin einfach in der Liste.</p>`},
 
 "am-ki":{titel:"Positionen aus einem Foto",text:`
 <p>Ein Foto einer Offerte oder Liste wird ausgewertet und als Positionen

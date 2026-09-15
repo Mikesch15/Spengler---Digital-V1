@@ -9,15 +9,66 @@ let amEditReturnTo="ausmassModal";
 let ausmassListProjectId=null;
 let ausmassCache=[];
 
-function renderAmPositionsTable(){
- $("amPositionsBody").innerHTML=amPositions.map((p,i)=>`<tr${p.fertig?' class="am-pos-fertig"':""}>
+// ---- v3.129: fett gedruckte Abschnittstitel sind klappbar ---------------
+// Die Positionen tragen seit v3.44 ein Feld "abschnitt" (der fett gedruckte
+// Zwischentitel aus der Erkennung). Die Offerte (js/63-angebote.js)
+// gruppiert danach seit v3.71 zu klappbaren Bloecken - hier stand dagegen
+// weiterhin eine flache Liste, obwohl das Feld ankam: aus der Erkennung
+// (amRecognize..., Feld abschnitt) wie aus einer eingelesenen Offerte
+// (amOfferteResults uebernimmt die Positionen unveraendert). Gemeldet vom
+// Anwender: "Im ausmass, offerte erfassen muss wie bei offerte die
+// fettgeschriebenen titel einklapbar sein". Umgesetzt ist bewusst DASSELBE
+// Muster wie in js/63, nicht ein zweites: gleiche Klassen
+// (.klapp-kopf/.ang-sek-kopf), gleiche Vorgabe (zugeklappt), gleicher
+// Rueckfall (Positionen ohne Titel bleiben flach).
+let amSektionOffen=new Set();
+// Beim Oeffnen/Neuanlegen eines anderen Ausmasses zuruecksetzen - sonst
+// erschiene ein anderswo aufgeklappter Abschnitt hier faelschlich offen.
+function amSektionenZuruecksetzen(){
+ amSektionOffen=new Set();
+}
+function amPositionZeileHtml(p,i,versteckt,sektionTitel){
+ return `<tr${p.fertig?' class="am-pos-fertig"':""}${versteckt?' style="display:none"':""}${sektionTitel?` data-am-sek-row="${esc(sektionTitel)}"`:""}>
 <td><input data-am-pos="${i}" value="${esc(p.pos||"")}"></td>
 <td><input data-am-desc="${i}" value="${esc(p.description||"")}">${(p.massQuelle&&p.massQuelle.length)?`<div class="small" style="color:var(--muted)">📐 ${esc(p.massQuelle.map(q=>q.name).join(" + "))}</div>`:""}</td>
 <td><input data-am-qty="${i}" type="number" step=".01" value="${p.quantity||0}"></td>
 <td><input data-am-unit="${i}" value="${esc(p.unit||"")}"></td>
 <td style="text-align:center"><input type="checkbox" data-am-fertig="${i}" ${p.fertig?"checked":""} title="Position fertig"></td>
 <td><button type="button" class="gray" data-am-pick="${i}" style="padding:6px 8px" title="Aus Massaufnahme übernehmen">📐</button><button type="button" class="red" data-am-del="${i}" style="padding:6px 8px">×</button></td>
-</tr>`).join("")||'<tr><td colspan="6" class="small">Noch keine Positionen. Foto aufnehmen und "Positionen erkennen" klicken, oder manuell hinzufügen.</td></tr>';
+</tr>`;
+}
+// Wie viele Positionen eines Abschnitts schon abgehakt sind. Steht im Kopf,
+// damit man ZUGEKLAPPT sieht, wo noch Arbeit liegt - sonst waere das
+// Zuklappen beim Abhaken vor Ort eher im Weg als eine Hilfe.
+function amSektionStand(von,bis){
+ let fertig=0;
+ for(let k=von;k<bis;k++)if(amPositions[k].fertig)fertig++;
+ return `${fertig}/${bis-von} fertig`;
+}
+function renderAmPositionsTable(){
+ if(!amPositions.length){
+  $("amPositionsBody").innerHTML='<tr><td colspan="6" class="small">Noch keine Positionen. Foto aufnehmen und "Positionen erkennen" klicken, oder manuell hinzufügen.</td></tr>';
+ }else{
+  // Aufeinanderfolgende Positionen mit demselben (nicht leeren) Titel
+  // bilden EINEN Block; Positionen ohne Titel (von Hand hinzugefuegt, oder
+  // aus einer Erkennung vor v3.44) erscheinen wie bisher ohne Kopfzeile.
+  let html="",i=0;
+  while(i<amPositions.length){
+   const titel=(amPositions[i].abschnitt||"").trim();
+   if(titel){
+    let j=i;
+    while(j<amPositions.length&&(amPositions[j].abschnitt||"").trim()===titel)j++;
+    const offen=amSektionOffen.has(titel);
+    html+=`<tr><td colspan="6"><div class="klapp-kopf ang-sek-kopf${offen?" open":""}" data-am-sek-toggle="${esc(titel)}" role="button" tabindex="0"><b>${esc(titel)}</b><span class="small" style="color:var(--muted)">${esc(amSektionStand(i,j))}</span><span class="klapp-chevron">›</span></div></td></tr>`;
+    for(let k=i;k<j;k++)html+=amPositionZeileHtml(amPositions[k],k,!offen,titel);
+    i=j;
+   }else{
+    html+=amPositionZeileHtml(amPositions[i],i,false,"");
+    i++;
+   }
+  }
+  $("amPositionsBody").innerHTML=html;
+ }
  const nFertig=amPositions.filter(p=>p.fertig).length;
  $("amPositionsSummary").textContent=amPositions.length?`${amPositions.length} Positionen, ${nFertig} fertig`:"";
 }
@@ -84,11 +135,34 @@ $("amPositionsBody").addEventListener("change",e=>{
  amPositions[i].fertig=e.target.checked;
  renderAmPositionsTable();
 });
+// v3.129: der Abschnittskopf klappt auf und zu. Wie in js/63 wird dabei NUR
+// die Sichtbarkeit der Zeilen umgeschaltet, nicht die Tabelle neu gezeichnet -
+// sonst verloere ein gerade bearbeitetes Feld den Fokus.
+function amSektionUmschalten(kopf){
+ const titel=kopf.dataset.amSekToggle;
+ const offen=!kopf.classList.contains("open");
+ if(offen)amSektionOffen.add(titel); else amSektionOffen.delete(titel);
+ kopf.classList.toggle("open",offen);
+ $("amPositionsBody").querySelectorAll("[data-am-sek-row]").forEach(tr=>{
+  if(tr.dataset.amSekRow===titel)tr.style.display=offen?"":"none";
+ });
+}
 $("amPositionsBody").addEventListener("click",e=>{
  const del=e.target.closest("[data-am-del]");
  if(del){amPositions.splice(Number(del.dataset.amDel),1);renderAmPositionsTable();return}
  const pick=e.target.closest("[data-am-pick]");
- if(pick)amOpenMassPick(Number(pick.dataset.amPick));
+ if(pick){amOpenMassPick(Number(pick.dataset.amPick));return}
+ const sek=e.target.closest("[data-am-sek-toggle]");
+ if(sek)amSektionUmschalten(sek);
+});
+// Mit der Tastatur bedienbar (role="button" allein genuegt dafuer nicht) -
+// dieselbe Ergaenzung wie in js/63-angebote.js.
+$("amPositionsBody").addEventListener("keydown",e=>{
+ if(e.key!=="Enter"&&e.key!==" "&&e.key!=="Spacebar")return;
+ const k=e.target.closest?e.target.closest("[data-am-sek-toggle]"):null;
+ if(!k)return;
+ e.preventDefault();
+ amSektionUmschalten(k);
 });
 $("amAddPosition").onclick=()=>{
  amPositions.push({pos:"",description:"",quantity:0,unit:""});
@@ -355,6 +429,7 @@ function newAusmassWithType(type){
  amWsNeueMarke();
  renderAmPhotoGallery();
  amPositions=[];
+ amSektionenZuruecksetzen();
  renderAmPositionsTable();
  amBzPositions=[];
  renderBzPositionsTable();
@@ -396,6 +471,9 @@ function openAusmass(a){
  amWsNeueMarke();
  amPhotos=(a.photo_paths&&a.photo_paths.length)?[...a.photo_paths]:(a.photo_path?[a.photo_path]:[]);
  renderAmPhotoGallery();
+ // v3.129: vor BEIDEN Zweigen - ein Blitzschutz-Ausmass dazwischen darf die
+ // Klapp-Zustaende des naechsten Offerte-Ausmasses nicht erben.
+ amSektionenZuruecksetzen();
  if(a.type==="blitzschutz_ausmass"){
   amBzPositions=Array.isArray(a.positions)?a.positions.map(p=>({...p})):[];
   renderBzPositionsTable();

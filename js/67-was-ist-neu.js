@@ -87,7 +87,9 @@ const WIN_CHANGELOG={
   "Der Knopf '＋ Neues Produkt' steht jetzt oben in der Lagerverwaltung. Die Hilfe hatte ihn schon genannt, es gab ihn aber nur innerhalb einer aufgeklappten Position.",
   "Sicherheit: die Firmengrenze auf der Produkt-Tabelle hat seit v3.106 nicht richtig gebunden (die beiden Schranken waren oder- statt und-verknüpft). Das ist behoben - Produkte sind jetzt so abgesichert wie die Buchungen."],
  "3.128":["Im Dialog 'Neues Produkt erfassen' steht das Suchfeld für die Materialposition jetzt IMMER da - auch dann, wenn die Position schon vorbelegt ist. Bisher verschwand es genau dann, und wer den Dialog über '＋ Weiteres Produkt zu dieser Position' öffnete, bekam es nie zu sehen. Tippen öffnet die Treffer, ein Klick wechselt die Position.",
-  "Dasselbe im Ausbuchen-Dialog der Massaufnahme: auch dort bleibt das Suchfeld nach der Wahl stehen, statt nur einen '✏️ Position ändern'-Knopf zu hinterlassen."]
+  "Dasselbe im Ausbuchen-Dialog der Massaufnahme: auch dort bleibt das Suchfeld nach der Wahl stehen, statt nur einen '✏️ Position ändern'-Knopf zu hinterlassen."],
+ "3.129":["Ausmass → Offerte erfassen: die fett gedruckten Titel aus der Offerte bilden jetzt klappbare Blöcke, genau wie in der Offerte selbst. Sie starten zugeklappt – bei einer langen Offerte steht so sofort ein Überblick da statt einer endlosen Liste.",
+  "Im Titel steht, wie viele Positionen des Blocks schon fertig sind (z. B. '3/8 fertig'). So sieht man auch zugeklappt, wo noch Arbeit liegt. Positionen ohne Titel stehen weiterhin einfach in der Liste."]
 };
 
 function winVersionVergleich(a,b){
