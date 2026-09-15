@@ -29,6 +29,11 @@
 //  12 Neues Produkt erfassen (v3.106): per "＋ Weiteres Produkt" und per
 //     unbekanntem Barcode - legt lager_varianten an und oeffnet danach
 //     direkt den Buchen-Dialog fuer Zugang.
+//  13 Tippen-zum-Fokussieren (v3.107, js/01-basis.js): ein Klick auf das
+//     Kamerabild stoesst die Fokussuche aktiv neu an - mit einem
+//     GESTUBBTEN MediaStreamTrack (kein echter Kamera-Zugriff, siehe
+//     Abschnitt 10) wird nur geprueft, dass die richtigen
+//     applyConstraints()-Aufrufe ausgeloest werden.
 //
 // WICHTIGSTE AENDERUNG SEIT v3.98: Die Lagerverwaltung baute urspruenglich
 // auf lagerbestand auf (dem Blech-Materialbestand). Das war fachlich falsch
@@ -546,6 +551,47 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  z=await page.evaluate(()=>$("lagerverwaltungListe").textContent);
  p(/3 Produkte/.test(z),"die Position zeigt jetzt 3 Produkte in der Liste",z);
  await page.evaluate(()=>{$("lagerBuchenModal").hidden=true});
+
+ // ---- 13 · Tippen-zum-Fokussieren (v3.107) -------------------------------
+ console.log("\n13 · Tippen-zum-Fokussieren (Kamera-Nahfokus)");
+ // Kein echter Kamera-Zugriff in dieser Umgebung - srcObject verlangt aber
+ // ein echtes MediaStream-Objekt (ein einfaches {getVideoTracks(){...}}
+ // wird vom Browser abgelehnt). captureStream() auf einem <canvas> liefert
+ // einen echten MediaStream mit einem echten Video-Track OHNE Kamera; dessen
+ // applyConstraints()/getCapabilities() werden anschliessend ueberschrieben
+ // (normale JS-Eigenschaften, auch auf nativen Objekten ueberschreibbar).
+ // Geprueft wird nur, dass ein Klick auf das Kamerabild die richtigen
+ // applyConstraints()-Aufrufe ausloest - nicht die echte Hardware-Ansteuerung.
+ z=await page.evaluate(async()=>{
+  const aufrufe=[];
+  const stream=document.createElement("canvas").captureStream();
+  const track=stream.getVideoTracks()[0];
+  track.applyConstraints=async c=>{aufrufe.push(c)};
+  track.getCapabilities=()=>({focusMode:["continuous","manual"],focusDistance:{min:0.05,max:1,step:0.01}});
+  $("barcodeScanVideo").srcObject=stream;
+  $("barcodeScanVideo").click();
+  await new Promise(r=>setTimeout(r,350));
+  return {aufrufe};
+ });
+ p(z.aufrufe.length===2,"mit bekanntem manuellem Fokusabstand: ein Klick loest zwei applyConstraints()-Aufrufe aus",z);
+ p(z.aufrufe[0]&&z.aufrufe[0].advanced&&z.aufrufe[0].advanced[0].focusMode==="manual"&&z.aufrufe[0].advanced[0].focusDistance===0.05,
+   "erster Aufruf stellt manuell auf den naechstmoeglichen (nahen) Fokusabstand",z.aufrufe[0]);
+ p(z.aufrufe[1]&&z.aufrufe[1].advanced&&z.aufrufe[1].advanced[0].focusMode==="continuous",
+   "zweiter Aufruf schaltet gleich wieder auf Dauerautofokus zurueck",z.aufrufe[1]);
+
+ z=await page.evaluate(async()=>{
+  const aufrufe=[];
+  const stream=document.createElement("canvas").captureStream();
+  const track=stream.getVideoTracks()[0];
+  track.applyConstraints=async c=>{aufrufe.push(c)};
+  track.getCapabilities=()=>({focusMode:["continuous"]}); // kein manueller Fokusabstand bekannt
+  $("barcodeScanVideo").srcObject=stream;
+  $("barcodeScanVideo").click();
+  await new Promise(r=>setTimeout(r,350));
+  return {aufrufe};
+ });
+ p(z.aufrufe.length===1&&z.aufrufe[0].advanced[0].focusMode==="continuous",
+   "ohne bekannten manuellen Fokusabstand nur der einzelne continuous-Aufruf, kein Fehler",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

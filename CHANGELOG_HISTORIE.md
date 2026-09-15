@@ -28475,3 +28475,90 @@ Anschluss ohne neue Fehlschläge.
 - Kein Live-Test mit einer echten Kamera aus dieser Sandbox möglich
   (bestehende Einschränkung) - die Verdrahtung des Scan-zu-neues-Produkt-
   Wegs ist geprüft, das tatsächliche Scannen nicht.
+
+## 173. FEHLERBEHEBUNG: KAMERA STELLT BEI KURZER DISTANZ NICHT SCHARF — VERSION 3.107
+
+### 173.1 Anlass
+
+Direktes Anwender-Feedback mit Foto-Beleg: der Barcode blieb unscharf,
+obwohl er direkt vor der Kameralinse gehalten wurde (deutlich sichtbare
+Unschärfe im Screenshot, während Text am Rand des Bilds - weiter weg von
+der Linse - lesbar blieb). Die in v3.104/v3.105 verstärkten
+Start-Vorgaben (`facingMode`, höhere Auflösung, `focusMode:"continuous"`
+sowohl in den `getUserMedia`-Constraints als auch nachträglich per
+`applyConstraints()`) reichten auf diesem Gerät nicht aus.
+
+### 173.2 Root-Cause und Lösung: Tippen-zum-Fokussieren
+
+Eine rein passiv gesetzte `focusMode:"continuous"`-Vorgabe startet den
+Autofokus, garantiert aber nicht, dass die Kamera bei einer sehr kurzen
+Distanz (Nahbereich, wenige Zentimeter) tatsächlich nachfokussiert - auf
+mehreren Android-Geräten bleibt der Autofokus dann auf einer mittleren
+Distanz "hängen", ohne von selbst erneut zu suchen. Das ist eine bekannte
+Einschränkung von `getUserMedia`-Videostreams (kein Ersatz für eine echte
+Foto-App mit expliziter Fokussteuerung) - die verbreitete Lösung dafür in
+Web-basierten Barcode-Scannern ist eine **Tippen-zum-Fokussieren-Geste**,
+die die Fokussuche aktiv neu anstößt, statt nur passiv zu warten.
+
+Neue Funktion `barcodeScanNeuFokussieren()` (js/01-basis.js), ausgelöst
+durch einen Klick/Tipp auf das Kamerabild selbst: unterstützt die Kamera
+einen manuellen Fokusabstand (`track.getCapabilities().focusDistance`),
+wird kurz (250 ms) auf den nächstmöglichen Wert (`focusDistance.min`, also
+Nahbereich) gestellt und sofort wieder auf `focusMode:"continuous"`
+zurückgesetzt - dieser tatsächliche **Wertwechsel** zwingt den
+Kamera-Treiber zu einer frischen Fokussuche, was ein erneutes
+`"continuous"` ohne Wertänderung (das war schon die v3.104/v3.105-Vorgabe)
+oft nicht auslöst. Kennt die Kamera keinen manuellen Fokusabstand, bleibt
+es beim einfachen `"continuous"`-Aufruf - kein Fehler, kein zweiter
+Berechtigungsdialog (es wird kein neuer Stream angefordert, nur der
+laufende Track angepasst). Ein sichtbarer Hinweistext im Scan-Overlay
+("Unscharf? Kurz auf das Bild tippen zum Fokussieren.") macht die Geste
+auffindbar, das Kamerabild bekommt einen Zeiger-Cursor als visuellen
+Hinweis.
+
+### 173.3 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, neuer Abschnitt 13: da
+diese Sandbox keinen echten Kamera-Zugriff hat, wird über
+`canvas.captureStream()` ein echter (aber kamera-loser) `MediaStream` mit
+echtem Video-Track erzeugt, dessen `applyConstraints()`/
+`getCapabilities()` anschließend überschrieben werden (normale
+JS-Eigenschaften, auch auf nativen Objekten überschreibbar) - ein
+einfaches `{getVideoTracks(){...}}`-Objekt lehnt der Browser für
+`video.srcObject` ab, ein echter `MediaStream` nicht. Geprüft wird damit
+die Verdrahtung (welche `applyConstraints()`-Aufrufe ein Klick auslöst,
+mit und ohne bekannten manuellen Fokusabstand), nicht das tatsächliche
+Scharfstellverhalten einer echten Kamera. 4 neue Prüfungen, alle
+bestanden (67 Prüfungen insgesamt in diesem Prüfstand). Volle Regression
+aller Prüfstände im Anschluss ohne neue Fehlschläge.
+
+**Ehrliche Grenze:** kein Live-Test mit einer echten Gerätekamera aus
+dieser Sandbox möglich (wiederholt dokumentierte, bestehende
+Einschränkung). Ob die Geste auf dem konkreten Gerät des Anwenders das
+Problem tatsächlich löst, lässt sich nur durch erneutes Ausprobieren vor
+Ort feststellen - `focusDistance` ist zudem eine browser-/
+geräteabhängige, nicht vom W3C standardisierte Erweiterung; unterstützt
+weder Browser noch Kamera sie, bleibt nur der einfache
+`"continuous"`-Aufruf ohne garantierte Wirkung.
+
+### 173.4 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | neue Funktion `barcodeScanNeuFokussieren()`, Klick-Handler auf `#barcodeScanVideo` |
+| `index.html` | Hinweistext "Unscharf? Kurz auf das Bild tippen zum Fokussieren." im Scan-Overlay |
+| `css/01-basis.css` | `cursor:pointer` auf `.barcode-scan-box video` |
+| `sw.js` | Cache-Version 3.107 |
+| `PROJECT_STATE.md` | Versionsstand 3.107 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.107"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | neuer Abschnitt 13 (4 Prüfungen) |
+
+### 173.5 Offene Punkte
+
+- Kein Live-Test mit echter Kamera möglich (siehe 173.3) - Rückmeldung des
+  Anwenders nach diesem Fix ist der einzige verlässliche Test.
+- Sollte die Geste auf dem konkreten Gerät weiterhin nicht helfen, bliebe
+  als nächster Schritt nur eine noch direktere Steuerung über die
+  `ImageCapture`-API (`track.getPhotoCapabilities()`/`setOptions()`) - nicht
+  gebaut, nur als möglicher nächster Schritt festgehalten, falls die
+  Rückmeldung das nahelegt.

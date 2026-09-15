@@ -318,7 +318,7 @@ label.feedback-pick span{flex:1 1 auto;min-width:0;word-break:break-word;text-tr
 .barcode-scan-overlay{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;padding:14px}
 .barcode-scan-overlay[hidden]{display:none}
 .barcode-scan-box{width:100%;max-width:520px}
-.barcode-scan-box video{width:100%;border-radius:10px;background:#111;margin-top:8px}
+.barcode-scan-box video{width:100%;border-radius:10px;background:#111;margin-top:8px;cursor:pointer}
 .barcode-scan-status{color:#fff;margin-top:8px;text-align:center;font-size:13px;min-height:18px}
 .sketch-gallery{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0}
 .sketch-thumb-wrap{position:relative;width:84px;height:118px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}

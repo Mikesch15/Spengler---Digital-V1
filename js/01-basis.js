@@ -590,6 +590,34 @@ function barcodeScanSchliessen(){
 }
 if($("barcodeScanAbbrechen"))$("barcodeScanAbbrechen").onclick=barcodeScanSchliessen;
 
+// v3.107: Tippen-zum-Fokussieren. Auf mehreren Geraeten (siehe Anwender-
+// Rueckmeldung mit Foto: Code direkt vor der Linse bleibt dauerhaft
+// unscharf) haengt der Dauerautofokus (focusMode:"continuous") bei sehr
+// kurzer Distanz fest und stellt nicht mehr automatisch nach, obwohl die
+// Vorgabe beim Start gesetzt wurde. Ein Tipp auf das Bild stoesst die
+// Fokussuche aktiv neu an: unterstuetzt die Kamera einen manuellen
+// Fokusabstand (focusDistance), wird kurz auf den naechstmoeglichen Wert
+// (Nahbereich) gestellt und sofort wieder auf "continuous" zurueckgesetzt -
+// dieser Wechsel zwingt viele Kamera-Treiber zu einer frischen Fokussuche,
+// die ein blosses erneutes "continuous" ohne Wertaenderung oft NICHT
+// ausloest. Kennt die Kamera keinen manuellen Fokusabstand, bleibt es beim
+// reinen "continuous" (kein Fehler, kein zweiter Berechtigungsdialog - es
+// wird kein neuer Stream angefordert, nur der laufende Track angepasst).
+async function barcodeScanNeuFokussieren(){
+ const video=$("barcodeScanVideo");
+ const track=video&&video.srcObject&&video.srcObject.getVideoTracks&&video.srcObject.getVideoTracks()[0];
+ if(!track||!track.applyConstraints)return;
+ try{
+  const caps=(typeof track.getCapabilities==="function")?track.getCapabilities():null;
+  if(caps&&caps.focusDistance&&caps.focusMode&&caps.focusMode.indexOf("manual")!==-1){
+   await track.applyConstraints({advanced:[{focusMode:"manual",focusDistance:caps.focusDistance.min}]});
+   await new Promise(r=>setTimeout(r,250));
+  }
+  await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
+ }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
+}
+if($("barcodeScanVideo"))$("barcodeScanVideo").addEventListener("click",barcodeScanNeuFokussieren);
+
 // Oeffnet die Kamera und ruft callback(code) GENAU EINMAL mit dem erkannten
 // Text auf, dann schliesst sich das Overlay von selbst. Ein Abbrechen-Klick
 // ruft callback nicht auf. Fehler (kein Netz, keine Kamera-Freigabe) werden
