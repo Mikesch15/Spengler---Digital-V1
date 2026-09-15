@@ -28562,3 +28562,97 @@ weder Browser noch Kamera sie, bleibt nur der einfache
   `ImageCapture`-API (`track.getPhotoCapabilities()`/`setOptions()`) - nicht
   gebaut, nur als möglicher nächster Schritt festgehalten, falls die
   Rückmeldung das nahelegt.
+
+## 174. FEHLERBEHEBUNG: KAMERA STELLT WEITERHIN NICHT SCHARF — VERSION 3.108
+
+### 174.1 Anlass
+
+Rückmeldung des Anwenders nach v3.107: "Stellt immer noch nicht scharf."
+Der in v3.107 gebaute erste Versuch (kurzer Wechsel auf einen manuellen
+Fokusabstand `focusDistance` und zurück auf `"continuous"`) hängt
+vollständig davon ab, dass Browser UND Kamera diese nicht standardisierte
+Fähigkeit überhaupt melden (`track.getCapabilities().focusDistance`) -
+das war bereits in 173.3/173.5 als offene, ungetestete Annahme
+dokumentiert. Meldet ein Gerät diese Fähigkeit nicht (was auf vielen
+Android-Geräten/Browsern der Fall ist), bewirkt ein Tipp auf das Bild
+schlicht gar nichts - genau das erlebte der Anwender.
+
+### 174.2 Lösung: Kompletter Stream-Neustart als zweite, geräteunabhängige Stufe
+
+`barcodeScanNeuFokussieren()` (js/01-basis.js) bekommt eine zweite Stufe,
+die unabhängig davon greift, ob die erste (`focusDistance`) etwas bewirkt
+hat: ein komplett neuer Kamera-Stream wird über
+`navigator.mediaDevices.getUserMedia()` mit derselben Vorgabe wie beim
+ersten Öffnen angefordert und in denselben laufenden `<video>` eingehängt.
+Viele Kamera-Treiber führen beim **Start** eines Streams einen frischen
+Autofokus-Sweep durch (wie beim erstmaligen Öffnen der Kamera-App), der
+beim Dauerautofokus mitten im laufenden Betrieb bei sehr kurzer Distanz
+oft ausbleibt - dafür wird keine `focusDistance`-Fähigkeit gebraucht, das
+deckt also gerade die Geräte ab, bei denen Stufe 1 wirkungslos bleibt.
+
+Der laufende ZXing-Scan liest die Bilder direkt vom `<video>`-DOM-Element
+(per `drawImage()` auf einen Canvas, unabhängig vom jeweils zugewiesenen
+`MediaStream`-Objekt) - ein Austausch von `video.srcObject` mitten im
+laufenden Scan erfordert deshalb **keinen** Neustart des Scan-Vorgangs
+selbst, ZXing bemerkt vom Stream-Wechsel nichts. Der alte Stream wird
+direkt danach gestoppt, damit nicht zwei Kamerazugriffe gleichzeitig aktiv
+bleiben - `video.play()` wird dabei bewusst **nicht** abgewartet (ein
+hängendes oder abgelehntes `play()`-Promise, z. B. weil die
+Nutzeraktivierung aus dem Klick zu diesem Zeitpunkt schon als verbraucht
+gilt, darf das Stoppen des alten Streams nicht verzögern). Schlägt die
+Neuanforderung fehl (z. B. weil ein zweiter gleichzeitiger Kamerazugriff
+auf dem Gerät nicht möglich ist), bleibt der bisherige Stream unverändert
+aktiv - kein sichtbarer Fehler, kein zweiter Berechtigungsdialog, da die
+Kamera bereits erlaubt ist.
+
+`barcodeScanSchliessen()` stoppt seither den Stream zusätzlich direkt über
+das `<video>`-Element selbst (nicht nur über die ursprünglichen
+ZXing-Controls) - nach einem Stream-Neustart wissen die ursprünglichen
+Controls nichts vom neuen Stream, ohne diese Ergänzung bliebe die Kamera
+nach dem Schliessen des Scan-Overlays aktiv.
+
+### 174.3 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 13 erweitert:
+zusätzlich zu den bestehenden `applyConstraints()`-Prüfungen wird
+`navigator.mediaDevices.getUserMedia()` gestubbt und geprüft, dass ein
+Klick unabhängig vom Ergebnis der ersten Stufe genau einen Stream-Neustart
+auslöst, das Kamerabild danach am neuen Stream hängt und der alte Stream
+gestoppt wird; ein weiterer Fall prüft, dass ein fehlschlagender Neustart
+keinen sichtbaren Fehler wirft und der bisherige Stream unverändert aktiv
+bleibt. 9 Prüfungen in Abschnitt 13 (vorher 4), alle bestanden (73
+Prüfungen insgesamt in diesem Prüfstand). Volle Regression aller
+Prüfstände im Anschluss ohne neue Fehlschläge.
+
+Beim Schreiben des Prüfstands zeigte sich ein echter Fehler im ersten
+Entwurf: `await video.play()` blockierte den Ablauf so lange, dass der
+danach folgende Stopp des alten Streams innerhalb des Test-Zeitfensters
+nicht mehr erreicht wurde - behoben durch das oben beschriebene bewusste
+Nicht-Abwarten von `play()`.
+
+**Ehrliche Grenze:** weiterhin kein Live-Test mit einer echten
+Gerätekamera aus dieser Sandbox möglich. Ein Stream-Neustart ist eine
+architektonisch robustere, von herstellerspezifischen Fähigkeitsfeldern
+unabhängige Lösung, aber auch sie ist keine Garantie - ob sie auf dem
+konkreten Gerät des Anwenders das Problem behebt, lässt sich nur durch
+erneutes Ausprobieren vor Ort feststellen.
+
+### 174.4 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | `barcodeScanNeuFokussieren()`: zweite Stufe (Stream-Neustart über `getUserMedia()`); `barcodeScanWunschKonstraint()` als gemeinsame Vorgabe ausgelagert; `barcodeScanSchliessen()` stoppt den Stream jetzt direkt über das `<video>`-Element |
+| `sw.js` | Cache-Version 3.108 |
+| `PROJECT_STATE.md` | Versionsstand 3.108 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.108"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13 um 5 Prüfungen erweitert (Stream-Neustart, Fehschlag-Fall) |
+
+### 174.5 Offene Punkte
+
+- Kein Live-Test mit echter Kamera möglich (siehe 174.3) - Rückmeldung des
+  Anwenders nach diesem Fix ist weiterhin der einzige verlässliche Test.
+- Hilft auch der Stream-Neustart nicht, bliebe als nächster Schritt nur
+  eine noch direktere Steuerung über die `ImageCapture`-API
+  (`track.getPhotoCapabilities()`/`setOptions()`) - nicht gebaut, nur als
+  möglicher nächster Schritt festgehalten, falls die Rückmeldung das
+  nahelegt.

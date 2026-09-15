@@ -580,41 +580,84 @@ function zxingLaden(){
 
 let barcodeScanCodeReader=null, barcodeScanControls=null;
 
+// Dieselbe Wunsch-Vorgabe wie beim ersten Oeffnen (siehe barcodeScannen) -
+// wird auch fuer den Stream-Neustart beim Tippen-zum-Fokussieren gebraucht,
+// deshalb in eine eigene Funktion ausgelagert statt zweimal hingeschrieben.
+function barcodeScanWunschKonstraint(){
+ return {video:{facingMode:{ideal:"environment"},
+  width:{ideal:1920},height:{ideal:1080},advanced:[{focusMode:"continuous"}]}};
+}
+
 // Kamera stoppen und Overlay schliessen. Sicher mehrfach aufrufbar (z. B.
-// einmal beim erfolgreichen Scan, einmal beim Abbrechen-Klick danach).
+// einmal beim erfolgreichen Scan, einmal beim Abbrechen-Klick danach). Stoppt
+// den Stream direkt ueber das <video>-Element (nicht nur ueber die
+// ZXing-Controls) - seit v3.107 kann ein Tippen-zum-Fokussieren einen neuen
+// Stream in denselben <video> eingehaengt haben, von dem die urspruenglichen
+// ZXing-Controls nichts wissen; ohne diesen direkten Stopp bliebe die Kamera
+// nach dem Schliessen aktiv.
 function barcodeScanSchliessen(){
  try{ if(barcodeScanControls&&barcodeScanControls.stop)barcodeScanControls.stop(); }catch(e){}
  try{ if(barcodeScanCodeReader&&barcodeScanCodeReader.reset)barcodeScanCodeReader.reset(); }catch(e){}
+ try{
+  const stream=$("barcodeScanVideo")&&$("barcodeScanVideo").srcObject;
+  if(stream&&stream.getTracks)stream.getTracks().forEach(t=>t.stop());
+ }catch(e){}
  barcodeScanControls=null;
  if($("barcodeScanOverlay"))$("barcodeScanOverlay").hidden=true;
 }
 if($("barcodeScanAbbrechen"))$("barcodeScanAbbrechen").onclick=barcodeScanSchliessen;
 
-// v3.107: Tippen-zum-Fokussieren. Auf mehreren Geraeten (siehe Anwender-
-// Rueckmeldung mit Foto: Code direkt vor der Linse bleibt dauerhaft
-// unscharf) haengt der Dauerautofokus (focusMode:"continuous") bei sehr
-// kurzer Distanz fest und stellt nicht mehr automatisch nach, obwohl die
-// Vorgabe beim Start gesetzt wurde. Ein Tipp auf das Bild stoesst die
-// Fokussuche aktiv neu an: unterstuetzt die Kamera einen manuellen
-// Fokusabstand (focusDistance), wird kurz auf den naechstmoeglichen Wert
-// (Nahbereich) gestellt und sofort wieder auf "continuous" zurueckgesetzt -
-// dieser Wechsel zwingt viele Kamera-Treiber zu einer frischen Fokussuche,
-// die ein blosses erneutes "continuous" ohne Wertaenderung oft NICHT
-// ausloest. Kennt die Kamera keinen manuellen Fokusabstand, bleibt es beim
-// reinen "continuous" (kein Fehler, kein zweiter Berechtigungsdialog - es
-// wird kein neuer Stream angefordert, nur der laufende Track angepasst).
+// v3.107 (verstaerkt nach Anwender-Rueckmeldung "stellt immer noch nicht
+// scharf"): Tippen-zum-Fokussieren in zwei Stufen. Auf mehreren Geraeten
+// haengt der Dauerautofokus (focusMode:"continuous") bei sehr kurzer Distanz
+// fest und stellt nicht mehr automatisch nach, obwohl die Vorgabe beim Start
+// gesetzt wurde.
+//
+// Stufe 1 (schnell, aber nicht auf jedem Geraet wirksam): unterstuetzt die
+// Kamera einen manuellen Fokusabstand (focusDistance), wird kurz auf den
+// naechstmoeglichen Wert (Nahbereich) gestellt und sofort wieder auf
+// "continuous" zurueckgesetzt.
+//
+// Stufe 2 (robuster, greift unabhaengig davon, ob Stufe 1 etwas bewirkt hat):
+// ein KOMPLETT NEUER Kamera-Stream wird angefordert und in denselben
+// laufenden <video> eingehaengt - der laufende ZXing-Scan liest die Bilder
+// direkt vom <video>-Element und merkt vom Stream-Wechsel nichts, deshalb
+// muss der Scan-Vorgang dafuer nicht neu gestartet werden. Viele
+// Kamera-Treiber fuehren beim STREAM-START einen frischen Autofokus-Sweep
+// durch, der beim laufenden Dauerautofokus mitten im Betrieb bei sehr
+// kurzer Distanz oft ausbleibt - focusDistance ist dafuer nicht noetig, das
+// deckt Geraete ab, bei denen Stufe 1 wirkungslos bleibt. Der alte Stream
+// wird danach gestoppt, damit nicht zwei Kamerazugriffe gleichzeitig aktiv
+// bleiben. Schlaegt die Neuanforderung fehl (z. B. kein zweiter Zugriff
+// moeglich), bleibt der bisherige Stream unveraendert aktiv - kein Fehler
+// sichtbar, kein zweiter Berechtigungsdialog, da die Kamera bereits erlaubt
+// ist.
 async function barcodeScanNeuFokussieren(){
  const video=$("barcodeScanVideo");
- const track=video&&video.srcObject&&video.srcObject.getVideoTracks&&video.srcObject.getVideoTracks()[0];
- if(!track||!track.applyConstraints)return;
+ const alterStream=video&&video.srcObject;
+ const track=alterStream&&alterStream.getVideoTracks&&alterStream.getVideoTracks()[0];
+ if(!track)return;
+ if(track.applyConstraints){
+  try{
+   const caps=(typeof track.getCapabilities==="function")?track.getCapabilities():null;
+   if(caps&&caps.focusDistance&&caps.focusMode&&caps.focusMode.indexOf("manual")!==-1){
+    await track.applyConstraints({advanced:[{focusMode:"manual",focusDistance:caps.focusDistance.min}]});
+    await new Promise(r=>setTimeout(r,250));
+   }
+   await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
+  }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
+ }
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return;
  try{
-  const caps=(typeof track.getCapabilities==="function")?track.getCapabilities():null;
-  if(caps&&caps.focusDistance&&caps.focusMode&&caps.focusMode.indexOf("manual")!==-1){
-   await track.applyConstraints({advanced:[{focusMode:"manual",focusDistance:caps.focusDistance.min}]});
-   await new Promise(r=>setTimeout(r,250));
-  }
-  await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
- }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
+  const neuerStream=await navigator.mediaDevices.getUserMedia(barcodeScanWunschKonstraint());
+  video.srcObject=neuerStream;
+  // play() bewusst NICHT abgewartet: das Video startet asynchron im
+  // Hintergrund, ein haengendes/abgelehntes play()-Promise (z. B. weil die
+  // Nutzeraktivierung aus dem Klick zu diesem Zeitpunkt schon verbraucht
+  // ist) darf das Stoppen des alten Streams direkt darunter nicht verzoegern.
+  if(typeof video.play==="function")video.play().catch(()=>{});
+  try{ alterStream.getTracks().forEach(t=>t.stop()); }catch(e){}
+ }catch(e){/* Neustart fehlgeschlagen - alter Stream bleibt aktiv, kein Fehler sichtbar */}
 }
 if($("barcodeScanVideo"))$("barcodeScanVideo").addEventListener("click",barcodeScanNeuFokussieren);
 
@@ -657,8 +700,7 @@ async function barcodeScannen(callback){
   // komplett auf die alte, vorgabenlose Methode zurueckzufallen - eine
   // bereits erteilte Kamera-Freigabe darf dabei nicht zu einem zweiten
   // Berechtigungsdialog fuehren.
-  const wunschKonstraint={video:{facingMode:{ideal:"environment"},
-   width:{ideal:1920},height:{ideal:1080},advanced:[{focusMode:"continuous"}]}};
+  const wunschKonstraint=barcodeScanWunschKonstraint();
   const engerKonstraint={video:{facingMode:{ideal:"environment"}}};
   if(typeof barcodeScanCodeReader.decodeFromConstraints==="function"){
    try{

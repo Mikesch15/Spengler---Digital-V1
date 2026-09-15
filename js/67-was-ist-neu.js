@@ -56,7 +56,8 @@ const WIN_CHANGELOG={
  "3.106":["Neu: Lagerverwaltung - eine Materialposition kann jetzt mehrere, einzeln buchbare Produkte enthalten (z. B. verschiedene Rohrbogen-Varianten unter derselben Position).",
   "Neu: ein unbekannter Barcode beim Einscannen bietet direkt an, daraus ein neues Produkt anzulegen und einer Materialposition zuzuordnen.",
   "Der Barcode eines Artikels wird jetzt beim einzelnen Produkt in der Lagerverwaltung hinterlegt, nicht mehr im Material-Katalog."],
- "3.107":["Neu: beim Barcode-Scan lässt sich die Kamera per Antippen des Bilds neu fokussieren - hilft, wenn sie bei kurzer Distanz nicht von selbst scharfstellt."]
+ "3.107":["Neu: beim Barcode-Scan lässt sich die Kamera per Antippen des Bilds neu fokussieren - hilft, wenn sie bei kurzer Distanz nicht von selbst scharfstellt."],
+ "3.108":["Barcode-Scan: das Antippen zum Fokussieren wurde verstärkt - stellt die Kamera dabei immer noch nicht scharf, wird jetzt zusätzlich ein neues Kamerabild angefordert, was auf mehr Geräten wirkt."]
 };
 
 function winVersionVergleich(a,b){
