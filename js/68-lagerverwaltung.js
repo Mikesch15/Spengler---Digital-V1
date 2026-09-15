@@ -78,6 +78,8 @@ async function checkLagerZugriff(){
  // v3.120: derselbe Schalter traegt den Ausbuchen-Knopf in der Massaufnahme -
  // ohne Lager-Freigabe gibt es dort nichts auszubuchen.
  if($("measLagerAusbuchen"))$("measLagerAusbuchen").hidden=!lagerverwaltungZugriff;
+ // v3.123: dieselbe Freigabe traegt die Materialzusammenfassung im Projekt.
+ if($("cockpitLagerCard"))$("cockpitLagerCard").hidden=!lagerverwaltungZugriff;
  if(lagerverwaltungZugriff){
   // Reihenfolge wichtig: die Varianten muessen vor dem Rendern (das
   // lagerBewegungenLaden() am Ende ausloest) bereits geladen sein.
@@ -144,7 +146,11 @@ const LAGER_ART_TEXT={zugang:"Zugang",abgang:"Abgang",korrektur:"Korrektur"};
 function lagerBewegungZeile(b){
  const datum=b.created_at?new Date(b.created_at).toLocaleDateString("de-CH"):"–";
  const vz=lagerZahl(b.menge)>0?"+":"";
- return `${esc(datum)} · ${esc(LAGER_ART_TEXT[b.art]||b.art)} · ${vz}${lagerZahlText(b.menge)}${b.grund?" · "+esc(b.grund):""}<br>`;
+ // v3.123: das Ziel steht direkt in der Zeile - sonst muesste man raten,
+ // fuer welche Baustelle gebucht wurde.
+ const ziel=(typeof lagerZielText==="function")?lagerZielText(b):"";
+ return `${esc(datum)} · ${esc(LAGER_ART_TEXT[b.art]||b.art)} · ${vz}${lagerZahlText(b.menge)}${
+   ziel?" · "+esc(ziel):""}${b.grund?" · "+esc(b.grund):""}<br>`;
 }
 
 // Wiederverwendet lagArtikelListe()/lagArtikel()/lagArtikelText() aus
@@ -258,8 +264,82 @@ function renderLagerverwaltung(){
  }).join("");
 }
 
+// ---- Ziel einer Buchung: Projekt oder Werkstatt (v3.123) ---------------
+// Bis v3.122 hielt eine Buchung nicht fest, WOHIN das Material ging - das
+// Projekt stand hoechstens als Freitext im Grund. Damit liess sich im
+// Projekt keine Materialzusammenfassung bilden.
+//
+// Seit der Migration "lagerbuchung_projekt_zuordnung" tragen Buchungen
+// project_id und ziel ('projekt' | 'werkstatt' | 'unbekannt'). Die Wahl ist
+// PFLICHT, aber "Werkstatt / Lager" ist eine ausdrueckliche Antwort - so
+// faellt keine Buchung stillschweigend aus der Zusammenfassung, und
+// Werkstattverbrauch blockiert trotzdem niemanden.
+//
+// 'unbekannt' vergibt die App NIE selbst: es ist allein die Kennzeichnung
+// der vor v3.123 gebuchten Zeilen, die die Frage noch gar nicht kannten.
+const LAGER_ZIEL_WERKSTATT="werkstatt";
+function lagerProjekteListe(){
+ const liste=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))?allProjects:[];
+ return liste.filter(p=>!p.archived);
+}
+// Dieselbe Beschriftung wie in der Projektliste: zuerst das OBJEKT (die
+// Adresse - danach sucht der Spengler), dann Name/Auftrag/Auftraggeber.
+function lagerProjektText(p){
+ if(!p)return "";
+ return [String(p.object||"").trim(),String(p.name||"").trim(),
+         String(p.order_no||"").trim()?"Auftrag "+String(p.order_no).trim():"",
+         String(p.customer||"").trim()].filter(Boolean).join(" \u00b7 ");
+}
+// Wohin ging diese Buchung? Eine Stelle, die drei Faelle beantwortet -
+// auch den einer Buchung, deren Projekt inzwischen geloescht wurde (dann
+// steht ziel='projekt' ohne project_id, siehe Migration).
+function lagerZielText(b){
+ if(!b)return "";
+ if(b.project_id){
+  const p=lagerProjekteListe().find(x=>String(x.id)===String(b.project_id))
+    ||((typeof allProjects!=="undefined"&&Array.isArray(allProjects))
+       ?allProjects.find(x=>String(x.id)===String(b.project_id)):null);
+  return p?lagerProjektText(p):"Projekt #"+b.project_id;
+ }
+ if(b.ziel==="projekt")return "Projekt gel\u00f6scht";
+ if(b.ziel===LAGER_ZIEL_WERKSTATT)return "Werkstatt / Lager";
+ return "";   // 'unbekannt' - vor v3.123 gebucht, es wird nichts behauptet
+}
+
 // ---- Buchen-Dialog -----------------------------------------------------
 let lagerBuchenVarianteId=null;
+let lagerBuchenZielSuche="";
+
+// Die Auswahlliste des Ziels. Werkstatt steht IMMER ganz oben und wird von
+// der Suche nie weggefiltert - sie ist keine Projektsuche, sondern die
+// Alternative dazu. Ein bereits gewaehltes Projekt bleibt ebenfalls immer
+// drin, damit das Weitertippen die Wahl nicht still verwirft (dieselbe
+// Regel wie beim Positions-Suchfeld, v3.118).
+function lagerBuchenZielRendern(gewaehlt){
+ const sel=$("lagerBuchenZiel");
+ if(!sel)return;
+ const begriff=String(lagerBuchenZielSuche||"").trim().toLowerCase();
+ let projekte=lagerProjekteListe();
+ if(begriff&&typeof projektPasstZuSuche==="function"){
+  projekte=projekte.filter(p=>String(p.id)===String(gewaehlt||"")||projektPasstZuSuche(p,begriff));
+ }
+ sel.innerHTML=`<option value="">\u2013 bitte w\u00e4hlen \u2013</option>`
+  +`<option value="${LAGER_ZIEL_WERKSTATT}"${gewaehlt===LAGER_ZIEL_WERKSTATT?" selected":""}>Werkstatt / Lager (kein Projekt)</option>`
+  +projekte.map(p=>`<option value="${p.id}"${String(p.id)===String(gewaehlt||"")?" selected":""}>${esc(lagerProjektText(p)||("Projekt #"+p.id))}</option>`).join("");
+}
+// Aus dem Auswahlwert werden die beiden Spalten. Eine Stelle, damit der
+// Buchen-Dialog und die Ausbuchung aus der Massaufnahme nicht auseinander
+// laufen koennen.
+function lagerZielFelder(wert){
+ if(wert===LAGER_ZIEL_WERKSTATT)return {project_id:null,ziel:LAGER_ZIEL_WERKSTATT};
+ const id=Number(wert);
+ if(Number.isFinite(id)&&id>0)return {project_id:id,ziel:"projekt"};
+ return null;   // nichts gewaehlt - der Aufrufer muss das abfangen
+}
+if($("lagerBuchenZielSuche"))$("lagerBuchenZielSuche").addEventListener("input",()=>{
+ lagerBuchenZielSuche=$("lagerBuchenZielSuche").value;
+ lagerBuchenZielRendern($("lagerBuchenZiel").value);
+});
 
 // vorbelegteArt (v3.102): nach einem Scan ist die Richtung schon bekannt -
 // "zugang"/"abgang" wird dann direkt gesetzt, der Benutzer bestaetigt nur
@@ -280,6 +360,11 @@ function lagerBuchenOeffnen(varianteId,vorbelegteArt){
  $("lagerBuchenArt").value=(vorbelegteArt==="abgang"||vorbelegteArt==="korrektur")?vorbelegteArt:"zugang";
  $("lagerBuchenMenge").value="";
  $("lagerBuchenGrund").value="";
+ // v3.123: Ziel immer leer starten - eine Vorbelegung waere geraten, und
+ // die Zuordnung soll bewusst getroffen werden.
+ lagerBuchenZielSuche="";
+ if($("lagerBuchenZielSuche"))$("lagerBuchenZielSuche").value="";
+ lagerBuchenZielRendern("");
  $("lagerBuchenFehler").hidden=true;
  $("lagerBuchenModal").hidden=false;
  // Direkt ins Mengenfeld - nach einem Scan will niemand erst hintippen.
@@ -369,9 +454,18 @@ $("lagerBuchenSpeichern").onclick=async()=>{
  let menge=Math.abs(eingabe);
  if(art==="abgang")menge=-menge;
  else if(art==="korrektur")menge=eingabe;
+ // v3.123: ohne Ziel wird nicht gebucht. "Werkstatt / Lager" ist eine
+ // gueltige Antwort - stillschweigend weglassen ist keine.
+ const ziel=lagerZielFelder($("lagerBuchenZiel")?$("lagerBuchenZiel").value:"");
+ if(!ziel){
+  fehler.textContent="Bitte angeben, wohin das Material geht \u2013 ein Projekt oder ausdr\u00fccklich \u201eWerkstatt / Lager\u201c.";
+  fehler.hidden=false;
+  return;
+ }
  const grund=$("lagerBuchenGrund").value.trim();
  const {data,error}=await sb.from("lagerbestand_bewegungen").insert({
-  variante_id:Number(lagerBuchenVarianteId),art,menge,grund:grund||null
+  variante_id:Number(lagerBuchenVarianteId),art,menge,grund:grund||null,
+  project_id:ziel.project_id,ziel:ziel.ziel
  }).select("*");
  if(error||!data||!data.length){
   fehler.textContent=error?("Konnte nicht gebucht werden: "+error.message)
@@ -627,6 +721,17 @@ async function measLagerOeffnen(){
  // Materialposition oben als SICHER gefunden hat. Ohne Position bleibt die
  // Zeile sichtbar, aber unangehakt.
  measLagerZeilen.forEach(z=>{z.gewaehlt=!z.grund&&z.varianten.length===1&&!!z.varianteId});
+ // v3.123: sichtbar machen, welchem Projekt die Buchung zugeordnet wird -
+ // gefragt wird hier nicht, das Projekt der Massaufnahme steht fest.
+ const zielBox=$("measLagerZiel");
+ if(zielBox){
+  const p=(typeof measSelectedProjectId!=="undefined"&&measSelectedProjectId
+    &&typeof allProjects!=="undefined"&&Array.isArray(allProjects))
+   ?allProjects.find(x=>String(x.id)===String(measSelectedProjectId)):null;
+  zielBox.textContent=p
+   ?("Wird dem Projekt zugeordnet: "+(lagerProjektText(p)||("Projekt #"+p.id)))
+   :"Diese Massaufnahme h\u00e4ngt an keinem Projekt \u2013 die Buchung geht auf \u201eWerkstatt / Lager\u201c.";
+ }
  const frueher=measLagerFruehereBuchungen(currentMeasurementId);
  const warnung=$("measLagerWarnung");
  if(frueher.length){
@@ -808,10 +913,19 @@ if($("measLagerBuchenBtn"))$("measLagerBuchenBtn").onclick=async()=>{
  if(!zeilen.length)return;
  const bezeichnung=measLagerBeschriftung();
  const grund=("Massaufnahme: "+bezeichnung).slice(0,180)+" "+measLagerMarke(currentMeasurementId);
+ // v3.123: Das Projekt steht hier bereits fest - es ist das Projekt der
+ // Massaufnahme. Es wird deshalb NICHT gefragt, sondern uebernommen; im
+ // Dialog steht darueber, welches es ist. Eine Massaufnahme ohne Projekt
+ // gibt es im Ablauf nicht, aber falls doch, geht die Buchung als
+ // "Werkstatt / Lager" durch statt zu scheitern.
+ const ziel=(typeof measSelectedProjectId!=="undefined"&&measSelectedProjectId)
+  ?{project_id:Number(measSelectedProjectId),ziel:"projekt"}
+  :{project_id:null,ziel:LAGER_ZIEL_WERKSTATT};
  // Eine Anfrage fuer alle Zeilen: entweder werden alle gebucht oder keine -
  // ein halb gebuchter Materialsatz waere schlimmer als gar keiner.
  const {data,error}=await sb.from("lagerbestand_bewegungen").insert(
-  zeilen.map(z=>({variante_id:Number(z.varianteId),art:"abgang",menge:-Math.abs(z.menge),grund}))
+  zeilen.map(z=>({variante_id:Number(z.varianteId),art:"abgang",menge:-Math.abs(z.menge),grund,
+   project_id:ziel.project_id,ziel:ziel.ziel}))
  ).select("*");
  if(error||!data||!data.length){
   fehler.textContent=error?("Konnte nicht gebucht werden: "+error.message)
@@ -824,4 +938,186 @@ if($("measLagerBuchenBtn"))$("measLagerBuchenBtn").onclick=async()=>{
  measLagerSchliessen();
  alert("Ausgebucht: "+data.length+" Position"+(data.length===1?"":"en")+".\n\n"
   +"Die Buchungen stehen in der Lagerverwaltung beim jeweiligen Produkt, mit dieser Massaufnahme als Grund.");
+};
+
+// ---- Materialzusammenfassung im Projekt (v3.123) --------------------------
+// Was ist fuer DIESES Projekt ab Lager gebucht worden? Quelle sind die
+// Buchungen selbst (lagerbestand_bewegungen.project_id), nicht etwa eine
+// zweite, mitgefuehrte Liste - der Bestand ist seit v3.98 immer die Summe
+// der Buchungen, und dieselbe Regel gilt hier fuer den Verbrauch.
+//
+// Zusaetzlich werden die vor v3.123 aus einer Massaufnahme gebuchten Zeilen
+// wiedergefunden: die tragen das Projekt zwar nicht als Spalte, wohl aber
+// die Marke "(#MA<id>)" im Grund (v3.120). Ueber die Massaufnahmen des
+// Projekts laesst sich daraus die Zuordnung nachtraeglich herstellen - ohne
+// eine einzige Buchung zu aendern (sie sind unveraenderlich).
+let cockpitLagerZeilen=[];
+
+function lagerBuchungenFuerProjekt(projectId,massaufnahmeIds){
+ if(!projectId)return [];
+ const marken=(massaufnahmeIds||[]).map(id=>measLagerMarke(id));
+ return lagerBewegungen.filter(b=>{
+  if(String(b.project_id||"")===String(projectId))return true;
+  if(b.project_id)return false;                       // gehoert einem anderen Projekt
+  if(b.ziel===LAGER_ZIEL_WERKSTATT)return false;      // bewusst der Werkstatt zugeordnet
+  const grund=String(b&&b.grund!=null?b.grund:"");
+  return marken.some(m=>grund.includes(m));           // alte Massaufnahme-Buchung
+ });
+}
+
+// Je Produkt zusammengefasst: wie viel ging raus, wie viel kam zurueck.
+// Abgang wird als POSITIVE Verbrauchsmenge gezeigt - auf einer
+// Materialliste steht kein Minus.
+function lagerZusammenfassung(buchungen){
+ const nach=new Map();
+ (buchungen||[]).forEach(b=>{
+  const key=String(b.variante_id);
+  if(!nach.has(key)){
+   const v=lagerVariante(b.variante_id);
+   const a=(v&&typeof lagArtikel==="function")?lagArtikel(v.material_id):null;
+   nach.set(key,{
+    varianteId:b.variante_id,
+    position:a?lagArtikelText(a):"",
+    produkt:v?v.bezeichnung:("Produkt #"+b.variante_id),
+    // Die Standard-Variante heisst wie die Position - dann nicht doppelt.
+    einheit:(a&&a.unit)?a.unit:"",
+    raus:0,zurueck:0,korrektur:0,buchungen:[]
+   });
+  }
+  const z=nach.get(key);
+  const m=lagerZahl(b.menge);
+  if(b.art==="abgang")z.raus+=Math.abs(m);
+  else if(b.art==="zugang")z.zurueck+=Math.abs(m);
+  else z.korrektur+=m;
+  z.buchungen.push(b);
+ });
+ const liste=[...nach.values()];
+ liste.forEach(z=>{
+  z.netto=z.raus-z.zurueck-z.korrektur;
+  z.buchungen.sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||"")));
+ });
+ liste.sort((a,b)=>(a.position||a.produkt).localeCompare(b.position||b.produkt,"de"));
+ return liste;
+}
+function lagerZusammenfassungTitel(z){
+ return z.position&&z.produkt&&z.produkt!==z.position.replace(/^[^ ]+ /,"")
+  ? (z.position+" – "+z.produkt)
+  : (z.position||z.produkt);
+}
+
+async function cockpitLagerLaden(projectId){
+ const box=$("cockpitLagerBody");
+ if(!box)return 0;
+ if(!lagerverwaltungZugriff)return 0;
+ box.innerHTML='<div class="small">Wird geladen …</div>';
+ // Immer frisch: zwischen dem Oeffnen des Projekts und diesem Klick kann
+ // jemand anders gebucht haben.
+ await lagerVariantenLaden();
+ await lagerBewegungenLaden();
+ let ids=[];
+ const {data}=await sb.from("measurements").select("id").eq("project_id",projectId);
+ ids=(data||[]).map(m=>m.id);
+ cockpitLagerZeilen=lagerZusammenfassung(lagerBuchungenFuerProjekt(projectId,ids));
+ renderCockpitLager();
+ return cockpitLagerZeilen.length;
+}
+function renderCockpitLager(){
+ const box=$("cockpitLagerBody");
+ if(!box)return;
+ if($("cockpitLagerCount"))$("cockpitLagerCount").textContent=String(cockpitLagerZeilen.length);
+ if($("cockpitLagerDruck"))$("cockpitLagerDruck").disabled=!cockpitLagerZeilen.length;
+ if(!cockpitLagerZeilen.length){
+  box.innerHTML='<div class="small" style="color:var(--muted)">Für dieses Projekt wurde noch nichts ab Lager gebucht. '
+   +'Das geschieht in der Lagerverwaltung (Knopf „Buchen“, Objekt/Projekt wählen) oder direkt aus einer Massaufnahme '
+   +'(„📤 Ab Lager ausbuchen“).</div>';
+  return;
+ }
+ box.innerHTML=cockpitLagerZeilen.map(z=>`<div class="report-row">
+  <div class="report-row-info"><b>${esc(lagerZusammenfassungTitel(z))}</b>
+   <span>Verbraucht: <b>${esc(lagerZahlText(z.netto))}</b>${z.einheit?" "+esc(z.einheit):""}${
+     (z.zurueck||z.korrektur)?" · ausgebucht "+esc(lagerZahlText(z.raus))
+       +(z.zurueck?", zurück "+esc(lagerZahlText(z.zurueck)):"")
+       +(z.korrektur?", Korrektur "+esc(lagerZahlText(z.korrektur)):""):""}</span>
+   <span class="small" style="color:var(--muted)">${z.buchungen.map(b=>{
+     const d=b.created_at?new Date(b.created_at).toLocaleDateString("de-CH"):"–";
+     return esc(d+" · "+(LAGER_ART_TEXT[b.art]||b.art)+" "+lagerZahlText(b.menge)
+       +(b.grund?" · "+b.grund:""));
+    }).join("<br>")}</span>
+  </div>
+ </div>`).join("");
+}
+
+// ---- Druck ----------------------------------------------------------------
+// Derselbe Weg wie jede andere Liste der App (pdfKopfHtml + PDF_LAYOUT_CSS +
+// pdfDruckVorbereiten, js/16/js/35) - kein eigenes Druck-Layout.
+function lagerZusammenfassungDokument(projekt,zeilen,logoSrc){
+ const kopf=(typeof pdfKopfHtml==="function")?pdfKopfHtml({
+  datensatz:{project_id:projekt?projekt.id:null},
+  projekt:projekt||null,
+  bezeichnung:"",
+  dokumenttyp:"Materialzusammenfassung",
+  unterart:"ab Lager gebucht",
+  datum:new Date().toISOString().slice(0,10),
+  bearbeiter:(typeof currentProfile!=="undefined"&&currentProfile)
+    ?`${currentProfile.first_name} ${currentProfile.last_name}`:"",
+  logoSrc
+ }):"";
+ if(!zeilen.length){
+  return kopf+`<div class="note">Für dieses Projekt wurde nichts ab Lager gebucht.</div>`;
+ }
+ const zeigeRueckgabe=zeilen.some(z=>z.zurueck||z.korrektur);
+ const rows=zeilen.map(z=>`<tr>
+  <td>${esc(lagerZusammenfassungTitel(z))}</td>
+  <td class="lz-zahl">${esc(lagerZahlText(z.netto))}</td>
+  <td>${esc(z.einheit||"")}</td>
+  ${zeigeRueckgabe?`<td class="lz-zahl">${esc(lagerZahlText(z.raus))}</td>
+  <td class="lz-zahl">${esc(lagerZahlText(z.zurueck))}</td>`:""}
+ </tr>`).join("");
+ return kopf+`<div class="eb-section-head">Material ab Lager</div>
+<table class="lz-tab"><thead><tr>
+ <th>Position / Produkt</th><th class="lz-zahl">Verbraucht</th><th>Einheit</th>
+ ${zeigeRueckgabe?`<th class="lz-zahl">Ausgebucht</th><th class="lz-zahl">Zurück</th>`:""}
+</tr></thead><tbody>${rows}</tbody></table>
+<div class="note">Verbraucht = ausgebucht abzüglich Rückgaben und Korrekturen. Gezählt werden
+ausschliesslich Lagerbuchungen, die diesem Projekt zugeordnet sind – Material, das ohne
+Projekt gebucht wurde, steht hier nicht.</div>`;
+}
+const LZ_CSS=`
+ .lz-tab{width:100%;border-collapse:collapse}
+ .lz-tab th,.lz-tab td{border-bottom:0.25pt solid #c9d2d8;padding:1mm 1.5mm;vertical-align:top}
+ .lz-tab th{text-align:left;font-weight:700}
+ .lz-zahl{text-align:right;white-space:nowrap}
+`;
+async function lagerZusammenfassungDrucken(projectId){
+ if(typeof pdfDruckVorbereiten!=="function"){alert("Der Druck ist gerade nicht verfügbar.");return}
+ if(!cockpitLagerZeilen.length){
+  alert("Für dieses Projekt wurde noch nichts ab Lager gebucht – es gibt nichts zu drucken.");
+  return;
+ }
+ const projekt=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))
+  ?allProjects.find(x=>String(x.id)===String(projectId)):null;
+ let logoSrc="";
+ try{ logoSrc=(typeof storageSignedUrl==="function")?await storageSignedUrl(logoUrl):logoUrl }catch(e){ logoSrc="" }
+ const html=lagerZusammenfassungDokument(projekt,cockpitLagerZeilen,logoSrc);
+ const vor=await pdfDruckVorbereiten(html,"eb-section-head",{listen:"alle"});
+ if(!vor)return;
+ const win=vor.win;
+ const name=(typeof pdfDateiname==="function")
+  ?pdfDateiname("Materialzusammenfassung",projekt?projekt.name:"",projekt?projekt.object:"")
+  :"Materialzusammenfassung";
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)}</title>
+<style>
+${typeof PDF_LAYOUT_CSS!=="undefined"?PDF_LAYOUT_CSS:""}
+${LZ_CSS}
+</style></head><body>
+${(typeof pdfZahlenRechts==="function")?pdfZahlenRechts(vor.html):vor.html}
+${(typeof pdfFooterHtml==="function")?pdfFooterHtml({project_id:projectId||null}):""}
+</body></html>`);
+ win.document.close();
+ const drucken=()=>{try{win.focus();win.print()}catch(e){}};
+ win.onload=drucken;
+ setTimeout(drucken,800);
+}
+if($("cockpitLagerDruck"))$("cockpitLagerDruck").onclick=()=>{
+ lagerZusammenfassungDrucken(typeof cockpitProjectId!=="undefined"?cockpitProjectId:null);
 };

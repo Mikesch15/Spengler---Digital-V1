@@ -29970,3 +29970,131 @@ also keine Attrappe, sondern hängt wirklich am selben Handler. 82/82 grün.
 | `PROJECT_STATE.md` | Versionsstand 3.122 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.122"]` |
 | `pruefstaende/pruefstand-skizze-foto-v2-82.js` | Abschnitt D neu |
+
+---
+
+## 189. v3.123 – Objekt am Ausbuchen, Materialzusammenfassung im Projekt
+
+### 189.1 Anlass
+
+> „Beim material ausbuchen soll das objekt angegeben werden können und dan im
+> projekt eine materialzusammenfassung ausgedruckt werden können"
+
+### 189.2 Befund: das Projekt stand nirgends
+
+`projects` trägt seit je eine Spalte `object` – „Objekt" ist in dieser App
+also bereits ein Projektfeld. Eine **Lagerbuchung** kannte das Projekt aber
+überhaupt nicht: `lagerbestand_bewegungen` hatte dafür keine Spalte. Wer eine
+Baustelle festhalten wollte, schrieb sie als Freitext in den Grund – in der
+Produktivdatenbank stand dort bereits „Alpeneggstrasse" bei einer der sechs
+vorhandenen Buchungen, also genau der Bedarf, den der Anwender beschreibt.
+Aus Freitext lässt sich keine Zusammenfassung bilden.
+
+### 189.3 Migration `lagerbuchung_projekt_zuordnung`
+
+Zwei Spalten, bewusst nicht eine:
+
+| Spalte | Bedeutung |
+| --- | --- |
+| `project_id` | das Projekt, wenn das Material auf eine Baustelle ging (FK auf `projects`, `on delete set null`) |
+| `ziel` | warum `project_id` leer ist: `'projekt'`, `'werkstatt'` oder `'unbekannt'` |
+
+`'unbekannt'` vergibt die App **nie** selbst – es ist allein die Kennzeichnung
+der sechs vor v3.123 gebuchten Zeilen, die die Frage noch gar nicht kannten.
+Ohne diese Unterscheidung wäre eine alte Buchung nicht von einer bewusst der
+Werkstatt zugeordneten zu trennen.
+
+Der CHECK lautet `project_id is null or ziel = 'projekt'` – also nur die eine
+Richtung. Die Gegenrichtung („`ziel='projekt'` braucht eine `project_id`")
+steht im Trigger `enforce_lager_bewegung_firma()`, nicht als CHECK: der FK
+räumt beim Löschen eines Projekts auf `set null` auf, und das muss eine
+bestehende, **unveränderliche** Buchung überleben dürfen. Sie liest sich
+danach als „Projekt gelöscht". Derselbe Trigger prüft jetzt zusätzlich, dass
+das Projekt zur Firma der Buchung gehört – dasselbe Muster, mit dem er das
+Produkt schon prüfte.
+
+### 189.4 Pflicht, aber mit einer gültigen Antwort „Werkstatt"
+
+Der Anwender hat sich ausdrücklich für diese Variante entschieden: es muss
+immer etwas gewählt werden, entweder ein Projekt oder ausdrücklich
+**Werkstatt / Lager**. Kein stilles Weglassen, aber auch keine Blockade für
+Werkstattverbrauch. Ohne Wahl wird nicht gebucht, und der Dialog sagt warum.
+
+Die Auswahlliste zeigt zuerst das **Objekt** (die Adresse – danach sucht der
+Spengler), dann Name, Auftrag und Auftraggeber; archivierte Projekte stehen
+nicht zur Wahl. Darüber sitzt ein Suchfeld, das über `projektPasstZuSuche()`
+(js/09) filtert – dieselbe Suche wie in der Projektliste, keine zweite.
+„Werkstatt / Lager" wird davon **nie** weggefiltert: es ist keine
+Projektsuche, sondern die Alternative dazu. Eine bereits getroffene Wahl
+bleibt ebenfalls immer in der Liste (dieselbe Regel wie beim Positions-
+Suchfeld, v3.118).
+
+Vorbelegt wird **nichts**. Eine Vorbelegung wäre geraten, und die Zuordnung
+soll bewusst getroffen werden.
+
+### 189.5 Aus der Massaufnahme wird nicht gefragt
+
+Beim Ausbuchen aus einer Massaufnahme (v3.120/121) steht das Projekt bereits
+fest – es ist das Projekt der Massaufnahme. Es wird deshalb übernommen statt
+erfragt; im Dialog steht nur zur Kontrolle, welches es ist. Eine Massaufnahme
+ohne Projekt gibt es im Ablauf nicht, aber falls doch, geht die Buchung als
+„Werkstatt / Lager" durch, statt zu scheitern.
+
+### 189.6 Die Zusammenfassung im Projekt
+
+Neue Cockpit-Karte **📦 Material ab Lager**, sichtbar nur mit Lager-Freigabe.
+Bewusst **nicht** in `COCKPIT_BEREICHE` aufgenommen: an jedem Eintrag dort
+hängt auch eine Zeile im Arbeitsstand oben, und eine Karte, die ohne Freigabe
+gar nicht existiert, hat dort nichts verloren. Sie lädt über ihre eigene,
+kleine Anbindung – dasselbe Muster wie die Verlauf-Karte.
+
+Je Produkt eine Zeile: **verbraucht = ausgebucht − Rückgaben − Korrekturen**,
+darunter die einzelnen Buchungen mit Datum. Abgang steht als positive
+Verbrauchsmenge – auf einer Materialliste steht kein Minus. Quelle sind
+ausschliesslich die Buchungen selbst, keine zweite mitgeführte Liste: dieselbe
+Regel, nach der seit v3.98 auch der Bestand immer die Summe der Buchungen ist.
+
+**Alte Buchungen werden wiedergefunden:** vor v3.123 aus einer Massaufnahme
+gebuchte Zeilen tragen das Projekt nicht als Spalte, wohl aber die Marke
+`(#MA<id>)` im Grund (v3.120). Über die Massaufnahmen des Projekts stellt die
+App die Zuordnung daraus nachträglich her – ohne eine einzige Buchung zu
+ändern, sie sind unveränderlich. Ein ausdrückliches `ziel='werkstatt'` schlägt
+diese Marke allerdings: wer bewusst der Werkstatt zugeordnet hat, soll nicht
+durch einen Textschnipsel im Grund doch wieder im Projekt landen.
+
+Eine damals von Hand gebuchte Zeile ohne diese Marke lässt sich **nicht**
+nachträglich zuordnen. Das steht so im Hilfetext – es wird nichts geraten.
+
+### 189.7 Druck
+
+Der Knopf „Materialzusammenfassung drucken" geht denselben Weg wie jede andere
+Liste der App (`pdfKopfHtml` + `PDF_LAYOUT_CSS` + `pdfDruckVorbereiten`,
+js/16/js/35) – kein eigenes Druck-Layout. Das Blatt nennt ausdrücklich, was
+die Zahl bedeutet und was nicht mitgezählt ist.
+
+### 189.8 Prüfungen
+
+Prüfstand `pruefstand-lagerverwaltung-v3-98.js` von 124 auf 150 Prüfungen
+(Abschnitte 15 und 15b). Acht bestehende Prüfungen buchten ohne Ziel und
+wurden auf den neuen Vertrag nachgezogen – das ist die beabsichtigte
+Änderung, nicht ein Umgehen.
+
+Gegenproben durchgeführt: mit abgeschalteter Pflicht fällt die
+Pflicht-Prüfung um; mit entferntem Werkstatt-Filter fällt die
+Zusammenfassung um. Die erste Fassung der Werkstatt-Prüfung ging **nicht**
+um – sie prüfte den Filter gar nicht, weil die Testzeile ohnehin
+durchgefallen wäre. Der Fall wurde deshalb geschärft (Werkstatt-Buchung, die
+zusätzlich eine Massaufnahme-Marke im Grund trägt); erst damit ist die Zeile
+wirklich belegt.
+
+### 189.9 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| Migration `lagerbuchung_projekt_zuordnung` | `project_id` + `ziel` auf `lagerbestand_bewegungen`, CHECKs, Index, `enforce_lager_bewegung_firma()` erweitert |
+| `js/68-lagerverwaltung.js` | Zielwahl im Buchen-Dialog, Ziel in der Bewegungszeile, Projekt aus der Massaufnahme, Zusammenfassung + Druck |
+| `js/24-projekt-cockpit.js` | `cockpitLagerAnzeigen()` und Anbindung beim Öffnen eines Projekts |
+| `index.html` | Zielfeld im Buchen-Dialog, Cockpit-Karte, Hinweis im Ausbuchen-Dialog, Version 3.123 |
+| `js/41-hilfe.js` | neuer Hilfetext `cockpit-lager`, `meas-lager-ausbuchen` ergänzt |
+| `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.123 |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitte 15/15b, acht bestehende Prüfungen nachgezogen |

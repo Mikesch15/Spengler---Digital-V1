@@ -74,7 +74,10 @@ const WIN_CHANGELOG={
  "3.121":["Ab Lager ausbuchen: jetzt stehen auch die Halbfabrikate der Massaufnahme zur Wahl - bei einer Dachrinne also Rinnenböden, Stutzen, Rinnenhalter, Winkel und Dehnungsstücke. Das Blech selbst bleibt wie bisher aussen vor.",
   "Da ein Halbfabrikat keine EDV-Nr. trägt, wählen Sie die Materialposition dort selbst - mit Suchfeld. Die App schlägt eine vor, wählt sie aber nur bei einem eindeutigen Treffer."],
  "3.122":["Fotos: überall zwei getrennte Knöpfe statt einem - '📷 Foto aufnehmen' öffnet direkt die Kamera, '🖼️ Aus Galerie wählen' die Galerie (dort weiterhin mehrere Fotos auf einmal). Gilt in Massaufnahme, Ausmass, Offerte und Regierapport.",
-  "Vorher entschied das Gerät selbst, was ein Antippen öffnet - je nach Modell kam nur die Kamera oder nur die Galerie."]
+  "Vorher entschied das Gerät selbst, was ein Antippen öffnet - je nach Modell kam nur die Kamera oder nur die Galerie."],
+ "3.123":["Lagerverwaltung: beim Buchen wird jetzt das Objekt/Projekt verlangt. 'Werkstatt / Lager' ist dabei eine ausdrückliche Wahl - so fällt keine Buchung stillschweigend aus der Auswertung.",
+  "Neu im Projekt: die Karte 'Material ab Lager' zeigt je Produkt, was für dieses Projekt verbraucht wurde, und lässt sich als Materialzusammenfassung drucken.",
+  "Wird direkt aus einer Massaufnahme ausgebucht, ordnet die App das Projekt automatisch zu - dort wird nicht gefragt."]
 };
 
 function winVersionVergleich(a,b){

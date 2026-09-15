@@ -1184,6 +1184,11 @@ Materialliste holen.</p>
 nichts an der fachlichen Grundlage, nach der gerüstet und montiert wird.</p>`},
 
 "meas-lager-ausbuchen":{titel:"Material ab Lager ausbuchen",text:`
+<p><b>Seit Version 3.123</b> wird die Buchung automatisch dem <b>Projekt der
+Massaufnahme</b> zugeordnet – im Projekt lässt sich daraus unter
+„📦 Material ab Lager“ eine Materialzusammenfassung drucken. Gefragt wird
+hier nichts: das Projekt steht bereits fest, es steht nur zur Kontrolle im
+Dialog.</p>
 <p>Bucht das hier erfasste Material als <b>Abgang</b> im Lager – für den Fall,
 dass es aus dem eigenen Lager mit auf die Baustelle genommen wird.</p>
 <p>Das passiert <b>nie von selbst</b>: weder beim Speichern der Massaufnahme
@@ -1218,6 +1223,28 @@ angezeigt, damit keine Position stillschweigend fehlt.</p>
 wird das am Buchungsgrund, den die App selbst schreibt; dort steht später
 auch in der Lagerverwaltung, aus welcher Massaufnahme die Buchung stammt.</p>
 <p>Sichtbar ist der Knopf nur mit der <b>Lager-Freigabe</b>.</p>`},
+
+"cockpit-lager":{titel:"Material ab Lager",text:`
+<p>Was für <b>dieses Projekt</b> ab Lager gebucht wurde – je Produkt
+zusammengefasst, darunter die einzelnen Buchungen mit Datum.</p>
+<p><b>Verbraucht</b> ist das, was ausgebucht wurde, abzüglich späterer
+Rückgaben (Zugang auf dasselbe Projekt) und Korrekturen. Die Zahlen kommen
+ausschliesslich aus den Lagerbuchungen selbst – es gibt keine zweite,
+mitgeführte Liste, genau wie beim Bestand.</p>
+<p>Gezählt wird nur, was diesem Projekt <b>zugeordnet</b> ist. Beim Buchen in
+der Lagerverwaltung wird dafür seit Version 3.123 das Objekt/Projekt
+verlangt; „Werkstatt / Lager“ ist dort eine ausdrückliche Wahl und erscheint
+hier bewusst nicht. Eine Ausbuchung direkt aus einer Massaufnahme
+(„📤 Ab Lager ausbuchen“) wird automatisch dem Projekt dieser Massaufnahme
+zugeordnet.</p>
+<p>Buchungen von <b>vor</b> Version 3.123 tragen das Projekt nicht als Feld.
+Stammen sie aus einer Massaufnahme dieses Projekts, findet die App sie
+trotzdem – über den Vermerk, den sie selbst in den Buchungsgrund geschrieben
+hat. Eine damals von Hand gebuchte Zeile ohne diesen Vermerk lässt sich
+nicht nachträglich zuordnen: eine Lagerbuchung ist unveränderlich.</p>
+<p>Der Knopf <b>Materialzusammenfassung drucken</b> gibt dieselbe Liste als
+Blatt aus, mit Projektkopf wie jeder andere Ausdruck.</p>
+<p>Sichtbar ist die Karte nur mit der <b>Lager-Freigabe</b>.</p>`},
 
 "rmat-uebernehmen":{titel:"Material aus den Massaufnahmen",text:`
 <p>Angeboten wird, was in den Massaufnahmen <b>dieses Projekts</b> unter

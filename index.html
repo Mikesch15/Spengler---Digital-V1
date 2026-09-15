@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.122</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.123</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -534,6 +534,16 @@
 <div id="cockpitRepBody"></div>
 </div>
 </div>
+<!-- v3.123: Material, das für DIESES Projekt ab Lager gebucht wurde.
+     Nur mit Lager-Freigabe sichtbar (checkLagerZugriff, js/68). -->
+<div class="card klapp" id="cockpitLagerCard" hidden>
+<h2 class="klapp-kopf" data-klapp="lager" role="button" tabindex="0" aria-expanded="false">📦 Material ab Lager<span id="cockpitLagerCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-lager">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<div id="cockpitLagerBody"></div>
+<div class="bar no-print"><button type="button" id="cockpitLagerDruck" class="gray">🖨 Materialzusammenfassung drucken</button></div>
+</div>
+</div>
+
 <div class="card klapp" id="cockpitFilesCard">
 <h2 class="klapp-kopf" data-klapp="files" role="button" tabindex="0" aria-expanded="false">📎 Dateien/Fotos<span id="cockpitFilesCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-dateien">i</button><span class="klapp-chevron">›</span></h2>
 <div class="klapp-body">
@@ -737,7 +747,15 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 </select>
 </div>
 <div><label>Menge</label><input id="lagerBuchenMenge" type="number" step="any"></div>
-<div class="wide"><label>Grund / Bemerkung</label><input id="lagerBuchenGrund" type="text" placeholder="z. B. Lieferschein-Nr., Baustelle, Inventur vom …"></div>
+<!-- v3.123: wohin das Material geht. Pflichtfeld, aber „Werkstatt / Lager“
+     ist eine ausdrückliche Wahl - so fällt nichts stillschweigend weg. -->
+<div class="wide"><label>Objekt / Projekt<span class="pflicht-stern">*</span></label>
+<input id="lagerBuchenZielSuche" type="search" placeholder="Projekt suchen (Adresse, Name, Auftrag, Auftraggeber) …">
+<select id="lagerBuchenZiel">
+<option value="">– bitte wählen –</option>
+</select>
+</div>
+<div class="wide"><label>Grund / Bemerkung</label><input id="lagerBuchenGrund" type="text" placeholder="z. B. Lieferschein-Nr., Inventur vom …"></div>
 </div>
 <div class="small" id="lagerBuchenFehler" style="color:var(--red)" hidden></div>
 <div class="bar">
@@ -2524,6 +2542,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <h2>📤 Material ab Lager ausbuchen <button type="button" class="hilfe-knopf no-print" data-hilfe="meas-lager-ausbuchen">i</button></h2>
 <div class="small">Bucht Material dieser Massaufnahme als <b>Abgang</b> im Lager: das von Hand erfasste Material und die <b>Halbfabrikate</b> (bei einer Dachrinne also Rinnenböden, Stutzen, Rinnenhalter, Winkel, Dehnungsstücke). Das Blech selbst und die gerechneten Zuschnitte bleiben aussen vor – die gehören nicht ins Lager.</div>
 <div class="small">Ein Halbfabrikat trägt keine EDV-Nr.: dort wählen Sie die Materialposition selbst (mit Suchfeld). Die App schlägt eine vor, wählt sie aber nur bei einem eindeutigen Treffer. Gehören zu einer Position mehrere Produkte, wählen Sie das richtige aus. Die Menge ist frei änderbar – gebucht wird genau das, was hier steht.</div>
+<div id="measLagerZiel" class="small" style="color:var(--muted);margin-top:6px"></div>
 <div id="measLagerWarnung" class="small" style="color:var(--red);margin-top:6px" hidden></div>
 <div id="measLagerListe"></div>
 <div id="measLagerFehler" class="small" style="color:var(--red)" hidden></div>

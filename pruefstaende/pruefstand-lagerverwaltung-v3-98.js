@@ -321,6 +321,9 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    $("lagerBuchenArt").value=art;
    $("lagerBuchenMenge").value=String(eingabe);
    $("lagerBuchenGrund").value=grund||"";
+   // v3.123: das Ziel ist Pflicht. Hier geht es um die RICHTUNG der Menge,
+   // deshalb die neutrale Wahl - geprueft wird das Ziel in Abschnitt 15.
+   $("lagerBuchenZiel").value="werkstatt";
    $("lagerBuchenSpeichern").click();
    await new Promise(r=>setTimeout(r,50));
    const insert=window.__schreib.find(x=>x.op==="insert"&&x.t==="lagerbestand_bewegungen");
@@ -539,6 +542,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   const artikelText=$("lagerBuchenArtikel").textContent;
   $("lagerBuchenArt").value="zugang";
   $("lagerBuchenMenge").value="12";
+  $("lagerBuchenZiel").value="werkstatt";   // v3.123: Ziel ist Pflicht
   $("lagerBuchenSpeichern").click();
   await new Promise(r=>setTimeout(r,50));
   const insert=window.__schreib.find(x=>x.op==="insert"&&x.t==="lagerbestand_bewegungen");
@@ -1090,6 +1094,182 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  });
  p(z.dabei===false,
    "eine angehakte Zeile OHNE Materialposition wird trotzdem nicht gebucht",z);
+
+
+ // ---- 15 · Objekt/Projekt an der Buchung (v3.123) ------------------------
+ // Bis v3.122 hielt eine Buchung nicht fest, WOHIN das Material ging - das
+ // Projekt stand hoechstens als Freitext im Grund. Seit der Migration
+ // "lagerbuchung_projekt_zuordnung" traegt jede Buchung project_id und
+ // ziel. Die Wahl ist Pflicht, aber "Werkstatt / Lager" ist eine gueltige,
+ // ausdrueckliche Antwort - so faellt nichts stillschweigend weg.
+ console.log("\n15 · Objekt/Projekt an der Lagerbuchung");
+ z=await page.evaluate(async()=>{
+  allProjects=[
+   {id:11,name:"Neubau Hof",object:"Alpeneggstrasse 7",order_no:"A-101",customer:"Muster AG",archived:false},
+   {id:12,name:"Sanierung Schule",object:"Schulweg 3",order_no:"A-102",customer:"Gemeinde",archived:false},
+   {id:13,name:"Altes Projekt",object:"Nirgendwo 1",order_no:"",customer:"",archived:true}
+  ];
+  lagerBuchenOeffnen("501");
+  const sel=$("lagerBuchenZiel");
+  return {werte:[...sel.options].map(o=>o.value),
+   texte:[...sel.options].map(o=>o.textContent),
+   vorbelegt:sel.value};
+ });
+ p(z.vorbelegt==="","nichts ist vorbelegt - die Zuordnung wird bewusst getroffen, nicht geraten",z);
+ p(z.werte[1]==="werkstatt"&&/Werkstatt/.test(z.texte[1]),
+   "gleich nach der leeren Zeile steht Werkstatt/Lager als ausdrueckliche Wahl",z.texte);
+ p(z.werte.includes("11")&&z.werte.includes("12"),"die offenen Projekte stehen zur Wahl",z.werte);
+ p(!z.werte.includes("13"),"ein archiviertes Projekt steht NICHT mehr zur Wahl",z.werte);
+ p(z.texte.some(t=>/Alpeneggstrasse 7/.test(t)),
+   "zuerst steht das OBJEKT (die Adresse) - danach sucht der Spengler, nicht nach dem Projektnamen",z.texte);
+
+ // Ohne Ziel wird nicht gebucht.
+ z=await page.evaluate(async()=>{
+  $("lagerBuchenArt").value="abgang";
+  $("lagerBuchenMenge").value="4";
+  $("lagerBuchenZiel").value="";
+  window.__schreib=[];
+  $("lagerBuchenSpeichern").click();
+  await new Promise(r=>setTimeout(r,60));
+  return {geschrieben:window.__schreib.filter(x=>x.op==="insert").length,
+   fehler:$("lagerBuchenFehler").textContent,versteckt:$("lagerBuchenFehler").hidden};
+ });
+ p(z.geschrieben===0&&z.versteckt===false&&/Projekt/.test(z.fehler),
+   "ohne Zuordnung wird nichts gebucht und der Dialog sagt warum",z);
+
+ // Suche filtert, ohne Werkstatt oder die getroffene Wahl zu verlieren.
+ z=await page.evaluate(()=>{
+  const feld=$("lagerBuchenZielSuche"), sel=$("lagerBuchenZiel");
+  sel.value="11";
+  feld.value="Schulweg";
+  feld.dispatchEvent(new Event("input",{bubbles:true}));
+  return {werte:[...sel.options].map(o=>o.value)};
+ });
+ p(z.werte.includes("werkstatt"),
+   "die Suche filtert Werkstatt/Lager nie weg - sie ist keine Projektsuche, sondern die Alternative",z.werte);
+ p(z.werte.includes("12"),"das gesuchte Projekt ist dabei",z.werte);
+ p(z.werte.includes("11"),"und die bereits getroffene Wahl bleibt drin, obwohl die Suche sie nicht trifft",z.werte);
+
+ // Mit Projekt buchen.
+ z=await page.evaluate(async()=>{
+  const feld=$("lagerBuchenZielSuche");
+  feld.value=""; feld.dispatchEvent(new Event("input",{bubbles:true}));
+  $("lagerBuchenZiel").value="11";
+  $("lagerBuchenArt").value="abgang";
+  $("lagerBuchenMenge").value="4";
+  window.__schreib=[];
+  $("lagerBuchenSpeichern").click();
+  await new Promise(r=>setTimeout(r,60));
+  const ins=window.__schreib.find(x=>x.op==="insert"&&x.t==="lagerbestand_bewegungen");
+  return ins?ins.d:null;
+ });
+ z=Array.isArray(z)?z[0]:z;
+ p(!!z&&z.project_id===11&&z.ziel==="projekt"&&z.menge===-4,
+   "mit gewaehltem Projekt gehen project_id und ziel='projekt' mit in die Buchung",z);
+
+ // Mit Werkstatt buchen.
+ z=await page.evaluate(async()=>{
+  lagerBuchenOeffnen("501");
+  $("lagerBuchenZiel").value="werkstatt";
+  $("lagerBuchenArt").value="abgang";
+  $("lagerBuchenMenge").value="2";
+  window.__schreib=[];
+  $("lagerBuchenSpeichern").click();
+  await new Promise(r=>setTimeout(r,60));
+  const ins=window.__schreib.find(x=>x.op==="insert"&&x.t==="lagerbestand_bewegungen");
+  return ins?ins.d:null;
+ });
+ z=Array.isArray(z)?z[0]:z;
+ p(!!z&&z.project_id===null&&z.ziel==="werkstatt",
+   "Werkstatt/Lager wird ausdruecklich als ziel='werkstatt' ohne Projekt gebucht - nicht als Luecke",z);
+
+ // Die Ausbuchung aus der Massaufnahme fragt nicht, sie uebernimmt.
+ z=await page.evaluate(async()=>{
+  currentMeasurementId=91;
+  measSelectedProjectId=12;
+  $("measType").value="kamin";
+  $("measTitle").value="Kamin West";
+  measRapportMaterial=[{no:"205.30",qty:6}];
+  await measLagerOeffnen();
+  const hinweis=$("measLagerZiel").textContent;
+  window.__schreib=[];
+  $("measLagerBuchenBtn").click();
+  await new Promise(r=>setTimeout(r,60));
+  const ins=window.__schreib.find(x=>x.op==="insert"&&x.t==="lagerbestand_bewegungen");
+  return {hinweis,zeilen:ins?ins.d:null};
+ });
+ p(/Schulweg 3/.test(z.hinweis),
+   "der Ausbuchen-Dialog sagt, welchem Projekt die Buchung zugeordnet wird",z.hinweis);
+ p(!!z.zeilen&&z.zeilen.every(d=>d.project_id===12&&d.ziel==="projekt"),
+   "die Ausbuchung aus der Massaufnahme uebernimmt deren Projekt, ohne zu fragen",z.zeilen);
+
+ // ---- 15b · Materialzusammenfassung im Projekt ---------------------------
+ console.log("\n15b · Materialzusammenfassung im Projekt");
+ z=await page.evaluate(()=>{
+  const heute=new Date().toISOString();
+  lagerBewegungen=[
+   {id:1,variante_id:501,art:"abgang",menge:-10,project_id:11,ziel:"projekt",grund:null,created_at:heute},
+   {id:2,variante_id:501,art:"zugang",menge:3,project_id:11,ziel:"projekt",grund:"Rest zurueck",created_at:heute},
+   {id:3,variante_id:601,art:"abgang",menge:-2,project_id:11,ziel:"projekt",grund:null,created_at:heute},
+   {id:4,variante_id:501,art:"abgang",menge:-99,project_id:12,ziel:"projekt",grund:null,created_at:heute},
+   {id:5,variante_id:501,art:"abgang",menge:-5,project_id:null,ziel:"werkstatt",grund:null,created_at:heute},
+   // Der scharfe Fall fuer den Werkstatt-Filter: ausdruecklich der Werkstatt
+   // zugeordnet, traegt aber trotzdem die Marke einer Massaufnahme dieses
+   // Projekts im Grund (z. B. weil jemand den Text hineinkopiert hat). Ohne
+   // den Filter wuerde die Marke gewinnen und die Zeile faelschlich zaehlen.
+   {id:7,variante_id:501,art:"abgang",menge:-42,project_id:null,ziel:"werkstatt",
+    grund:"Rest aus Massaufnahme: Kamin Nordseite (#MA77) in die Werkstatt",created_at:heute},
+   // Vor v3.123 aus einer Massaufnahme gebucht: kein project_id, aber die
+   // Marke im Grund. Massaufnahme 77 gehoert zu Projekt 11.
+   {id:6,variante_id:602,art:"abgang",menge:-7,project_id:null,ziel:"unbekannt",
+    grund:"Massaufnahme: Kamin Nordseite (#MA77)",created_at:heute}
+  ];
+  const zeilen=lagerZusammenfassung(lagerBuchungenFuerProjekt(11,[77]));
+  return zeilen.map(x=>({v:x.varianteId,raus:x.raus,zurueck:x.zurueck,netto:x.netto,n:x.buchungen.length}));
+ });
+ p(z.length===3,"je Produkt eine Zeile - nur fuer dieses Projekt",z);
+ const d501=z.find(x=>String(x.v)==="501");
+ p(!!d501&&d501.raus===10&&d501.zurueck===3&&d501.netto===7,
+   "Abgang und Rueckgabe werden verrechnet: verbraucht ist die Differenz",d501);
+ p(!z.some(x=>x.raus===99),"die Buchung eines ANDEREN Projekts zaehlt nicht mit",z);
+ p(!z.some(x=>x.raus===5),"eine ausdruecklich der Werkstatt zugeordnete Buchung zaehlt nicht mit",z);
+ p(!!d501&&d501.raus===10,
+   "ziel='werkstatt' schlaegt die Marke im Grund - eine bewusst der Werkstatt zugeordnete Buchung "
+   +"zaehlt auch dann nicht mit, wenn zufaellig eine Massaufnahme-Marke im Text steht",d501);
+ p(z.some(x=>String(x.v)==="602"&&x.raus===7),
+   "eine vor v3.123 aus einer Massaufnahme gebuchte Zeile wird ueber die Marke im Grund trotzdem gefunden",z);
+
+ z=await page.evaluate(()=>{
+  cockpitLagerZeilen=lagerZusammenfassung(lagerBuchungenFuerProjekt(11,[77]));
+  renderCockpitLager();
+  return {anzahl:$("cockpitLagerCount").textContent,
+   text:$("cockpitLagerBody").innerText.replace(/\s+/g," "),
+   druckAus:$("cockpitLagerDruck").disabled};
+ });
+ p(z.anzahl==="3","die Karte zeigt die Anzahl der Positionen",z);
+ p(/Verbraucht/.test(z.text)&&/7/.test(z.text),"und fuer jede die verbrauchte Menge",z.text);
+ p(z.druckAus===false,"der Druck-Knopf ist benutzbar, sobald es etwas zu drucken gibt",z);
+
+ z=await page.evaluate(()=>{
+  cockpitLagerZeilen=[];
+  renderCockpitLager();
+  return {text:$("cockpitLagerBody").innerText,druckAus:$("cockpitLagerDruck").disabled};
+ });
+ p(z.druckAus===true&&/noch nichts ab Lager/i.test(z.text),
+   "ohne Buchungen sagt die Karte das und der Druck-Knopf ist gesperrt",z);
+
+ // Das Druckdokument wird aus denselben Zeilen gebaut - geprueft wird das
+ // Dokument selbst, nicht das Fenster (window.open geht im Pruefstand nicht).
+ z=await page.evaluate(()=>{
+  const zeilen=lagerZusammenfassung(lagerBuchungenFuerProjekt(11,[77]));
+  const html=lagerZusammenfassungDokument(
+   allProjects.find(x=>x.id===11),zeilen,"");
+  return {html,zeilen:(html.match(/<tr>/g)||[]).length};
+ });
+ p(/Materialzusammenfassung/.test(z.html),"das Druckdokument traegt den Dokumenttyp im Kopf",z.html.slice(0,200));
+ p(z.zeilen===4,"eine Kopfzeile und drei Positionszeilen",z.zeilen);
+ p(/Verbraucht = ausgebucht/.test(z.html),
+   "und es sagt ausdruecklich, was die Zahl bedeutet und was NICHT mitgezaehlt ist",z.html.slice(-300));
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");
