@@ -598,6 +598,7 @@ function barcodeScanSchliessen(){
  }catch(e){}
  barcodeScanControls=null;
  if($("barcodeScanOverlay"))$("barcodeScanOverlay").hidden=true;
+ if($("barcodeScanManuellInput"))$("barcodeScanManuellInput").value="";
 }
 if($("barcodeScanAbbrechen"))$("barcodeScanAbbrechen").onclick=barcodeScanSchliessen;
 
@@ -636,12 +637,17 @@ async function barcodeScanNeuFokussieren(){
  try{ alterStream.getTracks().forEach(t=>t.stop()); }catch(e){}
  await new Promise(r=>setTimeout(r,200));
 
- // 2) Neuen Stream AUSSCHLIESSLICH fuer die Fotoaufnahme anfordern, Foto
- //    aufnehmen und den Stream direkt danach wieder freigeben.
+ // 2) Neuen Stream AUSSCHLIESSLICH fuer die Fotoaufnahme anfordern. Vor der
+ //    eigentlichen Aufnahme eine Aufwaermzeit (v3.114): ein GERADE ERST
+ //    geoeffneter Kamera-Stream braucht selbst Zeit fuer seine eigene
+ //    Autofokus-Anlaufsuche - wurde in v3.113 zu kurz bemessen (praktisch
+ //    keine Wartezeit), sodass das Foto vermutlich vor Abschluss dieser
+ //    Anlaufsuche aufgenommen wurde und dadurch ebenfalls unscharf blieb.
  let text=null, fotoStream=null;
  try{
   fotoStream=await navigator.mediaDevices.getUserMedia(barcodeScanWunschKonstraint());
   const track=fotoStream.getVideoTracks()[0];
+  await new Promise(r=>setTimeout(r,1000));
   const capture=new ImageCapture(track);
   const blob=await capture.takePhoto();
   if(barcodeScanCodeReader&&typeof barcodeScanCodeReader.decodeFromImageElement==="function"){
@@ -673,6 +679,24 @@ async function barcodeScanNeuFokussieren(){
  }catch(e){/* Vorschau-Neustart fehlgeschlagen - kein Fehler sichtbar */}
 }
 if($("barcodeScanVideo"))$("barcodeScanVideo").addEventListener("click",barcodeScanNeuFokussieren);
+
+// v3.114: manuelle Code-Eingabe als garantierter Rueckweg, unabhaengig von
+// jeder Kamera-Eigenheit - falls die Kamera einen Code partout nicht
+// scharf bekommt, kann er von Hand eingegeben werden (z. B. abgelesen vom
+// Etikett). Ruft denselben callback wie ein erfolgreicher Scan auf.
+function barcodeScanManuellUebernehmen(){
+ const eingabe=$("barcodeScanManuellInput");
+ if(!eingabe)return;
+ const text=eingabe.value.trim();
+ if(!text)return;
+ const cb=barcodeScanAktuellerCallback;
+ barcodeScanSchliessen();
+ if(cb)cb(text);
+}
+if($("barcodeScanManuellUebernehmen"))$("barcodeScanManuellUebernehmen").onclick=barcodeScanManuellUebernehmen;
+if($("barcodeScanManuellInput"))$("barcodeScanManuellInput").addEventListener("keydown",e=>{
+ if(e.key==="Enter"){e.preventDefault();barcodeScanManuellUebernehmen()}
+});
 
 // Oeffnet die Kamera und ruft callback(code) GENAU EINMAL mit dem erkannten
 // Text auf, dann schliesst sich das Overlay von selbst. Ein Abbrechen-Klick

@@ -29085,3 +29085,83 @@ das Bild erneut schwarz wird.
   verträgt, unabhängig von Reihenfolge oder Timing - dann bliebe nur der
   endgültige Verzicht auf jede Fotoaufnahme (Rückkehr zum reinen
   v3.107/v3.110/v3.112-Stand) als einzige verbleibende, sichere Option.
+
+## 180. AUFWÄRMZEIT VOR DEM FOTO + MANUELLE CODE-EINGABE — VERSION 3.114
+
+### 180.1 Rückmeldung zu v3.113
+
+Der Kamera-Absturz ist mit v3.113 tatsächlich behoben: das Bild wird nach
+dem Tipp nur noch kurz schwarz und kehrt danach zum (weiterhin
+unscharfen) Live-Bild zurück - kein dauerhaft schwarzes Bild mehr. Das
+Einzelfoto selbst fand aber offenbar weiterhin keinen lesbaren Code, sonst
+wäre der Scanner direkt geschlossen worden.
+
+Auf die direkte Nachfrage, ob es "egal wie aufwändig" eine sicher
+funktionierende Lösung gibt, wurde ehrlich geantwortet: eine 100%ige
+Garantie für die Kamera selbst ist aus dieser Sandbox nicht möglich, da
+kein Live-Test am echten Gerät durchführbar ist. Der Anwender entschied
+sich für **beides**: einen weiteren, gezielten Kamera-Versuch UND einen
+von der Kamera komplett unabhängigen, garantiert funktionierenden
+Rückweg.
+
+### 180.2 Vermuteter Grund für die weiterhin fehlende Schärfe
+
+In v3.113 wurde der frische Foto-Stream praktisch ohne Wartezeit für die
+Aufnahme verwendet (`getUserMedia()` → sofort `takePhoto()`). Auch ein
+gerade erst geöffneter Kamera-Stream braucht selbst eine kurze Zeit für
+seine eigene Autofokus-Anlaufsuche, bevor er ein scharfes Bild liefern
+kann - wurde diese Zeit nicht abgewartet, wäre das Foto vermutlich noch
+vor Abschluss dieser Anlaufsuche aufgenommen worden und dadurch selbst
+bei technisch einwandfreier Aufnahme unscharf geblieben.
+
+### 180.3 Änderung 1: längere Aufwärmzeit vor der Aufnahme
+
+`barcodeScanNeuFokussieren()` (js/01-basis.js) wartet jetzt **1 Sekunde**
+zwischen dem Öffnen des Foto-Streams und dem eigentlichen
+`takePhoto()`-Aufruf, statt die Aufnahme sofort auszulösen. Wieder ohne
+Garantie - aber ein echter, bisher nicht ausprobierter Hebel, der genau
+das oben vermutete Problem gezielt angeht.
+
+### 180.4 Änderung 2: manuelle Code-Eingabe als garantierter Rückweg
+
+Neu im Scan-Overlay (`index.html`): ein Eingabefeld "Code funktioniert
+nicht? Hier eintippen" mit einem "Übernehmen"-Knopf (per Klick oder
+Eingabetaste). Die neue Funktion `barcodeScanManuellUebernehmen()`
+(js/01-basis.js) übergibt den eingetippten Text genau wie ein
+erfolgreicher Kamera-Scan an denselben `callback` - der restliche Ablauf
+(Produkt suchen, Buchen-Dialog öffnen bzw. neues Produkt anbieten) bleibt
+dadurch unverändert und muss nicht angepasst werden. Dieser Weg
+funktioniert **unabhängig von jeder Kamera-Eigenheit** - er ist der
+einzige Teil dieser gesamten Fehlerbehebungs-Serie, der ohne jede
+Unsicherheit sicher funktioniert, da er gar keine Kamera-API anspricht.
+
+### 180.5 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 13: die
+Wartezeit im bestehenden Haupt-Test wurde von 600ms auf 1800ms erhöht
+(muss länger sein als die neue interne 1s-Wartezeit plus Zusatzzeit für
+den restlichen Ablauf). 5 neue Prüfungen für die manuelle Eingabe: leere
+Eingabe wird ignoriert, ausgefüllte Eingabe schliesst das Overlay und
+leert das Feld, die Kamera wird dabei regulär gestoppt, und die
+Eingabetaste (Enter) funktioniert genauso wie der Knopf-Klick. 14
+Prüfungen in Abschnitt 13, 77 Prüfungen insgesamt in diesem Prüfstand,
+alle bestanden. Volle Regression aller Prüfstände im Anschluss ohne neue
+Fehlschläge.
+
+**Ehrliche Grenze:** kein Live-Test mit echter Kamera möglich - ob die
+längere Aufwärmzeit tatsächlich hilft, kann nur der Anwender bestätigen.
+Die manuelle Eingabe dagegen ist die einzige Komponente in dieser ganzen
+Versionsreihe, die mit Sicherheit funktioniert, da sie keine Kamera-API
+anfasst.
+
+### 180.6 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | 1s-Wartezeit vor `takePhoto()` ergänzt; neue Funktion `barcodeScanManuellUebernehmen()`; `barcodeScanSchliessen()` leert das manuelle Eingabefeld |
+| `index.html` | neues Eingabefeld `#barcodeScanManuellInput` + Knopf `#barcodeScanManuellUebernehmen` im Scan-Overlay |
+| `js/41-hilfe.js` | Hinweis auf die manuelle Eingabe im Lagerverwaltung-Hilfetext ergänzt |
+| `sw.js` | Cache-Version 3.114 |
+| `PROJECT_STATE.md` | Versionsstand 3.114 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.114"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13: Wartezeit angepasst, 5 neue Prüfungen für die manuelle Eingabe |

@@ -42,7 +42,10 @@
 //     fuer die Weitersuche neu anfordern - mit einem GESTUBBTEN
 //     MediaStreamTrack (kein echter Kamera-Zugriff, siehe Abschnitt 10)
 //     wird die REIHENFOLGE dieser Aufrufe geprueft, nicht die echte
-//     Hardware-Ansteuerung.
+//     Hardware-Ansteuerung. v3.114 ergaenzt zwei Dinge: eine laengere
+//     Aufwaermzeit vor der Aufnahme (der frische Foto-Stream braucht selbst
+//     Zeit zum Fokussieren) sowie eine manuelle Code-Eingabe im Overlay als
+//     garantierten Rueckweg, unabhaengig von jeder Kamera-Eigenheit.
 //
 // WICHTIGSTE AENDERUNG SEIT v3.98: Die Lagerverwaltung baute urspruenglich
 // auf lagerbestand auf (dem Blech-Materialbestand). Das war fachlich falsch
@@ -599,7 +602,10 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   };
 
   $("barcodeScanVideo").click();
-  await new Promise(r=>setTimeout(r,600));
+  // v3.114: vor der Aufnahme wartet die Funktion jetzt 1s, damit der frisch
+  // geoeffnete Foto-Stream selbst Zeit zum Fokussieren hat - die Wartezeit
+  // hier muss entsprechend laenger sein als die interne Wartezeit.
+  await new Promise(r=>setTimeout(r,1800));
   return {ereignisse,gumAufrufe,srcObjectAmEnde:$("barcodeScanVideo").srcObject===vorschauStream};
  });
  p(z.ereignisse[0]==="alten-Stream-gestoppt","zuerst wird der alte Vorschau-Stream vollstaendig gestoppt",z);
@@ -652,6 +658,43 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(z.fehler===null,"ein fehlschlagender Fotoversuch wirft keinen sichtbaren Fehler",z);
  p(z.gumAufrufe===2&&z.srcObjectAmEnde===true,
    "die Vorschau wird trotzdem danach neu angefordert, damit weitergesucht werden kann",z);
+
+ // v3.114: manuelle Code-Eingabe als garantierter Rueckweg, unabhaengig von
+ // jeder Kamera-Eigenheit. barcodeScanAktuellerCallback ist in dieser
+ // Testumgebung nie gesetzt (barcodeScannen() wird hier nie echt
+ // aufgerufen, siehe Kopfkommentar) - geprueft wird deshalb nur, dass das
+ // Overlay schliesst und das Eingabefeld sich leert, nicht der Callback
+ // selbst.
+ z=await page.evaluate(async()=>{
+  $("barcodeScanOverlay").hidden=false;
+  $("barcodeScanManuellInput").value="";
+  $("barcodeScanManuellUebernehmen").click();
+  return {ueberlebtLeer:!$("barcodeScanOverlay").hidden};
+ });
+ p(z.ueberlebtLeer===true,"leere manuelle Eingabe wird ignoriert - Overlay bleibt offen",z);
+
+ z=await page.evaluate(async()=>{
+  const stream=document.createElement("canvas").captureStream();
+  let gestoppt=false;
+  stream.getVideoTracks()[0].stop=()=>{gestoppt=true};
+  $("barcodeScanVideo").srcObject=stream;
+  $("barcodeScanOverlay").hidden=false;
+  $("barcodeScanManuellInput").value="  ABC123  ";
+  $("barcodeScanManuellUebernehmen").click();
+  return {overlayGeschlossen:$("barcodeScanOverlay").hidden,eingabeGeleert:$("barcodeScanManuellInput").value==="",gestoppt};
+ });
+ p(z.overlayGeschlossen===true,"Klick auf Uebernehmen mit ausgefuellter Eingabe schliesst das Overlay",z);
+ p(z.eingabeGeleert===true,"das Eingabefeld wird danach geleert",z);
+ p(z.gestoppt===true,"die Kamera wird dabei wie gewohnt gestoppt",z);
+
+ z=await page.evaluate(async()=>{
+  $("barcodeScanVideo").srcObject=document.createElement("canvas").captureStream();
+  $("barcodeScanOverlay").hidden=false;
+  $("barcodeScanManuellInput").value="XYZ789";
+  $("barcodeScanManuellInput").dispatchEvent(new KeyboardEvent("keydown",{key:"Enter"}));
+  return {overlayGeschlossen:$("barcodeScanOverlay").hidden};
+ });
+ p(z.overlayGeschlossen===true,"die Eingabetaste (Enter) im Feld uebernimmt die Eingabe genauso wie der Knopf",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

@@ -1377,7 +1377,10 @@ niemand mehr erklären kann.</p>
 <p>📥 <b>Einscannen</b> / 📤 <b>Ausscannen</b> öffnen die Kamera, suchen den
 erkannten Barcode unter den Produkten und öffnen den Buchen-Dialog direkt
 mit der passenden Richtung – nur die Menge muss noch bestätigt werden.
-Kennt die App den Barcode noch nicht, bietet <b>Einscannen</b> direkt an,
+Stellt die Kamera einen Code partout nicht scharf, lässt er sich unten im
+Kamerabild auch von Hand eintippen ("Code funktioniert nicht? Hier
+eintippen") – funktioniert unabhängig von der Kamera immer. Kennt die App
+den Barcode noch nicht, bietet <b>Einscannen</b> direkt an,
 daraus ein <b>🏷️ neues Produkt</b> anzulegen: Bezeichnung eingeben, eine
 Materialposition aus dem Katalog wählen, fertig – anschliessend geht es
 gleich weiter zum ersten Zugang. Dasselbe Formular öffnet sich auch über
