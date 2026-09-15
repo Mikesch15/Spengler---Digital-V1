@@ -528,8 +528,13 @@ function lagerNeuesProduktOeffnen(materialId,barcode){
  if($("lagerNeuesProduktMaterialSuche"))$("lagerNeuesProduktMaterialSuche").value="";
  ["lagerNeuePositionNr","lagerNeuePositionName","lagerNeuePositionDim",
   "lagerNeuePositionEinheit","lagerNeuePositionPreis"].forEach(id=>{if($(id))$(id).value=""});
- lagerNeuePositionBlockZeigen(false);
- lagerNeuesProduktMaterialRendern(lagerNeuesProduktMaterialListeVoll,materialId);
+ lagerNummerVonHand=false;
+ if($("lagerNeuePositionHinweis"))$("lagerNeuePositionHinweis").innerHTML="";
+ // v3.126: Auswahl als Zustand, nicht mehr als Wert eines <select>.
+ lagerNeuesProduktNeuePosition=false;
+ lagerNeuesProduktArtikel=materialId
+  ?(lagerNeuesProduktMaterialListeVoll.find(a=>String(a.id)===String(materialId))||null):null;
+ lagerNeuesProduktMaterialRendern();
  $("lagerNeuesProduktModal").hidden=false;
  setTimeout(()=>{try{$("lagerNeuesProduktBezeichnung").focus()}catch(e){}},50);
 }
@@ -548,14 +553,130 @@ function lagerNeuesProduktOeffnen(materialId,barcode){
 // "100.01" einsortiert und faellt aus jeder Sortierung). Die Nummer bleibt
 // frei aenderbar; vorgeschlagen ist sie, nicht vorgeschrieben.
 const LAGER_EIGENE_GRUPPE="999";
-function lagerNaechsteFreieEdvNr(){
+// Die naechste freie Nummer INNERHALB einer Nummerngruppe. Ohne Gruppe der
+// eigene Lager-Kreis 999.xx.
+function lagerNaechsteFreieEdvNr(gruppe){
+ const g=String(gruppe||LAGER_EIGENE_GRUPPE);
  const liste=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ const muster=new RegExp("^"+g.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\.(\\d+)$");
  let hoechste=0;
  liste.forEach(a=>{
-  const m=/^999\.(\d+)$/.exec(String(a.edv_nr||"").trim());
+  const m=muster.exec(String(a.edv_nr||"").trim());
   if(m)hoechste=Math.max(hoechste,parseInt(m[1],10));
  });
- return LAGER_EIGENE_GRUPPE+"."+String(hoechste+1).padStart(2,"0");
+ return g+"."+String(hoechste+1).padStart(2,"0");
+}
+
+// ---- v3.126: die passende Nummerngruppe aus dem Katalog erkennen ---------
+//
+// Der Katalog ist fachlich nach Gruppen geordnet: 201 Dachrinnen, 202
+// Rinnenhalter, 203 Rinnenzubehoer (Winkel, Boeden, Stutzen, Seiher,
+// Kasten), 251 Ablaufrohre, 252 Rohrteile, 261 Lueftung, 811 Dichtstoffe,
+// 826 Schrauben. Ein neues Rinnenzubehoer-Produkt gehoert deshalb nicht in
+// den Lager-Kreis 999, sondern zu 203.
+//
+// Erkannt wird ueber die BEZEICHNUNG, mit denselben Textwerkzeugen wie die
+// Positionserkennung im Regierapport (rmatWoerter/rmatStamm, js/57) - keine
+// dritte Textlogik. Gemessen wurde am echten Katalog der Produktivdatenbank
+// (alle unterschiedlichen Produktnamen), mit 20 von Hand gesetzten
+// Erwartungen; die Zahlen unten sind daraus hervorgegangen, nicht geraten.
+// Die fuenf Faelle, die dabei offen blieben, sind echte Gleichstaende
+// ("Rohrbogen" steht in 252, 259 UND 261) - dort behauptet die App nichts,
+// sondern legt die Kandidaten nebeneinander.
+const LAGER_GRUPPE_MIN=2.5;      // darunter ist kein Treffer stark genug
+const LAGER_GRUPPE_FAKTOR=1.15;  // so viel Vorsprung braucht der Erste
+
+// Materialwoerter zaehlen nur ein Viertel: "Kupfer" steht in fast jeder
+// Gruppe und darf nicht entscheiden. Ein Materialwort ist ein Wort aber nur,
+// wenn es eines IST - "Kupferblech" enthaelt "Kupfer" und ist trotzdem ein
+// Blech (gemessener Fehler der ersten Fassung).
+const LAGER_MATERIALWOERTER=["kupfer","titanzink","zink","chromnickelstahl","stahl",
+ "aluminium","alum","messing","blei","inox","crnistahl","cnstahl","tizn",
+ "materialien","alle","kunststoff"];
+// Deutsche Zusammensetzungen teilen ihren Stamm oft in der MITTE
+// ("SpezialSCHRAUBE" / "HolzSCHRAUBEn"). Vorn/hinten allein findet das
+// nicht, deshalb zusaetzlich die laengste gemeinsame Teilkette.
+function lagerTeilkette(a,b){
+ let best=0;
+ for(let i=0;i<a.length;i++){
+  for(let j=i+best+1;j<=a.length;j++){
+   const t=a.slice(i,j);
+   if(b.indexOf(t)>=0){ if(t.length>best)best=t.length; } else break;
+  }
+ }
+ return best;
+}
+function lagerWoerter(s){
+ if(typeof rmatWoerter==="function")return rmatWoerter(s);
+ return String(s==null?"":s).toLowerCase()
+  .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss")
+  .split(/[^a-z0-9]+/).filter(w=>w.length>=4&&!/^\d+$/.test(w));
+}
+function lagerStamm(a,b){
+ return (typeof rmatStamm==="function")?rmatStamm(a,b):0;
+}
+// Wie gut passt EINE Katalogzeile zur Bezeichnung? Ein ganzes Wort zaehlt
+// voll, ein Teilwort anteilig (sonst haette "rinnen" in
+// "Rinnen-Dehnungselement" dasselbe Gewicht wie in "Rinnenhalter").
+function lagerZeilePunkte(bezWoerter,name){
+ const kW=lagerWoerter(name);
+ let p=0;
+ bezWoerter.forEach(w=>{
+  let best=0;
+  kW.forEach(k=>{
+   if(k===w){best=Math.max(best,3);return}
+   const gem=Math.min(k.length,w.length), lang=Math.max(k.length,w.length);
+   if(k.indexOf(w)>=0||w.indexOf(k)>=0){best=Math.max(best,3*(gem/lang));return}
+   const t=Math.max(lagerStamm(k,w),lagerTeilkette(k,w));
+   if(t>=5)best=Math.max(best,2.2*(t/lang));
+  });
+  p+=(LAGER_MATERIALWOERTER.indexOf(w)>=0)?best*0.25:best;
+ });
+ return p;
+}
+function lagerGruppeVon(nr){
+ const m=/^(\d+)\./.exec(String(nr==null?"":nr).trim());
+ return m?m[1]:null;
+}
+// Alle Gruppen, nach Passung sortiert. Die Liste ist auch dann nuetzlich,
+// wenn kein Erster klar fuehrt - dann zeigt die App die Kandidaten.
+function lagerGruppenBewerten(bezeichnung){
+ const bW=lagerWoerter(bezeichnung);
+ if(!bW.length)return [];
+ const liste=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ const proGruppe=new Map();
+ liste.forEach(a=>{
+  const g=lagerGruppeVon(a.edv_nr);
+  if(!g||g===LAGER_EIGENE_GRUPPE)return;     // der eigene Kreis ist kein Vorschlag
+  const p=lagerZeilePunkte(bW,a.name);
+  if(p<=0)return;
+  if(!proGruppe.has(g))proGruppe.set(g,[]);
+  proGruppe.get(g).push({punkte:p,artikel:a});
+ });
+ return [...proGruppe.entries()].map(([g,treffer])=>{
+  treffer.sort((a,b)=>b.punkte-a.punkte);
+  // Nur STARKE weitere Treffer zaehlen (mind. 70% des besten) - sonst
+  // gewaenne die groesste Gruppe allein durch ihre Groesse.
+  const stark=treffer.filter((x,i)=>i>0&&x.punkte>=treffer[0].punkte*0.7).length;
+  return {gruppe:g,punkte:treffer[0].punkte+Math.min(3,stark)*0.4,
+          bester:treffer[0].artikel,anzahl:treffer.length};
+ }).sort((a,b)=>b.punkte-a.punkte||a.gruppe.localeCompare(b.gruppe));
+}
+// Der Vorschlag fuer die Oberflaeche. art:
+//   "gruppe"  eine Gruppe fuehrt deutlich -> ihre naechste freie Nummer
+//   "unklar"  mehrere passen aehnlich gut -> Lager-Kreis, Kandidaten dabei
+//   "eigen"   nichts passt                -> Lager-Kreis
+function lagerNummernVorschlag(bezeichnung){
+ const b=lagerGruppenBewerten(bezeichnung);
+ const kandidaten=b.filter(x=>x.punkte>=LAGER_GRUPPE_MIN).slice(0,3);
+ if(!b.length||b[0].punkte<LAGER_GRUPPE_MIN){
+  return {art:"eigen",nummer:lagerNaechsteFreieEdvNr(null),kandidaten:[]};
+ }
+ if(b[1]&&b[0].punkte<b[1].punkte*LAGER_GRUPPE_FAKTOR){
+  return {art:"unklar",nummer:lagerNaechsteFreieEdvNr(null),kandidaten};
+ }
+ return {art:"gruppe",gruppe:b[0].gruppe,nummer:lagerNaechsteFreieEdvNr(b[0].gruppe),
+         bester:b[0].bester,kandidaten:kandidaten.slice(1)};
 }
 // Darf dieser Benutzer ueberhaupt eine Katalogposition anlegen? Das
 // entscheidet dasselbe Recht wie in den Einstellungen (materials-Insert
@@ -570,45 +691,144 @@ function lagerNeuePositionBlockZeigen(an){
  const box=$("lagerNeuePositionBlock");
  if(!box)return;
  box.hidden=!an;
- if(an&&$("lagerNeuePositionNr")&&!$("lagerNeuePositionNr").value){
-  $("lagerNeuePositionNr").value=lagerNaechsteFreieEdvNr();
-  if($("lagerNeuePositionEinheit")&&!$("lagerNeuePositionEinheit").value)
-   $("lagerNeuePositionEinheit").value="Stk.";
-  // Die Bezeichnung der Position folgt der des Produkts, solange sie leer
-  // ist - meistens ist sie dieselbe, und Tippen auf dem Handy ist muehsam.
-  if($("lagerNeuePositionName")&&!$("lagerNeuePositionName").value)
-   $("lagerNeuePositionName").value=$("lagerNeuesProduktBezeichnung").value.trim();
+ if(!an)return;
+ if($("lagerNeuePositionEinheit")&&!$("lagerNeuePositionEinheit").value)
+  $("lagerNeuePositionEinheit").value="Stk.";
+ // Die Bezeichnung der Position folgt der des Produkts, solange sie leer
+ // ist - meistens ist sie dieselbe, und Tippen auf dem Handy ist muehsam.
+ if($("lagerNeuePositionName")&&!$("lagerNeuePositionName").value)
+  $("lagerNeuePositionName").value=$("lagerNeuesProduktBezeichnung").value.trim();
+ lagerNummerVorschlagen(false);
+}
+
+// v3.126: Vorschlag setzen und BEGRUENDEN. Die Nummer wird nur vorbelegt,
+// solange der Anwender sie nicht selbst angefasst hat (lagerNummerVonHand) -
+// sonst wuerde ein weiteres Zeichen in der Bezeichnung seine Eingabe
+// ueberschreiben.
+let lagerNummerVonHand=false;
+function lagerNummerVorschlagen(nurWennLeer){
+ const feld=$("lagerNeuePositionNr"), hinweis=$("lagerNeuePositionHinweis");
+ if(!feld)return;
+ if(lagerNummerVonHand&&nurWennLeer!==false)return;
+ if(nurWennLeer&&feld.value.trim())return;
+ const bez=($("lagerNeuePositionName")&&$("lagerNeuePositionName").value.trim())
+   ||($("lagerNeuesProduktBezeichnung")?$("lagerNeuesProduktBezeichnung").value.trim():"");
+ const v=lagerNummernVorschlag(bez);
+ if(!lagerNummerVonHand)feld.value=v.nummer;
+ if(!hinweis)return;
+ const andere=(v.kandidaten||[]).filter(k=>k.gruppe!==v.gruppe);
+ const knoepfe=andere.length
+  ?`<div class="bar" style="margin-top:2px">`+andere.map(k=>
+    `<button type="button" class="gray lager-gruppe-knopf" data-lager-gruppe="${esc(k.gruppe)}">${esc(k.gruppe)}.xx \u00b7 ${esc(k.bester.name).slice(0,34)}</button>`).join("")
+   +`<button type="button" class="gray lager-gruppe-knopf" data-lager-gruppe="${LAGER_EIGENE_GRUPPE}">${LAGER_EIGENE_GRUPPE}.xx \u00b7 eigener Lager-Bereich</button></div>`
+  :"";
+ if(v.art==="gruppe"){
+  hinweis.innerHTML=`<span class="rmat-sicher">\u2713 Gruppe ${esc(v.gruppe)}</span> \u2013 dort steht bereits `
+   +`\u201e${esc(v.bester.name)}\u201c.`+knoepfe;
+ }else if(v.art==="unklar"){
+  hinweis.innerHTML=`<span class="rmat-unsicher">Mehrere Gruppen passen \u00e4hnlich gut</span> \u2013 deshalb der eigene `
+   +`Lager-Bereich. Passt eine davon besser, hier w\u00e4hlen:`+knoepfe;
+ }else{
+  hinweis.innerHTML=`<span class="small" style="color:var(--muted)">Keine passende Gruppe im Katalog gefunden \u2013 `
+   +`die Position bekommt eine Nummer aus dem eigenen Lager-Bereich.</span>`;
  }
 }
-function lagerNeuesProduktMaterialRendern(liste,materialId){
+// Die Nummer folgt der Bezeichnung, solange sie nicht von Hand gesetzt wurde.
+["lagerNeuePositionName","lagerNeuesProduktBezeichnung"].forEach(id=>{
+ if($(id))$(id).addEventListener("input",()=>{
+  if($("lagerNeuePositionBlock")&&!$("lagerNeuePositionBlock").hidden)lagerNummerVorschlagen(false);
+ });
+});
+if($("lagerNeuePositionNr"))$("lagerNeuePositionNr").addEventListener("input",()=>{
+ lagerNummerVonHand=true;
+});
+if($("lagerNeuePositionHinweis"))$("lagerNeuePositionHinweis").addEventListener("click",e=>{
+ const k=e.target.closest?e.target.closest("[data-lager-gruppe]"):null;
+ if(!k)return;
+ // Eine bewusst gewaehlte Gruppe gilt - die Bezeichnung darf sie danach
+ // nicht mehr ueberschreiben.
+ lagerNummerVonHand=true;
+ $("lagerNeuePositionNr").value=lagerNaechsteFreieEdvNr(k.dataset.lagerGruppe);
+});
+// ---- v3.126: Trefferliste statt Auswahlfeld, wie im Ausbuchen-Dialog ----
+//
+// v3.118 setzte hier ein Suchfeld VOR ein <select>. Der Filter lief bei
+// jedem Tastendruck, aber ein <select> zeigt seine Liste erst beim
+// Aufklappen - man tippte und sah nichts. In v3.125 wurde genau das im
+// Ausbuchen-Dialog behoben; dass hier dieselbe Konstruktion stand, wurde
+// dabei uebersehen und vom Anwender gemeldet ("Position suchen oeffnet
+// immernoch nicht automatisch die Treffer"). Beide Stellen benutzen jetzt
+// dasselbe Muster.
+let lagerNeuesProduktArtikel=null;        // gewaehlte Materialposition
+let lagerNeuesProduktNeuePosition=false;  // "Neue Materialposition anlegen"
+const LAGER_PRODUKT_TREFFER_MAX=8;
+function lagerNeuesProduktTrefferHtml(){
+ const begriff=($("lagerNeuesProduktMaterialSuche")
+   ?$("lagerNeuesProduktMaterialSuche").value:"").trim().toLowerCase();
+ const alle=lagerNeuesProduktMaterialListeVoll;
+ const liste=begriff?alle.filter(a=>lagArtikelText(a).toLowerCase().includes(begriff)):alle;
+ const gezeigt=liste.slice(0,LAGER_PRODUKT_TREFFER_MAX);
+ const rest=liste.length-gezeigt.length;
+ // "Neue Materialposition anlegen" ist keine Katalogposition und wird von
+ // der Suche deshalb nie weggefiltert.
  const neu=lagerDarfPositionAnlegen()
-  ?`<option value="${LAGER_NEUE_POSITION}"${materialId===LAGER_NEUE_POSITION?" selected":""}>➕ Neue Materialposition anlegen …</option>`
+  ?`<button type="button" class="gray meas-lager-treffer" data-lager-produkt-neu="1">➕ Neue Materialposition anlegen …</button>`
   :"";
- $("lagerNeuesProduktMaterial").innerHTML=`<option value="">– bitte wählen –</option>`+
-  liste.map(a=>`<option value="${a.id}"${String(a.id)===String(materialId||"")?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("")
+ if(!alle.length){
+  return `<div class="small" style="color:var(--muted)">Der Material-Katalog ist leer.</div>`+neu;
+ }
+ if(!liste.length){
+  return `<div class="small" style="color:var(--muted)">Kein Treffer für „${esc(begriff)}“.</div>`+neu;
+ }
+ return gezeigt.map(a=>`<button type="button" class="gray meas-lager-treffer" data-lager-produkt-artikel="${esc(a.id)}">${esc(lagArtikelText(a))}</button>`).join("")
+  +(rest>0?`<div class="small" style="color:var(--muted)">… ${rest} weitere – bitte genauer suchen.</div>`:"")
   +neu;
 }
-if($("lagerNeuesProduktMaterial"))$("lagerNeuesProduktMaterial").addEventListener("change",()=>{
- lagerNeuePositionBlockZeigen($("lagerNeuesProduktMaterial").value===LAGER_NEUE_POSITION);
-});
-// v3.118: bei einem grossen Materialkatalog ist eine lange, unsortierte
-// Auswahlliste unpraktisch - die Suche filtert die sichtbaren Optionen live
-// nach EDV-Nr./Bezeichnung/Dim. (derselbe Text wie lagArtikelText() anzeigt).
-// Die bereits gewaehlte Position bleibt beim Weitertippen immer in der Liste,
-// damit eine einmal getroffene Auswahl nicht durch das Filtern verloren geht.
-if($("lagerNeuesProduktMaterialSuche"))$("lagerNeuesProduktMaterialSuche").addEventListener("input",()=>{
- const begriff=$("lagerNeuesProduktMaterialSuche").value.trim().toLowerCase();
- const aktuelleId=$("lagerNeuesProduktMaterial").value;
- let liste=lagerNeuesProduktMaterialListeVoll;
- if(begriff){
-  liste=lagerNeuesProduktMaterialListeVoll.filter(a=>
-   String(a.id)===String(aktuelleId)||lagArtikelText(a).toLowerCase().includes(begriff));
+function lagerNeuesProduktMaterialRendern(){
+ const box=$("lagerNeuesProduktTreffer"), gewaehlt=$("lagerNeuesProduktGewaehlt");
+ const suche=$("lagerNeuesProduktMaterialSuche");
+ const fertig=!!lagerNeuesProduktArtikel||lagerNeuesProduktNeuePosition;
+ if(suche)suche.hidden=fertig;
+ if(box){
+  box.hidden=fertig;
+  if(!fertig)box.innerHTML=lagerNeuesProduktTrefferHtml();
  }
- lagerNeuesProduktMaterialRendern(liste,aktuelleId);
- // Die Suche filtert Katalogpositionen - der Eintrag "Neue Materialposition
- // anlegen" ist keine und bleibt deshalb immer stehen (lagerNeuesProdukt-
- // MaterialRendern haengt ihn unabhaengig von der Liste an).
- lagerNeuePositionBlockZeigen($("lagerNeuesProduktMaterial").value===LAGER_NEUE_POSITION);
+ if(gewaehlt){
+  gewaehlt.hidden=!fertig;
+  if(fertig){
+   gewaehlt.innerHTML=`<b>${esc(lagerNeuesProduktNeuePosition
+     ?"Neue Materialposition":lagArtikelText(lagerNeuesProduktArtikel))}</b> `
+    +`<button type="button" class="gray" data-lager-produkt-aendern="1">✏️ ändern</button>`;
+  }
+ }
+ lagerNeuePositionBlockZeigen(lagerNeuesProduktNeuePosition);
+}
+// Tippen zeigt die Treffer SOFORT - neu gezeichnet wird nur die
+// Trefferliste, damit das Suchfeld den Fokus behaelt.
+if($("lagerNeuesProduktMaterialSuche"))$("lagerNeuesProduktMaterialSuche").addEventListener("input",()=>{
+ const box=$("lagerNeuesProduktTreffer");
+ if(box)box.innerHTML=lagerNeuesProduktTrefferHtml();
+});
+if($("lagerNeuesProduktTreffer"))$("lagerNeuesProduktTreffer").addEventListener("click",e=>{
+ const neu=e.target.closest?e.target.closest("[data-lager-produkt-neu]"):null;
+ if(neu){
+  lagerNeuesProduktArtikel=null;
+  lagerNeuesProduktNeuePosition=true;
+  lagerNeuesProduktMaterialRendern();
+  return;
+ }
+ const a=e.target.closest?e.target.closest("[data-lager-produkt-artikel]"):null;
+ if(!a)return;
+ lagerNeuesProduktNeuePosition=false;
+ lagerNeuesProduktArtikel=lagerNeuesProduktMaterialListeVoll
+   .find(x=>String(x.id)===String(a.dataset.lagerProduktArtikel))||null;
+ lagerNeuesProduktMaterialRendern();
+});
+if($("lagerNeuesProduktGewaehlt"))$("lagerNeuesProduktGewaehlt").addEventListener("click",e=>{
+ if(!e.target.closest||!e.target.closest("[data-lager-produkt-aendern]"))return;
+ lagerNeuesProduktArtikel=null;
+ lagerNeuesProduktNeuePosition=false;
+ lagerNeuesProduktMaterialRendern();
 });
 function lagerNeuesProduktSchliessen(){
  $("lagerNeuesProduktModal").hidden=true;
@@ -667,7 +887,9 @@ if($("lagerNeuesProduktSpeichern"))$("lagerNeuesProduktSpeichern").onclick=async
  const fehler=$("lagerNeuesProduktFehler");
  fehler.hidden=true;
  const bezeichnung=$("lagerNeuesProduktBezeichnung").value.trim();
- let materialId=$("lagerNeuesProduktMaterial").value;   // v3.124: kann noch wechseln
+ // v3.124/v3.126: die Wahl steht im Zustand, nicht in einem Auswahlfeld.
+ let materialId=lagerNeuesProduktNeuePosition?LAGER_NEUE_POSITION
+   :(lagerNeuesProduktArtikel?String(lagerNeuesProduktArtikel.id):"");
  const barcode=$("lagerNeuesProduktBarcode").value.trim();
  if(!bezeichnung){fehler.textContent="Bitte eine Bezeichnung eingeben.";fehler.hidden=false;return}
  if(!materialId){fehler.textContent="Bitte eine Materialposition auswählen.";fehler.hidden=false;return}

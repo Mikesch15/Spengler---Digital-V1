@@ -505,7 +505,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   return {
    neuesProduktOffen:!$("lagerNeuesProduktModal").hidden,
    barcodeVorbelegt:$("lagerNeuesProduktBarcode").value,
-   materialVorbelegt:$("lagerNeuesProduktMaterial").value
+   materialVorbelegt:lagerNeuesProduktArtikel?String(lagerNeuesProduktArtikel.id):""
   };
  });
  p(z.neuesProduktOffen,"ein unbekannter Barcode beim Einscannen oeffnet das Neues-Produkt-Formular",z);
@@ -562,7 +562,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   document.querySelector('[data-lager-neues-produkt="2"]').click();
   return {
    offen:!$("lagerNeuesProduktModal").hidden,
-   materialVorbelegt:$("lagerNeuesProduktMaterial").value
+   materialVorbelegt:lagerNeuesProduktArtikel?String(lagerNeuesProduktArtikel.id):""
   };
  });
  p(z.offen,"\"＋ Weiteres Produkt\" innerhalb einer Position oeffnet dasselbe Formular",z);
@@ -600,53 +600,79 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(/3 Produkte/.test(z),"die Position zeigt jetzt 3 Produkte in der Liste",z);
  await page.evaluate(()=>{$("lagerBuchenModal").hidden=true});
 
- // v3.118: bei einem groesseren Materialkatalog ist die reine Auswahlliste
- // unpraktisch - ein Suchfeld filtert die sichtbaren Positionen live.
- console.log("\n12b · Materialposition im Neues-Produkt-Formular suchen");
+ // v3.118 setzte hier ein Suchfeld VOR ein <select>. Der Filter lief bei
+ // jedem Tastendruck, aber ein <select> zeigt seine Liste erst beim
+ // Aufklappen - man tippte und sah nichts. In v3.125 wurde genau das im
+ // Ausbuchen-Dialog behoben; dass hier dieselbe Konstruktion stand, wurde
+ // dabei uebersehen und vom Anwender gemeldet. Seit v3.126 steht auch hier
+ // eine Trefferliste.
+ console.log("\n12b · Materialposition im Neues-Produkt-Formular suchen (v3.126)");
+ const produktTreffer=()=>page.evaluate(()=>
+  [...document.querySelectorAll('#lagerNeuesProduktTreffer [data-lager-produkt-artikel]')]
+   .map(b=>b.textContent.trim()));
  z=await page.evaluate(()=>{
   lagerNeuesProduktOeffnen(null,"");
-  return {anzahlOptionenVoll:$("lagerNeuesProduktMaterial").options.length};
+  return {keinSelect:!document.getElementById("lagerNeuesProduktMaterial"),
+   sichtbar:!$("lagerNeuesProduktTreffer").hidden};
  });
- p(z.anzahlOptionenVoll===3,"ohne Suchbegriff zeigt die Liste alle Positionen (Platzhalter + 2 Materialien)",z);
+ p(z.keinSelect===true,
+   "die Positionswahl ist kein Auswahlfeld mehr - ein <select> zeigt seine Treffer erst beim Aufklappen",z);
+ let t=await produktTreffer();
+ p(t.length===2,"ohne Suchbegriff stehen alle Positionen als Treffer da, nicht eine leere Flaeche",t);
+
+ await page.evaluate(()=>{
+  const f=$("lagerNeuesProduktMaterialSuche");
+  f.value="Dichtband"; f.dispatchEvent(new Event("input",{bubbles:true}));
+ });
+ t=await produktTreffer();
+ p(t.length===1&&/Dichtband/.test(t[0]),
+   "nach dem blossen Tippen - ohne jeden weiteren Klick - steht nur noch der passende Treffer da",t);
+
+ await page.evaluate(()=>{
+  const f=$("lagerNeuesProduktMaterialSuche");
+  f.value="300"; f.dispatchEvent(new Event("input",{bubbles:true}));
+ });
+ t=await produktTreffer();
+ p(t.length===1&&/Rohrbogen/.test(t[0]),
+   "die Suche wirkt auch auf die EDV-Nr. ('300' findet '300.10 Rohrbogen'), nicht nur auf die Bezeichnung",t);
 
  z=await page.evaluate(()=>{
-  $("lagerNeuesProduktMaterialSuche").value="Dichtband";
-  $("lagerNeuesProduktMaterialSuche").dispatchEvent(new Event("input"));
-  const texte=[...$("lagerNeuesProduktMaterial").options].map(o=>o.textContent);
-  return {anzahl:$("lagerNeuesProduktMaterial").options.length,texte};
+  const f=$("lagerNeuesProduktMaterialSuche");
+  f.value="gibtesnicht"; f.dispatchEvent(new Event("input",{bubbles:true}));
+  return {text:$("lagerNeuesProduktTreffer").innerText,
+   fokus:document.activeElement===f||document.body.contains(f)};
  });
- p(z.anzahl===2&&z.texte.some(t=>/Dichtband/.test(t))&&!z.texte.some(t=>/Rohrbogen/.test(t)),
-   "die Eingabe 'Dichtband' filtert die Liste auf den Platzhalter plus die passende Position",z);
+ p(/Kein Treffer/.test(z.text),"ohne Treffer steht das da, statt einer leeren Flaeche",z);
+ p(z.fokus===true,"das Suchfeld bleibt dabei stehen und verliert den Fokus nicht",z);
+
+ // Antippen waehlt - danach steht die Position als Text da.
+ z=await page.evaluate(()=>{
+  const f=$("lagerNeuesProduktMaterialSuche");
+  f.value="Dichtband"; f.dispatchEvent(new Event("input",{bubbles:true}));
+  document.querySelector('#lagerNeuesProduktTreffer [data-lager-produkt-artikel]').click();
+  return {gewaehlt:lagerNeuesProduktArtikel?String(lagerNeuesProduktArtikel.id):"",
+   text:$("lagerNeuesProduktGewaehlt").innerText,
+   sucheWeg:$("lagerNeuesProduktMaterialSuche").hidden,
+   trefferWeg:$("lagerNeuesProduktTreffer").hidden};
+ });
+ p(z.gewaehlt==="1"&&/Dichtband/.test(z.text),"ein Antippen des Treffers waehlt die Position",z);
+ p(z.sucheWeg===true&&z.trefferWeg===true,
+   "danach steht die Position als Text da - die Suche ist erledigt",z);
 
  z=await page.evaluate(()=>{
-  $("lagerNeuesProduktMaterialSuche").value="300";
-  $("lagerNeuesProduktMaterialSuche").dispatchEvent(new Event("input"));
-  const texte=[...$("lagerNeuesProduktMaterial").options].map(o=>o.textContent);
-  return {texte};
+  $("lagerNeuesProduktGewaehlt").querySelector("[data-lager-produkt-aendern]").click();
+  return {gewaehlt:lagerNeuesProduktArtikel,sucheDa:!$("lagerNeuesProduktMaterialSuche").hidden};
  });
- p(z.texte.some(t=>/Rohrbogen/.test(t))&&!z.texte.some(t=>/Dichtband/.test(t)),
-   "die Suche wirkt auch auf die EDV-Nr. ('300' findet '300.10 Rohrbogen'), nicht nur auf die Bezeichnung",z);
+ p(z.gewaehlt===null&&z.sucheDa===true,"und 'aendern' oeffnet die Suche wieder",z);
 
- z=await page.evaluate(()=>{
-  $("lagerNeuesProduktMaterialSuche").value="gibtesnicht";
-  $("lagerNeuesProduktMaterialSuche").dispatchEvent(new Event("input"));
-  return {anzahl:$("lagerNeuesProduktMaterial").options.length};
- });
- p(z.anzahl===1,"ein Suchbegriff ohne Treffer laesst nur den Platzhalter uebrig, statt eines Fehlers",z);
-
- // eine bereits getroffene Auswahl darf beim Weitertippen nicht verloren
- // gehen, auch wenn sie selbst nicht mehr zum Suchbegriff passt
+ // Eine vorbelegte Position (Weg "＋ Weiteres Produkt") steht direkt fest.
  z=await page.evaluate(()=>{
   lagerNeuesProduktOeffnen(2,"");
-  $("lagerNeuesProduktMaterialSuche").value="Dichtband";
-  $("lagerNeuesProduktMaterialSuche").dispatchEvent(new Event("input"));
-  return {
-   ausgewaehlt:$("lagerNeuesProduktMaterial").value,
-   texte:[...$("lagerNeuesProduktMaterial").options].map(o=>o.textContent)
-  };
+  return {gewaehlt:lagerNeuesProduktArtikel?String(lagerNeuesProduktArtikel.id):"",
+   text:$("lagerNeuesProduktGewaehlt").innerText};
  });
- p(z.ausgewaehlt==="2"&&z.texte.some(t=>/Rohrbogen/.test(t)),
-   "eine bereits vorbelegte Position bleibt beim Weitertippen ausgewaehlt, auch wenn sie selbst nicht zum Suchbegriff passt",z);
+ p(z.gewaehlt==="2"&&/Rohrbogen/.test(z.text),
+   "wird das Formular aus einer Position heraus geoeffnet, steht sie ohne Suche fest",z);
  await page.evaluate(()=>{lagerNeuesProduktSchliessen()});
 
  // ---- 13 · Tippen-zum-Fokussieren (v3.113, komplett umgebaut) ------------
@@ -1377,23 +1403,20 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  z=await page.evaluate(()=>{
   meineRechte={admin:false,kataloge:true};
   lagerNeuesProduktOeffnen(null,"");
-  const sel=$("lagerNeuesProduktMaterial");
-  return {werte:[...sel.options].map(o=>o.value),
-   letzterText:sel.options[sel.options.length-1].textContent,
+  const knopf=$("lagerNeuesProduktTreffer").querySelector("[data-lager-produkt-neu]");
+  return {neuDa:!!knopf,neuText:knopf?knopf.textContent:"",
    blockVersteckt:$("lagerNeuePositionBlock").hidden,
    vorschlag:lagerNaechsteFreieEdvNr()};
  });
- p(z.werte[z.werte.length-1]==="__neu"&&/Neue Materialposition/.test(z.letzterText),
-   "ganz unten in der Positionsauswahl steht 'Neue Materialposition anlegen'",z);
+ p(z.neuDa===true&&/Neue Materialposition/.test(z.neuText),
+   "unter den Treffern steht 'Neue Materialposition anlegen'",z);
  p(z.blockVersteckt===true,"das Formular dafuer ist erst einmal zu",z);
  p(z.vorschlag==="999.01",
    "vorgeschlagen wird die erste freie Nummer aus dem eigenen Lager-Nummernkreis 999.xx",z.vorschlag);
 
  z=await page.evaluate(()=>{
   $("lagerNeuesProduktBezeichnung").value="Spezialschraube A2";
-  const sel=$("lagerNeuesProduktMaterial");
-  sel.value="__neu";
-  sel.dispatchEvent(new Event("change",{bubbles:true}));
+  $("lagerNeuesProduktTreffer").querySelector("[data-lager-produkt-neu]").click();
   return {offen:!$("lagerNeuePositionBlock").hidden,
    nr:$("lagerNeuePositionNr").value,
    name:$("lagerNeuePositionName").value,
@@ -1454,14 +1477,158 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  z=await page.evaluate(()=>{
   meineRechte={admin:false,kataloge:false};
   lagerNeuesProduktOeffnen(null,"");
-  const sel=$("lagerNeuesProduktMaterial");
-  const da=[...sel.options].some(o=>o.value==="__neu");
+  const da=!!$("lagerNeuesProduktTreffer").querySelector("[data-lager-produkt-neu]");
   lagerNeuesProduktSchliessen();
   meineRechte={admin:false,kataloge:true};
   return {da};
  });
  p(z.da===false,
    "ohne das Recht, den Material-Katalog zu aendern, erscheint 'Neue Materialposition' gar nicht",z);
+
+
+ // ---- 17 · EDV-Nr. aus der passenden Katalogruppe (v3.126) ---------------
+ // Der Katalog ist fachlich nach Nummerngruppen geordnet. Ein neues
+ // Rinnenzubehoer-Produkt gehoert deshalb nicht in den Lager-Kreis 999,
+ // sondern zu 203 - dort stehen Rinnenwinkel, Rinnenboden, Stutzen, Seiher.
+ // Geprueft wird gegen einen AUSSCHNITT DES ECHTEN Produktivkatalogs, nicht
+ // gegen erfundene Namen: sonst belegte der Pruefstand nur sich selbst.
+ console.log("\n17 · EDV-Nr. wird aus der passenden Katalogruppe vorgeschlagen");
+ await page.evaluate(()=>{
+  settings.materials=[
+   ["201.01","Dachrinnen halbrund Kupfer","250","m1",0],
+   ["201.11","Dachrinnen halbrund Titanzink","250","m1",0],
+   ["202.01","Rinnenhalter Kupfer","250","St",0],
+   ["202.11","Rinnenhalter Titanzink","250","St",0],
+   // Gruppe 203 VOLLSTAENDIG wie im Produktivkatalog (beide Dimensionen je
+   // Position). Mit einem verkleinerten Ausschnitt waere die Gruppe zu
+   // schwach, um die Gewichtung der Teiltreffer ueberhaupt auf die Probe zu
+   // stellen - die Gegenprobe schlug dann nicht an.
+   ["203.01","Rinnenwinkel, alle Materialien","250","St",0],
+   ["203.02","Rinnenwinkel, alle Materialien","330","St",0],
+   ["203.11","Gehrschildwinkel, alle Materialien","250","St",0],
+   ["203.12","Gehrschildwinkel, alle Materialien","330","St",0],
+   ["203.21","Rinnenboden gerade, alle Materialien","250","St",0],
+   ["203.22","Rinnenboden gerade, alle Materialien","330","St",0],
+   ["203.31","Rinnen-Dehnungselement alle Materialien","250","St",0],
+   ["203.32","Rinnen-Dehnungselement alle Materialien","330","St",0],
+   ["203.41","Einhängestutzen gerade, alle Materialien","250","St",0],
+   ["203.42","Einhängestutzen gerade, alle Materialien","330","St",0],
+   ["203.51","Rinnenseiher, alle Materialien","bis 120","St",0],
+   ["203.61","Rinnenkasten, alle Materialien","bis 100","St",0],
+   ["251.01","Ablaufrohre rund Kupfer","bis 75","m1",0],
+   ["252.21","Rohrbogen 70-85° alle Materialien","bis 75","St",0],
+   ["259.01","Rohrbogen PVC 15-45°","bis 125","St",0],
+   ["261.01","Lüftungs-Rohrbogen Safe 90°","bis 100","St",0],
+   ["811.01","Dichtungsmasse Neutralsilikon","350ml","Kart.",0],
+   ["826.21","Holzschrauben Spax bis","5x50","St",0],
+   ["851.01","Trennscheibe","D 115","St",0]
+  ];
+  materialIds=settings.materials.map((m,i)=>2001+i);
+ });
+
+ z=await page.evaluate(()=>{
+  const f=b=>{const v=lagerNummernVorschlag(b);
+   return {art:v.art,gruppe:v.gruppe||null,nummer:v.nummer,
+     bester:v.bester?v.bester.name:null,kandidaten:(v.kandidaten||[]).map(k=>k.gruppe)};};
+  return {
+   boden:f("Rinnenboden links 333"),
+   halter:f("Rinnenhalter 333 verzinkt"),
+   stutzen:f("Einhängestutzen 100 Kupfer"),
+   seiher:f("Rinnenseiher 120 Kupfer"),
+   rinne:f("Dachrinne halbrund 333 Titanzink"),
+   schraube:f("Holzschraube Spax 6x100"),
+   bogen:f("Rohrbogen 87 Grad 100"),
+   fremd:f("Kaffeemaschine für die Werkstatt")
+  };
+ });
+ p(z.boden.gruppe==="203"&&z.boden.nummer==="203.62",
+   "Rinnenboden landet bei 203 (Rinnenzubehör) - genau der gemeldete Fall",z.boden);
+ p(z.boden.art==="gruppe"&&/Rinnenboden/.test(z.boden.bester||""),
+   "und die App nennt die Katalogzeile, auf die sie sich stützt",z.boden);
+ p(z.stutzen.gruppe==="203"&&z.seiher.gruppe==="203",
+   "Einhängestutzen und Rinnenseiher ebenfalls - nicht nur der wörtliche Treffer",z);
+ p(z.halter.gruppe==="202",
+   "der Rinnenhalter kommt zu den Rinnenhaltern (202), nicht zum übrigen Rinnenzubehör",z.halter);
+ // Der scharfe Fall fuer die anteilige Gewichtung: "Rinnen-Dehnungselement"
+ // zerfaellt in "rinnen" + "dehnungselement", und "rinnen" steckt in
+ // "rinnenhalter". Mit einem FLACHEN Gewicht fuer Teiltreffer wuerde 203
+ // dadurch mithalten und 202 den Vorsprung verlieren - genau so am echten
+ // Katalog gemessen.
+ p(z.halter.art==="gruppe",
+   "und zwar EINDEUTIG - ein blosser Wortteil („rinnen“ in „Rinnen-Dehnungselement“) "
+   +"zaehlt weniger als das ganze Wort, sonst gaebe es hier keinen Vorsprung",z.halter);
+ p(z.rinne.gruppe==="201",
+   "die Dachrinne selbst zu den Dachrinnen (201)",z.rinne);
+ p(z.schraube.gruppe==="826","eine Holzschraube zu den Schrauben (826)",z.schraube);
+
+ p(z.bogen.art==="unklar"&&z.bogen.nummer.indexOf("999.")===0,
+   "„Rohrbogen“ steht in 252, 259 UND 261 - dort behauptet die App nichts und nimmt den eigenen Bereich",z.bogen);
+ p(z.bogen.kandidaten.length>=2&&z.bogen.kandidaten.indexOf("252")>=0,
+   "sie legt die Kandidaten aber offen, damit der Anwender selbst wählen kann",z.bogen);
+ p(z.fremd.art==="eigen"&&z.fremd.nummer.indexOf("999.")===0,
+   "was gar nicht in den Katalog passt, bekommt weiterhin eine Nummer aus dem Lager-Bereich",z.fremd);
+
+ // Die naechste freie Nummer wird INNERHALB der Gruppe gesucht.
+ z=await page.evaluate(()=>({
+  inGruppe:lagerNaechsteFreieEdvNr("203"),
+  eigen:lagerNaechsteFreieEdvNr(null),
+  leereGruppe:lagerNaechsteFreieEdvNr("777")
+ }));
+ p(z.inGruppe==="203.62","die naechste freie Nummer wird INNERHALB der Gruppe gesucht (203.61 ist belegt)",z);
+ p(z.eigen==="999.01","ohne Gruppe bleibt es beim eigenen Lager-Bereich",z);
+ p(z.leereGruppe==="777.01","eine noch leere Gruppe beginnt bei .01",z);
+
+ // Und die Bedienung: der Vorschlag steht im Feld, begruendet, und die
+ // Eingabe des Anwenders wird nicht ueberschrieben.
+ z=await page.evaluate(()=>{
+  meineRechte={admin:false,kataloge:true};
+  lagerNeuesProduktOeffnen(null,"");
+  $("lagerNeuesProduktBezeichnung").value="Rinnenboden rechts 333";
+  $("lagerNeuesProduktTreffer").querySelector("[data-lager-produkt-neu]").click();
+  const nachOeffnen={nr:$("lagerNeuePositionNr").value,
+    hinweis:$("lagerNeuePositionHinweis").innerText.replace(/\s+/g," ")};
+  // Bezeichnung aendern -> Vorschlag folgt
+  const name=$("lagerNeuePositionName");
+  name.value="Holzschraube Spax 8x120";
+  name.dispatchEvent(new Event("input",{bubbles:true}));
+  const nachAendern=$("lagerNeuePositionNr").value;
+  // Von Hand eintippen -> Vorschlag haelt sich raus
+  const nr=$("lagerNeuePositionNr");
+  nr.value="1.000.00"; nr.dispatchEvent(new Event("input",{bubbles:true}));
+  name.value="Rinnenboden links";
+  name.dispatchEvent(new Event("input",{bubbles:true}));
+  return {nachOeffnen,nachAendern,vonHand:$("lagerNeuePositionNr").value};
+ });
+ p(z.nachOeffnen.nr==="203.62","beim Oeffnen steht die vorgeschlagene Nummer im Feld",z.nachOeffnen);
+ p(/Gruppe 203/.test(z.nachOeffnen.hinweis)&&/Rinnenboden/.test(z.nachOeffnen.hinweis),
+   "darunter steht, WARUM - mit der Katalogzeile, auf die sich die App stuetzt",z.nachOeffnen.hinweis);
+ p(z.nachAendern==="826.22","aendert sich die Bezeichnung, folgt der Vorschlag",z);
+ p(z.vonHand==="1.000.00",
+   "eine von Hand eingetippte Nummer wird NICHT mehr ueberschrieben - der Vorschlag haelt sich dann raus",z);
+
+ z=await page.evaluate(()=>{
+  lagerNeuesProduktOeffnen(null,"");
+  $("lagerNeuesProduktBezeichnung").value="Rohrbogen 87 Grad";
+  $("lagerNeuesProduktTreffer").querySelector("[data-lager-produkt-neu]").click();
+  const knoepfe=[...$("lagerNeuePositionHinweis").querySelectorAll("[data-lager-gruppe]")]
+    .map(b=>b.dataset.lagerGruppe);
+  const vorher=$("lagerNeuePositionNr").value;
+  const k=$("lagerNeuePositionHinweis").querySelector('[data-lager-gruppe="252"]');
+  if(k)k.click();
+  const nachher=$("lagerNeuePositionNr").value;
+  // Danach darf die Bezeichnung die bewusste Wahl nicht mehr umwerfen.
+  $("lagerNeuePositionName").value="Rohrbogen PVC";
+  $("lagerNeuePositionName").dispatchEvent(new Event("input",{bubbles:true}));
+  const nachTippen=$("lagerNeuePositionNr").value;
+  lagerNeuesProduktSchliessen();
+  return {knoepfe,vorher,nachher,nachTippen};
+ });
+ p(z.knoepfe.indexOf("252")>=0&&z.knoepfe.indexOf("999")>=0,
+   "bei mehreren passenden Gruppen stehen sie als Knoepfe da, samt dem eigenen Lager-Bereich",z.knoepfe);
+ p(z.vorher.indexOf("999.")===0&&z.nachher==="252.22",
+   "ein Klick auf eine Gruppe uebernimmt deren naechste freie Nummer",z);
+ p(z.nachTippen==="252.22",
+   "eine bewusst gewaehlte Gruppe wird durch Weitertippen nicht wieder umgeworfen",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

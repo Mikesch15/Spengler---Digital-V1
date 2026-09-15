@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.125</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.126</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -778,9 +778,13 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div class="info">Ein Produkt gehört zu genau einer Materialposition aus dem Katalog, wird aber einzeln geführt und gebucht - z. B. mehrere Rohrbogen-Varianten unter derselben Regierapport-Position.</div>
 <div class="grid">
 <div class="wide"><label>Bezeichnung</label><input id="lagerNeuesProduktBezeichnung" data-pflicht="1" placeholder="z. B. Rohrbogen 87° 100mm"></div>
-<div class="wide"><label>Materialposition</label>
-<input id="lagerNeuesProduktMaterialSuche" placeholder="🔍 Position suchen …" style="margin-bottom:4px">
-<select id="lagerNeuesProduktMaterial" data-pflicht="1"></select></div>
+<div class="wide"><label>Materialposition<span class="pflicht-stern">*</span></label>
+<!-- v3.126: Suchfeld mit Trefferliste statt Auswahlfeld - ein <select> zeigt
+     seine gefilterte Liste erst beim Aufklappen (gemeldet). Dasselbe Muster
+     wie im Ausbuchen-Dialog der Massaufnahme (v3.125). -->
+<input id="lagerNeuesProduktMaterialSuche" type="search" placeholder="🔍 Position suchen …" style="margin-bottom:4px">
+<div id="lagerNeuesProduktTreffer" class="meas-lager-treffer-liste"></div>
+<div id="lagerNeuesProduktGewaehlt" class="rmat-pos" hidden></div></div>
 <!-- v3.124: Produkte, die in der Regiematerialliste nicht vorkommen. Statt
      eines zweiten Datenmodells entsteht eine richtige Katalogposition -
      dadurch lässt sie sich später auch im Regierapport verrechnen. Die
@@ -794,6 +798,8 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div><label>Dimension</label><input id="lagerNeuePositionDim" placeholder="z. B. 4,5 × 35 mm"></div>
 <div><label>Preis</label><input id="lagerNeuePositionPreis" type="number" step="any" placeholder="0"></div>
 </div>
+<!-- v3.126: warum diese Nummer? Und die Alternativen zum Antippen. -->
+<div class="small" id="lagerNeuePositionHinweis" style="margin-top:4px"></div>
 </div>
 <div class="wide"><label>Barcode</label><div class="bar" style="gap:6px">
 <input id="lagerNeuesProduktBarcode" placeholder="per Kamera oder manuell">

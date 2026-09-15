@@ -30271,3 +30271,104 @@ Prüfungen um, darunter die entscheidende.
 | `js/41-hilfe.js` | `meas-lager-ausbuchen` nachgezogen |
 | `index.html`, `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.125 |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 14b neu |
+
+---
+
+## 192. v3.126 – EDV-Nr. aus der passenden Katalogruppe, und dieselbe Trefferliste im Produkt-Dialog
+
+### 192.1 Zwei Anlässe
+
+> „Kann bei einem neuen produkt die vergabe der edv nummer intelligent
+> geschehen, so dass zb. ein rinnenzubehör produkt auch bei den nummern der
+> rinnenzubehör produkten empfohlen wird?"
+
+> „Position suchen offnet immernoch nicht automatisch die treffer"
+
+Der zweite Punkt ist ein **Versäumnis aus v3.125**: es gibt zwei Felder mit
+dem Platzhalter „Position suchen" – eines im Ausbuchen-Dialog der
+Massaufnahme und eines im Dialog „Neues Produkt" der Lagerverwaltung. v3.125
+hat nur das erste umgebaut; dass im zweiten dieselbe Konstruktion stand
+(Suchfeld vor `<select>`, v3.118), wurde übersehen. Beide benutzen jetzt
+dasselbe Muster.
+
+### 192.2 Die Gruppen des Katalogs sind fachlich, nicht zufällig
+
+Nachgesehen im Produktivkatalog (372 Positionen): die Nummerngruppen sind
+durchgehend fachlich belegt – 201 Dachrinnen, 202 Rinnenhalter, **203
+Rinnenzubehör** (Rinnenwinkel, Gehrschildwinkel, Rinnenboden,
+Rinnen-Dehnungselement, Einhängestutzen, Rinnenseiher, Rinnenkasten), 251
+Ablaufrohre, 252 Rohrteile, 259 PVC-Teile, 261 Lüftung, 811 Dichtstoffe, 826
+Schrauben, 851 Schleifmittel. Der Wunsch trägt also.
+
+### 192.3 Erkennung über die Bezeichnung, gemessen statt geraten
+
+Erkannt wird über die Bezeichnung des Produkts, mit denselben Textwerkzeugen
+wie die Positionserkennung im Regierapport (`rmatWoerter`/`rmatStamm`,
+js/57) – keine dritte Textlogik. Je Katalogzeile werden Wortpunkte vergeben,
+je Gruppe zählt der beste Treffer plus ein gedeckelter Bonus für **starke**
+weitere Treffer (≥70 % des besten); ohne diese Bedingung gewänne schlicht die
+grösste Gruppe.
+
+Die Zahlen sind **gemessen**, nicht gesetzt: die Bewertung lief offline gegen
+alle unterschiedlichen Produktnamen des echten Katalogs, mit 20 von Hand
+gesetzten Erwartungen. Drei Fehler der ersten Fassung kamen dabei heraus und
+stehen als Kommentar im Code:
+
+1. „Kupferblech" galt als **Materialwort**, weil es „Kupfer" *enthält*, und
+   wurde auf ein Viertel abgewertet. Ein Materialwort ist ein Wort jetzt nur,
+   wenn es eines **ist**.
+2. Ein Teiltreffer zählte flach: „rinnen" in „Rinnen-Dehnungselement" wog so
+   viel wie „rinnenhalter" in „Rinnenhalter". Jetzt zählt, **wie viel** des
+   längeren Wortes getroffen ist.
+3. Deutsche Zusammensetzungen teilen ihren Stamm oft in der Mitte
+   („SpezialSCHRAUBE" / „HolzSCHRAUBEn"). Vorn/hinten allein findet das
+   nicht – dazu kam die längste gemeinsame Teilkette.
+
+Danach: 15 von 20 richtig. Die fünf übrigen sind **keine Fehlgriffe, sondern
+echte Gleichstände** – „Rohrbogen" steht in 252, 259 *und* 261. Auch die
+Schwelle ist aus der Messung hervorgegangen: die richtige Gruppe stand fast
+immer schon auf Platz 1, es scheiterte am *absoluten* Vorsprung. Ein
+relativer Faktor (1,15) passt besser, weil die Punktzahl mit der Länge der
+Bezeichnung wächst.
+
+### 192.4 Was die App zeigt – und was sie nicht behauptet
+
+- **Eine Gruppe führt deutlich** → ihre nächste freie Nummer steht im Feld,
+  darunter „✓ Gruppe 203 – dort steht bereits ‚Rinnenboden gerade'". Die
+  Begründung ist Teil des Vorschlags, nicht Beiwerk.
+- **Mehrere passen ähnlich gut** → der eigene Lager-Bereich 999.xx, und die
+  Kandidaten stehen als Knöpfe daneben. Ein Klick übernimmt die Nummer der
+  gewählten Gruppe.
+- **Nichts passt** → 999.xx wie seit v3.124.
+
+Die Nummer folgt der Bezeichnung, solange sie nicht **von Hand** angefasst
+wurde; danach hält sich der Vorschlag heraus und überschreibt nichts mehr.
+Dasselbe gilt nach einem Klick auf eine Gruppe – eine bewusste Wahl wird
+nicht durch Weitertippen umgeworfen.
+
+### 192.5 Prüfungen – und was sie NICHT belegen
+
+Prüfstand von 174 auf 206 Prüfungen (Abschnitt 17 neu, 12b und 16b auf die
+Trefferliste umgeschrieben). Geprüft wird gegen einen **Ausschnitt des
+echten** Katalogs, mit der Gruppe 203 vollständig – erfundene Namen würden
+nur den Prüfstand selbst belegen.
+
+Gegenproben: wird die Gruppenerkennung abgeschaltet, fallen 14 Prüfungen um.
+
+**Offen und hier ausdrücklich festgehalten:** die Gegenprobe zur *anteiligen
+Gewichtung* (Fehler 2 oben) schlägt im Prüfstand **nicht** an – auch mit der
+vollständigen Gruppe 203 ist der Test-Katalog zu klein, als dass die Gruppe
+genug Punkte sammeln könnte, um 202 zu gefährden. Belegt ist diese
+Feinabstimmung allein durch die Messung am vollen Katalog. Der Prüfstand
+belegt das **Verhalten**, nicht die Abstimmung der Zahlen.
+
+### 192.6 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/68-lagerverwaltung.js` | `lagerGruppenBewerten()`, `lagerNummernVorschlag()`, `lagerZeilePunkte()`, `lagerTeilkette()`, `lagerNaechsteFreieEdvNr(gruppe)`, `lagerNummerVorschlagen()`; Produkt-Dialog auf Trefferliste (`lagerNeuesProduktTrefferHtml()`, Zustand statt `<select>`) |
+| `index.html` | Trefferliste statt Auswahlfeld im Produkt-Dialog, Hinweiszeile unter der EDV-Nr., Version 3.126 |
+| `css/01-basis.css` | `button.lager-gruppe-knopf` |
+| `js/41-hilfe.js` | `lager-suche` um Nummernvergabe und Trefferliste erweitert |
+| `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.126 |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 17 neu, 12b/16b umgeschrieben |

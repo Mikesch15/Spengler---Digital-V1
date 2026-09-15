@@ -1227,6 +1227,10 @@ auch in der Lagerverwaltung, aus welcher Massaufnahme die Buchung stammt.</p>
 <p>Sichtbar ist der Knopf nur mit der <b>Lager-Freigabe</b>.</p>`},
 
 "lager-suche":{titel:"Material suchen und erfassen",text:`
+<p><b>Seit Version 3.126</b> gilt auch im Dialog „Neues Produkt“: die
+Treffer zur Materialposition erscheinen <b>sofort beim Tippen</b> als Liste
+zum Antippen. Bis dahin stand dort ein Auswahlfeld, das seine gefilterte
+Liste erst beim Aufklappen zeigte.</p>
 <p>Das Suchfeld über der Liste durchsucht <b>beide Ebenen</b>: die
 Materialposition (EDV-Nr., Bezeichnung, Dimension) und jedes einzelne
 <b>Produkt</b> darunter samt <b>Barcode</b>. Wer den Barcode abliest, findet
@@ -1240,7 +1244,18 @@ ist ja gerade das, was man sehen will.</p>
 Katalogposition – kein zweites, getrenntes Lager-Verzeichnis. Sie steht
 danach überall zur Verfügung und lässt sich auch im Regierapport
 verrechnen.</p>
-<p>Die <b>EDV-Nr.</b> schlägt die App aus einem eigenen Nummernkreis vor:
+<p>Die <b>EDV-Nr.</b> schlägt die App <b>seit Version 3.126</b> aus der
+<b>passenden Gruppe</b> des Katalogs vor. Der Katalog ist fachlich geordnet
+– 201 Dachrinnen, 202 Rinnenhalter, 203 übriges Rinnenzubehör, 251
+Ablaufrohre, 261 Lüftung, 826 Schrauben. Ein neuer „Rinnenboden“ bekommt
+deshalb die nächste freie Nummer in <b>203</b>, nicht irgendeine. Darunter
+steht, <b>warum</b>: mit der Katalogzeile, auf die sich die App stützt.</p>
+<p>Passen mehrere Gruppen ähnlich gut – „Rohrbogen“ steht in 252, 259 und
+261 –, behauptet die App nichts: sie nimmt den eigenen Lager-Bereich und
+legt die Kandidaten als Knöpfe daneben. Ein Klick übernimmt die Nummer der
+gewählten Gruppe. Sobald Sie die Nummer selbst antippen, hält sich der
+Vorschlag heraus und überschreibt nichts mehr.</p>
+<p>Findet sich keine passende Gruppe, bleibt es beim eigenen Nummernkreis:
 <b>999.01</b>, <b>999.02</b> und so weiter. Der Katalog benutzt durchgehend
 das Format NNN.NN mit den Gruppen 100 bis 990; 999 ist frei und hält
 dasselbe Format ein. Eine Nummer wie „1.000.00“ würde als Text <b>vor</b>
