@@ -45,7 +45,12 @@
 //     Hardware-Ansteuerung. v3.114 ergaenzt zwei Dinge: eine laengere
 //     Aufwaermzeit vor der Aufnahme (der frische Foto-Stream braucht selbst
 //     Zeit zum Fokussieren) sowie eine manuelle Code-Eingabe im Overlay als
-//     garantierten Rueckweg, unabhaengig von jeder Kamera-Eigenheit.
+//     garantierten Rueckweg, unabhaengig von jeder Kamera-Eigenheit. v3.115
+//     ergaenzt einen weiteren, komplett anderen Aufnahmeweg: ein
+//     verstecktes <input type="file" accept="image/*" capture="environment">
+//     oeffnet die ECHTE, native Kamera-App des Geraets (kein getUserMedia/
+//     ImageCapture mehr) - genau der Weg, den der Anwender bereits als
+//     scharf bestaetigt hat.
 //
 // WICHTIGSTE AENDERUNG SEIT v3.98: Die Lagerverwaltung baute urspruenglich
 // auf lagerbestand auf (dem Blech-Materialbestand). Das war fachlich falsch
@@ -695,6 +700,30 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   return {overlayGeschlossen:$("barcodeScanOverlay").hidden};
  });
  p(z.overlayGeschlossen===true,"die Eingabetaste (Enter) im Feld uebernimmt die Eingabe genauso wie der Knopf",z);
+
+ // v3.115: "Andere Kamera-App verwenden" -> versteckter <input type="file">
+ // mit capture="environment" oeffnet die native Kamera-App statt getUserMedia.
+ z=await page.evaluate(async()=>{
+  $("barcodeScanOverlay").hidden=false;
+  let geklickt=false;
+  $("barcodeScanNativeInput").click=()=>{geklickt=true};
+  $("barcodeScanNativeKamera").click();
+  return {geklickt};
+ });
+ p(z.geklickt===true,"der Knopf 'Andere Kamera-App verwenden' loest einen Klick auf das versteckte native Datei-Feld aus",z);
+
+ const einPixelPng=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=","base64");
+ const tmpPngPfad=require("path").join(require("os").tmpdir(),"barcode-native-test-"+Date.now()+".png");
+ require("fs").writeFileSync(tmpPngPfad,einPixelPng);
+ let fehler=null;
+ try{
+  await page.setInputFiles("#barcodeScanNativeInput",tmpPngPfad);
+  await page.waitForTimeout(200);
+ }catch(e){ fehler=e.message; }
+ finally{ try{ require("fs").unlinkSync(tmpPngPfad); }catch(e){} }
+ z=await page.evaluate(()=>({status:$("barcodeScanStatus")?$("barcodeScanStatus").textContent:null}));
+ p(fehler===null,"eine ueber die native Kamera-App ausgewaehlte Bilddatei loest den change-Handler auf, ohne einen Fehler zu werfen",{fehler,...z});
+ p(/nicht ausgewertet werden/.test(z.status||""),"ohne echten barcodeScanCodeReader (Testumgebung, siehe Abschnitt 10) meldet das Overlay verstaendlich, dass das Foto nicht ausgewertet werden konnte, statt stillschweigend zu haengen",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

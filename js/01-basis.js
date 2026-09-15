@@ -698,6 +698,49 @@ if($("barcodeScanManuellInput"))$("barcodeScanManuellInput").addEventListener("k
  if(e.key==="Enter"){e.preventDefault();barcodeScanManuellUebernehmen()}
 });
 
+// v3.115: alternative Kamera-Oeffnung ueber die ECHTE native Kamera-App des
+// Geraets statt der Web-Kamera-Vorschau oben. <input type="file"
+// accept="image/*" capture="environment"> ruft auf Mobilgeraeten die
+// eigentliche Kamera-App auf (mit deren komplettem Aufnahme-, Fokus- und
+// Zoom-Verhalten) statt eine Web-API wie getUserMedia/ImageCapture
+// anzusteuern - genau der Weg, der beim Anwender nachweislich scharf
+// scharfstellt (native Kamera-App-Test in v3.109 bestaetigt), unabhaengig
+// von allen bisherigen Problemen mit der Web-Kamera-Vorschau. Das
+// aufgenommene Foto wird danach wie ein Foto aus der Kamera-Vorschau auf
+// einen Barcode untersucht.
+async function barcodeScanNativeFotoAusgewaehlt(e){
+ const datei=e.target.files&&e.target.files[0];
+ e.target.value="";
+ if(!datei)return;
+ const status=$("barcodeScanStatus");
+ if(!barcodeScanCodeReader||typeof barcodeScanCodeReader.decodeFromImageElement!=="function"){
+  if(status){status.textContent="Foto konnte nicht ausgewertet werden.";status.style.color="#ffb3b3"}
+  return;
+ }
+ if(status){status.textContent="Foto wird ausgewertet …";status.style.color="#fff"}
+ try{
+  const bitmap=await createImageBitmap(datei);
+  const canvas=document.createElement("canvas");
+  canvas.width=bitmap.width;canvas.height=bitmap.height;
+  canvas.getContext("2d").drawImage(bitmap,0,0);
+  const result=await barcodeScanCodeReader.decodeFromImageElement(canvas);
+  const text=result?result.getText():null;
+  if(text){
+   const cb=barcodeScanAktuellerCallback;
+   barcodeScanSchliessen();
+   if(cb)cb(text);
+   return;
+  }
+  if(status){status.textContent="Kein Code im Foto gefunden - nochmal versuchen oder unten eintippen.";status.style.color="#ffb3b3"}
+ }catch(e){
+  if(status){status.textContent="Foto konnte nicht ausgewertet werden.";status.style.color="#ffb3b3"}
+ }
+}
+if($("barcodeScanNativeKamera"))$("barcodeScanNativeKamera").onclick=()=>{
+ if($("barcodeScanNativeInput"))$("barcodeScanNativeInput").click();
+};
+if($("barcodeScanNativeInput"))$("barcodeScanNativeInput").addEventListener("change",barcodeScanNativeFotoAusgewaehlt);
+
 // Oeffnet die Kamera und ruft callback(code) GENAU EINMAL mit dem erkannten
 // Text auf, dann schliesst sich das Overlay von selbst. Ein Abbrechen-Klick
 // ruft callback nicht auf. Fehler (kein Netz, keine Kamera-Freigabe) werden

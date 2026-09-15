@@ -1377,7 +1377,10 @@ niemand mehr erklären kann.</p>
 <p>📥 <b>Einscannen</b> / 📤 <b>Ausscannen</b> öffnen die Kamera, suchen den
 erkannten Barcode unter den Produkten und öffnen den Buchen-Dialog direkt
 mit der passenden Richtung – nur die Menge muss noch bestätigt werden.
-Stellt die Kamera einen Code partout nicht scharf, lässt er sich unten im
+Stellt die Kamera einen Code partout nicht scharf, hilft der Knopf
+"📷 Andere Kamera-App verwenden" – er öffnet die eigentliche Kamera-App
+des Geräts statt der Live-Vorschau in der Webseite und liefert damit oft
+ein schärferes Foto. Klappt auch das nicht, lässt sich der Code unten im
 Kamerabild auch von Hand eintippen ("Code funktioniert nicht? Hier
 eintippen") – funktioniert unabhängig von der Kamera immer. Kennt die App
 den Barcode noch nicht, bietet <b>Einscannen</b> direkt an,

@@ -29165,3 +29165,93 @@ anfasst.
 | `PROJECT_STATE.md` | Versionsstand 3.114 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.114"]` ergänzt |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13: Wartezeit angepasst, 5 neue Prüfungen für die manuelle Eingabe |
+
+## 181. NATIVE KAMERA-APP ALS ALTERNATIVE ZUM LIVE-SCAN — VERSION 3.115
+
+### 181.1 Rückmeldung zu v3.114
+
+Die App lief nach dem Update auf v3.114 kurz nicht mehr ("Fehler
+(unerledigt): neueArbeitsposition is not defined", weisser Bildschirm nach
+dem Login). Geprüft wurde dabei gezielt, ob es sich um einen echten
+Code-Fehler handelt: die Funktion ist in `js/06-rapport.js` korrekt
+definiert, in `index.html` UND `sw.js` korrekt eingebunden, syntaktisch
+einwandfrei, und wird erst weit nach dem Laden aller Skripte (nach dem
+Login) aufgerufen. Das passt zu keinem Ladefehler, sondern zu einem
+veralteten Service-Worker-Zwischenspeicher, der nach mehreren schnell
+aufeinanderfolgenden Versionswechseln (v3.107 bis v3.114) kurzzeitig eine
+inkonsistente Mischung aus alten und neuen Dateien ausgeliefert haben
+könnte. Es wurde **keine** Code-Änderung dafür vorgenommen - der Anwender
+hat die App vollständig geschlossen und neu geöffnet, danach lief sie
+wieder ("Läuft wieder"), was diese Einschätzung bestätigt.
+
+Die eigentliche Scharfstellung selbst funktionierte aber weiterhin nicht,
+auch nicht mit der in v3.114 ergänzten Aufwärmzeit. Auf die Frage nach
+einer "anderen Option, die Kamera zu öffnen" wurde der Ansatz gewechselt:
+statt weiter an `getUserMedia`/`ImageCapture` zu schrauben - beides hat
+sich auf diesem Gerät bereits unabhängig voneinander als heikel erwiesen
+(schwarzes Bild in v3.108 und v3.111) - wird jetzt ein komplett anderer,
+vom Browser bereitgestellter Weg angeboten.
+
+### 181.2 Neuer Weg: die echte, native Kamera-App des Geräts
+
+Neuer Knopf im Scan-Overlay: "📷 Andere Kamera-App verwenden (falls
+unscharf)". Dahinter steckt ein verstecktes
+`<input type="file" accept="image/*" capture="environment">`
+(`index.html`) - ein Standard-HTML-Element, das auf Mobilgeräten nicht die
+Web-Kamera-API (`getUserMedia`/`ImageCapture`) anspricht, sondern die
+**eigentliche, native Kamera-App des Betriebssystems** öffnet, exakt so,
+wie sie auch ausserhalb der App beim normalen Fotografieren verwendet
+wird. Das dort aufgenommene Foto kommt als ganz normale Datei zurück und
+wird über denselben bereits bestehenden Weg ausgewertet, den auch das
+Einzelfoto aus v3.113 nutzt (`createImageBitmap` → `<canvas>` →
+`decodeFromImageElement`) - dieselbe Positionsstruktur/Erkennung, nur mit
+einer anderen Bildquelle.
+
+Wichtig: dieser Weg rührt `MediaStream`/`MediaStreamTrack`/`ImageCapture`
+an keiner Stelle an - er ist von der gesamten bisherigen, auf diesem Gerät
+bereits zweimal gescheiterten Web-Kamera-Mechanik komplett unabhängig, und
+nutzt genau die Aufnahme-App, die der Anwender an anderer Stelle bereits
+als scharf bestätigt hat.
+
+Die neue Funktion `barcodeScanNativeFotoAusgewaehlt()` (js/01-basis.js)
+übernimmt bei erfolgreicher Erkennung genau wie die manuelle Eingabe und
+der Live-Scan denselben `barcodeScanAktuellerCallback` - der restliche
+Ablauf bleibt unverändert. Wird im Foto kein Code gefunden oder schlägt
+die Auswertung fehl, bleibt das Overlay offen und eine verständliche
+Statusmeldung erscheint, statt dass die App stumm hängen bleibt; die
+manuelle Eingabe aus v3.114 bleibt daneben als letzter, garantierter
+Rückweg bestehen.
+
+### 181.3 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 13: zwei
+neue Prüfungen - der Knopf "Andere Kamera-App verwenden" löst zuverlässig
+einen Klick auf das versteckte native Datei-Feld aus, und eine per
+`page.setInputFiles()` simulierte Bildauswahl (ein winziges 1×1-Test-PNG)
+löst den `change`-Handler ohne Fehler aus und führt - da
+`barcodeScanCodeReader` in dieser Testumgebung wie immer `null` bleibt
+(siehe Abschnitt 10, echte ZXing-Erkennung wird nicht mitgetestet) - zur
+erwarteten, verständlichen Fehlermeldung statt zu einem stillen
+Hängenbleiben. 17 Prüfungen in Abschnitt 13, 80 Prüfungen insgesamt in
+diesem Prüfstand, alle bestanden. Volle Regression aller Prüfstände im
+Anschluss ohne neue Fehlschläge.
+
+**Ehrliche Grenze:** ob das Foto aus der nativen Kamera-App auf dem Gerät
+des Anwenders tatsächlich zuverlässig scharf und lesbar ist, kann aus
+dieser Sandbox weiterhin nicht getestet werden - nur der Anwender kann das
+am echten Gerät bestätigen. Da dieser Weg aber bereits ausserhalb der App
+als funktionierend bekannt ist und keine der bisher problematischen
+Web-Kamera-APIs verwendet, ist die Wahrscheinlichkeit einer echten
+Verbesserung deutlich höher als bei den bisherigen Anläufen.
+
+### 181.4 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | neue Funktion `barcodeScanNativeFotoAusgewaehlt()`; Verdrahtung des neuen Knopfs mit dem versteckten Datei-Feld |
+| `index.html` | neuer Knopf `#barcodeScanNativeKamera` + verstecktes `#barcodeScanNativeInput` (`<input type="file" capture="environment">`) im Scan-Overlay |
+| `js/41-hilfe.js` | Hinweis auf den neuen Knopf im Lagerverwaltung-Hilfetext ergänzt |
+| `sw.js` | Cache-Version 3.115 |
+| `PROJECT_STATE.md` | Versionsstand 3.115 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.115"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13: 2 neue Prüfungen für den nativen Kamera-Weg |

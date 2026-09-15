@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.114</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.115</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -2543,6 +2543,13 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <video id="barcodeScanVideo" playsinline muted></video>
 <div id="barcodeScanStatus" class="barcode-scan-status"></div>
 <div class="small" style="color:#cfd8dc;text-align:center;margin-top:2px">Unscharf? Kurz auf das Bild tippen zum Fokussieren.</div>
+<!-- v3.115: alternative Kamera-Oeffnung ueber die ECHTE native Kamera-App
+     des Geraets statt der Web-Vorschau oben - komplett unabhaengig von
+     getUserMedia/ImageCapture und deren Eigenheiten. capture="environment"
+     oeffnet auf Mobilgeraeten direkt die Kamera-App (nicht die Dateiauswahl),
+     das aufgenommene Foto wird danach genauso auf einen Barcode untersucht. -->
+<button type="button" id="barcodeScanNativeKamera" class="gray" style="width:100%;margin-top:8px">📷 Andere Kamera-App verwenden (falls unscharf)</button>
+<input type="file" accept="image/*" capture="environment" id="barcodeScanNativeInput" hidden>
 <!-- v3.114: verlaesslicher Rueckweg unabhaengig von jeder Kamera-Eigenheit -
      falls die Kamera einen Code partout nicht scharf bekommt, kann er hier
      von Hand eingegeben werden (z. B. abgelesen vom Etikett). -->

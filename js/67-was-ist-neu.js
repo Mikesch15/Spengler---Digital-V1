@@ -64,7 +64,8 @@ const WIN_CHANGELOG={
  "3.112":["Fehler behoben: die Einzelfoto-Aufnahme beim Antippen zum Fokussieren konnte das Kamerabild ebenfalls schwarz werden lassen - wurde wieder entfernt. Das Antippen bleibt vorerst ohne sichtbare Wirkung bei sehr kurzer Distanz."],
  "3.113":["Barcode-Scan: der Fokus-Mechanismus wurde neu aufgebaut - die Kamera-Vorschau wird jetzt vollständig angehalten, bevor ein Einzelfoto aufgenommen wird, und danach für die Weitersuche neu gestartet. Das soll das zuvor gemeldete schwarze Bild vermeiden."],
  "3.114":["Neu: Barcode-Scan - ein Code lässt sich jetzt auch von Hand eingeben, wenn die Kamera ihn partout nicht lesen kann.",
-  "Barcode-Scan: die Kamera bekommt vor dem Einzelfoto mehr Zeit zum Scharfstellen."]
+  "Barcode-Scan: die Kamera bekommt vor dem Einzelfoto mehr Zeit zum Scharfstellen."],
+ "3.115":["Neu: Barcode-Scan - ein Knopf 'Andere Kamera-App verwenden' öffnet bei Bedarf die echte Kamera-App des Geräts statt der Web-Vorschau, was auf manchen Geräten deutlich schärfer fokussiert."]
 };
 
 function winVersionVergleich(a,b){
