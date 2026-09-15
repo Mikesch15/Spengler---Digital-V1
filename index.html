@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.119</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.120</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -1631,7 +1631,13 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <h2 style="margin-top:4px">🧱 Material für den Regierapport <button type="button" class="hilfe-knopf no-print" data-hilfe="meas-rapportmaterial">i</button></h2>
 <div class="small">Material, das auf dieser Baustelle verbraucht wird und nicht aus der Berechnung entsteht. Im Regierapport dieses Projekts lässt es sich mit einem Knopf übernehmen.</div>
 <div id="measRapportMaterialBody"></div>
-<div class="bar no-print"><button type="button" id="measRapportMaterialAdd" class="gray">＋ Material</button></div>
+<div class="bar no-print"><button type="button" id="measRapportMaterialAdd" class="gray">＋ Material</button>
+<!-- v3.120: bewusst ausgeloestes Ausbuchen ab Lager. Passiert NIE von
+     selbst - weder beim Speichern der Massaufnahme noch beim Uebernehmen
+     in den Regierapport: eine Lagerbuchung ist unveraenderlich (js/68),
+     eine versehentlich automatische waere nur durch eine Gegenbuchung zu
+     heilen. Sichtbar nur mit Lager-Freigabe (checkLagerZugriff, js/68). -->
+<button type="button" id="measLagerAusbuchen" class="gray" hidden>📤 Ab Lager ausbuchen</button></div>
 </div>
 
 <div class="grid" style="margin-top:8px">
@@ -2488,6 +2494,26 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <div class="bar">
 <button type="button" id="rmatUebernehmenBtn" class="green">✓ Ausgewählte übernehmen (0)</button>
 <button type="button" id="rmatSchliessen" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+
+<!-- v3.120: Material dieser Massaufnahme ab Lager ausbuchen (js/68).
+     Angeboten werden NUR die von Hand erfassten Materialzeilen - Blech und
+     gerechnete Zuschnitte gehoeren nicht ins Lager (siehe Kopfkommentar
+     js/68-lagerverwaltung.js). Jede Zeile bleibt einzeln an-/abwaehlbar,
+     Produkt und Menge sind aenderbar, gebucht wird erst auf Knopfdruck. -->
+<div id="measLagerModal" class="modal" hidden>
+<div class="card">
+<h2>📤 Material ab Lager ausbuchen <button type="button" class="hilfe-knopf no-print" data-hilfe="meas-lager-ausbuchen">i</button></h2>
+<div class="small">Bucht das von Hand erfasste Material dieser Massaufnahme als <b>Abgang</b> im Lager. Angeboten wird nur, was im Material-Katalog steht und im Lager ein Produkt hat – Blech und gerechnete Zuschnitte gehören nicht ins Lager.</div>
+<div class="small">Gehören zu einer Position mehrere Produkte, wählen Sie das richtige aus. Die Menge ist frei änderbar – gebucht wird genau das, was hier steht.</div>
+<div id="measLagerWarnung" class="small" style="color:var(--red);margin-top:6px" hidden></div>
+<div id="measLagerListe"></div>
+<div id="measLagerFehler" class="small" style="color:var(--red)" hidden></div>
+<div class="bar">
+<button type="button" id="measLagerBuchenBtn" class="green">📤 Ausgewählte ausbuchen (0)</button>
+<button type="button" id="measLagerSchliessen" class="gray">Abbrechen</button>
 </div>
 </div>
 </div>

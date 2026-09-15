@@ -234,8 +234,11 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   window.__lese.feature_access=[];
   await checkLagerZugriff();
  });
- let z=await page.evaluate(()=>({zugriff:lagerverwaltungZugriff,versteckt:$("lagerverwaltungSection").hidden}));
+ let z=await page.evaluate(()=>({zugriff:lagerverwaltungZugriff,versteckt:$("lagerverwaltungSection").hidden,
+  ausbuchenVersteckt:$("measLagerAusbuchen").hidden}));
  p(z.zugriff===false&&z.versteckt===true,"ohne Freigabe bleibt lagerverwaltungZugriff false und der Bereich versteckt",z);
+ // v3.120: derselbe Schalter traegt den Ausbuchen-Knopf in der Massaufnahme.
+ p(z.ausbuchenVersteckt===true,"ohne Freigabe bleibt auch der Ausbuchen-Knopf in der Massaufnahme versteckt",z);
 
  await page.evaluate(async()=>{
   currentProfile={id:"u2",role:"admin",first_name:"Mike",last_name:"Ledermann",company_id:"f1"};
@@ -249,8 +252,10 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   window.__lese.feature_access=[{profile_id:"u2",feature:"lager",granted:true}];
   await checkLagerZugriff();
  });
- z=await page.evaluate(()=>({zugriff:lagerverwaltungZugriff,versteckt:$("lagerverwaltungSection").hidden}));
+ z=await page.evaluate(()=>({zugriff:lagerverwaltungZugriff,versteckt:$("lagerverwaltungSection").hidden,
+  ausbuchenVersteckt:$("measLagerAusbuchen").hidden}));
  p(z.zugriff===true&&z.versteckt===false,"mit granted:true wird der Bereich sichtbar",z);
+ p(z.ausbuchenVersteckt===false,"und mit Freigabe erscheint der Ausbuchen-Knopf in der Massaufnahme",z);
 
  // ---- 3 · Bestand ist die Summe der Buchungen ---------------------------
  console.log("\n3 · Bestand = Summe der Buchungen, nie eine editierbare Zahl");
@@ -879,6 +884,89 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(z.geklicktSofort===true,"barcodeScannen() klickt das versteckte native Datei-Feld sofort, noch bevor irgendetwas anderes abgewartet wird",z);
  p(z.overlayOffen===true,"das Scan-Overlay ist zu diesem Zeitpunkt bereits geoeffnet",z);
  p(z.callbackGesetzt===true,"der callback ist zu diesem Zeitpunkt bereits hinterlegt, damit ein sehr schnell zurueckkommendes Foto nicht verloren gehen kann",z);
+
+ // ---- 14 · Massaufnahme ab Lager ausbuchen (v3.120) ----------------------
+ // Quelle sind die von Hand erfassten Materialzeilen der Massaufnahme
+ // (measRapportMaterial, js/57). Gebucht wird NIE von selbst - erst der
+ // Knopf im Dialog loest die Buchung aus.
+ console.log("\n14 · Material der Massaufnahme ab Lager ausbuchen");
+ z=await page.evaluate(()=>{
+  currentMeasurementId=77;
+  $("measType").value="kamin";
+  $("measTitle").value="Kamin Nordseite";
+  // 205.30 -> Position mit genau EINEM Produkt, 300.10 -> Position mit
+  // mehreren, 999.99 -> nicht im Katalog, letzte Zeile ohne Menge.
+  measRapportMaterial=[{no:"205.30",qty:5},{no:"300.10",qty:3},
+                       {no:"999.99",qty:1},{no:"205.30",qty:0}];
+  const zeilen=measLagerZeilenBauen();
+  return zeilen.map(x=>({no:x.no,menge:x.menge,grund:x.grund,
+   varianteId:x.varianteId,anzahlVarianten:x.varianten.length}));
+ });
+ p(z.length===4,"jede Materialzeile der Massaufnahme wird angeboten - auch die nicht buchbaren",z);
+ p(z[0].grund===""&&z[0].varianteId==="501",
+   "eine Position mit genau einem Lager-Produkt ist ohne Rueckfrage buchbar, das Produkt steht fest",z[0]);
+ p(z[1].grund===""&&z[1].varianteId===""&&z[1].anzahlVarianten>1,
+   "bei mehreren Produkten je Position waehlt die App KEINES aus - das muss der Anwender entscheiden",z[1]);
+ p(/nicht im Material-Katalog/.test(z[2].grund),
+   "eine EDV-Nr. ausserhalb des Katalogs wird mit Grund angezeigt, statt still zu verschwinden",z[2]);
+ p(/keine Menge/.test(z[3].grund),"eine Zeile ohne Menge ist nicht buchbar und sagt das auch",z[3]);
+
+ z=await page.evaluate(async()=>{
+  await measLagerOeffnen();
+  return {
+   offen:!$("measLagerModal").hidden,
+   knopf:$("measLagerBuchenBtn").textContent,
+   warnungVersteckt:$("measLagerWarnung").hidden
+  };
+ });
+ p(z.offen===true,"der Knopf oeffnet den Dialog, gebucht ist damit noch nichts",z);
+ p(/\(1\)/.test(z.knopf),"vorgewaehlt ist nur die eindeutige Zeile - die Zeile mit mehreren Produkten nicht",z);
+ p(z.warnungVersteckt===true,"ohne frueheren Vorgang steht keine Warnung im Dialog",z);
+
+ // Produkt waehlen und Menge anpassen - genau der Fall "gegebenenfalls
+ // Positionen anpassen".
+ z=await page.evaluate(async()=>{
+  const sel=document.querySelector("[data-meas-lager-variante]");
+  sel.value="602";
+  sel.dispatchEvent(new Event("change",{bubbles:true}));
+  const box=document.querySelector('[data-meas-lager-wahl="z1"]');
+  box.checked=true;
+  box.dispatchEvent(new Event("change",{bubbles:true}));
+  const menge=document.querySelector('[data-meas-lager-menge="z1"]');
+  menge.value="2";
+  menge.dispatchEvent(new Event("input",{bubbles:true}));
+  return {knopf:$("measLagerBuchenBtn").textContent};
+ });
+ p(/\(2\)/.test(z.knopf),"nach der Produktwahl laesst sich die Zeile anwaehlen und zaehlt mit",z);
+
+ const ausbuchen=await page.evaluate(async()=>{
+  window.__schreib=[];
+  $("measLagerBuchenBtn").click();
+  await new Promise(r=>setTimeout(r,60));
+  const ins=window.__schreib.find(x=>x.op==="insert"&&x.t==="lagerbestand_bewegungen");
+  return {ins,zeilen:ins?ins.d:null,zu:$("measLagerModal").hidden};
+ });
+ p(!!ausbuchen.ins&&ausbuchen.zeilen.length===2,
+   "erst der Knopf bucht - und zwar alle gewaehlten Zeilen in EINER Anfrage",ausbuchen);
+ p(ausbuchen.zeilen.every(d=>d.art==="abgang"&&d.menge<0),
+   "gebucht wird als Abgang mit negativer Menge",ausbuchen.zeilen);
+ p(ausbuchen.zeilen.some(d=>d.variante_id===501&&d.menge===-5)
+   &&ausbuchen.zeilen.some(d=>d.variante_id===602&&d.menge===-2),
+   "gebucht wird auf das gewaehlte Produkt und mit der im Dialog stehenden Menge, nicht mit der aus der Massaufnahme",ausbuchen.zeilen);
+ p(ausbuchen.zeilen.every(d=>/\(#MA77\)/.test(d.grund||"")&&/Kamin Nordseite/.test(d.grund||"")),
+   "der Buchungsgrund nennt die Massaufnahme - in der Lagerverwaltung ist spaeter sichtbar, woher die Buchung stammt",ausbuchen.zeilen);
+ p(ausbuchen.zu===true,"der Dialog schliesst nach dem Buchen",ausbuchen);
+
+ // Zweiter Anlauf: die frueheren Buchungen stehen jetzt in lagerBewegungen.
+ z=await page.evaluate(async()=>{
+  await measLagerOeffnen();
+  const w=$("measLagerWarnung");
+  const text=w.textContent;
+  measLagerSchliessen();
+  return {versteckt:w.hidden,text};
+ });
+ p(z.versteckt===false&&/bereits ausgebucht/.test(z.text),
+   "ein zweiter Anlauf warnt sichtbar, dass fuer diese Massaufnahme schon ausgebucht wurde",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

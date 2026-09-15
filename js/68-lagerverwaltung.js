@@ -75,6 +75,9 @@ async function checkLagerZugriff(){
  }
  if($("lagerverwaltungSection"))$("lagerverwaltungSection").hidden=!lagerverwaltungZugriff;
  if($("navLagerverwaltung"))$("navLagerverwaltung").hidden=!lagerverwaltungZugriff;
+ // v3.120: derselbe Schalter traegt den Ausbuchen-Knopf in der Massaufnahme -
+ // ohne Lager-Freigabe gibt es dort nichts auszubuchen.
+ if($("measLagerAusbuchen"))$("measLagerAusbuchen").hidden=!lagerverwaltungZugriff;
  if(lagerverwaltungZugriff){
   // Reihenfolge wichtig: die Varianten muessen vor dem Rendern (das
   // lagerBewegungenLaden() am Ende ausloest) bereits geladen sein.
@@ -452,4 +455,219 @@ if($("lagerNeuesProduktSpeichern"))$("lagerNeuesProduktSpeichern").onclick=async
  // als sinnvoller Ausgangswert, ein neu erfasstes Produkt hat ja noch keinen
  // Bestand).
  lagerBuchenOeffnen(data[0].id,"zugang");
+};
+
+// ---- Massaufnahme -> Lager ausbuchen (v3.120) -----------------------------
+// Bewusst ausgeloest, nie automatisch: eine Lagerbuchung ist unveraenderlich
+// (kein Update/Delete in der RLS, siehe Kopfkommentar) - eine versehentlich
+// automatische Ausbuchung liesse sich nur noch durch eine Gegenbuchung
+// heilen. Deshalb ein eigener Knopf in der Massaufnahme, ein Dialog zum
+// Pruefen und erst dann die Buchung.
+//
+// Quelle sind AUSSCHLIESSLICH die von Hand erfassten Materialzeilen der
+// Massaufnahme (measRapportMaterial aus js/57, gespeichert in
+// measurements.rapport_material). Die gerechneten Blechzuschnitte und
+// Halbfabrikate bleiben bewusst aussen vor: das Lager fuehrt allgemeines
+// Material, kein Blech (siehe Kopfkommentar dieser Datei).
+//
+// Die Zeile traegt eine EDV-Nr., das Lager bucht auf ein PRODUKT
+// (lager_varianten). Dazwischen liegt die Materialposition: EDV-Nr. ->
+// lagArtikelListe() -> material_id -> lagerVariantenVonMaterial(). Hat eine
+// Position mehrere Produkte, waehlt der Anwender - die App raet nicht.
+let measLagerZeilen=[];
+
+function measLagerMarke(id){return "(#MA"+id+")"}
+// Schon einmal ausgebucht? Erkennbar allein an der Marke, die diese Funktion
+// selbst in den Buchungsgrund schreibt - geraten wird nichts.
+function measLagerFruehereBuchungen(id){
+ if(!id)return [];
+ const marke=measLagerMarke(id);
+ return lagerBewegungen.filter(b=>String(b&&b.grund!=null?b.grund:"").includes(marke));
+}
+function measLagerBeschriftung(){
+ const art=(typeof MEAS_TYPE_LABELS==="object"&&$("measType")&&MEAS_TYPE_LABELS[$("measType").value])||"Massaufnahme";
+ const titel=$("measTitle")?String($("measTitle").value||"").trim():"";
+ return art+(titel?" · "+titel:"");
+}
+
+// Baut die Vorschlagszeilen. Jede Materialzeile der Massaufnahme wird zu
+// genau einer Zeile - auch die nicht buchbaren, damit niemand raetselt,
+// warum eine Position fehlt.
+function measLagerZeilenBauen(){
+ const roh=(typeof measRapportMaterial!=="undefined"&&Array.isArray(measRapportMaterial))?measRapportMaterial:[];
+ const artikel=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
+ return roh.map((z,i)=>{
+  const no=String(z&&z.no!=null?z.no:"").trim();
+  const menge=lagerZahl(String(z&&z.qty!=null?z.qty:"").replace(",","."));
+  const a=no?artikel.find(x=>String(x.edv_nr).trim()===no):null;
+  const varianten=a?lagerVariantenVonMaterial(a.id):[];
+  return {
+   id:"z"+i, no, menge,
+   artikel:a,
+   bezeichnung:a?lagArtikelText(a):(no||"(ohne EDV-Nr.)"),
+   einheit:a&&a.unit?a.unit:"",
+   varianten,
+   varianteId:varianten.length===1?String(varianten[0].id):"",
+   // Buchbar ist nur, was im Katalog steht, im Lager ein Produkt hat und
+   // eine Menge ungleich 0 traegt.
+   grund:!no?"Diese Zeile hat keine EDV-Nr."
+    :!a?"Diese EDV-Nr. steht nicht im Material-Katalog."
+    :!varianten.length?"Für diese Position ist im Lager noch kein Produkt erfasst."
+    :!menge?"Diese Zeile hat keine Menge."
+    :"",
+   gewaehlt:false
+  };
+ });
+}
+
+async function measLagerOeffnen(){
+ if(!lagerverwaltungZugriff)return;
+ if(!currentMeasurementId){
+  alert("Bitte die Massaufnahme zuerst speichern.\n\n"
+   +"Die Ausbuchung wird mit dieser Massaufnahme vermerkt - dafür braucht sie eine gespeicherte Fassung.");
+  return;
+ }
+ if(typeof wsIstOffline==="function"&&wsIstOffline()){
+  alert("Keine Verbindung.\n\nEine Lagerbuchung braucht eine Verbindung und lässt sich offline nicht vormerken.");
+  return;
+ }
+ $("measLagerModal").hidden=false;
+ $("measLagerFehler").hidden=true;
+ $("measLagerListe").innerHTML='<div class="small">Lager wird geladen …</div>';
+ // Bestand immer frisch: zwischen Anmeldung und diesem Klick kann jemand
+ // anders gebucht haben.
+ await lagerVariantenLaden();
+ await lagerBewegungenLaden();
+ measLagerZeilen=measLagerZeilenBauen();
+ // Vorgewaehlt ist, was ohne Rueckfrage buchbar ist - eine Position mit
+ // mehreren Produkten gehoert ausdruecklich NICHT dazu.
+ measLagerZeilen.forEach(z=>{z.gewaehlt=!z.grund&&z.varianten.length===1});
+ const frueher=measLagerFruehereBuchungen(currentMeasurementId);
+ const warnung=$("measLagerWarnung");
+ if(frueher.length){
+  const datum=frueher[0].created_at?new Date(frueher[0].created_at).toLocaleDateString("de-CH"):"";
+  warnung.innerHTML="⚠️ Für diese Massaufnahme wurde bereits ausgebucht"
+   +(datum?" (zuletzt am "+esc(datum)+")":"")+" – "+frueher.length+" Buchung"+(frueher.length===1?"":"en")
+   +". Ein zweites Mal bucht zusätzlich aus.";
+  warnung.hidden=false;
+ }else{
+  warnung.hidden=true;
+ }
+ renderMeasLagerListe();
+}
+function measLagerSchliessen(){
+ $("measLagerModal").hidden=true;
+ measLagerZeilen=[];
+}
+
+function measLagerZeileHtml(z){
+ const bestand=z.varianteId?lagerBestandVon(z.varianteId):null;
+ const nachher=(bestand!==null)?bestand-Math.abs(z.menge):null;
+ if(z.grund){
+  return `<div class="rmat-wahl-block">
+   <div><b>${esc(z.bezeichnung)}</b> <span class="small">${esc(lagerZahlText(z.menge))}${z.einheit?" "+esc(z.einheit):""}</span></div>
+   <div class="small" style="color:var(--muted)">${esc(z.grund)}</div>
+  </div>`;
+ }
+ const auswahl=z.varianten.length>1
+  ?`<select data-meas-lager-variante="${esc(z.id)}">
+     <option value="">– Produkt wählen –</option>
+     ${z.varianten.map(v=>`<option value="${v.id}"${String(v.id)===z.varianteId?" selected":""}>${esc(v.bezeichnung)} · Bestand ${esc(lagerZahlText(lagerBestandVon(v.id)))}</option>`).join("")}
+    </select>`
+  :`<div class="small" style="color:var(--muted)">Produkt: ${esc(z.varianten[0].bezeichnung)}</div>`;
+ return `<div class="rmat-wahl-block">
+  <label class="rmat-wahl">
+   <input type="checkbox" data-meas-lager-wahl="${esc(z.id)}"${z.gewaehlt?" checked":""}>
+   <span class="rmat-wahl-text"><b>${esc(z.bezeichnung)}</b></span>
+  </label>
+  ${auswahl}
+  <div class="bar" style="gap:6px;align-items:center;margin-top:4px">
+   <label class="small" style="margin:0">Menge</label>
+   <input type="number" step=".01" min="0" style="max-width:110px" data-meas-lager-menge="${esc(z.id)}" value="${esc(z.menge)}">
+   <span class="small" style="color:var(--muted)">${esc(z.einheit)}${
+     bestand!==null?" · Bestand "+esc(lagerZahlText(bestand))+" → "+esc(lagerZahlText(nachher)):""}</span>
+  </div>
+  ${(nachher!==null&&nachher<0)?'<div class="small" style="color:var(--red)">Der Bestand wird dadurch negativ – gebucht wird trotzdem, wenn Sie das so wollen.</div>':""}
+ </div>`;
+}
+
+function renderMeasLagerListe(){
+ const box=$("measLagerListe");
+ if(!box)return;
+ if(!measLagerZeilen.length){
+  box.innerHTML='<div class="small">In dieser Massaufnahme ist unter „Material für den Regierapport“ noch nichts erfasst – es gibt nichts auszubuchen.</div>';
+ }else{
+  box.innerHTML=measLagerZeilen.map(measLagerZeileHtml).join("");
+ }
+ measLagerKnopfStand();
+}
+function measLagerBuchbar(){
+ return measLagerZeilen.filter(z=>z.gewaehlt&&!z.grund&&z.varianteId&&Math.abs(z.menge)>0);
+}
+function measLagerKnopfStand(){
+ const knopf=$("measLagerBuchenBtn");
+ if(!knopf)return;
+ const n=measLagerBuchbar().length;
+ knopf.textContent="📤 Ausgewählte ausbuchen ("+n+")";
+ knopf.disabled=n===0;
+}
+
+if($("measLagerListe")){
+ $("measLagerListe").addEventListener("change",e=>{
+  const wahl=e.target.dataset.measLagerWahl;
+  if(wahl!==undefined){
+   const z=measLagerZeilen.find(x=>x.id===wahl);
+   if(z)z.gewaehlt=e.target.checked;
+   measLagerKnopfStand();
+   return;
+  }
+  const variante=e.target.dataset.measLagerVariante;
+  if(variante!==undefined){
+   const z=measLagerZeilen.find(x=>x.id===variante);
+   if(z){
+    z.varianteId=e.target.value;
+    // Ohne gewaehltes Produkt kann die Zeile nicht gebucht werden - die
+    // Auswahl wird deshalb mitgefuehrt, nicht stillschweigend ignoriert.
+    if(!z.varianteId)z.gewaehlt=false;
+   }
+   renderMeasLagerListe();
+  }
+ });
+ // Die Menge waehrend des Tippens NICHT neu zeichnen - sonst verliert das
+ // Feld den Fokus (dieselbe Lehre wie bei der Materialzeile, js/57).
+ $("measLagerListe").addEventListener("input",e=>{
+  const menge=e.target.dataset.measLagerMenge;
+  if(menge===undefined)return;
+  const z=measLagerZeilen.find(x=>x.id===menge);
+  if(z)z.menge=lagerZahl(String(e.target.value).replace(",","."));
+  measLagerKnopfStand();
+ });
+}
+if($("measLagerAusbuchen"))$("measLagerAusbuchen").onclick=measLagerOeffnen;
+if($("measLagerSchliessen"))$("measLagerSchliessen").onclick=measLagerSchliessen;
+
+if($("measLagerBuchenBtn"))$("measLagerBuchenBtn").onclick=async()=>{
+ const fehler=$("measLagerFehler");
+ fehler.hidden=true;
+ if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Eine Lagerbuchung"))return;
+ const zeilen=measLagerBuchbar();
+ if(!zeilen.length)return;
+ const bezeichnung=measLagerBeschriftung();
+ const grund=("Massaufnahme: "+bezeichnung).slice(0,180)+" "+measLagerMarke(currentMeasurementId);
+ // Eine Anfrage fuer alle Zeilen: entweder werden alle gebucht oder keine -
+ // ein halb gebuchter Materialsatz waere schlimmer als gar keiner.
+ const {data,error}=await sb.from("lagerbestand_bewegungen").insert(
+  zeilen.map(z=>({variante_id:Number(z.varianteId),art:"abgang",menge:-Math.abs(z.menge),grund}))
+ ).select("*");
+ if(error||!data||!data.length){
+  fehler.textContent=error?("Konnte nicht gebucht werden: "+error.message)
+    :"Es wurde nichts gebucht. Fehlt die nötige Berechtigung?";
+  fehler.hidden=false;
+  return;
+ }
+ data.forEach(b=>lagerBewegungen.unshift(b));
+ renderLagerverwaltung();
+ measLagerSchliessen();
+ alert("Ausgebucht: "+data.length+" Position"+(data.length===1?"":"en")+".\n\n"
+  +"Die Buchungen stehen in der Lagerverwaltung beim jeweiligen Produkt, mit dieser Massaufnahme als Grund.");
 };

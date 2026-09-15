@@ -1178,6 +1178,30 @@ Materialliste holen.</p>
 <p>Eine Materialzeile lässt die <b>Freigabe nicht verfallen</b> – sie ändert
 nichts an der fachlichen Grundlage, nach der gerüstet und montiert wird.</p>`},
 
+"meas-lager-ausbuchen":{titel:"Material ab Lager ausbuchen",text:`
+<p>Bucht das hier erfasste Material als <b>Abgang</b> im Lager – für den Fall,
+dass es aus dem eigenen Lager mit auf die Baustelle genommen wird.</p>
+<p>Das passiert <b>nie von selbst</b>: weder beim Speichern der Massaufnahme
+noch beim Übernehmen in den Regierapport. Eine Lagerbuchung lässt sich
+nämlich nicht mehr ändern – eine versehentliche wäre nur durch eine
+Gegenbuchung zu heilen. Deshalb der eigene Knopf und der Dialog zum Prüfen.</p>
+<p>Im Dialog ist <b>jede Zeile einzeln an- und abwählbar</b>, und die
+<b>Menge ist frei änderbar</b> – gebucht wird genau das, was dort steht, nicht
+zwingend das, was in der Massaufnahme erfasst ist. Gehören zu einer
+Materialposition mehrere Produkte (z. B. verschiedene Rohrbogen), muss das
+richtige ausgewählt werden; die App rät nicht und wählt solche Zeilen auch
+nicht von sich aus vor.</p>
+<p>Angeboten wird nur, was im <b>Material-Katalog</b> steht und im Lager ein
+Produkt hat. <b>Blech und gerechnete Zuschnitte gehören nicht ins Lager</b> –
+das Lager führt allgemeines Material. Zeilen, die sich nicht buchen lassen,
+werden trotzdem mit dem Grund angezeigt, damit keine Position stillschweigend
+fehlt.</p>
+<p>Wurde für dieselbe Massaufnahme schon einmal ausgebucht, steht das als
+<b>Warnung</b> oben im Dialog – ein zweites Mal bucht zusätzlich aus. Erkannt
+wird das am Buchungsgrund, den die App selbst schreibt; dort steht später
+auch in der Lagerverwaltung, aus welcher Massaufnahme die Buchung stammt.</p>
+<p>Sichtbar ist der Knopf nur mit der <b>Lager-Freigabe</b>.</p>`},
+
 "rmat-uebernehmen":{titel:"Material aus den Massaufnahmen",text:`
 <p>Angeboten wird, was in den Massaufnahmen <b>dieses Projekts</b> unter
 „Material für den Regierapport" erfasst ist.</p>

@@ -29602,3 +29602,112 @@ einem leeren Overlay steht.
 | `PROJECT_STATE.md` | Versionsstand 3.119 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.119"]` ergänzt |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 10: echte `barcodeScannen()` wird vor dem ersten Stub gesichert; neuer Abschnitt 13b: 3 neue Prüfungen |
+
+## 186. MATERIAL EINER MASSAUFNAHME AB LAGER AUSBUCHEN — VERSION 3.120
+
+### 186.1 Anlass
+
+Der Anwender wünschte einen Versuch mit dem direkten Ausbuchen aus einer
+Massaufnahme heraus – ausdrücklich **nicht automatisch**, sondern bewusst
+auszulösen, mit der Möglichkeit, Positionen vorher anzupassen.
+
+### 186.2 Warum bewusst und nie von selbst
+
+Eine Lagerbuchung ist in diesem Projekt seit jeher unveränderlich: kein
+Update, kein Delete in der RLS, ein Fehler wird nur durch eine
+Gegenbuchung geheilt (siehe Kopfkommentar `js/68-lagerverwaltung.js`).
+Genau deshalb darf eine Ausbuchung **nicht** als Nebenwirkung des
+Speicherns oder des Übernehmens in den Regierapport passieren – eine
+versehentliche liesse sich nicht mehr zurücknehmen. Der Weg ist deshalb:
+eigener Knopf in der Massaufnahme → Dialog zum Prüfen und Anpassen →
+Buchung erst auf Knopfdruck.
+
+### 186.3 Quelle: nur das von Hand erfasste Material
+
+Angeboten werden ausschliesslich die Zeilen aus „🧱 Material für den
+Regierapport" (`measRapportMaterial`, js/57, gespeichert in
+`measurements.rapport_material`). Die gerechneten Blechzuschnitte und
+Halbfabrikate bleiben bewusst aussen vor: das Lager führt allgemeines
+Material, kein Blech – dieselbe Grenze, die schon die Lagerverwaltung
+selbst zieht. Es entsteht dadurch **kein zweites Datenmodell**: die
+Massaufnahme bleibt unverändert, die Buchung ist ein reines
+Lager-Ereignis.
+
+Zwischen Zeile und Buchung liegt eine Zuordnung: die Zeile trägt eine
+EDV-Nr., gebucht wird aber auf ein **Produkt** (`lager_varianten`). Der
+Weg dorthin ist EDV-Nr. → `lagArtikelListe()` → `material_id` →
+`lagerVariantenVonMaterial()`. Hat eine Position genau ein Produkt, steht
+es fest und die Zeile ist vorgewählt. Hat sie **mehrere** (z. B.
+verschiedene Rohrbogen), wählt die App **keines** aus und die Zeile ist
+auch nicht vorgewählt – der Anwender entscheidet, es wird nichts geraten.
+
+### 186.4 Was im Dialog anpassbar ist
+
+- **Jede Zeile einzeln an-/abwählbar.**
+- **Menge frei änderbar** – gebucht wird, was im Dialog steht, nicht
+  zwingend das, was in der Massaufnahme erfasst ist.
+- **Produkt wählbar**, wo die Position mehrere hat.
+- Zeilen, die sich nicht buchen lassen (keine EDV-Nr., nicht im Katalog,
+  kein Lager-Produkt, keine Menge), werden **trotzdem mit dem Grund
+  angezeigt** – damit keine Position stillschweigend fehlt.
+- Je Zeile stehen aktueller Bestand und der Stand danach; würde er
+  negativ, steht das als Hinweis da. Gebucht wird trotzdem – der Bestand
+  ist immer die Summe der Buchungen, die App verweigert keine Realität.
+
+### 186.5 Schutz vor doppeltem Ausbuchen
+
+Der Buchungsgrund, den die App selbst schreibt, trägt eine Marke der
+Massaufnahme (`Massaufnahme: <Bezeichnung> (#MA<id>)`). Beim Öffnen des
+Dialogs wird in den geladenen Bewegungen danach gesucht; gibt es Treffer,
+steht oben eine deutliche Warnung mit Datum und Anzahl. **Geraten wird
+nichts** – erkannt wird allein, was die App vorher selbst geschrieben
+hat. Blockiert wird nichts: ein zweiter Vorgang kann fachlich richtig
+sein, er bucht dann zusätzlich aus.
+
+Nebeneffekt, der ohnehin gewünscht war: in der Lagerverwaltung steht bei
+jeder Bewegung, aus welcher Massaufnahme sie stammt.
+
+### 186.6 Weitere Festlegungen
+
+- Der Knopf hängt am selben Feature-Flag wie die Lagerverwaltung
+  (`checkLagerZugriff`) – ohne Lager-Freigabe ist er nicht da.
+- Die Massaufnahme muss **gespeichert** sein (sonst gibt es keine ID für
+  die Marke); sonst ein klarer Hinweis statt einer stillen Buchung.
+- Offline wird gar nicht erst geöffnet – eine Lagerbuchung lässt sich
+  nicht vormerken.
+- Beim Öffnen werden Produkte und Bewegungen **frisch geladen**: zwischen
+  Anmeldung und Klick kann jemand anders gebucht haben.
+- Alle gewählten Zeilen gehen in **einer** Anfrage – entweder alle oder
+  keine; ein halb gebuchter Materialsatz wäre schlimmer als gar keiner.
+
+### 186.7 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, neuer Abschnitt 14:
+14 neue Prüfungen – Zuordnung und Begründung je Zeilenart (eindeutiges
+Produkt, mehrere Produkte, EDV-Nr. ausserhalb des Katalogs, Zeile ohne
+Menge), Vorauswahl nur bei Eindeutigkeit, Produktwahl und Mengenänderung
+im Dialog, Buchung erst auf Knopfdruck, alle Zeilen in einer Anfrage, Art
+`abgang` mit negativer Menge, gebuchtes Produkt und Menge aus dem Dialog,
+Marke im Buchungsgrund, Dialog schliesst, und die Warnung beim zweiten
+Anlauf. Dazu 2 Prüfungen in Abschnitt 2, dass der Knopf demselben
+Feature-Flag folgt. 110 Prüfungen in diesem Prüfstand, alle bestanden.
+Volle Regression aller Prüfstände im Anschluss ohne neue Fehlschläge.
+
+**Ehrliche Grenze:** gegen die echte Datenbank ist das aus dieser Sandbox
+nicht testbar – geprüft ist, welche Buchungszeilen die App erzeugt, nicht,
+was Supabase daraus macht. Ob RLS und Firmengrenze die Sammel-Anfrage
+genauso durchlassen wie die einzelne Buchung aus der Lagerverwaltung, kann
+nur der erste echte Vorgang zeigen; beide schreiben in dieselbe Tabelle
+mit denselben Feldern.
+
+### 186.8 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `index.html` | Knopf `#measLagerAusbuchen` in der Material-Karte der Massaufnahme; neuer Dialog `#measLagerModal` |
+| `js/68-lagerverwaltung.js` | neuer Abschnitt „Massaufnahme → Lager ausbuchen": Zeilenaufbau, Dialog, Sammelbuchung, Marke im Grund; `checkLagerZugriff()` schaltet den Knopf mit |
+| `js/41-hilfe.js` | neuer Hilfetext `meas-lager-ausbuchen` |
+| `sw.js` | Cache-Version 3.120 |
+| `PROJECT_STATE.md` | Versionsstand 3.120 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.120"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | neuer Abschnitt 14 (14 Prüfungen), Abschnitt 2 um 2 Prüfungen erweitert |

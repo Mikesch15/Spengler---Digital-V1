@@ -69,7 +69,8 @@ const WIN_CHANGELOG={
  "3.116":["Fehler behoben: Barcode-Scan per Einzelfoto (Tippen zum Fokussieren und 'Andere Kamera-App verwenden') erkannte Codes bisher gar nicht, unabhängig von der Bildschärfe - ein Programmierfehler in der Bildauswertung ist jetzt korrigiert."],
  "3.117":["Fehler behoben: Barcode-Scan per Einzelfoto zeigte immer dieselbe Meldung 'Foto konnte nicht ausgewertet werden', auch wenn einfach kein Code im Bild war - die Meldung unterscheidet jetzt korrekt zwischen beiden Fällen und die Auswertung bleibt nicht mehr unbegrenzt lange hängen."],
  "3.118":["Neu: Lagerverwaltung - im Formular 'Neues Produkt erfassen' lässt sich die Materialposition jetzt per Suchfeld filtern, statt die ganze Liste durchscrollen zu müssen."],
- "3.119":["Barcode-Scan: die Kamera-App des Geräts öffnet sich jetzt sofort automatisch beim Einscannen/Ausscannen - kein zusätzlicher Klick auf 'Andere Kamera-App verwenden' mehr nötig."]
+ "3.119":["Barcode-Scan: die Kamera-App des Geräts öffnet sich jetzt sofort automatisch beim Einscannen/Ausscannen - kein zusätzlicher Klick auf 'Andere Kamera-App verwenden' mehr nötig."],
+ "3.120":["Neu: Material einer Massaufnahme lässt sich mit dem Knopf '📤 Ab Lager ausbuchen' direkt als Abgang im Lager buchen. Das passiert nie von selbst - im Dialog sind Zeilen, Produkt und Menge vorher frei anpassbar, und wurde für dieselbe Massaufnahme schon ausgebucht, steht eine Warnung da."]
 };
 
 function winVersionVergleich(a,b){
