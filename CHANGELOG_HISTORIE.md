@@ -29255,3 +29255,117 @@ Verbesserung deutlich höher als bei den bisherigen Anläufen.
 | `PROJECT_STATE.md` | Versionsstand 3.115 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.115"]` ergänzt |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13: 2 neue Prüfungen für den nativen Kamera-Weg |
+
+## 182. DIE TATSÄCHLICHE URSACHE: ⟨img⟩ STATT ⟨canvas⟩ — VERSION 3.116
+
+### 182.1 Rückmeldung zu v3.115
+
+Der Anwender hat den neuen Knopf "Andere Kamera-App verwenden" getestet: die
+native Kamera-App öffnete sich korrekt, ein Foto wurde aufgenommen - aber
+statt eines erkannten Codes erschien die Meldung "Foto konnte nicht
+ausgewertet werden." Das war der erste sichtbare Fehler in dieser gesamten
+Versionsreihe (v3.107 bis v3.115), weil alle bisherigen Dekodierversuche
+Fehler still verschluckt und stattdessen einfach die Kamera-Vorschau
+weiterlaufen liessen, ohne je eine Meldung zu zeigen.
+
+### 182.2 Die tatsächliche Ursache
+
+Bei der gezielten Fehlersuche zu dieser Meldung wurde die ZXing-Bibliothek
+(`@zxing/library`, die hier verwendete Scan-Bibliothek) selbst geprüft: die
+Methode `decodeFromImageElement(source)`, die seit v3.109 in JEDEM
+Einzelfoto-Dekodierversuch verwendet wird, akzeptiert laut ihrer eigenen
+Typdefinition **ausschliesslich ein `<img>`-Element** (oder dessen ID als
+Zeichenkette) - **kein** `<canvas>`. Der gesamte bisherige Code erzeugte
+aber an jeder einzigen Stelle ein `<canvas>`, zeichnete das Foto darauf und
+übergab DIESES Canvas an `decodeFromImageElement()`. Die Bibliothek erkennt
+ein Canvas an dieser Stelle intern nicht (ihre interne
+`prepareImageElement()`-Hilfsfunktion prüft ausdrücklich nur auf
+`instanceof HTMLImageElement` bzw. eine Zeichenkette), gibt `undefined`
+zurück und der nachfolgende Code stürzt beim Zugriff auf
+`undefined.naturalWidth` ab - **noch bevor überhaupt ein echter
+Dekodierversuch am eigentlichen Bild stattfindet.**
+
+Das bedeutet: **das Problem war zu keinem Zeitpunkt die Kameraschärfe.**
+Jeder einzelne Dekodierversuch seit v3.109 - unabhängig davon, wie scharf
+das jeweilige Foto tatsächlich war - ist an dieser API-Falle gescheitert,
+bevor die Bildqualität überhaupt eine Rolle spielen konnte:
+
+- v3.109/v3.111: Einzelfoto per `ImageCapture.takePhoto()` während des
+  Tippens zum Fokussieren - der Dekodierversuch scheiterte in `catch(e){}`
+  ohne sichtbare Meldung, der Code fiel einfach auf die (unscharfe)
+  Live-Vorschau zurück. Das erklärt, warum sich in v3.109/v3.111 durch das
+  Tippen scheinbar "nichts änderte".
+- v3.113/v3.114: dieselbe Falle, nur mit der neuen, sorgfältiger getrennten
+  Stream-Architektur und einer längeren Aufwärmzeit - beides technisch
+  richtige, aber am eigentlichen Problem vorbeigehende Verbesserungen, da
+  der Dekodierversuch selbst nie eine Chance hatte.
+- v3.115: dieselbe Falle im neuen nativen Kamera-Pfad - hier aber zum
+  ersten Mal mit einer sichtbaren Statusmeldung im `catch`-Block, wodurch
+  der Fehler überhaupt erst auffiel.
+
+### 182.3 Die Korrektur
+
+Neue Hilfsfunktion `barcodeScanBildElement(quelle)` (js/01-basis.js): baut
+aus einer Bilddatei/einem Blob ein **echtes** `<img>`-Element auf (über
+`URL.createObjectURL()` und Warten auf das `load`-Ereignis), statt wie
+bisher ein `<canvas>` zu erzeugen. Dieses `<img>`-Element wird jetzt an
+beiden bestehenden Stellen an `decodeFromImageElement()` übergeben:
+
+- `barcodeScanNeuFokussieren()` (Einzelfoto beim Tippen zum Fokussieren)
+- `barcodeScanNativeFotoAusgewaehlt()` (Foto aus der nativen Kamera-App)
+
+Zusätzlich unterscheidet `barcodeScanNativeFotoAusgewaehlt()` jetzt zwei
+Fehlerarten im `catch`-Block: eine `NotFoundException` (ZXing lehnt den
+Aufruf so ab, wenn im Bild tatsächlich kein Code gefunden wurde - der
+normale, erwartbare Fall) zeigt die schon bestehende, weniger alarmierende
+Meldung "Kein Code im Foto gefunden - nochmal versuchen oder unten
+eintippen.", jeder andere Fehler weiterhin die generische Meldung "Foto
+konnte nicht ausgewertet werden."
+
+### 182.4 Warum das nicht früher auffiel
+
+`barcodeScanCodeReader` ist in der Prüfstand-Testumgebung immer `null`
+(siehe Abschnitt 10: die echte ZXing/Kamera-Ansteuerung wird dort bewusst
+gestubbt, um ohne echte Hardware/Netzverbindung zu testen) - dadurch wurde
+`decodeFromImageElement()` in JEDEM bisherigen Prüfstand-Lauf durch die
+vorgeschaltete `typeof`-Prüfung übersprungen und nie tatsächlich mit einem
+Canvas oder Bild aufgerufen. Der Fehler war ausschliesslich mit einer
+echten ZXing-Instanz auf einem echten Gerät sichtbar - genau das, was aus
+dieser Sandbox nie live getestet werden konnte. Erst die neue,
+verständliche Statusmeldung aus v3.115 machte ihn für den Anwender
+überhaupt bemerkbar, und erst dessen konkrete Rückmeldung dazu ermöglichte
+die gezielte Fehlersuche in der ZXing-Bibliothek selbst.
+
+### 182.5 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 13: 2 neue
+Prüfungen testen die neue Hilfsfunktion `barcodeScanBildElement()` direkt
+und OHNE ZXing (das in der Testumgebung wie erläutert nicht zur Verfügung
+steht, aber `URL.createObjectURL()`/`Image` sind echte Browser-APIs und
+funktionieren im Playwright-Chromium tatsächlich) - sie bestätigen, dass
+die Funktion ein echtes `<img>`-Element liefert (nicht ein `<canvas>`,
+`instanceof`-Prüfung) und dass dieses Element die Abmessungen der
+übergebenen Testdatei korrekt geladen hat (`naturalWidth`/`naturalHeight`).
+Das ist die erste echte Verhaltensprüfung in dieser gesamten
+Fehlerbehebungs-Serie, die die konkrete Fehlerklasse (Canvas statt Bild)
+tatsächlich abdeckt, statt nur die Aufrufreihenfolge zu prüfen. 82
+Prüfungen in diesem Prüfstand, alle bestanden. Volle Regression aller
+Prüfstände im Anschluss ohne neue Fehlschläge.
+
+**Ehrliche Einordnung:** dass `decodeFromImageElement()` ein `<canvas>`
+ablehnt, wurde durch gezielte Recherche in der ZXing-Bibliothek selbst
+bestätigt (Quelltext, keine Vermutung) - das ist deutlich belastbarer als
+die bisherigen, unbestätigten Kamera-Hardware-Vermutungen. Ob damit
+wirklich JEDER Fall des gemeldeten Problems behoben ist, kann trotzdem nur
+der Anwender am echten Gerät endgültig bestätigen; es bleibt weiterhin kein
+Live-Test aus dieser Sandbox möglich.
+
+### 182.6 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | neue Funktion `barcodeScanBildElement()`; beide Dekodierstellen (`barcodeScanNeuFokussieren`, `barcodeScanNativeFotoAusgewaehlt`) nutzen jetzt ein echtes `<img>`-Element statt eines `<canvas>`; `NotFoundException` wird im nativen Kamera-Pfad gesondert erkannt |
+| `sw.js` | Cache-Version 3.116 |
+| `PROJECT_STATE.md` | Versionsstand 3.116 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.116"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13: 2 neue Prüfungen für `barcodeScanBildElement()` |

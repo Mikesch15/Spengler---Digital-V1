@@ -50,7 +50,16 @@
 //     verstecktes <input type="file" accept="image/*" capture="environment">
 //     oeffnet die ECHTE, native Kamera-App des Geraets (kein getUserMedia/
 //     ImageCapture mehr) - genau der Weg, den der Anwender bereits als
-//     scharf bestaetigt hat.
+//     scharf bestaetigt hat. v3.116 fand die TATSAECHLICHE Ursache des
+//     gesamten bisherigen "unscharf"-Verhaltens: decodeFromImageElement()
+//     der ZXing-Bibliothek akzeptiert laut eigener Typdefinition nur ein
+//     <img>-Element, kein <canvas> - jeder bisherige Dekodierversuch
+//     uebergab aber ein <canvas> und scheiterte dadurch VOR jedem echten
+//     Dekodierversuch, unabhaengig von der Bildschaerfe. Der Fehler wurde
+//     bislang von try/catch-Bloecken still verschluckt; erst v3.115s
+//     sichtbare Statusmeldung machte ihn ueberhaupt bemerkbar. Neue
+//     Hilfsfunktion barcodeScanBildElement() baut jetzt ein echtes
+//     <img>-Element auf, wie es die Bibliothek erwartet.
 //
 // WICHTIGSTE AENDERUNG SEIT v3.98: Die Lagerverwaltung baute urspruenglich
 // auf lagerbestand auf (dem Blech-Materialbestand). Das war fachlich falsch
@@ -724,6 +733,27 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  z=await page.evaluate(()=>({status:$("barcodeScanStatus")?$("barcodeScanStatus").textContent:null}));
  p(fehler===null,"eine ueber die native Kamera-App ausgewaehlte Bilddatei loest den change-Handler auf, ohne einen Fehler zu werfen",{fehler,...z});
  p(/nicht ausgewertet werden/.test(z.status||""),"ohne echten barcodeScanCodeReader (Testumgebung, siehe Abschnitt 10) meldet das Overlay verstaendlich, dass das Foto nicht ausgewertet werden konnte, statt stillschweigend zu haengen",z);
+
+ // v3.116: die TATSAECHLICHE Ursache des seit v3.109 beobachteten
+ // "unscharf"/"kein Code gefunden"-Verhaltens war kein Kamera-Problem,
+ // sondern ein API-Fehler: decodeFromImageElement() der ZXing-Bibliothek
+ // akzeptiert laut eigener Typdefinition NUR ein <img>-Element (oder dessen
+ // ID) - jeder bisherige Versuch uebergab stattdessen ein <canvas>, das die
+ // Bibliothek intern nicht erkennt und das den Aufruf VOR jedem echten
+ // Dekodierversuch scheitern liess. Dieser Test prueft direkt (ohne ZXing,
+ // das in dieser Testumgebung wie in Abschnitt 10 dokumentiert nicht zur
+ // Verfuegung steht) die neue Hilfsfunktion barcodeScanBildElement(): sie
+ // muss aus einer Bilddatei ein ECHTES <img>-Element erzeugen, kein Canvas.
+ z=await page.evaluate(async()=>{
+  const antwort=await fetch("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+  const blob=await antwort.blob();
+  const {img,url}=await barcodeScanBildElement(blob);
+  const ergebnis={istImg:img instanceof HTMLImageElement,istCanvas:img instanceof HTMLCanvasElement,breite:img.naturalWidth,hoehe:img.naturalHeight};
+  try{URL.revokeObjectURL(url)}catch(e){}
+  return ergebnis;
+ });
+ p(z.istImg===true&&z.istCanvas===false,"barcodeScanBildElement() liefert ein echtes <img>-Element (nicht ein <canvas>) - genau das, was decodeFromImageElement() laut ZXing-API verlangt",z);
+ p(z.breite===1&&z.hoehe===1,"das <img>-Element hat die Abmessungen der uebergebenen Bilddatei tatsaechlich geladen (naturalWidth/naturalHeight), ist also fertig einsatzbereit fuer den Dekodierversuch",z);
 
  // ---- 7 · company_id nie vom Client -------------------------------------
  console.log("\n7 · Firmengrenze kommt ausschliesslich aus der Datenbank");

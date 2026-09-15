@@ -602,6 +602,29 @@ function barcodeScanSchliessen(){
 }
 if($("barcodeScanAbbrechen"))$("barcodeScanAbbrechen").onclick=barcodeScanSchliessen;
 
+// v3.116: TATSAECHLICHE URSACHE gefunden, siehe CHANGELOG_HISTORIE.md
+// Abschnitt 182. decodeFromImageElement() der ZXing-Bibliothek akzeptiert
+// laut eigener Typdefinition NUR ein <img>-Element (oder dessen ID) - kein
+// <canvas>. Ein uebergebenes <canvas> erkennt die Bibliothek intern an
+// keiner Stelle, wodurch der Aufruf mit einem Fehler abbrach, BEVOR
+// ueberhaupt ein Dekodierversuch stattfand - unabhaengig davon, wie scharf
+// das Foto tatsaechlich war. Dieser Fehler wurde bislang in JEDEM
+// Einzelfoto-Dekodierpfad (v3.109/v3.111/v3.113/v3.114) still von einem
+// try/catch verschluckt, weshalb er nie sichtbar wurde; erst der neue
+// native Kamera-Pfad (v3.115) zeigt eine Statusmeldung bei einem
+// Fehlschlag und machte das Problem dadurch erstmals sichtbar. Die neue
+// Hilfsfunktion baut statt eines <canvas> ein echtes <img>-Element aus dem
+// Foto auf, wie es die Bibliothek erwartet.
+function barcodeScanBildElement(quelle){
+ return new Promise((resolve,reject)=>{
+  const url=URL.createObjectURL(quelle);
+  const img=new Image();
+  img.onload=()=>resolve({img,url});
+  img.onerror=()=>{ try{URL.revokeObjectURL(url)}catch(e){}; reject(new Error("Bild konnte nicht geladen werden")); };
+  img.src=url;
+ });
+}
+
 // v3.113: NEUE ARCHITEKTUR nach zwei bestaetigten Fehlschlaegen. Die
 // gemeinsame Ursache beider bisherigen Versuche: zu einem Zeitpunkt waren
 // ZWEI Kamerazugriffe gleichzeitig aktiv - v3.108 forderte den neuen Stream
@@ -651,12 +674,14 @@ async function barcodeScanNeuFokussieren(){
   const capture=new ImageCapture(track);
   const blob=await capture.takePhoto();
   if(barcodeScanCodeReader&&typeof barcodeScanCodeReader.decodeFromImageElement==="function"){
-   const bitmap=await createImageBitmap(blob);
-   const canvas=document.createElement("canvas");
-   canvas.width=bitmap.width;canvas.height=bitmap.height;
-   canvas.getContext("2d").drawImage(bitmap,0,0);
-   const result=await barcodeScanCodeReader.decodeFromImageElement(canvas);
-   text=result?result.getText():null;
+   let bild=null;
+   try{
+    bild=await barcodeScanBildElement(blob);
+    const result=await barcodeScanCodeReader.decodeFromImageElement(bild.img);
+    text=result?result.getText():null;
+   }finally{
+    if(bild)try{URL.revokeObjectURL(bild.url)}catch(e){}
+   }
   }
  }catch(e){/* Fotoaufnahme fehlgeschlagen - Vorschau wird unten trotzdem neu gestartet */}
  finally{
@@ -718,12 +743,10 @@ async function barcodeScanNativeFotoAusgewaehlt(e){
   return;
  }
  if(status){status.textContent="Foto wird ausgewertet …";status.style.color="#fff"}
+ let bild=null;
  try{
-  const bitmap=await createImageBitmap(datei);
-  const canvas=document.createElement("canvas");
-  canvas.width=bitmap.width;canvas.height=bitmap.height;
-  canvas.getContext("2d").drawImage(bitmap,0,0);
-  const result=await barcodeScanCodeReader.decodeFromImageElement(canvas);
+  bild=await barcodeScanBildElement(datei);
+  const result=await barcodeScanCodeReader.decodeFromImageElement(bild.img);
   const text=result?result.getText():null;
   if(text){
    const cb=barcodeScanAktuellerCallback;
@@ -733,7 +756,16 @@ async function barcodeScanNativeFotoAusgewaehlt(e){
   }
   if(status){status.textContent="Kein Code im Foto gefunden - nochmal versuchen oder unten eintippen.";status.style.color="#ffb3b3"}
  }catch(e){
-  if(status){status.textContent="Foto konnte nicht ausgewertet werden.";status.style.color="#ffb3b3"}
+  // ZXing lehnt decodeFromImageElement() bei einem Foto OHNE erkennbaren
+  // Code mit einer NotFoundException ab, statt einfach null zurueckzugeben -
+  // das ist der Normalfall "kein Code im Bild", kein technischer Fehler.
+  if(e&&(e.name==="NotFoundException"||/not found/i.test(e.message||""))){
+   if(status){status.textContent="Kein Code im Foto gefunden - nochmal versuchen oder unten eintippen.";status.style.color="#ffb3b3"}
+  }else{
+   if(status){status.textContent="Foto konnte nicht ausgewertet werden.";status.style.color="#ffb3b3"}
+  }
+ }finally{
+  if(bild)try{URL.revokeObjectURL(bild.url)}catch(e){}
  }
 }
 if($("barcodeScanNativeKamera"))$("barcodeScanNativeKamera").onclick=()=>{
