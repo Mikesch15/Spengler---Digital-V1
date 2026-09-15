@@ -56,6 +56,26 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
      return Promise.resolve({data:null,error:null});
     };
     return g;
+   },
+   // v3.130: update() mit .eq().select() - die E-Mail eines bestehenden
+   // Mitarbeiters wird so geschrieben. window.__updateAntwort erlaubt es,
+   // die Antwort der Datenbank zu setzen (Fehler 23505 bei doppelter
+   // Adresse, oder 0 geschriebene Zeilen bei fehlender Berechtigung).
+   update:patch=>{
+    const g={};
+    g.eq=(f,v)=>{
+     window.__schreib.push({t,op:"update",patch,eq:[[f,v]]});
+     const gesetzt=window.__updateAntwort;
+     const fertig=()=>{
+      if(gesetzt)return Promise.resolve(gesetzt);
+      if(window.__lese&&window.__lese[t])
+       window.__lese[t].forEach(z=>{if(String(z[f])===String(v))Object.assign(z,patch)});
+      return Promise.resolve({data:[Object.assign({id:v},patch)],error:null});
+     };
+     g.select=fertig;
+     return Object.assign(fertig(),{select:fertig});
+    };
+    return g;
    }
   });
   return kette;
@@ -342,6 +362,140 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   return {emailGesendet:aufruf.body.email};
  });
  p(z.emailGesendet===undefined,"eine leer gelassene E-Mail wird als undefined (nicht als leerer String) geschickt",z);
+
+ // =========================================================================
+ // 5 · E-Mail einem BEREITS angelegten Mitarbeiter zuordnen (v3.130)
+ // =========================================================================
+ // Gemeldet: "Es sollte die moeglichkeit bestehe, einem bereits angelegten
+ // mitarbeiter nachtraeglich eine emailadresse zuzuordnen". Die Faehigkeit
+ // gab es serverseitig seit v3.103 (smart-action nimmt beim ANLEGEN eine
+ // E-Mail entgegen), nur kam ein bestehendes Konto nie mehr dazu.
+ console.log("\n5 · E-Mail nachtraeglich zuordnen");
+ const mitarbeiterAufbauen=()=>page.evaluate(()=>{
+  meineRechte={admin:true,kataloge:true};
+  allProfiles=[
+   {id:"p1",first_name:"Anna",last_name:"Alt",role:"employee",rate_id:null,email:null},
+   {id:"p2",first_name:"Beat",last_name:"Bereits",role:"employee",rate_id:null,email:"beat@firma.ch"}
+  ];
+  employeeIds=["p1","p2"];
+  settings.employees=["Anna Alt","Beat Bereits"];
+  settings.rates=[]; rateIds=[];
+  alleFeatureAccess=[];
+  window.__updateAntwort=null;
+  window.__schreib=[];
+  renderMitarbeiterSettings();
+ });
+ await mitarbeiterAufbauen();
+ z=await page.evaluate(()=>{
+  const felder=[...document.querySelectorAll("#employeeSettings [data-emp-email]")];
+  // Fehlt das Feld ganz (Stand vor v3.130), soll die Pruefung FEHLSCHLAGEN -
+  // nicht den ganzen Lauf mit einem Zugriffsfehler abbrechen.
+  return {anzahl:felder.length,werte:felder.map(f=>f.value),typ:felder[0]&&felder[0].type,
+   hinweis:felder[0]?felder[0].parentElement.innerText:""};
+ });
+ p(z.anzahl===2,"jeder Mitarbeiter hat ein E-Mail-Feld - auch der laengst angelegte",z);
+ p(z.werte[0]===""&&z.werte[1]==="beat@firma.ch",
+   "eine bereits hinterlegte Adresse steht drin, ein Konto ohne bleibt leer",z);
+ p(z.typ==="email","das Feld ist ein E-Mail-Feld - auf dem Handy erscheint die passende Tastatur",z);
+ p(/Passwort \u00e4ndert sich dadurch nicht/.test(z.hinweis)&&/keine Nachricht/.test(z.hinweis),
+   "darunter steht ausdruecklich, dass sich das Passwort NICHT aendert und KEINE Nachricht verschickt wird",z.hinweis);
+
+ // Eintragen schreibt genau auf dieses Profil.
+ z=await page.evaluate(async()=>{
+  window.__schreib=[];
+  const f=document.querySelector('#employeeSettings [data-emp-email="0"]');
+  if(!f)return {fehlt:true};
+  f.value="Anna.Alt@Firma.CH";
+  f.dispatchEvent(new Event("change",{bubbles:true}));
+  await new Promise(r=>setTimeout(r,60));
+  const up=window.__schreib.find(x=>x.op==="update"&&x.t==="profiles");
+  return {patch:up?up.patch:null,eq:up?up.eq:null,
+   imSpeicher:allProfiles.find(x=>x.id==="p1").email,
+   imFeld:document.querySelector('#employeeSettings [data-emp-email="0"]').value};
+ });
+ p(z.patch&&z.patch.email==="anna.alt@firma.ch"&&z.eq[0][1]==="p1",
+   "die Adresse wird klein geschrieben auf genau dieses Profil geschrieben",z);
+ p(z.imSpeicher==="anna.alt@firma.ch"&&z.imFeld==="anna.alt@firma.ch",
+   "die geladene Mitarbeiterliste wird sofort nachgezogen - ohne Neuladen",z);
+
+ // Leeren entfernt die Adresse wieder.
+ z=await page.evaluate(async()=>{
+  window.__schreib=[];
+  const f=document.querySelector('#employeeSettings [data-emp-email="1"]');
+  if(!f)return {fehlt:true};
+  f.value="";
+  f.dispatchEvent(new Event("change",{bubbles:true}));
+  await new Promise(r=>setTimeout(r,60));
+  const up=window.__schreib.find(x=>x.op==="update"&&x.t==="profiles");
+  return {email:up?up.patch.email:"(nichts)",imSpeicher:allProfiles.find(x=>x.id==="p2").email};
+ });
+ p(z.email===null&&z.imSpeicher===null,
+   "ein geleertes Feld entfernt die Adresse (NULL) - eine vertippte Adresse laesst sich wieder loswerden",z);
+
+ // Ungueltige Eingabe: gar kein Schreibbefehl.
+ await mitarbeiterAufbauen();
+ z=await page.evaluate(async()=>{
+  window.__schreib=[];
+  const f=document.querySelector('#employeeSettings [data-emp-email="0"]');
+  if(!f)return {fehlt:true};
+  f.value="kein-at-zeichen";
+  f.dispatchEvent(new Event("change",{bubbles:true}));
+  await new Promise(r=>setTimeout(r,60));
+  return {schreib:window.__schreib.length,zurueck:f.value,
+   imSpeicher:allProfiles.find(x=>x.id==="p1").email};
+ });
+ p(z.schreib===0,"eine ungueltige Adresse geht gar nicht erst an die Datenbank",z);
+ p(z.zurueck===""&&z.imSpeicher===null,"das Feld springt auf den alten Wert zurueck",z);
+
+ // Doppelte Adresse: die DATENBANK lehnt ab (profiles_email_key), die App
+ // uebersetzt 23505 in einen verstaendlichen Satz - sie prueft NICHT selbst
+ // vorher nach (das waere ein Wettlauf).
+ z=await page.evaluate(async()=>{
+  window.__updateAntwort={data:null,error:{code:"23505",message:'duplicate key value violates unique constraint "profiles_email_key"'}};
+  page_dialoge=[];
+  const alt=window.alert; const gesagt=[];
+  window.alert=t=>gesagt.push(String(t));
+  const f=document.querySelector('#employeeSettings [data-emp-email="0"]');
+  if(!f)return {fehlt:true};
+  f.value="beat@firma.ch";
+  f.dispatchEvent(new Event("change",{bubbles:true}));
+  await new Promise(r=>setTimeout(r,60));
+  window.alert=alt;
+  window.__updateAntwort=null;
+  return {gesagt,zurueck:f.value,imSpeicher:allProfiles.find(x=>x.id==="p1").email};
+ });
+ p(z.gesagt.length===1&&/bereits einem anderen Konto/.test(z.gesagt[0]),
+   "eine schon vergebene Adresse wird verstaendlich abgelehnt, nicht mit einem Datenbankfehler",z.gesagt);
+ p(z.zurueck===""&&z.imSpeicher===null,"und nichts wird uebernommen",z);
+
+ // 0 geschriebene Zeilen gelten NICHT als Erfolg (CLAUDE.md 24.1).
+ z=await page.evaluate(async()=>{
+  window.__updateAntwort={data:[],error:null};
+  const alt=window.alert; const gesagt=[];
+  window.alert=t=>gesagt.push(String(t));
+  const f=document.querySelector('#employeeSettings [data-emp-email="0"]');
+  if(!f)return {fehlt:true};
+  f.value="neu@firma.ch";
+  f.dispatchEvent(new Event("change",{bubbles:true}));
+  await new Promise(r=>setTimeout(r,60));
+  window.alert=alt;
+  window.__updateAntwort=null;
+  return {gesagt,zurueck:f.value,imSpeicher:allProfiles.find(x=>x.id==="p1").email};
+ });
+ p(z.gesagt.length===1&&/Berechtigung/.test(z.gesagt[0])&&z.imSpeicher===null,
+   "0 geschriebene Zeilen gelten NICHT als Erfolg - die RLS kann die Zeile stillschweigend herausfiltern",z);
+
+ // Ohne Administratorrecht gibt es das Feld gar nicht.
+ z=await page.evaluate(()=>{
+  meineRechte={admin:false,kataloge:false};
+  renderMitarbeiterSettings();
+  const da=document.querySelectorAll("#employeeSettings [data-emp-email]").length;
+  meineRechte={admin:true,kataloge:true};
+  renderMitarbeiterSettings();
+  return {da,wiederDa:document.querySelectorAll("#employeeSettings [data-emp-email]").length};
+ });
+ p(z.da===0&&z.wiederDa===2,
+   "ohne Administratorrecht faellt das Feld ganz weg - kein Element, das ohnehin nichts bewirken wuerde",z);
 
  p(jsFehler.length===0,"keine JavaScript-Fehler im ganzen Lauf",jsFehler);
  console.log("\n"+ok+" ok, "+fail+" fehlgeschlagen");

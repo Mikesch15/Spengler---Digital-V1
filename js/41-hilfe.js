@@ -1374,6 +1374,17 @@ nächsten Anmelden wieder ein eigenes.</p>
 <p>Wird ein Mitarbeiter entfernt, bleiben seine Projekte, Massaufnahmen und
 Rapporte vollständig erhalten. Im Verlauf steht dann "Unbekannter
 Benutzer".</p>
+<p><b>E-Mail (seit Version 3.130):</b> lässt sich jederzeit nachtragen –
+auch bei einem Mitarbeiter, der schon lange angelegt ist. Die Person kann
+sich danach <b>zusätzlich</b> mit dieser Adresse anmelden (der Benutzername
+gilt unverändert weiter) und ein vergessenes Passwort über „Passwort
+vergessen“ auf dem Anmeldebildschirm selbst zurücksetzen – ohne diese
+Adresse geht das nur über einen Administrator.</p>
+<p>Das Eintragen ändert <b>kein</b> Passwort und verschickt <b>keine</b>
+Nachricht. Jede Adresse kann nur zu <b>einem</b> Konto gehören; sonst wäre
+beim Anmelden nicht entscheidbar, wer gemeint ist – eine schon vergebene
+Adresse lehnt die App deshalb ab. Das Feld leer zu lassen entfernt die
+Adresse wieder.</p>
 <p><b>Funktion / Stundenansatz:</b> was hier hinterlegt ist, wird im
 Regierapport bei einer neuen Arbeitsposition automatisch vorgeschlagen –
 zusammen mit dem angemeldeten Benutzer selbst. Ändern lässt es sich in der

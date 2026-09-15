@@ -150,3 +150,7 @@ body.recht-einstellungen-ansehen #settingsModal [data-del-rinne-fitting]{display
 .mitarbeiter-funktion{margin-top:7px}
 .mitarbeiter-funktion label{display:block;margin-bottom:2px}
 .mitarbeiter-funktion select{width:100%}
+/* v3.130: dieselbe Zeile traegt jetzt auch ein Eingabefeld (E-Mail) - ohne
+   diese Regel waere es schmaler als das Auswahlfeld darueber. */
+.mitarbeiter-funktion input{width:100%}
+.mitarbeiter-funktion .small{margin-top:3px;line-height:1.35}

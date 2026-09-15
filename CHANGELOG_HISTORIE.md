@@ -30643,3 +30643,85 @@ zugeklappte Liste druckt vollständig.
 | `js/41-hilfe.js` | `am-positionen` um die Blöcke und den Stand im Titel erweitert |
 | `index.html`, `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.129 |
 | `pruefstaende/pruefstand-ausmass-abschnitte-v3-129.js` | neu, 19 Prüfungen |
+
+## 196. v3.130 – E-Mail einem bereits angelegten Mitarbeiter zuordnen
+
+Meldung des Anwenders: *"Es sollte die möglichkeit bestehe, einem bereits
+angelegten mitarbeiter nachträglich eine emailadresse zuzuordnen"*.
+
+### 196.1 Alles war da – bis auf den Weg dorthin
+
+Vor dem Bauen geprüft, was tatsächlich fehlt. Ergebnis: **fast nichts**.
+
+- `profiles.email` existiert seit v3.103 (nullable),
+- `profiles_email_key` ist ein **partieller UNIQUE-Index**
+  (`email WHERE email IS NOT NULL`) – die Eindeutigkeit erzwingt also bereits
+  die Datenbank,
+- die Anmeldung löst eine eingegebene E-Mail über die Edge Function
+  `resolve-login-email` zur echten Auth-Adresse auf (js/03-login.js),
+- „Passwort vergessen" (`password-reset`) funktioniert für jedes Konto **mit**
+  hinterlegter Adresse,
+- die Edge Function `smart-action` nimmt beim **Anlegen** eine optionale
+  E-Mail entgegen, prüft Format und Eindeutigkeit und schreibt sie.
+
+Was fehlte, war ausschliesslich: ein Feld, um sie bei einem **bestehenden**
+Konto zu setzen. Deshalb kam auch keine Migration und keine neue Edge
+Function dazu.
+
+### 196.2 Warum ein gewöhnliches update reicht
+
+Die RLS auf `profiles` erlaubt einem Administrator genau das schon:
+
+| Policy | Wirkung |
+| --- | --- |
+| `tenant_boundary_profiles_update` (RESTRICTIVE) | `company_id = my_company_id()` – nur innerhalb der eigenen Firma |
+| `profiles_update_permission` (PERMISSIVE) | `has_permission('profiles','edit') AND (id = auth.uid() OR is_admin())` |
+
+Also kein `SECURITY DEFINER`, keine Edge Function – dieselbe Bauart wie beim
+Feld „Funktion / Stundenansatz" direkt darüber (js/05a-rechte.js). Auch
+dieselben zwei Vorsichtsmassnahmen: `company_id` wird nie vom Client
+geschickt, und **0 geschriebene Zeilen gelten nicht als Erfolg**
+(CLAUDE.md 24.1) – die RLS kann eine Zeile stillschweigend herausfiltern.
+
+Auf eine eigene Doppelt-Prüfung vor dem Schreiben wurde **bewusst
+verzichtet**: sie wäre ein Wettlauf gegen gleichzeitige Änderungen. Stattdessen
+übersetzt die App den Fehler `23505` in einen verständlichen Satz.
+
+### 196.3 Was das Eintragen tut – und was nicht
+
+Ausdrücklich in der Oberfläche und in der Hilfe genannt, weil beim **Anlegen**
+mit E-Mail mehr passiert (dort verschickt `smart-action` die Zugangsdaten per
+Resend) und der Administrator das sonst auch hier erwarten würde:
+
+- Die Person meldet sich danach **zusätzlich** mit dieser Adresse an; der
+  Benutzername gilt unverändert weiter. Die Auth-E-Mail des Kontos bleibt die
+  Pseudo-Adresse – kein riskanter Umzug, dieselbe Entscheidung wie v3.103.
+- Ein vergessenes Passwort lässt sich danach selbst zurücksetzen.
+- Es ändert **kein** Passwort und verschickt **keine** Nachricht.
+- Leer lassen entfernt die Adresse wieder – eine vertippte Adresse muss man
+  loswerden können.
+
+### 196.4 Nebenbefund, nicht geändert
+
+Es gibt **zwei** Wege, einen Mitarbeiter anzulegen, und nur einer fragt nach
+der E-Mail:
+
+| Weg | E-Mail? |
+| --- | --- |
+| „＋ Mitarbeiterkonto anlegen" (Formular, js/07-einstellungen.js) | **nein** – schickt nur `first_name`/`last_name` |
+| „＋ Mitarbeiter hinzufügen" (Abfragen, js/08-katalog-blitzschutz.js) | ja, über `registerEmployee(vor,nach,email)` |
+
+Das erklärt die Meldung: wer den oberen Weg benutzt, hatte nie eine
+Gelegenheit, die Adresse anzugeben. Mit dieser Version lässt sie sich
+nachtragen. Das Formular selbst wurde **nicht** angefasst – das ist eine
+eigene Änderung und war nicht verlangt.
+
+### 196.5 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/05a-rechte.js` | E-Mail-Feld je Mitarbeiter in `renderMitarbeiterSettings()`, `mailFormatOk()`, `change`-Handler auf `[data-emp-email]` |
+| `css/04-rechte.css` | `.mitarbeiter-funktion input`, Abstand der Hinweiszeile |
+| `js/41-hilfe.js` | `einst-mitarbeiter` um die E-Mail erweitert |
+| `index.html`, `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.130 |
+| `pruefstaende/pruefstand-email-auth-v3-103.js` | `update()` in der Attrappe, Abschnitt 5 neu (13 Prüfungen) |

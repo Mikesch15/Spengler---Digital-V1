@@ -191,6 +191,23 @@ function renderMitarbeiterSettings(){
      ${settings.rates.map((r,ri)=>`<option value="${esc(rateIds[ri])}"${(p&&String(p.rate_id)===String(rateIds[ri]))?" selected":""}>${esc(r[0])} · CHF ${money(r[1])}</option>`).join("")}
     </select>
    </div>`;
+  // v3.130: E-Mail nachtraeglich zuordnen. Die Moeglichkeit gab es
+  // serverseitig schon seit v3.103 (smart-action nimmt beim ANLEGEN eine
+  // optionale E-Mail entgegen, profiles.email, beim Login aufgeloest durch
+  // resolve-login-email) - nur ein bereits angelegter Mitarbeiter kam nie
+  // mehr dazu. Gemeldet vom Anwender. Geschrieben wird mit einem
+  // gewoehnlichen update auf profiles: die RLS laesst das fuer einen
+  // Administrator innerhalb der eigenen Firma zu
+  // (profiles_update_permission + tenant_boundary_profiles_update), und die
+  // Eindeutigkeit erzwingt der partielle UNIQUE-Index profiles_email_key.
+  // Kein SECURITY DEFINER, keine neue Edge Function.
+  const mailFeld=darfVergeben?`<div class="mitarbeiter-funktion">
+    <label for="empEmail${i}">E-Mail (zus\u00e4tzliche Anmeldung, optional)</label>
+    <input id="empEmail${i}" type="email" inputmode="email" autocomplete="off"
+           data-emp-email="${i}" value="${esc((p&&p.email)||"")}"
+           placeholder="z. B. vorname.nachname@firma.ch">
+    <div class="small" style="color:var(--muted)">Damit meldet sich ${esc(e)} zus\u00e4tzlich zum Benutzernamen an und kann ein vergessenes Passwort selbst zur\u00fccksetzen. Das Passwort \u00e4ndert sich dadurch nicht, und es wird keine Nachricht verschickt. Leer lassen entfernt die Adresse wieder.</div>
+   </div>`:"";
   // v3.34: Offerte-Zugriff. Bewusst NICHT wie "Administrator" oben von
   // istAdmin abhaengig gemacht - ein Administrator hat diese Freigabe nicht
   // automatisch, sie ist eigens zu vergeben (feature_boundary_angebote
@@ -215,6 +232,7 @@ function renderMitarbeiterSettings(){
     <button class="red" data-del-emp="${i}">Löschen</button>
    </div>
    ${funktion}
+   ${mailFeld}
    ${offerteSchalter}
    ${lagerSchalter}
    <details class="rechte-details">
@@ -315,6 +333,65 @@ if($("employeeSettings")){
   // Der angemeldete Benutzer aendert seine eigene Funktion: die Vorbelegung
   // neuer Arbeitspositionen haengt daran.
   if(currentProfile&&currentProfile.id===profil.id)currentProfile.rate_id=data[0].rate_id;
+ });
+}
+
+// ---------------------------------------------------------------------------
+// v3.130  E-Mail eines bereits angelegten Mitarbeiters speichern
+// ---------------------------------------------------------------------------
+// Dieselbe Absicherung wie beim Feld "Funktion" darueber: ein gewoehnliches
+// update auf profiles (KEIN SECURITY DEFINER, keine Edge Function), und
+// 0 geschriebene Zeilen gelten ausdruecklich NICHT als Erfolg
+// (CLAUDE.md 24.1) - die RLS kann die Zeile stillschweigend herausfiltern.
+//
+// Die Eindeutigkeit erzwingt die Datenbank selbst: profiles_email_key ist ein
+// partieller UNIQUE-Index (email WHERE email IS NOT NULL). Eine doppelte
+// Adresse waere nicht nur unsauber, sondern mehrdeutig - resolve-login-email
+// muesste beim Anmelden raten. Die App prueft das deshalb NICHT selbst
+// nach (das waere ein Wettlauf), sondern uebersetzt den Fehler 23505 in
+// einen verstaendlichen Satz.
+//
+// Dieselbe Formatpruefung wie in der Edge Function smart-action, damit eine
+// beim Anlegen abgelehnte Adresse nicht nachtraeglich doch hereinkommt.
+function mailFormatOk(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) }
+if($("employeeSettings")){
+ $("employeeSettings").addEventListener("change",async e=>{
+  const feld=e.target.closest?e.target.closest("[data-emp-email]"):null;
+  if(!feld)return;
+  const i=Number(feld.dataset.empEmail);
+  const profil=allProfiles.find(x=>x.id===employeeIds[i]);
+  if(!profil)return;
+  const vorher=profil.email||"";
+  const wert=String(feld.value||"").trim().toLowerCase();
+  if(wert===vorher)return;
+  // Leer heisst: Adresse entfernen. Das muss moeglich sein - sonst waere eine
+  // einmal vertippte Adresse nicht mehr loszuwerden.
+  if(wert&&!mailFormatOk(wert)){
+   feld.value=vorher;
+   alert("Bitte eine gültige E-Mail-Adresse eingeben, oder das Feld leer lassen.");
+   return;
+  }
+  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Eine E-Mail-Adresse zu hinterlegen")){
+   feld.value=vorher;
+   return;
+  }
+  const {data,error}=await sb.from("profiles")
+    .update({email:wert||null,updated_at:new Date().toISOString()})
+    .eq("id",profil.id).select("id,email");
+  if(error||!data||!data.length){
+   feld.value=vorher;
+   const doppelt=error&&(error.code==="23505"||/duplicate key|profiles_email_key/i.test(error.message||""));
+   alert(doppelt
+    ?"Diese E-Mail-Adresse ist bereits einem anderen Konto zugeordnet. Jede Adresse kann nur zu EINEM Konto gehören - sonst wäre beim Anmelden nicht entscheidbar, wer gemeint ist."
+    :(error?("Die E-Mail-Adresse konnte nicht gespeichert werden: "+error.message)
+           :"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"));
+   return;
+  }
+  profil.email=data[0].email;
+  feld.value=data[0].email||"";
+  // Der angemeldete Benutzer aendert seine eigene Adresse - currentProfile
+  // ist eine eigene Kopie (js/03-login.js) und muss mitgezogen werden.
+  if(currentProfile&&currentProfile.id===profil.id)currentProfile.email=data[0].email;
  });
 }
 
