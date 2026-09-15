@@ -578,7 +578,7 @@ function zxingLaden(){
  return zxingLadenPromise;
 }
 
-let barcodeScanCodeReader=null, barcodeScanControls=null;
+let barcodeScanCodeReader=null, barcodeScanControls=null, barcodeScanAktuellerCallback=null;
 
 // Dieselbe Wunsch-Vorgabe wie beim ersten Oeffnen (siehe barcodeScannen) -
 // eigene Funktion, damit sie an genau einer Stelle steht.
@@ -601,28 +601,76 @@ function barcodeScanSchliessen(){
 }
 if($("barcodeScanAbbrechen"))$("barcodeScanAbbrechen").onclick=barcodeScanSchliessen;
 
-// v3.112: RUECKBAU. Der Anwender bestaetigte, dass auch der in v3.111
-// isolierte Einzelfoto-Versuch (ImageCapture.takePhoto() OHNE Stream-
-// Neustart) das Kamerabild schwarz werden liess - damit ist geklaert, dass
-// nicht der Stream-Neustart aus v3.108 die (alleinige) Ursache war, sondern
-// takePhoto() selbst auf diesem Geraet/Browser unsicher ist. Beide
-// getesteten aktiven Eingriffe in den Kamera-Stream (Stream-Neustart,
-// Einzelfoto) sind damit als Ursache fuer ein schwarzes Bild bestaetigt.
-// Es bleibt endgueltig nur die urspruengliche, rein additive
-// Vorgabe-Aenderung auf dem bestehenden Track (kein neuer Stream, keine
-// Fotoaufnahme, der Track wird nie angetastet) - siehe v3.107/v3.110.
+// v3.113: NEUE ARCHITEKTUR nach zwei bestaetigten Fehlschlaegen. Die
+// gemeinsame Ursache beider bisherigen Versuche: zu einem Zeitpunkt waren
+// ZWEI Kamerazugriffe gleichzeitig aktiv - v3.108 forderte den neuen Stream
+// an, BEVOR der alte gestoppt war; v3.111 rief takePhoto() auf einem
+// Track auf, der gleichzeitig WEITER als Vorschau lief. Diese Version
+// stellt sicher, dass zu KEINEM Zeitpunkt mehr als ein Kamerazugriff aktiv
+// ist: die Vorschau wird ERST VOLLSTAENDIG GESTOPPT (Track gestoppt,
+// video.srcObject geloescht), dann - nach einer kurzen Wartezeit, damit die
+// Hardware die Kamera tatsaechlich freigibt - ein KOMPLETT NEUER Stream
+// AUSSCHLIESSLICH fuer die Fotoaufnahme angefordert, sofort nach dem Foto
+// wieder freigegeben, und erst DANACH (wieder als einziger aktiver Zugriff)
+// ein neuer Vorschau-Stream angefordert. Das aufgenommene Foto nutzt
+// denselben Einzelbild-Aufnahmepfad wie eine native Kamera-App (siehe
+// v3.109/v3.111) - der eigentliche Grund fuer den Versuch, da der
+// Dauerautofokus des Vorschau-Streams beim Anwender bei kurzer Distanz
+// nicht ausreicht.
+//
+// Ehrliche Einschraenkung: aus dieser Sandbox ist kein Live-Test mit einer
+// echten Geraetekamera moeglich (wiederholt dokumentierte, bestehende
+// Grenze). Ob diese dritte, sorgfaeltiger getrennte Variante das schwarze
+// Bild tatsaechlich vermeidet, kann nur der Anwender am eigenen Geraet
+// bestaetigen.
 async function barcodeScanNeuFokussieren(){
  const video=$("barcodeScanVideo");
- const track=video&&video.srcObject&&video.srcObject.getVideoTracks&&video.srcObject.getVideoTracks()[0];
- if(!track||!track.applyConstraints)return;
+ const alterStream=video&&video.srcObject;
+ if(!alterStream)return;
+ if(typeof ImageCapture==="undefined"||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return;
+
+ // 1) Vorschau VOLLSTAENDIG stoppen, bevor irgendein neuer Kamerazugriff
+ //    angefordert wird - zu keinem Zeitpunkt sind zwei Zugriffe gleichzeitig
+ //    aktiv.
+ video.srcObject=null;
+ try{ alterStream.getTracks().forEach(t=>t.stop()); }catch(e){}
+ await new Promise(r=>setTimeout(r,200));
+
+ // 2) Neuen Stream AUSSCHLIESSLICH fuer die Fotoaufnahme anfordern, Foto
+ //    aufnehmen und den Stream direkt danach wieder freigeben.
+ let text=null, fotoStream=null;
  try{
-  const caps=(typeof track.getCapabilities==="function")?track.getCapabilities():null;
-  if(caps&&caps.focusDistance&&caps.focusMode&&caps.focusMode.indexOf("manual")!==-1){
-   await track.applyConstraints({advanced:[{focusMode:"manual",focusDistance:caps.focusDistance.min}]});
-   await new Promise(r=>setTimeout(r,250));
+  fotoStream=await navigator.mediaDevices.getUserMedia(barcodeScanWunschKonstraint());
+  const track=fotoStream.getVideoTracks()[0];
+  const capture=new ImageCapture(track);
+  const blob=await capture.takePhoto();
+  if(barcodeScanCodeReader&&typeof barcodeScanCodeReader.decodeFromImageElement==="function"){
+   const bitmap=await createImageBitmap(blob);
+   const canvas=document.createElement("canvas");
+   canvas.width=bitmap.width;canvas.height=bitmap.height;
+   canvas.getContext("2d").drawImage(bitmap,0,0);
+   const result=await barcodeScanCodeReader.decodeFromImageElement(canvas);
+   text=result?result.getText():null;
   }
-  await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
- }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
+ }catch(e){/* Fotoaufnahme fehlgeschlagen - Vorschau wird unten trotzdem neu gestartet */}
+ finally{
+  try{ if(fotoStream)fotoStream.getTracks().forEach(t=>t.stop()); }catch(e){}
+ }
+
+ if(text){
+  const cb=barcodeScanAktuellerCallback;
+  barcodeScanSchliessen();
+  if(cb)cb(text);
+  return;
+ }
+
+ // 3) Kein Code gefunden (oder Fotoaufnahme fehlgeschlagen): Vorschau fuer
+ //    die Weitersuche neu anfordern - wieder als einziger aktiver Zugriff.
+ try{
+  const neuerVorschauStream=await navigator.mediaDevices.getUserMedia(barcodeScanWunschKonstraint());
+  video.srcObject=neuerVorschauStream;
+  if(typeof video.play==="function")video.play().catch(()=>{});
+ }catch(e){/* Vorschau-Neustart fehlgeschlagen - kein Fehler sichtbar */}
 }
 if($("barcodeScanVideo"))$("barcodeScanVideo").addEventListener("click",barcodeScanNeuFokussieren);
 
@@ -644,6 +692,7 @@ async function barcodeScannen(callback){
  if(status){status.textContent="Kamera wird gestartet …";status.style.color="#fff"}
  try{
   barcodeScanCodeReader=new ZXing.BrowserMultiFormatReader();
+  barcodeScanAktuellerCallback=callback;
   const aufTreffer=(result,err,controls)=>{
    barcodeScanControls=controls;
    if(result){

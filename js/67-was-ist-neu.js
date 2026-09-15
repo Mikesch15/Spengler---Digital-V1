@@ -61,7 +61,8 @@ const WIN_CHANGELOG={
  "3.109":["Barcode-Scan: das Antippen zum Fokussieren nimmt jetzt zusätzlich ein Einzelfoto auf und sucht direkt darin nach dem Code - nutzt denselben Aufnahmeweg wie die normale Kamera-App, nicht nur den Video-Autofokus."],
  "3.110":["Fehler behoben: beim Barcode-Scan konnte das Kamerabild nach dem Antippen zum Fokussieren komplett schwarz bleiben - die dafür verantwortliche Änderung wurde zurückgenommen."],
  "3.111":["Barcode-Scan: das Antippen zum Fokussieren nimmt wieder zusätzlich ein Einzelfoto auf und sucht direkt darin nach dem Code - diesmal ohne den Kamera-Neustart, der zuvor zum schwarzen Bild führte."],
- "3.112":["Fehler behoben: die Einzelfoto-Aufnahme beim Antippen zum Fokussieren konnte das Kamerabild ebenfalls schwarz werden lassen - wurde wieder entfernt. Das Antippen bleibt vorerst ohne sichtbare Wirkung bei sehr kurzer Distanz."]
+ "3.112":["Fehler behoben: die Einzelfoto-Aufnahme beim Antippen zum Fokussieren konnte das Kamerabild ebenfalls schwarz werden lassen - wurde wieder entfernt. Das Antippen bleibt vorerst ohne sichtbare Wirkung bei sehr kurzer Distanz."],
+ "3.113":["Barcode-Scan: der Fokus-Mechanismus wurde neu aufgebaut - die Kamera-Vorschau wird jetzt vollständig angehalten, bevor ein Einzelfoto aufgenommen wird, und danach für die Weitersuche neu gestartet. Das soll das zuvor gemeldete schwarze Bild vermeiden."]
 };
 
 function winVersionVergleich(a,b){

@@ -28976,3 +28976,112 @@ Fehlschläge.
 | `PROJECT_STATE.md` | Versionsstand 3.112 |
 | `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.112"]` ergänzt |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13 auf v3.107-Umfang zurückgebaut (4 Prüfungen entfernt) |
+
+## 179. UMBAU: STRIKT GETRENNTE VORSCHAU- UND FOTO-ZUGRIFFE — VERSION 3.113
+
+### 179.1 Anlass und Entscheidung des Anwenders
+
+Rückmeldung nach v3.112: den Barcode einfach weiter von der Kamera
+wegzuhalten funktioniert nicht als Zwischenlösung, weil der Code dann zu
+klein zum Lesen wird. Der Anwender entschied sich explizit für den
+grösseren Umbau statt eines Workarounds ("Ich würde das umbauen").
+
+### 179.2 Root-Cause-Analyse über beide gescheiterten Versuche hinweg
+
+Ein Vergleich der beiden bestätigt fehlgeschlagenen Ansätze zeigt ein
+gemeinsames Muster, das zuvor nicht explizit benannt war:
+
+- **v3.108 (Stream-Neustart):** `navigator.mediaDevices.getUserMedia()`
+  wurde aufgerufen, **bevor** der alte Stream gestoppt wurde - für einen
+  Moment waren zwei Kamerazugriffe auf dieselbe physische Kamera aktiv.
+- **v3.111 (Einzelfoto, isoliert):** `ImageCapture.takePhoto()` wurde auf
+  einem Track aufgerufen, der zu diesem Zeitpunkt **weiterhin** aktiv als
+  Vorschau lief - ebenfalls zwei gleichzeitig aktive Nutzungsarten
+  derselben Kamera-Hardware, nur über einen anderen Mechanismus.
+
+In **beiden** Fällen war also zu irgendeinem Zeitpunkt mehr als ein
+Kamerazugriff gleichzeitig aktiv - eine auf Mobilgeräten bekannte
+Risikoquelle für Hardware-/Treiber-Kollisionen. Das war die entscheidende
+Erkenntnis für den Umbau: eine Lösung muss das für jeden Codepfad
+ausschliessen, nicht nur einen der beiden untersuchten Mechanismen
+vermeiden.
+
+### 179.3 Neue Architektur
+
+`barcodeScanNeuFokussieren()` (js/01-basis.js) wurde komplett neu gebaut,
+in drei strikt sequenziellen, nie überlappenden Schritten:
+
+1. **Vorschau vollständig stoppen:** `video.srcObject = null`, alle
+   Tracks des bisherigen Streams gestoppt, danach eine kurze Wartezeit
+   (200 ms), damit die Kamera-Hardware die Freigabe auch tatsächlich
+   vollzieht, bevor irgendetwas Neues angefordert wird.
+2. **Einzelfoto:** ein komplett NEUER Stream wird **ausschliesslich**
+   für die Fotoaufnahme angefordert, `ImageCapture.takePhoto()` darauf
+   aufgerufen, das Foto per `decodeFromImageElement()` auf einen Barcode
+   untersucht, und der Foto-Stream **sofort danach** wieder freigegeben -
+   unabhängig vom Ergebnis.
+3. **Vorschau neu anfordern:** wurde kein Code gefunden, wird ein
+   weiterer, wieder komplett neuer Stream für die fortlaufende Vorschau
+   angefordert und in `video.srcObject` eingehängt, damit der Anwender
+   weiter suchen kann. Wurde ein Code gefunden, schliesst stattdessen der
+   Scanner wie gewohnt.
+
+Zu **keinem** Zeitpunkt in diesem Ablauf sind zwei Kamerazugriffe
+gleichzeitig aktiv - der alte Zugriff ist immer vollständig beendet,
+bevor der nächste beginnt. Das unterscheidet diese Version fundamental
+von beiden vorherigen, gescheiterten Versuchen. Die alte, additive
+`focusDistance`-Vorgabe-Änderung (Stufe 1 aus v3.107/v3.110) entfällt
+komplett - sie war ohnehin auf dem Gerät des Anwenders wirkungslos und
+hätte in diesem Ablauf keinen zusätzlichen Nutzen mehr.
+
+Unterstützt der Browser `ImageCapture` oder `getUserMedia` nicht, bricht
+die Funktion sofort ab, **ohne** die laufende Vorschau überhaupt
+anzufassen - kein sinnloses Stoppen/Neustarten ohne Aussicht auf Erfolg.
+Schlägt die Fotoanforderung fehl (z. B. Kamera kurzzeitig nicht
+verfügbar), wird kein Fehler sichtbar - die Vorschau wird trotzdem
+danach neu angefordert, damit der Anwender nicht mit leerem Bildschirm
+dasteht.
+
+### 179.4 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 13
+vollständig neu geschrieben (die alten Stufe-1-Prüfungen entfallen, da
+diese Vorgabe-Änderung nicht mehr existiert): geprüft wird die exakte
+REIHENFOLGE der Aufrufe (alter Stream zuerst vollständig gestoppt, dann
+erst ein neuer Stream angefordert, Foto aufgenommen, Foto-Stream sofort
+freigegeben, danach ein zweiter neuer Stream für die Vorschau), der Fall
+ohne `ImageCapture`-Unterstützung (Vorschau bleibt unangetastet), und der
+Fall eines fehlschlagenden Fotoversuchs (Vorschau wird trotzdem neu
+gestartet, kein sichtbarer Fehler). 9 Prüfungen in Abschnitt 13, 72
+Prüfungen insgesamt in diesem Prüfstand, alle bestanden. Volle Regression
+aller Prüfstände im Anschluss ohne neue Fehlschläge.
+
+**Ehrliche Grenze, dem Anwender explizit mitgeteilt:** kein Live-Test mit
+einer echten Gerätekamera aus dieser Sandbox möglich (wiederholt
+dokumentierte, bestehende Grenze). Die neue Architektur ist der dritte
+Lösungsversuch und baut gezielt auf den Erkenntnissen der beiden
+vorherigen, gescheiterten Versuche auf - ob sie das schwarze Bild
+tatsächlich vermeidet, kann aber nur der Anwender am eigenen Gerät
+bestätigen. Er wurde ausdrücklich gebeten, sofort zurückzumelden, falls
+das Bild erneut schwarz wird.
+
+### 179.5 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | `barcodeScanNeuFokussieren()` komplett neu gebaut (Vorschau stoppen → Einzelfoto → Vorschau neu starten, nie überlappend); `barcodeScanAktuellerCallback` wieder eingeführt |
+| `sw.js` | Cache-Version 3.113 |
+| `PROJECT_STATE.md` | Versionsstand 3.113 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.113"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13 vollständig neu geschrieben (9 Prüfungen für die neue Architektur) |
+
+### 179.6 Offene Punkte
+
+- Kein Live-Test mit echter Kamera möglich - Rückmeldung des Anwenders
+  ist weiterhin der einzige verlässliche Test.
+- Sollte auch diese Architektur das schwarze Bild nicht vermeiden, wäre
+  das ein starkes Indiz, dass die Kamera-Hardware/der Treiber dieses
+  Geräts grundsätzlich keinen `ImageCapture`/`takePhoto()`-Zugriff
+  verträgt, unabhängig von Reihenfolge oder Timing - dann bliebe nur der
+  endgültige Verzicht auf jede Fotoaufnahme (Rückkehr zum reinen
+  v3.107/v3.110/v3.112-Stand) als einzige verbleibende, sichere Option.
