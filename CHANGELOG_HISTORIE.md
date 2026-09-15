@@ -28833,3 +28833,86 @@ Fehlschläge.
 - Kein Live-Test mit echter Kamera aus dieser Sandbox möglich - auch der
   Rückbau selbst kann nur strukturell (Prüfstand), nicht am echten Gerät
   bestätigt werden.
+
+## 177. ISOLIERTE WIEDEREINFÜHRUNG: EINZELFOTO OHNE STREAM-WECHSEL — VERSION 3.111
+
+### 177.1 Anlass
+
+Rückmeldung des Anwenders nach v3.110: kein schwarzes Bild mehr (Rückbau
+hat funktioniert), aber der Tipp zum Fokussieren bewirkt weiterhin
+**nichts sichtbares** - die einzig verbliebene Massnahme (`focusDistance`-
+Vorgabe) ist auf seinem Gerät offenbar wirkungslos, wie bereits nach
+v3.107 vermutet. Das Ausgangsproblem (Unschärfe bei kurzer Distanz) ist
+damit weiterhin ungelöst, jetzt aber ohne die schwerwiegende Nebenwirkung
+aus v3.108/v3.109.
+
+### 177.2 Entscheidung: gezielte, isolierte Wiedereinführung
+
+Der Anwender hatte bereits vor der Regression bestätigt, dass seine
+normale Kamera-App auf demselben Barcode aus derselben Distanz
+problemlos scharfstellt (siehe Abschnitt 175) - der Einzelfoto-Ansatz aus
+v3.109 (`ImageCapture.takePhoto()`) zielt architektonisch genau auf
+diesen funktionierenden nativen Aufnahmepfad. Aus der Root-Cause-Analyse
+in Abschnitt 176 sind zwei GETRENNTE Änderungen in v3.108/v3.109 als
+mögliche Ursache des schwarzen Bilds identifiziert worden:
+
+- **v3.108 (Stream-Neustart):** ein zweiter, GLEICHZEITIGER
+  `navigator.mediaDevices.getUserMedia()`-Zugriff auf dieselbe Kamera,
+  während der erste Stream noch aktiv war - eine auf Mobilgeräten
+  bekannte Risikoquelle für Kamera-Hardware-Kollisionen.
+- **v3.109 (Einzelfoto):** `ImageCapture.takePhoto()` auf dem laufenden
+  Track. Laut MediaCapture-Image-Spezifikation ist die **gleichzeitige**
+  Nutzung von Foto- und Video-Funktion DESSELBEN, nie ersetzten Tracks
+  ausdrücklich der vorgesehene Regelfall dieser API - kein Sonderfall wie
+  der zweite Stream-Zugriff aus v3.108.
+
+Diese Version führt deshalb **gezielt nur** den Einzelfoto-Versuch
+wieder ein, **ohne** den Stream-Neustart. `barcodeScanFotoVersuch()`
+(js/01-basis.js) ist strukturell identisch zur v3.109-Fassung
+(`ImageCapture` + `takePhoto()` + `decodeFromImageElement()` auf dem
+aufgenommenen Foto), wird aber jetzt IMMER auf dem ursprünglichen, nie
+ersetzten Track aus `barcodeScannen()` aufgerufen - `video.srcObject`
+wird an keiner Stelle mehr verändert.
+
+**Wichtiger Vorbehalt, offen gegenüber dem Anwender kommuniziert:** eine
+100%ige Gewissheit, dass ausschliesslich der Stream-Neustart (und nicht
+auch `takePhoto()` selbst) für das schwarze Bild verantwortlich war, gibt
+es aus dieser Sandbox nicht - diese Version ist ein bewusst isolierter,
+einzelner Test, der das eindeutig klären wird. Der Anwender wurde um
+sofortige Rückmeldung gebeten, insbesondere falls das Bild erneut
+schwarz wird.
+
+### 177.3 Getestet
+
+`pruefstaende/pruefstand-lagerverwaltung-v3-98.js`, Abschnitt 13 um 4
+Prüfungen erweitert (gegenüber dem v3.110-Rückbau-Stand): `ImageCapture`
+wird mit dem AKTUELLEN, nie ersetzten Track konstruiert, nimmt ein Foto
+auf, und `video.srcObject` bleibt dabei nachweislich unverändert (kein
+Stream-Wechsel) - sowie der Fall ohne `ImageCapture`-Unterstützung. 8
+Prüfungen in Abschnitt 13, 71 Prüfungen insgesamt in diesem Prüfstand,
+alle bestanden. Volle Regression aller Prüfstände im Anschluss ohne neue
+Fehlschläge.
+
+### 177.4 Geänderte Dateien
+
+| Ort | Änderung |
+|---|---|
+| `js/01-basis.js` | `barcodeScanFotoVersuch()` wieder eingeführt (wie v3.109, ohne Stream-Neustart); `barcodeScanNeuFokussieren()` ruft sie zusätzlich nach der Vorgabe-Änderung auf; `barcodeScanAktuellerCallback` wieder eingeführt |
+| `sw.js` | Cache-Version 3.111 |
+| `PROJECT_STATE.md` | Versionsstand 3.111 |
+| `js/67-was-ist-neu.js` | `WIN_CHANGELOG["3.111"]` ergänzt |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 13 um 4 Prüfungen erweitert (Einzelfoto ohne Stream-Wechsel) |
+
+### 177.5 Offene Punkte
+
+- Kein Live-Test mit echter Kamera möglich - Rückmeldung des Anwenders
+  ist der einzige verlässliche Test, insbesondere ob das Bild diesmal
+  NICHT schwarz wird.
+- Sollte auch dieser isolierte Versuch das Bild schwarz werden lassen,
+  wäre damit geklärt, dass `ImageCapture.takePhoto()` selbst (nicht der
+  Stream-Neustart) die Ursache ist - dann bliebe nur der Rückbau auf den
+  reinen v3.107-Stand ohne jede Fotoaufnahme, und die Unschärfe müsste
+  unbehoben bleiben oder auf einem ganz anderen Weg (z. B. grösserer
+  Umbau auf durchgehende Einzelfoto-Erkennung statt Video-Scan,
+  bereits in Abschnitt 175.5 als möglicher, deutlich grösserer nächster
+  Schritt festgehalten) angegangen werden.
