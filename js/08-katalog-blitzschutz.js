@@ -74,8 +74,29 @@ function searchBlitzschutzMaterials(q){
 // Liest die erste Tabelle einer hochgeladenen Excel-/CSV-Datei ein und
 // zeigt sie vor dem Speichern zur Kontrolle an – so lässt sich das
 // bisherige Abtippen nach Foto durch einen echten Import ersetzen,
-// ohne dass unbemerkt falsche Spalten landen. Ergänzt die bestehende
-// Liste nur, löscht oder überschreibt nichts.
+// ohne dass unbemerkt falsche Spalten landen.
+//
+// v3.134: der Import ERGÄNZT nicht mehr nur, er gleicht ab. Bis dahin war
+// es ein reines insert(): eine schon vorhandene Nummer liess den ganzen
+// Import an der Eindeutigkeitsregel scheitern (UNIQUE auf edv_nr bzw.
+// artikel_nr) – es kam also weder die Korrektur noch die neue Position an.
+// Jetzt wird über die Nummer abgeglichen (upsert): bekannt = die
+// zugeordneten Felder werden aktualisiert, unbekannt = neu angelegt.
+//
+// Drei Dinge, die dabei bewusst so und nicht anders sind:
+//  1. Es werden NUR zugeordnete Spalten geschrieben. Eine Spalte, die in
+//     der Datei fehlt, bleibt in der Datenbank unangetastet – sonst würde
+//     eine Preisliste ohne Dimensionsspalte alle Dimensionen leeren.
+//  2. Es wird NICHTS gelöscht. Eine Position, die in der Datei fehlt,
+//     bleibt bestehen. Löschen wäre hier besonders gefährlich:
+//     lager_varianten.material_id steht auf CASCADE, mit der Position
+//     verschwänden alle daran hängenden Produkte samt Barcode.
+//  3. Die id bleibt erhalten. Lagerbestand, Reststücke, Reservierungen und
+//     Produkte verweisen darauf – ein Abgleich über die Nummer lässt diese
+//     Verbindungen unberührt.
+// Die Vorschau sagt vorher, was passiert: wie viele Zeilen neu sind, wie
+// viele geändert werden (mit alt → neu je Feld) und wie viele gleich
+// bleiben.
 async function excelZeilenLesen(file){
  const buf=await file.arrayBuffer();
  const wb=XLSX.read(buf,{type:"array"});
@@ -179,6 +200,45 @@ function initExcelImport(cfg){
   if(i===undefined)return f.zahl?0:"";
   return f.zahl?excelZahlLesen(z[i]):String(z[i]??"").trim();
  }
+ // Nur die FELDER, die wirklich einer Spalte zugeordnet sind. Was die Datei
+ // nicht mitbringt, steht auch nicht im Datensatz - beim Abgleich bleibt das
+ // Feld in der Datenbank dadurch unangetastet, statt geleert zu werden.
+ function zugeordneteFelder(){
+  return cfg.felder.filter(f=>zuordnung[f.key]!==undefined);
+ }
+ function eintragAus(z){
+  const o={};
+  zugeordneteFelder().forEach(f=>{ o[f.key]=wert(z,f); });
+  return o;
+ }
+ // Zwei Werte desselben Feldes vergleichen. Zahlen auf Rappen genau, damit
+ // 7.9 und 7.90 nicht als Aenderung gelten.
+ function gleicherWert(f,a,b){
+  if(f.zahl)return Math.round((Number(a)||0)*100)===Math.round((Number(b)||0)*100);
+  return String(a??"").trim()===String(b??"").trim();
+ }
+ // Jede importierbare Zeile einordnen: neu, geaendert (mit alt -> neu je
+ // Feld) oder unveraendert. Grundlage ist der Bestand, den die Aufrufstelle
+ // liefert - derselbe, den der Anwender in den Einstellungen sieht.
+ function einstufen(daten){
+  const bestand=(typeof cfg.bestand==="function")?(cfg.bestand()||{}):{};
+  const neu=[],geaendert=[],unveraendert=[];
+  const felder=zugeordneteFelder().filter(f=>f.key!==cfg.schluessel);
+  daten.forEach(z=>{
+   const e=eintragAus(z);
+   const schl=String(e[cfg.schluessel]??"").trim();
+   const da=bestand[schl];
+   if(!da){ neu.push({schl,e}); return; }
+   const aenderungen=[];
+   felder.forEach(f=>{
+    if(!gleicherWert(f,da[f.key],e[f.key]))
+     aenderungen.push({label:f.label,alt:da[f.key],neu:e[f.key]});
+   });
+   if(aenderungen.length)geaendert.push({schl,e,aenderungen});
+   else unveraendert.push({schl,e});
+  });
+  return {neu,geaendert,unveraendert};
+ }
  // Was am Import noch nicht stimmt. Ehrlich benannt statt eines pauschalen
  // "Fehler beim Import".
  function pruefen(daten){
@@ -202,18 +262,48 @@ function initExcelImport(cfg){
   const daten=datenZeilen();
   const gut=verwendbar(daten);
   const meldungen=pruefen(daten);
-  $(cfg.countId).textContent=`${gut.length} von ${daten.length} Zeilen werden importiert `
-   +`(die Datei hat ${zeilen.length} Zeilen und ${spaltenAnzahl()} Spalten).`;
+  const st=einstufen(gut);
+  // Was der Anwender VOR dem Speichern wissen muss: nicht "wie viele Zeilen
+  // hat die Datei", sondern was der Abgleich mit seinem Katalog anrichtet.
+  $(cfg.countId).innerHTML=
+    `<b>${st.neu.length}</b> neu · <b>${st.geaendert.length}</b> werden geändert · `
+   +`${st.unveraendert.length} unverändert`
+   +`<div class="small" style="color:var(--muted);margin-top:2px">`
+   +`${gut.length} von ${daten.length} Zeilen sind vollständig `
+   +`(die Datei hat ${zeilen.length} Zeilen und ${spaltenAnzahl()} Spalten). `
+   +`Es wird nichts gelöscht: Positionen, die in der Datei fehlen, bleiben stehen.</div>`;
   const fb=$(cfg.fehlerId);
   if(fb){
-   fb.innerHTML=meldungen.length
-    ? meldungen.map(m=>`<div style="color:#8a5312">⚠️ ${esc(m)}</div>`).join("")
+   const hinweise=meldungen.slice();
+   // Nicht zugeordnete Felder sind hier KEIN Fehler, aber der Anwender soll
+   // wissen, dass sie unangetastet bleiben statt geleert zu werden.
+   const offen=cfg.felder.filter(f=>!f.pflicht&&zuordnung[f.key]===undefined).map(f=>f.label);
+   if(offen.length)hinweise.push(
+    `Ohne Spalte: ${offen.join(", ")} – diese Felder bleiben bei bestehenden Positionen unverändert.`);
+   fb.innerHTML=hinweise.length
+    ? hinweise.map(m=>`<div style="color:#8a5312">⚠️ ${esc(m)}</div>`).join("")
     : '<div style="color:var(--green)">✓ Alle Pflichtfelder sind zugeordnet.</div>';
   }
-  const kopf="<tr>"+cfg.felder.map(f=>`<th>${esc(f.label)}</th>`).join("")+"</tr>";
-  const rumpf=gut.slice(0,200).map(z=>"<tr>"+cfg.felder.map(f=>`<td>${esc(String(wert(z,f)))}</td>`).join("")+"</tr>").join("");
+  // Die Tabelle zeigt zuerst, was sich ÄNDERT - das ist das Heikle. Je Zeile
+  // steht alt → neu, damit ein verrutschter Preis vor dem Speichern auffällt.
+  const kopf="<tr><th>Was</th>"+cfg.felder.map(f=>`<th>${esc(f.label)}</th>`).join("")+"<th>Änderung</th></tr>";
+  const zelle=(e,f)=>`<td>${esc(String(e[f.key]??""))}</td>`;
+  const zeileHtml=(eintrag,art,text)=>"<tr>"+art
+   +cfg.felder.map(f=>zelle(eintrag.e,f)).join("")+`<td class="small">${text}</td></tr>`;
+  const aendTxt=a=>a.aenderungen.map(x=>
+    `${esc(x.label)}: ${esc(String(x.alt??""))} → <b>${esc(String(x.neu??""))}</b>`).join("<br>");
+  const rumpf=
+    st.geaendert.slice(0,200).map(a=>zeileHtml(a,'<td style="color:#8a5312">geändert</td>',aendTxt(a))).join("")
+   +st.neu.slice(0,200).map(a=>zeileHtml(a,'<td style="color:var(--green)">neu</td>',"")).join("")
+   +st.unveraendert.slice(0,50).map(a=>zeileHtml(a,'<td style="color:var(--muted)">gleich</td>',"")).join("");
   $(cfg.tableId).innerHTML=kopf+rumpf;
-  const k=$(cfg.confirmId); if(k)k.disabled=!gut.length;
+  const k=$(cfg.confirmId);
+  if(k){
+   k.disabled=!gut.length;
+   k.textContent=st.neu.length||st.geaendert.length
+    ? `✅ ${st.neu.length} anlegen, ${st.geaendert.length} ändern`
+    : "✅ Import bestätigen";
+  }
  }
  $(cfg.headerCheckId).addEventListener("change",()=>{
   if($(cfg.headerCheckId).checked&&!Object.keys(zuordnung).length)
@@ -224,19 +314,51 @@ function initExcelImport(cfg){
  $(cfg.confirmId).onclick=async()=>{
   const daten=verwendbar(datenZeilen());
   if(!daten.length){ alert("Keine vollständigen Zeilen zum Importieren gefunden."); return; }
-  const eintraege=daten.map(z=>{
-   const o={};
-   cfg.felder.forEach(f=>{ o[f.key]=wert(z,f); });
-   return o;
+  const st=einstufen(daten);
+  // Nur die zugeordneten Felder schreiben (s. eintragAus): was die Datei
+  // nicht mitbringt, bleibt in der Datenbank stehen. Und nur, was wirklich
+  // neu oder geaendert ist - unveraenderte Positionen werden gar nicht erst
+  // angefasst, damit ein Import mit 400 Zeilen nicht 400 Zeilen umschreibt.
+  const eintraege=st.neu.concat(st.geaendert).map(x=>x.e);
+  // Doppelte Nummern INNERHALB der Datei wuerden im selben Befehl zweimal
+  // auf dieselbe Zeile treffen - Postgres lehnt das ab ("cannot affect row
+  // a second time"). Geprueft wird ueber ALLE Zeilen der Datei, nicht nur
+  // die zu schreibenden: doppelte Nummern heissen immer, dass die Datei
+  // nicht eindeutig sagt, was gelten soll.
+  const gesehen={},doppelt=[];
+  daten.map(eintragAus).forEach(e=>{
+   const k=String(e[cfg.schluessel]??"").trim();
+   if(gesehen[k])doppelt.push(k); else gesehen[k]=true;
   });
+  if(doppelt.length){
+   alert("Die Datei enthält dieselbe Nummer mehrfach: "+[...new Set(doppelt)].slice(0,10).join(", ")
+    +"\n\nBitte in der Datei bereinigen - sonst ist nicht bestimmt, welche Zeile gilt.");
+   return;
+  }
+  if(!eintraege.length){
+   alert("Alle Positionen der Datei sind bereits so im Katalog - es gibt nichts zu ändern.");
+   return;
+  }
+  if(!confirm(`${st.neu.length} Position(en) neu anlegen und ${st.geaendert.length} ändern?`
+    +`\n\nEs wird nichts gelöscht. Positionen, die in der Datei fehlen, bleiben bestehen.`))return;
   $(cfg.confirmId).disabled=true;
-  const {data,error}=await sb.from(cfg.tableName).insert(eintraege).select();
+  // v3.134: upsert statt insert - Abgleich ueber die Nummer. Ohne
+  // onConflict wuerde eine bekannte Nummer an der Eindeutigkeitsregel
+  // scheitern und der ganze Import fiele aus.
+  const {data,error}=await sb.from(cfg.tableName)
+    .upsert(eintraege,{onConflict:cfg.schluessel}).select();
   $(cfg.confirmId).disabled=false;
   if(error){ alert("Fehler beim Import: "+error.message); return; }
-  // Ein von RLS geblocktes INSERT meldet keinen Fehler, es betrifft still
-  // 0 Zeilen (CLAUDE.md 24.1) - deshalb wird das Ergebnis geprueft.
+  // Ein von RLS geblockter Schreibvorgang meldet keinen Fehler, er betrifft
+  // still 0 Zeilen (CLAUDE.md 24.1) - deshalb wird das Ergebnis geprueft.
   if(!data||!data.length){ alert("Es wurde nichts importiert. Fehlt die nötige Berechtigung?"); return; }
-  alert(`${data.length} Positionen importiert.`);
+  if(data.length<eintraege.length){
+   alert(`Achtung: ${data.length} von ${eintraege.length} Zeilen wurden geschrieben. `
+    +`Die übrigen wurden abgewiesen - fehlt die Berechtigung, oder gehört eine Nummer einer anderen Firma?`);
+  }else{
+   alert(`${st.neu.length} Position(en) angelegt, ${st.geaendert.length} geändert, `
+    +`${st.unveraendert.length} unverändert.`);
+  }
   zeilen=[]; zuordnung={}; input.value=""; $(cfg.previewId).hidden=true;
   await cfg.nachImport();
  };
@@ -247,6 +369,22 @@ initExcelImport({
  confirmId:"materialExcelConfirm",cancelId:"materialExcelCancel",
  mappingId:"materialExcelMapping",fehlerId:"materialExcelFehler",
  tableName:"materials",
+ // Schluessel = die Spalte, auf der die Datenbank ein UNIQUE hat. Nur
+ // darueber kann der Import bestehende Positionen erkennen und
+ // aktualisieren, statt sie doppelt anzulegen.
+ schluessel:"edv_nr",
+ // Bestand liefert den AKTUELLEN Katalog als {edv_nr: Eintrag}, damit die
+ // Vorschau "neu / geaendert / unveraendert" vor dem Speichern stimmt.
+ // settings.materials ist seit je ein Array aus Arrays in der Reihenfolge
+ // [edv_nr,name,dim,unit,price] (siehe js/05-daten-laden.js).
+ bestand:()=>{
+  const m={};
+  ((typeof settings==="object"&&settings&&Array.isArray(settings.materials))?settings.materials:[])
+   .forEach(x=>{ m[String(x[0]??"").trim()]={
+    edv_nr:String(x[0]??""),name:String(x[1]??""),dim:String(x[2]??""),
+    unit:String(x[3]??""),price:Number(x[4])||0}; });
+  return m;
+ },
  // "alias" sind die Schreibweisen, die in echten Lieferantenlisten
  // vorkommen - damit trifft die automatische Zuordnung ohne Raten.
  felder:[
@@ -264,6 +402,15 @@ initExcelImport({
  confirmId:"bzMaterialExcelConfirm",cancelId:"bzMaterialExcelCancel",
  mappingId:"bzMaterialExcelMapping",fehlerId:"bzMaterialExcelFehler",
  tableName:"blitzschutz_materials",
+ // blitzschutz_materials traegt ebenfalls ein UNIQUE auf der Artikel-Nr.,
+ // deshalb funktioniert hier derselbe Upsert-Weg wie bei den Materialien.
+ schluessel:"artikel_nr",
+ bestand:()=>{
+  const m={};
+  (Array.isArray(blitzschutzMaterials)?blitzschutzMaterials:[])
+   .forEach(x=>{ m[String(x.artikel_nr??"").trim()]=x; });
+  return m;
+ },
  felder:[
   {key:"artikel_nr",label:"Artikel-Nr.",pflicht:true,alias:["artikelnr","artikelnummer","edvnr","nr","nummer","code","artikel"]},
   {key:"bezeichnung",label:"Bezeichnung",pflicht:true,alias:["beschreibung","text","benennung","name"]},
