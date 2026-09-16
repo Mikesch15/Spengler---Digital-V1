@@ -104,13 +104,22 @@ function p(bedingung, beschreibung, wert) {
     quelltext.includes("Gib einen solchen Zwischentitel NICHT als eigenes Array-Element aus"),
     "die Anweisung verlangt ausdruecklich, einen Zwischentitel NICHT als eigene Position auszugeben"
   );
+  // v16 hat den Zwischentitel aus "description" herausgeloest: er wird nicht
+  // mehr dem Positionstext vorangestellt (und damit auch nicht mehr mit
+  // " – " angehaengt), sondern steht als EIGENES Feld "abschnitt" an jeder
+  // Position darunter. Der fachliche Zusammenhang bleibt damit erhalten, ohne
+  // die Bezeichnung zu verlaengern - eine bewusste Verbesserung, kein Fehler.
+  // Die Kernaussage dieses Pruefstands ist unveraendert: der Zwischentitel
+  // geht nicht verloren und wird keine eigene Position.
   p(
-    quelltext.includes('Stelle seinen Text stattdessen jeder Position, die darunter steht, in "description" voran'),
-    "die Anweisung verlangt, den Zwischentitel-Text jeder folgenden Position voranzustellen"
+    quelltext.includes('Trage seinen Text stattdessen bei JEDER Position, die darunter steht, unverändert in das Feld "abschnitt" ein'),
+    "die Anweisung verlangt, den Zwischentitel jeder folgenden Position im Feld \"abschnitt\" mitzugeben"
   );
+  // Gegenprobe: er darf ausdruecklich NICHT mehr in die Bezeichnung gefaltet
+  // werden. Faellt durch, sobald jemand die alte Faltung wieder einbaut.
   p(
-    quelltext.includes('getrennt durch " – "'),
-    "die Anweisung nennt das Trennzeichen ' – ' zwischen Zwischentitel und Positionstext"
+    quelltext.includes('(NICHT in "description" einfügen)'),
+    "und ausdruecklich NICHT in die Bezeichnung zu falten"
   );
   p(
     quelltext.includes("Wechselt der Zwischentitel im Dokument, gilt der neue Titel ab dort für die folgenden Positionen, bis der nächste Zwischentitel kommt"),
@@ -130,8 +139,14 @@ function p(bedingung, beschreibung, wert) {
     const schema = feldSchemaMatch[0];
     p(schema.includes('"pos"') && schema.includes('"description"') && schema.includes('"quantity"') && schema.includes('"unit"'),
       "das Schema-Beispiel enthaelt weiterhin genau pos/description/quantity/unit");
-    p(!/"[a-z_]+":/i.test(schema.replace(/"pos"|"description"|"quantity"|"unit"/g, "")),
-      "das Schema-Beispiel enthaelt KEIN fuenftes Feld", schema);
+    // v16 hat "abschnitt" als eigenes Feld ergaenzt (siehe oben), eine
+    // frueherere Version "price". Das Schema hat also sechs Felder, nicht
+    // vier - geprueft wird deshalb, dass es GENAU diese sechs sind und kein
+    // siebtes unbemerkt dazukommt.
+    p(schema.includes('"price"') && schema.includes('"abschnitt"'),
+      "und zusaetzlich price und abschnitt", schema);
+    p(!/"[a-z_]+":/i.test(schema.replace(/"pos"|"description"|"quantity"|"unit"|"price"|"abschnitt"/g, "")),
+      "das Schema-Beispiel enthaelt kein siebtes Feld", schema);
   }
 
   // --- A5: generationConfig ist EXAKT unveraendert aus v15 ---
@@ -139,7 +154,11 @@ function p(bedingung, beschreibung, wert) {
   // (nicht die erste "}," im Text - die steckt bereits in
   // "thinkingConfig: { thinkingLevel: \"LOW\" }," selbst, siehe Kommentar
   // in index.ts Zeile 297).
-  const genConfMatch = quelltext.match(/generationConfig:\s*\{([\s\S]*?)\n {10}\},/);
+  // Der Anker lag auf einer 10-Leerzeichen-Einrueckung der schliessenden
+  // Klammer. Der Block steht heute eine Ebene weiter innen (8 Leerzeichen),
+  // seit die Anfrage in die Wiederholschleife gewandert ist - der Anker lief
+  // ins Leere. Jetzt wird die Einrueckung nicht mehr mitgezaehlt.
+  const genConfMatch = quelltext.match(/generationConfig:\s*\{([\s\S]*?)\n\s*\},/);
   p(!!genConfMatch, "generationConfig ist im Code vorhanden");
   if (genConfMatch) {
     const genConfText = genConfMatch[1];
@@ -176,9 +195,16 @@ function p(bedingung, beschreibung, wert) {
     quelltext.includes("ok: true, positions") || quelltext.includes("ok: true,\n") || /ok:\s*true,\s*positions/.test(quelltext),
     "der Erfolgspfad (ok:true, positions) ist unveraendert vorhanden"
   );
+  // Der Zweig heisst heute anders: Commit 8bf19e4 hat ihn umgeschrieben, weil
+  // er die Fehlerantwort als JSON zu lesen versuchte, obwohl Gemini dort auch
+  // reinen Text schicken kann. Der Text "Anfrage an Gemini fehlgeschlagen"
+  // ist damit verschwunden, die Stelle selbst gibt es unveraendert. Geprueft
+  // wird deshalb die Stelle und was sie tut - den Status weitergeben -, nicht
+  // ihr alter Wortlaut.
   p(
-    /!res\.ok/.test(quelltext) && quelltext.includes("Anfrage an Gemini fehlgeschlagen"),
-    "der !res.ok-Zweig (dort, wo der v3.43-Fehler tatsaechlich entstand) ist unveraendert vorhanden"
+    /if\s*\(\s*!res!?\??\.ok\s*\)/.test(quelltext)
+      && /Server antwortete mit Status \$\{res!?\.status\}/.test(quelltext),
+    "der !res.ok-Zweig (dort, wo der v3.43-Fehler tatsaechlich entstand) ist vorhanden und gibt den Status weiter"
   );
 
   // --- A8: resolveImage()/bytesToBase64() sind unveraendert - kein zweiter Erkennungsweg ---

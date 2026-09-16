@@ -21,7 +21,13 @@ const ARTEN=[
  {typ:"kamineinfassung",     wurzel:"measTypeKamin",              setz:"kamaSetzeSchritt", reg:"KAM_REGISTER"},
  {typ:"einfassung_rund",     wurzel:"measTypeEinfassungRund",     setz:"einfaSetzeSchritt",reg:"EINFA_REGISTER"},
  {typ:"rinne",               wurzel:"measTypeRinneProfil",        setz:"rpaSetzeSchritt",  reg:"RPA_REGISTER"},
- {typ:"anschlussblech",      wurzel:"measTypeAnschlussblech",     setz:"anbaSetzeSchritt", reg:"ANBA_REGISTER"}
+ {typ:"anschlussblech",      wurzel:"measTypeAnschlussblech",     setz:"anbaSetzeSchritt", reg:"ANBA_REGISTER"},
+ // Die Dachfenstereinfassung fehlte in dieser Liste, seit es sie gibt. Ihre
+ // Register wurden deshalb nicht mitgezaehlt, und ihre drei Hilfetexte
+ // (dfa-masse, dfa-umschlaege, dfa-stueckliste) sahen aus, als haetten sie
+ // keinen Info-Knopf. Die Tabelle der App ist vollstaendig - die Liste hier
+ // war es nicht.
+ {typ:"dachfenstereinfassung",wurzel:"measTypeDachfenster",        setz:"dfaSetzeSchritt",  reg:"DFA_REGISTER"}
 ];
 
 (async()=>{
@@ -78,7 +84,9 @@ const ARTEN=[
  const umlaut=await page.evaluate(()=>{
   const echt=/(ae|oe|ue)/;
   // echte deutsche Woerter, in denen ae/oe/ue nur zufaellig vorkommt
-  const erlaubt=/^(neu|neue|neuen|neueste|quer|zuerst|steuert|Mauerabdeckung|Neue|Dauer|dauer|bauen|aufbauen|Bauen|aktuell|blau|blaue|blauen|genau|genaue|genauen|Frau|Quelle|Quellen|quelle)/i;
+  // "vertrauen" ist wie "Dauer" oder "genau" ein echtes deutsches Wort, in dem
+  // "aue" nur zufaellig steckt - kein ae/oe/ue als Ersatzschreibweise.
+  const erlaubt=/^(neu|neue|neuen|neueste|quer|zuerst|steuert|Mauerabdeckung|Neue|Dauer|dauer|bauen|aufbauen|Bauen|aktuell|blau|blaue|blauen|genau|genaue|genauen|Frau|Quelle|Quellen|quelle|vertrauen|Vertrauen|vertraue)/i;
   const treffer=[];
   const textVon=t=>typeof t.text==="function"?t.text():t.text;
   Object.keys(HILFE_TEXTE).forEach(k=>{
@@ -191,8 +199,21 @@ const ARTEN=[
 
  // ------------------------------------------------------- E Anleitung im HTML
  console.log("\nE · Anleitung in den Einstellungen");
- const anl=await page.evaluate(()=>{
+ // Der Link steht im einklappbaren Abschnitt "Anleitung" des Registers
+ // Allgemein. Mit leerem Abschnittsnamen oeffnet openSettingsTo nur das
+ // REGISTER - der Abschnitt bleibt zu, und ein Element darin hat Hoehe 0.
+ // Deshalb wird hier der Abschnitt mitgenannt, so wie es jeder Aufruf in der
+ // App tut. Das Aufklappen laeuft ueber ein setTimeout(50) in js/07, darum
+ // die kurze Wartezeit.
+ const anlZu=await page.evaluate(()=>{
   openSettingsTo("general","");
+  const a=document.getElementById("anleitungOeffnen");
+  return a?Math.round(a.getBoundingClientRect().height):null;
+ });
+ p(anlZu===0,"zugeklappt hat der Anleitungs-Link keine Hoehe",anlZu);
+ await page.evaluate(()=>openSettingsTo("general","anleitung"));
+ await page.waitForTimeout(250);
+ const anl=await page.evaluate(()=>{
   const a=document.getElementById("anleitungOeffnen");
   if(!a)return {fehlt:true};
   const panel=document.querySelector('[data-settings-panel="general"]');
