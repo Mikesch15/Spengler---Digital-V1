@@ -442,15 +442,38 @@ const FALL={
     best:r.bestes?{breite:r.bestes.breite,flaeche:Number(r.bestes.flaeche.toFixed(4))}:null,
     zuSchmal:r.zuSchmal, netto:Number(r.netto.toFixed(4))};
  });
- // Gruppen nach Abwicklung: 777 (1 Stueck, L=900), 761 (1, L=900), 670 (4, L=500)
- // 670er Gruppe: 500+400 > 500, also 4 Streifen a 500.
- // Rolle 1000: je Gruppe 1 Streifen nebeneinander -> 900 + 900 + 4*500 = 3800 mm
- //   Flaeche = 1000 * 3800 / 1e6 = 3.8
+ // Gruppen nach Abwicklung: 777 (1 Stueck, L=900), 761 (1, L=900), 670 (4 Stuecke)
+ // 670er Gruppe: 500+400 > 500, also 4 Streifen - zwei mit 500 mm, zwei mit
+ // 400 mm (Abschnittlaenge ist 500, das laengste Stueck der Gruppe).
+ // Ein Streifen kostet nur die Rollenlaenge, die er WIRKLICH belegt, nicht
+ // die volle Abschnittlaenge: 500+500+400+400 = 1800 mm statt 4*500 = 2000.
+ // Von Hand nachgerechnet:
+ //   Rolle 1000: je Gruppe 1 Streifen nebeneinander (2*670 und 777+670
+ //   passen beide nicht in 1000) -> 900 + 900 + 1800 = 3600 mm
+ //   Flaeche = 1000 * 3600 / 1e6 = 3.6
  // Rolle 670 ist schmaler als 777 -> faellt weg.
+ // Bis zur Umstellung stand hier 3.8 (4*500). Das war kein Fehler dieses
+ // Pruefstands, sondern die alte Rechnung: sie belastete auch die beiden
+ // 400er Streifen mit 500 mm Rolle. Die neue Zahl ist die sparsamere und
+ // die richtige.
  p(JSON.stringify(rp.breiten)==="[777,761,670]","drei Streifenbreiten, breiteste zuerst",rp.breiten);
  p(JSON.stringify(rp.streifen)==="[1,1,4]","die 670er Gruppe braucht 4 Streifen",rp.streifen);
  p(JSON.stringify(rp.abschnitt)==="[900,900,500]","Abschnitt = laengstes Stueck der Gruppe",rp.abschnitt);
- p(rp.best&&rp.best.breite===1000&&Math.abs(rp.best.flaeche-3.8)<1e-4,"beste Rolle 1000 mm, 3.8 m²",rp.best);
+ p(rp.best&&rp.best.breite===1000&&Math.abs(rp.best.flaeche-3.6)<1e-4,"beste Rolle 1000 mm, 3.6 m²",rp.best);
+ // Gegenprobe zur Herkunft dieser Zahl: die Rollenlaenge einer Gruppe ist die
+ // Summe der ECHTEN Streifenlaengen. Faellt durch, sobald wieder pauschal
+ // Streifenzahl x Abschnittlaenge gerechnet wuerde (dann 2000 statt 1800).
+ const echt=await page.evaluate(()=>{
+  const g=kamaRollenPlan().gruppen.find(x=>x.breite===670);
+  if(!g)return null;
+  return {rollenLaenge:g.rollenLaenge,
+   streifenEcht:g.streifen.map(st=>g.abschnittLaenge-(st.rest||0)),
+   pauschal:g.streifen.length*g.abschnittLaenge};
+ });
+ p(echt&&JSON.stringify(echt.streifenEcht)==="[500,500,400,400]",
+   "die 670er Gruppe belegt 500/500/400/400 mm Rolle",echt);
+ p(echt&&echt.rollenLaenge===1800&&echt.pauschal===2000,
+   "und zahlt 1800 mm statt der pauschalen 2000 mm",echt);
  p(rp.zuSchmal.indexOf(670)>=0,"670 mm ist zu schmal fuer die 777er Abwicklung",rp.zuSchmal);
  // Es darf keine zweite Packrechnung geben.
  const nurEine=await page.evaluate(()=>{
@@ -504,19 +527,39 @@ const FALL={
  // werden also die Masse, die wirklich noch fehlen.
  p(k2.some(x=>/Breite vorne/.test(x.text))&&k2.some(x=>/seitliche Höhe/.test(x.text)),
    "Fehler nennen die fehlenden Masse",k2.map(x=>x.text).slice(0,4));
+ // v3.65: A, D und E kamen bis dahin als Vorgabewert aus den Einstellungen
+ // und standen schon im Feld. Seither startet eine neue Aufnahme leer, und
+ // der Firmenwert steht als Richtwert-Chip daneben. Die Einstellung selbst
+ // ist unveraendert das, was sie war - nur der Weg ins Feld fuehrt jetzt
+ // ueber einen bewussten Tipp.
+ // A und D werden seit v3.97 links und rechts getrennt gefuehrt ({l,r}).
  const vorgabe=await page.evaluate(()=>{
   kamA=kamaLeer();
   return {a:kamA.a,d:kamA.d,e:kamA.e,
     s:{v:kaminSettings.mass_vorne,h:kaminSettings.mass_hinten,e:kaminSettings.aufbug_hinten}};
  });
- p(vorgabe.a===250&&vorgabe.d===200&&vorgabe.e===35,
-   "eine neue Aufnahme startet mit A 250, D 200 und E 35 aus den Einstellungen",vorgabe);
+ const leerWert=x=>x===""||x===null||x===undefined;
+ p(leerWert(vorgabe.a.l)&&leerWert(vorgabe.a.r)&&leerWert(vorgabe.d.l)
+   &&leerWert(vorgabe.d.r)&&leerWert(vorgabe.e),
+   "eine neue Aufnahme startet mit leerem A, D und E (Richtwert statt Vorgabewert)",vorgabe);
  p(vorgabe.s.v===250&&vorgabe.s.h===200&&vorgabe.s.e===35,
    "und genau diese Werte stehen in den Einstellungen",vorgabe.s);
  await reg(page,2);
+ // Der Weg des Anwenders: leeres Feld, Chip mit dem Firmenwert, antippen.
+ const chipWert=(id)=>page.evaluate(x=>{
+  const c=document.querySelector('.vorschlag-chip[data-vorschlag-fuer="'+x+'"]');
+  return c?Number(c.dataset.vorschlagWert):null;
+ },id);
  const vf=await page.evaluate(()=>{const w=i=>{const e=document.getElementById(i);return e?e.value:"FEHLT"};
    return {a:w("kam_a_l"),d:w("kam_d_l"),e:w("kam_e")}});
- p(vf.a==="250"&&vf.d==="200"&&vf.e==="35","die Vorgaben stehen auch in den Feldern",vf);
+ p(vf.a===""&&vf.d===""&&vf.e==="","die Felder stehen leer da",vf);
+ const chips={a:await chipWert("kam_a_l"),d:await chipWert("kam_d_l"),e:await chipWert("kam_e")};
+ p(chips.a===250&&chips.d===200&&chips.e===35,
+   "die Vorgaben stehen als Richtwert-Chip daneben",chips);
+ await page.click('.vorschlag-chip[data-vorschlag-fuer="kam_a_l"]');
+ await page.waitForTimeout(200);
+ p(String(await page.evaluate(()=>kamA.a.l))==="250",
+   "Antippen uebernimmt den Richtwert ins Feld");
  // Aendern muss weiterhin gehen - es ist eine Vorgabe, keine feste Zahl.
  await tippe(page,"#kam_a_l","300");
  const vg=await page.evaluate(()=>({feld:($("kam_a_l")||{}).value,zustand:kamA.a.l}));
@@ -525,19 +568,30 @@ const FALL={
  // sie in der naechsten neuen Aufnahme stehen.
  const rt=await page.evaluate(()=>{
   const alt={v:kaminSettings.mass_vorne,h:kaminSettings.mass_hinten,e:kaminSettings.aufbug_hinten};
+  // Die Richtwerte stehen in den Chips, also muss nach jeder Aenderung neu
+  // gezeichnet und der Chip gelesen werden.
+  const chips=()=>{
+   renderKaminAufnahme();
+   const w=i=>{const c=document.querySelector('.vorschlag-chip[data-vorschlag-fuer="'+i+'"]');
+     return c?Number(c.dataset.vorschlagWert):null};
+   return {a:w("kam_a_l"),d:w("kam_d_l"),e:w("kam_e")};
+  };
   $("kamsMassVorne").value=280; $("kamsMassHinten").value=210; $("kamsAufbugHinten").value=40;
   $("saveKaminSettings").click();
   kamA=kamaLeer();
-  const neu={a:kamA.a,d:kamA.d,e:kamA.e};
+  const neu={a:kamA.a,d:kamA.d,e:kamA.e,chips:chips()};
   // zuruecksetzen, damit die uebrigen Pruefungen unveraendert laufen
   $("kamsMassVorne").value=alt.v; $("kamsMassHinten").value=alt.h; $("kamsAufbugHinten").value=alt.e;
   $("saveKaminSettings").click();
   kamA=kamaLeer();
-  return {neu,zurueck:{a:kamA.a,d:kamA.d,e:kamA.e}};
+  return {neu,zurueck:{a:kamA.a,d:kamA.d,e:kamA.e,chips:chips()}};
  });
- p(rt.neu.a===280&&rt.neu.d===210&&rt.neu.e===40,
-   "geaenderte Einstellungen wirken auf die naechste neue Aufnahme",rt.neu);
- p(rt.zurueck.a===250&&rt.zurueck.d===200&&rt.zurueck.e===35,
+ // Auch hier ist der Traeger jetzt der Chip statt des vorausgefuellten
+ // Felds: die geaenderte Einstellung muss im Richtwert der naechsten neuen
+ // Aufnahme stehen, das Feld selbst bleibt leer.
+ p(rt.neu.a.l===""&&rt.neu.chips.a===280&&rt.neu.chips.d===210&&rt.neu.chips.e===40,
+   "geaenderte Einstellungen wirken auf den Richtwert der naechsten neuen Aufnahme",rt.neu);
+ p(rt.zurueck.chips.a===250&&rt.zurueck.chips.d===200&&rt.zurueck.chips.e===35,
    "und lassen sich wieder auf 250/200/35 stellen",rt.zurueck);
  await setz(page,FALL);
  await setz(page,Object.assign({},FALL,{b:{l:100,r:100}}));
