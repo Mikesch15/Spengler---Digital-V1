@@ -340,7 +340,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    $("lagerBuchenGrund").value=grund||"";
    // v3.123: das Ziel ist Pflicht. Hier geht es um die RICHTUNG der Menge,
    // deshalb die neutrale Wahl - geprueft wird das Ziel in Abschnitt 15.
-   $("lagerBuchenZiel").value="werkstatt";
+   lagerBuchenZielRendern("werkstatt");
    $("lagerBuchenSpeichern").click();
    await new Promise(r=>setTimeout(r,50));
    const insert=window.__schreib.find(x=>x.op==="insert"&&x.t==="lagerbestand_bewegungen");
@@ -559,7 +559,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   const artikelText=$("lagerBuchenArtikel").textContent;
   $("lagerBuchenArt").value="zugang";
   $("lagerBuchenMenge").value="12";
-  $("lagerBuchenZiel").value="werkstatt";   // v3.123: Ziel ist Pflicht
+  lagerBuchenZielRendern("werkstatt");   // v3.123: Ziel ist Pflicht
   $("lagerBuchenSpeichern").click();
   await new Promise(r=>setTimeout(r,50));
   const insert=window.__schreib.find(x=>x.op==="insert"&&x.t==="lagerbestand_bewegungen");
@@ -1218,14 +1218,23 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    {id:13,name:"Altes Projekt",object:"Nirgendwo 1",order_no:"",customer:"",archived:true}
   ];
   lagerBuchenOeffnen("501");
-  const sel=$("lagerBuchenZiel");
-  return {werte:[...sel.options].map(o=>o.value),
-   texte:[...sel.options].map(o=>o.textContent),
-   vorbelegt:sel.value};
+  // v3.131: GEAENDERTER VERTRAG - das Ziel stand bis v3.130 in einem
+  // <select>, das seine gefilterte Liste erst beim Aufklappen zeigte. Die
+  // Suche wirkte dadurch wie kaputt (vom Anwender gemeldet). Jetzt eine
+  // sofort sichtbare Trefferliste, wie im Ausbuchen- und im Produkt-Dialog.
+  const knoepfe=()=>[...$("lagerBuchenZielTreffer").querySelectorAll("[data-lager-ziel]")];
+  return {werte:knoepfe().map(b=>b.dataset.lagerZiel),
+   texte:knoepfe().map(b=>b.textContent),
+   listeOffen:!$("lagerBuchenZielTreffer").hidden,
+   vorbelegt:lagerBuchenZielWert,
+   gewaehltVersteckt:$("lagerBuchenZielGewaehlt").hidden};
  });
- p(z.vorbelegt==="","nichts ist vorbelegt - die Zuordnung wird bewusst getroffen, nicht geraten",z);
- p(z.werte[1]==="werkstatt"&&/Werkstatt/.test(z.texte[1]),
-   "gleich nach der leeren Zeile steht Werkstatt/Lager als ausdrueckliche Wahl",z.texte);
+ p(z.vorbelegt===""&&z.gewaehltVersteckt===true,
+   "nichts ist vorbelegt - die Zuordnung wird bewusst getroffen, nicht geraten",z);
+ p(z.listeOffen===true,
+   "die Trefferliste steht beim Oeffnen SOFORT da - nicht erst nach dem Aufklappen eines Auswahlfeldes",z);
+ p(z.werte[0]==="werkstatt"&&/Werkstatt/.test(z.texte[0]),
+   "ganz oben steht Werkstatt/Lager als ausdrueckliche Wahl",z.texte);
  p(z.werte.includes("11")&&z.werte.includes("12"),"die offenen Projekte stehen zur Wahl",z.werte);
  p(!z.werte.includes("13"),"ein archiviertes Projekt steht NICHT mehr zur Wahl",z.werte);
  p(z.texte.some(t=>/Alpeneggstrasse 7/.test(t)),
@@ -1235,7 +1244,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  z=await page.evaluate(async()=>{
   $("lagerBuchenArt").value="abgang";
   $("lagerBuchenMenge").value="4";
-  $("lagerBuchenZiel").value="";
+  lagerBuchenZielRendern("");   // nichts gewaehlt
   window.__schreib=[];
   $("lagerBuchenSpeichern").click();
   await new Promise(r=>setTimeout(r,60));
@@ -1247,22 +1256,29 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
 
  // Suche filtert, ohne Werkstatt oder die getroffene Wahl zu verlieren.
  z=await page.evaluate(()=>{
-  const feld=$("lagerBuchenZielSuche"), sel=$("lagerBuchenZiel");
-  sel.value="11";
+  lagerBuchenZielRendern("11");          // ein Projekt ist gewaehlt
+  const zuVorher=$("lagerBuchenZielTreffer").hidden;
+  const feld=$("lagerBuchenZielSuche");
   feld.value="Schulweg";
   feld.dispatchEvent(new Event("input",{bubbles:true}));
-  return {werte:[...sel.options].map(o=>o.value)};
+  const werte=[...$("lagerBuchenZielTreffer").querySelectorAll("[data-lager-ziel]")]
+    .map(b=>b.dataset.lagerZiel);
+  return {zuVorher,offen:!$("lagerBuchenZielTreffer").hidden,werte,
+   gewaehltText:$("lagerBuchenZielGewaehlt").innerText};
  });
+ p(z.zuVorher===true&&z.offen===true,
+   "bei getroffener Wahl ist die Liste zu - und das Tippen oeffnet sie SOFORT wieder",z);
  p(z.werte.includes("werkstatt"),
    "die Suche filtert Werkstatt/Lager nie weg - sie ist keine Projektsuche, sondern die Alternative",z.werte);
  p(z.werte.includes("12"),"das gesuchte Projekt ist dabei",z.werte);
- p(z.werte.includes("11"),"und die bereits getroffene Wahl bleibt drin, obwohl die Suche sie nicht trifft",z.werte);
+ p(!z.werte.includes("11")&&/Alpeneggstrasse 7/.test(z.gewaehltText),
+   "die getroffene Wahl steht weiterhin oben als Text - sie muss die Trefferliste nicht mehr verstopfen",z);
 
  // Mit Projekt buchen.
  z=await page.evaluate(async()=>{
   const feld=$("lagerBuchenZielSuche");
   feld.value=""; feld.dispatchEvent(new Event("input",{bubbles:true}));
-  $("lagerBuchenZiel").value="11";
+  lagerBuchenZielRendern("11");
   $("lagerBuchenArt").value="abgang";
   $("lagerBuchenMenge").value="4";
   window.__schreib=[];
@@ -1278,7 +1294,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  // Mit Werkstatt buchen.
  z=await page.evaluate(async()=>{
   lagerBuchenOeffnen("501");
-  $("lagerBuchenZiel").value="werkstatt";
+  lagerBuchenZielRendern("werkstatt");
   $("lagerBuchenArt").value="abgang";
   $("lagerBuchenMenge").value="2";
   window.__schreib=[];

@@ -91,7 +91,9 @@ const WIN_CHANGELOG={
  "3.129":["Ausmass → Offerte erfassen: die fett gedruckten Titel aus der Offerte bilden jetzt klappbare Blöcke, genau wie in der Offerte selbst. Sie starten zugeklappt – bei einer langen Offerte steht so sofort ein Überblick da statt einer endlosen Liste.",
   "Im Titel steht, wie viele Positionen des Blocks schon fertig sind (z. B. '3/8 fertig'). So sieht man auch zugeklappt, wo noch Arbeit liegt. Positionen ohne Titel stehen weiterhin einfach in der Liste."],
  "3.130":["Einstellungen → Mitarbeiter: jedem Mitarbeiter lässt sich jetzt nachträglich eine E-Mail-Adresse zuordnen – auch einem, der schon lange angelegt ist. Die Person meldet sich danach zusätzlich mit dieser Adresse an (der Benutzername gilt unverändert weiter) und kann ein vergessenes Passwort selbst zurücksetzen.",
-  "Das Eintragen ändert kein Passwort und verschickt keine Nachricht. Jede Adresse kann nur zu EINEM Konto gehören; eine schon vergebene lehnt die App mit einer verständlichen Meldung ab. Leer lassen entfernt die Adresse wieder."]
+  "Das Eintragen ändert kein Passwort und verschickt keine Nachricht. Jede Adresse kann nur zu EINEM Konto gehören; eine schon vergebene lehnt die App mit einer verständlichen Meldung ab. Leer lassen entfernt die Adresse wieder."],
+ "3.131":["Lagerverwaltung, Buchen-Dialog (auch nach einem Ein- oder Ausscannen): die Projektsuche beim Feld 'Objekt / Projekt' zeigt die Treffer jetzt SOFORT beim Tippen. Bisher stand dort ein Auswahlfeld, das seine gefilterte Liste erst beim Aufklappen zeigte - die Suche wirkte dadurch wie kaputt. 'Werkstatt / Lager' steht immer zuoberst.",
+  "Damit ist die letzte Stelle dieser Bauart behoben; alle drei Suchfelder der Lagerverwaltung arbeiten jetzt gleich."]
 };
 
 function winVersionVergleich(a,b){

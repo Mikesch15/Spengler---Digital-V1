@@ -1244,6 +1244,12 @@ Liste erst beim Aufklappen zeigte.</p>
 Materialposition (EDV-Nr., Bezeichnung, Dimension) und jedes einzelne
 <b>Produkt</b> darunter samt <b>Barcode</b>. Wer den Barcode abliest, findet
 das Produkt damit auch von Hand, wenn die Kamera streikt.</p>
+<p><b>Seit Version 3.131</b> gilt dasselbe auch für das Feld <b>Objekt /
+Projekt</b> im Buchen-Dialog (auch nach einem Ein- oder Ausscannen): die
+Treffer erscheinen sofort beim Tippen als Liste zum Antippen. Bis dahin stand
+dort ein Auswahlfeld, das seine gefilterte Liste erst beim Aufklappen zeigte –
+die Suche wirkte dadurch wie kaputt, obwohl sie filterte. „Werkstatt / Lager“
+steht dabei immer zuoberst und wird von der Suche nie weggefiltert.</p>
 <p>Solange gesucht wird, ist „Alle zuklappen“ ausgeblendet – die Trefferliste
 ist ja gerade das, was man sehen will.</p>
 <h3>Ein neues Produkt erfassen</h3>

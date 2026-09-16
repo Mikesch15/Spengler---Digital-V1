@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.130</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.131</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -750,10 +750,13 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <!-- v3.123: wohin das Material geht. Pflichtfeld, aber „Werkstatt / Lager“
      ist eine ausdrückliche Wahl - so fällt nichts stillschweigend weg. -->
 <div class="wide"><label>Objekt / Projekt<span class="pflicht-stern">*</span></label>
-<input id="lagerBuchenZielSuche" type="search" placeholder="Projekt suchen (Adresse, Name, Auftrag, Auftraggeber) …">
-<select id="lagerBuchenZiel">
-<option value="">– bitte wählen –</option>
-</select>
+<!-- v3.131: Trefferliste statt Auswahlfeld - ein <select> zeigt seine
+     gefilterte Liste erst beim Aufklappen. Derselbe Fehler wie im
+     Ausbuchen-Dialog (v3.125) und im Produkt-Dialog (v3.126/128); dies war
+     die dritte und letzte Stelle dieser Bauart, vom Anwender gemeldet. -->
+<input id="lagerBuchenZielSuche" type="search" placeholder="🔍 Projekt suchen (Adresse, Name, Auftrag, Auftraggeber) …">
+<div id="lagerBuchenZielTreffer" class="meas-lager-treffer-liste"></div>
+<div id="lagerBuchenZielGewaehlt" class="rmat-pos" hidden></div>
 </div>
 <div class="wide"><label>Grund / Bemerkung</label><input id="lagerBuchenGrund" type="text" placeholder="z. B. Lieferschein-Nr., Inventur vom …"></div>
 </div>

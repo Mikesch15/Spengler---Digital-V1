@@ -385,18 +385,75 @@ let lagerBuchenZielSuche="";
 // Alternative dazu. Ein bereits gewaehltes Projekt bleibt ebenfalls immer
 // drin, damit das Weitertippen die Wahl nicht still verwirft (dieselbe
 // Regel wie beim Positions-Suchfeld, v3.118).
-function lagerBuchenZielRendern(gewaehlt){
- const sel=$("lagerBuchenZiel");
- if(!sel)return;
+// v3.131: Das Ziel steht nicht mehr in einem <select>. Ein Auswahlfeld zeigt
+// seine gefilterte Liste erst beim Aufklappen - die Suche wirkte dadurch wie
+// kaputt, obwohl sie filterte. Gemeldet vom Anwender; dieselbe Ursache und
+// dasselbe Muster wie im Ausbuchen-Dialog (v3.125) und im Produkt-Dialog
+// (v3.126/v3.128). Der gewaehlte Wert steht jetzt in einem Zustand statt im
+// DOM-Wert des Feldes; lagerZielFelder() bleibt unveraendert die EINE Stelle,
+// die daraus die beiden Spalten macht.
+let lagerBuchenZielWert="";
+const LAGER_ZIEL_TREFFER_MAX=8;
+function lagerBuchenZielTrefferHtml(){
  const begriff=String(lagerBuchenZielSuche||"").trim().toLowerCase();
  let projekte=lagerProjekteListe();
  if(begriff&&typeof projektPasstZuSuche==="function"){
-  projekte=projekte.filter(p=>String(p.id)===String(gewaehlt||"")||projektPasstZuSuche(p,begriff));
+  projekte=projekte.filter(p=>projektPasstZuSuche(p,begriff));
  }
- sel.innerHTML=`<option value="">\u2013 bitte w\u00e4hlen \u2013</option>`
-  +`<option value="${LAGER_ZIEL_WERKSTATT}"${gewaehlt===LAGER_ZIEL_WERKSTATT?" selected":""}>Werkstatt / Lager (kein Projekt)</option>`
-  +projekte.map(p=>`<option value="${p.id}"${String(p.id)===String(gewaehlt||"")?" selected":""}>${esc(lagerProjektText(p)||("Projekt #"+p.id))}</option>`).join("");
+ const gezeigt=projekte.slice(0,LAGER_ZIEL_TREFFER_MAX);
+ const rest=projekte.length-gezeigt.length;
+ // Werkstatt steht IMMER ganz oben und wird von der Suche nie weggefiltert -
+ // sie ist keine Projektsuche, sondern die Alternative dazu.
+ const werkstatt=`<button type="button" class="gray meas-lager-treffer" data-lager-ziel="${LAGER_ZIEL_WERKSTATT}">\U0001F3ED Werkstatt / Lager (kein Projekt)</button>`;
+ if(!projekte.length){
+  return werkstatt+(begriff
+   ?`<div class="small" style="color:var(--muted)">Kein Projekt f\u00fcr \u201e${esc(begriff)}\u201c.</div>`
+   :`<div class="small" style="color:var(--muted)">Noch kein Projekt erfasst.</div>`);
+ }
+ return werkstatt
+  +gezeigt.map(p=>`<button type="button" class="gray meas-lager-treffer" data-lager-ziel="${esc(p.id)}">${esc(lagerProjektText(p)||("Projekt #"+p.id))}</button>`).join("")
+  +(rest>0?`<div class="small" style="color:var(--muted)">\u2026 ${rest} weitere \u2013 bitte genauer suchen.</div>`:"");
 }
+function lagerBuchenZielText(wert){
+ if(wert===LAGER_ZIEL_WERKSTATT)return "\U0001F3ED Werkstatt / Lager (kein Projekt)";
+ const p=lagerProjekteListe().find(x=>String(x.id)===String(wert));
+ return p?(lagerProjektText(p)||("Projekt #"+p.id)):"";
+}
+// gewaehlt bleibt als Argument erhalten, damit alle bisherigen Aufrufer
+// unveraendert funktionieren.
+function lagerBuchenZielRendern(gewaehlt){
+ if(gewaehlt!==undefined)lagerBuchenZielWert=String(gewaehlt||"");
+ const suche=$("lagerBuchenZielSuche"), box=$("lagerBuchenZielTreffer"), gew=$("lagerBuchenZielGewaehlt");
+ const fertig=!!lagerBuchenZielWert;
+ const begriff=String(lagerBuchenZielSuche||"").trim();
+ // Wie im Produkt-Dialog (v3.128): das Suchfeld bleibt IMMER stehen, die
+ // Trefferliste klappt bei getroffener Wahl zu, bis wieder getippt wird.
+ if(suche){
+  suche.hidden=false;
+  suche.placeholder=fertig?"\U0001F50D Anderes Ziel suchen \u2026":"\U0001F50D Projekt suchen (Adresse, Name, Auftrag, Auftraggeber) \u2026";
+ }
+ if(box){
+  box.hidden=fertig&&!begriff;
+  if(!box.hidden)box.innerHTML=lagerBuchenZielTrefferHtml();
+ }
+ if(gew){
+  gew.hidden=!fertig;
+  if(fertig)gew.innerHTML=`<div class="small">Ziel: <b>${esc(lagerBuchenZielText(lagerBuchenZielWert))}</b></div>`
+   +`<button type="button" class="gray" data-lager-ziel-aendern="1">\u270f\ufe0f \u00e4ndern</button>`;
+ }
+}
+if($("lagerBuchenZielTreffer"))$("lagerBuchenZielTreffer").addEventListener("click",e=>{
+ const b=e.target.closest?e.target.closest("[data-lager-ziel]"):null;
+ if(!b)return;
+ lagerBuchenZielWert=String(b.dataset.lagerZiel||"");
+ lagerBuchenZielSuche="";
+ if($("lagerBuchenZielSuche"))$("lagerBuchenZielSuche").value="";
+ lagerBuchenZielRendern(lagerBuchenZielWert);
+});
+if($("lagerBuchenZielGewaehlt"))$("lagerBuchenZielGewaehlt").addEventListener("click",e=>{
+ if(!e.target.closest||!e.target.closest("[data-lager-ziel-aendern]"))return;
+ lagerBuchenZielRendern("");
+});
 // Aus dem Auswahlwert werden die beiden Spalten. Eine Stelle, damit der
 // Buchen-Dialog und die Ausbuchung aus der Massaufnahme nicht auseinander
 // laufen koennen.
@@ -408,7 +465,11 @@ function lagerZielFelder(wert){
 }
 if($("lagerBuchenZielSuche"))$("lagerBuchenZielSuche").addEventListener("input",()=>{
  lagerBuchenZielSuche=$("lagerBuchenZielSuche").value;
- lagerBuchenZielRendern($("lagerBuchenZiel").value);
+ const box=$("lagerBuchenZielTreffer");
+ if(!box)return;
+ // Tippen zeigt die Treffer SOFORT - auch wenn schon ein Ziel gewaehlt ist.
+ box.hidden=!!lagerBuchenZielWert&&!String(lagerBuchenZielSuche||"").trim();
+ if(!box.hidden)box.innerHTML=lagerBuchenZielTrefferHtml();
 });
 
 // vorbelegteArt (v3.102): nach einem Scan ist die Richtung schon bekannt -
@@ -547,7 +608,7 @@ $("lagerBuchenSpeichern").onclick=async()=>{
  else if(art==="korrektur")menge=eingabe;
  // v3.123: ohne Ziel wird nicht gebucht. "Werkstatt / Lager" ist eine
  // gueltige Antwort - stillschweigend weglassen ist keine.
- const ziel=lagerZielFelder($("lagerBuchenZiel")?$("lagerBuchenZiel").value:"");
+ const ziel=lagerZielFelder(lagerBuchenZielWert);
  if(!ziel){
   fehler.textContent="Bitte angeben, wohin das Material geht \u2013 ein Projekt oder ausdr\u00fccklich \u201eWerkstatt / Lager\u201c.";
   fehler.hidden=false;

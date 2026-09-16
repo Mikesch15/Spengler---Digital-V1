@@ -30725,3 +30725,74 @@ eigene Änderung und war nicht verlangt.
 | `js/41-hilfe.js` | `einst-mitarbeiter` um die E-Mail erweitert |
 | `index.html`, `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.130 |
 | `pruefstaende/pruefstand-email-auth-v3-103.js` | `update()` in der Attrappe, Abschnitt 5 neu (13 Prüfungen) |
+
+## 197. v3.131 – Die dritte und letzte Suche-hinter-Auswahlfeld
+
+Meldung des Anwenders: *"Bei der lagerverwaltung, produkt ein oder ausscannen
+ist bei dem projekt suchfeld dasselbe problem wie vorher, die treffer werden
+nicht sofort angezeigt sondern erst beim dropdown öffnen... prüfe ob es noch
+mehr solche fälle gibt"*.
+
+### 197.1 Dieselbe Ursache zum dritten Mal
+
+`lagerBuchenZielSuche` filterte korrekt, schrieb das Ergebnis aber in ein
+`<select>` (`lagerBuchenZiel`) – und ein Auswahlfeld zeigt seine gefilterte
+Liste erst beim Aufklappen. Exakt die Konstruktion, die in v3.125
+(Ausbuchen-Dialog der Massaufnahme) und v3.126/v3.128 (Produkt-Dialog) schon
+zweimal behoben wurde. Sie stammt aus v3.123 und wurde bei beiden vorherigen
+Durchgängen übersehen.
+
+### 197.2 Die verlangte Suche nach weiteren Fällen
+
+Drei voneinander unabhängige Durchgänge, damit es diesmal keinen vierten gibt:
+
+1. **Alle `type="search"` in `index.html`** – genau drei: `lagerSuche`
+   (Liste, in Ordnung), `lagerNeuesProduktMaterialSuche` (Trefferliste seit
+   v3.126) und `lagerBuchenZielSuche` (der gemeldete Fall).
+2. **Alle `addEventListener("input")`-Suchfelder** (67 Stück insgesamt, 10
+   davon Suchen) – wohin schreiben sie ihr Ergebnis? `globalSearchResults`,
+   `renderMaterialSettings`, `renderBzMaterialSettings`,
+   `sysAdminRenderFilteredList`, `auRender`, Projektliste und
+   `renderLagerverwaltung` schreiben alle in `<div>`-Listen. Nur
+   `lagerBuchenZielRendern` schrieb in ein `<select>`.
+3. **Alle Stellen, die `<option>`-Listen bauen** (22 Fundstellen in 8
+   Dateien), je 15 Zeilen Umfeld auf Such-/Filterbegriffe geprüft. Die
+   Filter-Auswahlfelder der Admin-Übersicht (`auFilterProjekt`,
+   `auFilterTyp`, `auFilterPerson`) sind **Auswahl**-Felder, keine
+   Suchergebnisse – `auSuche` filtert die Ergebnisliste, nicht die
+   Dropdown-Einträge. Kein weiterer Fall.
+
+Ergebnis: **es war der letzte.** Alle drei Suchfelder der Lagerverwaltung
+arbeiten jetzt nach demselben Muster.
+
+### 197.3 Umsetzung
+
+Dieselbe Bauart wie an den beiden anderen Stellen, keine dritte Variante:
+Suchfeld + `meas-lager-treffer-liste` mit antippbaren Knöpfen + Anzeige der
+getroffenen Wahl mit „✏️ ändern". Das Suchfeld bleibt immer stehen (v3.128),
+die Trefferliste klappt nach der Wahl zu und beim Tippen sofort wieder auf.
+
+„Werkstatt / Lager (kein Projekt)" steht immer zuoberst und wird von der
+Suche nie weggefiltert – sie ist keine Projektsuche, sondern die Alternative
+dazu. Der gewählte Wert steht jetzt im Zustand `lagerBuchenZielWert` statt im
+DOM-Wert eines Feldes; `lagerZielFelder()` bleibt unverändert die **eine**
+Stelle, die daraus `project_id` und `ziel` macht – Buchen-Dialog und
+Massaufnahme-Ausbuchung können dadurch weiterhin nicht auseinanderlaufen.
+
+### 197.4 Geänderte Verträge im Prüfstand
+
+Sechs Prüfungen in Abschnitt 15 verglichen `<option>`-Listen. Sie prüfen
+jetzt die Trefferliste, mit zwei neuen Aussagen: die Liste steht **beim
+Öffnen sofort** da, und ein bereits gewähltes Projekt muss die Trefferliste
+nicht mehr verstopfen (es steht als Text darüber). Gegenprobe: die
+Trefferliste wieder zugeklappt starten lassen → 4 Fehlschläge.
+
+### 197.5 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `index.html` | `<select id="lagerBuchenZiel">` → Trefferliste + Anzeige der Wahl, Version 3.131 |
+| `js/68-lagerverwaltung.js` | `lagerBuchenZielWert`, `lagerBuchenZielTrefferHtml()`, `lagerBuchenZielText()`, `lagerBuchenZielRendern()` umgebaut, Klick-Handler, `lagerBuchenSpeichern` liest den Zustand |
+| `js/41-hilfe.js` | `lager-suche` um das Ziel-Feld erweitert |
+| `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.131 |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 15 auf die Trefferliste umgestellt, zwei Prüfungen neu (248 statt 246) |
