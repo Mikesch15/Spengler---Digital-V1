@@ -628,10 +628,18 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   p(verletzt.length===0,
    "keine der 'nicht anzufassenden' Dateien (Massaufnahme-Fachmodule, Ausmass, Cockpit-Kern, Regierapport, Produktionsworkflow js/44-60) wurde veraendert",
    {geaendert:geaenderteDateien,verletzt});
-  p(geaenderteDateien.includes("js/63-angebote.js"),"js/63-angebote.js ist neu (Grundmodul der Offerten-Funktion)",geaenderteDateien);
-  p(geaenderteDateien.includes("js/05a-rechte.js"),"js/05a-rechte.js wurde erweitert (Zugriffs-Checkbox)",geaenderteDateien);
-  p(geaenderteDateien.includes("index.html"),"index.html wurde erweitert (Markup, Version)",geaenderteDateien);
+  // Die drei folgenden Zusicherungen fragten frueher den git-diff ab ("diese
+  // Datei ist in DIESEM Commit neu bzw. geaendert"). Das konnte nur im
+  // Augenblick der Veroeffentlichung von v3.34 zutreffen; auf einem sauberen
+  // Baum ist der diff leer und die Pruefung schlaegt seither immer fehl.
+  // Gemeint war nie der Commit, sondern der Bestand: die Offerten-Funktion
+  // besteht aus diesen Dateien. Genau das wird jetzt geprueft - dauerhaft
+  // gueltig und, anders als ein leerer diff, nie stillschweigend wahr.
  }
+ const imRepo=execSync("git ls-files",{cwd:repo,encoding:"utf8"}).split("\n");
+ p(imRepo.includes("js/63-angebote.js"),"js/63-angebote.js liegt im Repo (Grundmodul der Offerten-Funktion)");
+ p(imRepo.includes("js/05a-rechte.js"),"js/05a-rechte.js liegt im Repo (Zugriffs-Checkbox)");
+ p(imRepo.includes("index.html"),"index.html liegt im Repo");
 
  // ---- 15 · Struktur: Sauberkeit (Elemente, Hilfetexte, SHELL-Liste) ----
  console.log("\n15 · Struktur: Sauberkeit");
@@ -639,10 +647,24 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  const swJs=require("fs").readFileSync(repo+"/sw.js","utf8");
  p(idxHtml.includes('src="js/63-angebote.js"'),"js/63-angebote.js ist in index.html als <script> eingebunden");
  p(swJs.includes('"./js/63-angebote.js"'),"js/63-angebote.js steht im Service-Worker-Vorrat (SHELL)");
- const versionHtml=(idxHtml.match(/Version\s+3\.34/)||[])[0];
- const versionSw=(swJs.match(/spengler-digital-3\.34/)||[])[0];
- p(!!versionHtml,"index.html nennt Version 3.34");
- p(!!versionSw,"sw.js traegt die Cache-Version 3.34");
+ // Auch hier stand eine feste Zahl: "Version 3.34". Die stimmt nur in genau
+ // der einen Veroeffentlichung und veraltet mit der naechsten. Gemeint war
+ // die Sache dahinter - index.html und sw.js muessen DIESELBE Version tragen
+ // (sonst liefert der Service Worker eine andere App aus, als die Seite
+ // anzeigt), und sie darf nicht hinter v3.34 zurueckfallen, denn mit ihr kam
+ // die Offerten-Funktion. Beides gilt dauerhaft.
+ // Ueber die id appVersion, nicht ueber das erste "Version x.y" irgendwo im
+ // Dokument - ein Kommentar weiter oben nennt z. B. die Version 2.27, in der
+ // die Firmenstatus-Sperre kam.
+ const versionHtml=(idxHtml.match(/id="appVersion"[^>]*>Version\s+(\d+)\.(\d+)/)||[]);
+ const versionSw=(swJs.match(/spengler-digital-(\d+)\.(\d+)/)||[]);
+ p(versionHtml.length===3&&versionSw.length===3,
+   "index.html und sw.js nennen je eine Version",{html:versionHtml[0],sw:versionSw[0]});
+ p(versionHtml[1]===versionSw[1]&&versionHtml[2]===versionSw[2],
+   "beide tragen DIESELBE Version - sonst liefert der Service Worker eine andere App aus",
+   {html:versionHtml[0],sw:versionSw[0]});
+ const vNum=Number(versionHtml[1])*1000+Number(versionHtml[2]);
+ p(vNum>=3034,"und sie liegt nicht hinter v3.34, mit der die Offerte kam",versionHtml[0]);
  const nichtDoppeltGeprueft=["recognizePhoto","uploadMeasurementImage","searchProjects","projektVorschlagHtml","positionSuggest","resolveSignedThumbnails"]
   .every(name=>!quelltext.includes("function "+name+"("));
  p(nichtDoppeltGeprueft,

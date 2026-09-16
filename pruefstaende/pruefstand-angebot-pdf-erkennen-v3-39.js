@@ -225,8 +225,19 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   };
  });
  p(frischErkannt.uploadsWaehrendErkennung===0,"die Erkennung laedt das PDF NICHT in den Storage hoch (kein storage.upload()-Aufruf)",frischErkannt);
- const gesendeteDaten=(page.__kiAufrufe[0]||{}).image_base64||"";
+ // Das Feld heisst "image", nicht "image_base64". Genau das war der Fehler,
+ // den Commit 8bf19e4 behoben hat ("Offerte-PDF-Erkennung sendete falsches
+ // Feld"): der Server-Handler liest body.image, geschickt wurde aber
+ // image_base64 - die Erkennung kam deshalb nie an. Dieser Pruefstand las
+ // bis jetzt weiterhin das alte, falsche Feld und sah dort erwartungsgemaess
+ // nichts. Jetzt wird das richtige gelesen - und mit einer Gegenprobe
+ // festgehalten, dass das falsche NICHT wieder auftaucht.
+ const ruf1=page.__kiAufrufe[0]||{};
+ const gesendeteDaten=ruf1.image||"";
  p(gesendeteDaten.startsWith("data:application/pdf;base64,"),"an die Edge Function wird eine 'data:application/pdf;base64,…'-URL geschickt (recognizePhoto() unveraendert wiederverwendet)",gesendeteDaten.slice(0,40));
+ p(ruf1.image_base64===undefined,
+   "und zwar im Feld 'image' - nicht wieder im nie gelesenen 'image_base64' (8bf19e4)",
+   Object.keys(ruf1));
  p(frischErkannt.anzahlPositionen===2,"die zwei von der (gemockten) KI gelieferten Positionen wurden angehaengt",frischErkannt);
  p(/2 Position\(en\) aus dem PDF erkannt/.test(frischErkannt.status),"und die Statuszeile nennt die Anzahl",frischErkannt);
  // Bezeichnungen stehen als value="..." in <input data-ang-desc>, nicht als Text - deshalb ueber .value lesen.
@@ -252,7 +263,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  });
  p(bestehendErkannt.signedUrlAufrufe.length===1&&bestehendErkannt.signedUrlAufrufe[0]===bestehendeZeile.pdf_path,
   "storageSignedUrl() wird mit EXAKT dem gespeicherten Pfad aufgerufen (kein blosser Speicherpfad direkt an recognizePhoto())",bestehendErkannt);
- const gesendeteDaten2=(page.__kiAufrufe[0]||{}).image_base64||"";
+ const gesendeteDaten2=(page.__kiAufrufe[0]||{}).image||"";   // siehe oben: "image", nicht "image_base64"
  p(gesendeteDaten2.startsWith("data:application/pdf;base64,"),"auch hier wird eine echte 'data:application/pdf;base64,…'-URL geschickt - NICHT der rohe Speicherpfad",gesendeteDaten2.slice(0,40));
  p(bestehendErkannt.anzahlPositionen===2,"die Positionen werden korrekt uebernommen",bestehendErkannt);
 
@@ -386,7 +397,13 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   p(verletzt.length===0,
    "keine der 'nicht anzufassenden' Dateien wurde fuer diese Erweiterung veraendert",
    {geaendert:geaenderteDateien,verletzt});
-  p(geaenderteDateien.includes("js/63-angebote.js"),"js/63-angebote.js selbst ist geaendert (traegt die neue PDF-Erkennung)",geaenderteDateien);
+  // Frueher ueber den git-diff geprueft ("in DIESEM Commit geaendert") - das
+  // konnte nur im Augenblick der Veroeffentlichung von v3.39 zutreffen und
+  // schlaegt auf einem sauberen Baum seither immer fehl. Gemeint war der
+  // Bestand, nicht der Commit: die PDF-Erkennung steht in js/63.
+  const quelleErk=require("fs").readFileSync(repo+"/js/63-angebote.js","utf8");
+  p(/angPdfDatenUrlFuerErkennung/.test(quelleErk),
+   "js/63-angebote.js traegt die PDF-Erkennung selbst (angPdfDatenUrlFuerErkennung)");
  }
 
  console.log("\n=== "+ok+" bestanden, "+fail+" fehlgeschlagen");

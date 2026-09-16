@@ -500,8 +500,22 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(idxHtml.includes('data-hilfe="ang-pdf"'),"index.html traegt den Info-Knopf data-hilfe='ang-pdf' beim PDF-Bereich");
  p(hilfeJs.includes('"ang-pdf"'),"js/41-hilfe.js hat eine passende Erklaerung dafuer (HILFE_TEXTE)");
  p(idxHtml.includes('id="angPdfInput"')&&idxHtml.includes('id="angPdfBereich"'),"index.html enthaelt beide neuen Elemente (#angPdfInput, #angPdfBereich)");
- p(!!(idxHtml.match(/Version\s+3\.38/)||[])[0],"index.html nennt Version 3.38");
- p(!!(swJs.match(/spengler-digital-3\.38/)||[])[0],"sw.js traegt die Cache-Version 3.38");
+ // Hier stand eine feste Zahl ("Version 3.38"), die nur in genau dieser
+ // Veroeffentlichung stimmen konnte. Gemeint war die Sache dahinter:
+ // index.html und sw.js muessen DIESELBE Version tragen - sonst liefert der
+ // Service Worker eine andere App aus, als die Seite anzeigt - und sie darf
+ // nicht hinter v3.38 zurueckfallen, mit der der PDF-Bereich kam. Die
+ // Version wird ueber die id appVersion gelesen, nicht ueber das erste
+ // "Version x.y" im Dokument (ein Kommentar weiter oben nennt eine aeltere).
+ const vHtml=(idxHtml.match(/id="appVersion"[^>]*>Version\s+(\d+)\.(\d+)/)||[]);
+ const vSw=(swJs.match(/spengler-digital-(\d+)\.(\d+)/)||[]);
+ p(vHtml.length===3&&vSw.length===3,"index.html und sw.js nennen je eine Version",
+   {html:vHtml[0],sw:vSw[0]});
+ p(vHtml[1]===vSw[1]&&vHtml[2]===vSw[2],
+   "beide tragen DIESELBE Version - sonst liefert der Service Worker eine andere App aus",
+   {html:vHtml[0],sw:vSw[0]});
+ p(Number(vHtml[1])*1000+Number(vHtml[2])>=3038,
+   "und sie liegt nicht hinter v3.38, mit der der PDF-Bereich kam",vHtml[0]);
  p(quelltext.includes("function uploadAngebotPdf(")&&quelltext.includes("function renderAngPdfBereich("),
   "js/63-angebote.js enthaelt uploadAngebotPdf()/renderAngPdfBereich() (kein Nachbau in einer anderen Datei)");
  p(!quelltext.includes("function dateiEndung(")&&!quelltext.includes("function dateiZuGross(")&&!quelltext.includes("function formatFileSize("),
@@ -533,9 +547,19 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   p(verletzt.length===0,
    "keine der 'nicht anzufassenden' Dateien (Massaufnahme-Fachmodule, Ausmass, Cockpit-Kern, Regierapport, Produktionsworkflow) wurde fuer diese Erweiterung veraendert",
    {geaendert:geaenderteDateien,verletzt});
-  p(geaenderteDateien.includes("js/63-angebote.js"),"js/63-angebote.js selbst ist geaendert (traegt die neue PDF-Funktion)",geaenderteDateien);
-  p(geaenderteDateien.includes("index.html")&&geaenderteDateien.includes("sw.js")&&geaenderteDateien.includes("js/41-hilfe.js"),
-   "index.html, sw.js und js/41-hilfe.js wurden fuer Markup/Version/Hilfetext ergaenzt - sonst nichts",geaenderteDateien);
+  // Die beiden folgenden Zusicherungen fragten frueher den git-diff ab
+  // ("diese Datei ist in DIESEM Commit geaendert"). Das konnte nur im
+  // Augenblick der Veroeffentlichung von v3.38 zutreffen; auf einem sauberen
+  // Baum ist der diff leer und die Pruefung schlaegt seither immer fehl.
+  // Gemeint war nie der Commit, sondern der Bestand: die PDF-Funktion steht
+  // in js/63 und ist in index.html, sw.js und js/41-hilfe.js verankert.
+  // Genau das wird jetzt geprueft - dauerhaft gueltig und, anders als ein
+  // leerer diff, nie stillschweigend wahr.
+  const quellePdf=fs.readFileSync(repo+"/js/63-angebote.js","utf8");
+  p(/angPdf/.test(quellePdf),"js/63-angebote.js traegt die PDF-Funktion selbst");
+  p(idxHtml.includes('id="angPdfInput"')&&swJs.includes('"./js/63-angebote.js"')
+    &&hilfeJs.includes('"ang-pdf"'),
+   "index.html, sw.js und js/41-hilfe.js tragen Markup, Vorrat und Hilfetext dazu");
  }
 
  console.log("\n=== "+ok+" bestanden, "+fail+" fehlgeschlagen");
