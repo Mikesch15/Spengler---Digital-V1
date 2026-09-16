@@ -109,7 +109,10 @@ const WIN_CHANGELOG={
   "Passt genau eine Position deutlich am besten, steht „✓ Vorschlag der App\" daneben. Passen mehrere ähnlich gut, sagt die App das ausdrücklich statt sich festzulegen. Passt nichts, behauptet sie nichts. Vorgewählt wird nie etwas – ein Tippfehler soll keinen Bestand auf die falsche Position buchen.",
   "Der ganze Katalog bleibt darunter erreichbar, und wer selbst sucht, hat Vorrang: während getippt wird, tritt der Vorschlag zurück."],
  "3.137":["Einstellungen → Material: „＋ Material hinzufügen\" brach ab dem zweiten Klick mit einer Datenbankmeldung ab („duplicate key value violates unique constraint\"). Der Knopf trug die EDV-Nr. als festen Text ein – beim zweiten Mal war sie schon vergeben.",
-  "Die Nummer wird jetzt berechnet, mit derselben Funktion wie in der Lagerverwaltung: die nächste freie Nummer im eigenen Kreis (999.xx), die Sie danach überschreiben können. Sollte eine Nummer im selben Augenblick von jemand anderem belegt werden, rechnet die App neu und meldet erst dann – in verständlichen Worten statt mit dem rohen Datenbanktext."]
+  "Die Nummer wird jetzt berechnet, mit derselben Funktion wie in der Lagerverwaltung: die nächste freie Nummer im eigenen Kreis (999.xx), die Sie danach überschreiben können. Sollte eine Nummer im selben Augenblick von jemand anderem belegt werden, rechnet die App neu und meldet erst dann – in verständlichen Worten statt mit dem rohen Datenbanktext."],
+ "3.138":["Neues Material anlegen geht jetzt überall gleich: „＋ Material hinzufügen\" in den Einstellungen öffnet denselben Dialog wie „Neue Materialposition anlegen\" in der Lagerverwaltung – mit Bezeichnung, Dimension, Einheit, Preis und dem begründeten Nummernvorschlag. Bisher legte der Knopf stumm eine leere Zeile an, die man danach in der Liste ausfüllen musste.",
+  "Ein Schalter oben im Dialog entscheidet, ob zur Katalogposition gleich ein Lager-Produkt (mit Barcode) entsteht. Aus der Lagerverwaltung ist er gesetzt, aus dem Katalog nicht – umstellen lässt er sich jederzeit, man kann also nicht im falschen Dialog landen.",
+  "Aus der Lagerverwaltung bleibt der Ablauf unverändert."]
 };
 
 function winVersionVergleich(a,b){

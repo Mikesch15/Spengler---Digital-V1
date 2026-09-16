@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.137</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.138</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -777,11 +777,16 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div id="lagerNeuesProduktModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>🏷️ Neues Produkt erfassen <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button></h2>
+<h2 id="lagerNeuesProduktTitel">🏷️ Neues Produkt erfassen <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button></h2>
 <div class="info">Ein Produkt gehört zu genau einer Materialposition aus dem Katalog, wird aber einzeln geführt und gebucht - z. B. mehrere Rohrbogen-Varianten unter derselben Regierapport-Position.</div>
+<!-- v3.138: EIN Dialog für beide Wege. Aus der Lagerverwaltung ist der
+     Schalter gesetzt (es geht dort um ein Produkt), aus dem Material-Katalog
+     nicht (dort genügt meist die Position). Beides ist jederzeit umstellbar,
+     damit man nicht in den falschen Dialog geraten kann. -->
+<label class="rechte-schalter" style="margin-bottom:6px"><input type="checkbox" id="lagerNeuesProduktMitProdukt" checked> Auch ein <b>Lager-Produkt</b> dazu anlegen (mit Barcode)</label>
 <div class="grid">
-<div class="wide"><label>Bezeichnung</label><input id="lagerNeuesProduktBezeichnung" data-pflicht="1" placeholder="z. B. Rohrbogen 87° 100mm"></div>
-<div class="wide"><label>Materialposition<span class="pflicht-stern">*</span></label>
+<div class="wide" id="lagerNeuesProduktBezeichnungFeld"><label>Bezeichnung</label><input id="lagerNeuesProduktBezeichnung" data-pflicht="1" placeholder="z. B. Rohrbogen 87° 100mm"></div>
+<div class="wide" id="lagerNeuesProduktPositionFeld"><label>Materialposition<span class="pflicht-stern">*</span></label>
 <!-- v3.126: Suchfeld mit Trefferliste statt Auswahlfeld - ein <select> zeigt
      seine gefilterte Liste erst beim Aufklappen (gemeldet). Dasselbe Muster
      wie im Ausbuchen-Dialog der Massaufnahme (v3.125). -->
@@ -804,7 +809,7 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <!-- v3.126: warum diese Nummer? Und die Alternativen zum Antippen. -->
 <div class="small" id="lagerNeuePositionHinweis" style="margin-top:4px"></div>
 </div>
-<div class="wide"><label>Barcode</label><div class="bar" style="gap:6px">
+<div class="wide" id="lagerNeuesProduktBarcodeFeld"><label>Barcode</label><div class="bar" style="gap:6px">
 <input id="lagerNeuesProduktBarcode" placeholder="per Kamera oder manuell">
 <button type="button" class="gray" id="lagerNeuesProduktScan">📷</button>
 </div></div>

@@ -637,7 +637,12 @@ $("lagerBuchenSpeichern").onclick=async()=>{
 // bereits aufgeklappten Position ruft dies mit der Position vorbelegt auf,
 // der Barcode wird dann per Scan/Eingabe im Formular selbst ergaenzt.
 let lagerNeuesProduktMaterialListeVoll=[];
-function lagerNeuesProduktOeffnen(materialId,barcode){
+// v3.138: EIN Dialog fuer beide Wege. Aus der Lagerverwaltung geht es um ein
+// Produkt (Schalter gesetzt), aus dem Material-Katalog meist nur um die
+// Position (Schalter aus). Vorher waren das zwei Wege: der Katalog legte
+// stumm eine leere Zeile an, die Lagerverwaltung hatte diesen Dialog.
+let lagerNeuesProduktMitProdukt=true;
+function lagerNeuesProduktOeffnen(materialId,barcode,optionen){
  const fehler=$("lagerNeuesProduktFehler");
  if(fehler)fehler.hidden=true;
  $("lagerNeuesProduktBezeichnung").value="";
@@ -649,12 +654,26 @@ function lagerNeuesProduktOeffnen(materialId,barcode){
  lagerNummerVonHand=false;
  if($("lagerNeuePositionHinweis"))$("lagerNeuePositionHinweis").innerHTML="";
  // v3.126: Auswahl als Zustand, nicht mehr als Wert eines <select>.
- lagerNeuesProduktNeuePosition=false;
- lagerNeuesProduktArtikel=materialId
+ const nurPosition=!!(optionen&&optionen.nurPosition);
+ lagerNeuesProduktMitProdukt=!nurPosition;
+ if($("lagerNeuesProduktMitProdukt"))$("lagerNeuesProduktMitProdukt").checked=!nurPosition;
+ // Aus dem Katalog heraus ist die Position IMMER neu - danach suchen zu
+ // lassen waere der falsche Weg, man kommt ja gerade aus der Liste.
+ lagerNeuesProduktNeuePosition=nurPosition;
+ lagerNeuesProduktArtikel=(!nurPosition&&materialId)
   ?(lagerNeuesProduktMaterialListeVoll.find(a=>String(a.id)===String(materialId))||null):null;
+ if(nurPosition){
+  ["lagerNeuePositionName","lagerNeuePositionDim","lagerNeuePositionPreis"]
+   .forEach(id=>{ if($(id))$(id).value=""; });
+  if($("lagerNeuePositionEinheit"))$("lagerNeuePositionEinheit").value="Stk.";
+  lagerNummerVonHand=false;
+ }
  lagerNeuesProduktMaterialRendern();
+ lagerNeuesProduktModusRendern();
  $("lagerNeuesProduktModal").hidden=false;
- setTimeout(()=>{try{$("lagerNeuesProduktBezeichnung").focus()}catch(e){}},50);
+ setTimeout(()=>{try{
+  $(nurPosition?"lagerNeuePositionName":"lagerNeuesProduktBezeichnung").focus();
+ }catch(e){}},50);
 }
 // ---- v3.124: Produkte, die in der Regiematerialliste nicht vorkommen ----
 // Statt eines zweiten Datenmodells (ein Produkt ohne Materialposition,
@@ -1020,6 +1039,32 @@ if($("lagerNeuesProduktGewaehlt"))$("lagerNeuesProduktGewaehlt").addEventListene
  lagerNeuesProduktNeuePosition=false;
  lagerNeuesProduktMaterialRendern();
 });
+// Welche Felder gehoeren zum Produkt, welche zur Position? Ohne Produkt
+// bleiben Bezeichnung, Barcode und die Positions-Suche weg - die Position
+// wird ja gerade angelegt, es gibt nichts zu suchen.
+function lagerNeuesProduktModusRendern(){
+ const mit=lagerNeuesProduktMitProdukt;
+ const zeig=(id,an)=>{ if($(id))$(id).hidden=!an; };
+ zeig("lagerNeuesProduktBezeichnungFeld",mit);
+ zeig("lagerNeuesProduktBarcodeFeld",mit);
+ // Ohne Produkt wird immer eine neue Position angelegt - die Suche nach
+ // einer bestehenden waere sinnlos.
+ zeig("lagerNeuesProduktPositionFeld",mit);
+ if(!mit){
+  lagerNeuesProduktNeuePosition=true;
+  lagerNeuesProduktArtikel=null;
+  lagerNeuePositionBlockZeigen(true);
+ }
+ const t=$("lagerNeuesProduktTitel");
+ if(t)t.firstChild.nodeValue=mit?"\u{1F3F7}\uFE0F Neues Produkt erfassen ":"\u{1F4E6} Neue Materialposition anlegen ";
+ const k=$("lagerNeuesProduktSpeichern");
+ if(k)k.textContent=mit?"\u2705 Anlegen":"\u2705 Position anlegen";
+}
+if($("lagerNeuesProduktMitProdukt"))$("lagerNeuesProduktMitProdukt").addEventListener("change",()=>{
+ lagerNeuesProduktMitProdukt=$("lagerNeuesProduktMitProdukt").checked;
+ lagerNeuesProduktMaterialRendern();
+ lagerNeuesProduktModusRendern();
+});
 function lagerNeuesProduktSchliessen(){
  $("lagerNeuesProduktModal").hidden=true;
 }
@@ -1076,6 +1121,35 @@ async function lagerNeuePositionAnlegen(fehler,produktName){
 if($("lagerNeuesProduktSpeichern"))$("lagerNeuesProduktSpeichern").onclick=async()=>{
  const fehler=$("lagerNeuesProduktFehler");
  fehler.hidden=true;
+ // Ohne Produkt endet der Weg nach der Katalogposition - derselbe
+ // Schreibweg (lagerNeuePositionAnlegen), nur ohne den zweiten Schritt.
+ if(!lagerNeuesProduktMitProdukt){
+  const knopf=$("lagerNeuesProduktSpeichern");
+  knopf.disabled=true;
+  try{
+   // lagerNeuePositionAnlegen zieht settings.materials und materialIds
+   // bereits nach - ein volles loadAllData waere hier unnoetiger Ballast.
+   const neu=await lagerNeuePositionAnlegen(fehler,"");
+   if(!neu)return;
+   lagerNeuesProduktSchliessen();
+   // Zurueck zu der Liste, aus der der Anwender kam: steht der
+   // Material-Katalog offen, wird er neu gezeichnet und die neue Zeile
+   // gleich aufgeklappt - sonst die Lagerverwaltung.
+   const imKatalog=$("settingsModal")&&!$("settingsModal").hidden;
+   if(imKatalog&&typeof renderSettings==="function"){
+    if(typeof materialFilter!=="undefined")materialFilter="";
+    if($("materialSettingsSearch"))$("materialSettingsSearch").value="";
+    if(typeof materialExpanded!=="undefined"&&typeof settings==="object"&&settings
+       &&Array.isArray(settings.materials)){
+     materialExpanded.add(settings.materials.length-1);
+     if(typeof materialPage!=="undefined"&&typeof MATERIAL_PAGE_SIZE!=="undefined")
+      materialPage=Math.floor((settings.materials.length-1)/MATERIAL_PAGE_SIZE);
+    }
+    renderSettings();
+   }else if(typeof renderLagerverwaltung==="function")renderLagerverwaltung();
+   return;
+  }finally{ knopf.disabled=false; }
+ }
  const bezeichnung=$("lagerNeuesProduktBezeichnung").value.trim();
  // v3.124/v3.126: die Wahl steht im Zustand, nicht in einem Auswahlfeld.
  let materialId=lagerNeuesProduktNeuePosition?LAGER_NEUE_POSITION

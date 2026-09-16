@@ -31360,3 +31360,73 @@ gesetzt, fallen **5** der 15 Zusicherungen durch.
 | `js/08-katalog-blitzschutz.js` | `katalogNaechsteFreieEdvNr()`, berechnete Nummer, zweiter Anlauf, verständliche Meldung, Knopf gesperrt während des Schreibens |
 | `pruefstaende/pruefstand-neue-position-nr-v3-137.js` | neu, 15 Zusicherungen |
 | `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.137 |
+
+---
+
+## 205. v3.138 – ein gemeinsamer Anlege-Dialog für beide Orte
+
+### 205.1 Ausgangslage
+
+Gemeldet: „ich würde auch gerne in der materialverwaltung ein neues produkt
+anlegen können. Soll beides die gleiche funktion sein."
+
+Es gab zwei Wege, dasselbe zu tun:
+
+| Ort | Verhalten bis v3.137 |
+| --- | --- |
+| Einstellungen → Material | „＋ Material hinzufügen" legte **stumm** eine leere Zeile an, die man danach in der Liste ausfüllen musste |
+| Lagerverwaltung | vollständiger Dialog: Bezeichnung, Dimension, Einheit, Preis, begründeter Nummernvorschlag, optional Barcode |
+
+Der bessere Dialog existierte also längst – nur am falschen Ort, und der
+Katalog hatte seinen eigenen, schlechteren Weg.
+
+### 205.2 Was geändert wurde
+
+Es ist jetzt **ein** Dialog. Ein Schalter oben entscheidet, ob zur
+Katalogposition gleich ein Lager-Produkt (mit Barcode) entsteht:
+
+- aus der **Lagerverwaltung** gesetzt – dort geht es um ein Produkt, der
+  Ablauf bleibt unverändert;
+- aus dem **Material-Katalog** nicht – dort genügt meist die Position;
+- jederzeit umstellbar, man kann also nicht im falschen Dialog landen.
+
+Ohne Produkt bleiben Bezeichnung, Barcode und die Positions-Suche weg (die
+Position entsteht ja gerade, es gibt nichts zu suchen), Titel und
+Bestätigungsknopf wechseln mit. Geschrieben wird über denselben Weg wie
+bisher – `lagerNeuePositionAnlegen()` –, nur ohne den zweiten Schritt.
+`settings.materials` und `materialIds` zieht diese Funktion bereits nach, ein
+volles `loadAllData()` wäre unnötiger Ballast.
+
+Nach dem Anlegen kehrt der Dialog dorthin zurück, wo der Anwender herkam:
+steht der Material-Katalog offen, wird er neu gezeichnet und die neue Zeile
+gleich aufgeklappt; sonst die Lagerverwaltung.
+
+Der direkte Insert aus v3.137 bleibt als **Rückfall** bestehen, falls die
+Lagerverwaltung nicht geladen ist (fehlendes Recht) – mit der berechneten
+Nummer, nicht mit dem festen Text.
+
+### 205.3 Nachweis
+
+Neuer Prüfstand `pruefstand-gemeinsamer-dialog-v3-138.js` (29 Zusicherungen,
+davon 5 Gegenproben). Die zentrale prüft, dass **beide Wege dasselbe Fenster
+öffnen** – sie fällt durch, sobald jemand daneben einen zweiten Anlege-Dialog
+baut. Weitere Gegenproben: es wird nichts mehr stumm angelegt, bevor der
+Anwender bestätigt; ohne Schalter entsteht **kein** Lager-Produkt; der Weg
+der Lagerverwaltung hat sich nicht in einen reinen Positions-Dialog
+verwandelt; ohne Bezeichnung wird nichts geschrieben.
+
+Die Attrappe setzt die Eindeutigkeitsregel auf `edv_nr` wirklich durch.
+
+Gegenprobe des Prüfstands: leitet der Katalog-Knopf nicht auf den
+gemeinsamen Dialog, fallen **13** der 29 Zusicherungen durch.
+
+### 205.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `index.html` | Schalter „Auch ein Lager-Produkt dazu anlegen", ids für die drei produktbezogenen Felder, Titel mit id |
+| `js/68-lagerverwaltung.js` | `lagerNeuesProduktOeffnen(…, {nurPosition})`, `lagerNeuesProduktModusRendern()`, Speicherweg ohne Produkt |
+| `js/08-katalog-blitzschutz.js` | „＋ Material hinzufügen" öffnet den gemeinsamen Dialog, alter Weg nur noch als Rückfall |
+| `js/41-hilfe.js` | Hilfetext „Material" um den Dialog und den Schalter ergänzt |
+| `pruefstaende/pruefstand-gemeinsamer-dialog-v3-138.js` | neu, 29 Zusicherungen |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.138 |

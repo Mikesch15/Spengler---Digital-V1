@@ -727,6 +727,18 @@ function katalogNaechsteFreieEdvNr(){
  return "999."+String(hoechste+1).padStart(2,"0");
 }
 $("newMaterial").onclick=async()=>{
+ // v3.138: EIN Weg fuer beide Orte. Gibt es den Dialog der Lagerverwaltung
+ // (js/68), wird er geoeffnet - mit Bezeichnung, Einheit, Preis und dem
+ // begruendeten Nummernvorschlag, und auf Wunsch gleich mit einem
+ // Lager-Produkt dazu. Bis v3.137 legte der Knopf stumm eine leere Zeile an,
+ // die man danach ausfuellen musste; die Lagerverwaltung hatte laengst den
+ // besseren Dialog, nur an der falschen Stelle.
+ if(typeof lagerNeuesProduktOeffnen==="function"&&$("lagerNeuesProduktModal")){
+  lagerNeuesProduktOeffnen(null,"",{nurPosition:true});
+  return;
+ }
+ // Rueckfall ohne die Lagerverwaltung (fehlendes Recht, Datei nicht
+ // geladen): wie bisher direkt anlegen, mit berechneter Nummer.
  const knopf=$("newMaterial");
  knopf.disabled=true;
  try{

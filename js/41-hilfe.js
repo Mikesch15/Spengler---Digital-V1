@@ -1167,6 +1167,12 @@ Vorschau sagt dann, wie viele Zeilen das betrifft.</p>`},
 "einst-material":{titel:"Material",text:`
 <p>Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt
 <b>firmenweit</b>.</p>
+<p><b>＋ Material hinzufügen</b> öffnet denselben Dialog wie „Neue
+Materialposition anlegen" in der Lagerverwaltung: Bezeichnung, Dimension,
+Einheit und Preis, dazu ein Vorschlag für die EDV-Nr. mit Begründung. Ein
+Schalter oben entscheidet, ob gleich auch ein <b>Lager-Produkt</b> (mit
+Barcode) dazu entsteht – aus dieser Liste heraus ist er aus, aus der
+Lagerverwaltung an. Umstellen lässt er sich jederzeit.</p>
 <p>Die beiden Zahlenfelder (maximaler Abstand und Abstand ab Fixpunkt) werden
 nur bei "Dachrinne" und "Mauerabdeckung" für die Dehnungsabstände
 gebraucht – bei allen anderen Arten leer lassen.</p>`},
