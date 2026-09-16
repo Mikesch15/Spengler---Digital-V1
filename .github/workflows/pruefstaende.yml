@@ -16,8 +16,10 @@ jobs:
         with:
           node-version: 20
 
-      - name: Playwright-Core installieren
-        run: npm install playwright-core@latest --no-save
+      - name: Playwright-Core und SheetJS installieren
+        # SheetJS wird von den beiden Excel-Import-Pruefstaenden gebraucht.
+        # Ohne das Paket liefen deren Datei-Teile in der CI nie mit.
+        run: npm install playwright-core@latest xlsx --no-save
 
       - name: Chromium installieren
         run: npx playwright-core install --with-deps chromium

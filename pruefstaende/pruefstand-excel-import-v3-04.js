@@ -2,6 +2,12 @@
 // Pflichtspalten pruefen, Vorschau, verstaendliche Fehler.
 // CLAUDE.md 7 verlangt genau das - bis v3.03 war die Spaltenreihenfolge fest.
 //
+// Seit v3.134 schreibt der Import per upsert (Abgleich ueber die Nummer)
+// statt per insert. Die Pruefungen hier wurden auf diesen Vertrag gezogen,
+// die alten insert-Erwartungen sind NICHT abgeschwaecht, sondern als
+// Gegenprobe erhalten: es darf ueberhaupt kein insert und erst recht kein
+// delete mehr auf den Katalog gehen.
+//
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-excel-import-v3-04.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const path=require("path"),fs=require("fs");
@@ -26,11 +32,13 @@ async function klick(page,sel){
 window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},
  from:(t)=>{const z={t};const q={};
   q.insert=d=>{z.op="insert";z.daten=d;return q};
+  q.upsert=(d,o)=>{z.op="upsert";z.daten=d;z.opt=o;return q};
+  q.delete=()=>{z.op="delete";return q};   // nur da, damit ein Loeschversuch auffaellt
   q.select=()=>{if(!z.op)z.op="select";return q}; q.eq=()=>q; q.order=()=>q; q.limit=()=>q;
   q.not=()=>q; // seit v3.29 fragt js/05 die verbrauchten Reste mit .not(...) ab
-  const lauf=()=>{window.__db.log.push({t,op:z.op,daten:z.daten});
+  const lauf=()=>{window.__db.log.push({t,op:z.op,daten:z.daten,opt:z.opt});
    if(window.__db.fehler)return {data:null,error:{message:window.__db.fehler}};
-   if(z.op==="insert")return {data:window.__db.leer?[]:(z.daten||[]).map((x,i)=>Object.assign({id:i+1},x)),error:null};
+   if(z.op==="insert"||z.op==="upsert")return {data:window.__db.leer?[]:(z.daten||[]).map((x,i)=>Object.assign({id:i+1},x)),error:null};
    return {data:[],error:null}};
   q.maybeSingle=()=>Promise.resolve({data:null,error:null});
   q.then=(f,g)=>Promise.resolve(lauf()).then(f,g); return q}})};`}));
@@ -128,29 +136,43 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
   p(zu.dim==="","fuer Dim. gibt es keine Spalte - das Feld bleibt leer",zu);
   p(/3 von 4 Zeilen/.test(vor.zahl),"nur die vollständigen Zeilen werden importiert",vor.zahl);
   p(/kein .Material/.test(vor.fehler),"und es steht verstaendlich da, warum eine fehlt",vor.fehler);
-  p(vor.zeilen.length===3&&vor.zeilen[0][0]==="101.10"&&vor.zeilen[0][1]==="Titanzink Band",
+  // Seit v3.134 steht VOR den Feldern eine Spalte "Was" (neu/geaendert/gleich)
+  // und dahinter eine Spalte "Änderung" - die Feldwerte sind dadurch um eins
+  // nach rechts gerueckt.
+  p(vor.kopf[0]==="Was"&&vor.kopf[vor.kopf.length-1]==="Änderung",
+    "die Vorschau sagt je Zeile, was mit ihr passiert",vor.kopf);
+  p(vor.zeilen.length===3&&vor.zeilen[0][1]==="101.10"&&vor.zeilen[0][2]==="Titanzink Band",
     "die Vorschau zeigt die Werte in den richtigen Feldern",vor.zeilen[0]);
-  p(vor.zeilen[0][4]==="42.5","der Preis wird als Zahl gelesen",vor.zeilen[0]);
+  p(vor.zeilen[0][5]==="42.5","der Preis wird als Zahl gelesen",vor.zeilen[0]);
+  p(vor.zeilen.every(z=>z[0]==="neu"),
+    "ein leerer Katalog heisst: alle drei Zeilen sind neu",vor.zeilen.map(z=>z[0]));
   // Von Hand umstellen
   const nach=await page.evaluate(()=>{
     const sel=$("materialExcelMapping").querySelector('[data-import-feld="name"]');
     sel.value="1"; sel.dispatchEvent(new Event("change"));
     return {zeile:Array.from($("materialExcelTable").querySelectorAll("tr"))[1]
-      .querySelectorAll("td")[1].textContent};});
+      .querySelectorAll("td")[2].textContent};});
   p(nach.zeile==="m2","eine Zuordnung von Hand wirkt sofort auf die Vorschau",nach);
   await page.evaluate(()=>{const sel=$("materialExcelMapping").querySelector('[data-import-feld="name"]');
     sel.value="2"; sel.dispatchEvent(new Event("change"))});
   // Import
   await page.evaluate(()=>{window.__db.log=[]});
   const kR=await klick(page,"#materialExcelConfirm"); p(kR==="ok","der Import-Knopf laesst sich bedienen",kR);
-  const lg=await page.evaluate(()=>window.__db.log.filter(x=>x.op==="insert"));
+  const lg=await page.evaluate(()=>window.__db.log.filter(x=>x.op==="upsert"));
   p(lg.length===1&&lg[0].daten.length===3,"genau die drei Zeilen werden gesendet",
     lg.length?lg[0].daten.length:lg);
-  p(lg.length===1&&lg[0].daten[0].edv_nr==="101.10"&&lg[0].daten[0].name==="Titanzink Band"
-    &&lg[0].daten[0].price===42.5&&lg[0].daten[0].unit==="m2",
-    "mit den richtig zugeordneten Werten",lg.length?lg[0].daten[0]:null);
-  p(lg.length===1&&lg[0].daten[0].company_id===undefined,
-    "ohne company_id – die setzt die Datenbank",lg.length?lg[0].daten[0]:null);
+  const z101=lg.length?lg[0].daten.find(x=>x.edv_nr==="101.10"):null;
+  p(!!z101&&z101.name==="Titanzink Band"&&z101.price===42.5&&z101.unit==="m2",
+    "mit den richtig zugeordneten Werten",z101);
+  p(!!z101&&z101.company_id===undefined,
+    "ohne company_id – die setzt die Datenbank",z101);
+  p(lg.length===1&&lg[0].opt&&lg[0].opt.onConflict==="edv_nr",
+    "der Abgleich laeuft ueber die EDV-Nr. (v3.134)",lg.length?lg[0].opt:null);
+  // Gegenproben zum alten Verhalten: ein blosses insert wuerde an der
+  // Eindeutigkeitsregel scheitern, ein delete wuerde den Katalog leeren.
+  const andere=await page.evaluate(()=>window.__db.log
+    .filter(x=>x.t==="materials"&&(x.op==="insert"||x.op==="delete")));
+  p(andere.length===0,"kein insert und kein delete auf den Katalog",andere);
 
   console.log("\nD · Fehlende Pflichtspalte");
   await page.evaluate(async()=>{
