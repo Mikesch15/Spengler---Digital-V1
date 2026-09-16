@@ -124,14 +124,30 @@ const abschnitt=(s,key)=>s.abschnitte.find(a=>a.key===key)||{};
  // eigenen Feature-Schalter (dieselbe RLS wie jede Projekttabelle, siehe
  // Kopfkommentar in js/65), also fuer jeden Projektberechtigten immer
  // sichtbar. Alles ueberholte Erwartung, kein Codefehler.
- const SOLL=["stand","angebote","leistungen","meas","ausmassVorbereitung","am","rep","files","verlauf"];
+ // v3.120/123: "matzu" ist als klappbare Karte zurueck im Cockpit (der
+ // Knopf darin fuehrt auf die Seite Material & Zuschnitt, die Karte selbst
+ // zeigt den Stand) und "lager" ist als Abschnitt "Material ab Lager" neu
+ // dazugekommen. "ausmassVorbereitung" gibt es dagegen nicht mehr - der
+ // Abschnitt wurde auf ausdruecklichen Wunsch des Anwenders entfernt und ist
+ // in js/65 heute nicht mehr registriert. Alles gewollter Stand, kein
+ // Codefehler; die Liste wird deshalb nachgezogen, nicht der Code.
+ const SOLL=["stand","angebote","leistungen","meas","matzu","am","rep","lager","files","verlauf"];
  p(SOLL.every(k=>s.abschnitte.some(a=>a.key===k))&&s.abschnitte.length===SOLL.length,
    "jeder Bereich ist ein klappbarer Abschnitt",s.abschnitte.map(a=>a.key));
  const zu=s.abschnitte.filter(a=>a.kartenSichtbar&&!a.offen).map(a=>a.key);
  p(zu.indexOf("meas")>=0&&zu.indexOf("am")>=0&&zu.indexOf("rep")>=0
    &&zu.indexOf("files")>=0&&zu.indexOf("verlauf")>=0
-   &&zu.indexOf("leistungen")>=0&&zu.indexOf("ausmassVorbereitung")>=0,
+   &&zu.indexOf("leistungen")>=0,
    "die Arbeitsbereiche und der Verlauf starten zugeklappt",zu);
+ // Die eigentliche Zusicherung aus v3.11, und zwar ohne Namensliste: GENAU
+ // ein Abschnitt steht offen da, naemlich der Arbeitsstand. Damit faellt
+ // jeder kuenftig ergaenzte Abschnitt automatisch mit unter die Regel - die
+ // Liste oben kann veralten, diese Zeile nicht. Zugleich die Gegenprobe:
+ // haette ein Bereich wieder offen angefangen (der gemeldete Fehler
+ // "Bildschirmkilometer"), faellt sie durch.
+ const offenBeimStart=s.abschnitte.filter(a=>a.kartenSichtbar&&a.offen).map(a=>a.key);
+ p(offenBeimStart.length===1&&offenBeimStart[0]==="stand",
+   "und zwar ALLE ausser dem Arbeitsstand - kein Bereich faengt offen an",offenBeimStart);
  // v3.34: "angebote" gehoert bewusst NICHT in diese Liste. Der Abschnitt
  // existiert zwar als klappbarer Abschnitt im DOM (siehe SOLL oben), aber
  // dieser Test setzt keine Offerte-Freigabe (kein offerteZugriff, kein

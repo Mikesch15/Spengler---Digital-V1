@@ -164,16 +164,31 @@ const seite=(page)=>page.evaluate(()=>{
   $("startScreen").hidden=true; $("projectCockpitModal").hidden=false;
   await zeLaden([11,12,13],true); cockpitMatZuStand();
  });
- z=await page.evaluate(()=>({hidden:$("cockpitMatZuCard").hidden,
+ // v3.11 hat die Cockpit-Bereiche zum Aufklappen gemacht: .klapp-body steht
+ // auf display:none, solange die Karte kein .open traegt. Der Inhalt der
+ // Karte - und damit der grosse Knopf - hat zugeklappt also Hoehe 0. Das ist
+ // richtig so; gemessen wird deshalb der Weg des Anwenders: Karte da,
+ // Ueberschrift antippen, dann steht der Knopf gross davor. Die Zeile im
+ // Arbeitsstand fuehrt bei "matzu" NICHT auf diese Karte, sondern direkt auf
+ // die eigene Seite (js/24, Sonderfall matzu) - sie klappt hier also nichts auf.
+ z=await page.evaluate(()=>{
+  const hoehe=()=>Math.round($("cockpitMatZuOeffnen").getBoundingClientRect().height);
+  const zugeklappt=hoehe();
+  const kopf=document.querySelector('#cockpitMatZuCard .klapp-kopf[data-klapp="matzu"]');
+  if(kopf&&!$("cockpitMatZuCard").classList.contains("open"))kopf.click();
+  return {hidden:$("cockpitMatZuCard").hidden,
    text:($("cockpitMatZuText").innerText||"").replace(/\s+/g," ").trim(),
    zeile:($("cockpitStandMatZuZeile").innerText||"").replace(/\s+/g," ").trim(),
    knopf:($("cockpitMatZuOeffnen").innerText||"").trim(),
-   hoehe:Math.round($("cockpitMatZuOeffnen").getBoundingClientRect().height)}));
+   kopfDa:!!kopf,zugeklappt,hoehe:hoehe()};
+ });
  p(!z.hidden,"mit eingeschaltetem Modul steht die Karte da",z);
  p(/Material: 2 Positionen/.test(z.text),"sie nennt die Materialpositionen",z.text);
  p(/Zuschnitt: 0 von 6 zugeschnitten/.test(z.text),"und den Zuschnittfortschritt",z.text);
  p(/6 Zuschnitte offen/.test(z.text),"und wie viele offen sind",z.text);
- p(/Material & Zuschnitt öffnen/i.test(z.knopf)&&z.hoehe>=44,"ein grosser Knopf fuehrt auf die Seite",z);
+ p(z.kopfDa,"die Karte hat eine Ueberschrift zum Auf- und Zuklappen",z);
+ p(z.zugeklappt===0,"zugeklappt steht der Knopf nicht im Weg",z);
+ p(/Material & Zuschnitt öffnen/i.test(z.knopf)&&z.hoehe>=44,"aufgeklappt fuehrt ein grosser Knopf auf die Seite",z);
 
  // ---- C · Die Seite -------------------------------------------------------
  console.log("\nC · Die zentrale Seite");
