@@ -151,7 +151,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  page.on("dialog",d=>{(page.__dialoge=page.__dialoge||[]).push(d.message());d.accept()});
  await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
 
- const repo="/home/user/Spengler---Digital-V1";
+ const repo=process.cwd();
  await page.goto("file://"+repo+"/index.html");
  await page.waitForFunction(()=>typeof newLeistung==="function"&&typeof openLeistung==="function"
   // v3.131: leimLaden/leimUebernehmen wurden auf Auftrag entfernt (siehe

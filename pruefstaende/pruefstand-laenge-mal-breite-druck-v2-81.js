@@ -14,7 +14,7 @@ const LXB=/\d[\d'’.\s]*×\s*\d/;
  await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",
    body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}})};"}));
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
- await page.goto("file://"+path.join("/home/user/Spengler---Digital-V1","index.html"),{waitUntil:"load"});
+ await page.goto("file://"+path.join(process.cwd(),"index.html"),{waitUntil:"load"});
  await page.waitForTimeout(350);
  await page.evaluate(()=>{
   currentProfile={id:"u1",first_name:"Mike",last_name:"Ledermann"};allProfiles=[{id:"u1",first_name:"Mike",last_name:"Ledermann"}];allProjects=[];companyName="Peter Künzi AG";

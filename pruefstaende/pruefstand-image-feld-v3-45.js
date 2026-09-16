@@ -94,7 +94,7 @@ const p=(b,t,z)=>{
  else{fail++;console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,500):""))}
 };
 
-const repo="/home/user/Spengler---Digital-V1";
+const repo=process.cwd();
 
 // ---------- Teil A: strukturell, am Quelltext ----------
 

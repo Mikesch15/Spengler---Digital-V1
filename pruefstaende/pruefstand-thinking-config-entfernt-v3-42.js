@@ -96,7 +96,7 @@ const p=(b,t,z)=>{
  else{fail++;console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,500):""))}
 };
 
-const repo="/home/user/Spengler---Digital-V1";
+const repo=process.cwd();
 
 // ---- Teil A: Struktur (der eingecheckte Quelltext von index.ts) -----------
 console.log("A · Struktur - supabase/functions/extract-offer-positions/index.ts");

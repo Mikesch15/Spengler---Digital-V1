@@ -208,7 +208,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   }
  });
 
- const repo="/home/user/Spengler---Digital-V1";
+ const repo=process.cwd();
  await page.goto("file://"+repo+"/index.html");
  await page.waitForFunction(()=>typeof checkOfferteZugriff==="function"
   &&typeof newAngebot==="function"&&typeof openAngebot==="function"
