@@ -186,7 +186,19 @@ const VORLAGEN=[
   del:[...$("vorlagenListe").querySelectorAll("[data-vorlage-loeschen]")].map(x=>x.dataset.vorlageLoeschen)
  }));
  p(liste.zeilen===2,"zwei Vorlagen gelistet",{n:liste.zeilen});
- p(/Standardrinne/.test(liste.text)&&/Rinne Halbrund/.test(liste.text),"Name und deutsche Art",{t:liste.text.slice(0,120)});
+ // Der feste Text "Rinne Halbrund" stand hier bis v3.49; seither heisst die
+ // Art "Dachrinne" (bewusste Umbenennung, Commit 62fa88e). Statt den neuen
+ // Namen wieder festzuschreiben wird gegen die Beschriftungstabelle der App
+ // selbst geprueft - damit ueberlebt die Zusicherung jede weitere
+ // Umbenennung. Worum es hier geht, ist unveraendert: in der Liste steht der
+ // deutsche Name der Art, nicht der technische Schluessel.
+ const artText=await page.evaluate(()=>({
+  rinne:MEAS_TYPE_LABELS.rinne_halbrund,lukarne:MEAS_TYPE_LABELS.lukarne}));
+ p(/Standardrinne/.test(liste.text)&&liste.text.indexOf(artText.rinne)>=0,
+   "Name und deutsche Art",{t:liste.text.slice(0,120),erwartet:artText.rinne});
+ // Gegenprobe: der technische Schluessel darf nirgends durchschlagen.
+ p(liste.text.indexOf("rinne_halbrund")<0&&liste.text.indexOf("lukarne")<0,
+   "und nirgends der technische Schluessel",{t:liste.text.slice(0,120)});
  p(/Reihenhaus/.test(liste.text),"Notiz angezeigt");
  p(liste.umb.join()==="1,2"&&liste.del.join()==="1,2","Umbenennen und Loeschen je Zeile",liste);
 

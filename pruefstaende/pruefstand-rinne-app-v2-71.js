@@ -368,7 +368,18 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(await page.locator("[data-ra-seg-laenge]").first().inputValue()==="8123",
    "und steht danach wieder im Feld");
  await page.evaluate(()=>{rinneA.segmente[0].laenge=7000;renderRinneAufnahme()});
- // Die Kontrolle wird markiert, sobald es dort etwas gibt
+ // Die Kontrolle wird markiert, sobald es dort etwas gibt.
+ // v3.66: der Halterabstand hat keinen Vorgabewert mehr, sondern ist ein
+ // Pflichtfeld, das leer anfaengt ("Standardmasse nur noch Richtwert").
+ // Diese Aufnahme hat ihn nie gesetzt - fuer die Kontrolle blieb deshalb
+ // dauerhaft ein Fehler stehen, auch nachdem die Laenge wieder stimmte.
+ // Das ist der gewollte Vertrag, kein Codefehler: hier wird der
+ // Halterabstand jetzt wie vom Anwender erwartet gefuellt, damit der
+ // Fehler, den dieser Abschnitt untersucht, wirklich der einzige ist.
+ await page.evaluate(()=>{rinneA.halter.abstand_mm=800;renderRinneAufnahme()});
+ await page.waitForTimeout(150);
+ p(await page.locator('[data-ra-schritt="7"] .ra-register-punkt.fehler').count()===0,
+   "vollstaendig ausgefuellt ist das Kontroll-Register unmarkiert");
  await page.evaluate(()=>{rinneA.segmente[0].laenge=-5;renderRinneAufnahme()});
  await page.waitForTimeout(150);
  p(await page.locator('[data-ra-schritt="7"] .ra-register-punkt.fehler').count()===1,
@@ -377,6 +388,19 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  await page.waitForTimeout(150);
  p(await page.locator('[data-ra-schritt="7"] .ra-register-punkt.fehler').count()===0,
    "und die Markierung verschwindet wieder");
+ // Gegenprobe zu v3.66: ein leerer Halterabstand ist ein FEHLER und kein
+ // stillschweigend eingesetzter Vorgabewert. Faellt durch, sobald jemand
+ // den alten Standardwert wieder einbaut.
+ const ohneHalter=await page.evaluate(()=>{
+  rinneA.halter.abstand_mm="";renderRinneAufnahme();
+  return raPruefungen(rinneA).filter(x=>x.art==="fehler").map(x=>x.text);
+ });
+ await page.waitForTimeout(150);
+ p(ohneHalter.some(t=>/Halterabstand fehlt/.test(t))
+   &&await page.locator('[data-ra-schritt="7"] .ra-register-punkt.fehler').count()===1,
+   "ein leerer Halterabstand ist ein Fehler, kein stiller Vorgabewert",ohneHalter);
+ await page.evaluate(()=>{rinneA.halter.abstand_mm=800;renderRinneAufnahme()});
+ await page.waitForTimeout(150);
  // Beim Oeffnen einer Aufnahme faengt es vorne an
  await reg(5);
  await page.evaluate(()=>rinneAufnahmeFuellen({segments:[{laenge:1000}]}));

@@ -157,7 +157,15 @@ const liste=(page)=>page.evaluate(()=>{
  const z11=L.zeilen.find(z=>/Rinne Nord/.test(z.text));
  p(!!z11,"Zeile der Massaufnahme 11 vorhanden");
  p(z11&&/Teststrasse 11, 3000 Bern/.test(z11.text),"Adresse als Haupttitel",z11&&z11.text);
- p(z11&&/Rinne Halbrund/.test(z11.text),"Art der Massaufnahme genannt",z11&&z11.text);
+ // "Rinne Halbrund" heisst seit v3.49 "Dachrinne" (Commit 62fa88e, bewusste
+ // Umbenennung). Geprueft wird deshalb gegen die Beschriftungstabelle der
+ // App statt gegen einen abgeschriebenen Text - die Zusicherung bleibt
+ // dieselbe (die Art steht in der Zeile) und ueberlebt jede Umbenennung.
+ const artRinne=await page.evaluate(()=>MEAS_TYPE_LABELS.rinne_halbrund);
+ p(z11&&z11.text.indexOf(artRinne)>=0,"Art der Massaufnahme genannt",
+   {t:z11&&z11.text,erwartet:artRinne});
+ p(z11&&z11.text.indexOf("rinne_halbrund")<0,
+   "und nicht der technische Schluessel",z11&&z11.text);
  p(z11&&/Zu rüsten/.test(z11.text),"Arbeitsstatus genannt",z11&&z11.text);
  p(z11&&/Aufgenommen: Mike Ledermann/.test(z11.text),"Ersteller genannt",z11&&z11.text);
  p(z11&&/Rüsten: Leo Bock/.test(z11.text),"Ruester genannt",z11&&z11.text);
