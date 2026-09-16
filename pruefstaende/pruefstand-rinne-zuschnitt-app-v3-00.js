@@ -206,10 +206,20 @@ const laden=async(page,d)=>{await page.evaluate(x=>{rinneFormularFuellen(x);rpaF
  p(plan.gruppen[0].streifen.length===3,"drei Streifen (1670+1670 = 3340 > 3085)",
    plan.gruppen[0].streifen.map(s=>s.stuecke.map(x=>x.laenge)));
  p(plan.zuSchmal.length===1&&plan.zuSchmal[0]===670,"die 670er Rolle ist zu schmal",plan.zuSchmal);
- p(plan.bestes&&plan.bestes.breite===1000&&Math.abs(plan.bestes.flaeche-9.255)<1e-6,
-   "beste Rolle 1000 mm mit 9,255 m² (3 Abschnitte à 3085 mm)",plan.bestes);
- p(plan.bestes&&Math.abs(plan.bestes.verschnitt-2.89425)<1e-6,
-   "Verschnitt 2,89425 m² (9,255 − 6,36075)",plan.bestes&&plan.bestes.verschnitt);
+ // Ein Streifen kostet nur die Rollenlaenge, die er WIRKLICH belegt, nicht
+ // pauschal die Abschnittlaenge. Von Hand: die drei Streifen sind 3085,
+ // 1670 und 1670 mm lang -> 6425 mm Rolle, Flaeche 1000*6425/1e6 = 6,425 m2.
+ // Pauschal waeren es 3*3085 = 9255 mm gewesen, also die frueheren 9,255 m2.
+ // Die neue Zahl ist die sparsamere und die richtige.
+ p(plan.bestes&&plan.bestes.breite===1000&&Math.abs(plan.bestes.flaeche-6.425)<1e-6,
+   "beste Rolle 1000 mm mit 6,425 m² (3085 + 1670 + 1670 mm Rolle)",plan.bestes);
+ p(plan.bestes&&Math.abs(plan.bestes.verschnitt-(6.425-6.36075))<1e-6,
+   "Verschnitt 0,06425 m² (6,425 − 6,36075)",plan.bestes&&plan.bestes.verschnitt);
+ // Gegenprobe zur Herkunft: die Rollenlaenge ist die Summe der echten
+ // Streifenlaengen. Faellt durch, sobald wieder pauschal gerechnet wuerde.
+ p(plan.bestes&&plan.bestes.rollenLaenge===6425,
+   "und zahlt 6425 mm Rolle statt der pauschalen 9255 mm",
+   plan.bestes&&plan.bestes.rollenLaenge);
  // Nachweis, dass wirklich die GEMEINSAME Packrechnung gerufen wird.
  const gerufen=await page.evaluate(()=>{
   const echt=window.ebaPackeInStreifen; let n=0;
@@ -295,7 +305,9 @@ const laden=async(page,d)=>{await page.evaluate(x=>{rinneFormularFuellen(x);rpaF
   const alt=rinneStuecke[0].links.slice(); rinneStuecke[0].links[1]="";
   const m=rpaPruefungen(); rinneStuecke[0].links=alt; return m;
  });
- p(k5.some(x=>x.art==="warnung"&&/B links/.test(x.text)),"ein leeres variables Mass ist eine Warnung",
+ // v3.66: die variablen Masse haben keinen Vorgabewert mehr und sind damit
+ // echte Pflichtfelder - ein leeres ist ein FEHLER, keine Warnung mehr.
+ p(k5.some(x=>x.art==="fehler"&&/B links/.test(x.text)),"ein leeres variables Mass ist ein Fehler",
    k5.map(x=>x.text));
  const k6=await page.evaluate(()=>{
   const alt=rinneProfil.slice(); rinneProfil.length=0;

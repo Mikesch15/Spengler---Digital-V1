@@ -210,6 +210,13 @@ const auf=async(page,a)=>{
   fpA.segmente=[{laenge:3000,massen:[]},{laenge:2000,massen:[]}];
   // Mauerabdeckung
   madA=madaLeer(); madA.material="2";
+  // v3.66: madaLeer() laesst die neun Profilmasse LEER stehen - sie kommen
+  // seither als Richtwert-Chip und werden bewusst uebernommen, statt schon
+  // im Feld zu stehen. Ohne sie ist die Abwicklung 0 und es gibt gar keinen
+  // Zuschnitt zu zeigen. Hier wird deshalb der Zustand NACH dem Uebernehmen
+  // hergestellt; dass das Antippen der Chips genau zu diesen Werten fuehrt,
+  // weist pruefstand-mauerabdeckung-app-v2-79.js nach.
+  Object.keys(MADA_PROFIL_VORGABE).forEach(k=>{madA.profil[k]=MADA_PROFIL_VORGABE[k]});
   madA.segmente=[{laenge:8000,winkel:90,bodenLinks:true,bodenRechts:false},
                  {laenge:4000,winkel:0,bodenLinks:false,bodenRechts:true}];
   madA.schieberManuell=false; madaSchieberNeu();
@@ -419,6 +426,13 @@ const auf=async(page,a)=>{
   ebA=ebaLeer(); ebA.material="2"; ebA.abwicklung=250; ebA.massA=120; ebA.winkel=30;
   ebA.stuecke=[{laenge:3000},{laenge:2000},{laenge:2500}];
   madA=madaLeer(); madA.material="2";
+  // v3.66: madaLeer() laesst die neun Profilmasse LEER stehen - sie kommen
+  // seither als Richtwert-Chip und werden bewusst uebernommen, statt schon
+  // im Feld zu stehen. Ohne sie ist die Abwicklung 0 und es gibt gar keinen
+  // Zuschnitt zu zeigen. Hier wird deshalb der Zustand NACH dem Uebernehmen
+  // hergestellt; dass das Antippen der Chips genau zu diesen Werten fuehrt,
+  // weist pruefstand-mauerabdeckung-app-v2-79.js nach.
+  Object.keys(MADA_PROFIL_VORGABE).forEach(k=>{madA.profil[k]=MADA_PROFIL_VORGABE[k]});
   madA.segmente=[{laenge:8000,winkel:90,bodenLinks:true,bodenRechts:false},
                  {laenge:4000,winkel:0,bodenLinks:false,bodenRechts:true}];
   madA.schieberManuell=false; madaSchieberNeu();
