@@ -112,16 +112,29 @@ const daten=async(page,o)=>{await page.evaluate(x=>{Object.assign(lukA,x);render
    "die Scharen sagen ebenfalls, was fehlt");
  await reg(page,6);
  const pflicht=await page.evaluate(()=>lukaPruefungen().filter(x=>x.art==="fehler").map(x=>x.text));
- p(pflicht.length===2&&/Höhe H/.test(pflicht[0])&&/obere Länge L/.test(pflicht[1]),
-   "die beiden fehlenden Masse werden gemeldet (Winkel und Achsabstand kommen aus den Einstellungen)",pflicht);
+ // v3.65/66: Achsabstand, Hilfsriss und die beiden Zuschnittzugaben kamen
+ // frueher als Vorgabewert aus den Einstellungen und standen schon im Feld.
+ // Seither sind sie leere Pflichtfelder mit Richtwert-Chip, also werden sie
+ // am leeren Formular auch gemeldet - genau das ist der Sinn der Umstellung.
+ // Der obere Innenwinkel ist der einzige, der weiter mit einem Wert startet
+ // (95 Grad, js/36 Zeile 56): das ist keine Firmenvorgabe, sondern die
+ // geometrische Ausgangslage der Lukarne.
+ const SOLL_FEHLT=[/Höhe H/,/obere Länge L/,/Achsabstand/,/Hilfsriss/,/Längenzugabe/,/Breitenzugabe/];
+ p(pflicht.length===SOLL_FEHLT.length&&SOLL_FEHLT.every((r,i)=>r.test(pflicht[i]||"")),
+   "alle leeren Pflichtmasse werden gemeldet",pflicht);
+ // Gegenprobe: der Winkel steht mit seinem Ausgangswert da und wird deshalb
+ // NICHT gemeldet - sobald man ihn leert, schon.
+ p(!pflicht.some(t=>/Innenwinkel/.test(t)),
+   "der Winkel startet mit seinem Ausgangswert und fehlt deshalb nicht",pflicht);
  const ohneVorgabe=await page.evaluate(()=>{
-  const alt={w:lukA.winkel,p:lukA.achsabstand};
-  lukA.winkel=""; lukA.achsabstand="";
+  const alt={w:lukA.winkel};
+  lukA.winkel="";
   const m=lukaPruefungen().filter(x=>x.art==="fehler").map(x=>x.text);
-  lukA.winkel=alt.w; lukA.achsabstand=alt.p;
+  lukA.winkel=alt.w;
   return m;
  });
- p(ohneVorgabe.length===4,"ohne Vorgabe sind es alle vier Pflichtfelder",ohneVorgabe);
+ p(ohneVorgabe.length===pflicht.length+1&&ohneVorgabe.some(t=>/Innenwinkel/.test(t)),
+   "ohne Winkel kommt der siebte Fehlschlag dazu",ohneVorgabe);
 
  console.log("\nD · Bruecke zur Fachrechnung");
  await daten(page,{material:"2",hoehe:1200,laengeOben:2500,winkel:100,

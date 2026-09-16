@@ -227,8 +227,29 @@ const text=page=>page.evaluate(()=>$("kehleAufnahme").innerText);
  // Ein Segment von Hand
  p(await klick(page,"#kea_segPlus")==="ok","ein Segment von Hand hinzufuegen");
  p((await page.evaluate(()=>keaSegmente().length))===4,"jetzt vier Segmente");
- const vorgabe=await page.evaluate(()=>{const s=keaSegmente()[3];return s?keaZahl(s.ueberlappung):null});
- p(vorgabe===70,"das neue Segment traegt die Ueberlappung aus den Einstellungen",vorgabe);
+ // v3.65: ein von Hand hinzugefuegtes Segment startet mit LEERER
+ // Ueberlappung (js/34, keaNeuesSegment) - die Zahl aus den Einstellungen ist
+ // nur noch ein Richtwert und wird bewusst uebernommen. Das automatische
+ // Aufteilen (oben, Segmente 1 bis 3) fuellt sie weiterhin selbst, weil dort
+ // die App die Stuecke rechnet; von Hand angelegte nicht.
+ // Das LETZTE Segment hat ohnehin keine Ueberlappung - es schliesst an nichts
+ // mehr an. Fuer die Probe wird deshalb ein zweites Segment angehaengt, dann
+ // ist Segment 4 nicht mehr das letzte und traegt den Richtwert-Chip.
+ const vorgabe=await page.evaluate(()=>{const s=keaSegmente()[3];return s?s.ueberlappung:null});
+ p(vorgabe==="","das neue Segment startet mit leerer Ueberlappung (Richtwert statt Vorgabewert)",vorgabe);
+ await klick(page,"#kea_segPlus");
+ const chip3=await page.evaluate(()=>{
+  const c=document.querySelector('.vorschlag-chip[data-vorschlag-fuer="kea_ueb_3"]');
+  return c?{da:true,wert:Number(c.dataset.vorschlagWert)}:{da:false};
+ });
+ p(chip3.da&&chip3.wert===70,
+   "sobald es einen Nachfolger hat, steht die Ueberlappung aus den Einstellungen als Richtwert-Chip daneben",chip3);
+ await page.click('.vorschlag-chip[data-vorschlag-fuer="kea_ueb_3"]');
+ await page.waitForTimeout(200);
+ p((await page.evaluate(()=>{const s=keaSegmente()[3];return s?keaZahl(s.ueberlappung):null}))===70,
+   "Antippen uebernimmt die Ueberlappung aus den Einstellungen");
+ await klick(page,'[data-kea-weg="4"]');
+ p((await page.evaluate(()=>keaSegmente().length))===4,"das Hilfssegment ist wieder weg");
  // Tippen in der Stueckliste
  await tippe(page,'[data-kea-laenge="3"]',"1250");
  const tip2=await page.evaluate(()=>{const f=document.querySelector('[data-kea-laenge="3"]'), s=keaSegmente()[3];
@@ -247,9 +268,22 @@ const text=page=>page.evaluate(()=>$("kehleAufnahme").innerText);
  // Die Ueberlappungs-Vorgabe kommt wirklich aus den Einstellungen
  await page.evaluate(()=>{kehleSettings={stoss_laenge:2000,ueberlappung:120,rest_schwelle:500};renderKehleAufnahme()});
  await klick(page,"#kea_segPlus");
- p((await page.evaluate(()=>{const s=keaSegmente()[3];return s?keaZahl(s.ueberlappung):null}))===120,
-   "eine geaenderte Vorgabe wirkt beim naechsten Segment");
+ await klick(page,"#kea_segPlus");
+ const chipNeu=await page.evaluate(()=>{
+  const c=document.querySelector('.vorschlag-chip[data-vorschlag-fuer="kea_ueb_3"]');
+  return {vorgabe:keaUeberlappungVorgabe(),
+   chip:c?Number(c.dataset.vorschlagWert):null,
+   imFeld:keaSegmente()[3]?keaSegmente()[3].ueberlappung:null};
+ });
+ p(chipNeu.vorgabe===120&&chipNeu.chip===120,
+   "eine geaenderte Vorgabe wirkt beim naechsten Segment (als Richtwert)",chipNeu);
+ // Gegenprobe zu v3.65: sie darf dabei NICHT still im Feld landen.
+ p(chipNeu.imFeld==="","und steht dabei nicht ungefragt im Feld",chipNeu);
+ // Beide Hilfssegmente wieder weg - hinten anfangen, sonst rutschen die
+ // Indizes nach. Danach steht wieder der Stand von vorher.
+ await klick(page,'[data-kea-weg="4"]');
  await klick(page,'[data-kea-weg="3"]');
+ p((await page.evaluate(()=>keaSegmente().length))===3,"die Hilfssegmente sind wieder weg");
  await page.evaluate(()=>{kehleSettings={stoss_laenge:2000,ueberlappung:70,rest_schwelle:500};renderKehleAufnahme()});
 
  // ---- G · Zuschnitt aus Rollenblech --------------------------------------

@@ -178,9 +178,25 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
   return {aktiv:ebA.gava.aktiv, abstand:ebA.gava.abstand_mm, anzahl:ebaGavaAnzahl(), L:ebaGesamtlaenge()};
  });
  await page.waitForTimeout(200);
- // 3730 mm bei 500 mm Abstand: floor(3730/500)+1 = 8
- p(g1.aktiv&&g1.abstand===500,"GAVA eingeschaltet, Abstand aus den Einstellungen",g1);
- p(g1.anzahl===Math.floor(g1.L/500)+1,"Anzahl = Laenge ÷ Abstand + 1",g1);
+ // v3.65/67: der Abstand wird NICHT mehr still aus den Einstellungen ins
+ // Feld geschrieben. Er faengt leer an, und der Firmenwert steht als
+ // Richtwert-Chip daneben - der Aufnehmer sieht die Zahl und uebernimmt sie
+ // bewusst. Genau so wird hier vorgegangen; die Rechnung dahinter ist
+ // unveraendert. 3730 mm bei 500 mm Abstand: floor(3730/500)+1 = 8.
+ p(g1.aktiv&&(g1.abstand===""||g1.abstand===null||g1.abstand===undefined),
+   "GAVA eingeschaltet - der Abstand faengt leer an (Richtwert, kein Vorgabewert)",g1);
+ const chip=await page.evaluate(()=>{
+  const c=document.querySelector('.vorschlag-chip[data-vorschlag-fuer="eba_gavaAbstand"]');
+  return c?{da:true,wert:Number(c.dataset.vorschlagWert),text:c.textContent.trim()}:{da:false};
+ });
+ p(chip.da&&chip.wert===500,"der Firmenwert steht als Richtwert-Chip daneben",chip);
+ // Den Chip wirklich antippen - das ist der Weg des Anwenders, und er prueft
+ // zugleich die zentrale Chip-Uebernahme aus js/01.
+ await page.click('.vorschlag-chip[data-vorschlag-fuer="eba_gavaAbstand"]');
+ await page.waitForTimeout(200);
+ const g1b=await page.evaluate(()=>({abstand:ebA.gava.abstand_mm,anzahl:ebaGavaAnzahl(),L:ebaGesamtlaenge()}));
+ p(g1b.abstand===500,"Antippen uebernimmt den Richtwert ins Feld",g1b);
+ p(g1b.anzahl===Math.floor(g1b.L/500)+1,"Anzahl = Laenge ÷ Abstand + 1",g1b);
  const g0=await page.evaluate(()=>{
   document.getElementById("eba_gavaAktiv").checked=false;
   document.getElementById("eba_gavaAktiv").dispatchEvent(new Event("change",{bubbles:true}));
