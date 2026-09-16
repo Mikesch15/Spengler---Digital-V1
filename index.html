@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.139</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.140</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -2113,8 +2113,8 @@ verbucht wird dabei nichts, das bleibt ein ausdrücklicher Klick.</div>
 <div class="settings-section" data-section="material">
 <div class="settings-section-head" data-toggle-section="material"><h2>Material <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-material">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
+<div class="bar" style="margin-bottom:8px"><button id="newMeasMaterial" class="gray">＋ Material für Massaufnahmen</button></div>
 <div id="measMaterialSettings"></div>
-<div class="bar" style="margin-bottom:14px"><button id="newMeasMaterial" class="gray">＋ Material hinzufügen</button></div>
 </div>
 </div>
 <div class="settings-section" data-section="vorlagen" id="vorlagenKarte" hidden>
@@ -2364,7 +2364,7 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 <div class="settings-section-head" data-toggle-section="lagerbestand"><h2>Materialbestand <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerbestand">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
 <div id="lagerListe"></div>
-<div class="bar"><button type="button" id="lagerNeu" class="green">＋ Material erfassen</button></div>
+<div class="bar"><button type="button" id="lagerNeu" class="green">＋ Blech erfassen (Rolle / Tafel)</button></div>
 <div class="small" id="lagerHinweis" style="margin-top:4px" hidden></div>
 </div>
 </div>
@@ -2382,14 +2382,13 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 <div class="settings-section-body">
 <div class="info">Bestand je Artikel aus dem Material-Katalog (Einstellungen → Material), geführt über einzelne Buchungen (Zugang/Abgang/Korrektur) statt einer Zahl zum Überschreiben – jede Buchung bleibt stehen, auch eine Korrektur.</div>
 <div class="bar">
+<!-- v3.140: Der Anlege-Knopf steht VORN und ist kein grauer Nebenknopf mehr.
+     Ueber ihn ist neues Material erreichbar, ohne die Einstellungen zu
+     oeffnen - er fuehrt in denselben Dialog (v3.138). -->
+<button type="button" id="lagerNeuesProduktStart" class="blue">＋ Neues Material / Produkt</button>
 <button type="button" id="lagerEinscannen" class="green">📥 Einscannen</button>
 <button type="button" id="lagerAusscannen" class="blue">📤 Ausscannen</button>
 <button type="button" id="lagerAlleZuklappen" class="gray">⯆ Alle zuklappen</button>
-<!-- v3.127: Der Hilfetext zur Suche nannte diesen Knopf schon, es gab ihn aber
-     nur innerhalb einer aufgeklappten Position ("＋ Weiteres Produkt") und
-     ueber einen unbekannten Barcode. Hier ist der fehlende, immer erreichbare
-     Einstieg; die Materialposition wird im Dialog selbst gesucht/angelegt. -->
-<button type="button" id="lagerNeuesProduktStart" class="gray">＋ Neues Produkt</button>
 <button type="button" id="lagerArchivZeigen" class="gray" hidden>📦 Archiv anzeigen</button>
 </div>
 <!-- v3.124: Suche ueber Position UND Produkt. Bei 372 Materialpositionen
@@ -2485,12 +2484,18 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <div class="grid" style="margin-bottom:8px">
 <div class="wide"><label>Material suchen</label><input id="materialSettingsSearch" placeholder="EDV-Nr. oder Materialbezeichnung"></div>
 </div>
+<!-- v3.140: Der Anlege-Knopf steht VOR der Liste. Er stand darunter - hinter
+     bis zu 20 Zeilen und den Blaetter-Knoepfen -, und war damit nur zu
+     finden, wenn man ohnehin bis ans Ende scrollte ("das ist alles zu sehr
+     versteckt"). -->
+<div class="bar" style="margin-bottom:8px">
+<button id="newMaterial" class="blue">＋ Neue Materialposition</button>
+</div>
 <div class="small" id="materialCount"></div>
 <div id="materialSettings"></div>
 <div class="bar">
 <button id="materialPrev" class="gray">‹ Zurück</button>
 <button id="materialNext" class="gray">Weiter ›</button>
-<button id="newMaterial" class="blue">＋ Material hinzufügen</button>
 </div>
 <div class="bar" style="margin-top:10px">
 <input type="file" id="materialExcelInput" accept=".xlsx,.xls,.csv" hidden>
@@ -2518,12 +2523,14 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <div class="grid" style="margin-bottom:8px">
 <div class="wide"><label>Material suchen</label><input id="bzMaterialSearch" placeholder="Artikel-Nr. oder Bezeichnung"></div>
 </div>
+<div class="bar" style="margin-bottom:8px">
+<button id="newBzMaterial" class="blue">＋ Neuer Blitzschutz-Artikel</button>
+</div>
 <div class="small" id="bzMaterialCount"></div>
 <div id="bzMaterialSettings"></div>
 <div class="bar">
 <button id="bzMaterialPrev" class="gray">‹ Zurück</button>
 <button id="bzMaterialNext" class="gray">Weiter ›</button>
-<button id="newBzMaterial" class="blue">＋ Material hinzufügen</button>
 </div>
 <div class="bar" style="margin-top:10px">
 <input type="file" id="bzMaterialExcelInput" accept=".xlsx,.xls,.csv" hidden>

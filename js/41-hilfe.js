@@ -1167,8 +1167,8 @@ Vorschau sagt dann, wie viele Zeilen das betrifft.</p>`},
 "einst-material":{titel:"Material",text:`
 <p>Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt
 <b>firmenweit</b>.</p>
-<p><b>＋ Material hinzufügen</b> öffnet denselben Dialog wie „Neue
-Materialposition anlegen" in der Lagerverwaltung: Bezeichnung, Dimension,
+<p><b>＋ Neue Materialposition</b> (über der Liste) öffnet denselben Dialog
+wie „＋ Neues Material / Produkt" in der Lagerverwaltung: Bezeichnung, Dimension,
 Einheit und Preis, dazu ein Vorschlag für die EDV-Nr. mit Begründung. Ein
 Schalter oben entscheidet, ob gleich auch ein <b>Lager-Produkt</b> (mit
 Barcode) dazu entsteht – aus dieser Liste heraus ist er aus, aus der

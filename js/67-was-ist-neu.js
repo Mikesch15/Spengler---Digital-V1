@@ -114,7 +114,10 @@ const WIN_CHANGELOG={
   "Ein Schalter oben im Dialog entscheidet, ob zur Katalogposition gleich ein Lager-Produkt (mit Barcode) entsteht. Aus der Lagerverwaltung ist er gesetzt, aus dem Katalog nicht – umstellen lässt er sich jederzeit, man kann also nicht im falschen Dialog landen.",
   "Aus der Lagerverwaltung bleibt der Ablauf unverändert."],
  "3.139":["Wird zusammen mit der Materialposition gleich ein Lager-Produkt angelegt, gibt es die Bezeichnung nur noch EINMAL. Bisher standen zwei Felder da – eines fürs Produkt, eines für die Position – und dasselbe musste zweimal getippt werden.",
-  "Die EDV-Nr. hängt an dieser Bezeichnung: „Rinnenstutzen 120mm\" bekommt eine Nummer aus der Rinnen-Gruppe 203, „Spenglerschrauben 5x50\" eine aus 826 – mit der Begründung daneben („✓ Gruppe 203 – dort steht bereits ‚Rinnenstutzen 100mm'\"). Passt nichts, gibt es eine Nummer aus dem eigenen Lager-Kreis 999. Das rechnet sich bei jedem getippten Zeichen neu, solange Sie die Nummer nicht selbst anfassen."]
+  "Die EDV-Nr. hängt an dieser Bezeichnung: „Rinnenstutzen 120mm\" bekommt eine Nummer aus der Rinnen-Gruppe 203, „Spenglerschrauben 5x50\" eine aus 826 – mit der Begründung daneben („✓ Gruppe 203 – dort steht bereits ‚Rinnenstutzen 100mm'\"). Passt nichts, gibt es eine Nummer aus dem eigenen Lager-Kreis 999. Das rechnet sich bei jedem getippten Zeichen neu, solange Sie die Nummer nicht selbst anfassen."],
+ "3.140":["Neues Material anlegen ist nicht mehr versteckt. In der Lagerverwaltung steht „＋ Neues Material / Produkt\" jetzt als erster, blauer Knopf der Leiste – damit brauchen Sie die Einstellungen dafür gar nicht mehr zu öffnen.",
+  "In den Einstellungen steht der Anlege-Knopf jetzt ÜBER der Liste statt darunter. Bisher sass er hinter bis zu 20 Materialzeilen und den Blätter-Knöpfen – zu finden nur, wenn man ohnehin bis ans Ende scrollte.",
+  "Und jeder Knopf sagt jetzt, was er anlegt: „＋ Neue Materialposition\" (Regierapport), „＋ Material für Massaufnahmen\", „＋ Neuer Blitzschutz-Artikel\", „＋ Blech erfassen (Rolle / Tafel)\". Vorher hiessen drei davon wortgleich „＋ Material hinzufügen\"."]
 };
 
 function winVersionVergleich(a,b){

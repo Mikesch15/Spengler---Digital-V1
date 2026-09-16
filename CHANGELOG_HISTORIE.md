@@ -31569,3 +31569,72 @@ Solange Position und Produkt zusammen entstehen, tragen beide **dieselbe**
 Bezeichnung. Wer der Katalogposition einen anderen (etwa allgemeineren)
 Namen geben will als dem Produkt, benennt sie danach im Material-Katalog um.
 Das ist der Preis für das eine Feld und entspricht dem, was gemeldet wurde.
+
+---
+
+## 207. v3.140 – die Anlege-Knöpfe waren versteckt und mehrdeutig
+
+### 207.1 Der Befund
+
+> „Hab den button gefunden, das muss aber einfacher und verständlicher
+> aufgebaut werden, das ist alles zu sehr versteckt."
+
+Nachgesehen, und der Befund war dreifach:
+
+1. **„＋ Material hinzufügen" stand dreimal**, wortgleich, in drei
+   verschiedenen Listen: `newMeasMaterial` (Material für Massaufnahmen),
+   `newMaterial` (Regierapport-Katalog), `newBzMaterial` (Blitzschutz).
+   Dazu ein vierter, ähnlich klingender: `lagerNeu` „＋ Material erfassen" –
+   der aber Blech (Rollen/Tafeln) meint und mit dem Katalog nichts zu tun
+   hat.
+2. **Der Knopf sass unter der Liste.** `MATERIAL_PAGE_SIZE` ist 20; wer ihn
+   sehen wollte, musste an bis zu 20 Materialzeilen und den Blätter-Knöpfen
+   vorbeiscrollen – und das innerhalb eines zugeklappten Abschnitts in einem
+   Register eines Einstellungs-Dialogs.
+3. **In der Lagerverwaltung** war „＋ Neues Produkt" ein **grauer**
+   Nebenknopf zwischen „⯆ Alle zuklappen" und „📦 Archiv anzeigen".
+
+### 207.2 Was geändert wurde
+
+**Der Knopf steht jetzt vor der Liste** – in allen drei Katalogen, direkt
+unter der Suche. Die Blätter-Knöpfe bleiben unten, wo sie hingehören.
+
+**Jeder Knopf sagt, was er anlegt:**
+
+| vorher | jetzt |
+| --- | --- |
+| ＋ Material hinzufügen | ＋ Neue Materialposition |
+| ＋ Material hinzufügen | ＋ Material für Massaufnahmen |
+| ＋ Material hinzufügen | ＋ Neuer Blitzschutz-Artikel |
+| ＋ Material erfassen | ＋ Blech erfassen (Rolle / Tafel) |
+
+**Die Lagerverwaltung kommt ohne die Einstellungen aus.** „＋ Neues Material
+/ Produkt" steht als **erster** Knopf der Leiste und ist blau statt grau. Er
+führt in denselben Dialog (v3.138) und kann damit beides – Position und
+Produkt. Wer täglich in der Lagerverwaltung arbeitet, muss die Einstellungen
+für neues Material gar nicht mehr öffnen.
+
+### 207.3 Nachweis
+
+Neuer Prüfstand `pruefstand-anlegen-sichtbar-v3-140.js` (22 Zusicherungen,
+davon 5 Gegenproben). Er misst die **Stellung im Dokument**
+(`compareDocumentPosition`), nicht nur die Existenz – ein Knopf, den man
+erst nach 20 Zeilen sieht, ist praktisch keiner.
+
+Die schärfste Gegenprobe: **kein Anlege-Knopf darf heissen wie ein anderer.**
+Sie fällt durch, sobald jemand wieder zwei gleich benennt. Dazu: die alte
+Beschriftung „＋ Material hinzufügen" kommt nirgends mehr vor; der Knopf
+steht vor den Blätter-Knöpfen; er ist kein grauer Nebenknopf mehr; er steht
+vor „Alle zuklappen"; und er öffnet wirklich den gemeinsamen Dialog.
+
+Gegenprobe des Prüfstands: werden zwei Beschriftungen wieder gleich gemacht,
+fallen **4** der 22 Zusicherungen durch.
+
+### 207.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `index.html` | Anlege-Knöpfe über die Listen, eindeutige Beschriftungen, Lagerverwaltungs-Knopf nach vorn und blau |
+| `js/41-hilfe.js` | Hilfetext „Material" auf die neuen Beschriftungen gezogen |
+| `pruefstaende/pruefstand-anlegen-sichtbar-v3-140.js` | neu, 22 Zusicherungen |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.140 |
