@@ -996,9 +996,15 @@ function lagerNeuesProduktMaterialRendern(){
  if(gewaehlt){
   gewaehlt.hidden=!fertig;
   if(fertig){
-   gewaehlt.innerHTML=`<b>${esc(lagerNeuesProduktNeuePosition
-     ?"Neue Materialposition":lagArtikelText(lagerNeuesProduktArtikel))}</b> `
-    +`<button type="button" class="gray" data-lager-produkt-aendern="1">✏️ ändern</button>`;
+   // v3.141: "Neue Materialposition ✏️ ändern" war nicht zu verstehen -
+   // gemeldet mit der Frage, wofuer die beiden Knoepfe da sind. "ändern"
+   // klang nach "diese Position bearbeiten", gemeint war "eine andere
+   // waehlen"; und der blosse Name sagte nicht, dass es die getroffene
+   // Wahl ist. Jetzt sagt "Gewählt:" den Zustand und der Knopf seine Tat.
+   gewaehlt.innerHTML=`<span class="small" style="color:var(--muted)">Gewählt:</span> `
+    +`<b>${esc(lagerNeuesProduktNeuePosition
+     ?"neue Position anlegen":lagArtikelText(lagerNeuesProduktArtikel))}</b> `
+    +`<button type="button" class="gray" data-lager-produkt-aendern="1">\u21a9 andere wählen</button>`;
   }
  }
  lagerNeuePositionBlockZeigen(lagerNeuesProduktNeuePosition);

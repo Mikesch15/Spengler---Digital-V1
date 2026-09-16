@@ -31638,3 +31638,66 @@ fallen **4** der 22 Zusicherungen durch.
 | `js/41-hilfe.js` | Hilfetext „Material" auf die neuen Beschriftungen gezogen |
 | `pruefstaende/pruefstand-anlegen-sichtbar-v3-140.js` | neu, 22 Zusicherungen |
 | `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.140 |
+
+---
+
+## 208. v3.141 – „ändern" hiess nicht, was es tat
+
+### 208.1 Der Befund
+
+> „Für was ist der button unter der liste ‚neue materialposition anlegen'
+> und für was ist der button ändern?"
+
+Dass diese Frage gestellt werden musste, ist der Befund. Die beiden Knöpfe
+tun **Gegenteiliges**, und keiner sagte es:
+
+- **„➕ Neue Materialposition anlegen …"** ist der letzte Eintrag der
+  Trefferliste – die Alternative zu den Katalogpositionen darüber. Er
+  **trifft** die Wahl.
+- **„✏️ ändern"** stand neben der getroffenen Wahl und ist der **Rückweg**.
+  Er **nimmt die Wahl zurück** und öffnet die Liste wieder.
+
+„Ändern" klang nach „diese Position bearbeiten". Und „Neue Materialposition"
+als blosser Name sagte nicht, dass es den getroffenen Zustand anzeigt.
+
+### 208.2 Was geändert wurde
+
+| vorher | jetzt |
+| --- | --- |
+| `Neue Materialposition` ✏️ ändern | **Gewählt: neue Position anlegen** ↩ andere wählen |
+| `100.06 Stahlblech svz` ✏️ ändern | **Gewählt: 100.06 Stahlblech svz** ↩ andere wählen |
+
+„Gewählt:" benennt den Zustand, „andere wählen" die Tat. Am Verhalten ändert
+sich nichts – nur daran, dass man es versteht.
+
+### 208.3 Was NICHT gefunden wurde
+
+Das Bildschirmfoto zeigte Trefferliste **und** getroffene Wahl gleichzeitig.
+Das wäre ein Fehler – die Liste soll sich nach der Wahl schliessen. Beide
+Reihenfolgen wurden nachgestellt (erst klicken/dann tippen und umgekehrt,
+dazu Weitertippen danach): die Liste schliesst sich in jedem Fall korrekt.
+**Der Zustand liess sich mit dem aktuellen Code nicht reproduzieren** und
+wird deshalb hier nicht als behoben behauptet. Wahrscheinlichste Erklärung
+ist eine ältere, im Service Worker zwischengespeicherte Fassung auf dem
+Gerät. Tritt er nach einem App-Neustart weiter auf, ist gezielt
+weiterzusuchen.
+
+### 208.4 Nachweis
+
+Der Prüfstand `pruefstand-gemeinsamer-dialog-v3-138.js` wurde um Abschnitt I
+erweitert (jetzt 50 Zusicherungen). Geprüft wird beides – die bestehende
+Position und „neue Position anlegen" –, dass der Rückweg die Wahl wirklich
+zurücknimmt und die Liste wieder öffnet, und als Gegenproben: der Knopf
+heisst **nicht** mehr „ändern", und nach der Wahl ist die Trefferliste zu
+(also nie beides gleichzeitig – genau der Zustand aus dem Bildschirmfoto).
+
+Gegenprobe des Prüfstands: mit dem alten Wortlaut fallen **4** der 50
+Zusicherungen durch.
+
+### 208.5 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/68-lagerverwaltung.js` | „Gewählt: …" und „↩ andere wählen" statt „✏️ ändern" |
+| `pruefstaende/pruefstand-gemeinsamer-dialog-v3-138.js` | Abschnitt I, 8 Zusicherungen |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.141 |

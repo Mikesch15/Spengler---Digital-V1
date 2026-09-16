@@ -257,6 +257,49 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  p(/[Kk]eine passende Gruppe/.test(h3.hinweis),
    "GEGENPROBE: und die App behauptet dann KEINE Gruppe",h3.hinweis);
 
+ console.log("\nI · v3.141: die getroffene Wahl und der Rueckweg sind benannt");
+ // Gemeldet als Frage: "Fuer was ist der button unter der liste 'neue
+ // materialposition anlegen' und fuer was ist der button aendern?" - dass
+ // sie gestellt werden musste, war der Befund. "ändern" klang nach "diese
+ // Position bearbeiten", gemeint war "eine andere waehlen"; und der blosse
+ // Name sagte nicht, dass er die getroffene Wahl anzeigt.
+ await grund();
+ await page.evaluate(()=>{
+  settings.materials=[["100.06","Stahlblech svz","1.50","m2",1]]; materialIds=[1];
+  $("settingsModal").hidden=true; lagerNeuesProduktOeffnen(null,"");
+ });
+ await page.waitForTimeout(300);
+ const wahl=()=>page.evaluate(()=>({
+   text:$("lagerNeuesProduktGewaehlt").innerText.replace(/\s+/g," ").trim(),
+   zu:$("lagerNeuesProduktGewaehlt").hidden,
+   listeAuf:!$("lagerNeuesProduktTreffer").hidden}));
+ // a) bestehende Position
+ await page.evaluate(()=>$("lagerNeuesProduktTreffer").querySelector("[data-lager-produkt-artikel]").click());
+ await page.waitForTimeout(300);
+ const i1=await wahl();
+ p(/^Gewählt:/.test(i1.text),"die Zeile sagt, dass es die getroffene Wahl ist",i1.text);
+ p(/100\.06/.test(i1.text),"und welche",i1.text);
+ p(/andere wählen/.test(i1.text),"der Knopf sagt, was er tut",i1.text);
+ // Gegenprobe auf den gemeldeten Wortlaut.
+ p(!/ändern/.test(i1.text),
+   'GEGENPROBE: er heisst NICHT mehr „aendern“ - das klang nach bearbeiten',i1.text);
+ p(i1.listeAuf===false,
+   'GEGENPROBE: nach der Wahl ist die Trefferliste zu - nicht beides gleichzeitig',i1);
+ // b) der Rueckweg fuehrt wirklich zurueck
+ await page.evaluate(()=>$("lagerNeuesProduktGewaehlt").querySelector("[data-lager-produkt-aendern]").click());
+ await page.waitForTimeout(300);
+ const i2=await wahl();
+ p(i2.zu===true&&i2.listeAuf===true,
+   '„andere waehlen“ oeffnet die Liste wieder und nimmt die Wahl zurueck',i2);
+ // c) dasselbe fuer "neue Position"
+ await page.evaluate(()=>$("lagerNeuesProduktTreffer").querySelector("[data-lager-produkt-neu]").click());
+ await page.waitForTimeout(300);
+ const i3=await wahl();
+ p(/^Gewählt:/.test(i3.text)&&/neue Position anlegen/.test(i3.text),
+   'auch „neue Position anlegen“ steht als Wahl da, nicht als blosser Name',i3.text);
+ p(i3.listeAuf===false,
+   'GEGENPROBE: und auch hier ist die Liste zu',i3);
+
  p(fehler.length===0,"keine JavaScript-Fehler waehrend des Laufs",fehler.slice(0,3));
  console.log(`\n=== ${ok} ok, ${fail} fehlgeschlagen ===`);
  await b.close(); process.exit(fail?1:0);

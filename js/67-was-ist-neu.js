@@ -117,7 +117,9 @@ const WIN_CHANGELOG={
   "Die EDV-Nr. hängt an dieser Bezeichnung: „Rinnenstutzen 120mm\" bekommt eine Nummer aus der Rinnen-Gruppe 203, „Spenglerschrauben 5x50\" eine aus 826 – mit der Begründung daneben („✓ Gruppe 203 – dort steht bereits ‚Rinnenstutzen 100mm'\"). Passt nichts, gibt es eine Nummer aus dem eigenen Lager-Kreis 999. Das rechnet sich bei jedem getippten Zeichen neu, solange Sie die Nummer nicht selbst anfassen."],
  "3.140":["Neues Material anlegen ist nicht mehr versteckt. In der Lagerverwaltung steht „＋ Neues Material / Produkt\" jetzt als erster, blauer Knopf der Leiste – damit brauchen Sie die Einstellungen dafür gar nicht mehr zu öffnen.",
   "In den Einstellungen steht der Anlege-Knopf jetzt ÜBER der Liste statt darunter. Bisher sass er hinter bis zu 20 Materialzeilen und den Blätter-Knöpfen – zu finden nur, wenn man ohnehin bis ans Ende scrollte.",
-  "Und jeder Knopf sagt jetzt, was er anlegt: „＋ Neue Materialposition\" (Regierapport), „＋ Material für Massaufnahmen\", „＋ Neuer Blitzschutz-Artikel\", „＋ Blech erfassen (Rolle / Tafel)\". Vorher hiessen drei davon wortgleich „＋ Material hinzufügen\"."]
+  "Und jeder Knopf sagt jetzt, was er anlegt: „＋ Neue Materialposition\" (Regierapport), „＋ Material für Massaufnahmen\", „＋ Neuer Blitzschutz-Artikel\", „＋ Blech erfassen (Rolle / Tafel)\". Vorher hiessen drei davon wortgleich „＋ Material hinzufügen\"."],
+ "3.141":["Im Anlege-Dialog steht jetzt „Gewählt: …\" vor der Materialposition, und der Knopf daneben heisst „↩ andere wählen\" statt „✏️ ändern\". „Ändern\" klang nach „diese Position bearbeiten\" – gemeint war immer „eine andere wählen\".",
+  "Zur Erinnerung, weil danach gefragt wurde: „➕ Neue Materialposition anlegen …\" ist der letzte Eintrag der Trefferliste und die Alternative zu den Positionen darüber – passt keine, legen Sie eine neue an. Der Knopf daneben ist der Rückweg: er nimmt die getroffene Wahl zurück und öffnet die Liste wieder."]
 };
 
 function winVersionVergleich(a,b){
