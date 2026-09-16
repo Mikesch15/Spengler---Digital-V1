@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.138</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.139</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -799,10 +799,13 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
      EDV-Nr. schlägt die App aus einem eigenen Lager-Nummernkreis vor. -->
 <div class="wide" id="lagerNeuePositionBlock" hidden>
 <div class="info">Diese Position wird neu im <b>Material-Katalog</b> angelegt (Einstellungen → Material) und steht danach überall zur Verfügung, auch im Regierapport.</div>
+<!-- v3.139: Wird gleichzeitig ein Produkt angelegt, gilt dessen Bezeichnung
+     auch für die Position - zweimal dasselbe zu tippen wäre unnötig. -->
+<div class="small" id="lagerNeuePositionNameHinweis" style="color:var(--muted);margin-bottom:4px" hidden>Die <b>Bezeichnung des Produkts</b> gilt auch für diese Position.</div>
 <div class="grid">
 <div><label>EDV-Nr.<span class="pflicht-stern">*</span></label><input id="lagerNeuePositionNr" placeholder="999.01"></div>
 <div><label>Einheit</label><input id="lagerNeuePositionEinheit" placeholder="Stk."></div>
-<div class="wide"><label>Bezeichnung<span class="pflicht-stern">*</span></label><input id="lagerNeuePositionName" placeholder="z. B. Spezialschraube"></div>
+<div class="wide" id="lagerNeuePositionNameFeld"><label>Bezeichnung<span class="pflicht-stern">*</span></label><input id="lagerNeuePositionName" placeholder="z. B. Spezialschraube"></div>
 <div><label>Dimension</label><input id="lagerNeuePositionDim" placeholder="z. B. 4,5 × 35 mm"></div>
 <div><label>Preis</label><input id="lagerNeuePositionPreis" type="number" step="any" placeholder="0"></div>
 </div>

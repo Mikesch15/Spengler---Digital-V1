@@ -112,7 +112,9 @@ const WIN_CHANGELOG={
   "Die Nummer wird jetzt berechnet, mit derselben Funktion wie in der Lagerverwaltung: die nächste freie Nummer im eigenen Kreis (999.xx), die Sie danach überschreiben können. Sollte eine Nummer im selben Augenblick von jemand anderem belegt werden, rechnet die App neu und meldet erst dann – in verständlichen Worten statt mit dem rohen Datenbanktext."],
  "3.138":["Neues Material anlegen geht jetzt überall gleich: „＋ Material hinzufügen\" in den Einstellungen öffnet denselben Dialog wie „Neue Materialposition anlegen\" in der Lagerverwaltung – mit Bezeichnung, Dimension, Einheit, Preis und dem begründeten Nummernvorschlag. Bisher legte der Knopf stumm eine leere Zeile an, die man danach in der Liste ausfüllen musste.",
   "Ein Schalter oben im Dialog entscheidet, ob zur Katalogposition gleich ein Lager-Produkt (mit Barcode) entsteht. Aus der Lagerverwaltung ist er gesetzt, aus dem Katalog nicht – umstellen lässt er sich jederzeit, man kann also nicht im falschen Dialog landen.",
-  "Aus der Lagerverwaltung bleibt der Ablauf unverändert."]
+  "Aus der Lagerverwaltung bleibt der Ablauf unverändert."],
+ "3.139":["Wird zusammen mit der Materialposition gleich ein Lager-Produkt angelegt, gibt es die Bezeichnung nur noch EINMAL. Bisher standen zwei Felder da – eines fürs Produkt, eines für die Position – und dasselbe musste zweimal getippt werden.",
+  "Die EDV-Nr. hängt an dieser Bezeichnung: „Rinnenstutzen 120mm\" bekommt eine Nummer aus der Rinnen-Gruppe 203, „Spenglerschrauben 5x50\" eine aus 826 – mit der Begründung daneben („✓ Gruppe 203 – dort steht bereits ‚Rinnenstutzen 100mm'\"). Passt nichts, gibt es eine Nummer aus dem eigenen Lager-Kreis 999. Das rechnet sich bei jedem getippten Zeichen neu, solange Sie die Nummer nicht selbst anfassen."]
 };
 
 function winVersionVergleich(a,b){

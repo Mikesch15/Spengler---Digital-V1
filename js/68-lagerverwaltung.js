@@ -851,10 +851,10 @@ function lagerNeuePositionBlockZeigen(an){
  if(!an)return;
  if($("lagerNeuePositionEinheit")&&!$("lagerNeuePositionEinheit").value)
   $("lagerNeuePositionEinheit").value="Stk.";
- // Die Bezeichnung der Position folgt der des Produkts, solange sie leer
- // ist - meistens ist sie dieselbe, und Tippen auf dem Handy ist muehsam.
- if($("lagerNeuePositionName")&&!$("lagerNeuePositionName").value)
-  $("lagerNeuePositionName").value=$("lagerNeuesProduktBezeichnung").value.trim();
+ // v3.139: Wird gleichzeitig ein Produkt angelegt, bleibt dieses Feld LEER
+ // und versteckt - lagerNeuePositionAnlegen() nimmt dann die Bezeichnung des
+ // Produkts (sein zweites Argument). Eine Bezeichnung, ein Feld. Vorher
+ // wurde sie hierher kopiert, und der Anwender sah dasselbe zweimal.
  lagerNummerVorschlagen(false);
 }
 
@@ -1050,6 +1050,11 @@ function lagerNeuesProduktModusRendern(){
  // Ohne Produkt wird immer eine neue Position angelegt - die Suche nach
  // einer bestehenden waere sinnlos.
  zeig("lagerNeuesProduktPositionFeld",mit);
+ // Die Bezeichnung gibt es genau EINMAL: mit Produkt die des Produkts,
+ // ohne Produkt die der Position.
+ zeig("lagerNeuePositionNameFeld",!mit);
+ if($("lagerNeuePositionNameHinweis"))$("lagerNeuePositionNameHinweis").hidden=!mit;
+ if(mit&&$("lagerNeuePositionName"))$("lagerNeuePositionName").value="";
  if(!mit){
   lagerNeuesProduktNeuePosition=true;
   lagerNeuesProduktArtikel=null;

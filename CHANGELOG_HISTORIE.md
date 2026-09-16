@@ -31448,3 +31448,96 @@ Rückfall wirklich nur ein Rückfall ist: im Normalfall öffnet der Knopf den
 gemeinsamen Dialog und schreibt dabei selbst **nichts**.
 
 17 von 17 grün.
+
+---
+
+## 206. v3.139 – eine Bezeichnung statt zwei, und wo die Nummer herkommt
+
+### 206.1 Zwei Rückmeldungen
+
+> „Wenn auch Lagerprodukt angelegt wird braucht es nicht nochmal eine
+> zusätzliche Bezeichnung… und wo wird die intelligente edv nummer vergabe
+> gemacht? Das verstehe ich nicht"
+
+**Zur ersten:** Sie hat recht. Im gemeinsamen Dialog aus v3.138 standen bei
+gesetztem Produkt-Schalter **zwei** Bezeichnungsfelder – eines für das
+Produkt, eines für die neue Position. `lagerNeuePositionBlockZeigen()`
+kopierte den einen Wert in den anderen, solange dieser leer war. Der
+Anwender sah trotzdem zweimal dasselbe.
+
+**Zur zweiten:** Die Frage deckt einen Fehler in meiner Erklärung auf, nicht
+im Code. Ich hatte die Nummernvergabe mit „999.xx" beschrieben. Das ist aber
+nur der Fall, der eintritt, **solange keine Bezeichnung dasteht** – und aus
+dem Katalog heraus ist das Feld beim Öffnen leer. Die Intelligenz aus v3.126
+hängt an der Bezeichnung, nicht am Knopf.
+
+### 206.2 Was geändert wurde
+
+Die Bezeichnung gibt es jetzt genau **einmal**:
+
+- **mit Produkt** → das Feld der Position ist ausgeblendet und bleibt leer;
+  `lagerNeuePositionAnlegen()` nimmt dann sein zweites Argument, die
+  Bezeichnung des Produkts. Ein kurzer Hinweis sagt das im Dialog.
+- **ohne Produkt** → das Feld der Position ist da, es ist das einzige.
+
+Das Kopieren entfällt damit ersatzlos – eine Eingabe, zwei Datensätze.
+
+### 206.3 Wo die Nummer herkommt
+
+Die Vergabe sitzt **nicht** im Knopf, sondern an der Bezeichnung. Bei jedem
+getippten Zeichen läuft `lagerNummerVorschlagen()` (js/68):
+
+1. `lagerGruppenBewerten()` bewertet jede Nummerngruppe des Katalogs gegen
+   die Bezeichnung (`lagerZeilePunkte`, dieselben Textwerkzeuge wie die
+   Positionserkennung im Regierapport).
+2. Führt eine Gruppe deutlich (Faktor 1.15 vor der zweiten), gibt
+   `lagerNaechsteFreieEdvNr(gruppe)` die nächste freie Nummer **in dieser
+   Gruppe** zurück – mit Begründung daneben.
+3. Passen mehrere ähnlich gut, sagt die App das und bietet die Kandidaten
+   zum Antippen an.
+4. Passt nichts, kommt der eigene Lager-Kreis `999`.
+
+Gemessen am echten Katalog:
+
+| Bezeichnung | Nummer | Begründung im Dialog |
+| --- | --- | --- |
+| Rinnenstutzen 120mm | `203.13` | ✓ Gruppe 203 – dort steht bereits „Rinnenstutzen 100mm" |
+| Spenglerschrauben 5x50 | `826.12` | ✓ Gruppe 826 – dort steht bereits „Spenglerschraube 4.5x35" |
+| Dichtstoff Silikon schwarz | `811.21` | ✓ Gruppe 811 – dort steht bereits „Dichtstoff Silikon grau" |
+| Gartenschlauch | `999.02` | Keine passende Gruppe gefunden |
+
+Sobald die Nummer von Hand angefasst wird (`lagerNummerVonHand`), hört die
+App auf, sie zu überschreiben.
+
+Am Code hat sich dafür **nichts** geändert – das ist v3.126, und es
+funktionierte die ganze Zeit. Geändert hat sich, dass es jetzt auch aus dem
+Material-Katalog heraus erreichbar ist (v3.138) und dass nur noch **ein**
+Feld es speist.
+
+### 206.4 Nachweis
+
+Der Prüfstand `pruefstand-gemeinsamer-dialog-v3-138.js` wurde um zwei
+Abschnitte erweitert (jetzt 42 Zusicherungen). Abschnitt G hält fest, dass
+das zweite Bezeichnungsfeld weg ist, dass **zwei** Datensätze entstehen und
+beide dieselbe Bezeichnung tragen, und – als Gegenprobe – dass ohne Produkt
+das Feld der Position wieder da ist. Abschnitt H prüft die Nummernvergabe
+gegen einen Katalog mit echten Gruppen, samt Gegenprobe, dass die Nummer
+wirklich an der Bezeichnung hängt (zwei verschiedene Eingaben → zwei
+verschiedene Gruppen) und dass bei fehlender Passung **keine** Gruppe
+behauptet wird.
+
+**Dabei gefunden:** Der Prüfstand schleppte Zustand zwischen seinen
+Abschnitten mit – `grund()` setzte `settings.materials` zurück, nicht aber
+die Attrappen-Datenbank. Die nächste freie Nummer kollidierte dadurch mit
+einer aus einem früheren Abschnitt, und der Fehlschlag sah aus wie ein
+Fehler der App. `grund()` setzt jetzt beides zurück, und die Zusicherung
+prüft den **Erfolg** des Schreibvorgangs statt nur den Versuch.
+
+### 206.5 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `index.html` | id für das Bezeichnungsfeld der Position, Hinweis „gilt auch für diese Position" |
+| `js/68-lagerverwaltung.js` | kein Kopieren mehr; Feld je nach Modus zeigen/verstecken |
+| `pruefstaende/pruefstand-gemeinsamer-dialog-v3-138.js` | Abschnitte G und H, `grund()` setzt die Attrappe mit zurück |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.139 |

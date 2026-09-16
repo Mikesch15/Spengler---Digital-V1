@@ -47,12 +47,17 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
  page.on("dialog",d=>d.accept());
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(600);
+ // Jeder Abschnitt startet mit demselben Stand - AUCH die Attrappen-
+ // Datenbank. Ohne das schleppt ein Abschnitt die Nummern des vorigen mit,
+ // die naechste freie Nummer kollidiert, und der Fehlschlag sieht aus wie
+ // ein Fehler der App.
  const grund=()=>page.evaluate(()=>{
   currentProfile={id:"u1",role:"admin",company_id:"A"};
   meineRechte={admin:true,kataloge:true,lager:true}; allProjects=[];
   $("appRoot").hidden=false;$("authScreen").hidden=true;
   settings.materials=[["100.55","CNS 1.4301","","Stk.",0]]; materialIds=[1];
   lagerVarianten=[]; window.__db.log=[];
+  window.__db.materials=[{id:1,edv_nr:"100.55",name:"CNS 1.4301",dim:"",unit:"Stk.",price:0}];
  });
  await grund();
  p(fehler.length===0,"die App laedt ohne JavaScript-Fehler",fehler.slice(0,3));
@@ -170,6 +175,87 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  p(f.log.length===0,"GEGENPROBE: ohne Bezeichnung wird nichts geschrieben",f.log);
  p(f.fehlerSichtbar&&/Bezeichnung/.test(f.fehler),"und es steht da, was fehlt",f.fehler);
  p(f.offen,"der Dialog bleibt offen, damit man es nachtragen kann",f);
+
+ console.log("\nG · v3.139: die Bezeichnung gibt es genau EINMAL");
+ // Gemeldet: "Wenn auch Lagerprodukt angelegt wird braucht es nicht nochmal
+ // eine zusaetzliche Bezeichnung." Bis v3.138 standen zwei Felder da - eines
+ // fuers Produkt, eines fuer die Position - und die Position bekam ihren
+ // Wert aus dem Produkt kopiert. Zweimal dasselbe zu tippen ist unnoetig.
+ await grund();
+ await page.evaluate(()=>{$("settingsModal").hidden=true;lagerNeuesProduktOeffnen(null,"");
+   lagerNeuesProduktArtikel=null;lagerNeuesProduktNeuePosition=true;
+   lagerNeuesProduktMaterialRendern();lagerNeuesProduktModusRendern();});
+ await page.waitForTimeout(300);
+ const g1=await page.evaluate(()=>({
+   produktBez:!$("lagerNeuesProduktBezeichnungFeld").hidden,
+   positionBez:!$("lagerNeuePositionNameFeld").hidden,
+   hinweis:!$("lagerNeuePositionNameHinweis").hidden}));
+ p(g1.produktBez,"mit Produkt steht die Bezeichnung des Produkts da",g1);
+ p(!g1.positionBez,
+   "GEGENPROBE: das zweite Bezeichnungsfeld der Position ist WEG",g1);
+ p(g1.hinweis,"und es steht da, dass sie auch fuer die Position gilt",g1);
+ // Sie muss auch wirklich ankommen: gespeichert wird EINE Bezeichnung.
+ await page.evaluate(()=>{window.__db.log=[];
+   $("lagerNeuesProduktBezeichnung").value="Rinnenstutzen 120mm";
+   $("lagerNeuesProduktBezeichnung").dispatchEvent(new Event("input"));});
+ await page.waitForTimeout(300);
+ const nr=await page.evaluate(()=>$("lagerNeuePositionNr").value);
+ await page.evaluate(()=>$("lagerNeuesProduktSpeichern").click());
+ await page.waitForTimeout(600);
+ const g2=await page.evaluate(()=>window.__db.log.slice());
+ const pos=g2.find(x=>x.t==="materials"), prod=g2.find(x=>x.t==="lager_varianten");
+ p(g2.length===2,
+   "es entstehen zwei Datensaetze - Position und Produkt",g2.map(x=>x.t));
+ p(pos&&pos.d.name==="Rinnenstutzen 120mm",
+   "die Position bekommt die Bezeichnung des Produkts",pos&&pos.d);
+ p(prod&&prod.d.bezeichnung==="Rinnenstutzen 120mm",
+   "und das Produkt dieselbe - EINE Eingabe, zwei Datensaetze",prod&&prod.d);
+ // Gegenprobe: ohne Produkt muss das Feld wieder da sein, sonst koennte man
+ // eine reine Position gar nicht benennen.
+ await page.evaluate(()=>{const c=$("lagerNeuesProduktMitProdukt");
+   if(!$("lagerNeuesProduktModal").hidden===false)lagerNeuesProduktOeffnen(null,"",{nurPosition:true});
+   c.checked=false;c.dispatchEvent(new Event("change"));});
+ await page.waitForTimeout(300);
+ const g3=await page.evaluate(()=>({positionBez:!$("lagerNeuePositionNameFeld").hidden}));
+ p(g3.positionBez,
+   "GEGENPROBE: ohne Produkt ist das Feld der Position wieder da",g3);
+
+ console.log("\nH · v3.139: die Nummer folgt der Bezeichnung in die richtige Gruppe");
+ // Das ist die Stelle, nach der der Anwender gefragt hat ("wo wird die
+ // intelligente edv nummer vergabe gemacht?"). Sie sitzt NICHT im
+ // Katalog-Knopf, sondern haengt an der Bezeichnung: jedes getippte Zeichen
+ // bewertet die Katalogruppen neu (v3.126).
+ await grund();
+ await page.evaluate(()=>{
+  settings.materials=[["203.12","Rinnenstutzen 100mm","","Stk",11.0],
+    ["826.10","Spenglerschraube 4.5x35","","Stk",0.45]];
+  materialIds=[1,2];
+  $("settingsModal").hidden=true; lagerNeuesProduktOeffnen(null,"");
+  lagerNeuesProduktArtikel=null; lagerNeuesProduktNeuePosition=true;
+  lagerNeuesProduktMaterialRendern(); lagerNeuesProduktModusRendern();
+ });
+ await page.waitForTimeout(300);
+ const nummerFuer=async w=>{
+  await page.evaluate(v=>{const f=$("lagerNeuesProduktBezeichnung");
+    f.value=v; f.dispatchEvent(new Event("input"));},w);
+  await page.waitForTimeout(250);
+  return page.evaluate(()=>({nr:$("lagerNeuePositionNr").value,
+    hinweis:$("lagerNeuePositionHinweis").innerText.replace(/\s+/g," ").trim()}));
+ };
+ const h1=await nummerFuer("Rinnenstutzen 120mm");
+ p(/^203\./.test(h1.nr),"„Rinnenstutzen\" landet in der Rinnen-Gruppe 203",h1);
+ p(/203/.test(h1.hinweis)&&/Rinnenstutzen 100mm/.test(h1.hinweis),
+   "und die App sagt, WARUM",h1.hinweis);
+ const h2=await nummerFuer("Spenglerschrauben 5x50");
+ p(/^826\./.test(h2.nr),"„Spenglerschrauben\" in die Schrauben-Gruppe 826",h2);
+ // Gegenprobe: ohne die Bewertung waere die Nummer immer dieselbe.
+ p(h1.nr!==h2.nr,
+   "GEGENPROBE: die Nummer haengt wirklich an der Bezeichnung",{h1:h1.nr,h2:h2.nr});
+ const h3=await nummerFuer("Gartenschlauch 20m");
+ p(/^999\./.test(h3.nr),
+   "was in keine Gruppe passt, bekommt den eigenen Lager-Kreis 999",h3);
+ p(/[Kk]eine passende Gruppe/.test(h3.hinweis),
+   "GEGENPROBE: und die App behauptet dann KEINE Gruppe",h3.hinweis);
 
  p(fehler.length===0,"keine JavaScript-Fehler waehrend des Laufs",fehler.slice(0,3));
  console.log(`\n=== ${ok} ok, ${fail} fehlgeschlagen ===`);
