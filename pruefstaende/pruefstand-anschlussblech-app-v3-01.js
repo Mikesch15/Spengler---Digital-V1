@@ -46,6 +46,48 @@ async function tippe(page,sel,text){
  return true;
 }
 const reg=async(page,n)=>{await page.evaluate(k=>anbaSetzeSchritt(k),n);await page.waitForTimeout(200)};
+// v3.67: kein Feld des Schnitts ist mehr vorausgefuellt. Jedes leere Feld
+// traegt stattdessen einen Richtwert-Chip - bei a und b den Mindestwert der
+// Norm, bei Saum, Aufkantung, Stosslaenge und Ueberlappung den Firmenwert aus
+// den Einstellungen. Antippen uebernimmt ihn (js/01-basis.js). Dieser Helfer
+// tippt der Reihe nach auf jeden angebotenen Chip; weil das Uebernehmen neu
+// zeichnet und dabei weitere Chips sichtbar werden koennen, wird so lange
+// wiederholt, bis keiner mehr da ist. Das stellt genau den Zustand her, in
+// dem das Formular bis v3.66 startete - die von Hand nachgerechneten Zahlen
+// dieses Pruefstands gelten damit unveraendert weiter.
+const richtwerteUebernehmen=async(page)=>{
+ const genommen=[];
+ for(let runde=0;runde<12;runde++){
+  // Nur SICHTBARE Chips: die Register liegen alle im Dokument, die nicht
+  // gezeigten sind bloss ausgeblendet - ein Chip darin waere nicht anklickbar.
+  const id=await page.evaluate(()=>{
+   for(const c of document.querySelectorAll(".vorschlag-chip")){
+    const r=c.getBoundingClientRect();
+    if(r.width>0&&r.height>0)return c.dataset.vorschlagFuer;
+   }
+   return null;
+  });
+  if(!id)break;
+  await page.click('.vorschlag-chip[data-vorschlag-fuer="'+id+'"]');
+  await page.waitForTimeout(80);
+  genommen.push(id);
+ }
+ await page.waitForTimeout(150);
+ return genommen;
+};
+// Der Fall dieses Pruefstands, ausdruecklich aufgeschrieben: Saum 15,
+// Wandaufkantung 150, Stoss 2000, Ueberlappung 70, Lattenabstand 330. Bis
+// v3.66 standen genau diese Zahlen als Vorgabewerte von selbst im Formular -
+// daher stammen die von Hand nachgerechneten Ergebnisse. a und b bleiben
+// leer und kommen ueber ihren Richtwert-Chip (Mindestmass 50) dazu.
+const fallSchreiben=async(page)=>{
+ await page.evaluate(()=>{
+  anbFormularFuellen({art:"bleilappen",ausfuehrung:"seite",
+   a:"",b:"",saum:15,wandAufkantung:150,
+   stossLaenge:2000,ueberlappung:70,lattenabstand:330});
+ });
+ await page.waitForTimeout(200);
+};
 const segmente=async(page,liste)=>{await page.evaluate(l=>{
   anbSegmente=l.map(x=>({laenge:x[0],knick:!!x[1],knickWinkel:x[2]||0,knickMass:x[3]||0}));
   renderAnbSegmenteTable();},liste); await page.waitForTimeout(200)};
@@ -144,7 +186,12 @@ const segmente=async(page,liste)=>{await page.evaluate(l=>{
  p(JSON.stringify(sc.abschluss)===JSON.stringify(["wandAufkantung"]),
    "Seitenblech: die Wandaufkantung als Abschluss",sc.abschluss);
  p(sc.svg,"der Schnitt wird gezeichnet");
- p(/Mindestmasse/.test(sc.warn),"die Mindestmass-Meldung von js/20 steht da",sc.warn.slice(0,60));
+ // Der Wortlaut ist heute "unter dem Mindestmass von ... mm" (Einzahl, je
+ // Mass eine Zeile) statt der frueheren Sammelmeldung "Mindestmasse".
+ // Geprueft wird deshalb die Sache statt des alten Wortlauts: die Meldung
+ // nennt das Mindestmass und das betroffene Mass.
+ p(/Mindestmass/.test(sc.warn)&&/\ba\b/.test(sc.warn),
+   "die Mindestmass-Meldung von js/20 steht da",sc.warn.slice(0,80));
  // Der Wechsel der Anschlussart baut die Massfelder neu auf - auch nach einem
  // Registerwechsel, denn js/20 haengt direkt an diesem Auswahlfeld.
  await reg(page,3);
@@ -166,6 +213,33 @@ const segmente=async(page,liste)=>{await page.evaluate(l=>{
   return {vor,nach};
  });
  p(segLeben.nach===segLeben.vor+1,"'＋ Segment hinzufügen' wirkt weiterhin",segLeben);
+
+ // Ab hier wird mit einem ausgefuellten Schnitt gerechnet.
+ // v3.67: kein Feld des Schnitts ist mehr vorausgefuellt - bis v3.66 standen
+ // Saum, Aufkantung, Stosslaenge, Ueberlappung und Lattenabstand aus den
+ // Einstellungen schon drin, und a/b kamen aus dem Mindestmass. Genau davon
+ // lebten die von Hand nachgerechneten Zahlen dieses Pruefstands. Der Fall
+ // wird deshalb jetzt AUSDRUECKLICH aufgeschrieben statt aus Vorgabewerten
+ // zusammengelesen - dieselben Zahlen wie vorher, nur nicht mehr geraten:
+ //   Saum 15, Wandaufkantung 150, Stoss 2000, Ueberlappung 70, Latten 330.
+ // a und b bleiben leer und werden ueber ihren Richtwert-Chip uebernommen;
+ // damit bleibt der neue Vertrag im Test enthalten und nicht bloss umgangen.
+ await reg(page,2);
+ await fallSchreiben(page);
+ const genommen=await richtwerteUebernehmen(page);
+ const nachRichtwert=await page.evaluate(()=>{
+  const w=anbEingabenAusFeldern();
+  return {a:w.a,b:w.b,saum:w.saum,wand:w.wandAufkantung,
+   stoss:w.stossLaenge,ueber:w.ueberlappung,latten:w.lattenabstand,
+   abw:berechneAnschlussblech(w).abwicklung};
+ });
+ p(genommen.indexOf("anb_masse_a")>=0&&genommen.indexOf("anb_masse_b")>=0,
+   "a und b bieten ihren Mindestwert als Richtwert-Chip an",genommen);
+ p(nachRichtwert.a===50&&nachRichtwert.b===50&&nachRichtwert.saum===15
+   &&nachRichtwert.wand===150,
+   "Antippen uebernimmt den Mindestwert, der Rest steht wie erfasst",nachRichtwert);
+ p(nachRichtwert.abw===265,
+   "und daraus ergibt sich die Zuschnittbreite 265 mm (50+50+15+150)",nachRichtwert);
 
  console.log("\nD · Stückliste, Rechnung unverändert (js/20)");
  await segmente(page,[[4000],[2500,true,30,1200]]);
@@ -218,12 +292,38 @@ const segmente=async(page,liste)=>{await page.evaluate(l=>{
    g0.abschnittLaenge);
  p((g0.streifen||[]).length===4,"vier Streifen (2000+500 = 2500 > 2070)",
    (g0.streifen||[]).map(s=>s.stuecke.map(x=>x.laenge)));
- p(plan.bestes&&plan.bestes.breite===670&&Math.abs(plan.bestes.flaeche-2.7738)<1e-6,
-   "beste Rolle 670 mm mit 2,7738 m² (2 Abschnitte à 2070 mm)",plan.bestes);
- p(plan.bestes&&Math.abs(plan.bestes.verschnitt-1.0142)<1e-6,
-   "Verschnitt 1,0142 m² (2,7738 − 1,7596)",plan.bestes&&plan.bestes.verschnitt);
+ // Ein Abschnitt kostet nur die Rollenlaenge, die er WIRKLICH belegt - nicht
+ // pauschal die Laenge des laengsten Stuecks. Das dreht hier die beste Rolle
+ // um, und zwar zugunsten der sparsameren. Von Hand nachgerechnet, Stuecke
+ // 2070 / 2000 / 2070 / 500 bei 265 mm Abwicklung:
+ //   Rolle 1000: 1000/265 = 3 Streifen je Abschnitt. Abschnitt 1 nimmt
+ //     2070+2000+2070 auf und ist 2070 lang, Abschnitt 2 nur noch die 500 -
+ //     und kostet deshalb 500 statt 2070. Rolle 2070+500 = 2570 mm,
+ //     Flaeche 1000*2570/1e6 = 2,57 m2. (Pauschal waeren es 2*2070 = 4140
+ //     gewesen, also die frueheren 4,14 m2.)
+ //   Rolle 670: 670/265 = 2 Streifen je Abschnitt. Die Abschnitte duerfen
+ //     verschieden lang sein, deshalb kommen die beiden 2070er zusammen in
+ //     einen Abschnitt von 2070 und die 2000 + 500 in einen von 2000:
+ //     4070 mm, Flaeche 670*4070/1e6 = 2,7269 m2. Auch das ist sparsamer als
+ //     die frueheren 2*2070 = 4140 mm (2,7738 m2).
+ // 2,57 < 2,7269, also gewinnt jetzt die 1000er Rolle. Bis zur Umstellung
+ // stand hier die 670er mit 2,7738; das war kein Fehler dieses Pruefstands,
+ // sondern die alte, teurere Rechnung.
+ p(plan.bestes&&plan.bestes.breite===1000&&Math.abs(plan.bestes.flaeche-2.57)<1e-6,
+   "beste Rolle 1000 mm mit 2,57 m² (2070 + 500 mm Rolle)",plan.bestes);
+ p(plan.bestes&&Math.abs(plan.bestes.verschnitt-(2.57-1.7596))<1e-6,
+   "Verschnitt 0,8104 m² (2,57 − 1,7596)",plan.bestes&&plan.bestes.verschnitt);
+ const sechshundert=(plan.moeglich||[]).find(x=>x.breite===670);
+ p(sechshundert&&Math.abs(sechshundert.flaeche-2.7269)<1e-6
+   &&sechshundert.rollenLaenge===4070,
+   "die 670er Rolle ergäbe 2,7269 m² (4070 mm) und ist damit die teurere",sechshundert);
+ // Gegenprobe zur Herkunft: der zweite Abschnitt traegt nur das 500er Stueck
+ // und darf deshalb auch nur 500 mm Rolle kosten. Faellt durch, sobald wieder
+ // pauschal mit der Abschnittlaenge gerechnet wuerde (dann 4140 statt 2570).
  const tausend=(plan.moeglich||[]).find(x=>x.breite===1000);
- p(tausend&&Math.abs(tausend.flaeche-4.14)<1e-6,"die 1000er Rolle ergäbe 4,14 m²",tausend);
+ p(tausend&&tausend.rollenLaenge===2570,
+   "und zahlt 2570 mm Rolle statt der pauschalen 4140 mm",
+   tausend&&{rollenLaenge:tausend.rollenLaenge,abschnitte:tausend.abschnitte});
  // Nachweis, dass wirklich die GEMEINSAME Packrechnung gerufen wird.
  // v3.83: bei jeAbschnitt>=2 (hier: 670/265=2) uebernimmt die neue, ebenso
  // gemeinsame ebaPackeMehrereAbschnitte() (mehrere unterschiedlich lange
@@ -408,6 +508,13 @@ const segmente=async(page,liste)=>{await page.evaluate(l=>{
    "und rechnet unverändert: 2070 / 1000",alt.stuecke);
  p(JSON.stringify(alt.auswahl)==="[]","ohne gespeicherte Rollenauswahl gilt das ganze Lager",alt.auswahl);
  await page.evaluate(()=>{anbFormularZuruecksetzen();anbaZuruecksetzen();$("anb_material").value="2"});
+ // Zuruecksetzen laesst den Schnitt seit v3.67 LEER stehen (keine
+ // Vorgabewerte mehr). Fuer den Druck weiter unten wird deshalb derselbe
+ // Fall wie in Abschnitt D wieder hergestellt, sonst druckt der Pruefstand
+ // eine leere Aufnahme und prueft am Ende nichts.
+ await reg(page,2);
+ await fallSchreiben(page);
+ await richtwerteUebernehmen(page);
  await segmente(page,[[4000],[2500,true,30,1200]]);
 
  console.log("\nJ · Fotos erst nach 'Fertig'");
