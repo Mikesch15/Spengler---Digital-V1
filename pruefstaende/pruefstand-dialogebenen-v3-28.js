@@ -73,14 +73,34 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  },sel);
 
  console.log("\nA · Der gemeldete Weg: Einstellungen -> Lager -> Material erfassen");
- await page.evaluate(()=>{if(typeof openSettingsTo==="function")openSettingsTo("lager")});
- await page.waitForTimeout(250);
- const knopfDa=await page.evaluate(()=>{
-  const k=document.getElementById("lagerNeu");
-  const r=k?k.getBoundingClientRect():null;
-  return !!(r&&r.width>0&&r.height>0);
+ // Die Einstellungen sind seit dem Umbau auf Register + einklappbare
+ // Abschnitte aufgebaut: openSettingsTo("lager") oeffnet das REGISTER, die
+ // Abschnitte darin stehen zugeklappt da (.settings-section-body ist
+ // display:none, bis .open gesetzt ist). Der Anwender klappt den Abschnitt
+ // "Materialbestand" selbst auf - genau das macht dieser Weg hier auch,
+ // ueber den echten Kopf-Klick und nicht ueber ein gesetztes .open.
+ // Der Dreischritt ist zugleich die Gegenprobe: er faellt durch, wenn der
+ // Knopf schon zugeklappt sichtbar waere (dann waere das Einklappen kaputt)
+ // oder wenn der Kopf-Klick ihn nicht mehr hervorholt.
+ const lagerAbschnittOeffnen=()=>page.evaluate(()=>{
+  const sichtbar=()=>{
+   const k=document.getElementById("lagerNeu");
+   const r=k?k.getBoundingClientRect():null;
+   return !!(r&&r.width>0&&r.height>0);
+  };
+  if(typeof openSettingsTo==="function")openSettingsTo("lager");
+  const vorher=sichtbar();
+  const kopf=document.querySelector('[data-toggle-section="lagerbestand"]');
+  // Der Kopf schaltet um; deshalb nur klicken, wenn noch zugeklappt - sonst
+  // wuerde der zweite Aufruf (Abschnitt E) den Abschnitt wieder schliessen.
+  if(kopf&&!vorher)kopf.click();
+  return {kopfDa:!!kopf,vorher,nachher:sichtbar()};
  });
- p(knopfDa,"Der Knopf «＋ Material erfassen» ist im Register Lager sichtbar");
+ const wegA=await lagerAbschnittOeffnen();
+ await page.waitForTimeout(250);
+ p(wegA.kopfDa,"Der Abschnitt «Materialbestand» hat einen Kopf zum Auf- und Zuklappen",wegA);
+ p(wegA.vorher===false,"Zugeklappt ist der Knopf «＋ Material erfassen» nicht sichtbar",wegA);
+ p(wegA.nachher===true,"Nach dem Aufklappen ist der Knopf «＋ Material erfassen» sichtbar",wegA);
  // Ueber evaluate ausloesen: ein verdeckter Knopf laesst page.click haengen.
  await page.evaluate(()=>{const k=document.getElementById("lagerNeu");if(k)k.click()});
  await page.waitForTimeout(250);
@@ -205,10 +225,8 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  console.log("\nE · Bildschirmbreiten");
  for(const w of [320,390,412,768,1280]){
   await page.setViewportSize({width:w,height:900});
-  await page.evaluate(()=>{
-   if(typeof openSettingsTo==="function")openSettingsTo("lager");
-   const k=document.getElementById("lagerNeu"); if(k)k.click();
-  });
+  await lagerAbschnittOeffnen();
+  await page.evaluate(()=>{const k=document.getElementById("lagerNeu"); if(k)k.click()});
   await page.waitForTimeout(200);
   const m=await obenAuf("#lagerFormModal .card");
   const sp=await obenAuf("#lagerFormSpeichern");

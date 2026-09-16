@@ -60,9 +60,24 @@ const einstellungenOeffnen=(page,rolle)=>page.evaluate(r=>{
  $("appRoot").hidden=false; $("authScreen").hidden=true; $("startScreen").hidden=true;
  $("settingsModal").hidden=false;
  // nur das Register "Allgemein" - renderSettings() wuerde die ganze
- // Einstellungsseite zeichnen und braucht Daten, die hier nichts zur Sache tun
- document.querySelectorAll("#settingsModal .settings-panel").forEach(e=>e.hidden=true);
- const a=document.getElementById("panel-general"); if(a)a.hidden=false;
+ // Einstellungsseite zeichnen und braucht Daten, die hier nichts zur Sache tun.
+ //
+ // v3.131: zwei ueberholte Annahmen, beide aus bewussten Umbauten:
+ //  1. Die Einstellungen wurden auf Register umgebaut - aus ".settings-panel"
+ //     und "#panel-general" wurde ".settings-tab-panel" mit
+ //     data-settings-panel="general". Die alten Zeilen fanden gar nichts
+ //     mehr und taten schlicht nichts.
+ //  2. Die Abschnitte sind seither klappbar und starten ZUGEKLAPPT
+ //     (.settings-section-body{display:none}, erst .open zeigt sie). Damit
+ //     hatte #pmHauptInput die Groesse 0 und galt dem Pruefstand zu Recht
+ //     als "nicht sichtbar" - 16 Fehlschlaege, obwohl die App in Ordnung
+ //     ist. Der Abschnitt wird deshalb hier aufgeklappt, genau wie es
+ //     openSettingsTo() in js/07-einstellungen.js fuer den Anwender tut.
+ document.querySelectorAll("#settingsModal .settings-tab-panel").forEach(e=>{
+  e.hidden=(e.dataset.settingsPanel!=="general");
+ });
+ const abschnitt=document.querySelector('[data-section="projektmodule"]');
+ if(abschnitt)abschnitt.classList.add("open");
  if(typeof renderProjektmodule==="function")renderProjektmodule();
 },rolle);
 
