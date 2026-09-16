@@ -780,6 +780,26 @@ function lagerGruppenBewerten(bezeichnung){
           bester:treffer[0].artikel,anzahl:treffer.length};
  }).sort((a,b)=>b.punkte-a.punkte||a.gruppe.localeCompare(b.gruppe));
 }
+// v3.136: Welche BESTEHENDEN Katalogpositionen passen zur Bezeichnung?
+// Bis hierher wurde die Bewertung nur benutzt, um die EDV-Nummer einer NEU
+// anzulegenden Position zu finden (v3.126) - und die zeigte sich erst, wenn
+// man "Neue Materialposition anlegen" schon geklickt hatte. Wer ein Produkt
+// einscannte, bekam davon nichts zu sehen: die Trefferliste war der
+// ungeordnete Katalog, und gesucht werden musste von Hand. Gemeldet vom
+// Anwender ("wird nicht mehr automatisch und intelligent eine Position
+// vorgeschlagen").
+//
+// Dieselbe Bewertung (lagerZeilePunkte), dieselbe Schwelle
+// (LAGER_GRUPPE_MIN) - kein zweites, parallel gepflegtes Mass.
+function lagerPositionenVorschlag(bezeichnung){
+ const bW=lagerWoerter(bezeichnung);
+ if(!bW.length)return [];
+ const liste=lagerNeuesProduktMaterialListeVoll||[];
+ return liste.map(a=>({artikel:a,punkte:lagerZeilePunkte(bW,a.name)}))
+  .filter(x=>x.punkte>=LAGER_GRUPPE_MIN)
+  .sort((a,b)=>b.punkte-a.punkte)
+  .slice(0,3);
+}
 // Der Vorschlag fuer die Oberflaeche. art:
 //   "gruppe"  eine Gruppe fuehrt deutlich -> ihre naechste freie Nummer
 //   "unklar"  mehrere passen aehnlich gut -> Lager-Kreis, Kandidaten dabei
@@ -857,6 +877,17 @@ function lagerNummerVorschlagen(nurWennLeer){
   if($("lagerNeuePositionBlock")&&!$("lagerNeuePositionBlock").hidden)lagerNummerVorschlagen(false);
  });
 });
+// v3.136: Die Bezeichnung des PRODUKTS steuert auch den Positionsvorschlag.
+// Nur die Trefferliste wird neu gezeichnet, damit das Feld den Fokus behaelt
+// (derselbe Grund wie beim Suchfeld weiter unten).
+if($("lagerNeuesProduktBezeichnung"))$("lagerNeuesProduktBezeichnung").addEventListener("input",()=>{
+ const box=$("lagerNeuesProduktTreffer"), suche=$("lagerNeuesProduktMaterialSuche");
+ if(!box)return;
+ if(suche&&String(suche.value||"").trim())return;   // getippte Suche hat Vorrang
+ if(lagerNeuesProduktArtikel||lagerNeuesProduktNeuePosition)return;  // Wahl steht schon
+ box.hidden=false;
+ box.innerHTML=lagerNeuesProduktTrefferHtml();
+});
 if($("lagerNeuePositionNr"))$("lagerNeuePositionNr").addEventListener("input",()=>{
  lagerNummerVonHand=true;
 });
@@ -884,9 +915,27 @@ function lagerNeuesProduktTrefferHtml(){
  const begriff=($("lagerNeuesProduktMaterialSuche")
    ?$("lagerNeuesProduktMaterialSuche").value:"").trim().toLowerCase();
  const alle=lagerNeuesProduktMaterialListeVoll;
- const liste=begriff?alle.filter(a=>lagArtikelText(a).toLowerCase().includes(begriff)):alle;
+ // Solange NICHTS gesucht wird, fuehrt der Vorschlag der App die Liste an -
+ // getippte Suche hat immer Vorrang, sie ist die Absicht des Anwenders.
+ const bez=$("lagerNeuesProduktBezeichnung")?$("lagerNeuesProduktBezeichnung").value.trim():"";
+ const vor=begriff?[]:lagerPositionenVorschlag(bez);
+ const vorIds=new Set(vor.map(x=>String(x.artikel.id)));
+ const liste=(begriff?alle.filter(a=>lagArtikelText(a).toLowerCase().includes(begriff)):alle)
+  .filter(a=>!vorIds.has(String(a.id)));   // nicht zweimal zeigen
  const gezeigt=liste.slice(0,LAGER_PRODUKT_TREFFER_MAX);
  const rest=liste.length-gezeigt.length;
+ // Vorgewaehlt wird NICHTS - ein Tippfehler in der Bezeichnung wuerde sonst
+ // Bestand auf die falsche Position buchen. Ein Tipp genuegt zum Uebernehmen.
+ const vorschlagHtml=vor.length
+  ?`<div class="small" style="margin-bottom:2px">`
+   +(vor.length>1||vor[0].punkte<LAGER_GRUPPE_MIN*LAGER_GRUPPE_FAKTOR
+     ?`<span class="rmat-unsicher">Das könnte passen</span> \u2013 bitte prüfen:`
+     :`<span class="rmat-sicher">\u2713 Vorschlag der App</span>`)
+   +`</div>`
+   +vor.map(x=>`<button type="button" class="gray meas-lager-treffer" `
+     +`data-lager-produkt-artikel="${esc(x.artikel.id)}">${esc(lagArtikelText(x.artikel))}</button>`).join("")
+   +`<div class="small" style="color:var(--muted);margin:4px 0 2px">Oder aus dem ganzen Katalog:</div>`
+  :"";
  // "Neue Materialposition anlegen" ist keine Katalogposition und wird von
  // der Suche deshalb nie weggefiltert.
  const neu=lagerDarfPositionAnlegen()
@@ -896,9 +945,10 @@ function lagerNeuesProduktTrefferHtml(){
   return `<div class="small" style="color:var(--muted)">Der Material-Katalog ist leer.</div>`+neu;
  }
  if(!liste.length){
-  return `<div class="small" style="color:var(--muted)">Kein Treffer für „${esc(begriff)}“.</div>`+neu;
+  return vorschlagHtml
+   +`<div class="small" style="color:var(--muted)">Kein Treffer für „${esc(begriff)}“.</div>`+neu;
  }
- return gezeigt.map(a=>`<button type="button" class="gray meas-lager-treffer" data-lager-produkt-artikel="${esc(a.id)}">${esc(lagArtikelText(a))}</button>`).join("")
+ return vorschlagHtml+gezeigt.map(a=>`<button type="button" class="gray meas-lager-treffer" data-lager-produkt-artikel="${esc(a.id)}">${esc(lagArtikelText(a))}</button>`).join("")
   +(rest>0?`<div class="small" style="color:var(--muted)">… ${rest} weitere – bitte genauer suchen.</div>`:"")
   +neu;
 }
