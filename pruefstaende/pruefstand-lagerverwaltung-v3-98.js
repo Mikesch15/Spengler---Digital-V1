@@ -1471,12 +1471,27 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   return {offen:!$("lagerNeuePositionBlock").hidden,
    nr:$("lagerNeuePositionNr").value,
    name:$("lagerNeuePositionName").value,
+   nameFeldSichtbar:$("lagerNeuePositionNameFeld")?!$("lagerNeuePositionNameFeld").hidden:null,
+   hinweis:$("lagerNeuePositionNameHinweis")?!$("lagerNeuePositionNameHinweis").hidden:null,
    einheit:$("lagerNeuePositionEinheit").value};
  });
  p(z.offen===true,"die Wahl oeffnet das Formular",z);
  p(z.nr==="999.01","die EDV-Nr. ist vorgeschlagen, nicht leer",z);
- p(z.name==="Spezialschraube A2",
-   "die Bezeichnung folgt der des Produkts - auf dem Handy tippt niemand dasselbe zweimal",z);
+ // v3.139: Die Zusage war seit v3.124 "auf dem Handy tippt niemand dasselbe
+ // zweimal". Umgesetzt war sie als KOPIE: die Bezeichnung des Produkts wurde
+ // in das Feld der Position geschrieben. Der Anwender sah dadurch trotzdem
+ // zweimal dasselbe und hat genau das gemeldet. Die Zusage gilt unveraendert
+ // weiter - sie wird jetzt nur anders eingeloest: das zweite Feld gibt es
+ // gar nicht mehr, die Bezeichnung des Produkts IST die der Position
+ // (lagerNeuePositionAnlegen, zweites Argument).
+ p(z.nameFeldSichtbar===false,
+   "solange ein Produkt entsteht, gibt es KEIN zweites Bezeichnungsfeld",z);
+ p(z.hinweis===true,
+   "stattdessen steht da, dass die Bezeichnung des Produkts auch fuer die Position gilt",z);
+ // Gegenprobe auf die alte Umsetzung: kopiert werden darf nichts mehr,
+ // sonst stuenden wieder zwei Felder mit demselben Inhalt da.
+ p(z.name==="",
+   "GEGENPROBE: es wird NICHT mehr in ein zweites Feld kopiert",z);
  p(z.einheit==="Stk.","und die Einheit hat einen brauchbaren Ausgangswert",z);
 
  // Eine bereits vergebene Nummer wird abgelehnt, statt einen Konflikt zu bauen.

@@ -31540,4 +31540,32 @@ prüft den **Erfolg** des Schreibvorgangs statt nur den Versuch.
 | `index.html` | id für das Bezeichnungsfeld der Position, Hinweis „gilt auch für diese Position" |
 | `js/68-lagerverwaltung.js` | kein Kopieren mehr; Feld je nach Modus zeigen/verstecken |
 | `pruefstaende/pruefstand-gemeinsamer-dialog-v3-138.js` | Abschnitte G und H, `grund()` setzt die Attrappe mit zurück |
+| `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | eine Zusicherung auf den heutigen Vertrag gezogen (siehe 206.6) |
 | `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.139 |
+
+### 206.6 Der bestehende Lagerverwaltungs-Prüfstand
+
+Die volle Regression meldete einen echten Fehlschlag in
+`pruefstand-lagerverwaltung-v3-98.js`:
+
+> die Bezeichnung folgt der des Produkts – auf dem Handy tippt niemand
+> dasselbe zweimal
+
+Diese Zusicherung stammt aus v3.124. Sie prüfte die **Mechanik** (die Kopie
+in das zweite Feld), nicht die **Zusage**. Die Zusage selbst – „niemand tippt
+dasselbe zweimal" – gilt unverändert weiter; v3.139 löst sie nur besser ein,
+indem es das zweite Feld ganz weglässt. Der Anwender sah trotz der Kopie
+zweimal dasselbe und hat genau das gemeldet.
+
+Die Zusicherung wurde deshalb **auf den heutigen Vertrag gezogen, nicht
+gelöscht**: geprüft wird jetzt, dass es kein zweites Bezeichnungsfeld gibt
+und dass der Hinweis dasteht – plus eine **Gegenprobe**, dass nichts mehr
+kopiert wird (das Feld bleibt leer). Aus einer Zusicherung wurden drei.
+250 von 250 grün.
+
+### 206.7 Bewusste Einschränkung
+
+Solange Position und Produkt zusammen entstehen, tragen beide **dieselbe**
+Bezeichnung. Wer der Katalogposition einen anderen (etwa allgemeineren)
+Namen geben will als dem Produkt, benennt sie danach im Material-Katalog um.
+Das ist der Preis für das eine Feld und entspricht dem, was gemeldet wurde.
