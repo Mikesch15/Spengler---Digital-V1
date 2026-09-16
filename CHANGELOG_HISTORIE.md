@@ -30954,3 +30954,93 @@ v2.81) laufen unverändert durch.
 | `css/03-druck.css` | `td .search` sichtbar, `td .suggest` ausgeblendet |
 | `pruefstaende/pruefstand-edv-im-druck-v3-133.js` | neu, 10 Zusicherungen |
 | `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.133 |
+
+---
+
+## 200. v3.134 – Excel-Import gleicht ab, statt blind anzulegen
+
+### 200.1 Ausgangslage
+
+Der Anwender wollte seine bestehende Materialliste als Excel-Datei einlesen,
+um fehlende Positionen zu ergänzen und falsche Preise zu korrigieren. Der
+Import konnte das nicht: `js/08-katalog-blitzschutz.js` schrieb mit einem
+reinen `insert()`. Auf `materials` liegt aber ein `UNIQUE` auf `edv_nr` (auf
+`blitzschutz_materials` entsprechend auf `artikel_nr`). Eine Datei mit einer
+schon bekannten Nummer wäre also an der Datenbank gescheitert – und zwar
+komplett, nicht nur bei dieser einen Zeile. Der Hilfetext behauptete zudem,
+eine vorhandene Nummer komme "ein zweites Mal in die Liste"; das konnte gar
+nicht passieren.
+
+### 200.2 Was geändert wurde
+
+Der Import vergleicht die Datei jetzt vor dem Schreiben mit dem Katalog, den
+der Anwender in den Einstellungen sieht, und stuft jede Zeile ein: **neu**,
+**geändert** oder **unverändert**.
+
+Drei Zusagen, die bewusst so gebaut sind:
+
+1. **Geschrieben wird nur, was sich ändert.** Der Aufruf ist
+   `upsert(..., {onConflict: <Schlüsselspalte>})` und bekommt ausschliesslich
+   die neuen und die geänderten Zeilen. Eine Datei mit 400 Positionen, von
+   denen 27 abweichen, schreibt 27 Zeilen, nicht 400.
+2. **Gelöscht wird nie.** Positionen, die in der Datei fehlen, bleiben
+   unangetastet. Der Import ist ein Abgleich, kein Ersetzen.
+3. **Nicht zugeordnete Spalten bleiben stehen.** Nur Felder, die wirklich
+   einer Spalte der Datei zugeordnet sind, landen im Datensatz. Bringt die
+   Datei keine Dim.-Spalte mit, behält die Dim. in der Datenbank ihren Wert,
+   statt mit `""` überschrieben zu werden.
+
+Die Vorschau zeigt vorher, was passiert – oben die Zählung
+(`12 neu · 27 werden geändert · 342 unverändert`), in der Tabelle die
+geänderten Zeilen **zuerst**, je Feld als `Preis: 18 → 19.80`. Der
+Bestätigungs-Knopf trägt dieselben Zahlen.
+
+Preise werden auf den Rappen genau verglichen: `18` und `18.00` gelten als
+gleich, `18.01` als Änderung.
+
+Dieselbe Nummer **zweimal in derselben Datei** bricht den Import ab und nennt
+die Nummer. Postgres würde einen solchen Befehl ohnehin abweisen ("cannot
+affect row a second time"), aber die Meldung wäre unverständlich – und es ist
+ohnehin nicht bestimmt, welche der beiden Zeilen gelten soll. Es wird in
+diesem Fall gar nichts geschrieben, auch nicht die sauberen Zeilen.
+
+Beide Kataloge gehen denselben Weg: Material über `edv_nr`, Blitzschutz-
+Material über `artikel_nr`.
+
+### 200.3 Nachweis
+
+Neuer Prüfstand `pruefstand-excel-import-abgleich-v3-134.js` (37
+Zusicherungen, davon 8 ausdrückliche Gegenproben). Gegenprobe des Prüfstands
+selbst: wird der Code auf das alte Verhalten zurückgesetzt (`insert()` mit
+allen Zeilen), fallen **15** der 37 Zusicherungen durch – der Prüfstand
+beisst also wirklich.
+
+Der bestehende `pruefstand-excel-import-v3-04.js` wurde auf den neuen Vertrag
+gezogen, nicht abgeschwächt: die alten `insert`-Erwartungen sind als
+Gegenprobe erhalten geblieben ("kein insert und kein delete auf den Katalog"),
+dazu eine neue Zusicherung, dass der Abgleich über die EDV-Nr. läuft. 35 von
+35 grün.
+
+Die Spaltenverschiebung in der Vorschau (neue Spalten "Was" und "Änderung")
+wurde in den drei betroffenen Zusicherungen nachgezogen und um eine
+Zusicherung auf die neuen Spalten selbst ergänzt.
+
+### 200.4 Was offen bleibt
+
+`UNIQUE (edv_nr)` auf `materials` gilt **global**, nicht je Firma. Solange
+mehrere Firmen dieselbe Nummer verwenden wollen, kann eine Firma eine Nummer
+belegen, die einer anderen gehört – der Abgleich greift dann nicht, und die
+Zeile wird abgewiesen. Der Import meldet das ehrlich ("x von y Zeilen wurden
+geschrieben"), statt es zu verschweigen. Die Umstellung auf
+`UNIQUE (company_id, edv_nr)` berührt die RLS und ist deshalb bewusst eine
+eigene Aufgabe.
+
+### 200.5 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/08-katalog-blitzschutz.js` | Einstufung neu/geändert/unverändert, Vorschau mit alt → neu, `upsert` statt `insert`, `schluessel`/`bestand` in beiden Import-Konfigurationen |
+| `js/41-hilfe.js` | Hilfetext "Liste aus Excel einlesen" auf den Abgleich umgeschrieben |
+| `pruefstaende/pruefstand-excel-import-abgleich-v3-134.js` | neu, 37 Zusicherungen |
+| `pruefstaende/pruefstand-excel-import-v3-04.js` | auf den upsert-Vertrag gezogen, alte Erwartungen als Gegenprobe erhalten |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.134 |

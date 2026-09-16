@@ -1146,9 +1146,18 @@ lässt sich für jedes Feld ändern.</p>
 <p>Pflichtfelder sind mit einem roten Stern gekennzeichnet. Zeilen, bei denen
 ein Pflichtfeld leer ist, werden <b>nicht</b> importiert – wie viele das sind,
 steht über der Vorschau. Erst was in der Vorschau steht, wird auch gespeichert.</p>
-<p>Der Import <b>ergänzt</b> die bestehende Liste. Es wird nichts gelöscht und
-nichts überschrieben; eine bereits vorhandene Nummer kommt dadurch ein zweites
-Mal in die Liste – vorher prüfen, ob sie schon da ist.</p>`},
+<p>Der Import <b>gleicht ab</b>: eine Nummer, die es schon gibt, wird
+aktualisiert statt ein zweites Mal angelegt. Über der Vorschau steht vorher,
+wie viele Positionen <b>neu</b> sind, wie viele <b>geändert</b> werden und wie
+viele <b>unverändert</b> bleiben; bei jeder Änderung steht der alte und der
+neue Wert nebeneinander – so fällt ein verrutschter Preis vor dem Speichern
+auf.</p>
+<p><b>Gelöscht wird nie.</b> Positionen, die in der Datei fehlen, bleiben
+unverändert stehen. Auch ein Feld, für das die Datei keine Spalte mitbringt
+(z. B. Dim.), behält seinen bisherigen Wert – es wird nicht geleert.</p>
+<p>Kommt dieselbe Nummer in der Datei <b>zweimal</b> vor, wird der Import
+abgebrochen und die Nummer genannt: dann ist nicht bestimmt, welche Zeile
+gelten soll. In diesem Fall wird gar nichts geschrieben.</p>`},
 "einst-material":{titel:"Material",text:`
 <p>Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt
 <b>firmenweit</b>.</p>
