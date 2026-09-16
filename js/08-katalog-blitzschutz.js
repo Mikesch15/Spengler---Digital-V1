@@ -702,14 +702,59 @@ $("newRate").onclick=async()=>{
  if(error){alert("Fehler: "+error.message);return}
  await loadAllData();renderSettings();
 };
+// v3.137: Die EDV-Nr. einer neuen Katalogposition wird BERECHNET, nicht als
+// fester Text gesetzt. Bis hierher stand hier edv_nr:"Neue Nr." - das ging
+// genau einmal gut. Beim zweiten Klick brach die Datenbank ab:
+//   duplicate key value violates unique constraint "materials_edv_nr_key"
+// Der Knopf direkt darueber (Funktionen) macht es seit je richtig und
+// nummeriert durch; beim Material wurde es nie nachgezogen.
+//
+// Gerechnet wird mit derselben Funktion wie in der Lagerverwaltung
+// (lagerNaechsteFreieEdvNr, js/68) und derselben Konvention: eine Position,
+// die noch keiner Katalogruppe zugeordnet ist, bekommt die naechste freie
+// Nummer im eigenen Kreis. Eine Nummer, zwei Wege, kein zweites Verfahren.
+function katalogNaechsteFreieEdvNr(){
+ if(typeof lagerNaechsteFreieEdvNr==="function"&&typeof LAGER_EIGENE_GRUPPE!=="undefined")
+  return lagerNaechsteFreieEdvNr(LAGER_EIGENE_GRUPPE);
+ // Rueckfall, falls die Lagerverwaltung nicht geladen ist (eigenes Recht):
+ // dieselbe Regel, nur aus settings.materials statt aus lagArtikelListe().
+ let hoechste=0;
+ ((typeof settings==="object"&&settings&&Array.isArray(settings.materials))?settings.materials:[])
+  .forEach(m=>{
+   const x=/^999\.(\d+)$/.exec(String(m[0]==null?"":m[0]).trim());
+   if(x)hoechste=Math.max(hoechste,parseInt(x[1],10));
+  });
+ return "999."+String(hoechste+1).padStart(2,"0");
+}
 $("newMaterial").onclick=async()=>{
- const {error}=await sb.from("materials").insert({edv_nr:"Neue Nr.",name:"Neues Material",dim:"",unit:"Stk.",price:0});
- if(error){alert("Fehler: "+error.message);return}
- await loadAllData();
- materialFilter="";$("materialSettingsSearch").value="";
- materialExpanded.add(settings.materials.length-1);
- materialPage=Math.floor((settings.materials.length-1)/MATERIAL_PAGE_SIZE);
- renderSettings();
+ const knopf=$("newMaterial");
+ knopf.disabled=true;
+ try{
+  // Zwei Anlaeufe: zwischen Berechnen und Schreiben kann jemand anders
+  // dieselbe Nummer belegt haben. Beim zweiten Mal wird neu gerechnet -
+  // erst dann ist es ein echter Fehler, den der Anwender sehen soll.
+  let fehler=null;
+  for(let versuch=0;versuch<2;versuch++){
+   const nr=katalogNaechsteFreieEdvNr();
+   const {error}=await sb.from("materials")
+     .insert({edv_nr:nr,name:"Neues Material",dim:"",unit:"Stk.",price:0});
+   if(!error){ fehler=null; break; }
+   fehler=error;
+   if(!/duplicate key|unique constraint/i.test(error.message||""))break;
+   await loadAllData();   // frischer Stand, dann neu rechnen
+  }
+  if(fehler){
+   alert(/duplicate key|unique constraint/i.test(fehler.message||"")
+    ? "Diese EDV-Nr. ist bereits vergeben. Bitte noch einmal versuchen."
+    : "Fehler: "+fehler.message);
+   return;
+  }
+  await loadAllData();
+  materialFilter="";$("materialSettingsSearch").value="";
+  materialExpanded.add(settings.materials.length-1);
+  materialPage=Math.floor((settings.materials.length-1)/MATERIAL_PAGE_SIZE);
+  renderSettings();
+ }finally{ knopf.disabled=false; }
 };
 $("employeeSettings").addEventListener("input",e=>{
  const i=e.target.dataset.setEmp;if(i===undefined)return;
