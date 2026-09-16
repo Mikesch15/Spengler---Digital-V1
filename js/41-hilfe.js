@@ -564,6 +564,18 @@ gefüllt.</p>`},
 <p>Bilder bekommen ein Vorschaubild, andere Dateien ein Typ-Symbol. Je Datei:
 öffnen, umbenennen, ersetzen, löschen. Die neueste Änderung steht zuoberst.</p>`},
 
+"cockpit-fotos":{titel:"Alle Fotos",text:`
+<p>Jedes Bild dieses Objekts an <b>einem</b> Ort – zusammengetragen aus den
+Massaufnahmen (Fotos <i>und</i> Skizzen), dem Ausmass, den Regierapporten,
+den Offerten und den Projektdateien.</p>
+<p>Unter jedem Bild steht, <b>woher es stammt</b>: die Art und der Titel der
+Massaufnahme, das Datum des Rapports, der Dateiname. Gibt es mehrere Bilder
+derselben Herkunft, sind sie durchnummeriert („Foto 2/3").</p>
+<p>Ein Tipp auf ein Bild zeigt es gross. Es ist eine reine Übersicht –
+hinzugefügt und gelöscht werden Bilder weiterhin dort, wo sie hingehören:
+in der Massaufnahme, im Rapport oder unter „Dateien/Fotos".</p>
+<p>Die Vorschauen werden erst geladen, wenn der Abschnitt aufgeklappt ist.</p>`},
+
 "verlauf":{titel:"Änderungsverlauf",text:`
 <p>Wer hat wann was gemacht – für dieses Projekt <i>und</i> seine
 Massaufnahmen, Ausmasse und Rapporte. Jede Massaufnahme hat zusätzlich ihren

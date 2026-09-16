@@ -285,6 +285,10 @@ $("projectCockpitModal").addEventListener("click",e=>{
 async function cockpitBereichAktualisieren(key){
  if(!key||!cockpitProjectId||!COCKPIT_BEREICHE[key])return;
  cockpitZeigeAnzahl(key,await COCKPIT_BEREICHE[key].load(cockpitProjectId));
+ // v3.142: Jede dieser Listen ist zugleich eine Bilderquelle der Fotowand -
+ // wird eine Massaufnahme oder eine Datei angelegt oder geloescht, muss die
+ // Wand mit. Gerechnet wird nur auf den soeben geladenen Listen.
+ cockpitFotosRendern();
  // v3.09: aendert sich die Massaufnahme-Liste, aendert sich auch das
  // Material und der projektweite Zuschnitt - beide lesen dieselbe Liste.
  if(key==="meas"&&typeof pmSichtbarkeitAuffrischen==="function")pmSichtbarkeitAuffrischen();
@@ -323,6 +327,8 @@ async function loadProjectCockpitData(){
  // Ergebnis verwerfen statt eine fremde Übersicht zu zeichnen.
  if(cockpitProjectId!==id||$("projectCockpitModal").hidden)return;
  keys.forEach((k,i)=>cockpitZeigeAnzahl(k,ergebnisse[i]));
+ // v3.142: Erst jetzt stehen alle Listen - die Fotowand liest genau sie.
+ cockpitFotosRendern();
  // v3.09: Material und Zuschnitt lesen ausschliesslich die soeben geladenen
  // Massaufnahmen (projectMeasurementsCache) - keine zusaetzliche Abfrage.
  // Sind die Untermodule aus, bleiben beide Karten unsichtbar.
@@ -349,6 +355,10 @@ async function openProjectCockpit(projectId,treffer){
  // Listen des vorherigen Projekts sofort leeren, damit nie kurz die
  // falschen Einträge stehen bleiben.
  Object.keys(COCKPIT_BEREICHE).forEach(k=>{$(COCKPIT_BEREICHE[k].body).innerHTML=""});
+ // v3.142: Die Fotowand zeigt Bilder aus genau diesen Listen - sie darf beim
+ // Wechsel keinen Augenblick lang noch die des vorigen Projekts zeigen.
+ if($("cockpitFotosBody")){$("cockpitFotosBody").innerHTML="";$("cockpitFotosBody").dataset.aufgeloest=""}
+ if($("cockpitFotosCount"))$("cockpitFotosCount").textContent="…";
  // Verlauf-Container zurücksetzen (bestehende Hilfsfunktion aus v2.31).
  updateVerlaufToggleVisibility($("cockpitVerlaufToggle"),$("cockpitVerlaufBody"),cockpitProjectId);
  $("projectsModal").hidden=true;
@@ -563,6 +573,10 @@ function cockpitKlappSetzen(kopf,offen){
  const box=kopf&&kopf.closest(".klapp"); if(!box)return;
  box.classList.toggle("open",!!offen);
  kopf.setAttribute("aria-expanded",offen?"true":"false");
+ // v3.142: Die Fotowand holt ihre Vorschauen erst beim Aufklappen. Hier
+ // statt im Klick-Handler, weil auch "Alles aufklappen", der gemerkte
+ // Klappzustand und der Sprung aus dem Arbeitsstand hier durchlaufen.
+ if(offen&&kopf.dataset.klapp==="fotos")cockpitFotosThumbs();
 }
 function cockpitKlappAnwenden(){
  const g=cockpitKlappGespeichert();
@@ -631,22 +645,24 @@ $("projectCockpitModal").addEventListener("keydown",e=>{
 // Datenmodell: sketch_paths (Array), sonst ersatzweise das alte
 // Einzelfeld sketch_path. Es wird nichts erfunden und nichts gezaehlt,
 // was nicht wirklich gespeichert ist.
+// Mehrzahl-Feld (Array) vor Einzelfeld: dieselbe Regel, die Massaufnahme,
+// Ausmass und Offerte beim Laden schon anwenden. Aeltere Datensaetze haben
+// nur das Einzelfeld - dann ist es genau dieses eine Bild. Es wird keines
+// erfunden und keines verschwiegen (v3.142 aus measMedienPfade
+// herausgeloest, damit die Fotowand weiter unten nicht dieselbe
+// Fallunterscheidung ein zweites Mal mitschleppt).
+function medienPfadListe(mehrere,einzel){
+ if(Array.isArray(mehrere)&&mehrere.length){
+  return mehrere.filter(x=>x&&String(x).trim()).map(String);
+ }
+ if(einzel&&String(einzel).trim())return [String(einzel)];
+ return [];
+}
 function measMedienPfade(m){
- // Aeltere Aufnahmen haben nur photo_path - dann ist es genau dieses eine
- // Foto. Es wird keines erfunden und keines verschwiegen.
- let fotos=[];
- if(m&&Array.isArray(m.photo_paths)&&m.photo_paths.length){
-  fotos=m.photo_paths.filter(x=>x&&String(x).trim()).map(String);
- }else if(m&&m.photo_path&&String(m.photo_path).trim()){
-  fotos=[String(m.photo_path)];
- }
- let skizzen=[];
- if(m&&Array.isArray(m.sketch_paths)&&m.sketch_paths.length){
-  skizzen=m.sketch_paths.filter(x=>x&&String(x).trim()).map(String);
- }else if(m&&m.sketch_path&&String(m.sketch_path).trim()){
-  skizzen=[String(m.sketch_path)];
- }
- return {fotos,skizzen};
+ return {
+  fotos  :medienPfadListe(m&&m.photo_paths ,m&&m.photo_path ),
+  skizzen:medienPfadListe(m&&m.sketch_paths,m&&m.sketch_path)
+ };
 }
 function measHatMedien(m){
  const x=measMedienPfade(m);
@@ -706,14 +722,18 @@ function openMeasMedien(measurementId){
 
 // Grosse Ansicht eines einzelnen Bildes. Nimmt die bereits aufgeloeste,
 // signierte URL der Kachel - es wird keine zweite URL erzeugt.
-$("measMediaBody").addEventListener("click",e=>{
- const k=e.target.closest("[data-medien-gross]");
- if(!k||k.dataset.bereit!=="1")return;
- const img=k.querySelector("img");
+// v3.142: als Funktion statt fest im Klick-Handler, weil die Fotowand des
+// Projekts (weiter unten) dieselbe Grossansicht benutzt statt einer zweiten.
+function medienGrossOeffnen(kachel){
+ if(!kachel||kachel.dataset.bereit!=="1")return;
+ const img=kachel.querySelector("img");
  if(!img||!img.src)return;
  $("measMediaViewerImg").src=img.src;
- $("measMediaViewerLabel").textContent=k.dataset.label||"";
+ $("measMediaViewerLabel").textContent=kachel.dataset.label||"";
  $("measMediaViewer").hidden=false;
+}
+$("measMediaBody").addEventListener("click",e=>{
+ medienGrossOeffnen(e.target.closest("[data-medien-gross]"));
 });
 $("measMediaViewerClose").onclick=()=>{$("measMediaViewer").hidden=true;$("measMediaViewerImg").removeAttribute("src")};
 $("measMediaViewer").addEventListener("click",e=>{
@@ -725,6 +745,107 @@ $("measMediaClose").onclick=()=>{
  $("measMediaBody").innerHTML="";
  $("measMediaModal").hidden=true;
 };
+
+// ---- Alle Fotos des Projekts (v3.142) ---------------------------
+// Ein Ort, an dem jedes Bild des Objekts zu sehen ist - und an jedem Bild
+// steht, woher es stammt.
+//
+// Es faellt KEINE zusaetzliche Abfrage an: gelesen werden ausschliesslich
+// die Listen, die das Cockpit fuer seine Abschnitte ohnehin schon geladen
+// hat. Dadurch gilt hier automatisch dieselbe RLS-Sicht wie im Abschnitt
+// daneben - es kann nie ein Bild auftauchen, das der Benutzer eine Karte
+// weiter oben nicht auch sehen duerfte. Und es wird nichts erfunden: nur
+// tatsaechlich gespeicherte Pfade werden zu Kacheln.
+
+// Die Sinnbilder sind bewusst dieselben wie in den Abschnittsueberschriften
+// (Massaufnahmen, Ausmass, Regierapport, Offerte, Dateien) - dasselbe
+// Zeichen bedeutet an beiden Stellen dasselbe.
+function cockpitFotoListe(){
+ const bilder=[];
+ // Mehrere Bilder derselben Quelle werden durchnummeriert ("Foto 2/3"),
+ // ein einzelnes bleibt schlicht "Foto" - keine "1/1"-Zaehlerei.
+ const dazu=(pfade,quelle,art)=>pfade.forEach((pfad,i)=>bilder.push({
+  pfad,
+  label:infoZeile(quelle,pfade.length>1?`${art} ${i+1}/${pfade.length}`:art)
+ }));
+ const liste=x=>Array.isArray(x)?x:[];
+
+ // Massaufnahmen: Fotos UND Skizzen, wie in der Einzelansicht darueber.
+ if(typeof projectMeasurementsCache!=="undefined")liste(projectMeasurementsCache).forEach(m=>{
+  const art=(typeof MEAS_TYPE_LABELS!=="undefined"&&MEAS_TYPE_LABELS[m.type])||m.type||"Massaufnahme";
+  const quelle="📐 "+infoZeile(art,m.title);
+  const {fotos,skizzen}=measMedienPfade(m);
+  dazu(fotos,quelle,"Foto");
+  dazu(skizzen,quelle,"Skizze");
+ });
+ if(typeof projectAusmassCache!=="undefined")liste(projectAusmassCache).forEach(a=>{
+  const art=COCKPIT_AM_TYPE_LABELS[a.type]||a.type||"Ausmass";
+  dazu(medienPfadListe(a.photo_paths,a.photo_path),
+       "📏 "+infoZeile(art,a.title,datumCH(a.date)),"Foto");
+ });
+ if(typeof projectReportsCache!=="undefined")liste(projectReportsCache).forEach(r=>{
+  dazu(medienPfadListe(r.photo_paths,null),
+       "📋 "+infoZeile("Regierapport",datumCH(r.date),r.order_no),"Foto");
+ });
+ // Die Offerte gibt es nur mit Freigabe; ohne sie ist projectAngeboteCache
+ // leer (js/63 fragt dann gar nicht erst ab) - hier ist nichts zu gaten.
+ if(typeof projectAngeboteCache!=="undefined")liste(projectAngeboteCache).forEach(a=>{
+  dazu(medienPfadListe(a.photo_paths,a.photo_path),
+       "🧾 "+infoZeile("Offerte",a.title,datumCH(a.date)),"Foto");
+ });
+ // Projektdateien: nur echte Bilddateien - ein PDF oder eine Excel-Datei
+ // ist kein Foto. Was ein Bild ist, entscheidet dieselbe Funktion wie im
+ // Dateien-Abschnitt (istBilddatei, js/09), keine zweite Liste von Endungen.
+ if(typeof projectFilesCache!=="undefined")liste(projectFilesCache).forEach(f=>{
+  if(typeof istBilddatei==="function"&&!istBilddatei(f.mime_type,f.name))return;
+  dazu(f.file_path?[String(f.file_path)]:[],"📎 "+infoZeile("Datei",f.name),"");
+ });
+ return bilder;
+}
+
+function cockpitFotosRendern(){
+ const box=$("cockpitFotosBody"); if(!box)return;
+ const bilder=cockpitFotoListe();
+ const zahl=$("cockpitFotosCount");
+ if(zahl)zahl.textContent=String(bilder.length);
+ box.dataset.aufgeloest="";
+ if(!bilder.length){
+  box.innerHTML='<div class="empty">📷 Noch keine Fotos in diesem Projekt.'
+   +'<div class="small" style="margin-top:6px">Hier erscheinen alle Fotos und Skizzen '
+   +'aus den Massaufnahmen, dem Ausmass, den Regierapporten, den Offerten und den '
+   +'Projektdateien – bei jedem Bild steht, woher es stammt.</div></div>';
+  return;
+ }
+ box.innerHTML='<div class="small" style="color:var(--muted)">Unter jedem Bild steht, '
+  +'aus welcher Massaufnahme, welchem Rapport oder welcher Datei es stammt.</div>'
+  +'<div class="medien-galerie">'
+  +bilder.map(b=>`<button type="button" class="medien-kachel" data-label="${esc(b.label)}" data-medien-gross>`
+   +`<img data-signed-src="${esc(b.pfad)}" alt="${esc(b.label)}">`
+   +`<span class="medien-label">${esc(b.label)}</span></button>`).join("")
+  +'</div>';
+ cockpitFotosThumbs();
+}
+
+// Jede Vorschau kostet eine signierte URL. Sie werden deshalb erst geholt,
+// wenn der Abschnitt wirklich aufgeklappt ist - zugeklappt sieht sie
+// ohnehin niemand, und ein Projekt mit vielen Bildern soll das Oeffnen des
+// Cockpits nicht ausbremsen. Einmal aufgeloest, bleibt es dabei.
+function cockpitFotosThumbs(){
+ const box=$("cockpitFotosBody"); if(!box)return;
+ if(box.dataset.aufgeloest==="1")return;
+ const karte=$("cockpitFotosCard");
+ if(karte&&!karte.classList.contains("open"))return;
+ if(!box.querySelector("img[data-signed-src]"))return;
+ box.dataset.aufgeloest="1";
+ medienThumbsAufloesen(box);
+}
+
+// Dieselbe Grossansicht wie in der Einzelansicht einer Massaufnahme - nicht
+// eine zweite. Der Betrachter liegt ueber dem Cockpit (z-index 900 gegen
+// 500), er laesst sich also direkt von hier aus oeffnen und schliessen.
+$("cockpitFotosBody").addEventListener("click",e=>{
+ medienGrossOeffnen(e.target.closest("[data-medien-gross]"));
+});
 
 // ---- Cockpit verlassen ------------------------------------------
 $("cockpitBack").onclick=()=>{

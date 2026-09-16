@@ -119,7 +119,10 @@ const WIN_CHANGELOG={
   "In den Einstellungen steht der Anlege-Knopf jetzt ÜBER der Liste statt darunter. Bisher sass er hinter bis zu 20 Materialzeilen und den Blätter-Knöpfen – zu finden nur, wenn man ohnehin bis ans Ende scrollte.",
   "Und jeder Knopf sagt jetzt, was er anlegt: „＋ Neue Materialposition\" (Regierapport), „＋ Material für Massaufnahmen\", „＋ Neuer Blitzschutz-Artikel\", „＋ Blech erfassen (Rolle / Tafel)\". Vorher hiessen drei davon wortgleich „＋ Material hinzufügen\"."],
  "3.141":["Im Anlege-Dialog steht jetzt „Gewählt: …\" vor der Materialposition, und der Knopf daneben heisst „↩ andere wählen\" statt „✏️ ändern\". „Ändern\" klang nach „diese Position bearbeiten\" – gemeint war immer „eine andere wählen\".",
-  "Zur Erinnerung, weil danach gefragt wurde: „➕ Neue Materialposition anlegen …\" ist der letzte Eintrag der Trefferliste und die Alternative zu den Positionen darüber – passt keine, legen Sie eine neue an. Der Knopf daneben ist der Rückweg: er nimmt die getroffene Wahl zurück und öffnet die Liste wieder."]
+  "Zur Erinnerung, weil danach gefragt wurde: „➕ Neue Materialposition anlegen …\" ist der letzte Eintrag der Trefferliste und die Alternative zu den Positionen darüber – passt keine, legen Sie eine neue an. Der Knopf daneben ist der Rückweg: er nimmt die getroffene Wahl zurück und öffnet die Liste wieder."],
+ "3.142":["Im Projekt gibt es jetzt den Abschnitt „📷 Alle Fotos\": jedes Bild des Objekts an EINEM Ort – aus den Massaufnahmen (Fotos und Skizzen), dem Ausmass, den Regierapporten, den Offerten und den Projektdateien.",
+  "Unter jedem Bild steht, woher es stammt – zum Beispiel „📐 Kamineinfassung · Ost · Foto 2/3\" oder „📋 Regierapport · 14.03.2026\". Ein Tipp zeigt das Bild gross.",
+  "Es ist eine reine Übersicht: hinzugefügt und gelöscht werden Fotos weiterhin dort, wo sie hingehören. Die Vorschauen werden erst geladen, wenn der Abschnitt aufgeklappt ist."]
 };
 
 function winVersionVergleich(a,b){

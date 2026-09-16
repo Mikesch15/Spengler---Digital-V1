@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.141</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.142</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -548,6 +548,18 @@
 <h2 class="klapp-kopf" data-klapp="files" role="button" tabindex="0" aria-expanded="false">📎 Dateien/Fotos<span id="cockpitFilesCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-dateien">i</button><span class="klapp-chevron">›</span></h2>
 <div class="klapp-body">
 <div id="cockpitFilesBody"></div>
+</div>
+</div>
+
+<!-- v3.142: Alle Fotos des Objekts an EINEM Ort. Die Wand zeigt nur, was
+     die Abschnitte darueber ohnehin schon geladen haben (Massaufnahmen,
+     Ausmass, Regierapporte, Offerten, Projektdateien) - keine eigene
+     Abfrage, keine zweite Bilderquelle. Unter jedem Bild steht, woher es
+     stammt. -->
+<div class="card klapp" id="cockpitFotosCard">
+<h2 class="klapp-kopf" data-klapp="fotos" role="button" tabindex="0" aria-expanded="false">📷 Alle Fotos<span id="cockpitFotosCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-fotos">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<div id="cockpitFotosBody"></div>
 </div>
 </div>
 </div>
