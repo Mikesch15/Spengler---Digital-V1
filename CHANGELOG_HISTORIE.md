@@ -30796,3 +30796,99 @@ Trefferliste wieder zugeklappt starten lassen → 4 Fehlschläge.
 | `js/41-hilfe.js` | `lager-suche` um das Ziel-Feld erweitert |
 | `sw.js`, `PROJECT_STATE.md`, `js/67-was-ist-neu.js` | Versionsstand 3.131 |
 | `pruefstaende/pruefstand-lagerverwaltung-v3-98.js` | Abschnitt 15 auf die Trefferliste umgestellt, zwei Prüfungen neu (248 statt 246) |
+
+---
+
+## 198. v3.132 – CI-Bereinigung: alle 29 bekannten Fehlschläge auf die Ursache zurückgeführt
+
+### 198.1 Ausgangslage
+
+`pruefstaende/bekannte-fehlschlaege.txt` führte 29 Prüfstände, die schon vor
+der CI-Automatisierung (v3.91) fehlschlugen. Die CI meldete sie als bekannt
+und lief grün weiter – sie konnten also seit Monaten weder einen Fehler
+finden noch einen Erfolg belegen. Auftrag des Anwenders: jeden einzelnen
+untersuchen, die tatsächliche Ursache benennen, sie beheben, und dabei
+**keine** Tests abschwächen, überspringen oder an den Code anpassen.
+
+Stand vorher: **45 von 74 Prüfständen grün**, 29 mit zusammen rund 160
+fehlgeschlagenen Zusicherungen.
+
+### 198.2 Die Ursachen – fünf Gruppen
+
+Die 29 verteilen sich auf fünf Ursachen. Keine einzige war „der Test ist
+falsch, also weg damit":
+
+| Gruppe | Prüfstände | Was wirklich dahintersteckte |
+| --- | --- | --- |
+| **Standardmasse nur noch Richtwert** (v3.65–v3.67) | 8 | Ein Firmenwert aus den Einstellungen wird nicht mehr still ins Feld geschrieben. Das Feld fängt leer an, der Wert steht als Richtwert-Chip daneben. Die Prüfstände rechneten weiter mit vorausgefüllten Feldern – ihre von Hand nachgerechneten Zahlen kamen dadurch nicht mehr zustande. |
+| **Eingeklappte Abschnitte** (v3.11 Cockpit, Einstellungs-Register) | 4 | `.klapp-body` und `.settings-section-body` stehen auf `display:none`, bis `.open` gesetzt ist. Elemente darin haben Höhe 0 – richtig gemessen, veraltet erwartet. |
+| **Veröffentlichungs-Momentaufnahmen** | 3 | Zusicherungen, die den `git diff` abfragten („diese Datei ist in DIESEM Commit neu") oder eine feste Versionsnummer nannten. Beides konnte nur im Augenblick der jeweiligen Veröffentlichung zutreffen. |
+| **Bewusste Fach- und Formatänderungen** | 12 | Umbenennung „Rinne Halbrund" → „Dachrinne" (v3.49), Bleilappen-Regel der Einfassung (v3.68/v3.70), Zwischentitel als eigenes Feld statt in `description` (v16 der Edge Function), Feldname `image` statt `image_base64` (8bf19e4), sparsamere Rollenrechnung, entfernter Cockpit-Abschnitt. |
+| **Echte App-Fehler** | 2 | Siehe 198.3. |
+
+### 198.3 Die zwei echten Fehler
+
+**`js/48-projekt-material.js` – Dachfenstereinfassung fehlte im Rückfall.**
+`PMAT_TEIL_RUECKFALL` entscheidet für gespeicherte Massaufnahmen ohne
+`teil`-Merkmal, welche Materialzeile ein Teil ist. Die Dachfenstereinfassung
+stand als einzige der dreizehn Arten nicht darin – bei ihr fielen die
+Bleilappen aus der Materialübersicht alter Datensätze heraus.
+
+**`js/32-mauerabdeckung-aufnahme.js` – Gesamtbreite 0 wurde angenommen.**
+v3.66 unterscheidet bewusst *leer* von *0*, weil 0 bei Gefälle, Umschlag,
+Saum und Biegewinkel ein gültiges Mass ist; der Kommentar in
+`madaPruefungen` zählt genau diese vier auf. Die Gesamtbreite gehört nicht
+dazu: 0 ist dort eine Mauerabdeckung ohne Mauer. Weil das Feld ausgefüllt
+ist, griff `fehltLeer` nicht, und aus Saum und Umschlägen allein entsteht
+eine brauchbar aussehende Abwicklung – der Fehler fiel nicht von selbst auf.
+
+### 198.4 Zwei Zahlen, die sich geändert haben – von Hand nachgerechnet
+
+Die Zuschnittrechnung belastet einen Abschnitt nur noch mit der Rollenlänge,
+die er **wirklich** belegt, statt pauschal mit der Länge des längsten Stücks:
+
+- Kamineinfassung: die 670er Gruppe hat Streifen von 500/500/400/400 mm →
+  1800 statt 4×500 = 2000 mm. Gesamt 900+900+1800 = 3600 mm → **3,6 m²**
+  statt 3,8 m².
+- Anschlussblech: der zweite Abschnitt trägt nur das 500er Stück und kostet
+  500 statt 2070 mm → **2,57 m²**. Damit gewinnt jetzt die 1000er Rolle
+  (2,57 m²) gegen die 670er (2,7269 m²) – vorher war es umgekehrt.
+- Rinne (Profil): Streifen 3085/1670/1670 → 6425 statt 9255 mm → **6,425 m²**
+  statt 9,255 m².
+
+Alle drei sind sparsamer und richtig. Damit die Zahlen nicht wieder unbelegt
+dastehen, hält je eine neue Gegenprobe ihre Herkunft fest (Streifenlängen
+und Rollenlänge gegen die pauschale Rechnung).
+
+### 198.5 Was bewusst offen bleibt
+
+Vier Zusicherungen in `pruefstand-hilfe-v3-03.js`: Die App ist bei v3.132,
+das PDF im Ordner `anleitung/` ist die **v3.44** – 87 Versionen alt. Der Link
+in den Einstellungen ist nicht kaputt, er zeigt auf das vorhandene PDF. Aber
+die Anleitung trägt nicht die aktuelle Version, und das lässt sich nicht
+durch Umbenennen erledigen: die Skripte im Ordner erzeugen nur die
+Bildschirmfotos neu, der **Text** in `anleitung.html` beschreibt weiterhin
+den Stand v3.44. Ein PDF mit dem Namen v3.132 und dem Inhalt von v3.44 wäre
+eine Lüge gegenüber dem Anwender. Das ist inhaltliche Arbeit am Text und
+gehört vorgelegt, nicht still weggemacht.
+
+### 198.6 Ergebnis
+
+**73 von 74 Prüfständen grün** (vorher 45), keine neue Regression.
+`bekannte-fehlschlaege.txt` schrumpft von 29 Einträgen auf einen.
+
+Jede umgestellte Zusicherung hat eine Gegenprobe bekommen, die das alte
+Verhalten ausschliesst – die Prüfstände sind nach der Bereinigung strenger
+als vorher, nicht lockerer. Dabei sind aus rund 160 fehlgeschlagenen
+Zusicherungen netto rund 40 zusätzliche Prüfungen entstanden.
+
+### 198.7 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/48-projekt-material.js` | `dachfenstereinfassung` in `PMAT_TEIL_RUECKFALL` ergänzt |
+| `js/32-mauerabdeckung-aufnahme.js` | Gesamtbreite 0 wird als Fehler gemeldet |
+| 22 Dateien unter `pruefstaende/` | auf den heutigen Vertrag gezogen, je mit Gegenprobe |
+| `pruefstaende/bekannte-fehlschlaege.txt` | 29 → 1 Eintrag, mit Begründung |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.132 |
+| `Abschlussbericht_v3.132_CI_Bereinigung.txt` | vollständiger Bericht |

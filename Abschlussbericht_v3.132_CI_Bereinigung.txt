@@ -1,0 +1,257 @@
+================================================================================
+ABSCHLUSSBERICHT v3.132 - CI-Bereinigung
+Auftrag: Auftrag_Claude_CI_Regression_v3.130.txt
+================================================================================
+
+--------------------------------------------------------------------------------
+1. VORHER
+--------------------------------------------------------------------------------
+
+pruefstaende/bekannte-fehlschlaege.txt fuehrte 29 Pruefstaende, die schon vor
+der CI-Automatisierung (v3.91) fehlschlugen. Die CI meldete sie als bekannt und
+lief gruen weiter. Damit konnten diese 29 seit Monaten weder einen Fehler finden
+noch einen Erfolg belegen - sie waren tote Pruefflaeche.
+
+  Stand:  45 von 74 Pruefstaenden gruen
+          29 Pruefstaende mit zusammen rund 160 fehlgeschlagenen Zusicherungen
+
+Vorgabe des Auftrags, woertlich: "Nicht einfach Tests deaktivieren,
+auskommentieren, ueberspringen oder Erwartungen abschwaechen." Und: "Nicht die
+Tests an den Code anpassen, damit sie gruen werden."
+
+--------------------------------------------------------------------------------
+2. GEFUNDENE URSACHEN
+--------------------------------------------------------------------------------
+
+Alle 29 wurden einzeln untersucht. Sie verteilen sich auf fuenf Ursachen.
+
+2.1 STANDARDMASSE NUR NOCH RICHTWERT (v3.65 - v3.67)         8 Pruefstaende
+
+    Ein Firmenwert aus den Einstellungen wird nicht mehr still ins Feld
+    geschrieben. Das Feld faengt leer an, der Wert steht als Richtwert-Chip
+    daneben, und der Aufnehmer uebernimmt ihn mit einem Tipp. Die Pruefstaende
+    rechneten weiter mit vorausgefuellten Feldern - ihre von Hand
+    nachgerechneten Zahlen kamen dadurch nicht mehr zustande. Beim
+    Anschlussblech kippte deshalb die ganze Aufnahme: Abwicklung 20 statt 265,
+    und daran hingen Stueckliste, Flaeche, Bleilappen, Rollenplan, Ausmass,
+    Payload und Druck - 25 Fehlschlaege aus einer Wurzel.
+
+    Betroffen: einlaufblech-app, kehle-app, lukarne-app, mauerabdeckung-app,
+    kamin-app, anschlussblech-app, einfassung-app, register-zuschnitt
+
+2.2 EINGEKLAPPTE ABSCHNITTE                                  4 Pruefstaende
+
+    .klapp-body (Cockpit, v3.11) und .settings-section-body (Einstellungen,
+    Umbau auf Register) stehen auf display:none, bis .open gesetzt ist.
+    Elemente darin haben Breite und Hoehe 0. "Nicht sichtbar" war die richtige
+    Messung - nur die Erwartung stammte aus der Zeit davor. Bei projektmodule
+    kamen so 16 Fehlschlaege aus einer einzigen fehlenden Zeile.
+
+    Betroffen: projektmodule, dialogebenen, material-zuschnitt, cockpit-zurueck
+    (und ein Teil von hilfe)
+
+2.3 VEROEFFENTLICHUNGS-MOMENTAUFNAHMEN                       3 Pruefstaende
+
+    Zusicherungen, die den git-diff abfragten ("diese Datei ist in DIESEM
+    Commit neu bzw. geaendert") oder eine feste Versionsnummer nannten
+    ("Version 3.34", "Version 3.38"). Beides konnte nur im Augenblick der
+    jeweiligen Veroeffentlichung zutreffen.
+
+    Betroffen: angebote, angebot-pdf, angebot-pdf-erkennen
+
+2.4 BEWUSSTE FACH- UND FORMATAENDERUNGEN                     12 Pruefstaende
+
+    - "Rinne Halbrund" heisst seit v3.49 "Dachrinne" (Commit 62fa88e).
+    - Bleilappen der Einfassung Rund: seit v3.68 aus a+b statt pi x Durchmesser,
+      seit v3.70 abgerundet statt aufgerundet - beides ausdrueckliche Ansagen
+      des Betriebs.
+    - Der Zwischentitel steht seit v16 der Edge Function als EIGENES Feld
+      "abschnitt" an jeder Position, statt dem Positionstext mit " - "
+      vorangestellt zu werden.
+    - Das Feld an die Edge Function heisst "image", nicht "image_base64" -
+      genau der Fehler, den Commit 8bf19e4 behoben hat. Der Pruefstand las
+      weiterhin das alte, falsche Feld und sah dort erwartungsgemaess nichts.
+    - Der Cockpit-Abschnitt "ausmassVorbereitung" wurde auf ausdruecklichen
+      Wunsch des Anwenders entfernt; "matzu" und "lager" sind dazugekommen.
+    - Halterabstand, Lattenabstand und die variablen Masse sind seit v3.66
+      echte Pflichtfelder: fehlen sie, ist das ein FEHLER, keine Warnung mehr.
+    - Die Zuschnittrechnung belastet einen Abschnitt nur noch mit der
+      Rollenlaenge, die er wirklich belegt (siehe Abschnitt 4).
+
+2.5 ECHTE APP-FEHLER                                         2 Stueck
+
+    (a) js/48-projekt-material.js - Dachfenstereinfassung fehlte im Rueckfall.
+        PMAT_TEIL_RUECKFALL entscheidet fuer gespeicherte Massaufnahmen ohne
+        teil-Merkmal, welche Materialzeile ein Teil ist. Die
+        Dachfenstereinfassung stand als einzige der dreizehn Arten nicht darin -
+        bei ihr fielen die Bleilappen aus der Materialuebersicht alter
+        Datensaetze heraus.
+
+    (b) js/32-mauerabdeckung-aufnahme.js - Gesamtbreite 0 wurde angenommen.
+        v3.66 unterscheidet bewusst LEER von 0, weil 0 bei Gefaelle, Umschlag,
+        Saum und Biegewinkel ein gueltiges Mass ist; der Kommentar in
+        madaPruefungen zaehlt genau diese vier auf. Die Gesamtbreite gehoert
+        nicht dazu: 0 ist dort eine Mauerabdeckung ohne Mauer. Weil das Feld
+        ausgefuellt ist, griff fehltLeer nicht, und aus Saum und Umschlaegen
+        allein entsteht eine brauchbar aussehende Abwicklung - der Fehler fiel
+        nicht von selbst auf.
+
+EINE KORREKTUR IN EIGENER SACHE: In der Zwischenmeldung nach Phase 1 hatte ich
+medien-am-ende-v2-75 als zweiten "echten App-Fehler" gefuehrt. Das war falsch
+und wurde damals schon richtiggestellt: die Tabelle der App ist vollstaendig,
+die Artenliste des Pruefstands hatte elf statt zwoelf Eintraege. Dieselbe
+Luecke fand sich spaeter noch einmal in hilfe-v3-03.
+
+--------------------------------------------------------------------------------
+3. DURCHGEFUEHRTE AENDERUNGEN
+--------------------------------------------------------------------------------
+
+App-Code (2 Dateien):
+
+  js/48-projekt-material.js    dachfenstereinfassung in PMAT_TEIL_RUECKFALL
+  js/32-mauerabdeckung-aufnahme.js
+                               Gesamtbreite 0 wird als Fehler gemeldet
+
+Pruefstaende (22 Dateien): auf den heutigen Vertrag gezogen. Grundsatz dabei:
+
+  - Keine Zusicherung wurde geloescht, uebersprungen oder abgeschwaecht.
+  - Jede umgestellte Zusicherung hat eine GEGENPROBE bekommen, die das alte
+    Verhalten ausschliesst. Beispiele: ein leerer Halterabstand MUSS ein
+    Fehler sein (kein stiller Vorgabewert); der Rohrdurchmesser darf die
+    Anzahl Bleilappen NICHT mehr bestimmen; der Zwischentitel darf
+    ausdruecklich NICHT in "description" gefaltet werden; das Feld
+    image_base64 darf nicht zurueckkehren; ein Abschnitt darf nicht wieder
+    pauschal mit der vollen Abschnittlaenge belastet werden.
+  - Wo eine feste Zahl oder ein abgeschriebener Text die Ursache war, wird
+    jetzt gegen die Quelle der App geprueft (MEAS_TYPE_LABELS statt
+    "Rinne Halbrund", appVersion statt "Version 3.34"), damit dieselbe
+    Veraltung nicht wiederkommt.
+  - Wo der Weg des Anwenders gemeint war, geht der Pruefstand ihn jetzt auch:
+    Abschnittskopf antippen, Richtwert-Chip antippen. Das prueft nebenbei die
+    zentrale Chip-Uebernahme in js/01 mit.
+  - Statt Namenslisten, die veralten, steht wo moeglich die Regel selbst da:
+    "genau EIN Cockpit-Abschnitt faengt offen an" deckt jeden kuenftigen
+    Abschnitt automatisch mit ab.
+
+Netto sind aus rund 160 fehlgeschlagenen Zusicherungen rund 40 ZUSAETZLICHE
+Pruefungen entstanden. Die Pruefstaende sind nach der Bereinigung strenger als
+vorher, nicht lockerer.
+
+Alles in 14 fachlich getrennten Commits (CI-Bereinigung 1/n bis 14/n), jeder mit
+der Ursache in der Nachricht.
+
+--------------------------------------------------------------------------------
+4. ZWEI ZAHLEN, DIE SICH GEAENDERT HABEN - VON HAND NACHGERECHNET
+--------------------------------------------------------------------------------
+
+Drei Materialzahlen sind kleiner geworden. Sie wurden NICHT uebernommen,
+sondern nachgerechnet, weil eine gesunkene Materialzahl auch ein Rechenfehler
+sein koennte:
+
+  Kamineinfassung    Gruppe 670: Streifen 500 / 500 / 400 / 400 mm
+                     = 1800 mm statt pauschal 4 x 500 = 2000 mm
+                     Gesamt 900 + 900 + 1800 = 3600 mm
+                     -> 1000 x 3600 / 1e6 = 3,6 m2   (vorher 3,8)
+
+  Anschlussblech     Stuecke 2070 / 2000 / 2070 / 500 bei 265 mm Abwicklung.
+                     Rolle 1000: 3 Streifen je Abschnitt; Abschnitt 2 traegt
+                     nur noch das 500er Stueck und kostet 500 statt 2070
+                     -> 2570 mm, 2,57 m2   (pauschal waeren es 4140 / 4,14)
+                     Rolle 670: die beiden 2070er teilen sich einen Abschnitt,
+                     2000 + 500 den naechsten -> 4070 mm, 2,7269 m2
+                     Damit gewinnt jetzt die 1000er Rolle statt der 670er.
+
+  Rinne (Profil)     Streifen 3085 / 1670 / 1670 mm = 6425 statt 9255 mm
+                     -> 6,425 m2   (vorher 9,255)
+
+Alle drei sind sparsamer und richtig: ein Streifen kostet nur die Rollenlaenge,
+die er wirklich belegt. Je eine neue Gegenprobe haelt die Herkunft der Zahl
+fest, damit sie nicht wieder unbelegt dasteht.
+
+--------------------------------------------------------------------------------
+5. TESTRESULTAT
+--------------------------------------------------------------------------------
+
+Volle Regression ueber alle 74 Pruefstaende (pruefstaende/ci-lauf.js):
+
+  vorher:   45 von 74 gruen
+  nachher:  73 von 74 gruen
+  Exit-Code 0 - KEINE neue Regression
+
+  28 der 29 bekannten Fehlschlaege laufen jetzt durch.
+  bekannte-fehlschlaege.txt: 29 Eintraege -> 1 Eintrag.
+
+Nicht geprueft, weil in dieser Umgebung nicht moeglich: ausgehende
+HTTPS-Verbindungen zu Supabase und zum LLM-Anbieter. Es wurden keine Live-Tests
+gegen Produktion gefahren, keine echten Daten gelesen, veraendert oder
+geloescht, und keine Edge Function neu deployt. Die Edge-Function-Pruefstaende
+lesen ausschliesslich den Quelltext im Repo.
+
+--------------------------------------------------------------------------------
+6. VERBLEIBENDE RISIKEN
+--------------------------------------------------------------------------------
+
+6.1 DIE ANLEITUNG IST 87 VERSIONEN ALT  (der eine offene Eintrag)
+
+    Die App ist bei v3.132, das PDF im Ordner anleitung/ ist die v3.44. Der
+    Link in den Einstellungen ist NICHT kaputt - er zeigt auf das vorhandene
+    PDF. Aber die Anleitung traegt nicht die aktuelle Version.
+
+    Das laesst sich nicht durch Umbenennen erledigen: die Skripte im Ordner
+    erzeugen nur die Bildschirmfotos neu, der TEXT in anleitung.html beschreibt
+    weiterhin den Stand v3.44. Ein PDF mit dem Namen v3.132 und dem Inhalt von
+    v3.44 waere genau die kosmetische Anpassung, die der Auftrag ausschliesst -
+    und eine Luege gegenueber dem Anwender, der die Anleitung aufschlaegt.
+
+6.2 DIE GIT-DIFF-PRUEFUNGEN SIND AUF EINEM SAUBEREN BAUM STILLSCHWEIGEND WAHR
+
+    In drei Offerten-Pruefstaenden steht weiterhin eine Zusicherung der Art
+    "keine der geschuetzten Fachdateien wurde veraendert", die den git-diff
+    gegen den Arbeitsbaum liest. Sie gehoerte nicht zu den 29 Fehlschlaegen,
+    weil sie auf einem sauberen Baum immer BESTEHT - und genau das ist das
+    Problem: sie kann dort weder einen Fehler finden noch einen Erfolg
+    belegen. Ich habe sie nicht angefasst, weil sie ausserhalb der beauftragten
+    Fehlschlaege liegt und ein tragfaehiger Ersatz (Vergleich gegen den
+    Merge-Base von main) eine eigene Ueberlegung verdient.
+
+6.3 KEINE LIVE-PRUEFUNG DER RLS UND DER EDGE FUNCTIONS
+
+    Unveraendert die bekannte Grenze dieser Umgebung (CLAUDE.md 7). Die
+    Aussagen dieses Berichts zu Supabase stuetzen sich auf den Quelltext im
+    Repo, nicht auf einen Lauf gegen die Produktion.
+
+6.4 DIE ZWEI APP-AENDERUNGEN SIND KLEIN, ABER FACHLICH
+
+    Die Gesamtbreite-Pruefung meldet jetzt einen Fehler, wo vorher keiner kam.
+    Eine bestehende, gespeicherte Mauerabdeckung mit Gesamtbreite 0 - falls es
+    so eine gibt - zeigt in der Kontrolle nun einen Fehler an. Das ist gewollt
+    (die Aufnahme ist tatsaechlich unbrauchbar), aber es ist eine sichtbare
+    Aenderung an bestehenden Daten-Ansichten. Gespeichert oder veraendert wird
+    dabei nichts.
+
+--------------------------------------------------------------------------------
+7. EMPFEHLUNG
+--------------------------------------------------------------------------------
+
+7.1 Diesen Stand veroeffentlichen. 73 von 74 Pruefstaenden sind gruen, die CI
+    kann ab jetzt wieder etwas finden: eine neue Regression faellt sofort auf,
+    weil nicht mehr 29 Fehlschlaege als "bekannt" mitlaufen.
+
+7.2 Die Anleitung als eigene Aufgabe angehen. Sie ist inhaltliche Arbeit, keine
+    Wartung: der Text muss auf den heutigen Stand gebracht werden (Lagerver-
+    waltung, Barcode, Offerte mit PDF-Erkennung, Dachfenstereinfassung,
+    Material ab Lager - all das kam nach v3.44). Erst danach lohnen sich neue
+    Bildschirmfotos und ein neues PDF. Vorschlag: als naechster eigener
+    Auftrag, mit dem Anwender zusammen entschieden, welche Kapitel wirklich
+    gebraucht werden.
+
+7.3 Die Regel aus 3. beibehalten: wird ein Vertrag bewusst geaendert, wird der
+    Pruefstand im SELBEN Schritt nachgezogen und bekommt eine Gegenprobe gegen
+    das alte Verhalten. Die 29 Fehlschlaege sind ueber Monate entstanden, weil
+    das jeweils auf spaeter verschoben wurde. Die CI-Automatisierung ab v3.91
+    hat den Zustand sichtbar gemacht, aber nicht verhindert.
+
+7.4 Bei der naechsten Gelegenheit die git-diff-Pruefungen aus 6.2 durch etwas
+    ersetzen, das auch auf einem sauberen Baum eine Aussage macht.
+
+================================================================================

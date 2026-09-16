@@ -93,7 +93,10 @@ const WIN_CHANGELOG={
  "3.130":["Einstellungen → Mitarbeiter: jedem Mitarbeiter lässt sich jetzt nachträglich eine E-Mail-Adresse zuordnen – auch einem, der schon lange angelegt ist. Die Person meldet sich danach zusätzlich mit dieser Adresse an (der Benutzername gilt unverändert weiter) und kann ein vergessenes Passwort selbst zurücksetzen.",
   "Das Eintragen ändert kein Passwort und verschickt keine Nachricht. Jede Adresse kann nur zu EINEM Konto gehören; eine schon vergebene lehnt die App mit einer verständlichen Meldung ab. Leer lassen entfernt die Adresse wieder."],
  "3.131":["Lagerverwaltung, Buchen-Dialog (auch nach einem Ein- oder Ausscannen): die Projektsuche beim Feld 'Objekt / Projekt' zeigt die Treffer jetzt SOFORT beim Tippen. Bisher stand dort ein Auswahlfeld, das seine gefilterte Liste erst beim Aufklappen zeigte - die Suche wirkte dadurch wie kaputt. 'Werkstatt / Lager' steht immer zuoberst.",
-  "Damit ist die letzte Stelle dieser Bauart behoben; alle drei Suchfelder der Lagerverwaltung arbeiten jetzt gleich."]
+  "Damit ist die letzte Stelle dieser Bauart behoben; alle drei Suchfelder der Lagerverwaltung arbeiten jetzt gleich."],
+ "3.132":["Mauerabdeckung: eine Gesamtbreite von 0 mm wird jetzt als Fehler gemeldet. Bisher nahm die App sie stillschweigend an und rechnete aus Saum und Umschlägen eine Abwicklung, die brauchbar aussah, aber zu einer Mauerabdeckung ohne Mauer gehörte.",
+  "Dachfenstereinfassung: beim Material aus älteren, gespeicherten Aufnahmen werden die Bleilappen wieder mitgezählt. Bei dieser einen Art fehlten sie, weil sie als einzige nicht im Rückfall für alte Datensätze stand.",
+  "Ansonsten Wartungsarbeit ohne sichtbare Änderung: die Prüfstände der App wurden auf den heutigen Stand gebracht (siehe Abschlussbericht)."]
 };
 
 function winVersionVergleich(a,b){

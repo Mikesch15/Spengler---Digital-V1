@@ -4,40 +4,34 @@
 # Diese Datei ist KEIN Freibrief, Fehler zu ignorieren: sie haelt nur fest,
 # was schon vor dieser CI heute (auf unveraendertem main) fehlschlaegt, damit
 # die CI NEUE Regressionen zuverlaessig von diesen alten, unabhaengig
-# entstandenen Luecken unterscheiden kann (grossteils veraltete
-# Versions-/Anleitungs-Referenzen und Pruefstaende, die einen laengst
-# ueberholten Code-Stand der KI-Edge-Functions pruefen - siehe die
-# einzelnen Dateien fuer Details).
+# entstandenen Luecken unterscheiden kann.
 #
 # Wird ein hier gelisteter Pruefstand repariert, bitte die Zeile entfernen -
 # die CI meldet das als Hinweis ("bekannter Fehlschlag laeuft jetzt durch"),
 # schlaegt dafuer aber NICHT fehl.
-pruefstand-absatz-zwischentitel-v3-44.js
-pruefstand-admin-uebersicht-v3-08.js
-pruefstand-angebot-pdf-erkennen-v3-39.js
-pruefstand-angebot-pdf-v3-38.js
-pruefstand-angebote-v3-34.js
-pruefstand-anschlussblech-app-v3-01.js
-pruefstand-cockpit-zurueck-v3-11.js
-pruefstand-dialogebenen-v3-28.js
-pruefstand-einfassung-app-v2-96.js
-pruefstand-einlaufblech-app-v2-74.js
+#
+# ---------------------------------------------------------------------------
+# v3.132: Die Liste umfasste 29 Eintraege. Alle 29 wurden untersucht und ihre
+# Ursache benannt (siehe Abschlussbericht_v3.132_CI_Bereinigung.txt). 28 sind
+# erledigt und aus dieser Liste entfernt. Zwei davon waren echte App-Fehler
+# (js/48 Dachfenstereinfassung im Rueckfall, js/32 Gesamtbreite 0), die
+# uebrigen bewusste Vertragsaenderungen, deren Pruefstaende nachgezogen und
+# um Gegenproben ergaenzt wurden.
+#
+# Es bleibt EIN Eintrag - und der steht hier nicht, weil die Ursache unklar
+# waere, sondern weil sie eine inhaltliche Entscheidung des Anwenders
+# braucht:
+#
+# pruefstand-hilfe-v3-03.js (4 von 72 Zusicherungen)
+#   Die App ist bei v3.132, das PDF im Ordner anleitung/ ist die v3.44 - 87
+#   Versionen alt. Der Link in den Einstellungen ist NICHT kaputt, er zeigt
+#   auf das vorhandene PDF. Der Pruefstand verlangt aber zu Recht, dass die
+#   Anleitung die aktuelle Version traegt.
+#   Das laesst sich nicht durch Umbenennen erledigen: die Skripte im Ordner
+#   erzeugen nur die Bildschirmfotos neu, der TEXT in anleitung.html
+#   beschreibt weiterhin den Stand v3.44. Ein PDF mit dem Namen v3.132 und
+#   dem Inhalt von v3.44 waere eine Luege gegenueber dem Anwender.
+#   Zu tun: den Text der Anleitung auf den heutigen Stand bringen, dann
+#   Bilder und PDF neu erzeugen (anleitung/README.md beschreibt den Weg) und
+#   diese Zeile hier entfernen.
 pruefstand-hilfe-v3-03.js
-pruefstand-image-feld-v3-45.js
-pruefstand-kamin-app-v2-90.js
-pruefstand-kehle-app-v2-83.js
-pruefstand-leistungen-v3-37.js
-pruefstand-lukarne-app-v2-87.js
-pruefstand-material-zuschnitt-v3-15.js
-pruefstand-mauerabdeckung-app-v2-79.js
-pruefstand-medien-am-ende-v2-75.js
-pruefstand-projektmodule-v3-09.js
-pruefstand-register-zuschnitt-v2-80.js
-pruefstand-rinne-app-v2-71.js
-pruefstand-rinne-zuschnitt-app-v3-00.js
-pruefstand-rueckfall-v3-18.js
-pruefstand-thinking-budget-v3-41.js
-pruefstand-thinking-config-entfernt-v3-42.js
-pruefstand-thinking-level-v3-43.js
-pruefstand-token-limit-v3-40.js
-pruefstand-vorlagen-v3-09.js
