@@ -1973,8 +1973,14 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   lagerNeuesProduktSchliessen();
   return r;
  });
- p(z.da===true&&/Neues Produkt/.test(z.text||""),
-   "in der Leiste der Lagerverwaltung steht '+ Neues Produkt' - der Einstieg, den der Hilfetext seit v3.124 nannte, ohne dass es ihn gab",z);
+ // v3.140: Der Knopf heisst jetzt "＋ Neues Material / Produkt" - er kann
+ // seit v3.138 beides, Katalogposition UND Produkt. Die Zusicherung aus
+ // v3.127 galt dem EINSTIEG, nicht dem genauen Wortlaut; sie wird deshalb
+ // auf den heutigen Text gezogen und nicht abgeschwaecht.
+ p(z.da===true&&/Produkt/.test(z.text||""),
+   "in der Leiste der Lagerverwaltung steht der Einstieg zum Anlegen - der, den der Hilfetext seit v3.124 nannte, ohne dass es ihn gab",z);
+ p(/Material/.test(z.text||""),
+   "und er nennt seit v3.140 auch das Material, weil er beides kann",z.text);
  p(z.offen===true&&z.artikel===null&&z.barcode==="",
    "er oeffnet den Dialog ohne Position und ohne Barcode - beides wird dort gewaehlt",z);
 
