@@ -34,6 +34,15 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:7pt}
 }
 #printCompany{font-size:8pt!important;color:#17202a!important}
 .search{display:none!important}
+/* v3.133: Die EDV-Nr. des Materials steht im Regierapport in einem
+   .search-Feld INNERHALB der Tabellenzelle. Die Regel darueber gilt der
+   Suche ueber der Seite (Projektsuche, Materialsuche u. a.) - sie loeschte
+   aber auch die EDV-Nr. aus dem Ausdruck, obwohl die Spalte samt
+   Ueberschrift und 23 mm Breite eigens dafuer dasteht. In einer
+   Tabellenzelle bleibt die Suche deshalb sichtbar; die Vorschlagsliste
+   darin wird eigens ausgeblendet, sie hing bisher an derselben Regel. */
+td .search{display:block!important}
+td .suggest{display:none!important}
 #projectSelectedLabel button{display:none!important}
 .print-only{display:block!important;font-weight:700;margin-top:2px}
 

@@ -30892,3 +30892,65 @@ Zusicherungen netto rund 40 zusätzliche Prüfungen entstanden.
 | `pruefstaende/bekannte-fehlschlaege.txt` | 29 → 1 Eintrag, mit Begründung |
 | `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.132 |
 | `Abschlussbericht_v3.132_CI_Bereinigung.txt` | vollständiger Bericht |
+
+---
+
+## 199. v3.133 – Die EDV-Nr. fehlte im gedruckten Regierapport
+
+### 199.1 Gemeldet
+
+„Edv nummer wird im regierapport nicht mitgedruckt."
+
+### 199.2 Ursache
+
+Die EDV-Nr. steht in der Materialtabelle nicht als Text, sondern als
+Suchfeld: `<td><div class="search"><input data-mat-search…></div></td>`
+(js/06-rapport.js). In `css/03-druck.css` stand die Regel
+
+    .search{display:none!important}
+
+Gemeint war damit die Suche **über** der Seite – Projektsuche,
+Materialsuche in den Einstellungen, Projektsuche im Offerten- und
+Ausmassformular. Sie traf aber jedes Element mit dieser Klasse, also auch
+das Feld in der Tabellenzelle. Der Ausdruck verlor damit die EDV-Nr.,
+obwohl die Spalte die ganze Zeit dafür vorgesehen war: Überschrift
+„EDV-Nr." im `<thead>` und 23 mm Breite über `.mat-table col.m-edv`. Es
+fehlte also nichts an der Tabelle – nur ihr Inhalt wurde weggeblendet.
+
+Das erklärt auch, warum es lange nicht auffiel: die Spalte war nicht leer
+*aussehend*, sondern korrekt beschriftet und breit – nur ohne Zahl.
+
+### 199.3 Behebung
+
+Eine Ausnahme für die Tabellenzelle, nicht das Aufheben der Regel:
+
+    td .search{display:block!important}
+    td .suggest{display:none!important}
+
+Die zweite Zeile ist nötig, weil die Vorschlagsliste unter dem Feld bisher
+an derselben Regel hing. Sie gehört auf den Bildschirm, nicht aufs Papier.
+
+### 199.4 Nachweis
+
+Neuer Prüfstand `pruefstand-edv-im-druck-v3-133.js` (10 Zusicherungen). Er
+misst den **gedruckten** Zustand über `emulateMedia({media:"print"})`, also
+das, was wirklich auf dem Papier landet. Gegenprobe: ohne die beiden neuen
+CSS-Zeilen ist das Feld nachweislich unsichtbar, mit ihnen sichtbar und mit
+der richtigen Nummer.
+
+Drei Gegenproben halten fest, was im Druck weiterhin **weg** bleiben muss:
+die Vorschlagsliste unter dem EDV-Feld, die Projektsuche über der Seite und
+die Materialsuche in den Einstellungen. Sie fallen durch, sobald jemand die
+Regel pauschal aufhebt, statt sie nur in der Tabellenzelle auszunehmen.
+
+Die vier bestehenden Rapport-/Druck-Prüfstände (rapport v3.16,
+rapport-unterschrift v3.100, rapport-zuschnitt v3.24, laenge-mal-breite-druck
+v2.81) laufen unverändert durch.
+
+### 199.5 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `css/03-druck.css` | `td .search` sichtbar, `td .suggest` ausgeblendet |
+| `pruefstaende/pruefstand-edv-im-druck-v3-133.js` | neu, 10 Zusicherungen |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.133 |

@@ -96,7 +96,9 @@ const WIN_CHANGELOG={
   "Damit ist die letzte Stelle dieser Bauart behoben; alle drei Suchfelder der Lagerverwaltung arbeiten jetzt gleich."],
  "3.132":["Mauerabdeckung: eine Gesamtbreite von 0 mm wird jetzt als Fehler gemeldet. Bisher nahm die App sie stillschweigend an und rechnete aus Saum und Umschlägen eine Abwicklung, die brauchbar aussah, aber zu einer Mauerabdeckung ohne Mauer gehörte.",
   "Dachfenstereinfassung: beim Material aus älteren, gespeicherten Aufnahmen werden die Bleilappen wieder mitgezählt. Bei dieser einen Art fehlten sie, weil sie als einzige nicht im Rückfall für alte Datensätze stand.",
-  "Ansonsten Wartungsarbeit ohne sichtbare Änderung: die Prüfstände der App wurden auf den heutigen Stand gebracht (siehe Abschlussbericht)."]
+  "Ansonsten Wartungsarbeit ohne sichtbare Änderung: die Prüfstände der App wurden auf den heutigen Stand gebracht (siehe Abschlussbericht)."],
+ "3.133":["Regierapport drucken: die EDV-Nr. des Materials steht jetzt auch auf dem Papier. Die Spalte war im Ausdruck die ganze Zeit vorhanden – mit Überschrift und eigener Breite – aber leer, weil die Nummer in einem Suchfeld steht und im Druck jede Suche ausgeblendet wurde.",
+  "Die Suchfelder über der Seite (Projektsuche, Materialsuche) bleiben im Ausdruck weiterhin weg, ebenso die Vorschlagsliste unter dem EDV-Feld."]
 };
 
 function winVersionVergleich(a,b){
