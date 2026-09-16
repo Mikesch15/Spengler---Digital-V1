@@ -132,14 +132,31 @@ const abschnitt=(s,key)=>s.abschnitte.find(a=>a.key===key)||{};
  // Abschnitt wurde auf ausdruecklichen Wunsch des Anwenders entfernt und ist
  // in js/65 heute nicht mehr registriert. Alles gewollter Stand, kein
  // Codefehler; die Liste wird deshalb nachgezogen, nicht der Code.
- const SOLL=["stand","angebote","leistungen","meas","matzu","am","rep","lager","files","verlauf"];
+ // v3.142: "fotos" ("Alle Fotos") ist als klappbarer Abschnitt dazugekommen.
+ // Anders als die uebrigen steht er NICHT in COCKPIT_BEREICHE - er hat keine
+ // eigene Ladefunktion und keine Zeile im Arbeitsstand, weil er nichts
+ // nachlaedt, sondern nur die bereits geladenen Listen zusammenfasst
+ // (dasselbe Muster wie "lager" und "verlauf"). Gewollter Stand, kein
+ // Codefehler; die Liste wird nachgezogen, nicht der Code. Die Gegenproben
+ // unmittelbar darunter halten fest, was daran nicht beliebig ist.
+ const SOLL=["stand","angebote","leistungen","meas","matzu","am","rep","lager",
+             "files","fotos","verlauf"];
  p(SOLL.every(k=>s.abschnitte.some(a=>a.key===k))&&s.abschnitte.length===SOLL.length,
    "jeder Bereich ist ein klappbarer Abschnitt",s.abschnitte.map(a=>a.key));
+ // Gegenprobe zur nachgezogenen Liste: der neue Abschnitt ist nicht
+ // irgendwo angehaengt, sondern steht in der Reihenfolge genau dort, wo er
+ // fachlich hingehoert - direkt bei den Dateien und vor dem Verlauf.
+ p(s.abschnitte.map(a=>a.key).join().indexOf("files,fotos,verlauf")>=0,
+   "„Alle Fotos“ steht zwischen „Dateien/Fotos“ und dem Verlauf",
+   s.abschnitte.map(a=>a.key));
  const zu=s.abschnitte.filter(a=>a.kartenSichtbar&&!a.offen).map(a=>a.key);
+ // v3.142: "fotos" gehoert ausdruecklich dazu - die Fotowand holt ihre
+ // Vorschauen erst beim Aufklappen (eine signierte URL je Bild), faenge sie
+ // offen an, waeren sie beim Oeffnen des Projekts alle sofort faellig.
  p(zu.indexOf("meas")>=0&&zu.indexOf("am")>=0&&zu.indexOf("rep")>=0
-   &&zu.indexOf("files")>=0&&zu.indexOf("verlauf")>=0
+   &&zu.indexOf("files")>=0&&zu.indexOf("fotos")>=0&&zu.indexOf("verlauf")>=0
    &&zu.indexOf("leistungen")>=0,
-   "die Arbeitsbereiche und der Verlauf starten zugeklappt",zu);
+   "die Arbeitsbereiche, die Fotowand und der Verlauf starten zugeklappt",zu);
  // Die eigentliche Zusicherung aus v3.11, und zwar ohne Namensliste: GENAU
  // ein Abschnitt steht offen da, naemlich der Arbeitsstand. Damit faellt
  // jeder kuenftig ergaenzte Abschnitt automatisch mit unter die Regel - die
