@@ -100,7 +100,19 @@ const edgePfad=repo+"/supabase/functions/extract-offer-positions/index.ts";
 p(fs.existsSync(edgePfad),"die Datei existiert (schliesst die dokumentierte Luecke, CLAUDE.md §31.6/§144.3)");
 const quelltextEdge=fs.existsSync(edgePfad)?fs.readFileSync(edgePfad,"utf8"):"";
 
-p(/maxOutputTokens:\s*8192/.test(quelltextEdge),"maxOutputTokens ist 8192 (nicht mehr 3000)");
+// v3.131: v3.40 hob die Grenze von 3000 auf 8192; v3.41 hat sie danach
+// BEWUSST weiter auf 65536 erhoeht. Die feste Zahl 8192 war damit ueberholt.
+// Geprueft wird jetzt der Vertrag, den v3.40 wirklich gestiftet hat und der
+// weiterhin gilt: die Grenze ist nicht mehr die alte, zu knappe 3000, und
+// sie reicht mindestens fuer das damals gemessene Dokument.
+// Am Code messen, NICHT am Kopfkommentar - dort steht die Geschichte
+// ("maxOutputTokens:3000 was far too small") und wuerde die Pruefung
+// verfaelschen. Genau darauf ist diese Pruefung beim Schreiben zuerst
+// hereingefallen.
+const edgeCode=quelltextEdge.split("\n").filter(z=>!/^\s*\/\//.test(z)).join("\n");
+const maxTok=Number((edgeCode.match(/maxOutputTokens:\s*(\d+)/)||[])[1]||0);
+p(maxTok>=8192,"maxOutputTokens reicht weiterhin fuer grosse Dokumente (>= 8192)",maxTok);
+p(maxTok!==3000,"und ist NICHT auf die alte, zu knappe Grenze 3000 zurueckgefallen",maxTok);
 // Der Kopfkommentar DARF (und soll, house style) den alten, fehlerhaften Wert
 // zu Dokumentationszwecken nennen ("maxOutputTokens:3000 war zu niedrig") -
 // geprueft wird deshalb nur der tatsaechliche CODE, mit vorher entfernten
@@ -109,7 +121,7 @@ const quelltextOhneKommentare=quelltextEdge.split("\n").filter(z=>!/^\s*\/\//.te
 p(!/maxOutputTokens:\s*3000/.test(quelltextOhneKommentare),
  "maxOutputTokens 3000 kommt im tatsaechlichen Code nirgends mehr vor (der Kopfkommentar darf den alten Wert dokumentieren)");
 
-p(/finishReason\s*=\s*candidate\??\.finishReason/.test(quelltextEdge),
+p(/candidate\??\.finishReason/.test(quelltextEdge),
  "finishReason wird aus candidate.finishReason gelesen");
 
 const hatNeueMeldung=/zu viele Positionen/.test(quelltextEdge)&&/abgeschnitten/.test(quelltextEdge)
@@ -118,10 +130,10 @@ p(hatNeueMeldung,
  "die neue MAX_TOKENS-Meldung nennt sowohl 'zu viele Positionen' als auch 'abgeschnitten' und einen Loesungsvorschlag ('kleineren Abschnitten')");
 p(/finishReason\s*===\s*["']MAX_TOKENS["']/.test(quelltextEdge),
  "die neue Meldung wird gezielt an finishReason==='MAX_TOKENS' geknuepft (kein pauschaler Ersatz jedes Fehlers)");
-p(/geminiFinishReason:\s*finishReason/.test(quelltextEdge),
+p(/geminiFinishReason:\s*candidate\??\.finishReason/.test(quelltextEdge),
  "geminiFinishReason wird zur Diagnose mit zurueckgegeben");
 
-p(/error:\s*"Antwort der KI konnte nicht als Liste gelesen werden\."\s*,\s*raw\s*\}/.test(quelltextEdge),
+p(/error:\s*"Antwort der KI konnte nicht als Liste gelesen werden\.",[\s\S]{0,120}?raw:\s*String\(raw\)/.test(quelltextEdge),
  "der alte, generische Fehlerpfad (Meldung + raw-Feld) bleibt fuer JEDEN anderen Fehlschlag unveraendert erhalten");
 
 p(/return json\(\{\s*ok:\s*true,\s*positions\s*\}\)/.test(quelltextEdge),

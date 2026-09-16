@@ -122,7 +122,10 @@ p(/fett gedruckte Zwischentitel/.test(quelltextEdge)&&/NICHT als eigenes Array-E
 p(quelltextEdge.includes(" – ")||quelltextEdge.includes(" - "),
  "index.ts: das Trennzeichen zwischen Zwischentitel und Positionstext ist im Prompt vorhanden");
 
-const genConfMatch=edgeOhneKommentare.match(/generationConfig:\s*\{([\s\S]*?)\},\s*\}\),/);
+// v3.131: dasselbe Muster wie im Edge-Function-Pruefstand v3.43 - seit dem
+// Retry-Umbau (Commit 9c91fba) steht der Anfrage-Koerper in einer eigenen
+// Konstante und der Block endet auf "}," statt auf "},}),".
+const genConfMatch=edgeOhneKommentare.match(/generationConfig:\s*\{([\s\S]*?)\n\s*\},/);
 p(!!genConfMatch,"index.ts: generationConfig-Block gefunden");
 if(genConfMatch){
  const felder=(genConfMatch[1].match(/^\s*(\w+):/gm)||[]).map(z=>z.trim().replace(/:$/,""));

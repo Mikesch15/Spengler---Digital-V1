@@ -104,8 +104,18 @@ p(fs.existsSync(edgePfad),"die Datei existiert weiterhin im Repo");
 const quelltextEdge=fs.existsSync(edgePfad)?fs.readFileSync(edgePfad,"utf8"):"";
 const quelltextOhneKommentare=quelltextEdge.split("\n").filter(z=>!/^\s*\/\//.test(z)).join("\n");
 
-p(!/thinkingConfig/.test(quelltextOhneKommentare),
- "thinkingConfig kommt im tatsaechlichen Code (Kommentare entfernt) NIRGENDS mehr vor");
+// v3.131: v3.42 entfernte thinkingConfig KOMPLETT, weil das damals gesetzte
+// Unterfeld thinkingBudget den Fehler ausloeste. v3.43 hat thinkingConfig
+// danach BEWUSST wieder eingefuehrt - mit dem richtigen Unterfeld
+// thinkingLevel. Die eigentliche Lehre von v3.42 ist also nicht "kein
+// thinkingConfig", sondern "kein thinkingBudget". Genau das wird hier
+// geprueft; die urspruengliche, inzwischen ueberholte Fassung wuerde sonst
+// die Korrektur von v3.43 wieder zurueckfordern.
+p(!/thinkingBudget/.test(quelltextOhneKommentare),
+ "thinkingBudget - das Unterfeld, das den Fehler ausloeste - kommt im tatsaechlichen Code NIRGENDS mehr vor");
+p(!/thinkingConfig/.test(quelltextOhneKommentare)
+  ||/thinkingConfig:\s*\{\s*thinkingLevel:/.test(quelltextOhneKommentare),
+ "ein vorhandenes thinkingConfig traegt ausschliesslich thinkingLevel (v3.43), nie wieder ein anderes Unterfeld");
 p(!/thinkingBudget/.test(quelltextOhneKommentare),
  "thinkingBudget kommt im tatsaechlichen Code ebenfalls nirgends mehr vor");
 
@@ -114,27 +124,31 @@ p(/maxOutputTokens:\s*65536/.test(quelltextEdge),"maxOutputTokens ist weiterhin 
 // generationConfig-Block direkt herausgreifen und pruefen, dass er GENAU
 // die zwei erwarteten Felder traegt - kein Rest von thinkingConfig, kein
 // neues, unverifiziertes Feld.
-const genConfMatch=quelltextEdge.match(/generationConfig:\s*\{([\s\S]*?)\},\s*\}\),/);
+const genConfMatch=quelltextEdge.match(/generationConfig:\s*\{([\s\S]*?)\n\s*\},/);
 p(!!genConfMatch,"generationConfig-Block ist im Quelltext auffindbar");
 const genConfText=genConfMatch?genConfMatch[1]:"";
 const genConfFelder=(genConfText.match(/^\s*(\w+):/gm)||[]).map(s=>s.trim().replace(/:$/,""));
-p(genConfFelder.length===2&&genConfFelder.includes("maxOutputTokens")&&genConfFelder.includes("responseMimeType"),
- "generationConfig enthaelt GENAU maxOutputTokens und responseMimeType - kein thinkingConfig, kein Rest",genConfFelder);
+// v3.131: seit v3.43 gehoert thinkingConfig wieder dazu - die Erwartung
+// "genau zwei Felder" stammt aus der Zwischenzeit. Unveraendert bleibt die
+// eigentliche Absicht: KEIN unverifiziertes viertes Feld.
+p(genConfFelder.length===3&&genConfFelder.includes("maxOutputTokens")
+  &&genConfFelder.includes("thinkingConfig")&&genConfFelder.includes("responseMimeType"),
+ "generationConfig enthaelt GENAU maxOutputTokens, thinkingConfig und responseMimeType - kein weiteres, unverifiziertes Feld",genConfFelder);
 
-p(/finishReason\s*=\s*candidate\??\.finishReason/.test(quelltextEdge),
+p(/candidate\??\.finishReason/.test(quelltextEdge),
  "der MAX_TOKENS-Rueckfall aus v3.40 liest weiterhin finishReason aus candidate.finishReason (unveraendertes Sicherheitsnetz)");
 const hatMaxTokensMeldung=/zu viele Positionen/.test(quelltextEdge)&&/abgeschnitten/.test(quelltextEdge)
  &&/kleineren Abschnitten/.test(quelltextEdge)&&/finishReason\s*===\s*["']MAX_TOKENS["']/.test(quelltextEdge)
- &&/geminiFinishReason:\s*finishReason/.test(quelltextEdge);
+ &&/geminiFinishReason:\s*candidate\??\.finishReason/.test(quelltextEdge);
 p(hatMaxTokensMeldung,"die v3.40-MAX_TOKENS-Meldung samt Bedingung und Diagnosefeld ist unveraendert vorhanden");
 
-p(/error:\s*"Antwort der KI konnte nicht als Liste gelesen werden\."\s*,\s*raw\s*\}/.test(quelltextEdge),
+p(/error:\s*"Antwort der KI konnte nicht als Liste gelesen werden\.",[\s\S]{0,120}?raw:\s*String\(raw\)/.test(quelltextEdge),
  "der alte, generische Fehlerpfad (Meldung + raw-Feld) bleibt fuer JEDEN anderen Fehlschlag unveraendert erhalten");
 
 p(/return json\(\{\s*ok:\s*true,\s*positions\s*\}\)/.test(quelltextEdge),
  "der Erfolgspfad {ok:true,positions} ist unveraendert");
 
-p(/if\s*\(\s*!res\.ok\s*\)\s*\{/.test(quelltextEdge)&&/geminiStatus:\s*res\.status/.test(quelltextEdge),
+p(/if\s*\(\s*!res!?\??\.ok\s*\)\s*\{/.test(quelltextEdge)&&/Server antwortete mit Status \$\{res!?\.status\}/.test(quelltextEdge),
  "der !res.ok-Zweig (dort, wo der NEU gemeldete Fehler tatsaechlich entstand - Gemini weist die Anfrage selbst zurueck) ist unveraendert vorhanden");
 
 p(quelltextEdge.includes("async function resolveImage(")&&quelltextEdge.includes("function bytesToBase64("),

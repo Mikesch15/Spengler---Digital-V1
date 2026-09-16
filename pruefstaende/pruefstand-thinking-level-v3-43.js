@@ -132,7 +132,11 @@ p(/maxOutputTokens:\s*65536/.test(quelltextEdge),"maxOutputTokens ist weiterhin 
 // generationConfig-Block direkt herausgreifen und pruefen, dass er GENAU
 // die drei erwarteten Felder traegt - inklusive des neuen thinkingConfig,
 // aber kein weiteres, unverifiziertes Feld.
-const genConfMatch=quelltextEdge.match(/generationConfig:\s*\{([\s\S]*?)\},\s*\}\),/);
+// v3.131: das Muster endete frueher auf "},})," - seit dem Retry-Umbau
+// (Commit 9c91fba) steht der Anfrage-Koerper in einer eigenen Konstante und
+// der Block endet auf "},". Geprueft wird weiterhin dasselbe: GENAU die drei
+// erwarteten Felder, kein viertes unverifiziertes.
+const genConfMatch=quelltextEdge.match(/generationConfig:\s*\{([\s\S]*?)\n\s*\},/);
 p(!!genConfMatch,"generationConfig-Block ist im Quelltext auffindbar");
 const genConfText=genConfMatch?genConfMatch[1]:"";
 const genConfFelder=(genConfText.match(/^\s*(\w+):/gm)||[]).map(s=>s.trim().replace(/:$/,""));
@@ -142,21 +146,33 @@ p(genConfFelder.length===3
   &&genConfFelder.includes("responseMimeType"),
  "generationConfig enthaelt GENAU maxOutputTokens, thinkingConfig und responseMimeType - kein weiterer Rest",genConfFelder);
 
-p(/finishReason\s*=\s*candidate\??\.finishReason/.test(quelltextEdge),
- "der MAX_TOKENS-Rueckfall aus v3.40 liest weiterhin finishReason aus candidate.finishReason (unveraendertes Sicherheitsnetz)");
+// v3.131: frueher wurde finishReason in eine eigene Variable gelesen; seit
+// dem Retry-Umbau steht candidate?.finishReason direkt in der Bedingung.
+// Gleicher Vertrag, andere Schreibweise.
+p(/candidate\??\.finishReason/.test(quelltextEdge),
+ "der MAX_TOKENS-Rueckfall aus v3.40 liest weiterhin finishReason aus dem candidate (unveraendertes Sicherheitsnetz)");
 const hatMaxTokensMeldung=/zu viele Positionen/.test(quelltextEdge)&&/abgeschnitten/.test(quelltextEdge)
  &&/kleineren Abschnitten/.test(quelltextEdge)&&/finishReason\s*===\s*["']MAX_TOKENS["']/.test(quelltextEdge)
- &&/geminiFinishReason:\s*finishReason/.test(quelltextEdge);
+ &&/geminiFinishReason:\s*candidate\??\.finishReason/.test(quelltextEdge);
 p(hatMaxTokensMeldung,"die v3.40-MAX_TOKENS-Meldung samt Bedingung und Diagnosefeld ist unveraendert vorhanden");
 
-p(/error:\s*"Antwort der KI konnte nicht als Liste gelesen werden\."\s*,\s*raw\s*\}/.test(quelltextEdge),
+// v3.131: das raw-Feld steht jetzt auf einer eigenen Zeile und wird gekuerzt
+// (raw: String(raw).slice(0,500)) - Meldung und Diagnosefeld sind dieselben.
+p(/error:\s*"Antwort der KI konnte nicht als Liste gelesen werden\.",[\s\S]{0,120}?raw:\s*String\(raw\)/.test(quelltextEdge),
  "der alte, generische Fehlerpfad (Meldung + raw-Feld) bleibt fuer JEDEN anderen Fehlschlag unveraendert erhalten");
 
 p(/return json\(\{\s*ok:\s*true,\s*positions\s*\}\)/.test(quelltextEdge),
  "der Erfolgspfad {ok:true,positions} ist unveraendert");
 
-p(/if\s*\(\s*!res\.ok\s*\)\s*\{/.test(quelltextEdge)&&/geminiStatus:\s*res\.status/.test(quelltextEdge),
- "der !res.ok-Zweig (dort, wo v14s Fehler tatsaechlich entstand) ist unveraendert vorhanden");
+// v3.131: der Zweig wurde in Commit 8bf19e4 BEWUSST umgebaut - er las den
+// Fehlerkoerper vorher als JSON (data?.error?.message), was bei einer
+// Nicht-JSON-Antwort selbst warf; jetzt als Rohtext. Dabei ist das separate
+// Feld geminiStatus entfallen, der Status steht seither IM Fehlertext. Genau
+// das wird hier geprueft: der Zweig existiert und der Status erreicht den
+// Aufrufer weiterhin - nicht mehr die alte Feld-Schreibweise.
+p(/if\s*\(\s*!res!?\??\.ok\s*\)\s*\{/.test(quelltextEdge)
+  &&/Server antwortete mit Status \$\{res!?\.status\}/.test(quelltextEdge),
+ "der !res.ok-Zweig (dort, wo v14s Fehler tatsaechlich entstand) ist vorhanden und meldet den Status weiter");
 
 p(quelltextEdge.includes("async function resolveImage(")&&quelltextEdge.includes("function bytesToBase64("),
  "resolveImage()/bytesToBase64() sind unveraendert vorhanden (kein zweiter Erkennungsweg gebaut)");

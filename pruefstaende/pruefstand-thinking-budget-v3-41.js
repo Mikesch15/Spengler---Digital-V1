@@ -118,26 +118,35 @@ p(/maxOutputTokens:\s*65536/.test(quelltextEdge),"maxOutputTokens ist 65536 (nic
 p(!/maxOutputTokens:\s*8192/.test(quelltextOhneKommentare),
  "maxOutputTokens:8192 kommt im tatsaechlichen Code nirgends mehr vor (der Kopfkommentar darf den alten Wert dokumentieren)");
 
-p(/thinkingConfig:\s*\{\s*thinkingBudget:\s*0\s*\}/.test(quelltextOhneKommentare),
- "thinkingConfig:{thinkingBudget:0} ist im tatsaechlichen Code gesetzt");
+// v3.131: UMGEDREHT, und das ist der Kern dieser Datei. v3.41 setzte
+// thinkingConfig:{thinkingBudget:0} - und genau dieses Feld war SELBST der
+// Fehler: Gemini wies die Anfrage damit zurueck ("invalid argument"), v3.42
+// hat es deshalb entfernt und v3.43 durch thinkingLevel:"LOW" ersetzt. Die
+// alte Behauptung stehen zu lassen hiesse, einen bewiesenen Fehler wieder
+// einzufordern. Sie wird deshalb zur GEGENPROBE: thinkingBudget darf nie
+// wieder auftauchen.
+p(!/thinkingBudget/.test(quelltextOhneKommentare),
+ "thinkingBudget kommt im tatsaechlichen Code NIRGENDS vor - das Feld war selbst die Ursache des v13-Fehlers und darf nicht zurueckkehren");
+p(/thinkingConfig:\s*\{\s*thinkingLevel:\s*["']LOW["']\s*\}/.test(quelltextOhneKommentare),
+ "an seiner Stelle steht die seit v3.43 gueltige Fassung thinkingConfig:{thinkingLevel:\"LOW\"}");
 
 // generationConfig-Block direkt herausgreifen und pruefen, dass er GENAU
 // die drei erwarteten Felder traegt - kein Nebeneffekt, kein vergessenes
 // altes Feld.
-const genConfMatch=quelltextEdge.match(/generationConfig:\s*\{([\s\S]*?)\},\s*\}\),/);
+const genConfMatch=quelltextEdge.match(/generationConfig:\s*\{([\s\S]*?)\n\s*\},/);
 p(!!genConfMatch,"generationConfig-Block ist im Quelltext auffindbar");
 const genConfText=genConfMatch?genConfMatch[1]:"";
 p(/maxOutputTokens:\s*65536/.test(genConfText)&&/thinkingConfig/.test(genConfText)&&/responseMimeType/.test(genConfText),
  "generationConfig enthaelt maxOutputTokens, thinkingConfig UND responseMimeType gemeinsam",genConfText.trim());
 
-p(/finishReason\s*=\s*candidate\??\.finishReason/.test(quelltextEdge),
+p(/candidate\??\.finishReason/.test(quelltextEdge),
  "der MAX_TOKENS-Rueckfall aus v3.40 liest weiterhin finishReason aus candidate.finishReason (unveraendertes Sicherheitsnetz)");
 const hatMaxTokensMeldung=/zu viele Positionen/.test(quelltextEdge)&&/abgeschnitten/.test(quelltextEdge)
  &&/kleineren Abschnitten/.test(quelltextEdge)&&/finishReason\s*===\s*["']MAX_TOKENS["']/.test(quelltextEdge)
- &&/geminiFinishReason:\s*finishReason/.test(quelltextEdge);
+ &&/geminiFinishReason:\s*candidate\??\.finishReason/.test(quelltextEdge);
 p(hatMaxTokensMeldung,"die v3.40-MAX_TOKENS-Meldung samt Bedingung und Diagnosefeld ist unveraendert vorhanden");
 
-p(/error:\s*"Antwort der KI konnte nicht als Liste gelesen werden\."\s*,\s*raw\s*\}/.test(quelltextEdge),
+p(/error:\s*"Antwort der KI konnte nicht als Liste gelesen werden\.",[\s\S]{0,120}?raw:\s*String\(raw\)/.test(quelltextEdge),
  "der alte, generische Fehlerpfad (Meldung + raw-Feld) bleibt fuer JEDEN anderen Fehlschlag unveraendert erhalten");
 
 p(/return json\(\{\s*ok:\s*true,\s*positions\s*\}\)/.test(quelltextEdge),
