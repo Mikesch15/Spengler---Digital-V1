@@ -101,7 +101,10 @@ const WIN_CHANGELOG={
   "Die Suchfelder über der Seite (Projektsuche, Materialsuche) bleiben im Ausdruck weiterhin weg, ebenso die Vorschlagsliste unter dem EDV-Feld."],
  "3.134":["Einstellungen → Material (und Blitzschutz-Material): der Excel-Import gleicht die Datei jetzt mit dem bestehenden Katalog ab, statt alles blind anzulegen. Eine Nummer, die es schon gibt, wird aktualisiert – bisher scheiterte der ganze Import daran oder erzeugte eine zweite Zeile.",
   "Vor dem Speichern steht da, was passiert: wie viele Positionen neu sind, wie viele geändert werden (mit altem und neuem Wert je Feld) und wie viele unverändert bleiben. Geschrieben wird nur, was sich wirklich ändert.",
-  "Gelöscht wird nie: Positionen, die in der Datei fehlen, bleiben stehen. Und ein Feld, für das die Datei keine Spalte hat, behält seinen Wert, statt geleert zu werden. Dieselbe Nummer zweimal in einer Datei bricht den Import ab, bevor irgendetwas geschrieben wird."]
+  "Gelöscht wird nie: Positionen, die in der Datei fehlen, bleiben stehen. Und ein Feld, für das die Datei keine Spalte hat, behält seinen Wert, statt geleert zu werden. Dieselbe Nummer zweimal in einer Datei bricht den Import ab, bevor irgendetwas geschrieben wird."],
+ "3.135":["Einstellungen → Material (und Blitzschutz-Material): über dem Excel-Import steht jetzt „Wie muss die Excel-Datei aufgebaut sein?\" – aufklappbar, und zwar BEVOR man die Datei auswählt. Darin steht jede Spalte, ob sie Pflicht ist und wie ihre Überschrift heissen darf. Bisher stand das erst im Vorschaufenster, also erst nach der Dateiwahl.",
+  "Der Hinweis wird aus den Feldern des Imports selbst erzeugt. Kommt später eine Spalte dazu, steht sie automatisch auch im Hinweis – er kann nicht veralten.",
+  "Steht in einer Preisspalte Text statt einer Zahl (z. B. „Fr. 7.90\"), sagt die Vorschau das jetzt. Bisher wurde daraus stillschweigend 0.00 – und das fiel erst auf, wenn jemand den Preis brauchte. Eine echte Null („0.00\" oder „-\") gilt weiterhin als gewollt."]
 };
 
 function winVersionVergleich(a,b){

@@ -1157,7 +1157,13 @@ unverändert stehen. Auch ein Feld, für das die Datei keine Spalte mitbringt
 (z. B. Dim.), behält seinen bisherigen Wert – es wird nicht geleert.</p>
 <p>Kommt dieselbe Nummer in der Datei <b>zweimal</b> vor, wird der Import
 abgebrochen und die Nummer genannt: dann ist nicht bestimmt, welche Zeile
-gelten soll. In diesem Fall wird gar nichts geschrieben.</p>`},
+gelten soll. In diesem Fall wird gar nichts geschrieben.</p>
+<p>Wie die Datei aufgebaut sein muss, steht direkt über dem Import-Knopf unter
+<b>„Wie muss die Excel-Datei aufgebaut sein?"</b> – mit allen Spalten und den
+Überschriften, die dafür erkannt werden. Preise gehören als reine Zahl in die
+Zelle (<code>7.90</code>, <code>7,90</code>, <code>1'250.00</code>); steht dort
+Text wie <code>Fr. 7.90</code>, kann die Zahl nicht gelesen werden – die
+Vorschau sagt dann, wie viele Zeilen das betrifft.</p>`},
 "einst-material":{titel:"Material",text:`
 <p>Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt
 <b>firmenweit</b>.</p>

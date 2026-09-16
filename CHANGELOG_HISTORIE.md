@@ -31044,3 +31044,83 @@ eigene Aufgabe.
 | `pruefstaende/pruefstand-excel-import-abgleich-v3-134.js` | neu, 37 Zusicherungen |
 | `pruefstaende/pruefstand-excel-import-v3-04.js` | auf den upsert-Vertrag gezogen, alte Erwartungen als Gegenprobe erhalten |
 | `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.134 |
+
+---
+
+## 201. v3.135 – Aufbau-Hinweis am Excel-Import
+
+### 201.1 Ausgangslage
+
+Der Anwender fragte, ob am Excel-Upload ein Hinweis stehen könne, wie die
+Datei aufgebaut sein muss, damit die Positionen richtig erkannt werden.
+
+Ein solcher Hinweis existierte – aber im falschen Moment: er stand im
+`<div id="materialExcelPreview" hidden>`, also erst **nachdem** die Datei
+ausgewählt war. Wer wissen wollte, wie er seine Datei vorbereiten soll, kam
+nie an ihn heran.
+
+Beim Nachsehen fiel ausserdem auf, dass dieser Text seit v3.134 **falsch**
+war. Er lautete noch „Die Zeilen werden der bestehenden Liste hinzugefügt,
+nichts wird gelöscht oder überschrieben." Der Import überschreibt seit dem
+Abgleich sehr wohl – das war ein Rest, den ich in v3.134 übersehen habe.
+
+### 201.2 Was geändert wurde
+
+**Der Hinweis steht jetzt vor dem Upload.** Unter dem Import-Knopf hängt ein
+aufklappbarer Abschnitt „📄 Wie muss die Excel-Datei aufgebaut sein?", der
+ohne Datei erreichbar ist. Darin:
+
+- eine Zeile je Position, in der ersten Zeile die Spaltenüberschriften;
+- eine Tabelle mit jeder Spalte, ob sie Pflicht ist, und wie ihre Überschrift
+  heissen darf;
+- der Hinweis, dass die Reihenfolge der Spalten keine Rolle spielt und
+  zusätzliche Spalten übergangen werden;
+- dass Gross-/Kleinschreibung, Punkte, Striche und Leerzeichen bei der
+  Erkennung übergangen werden;
+- über welche Spalte abgeglichen wird und dass dieselbe Nummer nur einmal
+  vorkommen darf;
+- wie Zahlen zu schreiben sind.
+
+**Erzeugt wird der Hinweis aus `cfg.felder`**, nicht daneben von Hand
+gepflegt. Die „erkannten Überschriften" sind genau die Alias-Liste, mit der
+`importAutoZuordnen` wirklich arbeitet. Kommt später eine Spalte dazu oder
+ändert sich eine Schreibweise, steht sie damit automatisch auch im Hinweis –
+es gibt keinen zweiten Stand, der veralten kann. Aus demselben Grund bekommt
+jeder Katalog seine eigenen Angaben: Material zeigt EDV-Nr./Material/Dim./
+Einheit/Preis, Blitzschutz-Material zeigt Artikel-Nr./Bezeichnung/Material/
+Einheit und lässt den Zahlen-Absatz weg, weil er keine Zahlenspalte hat.
+
+**Text in einer Zahlenspalte wird benannt.** `excelZahlLesen` liest
+`Fr. 7.90` als `0` – eine Schreibweise, die in Lieferantenlisten durchaus
+vorkommt. Der Preis wäre also still auf 0.00 gefallen und erst aufgefallen,
+wenn ihn jemand gebraucht hätte. Die Vorschau weist jetzt darauf hin, mit
+Anzahl und Beispielwert. Bewusst **nicht** geändert wurde der Leser selbst:
+`Fr. 7.90` stillschweigend als 7.90 zu deuten hiesse, Daten umzuinterpretieren,
+die der Anwender so nicht geschrieben hat. Eine echte Null (`0.00`, `-`, leer)
+gilt weiterhin als gewollt und erzeugt keine Meldung.
+
+**Der überholte Satz im Vorschaufenster** ist durch das ersetzt, was der
+Import wirklich tut.
+
+### 201.3 Nachweis
+
+Neuer Prüfstand `pruefstand-excel-aufbau-hinweis-v3-135.js` (31
+Zusicherungen, davon 5 Gegenproben). Die wichtigste hält fest, dass der
+Hinweis **nicht** im versteckten Vorschaufenster liegt – genau der Fehler,
+der behoben wurde. Eine zweite prüft, dass der Blitzschutz-Katalog nicht die
+Spalten des Material-Katalogs zeigt; sie fällt durch, sobald jemand den
+Hinweis fest verdrahtet statt ihn zu erzeugen. Eine dritte hält fest, dass
+`0.00` und `-` nicht als Lesefehler gelten.
+
+Gegenprobe des Prüfstands: wird `zeichneAufbau()` nicht aufgerufen, fallen
+**15** der 31 Zusicherungen durch.
+
+### 201.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/08-katalog-blitzschutz.js` | `zeichneAufbau()` aus `cfg.felder`, Warnung bei Text in Zahlenspalten, `aufbauId` in beiden Konfigurationen |
+| `index.html` | aufklappbarer Aufbau-Hinweis über beiden Import-Knöpfen, überholter Vorschau-Text korrigiert |
+| `js/41-hilfe.js` | Hilfetext um Aufbau und Zahlenschreibweise ergänzt |
+| `pruefstaende/pruefstand-excel-aufbau-hinweis-v3-135.js` | neu, 31 Zusicherungen |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.135 |
