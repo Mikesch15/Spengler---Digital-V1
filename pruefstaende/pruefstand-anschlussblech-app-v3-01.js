@@ -24,6 +24,7 @@
 //              -> 4,14 m2   ->  die 670er Rolle ist die beste
 //   Verschnitt bei 670: 2,7738 - 1,7596 = 1,0142 m2
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path=require("path");
 const APP="file://"+path.join(process.cwd(),"index.html");
 let ok=0,fail=0;
@@ -93,7 +94,7 @@ const segmente=async(page,liste)=>{await page.evaluate(l=>{
   renderAnbSegmenteTable();},liste); await page.waitForTimeout(200)};
 
 (async()=>{
- const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+ const b=await chromium.launch({executablePath:chromePfad(),
    args:["--no-sandbox"]});
  const page=await b.newPage();
  const fehler=[];

@@ -13,6 +13,7 @@
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-reservierung-v3-09.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path=require("path");
 const APP="file://"+path.join(process.cwd(),"index.html");
 let ok=0,fail=0;
@@ -170,7 +171,7 @@ const stand=page=>page.evaluate(()=>{
 });
 
 (async()=>{
- const browser=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
+ const browser=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await browser.newPage({viewport:{width:1200,height:900}});
  const jsFehler=[];
  page.on("pageerror",e=>jsFehler.push(String(e).slice(0,160)));

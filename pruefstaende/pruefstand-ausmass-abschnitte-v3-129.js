@@ -27,6 +27,7 @@
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-ausmass-abschnitte-v3-129.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const repo=process.cwd();
 let ok=0,fail=0;
 const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,400):""))}};
@@ -132,7 +133,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
 }};`;
 
 (async()=>{
- const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
+ const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage();
  const jsFehler=[];
  page.on("pageerror",e=>jsFehler.push(String(e)));

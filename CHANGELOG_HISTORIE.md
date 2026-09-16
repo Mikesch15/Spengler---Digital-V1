@@ -31124,3 +31124,81 @@ Gegenprobe des Prüfstands: wird `zeichneAufbau()` nicht aufgerufen, fallen
 | `js/41-hilfe.js` | Hilfetext um Aufbau und Zahlenschreibweise ergänzt |
 | `pruefstaende/pruefstand-excel-aufbau-hinweis-v3-135.js` | neu, 31 Zusicherungen |
 | `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.135 |
+
+---
+
+## 202. CI repariert – sie war seit ihrer Einführung ohne Aussage
+
+Kein Versionsbump: es ist keine Zeile der Anwendung geändert, nur
+Prüfstände und die CI-Einrichtung.
+
+### 202.1 Der Befund
+
+Der Anwender fragte, warum in den GitHub Actions alles rot ist. Der
+Job-Log sagt es 76-mal wörtlich:
+
+```
+browserType.launch: Failed to launch chromium because executable
+doesn't exist at /opt/pw-browsers/chromium-1194/chrome-linux/chrome
+```
+
+Ergebnis des letzten Laufs: **1 von 77 Prüfständen** lief durch. Nicht
+weil 76 etwas gefunden hätten – sie sind gar nie gestartet. Daher auch
+die Laufzeit von rund einer Minute statt der 15–20 Minuten eines echten
+Laufs.
+
+Der Pfad `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` existiert
+nur in der Entwicklungsumgebung. Auf dem GitHub-Runner legt
+`npx playwright-core install` den Browser unter `~/.cache/ms-playwright`
+ab. In 75 der 77 Prüfstände stand der Pfad fest verdrahtet im Code.
+
+Damit war die CI **seit ihrer Einführung dauerhaft rot**, aus einem
+Grund, der mit der Anwendung nichts zu tun hat. Sie hätte bei der
+Einrichtung einmal grün gesehen werden müssen; das ist nicht geschehen.
+Die lokalen Regressionsläufe waren davon unberührt und echt – die CI
+konnte sie nur nie nachvollziehen.
+
+### 202.2 Was geändert wurde
+
+Neue gemeinsame Auflösung `pruefstaende/chrome-pfad.js` mit drei Stufen:
+
+1. `CHROME=…` von Hand gesetzt – hat immer Vorrang.
+2. der Pfad der Entwicklungsumgebung, **wenn es ihn wirklich gibt**.
+3. sonst nichts vorgeben – dann sucht `playwright-core` seinen eigenen
+   Browser. Das ist der Fall auf dem Runner.
+
+Stufe 2 bleibt bewusst bestehen: die Chromium-Revision im Sandkasten ist
+nicht zwingend die, die das dort installierte `playwright-core` erwartet.
+Ohne sie würde die Entwicklungsumgebung brechen, um die CI zu reparieren –
+und der Zweck ist, dass beide laufen.
+
+Alle 76 Prüfstände, die einen Browser starten, holen den Pfad jetzt von
+dort. Im Repository steht kein fest verdrahteter Browser-Pfad mehr.
+
+### 202.3 Nachweis
+
+Neuer Prüfstand `pruefstand-chrome-pfad-v3-136.js` (11 Zusicherungen). Er
+**braucht selbst keinen Browser** – er prüft die Auflösung, nicht die App,
+und ist damit gerade dort aussagekräftig, wo alle anderen nur abbrechen
+würden. Die drei Stufen werden einzeln geprüft (mit vorübergehend
+ersetztem `fs.existsSync`), dazu eine Gegenprobe, dass in Stufe 3 **nicht**
+trotzdem der feste Pfad zurückkommt – genau der Fehler, der die CI rot
+hielt. Eine weitere Zusicherung durchsucht alle übrigen Prüfstände und
+fällt durch, sobald irgendwo wieder ein fester Pfad auftaucht, auch in
+einem neu geschriebenen.
+
+**Was dieser Prüfstand nicht beweist**, und was in ihm auch so benannt
+steht: ob `playwright-core` in Stufe 3 auf dem Runner wirklich einen
+Browser findet. Das hängt davon ab, dass die CI vorher
+`npx playwright-core install chromium` ausgeführt hat. Der Sandkasten darf
+den Browser nicht herunterladen (`cdn.playwright.dev` ist gesperrt), der
+Runner-Fall lässt sich hier also nicht nachstellen. Den Beweis führt der
+CI-Lauf selbst.
+
+### 202.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `pruefstaende/chrome-pfad.js` | neu, gemeinsame Auflösung in drei Stufen |
+| 76 × `pruefstaende/pruefstand-*.js` | `executablePath` holt den Pfad von dort statt fest verdrahtet |
+| `pruefstaende/pruefstand-chrome-pfad-v3-136.js` | neu, 11 Zusicherungen, ohne Browser lauffähig |

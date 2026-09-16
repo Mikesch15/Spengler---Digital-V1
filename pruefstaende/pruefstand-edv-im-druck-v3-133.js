@@ -13,6 +13,7 @@
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-edv-im-druck-v3-133.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path=require("path");
 const APP="file://"+path.join(process.cwd(),"index.html");
 let ok=0,fail=0;
@@ -24,7 +25,7 @@ const ATTRAPPE="window.supabase={createClient:()=>({auth:{getSession:async()=>({
  +"q.then=r=>Promise.resolve({data:[],error:null}).then(r);return q;}})};";
 
 (async()=>{
- const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
+ const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:1100,height:900}});
  const jsFehler=[]; page.on("pageerror",e=>jsFehler.push(String(e)));
  await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));

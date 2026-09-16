@@ -53,6 +53,7 @@
  *      ausfuehren - erwartet wird wieder der vollstaendige gruene Lauf.
  */
 const { chromium } = require(process.env.SP + "/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path = require("path");
 const fs = require("fs");
 const { execSync } = require("child_process");
@@ -256,7 +257,7 @@ window.supabase = {
 `;
 
   const browser = await chromium.launch({
-    executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    executablePath: chromePfad(),
     args: ["--no-sandbox"],
   });
   const page = await browser.newPage();

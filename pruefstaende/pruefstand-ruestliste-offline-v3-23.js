@@ -12,6 +12,7 @@
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-ruestliste-offline-v3-23.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path=require("path");
 const fs=require("fs");
 const APP="file://"+path.join(process.cwd(),"index.html");
@@ -170,7 +171,7 @@ async function kartenAuf(page){
 const druckHtml=(page)=>page.evaluate(()=>(window.__druck||[]).filter(x=>x&&x.length).slice(-1)[0]||"");
 
 (async()=>{
- const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
+ const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:412,height:900}});
  const fehler=[];
  page.on("pageerror",e=>fehler.push(String(e)));

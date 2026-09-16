@@ -25,6 +25,7 @@
 //   Rolle  670: floor(670/990) = 0  ->  zu schmal
 //   Verschnitt bei 1000: 9,255 - 6,36075 = 2,89425 m2
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path=require("path");
 const APP="file://"+path.join(process.cwd(),"index.html");
 let ok=0,fail=0;
@@ -58,7 +59,7 @@ const laden=async(page,d)=>{await page.evaluate(x=>{rinneFormularFuellen(x);rpaF
   await page.waitForTimeout(220)};
 
 (async()=>{
- const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+ const b=await chromium.launch({executablePath:chromePfad(),
    args:["--no-sandbox"]});
  const page=await b.newPage();
  const fehler=[];

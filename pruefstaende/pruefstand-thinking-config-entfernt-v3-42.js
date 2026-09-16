@@ -86,6 +86,7 @@
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-thinking-config-entfernt-v3-42.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const fs=require("fs");
 const {execSync}=require("child_process");
 
@@ -217,7 +218,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
 }};`;
 
 (async()=>{
- const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
+ const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage();
  const jsFehler=[];
  page.on("pageerror",e=>jsFehler.push(String(e)));

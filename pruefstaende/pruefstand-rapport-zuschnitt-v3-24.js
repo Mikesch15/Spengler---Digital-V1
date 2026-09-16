@@ -18,6 +18,7 @@
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-rapport-zuschnitt-v3-24.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path=require("path"), fs=require("fs");
 const APP="file://"+path.join(process.cwd(),"index.html");
 const Q57=fs.readFileSync("js/57-rapport-material.js","utf8");
@@ -164,7 +165,7 @@ async function dialogAuf(page){
 }
 
 (async()=>{
- const browser=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
+ const browser=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await browser.newPage({viewport:{width:412,height:900}});
  const fehler=[];
  page.on("pageerror",e=>fehler.push(String(e).slice(0,200)));

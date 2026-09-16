@@ -15,6 +15,7 @@
 //     Oe 160: pi*160 = 502.65 / 330 = 1.523 -> 2
 //   Flaeche = Summe(Laenge*Breite)/1e6
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path=require("path");
 const APP="file://"+path.join(process.cwd(),"index.html");
 let ok=0,fail=0;
@@ -45,7 +46,7 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
                {bez:"Küche",durchmesser:160,winkel:30,a:70,b:70,c:110,anzahl:2}]};
 
 (async()=>{
- const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+ const b=await chromium.launch({executablePath:chromePfad(),
    args:["--no-sandbox"]});
  const page=await b.newPage();
  const fehler=[];
