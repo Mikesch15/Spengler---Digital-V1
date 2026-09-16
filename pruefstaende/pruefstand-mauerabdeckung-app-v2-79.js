@@ -57,6 +57,31 @@ const verlauf=async(page,material,segmente)=>{
  },[material,segmente]);
  await page.waitForTimeout(140);
 };
+// v3.66: eine neue Aufnahme startet mit LEEREN Profilmassen (madaLeer) - die
+// Zahlen aus MADA_PROFIL_VORGABE stehen nur noch als Richtwert-Chip daneben
+// und werden bewusst uebernommen. Dieser Helfer geht genau diesen Weg: er
+// tippt auf jeden angebotenen Chip, so wie es der Aufnehmer tut. Er gibt
+// zurueck, welche Felder leer waren und welche Werte danach drinstehen.
+const richtwerteUebernehmen=async(page)=>{
+ await page.evaluate(k=>madaSetzeSchritt(k),4);
+ await page.waitForTimeout(160);
+ const vorher=await page.evaluate(()=>({
+  leer:MADA_PROFIL_FELDER.filter(f=>{const v=madA.profil[f.k];
+    return v===""||v===null||v===undefined}).map(f=>f.k),
+  chips:[...document.querySelectorAll('#mada_seite4 .vorschlag-chip,[id^="mada_profil_"] ~ .vorschlag-chip')]
+    .map(c=>c.dataset.vorschlagFuer.replace("mada_profil_",""))
+ }));
+ const felder=await page.evaluate(()=>MADA_PROFIL_FELDER.map(f=>f.k));
+ for(const k of felder){
+  const sel='.vorschlag-chip[data-vorschlag-fuer="mada_profil_'+k+'"]';
+  if(await page.evaluate(x=>!!document.querySelector(x),sel)){
+   await page.click(sel);
+   await page.waitForTimeout(60);
+  }
+ }
+ await page.waitForTimeout(160);
+ return {...vorher,nachher:await page.evaluate(()=>JSON.parse(JSON.stringify(madA.profil)))};
+};
 const seg=(laenge,winkel,bl,br)=>({laenge,winkel:winkel||0,bodenLinks:!!bl,bodenRechts:!!br});
 const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
 
@@ -132,6 +157,14 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
  // ---- B · Bruecke ---------------------------------------------------------
  console.log("\nB · Bruecke zum bestehenden Modul");
  await verlauf(page,2,[seg(8000,90,true,false),seg(4000,90),seg(6000,0,false,true)]);
+ // Die Profilmasse zuerst wie der Aufnehmer uebernehmen - ohne sie ist die
+ // Abwicklung 0 und alles Folgende rechnet auf leeren Feldern.
+ const rw=await richtwerteUebernehmen(page);
+ p(rw.leer.length===rw.chips.length&&rw.leer.length>0,
+   "eine neue Aufnahme startet mit leeren Profilmassen, jedes mit Richtwert-Chip",rw);
+ p(rw.nachher.breite===310&&rw.nachher.hoeheLinks===50&&rw.nachher.saum===10,
+   "Antippen uebernimmt die Richtwerte aus den Einstellungen",rw.nachher);
+ await reg(page,2);
  const br=await page.evaluate(()=>({
   gleich:madSegments===madA.segmente,
   laengen:madSegments.map(s=>s.laenge),
@@ -314,6 +347,10 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
  await verlauf(page,2,[seg(6000,0)]);
  await reg(page,4);
  const felder=await page.evaluate(()=>Array.from(document.querySelectorAll("[data-mada-profil]")).map(f=>f.dataset.madaProfil));
+ // Die Profilmasse stehen seit v3.66 leer da (s. Abschnitt B). Der Helfer
+ // tippt nur auf tatsaechlich angebotene Chips, ist also ein Nichts-Tun,
+ // wenn die Felder schon gefuellt sind.
+ await richtwerteUebernehmen(page);
  p(["breite","gefaelle","hoeheLinks","hoeheRechts","umschlagLinks","umschlagRechts",
     "biegeLinks","biegeRechts","saum"].every(k=>felder.indexOf(k)>=0),
    "alle neun Profilfelder sind da",felder);
@@ -503,7 +540,19 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
  const tx=kaputt.join(" | ");
  p(/Segment 2: keine gültige Länge/.test(tx),"fehlende Laenge gemeldet",tx);
  p(/Winkel 270° liegt ausserhalb/.test(tx),"unmoeglicher Winkel gemeldet",tx);
- p(/keine Gesamtbreite/.test(tx),"fehlende Gesamtbreite gemeldet",tx);
+ // v3.66 unterscheidet LEER von 0: bei Gefaelle, Umschlag, Saum und
+ // Biegewinkel ist 0 ein gueltiges Mass, deshalb meldet fehltLeer nur das
+ // leere Feld. Fuer die Gesamtbreite ist 0 aber kein Mass - hier wird
+ // beides geprueft, leer und null.
+ p(/Gesamtbreite muss grösser als 0 sein/.test(tx),"eine Gesamtbreite von 0 gemeldet",tx);
+ const breiteLeer=await page.evaluate(()=>{
+  const stand=JSON.parse(JSON.stringify(madA));
+  madA.profil.breite="";
+  const r=madaPruefungen().filter(x=>x.art==="fehler").map(x=>x.text);
+  madA=stand; madaSchieberNeu();
+  return r;
+ });
+ p(breiteLeer.some(t=>/die Gesamtbreite fehlt/.test(t)),"eine fehlende Gesamtbreite gemeldet",breiteLeer);
  p(/Schieber 1: Position -5 mm liegt nicht/.test(tx),"Schieber ausserhalb gemeldet",tx);
  const punkt=await page.evaluate(()=>{
   madaSetzeSchritt(8);
@@ -642,6 +691,11 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
   window.open=()=>({document:{write:h=>seiten.push(h),close(){}},focus(){},print(){},set onload(f){}});
   madaZuruecksetzen();
   madA.material="2";
+  // v3.66: madaZuruecksetzen laesst die Profilmasse leer stehen (Richtwerte
+  // statt Vorgabewerte). Hier wird der Zustand NACH dem Uebernehmen der
+  // Richtwerte hergestellt - dass das Antippen der Chips wirklich zu diesen
+  // Werten fuehrt, weist Abschnitt B nach.
+  Object.keys(MADA_PROFIL_VORGABE).forEach(k=>{madA.profil[k]=MADA_PROFIL_VORGABE[k]});
   madA.segmente=[{laenge:8000,winkel:90,bodenLinks:true,bodenRechts:false},
                  {laenge:4000,winkel:90,bodenLinks:false,bodenRechts:false},
                  {laenge:6000,winkel:0,bodenLinks:false,bodenRechts:true}];

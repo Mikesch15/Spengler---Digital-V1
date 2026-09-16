@@ -318,6 +318,13 @@ function madaPruefungen(){
  fehltLeer(p.biegeLinks,"Profil: der Biegewinkel links fehlt.");
  fehltLeer(p.biegeRechts,"Profil: der Biegewinkel rechts fehlt.");
  fehltLeer(p.saum,"Profil: der Saum fehlt.");
+ // Anders als Gefaelle, Umschlag, Saum und Biegewinkel ist die Gesamtbreite
+ // bei 0 kein gueltiges Mass, sondern eine Mauerabdeckung ohne Mauer: das
+ // Feld ist ausgefuellt, also greift fehltLeer nicht, und der Streifen wuerde
+ // aus Saum und Umschlaegen allein eine brauchbar aussehende Abwicklung
+ // ergeben. Deshalb hier eigens geprueft.
+ if(!(p.breite===""||p.breite===null||p.breite===undefined)&&!(m.breite>0))
+  fehlt("Profil: die Gesamtbreite muss grösser als 0 sein.");
  [["breite","Gesamtbreite"],["hL","Höhe links"],["hR","Höhe rechts"],
   ["umL","Umschlag links"],["umR","Umschlag rechts"],["saum","Saum"]].forEach(([k,t])=>{
   if(m[k]<0)fehlt("Profil: "+t+" ist negativ.");
