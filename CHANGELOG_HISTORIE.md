@@ -31202,3 +31202,95 @@ CI-Lauf selbst.
 | `pruefstaende/chrome-pfad.js` | neu, gemeinsame Auflösung in drei Stufen |
 | 76 × `pruefstaende/pruefstand-*.js` | `executablePath` holt den Pfad von dort statt fest verdrahtet |
 | `pruefstaende/pruefstand-chrome-pfad-v3-136.js` | neu, 11 Zusicherungen, ohne Browser lauffähig |
+
+---
+
+## 203. v3.136 – Positionsvorschlag im Neues-Produkt-Dialog
+
+### 203.1 Der Befund
+
+Gemeldet: „Wird in der Materialverwaltung ein neues Produkt eingescannt oder
+angelegt, wird nicht mehr automatisch und intelligent eine Position
+vorgeschlagen."
+
+Es ist **keine Regression**. Der Code zeigt: eine BESTEHENDE Materialposition
+wurde nie vorgeschlagen. `lagerNeuesProduktArtikel` wird ausschliesslich aus
+der übergebenen `materialId` gesetzt (also beim Weg „＋ Weiteres Produkt zu
+dieser Position") oder durch einen Klick auf einen Treffer.
+
+Die intelligente Erkennung aus v3.126 existiert – aber sie schlägt nur die
+**EDV-Nummer** einer NEU anzulegenden Position vor und erscheint erst,
+nachdem man „➕ Neue Materialposition anlegen" geklickt hat. Sie sitzt damit
+einen Klick tief und an der falschen Stelle: sie hilft beim Benennen einer
+neuen Position, nicht beim Finden einer vorhandenen. Wer ein Produkt
+einscannte, sah den ungeordneten Katalog und musste von Hand suchen.
+
+Die Beobachtung des Anwenders stimmt also, die Erklärung ist eine andere.
+
+### 203.2 Was geändert wurde
+
+Der Anwender schlug einen Knopf vor und liess die Wahl offen. Statt eines
+Knopfes wandert die Erkennung dorthin, wo ohnehin hingeschaut wird – in die
+Trefferliste, ohne zusätzlichen Klick:
+
+- Neue Funktion `lagerPositionenVorschlag(bezeichnung)` bewertet die
+  **bestehenden** Katalogpositionen. Sie benutzt `lagerZeilePunkte` und die
+  Schwelle `LAGER_GRUPPE_MIN` – dieselbe Bewertung und dieselbe Zahl wie der
+  Nummernvorschlag aus v3.126, kein zweites, parallel gepflegtes Mass.
+- Sobald die Bezeichnung getippt ist, stehen die bis zu drei passendsten
+  Positionen **zuoberst** in der Trefferliste. Ein Tipp übernimmt sie; der
+  bestehende Klick-Weg (`data-lager-produkt-artikel`) wird unverändert
+  wiederverwendet, es kommt keine zweite Mechanik dazu.
+- Ein einzelner klarer Treffer heisst „✓ Vorschlag der App". Passen mehrere
+  ähnlich gut, steht „Das könnte passen – bitte prüfen" da. Passt nichts,
+  behauptet die App nichts.
+- **Vorgewählt wird nie etwas.** Ein Tippfehler in der Bezeichnung würde
+  sonst Bestand auf die falsche Position buchen.
+- **Getippte Suche hat Vorrang**: solange im Suchfeld etwas steht, tritt der
+  Vorschlag zurück – die Eingabe des Anwenders ist die Absicht.
+- Der ganze Katalog bleibt darunter erreichbar; vorgeschlagene Positionen
+  werden aus der unteren Liste herausgefiltert, damit nichts doppelt steht.
+
+### 203.3 Nachweis
+
+Neuer Prüfstand `pruefstand-position-vorschlag-v3-136.js` (26 Zusicherungen,
+davon 7 Gegenproben). Die schärfste hält fest, dass die **unpassenden**
+Positionen nicht vorne stehen – ohne sie wäre „712.40 steht zuoberst" wertlos,
+denn 712.40 ist ohnehin die erste Katalogzeile. Weitere Gegenproben: nichts
+wird vorgewählt, keine Position steht zweimal, während einer Suche erscheint
+kein Vorschlag, und weiteres Tippen wirft eine schon getroffene Wahl nicht um.
+
+Gegenprobe des Prüfstands: wird der Vorschlag ausgebaut, fallen **8** der 26
+Zusicherungen durch.
+
+Der bestehende `pruefstand-lagerverwaltung-v3-98.js` läuft mit 248/248
+unverändert durch.
+
+### 203.4 Zweiter fest verdrahteter Pfad (CI)
+
+Der CI-Lauf nach der Browser-Pfad-Reparatur (Abschnitt 202) kam von 1/77 auf
+**58/78**. Im Log steckte derselbe Fehler ein zweites Mal: zehn Prüfstände
+hatten den Ordner der Entwicklungsumgebung fest verdrahtet.
+
+```
+page.goto: net::ERR_FILE_NOT_FOUND at file:///home/user/Spengler---Digital-V1/index.html
+path: '/home/user/Spengler---Digital-V1/js/17-ausmass.js'
+```
+
+Ersetzt durch `process.cwd()` – `ci-lauf.js` startet jeden Prüfstand mit der
+Repository-Wurzel als Arbeitsverzeichnis, das trifft in beiden Umgebungen.
+
+Damit sind 10 der 19 verbleibenden CI-Fehlschläge derselben Ursache zugeordnet.
+Die übrigen (u. a. `feedback-loeschen`, `verwaiste-dateien`, `werkstatt-liste`,
+`werkstatt-zuschnitt`, `rapport-zuschnitt`, `rueckfall`, `ruestliste-offline`)
+haben andere Ursachen und sind **noch nicht untersucht** – sie laufen lokal
+grün und scheitern nur auf dem Runner.
+
+### 203.5 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/68-lagerverwaltung.js` | `lagerPositionenVorschlag`, Vorschlag zuoberst in der Trefferliste, Bezeichnung zeichnet sie neu |
+| `pruefstaende/pruefstand-position-vorschlag-v3-136.js` | neu, 26 Zusicherungen |
+| 10 × `pruefstaende/pruefstand-*.js` | fest verdrahteter Repository-Pfad → `process.cwd()` |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.136 |

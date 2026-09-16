@@ -104,7 +104,10 @@ const WIN_CHANGELOG={
   "Gelöscht wird nie: Positionen, die in der Datei fehlen, bleiben stehen. Und ein Feld, für das die Datei keine Spalte hat, behält seinen Wert, statt geleert zu werden. Dieselbe Nummer zweimal in einer Datei bricht den Import ab, bevor irgendetwas geschrieben wird."],
  "3.135":["Einstellungen → Material (und Blitzschutz-Material): über dem Excel-Import steht jetzt „Wie muss die Excel-Datei aufgebaut sein?\" – aufklappbar, und zwar BEVOR man die Datei auswählt. Darin steht jede Spalte, ob sie Pflicht ist und wie ihre Überschrift heissen darf. Bisher stand das erst im Vorschaufenster, also erst nach der Dateiwahl.",
   "Der Hinweis wird aus den Feldern des Imports selbst erzeugt. Kommt später eine Spalte dazu, steht sie automatisch auch im Hinweis – er kann nicht veralten.",
-  "Steht in einer Preisspalte Text statt einer Zahl (z. B. „Fr. 7.90\"), sagt die Vorschau das jetzt. Bisher wurde daraus stillschweigend 0.00 – und das fiel erst auf, wenn jemand den Preis brauchte. Eine echte Null („0.00\" oder „-\") gilt weiterhin als gewollt."]
+  "Steht in einer Preisspalte Text statt einer Zahl (z. B. „Fr. 7.90\"), sagt die Vorschau das jetzt. Bisher wurde daraus stillschweigend 0.00 – und das fiel erst auf, wenn jemand den Preis brauchte. Eine echte Null („0.00\" oder „-\") gilt weiterhin als gewollt."],
+ "3.136":["Lagerverwaltung, neues Produkt (auch nach einem Scan): sobald die Bezeichnung getippt ist, stehen die passenden Materialpositionen ganz oben in der Trefferliste – ohne zusätzlichen Klick. Ein Tipp übernimmt sie.",
+  "Passt genau eine Position deutlich am besten, steht „✓ Vorschlag der App\" daneben. Passen mehrere ähnlich gut, sagt die App das ausdrücklich statt sich festzulegen. Passt nichts, behauptet sie nichts. Vorgewählt wird nie etwas – ein Tippfehler soll keinen Bestand auf die falsche Position buchen.",
+  "Der ganze Katalog bleibt darunter erreichbar, und wer selbst sucht, hat Vorrang: während getippt wird, tritt der Vorschlag zurück."]
 };
 
 function winVersionVergleich(a,b){
