@@ -183,7 +183,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.134</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.135</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -2488,8 +2488,9 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <input type="file" id="materialExcelInput" accept=".xlsx,.xls,.csv" hidden>
 <button type="button" class="gray" id="materialExcelBtn">📥 Aus Excel importieren</button>
 </div>
+<details class="mz-details import-aufbau"><summary>📄 Wie muss die Excel-Datei aufgebaut sein?</summary><div id="materialExcelAufbau"></div></details>
 <div id="materialExcelPreview" hidden style="margin-top:10px">
-<div class="info"><button type="button" class="hilfe-knopf no-print" data-hilfe="excel-import">i</button> Die Spalten lassen sich frei zuordnen – jede Lieferantenliste passt, egal in welcher Reihenfolge sie aufgebaut ist. Die Zeilen werden der bestehenden Liste hinzugefügt, nichts wird gelöscht oder überschrieben.</div>
+<div class="info"><button type="button" class="hilfe-knopf no-print" data-hilfe="excel-import">i</button> Die Spalten lassen sich frei zuordnen – jede Lieferantenliste passt, egal in welcher Reihenfolge sie aufgebaut ist. Eine Nummer, die es schon gibt, wird <b>aktualisiert</b>; unten steht vorher, was neu ist und was sich ändert. <b>Gelöscht wird nie</b> – Positionen, die in der Datei fehlen, bleiben stehen.</div>
 <label class="rechte-schalter"><input type="checkbox" id="materialExcelHeader" checked> Erste Zeile ist eine Kopfzeile (wird übersprungen)</label>
 <div id="materialExcelMapping" class="import-mapping"></div>
 <div class="small" id="materialExcelCount" style="margin:6px 0"></div>
@@ -2520,8 +2521,9 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <input type="file" id="bzMaterialExcelInput" accept=".xlsx,.xls,.csv" hidden>
 <button type="button" class="gray" id="bzMaterialExcelBtn">📥 Aus Excel importieren</button>
 </div>
+<details class="mz-details import-aufbau"><summary>📄 Wie muss die Excel-Datei aufgebaut sein?</summary><div id="bzMaterialExcelAufbau"></div></details>
 <div id="bzMaterialExcelPreview" hidden style="margin-top:10px">
-<div class="info"><button type="button" class="hilfe-knopf no-print" data-hilfe="excel-import">i</button> Die Spalten lassen sich frei zuordnen – jede Lieferantenliste passt, egal in welcher Reihenfolge sie aufgebaut ist. Die Zeilen werden der bestehenden Liste hinzugefügt, nichts wird gelöscht oder überschrieben.</div>
+<div class="info"><button type="button" class="hilfe-knopf no-print" data-hilfe="excel-import">i</button> Die Spalten lassen sich frei zuordnen – jede Lieferantenliste passt, egal in welcher Reihenfolge sie aufgebaut ist. Eine Nummer, die es schon gibt, wird <b>aktualisiert</b>; unten steht vorher, was neu ist und was sich ändert. <b>Gelöscht wird nie</b> – Positionen, die in der Datei fehlen, bleiben stehen.</div>
 <label class="rechte-schalter"><input type="checkbox" id="bzMaterialExcelHeader" checked> Erste Zeile ist eine Kopfzeile (wird übersprungen)</label>
 <div id="bzMaterialExcelMapping" class="import-mapping"></div>
 <div class="small" id="bzMaterialExcelCount" style="margin:6px 0"></div>

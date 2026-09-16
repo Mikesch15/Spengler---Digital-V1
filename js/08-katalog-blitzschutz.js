@@ -146,6 +146,47 @@ function initExcelImport(cfg){
  //       nachImport}
  const input=$(cfg.inputId),btn=$(cfg.buttonId);
  if(!input||!btn)return;
+ // Der Hinweis "wie muss die Datei aufgebaut sein" wird AUS cfg.felder
+ // erzeugt, nicht daneben von Hand gepflegt. Kommt spaeter eine Spalte
+ // dazu oder aendert sich eine Schreibweise, steht sie damit automatisch
+ // auch im Hinweis - eine Quelle, kein zweiter Stand, der veraltet.
+ zeichneAufbau();
+ function zeichneAufbau(){
+  const box=$(cfg.aufbauId); if(!box)return;
+  const zeile=f=>{
+   // "Erkannte Ueberschriften": der eigene Name plus die Alias-Liste, mit
+   // der importAutoZuordnen wirklich arbeitet.
+   const namen=[f.label].concat(f.alias||[]);
+   return `<tr><td><b>${esc(f.label)}</b></td>`
+    +`<td>${f.pflicht?'<span style="color:#d9534f">Pflicht</span>':"freiwillig"}</td>`
+    +`<td class="small">${esc(namen.join(", "))}</td></tr>`;
+  };
+  const zahlFelder=cfg.felder.filter(f=>f.zahl).map(f=>f.label);
+  const schl=cfg.felder.find(f=>f.key===cfg.schluessel);
+  // Beispiel fuer "Schreibweise egal" aus DIESEM Katalog nehmen.
+  const bsp=(schl||cfg.felder[0]||{label:"Nr."}).label;
+  box.innerHTML=`<div class="small" style="color:var(--muted);margin-bottom:6px">
+<b>Eine Zeile je Position</b>, in der ersten Zeile die Spaltenüberschriften.
+Die <b>Reihenfolge der Spalten spielt keine Rolle</b> – die App erkennt sie an der
+Überschrift und zeigt die Zuordnung vor dem Import an; ändern lässt sie sich dort
+von Hand. Zusätzliche Spalten, die hier nicht stehen, werden einfach übergangen.<br>
+Auf die <b>Schreibweise kommt es nicht an</b>: Gross-/Kleinschreibung, Punkte, Striche
+und Leerzeichen werden übergangen – „${esc(bsp)}", „${esc(bsp.replace(/[^A-Za-zÄÖÜäöü0-9]/g," ").trim())}"
+und „${esc(importNormal(bsp))}" gelten als dasselbe. Trifft keine Überschrift, bleibt das
+Feld leer statt geraten zu werden.</div>
+<table class="eb-table"><tr><th>Spalte</th><th></th><th>So darf die Überschrift heissen</th></tr>
+${cfg.felder.map(zeile).join("")}</table>
+<div class="small" style="color:var(--muted);margin-top:6px">
+${schl?`Der Abgleich läuft über die <b>${esc(schl.label)}</b>: eine Nummer, die es schon gibt,
+wird aktualisiert statt doppelt angelegt. Dieselbe Nummer darf in der Datei nur
+<b>einmal</b> vorkommen.<br>`:""}
+Zeilen ohne ${esc(cfg.felder.filter(f=>f.pflicht).map(f=>f.label).join(" bzw. ohne "))}
+werden übersprungen – wie viele das sind, steht über der Vorschau.
+${zahlFelder.length?`<br><b>${esc(zahlFelder.join(", "))}</b> als reine Zahl schreiben
+(<code>7.90</code> oder <code>7,90</code>, auch <code>1'250.00</code>). Steht Text in der
+Zelle (<code>Fr. 7.90</code>, <code>7.90 CHF</code>), kann sie nicht als Zahl gelesen werden –
+die Vorschau weist darauf hin.`:""}</div>`;
+ }
  let zeilen=[];
  let zuordnung={};        // feldKey -> Spaltenindex
  btn.onclick=()=>input.click();
@@ -251,6 +292,21 @@ function initExcelImport(cfg){
   cfg.felder.filter(f=>f.pflicht&&zuordnung[f.key]!==undefined).forEach(f=>{
    const leer=daten.filter(z=>String(wert(z,f)).trim()==="").length;
    if(leer)meldungen.push(`${leer} Zeile(n) haben kein „${f.label}" – sie werden nicht importiert.`);
+  });
+  // Eine Zahlenspalte, in der Text steht ("Fr. 7.90"), wird still zu 0.00 -
+  // das faellt sonst erst auf, wenn jemand nach dem Preis sucht. Ein echtes
+  // Null-Feld ("0", "0.00", "-", leer) ist gewollt und keine Meldung wert.
+  cfg.felder.filter(f=>f.zahl&&zuordnung[f.key]!==undefined).forEach(f=>{
+   const i=zuordnung[f.key];
+   const schlecht=daten.filter(z=>{
+    const roh=String(z[i]??"").trim();
+    if(roh===""||excelZahlLesen(roh)!==0)return false;
+    return !/^[-–0.,'\s]*$/.test(roh);
+   });
+   if(schlecht.length)meldungen.push(
+    `${schlecht.length} Zeile(n) haben bei „${f.label}" etwas, das nicht als Zahl `
+    +`gelesen werden kann (z. B. „${String(schlecht[0][i]).trim()}") – dort wird 0.00 `
+    +`eingetragen. In der Datei nur die Zahl schreiben, ohne Währung.`);
   });
   return meldungen;
  }
@@ -368,6 +424,7 @@ initExcelImport({
  headerCheckId:"materialExcelHeader",countId:"materialExcelCount",tableId:"materialExcelTable",
  confirmId:"materialExcelConfirm",cancelId:"materialExcelCancel",
  mappingId:"materialExcelMapping",fehlerId:"materialExcelFehler",
+ aufbauId:"materialExcelAufbau",
  tableName:"materials",
  // Schluessel = die Spalte, auf der die Datenbank ein UNIQUE hat. Nur
  // darueber kann der Import bestehende Positionen erkennen und
@@ -401,6 +458,7 @@ initExcelImport({
  headerCheckId:"bzMaterialExcelHeader",countId:"bzMaterialExcelCount",tableId:"bzMaterialExcelTable",
  confirmId:"bzMaterialExcelConfirm",cancelId:"bzMaterialExcelCancel",
  mappingId:"bzMaterialExcelMapping",fehlerId:"bzMaterialExcelFehler",
+ aufbauId:"bzMaterialExcelAufbau",
  tableName:"blitzschutz_materials",
  // blitzschutz_materials traegt ebenfalls ein UNIQUE auf der Artikel-Nr.,
  // deshalb funktioniert hier derselbe Upsert-Weg wie bei den Materialien.
