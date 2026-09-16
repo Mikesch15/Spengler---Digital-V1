@@ -129,7 +129,30 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  });
  p(br.gleich,"einfaBerechne() liefert Zeichen fuer Zeichen dasselbe wie einfBerechnen()");
  p(br.erg.breiteGesamt===350,"Ø 110 -> Gesamtbreite 350 mm (110 + 2*20 + 2*100)",br.erg.breiteGesamt);
- p(br.erg.anzahlBleilappen===2,"Ø 110 -> 2 Bleilappen (aufgerundet, siehe v2.70)",br.erg.anzahlBleilappen);
+ // v3.68/v3.70: die Anzahl Bleilappen kommt NICHT mehr aus dem Rohrumfang
+ // (pi x Durchmesser), sondern aus a + b - die Einfassung liegt in der
+ // Dachschraege und ist dort laenglich, nicht rund. Und sie wird auf Wunsch
+ // des Betriebs ABGERUNDET statt aufgerundet, danach verdoppelt (beide
+ // Seiten), mindestens aber 1. Beides ausdrueckliche Ansagen des Betriebs,
+ // kein Rechenfehler. Von Hand mit a=60, b=60, Lattenabstand 330:
+ //   floor((60+60)/330) * 2 = 0 -> Math.max(1, 0) = 1.
+ p(br.erg.anzahlBleilappen===1,
+   "Ø 110, a+b = 120 bei 330 Lattenabstand -> 1 Bleilappen (abgerundet, v3.70)",
+   br.erg.anzahlBleilappen);
+ // Gegenprobe: der Rohrdurchmesser darf die Zahl nicht mehr bestimmen. Bei
+ // gleichem a/b und gleichem Lattenabstand muss ein ganz anderer Durchmesser
+ // dieselbe Zahl ergeben - sonst rechnet wieder jemand mit pi x Durchmesser.
+ const blOhneD=await page.evaluate(()=>{
+  const e=JSON.parse(JSON.stringify(einfaListe()[0]));
+  const klein=einfBerechnen(einfaEingabe(Object.assign({},e,{durchmesser:110})));
+  const gross=einfBerechnen(einfaEingabe(Object.assign({},e,{durchmesser:400})));
+  const mehrAB=einfBerechnen(einfaEingabe(Object.assign({},e,{a:400,b:400})));
+  return {klein:klein.anzahlBleilappen,gross:gross.anzahlBleilappen,mehrAB:mehrAB.anzahlBleilappen};
+ });
+ p(blOhneD.klein===blOhneD.gross,
+   "der Rohrdurchmesser aendert die Anzahl Bleilappen nicht mehr",blOhneD);
+ // floor((400+400)/330)*2 = 2*2 = 4
+ p(blOhneD.mehrAB===4,"a und b bestimmen sie: 800/330 abgerundet 2, verdoppelt 4",blOhneD);
 
  console.log("\nD · Mehrere Einfassungen, Masse eintippen ohne Fokusverlust");
  await reg(page,2);
@@ -248,20 +271,37 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  p(altFeld==="115","und zeigt seine 25 Grad als 115 Grad im Feld",altFeld);
  await setz(page,FALL);
 
- console.log("\nD3 · Vorgabemasse a 250 / b 200 / c 35 (v2.99)");
- // Auf Ansage des Betriebs. Die Werte sind eine VORGABE aus den Einstellungen,
- // keine feste Zahl - und sie gelten nur fuer eine NEUE Einfassung.
+ console.log("\nD3 · Richtwerte a 250 / b 200 / c 35 (v2.99, seit v3.65 als Chip)");
+ // Auf Ansage des Betriebs. Die Werte kommen aus den EINSTELLUNGEN und sind
+ // keine feste Zahl. Seit v3.65 stehen sie auch nicht mehr im Feld: eine neue
+ // Einfassung faengt leer an, der Firmenwert steht als Richtwert-Chip daneben
+ // und wird mit einem Tipp uebernommen. einfVorgabe() bleibt die Quelle.
+ const chipWert=(id)=>page.evaluate(x=>{
+  const c=document.querySelector('.vorschlag-chip[data-vorschlag-fuer="'+x+'"]');
+  return c?Number(c.dataset.vorschlagWert):null;
+ },id);
+ const leerWert=x=>x===""||x===null||x===undefined;
  await page.evaluate(()=>einfaZuruecksetzen());
  await page.waitForTimeout(200);
  const vg=await page.evaluate(()=>{const e=einfaListe()[0];return {a:e.a,b:e.b,c:e.c,n:einfaListe().length}});
- p(vg.a===250&&vg.b===200&&vg.c===35,"eine neue Aufnahme startet mit 250 / 200 / 35",vg);
+ p(leerWert(vg.a)&&leerWert(vg.b)&&leerWert(vg.c),
+   "eine neue Aufnahme startet mit leerem a / b / c",vg);
  await reg(page,2);
  const vgf=await page.evaluate(()=>["a","b","c"].map(k=>($("einfa_"+k+"_0")||{}).value));
- p(JSON.stringify(vgf)===JSON.stringify(["250","200","35"]),"die Werte stehen auch in den Feldern",vgf);
- // Eine neu hinzugefuegte Einfassung bekommt dieselbe Vorgabe.
+ p(JSON.stringify(vgf)===JSON.stringify(["","",""]),"die Felder stehen leer da",vgf);
+ const vgc={a:await chipWert("einfa_a_0"),b:await chipWert("einfa_b_0"),c:await chipWert("einfa_c_0")};
+ p(vgc.a===250&&vgc.b===200&&vgc.c===35,"und daneben steht je ein Richtwert-Chip 250 / 200 / 35",vgc);
+ await page.click('.vorschlag-chip[data-vorschlag-fuer="einfa_a_0"]');
+ await page.waitForTimeout(200);
+ p(Number(await page.evaluate(()=>einfaListe()[0].a))===250,
+   "Antippen uebernimmt den Richtwert ins Feld");
+ // Eine neu hinzugefuegte Einfassung faengt ebenso leer an und bietet
+ // denselben Richtwert an.
  await klick(page,"#einfa_neu");
  const vg2=await page.evaluate(()=>{const l=einfaListe();const e=l[l.length-1];return {n:l.length,a:e.a,b:e.b,c:e.c}});
- p(vg2.n===2&&vg2.a===250&&vg2.b===200&&vg2.c===35,"auch eine weitere Einfassung startet mit der Vorgabe",vg2);
+ const vg2c=await chipWert("einfa_a_1");
+ p(vg2.n===2&&leerWert(vg2.a)&&leerWert(vg2.b)&&leerWert(vg2.c)&&vg2c===250,
+   "auch eine weitere Einfassung startet leer und bietet den Richtwert an",{...vg2,chipA:vg2c});
  await page.evaluate(()=>einfaZuruecksetzen());
  await page.waitForTimeout(200);
  await reg(page,2);
@@ -274,7 +314,10 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  // "change". Ohne Sperre schriebe das den ALTEN Wert in den frisch gesetzten
  // Zustand zurueck - hier gemessen, nicht angenommen.
  const leck=await page.evaluate(()=>{einfaZuruecksetzen();return {a:einfaListe()[0].a,fokus:document.activeElement.id}});
- p(Number(leck.a)===250,"der getippte Wert leckt beim Zuruecksetzen nicht in den neuen Zustand",leck);
+ // Nach dem Zuruecksetzen steht a wieder LEER da (v3.65) - der vorher
+ // getippte Wert darf nicht hineinlecken.
+ p(leck.a===""||leck.a===null||leck.a===undefined,
+   "der getippte Wert leckt beim Zuruecksetzen nicht in den neuen Zustand",leck);
  await reg(page,2);   // nach dem Zuruecksetzen steht es wieder auf Register 1
  // Echt tippen, nicht value setzen: Chromium feuert das change nur, wenn der
  // BENUTZER den Wert geaendert hat - ein per JS gesetzter Wert loest es nicht
@@ -301,10 +344,20 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  });
  p(ausEinst.v.a===300&&ausEinst.v.b===220&&ausEinst.v.c===40,
    "einfVorgabe() liest a/b/c aus den Einstellungen",ausEinst.v);
- p(ausEinst.neu.a===300&&ausEinst.neu.b===220&&ausEinst.neu.c===40,
-   "geaenderte Einstellungen wirken auf die naechste neue Aufnahme",ausEinst.neu);
- p(ausEinst.zurueck.a===250&&ausEinst.zurueck.b===200&&ausEinst.zurueck.c===35,
-   "und lassen sich wieder zurueckstellen",ausEinst.zurueck);
+ // Der Traeger ist seit v3.65 der Chip, nicht das vorausgefuellte Feld: die
+ // neue Aufnahme bleibt leer, der geaenderte Firmenwert muss im Richtwert
+ // stehen. einfVorgabe() oben belegt bereits, dass er aus den Einstellungen
+ // kommt; hier zaehlt, dass eine neue Aufnahme nichts davon still uebernimmt.
+ p(leerWert(ausEinst.neu.a)&&leerWert(ausEinst.neu.b)&&leerWert(ausEinst.neu.c),
+   "eine neue Aufnahme uebernimmt die geaenderte Vorgabe NICHT still",ausEinst.neu);
+ const zurueckChip=await page.evaluate(()=>{
+  einfaZuruecksetzen(); einfaSetzeSchritt(2);
+  const w=k=>{const c=document.querySelector('.vorschlag-chip[data-vorschlag-fuer="einfa_'+k+'_0"]');
+    return c?Number(c.dataset.vorschlagWert):null};
+  return {a:w("a"),b:w("b"),c:w("c")};
+ });
+ p(zurueckChip.a===250&&zurueckChip.b===200&&zurueckChip.c===35,
+   "und die Einstellungen lassen sich wieder zurueckstellen (Chip zeigt 250/200/35)",zurueckChip);
  // Ein gespeicherter Datensatz bekommt die Vorgabe NICHT angedichtet.
  const alt99=await page.evaluate(()=>{
   einfaFuellen({material:"2",deckung:"biber_einfach",lattenabstand:330,
@@ -338,7 +391,9 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  const soll=Number(((350*(z0.b||0)+2*(400*(z1.b||0)))/1e6).toFixed(4));
  p(Math.abs(flaeche-soll)<1e-6,"Blechflaeche = Summe(Laenge x Breite)",{flaeche,soll});
  const bl=await page.evaluate(()=>einfaBleilappenGesamt());
- p(bl===6,"Bleilappen gesamt 6 (2 + 2*2)",bl);
+ // Mit der Regel aus v3.70 (a+b, abgerundet, verdoppelt, mindestens 1)
+ // liefert jede der drei Einfassungen 1 Lappen: 1 + 2*1 = 3.
+ p(bl===3,"Bleilappen gesamt 3 (1 + 2*1)",bl);
 
  console.log("\nF · Zuschnitt aus Rollenblech (gemeinsame Packrechnung)");
  await reg(page,4);
@@ -398,7 +453,11 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
   const alt=einfA.lattenabstand; einfA.lattenabstand=0;
   const m=einfaPruefungen(); einfA.lattenabstand=alt; return m;
  });
- p(k3.some(x=>x.art==="warnung"&&/Lattenabstand/.test(x.text)),"fehlender Lattenabstand ist eine Warnung",k3.map(x=>x.text));
+ // v3.65: der Lattenabstand hat keinen Vorgabewert mehr und ist damit ein
+ // echtes Pflichtfeld - fehlt er, ist das ein FEHLER und keine Warnung mehr.
+ // Ohne ihn laesst sich die Anzahl Bleilappen nicht bestimmen.
+ p(k3.some(x=>x.art==="fehler"&&/Lattenabstand/.test(x.text)),
+   "fehlender Lattenabstand ist ein Fehler",k3.map(x=>x.text));
  await reg(page,6);
  const marke=await page.evaluate(()=>{
   einfaListe()[0].a=0; einfaLive();
@@ -419,14 +478,18 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  });
  p(sp.typ==="einfassung_rund","Typ im Payload",sp.typ);
  // SUPERSET: die Felder bis v2.95 bleiben erhalten (erste Einfassung).
+ // anzahlBleilappen ist mit a=60/b=60 bei 330 Lattenabstand nach der Regel
+ // aus v3.70 (abgerundet) 1, nicht mehr 2.
  p(sp.d.durchmesser===110&&sp.d.a===60&&sp.d.c===100&&sp.d.abwicklung>0
-   &&sp.d.breiteGesamt===350&&sp.d.anzahlBleilappen===2,
+   &&sp.d.breiteGesamt===350&&sp.d.anzahlBleilappen===1,
    "die Felder bis v2.95 stehen weiterhin im Payload (erste Einfassung)",sp.d);
  p(Array.isArray(sp.d.einfassungen)&&sp.d.einfassungen.length===2,"beide Einfassungen gespeichert",
    (sp.d.einfassungen||[]).length);
  p(sp.d.einfassungen[1].anzahl===2&&sp.d.einfassungen[1].bez==="Küche","Stueckzahl und Bezeichnung gespeichert",sp.d.einfassungen[1]);
  p(Array.isArray(sp.d.zuschnitte)&&sp.d.zuschnitte.length===3,"Zuschnitte gespeichert",(sp.d.zuschnitte||[]).length);
- p(sp.d.bleilappenGesamt===6&&typeof sp.d.flaeche_m2==="number","Bleilappen und Flaeche gespeichert",sp.d);
+ // 3 statt 6: dieselbe Regel aus v3.70 (a+b, abgerundet, verdoppelt,
+ // mindestens 1) - 1 + 2*1 = 3, siehe oben.
+ p(sp.d.bleilappenGesamt===3&&typeof sp.d.flaeche_m2==="number","Bleilappen und Flaeche gespeichert",sp.d);
  p(Array.isArray(sp.d.ausmass)&&sp.d.ausmass.length>0,"Ausmass gespeichert");
  p(sp.d.rollen&&Array.isArray(sp.d.rollen.gruppen),"Rollenblech-Plan gespeichert");
  const wieder=await page.evaluate(d=>{
@@ -455,9 +518,11 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  });
  p(alt.n===1&&alt.d===200&&alt.a===80&&alt.c===120,"eine Einfassung aus den flachen Feldern",alt);
  p(alt.anzahl===1,"Stueckzahl 1 - es wird nichts erfunden",alt);
- // Von Hand: 200 + 2*20 + 2*100 = 440; pi*200/330 = 1.904 -> 2
+ // Von Hand: 200 + 2*20 + 2*100 = 440.
  p(alt.breite===440,"Gesamtbreite 440 mm (200 + 2*20 + 2*100)",alt.breite);
- p(alt.lappen===2,"2 Bleilappen (pi*200/330 = 1.90, aufgerundet)",alt.lappen);
+ // Seit v3.68/v3.70 nicht mehr pi*200/330, sondern floor((a+b)/330)*2, also
+ // mit a=80 und b=90: floor(170/330)*2 = 0 -> Math.max(1,0) = 1.
+ p(alt.lappen===1,"1 Bleilappen (a+b = 170 bei 330, abgerundet, mindestens 1)",alt.lappen);
 
  console.log("\nK · Fotos erst nach 'Fertig'");
  await setz(page,FALL);
