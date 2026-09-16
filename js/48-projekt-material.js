@@ -177,6 +177,13 @@ const PMAT_TEIL_RUECKFALL={
  einlaufblech_gerade:  b=>b==="Haltebleche (GAVA Blech)",
  mauerabdeckung:       b=>b==="Schieber"||b==="Boden",
  kamineinfassung:      b=>b==="Bleilappen",
+ // v3.131: die Dachfenstereinfassung (js/66, seit v3.45 die 13. Art) fehlte
+ // hier - die Tabelle war beim Einbau der neuen Art nicht nachgezogen worden.
+ // Die Regel ist NICHT geraten, sondern aus dfaAusmassZeilen() abgelesen:
+ // dort setzt genau EINE Zeile teil:true, naemlich "Bleilappen"; alle
+ // uebrigen (Zuschnitte, Laengen) sind das Ausmass selbst. Damit dieselbe
+ // Regel wie bei Kamineinfassung und Einfassung rund.
+ dachfenstereinfassung:b=>b==="Bleilappen",
  einfassung_rund:      b=>b==="Bleilappen",
  anschlussblech:       b=>b==="Bleilappen"||/ \(eigenes Material\)$/.test(b),
  // Diese fuenf rechnen nur Masse und Zaehlungen - dort ist der Zuschnitt
@@ -190,7 +197,7 @@ const PMAT_TEIL_RUECKFALL={
  skizze_foto:          ()=>false
 };
 // true/false wenn der Typ bekannt ist, sonst undefined - ein kuenftiger
-// dreizehnter Typ wird nicht geraten, sondern bleibt unbekannt.
+// vierzehnter Typ wird nicht geraten, sondern bleibt unbekannt.
 function pmatTeilRueckfall(type,bezeichnung){
  const f=PMAT_TEIL_RUECKFALL[String(type||"")];
  if(typeof f!=="function")return undefined;

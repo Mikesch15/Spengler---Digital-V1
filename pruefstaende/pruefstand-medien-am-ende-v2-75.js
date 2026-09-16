@@ -25,10 +25,16 @@ const sichtbar=page=>page.evaluate(()=>{
  return {da:true,hidden:e.hidden,display:st.display,hoehe:Math.round(r.height),
          sichtbar:st.display!=="none"&&r.height>0};
 });
+// v3.131: dachfenstereinfassung ist seit v3.45 die 13. Art und fuehrt
+// ebenfalls ueber Register. Die App hatte sie in
+// MEAS_MEDIEN_LETZTES_REGISTER von Anfang an; nur DIESE Liste hier war noch
+// die alte mit elf Register-Arten - daher schlug "jede Register-Art steht in
+// MEAS_MEDIEN_LETZTES_REGISTER" fehl (12 !== 11). Der Fehler lag im
+// Pruefstand, nicht in der App.
 const alleArten=["skizze_foto","einlaufblech_gerade","rinne_halbrund","einlaufblech_konisch",
  "freies_profil","mauerabdeckung","lukarne","anschlussblech","einfassung_rund","kehle","rinne",
- "kamineinfassung"];
-// Bis v3.01 stand hier fuer acht der elf Arten faelschlich ebaSetzeSchritt -
+ "kamineinfassung","dachfenstereinfassung"];
+// Bis v3.01 stand hier fuer acht der damals elf Arten faelschlich ebaSetzeSchritt -
 // das Blaettern lief dadurch ins Leere und Abschnitt B ging fuer sie trivial
 // durch. Jetzt eine vollstaendige Tabelle je Art.
 const REGISTER_ARTEN=[
@@ -42,7 +48,8 @@ const REGISTER_ARTEN=[
  {typ:"kamineinfassung",     setz:"kamaSetzeSchritt", knopf:"#kam_weiter"},
  {typ:"einfassung_rund",     setz:"einfaSetzeSchritt",knopf:"#einfa_weiter"},
  {typ:"rinne",               setz:"rpaSetzeSchritt",  knopf:"#rpa_weiter"},
- {typ:"anschlussblech",      setz:"anbaSetzeSchritt", knopf:"#anba_weiter"}];
+ {typ:"anschlussblech",      setz:"anbaSetzeSchritt", knopf:"#anba_weiter"},
+ {typ:"dachfenstereinfassung",setz:"dfaSetzeSchritt",  knopf:"#dfa_weiter"}];
 const MIT_REGISTERN=REGISTER_ARTEN.map(a=>a.typ);
 
 (async()=>{

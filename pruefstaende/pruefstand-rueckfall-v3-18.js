@@ -172,10 +172,14 @@ const vorbereiten=async(page,aufnahmen,resv)=>{
  const zsU=await page.evaluate(()=>resvBedarfZusatz());
  p(/ältere/.test(zsU),"der Text sagt warum",zsU);
 
- console.log("\nE · Der Rueckfall deckt alle zwoelf Typen ab");
+ // v3.131: seit v3.45 gibt es die Dachfenstereinfassung als 13. Art. Die
+ // Zahl steht hier bewusst als feste Erwartung und nicht als
+ // "was die App gerade sagt" - genau so ist aufgefallen, dass die Tabelle
+ // PMAT_TEIL_RUECKFALL beim Einbau der neuen Art nicht nachgezogen wurde.
+ console.log("\nE · Der Rueckfall deckt alle dreizehn Typen ab");
  const tab=await page.evaluate(()=>Object.keys(PMAT_TEIL_RUECKFALL));
  const ARTEN=await page.evaluate(()=>Object.keys(MEAS_TYPE_LABELS));
- p(ARTEN.length===12,"die App kennt zwoelf Arten",ARTEN.length);
+ p(ARTEN.length===13,"die App kennt dreizehn Arten",ARTEN.length);
  const fehlend=ARTEN.filter(a=>tab.indexOf(a)<0);
  p(fehlend.length===0,"jede Art hat eine Regel",fehlend);
  const zuviel=tab.filter(a=>ARTEN.indexOf(a)<0);
@@ -226,6 +230,35 @@ const vorbereiten=async(page,aufnahmen,resv)=>{
  p(mad&&mad.some(x=>x.bez==="Boden"&&x.teil===true),"mit dem Boden als Teil",mad);
  p(mad&&mad.every(x=>x.teil===x.rueck),
    "jede Zeile: Rueckfall === teil",(mad||[]).filter(x=>x.teil!==x.rueck));
+
+ // v3.131: Dachfenstereinfassung (js/66). Die Regel wurde NICHT erraten,
+ // sondern hier live gegen das Modul gemessen: dfaAusmassZeilen() setzt genau
+ // bei "Bleilappen" teil:true. Ohne diese Messung waere die neue Zeile in
+ // PMAT_TEIL_RUECKFALL nur eine Behauptung.
+ const dfa=await page.evaluate(()=>{
+  if(typeof dfaAusmassZeilen!=="function"||typeof dfaLeer!=="function")return null;
+  dfaA=dfaLeer();
+  dfaA.material=2; dfaA.lattenabstand="330"; dfaA.getrennt=false;
+  dfaA.a={l:"250",r:"250"}; dfaA.d={l:"200",r:"200"};
+  dfaA.b={l:"800",r:"800"}; dfaA.c={l:"400",r:"400"};
+  dfaA.f={l:"100",r:"100"}; dfaA.g={l:"100",r:"100"};
+  dfaA.ueberlappung="50"; dfaA.saumVorne="15"; dfaA.e="35"; dfaA.eUmschlag="15";
+  dfaA.anreiff="20"; dfaA.anreiffUmschlag="15";
+  dfaA.umschlagVorne="15"; dfaA.umschlagSeite="15";
+  dfaA.breiteOben="700"; dfaA.breiteUnten="700";
+  dfaA.breiteVorne="700"; dfaA.breiteHinten="700";
+  dfaA.aufVorne="80"; dfaA.aufHinten="80";
+  dfaA.randAbstand="30"; dfaA.randStrich="30";
+  return dfaAusmassZeilen().map(z=>({bez:z.bezeichnung,teil:z.teil,
+    rueck:pmatTeilRueckfall("dachfenstereinfassung",z.bezeichnung)}));
+ });
+ p(dfa&&dfa.length>0,"Dachfenstereinfassung liefert Zeilen",dfa&&dfa.length);
+ p(dfa&&dfa.some(x=>x.bez==="Bleilappen"&&x.teil===true),
+   "mit den Bleilappen als Teil - der Fall, den die Regel abdecken muss",dfa);
+ p(dfa&&dfa.some(x=>x.teil===false),
+   "und mit Zeilen, die KEIN Teil sind - sonst wuerde eine Regel ()=>true genauso passen",dfa);
+ p(dfa&&dfa.every(x=>x.teil===x.rueck),
+   "jede Zeile: Rueckfall === teil",(dfa||[]).filter(x=>x.teil!==x.rueck));
 
  // Ort-/Seitenbleche ueber ihre Formularfelder (kein eigener Zustand).
  const anbL=await page.evaluate(()=>{
