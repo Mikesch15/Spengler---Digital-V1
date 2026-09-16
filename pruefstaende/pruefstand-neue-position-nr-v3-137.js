@@ -19,6 +19,14 @@
 // Die Attrappe setzt die Eindeutigkeitsregel WIRKLICH durch - ohne das
 // wuerde der Pruefstand nichts beweisen.
 //
+// NACHTRAG v3.138: Seither oeffnet der Knopf den gemeinsamen Anlege-Dialog,
+// statt direkt zu schreiben (siehe pruefstand-gemeinsamer-dialog-v3-138.js).
+// Der direkte Weg lebt weiter als RUECKFALL, wenn die Lagerverwaltung nicht
+// geladen ist - genau der wird hier geprueft, und zwar unveraendert scharf:
+// die Erwartungen sind nicht abgeschwaecht, sondern auf den Rueckfall
+// gezogen. Die urspruengliche Zusicherung "kein fester Text" gilt fuer
+// beide Wege und steht weiterhin.
+//
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-neue-position-nr-v3-137.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
@@ -63,6 +71,13 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  p(fehler.length===0,"die App laedt ohne JavaScript-Fehler",fehler.slice(0,3));
  if(fehler.length){console.log("\n=== Abbruch ===");await b.close();process.exit(1)}
 
+ // Den Rueckfall erzwingen: ohne den Dialog der Lagerverwaltung geht js/08
+ // den direkten Weg. Das ist der Fall, den dieser Pruefstand abdeckt.
+ const rueckfallErzwingen=()=>page.evaluate(()=>{
+  const m=$("lagerNeuesProduktModal");
+  if(m&&m.parentNode){ m.id="lagerNeuesProduktModal_weg"; }
+  window.lagerNeuesProduktOeffnen=undefined;
+ });
  const klick=async()=>{ await page.evaluate(()=>$("newMaterial").click()); await page.waitForTimeout(400); };
  const stand=()=>page.evaluate(()=>({gesendet:window.__db.log.slice(),
    katalog:window.__db.materials.map(m=>m.edv_nr)}));
@@ -74,8 +89,20 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  // Eine Nummer, zwei Wege: der Katalog rechnet mit derselben Funktion wie
  // die Lagerverwaltung, es gibt kein zweites Verfahren.
  p(fn.lager,"und stuetzt sich auf die Funktion der Lagerverwaltung",fn);
+ // Seit v3.138: solange es den gemeinsamen Dialog gibt, schreibt der Knopf
+ // gar nicht selbst. Das haelt fest, dass der Rueckfall wirklich nur ein
+ // Rueckfall ist und nicht der Normalweg.
+ await page.evaluate(()=>{window.__db.log=[];$("newMaterial").click()});
+ await page.waitForTimeout(400);
+ const normal=await page.evaluate(()=>({log:window.__db.log.slice(),
+   dialogOffen:$("lagerNeuesProduktModal")&&!$("lagerNeuesProduktModal").hidden}));
+ p(normal.dialogOffen,"im Normalfall oeffnet der Knopf den gemeinsamen Dialog",normal);
+ p(normal.log.length===0,
+   "GEGENPROBE: und schreibt dabei selbst nichts",normal.log);
+ await page.evaluate(()=>{ if(typeof lagerNeuesProduktSchliessen==="function")lagerNeuesProduktSchliessen(); });
 
- console.log("\nB · Vier Klicks hintereinander - der gemeldete Fall");
+ console.log("\nB · Vier Klicks hintereinander - der gemeldete Fall (Rueckfall)");
+ await rueckfallErzwingen();
  dialoge=[];
  for(let i=0;i<4;i++)await klick();
  const s=await stand();

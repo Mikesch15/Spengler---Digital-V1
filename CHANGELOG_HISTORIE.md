@@ -31429,4 +31429,22 @@ gemeinsamen Dialog, fallen **13** der 29 Zusicherungen durch.
 | `js/08-katalog-blitzschutz.js` | „＋ Material hinzufügen" öffnet den gemeinsamen Dialog, alter Weg nur noch als Rückfall |
 | `js/41-hilfe.js` | Hilfetext „Material" um den Dialog und den Schalter ergänzt |
 | `pruefstaende/pruefstand-gemeinsamer-dialog-v3-138.js` | neu, 29 Zusicherungen |
+| `pruefstaende/pruefstand-neue-position-nr-v3-137.js` | auf den neuen Vertrag gezogen (siehe 205.5) |
 | `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.138 |
+
+### 205.5 Der Prüfstand aus v3.137
+
+Die volle Regression meldete genau einen echten Fehlschlag: den Prüfstand,
+den ich einen Tag zuvor für v3.137 geschrieben hatte. Er klickte
+„＋ Material hinzufügen" und erwartete danach einen Schreibvorgang – seit
+v3.138 öffnet der Knopf aber den Dialog.
+
+Das ist eine bewusste Vertragsänderung, kein Fehler. Der Prüfstand wurde
+deshalb **auf den neuen Vertrag gezogen, nicht abgeschwächt**: der direkte
+Weg lebt als Rückfall weiter (wenn die Lagerverwaltung nicht geladen ist),
+und genau der wird jetzt geprüft – mit denselben scharfen Erwartungen wie
+vorher. Dazu kamen zwei neue Zusicherungen, die festhalten, dass der
+Rückfall wirklich nur ein Rückfall ist: im Normalfall öffnet der Knopf den
+gemeinsamen Dialog und schreibt dabei selbst **nichts**.
+
+17 von 17 grün.
