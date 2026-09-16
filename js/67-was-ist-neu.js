@@ -107,7 +107,9 @@ const WIN_CHANGELOG={
   "Steht in einer Preisspalte Text statt einer Zahl (z. B. „Fr. 7.90\"), sagt die Vorschau das jetzt. Bisher wurde daraus stillschweigend 0.00 – und das fiel erst auf, wenn jemand den Preis brauchte. Eine echte Null („0.00\" oder „-\") gilt weiterhin als gewollt."],
  "3.136":["Lagerverwaltung, neues Produkt (auch nach einem Scan): sobald die Bezeichnung getippt ist, stehen die passenden Materialpositionen ganz oben in der Trefferliste – ohne zusätzlichen Klick. Ein Tipp übernimmt sie.",
   "Passt genau eine Position deutlich am besten, steht „✓ Vorschlag der App\" daneben. Passen mehrere ähnlich gut, sagt die App das ausdrücklich statt sich festzulegen. Passt nichts, behauptet sie nichts. Vorgewählt wird nie etwas – ein Tippfehler soll keinen Bestand auf die falsche Position buchen.",
-  "Der ganze Katalog bleibt darunter erreichbar, und wer selbst sucht, hat Vorrang: während getippt wird, tritt der Vorschlag zurück."]
+  "Der ganze Katalog bleibt darunter erreichbar, und wer selbst sucht, hat Vorrang: während getippt wird, tritt der Vorschlag zurück."],
+ "3.137":["Einstellungen → Material: „＋ Material hinzufügen\" brach ab dem zweiten Klick mit einer Datenbankmeldung ab („duplicate key value violates unique constraint\"). Der Knopf trug die EDV-Nr. als festen Text ein – beim zweiten Mal war sie schon vergeben.",
+  "Die Nummer wird jetzt berechnet, mit derselben Funktion wie in der Lagerverwaltung: die nächste freie Nummer im eigenen Kreis (999.xx), die Sie danach überschreiben können. Sollte eine Nummer im selben Augenblick von jemand anderem belegt werden, rechnet die App neu und meldet erst dann – in verständlichen Worten statt mit dem rohen Datenbanktext."]
 };
 
 function winVersionVergleich(a,b){

@@ -31294,3 +31294,69 @@ grün und scheitern nur auf dem Runner.
 | `pruefstaende/pruefstand-position-vorschlag-v3-136.js` | neu, 26 Zusicherungen |
 | 10 × `pruefstaende/pruefstand-*.js` | fest verdrahteter Repository-Pfad → `process.cwd()` |
 | `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.136 |
+
+---
+
+## 204. v3.137 – „＋ Material hinzufügen" brach mit einem Datenbankfehler ab
+
+### 204.1 Der Befund
+
+Gemeldet mit Bildschirmfoto:
+
+```
+Fehler: duplicate key value violates unique constraint "materials_edv_nr_key"
+```
+
+Ursache in `js/08-katalog-blitzschutz.js`: der Knopf trug die EDV-Nr. als
+**festen Text** ein.
+
+```js
+sb.from("materials").insert({edv_nr:"Neue Nr.", name:"Neues Material", …})
+```
+
+Beim ersten Mal ging das gut. Beim zweiten Mal war `"Neue Nr."` bereits
+vergeben, und auf `materials.edv_nr` liegt ein `UNIQUE` – die Datenbank brach
+ab, und der Anwender bekam den rohen Postgres-Text vorgesetzt.
+
+Bemerkenswert: der Knopf **direkt darüber im selben File** (＋ Funktion
+hinzufügen) macht es seit je richtig und zählt hoch, bis ein freier Name
+gefunden ist – mit einem Kommentar, der genau diesen Fall beschreibt
+(„automatisch durchnummerieren statt mit einem Datenbankfehler
+abzubrechen"). Beim Material wurde es nie nachgezogen.
+
+### 204.2 Was geändert wurde
+
+Die Nummer wird **berechnet, nicht gesetzt**. Neue Funktion
+`katalogNaechsteFreieEdvNr()` gibt die nächste freie Nummer im eigenen Kreis
+zurück (`999.xx`) und stützt sich dafür auf `lagerNaechsteFreieEdvNr()` aus
+`js/68` – dieselbe Funktion und dieselbe Konvention wie beim Anlegen einer
+Position aus der Lagerverwaltung. Eine Nummer, zwei Wege, kein zweites
+Verfahren. Ein Rückfall auf `settings.materials` greift, falls die
+Lagerverwaltung nicht geladen ist (eigenes Recht).
+
+Zwischen Rechnen und Schreiben kann jemand anders dieselbe Nummer belegen.
+Deshalb zwei Anläufe: beim zweiten wird mit frisch geladenem Stand neu
+gerechnet. Erst wenn auch das scheitert, sieht der Anwender eine Meldung –
+und zwar „Diese EDV-Nr. ist bereits vergeben. Bitte noch einmal versuchen."
+statt des Datenbanktexts. Der Knopf ist während des Schreibens gesperrt.
+
+### 204.3 Nachweis
+
+Neuer Prüfstand `pruefstand-neue-position-nr-v3-137.js` (15 Zusicherungen,
+davon 5 Gegenproben). Die Attrappe setzt die Eindeutigkeitsregel **wirklich**
+durch – ohne das wäre der Prüfstand ohne Aussage. Geprüft wird der gemeldete
+Fall selbst: vier Klicks hintereinander ergeben vier Positionen und **keine**
+Meldung. Die Gegenproben halten fest, dass jede gesendete Nummer verschieden
+ist, dass der feste Text `"Neue Nr."` nicht mehr vorkommt, und dass der rohe
+Postgres-Text dem Anwender nicht mehr vorgelegt wird.
+
+Gegenprobe des Prüfstands: wird die Nummer wieder fest auf `"Neue Nr."`
+gesetzt, fallen **5** der 15 Zusicherungen durch.
+
+### 204.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/08-katalog-blitzschutz.js` | `katalogNaechsteFreieEdvNr()`, berechnete Nummer, zweiter Anlauf, verständliche Meldung, Knopf gesperrt während des Schreibens |
+| `pruefstaende/pruefstand-neue-position-nr-v3-137.js` | neu, 15 Zusicherungen |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.137 |
