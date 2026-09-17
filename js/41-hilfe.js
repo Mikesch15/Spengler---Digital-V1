@@ -579,6 +579,10 @@ in der Massaufnahme, im Rapport oder unter „Dateien/Fotos".</p>
 mit Firmenkopf, Projekt und Auftraggeber, und unter jedem Bild wieder die Herkunft.
 Das ist das Blatt, das der Kunde nach der Sanierung bekommt oder das bei einer
 Reklamation auf den Tisch kommt.</p>
+<p>Auf eine A4-Seite kommen <b>vier Bilder</b> (zwei Spalten, zwei Reihen), auf die
+Folgeseiten ohne Briefkopf <b>sechs</b>. Jede Kachel ist gleich gross, egal ob das Foto
+hoch oder quer aufgenommen wurde – es wird nichts abgeschnitten, hochkant aufgenommene
+Bilder bekommen seitlich Luft.</p>
 <p>Der Druck wartet, bis wirklich jedes Bild geladen ist – bei vielen Fotos dauert
 das einen Moment. Liesse sich ein Bild nicht laden, steht an seiner Stelle ein
 Platzhalter mit der Herkunft, und der Ausdruck sagt oben, wie viele es betrifft:

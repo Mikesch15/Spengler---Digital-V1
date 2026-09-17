@@ -128,7 +128,9 @@ const WIN_CHANGELOG={
   "Die Firmengrenze selbst ist unverändert: welche Daten Sie sehen, entscheidet weiterhin allein die Datenbank."],
  "3.144":["Der Abschnitt „📷 Alle Fotos\" hat einen Knopf „🖨️ Fotodokumentation\" bekommen: alle Bilder des Objekts auf Papier oder als PDF – mit Firmenkopf, Projekt und Auftraggeber, und unter jedem Bild wieder die Herkunft.",
   "Gedacht als das Blatt, das der Kunde nach der Sanierung bekommt oder das bei einer Reklamation auf den Tisch kommt. Gedruckt wird genau das, was der Abschnitt zeigt.",
-  "Der Druck wartet, bis jedes Bild wirklich geladen ist – sonst blieben auf dem Papier leere Kästen. Bei vielen Fotos dauert das einen Moment; das Fenster sagt so lange, dass es vorbereitet wird."]
+  "Der Druck wartet, bis jedes Bild wirklich geladen ist – sonst blieben auf dem Papier leere Kästen. Bei vielen Fotos dauert das einen Moment; das Fenster sagt so lange, dass es vorbereitet wird."],
+ "3.145":["Die Fotodokumentation nutzt das Blatt jetzt richtig aus: vier Bilder auf der ersten A4-Seite (zwei Spalten, zwei Reihen), sechs auf jeder Folgeseite ohne Briefkopf. Vorher bestimmte das Bildformat die Höhe – ein hochkant aufgenommenes Foto riss die Reihe auseinander und es passten oft nur zwei aufs Blatt.",
+  "Jede Kachel ist jetzt gleich gross, egal ob hoch, quer oder quadratisch aufgenommen. Abgeschnitten wird nichts: ein Hochformat bekommt seitlich Luft, statt die Reihe zu sprengen."]
 };
 
 function winVersionVergleich(a,b){

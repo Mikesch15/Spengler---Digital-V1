@@ -862,14 +862,36 @@ $("cockpitFotosBody").addEventListener("click",e=>{
 // Briefkopf und Fusszeile kommen aus pdfKopfHtml()/pdfFooterHtml()
 // (js/16), damit der Ausdruck aussieht wie jeder andere der App.
 
+// Das Raster ist auf A4 gerechnet, nicht geschaetzt. Bei den Seitenraendern
+// aus PDF_LAYOUT_CSS (@page margin 14mm/14mm/17mm) bleibt ein Satzspiegel von
+// 182 x 266 mm. Zwei Spalten zu 88 mm plus 4 mm Steg ergeben 180 mm Breite,
+// und ein Bildrahmen von 74 mm plus Beschriftung und Steg ergibt rund 85 mm
+// Zeilenhoehe:
+//   erste Seite  - Briefkopf ~64 mm + 2 Reihen  = 4 Bilder
+//   Folgeseiten  - 3 Reihen zu 85 mm = 255 mm   = 6 Bilder
+// Nachgemessen im echten Chromium, siehe pruefstand-fotodokumentation-v3-144.
+//
+// inline-block statt flex/grid: beim SEITENUMBRUCH ist das die verlaessliche
+// Bauweise. Flex- und Grid-Container zerlegen Druckmaschinen unterschiedlich,
+// eine Zeile aus inline-Bloecken bricht ueberall gleich.
+//
+// Feste Rahmenhoehe mit object-fit:contain - so ist jede Kachel gleich gross,
+// egal ob Hoch- oder Querformat, und es wird nichts abgeschnitten. Ein
+// hochkant aufgenommenes Foto bekommt links und rechts Luft, statt die Reihe
+// zu sprengen.
 const FOTODOKU_CSS=`
- .fd-raster{display:flex;flex-wrap:wrap;gap:4mm}
- .fd-bild{width:calc(50% - 2mm);page-break-inside:avoid;break-inside:avoid}
- .fd-bild img{width:100%;height:auto;max-height:95mm;object-fit:contain;
-   border:0.25pt solid #c9d2d8;background:#fff;display:block}
- .fd-fehlt{display:flex;align-items:center;justify-content:center;height:60mm;
-   border:0.25pt dashed #c9d2d8;color:#77858f;font-size:8pt;text-align:center;padding:4mm}
- .fd-titel{font-size:8pt;font-weight:700;margin-top:1mm;word-break:break-word}
+ .fd-raster{margin-top:3mm;font-size:0}
+ .fd-bild{display:inline-block;vertical-align:top;width:88mm;margin:0 4mm 4mm 0;
+   font-size:8pt;page-break-inside:avoid;break-inside:avoid}
+ .fd-bild:nth-child(2n){margin-right:0}
+ .fd-rahmen{height:74mm;border:0.25pt solid #c9d2d8;background:#fff;
+   display:flex;align-items:center;justify-content:center;overflow:hidden}
+ .fd-bild img{max-width:100%;max-height:100%;width:auto;height:auto;display:block}
+ .fd-fehlt{color:#77858f;font-size:8pt;text-align:center;padding:4mm;
+   border:0.25pt dashed #c9d2d8;width:100%;height:100%;
+   display:flex;align-items:center;justify-content:center}
+ .fd-titel{font-size:7.5pt;font-weight:700;line-height:1.25;margin-top:1.2mm;
+   min-height:7mm;word-break:break-word}
 `;
 
 // Baut das Dokument. bilder = [{pfad,label,url}] - url ist null, wenn die
@@ -887,10 +909,10 @@ function fotoDokuDokument(projekt,bilder,logoSrc){
     ?`${currentProfile.first_name} ${currentProfile.last_name}`:"",
   logoSrc
  }):"";
- const kacheln=bilder.map(b=>`<div class="fd-bild">`
+ const kacheln=bilder.map(b=>`<div class="fd-bild"><div class="fd-rahmen">`
   +(b.url?`<img src="${esc(b.url)}" alt="${esc(b.label)}">`
          :`<div class="fd-fehlt">Bild konnte nicht geladen werden</div>`)
-  +`<div class="fd-titel">${esc(b.label)}</div></div>`).join("");
+  +`</div><div class="fd-titel">${esc(b.label)}</div></div>`).join("");
  const fehlend=bilder.filter(b=>!b.url).length;
  return kopf+`<div class="eb-section-head">Fotos und Skizzen</div>
 <div class="fd-raster">${kacheln}</div>

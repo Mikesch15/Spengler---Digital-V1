@@ -9,7 +9,10 @@
 //   - und es wird ERST gedruckt, wenn jedes Bild geladen ist. Das ist der
 //     Kern: wird zu frueh gedruckt, stehen auf dem Papier leere Kaesten.
 //   - ein Bild ohne signierte Adresse verschwindet nicht still, sondern
-//     wird als Platzhalter ausgewiesen und im Text gezaehlt.
+//     wird als Platzhalter ausgewiesen und im Text gezaehlt,
+//   - und das Raster passt auf A4: zwei Spalten, gleich hohe Reihen
+//     unabhaengig vom Bildformat, MINDESTENS vier Bilder je Seite. Gemessen
+//     im echten Chromium gegen den Satzspiegel, nicht geschaetzt.
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-fotodokumentation-v3-144.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
@@ -91,7 +94,15 @@ const MESS=[
 ];
 const REPS=[{id:31,project_id:3,date:"2026-03-14",order_no:"A-77",photo_paths:["rp/r1.jpg"]}];
 
-const oeffnen=async(page,bestueckt)=>{
+// anzahl (v3.144, Abschnitt I): statt der vier festen Bilder eine
+// Massaufnahme mit beliebig vielen - fuer die Seitenaufteilung braucht es
+// mehr als eine Seite voll.
+const oeffnen=async(page,bestueckt,anzahl)=>{
+ const mess=anzahl
+  ? [Object.assign({},MESS[0],{photo_paths:Array.from({length:anzahl},(_,i)=>`m/f${i+1}.jpg`),
+                               sketch_paths:[]})]
+  : MESS;
+ const reps=anzahl?[]:REPS;
  await page.evaluate(([best,MIKE,MESS,REPS])=>{
   currentProfile={id:MIKE,role:"admin",first_name:"Mike",last_name:"Ledermann"};
   allProfiles=[{id:MIKE,first_name:"Mike",last_name:"Ledermann"}];
@@ -106,7 +117,7 @@ const oeffnen=async(page,bestueckt)=>{
   $("appRoot").hidden=false;$("authScreen").hidden=true;
   window.__druck={fenster:[],blockieren:false};
   window.__signiert=[];
- },[bestueckt,MIKE,MESS,REPS]);
+ },[bestueckt,MIKE,mess,reps]);
  await page.evaluate(()=>openProjectCockpit(3));
  await page.waitForTimeout(300);
 };
@@ -222,6 +233,81 @@ const oeffnen=async(page,bestueckt)=>{
   zahl:$("cockpitFotosCount").textContent
  }));
  p(wand.kacheln===4&&wand.zahl==="4","sie zeigt weiterhin ihre vier Bilder",wand);
+
+ console.log("\nI · das Raster auf A4: mindestens vier Bilder je Seite");
+ // Gemessen wird das ECHTE Dokument, das die App eben gebaut hat - nicht ein
+ // nachgebautes. Es wird in einer zweiten Seite gerendert, die genau so breit
+ // ist wie der Satzspiegel von A4 bei den Seitenraendern aus PDF_LAYOUT_CSS
+ // (@page margin 14mm/14mm/17mm -> 182 x 266 mm).
+ const MM=96/25.4, SATZ_B=182, SATZ_H=266;
+ await oeffnen(page,true,12);                 // zwoelf Bilder, gemischte Formate
+ await page.evaluate(()=>{window.__druck={fenster:[],blockieren:false};
+   $("cockpitFotosDruck").click()});
+ await page.waitForTimeout(900);
+ const dokument=await page.evaluate(()=>window.__druck.fenster[0].geschrieben);
+ p(/fd-raster/.test(dokument),"das Dokument steht und traegt das Raster");
+
+ const blatt=await browser.newPage({viewport:{width:Math.round(SATZ_B*MM),height:1000}});
+ // Die Bilder kommen als Quer-, Hoch- und Quadratformat zurueck. Genau das
+ // zerreisst ein Raster, dessen Kachelhoehe nicht fest ist.
+ await blatt.route("**://beispiel.test/**",r=>{
+  const n=(r.request().url().match(/(\d+)/)||[0,"0"])[1];
+  const f=[[1600,1200],[1200,1600],[1400,1400]][Number(n)%3];
+  r.fulfill({status:200,contentType:"image/svg+xml",
+   body:`<svg xmlns="http://www.w3.org/2000/svg" width="${f[0]}" height="${f[1]}">`
+       +`<rect width="${f[0]}" height="${f[1]}" fill="#8899aa"/></svg>`});
+ });
+ await blatt.emulateMedia({media:"print"});
+ await blatt.setContent(dokument,{waitUntil:"networkidle"});
+ const raster=await blatt.evaluate(([MM,SATZ_H])=>{
+  const k=[...document.querySelectorAll(".fd-bild")].map(e=>{
+   const r=e.getBoundingClientRect();
+   return {oben:r.top+window.scrollY,unten:r.bottom+window.scrollY,breite:r.width};
+  });
+  // Reihen bilden (inline-Bloecke brechen zeilenweise)
+  const reihen=[];
+  k.forEach(x=>{
+   const r=reihen[reihen.length-1];
+   if(r&&Math.abs(r.oben-x.oben)<2){r.n++;r.unten=Math.max(r.unten,x.unten)}
+   else reihen.push({oben:x.oben,unten:x.unten,n:1});
+  });
+  // Seitenumbruch nachbilden: eine Kachel traegt break-inside:avoid und
+  // rutscht als Ganzes auf die naechste Seite.
+  const hoehe=SATZ_H*MM;
+  let versatz=0, seite=1; const proSeite={};
+  reihen.forEach(r=>{
+   if((r.unten-versatz)>hoehe*seite){seite++;versatz=r.oben-hoehe*(seite-1)}
+   proSeite[seite]=(proSeite[seite]||0)+r.n;
+  });
+  const rahmen=[...document.querySelectorAll(".fd-rahmen")]
+    .map(e=>+(e.getBoundingClientRect().height/MM).toFixed(1));
+  return {proSeite, reihen:reihen.map(r=>r.n), anzahl:k.length,
+    breiteMM:+(k[0].breite/MM).toFixed(1),
+    rahmen:[...new Set(rahmen)],
+    reihenHoehen:[...new Set(reihen.map(r=>+((r.unten-r.oben)/MM).toFixed(1)))],
+    kopfMM:+(document.querySelector(".fd-raster").getBoundingClientRect().top/MM).toFixed(1)};
+ },[MM,SATZ_H]);
+
+ p(raster.anzahl===12,"zwoelf Kacheln im Dokument",raster.anzahl);
+ p(raster.breiteMM*2+4<=SATZ_B,
+   `zwei Spalten passen nebeneinander (${raster.breiteMM}mm x2 + 4mm Steg <= ${SATZ_B}mm)`,
+   raster.breiteMM);
+ p(raster.reihen.every(n=>n<=2)&&raster.reihen.filter(n=>n===2).length>=5,
+   "es sind wirklich zwei Spalten, nicht eine oder drei",raster.reihen);
+ p(raster.rahmen.length===1,
+   "jeder Bildrahmen ist gleich hoch - Hoch-, Quer- und Quadratformat gemischt",raster.rahmen);
+ p(raster.reihenHoehen.length===1,
+   "und damit ist jede Reihe gleich hoch (kein Treppenmuster)",raster.reihenHoehen);
+ const seiten=Object.keys(raster.proSeite).map(Number).sort((a,b)=>a-b);
+ const voll=seiten.filter(n=>n<seiten[seiten.length-1]);   // letzte Seite ist der Rest
+ p(voll.length>0&&voll.every(n=>raster.proSeite[n]>=4),
+   "auf jeder vollen Seite stehen MINDESTENS vier Bilder",raster.proSeite);
+ p(raster.proSeite[1]>=4,
+   "auch auf der ersten Seite - trotz Briefkopf",
+   {seite1:raster.proSeite[1],kopfMM:raster.kopfMM});
+ p(seiten.slice(1,-1).every(n=>raster.proSeite[n]>=6),
+   "auf den Folgeseiten ohne Briefkopf sind es sechs",raster.proSeite);
+ await blatt.close();
 
  p(jsFehler.length===0,"keine JavaScript-Fehler",jsFehler);
  console.log(`\nErgebnis: ${ok} ok, ${fail} fehlgeschlagen`);
