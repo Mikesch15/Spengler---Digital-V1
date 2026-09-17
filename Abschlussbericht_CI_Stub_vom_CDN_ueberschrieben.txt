@@ -100,11 +100,22 @@ ERGEBNIS LOKAL
   werkstatt-liste-v3-30      59 von 59
   werkstatt-zuschnitt-v3-20  59 von 59
 
-OFFEN: DER ECHTE NACHWEIS
--------------------------
-Ob die CI damit gruen wird, entscheidet der Runner selbst - er hat
-Internet, diese Umgebung nicht. Der naechste Lauf auf GitHub Actions ist
-der Beleg; vorher wird es NICHT als behoben behauptet.
+NACHWEIS AUF DEM RUNNER - BESTAETIGT
+-----------------------------------
+Der Beleg konnte nur dort entstehen, wo es Internet gibt, also nicht in
+dieser Umgebung. Lauf Nr. 108 auf GitHub Actions, Commit 242cb79:
 
-Uebrig bleibt dann der eine seit laengerem bekannte Fehlschlag
-(pruefstand-hilfe-v3-03.js, die Anleitung steht auf v3.44).
+  Schritt "Alle Pruefstaende laufen lassen"  ->  success
+  Job "pruefstaende"                         ->  success
+  https://github.com/Mikesch15/Spengler---Digital-V1/actions/runs/35269943013
+
+Der Schritt bricht ab, sobald eine Abweichung auftaucht, die nicht in
+bekannte-fehlschlaege.txt steht. Dass er durchlaeuft, heisst: keine der
+neun faellt mehr durch.
+
+Damit ist die CI zum ersten Mal seit ihrer Einfuehrung gruen. Uebrig
+bleibt der eine seit laengerem bekannte Fehlschlag
+(pruefstand-hilfe-v3-03.js, die Anleitung steht auf v3.44) - er ist als
+bekannt hinterlegt und laesst den Lauf bewusst nicht scheitern.
+
+Volle Regression lokal vor dem Push: 83 von 84, ebenfalls nur dieser eine.
