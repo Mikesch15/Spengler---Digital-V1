@@ -125,7 +125,10 @@ const WIN_CHANGELOG={
   "Es ist eine reine Übersicht: hinzugefügt und gelöscht werden Fotos weiterhin dort, wo sie hingehören. Die Vorschauen werden erst geladen, wenn der Abschnitt aufgeklappt ist."],
  "3.143":["Die EDV-Nr. im Materialkatalog und die Artikel-Nr. beim Blitzschutz sind jetzt JE FIRMA eindeutig. Bisher galten sie firmenübergreifend: sobald eine Firma eine Nummer benutzte, war sie für jede andere Firma für immer gesperrt – obwohl die den fremden Katalog gar nicht sehen kann.",
   "Für Sie heisst das: beim Anlegen einer Materialposition oder beim Excel-Import kann der Fehler „duplicate key … materials_edv_nr_key\" nicht mehr aus dem Nichts auftauchen. Innerhalb Ihrer eigenen Firma bleibt jede Nummer weiterhin nur einmal vergeben – daran ändert sich nichts.",
-  "Die Firmengrenze selbst ist unverändert: welche Daten Sie sehen, entscheidet weiterhin allein die Datenbank."]
+  "Die Firmengrenze selbst ist unverändert: welche Daten Sie sehen, entscheidet weiterhin allein die Datenbank."],
+ "3.144":["Der Abschnitt „📷 Alle Fotos\" hat einen Knopf „🖨️ Fotodokumentation\" bekommen: alle Bilder des Objekts auf Papier oder als PDF – mit Firmenkopf, Projekt und Auftraggeber, und unter jedem Bild wieder die Herkunft.",
+  "Gedacht als das Blatt, das der Kunde nach der Sanierung bekommt oder das bei einer Reklamation auf den Tisch kommt. Gedruckt wird genau das, was der Abschnitt zeigt.",
+  "Der Druck wartet, bis jedes Bild wirklich geladen ist – sonst blieben auf dem Papier leere Kästen. Bei vielen Fotos dauert das einen Moment; das Fenster sagt so lange, dass es vorbereitet wird."]
 };
 
 function winVersionVergleich(a,b){

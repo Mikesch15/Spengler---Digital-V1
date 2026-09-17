@@ -808,6 +808,10 @@ function cockpitFotosRendern(){
  const bilder=cockpitFotoListe();
  const zahl=$("cockpitFotosCount");
  if(zahl)zahl.textContent=String(bilder.length);
+ // v3.144: Der Druckknopf erscheint nur, wenn es wirklich etwas zu drucken
+ // gibt - ein Knopf, der nur eine Absage zeigt, ist keiner.
+ const druck=$("cockpitFotosDruck");
+ if(druck)druck.hidden=!bilder.length;
  box.dataset.aufgeloest="";
  if(!bilder.length){
   box.innerHTML='<div class="empty">📷 Noch keine Fotos in diesem Projekt.'
@@ -846,6 +850,131 @@ function cockpitFotosThumbs(){
 $("cockpitFotosBody").addEventListener("click",e=>{
  medienGrossOeffnen(e.target.closest("[data-medien-gross]"));
 });
+
+// ---- Fotodokumentation drucken (v3.144) -------------------------
+// Was der Betrieb nach der Sanierung dem Kunden mitgibt und bei einer
+// Reklamation auf den Tisch legt: jedes Bild des Objekts auf Papier, mit
+// der Angabe, woher es stammt.
+//
+// Gedruckt wird GENAU das, was die Fotowand darueber zeigt - dieselbe
+// Funktion cockpitFotoListe() liefert beides. Es gibt keine zweite
+// Sammelstelle, die irgendwann anderes zeigen koennte als die Wand.
+// Briefkopf und Fusszeile kommen aus pdfKopfHtml()/pdfFooterHtml()
+// (js/16), damit der Ausdruck aussieht wie jeder andere der App.
+
+const FOTODOKU_CSS=`
+ .fd-raster{display:flex;flex-wrap:wrap;gap:4mm}
+ .fd-bild{width:calc(50% - 2mm);page-break-inside:avoid;break-inside:avoid}
+ .fd-bild img{width:100%;height:auto;max-height:95mm;object-fit:contain;
+   border:0.25pt solid #c9d2d8;background:#fff;display:block}
+ .fd-fehlt{display:flex;align-items:center;justify-content:center;height:60mm;
+   border:0.25pt dashed #c9d2d8;color:#77858f;font-size:8pt;text-align:center;padding:4mm}
+ .fd-titel{font-size:8pt;font-weight:700;margin-top:1mm;word-break:break-word}
+`;
+
+// Baut das Dokument. bilder = [{pfad,label,url}] - url ist null, wenn die
+// signierte Adresse nicht zu holen war; dann kommt ein beschrifteter
+// Platzhalter statt eines stillschweigend fehlenden Bildes.
+function fotoDokuDokument(projekt,bilder,logoSrc){
+ const kopf=(typeof pdfKopfHtml==="function")?pdfKopfHtml({
+  datensatz:{project_id:projekt?projekt.id:null},
+  projekt:projekt||null,
+  bezeichnung:"",
+  dokumenttyp:"Fotodokumentation",
+  unterart:bilder.length===1?"1 Bild":bilder.length+" Bilder",
+  datum:new Date().toISOString().slice(0,10),
+  bearbeiter:(typeof currentProfile!=="undefined"&&currentProfile)
+    ?`${currentProfile.first_name} ${currentProfile.last_name}`:"",
+  logoSrc
+ }):"";
+ const kacheln=bilder.map(b=>`<div class="fd-bild">`
+  +(b.url?`<img src="${esc(b.url)}" alt="${esc(b.label)}">`
+         :`<div class="fd-fehlt">Bild konnte nicht geladen werden</div>`)
+  +`<div class="fd-titel">${esc(b.label)}</div></div>`).join("");
+ const fehlend=bilder.filter(b=>!b.url).length;
+ return kopf+`<div class="eb-section-head">Fotos und Skizzen</div>
+<div class="fd-raster">${kacheln}</div>
+<div class="note">Unter jedem Bild steht, woher es stammt: die Art und der Titel der
+Massaufnahme, das Datum des Rapports, der Dateiname. Zusammengetragen aus den
+Massaufnahmen, dem Ausmass, den Regierapporten, den Offerten und den Projektdateien
+dieses Projekts.</div>`
+ +(fehlend?`<div class="note">Achtung: ${fehlend} von ${bilder.length} Bildern konnten nicht
+geladen werden und stehen nur als Platzhalter im Ausdruck.</div>`:"");
+}
+
+async function cockpitFotosDrucken(){
+ const bilder=cockpitFotoListe();
+ if(!bilder.length){
+  alert("Für dieses Projekt sind keine Fotos gespeichert – es gibt nichts zu drucken.");
+  return;
+ }
+ // Das Fenster wird SOFORT in diesem Klick geoeffnet. Wuerde erst auf die
+ // signierten Adressen gewartet, waere die Benutzeraktion verbraucht und
+ // der Browser blockierte das Fenster (bei vielen Bildern dauert das
+ // Aufloesen spuerbar) - dasselbe Muster wie beim PDF-Dialog in js/35.
+ const win=window.open("","_blank");
+ if(!win){
+  alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");
+  return;
+ }
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8">`
+  +`<title>Fotodokumentation</title></head><body style="font:14px system-ui;padding:24px">`
+  +`Fotodokumentation wird vorbereitet – ${bilder.length} Bild(er) werden geladen…</body></html>`);
+ win.document.close();
+
+ // Alle Adressen nebeneinander holen, nicht nacheinander. Eine einzelne
+ // fehlgeschlagene laesst den Ausdruck nicht platzen, sie wird im Dokument
+ // als Platzhalter ausgewiesen (und unten gezaehlt).
+ const mitUrl=await Promise.all(bilder.map(b=>
+  Promise.resolve()
+   .then(()=>(typeof storageSignedUrl==="function")?storageSignedUrl(b.pfad):null)
+   .then(url=>Object.assign({},b,{url:url||null}))
+   .catch(()=>Object.assign({},b,{url:null}))
+ ));
+ if(win.closed)return;                 // Fenster zwischenzeitlich geschlossen
+
+ const projekt=cockpitProject();
+ let logoSrc="";
+ try{ logoSrc=(typeof storageSignedUrl==="function")?await storageSignedUrl(logoUrl):logoUrl }
+ catch(e){ logoSrc="" }
+ if(win.closed)return;
+
+ const name=(typeof pdfDateiname==="function")
+  ?pdfDateiname("Fotodokumentation",projekt?projekt.name:"",projekt?projekt.object:"")
+  :"Fotodokumentation";
+ win.document.open();
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)}</title>
+<style>
+${typeof PDF_LAYOUT_CSS!=="undefined"?PDF_LAYOUT_CSS:""}
+${FOTODOKU_CSS}
+</style></head><body>
+${fotoDokuDokument(projekt,mitUrl,logoSrc)}
+${(typeof pdfFooterHtml==="function")?pdfFooterHtml({project_id:projekt?projekt.id:null}):""}
+</body></html>`);
+ win.document.close();
+
+ // Erst drucken, wenn wirklich jedes Bild da ist. Ein window.onload allein
+ // genuegt hier nicht: bei mehreren grossen Fotos waere der Druckdialog
+ // sonst offen, bevor die Bilder stehen - und auf dem Papier blieben
+ // leere Kaesten. Das Zeitlimit sorgt dafuer, dass ein einzelnes haengendes
+ // Bild den Druck nicht auf Dauer verhindert.
+ let gedruckt=false;
+ const drucken=()=>{
+  if(gedruckt||win.closed)return;
+  gedruckt=true;
+  try{win.focus();win.print()}catch(e){}
+ };
+ const bilderImFenster=[...win.document.images];
+ let offen=bilderImFenster.length;
+ if(!offen){ drucken(); }
+ else bilderImFenster.forEach(img=>{
+  const fertig=()=>{ if(--offen<=0)drucken() };
+  if(img.complete)fertig();
+  else{ img.addEventListener("load",fertig); img.addEventListener("error",fertig); }
+ });
+ setTimeout(drucken,15000);
+}
+if($("cockpitFotosDruck"))$("cockpitFotosDruck").onclick=()=>cockpitFotosDrucken();
 
 // ---- Cockpit verlassen ------------------------------------------
 $("cockpitBack").onclick=()=>{

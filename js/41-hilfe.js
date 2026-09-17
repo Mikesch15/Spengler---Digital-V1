@@ -574,7 +574,15 @@ derselben Herkunft, sind sie durchnummeriert („Foto 2/3").</p>
 <p>Ein Tipp auf ein Bild zeigt es gross. Es ist eine reine Übersicht –
 hinzugefügt und gelöscht werden Bilder weiterhin dort, wo sie hingehören:
 in der Massaufnahme, im Rapport oder unter „Dateien/Fotos".</p>
-<p>Die Vorschauen werden erst geladen, wenn der Abschnitt aufgeklappt ist.</p>`},
+<p>Die Vorschauen werden erst geladen, wenn der Abschnitt aufgeklappt ist.</p>
+<p><b>🖨️ Fotodokumentation</b> druckt alle Bilder auf Papier bzw. als PDF –
+mit Firmenkopf, Projekt und Auftraggeber, und unter jedem Bild wieder die Herkunft.
+Das ist das Blatt, das der Kunde nach der Sanierung bekommt oder das bei einer
+Reklamation auf den Tisch kommt.</p>
+<p>Der Druck wartet, bis wirklich jedes Bild geladen ist – bei vielen Fotos dauert
+das einen Moment. Liesse sich ein Bild nicht laden, steht an seiner Stelle ein
+Platzhalter mit der Herkunft, und der Ausdruck sagt oben, wie viele es betrifft:
+es verschwindet keines stillschweigend.</p>`},
 
 "verlauf":{titel:"Änderungsverlauf",text:`
 <p>Wer hat wann was gemacht – für dieses Projekt <i>und</i> seine
