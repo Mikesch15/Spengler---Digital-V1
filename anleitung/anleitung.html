@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.44";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.146";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.44<br>
+  Version 3.146<br>
   Stand 10. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -64,7 +64,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
 <li><span class="nr">5</span>Projekte</li>
 <li><span class="nr">6</span>Das Projekt-Cockpit</li>
 <li><span class="nr">7</span>Offerte</li>
-<li><span class="nr">8</span>Massaufnahme – die zwölf Funktionen</li>
+<li><span class="nr">8</span>Massaufnahme – die dreizehn Funktionen</li>
 <li><span class="nr">9</span>Eine Massaufnahme Schritt für Schritt</li>
 <li><span class="nr">10</span>Freigeben, Rüsten, Montieren</li>
 <li><span class="nr">11</span>Der erweiterte Ablauf: Material, Zuschnitt, Werkstatt, Vorlagen</li>
@@ -149,6 +149,13 @@ der Anleitung – und die liegt auch in der App:
 <strong>Einstellungen → Allgemein → 📖 Anleitung</strong>.</div>
 <p>Die Info-Knöpfe erscheinen nicht im Ausdruck. Ein gedruckter Regierapport oder eine
 gedruckte Massaufnahme sehen aus wie immer.</p>
+<h3>Was ist neu</h3>
+<p>Nach einem Update meldet sich die App einmalig mit <span class="tasten">🆕 Was ist
+neu</span> und sagt in ein paar Sätzen, was sich geändert hat – in derselben Sprache
+wie diese Anleitung, nicht in Fachbegriffen. Wer es später noch einmal lesen will,
+findet es unter <strong>Einstellungen → Allgemein</strong>.</p>
+<div class="hin">Der Hinweis erscheint nur, wenn sich wirklich etwas geändert hat, und
+nur einmal je Version. Er lässt sich wegtippen und kommt dann nicht wieder.</div>
 
 <h2 class="seite">5 · Projekte</h2>
 <figure><img src="bilder/03-projekte.png"><figcaption>Die Projektübersicht: Schnellzugriff, Suchfeld, Statusfilter und die Projektkarten.</figcaption></figure>
@@ -217,7 +224,7 @@ Bereiche – er kann nie hinter einem zugeklappten Abschnitt verschwinden.</p>
 <table>
 <tr><th>Bereich</th><th>Inhalt</th></tr>
 <tr><td>🧾 Offerte</td><td>Nur sichtbar, wenn die Offertenfunktion für dich freigeschaltet ist (Abschnitt 7).</td></tr>
-<tr><td>📐 Massaufnahmen</td><td>Die zwölf Fachfunktionen (Abschnitt 8).</td></tr>
+<tr><td>📐 Massaufnahmen</td><td>Die dreizehn Fachfunktionen (Abschnitt 8).</td></tr>
 <tr><td>📏 Ausmass</td><td>Offerte erfassen und Blitzschutzausmass.</td></tr>
 <tr><td>📋 Regierapport</td><td>Arbeiten nach Aufwand.</td></tr>
 <tr><td>📎 Dateien/Fotos</td><td>Pläne, PDF, Fotos – höchstens 50 MB pro Datei.</td></tr>
@@ -372,13 +379,13 @@ einmal übernommene Position lässt sich im Ausmass wie gewohnt weiter
 bearbeiten (Abschnitt 15); das Ausmass-Modul selbst ist dafür unverändert
 geblieben.</div>
 
-<h2 class="seite">8 · Massaufnahme – die zwölf Funktionen</h2>
+<h2 class="seite">8 · Massaufnahme – die dreizehn Funktionen</h2>
 <figure><img src="bilder/06-massaufnahme-auswahl.png"><figcaption>Die Auswahl beim Anlegen einer Massaufnahme.</figcaption></figure>
 <table>
 <tr><th>Funktion</th><th>Wofür</th></tr>
 <tr><td>📷 Skizze/Foto</td><td>Nur Fotos und Handskizzen, ohne Rechnung.</td></tr>
 <tr><td>📐 Einlaufblech gerade</td><td>Mass A, Winkel, Stücke, Gehrung, Zuschnitt.</td></tr>
-<tr><td>🏠 Rinne Halbrund</td><td>Rinnenverlauf, Dehnungselemente, Normlängen.</td></tr>
+<tr><td>🏠 Dachrinne</td><td>Rinnenverlauf, Dehnungselemente, Normlängen.</td></tr>
 <tr><td>📐 Einlaufblech konisch</td><td>Wie gerade, mit Mass links/rechts je Stück.</td></tr>
 <tr><td>📐 Freies Profil</td><td>Beliebiges Profil aus Schenkeln und Winkeln.</td></tr>
 <tr><td>🧱 Mauerabdeckung</td><td>Verlauf, Schieber, Boden, Profil.</td></tr>
@@ -386,10 +393,11 @@ geblieben.</div>
 <tr><td>📐 Ort- und Seitenbleche</td><td>Anschlussbleche nach Deckmaterial und Art.</td></tr>
 <tr><td>⭕ Einfassung Rund</td><td>Standrohr-Einfassungen, Bleilappen.</td></tr>
 <tr><td>🧱 Kamineinfassung</td><td>Rechteckiger Kamin, sechs Zuschnitte.</td></tr>
+<tr><td>🪟 Dachfenstereinfassung</td><td>Einfassung um ein Dachfenster, mit Anschluss oben, unten und an den Seiten.</td></tr>
 <tr><td>📏 Kehle</td><td>Winkelberechnung für Kehlen an Lukarnen.</td></tr>
 <tr><td>🚰 Rinne</td><td>Zuschnittliste mit frei definierbarem Profil.</td></tr>
 </table>
-<div class="hin">Elf der zwölf Funktionen führen dich über <strong>Register</strong>
+<div class="hin">Zwölf der dreizehn Funktionen führen dich über <strong>Register</strong>
 Schritt für Schritt durch die Erfassung. „Skizze/Foto“ hat keine – dort gibt es ausser
 dem Material nichts einzugeben.</div>
 
@@ -481,7 +489,6 @@ gespeicherten Zuschnittplan; ein Blatt, das schon gedruckt ist, bleibt deshalb g
 auch wenn die Firma die Schnittfuge später ändert.</p>
 
 <h4>Was übrig bleibt</h4>
-<figure><img src="bilder/48-reste.png"><figcaption>Jeder Rest mit seiner Herkunft. Was zu klein ist, verschwindet nicht – es wird nur nicht angeboten.</figcaption></figure>
 <p>Jeder Rest steht mit seiner Herkunft da: <em>Streifen 2</em>, <em>ungenutzte
 Streifen</em> oder <em>seitlicher Rest der 1000er Rolle</em>. Aufheben lohnt sich, wenn
 <strong>beide</strong> Grenzen aus den Einstellungen erfüllt sind: die
@@ -553,7 +560,7 @@ nicht</strong> – sie sagt es und zieht keinen Rest ab.</div>
 
 <h4>Die Materialstärke der Massaufnahme</h4>
 <figure><img src="bilder/51-materialstaerke.png"><figcaption>Die Materialstärke steht direkt neben dem Material – zur Auswahl steht nur, was der Materialbestand führt.</figcaption></figure>
-<p>In <strong>jeder</strong> der zwölf Massaufnahme-Arten steht direkt unter dem
+<p>In <strong>jeder</strong> der dreizehn Massaufnahme-Arten steht direkt unter dem
 Materialfeld die <strong>Materialstärke</strong>. Zur Auswahl stehen ausschliesslich die
 Stärken, die für dieses Material im <strong>Materialbestand</strong> hinterlegt sind
 (Abschnitt 19) – die App bietet nichts an, was der Betrieb gar nicht führt, und sie
@@ -1159,6 +1166,21 @@ eingeschalteten Modulen zusätzlich, ob eine Massaufnahme Material und einen
 Zuschnittplan hat, welche Fassung freigegeben ist und wie weit die Reservierung des
 Projekts ist. Eine zweite Filterzeile filtert danach.</p>
 
+<h3>Material ab Lager buchen</h3>
+<p>Ist die Lagerverwaltung für dich freigeschaltet (Abschnitt 19), steht in der
+Massaufnahme <span class="tasten">📤 Material ab Lager ausbuchen</span>. Der Dialog
+listet, was diese Aufnahme braucht – das erfasste Material und die Halbfabrikate –,
+und du buchst es mit einem Tippen vom Lagerbestand ab.</p>
+<div class="hin">Das Blech selbst und die gerechneten Zuschnitte gehören <strong>nicht</strong>
+ins Lager. Ausgebucht wird das Zubehör: bei einer Dachrinne also Rinnenböden, Stutzen,
+Rinnenhalter, Winkel, Dehnungsstücke.</div>
+<p>Jede Buchung trägt das Projekt mit. Im Projekt-Cockpit fasst die Karte
+<span class="tasten">📦 Material ab Lager</span> zusammen, was für dieses Objekt
+verbraucht wurde, und lässt sich ausdrucken. <strong>Verbraucht</strong> heisst dabei:
+ausgebucht abzüglich Rückgaben und Korrekturen. Gezählt wird ausschliesslich, was
+diesem Projekt zugeordnet ist – Material, das ohne Projekt gebucht wurde, steht dort
+nicht.</p>
+
 <h2 class="seite">12 · Fotos und Skizzen</h2>
 <figure><img src="bilder/13-fotos-skizzen.png"><figcaption>Der Foto-Bereich – sichtbar im letzten Register.</figcaption></figure>
 <p>Jede Massaufnahme kann <strong>mehrere Fotos und mehrere Skizzen</strong> tragen.
@@ -1174,6 +1196,34 @@ welchem Register du gerade bist.</p>
 Vorher zwang ein Browser-Hinweis am Feld manche Geräte direkt in die Kamera-App, ohne
 zurück in die Galerie zu können. Betroffen waren Fotos bei Massaufnahme, Ausmass,
 Regierapport und Offerte gleichermassen.</div>
+
+<h3>Alle Fotos eines Objekts an einem Ort</h3>
+<p>Bilder eines Objekts liegen an fünf Stellen verstreut: in jeder einzelnen
+Massaufnahme, im Ausmass, im Regierapport, in der Offerte und unter „Dateien/Fotos“.
+Im Projekt-Cockpit sammelt der Abschnitt <span class="tasten">📷 Alle Fotos</span> sie
+zusammen – und unter jedem Bild steht, <strong>woher es stammt</strong>: die Art und
+der Titel der Massaufnahme, das Datum und die Auftrags-Nr. des Rapports, der
+Dateiname. Gibt es mehrere Bilder derselben Herkunft, sind sie durchnummeriert
+(„Foto 2/3“). Ein Tippen zeigt das Bild gross.</p>
+<div class="hin">Es ist eine reine Übersicht. Hinzugefügt und gelöscht werden Bilder
+weiterhin dort, wo sie hingehören – in der Massaufnahme, im Rapport oder unter
+„Dateien/Fotos“. Die Vorschauen werden erst geladen, wenn der Abschnitt aufgeklappt
+ist; bei vielen Bildern spart das spürbar Zeit beim Öffnen des Projekts.</div>
+
+<h3>Die Fotodokumentation</h3>
+<p><span class="tasten">🖨️ Fotodokumentation</span> druckt alle Bilder des Objekts auf
+Papier oder als PDF – mit Firmenkopf, Projekt und Auftraggeber, und unter jedem Bild
+wieder die Herkunft. Das ist das Blatt, das der Kunde nach der Sanierung bekommt oder
+das bei einer Reklamation auf den Tisch kommt.</p>
+<p>Auf eine A4-Seite kommen <strong>vier Bilder</strong> (zwei Spalten, zwei Reihen),
+auf die Folgeseiten ohne Briefkopf <strong>sechs</strong>. Jede Kachel ist gleich
+gross, egal ob das Foto hoch oder quer aufgenommen wurde; abgeschnitten wird nichts,
+ein Hochformat bekommt seitlich Luft.</p>
+<div class="hin">Der Druck wartet, bis wirklich jedes Bild geladen ist – bei vielen
+Fotos dauert das einen Moment, das Fenster sagt so lange, dass es vorbereitet wird.
+Liesse sich ein Bild nicht laden, steht an seiner Stelle ein Platzhalter mit der
+Herkunft, und der Ausdruck nennt oben die Zahl: es verschwindet keines
+stillschweigend.</div>
 
 <h2>13 · PDF erstellen</h2>
 <figure><img src="bilder/14-pdf-listen.png"><figcaption>Vor jedem PDF fragt die App, welche Listen gedruckt werden sollen.</figcaption></figure>
@@ -1292,6 +1342,16 @@ das ebenfalls da.</p>
 
 <p>Unten stehen Sachbearbeiter, MWST und die Summen exkl./inkl. MWST.
 <span class="tasten">🖨 PDF / Drucken</span> erzeugt das Blatt für den Kunden.</p>
+
+<h3>Unterschriften</h3>
+<p>Am Ende des Rapports steht die Karte <span class="tasten">✍️ Unterschriften</span>
+mit zwei Feldern: <strong>Ort, Datum · Unterschrift Auftraggeber</strong> und
+<strong>Unterschrift ausführender Mitarbeiter</strong>. Unterschrieben wird direkt auf
+dem Bildschirm – mit dem Finger auf dem Handy oder Tablet, mit der Maus am Rechner.
+Solange nichts da ist, steht „Noch keine Unterschrift.“</p>
+<p>Beide Unterschriften werden <strong>mitgedruckt</strong>. Damit lässt sich der
+Rapport direkt auf der Baustelle gegenzeichnen, statt ihn auszudrucken, unterschreiben
+zu lassen und wieder einzuscannen.</p>
 
 <h2 class="seite">17 · Suche</h2>
 <figure><img src="bilder/21-suche.png"><figcaption>Die Suche über alle Projekte hinweg.</figcaption></figure>
@@ -1442,6 +1502,46 @@ nicht importiert – wie viele das sind, steht über der Vorschau.</p>
 <div class="warn">Der Import <strong>ergänzt</strong> die Liste. Es wird nichts gelöscht
 und nichts überschrieben – eine bereits vorhandene Nummer käme ein zweites Mal hinein.</div>
 
+<h3>Lagerverwaltung</h3>
+<p>Der Abschnitt <span class="tasten">🏭 Lagerverwaltung</span> führt den
+Lagerbestand. Er ist eine <strong>eigene Freigabe</strong>: wer sie nicht hat, sieht
+den Abschnitt gar nicht.</p>
+<p>Aufgebaut ist er zweistufig. Oben die <strong>Materialposition</strong> aus dem
+Katalog – das ist die Nummer, unter der abgerechnet wird. Darunter die
+<strong>Lager-Produkte</strong>: die tatsächlich im Regal liegenden Artikel zu dieser
+Position. Für dieselbe Position kann es mehrere geben, etwa von verschiedenen
+Lieferanten; jeder wird einzeln gebucht und trägt seinen eigenen Barcode.</p>
+<table>
+<tr><th>Knopf</th><th>Wofür</th></tr>
+<tr><td><span class="tasten">📥 Einscannen</span></td><td>Wareneingang: Bestand erhöhen.</td></tr>
+<tr><td><span class="tasten">📤 Ausscannen</span></td><td>Entnahme: Bestand verringern.</td></tr>
+<tr><td><span class="tasten">📷 Barcode scannen</span></td><td>Öffnet die Kamera und
+sucht das Produkt über seinen Barcode.</td></tr>
+</table>
+<div class="hin">Klappt das Scannen auf einem Gerät nicht – schlechtes Licht, unruhige
+Hand, Kamera ohne Nahbereich –, lässt sich der Code immer auch <strong>von Hand
+eintippen</strong>. Der Weg ist nie versperrt.</div>
+<p>Ein neues Produkt legt <span class="tasten">＋ Neues Material / Produkt</span> an.
+Der Dialog macht beides in einem Zug: die <strong>Materialposition</strong> im Katalog
+und auf Wunsch gleich das <strong>Lager-Produkt</strong> dazu. Die Bezeichnung wird nur
+einmal eingetippt.</p>
+<h4>Die EDV-Nummer schlägt die App vor</h4>
+<p>Zur getippten Bezeichnung sucht die App die passende Katalogruppe und schlägt daraus
+die nächste freie Nummer vor – mit der Begründung daneben, damit nachvollziehbar
+bleibt, warum gerade diese Gruppe. „Rinnenstutzen 120mm“ landet so bei den Rinnen,
+„Spenglerschrauben 5x50“ bei den Schrauben. Passt nichts, gibt es eine Nummer aus dem
+eigenen Kreis <code>999</code>. Der Vorschlag rechnet sich bei jedem getippten Zeichen
+neu – bis du die Nummer selbst anfasst, dann lässt die App sie in Ruhe.</p>
+<div class="hin">Die Nummern sind <strong>je Firma</strong> eindeutig, nicht
+firmenübergreifend. Was eine andere Firma unter einer Nummer führt, spielt für deinen
+Katalog keine Rolle.</div>
+<h4>Löschen oder archivieren</h4>
+<p>Ein Produkt <strong>ohne</strong> Buchungen lässt sich wirklich löschen. Sobald
+darauf gebucht wurde, geht das nicht mehr – sonst verschwände die Bestandsgeschichte.
+Dann wird <strong>archiviert</strong>: das Produkt ist überall weg, wo gebucht oder
+gewählt wird, die Buchungen bleiben stehen, und es lässt sich jederzeit wieder
+aktivieren.</p>
+
 <h3>Ein Mitarbeiterkonto anlegen</h3>
 <p>Nach dem Anlegen erscheinen Benutzername und Startpasswort in einem Feld zum Kopieren
 oder Weitergeben. <strong>Das Startpasswort wird nur dieses eine Mal angezeigt</strong>
@@ -1548,7 +1648,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">25 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.44</strong>, Stand 10. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.146</strong>, Stand 17. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
@@ -1562,7 +1662,7 @@ Kundendatensatz verwendet.</div>
 <li>Sie ersetzt <strong>keine fachliche Prüfung</strong> der Resultate. Die
 Berechnungen folgen den hinterlegten Vorlagen und Normen – die Verantwortung für
 Ausführung und Masse bleibt beim Spengler.</li>
-<li>Sie beschreibt nicht jede einzelne der zwölf Fachfunktionen im Detail. Die
+<li>Sie beschreibt nicht jede einzelne der dreizehn Fachfunktionen im Detail. Die
 Register führen ohnehin durch die Erfassung, und jede Funktion hat ihre eigene
 Kontrolle.</li>
 <li>Der Verschnitt rechnet seit Version 3.26 <strong>mit</strong> der Schnittfuge, und

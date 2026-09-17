@@ -3,13 +3,15 @@
 // und es erscheinen ausschliesslich erfundene Demodaten.
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const path=require("path"),fs=require("fs");
+// Wie in den Pruefstaenden: dreistufige Suche statt eines festen Pfads.
+const {chromePfad}=require(__dirname+"/../pruefstaende/chrome-pfad.js");
 const APP="file://"+path.join(process.cwd(),"index.html");
 const AUS=process.env.AUS, STUB=fs.readFileSync(process.env.STUB,"utf8");
 fs.mkdirSync(AUS,{recursive:true});
 const liste=[];
 
 (async()=>{
- const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
+ const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:1100,height:900},deviceScaleFactor:2,locale:"de-CH",timezoneId:"Europe/Zurich"});
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e))); page.on("dialog",d=>d.accept());
  await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
@@ -31,7 +33,16 @@ const liste=[];
   await page.waitForTimeout(200);
   const datei=path.join(AUS,name+".png");
   const el=sel?await page.$(sel):null;
-  if(el)await el.screenshot({path:datei}); else await page.screenshot({path:datei});
+  try{
+   if(el)await el.screenshot({path:datei,timeout:8000});
+   else await page.screenshot({path:datei});
+  }catch(e){
+   // Haeufigster Fall: die Oberflaeche hat sich geaendert und das Element
+   // steckt jetzt in einem zugeklappten Abschnitt. Melden und weitermachen,
+   // damit die uebrigen Bilder trotzdem entstehen.
+   console.log("  FEHLT: "+name+"  ("+String(e.message||e).split("\n")[0]+")");
+   return;
+  }
   const m=await page.evaluate(d=>{const i=new Image();return new Promise(r=>{i.onload=()=>r([i.width,i.height]);i.src=d})},
     "data:image/png;base64,"+fs.readFileSync(datei).toString("base64")).catch(()=>null);
   liste.push(name);
@@ -285,7 +296,11 @@ const liste=[];
  // v3.26: die Materialbilanz und der Reststuecke-Block als eigene Bilder -
  // im Registerschuss oben stehen sie ganz unten und waeren kaum lesbar.
  await schuss("47-materialbilanz","#einlaufblechAufnahme .zu-bilanz",{warte:200,breite:760});
- await schuss("48-reste","#einlaufblechAufnahme .rest-block",{warte:200,breite:760});
+ // 48-reste entfaellt: der Demozuschnitt geht seit den Verbesserungen am
+ // Packalgorithmus restlos auf, der Reststuecke-Block erscheint dort also gar
+ // nicht mehr (restBlockHtml liefert "" ohne Kandidaten). Die Anleitung
+ // erklaert das Thema im Text; abgebildet ist es beim Lager und beim Dialog
+ // "Rest verwenden" (49-lager, 50-rest-verwenden).
  // v3.29: der Dialog "Hier verwenden". Die Stuecke kommen aus dem eben
  // gezeichneten Plan - der Dialog selbst ist der echte.
  await page.evaluate(()=>{
@@ -468,6 +483,10 @@ const liste=[];
                   werkstatt:true,vorlagen:true,serien:true,versionierung:true});
   if(typeof openSettingsTo==="function")openSettingsTo("general","");
   if(typeof renderProjektmodule==="function")renderProjektmodule();
+  // Die Einstellungs-Abschnitte klappen seit v3.198 zu. Ohne das Aufklappen
+  // ist #pmListe zwar da, aber unsichtbar - und nicht fotografierbar.
+  const kopf=document.querySelector('[data-toggle-section="projektmodule"]');
+  if(kopf&&kopf.closest(".settings-section"))kopf.closest(".settings-section").classList.add("open");
  });
  await schuss("38-projektmodule","#pmListe",{warte:600,breite:900});
  await page.evaluate(()=>{$("settingsModal").hidden=true});

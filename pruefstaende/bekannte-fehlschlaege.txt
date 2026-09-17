@@ -18,20 +18,15 @@
 # uebrigen bewusste Vertragsaenderungen, deren Pruefstaende nachgezogen und
 # um Gegenproben ergaenzt wurden.
 #
-# Es bleibt EIN Eintrag - und der steht hier nicht, weil die Ursache unklar
-# waere, sondern weil sie eine inhaltliche Entscheidung des Anwenders
-# braucht:
+# v3.146: Der letzte Eintrag (pruefstand-hilfe-v3-03.js) ist erledigt. Die
+# Anleitung stand auf v3.44, die App inzwischen 100 Versionen weiter. Sie ist
+# jetzt inhaltlich nachgezogen - dreizehn statt zwoelf Massaufnahme-Arten samt
+# Dachfenstereinfassung, dazu Lagerverwaltung mit Barcode, Material ab Lager,
+# Unterschriften im Regierapport, "Was ist neu", die Fotowand und die
+# Fotodokumentation - und Bilder wie PDF sind neu erzeugt. Der Pruefstand
+# laeuft mit 72 von 72 durch.
 #
-# pruefstand-hilfe-v3-03.js (4 von 72 Zusicherungen)
-#   Die App ist bei v3.132, das PDF im Ordner anleitung/ ist die v3.44 - 87
-#   Versionen alt. Der Link in den Einstellungen ist NICHT kaputt, er zeigt
-#   auf das vorhandene PDF. Der Pruefstand verlangt aber zu Recht, dass die
-#   Anleitung die aktuelle Version traegt.
-#   Das laesst sich nicht durch Umbenennen erledigen: die Skripte im Ordner
-#   erzeugen nur die Bildschirmfotos neu, der TEXT in anleitung.html
-#   beschreibt weiterhin den Stand v3.44. Ein PDF mit dem Namen v3.132 und
-#   dem Inhalt von v3.44 waere eine Luege gegenueber dem Anwender.
-#   Zu tun: den Text der Anleitung auf den heutigen Stand bringen, dann
-#   Bilder und PDF neu erzeugen (anleitung/README.md beschreibt den Weg) und
-#   diese Zeile hier entfernen.
-pruefstand-hilfe-v3-03.js
+# DIESE LISTE IST DAMIT LEER. Das ist der gewollte Zustand: jeder
+# Fehlschlag ist ab jetzt eine echte Regression. Wer hier wieder etwas
+# eintraegt, sollte im selben Zug festhalten, WARUM es nicht sofort behoben
+# werden kann - sonst wird aus der Ausnahme eine Gewohnheit.

@@ -87,7 +87,7 @@ const ARTEN=[
   // echte deutsche Woerter, in denen ae/oe/ue nur zufaellig vorkommt
   // "vertrauen" ist wie "Dauer" oder "genau" ein echtes deutsches Wort, in dem
   // "aue" nur zufaellig steckt - kein ae/oe/ue als Ersatzschreibweise.
-  const erlaubt=/^(neu|neue|neuen|neueste|quer|zuerst|steuert|Mauerabdeckung|Neue|Dauer|dauer|bauen|aufbauen|Bauen|aktuell|blau|blaue|blauen|genau|genaue|genauen|Frau|Quelle|Quellen|quelle|vertrauen|Vertrauen|vertraue)/i;
+  const erlaubt=/^(neu|neue|neuen|neueste|quer|zuerst|steuert|Mauerabdeckung|Neue|Dauer|dauer|bauen|aufbauen|Bauen|aktuell|blau|blaue|blauen|genau|genaue|genauen|Frau|Quelle|Quellen|quelle|vertrauen|Vertrauen|vertraue|Vorschau|schauen|Schauen)/i;
   const treffer=[];
   const textVon=t=>typeof t.text==="function"?t.text():t.text;
   Object.keys(HILFE_TEXTE).forEach(k=>{

@@ -1,7 +1,10 @@
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const path=require("path"),fs=require("fs");
+// Denselben dreistufigen Weg nehmen wie die Pruefstaende, statt einen festen
+// Pfad zu verdrahten - der gilt nur auf einer einzigen Maschine.
+const {chromePfad}=require(__dirname+"/../pruefstaende/chrome-pfad.js");
 (async()=>{
- const b=await chromium.launch({executablePath:"/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args:["--no-sandbox"]});
+ const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({locale:"de-CH"});
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
  page.on("requestfailed",r=>fehler.push("nicht geladen: "+r.url().split("/").pop()));
