@@ -167,8 +167,12 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
     "mit den richtig zugeordneten Werten",z101);
   p(!!z101&&z101.company_id===undefined,
     "ohne company_id – die setzt die Datenbank",z101);
-  p(lg.length===1&&lg[0].opt&&lg[0].opt.onConflict==="edv_nr",
-    "der Abgleich laeuft ueber die EDV-Nr. (v3.134)",lg.length?lg[0].opt:null);
+  // v3.143: Die Nummer ist je Firma eindeutig - UNIQUE (company_id, edv_nr).
+  // Das Konfliktziel muss beide Spalten nennen. Zusammen mit der Pruefung
+  // direkt darueber ("ohne company_id - die setzt die Datenbank") haelt das
+  // beides fest: die Spalte steht im Ziel, aber nicht in den Daten.
+  p(lg.length===1&&lg[0].opt&&lg[0].opt.onConflict==="company_id,edv_nr",
+    "der Abgleich laeuft ueber Firma + EDV-Nr. (v3.143)",lg.length?lg[0].opt:null);
   // Gegenproben zum alten Verhalten: ein blosses insert wuerde an der
   // Eindeutigkeitsregel scheitern, ein delete wuerde den Katalog leeren.
   const andere=await page.evaluate(()=>window.__db.log

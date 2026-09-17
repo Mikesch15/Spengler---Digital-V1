@@ -78,8 +78,10 @@ function searchBlitzschutzMaterials(q){
 //
 // v3.134: der Import ERGÄNZT nicht mehr nur, er gleicht ab. Bis dahin war
 // es ein reines insert(): eine schon vorhandene Nummer liess den ganzen
-// Import an der Eindeutigkeitsregel scheitern (UNIQUE auf edv_nr bzw.
-// artikel_nr) – es kam also weder die Korrektur noch die neue Position an.
+// Import an der Eindeutigkeitsregel scheitern (seit v3.143 UNIQUE auf
+// (company_id, edv_nr) bzw. (company_id, artikel_nr), davor firmenüber-
+// greifend allein auf der Nummer) – es kam also weder die Korrektur noch
+// die neue Position an.
 // Jetzt wird über die Nummer abgeglichen (upsert): bekannt = die
 // zugeordneten Felder werden aktualisiert, unbekannt = neu angelegt.
 //
@@ -401,16 +403,32 @@ die Vorschau weist darauf hin.`:""}</div>`;
   // v3.134: upsert statt insert - Abgleich ueber die Nummer. Ohne
   // onConflict wuerde eine bekannte Nummer an der Eindeutigkeitsregel
   // scheitern und der ganze Import fiele aus.
+  //
+  // v3.143: Die Eindeutigkeitsregel ist jetzt zusammengesetzt -
+  // UNIQUE (company_id, edv_nr) bzw. UNIQUE (company_id, artikel_nr).
+  // onConflict muss GENAU die Spalten dieser Regel nennen, sonst findet
+  // Postgres sie nicht und der ganze Import bricht ab.
+  //
+  // company_id steht dabei bewusst NICHT in den geschriebenen Daten: die
+  // Firmenzuordnung kommt in diesem Projekt nie vom Client, sie entsteht
+  // serverseitig aus dem Vorgabewert my_company_id(). Auf die
+  // Konfliktpruefung wirkt sie trotzdem, weil Postgres den fertigen
+  // Datensatz samt Vorgabewerten gegen die Regel prueft - nachgemessen an
+  // der echten Datenbank, nicht angenommen.
   const {data,error}=await sb.from(cfg.tableName)
-    .upsert(eintraege,{onConflict:cfg.schluessel}).select();
+    .upsert(eintraege,{onConflict:"company_id,"+cfg.schluessel}).select();
   $(cfg.confirmId).disabled=false;
   if(error){ alert("Fehler beim Import: "+error.message); return; }
   // Ein von RLS geblockter Schreibvorgang meldet keinen Fehler, er betrifft
   // still 0 Zeilen (CLAUDE.md 24.1) - deshalb wird das Ergebnis geprueft.
   if(!data||!data.length){ alert("Es wurde nichts importiert. Fehlt die nötige Berechtigung?"); return; }
   if(data.length<eintraege.length){
+   // v3.143: Der Zusatz "oder gehört eine Nummer einer anderen Firma?"
+   // ist ersatzlos weg - seit die Nummer je Firma eindeutig ist, KANN sie
+   // keiner anderen Firma mehr gehoeren. Der Satz haette den Anwender auf
+   // eine Ursache geschickt, die es nicht mehr gibt.
    alert(`Achtung: ${data.length} von ${eintraege.length} Zeilen wurden geschrieben. `
-    +`Die übrigen wurden abgewiesen - fehlt die Berechtigung, oder gehört eine Nummer einer anderen Firma?`);
+    +`Die übrigen wurden abgewiesen - fehlt die nötige Berechtigung?`);
   }else{
    alert(`${st.neu.length} Position(en) angelegt, ${st.geaendert.length} geändert, `
     +`${st.unveraendert.length} unverändert.`);
@@ -706,6 +724,9 @@ $("newRate").onclick=async()=>{
 // fester Text gesetzt. Bis hierher stand hier edv_nr:"Neue Nr." - das ging
 // genau einmal gut. Beim zweiten Klick brach die Datenbank ab:
 //   duplicate key value violates unique constraint "materials_edv_nr_key"
+// (diese Regel heisst seit v3.143 materials_company_id_edv_nr_key und gilt
+// je Firma - die Rechnung hier bleibt dieselbe, sie zaehlt ohnehin nur den
+// eigenen, RLS-gefilterten Katalog)
 // Der Knopf direkt darueber (Funktionen) macht es seit je richtig und
 // nummeriert durch; beim Material wurde es nie nachgezogen.
 //

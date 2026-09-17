@@ -138,8 +138,17 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  const s1=await schreibungen();
  const up=s1.filter(x=>x.t==="materials"&&x.op==="upsert");
  p(up.length===1,"genau ein Schreibvorgang auf den Katalog",s1.map(x=>x.t+"/"+x.op));
- p(up.length===1&&up[0].opt&&up[0].opt.onConflict==="edv_nr",
-   "und zwar ein Abgleich ueber die EDV-Nr.",up.length?up[0].opt:null);
+ // v3.143: Die Eindeutigkeitsregel heisst jetzt UNIQUE (company_id, edv_nr) -
+ // die Nummer ist je FIRMA eindeutig, nicht mehr weltweit. onConflict muss
+ // genau die Spalten dieser Regel nennen, sonst findet Postgres sie nicht
+ // und der ganze Import bricht ab. Erwartung nachgezogen, nicht gelockert.
+ p(up.length===1&&up[0].opt&&up[0].opt.onConflict==="company_id,edv_nr",
+   "und zwar ein Abgleich ueber Firma + EDV-Nr.",up.length?up[0].opt:null);
+ // Gegenprobe dazu: company_id gehoert in das KONFLIKTZIEL, aber NIE in die
+ // gesendeten Daten - die Firmenzuordnung kommt in diesem Projekt immer
+ // serverseitig aus dem Vorgabewert my_company_id(), nie vom Client.
+ p(up.length===1&&up[0].daten.every(x=>!("company_id" in x)),
+   "GEGENPROBE: keine company_id in den gesendeten Daten",up.length?up[0].daten:null);
  const gesendet=up.length?up[0].daten:[];
  p(gesendet.length===2,"es werden zwei Zeilen gesendet, nicht drei",gesendet.map(x=>x.edv_nr));
  p(gesendet.some(x=>x.edv_nr==="303.30")&&gesendet.some(x=>x.edv_nr==="202.20"),
@@ -231,8 +240,12 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  await page.waitForTimeout(700);
  const sb2=await schreibungen();
  const upb=sb2.filter(x=>x.t==="blitzschutz_materials"&&x.op==="upsert");
- p(upb.length===1&&upb[0].opt.onConflict==="artikel_nr",
-   "der Abgleich laeuft ueber die Artikel-Nr.",upb.length?upb[0].opt:null);
+ // v3.143: wie beim Katalog - UNIQUE (company_id, artikel_nr).
+ p(upb.length===1&&upb[0].opt.onConflict==="company_id,artikel_nr",
+   "der Abgleich laeuft ueber Firma + Artikel-Nr.",upb.length?upb[0].opt:null);
+ p(upb.length===1&&upb[0].daten.every(x=>!("company_id" in x)),
+   "GEGENPROBE: auch hier keine company_id in den gesendeten Daten",
+   upb.length?upb[0].daten:null);
  p(upb.length===1&&upb[0].daten.length===1&&upb[0].daten[0].artikel_nr==="BZ-2",
    "GEGENPROBE: nur die neue Position wird gesendet",upb.length?upb[0].daten:null);
  // Die Material-Spalte ist in dieser Datei nicht enthalten - "Alu" muss

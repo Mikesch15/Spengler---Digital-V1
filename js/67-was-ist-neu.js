@@ -122,7 +122,10 @@ const WIN_CHANGELOG={
   "Zur Erinnerung, weil danach gefragt wurde: „➕ Neue Materialposition anlegen …\" ist der letzte Eintrag der Trefferliste und die Alternative zu den Positionen darüber – passt keine, legen Sie eine neue an. Der Knopf daneben ist der Rückweg: er nimmt die getroffene Wahl zurück und öffnet die Liste wieder."],
  "3.142":["Im Projekt gibt es jetzt den Abschnitt „📷 Alle Fotos\": jedes Bild des Objekts an EINEM Ort – aus den Massaufnahmen (Fotos und Skizzen), dem Ausmass, den Regierapporten, den Offerten und den Projektdateien.",
   "Unter jedem Bild steht, woher es stammt – zum Beispiel „📐 Kamineinfassung · Ost · Foto 2/3\" oder „📋 Regierapport · 14.03.2026\". Ein Tipp zeigt das Bild gross.",
-  "Es ist eine reine Übersicht: hinzugefügt und gelöscht werden Fotos weiterhin dort, wo sie hingehören. Die Vorschauen werden erst geladen, wenn der Abschnitt aufgeklappt ist."]
+  "Es ist eine reine Übersicht: hinzugefügt und gelöscht werden Fotos weiterhin dort, wo sie hingehören. Die Vorschauen werden erst geladen, wenn der Abschnitt aufgeklappt ist."],
+ "3.143":["Die EDV-Nr. im Materialkatalog und die Artikel-Nr. beim Blitzschutz sind jetzt JE FIRMA eindeutig. Bisher galten sie firmenübergreifend: sobald eine Firma eine Nummer benutzte, war sie für jede andere Firma für immer gesperrt – obwohl die den fremden Katalog gar nicht sehen kann.",
+  "Für Sie heisst das: beim Anlegen einer Materialposition oder beim Excel-Import kann der Fehler „duplicate key … materials_edv_nr_key\" nicht mehr aus dem Nichts auftauchen. Innerhalb Ihrer eigenen Firma bleibt jede Nummer weiterhin nur einmal vergeben – daran ändert sich nichts.",
+  "Die Firmengrenze selbst ist unverändert: welche Daten Sie sehen, entscheidet weiterhin allein die Datenbank."]
 };
 
 function winVersionVergleich(a,b){

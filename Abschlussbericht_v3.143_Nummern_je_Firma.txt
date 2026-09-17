@@ -1,0 +1,148 @@
+================================================================
+ v3.143 - EDV-Nr. und Artikel-Nr. sind je Firma eindeutig
+================================================================
+
+AUSGANGSLAGE
+------------
+Beim Durchsehen der echten Datenbank fiel auf:
+
+  materials_edv_nr_key              UNIQUE (edv_nr)
+  blitzschutz_materials_artikel_nr_key  UNIQUE (artikel_nr)
+
+Beide Regeln galten FIRMENUEBERGREIFEND. In der Datenbank stehen
+inzwischen zwei Firmen:
+
+  PETER KÜNZI AG   381 Materialpositionen (100.01 bis 990.11)
+  Testfirma          1 Materialposition
+
+Sobald Firma A eine Nummer belegt, kann Firma B sie nie mehr vergeben -
+obwohl B den Katalog von A wegen der RLS ueberhaupt nicht sehen kann.
+Der Fehler kam beim Anwender als unerklaerliches
+
+  duplicate key value violates unique constraint "materials_edv_nr_key"
+
+an, ohne dass er die Ursache haette finden koennen. Eine Nummernvergabe
+ist eine Sache JE FIRMA, nicht der ganzen Welt.
+
+Das ist derselbe Fehlertext, den der Anwender in v3.137 gemeldet hatte.
+Damals war die Ursache eine andere (fester Platzhalter "Neue Nr." statt
+einer berechneten Nummer) und wurde dort behoben; die zweite, tieferliegende
+Ursache blieb bis jetzt stehen.
+
+WAS GEAENDERT WURDE
+-------------------
+Migration: edv_nr_und_artikel_nr_pro_firma_eindeutig
+
+  materials.company_id              -> NOT NULL
+  blitzschutz_materials.company_id  -> NOT NULL
+  materials_edv_nr_key              -> materials_company_id_edv_nr_key
+                                       UNIQUE (company_id, edv_nr)
+  blitzschutz_materials_artikel_nr_key
+                                    -> blitzschutz_materials_company_id_artikel_nr_key
+                                       UNIQUE (company_id, artikel_nr)
+
+NOT NULL ist noetig, weil NULL in einer UNIQUE-Regel als "verschieden"
+gilt: zwei Zeilen ohne company_id waeren sonst erlaubt und wuerden die
+neue Regel wieder aushebeln. Es gibt heute keine solche Zeile (gemessen:
+0 von 382 bzw. 0 von 487), und die RLS wuerde sie ohnehin abweisen
+(company_id = my_company_id() ist bei NULL nie wahr). Die Spalte sagt
+damit nur aus, was faktisch schon gilt.
+
+js/08-katalog-blitzschutz.js
+  Der Excel-Import gleicht per upsert ab. Sein onConflict-Ziel muss GENAU
+  die Spalten der Eindeutigkeitsregel nennen, sonst findet Postgres sie
+  nicht und der ganze Import bricht ab:
+
+    .upsert(eintraege,{onConflict:"company_id,"+cfg.schluessel})
+
+  company_id steht dabei bewusst NICHT in den geschriebenen Daten. Die
+  Projektregel "die Firmenzuordnung kommt nie vom Client" bleibt damit
+  unangetastet - sie entsteht weiterhin serverseitig aus dem Vorgabewert
+  my_company_id().
+
+  Ausserdem entfernt: der Hinweis "... oder gehört eine Nummer einer
+  anderen Firma?" in der Teilerfolgs-Meldung. Seit dieser Version KANN
+  eine Nummer keiner anderen Firma mehr gehoeren; der Satz haette den
+  Anwender auf eine Ursache geschickt, die es nicht mehr gibt.
+
+WAS NICHT GEAENDERT WURDE
+-------------------------
+Die Firmengrenze selbst. Sie steht weiterhin allein in der RLS
+(tenant_boundary_materials / tenant_boundary_blitzschutz_materials,
+company_id = my_company_id(), USING UND WITH CHECK). Hier wurde nur die
+Eindeutigkeitsregel an dieselbe Grenze gezogen.
+
+Die Nummernberechnung (katalogNaechsteFreieEdvNr in js/08,
+lagerNaechsteFreieEdvNr in js/68) bleibt unveraendert. Sie rechnet ohnehin
+nur auf dem eigenen, RLS-gefilterten Katalog.
+
+VORPRUEFUNGEN AN DEN ECHTEN DATEN (vor der Migration)
+-----------------------------------------------------
+  - keine Doppelten je (company_id, edv_nr) bzw. (company_id, artikel_nr)
+  - keine Zeile ohne company_id in beiden Tabellen
+  - kein Fremdschluessel zeigt auf edv_nr/artikel_nr; alle drei
+    (lager_varianten, lagerbestand, reststuecke) zeigen auf materials(id)
+  - kein Trigger auf beiden Tabellen
+  - keine Funktion fuegt ohne Firmenkontext ein (nur die beiden
+    system_admin_delete_company_data*-Funktionen ruehren die Tabellen an,
+    und die loeschen)
+
+NACHWEISE (an der echten Datenbank gemessen, nicht angenommen)
+--------------------------------------------------------------
+1. ON CONFLICT auf eine Spalte, die gar nicht mitgeschickt wird, sondern
+   serverseitig per DEFAULT entsteht - genau der Weg des Excel-Imports:
+   an einer Wegwerf-Tabelle nachgestellt. Ergebnis: EINE Zeile, korrekt
+   aktualisiert. Der Import funktioniert also weiter, ohne dass der
+   Client je eine company_id schickt.
+
+2. Zwei Firmen, dieselbe Nummer: die Testfirma bekommt 100.01 eingefuegt,
+   obwohl die PETER KÜNZI AG diese Nummer fuehrt. Das Einfuegen gelingt.
+   Der Block rollt sich anschliessend selbst zurueck; Gegenprobe danach:
+   0 Probe-Zeilen zurueckgeblieben.
+
+3. Gegenprobe dazu: INNERHALB derselben Firma bleibt die Nummer gesperrt.
+   Das zweite Einfuegen von 100.01 fuer die PETER KÜNZI AG scheitert mit
+   duplicate key value violates unique constraint
+   "materials_company_id_edv_nr_key"
+
+DATENBEREINIGUNG (mit ausdruecklicher Freigabe des Anwenders)
+-------------------------------------------------------------
+In der Testfirma stand seit dem 01.09.2026 eine Platzhalterzeile aus dem
+in v3.137 behobenen Verhalten, dazu seit dem 15.09.2026 eine ebenso leere
+Lager-Variante darauf. Beide sind geloescht (die Variante ueber
+ON DELETE CASCADE). Nachgewiesen vor dem Loeschen: 0 Lagerbewegungen,
+0 Lagerbestand, 0 Reststuecke haengen daran.
+
+Der Katalog der PETER KÜNZI AG ist unberuehrt: 381 Positionen vorher,
+381 nachher.
+
+Zum Wiederherstellen, falls doch gewuenscht:
+
+  insert into materials(id,edv_nr,name,dim,unit,price,company_id,created_at,updated_at)
+  values (1118,'Neue Nr.','Neues Material','','Stk.',0.00,
+          '900acf27-8106-4390-803f-64853b72d7e9',
+          '2026-09-01 19:10:52.455319+00','2026-09-01 19:10:52.455319+00');
+
+  insert into lager_varianten(id,material_id,company_id,bezeichnung,barcode,
+          created_by,created_at,updated_by,updated_at,archiviert)
+  values (2,1118,'900acf27-8106-4390-803f-64853b72d7e9','Neues Material',NULL,
+          NULL,'2026-09-15 05:44:51.860657+00',NULL,
+          '2026-09-15 05:44:51.860657+00','f');
+
+PRUEFSTAENDE
+------------
+Drei bestehende Pruefungen schrieben das alte onConflict-Ziel fest
+("edv_nr" bzw. "artikel_nr"). Sie sind auf den neuen Vertrag gezogen -
+nicht gelockert - und haben je eine Gegenprobe dazubekommen:
+
+  pruefstand-excel-import-abgleich-v3-134.js  37 -> 39 Pruefungen
+    + company_id steht im KONFLIKTZIEL, aber in KEINEM gesendeten
+      Datensatz (Katalog und Blitzschutz je einzeln)
+  pruefstand-excel-import-v3-04.js            35 Pruefungen
+    (Ziel nachgezogen; die bestehende Pruefung "ohne company_id - die
+     setzt die Datenbank" stand schon da und haelt die Gegenrichtung)
+
+Die Datenbankregel selbst laesst sich aus dem Playwright-Prueffeld nicht
+messen (aus der Entwicklungsumgebung gibt es keine Verbindung zu
+Supabase). Ihr Nachweis sind die drei oben protokollierten Messungen an
+der echten Datenbank.
