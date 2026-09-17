@@ -1,0 +1,110 @@
+================================================================
+ CI: neun Pruefstaende waren auf dem Runner rot - die Ursache
+================================================================
+
+BEFUND
+------
+Seit die CI eingefuehrt wurde, war sie nie gruen. Neun Pruefstaende fielen
+auf dem GitHub-Runner durch, lokal waren dieselben neun gruen. Es waren
+IMMER dieselben neun, in jedem Lauf - deterministisch, keine Flakiness.
+
+Drei verschiedene Fehlerbilder:
+  verwaiste-dateien     Timeout, wartet auf #sysStorageLoeschen
+  werkstatt-liste       Cannot read properties of null (reading 'closest')
+  werkstatt-zuschnitt   "je Massaufnahme eine Karte: 0",
+                        Werkstatt zeigt "Nichts offen"
+
+Alle drei mit derselben Signatur: das Erwartete ist nicht da, weil keine
+Daten ankommen.
+
+WAS ZUERST VERMUTET UND DANN VERWORFEN WURDE
+--------------------------------------------
+Erste Vermutung war ein Zeitproblem: die betroffenen Pruefstaende warten
+mit festen waitForTimeout(150...700), und ein geteilter Runner ist
+langsamer als die Entwicklungsmaschine.
+
+Diese Vermutung ist WIDERLEGT, nicht bestaetigt:
+  - Unter doppelter CPU-Ueberlast (8 Dauerlast-Prozesse auf 4 Kernen) lief
+    pruefstand-verwaiste-dateien weiterhin 12 von 12 durch.
+  - Der Runner-Fehler war ein 30-SEKUNDEN-Timeout. page.click() wartet
+    selbst bis 30 s auf sein Element. Es ging also nie um 150 ms; die Liste
+    wurde dort ueberhaupt nie geladen.
+
+DIE ECHTE URSACHE
+-----------------
+Die Pruefstaende der App teilen sich in zwei Bauweisen:
+
+  A) Stub ueber page.route("**cdn.jsdelivr.net/**") - die CDN-Anfrage wird
+     abgefangen und der Stub als Antwort geliefert.
+  B) Stub ueber page.addInitScript(STUB) - der Stub laeuft vor den
+     Skripten der Seite und setzt window.supabase.
+
+Bei Bauweise B laedt index.html Zeile 14 danach das ECHTE supabase-js von
+cdn.jsdelivr.net - und das setzt window.supabase ein zweites Mal, naemlich
+auf sich selbst. Der Stub ist damit weg. Die App redet mit einer echten,
+im Prueffeld nicht erreichbaren Datenbank, es kommen nie Daten an, und
+alles Weitere faellt um.
+
+Warum das nie auffiel: aus der Entwicklungsumgebung heraus ist
+cdn.jsdelivr.net NICHT erreichbar. Das Skript scheitert, der Stub bleibt
+stehen, die Pruefstaende sind gruen - aus dem falschen Grund. Auf dem
+GitHub-Runner gibt es Internet, dort greift der Stub nicht mehr.
+
+Die Korrelation ist vollstaendig:
+  alle 9 roten   - addInitScript, KEINE jsdelivr-Route
+  alle gruenen   - jsdelivr-Route, kein addInitScript
+
+Damit hat diese Gruppe nie wirklich gegen ihren Stub geprueft, sobald die
+Maschine Internet hat.
+
+NACHGESTELLT
+------------
+Der Runner wurde lokal nachgebildet, indem die CDN-Anfrage beantwortet
+wurde statt zu scheitern - also genau der Unterschied, sonst nichts.
+Ergebnis: derselbe Fehler, derselbe Locator, dasselbe Zeitlimit.
+
+  page.click: Timeout 30000ms exceeded.
+    - waiting for locator('#sysStorageLoeschen')
+
+DIE ABHILFE
+-----------
+Neu: pruefstaende/stub-schutz.js mit stubSchuetzen(page). Die Funktion
+faengt die CDN-Anfrage nach @supabase ab und liefert eine leere Antwort -
+der Stub bleibt damit die einzige Quelle, auf jeder Maschine, mit oder
+ohne Internet. Es ist dieselbe Abhilfe, die die uebrigen Pruefstaende
+seit je benutzen.
+
+Abgefangen wird NUR @supabase. xlsx von derselben Adresse (index.html
+Zeile 15) bleibt unangetastet - die Excel-Pruefstaende brauchen es.
+
+Nichts wurde abgeschwaecht: keine Erwartung gelockert, kein Zeitlimit
+hochgedreht, keine Pruefung entfernt. Jeder der neun Pruefstaende hat im
+Gegenteil eine Pruefung DAZUBEKOMMEN:
+
+  "das echte supabase-js wurde abgefangen - der Stub ist die einzige Quelle"
+
+Sie zaehlt die abgefangenen Anfragen. Damit ist belegt, dass die Seite das
+echte supabase-js wirklich laden WOLLTE und daran gehindert wurde - sonst
+waere die Absicherung eine Behauptung ohne Nachweis. Gegenprobe: ohne
+stubSchuetzen faellt genau diese Pruefung durch (abgefangen: 0).
+
+ERGEBNIS LOKAL
+--------------
+  ablauf-v3-25               50 von 50
+  bedarf-teile-v3-17         41 von 41
+  feedback-loeschen-v3-95    12 von 12   (neu 13)
+  rapport-zuschnitt-v3-24    53 von 53
+  rueckfall-v3-18            56 von 56
+  ruestliste-offline-v3-23   72 von 72
+  verwaiste-dateien-v3-95    13 von 13
+  werkstatt-liste-v3-30      59 von 59
+  werkstatt-zuschnitt-v3-20  59 von 59
+
+OFFEN: DER ECHTE NACHWEIS
+-------------------------
+Ob die CI damit gruen wird, entscheidet der Runner selbst - er hat
+Internet, diese Umgebung nicht. Der naechste Lauf auf GitHub Actions ist
+der Beleg; vorher wird es NICHT als behoben behauptet.
+
+Uebrig bleibt dann der eine seit laengerem bekannte Fehlschlag
+(pruefstand-hilfe-v3-03.js, die Anleitung steht auf v3.44).

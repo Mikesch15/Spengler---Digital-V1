@@ -27,6 +27,7 @@
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-verwaiste-dateien-v3-95.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
+const {stubSchuetzen}=require(__dirname+"/stub-schutz.js");
 const path=require("path");
 const APP="file://"+path.join(process.cwd(),"index.html");
 let ok=0,fail=0;
@@ -59,8 +60,15 @@ const VERWAIST=[
  const page=await b.newPage({viewport:{width:412,height:1800}});
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
  let letzteMeldung=""; page.on("dialog",d=>{letzteMeldung=d.message();d.accept()});
+ // Der Stub unten muss die EINZIGE Quelle bleiben. Ohne die Absicherung
+ // ueberschreibt ihn das echte supabase-js aus index.html Zeile 14,
+ // sobald die Maschine Internet hat - Begruendung in stub-schutz.js.
+ const cdnWache=await stubSchuetzen(page);
  await page.addInitScript(STUB);
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(400);
+ p(cdnWache.abgefangen>=1,
+   "das echte supabase-js wurde abgefangen - der Stub ist die einzige Quelle",
+   cdnWache.abgefangen);
  p(fehler.length===0,"die App laedt ohne JavaScript-Fehler",fehler.slice(0,3));
  if(fehler.length){console.log("\n=== Abbruch ===");await b.close();process.exit(1)}
 

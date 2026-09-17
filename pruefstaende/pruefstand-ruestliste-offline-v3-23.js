@@ -13,6 +13,7 @@
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-ruestliste-offline-v3-23.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
+const {stubSchuetzen}=require(__dirname+"/stub-schutz.js");
 const path=require("path");
 const fs=require("fs");
 const APP="file://"+path.join(process.cwd(),"index.html");
@@ -175,9 +176,16 @@ const druckHtml=(page)=>page.evaluate(()=>(window.__druck||[]).filter(x=>x&&x.le
  const page=await b.newPage({viewport:{width:412,height:900}});
  const fehler=[];
  page.on("pageerror",e=>fehler.push(String(e)));
+ // Der Stub unten muss die EINZIGE Quelle bleiben. Ohne die Absicherung
+ // ueberschreibt ihn das echte supabase-js aus index.html Zeile 14,
+ // sobald die Maschine Internet hat - Begruendung in stub-schutz.js.
+ const cdnWache=await stubSchuetzen(page);
  await page.addInitScript(STUB);
  await page.goto(APP,{waitUntil:"load"});
  await page.waitForTimeout(500);
+ p(cdnWache.abgefangen>=1,
+   "das echte supabase-js wurde abgefangen - der Stub ist die einzige Quelle",
+   cdnWache.abgefangen);
 
  // =========================================================================
  console.log("\nA · Die Rüstliste zum Drucken");
