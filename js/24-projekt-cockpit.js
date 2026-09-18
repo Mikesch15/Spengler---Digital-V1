@@ -358,6 +358,7 @@ async function openProjectCockpit(projectId,treffer){
  // v3.142: Die Fotowand zeigt Bilder aus genau diesen Listen - sie darf beim
  // Wechsel keinen Augenblick lang noch die des vorigen Projekts zeigen.
  if($("cockpitFotosBody")){$("cockpitFotosBody").innerHTML="";$("cockpitFotosBody").dataset.aufgeloest=""}
+ cockpitFotoFilter="";                 // v3.147: neues Projekt, wieder alle Herkuenfte
  if($("cockpitFotosCount"))$("cockpitFotosCount").textContent="…";
  // Verlauf-Container zurücksetzen (bestehende Hilfsfunktion aus v2.31).
  updateVerlaufToggleVisibility($("cockpitVerlaufToggle"),$("cockpitVerlaufBody"),cockpitProjectId);
@@ -760,12 +761,32 @@ $("measMediaClose").onclick=()=>{
 // Die Sinnbilder sind bewusst dieselben wie in den Abschnittsueberschriften
 // (Massaufnahmen, Ausmass, Regierapport, Offerte, Dateien) - dasselbe
 // Zeichen bedeutet an beiden Stellen dasselbe.
+// Die Herkunftsarten in der Reihenfolge der Abschnitte des Cockpits. Der
+// Schluessel dient dem Filter, das Sinnbild ist dasselbe wie oben in der
+// Abschnittsueberschrift - dasselbe Zeichen bedeutet an beiden Stellen
+// dasselbe.
+const COCKPIT_FOTO_QUELLEN=[
+ {key:"meas" ,zeichen:"📐",name:"Massaufnahmen"},
+ {key:"am"   ,zeichen:"📏",name:"Ausmass"},
+ {key:"rep"  ,zeichen:"📋",name:"Regierapport"},
+ {key:"ang"  ,zeichen:"🧾",name:"Offerte"},
+ {key:"datei",zeichen:"📎",name:"Dateien"}
+];
+// Welche Herkunft die Wand gerade zeigt ("" = alle). Nur Anzeige; beim
+// Wechsel des Projekts faengt es wieder bei "alle" an.
+let cockpitFotoFilter="";
+
 function cockpitFotoListe(){
  const bilder=[];
  // Mehrere Bilder derselben Quelle werden durchnummeriert ("Foto 2/3"),
  // ein einzelnes bleibt schlicht "Foto" - keine "1/1"-Zaehlerei.
- const dazu=(pfade,quelle,art)=>pfade.forEach((pfad,i)=>bilder.push({
-  pfad,
+ //
+ // datum ist das Datum des EINTRAGS, nicht das Aufnahmedatum des Fotos -
+ // wann ein Bild wirklich gemacht wurde, weiss die App nicht. Mehrere Fotos
+ // desselben Eintrags tragen deshalb dasselbe Datum. Genau so steht es auch
+ // in der Beschriftung, damit die Sortierung nachvollziehbar bleibt.
+ const dazu=(pfade,quelle,art,key,datum)=>pfade.forEach((pfad,i)=>bilder.push({
+  pfad, key, datum:datum||"",
   label:infoZeile(quelle,pfade.length>1?`${art} ${i+1}/${pfade.length}`:art)
  }));
  const liste=x=>Array.isArray(x)?x:[];
@@ -773,55 +794,99 @@ function cockpitFotoListe(){
  // Massaufnahmen: Fotos UND Skizzen, wie in der Einzelansicht darueber.
  if(typeof projectMeasurementsCache!=="undefined")liste(projectMeasurementsCache).forEach(m=>{
   const art=(typeof MEAS_TYPE_LABELS!=="undefined"&&MEAS_TYPE_LABELS[m.type])||m.type||"Massaufnahme";
-  const quelle="📐 "+infoZeile(art,m.title);
+  const quelle="📐 "+infoZeile(art,m.title,datumCH(m.date));
   const {fotos,skizzen}=measMedienPfade(m);
-  dazu(fotos,quelle,"Foto");
-  dazu(skizzen,quelle,"Skizze");
+  dazu(fotos,quelle,"Foto","meas",m.date);
+  dazu(skizzen,quelle,"Skizze","meas",m.date);
  });
  if(typeof projectAusmassCache!=="undefined")liste(projectAusmassCache).forEach(a=>{
   const art=COCKPIT_AM_TYPE_LABELS[a.type]||a.type||"Ausmass";
   dazu(medienPfadListe(a.photo_paths,a.photo_path),
-       "📏 "+infoZeile(art,a.title,datumCH(a.date)),"Foto");
+       "📏 "+infoZeile(art,a.title,datumCH(a.date)),"Foto","am",a.date);
  });
  if(typeof projectReportsCache!=="undefined")liste(projectReportsCache).forEach(r=>{
   dazu(medienPfadListe(r.photo_paths,null),
-       "📋 "+infoZeile("Regierapport",datumCH(r.date),r.order_no),"Foto");
+       "📋 "+infoZeile("Regierapport",datumCH(r.date),r.order_no),"Foto","rep",r.date);
  });
  // Die Offerte gibt es nur mit Freigabe; ohne sie ist projectAngeboteCache
  // leer (js/63 fragt dann gar nicht erst ab) - hier ist nichts zu gaten.
  if(typeof projectAngeboteCache!=="undefined")liste(projectAngeboteCache).forEach(a=>{
   dazu(medienPfadListe(a.photo_paths,a.photo_path),
-       "🧾 "+infoZeile("Offerte",a.title,datumCH(a.date)),"Foto");
+       "🧾 "+infoZeile("Offerte",a.title,datumCH(a.date)),"Foto","ang",a.date);
  });
  // Projektdateien: nur echte Bilddateien - ein PDF oder eine Excel-Datei
  // ist kein Foto. Was ein Bild ist, entscheidet dieselbe Funktion wie im
  // Dateien-Abschnitt (istBilddatei, js/09), keine zweite Liste von Endungen.
+ // Hier gibt es kein Eintragsdatum, nur den Zeitpunkt des Hochladens.
  if(typeof projectFilesCache!=="undefined")liste(projectFilesCache).forEach(f=>{
   if(typeof istBilddatei==="function"&&!istBilddatei(f.mime_type,f.name))return;
-  dazu(f.file_path?[String(f.file_path)]:[],"📎 "+infoZeile("Datei",f.name),"");
+  dazu(f.file_path?[String(f.file_path)]:[],
+       "📎 "+infoZeile("Datei",f.name,datumCH(f.created_at)),"","datei",f.created_at);
  });
- return bilder;
+
+ // Neueste zuerst - dieselbe Richtung wie jede andere Liste der App. Bilder
+ // ohne Datum wandern ans Ende, statt vorne zu stehen und den Eindruck zu
+ // erwecken, sie seien die juengsten. Innerhalb desselben Datums bleibt die
+ // Reihenfolge, in der die Abschnitte oben stehen (stabile Sortierung).
+ return bilder
+  .map((b,i)=>({b,i}))
+  .sort((x,y)=>{
+   const a=x.b.datum?Date.parse(x.b.datum):NaN, c=y.b.datum?Date.parse(y.b.datum):NaN;
+   const aOk=!isNaN(a), cOk=!isNaN(c);
+   if(aOk&&cOk&&a!==c)return c-a;
+   if(aOk!==cOk)return aOk?-1:1;
+   return x.i-y.i;
+  })
+  .map(x=>x.b);
+}
+
+// Was die Wand gerade zeigt - also die ganze Liste oder nur eine Herkunft.
+// EINE Stelle entscheidet das: die Wand, der Zaehler und der Ausdruck lesen
+// alle diese Funktion, damit gedruckt wird, was auch am Bildschirm steht.
+function cockpitFotoGezeigt(){
+ const alle=cockpitFotoListe();
+ return cockpitFotoFilter?alle.filter(b=>b.key===cockpitFotoFilter):alle;
 }
 
 function cockpitFotosRendern(){
  const box=$("cockpitFotosBody"); if(!box)return;
- const bilder=cockpitFotoListe();
+ const alle=cockpitFotoListe();
+ // Eine Herkunft, die es gar nicht (mehr) gibt, darf nicht als Filter
+ // stehenbleiben - sonst zeigte die Wand leer und niemand wuesste warum.
+ if(cockpitFotoFilter&&!alle.some(b=>b.key===cockpitFotoFilter))cockpitFotoFilter="";
+ const bilder=cockpitFotoGezeigt();
+ // In der Ueberschrift steht immer die GESAMTZAHL des Projekts, nicht die
+ // gefilterte - sonst saehe es aus, als waeren Bilder verschwunden.
  const zahl=$("cockpitFotosCount");
- if(zahl)zahl.textContent=String(bilder.length);
+ if(zahl)zahl.textContent=String(alle.length);
  // v3.144: Der Druckknopf erscheint nur, wenn es wirklich etwas zu drucken
  // gibt - ein Knopf, der nur eine Absage zeigt, ist keiner.
  const druck=$("cockpitFotosDruck");
  if(druck)druck.hidden=!bilder.length;
  box.dataset.aufgeloest="";
- if(!bilder.length){
+ if(!alle.length){
   box.innerHTML='<div class="empty">📷 Noch keine Fotos in diesem Projekt.'
    +'<div class="small" style="margin-top:6px">Hier erscheinen alle Fotos und Skizzen '
    +'aus den Massaufnahmen, dem Ausmass, den Regierapporten, den Offerten und den '
    +'Projektdateien – bei jedem Bild steht, woher es stammt.</div></div>';
   return;
  }
- box.innerHTML='<div class="small" style="color:var(--muted)">Unter jedem Bild steht, '
-  +'aus welcher Massaufnahme, welchem Rapport oder welcher Datei es stammt.</div>'
+ // Filterleiste: nur Herkunftsarten, die wirklich Bilder haben. Ein Knopf,
+ // der nur eine leere Wand zeigen kann, ist keiner. Je Knopf steht die
+ // Anzahl dabei, damit vor dem Tippen klar ist, was dahinter steckt.
+ const knopf=(key,text,n)=>`<button type="button" class="${key===cockpitFotoFilter?"blue":"gray"}"`
+  +` data-foto-filter="${esc(key)}">${esc(text)} ${n}</button>`;
+ const leiste=alle.length>1
+  ? '<div class="bar">'+knopf("","Alle",alle.length)
+    +COCKPIT_FOTO_QUELLEN.map(q=>{
+      const n=alle.filter(b=>b.key===q.key).length;
+      return n?knopf(q.key,q.zeichen+" "+q.name,n):"";
+     }).join("")
+    +'</div>'
+  : "";
+ box.innerHTML=leiste
+  +'<div class="small" style="color:var(--muted)">Neueste zuerst. Unter jedem Bild steht, '
+  +'woher es stammt – mit dem Datum des Eintrags, nicht dem Aufnahmedatum des Fotos.</div>'
   +'<div class="medien-galerie">'
   +bilder.map(b=>`<button type="button" class="medien-kachel" data-label="${esc(b.label)}" data-medien-gross>`
    +`<img data-signed-src="${esc(b.pfad)}" alt="${esc(b.label)}">`
@@ -848,6 +913,12 @@ function cockpitFotosThumbs(){
 // eine zweite. Der Betrachter liegt ueber dem Cockpit (z-index 900 gegen
 // 500), er laesst sich also direkt von hier aus oeffnen und schliessen.
 $("cockpitFotosBody").addEventListener("click",e=>{
+ const f=e.target.closest("[data-foto-filter]");
+ if(f){
+  cockpitFotoFilter=f.dataset.fotoFilter||"";
+  cockpitFotosRendern();
+  return;
+ }
  medienGrossOeffnen(e.target.closest("[data-medien-gross]"));
 });
 
@@ -909,6 +980,7 @@ function fotoDokuDokument(projekt,bilder,logoSrc){
     ?`${currentProfile.first_name} ${currentProfile.last_name}`:"",
   logoSrc
  }):"";
+ const quelle=COCKPIT_FOTO_QUELLEN.find(q=>q.key===cockpitFotoFilter);
  const kacheln=bilder.map(b=>`<div class="fd-bild"><div class="fd-rahmen">`
   +(b.url?`<img src="${esc(b.url)}" alt="${esc(b.label)}">`
          :`<div class="fd-fehlt">Bild konnte nicht geladen werden</div>`)
@@ -916,16 +988,22 @@ function fotoDokuDokument(projekt,bilder,logoSrc){
  const fehlend=bilder.filter(b=>!b.url).length;
  return kopf+`<div class="eb-section-head">Fotos und Skizzen</div>
 <div class="fd-raster">${kacheln}</div>
-<div class="note">Unter jedem Bild steht, woher es stammt: die Art und der Titel der
-Massaufnahme, das Datum des Rapports, der Dateiname. Zusammengetragen aus den
-Massaufnahmen, dem Ausmass, den Regierapporten, den Offerten und den Projektdateien
-dieses Projekts.</div>`
+<div class="note">Neueste zuerst. Unter jedem Bild steht, woher es stammt: die Art und
+der Titel der Massaufnahme, das Datum des Rapports, der Dateiname. Das Datum ist das des
+Eintrags, nicht das Aufnahmedatum des Fotos.</div>`
+ +(quelle?`<div class="note"><b>Auszug:</b> gedruckt sind nur die Bilder aus
+„${esc(quelle.name)}“. Das Projekt hat weitere Bilder aus anderen Quellen.</div>`
+ :`<div class="note">Zusammengetragen aus den Massaufnahmen, dem Ausmass, den
+Regierapporten, den Offerten und den Projektdateien dieses Projekts.</div>`)
  +(fehlend?`<div class="note">Achtung: ${fehlend} von ${bilder.length} Bildern konnten nicht
 geladen werden und stehen nur als Platzhalter im Ausdruck.</div>`:"");
 }
 
 async function cockpitFotosDrucken(){
- const bilder=cockpitFotoListe();
+ // Gedruckt wird, was die Wand ZEIGT - also mit dem gesetzten Filter. Alles
+ // andere waere eine Ueberraschung: wer nach "Regierapport" filtert und dann
+ // druckt, erwartet die Rapportfotos, nicht das ganze Projekt.
+ const bilder=cockpitFotoGezeigt();
  if(!bilder.length){
   alert("Für dieses Projekt sind keine Fotos gespeichert – es gibt nichts zu drucken.");
   return;
