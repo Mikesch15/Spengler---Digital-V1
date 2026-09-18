@@ -2,8 +2,15 @@
 //   - sie sammelt die Bilder aus ALLEN fuenf Quellen, die das Cockpit
 //     ohnehin schon geladen hat (Massaufnahmen inkl. Skizzen, Ausmass,
 //     Regierapport, Offerte, Projektdateien),
-//   - an jedem Bild steht, woher es stammt, und bei mehreren Bildern
-//     derselben Quelle auch die wievielten sie sind,
+//   - an jedem Bild steht, woher es stammt, dazu das Datum des
+//     Eintrags, und bei mehreren Bildern derselben Quelle auch die
+//     wievielten sie sind,
+//   - die Wand ist chronologisch sortiert, neueste zuerst, und Bilder
+//     ohne Datum stehen am Ende statt vorne (v3.147),
+//   - die Filterleiste bietet nur Herkuenfte an, die wirklich Bilder
+//     haben, zeigt je Herkunft deren Anzahl und schaltet die Wand um;
+//     der Zaehler in der Ueberschrift bleibt dabei die Gesamtzahl
+//     (v3.147),
 //   - aeltere Datensaetze mit nur dem Einzelfeld photo_path kommen mit,
 //   - Dateien, die keine Bilder sind (PDF, Excel), kommen NICHT mit,
 //   - es faellt keine einzige zusaetzliche Datenbankabfrage an,
@@ -152,22 +159,65 @@ const wand=page=>page.evaluate(()=>{
  const doppelt=erlaubt.filter(t=>ruf.filter(x=>x===t).length>1);
  p(doppelt.length===0,"keine Tabelle wird ein zweites Mal gelesen",{ruf,doppelt});
 
- console.log("\nC · an jedem Bild steht, woher es stammt");
+ console.log("\nC · an jedem Bild steht, woher es stammt - samt Datum des Eintrags");
  const L=w.kacheln.map(k=>k.label);
- p(L[0]==="📐 Kamineinfassung · Ost · Foto 1/3","Massaufnahme: Art, Titel und Nummer",L[0]);
- p(L[2]==="📐 Kamineinfassung · Ost · Foto 3/3","und zwar durchnummeriert",L[2]);
- p(L[3]==="📐 Kamineinfassung · Ost · Skizze","die einzige Skizze ohne Zaehler",L[3]);
- p(L[4]==="📐 Kehle · Foto","alter Datensatz: nur die Art, kein Titel erfunden",L[4]);
- p(L[5]==="📐 Kehle · Skizze","auch die Einzelfeld-Skizze kommt mit",L[5]);
- p(/^📏 Blitzschutzausmass · Dach/.test(L[6]),"Ausmass mit Art und Titel",L[6]);
- p(/^📋 Regierapport · 14\.3\.2026 · A-77 · Foto 1\/2$/.test(L[7]),"Rapport mit Datum und Auftrags-Nr.",L[7]);
- p(/^🧾 Offerte · Offerte Dach/.test(L[9]),"Offerte mit Bezeichnung",L[9]);
- p(L[10]==="📎 Datei · plan.jpg","Projektdatei mit Dateinamen",L[10]);
+ // Die Nummern sind die der CHRONOLOGISCHEN Wand (Abschnitt C2), nicht
+ // mehr die der alten Sammel-Reihenfolge nach Abschnitten.
+ p(L[2]==="📐 Kamineinfassung · Ost · 1.9.2026 · Foto 1/3","Massaufnahme: Art, Titel, Datum und Nummer",L[2]);
+ p(L[4]==="📐 Kamineinfassung · Ost · 1.9.2026 · Foto 3/3","und zwar durchnummeriert",L[4]);
+ p(L[5]==="📐 Kamineinfassung · Ost · 1.9.2026 · Skizze","die einzige Skizze ohne Zaehler",L[5]);
+ p(L[6]==="📐 Kehle · 20.8.2026 · Foto","alter Datensatz: Art und Datum, kein Titel erfunden",L[6]);
+ p(L[7]==="📐 Kehle · 20.8.2026 · Skizze","auch die Einzelfeld-Skizze kommt mit",L[7]);
+ p(L[1]==="📏 Blitzschutzausmass · Dach · 5.9.2026 · Foto","Ausmass mit Art, Titel und Datum",L[1]);
+ p(L[8]==="📋 Regierapport · 14.3.2026 · A-77 · Foto 1/2","Rapport mit Datum und Auftrags-Nr.",L[8]);
+ p(L[10]==="🧾 Offerte · Offerte Dach · 1.2.2026 · Foto","Offerte mit Bezeichnung und Datum",L[10]);
+ p(L[0]==="📎 Datei · plan.jpg · 6.9.2026","Projektdatei mit Dateinamen und Hochladedatum",L[0]);
  p(!L.some(x=>/offerte\.pdf/.test(x)),"das PDF ist kein Foto und fehlt",L);
  p(!L.some(x=>/Lukarne/.test(x)),"die bildlose Massaufnahme erzeugt keine Kachel",L);
- p(w.kacheln.map(k=>k.pfad).join()==="m/f1.jpg,m/f2.jpg,m/f3.jpg,m/s1.png,alt/einzel.jpg,"
-   +"alt/skizze.png,am/a1.jpg,rp/r1.jpg,rp/r2.jpg,an/o1.jpg,pf/plan.jpg",
-   "und jede Kachel zeigt genau ihren gespeicherten Pfad",w.kacheln.map(k=>k.pfad));
+ // Gegenprobe zum Datum: JEDE Kachel traegt das Datum ihres Eintrags,
+ // keine bleibt ohne - sonst waere die Sortierung nicht nachvollziehbar.
+ p(L.every(x=>/ \d{1,2}\.\d{1,2}\.\d{4}( ·|$)/.test(x)),"an jeder Kachel steht ein Datum",L);
+
+ console.log("\nC2 · die Wand ist chronologisch sortiert - neueste zuerst (v3.147)");
+ p(w.kacheln.map(k=>k.pfad).join()==="pf/plan.jpg,am/a1.jpg,m/f1.jpg,m/f2.jpg,m/f3.jpg,"
+   +"m/s1.png,alt/einzel.jpg,alt/skizze.png,rp/r1.jpg,rp/r2.jpg,an/o1.jpg",
+   "jede Kachel zeigt ihren Pfad, geordnet nach dem Datum des Eintrags",w.kacheln.map(k=>k.pfad));
+ // Nicht die Reihenfolge abschreiben, sondern die Regel pruefen: die Daten
+ // der Liste duerfen nie ansteigen.
+ const daten=await page.evaluate(()=>cockpitFotoListe().map(b=>b.datum));
+ p(daten.every((d,i)=>i===0||Date.parse(daten[i-1])>=Date.parse(d)),
+   "kein Bild ist juenger als das davor",daten);
+ // Gegenprobe zur alten Sammel-Reihenfolge: die Projektdatei vom 6.9. stand
+ // frueher ganz am Ende (Dateien zuletzt eingesammelt) und die Massaufnahme
+ // vom 1.9. ganz vorne. Genau das darf nicht zurueckkommen.
+ const pf=w.kacheln.map(k=>k.pfad);
+ p(pf.indexOf("pf/plan.jpg")<pf.indexOf("m/f1.jpg"),
+   "die juengere Projektdatei steht VOR der aelteren Massaufnahme",
+   [pf.indexOf("pf/plan.jpg"),pf.indexOf("m/f1.jpg")]);
+ p(pf.indexOf("am/a1.jpg")<pf.indexOf("m/f1.jpg"),
+   "und das juengere Ausmass ebenfalls",[pf.indexOf("am/a1.jpg"),pf.indexOf("m/f1.jpg")]);
+ // Ein Datensatz ganz ohne Datum darf nicht als der juengste durchgehen -
+ // er gehoert ans Ende. Isoliert geprueft, damit die elf Bilder oben
+ // unberuehrt bleiben; danach wird der Cache wieder hergestellt.
+ const ohneDatum=await page.evaluate(()=>{
+  const sicher=projectMeasurementsCache;
+  projectMeasurementsCache=[
+   {id:91,project_id:3,type:"kehle",title:"ohne Datum",data:{},photo_paths:["x/ohne.jpg"]},
+   {id:92,project_id:3,type:"kehle",title:"alt",date:"2020-01-01",data:{},photo_paths:["x/alt.jpg"]}
+  ];
+  const r=cockpitFotoListe().map(b=>b.pfad);
+  projectMeasurementsCache=sicher;
+  return r;
+ });
+ p(ohneDatum[ohneDatum.length-1]==="x/ohne.jpg",
+   "ein Bild ohne Datum steht am Ende, nicht vorne",ohneDatum);
+ p(ohneDatum.indexOf("x/alt.jpg")<ohneDatum.indexOf("x/ohne.jpg"),
+   "sogar hinter dem aeltesten datierten Bild",ohneDatum);
+ // und der Cache ist wirklich wieder der alte - nicht nur im alten Bild
+ // der Wand, sondern auch, wenn sie neu zeichnet.
+ await page.evaluate(()=>cockpitFotosRendern());
+ w=await wand(page);
+ p(w.kacheln.length===11,"nach der Gegenprobe steht die Wand unveraendert da",w.kacheln.length);
 
  console.log("\nD · beim Aufklappen kommen die Vorschauen - genau eine je Bild");
  await page.evaluate(()=>{window.__signiert=[]});
@@ -192,7 +242,9 @@ const wand=page=>page.evaluate(()=>{
 
  console.log("\nE · der Klick oeffnet die BESTEHENDE Grossansicht");
  const gross=await page.evaluate(()=>{
-  const k=$("cockpitFotosBody").querySelector(".medien-kachel");
+  // bewusst NICHT die erste Kachel: so ist zugleich belegt, dass der
+  // Betrachter die angetippte Kachel zeigt und nicht schlicht die erste.
+  const k=$("cockpitFotosBody").querySelectorAll(".medien-kachel")[2];
   k.click();
   return {
    offen:!$("measMediaViewer").hidden,
@@ -207,11 +259,106 @@ const wand=page=>page.evaluate(()=>{
  p(gross.offen,"der Betrachter ist offen");
  p(gross.anzahl===1,"es gibt genau EINEN Betrachter in der App",gross.anzahl);
  p(gross.bild==="https://beispiel.test/m/f1.jpg","er zeigt das angetippte Bild",gross.bild);
- p(gross.label==="📐 Kamineinfassung · Ost · Foto 1/3","mit der Herkunft als Beschriftung",gross.label);
+ p(gross.label==="📐 Kamineinfassung · Ost · 1.9.2026 · Foto 1/3","mit der Herkunft als Beschriftung",gross.label);
  p(!gross.modal,"die Einzelansicht einer Massaufnahme wurde nicht mitgeoeffnet");
  await page.evaluate(()=>$("measMediaViewerClose").click());
 
- console.log("\nF · Projektwechsel: kein Bild des vorigen Projekts");
+ console.log("\nF · Filter nach Herkunft (v3.147)");
+ const leiste=()=>page.evaluate(()=>[...$("cockpitFotosBody").querySelectorAll("[data-foto-filter]")]
+  .map(b=>({key:b.dataset.fotoFilter,text:b.textContent,aktiv:b.className.indexOf("blue")>=0})));
+ let lf=await leiste();
+ p(lf.map(b=>b.key).join()===",meas,am,rep,ang,datei",
+   "Alle plus genau die fuenf Herkuenfte in der Reihenfolge der Abschnitte",lf.map(b=>b.key));
+ p(lf.map(b=>b.text).join("|")==="Alle 11|📐 Massaufnahmen 6|📏 Ausmass 1|📋 Regierapport 2|"
+   +"🧾 Offerte 1|📎 Dateien 1","je Knopf steht seine Anzahl dabei",lf.map(b=>b.text));
+ p(lf.filter(b=>b.aktiv).length===1&&lf[0].aktiv,"zu Beginn ist \"Alle\" hervorgehoben",lf);
+ // Tippen: nur noch diese Herkunft, der Knopf wird hervorgehoben.
+ const filtern=async key=>{
+  await page.evaluate(k=>$("cockpitFotosBody").querySelector(`[data-foto-filter="${k}"]`).click(),key);
+  await page.waitForTimeout(150);
+  return wand(page);
+ };
+ let wf=await filtern("rep");
+ p(wf.kacheln.map(k=>k.pfad).join()==="rp/r1.jpg,rp/r2.jpg",
+   "nach dem Tippen stehen nur die Rapportfotos da",wf.kacheln.map(k=>k.pfad));
+ p(wf.zahl==="11","der Zaehler bleibt die GESAMTZAHL des Projekts",wf.zahl);
+ lf=await leiste();
+ p(lf.filter(b=>b.aktiv).length===1&&lf.find(b=>b.key==="rep").aktiv,
+   "und genau der getippte Knopf ist hervorgehoben",lf);
+ p(lf.map(b=>b.text).join("|").indexOf("Alle 11")===0,
+   "die Anzahlen in der Leiste bleiben die des ganzen Projekts",lf.map(b=>b.text));
+ // die Vorschauen des Auszugs werden geholt - eine gefilterte Wand darf
+ // nicht als Reihe grauer Kaesten dastehen
+ p(wf.kacheln.every(k=>k.bereit==="1"&&/^https:\/\/beispiel\.test\//.test(k.src)),
+   "auch die gefilterte Wand zeigt ihre Bilder",wf.kacheln.map(k=>[k.bereit,k.src.slice(0,40)]));
+ // Massaufnahmen: Fotos UND Skizzen gehoeren derselben Herkunft an
+ wf=await filtern("meas");
+ p(wf.kacheln.map(k=>k.pfad).join()==="m/f1.jpg,m/f2.jpg,m/f3.jpg,m/s1.png,alt/einzel.jpg,alt/skizze.png",
+   "die Massaufnahmen bringen ihre Skizzen mit",wf.kacheln.map(k=>k.pfad));
+ // Gegenprobe: "Alle" stellt wirklich alles wieder her, in der Sortierung
+ wf=await filtern("");
+ p(wf.kacheln.map(k=>k.pfad).join()==="pf/plan.jpg,am/a1.jpg,m/f1.jpg,m/f2.jpg,m/f3.jpg,"
+   +"m/s1.png,alt/einzel.jpg,alt/skizze.png,rp/r1.jpg,rp/r2.jpg,an/o1.jpg",
+   "\"Alle\" bringt alle elf in ihrer Reihenfolge zurueck",wf.kacheln.map(k=>k.pfad));
+ // Gedruckt wird, was die Wand zeigt: der Auszug, nicht das ganze Projekt.
+ await filtern("rep");
+ const druck=await page.evaluate(()=>{
+  const b=cockpitFotoGezeigt();
+  return {n:b.length,pfade:b.map(x=>x.pfad),
+          text:fotoDokuDokument({name:"Test",object:"Teststrasse 11"},
+               b.map(x=>({label:x.label,url:"https://beispiel.test/"+x.pfad})),"")
+               .replace(/\s+/g," ")};
+ });
+ p(druck.n===2&&druck.pfade.join()==="rp/r1.jpg,rp/r2.jpg",
+   "die Fotodokumentation druckt genau den Auszug",druck.pfade);
+ p(/Auszug:/.test(druck.text)&&/Regierapport/.test(druck.text),
+   "und sagt im Ausdruck, dass es ein Auszug ist",druck.text.slice(-400));
+ p((druck.text.match(/fd-bild/g)||[]).length===2,"mit genau zwei Bildern im Raster",
+   (druck.text.match(/fd-bild/g)||[]).length);
+ // Gegenprobe: ohne Filter steht dieser Hinweis NICHT da, sonst waere er
+ // eine Warnung ohne Anlass.
+ await filtern("");
+ const ganz=await page.evaluate(()=>fotoDokuDokument({name:"Test",object:"x"},
+  cockpitFotoGezeigt().map(x=>({label:x.label,url:"u"})),"").replace(/\s+/g," "));
+ p(!/Auszug:/.test(ganz),"ohne Filter kein Auszug-Hinweis",ganz.slice(0,200));
+ p((ganz.match(/fd-bild/g)||[]).length===11,"und alle elf Bilder im Ausdruck",
+   (ganz.match(/fd-bild/g)||[]).length);
+ // Ein Projekt mit nur einem Bild braucht keine Filterleiste - ein Knopf,
+ // der nichts aussortieren kann, ist keiner.
+ const einsam=await page.evaluate(()=>{
+  const sicher=[projectMeasurementsCache,projectAusmassCache,projectReportsCache,
+                projectAngeboteCache,projectFilesCache];
+  projectAusmassCache=[];projectReportsCache=[];projectAngeboteCache=[];projectFilesCache=[];
+  projectMeasurementsCache=[{id:93,project_id:3,type:"kehle",title:"einzig",date:"2026-01-01",
+                             data:{},photo_paths:["x/eins.jpg"]}];
+  cockpitFotosRendern();
+  const r={knoepfe:$("cockpitFotosBody").querySelectorAll("[data-foto-filter]").length,
+           kacheln:$("cockpitFotosBody").querySelectorAll(".medien-kachel").length};
+  [projectMeasurementsCache,projectAusmassCache,projectReportsCache,
+   projectAngeboteCache,projectFilesCache]=sicher;
+  cockpitFotosRendern();
+  return r;
+ });
+ p(einsam.knoepfe===0&&einsam.kacheln===1,"bei einem einzigen Bild gibt es keine Filterleiste",einsam);
+ // Und ein Filter auf eine Herkunft, die es nicht mehr gibt, darf nicht
+ // stehenbleiben - sonst zeigte die Wand leer ohne erkennbaren Grund.
+ const verwaist=await page.evaluate(()=>{
+  cockpitFotoFilter="rep";
+  const sicher=projectReportsCache;
+  projectReportsCache=[];
+  cockpitFotosRendern();
+  const r={filter:cockpitFotoFilter,
+           kacheln:$("cockpitFotosBody").querySelectorAll(".medien-kachel").length};
+  projectReportsCache=sicher;
+  cockpitFotosRendern();
+  return r;
+ });
+ p(verwaist.filter===""&&verwaist.kacheln===9,
+   "faellt die gefilterte Herkunft weg, zeigt die Wand wieder alles",verwaist);
+ const zurueck=await wand(page);
+ p(zurueck.kacheln.length===11,"und danach steht sie wieder vollstaendig da",zurueck.kacheln.length);
+
+ console.log("\nG · Projektwechsel: kein Bild des vorigen Projekts");
  await oeffnen(page,4,false);
  w=await wand(page);
  p(w.leer,"keine Kachel mehr",w.kacheln.length);
@@ -219,8 +366,10 @@ const wand=page=>page.evaluate(()=>{
  p(/Noch keine Fotos in diesem Projekt/.test(w.text),"und der Leertext steht da",w.text.slice(0,120));
  sig=await page.evaluate(()=>window.__signiert.slice());
  p(sig.length===0,"ohne Bilder wird keine signierte URL geholt",sig);
+ p(await page.evaluate(()=>cockpitFotoFilter)==="",
+   "und ein gesetzter Filter gilt nicht ins naechste Projekt hinein");
 
- console.log("\nG · Gegenprobe: die alte Einzelansicht einer Massaufnahme ist unveraendert");
+ console.log("\nH · Gegenprobe: die alte Einzelansicht einer Massaufnahme ist unveraendert");
  await oeffnen(page,3,true);
  const einzel=await page.evaluate(()=>{
   window.__signiert=[];

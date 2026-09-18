@@ -183,7 +183,10 @@ const oeffnen=async(page,bestueckt,anzahl)=>{
    .querySelectorAll(".medien-kachel")].map(k=>k.dataset.label));
  p(wandLabels.every(l=>st.text.indexOf(l)>=0),
    "jede Herkunftsangabe der Wand steht auch im Ausdruck",wandLabels);
- p(/Kamineinfassung · Ost · Foto 1\/2/.test(st.text),"z. B. die der ersten Massaufnahme");
+ // seit v3.147 steht das Datum des Eintrags mit in der Herkunft - im
+ // Ausdruck genauso wie an der Wand.
+ p(/Kamineinfassung · Ost · 1\.9\.2026 · Foto 1\/2/.test(st.text),
+   "z. B. die der ersten Massaufnahme, samt Datum des Eintrags");
  p(/Regierapport · 14\.3\.2026 · A-77/.test(st.text),"und die des Rapports");
 
  console.log("\nE · der Kern: gedruckt wird ERST, wenn jedes Bild geladen ist");
@@ -214,7 +217,7 @@ const oeffnen=async(page,bestueckt,anzahl)=>{
  p(/Bild konnte nicht geladen werden/.test(f2.text),"an der Stelle steht ein Platzhalter");
  p(/1 von 4 Bildern konnten nicht\s+geladen werden/.test(f2.text),
    "und der Ausdruck sagt es ausdruecklich",(f2.text.match(/Achtung:[^<]*/)||[""])[0]);
- p(/Kamineinfassung · Ost · Foto 2\/2/.test(f2.text),
+ p(/Kamineinfassung · Ost · 1\.9\.2026 · Foto 2\/2/.test(f2.text),
    "die Herkunft steht auch beim Platzhalter dabei");
  await page.evaluate(()=>{window.__keineUrlFuer=[]});
 
