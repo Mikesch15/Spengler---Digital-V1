@@ -31701,3 +31701,372 @@ Zusicherungen durch.
 | `js/68-lagerverwaltung.js` | „Gewählt: …" und „↩ andere wählen" statt „✏️ ändern" |
 | `pruefstaende/pruefstand-gemeinsamer-dialog-v3-138.js` | Abschnitt I, 8 Zusicherungen |
 | `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.141 |
+
+## 209. v3.142 – alle Fotos eines Objekts an einem Ort
+
+### 209.1 Der Befund
+
+> „Im projektcokpit, sollte ein ort sein andem alle fotos des objekts zu
+> sehen sind und es soll stehen aus welcher massaufnahme oder so es stammt"
+
+Die Bilder eines Objekts lagen an **fünf** Stellen verstreut: in jeder
+einzelnen Massaufnahme (Fotos *und* Skizzen), im Ausmass, im Regierapport,
+in der Offerte und unter „Dateien/Fotos". Wer alle sehen wollte, musste
+jede Massaufnahme einzeln öffnen.
+
+### 209.2 Was gebaut wurde
+
+Der neue Cockpit-Abschnitt **„📷 Alle Fotos"** sammelt sie zusammen. Unter
+jedem Bild steht, woher es stammt – Art und Titel der Massaufnahme, Datum
+und Auftrags-Nr. des Rapports, der Dateiname –, bei mehreren Bildern
+derselben Herkunft durchnummeriert („Foto 2/3").
+
+Drei Entscheidungen, die die Architektur tragen:
+
+- **Keine zusätzliche Abfrage.** Die Wand liest ausschliesslich die Caches,
+  die die Abschnitte des Cockpits ohnehin schon geladen haben
+  (`projectMeasurementsCache` usw.). Das Öffnen eines Projekts wird dadurch
+  um keine einzige Datenbankabfrage teurer.
+- **Kein zweiter Bildbetrachter.** Der Klick öffnet die *bestehende*
+  Grossansicht der Massaufnahme-Medien. Dafür wurde der bisherige
+  Klick-Handler zu `medienGrossOeffnen(kachel)` herausgezogen und die
+  Pfadsammlung zu `medienPfadListe(mehrere, einzel)` – beide Stellen
+  benutzen jetzt dieselbe Funktion statt einer Kopie.
+- **Vorschauen erst beim Aufklappen.** Jede Vorschau kostet eine signierte
+  URL. Zugeklappt wird keine geholt; einmal aufgelöst, bleibt es dabei
+  (`box.dataset.aufgeloest`).
+
+Alte Datensätze mit nur den Einzelfeldern `photo_path`/`sketch_path` kommen
+mit. Dateien, die keine Bilder sind (PDF, Excel), kommen nicht mit – was
+ein Bild ist, entscheidet dieselbe Funktion wie im Dateien-Abschnitt
+(`istBilddatei`), keine zweite Liste von Endungen.
+
+### 209.3 Nachweis
+
+Neuer Prüfstand `pruefstand-projekt-fotos-v3-142.js` (34 Zusicherungen):
+alle fünf Quellen, die Herkunftsangaben, die Einzelfeld-Datensätze, das
+ausgeschlossene PDF, „keine zusätzliche Abfrage", „zugeklappt keine
+einzige signierte URL", „aufgeklappt genau eine je Bild und kein zweites
+Mal", „genau EIN Betrachter im Dokument", der Projektwechsel und der
+Leertext.
+
+### 209.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `index.html` | Abschnitt „📷 Alle Fotos" im Projekt-Cockpit |
+| `js/24-projekt-cockpit.js` | `cockpitFotoListe`, `cockpitFotosRendern`, `cockpitFotosThumbs`, `medienPfadListe`, `medienGrossOeffnen` |
+| `js/41-hilfe.js` | Hilfetext `cockpit-fotos` |
+| `pruefstaende/pruefstand-projekt-fotos-v3-142.js` | neu, 34 Zusicherungen |
+| `pruefstaende/pruefstand-cockpit-zurueck-v3-11.js` | um den neuen Abschnitt erweitert |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.142 |
+
+---
+
+## 210. v3.143 – die EDV-Nr. galt weltweit statt je Firma
+
+### 210.1 Der Befund
+
+Eine Firma legte eine Materialposition an und bekam „Nummer bereits
+vergeben" – obwohl in **ihrem** Katalog keine solche Nummer stand. Grund:
+`edv_nr` (und beim Blitzschutz `artikel_nr`) war **global** eindeutig.
+Sobald irgendeine Firma eine Nummer benutzte, war sie für jede andere
+Firma für immer gesperrt, obwohl die den fremden Katalog wegen RLS gar
+nicht sehen kann.
+
+### 210.2 Was geändert wurde
+
+Die eindeutigen Schlüssel wurden auf `(company_id, edv_nr)` bzw.
+`(company_id, artikel_nr)` umgestellt. Der Upsert im Excel-Import nennt
+jetzt denselben zusammengesetzten Schlüssel
+(`onConflict:"company_id,"+cfg.schluessel`). Der irreführende Hinweis
+„gehört die Nummer einer anderen Firma?" ist entfallen – er beschrieb
+genau den Zustand, den es nicht mehr gibt.
+
+`company_id` kommt dabei weiterhin **nie** vom Client, sondern aus dem
+Spalten-Default `my_company_id()`. Vor dem Umbau wurde deshalb eigens
+belegt, dass `ON CONFLICT` auch auf einer per Default gefüllten Spalte
+greift.
+
+### 210.3 Nachweis
+
+Auf der Datenbank selbst, in zurückgerollten `DO`-Blöcken: zwei Firmen
+können jetzt dieselbe `100.01` führen, **eine** Firma weiterhin nicht
+zweimal. Keine echten Daten wurden verändert.
+
+### 210.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| Migration | eindeutige Schlüssel je Firma auf `materials` und `blitzschutz_materials` |
+| `js/08-katalog-blitzschutz.js` | Upsert auf den zusammengesetzten Schlüssel, falscher Hinweis entfernt |
+| `Abschlussbericht_v3.143_Nummern_je_Firma.txt` | Bericht |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.143 |
+
+---
+
+## 211. Die CI war grün, weil die Sandbox keinen Internetzugang hat
+
+### 211.1 Der Befund
+
+Neun Prüfstände liefen lokal grün und **auf dem GitHub-Runner rot** – seit
+Einführung der CI. Die Fehlermeldung war ein Zeitüberlauf beim Klicken.
+
+Meine erste Erklärung („der Runner ist langsamer, 150 ms reichen ihm
+nicht") war **falsch**. Widerlegt: unter doppelter CPU-Überbuchung lief
+der Prüfstand weiterhin 12/12 durch, und der Fehler des Runners war ein
+**30-Sekunden**-Zeitüberlauf, nicht ein knapp verpasster Augenblick.
+
+Die echte Ursache: die Prüfstände legen per `addInitScript` einen
+Supabase-**Stub** ins Fenster. Die App lädt danach das **echte**
+`supabase-js` von `cdn.jsdelivr.net` – und das überschreibt den Stub. Auf
+dem Runner mit Internetzugang passierte genau das. In der
+Entwicklungs-Sandbox ist ausgehendes HTTPS gesperrt, der echte Client kam
+nie an, der Stub blieb stehen – die Prüfstände waren dort also aus dem
+falschen Grund grün.
+
+Die Korrelation war vollständig: alle neun roten Prüfstände laden den
+Stub so, alle grünen nicht.
+
+### 211.2 Was geändert wurde
+
+Neu `pruefstaende/stub-schutz.js`: eine Funktion `stubSchuetzen(page)`,
+die Anfragen an `cdn.jsdelivr.net/npm/@supabase/**` abfängt und durch eine
+leere, kommentierte Datei ersetzt. Der Stub des Prüfstands bleibt damit
+die einzige Quelle – unabhängig davon, ob die Maschine ins Internet kommt.
+
+Jeder der neun Prüfstände zählt zusätzlich mit, **dass** wirklich
+abgefangen wurde (`cdnWache.abgefangen>=1`). Ein stillschweigendes
+Zurückfallen auf den alten Zustand fiele damit sofort auf.
+
+### 211.3 Nachweis
+
+Der Fehler wurde in der Sandbox exakt nachgestellt (echtes `supabase-js`
+per Route eingespielt → derselbe 30-Sekunden-Zeitüberlauf), danach mit dem
+Schutz behoben. Die GitHub-Läufe **#108** und **#111** sind grün – zum
+ersten Mal seit Einführung der CI.
+
+### 211.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `pruefstaende/stub-schutz.js` | neu |
+| neun Prüfstände | `stubSchuetzen(page)` + Zusicherung, dass abgefangen wurde |
+| `pruefstaende/bekannte-fehlschlaege.txt` | leer – es gibt keinen bekannten Fehlschlag mehr |
+| `Abschlussbericht_CI_Stub_vom_CDN_ueberschrieben.txt` | Bericht |
+
+---
+
+## 212. v3.144 – die Fotodokumentation
+
+### 212.1 Der Anlass
+
+Was der Betrieb nach der Sanierung dem Kunden mitgibt und bei einer
+Reklamation auf den Tisch legt: jedes Bild des Objekts auf Papier, mit der
+Angabe, woher es stammt.
+
+### 212.2 Was gebaut wurde
+
+Der Knopf **„🖨️ Fotodokumentation"** im Abschnitt „📷 Alle Fotos". Kopf
+und Fusszeile kommen aus `pdfKopfHtml()`/`pdfFooterHtml()` (js/16), damit
+der Ausdruck aussieht wie jeder andere der App.
+
+Zwei Dinge, die den Ausdruck brauchbar machen:
+
+- **Das Fenster wird synchron im Klick geöffnet**, mit einem Platzhaltertext.
+  Erst danach werden die signierten URLs geholt. Ein Fenster, das nach einer
+  `await`-Pause geöffnet wird, blockieren die Browser.
+- **Gedruckt wird erst, wenn jedes Bild geladen ist.** Sonst druckt der
+  Browser leere Rahmen. Lässt sich ein Bild nicht laden, steht an seiner
+  Stelle ein Platzhalter mit der Herkunft, und der Ausdruck nennt oben die
+  Zahl – es verschwindet keines stillschweigend. Ein Zeitlimit von 15 s
+  verhindert, dass das Fenster ewig wartet.
+
+Der Knopf erscheint nur, wenn es wirklich etwas zu drucken gibt.
+
+### 212.3 Nachweis
+
+Neuer Prüfstand `pruefstand-fotodokumentation-v3-144.js`: das sofort
+geöffnete Fenster, der Platzhaltertext, „gedruckt wird erst nach dem
+letzten Bild", das nicht ladbare Bild, das blockierte Fenster, und als
+Gegenprobe, dass die Fotowand selbst unverändert geblieben ist.
+
+Ein selbst gebauter Zeit-Flackerer in diesem Prüfstand („nach 300 ms
+nachsehen") wurde ersetzt: er verglich den Platzhalter gegen die Uhr,
+obwohl die URLs schneller da waren. Jetzt wird der **erste** geschriebene
+Text festgehalten – deterministisch statt gegen die Zeit.
+
+### 212.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/24-projekt-cockpit.js` | `FOTODOKU_CSS`, `fotoDokuDokument`, `cockpitFotosDrucken` |
+| `index.html` | Druckknopf im Abschnitt |
+| `js/41-hilfe.js` | Hilfetext erweitert |
+| `pruefstaende/pruefstand-fotodokumentation-v3-144.js` | neu |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.144 |
+
+---
+
+## 213. v3.145 – vier Bilder je A4-Seite statt zwei
+
+### 213.1 Der Befund
+
+> „Es sollten mindestens 4 bilder auf einer a4 seite gedruckt werden und
+> schön aufgeteilt sein"
+
+Die Kacheln hatten keine feste Höhe: das **Bildformat** bestimmte sie. Ein
+hochkant aufgenommenes Foto riss die Reihe auseinander, und es passten oft
+nur zwei aufs Blatt.
+
+### 213.2 Was geändert wurde
+
+Gerechnet, nicht geschätzt: `@page{size:A4 portrait;margin:14mm 14mm 17mm}`
+ergibt einen Satzspiegel von **182 × 266 mm**. Daraus die Kachel:
+88 mm breit (zwei nebeneinander, 4 mm Abstand), Rahmen 74 mm hoch,
+Beschriftung mit fester Mindesthöhe. Jede Kachel ist damit gleich gross,
+egal ob hoch oder quer aufgenommen; abgeschnitten wird nichts, ein
+Hochformat bekommt seitlich Luft.
+
+Ergebnis: **vier** Bilder auf der ersten Seite (mit Briefkopf), **sechs**
+auf jeder Folgeseite.
+
+### 213.3 Nachweis
+
+Zweifach belegt: einmal in Chromium gemessen (Kachelhöhen und
+Seitenumbrüche), einmal als **echtes A4-PDF** erzeugt, dessen Seitenzahl
+mit der Rechnung übereinstimmte (12 Bilder → 4/6/2 auf drei Seiten).
+Zusätzlich geprüft mit sehr langen Beschriftungen und mit 1, 4 und 5
+Bildern.
+
+### 213.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/24-projekt-cockpit.js` | `FOTODOKU_CSS`: festes Raster statt bildabhängiger Höhe |
+| `pruefstaende/pruefstand-fotodokumentation-v3-144.js` | Abschnitt I: das Raster auf A4 |
+| `js/41-hilfe.js` | Hilfetext um die Aufteilung ergänzt |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.145 |
+
+---
+
+## 214. v3.146 – die Anleitung war 100 Versionen im Rückstand
+
+### 214.1 Der Befund
+
+Die Anleitung beschrieb **Version 3.44**. Die App stand bei 3.145. Das PDF
+beschrieb eine App, die es so nicht mehr gibt: es fehlten unter anderem die
+Lagerverwaltung mit Barcode, das Ausbuchen ab Lager, die Unterschriften im
+Regierapport, „Was ist neu", die Fotowand und die Fotodokumentation. Und
+es stand durchgehend „zwölf Massaufnahme-Arten" – es sind **dreizehn**,
+die Dachfenstereinfassung fehlte ganz.
+
+### 214.2 Was geändert wurde
+
+Die Lücke wurde **gemessen** (Stichwortzählung gegen den Code), nicht
+geschätzt. Ergänzt wurde in die **bestehenden** Abschnitte hinein, damit
+alle 31 Querverweise „siehe Abschnitt N" gültig bleiben: „Was ist neu"
+(4), Material ab Lager buchen (11), Alle Fotos und Fotodokumentation (12),
+Unterschriften (16), Lagerverwaltung samt Barcode, EDV-Nr. und dem
+Unterschied löschen/archivieren (19). Dazu die Zähl-Korrektur an fünf
+Stellen und die Umbenennung „Rinne Halbrund" → „Dachrinne".
+
+Beim Erzeugen der Bildschirmfotos fielen zwei echte Fehler im Werkzeug
+auf: `schuss.js` stürzte ab, weil die Einstellungs-Abschnitte inzwischen
+zugeklappt sind (jetzt wird der Abschnitt geöffnet, und ein fehlerhaftes
+Bildschirmfoto bricht den Lauf nicht mehr ab), und beide Werkzeuge hatten
+den Browserpfad fest verdrahtet (jetzt über `chrome-pfad.js` wie die
+Prüfstände).
+
+### 214.3 Was NICHT geliefert wurde
+
+Die geplante Abbildung `48-reste.png` liess sich nicht erzeugen:
+`restBlockHtml()` gibt leeren Text zurück, wenn ein Plan keine Reststücke
+hat, und der Demo-Zuschnittplan geht heute genau auf. Statt ein falsches
+oder gestelltes Bild zu zeigen, wurde die **Abbildung entfernt** – der
+vollständige Text dazu bleibt. Das ist hier festgehalten, damit es nicht
+als Versehen gelesen wird.
+
+### 214.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `anleitung/anleitung.html` | Abschnitte 4, 11, 12, 16, 19 ergänzt; dreizehn Arten; „Dachrinne" |
+| `anleitung/schuss.js`, `anleitung/pdf.js` | `chrome-pfad.js`, zugeklappter Abschnitt, weiche Fehlerbehandlung |
+| `anleitung/Spengler-DIGITAL-Anleitung-v3.146.pdf` | neu erzeugt, 83 Seiten |
+| `pruefstaende/pruefstand-hilfe-v3-03.js` | Umlaut-Regel: „Vorschau/schauen" in die Ausnahmeliste |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.146 |
+
+---
+
+## 215. v3.147 – die Fotowand sortiert und filtert
+
+### 215.1 Der Befund
+
+Die Fotowand zeigte die Bilder in der Reihenfolge, in der die Abschnitte
+oben stehen: erst alle Massaufnahmen, dann Ausmass, Rapport, Offerte,
+zuletzt die Dateien. Bei einem Objekt mit vielen Massaufnahmen stand das
+jüngste Foto damit irgendwo in der Mitte und ein gestern hochgeladener
+Plan ganz am Ende. Und wer nur die Rapportfotos sehen wollte, musste sie
+sich aus allen heraussuchen.
+
+### 215.2 Was geändert wurde
+
+**Sortierung.** `cockpitFotoListe()` gibt die Bilder nach dem Datum des
+Eintrags zurück, **neueste zuerst** – dieselbe Richtung wie jede andere
+Liste der App. Bilder ohne Datum wandern ans Ende, statt vorne als die
+jüngsten zu erscheinen. Innerhalb desselben Datums bleibt die bisherige
+Reihenfolge erhalten (stabil über den Ausgangsindex sortiert), damit die
+Fotos einer Massaufnahme zusammenbleiben und „Foto 1/3 … 3/3" weiter
+aufsteigt.
+
+Das Datum steht neu auch in der Beschriftung. Es ist ausdrücklich das des
+**Eintrags**, nicht das Aufnahmedatum des Fotos – das kennt die App nicht.
+Genau so steht es an der Wand, in der Hilfe, in der Anleitung und im
+Ausdruck; alle Fotos derselben Massaufnahme tragen deshalb dasselbe Datum.
+
+**Filter.** Über der Wand steht eine Leiste mit den fünf Herkünften.
+Angeboten werden nur die, die in diesem Projekt wirklich Bilder haben, je
+mit ihrer Anzahl; bei einem einzigen Bild entfällt die Leiste ganz. Der
+Zähler in der Überschrift bleibt die **Gesamtzahl** des Projekts – sonst
+sähe es aus, als wären Bilder verschwunden. Fällt die gefilterte Herkunft
+weg (Quelle neu geladen, Projektwechsel), springt die Wand von selbst auf
+„Alle" zurück, statt leer dazustehen.
+
+Was die Wand zeigt, entscheidet die neue Funktion `cockpitFotoGezeigt()` –
+**eine** Stelle für Wand, Zähler und Ausdruck. Die Fotodokumentation
+druckt deshalb genau den angezeigten Auszug und sagt im Dokument selbst,
+dass es einer ist. Ohne Filter ist alles unverändert.
+
+### 215.3 Nachweis
+
+`pruefstand-projekt-fotos-v3-142.js` wuchs von 34 auf **60** Zusicherungen.
+Die überholten Stellen wurden **nachgezogen, nicht abgeschwächt**: die
+Beschriftungen tragen jetzt das Datum, und geprüft wird zusätzlich, dass
+wirklich jede Kachel eines trägt. Die Sortierung wird nicht nur als
+abgeschriebene Reihenfolge geprüft, sondern als **Regel** („kein Bild ist
+jünger als das davor"), dazu als Gegenprobe zur alten Reihenfolge, dass
+die jüngere Projektdatei jetzt **vor** der älteren Massaufnahme steht, und
+mit einem isoliert eingehängten Datensatz ohne Datum, der hinter dem
+ältesten datierten Bild landen muss.
+
+Der neue Abschnitt F prüft die Filterleiste vollständig, bis hin zum
+Ausdruck des Auszugs, zur fehlenden Leiste bei einem einzigen Bild und zum
+verwaisten Filter.
+
+Acht gezielte Fehlbaue im App-Code als Gegenproben – Sortierung entfernt,
+Bilder ohne Datum nach vorne, Filter wirkungslos, Zähler auf die
+gefilterte Zahl, verwaister Filter bleibt stehen, Leiste auch bei einem
+Bild, Ausdruck ohne Auszug-Hinweis, Datum fehlt in der Beschriftung –
+liessen jeweils genau die zuständigen Zusicherungen durchfallen.
+
+### 215.4 Geänderte Dateien
+
+| Datei | Änderung |
+| --- | --- |
+| `js/24-projekt-cockpit.js` | Sortierung, Datum in der Beschriftung, `COCKPIT_FOTO_QUELLEN`, `cockpitFotoGezeigt`, Filterleiste, Auszug im Ausdruck |
+| `pruefstaende/pruefstand-projekt-fotos-v3-142.js` | Abschnitte C/C2/E/F/G, 34 → 60 Zusicherungen |
+| `pruefstaende/pruefstand-fotodokumentation-v3-144.js` | zwei Beschriftungen mit Datum |
+| `js/41-hilfe.js` | Hilfetext `cockpit-fotos`: Sortierung, Datum, Filter, Auszug |
+| `anleitung/anleitung.html`, `anleitung/Spengler-DIGITAL-Anleitung-v3.147.pdf` | Abschnitt 12 ergänzt, PDF neu erzeugt |
+| `index.html`, `sw.js`, `js/67-was-ist-neu.js`, `PROJECT_STATE.md` | Versionsstand 3.147 |
