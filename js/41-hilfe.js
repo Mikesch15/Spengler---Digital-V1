@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.146.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.147.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -571,14 +571,25 @@ den Offerten und den Projektdateien.</p>
 <p>Unter jedem Bild steht, <b>woher es stammt</b>: die Art und der Titel der
 Massaufnahme, das Datum des Rapports, der Dateiname. Gibt es mehrere Bilder
 derselben Herkunft, sind sie durchnummeriert („Foto 2/3").</p>
+<p>Die Wand ist <b>chronologisch sortiert – das Neueste zuerst</b>. Das Datum an
+jedem Bild ist das des <i>Eintrags</i> (der Massaufnahme, des Rapports, des
+Hochladens), nicht das Aufnahmedatum des Fotos: wann ein Bild wirklich gemacht
+wurde, weiss die App nicht. Alle Fotos derselben Massaufnahme tragen deshalb
+dasselbe Datum. Bilder ohne Datum stehen am Ende.</p>
+<p>Mit der <b>Filterleiste</b> darüber lässt sich eine Herkunft allein anzeigen –
+etwa nur die Rapportfotos. Angeboten werden nur Herkünfte, die in diesem Projekt
+wirklich Bilder haben, mit der Anzahl dahinter. Die Zahl in der Überschrift bleibt
+dabei die Gesamtzahl des Projekts. „Alle" zeigt wieder alles.</p>
 <p>Ein Tipp auf ein Bild zeigt es gross. Es ist eine reine Übersicht –
 hinzugefügt und gelöscht werden Bilder weiterhin dort, wo sie hingehören:
 in der Massaufnahme, im Rapport oder unter „Dateien/Fotos".</p>
 <p>Die Vorschauen werden erst geladen, wenn der Abschnitt aufgeklappt ist.</p>
-<p><b>🖨️ Fotodokumentation</b> druckt alle Bilder auf Papier bzw. als PDF –
+<p><b>🖨️ Fotodokumentation</b> druckt die Bilder auf Papier bzw. als PDF –
 mit Firmenkopf, Projekt und Auftraggeber, und unter jedem Bild wieder die Herkunft.
 Das ist das Blatt, das der Kunde nach der Sanierung bekommt oder das bei einer
-Reklamation auf den Tisch kommt.</p>
+Reklamation auf den Tisch kommt. Gedruckt wird <b>genau das, was die Wand gerade
+zeigt</b>: ist eine Herkunft gefiltert, kommen nur deren Bilder aufs Blatt, und der
+Ausdruck sagt selbst, dass er ein Auszug ist.</p>
 <p>Auf eine A4-Seite kommen <b>vier Bilder</b> (zwei Spalten, zwei Reihen), auf die
 Folgeseiten ohne Briefkopf <b>sechs</b>. Jede Kachel ist gleich gross, egal ob das Foto
 hoch oder quer aufgenommen wurde – es wird nichts abgeschnitten, hochkant aufgenommene

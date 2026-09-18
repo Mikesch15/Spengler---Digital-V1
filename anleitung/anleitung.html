@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.146";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.147";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.146<br>
+  Version 3.147<br>
   Stand 10. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -228,7 +228,7 @@ Bereiche – er kann nie hinter einem zugeklappten Abschnitt verschwinden.</p>
 <tr><td>📏 Ausmass</td><td>Offerte erfassen und Blitzschutzausmass.</td></tr>
 <tr><td>📋 Regierapport</td><td>Arbeiten nach Aufwand.</td></tr>
 <tr><td>📎 Dateien/Fotos</td><td>Pläne, PDF, Fotos – höchstens 50 MB pro Datei.</td></tr>
-<tr><td>📷 Alle Fotos</td><td>Jedes Bild des Objekts an einem Ort – aus den Massaufnahmen (Fotos <em>und</em> Skizzen), dem Ausmass, den Regierapporten, den Offerten und den Projektdateien. Unter jedem Bild steht, woher es stammt. Reine Übersicht: hinzugefügt und gelöscht wird weiterhin dort, wo das Bild hingehört. Mit <span class="tasten">🖨️ Fotodokumentation</span> lassen sich alle Bilder als Ausdruck oder PDF ausgeben – mit Firmenkopf und Herkunft unter jedem Bild, vier Bilder je A4-Seite (sechs auf den Folgeseiten).</td></tr>
+<tr><td>📷 Alle Fotos</td><td>Jedes Bild des Objekts an einem Ort – aus den Massaufnahmen (Fotos <em>und</em> Skizzen), dem Ausmass, den Regierapporten, den Offerten und den Projektdateien. Unter jedem Bild steht, woher es stammt, samt Datum des Eintrags; sortiert ist die Wand chronologisch, das Neueste zuerst, und eine Filterleiste zeigt auf Wunsch eine Herkunft allein. Reine Übersicht: hinzugefügt und gelöscht wird weiterhin dort, wo das Bild hingehört. Mit <span class="tasten">🖨️ Fotodokumentation</span> lassen sich die angezeigten Bilder als Ausdruck oder PDF ausgeben – mit Firmenkopf und Herkunft unter jedem Bild, vier Bilder je A4-Seite (sechs auf den Folgeseiten).</td></tr>
 </table>
 <p>Ist der erweiterte Ablauf eingeschaltet (Abschnitt 11), kommt darüber <strong>eine</strong>
 weitere Karte dazu: <span class="tasten">🧱 Material &amp; Zuschnitt</span> mit dem
@@ -1205,16 +1205,30 @@ zusammen – und unter jedem Bild steht, <strong>woher es stammt</strong>: die A
 der Titel der Massaufnahme, das Datum und die Auftrags-Nr. des Rapports, der
 Dateiname. Gibt es mehrere Bilder derselben Herkunft, sind sie durchnummeriert
 („Foto 2/3“). Ein Tippen zeigt das Bild gross.</p>
+<p>Die Wand ist <strong>chronologisch sortiert – das Neueste zuerst</strong>. Das Datum
+an jedem Bild ist das des <em>Eintrags</em>: der Massaufnahme, des Rapports, des
+Hochladens. Es ist <strong>nicht</strong> das Aufnahmedatum des Fotos – wann ein Bild
+wirklich gemacht wurde, weiss die App nicht; alle Fotos derselben Massaufnahme tragen
+deshalb dasselbe Datum. Bilder ganz ohne Datum stehen am Ende.</p>
+<p>Über der Wand steht eine <strong>Filterleiste</strong>: ein Tippen auf
+<span class="tasten">📋 Regierapport</span> zeigt nur die Rapportfotos, ein Tippen auf
+<span class="tasten">Alle</span> wieder alles. Angeboten werden nur Herkünfte, die in
+diesem Projekt wirklich Bilder haben, mit der Anzahl dahinter. Die Zahl oben in der
+Überschrift bleibt dabei die Gesamtzahl des Projekts – es ist ja nichts verschwunden.</p>
 <div class="hin">Es ist eine reine Übersicht. Hinzugefügt und gelöscht werden Bilder
 weiterhin dort, wo sie hingehören – in der Massaufnahme, im Rapport oder unter
 „Dateien/Fotos“. Die Vorschauen werden erst geladen, wenn der Abschnitt aufgeklappt
 ist; bei vielen Bildern spart das spürbar Zeit beim Öffnen des Projekts.</div>
 
 <h3>Die Fotodokumentation</h3>
-<p><span class="tasten">🖨️ Fotodokumentation</span> druckt alle Bilder des Objekts auf
+<p><span class="tasten">🖨️ Fotodokumentation</span> druckt die Bilder des Objekts auf
 Papier oder als PDF – mit Firmenkopf, Projekt und Auftraggeber, und unter jedem Bild
 wieder die Herkunft. Das ist das Blatt, das der Kunde nach der Sanierung bekommt oder
 das bei einer Reklamation auf den Tisch kommt.</p>
+<p>Gedruckt wird <strong>genau das, was die Wand gerade zeigt</strong>. Ist eine
+Herkunft gefiltert, kommen nur deren Bilder aufs Blatt, und der Ausdruck sagt selbst,
+dass er ein Auszug ist – so lässt sich etwa eine reine Rapport-Dokumentation drucken,
+ohne die Massaufnahmen mitzuschicken.</p>
 <p>Auf eine A4-Seite kommen <strong>vier Bilder</strong> (zwei Spalten, zwei Reihen),
 auf die Folgeseiten ohne Briefkopf <strong>sechs</strong>. Jede Kachel ist gleich
 gross, egal ob das Foto hoch oder quer aufgenommen wurde; abgeschnitten wird nichts,
@@ -1648,7 +1662,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">25 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.146</strong>, Stand 17. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.147</strong>, Stand 18. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

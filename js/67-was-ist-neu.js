@@ -133,7 +133,9 @@ const WIN_CHANGELOG={
   "Jede Kachel ist jetzt gleich gross, egal ob hoch, quer oder quadratisch aufgenommen. Abgeschnitten wird nichts: ein Hochformat bekommt seitlich Luft, statt die Reihe zu sprengen."],
  "3.146":["Die Anleitung ist wieder aktuell. Sie stand auf Version 3.44 – die App war 100 Versionen weiter, und das PDF beschrieb eine App, die es so nicht mehr gibt.",
   "Neu beschrieben: die Lagerverwaltung mit Barcode, Material ab Lager buchen, die Unterschriften im Regierapport, „Was ist neu\", die Fotowand und die Fotodokumentation. Korrigiert: es sind dreizehn Massaufnahme-Arten, nicht zwölf – die Dachfenstereinfassung fehlte ganz.",
-  "Öffnen lässt sie sich wie bisher über den i-Knopf („📖 Ganze Anleitung\") oder unter Einstellungen → Allgemein → 📖 Anleitung."]
+  "Öffnen lässt sie sich wie bisher über den i-Knopf („📖 Ganze Anleitung\") oder unter Einstellungen → Allgemein → 📖 Anleitung."],
+ "3.147":["Der Abschnitt „📷 Alle Fotos\" ist jetzt chronologisch sortiert – das Neueste zuerst. An jedem Bild steht neu auch das Datum seines Eintrags (Massaufnahme, Rapport, Hochladen); wann ein Foto wirklich aufgenommen wurde, weiss die App nicht.",
+  "Neu: eine Filterleiste zeigt eine einzelne Herkunft allein an – etwa nur die Rapportfotos. Die Fotodokumentation druckt dann genau diesen Auszug und sagt es auch."]
 };
 
 function winVersionVergleich(a,b){
