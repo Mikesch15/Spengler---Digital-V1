@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.148.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.149.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1032,6 +1032,31 @@ Positionen.</p>
 <p>"🗑 Alle Positionen löschen" entfernt die ganze Liste auf einmal – nach
 Rückfrage, zum Beispiel um mit einer neuen Erkennung von vorne zu
 beginnen.</p>`},
+
+"ang-massaufnahmen":{titel:"Massaufnahmen aus der Offerte",text:`
+<p>Der Ablauf des Betriebs ist <b>Projekt → Offerte → Massaufnahme</b>. Was in
+der Offerte als Position steht, musste bisher danach als Massaufnahme von Hand
+noch einmal angelegt und benannt werden – bei zwölf Positionen zwölfmal.</p>
+<p>Hier entsteht daraus mit einem Schritt je angehakter Position eine
+<b>leere</b> Massaufnahme im Projekt: mit der Bezeichnung der Position als
+Titel, der vorgeschlagenen Art und dem Bezug zur Offerte in der Notiz.
+<b>Gemessen wird danach wie gewohnt</b> – hier wird nichts gerechnet.</p>
+<p>Die <b>Art</b> rät die App aus der Bezeichnung: „Dachrinne halbrund 333mm"
+wird zur Dachrinne, „Einlaufblech konisch" zum konischen Einlaufblech. Woran
+sie es erkannt hat, steht daneben. Lässt sich nichts erkennen – etwa bei
+„Diverse Anpassungsarbeiten" –, sagt sie das und schlägt <b>Skizze/Foto</b>
+vor, die Auffangart. Die Position fällt also nie stillschweigend weg, und die
+Art lässt sich in jeder Zeile von Hand umstellen.</p>
+<p>Eine Massaufnahme, die im Projekt bereits unter demselben Titel steht, ist
+<b>nicht</b> angehakt – damit beim zweiten Durchgang keine Doppel entstehen.
+Anhaken lässt sie sich trotzdem, wenn es wirklich zwei sein sollen.</p>
+<p>Die <b>Menge</b> der Offerte landet in der Notiz, nicht in einem Massfeld:
+was dort als „24 m" steht, ist eine Schätzung des Verkaufs und kein
+aufgenommenes Mass. Beim Ausmessen gilt, was am Bau gemessen wird.</p>
+<p>Für eine einzelne Position gibt es den Knopf <b>📐</b> direkt in der
+Positionszeile. Er öffnet das gewohnte Massaufnahme-Formular vorbelegt –
+gespeichert wird erst beim Speichern, und danach geht es zurück in dieselbe
+Offerte.</p>`},
 
 "ang-pdf":{titel:"PDF der Offerte",text:`
 <p>Hier wird das eigentliche Offert-Dokument als PDF hochgeladen – das ist

@@ -137,7 +137,9 @@ const WIN_CHANGELOG={
  "3.147":["Der Abschnitt „📷 Alle Fotos\" ist jetzt chronologisch sortiert – das Neueste zuerst. An jedem Bild steht neu auch das Datum seines Eintrags (Massaufnahme, Rapport, Hochladen); wann ein Foto wirklich aufgenommen wurde, weiss die App nicht.",
   "Neu: eine Filterleiste zeigt eine einzelne Herkunft allein an – etwa nur die Rapportfotos. Die Fotodokumentation druckt dann genau diesen Auszug und sagt es auch."],
  "3.148":["Beim Anlegen eines Mitarbeiterkontos lässt sich jetzt gleich eine E-Mail-Adresse angeben. Sie wird zur zusätzlichen Anmeldeadresse, und die Zugangsdaten gehen zusätzlich per E-Mail hinaus. Bisher liess sie sich erst nachtragen – und dann kam keine E-Mail mehr, weil der Versand am Anlegen hängt.",
-  "Lagerverwaltung: wird ein Produkt samt neuer Materialposition angelegt, darf die Position jetzt anders heissen als das Produkt („Stahlblech svz\" gegenüber „Stahlblech svz 0,6 × 670 Rolle\"). Voreingestellt bleibt es wie bisher bei einer Bezeichnung für beide."]
+  "Lagerverwaltung: wird ein Produkt samt neuer Materialposition angelegt, darf die Position jetzt anders heissen als das Produkt („Stahlblech svz\" gegenüber „Stahlblech svz 0,6 × 670 Rolle\"). Voreingestellt bleibt es wie bisher bei einer Bezeichnung für beide."],
+ "3.149":["Neu: aus den Positionen einer Offerte lassen sich die Massaufnahmen des Auftrags ableiten. Ein Dialog schlägt zu jeder Position die passende Massaufnahme-Art vor – „Dachrinne halbrund 333mm\" wird zur Dachrinne –, und die angehakten entstehen auf einen Schlag im Projekt: leer, aber mit Titel, Art und dem Bezug zur Offerte.",
+  "Was die App nicht einordnen kann, sagt sie und schlägt „Skizze/Foto\" vor; was im Projekt schon unter demselben Titel steht, wird nicht noch einmal angehakt. Für eine einzelne Position gibt es den Knopf 📐 direkt in der Positionszeile."]
 };
 
 function winVersionVergleich(a,b){
