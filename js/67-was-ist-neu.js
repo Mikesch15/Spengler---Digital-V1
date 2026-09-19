@@ -135,7 +135,9 @@ const WIN_CHANGELOG={
   "Neu beschrieben: die Lagerverwaltung mit Barcode, Material ab Lager buchen, die Unterschriften im Regierapport, „Was ist neu\", die Fotowand und die Fotodokumentation. Korrigiert: es sind dreizehn Massaufnahme-Arten, nicht zwölf – die Dachfenstereinfassung fehlte ganz.",
   "Öffnen lässt sie sich wie bisher über den i-Knopf („📖 Ganze Anleitung\") oder unter Einstellungen → Allgemein → 📖 Anleitung."],
  "3.147":["Der Abschnitt „📷 Alle Fotos\" ist jetzt chronologisch sortiert – das Neueste zuerst. An jedem Bild steht neu auch das Datum seines Eintrags (Massaufnahme, Rapport, Hochladen); wann ein Foto wirklich aufgenommen wurde, weiss die App nicht.",
-  "Neu: eine Filterleiste zeigt eine einzelne Herkunft allein an – etwa nur die Rapportfotos. Die Fotodokumentation druckt dann genau diesen Auszug und sagt es auch."]
+  "Neu: eine Filterleiste zeigt eine einzelne Herkunft allein an – etwa nur die Rapportfotos. Die Fotodokumentation druckt dann genau diesen Auszug und sagt es auch."],
+ "3.148":["Beim Anlegen eines Mitarbeiterkontos lässt sich jetzt gleich eine E-Mail-Adresse angeben. Sie wird zur zusätzlichen Anmeldeadresse, und die Zugangsdaten gehen zusätzlich per E-Mail hinaus. Bisher liess sie sich erst nachtragen – und dann kam keine E-Mail mehr, weil der Versand am Anlegen hängt.",
+  "Lagerverwaltung: wird ein Produkt samt neuer Materialposition angelegt, darf die Position jetzt anders heissen als das Produkt („Stahlblech svz\" gegenüber „Stahlblech svz 0,6 × 670 Rolle\"). Voreingestellt bleibt es wie bisher bei einer Bezeichnung für beide."]
 };
 
 function winVersionVergleich(a,b){

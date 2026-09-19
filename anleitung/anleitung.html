@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.147";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.148";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.147<br>
+  Version 3.148<br>
   Stand 10. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -1539,6 +1539,18 @@ eintippen</strong>. Der Weg ist nie versperrt.</div>
 Der Dialog macht beides in einem Zug: die <strong>Materialposition</strong> im Katalog
 und auf Wunsch gleich das <strong>Lager-Produkt</strong> dazu. Die Bezeichnung wird nur
 einmal eingetippt.</p>
+<h4>Ein Name oder zwei?</h4>
+<p>Voreingestellt gilt die Bezeichnung des Produkts auch für die neue Katalogposition –
+zweimal dasselbe zu tippen wäre unnötig. Die beiden haben aber verschiedene Aufgaben:
+die <strong>Position</strong> steht im Regierapport und in den Offerten und bleibt
+besser allgemein („Stahlblech svz“), das <strong>Produkt</strong> ist das konkrete Ding
+im Regal und darf genau sein („Stahlblech svz 0,6 × 670 Rolle“). Sobald unter der
+Position später weitere Produkte stehen sollen, ist das der Unterschied, auf den es
+ankommt.</p>
+<p>Dafür steht neben dem Hinweis der Knopf <span class="tasten">✏️ Position anders
+benennen</span>. Das Feld der Position erscheint dann, <strong>vorbelegt mit der
+Bezeichnung des Produkts</strong> – es muss also nur gekürzt werden, nicht neu
+getippt. <span class="tasten">↩ Doch gleich wie das Produkt</span> führt zurück.</p>
 <h4>Die EDV-Nummer schlägt die App vor</h4>
 <p>Zur getippten Bezeichnung sucht die App die passende Katalogruppe und schlägt daraus
 die nächste freie Nummer vor – mit der Begründung daneben, damit nachvollziehbar
@@ -1557,6 +1569,16 @@ gewählt wird, die Buchungen bleiben stehen, und es lässt sich jederzeit wieder
 aktivieren.</p>
 
 <h3>Ein Mitarbeiterkonto anlegen</h3>
+<p>Vorname und Nachname genügen. Zusätzlich lässt sich eine
+<strong>E-Mail-Adresse</strong> angeben – freiwillig. Sie bewirkt zweierlei: die Person
+meldet sich danach mit dem Benutzernamen <em>oder</em> dieser Adresse an und kann ein
+vergessenes Passwort über „Passwort vergessen“ selbst zurücksetzen, und die Zugangsdaten
+gehen zusätzlich per E-Mail hinaus. Ob der Versand geklappt hat, steht unter dem Textfeld
+– und zwar so, wie der Server es meldet; hat er <strong>nicht</strong> geklappt, sagt die
+App das ausdrücklich, statt es zu behaupten.</p>
+<div class="hin">Die Adresse lässt sich auch später jederzeit in der Mitarbeiterliste
+nachtragen. Dann ändert sich allerdings kein Passwort und es wird keine Nachricht
+verschickt – der E-Mail-Versand der Zugangsdaten hängt am Anlegen.</div>
 <p>Nach dem Anlegen erscheinen Benutzername und Startpasswort in einem Feld zum Kopieren
 oder Weitergeben. <strong>Das Startpasswort wird nur dieses eine Mal angezeigt</strong>
 und lässt sich danach nicht mehr abrufen; geht es verloren, setzt ein Administrator in
@@ -1662,7 +1684,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">25 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.147</strong>, Stand 18. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.148</strong>, Stand 19. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

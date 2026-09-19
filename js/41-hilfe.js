@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.147.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.148.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1172,7 +1172,13 @@ angezeigt</b> und lässt sich danach nicht mehr abrufen; es liegt serverseitig
 nur verschlüsselt. Geht es verloren, setzt ein Administrator in der
 Mitarbeiterliste ein neues.</p>
 <p>Beim ersten Anmelden muss die Person ein eigenes Passwort vergeben – das
-Startpasswort gilt also nur für den einen ersten Zugang.</p>`},
+Startpasswort gilt also nur für den einen ersten Zugang.</p>
+<p>Wurde beim Anlegen eine <b>E-Mail-Adresse</b> angegeben, steht sie im Text
+mit dabei (die Anmeldung geht dann mit dem Benutzernamen <i>oder</i> der
+Adresse), und die Zugangsdaten gehen zusätzlich per E-Mail hinaus. Ob der
+Versand geklappt hat, steht unter dem Textfeld – und zwar so, wie der Server
+es meldet. Hat er <b>nicht</b> geklappt, ist der Text hier der einzige Weg:
+bitte weitergeben, bevor die Box geschlossen wird.</p>`},
 "excel-import":{titel:"Liste aus Excel einlesen",text:`
 <p>Eine Lieferantenliste als Excel- oder CSV-Datei einlesen, statt sie
 abzutippen. Die Datei muss <b>keine bestimmte Spaltenreihenfolge</b> haben:
@@ -1436,14 +1442,19 @@ nächsten Anmelden wieder ein eigenes.</p>
 <p>Wird ein Mitarbeiter entfernt, bleiben seine Projekte, Massaufnahmen und
 Rapporte vollständig erhalten. Im Verlauf steht dann "Unbekannter
 Benutzer".</p>
-<p><b>E-Mail (seit Version 3.130):</b> lässt sich jederzeit nachtragen –
+<p><b>E-Mail (optional):</b> steht seit Version 3.148 <b>gleich im
+Anlege-Formular</b> – und lässt sich weiterhin jederzeit nachtragen,
 auch bei einem Mitarbeiter, der schon lange angelegt ist. Die Person kann
 sich danach <b>zusätzlich</b> mit dieser Adresse anmelden (der Benutzername
 gilt unverändert weiter) und ein vergessenes Passwort über „Passwort
 vergessen“ auf dem Anmeldebildschirm selbst zurücksetzen – ohne diese
 Adresse geht das nur über einen Administrator.</p>
-<p>Das Eintragen ändert <b>kein</b> Passwort und verschickt <b>keine</b>
-Nachricht. Jede Adresse kann nur zu <b>einem</b> Konto gehören; sonst wäre
+<p>Ein Unterschied zwischen den beiden Wegen: wird die Adresse <b>beim
+Anlegen</b> angegeben, gehen die Zugangsdaten zusätzlich an diese Adresse –
+ob das geklappt hat, steht danach unter dem Textfeld. Wird sie
+<b>nachträglich</b> eingetragen, ändert das <b>kein</b> Passwort und
+verschickt <b>keine</b> Nachricht.</p>
+<p>Jede Adresse kann nur zu <b>einem</b> Konto gehören; sonst wäre
 beim Anmelden nicht entscheidbar, wer gemeint ist – eine schon vergebene
 Adresse lehnt die App deshalb ab. Das Feld leer zu lassen entfernt die
 Adresse wieder.</p>
@@ -1631,9 +1642,18 @@ mit vorbelegter Position.</p>
 freigeschaltetem <b>Lager-Zugriff</b> (Einstellungen → Mitarbeiter) –
 unabhängig von den übrigen Rechten, wie beim Offerte-Zugriff. Auch ein
 Administrator braucht diese Freigabe eigens.</p>
-<p>Ein Produkt, dessen Materialposition noch nicht im Katalog steht, muss
-zuerst dort angelegt werden – die Lagerverwaltung bucht nur auf bestehende
-Positionen.</p>
+<p>Ein Produkt, dessen Materialposition noch nicht im Katalog steht, lässt
+sich im selben Formular samt neuer Position anlegen – die Position entsteht
+dann gleich mit.</p>
+<p><b>Ein Name oder zwei?</b> Voreingestellt gilt die Bezeichnung des
+Produkts auch für die neue Katalogposition: zweimal dasselbe zu tippen wäre
+unnötig. Sinnvoll ist das getrennt, sobald unter der Position später weitere
+Produkte stehen sollen – die Position heisst dann allgemein
+(„Stahlblech svz"), das Produkt genau („Stahlblech svz 0,6 × 670 Rolle").
+Dafür gibt es den Knopf <b>„✏️ Position anders benennen"</b>; er belegt das
+Feld mit der Bezeichnung des Produkts vor, sodass nur noch gekürzt werden
+muss. <b>„↩ Doch gleich wie das Produkt"</b> führt zurück. Die Position
+steht danach so im Regierapport, wie sie hier benannt wurde.</p>
 <p>Jede Zeile lässt sich antippen, um die letzten Buchungen ein-/
 auszublenden. Bei einer längeren Liste blendet <b>Alle
 zuklappen</b> alle Karten auf einen Schlag aus – "Alle anzeigen"
