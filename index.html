@@ -1928,6 +1928,37 @@ einer wirkt nicht auf die anderen.</div>
      erreichbar - beide sind nur sichtbar, wenn checkOfferteZugriff() den
      Zugriff bestaetigt hat. Bewusst schlanker als das Ausmass-Formular:
      kein Typenwaehler (nur eine Art), kein Verlauf-Umschalter (V1). -->
+<!-- v3.149  Massaufnahmen aus den Offertpositionen ableiten ------------------
+     Liegt UEBER dem Offerten-Formular: beide sind ".modal" mit z-index 500,
+     und das Offerten-Formular steht im Dokument weiter unten. Deshalb hebt
+     css/01-basis.css diesen Dialog ausdruecklich auf 700 - dieselbe Loesung
+     wie beim Zuweisungs-Dialog der Massaufnahme. -->
+<div id="angMeasModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📐 Massaufnahmen aus der Offerte <button type="button" class="hilfe-knopf no-print" data-hilfe="ang-massaufnahmen">i</button></h2>
+<div class="info">Für jede angehakte Position entsteht eine <b>leere</b> Massaufnahme im Projekt – mit Bezeichnung, Art und dem Bezug zur Offerte. Gemessen wird danach wie gewohnt; hier wird nichts gerechnet und nichts erfunden.</div>
+<div class="small" id="angMeasHinweis" style="color:var(--muted);margin-bottom:6px"></div>
+<div class="bar" style="margin-bottom:6px">
+<button type="button" class="gray" id="angMeasAlle">☑ Alle anhaken</button>
+<button type="button" class="gray" id="angMeasKeine">☐ Keine</button>
+</div>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:8%"><col style="width:10%"><col style="width:40%"><col style="width:42%"></colgroup>
+<thead><tr><th></th><th>Pos.</th><th>Bezeichnung</th><th>Massaufnahme-Art</th></tr></thead>
+<tbody id="angMeasBody"></tbody>
+</table>
+</div>
+<div class="small" id="angMeasFehler" style="color:var(--red);margin-top:6px" hidden></div>
+<div class="bar">
+<button type="button" id="angMeasAnlegen" class="green">✅ Anlegen</button>
+<button type="button" id="angMeasAbbrechen" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
 <div id="angebotEditModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
@@ -1947,13 +1978,17 @@ einer wirkt nicht auf die anderen.</div>
 <div class="klapp-body">
 <div class="scroll">
 <table class="eb-table">
-<colgroup><col style="width:12%"><col style="width:36%"><col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:6%"></colgroup>
+<!-- v3.149: die letzte Spalte traegt jetzt zwei Knoepfe (Massaufnahme
+     ableiten, loeschen) und ist deshalb breiter; die Bezeichnung gibt ab. -->
+<colgroup><col style="width:12%"><col style="width:31%"><col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:11%"></colgroup>
 <thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Preis</th><th>Betrag</th><th></th></tr></thead>
 <tbody id="angPositionsBody"></tbody>
 </table>
 </div>
 <div class="bar">
 <button type="button" class="gray" id="angAddPosition">＋ Position hinzufügen</button>
+<!-- v3.149: aus den Positionen die Massaufnahmen des Auftrags ableiten -->
+<button type="button" class="blue" id="angMassaufnahmenAbleiten">📐 Massaufnahmen ableiten</button>
 <button type="button" class="red" id="angDeleteAllPositions">🗑 Alle Positionen löschen</button>
 </div>
 <div class="small" id="angPositionsSummary"></div>

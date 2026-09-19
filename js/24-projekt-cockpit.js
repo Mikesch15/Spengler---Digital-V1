@@ -60,6 +60,12 @@ async function measEditZurueck(){
  // damit auch die richtige Seite wieder aufgeht.
  else if(measEditReturnTo==="matZu"&&typeof openMaterialZuschnitt==="function"
          &&typeof mzProjectId!=="undefined"&&mzProjectId){await openMaterialZuschnitt(mzProjectId)}
+ // v3.149: aus einer Offerte heraus angelegt -> zurueck in dieselbe Offerte.
+ // Ihr Formular wurde beim Oeffnen nur VERDECKT, nicht zurueckgesetzt - alle
+ // Eingaben und die Positionsliste stehen unveraendert wieder da. Ohne diesen
+ // Zweig landete man im Massaufnahme-Register und muesste die Offerte neu
+ // heraussuchen, mitten im Ablauf.
+ else if(measEditReturnTo==="angebotEdit"&&$("angebotEditModal")){$("angebotEditModal").hidden=false}
  else{$("measurementsModal").hidden=false;await renderMeasurementsOverview()}
  measEditReturnTo="measurementsModal";
 }

@@ -161,7 +161,7 @@ function angPositionZeileHtml(p,i,versteckt,sektionTitel){
 <td><input data-ang-unit="${i}" value="${esc(p.unit||"")}"></td>
 <td><input data-ang-preis="${i}" type="number" step=".01" value="${p.preis||0}"></td>
 <td class="small" style="text-align:right;white-space:nowrap" data-ang-betrag="${i}">${money(angBetrag(p))}</td>
-<td><button type="button" class="red" data-ang-del="${i}" style="padding:6px 8px">×</button></td>
+<td style="white-space:nowrap"><button type="button" class="gray" data-ang-meas="${i}" style="padding:6px 8px" title="Massaufnahme aus dieser Position anlegen">📐</button><button type="button" class="red" data-ang-del="${i}" style="padding:6px 8px">×</button></td>
 </tr>`;
 }
 function renderAngPositionsTable(){
@@ -218,6 +218,11 @@ if($("angPositionsBody")){
  $("angPositionsBody").addEventListener("click",e=>{
   const del=e.target.closest("[data-ang-del]");
   if(del){angPositions.splice(Number(del.dataset.angDel),1);renderAngPositionsTable();return}
+  // v3.149: aus DIESER Position eine Massaufnahme - das gewohnte Formular,
+  // vorbelegt. Vor dem Loeschen-Knopf abgefragt waere falsch herum, beide
+  // sitzen in derselben Zelle und schliessen sich gegenseitig aus.
+  const meas=e.target.closest("[data-ang-meas]");
+  if(meas){angMassaufnahmeAusPosition(Number(meas.dataset.angMeas));return}
   const sek=e.target.closest("[data-ang-sek-toggle]");
   if(sek){
    const titel=sek.dataset.angSekToggle;
@@ -692,3 +697,259 @@ if($("cockpitWorkArea")){
   }
  });
 }
+
+// ===========================================================================
+// v3.149  Massaufnahmen aus den Offertpositionen ableiten
+// ===========================================================================
+// Der Ablauf des Betriebs ist PROJEKT -> OFFERTE -> MASSAUFNAHME (CLAUDE.md).
+// Bis hierher endete die Offerte aber bei sich selbst: was in ihr als Position
+// steht, musste danach als Massaufnahme von Hand noch einmal angelegt und
+// benannt werden - bei einer Offerte mit zwoelf Positionen zwoelfmal.
+//
+// Abgeleitet wird NUR, was in der Offerte wirklich steht: Bezeichnung, Menge,
+// Einheit und die Positionsnummer. Es wird nichts gerechnet und nichts
+// erfunden - die Massaufnahme entsteht LEER und wird danach wie gewohnt
+// ausgemessen. Die Menge landet in der Notiz, nicht in einem Massfeld: was
+// die Offerte als "12.5 m2" fuehrt, ist eine Schaetzung des Verkaufs, kein
+// aufgenommenes Mass.
+
+// Welche Woerter deuten auf welche Massaufnahme-Art? Bewusst eine kurze,
+// handverlesene Liste statt einer Bewertung ueber den ganzen Katalog: hier
+// geht es um dreizehn feste Arten, nicht um hunderte Katalogzeilen.
+// Mehrwortige Eintraege sind Absicht - "einlaufblech konisch" muss
+// "einlaufblech" schlagen, "dachrinne" das blosse "rinne".
+const ANG_MEAS_WOERTER=Object.freeze({
+ kamineinfassung:      ["kamineinfassung","kaminanschluss","kaminverkleidung","kamin","schornstein","camin"],
+ dachfenstereinfassung:["dachfenstereinfassung","dachfenster","dachflaechenfenster","velux","fenstereinfassung"],
+ lukarne:              ["lukarne","gaube","gaupe","seitenverkleidung"],
+ einlaufblech_konisch: ["einlaufblech konisch","konisches einlaufblech","konisch"],
+ einlaufblech_gerade:  ["einlaufblech gerade","einlaufblech","einlauf"],
+ rinne_halbrund:       ["dachrinne","halbrundrinne","rinne halbrund","haengerinne","haengrinne"],
+ rinne:                ["kastenrinne","rinne"],
+ kehle:                ["kehlblech","kehlrinne","kehle"],
+ mauerabdeckung:       ["mauerabdeckung","attikaabdeckung","mauerabdeck","attika","abdeckblech"],
+ anschlussblech:       ["anschlussblech","ortabschluss","ortblech","seitenblech","windbrett","ortblende"],
+ einfassung_rund:      ["einfassung rund","rundeinfassung","rohrdurchfuehrung","entlueftung","lueftungsrohr","durchfuehrung"],
+ freies_profil:        ["freies profil","sonderprofil","sonderanfertigung"]
+});
+// Dieselbe Schreibweise fuer Suchtext und Stichwort: klein, ohne Umlaute,
+// alles Uebrige zu Leerzeichen. Sonst faende "Dachrinne" kein "dachrinne"
+// und "Kamin-Einfassung" kein "kamineinfassung".
+function angMeasNorm(text){
+ return String(text==null?"":text).toLowerCase()
+  .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss")
+  .replace(/[^a-z0-9]+/g," ").trim();
+}
+// Welche Art passt zur Bezeichnung? Es gewinnt das LAENGSTE gefundene
+// Stichwort - damit schlaegt "einlaufblech konisch" das kuerzere
+// "einlaufblech", und "dachrinne" das in ihm enthaltene "rinne". Steht das
+// Stichwort als ganzes Wort da, zaehlt es etwas mehr als mitten in einem
+// anderen Wort.
+//
+// Wird nichts erkannt, ist die Art "skizze_foto" - die Auffangart ohne
+// Register. Die Position faellt also NICHT unter den Tisch, und die Art
+// laesst sich im Dialog von Hand richtigstellen.
+function angMeasArtRaten(text){
+ const t=angMeasNorm(text);
+ if(!t)return {type:"skizze_foto",wort:"",erkannt:false};
+ let best=null;
+ Object.keys(ANG_MEAS_WOERTER).forEach(type=>{
+  ANG_MEAS_WOERTER[type].forEach(wort=>{
+   const n=angMeasNorm(wort);
+   if(!n||t.indexOf(n)<0)return;
+   const ganz=new RegExp("(^| )"+n.replace(/ /g,"\\s")+"( |$)").test(t);
+   const punkte=n.length+(ganz?2:0);
+   if(!best||punkte>best.punkte)best={type,wort,punkte};
+  });
+ });
+ return best?{type:best.type,wort:best.wort,erkannt:true}
+            :{type:"skizze_foto",wort:"",erkannt:false};
+}
+// Der Titel der Massaufnahme ist die Bezeichnung der Position. Ohne
+// Bezeichnung (leere Zeile) bleibt die Positionsnummer - irgendetwas muss
+// in der Liste stehen, sonst ist die Massaufnahme nicht wiederzuerkennen.
+function angMeasTitel(p){
+ const bez=String((p&&p.description)||"").trim();
+ if(bez)return bez.slice(0,120);
+ const nr=String((p&&p.pos)||"").trim();
+ return nr?("Position "+nr):"Ohne Bezeichnung";
+}
+// Woher kommt diese Massaufnahme? Das steht in ihrer Notiz - nachvollziehbar
+// auch Monate spaeter, ohne die Offerte danebenzulegen.
+function angMeasNotiz(p){
+ const teile=[];
+ const nr=String((p&&p.pos)||"").trim();
+ const titel=String($("angTitle")?$("angTitle").value:"").trim();
+ teile.push("Aus Offerte"+(titel?" „"+titel+"“":"")+(nr?", Position "+nr:""));
+ const menge=Number(p&&p.quantity)||0;
+ if(menge){
+  const einheit=String((p&&p.unit)||"").trim();
+  teile.push("Offerte-Menge: "+menge+(einheit?" "+einheit:"")+" (Schaetzung, kein aufgenommenes Mass)");
+ }
+ return teile.join("\n");
+}
+
+// Welche Arten stehen ueberhaupt zur Wahl? Ein Modul, das noch in Entwicklung
+// ist, faellt fuer Nicht-Administratoren weg - dieselbe Regel wie in der
+// Auswahl "Neue Massaufnahme" (applyModuleTest, js/05a).
+function angMeasArtenListe(){
+ return Object.keys(MEAS_TYPE_LABELS).filter(t=>
+   typeof modulGesperrt!=="function"||!modulGesperrt("meas:"+t));
+}
+function angMeasArtErlaubt(type){
+ return angMeasArtenListe().indexOf(type)>=0?type:"skizze_foto";
+}
+
+// ---- Der Weg fuer EINE Position ------------------------------------------
+// Sie oeffnet das gewohnte Formular mit vorbelegter Art, Bezeichnung und
+// Projekt - gespeichert wird erst, wenn der Anwender speichert. Das
+// Offerten-Formular wird dabei nur VERDECKT und kommt danach unveraendert
+// zurueck (measEditReturnTo="angebotEdit", js/24).
+function angMassaufnahmeAusPosition(i){
+ const p=angPositions[i];
+ if(!p)return;
+ if(!angSelectedProjectId){
+  alert("Diese Offerte gehört noch zu keinem Projekt.\n\nEine Massaufnahme braucht ein Projekt – bitte oben eines wählen.");
+  return;
+ }
+ const geraten=angMeasArtRaten(p.description);
+ const typ=angMeasArtErlaubt(geraten.type);
+ if(typeof newMeasurementWithType!=="function")return;
+ $("angebotEditModal").hidden=true;
+ newMeasurementWithType(typ);
+ // Ein gesperrtes Modul laesst das Formular nicht umstellen - dann lieber
+ // zurueck in die Offerte als eine falsche Art anzulegen.
+ if($("measType").value!==typ){$("angebotEditModal").hidden=false;return}
+ if(typeof setMeasProjectField==="function")setMeasProjectField(angSelectedProjectId);
+ $("measTitle").value=angMeasTitel(p);
+ $("measNote").value=angMeasNotiz(p);
+ measEditReturnTo="angebotEdit";
+ if(typeof updateMeasFormTitle==="function")updateMeasFormTitle();
+}
+
+// ---- Der Sammel-Dialog fuer den ganzen Auftrag ----------------------------
+let angMeasZeilen=[];          // {index,pos,titel,type,erkannt,schonDa,haken}
+async function angMassaufnahmenDialog(){
+ if(!angPositions.length){
+  alert("Diese Offerte hat noch keine Positionen.");
+  return;
+ }
+ if(!angSelectedProjectId){
+  alert("Diese Offerte gehört noch zu keinem Projekt.\n\nMassaufnahmen brauchen ein Projekt – bitte oben eines wählen.");
+  return;
+ }
+ // Was gibt es im Projekt schon? Gefragt wird die Datenbank, nicht ein
+ // Zwischenspeicher: der Dialog laesst sich auch aus einer Offerte heraus
+ // oeffnen, deren Projekt gerade nicht im Cockpit steht.
+ let vorhanden=[];
+ try{
+  const {data}=await sb.from("measurements").select("title").eq("project_id",angSelectedProjectId);
+  vorhanden=(data||[]).map(m=>angMeasNorm(m.title));
+ }catch(e){ /* ohne Verbindung bleibt die Liste leer - siehe Hinweis unten */ }
+ angMeasZeilen=angPositions.map((p,index)=>{
+  const geraten=angMeasArtRaten(p.description);
+  const titel=angMeasTitel(p);
+  const schonDa=vorhanden.indexOf(angMeasNorm(titel))>=0;
+  return {index,pos:String(p.pos||"").trim(),titel,
+          type:angMeasArtErlaubt(geraten.type),erkannt:geraten.erkannt,wort:geraten.wort,
+          schonDa,haken:!schonDa};
+ });
+ if($("angMeasFehler"))$("angMeasFehler").hidden=true;
+ renderAngMeasTabelle();
+ $("angMeasModal").hidden=false;
+}
+function renderAngMeasTabelle(){
+ const body=$("angMeasBody");
+ if(!body)return;
+ const arten=angMeasArtenListe();
+ body.innerHTML=angMeasZeilen.map((z,i)=>`<tr>
+<td><input type="checkbox" data-ang-meas-haken="${i}"${z.haken?" checked":""}></td>
+<td class="small">${esc(z.pos)}</td>
+<td>${esc(z.titel)}${z.schonDa?'<div class="small" style="color:var(--muted)">gibt es im Projekt schon – deshalb nicht angehakt</div>':""}</td>
+<td><select data-ang-meas-art="${i}">${arten.map(t=>
+  `<option value="${esc(t)}"${t===z.type?" selected":""}>${esc(MEAS_TYPE_LABELS[t])}</option>`).join("")}</select>
+${z.erkannt?`<div class="small" style="color:var(--muted)">erkannt an „${esc(z.wort)}“</div>`
+           :'<div class="small" style="color:var(--muted)">nichts erkannt – Auffangart, bitte prüfen</div>'}</td>
+</tr>`).join("");
+ const angehakt=angMeasZeilen.filter(z=>z.haken).length;
+ const unklar=angMeasZeilen.filter(z=>z.haken&&!z.erkannt).length;
+ if($("angMeasHinweis")){
+  $("angMeasHinweis").textContent=`${angehakt} von ${angMeasZeilen.length} Positionen angehakt`
+   +(unklar?` · bei ${unklar} davon konnte die App die Art nicht erkennen`:"");
+ }
+ if($("angMeasAnlegen"))$("angMeasAnlegen").disabled=!angehakt;
+}
+if($("angMeasBody")){
+ $("angMeasBody").addEventListener("change",e=>{
+  const h=e.target.closest?e.target.closest("[data-ang-meas-haken]"):null;
+  if(h){angMeasZeilen[Number(h.dataset.angMeasHaken)].haken=h.checked;renderAngMeasTabelle();return}
+  const a=e.target.closest?e.target.closest("[data-ang-meas-art]"):null;
+  if(a)angMeasZeilen[Number(a.dataset.angMeasArt)].type=a.value;
+ });
+}
+if($("angMeasAlle"))$("angMeasAlle").onclick=()=>{
+ angMeasZeilen.forEach(z=>z.haken=true);renderAngMeasTabelle();
+};
+if($("angMeasKeine"))$("angMeasKeine").onclick=()=>{
+ angMeasZeilen.forEach(z=>z.haken=false);renderAngMeasTabelle();
+};
+if($("angMeasAbbrechen"))$("angMeasAbbrechen").onclick=()=>{$("angMeasModal").hidden=true};
+if($("angMassaufnahmenAbleiten"))$("angMassaufnahmenAbleiten").onclick=()=>angMassaufnahmenDialog();
+
+if($("angMeasAnlegen"))$("angMeasAnlegen").onclick=async()=>{
+ const fehler=$("angMeasFehler");
+ if(fehler)fehler.hidden=true;
+ const gewaehlt=angMeasZeilen.filter(z=>z.haken);
+ if(!gewaehlt.length)return;
+ if(typeof offlineSperrtSpeichern==="function"
+    &&offlineSperrtSpeichern(gewaehlt.length+" Massaufnahme(n) anzulegen"))return;
+ const knopf=$("angMeasAnlegen");
+ knopf.disabled=true;
+ const heute=new Date().toISOString().slice(0,10);
+ const jetzt=new Date().toISOString();
+ // project_id ist die einzige Zuordnung, die hier gesetzt wird - die Firma
+ // haengt am Projekt (measurements hat keine eigene company_id), und die RLS
+ // entscheidet, ob geschrieben werden darf.
+ const zeilen=gewaehlt.map(z=>({
+  project_id:angSelectedProjectId,
+  type:z.type,
+  title:z.titel,
+  note:angMeasNotiz(angPositions[z.index]),
+  date:heute,
+  data:{},
+  created_by:currentProfile?currentProfile.id:null,
+  created_at:jetzt
+ }));
+ try{
+  const {data,error}=await sb.from("measurements").insert(zeilen).select("id");
+  // 0 geschriebene Zeilen gelten NICHT als Erfolg - die RLS kann stillschweigend
+  // herausfiltern, und eine Erfolgsmeldung waere dann eine Luege.
+  if(error||!data||!data.length){
+   if(fehler){
+    fehler.textContent=error
+     ?("Die Massaufnahmen konnten nicht angelegt werden: "+error.message
+       +(/permission|policy|row-level/i.test(error.message||"")
+         ?" – dafür fehlt die Berechtigung in diesem Projekt."
+         :""))
+     :"Es wurde nichts angelegt. Fehlt die nötige Berechtigung?";
+    fehler.hidden=false;
+   }
+   return;
+  }
+  $("angMeasModal").hidden=true;
+  // Das Cockpit zeigt die neuen Massaufnahmen sofort, und die Aufgabenzahl
+  // stimmt wieder: jede neue Massaufnahme ist eine offene Freigabe (v3.05).
+  if(typeof cockpitBereichAktualisieren==="function"
+     &&typeof cockpitProjectId!=="undefined"&&cockpitProjectId===angSelectedProjectId){
+   await cockpitBereichAktualisieren("meas");
+  }
+  if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
+  alert(data.length===1
+   ?"1 Massaufnahme wurde im Projekt angelegt – noch ohne Masse."
+   :data.length+" Massaufnahmen wurden im Projekt angelegt – noch ohne Masse.");
+ }catch(err){
+  if(fehler){fehler.textContent="Fehler: "+((err&&err.message)||err);fehler.hidden=false}
+ }finally{
+  knopf.disabled=false;
+ }
+};
