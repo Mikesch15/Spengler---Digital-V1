@@ -652,6 +652,7 @@ function lagerNeuesProduktOeffnen(materialId,barcode,optionen){
  ["lagerNeuePositionNr","lagerNeuePositionName","lagerNeuePositionDim",
   "lagerNeuePositionEinheit","lagerNeuePositionPreis"].forEach(id=>{if($(id))$(id).value=""});
  lagerNummerVonHand=false;
+ lagerPositionNameEigen=false;   // v3.148: jeder Dialog faengt mit EINER Bezeichnung an
  if($("lagerNeuePositionHinweis"))$("lagerNeuePositionHinweis").innerHTML="";
  // v3.126: Auswahl als Zustand, nicht mehr als Wert eines <select>.
  const nurPosition=!!(optionen&&optionen.nurPosition);
@@ -1045,6 +1046,20 @@ if($("lagerNeuesProduktGewaehlt"))$("lagerNeuesProduktGewaehlt").addEventListene
  lagerNeuesProduktNeuePosition=false;
  lagerNeuesProduktMaterialRendern();
 });
+// v3.148: Darf die Position einen EIGENEN Namen tragen?
+// Voreingestellt nein - dann gilt die Bezeichnung des Produkts auch fuer die
+// Position (v3.139), und es gibt nur ein Feld. Das ist fuer den haeufigen
+// Fall richtig, war aber bis hierher die EINZIGE Moeglichkeit: wer die
+// Katalogposition allgemein halten wollte ("Stahlblech svz") und das Produkt
+// genau bezeichnen ("Stahlblech svz 0.6 x 670 Rolle"), konnte das beim
+// Anlegen nicht. Die Position trug dann den Namen des ersten Produkts - und
+// behielt ihn auch, wenn spaeter weitere Produkte dazukamen.
+//
+// Am Schreibweg aendert sich dafuer NICHTS: lagerNeuePositionAnlegen() nimmt
+// laengst den Namen des Feldes, und nur wenn es leer ist, den des Produkts.
+// Gebraucht wird also allein die Moeglichkeit, das Feld zu zeigen.
+let lagerPositionNameEigen=false;
+
 // Welche Felder gehoeren zum Produkt, welche zur Position? Ohne Produkt
 // bleiben Bezeichnung, Barcode und die Positions-Suche weg - die Position
 // wird ja gerade angelegt, es gibt nichts zu suchen.
@@ -1056,11 +1071,18 @@ function lagerNeuesProduktModusRendern(){
  // Ohne Produkt wird immer eine neue Position angelegt - die Suche nach
  // einer bestehenden waere sinnlos.
  zeig("lagerNeuesProduktPositionFeld",mit);
- // Die Bezeichnung gibt es genau EINMAL: mit Produkt die des Produkts,
- // ohne Produkt die der Position.
- zeig("lagerNeuePositionNameFeld",!mit);
- if($("lagerNeuePositionNameHinweis"))$("lagerNeuePositionNameHinweis").hidden=!mit;
- if(mit&&$("lagerNeuePositionName"))$("lagerNeuePositionName").value="";
+ // Die Bezeichnung gibt es genau EINMAL - es sei denn, die Position soll
+ // ausdruecklich anders heissen (v3.148). Ohne Produkt gibt es ohnehin nur
+ // die der Position.
+ const eigen=mit&&lagerPositionNameEigen;
+ zeig("lagerNeuePositionNameFeld",!mit||eigen);
+ if($("lagerNeuePositionNameHinweis"))$("lagerNeuePositionNameHinweis").hidden=!mit||eigen;
+ if($("lagerNeuePositionNameEigenHinweis"))$("lagerNeuePositionNameEigenHinweis").hidden=!eigen;
+ // Nur wenn beide denselben Namen tragen sollen, muss das Feld leer sein -
+ // leer heisst hier "nimm den des Produkts". Beim Trennen wird es dagegen
+ // mit der Bezeichnung des Produkts vorbelegt, damit nicht bei null
+ // angefangen werden muss.
+ if(mit&&!eigen&&$("lagerNeuePositionName"))$("lagerNeuePositionName").value="";
  if(!mit){
   lagerNeuesProduktNeuePosition=true;
   lagerNeuesProduktArtikel=null;
@@ -1071,6 +1093,21 @@ function lagerNeuesProduktModusRendern(){
  const k=$("lagerNeuesProduktSpeichern");
  if(k)k.textContent=mit?"\u2705 Anlegen":"\u2705 Position anlegen";
 }
+// v3.148: trennen und wieder zusammenlegen. Beim Trennen wird die
+// Bezeichnung des Produkts uebernommen (Ausgangspunkt, nicht leeres Feld),
+// beim Zusammenlegen das Feld geleert - dann greift wieder der Rueckfall auf
+// den Produktnamen in lagerNeuePositionAnlegen().
+if($("lagerPositionNameEigen"))$("lagerPositionNameEigen").onclick=()=>{
+ lagerPositionNameEigen=true;
+ const feld=$("lagerNeuePositionName"), bez=$("lagerNeuesProduktBezeichnung");
+ if(feld&&!feld.value.trim()&&bez)feld.value=bez.value.trim();
+ lagerNeuesProduktModusRendern();
+ if(feld){try{feld.focus();feld.select()}catch(e){}}
+};
+if($("lagerPositionNameGleich"))$("lagerPositionNameGleich").onclick=()=>{
+ lagerPositionNameEigen=false;
+ lagerNeuesProduktModusRendern();
+};
 if($("lagerNeuesProduktMitProdukt"))$("lagerNeuesProduktMitProdukt").addEventListener("change",()=>{
  lagerNeuesProduktMitProdukt=$("lagerNeuesProduktMitProdukt").checked;
  lagerNeuesProduktMaterialRendern();

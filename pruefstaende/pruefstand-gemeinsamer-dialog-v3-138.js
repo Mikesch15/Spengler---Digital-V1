@@ -300,6 +300,99 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  p(i3.listeAuf===false,
    'GEGENPROBE: und auch hier ist die Liste zu',i3);
 
+ console.log("\nJ · v3.148: die Position darf anders heissen als das Produkt");
+ // Seit v3.139 gibt es EINE Bezeichnung fuer beide (Abschnitt G) - richtig
+ // fuer den haeufigen Fall, aber bis hierher die einzige Moeglichkeit. Wer
+ // die Katalogposition allgemein halten will und das Produkt genau
+ // bezeichnen, konnte das beim Anlegen nicht.
+ await grund();
+ const jOeffnen=async()=>{
+  await page.evaluate(()=>{$("settingsModal").hidden=true;lagerNeuesProduktOeffnen(null,"");
+    lagerNeuesProduktArtikel=null;lagerNeuesProduktNeuePosition=true;
+    lagerNeuesProduktMaterialRendern();lagerNeuesProduktModusRendern();});
+  await page.waitForTimeout(300);
+ };
+ const jStand=()=>page.evaluate(()=>({
+   positionFeld:!$("lagerNeuePositionNameFeld").hidden,
+   gleichHinweis:!$("lagerNeuePositionNameHinweis").hidden,
+   eigenHinweis:!$("lagerNeuePositionNameEigenHinweis").hidden,
+   knopfTrennen:!!$("lagerPositionNameEigen"),
+   knopfZurueck:!!$("lagerPositionNameGleich"),
+   wert:$("lagerNeuePositionName").value}));
+ await jOeffnen();
+ let j=await jStand();
+ p(j.positionFeld===false&&j.gleichHinweis===true&&j.eigenHinweis===false,
+   "voreingestellt bleibt es bei EINER Bezeichnung - wie seit v3.139",j);
+ p(j.knopfTrennen,"aber es steht ein Knopf da, um die Position anders zu benennen",j);
+ // Bezeichnung des Produkts eingeben, dann trennen
+ await page.evaluate(()=>{
+   $("lagerNeuesProduktBezeichnung").value="Stahlblech svz 0.6 x 670 Rolle";
+   $("lagerNeuesProduktBezeichnung").dispatchEvent(new Event("input"));});
+ await page.waitForTimeout(250);
+ await page.evaluate(()=>$("lagerPositionNameEigen").click());
+ await page.waitForTimeout(250);
+ j=await jStand();
+ p(j.positionFeld===true,"nach dem Tippen ist das Feld der Position da",j);
+ p(j.wert==="Stahlblech svz 0.6 x 670 Rolle",
+   "vorbelegt mit der Bezeichnung des Produkts - kein leeres Feld",j.wert);
+ p(j.eigenHinweis===true&&j.gleichHinweis===false,
+   "und es steht da, dass die Position jetzt eigen benannt ist",j);
+ p(j.knopfZurueck,"samt Rueckweg",j);
+ // Jetzt wirklich unterschiedlich benennen und speichern
+ await page.evaluate(()=>{window.__db.log=[];
+   $("lagerNeuePositionName").value="Stahlblech svz";
+   $("lagerNeuePositionName").dispatchEvent(new Event("input"));});
+ await page.waitForTimeout(250);
+ await page.evaluate(()=>$("lagerNeuesProduktSpeichern").click());
+ await page.waitForTimeout(600);
+ let jlog=await page.evaluate(()=>window.__db.log.slice());
+ let jpos=jlog.find(x=>x.t==="materials"), jprod=jlog.find(x=>x.t==="lager_varianten");
+ p(jlog.length===2,"es entstehen weiterhin genau zwei Datensaetze",jlog.map(x=>x.t));
+ p(jpos&&jpos.d.name==="Stahlblech svz",
+   "die Position traegt ihren EIGENEN Namen",jpos&&jpos.d);
+ p(jprod&&jprod.d.bezeichnung==="Stahlblech svz 0.6 x 670 Rolle",
+   "das Produkt seinen genauen - die beiden sind getrennt",jprod&&jprod.d);
+
+ // GEGENPROBE 1: der Rueckweg legt sie wieder zusammen
+ await grund();
+ await jOeffnen();
+ await page.evaluate(()=>{
+   $("lagerNeuesProduktBezeichnung").value="Rinnenhaken verzinkt";
+   $("lagerNeuesProduktBezeichnung").dispatchEvent(new Event("input"));});
+ await page.waitForTimeout(250);
+ await page.evaluate(()=>$("lagerPositionNameEigen").click());
+ await page.waitForTimeout(200);
+ await page.evaluate(()=>{$("lagerNeuePositionName").value="Etwas ganz anderes"});
+ await page.evaluate(()=>$("lagerPositionNameGleich").click());
+ await page.waitForTimeout(250);
+ j=await jStand();
+ p(j.positionFeld===false&&j.gleichHinweis===true,
+   "GEGENPROBE: der Rueckweg blendet das Feld wieder aus",j);
+ p(j.wert==="","und leert es - sonst wuerde der verworfene Name still gespeichert",j.wert);
+ await page.evaluate(()=>{window.__db.log=[];$("lagerNeuesProduktSpeichern").click()});
+ await page.waitForTimeout(600);
+ jlog=await page.evaluate(()=>window.__db.log.slice());
+ jpos=jlog.find(x=>x.t==="materials");
+ p(jpos&&jpos.d.name==="Rinnenhaken verzinkt",
+   "GEGENPROBE: gespeichert wird dann wieder die Bezeichnung des Produkts",jpos&&jpos.d);
+
+ // GEGENPROBE 2: der Zustand haelt nicht ueber den Dialog hinaus
+ await grund();
+ await jOeffnen();
+ await page.evaluate(()=>$("lagerPositionNameEigen").click());
+ await page.waitForTimeout(200);
+ await jOeffnen();
+ j=await jStand();
+ p(j.positionFeld===false&&j.gleichHinweis===true,
+   "GEGENPROBE: der naechste Dialog faengt wieder mit EINER Bezeichnung an",j);
+
+ // GEGENPROBE 3: ohne Produkt aendert sich gar nichts - dort gibt es nur die
+ // Position, und ein Knopf zum Trennen waere sinnlos.
+ await schalter(false);
+ j=await jStand();
+ p(j.positionFeld===true&&j.gleichHinweis===false&&j.eigenHinweis===false,
+   "GEGENPROBE: ohne Produkt steht schlicht das Feld der Position da",j);
+
  p(fehler.length===0,"keine JavaScript-Fehler waehrend des Laufs",fehler.slice(0,3));
  console.log(`\n=== ${ok} ok, ${fail} fehlgeschlagen ===`);
  await b.close(); process.exit(fail?1:0);

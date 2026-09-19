@@ -814,7 +814,13 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div class="info">Diese Position wird neu im <b>Material-Katalog</b> angelegt (Einstellungen → Material) und steht danach überall zur Verfügung, auch im Regierapport.</div>
 <!-- v3.139: Wird gleichzeitig ein Produkt angelegt, gilt dessen Bezeichnung
      auch für die Position - zweimal dasselbe zu tippen wäre unnötig. -->
-<div class="small" id="lagerNeuePositionNameHinweis" style="color:var(--muted);margin-bottom:4px" hidden>Die <b>Bezeichnung des Produkts</b> gilt auch für diese Position.</div>
+<div class="small" id="lagerNeuePositionNameHinweis" style="color:var(--muted);margin-bottom:4px" hidden>Die <b>Bezeichnung des Produkts</b> gilt auch für diese Position. <button type="button" class="gray" id="lagerPositionNameEigen" style="padding:2px 8px;min-height:0;font-size:inherit">✏️ Position anders benennen</button></div>
+<!-- v3.148: Die Position darf einen EIGENEN Namen bekommen. Voreingestellt
+     bleibt es bei einer Bezeichnung für beide (v3.139) - zweimal dasselbe zu
+     tippen wäre unnötig. Wer die Position aber generisch halten will
+     („Stahlblech svz“), während das Produkt die genaue Ausführung nennt,
+     kann sie hier trennen. -->
+<div class="small" id="lagerNeuePositionNameEigenHinweis" style="color:var(--muted);margin-bottom:4px" hidden>Diese Position bekommt einen <b>eigenen Namen</b> – unabhängig vom Produkt darunter. <button type="button" class="gray" id="lagerPositionNameGleich" style="padding:2px 8px;min-height:0;font-size:inherit">↩ Doch gleich wie das Produkt</button></div>
 <div class="grid">
 <div><label>EDV-Nr.<span class="pflicht-stern">*</span></label><input id="lagerNeuePositionNr" placeholder="999.01"></div>
 <div><label>Einheit</label><input id="lagerNeuePositionEinheit" placeholder="Stk."></div>
