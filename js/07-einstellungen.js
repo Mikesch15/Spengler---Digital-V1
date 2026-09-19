@@ -435,15 +435,37 @@ const debouncedProfileUpdate=debounce((id,patch)=>sb.from("profiles").update(pat
 const debouncedBzMaterialUpdate=debounce((id,patch)=>sb.from("blitzschutz_materials").update(patch).eq("id",id),500);
 
 // ---- Mitarbeiterkonto anlegen (nur Administrator) ------------
+// v3.148: Die optionale E-Mail wird hier gleich beim Anlegen mitgegeben.
+// Die Edge Function smart-action nimmt sie seit v3.103 entgegen - sie wird
+// zur zusaetzlichen Anmeldeadresse (profiles.email, beim Login aufgeloest
+// durch resolve-login-email) und die Zugangsdaten gehen zusaetzlich per Mail
+// hinaus. Nur dieses Formular hatte das Feld nie: wer sie hinterlegen wollte,
+// musste das Konto anlegen und die Adresse danach in der Mitarbeiterliste
+// nachtragen (v3.130). Serverseitig aendert sich nichts.
+//
+// Geprueft wird das Format mit derselben Funktion wie beim nachtraeglichen
+// Eintragen (mailFormatOk, js/05a) und wie in der Edge Function - eine hier
+// abgelehnte Adresse ist auch dort ungueltig und umgekehrt. Ob die Adresse
+// schon einem anderen Konto gehoert, entscheidet NICHT die App, sondern der
+// Server (smart-action fragt profiles.email ab und antwortet mit einem
+// verstaendlichen Satz) - eine eigene Vorabpruefung waere ein Wettlauf.
 $("mitarbeiterAnlegen").addEventListener("click",async()=>{
  if(!meineRechte.admin){alert("Nur ein Administrator kann Konten anlegen.");return}
  const vor=$("neuMitarbeiterVor").value.trim();
  const nach=$("neuMitarbeiterNach").value.trim();
  if(!vor||!nach){alert("Bitte Vor- und Nachname eingeben.");return}
+ const mailFeld=$("neuMitarbeiterEmail");
+ const mail=mailFeld?String(mailFeld.value||"").trim().toLowerCase():"";
+ if(mail&&typeof mailFormatOk==="function"&&!mailFormatOk(mail)){
+  alert("Bitte eine gültige E-Mail-Adresse eingeben, oder das Feld leer lassen.");
+  if(mailFeld)mailFeld.focus();
+  return;
+ }
  const knopf=$("mitarbeiterAnlegen");
  knopf.disabled=true;
  try{
-  const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach}});
+  const {data,error}=await sb.functions.invoke("smart-action",
+    {body:{first_name:vor,last_name:nach,email:mail||undefined}});
   if(error){alert(await edgeFunctionErrorMessage(error,"Konto konnte nicht angelegt werden."));return}
   if(!data?.ok){alert(data?.error||"Konto konnte nicht angelegt werden.");return}
   const username=data?.user?.username||data?.username||(vor.toLowerCase()+"."+nach.toLowerCase());
@@ -451,9 +473,10 @@ $("mitarbeiterAnlegen").addEventListener("click",async()=>{
   // Zum Weitergeben in einem kopierbaren Feld statt in einem alert() (v3.04):
   // auf einem Tablet laesst sich ein alert nicht kopieren, und weggetippt ist
   // das Startpasswort verloren.
-  zugangsdatenZeigen(vor+" "+nach,username,passwort);
+  zugangsdatenZeigen(vor+" "+nach,username,passwort,mail,!!data.mailVersendet);
   $("neuMitarbeiterVor").value="";
   $("neuMitarbeiterNach").value="";
+  if(mailFeld)mailFeld.value="";
   await loadAllData();
   renderSettings();
  }catch(err){
@@ -468,17 +491,27 @@ $("mitarbeiterAnlegen").addEventListener("click",async()=>{
 // einfuegen laesst. Er enthaelt bewusst KEINE Firmendaten ausser dem Namen -
 // und er wird nur einmal gezeigt, weil das Startpasswort danach serverseitig
 // nicht mehr abrufbar ist.
-function zugangsdatenText(name,username,passwort){
+function zugangsdatenText(name,username,passwort,mail){
  return `Zugang zu Spengler-DIGITAL für ${name}\n\n`
   +`Benutzername: ${username}\n`
+  +(mail?`Oder mit dieser E-Mail-Adresse: ${mail}\n`:"")
   +`Startpasswort: ${passwort}\n\n`
   +`Beim ersten Anmelden muss ein eigenes Passwort vergeben werden.\n`
   +`Adresse: ${location.origin+location.pathname}`;
 }
-function zugangsdatenZeigen(name,username,passwort){
+// v3.148: mail und versendet sind optional - ohne sie sieht die Box aus wie
+// bisher. Ob die Zugangsdaten wirklich per Mail hinausgegangen sind, sagt der
+// Server (mailVersendet); der Text hier behauptet es nicht von sich aus,
+// sondern gibt genau diese Antwort weiter. Der kopierbare Text bleibt so
+// oder so die verlaessliche Quelle zum Weitergeben.
+function zugangsdatenZeigen(name,username,passwort,mail,versendet){
  const box=$("zugangBox"); if(!box)return;
- $("zugangText").value=zugangsdatenText(name,username,passwort);
- $("zugangMeldung").textContent="";
+ $("zugangText").value=zugangsdatenText(name,username,passwort,mail);
+ $("zugangMeldung").textContent=mail
+  ?(versendet?"✓ Die Zugangsdaten wurden zusätzlich an "+mail+" gesendet."
+             :"Die Zugangsdaten konnten NICHT an "+mail+" gesendet werden – bitte den Text oben weitergeben.")
+  :"";
+ $("zugangMeldung").style.color=mail&&!versendet?"var(--red)":"var(--green)";
  // Teilen gibt es nur, wo das Geraet es kann (Handy/Tablet) - sonst waere es
  // ein Knopf, der nichts tut.
  const teilen=$("zugangTeilen");

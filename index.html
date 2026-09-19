@@ -2463,6 +2463,12 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 <div class="grid" style="margin-bottom:8px">
 <div><label>Vorname</label><input id="neuMitarbeiterVor" data-pflicht="1" placeholder="Vorname"></div>
 <div><label>Nachname</label><input id="neuMitarbeiterNach" data-pflicht="1" placeholder="Nachname"></div>
+<!-- v3.148: Die E-Mail gab es serverseitig schon seit v3.103 und nachtraeglich
+     seit v3.130 - nur beim Anlegen ueber dieses Formular fehlte das Feld. -->
+<div class="wide"><label>E-Mail (optional)</label>
+<input id="neuMitarbeiterEmail" type="email" inputmode="email" autocomplete="off"
+       placeholder="z. B. vorname.nachname@firma.ch">
+<div class="small" style="color:var(--muted)">Damit meldet sich der Mitarbeiter zusätzlich zum Benutzernamen an und kann ein vergessenes Passwort selbst zurücksetzen. Die Zugangsdaten werden dann zusätzlich an diese Adresse gesendet. Leer lassen ist in Ordnung – sie lässt sich später jederzeit nachtragen.</div></div>
 </div>
 <div class="bar" style="margin-bottom:12px"><button id="mitarbeiterAnlegen" class="green">＋ Mitarbeiterkonto anlegen</button></div>
 <!-- Zugangsdaten zum Weitergeben (v3.04). Bis v3.03 standen sie nur in einem

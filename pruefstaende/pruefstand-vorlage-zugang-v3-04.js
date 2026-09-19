@@ -1,6 +1,8 @@
 // Prueft zwei Roadmap-Punkte aus v3.04:
 //   A  "Als Vorlage" - eine bestehende Massaufnahme als Grundlage einer neuen
 //   B  Zugangsdaten eines neuen Mitarbeiterkontos zum Kopieren/Weitergeben
+// und seit v3.148:
+//   C  die optionale E-Mail gleich im Anlege-Formular
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-vorlage-zugang-v3-04.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
@@ -24,7 +26,13 @@ async function klick(page,sel){
 window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},
  storage:{from:()=>({createSignedUrl:async(x)=>({data:{signedUrl:"https://t/"+x},error:null})})},
  functions:{invoke:async(name,o)=>{window.__fn.push({name,body:o&&o.body});
-   return {data:{ok:true,user:{username:"anna.beispiel"},password:"Start-1234"},error:null}}},
+   // v3.148: Die Antwort ist steuerbar, damit der Pruefstand auch den
+   // fehlgeschlagenen Mailversand und eine Absage des Servers nachstellen
+   // kann. Ohne Vorgabe verhaelt sie sich wie bisher.
+   if(window.__fnAntwort)return window.__fnAntwort;
+   const b=(o&&o.body)||{};
+   return {data:{ok:true,user:{username:"anna.beispiel"},password:"Start-1234",
+     mailVersendet:!!b.email&&window.__mailGeht!==false},error:null}}},
  from:()=>{const q={};['select','eq','order','limit','update','insert','delete','maybeSingle','single'].forEach(k=>q[k]=()=>q);
    q.then=r=>Promise.resolve({data:[],error:null}).then(r);return q},
  rpc:async()=>({data:true,error:null})})};`}));
@@ -156,6 +164,93 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  await klick(page,"#zugangSchliessen");
  const zu=await page.evaluate(()=>({versteckt:$("zugangBox").hidden,text:$("zugangText").value}));
  p(zu.versteckt&&zu.text==="","nach dem Schliessen ist der Text weg",zu);
+
+ // ==========================================================================
+ // C · die optionale E-Mail gleich beim Anlegen (v3.148)
+ // ==========================================================================
+ console.log("\nC · E-Mail beim Anlegen (v3.148)");
+ const feldInfo=await page.evaluate(()=>{
+  const e=$("neuMitarbeiterEmail");
+  return e?{da:true,typ:e.type,pflicht:e.hasAttribute("data-pflicht"),wert:e.value}:{da:false};
+ });
+ p(feldInfo.da,"das Feld steht im Anlege-Formular",feldInfo);
+ p(feldInfo.typ==="email","und ist ein E-Mail-Feld",feldInfo.typ);
+ p(feldInfo.pflicht===false,"es ist ausdruecklich KEIN Pflichtfeld",feldInfo);
+
+ // Ein gemeinsamer Helfer, damit jeder Fall gleich anfaengt.
+ const anlegen=async(vor,nach,mail)=>{
+  await page.evaluate(([v,n,m])=>{
+   window.__fn=[]; window.__dialogText="";
+   $("neuMitarbeiterVor").value=v; $("neuMitarbeiterNach").value=n;
+   $("neuMitarbeiterEmail").value=m;
+   $("zugangBox").hidden=true; $("zugangText").value=""; $("zugangMeldung").textContent="";
+  },[vor,nach,mail]);
+  page.__dialog="";
+  await klick(page,"#mitarbeiterAnlegen");
+  await page.waitForTimeout(400);
+  return page.evaluate(()=>({
+   aufrufe:window.__fn.length,
+   body:(window.__fn[0]||{}).body||null,
+   sichtbar:!$("zugangBox").hidden,
+   text:$("zugangText").value,
+   meldung:$("zugangMeldung").textContent,
+   farbe:$("zugangMeldung").style.color,
+   feld:$("neuMitarbeiterEmail").value
+  }));
+ };
+
+ // 1 · gueltige Adresse, Versand geklappt
+ await page.evaluate(()=>{window.__mailGeht=true;window.__fnAntwort=null});
+ let c=await anlegen("Anna","Beispiel","  Anna.Beispiel@Firma.CH  ");
+ p(c.aufrufe===1&&c.body&&c.body.email==="anna.beispiel@firma.ch",
+   "die Adresse geht getrimmt und klein geschrieben an den Server",c.body);
+ p(c.body&&c.body.first_name==="Anna"&&c.body.last_name==="Beispiel",
+   "zusammen mit Vor- und Nachnamen",c.body);
+ p(c.sichtbar&&c.text.indexOf("anna.beispiel@firma.ch")>=0,
+   "sie steht im Text zum Weitergeben",c.text);
+ p(/Oder mit dieser E-Mail-Adresse/.test(c.text),
+   "mit der Ansage, dass die Anmeldung auch damit geht",c.text);
+ p(c.text.indexOf("Start-1234")>=0,"das Startpasswort steht weiterhin darin",c.text);
+ p(/wurden zusätzlich an anna\.beispiel@firma\.ch gesendet/.test(c.meldung),
+   "und darunter steht, dass die Zugangsdaten versendet wurden",c.meldung);
+ p(c.feld==="","das Feld ist danach leer - der naechste faengt sauber an",c.feld);
+
+ // 2 · der Versand ist fehlgeschlagen: das muss DRANSTEHEN
+ await page.evaluate(()=>{window.__mailGeht=false});
+ c=await anlegen("Beat","Muster","beat@firma.ch");
+ p(c.sichtbar&&c.text.indexOf("Start-1234")>=0,
+   "der Kasten steht trotzdem da - die Daten gehen nicht verloren",c.text.slice(0,80));
+ p(/NICHT an beat@firma\.ch gesendet/.test(c.meldung),
+   "es steht ausdruecklich da, dass NICHT versendet wurde",c.meldung);
+ p(/bitte den Text oben weitergeben/i.test(c.meldung),
+   "mit dem Hinweis, was stattdessen zu tun ist",c.meldung);
+ p(/red/.test(c.farbe),"und zwar nicht in Gruen",c.farbe);
+
+ // 3 · eine unsinnige Adresse wird gar nicht erst abgeschickt
+ await page.evaluate(()=>{window.__mailGeht=true});
+ c=await anlegen("Carla","Test","keine-adresse");
+ p(c.aufrufe===0,"eine ungueltige Adresse loest KEINEN Aufruf aus",c.aufrufe);
+ p(/gültige E-Mail-Adresse/.test(page.__dialog||""),"sondern eine Ansage",page.__dialog);
+ p(c.feld==="keine-adresse","das Getippte bleibt stehen zum Verbessern",c.feld);
+ p(!c.sichtbar,"und es wird kein Konto vorgegaukelt",c.sichtbar);
+
+ // 4 · der Server sagt Nein (Adresse gehoert schon jemandem)
+ await page.evaluate(()=>{window.__fnAntwort={data:{ok:false,
+   error:"Diese E-Mail-Adresse ist bereits einem anderen Konto zugeordnet."},error:null}});
+ c=await anlegen("Dora","Zweit","anna.beispiel@firma.ch");
+ p(c.aufrufe===1,"der Server entscheidet ueber die Eindeutigkeit, nicht die App",c.aufrufe);
+ p(/bereits einem anderen Konto/.test(page.__dialog||""),
+   "seine Begruendung wird woertlich gezeigt",page.__dialog);
+ p(!c.sichtbar,"und kein Kasten mit Zugangsdaten erscheint",c.sichtbar);
+
+ // 5 · Gegenprobe: ohne Adresse ist alles wie vor v3.148
+ await page.evaluate(()=>{window.__fnAntwort=null});
+ c=await anlegen("Emil","Ohne","");
+ p(c.aufrufe===1&&c.body&&c.body.email===undefined,
+   "ohne Adresse wird auch keine mitgeschickt",c.body);
+ p(c.sichtbar&&!/Oder mit dieser E-Mail-Adresse/.test(c.text),
+   "im Text steht dann keine E-Mail-Zeile",c.text);
+ p(c.meldung==="","und darunter steht nichts vom Versand",c.meldung);
 
  p(fehler.length===0,"keine JavaScript-Fehler waehrend des Laufs",fehler.slice(0,3));
  console.log(`\n=== ${ok} ok, ${fail} fehlgeschlagen ===`);
