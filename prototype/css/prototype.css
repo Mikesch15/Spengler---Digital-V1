@@ -1,0 +1,295 @@
+/* ==========================================================================
+   Spengler-DIGITAL 2.0 - PROTOTYP
+   --------------------------------------------------------------------------
+   EIGENSTAENDIG. Diese Datei laedt NICHTS aus css/01-basis.css & Co. - der
+   Prototyp soll gefahrlos umgebaut werden koennen, ohne die bestehende App
+   zu beruehren.
+   Die Farbwerte sind bewusst dieselben wie dort (Blau 1769aa, Gruen 16845c,
+   Rot b42318): es soll wie dieselbe Firma aussehen, nicht wie ein fremdes
+   Programm. Neu sind Raster, Navigation und Groessen.
+   Mobile First: alles unten gilt ab Handy, die Media Queries am Ende bauen
+   daraus Tablet und Desktop.
+   ========================================================================== */
+
+*{box-sizing:border-box}
+:root{
+ --blau:#1769aa; --blau-dunkel:#0f5288; --blau-hell:#eaf4fa;
+ --gruen:#16845c; --gruen-hell:#e8f5ef;
+ --orange:#a35b06; --orange-hell:#fdf1e3;
+ --rot:#b42318;   --rot-hell:#fff0ef;
+ --tinte:#17242d; --grau:#6b7880; --linie:#d5dde2;
+ --flaeche:#eef2f6; --karte:#fff;
+ --kopf-hoehe:56px; --leiste-hoehe:62px;
+ --radius:14px;
+ --schatten:0 1px 2px #17242d0f, 0 10px 24px -14px #17242d3d;
+}
+html,body{margin:0;padding:0}
+body{
+ background:var(--flaeche); color:var(--tinte);
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+ font-size:15px; line-height:1.45;
+ -webkit-text-size-adjust:100%;
+ padding-bottom:calc(var(--leiste-hoehe) + env(safe-area-inset-bottom,0px));
+}
+button{font:inherit;border:0;cursor:pointer}
+[hidden]{display:none!important}
+
+/* ---- Kopfzeile ---------------------------------------------------------- */
+.p-kopf{
+ position:sticky; top:0; z-index:40; height:var(--kopf-hoehe);
+ display:flex; align-items:center; gap:10px; padding:0 14px;
+ background:var(--blau); color:#fff;
+ box-shadow:0 2px 10px #17242d26;
+}
+/* 44px: das ist die Mindestgroesse fuer einen Finger, und die Zurueck-Taste
+   wird auf dem Dach mit Handschuhen getroffen. Sie passt damit immer noch
+   in die 56px hohe Kopfzeile. */
+.p-kopf-zurueck{
+ background:#ffffff26; color:#fff; border-radius:10px;
+ min-width:44px; height:44px; font-size:19px; font-weight:800;
+ display:flex; align-items:center; justify-content:center; flex:none;
+}
+.p-kopf-titel{flex:1; min-width:0}
+.p-kopf-titel b{display:block; font-size:16px; font-weight:800;
+ white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.p-kopf-titel span{display:block; font-size:11.5px; opacity:.82;
+ white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.p-kopf-ich{
+ width:34px; height:34px; border-radius:50%; flex:none;
+ background:#ffffff2e; display:flex; align-items:center; justify-content:center;
+ font-size:12px; font-weight:900; letter-spacing:.02em;
+}
+
+/* ---- Inhalt ------------------------------------------------------------- */
+.p-inhalt{max-width:1080px; margin:0 auto; padding:14px 14px 24px}
+.p-abschnitt{margin:0 0 22px}
+.p-abschnitt-kopf{
+ display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+ margin:0 0 9px;
+}
+.p-abschnitt-kopf h2{
+ margin:0; font-size:12px; font-weight:900; letter-spacing:.09em;
+ text-transform:uppercase; color:var(--grau);
+}
+.p-abschnitt-kopf a{font-size:13px; font-weight:700; color:var(--blau);
+ text-decoration:none; cursor:pointer}
+
+/* ---- Karten ------------------------------------------------------------- */
+.p-karte{
+ background:var(--karte); border:1px solid var(--linie); border-radius:var(--radius);
+ box-shadow:var(--schatten); padding:14px; margin:0 0 10px;
+}
+.p-karte-klick{display:block; width:100%; text-align:left; background:var(--karte)}
+.p-karte-klick:active{transform:translateY(1px)}
+.p-karte-titel{font-size:16px; font-weight:800; margin:0 0 2px}
+.p-karte-unter{font-size:13px; color:var(--grau); margin:0}
+.p-leer{
+ background:var(--karte); border:1px dashed var(--linie); border-radius:var(--radius);
+ padding:22px 14px; text-align:center; color:var(--grau); font-size:14px;
+}
+
+/* ---- Zahlenband (Werkstatt heute) --------------------------------------- */
+.p-zahlen{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:0 0 10px}
+.p-zahl{
+ background:var(--karte); border:1px solid var(--linie); border-radius:var(--radius);
+ padding:12px 10px; text-align:center; box-shadow:var(--schatten);
+}
+.p-zahl b{display:block; font-size:26px; font-weight:900; line-height:1.1}
+.p-zahl span{display:block; font-size:11.5px; color:var(--grau); margin-top:2px}
+.p-zahl-blau b{color:var(--blau)} .p-zahl-orange b{color:var(--orange)}
+.p-zahl-gruen b{color:var(--gruen)} .p-zahl-rot b{color:var(--rot)}
+
+/* ---- Marken (Status) ---------------------------------------------------- */
+.p-marke{
+ display:inline-flex; align-items:center; gap:4px; flex:none;
+ font-size:11.5px; font-weight:800; line-height:1.5;
+ border-radius:999px; padding:2px 9px; white-space:nowrap;
+}
+.p-m-grau  {background:#eef2f5; color:var(--grau)}
+.p-m-blau  {background:var(--blau-hell);  color:var(--blau-dunkel)}
+.p-m-gruen {background:var(--gruen-hell); color:var(--gruen)}
+.p-m-orange{background:var(--orange-hell);color:var(--orange)}
+.p-m-rot   {background:var(--rot-hell);   color:var(--rot)}
+
+/* ---- Ablaufleiste des Projekts ------------------------------------------ */
+/* Alle SECHS Stationen muessen ohne Wischen sichtbar sein - die Leiste
+   beantwortet die Frage "wo steht das Projekt?", und dafuer darf man nicht
+   erst scrollen muessen. Deshalb teilen sie sich die Breite (flex:1 1 0)
+   statt eine Mindestbreite zu erzwingen; die Beschriftung bricht um. */
+.p-ablauf{display:flex; gap:0; padding:2px 0 4px; margin:0 0 4px}
+.p-ablauf-st{
+ flex:1 1 0; min-width:0; text-align:center; position:relative; padding:0 2px;
+}
+.p-ablauf-st::before{
+ content:""; position:absolute; top:13px; left:-50%; width:100%; height:2px;
+ background:var(--linie);
+}
+.p-ablauf-st:first-child::before{display:none}
+.p-ablauf-st.ist-fertig::before,.p-ablauf-st.ist-jetzt::before{background:var(--gruen)}
+.p-ablauf-marke{
+ position:relative; z-index:1; width:28px; height:28px; margin:0 auto 5px;
+ border-radius:50%; display:flex; align-items:center; justify-content:center;
+ font-size:13px; font-weight:900;
+ background:#fff; border:2px solid var(--linie); color:var(--grau);
+}
+.ist-fertig .p-ablauf-marke{background:var(--gruen); border-color:var(--gruen); color:#fff}
+.ist-jetzt  .p-ablauf-marke{background:var(--blau); border-color:var(--blau); color:#fff;
+ box-shadow:0 0 0 4px #1769aa22}
+.p-ablauf-text{font-size:10px; font-weight:700; color:var(--grau);
+ line-height:1.2; hyphens:auto; overflow-wrap:anywhere}
+@media(min-width:700px){.p-ablauf-text{font-size:12px}}
+.ist-jetzt .p-ablauf-text{color:var(--blau-dunkel); font-weight:900}
+.ist-fertig .p-ablauf-text{color:var(--tinte)}
+
+/* ---- Register ----------------------------------------------------------- */
+.p-register{
+ display:flex; gap:6px; overflow-x:auto; padding:0 0 2px; margin:0 0 14px;
+ scrollbar-width:none; -webkit-overflow-scrolling:touch;
+}
+.p-register::-webkit-scrollbar{display:none}
+.p-register button{
+ flex:none; min-height:40px; padding:8px 14px; border-radius:999px;
+ background:#fff; border:1px solid var(--linie); color:var(--grau);
+ font-size:14px; font-weight:800; white-space:nowrap;
+}
+.p-register button.ist-auf{background:var(--blau); border-color:var(--blau); color:#fff}
+
+/* ---- Zeilen (Positionen, Teile, Lager) ---------------------------------- */
+.p-zeile{
+ display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+ background:var(--karte); border:1px solid var(--linie); border-radius:12px;
+ padding:11px 13px; margin:0 0 8px; min-height:56px;
+ box-shadow:0 1px 2px #17242d0a;
+}
+.p-zeile:active{transform:translateY(1px)}
+.p-zeile-nr{
+ flex:none; width:26px; height:26px; border-radius:8px; background:#eef2f5;
+ color:var(--grau); font-size:12px; font-weight:900;
+ display:flex; align-items:center; justify-content:center;
+}
+.p-zeile-text{flex:1; min-width:0}
+.p-zeile-text b{display:block; font-size:15px; font-weight:700}
+.p-zeile-text span{display:block; font-size:12.5px; color:var(--grau)}
+.p-zeile-pfeil{flex:none; color:var(--linie); font-size:19px; font-weight:800}
+
+/* ---- Fortschritt -------------------------------------------------------- */
+.p-fort{margin:9px 0 0}
+.p-fort-kopf{display:flex; justify-content:space-between; font-size:12.5px;
+ color:var(--grau); margin:0 0 5px}
+.p-fort-kopf b{color:var(--tinte)}
+.p-balken{height:9px; border-radius:999px; background:#e6ecf0; overflow:hidden}
+.p-balken i{display:block; height:100%; border-radius:999px; background:var(--blau)}
+.p-balken.ist-fertig i{background:var(--gruen)}
+
+/* ---- Knoepfe ------------------------------------------------------------ */
+.p-knopf{
+ min-height:48px; padding:12px 18px; border-radius:11px;
+ font-size:15px; font-weight:800; display:inline-flex; align-items:center;
+ justify-content:center; gap:7px;
+}
+.p-knopf-blau {background:var(--blau);  color:#fff}
+.p-knopf-gruen{background:var(--gruen); color:#fff}
+.p-knopf-grau {background:#e7edf1; color:var(--tinte)}
+.p-knopf-voll{width:100%}
+.p-knopf-reihe{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 0}
+.p-knopf-reihe .p-knopf{flex:1 1 auto}
+
+/* ---- Hinweisbalken ------------------------------------------------------ */
+.p-hinweis{
+ border-radius:12px; padding:12px 14px; margin:0 0 10px; font-size:14px;
+ border:1px solid transparent;
+}
+.p-hinweis b{display:block; margin-bottom:2px}
+.p-h-warnung{background:var(--rot-hell);   border-color:#f0c9c5; color:#7d1912}
+.p-h-info   {background:var(--blau-hell);  border-color:#c7e0ef; color:var(--blau-dunkel)}
+
+/* ---- Suche -------------------------------------------------------------- */
+.p-suche{position:relative; margin:0 0 12px}
+.p-suche input{
+ width:100%; min-height:48px; border:1px solid var(--linie); border-radius:12px;
+ padding:10px 14px 10px 40px; font-size:16px; background:#fff; color:var(--tinte);
+}
+.p-suche input:focus{outline:none; border-color:var(--blau); box-shadow:0 0 0 3px #1769aa26}
+.p-suche::before{content:"🔍"; position:absolute; left:13px; top:50%;
+ transform:translateY(-50%); font-size:15px; opacity:.55}
+
+/* ---- Schritte (Massaufnahme-Assistent) ---------------------------------- */
+.p-schritte{display:flex; gap:6px; margin:0 0 14px}
+.p-schritt{
+ flex:1; text-align:center; padding:9px 4px; border-radius:10px;
+ background:#fff; border:1px solid var(--linie); font-size:11.5px;
+ font-weight:800; color:var(--grau); line-height:1.3;
+}
+.p-schritt b{display:block; font-size:13px}
+.p-schritt.ist-auf{background:var(--blau); border-color:var(--blau); color:#fff}
+.p-schritt.ist-fertig{background:var(--gruen-hell); border-color:#bfe0d2; color:var(--gruen)}
+.p-feld{margin:0 0 12px}
+.p-feld label{display:block; font-size:10.5px; font-weight:900; color:var(--grau);
+ text-transform:uppercase; letter-spacing:.05em; margin:0 0 5px}
+.p-feld input,.p-feld select,.p-feld textarea{
+ width:100%; min-height:48px; border:1px solid var(--linie); border-radius:11px;
+ padding:11px 13px; font-size:16px; background:#fff; color:var(--tinte);
+}
+.p-feld textarea{min-height:88px; resize:vertical}
+.p-feld-paar{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+
+/* ---- Untere Navigationsleiste (Handy/Tablet) ---------------------------- */
+.p-leiste{
+ position:fixed; left:0; right:0; bottom:0; z-index:50;
+ height:calc(var(--leiste-hoehe) + env(safe-area-inset-bottom,0px));
+ padding-bottom:env(safe-area-inset-bottom,0px);
+ display:flex; background:#fff; border-top:1px solid var(--linie);
+ box-shadow:0 -2px 14px #17242d14;
+}
+.p-leiste button{
+ flex:1; background:transparent; display:flex; flex-direction:column;
+ align-items:center; justify-content:center; gap:2px;
+ font-size:10.5px; font-weight:800; color:var(--grau); padding:6px 2px;
+}
+.p-leiste button i{font-style:normal; display:flex; line-height:0}
+.p-leiste button.ist-auf{color:var(--blau)}
+.p-leiste button .p-punkt{
+ position:absolute; transform:translate(13px,-11px);
+ min-width:17px; height:17px; border-radius:999px; background:var(--rot);
+ color:#fff; font-size:10px; font-weight:900; line-height:17px; padding:0 4px;
+}
+
+/* ---- Tablet ------------------------------------------------------------- */
+@media(min-width:700px){
+ .p-inhalt{padding:20px 22px 30px}
+ .p-zahlen{grid-template-columns:repeat(4,1fr)}
+ .p-karte{padding:16px}
+ .p-liste-zwei{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+ .p-liste-zwei .p-zeile,.p-liste-zwei .p-karte{margin:0}
+}
+
+/* ---- Desktop: Seitenleiste statt unterer Leiste -------------------------- */
+@media(min-width:1000px){
+ body{padding-bottom:0; padding-left:226px}
+ .p-leiste{
+  top:0; bottom:0; right:auto; width:226px; height:100vh; padding:0;
+  flex-direction:column; border-top:0; border-right:1px solid var(--linie);
+  box-shadow:none;
+ }
+ .p-leiste::before{
+  content:"SPENGLER-DIGITAL 2.0"; display:block; padding:20px 18px 14px;
+  font-size:11px; font-weight:900; letter-spacing:.11em; color:var(--blau);
+ }
+ .p-leiste button{
+  flex:none; flex-direction:row; justify-content:flex-start; gap:12px;
+  padding:13px 18px; font-size:14.5px; border-radius:0;
+ }
+ .p-leiste button.ist-auf{background:var(--blau-hell)}
+ .p-leiste button i svg{width:21px;height:21px}
+ .p-leiste button .p-punkt{position:static; transform:none; margin-left:auto}
+ .p-kopf{padding-left:22px}
+ .p-inhalt{padding:24px 26px 40px}
+ .p-liste-zwei{grid-template-columns:1fr 1fr 1fr}
+}
+
+/* ---- Prototyp-Fahne ----------------------------------------------------- */
+/* Damit in keinem Bildschirmfoto Zweifel bleibt, was man vor sich hat. */
+.p-fahne{
+ background:#3b2f00; color:#ffd666; font-size:11.5px; font-weight:800;
+ text-align:center; padding:5px 12px; letter-spacing:.03em;
+}

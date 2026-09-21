@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1769aa">
+<title>Spengler-DIGITAL 2.0 · Prototyp</title>
+<!--
+  ===========================================================================
+  PROTOTYP - vollstaendig getrennt von der laufenden App.
+  ===========================================================================
+  Diese Datei laedt AUSSCHLIESSLICH Dateien aus diesem Ordner. Sie benutzt
+  weder css/01-basis.css noch js/01-basis.js der bestehenden App, und sie
+  stellt keine Verbindung zu Supabase her.
+
+  Ausdruecklich KEIN Service Worker: der bestehende (../sw.js) ist fuer die
+  ganze Adresse zustaendig und holt immer zuerst aus dem Netz - der Prototyp
+  laeuft damit ohne Weiteres. Ein zweiter, eigener waere ein Konflikt.
+  ===========================================================================
+-->
+<link rel="stylesheet" href="css/prototype.css">
+</head>
+<body>
+
+<div class="p-fahne">PROTOTYP · Beispieldaten · speichert nichts</div>
+<header class="p-kopf" id="pKopf"></header>
+<main class="p-inhalt" id="pInhalt"></main>
+<nav class="p-leiste" id="pLeiste" aria-label="Hauptnavigation"></nav>
+
+<!-- Reihenfolge: erst die Daten, dann die Seiten, zuletzt der Rahmen.
+     app.js zeichnet beim Laden - es muss alles Uebrige kennen. -->
+<script src="js/daten.js"></script>
+<script src="js/heute.js"></script>
+<script src="js/projekte.js"></script>
+<script src="js/projekt.js"></script>
+<script src="js/werkstatt.js"></script>
+<script src="js/lager.js"></script>
+<script src="js/mehr.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
