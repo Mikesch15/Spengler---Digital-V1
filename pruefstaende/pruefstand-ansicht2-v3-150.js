@@ -299,7 +299,12 @@ const anmelden=page=>page.evaluate(()=>{
 
  // Jede Stilregel muss am Schalter oder an einer a2-Klasse haengen. Sonst
  // wuerde die Datei die klassische Ansicht veraendern, obwohl sie aus ist.
- const cssQ=fs.readFileSync("css/05-ansicht2.css","utf8").replace(/\/\*[\s\S]*?\*\//g,"");
+ // Die @media-Kopfzeilen werden VOR dem Zerlegen entfernt. Sonst faende
+ // indexOf("{") im ersten Stueck eines @media-Blocks dessen Klammer, der
+ // Waehler hiesse "@media screen" - und die erste Regel darin bliebe
+ // ungeprueft. Seit v3.154 steht ein ganzer Block in @media screen.
+ const cssQ=fs.readFileSync("css/05-ansicht2.css","utf8")
+  .replace(/\/\*[\s\S]*?\*\//g,"").replace(/@media[^{]*\{/g,"");
  const lose=[];
  cssQ.split("}").forEach(bl=>{
   const i=bl.indexOf("{"); if(i<0)return;
