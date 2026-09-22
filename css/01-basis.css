@@ -1370,3 +1370,19 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .rest-verwendet-zeile{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;
  padding:5px 0;border-top:1px solid var(--line);min-width:0}
 .rest-verwendet-zeile b{word-break:break-word}
+/* v3.153 Werkstatt, Sicht "Nach Material". Die Tabelle ist eine Ruestliste:
+   grosse Zahlen, wenig Zierde - sie wird an der Maschine gelesen, oft mit
+   Handschuhen und schlechtem Licht. */
+.werk-sicht{margin-top:-4px}
+.werk-mat-liste{margin:10px 0 4px}
+.werk-mat-zeile{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+/* Die Anzahl steht vorne und gross: sie ist die Zahl, nach der an der
+   Maschine gegriffen wird. Feste Breite, damit die Laengen untereinander
+   auf einer Kante stehen. */
+.werk-mat-anzahl{flex:0 0 auto;min-width:44px;font-size:18px;font-weight:900;
+ color:var(--blue);font-variant-numeric:tabular-nums}
+.werk-mat-mass{flex:1;min-width:0}
+.werk-mat-mass b{display:block;font-size:16px;font-variant-numeric:tabular-nums}
+.werk-mat-mass span{display:block;font-size:12px;color:var(--muted)}
+.werk-mat-quellen{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.werk-mat-quellen button{font-size:12.5px;padding:7px 11px}

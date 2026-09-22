@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.152.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.153.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -192,9 +192,22 @@ Die Serie wird im gerade geöffneten Projekt angelegt; deshalb steht der
 Knopf im Projekt und nicht in der allgemeinen Übersicht.
 `},
 "werkstatt":{titel:"Werkstatt und Rüsten",text:`
-Hier steht, was freigegeben und zum Rüsten oder Montieren eingeteilt ist –
-nach Projekt gruppiert, nicht nach Person. Es ist dieselbe Arbeitsliste wie
-auf der Startseite, nur aus Sicht der Werkstatt.
+Hier steht, was freigegeben und zum Rüsten oder Montieren eingeteilt ist.
+Es ist dieselbe Arbeitsliste wie auf der Startseite, nur aus Sicht der
+Werkstatt.
+<p><b>Zwei Blicke auf dasselbe (seit v3.153).</b> <b>Nach Projekt</b>
+beantwortet „was gehört zusammen“ – mit dem roten Faden, den Stationen und
+dem Abhaken. <b>Nach Material</b> beantwortet „was kommt von derselben
+Rolle“: alle Zuschnitte einer Materialstärke zusammengezählt, quer über
+Projekte hinweg. Das ist die Reihenfolge, in der tatsächlich gerichtet wird –
+einmal zur Rolle, alles davon schneiden, weglegen.</p>
+<p>Die Materialsicht ist eine <b>Rüstliste</b>, kein zweiter Arbeitsplatz:
+abgehakt wird weiterhin an der Massaufnahme, denn dort stehen die
+Stücknummern. Ein Tipp auf eine der Massaufnahmen führt hin. Der Filter
+oben (Alle / Zu rüsten / Zu montieren / Nur meine) wirkt auf beide Sichten.</p>
+<p>Getrennt wird nach Material <em>und</em> Stärke: 0,7er und 0,8er Titanzink
+kommen von verschiedenen Rollen. Steht bei einer Massaufnahme kein Material,
+erscheint sie in dieser Sicht unter „Ohne Material“.</p>
 
 Ganz oben steht, was insgesamt ansteht. Jedes Projekt trägt darunter seinen
 <b>nächsten Schritt</b> und eine Leiste mit den vier Stationen – Reserviert,

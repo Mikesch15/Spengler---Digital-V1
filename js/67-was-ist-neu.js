@@ -148,7 +148,10 @@ const WIN_CHANGELOG={
   "Das Firmenlogo steht wieder auf der Startseite, und die Einstellungen sehen jetzt aus wie die neue Ansicht."],
  "3.152":["Das Massaufnahme-Formular sieht jetzt ebenfalls aus wie die neue Ansicht: grössere Eingabefelder, die sich mit Handschuhen treffen lassen, und eine Schriftgrösse, bei der das Handy beim Hineintippen nicht mehr ins Feld hineinzoomt.",
   "Die Stück- und Zuschnittlisten bleiben absichtlich schmal – dort stehen mehrere Felder in einer Zeile, und grössere Felder würden die Liste unlesbar machen.",
-  "An den Massen, der Abwicklung und dem Zuschnitt wurde nichts geändert."]
+  "An den Massen, der Abwicklung und dem Zuschnitt wurde nichts geändert."],
+ "3.153":["Neu in der Werkstatt: der Umschalter „Nach Projekt / Nach Material“. Nach Material zählt alle Zuschnitte einer Materialstärke zusammen – quer über Projekte hinweg. Das ist die Reihenfolge, in der tatsächlich gerichtet wird: einmal zur Rolle, alles davon schneiden, weglegen.",
+  "Getrennt wird nach Material UND Stärke – 0,7er und 0,8er Titanzink kommen von verschiedenen Rollen.",
+  "Die Materialsicht ist eine Rüstliste; abgehakt wird weiterhin an der Massaufnahme, wo die Stücknummern stehen. Ein Tipp führt hin."]
 };
 
 function winVersionVergleich(a,b){

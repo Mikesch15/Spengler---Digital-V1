@@ -64,6 +64,22 @@ const werkOffenKarte=new Set();
 let werkLauf=0;
 let werkFehler=null;
 
+// v3.153: Zwei Blicke auf dasselbe. "Projekt" beantwortet "was gehoert
+// zusammen", "Material" beantwortet "was kommt von derselben Rolle" - und
+// genau das ist die Reihenfolge, in der tatsaechlich gerichtet wird: einmal
+// zur Rolle, alles davon schneiden, weglegen.
+// Die Wahl gilt je Geraet, wie der Filter darueber.
+const WERK_SICHT_KEY="sd_werkstattSicht";
+let werkSicht=(function(){
+ try{ return localStorage.getItem(WERK_SICHT_KEY)==="material"?"material":"projekt" }
+ catch(e){ return "projekt" }
+})();
+function werkSichtSetzen(v){
+ werkSicht=(v==="material")?"material":"projekt";
+ try{ localStorage.setItem(WERK_SICHT_KEY,werkSicht) }catch(e){}
+ renderWerkstatt();
+}
+
 function werkAktiv(){return typeof pmAktiv==="function"&&pmAktiv("werkstatt")}
 function werkIch(){return currentProfile?currentProfile.id:null}
 
@@ -80,8 +96,14 @@ async function werkLaden(){
   // die zu diesem Umbau gefuehrt hat. Gemessen an echten Daten: die groesste
   // offene Massaufnahme (41 Stuecke) hat rund 10 kB data. Die Abfrage ist auf
   // WERK_LIMIT=300 Zeilen begrenzt, zeigt also nur Freigegebenes/Eingeteiltes.
+  // v3.153: staerke_mm MUSS mit. Ohne sie liessen sich zwei Staerken
+  // desselben Materials nicht auseinanderhalten - die Materialsicht wuerde
+  // 0,7er und 0,8er Titanzink in einen Topf werfen und behaupten, beides
+  // komme von derselben Rolle. Eine Zahlenspalte mehr, kein spuerbarer
+  // Unterschied fuer die Abfrage.
   .select("id,project_id,type,title,date,workflow_status,freigabe_verfallen,"
-        +"ruester_id,monteur_id,geruestet_am,montiert_am,updated_at,created_by,data")
+        +"ruester_id,monteur_id,geruestet_am,montiert_am,updated_at,created_by,"
+        +"staerke_mm,data")
   .in("workflow_status",WERK_STATUS)
   .order("updated_at",{ascending:false})
   .limit(WERK_LIMIT);
@@ -140,6 +162,100 @@ function werkGruppen(){
     zuRuesten:g.aufnahmen.filter(a=>a.workflow_status==="zu_ruesten").length,
     zuMontieren:g.aufnahmen.filter(a=>a.workflow_status==="zu_montieren").length};
  }).sort((a,b)=>a.titel.localeCompare(b.titel,"de"));
+}
+
+// ---- Die Materialsicht (v3.153) -------------------------------------------
+// Gruppiert wird nach MATERIAL UND STAERKE. Beides zusammen, nicht nur der
+// Name: 0,7er und 0,8er Titanzink kommen von verschiedenen Rollen, und eine
+// Liste, die das zusammenwirft, schickt den Ruester mit der falschen Rolle
+// an die Maschine.
+//
+// Die Zusammenfassung selbst rechnet NICHT diese Datei. Sie kommt aus
+// pmatSammeln() (js/48) - derselben Funktion, die die projektweite
+// Materialuebersicht fuellt. Deshalb steht hier dieselbe Anzahl und dasselbe
+// Mass wie dort; eine zweite Zaehlung waere eine zweite Wahrheit.
+// pmatSammeln gruppiert nach Materialnamen, nicht nach Staerke - die
+// Staerke wird deshalb VORHER aufgetrennt und die Funktion je Teilmenge
+// gerufen. So bleibt sie unveraendert.
+function werkStaerkeText(v){
+ if(v===null||v===undefined||v==="")return "";
+ return (typeof measStaerkeText==="function")?measStaerkeText(v):(String(v)+" mm");
+}
+function werkMaterialGruppen(){
+ if(typeof pmatSammeln!=="function")return [];
+ const nach=new Map();
+ werkZeilen.filter(werkPasst).forEach(z=>{
+  const st=(z.staerke_mm===null||z.staerke_mm===undefined)?"":String(z.staerke_mm);
+  const mat=(z.data&&z.data.material!==undefined)?String(z.data.material):"";
+  const k=mat+"|"+st;
+  if(!nach.has(k))nach.set(k,{staerke:z.staerke_mm,zeilen:[]});
+  nach.get(k).zeilen.push(z);
+ });
+ const raus=[];
+ nach.forEach(eintrag=>{
+  // Je Teilmenge genau EIN Materialname, pmatSammeln liefert also eine Gruppe.
+  pmatSammeln(eintrag.zeilen).forEach(g=>{
+   const stueck=g.zuschnitte.reduce((n,t)=>n+t.anzahl,0);
+   if(!stueck&&!g.aufnahmen.length)return;
+   const stTxt=werkStaerkeText(eintrag.staerke);
+   raus.push({
+    material:g.material, staerke:eintrag.staerke, staerkeText:stTxt,
+    titel:g.material+(stTxt?" · "+stTxt:""),
+    aufnahmen:g.aufnahmen,
+    zuschnitte:g.zuschnitte,
+    stueck,
+    // Wie viele Projekte beruehrt dieses Material? Das sagt dem Ruester,
+    // ob er mit einer Rolle mehrere Baustellen bedient.
+    projekte:[...new Set(g.aufnahmen.map(m=>m.project_id).filter(x=>x))]
+   });
+  });
+ });
+ // Das meiste zuerst: bei der Rolle, von der am meisten kommt, faengt man an.
+ return raus.sort((a,b)=>(b.stueck-a.stueck)||a.titel.localeCompare(b.titel,"de"));
+}
+
+// Eine Materialkarte. Sie ist eine RUESTLISTE, kein zweiter Arbeitsplatz:
+// abgehakt wird weiterhin an der Massaufnahme, wo die Stuecknummern stehen.
+// Der Weg dorthin ist ein Tipp, und das steht auch da - eine Liste mit
+// Haken, die nichts speichern, waere schlimmer als keine.
+function werkMaterialKarteHtml(g){
+ const projTxt=g.projekte.map(id=>{
+  const p=(typeof allProjects!=="undefined")?allProjects.find(x=>x.id===id):null;
+  return p?((typeof projektTitel==="function")?projektTitel(p):(p.name||"Projekt")):null;
+ }).filter(Boolean);
+ // Keine Tabelle: vier Spalten passen auf einem Handy nicht nebeneinander,
+ // und ausgerechnet die ANZAHL stand dann rechts ausserhalb des Bildes -
+ // die eine Zahl, die der Ruester an der Maschine braucht. Sie steht jetzt
+ // vorne, gross, und die Zeile bricht nicht.
+ const zuschnitte=g.zuschnitte.length
+  ? `<div class="werk-mat-liste">`
+    +g.zuschnitte.map(t=>`<div class="werk-mat-zeile">
+       <span class="werk-mat-anzahl">${t.anzahl}×</span>
+       <span class="werk-mat-mass"><b>${esc(String(t.laenge))} mm</b>
+        <span>${esc([t.breite?t.breite+" mm breit":"",t.merkmal||""].filter(Boolean).join(" · ")||"—")}</span>
+       </span></div>`).join("")
+    +`</div>`
+  : `<div class="small" style="color:var(--muted)">Zu diesem Material liegt
+     noch keine Zuschnittliste vor. Sie entsteht, sobald die Masse der
+     Massaufnahme vollständig sind.</div>`;
+ return `<div class="card werk-projekt">
+  <div class="werk-kopf">
+   <div class="werk-kopf-titel"><b>${esc(g.titel)}</b>
+    <div class="small" style="color:var(--muted)">${esc(
+      [g.stueck?g.stueck+(g.stueck===1?" Stück":" Stücke"):"",
+       g.aufnahmen.length+(g.aufnahmen.length===1?" Massaufnahme":" Massaufnahmen"),
+       projTxt.length>1?projTxt.length+" Projekte":(projTxt[0]||"")
+      ].filter(Boolean).join(" · "))}</div>
+   </div>
+  </div>
+  ${zuschnitte}
+  <div class="werk-mat-quellen">${g.aufnahmen.map(m=>
+    `<button type="button" class="gray" data-werk-meas="${esc(m.id)}">${
+      esc((typeof pmatQuelleText==="function")?pmatQuelleText(m):(m.title||"Massaufnahme"))}</button>`).join("")}</div>
+  <div class="small" style="color:var(--muted);margin-top:8px">Abgehakt wird in
+   der Massaufnahme – dort stehen die Stücknummern. Ein Tipp auf eine der
+   Massaufnahmen oben führt hin.</div>
+ </div>`;
 }
 
 // ---- Der rote Faden -------------------------------------------------------
@@ -574,8 +690,30 @@ function renderWerkstatt(){
  // v3.21: aus werkJetztText(), damit das Nachfuehren nach einem Haken
  // dieselbe Zeile schreibt wie das Zeichnen.
  const schritte=gruppen.map(g=>({g,n:werkNaechster(g)}));
+ // v3.153: Zwei Blicke auf dieselben Zeilen. Der Filter darueber wirkt auf
+ // beide - er entscheidet, WAS angezeigt wird, die Sicht nur, WIE es
+ // gruppiert ist.
+ const sichten=[["projekt","Nach Projekt"],["material","Nach Material"]]
+  .map(([k,t])=>`<button type="button" class="status-chip${werkSicht===k?" aktiv":""}" data-werk-sicht="${k}">${esc(t)}</button>`).join("");
  let h=`<div class="werk-jetzt" data-werk-jetzt="1">${werkJetztText()}</div>`
-  +`<div class="status-filter">${chips}</div>`;
+  +`<div class="status-filter">${chips}</div>`
+  +`<div class="status-filter werk-sicht">${sichten}</div>`;
+
+ // Die Materialsicht ist eine Ruestliste und hat deshalb weder den roten
+ // Faden noch die Stationen - beide gehoeren zum Projekt, nicht zur Rolle.
+ if(werkSicht==="material"){
+  const matGruppen=werkMaterialGruppen();
+  if(!matGruppen.length){
+   h+=`<div class="small" style="color:var(--muted)">Zu den angezeigten
+    Massaufnahmen ist kein Material hinterlegt. Es steht in der Massaufnahme
+    unter „Material“ und „Materialstärke“.</div>`;
+   box.innerHTML=h; return 0;
+  }
+  h+=matGruppen.map(werkMaterialKarteHtml).join("");
+  box.innerHTML=h;
+  return werkZeilen.filter(werkPasst).length;
+ }
+
  if(!gruppen.length){
   h+=`<div class="small" style="color:var(--muted)">${werkFilter==="alle"
     ?"In der Werkstatt liegt gerade nichts an. Hier erscheint, was freigegeben und zum Rüsten oder Montieren eingeteilt ist."
@@ -745,6 +883,21 @@ document.addEventListener("click",async e=>{
   return;
  }
 
+ const sicht=e.target.closest("[data-werk-sicht]");
+ if(sicht){werkSichtSetzen(sicht.getAttribute("data-werk-sicht"));return}
+ // Aus der Materialsicht heraus eine Massaufnahme oeffnen - derselbe Weg,
+ // den auch die Projektsicht nimmt (werkAufnahmeOeffnen weiter unten).
+ const wmeas=e.target.closest("[data-werk-meas]");
+ if(wmeas){
+  const id=Number(wmeas.getAttribute("data-werk-meas"));
+  const zeile=werkZeilen.find(z=>z.id===id);
+  if(zeile&&typeof openMeasurement==="function"){
+   measEditReturnTo="werkstatt";
+   $("werkstattModal").hidden=true;
+   openMeasurement(zeile);
+  }
+  return;
+ }
  const pro=e.target.closest("[data-werk-projekt]");
  if(pro){
   const id=Number(pro.dataset.werkProjekt);
