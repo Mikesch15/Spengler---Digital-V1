@@ -156,11 +156,18 @@ const liste=[];
   if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
  });
 
- // Seit v3.151 ist die neue Ansicht die Vorgabe. Der Bildersatz zeigt aber
- // ueberwiegend die klassische - sie wird deshalb hier ausdruecklich
- // eingeschaltet. Ohne das waere jedes Bild eines Elements der klassischen
- // Startseite (02-start, 32-aufgaben, 34-aufgaben-zu) nur ein leerer
- // Streifen, weil diese Elemente dann display:none tragen.
+ // WELCHE ANSICHT AUF DEN BILDERN ZU SEHEN IST (seit v3.155)
+ // Die neue Ansicht ist seit v3.151 die Vorgabe - der Bildersatz zeigt
+ // deshalb sie. Bis v3.154 war es umgekehrt: die Bilder zeigten die
+ // klassische, obwohl niemand mehr mit ihr startet.
+ //
+ // Drei Bilder bleiben ausdruecklich klassisch, und zwar nicht aus
+ // Bequemlichkeit: 02-start, 32-aufgaben und 34-aufgaben-zu zeigen
+ // Elemente, die es NUR auf der klassischen Startseite gibt. In der neuen
+ // Ansicht tragen sie display:none - der Schuss waere ein leerer Streifen.
+ // Genau das ist in v3.151 passiert und wurde erst am fertigen PDF
+ // bemerkt. Sie werden deshalb einzeln umgeschaltet und danach sofort
+ // wieder zurueck.
  await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
  await schuss("02-start","#startScreen");
 
@@ -171,8 +178,15 @@ const liste=[];
  await schuss("44-ansicht2-heute",null,{breite:420,warte:500});
  await page.evaluate(()=>{a2Zustand.seite="projekte";a2Zeichnen()});
  await schuss("45-ansicht2-projekte",null,{breite:420,warte:400});
- // Zurueck in die klassische Ansicht: alle weiteren Bilder zeigen sie.
- await page.evaluate(()=>{a2Setzen(false);a2Zustand.seite="heute"});
+
+ // v3.155: die Projektseite mit ihren sechs Registern. Abschnitt 3.2 der
+ // Anleitung beschreibt sie in einer Tabelle, zeigte sie aber nie.
+ // Geoeffnet wird sie ueber den ECHTEN Weg - ein Klick auf die Projektzeile,
+ // derselbe Weg wie am Geraet - statt a2Zustand von Hand zu setzen.
+ await page.evaluate(()=>{const z=document.querySelector("[data-a2-projekt]");if(z)z.click()});
+ await page.waitForTimeout(1200);
+ await schuss("46-ansicht2-projektseite",null,{breite:420,warte:500});
+ await page.evaluate(()=>{a2Zustand.seite="heute";a2Zustand.projektId=null;a2Zeichnen()});
  await page.setViewportSize({width:1100,height:900});
 
 
@@ -469,10 +483,15 @@ const liste=[];
   if(typeof aufgabenNeuLaden==="function")return aufgabenNeuLaden();
  });
  // v3.07: Die Karte ist zugeklappt - fuer das Bild einmal so und einmal offen.
+ // Die Aufgabenkarte gibt es nur auf der KLASSISCHEN Startseite (in der
+ // neuen Ansicht ist sie die ganze Seite "Heute", siehe 44). Fuer diese
+ // beiden Bilder wird deshalb umgeschaltet - und gleich danach zurueck.
+ await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
  await page.evaluate(()=>{if(typeof aufgabenOffen!=="undefined"){aufgabenOffen=false;renderAufgaben()}});
  await schuss("34-aufgaben-zu","#aufgabenKarte",{warte:500,breite:760});
  await page.evaluate(()=>{if(typeof aufgabenOffen!=="undefined"){aufgabenOffen=true;renderAufgaben()}});
  await schuss("32-aufgaben","#aufgabenKarte",{warte:700,breite:760});
+ await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(true)});
 
  // ---------- Verfallene Freigabe (v3.06) ----------
  await page.evaluate(()=>{
