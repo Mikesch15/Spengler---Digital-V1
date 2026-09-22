@@ -190,7 +190,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.155</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.156</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -384,7 +384,7 @@
 <!-- Schnellzugriff (v2.41): die zuletzt bearbeiteten aktiven Projekte.
      Datenquelle sind die echten Bearbeitungszeitpunkte der Projektdaten
      selbst - siehe js/09-projekte.js, renderRecentProjects(). -->
-<div class="card">
+<div class="card" id="recentProjectsCard">
 <h2>🕘 Zuletzt bearbeitet <button type="button" class="hilfe-knopf no-print" data-hilfe="zuletzt">i</button></h2>
 <div id="recentProjectsList"></div>
 </div>
@@ -406,8 +406,8 @@
 <!-- Lokale Projektsuche (v2.47): durchsucht Adresse, Projektname,
      Auftrags-Nr. und Auftraggeber der gerade gezeigten Ansicht.
      Rein clientseitig, keine zusaetzliche Abfrage. -->
-<div style="margin-bottom:8px"><label>Projekt suchen</label><input id="projectSearchInput" placeholder="Adresse, Projektname, Auftrags-Nr. oder Auftraggeber"></div>
-<div class="bar"><button type="button" id="toggleArchivedProjects" class="gray">🗄 Archivierte Projekte anzeigen</button></div>
+<div id="projectSuchBox" style="margin-bottom:8px"><label>Projekt suchen</label><input id="projectSearchInput" placeholder="Adresse, Projektname, Auftrags-Nr. oder Auftraggeber"></div>
+<div class="bar" id="projectArchivBar"><button type="button" id="toggleArchivedProjects" class="gray">🗄 Archivierte Projekte anzeigen</button></div>
 <!-- Statusfilter (v2.46): erscheint nur, wenn in der aktuellen Ansicht
      mehr als ein Status vorkommt oder ein Filter aktiv ist - siehe
      renderProjectStatusFilter() in js/09-projekte.js. -->
@@ -2119,7 +2119,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.155.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 91 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.156.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 91 Seiten)</a></div>
 </div>
 </div>
 
@@ -2799,7 +2799,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.155.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.156.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

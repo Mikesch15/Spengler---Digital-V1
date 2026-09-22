@@ -335,9 +335,9 @@ html.a2-an #settingsModal .settings-tabs{
  border-bottom:0;gap:6px;margin:10px 0 16px;
 }
 html.a2-an #settingsModal .settings-tab{
- min-height:40px;padding:8px 14px;border-radius:999px;
+ border-radius:999px;
  background:var(--card-bg);border:1px solid var(--line);color:var(--muted);
- font-size:14px;font-weight:800;box-shadow:none;
+ font-weight:800;box-shadow:none;
 }
 html.a2-an #settingsModal .settings-tab.active{
  background:var(--blue);border-color:var(--blue);color:#fff;
@@ -389,42 +389,24 @@ html.a2-an #settingsModal .settings-section-body h2{
 html.a2-an #settingsModal .settings-section-body h2:first-child{margin-top:0}
 
 /* ---- Felder -------------------------------------------------------------- */
-/* 16px Schriftgroesse ist kein Geschmack: darunter zoomt iOS beim
-   Hineintippen in ein Feld automatisch hinein. */
+/* GROESSE: unveraendert wie in der klassischen Ansicht (siehe v3.156 unten).
+   Geaendert wird nur, was das Aussehen betrifft - Rundung, Flaeche, Rand. */
 html.a2-an #settingsModal input,
 html.a2-an #settingsModal select,
 html.a2-an #settingsModal textarea{
- min-height:48px;border-radius:11px;padding:11px 13px;font-size:16px;
+ border-radius:9px;
  background:var(--input-bg);border-color:var(--line);
 }
-html.a2-an #settingsModal textarea{min-height:88px}
 html.a2-an #settingsModal input:focus,
 html.a2-an #settingsModal select:focus,
 html.a2-an #settingsModal textarea:focus{
  outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26;
 }
-html.a2-an #settingsModal input[type="checkbox"],
-html.a2-an #settingsModal input[type="radio"]{
- min-height:0;width:auto;padding:0;
-}
-html.a2-an #settingsModal label{
- font-size:10.5px;letter-spacing:.05em;margin-bottom:5px;
-}
 
 /* ---- Knoepfe ------------------------------------------------------------- */
 html.a2-an #settingsModal .bar > button,
 html.a2-an #settingsModal .bar > .hilfe-pdf{
- min-height:48px;border-radius:11px;padding:12px 18px;font-size:15px;
- display:inline-flex;align-items:center;justify-content:center;gap:7px;
-}
-/* Der kleine runde Info-Knopf ist kein Bedienknopf, sondern ein Zeichen -
-   er behaelt seine Groesse. Ebenso die Knoepfe in dichten Katalogzeilen:
-   dort stehen mehrere nebeneinander in einer Tabellenzeile. */
-html.a2-an #settingsModal .hilfe-knopf,
-html.a2-an #settingsModal table button,
-html.a2-an #settingsModal .settingrow button,
-html.a2-an #settingsModal .settingrow-mat button{
- min-height:0;border-radius:9px;padding:6px 10px;font-size:13px;
+ border-radius:9px;
 }
 
 /* ==========================================================================
@@ -449,7 +431,7 @@ html.a2-an #settingsModal .settingrow-mat button{
 /* ---- Registerleiste ------------------------------------------------------ */
 /* Sie ist schon nah dran; angeglichen werden nur Rundung und Hoehe. */
 html.a2-an #measurementEditModal .ra-register-knopf{
- border-radius:999px;min-height:44px;font-size:14px;
+ border-radius:999px;
  background:var(--card-bg);border-color:var(--line);
 }
 html.a2-an #measurementEditModal .ra-register-knopf.aktiv{
@@ -480,56 +462,18 @@ html.a2-an #measurementEditModal h2{
 html.a2-an #measurementEditModal input:not([type="checkbox"]):not([type="radio"]),
 html.a2-an #measurementEditModal select,
 html.a2-an #measurementEditModal textarea{
- min-height:48px;border-radius:11px;padding:11px 13px;font-size:16px;
+ border-radius:9px;
  background:var(--input-bg);border-color:var(--line);
 }
-html.a2-an #measurementEditModal textarea{min-height:88px}
 html.a2-an #measurementEditModal input:focus,
 html.a2-an #measurementEditModal select:focus,
 html.a2-an #measurementEditModal textarea:focus{
  outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26;
 }
-html.a2-an #measurementEditModal label{font-size:10.5px;letter-spacing:.05em;margin-bottom:5px}
-
-/* Die dichten Stellen zurueck auf ihr Mass.
-   Die beiden :not() sind nicht Zierde, sondern noetig: spaeter im Stylesheet
-   zu stehen genuegt nicht, wenn die allgemeine Regel SPEZIFISCHER ist. Sie
-   traegt zwei Attributwaehler in den :not(), diese hier muessen sie also
-   ebenfalls tragen - sonst gewinnt die allgemeine, und die Stueckliste
-   platzt. Genau das ist beim ersten Versuch passiert und wurde von der
-   Messung im Pruefstand gemeldet. */
-html.a2-an #measurementEditModal table input:not([type="checkbox"]):not([type="radio"]),
-html.a2-an #measurementEditModal table select:not([hidden]):not([disabled]),
-html.a2-an #measurementEditModal table textarea:not([hidden]):not([disabled]),
-html.a2-an #measurementEditModal .ra-schalter input:not([type="text"]):not([type="number"]){
- min-height:40px;border-radius:9px;padding:8px;font-size:14px;
-}
 
 /* ---- Knoepfe ------------------------------------------------------------- */
 html.a2-an #measurementEditModal .bar > button{
- min-height:48px;border-radius:11px;padding:12px 18px;font-size:15px;
-}
-/* Kleine Knoepfe bleiben klein: der runde Info-Knopf ist ein Zeichen, die
-   Knoepfe in Tabellen und Zeilenkoepfen stehen zu mehreren nebeneinander,
-   und .ra-weg ist das kleine Wegnehmen-Kreuz einer Zeile. */
-html.a2-an #measurementEditModal .hilfe-knopf,
-html.a2-an #measurementEditModal table button,
-html.a2-an #measurementEditModal .ra-zeile-kopf button,
-html.a2-an #measurementEditModal .ra-weg{
- min-height:0;border-radius:9px;padding:6px 10px;font-size:13px;
-}
-html.a2-an #measurementEditModal .hilfe-knopf{padding:0}
-
-/* Nachtrag zu v3.152, in v3.154 gemessen und behoben:
-   Die label-Regel darueber traf nicht nur Feldbeschriftungen, sondern auch
-   die beiden Knopf-Labels "Foto aufnehmen" / "Aus Galerie waehlen". Die
-   sind Knoepfe, keine Beschriftung - sie schrumpften von 12px auf 10.5px,
-   waehrend jeder andere Knopf im Formular groesser wurde. Sie bekommen
-   hier die Groesse der uebrigen Knoepfe. */
-html.a2-an #measurementEditModal label.cockpit-upload{
- min-height:48px;border-radius:11px;padding:12px 18px;font-size:15px;
- letter-spacing:normal;margin-bottom:0;
- display:inline-flex;align-items:center;justify-content:center;gap:7px;
+ border-radius:9px;
 }
 
 /* ==========================================================================
@@ -599,14 +543,9 @@ html.a2-an #angebotEditModal textarea,
 html.a2-an #leistungEditModal input:not([type="checkbox"]):not([type="radio"]),
 html.a2-an #leistungEditModal select,
 html.a2-an #leistungEditModal textarea{
- min-height:48px;border-radius:11px;padding:11px 13px;font-size:16px;
+ border-radius:9px;
  background:var(--input-bg);border-color:var(--line);
 }
-html.a2-an #reportScreen textarea,
-html.a2-an #ausmassEditModal textarea,
-html.a2-an #angebotEditModal textarea,
-html.a2-an #leistungEditModal textarea{min-height:88px}
-
 html.a2-an #reportScreen input:focus,
 html.a2-an #reportScreen select:focus,
 html.a2-an #reportScreen textarea:focus,
@@ -622,73 +561,106 @@ html.a2-an #leistungEditModal textarea:focus{
  outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26;
 }
 
-html.a2-an #reportScreen label,
-html.a2-an #ausmassEditModal label,
-html.a2-an #angebotEditModal label,
-html.a2-an #leistungEditModal label{
- font-size:10.5px;letter-spacing:.05em;margin-bottom:5px;
-}
-
-/* ---- Die dichten Stellen zurueck auf ihr Mass ---------------------------- */
-/* Die beiden :not() sind nicht Zierde: die allgemeine Feldregel darueber
-   traegt sie ebenfalls und waere sonst die spezifischere - spaeter im
-   Stylesheet zu stehen genuegt dann nicht. Genau daran ist die Ausnahme
-   in v3.152 beim ersten Versuch gescheitert. */
-html.a2-an #reportScreen table input:not([type="checkbox"]):not([type="radio"]),
-html.a2-an #reportScreen table select:not([hidden]):not([disabled]),
-html.a2-an #reportScreen table textarea:not([hidden]):not([disabled]),
-html.a2-an #ausmassEditModal table input:not([type="checkbox"]):not([type="radio"]),
-html.a2-an #ausmassEditModal table select:not([hidden]):not([disabled]),
-html.a2-an #ausmassEditModal table textarea:not([hidden]):not([disabled]),
-html.a2-an #angebotEditModal table input:not([type="checkbox"]):not([type="radio"]),
-html.a2-an #angebotEditModal table select:not([hidden]):not([disabled]),
-html.a2-an #angebotEditModal table textarea:not([hidden]):not([disabled]),
-html.a2-an #leistungEditModal table input:not([type="checkbox"]):not([type="radio"]),
-html.a2-an #leistungEditModal table select:not([hidden]):not([disabled]),
-html.a2-an #leistungEditModal table textarea:not([hidden]):not([disabled]){
- min-height:40px;border-radius:9px;padding:8px;font-size:14px;
-}
-
 /* ---- Knoepfe ------------------------------------------------------------- */
-/* Mitgemeint sind die Labels mit .cockpit-new: "Foto aufnehmen", "Aus
-   Galerie waehlen" und "PDF hochladen" sind Knoepfe, auch wenn sie als
-   label geschrieben sind, weil sie ein verstecktes Dateifeld tragen.
-   Ohne die Zeile haette sie die label-Regel darueber auf 10.5px gesetzt.
-   Gemeinsames Merkmal aller drei ist .cockpit-upload - .cockpit-new
-   tragen die beiden im Regierapport NICHT, was die Messung gemeldet hat. */
+/* GROESSE: unveraendert wie in der klassischen Ansicht. Geaendert wird nur
+   die Rundung. */
 html.a2-an #reportScreen .bar > button,
-html.a2-an #reportScreen .no-print > button,
-html.a2-an #reportScreen label.cockpit-upload,
 html.a2-an #ausmassEditModal .bar > button,
-html.a2-an #ausmassEditModal .card > button,
-html.a2-an #ausmassEditModal label.cockpit-upload,
 html.a2-an #angebotEditModal .bar > button,
-html.a2-an #angebotEditModal .card > button,
-html.a2-an #angebotEditModal label.cockpit-upload,
-html.a2-an #leistungEditModal .bar > button,
-html.a2-an #leistungEditModal .card > button,
-html.a2-an #leistungEditModal label.cockpit-upload{
- min-height:48px;border-radius:11px;padding:12px 18px;font-size:15px;
- letter-spacing:normal;margin-bottom:0;
- display:inline-flex;align-items:center;justify-content:center;gap:7px;
+html.a2-an #leistungEditModal .bar > button{
+ border-radius:9px;
 }
 
-/* Kleine Knoepfe bleiben klein: der runde Info-Knopf ist ein Zeichen, und
-   die Knoepfe in den Positions- und Materialzeilen stehen zu mehreren
-   nebeneinander in einer Tabellenzelle. */
-html.a2-an #reportScreen .hilfe-knopf,
-html.a2-an #reportScreen table button,
-html.a2-an #ausmassEditModal .hilfe-knopf,
-html.a2-an #ausmassEditModal table button,
-html.a2-an #angebotEditModal .hilfe-knopf,
-html.a2-an #angebotEditModal table button,
-html.a2-an #leistungEditModal .hilfe-knopf,
-html.a2-an #leistungEditModal table button{
- min-height:0;border-radius:9px;padding:6px 10px;font-size:13px;
 }
-html.a2-an #reportScreen .hilfe-knopf,
-html.a2-an #ausmassEditModal .hilfe-knopf,
-html.a2-an #angebotEditModal .hilfe-knopf,
-html.a2-an #leistungEditModal .hilfe-knopf{padding:0}
 
+/* ==========================================================================
+   BEREICHE IM RAHMEN  (v3.156)
+   --------------------------------------------------------------------------
+   Ein .modal ist position:fixed mit inset:0 und z-index 500 - es legt sich
+   damit ueber die Kopfzeile (40) und ueber die untere Leiste (50). Bis
+   v3.155 verschwand die Leiste deshalb, sobald man auf Werkstatt oder Lager
+   tippte, und der Anwender stand ohne den Weg da, ueber den er gekommen war.
+
+   Hier bekommen die BEREICHE - die Arbeitsplaetze der App, nicht ihre
+   Formulare - einen anderen Rahmen: sie beginnen unter dem Kopf und enden
+   ueber der Leiste. Am Inhalt aendert sich nichts, er wird nicht kopiert
+   und nicht nachgebaut; es sind dieselben Schirme wie in der klassischen
+   Ansicht.
+
+   z-index 30 ist bewusst KLEINER als der des Kopfes (40) und der Leiste
+   (50) und zugleich groesser als alles im Inhalt. Damit liegt der Bereich
+   ueber der Seite, aber unter der Navigation - genau das war der Fehler.
+
+   NICHT hier: die Erfassungsformulare (Massaufnahme, Ausmass, Offerte,
+   Leistung) und die kleinen Dialoge (Typwahl, Winkel, Rest verwenden,
+   Buchen ...). Wer ein Mass eintraegt, ist IN einer Aufgabe - dort ist
+   Vollbild richtig. Die Dialoge muessen ueber allem liegen, auch ueber
+   einem offenen Bereich; sie behalten ihre 500.
+   ========================================================================== */
+html.a2-an #werkstattModal:not([hidden]),
+html.a2-an #settingsModal:not([hidden]),
+html.a2-an #globalSearchModal:not([hidden]),
+html.a2-an #feedbackModal:not([hidden]),
+html.a2-an #adminMeasModal:not([hidden]),
+html.a2-an #systemAdminModal:not([hidden]),
+html.a2-an #matZuModal:not([hidden]),
+html.a2-an #projectCockpitModal:not([hidden]),
+html.a2-an #projectsModal:not([hidden]){
+ top:var(--a2-kopf);
+ bottom:calc(var(--a2-leiste) + env(safe-area-inset-bottom,0px));
+ z-index:30;
+ padding:14px 14px 28px;
+ background:var(--bg);
 }
+/* Ab 1000px steht die Leiste links als Spalte (siehe oben). Dann darf der
+   Bereich unten bis zum Rand gehen, muss aber links neben der Leiste
+   beginnen - sonst laege er darueber. */
+@media (min-width:1000px){
+ html.a2-an #werkstattModal:not([hidden]),
+ html.a2-an #settingsModal:not([hidden]),
+ html.a2-an #globalSearchModal:not([hidden]),
+ html.a2-an #feedbackModal:not([hidden]),
+ html.a2-an #adminMeasModal:not([hidden]),
+ html.a2-an #systemAdminModal:not([hidden]),
+ html.a2-an #matZuModal:not([hidden]),
+ html.a2-an #projectCockpitModal:not([hidden]),
+ html.a2-an #projectsModal:not([hidden]){
+  left:226px;bottom:0;
+ }
+}
+
+/* ---- Neues Projekt: nur das Formular ------------------------------------ */
+/* Der Schirm "Projekte" traegt drei Karten: zuletzt bearbeitet, das
+   Anlegen-Formular und die vollstaendige Liste. In der neuen Ansicht IST
+   die Projektliste bereits die Seite "Projekte" - dieselbe Liste ein
+   zweites Mal darunter zu zeigen, ist keine Hilfe, sondern Suchen.
+   Wer hier landet, will ein Projekt anlegen. Die Liste bleibt erreichbar:
+   sie ist einen Tipp entfernt auf der Leiste. */
+html.a2-an #projectsModal.a2-nur-anlegen #recentProjectsCard,
+html.a2-an #projectsModal.a2-nur-anlegen #projectSuchBox,
+html.a2-an #projectsModal.a2-nur-anlegen #projectArchivBar,
+html.a2-an #projectsModal.a2-nur-anlegen #projectStatusFilter,
+html.a2-an #projectsModal.a2-nur-anlegen #projectArtFilter,
+html.a2-an #projectsModal.a2-nur-anlegen #projectList{display:none!important}
+
+/* Umgekehrt der Archiv-Weg: dort ist das Anlegen-Formular fehl am Platz -
+   ein neues Projekt gehoert nie ins Archiv. */
+html.a2-an #projectsModal.a2-nur-liste #recentProjectsCard,
+html.a2-an #projectsModal.a2-nur-liste #projectCreateBox{display:none!important}
+
+/* ---- Lager: ein eigener Bereich, keine Einstellungsseite ---------------- */
+/* Das Lager hat in der neuen Ansicht einen eigenen Eintrag in der Leiste.
+   Wer ihn tippt, soll das Lager sehen - nicht die Einstellungen mit dem
+   Lager darin. Die Registerleiste der Einstellungen bleibt deshalb hier
+   weg; welcher Abschnitt gezeigt wird, entscheidet unveraendert
+   openSettingsTo("lager", ...) in js/07. Verschoben wird nichts: derselbe
+   Abschnitt bleibt ueber die Einstellungen erreichbar, wo er immer war. */
+html.a2-an #settingsModal.a2-nur-lager .settings-tabs{display:none!important}
+
+/* Die Karte des Schirms traegt in diesen Bereichen noch ihren eigenen Titel
+   ("⚙️ Einstellungen", "📁 Projekte"). Die Kopfzeile darueber sagt bereits,
+   wo man ist - zweimal derselbe Titel untereinander ist kein Hinweis,
+   sondern Fuellung. */
+html.a2-an #settingsModal.a2-nur-lager .modalbox > .card > h2,
+html.a2-an #projectsModal.a2-nur-anlegen .card > h2,
+html.a2-an #projectsModal.a2-nur-liste .card > h2{display:none!important}

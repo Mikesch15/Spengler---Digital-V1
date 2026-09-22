@@ -1,0 +1,204 @@
+// Prueft den Umbau von v3.156.
+//
+// WORUM ES GEHT
+// Bis v3.155 oeffneten Werkstatt, Lager, Suche, Einstellungen, Feedback, die
+// Admin-Uebersicht, die System-Administration, Material & Zuschnitt und das
+// Cockpit als klassisches Vollbild UEBER der neuen Ansicht. Ein .modal ist
+// position:fixed/inset:0/z-index 500 und legt sich damit ueber die Kopfzeile
+// (40) und ueber die untere Leiste (50). Wer auf "Werkstatt" tippte, sah den
+// alten Seitenaufbau - und die Leiste, ueber die er gekommen war, war weg.
+// Gemeldet hat das der Anwender; nachgemessen wurde es mit derselben Methode,
+// die hier steht: elementFromPoint auf die Mitte der Leiste.
+//
+// WAS HIER GEPRUEFT WIRD
+//   A  Die BEREICHE bleiben im Rahmen: Leiste sichtbar und bedienbar, Kopf
+//      nennt den Bereich, sein Eintrag ist markiert.
+//      A5 ist die wichtige Gegenprobe: ein ERFASSUNGSFORMULAR bleibt
+//      Vollbild. Ohne sie waere A1 bis A4 auch dann gruen, wenn blind jedes
+//      .modal umgestellt worden waere - und wer ein Mass eintraegt, haette
+//      ploetzlich eine Navigation neben dem Formular.
+//   B  "Neues Projekt" zeigt nur das Anlegen-Formular, nicht noch einmal
+//      die Projektliste, von der man gerade kam. B2/B3 sind die
+//      Gegenproben: der Archiv-Weg zeigt umgekehrt die Liste ohne das
+//      Formular, und die klassische Ansicht zeigt unveraendert beides.
+//   C  Der Regierapport ist ein eigenes Register und steht nicht mehr
+//      unter "Mehr …".
+//   D  Der Ausdruck zeigt keinen Anfasser mehr. Ein textarea zeichnet in
+//      Chrome unten rechts zwei Schraegstriche zum Groesserziehen; im
+//      gedruckten Regierapport standen sie in "Auftraggeber" und
+//      "Objekt / Gebaeudeteil". D2 ist die Gegenprobe: am Bildschirm
+//      bleibt der Anfasser, dort gehoert er hin.
+//
+// Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-bereiche-v3-156.js
+const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
+const path=require("path"),fs=require("fs");
+const APP="file://"+path.join(process.cwd(),"index.html");
+const STUB=fs.readFileSync(path.join(process.cwd(),"anleitung/stub.js"),"utf8");
+let ok=0,fail=0;
+const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,400):""))}};
+
+// Liegt etwas ueber der Mitte der unteren Leiste? Genau das war der Fehler.
+const rahmen=page=>page.evaluate(()=>{
+ const leiste=$("a2Leiste");
+ const r=leiste?leiste.getBoundingClientRect():null;
+ let verdeckt=false,durch="";
+ if(r&&r.height>0){
+  const oben=document.elementFromPoint(Math.round(r.left+r.width/2),Math.round(r.top+r.height/2));
+  if(oben&&!(oben===leiste||leiste.contains(oben))){
+   verdeckt=true; const m=oben.closest(".modal"); durch=m?m.id:(oben.id||oben.tagName);
+  }
+ }
+ const auf=[...document.querySelectorAll("#a2Leiste [data-a2-tab].ist-auf")]
+   .map(b=>b.getAttribute("data-a2-tab"));
+ const kopf=$("a2Kopf")?$("a2Kopf").textContent.replace(/\s+/g," ").trim():"";
+ return {leisteDa:!!r&&r.height>0,verdeckt,durch,markiert:auf,kopf};
+});
+const tab=(page,k)=>page.evaluate(k=>{
+ const b=[...document.querySelectorAll("#a2Leiste [data-a2-tab])".replace(")",""))]
+   .find(x=>x.getAttribute("data-a2-tab")===k);
+ if(b)b.click(); return !!b;
+},k);
+
+(async()=>{
+ const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
+ const page=await b.newPage({viewport:{width:420,height:900},locale:"de-CH"});
+ const fehler=[]; page.on("pageerror",e=>fehler.push(String(e))); page.on("dialog",d=>d.accept());
+ await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.goto(APP,{waitUntil:"load"});
+ await page.waitForTimeout(600);
+ await page.evaluate(()=>{
+  currentProfile={id:"u1",role:"admin",first_name:"Andrea",last_name:"Beispiel",company_id:"c1"};
+  allProfiles=[currentProfile]; meineRechte={admin:true};
+  companyName="Muster Spenglerei AG";
+  allProjects=window.__demo.projects.slice();
+  measurementMaterials=[{id:1,name:"Titanzink",legacy_key:"titanzink"}];
+  blechRollenbreiten=[1000,670,500];
+  settings.rates=[["Meister",98]]; settings.employees=["Andrea Beispiel"];
+  $("appRoot").hidden=false; $("authScreen").hidden=true; $("startScreen").hidden=false;
+  if(typeof pmUebernehmen==="function")
+   pmUebernehmen({haupt:true,material:true,zuschnitt:true,reservierung:true,
+                  werkstatt:true,vorlagen:true,serien:true,versionierung:true});
+  if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
+  if($("navLagerverwaltung"))$("navLagerverwaltung").hidden=false;
+  a2Setzen(true);
+ });
+ await page.waitForTimeout(400);
+ const aufraeumen=async()=>{
+  await page.evaluate(()=>{
+   document.querySelectorAll(".modal").forEach(m=>{if(m.id!=="authScreen")m.hidden=true});
+   if($("reportScreen"))$("reportScreen").hidden=true;
+   $("startScreen").hidden=false;
+   a2Zustand.bereich=null; a2Zustand.seite="heute"; a2Zustand.projektId=null; a2Zeichnen();
+  });
+  await page.waitForTimeout(200);
+ };
+
+ // ---- A  Bereiche bleiben im Rahmen --------------------------------------
+ await tab(page,"werkstatt"); await page.waitForTimeout(900);
+ let z=await rahmen(page);
+ p(z.leisteDa&&!z.verdeckt,"A1 Werkstatt: die untere Leiste bleibt sichtbar und bedienbar",z);
+ p(z.markiert.length===1&&z.markiert[0]==="werkstatt",
+   "A2 Werkstatt: ihr Eintrag ist markiert, nicht die Seite dahinter",z.markiert);
+ p(/Werkstatt/.test(z.kopf),"A3 Werkstatt: die Kopfzeile nennt den Bereich",z.kopf);
+
+ await tab(page,"lager"); await page.waitForTimeout(900);
+ z=await rahmen(page);
+ p(z.leisteDa&&!z.verdeckt&&z.markiert[0]==="lager"&&/Lager/.test(z.kopf),
+   "A4 Lager: eigener Bereich, Leiste bleibt, Kopfzeile nennt ihn",z);
+ // Das Lager ist ein Bereich, keine Einstellungsseite: die Registerleiste
+ // der Einstellungen hat hier nichts zu suchen.
+ const tabsWeg=await page.evaluate(()=>{
+  const t=document.querySelector("#settingsModal .settings-tabs");
+  return !t||getComputedStyle(t).display==="none";
+ });
+ p(tabsWeg,"A5 Lager: die Registerleiste der Einstellungen ist nicht zu sehen");
+
+ // Die entscheidende Gegenprobe: ein ERFASSUNGSFORMULAR bleibt Vollbild.
+ await aufraeumen();
+ await page.evaluate(()=>newMeasurementWithType("einlaufblech_gerade"));
+ await page.waitForTimeout(700);
+ z=await rahmen(page);
+ p(z.verdeckt&&z.durch==="measurementEditModal",
+   "A6 Gegenprobe: das Massaufnahme-Formular bleibt Vollbild",z);
+
+ // Ein Tipp auf einen anderen Eintrag schliesst den offenen Bereich.
+ await aufraeumen();
+ await tab(page,"werkstatt"); await page.waitForTimeout(800);
+ await tab(page,"heute"); await page.waitForTimeout(600);
+ const zu=await page.evaluate(()=>({
+  werkstattZu:$("werkstattModal").hidden,
+  bereich:a2Zustand.bereich,seite:a2Zustand.seite}));
+ p(zu.werkstattZu&&!zu.bereich&&zu.seite==="heute",
+   "A7 ein Tipp auf einen anderen Eintrag schliesst den Bereich",zu);
+
+ // ---- B  Neues Projekt zeigt nur das Formular ----------------------------
+ await aufraeumen();
+ await tab(page,"projekte"); await page.waitForTimeout(400);
+ await page.evaluate(()=>{const k=document.querySelector('[data-a2-tu="neuesprojekt"]');if(k)k.click()});
+ await page.waitForTimeout(800);
+ const sicht=s=>page.evaluate(x=>{const e=document.querySelector(x);
+  return !!e&&getComputedStyle(e).display!=="none"&&e.getBoundingClientRect().height>0},s);
+ const anlegenDa=await sicht("#projectCreateBox"), listeDa=await sicht("#projectList");
+ p(anlegenDa&&!listeDa,"B1 Neues Projekt: das Anlegen-Formular steht allein",
+   {anlegen:anlegenDa,liste:listeDa});
+
+ await aufraeumen();
+ await tab(page,"projekte"); await page.waitForTimeout(400);
+ await page.evaluate(()=>{const k=document.querySelector('[data-a2-tu="projektarchiv"]');if(k)k.click()});
+ await page.waitForTimeout(800);
+ const a2=await sicht("#projectCreateBox"), l2=await sicht("#projectList");
+ p(!a2&&l2,"B2 Gegenprobe Archiv: dort steht die Liste ohne das Anlegen-Formular",
+   {anlegen:a2,liste:l2});
+
+ await aufraeumen();
+ await page.evaluate(()=>{a2Setzen(false);$("startOpenProjects").click()});
+ await page.waitForTimeout(800);
+ const a3=await sicht("#projectCreateBox"), l3=await sicht("#projectList");
+ p(a3&&l3,"B3 Gegenprobe klassisch: derselbe Schirm zeigt unveraendert beides",
+   {anlegen:a3,liste:l3});
+ await page.evaluate(()=>{a2Setzen(true)});
+ await aufraeumen();
+
+ // ---- C  Regierapport ist ein eigenes Register ---------------------------
+ await tab(page,"projekte"); await page.waitForTimeout(400);
+ await page.evaluate(()=>{const zeile=document.querySelector("[data-a2-projekt]");if(zeile)zeile.click()});
+ await page.waitForTimeout(1500);
+ const reg=await page.evaluate(()=>[...document.querySelectorAll('#a2Inhalt [data-a2-reg]')]
+   .map(x=>x.getAttribute("data-a2-reg")));
+ p(reg.indexOf("rapport")>=0,"C1 der Regierapport ist ein eigenes Register",reg);
+ p(reg.indexOf("rapport")<reg.indexOf("mehr"),
+   "C2 und steht VOR 'Mehr …', nicht darin",reg);
+ await page.evaluate(()=>{const k=document.querySelector('[data-a2-reg="mehr"]');if(k)k.click()});
+ await page.waitForTimeout(500);
+ // Gesucht wird der Knopf, nicht das Wort: "Regierapport" steht auch in der
+ // Registerleiste darueber, die zu #a2Inhalt gehoert. Das erste Mass war
+ // deshalb falsch und meldete einen Fehler, der keiner war.
+ const inMehr=await page.evaluate(()=>
+  !!document.querySelector('#a2Inhalt [data-a2-tu="neuerrapport"]')
+  ||!!document.querySelector('#a2Inhalt [data-a2-rep]'));
+ p(!inMehr,"C3 unter 'Mehr …' steht weder seine Liste noch sein Anlegen-Knopf");
+
+ // ---- D  Der Ausdruck ohne Anfasser --------------------------------------
+ await aufraeumen();
+ const anfasser=()=>page.evaluate(()=>{
+  const e=document.querySelector("#reportScreen textarea#customer");
+  return e?getComputedStyle(e).resize:null;
+ });
+ await page.evaluate(()=>{$("startScreen").hidden=true;$("reportScreen").hidden=false});
+ await page.waitForTimeout(300);
+ const amSchirm=await anfasser();
+ await page.emulateMedia({media:"print"});
+ await page.waitForTimeout(250);
+ const beimDruck=await anfasser();
+ await page.emulateMedia({media:"screen"});
+ p(beimDruck==="none","D1 im Ausdruck hat das Textfeld keinen Anfasser mehr",
+   {druck:beimDruck});
+ p(amSchirm&&amSchirm!=="none",
+   "D2 Gegenprobe: am Bildschirm bleibt er - dort gehoert er hin",{schirm:amSchirm});
+
+ p(fehler.length===0,"E1 keine Javascript-Fehler",fehler.slice(0,3));
+ await b.close();
+ console.log("\n"+ok+" von "+(ok+fail)+" Pruefungen bestanden.");
+ process.exit(fail?1:0);
+})();

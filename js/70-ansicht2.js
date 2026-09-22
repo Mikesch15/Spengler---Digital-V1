@@ -77,7 +77,104 @@ function a2Anwenden(){
 // ---- Zustand --------------------------------------------------------------
 // Bewusst ein Objekt und nur zwei Werte: welche Seite offen ist und was in
 // der Projektsuche steht. Alles andere ist Anzeige aus den Daten der App.
-const a2Zustand={seite:"heute",suche:"",projektId:null,reg:"uebersicht"};
+const a2Zustand={seite:"heute",suche:"",projektId:null,reg:"uebersicht",bereich:null};
+
+// ===========================================================================
+// BEREICHE  (v3.156)
+// ---------------------------------------------------------------------------
+// DAS PROBLEM, DAS HIER GELOEST WIRD
+// Bis v3.155 oeffneten Werkstatt, Lager, Suche, Einstellungen, Feedback, die
+// Admin-Uebersicht, die System-Administration, Material & Zuschnitt und das
+// Cockpit als klassisches Vollbild ueber der neuen Ansicht. Ein .modal ist
+// position:fixed mit inset:0 und z-index 500 - es legt sich damit UEBER die
+// Kopfzeile und ueber die untere Leiste. Wer auf "Werkstatt" tippte, sah
+// den alten Seitenaufbau, und die Leiste, ueber die er gekommen war, war
+// weg. Gemessen: 2 von 5 Eintraegen der Leiste und 6 von 6 Eintraegen unter
+// "Mehr" fielen so aus der neuen Ansicht heraus.
+//
+// DIE LOESUNG - UND WARUM NICHT DIE NAHELIEGENDE
+// Naheliegend waere gewesen, Werkstatt und Lager als eigene Seiten dieser
+// Ansicht NACHZUBAUEN. Dann gaebe es sie zweimal, und gepflegt wuerde auf
+// Dauer nur eine. Stattdessen bleibt der vorhandene Schirm genau, wie er
+// ist - er bekommt nur einen anderen RAHMEN: er sitzt unter der Kopfzeile
+// und ueber der Leiste statt darueber. Kein Inhalt wird kopiert, keine
+// Funktion doppelt geschrieben; css/05-ansicht2.css setzt dafuer top und
+// bottom, sonst nichts.
+//
+// Geoeffnet und geschlossen wird ueber die EIGENEN Knoepfe der App
+// (closeWerkstatt, closeSettings ...) - nicht ueber hidden=true von hier.
+// Diese Knoepfe raeumen auf: sie laden Listen neu, verwerfen Entwuerfe und
+// setzen Zustaende zurueck. Ein hidden=true von aussen taete das nicht.
+//
+// NICHT dabei sind die Erfassungsformulare (Massaufnahme, Ausmass, Offerte,
+// Leistung, Regierapport) und die kleinen Dialoge. Wer ein Mass eintraegt,
+// ist IN einer Aufgabe - dort ist Vollbild richtig, und der Weg hinaus
+// steht im Formular selbst.
+// ===========================================================================
+const A2_BEREICHE={
+ werkstattModal:    {zu:"closeWerkstatt"},
+ settingsModal:     {zu:"closeSettings"},
+ globalSearchModal: {zu:"closeGlobalSearch"},
+ feedbackModal:     {zu:"cancelFeedback"},
+ adminMeasModal:    {zu:"closeAdminMeas"},
+ systemAdminModal:  {zu:"closeSystemAdmin"},
+ matZuModal:        {zu:"matZuZurueck"},
+ projectCockpitModal:{zu:"cockpitBack"},
+ projectsModal:     {zu:"closeProjects"}
+};
+
+// Oeffnet einen Bereich ueber den vorhandenen Weg der App und merkt sich,
+// dass er offen ist. Gemerkt wird NUR, wenn der Schirm wirklich aufgegangen
+// ist - sonst zeigte die Kopfzeile einen Bereich, den es nicht gibt.
+// marke (optional): eine Klasse am Schirm, mit der css/05-ansicht2.css die
+// Teile ausblendet, die in DIESEM Bereich nichts zu suchen haben - etwa die
+// Projektliste im Anlegen-Bereich. Sie wird beim Schliessen wieder entfernt,
+// damit die klassische Ansicht denselben Schirm unveraendert vorfindet.
+async function a2BereichStarten(id,name,tab,oeffner,marke){
+ await oeffner();
+ const el=$(id);
+ if(!el||el.hidden){ a2Zeichnen(); return false }
+ a2BereichMarkenWeg(el);
+ if(marke)el.classList.add(marke);
+ a2Zustand.bereich={id,name,tab,marke:marke||""};
+ a2Zeichnen();
+ window.scrollTo(0,0);
+ return true;
+}
+const A2_MARKEN=["a2-nur-anlegen","a2-nur-liste","a2-nur-lager"];
+function a2BereichMarkenWeg(el){ if(el)A2_MARKEN.forEach(m=>el.classList.remove(m)) }
+// Schliesst den offenen Bereich ueber seinen eigenen Knopf.
+function a2BereichSchliessen(){
+ const b=a2Zustand.bereich;
+ a2Zustand.bereich=null;
+ if(!b)return;
+ a2BereichMarkenWeg($(b.id));
+ const eintrag=A2_BEREICHE[b.id];
+ const knopf=eintrag&&$(eintrag.zu);
+ if(knopf&&!$(b.id).hidden){ knopf.click(); return }
+ if($(b.id))$(b.id).hidden=true;
+}
+// Ein Bereich kann sich auch selbst schliessen - ueber seinen "Fertig"- oder
+// "Start"-Knopf, ueber die Zurueck-Taste des Geraets oder weil die App
+// weiterspringt. Dann muss die Kopfzeile das mitbekommen, sonst nennt sie
+// weiter einen Bereich, der nicht mehr offen ist. Beobachtet wird deshalb
+// das hidden-Attribut - dasselbe Mittel wie beim Firmenlogo weiter oben.
+function a2BereichBeobachten(){
+ if(!window.MutationObserver)return;
+ const beob=new MutationObserver(()=>{
+  const b=a2Zustand.bereich;
+  if(!b)return;
+  const el=$(b.id);
+  if(!el||el.hidden){ a2BereichMarkenWeg(el); a2Zustand.bereich=null; if(a2Aktiv())a2Zeichnen() }
+ });
+ Object.keys(A2_BEREICHE).forEach(id=>{
+  const el=$(id);
+  if(el)beob.observe(el,{attributes:true,attributeFilter:["hidden"]});
+ });
+}
+if(document.readyState==="loading")
+ document.addEventListener("DOMContentLoaded",a2BereichBeobachten);
+else a2BereichBeobachten();
 
 // ---- Navigation -----------------------------------------------------------
 // Die Symbole sind gezeichnet, nicht als Emoji gesetzt: Emoji sehen auf jedem
@@ -292,8 +389,11 @@ function a2SeiteProjekte(){
    value="${esc(a2Zustand.suche)}" autocomplete="off" enterkeyhint="search"></div>
  <div id="a2ProjListe">${a2ProjListeHtml()}</div>
  <div class="a2-knopf-reihe">
-  <button type="button" class="a2-knopf a2-k-grau a2-k-voll" data-a2-tu="projekteklassisch">
-   ＋ Neues Projekt / Archiv</button></div>`;
+  <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="neuesprojekt">
+   ＋ Neues Projekt</button></div>
+ <div class="a2-knopf-reihe">
+  <button type="button" class="a2-knopf a2-k-grau a2-k-voll" data-a2-tu="projektarchiv">
+   🗄 Archiv und Filter</button></div>`;
 }
 // Gesucht wird mit projektPasstZuSuche() aus js/09 - genau derselbe Vergleich
 // wie in der klassischen Projektliste und in den Auswahlfeldern. Eine zweite
@@ -385,15 +485,21 @@ function a2Zeichnen(){
  // Zurueck-Knopf. 44px breit: das ist die Mindestgroesse fuer einen Finger,
  // und diese Taste wird auf dem Dach mit Handschuhen getroffen.
  const proj=(a2Zustand.seite==="projekt")?a2Projekt(a2Zustand.projektId):null;
- const titel=proj?((typeof projektTitel==="function")?projektTitel(proj):(proj.object||proj.name||"Projekt"))
-                 :(eintrag?eintrag.name:"Heute");
- const unter=proj
+ // Ein offener Bereich steht in der Kopfzeile ueber allem anderen: er ist
+ // das, was der Anwender gerade sieht.
+ const ber=a2Zustand.bereich;
+ const titel=ber?ber.name
+  :(proj?((typeof projektTitel==="function")?projektTitel(proj):(proj.object||proj.name||"Projekt"))
+        :(eintrag?eintrag.name:"Heute"));
+ const unter=ber?""
+  :(proj
   ? [proj.name&&proj.name!==titel?proj.name:"",proj.order_no?"Auftrag "+proj.order_no:""].filter(Boolean).join(" · ")
   : (a2Zustand.seite==="heute"
       ? a2Name(profil)+((typeof companyName!=="undefined"&&companyName)?" · "+companyName:"")
-      : "");
+      : ""));
  $("a2Kopf").innerHTML=
-  (proj?'<button type="button" class="a2-kopf-zurueck" data-a2-zurueck aria-label="Zurück zur Projektliste">‹</button>':"")
+  (ber?'<button type="button" class="a2-kopf-zurueck" data-a2-bereich-zu aria-label="Bereich schliessen">‹</button>'
+     :(proj?'<button type="button" class="a2-kopf-zurueck" data-a2-zurueck aria-label="Zurück zur Projektliste">‹</button>':""))
   +`<div class="a2-kopf-titel"><b>${esc(titel)}</b>`
   +(unter?`<span>${esc(unter)}</span>`:"")
   +`</div>`
@@ -402,7 +508,7 @@ function a2Zeichnen(){
   // der Seitenleiste) und er ist der erste Info-Knopf im Dokument - wer die
   // Erklaerung zum Bildschirm sucht, trifft ihn zuerst. Auf der
   // Projektseite waere die Kopfzeile mit Zurueck, Titel und Kuerzel zu voll.
-  +((a2Zustand.seite==="heute")?a2Hilfe("start"):"")
+  +((a2Zustand.seite==="heute"&&!ber)?a2Hilfe("start"):"")
   +`<div class="a2-kopf-ich" title="${esc(a2Name(profil))}">${esc(a2Kuerzel(profil))}</div>`;
 
  const offen=a2AufgabenAktiv()?a2Aufgaben().length:0;
@@ -411,7 +517,11 @@ function a2Zeichnen(){
  // Logo ohnehin oben auf der Heute-Seite.
  $("a2Leiste").innerHTML=a2MarkeHtml("a2-marke-leiste")+leisten.map(e=>{
   // Auf der Projektseite bleibt "Projekte" markiert - man ist ja darin.
-  const auf=(a2Zustand.seite===e.k)||(a2Zustand.seite==="projekt"&&e.k==="projekte");
+  // Liegt ein Bereich offen, ist SEIN Eintrag markiert, nicht die Seite
+  // dahinter: sonst zeigte die Leiste "Heute", waehrend die Werkstatt offen
+  // ist. Genau das war der Zustand bis v3.155.
+  const auf=ber?(ber.tab===e.k)
+   :((a2Zustand.seite===e.k)||(a2Zustand.seite==="projekt"&&e.k==="projekte"));
   const punkt=(e.k==="heute"&&offen)?`<span class="a2-punkt">${offen}</span>`:"";
   return `<button type="button" class="${auf?"ist-auf":""}" data-a2-tab="${esc(e.k)}">
    <i>${a2Symbol(e.k)}</i>${punkt}<span>${esc(e.name)}</span></button>`;
@@ -438,12 +548,19 @@ document.addEventListener("click",async e=>{
  if(tab&&$("a2Screen")&&$("a2Screen").contains(tab)){
   const k=tab.getAttribute("data-a2-tab");
   const eintrag=a2Leisten().find(x=>x.k===k);
+  // Ein offener Bereich wird ZUERST geschlossen. Ohne das wechselte die
+  // Seite dahinter, waehrend sichtbar der alte Bereich stehen bliebe.
+  if(a2Zustand.bereich)a2BereichSchliessen();
   // Werkstatt und Lager sind keine eigenen Seiten dieser Ansicht, sondern
   // die vorhandenen Arbeitsplaetze der App. Sie werden geoeffnet, nicht
   // nachgebaut - sonst gaebe es sie zweimal und nur eine waere gepflegt.
+  // Seit v3.156 aber IM Rahmen: Kopf und Leiste bleiben stehen.
   if(eintrag&&eintrag.oeffnet){
-   if(k==="werkstatt"&&$("navWerkstatt"))$("navWerkstatt").click();
-   if(k==="lager"&&$("navLagerverwaltung"))$("navLagerverwaltung").click();
+   if(k==="werkstatt"&&$("navWerkstatt"))
+    await a2BereichStarten("werkstattModal","Werkstatt","werkstatt",()=>$("navWerkstatt").click());
+   if(k==="lager"&&$("navLagerverwaltung"))
+    await a2BereichStarten("settingsModal","Lager","lager",
+     ()=>$("navLagerverwaltung").click(),"a2-nur-lager");
    return;
   }
   a2Zustand.seite=k;
@@ -488,6 +605,13 @@ document.addEventListener("click",async e=>{
  if(rep){ a2Oeffne("rep",rep.getAttribute("data-a2-rep")); return }
 
  // Zurueck von der Projektseite in die Projektliste
+ const bereichZu=e.target.closest("[data-a2-bereich-zu]");
+ if(bereichZu&&$("a2Screen")&&$("a2Screen").contains(bereichZu)){
+  a2BereichSchliessen();
+  a2Zeichnen();
+  return;
+ }
+
  const zurueck=e.target.closest("[data-a2-zurueck]");
  if(zurueck&&$("a2Screen")&&$("a2Screen").contains(zurueck)){
   a2Zustand.seite="projekte"; a2Zustand.projektId=null;
@@ -510,14 +634,31 @@ document.addEventListener("click",async e=>{
   const was=tu.getAttribute("data-a2-tu");
   if(was==="hinweisweg"){a2HinweisWeg();return}
   if(was==="klassisch"){a2Setzen(false);return}
-  if(was==="projekteklassisch"&&$("startOpenProjects")){$("startOpenProjects").click();return}
-  if(was==="suche"&&$("openGlobalSearch")){$("openGlobalSearch").click();return}
-  if(was==="einstell"&&$("settings")){$("settings").click();return}
-  if(was==="feedback"&&$("openFeedback")){$("openFeedback").click();return}
-  if(was==="adminmeas"&&$("navAdminMeas")){$("navAdminMeas").click();return}
-  if(was==="sysadmin"&&$("navSystemAdmin")){$("navSystemAdmin").click();return}
+  // Alle folgenden oeffnen einen BEREICH: den vorhandenen Schirm der App,
+  // aber im Rahmen der neuen Ansicht (v3.156). Kein Inhalt wird nachgebaut.
+  // Zwei getrennte Wege statt eines Sammelknopfs (v3.156). Wer "Neues
+  // Projekt" tippt, will ein Projekt anlegen - und bekam bis v3.155 die
+  // vollstaendige Projektliste darunter ein zweites Mal, obwohl er gerade
+  // von ihr kam. Das Anlegen-Formular steht jetzt allein.
+  if(was==="neuesprojekt"&&$("startOpenProjects")){
+   await a2BereichStarten("projectsModal","Neues Projekt","projekte",
+    ()=>$("startOpenProjects").click(),"a2-nur-anlegen");return}
+  if(was==="projektarchiv"&&$("startOpenProjects")){
+   await a2BereichStarten("projectsModal","Archiv und Filter","projekte",
+    ()=>$("startOpenProjects").click(),"a2-nur-liste");return}
+  if(was==="suche"&&$("openGlobalSearch")){
+   await a2BereichStarten("globalSearchModal","Suche","mehr",()=>$("openGlobalSearch").click());return}
+  if(was==="einstell"&&$("settings")){
+   await a2BereichStarten("settingsModal","Einstellungen","mehr",()=>$("settings").click());return}
+  if(was==="feedback"&&$("openFeedback")){
+   await a2BereichStarten("feedbackModal","Feedback","mehr",()=>$("openFeedback").click());return}
+  if(was==="adminmeas"&&$("navAdminMeas")){
+   await a2BereichStarten("adminMeasModal","Alle Massaufnahmen","mehr",()=>$("navAdminMeas").click());return}
+  if(was==="sysadmin"&&$("navSystemAdmin")){
+   await a2BereichStarten("systemAdminModal","System-Administration","mehr",()=>$("navSystemAdmin").click());return}
   if(was==="abmelden"&&$("logout")){$("logout").click();return}
-  if(was==="anleitung"&&typeof openSettingsTo==="function"){openSettingsTo("general","anleitung");return}
+  if(was==="anleitung"&&typeof openSettingsTo==="function"){
+   await a2BereichStarten("settingsModal","Anleitung","mehr",()=>openSettingsTo("general","anleitung"));return}
 
   // ---- Aktionen der Projektseite ----
   if(was==="neuemeas"){a2NeuerEintrag("meas");return}
@@ -528,23 +669,27 @@ document.addEventListener("click",async e=>{
   // Material & Zuschnitt und die Werkstatt sind eigene Arbeitsplaetze der
   // App - sie werden geoeffnet, nicht nachgebaut.
   if(was==="matzu"&&typeof openMaterialZuschnitt==="function"){
-   await openMaterialZuschnitt(Number(a2Zustand.projektId));
+   await a2BereichStarten("matZuModal","Material & Zuschnitt","projekte",
+    ()=>openMaterialZuschnitt(Number(a2Zustand.projektId)));
    return;
   }
-  if(was==="werkstatt"&&$("navWerkstatt")){$("navWerkstatt").click();return}
+  if(was==="werkstatt"&&$("navWerkstatt")){
+   await a2BereichStarten("werkstattModal","Werkstatt","werkstatt",()=>$("navWerkstatt").click());return}
   // Das vollstaendige Cockpit: Dateien, Fotos und Verlauf stehen nur dort.
   if(was==="cockpit"&&typeof openProjectCockpit==="function"){
    a2AusNeuerAnsicht=true;
-   await openProjectCockpit(Number(a2Zustand.projektId));
-   if($("projectCockpitModal").hidden)a2AusNeuerAnsicht=false;
+   const auf=await a2BereichStarten("projectCockpitModal","Dateien, Fotos und Verlauf","projekte",
+    ()=>openProjectCockpit(Number(a2Zustand.projektId)));
+   if(!auf)a2AusNeuerAnsicht=false;
    return;
   }
   // Stammdaten aendert man im Cockpit - ein zweites Formular dafuer waere
   // ein zweiter Schreibweg auf dieselben vier Felder.
   if(was==="stammdaten"&&typeof openProjectCockpitZumBearbeiten==="function"){
    a2AusNeuerAnsicht=true;
-   await openProjectCockpitZumBearbeiten(Number(a2Zustand.projektId));
-   if($("projectCockpitModal").hidden)a2AusNeuerAnsicht=false;
+   const auf=await a2BereichStarten("projectCockpitModal","Stammdaten","projekte",
+    ()=>openProjectCockpitZumBearbeiten(Number(a2Zustand.projektId)));
+   if(!auf)a2AusNeuerAnsicht=false;
    return;
   }
   return;
@@ -583,6 +728,10 @@ if($("a2Ein"))$("a2Ein").onclick=()=>a2Setzen(true);
 // klassische Ansicht wechselt, findet sie dort also fertig vor.
 // ===========================================================================
 
+// v3.156: Der Regierapport steht neben den uebrigen Begriffen, nicht mehr
+// unter "Mehr …". Er ist kein Nebenschauplatz - er ist das, was am Abend
+// geschrieben und am Ende verrechnet wird. "Mehr …" bleibt fuer Offerte,
+// Leistungen, Dateien und Verlauf; ohne das waeren die nicht erreichbar.
 const A2_PROJ_REGISTER=[
  {k:"uebersicht",name:"Übersicht"},
  {k:"aufmass",   name:"Aufmass"},
@@ -592,6 +741,7 @@ const A2_PROJ_REGISTER=[
  {k:"produktion",name:"Produktion",wenn:()=>a2Modul("material")},
  {k:"werkstatt", name:"Werkstatt", wenn:()=>a2Modul("werkstatt")},
  {k:"ausmass",   name:"Ausmass"},
+ {k:"rapport",   name:"Regierapport"},
  {k:"mehr",      name:"Mehr …"}
 ];
 function a2Modul(k){ return typeof pmAktiv==="function"&&pmAktiv(k) }
@@ -667,6 +817,7 @@ function a2SeiteProjekt(){
  if(a2Zustand.reg==="produktion")return html+a2RegProduktion(p);
  if(a2Zustand.reg==="werkstatt") return html+a2RegWerkstatt(p);
  if(a2Zustand.reg==="ausmass")   return html+a2RegAusmass(p);
+ if(a2Zustand.reg==="rapport")   return html+a2RegRapport(p);
  if(a2Zustand.reg==="mehr")      return html+a2RegMehr(p);
  return html+a2RegUebersicht(p);
 }
@@ -915,14 +1066,6 @@ function a2RegMehr(p){
     <span class="a2-zeile-pfeil">›</span></button>`}).join(""),
   "neuelei","＋ Neue Leistung","Noch keine Leistung erfasst.");
 
- const rep=a2Rep();
- html+=a2MehrBlockHtml("📋 Regierapporte",rep.length,
-  rep.map(r=>`<button type="button" class="a2-zeile" data-a2-rep="${esc(r.id)}">
-    <span class="a2-zeile-text"><b>${esc(a2Datum(r.date)||"Ohne Datum")}</b>
-     <span>${esc([r.order_no?"Auftrag "+r.order_no:"",r.customer||""].filter(Boolean).join(" · ")||"—")}</span></span>
-    <span class="a2-zeile-pfeil">›</span></button>`).join(""),
-  "neuerrapport","＋ Neuer Regierapport","Noch kein Regierapport.");
-
  // Dateien und Verlauf bleiben im Cockpit: beides sind Listen mit eigenen
  // Hochlade- und Vorschauwegen, die hier nur nachgebaut waeren.
  html+=`<div class="a2-abschnitt">
@@ -934,6 +1077,25 @@ function a2RegMehr(p){
    <span class="a2-zeile-pfeil">›</span></button></div>`;
  return html;
 }
+// ---- Regierapport ---------------------------------------------------------
+// Seit v3.156 ein eigenes Register. Derselbe Block wie zuvor unter "Mehr",
+// nur an der Stelle, an der man ihn sucht. Der Knopf zum Anlegen steht gross
+// obenan: einen Rapport schreibt man, man sucht ihn nicht.
+function a2RegRapport(p){
+ const rep=a2Rep();
+ return `<div class="a2-knopf-reihe" style="margin:0 0 12px">
+   <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="neuerrapport">
+    ＋ Neuer Regierapport</button></div>`
+  +`<div class="a2-abschnitt">
+   <div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(rep.length,"Regierapport","Regierapporte"))}</h2></div>
+   ${rep.length?rep.map(r=>`<button type="button" class="a2-zeile" data-a2-rep="${esc(r.id)}">
+     <span class="a2-zeile-text"><b>${esc(a2Datum(r.date)||"Ohne Datum")}</b>
+      <span>${esc([r.order_no?"Auftrag "+r.order_no:"",r.customer||""].filter(Boolean).join(" · ")||"—")}</span></span>
+     <span class="a2-zeile-pfeil">›</span></button>`).join("")
+    :'<div class="a2-leer">Noch kein Regierapport.</div>'}
+  </div>`;
+}
+
 function a2MehrBlockHtml(titel,anzahl,zeilen,neuTu,neuText,leerText){
  return `<div class="a2-abschnitt">
   <div class="a2-abschnitt-kopf"><h2>${esc(titel)}</h2>
