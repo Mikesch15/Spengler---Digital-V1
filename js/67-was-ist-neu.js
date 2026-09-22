@@ -151,7 +151,11 @@ const WIN_CHANGELOG={
   "An den Massen, der Abwicklung und dem Zuschnitt wurde nichts geändert."],
  "3.153":["Neu in der Werkstatt: der Umschalter „Nach Projekt / Nach Material“. Nach Material zählt alle Zuschnitte einer Materialstärke zusammen – quer über Projekte hinweg. Das ist die Reihenfolge, in der tatsächlich gerichtet wird: einmal zur Rolle, alles davon schneiden, weglegen.",
   "Getrennt wird nach Material UND Stärke – 0,7er und 0,8er Titanzink kommen von verschiedenen Rollen.",
-  "Die Materialsicht ist eine Rüstliste; abgehakt wird weiterhin an der Massaufnahme, wo die Stücknummern stehen. Ein Tipp führt hin."]
+  "Die Materialsicht ist eine Rüstliste; abgehakt wird weiterhin an der Massaufnahme, wo die Stücknummern stehen. Ein Tipp führt hin."],
+ "3.154":["Jetzt sehen auch Regierapport, Ausmass, Offerte und Leistung aus wie die neue Ansicht: grössere Eingabefelder für Finger mit Handschuhen, rundere Knöpfe, ruhigere Überschriften.",
+  "Der gedruckte Regierapport bleibt davon unberührt – auf Papier und im PDF steht Zeichen für Zeichen dasselbe wie vorher.",
+  "Die Felder innerhalb der Arbeits-, Material- und Positionszeilen bleiben absichtlich schmal: dort stehen sechs bis sieben nebeneinander.",
+  "Behoben: die Knöpfe „Foto aufnehmen“ und „Aus Galerie wählen“ waren in der neuen Ansicht kleiner geworden statt grösser."]
 };
 
 function winVersionVergleich(a,b){
