@@ -66,10 +66,27 @@ const messen=page=>page.evaluate(()=>{
  await page.evaluate(()=>openSettingsTo("general"));
  await page.waitForTimeout(120);
  const neu=await messen(page);
+ // Der Massstab ist dieselbe Messung in der klassischen Ansicht. Seit
+ // v3.156 aendert die neue Ansicht die GROESSE nicht mehr - v3.151 hatte
+ // Felder und Knoepfe auf 48px/16px vergroessert, der Anwender hat das am
+ // fertigen Bildschirm als unuebersichtlich zurueckgewiesen.
+ await page.evaluate(()=>a2Setzen(false));
+ await page.waitForTimeout(250);
+ const klassisch=await messen(page);
+ await page.evaluate(()=>a2Setzen(true));
+ await page.evaluate(()=>openSettingsTo("general"));
+ await page.waitForTimeout(250);
+ const gleich=(a,b,k)=>!!a&&!!b&&k.every(x=>a[x]===b[x]);
+
  p(neu.tab&&neu.tab.borderRadius.startsWith("999"),"A1 die Register sind Pillen wie in der neuen Ansicht",neu.tab);
- p(neu.feld&&parseInt(neu.feld.minHeight)>=48,"A2 Eingabefelder sind mindestens 48px hoch",neu.feld);
- p(neu.feld&&parseInt(neu.feld.fontSize)>=16,"A3 und mindestens 16px gross (sonst zoomt iOS hinein)",neu.feld);
- p(neu.knopf&&parseInt(neu.knopf.minHeight)>=48,"A4 Knoepfe in den Leisten sind mindestens 48px hoch",neu.knopf);
+ p(gleich(neu.feld,klassisch.feld,["minHeight","fontSize"])&&parseInt(neu.feld.minHeight)>0,
+   "A2 Eingabefelder haben dieselbe Groesse wie in der klassischen Ansicht",
+   {neu:neu.feld,klassisch:klassisch.feld});
+ p(klassisch.tab&&neu.tab.borderRadius!==klassisch.tab.borderRadius,
+   "A3 Gegenprobe: am Aussehen aendert sich trotzdem etwas",
+   {neu:neu.tab,klassisch:klassisch.tab});
+ p(gleich(neu.knopf,klassisch.knopf,["minHeight","fontSize"]),
+   "A4 Knoepfe in den Leisten ebenso",{neu:neu.knopf,klassisch:klassisch.knopf});
  p(neu.info&&parseInt(neu.info.minHeight)<48,"A5 der runde Info-Knopf bleibt klein - er ist ein Zeichen",neu.info);
 
  // Auf- und Zuklappen muss unveraendert funktionieren

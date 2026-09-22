@@ -141,10 +141,23 @@ const messenDruck=page=>page.evaluate(()=>{
  await page.waitForTimeout(600);
 
  const neu=await messen(page);
+ // Dieselben Messungen in der klassischen Ansicht - sie sind der Massstab.
+ // Seit v3.156 steht im Vertrag nicht mehr eine feste Zahl, sondern die
+ // GLEICHHEIT mit der klassischen Ansicht: der Anwender hat die
+ // Vergroesserung aus v3.152/v3.154 am fertigen Bildschirm beurteilt und
+ // zurueckgewiesen. Eine feste Zahl waere beim naechsten Umbau des
+ // Grundstils stillschweigend falsch geworden.
+ await page.evaluate(()=>a2Setzen(false));
+ await page.waitForTimeout(250);
+ const klassisch=await messen(page);
+ await page.evaluate(()=>a2Setzen(true));
+ await page.waitForTimeout(250);
+ const gleich=(a,b,k)=>!!a&&!!b&&k.every(x=>a[x]===b[x]);
 
  // ---- A  Regierapport ----------------------------------------------------
- p(neu.repFeld&&zahl(neu.repFeld.minHeight)>=48&&zahl(neu.repFeld.fontSize)>=16,
-   "A1 Regierapport: Feld im Kopfteil mindestens 48px hoch und 16px gross",neu.repFeld);
+ p(gleich(neu.repFeld,klassisch.repFeld,["minHeight","fontSize"])&&zahl(neu.repFeld.minHeight)>0,
+   "A1 Regierapport: Feld im Kopfteil hat dieselbe Groesse wie klassisch",
+   {neu:neu.repFeld,klassisch:klassisch.repFeld});
  p(neu.repKarte&&zahl(neu.repKarte.borderRadius)>=12,
    "A2 Regierapport: Karten im neuen Rundungsmass",neu.repKarte);
  // Gross geschrieben waren die Titel schon immer (h2 in css/01-basis.css).
@@ -152,8 +165,9 @@ const messenDruck=page=>page.evaluate(()=>{
  // und der kleineren, fetteren Schrift - daran wird gemessen.
  p(neu.repTitel&&zahl(neu.repTitel.borderBottomWidth)===0&&zahl(neu.repTitel.fontSize)<=12,
    "A3 Regierapport: Abschnittstitel ohne Unterstreichung, kleiner und fetter",neu.repTitel);
- p(neu.repKnopf&&zahl(neu.repKnopf.minHeight)>=48,
-   "A4 Regierapport: Speichern-Knopf mindestens 48px hoch",neu.repKnopf);
+ p(gleich(neu.repKnopf,klassisch.repKnopf,["minHeight","fontSize"]),
+   "A4 Regierapport: der Speichern-Knopf ebenso",
+   {neu:neu.repKnopf,klassisch:klassisch.repKnopf});
  // Die Gegenprobe zur Feldregel - hier ist v3.152 beim ersten Versuch
  // gescheitert, weil die allgemeine Regel die spezifischere war.
  p(neu.repZeilenfeld&&zahl(neu.repZeilenfeld.minHeight)<=40&&zahl(neu.repZeilenfeld.fontSize)<16,
@@ -164,26 +178,32 @@ const messenDruck=page=>page.evaluate(()=>{
    "A7 Regierapport: der runde Info-Knopf bleibt ein Zeichen, kein Bedienknopf",neu.repInfo);
 
  // ---- B  Ausmass, Offerte, Leistung --------------------------------------
- p(neu.amFeld&&zahl(neu.amFeld.minHeight)>=48&&zahl(neu.amFeld.fontSize)>=16,
-   "B1 Ausmass: Feld im Kopfteil mindestens 48px hoch und 16px gross",neu.amFeld);
+ p(gleich(neu.amFeld,klassisch.amFeld,["minHeight","fontSize"])&&zahl(neu.amFeld.minHeight)>0,
+   "B1 Ausmass: Feld im Kopfteil unveraendert in der Groesse",
+   {neu:neu.amFeld,klassisch:klassisch.amFeld});
  p(neu.amZeilenfeld&&zahl(neu.amZeilenfeld.minHeight)<=40&&zahl(neu.amZeilenfeld.fontSize)<16,
    "B2 Ausmass: Feld IN der Positionszeile bleibt schmal",neu.amZeilenfeld);
- p(neu.angFeld&&zahl(neu.angFeld.minHeight)>=48&&zahl(neu.angFeld.fontSize)>=16,
-   "B3 Offerte: Feld im Kopfteil mindestens 48px hoch und 16px gross",neu.angFeld);
+ p(gleich(neu.angFeld,klassisch.angFeld,["minHeight","fontSize"])&&zahl(neu.angFeld.minHeight)>0,
+   "B3 Offerte: Feld im Kopfteil unveraendert in der Groesse",
+   {neu:neu.angFeld,klassisch:klassisch.angFeld});
  p(neu.angZeilenfeld&&zahl(neu.angZeilenfeld.minHeight)<=40&&zahl(neu.angZeilenfeld.fontSize)<16,
    "B4 Offerte: Feld IN der Positionszeile bleibt schmal",neu.angZeilenfeld);
- p(neu.leiFeld&&zahl(neu.leiFeld.minHeight)>=48&&zahl(neu.leiFeld.fontSize)>=16,
-   "B5 Leistung: Feld mindestens 48px hoch und 16px gross",neu.leiFeld);
- p(neu.leiWahl&&zahl(neu.leiWahl.minHeight)>=48&&zahl(neu.leiWahl.fontSize)>=16,
-   "B6 Leistung: Auswahlfeld ebenso - es hat keine Tabelle, die auszunehmen waere",neu.leiWahl);
+ p(gleich(neu.leiFeld,klassisch.leiFeld,["minHeight","fontSize"])&&zahl(neu.leiFeld.minHeight)>0,
+   "B5 Leistung: Feld unveraendert in der Groesse",
+   {neu:neu.leiFeld,klassisch:klassisch.leiFeld});
+ p(gleich(neu.leiWahl,klassisch.leiWahl,["minHeight","fontSize"]),
+   "B6 Leistung: Auswahlfeld ebenso",{neu:neu.leiWahl,klassisch:klassisch.leiWahl});
 
  // ---- C  Die Knopf-Labels ------------------------------------------------
- p(neu.measFoto&&zahl(neu.measFoto.minHeight)>=48&&zahl(neu.measFoto.fontSize)>=15,
-   "C1 Massaufnahme: 'Foto aufnehmen' ist ein Knopf, kein Kleingedrucktes",neu.measFoto);
- p(neu.repFoto&&zahl(neu.repFoto.minHeight)>=48&&zahl(neu.repFoto.fontSize)>=15,
-   "C2 Regierapport: dasselbe fuer die beiden Foto-Knoepfe",neu.repFoto);
- p(neu.angPdf&&zahl(neu.angPdf.minHeight)>=48&&zahl(neu.angPdf.fontSize)>=15,
-   "C3 Offerte: dasselbe fuer 'PDF hochladen'",neu.angPdf);
+ p(neu.measFoto&&klassisch.measFoto&&zahl(neu.measFoto.fontSize)>=zahl(klassisch.measFoto.fontSize),
+   "C1 Massaufnahme: 'Foto aufnehmen' wird nicht KLEINER als klassisch",
+   {neu:neu.measFoto,klassisch:klassisch.measFoto});
+ p(neu.repFoto&&klassisch.repFoto&&zahl(neu.repFoto.fontSize)>=zahl(klassisch.repFoto.fontSize),
+   "C2 Regierapport: dasselbe fuer die beiden Foto-Knoepfe",
+   {neu:neu.repFoto,klassisch:klassisch.repFoto});
+ p(neu.angPdf&&klassisch.angPdf&&zahl(neu.angPdf.fontSize)>=zahl(klassisch.angPdf.fontSize),
+   "C3 Offerte: dasselbe fuer 'PDF hochladen'",
+   {neu:neu.angPdf,klassisch:klassisch.angPdf});
  // Und die Gegenprobe dazu: eine ECHTE Feldbeschriftung bleibt klein.
  p(neu.measLabel&&zahl(neu.measLabel.fontSize)<13,
    "C4 Eine echte Feldbeschriftung bleibt klein - die Ausnahme greift nicht zu weit",neu.measLabel);
@@ -192,16 +212,18 @@ const messenDruck=page=>page.evaluate(()=>{
  await page.evaluate(()=>a2Setzen(false));
  await page.waitForTimeout(300);
  const alt=await messen(page);
- p(alt.repFeld&&zahl(alt.repFeld.minHeight)<48,
-   "D1 klassisch: das Rapportfeld hat seine alte Hoehe",alt.repFeld);
+ p(alt.repKarte&&neu.repKarte&&alt.repKarte.borderRadius!==neu.repKarte.borderRadius,
+   "D1 klassisch: die Karten sehen anders aus als in der neuen Ansicht",
+   {klassisch:alt.repKarte,neu:neu.repKarte});
  p(alt.repTitel&&zahl(alt.repTitel.borderBottomWidth)>0&&zahl(alt.repTitel.fontSize)===13,
    "D2 klassisch: der Abschnittstitel behaelt Unterstreichung und 13px",alt.repTitel);
- p(alt.amFeld&&zahl(alt.amFeld.minHeight)<48&&alt.angFeld&&zahl(alt.angFeld.minHeight)<48
-   &&alt.leiFeld&&zahl(alt.leiFeld.minHeight)<48,
-   "D3 klassisch: Ausmass, Offerte und Leistung unveraendert",
+ p(gleich(alt.amFeld,neu.amFeld,["minHeight","fontSize"])
+   &&gleich(alt.angFeld,neu.angFeld,["minHeight","fontSize"])
+   &&gleich(alt.leiFeld,neu.leiFeld,["minHeight","fontSize"]),
+   "D3 klassisch: Ausmass, Offerte und Leistung messen sich gleich",
    {am:alt.amFeld,ang:alt.angFeld,lei:alt.leiFeld});
  p(alt.repFoto&&alt.measFoto&&alt.repFoto.fontSize==="12px"&&alt.measFoto.fontSize==="12px",
-   "D4 klassisch: die Foto-Knoepfe stehen auf ihren alten 12px",
+   "D4 klassisch: die Foto-Knoepfe stehen auf ihren 12px",
    {rep:alt.repFoto,meas:alt.measFoto});
  p(alt.repZeilenfeld&&neu.repZeilenfeld
    &&alt.repZeilenfeld.minHeight!==undefined,

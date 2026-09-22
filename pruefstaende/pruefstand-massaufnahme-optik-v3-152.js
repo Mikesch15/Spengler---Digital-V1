@@ -1,15 +1,17 @@
 // Prueft das neue Aussehen des MASSAUFNAHME-FORMULARS (v3.152).
 //
 // WAS HIER GEPRUEFT WIRD
-//   A  Mit eingeschalteter neuer Ansicht sind Felder mindestens 48px hoch
-//      und 16px gross (darunter zoomt iOS beim Hineintippen), und die
-//      Registerknoepfe sind fingergerecht.
-//      A4 ist die wichtige Gegenprobe: Felder IN TABELLEN bleiben schmal.
-//      Im Formular stehen dreizehn Tabellen (Stueck- und Zuschnittlisten)
-//      mit mehreren Feldern je Zeile - 48px wuerden sie unlesbar machen.
-//      Beim ersten Versuch griff diese Ausnahme NICHT, weil die allgemeine
-//      Regel spezifischer war; gemeldet hat das genau diese Messung.
-//   B  Gegenprobe: in der klassischen Ansicht ist alles unveraendert.
+//   A  GROESSE. Seit v3.156 gilt: die neue Ansicht aendert die GROESSE von
+//      Feldern und Knoepfen NICHT. v3.152 hatte sie auf 48px/16px
+//      vergroessert (Finger mit Handschuh, iOS-Zoom); der Anwender hat das
+//      am fertigen Bildschirm beurteilt und als unuebersichtlich
+//      zurueckgewiesen. Gemessen wird deshalb jetzt die Gleichheit mit der
+//      klassischen Ansicht - und zwar in derselben Sitzung, damit nicht
+//      eine feste Zahl im Pruefstand steht, die beim naechsten Umbau des
+//      Grundstils stillschweigend falsch wird.
+//   B  AUSSEHEN. Geaendert ist die Form: rundere Ecken an Feldern und
+//      Registerknoepfen. Das ist die Gegenprobe zu A - ohne sie waere A
+//      auch dann gruen, wenn die neue Ansicht gar nichts mehr taete.
 //
 // WAS HIER NICHT GEPRUEFT WIRD
 //   Die Fachlogik des Formulars - Masse, Abwicklung, Zuschnitt. Daran
@@ -32,7 +34,8 @@ const messen=page=>page.evaluate(()=>{
   feld:g('#measurementEditModal .grid input:not([type=checkbox])',["minHeight","fontSize","borderRadius"]),
   tabellenfeld:g('#measurementEditModal table input',["minHeight","fontSize"]),
   register:g('#measurementEditModal .ra-register-knopf',["minHeight","borderRadius"]),
-  info:g('#measurementEditModal .hilfe-knopf',["minHeight"])
+  info:g('#measurementEditModal .hilfe-knopf',["minHeight"]),
+  karte:g('#measurementEditModal .card',["borderRadius","boxShadow"])
  };
 });
 (async()=>{
@@ -58,20 +61,41 @@ const messen=page=>page.evaluate(()=>{
  });
  await page.waitForTimeout(500);
  const neu=await messen(page);
- p(neu.feld&&parseInt(neu.feld.minHeight)>=48,"A1 Felder sind mindestens 48px hoch",neu.feld);
- p(neu.feld&&parseInt(neu.feld.fontSize)>=16,"A2 und mindestens 16px gross",neu.feld);
- p(neu.register&&parseInt(neu.register.minHeight)>=44,"A3 die Registerknoepfe sind fingergerecht",neu.register);
- p(!neu.tabellenfeld||parseInt(neu.tabellenfeld.minHeight)<48,
-   "A4 Felder IN TABELLEN bleiben schmal - sonst platzt die Stueckliste",neu.tabellenfeld);
+ // Gegenprobe zuerst: dieselben Messungen in der klassischen Ansicht.
+ await page.evaluate(()=>{a2Setzen(false)});
+ await page.waitForTimeout(200);
+ const alt=await messen(page);
+ await page.evaluate(()=>{a2Setzen(true)});
+ await page.waitForTimeout(200);
+
+ // A  GROESSE: in beiden Ansichten dieselbe.
+ p(neu.feld&&alt.feld&&neu.feld.minHeight===alt.feld.minHeight
+   &&neu.feld.fontSize===alt.feld.fontSize,
+   "A1 Feldhoehe und Schriftgroesse sind in beiden Ansichten gleich",{neu:neu.feld,alt:alt.feld});
+ p(neu.register&&alt.register&&neu.register.minHeight===alt.register.minHeight,
+   "A2 auch die Registerknoepfe behalten ihre Hoehe",{neu:neu.register,alt:alt.register});
+ p(neu.tabellenfeld&&alt.tabellenfeld&&neu.tabellenfeld.minHeight===alt.tabellenfeld.minHeight,
+   "A3 und die Felder in den Stuecklisten erst recht",{neu:neu.tabellenfeld,alt:alt.tabellenfeld});
+ // Gegenprobe, dass die Messung ueberhaupt etwas sieht: sonst waere A1 bis
+ // A3 auch dann gruen, wenn gar kein Feld gefunden wurde.
+ p(neu.feld&&parseInt(neu.feld.minHeight)>0&&parseInt(neu.feld.fontSize)>0,
+   "A4 die Messung hat wirklich ein Feld gefunden",neu.feld);
  p(!neu.info||parseInt(neu.info.minHeight)<44,"A5 der runde Info-Knopf bleibt klein",neu.info);
 
- // Gegenprobe: klassische Ansicht unveraendert
- await page.evaluate(()=>{a2Setzen(false)});
- await page.waitForTimeout(150);
- const alt=await messen(page);
- p(alt.feld&&parseInt(alt.feld.minHeight)<48,"B1 klassisch: die Feldhoehe ist unveraendert",alt.feld);
- p(alt.register&&alt.register.borderRadius!==neu.register.borderRadius,
-   "B2 klassisch: die Registerknoepfe sind unveraendert",{alt:alt.register,neu:neu.register});
+ // B  AUSSEHEN: geaendert ist die Form, nicht das Mass.
+ p(neu.register&&alt.register&&neu.register.borderRadius!==alt.register.borderRadius,
+   "B1 die Registerknoepfe sind runder als in der klassischen Ansicht",
+   {neu:neu.register,alt:alt.register});
+ // Die Felder selbst haben schon in der klassischen Ansicht 9px Rundung -
+ // an ihnen ist nichts mehr zu unterscheiden, und eine erfundene
+ // Abweichung waere kein Vertrag. Gemessen wird deshalb die Karte, die sie
+ // traegt: sie bekommt in der neuen Ansicht einen weichen Schatten.
+ // (Ihre Rundung ist uebrigens KLEINER als in der klassischen Ansicht,
+ // 14px statt 16px - gemeldet von genau dieser Messung, nachdem hier
+ // zuerst das Gegenteil behauptet worden war.)
+ p(neu.karte&&alt.karte&&neu.karte.boxShadow!==alt.karte.boxShadow
+   &&neu.karte.boxShadow!=="none",
+   "B2 die Karten tragen den Schatten der neuen Ansicht",{neu:neu.karte,alt:alt.karte});
 
  p(fehler.length===0,"C1 keine Javascript-Fehler",fehler.slice(0,3));
  console.log("\n  "+ok+" ok, "+fail+" fehlgeschlagen");
