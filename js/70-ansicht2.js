@@ -311,8 +311,15 @@ let a2WerkGeladen=false;       // schon geladen?
 let a2WerkLaeuft=false;        // laeuft gerade?
 let a2WerkFehler="";
 
+// Ob es die Werkstatt ueberhaupt gibt, entscheidet NICHT diese Datei.
+// werkstattKnopfAktualisieren() (js/51) blendet navWerkstatt ein und aus und
+// beruecksichtigt dabei bereits das Modul und die Rechte. Hier wird genau
+// dasselbe abgelesen wie in der unteren Leiste - haette diese Stelle eine
+// eigene Bedingung, koennte die Leiste "Werkstatt" anbieten, waehrend die
+// Startseite die Rubrik weglaesst. Genau das ist beim ersten Versuch
+// passiert und wurde vom Pruefstand v3.150 gemeldet.
 function a2WerkstattSichtbar(){
- return a2KnopfSichtbar("navWerkstatt")&&a2Modul("werkstatt");
+ return a2KnopfSichtbar("navWerkstatt");
 }
 // Die Zeilen der Werkstatt. Geladen hat sie werkLaden() (js/51) - hier wird
 // nur abgelesen.

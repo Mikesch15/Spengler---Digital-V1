@@ -255,17 +255,22 @@ const tab=(page,k)=>page.evaluate(k=>{
  await aufraeumen();
  await page.evaluate(()=>{if(typeof aufgabenNeuLaden==="function")return aufgabenNeuLaden()});
  await page.waitForTimeout(900);
+ // UMGESTELLT in v3.158: eine Aufgabe ist keine Karte mehr, sondern eine
+ // Zeile (.a2-zeile-reihe) mit dem Schritt-Knopf daneben. Gemessen wird
+ // dasselbe wie vorher - dass der Knopf nicht die ganze Breite frisst -,
+ // nur an der Stelle, an der die Aufgabe heute steht.
  const h=await page.evaluate(()=>{
-  const karte=document.querySelector(".a2-auf");
-  const knopf=karte&&karte.querySelector(".a2-knopf");
-  const zeile=document.querySelector(".a2-zeile");
-  return {karteBreit:karte?Math.round(karte.getBoundingClientRect().width):0,
+  const reihe=[...document.querySelectorAll("#a2Inhalt .a2-zeile-reihe")]
+   .find(r=>r.querySelector(".a2-zeile-tat"));
+  const knopf=reihe&&reihe.querySelector(".a2-zeile-tat");
+  const zeile=document.querySelector("#a2Inhalt .a2-zeile");
+  return {reiheBreit:reihe?Math.round(reihe.getBoundingClientRect().width):0,
           knopfBreit:knopf?Math.round(knopf.getBoundingClientRect().width):0,
           knopfHoch:knopf?Math.round(knopf.getBoundingClientRect().height):0,
           zeileHoch:zeile?Math.round(zeile.getBoundingClientRect().height):0};
  });
- p(h.knopfBreit>0&&h.knopfBreit<h.karteBreit*0.8,
-   "H1 der Knopf einer Aufgabe fuellt nicht mehr die ganze Karte",h);
+ p(h.knopfBreit>0&&h.knopfBreit<h.reiheBreit*0.6,
+   "H1 der Schritt-Knopf einer Aufgabe nimmt der Zeile nicht die Breite",h);
  // Die Zeile der einzelnen Massaufnahmen steht auf der PROJEKTSEITE, nicht
  // auf Heute. Auf Heute traegt dieselbe Klasse die Projektzeile mit
  // Status-Marke, die naturgemaess hoeher ist - daran gemessen zu haben war

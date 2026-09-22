@@ -116,15 +116,35 @@ const anmelden=page=>page.evaluate(()=>{
   oben:$("topUserBar").getClientRects().length>0,
   tabs:[...$("a2Leiste").querySelectorAll("button")].map(x=>x.getAttribute("data-a2-tab")),
   zahlen:[...document.querySelectorAll("#a2Inhalt .a2-zahl b")].map(x=>x.textContent),
-  karten:document.querySelectorAll("#a2Inhalt .a2-auf").length,
+  // v3.158: Aufgaben sind Zeilen, nicht mehr Karten. Die Zahl der offenen
+  // steht als Marke neben der Ueberschrift.
+  zeilen:document.querySelectorAll("#a2Inhalt .a2-zeile-reihe").length,
+  offenMarke:(()=>{const k=[...document.querySelectorAll("#a2Inhalt .a2-abschnitt-kopf")]
+    .find(x=>/Meine Aufgaben/.test(x.textContent));
+   const m=k&&k.querySelector(".a2-marke");return m?m.textContent.trim():""})(),
+  rubriken:[...document.querySelectorAll("#a2Inhalt .a2-abschnitt-kopf h2")]
+    .map(x=>x.textContent.replace(/\s+/g," ").trim().replace(/ i$/,"")),
   punkt:document.querySelector("#a2Leiste .a2-punkt")?document.querySelector("#a2Leiste .a2-punkt").textContent:""
  }));
  p(bb.gemerkt==="ja","B1 die Wahl wird pro Geraet gemerkt",bb);
  p(bb.a2&&!bb.nav&&!bb.version&&!bb.oben,"B2 neuer Schirm da, klassischer samt Kopfzeile aus",bb);
  p(JSON.stringify(bb.tabs)===JSON.stringify(["heute","projekte","werkstatt","lager","mehr"]),"B3 fuenf Register",bb.tabs);
- // erneut_freigeben UND ruesten sind in MW_SCHRITTE (js/44) beide "rot".
- p(JSON.stringify(bb.zahlen)===JSON.stringify(["2","2","2"]),"B4 Zahlenband 2 offen / 2 dringend / 2 Projekte",bb.zahlen);
- p(bb.karten===2,"B5 beide Aufgaben als Karte",bb);
+ // UMGESTELLT in v3.158. Bis dahin stand oben ein Band aus drei Zahlen
+ // (offen / jetzt dran / Projekte) und darunter jede Aufgabe als Karte.
+ // Die Startseite folgt jetzt dem Prototyp: die Zahl der offenen Aufgaben
+ // steht als Marke neben der Ueberschrift, und das Zahlenband zeigt die
+ // Werkstatt. Geloescht wird davon nichts - beides wird weiter gemessen,
+ // nur an seinem neuen Platz.
+ p(bb.offenMarke==="2 offen",
+   "B4 die Zahl der offenen Aufgaben steht neben der Ueberschrift",bb.offenMarke);
+ p(bb.zeilen===2,"B5 beide Aufgaben stehen als Zeile da",bb);
+ // Gegenprobe: die Seite hat die Gliederung des Prototyps. Ohne sie waeren
+ // B4 und B5 auch gruen, wenn ausser den Aufgaben nichts mehr da waere.
+ // Gemessen werden die RUBRIKEN, nicht die Werkstattzahlen: die kommen
+ // nachtraeglich (werkLaden laeuft asynchron) und waeren hier ein Wettlauf.
+ p(bb.rubriken.indexOf("Meine Aufgaben")>=0&&bb.rubriken.indexOf("Werkstatt heute")>=0
+   &&bb.rubriken.indexOf("Offene Projekte")>=0,
+   "B5b die Seite traegt die Rubriken des Prototyps",bb.rubriken);
  p(bb.punkt==="2","B6 die Zahl am Register Heute stimmt",bb);
 
  // Der Knopf einer Aufgabe muss GENAU die bestehende Funktion aufrufen.
