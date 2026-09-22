@@ -306,3 +306,118 @@ html.dark .a2-h-info{border-color:#27475c}
 /* Der neue Rahmen gehoert auf kein Papier - gedruckt wird aus den
    bestehenden Schirmen heraus, die ihre eigenen Druckregeln mitbringen. */
 @media print{#a2Kopf,#a2Leiste{display:none!important}}
+
+/* ==========================================================================
+   EINSTELLUNGEN IM NEUEN AUSSEHEN  (v3.151)
+   --------------------------------------------------------------------------
+   Rein optisch. Es wird keine Bedienlogik angefasst, kein Feld verschoben,
+   kein Abschnitt umgehaengt - nur Form, Farbe und Groesse. Insbesondere
+   bleiben die display-Regeln des Auf- und Zuklappens
+   (.settings-section-body / .settings-section.open) unberuehrt; sie
+   entscheiden, was sichtbar ist, und das ist keine Frage des Aussehens.
+
+   Alles haengt an html.a2-an: in der klassischen Ansicht sehen die
+   Einstellungen aus wie bisher, Zeichen fuer Zeichen.
+
+   Bewusst NUR die Einstellungen. Die grossen Erfassungsformulare
+   (Regierapport, Massaufnahme, Ausmass, Offerte) bleiben vorerst, wie sie
+   sind: ihre Tabellen haben je Zeile mehrere Eingabefelder, und ein
+   48px hohes Feld wuerde eine Rapportzeile auf das Doppelte aufblaehen.
+   ========================================================================== */
+
+/* ---- Register oben ------------------------------------------------------ */
+html.a2-an #settingsModal .settings-tabs{
+ border-bottom:0;gap:6px;margin:10px 0 16px;
+}
+html.a2-an #settingsModal .settings-tab{
+ min-height:40px;padding:8px 14px;border-radius:999px;
+ background:var(--card-bg);border:1px solid var(--line);color:var(--muted);
+ font-size:14px;font-weight:800;box-shadow:none;
+}
+html.a2-an #settingsModal .settings-tab.active{
+ background:var(--blue);border-color:var(--blue);color:#fff;
+}
+
+/* ---- Abschnitte als Karten ---------------------------------------------- */
+html.a2-an #settingsModal .settings-section{
+ border:1px solid var(--card-line);border-radius:14px;margin:0 0 10px;
+ background:var(--card-bg);box-shadow:var(--a2-schatten);
+}
+/* Der Kopf traegt keine eigene Flaeche mehr - die Karte ist die Flaeche.
+   Antippbar bleibt er unveraendert (cursor und data-toggle-section
+   stehen im bestehenden Markup). */
+html.a2-an #settingsModal .settings-section-head{
+ background:transparent;padding:14px;min-height:56px;
+}
+html.a2-an #settingsModal .settings-section-head h2{
+ font-size:15.5px;font-weight:800;letter-spacing:0;text-transform:none;
+ color:var(--ink);border-bottom:0;padding-bottom:0;
+}
+html.a2-an #settingsModal .settings-section-chevron{color:var(--muted)}
+/* Offen: eine feine Linie trennt Kopf und Inhalt - ohne sie klebt beides
+   aneinander, sobald der Kopf keine eigene Farbe mehr hat. */
+html.a2-an #settingsModal .settings-section.open .settings-section-head{
+ border-bottom:1px solid var(--card-line);
+}
+html.a2-an #settingsModal .settings-section-body{padding:14px}
+
+/* ---- Die aeussere Karte -------------------------------------------------- */
+html.a2-an #settingsModal .modalbox > .card{
+ border-radius:14px;box-shadow:var(--a2-schatten);border-color:var(--card-line);
+}
+/* Der Titel des Bildschirms. In der neuen Ansicht stehen Titel sonst in der
+   blauen Kopfzeile; die Einstellungen sind ein Dialog und haben keine, also
+   traegt ihn die Karte. Deshalb hier eine echte Ueberschrift statt der
+   kleinen blauen Grossbuchstaben-Zeile mit Trennlinie. */
+html.a2-an #settingsModal .modalbox > .card > h2{
+ font-size:18px;font-weight:800;letter-spacing:0;text-transform:none;
+ color:var(--ink);border-bottom:0;padding-bottom:0;margin:2px 0 4px;
+}
+
+/* Zwischenueberschriften INNERHALB eines Abschnitts bekommen die Schrift
+   der neuen Ansicht. Die Ueberschrift des Abschnittskopfs ist oben schon
+   eigens geregelt und faellt hier nicht darunter. */
+html.a2-an #settingsModal .settings-section-body h2{
+ font-size:12px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;
+ color:var(--muted);border-bottom:0;padding-bottom:0;margin:16px 0 9px;
+}
+html.a2-an #settingsModal .settings-section-body h2:first-child{margin-top:0}
+
+/* ---- Felder -------------------------------------------------------------- */
+/* 16px Schriftgroesse ist kein Geschmack: darunter zoomt iOS beim
+   Hineintippen in ein Feld automatisch hinein. */
+html.a2-an #settingsModal input,
+html.a2-an #settingsModal select,
+html.a2-an #settingsModal textarea{
+ min-height:48px;border-radius:11px;padding:11px 13px;font-size:16px;
+ background:var(--input-bg);border-color:var(--line);
+}
+html.a2-an #settingsModal textarea{min-height:88px}
+html.a2-an #settingsModal input:focus,
+html.a2-an #settingsModal select:focus,
+html.a2-an #settingsModal textarea:focus{
+ outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26;
+}
+html.a2-an #settingsModal input[type="checkbox"],
+html.a2-an #settingsModal input[type="radio"]{
+ min-height:0;width:auto;padding:0;
+}
+html.a2-an #settingsModal label{
+ font-size:10.5px;letter-spacing:.05em;margin-bottom:5px;
+}
+
+/* ---- Knoepfe ------------------------------------------------------------- */
+html.a2-an #settingsModal .bar > button,
+html.a2-an #settingsModal .bar > .hilfe-pdf{
+ min-height:48px;border-radius:11px;padding:12px 18px;font-size:15px;
+ display:inline-flex;align-items:center;justify-content:center;gap:7px;
+}
+/* Der kleine runde Info-Knopf ist kein Bedienknopf, sondern ein Zeichen -
+   er behaelt seine Groesse. Ebenso die Knoepfe in dichten Katalogzeilen:
+   dort stehen mehrere nebeneinander in einer Tabellenzeile. */
+html.a2-an #settingsModal .hilfe-knopf,
+html.a2-an #settingsModal table button,
+html.a2-an #settingsModal .settingrow button,
+html.a2-an #settingsModal .settingrow-mat button{
+ min-height:0;border-radius:9px;padding:6px 10px;font-size:13px;
+}
