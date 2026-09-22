@@ -139,7 +139,10 @@ const WIN_CHANGELOG={
  "3.148":["Beim Anlegen eines Mitarbeiterkontos lässt sich jetzt gleich eine E-Mail-Adresse angeben. Sie wird zur zusätzlichen Anmeldeadresse, und die Zugangsdaten gehen zusätzlich per E-Mail hinaus. Bisher liess sie sich erst nachtragen – und dann kam keine E-Mail mehr, weil der Versand am Anlegen hängt.",
   "Lagerverwaltung: wird ein Produkt samt neuer Materialposition angelegt, darf die Position jetzt anders heissen als das Produkt („Stahlblech svz\" gegenüber „Stahlblech svz 0,6 × 670 Rolle\"). Voreingestellt bleibt es wie bisher bei einer Bezeichnung für beide."],
  "3.149":["Neu: aus den Positionen einer Offerte lassen sich die Massaufnahmen des Auftrags ableiten. Ein Dialog schlägt zu jeder Position die passende Massaufnahme-Art vor – „Dachrinne halbrund 333mm\" wird zur Dachrinne –, und die angehakten entstehen auf einen Schlag im Projekt: leer, aber mit Titel, Art und dem Bezug zur Offerte.",
-  "Was die App nicht einordnen kann, sagt sie und schlägt „Skizze/Foto\" vor; was im Projekt schon unter demselben Titel steht, wird nicht noch einmal angehakt. Für eine einzelne Position gibt es den Knopf 📐 direkt in der Positionszeile."]
+  "Was die App nicht einordnen kann, sagt sie und schlägt „Skizze/Foto\" vor; was im Projekt schon unter demselben Titel steht, wird nicht noch einmal angehakt. Für eine einzelne Position gibt es den Knopf 📐 direkt in der Positionszeile."],
+ "3.150":["Neu: eine zweite Ansicht, die nach dem Arbeitsablauf gegliedert ist statt nach Modulen – unten eine Leiste mit Heute, Projekte, Werkstatt, Lager und Mehr, und als Startseite die eigenen offenen Aufgaben. Einzuschalten auf der Startseite mit „✨ Neue Ansicht testen“.",
+  "Im Projekt zeigt eine Ablaufleiste auf einen Blick, wo es steht: Offerte, Massaufnahme, Freigabe, Rüsten, Montage, Ausmass.",
+  "Die klassische Ansicht bleibt vollständig erhalten. Beide arbeiten mit denselben Formularen und denselben Daten – zurück geht es jederzeit unter „Mehr“."]
 };
 
 function winVersionVergleich(a,b){

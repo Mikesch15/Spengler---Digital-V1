@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.149.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.150.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -32,7 +32,14 @@ einem Projekt.</p>
 <ul><li><b>Projekte</b> öffnen</li>
 <li>Projekt anlegen oder auswählen</li>
 <li>Im <b>Cockpit</b> die Arbeit anlegen und wiederfinden</li></ul>
-<p>Nach jeder Arbeit landest du wieder im Cockpit desselben Projekts.</p>`},
+<p>Nach jeder Arbeit landest du wieder im Cockpit desselben Projekts.</p>
+<p><b>Zwei Ansichten (seit v3.150).</b> Mit <b>✨ Neue Ansicht testen</b> wechselst
+du auf eine Oberfläche, die nach dem Arbeitsablauf gegliedert ist: unten eine
+Leiste mit Heute, Projekte, Werkstatt, Lager und Mehr, und als Startseite deine
+offenen Aufgaben. Es sind zwei Ansichten derselben App – dieselben Formulare,
+dieselben Daten, dieselben Rechte. Zurück geht es jederzeit unter
+<b>Mehr → Zurück zur klassischen Ansicht</b>; jedes Gerät merkt sich seine Wahl
+für sich.</p>`},
 
 // ---- Arbeitsworkflow (v3.05) --------------------------------------------
 "aufgaben":{titel:"Meine offenen Aufgaben",text:`

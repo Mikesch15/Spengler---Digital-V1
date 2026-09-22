@@ -1,0 +1,274 @@
+// Prueft die ANSICHT 2.0 (v3.150) - die zweite Oberflaeche fuer dieselbe App.
+//
+// WAS HIER GEPRUEFT WIRD
+//   A  Ohne Schalter ist die klassische Ansicht unveraendert da.
+//   B  Mit Schalter erscheint die neue Ansicht mit ihren Registern.
+//   C  Die Listen kommen aus den Daten der App, nicht aus eigenen.
+//   D  Die Ablaufleiste rechnet richtig - besonders im leeren Fall.
+//   E  Der Weg zurueck stellt den vorherigen Zustand wirklich wieder her.
+//   F  Gegenproben: kein zweiter Schreibweg, keine zweite Rechtepruefung,
+//      keine Stilregel, die ohne den Schalter wirkt.
+//
+// WAS HIER NICHT GEPRUEFT WIRD
+//   Ob die Datenbank die Regeln durchsetzt. Diese Ansicht schreibt nichts;
+//   sie ruft dieselben Funktionen wie die klassische Ansicht, und die sind
+//   an ihrer eigenen Stelle geprueft. Genau das wird in F1/F2 belegt.
+//
+// Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-ansicht2-v3-150.js
+const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
+const fs=require("fs");
+const path=require("path");
+const APP="file://"+path.join(process.cwd(),"index.html");
+let ok=0,fail=0;
+const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,400):""))}};
+
+const STUB=`window.supabase={createClient:()=>({
+ auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},
+ rpc:async()=>({data:null,error:null}),
+ from:()=>{const f={};['select','order','limit','range','eq','in','not'].forEach(k=>f[k]=()=>f);
+  f.maybeSingle=async()=>({data:null,error:null});
+  f.then=(r)=>Promise.resolve({data:[],error:null}).then(r);return f},
+ storage:{from:()=>({createSignedUrl:async()=>({data:null,error:null})})}
+})};`;
+
+// Die Anmeldung nachstellen. Bewusst nur das, was die neue Ansicht liest -
+// so faellt auf, wenn sie heimlich noch etwas anderes braucht.
+const anmelden=page=>page.evaluate(()=>{
+ currentProfile={id:"u1",first_name:"Mike",last_name:"Ledermann",role:"admin"};
+ companyName="Muster Spenglerei AG";
+ allProjects=[
+  {id:1,name:"Neubau Hofmatt",object:"Hofmattstrasse 4, 3400 Burgdorf",order_no:"26-011",customer:"Hofmatt AG",status:"in_arbeit",archived:false,updated_at:"2026-09-20T10:00:00Z"},
+  {id:2,name:"Sanierung Kirche",object:"Kirchweg 1, 3550 Langnau",order_no:"26-004",customer:"Kirchgemeinde",status:"offen",archived:false,updated_at:"2026-09-18T10:00:00Z"},
+  {id:3,name:"Altbau",object:"Bahnhofstrasse 9, 3000 Bern",order_no:"25-099",customer:"X AG",status:"abgeschlossen",archived:true,updated_at:"2026-01-01T10:00:00Z"}
+ ];
+ aufgabenListe=[
+  {art:"erneut_freigeben",m:{id:11,project_id:1,type:"kamin_einfassung",title:"Kamin Ost",workflow_status:"in_bearbeitung",freigabe_verfallen:true}},
+  {art:"ruesten",m:{id:12,project_id:2,type:"rinne_halbrund",title:"Rinne Nord",workflow_status:"zu_ruesten"}}
+ ];
+ $("authScreen").hidden=true;$("appRoot").hidden=false;$("startScreen").hidden=false;
+ if($("navWerkstatt"))$("navWerkstatt").hidden=false;
+ if($("navLagerverwaltung"))$("navLagerverwaltung").hidden=false;
+});
+
+(async()=>{
+ const b=await chromium.launch({executablePath:chromePfad()});
+ const page=await b.newPage({viewport:{width:390,height:844}});
+ const fehler=[];
+ page.on("pageerror",e=>fehler.push(String(e)));
+ page.on("console",m=>{
+  if(m.type()!=="error")return;
+  // Ohne Netz laedt die Pruefumgebung cdn.jsdelivr.net nicht (Supabase und
+  // xlsx). Das ist eine Grenze der Umgebung, kein Fehler der App - und es
+  // ist genau diese eine Meldung, die ausgenommen wird, nichts sonst.
+  if(/ERR_TUNNEL_CONNECTION_FAILED|Failed to load resource/.test(m.text()))return;
+  fehler.push("console: "+m.text());
+ });
+ await page.addInitScript(STUB);
+ await page.goto(APP);
+ await page.waitForFunction(()=>typeof a2Aktiv==="function");
+ await anmelden(page);
+
+ // ===== A  Ohne Schalter ist die klassische Ansicht unveraendert ==========
+ let a=await page.evaluate(()=>({
+  aktiv:a2Aktiv(),
+  klasse:document.documentElement.classList.contains("a2-an"),
+  a2:$("a2Screen").getClientRects().length>0,
+  nav:$("startNav").getClientRects().length>0,
+  ein:$("a2Ein").getClientRects().length>0,
+  ablauf:$("a2Ablauf").hidden
+ }));
+ p(a.aktiv===false,"A1 Vorgabe ist die klassische Ansicht",a);
+ p(!a.klasse&&!a.a2,"A2 der neue Schirm ist unsichtbar",a);
+ p(a.nav,"A3 die klassische Startnavigation ist da",a);
+ p(a.ein,"A4 der Einstiegsknopf ist da",a);
+ p(a.ablauf,"A5 die Ablaufleiste im Cockpit ist aus",a);
+
+ // ===== B  Mit Schalter =====================================================
+ await page.click("#a2Ein");
+ let bb=await page.evaluate(()=>({
+  gemerkt:localStorage.getItem("sd_ansicht2"),
+  a2:$("a2Screen").getClientRects().length>0,
+  nav:$("startNav").getClientRects().length>0,
+  version:$("appVersion").getClientRects().length>0,
+  oben:$("topUserBar").getClientRects().length>0,
+  tabs:[...$("a2Leiste").querySelectorAll("button")].map(x=>x.getAttribute("data-a2-tab")),
+  zahlen:[...document.querySelectorAll("#a2Inhalt .a2-zahl b")].map(x=>x.textContent),
+  karten:document.querySelectorAll("#a2Inhalt .a2-auf").length,
+  punkt:document.querySelector("#a2Leiste .a2-punkt")?document.querySelector("#a2Leiste .a2-punkt").textContent:""
+ }));
+ p(bb.gemerkt==="ja","B1 die Wahl wird pro Geraet gemerkt",bb);
+ p(bb.a2&&!bb.nav&&!bb.version&&!bb.oben,"B2 neuer Schirm da, klassischer samt Kopfzeile aus",bb);
+ p(JSON.stringify(bb.tabs)===JSON.stringify(["heute","projekte","werkstatt","lager","mehr"]),"B3 fuenf Register",bb.tabs);
+ // erneut_freigeben UND ruesten sind in MW_SCHRITTE (js/44) beide "rot".
+ p(JSON.stringify(bb.zahlen)===JSON.stringify(["2","2","2"]),"B4 Zahlenband 2 offen / 2 dringend / 2 Projekte",bb.zahlen);
+ p(bb.karten===2,"B5 beide Aufgaben als Karte",bb);
+ p(bb.punkt==="2","B6 die Zahl am Register Heute stimmt",bb);
+
+ // Der Knopf einer Aufgabe muss GENAU die bestehende Funktion aufrufen.
+ await page.evaluate(()=>{window.__ruf=[];aufgabeAusfuehren=async(art,id)=>{window.__ruf.push([art,String(id)])}});
+ await page.click('[data-a2-aufgabe="ruesten"]');
+ let ruf=await page.evaluate(()=>window.__ruf);
+ p(JSON.stringify(ruf)===JSON.stringify([["ruesten","12"]]),"B7 der Knopf ruft aufgabeAusfuehren('ruesten',12) - kein eigener Weg",ruf);
+
+ // ===== C  Projekte =========================================================
+ await page.click('[data-a2-tab="projekte"]');
+ let c=await page.evaluate(()=>({
+  zeilen:document.querySelectorAll("#a2ProjListe .a2-zeile").length,
+  text:$("a2ProjListe").textContent.replace(/\s+/g," "),
+  feld:!!$("a2Suche")
+ }));
+ p(c.zeilen===2,"C1 nur die zwei nicht archivierten Projekte",c);
+ p(!c.text.includes("Bahnhofstrasse"),"C2 das archivierte Projekt fehlt",c.text.slice(0,200));
+ p(c.text.includes("Hofmattstrasse 4"),"C3 die Adresse ist der Haupttitel (projektTitel)",c.text.slice(0,200));
+
+ await page.fill("#a2Suche","kirch");
+ let c2=await page.evaluate(()=>({
+  zeilen:document.querySelectorAll("#a2ProjListe .a2-zeile").length,
+  fokus:document.activeElement?document.activeElement.id:""
+ }));
+ p(c2.zeilen===1,"C4 Suche 'kirch' findet genau ein Projekt",c2);
+ p(c2.fokus==="a2Suche","C5 das Suchfeld behaelt beim Tippen den Fokus",c2);
+
+ // Ein Projekt oeffnet das ECHTE Cockpit - und sein Zurueck-Knopf fuehrt
+ // wieder in die neue Ansicht statt in die klassische Projektliste.
+ await page.click('[data-a2-projekt="2"]');
+ let c6=await page.evaluate(()=>({
+  cockpit:!$("projectCockpitModal").hidden,
+  titel:$("cockpitTitle").textContent,
+  // Die Startseite bleibt liegen - das Cockpit deckt sie als .modal zu.
+  startNochDa:!$("startScreen").hidden
+ }));
+ p(c6.cockpit,"C6 Tippen auf ein Projekt oeffnet das bestehende Cockpit",c6);
+ p(c6.startNochDa,"C6b die Startseite wird dabei nicht ausgeblendet",c6);
+ await page.click("#cockpitBack");
+ let c7=await page.evaluate(()=>({
+  cockpit:!$("projectCockpitModal").hidden,
+  projektListe:!$("projectsModal").hidden,
+  a2:$("a2Screen").getClientRects().length>0,
+  seite:a2Zustand.seite
+ }));
+ p(!c7.cockpit&&!c7.projektListe&&c7.a2,"C7 Zurueck fuehrt in die neue Ansicht, nicht in die klassische Liste",c7);
+ p(c7.seite==="projekte","C7b und zwar auf die Seite, von der man kam",c7);
+
+ // Bricht das Cockpit ab (unbekannte Projekt-ID), darf keine leere Seite
+ // zurueckbleiben - das war der Fehler, den C6b verhindert.
+ await page.evaluate(()=>{window.__cockpit=[];openProjectCockpit=async id=>{window.__cockpit.push(id)}});
+ await page.click('[data-a2-projekt="2"]');
+ let co=await page.evaluate(()=>({ruf:window.__cockpit,a2:$("a2Screen").getClientRects().length>0}));
+ p(JSON.stringify(co.ruf)===JSON.stringify([2]),"C8 es wird openProjectCockpit(2) gerufen - kein eigener Weg",co);
+ p(co.a2,"C8b oeffnet sich nichts, bleibt die Liste stehen",co);
+
+ // ===== D  Ablaufleiste =====================================================
+ // D1 ist der Fall, an dem eine naive Fassung scheitert: OHNE Massaufnahmen
+ // erfuellt "jede ist montiert" die Bedingung leer - das Projekt stuende
+ // faelschlich ganz hinten im Ablauf.
+ let d1=await page.evaluate(()=>{
+  projectMeasurementsCache=[];projectAngeboteCache=[];projectAusmassCache=[];
+  if($("cockpitStandAngeboteZeile"))$("cockpitStandAngeboteZeile").hidden=false;
+  a2AblaufZeichnen();
+  return {stand:a2AblaufStand(),
+   fertig:[...document.querySelectorAll("#a2Ablauf .ist-fertig")].length,
+   jetzt:document.querySelector("#a2Ablauf .ist-jetzt .a2-ablauf-text").textContent};
+ });
+ p(d1.fertig===0,"D1 ohne Massaufnahmen ist keine Station fertig (leere Menge)",d1);
+ p(d1.jetzt==="Offerte","D1b die erste offene Station ist die Offerte",d1);
+ p(d1.stand.montage===false&&d1.stand.ruesten===false,"D1c weder Ruesten noch Montage gelten als erledigt",d1.stand);
+
+ let d2=await page.evaluate(()=>{
+  projectAngeboteCache=[{id:1}];
+  projectMeasurementsCache=[
+   {id:1,workflow_status:"geruestet"},
+   {id:2,workflow_status:"zu_ruesten"}     // die schwaechste Station entscheidet
+  ];
+  projectAusmassCache=[];
+  a2AblaufZeichnen();
+  return {stand:a2AblaufStand(),
+   jetzt:document.querySelector("#a2Ablauf .ist-jetzt .a2-ablauf-text").textContent};
+ });
+ p(d2.stand.freigabe===true&&d2.stand.ruesten===false,"D2 eine noch nicht geruestete Massaufnahme haelt das ganze Projekt",d2.stand);
+ p(d2.jetzt==="Rüsten","D2b die aktuelle Station ist Ruesten",d2);
+
+ let d3=await page.evaluate(()=>{
+  projectMeasurementsCache=[{id:1,workflow_status:"freigegeben",freigabe_verfallen:true}];
+  a2AblaufZeichnen();
+  return a2AblaufStand();
+ });
+ p(d3.freigabe===false,"D3 eine verfallene Freigabe ist keine Freigabe",d3);
+
+ let d4=await page.evaluate(()=>{
+  workflowAktiv=false;
+  a2AblaufZeichnen();
+  const t=[...document.querySelectorAll("#a2Ablauf .a2-ablauf-text")].map(x=>x.textContent);
+  workflowAktiv=true;
+  return t;
+ });
+ p(d4.length===3&&d4.indexOf("Rüsten")<0,"D4 ohne Arbeitsablauf gibt es nur drei Stationen",d4);
+
+ let d5=await page.evaluate(()=>{
+  if($("cockpitStandAngeboteZeile"))$("cockpitStandAngeboteZeile").hidden=true;
+  a2AblaufZeichnen();
+  const t=[...document.querySelectorAll("#a2Ablauf .a2-ablauf-text")].map(x=>x.textContent);
+  if($("cockpitStandAngeboteZeile"))$("cockpitStandAngeboteZeile").hidden=false;
+  return t;
+ });
+ p(d5.indexOf("Offerte")<0,"D5 ohne Offerten-Freigabe fehlt die Station Offerte",d5);
+
+ // ===== E  Der Weg zurueck ==================================================
+ // Werkstatt und Lager erscheinen nur, wenn ihre Knoepfe sichtbar sind -
+ // die Rechtepruefung bleibt bei der App.
+ let e0=await page.evaluate(()=>{
+  $("navWerkstatt").hidden=true;$("navLagerverwaltung").hidden=true;
+  a2Zeichnen();
+  return [...$("a2Leiste").querySelectorAll("button")].map(x=>x.getAttribute("data-a2-tab"));
+ });
+ p(JSON.stringify(e0)===JSON.stringify(["heute","projekte","mehr"]),"E1 abgeschaltete Module fehlen in der Leiste",e0);
+
+ await page.evaluate(()=>{$("navWerkstatt").hidden=false;$("navLagerverwaltung").hidden=false;a2Zeichnen()});
+ await page.click('[data-a2-tab="mehr"]');
+ await page.click('[data-a2-tu="klassisch"]');
+ let e=await page.evaluate(()=>({
+  gemerkt:localStorage.getItem("sd_ansicht2"),
+  a2:$("a2Screen").getClientRects().length>0,
+  nav:$("startNav").getClientRects().length>0,
+  oben:$("topUserBar").getClientRects().length>0,
+  version:$("appVersion").textContent.trim(),
+  werkstatt:$("navWerkstatt").hidden,
+  ablauf:$("a2Ablauf").hidden
+ }));
+ p(e.gemerkt==="nein","E2 die Rueckkehr wird ebenfalls gemerkt",e);
+ p(!e.a2&&e.nav&&e.oben,"E3 die klassische Ansicht ist vollstaendig zurueck",e);
+ p(e.werkstatt===false,"E4 die hidden-Zustaende der klassischen Knoepfe sind unberuehrt",e);
+ p(e.ablauf,"E5 die Ablaufleiste ist wieder aus",e);
+
+ // ===== F  Gegenproben am Quelltext =========================================
+ const jsQ=fs.readFileSync("js/70-ansicht2.js","utf8");
+ const schreib=jsQ.match(/\.(insert|update|delete|upsert|rpc)\(/g)||[];
+ p(schreib.length===0,"F1 js/70 enthaelt keinen einzigen Schreibweg",schreib);
+ p(!/\bsb\.from\(/.test(jsQ),"F2 js/70 fragt die Datenbank nicht selbst ab",jsQ.match(/sb\.from\([^)]*\)/g));
+
+ // Jede Stilregel muss am Schalter oder an einer a2-Klasse haengen. Sonst
+ // wuerde die Datei die klassische Ansicht veraendern, obwohl sie aus ist.
+ const cssQ=fs.readFileSync("css/05-ansicht2.css","utf8").replace(/\/\*[\s\S]*?\*\//g,"");
+ const lose=[];
+ cssQ.split("}").forEach(bl=>{
+  const i=bl.indexOf("{"); if(i<0)return;
+  const sel=bl.slice(0,i).trim();
+  if(!sel||sel.startsWith("@"))return;
+  sel.split(",").forEach(s=>{s=s.trim();
+   if(s&&!/#a2/.test(s)&&!/\.a2-/.test(s))lose.push(s)});
+ });
+ p(lose.length===0,"F3 keine Stilregel wirkt ohne den Schalter",lose);
+
+ // Die neuen Dateien muessen in der App-Shell des Service Workers stehen -
+ // sonst fehlen sie ohne Verbindung.
+ const swQ=fs.readFileSync("sw.js","utf8");
+ p(swQ.includes('"./js/70-ansicht2.js"')&&swQ.includes('"./css/05-ansicht2.css"'),
+   "F4 beide neuen Dateien stehen in der App-Shell");
+
+ p(fehler.length===0,"F5 keine Javascript-Fehler",fehler);
+
+ console.log("\n  "+ok+" ok, "+fail+" fehlgeschlagen");
+ await b.close();
+ process.exit(fail?1:0);
+})();

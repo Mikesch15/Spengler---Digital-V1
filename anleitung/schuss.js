@@ -158,6 +158,17 @@ const liste=[];
 
  await schuss("02-start","#startScreen");
 
+ // ---------- Ansicht 2.0 (v3.150) ----------
+ // Ganzseitig und in Handybreite: die untere Navigationsleiste ist
+ // position:fixed und laege bei einem Element-Schuss ausserhalb.
+ await page.evaluate(()=>{a2Setzen(true)});
+ await schuss("44-ansicht2-heute",null,{breite:420,warte:500});
+ await page.evaluate(()=>{a2Zustand.seite="projekte";a2Zeichnen()});
+ await schuss("45-ansicht2-projekte",null,{breite:420,warte:400});
+ await page.evaluate(()=>{a2Setzen(false);a2Zustand.seite="heute"});
+ await page.setViewportSize({width:1100,height:900});
+
+
  // ---------- Projekte ----------
  await page.evaluate(()=>{$("startScreen").hidden=true;$("projectsModal").hidden=false;renderProjectList()});
  await schuss("03-projekte","#projectsModal .modalbox",{warte:700});

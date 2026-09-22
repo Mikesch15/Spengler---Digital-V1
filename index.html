@@ -18,6 +18,9 @@
 <link rel="stylesheet" href="css/02-responsive.css">
 <link rel="stylesheet" href="css/03-druck.css">
 <link rel="stylesheet" href="css/04-rechte.css">
+<!-- v3.150 Ansicht 2.0. Jede Regel darin haengt an html.a2-an bzw. #a2Screen;
+     ohne den Schalter aendert die Datei an der klassischen Ansicht nichts. -->
+<link rel="stylesheet" href="css/05-ansicht2.css">
 <!-- v38: Mitarbeiter-Registrierung über Supabase Edge Function create-employee. -->
 </head>
 <body>
@@ -171,6 +174,10 @@
 </div>
 <div class="bar" style="margin-top:6px;justify-content:center">
 <button id="openFeedback" class="gray">💬 Feedback geben</button>
+<!-- v3.150: Einstieg in die neue, nach dem Arbeitsablauf gegliederte
+     Ansicht (js/70-ansicht2.js). Der Weg zurueck steht dort unter "Mehr".
+     Es ist ein reiner Anzeige-Umschalter - er speichert nichts. -->
+<button id="a2Ein" class="gray">✨ Neue Ansicht testen</button>
 <!-- Nur für Benutzer in system_admins sichtbar, siehe js/22-system-admin.js.
      Reine UI-Führung - abgesichert ist das ausschliesslich serverseitig
      über is_system_admin() in RLS/den system_admin_*-Funktionen. -->
@@ -183,7 +190,23 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.149</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.150</div>
+
+<!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
+     Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
+     kein Zufall: die ganze App blendet die Startseite an ueber hundert
+     Stellen mit $("startScreen").hidden aus und wieder ein. Laege der neue
+     Schirm daneben, muesste jede einzelne dieser Stellen angefasst werden.
+     So gilt jede davon unveraendert fuer beide Ansichten.
+     Welche der beiden sichtbar ist, entscheidet allein die Klasse a2-an am
+     <html>-Element (css/05-ansicht2.css). Die klassischen Elemente darueber
+     werden dabei nur ausgeblendet, nicht veraendert - deshalb ist das
+     Zurueckschalten ein echtes Zurueck. -->
+<div id="a2Screen">
+ <div id="a2Kopf"></div>
+ <div id="a2Inhalt"></div>
+ <nav id="a2Leiste" aria-label="Hauptnavigation"></nav>
+</div>
 </div>
 
 <!-- Funktion waehlen: Massaufnahme -->
@@ -430,6 +453,11 @@
      erfundener Projektstatus.
      v3.11: klappbar wie alles im Cockpit, aber als Uebersicht
      standardmaessig OFFEN. -->
+<!-- v3.150 Ablaufleiste (js/70-ansicht2.js). Sie beantwortet die Frage, die
+     beim Oeffnen eines Projekts zuerst kommt: WO STEHT DAS? Der Arbeitsstand
+     darunter zaehlt auf, WAS vorhanden ist. Sichtbar nur in der neuen
+     Ansicht; in der klassischen bleibt sie leer und ausgeblendet. -->
+<div id="a2Ablauf" hidden></div>
 <div class="arbeitsstand klapp open" id="cockpitStandBox">
 <div class="arbeitsstand-titel klapp-kopf" data-klapp="stand" role="button" tabindex="0" aria-expanded="true">Arbeitsstand<span class="klapp-chevron">›</span></div>
 <div class="klapp-body">
@@ -2091,7 +2119,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.149.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 85 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.150.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 89 Seiten)</a></div>
 </div>
 </div>
 
@@ -2771,7 +2799,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.149.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.150.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2859,6 +2887,10 @@ nicht neu installieren.</div>
 <script src="js/67-was-ist-neu.js"></script>
 <script src="js/68-lagerverwaltung.js"></script>
 <script src="js/69-email-auth.js"></script>
+<!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
+     Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
+     muessen dafuer bereits da sein. -->
+<script src="js/70-ansicht2.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
 </body>

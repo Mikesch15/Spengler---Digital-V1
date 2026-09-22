@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.149";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.150";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.149<br>
+  Version 3.150<br>
   Stand 10. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -135,6 +135,45 @@ offen, ist die Karte gar nicht da. Mehr dazu in Abschnitt 10.</p>
 <figure><img src="bilder/34-aufgaben-zu.png"><figcaption>Zugeklappt braucht die Aufgabenkarte eine Zeile. Ein Tippen öffnet die Liste.</figcaption></figure>
 <p>Oben rechts steht, wer angemeldet ist, daneben <span class="tasten">🔓 Abmelden</span>.
 Unten steht die Programmversion – die ist wichtig, wenn du einen Fehler meldest.</p>
+
+<h3>3.1 · Die neue Ansicht</h3>
+<p>Seit Version 3.150 gibt es <strong>zwei Ansichten derselben App</strong>. Die
+klassische – die eben beschriebene – und eine neue, die nicht nach Modulen
+gegliedert ist, sondern <strong>nach dem Arbeitsablauf</strong>. Eingeschaltet wird
+sie auf dem Startbildschirm mit <span class="tasten">✨ Neue Ansicht testen</span>.</p>
+<figure><img src="bilder/44-ansicht2-heute.png"><figcaption>Die neue Ansicht: unten eine Leiste, oben die Zahlen des Tages, in der Mitte die eigenen offenen Aufgaben.</figcaption></figure>
+<p>Unten steht eine Leiste mit bis zu fünf Einträgen:</p>
+<table>
+<tr><th>Eintrag</th><th>Wozu</th></tr>
+<tr><td>Heute</td><td>Die Startseite. Zuerst die drei Zahlen des Tages, darunter
+deine offenen Aufgaben – dieselben wie in der Karte <strong>🔔 Meine offenen
+Aufgaben</strong> der klassischen Ansicht, nur als ganze Seite statt als zugeklappte
+Karte. Ganz unten die zuletzt bearbeiteten Projekte.</td></tr>
+<tr><td>Projekte</td><td>Die Projektliste mit Suchfeld. Ein Tippen öffnet das
+gewohnte Projekt-Cockpit (Abschnitt 6).</td></tr>
+<tr><td>Werkstatt</td><td>Öffnet die Werkstatt (Abschnitt 11). Nur da, wenn die
+Firma das Werkstattmodul eingeschaltet hat.</td></tr>
+<tr><td>Lager</td><td>Öffnet die Lagerverwaltung. Nur da, wenn du dafür
+freigeschaltet bist.</td></tr>
+<tr><td>Mehr</td><td>Suche, Einstellungen, Anleitung, Feedback, Abmelden – und der
+Weg zurück zur klassischen Ansicht.</td></tr>
+</table>
+<figure><img src="bilder/45-ansicht2-projekte.png"><figcaption>Die Projektliste der neuen Ansicht. Die Adresse steht zuoberst, der Projektname darunter.</figcaption></figure>
+<p>Im Projekt-Cockpit kommt in der neuen Ansicht über dem Arbeitsstand eine
+<strong>Ablaufleiste</strong> dazu. Sie beantwortet die Frage, die beim Öffnen eines
+Projekts zuerst kommt: <em>wo steht das hier?</em> Sechs Stationen – Offerte,
+Massaufnahme, Freigabe, Rüsten, Montage, Ausmass – mit einem grünen Haken für das,
+was fertig ist, und einem blauen Punkt auf dem, was gerade dran ist. Für die
+mittleren drei gilt: <strong>die schwächste Massaufnahme entscheidet</strong>. Ist
+von acht Massaufnahmen eine noch nicht gerüstet, steht das ganze Projekt auf
+«Rüsten». Ist der Arbeitsablauf für die Firma ausgeschaltet, zeigt die Leiste nur
+die drei Stationen, die es dann gibt.</p>
+<div class="hin"><strong>Wichtig:</strong> Es sind <em>zwei Ansichten</em>, nicht
+zwei Programme. Beide arbeiten mit denselben Formularen, denselben Daten und
+denselben Rechten. Was du in der einen erfasst, steht sofort in der anderen. Der
+Weg zurück steht jederzeit unter <strong>Mehr → Zurück zur klassischen
+Ansicht</strong>, und die Wahl merkt sich jedes Gerät für sich – auf dem Handy die
+neue, im Büro die klassische, das geht.</div>
 
 <h2 class="seite">4 · Hilfe in der App</h2>
 <p>Fast jede Karte und jede Überschrift trägt einen kleinen runden
@@ -1715,7 +1754,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">25 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.149</strong>, Stand 19. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.150</strong>, Stand 22. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

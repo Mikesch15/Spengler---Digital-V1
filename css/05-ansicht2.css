@@ -1,0 +1,256 @@
+/* ==========================================================================
+   ANSICHT 2.0  (v3.150)
+   --------------------------------------------------------------------------
+   Eine ZWEITE Oberflaeche fuer dieselbe App - keine zweite App. Sie gliedert
+   den Einstieg nach dem Arbeitsablauf (Heute / Projekte / Werkstatt / Lager)
+   statt nach Modulen. Die eigentliche Arbeit passiert unveraendert in den
+   bestehenden Formularen und Dialogen; diese Datei beschreibt nur den neuen
+   Rahmen darum.
+
+   ZWEI REGELN, die diese Datei einhaelt:
+
+   1. JEDE Regel haengt an  html.a2-an  oder an  #a2Screen . Ohne den Schalter
+      aendert diese Datei an der bestehenden App nichts - auch dann nicht,
+      wenn sie mitgeladen wird. Der Pruefstand v3.150 rechnet das nach.
+
+   2. Die Farben kommen aus den VORHANDENEN Variablen von css/01-basis.css
+      (--blue, --ink, --muted, --line, --bg, --card-bg, --green, --red).
+      Deshalb stimmt der Dunkelmodus hier fast ohne eigene Zeile: html.dark
+      setzt dieselben Variablen um. Nur was es dort nicht gibt (Orange, zwei
+      helle Flaechen), steht als --a2-* mit einem eigenen Dunkel-Block.
+   ========================================================================== */
+
+html.a2-an{
+ --a2-orange:#a35b06; --a2-orange-hell:#fdf1e3;
+ --a2-gruen-hell:#e8f5ef;
+ --a2-grau-hell:#eef2f5;
+ --a2-kopf:56px;
+ --a2-leiste:62px;
+ --a2-schatten:0 1px 2px #17242d0f, 0 10px 24px -14px #17242d3d;
+}
+html.dark.a2-an{
+ --a2-orange:#d9a05c; --a2-orange-hell:#33280f;
+ --a2-gruen-hell:#13322a;
+ --a2-grau-hell:#222d36;
+ --a2-schatten:0 1px 2px #0006, 0 10px 24px -14px #0009;
+}
+
+/* ---- Der Schalter ------------------------------------------------------- */
+/* Die klassische Startseite bleibt vollstaendig im Dokument stehen - sie wird
+   nur ausgeblendet. Dadurch ist das Zurueckschalten wirklich ein Zurueck:
+   kein Element wurde entfernt, kein hidden-Attribut angefasst, kein Zustand
+   verloren. */
+html:not(.a2-an) #a2Screen{display:none!important}
+html.a2-an #startScreen > *:not(#a2Screen){display:none!important}
+html.a2-an #topUserBar{display:none!important}
+html.a2-an #appRoot{max-width:none;padding:0}
+
+/* ---- Rahmen ------------------------------------------------------------- */
+#a2Screen{
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+ font-size:15px;line-height:1.45;color:var(--ink);
+ padding-bottom:calc(var(--a2-leiste) + env(safe-area-inset-bottom,0px));
+}
+#a2Screen button{font:inherit;border:0;cursor:pointer}
+#a2Screen [hidden]{display:none!important}
+
+/* ---- Kopfzeile ---------------------------------------------------------- */
+#a2Kopf{
+ position:sticky;top:0;z-index:40;min-height:var(--a2-kopf);
+ display:flex;align-items:center;gap:10px;padding:0 14px;
+ background:var(--blue);color:#fff;box-shadow:0 2px 10px #17242d26;
+}
+.a2-kopf-titel{flex:1;min-width:0}
+.a2-kopf-titel b{display:block;font-size:16px;font-weight:800;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a2-kopf-titel span{display:block;font-size:11.5px;opacity:.82;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a2-kopf-ich{
+ width:34px;height:34px;border-radius:50%;flex:none;background:#ffffff2e;
+ display:flex;align-items:center;justify-content:center;
+ font-size:12px;font-weight:900;color:#fff;
+}
+
+/* ---- Inhalt ------------------------------------------------------------- */
+#a2Inhalt{max-width:1080px;margin:0 auto;padding:14px 14px 24px}
+.a2-abschnitt{margin:0 0 22px}
+.a2-abschnitt-kopf{display:flex;align-items:baseline;justify-content:space-between;
+ gap:10px;margin:0 0 9px}
+.a2-abschnitt-kopf h2{margin:0;font-size:12px;font-weight:900;letter-spacing:.09em;
+ text-transform:uppercase;color:var(--muted)}
+.a2-abschnitt-kopf button{background:none;color:var(--blue);font-size:13px;
+ font-weight:700;padding:4px 2px}
+
+/* ---- Karten ------------------------------------------------------------- */
+.a2-karte{background:var(--card-bg);border:1px solid var(--card-line);
+ border-radius:14px;box-shadow:var(--a2-schatten);padding:14px;margin:0 0 10px}
+.a2-karte-titel{font-size:16px;font-weight:800;margin:0 0 2px}
+.a2-karte-unter{font-size:13px;color:var(--muted);margin:0}
+.a2-leer{background:var(--card-bg);border:1px dashed var(--line);border-radius:14px;
+ padding:22px 14px;text-align:center;color:var(--muted);font-size:14px}
+
+/* ---- Zahlenband --------------------------------------------------------- */
+.a2-zahlen{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:0 0 10px}
+.a2-zahl{background:var(--card-bg);border:1px solid var(--card-line);border-radius:14px;
+ padding:12px 10px;text-align:center;box-shadow:var(--a2-schatten)}
+.a2-zahl b{display:block;font-size:26px;font-weight:900;line-height:1.1}
+.a2-zahl span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.a2-z-blau b{color:var(--blue)} .a2-z-orange b{color:var(--a2-orange)}
+.a2-z-gruen b{color:var(--green)} .a2-z-rot b{color:var(--red)}
+
+/* ---- Marken ------------------------------------------------------------- */
+.a2-marke{display:inline-flex;align-items:center;gap:4px;flex:none;
+ font-size:11.5px;font-weight:800;line-height:1.5;border-radius:999px;
+ padding:2px 9px;white-space:nowrap}
+.a2-m-grau{background:var(--a2-grau-hell);color:var(--muted)}
+.a2-m-blau{background:var(--blue-light);color:var(--blue)}
+.a2-m-gruen{background:var(--a2-gruen-hell);color:var(--green)}
+.a2-m-orange{background:var(--a2-orange-hell);color:var(--a2-orange)}
+.a2-m-rot{background:var(--red-light);color:var(--red)}
+
+/* ---- Zeilen ------------------------------------------------------------- */
+.a2-zeile{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+ background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;
+ padding:11px 13px;margin:0 0 8px;min-height:56px;color:var(--ink);
+ box-shadow:0 1px 2px #17242d0a}
+.a2-zeile:active{transform:translateY(1px)}
+.a2-zeile-nr{flex:none;width:26px;height:26px;border-radius:8px;
+ background:var(--a2-grau-hell);color:var(--muted);font-size:12px;font-weight:900;
+ display:flex;align-items:center;justify-content:center}
+.a2-zeile-text{flex:1;min-width:0}
+.a2-zeile-text b{display:block;font-size:15px;font-weight:700}
+.a2-zeile-text span{display:block;font-size:12.5px;color:var(--muted)}
+.a2-zeile-pfeil{flex:none;color:var(--line);font-size:19px;font-weight:800}
+
+/* ---- Aufgabenkarte (Heute) ---------------------------------------------- */
+.a2-auf{background:var(--card-bg);border:1px solid var(--card-line);
+ border-left:4px solid var(--muted);border-radius:12px;padding:12px 13px;
+ margin:0 0 9px;box-shadow:0 1px 2px #17242d0a}
+.a2-auf-rot{border-left-color:var(--red)}
+.a2-auf-orange{border-left-color:var(--a2-orange)}
+.a2-auf-blau{border-left-color:var(--blue)}
+.a2-auf-gruen{border-left-color:var(--green)}
+.a2-auf-schritt{font-size:11.5px;font-weight:900;letter-spacing:.04em;
+ text-transform:uppercase;color:var(--muted);margin:0 0 3px}
+.a2-auf-rot .a2-auf-schritt{color:var(--red)}
+.a2-auf-orange .a2-auf-schritt{color:var(--a2-orange)}
+.a2-auf-blau .a2-auf-schritt{color:var(--blue)}
+.a2-auf-titel{font-size:15.5px;font-weight:800;line-height:1.3}
+.a2-auf-zusatz{font-size:12.5px;color:var(--muted);margin-top:1px}
+
+/* ---- Ablaufleiste ------------------------------------------------------- */
+/* Alle sechs Stationen muessen ohne Wischen sichtbar sein - die Leiste
+   beantwortet die Frage "wo steht das Projekt?", und dafuer darf man nicht
+   erst scrollen muessen. Deshalb teilen sie sich die Breite. */
+.a2-ablauf{display:flex;gap:0;padding:2px 0 4px;margin:0 0 4px}
+.a2-ablauf-st{flex:1 1 0;min-width:0;text-align:center;position:relative;padding:0 2px}
+.a2-ablauf-st::before{content:"";position:absolute;top:13px;left:-50%;
+ width:100%;height:2px;background:var(--line)}
+.a2-ablauf-st:first-child::before{display:none}
+.a2-ablauf-st.ist-fertig::before,.a2-ablauf-st.ist-jetzt::before{background:var(--green)}
+.a2-ablauf-marke{position:relative;z-index:1;width:28px;height:28px;margin:0 auto 5px;
+ border-radius:50%;display:flex;align-items:center;justify-content:center;
+ font-size:13px;font-weight:900;background:var(--card-bg);
+ border:2px solid var(--line);color:var(--muted)}
+.ist-fertig > .a2-ablauf-marke{background:var(--green);border-color:var(--green);color:#fff}
+.ist-jetzt > .a2-ablauf-marke{background:var(--blue);border-color:var(--blue);color:#fff;
+ box-shadow:0 0 0 4px #1769aa33}
+.a2-ablauf-text{font-size:10px;font-weight:700;color:var(--muted);line-height:1.2;
+ hyphens:auto;overflow-wrap:anywhere}
+.ist-jetzt > .a2-ablauf-text{color:var(--blue);font-weight:900}
+.ist-fertig > .a2-ablauf-text{color:var(--ink)}
+@media(min-width:700px){.a2-ablauf-text{font-size:12px}}
+
+/* ---- Fortschritt -------------------------------------------------------- */
+.a2-fort{margin:9px 0 0}
+.a2-fort-kopf{display:flex;justify-content:space-between;font-size:12.5px;
+ color:var(--muted);margin:0 0 5px}
+.a2-fort-kopf b{color:var(--ink)}
+.a2-balken{height:9px;border-radius:999px;background:var(--a2-grau-hell);overflow:hidden}
+.a2-balken i{display:block;height:100%;border-radius:999px;background:var(--blue)}
+.a2-balken.ist-fertig i{background:var(--green)}
+
+/* ---- Knoepfe ------------------------------------------------------------ */
+.a2-knopf{min-height:48px;padding:12px 18px;border-radius:11px;font-size:15px;
+ font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.a2-k-blau{background:var(--blue);color:#fff}
+.a2-k-gruen{background:var(--green);color:#fff}
+/* Mit Rand: auf dem Seitenhintergrund (ebenfalls hellgrau) waere ein
+   randloser grauer Knopf nicht als Knopf zu erkennen. Auf einer weissen
+   Karte sieht man ihn ohnehin - der Rand schadet dort nicht. */
+.a2-k-grau{background:var(--card-bg);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.a2-k-voll{width:100%}
+.a2-knopf-reihe{display:flex;gap:8px;flex-wrap:wrap;margin:11px 0 0}
+.a2-knopf-reihe .a2-knopf{flex:1 1 auto}
+/* Die kleinere Ausfuehrung fuer die Aufgabenkarten - dort stehen bis zu zwei
+   Knoepfe nebeneinander und duerfen die Karte nicht dominieren. */
+.a2-knopf-klein{min-height:42px;padding:9px 14px;font-size:14px;border-radius:10px}
+
+/* ---- Hinweisbalken ------------------------------------------------------ */
+.a2-hinweis{border-radius:12px;padding:12px 14px;margin:0 0 10px;font-size:14px;
+ border:1px solid transparent}
+.a2-hinweis b{display:block;margin-bottom:2px}
+.a2-h-warnung{background:var(--red-light);border-color:#f0c9c5;color:var(--red)}
+.a2-h-info{background:var(--blue-light);border-color:#c7e0ef;color:var(--blue)}
+html.dark .a2-h-warnung{border-color:#5a2a25}
+html.dark .a2-h-info{border-color:#27475c}
+
+/* ---- Suche -------------------------------------------------------------- */
+.a2-suche{position:relative;margin:0 0 12px}
+.a2-suche input{width:100%;min-height:48px;border:1px solid var(--line);
+ border-radius:12px;padding:10px 14px 10px 40px;font-size:16px;
+ background:var(--input-bg);color:var(--ink)}
+.a2-suche input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26}
+.a2-suche::before{content:"🔍";position:absolute;left:13px;top:50%;
+ transform:translateY(-50%);font-size:15px;opacity:.55;pointer-events:none}
+
+/* ---- Untere Navigationsleiste ------------------------------------------- */
+/* z-index 50: deutlich unter den .modal-Schirmen (500). Ein offenes Formular
+   deckt die Leiste damit zu, statt von ihr ueberlagert zu werden. */
+#a2Leiste{
+ position:fixed;left:0;right:0;bottom:0;z-index:50;
+ height:calc(var(--a2-leiste) + env(safe-area-inset-bottom,0px));
+ padding-bottom:env(safe-area-inset-bottom,0px);
+ display:flex;background:var(--card-bg);border-top:1px solid var(--card-line);
+ box-shadow:0 -2px 14px #17242d14;
+}
+#a2Leiste button{flex:1;background:transparent;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:2px;font-size:10.5px;font-weight:800;
+ color:var(--muted);padding:6px 2px;position:relative}
+#a2Leiste button i{font-style:normal;display:flex;line-height:0}
+#a2Leiste button.ist-auf{color:var(--blue)}
+#a2Leiste .a2-punkt{position:absolute;top:5px;left:50%;transform:translateX(2px);
+ min-width:17px;height:17px;border-radius:999px;background:var(--red);color:#fff;
+ font-size:10px;font-weight:900;line-height:17px;padding:0 4px;text-align:center}
+
+/* ---- Tablet ------------------------------------------------------------- */
+@media(min-width:700px){
+ #a2Inhalt{padding:20px 22px 30px}
+ .a2-zahlen{grid-template-columns:repeat(4,1fr)}
+ .a2-karte{padding:16px}
+ .a2-liste-zwei{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .a2-liste-zwei .a2-zeile,.a2-liste-zwei .a2-auf{margin:0}
+}
+
+/* ---- Desktop: Seitenleiste statt unterer Leiste ------------------------- */
+@media(min-width:1000px){
+ #a2Screen{padding-bottom:0;padding-left:226px}
+ #a2Leiste{top:0;bottom:0;right:auto;width:226px;height:100vh;padding:0;
+  flex-direction:column;border-top:0;border-right:1px solid var(--card-line);
+  box-shadow:none}
+ #a2Leiste::before{content:"SPENGLER-DIGITAL";display:block;padding:20px 18px 14px;
+  font-size:11px;font-weight:900;letter-spacing:.11em;color:var(--blue)}
+ #a2Leiste button{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;
+  padding:13px 18px;font-size:14.5px;border-radius:0}
+ #a2Leiste button.ist-auf{background:var(--blue-light)}
+ #a2Leiste button i svg{width:21px;height:21px}
+ #a2Leiste .a2-punkt{position:static;transform:none;margin-left:auto}
+ #a2Kopf{padding-left:22px}
+ #a2Inhalt{padding:24px 26px 40px}
+ .a2-liste-zwei{grid-template-columns:1fr 1fr 1fr}
+}
+
+/* ---- Drucken ------------------------------------------------------------ */
+/* Der neue Rahmen gehoert auf kein Papier - gedruckt wird aus den
+   bestehenden Schirmen heraus, die ihre eigenen Druckregeln mitbringen. */
+@media print{#a2Kopf,#a2Leiste{display:none!important}}
