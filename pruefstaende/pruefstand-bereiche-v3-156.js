@@ -81,6 +81,10 @@ const tab=(page,k)=>page.evaluate(k=>{
                   werkstatt:true,vorlagen:true,serien:true,versionierung:true});
   if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
   if($("navLagerverwaltung"))$("navLagerverwaltung").hidden=false;
+  // Ohne diese Zeile ist der Abschnitt selbst versteckt (er haengt an
+  // lagerverwaltungZugriff, js/68) - F1 saehe dann null Abschnitte und
+  // waere gruen, ohne etwas geprueft zu haben.
+  if($("lagerverwaltungSection"))$("lagerverwaltungSection").hidden=false;
   a2Setzen(true);
  });
  await page.waitForTimeout(400);
@@ -113,6 +117,15 @@ const tab=(page,k)=>page.evaluate(k=>{
   return !t||getComputedStyle(t).display==="none";
  });
  p(tabsWeg,"A5 Lager: die Registerleiste der Einstellungen ist nicht zu sehen");
+ // v3.157: und wirklich NUR die Lagerverwaltung. Im Lager-Register der
+ // Einstellungen stehen drei Abschnitte; Materialbestand und Reststuecke
+ // sind Firmeneinstellungen, nicht der taegliche Arbeitsplatz.
+ const abschnitte=await page.evaluate(()=>
+  [...document.querySelectorAll("#settingsModal [data-section]")]
+   .filter(e=>getComputedStyle(e).display!=="none"&&e.getBoundingClientRect().height>0)
+   .map(e=>e.getAttribute("data-section")));
+ p(abschnitte.length===1&&abschnitte[0]==="lagerverwaltung",
+   "A5b Lager: nur die Lagerverwaltung, nicht Materialbestand und Reststuecke",abschnitte);
 
  // Die entscheidende Gegenprobe: ein ERFASSUNGSFORMULAR bleibt Vollbild.
  await aufraeumen();
@@ -196,6 +209,81 @@ const tab=(page,k)=>page.evaluate(k=>{
    {druck:beimDruck});
  p(amSchirm&&amSchirm!=="none",
    "D2 Gegenprobe: am Bildschirm bleibt er - dort gehoert er hin",{schirm:amSchirm});
+
+ // ---- F  Anleitung oeffnet die Anleitung ---------------------------------
+ // Bis v3.156 fuehrten "Einstellungen" und "Anleitung" unter "Mehr" beide
+ // in die Einstellungen - zwei Eintraege, ein Ziel.
+ await aufraeumen();
+ await page.evaluate(()=>{a2Zustand.seite="mehr";a2Zeichnen()});
+ await page.waitForTimeout(300);
+ let neuesFenster=null;
+ page.on("popup",x=>{neuesFenster=x.url()});
+ await page.evaluate(()=>{const k=document.querySelector('[data-a2-tu="anleitung"]');if(k)k.click()});
+ await page.waitForTimeout(900);
+ const nachAnleitung=await page.evaluate(()=>!$("settingsModal").hidden);
+ p(!nachAnleitung,"F1 'Anleitung' oeffnet nicht die Einstellungen",{settingsOffen:nachAnleitung});
+ p(!!neuesFenster&&/Anleitung-v[0-9.]+\.pdf$/.test(neuesFenster),
+   "F2 sondern die Anleitung selbst",{fenster:neuesFenster});
+ // Gegenprobe: "Einstellungen" fuehrt weiterhin in die Einstellungen.
+ await aufraeumen();
+ await page.evaluate(()=>{a2Zustand.seite="mehr";a2Zeichnen()});
+ await page.waitForTimeout(250);
+ await page.evaluate(()=>{const k=document.querySelector('[data-a2-tu="einstell"]');if(k)k.click()});
+ await page.waitForTimeout(800);
+ p(await page.evaluate(()=>!$("settingsModal").hidden),
+   "F3 Gegenprobe: 'Einstellungen' tut es weiterhin");
+
+ // ---- G  Das Register heisst Massaufnahme --------------------------------
+ await aufraeumen();
+ await tab(page,"projekte"); await page.waitForTimeout(400);
+ await page.evaluate(()=>{const z=document.querySelector("[data-a2-projekt]");if(z)z.click()});
+ await page.waitForTimeout(1500);
+ const namen=await page.evaluate(()=>
+  [...document.querySelectorAll('#a2Inhalt [data-a2-reg]')].map(x=>x.textContent.trim()));
+ p(namen.indexOf("Massaufnahme")>=0&&namen.indexOf("Aufmass")<0,
+   "G1 das Register heisst Massaufnahme, nicht mehr Aufmass",namen);
+ // Der SCHLUESSEL bleibt "aufmass" - er steht im Zustand und in anderen
+ // Pruefstaenden. Nur die Beschriftung hat sich geaendert.
+ p(await page.evaluate(()=>!!document.querySelector('[data-a2-reg="aufmass"]')),
+   "G2 der Schluessel dahinter ist unveraendert geblieben");
+
+ // ---- H  Kompakter: Aufgaben und Zeilen ----------------------------------
+ // "die offenen aufgaben sollten kleinere felder sein und nicht so wuchtig",
+ // "verkleinere auch die buttons der einzelnen massaufnahmen".
+ // Gemessen wird nicht eine gewuenschte Zahl, sondern das, was wuchtig
+ // WIRKTE: ein blauer Balken quer ueber die ganze Aufgabenkarte.
+ await aufraeumen();
+ await page.evaluate(()=>{if(typeof aufgabenNeuLaden==="function")return aufgabenNeuLaden()});
+ await page.waitForTimeout(900);
+ const h=await page.evaluate(()=>{
+  const karte=document.querySelector(".a2-auf");
+  const knopf=karte&&karte.querySelector(".a2-knopf");
+  const zeile=document.querySelector(".a2-zeile");
+  return {karteBreit:karte?Math.round(karte.getBoundingClientRect().width):0,
+          knopfBreit:knopf?Math.round(knopf.getBoundingClientRect().width):0,
+          knopfHoch:knopf?Math.round(knopf.getBoundingClientRect().height):0,
+          zeileHoch:zeile?Math.round(zeile.getBoundingClientRect().height):0};
+ });
+ p(h.knopfBreit>0&&h.knopfBreit<h.karteBreit*0.8,
+   "H1 der Knopf einer Aufgabe fuellt nicht mehr die ganze Karte",h);
+ // Die Zeile der einzelnen Massaufnahmen steht auf der PROJEKTSEITE, nicht
+ // auf Heute. Auf Heute traegt dieselbe Klasse die Projektzeile mit
+ // Status-Marke, die naturgemaess hoeher ist - daran gemessen zu haben war
+ // der erste Fehlschlag dieser Zusicherung.
+ await tab(page,"projekte"); await page.waitForTimeout(400);
+ await page.evaluate(()=>{const z=document.querySelector("[data-a2-projekt]");if(z)z.click()});
+ await page.waitForTimeout(1500);
+ await page.evaluate(()=>{const k=document.querySelector('[data-a2-reg="aufmass"]');if(k)k.click()});
+ await page.waitForTimeout(500);
+ const hm=await page.evaluate(()=>{
+  const z=document.querySelector("#a2Inhalt .a2-zeile");
+  return z?Math.round(z.getBoundingClientRect().height):0;
+ });
+ p(hm>0&&hm<=52,"H2 die Zeilen der einzelnen Massaufnahmen sind kompakt",{zeile:hm});
+ // Gegenprobe zur Verkleinerung: treffbar muss alles bleiben. Unter 30px
+ // trifft man auf dem Dach nichts mehr - dann waere aus "kleiner" ein
+ // eigener Fehler geworden.
+ p(h.knopfHoch>=30,"H3 Gegenprobe: die Knoepfe bleiben mit dem Finger treffbar",h);
 
  p(fehler.length===0,"E1 keine Javascript-Fehler",fehler.slice(0,3));
  await b.close();

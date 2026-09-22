@@ -164,7 +164,11 @@ const WIN_CHANGELOG={
   "„＋ Neues Projekt“ zeigt nur noch das Formular – nicht noch einmal die Projektliste, von der du gerade kamst. Archiv und Filter haben einen eigenen Knopf.",
   "Der Regierapport steht neben den anderen Registern des Projekts statt unter „Mehr …“.",
   "Felder und Knöpfe sind wieder so gross wie vorher – die Vergrösserung aus 3.152/3.154 ist zurückgenommen.",
-  "Behoben: im gedruckten Regierapport standen in zwei Feldern unten rechts zwei kleine Schrägstriche. Das war der Anfasser des Textfelds; auf Papier hat er nichts zu suchen."]
+  "Behoben: im gedruckten Regierapport standen in zwei Feldern unten rechts zwei kleine Schrägstriche. Das war der Anfasser des Textfelds; auf Papier hat er nichts zu suchen."],
+ "3.157":["Im Lager steht jetzt wirklich nur die Lagerverwaltung. Materialbestand und Reststücke sind Firmeneinstellungen und stehen weiterhin unter Einstellungen → Lager.",
+  "„Anleitung“ öffnet jetzt die Anleitung. Bisher führte der Eintrag in die Einstellungen – genauso wie „Einstellungen“ direkt darüber.",
+  "Die offenen Aufgaben und die Listen der einzelnen Massaufnahmen sind deutlich kompakter: kleinere Karten, kleinere Knöpfe, und der blaue Knopf spannt sich nicht mehr über die ganze Karte.",
+  "Das Register „Aufmass“ heisst jetzt „Massaufnahme“."]
 };
 
 function winVersionVergleich(a,b){

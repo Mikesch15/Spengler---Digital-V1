@@ -657,8 +657,16 @@ document.addEventListener("click",async e=>{
   if(was==="sysadmin"&&$("navSystemAdmin")){
    await a2BereichStarten("systemAdminModal","System-Administration","mehr",()=>$("navSystemAdmin").click());return}
   if(was==="abmelden"&&$("logout")){$("logout").click();return}
-  if(was==="anleitung"&&typeof openSettingsTo==="function"){
-   await a2BereichStarten("settingsModal","Anleitung","mehr",()=>openSettingsTo("general","anleitung"));return}
+  // v3.157: bis v3.156 fuehrte dieser Eintrag ueber openSettingsTo() in die
+  // EINSTELLUNGEN - genau dorthin, wo der Eintrag "Einstellungen" direkt
+  // darueber auch schon hinfuehrte. Zwei Eintraege, ein Ziel. Jetzt oeffnet
+  // er die Anleitung selbst. HILFE_PDF (js/41) ist die eine Quelle fuer den
+  // Pfad; ein zweiter hier wuerde beim naechsten Versionswechsel veralten.
+  if(was==="anleitung"){
+   const pfad=(typeof HILFE_PDF!=="undefined")?HILFE_PDF:"";
+   if(pfad)window.open(pfad,"_blank","noopener");
+   return;
+  }
 
   // ---- Aktionen der Projektseite ----
   if(was==="neuemeas"){a2NeuerEintrag("meas");return}
@@ -734,7 +742,10 @@ if($("a2Ein"))$("a2Ein").onclick=()=>a2Setzen(true);
 // Leistungen, Dateien und Verlauf; ohne das waeren die nicht erreichbar.
 const A2_PROJ_REGISTER=[
  {k:"uebersicht",name:"Übersicht"},
- {k:"aufmass",   name:"Aufmass"},
+ // v3.157: Der Schluessel bleibt "aufmass" - er steht im Zustand, in den
+ // Pruefstaenden und in gespeicherten Sitzungen. Umbenannt ist nur, was der
+ // Anwender liest.
+ {k:"aufmass",   name:"Massaufnahme"},
  // Produktion und Werkstatt gibt es nur, wenn die Firma die zugehoerigen
  // Untermodule eingeschaltet hat (js/47). Die Entscheidung faellt dort,
  // nicht hier - pmAktiv() ist die eine Quelle dafuer.
