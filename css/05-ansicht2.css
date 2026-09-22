@@ -81,6 +81,20 @@ html.a2-an #appRoot{max-width:none;padding:0}
 .a2-abschnitt-kopf button{background:none;color:var(--blue);font-size:13px;
  font-weight:700;padding:4px 2px}
 
+/* ---- Markenzeile (Firmenlogo) ------------------------------------------- */
+/* Auf dem Handy oben auf der Heute-Seite, auf dem Desktop in der
+   Seitenleiste. Nie an beiden Orten gleichzeitig - zweimal dasselbe Logo
+   auf einem Bildschirm ist kein Wiedererkennungswert, sondern Unordnung. */
+.a2-marke{display:flex;align-items:center;gap:10px;margin:0 0 14px;min-height:34px}
+.a2-marke img{max-height:38px;max-width:190px;display:block;flex:none}
+.a2-marke span{font-size:12px;font-weight:900;letter-spacing:.08em;
+ text-transform:uppercase;color:var(--muted);
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Trägt die Firma ein Logo, steht der Name klein daneben; ohne Logo ist der
+   Name selbst die Marke und darf dann groesser sein. */
+.a2-marke img+span{font-size:11px}
+.a2-marke-leiste{display:none}
+
 /* ---- Karten ------------------------------------------------------------- */
 .a2-karte{background:var(--card-bg);border:1px solid var(--card-line);
  border-radius:14px;box-shadow:var(--a2-schatten);padding:14px;margin:0 0 10px}
@@ -88,6 +102,10 @@ html.a2-an #appRoot{max-width:none;padding:0}
 .a2-karte-unter{font-size:13px;color:var(--muted);margin:0}
 .a2-leer{background:var(--card-bg);border:1px dashed var(--line);border-radius:14px;
  padding:22px 14px;text-align:center;color:var(--muted);font-size:14px}
+/* Der einmalige Hinweis nach der Umstellung - deutlich, aber nicht
+   alarmierend: er meldet keinen Fehler, er erklaert eine Aenderung. */
+.a2-karte-hinweis{border-left:4px solid var(--blue);background:var(--blue-light)}
+html.dark .a2-karte-hinweis{background:var(--blue-light)}
 
 /* ---- Zahlenband --------------------------------------------------------- */
 .a2-zahlen{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:0 0 10px}
@@ -238,8 +256,15 @@ html.dark .a2-h-info{border-color:#27475c}
  #a2Leiste{top:0;bottom:0;right:auto;width:226px;height:100vh;padding:0;
   flex-direction:column;border-top:0;border-right:1px solid var(--card-line);
   box-shadow:none}
- #a2Leiste::before{content:"SPENGLER-DIGITAL";display:block;padding:20px 18px 14px;
-  font-size:11px;font-weight:900;letter-spacing:.11em;color:var(--blue)}
+ /* Der Markenblock der Seitenleiste ersetzt den frueheren festen
+    Schriftzug: er zeigt das Logo der Firma, wenn eines hinterlegt ist. */
+ .a2-marke-leiste{display:flex;align-items:center;gap:9px;
+  padding:18px 18px 14px;margin:0;min-height:0}
+ .a2-marke-leiste img{max-height:34px;max-width:170px}
+ .a2-marke-leiste span{font-size:11px;letter-spacing:.11em;color:var(--blue)}
+ /* Auf dem Desktop traegt die Seitenleiste die Marke - auf der Seite selbst
+    waere sie dann doppelt. */
+ #a2Inhalt .a2-marke{display:none}
  #a2Leiste button{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;
   padding:13px 18px;font-size:14.5px;border-radius:0}
  #a2Leiste button.ist-auf{background:var(--blue-light)}

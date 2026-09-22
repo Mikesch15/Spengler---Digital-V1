@@ -66,10 +66,32 @@ const anmelden=page=>page.evaluate(()=>{
  });
  await page.addInitScript(STUB);
  await page.goto(APP);
+
+ // ===== A0  Die Vorgabe (seit v3.151) =====================================
+ // Bis v3.150 war die klassische Ansicht die Vorgabe, seit v3.151 die neue.
+ // Geprueft wird beides: dass die Vorgabe greift UND dass sie eine bereits
+ // getroffene Wahl NICHT umstoesst.
+ await page.waitForFunction(()=>typeof a2Aktiv==="function");
+ let a0=await page.evaluate(()=>({
+  gespeichert:localStorage.getItem("sd_ansicht2"),
+  vorgabe:a2Aktiv()
+ }));
+ p(a0.gespeichert===null&&a0.vorgabe===true,"A0 auf einem frischen Geraet gilt die neue Ansicht",a0);
+ let a0b=await page.evaluate(()=>{
+  localStorage.setItem("sd_ansicht2","ja");   const ja=a2Aktiv();
+  localStorage.setItem("sd_ansicht2","nein"); const nein=a2Aktiv();
+  return {ja,nein};
+ });
+ p(a0b.ja===true&&a0b.nein===false,"A0b eine ausdrueckliche Wahl schlaegt die Vorgabe",a0b);
+
+ // Fuer alles Weitere: die klassische Ansicht als Ausgangspunkt, damit der
+ // Weg HINEIN in die neue Ansicht geprueft werden kann. "nein" steht seit
+ // A0b bereits im Speicher.
+ await page.reload();
  await page.waitForFunction(()=>typeof a2Aktiv==="function");
  await anmelden(page);
 
- // ===== A  Ohne Schalter ist die klassische Ansicht unveraendert ==========
+ // ===== A  Mit der Wahl "klassisch" ist sie unveraendert ==================
  let a=await page.evaluate(()=>({
   aktiv:a2Aktiv(),
   klasse:document.documentElement.classList.contains("a2-an"),
@@ -78,7 +100,7 @@ const anmelden=page=>page.evaluate(()=>{
   ein:$("a2Ein").getClientRects().length>0,
   ablauf:$("a2Ablauf").hidden
  }));
- p(a.aktiv===false,"A1 Vorgabe ist die klassische Ansicht",a);
+ p(a.aktiv===false,"A1 die Wahl 'klassisch' ist wirksam",a);
  p(!a.klasse&&!a.a2,"A2 der neue Schirm ist unsichtbar",a);
  p(a.nav,"A3 die klassische Startnavigation ist da",a);
  p(a.ein,"A4 der Einstiegsknopf ist da",a);

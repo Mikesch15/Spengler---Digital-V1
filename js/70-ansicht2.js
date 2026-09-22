@@ -35,9 +35,30 @@
 // ===========================================================================
 
 const A2_SPEICHER="sd_ansicht2";
+const A2_HINWEIS="sd_ansicht2Hinweis";
 
+// v3.151: Die neue Ansicht ist die VORGABE. Massgeblich ist deshalb nicht
+// "steht dort ja", sondern "steht dort nicht ausdruecklich nein" - wer sich
+// in v3.150 bewusst fuer die klassische Ansicht entschieden hat, behaelt sie.
+// Eine getroffene Wahl umzustossen, weil sich die Vorgabe geaendert hat,
+// waere das Gegenteil einer Einstellung.
+// Ohne Zugriff auf den Geraetespeicher (privates Fenster, gesperrte
+// Seitendaten) gilt ebenfalls die Vorgabe.
 function a2Aktiv(){
- try{ return localStorage.getItem(A2_SPEICHER)==="ja" }catch(e){ return false }
+ try{ return localStorage.getItem(A2_SPEICHER)!=="nein" }catch(e){ return true }
+}
+// Der einmalige Hinweis beim ersten Start in der neuen Ansicht. Er erscheint
+// genau so lange, bis er weggeklickt wurde - wer die Ansicht selbst
+// eingeschaltet hat, braucht ihn nicht und bekommt ihn deshalb auch nicht.
+function a2HinweisNoetig(){
+ try{
+  if(localStorage.getItem(A2_HINWEIS)==="weg")return false;
+  return localStorage.getItem(A2_SPEICHER)===null;
+ }catch(e){ return false }
+}
+function a2HinweisWeg(){
+ try{ localStorage.setItem(A2_HINWEIS,"weg") }catch(e){}
+ a2Zeichnen();
 }
 function a2Setzen(an){
  try{ localStorage.setItem(A2_SPEICHER,an?"ja":"nein") }catch(e){}
@@ -105,6 +126,25 @@ function a2Name(profil){
  if(!profil)return "Angemeldet";
  return `${profil.first_name||""} ${profil.last_name||""}`.trim()||"Angemeldet";
 }
+// Das Firmenlogo. Es wird NICHT ein zweites Mal aus dem Speicher geholt:
+// applyCompanyName() (js/05) loest den privaten Speicherpfad bereits in eine
+// signierte Adresse auf und setzt sie an #startLogo. Hier wird genau diese
+// Adresse abgelesen - eine zweite Aufloesung waere eine zweite Abfrage und
+// koennte einen anderen Stand zeigen.
+function a2LogoQuelle(){
+ const el=$("startLogo");
+ if(!el||el.hidden)return "";
+ return el.getAttribute("src")||"";
+}
+// Markenzeile: Logo und Firmenname. Ohne hinterlegtes Logo steht nur der
+// Name da - ein Platzhalterkasten waere schlechter als nichts.
+function a2MarkeHtml(klasse){
+ const logo=a2LogoQuelle();
+ const name=(typeof companyName!=="undefined"&&companyName)?companyName:"SPENGLER-DIGITAL";
+ return `<div class="${klasse}">`
+  +(logo?`<img src="${esc(logo)}" alt="${esc(name)}">`:"")
+  +`<span>${esc(name)}</span></div>`;
+}
 function a2Datum(iso){
  if(!iso)return "";
  const d=new Date(iso);
@@ -131,7 +171,25 @@ function a2SeiteHeute(){
  const dringend=auf.filter(a=>typeof aufgabenArt==="function"&&aufgabenArt(a.art).farbe==="rot").length;
  const laufend=a2Projekte().filter(p=>!p.archived).length;
 
- let html="";
+ let html=a2MarkeHtml("a2-marke");
+
+ // Der einmalige Hinweis nach der Umstellung. Er sagt, was sich geaendert
+ // hat und wo der Weg zurueck steht - eine Ansicht, die sich ungefragt
+ // aendert und nichts dazu sagt, ist eine Zumutung.
+ if(a2HinweisNoetig()){
+  html+=`<div class="a2-karte a2-karte-hinweis">
+   <div class="a2-karte-titel">Die Ansicht ist neu</div>
+   <p class="a2-karte-unter">Die App ist jetzt nach dem Arbeitsablauf
+   gegliedert: unten die Leiste, hier deine offenen Aufgaben. Es sind
+   dieselben Formulare, dieselben Daten, dieselben Rechte wie bisher –
+   nur anders sortiert.</p>
+   <p class="a2-karte-unter" style="margin-top:6px">Die gewohnte Ansicht ist
+   unverändert da: <b>Mehr → Zurück zur klassischen Ansicht</b>.</p>
+   <div class="a2-knopf-reihe">
+    <button type="button" class="a2-knopf a2-k-blau" data-a2-tu="hinweisweg">Verstanden</button>
+    <button type="button" class="a2-knopf a2-k-grau" data-a2-tu="klassisch">Lieber die gewohnte</button>
+   </div></div>`;
+ }
 
  // Das Zahlenband sagt in einer Zeile, wie der Tag aussieht. Alle drei
  // Zahlen stammen aus Listen, die ohnehin geladen sind - keine zusaetzliche
@@ -312,7 +370,10 @@ function a2Zeichnen(){
   +`</div><div class="a2-kopf-ich" title="${esc(a2Name(profil))}">${esc(a2Kuerzel(profil))}</div>`;
 
  const offen=a2AufgabenAktiv()?a2Aufgaben().length:0;
- $("a2Leiste").innerHTML=leisten.map(e=>{
+ // Der Markenblock steht nur in der Seitenleiste (ab 1000px) - in der
+ // unteren Leiste eines Handys ist kein Platz dafuer, und dort steht das
+ // Logo ohnehin oben auf der Heute-Seite.
+ $("a2Leiste").innerHTML=a2MarkeHtml("a2-marke-leiste")+leisten.map(e=>{
   const auf=a2Zustand.seite===e.k;
   const punkt=(e.k==="heute"&&offen)?`<span class="a2-punkt">${offen}</span>`:"";
   return `<button type="button" class="${auf?"ist-auf":""}" data-a2-tab="${esc(e.k)}">
@@ -381,6 +442,7 @@ document.addEventListener("click",async e=>{
  const tu=e.target.closest("[data-a2-tu]");
  if(tu&&$("a2Screen")&&$("a2Screen").contains(tu)){
   const was=tu.getAttribute("data-a2-tu");
+  if(was==="hinweisweg"){a2HinweisWeg();return}
   if(was==="klassisch"){a2Setzen(false);return}
   if(was==="projekteklassisch"&&$("startOpenProjects")){$("startOpenProjects").click();return}
   if(was==="suche"&&$("openGlobalSearch")){$("openGlobalSearch").click();return}
@@ -418,6 +480,14 @@ if($("a2Ein"))$("a2Ein").onclick=()=>a2Setzen(true);
  if(typeof showStart==="function"){
   const vorher=showStart;
   showStart=function(){ vorher.apply(this,arguments); a2Anwenden(); a2Zeichnen(); };
+ }
+ // Das Firmenlogo liegt in einem privaten Speicher und wird erst nach dem
+ // Zeichnen in eine signierte Adresse aufgeloest (js/05, asynchron). Ohne
+ // diesen Beobachter bliebe die Markenzeile bis zum naechsten Neuzeichnen
+ // leer - also meist den ganzen Besuch lang.
+ if(typeof MutationObserver==="function"&&$("startLogo")){
+  new MutationObserver(()=>{ if(a2Aktiv())a2Zeichnen() })
+   .observe($("startLogo"),{attributes:true,attributeFilter:["src","hidden"]});
  }
  // Sobald die Aufgabenliste neu geladen wurde (js/45 zeichnet dann die
  // klassische Karte - hier kommt die neue Ansicht dazu).
