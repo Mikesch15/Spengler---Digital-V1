@@ -143,7 +143,17 @@ function a2MarkeHtml(klasse){
  const name=(typeof companyName!=="undefined"&&companyName)?companyName:"SPENGLER-DIGITAL";
  return `<div class="${klasse}">`
   +(logo?`<img src="${esc(logo)}" alt="${esc(name)}">`:"")
-  +`<span>${esc(name)}</span></div>`;
+  +`<span>${esc(name)}</span>`
+  +`</div>`;
+}
+// Der runde Info-Knopf der App. hilfeKnopf() (js/41) gibt ihn samt
+// Beschriftung fuer Tastatur und Screenreader zurueck - ein hier selbst
+// gebauter Knopf haette sie nicht, weil hilfeKnoepfeBeschriften() nur beim
+// Start einmal ueber das Dokument geht. Fehlt der Text zu einem Schluessel,
+// liefert die Funktion absichtlich gar nichts: lieber kein Knopf als einer,
+// der nichts sagt.
+function a2Hilfe(schluessel){
+ return (typeof hilfeKnopf==="function")?hilfeKnopf(schluessel):"";
 }
 function a2Datum(iso){
  if(!iso)return "";
@@ -224,10 +234,10 @@ function a2SeiteHeute(){
    ausgeschaltet. Es gibt deshalb keine Aufgabenliste – gearbeitet wird
    direkt über die Projekte.</div>`;
  }else if(!auf.length){
-  html+=`<div class="a2-abschnitt-kopf"><h2>Meine Aufgaben</h2></div>
+  html+=`<div class="a2-abschnitt-kopf"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2></div>
    <div class="a2-leer">Nichts offen. Alles, was dir zugeteilt ist, ist erledigt.</div>`;
  }else{
-  html+=`<div class="a2-abschnitt-kopf"><h2>Meine Aufgaben</h2>
+  html+=`<div class="a2-abschnitt-kopf"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2>
    <span class="a2-marke a2-m-grau">${esc(a2Anzahl(auf.length,"Aufgabe","Aufgaben"))}</span></div>`;
   html+='<div class="a2-liste-zwei">'+auf.map(a2AufgabeHtml).join("")+"</div>";
  }
@@ -386,7 +396,14 @@ function a2Zeichnen(){
   (proj?'<button type="button" class="a2-kopf-zurueck" data-a2-zurueck aria-label="Zurück zur Projektliste">‹</button>':"")
   +`<div class="a2-kopf-titel"><b>${esc(titel)}</b>`
   +(unter?`<span>${esc(unter)}</span>`:"")
-  +`</div><div class="a2-kopf-ich" title="${esc(a2Name(profil))}">${esc(a2Kuerzel(profil))}</div>`;
+  +`</div>`
+  // "So arbeitet die App" steht in der Kopfzeile von HEUTE: dort ist er bei
+  // jeder Bildschirmbreite sichtbar (die Markenzeile weicht auf dem Desktop
+  // der Seitenleiste) und er ist der erste Info-Knopf im Dokument - wer die
+  // Erklaerung zum Bildschirm sucht, trifft ihn zuerst. Auf der
+  // Projektseite waere die Kopfzeile mit Zurueck, Titel und Kuerzel zu voll.
+  +((a2Zustand.seite==="heute")?a2Hilfe("start"):"")
+  +`<div class="a2-kopf-ich" title="${esc(a2Name(profil))}">${esc(a2Kuerzel(profil))}</div>`;
 
  const offen=a2AufgabenAktiv()?a2Aufgaben().length:0;
  // Der Markenblock steht nur in der Seitenleiste (ab 1000px) - in der
@@ -676,8 +693,19 @@ function a2RegUebersicht(p){
   ["Adresse",      p.object||"—"],
   ["Projektname",  p.name||"—"]
  ];
+ // Der Weg zur Zuschnittliste darf nicht laenger werden als in der
+ // klassischen Ansicht. Dort sind es drei Klicks (Projekte, Projekt,
+ // Material & Zuschnitt). Ohne diesen Knopf waeren es hier vier, weil man
+ // erst das Register Produktion oeffnen muesste - der haeufigste Weg des
+ // Tages waere durch die neue Ansicht einen Griff teurer geworden.
+ const schnell=a2Modul("material")
+  ? `<div class="a2-knopf-reihe" style="margin:0 0 12px">
+      <button type="button" class="a2-knopf a2-k-grau a2-k-voll" data-a2-tu="matzu">
+       🧱 Material &amp; Zuschnitt</button></div>`
+  : "";
  return `<div class="a2-karte">${ablauf}</div>
   ${schritt}
+  ${schnell}
   <div class="a2-abschnitt">
    <div class="a2-abschnitt-kopf"><h2>Stand</h2></div>
    <div class="a2-zahlen">

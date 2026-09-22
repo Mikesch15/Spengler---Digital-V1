@@ -99,6 +99,11 @@ html.a2-an #appRoot{max-width:none;padding:0}
    Name selbst die Marke und darf dann groesser sein. */
 .a2-marke img+span{font-size:11px}
 .a2-marke-leiste{display:none}
+/* Der Info-Knopf in der blauen Kopfzeile: heller Rand auf dunklem Grund,
+   sonst waere er dort unsichtbar. */
+#a2Kopf .hilfe-knopf{flex:none;background:#ffffff26;border-color:#ffffff66;color:#fff}
+#a2Kopf .hilfe-knopf:hover{background:#ffffff3d;color:#fff}
+.a2-abschnitt-kopf h2 .hilfe-knopf{margin-left:6px;vertical-align:middle}
 
 /* ---- Karten ------------------------------------------------------------- */
 .a2-karte{background:var(--card-bg);border:1px solid var(--card-line);

@@ -96,6 +96,16 @@ const laden=async(page,wer,rolle)=>{
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
  page.on("dialog",d=>d.accept());
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(400);
+ // v3.151: Die neue Ansicht ist seit dieser Version die VORGABE. Dieser
+ // Pruefstand prueft Ablaeufe, die von der KLASSISCHEN Startseite ausgehen
+ // (ihre Knoepfe, ihre Karten) - sie wird deshalb ausdruecklich gewaehlt.
+ // Ohne diese Zeile traegt jedes Element der klassischen Startseite
+ // display:none, und jede Messung daran ergaebe 0.
+ // Das ist keine Abschwaechung: die klassische Ansicht ist ein
+ // unterstuetzter, jederzeit erreichbarer Zustand der App, und genau der
+ // wird hier geprueft. Was die NEUE Ansicht tut, pruefen
+ // pruefstand-ansicht2-v3-150.js und die beiden v3-151-Pruefstaende.
+ await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
  p(fehler.length===0,"die App laedt ohne JavaScript-Fehler",fehler.slice(0,3));
  if(fehler.length){console.log("\n=== Abbruch ===");await b.close();process.exit(1)}
 

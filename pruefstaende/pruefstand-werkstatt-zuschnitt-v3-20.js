@@ -181,6 +181,16 @@ async function mehrAuf(page){
  const cdnWache=await stubSchuetzen(page);
  await page.addInitScript(STUB);
  await page.goto(APP,{waitUntil:"load"});
+ // v3.151: Die neue Ansicht ist seit dieser Version die VORGABE. Dieser
+ // Pruefstand prueft Ablaeufe, die von der KLASSISCHEN Startseite ausgehen
+ // (ihre Knoepfe, ihre Karten) - sie wird deshalb ausdruecklich gewaehlt.
+ // Ohne diese Zeile traegt jedes Element der klassischen Startseite
+ // display:none, und jede Messung daran ergaebe 0.
+ // Das ist keine Abschwaechung: die klassische Ansicht ist ein
+ // unterstuetzter, jederzeit erreichbarer Zustand der App, und genau der
+ // wird hier geprueft. Was die NEUE Ansicht tut, pruefen
+ // pruefstand-ansicht2-v3-150.js und die beiden v3-151-Pruefstaende.
+ await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
  await page.waitForTimeout(500);
  p(cdnWache.abgefangen>=1,
    "das echte supabase-js wurde abgefangen - der Stub ist die einzige Quelle",

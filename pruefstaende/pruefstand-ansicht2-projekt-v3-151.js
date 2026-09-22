@@ -173,7 +173,25 @@ window.supabase={createClient:()=>({
  let f=await page.evaluate(()=>({seite:a2Zustand.seite,projektId:a2Zustand.projektId}));
  p(f.seite==="projekte"&&!f.projektId,"F1 der Zurueck-Knopf fuehrt in die Projektliste",f);
 
- p(fehler.length===0,"G1 keine Javascript-Fehler",fehler.slice(0,3));
+ // --- G: der Weg zur Zuschnittliste ---
+ // Der klassische Weg kostet drei Klicks (pruefstand-ablauf-v3-25:
+ // Projekte, Projekt, Material & Zuschnitt). Die neue Ansicht darf nicht
+ // teurer sein - sonst waere der haeufigste Weg des Tages durch die
+ // Umstellung schlechter geworden.
+ await page.evaluate(()=>{
+  a2Zustand.seite="heute"; a2Zustand.projektId=null; a2Zeichnen();
+  window.__matzu=[]; openMaterialZuschnitt=async id=>{window.__matzu.push(id)};
+ });
+ let klicks=0;
+ await page.click('[data-a2-tab="projekte"]'); klicks++;
+ await page.click('[data-a2-projekt="7"]'); klicks++;
+ await page.waitForFunction(()=>!a2ProjLaedt);
+ await page.click('#a2Inhalt [data-a2-tu="matzu"]'); klicks++;
+ let g=await page.evaluate(()=>window.__matzu);
+ p(klicks===3&&JSON.stringify(g)===JSON.stringify([7]),
+   "G1 drei Klicks von Heute bis zur Zuschnittliste - wie in der klassischen Ansicht",{klicks,g});
+
+ p(fehler.length===0,"G2 keine Javascript-Fehler",fehler.slice(0,3));
  console.log("\n  "+ok+" ok, "+fail+" fehlgeschlagen");
  await b.close();
  process.exit(fail?1:0);
