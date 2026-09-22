@@ -426,3 +426,96 @@ html.a2-an #settingsModal .settingrow button,
 html.a2-an #settingsModal .settingrow-mat button{
  min-height:0;border-radius:9px;padding:6px 10px;font-size:13px;
 }
+
+/* ==========================================================================
+   MASSAUFNAHME-FORMULAR IM NEUEN AUSSEHEN  (v3.152)
+   --------------------------------------------------------------------------
+   Rein optisch, wie bei den Einstellungen. Keine Fachlogik, keine Rechnung,
+   kein Feld wird verschoben oder umbenannt - nur Form, Farbe und Groesse.
+
+   Das Formular ist der Bildschirm, an dem auf dem Dach wirklich gearbeitet
+   wird. Zwei Groessen sind deshalb keine Geschmacksfrage:
+     48px Feldhoehe    - Mindestgroesse fuer einen Finger, auch mit Handschuh.
+     16px Schriftgroesse - darunter zoomt iOS beim Hineintippen in das Feld
+                         hinein, und der Bildschirm springt weg.
+
+   AUSGENOMMEN sind die dichten Stellen. Im Formular stehen dreizehn
+   Tabellen (Stuecklisten, Zuschnittlisten, Winkeluebersichten) mit mehreren
+   Feldern je Zeile; ein 48px hohes Feld wuerde dort jede Zeile auf das
+   Doppelte aufblaehen und die Liste unlesbar machen. Ebenso ausgenommen
+   sind Ankreuzfelder - die haben ihre eigene Groesse.
+   ========================================================================== */
+
+/* ---- Registerleiste ------------------------------------------------------ */
+/* Sie ist schon nah dran; angeglichen werden nur Rundung und Hoehe. */
+html.a2-an #measurementEditModal .ra-register-knopf{
+ border-radius:999px;min-height:44px;font-size:14px;
+ background:var(--card-bg);border-color:var(--line);
+}
+html.a2-an #measurementEditModal .ra-register-knopf.aktiv{
+ background:var(--blue);border-color:var(--blue);color:#fff;
+}
+
+/* ---- Karten und Zeilen --------------------------------------------------- */
+html.a2-an #measurementEditModal .modalbox > .card,
+html.a2-an #measurementEditModal .card{
+ border-radius:14px;border-color:var(--card-line);box-shadow:var(--a2-schatten);
+}
+/* Die Flaeche der Zeilen wird ABSICHTLICH nicht angefasst. Mehrere Arten
+   (Uebergang, Stutzen, Dila, Dehnung) unterscheiden sich genau durch ihre
+   Farbe - die ist Information, nicht Schmuck. Eine Regel hier wuerde sie
+   alle schlagen, weil sie spezifischer ist als .ra-ueb & Co.
+   Geaendert werden deshalb nur Rundung, Rand und Innenabstand. */
+html.a2-an #measurementEditModal .ra-zeile{
+ border-radius:14px;padding:13px;
+}
+
+/* ---- Ueberschriften ------------------------------------------------------ */
+html.a2-an #measurementEditModal h2{
+ font-size:12px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;
+ color:var(--muted);border-bottom:0;padding-bottom:0;
+}
+
+/* ---- Felder -------------------------------------------------------------- */
+html.a2-an #measurementEditModal input:not([type="checkbox"]):not([type="radio"]),
+html.a2-an #measurementEditModal select,
+html.a2-an #measurementEditModal textarea{
+ min-height:48px;border-radius:11px;padding:11px 13px;font-size:16px;
+ background:var(--input-bg);border-color:var(--line);
+}
+html.a2-an #measurementEditModal textarea{min-height:88px}
+html.a2-an #measurementEditModal input:focus,
+html.a2-an #measurementEditModal select:focus,
+html.a2-an #measurementEditModal textarea:focus{
+ outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26;
+}
+html.a2-an #measurementEditModal label{font-size:10.5px;letter-spacing:.05em;margin-bottom:5px}
+
+/* Die dichten Stellen zurueck auf ihr Mass.
+   Die beiden :not() sind nicht Zierde, sondern noetig: spaeter im Stylesheet
+   zu stehen genuegt nicht, wenn die allgemeine Regel SPEZIFISCHER ist. Sie
+   traegt zwei Attributwaehler in den :not(), diese hier muessen sie also
+   ebenfalls tragen - sonst gewinnt die allgemeine, und die Stueckliste
+   platzt. Genau das ist beim ersten Versuch passiert und wurde von der
+   Messung im Pruefstand gemeldet. */
+html.a2-an #measurementEditModal table input:not([type="checkbox"]):not([type="radio"]),
+html.a2-an #measurementEditModal table select:not([hidden]):not([disabled]),
+html.a2-an #measurementEditModal table textarea:not([hidden]):not([disabled]),
+html.a2-an #measurementEditModal .ra-schalter input:not([type="text"]):not([type="number"]){
+ min-height:40px;border-radius:9px;padding:8px;font-size:14px;
+}
+
+/* ---- Knoepfe ------------------------------------------------------------- */
+html.a2-an #measurementEditModal .bar > button{
+ min-height:48px;border-radius:11px;padding:12px 18px;font-size:15px;
+}
+/* Kleine Knoepfe bleiben klein: der runde Info-Knopf ist ein Zeichen, die
+   Knoepfe in Tabellen und Zeilenkoepfen stehen zu mehreren nebeneinander,
+   und .ra-weg ist das kleine Wegnehmen-Kreuz einer Zeile. */
+html.a2-an #measurementEditModal .hilfe-knopf,
+html.a2-an #measurementEditModal table button,
+html.a2-an #measurementEditModal .ra-zeile-kopf button,
+html.a2-an #measurementEditModal .ra-weg{
+ min-height:0;border-radius:9px;padding:6px 10px;font-size:13px;
+}
+html.a2-an #measurementEditModal .hilfe-knopf{padding:0}

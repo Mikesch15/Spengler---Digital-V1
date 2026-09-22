@@ -145,7 +145,10 @@ const WIN_CHANGELOG={
   "Die klassische Ansicht bleibt vollständig erhalten. Beide arbeiten mit denselben Formularen und denselben Daten – zurück geht es jederzeit unter „Mehr“."],
  "3.151":["Die neue Ansicht ist jetzt die Vorgabe. Wer lieber die gewohnte will, findet sie unverändert unter „Mehr → Zurück zur klassischen Ansicht“ – die Wahl merkt sich jedes Gerät für sich.",
   "Neu: ein Projekt öffnet eine eigene Seite mit sechs Registern – Übersicht, Aufmass, Produktion, Werkstatt, Ausmass und Mehr. Die Produktion zeigt den Zuschnitt-Fortschritt je Massaufnahme und fürs ganze Projekt.",
-  "Das Firmenlogo steht wieder auf der Startseite, und die Einstellungen sehen jetzt aus wie die neue Ansicht."]
+  "Das Firmenlogo steht wieder auf der Startseite, und die Einstellungen sehen jetzt aus wie die neue Ansicht."],
+ "3.152":["Das Massaufnahme-Formular sieht jetzt ebenfalls aus wie die neue Ansicht: grössere Eingabefelder, die sich mit Handschuhen treffen lassen, und eine Schriftgrösse, bei der das Handy beim Hineintippen nicht mehr ins Feld hineinzoomt.",
+  "Die Stück- und Zuschnittlisten bleiben absichtlich schmal – dort stehen mehrere Felder in einer Zeile, und grössere Felder würden die Liste unlesbar machen.",
+  "An den Massen, der Abwicklung und dem Zuschnitt wurde nichts geändert."]
 };
 
 function winVersionVergleich(a,b){
