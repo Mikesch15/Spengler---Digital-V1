@@ -107,6 +107,12 @@ input,select,textarea{
  box-shadow:none!important;
  font-size:7.2pt!important;
  font-weight:600!important;
+ /* v3.156: Ein textarea zeichnet in Chrome unten rechts einen Anfasser zum
+    Groesserziehen - zwei kleine Schraegstriche. Am Bildschirm ist er
+    richtig, auf dem Papier stand er bisher mit im Feld: im Regierapport
+    sichtbar in "Auftraggeber" und "Objekt / Gebaeudeteil", gemeldet vom
+    Anwender am fertigen Ausdruck. Beim Drucken hat er nichts zu suchen. */
+ resize:none!important;
 }
 textarea{min-height:10mm!important;line-height:1.2!important}
 select::-ms-expand{display:none!important}

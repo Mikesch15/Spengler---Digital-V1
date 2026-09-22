@@ -158,7 +158,13 @@ const WIN_CHANGELOG={
   "Behoben: die Knöpfe „Foto aufnehmen“ und „Aus Galerie wählen“ waren in der neuen Ansicht kleiner geworden statt grösser."],
  "3.155":["Die Anleitung zeigt jetzt die neue Ansicht – also das, was du beim Öffnen der App tatsächlich siehst. Bisher zeigten ihre Bilder die klassische, obwohl seit Version 3.151 niemand mehr mit ihr startet.",
   "Neu abgebildet: die Projektseite mit ihren sechs Registern. Sie war beschrieben, aber nie zu sehen.",
-  "Drei Bilder bleiben absichtlich klassisch – Startseite und Aufgabenkarte gibt es nur dort; in der neuen Ansicht sind sie die Seite „Heute“."]
+  "Drei Bilder bleiben absichtlich klassisch – Startseite und Aufgabenkarte gibt es nur dort; in der neuen Ansicht sind sie die Seite „Heute“."],
+ "3.156":["Werkstatt, Lager, Suche, Einstellungen und alles Weitere bleiben jetzt IM Rahmen der neuen Ansicht: die untere Leiste verschwindet nicht mehr, und oben steht, wo du bist. Bisher legte sich der alte Seitenaufbau darüber.",
+  "Das Lager ist ein eigener Bereich, keine Einstellungsseite mehr.",
+  "„＋ Neues Projekt“ zeigt nur noch das Formular – nicht noch einmal die Projektliste, von der du gerade kamst. Archiv und Filter haben einen eigenen Knopf.",
+  "Der Regierapport steht neben den anderen Registern des Projekts statt unter „Mehr …“.",
+  "Felder und Knöpfe sind wieder so gross wie vorher – die Vergrösserung aus 3.152/3.154 ist zurückgenommen.",
+  "Behoben: im gedruckten Regierapport standen in zwei Feldern unten rechts zwei kleine Schrägstriche. Das war der Anfasser des Textfelds; auf Papier hat er nichts zu suchen."]
 };
 
 function winVersionVergleich(a,b){
