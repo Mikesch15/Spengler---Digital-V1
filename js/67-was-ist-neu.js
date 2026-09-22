@@ -168,7 +168,11 @@ const WIN_CHANGELOG={
  "3.157":["Im Lager steht jetzt wirklich nur die Lagerverwaltung. Materialbestand und Reststücke sind Firmeneinstellungen und stehen weiterhin unter Einstellungen → Lager.",
   "„Anleitung“ öffnet jetzt die Anleitung. Bisher führte der Eintrag in die Einstellungen – genauso wie „Einstellungen“ direkt darüber.",
   "Die offenen Aufgaben und die Listen der einzelnen Massaufnahmen sind deutlich kompakter: kleinere Karten, kleinere Knöpfe, und der blaue Knopf spannt sich nicht mehr über die ganze Karte.",
-  "Das Register „Aufmass“ heisst jetzt „Massaufnahme“."]
+  "Das Register „Aufmass“ heisst jetzt „Massaufnahme“."],
+ "3.158":["Die Startseite ist neu aufgebaut – nach dem Prototyp: zuoberst, was dringend ist, darunter deine Aufgaben, die Werkstatt in drei Zahlen, die anstehenden Montagen und die offenen Projekte mit ihrem Produktionsstand.",
+  "Die Aufgaben sind jetzt Zeilen statt Karten. Ein Tippen öffnet die Massaufnahme; wo es einen eigenen Schritt gibt (rüsten, montieren, zuweisen), steht er als Knopf daneben.",
+  "„Werkstatt heute“ rechnet mit denselben Zahlen wie die Werkstatt selbst – nicht mit einer zweiten Rechnung.",
+  "Die anstehende Montage zeigt bewusst kein geplantes Datum: einen Montagetermin führt die App nicht. Sie zeigt, seit wann etwas bereitliegt und wer eingeteilt ist."]
 };
 
 function winVersionVergleich(a,b){

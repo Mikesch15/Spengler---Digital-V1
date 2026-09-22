@@ -690,3 +690,30 @@ html.a2-an #settingsModal.a2-nur-lager [data-section="reststuecke"]{display:none
 html.a2-an #settingsModal.a2-nur-lager .modalbox > .card > h2,
 html.a2-an #projectsModal.a2-nur-anlegen .card > h2,
 html.a2-an #projectsModal.a2-nur-liste .card > h2{display:none!important}
+
+/* ==========================================================================
+   STARTSEITE NACH DEM PROTOTYP  (v3.158)
+   --------------------------------------------------------------------------
+   Nur was die neue Gliederung der Seite HEUTE braucht. Die Bausteine
+   darueber (Zeilen, Karten, Zahlenband, Balken) werden wiederverwendet -
+   eine zweite Zeilensorte waere ein zweites Aussehen fuer dasselbe Ding.
+   ========================================================================== */
+
+/* Eine Aufgabe: die Zeile fuehrt zur Massaufnahme, der Knopf rechts macht
+   den Schritt. Auf schmalen Geraeten rutscht er unter die Zeile - er darf
+   ihr nicht die Breite nehmen, sonst bricht die Adresse um. */
+.a2-zeile-reihe{display:flex;align-items:stretch;gap:6px;margin:0 0 6px;flex-wrap:wrap}
+.a2-zeile-reihe > .a2-zeile{flex:1 1 220px;margin:0}
+.a2-zeile-tat{flex:0 0 auto;align-self:stretch}
+/* Die dringende Aufgabe traegt ihr Zeichen in Rot - dieselbe Farbe, die
+   MW_SCHRITTE (js/44) fuer diesen Schritt vorsieht. */
+.a2-zeile-nr.ist-rot{background:var(--red-light);color:var(--red)}
+
+/* Eine Projektkarte, die sich antippen laesst. */
+.a2-karte-klick{display:block;width:100%;text-align:left;cursor:pointer}
+.a2-karte-kopf{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.a2-karte-kopf-text{min-width:0}
+
+/* Der Fortschritt auf einer Projektkarte braucht etwas Luft nach oben -
+   .a2-fort selbst kommt unveraendert aus v3.151 und wird nur benutzt. */
+.a2-karte-klick .a2-fort{margin-top:8px}

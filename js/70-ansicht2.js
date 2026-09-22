@@ -278,13 +278,118 @@ function a2AufgabenAktiv(){
 }
 
 // ===========================================================================
-// HEUTE
+// HEUTE  (v3.158 - nach dem Prototyp prototype/js/heute.js)
 // ===========================================================================
+// WORAUS DIESE SEITE BESTEHT UND WOHER JEDE ZAHL KOMMT
+// Der Prototyp im Ordner prototype/ zeigt diese Seite mit Beispieldaten.
+// Hier steht dieselbe Gliederung - aber JEDE Zahl kommt aus den echten
+// Daten der App. Wo der Prototyp etwas zeigt, wofuer es in der Datenbank
+// keine Quelle gibt, steht hier NICHTS statt einer erfundenen Zahl:
+//
+//   Warnung oben      freigabe_verfallen, ueber aufgabenListe (js/45)
+//   Meine Aufgaben    aufgabenListe (js/45) - dieselbe Liste wie klassisch
+//   Werkstatt heute   werkZeilen (js/51) + zeStandListe (js/56)
+//   Anstehende Montage werkZeilen mit workflow_status "zu_montieren"
+//   Offene Projekte   allProjects + derselbe Zuschnittstand je Projekt
+//
+// NICHT UEBERNOMMEN: "Wichtige Hinweise". Der Prototyp zeigt dort freie
+// Notizen ("Baustellenzufahrt nur bis 16:00 Uhr") und einen Offertenstand
+// ("Offerte noch nicht verschickt"). Die Tabelle projects fuehrt kein
+// Notizfeld und angebote keinen Status - beides gaebe es nur als neue
+// Spalte samt Eingabe. Der Prototyp selbst gibt das in seinem Echt-Modus
+// zu (prototype/js/echt.js: hinweis nur bei freigabe_verfallen). Eine
+// Rubrik, die immer leer bleibt, waere schlechter als keine.
+//
+// WAS DIESE SEITE KOSTET
+// Zwei zusaetzliche Abfragen, beide ueber die VORHANDENEN Ladefunktionen
+// der App: werkLaden() (js/51) und zeLaden() (js/56). Keine eigene Abfrage,
+// keine zweite Rechnung - sonst koennten Startseite und Werkstatt
+// verschiedene Zahlen zeigen.
+// ===========================================================================
+
+let a2WerkGeladen=false;       // schon geladen?
+let a2WerkLaeuft=false;        // laeuft gerade?
+let a2WerkFehler="";
+
+function a2WerkstattSichtbar(){
+ return a2KnopfSichtbar("navWerkstatt")&&a2Modul("werkstatt");
+}
+// Die Zeilen der Werkstatt. Geladen hat sie werkLaden() (js/51) - hier wird
+// nur abgelesen.
+function a2Werk(){
+ return (typeof werkZeilen!=="undefined"&&Array.isArray(werkZeilen))?werkZeilen:[];
+}
+// Einmal laden, wenn HEUTE zum ersten Mal gezeigt wird. Die Seite erscheint
+// sofort; die Werkstattzahlen kommen nach, statt dass alles wartet.
+async function a2HeuteLaden(neu){
+ if(!a2WerkstattSichtbar())return;
+ if(a2WerkLaeuft)return;
+ if(a2WerkGeladen&&!neu)return;
+ a2WerkLaeuft=true; a2WerkFehler="";
+ try{
+  if(typeof werkLaden==="function")await werkLaden();
+  if(typeof werkFehler!=="undefined"&&werkFehler)a2WerkFehler=werkFehler;
+  // Die Haken des Zuschnitts. Ohne sie zaehlt zeStand jedes Stueck als
+  // offen - die Startseite behauptete dann, nichts sei produziert.
+  if(typeof zeLaden==="function"&&a2Modul("zuschnitt"))
+   await zeLaden(a2Werk().map(z=>z.id),!!neu);
+  a2WerkGeladen=true;
+ }catch(e){ a2WerkFehler=(e&&e.message)||String(e) }
+ a2WerkLaeuft=false;
+ if(a2Aktiv()&&a2Zustand.seite==="heute"&&!a2Zustand.bereich)a2Zeichnen();
+}
+
+// Der Zuschnittstand einer Liste von Massaufnahmen. EINE Quelle: zeStandListe
+// (js/56) - dieselbe Rechnung wie in der Werkstatt und auf der Projektseite.
+function a2Stand(liste){
+ if(typeof zeStandListe!=="function")return {gesamt:0,erledigt:0,offen:0,aufnahmen:0};
+ return zeStandListe(liste||[]);
+}
+function a2WerkZahlen(){
+ const zeilen=a2Werk();
+ const stand=a2Stand(zeilen);
+ // "Ruestlisten": Massaufnahmen, an denen noch etwas zu schneiden ist.
+ const ruestlisten=zeilen.filter(z=>{
+  const s=(typeof zeStand==="function")?zeStand(z):null;
+  return s&&s.gesamt>0&&s.offen>0;
+ }).length;
+ const montagen=zeilen.filter(z=>z.workflow_status==="zu_montieren").length;
+ return {teile:stand.offen,ruestlisten,montagen};
+}
+// Anstehende Montage: was geruestet ist und auf die Montage wartet.
+// KEIN Termin - die Datenbank fuehrt kein geplantes Montagedatum. Statt
+// "morgen" zu erfinden, steht hier, seit wann es bereitliegt und wer
+// eingeteilt ist. Beides sind echte Spalten (geruestet_am, monteur_id).
+function a2MontageListe(){
+ return a2Werk().filter(z=>z.workflow_status==="zu_montieren")
+  .sort((a,b)=>String(a.geruestet_am||"").localeCompare(String(b.geruestet_am||"")))
+  .slice(0,8);
+}
+function a2PersonName(id){
+ if(!id||typeof allProfiles==="undefined"||!Array.isArray(allProfiles))return "";
+ const p=allProfiles.find(x=>String(x.id)===String(id));
+ return p?a2Name(p):"";
+}
+// Der Zuschnittstand EINES Projekts - aus denselben Werkstattzeilen.
+function a2ProjektStand(p){
+ return a2Stand(a2Werk().filter(z=>String(z.project_id)===String(p.id)));
+}
+// Ein Zeichen je Aufgabenart - wie im Prototyp.
+const A2_AUFGABE_ZEICHEN={
+ erneut_freigeben:"✓", freigeben:"✓", zuweisen:"👤", monteur:"👤",
+ ruesten:"🔧", montieren:"🏠", abschliessen:"📏"
+};
+// Das heutige Datum, ausgeschrieben - "Sonntag, 21. September".
+function a2HeuteDatum(){
+ const d=new Date();
+ const tage=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+ const monate=["Januar","Februar","März","April","Mai","Juni","Juli","August",
+               "September","Oktober","November","Dezember"];
+ return tage[d.getDay()]+", "+d.getDate()+". "+monate[d.getMonth()];
+}
+
 function a2SeiteHeute(){
  const auf=a2Aufgaben();
- const dringend=auf.filter(a=>typeof aufgabenArt==="function"&&aufgabenArt(a.art).farbe==="rot").length;
- const laufend=a2Projekte().filter(p=>!p.archived).length;
-
  let html=a2MarkeHtml("a2-marke");
 
  // Der einmalige Hinweis nach der Umstellung. Er sagt, was sich geaendert
@@ -305,17 +410,6 @@ function a2SeiteHeute(){
    </div></div>`;
  }
 
- // Das Zahlenband sagt in einer Zeile, wie der Tag aussieht. Alle drei
- // Zahlen stammen aus Listen, die ohnehin geladen sind - keine zusaetzliche
- // Abfrage, keine Schaetzung.
- if(a2AufgabenAktiv()){
-  html+=`<div class="a2-zahlen">
-   <div class="a2-zahl a2-z-blau"><b>${auf.length}</b><span>offen</span></div>
-   <div class="a2-zahl a2-z-rot"><b>${dringend}</b><span>jetzt dran</span></div>
-   <div class="a2-zahl a2-z-gruen"><b>${laufend}</b><span>Projekte</span></div>
-  </div>`;
- }
-
  // Ohne Verbindung wird die Aufgabenliste NICHT geleert (js/45 laesst sie
  // stehen). Der Hinweis sagt deshalb, dass der Stand aelter sein kann -
  // "nichts offen" waere hier eine Behauptung, die niemand geprueft hat.
@@ -325,31 +419,108 @@ function a2SeiteHeute(){
    übertragen, sobald wieder Netz da ist.</div>`;
  }
 
- html+='<div class="a2-abschnitt">';
- if(!a2AufgabenAktiv()){
-  html+=`<div class="a2-leer">Der Arbeitsablauf ist für diese Firma
-   ausgeschaltet. Es gibt deshalb keine Aufgabenliste – gearbeitet wird
-   direkt über die Projekte.</div>`;
- }else if(!auf.length){
-  html+=`<div class="a2-abschnitt-kopf"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2></div>
-   <div class="a2-leer">Nichts offen. Alles, was dir zugeteilt ist, ist erledigt.</div>`;
- }else{
-  html+=`<div class="a2-abschnitt-kopf"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2>
-   <span class="a2-marke a2-m-grau">${esc(a2Anzahl(auf.length,"Aufgabe","Aufgaben"))}</span></div>`;
-  html+='<div class="a2-liste-zwei">'+auf.map(a2AufgabeHtml).join("")+"</div>";
- }
- html+="</div>";
+ // ---- Warnung: nach der Freigabe geaendert -------------------------------
+ // Die dringendste Meldung steht ganz oben, mit dem Weg ins Projekt. Sie
+ // kommt aus derselben Aufgabenliste wie alles andere - keine zweite Regel
+ // darueber, was dringend ist.
+ auf.filter(a=>a.art==="erneut_freigeben").slice(0,3).forEach(a=>{
+  const p=a2Projekt(a.m&&a.m.project_id);
+  const b=(typeof aufgabenBeschriftung==="function")?aufgabenBeschriftung(a.m):{adresse:"",zusatz:""};
+  html+=`<div class="a2-hinweis a2-h-warnung">
+   <b>⚠ ${esc(p?(p.name||b.adresse):b.adresse)}</b>
+   Massaufnahme „${esc(a.m&&a.m.title?a.m.title:b.adresse)}“ wurde nach der
+   Freigabe geändert – sie muss erneut freigegeben werden.
+   ${p?`<div class="a2-knopf-reihe">
+    <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau"
+     data-a2-projekt="${esc(p.id)}">Projekt öffnen</button></div>`:""}
+  </div>`;
+ });
 
- // Zuletzt bearbeitete Projekte - aus derselben Liste wie die Projektseite,
- // nur nach Zeit statt nach Name sortiert.
- const letzte=a2Projekte().filter(p=>!p.archived)
-  .slice().sort((x,y)=>String(y.updated_at||"").localeCompare(String(x.updated_at||"")))
-  .slice(0,5);
- if(letzte.length){
+ // ---- Meine Aufgaben -----------------------------------------------------
+ if(!a2AufgabenAktiv()){
+  html+=`<div class="a2-abschnitt"><div class="a2-leer">Der Arbeitsablauf ist
+   für diese Firma ausgeschaltet. Es gibt deshalb keine Aufgabenliste –
+   gearbeitet wird direkt über die Projekte.</div></div>`;
+ }else{
   html+=`<div class="a2-abschnitt">
-   <div class="a2-abschnitt-kopf"><h2>Zuletzt bearbeitet</h2>
-    <button type="button" data-a2-tab="projekte">Alle Projekte ›</button></div>`
-   +letzte.map(a2ProjektZeileHtml).join("")+"</div>";
+   <div class="a2-abschnitt-kopf"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2>
+    ${auf.length?`<span class="a2-marke a2-m-blau">${auf.length} offen</span>`:""}</div>`;
+  html+=auf.length
+   ? auf.map(a2AufgabeHtml).join("")
+   : '<div class="a2-leer">Nichts offen. Alles, was dir zugeteilt ist, ist erledigt.</div>';
+  html+="</div>";
+ }
+
+ // ---- Werkstatt heute ----------------------------------------------------
+ if(a2WerkstattSichtbar()){
+  const z=a2WerkZahlen();
+  html+=`<div class="a2-abschnitt">
+   <div class="a2-abschnitt-kopf"><h2>Werkstatt heute</h2>
+    <button type="button" data-a2-tab="werkstatt">Werkstatt öffnen ›</button></div>`;
+  if(a2WerkFehler){
+   html+=`<div class="a2-hinweis a2-h-warnung"><b>Die Werkstattzahlen fehlen</b>
+    ${esc(a2WerkFehler)}</div>`;
+  }else if(!a2WerkGeladen){
+   html+='<div class="a2-leer">Werkstatt wird geladen …</div>';
+  }else{
+   html+=`<div class="a2-zahlen">
+    <div class="a2-zahl a2-z-orange"><b>${z.teile}</b><span>Teile zu produzieren</span></div>
+    <div class="a2-zahl a2-z-blau"><b>${z.ruestlisten}</b><span>Rüstlisten</span></div>
+    <div class="a2-zahl a2-z-gruen"><b>${z.montagen}</b><span>Montagen vorbereitet</span></div>
+   </div>`;
+  }
+  html+="</div>";
+
+  // ---- Anstehende Montage ----------------------------------------------
+  const montage=a2MontageListe();
+  if(a2WerkGeladen&&montage.length){
+   html+=`<div class="a2-abschnitt">
+    <div class="a2-abschnitt-kopf"><h2>Anstehende Montage</h2></div>`
+    +montage.map(m=>{
+     const p=a2Projekt(m.project_id);
+     const b=(typeof aufgabenBeschriftung==="function")?aufgabenBeschriftung(m):{adresse:m.title||"",zusatz:""};
+     const wer=a2PersonName(m.monteur_id);
+     // Kein geplanter Termin in der Datenbank - stattdessen, seit wann es
+     // bereitliegt. Das ist eine echte Spalte (geruestet_am).
+     const unten=[m.geruestet_am?"gerüstet am "+a2Datum(m.geruestet_am):"",
+                  wer||"noch niemand eingeteilt"].filter(Boolean).join(" · ");
+     return `<button type="button" class="a2-zeile" data-a2-projekt="${esc(m.project_id)}">
+      <span class="a2-zeile-nr">🏠</span>
+      <span class="a2-zeile-text"><b>${esc((p?p.name+" – ":"")+(b.adresse||""))}</b>
+       <span>${esc(unten)}</span></span>
+      <span class="a2-zeile-pfeil">›</span></button>`;
+    }).join("")+"</div>";
+  }
+ }
+
+ // ---- Offene Projekte ----------------------------------------------------
+ const offen=a2Projekte().filter(p=>!p.archived&&p.status!=="abgeschlossen"&&p.status!=="storniert")
+  .slice().sort((x,y)=>String(y.updated_at||"").localeCompare(String(x.updated_at||"")))
+  .slice(0,8);
+ if(offen.length){
+  html+=`<div class="a2-abschnitt">
+   <div class="a2-abschnitt-kopf"><h2>Offene Projekte</h2>
+    <button type="button" data-a2-tab="projekte">Alle Projekte ›</button></div>
+   <div class="a2-liste-zwei">`
+   +offen.map(p=>{
+    const st=(typeof projektStatusInfo==="function")?projektStatusInfo(p):null;
+    const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
+    const stand=a2WerkGeladen?a2ProjektStand(p):null;
+    return `<button type="button" class="a2-karte a2-karte-klick" data-a2-projekt="${esc(p.id)}">
+     <div class="a2-karte-kopf">
+      <div class="a2-karte-kopf-text">
+       <div class="a2-karte-titel">${esc(p.name||titel)}</div>
+       <p class="a2-karte-unter">${esc(p.object||"")}</p>
+      </div>
+      ${st?`<span class="a2-marke a2-m-grau">${esc(st.icon+" "+st.label)}</span>`:""}
+     </div>
+     ${stand&&stand.gesamt?a2FortschrittHtml(stand.erledigt,stand.gesamt,"Produziert")
+       :`<p class="a2-karte-unter" style="margin-top:8px">${
+         a2WerkstattSichtbar()&&!a2WerkGeladen?"Zuschnittstand wird geladen …"
+                                              :"Noch keine Teile erfasst."}</p>`}
+    </button>`;
+   }).join("")
+   +"</div></div>";
  }
  return html;
 }
@@ -357,22 +528,28 @@ function a2SeiteHeute(){
 // Eine Aufgabe. Titel, Farbe und Knopfbeschriftung kommen aus js/45 - dieselbe
 // Quelle wie in der klassischen Ansicht, damit dort und hier nie zwei
 // verschiedene Dinge stehen.
+//
+// v3.158: als ZEILE wie im Prototyp, nicht mehr als Karte mit Knopfreihe.
+// Ein Unterschied zum Prototyp ist Absicht: dort fuehrt die Zeile nur ins
+// Projekt. Hier fuehrt sie in die Massaufnahme, um die es geht - und wo die
+// Aufgabe einen eigenen Schritt hat (ruesten, montieren, zuweisen), steht er
+// als kleiner Knopf rechts daneben. Ohne ihn waere aus jedem Einzeltipp des
+// Ruesters ein Weg ueber drei Schirme geworden.
 function a2AufgabeHtml(a){
  if(!a||typeof aufgabenArt!=="function")return "";
  const art=aufgabenArt(a.art);
  const b=(typeof aufgabenBeschriftung==="function")?aufgabenBeschriftung(a.m):{adresse:"Massaufnahme",zusatz:""};
- const zweiter=(a.art==="freigeben"||a.art==="erneut_freigeben")?""
-  :`<button type="button" class="a2-knopf a2-knopf-klein a2-k-grau"
-      data-a2-aufgabe="oeffnen" data-a2-id="${esc(a.m.id)}">Öffnen</button>`;
- return `<div class="a2-auf a2-auf-${esc(art.farbe)}">
-  <div class="a2-auf-schritt">${esc(art.titel)}</div>
-  <div class="a2-auf-titel">${esc(b.adresse)}</div>
-  ${b.zusatz?`<div class="a2-auf-zusatz">${esc(b.zusatz)}</div>`:""}
-  <div class="a2-knopf-reihe">
-   <button type="button" class="a2-knopf a2-knopf-klein a2-k-blau"
-     data-a2-aufgabe="${esc(a.art)}" data-a2-id="${esc(a.m.id)}">${esc(art.knopf)}</button>
-   ${zweiter}
-  </div>
+ const dringend=art.farbe==="rot";
+ const zeichen=A2_AUFGABE_ZEICHEN[a.art]||"•";
+ const eigenerSchritt=(a.art!=="freigeben"&&a.art!=="erneut_freigeben");
+ return `<div class="a2-zeile-reihe">
+  <button type="button" class="a2-zeile" data-a2-aufgabe="oeffnen" data-a2-id="${esc(a.m.id)}">
+   <span class="a2-zeile-nr${dringend?" ist-rot":""}">${zeichen}</span>
+   <span class="a2-zeile-text"><b>${esc(art.titel)}</b>
+    <span>${esc([b.adresse,b.zusatz].filter(Boolean).join(" · "))}${dringend?" · dringend":""}</span></span>
+   <span class="a2-zeile-pfeil">›</span></button>
+  ${eigenerSchritt?`<button type="button" class="a2-knopf a2-knopf-klein a2-k-blau a2-zeile-tat"
+    data-a2-aufgabe="${esc(a.art)}" data-a2-id="${esc(a.m.id)}">${esc(art.knopf)}</button>`:""}
  </div>`;
 }
 
@@ -495,7 +672,10 @@ function a2Zeichnen(){
   :(proj
   ? [proj.name&&proj.name!==titel?proj.name:"",proj.order_no?"Auftrag "+proj.order_no:""].filter(Boolean).join(" · ")
   : (a2Zustand.seite==="heute"
-      ? a2Name(profil)+((typeof companyName!=="undefined"&&companyName)?" · "+companyName:"")
+      // v3.158: das Datum statt des Firmennamens. Der Firmenname steht
+      // ohnehin direkt darunter in der Markenzeile, zusammen mit dem Logo -
+      // zweimal derselbe Name ist kein Hinweis.
+      ? a2HeuteDatum()+" · "+a2Name(profil)
       : ""));
  $("a2Kopf").innerHTML=
   (ber?'<button type="button" class="a2-kopf-zurueck" data-a2-bereich-zu aria-label="Bereich schliessen">‹</button>'
@@ -533,6 +713,12 @@ function a2Zeichnen(){
  else if(a2Zustand.seite==="mehr")inhalt=a2SeiteMehr();
  else inhalt=a2SeiteHeute();
  $("a2Inhalt").innerHTML=inhalt;
+
+ // Die Werkstattzahlen der Startseite kommen nach: die Seite steht sofort
+ // da, die Zahlen erscheinen, sobald werkLaden() zurueck ist. Der Aufruf
+ // schuetzt sich selbst gegen Mehrfachlauf (a2WerkLaeuft/a2WerkGeladen) -
+ // ein Wiederholen beim naechsten Zeichnen kostet deshalb nichts.
+ if(a2Zustand.seite==="heute"&&!a2Zustand.bereich)a2HeuteLaden();
 }
 
 // ===========================================================================
@@ -563,9 +749,13 @@ document.addEventListener("click",async e=>{
      ()=>$("navLagerverwaltung").click(),"a2-nur-lager");
    return;
   }
+  const warSchon=(a2Zustand.seite===k);
   a2Zustand.seite=k;
   a2Zeichnen();
   window.scrollTo(0,0);
+  // Wer auf HEUTE tippt, will den Stand von jetzt - gerade wenn er eben aus
+  // der Werkstatt kommt und dort etwas abgehakt hat.
+  if(k==="heute"&&warSchon)a2HeuteLaden(true);
   return;
  }
 
