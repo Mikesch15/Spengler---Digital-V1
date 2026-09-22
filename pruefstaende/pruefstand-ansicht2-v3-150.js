@@ -152,34 +152,62 @@ const anmelden=page=>page.evaluate(()=>{
  p(c2.zeilen===1,"C4 Suche 'kirch' findet genau ein Projekt",c2);
  p(c2.fokus==="a2Suche","C5 das Suchfeld behaelt beim Tippen den Fokus",c2);
 
- // Ein Projekt oeffnet das ECHTE Cockpit - und sein Zurueck-Knopf fuehrt
- // wieder in die neue Ansicht statt in die klassische Projektliste.
+ // Ein Projekt oeffnet seit v3.151 die eigene PROJEKTSEITE (sechs Register),
+ // nicht mehr das klassische Cockpit. Bis v3.150 war es umgekehrt - der
+ // Vertrag ist umgestellt, nicht abgeschwaecht: das Cockpit bleibt ueber
+ // "Mehr" erreichbar, und dass es dort wirklich aufgeht, prueft C8.
  await page.click('[data-a2-projekt="2"]');
+ await page.waitForFunction(()=>!a2ProjLaedt);
  let c6=await page.evaluate(()=>({
+  seite:a2Zustand.seite, projektId:a2Zustand.projektId,
   cockpit:!$("projectCockpitModal").hidden,
-  titel:$("cockpitTitle").textContent,
-  // Die Startseite bleibt liegen - das Cockpit deckt sie als .modal zu.
+  register:[...document.querySelectorAll("#a2Inhalt .a2-register button")].length,
+  // Die Startseite bleibt liegen - die Projektseite steckt darin.
   startNochDa:!$("startScreen").hidden
  }));
- p(c6.cockpit,"C6 Tippen auf ein Projekt oeffnet das bestehende Cockpit",c6);
- p(c6.startNochDa,"C6b die Startseite wird dabei nicht ausgeblendet",c6);
- await page.click("#cockpitBack");
+ p(c6.seite==="projekt"&&String(c6.projektId)==="2","C6 Tippen auf ein Projekt oeffnet die Projektseite",c6);
+ p(!c6.cockpit,"C6b das klassische Cockpit bleibt dabei zu",c6);
+ p(c6.register>=4,"C6c mit ihren Registern",c6);
+
+ // Der Zurueck-Knopf der Kopfzeile fuehrt in die Projektliste.
+ await page.click("[data-a2-zurueck]");
  let c7=await page.evaluate(()=>({
+  seite:a2Zustand.seite, projektId:a2Zustand.projektId,
+  a2:$("a2Screen").getClientRects().length>0
+ }));
+ p(c7.seite==="projekte"&&!c7.projektId&&c7.a2,"C7 Zurueck fuehrt in die Projektliste",c7);
+
+ // Gegenprobe: das vollstaendige Cockpit ist weiterhin erreichbar, und sein
+ // Zurueck-Knopf fuehrt in die neue Ansicht statt in die klassische Liste.
+ await page.click('[data-a2-projekt="2"]');
+ await page.waitForFunction(()=>!a2ProjLaedt);
+ await page.click('[data-a2-reg="mehr"]');
+ await page.click('[data-a2-tu="cockpit"]');
+ let c8=await page.evaluate(()=>({
+  cockpit:!$("projectCockpitModal").hidden,
+  titel:$("cockpitTitle").textContent
+ }));
+ p(c8.cockpit,"C8 das vollstaendige Cockpit ist ueber 'Mehr' erreichbar",c8);
+ await page.click("#cockpitBack");
+ await page.waitForFunction(()=>!a2ProjLaedt);
+ let c9=await page.evaluate(()=>({
   cockpit:!$("projectCockpitModal").hidden,
   projektListe:!$("projectsModal").hidden,
-  a2:$("a2Screen").getClientRects().length>0,
   seite:a2Zustand.seite
  }));
- p(!c7.cockpit&&!c7.projektListe&&c7.a2,"C7 Zurueck fuehrt in die neue Ansicht, nicht in die klassische Liste",c7);
- p(c7.seite==="projekte","C7b und zwar auf die Seite, von der man kam",c7);
+ p(!c9.cockpit&&!c9.projektListe&&c9.seite==="projekt",
+   "C9 sein Zurueck fuehrt auf die Projektseite, nicht in die klassische Liste",c9);
 
- // Bricht das Cockpit ab (unbekannte Projekt-ID), darf keine leere Seite
- // zurueckbleiben - das war der Fehler, den C6b verhindert.
- await page.evaluate(()=>{window.__cockpit=[];openProjectCockpit=async id=>{window.__cockpit.push(id)}});
- await page.click('[data-a2-projekt="2"]');
- let co=await page.evaluate(()=>({ruf:window.__cockpit,a2:$("a2Screen").getClientRects().length>0}));
- p(JSON.stringify(co.ruf)===JSON.stringify([2]),"C8 es wird openProjectCockpit(2) gerufen - kein eigener Weg",co);
- p(co.a2,"C8b oeffnet sich nichts, bleibt die Liste stehen",co);
+ // Eine fremde oder geloeschte Projekt-ID darf keine leere Seite hinterlassen.
+ let c10=await page.evaluate(async()=>{
+  a2Zustand.seite="projekte"; a2Zustand.projektId=null; a2Zeichnen();
+  const knopf=document.querySelector('[data-a2-projekt]');
+  knopf.setAttribute("data-a2-projekt","999999");
+  knopf.click();
+  await new Promise(r=>setTimeout(r,60));
+  return {seite:a2Zustand.seite,a2:$("a2Screen").getClientRects().length>0};
+ });
+ p(c10.seite==="projekte"&&c10.a2,"C10 eine unbekannte Projekt-ID laesst die Liste stehen",c10);
 
  // ===== D  Ablaufleiste =====================================================
  // D1 ist der Fall, an dem eine naive Fassung scheitert: OHNE Massaufnahmen

@@ -60,6 +60,11 @@ html.a2-an #appRoot{max-width:none;padding:0}
  display:flex;align-items:center;gap:10px;padding:0 14px;
  background:var(--blue);color:#fff;box-shadow:0 2px 10px #17242d26;
 }
+/* 44px: Mindestgroesse fuer einen Finger. Diese Taste wird auf dem Dach mit
+   Handschuhen getroffen und passt so immer noch in die 56px hohe Kopfzeile. */
+.a2-kopf-zurueck{background:#ffffff26;color:#fff;border-radius:10px;
+ min-width:44px;height:44px;font-size:19px;font-weight:800;flex:none;
+ display:flex;align-items:center;justify-content:center}
 .a2-kopf-titel{flex:1;min-width:0}
 .a2-kopf-titel b{display:block;font-size:16px;font-weight:800;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -126,6 +131,25 @@ html.dark .a2-karte-hinweis{background:var(--blue-light)}
 .a2-m-orange{background:var(--a2-orange-hell);color:var(--a2-orange)}
 .a2-m-rot{background:var(--red-light);color:var(--red)}
 
+/* ---- Register der Projektseite ------------------------------------------ */
+/* Sie duerfen umbrechen statt zu scrollen: eine waagrecht scrollende Leiste
+   verbirgt, dass es weitere Register gibt - und genau das darf sie nicht. */
+.a2-register{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.a2-register button{flex:0 1 auto;min-height:40px;padding:8px 14px;border-radius:999px;
+ background:var(--card-bg);border:1px solid var(--line);color:var(--muted);
+ font-size:14px;font-weight:800;white-space:nowrap}
+.a2-register button.ist-auf{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* ---- Stammdaten-Liste --------------------------------------------------- */
+.a2-daten{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}
+.a2-daten dt{font-size:11px;font-weight:900;letter-spacing:.05em;
+ text-transform:uppercase;color:var(--muted);align-self:center}
+.a2-daten dd{margin:0;font-size:15px;font-weight:600}
+
+/* Die Arbeitsstatus-Marke aus js/44 wird unveraendert uebernommen - sie
+   traegt ihre eigenen Klassen und darf hier nur Platz bekommen. */
+.a2-badge{flex:none;font-size:11.5px;line-height:1.5;white-space:nowrap}
+
 /* ---- Zeilen ------------------------------------------------------------- */
 .a2-zeile{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
  background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;
@@ -166,6 +190,9 @@ html.dark .a2-karte-hinweis{background:var(--blue-light)}
  width:100%;height:2px;background:var(--line)}
 .a2-ablauf-st:first-child::before{display:none}
 .a2-ablauf-st.ist-fertig::before,.a2-ablauf-st.ist-jetzt::before{background:var(--green)}
+/* Eine Station NACH der aktuellen behaelt die graue Linie, auch wenn sie
+   selbst schon erledigt ist (ihr Haken bleibt gruen - er stimmt ja). */
+.a2-ablauf-st.ist-spaeter::before{background:var(--line)}
 .a2-ablauf-marke{position:relative;z-index:1;width:28px;height:28px;margin:0 auto 5px;
  border-radius:50%;display:flex;align-items:center;justify-content:center;
  font-size:13px;font-weight:900;background:var(--card-bg);

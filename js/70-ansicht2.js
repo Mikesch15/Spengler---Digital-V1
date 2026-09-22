@@ -77,7 +77,7 @@ function a2Anwenden(){
 // ---- Zustand --------------------------------------------------------------
 // Bewusst ein Objekt und nur zwei Werte: welche Seite offen ist und was in
 // der Projektsuche steht. Alles andere ist Anzeige aus den Daten der App.
-const a2Zustand={seite:"heute",suche:""};
+const a2Zustand={seite:"heute",suche:"",projektId:null,reg:"uebersicht"};
 
 // ---- Navigation -----------------------------------------------------------
 // Die Symbole sind gezeichnet, nicht als Emoji gesetzt: Emoji sehen auf jedem
@@ -158,6 +158,13 @@ function a2Aufgaben(){
 }
 function a2Projekte(){
  return (typeof allProjects!=="undefined"&&Array.isArray(allProjects))?allProjects:[];
+}
+// Ein einzelnes Projekt. allProjects ist bereits von der Row Level Security
+// gefiltert - was hier nicht steht, gibt es fuer diesen Benutzer nicht.
+// Eine manipulierte ID findet deshalb nichts, ohne dass hier eigens geprueft
+// werden muesste, wem das Projekt gehoert.
+function a2Projekt(id){
+ return a2Projekte().find(p=>String(p.id)===String(id))||null;
 }
 function a2AufgabenAktiv(){
  return typeof aufgabenAktiv!=="function"||aufgabenAktiv();
@@ -360,13 +367,25 @@ function a2Zeichnen(){
  const leisten=a2Leisten();
  // Eine Seite, die es nicht (mehr) gibt - etwa weil die Werkstatt firmenweit
  // abgeschaltet wurde - faellt auf HEUTE zurueck statt leer zu bleiben.
- if(!leisten.some(e=>e.k===a2Zustand.seite))a2Zustand.seite="heute";
+ if(a2Zustand.seite!=="projekt"&&!leisten.some(e=>e.k===a2Zustand.seite))a2Zustand.seite="heute";
 
  const eintrag=leisten.find(e=>e.k===a2Zustand.seite);
  const profil=(typeof currentProfile!=="undefined")?currentProfile:null;
+ // Auf der Projektseite traegt die Kopfzeile das Projekt und einen
+ // Zurueck-Knopf. 44px breit: das ist die Mindestgroesse fuer einen Finger,
+ // und diese Taste wird auf dem Dach mit Handschuhen getroffen.
+ const proj=(a2Zustand.seite==="projekt")?a2Projekt(a2Zustand.projektId):null;
+ const titel=proj?((typeof projektTitel==="function")?projektTitel(proj):(proj.object||proj.name||"Projekt"))
+                 :(eintrag?eintrag.name:"Heute");
+ const unter=proj
+  ? [proj.name&&proj.name!==titel?proj.name:"",proj.order_no?"Auftrag "+proj.order_no:""].filter(Boolean).join(" · ")
+  : (a2Zustand.seite==="heute"
+      ? a2Name(profil)+((typeof companyName!=="undefined"&&companyName)?" · "+companyName:"")
+      : "");
  $("a2Kopf").innerHTML=
-  `<div class="a2-kopf-titel"><b>${esc(eintrag?eintrag.name:"Heute")}</b>`
-  +(a2Zustand.seite==="heute"?`<span>${esc(a2Name(profil))}${typeof companyName!=="undefined"&&companyName?" · "+esc(companyName):""}</span>`:"")
+  (proj?'<button type="button" class="a2-kopf-zurueck" data-a2-zurueck aria-label="Zurück zur Projektliste">‹</button>':"")
+  +`<div class="a2-kopf-titel"><b>${esc(titel)}</b>`
+  +(unter?`<span>${esc(unter)}</span>`:"")
   +`</div><div class="a2-kopf-ich" title="${esc(a2Name(profil))}">${esc(a2Kuerzel(profil))}</div>`;
 
  const offen=a2AufgabenAktiv()?a2Aufgaben().length:0;
@@ -374,14 +393,16 @@ function a2Zeichnen(){
  // unteren Leiste eines Handys ist kein Platz dafuer, und dort steht das
  // Logo ohnehin oben auf der Heute-Seite.
  $("a2Leiste").innerHTML=a2MarkeHtml("a2-marke-leiste")+leisten.map(e=>{
-  const auf=a2Zustand.seite===e.k;
+  // Auf der Projektseite bleibt "Projekte" markiert - man ist ja darin.
+  const auf=(a2Zustand.seite===e.k)||(a2Zustand.seite==="projekt"&&e.k==="projekte");
   const punkt=(e.k==="heute"&&offen)?`<span class="a2-punkt">${offen}</span>`:"";
   return `<button type="button" class="${auf?"ist-auf":""}" data-a2-tab="${esc(e.k)}">
    <i>${a2Symbol(e.k)}</i>${punkt}<span>${esc(e.name)}</span></button>`;
  }).join("");
 
  let inhalt="";
- if(a2Zustand.seite==="projekte")inhalt=a2SeiteProjekte();
+ if(a2Zustand.seite==="projekt")inhalt=a2SeiteProjekt();
+ else if(a2Zustand.seite==="projekte")inhalt=a2SeiteProjekte();
  else if(a2Zustand.seite==="mehr")inhalt=a2SeiteMehr();
  else inhalt=a2SeiteHeute();
  $("a2Inhalt").innerHTML=inhalt;
@@ -417,15 +438,43 @@ document.addEventListener("click",async e=>{
  const projekt=e.target.closest("[data-a2-projekt]");
  if(projekt){
   const id=projekt.getAttribute("data-a2-projekt");
-  if(typeof openProjectCockpit==="function"){
-   // Die Startseite wird hier ABSICHTLICH nicht ausgeblendet. Das Cockpit
-   // ist ein .modal und deckt sie ohnehin zu; bricht openProjectCockpit
-   // dagegen ab (unbekannte Projekt-ID - js/24 kehrt dann still zurueck),
-   // bleibt der Benutzer auf der Liste stehen statt vor einer leeren Seite.
-   a2AusNeuerAnsicht=true;
-   await openProjectCockpit(Number(id));
-   if($("projectCockpitModal").hidden)a2AusNeuerAnsicht=false;
-  }
+  // Seit v3.151 fuehrt das in die eigene Projektseite (sechs Register), nicht
+  // mehr ins klassische Cockpit. Das Cockpit bleibt ueber "Mehr" erreichbar -
+  // dort stehen Dateien und Verlauf, die hier nicht nachgebaut sind.
+  if(!a2Projekt(id)){a2Zeichnen();return}       // fremde/geloeschte ID: nichts tun
+  a2Zustand.seite="projekt"; a2Zustand.projektId=id; a2Zustand.reg="uebersicht";
+  window.scrollTo(0,0);
+  await a2ProjektLaden(id);
+  return;
+ }
+
+ // Register innerhalb der Projektseite
+ const reg=e.target.closest("[data-a2-reg]");
+ if(reg&&$("a2Screen")&&$("a2Screen").contains(reg)){
+  a2Zustand.reg=reg.getAttribute("data-a2-reg");
+  a2Zeichnen(); window.scrollTo(0,0);
+  return;
+ }
+
+ // Eine Massaufnahme, ein Ausmass, eine Offerte, eine Leistung, ein Rapport.
+ // Jedes oeffnet das BESTEHENDE Formular mit der echten Zeile aus dem
+ // Zwischenspeicher - hier wird nichts nachgebaut und nichts neu abgefragt.
+ const meas=e.target.closest("[data-a2-meas]");
+ if(meas){ a2Oeffne("meas",meas.getAttribute("data-a2-meas")); return }
+ const am=e.target.closest("[data-a2-am]");
+ if(am){ a2Oeffne("am",am.getAttribute("data-a2-am")); return }
+ const ang=e.target.closest("[data-a2-ang]");
+ if(ang){ a2Oeffne("ang",ang.getAttribute("data-a2-ang")); return }
+ const lei=e.target.closest("[data-a2-lei]");
+ if(lei){ a2Oeffne("lei",lei.getAttribute("data-a2-lei")); return }
+ const rep=e.target.closest("[data-a2-rep]");
+ if(rep){ a2Oeffne("rep",rep.getAttribute("data-a2-rep")); return }
+
+ // Zurueck von der Projektseite in die Projektliste
+ const zurueck=e.target.closest("[data-a2-zurueck]");
+ if(zurueck&&$("a2Screen")&&$("a2Screen").contains(zurueck)){
+  a2Zustand.seite="projekte"; a2Zustand.projektId=null;
+  a2Zeichnen(); window.scrollTo(0,0);
   return;
  }
 
@@ -452,6 +501,35 @@ document.addEventListener("click",async e=>{
   if(was==="sysadmin"&&$("navSystemAdmin")){$("navSystemAdmin").click();return}
   if(was==="abmelden"&&$("logout")){$("logout").click();return}
   if(was==="anleitung"&&typeof openSettingsTo==="function"){openSettingsTo("general","anleitung");return}
+
+  // ---- Aktionen der Projektseite ----
+  if(was==="neuemeas"){a2NeuerEintrag("meas");return}
+  if(was==="neuesam"){a2NeuerEintrag("am");return}
+  if(was==="neuerrapport"){a2NeuerEintrag("rep");return}
+  if(was==="neueang"){a2NeuerEintrag("ang");return}
+  if(was==="neuelei"){a2NeuerEintrag("lei");return}
+  // Material & Zuschnitt und die Werkstatt sind eigene Arbeitsplaetze der
+  // App - sie werden geoeffnet, nicht nachgebaut.
+  if(was==="matzu"&&typeof openMaterialZuschnitt==="function"){
+   await openMaterialZuschnitt(Number(a2Zustand.projektId));
+   return;
+  }
+  if(was==="werkstatt"&&$("navWerkstatt")){$("navWerkstatt").click();return}
+  // Das vollstaendige Cockpit: Dateien, Fotos und Verlauf stehen nur dort.
+  if(was==="cockpit"&&typeof openProjectCockpit==="function"){
+   a2AusNeuerAnsicht=true;
+   await openProjectCockpit(Number(a2Zustand.projektId));
+   if($("projectCockpitModal").hidden)a2AusNeuerAnsicht=false;
+   return;
+  }
+  // Stammdaten aendert man im Cockpit - ein zweites Formular dafuer waere
+  // ein zweiter Schreibweg auf dieselben vier Felder.
+  if(was==="stammdaten"&&typeof openProjectCockpitZumBearbeiten==="function"){
+   a2AusNeuerAnsicht=true;
+   await openProjectCockpitZumBearbeiten(Number(a2Zustand.projektId));
+   if($("projectCockpitModal").hidden)a2AusNeuerAnsicht=false;
+   return;
+  }
   return;
  }
 });
@@ -468,6 +546,540 @@ document.addEventListener("input",e=>{
 
 // Der Knopf auf der klassischen Startseite, der hierher fuehrt.
 if($("a2Ein"))$("a2Ein").onclick=()=>a2Setzen(true);
+
+
+// ===========================================================================
+// PROJEKTSEITE  (v3.151)
+// ===========================================================================
+// Sechs Register wie im Prototyp: Uebersicht, Aufmass, Produktion, Werkstatt,
+// Ausmass, Mehr. Der Unterschied zum Prototyp ist, dass hier echte Daten
+// stehen und jeder Knopf das bestehende Formular oeffnet.
+//
+// WOHER DIE DATEN KOMMEN
+// Aus GENAU denselben Abfragen wie das Projekt-Cockpit: die Ladefunktionen
+// in COCKPIT_BEREICHE (js/24) plus loadProjectAngebote/loadProjectLeistungen.
+// Diese Seite baut keine eigene Abfrage. Das ist nicht nur sparsam - zwei
+// Abfragen auf dieselbe Sache koennten zwei verschiedene Staende zeigen.
+//
+// Ein Nebeneffekt davon ist erwuenscht: die Ladefunktionen fuellen zugleich
+// die Listen des klassischen Cockpits. Wer mitten im Projekt auf die
+// klassische Ansicht wechselt, findet sie dort also fertig vor.
+// ===========================================================================
+
+const A2_PROJ_REGISTER=[
+ {k:"uebersicht",name:"Übersicht"},
+ {k:"aufmass",   name:"Aufmass"},
+ // Produktion und Werkstatt gibt es nur, wenn die Firma die zugehoerigen
+ // Untermodule eingeschaltet hat (js/47). Die Entscheidung faellt dort,
+ // nicht hier - pmAktiv() ist die eine Quelle dafuer.
+ {k:"produktion",name:"Produktion",wenn:()=>a2Modul("material")},
+ {k:"werkstatt", name:"Werkstatt", wenn:()=>a2Modul("werkstatt")},
+ {k:"ausmass",   name:"Ausmass"},
+ {k:"mehr",      name:"Mehr …"}
+];
+function a2Modul(k){ return typeof pmAktiv==="function"&&pmAktiv(k) }
+function a2ProjRegister(){
+ return A2_PROJ_REGISTER.filter(r=>!r.wenn||r.wenn());
+}
+
+let a2ProjLaedt=false;
+let a2ProjFehler="";
+
+// Die Listen des Projekts. Sie werden nicht hier gehalten, sondern in den
+// Zwischenspeichern der App gelesen - dieselben, die das Cockpit fuellt.
+function a2Rep(){
+ return (typeof projectReportsCache!=="undefined"&&Array.isArray(projectReportsCache))
+  ?projectReportsCache:[];
+}
+function a2Lei(){
+ return (typeof projectLeistungenCache!=="undefined"&&Array.isArray(projectLeistungenCache))
+  ?projectLeistungenCache:[];
+}
+
+// ---- Laden ----------------------------------------------------------------
+async function a2ProjektLaden(id){
+ a2ProjLaedt=true; a2ProjFehler="";
+ a2Zeichnen();
+ try{
+  // cockpitProjectId ist die Projekt-ID, an der die bestehenden
+  // Ladefunktionen und Rueckwege haengen. Sie wird hier gesetzt, damit ein
+  // Wechsel in die klassische Ansicht mitten im Projekt dort ankommt.
+  cockpitProjectId=Number(id);
+  // COCKPIT_BEREICHE ist vollstaendig: js/63 und js/65 tragen Offerte und
+  // Leistungen dort SELBST ein (jeweils direkt nach ihrer Definition). Sie
+  // hier zusaetzlich zu laden hiesse, dieselbe Tabelle zweimal zu fragen -
+  // genau das prueft die Gegenprobe A5 im Pruefstand nach.
+  // Die Freigabe fuer die Offerte braucht hier ebenfalls keine eigene
+  // Pruefung: loadProjectAngebote() gattert selbst VOR der Abfrage.
+  await Promise.all(Object.keys(COCKPIT_BEREICHE).map(k=>COCKPIT_BEREICHE[k].load(id)));
+  // Die Haken der Zuschnittliste. Ohne sie zeigte die Produktionsseite jedes
+  // Teil als offen - also einen Fortschritt, den es so nicht gibt.
+  if(typeof zeLaden==="function"&&a2Modul("zuschnitt")){
+   await zeLaden(a2Mess().map(m=>m.id));
+  }
+ }catch(e){
+  a2ProjFehler=(e&&e.message)||String(e);
+ }
+ a2ProjLaedt=false;
+ a2Zeichnen();
+}
+// Nach einer Aenderung im Formular: dieselben Listen noch einmal holen.
+async function a2ProjektNeuLaden(){
+ if(a2Zustand.projektId)await a2ProjektLaden(a2Zustand.projektId);
+ else a2Zeichnen();
+}
+
+// ---- Der Rahmen der Projektseite -----------------------------------------
+function a2SeiteProjekt(){
+ const p=a2Projekt(a2Zustand.projektId);
+ if(!p)return '<div class="a2-leer">Dieses Projekt ist nicht (mehr) verfügbar.</div>';
+ const reg=a2ProjRegister();
+ if(!reg.some(r=>r.k===a2Zustand.reg))a2Zustand.reg="uebersicht";
+
+ let html=`<div class="a2-register">${reg.map(r=>
+  `<button type="button" class="${r.k===a2Zustand.reg?"ist-auf":""}"
+    data-a2-reg="${esc(r.k)}">${esc(r.name)}</button>`).join("")}</div>`;
+
+ if(a2ProjFehler){
+  html+=`<div class="a2-hinweis a2-h-warnung"><b>Es konnte nicht alles geladen werden</b>
+   ${esc(a2ProjFehler)}</div>`;
+ }
+ if(a2ProjLaedt)return html+'<div class="a2-leer">Lädt …</div>';
+
+ if(a2Zustand.reg==="aufmass")   return html+a2RegAufmass(p);
+ if(a2Zustand.reg==="produktion")return html+a2RegProduktion(p);
+ if(a2Zustand.reg==="werkstatt") return html+a2RegWerkstatt(p);
+ if(a2Zustand.reg==="ausmass")   return html+a2RegAusmass(p);
+ if(a2Zustand.reg==="mehr")      return html+a2RegMehr(p);
+ return html+a2RegUebersicht(p);
+}
+
+// ---- Übersicht ------------------------------------------------------------
+function a2RegUebersicht(p){
+ const stand=a2AblaufStand();
+ const stationen=a2StationenFuerFirma();
+ const jetzt=stationen.findIndex(s=>!stand[s.k]);
+ const ablauf='<div class="a2-ablauf">'+stationen.map((s,i)=>{
+  const fertig=stand[s.k], dran=(i===jetzt);
+  return `<div class="a2-ablauf-st ${a2AblaufKlasse(fertig,dran,i,jetzt)}">
+   <div class="a2-ablauf-marke">${fertig?"✓":(dran?"●":"○")}</div>
+   <div class="a2-ablauf-text">${esc(s.name)}</div></div>`;
+ }).join("")+"</div>";
+
+ // Was als Naechstes ansteht, entscheidet mwNaechsterSchritt() in js/44 -
+ // dieselbe Quelle wie das Formular, die Aufgabenliste und die Werkstatt.
+ const schritt=a2NaechsterSchrittHtml();
+
+ const zeilen=[
+  ["Auftrags-Nr.", p.order_no||"—"],
+  ["Auftraggeber", p.customer||"—"],
+  ["Adresse",      p.object||"—"],
+  ["Projektname",  p.name||"—"]
+ ];
+ return `<div class="a2-karte">${ablauf}</div>
+  ${schritt}
+  <div class="a2-abschnitt">
+   <div class="a2-abschnitt-kopf"><h2>Stand</h2></div>
+   <div class="a2-zahlen">
+    <div class="a2-zahl a2-z-blau"><b>${a2Mess().length}</b><span>Massaufnahmen</span></div>
+    <div class="a2-zahl a2-z-gruen"><b>${a2Am().length}</b><span>Ausmasse</span></div>
+    <div class="a2-zahl a2-z-orange"><b>${a2Rep().length}</b><span>Rapporte</span></div>
+   </div>
+  </div>
+  <div class="a2-abschnitt">
+   <div class="a2-abschnitt-kopf"><h2>Stammdaten</h2></div>
+   <div class="a2-karte"><dl class="a2-daten">${zeilen.map(([k,v])=>
+     `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+    <div class="a2-knopf-reihe">
+     <button type="button" class="a2-knopf a2-k-grau a2-k-voll" data-a2-tu="stammdaten">
+      ✏️ Stammdaten bearbeiten</button></div>
+   </div>
+  </div>`;
+}
+// Der eine naechste Schritt des Projekts. Er wird nicht hier abgeleitet -
+// js/44 entscheidet das fuer die ganze App an einer Stelle.
+function a2NaechsterSchrittHtml(){
+ if(typeof mwSchrittSchluessel!=="function"||typeof MW_SCHRITTE==="undefined")return "";
+ const offen=a2Mess().filter(m=>{
+  const k=mwSchrittSchluessel(m);
+  return k&&k!=="fertig";
+ });
+ if(!offen.length)return "";
+ const rang={erneut_freigeben:0,ruesten:1,freigeben:2,zuweisen:3,monteur:4,montieren:5,abschliessen:6};
+ offen.sort((a,b)=>(rang[mwSchrittSchluessel(a)]??9)-(rang[mwSchrittSchluessel(b)]??9));
+ const m=offen[0], k=mwSchrittSchluessel(m);
+ const s=MW_SCHRITTE[k];
+ if(!s)return "";
+ return `<div class="a2-auf a2-auf-${esc(s.farbe)}">
+  <div class="a2-auf-schritt">Als Nächstes</div>
+  <div class="a2-auf-titel">${esc(s.kurz)}</div>
+  <div class="a2-auf-zusatz">${esc(a2MessTitel(m))}${offen.length>1
+    ?" · und "+a2Anzahl(offen.length-1,"weitere Massaufnahme","weitere Massaufnahmen"):""}</div>
+  <div class="a2-knopf-reihe">
+   <button type="button" class="a2-knopf a2-knopf-klein a2-k-blau"
+     data-a2-meas="${esc(m.id)}">Massaufnahme öffnen</button></div>
+ </div>`;
+}
+function a2MessTitel(m){
+ const art=(typeof MEAS_TYPE_LABELS!=="undefined"&&MEAS_TYPE_LABELS[m.type])||m.type||"Massaufnahme";
+ const t=String(m.title||"").trim();
+ return t?art+" · "+t:art;
+}
+
+// ---- Aufmass --------------------------------------------------------------
+function a2RegAufmass(p){
+ const liste=a2Mess();
+ let html=`<div class="a2-knopf-reihe" style="margin:0 0 12px">
+  <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="neuemeas">
+   ＋ Neue Massaufnahme</button></div>`;
+ if(!liste.length)return html+'<div class="a2-leer">Noch keine Massaufnahme in diesem Projekt.</div>';
+ html+=`<div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(liste.length,"Massaufnahme","Massaufnahmen"))}</h2></div>`;
+ return html+'<div class="a2-liste-zwei">'+liste.map(m=>{
+  const badge=(typeof mwBadgeFuerListe==="function")?mwBadgeFuerListe(m):"";
+  const art=(typeof MEAS_TYPE_LABELS!=="undefined"&&MEAS_TYPE_LABELS[m.type])||m.type||"Massaufnahme";
+  const t=String(m.title||"").trim();
+  return `<button type="button" class="a2-zeile" data-a2-meas="${esc(m.id)}">
+   <span class="a2-zeile-text"><b>${esc(art)}</b>
+    <span>${esc([t,a2Datum(m.date)].filter(Boolean).join(" · ")||"—")}</span></span>
+   ${badge?`<span class="a2-badge">${badge}</span>`:""}
+   <span class="a2-zeile-pfeil">›</span></button>`;
+ }).join("")+"</div>";
+}
+
+// ---- Produktion -----------------------------------------------------------
+// "Ich moechte dieses Teil produzieren" statt "ich muss das Modul Zuschnitt
+// oeffnen". Deshalb steht hier die Massaufnahme mit ihrem Zuschnitt-
+// Fortschritt, und der Zuschnitt ist der Knopf daran.
+//
+// Die Zahlen kommen aus zeStand()/pmatStuecke() (js/56, js/48) - denselben
+// Funktionen, die die Seite "Material & Zuschnitt" und die Werkstatt
+// verwenden. Hier wird kein Stueck ein zweites Mal gezaehlt.
+function a2RegProduktion(p){
+ const liste=a2Mess();
+ let html=`<div class="a2-knopf-reihe" style="margin:0 0 12px">
+  <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="matzu">
+   🧱 Material &amp; Zuschnitt öffnen</button></div>`;
+ if(!liste.length)return html+'<div class="a2-leer">Ohne Massaufnahme gibt es nichts zu produzieren.</div>';
+ if(typeof zeStand!=="function"||!a2Modul("zuschnitt")){
+  return html+`<div class="a2-leer">Das Untermodul „Zuschnitt und Abhaken“ ist
+   ausgeschaltet. Material und Zuschnitt stehen auf der Seite oben.</div>`;
+ }
+ const gesamt=(typeof zeStandListe==="function")?zeStandListe(liste):null;
+ if(gesamt&&gesamt.gesamt){
+  html+=a2FortschrittHtml(gesamt.erledigt,gesamt.gesamt,"Zuschnitt im ganzen Projekt");
+ }
+ const mitPlan=liste.filter(m=>zeStand(m).gesamt>0);
+ if(!mitPlan.length){
+  return html+`<div class="a2-leer">Noch keine Massaufnahme dieses Projekts hat
+   eine Zuschnittliste. Sie entsteht, sobald die Masse vollständig sind.</div>`;
+ }
+ html+=`<div class="a2-abschnitt-kopf"><h2>Teile je Massaufnahme</h2></div>`;
+ return html+mitPlan.map(m=>{
+  const st=zeStand(m);
+  return `<div class="a2-karte">
+   <div class="a2-karte-titel">${esc(a2MessTitel(m))}</div>
+   ${a2FortschrittHtml(st.erledigt,st.gesamt,"Zugeschnitten")}
+   ${st.veraltet?`<div class="a2-hinweis a2-h-warnung" style="margin:9px 0 0">
+     <b>${esc(a2Anzahl(st.veraltet,"Haken passt","Haken passen"))} nicht mehr zum Mass</b>
+     Die Zuschnittliste hat sich nach dem Abhaken geändert.</div>`:""}
+   <div class="a2-knopf-reihe">
+    <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="matzu">
+     Zuschnitt öffnen</button>
+    <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-meas="${esc(m.id)}">
+     Massaufnahme</button>
+   </div></div>`;
+ }).join("");
+}
+function a2FortschrittHtml(fertig,gesamt,text){
+ const prozent=gesamt?Math.round(fertig/gesamt*100):0;
+ return `<div class="a2-fort">
+  <div class="a2-fort-kopf"><span>${esc(text)}</span>
+   <span><b>${fertig}</b> von ${gesamt} Stück · ${prozent}%</span></div>
+  <div class="a2-balken${prozent>=100?" ist-fertig":""}"><i style="width:${prozent}%"></i></div>
+ </div>`;
+}
+
+// ---- Werkstatt ------------------------------------------------------------
+// Was in diesem Projekt zu ruesten und zu montieren ist. Die Werkstatt als
+// Ganzes (alle Projekte) bleibt der bestehende Arbeitsplatz - hier steht nur
+// der Ausschnitt dieses Projekts.
+function a2RegWerkstatt(p){
+ const liste=a2Mess();
+ const gruppen=[
+  {titel:"Zu rüsten",   status:["zu_ruesten"],  farbe:"rot"},
+  {titel:"Gerüstet",    status:["geruestet"],   farbe:"orange"},
+  {titel:"Zu montieren",status:["zu_montieren"],farbe:"orange"},
+  {titel:"Montiert",    status:["montiert"],    farbe:"gruen"}
+ ];
+ let html=`<div class="a2-knopf-reihe" style="margin:0 0 12px">
+  <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="werkstatt">
+   🔧 Ganze Werkstatt öffnen</button></div>`;
+ const offen=gruppen.filter(g=>liste.some(m=>g.status.indexOf(m.workflow_status)>=0));
+ if(!offen.length){
+  return html+`<div class="a2-leer">In diesem Projekt wartet nichts in der
+   Werkstatt. Massaufnahmen erscheinen hier, sobald sie freigegeben und
+   jemandem zugeteilt sind.</div>`;
+ }
+ return html+offen.map(g=>{
+  const drin=liste.filter(m=>g.status.indexOf(m.workflow_status)>=0);
+  return `<div class="a2-abschnitt">
+   <div class="a2-abschnitt-kopf"><h2>${esc(g.titel)}</h2>
+    <span class="a2-marke a2-m-${esc(g.farbe)}">${drin.length}</span></div>`
+   +drin.map(m=>`<button type="button" class="a2-zeile" data-a2-meas="${esc(m.id)}">
+     <span class="a2-zeile-text"><b>${esc(a2MessTitel(m))}</b>
+      <span>${esc(a2ZugeteiltText(m))}</span></span>
+     <span class="a2-zeile-pfeil">›</span></button>`).join("")
+   +"</div>";
+ }).join("");
+}
+function a2ZugeteiltText(m){
+ const wer=id=>{
+  if(!id||typeof allProfiles==="undefined")return "";
+  const pr=allProfiles.find(x=>x.id===id);
+  return pr?`${pr.first_name||""} ${pr.last_name||""}`.trim():"";
+ };
+ const r=wer(m.ruester_id), mo=wer(m.monteur_id);
+ const t=[r?"Rüster: "+r:"",mo?"Monteur: "+mo:""].filter(Boolean).join(" · ");
+ return t||"Niemand zugeteilt";
+}
+
+// ---- Ausmass --------------------------------------------------------------
+function a2RegAusmass(p){
+ const liste=a2Am();
+ let html=`<div class="a2-knopf-reihe" style="margin:0 0 12px">
+  <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="neuesam">
+   ＋ Neues Ausmass</button></div>`;
+ if(!liste.length)return html+'<div class="a2-leer">Noch kein Ausmass in diesem Projekt.</div>';
+ html+=`<div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(liste.length,"Ausmass","Ausmasse"))}</h2></div>`;
+ return html+'<div class="a2-liste-zwei">'+liste.map(a=>{
+  // COCKPIT_AM_TYPE_LABELS (js/24) ist die vorhandene Beschriftungsquelle.
+  const art=(typeof COCKPIT_AM_TYPE_LABELS==="object"&&COCKPIT_AM_TYPE_LABELS[a.type])||a.type||"Ausmass";
+  const t=String(a.title||"").trim();
+  return `<button type="button" class="a2-zeile" data-a2-am="${esc(a.id)}">
+   <span class="a2-zeile-text"><b>${esc(art)}</b>
+    <span>${esc([t,a2Datum(a.date)].filter(Boolean).join(" · ")||"—")}</span></span>
+   <span class="a2-zeile-pfeil">›</span></button>`;
+ }).join("")+"</div>";
+}
+
+// ---- Mehr -----------------------------------------------------------------
+// Was zum Projekt gehoert, aber nicht im taeglichen Ablauf steht: Offerte,
+// Leistungen, Regierapporte, Dateien, Verlauf.
+function a2RegMehr(p){
+ let html="";
+ if(a2KnopfSichtbar("cockpitStandAngeboteZeile")){
+  const ang=a2Ang();
+  html+=a2MehrBlockHtml("🧾 Offerten",ang.length,
+   ang.map(a=>`<button type="button" class="a2-zeile" data-a2-ang="${esc(a.id)}">
+     <span class="a2-zeile-text"><b>${esc(a.title||"Ohne Bezeichnung")}</b>
+      <span>${esc(a2Datum(a.date)||"—")}</span></span>
+     <span class="a2-zeile-pfeil">›</span></button>`).join(""),
+   "neueang","＋ Neue Offerte","Noch keine Offerte.");
+ }
+ const lei=a2Lei();
+ html+=a2MehrBlockHtml("🧩 Leistungen",lei.length,
+  lei.map(l=>{
+   const zusatz=[l.angebot_position?"Offerte-Pos. "+l.angebot_position:"Zusatzleistung",
+                 l.menge?String(l.menge)+" "+(l.einheit||""):""].filter(Boolean).join(" · ");
+   return `<button type="button" class="a2-zeile" data-a2-lei="${esc(l.id)}">
+    <span class="a2-zeile-text"><b>${esc(l.bezeichnung||"Ohne Bezeichnung")}</b>
+     <span>${esc(zusatz)}</span></span>
+    <span class="a2-zeile-pfeil">›</span></button>`}).join(""),
+  "neuelei","＋ Neue Leistung","Noch keine Leistung erfasst.");
+
+ const rep=a2Rep();
+ html+=a2MehrBlockHtml("📋 Regierapporte",rep.length,
+  rep.map(r=>`<button type="button" class="a2-zeile" data-a2-rep="${esc(r.id)}">
+    <span class="a2-zeile-text"><b>${esc(a2Datum(r.date)||"Ohne Datum")}</b>
+     <span>${esc([r.order_no?"Auftrag "+r.order_no:"",r.customer||""].filter(Boolean).join(" · ")||"—")}</span></span>
+    <span class="a2-zeile-pfeil">›</span></button>`).join(""),
+  "neuerrapport","＋ Neuer Regierapport","Noch kein Regierapport.");
+
+ // Dateien und Verlauf bleiben im Cockpit: beides sind Listen mit eigenen
+ // Hochlade- und Vorschauwegen, die hier nur nachgebaut waeren.
+ html+=`<div class="a2-abschnitt">
+  <div class="a2-abschnitt-kopf"><h2>Weiteres</h2></div>
+  <button type="button" class="a2-zeile" data-a2-tu="cockpit">
+   <span class="a2-zeile-nr">📎</span>
+   <span class="a2-zeile-text"><b>Dateien, Fotos und Verlauf</b>
+    <span>Öffnet die vollständige Projektansicht</span></span>
+   <span class="a2-zeile-pfeil">›</span></button></div>`;
+ return html;
+}
+function a2MehrBlockHtml(titel,anzahl,zeilen,neuTu,neuText,leerText){
+ return `<div class="a2-abschnitt">
+  <div class="a2-abschnitt-kopf"><h2>${esc(titel)}</h2>
+   <span class="a2-marke a2-m-grau">${anzahl}</span></div>
+  ${zeilen||`<div class="a2-leer">${esc(leerText)}</div>`}
+  <div class="a2-knopf-reihe">
+   <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="${esc(neuTu)}">
+    ${esc(neuText)}</button></div>
+ </div>`;
+}
+
+
+// ---- Einen Eintrag oeffnen ------------------------------------------------
+// Immer mit der ECHTEN Zeile aus dem Zwischenspeicher - dieselbe, die auch
+// das Cockpit oeffnen wuerde. Eine Zeile, die dort nicht steht, gibt es fuer
+// diesen Benutzer nicht (RLS); dann passiert nichts, statt eine ID an das
+// Formular zu reichen, die es nicht auflösen kann.
+function a2Oeffne(art,id){
+ const finde=liste=>liste.find(x=>String(x.id)===String(id));
+ if(art==="meas"){
+  const m=finde(a2Mess()); if(!m||typeof openMeasurement!=="function")return;
+  measEditReturnTo="a2Projekt";
+  openMeasurement(m);
+  return;
+ }
+ if(art==="am"){
+  const a=finde(a2Am()); if(!a||typeof openAusmass!=="function")return;
+  amEditReturnTo="a2Projekt";
+  openAusmass(a);
+  return;
+ }
+ if(art==="ang"){
+  const a=finde(a2Ang()); if(!a||typeof openAngebot!=="function")return;
+  openAngebot(a);
+  angEditReturnTo="a2Projekt";     // openAngebot setzt es selbst - danach gilt unseres
+  return;
+ }
+ if(art==="lei"){
+  const l=finde(a2Lei()); if(!l||typeof openLeistung!=="function")return;
+  openLeistung(l);
+  leiEditReturnTo="a2Projekt";
+  return;
+ }
+ if(art==="rep"){
+  const r=finde(a2Rep()); if(!r||typeof openReport!=="function")return;
+  openReport(r,"a2Projekt");
+  // js/09 blendet den Zurueck-Knopf nur fuer das Cockpit ein. Aus der
+  // Projektseite gilt dasselbe - ohne ihn gaebe es aus dem Rapport keinen
+  // Weg zurueck ausser ueber die Zurueck-Taste des Geraets.
+  if($("backFromReportEdit"))$("backFromReportEdit").hidden=false;
+  return;
+ }
+}
+
+// ---- Etwas Neues anlegen --------------------------------------------------
+// Die Typ-Auswahl ist dieselbe wie ueberall sonst. a2TypWahl merkt sich nur,
+// dass sie aus der neuen Projektseite heraus geoeffnet wurde - genau das
+// Muster, das js/24 mit cockpitTypWahl fuer das Cockpit verwendet. Die
+// bestehenden Handler laufen unveraendert zuerst; der hier ergaenzt danach
+// Projekt und Rueckziel.
+let a2TypWahl=null;
+function a2NeuerEintrag(was){
+ const id=a2Zustand.projektId;
+ if(!id)return;
+ if(was==="meas"&&$("measTypeChooserModal")){a2TypWahl="meas";$("measTypeChooserModal").hidden=false;return}
+ if(was==="am"&&$("amTypeChooserModal")){a2TypWahl="am";$("amTypeChooserModal").hidden=false;return}
+ if(was==="rep"&&typeof cockpitNeuerRapport==="function"){
+  cockpitNeuerRapport();              // setzt Projekt, Vorbefuellung und Zurueck-Knopf
+  reportReturnTo="a2Projekt";         // danach gilt unser Rueckziel
+  return;
+ }
+ if(was==="ang"&&typeof newAngebot==="function"){newAngebot();angEditReturnTo="a2Projekt";return}
+ if(was==="lei"&&typeof newLeistung==="function"){newLeistung();leiEditReturnTo="a2Projekt";return}
+}
+(function a2TypWahlAnschluss(){
+ const meas=$("measTypeChooserModal"), am=$("amTypeChooserModal");
+ if(meas){
+  meas.addEventListener("click",e=>{
+   if(!e.target.closest("[data-choose-meas-type]")||a2TypWahl!=="meas")return;
+   a2TypWahl=null;
+   measEditReturnTo="a2Projekt";
+   if(typeof setMeasProjectField==="function")setMeasProjectField(Number(a2Zustand.projektId));
+   if(typeof updateMeasFormTitle==="function")updateMeasFormTitle();
+  });
+ }
+ if(am){
+  am.addEventListener("click",e=>{
+   if(!e.target.closest("[data-choose-am-type]")||a2TypWahl!=="am")return;
+   a2TypWahl=null;
+   amEditReturnTo="a2Projekt";
+   if(typeof setAmProjectField==="function")setAmProjectField(Number(a2Zustand.projektId));
+   if(typeof updateAmFormTitle==="function")updateAmFormTitle();
+  });
+ }
+ // Abbrechen: js/09 zeigt dann die Uebersicht aller Massaufnahmen. Aus der
+ // Projektseite heraus ist das der falsche Ort - sie wird wieder zugemacht,
+ // die Projektseite steht ohnehin noch da (sie wurde nie ausgeblendet).
+ const ab=(knopf,welches,modal)=>{
+  if(!$(knopf))return;
+  $(knopf).addEventListener("click",()=>{
+   if(a2TypWahl!==welches)return;
+   a2TypWahl=null;
+   if($(modal))$(modal).hidden=true;
+  });
+ };
+ ab("cancelMeasTypeChooser","meas","measurementsModal");
+ ab("cancelAmTypeChooser","am","ausmassModal");
+})();
+
+// ---- Rueckwege aus den Formularen ----------------------------------------
+// Fuenf bestehende Funktionen entscheiden, wohin es nach dem Schliessen
+// eines Formulars geht. Sie werden umhuellt statt veraendert: steht dort
+// unser Rueckziel, fuehrt der Weg auf die Projektseite - und die Listen
+// werden neu geholt, denn im Formular kann sich etwas geaendert haben.
+(function a2Rueckwege(){
+ if(typeof measEditZurueck==="function"){
+  const vorher=measEditZurueck;
+  measEditZurueck=async function(){
+   if(a2Aktiv()&&measEditReturnTo==="a2Projekt"){
+    measEditReturnTo="measurementsModal";
+    await a2ProjektNeuLaden();
+    return;
+   }
+   return vorher.apply(this,arguments);
+  };
+ }
+ if(typeof amEditZurueck==="function"){
+  const vorher=amEditZurueck;
+  amEditZurueck=async function(){
+   if(a2Aktiv()&&amEditReturnTo==="a2Projekt"){
+    amEditReturnTo="ausmassModal";
+    await a2ProjektNeuLaden();
+    return;
+   }
+   return vorher.apply(this,arguments);
+  };
+ }
+ if(typeof reportZurueck==="function"){
+  const vorher=reportZurueck;
+  reportZurueck=async function(){
+   if(a2Aktiv()&&reportReturnTo==="a2Projekt"){
+    $("reportScreen").hidden=true;
+    reportReturnTo="reportsModal";
+    isDirty=false;
+    await a2ProjektNeuLaden();
+    return;
+   }
+   return vorher.apply(this,arguments);
+  };
+ }
+ if(typeof angEditZurueck==="function"){
+  const vorher=angEditZurueck;
+  angEditZurueck=async function(){
+   if(a2Aktiv()&&angEditReturnTo==="a2Projekt"){
+    angEditReturnTo="cockpitAngebote";
+    await a2ProjektNeuLaden();
+    return;
+   }
+   return vorher.apply(this,arguments);
+  };
+ }
+ if(typeof leiEditZurueck==="function"){
+  const vorher=leiEditZurueck;
+  leiEditZurueck=async function(){
+   if(a2Aktiv()&&leiEditReturnTo==="a2Projekt"){
+    leiEditReturnTo="cockpitLeistungen";
+    if($("leistungEditModal"))$("leistungEditModal").hidden=true;
+    await a2ProjektNeuLaden();
+    return;
+   }
+   return vorher.apply(this,arguments);
+  };
+ }
+})();
 
 // ===========================================================================
 // Anschluss an die bestehende App
@@ -521,10 +1133,10 @@ let a2AusNeuerAnsicht=false;
    a2AusNeuerAnsicht=false;
    $("projectCockpitModal").hidden=true;
    // #startScreen wurde beim Oeffnen nie ausgeblendet - die neue Ansicht
-   // steht also schon da. Neu gezeichnet wird trotzdem: im Cockpit kann
-   // sich der Projektstatus geaendert haben.
+   // steht also schon da. Die Listen werden trotzdem neu geholt: im Cockpit
+   // kann sich etwas geaendert haben (Stammdaten, eine geloeschte Zeile).
    $("startScreen").hidden=false;
-   a2Zeichnen();
+   if(a2Zustand.seite==="projekt")a2ProjektNeuLaden(); else a2Zeichnen();
    return;
   }
   // Sonst unveraendert der bisherige Weg (zurueck in die Projektliste).
@@ -613,6 +1225,16 @@ function a2AblaufStand(){
   ausmass:am.length>0
  };
 }
+// Die Linie ZWISCHEN zwei Stationen zeigt den Weg, nicht den Zustand der
+// einzelnen Station. Sie ist deshalb nur bis zur aktuellen Station gruen -
+// sonst faerbte eine spaetere, schon erledigte Station (etwa ein bereits
+// erfasstes Ausmass) die Strecke davor gruen und behauptete damit, alles
+// dazwischen sei erledigt. Der Haken der spaeteren Station bleibt gruen; er
+// stimmt ja.
+function a2AblaufKlasse(fertig,dran,i,jetzt){
+ return (fertig?"ist-fertig":(dran?"ist-jetzt":""))
+  +((jetzt>=0&&i>jetzt)?" ist-spaeter":"");
+}
 function a2AblaufZeichnen(){
  const box=$("a2Ablauf");
  if(!box)return;
@@ -625,7 +1247,7 @@ function a2AblaufZeichnen(){
  box.hidden=false;
  box.innerHTML='<div class="a2-ablauf">'+stationen.map((s,i)=>{
   const fertig=stand[s.k], dran=(i===jetzt);
-  const kl=fertig?"ist-fertig":(dran?"ist-jetzt":"");
+  const kl=a2AblaufKlasse(fertig,dran,i,jetzt);
   const z=fertig?"✓":(dran?"●":"○");
   return `<div class="a2-ablauf-st ${kl}">
    <div class="a2-ablauf-marke">${z}</div>
