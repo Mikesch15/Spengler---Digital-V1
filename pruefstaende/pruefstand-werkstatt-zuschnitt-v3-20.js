@@ -420,9 +420,30 @@ async function mehrAuf(page){
   p(h.kartenKlasse===2&&h.alteKarte===0,"eine Darstellung je Massaufnahme, nicht zwei",h);
   // Der Stub liefert data unabhaengig vom select() mit - eine Messung an
   // werkZeilen waere hier wertlos. Geprueft wird der Quelltext.
-  p(/created_by,data"\)/.test(QUELLE51),
+  //
+  // v3.153: Bis dahin stand hier /created_by,data"\)/ - das prueft die
+  // NACHBARN von data, nicht dass data geholt wird. Als die Abfrage um
+  // staerke_mm erweitert und dabei umgebrochen wurde, schlug die Pruefung
+  // an, obwohl der Vertrag ("data wird geladen") unveraendert galt.
+  // Jetzt wird die Feldliste wirklich ausgewertet: die Zeichenketten des
+  // select() werden zusammengesetzt und in Felder zerlegt. Das ist strenger
+  // als vorher, nicht schwaecher - "data" muss ein eigenes Feld sein und
+  // darf nicht bloss als Teil eines anderen Namens vorkommen.
+  const werkFelder=(function(){
+   const m=/\.select\(([\s\S]*?)\)\s*\n/.exec(QUELLE51);
+   if(!m)return [];
+   return (m[1].match(/"([^"]*)"/g)||[]).map(x=>x.slice(1,-1)).join("")
+     .split(",").map(x=>x.trim()).filter(Boolean);
+  })();
+  p(werkFelder.indexOf("data")>=0,
     "die Werkstatt-Abfrage laedt data - sonst bliebe die Liste leer",
     (QUELLE51.match(/\.select\("id,project_id[^)]*\)/)||[""])[0].slice(0,200));
+  // v3.153: staerke_mm gehoert seitdem dazu. Ohne sie liesse sich die
+  // Sicht "Nach Material" nicht nach Staerke trennen und wuerfe 0,7er und
+  // 0,8er Blech in einen Topf (siehe pruefstand-werkstatt-material-v3-153).
+  p(werkFelder.indexOf("staerke_mm")>=0,
+    "die Werkstatt-Abfrage laedt staerke_mm - sonst trennt die Materialsicht nicht",
+    werkFelder);
   p(h.mehrKnopf&&h.grundlageZu,"Material und Reservierungen liegen zugeklappt darunter",h);
   p(/0 von 4 Stück geschnitten/.test(h.streifen),
     "der naechste Schritt nennt die Stuecke, nicht die Materialpositionen",h.streifen);
