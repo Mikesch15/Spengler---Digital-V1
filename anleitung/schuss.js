@@ -156,6 +156,12 @@ const liste=[];
   if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
  });
 
+ // Seit v3.151 ist die neue Ansicht die Vorgabe. Der Bildersatz zeigt aber
+ // ueberwiegend die klassische - sie wird deshalb hier ausdruecklich
+ // eingeschaltet. Ohne das waere jedes Bild eines Elements der klassischen
+ // Startseite (02-start, 32-aufgaben, 34-aufgaben-zu) nur ein leerer
+ // Streifen, weil diese Elemente dann display:none tragen.
+ await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
  await schuss("02-start","#startScreen");
 
  // ---------- Ansicht 2.0 (v3.150) ----------
@@ -165,6 +171,7 @@ const liste=[];
  await schuss("44-ansicht2-heute",null,{breite:420,warte:500});
  await page.evaluate(()=>{a2Zustand.seite="projekte";a2Zeichnen()});
  await schuss("45-ansicht2-projekte",null,{breite:420,warte:400});
+ // Zurueck in die klassische Ansicht: alle weiteren Bilder zeigen sie.
  await page.evaluate(()=>{a2Setzen(false);a2Zustand.seite="heute"});
  await page.setViewportSize({width:1100,height:900});
 

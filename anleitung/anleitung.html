@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.150";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.151";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.150<br>
+  Version 3.151<br>
   Stand 10. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -137,10 +137,13 @@ offen, ist die Karte gar nicht da. Mehr dazu in Abschnitt 10.</p>
 Unten steht die Programmversion – die ist wichtig, wenn du einen Fehler meldest.</p>
 
 <h3>3.1 · Die neue Ansicht</h3>
-<p>Seit Version 3.150 gibt es <strong>zwei Ansichten derselben App</strong>. Die
-klassische – die eben beschriebene – und eine neue, die nicht nach Modulen
-gegliedert ist, sondern <strong>nach dem Arbeitsablauf</strong>. Eingeschaltet wird
-sie auf dem Startbildschirm mit <span class="tasten">✨ Neue Ansicht testen</span>.</p>
+<p>Es gibt <strong>zwei Ansichten derselben App</strong>. Die klassische – die eben
+beschriebene – und eine neue, die nicht nach Modulen gegliedert ist, sondern
+<strong>nach dem Arbeitsablauf</strong>. Seit Version 3.151 ist die neue Ansicht die
+<strong>Vorgabe</strong>: sie erscheint, wenn du die App öffnest. Beim ersten Mal steht
+dort eine Karte, die das erklärt und den Weg zurück nennt.</p>
+<p>Bist du in der klassischen Ansicht, führt <span class="tasten">✨ Neue Ansicht
+testen</span> auf dem Startbildschirm wieder hinüber.</p>
 <figure><img src="bilder/44-ansicht2-heute.png"><figcaption>Die neue Ansicht: unten eine Leiste, oben die Zahlen des Tages, in der Mitte die eigenen offenen Aufgaben.</figcaption></figure>
 <p>Unten steht eine Leiste mit bis zu fünf Einträgen:</p>
 <table>
@@ -149,8 +152,8 @@ sie auf dem Startbildschirm mit <span class="tasten">✨ Neue Ansicht testen</sp
 deine offenen Aufgaben – dieselben wie in der Karte <strong>🔔 Meine offenen
 Aufgaben</strong> der klassischen Ansicht, nur als ganze Seite statt als zugeklappte
 Karte. Ganz unten die zuletzt bearbeiteten Projekte.</td></tr>
-<tr><td>Projekte</td><td>Die Projektliste mit Suchfeld. Ein Tippen öffnet das
-gewohnte Projekt-Cockpit (Abschnitt 6).</td></tr>
+<tr><td>Projekte</td><td>Die Projektliste mit Suchfeld. Ein Tippen öffnet die
+Projektseite – siehe unten.</td></tr>
 <tr><td>Werkstatt</td><td>Öffnet die Werkstatt (Abschnitt 11). Nur da, wenn die
 Firma das Werkstattmodul eingeschaltet hat.</td></tr>
 <tr><td>Lager</td><td>Öffnet die Lagerverwaltung. Nur da, wenn du dafür
@@ -159,6 +162,28 @@ freigeschaltet bist.</td></tr>
 Weg zurück zur klassischen Ansicht.</td></tr>
 </table>
 <figure><img src="bilder/45-ansicht2-projekte.png"><figcaption>Die Projektliste der neuen Ansicht. Die Adresse steht zuoberst, der Projektname darunter.</figcaption></figure>
+<h3>3.2 · Die Projektseite</h3>
+<p>In der neuen Ansicht öffnet ein Projekt eine eigene Seite mit
+<strong>sechs Registern</strong>:</p>
+<table>
+<tr><th>Register</th><th>Was darin steht</th></tr>
+<tr><td>Übersicht</td><td>Die Ablaufleiste, der eine Schritt, der als Nächstes
+ansteht, die Zahlen des Projekts und die Stammdaten.</td></tr>
+<tr><td>Aufmass</td><td>Alle Massaufnahmen des Projekts. Ein Tippen öffnet das
+gewohnte Formular; das Zurück führt wieder hierher.</td></tr>
+<tr><td>Produktion</td><td>Wie weit der Zuschnitt ist – je Massaufnahme und fürs
+ganze Projekt. Passt ein gesetzter Haken nicht mehr zum Mass, steht das dabei.
+Nur da, wenn die Firma das Untermodul „Material“ eingeschaltet hat.</td></tr>
+<tr><td>Werkstatt</td><td>Was in diesem Projekt zu rüsten und zu montieren ist,
+mit den zugeteilten Namen.</td></tr>
+<tr><td>Ausmass</td><td>Alle Ausmasse des Projekts.</td></tr>
+<tr><td>Mehr …</td><td>Offerte, Leistungen, Regierapporte – und der Weg ins
+vollständige Projekt-Cockpit (Abschnitt 6), wo Dateien, Fotos und Verlauf
+stehen.</td></tr>
+</table>
+<div class="hin">Das Projekt-Cockpit ist damit nicht verschwunden. Es steht unter
+<strong>Mehr → Dateien, Fotos und Verlauf</strong> und zeigt dort dasselbe wie in
+der klassischen Ansicht. Sein Zurück-Knopf führt auf die Projektseite.</div>
 <p>Im Projekt-Cockpit kommt in der neuen Ansicht über dem Arbeitsstand eine
 <strong>Ablaufleiste</strong> dazu. Sie beantwortet die Frage, die beim Öffnen eines
 Projekts zuerst kommt: <em>wo steht das hier?</em> Sechs Stationen – Offerte,
@@ -1754,7 +1779,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">25 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.150</strong>, Stand 22. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.151</strong>, Stand 22. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

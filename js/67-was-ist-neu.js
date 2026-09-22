@@ -142,7 +142,10 @@ const WIN_CHANGELOG={
   "Was die App nicht einordnen kann, sagt sie und schlägt „Skizze/Foto\" vor; was im Projekt schon unter demselben Titel steht, wird nicht noch einmal angehakt. Für eine einzelne Position gibt es den Knopf 📐 direkt in der Positionszeile."],
  "3.150":["Neu: eine zweite Ansicht, die nach dem Arbeitsablauf gegliedert ist statt nach Modulen – unten eine Leiste mit Heute, Projekte, Werkstatt, Lager und Mehr, und als Startseite die eigenen offenen Aufgaben. Einzuschalten auf der Startseite mit „✨ Neue Ansicht testen“.",
   "Im Projekt zeigt eine Ablaufleiste auf einen Blick, wo es steht: Offerte, Massaufnahme, Freigabe, Rüsten, Montage, Ausmass.",
-  "Die klassische Ansicht bleibt vollständig erhalten. Beide arbeiten mit denselben Formularen und denselben Daten – zurück geht es jederzeit unter „Mehr“."]
+  "Die klassische Ansicht bleibt vollständig erhalten. Beide arbeiten mit denselben Formularen und denselben Daten – zurück geht es jederzeit unter „Mehr“."],
+ "3.151":["Die neue Ansicht ist jetzt die Vorgabe. Wer lieber die gewohnte will, findet sie unverändert unter „Mehr → Zurück zur klassischen Ansicht“ – die Wahl merkt sich jedes Gerät für sich.",
+  "Neu: ein Projekt öffnet eine eigene Seite mit sechs Registern – Übersicht, Aufmass, Produktion, Werkstatt, Ausmass und Mehr. Die Produktion zeigt den Zuschnitt-Fortschritt je Massaufnahme und fürs ganze Projekt.",
+  "Das Firmenlogo steht wieder auf der Startseite, und die Einstellungen sehen jetzt aus wie die neue Ansicht."]
 };
 
 function winVersionVergleich(a,b){
