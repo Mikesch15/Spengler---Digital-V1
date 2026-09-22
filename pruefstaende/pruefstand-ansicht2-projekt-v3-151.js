@@ -158,14 +158,28 @@ window.supabase={createClient:()=>({
  p(JSON.stringify(d.zeilen)===JSON.stringify(["21"]),"D1 das Ausmass steht da",d);
  p(d.text.includes("Blitzschutzausmass"),"D2 mit der richtigen Beschriftung",d.text.slice(0,200));
 
- // --- E: Mehr ---
+ // --- E: Mehr und Regierapport ---
+ // Der Regierapport hat seit v3.156 ein EIGENES Register und steht nicht
+ // mehr unter "Mehr". Geprueft wird deshalb beides: er ist dort weg UND
+ // er ist an seinem neuen Platz vollstaendig da. Die zweite Haelfte ist
+ // die Gegenprobe - ohne sie waere E1 auch gruen, wenn er ganz
+ // verschwunden waere.
  await page.click('[data-a2-reg="mehr"]');
  let e2=await page.evaluate(()=>({
   lei:[...document.querySelectorAll("#a2Inhalt [data-a2-lei]")].length,
   rep:[...document.querySelectorAll("#a2Inhalt [data-a2-rep]")].length,
   text:$("a2Inhalt").textContent.replace(/\s+/g," ")
  }));
- p(e2.lei===1&&e2.rep===1,"E1 Leistung und Regierapport stehen da",e2);
+ p(e2.lei===1&&e2.rep===0,"E1 unter 'Mehr' steht die Leistung, der Rapport nicht mehr",e2);
+ await page.click('[data-a2-reg="rapport"]');
+ await page.waitForTimeout(200);
+ const e1b=await page.evaluate(()=>({
+  rep:[...document.querySelectorAll("#a2Inhalt [data-a2-rep]")].length,
+  neu:!!document.querySelector('#a2Inhalt [data-a2-tu="neuerrapport"]')
+ }));
+ p(e1b.rep===1&&e1b.neu,"E1b im eigenen Register steht er samt Anlegen-Knopf",e1b);
+ await page.click('[data-a2-reg="mehr"]');
+ await page.waitForTimeout(200);
  p(e2.text.includes("Rinne montieren")&&e2.text.includes("Offerte-Pos. 1.1"),"E2 mit den richtigen Feldern",e2.text.slice(0,300));
 
  // --- F: zurueck in die Projektliste ---

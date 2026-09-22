@@ -78,6 +78,13 @@ const FEEDBACK=[
 
  await page.evaluate((feedback)=>{
   window.__feedback=JSON.parse(JSON.stringify(feedback));
+  // Angemeldet sein heisst: der Anmeldeschirm ist zu. Ohne diese Zeile
+  // stuende er offen UND die System-Administration zugleich - ein Zustand,
+  // den die App nie hat. Bis v3.155 fiel das nicht auf, weil beide
+  // z-index 500 trugen; seit v3.156 liegt ein Bereich im Rahmen darunter,
+  // und das ist richtig so: liegt der Anmeldeschirm oben, soll dahinter
+  // nichts bedienbar sein.
+  $("authScreen").hidden=true; $("appRoot").hidden=false;
   $("systemAdminModal").hidden=false;
   document.querySelector('[data-section="sysadmin-feedback"]').classList.add("open");
  },FEEDBACK);

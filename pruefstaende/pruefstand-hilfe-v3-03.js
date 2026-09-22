@@ -313,8 +313,20 @@ const ARTEN=[
  }).map(([n])=>n);
  p(veraltet.length===0,"jeder Verweis auf die Anleitung nennt diese Version",veraltet);
  const anlRoh=fs.readFileSync(path.join(process.cwd(),"anleitung/anleitung.html"),"utf8");
- p(anlRoh.indexOf("Version "+appVersion)>=0,
-   "die Anleitung selbst nennt diese Version",appVersion);
+ // GESCHAERFT in v3.156. Vorher genuegte "Version <x>" IRGENDWO in der Datei.
+ // Das erfuellte jeder beilaeufige Satz der Art "seit Version 3.154 sehen
+ // auch ..." - und genau daran ist es durchgerutscht: Titelseite und
+ // Fusszeile der Anleitung standen von v3.154 bis v3.155 unbemerkt auf
+ // 3.153, waehrend die Pruefung gruen war. Geprueft werden jetzt die beiden
+ // STEMPEL, die die Anleitung als Dokument datieren.
+ const fuss=anlRoh.match(/Spengler-DIGITAL · Anleitung · Version ([0-9.]+)/);
+ const titel=anlRoh.match(/<div class="fuss">\s*\n\s*Version ([0-9.]+)/);
+ p(!!fuss&&fuss[1]===appVersion,
+   "die Fusszeile jeder Anleitungsseite nennt diese Version",
+   {gefunden:fuss&&fuss[1],erwartet:appVersion});
+ p(!!titel&&titel[1]===appVersion,
+   "und die Titelseite der Anleitung ebenso",
+   {gefunden:titel&&titel[1],erwartet:appVersion});
  const alte=fs.readdirSync(path.join(process.cwd(),"anleitung"))
    .filter(f=>/^Spengler-DIGITAL-Anleitung-v.*\.pdf$/.test(f)&&f.indexOf("-v"+appVersion+".pdf")<0);
  p(alte.length===0,"keine veraltete Anleitung mehr im Ordner",alte);
