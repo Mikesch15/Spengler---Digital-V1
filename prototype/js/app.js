@@ -15,12 +15,32 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>
  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
+// ---- Woher kommen die Daten? ---------------------------------------------
+// EINE Stelle entscheidet das. Jeder Bildschirm liest ueber diese Funktionen,
+// keiner greift auf P_PROJEKTE & Co. direkt zu - sonst zeigte die eine Seite
+// Beispieldaten und die andere echte.
+//
+// "echt" laedt ausschliesslich LESEND (js/echt.js). Voreingestellt bleibt
+// "beispiel": wer den Prototyp zum ersten Mal oeffnet, soll nicht ungefragt
+// eine Verbindung zur Firmendatenbank aufbauen.
+function pEcht(){ return pZustand.quelle==="echt"&&echtDaten }
+function pProjekteAlle(){ return pEcht()?echtDaten.projekte:P_PROJEKTE }
+function pAufgabenAlle(){ return pEcht()?echtDaten.aufgaben:P_AUFGABEN }
+function pMontageAlle(){  return pEcht()?echtDaten.montage:P_MONTAGE }
+function pLagerAlle(){    return pEcht()?echtDaten.lager:P_LAGER }
+function pWareneingangAlle(){ return pEcht()?echtDaten.wareneingang:P_WARENEINGANG }
+function pVerlaufAlle(){  return pEcht()?echtDaten.verlauf:P_VERLAUF }
+function pMitarbeiterAlle(){ return pEcht()?echtDaten.mitarbeiter:P_MITARBEITER }
+
 // ---- kleine Helfer --------------------------------------------------------
-function pProjekt(id){ return P_PROJEKTE.find(p=>String(p.id)===String(id))||null }
-function pMitarbeiter(id){ return P_MITARBEITER.find(m=>m.id===id)||null }
+function pProjekt(id){ return pProjekteAlle().find(p=>String(p.id)===String(id))||null }
+function pMitarbeiter(id){ return pMitarbeiterAlle().find(m=>m.id===id)||null }
 function pName(id){ const m=pMitarbeiter(id); return m?m.name:"—" }
 function pKurz(id){ const m=pMitarbeiter(id); return m?m.kurz:"–" }
-function pIch(){ return P_MITARBEITER.find(m=>m.ich)||P_MITARBEITER[0] }
+function pIch(){
+ const liste=pMitarbeiterAlle();
+ return liste.find(m=>m.ich)||liste[0]||{name:"Angemeldet",kurz:"··",funktion:""};
+}
 
 // Alle Teile eines Projekts, flach - Produktion und Werkstatt rechnen beide
 // damit, und zwar mit DERSELBEN Funktion.
@@ -118,7 +138,8 @@ const P_LEISTE=[
 // Der Zustand der Oberflaeche. Bewusst EIN Objekt - im Prototyp soll man
 // sehen koennen, woran etwas haengt.
 const pZustand={seite:"heute", projektId:null, register:"uebersicht",
-                massId:null, schritt:1, suche:"", werkSicht:"projekt", lagerSuche:""};
+                massId:null, schritt:1, suche:"", werkSicht:"projekt", lagerSuche:"",
+                quelle:"beispiel"};
 
 function pGehe(pfad){ location.hash="#/"+pfad }
 function pZurueck(){ history.length>1?history.back():pGehe("heute") }
@@ -168,12 +189,66 @@ function pLeisteZeichnen(){
  }).join("");
 }
 
+// ---- Umschalter Beispieldaten / echte Daten -------------------------------
+// Er steht ganz oben, damit in jedem Bildschirmfoto steht, was man sieht.
+function pQuelleHtml(){
+ const echt=pZustand.quelle==="echt";
+ return `<div class="p-quelle">
+  <span class="p-quelle-text">Daten:</span>
+  <button class="${echt?"":"ist-auf"}" data-tu="quelle" data-q="beispiel">Beispiel</button>
+  <button class="${echt?"ist-auf":""}" data-tu="quelle" data-q="echt">Echt (nur lesen)</button>
+ </div>`;
+}
+// Umschalten. "echt" baut erst hier eine Verbindung auf - vorher geht der
+// Prototyp keine einzige ein.
+async function pQuelleWechseln(q){
+ if(q===pZustand.quelle)return;
+ if(q==="beispiel"){pZustand.quelle="beispiel";pZustand.projektId=null;pGehe("heute");pZeichnen();return}
+ pZustand.quelle="echt";
+ pZustand.projektId=null;
+ echtLaedt=true; pGehe("heute"); pZeichnen();
+ try{
+  const sitzung=await echtSitzung();
+  if(sitzung)await echtLaden();
+ }catch(e){ echtFehler=(e&&e.message)||String(e) }
+ echtLaedt=false;
+ pZeichnen();
+}
+// Was steht statt eines Bildschirms da, solange es keine echten Daten gibt?
+function pEchtZwischenHtml(){
+ if(echtLaedt)return '<div class="p-leer">Daten werden geladen …</div>';
+ return `
+ <div class="p-karte">
+  <div class="p-karte-titel">Mit den eigenen Daten durchklicken</div>
+  <p class="p-karte-unter">Der Prototyp liest dann die echten Projekte und
+  Massaufnahmen – <b>ausschliesslich lesend</b>. Er speichert nichts, ändert
+  nichts und löscht nichts. Gezeigt wird genau das, was dieses Konto auch in
+  der App sieht.</p>
+  ${echtFehler?`<div class="p-hinweis p-h-warnung" style="margin-top:10px"><b>Es hat nicht geklappt</b>${esc(echtFehler)}</div>`:""}
+  <div class="p-feld" style="margin-top:12px"><label>Benutzername</label>
+   <input id="pEchtUser" autocomplete="username" placeholder="vorname.nachname"></div>
+  <div class="p-feld"><label>Passwort</label>
+   <input id="pEchtPass" type="password" autocomplete="current-password"></div>
+  <div class="p-knopf-reihe">
+   <button class="p-knopf p-knopf-blau p-knopf-voll" data-tu="anmelden">Anmelden und laden</button>
+  </div>
+  <p class="p-karte-unter" style="margin-top:10px">Wer in der App auf diesem
+  Gerät bereits angemeldet ist, braucht das nicht – dann lädt der Prototyp
+  sofort.</p>
+ </div>`;
+}
+
 // ---- Zeichnen -------------------------------------------------------------
 function pZeichnen(){
  pAdresseLesen();
  pKopfZeichnen();
  pLeisteZeichnen();
+ const quelle=$("pQuelle");
+ if(quelle)quelle.innerHTML=pQuelleHtml();
  const ziel=$("pInhalt");
+ // Echte Daten gewaehlt, aber noch keine da: dann gibt es nichts zu zeigen
+ // ausser dem Weg dorthin.
+ if(pZustand.quelle==="echt"&&!echtDaten){ziel.innerHTML=pEchtZwischenHtml();window.scrollTo(0,0);return}
  const nach={heute:pHeuteHtml, projekte:pProjekteHtml, projekt:pProjektHtml,
              werkstatt:pWerkstattHtml, lager:pLagerHtml, mehr:pMehrHtml};
  const fn=nach[pZustand.seite]||pHeuteHtml;
@@ -221,7 +296,34 @@ function pTun(was,el){
  if(was==="werksicht"){
   pZustand.werkSicht=el.dataset.sicht;pZeichnen();return;
  }
+ if(was==="quelle"){pQuelleWechseln(el.dataset.q);return}
+ if(was==="anmelden"){pEchtAnmelden();return}
+ if(was==="abmelden"){
+  if(!confirm("Abmelden?\n\nDamit ist auch die App auf diesem Gerät abgemeldet – "
+   +"Prototyp und App teilen sich denselben angemeldeten Zustand."))return;
+  echtAbmelden().then(()=>{pZustand.quelle="beispiel";pGehe("heute");pZeichnen()});
+  return;
+ }
+ if(pZustand.quelle==="echt"){
+  alert((el.dataset.text||"Dieser Schritt")+" ist im Prototyp nicht hinterlegt.\n\n"
+   +"Mit echten Daten liest der Prototyp AUSSCHLIESSLICH – er speichert nichts, "
+   +"ändert nichts und löscht nichts. Zum Arbeiten weiterhin die App benutzen.");
+  return;
+ }
  pNochNicht(el.dataset.text||"Dieser Schritt");
+}
+async function pEchtAnmelden(){
+ const u=$("pEchtUser")?$("pEchtUser").value:"";
+ const p=$("pEchtPass")?$("pEchtPass").value:"";
+ if(!u||!p){echtFehler="Bitte Benutzername und Passwort eingeben.";pZeichnen();return}
+ echtLaedt=true; echtFehler=""; pZeichnen();
+ try{
+  const fehler=await echtAnmelden(u,p);
+  if(fehler)echtFehler=fehler;
+  else if(!await echtLaden()){/* echtFehler ist gesetzt */}
+ }catch(e){ echtFehler=(e&&e.message)||String(e) }
+ echtLaedt=false;
+ pZeichnen();
 }
 function pNochNicht(text){
  alert(text+" ist im Prototyp noch nicht hinterlegt.\n\n"

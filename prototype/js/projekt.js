@@ -139,7 +139,7 @@ function pMassSchrittInhalt(s,m){
   <div class="p-feld-paar">
    <div class="p-feld"><label>Datum</label><input type="date" value="2026-09-21"></div>
    <div class="p-feld"><label>Aufgenommen von</label>
-    <select>${P_MITARBEITER.map(x=>`<option>${esc(x.name)}</option>`).join("")}</select></div>
+    <select>${pMitarbeiterAlle().map(x=>`<option>${esc(x.name)}</option>`).join("")}</select></div>
   </div>`;
  if(s===2)return `
   <div class="p-feld-paar">
@@ -154,7 +154,7 @@ function pMassSchrittInhalt(s,m){
    dass die Eingabe in vier Schritte zerfällt statt in ein langes Formular.</div>`;
  if(s===3)return `
   <div class="p-feld"><label>Material</label>
-   <select>${P_LAGER.filter(l=>l.einheit!=="Pkg.").map(l=>`<option>${esc(l.bez)} · ${esc(l.dim)}</option>`).join("")}</select></div>
+   <select>${pLagerAlle().filter(l=>l.einheit!=="Pkg.").map(l=>`<option>${esc(l.bez)} · ${esc(l.dim)}</option>`).join("")}</select></div>
   <div class="p-feld-paar">
    <div class="p-feld"><label>Materialstärke</label>
     <select><option>0,6 mm</option><option>0,7 mm</option><option>1,0 mm</option></select></div>
@@ -183,8 +183,16 @@ function pMassSchrittInhalt(s,m){
 // Zuschnitt ist der Knopf daran.
 function pRegProduktion(p){
  const teile=pTeile(p);
- if(!teile.length)return `<div class="p-leer">Für dieses Projekt sind noch keine Teile erfasst.<br>
-  Sie entstehen aus dem Aufmass.</div>`;
+ if(!teile.length)return pZustand.quelle==="echt"
+  ? `<div class="p-hinweis p-h-info"><b>Stückzahlen noch nicht angebunden</b>
+     Wie viele Stück schon geschnitten sind, rechnet das Zuschnitt-Modul der App
+     aus dem gespeicherten Plan. Der Prototyp rechnet das bewusst NICHT nach –
+     eine zweite Rechnung liefe früher oder später auseinander. Deshalb steht
+     hier nichts statt einer erfundenen Zahl.</div>
+     <p class="p-karte-unter">Die Massaufnahmen dieses Projekts stehen im
+     Register <b>Aufmass</b>, mit ihrem echten Arbeitsstatus.</p>`
+  : `<div class="p-leer">Für dieses Projekt sind noch keine Teile erfasst.<br>
+     Sie entstehen aus dem Aufmass.</div>`;
  const grup=[{k:"offen",name:"Offen",f:t=>t.fertig===0},
              {k:"arbeit",name:"In Arbeit",f:t=>t.fertig>0&&t.fertig<t.stueck},
              {k:"fertig",name:"Fertig",f:t=>t.fertig>=t.stueck}];

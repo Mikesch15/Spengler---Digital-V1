@@ -16,7 +16,7 @@
 
 function pWerkAlleTeile(){
  const raus=[];
- P_PROJEKTE.forEach(p=>pTeile(p).forEach(t=>{
+ pProjekteAlle().forEach(p=>pTeile(p).forEach(t=>{
   if(t.fertig<t.stueck)raus.push(Object.assign({},t,{projekt:p}));
  }));
  return raus;
@@ -53,9 +53,9 @@ function pWerkTeilHtml(t,zeigeProjekt){
 function pWerkstattHtml(){
  const teile=pWerkAlleTeile();
  const fertigHeute=[];
- P_PROJEKTE.forEach(p=>pTeile(p).forEach(t=>{ if(t.fertig>=t.stueck)fertigHeute.push(t) }));
+ pProjekteAlle().forEach(p=>pTeile(p).forEach(t=>{ if(t.fertig>=t.stueck)fertigHeute.push(t) }));
  const ruestlisten=new Set(teile.map(t=>t.projekt.id)).size;
- const montage=P_MONTAGE.filter(m=>m.datum<="2026-09-23").length;
+ const montage=pMontageAlle().filter(m=>m.datum<="2026-09-23").length;
  const nachMaterial=pZustand.werkSicht==="material";
 
  // Gruppieren - beide Sichten benutzen DIESELBE Liste, nur ein anderer

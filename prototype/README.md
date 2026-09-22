@@ -6,11 +6,45 @@ Frage:
 > Ist Spengler-DIGITAL wesentlich übersichtlicher, wenn die ganze App nach
 > dem tatsächlichen Arbeitsablauf organisiert ist statt nach Modulen?
 
+## Beispieldaten oder echte Daten
+
+Ganz oben steht ein Umschalter: **Beispiel** / **Echt (nur lesen)**.
+
+Voreingestellt ist **Beispiel** — wer den Prototyp zum ersten Mal öffnet,
+baut keine Verbindung zur Firmendatenbank auf.
+
+**Echt** liest die eigenen Projekte und Massaufnahmen, damit sich die
+Bedienung an der eigenen Arbeit beurteilen lässt. Dabei gilt ohne Ausnahme:
+
+> Der Prototyp liest **ausschliesslich**. Kein Speichern, kein Ändern, kein
+> Löschen. In `js/echt.js` steht kein einziger Schreibweg — nachprüfbar mit
+> `grep -nE "insert|update|delete|upsert" prototype/js/echt.js`.
+
+Gezeigt wird genau das, was das angemeldete Konto auch in der App sieht: die
+Zugriffsrechte entscheidet die Datenbank (Row Level Security), nicht der
+Prototyp.
+
+Wer auf demselben Gerät in der App angemeldet ist, muss sich nicht noch
+einmal anmelden — App und Prototyp liegen auf derselben Adresse und teilen
+sich den angemeldeten Zustand. Sonst genügen Benutzername und Passwort.
+
+**Was mit echten Daten NICHT angezeigt wird**, weil es sich nicht ehrlich
+herleiten lässt:
+
+| | warum |
+| --- | --- |
+| Stückzahlen in der Produktion | rechnet das Zuschnitt-Modul der App aus dem gespeicherten Plan; der Prototyp rechnet das bewusst nicht nach |
+| Termin am Projekt | die Tabelle `projects` führt keinen |
+| Offertbetrag | steckt in den Positionen, nicht als Summe |
+| Lagerbestände | kommen aus den Buchungen der Lagerverwaltung |
+
+An diesen Stellen steht der Grund, nicht eine erfundene Zahl.
+
 ## Was er ist — und was nicht
 
 | | |
 | --- | --- |
-| **Arbeitet mit** | erfundenen Beispieldaten aus `js/daten.js` |
+| **Arbeitet mit** | Beispieldaten aus `js/daten.js` — oder echten, nur lesend |
 | **Speichert** | nichts |
 | **Rechnet** | nichts |
 | **Verbindet sich mit** | nichts (kein Supabase, kein Netz) |

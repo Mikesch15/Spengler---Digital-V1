@@ -13,7 +13,7 @@ function pLagerKnapp(a){ return pLagerFrei(a)<a.mind }
 
 function pLagerTreffer(){
  const q=(pZustand.lagerSuche||"").trim().toLowerCase();
- const liste=P_LAGER.slice().sort((a,b)=>
+ const liste=pLagerAlle().slice().sort((a,b)=>
    (pLagerKnapp(b)?1:0)-(pLagerKnapp(a)?1:0)||a.nr.localeCompare(b.nr));
  if(!q)return liste;
  return liste.filter(a=>[a.nr,a.bez,a.dim,a.barcode].join(" ").toLowerCase().indexOf(q)>=0);
@@ -44,7 +44,7 @@ function pLagerListeNeu(){
 }
 
 function pLagerHtml(){
- const knapp=P_LAGER.filter(pLagerKnapp);
+ const knapp=pLagerAlle().filter(pLagerKnapp);
  return `
  <div class="p-knopf-reihe" style="margin:0 0 12px">
   <button class="p-knopf p-knopf-blau p-knopf-voll" data-tu="scan" data-text="Der Barcode-Scan">📷 Barcode scannen</button>
@@ -62,7 +62,7 @@ function pLagerHtml(){
 
  <section class="p-abschnitt" style="margin-top:22px">
   <div class="p-abschnitt-kopf"><h2>Letzter Wareneingang</h2></div>
-  ${P_WARENEINGANG.map(w=>`<div class="p-zeile">
+  ${pWareneingangAlle().map(w=>`<div class="p-zeile">
    <span class="p-zeile-nr">↓</span>
    <span class="p-zeile-text"><b>${esc(w.bez)}</b>
     <span>${esc(w.menge)} · ${esc(w.lieferant)} · ${esc(pDatum(w.datum))}</span></span>

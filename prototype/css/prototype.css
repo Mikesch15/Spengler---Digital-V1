@@ -293,3 +293,20 @@ button{font:inherit;border:0;cursor:pointer}
  background:#3b2f00; color:#ffd666; font-size:11.5px; font-weight:800;
  text-align:center; padding:5px 12px; letter-spacing:.03em;
 }
+
+/* ---- Umschalter Beispieldaten / echte Daten ----------------------------- */
+/* Er steht ueber allem: in jedem Bildschirmfoto muss erkennbar sein, ob man
+   erfundene oder echte Projekte vor sich hat. */
+.p-quelle-leiste{background:#22303a}
+.p-quelle{
+ display:flex; align-items:center; gap:7px; padding:6px 14px;
+ max-width:1080px; margin:0 auto;
+}
+.p-quelle-text{font-size:11.5px; font-weight:800; color:#93a1a9;
+ letter-spacing:.04em; margin-right:2px}
+.p-quelle button{
+ background:#2f3f4b; color:#c8d4dc; border-radius:999px;
+ padding:5px 12px; font-size:12px; font-weight:800; min-height:30px;
+}
+.p-quelle button.ist-auf{background:var(--blau); color:#fff}
+@media(min-width:1000px){.p-quelle{padding-left:22px}}

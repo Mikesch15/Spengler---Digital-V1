@@ -33,7 +33,7 @@ function pMehrHtml(){
 
  <section class="p-abschnitt" style="margin-top:22px">
   <div class="p-abschnitt-kopf"><h2>Letzte Änderungen</h2></div>
-  ${P_VERLAUF.map(v=>`<div class="p-zeile">
+  ${pVerlaufAlle().map(v=>`<div class="p-zeile">
    <span class="p-zeile-nr">${esc(pKurz(v.wer))}</span>
    <span class="p-zeile-text"><b>${esc(v.text)}</b>
     <span>${esc(v.zeit)} · ${esc((pProjekt(v.projekt)||{}).name||"")}</span></span>

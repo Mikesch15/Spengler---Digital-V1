@@ -15,15 +15,15 @@ function pAufgabeZeichen(art){
 }
 
 function pHeuteHtml(){
- const offene=P_PROJEKTE.filter(p=>p.phase!=="ausmass");
+ const offene=pProjekteAlle().filter(p=>p.phase!=="ausmass");
  const werkTeile=[];
- P_PROJEKTE.forEach(p=>pTeile(p).forEach(t=>{
+ pProjekteAlle().forEach(p=>pTeile(p).forEach(t=>{
   if(t.fertig<t.stueck)werkTeile.push({p,t});
  }));
- const ruestlisten=P_PROJEKTE.filter(p=>pTeile(p).some(t=>t.fertig<t.stueck)).length;
- const montageHeute=P_MONTAGE.filter(m=>m.datum<="2026-09-23").length;
- const warnungen=P_PROJEKTE.filter(p=>p.hinweis&&p.hinweisArt==="warnung");
- const hinweise=P_PROJEKTE.filter(p=>p.hinweis&&p.hinweisArt!=="warnung");
+ const ruestlisten=pProjekteAlle().filter(p=>pTeile(p).some(t=>t.fertig<t.stueck)).length;
+ const montageHeute=pMontageAlle().filter(m=>m.datum<="2026-09-23").length;
+ const warnungen=pProjekteAlle().filter(p=>p.hinweis&&p.hinweisArt==="warnung");
+ const hinweise=pProjekteAlle().filter(p=>p.hinweis&&p.hinweisArt!=="warnung");
 
  return `
 ${warnungen.map(p=>`<div class="p-hinweis p-h-warnung">
@@ -32,8 +32,8 @@ ${warnungen.map(p=>`<div class="p-hinweis p-h-warnung">
 </div>`).join("")}
 
 <section class="p-abschnitt">
- <div class="p-abschnitt-kopf"><h2>Meine Aufgaben</h2><span class="p-marke p-m-blau">${P_AUFGABEN.length} offen</span></div>
- ${P_AUFGABEN.map(a=>{
+ <div class="p-abschnitt-kopf"><h2>Meine Aufgaben</h2><span class="p-marke p-m-blau">${pAufgabenAlle().length} offen</span></div>
+ ${pAufgabenAlle().map(a=>{
   const p=pProjekt(a.projekt);
   return `<button class="p-zeile" data-gehe="projekt/${a.projekt}/uebersicht">
    <span class="p-zeile-nr" style="${a.dringend?"background:var(--rot-hell);color:var(--rot)":""}">${pAufgabeZeichen(a.art)}</span>
@@ -55,7 +55,7 @@ ${warnungen.map(p=>`<div class="p-hinweis p-h-warnung">
 
 <section class="p-abschnitt">
  <div class="p-abschnitt-kopf"><h2>Anstehende Montage</h2></div>
- ${P_MONTAGE.map(m=>{
+ ${pMontageAlle().map(m=>{
   const p=pProjekt(m.projekt);
   return `<button class="p-zeile" data-gehe="projekt/${m.projekt}/uebersicht">
    <span class="p-zeile-nr">🏠</span>

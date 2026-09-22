@@ -9,8 +9,8 @@
 
 function pProjekteTreffer(){
  const q=(pZustand.suche||"").trim().toLowerCase();
- if(!q)return P_PROJEKTE;
- return P_PROJEKTE.filter(p=>
+ if(!q)return pProjekteAlle();
+ return pProjekteAlle().filter(p=>
   [p.name,p.adresse,p.kunde,p.nr].join(" ").toLowerCase().indexOf(q)>=0);
 }
 
@@ -44,7 +44,7 @@ function pProjekteListeNeu(){
   ? treffer.map(pProjektKarteHtml).join("")
   : `<div class="p-leer">Kein Projekt gefunden.<br>Gesucht wird in Name, Adresse, Kunde und Auftragsnummer.</div>`;
  const z=$("pProjekteZahl");
- if(z)z.textContent=treffer.length+" von "+P_PROJEKTE.length;
+ if(z)z.textContent=treffer.length+" von "+pProjekteAlle().length;
 }
 
 function pProjekteHtml(){
