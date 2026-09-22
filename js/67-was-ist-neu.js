@@ -155,7 +155,10 @@ const WIN_CHANGELOG={
  "3.154":["Jetzt sehen auch Regierapport, Ausmass, Offerte und Leistung aus wie die neue Ansicht: grössere Eingabefelder für Finger mit Handschuhen, rundere Knöpfe, ruhigere Überschriften.",
   "Der gedruckte Regierapport bleibt davon unberührt – auf Papier und im PDF steht Zeichen für Zeichen dasselbe wie vorher.",
   "Die Felder innerhalb der Arbeits-, Material- und Positionszeilen bleiben absichtlich schmal: dort stehen sechs bis sieben nebeneinander.",
-  "Behoben: die Knöpfe „Foto aufnehmen“ und „Aus Galerie wählen“ waren in der neuen Ansicht kleiner geworden statt grösser."]
+  "Behoben: die Knöpfe „Foto aufnehmen“ und „Aus Galerie wählen“ waren in der neuen Ansicht kleiner geworden statt grösser."],
+ "3.155":["Die Anleitung zeigt jetzt die neue Ansicht – also das, was du beim Öffnen der App tatsächlich siehst. Bisher zeigten ihre Bilder die klassische, obwohl seit Version 3.151 niemand mehr mit ihr startet.",
+  "Neu abgebildet: die Projektseite mit ihren sechs Registern. Sie war beschrieben, aber nie zu sehen.",
+  "Drei Bilder bleiben absichtlich klassisch – Startseite und Aufgabenkarte gibt es nur dort; in der neuen Ansicht sind sie die Seite „Heute“."]
 };
 
 function winVersionVergleich(a,b){
