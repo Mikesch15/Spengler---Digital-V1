@@ -68,6 +68,11 @@ function a2Setzen(an){
 }
 function a2Anwenden(){
  document.documentElement.classList.toggle("a2-an",a2Aktiv());
+ // v3.162: Beim Umschalten muss auch die Marke mitgehen, die sagt, ob die
+ // Leiste dasteht - der Beobachter feuert nur bei hidden-Aenderungen.
+ // Die Funktion steht weiter unten; beim allerersten Aufruf waehrend des
+ // Ladens gibt es sie noch nicht.
+ if(typeof a2LeisteMarkieren==="function")a2LeisteMarkieren();
  // Die Ablaufleiste sitzt im Cockpit und wird dort beim Laden gezeichnet.
  // Beim Umschalten muss sie mitgehen - sonst bliebe sie nach dem Wechsel in
  // die klassische Ansicht als fremder Balken im Projekt stehen.
@@ -141,7 +146,7 @@ async function a2BereichStarten(id,name,tab,oeffner,marke){
  window.scrollTo(0,0);
  return true;
 }
-const A2_MARKEN=["a2-nur-anlegen","a2-nur-liste","a2-nur-lager"];
+const A2_MARKEN=["a2-nur-anlegen","a2-nur-liste","a2-nur-lager","a2-nur-stammdaten"];
 function a2BereichMarkenWeg(el){ if(el)A2_MARKEN.forEach(m=>el.classList.remove(m)) }
 // Schliesst den offenen Bereich ueber seinen eigenen Knopf.
 function a2BereichSchliessen(){
@@ -175,6 +180,81 @@ function a2BereichBeobachten(){
 if(document.readyState==="loading")
  document.addEventListener("DOMContentLoaded",a2BereichBeobachten);
 else a2BereichBeobachten();
+
+// ---- Ein offenes Formular verlassen (v3.162) ------------------------------
+// Seit die Leiste auch ueber einem offenen Formular liegt, ist sie dort
+// bedienbar - ein Tipp auf "Heute" wechselt die Seite. Ohne diese Stelle
+// waeren damit die Eingaben weg, ohne dass jemand gefragt wurde.
+const A2_FORMULARE=["measurementEditModal","ausmassEditModal","angebotEditModal",
+ "leistungEditModal","reportScreen"];
+function a2FormularOffen(){
+ return A2_FORMULARE.filter(id=>$(id)&&!$(id).hidden);
+}
+// Gibt true zurueck, wenn weitergegangen werden darf.
+function a2FormularVerlassen(){
+ const offen=a2FormularOffen();
+ if(!offen.length)return true;
+ // Gefragt wird NUR, wenn wirklich etwas geaendert wurde. Ob das der Fall
+ // ist, fuehrt js/18 bereits fuer genau diese Formulare mit (isDirty) -
+ // eine zweite Erfassung waere eine zweite Wahrheit, und sie waere die
+ // schlechtere: js/18 haengt am input-Ereignis und bekommt deshalb auch
+ // mit, was ein Fachmodul selbst ins Feld schreibt.
+ const geaendert=(typeof isDirty!=="undefined")&&isDirty;
+ if(geaendert&&!confirm("Das Formular ist noch offen und hat ungespeicherte Eingaben.\n\n"
+   +"Verlassen und die Eingaben verwerfen?"))return false;
+ offen.forEach(id=>{$(id).hidden=true});
+ if(typeof isDirty!=="undefined")isDirty=false;
+ // Dieselben Rueckkehr-Ziele zuruecksetzen wie goToStart() (js/03) -
+ // sonst landete das naechste Formular am Ziel des vorigen.
+ if(typeof measEditReturnTo!=="undefined")measEditReturnTo="measurementsModal";
+ if(typeof amEditReturnTo!=="undefined")amEditReturnTo="ausmassModal";
+ if(typeof angEditReturnTo!=="undefined")angEditReturnTo="cockpitAngebote";
+ if(typeof leiEditReturnTo!=="undefined")leiEditReturnTo="cockpitLeistungen";
+ if(typeof reportReturnTo!=="undefined")reportReturnTo="reportsModal";
+ return true;
+}
+
+// v3.162: #a2Screen liegt IN #startScreen. Drei Stellen der App verstecken
+// #startScreen beim Oeffnen eines Formulars (js/04 aus der Suche, js/09
+// beim Regierapport, js/45 aus der Aufgabenliste) - damit war die halbe
+// neue Ansicht weg, Kopf und Leiste inbegriffen. Das war beim Rapport die
+// EIGENTLICHE Ursache, nicht der z-index.
+//
+// Beobachtet wird deshalb beides: die Formulare und #startScreen selbst.
+// Nur so ist die Reihenfolge egal - js/09 versteckt erst #startScreen und
+// oeffnet danach den Rapport, andere machen es umgekehrt.
+//
+// Eingegriffen wird ausschliesslich, solange wirklich ein Formular offen
+// ist. Beim Anmelden und Abmelden ist keines offen; dort bleibt das
+// Verstecken unangetastet, und der Login-Schirm arbeitet weiter wie
+// bisher.
+function a2LeisteHalten(){
+ const s=$("startScreen");
+ if(!s)return;
+ if(a2Aktiv()&&a2FormularOffen().length&&s.hidden)s.hidden=false;
+ a2LeisteMarkieren();
+}
+// Spiegelt in eine Klasse am <html>, ob die Leiste WIRKLICH dasteht.
+// css/05-ansicht2.css haengt den Rahmen der Formulare daran: ein Rahmen,
+// der Platz fuer eine Leiste laesst, die es nicht gibt, zeigt zwei leere
+// Streifen. Die Klasse ist bewusst eine Zustandsspiegelung und keine
+// zweite Entscheidung - sie sagt nur, was ohnehin der Fall ist.
+function a2LeisteMarkieren(){
+ const s=$("startScreen");
+ const da=!!(a2Aktiv()&&s&&!s.hidden);
+ document.documentElement.classList.toggle("a2-leiste-da",da);
+}
+function a2LeisteBeobachten(){
+ if(!window.MutationObserver)return;
+ const beob=new MutationObserver(a2LeisteHalten);
+ A2_FORMULARE.concat(["startScreen"]).forEach(id=>{
+  const el=$(id);
+  if(el)beob.observe(el,{attributes:true,attributeFilter:["hidden"]});
+ });
+}
+if(document.readyState==="loading")
+ document.addEventListener("DOMContentLoaded",a2LeisteBeobachten);
+else a2LeisteBeobachten();
 
 // ---- Navigation -----------------------------------------------------------
 // Die Symbole sind gezeichnet, nicht als Emoji gesetzt: Emoji sehen auf jedem
@@ -810,6 +890,10 @@ document.addEventListener("click",async e=>{
 
  const tab=e.target.closest("[data-a2-tab]");
  if(tab&&$("a2Screen")&&$("a2Screen").contains(tab)){
+  // v3.162: Liegt ein Formular offen, wird es geschlossen - bei
+  // ungespeicherten Eingaben erst nach Rueckfrage. Sagt der Anwender
+  // nein, passiert gar nichts: er bleibt, wo er war.
+  if(!a2FormularVerlassen())return;
   const k=tab.getAttribute("data-a2-tab");
   const eintrag=a2Leisten().find(x=>x.k===k);
   // Ein offener Bereich wird ZUERST geschlossen. Ohne das wechselte die
@@ -973,8 +1057,11 @@ document.addEventListener("click",async e=>{
   // ein zweiter Schreibweg auf dieselben vier Felder.
   if(was==="stammdaten"&&typeof openProjectCockpitZumBearbeiten==="function"){
    a2AusNeuerAnsicht=true;
+   // v3.162: mit Marke - sonst steht hier das ganze Cockpit samt
+   // Arbeitsstand und allen Arbeitsbereichen, und die vier Felder, um die
+   // es geht, liegen darunter.
    const auf=await a2BereichStarten("projectCockpitModal","Stammdaten","projekte",
-    ()=>openProjectCockpitZumBearbeiten(Number(a2Zustand.projektId)));
+    ()=>openProjectCockpitZumBearbeiten(Number(a2Zustand.projektId)),"a2-nur-stammdaten");
    if(!auf)a2AusNeuerAnsicht=false;
    return;
   }

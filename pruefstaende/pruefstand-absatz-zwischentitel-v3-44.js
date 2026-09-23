@@ -355,8 +355,29 @@ window.supabase = {
     if (typeof $ === "function") {
       if ($("appRoot")) $("appRoot").hidden = false;
       if ($("authScreen")) $("authScreen").hidden = true;
+      // v3.162: Der Sperrbildschirm fuer eine gesperrte Firma muss weg.
+      // Die Attrappe liefert keine passende Firma, deshalb blendet
+      // js/03-login.js ihn ein - ein Zustand, in dem in der echten App
+      // NIEMAND eine Offerte bearbeitet.
+      //
+      // Bis v3.161 fiel das nicht auf, weil das Offertenformular mit
+      // z-index 500 ueber dem Sperrbildschirm lag: der Pruefstand hat
+      // also gemessen, waehrend die App eigentlich gesperrt war. Seit die
+      // Formulare im Rahmen der neuen Ansicht liegen (z-index 30), deckt
+      // der Sperrbildschirm sie richtigerweise zu - und der Klick auf
+      // "Positionen erkennen" traf ihn statt den Knopf.
+      //
+      // Korrigiert wird deshalb die Ausgangslage, nicht die Zusicherung:
+      // geprueft wird weiterhin genau dieselbe Positionserkennung.
+      if ($("companyLockedScreen")) $("companyLockedScreen").hidden = true;
     }
   });
+
+  // Und die Gegenprobe dazu: der Sperrbildschirm ist wirklich zu. Ohne
+  // sie koennte derselbe Zustand unbemerkt zurueckkehren und der
+  // Pruefstand wieder an etwas messen, das gar nicht bedienbar ist.
+  p(await page.evaluate(() => !!($("companyLockedScreen") && $("companyLockedScreen").hidden)),
+    "die Ausgangslage ist eine NICHT gesperrte Firma - sonst misst der Pruefstand hinter einem Sperrbildschirm");
 
   const hatCheckOfferteZugriff = await page.evaluate(() => typeof checkOfferteZugriff === "function");
   if (hatCheckOfferteZugriff) {

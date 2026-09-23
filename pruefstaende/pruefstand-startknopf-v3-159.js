@@ -17,21 +17,28 @@
 //   den Bereich zurueck, a2Zustand.seite bleibt stehen - wer aus der
 //   Werkstatt "Start" drueckt, sieht die Seite, von der er kam.
 //
-//   neue Ansicht, FORMULAR: ein Erfassungsformular ist Vollbild, die
-//   Leiste liegt VERDECKT darunter (so gewollt, siehe A6 in
-//   pruefstand-bereiche-v3-156). Dort ist "Start" kein zweiter Weg zum
-//   selben Ziel, sondern der einzige sichtbare Weg nach Hause. Beim
-//   Regierapport ist er es woertlich: sein Zurueck-Knopf erscheint nur,
-//   wenn der Rapport aus einem Projekt heraus geoeffnet wurde.
+//   neue Ansicht, FORMULAR: bis v3.161 war ein Erfassungsformular
+//   Vollbild, die Leiste lag VERDECKT darunter. Dort war "Start" kein
+//   zweiter Weg zum selben Ziel, sondern der einzige sichtbare Weg nach
+//   Hause - deshalb blieb er stehen.
+//
+//   v3.162 hat diese Voraussetzung aufgehoben: die Leiste liegt jetzt
+//   auch ueber einem offenen Formular (A6 in pruefstand-bereiche-v3-156,
+//   dort ebenfalls umgestellt). Damit ist "Start" auch hier ein zweiter
+//   Weg zum selben Ziel, und die Ausnahme faellt mit ihrer Begruendung.
+//   Abschnitt C ist deshalb UMGESTELLT, nicht geloescht: er verlangt
+//   jetzt, dass der Knopf auch im Formular weg ist - UND dass die Leiste
+//   dort wirklich liegt. Das zweite ist die eigentliche Absicherung:
+//   ohne sie waere das Ausblenden genau die Falle, die v3.159 vermeiden
+//   wollte (ein Regierapport ohne sichtbaren Rueckweg).
 //
 // WAS HIER GEPRUEFT WIRD
 //   A  In jedem Bereich mit einem solchen Knopf ist "Start" unsichtbar,
 //      der Weg hinaus ("Fertig" bzw. "Zurueck") aber sichtbar geblieben.
 //   B  Gegenprobe klassische Ansicht: dieselben Knoepfe sind alle da.
-//   C  Gegenprobe Formulare: in Massaufnahme, Ausmass, Offerte und
-//      Regierapport bleibt "Start" sichtbar. Ohne C waere A auch dann
-//      gruen, wenn jemand die Regel pauschal auf html.a2-an setzt - und
-//      aus dem Regierapport gaebe es dann keinen Weg zurueck.
+//   C  Formulare (ab v3.162): dort ist "Start" ebenfalls weg - aber nur,
+//      WEIL die Leiste dort liegt. C prueft beides zusammen; das zweite
+//      ist die Gegenprobe zum ersten.
 //   D  Der Weg ueber die Leiste, echt geklickt: Werkstatt und Lager
 //      zeigen keinen Start-Knopf, und die Leiste mit "Heute" ist dabei
 //      wirklich sichtbar - sie ist der Ersatz fuer den entfernten Knopf.
@@ -109,12 +116,31 @@ const FORMULARE=[
   p(raus.da,"A "+x.name+": der Weg hinaus (#"+x.raus+") ist geblieben",raus);
  }
 
- // ---- C  Gegenprobe Formulare: der Knopf bleibt --------------------------
+ // ---- C  Formulare: Knopf weg, WEIL die Leiste da ist --------------------
  for(const x of FORMULARE){
   const start=await messen(x.id,x.start);
-  p(start.da,"C Gegenprobe "+x.name+": \"Start\" bleibt sichtbar - die Leiste "
-   +"liegt hier verdeckt darunter",start);
+  p(!start.fehlt&&!start.da,
+    "C "+x.name+": \"Start\" ist auch hier nicht mehr zu sehen",start);
  }
+ // Die Gegenprobe zum Ausblenden: liegt die Leiste in einem Formular
+ // wirklich frei? Waere sie es nicht, haette das Ausblenden oben genau
+ // die Falle gebaut, die v3.159 vermeiden wollte.
+ const leisteImFormular=await page.evaluate(()=>{
+  document.querySelectorAll(".modal").forEach(x=>{if(x.id!=="authScreen")x.hidden=true});
+  if($("reportScreen"))$("reportScreen").hidden=true;
+  $("startScreen").hidden=false;
+  $("measurementEditModal").hidden=false;
+  const leiste=$("a2Leiste"), r=leiste?leiste.getBoundingClientRect():null;
+  if(!r||!r.height)return {frei:false,grund:"keine Leiste"};
+  const o=document.elementFromPoint(Math.round(r.left+r.width/2),Math.round(r.top+r.height/2));
+  const heute=[...document.querySelectorAll("#a2Leiste [data-a2-tab]")]
+   .some(x=>x.getAttribute("data-a2-tab")==="heute");
+  return {frei:!!o&&(o===leiste||leiste.contains(o)), heute,
+          durch:o?((o.closest(".modal")||{}).id||o.tagName):""};
+ });
+ p(leisteImFormular.frei&&leisteImFormular.heute,
+   "C2 Gegenprobe: im Formular liegt die Leiste frei und traegt \"Heute\" - "
+   +"nur deshalb darf der Knopf dort weg",leisteImFormular);
 
  // ---- B  Gegenprobe klassische Ansicht -----------------------------------
  await page.evaluate(()=>a2Setzen(false));

@@ -182,7 +182,12 @@ const WIN_CHANGELOG={
  "3.161":["Ein Projekt lässt sich jetzt <b>Mitarbeitern zuteilen</b> – in den Stammdaten, auch an mehrere. Auf der Startseite erscheint es unter „Offene Projekte“ dann nur noch bei diesen Personen.",
   "Über der Liste stehen <b>Meine</b> und <b>Alle</b>. „Meine“ ist die Vorgabe; „Alle“ zeigt wieder den ganzen Betrieb – derselbe Umschalter, den die Werkstatt schon hat.",
   "Das ist eine Anzeige, keine Sperre: über „Projekte“ und die Suche bleibt jedes Projekt für alle erreichbar.",
-  "Ist niemand zugeteilt, gilt die Person, die das Projekt angelegt hat. Für bestehende Projekte ändert sich damit zunächst nichts."]
+  "Ist niemand zugeteilt, gilt die Person, die das Projekt angelegt hat. Für bestehende Projekte ändert sich damit zunächst nichts."],
+ "3.162":["Die <b>Leiste unten bleibt überall stehen</b> – auch während eine Massaufnahme, ein Ausmass, eine Offerte, eine Leistung oder ein Regierapport offen ist. Bisher verschwand sie dort.",
+  "Sind dabei ungespeicherte Eingaben im Formular, fragt die App vor dem Wechsel nach. Bei „Nein“ bleibt alles, wie es war.",
+  "„Stammdaten bearbeiten“ zeigt jetzt nur noch die Stammdaten – nicht mehr das ganze Projekt-Cockpit mit allen Bereichen darunter.",
+  "Die Knöpfe der Massaufnahme-Auswahl sind deutlich kompakter: Symbol und Text nebeneinander statt untereinander.",
+  "Folge davon: „🏠 Start“ verschwindet auch in den Formularen – die Leiste mit „Heute“ liegt jetzt ja darunter."]
 };
 
 function winVersionVergleich(a,b){

@@ -614,11 +614,16 @@ html.a2-an #leistungEditModal .bar > button{
    (50) und zugleich groesser als alles im Inhalt. Damit liegt der Bereich
    ueber der Seite, aber unter der Navigation - genau das war der Fehler.
 
-   NICHT hier: die Erfassungsformulare (Massaufnahme, Ausmass, Offerte,
-   Leistung) und die kleinen Dialoge (Typwahl, Winkel, Rest verwenden,
-   Buchen ...). Wer ein Mass eintraegt, ist IN einer Aufgabe - dort ist
-   Vollbild richtig. Die Dialoge muessen ueber allem liegen, auch ueber
-   einem offenen Bereich; sie behalten ihre 500.
+   NICHT hier: die kleinen Dialoge (Typwahl, Winkel, Rest verwenden,
+   Buchen ...). Sie muessen ueber allem liegen, auch ueber einem offenen
+   Bereich; sie behalten ihre 500.
+
+   v3.162: Die ERFASSUNGSFORMULARE standen bis hierher bewusst NICHT in
+   dieser Liste - mit der Begruendung, wer ein Mass eintrage, sei "in
+   einer Aufgabe", und dort sei Vollbild richtig. Der Anwender hat das
+   verworfen: "das darf niergends mehr so sein". Sie stehen jetzt weiter
+   unten in einer eigenen Gruppe, weil beim Regierapport noch etwas
+   anderes dazukommt.
    ========================================================================== */
 html.a2-an #werkstattModal:not([hidden]),
 html.a2-an #settingsModal:not([hidden]),
@@ -777,3 +782,146 @@ html.a2-an #settingsModal #startFromSettings{display:none!important}
    er ist keine Navigation. */
 .a2-register-klein{margin:0 0 8px}
 .a2-register-klein button{min-height:30px;padding:4px 12px;font-size:12.5px}
+
+/* ==========================================================================
+   AUCH DIE FORMULARE IM RAHMEN  (v3.162)
+   --------------------------------------------------------------------------
+   Gemeldet hat es der Anwender: "Wenn ich eine massaufnahme oeffne
+   verschwinden die register unten immernoch, das darf niergends mehr so
+   sein."
+
+   Bis v3.161 war das Absicht (siehe den berichtigten Kommentar oben).
+   Jetzt gilt dieselbe Regel wie fuer die Bereiche: die Leiste bleibt
+   stehen, egal wo man ist. Dieselben vier Werte wie dort - dieselbe
+   Kopfhoehe, dieselbe Leistenhoehe, dasselbe z-index 30.
+
+   Zwei Dinge haengen daran und sind mitgeloest:
+   1. Wer mitten im Formular auf die Leiste tippt, verliert sonst seine
+      Eingaben. a2FormularVerlassen() (js/70) fragt vorher - aber nur,
+      wenn wirklich etwas geaendert wurde (isDirty, js/18).
+   2. Der Knopf "🏠 Start" wurde in v3.159 in den Formularen bewusst
+      STEHENGELASSEN, weil die Leiste dort verdeckt lag und er der
+      einzige sichtbare Weg nach Hause war. Diese Voraussetzung faellt
+      hier weg, also faellt auch die Ausnahme (siehe unten).
+   ========================================================================== */
+/* Jede Regel haengt zusaetzlich an der Klasse "a2-leiste-da", und das ist
+   der Kern der Sache, nicht Zierde: #a2Screen LIEGT IN #startScreen. Ist
+   #startScreen versteckt, gibt es weder Kopf noch Leiste - ein Rahmen,
+   der oben 56px und unten 62px fuer beide freilaesst, zeigte dann zwei
+   leere Streifen um ein abgeschnittenes Formular.
+
+   ZWEI FALSCHE ANNAHMEN AUF DEM WEG HIERHER, beide gemessen:
+   1. Die erste Fassung haengte den Rahmen nur an html.a2-an. Sie griff
+      damit auch, wenn die App #startScreen versteckt hatte - js/04, js/09
+      und js/45 tun das, etwa beim Oeffnen aus der Aufgabenliste. Gefunden
+      hat es der Pruefstand der Offertenerkennung, nicht der eigene.
+   2. Der zweite Versuch war eine Geschwister-Bedingung auf #startScreen.
+      Sie kann gar nicht greifen: die Formulare haengen direkt am <body>,
+      #startScreen dagegen in #appRoot. Sie sind keine Geschwister - im
+      Quelltext sieht es nur so aus, weil beide ohne Einrueckung stehen.
+
+   Die Klasse setzt a2LeisteMarkieren() (js/70) genau dann, wenn die
+   Leiste wirklich dasteht; a2LeisteHalten() sorgt zusaetzlich dafuer,
+   dass der Fall moeglichst gar nicht eintritt. Beides, weil das eine die
+   Absicht ausdrueckt und das andere sie erzwingt. */
+@media screen{
+ html.a2-an.a2-leiste-da #measurementEditModal:not([hidden]),
+ html.a2-an.a2-leiste-da #ausmassEditModal:not([hidden]),
+ html.a2-an.a2-leiste-da #angebotEditModal:not([hidden]),
+ html.a2-an.a2-leiste-da #leistungEditModal:not([hidden]){
+  top:var(--a2-kopf);
+  bottom:calc(var(--a2-leiste) + env(safe-area-inset-bottom,0px));
+  z-index:30;
+ }
+ /* Der Regierapport ist kein .modal, sondern ein eigener Schirm im Fluss
+    neben #startScreen - er verdeckte die Leiste nicht durch z-index,
+    sondern weil die App #startScreen versteckt (und #a2Screen liegt
+    darin). js/70 haelt #startScreen jetzt sichtbar; damit der Rapport
+    nicht UNTER der Seite klebt, bekommt er hier denselben Rahmen. */
+ html.a2-an.a2-leiste-da #reportScreen:not([hidden]){
+  position:fixed;left:0;right:0;
+  top:var(--a2-kopf);
+  bottom:calc(var(--a2-leiste) + env(safe-area-inset-bottom,0px));
+  z-index:30;overflow:auto;
+  padding:14px 9px 40px;background:var(--bg);
+ }
+ @media (min-width:1000px){
+  html.a2-an.a2-leiste-da #measurementEditModal:not([hidden]),
+  html.a2-an.a2-leiste-da #ausmassEditModal:not([hidden]),
+  html.a2-an.a2-leiste-da #angebotEditModal:not([hidden]),
+  html.a2-an.a2-leiste-da #leistungEditModal:not([hidden]),
+  html.a2-an.a2-leiste-da #reportScreen:not([hidden]){ left:226px;bottom:0 }
+ }
+}
+/* Der ganze Block steht in @media screen, und das ist hier KEINE
+   Vorsichtsmassnahme, sondern noetig: css/03-druck.css schuetzt den
+   gedruckten Regierapport zwar fast ueberall mit !important, setzt fuer
+   #reportScreen aber kein position - ein position:fixed aus dieser Datei
+   wuerde in den Druck durchschlagen und nur die erste Seite ausgeben.
+   Nachgemessen, nicht vermutet: der Ausdruck-Vergleich lief gegen diese
+   Fassung. */
+
+/* ---- Folge fuer "🏠 Start" ----------------------------------------------- */
+/* v3.159 blendete den Knopf nur in den BEREICHEN aus und liess ihn in den
+   Formularen stehen - ausdruecklich deshalb, weil die Leiste dort
+   verdeckt lag. Seit die Leiste auch im Formular liegt, ist er auch dort
+   ein zweiter Weg zum selben Ziel und traegt denselben falschen Namen.
+   Die Regel wird deshalb auf alle "startFrom…"-Knoepfe erweitert - genau
+   die Form, die in v3.159 als ZU BREIT verworfen wurde. Nicht weil sie
+   damals falsch gemessen war, sondern weil sich die Voraussetzung
+   geaendert hat. */
+html.a2-an [id^="startFrom"]{display:none!important}
+
+/* ==========================================================================
+   "STAMMDATEN BEARBEITEN" ZEIGT NUR DIE STAMMDATEN  (v3.162)
+   --------------------------------------------------------------------------
+   Gemeldet vom Anwender: "Und wenn stammdaten bearbeiten geoeffnet wird,
+   oeffnet sich ebenfalls das alte cockpit mit allen infos."
+
+   Stimmt: der Eintrag oeffnet das Projekt-Cockpit als Bereich - bisher
+   ohne Marke, also mit allem, was das Cockpit sonst zeigt: Arbeitsstand,
+   Offerte, Leistungen, Massaufnahmen, Ausmass, Rapporte, Dateien. Wer auf
+   "Stammdaten bearbeiten" tippt, will vier Felder aendern.
+
+   Dieselbe Loesung wie bei "Neues Projekt" (a2-nur-anlegen, v3.156): eine
+   Marke blendet aus, was nicht dazugehoert. Der Schirm selbst bleibt
+   derselbe - es gibt weiterhin nur EIN Stammdaten-Formular und nur einen
+   Schreibweg auf diese Felder.
+
+   Bewusst NICHT ausgeblendet: der Projektstatus. Er ist eine eigene
+   Bedienstelle (js/24 begruendet, warum er ausserhalb des Formulars
+   liegt), und in der neuen Ansicht ist das Cockpit der einzige Ort, an
+   dem er sich umstellen laesst. Ihn hier zu verstecken hiesse, die
+   Funktion aus der neuen Ansicht zu entfernen. */
+html.a2-an #projectCockpitModal.a2-nur-stammdaten #cockpitStandBox,
+html.a2-an #projectCockpitModal.a2-nur-stammdaten #cockpitAlleKlapp,
+html.a2-an #projectCockpitModal.a2-nur-stammdaten #cockpitToggleStammdaten,
+html.a2-an #projectCockpitModal.a2-nur-stammdaten .card.klapp{display:none!important}
+/* .card.klapp trifft alle Arbeitsbereiche auf einmal - auch den naechsten,
+   den jemand ergaenzt. Eine Liste von Ids muesste dabei nachgefuehrt
+   werden und waere beim ersten Vergessen unvollstaendig. */
+
+/* ==========================================================================
+   DIE AUSWAHL DER MASSAUFNAHME-ART  (v3.162)
+   --------------------------------------------------------------------------
+   Dreizehn Arten in drei Kategorien. Als grosse Kacheln (26px Polsterung,
+   34px Symbol) fuellen sie mehrere Bildschirmhoehen - man scrollt, statt
+   zu waehlen. Gemeldet: "die buttons der massaufnahmenauswahl duerfen
+   auch viel kleiner und uebersichtlicher werden".
+
+   Kleiner heisst hier NICHT schwerer zu treffen: die Zeile bleibt mit
+   52px deutlich ueber den 44px Mindestgroesse fuer einen Finger. Gewonnen
+   wird die Hoehe dadurch, dass Symbol und Text nebeneinander stehen statt
+   untereinander - dieselbe Form wie die Zeilen der Startseite. */
+html.a2-an #measTypeChooserModal .start-nav,
+html.a2-an #amTypeChooserModal .start-nav{
+ grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:7px;margin-top:6px;
+}
+html.a2-an #measTypeChooserModal .start-nav-btn,
+html.a2-an #amTypeChooserModal .start-nav-btn{
+ flex-direction:row;justify-content:flex-start;align-items:center;gap:10px;
+ min-height:52px;padding:8px 12px;border-radius:10px;
+ font-size:14px;font-weight:700;text-align:left;
+}
+html.a2-an #measTypeChooserModal .start-nav-icon,
+html.a2-an #amTypeChooserModal .start-nav-icon{font-size:21px;flex:none;width:26px;text-align:center}

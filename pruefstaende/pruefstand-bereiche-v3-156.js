@@ -13,10 +13,18 @@
 // WAS HIER GEPRUEFT WIRD
 //   A  Die BEREICHE bleiben im Rahmen: Leiste sichtbar und bedienbar, Kopf
 //      nennt den Bereich, sein Eintrag ist markiert.
-//      A5 ist die wichtige Gegenprobe: ein ERFASSUNGSFORMULAR bleibt
-//      Vollbild. Ohne sie waere A1 bis A4 auch dann gruen, wenn blind jedes
-//      .modal umgestellt worden waere - und wer ein Mass eintraegt, haette
-//      ploetzlich eine Navigation neben dem Formular.
+//
+//      A6 war bis v3.161 die Gegenprobe dazu: ein ERFASSUNGSFORMULAR
+//      bleibt Vollbild. Das war ausdrueckliche Absicht ("wer ein Mass
+//      eintraegt, ist in einer Aufgabe"). Der Anwender hat das in v3.162
+//      verworfen - "das darf niergends mehr so sein" -, und damit ist
+//      diese Zusicherung nicht mehr der Vertrag. Sie wird deshalb
+//      UMGESTELLT, nicht geloescht: A6 verlangt jetzt das Gegenteil,
+//      naemlich dass auch das Formular die Leiste stehen laesst.
+//      Die Aufgabe der alten Gegenprobe - zu verhindern, dass blind jedes
+//      .modal umgestellt wird - uebernimmt A6b: ein kleiner DIALOG
+//      (Typwahl) liegt weiterhin ueber allem. Ohne ihn waere A1 bis A6
+//      auch dann gruen, wenn jemand pauschal jedes .modal anfasst.
 //   B  "Neues Projekt" zeigt nur das Anlegen-Formular, nicht noch einmal
 //      die Projektliste, von der man gerade kam. B2/B3 sind die
 //      Gegenproben: der Archiv-Weg zeigt umgekehrt die Liste ohne das
@@ -127,13 +135,27 @@ const tab=(page,k)=>page.evaluate(k=>{
  p(abschnitte.length===1&&abschnitte[0]==="lagerverwaltung",
    "A5b Lager: nur die Lagerverwaltung, nicht Materialbestand und Reststuecke",abschnitte);
 
- // Die entscheidende Gegenprobe: ein ERFASSUNGSFORMULAR bleibt Vollbild.
+ // v3.162: auch das Erfassungsformular laesst die Leiste stehen.
  await aufraeumen();
  await page.evaluate(()=>newMeasurementWithType("einlaufblech_gerade"));
  await page.waitForTimeout(700);
  z=await rahmen(page);
- p(z.verdeckt&&z.durch==="measurementEditModal",
-   "A6 Gegenprobe: das Massaufnahme-Formular bleibt Vollbild",z);
+ p(z.leisteDa&&!z.verdeckt,
+   "A6 auch das Massaufnahme-Formular laesst die Leiste sichtbar und bedienbar",z);
+
+ // A6b ist die neue Gegenprobe an der Stelle der alten: ein DIALOG liegt
+ // weiterhin ueber allem. Er muss das - wer eine Art auswaehlt, darf
+ // daneben nicht die halbe Navigation bedienen koennen.
+ await page.evaluate(()=>{
+  if($("measTypeChooserModal"))$("measTypeChooserModal").hidden=false;
+ });
+ await page.waitForTimeout(300);
+ z=await rahmen(page);
+ p(z.verdeckt&&z.durch==="measTypeChooserModal",
+   "A6b Gegenprobe: ein Dialog liegt weiterhin ueber der Leiste",z);
+ await page.evaluate(()=>{
+  if($("measTypeChooserModal"))$("measTypeChooserModal").hidden=true;
+ });
 
  // Ein Tipp auf einen anderen Eintrag schliesst den offenen Bereich.
  await aufraeumen();
