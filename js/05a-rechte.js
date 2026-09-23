@@ -155,6 +155,9 @@ function renderMitarbeiterSettings(){
   const p=allProfiles.find(x=>x.id===employeeIds[i]);
   const r=rechteVon(p);
   const istAdmin=!!(p&&p.role==="admin");
+  // v3.163: Ist das der einzige Administrator der Firma? Dann bleibt sein
+  // Haken gesperrt - siehe istLetzterAdmin() weiter unten.
+  const letzter=istAdmin&&istLetzterAdmin(p&&p.id);
   const felder=RECHTE_BEREICHE.map(b=>`
    <div class="rechte-bereich">
     <div class="rechte-bereich-titel">${esc(b.label)}</div>
@@ -172,8 +175,9 @@ function renderMitarbeiterSettings(){
     </div>
    </div>`).join("");
   const block=darfVergeben?`
-   <label class="rechte-schalter"><input type="checkbox" data-recht-admin="${i}"${istAdmin?" checked":""}> Administrator – darf alles, auch Rechte vergeben</label>
-   ${istAdmin?'<div class="small">Ein Administrator hat immer volle Rechte. Zum Einschränken zuerst den Haken oben entfernen.</div>':""}
+   <label class="rechte-schalter"><input type="checkbox" data-recht-admin="${i}"${istAdmin?" checked":""}${letzter?" disabled":""}> Administrator – darf alles, auch Rechte vergeben</label>
+   ${letzter?'<div class="small">Das ist der <b>einzige Administrator</b> dieser Firma. Der Haken lässt sich erst entfernen, wenn jemand anderes Administrator ist – sonst könnte niemand mehr Rechte vergeben.</div>'
+     :(istAdmin?'<div class="small">Ein Administrator hat immer volle Rechte. Zum Einschränken zuerst den Haken oben entfernen.</div>':"")}
    ${felder}
    <div class="rechte-bereich">
     <div class="rechte-bereich-titel">Kataloge</div>
@@ -273,6 +277,31 @@ function overrideZeilen(i,profilId){
  return zeilen;
 }
 
+// ---------------------------------------------------------------------------
+// v3.163  Der letzte Administrator
+// ---------------------------------------------------------------------------
+// ANLASS: der Inhaber hat bei sich selbst den Haken "Administrator"
+// entfernt. Danach hatte die Firma keinen Administrator mehr - und
+// niemand konnte ihn zurueckgeben, weil genau dafuer Administratorrechte
+// noetig sind. Eine Sackgasse, aus der nur ein Eingriff an der Datenbank
+// herausfuehrte.
+//
+// WIRKSAM gesperrt wird das in der Datenbank (Trigger
+// schuetze_letzten_admin, Migration letzter_administrator_geschuetzt) -
+// dort gehoert es hin, weil es eine Invariante der Daten ist und kein
+// Bildschirmverhalten. Diese Stelle hier ist die freundliche Haelfte: sie
+// erklaert den Grund, BEVOR die Datenbank einen Fehler wirft, und sie
+// zeigt den Haken von vornherein als gesperrt.
+//
+// allProfiles ist auf die eigene Firma begrenzt (tenant_boundary_profiles),
+// die Zaehlung stimmt also ohne weiteren Filter.
+function istLetzterAdmin(profilId){
+ if(!profilId||!Array.isArray(allProfiles))return false;
+ const ich=allProfiles.find(x=>String(x.id)===String(profilId));
+ if(!ich||ich.role!=="admin")return false;
+ return !allProfiles.some(x=>x.role==="admin"&&String(x.id)!==String(profilId));
+}
+
 document.addEventListener("change",async e=>{
  const t=e.target;
  const i=t.dataset.rechtMitarbeiter??t.dataset.rechtKataloge??t.dataset.rechtAdmin;
@@ -284,6 +313,16 @@ document.addEventListener("change",async e=>{
  // Rolle umstellen
  if(t.dataset.rechtAdmin!==undefined){
   const neueRolle=t.checked?"admin":"employee";
+  // v3.163: Den letzten Administrator nicht degradieren. Die Datenbank
+  // weist das ohnehin ab - hier steht der Satz, der sagt WARUM, und der
+  // Haken springt zurueck, ohne dass ein Fehler noetig war.
+  if(neueRolle!=="admin"&&istLetzterAdmin(id)){
+   alert("Das ist der einzige Administrator dieser Firma.\n\n"
+    +"Würde der Haken entfernt, könnte niemand mehr Rechte vergeben – auch nicht, "
+    +"um ihn zurückzugeben. Bitte zuerst jemand anderen zum Administrator machen.");
+   t.checked=true;
+   return;
+  }
   const {error}=await sb.from("profiles").update({role:neueRolle}).eq("id",id);
   if(error){alert("Rolle konnte nicht geändert werden: "+error.message);t.checked=!t.checked;return}
   const p=allProfiles.find(x=>x.id===id);

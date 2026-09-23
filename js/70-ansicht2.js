@@ -146,7 +146,8 @@ async function a2BereichStarten(id,name,tab,oeffner,marke){
  window.scrollTo(0,0);
  return true;
 }
-const A2_MARKEN=["a2-nur-anlegen","a2-nur-liste","a2-nur-lager","a2-nur-stammdaten"];
+const A2_MARKEN=["a2-nur-anlegen","a2-nur-liste","a2-nur-lager","a2-nur-stammdaten",
+ "a2-nur-dateien"];
 function a2BereichMarkenWeg(el){ if(el)A2_MARKEN.forEach(m=>el.classList.remove(m)) }
 // Schliesst den offenen Bereich ueber seinen eigenen Knopf.
 function a2BereichSchliessen(){
@@ -1045,11 +1046,14 @@ document.addEventListener("click",async e=>{
   }
   if(was==="werkstatt"&&$("navWerkstatt")){
    await a2BereichStarten("werkstattModal","Werkstatt","werkstatt",()=>$("navWerkstatt").click());return}
-  // Das vollstaendige Cockpit: Dateien, Fotos und Verlauf stehen nur dort.
+  // Dateien, Fotos und Verlauf stehen im Cockpit - und NUR sie werden
+  // gezeigt (v3.163, gemeldet: "oeffnet sich das alte projekt cockpit,
+  // das ist falsch"). Die Marke blendet den Rest aus; nachgebaut wird
+  // nichts, sonst gaebe es das Hochladen zweimal.
   if(was==="cockpit"&&typeof openProjectCockpit==="function"){
    a2AusNeuerAnsicht=true;
    const auf=await a2BereichStarten("projectCockpitModal","Dateien, Fotos und Verlauf","projekte",
-    ()=>openProjectCockpit(Number(a2Zustand.projektId)));
+    ()=>openProjectCockpit(Number(a2Zustand.projektId)),"a2-nur-dateien");
    if(!auf)a2AusNeuerAnsicht=false;
    return;
   }

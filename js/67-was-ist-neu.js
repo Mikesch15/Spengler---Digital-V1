@@ -187,7 +187,10 @@ const WIN_CHANGELOG={
   "Sind dabei ungespeicherte Eingaben im Formular, fragt die App vor dem Wechsel nach. Bei „Nein“ bleibt alles, wie es war.",
   "„Stammdaten bearbeiten“ zeigt jetzt nur noch die Stammdaten – nicht mehr das ganze Projekt-Cockpit mit allen Bereichen darunter.",
   "Die Knöpfe der Massaufnahme-Auswahl sind deutlich kompakter: Symbol und Text nebeneinander statt untereinander.",
-  "Folge davon: „🏠 Start“ verschwindet auch in den Formularen – die Leiste mit „Heute“ liegt jetzt ja darunter."]
+  "Folge davon: „🏠 Start“ verschwindet auch in den Formularen – die Leiste mit „Heute“ liegt jetzt ja darunter."],
+ "3.163":["<b>Der letzte Administrator einer Firma kann sich das Recht nicht mehr selbst entziehen.</b> Vorher führte das in eine Sackgasse: ohne Administrator kann niemand mehr Rechte vergeben – auch nicht, um ihn zurückzugeben. Der Haken ist jetzt gesperrt, und die Datenbank weist es zusätzlich ab.",
+  "Die Lagerverwaltung steht nicht mehr in den Einstellungen. Sie hat seit 3.157 ihren eigenen Bereich in der Leiste; in den Einstellungen bleiben Materialbestand und Reststücke.",
+  "Projekt → „Mehr …“ → „Dateien, Fotos und Verlauf“ zeigt jetzt genau das – und nicht mehr das ganze Projekt-Cockpit."]
 };
 
 function winVersionVergleich(a,b){

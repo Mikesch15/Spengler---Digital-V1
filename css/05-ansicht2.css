@@ -925,3 +925,47 @@ html.a2-an #amTypeChooserModal .start-nav-btn{
 }
 html.a2-an #measTypeChooserModal .start-nav-icon,
 html.a2-an #amTypeChooserModal .start-nav-icon{font-size:21px;flex:none;width:26px;text-align:center}
+
+/* ==========================================================================
+   DIE LAGERVERWALTUNG GEHOERT NICHT IN DIE EINSTELLUNGEN  (v3.163)
+   --------------------------------------------------------------------------
+   Gemeldet: "Die lagerverwaltung ist in den einstellungen immernoch
+   vorhanden, das will ich nicht."
+
+   Seit v3.157 ist das Lager ein eigener Bereich in der Leiste. Der
+   Abschnitt im Einstellungs-Register "Lager" ist damit derselbe
+   Arbeitsplatz ein zweites Mal - und die Einstellungen sind der falsche
+   Ort dafuer: dort stehen Firmenvorgaben, keine taegliche Buchung.
+
+   Ausgeblendet wird er nur, wenn die Einstellungen als EINSTELLUNGEN
+   offen sind. Traegt der Schirm die Marke a2-nur-lager, ist er der
+   Lager-Bereich - dann ist dieser Abschnitt genau das, was gezeigt
+   werden soll. Deshalb :not(.a2-nur-lager) und nicht einfach display:none.
+
+   In der klassischen Ansicht bleibt der Abschnitt unberuehrt: dort gibt
+   es die Leiste und damit den eigenen Bereich nicht, und die
+   Einstellungen sind der einzige Weg dorthin. */
+html.a2-an #settingsModal:not(.a2-nur-lager) [data-section="lagerverwaltung"]{display:none!important}
+
+/* ==========================================================================
+   "DATEIEN, FOTOS UND VERLAUF" ZEIGT GENAU DAS  (v3.163)
+   --------------------------------------------------------------------------
+   Gemeldet: "Im projekt unter mehr -> weiteres, oeffnet sich das alte
+   projekt cockpit das ist falsch."
+
+   Stimmt - der Eintrag oeffnete das Cockpit ohne Marke, also mit allem.
+   Dieselbe Loesung wie bei a2-nur-anlegen (v3.156) und a2-nur-stammdaten
+   (v3.162): eine Marke laesst genau die drei Karten stehen, um die es
+   geht. Der Schirm bleibt derselbe - Hochladen, Vorschau und Verlauf
+   werden nicht nachgebaut, sie haetten sonst zwei Stellen.
+
+   Anders als bei den Stammdaten faellt der Projektstatus hier weg: er ist
+   ueber "Stammdaten bearbeiten" erreichbar, und auf einer Seite mit
+   Dateien hat er nichts zu suchen. */
+html.a2-an #projectCockpitModal.a2-nur-dateien #cockpitStandBox,
+html.a2-an #projectCockpitModal.a2-nur-dateien #cockpitAlleKlapp,
+html.a2-an #projectCockpitModal.a2-nur-dateien #cockpitToggleStammdaten,
+html.a2-an #projectCockpitModal.a2-nur-dateien #cockpitStammdaten,
+html.a2-an #projectCockpitModal.a2-nur-dateien .projekt-status-zeile,
+html.a2-an #projectCockpitModal.a2-nur-dateien
+  .card.klapp:not(#cockpitFilesCard):not(#cockpitFotosCard):not(#cockpitVerlaufCard){display:none!important}
