@@ -126,3 +126,130 @@ async function zaehlwerkLaden(){
   return data||[];
  }catch(e){ return null }
 }
+
+// ===========================================================================
+// Zaehlwerk, zweiter Teil  (v3.169)
+// ===========================================================================
+// Dieselben vier Regeln wie oben. Zwei weitere Fragen, die der Betrieb sich
+// sonst jedes Mal neu beantworten muss:
+//
+//   "Was brauchen wir ueblicherweise NACH einer Kamineinfassung?"
+//   "Welche Positionen aus der Offerte kommen bei uns nie zum Tragen?"
+// ===========================================================================
+
+// ---- Material je Massaufnahme-Art -----------------------------------------
+// Getrennt von der Gesamtzaehlung, weil es eine ANDERE Frage ist: was der
+// Betrieb ueberhaupt benutzt, und was zu genau dieser Arbeit gehoert, sind
+// zwei verschiedene Dinge. material_nutzung bleibt der Rueckfall, wenn zu
+// einer Art noch nichts bekannt ist.
+let materialNutzungArt=[];
+let zwArtKarte=Object.create(null);   // "art\u0000edv_nr" -> anzahl
+
+function zwArtSchluessel(art,edvNr){
+ return zwSchluessel(art)+"\u0000"+zwSchluessel(edvNr);
+}
+function zwMaterialArtUebernehmen(zeilen){
+ materialNutzungArt=Array.isArray(zeilen)?zeilen:[];
+ zwArtKarte=Object.create(null);
+ materialNutzungArt.forEach(z=>{
+  const art=zwSchluessel(z&&z.art), nr=zwSchluessel(z&&z.edv_nr);
+  if(!art||!nr)return;
+  const n=Number(z&&z.anzahl)||0;
+  if(n<=0)return;
+  const k=zwArtSchluessel(art,nr);
+  zwArtKarte[k]=(zwArtKarte[k]||0)+n;
+ });
+}
+// Wie oft wurde diese Position an DIESER Art Massaufnahme erfasst?
+function zwMaterialAnzahlArt(art,edvNr){
+ if(!art)return 0;
+ return zwArtKarte[zwArtSchluessel(art,edvNr)]||0;
+}
+
+// Ordnen mit der Art als erstem Massstab, der Gesamtzaehlung als zweitem.
+//
+// Warum zweistufig: waere nur die Art massgeblich, wuerde eine Position,
+// die der Betrieb staendig benutzt, hinter eine rutschen, die genau einmal
+// zufaellig an dieser Art vorkam. Und waere nur die Gesamtzahl massgeblich,
+// braeuchte es diese Funktion gar nicht. Die dritte Stufe ist wie ueberall
+// die Katalogreihenfolge - die bleibt durch die stabile Sortierung erhalten.
+function zwNachNutzungArt(liste,nummerVon,art){
+ if(!Array.isArray(liste))return [];
+ if(!art)return zwNachNutzung(liste,nummerVon);
+ const nr=(typeof nummerVon==="function")?nummerVon:(x=>x&&x[0]);
+ return liste.slice().sort((a,b)=>{
+  const d=zwMaterialAnzahlArt(art,nr(b))-zwMaterialAnzahlArt(art,nr(a));
+  if(d!==0)return d;
+  return zwMaterialAnzahl(nr(b))-zwMaterialAnzahl(nr(a));
+ });
+}
+// Der Hinweis dazu. Er nennt die Art mit, sonst waere nicht klar, WORAUF
+// sich "4x benutzt" bezieht - auf den ganzen Betrieb oder auf diese Arbeit.
+function zwMaterialTextArt(art,edvNr){
+ const n=zwMaterialAnzahlArt(art,edvNr);
+ if(n>0)return n+"× bei dieser Art";
+ return zwMaterialText(edvNr);
+}
+
+// ---- Ausmass: welche Positionen werden gebraucht? -------------------------
+// Gezaehlt wird je Positionstext: wie oft er vorkam und wie oft er dabei
+// eine Menge bekam. Daraus wird ein HINWEIS - die Position bleibt sichtbar
+// und bedienbar. Genau hier waere Ausblenden am verlockendsten und am
+// gefaehrlichsten: die Position, die "wir nie brauchen", ist die, die beim
+// fuenften Auftrag fehlt.
+let ausmassPositionNutzung=[];
+let zwAusmassKarte=Object.create(null);
+
+// Ab wann darf die App ueberhaupt etwas sagen?
+//
+// Hier ist - anders als beim Sortieren - eine SCHWELLE noetig, denn dies
+// ist eine Behauptung ueber ein Muster, keine blosse Reihenfolge. Aus einem
+// einzigen Ausmass "wird nie gebraucht" zu folgern, waere geraten.
+// Verlangt werden mindestens drei Vorkommen, und die Position darf in
+// hoechstens einem Drittel davon eine Menge bekommen haben.
+const ZW_AUSMASS_MINDESTENS=3;
+
+function zwAusmassUebernehmen(zeilen){
+ ausmassPositionNutzung=Array.isArray(zeilen)?zeilen:[];
+ zwAusmassKarte=Object.create(null);
+ ausmassPositionNutzung.forEach(z=>{
+  const k=zwSchluessel(z&&z.text);
+  if(!k)return;
+  const vor=Number(z&&z.vorgekommen)||0;
+  const geb=Number(z&&z.gebraucht)||0;
+  if(vor<=0)return;
+  const alt=zwAusmassKarte[k];
+  zwAusmassKarte[k]={vorgekommen:(alt?alt.vorgekommen:0)+vor,
+                     gebraucht:(alt?alt.gebraucht:0)+geb};
+ });
+}
+function zwAusmassZahlen(text){
+ return zwAusmassKarte[zwSchluessel(text)]||null;
+}
+// Leerer Text, solange nichts Belastbares dasteht. Es wird lieber nichts
+// gesagt als etwas Ungedecktes.
+function zwAusmassHinweis(text){
+ const z=zwAusmassZahlen(text);
+ if(!z||z.vorgekommen<ZW_AUSMASS_MINDESTENS)return "";
+ if(z.gebraucht*3>z.vorgekommen)return "";
+ return "in "+(z.vorgekommen-z.gebraucht)+" von "+z.vorgekommen
+   +" Ausmassen nicht gebraucht";
+}
+
+// ---- Laden ----------------------------------------------------------------
+// Wie zaehlwerkLaden(): faengt seine Fehler selbst ab und liefert dann null.
+async function zaehlwerkArtLaden(){
+ try{
+  const {data,error}=await sb.from("material_nutzung_art").select("art,edv_nr,anzahl");
+  if(error)return null;
+  return data||[];
+ }catch(e){ return null }
+}
+async function zaehlwerkAusmassLaden(){
+ try{
+  const {data,error}=await sb.from("ausmass_position_nutzung")
+    .select("text,vorgekommen,gebraucht");
+  if(error)return null;
+  return data||[];
+ }catch(e){ return null }
+}

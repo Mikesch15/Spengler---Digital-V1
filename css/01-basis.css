@@ -1441,3 +1441,8 @@ html.dark .rmat-unsicher{color:#e0a35c}
    Die Regel steht hier und nicht in css/05-ansicht2.css, weil die
    Materialsuche in beiden Ansichten dieselbe ist. */
 .zw-zahl{color:var(--blue-dark);font-weight:700;white-space:nowrap}
+/* v3.169: Der Hinweis an einer Ausmass-Position, die frueher fast nie
+   gebraucht wurde. Gedeckt, nicht alarmierend - er soll auffallen, wenn man
+   die Zeile liest, und nicht schon von weitem wie ein Fehler aussehen. Die
+   Zeile selbst bleibt unveraendert sichtbar und bedienbar. */
+.zw-selten{color:var(--muted);font-style:italic;margin-top:2px}

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.168.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.169.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1072,7 +1072,17 @@ auf.</p>
 <p>Im Titel steht, wie viele Positionen des Blocks schon <b>fertig</b> sind
 (z. B. „3/8 fertig“). So sieht man auch zugeklappt, wo noch Arbeit liegt.
 Positionen <b>ohne</b> Titel – von Hand hinzugefügte oder ältere – stehen
-weiterhin einfach in der Liste.</p>`},
+weiterhin einfach in der Liste.</p>
+<p><b>Das Zählwerk</b> (ab 3.169): An einer Position, die in früheren
+Ausmassen fast nie eine Menge bekommen hat, steht ein Hinweis – etwa
+„⚠️ in 7 von 8 Ausmassen nicht gebraucht“.</p>
+<div class="hin">Das ist ein <b>Hinweis, keine Sperre</b>: Die Zeile bleibt
+sichtbar, an ihrem Platz und ganz normal bedienbar. Ausblenden wäre hier
+besonders verlockend und besonders falsch – die Position, die „wir nie
+brauchen“, ist genau die, die beim fünften Auftrag fehlt.<br><br>
+Die App sagt erst etwas, wenn dieselbe Position <b>mindestens dreimal</b>
+vorgekommen ist. Aus einem einzigen Ausmass etwas zu folgern, wäre geraten,
+und geraten wird hier nicht.</div>`},
 
 "am-ki":{titel:"Positionen aus einem Foto",text:`
 <p>Ein Foto einer Offerte oder Liste wird ausgewertet und als Positionen
@@ -1349,6 +1359,11 @@ auf dem Startbildschirm.</p>
 <p>Gilt <b>firmenweit</b> – eine Änderung sehen alle Mitarbeiter.</p>`},
 
 "meas-rapportmaterial":{titel:"Material für den Regierapport",text:`
+<div class="hin"><b>Das Zählwerk</b> (ab 3.169): Weil diese Liste zu
+<em>einer</em> Massaufnahme gehört, ordnet die Suche hier zuerst nach dem,
+was bei <b>dieser Art</b> Massaufnahme schon erfasst wurde – „7× bei dieser
+Art“. Ist zur Art noch nichts bekannt, zählt wie überall sonst die
+Gesamtzahl des Betriebs. Ausgeblendet wird auch hier nichts.</div>
 <p>Hier wird festgehalten, welches <b>Material auf dieser Baustelle
 verbraucht</b> wird – Schrauben, Dichtmasse, Halter und alles andere, was
 nicht aus der Berechnung der Massaufnahme entsteht.</p>

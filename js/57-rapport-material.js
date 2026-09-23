@@ -85,8 +85,13 @@ if($("measRapportMaterialBody")){
    // (CLAUDE.md 66.1).
    const sug=$("rmatSug"+i);
    if(sug&&typeof searchMaterials==="function"){
-    sug.innerHTML=searchMaterials(e.target.value).map(x=>
-     `<div class="item" data-rmat-pick="${i}" data-no="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])}${typeof materialNutzungHinweis==="function"?materialNutzungHinweis(x[0]):""}</span></div>`).join("");
+    // v3.169: Diese Liste gehoert zu EINER Massaufnahme - deshalb zaehlt
+    // hier zuerst, was bei dieser Art schon erfasst wurde. Die Art kommt
+    // aus dem bestehenden Feld des Formulars; gibt es sie nicht, ordnet
+    // searchMaterials wie ueberall sonst nach der Gesamtzaehlung.
+    const art=($("measType")&&$("measType").value)||"";
+    sug.innerHTML=searchMaterials(e.target.value,art).map(x=>
+     `<div class="item" data-rmat-pick="${i}" data-no="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])}${typeof materialNutzungHinweis==="function"?materialNutzungHinweis(x[0],art):""}</span></div>`).join("");
     if(sug.innerHTML&&typeof positionSuggest==="function")positionSuggest(e.target,sug);
    }
    return;

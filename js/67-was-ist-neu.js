@@ -205,7 +205,10 @@ const WIN_CHANGELOG={
   "Gibt es den Eintrag nicht mehr, geht das Projekt trotzdem auf – einfach ohne Hervorhebung. Es wird nichts erfunden und keine Meldung über etwas gezeigt, das man nicht zu verantworten hat."],
  "3.168":["<b>Das Zählwerk: die App lernt aus der eigenen Firmengeschichte.</b> Den Anfang macht die EDV-Nr.-Suche im Regierapport – die Vorschläge sind jetzt nach der eigenen Benutzung geordnet, mit „5× benutzt“ daneben.",
   "Es wird nichts ausgeblendet: dieselben Treffer, dieselbe Obergrenze von fünfzehn, nur eine bessere Reihenfolge. Und es wird keine Zahl gesetzt – Mengen und Preise bleiben unberührt.",
-  "Gezählt wird über Rapporte und das Material an den Massaufnahmen, immer nur innerhalb der eigenen Firma. Am Anfang ist das Zählwerk fast still: es fängt an zu helfen, sobald es etwas weiß, und behauptet vorher nichts."]
+  "Gezählt wird über Rapporte und das Material an den Massaufnahmen, immer nur innerhalb der eigenen Firma. Am Anfang ist das Zählwerk fast still: es fängt an zu helfen, sobald es etwas weiß, und behauptet vorher nichts."],
+ "3.169":["<b>Das Zählwerk kennt jetzt auch die Massaufnahme-Art.</b> Beim Material an einer Massaufnahme steht vorne, was bei <b>dieser Art</b> schon erfasst wurde – „7× bei dieser Art“. Ist dazu noch nichts bekannt, zählt wie bisher die Gesamtzahl des Betriebs.",
+  "<b>Im Ausmass</b> trägt eine Position, die in früheren Ausmassen fast nie eine Menge bekommen hat, einen Hinweis: „⚠️ in 7 von 8 Ausmassen nicht gebraucht“.",
+  "Das ist ein Hinweis, keine Sperre – die Zeile bleibt sichtbar und bedienbar. Und die App sagt erst etwas, wenn dieselbe Position mindestens dreimal vorgekommen ist; aus einem einzigen Ausmass etwas zu folgern wäre geraten."]
 };
 
 function winVersionVergleich(a,b){

@@ -27,10 +27,22 @@ let amSektionOffen=new Set();
 function amSektionenZuruecksetzen(){
  amSektionOffen=new Set();
 }
+// v3.169 Zaehlwerk: Positionen, die in frueheren Ausmassen fast nie eine
+// Menge bekommen haben, tragen einen Hinweis. Es ist ausdruecklich NUR ein
+// Hinweis - die Zeile bleibt sichtbar, bedienbar und an ihrem Platz. Gerade
+// hier waere Ausblenden verlockend und falsch: die Position, die "wir nie
+// brauchen", ist die, die beim fuenften Auftrag fehlt.
+//
+// Die Schwelle steckt in zwAusmassHinweis (js/71): unter drei Vorkommen
+// sagt die App gar nichts, weil das geraten waere.
+function amPositionHinweis(p){
+ const t=(typeof zwAusmassHinweis==="function")?zwAusmassHinweis(p&&p.description):"";
+ return t?`<div class="small zw-selten">⚠️ ${esc(t)}</div>`:"";
+}
 function amPositionZeileHtml(p,i,versteckt,sektionTitel){
  return `<tr${p.fertig?' class="am-pos-fertig"':""}${versteckt?' style="display:none"':""}${sektionTitel?` data-am-sek-row="${esc(sektionTitel)}"`:""}>
 <td><input data-am-pos="${i}" value="${esc(p.pos||"")}"></td>
-<td><input data-am-desc="${i}" value="${esc(p.description||"")}">${(p.massQuelle&&p.massQuelle.length)?`<div class="small" style="color:var(--muted)">📐 ${esc(p.massQuelle.map(q=>q.name).join(" + "))}</div>`:""}</td>
+<td><input data-am-desc="${i}" value="${esc(p.description||"")}">${(p.massQuelle&&p.massQuelle.length)?`<div class="small" style="color:var(--muted)">📐 ${esc(p.massQuelle.map(q=>q.name).join(" + "))}</div>`:""}${amPositionHinweis(p)}</td>
 <td><input data-am-qty="${i}" type="number" step=".01" value="${p.quantity||0}"></td>
 <td><input data-am-unit="${i}" value="${esc(p.unit||"")}"></td>
 <td style="text-align:center"><input type="checkbox" data-am-fertig="${i}" ${p.fertig?"checked":""} title="Position fertig"></td>

@@ -103,18 +103,27 @@ function matBekannt(m){return !!m&&(istFreiePosition(m.no)||!!materialFor(m.no))
 // aendert sich gar nichts: zwNachNutzung sortiert dann mit lauter Nullen und
 // laesst die Liste, wie sie war. Diese eine Funktion bedient alle drei
 // Suchfelder (Rapport, Blechverbrauch, Material an der Massaufnahme).
-function searchMaterials(q){
+// art (v3.169, freiwillig): die Massaufnahme-Art, in deren Zusammenhang
+// gesucht wird. Dann zaehlt zuerst, was bei DIESER Art erfasst wurde, und
+// erst danach die Gesamtzaehlung. Ohne Angabe bleibt alles wie in v3.168 -
+// die beiden anderen Suchfelder (Rapport, Blechverbrauch) gehoeren zu
+// keiner bestimmten Art und geben deshalb nichts mit.
+function searchMaterials(q,art){
  q=(q||"").trim().toLowerCase();
  const treffer=(!q?settings.materials:settings.materials.filter(x=>String(x[0]).toLowerCase().startsWith(q)||String(x[1]).toLowerCase().includes(q)));
- const geordnet=(typeof zwNachNutzung==="function")?zwNachNutzung(treffer,x=>x&&x[0]):treffer;
+ const geordnet=(typeof zwNachNutzungArt==="function")
+   ?zwNachNutzungArt(treffer,x=>x&&x[0],art)
+   :((typeof zwNachNutzung==="function")?zwNachNutzung(treffer,x=>x&&x[0]):treffer);
  return geordnet.slice(0,15)
 }
 
 // Der Hinweis "3x benutzt" am Vorschlag - als fertiges Textstueck, damit ihn
 // die drei Suchfelder nicht je selbst zusammensetzen. Leer, solange es
 // nichts zu sagen gibt.
-function materialNutzungHinweis(no){
- const t=(typeof zwMaterialText==="function")?zwMaterialText(no):"";
+function materialNutzungHinweis(no,art){
+ const t=art&&typeof zwMaterialTextArt==="function"
+   ?zwMaterialTextArt(art,no)
+   :((typeof zwMaterialText==="function")?zwMaterialText(no):"");
  return t?` · <span class="zw-zahl">${esc(t)}</span>`:"";
 }
 

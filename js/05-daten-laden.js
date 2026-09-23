@@ -1,7 +1,7 @@
 "use strict";
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes,verwendetRes,zaehlwerkRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes,verwendetRes,zaehlwerkRes,zwArtRes,zwAmRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
@@ -36,6 +36,12 @@ async function loadAllData(){
   // Deshalb steht es ABSICHTLICH nicht in der Liste unten, die ueber
   // "Laden fehlgeschlagen" entscheidet.
   zaehlwerkLaden(),
+  // v3.169: zweiter Teil des Zaehlwerks - Material je Massaufnahme-Art und
+  // die Ausmass-Positionen. Dieselbe Behandlung wie oben: faengt Fehler
+  // selbst ab, steht nicht in der Liste, die ueber "Laden fehlgeschlagen"
+  // entscheidet, und wandert mit in den Offline-Zwischenspeicher.
+  zaehlwerkArtLaden(),
+  zaehlwerkAusmassLaden(),
  ]);
  // Offline (v2.70): schlaegt das Laden fehl, wird NICHT stillschweigend
  // eine leere App gezeigt - dann kaeme jede Liste als "nichts vorhanden"
@@ -48,7 +54,9 @@ async function loadAllData(){
   restVerwendet:verwendetRes?verwendetRes.data:[],
   // Wandert mit in den Offline-Zwischenspeicher: ohne Verbindung soll die
   // Materialsuche genauso sortieren wie mit.
-  zaehlwerk:zaehlwerkRes||[]};
+  zaehlwerk:zaehlwerkRes||[],
+  zaehlwerkArt:zwArtRes||[],
+  zaehlwerkAusmass:zwAmRes||[]};
  const fehlgeschlagen=[ratesRes,materialsRes,profilesRes,projectsRes,bzRes,rinneRes,measMaterialsRes]
    .some(r=>r&&r.error);
  const firmaId=currentProfile?currentProfile.company_id:null;
@@ -80,6 +88,8 @@ async function loadAllData(){
  // v3.168: erst hier, nach dem Offline-Rueckfall - so gilt auch ohne
  // Verbindung die zuletzt gesicherte Zaehlung statt gar keiner.
  if(typeof zwMaterialUebernehmen==="function")zwMaterialUebernehmen(geladen.zaehlwerk);
+ if(typeof zwMaterialArtUebernehmen==="function")zwMaterialArtUebernehmen(geladen.zaehlwerkArt);
+ if(typeof zwAusmassUebernehmen==="function")zwAusmassUebernehmen(geladen.zaehlwerkAusmass);
  if(geladen.appSettings&&geladen.appSettings.company_name)companyName=geladen.appSettings.company_name;
  if(geladen.appSettings){
   companyAddress=geladen.appSettings.company_address||"";
