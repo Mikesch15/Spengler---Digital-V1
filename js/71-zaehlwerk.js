@@ -253,3 +253,78 @@ async function zaehlwerkAusmassLaden(){
   return data||[];
  }catch(e){ return null }
 }
+
+// ===========================================================================
+// Zaehlwerk, dritter Teil  (v3.170)
+// ===========================================================================
+
+// ---- Arbeitstexte im Regierapport -----------------------------------------
+// Die Beschreibung einer Arbeitsposition ist ein freies Feld; dieselben
+// Saetze werden deshalb jeden Tag neu getippt. Aus den eigenen Rapporten
+// wird eine Vorschlagsliste - ohne dass irgendetwas erfunden wird.
+//
+// WARUM EIN datalist UND KEINE EIGENE VORSCHLAGSLISTE
+// Die Materialsuche hat eine gebaute Liste, weil sie Zusatzangaben zeigt
+// (Bezeichnung, Dimension, Preis, Zahl). Hier gibt es nur den Text selbst.
+// Ein <datalist> filtert der Browser, es liegt richtig, es funktioniert auf
+// dem Handy und es kommt ohne eigene Positionierung aus. Eine nachgebaute
+// Liste waere hier mehr Code fuer weniger Verlaesslichkeit.
+//
+// Es bleibt ein FREIES Feld: die Liste schlaegt vor, sie schreibt nichts
+// fest. Ein neuer Text laesst sich wie bisher einfach tippen.
+let arbeitstextNutzung=[];
+
+// Wie viele Vorschlaege hoechstens? Ein datalist mit hunderten Eintraegen
+// ist auf dem Handy keine Hilfe mehr. Die haeufigsten reichen; wer etwas
+// Selteneres braucht, tippt es wie bisher.
+const ZW_ARBEITSTEXTE_MAX=60;
+
+function zwArbeitstexteUebernehmen(zeilen){
+ const roh=Array.isArray(zeilen)?zeilen:[];
+ arbeitstextNutzung=roh
+  .filter(z=>z&&String(z.text||"").trim())
+  .slice()
+  .sort((a,b)=>(Number(b.anzahl)||0)-(Number(a.anzahl)||0))
+  .slice(0,ZW_ARBEITSTEXTE_MAX);
+ zwArbeitstexteFuellen();
+}
+
+// Die Liste in das <datalist> schreiben. Gibt es das Element nicht (alte
+// index.html, Pruefstand ohne Formular), passiert nichts.
+function zwArbeitstexteFuellen(){
+ const el=(typeof $==="function")?$("arbeitstexteListe"):null;
+ if(!el)return;
+ el.innerHTML=arbeitstextNutzung
+  .map(z=>`<option value="${esc(String(z.text))}"></option>`).join("");
+}
+
+async function zaehlwerkArbeitstexteLaden(){
+ try{
+  const {data,error}=await sb.from("arbeitstext_nutzung").select("text,anzahl,zuletzt");
+  if(error)return null;
+  return data||[];
+ }catch(e){ return null }
+}
+
+// ---- Wer wird diesem Auftraggeber ueblicherweise zugeteilt? ----------------
+// Gerechnet wird auf allProjects - das ist bereits geladen und durch die
+// RLS auf die eigene Firma begrenzt. KEINE eigene Sicht und keine
+// zusaetzliche Abfrage: die Antwort steht schon im Speicher.
+//
+// Gefragt wird nach dem Auftraggeber, nicht nach der Adresse: derselbe
+// Kunde hat oft mehrere Objekte, und wer seine Baustellen betreut, ist
+// meistens dieselbe Person.
+function zwZuteilungVorschlag(p){
+ const kunde=String((p&&p.customer)||"").trim().toLowerCase();
+ if(!kunde||!Array.isArray(allProjects))return [];
+ const zaehler=Object.create(null);
+ allProjects.forEach(x=>{
+  if(!x||String(x.id)===String(p&&p.id))return;          // nicht sich selbst
+  if(String(x.customer||"").trim().toLowerCase()!==kunde)return;
+  ((typeof projektZugeteilt==="function")?projektZugeteilt(x):[])
+   .forEach(id=>{ zaehler[id]=(zaehler[id]||0)+1 });
+ });
+ return Object.keys(zaehler)
+  .sort((a,b)=>zaehler[b]-zaehler[a])
+  .map(id=>({id,anzahl:zaehler[id]}));
+}

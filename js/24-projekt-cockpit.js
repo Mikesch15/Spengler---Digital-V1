@@ -133,7 +133,28 @@ function renderCockpitZuteilung(p){
       <input type="checkbox" data-zuteilung="${esc(m.id)}"${gewaehlt.has(String(m.id))?" checked":""}>
       <span>${esc(profileName(m.id)||"Unbekannter Benutzer")}</span></label>`).join("")
   : '<div class="small">Es sind keine weiteren Mitarbeiterkonten angelegt.</div>';
+ cockpitZuteilungVorschlagSetzen(p,gewaehlt);
  cockpitZuteilungHinweisSetzen(gewaehlt.size,p);
+}
+
+// v3.170 Zaehlwerk: Wer ist bei DIESEM Auftraggeber sonst zugeteilt?
+// Derselbe Kunde hat oft mehrere Objekte, und wer seine Baustellen
+// betreut, ist meistens dieselbe Person. Gerechnet wird auf allProjects -
+// keine zusaetzliche Abfrage, die Antwort steht schon im Speicher.
+//
+// Es ist ein VORSCHLAG: nichts wird angekreuzt, solange niemand darauf
+// tippt. Wer schon angekreuzt ist, wird gar nicht erst vorgeschlagen -
+// sonst stuende dort ein Knopf, der nichts tut.
+function cockpitZuteilungVorschlagSetzen(p,gewaehlt){
+ const el=$("cockpitZuteilungVorschlag");
+ if(!el)return;
+ const roh=(typeof zwZuteilungVorschlag==="function")?zwZuteilungVorschlag(p):[];
+ const offen=roh.filter(v=>!gewaehlt.has(String(v.id))&&profileName(v.id));
+ if(!offen.length){el.hidden=true;el.innerHTML="";return}
+ el.hidden=false;
+ el.innerHTML='<span class="small">Bei diesem Auftraggeber sonst zugeteilt:</span> '
+  +offen.map(v=>`<button type="button" class="gray zw-vorschlag" data-zuteilung-vorschlag="${esc(v.id)}">`
+    +`${esc(profileName(v.id))} <span class="zw-zahl">${v.anzahl}\u00d7</span></button>`).join(" ");
 }
 // Der Satz unter der Liste. Er sagt bei leerer Auswahl, wer das Projekt
 // dann auf seiner Startseite sieht - sonst waere "niemand zugeteilt" eine
@@ -159,6 +180,23 @@ document.addEventListener("change",e=>{
  if(!$("cockpitZuteilung")||!$("cockpitZuteilung").contains(t))return;
  const anzahl=cockpitZuteilungGewaehlt().length;
  cockpitZuteilungHinweisSetzen(anzahl,cockpitProject());
+});
+// v3.170: Ein Vorschlag wird durch Antippen uebernommen - er kreuzt sich
+// NICHT von selbst an. Die Zuteilung bleibt eine Entscheidung; das
+// Zaehlwerk nimmt nur das Suchen ab.
+document.addEventListener("click",e=>{
+ const b=e.target&&e.target.closest?e.target.closest("[data-zuteilung-vorschlag]"):null;
+ if(!b)return;
+ const kasten=$("cockpitZuteilung")
+  &&$("cockpitZuteilung").querySelector(`[data-zuteilung="${b.dataset.zuteilungVorschlag}"]`);
+ if(!kasten)return;
+ kasten.checked=true;
+ // Denselben Weg nehmen wie ein Klick auf den Kasten selbst: der bestehende
+ // change-Beobachter zieht den Satz darunter nach.
+ kasten.dispatchEvent(new Event("change",{bubbles:true}));
+ // Der eben uebernommene Vorschlag verschwindet aus der Zeile - er wuerde
+ // sonst als Knopf stehenbleiben, der nichts mehr tut.
+ cockpitZuteilungVorschlagSetzen(cockpitProject(),new Set(cockpitZuteilungGewaehlt()));
 });
 // Die angekreuzten Ids, in der Reihenfolge der Liste.
 function cockpitZuteilungGewaehlt(){

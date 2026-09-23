@@ -138,7 +138,7 @@ function renderMain(){
  $("workBody").innerHTML=works.length?works.map((w,i)=>`
 <tr>
 <td><input data-w-date="${i}" type="date" value="${esc(w.date||"")}"></td>
-<td><input data-w-desc="${i}" value="${esc(w.desc)}" placeholder="Arbeit"></td>
+<td><input data-w-desc="${i}" value="${esc(w.desc)}" placeholder="Arbeit" list="arbeitstexteListe" autocomplete="off"></td>
 <td><select class="no-print" data-w-emp="${i}">${settings.employees.map(e=>`<option value="${esc(e)}" ${e===w.employee?"selected":""}>${esc(e)}</option>`).join("")}</select><span class="print-only">${esc(initials(w.employee))}</span></td>
 <td><select data-w-rate="${i}">${settings.rates.map(r=>`<option ${r[0]===w.rateName?"selected":""}>${esc(r[0])}</option>`).join("")}</select></td>
 <td><input data-w-hours="${i}" type="number" step=".25" min="0" value="${w.hours}"></td>

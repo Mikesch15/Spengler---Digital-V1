@@ -27,6 +27,10 @@
 //      dies ist eine Behauptung ueber ein Muster, nicht blosse
 //      Reihenfolge - aus einem einzigen Ausmass etwas zu folgern, waere
 //      geraten. Und es wird NICHTS ausgeblendet (H5).
+//   I  v3.170: Arbeitstexte im Rapport als Vorschlagsliste - das Feld
+//      bleibt frei, die Liste schlaegt nur vor.
+//   J  v3.170: Wer bei diesem Auftraggeber sonst zugeteilt ist. Ein
+//      Vorschlag zum Antippen, der sich NICHT selbst ankreuzt.
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-zaehlwerk-v3-168.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
@@ -376,6 +380,124 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(/zaehlwerkArtLaden\(\)/.test(laden2)&&/zaehlwerkAusmassLaden\(\)/.test(laden2)
    &&/zaehlwerkArt:zwArtRes/.test(laden2)&&/zaehlwerkAusmass:zwAmRes/.test(laden2),
    "H10 beide neuen Zaehlungen werden geladen und offline gesichert");
+
+ // ---- I  Arbeitstexte im Rapport (v3.170) --------------------------------
+ const I=await page.evaluate(()=>{
+  zwArbeitstexteUebernehmen([
+   {text:"Kaminanschluss abdichten",anzahl:2,zuletzt:"2026-09-01"},
+   {text:"Rinne ausbessern",        anzahl:9,zuletzt:"2026-09-10"},
+   {text:"   ",                     anzahl:5},   // nur Leerzeichen
+   {text:"Dachfenster einfassen",   anzahl:1},
+   null
+  ]);
+  const el=$("arbeitstexteListe");
+  return {
+   da:!!el,
+   werte:el?[...el.querySelectorAll("option")].map(o=>o.value):[],
+   gehalten:arbeitstextNutzung.map(z=>z.text)
+  };
+ });
+ p(I.da,"I1 die Vorschlagsliste steht in index.html",I);
+ p(I.werte.join("|")==="Rinne ausbessern|Kaminanschluss abdichten|Dachfenster einfassen",
+   "I2 die haeufigsten Texte zuerst, leere Eintraege gar nicht",I);
+
+ // Das Feld selbst: es haengt an der Liste und bleibt FREI.
+ const I3=await page.evaluate(()=>{
+  works=[{date:"",desc:"",employee:"",rateName:"",hours:0}];
+  renderMain();
+  const feld=document.querySelector('[data-w-desc="0"]');
+  if(!feld)return {feld:false};
+  // Ein Text, der NICHT in der Liste steht, muss sich trotzdem eintragen
+  // lassen - sonst waere aus einem Vorschlag eine Vorschrift geworden.
+  feld.value="Etwas ganz Neues";
+  feld.dispatchEvent(new Event("input",{bubbles:true}));
+  return {feld:true, liste:feld.getAttribute("list"),
+          gesperrt:feld.disabled||feld.readOnly,
+          gespeichert:works[0].desc};
+ });
+ p(I3.feld&&I3.liste==="arbeitstexteListe",
+   "I3 das Beschreibungsfeld haengt an der Vorschlagsliste",I3);
+ p(I3.gesperrt===false&&I3.gespeichert==="Etwas ganz Neues",
+   "I4 es bleibt ein FREIES Feld - ein neuer Text laesst sich eintragen",I3);
+
+ const I5=await page.evaluate(()=>{
+  zwArbeitstexteUebernehmen(null);
+  const a=$("arbeitstexteListe").querySelectorAll("option").length;
+  zwArbeitstexteUebernehmen("quatsch");
+  return {a,b:$("arbeitstexteListe").querySelectorAll("option").length};
+ });
+ p(I5.a===0&&I5.b===0,"I5 ohne Zaehlwerk bleibt die Liste leer - das Feld funktioniert weiter",I5);
+
+ const I6=await page.evaluate(()=>{
+  const viele=[]; for(let i=0;i<200;i++)viele.push({text:"Arbeit "+i,anzahl:200-i});
+  zwArbeitstexteUebernehmen(viele);
+  return {anzahl:$("arbeitstexteListe").querySelectorAll("option").length,
+          erster:$("arbeitstexteListe").querySelector("option").value};
+ });
+ p(I6.anzahl===60&&I6.erster==="Arbeit 0",
+   "I6 die Liste ist begrenzt - hunderte Eintraege waeren auf dem Handy keine Hilfe",I6);
+
+ // ---- J  Zuteilungs-Vorschlag (v3.170) -----------------------------------
+ const J=await page.evaluate(()=>{
+  allProfiles=[{id:"u1",first_name:"Mike",last_name:"Ledermann"},
+               {id:"u2",first_name:"Beat",last_name:"Krebs"},
+               {id:"u3",first_name:"Anna",last_name:"Meier"}];
+  allProjects=[
+   {id:1,customer:"Muster Immobilien AG",zugeteilt_an:["u2"],object:"A",name:"A"},
+   {id:2,customer:"muster immobilien ag ",zugeteilt_an:["u2","u3"],object:"B",name:"B"},
+   {id:3,customer:"Anderer Kunde",        zugeteilt_an:["u1"],object:"C",name:"C"},
+   {id:4,customer:"Muster Immobilien AG", zugeteilt_an:[],     object:"D",name:"D"}
+  ];
+  return {
+   // u2 in zwei Projekten dieses Kunden, u3 in einem.
+   fuerNeues: zwZuteilungVorschlag({id:4,customer:"Muster Immobilien AG"}),
+   // Das Projekt selbst zaehlt nicht mit.
+   ohneSichSelbst: zwZuteilungVorschlag({id:1,customer:"Muster Immobilien AG"}),
+   andererKunde: zwZuteilungVorschlag({id:9,customer:"Anderer Kunde"}),
+   unbekannt: zwZuteilungVorschlag({id:9,customer:"Gibt es nicht"}),
+   ohneKunde: zwZuteilungVorschlag({id:9,customer:""}),
+   ohneAlles: zwZuteilungVorschlag(null)
+  };
+ });
+ p(J.fuerNeues.length===2&&J.fuerNeues[0].id==="u2"&&J.fuerNeues[0].anzahl===2
+   &&J.fuerNeues[1].id==="u3",
+   "J1 haeufigste Person zuerst - Schreibweise des Kunden spielt keine Rolle",J);
+ p(J.ohneSichSelbst.length===2&&J.ohneSichSelbst.find(x=>x.id==="u2").anzahl===1,
+   "J2 das Projekt selbst zaehlt nicht mit",J);
+ p(J.andererKunde.length===1&&J.andererKunde[0].id==="u1",
+   "J3 ein anderer Kunde ergibt einen anderen Vorschlag",J);
+ p(J.unbekannt.length===0&&J.ohneKunde.length===0&&J.ohneAlles.length===0,
+   "J4 ohne Kunde oder ohne Wissen wird nichts vorgeschlagen",J);
+
+ // Und in der echten Oberflaeche: der Vorschlag steht da, kreuzt aber
+ // NICHTS von selbst an.
+ const J5=await page.evaluate(()=>{
+  cockpitProjectId=4;
+  renderCockpitStammdaten();
+  const streifen=$("cockpitZuteilungVorschlag");
+  const knoepfe=[...streifen.querySelectorAll("[data-zuteilung-vorschlag]")];
+  const angekreuztVorher=cockpitZuteilungGewaehlt();
+  return {sichtbar:!streifen.hidden, knoepfe:knoepfe.map(k=>k.dataset.zuteilungVorschlag),
+          angekreuztVorher};
+ });
+ p(J5.sichtbar&&J5.knoepfe.join(",")==="u2,u3",
+   "J5 der Vorschlag steht unter der Liste",J5);
+ p(J5.angekreuztVorher.length===0,
+   "J6 und kreuzt NICHTS von selbst an - die Zuteilung bleibt eine Entscheidung",J5);
+
+ const J7=await page.evaluate(async()=>{
+  $("cockpitZuteilungVorschlag").querySelector('[data-zuteilung-vorschlag="u2"]').click();
+  await new Promise(f=>setTimeout(f,150));
+  return {angekreuzt:cockpitZuteilungGewaehlt(),
+          nochOffen:[...$("cockpitZuteilungVorschlag")
+            .querySelectorAll("[data-zuteilung-vorschlag]")].map(k=>k.dataset.zuteilungVorschlag),
+          satz:$("cockpitZuteilungHinweis").textContent};
+ });
+ p(J7.angekreuzt.join(",")==="u2","J7 ein Tipp auf den Vorschlag kreuzt genau diese Person an",J7);
+ p(J7.nochOffen.join(",")==="u3",
+   "J8 der uebernommene Vorschlag verschwindet - er waere sonst ein Knopf ohne Wirkung",J7);
+ p(/dieser Person/.test(J7.satz),
+   "J9 der Satz darunter zieht nach, als haette man den Kasten selbst angeklickt",J7);
 
  p(fehler.length===0,"F1 keine Javascript-Fehler",fehler.slice(0,3));
  await b.close();

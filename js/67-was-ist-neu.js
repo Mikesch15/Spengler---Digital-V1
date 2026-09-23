@@ -208,7 +208,10 @@ const WIN_CHANGELOG={
   "Gezählt wird über Rapporte und das Material an den Massaufnahmen, immer nur innerhalb der eigenen Firma. Am Anfang ist das Zählwerk fast still: es fängt an zu helfen, sobald es etwas weiß, und behauptet vorher nichts."],
  "3.169":["<b>Das Zählwerk kennt jetzt auch die Massaufnahme-Art.</b> Beim Material an einer Massaufnahme steht vorne, was bei <b>dieser Art</b> schon erfasst wurde – „7× bei dieser Art“. Ist dazu noch nichts bekannt, zählt wie bisher die Gesamtzahl des Betriebs.",
   "<b>Im Ausmass</b> trägt eine Position, die in früheren Ausmassen fast nie eine Menge bekommen hat, einen Hinweis: „⚠️ in 7 von 8 Ausmassen nicht gebraucht“.",
-  "Das ist ein Hinweis, keine Sperre – die Zeile bleibt sichtbar und bedienbar. Und die App sagt erst etwas, wenn dieselbe Position mindestens dreimal vorgekommen ist; aus einem einzigen Ausmass etwas zu folgern wäre geraten."]
+  "Das ist ein Hinweis, keine Sperre – die Zeile bleibt sichtbar und bedienbar. Und die App sagt erst etwas, wenn dieselbe Position mindestens dreimal vorgekommen ist; aus einem einzigen Ausmass etwas zu folgern wäre geraten."],
+ "3.170":["<b>Arbeitstexte im Regierapport werden vorgeschlagen.</b> Beim Tippen in das Feld „Arbeit“ erscheinen die Sätze, die der Betrieb schon geschrieben hat – die häufigsten zuerst. Das Feld bleibt frei: ein neuer Text lässt sich wie bisher einfach eintippen.",
+  "<b>Bei der Zuteilung</b> steht unter der Ankreuzliste, wer bei <b>diesem Auftraggeber</b> sonst zugeteilt ist – zum Antippen. Angekreuzt wird nichts von selbst; die Zuteilung bleibt eine Entscheidung.",
+  "Beides rechnet aus dem, was ohnehin da ist. Der Zuteilungs-Vorschlag braucht dafür nicht einmal eine zusätzliche Abfrage."]
 };
 
 function winVersionVergleich(a,b){

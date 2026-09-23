@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.169.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.170.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -526,6 +526,11 @@ und die Suche bleibt jedes Projekt für alle in der Firma erreichbar – wer
 kurz in eine fremde Baustelle schauen muss, kann das. Und über den Umschalter
 <b>„Alle"</b> direkt über der Liste sieht man jederzeit wieder den ganzen
 Betrieb.</div>
+<p><b>Das Zählwerk</b> (ab 3.170): Unter der Ankreuzliste steht, wer bei
+<b>diesem Auftraggeber</b> sonst zugeteilt ist – mit der Zahl dazu und zum
+Antippen. Derselbe Kunde hat oft mehrere Objekte, und wer seine Baustellen
+betreut, ist meistens dieselbe Person. <b>Angekreuzt wird nichts von
+selbst</b>; die Zuteilung bleibt eine Entscheidung.</p>
 <p>Ist <b>niemand</b> zugeteilt, gilt die Person, die das Projekt angelegt
 hat. Deshalb ändert sich für bestehende Projekte zunächst nichts; die
 Trennung greift dort, wo wirklich jemand zugeteilt wird. Sobald mindestens
@@ -1186,7 +1191,14 @@ hier steht, wo genau gearbeitet wurde (z. B. "Dachfläche Nord").</p>`},
 "rapport-arbeit":{titel:"Ausführende Arbeiten",text:`
 <p>Je Zeile Datum, Beschreibung, Mitarbeiter, Funktion und Stunden.</p>
 <p>Der <b>Ansatz</b> kommt aus der Funktion (Einstellungen → Geschützt →
-Funktionen / Stundenansätze). Das Total rechnet die App.</p>`},
+Funktionen / Stundenansätze). Das Total rechnet die App.</p>
+<p><b>Das Zählwerk</b> (ab 3.170): Beim Tippen in die <b>Beschreibung</b>
+schlägt die App die Sätze vor, die der Betrieb schon geschrieben hat – die
+häufigsten zuerst. Dieselbe Arbeit muss so nicht jedes Mal neu getippt
+werden.</p>
+<div class="hin">Das Feld bleibt ein <b>freies Feld</b>: ein neuer Text lässt
+sich wie bisher einfach eintippen. Die Liste schlägt vor, sie schreibt
+nichts fest.</div>`},
 
 "rapport-material":{titel:"Material",text:`
 <p>Die EDV-Nr. schlägt aus dem Materialkatalog vor; Bezeichnung, Dimension,
