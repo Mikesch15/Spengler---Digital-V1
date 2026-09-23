@@ -844,7 +844,7 @@ $("closeSheet").onclick=()=>{$("sheetModal").hidden=true};
 $("addCut").onclick=()=>{cuts.push({l:"",b:"",q:1});renderCuts()};
 $("sheetSearch").addEventListener("input",e=>{
  const box=$("sheetResults");
- box.innerHTML=searchMaterials(e.target.value).map(x=>`<div class="item" data-pick-sheet="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])} · CHF ${money(x[4])}</span></div>`).join("");
+ box.innerHTML=searchMaterials(e.target.value).map(x=>`<div class="item" data-pick-sheet="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])} · CHF ${money(x[4])}${typeof materialNutzungHinweis==="function"?materialNutzungHinweis(x[0]):""}</span></div>`).join("");
  if(box.innerHTML)positionSuggest(e.target,box);
 });
 $("sheetResults").addEventListener("click",e=>{

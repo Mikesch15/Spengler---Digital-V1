@@ -86,7 +86,7 @@ if($("measRapportMaterialBody")){
    const sug=$("rmatSug"+i);
    if(sug&&typeof searchMaterials==="function"){
     sug.innerHTML=searchMaterials(e.target.value).map(x=>
-     `<div class="item" data-rmat-pick="${i}" data-no="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])}</span></div>`).join("");
+     `<div class="item" data-rmat-pick="${i}" data-no="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])}${typeof materialNutzungHinweis==="function"?materialNutzungHinweis(x[0]):""}</span></div>`).join("");
     if(sug.innerHTML&&typeof positionSuggest==="function")positionSuggest(e.target,sug);
    }
    return;

@@ -1,7 +1,7 @@
 "use strict";
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes,verwendetRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes,verwendetRes,zaehlwerkRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
@@ -29,6 +29,13 @@ async function loadAllData(){
   sb.from("reststuecke").select("*").eq("verbraucht",true)
     .not("verbraucht_fuer_measurement_id","is",null)
     .order("updated_at",{ascending:false}).limit(200),
+  // v3.168 Das Zaehlwerk: wie oft die Firma eine Materialposition schon
+  // benutzt hat (Sicht material_nutzung, siehe js/71). Es faengt seine
+  // Fehler selbst ab und liefert dann null - das Zaehlwerk ist eine
+  // Verbesserung der Reihenfolge, keine Voraussetzung fuer irgendetwas.
+  // Deshalb steht es ABSICHTLICH nicht in der Liste unten, die ueber
+  // "Laden fehlgeschlagen" entscheidet.
+  zaehlwerkLaden(),
  ]);
  // Offline (v2.70): schlaegt das Laden fehl, wird NICHT stillschweigend
  // eine leere App gezeigt - dann kaeme jede Liste als "nichts vorhanden"
@@ -38,7 +45,10 @@ async function loadAllData(){
   projects:projectsRes.data,appSettings:appSettingsRes.data,bz:bzRes.data,
   rinne:rinneRes.data,measMaterials:measMaterialsRes.data,rest:restRes?restRes.data:[],
   lager:lagerRes?lagerRes.data:[],
-  restVerwendet:verwendetRes?verwendetRes.data:[]};
+  restVerwendet:verwendetRes?verwendetRes.data:[],
+  // Wandert mit in den Offline-Zwischenspeicher: ohne Verbindung soll die
+  // Materialsuche genauso sortieren wie mit.
+  zaehlwerk:zaehlwerkRes||[]};
  const fehlgeschlagen=[ratesRes,materialsRes,profilesRes,projectsRes,bzRes,rinneRes,measMaterialsRes]
    .some(r=>r&&r.error);
  const firmaId=currentProfile?currentProfile.company_id:null;
@@ -67,6 +77,9 @@ async function loadAllData(){
  employeeIds=profiles.map(p=>p.id);
  allProfiles=profiles;
  allProjects=geladen.projects||[];
+ // v3.168: erst hier, nach dem Offline-Rueckfall - so gilt auch ohne
+ // Verbindung die zuletzt gesicherte Zaehlung statt gar keiner.
+ if(typeof zwMaterialUebernehmen==="function")zwMaterialUebernehmen(geladen.zaehlwerk);
  if(geladen.appSettings&&geladen.appSettings.company_name)companyName=geladen.appSettings.company_name;
  if(geladen.appSettings){
   companyAddress=geladen.appSettings.company_address||"";

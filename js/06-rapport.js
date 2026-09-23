@@ -89,9 +89,33 @@ function matPreis(m){
 function matZeileTotal(m){return matPreis(m)*(Number(m&&m.qty)||0)}
 // Hat die Zeile ueberhaupt einen Bezug (Katalog oder freie Position)?
 function matBekannt(m){return !!m&&(istFreiePosition(m.no)||!!materialFor(m.no))}
+// v3.168: Die Treffer werden nach der EIGENEN Benutzung geordnet, bevor die
+// bestehende Obergrenze von fuenfzehn greift - die Positionen, die dieser
+// Betrieb wirklich verbaut, stehen dann oben statt irgendwo im Katalog.
+//
+// Es wird NICHTS ausgeblendet: dieselbe Trefferbedingung, dieselbe
+// Obergrenze wie vorher, nur eine andere Reihenfolge innerhalb davon. Und
+// die Ordnung ist stabil - bei gleicher Benutzung bleibt die
+// Katalogreihenfolge erhalten, sonst wanderten gleichwertige Positionen bei
+// jedem Anschlag scheinbar zufaellig umher.
+//
+// Ohne Zaehlwerk (nicht geladen, oder die Firma hat noch nichts erfasst)
+// aendert sich gar nichts: zwNachNutzung sortiert dann mit lauter Nullen und
+// laesst die Liste, wie sie war. Diese eine Funktion bedient alle drei
+// Suchfelder (Rapport, Blechverbrauch, Material an der Massaufnahme).
 function searchMaterials(q){
  q=(q||"").trim().toLowerCase();
- return (!q?settings.materials:settings.materials.filter(x=>String(x[0]).toLowerCase().startsWith(q)||String(x[1]).toLowerCase().includes(q))).slice(0,15)
+ const treffer=(!q?settings.materials:settings.materials.filter(x=>String(x[0]).toLowerCase().startsWith(q)||String(x[1]).toLowerCase().includes(q)));
+ const geordnet=(typeof zwNachNutzung==="function")?zwNachNutzung(treffer,x=>x&&x[0]):treffer;
+ return geordnet.slice(0,15)
+}
+
+// Der Hinweis "3x benutzt" am Vorschlag - als fertiges Textstueck, damit ihn
+// die drei Suchfelder nicht je selbst zusammensetzen. Leer, solange es
+// nichts zu sagen gibt.
+function materialNutzungHinweis(no){
+ const t=(typeof zwMaterialText==="function")?zwMaterialText(no):"";
+ return t?` · <span class="zw-zahl">${esc(t)}</span>`:"";
 }
 
 // v3.94: die Mitarbeiter-Auswahl zeigt jetzt den vollen Namen (vorher nur
@@ -316,7 +340,7 @@ $("matBody").addEventListener("input",e=>{
   // (searchMaterials wird auch vom Blechverbrauch benutzt) und wird deshalb
   // nur hier ergaenzt.
   box.innerHTML=freiePositionVorschlag(e.target.value,n)
-   +searchMaterials(e.target.value).map(x=>`<div class="item" data-pick-mat="${n}" data-no="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])} · CHF ${money(x[4])}</span></div>`).join("");
+   +searchMaterials(e.target.value).map(x=>`<div class="item" data-pick-mat="${n}" data-no="${esc(x[0])}"><b>${esc(x[0])} · ${esc(x[1])}</b><span>${esc(x[2])} · ${esc(x[3])} · CHF ${money(x[4])}${materialNutzungHinweis(x[0])}</span></div>`).join("");
   if(box.innerHTML)positionSuggest(e.target,box);
   }else{
    mats[n].qty=Number(e.target.value)||0;

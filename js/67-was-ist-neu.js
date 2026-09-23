@@ -202,7 +202,10 @@ const WIN_CHANGELOG={
   "Ein Suchtreffer auf eine einzelne Massaufnahme, ein Ausmass oder einen Rapport führte vorübergehend noch ins Cockpit – seit 3.167 nicht mehr, siehe unten."],
  "3.167":["<b>Ein Suchtreffer springt jetzt auch auf der Projektseite an die richtige Stelle.</b> Die App schlägt das passende Register auf – Massaufnahme, Ausmass oder Regierapport – und hebt den getroffenen Eintrag kurz hervor.",
   "Damit führt kein Weg aus der Suche mehr ins alte Cockpit.",
-  "Gibt es den Eintrag nicht mehr, geht das Projekt trotzdem auf – einfach ohne Hervorhebung. Es wird nichts erfunden und keine Meldung über etwas gezeigt, das man nicht zu verantworten hat."]
+  "Gibt es den Eintrag nicht mehr, geht das Projekt trotzdem auf – einfach ohne Hervorhebung. Es wird nichts erfunden und keine Meldung über etwas gezeigt, das man nicht zu verantworten hat."],
+ "3.168":["<b>Das Zählwerk: die App lernt aus der eigenen Firmengeschichte.</b> Den Anfang macht die EDV-Nr.-Suche im Regierapport – die Vorschläge sind jetzt nach der eigenen Benutzung geordnet, mit „5× benutzt“ daneben.",
+  "Es wird nichts ausgeblendet: dieselben Treffer, dieselbe Obergrenze von fünfzehn, nur eine bessere Reihenfolge. Und es wird keine Zahl gesetzt – Mengen und Preise bleiben unberührt.",
+  "Gezählt wird über Rapporte und das Material an den Massaufnahmen, immer nur innerhalb der eigenen Firma. Am Anfang ist das Zählwerk fast still: es fängt an zu helfen, sobald es etwas weiß, und behauptet vorher nichts."]
 };
 
 function winVersionVergleich(a,b){

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.167.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.168.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1184,7 +1184,19 @@ Einheit und Preis kommen von dort.</p>
 <p><b>Material, das nicht im Katalog steht:</b> die Nummern <b>999.90</b> bis
 <b>999.99</b> sind freie Positionen. Bezeichnung, Dimension, Einheit und Preis
 werden dann direkt in der Zeile eingetragen. Die App schlägt beim Tippen die
-nächste noch freie Nummer vor.</p>`},
+nächste noch freie Nummer vor.</p>
+<p><b>Das Zählwerk</b> (ab 3.168): Die Vorschläge sind nach der
+<b>eigenen Benutzung</b> geordnet – was dieser Betrieb häufig verbaut, steht
+oben. Daneben steht, worauf sich das stützt: „5× benutzt“. Gezählt wird über
+Regierapporte und über das Material an den Massaufnahmen, immer nur innerhalb
+der eigenen Firma.</p>
+<div class="hin">Es wird <b>nichts ausgeblendet</b>. Dieselben Treffer wie
+vorher, dieselbe Obergrenze von fünfzehn Vorschlägen – nur die Reihenfolge
+ändert sich. Und es wird <b>keine Zahl gesetzt</b>: Mengen und Preise bleiben
+unberührt, das Zählwerk ordnet nur an.<br><br>
+Am Anfang ist es fast still: solange wenig erfasst ist, gibt es wenig zu
+zählen, und wo nichts bekannt ist, steht auch nichts. Es fängt an zu helfen,
+sobald es etwas weiß – und behauptet vorher nichts.</div>`},
 
 "rapport-liste":{titel:"Regierapporte",text:`
 <p>Alle Rapporte der Firma, neueste zuerst. Der CSV-Export enthält Arbeits-
