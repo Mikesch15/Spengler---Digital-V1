@@ -107,6 +107,9 @@ function renderCockpitStammdaten(){
  $("cockpitOrderNo").value=p.order_no||"";
  $("cockpitObject").value=p.object||"";
  $("cockpitCustomer").value=p.customer||"";
+ // v3.160: die freie Notiz zum Projekt. Fehlt das Feld (alte Fassung der
+ // Seite), wird nichts gesetzt - kein Fehler, nur kein Feld.
+ if($("cockpitHinweis"))$("cockpitHinweis").value=p.hinweis||"";
  $("cockpitStammdatenMsg").hidden=true;
 }
 
@@ -1107,7 +1110,11 @@ $("cockpitSaveStammdaten").onclick=async()=>{
  if(!orderNo){zeige("Bitte eine Auftrags-Nr. eingeben.","var(--red)");return}
  if(!object){zeige("Bitte eine Adresse eingeben.","var(--red)");return}
  const {data,error}=await sb.from("projects")
-  .update({name,order_no:orderNo,object,customer:$("cockpitCustomer").value.trim()})
+  // v3.160: hinweis wird mitgeschrieben. Leer bedeutet "kein Hinweis" und
+  // wird als null gespeichert, nicht als Leerstring - sonst muesste jede
+  // Anzeige zwei Arten von "nichts" unterscheiden.
+  .update({name,order_no:orderNo,object,customer:$("cockpitCustomer").value.trim(),
+           hinweis:(($("cockpitHinweis")&&$("cockpitHinweis").value.trim())||null)})
   .eq("id",p.id).select("*");
  if(error){zeige("Fehler: "+error.message,"var(--red)");return}
  // Von RLS blockierte UPDATEs melden keinen Fehler, sie betreffen still

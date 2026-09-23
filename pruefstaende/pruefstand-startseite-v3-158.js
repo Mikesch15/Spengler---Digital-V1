@@ -13,10 +13,18 @@
 //      ohnehin lesen - nichts darueber hinaus.
 //   D  Die Aufgaben als Zeilen, mit dem Schritt-Knopf nur dort, wo es einen
 //      eigenen Schritt gibt. Gegenprobe: eine Freigabe-Aufgabe hat keinen.
-//   E  Anstehende Montage zeigt kein erfundenes Datum. Die Datenbank fuehrt
-//      keinen geplanten Montagetermin - der Prototyp zeigt "morgen", das
-//      waere hier eine Behauptung. Gezeigt wird geruestet_am, eine echte
-//      Spalte.
+//   E  Anstehende Montage zeigt kein erfundenes Datum.
+//      Bis v3.159 fuehrte die Datenbank ueberhaupt keinen geplanten
+//      Montagetermin; diese Pruefung verlangte deshalb, dass NIE ein
+//      solcher Tag erscheint. Seit v3.160 gibt es die Spalte
+//      measurements.montage_am - die Pruefung ist auf den jetzt gueltigen
+//      Vertrag umgestellt, nicht geloescht:
+//        OHNE Termin gilt unveraendert die alte Regel (E3): gezeigt wird
+//        geruestet_am, und kein "morgen" wird geschaetzt.
+//        MIT Termin (E4/E5) muss der eingetragene Tag erscheinen, und zwar
+//        derselbe, den montageTermin() (js/01) ausrechnet.
+//      E3 bleibt damit die Gegenprobe, die das alte Verhalten - ein Datum
+//      erfinden - weiterhin verhindert.
 //   F  Ohne das Werkstatt-Modul verschwinden beide Werkstatt-Rubriken.
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-startseite-v3-158.js
@@ -152,8 +160,34 @@ const koepfe=page=>page.evaluate(()=>
  });
  p(/gerüstet am 19\.9\.2026/.test(m)&&/Beat Krebs/.test(m),
    "E2 sie zeigt geruestet_am und den Monteur - beides echte Spalten",m);
- p(!/morgen|in \d+ Tagen/.test(m),
-   "E3 und KEIN geplantes Datum - die Datenbank fuehrt keines",m);
+ p(!/morgen|übermorgen|in \d+ Tagen/.test(m),
+   "E3 Gegenprobe: OHNE eingetragenen Termin wird keiner geschaetzt",m);
+
+ // v3.160: mit eingetragenem Termin sagt die Zeile den Tag - und zwar
+ // genau den, den montageTermin() (js/01) ausrechnet. Gerechnet wird
+ // relativ zu heute, deshalb wird das Datum hier aus heute abgeleitet
+ // statt fest hingeschrieben: ein fester Tag waere ab morgen falsch.
+ const morgenIso=await page.evaluate(()=>{
+  const d=new Date(); d.setDate(d.getDate()+1);
+  const iso=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  werkZeilen[0].montage_am=iso;
+  a2Zeichnen();
+  return iso;
+ });
+ await page.waitForTimeout(400);
+ const m2=await page.evaluate(()=>{
+  const ab=[...document.querySelectorAll("#a2Inhalt .a2-abschnitt")]
+   .find(a=>/Anstehende Montage/.test(a.textContent));
+  const z=ab&&ab.querySelector(".a2-zeile");
+  return {text:z?z.textContent.replace(/\s+/g," ").trim():"",
+          erwartet:montageTermin(werkZeilen[0].montage_am)};
+ });
+ p(m2.erwartet&&m2.text.indexOf("morgen")>=0&&m2.text.indexOf(m2.erwartet.datum)>=0,
+   "E4 mit eingetragenem Termin steht der Tag da - aus montageTermin() (js/01)",m2);
+ p(m2.text.indexOf("gerüstet am")<0,
+   "E5 und er ersetzt das 'gerüstet am' - nicht beides nebeneinander",m2);
+ await page.evaluate(()=>{werkZeilen[0].montage_am=null;a2Zeichnen()});
+ await page.waitForTimeout(300);
 
  // ---- F  Ohne Werkstatt-Modul ---------------------------------------------
  await page.evaluate(()=>{

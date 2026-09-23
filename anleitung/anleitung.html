@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.159";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.160";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.159<br>
+  Version 3.160<br>
   Stand 22. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -346,6 +346,15 @@ Fortschritt und einem Knopf auf die gemeinsame Arbeitsseite.</p>
 <p>Über <span class="tasten">✏️ Stammdaten bearbeiten</span> lassen sich Projektname,
 Adresse, Auftrags-Nr. und Auftraggeber ändern. Es gibt dafür bewusst nur diese eine
 Stelle.</p>
+<p>Im selben Formular steht seit 3.160 das Feld <strong>Wichtige Hinweise</strong> –
+eine freie Notiz zum Projekt: „Baustellenzufahrt nur bis 16:00 Uhr“, „Schlüssel beim
+Hauswart“, „Anfahrt über den Hinterhof“. Gemeint ist, was für <em>jeden</em> gilt, der
+auf diese Baustelle fährt; was nur eine einzelne Massaufnahme betrifft, gehört in
+deren Notiz.</p>
+<div class="hin">Die Notiz steht auf dem Startbildschirm unter <strong>Wichtige
+Hinweise</strong> und auf der Projektseite als eigener Kasten – sie wird also vor der
+Abfahrt gelesen und nicht erst nach der Ankunft gesucht. Steht nichts drin, erscheint
+auch nichts: es gibt keinen leeren Kasten.</div>
 
 <h2 class="seite">7 · Offerte</h2>
 <div class="warn">Diese Karte ist <strong>nur sichtbar</strong>, wenn ein
@@ -876,6 +885,21 @@ jeder Mitarbeiter entscheidet für sich.</p>
 <tr><td>Abschliessen</td><td>montiert – jetzt fehlt nur noch der Abschluss</td></tr>
 </table>
 
+<h3>Montage geplant am</h3>
+<p>Sobald eine Massaufnahme freigegeben ist, steht im Arbeitsstatus das Feld
+<strong>Montage geplant am</strong>. Dort wird eingetragen, <em>wann</em> montiert
+werden soll. Eintragen darf es, wer auch Rüster und Monteur einteilen darf – der
+Aufnehmer oder ein Administrator.</p>
+<p>Der Termin ist <strong>Planung, kein Arbeitsschritt</strong>: er lässt sich
+jederzeit verschieben oder mit <span class="tasten">Termin entfernen</span> wieder
+löschen, und er lässt eine <strong>Freigabe ausdrücklich nicht verfallen</strong>.
+Nicht zu verwechseln mit <em>Montiert</em> – das ist der Vollzug, also wann wirklich
+montiert wurde.</p>
+<div class="hin">Steht ein Termin, sagt der Startbildschirm unter <strong>Anstehende
+Montage</strong> den Tag im Klartext: „morgen“, „in 2 Tagen“, mit Datum, und die
+Zeilen mit Termin stehen zuoberst. Steht keiner, sagt er weiterhin nur, seit wann die
+Teile bereitliegen – <strong>geschätzt wird kein Datum.</strong></div>
+
 <h3>Wenn ein Schritt versehentlich bestätigt wurde</h3>
 <p>Ein <strong>Administrator</strong> setzt den Arbeitsstatus mit
 <span class="tasten">↩️ Status korrigieren</span> auf einen beliebigen Punkt der Kette
@@ -906,6 +930,7 @@ umrandet, was passiert ist. So baut niemand nach einem Stand, den es nicht mehr 
 <tr><td>Die Art der Massaufnahme wechselt</td><td>Ein <em>zusätzliches</em> Foto oder eine zusätzliche Skizze</td></tr>
 <tr><td>Die Massaufnahme kommt in ein anderes Projekt</td><td>Speichern, ohne wirklich etwas geändert zu haben</td></tr>
 <tr><td>Ein Foto oder eine Skizze verschwindet oder wird ersetzt</td><td>Eine bereits <em>abgeschlossene</em> Massaufnahme</td></tr>
+<tr><td></td><td>Ein eingetragener oder verschobener <em>Montagetermin</em></td></tr>
 </table>
 <div class="hin"><strong>Rüster und Monteur bleiben eingeteilt.</strong> Nach der
 erneuten Freigabe geht es ohne neues Einteilen genau dort weiter, wo es aufgehört hat.

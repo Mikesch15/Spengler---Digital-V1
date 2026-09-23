@@ -174,7 +174,11 @@ const WIN_CHANGELOG={
   "„Werkstatt heute“ rechnet mit denselben Zahlen wie die Werkstatt selbst – nicht mit einer zweiten Rechnung.",
   "Die anstehende Montage zeigt bewusst kein geplantes Datum: einen Montagetermin führt die App nicht. Sie zeigt, seit wann etwas bereitliegt und wer eingeteilt ist."],
  "3.159":["In den Bereichen der neuen Ansicht (Werkstatt, Lager, Projekte, Suche, Cockpit) ist der Knopf „🏠 Start“ verschwunden. Er führte dort an dieselbe Stelle wie „✓ Fertig“ – und trug dabei den falschen Namen. Der Weg nach Hause ist „Heute“ in der Leiste unten.",
-  "In den Formularen (Massaufnahme, Ausmass, Offerte, Regierapport) bleibt „🏠 Start“ stehen: dort liegt die Leiste verdeckt unter dem Formular."]
+  "In den Formularen (Massaufnahme, Ausmass, Offerte, Regierapport) bleibt „🏠 Start“ stehen: dort liegt die Leiste verdeckt unter dem Formular."],
+ "3.160":["Neu: ein Feld <b>Wichtige Hinweise</b> beim Projekt (Stammdaten bearbeiten) – „Baustellenzufahrt nur bis 16:00 Uhr“, „Schlüssel beim Hauswart“. Die Notiz steht auf der Startseite ganz oben und auf der Projektseite.",
+  "Neu: <b>Montage geplant am</b> im Arbeitsstatus der Massaufnahme. Die Startseite sagt unter „Anstehende Montage“ jetzt „morgen“ oder „in 2 Tagen“ statt nur, seit wann die Teile bereitliegen – und die Zeilen mit Termin stehen zuoberst.",
+  "Der Montagetermin ist Planung, kein Arbeitsschritt: er lässt sich jederzeit verschieben und lässt eine Freigabe nicht verfallen.",
+  "Ohne eingetragenen Termin wird weiterhin keiner geschätzt."]
 };
 
 function winVersionVergleich(a,b){

@@ -538,6 +538,57 @@ function projektStatusBadge(wertOderProjekt){
  const s=projektStatusInfo(wertOderProjekt);
  return `<span class="pstatus pstatus-${s.wert}">${s.icon} ${esc(s.label)}</span>`;
 }
+// ---- Geplanter Montagetermin (v3.160) ----------------------------
+// Ein Tag in Worten: "heute", "morgen", "in 3 Tagen".
+//
+// EINE Quelle fuer alle Stellen, die den Termin zeigen - der Arbeitsstatus
+// im Massaufnahme-Formular (js/44), die Werkstatt (js/51) und die
+// Startseite (js/70). Drei eigene Rechnungen waeren drei Gelegenheiten,
+// sich um einen Tag zu vertun.
+//
+// Gerechnet wird in KALENDERTAGEN, nicht in Stunden: "morgen" ist der
+// naechste Kalendertag, egal ob es jetzt 7 Uhr oder 23 Uhr ist. Das Datum
+// kommt als reines Tagesdatum aus der Datenbank (date, keine Uhrzeit) und
+// wird aus seinen drei Zahlen gebaut statt mit new Date(text): letzteres
+// liest "2026-09-24" als UTC-Mitternacht. In der Schweiz faellt das noch
+// auf denselben Tag (wir liegen oestlich von Greenwich) - westlich davon
+// waere es der Vortag. Die Zahlenform ist also nicht heute noetig, aber
+// sie ist die einzige, die unabhaengig von der Zeitzone stimmt, und sie
+// kostet nichts.
+//
+// Ohne Termin kommt null zurueck. Dann sagt die aufrufende Stelle selbst,
+// was sie stattdessen zeigt - es wird kein Datum erfunden.
+function montageTermin(wert,heuteWert){
+ if(!wert)return null;
+ const t=String(wert).slice(0,10);
+ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+ if(!m)return null;
+ const tag=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
+ if(isNaN(tag.getTime()))return null;
+ const jetzt=heuteWert?new Date(heuteWert):new Date();
+ if(isNaN(jetzt.getTime()))return null;
+ const heuteTag=new Date(jetzt.getFullYear(),jetzt.getMonth(),jetzt.getDate());
+ // Math.round, nicht Math.floor: die Zeitumstellung macht einen Tag
+ // einmal im Jahr 23 und einmal 25 Stunden lang.
+ const tage=Math.round((tag.getTime()-heuteTag.getTime())/86400000);
+ let wort;
+ if(tage===0)wort="heute";
+ else if(tage===1)wort="morgen";
+ else if(tage===2)wort="übermorgen";
+ else if(tage>2)wort="in "+tage+" Tagen";
+ else if(tage===-1)wort="gestern";
+ else wort="vor "+(-tage)+" Tagen";
+ return {
+  iso:t, tage, wort,
+  datum:tag.toLocaleDateString("de-CH",{day:"numeric",month:"numeric",year:"numeric"}),
+  wochentag:tag.toLocaleDateString("de-CH",{weekday:"long"}),
+  // Der Termin liegt in der Vergangenheit und die Montage steht noch an -
+  // das ist die einzige Lage, die eine Farbe verdient.
+  ueberfaellig:tage<0,
+  dringend:tage>=0&&tage<=1
+ };
+}
+
 // Ein Vorschlag im Projekt-Auswahlfeld (v2.48). Genau eine Stelle fuer
 // alle drei Auswahlfelder (Regierapport, Massaufnahme, Ausmass) statt
 // drei fast gleicher Kopien. Adresse ist die Hauptinformation, der

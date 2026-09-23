@@ -257,6 +257,14 @@ html.dark .a2-karte-hinweis{background:var(--blue-light)}
 .a2-hinweis b{display:block;margin-bottom:2px}
 .a2-h-warnung{background:var(--red-light);border-color:#f0c9c5;color:var(--red)}
 .a2-h-info{background:var(--blue-light);border-color:#c7e0ef;color:var(--blue)}
+/* v3.160: die freie Notiz zum Projekt. Sie ist keine Warnung (rot) und
+   keine Systemmeldung (blau), sondern ein Merkzettel - deshalb die
+   vorhandene Orange-Familie der neuen Ansicht, keine neue Farbe.
+   white-space:pre-line: eine mehrzeilig eingetippte Notiz bleibt
+   mehrzeilig, sonst liefe "Zufahrt / Schluessel / Telefon" in einer
+   Wurst zusammen. */
+.a2-h-merk{background:var(--a2-orange-hell);border-color:var(--a2-orange);
+ color:var(--a2-orange);white-space:pre-line}
 html.dark .a2-h-warnung{border-color:#5a2a25}
 html.dark .a2-h-info{border-color:#27475c}
 

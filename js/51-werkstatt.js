@@ -101,8 +101,12 @@ async function werkLaden(){
   // 0,7er und 0,8er Titanzink in einen Topf werfen und behaupten, beides
   // komme von derselben Rolle. Eine Zahlenspalte mehr, kein spuerbarer
   // Unterschied fuer die Abfrage.
+  // v3.160: montage_am MUSS mit. Die Startseite zeigt unter "Anstehende
+  // Montage" den geplanten Tag ("morgen", "in 2 Tagen") - sie rechnet
+  // dafuer nicht selbst nach, sondern liest genau diese Zeilen. Ein
+  // Tagesdatum mehr, kein spuerbarer Unterschied fuer die Abfrage.
   .select("id,project_id,type,title,date,workflow_status,freigabe_verfallen,"
-        +"ruester_id,monteur_id,geruestet_am,montiert_am,updated_at,created_by,"
+        +"ruester_id,monteur_id,geruestet_am,montiert_am,montage_am,updated_at,created_by,"
         +"staerke_mm,data")
   .in("workflow_status",WERK_STATUS)
   .order("updated_at",{ascending:false})

@@ -53,7 +53,13 @@ function mwStandAusZeile(m){
   geruestet_von:m.geruestet_von||null, geruestet_am:m.geruestet_am||null,
   monteur_id:m.monteur_id||null, monteur_zugewiesen_von:m.monteur_zugewiesen_von||null,
   monteur_zugewiesen_am:m.monteur_zugewiesen_am||null,
-  montiert_von:m.montiert_von||null, montiert_am:m.montiert_am||null
+  montiert_von:m.montiert_von||null, montiert_am:m.montiert_am||null,
+  // v3.160: der GEPLANTE Montagetag. Nicht zu verwechseln mit montiert_am -
+  // das ist der Vollzug. montage_am ist Planung und deshalb bewusst KEINE
+  // Workflow-Spalte: der Trigger schuetze_measurement_workflow prueft eine
+  // feste Liste, in der sie nicht steht. Sie laesst darum weder eine
+  // Freigabe verfallen noch den Status springen.
+  montage_am:m.montage_am||null
  };
 }
 // Antwort einer Uebergangsfunktion uebernehmen: sie liefert genau die
@@ -63,6 +69,9 @@ function mwStandAusAntwort(a){
  ["workflow_status","freigabe_verfallen","freigegeben_von","freigegeben_am","ruester_id","ruester_zugewiesen_von",
   "ruester_zugewiesen_am","geruestet_von","geruestet_am","monteur_id","monteur_zugewiesen_von",
   "monteur_zugewiesen_am","montiert_von","montiert_am"].forEach(k=>{mwStand[k]=a[k]??null});
+ // montage_am steht bewusst NICHT in dieser Liste: die Uebergangsfunktionen
+ // kennen die Spalte nicht und liefern sie nicht zurueck. Stuende sie hier,
+ // wuerde ein geplanter Termin bei jedem Arbeitsschritt auf null fallen.
  mwStand.freigabe_verfallen=!!mwStand.freigabe_verfallen;
 }
 
@@ -282,6 +291,82 @@ function mwBadgeFuerListe(m){
  return `<span class="mw-next mw-${n.farbe}"${grund}>${zeichen} ${esc(mwSchrittKurzText(m))}</span>`;
 }
 
+// ---- Geplanter Montagetermin (v3.160) -------------------------------------
+// Bis v3.159 wusste die App nur, seit WANN etwas geruestet bereitliegt. Die
+// Startseite sagte deshalb bei "Anstehende Montage" offen, dass sie kein
+// geplantes Datum kennt. Jetzt laesst sich eines eintragen.
+//
+// Der Termin ist Planung, kein Arbeitsschritt: er wird gesetzt und
+// verschoben, ohne dass jemand etwas abhakt. Deshalb steht er NICHT in der
+// Stationenleiste und nicht unter den Aktionen, sondern als eigene Zeile -
+// und deshalb schreibt er sich auch als gewoehnliches Feld (siehe unten),
+// nicht ueber eine Uebergangsfunktion.
+const MW_TERMIN_STATUS=["freigegeben","zu_ruesten","geruestet","zu_montieren"];
+
+function mwMontageTerminHtml(w){
+ if(!w)return "";
+ const geplant=w.montage_am||"";
+ // Planen darf, wer auch zuweisen darf - wer die Leute einteilt, teilt auch
+ // den Tag ein. Eine zweite Rechteregel waere eine zweite Wahrheit.
+ const planbar=MW_TERMIN_STATUS.indexOf(w.workflow_status)>=0&&mwDarfZuweisen(w);
+ const t=(typeof montageTermin==="function")?montageTermin(geplant):null;
+ // Nach der Montage ist der Termin Geschichte: er wird nur noch gezeigt,
+ // wenn einer gesetzt war, und nicht mehr geaendert.
+ if(!planbar){
+  if(!t)return "";
+  return `<div class="mw-liste"><div class="mw-zeile">`
+   +`<span class="mw-label">Montage geplant war</span>`
+   +`<span>${esc(t.datum)}</span></div></div>`;
+ }
+ const satz=t
+  ? `${t.wochentag}, ${t.datum} · ${t.wort}`
+  : "Noch kein Termin. Die Startseite zeigt dann nur, seit wann die Teile bereitliegen.";
+ return `<div class="mw-termin">`
+  +`<label for="mwMontageAm">Montage geplant am</label>`
+  +`<div class="mw-termin-reihe">`
+  +`<input type="date" id="mwMontageAm" value="${esc(geplant)}">`
+  +`<button type="button" class="gray" id="mwMontageSpeichern">✓ Termin merken</button>`
+  +(geplant?`<button type="button" class="gray" id="mwMontageEntfernen">Termin entfernen</button>`:"")
+  +`</div>`
+  +`<div class="small mw-termin-satz${t&&t.ueberfaellig?" ist-rot":""}">${esc(satz)}</div>`
+  +`</div>`;
+}
+
+// Der Termin wird als gewoehnliches Feld geschrieben, nicht ueber eine
+// Uebergangsfunktion: er ist keine der Workflow-Spalten, die der Trigger
+// schuetze_measurement_workflow schuetzt, und er steht auch nicht in der
+// Liste der Felder, deren Aenderung eine Freigabe verfallen laesst. Beides
+// ist so gewollt - ein verschobener Termin aendert die fachliche Grundlage
+// nicht, nach der geruestet und montiert wird.
+async function mwMontageTerminSetzen(wert){
+ if(!mwStand||!mwStand.id)return;
+ if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Der Montagetermin"))return;
+ const {data,error}=await sb.from("measurements")
+  .update({montage_am:wert||null}).eq("id",mwStand.id).select("id,montage_am");
+ if(error){
+  console.error("montage_am",error);
+  mwFehlerZeigen(error.message||"Der Termin konnte nicht gespeichert werden.");
+  return;
+ }
+ // Von RLS blockierte UPDATEs melden keinen Fehler, sie betreffen still
+ // 0 Zeilen (CLAUDE.md 24.1) - deshalb das Ergebnis pruefen.
+ if(!data||!data.length){
+  mwFehlerZeigen("Der Termin konnte nicht gespeichert werden. Fehlt die nötige Berechtigung?");
+  return;
+ }
+ mwStand.montage_am=data[0].montage_am||null;
+ // Die geladenen Listen ziehen nach, damit die Startseite den Termin sofort
+ // zeigt, ohne neu zu laden.
+ [typeof allMeasurements!=="undefined"?allMeasurements:null,
+  typeof werkZeilen!=="undefined"?werkZeilen:null].forEach(liste=>{
+   if(!Array.isArray(liste))return;
+   const z=liste.find(x=>x&&x.id===mwStand.id);
+   if(z)z.montage_am=mwStand.montage_am;
+ });
+ renderMeasWorkflow();
+ mwHinweisZeigen(mwStand.montage_am?"✓ Termin gemerkt.":"Termin entfernt.");
+}
+
 // v3.10: Derselbe Aufruf zeichnet zwei Dinge - den Streifen ganz oben im
 // Formular (immer sichtbar, egal in welchem Register man steht) und die
 // ausfuehrliche Karte am Ende. Beide sagen dasselbe, weil beide aus
@@ -339,6 +424,9 @@ function renderMeasWorkflow(){
   mwZeile("Montiert von",w.montiert_von?mwPerson(w.montiert_von):"",w.montiert_am)
  ].filter(Boolean).join("");
  teile.push(`<div class="mw-liste">${zeilen}</div>`);
+
+ // v3.160: Wann soll montiert werden?
+ teile.push(mwMontageTerminHtml(w));
 
  // Der Knopf fuer den naechsten Schritt steht zuerst und ist gruen - alles
  // andere ist eine Nebenaktion.
@@ -583,6 +671,14 @@ document.addEventListener("click",e=>{
  else if(t.id==="mwAbschliessen")mwAbschliessen();
  else if(t.id==="mwZuweisenOeffnen")mwZuweisenOeffnen();
  else if(t.id==="mwKorrigieren")mwKorrigierenOeffnen();
+ // v3.160: der geplante Montagetermin. Dieselbe Stelle wie alle anderen
+ // Knoepfe der Karte - sie wird bei jedem Zeichnen neu gebaut, deshalb
+ // haengt hier ein Zuhoerer am Dokument statt an den Knoepfen selbst.
+ else if(t.id==="mwMontageSpeichern"){
+  const feld=$("mwMontageAm");
+  mwMontageTerminSetzen(feld?feld.value:"");
+ }
+ else if(t.id==="mwMontageEntfernen")mwMontageTerminSetzen("");
 });
 
 $("mwZuweisenSpeichern").onclick=mwZuweisenSpeichern;

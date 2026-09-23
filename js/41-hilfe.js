@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.159.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.160.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -438,7 +438,16 @@ Skizze –, dann <b>verfällt die Freigabe</b> automatisch und sie muss erneut
 freigegeben werden. So baut niemand nach einem Stand, den es nicht mehr gibt.
 Rüster und Monteur bleiben eingeteilt und sind nach der erneuten Freigabe
 sofort wieder dran. Bezeichnung, Notiz, Datum und ein <i>zusätzliches</i>
-Foto ändern nichts an der Freigabe.</p>`},
+Foto ändern nichts an der Freigabe.</p>
+<p><b>Montage geplant am</b> (ab 3.160): hier lässt sich eintragen, wann
+montiert werden soll. Das ist <i>Planung</i> und kein Arbeitsschritt – der
+Termin lässt sich jederzeit verschieben oder wieder entfernen, und er
+<b>lässt eine Freigabe nicht verfallen</b>. Eintragen darf ihn, wer auch
+Rüster und Monteur einteilen darf. Steht ein Termin, zeigt die Startseite
+unter „Anstehende Montage" den Tag im Klartext („morgen", „in 2 Tagen");
+steht keiner, sagt sie weiterhin nur, seit wann die Teile bereitliegen –
+geschätzt wird kein Datum. Nicht zu verwechseln mit <b>Montiert</b>: das
+ist der Vollzug, also wann tatsächlich montiert wurde.</p>`},
 
 "winkel-meter":{titel:"Winkel im Meter (i.M.)",text:`
 <p>Neben jedem Winkelfeld steht ein kleiner Knopf <b>i.M.</b> Er rechnet

@@ -368,10 +368,32 @@ function a2WerkZahlen(){
 // "morgen" zu erfinden, steht hier, seit wann es bereitliegt und wer
 // eingeteilt ist. Beides sind echte Spalten (geruestet_am, monteur_id).
 function a2MontageListe(){
- return a2Werk().filter(z=>z.workflow_status==="zu_montieren")
-  .sort((a,b)=>String(a.geruestet_am||"").localeCompare(String(b.geruestet_am||"")))
-  .slice(0,8);
+ // v3.160: Wer einen Termin hat, steht zuerst - und zwar nach Tag sortiert.
+ // Alles ohne Termin folgt danach in der bisherigen Reihenfolge (seit wann
+ // es bereitliegt). Ein fehlender Termin wird NICHT geschaetzt: die Zeile
+ // sagt dann weiterhin nur, seit wann geruestet ist.
+ const mit=[],ohne=[];
+ a2Werk().filter(z=>z.workflow_status==="zu_montieren")
+  .forEach(z=>{(z.montage_am?mit:ohne).push(z)});
+ mit.sort((a,b)=>String(a.montage_am).localeCompare(String(b.montage_am)));
+ ohne.sort((a,b)=>String(a.geruestet_am||"").localeCompare(String(b.geruestet_am||"")));
+ return mit.concat(ohne).slice(0,8);
 }
+// v3.160: Welche Projekte gelten als offen - EINE Stelle. Sie beantwortet
+// dieselbe Frage fuer den Abschnitt "Offene Projekte" und fuer "Wichtige
+// Hinweise"; zwei Filter waeren zwei Meinungen darueber, was offen ist.
+function a2OffeneProjekte(){
+ return a2Projekte()
+  .filter(p=>!p.archived&&p.status!=="abgeschlossen"&&p.status!=="storniert")
+  .slice().sort((x,y)=>String(y.updated_at||"").localeCompare(String(x.updated_at||"")));
+}
+// v3.160: Die freien Notizen der offenen Projekte. Leere und reine
+// Leerzeichen zaehlen als "kein Hinweis" - sonst entstuende ein Abschnitt
+// mit leeren Zeilen.
+function a2HinweisProjekte(){
+ return a2OffeneProjekte().filter(p=>p&&typeof p.hinweis==="string"&&p.hinweis.trim());
+}
+
 function a2PersonName(id){
  if(!id||typeof allProfiles==="undefined"||!Array.isArray(allProfiles))return "";
  const p=allProfiles.find(x=>String(x.id)===String(id));
@@ -443,6 +465,25 @@ function a2SeiteHeute(){
   </div>`;
  });
 
+ // ---- Wichtige Hinweise --------------------------------------------------
+ // v3.160: Die freie Notiz am Projekt (Zufahrt, Schluessel,
+ // Ansprechpartner). Sie steht oben, weil sie vor der Abfahrt gilt und
+ // nicht nach der Ankunft. Gezeigt wird ausschliesslich, was jemand
+ // eingetragen hat - gibt es keine Notiz, gibt es auch keinen Abschnitt.
+ const hinweise=a2HinweisProjekte().slice(0,5);
+ if(hinweise.length){
+  html+=`<div class="a2-abschnitt">
+   <div class="a2-abschnitt-kopf"><h2>Wichtige Hinweise</h2></div>`
+   +hinweise.map(p=>{
+    const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
+    return `<button type="button" class="a2-zeile" data-a2-projekt="${esc(p.id)}">
+     <span class="a2-zeile-nr">📌</span>
+     <span class="a2-zeile-text"><b>${esc(p.name||titel)}</b>
+      <span>${esc(p.hinweis.trim())}</span></span>
+     <span class="a2-zeile-pfeil">›</span></button>`;
+   }).join("")+"</div>";
+ }
+
  // ---- Meine Aufgaben -----------------------------------------------------
  if(!a2AufgabenAktiv()){
   html+=`<div class="a2-abschnitt"><div class="a2-leer">Der Arbeitsablauf ist
@@ -487,12 +528,16 @@ function a2SeiteHeute(){
      const p=a2Projekt(m.project_id);
      const b=(typeof aufgabenBeschriftung==="function")?aufgabenBeschriftung(m):{adresse:m.title||"",zusatz:""};
      const wer=a2PersonName(m.monteur_id);
-     // Kein geplanter Termin in der Datenbank - stattdessen, seit wann es
-     // bereitliegt. Das ist eine echte Spalte (geruestet_am).
-     const unten=[m.geruestet_am?"gerüstet am "+a2Datum(m.geruestet_am):"",
+     // v3.160: Steht ein Termin in der Datenbank, sagt die Zeile ihn -
+     // "morgen", "in 2 Tagen", mit Datum. Gerechnet wird er in
+     // montageTermin() (js/01), derselben Stelle wie im Formular.
+     // Steht KEINER da, wird auch keiner erfunden: dann sagt die Zeile
+     // weiterhin nur, seit wann geruestet bereitliegt (geruestet_am).
+     const t=(typeof montageTermin==="function")?montageTermin(m.montage_am):null;
+     const unten=[t?t.wort+" · "+t.datum:(m.geruestet_am?"gerüstet am "+a2Datum(m.geruestet_am):""),
                   wer||"noch niemand eingeteilt"].filter(Boolean).join(" · ");
      return `<button type="button" class="a2-zeile" data-a2-projekt="${esc(m.project_id)}">
-      <span class="a2-zeile-nr">🏠</span>
+      <span class="a2-zeile-nr${t&&(t.ueberfaellig||t.dringend)?" ist-rot":""}">🏠</span>
       <span class="a2-zeile-text"><b>${esc((p?p.name+" – ":"")+(b.adresse||""))}</b>
        <span>${esc(unten)}</span></span>
       <span class="a2-zeile-pfeil">›</span></button>`;
@@ -501,9 +546,7 @@ function a2SeiteHeute(){
  }
 
  // ---- Offene Projekte ----------------------------------------------------
- const offen=a2Projekte().filter(p=>!p.archived&&p.status!=="abgeschlossen"&&p.status!=="storniert")
-  .slice().sort((x,y)=>String(y.updated_at||"").localeCompare(String(x.updated_at||"")))
-  .slice(0,8);
+ const offen=a2OffeneProjekte().slice(0,8);
  if(offen.length){
   html+=`<div class="a2-abschnitt">
    <div class="a2-abschnitt-kopf"><h2>Offene Projekte</h2>
@@ -1050,7 +1093,11 @@ function a2RegUebersicht(p){
   ["Auftrags-Nr.", p.order_no||"—"],
   ["Auftraggeber", p.customer||"—"],
   ["Adresse",      p.object||"—"],
-  ["Projektname",  p.name||"—"]
+  ["Projektname",  p.name||"—"],
+  // Der Hinweis steht oben als eigener Kasten. Hier erscheint er nur,
+  // WENN es einen gibt - eine Zeile "Hinweise: —" waere eine Aussage
+  // ueber nichts.
+  ...(p.hinweis&&String(p.hinweis).trim()?[["Hinweise",String(p.hinweis).trim()]]:[])
  ];
  // Der Weg zur Zuschnittliste darf nicht laenger werden als in der
  // klassischen Ansicht. Dort sind es drei Klicks (Projekte, Projekt,
@@ -1062,8 +1109,16 @@ function a2RegUebersicht(p){
       <button type="button" class="a2-knopf a2-k-grau a2-k-voll" data-a2-tu="matzu">
        🧱 Material &amp; Zuschnitt</button></div>`
   : "";
+ // v3.160: Die freie Notiz zum Projekt - direkt unter dem Ablauf, damit
+ // sie gelesen wird, bevor jemand losfaehrt. Gibt es keine, steht hier
+ // nichts: ein leerer Kasten "Hinweise" waere schlechter als gar keiner.
+ const hinweis=(p.hinweis&&String(p.hinweis).trim())
+  ? `<div class="a2-hinweis a2-h-merk"><b>📌 Wichtige Hinweise</b>
+     ${esc(String(p.hinweis).trim())}</div>`
+  : "";
  return `<div class="a2-karte">${ablauf}</div>
   ${schritt}
+  ${hinweis}
   ${schnell}
   <div class="a2-abschnitt">
    <div class="a2-abschnitt-kopf"><h2>Stand</h2></div>
