@@ -382,9 +382,23 @@ function a2MontageListe(){
 // v3.160: Welche Projekte gelten als offen - EINE Stelle. Sie beantwortet
 // dieselbe Frage fuer den Abschnitt "Offene Projekte" und fuer "Wichtige
 // Hinweise"; zwei Filter waeren zwei Meinungen darueber, was offen ist.
-function a2OffeneProjekte(){
+//
+// v3.161: dazu die Zuteilung. Die Startseite zeigt in der Vorgabe nur, was
+// dem Angemeldeten zugeteilt ist - das war der Auftrag. Der Umschalter
+// "Alle" daneben ist derselbe Weg, den die Werkstatt seit v3.09 anbietet
+// (werkFilter, js/51): Vorgabe "meine", auf Wunsch der ganze Betrieb. So
+// braucht es KEINE Sonderregel fuer Administratoren - wer den Ueberblick
+// will, tippt einmal auf "Alle".
+//
+// Wer zustaendig ist, entscheidet projektIstMeines() (js/01), nicht diese
+// Datei. Dort steht auch, warum ohne Zuteilung der Ersteller gilt.
+let a2ProjektFilter="meine";   // "meine" | "alle"
+function a2OffeneProjekte(nurMeine){
+ const ich=(typeof currentProfile!=="undefined"&&currentProfile)?currentProfile.id:null;
+ const meine=(nurMeine===undefined)?(a2ProjektFilter==="meine"):!!nurMeine;
  return a2Projekte()
   .filter(p=>!p.archived&&p.status!=="abgeschlossen"&&p.status!=="storniert")
+  .filter(p=>!meine||(typeof projektIstMeines!=="function")||projektIstMeines(p,ich))
   .slice().sort((x,y)=>String(y.updated_at||"").localeCompare(String(x.updated_at||"")));
 }
 // v3.160: Die freien Notizen der offenen Projekte. Leere und reine
@@ -546,12 +560,25 @@ function a2SeiteHeute(){
  }
 
  // ---- Offene Projekte ----------------------------------------------------
+ // v3.161: In der Vorgabe nur die zugeteilten. Der Abschnitt erscheint
+ // jetzt AUCH, wenn nichts uebrig bleibt - sonst verschwaende er wortlos,
+ // und niemand wuesste, dass es am Filter liegt und nicht an fehlenden
+ // Projekten. Die Zahl hinter "Alle" sagt, was der Umschalter braechte.
  const offen=a2OffeneProjekte().slice(0,8);
- if(offen.length){
+ const offenAlle=a2OffeneProjekte(false);
+ if(offen.length||offenAlle.length){
   html+=`<div class="a2-abschnitt">
    <div class="a2-abschnitt-kopf"><h2>Offene Projekte</h2>
     <button type="button" data-a2-tab="projekte">Alle Projekte ›</button></div>
-   <div class="a2-liste-zwei">`
+   <div class="a2-register a2-register-klein">
+    <button type="button" data-a2-pfilter="meine"${a2ProjektFilter==="meine"?' class="ist-auf"':""}>Meine</button>
+    <button type="button" data-a2-pfilter="alle"${a2ProjektFilter==="alle"?' class="ist-auf"':""}>Alle (${offenAlle.length})</button>
+   </div>`;
+  if(!offen.length){
+   html+=`<div class="a2-leer">Dir ist gerade kein offenes Projekt zugeteilt.
+    Mit „Alle“ siehst du, was im Betrieb sonst noch läuft.</div></div>`;
+  }else{
+  html+=`<div class="a2-liste-zwei">`
    +offen.map(p=>{
     const st=(typeof projektStatusInfo==="function")?projektStatusInfo(p):null;
     const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
@@ -571,6 +598,7 @@ function a2SeiteHeute(){
     </button>`;
    }).join("")
    +"</div></div>";
+  }
  }
  return html;
 }
@@ -819,6 +847,16 @@ document.addEventListener("click",async e=>{
   a2Zustand.seite="projekt"; a2Zustand.projektId=id; a2Zustand.reg="uebersicht";
   window.scrollTo(0,0);
   await a2ProjektLaden(id);
+  return;
+ }
+
+ // v3.161: Umschalter "Meine / Alle" ueber den offenen Projekten. Er
+ // aendert nur, was gezeigt wird - geladen ist ohnehin alles, was die RLS
+ // hergibt. Deshalb keine Abfrage, nur neu zeichnen.
+ const pf=e.target.closest("[data-a2-pfilter]");
+ if(pf&&$("a2Screen")&&$("a2Screen").contains(pf)){
+  a2ProjektFilter=(pf.getAttribute("data-a2-pfilter")==="alle")?"alle":"meine";
+  a2Zeichnen();
   return;
  }
 
@@ -1097,7 +1135,12 @@ function a2RegUebersicht(p){
   // Der Hinweis steht oben als eigener Kasten. Hier erscheint er nur,
   // WENN es einen gibt - eine Zeile "Hinweise: —" waere eine Aussage
   // ueber nichts.
-  ...(p.hinweis&&String(p.hinweis).trim()?[["Hinweise",String(p.hinweis).trim()]]:[])
+  ...(p.hinweis&&String(p.hinweis).trim()?[["Hinweise",String(p.hinweis).trim()]]:[]),
+  // v3.161: Wem das Projekt zugeteilt ist. Hier steht die Zeile IMMER -
+  // anders als beim Hinweis ist "niemand zugeteilt" eine echte Auskunft:
+  // sie erklaert, warum das Projekt bei manchen auf der Startseite steht
+  // und bei anderen nicht.
+  ["Zugeteilt an", a2ZuteilungText(p)]
  ];
  // Der Weg zur Zuschnittliste darf nicht laenger werden als in der
  // klassischen Ansicht. Dort sind es drei Klicks (Projekte, Projekt,
@@ -1138,6 +1181,20 @@ function a2RegUebersicht(p){
    </div>
   </div>`;
 }
+// v3.161: Die Zuteilung als Satz. Steht niemand drin, wird gesagt, was
+// dann gilt (der Ersteller) - "niemand" allein liesse offen, bei wem das
+// Projekt dann auf der Startseite erscheint.
+function a2ZuteilungText(p){
+ const ids=(typeof projektZugeteilt==="function")?projektZugeteilt(p):[];
+ if(ids.length){
+  const namen=ids.map(id=>a2PersonName(id)||"Unbekannter Benutzer");
+  return namen.join(", ");
+ }
+ const ersteller=a2PersonName(p&&p.created_by);
+ return ersteller?("niemand – es gilt "+ersteller+" (hat es angelegt)")
+                 :"niemand";
+}
+
 // Der eine naechste Schritt des Projekts. Er wird nicht hier abgeleitet -
 // js/44 entscheidet das fuer die ganze App an einer Stelle.
 function a2NaechsterSchrittHtml(){

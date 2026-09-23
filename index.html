@@ -190,7 +190,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.160</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.161</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -500,6 +500,13 @@
      Hinweise". -->
 <div class="wide"><label>Wichtige Hinweise</label>
 <textarea id="cockpitHinweis" rows="2" placeholder="z. B. Baustellenzufahrt nur bis 16:00 Uhr · Schlüssel beim Hauswart"></textarea></div>
+<!-- v3.161: Wem das Projekt zugeteilt ist. Mehrfachauswahl, weil auf einer
+     Baustelle in der Regel mehr als eine Person arbeitet; genau eine Person
+     ist damit weiterhin moeglich, umgekehrt nicht. Die Liste wird von
+     renderCockpitZuteilung() (js/24) aus allProfiles gefuellt. -->
+<div class="wide"><label>Zugeteilt an</label>
+<div id="cockpitZuteilung" class="zuteilung-liste"></div>
+<div class="small" id="cockpitZuteilungHinweis"></div></div>
 </div>
 <div class="bar"><button id="cockpitSaveStammdaten" class="blue">✓ Stammdaten speichern</button></div>
 <div class="small" id="cockpitStammdatenMsg" hidden></div>
@@ -2126,7 +2133,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.160.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 93 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.161.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 94 Seiten)</a></div>
 </div>
 </div>
 
@@ -2806,7 +2813,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.160.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.161.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

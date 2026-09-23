@@ -773,6 +773,20 @@ html.dark .mw-orange{color:#e0a35c}
  text-transform:uppercase;letter-spacing:.03em}
 .mw-zeile>span:last-child{flex:1 1 140px;min-width:0;word-break:break-word}
 .mw-zeit{color:var(--muted);font-size:11px}
+/* v3.161: Die Ankreuzliste "Zugeteilt an" in den Stammdaten des Projekts.
+   Sie steht bewusst offen da und nicht in einem Auswahlfeld: auf dem Dach
+   mit Handschuhen ist eine Reihe grosser Flaechen leichter zu treffen als
+   eine Liste, die erst aufklappt. Jede Zeile ist mindestens 40px hoch -
+   dieselbe Mindestgroesse fuer einen Finger wie bei den uebrigen Knoepfen.
+   Hier und nicht in css/05-ansicht2.css: das Stammdaten-Formular gibt es
+   in beiden Ansichten. */
+.zuteilung-liste{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px}
+.zuteilung-person{display:flex;align-items:center;gap:7px;min-height:40px;
+ padding:5px 12px 5px 10px;border:1px solid var(--line);border-radius:10px;
+ background:var(--input-bg);cursor:pointer;font-size:14px}
+.zuteilung-person input{width:18px;height:18px;flex:none;margin:0}
+.zuteilung-person:has(input:checked){border-color:var(--blue);background:var(--blue-light)}
+
 /* v3.160: Der geplante Montagetermin. Eine eigene Zeile zwischen dem
    Verlauf und den Aktionsknoepfen: er ist Planung, kein Arbeitsschritt,
    und gehoert deshalb weder in die Stationenleiste noch unter die

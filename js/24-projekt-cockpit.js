@@ -110,7 +110,62 @@ function renderCockpitStammdaten(){
  // v3.160: die freie Notiz zum Projekt. Fehlt das Feld (alte Fassung der
  // Seite), wird nichts gesetzt - kein Fehler, nur kein Feld.
  if($("cockpitHinweis"))$("cockpitHinweis").value=p.hinweis||"";
+ renderCockpitZuteilung(p);
  $("cockpitStammdatenMsg").hidden=true;
+}
+
+// v3.161: Wem ist das Projekt zugeteilt? Eine Ankreuzliste aller
+// Mitarbeiter, nach Namen sortiert - dieselbe Quelle und dieselbe
+// Sortierung wie die Auswahl von Ruester und Monteur (js/44).
+//
+// Angekreuzt wird ausschliesslich das, was in zugeteilt_an steht. Der
+// Ersteller wird NICHT vorangekreuzt, obwohl er ohne Zuteilung gilt: ein
+// Haken, den niemand gesetzt hat, waere eine Behauptung. Der Satz
+// darunter sagt stattdessen, was bei leerer Liste passiert.
+function renderCockpitZuteilung(p){
+ const box=$("cockpitZuteilung");
+ if(!box)return;
+ const gewaehlt=new Set((typeof projektZugeteilt==="function")?projektZugeteilt(p):[]);
+ const liste=(Array.isArray(allProfiles)?allProfiles:[]).slice()
+  .sort((a,b)=>String(profileName(a.id)).localeCompare(String(profileName(b.id)),"de"));
+ box.innerHTML=liste.length
+  ? liste.map(m=>`<label class="zuteilung-person">
+      <input type="checkbox" data-zuteilung="${esc(m.id)}"${gewaehlt.has(String(m.id))?" checked":""}>
+      <span>${esc(profileName(m.id)||"Unbekannter Benutzer")}</span></label>`).join("")
+  : '<div class="small">Es sind keine weiteren Mitarbeiterkonten angelegt.</div>';
+ cockpitZuteilungHinweisSetzen(gewaehlt.size,p);
+}
+// Der Satz unter der Liste. Er sagt bei leerer Auswahl, wer das Projekt
+// dann auf seiner Startseite sieht - sonst waere "niemand zugeteilt" eine
+// Aussage, aus der niemand die Folge ableiten kann.
+function cockpitZuteilungHinweisSetzen(anzahl,p){
+ const el=$("cockpitZuteilungHinweis");
+ if(!el)return;
+ if(anzahl>0){
+  el.textContent="Auf der Startseite erscheint das Projekt unter „Offene Projekte“ bei "
+   +(anzahl===1?"dieser Person":"diesen "+anzahl+" Personen")+".";
+  return;
+ }
+ const ersteller=profileName(p&&p.created_by);
+ el.textContent="Niemand zugeteilt – das Projekt erscheint auf der Startseite bei "
+  +(ersteller?ersteller+" (hat es angelegt)":"der Person, die es angelegt hat")
+  +". Über „Projekte“ und die Suche bleibt es für alle erreichbar.";
+}
+// Der Satz zieht sofort nach, damit man beim Ankreuzen sieht, was es
+// bewirkt - nicht erst nach dem Speichern.
+document.addEventListener("change",e=>{
+ const t=e.target;
+ if(!t||!t.dataset||!t.dataset.zuteilung)return;
+ if(!$("cockpitZuteilung")||!$("cockpitZuteilung").contains(t))return;
+ const anzahl=cockpitZuteilungGewaehlt().length;
+ cockpitZuteilungHinweisSetzen(anzahl,cockpitProject());
+});
+// Die angekreuzten Ids, in der Reihenfolge der Liste.
+function cockpitZuteilungGewaehlt(){
+ const box=$("cockpitZuteilung");
+ if(!box)return [];
+ return [...box.querySelectorAll("[data-zuteilung]")]
+  .filter(x=>x.checked).map(x=>x.dataset.zuteilung);
 }
 
 // ---- Geschäftsstatus (v2.46) ------------------------------------
@@ -1113,8 +1168,13 @@ $("cockpitSaveStammdaten").onclick=async()=>{
   // v3.160: hinweis wird mitgeschrieben. Leer bedeutet "kein Hinweis" und
   // wird als null gespeichert, nicht als Leerstring - sonst muesste jede
   // Anzeige zwei Arten von "nichts" unterscheiden.
+  // v3.161: zugeteilt_an wird mitgeschrieben. Leere Liste heisst
+  // "niemandem zugeteilt" - ein leeres Array, nicht null: die Spalte ist
+  // NOT NULL mit Default [], und zwei Arten von "nichts" will hier
+  // niemand unterscheiden muessen.
   .update({name,order_no:orderNo,object,customer:$("cockpitCustomer").value.trim(),
-           hinweis:(($("cockpitHinweis")&&$("cockpitHinweis").value.trim())||null)})
+           hinweis:(($("cockpitHinweis")&&$("cockpitHinweis").value.trim())||null),
+           zugeteilt_an:cockpitZuteilungGewaehlt()})
   .eq("id",p.id).select("*");
  if(error){zeige("Fehler: "+error.message,"var(--red)");return}
  // Von RLS blockierte UPDATEs melden keinen Fehler, sie betreffen still

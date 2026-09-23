@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.160.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.161.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -504,7 +504,21 @@ nicht aus den Daten ab: ein Projekt mit fünf Massaufnahmen kann geschäftlich
 weiterhin offen sein.</p>
 <p><b>Archiv:</b> aktive und archivierte Projekte sind zwei getrennte
 Ansichten. Es wird nichts automatisch archiviert – ein abgeschlossenes Projekt
-bleibt sichtbar, bis es jemand bewusst archiviert.</p>`},
+bleibt sichtbar, bis es jemand bewusst archiviert.</p>
+<p><b>Zugeteilt an</b> (ab 3.160er-Reihe): im Formular „Stammdaten bearbeiten"
+lässt sich ankreuzen, wer an diesem Projekt arbeitet – auch mehrere. Auf der
+<b>Startseite</b> erscheint das Projekt unter „Offene Projekte" dann nur noch
+bei diesen Personen, zusammen mit seinen „Wichtigen Hinweisen".</p>
+<div class="hin">Das ist eine <b>Anzeige</b>, keine Sperre. Über „Projekte"
+und die Suche bleibt jedes Projekt für alle in der Firma erreichbar – wer
+kurz in eine fremde Baustelle schauen muss, kann das. Und über den Umschalter
+<b>„Alle"</b> direkt über der Liste sieht man jederzeit wieder den ganzen
+Betrieb.</div>
+<p>Ist <b>niemand</b> zugeteilt, gilt die Person, die das Projekt angelegt
+hat. Deshalb ändert sich für bestehende Projekte zunächst nichts; die
+Trennung greift dort, wo wirklich jemand zugeteilt wird. Sobald mindestens
+eine Person angekreuzt ist, zählt nur noch die Zuteilung – wer das Projekt
+angelegt hat, fällt dann heraus, wenn er nicht selbst dabei ist.</p>`},
 
 // ---- Cockpit ------------------------------------------------------------
 "cockpit":{titel:"Das Projekt-Cockpit",text:`

@@ -761,3 +761,19 @@ html.a2-an #globalSearchModal #startFromGlobalSearch,
 html.a2-an #adminMeasModal #startFromAdminMeas,
 html.a2-an #werkstattModal #startFromWerkstatt,
 html.a2-an #settingsModal #startFromSettings{display:none!important}
+
+/* ==========================================================================
+   ZUTEILUNG EINES PROJEKTS  (v3.161)
+   ========================================================================== */
+
+/* Die Ankreuzliste selbst steht in css/01-basis.css: sie erscheint im
+   Stammdaten-Formular des Cockpits, und das gibt es in BEIDEN Ansichten.
+   Eine Regel dafuer in dieser Datei waere an der falschen Stelle - sie
+   duerfte dann nicht greifen, wenn der Schalter aus ist. Hier bleibt nur,
+   was wirklich nur die neue Ansicht hat. */
+
+/* Der Umschalter "Meine / Alle" ueber den offenen Projekten. Dieselben
+   Register wie auf der Projektseite, nur schmaler - er ordnet eine Liste,
+   er ist keine Navigation. */
+.a2-register-klein{margin:0 0 8px}
+.a2-register-klein button{min-height:30px;padding:4px 12px;font-size:12.5px}

@@ -538,6 +538,34 @@ function projektStatusBadge(wertOderProjekt){
  const s=projektStatusInfo(wertOderProjekt);
  return `<span class="pstatus pstatus-${s.wert}">${s.icon} ${esc(s.label)}</span>`;
 }
+// ---- Zuteilung eines Projekts (v3.161) ---------------------------
+// Wem ist dieses Projekt zugeteilt? projects.zugeteilt_an ist ein
+// jsonb-Array von profiles.id - dieselbe Form wie zuschnitt_ausschluss
+// (js/49), und wie dort wird sie defensiv gelesen: ein alter Datensatz
+// oder eine kaputte Zeile darf die Liste nicht zum Absturz bringen.
+function projektZugeteilt(p){
+ if(!p||!Array.isArray(p.zugeteilt_an))return [];
+ return p.zugeteilt_an.map(x=>String(x||"")).filter(Boolean);
+}
+
+// Ist dieses Projekt MEINES? Die eine Stelle, die das beantwortet -
+// benutzt von der Startseite (js/70) und von der Projektseite. Zwei
+// Ableitungen waeren zwei Meinungen darueber, wer zustaendig ist.
+//
+// Ohne Zuteilung gilt, WER DAS PROJEKT ANGELEGT HAT. Das ist bewusst so
+// entschieden (v3.161): am Tag der Umstellung ist kein einziges Projekt
+// zugeteilt, und eine leere Startseite fuer alle waere schlimmer als eine
+// grobe Naeherung. Sobald jemand zuteilt, gilt ausschliesslich die
+// Zuteilung - der Ersteller faellt dann heraus, wenn er nicht dabei ist.
+// Das ist gewollt: ein Projekt, das der Chef anlegt und dem Monteur
+// zuteilt, gehoert auf dessen Startseite, nicht mehr auf seine.
+function projektIstMeines(p,profilId){
+ if(!p||!profilId)return false;
+ const liste=projektZugeteilt(p);
+ if(!liste.length)return String(p.created_by||"")===String(profilId);
+ return liste.indexOf(String(profilId))>=0;
+}
+
 // ---- Geplanter Montagetermin (v3.160) ----------------------------
 // Ein Tag in Worten: "heute", "morgen", "in 3 Tagen".
 //

@@ -178,7 +178,11 @@ const WIN_CHANGELOG={
  "3.160":["Neu: ein Feld <b>Wichtige Hinweise</b> beim Projekt (Stammdaten bearbeiten) – „Baustellenzufahrt nur bis 16:00 Uhr“, „Schlüssel beim Hauswart“. Die Notiz steht auf der Startseite ganz oben und auf der Projektseite.",
   "Neu: <b>Montage geplant am</b> im Arbeitsstatus der Massaufnahme. Die Startseite sagt unter „Anstehende Montage“ jetzt „morgen“ oder „in 2 Tagen“ statt nur, seit wann die Teile bereitliegen – und die Zeilen mit Termin stehen zuoberst.",
   "Der Montagetermin ist Planung, kein Arbeitsschritt: er lässt sich jederzeit verschieben und lässt eine Freigabe nicht verfallen.",
-  "Ohne eingetragenen Termin wird weiterhin keiner geschätzt."]
+  "Ohne eingetragenen Termin wird weiterhin keiner geschätzt."],
+ "3.161":["Ein Projekt lässt sich jetzt <b>Mitarbeitern zuteilen</b> – in den Stammdaten, auch an mehrere. Auf der Startseite erscheint es unter „Offene Projekte“ dann nur noch bei diesen Personen.",
+  "Über der Liste stehen <b>Meine</b> und <b>Alle</b>. „Meine“ ist die Vorgabe; „Alle“ zeigt wieder den ganzen Betrieb – derselbe Umschalter, den die Werkstatt schon hat.",
+  "Das ist eine Anzeige, keine Sperre: über „Projekte“ und die Suche bleibt jedes Projekt für alle erreichbar.",
+  "Ist niemand zugeteilt, gilt die Person, die das Projekt angelegt hat. Für bestehende Projekte ändert sich damit zunächst nichts."]
 };
 
 function winVersionVergleich(a,b){
