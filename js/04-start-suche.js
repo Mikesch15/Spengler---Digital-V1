@@ -161,8 +161,11 @@ async function renderReportsOverview(){
  recentReportsCache=rows;
  $("recentReportsList").innerHTML=rows.length?rows.map(r=>{
   const proj=allProjects.find(p=>p.id===r.project_id);
+  // v3.165: worum es geht - dieselbe Ableitung wie in der Rapportliste
+  // des Projekts (rapportKurz, js/01).
+  const worum=rapportKurz(r);
   return `<div class="meas-row">
-<div class="meas-row-info"><b>${esc(eintragAdresse(r,r.object))}</b><span>${esc(infoZeileOhne(eintragAdresse(r,r.object),"Regierapport",proj?proj.name:null,r.date,r.order_no,r.customer))}</span></div>
+<div class="meas-row-info"><b>${esc(eintragAdresse(r,r.object))}</b><span>${esc(infoZeileOhne(eintragAdresse(r,r.object),"Regierapport",proj?proj.name:null,r.date,r.order_no,r.customer))}</span>${worum?`<span class="rapport-kurz">${esc(worum)}</span>`:""}</div>
 <div class="meas-row-actions">
 <button class="blue" data-open-report-overview="${r.id}" title="Öffnen">✏️</button>
 <button class="red" data-del-report-overview="${r.id}" title="Löschen">×</button>

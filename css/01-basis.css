@@ -1414,3 +1414,20 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .werk-mat-mass span{display:block;font-size:12px;color:var(--muted)}
 .werk-mat-quellen{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .werk-mat-quellen button{font-size:12.5px;padding:7px 11px}
+
+/* ---- Worum es in einem Regierapport geht (v3.165) ----------------------
+   Die abgeleitete Zusammenfassung (rapportKurz, js/01) steht als dritte
+   Zeile unter den Kopfdaten - in der Rapportliste des Projekts, in der
+   Rapport-Uebersicht und in der neuen Ansicht. Deshalb steht die Regel
+   HIER und nicht in css/05-ansicht2.css: dort duerfte sie nur greifen,
+   solange die neue Ansicht an ist.
+
+   Sie hebt sich vom grauen Kopfdaten-Text ab (dunkler, etwas staerker),
+   bleibt aber deutlich unter dem Titel - sie ist der Inhalt, nicht die
+   Ueberschrift. Zwei Zeilen sind genug: bei einem Rapport mit vielen
+   Arbeitszeilen wuerde die Liste sonst auseinanderlaufen, und gekappt
+   wird der Text ohnehin schon in js/01. */
+.rapport-kurz{font-size:11.5px;color:var(--ink);opacity:.8;
+ font-weight:600;margin-top:2px;word-break:break-word;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.a2-zeile-text .rapport-kurz{font-size:12px}

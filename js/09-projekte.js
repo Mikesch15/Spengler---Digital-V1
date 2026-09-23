@@ -371,8 +371,13 @@ async function loadProjectReports(projectId){
   // Auftraggeber und Objekt/Gebaeudeteil darunter.
   const titel=infoZeile(datumCH(r.date),r.order_no)||"Ohne Kopfdaten";
   const kopf=infoZeileOhne(titel,r.customer,r.object,...eintragZusatzTeile(r,true));
+  // v3.165: worum es in diesem Rapport geht - abgeleitet aus den
+  // Arbeitszeilen, die ohnehin schon geladen sind (siehe js/01,
+  // rapportKurz). Bleibt der Text leer, bleibt die Zeile weg, statt
+  // dass hier eine leere Klammer steht.
+  const worum=rapportKurz(r);
   return `<div class="report-row">
-<div class="report-row-info"><b>${esc(titel)}</b><span>${esc(kopf||"Keine weiteren Angaben")}</span></div>
+<div class="report-row-info"><b>${esc(titel)}</b><span>${esc(kopf||"Keine weiteren Angaben")}</span>${worum?`<span class="rapport-kurz">${esc(worum)}</span>`:""}</div>
 <div class="report-row-actions">
 <button class="blue" data-open-report="${r.id}">Öffnen</button>
 <button class="red" data-del-report="${r.id}" title="Löschen">×</button>

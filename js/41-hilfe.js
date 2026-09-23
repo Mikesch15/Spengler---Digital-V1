@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.164.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.165.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -611,7 +611,16 @@ als die Massaufnahme, aus der die Werkstatt ihre Zuschnitte bekommt.</p>`},
 "cockpit-rep":{titel:"Regierapporte im Projekt",text:`
 <p>Alle Regierapporte dieses Projekts. Wird ein Rapport von hier aus
 angelegt, sind Projekt, Auftrags-Nr., Auftraggeber und Objekt bereits
-gefüllt.</p>`},
+gefüllt.</p>
+<p><b>Worum es geht</b> (ab 3.165): unter den Kopfdaten steht in einer Zeile,
+was in diesem Rapport erfasst ist – die Arbeitstexte, die Stundensumme und
+die Anzahl Materialzeilen. Bei mehreren Rapporten zur selben Baustelle sah
+man vorher nur fünfmal dasselbe Datum und musste jeden einzeln öffnen.</p>
+<div class="hin">Diese Zeile wird <b>abgeleitet</b>, nicht getippt: sie
+rechnet sich aus dem, was im Rapport ohnehin steht. Deshalb gilt sie auch
+für alle bestehenden Rapporte, und sie ändert sich mit, wenn jemand die
+Arbeitszeilen anpasst. Ist im Rapport noch nichts erfasst, bleibt die Zeile
+ganz weg – eine leere Zeile sähe aus wie eine Aussage.</div>`},
 
 "cockpit-dateien":{titel:"Dateien und Fotos",text:`
 <p>Pläne, PDF, Fotos und weitere Projektunterlagen – höchstens

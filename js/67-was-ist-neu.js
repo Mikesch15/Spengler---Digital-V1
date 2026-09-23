@@ -193,7 +193,10 @@ const WIN_CHANGELOG={
   "Projekt → „Mehr …“ → „Dateien, Fotos und Verlauf“ zeigt jetzt genau das – und nicht mehr das ganze Projekt-Cockpit."],
  "3.164":["<b>Eine Auftrags-Nr. gibt es je Firma nur noch einmal.</b> Wird eine Nummer eingegeben, die schon vergeben ist – beim Anlegen eines Projekts oder beim Bearbeiten der Stammdaten – meldet die App, zu welchem Projekt sie gehört, und speichert nicht.",
   "Damit entstehen nicht mehr zwei Projekte zur selben Baustelle, auf die sich Massaufnahmen, Rapporte und Ausmasse dann aufteilen.",
-  "Verglichen wird ohne Rand-Leerzeichen und ohne Gross-/Kleinschreibung. Archivierte Projekte halten ihre Nummer belegt; andere Firmen haben ihre eigenen Nummernkreise."]
+  "Verglichen wird ohne Rand-Leerzeichen und ohne Gross-/Kleinschreibung. Archivierte Projekte halten ihre Nummer belegt; andere Firmen haben ihre eigenen Nummernkreise."],
+ "3.165":["<b>In der Rapportliste steht jetzt, worum es in jedem Rapport geht.</b> Unter den Kopfdaten: die Arbeitstexte, die Stundensumme und die Anzahl Materialzeilen – in der Projektliste, in der neuen Ansicht und in der Rapport-Übersicht.",
+  "Vorher sahen fünf Rapporte zur selben Baustelle alle gleich aus; man musste jeden einzeln öffnen.",
+  "Die Zeile wird abgeleitet, nicht getippt: sie gilt rückwirkend für alle bestehenden Rapporte und ändert sich mit, wenn jemand die Arbeitszeilen anpasst. Ist nichts erfasst, bleibt sie weg."]
 };
 
 function winVersionVergleich(a,b){

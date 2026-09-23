@@ -1499,10 +1499,15 @@ function a2RegRapport(p){
     ＋ Neuer Regierapport</button></div>`
   +`<div class="a2-abschnitt">
    <div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(rep.length,"Regierapport","Regierapporte"))}</h2></div>
-   ${rep.length?rep.map(r=>`<button type="button" class="a2-zeile" data-a2-rep="${esc(r.id)}">
+   ${rep.length?rep.map(r=>{
+     // v3.165: dieselbe Zusammenfassung wie im Cockpit und in der
+     // Rapport-Uebersicht - eine Quelle, siehe rapportKurz in js/01.
+     const worum=(typeof rapportKurz==="function")?rapportKurz(r):"";
+     return `<button type="button" class="a2-zeile" data-a2-rep="${esc(r.id)}">
      <span class="a2-zeile-text"><b>${esc(a2Datum(r.date)||"Ohne Datum")}</b>
-      <span>${esc([r.order_no?"Auftrag "+r.order_no:"",r.customer||""].filter(Boolean).join(" · ")||"—")}</span></span>
-     <span class="a2-zeile-pfeil">›</span></button>`).join("")
+      <span>${esc([r.order_no?"Auftrag "+r.order_no:"",r.customer||""].filter(Boolean).join(" · ")||"—")}</span>
+      ${worum?`<span class="rapport-kurz">${esc(worum)}</span>`:""}</span>
+     <span class="a2-zeile-pfeil">›</span></button>`}).join("")
     :'<div class="a2-leer">Noch kein Regierapport.</div>'}
   </div>`;
 }

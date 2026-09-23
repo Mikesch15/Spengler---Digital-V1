@@ -644,6 +644,104 @@ function auftragsNrKonfliktText(error){
   +"oder eine andere Auftrags-Nr. eingeben.";
 }
 
+// ---- Worum es in einem Regierapport geht (v3.165) -----------------
+// Die Rapportliste eines Projekts zeigte bis v3.164 nur Kopfdaten:
+// Datum, Auftrags-Nr., Auftraggeber, Objekt. Bei fuenf Rapporten zur
+// selben Baustelle sahen alle fuenf gleich aus - man musste jeden
+// einzeln oeffnen, um zu sehen, worum es ging.
+//
+// ABGELEITET, NICHT ERFASST. Der Text wird aus dem gerechnet, was im
+// Rapport ohnehin steht (Arbeitszeilen, Stunden, Materialzeilen). Das
+// ist bewusst so entschieden:
+//   * Es wirkt rueckwirkend auf jeden bestehenden Rapport - ein neues
+//     Feld waere bei allen alten leer.
+//   * Es verlangt auf der Baustelle keine zusaetzliche Disziplin.
+//   * Es kann nicht veralten: aendert jemand die Arbeitszeilen, aendert
+//     sich die Zusammenfassung mit.
+// Ein frei getipptes "Betreff"-Feld, das diesen Text ueberschreibt,
+// laesst sich spaeter jederzeit nachruesten - umgekehrt nicht.
+//
+// KEINE ZUSAETZLICHE ABFRAGE. Alle drei Listen, die das anzeigen, laden
+// ihre Rapporte schon mit select("*") - work_entries und
+// material_entries liegen also bereits im Speicher.
+//
+// Es wird NICHTS erfunden: ist nichts erfasst, kommt ein leerer Text
+// zurueck, und die aufrufende Liste zeigt weiter ihren eigenen
+// Ersatztext. Eine Zusammenfassung, die "nichts" verschweigt, waere
+// schlimmer als keine.
+const RAPPORT_KURZ_LAENGE=80;
+
+// Zahl fuer die Anzeige: 8 -> "8", 2.5 -> "2,5", 2.25 -> "2,25".
+// Dezimalkomma wie sonst in der App, keine ueberfluessigen Nullen.
+function rapportStundenText(n){
+ const z=Math.round((Number(n)||0)*100)/100;
+ return String(z).replace(".",",");
+}
+
+// Die Arbeitstexte eines Rapports, entdoppelt, in ihrer Reihenfolge.
+// Entdoppelt wird ohne Gross-/Kleinschreibung und ohne Rand-Leerzeichen:
+// "Rinne ausbessern" und "rinne ausbessern " sind dieselbe Arbeit, und
+// zweimal dasselbe in der Zeile zu lesen hilft niemandem.
+function rapportArbeitstexte(r){
+ const zeilen=(r&&Array.isArray(r.work_entries))?r.work_entries:[];
+ const gesehen=Object.create(null), raus=[];
+ zeilen.forEach(w=>{
+  const t=String((w&&w.desc)||"").trim();
+  if(!t)return;
+  const k=t.toLowerCase();
+  if(gesehen[k])return;
+  gesehen[k]=true;
+  raus.push(t);
+ });
+ return raus;
+}
+
+// Mehrere Texte zu einer Zeile, gekappt auf RAPPORT_KURZ_LAENGE.
+// Gekappt wird an der Trennstelle, nicht mitten im Wort - und nur, wenn
+// dadurch ueberhaupt etwas stehen bleibt; sonst wird der erste Text hart
+// gekuerzt. Dass etwas fehlt, zeigt das angehaengte Zeichen.
+function rapportTexteKurz(texte){
+ const alles=texte.join(" · ");
+ if(alles.length<=RAPPORT_KURZ_LAENGE)return alles;
+ let zeile="";
+ for(let i=0;i<texte.length;i++){
+  const naechste=zeile?zeile+" · "+texte[i]:texte[i];
+  if(naechste.length>RAPPORT_KURZ_LAENGE)break;
+  zeile=naechste;
+ }
+ if(zeile)return zeile+" …";
+ return texte[0].slice(0,RAPPORT_KURZ_LAENGE).trim()+"…";
+}
+
+// Die eine Quelle fuer "worum geht es in diesem Rapport" - benutzt von
+// der Rapportliste im Projekt (js/09), der neuen Ansicht (js/70) und der
+// Rapport-Uebersicht (js/04). Drei eigene Ableitungen waeren drei
+// Gelegenheiten, dasselbe unterschiedlich zu formulieren.
+function rapportKurz(r){
+ if(!r)return "";
+ const arbeit=(Array.isArray(r.work_entries))?r.work_entries:[];
+ const material=(Array.isArray(r.material_entries))?r.material_entries:[];
+ const texte=rapportArbeitstexte(r);
+
+ // Was gemacht wurde. Stehen die Arbeitszeilen ohne Text da (es gibt sie,
+ // aber niemand hat etwas hingeschrieben), wird das gesagt statt
+ // verschwiegen - sonst sieht der Rapport leer aus, obwohl Stunden
+ // darauf gebucht sind.
+ let was="";
+ if(texte.length)was=rapportTexteKurz(texte);
+ else if(arbeit.length)was=arbeit.length+(arbeit.length===1?" Arbeitsposition":" Arbeitspositionen")+" ohne Text";
+
+ // Die Zahlen dahinter.
+ const stunden=arbeit.reduce((s,w)=>s+(Number(w&&w.hours)||0),0);
+ const zahlen=[];
+ if(stunden>0)zahlen.push(rapportStundenText(stunden)+" h");
+ if(material.length)zahlen.push(material.length
+   +(material.length===1?" Materialposition":" Materialpositionen"));
+
+ if(was&&zahlen.length)return was+" — "+zahlen.join(" · ");
+ return was||zahlen.join(" · ");
+}
+
 // ---- Geplanter Montagetermin (v3.160) ----------------------------
 // Ein Tag in Worten: "heute", "morgen", "in 3 Tagen".
 //
