@@ -172,7 +172,9 @@ const WIN_CHANGELOG={
  "3.158":["Die Startseite ist neu aufgebaut – nach dem Prototyp: zuoberst, was dringend ist, darunter deine Aufgaben, die Werkstatt in drei Zahlen, die anstehenden Montagen und die offenen Projekte mit ihrem Produktionsstand.",
   "Die Aufgaben sind jetzt Zeilen statt Karten. Ein Tippen öffnet die Massaufnahme; wo es einen eigenen Schritt gibt (rüsten, montieren, zuweisen), steht er als Knopf daneben.",
   "„Werkstatt heute“ rechnet mit denselben Zahlen wie die Werkstatt selbst – nicht mit einer zweiten Rechnung.",
-  "Die anstehende Montage zeigt bewusst kein geplantes Datum: einen Montagetermin führt die App nicht. Sie zeigt, seit wann etwas bereitliegt und wer eingeteilt ist."]
+  "Die anstehende Montage zeigt bewusst kein geplantes Datum: einen Montagetermin führt die App nicht. Sie zeigt, seit wann etwas bereitliegt und wer eingeteilt ist."],
+ "3.159":["In den Bereichen der neuen Ansicht (Werkstatt, Lager, Projekte, Suche, Cockpit) ist der Knopf „🏠 Start“ verschwunden. Er führte dort an dieselbe Stelle wie „✓ Fertig“ – und trug dabei den falschen Namen. Der Weg nach Hause ist „Heute“ in der Leiste unten.",
+  "In den Formularen (Massaufnahme, Ausmass, Offerte, Regierapport) bleibt „🏠 Start“ stehen: dort liegt die Leiste verdeckt unter dem Formular."]
 };
 
 function winVersionVergleich(a,b){

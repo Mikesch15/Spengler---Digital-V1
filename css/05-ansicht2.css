@@ -717,3 +717,39 @@ html.a2-an #projectsModal.a2-nur-liste .card > h2{display:none!important}
 /* Der Fortschritt auf einer Projektkarte braucht etwas Luft nach oben -
    .a2-fort selbst kommt unveraendert aus v3.151 und wird nur benutzt. */
 .a2-karte-klick .a2-fort{margin-top:8px}
+
+/* ==========================================================================
+   DER KNOPF "🏠 START" IN DEN BEREICHEN  (v3.159)
+   --------------------------------------------------------------------------
+   In der klassischen Ansicht sind "✓ Fertig" und "🏠 Start" zwei
+   verschiedene Wege: Fertig schliesst NUR diese eine Ebene, Start schliesst
+   ueber goToStart() (js/03) den ganzen Stapel bis zur Startseite. Aus der
+   Massaufnahme-Liste heraus, die im Cockpit liegt, sind das zwei
+   verschiedene Ziele.
+
+   In einem BEREICH der neuen Ansicht gibt es diesen Stapel nicht. Der
+   Bereich ist die einzige offene Ebene, die Leiste unten steht sichtbar
+   darunter und traegt ohnehin dauerhaft "Heute". Beide Knoepfe landen
+   dadurch am selben Ort - und "Start" landet dort unter falschem Namen:
+   a2BereichBeobachten (js/70) setzt beim Schliessen nur den Bereich
+   zurueck, die Seite dahinter bleibt stehen. Wer aus der Werkstatt "Start"
+   drueckt, sieht also nicht die Startseite, sondern die Seite, von der er
+   kam.
+
+   Ausgeblendet wird der Knopf deshalb genau in den Bereichen - nicht
+   pauschal ueberall. In den Formularen (Massaufnahme, Ausmass, Offerte,
+   Regierapport) liegt die Leiste VERDECKT unter dem Formular; dort ist
+   "Start" kein zweiter Weg zum selben Ziel, sondern der einzige sichtbare
+   Weg nach Hause. Beim Regierapport ist er es sogar wortwoertlich: sein
+   Zurueck-Knopf erscheint nur, wenn der Rapport aus einem Projekt heraus
+   geoeffnet wurde.
+
+   Ausgeblendet statt aus index.html entfernt heisst: die klassische
+   Ansicht behaelt den Knopf unveraendert, und die Klick-Behandlungen in
+   js/04, js/24, js/46 und js/51 bleiben bestehen. */
+html.a2-an #projectsModal #startFromProjects,
+html.a2-an #projectCockpitModal #cockpitStart,
+html.a2-an #globalSearchModal #startFromGlobalSearch,
+html.a2-an #adminMeasModal #startFromAdminMeas,
+html.a2-an #werkstattModal #startFromWerkstatt,
+html.a2-an #settingsModal #startFromSettings{display:none!important}
