@@ -1160,16 +1160,55 @@ async function a2StammdatenOeffnen(id){
 // beiden Wege an der neuen Ansicht vorbei direkt ins alte Cockpit (gemeldet:
 // "wenn ich ueber die werkstatt ein projekt direkt oeffne, oeffnet sich noch
 // komplett die alte ansicht").
-async function a2ProjektOeffnen(id){
+// Wo liegt ein Suchtreffer auf der Projektseite? Register und Kennzeichen
+// je Art - dieselbe Rolle, die COCKPIT_TREFFER_ATTR/_KLAPP im Cockpit
+// spielen (js/24). Eine weitere Art aufzunehmen heisst: eine Zeile hier.
+//
+// Die drei Arten sind genau die, die die Suche erzeugt (js/04). Alle drei
+// Register gibt es immer - sie haengen an keinem Modulschalter, ein Treffer
+// kann also nicht in einem abgeschalteten Register landen.
+const A2_TREFFER={
+ measurement:{reg:"aufmass", attr:"data-a2-meas"},
+ ausmass:    {reg:"ausmass", attr:"data-a2-am"},
+ report:     {reg:"rapport", attr:"data-a2-rep"}
+};
+
+// Den Treffer auf der bereits gezeichneten Projektseite hervorheben.
+// Gibt es ihn dort nicht (geloescht, oder er gehoert zu einem anderen
+// Projekt), passiert NICHTS - kein Sprung ins Leere, keine Meldung ueber
+// etwas, das der Anwender nicht zu verantworten hat.
+function a2TrefferHervorheben(treffer){
+ const t=treffer&&A2_TREFFER[treffer.kind];
+ if(!t||!treffer.id)return false;
+ const el=$("a2Inhalt")&&$("a2Inhalt").querySelector(`[${t.attr}="${treffer.id}"]`);
+ if(!el)return false;
+ el.classList.add("treffer");
+ el.scrollIntoView({block:"center"});
+ // Dieselben 5 Sekunden wie im Cockpit - lange genug zum Finden, kurz
+ // genug, dass die Markierung nicht als Zustand missverstanden wird.
+ setTimeout(()=>el.classList.remove("treffer"),5000);
+ return true;
+}
+
+async function a2ProjektOeffnen(id,treffer){
  if(!a2Projekt(id)){ a2Zeichnen(); return false }  // fremde/geloeschte ID: nichts tun
  // Kommt der Sprung aus einem offenen Bereich - Werkstatt, Projektliste,
  // Suche -, wird der zuerst ueber seinen EIGENEN Schliessen-Knopf zugemacht.
  // Das Fenster einfach zu verstecken wuerde den Aufraeumteil dieses Knopfes
  // ueberspringen (er stellt u. a. den Startschirm wieder her).
  if(a2Zustand.bereich)a2BereichSchliessen();
- a2Zustand.seite="projekt"; a2Zustand.projektId=id; a2Zustand.reg="uebersicht";
+ // v3.167: Kommt der Sprung aus der Suche, wird gleich das Register
+ // aufgeschlagen, in dem der Treffer liegt. Sonst landete man auf der
+ // Uebersicht und muesste ihn selbst suchen - genau das, was die Suche
+ // einem abnehmen soll.
+ const ziel=treffer&&A2_TREFFER[treffer.kind];
+ a2Zustand.seite="projekt"; a2Zustand.projektId=id;
+ a2Zustand.reg=ziel?ziel.reg:"uebersicht";
  window.scrollTo(0,0);
  await a2ProjektLaden(id);
+ // Erst NACH dem Laden: a2ProjektLaden zeichnet zweimal (Ladezustand und
+ // Ergebnis); vorher gaebe es die Zeile noch gar nicht.
+ if(treffer)a2TrefferHervorheben(treffer);
  return true;
 }
 

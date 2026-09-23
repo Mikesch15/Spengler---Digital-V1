@@ -199,7 +199,10 @@ const WIN_CHANGELOG={
   "Die Zeile wird abgeleitet, nicht getippt: sie gilt rückwirkend für alle bestehenden Rapporte und ändert sich mit, wenn jemand die Arbeitszeilen anpasst. Ist nichts erfasst, bleibt sie weg."],
  "3.166":["<b>Ein Projekt geht jetzt überall auf der Projektseite auf</b> – auch wenn der Klick aus der <b>Werkstatt</b>, aus der Projektliste oder aus der Suche kommt. Vorher klappte dort mitten in der neuen Ansicht das vollständige alte Cockpit auf.",
   "„Bearbeiten“ in der Projektliste zeigt ebenfalls nur noch die Stammdatenfelder statt des ganzen Cockpits.",
-  "Ein Suchtreffer auf eine einzelne Massaufnahme, ein Ausmass oder einen Rapport führt weiterhin ins Cockpit: nur dort springt die App an genau diesen Eintrag und hebt ihn hervor."]
+  "Ein Suchtreffer auf eine einzelne Massaufnahme, ein Ausmass oder einen Rapport führte vorübergehend noch ins Cockpit – seit 3.167 nicht mehr, siehe unten."],
+ "3.167":["<b>Ein Suchtreffer springt jetzt auch auf der Projektseite an die richtige Stelle.</b> Die App schlägt das passende Register auf – Massaufnahme, Ausmass oder Regierapport – und hebt den getroffenen Eintrag kurz hervor.",
+  "Damit führt kein Weg aus der Suche mehr ins alte Cockpit.",
+  "Gibt es den Eintrag nicht mehr, geht das Projekt trotzdem auf – einfach ohne Hervorhebung. Es wird nichts erfunden und keine Meldung über etwas gezeigt, das man nicht zu verantworten hat."]
 };
 
 function winVersionVergleich(a,b){

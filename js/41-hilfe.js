@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.166.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.167.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1196,8 +1196,14 @@ Buchhaltung.</p>`},
 <p>Durchsucht Rapporte (Auftraggeber, Objekt, Auftrags-Nr.), Massaufnahmen und
 Ausmasse (Bezeichnung) sowie die Projekte selbst (Adresse, Name, Auftrags-Nr.,
 Auftraggeber). Projekt-Treffer stehen zuoberst.</p>
-<p>Je Treffer zwei Wege: <b>📂 Projekt</b> öffnet das Cockpit und hebt den
-Treffer dort hervor; das Stiftsymbol öffnet den Eintrag direkt.</p>`},
+<p>Je Treffer zwei Wege: <b>📂 Projekt</b> öffnet das Projekt und springt dort
+an den Treffer; das Stiftsymbol öffnet den Eintrag direkt.</p>
+<div class="hin">Ab 3.167 gilt das in <b>beiden</b> Ansichten. In der neuen
+Ansicht schlägt die Projektseite dafür das passende Register auf –
+Massaufnahme, Ausmass oder Regierapport – und hebt die getroffene Zeile kurz
+hervor; in der klassischen öffnet das Cockpit wie bisher den zugehörigen
+Bereich. Gibt es den Eintrag nicht mehr, geht das Projekt trotzdem auf, nur
+eben ohne Hervorhebung.</div>`},
 
 "feedback":{titel:"Feedback",text:`
 <p>Rückmeldungen gehen an den Firmenadministrator und an den Betreiber der

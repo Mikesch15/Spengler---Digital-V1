@@ -660,9 +660,12 @@ function auftragsNrKonfliktText(error){
 //
 // Alles ueber typeof geprueft: js/01 laedt vor js/24 und js/70, und
 // keiner der beiden darf hier eine harte Abhaengigkeit werden.
+// treffer (optional): {kind,id} aus der Suche - der Eintrag, den der
+// Anwender gemeint hat. v3.167: beide Ansichten koennen ihn anspringen,
+// die neue ueber ihr Register, die klassische ueber ihren Klappbereich.
 async function projektOeffnen(id,treffer){
  if(typeof a2Aktiv==="function"&&a2Aktiv()&&typeof a2ProjektOeffnen==="function"){
-  await a2ProjektOeffnen(id);
+  await a2ProjektOeffnen(id,treffer);
   return;
  }
  if(typeof openProjectCockpit==="function")await openProjectCockpit(id,treffer);

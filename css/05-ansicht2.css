@@ -969,3 +969,14 @@ html.a2-an #projectCockpitModal.a2-nur-dateien #cockpitStammdaten,
 html.a2-an #projectCockpitModal.a2-nur-dateien .projekt-status-zeile,
 html.a2-an #projectCockpitModal.a2-nur-dateien
   .card.klapp:not(#cockpitFilesCard):not(#cockpitFotosCard):not(#cockpitVerlaufCard){display:none!important}
+
+/* ---- Der Suchtreffer auf der Projektseite (v3.167) ---------------------
+   Kommt der Sprung aus der Suche, schlaegt die Projektseite das passende
+   Register auf und hebt die getroffene Zeile kurz hervor - dieselbe
+   Aussage wie .report-row.treffer im klassischen Cockpit (css/01), nur
+   auf der Zeile der neuen Ansicht.
+
+   Bewusst ein outline und kein border: ein Rahmen wuerde die Zeile um
+   zwei Pixel wachsen lassen und die ganze Liste darunter verschieben -
+   genau in dem Moment, in dem der Anwender hinschaut. */
+html.a2-an .a2-zeile.treffer{outline:2px solid var(--blue);outline-offset:1px}

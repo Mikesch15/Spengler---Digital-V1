@@ -113,23 +113,17 @@ $("globalSearchResults").addEventListener("click",async e=>{
   // Beim Projekt selbst gibt es keinen einzelnen Treffer zum Hervorheben.
   const pid=t.kind==="project"?t.data.id:t.data.project_id;
   if(!pid)return;
-  // v3.166: Ein Treffer auf das PROJEKT selbst heisst "oeffne dieses
-  // Projekt" - das gehoert in der neuen Ansicht auf die Projektseite, nicht
-  // ins alte Cockpit (projektOeffnen, js/01).
+  // v3.166/v3.167: EIN Weg fuer alle Trefferarten. projektOeffnen() (js/01)
+  // entscheidet, wo das Projekt aufgeht, und springt den Treffer dort an -
+  // in der neuen Ansicht ueber das passende Register, in der klassischen
+  // wie bisher ueber den Klappbereich im Cockpit. Beim Projekt selbst gibt
+  // es keinen einzelnen Treffer, dann bleibt der zweite Wert leer.
   //
-  // Ein Treffer auf eine Massaufnahme/ein Ausmass/einen Rapport heisst
-  // dagegen "zeig mir GENAU diesen Eintrag". Dafuer springt das Cockpit an
-  // die getroffene Stelle und hebt sie hervor - das kann die Projektseite
-  // heute nicht. Dieser Fall geht deshalb bewusst weiter ins Cockpit; ihn
-  // auf die Projektseite umzubiegen hiesse, den Sprung zum Treffer
-  // stillschweigend zu verlieren.
-  if(t.kind==="project"){
-   if(!(typeof a2Aktiv==="function"&&a2Aktiv()))$("globalSearchModal").hidden=true;
-   await projektOeffnen(pid);
-   return;
-  }
-  $("globalSearchModal").hidden=true;
-  openProjectCockpit(pid,{kind:t.kind,id:t.data.id});
+  // In der neuen Ansicht schliesst diese den Suchbereich selbst (ueber
+  // dessen eigenen Knopf), deshalb wird hier nur in der klassischen
+  // Ansicht versteckt.
+  if(!(typeof a2Aktiv==="function"&&a2Aktiv()))$("globalSearchModal").hidden=true;
+  await projektOeffnen(pid,t.kind==="project"?null:{kind:t.kind,id:t.data.id});
   return;
  }
  // Bisheriger Direktweg - unveraendert.

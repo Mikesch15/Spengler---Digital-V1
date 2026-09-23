@@ -20,10 +20,11 @@
 // WAS AUSDRUECKLICH BEIM COCKPIT BLEIBT
 // "Mehr -> Dateien, Fotos und Verlauf" und "Stammdaten bearbeiten" wollen
 // genau diesen Schirm (mit ihrer Marke), nicht "ein Projekt" - Abschnitt E.
-// Und ein SUCH-Treffer auf eine Massaufnahme/einen Rapport heisst "zeig
-// mir genau diesen Eintrag"; dafuer springt das Cockpit an die Stelle und
-// hebt sie hervor. Das kann die Projektseite heute nicht, also bleibt
-// dieser Fall bewusst beim Cockpit (C3).
+// Ein SUCH-Treffer auf eine Massaufnahme/ein Ausmass/einen Rapport heisst
+// "zeig mir genau diesen Eintrag". Seit v3.167 kann das auch die
+// Projektseite: sie schlaegt das passende Register auf und hebt die Zeile
+// hervor (C3/C3b). C3c haelt fest, dass dafuer nicht mehr das Cockpit
+// aufgeht, C3e dass der klassische Weg trotzdem unveraendert bleibt.
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-projekt-oeffnen-v3-166.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
@@ -153,23 +154,80 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
    "C1 ein Treffer auf das PROJEKT fuehrt auf die Projektseite",Cs);
  p(Cs.sucheOffen===false,"C2 und die Suche ist geschlossen",Cs);
 
- // Gegenprobe: ein Treffer auf eine MASSAUFNAHME heisst "zeig mir genau
- // diesen Eintrag". Das kann nur das Cockpit - dieser Fall bleibt dort.
+ // Ein Treffer auf eine MASSAUFNAHME heisst "zeig mir genau diesen
+ // Eintrag". Bis v3.166 konnte das nur das Cockpit, deshalb ging dieser
+ // Fall dorthin. Seit v3.167 kann es die Projektseite auch: sie schlaegt
+ // das Register auf und hebt die Zeile hervor. Die Pruefung misst jetzt
+ // diesen Vertrag - und C3c ist die Gegenprobe, dass der alte Weg dabei
+ // nicht heimlich zurueckkommt.
  const C3=await page.evaluate(async()=>{
-  const gerufen=[];
+  const insCockpit=[];
   const alt=window.openProjectCockpit;
-  window.openProjectCockpit=(id,treffer)=>{gerufen.push({id,treffer});return Promise.resolve()};
-  $("globalSearchModal").hidden=false;
+  window.openProjectCockpit=(id,treffer)=>{insCockpit.push({id,treffer});return Promise.resolve()};
+  await a2BereichStarten("globalSearchModal","Suchen","heute",
+   ()=>{$("globalSearchModal").hidden=false});
   globalSearchCache=[{kind:"measurement",data:{id:11,project_id:1}}];
   $("globalSearchResults").innerHTML='<button data-open-search-cockpit="0">x</button>';
   $("globalSearchResults").querySelector("button").click();
-  await new Promise(f=>setTimeout(f,400));
+  await new Promise(f=>setTimeout(f,700));
   window.openProjectCockpit=alt;
+  const zeile=$("a2Inhalt").querySelector('[data-a2-meas="11"]');
+  return {insCockpit, reg:a2Zustand.reg, seite:a2Zustand.seite,
+          zeileDa:!!zeile, hervorgehoben:!!(zeile&&zeile.classList.contains("treffer")),
+          cockpitOffen:!$("projectCockpitModal").hidden};
+ });
+ p(C3.seite==="projekt"&&C3.reg==="aufmass",
+   "C3 ein Treffer auf eine Massaufnahme schlaegt auf der Projektseite das Register 'Massaufnahme' auf",C3);
+ p(C3.zeileDa&&C3.hervorgehoben,
+   "C3b und hebt genau diese Zeile hervor - der Sprung geht nicht ins Leere",C3);
+ p(C3.insCockpit.length===0&&C3.cockpitOffen===false,
+   "C3c Gegenprobe: das alte Cockpit wird dafuer NICHT mehr geoeffnet",C3);
+
+ // Ein Treffer, den es auf der Seite nicht (mehr) gibt, darf nichts
+ // kaputtmachen: das Projekt geht auf, nur eben ohne Hervorhebung.
+ const C3d=await page.evaluate(async()=>{
+  a2Zustand.seite="heute"; a2Zustand.projektId=null; a2Zustand.bereich=null; a2Zeichnen();
+  const raus=await a2ProjektOeffnen(1,{kind:"measurement",id:999999});
+  return {raus, seite:a2Zustand.seite, reg:a2Zustand.reg,
+          hervorgehoben:!!$("a2Inhalt").querySelector(".treffer")};
+ });
+ p(C3d.raus===true&&C3d.seite==="projekt"&&C3d.hervorgehoben===false,
+   "C3d ein Treffer, den es nicht mehr gibt: das Projekt geht auf, sonst passiert nichts",C3d);
+
+ // Und in der KLASSISCHEN Ansicht bleibt der alte Weg unveraendert.
+ const C3e=await page.evaluate(async()=>{
+  a2Setzen(false);
+  const gerufen=[];
+  const alt=window.openProjectCockpit;
+  window.openProjectCockpit=(id,treffer)=>{gerufen.push({id,treffer});return Promise.resolve()};
+  await projektOeffnen(1,{kind:"measurement",id:11});
+  window.openProjectCockpit=alt;
+  a2Setzen(true);
   return gerufen;
  });
- p(C3.length===1&&C3[0].id===1&&C3[0].treffer&&C3[0].treffer.kind==="measurement"
-   &&C3[0].treffer.id===11,
-   "C3 ein Treffer auf eine Massaufnahme geht weiter ins Cockpit - mit dem Treffer",C3);
+ p(C3e.length===1&&C3e[0].id===1&&C3e[0].treffer&&C3e[0].treffer.kind==="measurement"
+   &&C3e[0].treffer.id===11,
+   "C3e ohne neue Ansicht geht der Treffer unveraendert ins Cockpit - mitsamt seiner Angabe",C3e);
+
+ // Dieselbe Zuordnung fuer die beiden anderen Arten, die die Suche erzeugt.
+ // Die Tabelle A2_TREFFER ist die riskante Stelle: ein vertauschtes
+ // Register faellt sonst niemandem auf, der Treffer waere nur "nicht da".
+ const C5=await page.evaluate(async()=>{
+  const raus={};
+  for(const fall of [{kind:"ausmass",id:5,reg:"ausmass",attr:"data-a2-am"},
+                     {kind:"report", id:7,reg:"rapport",attr:"data-a2-rep"}]){
+   a2Zustand.seite="heute"; a2Zustand.projektId=null; a2Zustand.bereich=null; a2Zeichnen();
+   await a2ProjektOeffnen(1,{kind:fall.kind,id:fall.id});
+   const z=$("a2Inhalt").querySelector("["+fall.attr+'="'+fall.id+'"]');
+   raus[fall.kind]={reg:a2Zustand.reg, soll:fall.reg,
+                    hervorgehoben:!!(z&&z.classList.contains("treffer"))};
+  }
+  return raus;
+ });
+ p(C5.ausmass.reg===C5.ausmass.soll&&C5.ausmass.hervorgehoben,
+   "C5 ein Ausmass-Treffer landet im Register 'Ausmass' und ist hervorgehoben",C5);
+ p(C5.report.reg===C5.report.soll&&C5.report.hervorgehoben,
+   "C6 ein Rapport-Treffer im Register 'Regierapport'",C5);
 
  // ---- D  Die klassische Ansicht bleibt unveraendert -----------------------
  // Die Weiche darf den alten Weg nicht kaputtmachen: ohne neue Ansicht
