@@ -27,8 +27,10 @@
 //      dies ist eine Behauptung ueber ein Muster, nicht blosse
 //      Reihenfolge - aus einem einzigen Ausmass etwas zu folgern, waere
 //      geraten. Und es wird NICHTS ausgeblendet (H5).
-//   I  v3.170: Arbeitstexte im Rapport als Vorschlagsliste - das Feld
-//      bleibt frei, die Liste schlaegt nur vor.
+//   I  Arbeitstexte im Rapport als Vorschlagsliste - das Feld bleibt frei,
+//      die Liste schlaegt nur vor. v3.171: Die Vorschlaege kommen NUR aus
+//      dem Rapport, der gerade offen ist. I7 ist die Gegenprobe dazu -
+//      Texte aus anderen Rapporten duerfen NICHT auftauchen.
 //   J  v3.170: Wer bei diesem Auftraggeber sonst zugeteilt ist. Ein
 //      Vorschlag zum Antippen, der sich NICHT selbst ankreuzt.
 //
@@ -381,30 +383,29 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
    &&/zaehlwerkArt:zwArtRes/.test(laden2)&&/zaehlwerkAusmass:zwAmRes/.test(laden2),
    "H10 beide neuen Zaehlungen werden geladen und offline gesichert");
 
- // ---- I  Arbeitstexte im Rapport (v3.170) --------------------------------
+ // ---- I  Arbeitstexte aus DIESEM Rapport (v3.170/v3.171) -----------------
+ // Bis v3.170 kamen die Vorschlaege aus allen Rapporten der Firma. Die
+ // Pruefungen sind NICHT geloescht, sondern auf den heutigen Vertrag
+ // umgestellt - samt Gegenprobe I7, dass die alte Quelle wirklich weg ist.
  const I=await page.evaluate(()=>{
-  zwArbeitstexteUebernehmen([
-   {text:"Kaminanschluss abdichten",anzahl:2,zuletzt:"2026-09-01"},
-   {text:"Rinne ausbessern",        anzahl:9,zuletzt:"2026-09-10"},
-   {text:"   ",                     anzahl:5},   // nur Leerzeichen
-   {text:"Dachfenster einfassen",   anzahl:1},
-   null
-  ]);
+  works=[
+   {date:"",desc:"Rinne ausbessern",       employee:"",rateName:"",hours:2},
+   {date:"",desc:"Kaminanschluss abdichten",employee:"",rateName:"",hours:1},
+   {date:"",desc:"  RINNE AUSBESSERN ",    employee:"",rateName:"",hours:1},
+   {date:"",desc:"   ",                    employee:"",rateName:"",hours:0},
+   {date:"",desc:"",                       employee:"",rateName:"",hours:0}
+  ];
+  renderMain();
   const el=$("arbeitstexteListe");
-  return {
-   da:!!el,
-   werte:el?[...el.querySelectorAll("option")].map(o=>o.value):[],
-   gehalten:arbeitstextNutzung.map(z=>z.text)
-  };
+  return {da:!!el, werte:el?[...el.querySelectorAll("option")].map(o=>o.value):[]};
  });
  p(I.da,"I1 die Vorschlagsliste steht in index.html",I);
- p(I.werte.join("|")==="Rinne ausbessern|Kaminanschluss abdichten|Dachfenster einfassen",
-   "I2 die haeufigsten Texte zuerst, leere Eintraege gar nicht",I);
+ p(I.werte.join("|")==="Rinne ausbessern|Kaminanschluss abdichten",
+   "I2 die Texte DIESES Rapports, entdoppelt und in Zeilenreihenfolge - "
+   +"leere Zeilen gar nicht",I);
 
  // Das Feld selbst: es haengt an der Liste und bleibt FREI.
  const I3=await page.evaluate(()=>{
-  works=[{date:"",desc:"",employee:"",rateName:"",hours:0}];
-  renderMain();
   const feld=document.querySelector('[data-w-desc="0"]');
   if(!feld)return {feld:false};
   // Ein Text, der NICHT in der Liste steht, muss sich trotzdem eintragen
@@ -420,22 +421,54 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(I3.gesperrt===false&&I3.gespeichert==="Etwas ganz Neues",
    "I4 es bleibt ein FREIES Feld - ein neuer Text laesst sich eintragen",I3);
 
+ // Beim TIPPEN darf die Liste sich nicht aendern: sonst landete jeder halbe
+ // Satz darin und der Browser schluege dem Schreibenden zurueck vor, was er
+ // gerade erst halb getippt hat.
  const I5=await page.evaluate(()=>{
-  zwArbeitstexteUebernehmen(null);
-  const a=$("arbeitstexteListe").querySelectorAll("option").length;
-  zwArbeitstexteUebernehmen("quatsch");
-  return {a,b:$("arbeitstexteListe").querySelectorAll("option").length};
+  const vorher=[...$("arbeitstexteListe").querySelectorAll("option")].map(o=>o.value);
+  const feld=document.querySelector('[data-w-desc="1"]');
+  feld.value="Dachfenster ein";
+  feld.dispatchEvent(new Event("input",{bubbles:true}));
+  const beimTippen=[...$("arbeitstexteListe").querySelectorAll("option")].map(o=>o.value);
+  // Beim VERLASSEN des Feldes dagegen schon - fertige Saetze stehen den
+  // anderen Zeilen sofort zur Verfuegung.
+  feld.value="Dachfenster einfassen";
+  feld.dispatchEvent(new Event("input",{bubbles:true}));
+  feld.dispatchEvent(new Event("change",{bubbles:true}));
+  const nachWechsel=[...$("arbeitstexteListe").querySelectorAll("option")].map(o=>o.value);
+  return {vorher,beimTippen,nachWechsel};
  });
- p(I5.a===0&&I5.b===0,"I5 ohne Zaehlwerk bleibt die Liste leer - das Feld funktioniert weiter",I5);
+ p(I5.beimTippen.join("|")===I5.vorher.join("|"),
+   "I5 beim Tippen aendert sich die Liste NICHT - kein halber Satz darin",I5);
+ p(I5.nachWechsel.indexOf("Dachfenster einfassen")>=0,
+   "I6 beim Verlassen des Feldes steht der fertige Satz den anderen Zeilen "
+   +"zur Verfuegung",I5);
 
- const I6=await page.evaluate(()=>{
-  const viele=[]; for(let i=0;i<200;i++)viele.push({text:"Arbeit "+i,anzahl:200-i});
-  zwArbeitstexteUebernehmen(viele);
-  return {anzahl:$("arbeitstexteListe").querySelectorAll("option").length,
-          erster:$("arbeitstexteListe").querySelector("option").value};
+ // Gegenprobe zum eigentlichen Auftrag: ein Rapport ohne Zeilen hat KEINE
+ // Vorschlaege - es gibt dann nichts, was sich wiederholen koennte. Und es
+ // wird nichts von aussen nachgeladen.
+ const I7=await page.evaluate(()=>{
+  works=[];
+  renderMain();
+  return {leer:$("arbeitstexteListe").querySelectorAll("option").length,
+          nochGeladen:typeof zaehlwerkArbeitstexteLaden,
+          nochGehalten:typeof arbeitstextNutzung};
  });
- p(I6.anzahl===60&&I6.erster==="Arbeit 0",
-   "I6 die Liste ist begrenzt - hunderte Eintraege waeren auf dem Handy keine Hilfe",I6);
+ p(I7.leer===0,
+   "I7 ein frischer Rapport hat keine Vorschlaege - nichts kommt von aussen",I7);
+ p(I7.nochGeladen==="undefined"&&I7.nochGehalten==="undefined",
+   "I8 die firmenweite Quelle ist wirklich weg, nicht nur unbenutzt",I7);
+
+ // Und strukturell: weder Ladevorgang noch Sicht werden noch angefasst.
+ const quellenR={
+  laden: fs.readFileSync(path.join(process.cwd(),"js/05-daten-laden.js"),"utf8"),
+  zaehl: fs.readFileSync(path.join(process.cwd(),"js/71-zaehlwerk.js"),"utf8"),
+  rap:   fs.readFileSync(path.join(process.cwd(),"js/06-rapport.js"),"utf8")
+ };
+ p(!/arbeitstext_nutzung/.test(quellenR.laden+quellenR.zaehl+quellenR.rap),
+   "I9 die entfernte Sicht wird nirgends mehr abgefragt");
+ p(/function rapportTexteFuellen/.test(quellenR.rap),
+   "I10 die Liste entsteht im Rapport-Modul, wo die Zeilen ohnehin stehen");
 
  // ---- J  Zuteilungs-Vorschlag (v3.170) -----------------------------------
  const J=await page.evaluate(()=>{

@@ -259,52 +259,14 @@ async function zaehlwerkAusmassLaden(){
 // ===========================================================================
 
 // ---- Arbeitstexte im Regierapport -----------------------------------------
-// Die Beschreibung einer Arbeitsposition ist ein freies Feld; dieselben
-// Saetze werden deshalb jeden Tag neu getippt. Aus den eigenen Rapporten
-// wird eine Vorschlagsliste - ohne dass irgendetwas erfunden wird.
+// v3.171: Die Vorschlaege fuer die Arbeitsbeschreibung kommen NICHT mehr aus
+// der Firmengeschichte, sondern nur noch aus dem Rapport, der gerade offen
+// ist (gemeldet: "im regierapport sollen die vorschlaege nur vom aktuellen
+// rapport stammen und nicht von allen").
 //
-// WARUM EIN datalist UND KEINE EIGENE VORSCHLAGSLISTE
-// Die Materialsuche hat eine gebaute Liste, weil sie Zusatzangaben zeigt
-// (Bezeichnung, Dimension, Preis, Zahl). Hier gibt es nur den Text selbst.
-// Ein <datalist> filtert der Browser, es liegt richtig, es funktioniert auf
-// dem Handy und es kommt ohne eigene Positionierung aus. Eine nachgebaute
-// Liste waere hier mehr Code fuer weniger Verlaesslichkeit.
-//
-// Es bleibt ein FREIES Feld: die Liste schlaegt vor, sie schreibt nichts
-// fest. Ein neuer Text laesst sich wie bisher einfach tippen.
-let arbeitstextNutzung=[];
-
-// Wie viele Vorschlaege hoechstens? Ein datalist mit hunderten Eintraegen
-// ist auf dem Handy keine Hilfe mehr. Die haeufigsten reichen; wer etwas
-// Selteneres braucht, tippt es wie bisher.
-const ZW_ARBEITSTEXTE_MAX=60;
-
-function zwArbeitstexteUebernehmen(zeilen){
- const roh=Array.isArray(zeilen)?zeilen:[];
- arbeitstextNutzung=roh
-  .filter(z=>z&&String(z.text||"").trim())
-  .slice()
-  .sort((a,b)=>(Number(b.anzahl)||0)-(Number(a.anzahl)||0))
-  .slice(0,ZW_ARBEITSTEXTE_MAX);
- zwArbeitstexteFuellen();
-}
-
-// Die Liste in das <datalist> schreiben. Gibt es das Element nicht (alte
-// index.html, Pruefstand ohne Formular), passiert nichts.
-function zwArbeitstexteFuellen(){
- const el=(typeof $==="function")?$("arbeitstexteListe"):null;
- if(!el)return;
- el.innerHTML=arbeitstextNutzung
-  .map(z=>`<option value="${esc(String(z.text))}"></option>`).join("");
-}
-
-async function zaehlwerkArbeitstexteLaden(){
- try{
-  const {data,error}=await sb.from("arbeitstext_nutzung").select("text,anzahl,zuletzt");
-  if(error)return null;
-  return data||[];
- }catch(e){ return null }
-}
+// Damit gehoert die Sache nicht mehr ins Zaehlwerk: sie zaehlt nichts mehr
+// und braucht weder Sicht noch Ladevorgang. Sie steht jetzt dort, wo der
+// Rapport gebaut wird - rapportTexteFuellen() in js/06-rapport.js.
 
 // ---- Wer wird diesem Auftraggeber ueblicherweise zugeteilt? ----------------
 // Gerechnet wird auf allProjects - das ist bereits geladen und durch die

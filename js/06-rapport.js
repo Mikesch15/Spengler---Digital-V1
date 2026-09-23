@@ -117,6 +117,40 @@ function searchMaterials(q,art){
  return geordnet.slice(0,15)
 }
 
+// ---- Arbeitstexte: Vorschlaege aus DIESEM Rapport (v3.171) ----------------
+// Bis v3.170 kamen die Vorschlaege fuer die Arbeitsbeschreibung aus allen
+// Rapporten der Firma. Gemeldet: "im regierapport sollen die vorschlaege nur
+// vom aktuellen rapport stammen und nicht von allen".
+//
+// Das ist auch die bessere Antwort auf das eigentliche Problem: In EINEM
+// Rapport wiederholt sich dieselbe Arbeit ueber mehrere Tage und Zeilen -
+// genau dort spart ein Vorschlag Tipparbeit. Saetze aus einem halben Jahr
+// anderer Baustellen sind dabei nur Beiwerk.
+//
+// Folge: es wird NICHTS mehr geladen und NICHTS mehr gezaehlt. Die Liste
+// entsteht aus works, das ohnehin im Speicher steht - keine Sicht, keine
+// Abfrage, und sie kann nicht veralten.
+//
+// Ein frischer Rapport hat noch keine Zeilen, also auch keine Vorschlaege.
+// Das ist richtig so: es gibt dann nichts, was sich wiederholen koennte.
+function rapportTexteFuellen(){
+ const el=$("arbeitstexteListe");
+ if(!el)return;
+ // Entdoppelt ohne Gross-/Kleinschreibung und ohne Rand-Leerzeichen, in der
+ // Reihenfolge der Zeilen. Vorgeschlagen wird die Schreibweise, die im
+ // Rapport steht - nicht eine normalisierte Fassung davon.
+ const gesehen=Object.create(null), texte=[];
+ (Array.isArray(works)?works:[]).forEach(w=>{
+  const t=String((w&&w.desc)||"").trim();
+  if(!t)return;
+  const k=t.toLowerCase();
+  if(gesehen[k])return;
+  gesehen[k]=true;
+  texte.push(t);
+ });
+ el.innerHTML=texte.map(t=>`<option value="${esc(t)}"></option>`).join("");
+}
+
 // Der Hinweis "3x benutzt" am Vorschlag - als fertiges Textstueck, damit ihn
 // die drei Suchfelder nicht je selbst zusammensetzen. Leer, solange es
 // nichts zu sagen gibt.
@@ -145,6 +179,10 @@ function renderMain(){
 <td class="money" data-work-rate-cell="${i}">${money(rateFor(w.rateName))}</td>
 <td class="money" data-work-total="${i}">${money(w.hours*rateFor(w.rateName))}</td>
 <td class="no-print"><button class="red" data-del-work="${i}">×</button></td></tr>`).join(""):'<tr><td colspan="8" class="empty">Noch keine Arbeitsposition.</td></tr>';
+
+ // v3.171: Die Vorschlagsliste gehoert zu den Arbeitszeilen - sie wird mit
+ // ihnen zusammen neu aufgebaut.
+ rapportTexteFuellen();
 
  $("matBody").innerHTML=mats.length?mats.map((m,i)=>{
  const x=materialFor(m.no);
@@ -239,6 +277,11 @@ $("workBody").addEventListener("input",e=>{
  }
 });
 $("workBody").addEventListener("change",e=>{
+ // v3.171: Ein fertig geschriebener Satz steht sofort den anderen Zeilen als
+ // Vorschlag zur Verfuegung. BEIM VERLASSEN des Feldes, nicht beim Tippen -
+ // sonst landete jeder halbe Satz in der Liste und der Browser schluege dem
+ // Schreibenden zurueck vor, was er gerade erst halb getippt hat.
+ if(e.target.dataset.wDesc!==undefined){rapportTexteFuellen();return}
  if(e.target.dataset.wDate!==undefined){sortWorksLive();renderMain();return}
  const i=Number(e.target.dataset.wEmp??e.target.dataset.wRate);
  if(Number.isNaN(i))return;

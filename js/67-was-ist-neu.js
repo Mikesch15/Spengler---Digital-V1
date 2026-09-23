@@ -211,7 +211,10 @@ const WIN_CHANGELOG={
   "Das ist ein Hinweis, keine Sperre – die Zeile bleibt sichtbar und bedienbar. Und die App sagt erst etwas, wenn dieselbe Position mindestens dreimal vorgekommen ist; aus einem einzigen Ausmass etwas zu folgern wäre geraten."],
  "3.170":["<b>Arbeitstexte im Regierapport werden vorgeschlagen.</b> Beim Tippen in das Feld „Arbeit“ erscheinen die Sätze, die der Betrieb schon geschrieben hat – die häufigsten zuerst. Das Feld bleibt frei: ein neuer Text lässt sich wie bisher einfach eintippen.",
   "<b>Bei der Zuteilung</b> steht unter der Ankreuzliste, wer bei <b>diesem Auftraggeber</b> sonst zugeteilt ist – zum Antippen. Angekreuzt wird nichts von selbst; die Zuteilung bleibt eine Entscheidung.",
-  "Beides rechnet aus dem, was ohnehin da ist. Der Zuteilungs-Vorschlag braucht dafür nicht einmal eine zusätzliche Abfrage."]
+  "Beides rechnet aus dem, was ohnehin da ist. Der Zuteilungs-Vorschlag braucht dafür nicht einmal eine zusätzliche Abfrage."],
+ "3.171":["<b>Die Arbeitstext-Vorschläge im Regierapport kommen jetzt nur noch aus dem Rapport, der gerade offen ist</b> – nicht mehr aus allen Rapporten der Firma.",
+  "In einem Rapport wiederholt sich dieselbe Arbeit oft über mehrere Tage und Zeilen; genau dort spart ein Vorschlag Tipparbeit. Sätze aus fremden Baustellen waren dabei nur Beiwerk.",
+  "Ein fertig geschriebener Satz steht den anderen Zeilen sofort zur Verfügung – beim Verlassen des Feldes, nicht beim Tippen. Ein frischer Rapport hat noch keine Vorschläge."]
 };
 
 function winVersionVergleich(a,b){

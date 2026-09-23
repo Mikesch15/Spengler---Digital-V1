@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.170.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.171.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1192,13 +1192,15 @@ hier steht, wo genau gearbeitet wurde (z. B. "Dachfläche Nord").</p>`},
 <p>Je Zeile Datum, Beschreibung, Mitarbeiter, Funktion und Stunden.</p>
 <p>Der <b>Ansatz</b> kommt aus der Funktion (Einstellungen → Geschützt →
 Funktionen / Stundenansätze). Das Total rechnet die App.</p>
-<p><b>Das Zählwerk</b> (ab 3.170): Beim Tippen in die <b>Beschreibung</b>
-schlägt die App die Sätze vor, die der Betrieb schon geschrieben hat – die
-häufigsten zuerst. Dieselbe Arbeit muss so nicht jedes Mal neu getippt
-werden.</p>
-<div class="hin">Das Feld bleibt ein <b>freies Feld</b>: ein neuer Text lässt
-sich wie bisher einfach eintippen. Die Liste schlägt vor, sie schreibt
-nichts fest.</div>`},
+<p><b>Vorschläge</b> (ab 3.171): Beim Tippen in die <b>Beschreibung</b>
+schlägt die App die Sätze vor, die <b>in diesem Rapport</b> schon stehen – in
+der Reihenfolge der Zeilen. In einem Rapport wiederholt sich dieselbe Arbeit
+oft über mehrere Tage; genau dort spart das Tipparbeit.</p>
+<div class="hin">Bewusst <b>nur dieser Rapport</b>, nicht alle: Sätze aus
+fremden Baustellen wären hier nur Beiwerk. Ein frischer Rapport hat deshalb
+noch keine Vorschläge – es gibt dann nichts, was sich wiederholen könnte.<br><br>
+Das Feld bleibt ein <b>freies Feld</b>: ein neuer Text lässt sich wie bisher
+einfach eintippen. Die Liste schlägt vor, sie schreibt nichts fest.</div>`},
 
 "rapport-material":{titel:"Material",text:`
 <p>Die EDV-Nr. schlägt aus dem Materialkatalog vor; Bezeichnung, Dimension,
