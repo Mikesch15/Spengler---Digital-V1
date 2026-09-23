@@ -190,7 +190,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.163</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.164</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -397,7 +397,7 @@
 <div id="projectCreateBox">
 <div class="grid" style="margin-bottom:8px">
 <div><label>Projektname</label><input id="newProjectName" data-pflicht="1" placeholder="z. B. Neubau Muster"></div>
-<div><label>Auftrags-Nr.</label><input id="newProjectOrderNo" data-pflicht="1" placeholder="z. B. 176712"></div>
+<div><label>Auftrags-Nr. <span class="small">(je Firma nur einmal)</span></label><input id="newProjectOrderNo" data-pflicht="1" placeholder="z. B. 176712"></div>
 <div><label>Adresse</label><input id="newProjectObject" data-pflicht="1" placeholder="z. B. Musterstrasse 1, 3000 Bern"></div>
 <div><label>Auftraggeber</label><input id="newProjectCustomer" placeholder="optional"></div>
 </div>
@@ -490,7 +490,7 @@
 <div id="cockpitStammdaten" hidden>
 <div class="grid">
 <div><label>Projektname</label><input id="cockpitName" data-pflicht="1"></div>
-<div><label>Auftrags-Nr.</label><input id="cockpitOrderNo" data-pflicht="1"></div>
+<div><label>Auftrags-Nr. <span class="small">(je Firma nur einmal)</span></label><input id="cockpitOrderNo" data-pflicht="1"></div>
 <div><label>Adresse</label><input id="cockpitObject" data-pflicht="1"></div>
 <div><label>Auftraggeber</label><input id="cockpitCustomer"></div>
 <!-- v3.160: Freie Notiz zum Projekt. Sie steht bewusst hier bei den
@@ -2133,7 +2133,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.163.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 93 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.164.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 94 Seiten)</a></div>
 </div>
 </div>
 
@@ -2813,7 +2813,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.163.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.164.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

@@ -335,7 +335,14 @@ async function wsSendeEinen(e){
  if(e.art==="insert"){
   const {data,error}=await sb.from(e.tabelle)
    .insert({...ohneBilder,created_at:e.erstellt,updated_at:jetzt}).select().maybeSingle();
-  if(error)return {status:"fehler",fehler:error.message};
+  // v3.164: Ein offline angelegtes Projekt kann auf eine Auftrags-Nr.
+  // treffen, die inzwischen jemand anderes vergeben hat - das sieht die
+  // Vorpruefung auf dem Geraet nicht, weil sie beim Erfassen noch frei
+  // war. Der rohe Postgres-Text waere hier unbrauchbar; der Eintrag
+  // bleibt wie jeder Fehlschlag in der Warteschlange stehen, jetzt aber
+  // mit einer Meldung, aus der hervorgeht, was zu tun ist.
+  if(error)return {status:"fehler",
+    fehler:(typeof auftragsNrKonfliktText==="function"&&auftragsNrKonfliktText(error))||error.message};
   if(!data)return {status:"fehler",fehler:"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"};
   zeilenId=data.id;
   if(e.tmpId)wsIdKarte[e.tmpId]=data.id;

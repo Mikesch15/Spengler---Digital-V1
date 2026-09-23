@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.163.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.164.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -494,8 +494,20 @@ und Dateien – nicht nur über Änderungen am Projektnamen.</p>
 <p>Archivierte Projekte erscheinen hier nicht.</p>`},
 
 "projekte":{titel:"Projekte",text:`
-<p>Ein Projekt braucht <b>Projektname und Adresse</b>. Auftrags-Nr. und
-Auftraggeber sind freiwillig, werden aber in den Regierapport übernommen.</p>
+<p>Ein Projekt braucht <b>Projektname, Auftrags-Nr. und Adresse</b>. Der
+Auftraggeber ist freiwillig. Auftrags-Nr. und Auftraggeber werden in den
+Regierapport übernommen.</p>
+<p><b>Die Auftrags-Nr. gibt es je Firma nur einmal</b> (ab 3.164). Wird eine
+Nummer eingegeben, die schon vergeben ist, meldet die App, zu welchem Projekt
+sie gehört, und speichert nicht. So entstehen nicht zwei Projekte zur selben
+Baustelle, auf die sich Massaufnahmen, Rapporte und Ausmasse dann aufteilen
+würden.</p>
+<div class="hin">Verglichen wird ohne Rand-Leerzeichen und ohne Gross-/
+Kleinschreibung: „176712", „176712&nbsp;" und „A-77" / „a-77" gelten je als
+dieselbe Nummer. Archivierte Projekte zählen mit – eine bereits benutzte
+Nummer bleibt belegt, sonst wäre später nicht mehr nachvollziehbar, zu
+welchem Auftrag ein alter Rapport gehört. Andere Firmen haben ihre eigenen
+Nummernkreise und stören sich gegenseitig nicht.</div>
 <p><b>Suchen:</b> das Suchfeld durchsucht Adresse, Projektname, Auftrags-Nr.
 und Auftraggeber.</p>
 <p><b>Status:</b> wird von Hand gesetzt und beschreibt den geschäftlichen

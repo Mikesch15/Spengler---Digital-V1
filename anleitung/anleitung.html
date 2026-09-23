@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.163";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.164";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.163<br>
+  Version 3.164<br>
   Stand 22. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -307,11 +307,31 @@ archiviert – ein abgeschlossenes Projekt bleibt sichtbar, bis es jemand bewuss
 archiviert. Status und Archiv sind unabhängig voneinander.</p>
 
 <h3>Ein Projekt anlegen</h3>
-<p>Pflicht sind <strong>Projektname und Adresse</strong>. Auftrags-Nr. und Auftraggeber
-sind freiwillig, erleichtern aber das Wiederfinden und werden in den Regierapport
-übernommen.</p>
+<p>Pflicht sind <strong>Projektname, Auftrags-Nr. und Adresse</strong>. Der Auftraggeber
+ist freiwillig. Auftrags-Nr. und Auftraggeber werden in den Regierapport übernommen
+und erleichtern das Wiederfinden.</p>
 <div class="hin">Pflichtfelder tragen überall in der App einen <strong style="color:#b3261e">roten Stern</strong>.
 Ohne sie lässt sich nicht speichern.</div>
+
+<h3>Die Auftrags-Nr. gibt es je Firma nur einmal</h3>
+<p>Seit 3.164 prüft die App beim Anlegen und beim Bearbeiten der Stammdaten, ob die
+eingegebene Auftrags-Nr. in der Firma schon vergeben ist. Ist sie das, wird
+<strong>nicht gespeichert</strong>; stattdessen meldet die App, zu welchem Projekt die
+Nummer gehört – mit Adresse und Projektname, damit es sich sofort finden lässt.</p>
+<p>Der Grund ist nicht Ordnungsliebe: entsteht dieselbe Baustelle zweimal, verteilen
+sich Massaufnahmen, Regierapporte und Ausmasse auf zwei Projekte. In der Werkstatt
+fällt das erst auf, wenn die Hälfte fehlt.</p>
+<div class="hin">Verglichen wird <strong>ohne Rand-Leerzeichen und ohne Gross-/
+Kleinschreibung</strong>: „176712“ und „176712&nbsp;“ sind dieselbe Nummer, ebenso
+„A-77“ und „a-77“. <strong>Archivierte Projekte zählen mit</strong> – eine einmal
+benutzte Nummer bleibt belegt, sonst wäre später nicht mehr nachvollziehbar, zu
+welchem Auftrag ein alter Rapport gehört. Jede Firma hat ihren eigenen
+Nummernkreis; zwei Firmen stören sich nicht gegenseitig.</div>
+<p>Die Sperre liegt nicht nur in der Bedienoberfläche, sondern in der Datenbank
+selbst. Sie greift deshalb auch dann, wenn zwei Leute im selben Moment speichern
+oder wenn ein Gerät eine veraltete Projektliste hat. Ein ohne Internet angelegtes
+Projekt, dessen Nummer in der Zwischenzeit vergeben wurde, bleibt beim Senden in der
+Warteschlange stehen und meldet genau das.</p>
 
 <h2 class="seite">6 · Das Projekt-Cockpit</h2>
 <p>Das Cockpit ist der Arbeitsplatz eines Projekts. Von hier wird alles angelegt und
@@ -353,7 +373,9 @@ weitere Karte dazu: <span class="tasten">🧱 Material &amp; Zuschnitt</span> mi
 Fortschritt und einem Knopf auf die gemeinsame Arbeitsseite.</p>
 <p>Über <span class="tasten">✏️ Stammdaten bearbeiten</span> lassen sich Projektname,
 Adresse, Auftrags-Nr. und Auftraggeber ändern. Es gibt dafür bewusst nur diese eine
-Stelle.</p>
+Stelle. Für die Auftrags-Nr. gilt dabei dieselbe Regel wie beim Anlegen (Abschnitt 5):
+sie darf je Firma nur einmal vorkommen. Die eigene Nummer unverändert zu speichern ist
+selbstverständlich kein Konflikt.</p>
 <p>Im selben Formular steht seit 3.160 das Feld <strong>Wichtige Hinweise</strong> –
 eine freie Notiz zum Projekt: „Baustellenzufahrt nur bis 16:00 Uhr“, „Schlüssel beim
 Hauswart“, „Anfahrt über den Hinterhof“. Gemeint ist, was für <em>jeden</em> gilt, der

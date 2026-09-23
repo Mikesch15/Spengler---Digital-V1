@@ -700,6 +700,14 @@ $("addProject").onclick=async()=>{
  if(!name){alert("Bitte einen Projektnamen eingeben.");return}
  if(!orderNo){alert("Bitte eine Auftrags-Nr. eingeben.");return}
  if(!address){alert("Bitte eine Adresse eingeben.");return}
+ // v3.164: Eine Auftrags-Nr. gibt es je Firma nur einmal. Diese
+ // Vorpruefung ist die freundliche Stufe - sie nennt das bestehende
+ // Projekt, bevor ueberhaupt gespeichert wird. Die verbindliche Sperre
+ // steht in der Datenbank (eindeutiger Index), siehe js/01-basis.js.
+ // Sie greift auch offline, weil offline angelegte Projekte mit
+ // wartet:true schon in allProjects stehen.
+ const schon=projektMitAuftragsNr(orderNo);
+ if(schon){alert(auftragsNrBelegtText(orderNo,schon));return}
  // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04). Das
  // Projekt bekommt eine temporaere ID, damit eine gleich danach erfasste
  // Massaufnahme schon darauf zeigen kann - beim Senden wird sie durch die
@@ -733,7 +741,10 @@ $("addProject").onclick=async()=>{
   customer:$("newProjectCustomer").value.trim(),
   object:address
  });
- if(error){alert("Fehler: "+error.message);return}
+ // v3.164: Die Datenbank hat das letzte Wort. Sie faengt den Fall, den
+ // die Vorpruefung oben nicht sehen konnte - eine veraltete Projektliste
+ // auf diesem Geraet oder zwei Leute, die gleichzeitig speichern.
+ if(error){alert(auftragsNrKonfliktText(error)||("Fehler: "+error.message));return}
  $("newProjectName").value="";$("newProjectOrderNo").value="";$("newProjectCustomer").value="";$("newProjectObject").value="";
  const {data}=await sb.from("projects").select("*").order("name");
  allProjects=data||[];

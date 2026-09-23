@@ -1164,6 +1164,12 @@ $("cockpitSaveStammdaten").onclick=async()=>{
  if(!name){zeige("Bitte einen Projektnamen eingeben.","var(--red)");return}
  if(!orderNo){zeige("Bitte eine Auftrags-Nr. eingeben.","var(--red)");return}
  if(!object){zeige("Bitte eine Adresse eingeben.","var(--red)");return}
+ // v3.164: Eine Auftrags-Nr. gibt es je Firma nur einmal. Hier wird die
+ // Nummer eines BESTEHENDEN Projekts geaendert - deshalb wird das Projekt
+ // selbst von der Suche ausgenommen, sonst meldete sich jedes Speichern
+ // ohne Aenderung der Nummer als Konflikt mit sich selbst.
+ const schon=projektMitAuftragsNr(orderNo,p.id);
+ if(schon){zeige(auftragsNrBelegtText(orderNo,schon).replace(/\n+/g," "),"var(--red)");return}
  const {data,error}=await sb.from("projects")
   // v3.160: hinweis wird mitgeschrieben. Leer bedeutet "kein Hinweis" und
   // wird als null gespeichert, nicht als Leerstring - sonst muesste jede
@@ -1176,7 +1182,9 @@ $("cockpitSaveStammdaten").onclick=async()=>{
            hinweis:(($("cockpitHinweis")&&$("cockpitHinweis").value.trim())||null),
            zugeteilt_an:cockpitZuteilungGewaehlt()})
   .eq("id",p.id).select("*");
- if(error){zeige("Fehler: "+error.message,"var(--red)");return}
+ // v3.164: Die Datenbank hat das letzte Wort - sie faengt die veraltete
+ // Projektliste und das gleichzeitige Speichern auf zwei Geraeten.
+ if(error){zeige(auftragsNrKonfliktText(error)||("Fehler: "+error.message),"var(--red)");return}
  // Von RLS blockierte UPDATEs melden keinen Fehler, sie betreffen still
  // 0 Zeilen (siehe CLAUDE.md 24.1) - deshalb das Ergebnis prüfen, statt
  // Erfolg anzunehmen.

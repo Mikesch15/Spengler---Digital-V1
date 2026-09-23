@@ -566,6 +566,84 @@ function projektIstMeines(p,profilId){
  return liste.indexOf(String(profilId))>=0;
 }
 
+// ---- Auftrags-Nr.: je Firma nur einmal (v3.164) -------------------
+// Eine Auftrags-Nr. bezeichnet genau einen Auftrag. Zwei Projekte mit
+// derselben Nummer bedeuten in der Praxis, dass jemand dasselbe Projekt
+// ein zweites Mal angelegt hat - danach liegen Massaufnahmen, Rapporte
+// und Ausmasse verteilt auf zwei Eintraegen und niemand merkt es.
+//
+// Die VERBINDLICHE Sperre steht in der Datenbank (eindeutiger Index
+// projects_firma_auftragsnr_eindeutig). Nur sie ist zuverlaessig: sie
+// greift auch dann, wenn zwei Geraete im selben Moment speichern oder
+// wenn die Projektliste auf einem Geraet veraltet ist. Die Funktionen
+// hier sind die freundliche Vorstufe davon - sie sagen VOR dem Speichern,
+// welches Projekt die Nummer schon hat.
+//
+// Verglichen wird normalisiert: ohne Rand-Leerzeichen, ohne Gross-/
+// Kleinschreibung. Exakt dieselbe Normalisierung steht im Index
+// (lower(btrim(order_no))) - sonst wuerden Oberflaeche und Datenbank
+// unterschiedlich urteilen, und der Anwender bekaeme mal eine schoene,
+// mal eine rohe Fehlermeldung.
+function auftragsNrSchluessel(wert){
+ return String(wert==null?"":wert).trim().toLowerCase();
+}
+
+// Gibt es in dieser Firma schon ein Projekt mit dieser Auftrags-Nr.?
+// Liefert das Projekt oder null.
+//
+// ausserId: die id des Projekts, das gerade bearbeitet wird - es
+// kollidiert nicht mit sich selbst. Beim Anlegen bleibt das leer.
+//
+// Gesucht wird in allProjects. Das ist die vollstaendige Projektliste
+// der eigenen Firma (RLS sorgt dafuer, dass gar nichts anderes drin
+// sein kann) - ARCHIVIERTE EINGESCHLOSSEN. Das ist Absicht: eine Nummer
+// eines archivierten Projekts noch einmal zu vergeben wuerde die
+// Geschichte des Auftrags unlesbar machen. Offline angelegte Projekte
+// stehen mit wartet:true ebenfalls in der Liste und zaehlen mit.
+function projektMitAuftragsNr(orderNo,ausserId){
+ const k=auftragsNrSchluessel(orderNo);
+ if(!k||!Array.isArray(allProjects))return null;
+ return allProjects.find(p=>p&&auftragsNrSchluessel(p.order_no)===k
+   &&String(p.id)!==String(ausserId==null?"":ausserId))||null;
+}
+
+// Der Warntext dazu - eine Quelle fuer alle Stellen, die ihn zeigen
+// (Projekt anlegen, Stammdaten bearbeiten). Er NENNT das Projekt, das
+// die Nummer schon hat: "schon vergeben" allein laesst den Anwender
+// suchen, "vergeben an ..." laesst ihn nachsehen.
+function auftragsNrBelegtText(orderNo,p){
+ const wer=[p&&p.object,p&&p.name].map(x=>String(x||"").trim()).filter(Boolean).join(" · ")
+   ||("Projekt Nr. "+String(p&&p.id||"?"));
+ const zusatz=p&&p.wartet?" (wartet noch auf die Übertragung)"
+   :(p&&p.archived?" (archiviert)":"");
+ return "Die Auftrags-Nr. "+String(orderNo||"").trim()+" gibt es in dieser Firma schon:\n\n"
+  +wer+zusatz+"\n\n"
+  +"Eine Auftrags-Nr. darf nur einmal vergeben werden. Dieses Projekt "
+  +"besteht also bereits – bitte dort weiterarbeiten oder eine andere "
+  +"Auftrags-Nr. eingeben.";
+}
+
+// Dieselbe Aussage, wenn die DATENBANK die Doppelung meldet statt die
+// Vorpruefung oben. Das passiert, wenn die Projektliste auf diesem
+// Geraet veraltet war oder zwei Leute gleichzeitig gespeichert haben -
+// und beim Senden aus der Warteschlange (js/43). Ohne diese Uebersetzung
+// stuende dort der rohe Postgres-Text ("duplicate key value violates
+// unique constraint ..."), mit dem niemand auf der Baustelle etwas
+// anfangen kann.
+//
+// Erkannt wird am SQLSTATE 23505 zusammen mit dem Indexnamen. Der Code
+// allein wuerde auch andere Eindeutigkeiten dieser Tabelle einfangen.
+function auftragsNrKonfliktText(error){
+ if(!error)return null;
+ const code=String(error.code||"");
+ const text=String(error.message||"")+" "+String(error.details||"");
+ if(code!=="23505"&&!/23505/.test(text))return null;
+ if(text.indexOf("projects_firma_auftragsnr_eindeutig")<0)return null;
+ return "Diese Auftrags-Nr. ist in dieser Firma bereits vergeben – das Projekt "
+  +"besteht schon. Bitte die Projektliste aktualisieren und dort weiterarbeiten "
+  +"oder eine andere Auftrags-Nr. eingeben.";
+}
+
 // ---- Geplanter Montagetermin (v3.160) ----------------------------
 // Ein Tag in Worten: "heute", "morgen", "in 3 Tagen".
 //

@@ -190,7 +190,10 @@ const WIN_CHANGELOG={
   "Folge davon: „🏠 Start“ verschwindet auch in den Formularen – die Leiste mit „Heute“ liegt jetzt ja darunter."],
  "3.163":["<b>Der letzte Administrator einer Firma kann sich das Recht nicht mehr selbst entziehen.</b> Vorher führte das in eine Sackgasse: ohne Administrator kann niemand mehr Rechte vergeben – auch nicht, um ihn zurückzugeben. Der Haken ist jetzt gesperrt, und die Datenbank weist es zusätzlich ab.",
   "Die Lagerverwaltung steht nicht mehr in den Einstellungen. Sie hat seit 3.157 ihren eigenen Bereich in der Leiste; in den Einstellungen bleiben Materialbestand und Reststücke.",
-  "Projekt → „Mehr …“ → „Dateien, Fotos und Verlauf“ zeigt jetzt genau das – und nicht mehr das ganze Projekt-Cockpit."]
+  "Projekt → „Mehr …“ → „Dateien, Fotos und Verlauf“ zeigt jetzt genau das – und nicht mehr das ganze Projekt-Cockpit."],
+ "3.164":["<b>Eine Auftrags-Nr. gibt es je Firma nur noch einmal.</b> Wird eine Nummer eingegeben, die schon vergeben ist – beim Anlegen eines Projekts oder beim Bearbeiten der Stammdaten – meldet die App, zu welchem Projekt sie gehört, und speichert nicht.",
+  "Damit entstehen nicht mehr zwei Projekte zur selben Baustelle, auf die sich Massaufnahmen, Rapporte und Ausmasse dann aufteilen.",
+  "Verglichen wird ohne Rand-Leerzeichen und ohne Gross-/Kleinschreibung. Archivierte Projekte halten ihre Nummer belegt; andere Firmen haben ihre eigenen Nummernkreise."]
 };
 
 function winVersionVergleich(a,b){
