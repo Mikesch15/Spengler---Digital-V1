@@ -1013,7 +1013,7 @@ function ebaGavaHtml(){
  return `<div class="ra-dehnung">
 <label class="ra-schalter"><input type="checkbox" id="eba_gavaAktiv"${g.aktiv?" checked":""}> GAVA Blech (Haltebleche)</label>
 ${g.aktiv?`<div class="grid">
-${ebaFeld("Abstand (mm)",`<input id="eba_gavaAbstand" type="number" data-pflicht="1" inputmode="numeric" step="1" value="${esc(g.abstand_mm||"")}">${(g.abstand_mm===""||g.abstand_mm===null||g.abstand_mm===undefined)&&typeof vorschlagChip==="function"?vorschlagChip("eba_gavaAbstand",ebaGavaVorgabe()):""}`)}
+${ebaFeld("Abstand (mm)",`<input id="eba_gavaAbstand" type="number" data-pflicht="1" inputmode="numeric" step="1" value="${esc(g.abstand_mm||"")}">${(g.abstand_mm===""||g.abstand_mm===null||g.abstand_mm===undefined)&&typeof vorschlagChip==="function"?vorschlagChip("eba_gavaAbstand",ebaGavaVorgabe(),"einlaufblech_gerade","gava_abstand"):""}`)}
 ${ebaFeld("Anzahl (leer = gerechnet)",`<input id="eba_gavaAnzahl" type="number" inputmode="numeric" step="1" value="${g.anzahl===null||g.anzahl===undefined?"":esc(g.anzahl)}">`)}
 </div>
 <div class="ra-dehnung-zahl"><span>Haltebleche</span><b id="eba_wGava">${n===null?"–":esc(n)+" Stk."}</b>

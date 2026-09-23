@@ -818,9 +818,13 @@ function anbFesteFelderFuellen(w) {
   // v3.67: Vorschlag-Chip mit dem Firmen-Richtwert neben jedem leeren Feld -
   // Antippen uebernimmt ihn (js/01-basis.js), er wird nie still uebernommen.
   const s = anschlussblechSettings || ANSCHLUSSBLECH_STANDARD;
+  // v3.172: der Lernname ist die Feld-ID ohne "anb_" - genau so heisst das
+  // Feld auch im gespeicherten Datensatz (anbDaten, js/20). Das Zaehlwerk
+  // stellt daneben, was tatsaechlich gemessen wurde.
   const chip = (elId, feldId, leer, wert) => {
     const el = $(elId);
-    if (el) el.innerHTML = (leer && typeof vorschlagChip === "function") ? vorschlagChip(feldId, wert) : "";
+    if (el) el.innerHTML = (leer && typeof vorschlagChip === "function")
+      ? vorschlagChip(feldId, wert, "anschlussblech", feldId.replace(/^anb_/, "")) : "";
   };
   chip("anb_saumChip", "anb_saum", w.saum === "" || w.saum === null || w.saum === undefined, s.saum);
   chip("anb_stossLaengeChip", "anb_stossLaenge", w.stossLaenge === "" || w.stossLaenge === null || w.stossLaenge === undefined, s.stoss_laenge);
@@ -842,7 +846,7 @@ function anbMassfelderZeichnen(w) {
     const wert = leer ? "" : Math.round(Number(w[k]) || 0);
     // v3.67: kein echter "Standardwert" hier - der Mindestwert der Norm ist
     // das Naechstbeste, was sich anbieten laesst.
-    const chip = (leer && min !== null && typeof vorschlagChip === "function") ? vorschlagChip("anb_masse_" + k, min) : "";
+    const chip = (leer && min !== null && typeof vorschlagChip === "function") ? vorschlagChip("anb_masse_" + k, min, "anschlussblech", "masse_" + k) : "";
     h += `<div><label>${k} · ${anbEsc(art.masse[k].text || "")}${zusatz} (mm)</label>
 <input id="anb_masse_${k}" type="number" step="1" data-pflicht="1" inputmode="numeric" data-anb="${k}" value="${wert}">${chip}
 <div class="small">${min !== null ? "mindestens " + min + " mm" : "Mass am Bau nehmen"}</div></div>`;
@@ -856,7 +860,7 @@ function anbMassfelderZeichnen(w) {
   const s2 = anschlussblechSettings || ANSCHLUSSBLECH_STANDARD;
   const feld = (id, label, wert, vorschlag) => {
     const leer = wert === "" || wert === null || wert === undefined;
-    const chip = (leer && typeof vorschlagChip === "function") ? vorschlagChip("anb_" + id, vorschlag) : "";
+    const chip = (leer && typeof vorschlagChip === "function") ? vorschlagChip("anb_" + id, vorschlag, "anschlussblech", id) : "";
     return `<div><label>${label} (mm)</label>
 <input id="anb_${id}" type="number" step="1" data-pflicht="1" inputmode="numeric" data-anb="${id}" value="${leer ? "" : Math.round(Number(wert) || 0)}">${chip}</div>`;
   };

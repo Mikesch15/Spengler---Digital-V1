@@ -214,7 +214,10 @@ const WIN_CHANGELOG={
   "Beides rechnet aus dem, was ohnehin da ist. Der Zuteilungs-Vorschlag braucht dafür nicht einmal eine zusätzliche Abfrage."],
  "3.171":["<b>Die Arbeitstext-Vorschläge im Regierapport kommen jetzt nur noch aus dem Rapport, der gerade offen ist</b> – nicht mehr aus allen Rapporten der Firma.",
   "In einem Rapport wiederholt sich dieselbe Arbeit oft über mehrere Tage und Zeilen; genau dort spart ein Vorschlag Tipparbeit. Sätze aus fremden Baustellen waren dabei nur Beiwerk.",
-  "Ein fertig geschriebener Satz steht den anderen Zeilen sofort zur Verfügung – beim Verlassen des Feldes, nicht beim Tippen. Ein frischer Rapport hat noch keine Vorschläge."]
+  "Ein fertig geschriebener Satz steht den anderen Zeilen sofort zur Verfügung – beim Verlassen des Feldes, nicht beim Tippen. Ein frischer Rapport hat noch keine Vorschläge."],
+ "3.172":["<b>Richtwerte aus echten Aufnahmen.</b> Neben dem leeren Massfeld steht bisher der Richtwert aus den Einstellungen. Jetzt steht daneben, was der Betrieb an dieser Stelle <b>wirklich gemessen</b> hat – „3× so gemessen“.",
+  "Weichen die beiden ab, sind es <b>zwei</b> Knöpfe: der hinterlegte Richtwert und die eigene Messung, farblich unterschieden. Der Richtwert verschwindet nie, und eingetragen wird weiterhin nur, was angetippt wird.",
+  "Das gilt in neun Aufnahme-Arten an jedem Feld, das schon bisher einen Richtwert hatte. Gezählt werden nur gemessene Felder – Abwicklung, Zuschnitte und Flächen sind gerechnet und werden nicht zurückgespiegelt. Ab der zweiten Messung sagt die App etwas; eine einzelne Aufnahme ist ein Bau, keine Gewohnheit."]
 };
 
 function winVersionVergleich(a,b){

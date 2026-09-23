@@ -1,7 +1,7 @@
 "use strict";
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes,verwendetRes,zaehlwerkRes,zwArtRes,zwAmRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes,verwendetRes,zaehlwerkRes,zwArtRes,zwAmRes,zwMessRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
@@ -42,6 +42,11 @@ async function loadAllData(){
   // entscheidet, und wandert mit in den Offline-Zwischenspeicher.
   zaehlwerkArtLaden(),
   zaehlwerkAusmassLaden(),
+  // v3.172: vierter Teil - was an den einzelnen Massaufnahme-Feldern
+  // tatsaechlich gemessen wurde (Sicht messwert_nutzung). Gleiche
+  // Behandlung: eigene Fehlerbehandlung, nicht in der Liste unten, und
+  // mit in den Offline-Zwischenspeicher.
+  zaehlwerkMesswertLaden(),
  ]);
  // Offline (v2.70): schlaegt das Laden fehl, wird NICHT stillschweigend
  // eine leere App gezeigt - dann kaeme jede Liste als "nichts vorhanden"
@@ -56,7 +61,8 @@ async function loadAllData(){
   // Materialsuche genauso sortieren wie mit.
   zaehlwerk:zaehlwerkRes||[],
   zaehlwerkArt:zwArtRes||[],
-  zaehlwerkAusmass:zwAmRes||[]};
+  zaehlwerkAusmass:zwAmRes||[],
+  zaehlwerkMesswert:zwMessRes||[]};
  const fehlgeschlagen=[ratesRes,materialsRes,profilesRes,projectsRes,bzRes,rinneRes,measMaterialsRes]
    .some(r=>r&&r.error);
  const firmaId=currentProfile?currentProfile.company_id:null;
@@ -90,6 +96,7 @@ async function loadAllData(){
  if(typeof zwMaterialUebernehmen==="function")zwMaterialUebernehmen(geladen.zaehlwerk);
  if(typeof zwMaterialArtUebernehmen==="function")zwMaterialArtUebernehmen(geladen.zaehlwerkArt);
  if(typeof zwAusmassUebernehmen==="function")zwAusmassUebernehmen(geladen.zaehlwerkAusmass);
+ if(typeof zwMesswertUebernehmen==="function")zwMesswertUebernehmen(geladen.zaehlwerkMesswert);
  if(geladen.appSettings&&geladen.appSettings.company_name)companyName=geladen.appSettings.company_name;
  if(geladen.appSettings){
   companyAddress=geladen.appSettings.company_address||"";

@@ -507,7 +507,7 @@ function madaProfilHtml(){
  return `<div class="grid">
 ${MADA_PROFIL_FELDER.map(f=>{
   const leer=p[f.k]===""||p[f.k]===null||p[f.k]===undefined;
-  const chip=(leer&&typeof vorschlagChip==="function")?vorschlagChip("mada_profil_"+f.k,MADA_PROFIL_VORGABE[f.k]):"";
+  const chip=(leer&&typeof vorschlagChip==="function")?vorschlagChip("mada_profil_"+f.k,MADA_PROFIL_VORGABE[f.k],"mauerabdeckung","profil_"+f.k):"";
   return madaFeld(f.t,
    `<input id="mada_profil_${f.k}" type="number" inputmode="numeric" step="1" data-mada-profil="${f.k}" value="${leer?"":madaZahl(p[f.k])}"${f.pflicht?' data-pflicht="1"':""}>${chip}`);
  }).join("")}

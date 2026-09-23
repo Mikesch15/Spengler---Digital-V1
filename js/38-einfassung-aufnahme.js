@@ -329,9 +329,21 @@ function einfaKarte(titel,inhalt){
  const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,EINFA_REGISTER):"";
  return `<div class="card"><h2>${esc(titel)}${h}</h2>${inhalt}</div>`;
 }
+// v3.172: a, b und c gibt es je Einfassung, die Feld-IDs tragen deshalb
+// eine laufende Nummer ("einfa_a_2"). Gelernt wird ohne sie - es ist
+// dasselbe Mass, nur an einer weiteren Einfassung. Durchmesser, Winkel und
+// Stueckzahl haben keinen Richtwert und stehen bewusst nicht hier.
+const EINFA_LERNFELDER={
+ einfa_lattenabstand:"lattenabstand",
+ einfa_a:"a", einfa_b:"b", einfa_c:"c"
+};
+function einfaLernfeld(id){
+ return EINFA_LERNFELDER[String(id||"").replace(/_\d+$/,"")];
+}
 function einfaZahlFeld(label,id,wert,schritt,pflicht,vorschlag){
  const leer=wert===""||wert===null||wert===undefined;
- const chip=(leer&&typeof vorschlagChip==="function")?vorschlagChip(id,vorschlag):"";
+ const chip=(leer&&typeof vorschlagChip==="function")
+  ?vorschlagChip(id,vorschlag,"einfassung_rund",einfaLernfeld(id)):"";
  return einfaFeld(label,`<input id="${id}" type="number" step="${schritt||1}"${
    pflicht?' data-pflicht="1"':""} inputmode="${
    (schritt&&schritt!=="1")?"decimal":"numeric"}" value="${

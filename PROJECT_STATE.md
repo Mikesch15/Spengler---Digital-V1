@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.171`
+- Aktueller Entwicklungsstand: `v3.172`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 
@@ -26,7 +26,7 @@ Spengler-DIGITAL ist eine modulare Web-App.
 - Row Level Security (RLS)
 - Edge Functions
 
-`sw.js` enthält aktuell die JavaScript-App-Shell der Module `01` bis `65`.
+`sw.js` enthält aktuell die JavaScript-App-Shell der Module `01` bis `71`.
 
 ## ZENTRALER WORKFLOW
 

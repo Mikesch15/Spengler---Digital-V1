@@ -290,3 +290,104 @@ function zwZuteilungVorschlag(p){
   .sort((a,b)=>zaehler[b]-zaehler[a])
   .map(id=>({id,anzahl:zaehler[id]}));
 }
+
+// ===========================================================================
+// Zaehlwerk, vierter Teil  (v3.172)
+// ===========================================================================
+//
+// RICHTWERTE AUS ECHTEN AUFNAHMEN
+//
+// Seit v3.67 steht neben einem leeren Pflichtfeld ein Chip mit dem
+// Richtwert aus den Einstellungen - Antippen uebernimmt ihn, still
+// vorausgefuellt wird nichts. Der Richtwert stammt aber aus dem, was
+// einmal in den Einstellungen hinterlegt wurde, nicht aus dem, was der
+// Betrieb wirklich baut. Wer seit zwei Jahren 340 mm Lattenabstand hat,
+// bekommt weiter 330 mm vorgeschlagen, weil das so in den Einstellungen
+// steht.
+//
+// Ab hier steht daneben, was TATSAECHLICH gemessen wurde - mit der Zahl
+// dazu ("3x so gemessen"). Beide bleiben sichtbar und beide muessen
+// angetippt werden. Die App setzt weiterhin keine Zahl von selbst
+// (Regel 3), und sie versteckt den hinterlegten Richtwert nicht
+// (Regel 1) - sie stellt nur die eigene Erfahrung daneben.
+//
+// WAS GEZAEHLT WIRD UND WAS NICHT
+// Nur GEMESSENE Felder. Abwicklung, Zuschnitte, Flaechen und aus dem
+// Gefaelle abgeleitete Biegewinkel stehen ausdruecklich nicht in der Sicht
+// messwert_nutzung: eine gerechnete Zahl als "so messen wir das" zurueck
+// ins Formular zu spiegeln waere ein Zirkelschluss.
+//
+// DIE FELDNAMEN
+// Gelernt wird unter dem FORMULARNAMEN, nicht unter dem gespeicherten
+// Schluessel - bei der Mauerabdeckung sind die beiden verschieden
+// (Formular "gefaelle", gespeichert "gef"). Die Sicht rechnet das um,
+// damit hier im Frontend genau das steht, was am Feld steht. Gross- und
+// Kleinschreibung zaehlt deshalb bei feld mit ("umschlagVorne"), bei der
+// Art nicht.
+// ===========================================================================
+
+let messwertNutzung=[];
+let zwMesswertKarte=Object.create(null);   // "art\u0000feld" -> [{wert,anzahl,zuletzt}]
+
+// Ab wann ist eine Messung ein Richtwert?
+//
+// Eine einzelne Aufnahme ist keine Gewohnheit, sondern ein Bau. Erst ab
+// der zweiten Messung desselben Feldes sagt die App etwas - vorher
+// bleibt alles wie vor v3.172. Das ist bewusst niedriger als die Schwelle
+// beim Ausmass (dort drei): dort wird eine Aussage UEBER ein Muster
+// gemacht ("braucht ihr nie"), hier wird nur eine bereits gemessene Zahl
+// zum Antippen angeboten, zusammen mit ihrer Haeufigkeit.
+const ZW_MESSWERT_MINDESTENS=2;
+
+function zwMesswertSchluessel(art,feld){
+ // feld NICHT kleinschreiben: "umschlagVorne" und "umschlagvorne" waeren
+ // sonst dasselbe, und die Sicht liefert die Schreibweise des Formulars.
+ return zwSchluessel(art)+"\u0000"+String(feld==null?"":feld).trim();
+}
+function zwMesswertUebernehmen(zeilen){
+ messwertNutzung=Array.isArray(zeilen)?zeilen:[];
+ zwMesswertKarte=Object.create(null);
+ messwertNutzung.forEach(z=>{
+  const art=zwSchluessel(z&&z.art), feld=String((z&&z.feld)||"").trim();
+  if(!art||!feld)return;
+  const wert=Number(z&&z.wert), anzahl=Number(z&&z.anzahl)||0;
+  if(!Number.isFinite(wert)||wert<=0||anzahl<=0)return;
+  const k=zwMesswertSchluessel(art,feld);
+  (zwMesswertKarte[k]||(zwMesswertKarte[k]=[])).push(
+    {wert:wert,anzahl:anzahl,zuletzt:String((z&&z.zuletzt)||"")});
+ });
+}
+
+// Der meistgemessene Wert dieses Feldes - oder null, solange es zu wenig
+// gibt. Bei Gleichstand gewinnt der zuletzt gemessene: "gleich oft" heisst
+// nicht "gleich aktuell", und wer umgestellt hat, will nicht den alten
+// Wert vorgeschlagen bekommen.
+//
+// gesamt ist die Zahl ALLER Messungen dieses Feldes, anzahl nur die des
+// vorgeschlagenen Wertes. Beides wird gebraucht: die Schwelle haengt an
+// gesamt, die Beschriftung an anzahl.
+function zwMesswertRichtwert(art,feld){
+ const liste=zwMesswertKarte[zwMesswertSchluessel(art,feld)];
+ if(!liste||!liste.length)return null;
+ let gesamt=0;
+ liste.forEach(x=>{ gesamt+=x.anzahl });
+ if(gesamt<ZW_MESSWERT_MINDESTENS)return null;
+ const beste=liste.slice().sort((a,b)=>{
+  if(b.anzahl!==a.anzahl)return b.anzahl-a.anzahl;
+  return String(b.zuletzt).localeCompare(String(a.zuletzt));
+ })[0];
+ return {wert:beste.wert, anzahl:beste.anzahl, gesamt:gesamt, zuletzt:beste.zuletzt};
+}
+
+// ---- Laden ----------------------------------------------------------------
+// Wie die uebrigen Zaehlwerk-Lader: faengt seine Fehler selbst ab und
+// liefert dann null. Ohne die Sicht verhaelt sich jeder Chip exakt wie
+// vor v3.172.
+async function zaehlwerkMesswertLaden(){
+ try{
+  const {data,error}=await sb.from("messwert_nutzung")
+    .select("art,feld,wert,anzahl,zuletzt");
+  if(error)return null;
+  return data||[];
+ }catch(e){ return null }
+}

@@ -782,9 +782,33 @@ function dfaKarte(titel,inhalt){
 function dfaFeld(label,inhalt,voll){
  return `<div${voll?' style="grid-column:1/-1"':""}><label>${esc(label)}</label>${inhalt}</div>`;
 }
+// v3.172: wie bei der Kamineinfassung - links die Feld-ID, rechts der
+// Schluessel im gespeicherten Datensatz (dfaDaten, js/66). a und d liegen
+// als {l,r}; beide Seiten lernen unter demselben Namen. b, c, f, g und die
+// Winkel haben keinen Richtwert und werden nicht gelernt.
+const DFA_LERNFELDER={
+ dfa_lattenabstand:"lattenabstand",
+ dfa_ueberlappung:"ueberlappung",
+ dfa_aufVorne:"aufVorne",
+ dfa_aufHinten:"aufHinten",
+ dfa_saumVorne:"saumVorne",
+ dfa_breiteOben:"breiteOben",
+ dfa_breiteUnten:"breiteUnten",
+ dfa_randAbstand:"randAbstand",
+ dfa_randStrich:"randStrich",
+ dfa_e:"e",
+ dfa_eUmschlag:"eUmschlag",
+ dfa_anreiff:"anreiff",
+ dfa_anreiffUmschlag:"anreiffUmschlag",
+ dfa_umschlagVorne:"umschlagVorne",
+ dfa_umschlagSeite:"umschlagSeite",
+ dfa_a_l:"a", dfa_a_r:"a",
+ dfa_d_l:"d", dfa_d_r:"d"
+};
 function dfaZahlFeld(label,id,wert,schritt,pflicht,vorschlag){
  const leer=wert===""||wert===null||wert===undefined;
- const chip=(leer&&typeof vorschlagChip==="function")?vorschlagChip(id,vorschlag):"";
+ const chip=(leer&&typeof vorschlagChip==="function")
+  ?vorschlagChip(id,vorschlag,"dachfenstereinfassung",DFA_LERNFELDER[id]):"";
  return dfaFeld(label,`<input id="${id}" type="number" step="${schritt||1}"${
    pflicht?' data-pflicht="1"':""} inputmode="${
    (schritt&&schritt!=="1")?"decimal":"numeric"}" value="${

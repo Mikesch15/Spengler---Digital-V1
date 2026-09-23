@@ -793,9 +793,26 @@ function kamaKarte(titel,inhalt){
 function kamaFeld(label,inhalt,voll){
  return `<div${voll?' style="grid-column:1/-1"':""}><label>${esc(label)}</label>${inhalt}</div>`;
 }
+// v3.172: Welches Feld lernt das Zaehlwerk unter welchem Namen? Links die
+// Feld-ID, rechts der Schluessel im gespeicherten Datensatz (kamaDaten,
+// js/37). Die seitenabhaengigen Masse a und d liegen dort als {l,r} - beide
+// Seiten lernen unter demselben Namen, denn es ist dasselbe Mass.
+// Hier stehen NUR Felder mit einem Richtwert; b, c, f, g, Hoehe, Keil und
+// die Winkel sind reine Bauwerksmasse und werden nicht gelernt.
+const KAM_LERNFELDER={
+ kam_lattenabstand:"lattenabstand",
+ kam_ueberlappung:"ueberlappung",
+ kam_e:"e",
+ kam_umschlagVorne:"umschlagVorne",
+ kam_umschlagHinten:"umschlagHinten",
+ kam_umschlagSeite:"umschlagSeite",
+ kam_a_l:"a", kam_a_r:"a",
+ kam_d_l:"d", kam_d_r:"d"
+};
 function kamaZahlFeld(label,id,wert,schritt,pflicht,vorschlag){
  const leer=wert===""||wert===null||wert===undefined;
- const chip=(leer&&typeof vorschlagChip==="function")?vorschlagChip(id,vorschlag):"";
+ const chip=(leer&&typeof vorschlagChip==="function")
+  ?vorschlagChip(id,vorschlag,"kamineinfassung",KAM_LERNFELDER[id]):"";
  return kamaFeld(label,`<input id="${id}" type="number" step="${schritt||1}"${
    pflicht?' data-pflicht="1"':""} inputmode="${
    (schritt&&schritt!=="1")?"decimal":"numeric"}" value="${

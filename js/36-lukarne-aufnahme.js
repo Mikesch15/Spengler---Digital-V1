@@ -279,9 +279,22 @@ function lukaKarte(titel,inhalt){
 function lukaFeld(label,inhalt,voll){
  return `<div${voll?' style="grid-column:1/-1"':""}><label>${esc(label)}</label>${inhalt}</div>`;
 }
+// v3.172: Welches Feld lernt das Zaehlwerk unter welchem Namen? Nur was
+// hier steht, bekommt einen Vergleich mit den eigenen Aufnahmen. Links die
+// Feld-ID im Formular, rechts der Schluessel im gespeicherten Datensatz
+// (lukaDaten, js/36) - bei der Lukarne heissen beide gleich. Die drei
+// uebrigen Zahlenfelder (Hoehe, Laenge oben, Winkel) sind am Bau gemessene
+// Einzelmasse ohne Richtwert und stehen deshalb bewusst nicht hier.
+const LUKA_LERNFELDER={
+ luka_achsabstand:"achsabstand",
+ luka_hilfsriss:"hilfsriss",
+ luka_zugabeLaenge:"zugabeLaenge",
+ luka_zugabeBreite:"zugabeBreite"
+};
 function lukaZahlFeld(label,id,wert,schritt,pflicht,vorschlag){
  const leer=wert===""||wert===null||wert===undefined;
- const chip=(leer&&typeof vorschlagChip==="function")?vorschlagChip(id,vorschlag):"";
+ const chip=(leer&&typeof vorschlagChip==="function")
+  ?vorschlagChip(id,vorschlag,"lukarne",LUKA_LERNFELDER[id]):"";
  return lukaFeld(label,`<input id="${id}" type="number" step="${schritt||1}"${
    pflicht?' data-pflicht="1"':""} inputmode="${
    (schritt&&schritt!=="1")?"decimal":"numeric"}" value="${leer?"":esc(wert)}">${chip}`);

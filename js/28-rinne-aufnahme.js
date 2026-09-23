@@ -773,7 +773,7 @@ Im Grundriss: ABL = Einhängestutzen &nbsp;·&nbsp; SS = Schiebestutzen &nbsp;·
 function raKomponentenHtml(){
  const a=rinneA, L=raGesamtlaenge(a), vorschlag=raHalterVorschlag(a);
  return `<div class="grid">
-${raFeld("Halterabstand (mm)",`<input id="ra_halterAbstand" type="number" data-pflicht="1" inputmode="numeric" step="10" value="${a.halter.abstand_mm||""}">${!a.halter.abstand_mm&&typeof vorschlagChip==="function"?vorschlagChip("ra_halterAbstand",500):""}`)}
+${raFeld("Halterabstand (mm)",`<input id="ra_halterAbstand" type="number" data-pflicht="1" inputmode="numeric" step="10" value="${a.halter.abstand_mm||""}">${!a.halter.abstand_mm&&typeof vorschlagChip==="function"?vorschlagChip("ra_halterAbstand",500,"rinne_halbrund","halter_abstand"):""}`)}
 ${raFeld("Anzahl Halter",`<input id="ra_halterAnzahl" type="number" inputmode="numeric" step="1" value="${a.halter.anzahl??""}" placeholder="${vorschlag??""}">`)}
 ${raFeld("Haltertyp (optional)",`<input id="ra_halterTyp" value="${esc(a.halter.typ||"")}" placeholder="z. B. Aufschraubhalter">`,true)}
 </div>

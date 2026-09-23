@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.171.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.172.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1279,12 +1279,26 @@ für alle Massaufnahmen mit Rollenblech-Zuschnitt.</p>
 einschränken, welche davon dort verwendet werden.</p>`},
 
 "einst-massvorgaben":{titel:"Vorgabemasse",text:`
-<p>Diese Werte füllen eine <b>neue</b> Massaufnahme vor und sind darin danach
-frei änderbar.</p>
+<p>Diese Werte sind <b>Richtwerte</b>. Seit 3.65 füllen sie eine neue
+Massaufnahme <b>nicht mehr von selbst</b> vor: im Formular steht neben dem
+leeren Feld ein kleiner Knopf mit der Zahl, und erst ein Antippen trägt sie
+ein. So kann kein Mass unbemerkt im Datensatz landen, das für diesen Bau nie
+jemand gemessen hat.</p>
+<p><b>Das Zählwerk</b> (ab 3.172): Daneben steht, was dieser Betrieb an
+derselben Stelle <b>tatsächlich gemessen</b> hat – „3× so gemessen“. Weichen
+Richtwert und eigene Messung voneinander ab, stehen <b>beide</b> Knöpfe da,
+farblich unterschieden; welcher gilt, entscheidet weiterhin die Person am
+Bau. Gezählt wird nur innerhalb der eigenen Firma und nur über wirklich
+gemessene Felder – Abwicklungen, Zuschnitte und Flächen sind gerechnet und
+werden deshalb nicht zurückgespiegelt.</p>
+<p>Ab der <b>zweiten</b> Messung desselben Feldes sagt die App etwas. Eine
+einzelne Aufnahme ist ein Bau, keine Gewohnheit.</p>
 <p>Eine Änderung hier wirkt <b>nie rückwirkend</b> auf bereits erfasste
 Massaufnahmen – eine einmal gespeicherte Massaufnahme rechnet weiter mit den
 Werten, die beim Erfassen galten.</p>
-<p>Die Vorgabemasse gelten je Gerät, nicht firmenweit.</p>`},
+<p>Die Vorgabemasse gelten je Gerät, nicht firmenweit. Die Zählung der
+eigenen Messungen dagegen gilt für die <b>ganze Firma</b>: sie kommt aus den
+gespeicherten Massaufnahmen, nicht vom Gerät.</p>`},
 
 "vorlage":{titel:"Als Vorlage",text:`
 <p>Übernimmt <b>Typ, Material und alle Masse</b> einer bestehenden Massaufnahme

@@ -1,6 +1,6 @@
 *{box-sizing:border-box}
-:root{--blue:#1769aa;--blue-dark:#0f5288;--blue-light:#eaf4fa;--ink:#17242d;--muted:#6b7880;--line:#cbd4d9;--bg:#eef2f6;--green:#16845c;--green-dark:#0f6847;--red:#b42318;--red-light:#fff0ef;--card-bg:#fff;--card-line:#e2e8ec;--input-bg:#fff}
-html.dark{--ink:#e7edf1;--muted:#93a1a9;--line:#33424c;--bg:#141c22;--blue-light:#1c3546;--red-light:#3a1f1d;--card-bg:#1c262e;--card-line:#2a3841;--input-bg:#202b33}
+:root{--blue:#1769aa;--blue-dark:#0f5288;--blue-light:#eaf4fa;--ink:#17242d;--muted:#6b7880;--line:#cbd4d9;--bg:#eef2f6;--green:#16845c;--green-dark:#0f6847;--green-light:#e6f4ee;--red:#b42318;--red-light:#fff0ef;--card-bg:#fff;--card-line:#e2e8ec;--input-bg:#fff}
+html.dark{--ink:#e7edf1;--muted:#93a1a9;--line:#33424c;--bg:#141c22;--blue-light:#1c3546;--green-light:#14332a;--red-light:#3a1f1d;--card-bg:#1c262e;--card-line:#2a3841;--input-bg:#202b33}
 html.dark body{background:linear-gradient(180deg,#171f26,#141c22 240px,var(--bg) 480px)}
 html.dark .modal{background:linear-gradient(180deg,#171f26,#141c22 240px,var(--bg) 480px)}
 html.dark .card{background:var(--card-bg);border-color:var(--card-line)}
@@ -431,6 +431,15 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
  color:var(--blue);font-size:11px;font-weight:700;line-height:1.6;
  cursor:pointer}
 .vorschlag-chip:active{background:var(--blue);color:#fff}
+/* v3.172: der zweite Chip daneben zeigt, was in dieser Firma wirklich
+   gemessen wurde (Zaehlwerk, js/71). Andere Farbe, damit auf einen Blick
+   klar ist, welcher der hinterlegte Richtwert ist und welcher die eigene
+   Erfahrung - verwechseln waere genau hier teuer. */
+.vorschlag-chip.zw-chip{border-color:var(--green);
+ background:var(--green-light);color:var(--green)}
+.vorschlag-chip.zw-chip:active{background:var(--green);color:#fff}
+.vorschlag-chip .zw-zahl{color:inherit;font-weight:900}
+.vorschlag-chip:active .zw-zahl{color:#fff}
 /* Offline-Hinweis (v2.70): deutlich, aber nicht alarmierend. Steht ganz
    oben und nimmt auf dem Handy die volle Breite ein. */
 .offline-hinweis{background:#fff4e5;border:1px solid #f0c48a;color:#8a5300;

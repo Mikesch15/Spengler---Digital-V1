@@ -158,11 +158,39 @@ function raFortschrittHtml(schritt,gesamt){
 // den Wert - der Nutzer sieht die Zahl vorher und bestaetigt sie aktiv,
 // statt dass sie schon unbemerkt im Feld steht. feldId muss die id des
 // Zahlenfelds sein.
-function vorschlagChip(feldId,wert){
+//
+// v3.172: dazu kommt, was der Betrieb an dieser Stelle TATSAECHLICH
+// gemessen hat (Zaehlwerk, js/71). art und feld sind dafuer noetig -
+// die Art der Massaufnahme ("kamineinfassung") und der Name des Feldes,
+// wie er im Formular heisst ("lattenabstand"). Fehlen sie, oder ist das
+// Zaehlwerk nicht geladen, entsteht exakt derselbe Chip wie vorher.
+//
+// Vier Faelle, und in jedem steht die Zahl dabei:
+//   Richtwert, nichts gemessen  -> "Richtwert 330"           (wie bisher)
+//   Richtwert = gemessen        -> "Richtwert 330 · 3× so gemessen"
+//   Richtwert ≠ gemessen        -> zwei Chips nebeneinander
+//   kein Richtwert, aber Messung-> nur "3× gemessen: 360"
+// Der hinterlegte Richtwert verschwindet nie (Zaehlwerk-Regel 1), und
+// uebernommen wird weiterhin nur, was angetippt wird (Regel 3).
+function vorschlagChip(feldId,wert,art,feld){
  const n=Number(wert);
- if(wert===""||wert===null||wert===undefined||!Number.isFinite(n))return "";
- return `<button type="button" class="vorschlag-chip no-print" data-vorschlag-fuer="${feldId}" `
-  +`data-vorschlag-wert="${n}" title="Richtwert übernehmen">Richtwert ${n}</button>`;
+ const hatRichtwert=!(wert===""||wert===null||wert===undefined)&&Number.isFinite(n);
+ const gelernt=(art&&feld&&typeof zwMesswertRichtwert==="function")
+  ?zwMesswertRichtwert(art,feld):null;
+ const knopf=(w,text,zusatz)=>`<button type="button" class="vorschlag-chip no-print${zusatz||""}" `
+  +`data-vorschlag-fuer="${feldId}" data-vorschlag-wert="${w}" `
+  +`title="${zusatz?"Gemessenen Wert übernehmen":"Richtwert übernehmen"}">${text}</button>`;
+ if(!hatRichtwert){
+  if(!gelernt)return "";
+  return knopf(gelernt.wert,
+    `<span class="zw-zahl">${gelernt.anzahl}×</span> gemessen: ${gelernt.wert}`," zw-chip");
+ }
+ if(!gelernt)return knopf(n,"Richtwert "+n);
+ if(gelernt.wert===n)
+  return knopf(n,`Richtwert ${n} · <span class="zw-zahl">${gelernt.anzahl}×</span> so gemessen`);
+ return knopf(n,"Richtwert "+n)
+  +knopf(gelernt.wert,
+    `<span class="zw-zahl">${gelernt.anzahl}×</span> gemessen: ${gelernt.wert}`," zw-chip");
 }
 // Eine einzige, ganz oben delegierte Stelle fuer alle Vorschlag-Chips der
 // App - jedes Modul erzeugt nur die Chip-Markierung, das Uebernehmen passiert
@@ -177,10 +205,15 @@ document.addEventListener("click",e=>{
  feld.dispatchEvent(new Event("input",{bubbles:true}));
  feld.dispatchEvent(new Event("change",{bubbles:true}));
  feld.focus();
- // Der Chip verschwindet sofort, auch wenn das Modul das Feld aus
+ // Die Chips verschwinden sofort, auch wenn das Modul das Feld aus
  // Fokus-Gruenden nicht komplett neu zeichnet (siehe die vielen "live"-
- // Funktionen in den Aufnahme-Modulen).
- chip.remove();
+ // Funktionen in den Aufnahme-Modulen). Seit v3.172 koennen es ZWEI sein
+ // (Richtwert und eigene Messung) - es gehen beide weg, sonst stuende
+ // neben dem jetzt gefuellten Feld noch ein Vorschlag.
+ const ziel=chip.dataset.vorschlagFuer;
+ document.querySelectorAll(".vorschlag-chip").forEach(c=>{
+  if(c.dataset.vorschlagFuer===ziel)c.remove();
+ });
 });
 
 function isAdmin(){
