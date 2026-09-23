@@ -166,8 +166,11 @@ async function renderRecentProjects(){
 $("recentProjectsList").addEventListener("click",async e=>{
  const b=e.target.closest("[data-open-recent]");
  // Bewusst dieselbe Funktion wie die Projektkarte - kein zweites
- // Projekt-Oeffnungssystem.
- if(b)await openProjectCockpit(Number(b.dataset.openRecent));
+ // Projekt-Oeffnungssystem. v3.166: das ist jetzt projektOeffnen() aus
+ // js/01, damit auch dieser Weg in der neuen Ansicht auf der Projektseite
+ // landet. Die Karte ist dort zwar heute ausgeblendet - aber genau auf
+ // dieses Argument hin blieb die Luecke in der Werkstatt jahrelang stehen.
+ if(b)await projektOeffnen(Number(b.dataset.openRecent));
 });
 // Statusfilter (v2.46): rein clientseitig auf dem bereits geladenen,
 // RLS-gefilterten allProjects - keine zusaetzliche Abfrage. Die Filter-
@@ -773,14 +776,20 @@ $("toggleArchivedProjects").onclick=()=>{
 $("projectList").addEventListener("click",async e=>{
  const cockpit=e.target.closest("[data-open-cockpit]");
  if(cockpit){
-  await openProjectCockpit(Number(cockpit.dataset.openCockpit));
+  // v3.166: ueber projektOeffnen() (js/01). In der neuen Ansicht ist die
+  // Projektliste ein Bereich IN dieser Ansicht - ein Klick darf von dort
+  // nicht ins vollstaendige alte Cockpit fuehren, sondern auf die
+  // Projektseite mit ihren Registern.
+  await projektOeffnen(Number(cockpit.dataset.openCockpit));
   return;
  }
  // v2.47: "Bearbeiten" ist kein zweites Formular, sondern derselbe
  // Cockpit-Stammdatenbereich - nur gleich aufgeklappt geoeffnet.
  const bearb=e.target.closest("[data-edit-project]");
  if(bearb){
-  await openProjectCockpitZumBearbeiten(Number(bearb.dataset.editProject));
+  // v3.166: derselbe Grund wie eine Zeile hoeher - in der neuen Ansicht
+  // gehoeren hier nur die Stammdatenfelder hin, nicht das ganze Cockpit.
+  await projektStammdatenOeffnen(Number(bearb.dataset.editProject));
   return;
  }
  const arch=e.target.closest("[data-archive-project]");

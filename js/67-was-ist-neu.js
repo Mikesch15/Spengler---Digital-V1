@@ -196,7 +196,10 @@ const WIN_CHANGELOG={
   "Verglichen wird ohne Rand-Leerzeichen und ohne Gross-/Kleinschreibung. Archivierte Projekte halten ihre Nummer belegt; andere Firmen haben ihre eigenen Nummernkreise."],
  "3.165":["<b>In der Rapportliste steht jetzt, worum es in jedem Rapport geht.</b> Unter den Kopfdaten: die Arbeitstexte, die Stundensumme und die Anzahl Materialzeilen – in der Projektliste, in der neuen Ansicht und in der Rapport-Übersicht.",
   "Vorher sahen fünf Rapporte zur selben Baustelle alle gleich aus; man musste jeden einzeln öffnen.",
-  "Die Zeile wird abgeleitet, nicht getippt: sie gilt rückwirkend für alle bestehenden Rapporte und ändert sich mit, wenn jemand die Arbeitszeilen anpasst. Ist nichts erfasst, bleibt sie weg."]
+  "Die Zeile wird abgeleitet, nicht getippt: sie gilt rückwirkend für alle bestehenden Rapporte und ändert sich mit, wenn jemand die Arbeitszeilen anpasst. Ist nichts erfasst, bleibt sie weg."],
+ "3.166":["<b>Ein Projekt geht jetzt überall auf der Projektseite auf</b> – auch wenn der Klick aus der <b>Werkstatt</b>, aus der Projektliste oder aus der Suche kommt. Vorher klappte dort mitten in der neuen Ansicht das vollständige alte Cockpit auf.",
+  "„Bearbeiten“ in der Projektliste zeigt ebenfalls nur noch die Stammdatenfelder statt des ganzen Cockpits.",
+  "Ein Suchtreffer auf eine einzelne Massaufnahme, ein Ausmass oder einen Rapport führt weiterhin ins Cockpit: nur dort springt die App an genau diesen Eintrag und hebt ihn hervor."]
 };
 
 function winVersionVergleich(a,b){

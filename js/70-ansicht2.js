@@ -924,14 +924,7 @@ document.addEventListener("click",async e=>{
 
  const projekt=e.target.closest("[data-a2-projekt]");
  if(projekt){
-  const id=projekt.getAttribute("data-a2-projekt");
-  // Seit v3.151 fuehrt das in die eigene Projektseite (sechs Register), nicht
-  // mehr ins klassische Cockpit. Das Cockpit bleibt ueber "Mehr" erreichbar -
-  // dort stehen Dateien und Verlauf, die hier nicht nachgebaut sind.
-  if(!a2Projekt(id)){a2Zeichnen();return}       // fremde/geloeschte ID: nichts tun
-  a2Zustand.seite="projekt"; a2Zustand.projektId=id; a2Zustand.reg="uebersicht";
-  window.scrollTo(0,0);
-  await a2ProjektLaden(id);
+  await a2ProjektOeffnen(projekt.getAttribute("data-a2-projekt"));
   return;
  }
 
@@ -1059,16 +1052,7 @@ document.addEventListener("click",async e=>{
   }
   // Stammdaten aendert man im Cockpit - ein zweites Formular dafuer waere
   // ein zweiter Schreibweg auf dieselben vier Felder.
-  if(was==="stammdaten"&&typeof openProjectCockpitZumBearbeiten==="function"){
-   a2AusNeuerAnsicht=true;
-   // v3.162: mit Marke - sonst steht hier das ganze Cockpit samt
-   // Arbeitsstand und allen Arbeitsbereichen, und die vier Felder, um die
-   // es geht, liegen darunter.
-   const auf=await a2BereichStarten("projectCockpitModal","Stammdaten","projekte",
-    ()=>openProjectCockpitZumBearbeiten(Number(a2Zustand.projektId)),"a2-nur-stammdaten");
-   if(!auf)a2AusNeuerAnsicht=false;
-   return;
-  }
+  if(was==="stammdaten"){ await a2StammdatenOeffnen(a2Zustand.projektId); return }
   return;
  }
 });
@@ -1144,6 +1128,51 @@ function a2Lei(){
 }
 
 // ---- Laden ----------------------------------------------------------------
+// Die Stammdaten eines Projekts in der NEUEN Ansicht oeffnen.
+//
+// Stammdaten aendert man im Cockpit - ein zweites Formular dafuer waere ein
+// zweiter Schreibweg auf dieselben Felder. Mit Marke (v3.162), sonst steht
+// dort das ganze Cockpit samt Arbeitsstand und allen Arbeitsbereichen, und
+// die Felder, um die es geht, liegen darunter.
+//
+// v3.166: auch das ist jetzt EINE Stelle - gerufen aus "Mehr" und aus der
+// Projektliste ("Bearbeiten"), die vorher direkt ins volle Cockpit sprang.
+async function a2StammdatenOeffnen(id){
+ if(typeof openProjectCockpitZumBearbeiten!=="function")return false;
+ // Wie bei a2ProjektOeffnen: ein offener Bereich (etwa die Projektliste,
+ // aus der geklickt wurde) wird ueber seinen eigenen Knopf geschlossen.
+ if(a2Zustand.bereich)a2BereichSchliessen();
+ a2AusNeuerAnsicht=true;
+ const auf=await a2BereichStarten("projectCockpitModal","Stammdaten","projekte",
+  ()=>openProjectCockpitZumBearbeiten(Number(id)),"a2-nur-stammdaten");
+ if(!auf)a2AusNeuerAnsicht=false;
+ return auf;
+}
+
+// Ein Projekt in der NEUEN Ansicht oeffnen - die eine Stelle dafuer.
+//
+// Seit v3.151 fuehrt das in die eigene Projektseite (sechs Register), nicht
+// mehr ins klassische Cockpit. Das Cockpit bleibt ueber "Mehr" erreichbar -
+// dort stehen Dateien und Verlauf, die hier nicht nachgebaut sind.
+//
+// v3.166: Gerufen wird das jetzt auch von aussen - aus der Werkstatt und aus
+// der Projektliste, ueber projektOeffnen() in js/01. Vorher sprangen diese
+// beiden Wege an der neuen Ansicht vorbei direkt ins alte Cockpit (gemeldet:
+// "wenn ich ueber die werkstatt ein projekt direkt oeffne, oeffnet sich noch
+// komplett die alte ansicht").
+async function a2ProjektOeffnen(id){
+ if(!a2Projekt(id)){ a2Zeichnen(); return false }  // fremde/geloeschte ID: nichts tun
+ // Kommt der Sprung aus einem offenen Bereich - Werkstatt, Projektliste,
+ // Suche -, wird der zuerst ueber seinen EIGENEN Schliessen-Knopf zugemacht.
+ // Das Fenster einfach zu verstecken wuerde den Aufraeumteil dieses Knopfes
+ // ueberspringen (er stellt u. a. den Startschirm wieder her).
+ if(a2Zustand.bereich)a2BereichSchliessen();
+ a2Zustand.seite="projekt"; a2Zustand.projektId=id; a2Zustand.reg="uebersicht";
+ window.scrollTo(0,0);
+ await a2ProjektLaden(id);
+ return true;
+}
+
 async function a2ProjektLaden(id){
  a2ProjLaedt=true; a2ProjFehler="";
  a2Zeichnen();

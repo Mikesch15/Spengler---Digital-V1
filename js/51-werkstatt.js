@@ -905,9 +905,16 @@ document.addEventListener("click",async e=>{
  const pro=e.target.closest("[data-werk-projekt]");
  if(pro){
   const id=Number(pro.dataset.werkProjekt);
-  if(typeof openProjectCockpit==="function"){
-   const m=$("werkstattModal"); if(m)m.hidden=true;
-   openProjectCockpit(id);
+  // v3.166: ueber projektOeffnen() (js/01) statt direkt ins Cockpit - in
+  // der neuen Ansicht fuehrt der Weg sonst mitten aus der Werkstatt
+  // heraus ins vollstaendige alte Cockpit. Das Fenster schliesst dort
+  // die neue Ansicht selbst (ueber den Schliessen-Knopf der Werkstatt),
+  // deshalb wird es hier nur noch in der klassischen Ansicht versteckt.
+  if(typeof projektOeffnen==="function"){
+   if(!(typeof a2Aktiv==="function"&&a2Aktiv())){
+    const m=$("werkstattModal"); if(m)m.hidden=true;
+   }
+   projektOeffnen(id);
   }
   return;
  }

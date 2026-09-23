@@ -644,6 +644,42 @@ function auftragsNrKonfliktText(error){
   +"oder eine andere Auftrags-Nr. eingeben.";
 }
 
+// ---- Ein Projekt oeffnen (v3.166) --------------------------------
+// Die eine Stelle, die entscheidet, WO ein Projekt aufgeht.
+//
+// Bis v3.165 rief jeder Weg, der ein Projekt oeffnet, direkt
+// openProjectCockpit() - auch dann, wenn die neue Ansicht an war. Aus
+// der Werkstatt heraus (gemeldet) und aus der Projektliste klappte
+// deshalb mitten in der neuen Ansicht das vollstaendige alte Cockpit auf.
+//
+// Jetzt gilt: in der neuen Ansicht die Projektseite, sonst das Cockpit.
+// Die beiden Stellen, die das Cockpit AUSDRUECKLICH wollen - "Dateien,
+// Fotos und Verlauf" und "Stammdaten bearbeiten" in js/70 - rufen
+// weiterhin openProjectCockpit() direkt, mit ihrer Marke. Sie wollen
+// genau diesen Schirm, nicht "ein Projekt".
+//
+// Alles ueber typeof geprueft: js/01 laedt vor js/24 und js/70, und
+// keiner der beiden darf hier eine harte Abhaengigkeit werden.
+async function projektOeffnen(id,treffer){
+ if(typeof a2Aktiv==="function"&&a2Aktiv()&&typeof a2ProjektOeffnen==="function"){
+  await a2ProjektOeffnen(id);
+  return;
+ }
+ if(typeof openProjectCockpit==="function")await openProjectCockpit(id,treffer);
+}
+
+// Dasselbe fuer "Stammdaten bearbeiten". In der neuen Ansicht geht dort der
+// Cockpit-Stammdatenbereich mit seiner Marke auf (nur die Felder), sonst wie
+// bisher der ganze Bereich im klassischen Cockpit.
+async function projektStammdatenOeffnen(id){
+ if(typeof a2Aktiv==="function"&&a2Aktiv()&&typeof a2StammdatenOeffnen==="function"){
+  await a2StammdatenOeffnen(id);
+  return;
+ }
+ if(typeof openProjectCockpitZumBearbeiten==="function")
+  await openProjectCockpitZumBearbeiten(id);
+}
+
 // ---- Worum es in einem Regierapport geht (v3.165) -----------------
 // Die Rapportliste eines Projekts zeigte bis v3.164 nur Kopfdaten:
 // Datum, Auftrags-Nr., Auftraggeber, Objekt. Bei fuenf Rapporten zur
