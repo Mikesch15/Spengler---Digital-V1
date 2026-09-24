@@ -223,7 +223,10 @@ const WIN_CHANGELOG={
   "Abwicklung, Montageseite und Kehlenabwicklung starten mit einer fest einprogrammierten Vorgabe (250 mm, von links, 500 mm). Genau die darf der Hinweis in Frage stellen. Hat jemand selbst etwas anderes gewählt, schweigt die App – eine eigene Entscheidung wird nicht kommentiert."],
  "3.174":["<b>„Was die App gelernt hat“.</b> Eine Seite, auf der alles steht, was das Zählwerk über diese Firma weiss – Material, Material je Art, Masse, Auswahlen und die selten gebrauchten Ausmass-Positionen. Dazu jeweils, wo es in der App auftaucht. Zu finden unter <b>Mehr</b> (neue Ansicht) oder auf dem Startbildschirm (klassische Ansicht).",
   "Die Zahlen sind <b>gerechnet, nicht gespeichert</b>: sie entstehen beim Nachschlagen aus euren Rapporten, Massaufnahmen und Ausmassen. Deshalb lässt sich dort nichts geradebiegen – stimmt eine Zahl nicht, stimmt der Datensatz nicht, aus dem sie kommt.",
-  "<b>Widersprechen geht trotzdem:</b> ein Schalter ganz unten nimmt sämtliche Hinweise zurück. Die App verhält sich dann wie vor Version 3.168. Die Übersicht bleibt stehen, damit nachsehbar ist, worauf gerade verzichtet wird."]
+  "<b>Widersprechen geht trotzdem:</b> ein Schalter ganz unten nimmt sämtliche Hinweise zurück. Die App verhält sich dann wie vor Version 3.168. Die Übersicht bleibt stehen, damit nachsehbar ist, worauf gerade verzichtet wird."],
+ "3.175":["<b>Der Zurück-Knopf oben links geht jetzt einen Schritt, nicht zwei.</b> Lag über einem Bereich noch ein Dialog, schloss der Knopf den <b>Bereich darunter</b> – der Dialog blieb stehen. Für den Anwender sah es aus, als passiere nichts; in Wirklichkeit war der Bereich darunter stillschweigend weg.",
+  "Jetzt geht zuerst der oberste Schirm zu. Liegt nichts darüber, schliesst der Knopf wie bisher den Bereich beziehungsweise führt von der Projektseite in die Projektliste zurück.",
+  "Ausserdem behoben: die neue Seite „Was die App gelernt hat“ räumte die Kopfzeile nicht auf, wenn man sie über ihren eigenen Knopf verliess – danach zeigte die Kopfzeile einen Bereich an, den es nicht mehr gab."]
 };
 
 function winVersionVergleich(a,b){

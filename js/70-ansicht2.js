@@ -125,7 +125,8 @@ const A2_BEREICHE={
  systemAdminModal:  {zu:"closeSystemAdmin"},
  matZuModal:        {zu:"matZuZurueck"},
  projectCockpitModal:{zu:"cockpitBack"},
- projectsModal:     {zu:"closeProjects"}
+ projectsModal:     {zu:"closeProjects"},
+ zaehlwerkModal:    {zu:"closeZaehlwerk"}
 };
 
 // Oeffnet einen Bereich ueber den vorhandenen Weg der App und merkt sich,
@@ -149,6 +150,33 @@ async function a2BereichStarten(id,name,tab,oeffner,marke){
 const A2_MARKEN=["a2-nur-anlegen","a2-nur-liste","a2-nur-lager","a2-nur-stammdaten",
  "a2-nur-dateien"];
 function a2BereichMarkenWeg(el){ if(el)A2_MARKEN.forEach(m=>el.classList.remove(m)) }
+// v3.175: Welcher Schirm liegt gerade ZUOBERST?
+//
+// Gemeldet: "an einigen Orten funktioniert der Zurueck-Knopf oben links
+// nicht". Nachgestellt: Bereich Einstellungen offen, darueber ein zweiter
+// Dialog. Der Knopf oben links blieb anklickbar und schloss den BEREICH
+// DARUNTER - der Dialog blieb stehen. Fuer den Anwender passiert also
+// scheinbar nichts, und der Bereich unter dem Dialog ist stillschweigend
+// weg.
+//
+// Die Reihenfolge kommt aus js/54 (zurueckSchirme), der einzigen Stelle,
+// die mitschreibt, welcher Schirm wann aufgegangen ist. Eine eigene
+// Buchfuehrung waere eine zweite Meinung darueber, wo man gerade ist - und
+// die beiden waeren nach dem ersten Sonderweg verschieden.
+//
+// unter: der Schirm, den der Knopf eigentlich meint (der Bereich), oder
+// null auf der Projektseite - dort darf ueberhaupt nichts offen sein.
+// Rueckgabe: die id des Schirms, der zuerst weg muss, sonst null.
+function a2SchirmDarueber(unter){
+ if(typeof zurueckSchirme==="undefined"||!Array.isArray(zurueckSchirme))return null;
+ const oberster=zurueckSchirme[zurueckSchirme.length-1];
+ if(!oberster||oberster===unter)return null;
+ // Wirklich noch offen: js/54 raeumt seinen Stapel selbst auf, aber sein
+ // Beobachter laeuft erst nach dem naechsten Zug.
+ if(typeof zurueckOffen==="function"&&!zurueckOffen($(oberster)))return null;
+ return oberster;
+}
+
 // Schliesst den offenen Bereich ueber seinen eigenen Knopf.
 function a2BereichSchliessen(){
  const b=a2Zustand.bereich;
@@ -964,6 +992,15 @@ document.addEventListener("click",async e=>{
  // Zurueck von der Projektseite in die Projektliste
  const bereichZu=e.target.closest("[data-a2-bereich-zu]");
  if(bereichZu&&$("a2Screen")&&$("a2Screen").contains(bereichZu)){
+  // v3.175: Liegt ueber dem Bereich noch ein Dialog, geht ZUERST der weg.
+  // Der Knopf tut damit, was er verspricht: einen Schritt zurueck - und
+  // nicht zwei auf einmal, von denen man einen nicht sieht.
+  //
+  // Die Pruefung steht hier und NICHT in a2BereichSchliessen(): die
+  // Funktion wird auch programmatisch gerufen (a2ProjektOeffnen, v3.166),
+  // und dort soll sie den Bereich tatsaechlich schliessen.
+  const drueber=a2SchirmDarueber(a2Zustand.bereich?a2Zustand.bereich.id:null);
+  if(drueber&&typeof zurueckSchliesse==="function"){ zurueckSchliesse(drueber); return }
   a2BereichSchliessen();
   a2Zeichnen();
   return;
@@ -971,6 +1008,11 @@ document.addEventListener("click",async e=>{
 
  const zurueck=e.target.closest("[data-a2-zurueck]");
  if(zurueck&&$("a2Screen")&&$("a2Screen").contains(zurueck)){
+  // Dasselbe auf der Projektseite: liegt ein Formular darueber, waere ein
+  // Sprung in die Projektliste ein Schritt zu weit - und der Anwender
+  // stuende danach vor einem Formular ueber einer fremden Liste.
+  const drueber=a2SchirmDarueber(null);
+  if(drueber&&typeof zurueckSchliesse==="function"){ zurueckSchliesse(drueber); return }
   a2Zustand.seite="projekte"; a2Zustand.projektId=null;
   a2Zeichnen(); window.scrollTo(0,0);
   return;
