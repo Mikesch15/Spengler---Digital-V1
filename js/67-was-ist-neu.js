@@ -217,7 +217,10 @@ const WIN_CHANGELOG={
   "Ein fertig geschriebener Satz steht den anderen Zeilen sofort zur Verfügung – beim Verlassen des Feldes, nicht beim Tippen. Ein frischer Rapport hat noch keine Vorschläge."],
  "3.172":["<b>Richtwerte aus echten Aufnahmen.</b> Neben dem leeren Massfeld steht bisher der Richtwert aus den Einstellungen. Jetzt steht daneben, was der Betrieb an dieser Stelle <b>wirklich gemessen</b> hat – „3× so gemessen“.",
   "Weichen die beiden ab, sind es <b>zwei</b> Knöpfe: der hinterlegte Richtwert und die eigene Messung, farblich unterschieden. Der Richtwert verschwindet nie, und eingetragen wird weiterhin nur, was angetippt wird.",
-  "Das gilt in neun Aufnahme-Arten an jedem Feld, das schon bisher einen Richtwert hatte. Gezählt werden nur gemessene Felder – Abwicklung, Zuschnitte und Flächen sind gerechnet und werden nicht zurückgespiegelt. Ab der zweiten Messung sagt die App etwas; eine einzelne Aufnahme ist ein Bau, keine Gewohnheit."]
+  "Das gilt in neun Aufnahme-Arten an jedem Feld, das schon bisher einen Richtwert hatte. Gezählt werden nur gemessene Felder – Abwicklung, Zuschnitte und Flächen sind gerechnet und werden nicht zurückgespiegelt. Ab der zweiten Messung sagt die App etwas; eine einzelne Aufnahme ist ein Bau, keine Gewohnheit."],
+ "3.173":["<b>Das Zählwerk lernt jetzt auch die Auswahlfelder.</b> Neben einer noch leeren Auswahl steht, was der Betrieb üblicherweise nimmt – „3× gewählt: Prefa 0.7 braun“. Das gilt fürs <b>Material in jeder Art</b> und dazu für Abwicklung und Montageseite beim Einlaufblech sowie für die Abwicklung der Kehle.",
+  "Damit sind auch <b>Einlaufblech konisch, Freies Profil und Rinne (Profil)</b> dabei. Diese drei haben keine gemessenen Richtwerte: ihre Standardwerte stehen in den Einstellungen und gehen von dort direkt in die Rechnung, im Formular werden sie gar nicht abgefragt. Ein Richtwert-Chip liesse sich dort nur bauen, indem man Felder erfindet, die es fachlich nicht gibt.",
+  "Abwicklung, Montageseite und Kehlenabwicklung starten mit einer fest einprogrammierten Vorgabe (250 mm, von links, 500 mm). Genau die darf der Hinweis in Frage stellen. Hat jemand selbst etwas anderes gewählt, schweigt die App – eine eigene Entscheidung wird nicht kommentiert."]
 };
 
 function winVersionVergleich(a,b){

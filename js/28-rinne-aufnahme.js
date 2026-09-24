@@ -702,7 +702,7 @@ function raGrunddatenHtml(){
  const ausOpt=`<option value="halbrund"${a.ausfuehrung==="halbrund"?" selected":""}>Halbrund</option>`
    +`<option value="eckig"${a.ausfuehrung==="eckig"?" selected":""}>Eckig</option>`;
  return `<div class="grid">
-${raFeld("Material",`<select id="ra_material">${matOpt}</select>`)}
+${raFeld("Material",`<select id="ra_material">${matOpt}</select>`+zwMaterialChip("ra_material","rinne_halbrund",a.material))}
 ${raFeld("Ausführung",`<select id="ra_ausfuehrung">${ausOpt}</select>`)}
 ${raFeld("Rinnengrösse",`<select id="ra_groesse">${rgOpt}</select>`)}
 ${raFeld("Gesamtlänge gemessen (mm, optional)",

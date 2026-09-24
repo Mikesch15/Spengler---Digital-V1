@@ -192,6 +192,47 @@ function vorschlagChip(feldId,wert,art,feld){
   +knopf(gelernt.wert,
     `<span class="zw-zahl">${gelernt.anzahl}×</span> gemessen: ${gelernt.wert}`," zw-chip");
 }
+// v3.173: derselbe Gedanke fuer ein AUSWAHLFELD. Er benutzt bewusst
+// dieselbe Chip-Markierung wie oben, damit das zentrale Uebernehmen weiter
+// unten unveraendert greift - ein <select> nimmt ein zugewiesenes .value
+// genauso an wie ein Zahlenfeld.
+//
+// o.feldId   id des <select>
+// o.art      Massaufnahme-Art ("einlaufblech_konisch")
+// o.feld     Name im gespeicherten Datensatz ("material")
+// o.aktuell  was gerade ausgewaehlt ist
+// o.vorgabe  die fest einprogrammierte Vorgabe des Moduls, falls es eine
+//            gibt (ebaLeer() setzt z.B. Abwicklung 250). Steht das Feld
+//            noch darauf, gilt es wie leer.
+// o.text     macht aus dem gespeicherten Wert etwas Lesbares (bei einer
+//            Material-Id den Namen). Leerer Text = kein Chip.
+// o.erlaubt  die Werte, die die Auswahlliste ueberhaupt kennt.
+//
+// Es gibt bewusst VIER Gruende, aus denen hier nichts erscheint: zu wenig
+// gezaehlt, die Person hat selbst schon etwas anderes gewaehlt, der
+// gelernte Wert steht bereits da, oder er kommt in der Liste gar nicht
+// (mehr) vor. In allen vier Faellen waere ein Chip entweder geraten,
+// bevormundend oder wirkungslos.
+function auswahlChip(o){
+ o=o||{};
+ const g=(typeof zwAuswahlHaeufigste==="function")
+  ?zwAuswahlHaeufigste(o.art,o.feld):null;
+ if(!g)return "";
+ const w=String(g.wert);
+ const akt=String(o.aktuell==null?"":o.aktuell).trim();
+ const aufVorgabe=(o.vorgabe!==undefined&&o.vorgabe!==null
+                   &&akt===String(o.vorgabe).trim());
+ if(akt!==""&&!aufVorgabe)return "";      // eigene Wahl bleibt unkommentiert
+ if(w===akt)return "";                    // steht schon so da
+ if(Array.isArray(o.erlaubt)&&!o.erlaubt.some(x=>String(x)===w))return "";
+ const text=(typeof o.text==="function")?String(o.text(w)||""):w;
+ if(!text)return "";
+ return `<button type="button" class="vorschlag-chip zw-chip no-print" `
+  +`data-vorschlag-fuer="${esc(o.feldId)}" data-vorschlag-wert="${esc(w)}" `
+  +`title="Gewählten Wert übernehmen">`
+  +`<span class="zw-zahl">${g.anzahl}×</span> gewählt: ${esc(text)}</button>`;
+}
+
 // Eine einzige, ganz oben delegierte Stelle fuer alle Vorschlag-Chips der
 // App - jedes Modul erzeugt nur die Chip-Markierung, das Uebernehmen passiert
 // hier zentral. dispatchEvent statt direktem Aufruf, damit jedes Modul mit

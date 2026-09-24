@@ -190,7 +190,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.172</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.173</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -1446,7 +1446,7 @@ mindestens eines von beiden ist nötig.</div>
 <div><label>Deckmaterial</label><select id="anb_deckung"></select></div>
 <div><label>Anschlussart</label><select id="anb_art"></select></div>
 <div><label>Ausf&uuml;hrung</label><select id="anb_ausfuehrung"><option value="seite">Seitenblech (Wand)</option><option value="ort">Ortblech (Giebel)</option></select></div>
-<div><label>Material</label><select id="anb_material" class="meas-material-select"></select></div>
+<div><label>Material</label><select id="anb_material" class="meas-material-select"></select><span id="anb_materialChip"></span></div>
 </div>
 <div class="bar" style="margin-top:6px"><button type="button" class="gray" id="openAnschlussblechSettings">&#9881;&#65039; Standardwerte</button></div>
 </div>
@@ -1553,7 +1553,7 @@ Jedes Profilsegment ist entweder <b>fix</b> (bei jedem St&uuml;ck gleich, eigene
 Es gilt: <b>Abwicklung = Summe der variablen Masse + Summe aller Fixmasse</b>,
 <b>Zuschnittl&auml;nge = L&auml;nge M/M + Ansetzen links + Ansetzen rechts</b>.</div>
 <div class="grid">
-<div><label>Material</label><select id="rp_material" class="meas-material-select"></select></div>
+<div><label>Material</label><select id="rp_material" class="meas-material-select"></select><span id="rp_materialChip"></span></div>
 </div>
 </div>
 </div>
@@ -2136,7 +2136,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.172.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 96 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.173.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 96 Seiten)</a></div>
 </div>
 </div>
 
@@ -2816,7 +2816,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.172.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.173.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

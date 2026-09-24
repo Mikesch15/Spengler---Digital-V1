@@ -374,7 +374,7 @@ wird nicht dargestellt. Die „Breite der gesamten Einfassung“ ist eine eigens
 Rohrdurchmesser + 2× Umschlag + 2× Mass seitlich neben Rohr (beides aus den Einstellungen).
 Deckmaterial und Lattenabstand werden für die Bleilappen gebraucht.</div>
 <div class="grid">
-${einfaFeld("Material",`<select id="einfa_material" data-pflicht="1">${matOpt}</select>`,true)}
+${einfaFeld("Material",`<select id="einfa_material" data-pflicht="1">${matOpt}</select>`+zwMaterialChip("einfa_material","einfassung_rund",a.material),true)}
 ${einfaFeld("Eindeckungsart",`<select id="einfa_deckung">${deckOpt}</select>`)}
 ${einfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","einfa_lattenabstand",a.lattenabstand,"1",true,(einfassungSettings||{}).lattenabstand)}
 </div>

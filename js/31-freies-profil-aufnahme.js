@@ -315,7 +315,7 @@ function fpaGrunddatenHtml(){
                ["rechts","von rechts"],["unten","von unten"]].map(([w,t])=>
   `<option value="${w}"${a.ansicht===w?" selected":""}>${esc(t)}</option>`).join("");
  return `<div class="grid">
-${fpaFeld("Material",`<select id="fpa_material">${matOpt}</select>`)}
+${fpaFeld("Material",`<select id="fpa_material">${matOpt}</select>`+zwMaterialChip("fpa_material","freies_profil",a.material))}
 ${fpaFeld("Konisch (Mass links/rechts je Schenkel)",`<select id="fpa_konisch">${konOpt}</select>`)}
 ${fpaFeld("Ansichtspfeil",`<select id="fpa_ansicht">${ansOpt}</select>`)}
 </div>

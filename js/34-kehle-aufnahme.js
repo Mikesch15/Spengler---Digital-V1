@@ -316,8 +316,8 @@ function keaGrunddatenHtml(){
  return `<div class="info">Material, Breite des Kehlblechs und die Ausführung. Die
 Abwicklung wird gewählt, nicht gerechnet – die Vorlage kennt sie nicht.</div>
 <div class="grid">
-${keaFeld("Material",`<select id="kea_material" data-pflicht="1">${matOpt}</select>`,true)}
-${keaFeld("Abwicklung Kehlblech",`<select id="kea_abwicklung">${abwOpt}</select>`)}
+${keaFeld("Material",`<select id="kea_material" data-pflicht="1">${matOpt}</select>`+zwMaterialChip("kea_material","kehle",a.material),true)}
+${keaFeld("Abwicklung Kehlblech",`<select id="kea_abwicklung">${abwOpt}</select>`+zwWahlChip("kea_abwicklung","kehle","abwicklung",a.abwicklung,500,w=>w+" mm",KEA_ABWICKLUNGEN))}
 ${keaFeld("Ausführung",`<select id="kea_mittelrippe">${mrOpt}</select>`)}
 </div>
 <label class="ra-schalter" style="margin-top:8px"><input type="checkbox" id="kea_firstgehrung"${

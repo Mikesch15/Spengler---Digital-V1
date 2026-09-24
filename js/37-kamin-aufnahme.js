@@ -846,7 +846,7 @@ function kamaGrunddatenHtml(){
 Schnitt längs des Dachs: vorne auf dem Deckmaterial, an den beiden Seiten, hinten mit
 Keil und Aufbug. Deckmaterial und Lattenabstand werden für die Bleilappen gebraucht.</div>
 <div class="grid">
-${kamaFeld("Material",`<select id="kam_material" data-pflicht="1">${matOpt}</select>`,true)}
+${kamaFeld("Material",`<select id="kam_material" data-pflicht="1">${matOpt}</select>`+zwMaterialChip("kam_material","kamineinfassung",a.material),true)}
 ${kamaFeld("Deckungsmaterial",`<select id="kam_deckung">${deckOpt}</select>`)}
 ${kamaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","kam_lattenabstand",a.lattenabstand,"1",true,kaminSettings.lattenabstand)}
 </div>

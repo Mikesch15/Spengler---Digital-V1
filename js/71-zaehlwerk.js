@@ -391,3 +391,128 @@ async function zaehlwerkMesswertLaden(){
   return data||[];
  }catch(e){ return null }
 }
+
+// ===========================================================================
+// Zaehlwerk, fuenfter Teil  (v3.173)
+// ===========================================================================
+//
+// DIE AUSWAHLFELDER
+//
+// v3.172 zaehlt gemessene Zahlen. Bei der Suche nach weiteren Modulen kam
+// heraus, dass drei davon ueberhaupt keine gemessenen Richtwerte haben:
+//
+//   Einlaufblech konisch  Stosslaenge, Ueberlappung, Gehrungs- und
+//                         Endzugabe, Umschlaege stehen in den
+//                         Einstellungen und gehen von dort direkt in die
+//                         Rechnung - im Formular wird nichts davon
+//                         abgefragt.
+//   Freies Profil         hat gar keine Einstellungen. Laenge und Winkel
+//                         je Schenkel sind reine Bauwerksmasse.
+//   Rinne (Profil)        hat kein einziges Eingabefeld; die Aufnahme
+//                         entsteht aus dem Vorgabeprofil und den
+//                         Ansetztypen.
+//
+// Ein Richtwert-Chip liesse sich dort nur bauen, indem man Felder
+// erfindet, die es fachlich nicht gibt. Was diese drei aber sehr wohl
+// haben - wie alle anderen auch - sind AUSWAHLEN, die im Betrieb fast
+// immer gleich ausfallen: das Material vor allem, dazu Abwicklung und
+// Montageseite.
+//
+// WARUM DAS HIER BESONDERS NUETZLICH IST
+// Bei den Zahlenfeldern hat v3.65 das stille Vorausfuellen abgeschafft.
+// Bei den Auswahlen steht dagegen bis heute eine FEST EINPROGRAMMIERTE
+// Vorgabe da: ebaLeer() setzt Abwicklung 250 und Montage "links",
+// keaLeer() setzt Abwicklung 500. Das sind Annahmen aus der Entwicklung,
+// nicht die Gewohnheit dieses Betriebs. Genau da setzt der Hinweis an.
+//
+// WANN DER CHIP ERSCHEINT - UND WANN AUSDRUECKLICH NICHT
+// Nur solange das Feld leer ist ODER noch auf der einprogrammierten
+// Vorgabe steht. Hat die Person selbst etwas gewaehlt, schweigt die App:
+// eine eigene Entscheidung wird nicht kommentiert. Uebernommen wird
+// weiterhin nur, was angetippt wird (Regel 3).
+// ===========================================================================
+
+let auswahlNutzung=[];
+let zwAuswahlKarte=Object.create(null);   // "art\u0000feld" -> [{wert,anzahl,zuletzt}]
+
+function zwAuswahlUebernehmen(zeilen){
+ auswahlNutzung=Array.isArray(zeilen)?zeilen:[];
+ zwAuswahlKarte=Object.create(null);
+ auswahlNutzung.forEach(z=>{
+  const art=zwSchluessel(z&&z.art), feld=String((z&&z.feld)||"").trim();
+  const wert=String((z&&z.wert)==null?"":z.wert).trim();
+  const anzahl=Number(z&&z.anzahl)||0;
+  if(!art||!feld||!wert||anzahl<=0)return;
+  const k=zwMesswertSchluessel(art,feld);
+  (zwAuswahlKarte[k]||(zwAuswahlKarte[k]=[])).push(
+    {wert:wert,anzahl:anzahl,zuletzt:String((z&&z.zuletzt)||"")});
+ });
+}
+
+// Die haeufigste Auswahl - oder null, solange es zu wenig gibt. Dieselbe
+// Schwelle und dieselbe Gleichstandsregel wie bei den Messwerten: was
+// zuletzt gewaehlt wurde, gewinnt. Ein Betrieb, der das Material
+// gewechselt hat, bekommt nicht das alte vorgeschlagen.
+function zwAuswahlHaeufigste(art,feld){
+ const liste=zwAuswahlKarte[zwMesswertSchluessel(art,feld)];
+ if(!liste||!liste.length)return null;
+ let gesamt=0;
+ liste.forEach(x=>{ gesamt+=x.anzahl });
+ if(gesamt<ZW_MESSWERT_MINDESTENS)return null;
+ const beste=liste.slice().sort((a,b)=>{
+  if(b.anzahl!==a.anzahl)return b.anzahl-a.anzahl;
+  return String(b.zuletzt).localeCompare(String(a.zuletzt));
+ })[0];
+ return {wert:beste.wert, anzahl:beste.anzahl, gesamt:gesamt, zuletzt:beste.zuletzt};
+}
+
+// Der lesbare Name eines Massaufnahme-Materials. Ist es aus dem Katalog
+// verschwunden, kommt leerer Text zurueck - dann entfaellt der Chip. Ein
+// Vorschlag, den die Auswahlliste gar nicht mehr kennt, waere ein Knopf
+// ohne Wirkung.
+function zwMaterialName(id){
+ const m=(typeof findMeasurementMaterial==="function")?findMeasurementMaterial(id):null;
+ return m?String(m.name||""):"";
+}
+
+// ---- Laden ----------------------------------------------------------------
+async function zaehlwerkAuswahlLaden(){
+ try{
+  const {data,error}=await sb.from("auswahl_nutzung")
+    .select("art,feld,wert,anzahl,zuletzt");
+  if(error)return null;
+  return data||[];
+ }catch(e){ return null }
+}
+
+// Zwei kurze Huellen, damit die Aufrufe in den Modulen lesbar bleiben.
+//
+// Das Material: die erlaubten Werte sind die Positionen der
+// Massaufnahme-Materialliste. Steht der gelernte Wert nicht mehr darin
+// (Position geloescht), entfaellt der Chip.
+function zwMaterialChip(feldId,art,aktuell){
+ if(typeof auswahlChip!=="function")return "";
+ return auswahlChip({feldId:feldId, art:art, feld:"material",
+  aktuell:aktuell, text:zwMaterialName,
+  erlaubt:(typeof measurementMaterials!=="undefined"&&Array.isArray(measurementMaterials))
+    ?measurementMaterials.map(m=>String(m&&m.id)):null});
+}
+// Alles Uebrige (Abwicklung, Montageseite). vorgabe ist die fest
+// einprogrammierte Vorgabe des Moduls, erlaubt die Werte der Auswahlliste.
+function zwWahlChip(feldId,art,feld,aktuell,vorgabe,text,erlaubt){
+ if(typeof auswahlChip!=="function")return "";
+ return auswahlChip({feldId:feldId, art:art, feld:feld, aktuell:aktuell,
+  vorgabe:vorgabe, text:text, erlaubt:erlaubt});
+}
+
+// Zwei Materialfelder stehen fest in index.html statt in einem Modul
+// (Ort-/Seitenbleche, js/20+js/40, und Rinne, js/26+js/39). Sie koennen
+// den Chip nicht im Aufbau mitliefern und bekommen ihn deshalb
+// nachtraeglich in einen eigenen Platzhalter - dieselbe Markierung,
+// dieselbe Wirkung, dasselbe zentrale Uebernehmen.
+function zwMaterialChipSetzen(selectId,art){
+ const halter=document.getElementById(selectId+"Chip");
+ if(!halter)return;
+ const sel=document.getElementById(selectId);
+ halter.innerHTML=zwMaterialChip(selectId,art,sel?sel.value:"");
+}

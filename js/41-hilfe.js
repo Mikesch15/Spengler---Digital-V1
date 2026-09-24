@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.172.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.173.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -719,7 +719,18 @@ Fotos auf einmal. Vorher entschied das Gerät selbst, was ein Antippen
 Stück zu Stück nicht ändern.</p>
 <p>Das <b>Material</b> kommt aus dem Katalog der Firma (Einstellungen →
 Geschützt → Material). Bei Dachrinne und Mauerabdeckung steuert es
-zusätzlich die Dehnungsabstände.</p>`},
+zusätzlich die Dehnungsabstände.</p>
+<p><b>Das Zählwerk</b> (ab 3.173): Neben einer noch leeren Auswahl steht,
+was dieser Betrieb an derselben Stelle üblicherweise nimmt – „3× gewählt:
+Prefa 0.7 braun“. Antippen übernimmt es. Das gilt fürs Material in jeder
+Art und zusätzlich für <b>Abwicklung</b> und <b>Montageseite</b> beim
+Einlaufblech (gerade und konisch) sowie für die Abwicklung der Kehle.</p>
+<div class="hin">Diese drei Felder starten mit einer fest einprogrammierten
+Vorgabe (Abwicklung 250 mm, Montage von links, Kehle 500 mm). Das sind
+Annahmen aus der Entwicklung, nicht die Gewohnheit eines bestimmten
+Betriebs – deshalb darf der Hinweis sie in Frage stellen. Sobald jemand
+selbst etwas anderes gewählt hat, <b>schweigt die App</b>: eine eigene
+Entscheidung wird nicht kommentiert.</div>`},
 
 "reg-zuschnitt":{titel:"Zuschnitt aus Rolle oder Tafel",text:`
 <p>Ob aus <b>Rollenblech</b> oder aus <b>Tafelmaterial</b> geschnitten wird,

@@ -536,6 +536,7 @@ function newMeasurementWithType(type){
  anbFormularZuruecksetzen();
  if(typeof anbaZuruecksetzen==="function")anbaZuruecksetzen();
  $("anb_material").value="";
+ if(typeof zwMaterialChipSetzen==="function")zwMaterialChipSetzen("anb_material","anschlussblech");
  einfFormularZuruecksetzen();
  if(typeof einfaZuruecksetzen==="function")einfaZuruecksetzen();
  $("einf_material").value="";
@@ -547,6 +548,7 @@ function newMeasurementWithType(type){
  rinneFormularZuruecksetzen();
  if(typeof rpaZuruecksetzen==="function")rpaZuruecksetzen();
  $("rp_material").value="";
+ if(typeof zwMaterialChipSetzen==="function")zwMaterialChipSetzen("rp_material","rinne");
  setMeasProjectField(currentProjectId);
  $("measurementsModal").hidden=true;
  $("measurementEditModal").hidden=false;
@@ -642,6 +644,7 @@ function measFelderAusData(m){
  anbFormularFuellen(m.type==="anschlussblech"?d:null);
  if(typeof anbaFuellen==="function")anbaFuellen(m.type==="anschlussblech"?d:null);
  $("anb_material").value=(m.type==="anschlussblech"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
+ if(typeof zwMaterialChipSetzen==="function")zwMaterialChipSetzen("anb_material","anschlussblech");
  einfFormularFuellen(m.type==="einfassung_rund"?d:null);
  if(typeof einfaFuellen==="function")einfaFuellen(m.type==="einfassung_rund"?d:null);
  $("einf_material").value=(m.type==="einfassung_rund"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
@@ -652,6 +655,7 @@ function measFelderAusData(m){
  rinneFormularFuellen(m.type==="rinne"?d:null);
  if(typeof rpaFuellen==="function")rpaFuellen(m.type==="rinne"?d:null);
  $("rp_material").value=(m.type==="rinne"&&findMeasurementMaterial(d.material))?findMeasurementMaterial(d.material).id:"";
+ if(typeof zwMaterialChipSetzen==="function")zwMaterialChipSetzen("rp_material","rinne");
 }
 
 function openMeasurement(m){

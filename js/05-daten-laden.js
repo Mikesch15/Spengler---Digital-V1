@@ -1,7 +1,7 @@
 "use strict";
 // ---- Daten laden ---------------------------------------------
 async function loadAllData(){
- const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes,verwendetRes,zaehlwerkRes,zwArtRes,zwAmRes,zwMessRes]=await Promise.all([
+ const [ratesRes,materialsRes,profilesRes,projectsRes,appSettingsRes,bzRes,rinneRes,measMaterialsRes,sysRes,restRes,lagerRes,verwendetRes,zaehlwerkRes,zwArtRes,zwAmRes,zwMessRes,zwAuswRes]=await Promise.all([
   sb.from("rates").select("*").order("id"),
   sb.from("materials").select("*").order("edv_nr"),
   sb.from("profiles").select("*").order("first_name"),
@@ -47,6 +47,9 @@ async function loadAllData(){
   // Behandlung: eigene Fehlerbehandlung, nicht in der Liste unten, und
   // mit in den Offline-Zwischenspeicher.
   zaehlwerkMesswertLaden(),
+  // v3.173: fuenfter Teil - die Auswahlfelder (Material, Abwicklung,
+  // Montageseite). Gleiche Behandlung wie die uebrigen Zaehlungen.
+  zaehlwerkAuswahlLaden(),
  ]);
  // Offline (v2.70): schlaegt das Laden fehl, wird NICHT stillschweigend
  // eine leere App gezeigt - dann kaeme jede Liste als "nichts vorhanden"
@@ -62,7 +65,8 @@ async function loadAllData(){
   zaehlwerk:zaehlwerkRes||[],
   zaehlwerkArt:zwArtRes||[],
   zaehlwerkAusmass:zwAmRes||[],
-  zaehlwerkMesswert:zwMessRes||[]};
+  zaehlwerkMesswert:zwMessRes||[],
+  zaehlwerkAuswahl:zwAuswRes||[]};
  const fehlgeschlagen=[ratesRes,materialsRes,profilesRes,projectsRes,bzRes,rinneRes,measMaterialsRes]
    .some(r=>r&&r.error);
  const firmaId=currentProfile?currentProfile.company_id:null;
@@ -97,6 +101,7 @@ async function loadAllData(){
  if(typeof zwMaterialArtUebernehmen==="function")zwMaterialArtUebernehmen(geladen.zaehlwerkArt);
  if(typeof zwAusmassUebernehmen==="function")zwAusmassUebernehmen(geladen.zaehlwerkAusmass);
  if(typeof zwMesswertUebernehmen==="function")zwMesswertUebernehmen(geladen.zaehlwerkMesswert);
+ if(typeof zwAuswahlUebernehmen==="function")zwAuswahlUebernehmen(geladen.zaehlwerkAuswahl);
  if(geladen.appSettings&&geladen.appSettings.company_name)companyName=geladen.appSettings.company_name;
  if(geladen.appSettings){
   companyAddress=geladen.appSettings.company_address||"";

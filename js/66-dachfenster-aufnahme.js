@@ -835,7 +835,7 @@ senkrechte Aufbordung: vorne (mit Saum) niedriger, hinten (mit Trapezform)
 höher – dazwischen die beiden Seitenteile. Deckmaterial und Lattenabstand
 werden für die Bleilappen gebraucht.</div>
 <div class="grid">
-${dfaFeld("Material",`<select id="dfa_material" data-pflicht="1">${matOpt}</select>`,true)}
+${dfaFeld("Material",`<select id="dfa_material" data-pflicht="1">${matOpt}</select>`+zwMaterialChip("dfa_material","dachfenstereinfassung",a.material),true)}
 ${dfaFeld("Deckungsmaterial",`<select id="dfa_deckung">${deckOpt}</select>`)}
 ${dfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","dfa_lattenabstand",a.lattenabstand,"1",true,dfaSettings.lattenabstand)}
 </div>
