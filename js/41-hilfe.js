@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.173.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.174.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -691,6 +691,27 @@ Dokumentation; die übrigen zwölf führen dich über <b>Register</b> Schritt
 für Schritt durch die Erfassung.</p>
 <p>Die Art lässt sich später nicht mehr wechseln – eine falsch gewählte
 Massaufnahme wird gelöscht und neu angelegt.</p>`},
+
+"zaehlwerk":{titel:"Was die App gelernt hat",text:`
+<p>Alles, was das <b>Zählwerk</b> aus den Daten dieser Firma zählt – und wo
+es in der App auftaucht. Bis hierher war die Zählung nur an ihren Wirkungen
+zu erkennen: eine andere Reihenfolge in der Suche, ein Vorschlag am Feld.
+Hier steht sie auf einmal.</p>
+<p><b>Gerechnet, nicht gespeichert.</b> Die Zahlen entstehen beim
+Nachschlagen aus euren Rapporten, Massaufnahmen und Ausmassen. Es gibt
+deshalb nichts, was sich hier geradebiegen liesse: „4× benutzt“ heisst, dass
+es in vier gespeicherten Datensätzen steht. Stimmt die Zahl nicht, stimmt
+einer dieser Datensätze nicht – und der gehört dort korrigiert, wo er
+erfasst wurde. Ein Korrekturfeld an dieser Stelle wäre eine zweite Wahrheit,
+die nach dem ersten vergessenen Fall dauerhaft falsch wäre.</p>
+<p><b>Widersprechen geht trotzdem:</b> der Schalter ganz unten nimmt die
+Hinweise zurück. Die App verhält sich dann wie vor Version 3.168 – keine
+geänderte Reihenfolge, keine Vorschläge, keine Hinweise. Diese Übersicht
+bleibt, damit nachsehbar ist, worauf gerade verzichtet wird. Ändern darf den
+Schalter ein Administrator; er gilt für die ganze Firma.</p>
+<div class="hin">Gezählt wird ausschliesslich innerhalb der <b>eigenen
+Firma</b>. Die Sichten laufen mit <i>security_invoker</i>, es greift also
+dieselbe Zugriffskontrolle wie überall sonst.</div>`},
 
 "meas-kopf":{titel:"Massaufnahme",text:`
 <p>Oben stehen Projekt, Bezeichnung und Datum – sie gelten für die ganze

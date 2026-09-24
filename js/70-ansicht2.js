@@ -767,7 +767,8 @@ function a2SeiteMehr(){
   {id:"suche",      zeichen:"🔍", text:"Suche",                 unter:"Projekte, Massaufnahmen, Rapporte"},
   {id:"einstell",   zeichen:"⚙️", text:"Einstellungen",         unter:"Firma, Katalog, Module"},
   {id:"anleitung",  zeichen:"📖", text:"Anleitung",             unter:"Das ganze Handbuch als PDF"},
-  {id:"feedback",   zeichen:"💬", text:"Feedback geben",        unter:"Fehler melden, Wunsch äussern"}
+  {id:"feedback",   zeichen:"💬", text:"Feedback geben",        unter:"Fehler melden, Wunsch äussern"},
+  {id:"zaehlwerk",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"}
  ];
  if(a2KnopfSichtbar("navAdminMeas"))
   eintraege.push({id:"adminmeas",zeichen:"📋",text:"Alle Massaufnahmen",unter:"Übersicht für die Firmenleitung"});
@@ -1008,6 +1009,9 @@ document.addEventListener("click",async e=>{
    await a2BereichStarten("settingsModal","Einstellungen","mehr",()=>$("settings").click());return}
   if(was==="feedback"&&$("openFeedback")){
    await a2BereichStarten("feedbackModal","Feedback","mehr",()=>$("openFeedback").click());return}
+  if(was==="zaehlwerk"&&typeof openZaehlwerk==="function"){
+   await a2BereichStarten("zaehlwerkModal","Was die App gelernt hat","mehr",
+    ()=>openZaehlwerk());return}
   if(was==="adminmeas"&&$("navAdminMeas")){
    await a2BereichStarten("adminMeasModal","Alle Massaufnahmen","mehr",()=>$("navAdminMeas").click());return}
   if(was==="sysadmin"&&$("navSystemAdmin")){

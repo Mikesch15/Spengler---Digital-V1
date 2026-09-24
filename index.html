@@ -187,10 +187,11 @@
      (js/47-projektmodule.js). Standard ist AUS. -->
 <button id="navAdminMeas" class="gray" hidden>📋 Alle Massaufnahmen</button>
 <button id="navSystemAdmin" class="gray" hidden>⚙️ System-Administration</button>
+<button id="navZaehlwerk" class="gray">📊 Was die App gelernt hat</button>
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.173</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.174</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -678,6 +679,20 @@
 <!-- Grosse Ansicht eines einzelnen Bildes (v2.50) -->
 <!-- v3.05 Ruester und Monteur zuweisen. Die Auswahl kommt aus dem bereits
      geladenen allProfiles (RLS-gefiltert) - keine zweite Mitarbeiterverwaltung. -->
+<!-- v3.174: Was die App gelernt hat. Der Inhalt entsteht vollstaendig in
+     js/72 aus dem, was das Zaehlwerk beim Anmelden geladen hat - es wird
+     hier nichts nachgefragt und nichts zwischengespeichert. -->
+<div id="zaehlwerkModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📊 Was die App gelernt hat <button type="button" class="hilfe-knopf no-print" data-hilfe="zaehlwerk">i</button></h2>
+<div class="small" style="color:var(--muted)">Alles, was aus den Daten dieser Firma gezählt wird – und wo es in der App auftaucht.</div>
+</div>
+<div id="zaehlwerkBody"></div>
+<div class="bar"><button id="closeZaehlwerk" class="gray">← Zurück</button></div>
+</div>
+</div>
+
 <div id="mwZuweisenModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
@@ -2136,7 +2151,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.173.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 96 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.174.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 97 Seiten)</a></div>
 </div>
 </div>
 
@@ -2816,7 +2831,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.173.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.174.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2911,6 +2926,7 @@ nicht neu installieren.</div>
      bleibt FREI - die Liste schlaegt vor, sie schreibt nichts fest. -->
 <datalist id="arbeitstexteListe"></datalist>
 <script src="js/71-zaehlwerk.js"></script>
+<script src="js/72-zaehlwerk-uebersicht.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

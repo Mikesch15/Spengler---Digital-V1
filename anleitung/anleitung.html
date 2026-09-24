@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.173";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.174";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.173<br>
+  Version 3.174<br>
   Stand 22. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -76,12 +76,13 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
 <li><span class="nr">17</span>Suche</li>
 <li><span class="nr">18</span>Änderungsverlauf</li>
 <li><span class="nr">19</span>Einstellungen</li>
-<li><span class="nr">20</span>Feedback</li>
-<li><span class="nr">21</span>System-Administration (nur Betreiber)</li>
-<li><span class="nr">22</span>Auf Handy und Tablet</li>
-<li><span class="nr">23</span>Ohne Internet</li>
-<li><span class="nr">24</span>Begriffe</li>
-<li><span class="nr">25</span>Zu diesem Dokument</li>
+<li><span class="nr">20</span>Was die App gelernt hat</li>
+<li><span class="nr">21</span>Feedback</li>
+<li><span class="nr">22</span>System-Administration (nur Betreiber)</li>
+<li><span class="nr">23</span>Auf Handy und Tablet</li>
+<li><span class="nr">24</span>Ohne Internet</li>
+<li><span class="nr">25</span>Begriffe</li>
+<li><span class="nr">26</span>Zu diesem Dokument</li>
 </ol></nav>
 
 <h2 class="seite">1 · Wofür die App gedacht ist</h2>
@@ -1907,7 +1908,36 @@ oder Weitergeben. <strong>Das Startpasswort wird nur dieses eine Mal angezeigt</
 und lässt sich danach nicht mehr abrufen; geht es verloren, setzt ein Administrator in
 der Mitarbeiterliste ein neues. Beim ersten Anmelden vergibt die Person ein eigenes.</p>
 
-<h2>20 · Feedback</h2>
+<h2>20 · Was die App gelernt hat</h2>
+<p>Die App zählt seit Version 3.168 mit, was dieser Betrieb tatsächlich
+benutzt, misst und wählt – und stellt es an den passenden Stellen nach vorne.
+Unter <span class="tasten">Mehr → Was die App gelernt hat</span> (in der
+klassischen Ansicht: der Knopf auf dem Startbildschirm) steht alles davon auf
+einer Seite:</p>
+<ul>
+<li><strong>Material, das ihr benutzt</strong> – ordnet die EDV-Nr.-Suche.</li>
+<li><strong>Material je Art der Massaufnahme</strong> – was zu <em>dieser</em>
+Arbeit gehört, steht vor der Gesamtzählung.</li>
+<li><strong>Masse, die ihr immer wieder gleich messt</strong> – der zweite
+Knopf neben dem Richtwert.</li>
+<li><strong>Auswahlen, die fast immer gleich ausfallen</strong> – Material,
+Abwicklung, Montageseite.</li>
+<li><strong>Ausmass-Positionen, die selten eine Menge bekommen</strong> – als
+Hinweis, nie als Ausblendung.</li>
+</ul>
+<div class="hin"><strong>Gerechnet, nicht gespeichert.</strong> Die Zahlen
+entstehen beim Nachschlagen aus den vorhandenen Rapporten, Massaufnahmen und
+Ausmassen. Es gibt deshalb nichts, was sich auf dieser Seite geradebiegen
+liesse: „4× benutzt“ heisst, dass es in vier gespeicherten Datensätzen steht.
+Stimmt die Zahl nicht, stimmt einer dieser Datensätze nicht – und der gehört
+dort korrigiert, wo er erfasst wurde.</div>
+<p><strong>Widersprechen</strong> geht über den Schalter am Fuss der Seite. Er
+nimmt sämtliche Hinweise zurück; die App verhält sich dann wie vor Version
+3.168. Die Übersicht bleibt stehen, damit nachsehbar ist, worauf gerade
+verzichtet wird. Ändern darf den Schalter ein Administrator; er gilt für die
+ganze Firma. Gezählt wird ausschliesslich innerhalb der eigenen Firma.</p>
+
+<h2>21 · Feedback</h2>
 <figure><img src="bilder/25-feedback.png"><figcaption>Eine Rückmeldung schreiben – erreichbar über 💬 Feedback geben auf dem Startbildschirm.</figcaption></figure>
 <p>Jeder kann eine Rückmeldung schreiben und einem Bereich zuordnen. Die Auswahlliste
 enthält automatisch alle vorhandenen Massaufnahme- und Ausmass-Arten.</p>
@@ -1916,7 +1946,7 @@ System-Administration (siehe unten) – dort lassen sie sich nach fünf Kriterie
 sortieren, als erledigt markieren und als <strong>Excel-</strong> oder
 <strong>Textdatei</strong> herunterladen.</p>
 
-<h2>21 · System-Administration</h2>
+<h2>22 · System-Administration</h2>
 <figure><img src="bilder/27-systemadmin.png"><figcaption>Die Firmenverwaltung des Betreibers.</figcaption></figure>
 <div class="warn">Dieser Bereich ist <strong>nur für den Betreiber</strong> von
 Spengler-DIGITAL sichtbar, nicht für Firmenadministratoren.</div>
@@ -1930,7 +1960,7 @@ firmenübergreifend nur für Administratoren sichtbar.</p>
 <p class="klein">Es gibt bewusst <strong>keinen</strong> Zugriff auf Projekte,
 Massaufnahmen oder Fotos einzelner Kundenfirmen.</p>
 
-<h2>22 · Auf Handy und Tablet</h2>
+<h2>23 · Auf Handy und Tablet</h2>
 <p>Die App ist für die Bedienung mit dem Finger gebaut: grosse Knöpfe, umbrechende
 Zeilen, kein seitliches Scrollen.</p>
 <figure>
@@ -1958,7 +1988,7 @@ mehr, wohin sie zurückführen könnte.</p>
 <li><strong>Android:</strong> Menü (die drei Punkte) → „App installieren“ bzw. „Zum Startbildschirm“</li>
 </ul>
 
-<h2 class="seite">23 · Ohne Internet</h2>
+<h2 class="seite">24 · Ohne Internet</h2>
 <p>Die App startet, rechnet <strong>und erfasst</strong> auch ohne Verbindung. Ein
 Hinweis oben sagt, dass keine Verbindung besteht und von wann die angezeigten Daten
 stammen.</p>
@@ -1990,7 +2020,7 @@ anderes bearbeitet hat, überschreibt die App <strong>nichts</strong>. Der Eintr
 als Konflikt stehen und fragt: <em>Meine Fassung nehmen</em> oder <em>Meine Fassung
 verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 
-<h2>24 · Begriffe</h2>
+<h2>25 · Begriffe</h2>
 <table>
 <tr><th>Begriff</th><th>Bedeutung</th></tr>
 <tr><td>Offerte</td><td>Was dem Kunden angeboten wurde – unabhängig von Massaufnahme, Produktion und Ausmass (Abschnitt 7).</td></tr>
@@ -2006,7 +2036,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 <tr><td>Register</td><td>Ein Schritt der Erfassung, oben in der Leiste wählbar.</td></tr>
 </table>
 
-<h2 class="seite">25 · Zu diesem Dokument</h2>
+<h2 class="seite">26 · Zu diesem Dokument</h2>
 <p>Diese Anleitung beschreibt <strong>Version 3.153</strong>, Stand 22. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in

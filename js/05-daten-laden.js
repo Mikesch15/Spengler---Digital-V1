@@ -112,6 +112,11 @@ async function loadAllData(){
   rinneNormlaengen=(geladen.appSettings.rinne_normlaengen&&typeof geladen.appSettings.rinne_normlaengen==="object")?geladen.appSettings.rinne_normlaengen:{};
   blechRollenbreiten=Array.isArray(geladen.appSettings.blech_rollenbreiten)?geladen.appSettings.blech_rollenbreiten.map(Number).filter(x=>Number.isFinite(x)&&x>0):[];
   workflowAktiv=(geladen.appSettings.workflow_aktiv!==false);   // v3.07, Vorgabe ein
+  // v3.174: Hinweise aus dem Zaehlwerk. Dieselbe Lesart wie oben - fehlt
+  // die Spalte oder ist sie leer, ist es EIN. Aus heisst: die App verhaelt
+  // sich wie vor v3.168; gezaehlt wird trotzdem weiter, denn gezaehlt wird
+  // ohnehin nur beim Nachschlagen aus den vorhandenen Daten.
+  zaehlwerkAktiv=(geladen.appSettings.zaehlwerk_aktiv!==false);
   // v3.09 erweiterter Projekt-/Material-/Werkstattworkflow. Fehlt die
   // Spalte oder ist sie leer, ist alles aus - das ist der Standard.
   if(typeof pmUebernehmen==="function")pmUebernehmen(geladen.appSettings.projektmodule);

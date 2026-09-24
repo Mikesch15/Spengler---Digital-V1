@@ -440,6 +440,14 @@ table.rp-profiltabelle,table.rp-table{width:100%;min-width:0;border-collapse:col
 .vorschlag-chip.zw-chip:active{background:var(--green);color:#fff}
 .vorschlag-chip .zw-zahl{color:inherit;font-weight:900}
 .vorschlag-chip:active .zw-zahl{color:#fff}
+/* v3.174: Uebersicht "Was die App gelernt hat" (js/72). Sie steht in
+   BEIDEN Ansichten, gehoert deshalb hierher und nicht in 05-ansicht2.css. */
+.zwu-karte{margin-top:10px}
+.zwu-wozu{font-size:12px;color:var(--muted);line-height:1.45;margin:0 0 10px}
+.zwu-leer{font-size:12px;color:var(--muted);font-style:italic;padding:6px 0}
+.zwu-mehr{font-size:11px;color:var(--muted);margin-top:6px}
+.zwu-name{color:var(--muted);font-weight:400}
+.zwu-tab td,.zwu-tab th{font-size:12px}
 /* Offline-Hinweis (v2.70): deutlich, aber nicht alarmierend. Steht ganz
    oben und nimmt auf dem Handy die volle Breite ein. */
 .offline-hinweis{background:#fff4e5;border:1px solid #f0c48a;color:#8a5300;

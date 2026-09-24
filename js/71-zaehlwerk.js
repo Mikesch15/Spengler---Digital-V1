@@ -51,6 +51,18 @@ let materialNutzung=[];
 // hunderte Eintraege waere dort spuerbar.
 let zwMaterialKarte=Object.create(null);
 
+// v3.174: der Schalter je Firma (app_settings.zaehlwerk_aktiv, geladen in
+// js/05). Er sperrt die HINWEISE, nicht die Zaehlung: die Uebersicht "Was
+// die App gelernt hat" (js/72) zeigt weiter, was gezaehlt wurde - sonst
+// koennte niemand nachsehen, worauf er gerade verzichtet.
+//
+// Die Sperre sitzt in den sechs Funktionen, die etwas HERAUSGEBEN. Damit
+// ist sie an einer Stelle je Aussage und nicht an jedem Aufrufer: die
+// Materialsuche sortiert dann mit lauter Nullen, also gar nicht mehr, und
+// jeder Hinweistext wird leer. Genau das Verhalten von vor v3.168.
+let zaehlwerkAktiv=true;
+function zwAn(){ return zaehlwerkAktiv!==false }
+
 // EDV-Nummern werden ohne Rand-Leerzeichen und ohne Gross-/Kleinschreibung
 // verglichen - dieselbe Ueberlegung wie bei der Auftrags-Nr. (js/01).
 function zwSchluessel(wert){
@@ -78,6 +90,7 @@ function zwMaterialUebernehmen(zeilen){
 // Wie oft hat diese Firma diese Position benutzt? 0, wenn noch nie oder
 // wenn das Zaehlwerk nicht geladen werden konnte.
 function zwMaterialAnzahl(edvNr){
+ if(!zwAn())return 0;
  const e=zwMaterialKarte[zwSchluessel(edvNr)];
  return e?e.anzahl:0;
 }
@@ -162,7 +175,7 @@ function zwMaterialArtUebernehmen(zeilen){
 }
 // Wie oft wurde diese Position an DIESER Art Massaufnahme erfasst?
 function zwMaterialAnzahlArt(art,edvNr){
- if(!art)return 0;
+ if(!zwAn()||!art)return 0;
  return zwArtKarte[zwArtSchluessel(art,edvNr)]||0;
 }
 
@@ -224,6 +237,7 @@ function zwAusmassUebernehmen(zeilen){
  });
 }
 function zwAusmassZahlen(text){
+ if(!zwAn())return null;
  return zwAusmassKarte[zwSchluessel(text)]||null;
 }
 // Leerer Text, solange nichts Belastbares dasteht. Es wird lieber nichts
@@ -277,6 +291,7 @@ async function zaehlwerkAusmassLaden(){
 // Kunde hat oft mehrere Objekte, und wer seine Baustellen betreut, ist
 // meistens dieselbe Person.
 function zwZuteilungVorschlag(p){
+ if(!zwAn())return [];
  const kunde=String((p&&p.customer)||"").trim().toLowerCase();
  if(!kunde||!Array.isArray(allProjects))return [];
  const zaehler=Object.create(null);
@@ -367,6 +382,7 @@ function zwMesswertUebernehmen(zeilen){
 // vorgeschlagenen Wertes. Beides wird gebraucht: die Schwelle haengt an
 // gesamt, die Beschriftung an anzahl.
 function zwMesswertRichtwert(art,feld){
+ if(!zwAn())return null;
  const liste=zwMesswertKarte[zwMesswertSchluessel(art,feld)];
  if(!liste||!liste.length)return null;
  let gesamt=0;
@@ -454,6 +470,7 @@ function zwAuswahlUebernehmen(zeilen){
 // zuletzt gewaehlt wurde, gewinnt. Ein Betrieb, der das Material
 // gewechselt hat, bekommt nicht das alte vorgeschlagen.
 function zwAuswahlHaeufigste(art,feld){
+ if(!zwAn())return null;
  const liste=zwAuswahlKarte[zwMesswertSchluessel(art,feld)];
  if(!liste||!liste.length)return null;
  let gesamt=0;
