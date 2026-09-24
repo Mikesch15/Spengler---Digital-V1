@@ -59,8 +59,20 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
    "GEGENPROBE: die alte Beschriftung „＋ Material hinzufügen\" gibt es nicht mehr",werte);
  p(/Materialposition/.test(texte.newMaterial||""),
    "der Regiematerial-Knopf nennt die Materialposition",texte.newMaterial);
- p(/Massaufnahmen/.test(texte.newMeasMaterial||""),
-   "der Massaufnahme-Knopf nennt die Massaufnahmen",texte.newMeasMaterial);
+ // Seit v3.176 heisst dieser Begriff in der ganzen App "Werkstoff" (Kupfer,
+ // Titanzink, ...) - die Karte darueber heisst "Werkstoffe". Bis v3.175 hiess
+ // er "Material fuer Massaufnahmen", weil er keinen eigenen Namen hatte; die
+ // Pruefung stand deshalb auf dem Wort "Massaufnahmen". Der VERTRAG ist
+ // unveraendert ("der Knopf sagt, WAS er anlegt"), nur der Begriff ist heute
+ // ein anderer - also wird hier der heutige Begriff geprueft, nicht der alte.
+ p(/Werkstoff/.test(texte.newMeasMaterial||""),
+   "der Werkstoff-Knopf nennt den Werkstoff",texte.newMeasMaterial);
+ // GEGENPROBE gegen den Rueckfall in die alte, nichtssagende Beschriftung:
+ // "＋ Material" allein sagt nicht, was angelegt wird - genau der gemeldete
+ // Befund von v3.140. Er darf auch unter dem neuen Begriff nicht zurueck.
+ p(!/^＋\s*Material\s*$/.test((texte.newMeasMaterial||"").trim())
+   &&!/^＋\s*Material hinzuf/.test((texte.newMeasMaterial||"").trim()),
+   "GEGENPROBE: er heisst nicht wieder blosses „＋ Material\"",texte.newMeasMaterial);
  p(/Blitzschutz/.test(texte.newBzMaterial||""),
    "der Blitzschutz-Knopf nennt den Blitzschutz",texte.newBzMaterial);
  p(/Blech|Rolle|Tafel/.test(texte.lagerNeu||""),
