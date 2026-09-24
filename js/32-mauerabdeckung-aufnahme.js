@@ -391,7 +391,7 @@ function madaGrunddatenHtml(){
   .join("");
  const t=madaMaterialTabelle();
  return `<div class="grid">
-${madaFeld("Material",`<select id="mada_material" data-pflicht="1">${opt}</select>`+zwMaterialChip("mada_material","mauerabdeckung",madA.material),true)}
+${madaFeld("Werkstoff",`<select id="mada_material" data-pflicht="1">${opt}</select>`+zwMaterialChip("mada_material","mauerabdeckung",madA.material),true)}
 </div>
 <div class="info" style="margin-top:10px">Das Material bestimmt die zulässigen Abstände
 zwischen zwei Schiebern. Die Werte kommen aus dem Material-Katalog

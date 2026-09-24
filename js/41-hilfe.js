@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.175.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.176.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -738,9 +738,13 @@ Fotos auf einmal. Vorher entschied das Gerät selbst, was ein Antippen
 "reg-grunddaten":{titel:"Grunddaten",text:`
 <p>Was für die ganze Massaufnahme gilt: Material und die Masse, die sich von
 Stück zu Stück nicht ändern.</p>
-<p>Das <b>Material</b> kommt aus dem Katalog der Firma (Einstellungen →
-Geschützt → Material). Bei Dachrinne und Mauerabdeckung steuert es
-zusätzlich die Dehnungsabstände.</p>
+<p>Der <b>Werkstoff</b> (Kupfer, Titanzink …) kommt aus der Liste der Firma
+(Einstellungen → Massaufnahmen → Werkstoffe). Bei Dachrinne und
+Mauerabdeckung steuert er zusätzlich die Dehnungsabstände.</p>
+<p>Bis Version 3.175 hiess dieses Feld „Material“ – genauso wie der
+Materialkatalog im Regierapport und der Materialbestand im Lager. Drei
+verschiedene Dinge, ein Wort. Seit 3.176 heisst hier <b>Werkstoff</b>, was
+ein Werkstoff ist.</p>
 <p><b>Das Zählwerk</b> (ab 3.173): Neben einer noch leeren Auswahl steht,
 was dieser Betrieb an derselben Stelle üblicherweise nimmt – „3× gewählt:
 Prefa 0.7 braun“. Antippen übernimmt es. Das gilt fürs Material in jeder
@@ -1382,9 +1386,24 @@ gelten soll. In diesem Fall wird gar nichts geschrieben.</p>
 Zelle (<code>7.90</code>, <code>7,90</code>, <code>1'250.00</code>); steht dort
 Text wie <code>Fr. 7.90</code>, kann die Zahl nicht gelesen werden – die
 Vorschau sagt dann, wie viele Zeilen das betrifft.</p>`},
-"einst-material":{titel:"Material",text:`
-<p>Diese Liste füllt das Material-Dropdown bei jeder Massaufnahme-Art. Gilt
-<b>firmenweit</b>.</p>
+"einst-material":{titel:"Werkstoffe",text:`
+<p>Diese Liste füllt die <b>Werkstoff</b>-Auswahl bei jeder
+Massaufnahme-Art. Gilt <b>firmenweit</b>.</p>
+<div class="hin"><b>Werkstoff, Artikel, Bestand – drei Dinge</b> (ab 3.176).
+Sie hiessen bis hierher alle „Material“, und das war nicht
+auseinanderzuhalten:
+<ul>
+<li><b>Werkstoff</b> – Kupfer, Titanzink, Aluminium. Diese Liste. Trägt die
+Dehnungswerte und steuert die Massaufnahme.</li>
+<li><b>Artikel</b> – die EDV-Nr. im Materialkatalog, mit Preis und Einheit.
+Steuert die Verrechnung. Ein Werkstoff hat oft mehrere Artikel (Kupfer:
+0,6 Rolle, 0,8 Tafel, 1,0 Tafel).</li>
+<li><b>Bestand</b> – der Materialbestand im Lager, mit Stärke und
+Rolle/Tafel. Steuert den Zuschnitt.</li>
+</ul>
+Zusammengelegt werden sie bewusst nicht: ein Werkstoff muss wählbar sein,
+auch wenn er gerade nicht am Lager liegt, und die Dehnungswerte gehören zum
+Werkstoff – nicht an jede einzelne Katalogposition.</div>
 <p><b>＋ Neue Materialposition</b> (über der Liste) öffnet denselben Dialog
 wie „＋ Neues Material / Produkt" in der Lagerverwaltung: Bezeichnung, Dimension,
 Einheit und Preis, dazu ein Vorschlag für die EDV-Nr. mit Begründung. Ein
@@ -1393,7 +1412,12 @@ Barcode) dazu entsteht – aus dieser Liste heraus ist er aus, aus der
 Lagerverwaltung an. Umstellen lässt er sich jederzeit.</p>
 <p>Die beiden Zahlenfelder (maximaler Abstand und Abstand ab Fixpunkt) werden
 nur bei "Dachrinne" und "Mauerabdeckung" für die Dehnungsabstände
-gebraucht – bei allen anderen Arten leer lassen.</p>`},
+gebraucht – bei allen anderen Arten leer lassen.</p>
+<p><b>Woraus ist ein Artikel?</b> (ab 3.176) Im Materialkatalog trägt jede
+Position ein Feld <b>Werkstoff</b>. Nur bei Blech nötig – Schrauben und
+Dichtband brauchen keinen. Bis hierher stand diese Antwort nur im
+Materialbestand: eine neue Blechposition musste an zwei Stellen gepflegt
+werden, und beim Löschen der Lagerzeile war die Information weg.</p>`},
 
 "einst-rinne-typen":{titel:"Dachrinne",text:`
 <p><b>Normlängen:</b> in welchen Längen das Rinnenprofil je Material und

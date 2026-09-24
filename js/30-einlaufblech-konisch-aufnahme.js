@@ -291,7 +291,7 @@ function ebkaGrunddatenHtml(){
  const monOpt=[["links","von links"],["rechts","von rechts"]].map(([w,t])=>
   `<option value="${w}"${a.montage===w?" selected":""}>${esc(t)}</option>`).join("");
  return `<div class="grid">
-${ebkaFeld("Material",`<select id="ebka_material">${matOpt}</select>`+zwMaterialChip("ebka_material","einlaufblech_konisch",a.material))}
+${ebkaFeld("Werkstoff",`<select id="ebka_material">${matOpt}</select>`+zwMaterialChip("ebka_material","einlaufblech_konisch",a.material))}
 ${ebkaFeld("Abwicklung",`<select id="ebka_abwicklung">${abwOpt}</select>`+zwWahlChip("ebka_abwicklung","einlaufblech_konisch","abwicklung",a.abwicklung,250,w=>w+" mm",[200,250,330]))}
 ${ebkaFeld("Montage",`<select id="ebka_montage">${monOpt}</select>`+zwWahlChip("ebka_montage","einlaufblech_konisch","montage",a.montage,"links",w=>"von "+w,["links","rechts"]))}
 ${ebkaFeld("Enge Seite",`<div class="ra-wert" id="ebka_wSeite">${esc(ebkaEngeSeite())}</div>`)}

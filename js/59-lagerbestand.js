@@ -10,14 +10,14 @@
 //
 // Warum diese Bruecke noetig ist:
 //   measurement_materials (was die Massaufnahme kennt) hat NUR die
-//   Materialart - keine Staerke, keine Ausfuehrung.
+//   Werkstoff - keine Staerke, keine Ausfuehrung.
 //   materials (die Artikelliste der Firma) hat beides bereits, aber die
 //   Massaufnahme zeigt nicht darauf.
 // Traegt die Firma hier ein, welche Staerke und Ausfuehrung sie fuer eine
-// Materialart fuehrt, ist der Bedarf eindeutig - und nur dann darf ein Rest
+// Werkstoff fuehrt, ist der Bedarf eindeutig - und nur dann darf ein Rest
 // automatisch verwendet werden (restBedarfMerkmale() in js/42).
 //
-// Nichts davon ist hart verdrahtet: Materialarten kommen aus
+// Nichts davon ist hart verdrahtet: Werkstoffe kommen aus
 // measurement_materials, Artikel aus materials - beide firmenspezifisch.
 //
 // v3.33: Dazu kommt die FORM - Rolle oder Tafel. Bis v3.32 rechnete der
@@ -104,9 +104,23 @@ function lagFormAusNotiz(l){
 // etwas abgebucht). Die Spalten laenge_mm, breite_mm, menge und einheit
 // bleiben in der Datenbank stehen: nichts wird geloescht, sie werden nur
 // nicht mehr geschrieben und nicht mehr angezeigt.
+// v3.176: Der NAME steht nur noch an EINER Stelle. Bis hierher trug die
+// Lagerzeile eine eigene bezeichnung - eine Kopie des Katalognamens. Kopien
+// laufen auseinander, und genau das war passiert: im Katalog stand
+// "Cava-Band Kupfer", an der Lagerzeile nur "Cava-Band". Welcher Name gilt,
+// war damit nicht mehr zu beantworten.
+//
+// Ist ein Artikel verknuepft, gilt ab jetzt SEIN Name. Die gespeicherte
+// bezeichnung bleibt als Rueckfall fuer Zeilen ohne Artikel - geloescht wird
+// in der Datenbank nichts.
+function lagArtikelName(l){
+ const a=lagArtikel(l&&l.artikel_id);
+ return a?String(a.name||"").trim():"";
+}
 function lagBeschreibung(l){
  const t=[];
- const bez=(l.bezeichnung||"").trim()||lagMaterialName(l.material_id)||"Material";
+ const bez=lagArtikelName(l)||(l.bezeichnung||"").trim()
+   ||lagMaterialName(l.material_id)||"Material";
  t.push(bez);
  const st=lagNummer(l.staerke_mm);
  if(st!==null)t.push(String(st).replace(".",",")+" mm");
@@ -128,7 +142,7 @@ function lagBeschreibung(l){
 // Rest nicht verwendet wird.
 function lagFehlt(l){
  const f=[];
- if(lagNummer(l.material_id)===null)f.push("Materialart");
+ if(lagNummer(l.material_id)===null)f.push("Werkstoff");
  if(lagNummer(l.staerke_mm)===null)f.push("Stärke");
  if(!(l.ausfuehrung||"").trim())f.push("Ausführung");
  if(lagForm(l&&l.form)===null)f.push("Form (Rolle oder Tafel)");
@@ -147,7 +161,7 @@ function lagTafelFehlt(l){
  return f;
 }
 
-// Fuehrt die Firma fuer eine Materialart mehrere Staerken oder Ausfuehrungen,
+// Fuehrt die Firma fuer einen Werkstoff mehrere Staerken oder Ausfuehrungen,
 // ist der Bedarf einer Massaufnahme NICHT eindeutig - dann wird kein Rest
 // automatisch verwendet. Das ist kein Fehler, aber es gehoert gesagt.
 function lagMehrdeutig(){
@@ -179,22 +193,23 @@ function renderLagerbestand(){
  const liste=(typeof lagerbestand!=="undefined"?lagerbestand:[])||[];
  const mehr=lagMehrdeutig();
  const warnung=mehr.length?`<div class="ra-warnung">Für ${esc(mehr.map(x=>x.name||("Material "+x.material)).join(", "))}
- sind mehrere Kombinationen aus Stärke und Ausführung erfasst. Solange das so ist, wird für diese
- Materialart <b>kein</b> Reststück automatisch verwendet – die App rät nicht, welche gemeint ist.</div>`:"";
+ sind mehrere Kombinationen aus Stärke und Ausführung erfasst. Solange das so ist, wird für diesen
+ Werkstoff <b>kein</b> Reststück automatisch verwendet – die App rät nicht, welche gemeint ist.</div>`:"";
  if(!liste.length){
   box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Noch kein Material erfasst.
-  Ohne Eintrag bleibt für die App offen, welche Stärke und Ausführung eine Materialart hat – dann wird
+  Ohne Eintrag bleibt für die App offen, welche Stärke und Ausführung ein Werkstoff hat – dann wird
   auch kein Reststück automatisch verwendet.</div>`;
   return;
  }
- box.innerHTML=warnung+liste.map(l=>{
+ box.innerHTML=warnung+liste.slice().sort((x,y)=>
+   lagBeschreibung(x).localeCompare(lagBeschreibung(y),"de-CH")).map(l=>{
   const fehlt=lagFehlt(l);
   const tafelFehlt=lagTafelFehlt(l);
   const a=lagArtikel(l.artikel_id);
   return `<div class="report-row">
  <div class="report-row-info">
   <b>${esc(lagBeschreibung(l))}</b>
-  <span class="small" style="color:var(--muted)">${esc(a?lagArtikelText(a):(lagMaterialName(l.material_id)||"ohne Materialart"))}${l.notiz?" · "+esc(l.notiz):""}</span>
+  <span class="small" style="color:var(--muted)">${esc(a?lagArtikelText(a):(lagMaterialName(l.material_id)||"ohne Werkstoff"))}${l.notiz?" · "+esc(l.notiz):""}</span>
   ${fehlt.length?`<span class="small lag-fehlt" style="color:var(--red)">Ohne ${esc(fehlt.join(" und "))} macht dieser Eintrag den Bedarf nicht eindeutig.</span>`:""}
   ${tafelFehlt.length?`<span class="small lag-tafel-fehlt" style="color:var(--red)">Tafel ohne ${esc(tafelFehlt.join(" und "))} – damit lässt sich kein Zuschnitt planen.</span>`:""}
  </div>
@@ -227,9 +242,12 @@ function lagFormularHtml(l){
    `<option value="${f.wert}"${f.wert===form?" selected":""}>${f.text}</option>`).join("");
  const tafel=form==="tafel";
  return `<div class="grid">
- <div><label>Materialart</label><select id="lag_material">${matOpt}</select></div>
+ <div><label>Werkstoff</label><select id="lag_material">${matOpt}</select></div>
  <div><label>Artikel aus dem Katalog</label><select id="lag_artikel">${artOpt}</select></div>
- <div><label>Bezeichnung</label><input id="lag_bezeichnung" type="text" value="${esc(l.bezeichnung||"")}" placeholder="z. B. Titanzink vorbewittert"></div>
+ <div data-lag-bez="1"${lagArtikelName(l)?" hidden":""}><label>Bezeichnung</label><input id="lag_bezeichnung" type="text" value="${esc(l.bezeichnung||"")}" placeholder="z. B. Titanzink vorbewittert"></div>
+ <div data-lag-bez-aus-katalog="1"${lagArtikelName(l)?"":" hidden"}><label>Bezeichnung</label>
+  <div class="ra-wert" id="lag_bezAusKatalog">${esc(lagArtikelName(l))}</div>
+  <div class="small" style="color:var(--muted)">Kommt aus dem Katalog und wird dort geändert.</div></div>
  <div><label>Stärke (mm)</label><input id="lag_staerke" type="number" step="0.05" min="0" value="${l.staerke_mm==null?"":l.staerke_mm}" placeholder="0.70"></div>
  <div><label>Oberfläche / Ausführung</label><input id="lag_ausfuehrung" type="text" value="${esc(l.ausfuehrung||"")}" placeholder="z. B. blank, vorbewittert"></div>
  <div><label>Form</label><select id="lag_form">${formOpt}</select></div>
@@ -240,7 +258,7 @@ function lagFormularHtml(l){
 ${vorschlag&&lagForm(l&&l.form)===null?`<div class="small lag-form-vorschlag" style="color:var(--blue);margin-top:4px">Aus der Notiz
  vorgeschlagen: <b>${esc(lagFormText(vorschlag))}</b>. Bitte prüfen – erst mit dem Speichern wird daraus der Wert.</div>`:""}
 <div class="small" style="color:var(--muted);margin-top:4px">Diese Liste sagt, <b>welche</b> Materialien die Firma
-führt – keine Mengen. Materialart, Stärke und Ausführung zusammen machen den Bedarf eindeutig: nur dann
+führt – keine Mengen. Werkstoff, Stärke und Ausführung zusammen machen den Bedarf eindeutig: nur dann
 darf die App ein passendes Reststück verwenden, und nur diese Stärken stehen in der Massaufnahme zur Auswahl.
 0,70 mm ist kein Ersatz für 0,80 mm.</div>
 <div class="small" style="color:var(--muted);margin-top:4px"><b>Rolle oder Tafel</b> entscheidet, wie der Zuschnitt
@@ -265,13 +283,29 @@ function lagFormularOeffnen(l){
  // Der Artikel fuellt Staerke und Ausfuehrung als VORSCHLAG - beides bleibt
  // frei aenderbar, und ein bereits gesetzter Wert wird nicht ueberschrieben.
  const sel=$("lag_artikel");
+ // v3.176: Die Bezeichnung ist nur noch dort ein Eingabefeld, wo es keinen
+ // Artikel gibt. Mit Artikel steht sein Name da - zum Lesen, nicht zum
+ // Abtippen.
+ const bezUmschalten=()=>{
+  const a=lagArtikel(sel?sel.value:"");
+  const name=a?String(a.name||"").trim():"";
+  const feld=box.querySelector("[data-lag-bez]");
+  const ausKatalog=box.querySelector("[data-lag-bez-aus-katalog]");
+  if(feld)feld.hidden=!!name;
+  if(ausKatalog){
+   ausKatalog.hidden=!name;
+   const w=$("lag_bezAusKatalog");
+   if(w)w.textContent=name;
+  }
+ };
+ bezUmschalten();
  if(sel)sel.onchange=()=>{
+  bezUmschalten();
   const a=lagArtikel(sel.value);
   if(!a)return;
-  const st=$("lag_staerke"), au=$("lag_ausfuehrung"), bez=$("lag_bezeichnung");
+  const st=$("lag_staerke"), au=$("lag_ausfuehrung");
   const dim=Number(String(a.dim||"").replace(",","."));
   if(st&&!st.value&&Number.isFinite(dim)&&dim>0)st.value=String(dim);
-  if(bez&&!bez.value)bez.value=a.name||"";
   // Die Ausfuehrung steht im Artikelnamen und laesst sich nicht sicher
   // herausloesen - sie wird deshalb NICHT geraten, sondern nur der Name
   // vorgeschlagen. Eintragen muss sie die Firma selbst.
@@ -298,7 +332,11 @@ function lagFormularWerte(){
  return {
   material_id:lagNummer(z("lag_material")),
   artikel_id:lagNummer(z("lag_artikel")),
-  bezeichnung:z("lag_bezeichnung")||null,
+  // Mit Artikel wird KEINE eigene Bezeichnung mehr gespeichert: sonst
+  // entstuende wieder die Kopie, die auseinanderlaufen kann. Eine bereits
+  // gespeicherte wird beim naechsten Speichern still geleert - der Name
+  // steht danach nur noch im Katalog.
+  bezeichnung:lagNummer(z("lag_artikel"))!==null?null:(z("lag_bezeichnung")||null),
   staerke_mm:n("lag_staerke"),
   ausfuehrung:z("lag_ausfuehrung")||null,
   form:lagForm(z("lag_form")),
@@ -317,7 +355,7 @@ async function lagSpeichern(){
  const fehler=$("lagerFormFehler");
  const zeig=t=>{if(fehler){fehler.textContent=t;fehler.hidden=!t}};
  const w=lagFormularWerte();
- if(w.material_id===null&&!w.bezeichnung){zeig("Bitte eine Materialart wählen oder eine Bezeichnung eintragen.");return}
+ if(w.material_id===null&&w.artikel_id===null&&!w.bezeichnung){zeig("Bitte einen Werkstoff oder einen Artikel wählen – oder eine Bezeichnung eintragen.");return}
  // Eine Tafel ohne Format laesst sich nicht planen - das wird hier gesagt,
  // statt beim Rechnen stillschweigend auf Rollenblech zurueckzufallen.
  if(w.form==="tafel"&&(w.laenge_mm===null||w.breite_mm===null)){

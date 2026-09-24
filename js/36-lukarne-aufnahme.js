@@ -307,7 +307,7 @@ function lukaGrunddatenHtml(){
  return `<div class="info">Die dreieckige Seitenwange einer Lukarne. Material und
 Seite gelten für die ganze Aufnahme; die Masse folgen im nächsten Register.</div>
 <div class="grid">
-${lukaFeld("Material",`<select id="luka_material" data-pflicht="1">${matOpt}</select>`+zwMaterialChip("luka_material","lukarne",a.material),true)}
+${lukaFeld("Werkstoff",`<select id="luka_material" data-pflicht="1">${matOpt}</select>`+zwMaterialChip("luka_material","lukarne",a.material),true)}
 ${lukaFeld("Seite",`<select id="luka_seite">
 <option value="rechts"${a.seite!=="links"?" selected":""}>Rechte Seite</option>
 <option value="links"${a.seite==="links"?" selected":""}>Linke Seite</option></select>`)}

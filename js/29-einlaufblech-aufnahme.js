@@ -937,7 +937,7 @@ function ebaGrunddatenHtml(){
  const monOpt=[["links","von links"],["rechts","von rechts"]].map(([w,t])=>
   `<option value="${w}"${a.montage===w?" selected":""}>${esc(t)}</option>`).join("");
  return `<div class="grid">
-${ebaFeld("Material",`<select id="eba_material">${matOpt}</select>`+zwMaterialChip("eba_material","einlaufblech_gerade",a.material))}
+${ebaFeld("Werkstoff",`<select id="eba_material">${matOpt}</select>`+zwMaterialChip("eba_material","einlaufblech_gerade",a.material))}
 ${ebaFeld("Abwicklung",`<select id="eba_abwicklung">${abwOpt}</select>`+zwWahlChip("eba_abwicklung","einlaufblech_gerade","abwicklung",a.abwicklung,250,w=>w+" mm",[200,250,330]))}
 ${ebaFeld("Montage",`<select id="eba_montage">${monOpt}</select>`+zwWahlChip("eba_montage","einlaufblech_gerade","montage",a.montage,"links",w=>"von "+w,["links","rechts"]))}
 ${ebaFeld("Enge Seite",`<div class="ra-wert" id="eba_wSeite">${esc(ebaEngeSeite())}</div>`)}

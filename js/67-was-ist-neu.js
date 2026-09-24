@@ -226,7 +226,10 @@ const WIN_CHANGELOG={
   "<b>Widersprechen geht trotzdem:</b> ein Schalter ganz unten nimmt sämtliche Hinweise zurück. Die App verhält sich dann wie vor Version 3.168. Die Übersicht bleibt stehen, damit nachsehbar ist, worauf gerade verzichtet wird."],
  "3.175":["<b>Der Zurück-Knopf oben links geht jetzt einen Schritt, nicht zwei.</b> Lag über einem Bereich noch ein Dialog, schloss der Knopf den <b>Bereich darunter</b> – der Dialog blieb stehen. Für den Anwender sah es aus, als passiere nichts; in Wirklichkeit war der Bereich darunter stillschweigend weg.",
   "Jetzt geht zuerst der oberste Schirm zu. Liegt nichts darüber, schliesst der Knopf wie bisher den Bereich beziehungsweise führt von der Projektseite in die Projektliste zurück.",
-  "Ausserdem behoben: die neue Seite „Was die App gelernt hat“ räumte die Kopfzeile nicht auf, wenn man sie über ihren eigenen Knopf verliess – danach zeigte die Kopfzeile einen Bereich an, den es nicht mehr gab."]
+  "Ausserdem behoben: die neue Seite „Was die App gelernt hat“ räumte die Kopfzeile nicht auf, wenn man sie über ihren eigenen Knopf verliess – danach zeigte die Kopfzeile einen Bereich an, den es nicht mehr gab."],
+ "3.176":["<b>Werkstoff, Artikel und Bestand sind jetzt auseinanderzuhalten.</b> Bis hierher hiess alles drei „Material“: der Kupfer/Titanzink in der Massaufnahme, die EDV-Position im Katalog und die Blechzeile im Lager. In der Massaufnahme heisst das Feld jetzt <b>Werkstoff</b> – Katalog und Lager behalten „Material“.",
+  "<b>Der Name eines Blechs steht nur noch an einer Stelle.</b> Die Lagerzeile trug bisher eine Kopie des Katalognamens, und die war schon auseinandergelaufen: im Katalog „Cava-Band Kupfer“, an der Lagerzeile nur „Cava-Band“. Jetzt zeigt die Lagerzeile den Katalognamen; geändert wird er einmal, im Katalog.",
+  "<b>Jede Katalogposition kann sagen, woraus sie ist.</b> Im Materialkatalog gibt es ein Feld Werkstoff – nur bei Blech nötig. Eure sechs Blechpositionen sind bereits zugeordnet. Der Zuschnitt rechnet unverändert weiter wie bisher; umgestellt wird erst, wenn die Zuordnung vollständig ist."]
 };
 
 function winVersionVergleich(a,b){

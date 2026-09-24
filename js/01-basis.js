@@ -43,6 +43,21 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let settings={employees:[],rates:[],materials:[]};
 let employeeIds=[],rateIds=[],materialIds=[];
+// v3.176: Woraus ist ein Katalogartikel? Parallel zu materialIds gefuehrt,
+// wie dort auch - settings.materials ist seit je ein Array aus Arrays, und
+// ein sechstes Feld darin wuerde jede Stelle treffen, die nach Position
+// zugreift. NULL heisst "kein Werkstoff" und ist bei den meisten Positionen
+// (Schrauben, Dichtband, Leistungen) der richtige Wert.
+let materialWerkstoffe=[];
+// Der Werkstoff eines Artikels, ueber seine Datenbank-Id. Null, wenn keiner
+// hinterlegt ist - es wird keiner geraten.
+function artikelWerkstoffId(artikelId){
+ if(artikelId===null||artikelId===undefined)return null;
+ const i=materialIds.findIndex(x=>String(x)===String(artikelId));
+ if(i<0)return null;
+ const w=materialWerkstoffe[i];
+ return (w===null||w===undefined||w==="")?null:w;
+}
 let currentProfile=null;
 let allProfiles=[];
 function profileName(id){

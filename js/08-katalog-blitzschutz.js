@@ -572,20 +572,23 @@ $("saveRinneFittings").onclick=async()=>{
  $("saveRinneFittings").disabled=false;
 };
 
-// ---- Material-Katalog für Massaufnahmen (Einstellungen) ----------
+// ---- Werkstoffe fuer Massaufnahmen (Einstellungen) ----------------
+// v3.176: Diese Liste haelt die WERKSTOFFE (Kupfer, Titanzink ...) mit
+// ihren Dehnungswerten - nicht die Artikel des Katalogs. Beides hiess
+// bis hierher "Material", und genau das war nicht auseinanderzuhalten.
 const debouncedMeasMaterialUpdate=debounce((id,patch)=>sb.from("measurement_materials").update(patch).eq("id",id),500);
 function renderMeasMaterialSettings(){
  const box=$("measMaterialSettings");
  if(!box)return;
  box.innerHTML=measurementMaterials.map((m,i)=>`<div class="settingrow">
-<input data-set-meas-material-name="${i}" value="${esc(m.name||"")}" placeholder="Bezeichnung">
+<input data-set-meas-material-name="${i}" value="${esc(m.name||"")}" placeholder="Werkstoff, z. B. Titanzink">
 <input data-set-meas-material-abstand="${i}" type="number" step="1" value="${m.max_abstand_mm??""}" placeholder="Abstand zwischen zwei (mm)">
 <input data-set-meas-material-fixpunkt="${i}" type="number" step="1" value="${m.ab_fixpunkt_mm??""}" placeholder="Abstand ab Fixpunkt (mm)">
 <button class="red" data-del-meas-material="${i}">Löschen</button>
-</div>`).join("")||'<div class="empty">Noch kein Material vorhanden.</div>';
+</div>`).join("")||'<div class="empty">Noch kein Werkstoff vorhanden.</div>';
 }
 $("newMeasMaterial").onclick=async()=>{
- const {error}=await sb.from("measurement_materials").insert({name:"Neues Material"});
+ const {error}=await sb.from("measurement_materials").insert({name:"Neuer Werkstoff"});
  if(error){alert("Fehler: "+error.message);return}
  const {data}=await sb.from("measurement_materials").select("*").order("name");
  measurementMaterials=data||[];
@@ -595,7 +598,7 @@ $("newMeasMaterial").onclick=async()=>{
 $("measMaterialSettings").addEventListener("click",e=>{
  const del=e.target.closest("[data-del-meas-material]");
  if(!del)return;
- if(!confirm("Dieses Material wirklich löschen?"))return;
+ if(!confirm("Diesen Werkstoff wirklich löschen?"))return;
  const i=Number(del.dataset.delMeasMaterial);
  sb.from("measurement_materials").delete().eq("id",measurementMaterials[i].id).then(async({error})=>{
   if(error){alert("Fehler: "+error.message);return}
@@ -821,6 +824,16 @@ $("rateSettings").addEventListener("click",async e=>{
  if(!confirm("Diese Funktion/Stundenansatz wirklich löschen?"))return;
  await sb.from("rates").delete().eq("id",rateIds[Number(b.dataset.delRate)]);
  await loadAllData();renderSettings();
+});
+// v3.176: Der Werkstoff je Artikel. Eigener change-Handler statt des
+// input-Handlers darueber: bei einem <select> ist change das Ereignis, auf
+// das man sich in jedem Browser verlassen kann.
+$("materialSettings").addEventListener("change",e=>{
+ const i=e.target.dataset.setMwerkstoff;
+ if(i===undefined)return;
+ const wert=e.target.value===""?null:Number(e.target.value);
+ materialWerkstoffe[Number(i)]=wert;
+ debouncedMaterialUpdate(materialIds[Number(i)],{werkstoff_id:wert});
 });
 $("materialSettings").addEventListener("click",async e=>{
  const del=e.target.closest("[data-del-material]");

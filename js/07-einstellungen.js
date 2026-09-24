@@ -402,6 +402,16 @@ $("resetKehleSettings").onclick=()=>{
  alert("Auf Standardwerte zurückgesetzt.");
 };
 
+// v3.176: Die Auswahlliste der Werkstoffe. Sie kommt aus derselben Quelle
+// wie die Auswahl in der Massaufnahme (measurementMaterials) - eine zweite
+// Liste waere eine zweite Meinung darueber, welche Werkstoffe es gibt.
+function werkstoffOptionen(gewaehlt){
+ const liste=(typeof measurementMaterials!=="undefined"&&Array.isArray(measurementMaterials))
+   ?measurementMaterials:[];
+ return '<option value="">– keiner –</option>'
+   +liste.map(w=>`<option value="${esc(w.id)}"${
+     String(w.id)===String(gewaehlt==null?"":gewaehlt)?" selected":""}>${esc(w.name||"")}</option>`).join("");
+}
 let materialPage=0, materialFilter="", materialExpanded=new Set();
 const MATERIAL_PAGE_SIZE=20;
 function renderMaterialSettings(){
@@ -422,6 +432,8 @@ function renderMaterialSettings(){
 <div><label>Dim.</label><input data-set-mdim="${i}" value="${esc(m[2])}" placeholder="Dim." ${ro}></div>
 <div><label>Einheit</label><input data-set-munit="${i}" value="${esc(m[3])}" placeholder="Einheit" ${ro}></div>
 <div><label>Preis</label><input data-set-mprice="${i}" type="number" step=".01" value="${m[4]}" placeholder="Preis" ${ro}></div>
+<div><label>Werkstoff</label><select data-set-mwerkstoff="${i}" ${ro}>${werkstoffOptionen(materialWerkstoffe[i])}</select>
+<div class="small" style="color:var(--muted)">Nur bei Blech nötig – Schrauben und Dichtband brauchen keinen.</div></div>
 ${isAdmin()?`<button class="red" data-del-material="${i}">Löschen</button>`:""}
 </div>
 </div>`}).join("")||'<div class="empty">Keine Materialien gefunden.</div>';

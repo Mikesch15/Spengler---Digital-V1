@@ -91,6 +91,7 @@ async function loadAllData(){
  rateIds=rates.map(r=>r.id);
  settings.materials=materials.map(m=>[m.edv_nr,m.name,m.dim,m.unit,m.price]);
  materialIds=materials.map(m=>m.id);
+ materialWerkstoffe=materials.map(m=>m.werkstoff_id??null);
  settings.employees=profiles.map(p=>`${p.first_name} ${p.last_name}`);
  employeeIds=profiles.map(p=>p.id);
  allProfiles=profiles;
