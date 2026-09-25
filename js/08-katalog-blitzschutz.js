@@ -415,6 +415,23 @@ die Vorschau weist darauf hin.`:""}</div>`;
   // Konfliktpruefung wirkt sie trotzdem, weil Postgres den fertigen
   // Datensatz samt Vorgabewerten gegen die Regel prueft - nachgemessen an
   // der echten Datenbank, nicht angenommen.
+  // v3.184: Steht eine der Nummern aus der Datei schon als BEISPIEL-Position
+  // im Katalog, wird sie mit diesem Import zu einer echten Position der
+  // Firma. Der Beispiel-Stempel muss deshalb VOR dem Schreiben weg - sonst
+  // wuerde die frisch importierte Zeile beim naechsten Aufraeumen als
+  // Beispiel gelten und wieder verschwinden.
+  if(cfg.tableName==="materials"&&typeof bkDemoPositionen==="function"){
+   const nummern=new Set(daten.map(eintragAus).map(e=>String(e[cfg.schluessel]??"").trim()));
+   const treffer=bkDemoPositionen().filter(d=>nummern.has(d.edv_nr)).map(d=>d.id);
+   if(treffer.length){
+    const r=await bkStempelWeg(treffer);
+    if(!r.ok){
+     $(cfg.confirmId).disabled=false;
+     alert("Der Import wurde nicht gestartet: "+r.meldung);
+     return;
+    }
+   }
+  }
   const {data,error}=await sb.from(cfg.tableName)
     .upsert(eintraege,{onConflict:"company_id,"+cfg.schluessel}).select();
   $(cfg.confirmId).disabled=false;
@@ -435,6 +452,10 @@ die Vorschau weist darauf hin.`:""}</div>`;
   }
   zeilen=[]; zuordnung={}; input.value=""; $(cfg.previewId).hidden=true;
   await cfg.nachImport();
+  // v3.184: Die Firma hat jetzt ihren eigenen Katalog - die uebrigen
+  // Beispiel-Positionen haben sich erledigt. Erst NACH nachImport(), damit
+  // die Aufloesung mit dem frisch geladenen Stand arbeitet.
+  if(cfg.tableName==="materials"&&typeof bkAufloesen==="function")await bkAufloesen();
  };
 }
 initExcelImport({

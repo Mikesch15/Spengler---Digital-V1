@@ -89,6 +89,16 @@ async function katalogPositionAnlegen(werte){
  if(typeof materialFormate!=="undefined"&&Array.isArray(materialFormate))
   materialFormate.push({staerke_mm:m.staerke_mm??null,ausfuehrung:m.ausfuehrung??null,
     form:m.form??null,laenge_mm:m.laenge_mm??null,breite_mm:m.breite_mm??null});
+ // v3.184: Die vierte parallele Liste. Eine hier angelegte Position ist
+ // IMMER eine echte - Beispielpositionen entstehen ausschliesslich bei der
+ // Registrierung, nie im laufenden Betrieb.
+ if(typeof materialDemo!=="undefined"&&Array.isArray(materialDemo))materialDemo.push(false);
+ // v3.184: Das ist der Moment, an dem die Firma ihre erste EIGENE Position
+ // hat - die mitgelieferten Beispiele haben sich damit erledigt. Bewusst
+ // NACH dem erfolgreichen Anlegen und bewusst ohne await auf das Ergebnis
+ // der Rueckfrage: was der Anwender wollte, ist getan, das Aufraeumen darf
+ // es nicht aufhalten und ein Fehlschlag dabei darf es nicht verwerfen.
+ if(typeof bkAufloesen==="function")bkAufloesen();
  return {id:m.id,fehler:null,rls:false};
 }
 

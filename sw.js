@@ -104,7 +104,8 @@ const SHELL = [
   "./js/70-ansicht2.js",
   "./js/71-zaehlwerk.js",
   "./js/72-zaehlwerk-uebersicht.js",
-  "./js/73-einrichtung.js"
+  "./js/73-einrichtung.js",
+  "./js/74-beispielkatalog.js"
 ];
 
 self.addEventListener("install", event => {

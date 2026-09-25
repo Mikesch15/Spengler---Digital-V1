@@ -2928,6 +2928,7 @@ nicht neu installieren.</div>
 <script src="js/71-zaehlwerk.js"></script>
 <script src="js/72-zaehlwerk-uebersicht.js"></script>
 <script src="js/73-einrichtung.js"></script>
+<script src="js/74-beispielkatalog.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->
@@ -2938,6 +2939,34 @@ nicht neu installieren.</div>
      Rand, weil die Einstellungen lang sind und die gerade bearbeitete Zeile
      ueberall stehen kann. Bis v3.181 speicherten diese Felder still gar
      nicht - eine sichtbare Rueckmeldung gehoert deshalb dazu. -->
+<!-- v3.184: Was soll mit den BENUTZTEN Beispiel-Positionen geschehen?
+     Unbenutzte verschwinden ohne Rueckfrage - hier steht nur, was wirklich
+     irgendwo haengt. Die Vorgabe ist der schonendste Weg (behalten). -->
+<div id="beispielKatalogModal" class="modal no-print" hidden>
+ <div class="modal-box">
+  <h2>Beispiel-Positionen</h2>
+  <p class="small">Die App hat bei der Registrierung ein paar Beispiel-Positionen
+  mitgeliefert, damit sich Rapport, Lager und Zuschnitt sofort ausprobieren lassen.
+  Jetzt, wo Sie Ihren eigenen Katalog führen, werden sie nicht mehr gebraucht.</p>
+  <p class="small"><b><span id="bkAnzahl">0</span> davon werden bereits verwendet.</b>
+  Was damit geschehen soll, entscheiden Sie – die App löscht hier nichts von selbst.</p>
+  <div id="bkListe"></div>
+  <div id="bkMeldung" class="small" style="margin:8px 0;min-height:18px"></div>
+  <div class="bar">
+   <button type="button" class="blue" data-bk-tu="behalten">Alles behalten</button>
+   <button type="button" class="gray" data-bk-tu="ersetzen">Durch die gewählten Positionen ersetzen</button>
+   <button type="button" class="red" data-bk-tu="loeschen">Löschen</button>
+   <button type="button" class="gray" data-bk-tu="spaeter">Später entscheiden</button>
+  </div>
+  <div class="small" style="color:var(--muted);margin-top:8px">
+   <b>Behalten</b> nimmt nur den Beispiel-Vermerk weg; die Position bleibt vollständig
+   erhalten. <b>Ersetzen</b> hängt alles, was auf die Beispiel-Position zeigt, auf die
+   gewählte Position um – auch in bereits gespeicherten Rapporten – und löscht sie erst
+   danach. <b>Löschen</b> entfernt sie samt der daran hängenden Lagerprodukte.
+   <b>Später</b> ändert nichts; die Frage kommt beim nächsten eigenen Eintrag wieder.
+  </div>
+ </div>
+</div>
 <div id="katalogHinweis" class="no-print" role="status" aria-live="polite"></div>
 </body>
 </html>

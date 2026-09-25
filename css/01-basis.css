@@ -1489,3 +1489,18 @@ html.dark .rmat-unsicher{color:#e0a35c}
 #katalogHinweis.an{opacity:1; transform:translateX(-50%) translateY(0)}
 #katalogHinweis.fehler{background:var(--red,#c62828)}
 @media print{#katalogHinweis{display:none}}
+
+/* ---- Beispiel-Positionen: was soll damit geschehen? (v3.184) ------------
+   Der Dialog kommt genau einmal im Leben einer Firma - beim Uebergang vom
+   Ausprobieren zum eigenen Katalog. Jede Zeile nennt deshalb ausdruecklich,
+   WAS an der Position haengt; eine blosse Liste von Nummern liesse den
+   Anwender raten, was er gerade wegwirft. */
+#beispielKatalogModal .bk-zeile{display:flex;flex-wrap:wrap;gap:8px;
+ align-items:flex-start;justify-content:space-between;
+ padding:9px 0;border-top:1px solid var(--line)}
+#beispielKatalogModal .bk-zeile:first-child{border-top:0}
+#beispielKatalogModal .bk-zeile>div{flex:1 1 220px;min-width:0}
+#beispielKatalogModal .bk-zeile label{flex:0 1 auto;display:flex;flex-direction:column;
+ gap:2px;color:var(--muted)}
+#beispielKatalogModal .bk-zeile select{max-width:100%}
+#bkMeldung:empty{display:none}

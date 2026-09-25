@@ -71,6 +71,28 @@ function artikelWerkstoffId(artikelId){
 // und ein weiteres Feld darin wuerde jede Stelle treffen, die nach Position
 // zugreift.
 let materialFormate=[];
+// v3.184: Ist der Artikel eine BEISPIEL-Position aus der Erstregistrierung?
+// Wieder parallel gefuehrt, aus demselben Grund wie die beiden Listen
+// darueber. true heisst: die Firma hat diese Zeile nie selbst erfasst, sie
+// kam mit der Registrierung mit, damit sich Rapport, Lager und Zuschnitt
+// sofort ausprobieren lassen. Solche Zeilen loesen sich auf, sobald die
+// Firma ihre erste eigene Position anlegt oder eine Liste importiert.
+let materialDemo=[];
+// Zaehlt nur ECHTE Positionen - die Beispiele bleiben aussen vor. Gebraucht
+// von der Einrichtungs-Checkliste (js/73): ein Haken, den mitgelieferte
+// Beispieldaten setzen, waere ein falscher Haken. Die Liste soll sagen, ob
+// der BETRIEB seinen Katalog hat, nicht ob die App etwas mitgebracht hat.
+function katalogEchteAnzahl(){
+ if(!Array.isArray(settings&&settings.materials))return 0;
+ return settings.materials.filter((_,i)=>materialDemo[i]!==true).length;
+}
+// Dasselbe ueber die Datenbank-Id, fuer Stellen, die einen Artikel in der
+// Hand haben statt die ganze Liste.
+function artikelIstDemo(artikelId){
+ if(artikelId===null||artikelId===undefined)return false;
+ const i=materialIds.findIndex(x=>String(x)===String(artikelId));
+ return i>=0 && materialDemo[i]===true;
+}
 // Das Blech-Format eines Artikels, ueber seine Datenbank-Id. Null, wenn der
 // Artikel gar nichts davon traegt - dann ist er kein gefuehrtes Blech,
 // sondern eine gewoehnliche Katalogposition (Schrauben, Dichtband).

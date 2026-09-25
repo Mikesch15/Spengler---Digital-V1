@@ -36,6 +36,21 @@ function einrZustaendig(){
 let einrErzwungen=false;
 
 function einrZahl(x){ return Array.isArray(x)?x.length:0 }
+// v3.184: Nur, was die Firma SELBST erfasst hat. Die Beispiel-Positionen aus
+// der Erstregistrierung bleiben draussen - sonst meldete die Liste "erledigt"
+// fuer Daten, die der Betrieb nie eingetragen hat und die sich beim ersten
+// eigenen Eintrag ohnehin wieder aufloesen.
+function einrKatalogEcht(){
+ return (typeof katalogEchteAnzahl==="function")
+  ?katalogEchteAnzahl()
+  :einrZahl(typeof settings!=="undefined"&&settings?settings.materials:[]);
+}
+function einrBlecheEcht(){
+ if(typeof lagFormate!=="function")return 0;
+ const liste=lagFormate();
+ if(typeof artikelIstDemo!=="function")return einrZahl(liste);
+ return liste.filter(f=>!artikelIstDemo(f.artikel_id)).length;
+}
 function einrText(x){ return String(x==null?"":x).trim() }
 
 // ---- Die Punkte ----------------------------------------------------------
@@ -65,8 +80,16 @@ const EINR_PUNKTE=[
  {schluessel:"katalog", pflicht:true, tab:"protected", abschnitt:"materials",
   titel:"Material-Katalog",
   warum:"Regierapport, Ausmass und Lager greifen alle auf denselben Katalog zu. Er lässt sich aus einer Lieferantenliste importieren – „📥 Aus Excel importieren“ steht gleich bei der Karte.",
-  erledigt:()=>einrZahl(typeof settings!=="undefined"&&settings?settings.materials:[])>0,
-  stand:()=>einrZahl(typeof settings!=="undefined"&&settings?settings.materials:[])+" Positionen"},
+  // v3.184: Beispiel-Positionen zaehlen hier NICHT mit. Sie kommen mit der
+  // Registrierung mit, damit sich die App ausprobieren laesst - einen Haken
+  // dafuer zu setzen hiesse, der Firma ihren eigenen Katalog vorzugaukeln.
+  erledigt:()=>einrKatalogEcht()>0,
+  stand:()=>{
+   const echt=einrKatalogEcht();
+   const alle=einrZahl(typeof settings!=="undefined"&&settings?settings.materials:[]);
+   const bsp=alle-echt;
+   return echt+" eigene Position"+(echt===1?"":"en")+(bsp>0?" (dazu "+bsp+" Beispiele)":"");
+  }},
 
  {schluessel:"werkstoffe", pflicht:true, tab:"measurements", abschnitt:"material",
   titel:"Werkstoffe und Dehnungswerte",
@@ -86,8 +109,9 @@ const EINR_PUNKTE=[
  {schluessel:"bleche", pflicht:true, tab:"lager", abschnitt:"lagerbestand",
   titel:"Blech-Formate",
   warum:"Erst wenn an einer Katalogposition Stärke und Rolle/Tafel stehen, weiss der Zuschnitt, woraus er schneidet. Die App schlägt dabei vor, welche Positionen nach Blech aussehen.",
-  erledigt:()=>typeof lagFormate==="function"&&einrZahl(lagFormate())>0,
-  stand:()=>(typeof lagFormate==="function"?einrZahl(lagFormate()):0)+" geführt"},
+  // Auch hier ohne die Beispiele, aus demselben Grund.
+  erledigt:()=>einrBlecheEcht()>0,
+  stand:()=>einrBlecheEcht()+" geführt"},
 
  {schluessel:"rinne", pflicht:false, tab:"measurements", abschnitt:"rinne",
   titel:"Rinne: Ansetztypen",

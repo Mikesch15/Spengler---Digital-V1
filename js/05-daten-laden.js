@@ -92,6 +92,10 @@ async function loadAllData(){
  settings.materials=materials.map(m=>[m.edv_nr,m.name,m.dim,m.unit,m.price]);
  materialIds=materials.map(m=>m.id);
  materialWerkstoffe=materials.map(m=>m.werkstoff_id??null);
+ // v3.184: der Beispiel-Stempel. Fehlt die Spalte (aelterer Offline-Stand),
+ // gilt die Zeile als echt - es wird nichts zu einem Beispiel erklaert, das
+ // nie eines war.
+ materialDemo=materials.map(m=>m.demo===true);
  // v3.177: Das Blech-Format kommt aus derselben Abfrage - materials wird mit
  // select("*") geladen, die neuen Spalten sind also ohne Zutun dabei. Ein
  // Artikel ohne Form bekommt hier trotzdem einen Eintrag (mit form:null);
