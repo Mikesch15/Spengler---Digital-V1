@@ -293,6 +293,74 @@ function lagMehrdeutig(){
  return raus;
 }
 
+// ---- Vorschlaege: Katalogpositionen, die nach Blech aussehen (v3.181) ------
+// Der Katalog hat ueber 380 Positionen, gefuehrt werden ein paar Bleche. Wer
+// nachtraegt, soll nicht jede Position einzeln durch den Dialog schicken
+// muessen - 42 Kandidaten waeren 42 Dialoge.
+//
+// Das Erkennungsmerkmal ist ABSICHTLICH eng: Einheit m² UND eine blosse Zahl
+// in der Spalte dim. Beides zusammen gibt es praktisch nur bei Blech, und die
+// Zahl ist dort die Staerke. Klebebaender, Schellen und Schrauben (Stk/m1
+// oder dim wie "20x3", "BM 1") fallen dadurch heraus, ohne dass jemand eine
+// Liste von Namen pflegen muss.
+//
+// dim ist trotzdem nur ein VORSCHLAG. Es ist ein freies Textfeld: beim
+// Cava-Band steht dort eine Breite. Deshalb wird die Staerke vorgeschlagen
+// und bleibt aenderbar - uebernommen wird sie erst durch einen Klick.
+//
+// Form und Ausfuehrung werden NICHT geraten. Ob ein Blech als Rolle oder
+// Tafel im Haus liegt, steht nirgends in den Daten; eine Vermutung wuerde den
+// Zuschnitt falsch rechnen. Beides muss gewaehlt werden.
+function lagKandidatStaerke(a){
+ const t=String((a&&a.dim)||"").trim().replace(",",".");
+ if(!/^[0-9]+(\.[0-9]+)?$/.test(t))return null;
+ const n=Number(t);
+ return Number.isFinite(n)&&n>0?n:null;
+}
+function lagKandidaten(){
+ return lagArtikelListe().filter(a=>
+   String(a.unit||"").trim()==="m\u00b2"
+   && lagKandidatStaerke(a)!==null
+   && artikelFormat(a.id)===null);
+}
+let lagKandidatenOffen=false;
+function lagKandidatenHtml(){
+ const liste=lagKandidaten();
+ if(!liste.length)return "";
+ const zeilen=lagKandidatenOffen?liste.map(a=>{
+  const st=lagKandidatStaerke(a);
+  const wk=(typeof artikelWerkstoffId==="function")?artikelWerkstoffId(a.id):null;
+  const matOpt=`<option value="">– Werkstoff wählen –</option>`+
+   ((typeof measurementMaterials!=="undefined"?measurementMaterials:[])||[]).map(m=>
+    `<option value="${m.id}"${String(m.id)===String(wk==null?"":wk)?" selected":""}>${esc(m.name)}</option>`).join("");
+  const formOpt=`<option value="">– Rolle oder Tafel –</option>`+LAG_FORMEN.map(f=>
+    `<option value="${f.wert}">${f.text}</option>`).join("");
+  return `<div class="report-row lag-kandidat" data-lag-kandidat="${a.id}">
+ <div class="report-row-info">
+  <b>${esc((a.edv_nr?a.edv_nr+" ":"")+(a.name||""))}</b>
+  <div class="grid">
+   <div><label>Werkstoff</label><select data-k-material>${matOpt}</select></div>
+   <div><label>Stärke (mm)</label><input data-k-staerke type="number" step="0.05" min="0" value="${st}"></div>
+   <div><label>Ausführung</label><input data-k-ausf type="text" placeholder="z. B. blank"></div>
+   <div><label>Form</label><select data-k-form>${formOpt}</select></div>
+  </div>
+ </div>
+ <div class="report-row-actions">
+  <button type="button" class="blue" data-lag-kandidat-ok="${a.id}">Als Blech führen</button>
+ </div>
+</div>`;
+ }).join(""):"";
+ return `<div class="lag-kandidaten" style="margin-top:12px">
+ <div class="bar"><button type="button" class="gray" id="lagKandidatenSchalter">
+  ${lagKandidatenOffen?"▾":"▸"} ${liste.length} Katalogposition${liste.length===1?"":"en"} sehen nach Blech aus, werden aber nicht geführt</button></div>
+ <div class="small" style="color:var(--muted);margin:4px 0">Einheit m² und eine Zahl bei „Dim.“ –
+ das ist fast immer Blech, und die Zahl die Stärke. Sie steht unten als <b>Vorschlag</b>; ändern geht.
+ <b>Rolle oder Tafel</b> und die Ausführung muss die Firma selbst sagen – das steht nirgends in den Daten,
+ und eine Vermutung würde den Zuschnitt falsch rechnen.</div>
+ ${zeilen}
+</div>`;
+}
+
 function lagHinweis(text,fehler){
  const el=$("lagerHinweis");
  if(!el)return;
@@ -310,12 +378,14 @@ function renderLagerbestand(){
  sind mehrere Kombinationen aus Stärke und Ausführung erfasst. Solange das so ist, wird für diesen
  Werkstoff <b>kein</b> Reststück automatisch verwendet – die App rät nicht, welche gemeint ist.</div>`:"";
  if(!liste.length){
-  box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Noch kein Material erfasst.
+  // Gerade wenn noch nichts gefuehrt wird, sind die Vorschlaege nuetzlich -
+  // sie stehen deshalb auch hier.
+  box.innerHTML=lagKandidatenHtml()+`<div class="small" style="color:var(--muted);margin:6px 0">Noch kein Material erfasst.
   Ohne Eintrag bleibt für die App offen, welche Stärke und Ausführung ein Werkstoff hat – dann wird
   auch kein Reststück automatisch verwendet.</div>`;
   return;
  }
- box.innerHTML=warnung+liste.slice().sort((x,y)=>
+ box.innerHTML=warnung+lagKandidatenHtml()+liste.slice().sort((x,y)=>
    lagBeschreibung(x).localeCompare(lagBeschreibung(y),"de-CH")).map(l=>{
   const fehlt=lagFehlt(l);
   const tafelFehlt=lagTafelFehlt(l);
@@ -667,6 +737,48 @@ async function lagSpeichern(){
 if($("lagerNeu"))$("lagerNeu").onclick=()=>lagFormularOeffnen({});
 if($("lagerFormAbbrechen"))$("lagerFormAbbrechen").onclick=lagFormularSchliessen;
 if($("lagerFormSpeichern"))$("lagerFormSpeichern").onclick=lagSpeichern;
+
+// v3.181: Die Vorschlagsliste auf- und zuklappen, und eine Zeile uebernehmen.
+document.addEventListener("click",async e=>{
+ const sch=e.target.closest?e.target.closest("#lagKandidatenSchalter"):null;
+ if(sch){lagKandidatenOffen=!lagKandidatenOffen;renderLagerbestand();return}
+ const ok=e.target.closest?e.target.closest("[data-lag-kandidat-ok]"):null;
+ if(!ok)return;
+ const id=Number(ok.dataset.lagKandidatOk);
+ const zeile=ok.closest("[data-lag-kandidat]");
+ if(!zeile)return;
+ const feld=n=>zeile.querySelector("["+n+"]");
+ const zahl=el=>{const v=el?String(el.value).trim():"";if(!v)return null;
+   const x=Number(v.replace(",","."));return Number.isFinite(x)?x:null};
+ const form=lagForm((feld("data-k-form")||{}).value);
+ const werkstoff=zahl(feld("data-k-material"));
+ const staerke=zahl(feld("data-k-staerke"));
+ const ausf=((feld("data-k-ausf")||{}).value||"").trim();
+ // Dieselben Bedingungen wie im Dialog - hier wird nichts lockerer gehandhabt,
+ // nur schneller erreicht.
+ if(werkstoff===null){lagHinweis("Bitte den Werkstoff wählen.",true);return}
+ if(form===null){lagHinweis("Bitte Rolle oder Tafel wählen – daran erkennt die App ein geführtes Blech.",true);return}
+ if(staerke===null||staerke<=0){lagHinweis("Bitte eine Stärke grösser als 0 eintragen.",true);return}
+ // Eine TAFEL braucht ihr Format. Das steht hier nicht zur Verfuegung, also
+ // wird sie im Dialog fertig erfasst statt halb angelegt.
+ if(form==="tafel"){
+  const a=lagArtikel(id);
+  lagHinweis("Für eine Tafel fehlen Länge und Breite – bitte über „✏️ Bearbeiten“ erfassen.",true);
+  lagFormularOeffnen({artikel_id:id,material_id:werkstoff,staerke_mm:staerke,
+    ausfuehrung:ausf||null,form:"tafel",id:a?a.id:id});
+  return;
+ }
+ if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Der Lagereintrag"))return;
+ const w={werkstoff_id:werkstoff,staerke_mm:staerke,ausfuehrung:ausf||null,
+          form:"rolle",laenge_mm:null,breite_mm:null};
+ const {data,error}=await sb.from("materials").update(w).eq("id",id).select();
+ if(error){lagHinweis(error.message,true);return}
+ if(!data||!data.length){lagHinweis("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?",true);return}
+ lagFormatMerken(id,w);
+ renderLagerbestand();
+ if(typeof renderRestLager==="function")renderRestLager();
+ lagHinweis("✓ Wird jetzt als Blech geführt.");
+});
 
 document.addEventListener("click",async e=>{
  const b=e.target.closest?e.target.closest("[data-lager-bearbeiten]"):null;

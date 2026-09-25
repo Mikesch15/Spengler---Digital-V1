@@ -429,7 +429,99 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
  p(G.inListe===true&&G.dila&&G.dila.a===4000,
    "G8 der neue Werkstoff steht sofort in der Liste - ohne Neuladen",G);
 
- p(fehler.length===0,"H1 keine Javascript-Fehler",fehler.slice(0,3));
+ // ---- H  Vorschlagsliste statt 42 Dialoge (v3.181) -------------------------
+ // GEMELDET: "Aber dann muss ich jetzt immernoch bei jedem Blech, das noch
+ // kein Format hinterlegt hat, in Lager -> Materialbestand gehen und dort
+ // jedes Blech erfassen?"
+ //
+ // In den echten Daten: 42 Katalogpositionen mit Einheit m² und einer Zahl
+ // bei dim, ohne Format. Einzeln durch den Dialog waeren das 42 Runden.
+ console.log("\nH · Vorschlaege statt Einzelerfassung");
+ const H=await page.evaluate(async()=>{
+  meineRechte={admin:true,lager:true,kataloge:true};
+  settings.materials=[
+   ["102.01","Kupferblech","0.60","m\u00b2",1],
+   ["100.01","Stahlblech svz","0.62","m\u00b2",1],
+   ["100.04","Stahlblech svz","1.00","m\u00b2",1],
+   ["811.31","Montageband Gyso","19x0.8","m1",1],
+   ["703.21","Kreuzklemme","20x3","St",1],
+   ["106.51","Stahlblech Sarnafil","Norm","m\u00b2",1],
+   ["111.02","Cava-Band Kupfer","250mm","m1",1]
+  ];
+  materialIds=[36,100,104,811,703,106,62];
+  materialWerkstoffe=[3,null,null,null,null,null,3];
+  materialFormate=materialIds.map((x,i)=>i===0
+   ?{staerke_mm:0.6,ausfuehrung:"Blank",form:"rolle",laenge_mm:null,breite_mm:null}
+   :{staerke_mm:null,ausfuehrung:null,form:null,laenge_mm:null,breite_mm:null});
+  const geschrieben=[];
+  const echt=sb.from;
+  sb.from=(t)=>{const q={};["order","limit","not"].forEach(k=>q[k]=()=>q);
+   q.update=d=>{geschrieben.push({t,op:"update",d});
+     return {eq:()=>({select:()=>Promise.resolve({data:[{id:1}],error:null})})}};
+   q.select=()=>q; q.then=(f,g)=>Promise.resolve({data:[],error:null}).then(f,g);return q};
+  lagKandidatenOffen=false;
+  renderLagerbestand();
+  const erkannt=lagKandidaten().map(a=>a.edv_nr);
+  const zuVorher=document.querySelectorAll("[data-lag-kandidat]").length;
+  $("lagKandidatenSchalter").click();
+  await new Promise(f=>setTimeout(f,120));
+  const offen=document.querySelectorAll("[data-lag-kandidat]").length;
+  const z=()=>document.querySelector('[data-lag-kandidat="100"]');
+  const vorbelegt=z().querySelector("[data-k-staerke]").value;
+
+  // (a) ohne Form wird nicht uebernommen
+  z().querySelector("[data-k-material]").value="2";
+  z().querySelector('[data-lag-kandidat-ok]').click();
+  await new Promise(f=>setTimeout(f,150));
+  const ohneForm={n:geschrieben.length,hinweis:($("lagerHinweis")||{}).textContent||""};
+
+  // (b) eine TAFEL wird nicht halb angelegt, sondern im Dialog fertig erfasst
+  z().querySelector("[data-k-form]").value="tafel";
+  z().querySelector('[data-lag-kandidat-ok]').click();
+  await new Promise(f=>setTimeout(f,150));
+  const tafel={n:geschrieben.length,offen:!$("lagerFormModal").hidden,
+               hinweis:($("lagerHinweis")||{}).textContent||""};
+  lagFormularSchliessen();
+  lagKandidatenOffen=true; renderLagerbestand();
+
+  // (c) der gute Fall: Rolle
+  z().querySelector("[data-k-material]").value="2";
+  z().querySelector("[data-k-ausf]").value="blank";
+  z().querySelector("[data-k-form]").value="rolle";
+  z().querySelector('[data-lag-kandidat-ok]').click();
+  await new Promise(f=>setTimeout(f,250));
+  sb.from=echt;
+  return {erkannt,zuVorher,offen,vorbelegt,ohneForm,tafel,
+          geschrieben,nachher:lagKandidaten().map(a=>a.edv_nr),
+          drin:lagFormate().some(f=>Number(f.id)===100)};
+ });
+ p(H.erkannt.length===2&&H.erkannt.indexOf("100.01")>=0&&H.erkannt.indexOf("100.04")>=0,
+   "H1 erkannt werden nur Positionen mit Einheit m² UND einer Zahl bei dim",H.erkannt);
+ p(H.erkannt.indexOf("811.31")<0&&H.erkannt.indexOf("703.21")<0
+   &&H.erkannt.indexOf("111.02")<0&&H.erkannt.indexOf("106.51")<0,
+   "H2 GEGENPROBE: Klebeband, Klemme, Cava-Band und „Norm\" fallen heraus - "
+   +"ohne dass jemand eine Namensliste pflegen muss",H.erkannt);
+ p(H.erkannt.indexOf("102.01")<0,
+   "H3 GEGENPROBE: ein bereits gefuehrtes Blech steht nicht mehr darunter",H.erkannt);
+ p(H.zuVorher===0&&H.offen===2,
+   "H4 die Liste ist zugeklappt und geht auf Klick auf",H);
+ p(H.vorbelegt==="0.62",
+   "H5 die Staerke kommt als VORSCHLAG aus der Spalte dim",H.vorbelegt);
+ p(H.ohneForm.n===0&&/Rolle oder Tafel/.test(H.ohneForm.hinweis),
+   "H6 GEGENPROBE: ohne Form wird nichts uebernommen - Rolle oder Tafel wird "
+   +"nicht geraten, eine Vermutung wuerde den Zuschnitt falsch rechnen",H.ohneForm);
+ p(H.tafel.n===0&&H.tafel.offen===true&&/Länge und Breite/.test(H.tafel.hinweis),
+   "H7 GEGENPROBE: eine TAFEL wird nicht halb angelegt - ohne Format laesst "
+   +"sich kein Zuschnitt planen, also geht der Dialog auf",H.tafel);
+ p(H.geschrieben.length===1&&H.geschrieben[0].d.form==="rolle"
+   &&Number(H.geschrieben[0].d.staerke_mm)===0.62
+   &&H.geschrieben[0].d.laenge_mm===null,
+   "H8 der gute Fall schreibt genau einmal, mit der vorgeschlagenen Staerke "
+   +"und ohne erfundenes Tafelmass",H.geschrieben);
+ p(H.nachher.length===1&&H.nachher[0]==="100.04"&&H.drin===true,
+   "H9 danach ist die Position gefuehrt und aus den Vorschlaegen weg",H);
+
+ p(fehler.length===0,"J1 keine Javascript-Fehler",fehler.slice(0,3));
 
  console.log("\n"+ok+" von "+(ok+fail)+" Pruefungen bestanden.");
  await b.close();

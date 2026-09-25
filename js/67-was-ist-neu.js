@@ -243,7 +243,11 @@ const WIN_CHANGELOG={
   "<b>Nebenbei behoben:</b> wurde aus der Lagerverwaltung eine Materialposition angelegt, füllte die App zwei ihrer vier internen Listen nicht nach. Werkstoff und Format einer frisch angelegten Position konnten dadurch erst nach einem Neuladen stimmen."],
  "3.180":["<b>Auch der Werkstoff entsteht jetzt im selben Dialog.</b> Fehlt beim Erfassen eines neuen Blechs auch der Werkstoff, steht in der Werkstoff-Auswahl <b>„＋ neuen Werkstoff anlegen …“</b>. Name und die beiden Dehnungswerte erscheinen gleich dort. Einmal speichern legt Werkstoff, Katalogposition und Format an – in dieser Reihenfolge.",
   "Die Dehnungswerte bleiben dabei bewusst <b>beim Werkstoff</b> und wandern nicht an die Katalogposition. Es gibt sechs Werkstoffe und über 380 Positionen – an jeder einzelnen stünden dieselben zwei Zahlen, und ein Werkstoff muss wählbar bleiben, auch wenn gerade kein Blech daraus am Lager liegt.",
-  "Die Karte <b>Werkstoffe</b> unter Einstellungen → Massaufnahmen bleibt deshalb, wofür sie da ist: die Dehnungswerte pflegen und nachsehen, welche Werkstoffe es gibt. Neu anlegen geht ab jetzt an beiden Orten."]
+  "Die Karte <b>Werkstoffe</b> unter Einstellungen → Massaufnahmen bleibt deshalb, wofür sie da ist: die Dehnungswerte pflegen und nachsehen, welche Werkstoffe es gibt. Neu anlegen geht ab jetzt an beiden Orten."],
+ "3.181":["<b>Die App schlägt vor, welche Katalogpositionen Blech sind.</b> Im Materialbestand steht jetzt eine aufklappbare Liste: <i>„42 Katalogpositionen sehen nach Blech aus, werden aber nicht geführt“</i>. Erkannt wird an der Einheit <b>m²</b> zusammen mit einer blossen Zahl bei „Dim.“ – das gibt es praktisch nur bei Blech, und die Zahl ist dort die Stärke.",
+  "Jede Zeile bringt die <b>Stärke schon mit</b>, aus „Dim.“ übernommen. Zu wählen bleiben Werkstoff, Ausführung und Rolle/Tafel – ein Klick auf <b>„Als Blech führen“</b>, und die Position ist geführt. Kein Dialog, keine EDV-Nr. abtippen.",
+  "<b>Rolle oder Tafel wird nicht geraten.</b> Das steht nirgends in den Daten, und eine Vermutung würde den Zuschnitt falsch rechnen. Bei einer <b>Tafel</b> öffnet sich der Dialog, weil dort noch Länge und Breite fehlen – halb angelegt wird nichts.",
+  "Klebebänder, Schellen und Schrauben fallen von selbst heraus (Einheit Stk/m1, oder „Dim.“ wie 20x3). Es muss keine Namensliste gepflegt werden."]
 };
 
 function winVersionVergleich(a,b){

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.180.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.181.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1822,6 +1822,14 @@ vergebene EDV-Nr. wird abgewiesen, bevor etwas geschrieben wird.</p>
 Werkstoff-Auswahl steht <b>„＋ neuen Werkstoff anlegen …“</b>, mit Name und den
 beiden Dehnungswerten. Gespeichert wird dann in einem Zug – Werkstoff,
 Position, Format.</p>
+<p><b>Nachtragen ohne Dialog</b> (ab 3.181): Über der Liste steht aufklappbar,
+welche Katalogpositionen <b>nach Blech aussehen, aber nicht geführt werden</b>.
+Erkannt wird an der Einheit <b>m²</b> zusammen mit einer blossen Zahl bei
+„Dim.“. Jede Zeile bringt die Stärke schon mit; zu wählen bleiben Werkstoff,
+Ausführung und Rolle/Tafel. Ein Klick auf „Als Blech führen“ genügt.</p>
+<p>Bei einer <b>Tafel</b> öffnet sich der Dialog – dort fehlen noch Länge und
+Breite, und ohne die lässt sich kein Zuschnitt planen. Halb angelegt wird
+nichts.</p>
 <div class="hin">Die Dehnungswerte bleiben dabei <b>beim Werkstoff</b>. Sie
 gehören zum Material, nicht zum Artikel: es gibt sechs Werkstoffe und über 380
 Katalogpositionen. An die Position gehängt stünden dieselben zwei Zahlen
