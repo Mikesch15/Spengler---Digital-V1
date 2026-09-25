@@ -92,6 +92,18 @@ async function loadAllData(){
  settings.materials=materials.map(m=>[m.edv_nr,m.name,m.dim,m.unit,m.price]);
  materialIds=materials.map(m=>m.id);
  materialWerkstoffe=materials.map(m=>m.werkstoff_id??null);
+ // v3.177: Das Blech-Format kommt aus derselben Abfrage - materials wird mit
+ // select("*") geladen, die neuen Spalten sind also ohne Zutun dabei. Ein
+ // Artikel ohne Form bekommt hier trotzdem einen Eintrag (mit form:null);
+ // artikelFormat() in js/01 macht daraus null, damit an genau EINER Stelle
+ // entschieden wird, was als gefuehrtes Blech gilt.
+ materialFormate=materials.map(m=>({
+  staerke_mm:m.staerke_mm??null,
+  ausfuehrung:m.ausfuehrung??null,
+  form:m.form??null,
+  laenge_mm:m.laenge_mm??null,
+  breite_mm:m.breite_mm??null
+ }));
  settings.employees=profiles.map(p=>`${p.first_name} ${p.last_name}`);
  employeeIds=profiles.map(p=>p.id);
  allProfiles=profiles;

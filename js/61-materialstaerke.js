@@ -87,7 +87,10 @@ function measStaerkeZuruecksetzen(){measStaerkeSetzen(null)}
 function measStaerkenFuer(materialId){
  const mid=Number(materialId);
  if(!Number.isFinite(mid)||mid<=0)return [];
- const liste=(typeof lagerbestand!=="undefined"?lagerbestand:[])||[];
+ // v3.177: aus den Blech-Artikeln (lagFormate(), js/59) - bis v3.176 aus
+ // einer eigenen lagerbestand-Zeile. Es bleibt die einzige Quelle; erfunden
+ // oder vorgegeben wird weiterhin keine Staerke.
+ const liste=(typeof lagFormate==="function")?lagFormate():[];
  const raus=[];
  liste.forEach(l=>{
   if(Number(l.material_id)!==mid)return;

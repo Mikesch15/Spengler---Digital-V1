@@ -55,9 +55,37 @@ function lagArtikel(id){
  if(n===null)return null;
  return lagArtikelListe().find(a=>lagNummer(a.id)===n)||null;
 }
+// v3.177: Traegt der Artikel ein Blech-Format, steht es hier mit dabei. Das
+// ist kein Schoenheitsfehler-Fix, sondern der Grund fuer diese Stufe: die
+// Positionen 102.01/102.02/102.03 heissen ALLE DREI "Kupferblech", und in der
+// Lagerverwaltung standen dadurch drei gleich benannte Produkte. Wer eines
+// ausscannte, riet, ob er 0,6 oder 1,0 mm erwischt.
+//
+// Es wird bewusst an dieser EINEN Stelle ergaenzt: lagArtikelText() ist das
+// Etikett eines Artikels in der ganzen App - Lagerverwaltung, Buchen-Dialog,
+// Ausbuchen aus der Massaufnahme, Produktsuche, Katalogmeldungen. Damit
+// stimmt es ueberall gleichzeitig, und die Suchfelder, die auf diesem Text
+// filtern (js/68), finden ab jetzt auch nach Staerke und Form.
+//
+// dim ist der unstrukturierte Vorlaeufer der Staerke ("0.60"). Wo ein echtes
+// Format steht, tritt es an dessen Stelle statt daneben - sonst stuende die
+// Staerke zweimal da.
+function lagArtikelFormatText(a){
+ const f=(typeof artikelFormat==="function")?artikelFormat(a&&a.id):null;
+ if(!f)return "";
+ const t=[];
+ const st=lagNummer(f.staerke_mm);
+ if(st!==null)t.push(String(st).replace(".",",")+" mm");
+ if((f.ausfuehrung||"").trim())t.push(f.ausfuehrung.trim());
+ const form=lagFormText(f.form);
+ const tafel=lagTafelText(f);
+ if(form)t.push(form==="Tafel"&&tafel?(form+" "+tafel):form);
+ return t.join(" · ");
+}
 function lagArtikelText(a){
  if(!a)return "";
- return (a.edv_nr?a.edv_nr+" ":"")+(a.name||"")+(a.dim?" · "+a.dim:"");
+ const fmt=lagArtikelFormatText(a);
+ return (a.edv_nr?a.edv_nr+" ":"")+(a.name||"")+(fmt?" · "+fmt:(a.dim?" · "+a.dim:""));
 }
 function lagMaterialName(id){
  const m=(typeof findMeasurementMaterial==="function")?findMeasurementMaterial(id):null;
@@ -94,6 +122,47 @@ function lagMm(v){return Math.round(lagZahl(v)).toLocaleString("de-CH")}
 function lagFormAusNotiz(l){
  if(lagForm(l&&l.form)!==null)return null;
  return lagForm((l&&l.notiz)||"");
+}
+
+// ---- Die Bleche, die die Firma fuehrt (v3.177) -----------------------------
+// EINE Quelle. Bis v3.176 war ein gefuehrtes Blech eine Zeile in der Tabelle
+// lagerbestand, die per artikel_id auf den Katalogartikel zeigte - der Artikel
+// trug den Namen, die Lagerzeile das Format. Zwei Datensaetze fuer EIN Blech.
+//
+// Ab jetzt traegt der Artikel sein Format selbst (Migration
+// artikel_traegt_sein_blechformat). Das Kriterium ist die FORM: wer eine Form
+// hat, ist ein Blech, das die Firma fuehrt. Schrauben und Dichtband haben
+// keine und bleiben aussen vor - ohne Liste, ohne Schalter, ohne Pflege.
+//
+// Zurueckgegeben wird GENAU die Gestalt, die die bisherigen Leser erwarten
+// (js/42 restBedarfMerkmale/restBedarfForm, js/61 measStaerkenFuer, die Liste
+// hier). Das ist Absicht: die Zuschnitt-Logik ist durchgerechnet und geprueft,
+// sie soll sich nicht aendern - sie bekommt nur eine andere Quelle. Der
+// Werkstoff kommt aus artikelWerkstoffId() (js/01, seit v3.176) und wird als
+// material_id gefuehrt, weil genau so danach gefiltert wird.
+//
+// id ist die Artikel-Id: der Artikel IST der Eintrag, es gibt daneben keinen
+// zweiten mehr.
+function lagFormate(){
+ if(typeof artikelFormat!=="function")return [];
+ return lagArtikelListe().map(a=>{
+  const f=artikelFormat(a.id);
+  if(!f)return null;
+  return {
+   id:a.id,
+   artikel_id:a.id,
+   material_id:(typeof artikelWerkstoffId==="function")?artikelWerkstoffId(a.id):null,
+   staerke_mm:f.staerke_mm,
+   ausfuehrung:f.ausfuehrung,
+   form:lagForm(f.form),
+   laenge_mm:f.laenge_mm,
+   breite_mm:f.breite_mm,
+   // Der Name steht seit v3.176 nur noch im Katalog - hier wird er bewusst
+   // NICHT mitkopiert, sondern ueber lagArtikelName() aus dem Artikel geholt.
+   bezeichnung:null,
+   notiz:null
+  };
+ }).filter(x=>x!==null);
 }
 
 // Die Zeile, wie sie im Lager steht. Nur echte Angaben - fehlt eine, wird sie
@@ -166,7 +235,7 @@ function lagTafelFehlt(l){
 // automatisch verwendet. Das ist kein Fehler, aber es gehoert gesagt.
 function lagMehrdeutig(){
  const nach=new Map();
- (typeof lagerbestand!=="undefined"?lagerbestand:[]||[]).forEach(l=>{
+ lagFormate().forEach(l=>{
   const mid=lagNummer(l.material_id);
   if(mid===null)return;
   const st=lagNummer(l.staerke_mm), aus=(l.ausfuehrung||"").trim().toLowerCase();
@@ -190,7 +259,7 @@ function lagHinweis(text,fehler){
 function renderLagerbestand(){
  const box=$("lagerListe");
  if(!box)return;
- const liste=(typeof lagerbestand!=="undefined"?lagerbestand:[])||[];
+ const liste=lagFormate();
  const mehr=lagMehrdeutig();
  const warnung=mehr.length?`<div class="ra-warnung">Für ${esc(mehr.map(x=>x.name||("Material "+x.material)).join(", "))}
  sind mehrere Kombinationen aus Stärke und Ausführung erfasst. Solange das so ist, wird für diesen
@@ -229,9 +298,16 @@ function lagFormularHtml(l){
  const matOpt=`<option value="">– bitte wählen –</option>`+
   ((typeof measurementMaterials!=="undefined"?measurementMaterials:[])||[]).map(m=>
    `<option value="${m.id}"${String(m.id)===String(l.material_id||"")?" selected":""}>${esc(m.name)}</option>`).join("");
- const artListe=lagArtikelListe();
- const artOpt=`<option value="">– keiner –</option>`+artListe.map(a=>
+ // v3.177: Der Artikel IST der Eintrag - ohne ihn gibt es kein Blech mehr,
+ // weil das Format auf ihm steht. Deshalb ist er Pflicht (kein "- keiner -")
+ // und beim BEARBEITEN fest: ihn zu wechseln hiesse, das Format auf einen
+ // anderen Artikel zu verschieben - das waere ein neuer Eintrag, kein
+ // geaenderter. Angelegt wird ueber die Auswahl, gewechselt gar nicht.
+ const artListe=lagArtikelListe().filter(a=>
+   String(a.id)===String(l.artikel_id||"")||artikelFormat(a.id)===null);
+ const artOpt=`<option value="">– bitte wählen –</option>`+artListe.map(a=>
    `<option value="${a.id}"${String(a.id)===String(l.artikel_id||"")?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("");
+ const artFest=lagNummer(l&&l.artikel_id)!==null;
  // v3.33: Form. Ein Altbestand ohne Form bekommt einen VORSCHLAG aus der
  // Notiz - die Firma hat dort improvisiert, solange das Feld fehlte. Es wird
  // nichts automatisch migriert: der Vorschlag steht sichtbar da und wird
@@ -243,8 +319,11 @@ function lagFormularHtml(l){
  const tafel=form==="tafel";
  return `<div class="grid">
  <div><label>Werkstoff</label><select id="lag_material">${matOpt}</select></div>
- <div><label>Artikel aus dem Katalog</label><select id="lag_artikel">${artOpt}</select></div>
- <div data-lag-bez="1"${lagArtikelName(l)?" hidden":""}><label>Bezeichnung</label><input id="lag_bezeichnung" type="text" value="${esc(l.bezeichnung||"")}" placeholder="z. B. Titanzink vorbewittert"></div>
+ <div><label>Artikel aus dem Katalog</label>${artFest
+   ?`<div class="ra-wert" id="lag_artikelFest">${esc(lagArtikelText(lagArtikel(l.artikel_id)))}</div>
+     <input id="lag_artikel" type="hidden" value="${esc(String(l.artikel_id))}">
+     <div class="small" style="color:var(--muted)">Der Artikel bleibt – das Format gehört zu ihm.</div>`
+   :`<select id="lag_artikel">${artOpt}</select>`}</div>
  <div data-lag-bez-aus-katalog="1"${lagArtikelName(l)?"":" hidden"}><label>Bezeichnung</label>
   <div class="ra-wert" id="lag_bezAusKatalog">${esc(lagArtikelName(l))}</div>
   <div class="small" style="color:var(--muted)">Kommt aus dem Katalog und wird dort geändert.</div></div>
@@ -283,29 +362,34 @@ function lagFormularOeffnen(l){
  // Der Artikel fuellt Staerke und Ausfuehrung als VORSCHLAG - beides bleibt
  // frei aenderbar, und ein bereits gesetzter Wert wird nicht ueberschrieben.
  const sel=$("lag_artikel");
- // v3.176: Die Bezeichnung ist nur noch dort ein Eingabefeld, wo es keinen
- // Artikel gibt. Mit Artikel steht sein Name da - zum Lesen, nicht zum
- // Abtippen.
- const bezUmschalten=()=>{
+ // v3.176/v3.177: Der Name kommt aus dem Katalog und wird nur angezeigt. Ein
+ // eigenes Eingabefeld gibt es nicht mehr - es war der Rueckfall fuer
+ // Eintraege OHNE Artikel, und die gibt es nicht mehr.
+ const bezZeigen=()=>{
   const a=lagArtikel(sel?sel.value:"");
   const name=a?String(a.name||"").trim():"";
-  const feld=box.querySelector("[data-lag-bez]");
   const ausKatalog=box.querySelector("[data-lag-bez-aus-katalog]");
-  if(feld)feld.hidden=!!name;
   if(ausKatalog){
    ausKatalog.hidden=!name;
    const w=$("lag_bezAusKatalog");
    if(w)w.textContent=name;
   }
  };
- bezUmschalten();
+ bezZeigen();
  if(sel)sel.onchange=()=>{
-  bezUmschalten();
+  bezZeigen();
   const a=lagArtikel(sel.value);
   if(!a)return;
   const st=$("lag_staerke"), au=$("lag_ausfuehrung");
   const dim=Number(String(a.dim||"").replace(",","."));
   if(st&&!st.value&&Number.isFinite(dim)&&dim>0)st.value=String(dim);
+  // v3.177: Der Werkstoff steht seit v3.176 am Artikel. Ist er dort
+  // hinterlegt, wird er hier uebernommen - er ist keine Vermutung, sondern
+  // derselbe Wert aus derselben Spalte. Eine bereits getroffene Auswahl
+  // wird dabei nicht ueberschrieben.
+  const mt=$("lag_material");
+  const wk=(typeof artikelWerkstoffId==="function")?artikelWerkstoffId(a.id):null;
+  if(mt&&!mt.value&&wk!==null)mt.value=String(wk);
   // Die Ausfuehrung steht im Artikelnamen und laesst sich nicht sicher
   // herausloesen - sie wird deshalb NICHT geraten, sondern nur der Name
   // vorgeschlagen. Eintragen muss sie die Firma selbst.
@@ -326,17 +410,26 @@ function lagFormularSchliessen(){
  lagBearbeitet=null;
 }
 
+// v3.177: Die Werte gehen auf den ARTIKEL (materials), nicht mehr auf eine
+// eigene lagerbestand-Zeile. Deshalb kommt artikel_id hier auch nicht mehr im
+// Rueckgabewert vor - sie ist nicht Teil des Eintrags, sie IST der Eintrag
+// und wird getrennt gefuehrt (lagFormularArtikelId).
+//
+// Die Bezeichnung faellt als Feld ganz weg. Sie war bis v3.176 der Rueckfall
+// fuer Eintraege OHNE Artikel - und die gibt es nicht mehr, weil das Format
+// auf dem Artikel steht. Der Name kommt seit v3.176 ohnehin aus dem Katalog.
+function lagFormularArtikelId(){
+ const el=$("lag_artikel");
+ return lagNummer(el?String(el.value).trim():"");
+}
 function lagFormularWerte(){
  const z=id=>{const el=$(id);return el?el.value.trim():""};
  const n=id=>{const v=z(id);if(!v)return null;const x=Number(v.replace(",","."));return Number.isFinite(x)?x:null};
  return {
-  material_id:lagNummer(z("lag_material")),
-  artikel_id:lagNummer(z("lag_artikel")),
-  // Mit Artikel wird KEINE eigene Bezeichnung mehr gespeichert: sonst
-  // entstuende wieder die Kopie, die auseinanderlaufen kann. Eine bereits
-  // gespeicherte wird beim naechsten Speichern still geleert - der Name
-  // steht danach nur noch im Katalog.
-  bezeichnung:lagNummer(z("lag_artikel"))!==null?null:(z("lag_bezeichnung")||null),
+  // Der Werkstoff steht seit v3.176 am Artikel (materials.werkstoff_id) und
+  // wird hier auf DIESELBE Spalte geschrieben - dieselbe Wahrheit, zwei
+  // Tueren. Nicht etwa eine zweite Ablage daneben.
+  werkstoff_id:lagNummer(z("lag_material")),
   staerke_mm:n("lag_staerke"),
   ausfuehrung:z("lag_ausfuehrung")||null,
   form:lagForm(z("lag_form")),
@@ -347,15 +440,35 @@ function lagFormularWerte(){
   notiz:z("lag_notiz")||null
  };
 }
+// Der lokale Stand wird nach dem Schreiben nachgezogen, damit die Liste ohne
+// Neuladen stimmt. materialFormate wird parallel zu materialIds gefuehrt
+// (js/01), also wird an genau derselben Stelle geschrieben.
+function lagFormatMerken(artikelId,w){
+ const i=(typeof materialIds!=="undefined"?materialIds:[]).findIndex(x=>String(x)===String(artikelId));
+ if(i<0)return;
+ materialFormate[i]={staerke_mm:w.staerke_mm,ausfuehrung:w.ausfuehrung,
+   form:w.form,laenge_mm:w.laenge_mm,breite_mm:w.breite_mm};
+ if(typeof materialWerkstoffe!=="undefined"&&"werkstoff_id" in w)
+  materialWerkstoffe[i]=w.werkstoff_id;
+}
 
 // Geschrieben wird ueber die gewoehnliche, RLS-gepruefte Tabelle. Die
 // company_id kommt NIE vom Client - sie hat serverseitig DEFAULT
 // my_company_id(), und die restriktive Policy erzwingt sie zusaetzlich.
+//
+// v3.177: Ziel ist materials, nicht mehr lagerbestand. Es wird ausschliesslich
+// UPDATE gemacht - nie INSERT: der Artikel existiert bereits im Katalog, hier
+// bekommt er nur sein Format. Ein neuer Artikel entsteht im Katalog
+// (Einstellungen -> Material), nicht im Materialbestand.
 async function lagSpeichern(){
  const fehler=$("lagerFormFehler");
  const zeig=t=>{if(fehler){fehler.textContent=t;fehler.hidden=!t}};
+ const artikelId=lagFormularArtikelId();
+ if(artikelId===null){zeig("Bitte einen Artikel aus dem Katalog wählen – das Format gehört zu ihm.");return}
  const w=lagFormularWerte();
- if(w.material_id===null&&w.artikel_id===null&&!w.bezeichnung){zeig("Bitte einen Werkstoff oder einen Artikel wählen – oder eine Bezeichnung eintragen.");return}
+ // Ohne Form ist es kein gefuehrtes Blech: der Eintrag waere nach dem
+ // Speichern aus der Liste verschwunden, ohne dass jemand das wollte.
+ if(w.form===null){zeig("Bitte Rolle oder Tafel wählen – daran erkennt die App, dass dieser Artikel ein geführtes Blech ist.");return}
  // Eine Tafel ohne Format laesst sich nicht planen - das wird hier gesagt,
  // statt beim Rechnen stillschweigend auf Rollenblech zurueckzufallen.
  if(w.form==="tafel"&&(w.laenge_mm===null||w.breite_mm===null)){
@@ -363,16 +476,14 @@ async function lagSpeichern(){
  if(w.form==="tafel"&&(w.laenge_mm<=0||w.breite_mm<=0)){
   zeig("Länge und Breite der Tafel müssen grösser als 0 sein.");return}
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Der Lagereintrag"))return;
- const id=lagBearbeitet&&lagBearbeitet.id;
- const {data,error}=id
-  ? await sb.from("lagerbestand").update(w).eq("id",id).select()
-  : await sb.from("lagerbestand").insert(w).select();
+ const neuerEintrag=artikelFormat(artikelId)===null;
+ const {data,error}=await sb.from("materials").update(w).eq("id",artikelId).select();
  if(error){zeig(error.message);return}
  // Ein von RLS blockiertes Schreiben meldet keinen Fehler, es betrifft still
  // 0 Zeilen (CLAUDE.md 24.1) - 0 gilt deshalb ausdruecklich NICHT als Erfolg.
  if(!data||!data.length){zeig("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return}
- if(id)lagerbestand=(lagerbestand||[]).map(x=>x.id===id?data[0]:x);
- else lagerbestand=(lagerbestand||[]).concat(data);
+ lagFormatMerken(artikelId,w);
+ const id=neuerEintrag?null:artikelId;
  lagFormularSchliessen();
  renderLagerbestand();
  // Der Bedarf kann dadurch eindeutig geworden sein - die Restanzeige haengt
@@ -389,22 +500,32 @@ document.addEventListener("click",async e=>{
  const b=e.target.closest?e.target.closest("[data-lager-bearbeiten]"):null;
  if(b){
   const id=Number(b.dataset.lagerBearbeiten);
-  const l=(lagerbestand||[]).find(x=>Number(x.id)===id);
+  const l=lagFormate().find(x=>Number(x.id)===id);
   if(l)lagFormularOeffnen(Object.assign({},l));
   return;
  }
  const d=e.target.closest?e.target.closest("[data-lager-loeschen]"):null;
  if(!d)return;
  const id=Number(d.dataset.lagerLoeschen);
- const l=(lagerbestand||[]).find(x=>Number(x.id)===id);
+ const l=lagFormate().find(x=>Number(x.id)===id);
  if(!l)return;
- if(!confirm("„"+lagBeschreibung(l)+"“ aus dem Materialbestand entfernen?"))return;
+ // v3.177: Der Eintrag IST der Katalogartikel - geloescht wird deshalb
+ // ausdruecklich NICHTS. Entfernt wird nur sein Format; damit faellt er aus
+ // der Blech-Liste (Kriterium: form), bleibt aber als Katalogposition mit
+ // EDV-Nr., Preis, Barcode und allen Buchungen vollstaendig erhalten.
+ // Ein DELETE waere hier ein Datenverlust, den niemand bestellt hat.
+ if(!confirm("„"+lagBeschreibung(l)+"“ nicht mehr als geführtes Blech behandeln?\n\n"
+   +"Der Katalogartikel bleibt erhalten – es wird nur das Format (Stärke, Ausführung, "
+   +"Rolle/Tafel) entfernt. Der Zuschnitt rechnet danach nicht mehr mit diesem Blech."))return;
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Der Lagereintrag"))return;
- const {data,error}=await sb.from("lagerbestand").delete().eq("id",id).select();
+ // Der Werkstoff bleibt stehen: woraus ein Artikel ist, haengt nicht daran,
+ // ob die Firma ihn gerade als Blech fuehrt (v3.176).
+ const leer={staerke_mm:null,ausfuehrung:null,form:null,laenge_mm:null,breite_mm:null};
+ const {data,error}=await sb.from("materials").update(leer).eq("id",id).select();
  if(error){lagHinweis(error.message,true);return}
- if(!data||!data.length){lagHinweis("Es wurde nichts gelöscht. Fehlt die nötige Berechtigung?",true);return}
- lagerbestand=(lagerbestand||[]).filter(x=>Number(x.id)!==id);
+ if(!data||!data.length){lagHinweis("Es wurde nichts geändert. Fehlt die nötige Berechtigung?",true);return}
+ lagFormatMerken(id,leer);
  renderLagerbestand();
  if(typeof renderRestLager==="function")renderRestLager();
- lagHinweis("✓ Entfernt.");
+ lagHinweis("✓ Entfernt – der Katalogartikel bleibt.");
 });

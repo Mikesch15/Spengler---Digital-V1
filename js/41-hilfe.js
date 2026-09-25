@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.176.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.177.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -378,7 +378,7 @@ der Ersteller bleiben unverändert.</p>
 <p>Eine Seite je Projekt, die drei Fragen beantwortet: <b>welches Material</b>
 braucht das Projekt, <b>welche Massaufnahme liefert welche Zuschnitte</b>, und
 <b>was davon ist schon geschnitten</b>.</p>
-<p>Oben stehen die Kennzahlen, darunter das Material nach Materialart, darunter
+<p>Oben stehen die Kennzahlen, darunter das Material nach Werkstoff, darunter
 die Zuschnitte – eine Karte je Massaufnahme, offene und teilweise zugeschnittene
 zuerst. <b>Die Zuschnittliste steht seit Version 3.25 gleich auf der Karte</b>,
 genau wie in der Werkstatt: Seite öffnen, Stück antippen, fertig. Gerechnet wird
@@ -1781,14 +1781,14 @@ die Rechnung ändert. Steht sie auf <i>Nein</i> – das ist der Startwert –,
 werden Reste nur gespeichert und vorgeschlagen; gerechnet wird wie bisher.
 Steht sie auf <i>Ja</i>, ziehen passende Reste den Bedarf ab, <b>bevor</b> von
 der Rolle gerechnet wird.</p>
-<p>Passend heisst: gleiche Materialart, gleiche Stärke, gleiche Ausführung.
+<p>Passend heisst: gleicher Werkstoff, gleiche Stärke, gleiche Ausführung.
 0,70 mm Titanzink ist <b>kein</b> Ersatz für 0,80 mm. Woher die App Stärke und
 Ausführung kennt, steht im Register <b>📦 Lager</b> unter Materialbestand.</p>
 <p>Verbucht wird dabei nichts: der Plan zeigt, welche Stücke aus welchem Rest
 kämen. Ob ein Rest wirklich verbraucht ist, bleibt ein ausdrücklicher Klick.</p>`},
 
 "lagerbestand":{titel:"Materialbestand",text:`
-<p>Diese Liste legt fest, <b>welche</b> Materialien die Firma führt – Materialart,
+<p>Diese Liste legt fest, <b>welche</b> Bleche die Firma führt – Werkstoff,
 Stärke und Ausführung. Sonst nichts: seit Version 3.31 <b>keine Mengen, keine
 Längen, keine Tafelgrössen</b>. Es war nie eine Lagerverwaltung, es wurde nie
 etwas abgebucht, und die Zahlen dort haben nichts bewirkt.</p>
@@ -1796,20 +1796,37 @@ etwas abgebucht, und die Zahlen dort haben nichts bewirkt.</p>
 grundsätzlich führt. Ein <b>Reststück</b> ist ein einzelnes, konkretes Stück,
 das beim Zuschnitt übrig geblieben ist, mit genau einer Länge und Breite – und
 nach der Verwendung ist es verbraucht.</p>
-<p>Wofür die Liste gebraucht wird: Eine Massaufnahme kennt nur die
-<b>Materialart</b> („Titanzink“) – Stärke und Ausführung stehen dort nirgends.
+<p>Wofür die Liste gebraucht wird: Eine Massaufnahme kennt nur den
+<b>Werkstoff</b> („Titanzink“) – Stärke und Ausführung stehen dort nirgends.
 Was hier steht, ist deshalb zweierlei: die Auswahl für die <b>Materialstärke</b>
 in der Massaufnahme, und die Grundlage dafür, was ein passender Rest ist.</p>
-<p>Führt eine Materialart <b>mehrere</b> Stärken (0,70 <i>und</i> 0,80), war
-bis Version 3.30 für sie kein Rest automatisch verwendbar – die App rät nicht,
+<p>Führt ein Werkstoff <b>mehrere</b> Stärken (0,70 <i>und</i> 0,80), war
+bis Version 3.30 für ihn kein Rest automatisch verwendbar – die App rät nicht,
 welche gemeint war. Seit die Massaufnahme ihre Stärke selbst nennt, ist die
 Frage in der Regel beantwortet.</p>
-<p>Materialarten kommen aus den Massaufnahme-Materialien, Artikel aus dem
+<div class="hin"><b>Ein Blech ist EIN Eintrag</b> (ab 3.177). Bis dahin war ein
+Blech zweimal erfasst: der Artikel im Katalog trug den Namen, eine eigene Zeile
+hier trug Stärke, Ausführung und Rolle/Tafel. Jetzt steht das <b>Format am
+Artikel selbst</b>. Ein Eintrag braucht deshalb einen Artikel aus dem Katalog –
+ohne ihn hätte das Format keinen Ort.</div>
+<p><b>Woran erkennt die App ein Blech?</b> An der Form. Ein Katalogartikel mit
+<b>Rolle</b> oder <b>Tafel</b> ist ein geführtes Blech; Schrauben und Dichtband
+haben keine Form und tauchen hier gar nicht auf. Der Katalog hat über 380
+Positionen – gepflegt werden muss nur das Blech.</p>
+<p><b>„Entfernen“ löscht nichts.</b> Es nimmt dem Artikel nur sein Format,
+sodass der Zuschnitt nicht mehr mit ihm rechnet. Der Katalogartikel bleibt
+vollständig erhalten – mit EDV-Nr., Preis, Barcode und allen Buchungen.</p>
+<p>Werkstoffe kommen aus den Massaufnahme-Werkstoffen, Artikel aus dem
 Materialkatalog der Firma. Beides ist firmeneigen und wird hier nicht neu
-erfunden. Wird ein Artikel gewählt, schlägt das Formular Stärke und
-Bezeichnung vor – beides bleibt frei änderbar.</p>`},
+erfunden. Wird ein Artikel gewählt, schlägt das Formular Stärke und Werkstoff
+vor, soweit sie dort hinterlegt sind – beides bleibt frei änderbar. Der Name
+kommt aus dem Katalog und wird dort geändert.</p>`},
 
 "lagerverwaltung":{titel:"Lagerverwaltung",text:`
+<div class="hin"><b>Das Format steht am Produkt</b> (ab 3.177). Heissen mehrere
+Katalogpositionen gleich – bei euch dreimal „Kupferblech“ –, steht ihr Format
+jetzt überall dabei: „102.01 Kupferblech · 0,6 mm · Blank · Rolle“. Die Suche
+findet damit auch nach Stärke und Form.</div>
 <p>Der aktuelle Bestand je Produkt aus dem Material-Katalog (Einstellungen
 → Material) – Schrauben, Dichtband, Rinnenhalter usw. Mit dem
 Blech-Materialbestand weiter oben in den Einstellungen hat das nichts zu
@@ -1945,7 +1962,7 @@ standardmässig auf Nein – ein Rest liegt physisch irgendwo und ist vielleicht
 schon verbraucht.</p>
 <p>Auch eingeschaltet wird <b>nichts verbucht</b>: der Plan zeigt nur, welche
 Stücke aus welchem Rest kämen. Verwendet werden darf ein Rest nur, wenn
-Materialart, <b>Stärke</b> und <b>Ausführung</b> exakt stimmen. Fehlt eine
+Werkstoff, <b>Stärke</b> und <b>Ausführung</b> exakt stimmen. Fehlt eine
 dieser Angaben, steht das an der Zeile – mit „✏️ Merkmale“ lässt sie sich
 nachtragen.</p>
 <p>„Verbraucht“ nimmt einen Rest aus der Liste, ohne ihn zu löschen.

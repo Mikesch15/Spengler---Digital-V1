@@ -58,7 +58,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
   materialIds=[11,12];
   blechRollenbreiten=[1000,670]; blechSchnittfuge=0;
   restMindestlaenge=1000; restMindestbreite=100; resteImZuschnitt=false;
-  reststuecke=[]; lagerbestand=[]; appSettingsId=1;
+  reststuecke=[]; lagerbestand=[]; materialFormate=[]; appSettingsId=1;
   window.__schreib=[]; window.__lese={}; window.__leer=false;
   projektModule={haupt:true,material:true,zuschnitt:true,reservierung:true,werkstatt:true};
   $("appRoot").hidden=false; $("authScreen").hidden=true;
@@ -68,9 +68,36 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
    ebA.rollenAuswahl=[]; ebA.stuecke=laengen.map(l=>({laenge:l})); ebPieces=ebA.stuecke;
    return ebaZuschnittPlan();
   };
-  window.__lagerTitan=()=>{lagerbestand=[{id:1,material_id:2,artikel_id:11,
+  // v3.177: Der Materialbestand ist keine eigene Tabelle mehr - das Format
+  // (Werkstoff, Staerke, Ausfuehrung, Rolle/Tafel) steht am Katalogartikel
+  // selbst (Migration artikel_traegt_sein_blechformat). Die FAELLE hier
+  // unten sind unveraendert, nur ihr Ablageort ist ein anderer.
+  //
+  // Dieser Uebersetzer nimmt genau die alte Zeilenform entgegen und legt sie
+  // am neuen Ort ab. Absicht: jede einzelne Erwartung darunter bleibt Wort
+  // fuer Wort dieselbe - waere eine davon nur deshalb gruen, weil sie
+  // mitangepasst wurde, sagte sie nichts mehr ueber den Zuschnitt aus.
+  window.__bestand=(zeilen)=>{
+   // dim wird durchgetragen: daraus schlaegt das Formular die Staerke vor
+   // (js/59), und genau das ist weiter unten ein eigener Fall.
+   settings.materials=zeilen.map((z,i)=>[
+     z.edv_nr||("T"+(i+1)),z.bezeichnung||("Blech "+(i+1)),z.dim||"","m²",1]);
+   materialIds=zeilen.map((z,i)=>z.artikel_id||(9000+i));
+   materialWerkstoffe=zeilen.map(z=>z.material_id===undefined?null:z.material_id);
+   // form bleibt, was die Zeile sagt - auch wenn sie nichts sagt. Eine
+   // erfundene Form wuerde "ohne-form" verdecken, und genau das ist einer
+   // der geprueften Faelle.
+   materialFormate=zeilen.map(z=>({
+     staerke_mm:z.staerke_mm===undefined?null:z.staerke_mm,
+     ausfuehrung:z.ausfuehrung===undefined?null:z.ausfuehrung,
+     form:z.form===undefined?null:z.form,
+     laenge_mm:z.laenge_mm===undefined?null:z.laenge_mm,
+     breite_mm:z.breite_mm===undefined?null:z.breite_mm}));
+   lagerbestand=[];
+  };
+  window.__lagerTitan=()=>{window.__bestand([{id:1,material_id:2,artikel_id:11,
     bezeichnung:"Titanzink blank",staerke_mm:0.7,ausfuehrung:"blank",
-    laenge_mm:2000,breite_mm:1000,menge:5,einheit:"Tafeln"}]};
+    laenge_mm:2000,breite_mm:1000,menge:5,einheit:"Tafeln"}])};
   window.__rest=(id,st,aus,l,br,extra)=>Object.assign({id,material_id:2,staerke_mm:st,
     ausfuehrung:aus,laenge_mm:l,breite_mm:br,anzahl:1,verbraucht:false},extra||{});
  });
@@ -130,8 +157,8 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
 
  // Mehrdeutiger Bestand: die App raet NICHT.
  r=await page.evaluate(()=>{
-  lagerbestand=[{id:1,material_id:2,staerke_mm:0.7,ausfuehrung:"blank"},
-                {id:2,material_id:2,staerke_mm:0.8,ausfuehrung:"blank"}];
+  window.__bestand([{id:1,material_id:2,staerke_mm:0.7,ausfuehrung:"blank"},
+                {id:2,material_id:2,staerke_mm:0.8,ausfuehrung:"blank"}]);
   const b=restBedarfMerkmale(2);
   const raus={grund:b.grund,eindeutig:b.eindeutig,gefunden:b.gefunden.length};
   window.__lagerTitan();
@@ -272,7 +299,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
  // ---- 15  Bestehende Zuschnittplanung ohne Reste ------------------------
  console.log("\n15 · bestehende Zuschnittplanung, ohne Reste");
  r=await page.evaluate(()=>{
-  reststuecke=[]; lagerbestand=[]; resteImZuschnitt=false; blechSchnittfuge=0;
+  reststuecke=[]; lagerbestand=[]; materialFormate=[]; resteImZuschnitt=false; blechSchnittfuge=0;
   const arten={};
   // Alle elf Arten muessen weiterhin einen Plan liefern - der Vorabzug darf
   // ihn bei ausgeschalteter Einstellung nicht beruehren.
@@ -400,7 +427,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
 
  // Fehlende Merkmale werden ausdruecklich benannt, nicht verschwiegen.
  r=await page.evaluate(()=>{
-  lagerbestand=[{id:9,material_id:2,bezeichnung:"Titanzink",laenge_mm:2000,breite_mm:1000}];
+  window.__bestand([{id:9,material_id:2,bezeichnung:"Titanzink",laenge_mm:2000,breite_mm:1000}]);
   renderLagerbestand();
   const t=$("lagerListe").innerText;
   window.__lagerTitan(); renderLagerbestand();
@@ -410,8 +437,8 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
 
  // Mehrdeutiger Bestand wird in der Liste genannt.
  r=await page.evaluate(()=>{
-  lagerbestand=[{id:1,material_id:2,staerke_mm:0.7,ausfuehrung:"blank"},
-                {id:2,material_id:2,staerke_mm:0.8,ausfuehrung:"blank"}];
+  window.__bestand([{id:1,material_id:2,staerke_mm:0.7,ausfuehrung:"blank"},
+                {id:2,material_id:2,staerke_mm:0.8,ausfuehrung:"blank"}]);
   renderLagerbestand();
   const t=$("lagerListe").innerText;
   window.__lagerTitan(); renderLagerbestand();
@@ -420,24 +447,46 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
  p(r.warnt,"20 · mehrere Kombinationen werden als Hinweis genannt",{text:r.text.slice(0,220)});
 
  // Speichern: EIN Schreibvorgang, NIE eine company_id vom Client.
+ //
+ // v3.177 hat das ZIEL gewechselt, nicht die Zusicherung. Bis v3.176 entstand
+ // beim Speichern eine neue Zeile in lagerbestand (insert). Seit das Format
+ // am Katalogartikel steht, wird dieser Artikel geaendert (update auf
+ // materials) - der Artikel existiert ja bereits, er bekommt nur sein
+ // Format. Ein insert waere hier sogar falsch: er legte einen zweiten
+ // Artikel an, und genau die Doppelung sollte verschwinden.
+ //
+ // Unveraendert und weiterhin das Wichtigste: genau EIN Schreibvorgang, und
+ // die company_id kommt NIE vom Client.
  r=await page.evaluate(async()=>{
+  window.__bestand([{id:1,material_id:2,artikel_id:11,bezeichnung:"Titanzink blank"}]);
   window.__schreib=[]; lagFormularOeffnen({});
+  $("lag_artikel").value="11";
   $("lag_material").value="2"; $("lag_staerke").value="0.7";
-  $("lag_ausfuehrung").value="blank";
+  $("lag_ausfuehrung").value="blank"; $("lag_form").value="rolle";
   await lagSpeichern();
   return {n:window.__schreib.length,eintrag:window.__schreib[0]||null,
     offen:!$("lagerFormModal").hidden};
  });
- p(r.n===1&&r.eintrag&&r.eintrag.t==="lagerbestand"&&r.eintrag.op==="insert",
-   "20 · Speichern schreibt genau einmal in lagerbestand",r);
+ p(r.n===1&&r.eintrag&&r.eintrag.t==="materials"&&r.eintrag.op==="update",
+   "20 · Speichern aendert genau einmal den Artikel (materials) - kein "
+   +"insert, der einen zweiten Artikel anlegen wuerde",r);
  p(r.eintrag&&!("company_id" in r.eintrag.d),
    "20 · die company_id kommt NIE vom Client",r.eintrag&&r.eintrag.d);
  p(r.offen===false,"20 · nach dem Speichern ist der Dialog zu",r);
+ p(r.eintrag&&r.eintrag.d&&r.eintrag.d.form==="rolle"
+   &&Number(r.eintrag.d.staerke_mm)===0.7,
+   "20 · und geschrieben wird das Format, das im Formular steht",r.eintrag&&r.eintrag.d);
 
  // 0 geschriebene Zeilen gelten NICHT als Erfolg.
  r=await page.evaluate(async()=>{
+  // Frischer Bestand: ein Artikel, der noch KEIN Format traegt - nur dann
+  // steht er zur Wahl (ein bereits gefuehrtes Blech wird seit v3.177
+  // absichtlich nicht erneut angeboten).
+  window.__bestand([{id:1,material_id:2,artikel_id:11,bezeichnung:"Titanzink blank"}]);
   window.__leer=true; window.__schreib=[]; lagFormularOeffnen({});
-  $("lag_material").value="2"; $("lag_bezeichnung").value="Test";
+  $("lag_artikel").value="11";
+  $("lag_material").value="2"; $("lag_staerke").value="0.7";
+  $("lag_ausfuehrung").value="blank"; $("lag_form").value="rolle";
   await lagSpeichern();
   const raus={offen:!$("lagerFormModal").hidden,fehler:$("lagerFormFehler").textContent};
   window.__leer=false; lagFormularSchliessen();
@@ -446,8 +495,29 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
  p(r.offen===true&&/Berechtigung/.test(r.fehler),
    "20 · 0 betroffene Zeilen gelten nicht als Erfolg",r);
 
+ // GEGENPROBE zum Entfernen: der Katalogartikel darf dabei NICHT geloescht
+ // werden. Er traegt EDV-Nr., Preis, Barcode und alle Buchungen - ein DELETE
+ // waere ein Datenverlust, den niemand bestellt hat. Entfernt wird nur das
+ // Format, damit der Artikel aus der Blech-Liste faellt.
+ r=await page.evaluate(async()=>{
+  window.__bestand([{id:1,material_id:2,artikel_id:11,bezeichnung:"Titanzink blank",
+                     staerke_mm:0.7,ausfuehrung:"blank",form:"rolle"}]);
+  window.__schreib=[]; renderLagerbestand();
+  const knopf=document.querySelector("[data-lager-loeschen]");
+  if(knopf)knopf.click();
+  await new Promise(f=>setTimeout(f,200));
+  return {n:window.__schreib.length,eintrag:window.__schreib[0]||null};
+ });
+ p(r.eintrag&&r.eintrag.op==="update"&&r.eintrag.t==="materials",
+   "20 · GEGENPROBE: Entfernen loescht den Katalogartikel NICHT, es aendert "
+   +"ihn nur",r);
+ p(r.eintrag&&r.eintrag.d&&r.eintrag.d.form===null&&r.eintrag.d.staerke_mm===null,
+   "20 · entfernt wird dabei genau das Format",r.eintrag&&r.eintrag.d);
+
  // Der Artikel schlaegt die Staerke vor, ueberschreibt aber nichts.
  r=await page.evaluate(()=>{
+  window.__bestand([{artikel_id:11,bezeichnung:"Titanzinkblech blank",dim:"0.70",material_id:2},
+                    {artikel_id:12,bezeichnung:"Titanzinkblech blank",dim:"0.80",material_id:2}]);
   lagFormularOeffnen({});
   $("lag_artikel").value="11"; $("lag_artikel").dispatchEvent(new Event("change"));
   const leer=$("lag_staerke").value;

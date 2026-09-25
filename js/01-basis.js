@@ -58,6 +58,43 @@ function artikelWerkstoffId(artikelId){
  const w=materialWerkstoffe[i];
  return (w===null||w===undefined||w==="")?null:w;
 }
+// v3.177: Und woraus BESTEHT die Rolle bzw. Tafel? Staerke, Ausfuehrung,
+// Form und - nur bei einer Tafel - das Format. Bis v3.176 stand das auf einer
+// eigenen lagerbestand-Zeile neben dem Artikel. Das war die letzte Stelle, an
+// der ein und dasselbe Blech zweimal erfasst war: der Artikel trug den Namen,
+// die Lagerzeile das Format. Sichtbar wurde es daran, dass materials 36/37/38
+// alle drei "Kupferblech" heissen - in der Lagerverwaltung drei gleich
+// benannte Produkte, bei denen niemand 0,6 von 1,0 mm unterscheiden konnte.
+//
+// Gefuehrt wird es parallel zu materialIds, aus demselben Grund wie
+// materialWerkstoffe: settings.materials ist seit je ein Array aus Arrays,
+// und ein weiteres Feld darin wuerde jede Stelle treffen, die nach Position
+// zugreift.
+let materialFormate=[];
+// Das Blech-Format eines Artikels, ueber seine Datenbank-Id. Null, wenn der
+// Artikel gar nichts davon traegt - dann ist er kein gefuehrtes Blech,
+// sondern eine gewoehnliche Katalogposition (Schrauben, Dichtband).
+//
+// Es genuegt FORM ODER STAERKE, nicht beides. Das ist bewusst so und nicht
+// grosszuegig gemeint: bis v3.176 zaehlte eine Bestandszeile mit Staerke,
+// aber ohne Form, fuer die Bedarfspruefung sehr wohl mit (restBedarfMerkmale
+// in js/42) - nur die Form-Frage blieb dann offen ("ohne-form"). Haette man
+// hier allein die Form verlangt, waere so ein Eintrag mit v3.177 still ganz
+// aus der Liste gefallen und der Bedarf ploetzlich "kein-lager" geworden.
+// Das waere eine Verhaltensaenderung durch die Hintertuer gewesen.
+//
+// Beim SPEICHERN wird die Form trotzdem verlangt (lagSpeichern in js/59):
+// streng beim Schreiben, nachsichtig beim Lesen - so entstehen keine neuen
+// halben Eintraege, und die alten gehen trotzdem nicht verloren.
+function artikelFormat(artikelId){
+ if(artikelId===null||artikelId===undefined)return null;
+ const i=materialIds.findIndex(x=>String(x)===String(artikelId));
+ if(i<0)return null;
+ const f=materialFormate[i];
+ if(!f)return null;
+ const hatStaerke=f.staerke_mm!==null&&f.staerke_mm!==undefined&&f.staerke_mm!=="";
+ return (f.form||hatStaerke)?f:null;
+}
 let currentProfile=null;
 let allProfiles=[];
 function profileName(id){

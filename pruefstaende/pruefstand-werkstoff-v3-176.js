@@ -70,41 +70,57 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
    "A1 mit Artikel gilt der KATALOGname - nicht die aeltere Kopie an der "
    +"Lagerzeile. Genau dieser Fall war in den Daten schon auseinandergelaufen",A);
  p(/^Eigenes Blech/.test(A.ohneArtikel),
-   "A2 ohne Artikel gilt weiter die gespeicherte Bezeichnung - alte Zeilen "
-   +"verlieren nichts",A);
+   "A2 traegt ein Datensatz noch einen eigenen Namen, wird er weiterhin "
+   +"angezeigt - lagBeschreibung() ist eine reine Anzeigefunktion und laesst "
+   +"nichts fallen. Erzeugt wird ein solcher Satz seit v3.177 nicht mehr",A);
  p(/^Kupfer/.test(A.ohneBeides),
    "A3 ohne beides der Werkstoffname",A);
  p(/^Material/.test(A.ganzLeer),"A4 und ganz ohne Angabe ein neutrales Wort",A);
 
+ // v3.177 hat diesen Vertrag VERSCHAERFT, nicht aufgeweicht. Bis v3.176 gab
+ // es neben dem Artikel noch ein freies Bezeichnungsfeld - den Rueckfall
+ // fuer Eintraege OHNE Artikel. Seit das Format am Artikel haengt
+ // (Migration artikel_traegt_sein_blechformat), kann ein Eintrag ohne
+ // Artikel gar nicht mehr entstehen: er haette keinen Ort. Damit faellt das
+ // Feld weg - und mit ihm die letzte Stelle, an der eine Namenskopie
+ // ueberhaupt haette eingetragen werden koennen.
+ //
+ // Geprueft wird deshalb ab hier das schaerfere Versprechen: das Formular
+ // kennt den Schluessel bezeichnung ueberhaupt nicht mehr, und ein Eintrag
+ // ohne Artikel wird nicht gespeichert, sondern abgewiesen.
  const A5=await page.evaluate(async()=>{
+  // Beide Artikel OHNE Format: es wird ein NEUER Eintrag angelegt. Ein
+  // Artikel, der bereits als Blech gefuehrt wird, steht seit v3.177
+  // absichtlich nicht mehr in der Auswahl - er hat seinen Eintrag ja schon.
+  materialFormate=[{staerke_mm:null,ausfuehrung:null,form:null,laenge_mm:null,breite_mm:null},
+                   {staerke_mm:null,ausfuehrung:null,form:null,laenge_mm:null,breite_mm:null}];
   lagFormularOeffnen({});
   await new Promise(f=>setTimeout(f,150));
   const setz=(id,v)=>{const el=$(id);if(el){el.value=v;el.dispatchEvent(new Event("change",{bubbles:true}))}};
-  // Erst Text eintippen, DANN den Artikel waehlen: nur so unterscheidet
-  // sich "speichert nichts" von "hatte ohnehin nichts".
-  const bezFeld=$("lag_bezeichnung"); if(bezFeld)bezFeld.value="Cava-Band";
   setz("lag_artikel","901"); setz("lag_material","3");
   await new Promise(f=>setTimeout(f,150));
-  const feldSichtbar=!document.querySelector("[data-lag-bez]").hidden;
+  const werte=lagFormularWerte();
   const katalogText=($("lag_bezAusKatalog")||{}).textContent||"";
-  const mitArtikel=lagFormularWerte().bezeichnung;
-  // Jetzt ohne Artikel
+  const eingabefeldWeg=$("lag_bezeichnung")===null;
+  // Ohne Artikel: speichern muss abgewiesen werden, mit sichtbarem Grund.
   setz("lag_artikel","");
   await new Promise(f=>setTimeout(f,150));
-  const feldDanach=!document.querySelector("[data-lag-bez]").hidden;
-  const el=$("lag_bezeichnung"); if(el)el.value="Eigenes Blech";
-  const ohneArtikel=lagFormularWerte().bezeichnung;
+  const artikelIdLeer=lagFormularArtikelId();
+  await lagSpeichern();
+  const meldung=($("lagerFormFehler")||{}).textContent||"";
+  const modalNochOffen=!$("lagerFormModal").hidden;
   lagFormularSchliessen();
-  return {feldSichtbar,katalogText,mitArtikel,feldDanach,ohneArtikel};
+  return {schluessel:Object.keys(werte),katalogText,eingabefeldWeg,
+          artikelIdLeer,meldung,modalNochOffen};
  });
- p(A5.mitArtikel===null,
-   "A5 mit Artikel wird KEINE eigene Bezeichnung mehr gespeichert - sonst "
-   +"entstuende wieder die Kopie, die auseinanderlaufen kann",A5);
- p(A5.feldSichtbar===false&&/Cava-Band Kupfer/.test(A5.katalogText),
-   "A6 statt des Eingabefelds steht der Katalogname da, zum Lesen",A5);
- p(A5.feldDanach===true&&A5.ohneArtikel==="Eigenes Blech",
-   "A7 ohne Artikel ist es weiterhin ein freies Feld - fuer alles, was "
-   +"nicht im Katalog steht",A5);
+ p(A5.schluessel.indexOf("bezeichnung")<0,
+   "A5 das Formular kennt keinen Schluessel bezeichnung mehr - die Kopie "
+   +"kann nicht einmal mehr versehentlich entstehen",A5);
+ p(A5.eingabefeldWeg===true&&/Cava-Band Kupfer/.test(A5.katalogText),
+   "A6 statt eines Eingabefelds steht der Katalogname da, zum Lesen",A5);
+ p(A5.artikelIdLeer===null&&A5.modalNochOffen===true&&/Artikel/.test(A5.meldung),
+   "A7 GEGENPROBE: ohne Artikel wird NICHT gespeichert - der Eintrag haette "
+   +"keinen Ort, und das wird gesagt statt still danebengelegt",A5);
 
  // ---- B  Stufe 2: ein Wort, eine Bedeutung --------------------------------
  const module=[["js/28-rinne-aufnahme.js","Rinne halbrund"],
@@ -172,16 +188,32 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
    "C8 und eine Aenderung wird gespeichert");
 
  // ---- D  Die Zusicherung --------------------------------------------------
+ // Bis v3.176 hiess die Zusicherung: "der Zuschnitt ist NOCH NICHT
+ // umgestellt". Mit v3.177 ist er es - auf Entscheid des Betriebs. Die
+ // Zusicherung lautet deshalb jetzt: es gibt nur noch EINE Quelle, und der
+ // Zuschnitt greift nirgends mehr an der alten Tabelle vorbei.
+ //
+ // Geprueft wird am CODE, nicht am Kommentar: die alte Fassung dieser Pruefung
+ // suchte das blosse Wort "lagerbestand" im Funktionsrumpf und wurde dadurch
+ // gruen, sobald das Wort in einem Kommentar stand. Hier wird deshalb auf den
+ // Array-Zugriff geprueft, den es nur im Code gibt.
  const reste=lies("js/42-reste.js");
- const bedarf=reste.slice(reste.indexOf("function restBedarfForm"),
-                          reste.indexOf("function restBedarfForm")+900);
- p(/lagerbestand/.test(bedarf)&&!/werkstoff_id/.test(bedarf),
-   "D1 der Zuschnitt rechnet UNVERAENDERT ueber lagerbestand. Stufe 3 fuellt "
-   +"und zeigt die neue Spalte nur - umgestellt wird erst, wenn die "
-   +"Zuordnung vollstaendig und geprueft ist. Kein Stichtag, kein Risiko "
-   +"fuer bestehende Massaufnahmen");
- p(!/werkstoff_id/.test(lies("js/33-zuschnitt.js")),
-   "D2 dasselbe im Zuschnitt-Modul");
+ // Kommentare UND Zeichenketten werden entfernt, danach darf der Bezeichner
+ // schlicht nicht mehr vorkommen. Eine feinere Regel auf die Zugriffsform
+ // ("lagerbestand." / "lagerbestand[") ging bereits einmal daneben: sie
+ // uebersah (lagerbestand||[]) und blieb gruen, obwohl der alte Zugriff
+ // wieder drin stand.
+ const codeNur=reste
+   .replace(/\/\*[\s\S]*?\*\//g,"")
+   .replace(/\/\/[^\n]*/g,"")
+   .replace(/"(?:[^"\\]|\\.)*"/g,'""')
+   .replace(/'(?:[^'\\]|\\.)*'/g,"''");
+ p(!/\blagerbestand\b(?!_)/.test(codeNur),
+   "D1 js/42 greift nirgends mehr auf das Array lagerbestand zu - Kommentare "
+   +"und Texte zaehlen dabei nicht, gesucht wird der Bezeichner im Code");
+ p(/lagFormate\(\)/.test(reste),
+   "D2 gerechnet wird ueber lagFormate() - die eine Quelle, die den Artikel "
+   +"mit seinem Format liefert");
 
  p(fehler.length===0,"F1 keine Javascript-Fehler",fehler.slice(0,3));
  await b.close();

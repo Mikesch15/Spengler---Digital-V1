@@ -88,7 +88,10 @@ function restBedarfMerkmale(materialId,staerke){
  const mid=restNummer(materialId);
  if(mid===null)return {eindeutig:false,grund:"ohne-material",merkmale:null,gefunden:[]};
  const st=restNummer(staerke);
- const alle=(typeof lagerbestand!=="undefined"?lagerbestand:[]||[])
+ // v3.177: Quelle ist jetzt der Artikel selbst (lagFormate(), js/59) statt
+ // einer eigenen lagerbestand-Zeile. Die Auswahl darunter ist unveraendert -
+ // gefiltert wird weiter nach Werkstoff und Staerke, mit denselben Regeln.
+ const alle=((typeof lagFormate==="function")?lagFormate():[])
    .filter(l=>restNummer(l.material_id)===mid);
  if(!alle.length)
   return {eindeutig:false,grund:"kein-lager",merkmale:null,gefunden:[],material:mid};
@@ -137,7 +140,10 @@ function restBedarfForm(materialId,staerke){
  const mid=restNummer(materialId);
  if(mid===null)return {form:null,grund:"ohne-material",formate:[],material:null};
  const st=restNummer(staerke);
- const alle=(typeof lagerbestand!=="undefined"?lagerbestand:[]||[])
+ // v3.177: Quelle ist jetzt der Artikel selbst (lagFormate(), js/59) statt
+ // einer eigenen lagerbestand-Zeile. Die Auswahl darunter ist unveraendert -
+ // gefiltert wird weiter nach Werkstoff und Staerke, mit denselben Regeln.
+ const alle=((typeof lagFormate==="function")?lagFormate():[])
    .filter(l=>restNummer(l.material_id)===mid);
  if(!alle.length)return {form:null,grund:"kein-lager",formate:[],material:mid};
  const eintraege=st===null?alle
