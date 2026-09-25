@@ -184,6 +184,26 @@ const VOLL=()=>{
  p(/einrKarteHtml/.test(a2),"die Startseite (js/70) zieht die Karte ein");
  p(/einrAnzeigen/.test(a2),"und ueber 'Mehr' laesst sie sich wieder aufrufen");
  p(lies("css/05-ansicht2.css").indexOf(".einr-karte")>=0,"die Karte hat ihre Gestaltung");
+ // Diese Pruefung kam NACH dem ersten vollen Lauf dazu: dort fiel
+ // pruefstand-ansicht2-v3-150 (F3), weil die 14 neuen Stilregeln ungebunden
+ // waren und damit auch in der KLASSISCHEN Ansicht gefaerbt haetten. Der
+ // Fehler war echt, meine eigene Pruefung hatte ihn nur nicht abgedeckt -
+ // deshalb steht er ab jetzt auch hier, direkt bei der Karte, zu der er
+ // gehoert. css/05 wird in beiden Ansichten geladen; gebunden wird eine
+ // Regel ueber .a2-, und die Karte liegt tatsaechlich immer in einer
+ // .a2-karte.
+ const cssRoh=lies("css/05-ansicht2.css")
+   .replace(/\/\*[\s\S]*?\*\//g,"").replace(/@media[^{]*\{/g,"");
+ const ungebunden=[];
+ cssRoh.split("}").forEach(bl=>{
+  const i=bl.indexOf("{"); if(i<0)return;
+  const sel=bl.slice(0,i).trim();
+  if(!sel||sel.startsWith("@"))return;
+  sel.split(",").forEach(x=>{x=x.trim();
+   if(x&&x.indexOf("einr-")>=0&&!/\.a2-/.test(x)&&!/#a2/.test(x))ungebunden.push(x)});
+ });
+ p(ungebunden.length===0,
+  "jede Stilregel der Karte haengt an .a2- und faerbt damit NICHT in die klassische Ansicht",ungebunden);
 
  // ---- H  Aufrufen, wenn nichts mehr offen ist ------------------------------
  console.log("\nH · Wieder aufrufen, wenn nichts mehr offen ist");

@@ -984,28 +984,34 @@ html.a2-an .a2-zeile.treffer{outline:2px solid var(--blue);outline-offset:1px}
 /* ---- Einrichtungs-Checkliste (v3.183) -----------------------------------
    Sie steht ganz oben auf der Startseite einer noch nicht fertig
    eingerichteten Firma. Blau gerahmt wie der Umstellungs-Hinweis, NICHT
-   rot: es ist kein Fehler, es ist eine Aufgabe. */
-.einr-karte{border-left:4px solid var(--blue)}
-.einr-liste{margin-top:10px;display:flex;flex-direction:column;gap:2px}
-.einr-punkt{display:flex;align-items:flex-start;gap:9px;padding:9px 0;
+   rot: es ist kein Fehler, es ist eine Aufgabe.
+
+   JEDER Waehler haengt an .a2-karte. Das ist keine Formsache: diese Datei
+   wird auch geladen, wenn die klassische Ansicht aktiv ist, und eine
+   ungebundene Regel wie ".einr-punkt" wuerde dort mitfaerben. Die Karte
+   existiert ausschliesslich innerhalb einer .a2-karte - die Bindung ist
+   also nicht nur erlaubt, sie ist auch wahr. */
+.a2-karte.einr-karte{border-left:4px solid var(--blue)}
+.a2-karte .einr-liste{margin-top:10px;display:flex;flex-direction:column;gap:2px}
+.a2-karte .einr-punkt{display:flex;align-items:flex-start;gap:9px;padding:9px 0;
  border-top:1px solid var(--line)}
-.einr-punkt:first-child{border-top:0}
-.einr-haken{flex:none;width:22px;text-align:center;font-size:16px;font-weight:800;
+.a2-karte .einr-punkt:first-child{border-top:0}
+.a2-karte .einr-haken{flex:none;width:22px;text-align:center;font-size:16px;font-weight:800;
  color:var(--muted);line-height:1.4}
-.einr-fertig .einr-haken{color:var(--green)}
-.einr-text{flex:1 1 auto;min-width:0}
-.einr-text b{font-size:14px}
+.a2-karte .einr-fertig .einr-haken{color:var(--green)}
+.a2-karte .einr-text{flex:1 1 auto;min-width:0}
+.a2-karte .einr-text b{font-size:14px}
 /* Erledigtes tritt zurueck, ohne zu verschwinden: es soll nachlesbar
    bleiben, warum ein Punkt da ist - aber den Blick nicht mehr binden. */
-.einr-fertig .einr-text b{font-weight:600;color:var(--muted)}
-.einr-stand{color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
-.einr-freiwillig{font-size:11px;font-weight:600;color:var(--muted);
+.a2-karte .einr-fertig .einr-text b{font-weight:600;color:var(--muted)}
+.a2-karte .einr-stand{color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.a2-karte .einr-freiwillig{font-size:11px;font-weight:600;color:var(--muted);
  border:1px solid var(--line);border-radius:999px;padding:1px 6px;margin-left:4px;
  white-space:nowrap}
-.einr-punkt>button{flex:none;align-self:center}
+.a2-karte .einr-punkt>button{flex:none;align-self:center}
 @media(max-width:420px){
  /* Auf dem Telefon rutscht der Knopf unter den Text, sonst bleibt fuer die
     Begruendung keine lesbare Breite mehr uebrig. */
- .einr-punkt{flex-wrap:wrap}
- .einr-punkt>button{margin-left:31px}
+ .a2-karte .einr-punkt{flex-wrap:wrap}
+ .a2-karte .einr-punkt>button{margin-left:31px}
 }
