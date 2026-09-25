@@ -403,6 +403,39 @@ function measurementMaterialOrFallback(value){
 }
 // Füllt alle Material-Dropdowns (Klasse "meas-material-select") mit dem
 // aktuellen Katalog, ohne die laufende Auswahl zu verlieren.
+// Einen neuen Werkstoff anlegen (v3.180).
+//
+// EINE Stelle, an der ein Werkstoff entsteht - dasselbe Muster wie
+// katalogPositionAnlegen() in js/59. Bis v3.179 ging das nur ueber die Karte
+// "Werkstoffe" in den Einstellungen; wer beim Erfassen eines neuen Blechs
+// merkte, dass der Werkstoff fehlt, musste den Dialog verlassen.
+//
+// Verschmolzen wird hier ausdruecklich NICHT: max_abstand_mm/ab_fixpunkt_mm
+// sind die SIA-271-Dehnungswerte und gehoeren zum Werkstoff, nicht zum
+// Artikel. Am Artikel stuenden sie ueber 380-mal, obwohl es sechs Werkstoffe
+// gibt - und ein Werkstoff muss waehlbar bleiben, auch wenn gerade kein Blech
+// daraus am Lager liegt.
+//
+// Wie die Liste danach aufgefrischt wird, entscheidet der Aufrufer: die
+// Einstellungen-Karte laedt sie neu (sie zeigt auch die Werte), ein Dialog
+// kommt mit dem oertlichen Nachziehen aus.
+async function werkstoffAnlegen(werte){
+ const w=werte||{};
+ const satz={name:String(w.name||"").trim()||"Neuer Werkstoff"};
+ if(w.max_abstand_mm!==undefined)satz.max_abstand_mm=w.max_abstand_mm;
+ if(w.ab_fixpunkt_mm!==undefined)satz.ab_fixpunkt_mm=w.ab_fixpunkt_mm;
+ const {data,error}=await sb.from("measurement_materials").insert(satz).select("*");
+ if(error)return {id:null,fehler:error.message,
+   rls:/permission|policy|row-level/i.test(error.message||"")};
+ // Ein von RLS blockiertes Schreiben meldet keinen Fehler, es betrifft still
+ // 0 Zeilen (CLAUDE.md 24.1) - 0 gilt deshalb NICHT als Erfolg.
+ if(!data||!data.length)return {id:null,fehler:"",rls:false};
+ measurementMaterials=measurementMaterials.concat(data)
+   .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"de-CH"));
+ renderMeasMaterialOptions();
+ return {id:data[0].id,fehler:null,rls:false};
+}
+
 function renderMeasMaterialOptions(){
  document.querySelectorAll(".meas-material-select").forEach(sel=>{
   const bisher=sel.value;

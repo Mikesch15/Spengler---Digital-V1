@@ -346,7 +346,90 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
    +"zog das Anlegen nur settings.materials und materialIds nach - "
    +"materialWerkstoffe und materialFormate blieben zurueck",F.listen);
 
- p(fehler.length===0,"G1 keine Javascript-Fehler",fehler.slice(0,3));
+ // ---- G  Auch der Werkstoff im selben Dialog (v3.180) ----------------------
+ // GEMELDET: "Dann waere ja auch die Karte Werkstoffe im Register
+ // Massaufnahmen nur noch da um die Dehnungslaengen zu definieren ... da
+ // muesste ja ein neues Material ebenfalls erfasst werden."
+ //
+ // Verschmolzen wird trotzdem nicht: max_abstand_mm/ab_fixpunkt_mm sind die
+ // SIA-271-Dehnungswerte und gehoeren zum Werkstoff. Am Artikel stuenden sie
+ // ueber 380-mal fuer sechs Werkstoffe. Kuerzer wird nur der WEG dorthin.
+ console.log("\nG · Auch der Werkstoff entsteht im selben Dialog");
+ const G=await page.evaluate(async()=>{
+  meineRechte={admin:true,lager:true,kataloge:true};
+  const geschrieben=[];
+  const echt=sb.from;
+  let naechste=800;
+  sb.from=(t)=>{
+   const q={};
+   ["eq","order","limit","not"].forEach(k=>q[k]=()=>q);
+   q.insert=d=>{geschrieben.push({t,op:"insert",d});
+     return {select:()=>Promise.resolve({data:[Object.assign({id:naechste++},d)],error:null})}};
+   q.update=d=>{geschrieben.push({t,op:"update",d});
+     return {eq:()=>({select:()=>Promise.resolve({data:[{id:1}],error:null})})}};
+   q.select=()=>q; q.then=(f,g)=>Promise.resolve({data:[],error:null}).then(f,g);
+   return q;
+  };
+  const setz=(id,v)=>{const el=$(id);if(el){el.value=v;el.dispatchEvent(new Event("change",{bubbles:true}))}};
+  lagFormularOeffnen({});
+  const wahlHat=[...$("lag_material").options].some(o=>o.value==="__neu");
+  const vorher=[...document.querySelectorAll("[data-lag-neuw]")].every(e=>e.hidden);
+  setz("lag_material","__neu");
+  await new Promise(f=>setTimeout(f,120));
+  const nachher=[...document.querySelectorAll("[data-lag-neuw]")].every(e=>!e.hidden);
+
+  // (a) ein Name, den es schon gibt, wird abgewiesen
+  $("lag_neuWName").value="Kupfer";
+  setz("lag_artikel","__neu");
+  $("lag_neuNr").value="109.01"; $("lag_neuName").value="Alublech";
+  $("lag_staerke").value="0.8"; $("lag_ausfuehrung").value="blank";
+  setz("lag_form","rolle");
+  await lagSpeichern();
+  const doppelt={meldung:($("lagerFormFehler")||{}).textContent||"",n:geschrieben.length};
+
+  // (b) ohne Namen wird abgewiesen
+  $("lag_neuWName").value="";
+  await lagSpeichern();
+  const ohneName={meldung:($("lagerFormFehler")||{}).textContent||"",n:geschrieben.length};
+
+  // (c) der gute Fall
+  $("lag_neuWName").value="Aluminium";
+  $("lag_neuWAbstand").value="4000"; $("lag_neuWFix").value="2000";
+  await lagSpeichern();
+  sb.from=echt;
+  const wNeu=measurementMaterials.find(m=>m.name==="Aluminium");
+  return {wahlHat,vorher,nachher,doppelt,ohneName,
+          schritte:geschrieben.map(x=>x.t+"/"+x.op),
+          werkstoff:geschrieben.find(x=>x.t==="measurement_materials"),
+          artikel:geschrieben.find(x=>x.t==="materials"&&x.op==="insert"),
+          inListe:!!wNeu,
+          dila:wNeu?{a:wNeu.max_abstand_mm,f:wNeu.ab_fixpunkt_mm}:null};
+ });
+ p(G.wahlHat===true,"G1 die Werkstoff-Auswahl bietet „＋ neuen Werkstoff\"",G.wahlHat);
+ p(G.vorher===true&&G.nachher===true,
+   "G2 Name und die beiden Dehnungswerte erscheinen erst bei dieser Wahl",G);
+ p(G.doppelt.n===0&&/gibt es bereits/.test(G.doppelt.meldung),
+   "G3 GEGENPROBE: ein Werkstoff, den es schon gibt, wird abgewiesen - BEVOR "
+   +"irgendetwas geschrieben wird",G.doppelt);
+ p(G.ohneName.n===0&&/Namen/.test(G.ohneName.meldung),
+   "G4 GEGENPROBE: ohne Namen wird nichts angelegt",G.ohneName);
+ p(G.schritte.length===3
+   &&G.schritte[0]==="measurement_materials/insert"
+   &&G.schritte[1]==="materials/insert"
+   &&G.schritte[2]==="materials/update",
+   "G5 der gute Fall: Werkstoff, dann Position, dann Format - der Werkstoff "
+   +"zuerst, weil die beiden anderen auf ihn zeigen",G.schritte);
+ p(G.werkstoff&&G.werkstoff.d.max_abstand_mm===4000&&G.werkstoff.d.ab_fixpunkt_mm===2000,
+   "G6 die Dehnungswerte gehen an den WERKSTOFF",G.werkstoff&&G.werkstoff.d);
+ p(G.artikel&&G.artikel.d.werkstoff_id===800
+   &&!("max_abstand_mm" in G.artikel.d)&&!("ab_fixpunkt_mm" in G.artikel.d),
+   "G7 GEGENPROBE: der Artikel zeigt nur auf ihn - die Dehnungswerte stehen "
+   +"NICHT an der Katalogposition. Sonst stuenden sie ueber 380-mal da, fuer "
+   +"sechs Werkstoffe",G.artikel&&G.artikel.d);
+ p(G.inListe===true&&G.dila&&G.dila.a===4000,
+   "G8 der neue Werkstoff steht sofort in der Liste - ohne Neuladen",G);
+
+ p(fehler.length===0,"H1 keine Javascript-Fehler",fehler.slice(0,3));
 
  console.log("\n"+ok+" von "+(ok+fail)+" Pruefungen bestanden.");
  await b.close();

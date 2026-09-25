@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.179.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.180.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1818,6 +1818,15 @@ Positionen – gepflegt werden muss nur das Blech.</p>
 Bezeichnung und Einheit gleich hier – einmal speichern legt die Position an und
 setzt ihr Format. Vorher musste beides getrennt erfasst werden. Eine schon
 vergebene EDV-Nr. wird abgewiesen, bevor etwas geschrieben wird.</p>
+<p>Fehlt auch der <b>Werkstoff</b> noch, geht es genauso (ab 3.180): in der
+Werkstoff-Auswahl steht <b>„＋ neuen Werkstoff anlegen …“</b>, mit Name und den
+beiden Dehnungswerten. Gespeichert wird dann in einem Zug – Werkstoff,
+Position, Format.</p>
+<div class="hin">Die Dehnungswerte bleiben dabei <b>beim Werkstoff</b>. Sie
+gehören zum Material, nicht zum Artikel: es gibt sechs Werkstoffe und über 380
+Katalogpositionen. An die Position gehängt stünden dieselben zwei Zahlen
+hunderte Male da – und ein Werkstoff muss wählbar bleiben, auch wenn gerade
+kein Blech daraus am Lager liegt.</div>
 <p><b>„Entfernen“ löscht nichts.</b> Es nimmt dem Artikel nur sein Format,
 sodass der Zuschnitt nicht mehr mit ihm rechnet. Der Katalogartikel bleibt
 vollständig erhalten – mit EDV-Nr., Preis, Barcode und allen Buchungen.</p>

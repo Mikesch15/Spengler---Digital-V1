@@ -240,7 +240,10 @@ const WIN_CHANGELOG={
  "3.179":["<b>Ein neues Blech wird nur noch EINMAL erfasst.</b> Bis hierher musste zuerst im Materialkatalog eine Position angelegt und danach im Materialbestand ihr Format gesetzt werden – zwei Karten, zwei Formulare für ein Blech.",
   "Jetzt steht in der Artikel-Auswahl des Materialbestands <b>„＋ neue Katalogposition anlegen …“</b>. Wird sie gewählt, erscheinen EDV-Nr., Bezeichnung und Einheit gleich im selben Dialog. Einmal speichern legt die Position an und setzt ihr Format. Die EDV-Nr. wird dabei aus der passenden Katalogruppe vorgeschlagen, genau wie in der Lagerverwaltung.",
   "Eine schon vergebene EDV-Nr. wird abgewiesen, bevor irgendetwas geschrieben wird – mit dem Hinweis, dass sich diese Position oben direkt auswählen lässt.",
-  "<b>Nebenbei behoben:</b> wurde aus der Lagerverwaltung eine Materialposition angelegt, füllte die App zwei ihrer vier internen Listen nicht nach. Werkstoff und Format einer frisch angelegten Position konnten dadurch erst nach einem Neuladen stimmen."]
+  "<b>Nebenbei behoben:</b> wurde aus der Lagerverwaltung eine Materialposition angelegt, füllte die App zwei ihrer vier internen Listen nicht nach. Werkstoff und Format einer frisch angelegten Position konnten dadurch erst nach einem Neuladen stimmen."],
+ "3.180":["<b>Auch der Werkstoff entsteht jetzt im selben Dialog.</b> Fehlt beim Erfassen eines neuen Blechs auch der Werkstoff, steht in der Werkstoff-Auswahl <b>„＋ neuen Werkstoff anlegen …“</b>. Name und die beiden Dehnungswerte erscheinen gleich dort. Einmal speichern legt Werkstoff, Katalogposition und Format an – in dieser Reihenfolge.",
+  "Die Dehnungswerte bleiben dabei bewusst <b>beim Werkstoff</b> und wandern nicht an die Katalogposition. Es gibt sechs Werkstoffe und über 380 Positionen – an jeder einzelnen stünden dieselben zwei Zahlen, und ein Werkstoff muss wählbar bleiben, auch wenn gerade kein Blech daraus am Lager liegt.",
+  "Die Karte <b>Werkstoffe</b> unter Einstellungen → Massaufnahmen bleibt deshalb, wofür sie da ist: die Dehnungswerte pflegen und nachsehen, welche Werkstoffe es gibt. Neu anlegen geht ab jetzt an beiden Orten."]
 };
 
 function winVersionVergleich(a,b){

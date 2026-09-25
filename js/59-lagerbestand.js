@@ -342,7 +342,8 @@ let lagBearbeitet=null;
 function lagFormularHtml(l){
  const matOpt=`<option value="">– bitte wählen –</option>`+
   ((typeof measurementMaterials!=="undefined"?measurementMaterials:[])||[]).map(m=>
-   `<option value="${m.id}"${String(m.id)===String(l.material_id||"")?" selected":""}>${esc(m.name)}</option>`).join("");
+   `<option value="${m.id}"${String(m.id)===String(l.material_id||"")?" selected":""}>${esc(m.name)}</option>`).join("")
+   +`<option value="${LAG_NEUE_POSITION}">＋ neuen Werkstoff anlegen …</option>`;
  // v3.177: Der Artikel IST der Eintrag - ohne ihn gibt es kein Blech mehr,
  // weil das Format auf ihm steht. Deshalb ist er Pflicht (kein "- keiner -")
  // und beim BEARBEITEN fest: ihn zu wechseln hiesse, das Format auf einen
@@ -379,6 +380,17 @@ function lagFormularHtml(l){
   <input id="lag_neuName" type="text" placeholder="z. B. Kupferblech"></div>
  <div data-lag-neu="1" hidden><label>Einheit</label>
   <input id="lag_neuEinheit" type="text" value="m²" placeholder="m²"></div>
+ <div data-lag-neuw="1" hidden><label>Name des neuen Werkstoffs</label>
+  <input id="lag_neuWName" type="text" placeholder="z. B. Aluminium"></div>
+ <div data-lag-neuw="1" hidden><label>Dehnung: Abstand zwischen zwei (mm)</label>
+  <input id="lag_neuWAbstand" type="number" step="1" placeholder="z. B. 4000"></div>
+ <div data-lag-neuw="1" hidden><label>Dehnung: Abstand ab Fixpunkt (mm)</label>
+  <input id="lag_neuWFix" type="number" step="1" placeholder="z. B. 2000"></div>
+ <div data-lag-neuw="1" hidden class="wide"><div class="small" style="color:var(--muted)">
+  Die beiden Dehnungswerte (SIA 271) braucht nur die Dila-Berechnung von
+  Rinne halbrund und Mauerabdeckung. Bleiben sie leer, lässt sich der
+  Werkstoff überall sonst trotzdem wählen – nachtragen geht jederzeit unter
+  Einstellungen → Massaufnahmen → Werkstoffe.</div></div>
  <div><label>Stärke (mm)</label><input id="lag_staerke" type="number" step="0.05" min="0" value="${l.staerke_mm==null?"":l.staerke_mm}" placeholder="0.70"></div>
  <div><label>Oberfläche / Ausführung</label><input id="lag_ausfuehrung" type="text" value="${esc(l.ausfuehrung||"")}" placeholder="z. B. blank, vorbewittert"></div>
  <div><label>Form</label><select id="lag_form">${formOpt}</select></div>
@@ -417,6 +429,7 @@ function lagFormularOeffnen(l){
  // v3.176/v3.177: Der Name kommt aus dem Katalog und wird nur angezeigt. Ein
  // eigenes Eingabefeld gibt es nicht mehr - es war der Rueckfall fuer
  // Eintraege OHNE Artikel, und die gibt es nicht mehr.
+ const mt=$("lag_material");
  const bezZeigen=()=>{
   const neu=sel&&sel.value===LAG_NEUE_POSITION;
   const a=neu?null:lagArtikel(sel?sel.value:"");
@@ -430,6 +443,8 @@ function lagFormularOeffnen(l){
   // v3.179: Die Felder der neuen Position stehen nur da, wenn sie gebraucht
   // werden - sonst fragte das Formular nach einer EDV-Nr., die es schon gibt.
   box.querySelectorAll("[data-lag-neu]").forEach(el=>{el.hidden=!neu});
+  const neuW=mt&&mt.value===LAG_NEUE_POSITION;
+  box.querySelectorAll("[data-lag-neuw]").forEach(el=>{el.hidden=!neuW});
  };
  bezZeigen();
  if(sel)sel.onchange=()=>{
@@ -461,6 +476,8 @@ function lagFormularOeffnen(l){
   // vorgeschlagen. Eintragen muss sie die Firma selbst.
   if(au&&!au.value)au.placeholder="aus \""+(a.name||"")+"\" eintragen";
  };
+ // Die Werkstoff-Auswahl blendet ihre eigenen Felder ein bzw. aus.
+ if(mt)mt.onchange=bezZeigen;
  // Der Name der neuen Position kommt oft erst nach der Auswahl - die
  // EDV-Nr. wird deshalb auch dann noch vorgeschlagen, solange das Feld leer
  // ist. Eine selbst eingetippte Nummer wird nie ueberschrieben.
@@ -544,6 +561,49 @@ async function lagSpeichern(){
  let artikelId=lagFormularArtikelId();
  if(artikelId===null&&!neueStelle){
   zeig("Bitte einen Artikel aus dem Katalog wählen – das Format gehört zu ihm.");return}
+
+ // v3.180: Fehlt auch der WERKSTOFF noch, entsteht er hier - im selben
+ // Dialog. Zuerst, weil Artikel und Format beide auf ihn zeigen.
+ //
+ // Verschmolzen wird deshalb trotzdem nichts: die Dehnungswerte gehoeren zum
+ // Werkstoff (sechs Stueck), nicht an jede der ueber 380 Katalogpositionen.
+ // Es wird nur der Weg dorthin kuerzer.
+ const mtFeld=$("lag_material");
+ if(mtFeld&&mtFeld.value===LAG_NEUE_POSITION){
+  const wname=(($("lag_neuWName")||{}).value||"").trim();
+  if(!wname){zeig("Bitte einen Namen für den neuen Werkstoff eingeben.");return}
+  const schonW=((typeof measurementMaterials!=="undefined"?measurementMaterials:[])||[])
+    .find(m=>String(m.name||"").trim().toLowerCase()===wname.toLowerCase());
+  if(schonW){
+   zeig("Den Werkstoff „"+wname+"“ gibt es bereits. Bitte ihn oben direkt auswählen.");
+   return;
+  }
+  const zahl=id=>{const v=(($(id)||{}).value||"").trim();
+    if(!v)return undefined;const x=Number(v.replace(",","."));
+    return Number.isFinite(x)?x:undefined};
+  const rausW=await werkstoffAnlegen({name:wname,
+    max_abstand_mm:zahl("lag_neuWAbstand"),ab_fixpunkt_mm:zahl("lag_neuWFix")});
+  if(rausW.id===null){
+   zeig(rausW.fehler
+     ?("Der Werkstoff konnte nicht angelegt werden: "+rausW.fehler
+       +(rausW.rls?" Dafür fehlt das Recht, die Kataloge zu ändern.":""))
+     :"Der Werkstoff wurde nicht angelegt. Fehlt die nötige Berechtigung?");
+   return;
+  }
+  // Die Auswahl steht ab jetzt auf dem neuen Werkstoff - lagFormularWerte()
+  // liest sie gleich darunter. Die Option muss dafuer eigens eingetragen
+  // werden: renderMeasMaterialOptions() (js/01) fuellt nur die Dropdowns mit
+  // der Klasse "meas-material-select", und dieses hier wird vom Formular
+  // selbst gebaut. Ohne die Option liefe value=<id> ins Leere und der
+  // Werkstoff waere nach dem Anlegen wieder leer.
+  const opt=document.createElement("option");
+  opt.value=String(rausW.id); opt.textContent=wname;
+  mtFeld.insertBefore(opt,mtFeld.lastElementChild);
+  mtFeld.value=String(rausW.id);
+  // Die Felder des neuen Werkstoffs haben ihren Zweck erfuellt.
+  const rumpf=$("lagerFormBody");
+  if(rumpf)rumpf.querySelectorAll("[data-lag-neuw]").forEach(el=>{el.hidden=true});
+ }
  const w=lagFormularWerte();
  // Ohne Form ist es kein gefuehrtes Blech: der Eintrag waere nach dem
  // Speichern aus der Liste verschwunden, ohne dass jemand das wollte.

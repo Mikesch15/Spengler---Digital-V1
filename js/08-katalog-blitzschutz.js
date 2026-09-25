@@ -588,8 +588,12 @@ function renderMeasMaterialSettings(){
 </div>`).join("")||'<div class="empty">Noch kein Werkstoff vorhanden.</div>';
 }
 $("newMeasMaterial").onclick=async()=>{
- const {error}=await sb.from("measurement_materials").insert({name:"Neuer Werkstoff"});
- if(error){alert("Fehler: "+error.message);return}
+ // v3.180: angelegt wird ueber werkstoffAnlegen() (js/01) - dieselbe
+ // Funktion, die jetzt auch der Materialbestand benutzt. Die Karte hier
+ // laedt die Liste danach weiterhin selbst neu: sie zeigt auch die
+ // Dehnungswerte und soll in der Reihenfolge der Datenbank stehen.
+ const raus=await werkstoffAnlegen({name:"Neuer Werkstoff"});
+ if(raus.id===null){alert("Fehler: "+(raus.fehler||"Der Werkstoff wurde nicht angelegt."));return}
  const {data}=await sb.from("measurement_materials").select("*").order("name");
  measurementMaterials=data||[];
  renderMeasMaterialSettings();
