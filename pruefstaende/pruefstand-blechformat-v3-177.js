@@ -224,7 +224,38 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
  p(/materialFormate=materials\.map/.test(lies("js/05-daten-laden.js")),
    "D5 das Format wird beim Anmelden mitgeladen");
 
- p(fehler.length===0,"E1 keine Javascript-Fehler",fehler.slice(0,3));
+ // ---- E  Loeschen der Katalogposition --------------------------------------
+ // Das Format ist seit v3.177 eine SPALTE auf der Katalogzeile. Wer die
+ // Position loescht, loescht es mit - und genau davor muss gewarnt werden.
+ // Die alte Warnung zaehlte Zeilen in der inzwischen ungenutzten Tabelle
+ // lagerbestand und versicherte, sie "bleiben bestehen": sie verschwieg also
+ // ausgerechnet die eine Folge, die endgueltig ist.
+ console.log("\nE · Loeschen der Katalogposition warnt richtig");
+ const E=await page.evaluate(async()=>{
+  meineRechte={admin:true,lager:true,kataloge:true};
+  lagerVarianten=[];                 // kein Produkt mehr an der Position
+  const gefragt=[];
+  const echt=window.confirm;
+  window.confirm=t=>{gefragt.push(t);return false};   // abbrechen, nichts loeschen
+  await lagerPositionAufraeumenAnbieten(36);          // Kupferblech 0,6 Rolle
+  await lagerPositionAufraeumenAnbieten(205);         // Dichtband, kein Blech
+  window.confirm=echt;
+  return {blech:gefragt[0]||"",kein:gefragt[1]||""};
+ });
+ p(/als BLECH gef/.test(E.blech)&&/0,6 mm/.test(E.blech)&&/Rolle/.test(E.blech),
+   "E1 bei einem Blech nennt die Warnung das Format, das mit verschwindet",E.blech);
+ p(/mit ihr gelöscht|mit ihr geloescht/.test(E.blech),
+   "E2 und sagt ausdruecklich, dass es geloescht wird",E.blech);
+ p(!/Blech-Materialbestand verlieren dadurch/.test(E.blech),
+   "E3 GEGENPROBE: die alte Zusicherung „sie bleiben bestehen\" steht nicht "
+   +"mehr da - sie waere seit v3.177 falsch",E.blech);
+ p(E.kein.length>0&&!/als BLECH gef/.test(E.kein),
+   "E4 bei einer Position ohne Format wird kein Blech behauptet",E.kein);
+ p(/Reststücke/.test(E.blech)&&/verlieren nur ihre Zuordnung/.test(E.blech),
+   "E5 fuer Reststuecke gilt weiterhin SET NULL - sie bleiben, und das steht "
+   +"auch so da",E.blech);
+
+ p(fehler.length===0,"F1 keine Javascript-Fehler",fehler.slice(0,3));
 
  console.log("\n"+ok+" von "+(ok+fail)+" Pruefungen bestanden.");
  await b.close();

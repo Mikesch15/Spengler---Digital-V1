@@ -234,7 +234,9 @@ const WIN_CHANGELOG={
   "<b>Gleich benannte Bleche sind endlich zu unterscheiden.</b> Eure Positionen 102.01, 102.02 und 102.03 heissen alle drei „Kupferblech“. Überall, wo ein Artikel erscheint – Lagerverwaltung, Buchen, Ausbuchen, Suche –, steht jetzt sein Format dabei: „102.01 Kupferblech · 0,6 mm · Blank · Rolle“. Die Suchfelder finden damit auch nach Stärke und Form.",
   "<b>Warum das nötig war:</b> bisher stand dort die Spalte „Dim“, ein freies Textfeld. Bei den Kupferblechen war das zufällig die Stärke – beim Cava-Band steht dort aber „250mm“, und das ist die <b>Breite</b>. Wer sich darauf verliess, las dieses Blech als 250 mm dick.",
   "<b>Der Materialbestand bearbeitet ab jetzt den Katalogartikel.</b> Ein Eintrag braucht deshalb einen Artikel. „Entfernen“ löscht den Artikel <b>nicht</b> – es nimmt ihm nur das Format, sodass der Zuschnitt nicht mehr mit ihm rechnet. EDV-Nr., Preis, Barcode und alle Buchungen bleiben.",
-  "<b>Der Werkstoff „Stahl, verzinkt“ heisst jetzt „Stahl“.</b> Die Dehnungswerte dahinter bleiben unverändert, und bereits gespeicherte Massaufnahmen lesen sich weiterhin."]
+  "<b>Der Werkstoff „Stahl, verzinkt“ heisst jetzt „Stahl“.</b> Die Dehnungswerte dahinter bleiben unverändert, und bereits gespeicherte Massaufnahmen lesen sich weiterhin."],
+ "3.178":["<b>Warnung beim Löschen einer Materialposition korrigiert.</b> Wird in der Lagerverwaltung die letzte Produktzeile einer Position entfernt, fragt die App, ob auch die Katalogposition weg soll. Diese Rückfrage stammte noch aus der Zeit vor 3.177 und versicherte, Einträge im Blech-Materialbestand „bleiben bestehen“.",
+  "Seit 3.177 stimmt das nicht mehr: das Format gehört zur Position selbst und wird mit ihr gelöscht. Die Rückfrage sagt das jetzt – samt Format („0,6 mm · Blank · Rolle“) und dem Hinweis, dass der Zuschnitt danach nicht mehr mit diesem Blech rechnet. Für Reststücke gilt unverändert: sie bleiben und verlieren nur ihre Zuordnung."]
 };
 
 function winVersionVergleich(a,b){

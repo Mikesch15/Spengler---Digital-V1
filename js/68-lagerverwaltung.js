@@ -1932,21 +1932,34 @@ async function lagerPositionAufraeumenAnbieten(materialId){
  if(lagerVariantenVonMaterialAlle(materialId).length)return;
  const a=(typeof lagArtikel==="function")?lagArtikel(materialId):null;
  if(!a)return;
- // Der Blech-Materialbestand und die Reststuecke zeigen mit artikel_id auf
- // diese Position; der Fremdschluessel steht dort auf SET NULL. Die
- // Eintraege bleiben also bestehen, verlieren aber ihre Zuordnung - das ist
- // eine Folge, die der Anwender vorher wissen muss. Der Blech-Bestand ist im
- // Browser geladen, also wird er konkret gezaehlt; die Reststuecke sind es
- // nicht und werden deshalb nur benannt, nicht geschaetzt.
- const blech=((typeof lagerbestand!=="undefined"?lagerbestand:[])||[])
-   .filter(l=>String(l.artikel_id||"")===String(materialId)).length;
+ // v3.177: Das Blech-Format ist seit Stufe 4 eine SPALTE auf genau dieser
+ // Zeile (materials.staerke_mm/ausfuehrung/form/...). Bis v3.176 stand es in
+ // einer eigenen Tabelle, deren Fremdschluessel auf SET NULL steht - dort
+ // blieb der Eintrag bestehen und verlor nur seine Zuordnung. Das ist jetzt
+ // nicht mehr wahr: mit der Position verschwindet das Format mitsamt der
+ // Zeile, und der Zuschnitt rechnet danach nicht mehr mit diesem Blech.
+ //
+ // Die alte Warnung zaehlte Zeilen in der inzwischen ungenutzten Tabelle und
+ // sagte, sie "bleiben bestehen" - sie haette also ausgerechnet die eine
+ // Folge verschwiegen, die endgueltig ist.
+ //
+ // Die Reststuecke zeigen weiterhin mit artikel_id hierher, mit SET NULL:
+ // sie bleiben und verlieren nur die Zuordnung. Sie sind nicht im Browser
+ // geladen und werden deshalb benannt, nicht geschaetzt.
+ const format=(typeof artikelFormat==="function")?artikelFormat(materialId):null;
+ const formatText=format?((typeof lagArtikelFormatText==="function")
+   ?lagArtikelFormatText(a):"") : "";
  if(!confirm("Zur Materialposition „"+lagArtikelText(a)+"“ gibt es jetzt kein Produkt mehr.\n\n"
   +"Soll die Position auch aus dem MATERIAL-KATALOG entfernt werden?\n\n"
   +"Achtung: der Katalog wird auch vom Regierapport, von Offerten und von "
   +"Massaufnahmen benutzt. Bereits geschriebene Rapporte und Offerten ändern "
   +"sich dadurch nicht, aber die Position lässt sich danach nicht mehr auswählen.\n\n"
-  +(blech?(blech+" Eintrag/Einträge im Blech-Materialbestand verlieren dadurch ihre Zuordnung zu dieser Position (sie bleiben bestehen).\n\n"):"")
-  +"Dasselbe gilt für Reststücke, die auf diese Position zeigen.\n\n"
+  +(format?("Diese Position ist als BLECH geführt"+(formatText?(" ("+formatText+")"):"")
+    +". Das Format gehört seit Version 3.177 zur Position selbst – es wird "
+    +"mit ihr gelöscht, und der Zuschnitt rechnet danach nicht mehr mit "
+    +"diesem Blech.\n\n"):"")
+  +"Reststücke, die auf diese Position zeigen, bleiben bestehen – sie "
+  +"verlieren nur ihre Zuordnung.\n\n"
   +"Abbrechen lässt die Position stehen – ohne Produkt."))return;
  const {error}=await sb.from("materials").delete().eq("id",materialId);
  if(error){
