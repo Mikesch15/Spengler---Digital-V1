@@ -97,11 +97,27 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
   $("measurementEditModal").hidden=false;
   reststuecke=[]; restVerwendet=[]; resteImZuschnitt=false;
   // Der Materialbestand: fuer Titanzink genau eine Staerke, fuer Kupfer zwei.
-  lagerbestand=[
+  // v3.177: Der Materialbestand ist keine eigene Tabelle mehr - das Format
+  // steht am Katalogartikel (Migration artikel_traegt_sein_blechformat). Die
+  // Faelle unten sind unveraendert, nur ihr Ablageort. Uebersetzt wird hier,
+  // damit jede Erwartung darunter Wort fuer Wort dieselbe bleibt.
+  (zeilen=>{
+   settings.materials=zeilen.map((z,i)=>[z.edv_nr||("T"+(i+1)),
+     z.bezeichnung||("Blech "+(i+1)),z.dim||"","m\u00b2",1]);
+   materialIds=zeilen.map((z,i)=>z.artikel_id||(9000+i));
+   materialWerkstoffe=zeilen.map(z=>z.material_id===undefined?null:z.material_id);
+   materialFormate=zeilen.map(z=>({
+     staerke_mm:z.staerke_mm===undefined?null:z.staerke_mm,
+     ausfuehrung:z.ausfuehrung===undefined?null:z.ausfuehrung,
+     form:z.form===undefined?null:z.form,
+     laenge_mm:z.laenge_mm===undefined?null:z.laenge_mm,
+     breite_mm:z.breite_mm===undefined?null:z.breite_mm}));
+   lagerbestand=[];
+  })([
    {id:1,material_id:2,staerke_mm:0.7,ausfuehrung:"blank",bezeichnung:"Titanzink 0.7 blank"},
    {id:2,material_id:3,staerke_mm:0.6,ausfuehrung:"blank",bezeichnung:"Kupfer 0.6"},
    {id:3,material_id:3,staerke_mm:0.8,ausfuehrung:"blank",bezeichnung:"Kupfer 0.8"}
-  ];
+  ]);
   window.__arten=arten;
   // Das sichtbare Staerkefeld der gerade gezeigten Art.
   window.__staerkeFeld=()=>{
@@ -134,18 +150,31 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
  p(a1.material&&a1.staerke&&a1.ausf,"Materialart, Staerke und Ausfuehrung sind geblieben",a1);
  p(a1.zweck,"der Erklaertext sagt, wofuer die Liste da ist",a1);
 
+ // v3.177: Geschrieben wird der Katalogartikel (materials), nicht mehr eine
+ // eigene lagerbestand-Zeile - das Format steht seither am Artikel. Der
+ // Vertrag darunter ist unveraendert: EIN Schreibvorgang, keine Menge, keine
+ // Einheit, nie eine company_id vom Client, und bei einer Rolle ausdruecklich
+ // null statt eines erfundenen Tafelformats.
  const a2=await page.evaluate(async()=>{
   window.__schreib=[];
+  // Ein Katalogartikel, der noch KEIN Format traegt - nur so einer steht zur
+  // Wahl. Ein bereits gefuehrtes Blech wird seit v3.177 absichtlich nicht
+  // erneut angeboten: es hat seinen Eintrag ja schon.
+  settings.materials.push(["T9","Titanzink neu","","m\u00b2",1]);
+  materialIds.push(9500); materialWerkstoffe.push(2);
+  materialFormate.push({staerke_mm:null,ausfuehrung:null,form:null,
+                        laenge_mm:null,breite_mm:null});
   lagFormularOeffnen({});
+  $("lag_artikel").value="9500";
   $("lag_material").value="2"; $("lag_staerke").value="0.7";
-  $("lag_ausfuehrung").value="blank";
+  $("lag_ausfuehrung").value="blank"; $("lag_form").value="rolle";
   await lagSpeichern();
-  const s=(window.__schreib||[]).filter(x=>x.t==="lagerbestand");
+  const s=(window.__schreib||[]).filter(x=>x.t==="materials");
   return {anzahl:s.length,schluessel:s.length?Object.keys(s[0].d):[],
           laengeWert:s.length?s[0].d.laenge_mm:undefined,
           breiteWert:s.length?s[0].d.breite_mm:undefined};
  });
- p(a2.anzahl===1,"genau ein Schreibvorgang",a2);
+ p(a2.anzahl===1,"genau ein Schreibvorgang - jetzt auf den Artikel",a2);
  p(!a2.schluessel.some(k=>["menge","einheit"].indexOf(k)>=0),
    "Menge und Einheit werden nicht gesendet",a2);
  // v3.33: die Tafelmasse reisen mit, bei Rollenmaterial aber ausdruecklich

@@ -120,11 +120,27 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   // Sichtbarkeitsmessung trivial "nicht da".
   $("measurementEditModal").hidden=false;
   // Titanzink fuehrt die Firma als ROLLE, Kupfer als TAFEL 2000 x 1000.
-  lagerbestand=[
+  // v3.177: Der Materialbestand ist keine eigene Tabelle mehr - das Format
+  // steht am Katalogartikel (Migration artikel_traegt_sein_blechformat). Die
+  // Faelle unten sind unveraendert, nur ihr Ablageort. Uebersetzt wird hier,
+  // damit jede Erwartung darunter Wort fuer Wort dieselbe bleibt.
+  (zeilen=>{
+   settings.materials=zeilen.map((z,i)=>[z.edv_nr||("T"+(i+1)),
+     z.bezeichnung||("Blech "+(i+1)),z.dim||"","m\u00b2",1]);
+   materialIds=zeilen.map((z,i)=>z.artikel_id||(9000+i));
+   materialWerkstoffe=zeilen.map(z=>z.material_id===undefined?null:z.material_id);
+   materialFormate=zeilen.map(z=>({
+     staerke_mm:z.staerke_mm===undefined?null:z.staerke_mm,
+     ausfuehrung:z.ausfuehrung===undefined?null:z.ausfuehrung,
+     form:z.form===undefined?null:z.form,
+     laenge_mm:z.laenge_mm===undefined?null:z.laenge_mm,
+     breite_mm:z.breite_mm===undefined?null:z.breite_mm}));
+   lagerbestand=[];
+  })([
    {id:1,material_id:2,staerke_mm:0.7,ausfuehrung:"blank",form:"rolle",bezeichnung:"Titanzink 0.7"},
    {id:2,material_id:3,staerke_mm:0.6,ausfuehrung:"blank",form:"tafel",
     laenge_mm:2000,breite_mm:1000,bezeichnung:"Kupfer 0.6"}
-  ];
+  ]);
   window.__sicht=s=>[...document.querySelectorAll(s)].filter(e=>e.offsetParent!==null);
  });
 

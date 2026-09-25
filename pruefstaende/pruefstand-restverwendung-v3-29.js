@@ -91,8 +91,24 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
 
   // Das Lager macht den Bedarf eindeutig (v3.27): genau EINE Kombination
   // aus Staerke und Ausfuehrung fuer diese Materialart.
-  lagerbestand=[{id:1,material_id:2,staerke_mm:0.7,ausfuehrung:"blank",
-                 bezeichnung:"Titanzink 0.7 blank",menge:5,einheit:"Tafel"}];
+  // v3.177: Der Materialbestand ist keine eigene Tabelle mehr - das Format
+  // steht am Katalogartikel (Migration artikel_traegt_sein_blechformat). Die
+  // Faelle unten sind unveraendert, nur ihr Ablageort. Uebersetzt wird hier,
+  // damit jede Erwartung darunter Wort fuer Wort dieselbe bleibt.
+  (zeilen=>{
+   settings.materials=zeilen.map((z,i)=>[z.edv_nr||("T"+(i+1)),
+     z.bezeichnung||("Blech "+(i+1)),z.dim||"","m\u00b2",1]);
+   materialIds=zeilen.map((z,i)=>z.artikel_id||(9000+i));
+   materialWerkstoffe=zeilen.map(z=>z.material_id===undefined?null:z.material_id);
+   materialFormate=zeilen.map(z=>({
+     staerke_mm:z.staerke_mm===undefined?null:z.staerke_mm,
+     ausfuehrung:z.ausfuehrung===undefined?null:z.ausfuehrung,
+     form:z.form===undefined?null:z.form,
+     laenge_mm:z.laenge_mm===undefined?null:z.laenge_mm,
+     breite_mm:z.breite_mm===undefined?null:z.breite_mm}));
+   lagerbestand=[];
+  })([{id:1,material_id:2,staerke_mm:0.7,ausfuehrung:"blank",
+                 bezeichnung:"Titanzink 0.7 blank",menge:5,einheit:"Tafel"}]);
   resteImZuschnitt=true;
   // Ein Rest, der genau zu diesem Bedarf passt: 2000 x 300, gleiche Staerke
   // und Ausfuehrung.
