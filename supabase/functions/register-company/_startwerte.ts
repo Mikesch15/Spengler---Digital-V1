@@ -66,7 +66,9 @@ export const BEISPIEL_KATALOG = [
   { edv_nr: "601.01", name: "Blindniete (Beispiel)",               dim: "4x10", unit: "Stk.", werkstoff: null, staerke_mm: null, ausfuehrung: null, form: null },
 ];
 
-// Rollenbreiten und MwSt gehen in die app_settings-Zeile, die ohnehin
-// angelegt wird - dafuer braucht es keinen eigenen Schreibvorgang.
+// Rollenbreiten und MwSt. Sie werden NACHTRAEGLICH auf die app_settings-Zeile
+// geschrieben (restPatch in Schritt 7), nicht gleich bei deren Anlage: jener
+// Insert steht unter dem Rollback der Registrierung, und daran darf ein
+// blosser Komfortwert die Entstehung der Firma nicht haengen.
 export const ROLLENBREITEN = [1000, 670, 330, 250];
 export const MWST = "8.1 %";

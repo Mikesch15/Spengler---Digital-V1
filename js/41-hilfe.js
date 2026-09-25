@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.183.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.184.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1307,6 +1307,12 @@ Rollenbreiten und die Anschlusstypen der Rinne.</li>
 „Feedback“.</li>
 </ul>
 <p>Bei jedem Abschnitt steht dabei, was davon gilt.</p>
+<p><b>Beispiel-Positionen</b> (ab 3.184): Eine neu registrierte Firma bekommt
+acht Beispiel-Positionen mit, damit sich die App sofort ausprobieren lässt.
+Sie tragen <b>keinen Preis</b> und zählen in der Einrichtung nicht mit. Sobald
+die erste eigene Position angelegt oder eine Liste importiert wird, lösen sie
+sich auf. Wurde eine davon schon benutzt, fragt die App, was damit geschehen
+soll – behalten, ersetzen, löschen oder später entscheiden.</p>
 <p><b>Einrichtung prüfen</b> (ab 3.183): Solange einer Firma noch eine
 Grundlage fehlt – Katalog, Werkstoffe, Rollenbreiten, Stundenansätze –, steht
 zuoberst auf der Startseite eine Karte, die sagt was fehlt und warum, und die
