@@ -501,7 +501,7 @@ initExcelImport({
 });
 
 // ---- Rinne Halbrund: Anschlusstypen-Katalog (Einstellungen) -----
-const debouncedRinneFittingUpdate=debounce((id,patch)=>sb.from("rinne_fitting_types").update(patch).eq("id",id),500);
+const debouncedRinneFittingUpdate=katalogSpeicher("rinne_fitting_types");
 function renderRinneFittingSettings(){
  $("rinneFittingSettings").innerHTML=rinneFittingTypes.map((f,i)=>`<div class="settingrow">
 <input data-set-rinne-symbol="${i}" value="${esc(f.symbol||"")}" placeholder="Symbol" style="max-width:70px">
@@ -576,7 +576,7 @@ $("saveRinneFittings").onclick=async()=>{
 // v3.176: Diese Liste haelt die WERKSTOFFE (Kupfer, Titanzink ...) mit
 // ihren Dehnungswerten - nicht die Artikel des Katalogs. Beides hiess
 // bis hierher "Material", und genau das war nicht auseinanderzuhalten.
-const debouncedMeasMaterialUpdate=debounce((id,patch)=>sb.from("measurement_materials").update(patch).eq("id",id),500);
+const debouncedMeasMaterialUpdate=katalogSpeicher("measurement_materials");
 function renderMeasMaterialSettings(){
  const box=$("measMaterialSettings");
  if(!box)return;

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.181.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.182.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1306,7 +1306,13 @@ Rollenbreiten und die Anschlusstypen der Rinne.</li>
 <li><b>Nur für Administratoren</b> – das Register „Geschützt“ und das Register
 „Feedback“.</li>
 </ul>
-<p>Bei jedem Abschnitt steht dabei, was davon gilt.</p>`},
+<p>Bei jedem Abschnitt steht dabei, was davon gilt.</p>
+<p><b>Speichern in den Katalogen</b> (ab 3.182): Die Felder in den Listen –
+Leistungen, Material, Profile, Blitzschutz-Material, Werkstoffe – haben keinen
+eigenen Speichern-Knopf. Geschrieben wird kurz nach der letzten Eingabe, und
+unten erscheint dann <i>„✓ Gespeichert.“</i>. Geht es nicht durch, steht dort
+stattdessen der Grund. Bis 3.181 wurde bei diesen Feldern gar nichts
+geschrieben, ohne dass es auffiel.</p>`},
 
 "einst-rollen":{titel:"Rollenbreiten des Blechlagers",text:`
 <p>Welche Blechrollen die Firma an Lager führt. Gilt <b>firmenweit</b> und
@@ -1827,6 +1833,12 @@ welche Katalogpositionen <b>nach Blech aussehen, aber nicht geführt werden</b>.
 Erkannt wird an der Einheit <b>m²</b> zusammen mit einer blossen Zahl bei
 „Dim.“. Jede Zeile bringt die Stärke schon mit; zu wählen bleiben Werkstoff,
 Ausführung und Rolle/Tafel. Ein Klick auf „Als Blech führen“ genügt.</p>
+<p>Den <b>Werkstoff schlägt die App vor</b> (ab 3.182): er steht meist schon im
+Positionstext – „Kupferblech 0.6mm“ ist Kupfer, „Alublech“ ist Aluminium.
+Verglichen wird mit der eigenen Werkstoff-Liste der Firma, ein neu angelegter
+Werkstoff wird also sofort miterkannt. Gesucht wird nur am <b>Wortanfang</b>:
+„Chromnickelstahl“ gilt deshalb nicht als Stahl. Passt kein Wort eindeutig,
+bleibt die Auswahl leer – geraten wird nicht.</p>
 <p>Bei einer <b>Tafel</b> öffnet sich der Dialog – dort fehlen noch Länge und
 Breite, und ohne die lässt sich kein Zuschnitt planen. Halb angelegt wird
 nichts.</p>

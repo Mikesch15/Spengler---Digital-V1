@@ -191,7 +191,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.181</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.182</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -2151,7 +2151,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.181.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 100 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.182.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 100 Seiten)</a></div>
 </div>
 </div>
 
@@ -2831,7 +2831,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.181.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.182.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2933,5 +2933,10 @@ nicht neu installieren.</div>
 <script src="js/70-ansicht2.js"></script>
 <script src="js/27-offline.js"></script>
 <script src="js/18-app-start.js"></script>
+<!-- v3.182: Rueckmeldung beim Speichern der Einstellungen. Fest am unteren
+     Rand, weil die Einstellungen lang sind und die gerade bearbeitete Zeile
+     ueberall stehen kann. Bis v3.181 speicherten diese Felder still gar
+     nicht - eine sichtbare Rueckmeldung gehoert deshalb dazu. -->
+<div id="katalogHinweis" class="no-print" role="status" aria-live="polite"></div>
 </body>
 </html>

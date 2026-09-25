@@ -329,7 +329,15 @@ function lagKandidatenHtml(){
  if(!liste.length)return "";
  const zeilen=lagKandidatenOffen?liste.map(a=>{
   const st=lagKandidatStaerke(a);
-  const wk=(typeof artikelWerkstoffId==="function")?artikelWerkstoffId(a.id):null;
+  // v3.182: Steht am Artikel schon ein Werkstoff, gilt der. Sonst wird er
+  // aus dem Positionstext VORGESCHLAGEN ("Messingblech halb hart" ->
+  // Messing). Geschrieben wird er erst mit dem Klick, und die Zeile sagt,
+  // dass es ein Vorschlag ist - bei "Chromnickelstahl 1.4301" schlaegt die
+  // App absichtlich nichts vor.
+  const gesetzt=(typeof artikelWerkstoffId==="function")?artikelWerkstoffId(a.id):null;
+  const geraten=gesetzt===null&&typeof werkstoffAusText==="function"
+    ?werkstoffAusText(a.name):null;
+  const wk=gesetzt!==null?gesetzt:geraten;
   const matOpt=`<option value="">– Werkstoff wählen –</option>`+
    ((typeof measurementMaterials!=="undefined"?measurementMaterials:[])||[]).map(m=>
     `<option value="${m.id}"${String(m.id)===String(wk==null?"":wk)?" selected":""}>${esc(m.name)}</option>`).join("");
@@ -339,7 +347,7 @@ function lagKandidatenHtml(){
  <div class="report-row-info">
   <b>${esc((a.edv_nr?a.edv_nr+" ":"")+(a.name||""))}</b>
   <div class="grid">
-   <div><label>Werkstoff</label><select data-k-material>${matOpt}</select></div>
+   <div><label>Werkstoff${geraten!==null?' <span class="small" style="color:var(--blue)">· aus dem Namen vorgeschlagen</span>':""}</label><select data-k-material>${matOpt}</select></div>
    <div><label>Stärke (mm)</label><input data-k-staerke type="number" step="0.05" min="0" value="${st}"></div>
    <div><label>Ausführung</label><input data-k-ausf type="text" placeholder="z. B. blank"></div>
    <div><label>Form</label><select data-k-form>${formOpt}</select></div>
@@ -539,7 +547,11 @@ function lagFormularOeffnen(l){
   // derselbe Wert aus derselben Spalte. Eine bereits getroffene Auswahl
   // wird dabei nicht ueberschrieben.
   const mt=$("lag_material");
-  const wk=(typeof artikelWerkstoffId==="function")?artikelWerkstoffId(a.id):null;
+  let wk=(typeof artikelWerkstoffId==="function")?artikelWerkstoffId(a.id):null;
+  // v3.182: Steht am Artikel keiner, wird er aus seinem Namen vorgeschlagen -
+  // dieselbe Regel wie in der Vorschlagsliste. Eine bereits getroffene
+  // Auswahl wird nie ueberschrieben.
+  if(wk===null&&typeof werkstoffAusText==="function")wk=werkstoffAusText(a.name);
   if(mt&&!mt.value&&wk!==null)mt.value=String(wk);
   // Die Ausfuehrung steht im Artikelnamen und laesst sich nicht sicher
   // herausloesen - sie wird deshalb NICHT geraten, sondern nur der Name

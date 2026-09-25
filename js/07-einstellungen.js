@@ -441,10 +441,14 @@ ${isAdmin()?`<button class="red" data-del-material="${i}">Löschen</button>`:""}
  $("materialPrev").disabled=materialPage===0;
  $("materialNext").disabled=materialPage>=pages-1;
 }
-const debouncedRateUpdate=debounce((id,patch)=>sb.from("rates").update(patch).eq("id",id),500);
-const debouncedMaterialUpdate=debounce((id,patch)=>sb.from("materials").update(patch).eq("id",id),500);
-const debouncedProfileUpdate=debounce((id,patch)=>sb.from("profiles").update(patch).eq("id",id),500);
-const debouncedBzMaterialUpdate=debounce((id,patch)=>sb.from("blitzschutz_materials").update(patch).eq("id",id),500);
+// v3.182: Diese vier speicherten bis hierher NICHTS. Sie bauten die Abfrage
+// nur zusammen; supabase-js schickt sie erst beim await. katalogSpeicher()
+// (js/01) holt das nach und prueft das Ergebnis - stilles Nichtstun war
+// genau das Problem.
+const debouncedRateUpdate=katalogSpeicher("rates");
+const debouncedMaterialUpdate=katalogSpeicher("materials");
+const debouncedProfileUpdate=katalogSpeicher("profiles");
+const debouncedBzMaterialUpdate=katalogSpeicher("blitzschutz_materials");
 
 // ---- Mitarbeiterkonto anlegen (nur Administrator) ------------
 // v3.148: Die optionale E-Mail wird hier gleich beim Anlegen mitgegeben.

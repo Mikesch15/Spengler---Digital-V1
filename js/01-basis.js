@@ -436,6 +436,40 @@ async function werkstoffAnlegen(werte){
  return {id:data[0].id,fehler:null,rls:false};
 }
 
+// Den Werkstoff aus einem Positionstext vorschlagen (v3.182).
+//
+// Der Werkstoff steht fast immer im Namen: "Kupferblech", "Titanzinkblech
+// blank", "Messingblech halb hart". Gesucht wird das ERSTE Wort jedes
+// bekannten Werkstoffnamens - "Aluminium (Aluman)" -> "aluminium",
+// "CrNi-Stahl" -> "crni". Damit braucht es keine gepflegte Liste von
+// Schreibweisen: die Werkstoffe der Firma sind die Quelle.
+//
+// Das Wort muss ein WORT IM NAMEN BEGINNEN, nicht irgendwo darin stehen.
+// Das ist der entscheidende Punkt, an den echten Daten gemessen:
+//   "Stahlblech svz"            -> Stahl        (richtig)
+//   "Chromnickelstahl 1.4301"   -> kein Vorschlag
+// Ohne die Wortanfang-Bedingung bekaeme der zweite Fall "Stahl"
+// vorgeschlagen - 1.4301 ist aber CrNi-Stahl. Von 42 Katalogpositionen
+// ergeben sich so 18 Vorschlaege, alle richtig, und keiner mehrdeutig.
+//
+// Passen MEHRERE Werkstoffe, wird keiner vorgeschlagen - geraten wird nicht.
+// Und vorgeschlagen heisst vorgeschlagen: geschrieben wird nichts, bis jemand
+// bestaetigt. "Walzblei" findet die Regel nicht, weil der Werkstoff dort
+// hinten im Wort steht; das ist der Preis dafuer, nicht falsch zu raten.
+function werkstoffAusText(text){
+ const t=String(text||"").toLowerCase();
+ if(!t)return null;
+ const liste=(typeof measurementMaterials!=="undefined"&&Array.isArray(measurementMaterials))
+   ?measurementMaterials:[];
+ const treffer=[];
+ liste.forEach(m=>{
+  const wort=String(m.name||"").toLowerCase().match(/[a-zäöüß]{3,}/);
+  if(!wort)return;
+  if(new RegExp("(^|[^a-zäöüß])"+wort[0]).test(t))treffer.push(m.id);
+ });
+ return treffer.length===1?treffer[0]:null;
+}
+
 function renderMeasMaterialOptions(){
  document.querySelectorAll(".meas-material-select").forEach(sel=>{
   const bisher=sel.value;
@@ -1020,6 +1054,64 @@ function infoZeileOhne(haupttitel,...teile){
 const $=id=>document.getElementById(id);
 // Verzögert wiederholte Aufrufe (Suchfelder, Auto-Speichern).
 function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+
+// ---- Ein Katalogfeld wirklich speichern (v3.182) ---------------------------
+// GEFUNDEN, weil sich ein neuer Werkstoff nicht umbenennen liess.
+//
+// Die Einstellungen speichern ihre Felder beim Tippen, verzoegert. Der Aufruf
+// sah so aus:
+//
+//   debounce((id,patch)=>sb.from(T).update(patch).eq("id",id),500)
+//
+// Das BAUT die Abfrage nur. supabase-js schickt sie erst, wenn jemand auf das
+// Ergebnis wartet (then/await) - ohne das passiert schlicht nichts. Die
+// Oberflaeche sah trotzdem richtig aus, weil die lokale Liste sofort geaendert
+// wurde; weg war die Aenderung erst nach dem Neuladen.
+//
+// Belegt an den echten Daten: von 381 Artikeln, 12 Ansaetzen, 487
+// Blitzschutz-Positionen und 9 Werkstoffen trug KEINE EINZIGE Zeile je ein
+// veraendertes updated_at - und genau das schicken diese Aufrufe mit. Einzig
+// rinne_fitting_types war betroffen-frei: dort gibt es einen eigenen
+// Speichern-Knopf, der await benutzt.
+//
+// Zwei Fehler, zwei Korrekturen:
+//   1. await - die Abfrage wird abgeschickt.
+//   2. Das Ergebnis wird geprueft. Ein von RLS blockiertes Schreiben meldet
+//      keinen Fehler, es betrifft still 0 Zeilen (CLAUDE.md 24.1). Stilles
+//      Nichtstun war ja gerade das Problem.
+async function katalogFeldSchreiben(tabelle,id,patch){
+ const {data,error}=await sb.from(tabelle).update(patch).eq("id",id).select("id");
+ if(error)return {ok:false,meldung:error.message,
+   rls:/permission|policy|row-level/i.test(error.message||"")};
+ if(!data||!data.length)return {ok:false,meldung:"",rls:true};
+ return {ok:true,meldung:"",rls:false};
+}
+// Baut einen verzoegerten Speicherer fuer eine Tabelle. Dieselbe Verzoegerung
+// wie bisher (500 ms) - es wird nur wirklich geschickt und das Ergebnis
+// gemeldet.
+function katalogSpeicher(tabelle,ms){
+ return debounce(async(id,patch)=>{
+  const r=await katalogFeldSchreiben(tabelle,id,patch);
+  if(r.ok){katalogHinweis("✓ Gespeichert.");return}
+  katalogHinweis(r.meldung
+    ?("Nicht gespeichert: "+r.meldung+(r.rls?" Dafür fehlt die Berechtigung.":""))
+    :"Nicht gespeichert – fehlt die nötige Berechtigung?",true);
+ },ms===undefined?500:ms);
+}
+// Eine kurze Rueckmeldung, die nicht uebersehen werden kann. Sie steht fest
+// am unteren Rand, weil die Einstellungen lang sind und die geaenderte Zeile
+// beim Tippen ueberall stehen kann.
+let katalogHinweisZeit=null;
+function katalogHinweis(text,fehler){
+ const el=$("katalogHinweis");
+ if(!el){if(fehler)alert(text);return}
+ el.textContent=text||"";
+ el.classList.toggle("fehler",!!fehler);
+ el.classList.toggle("an",!!text);
+ clearTimeout(katalogHinweisZeit);
+ // Ein Fehler bleibt laenger stehen als eine Bestaetigung.
+ if(text)katalogHinweisZeit=setTimeout(()=>el.classList.remove("an"),fehler?8000:2000);
+}
 // supabase-js liefert bei einer Edge Function mit Nicht-2xx-Status nur die
 // generische Meldung "Edge Function returned a non-2xx status code" in
 // error.message – die eigentliche, vom Server gesendete Meldung steckt im

@@ -1473,3 +1473,19 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .zuteilung-vorschlag{display:flex;flex-wrap:wrap;align-items:center;gap:6px;
  margin:2px 0 6px}
 .zuteilung-vorschlag .zw-vorschlag{padding:4px 10px;font-size:12px;min-height:32px}
+
+
+/* Rueckmeldung beim Speichern der Einstellungen (v3.182).
+   Fest am unteren Rand, ueber allem - auch ueber den Dialogen, denn der
+   Werkstoff laesst sich seit v3.180 auch aus einem Dialog heraus anlegen.
+   Unsichtbar, solange nichts zu melden ist. */
+#katalogHinweis{
+ position:fixed; left:50%; bottom:16px; transform:translateX(-50%) translateY(8px);
+ max-width:min(92vw,520px); padding:10px 16px; border-radius:10px;
+ background:var(--green,#2e7d32); color:#fff; font:14px/1.35 system-ui;
+ box-shadow:0 6px 24px rgba(0,0,0,.28); z-index:9999;
+ opacity:0; pointer-events:none; transition:opacity .18s, transform .18s;
+}
+#katalogHinweis.an{opacity:1; transform:translateX(-50%) translateY(0)}
+#katalogHinweis.fehler{background:var(--red,#c62828)}
+@media print{#katalogHinweis{display:none}}
