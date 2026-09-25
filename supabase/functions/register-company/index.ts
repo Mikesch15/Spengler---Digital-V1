@@ -62,7 +62,12 @@ function initialsFromNames(first: string, last: string) { return `${(first[0] ??
 function isValidEmail(e: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 function slugify(name: string) {
   const base = name
-    .normalize("NFKD").replace(/[̀-ͯ]/g, "")
+    // Die Zeichenklasse steht bewusst als Escape-Folge da und NICHT als
+    // rohe kombinierende Zeichen: die waeren unsichtbar, ueberstaenden ein
+    // Kopieren dieser Datei nicht zuverlaessig, und ein verstuemmelter
+    // Bereich braeche still die Slug-Bildung bei Umlauten. Gleicher
+    // Zeichenbereich (U+0300 bis U+036F), nur lesbar.
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
