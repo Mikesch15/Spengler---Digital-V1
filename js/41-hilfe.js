@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.178.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.179.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1813,6 +1813,11 @@ ohne ihn hätte das Format keinen Ort.</div>
 <b>Rolle</b> oder <b>Tafel</b> ist ein geführtes Blech; Schrauben und Dichtband
 haben keine Form und tauchen hier gar nicht auf. Der Katalog hat über 380
 Positionen – gepflegt werden muss nur das Blech.</p>
+<p><b>Ein neues Blech, ein Dialog</b> (ab 3.179): In der Artikel-Auswahl steht
+<b>„＋ neue Katalogposition anlegen …“</b>. Damit erscheinen EDV-Nr.,
+Bezeichnung und Einheit gleich hier – einmal speichern legt die Position an und
+setzt ihr Format. Vorher musste beides getrennt erfasst werden. Eine schon
+vergebene EDV-Nr. wird abgewiesen, bevor etwas geschrieben wird.</p>
 <p><b>„Entfernen“ löscht nichts.</b> Es nimmt dem Artikel nur sein Format,
 sodass der Zuschnitt nicht mehr mit ihm rechnet. Der Katalogartikel bleibt
 vollständig erhalten – mit EDV-Nr., Preis, Barcode und allen Buchungen.</p>

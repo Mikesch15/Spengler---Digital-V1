@@ -216,8 +216,23 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
  const js59=lies("js/59-lagerbestand.js");
  p(!/from\("lagerbestand"\)/.test(js59),
    "D2 der Materialbestand schreibt nicht mehr in die alte Tabelle");
- p(/from\("materials"\)\.update/.test(js59)&&!/from\("materials"\)\.insert/.test(js59),
-   "D3 er AENDERT den Katalogartikel und legt nie einen zweiten an");
+ // v3.179: Der Materialbestand darf jetzt auch eine Position ANLEGEN - sonst
+ // muesste ein neues Blech weiterhin zweimal erfasst werden. Der Vertrag ist
+ // deshalb nicht weggefallen, sondern genauer geworden:
+ //   das FORMAT wird immer per update geschrieben, nie per insert
+ //   (ein insert erzeugte einen zweiten Artikel - genau die Doppelung, die
+ //   Stufe 4 beseitigt hat),
+ //   und das insert gibt es nur an EINER Stelle: in katalogPositionAnlegen().
+ // Dass dabei keine vorhandene Position dupliziert wird, prueft F3 am
+ // Verhalten (schon vergebene EDV-Nr. wird abgewiesen, bevor etwas
+ // geschrieben wird).
+ const formatSchreiben=js59.slice(js59.indexOf("async function lagSpeichern"));
+ p(/from\("materials"\)\.update/.test(formatSchreiben)
+   &&!/from\("materials"\)\.insert/.test(formatSchreiben),
+   "D3 das Format wird AENDERND geschrieben - nie als zweiter Artikel");
+ p((js59.match(/from\("materials"\)\.insert/g)||[]).length===1
+   &&/function katalogPositionAnlegen/.test(js59),
+   "D3b und ein insert steht an genau EINER Stelle: katalogPositionAnlegen()");
  p(!/from\("materials"\)\.delete/.test(js59),
    "D4 GEGENPROBE: er loescht keinen Katalogartikel - der traegt EDV-Nr., "
    +"Preis, Barcode und alle Buchungen");
@@ -255,7 +270,83 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
    "E5 fuer Reststuecke gilt weiterhin SET NULL - sie bleiben, und das steht "
    +"auch so da",E.blech);
 
- p(fehler.length===0,"F1 keine Javascript-Fehler",fehler.slice(0,3));
+ // ---- F  Ein neues Blech in EINEM Dialog (v3.179) --------------------------
+ // GEMELDET: "So wies jetzt ist muss ein neues Blech immer zweimal erfasst
+ // werden, das finde ich doof." Zu Recht: die DATEN waren seit v3.177 nicht
+ // mehr doppelt, der WEG aber schon - erst die Position im Katalog, dann hier
+ // das Format. Zwei Karten, zwei Formulare.
+ console.log("\nF · Ein neues Blech in einem Dialog");
+ const F=await page.evaluate(async()=>{
+  meineRechte={admin:true,lager:true,kataloge:true};
+  const geschrieben=[];
+  const echt=sb.from;
+  sb.from=(t)=>{
+   const q={};
+   ["eq","order","limit","not"].forEach(k=>q[k]=()=>q);
+   q.insert=d=>{geschrieben.push({t,op:"insert",d});
+     return {select:()=>Promise.resolve({data:[Object.assign({id:777},d)],error:null})}};
+   q.update=d=>{geschrieben.push({t,op:"update",d});
+     return {eq:()=>({select:()=>Promise.resolve({data:[{id:777}],error:null})})}};
+   q.select=()=>q; q.then=(f,g)=>Promise.resolve({data:[],error:null}).then(f,g);
+   return q;
+  };
+  const setz=(id,v)=>{const el=$(id);if(el){el.value=v;el.dispatchEvent(new Event("change",{bubbles:true}))}};
+  lagFormularOeffnen({});
+  const wahlHat=[...$("lag_artikel").options].some(o=>o.value==="__neu");
+  const vorher=[...document.querySelectorAll("[data-lag-neu]")].every(e=>e.hidden);
+  setz("lag_artikel","__neu");
+  await new Promise(f=>setTimeout(f,120));
+  const nachher=[...document.querySelectorAll("[data-lag-neu]")].every(e=>!e.hidden);
+
+  // (a) doppelte EDV-Nr. wird abgewiesen
+  $("lag_neuNr").value="102.01"; $("lag_neuName").value="Kupferblech";
+  setz("lag_material","3"); $("lag_staerke").value="1.2";
+  $("lag_ausfuehrung").value="blank"; setz("lag_form","rolle");
+  await lagSpeichern();
+  const doppelt={meldung:($("lagerFormFehler")||{}).textContent||"",n:geschrieben.length};
+
+  // (b) ohne Bezeichnung wird abgewiesen
+  $("lag_neuNr").value="102.09"; $("lag_neuName").value="";
+  await lagSpeichern();
+  const ohneName={meldung:($("lagerFormFehler")||{}).textContent||"",n:geschrieben.length};
+
+  // (c) der gute Fall
+  $("lag_neuName").value="Kupferblech";
+  await lagSpeichern();
+  sb.from=echt;
+  return {wahlHat,vorher,nachher,doppelt,ohneName,
+          schritte:geschrieben.map(x=>x.t+"/"+x.op),
+          eingefuegt:geschrieben.find(x=>x.op==="insert")||null,
+          offen:!$("lagerFormModal").hidden,
+          listen:{ids:materialIds.length,werk:materialWerkstoffe.length,
+                  form:materialFormate.length,mat:settings.materials.length},
+          drin:lagFormate().some(f=>Number(f.id)===777)};
+ });
+ p(F.wahlHat===true,"F1 die Artikel-Auswahl bietet „＋ neue Katalogposition\"",F.wahlHat);
+ p(F.vorher===true&&F.nachher===true,
+   "F2 ihre Felder erscheinen erst bei dieser Wahl - sonst fragte das "
+   +"Formular nach einer EDV-Nr., die es schon gibt",F);
+ p(F.doppelt.n===0&&/gibt es bereits/.test(F.doppelt.meldung),
+   "F3 GEGENPROBE: eine schon vergebene EDV-Nr. wird abgewiesen, und zwar "
+   +"BEVOR irgendetwas geschrieben wird",F.doppelt);
+ p(F.ohneName.n===0&&/Bezeichnung/.test(F.ohneName.meldung),
+   "F4 GEGENPROBE: ohne Bezeichnung wird nichts angelegt",F.ohneName);
+ p(F.schritte.length===2&&F.schritte[0]==="materials/insert"
+   &&F.schritte[1]==="materials/update",
+   "F5 der gute Fall: erst die Position, dann ihr Format - in dieser "
+   +"Reihenfolge, damit bei einem Fehler nichts halb passiert ist",F.schritte);
+ p(F.eingefuegt&&F.eingefuegt.d.edv_nr==="102.09"&&F.eingefuegt.d.werkstoff_id===3,
+   "F6 die neue Position traegt gleich ihren Werkstoff",F.eingefuegt&&F.eingefuegt.d);
+ p(F.offen===false&&F.drin===true,
+   "F7 danach ist der Dialog zu und das Blech steht in der Liste - ohne "
+   +"Neuladen",F);
+ p(F.listen.ids===F.listen.werk&&F.listen.ids===F.listen.form
+   &&F.listen.ids===F.listen.mat,
+   "F8 GEGENPROBE: alle vier parallelen Listen sind gleich lang. Bis v3.178 "
+   +"zog das Anlegen nur settings.materials und materialIds nach - "
+   +"materialWerkstoffe und materialFormate blieben zurueck",F.listen);
+
+ p(fehler.length===0,"G1 keine Javascript-Fehler",fehler.slice(0,3));
 
  console.log("\n"+ok+" von "+(ok+fail)+" Pruefungen bestanden.");
  await b.close();

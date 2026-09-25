@@ -236,7 +236,11 @@ const WIN_CHANGELOG={
   "<b>Der Materialbestand bearbeitet ab jetzt den Katalogartikel.</b> Ein Eintrag braucht deshalb einen Artikel. „Entfernen“ löscht den Artikel <b>nicht</b> – es nimmt ihm nur das Format, sodass der Zuschnitt nicht mehr mit ihm rechnet. EDV-Nr., Preis, Barcode und alle Buchungen bleiben.",
   "<b>Der Werkstoff „Stahl, verzinkt“ heisst jetzt „Stahl“.</b> Die Dehnungswerte dahinter bleiben unverändert, und bereits gespeicherte Massaufnahmen lesen sich weiterhin."],
  "3.178":["<b>Warnung beim Löschen einer Materialposition korrigiert.</b> Wird in der Lagerverwaltung die letzte Produktzeile einer Position entfernt, fragt die App, ob auch die Katalogposition weg soll. Diese Rückfrage stammte noch aus der Zeit vor 3.177 und versicherte, Einträge im Blech-Materialbestand „bleiben bestehen“.",
-  "Seit 3.177 stimmt das nicht mehr: das Format gehört zur Position selbst und wird mit ihr gelöscht. Die Rückfrage sagt das jetzt – samt Format („0,6 mm · Blank · Rolle“) und dem Hinweis, dass der Zuschnitt danach nicht mehr mit diesem Blech rechnet. Für Reststücke gilt unverändert: sie bleiben und verlieren nur ihre Zuordnung."]
+  "Seit 3.177 stimmt das nicht mehr: das Format gehört zur Position selbst und wird mit ihr gelöscht. Die Rückfrage sagt das jetzt – samt Format („0,6 mm · Blank · Rolle“) und dem Hinweis, dass der Zuschnitt danach nicht mehr mit diesem Blech rechnet. Für Reststücke gilt unverändert: sie bleiben und verlieren nur ihre Zuordnung."],
+ "3.179":["<b>Ein neues Blech wird nur noch EINMAL erfasst.</b> Bis hierher musste zuerst im Materialkatalog eine Position angelegt und danach im Materialbestand ihr Format gesetzt werden – zwei Karten, zwei Formulare für ein Blech.",
+  "Jetzt steht in der Artikel-Auswahl des Materialbestands <b>„＋ neue Katalogposition anlegen …“</b>. Wird sie gewählt, erscheinen EDV-Nr., Bezeichnung und Einheit gleich im selben Dialog. Einmal speichern legt die Position an und setzt ihr Format. Die EDV-Nr. wird dabei aus der passenden Katalogruppe vorgeschlagen, genau wie in der Lagerverwaltung.",
+  "Eine schon vergebene EDV-Nr. wird abgewiesen, bevor irgendetwas geschrieben wird – mit dem Hinweis, dass sich diese Position oben direkt auswählen lässt.",
+  "<b>Nebenbei behoben:</b> wurde aus der Lagerverwaltung eine Materialposition angelegt, füllte die App zwei ihrer vier internen Listen nicht nach. Werkstoff und Format einer frisch angelegten Position konnten dadurch erst nach einem Neuladen stimmen."]
 };
 
 function winVersionVergleich(a,b){

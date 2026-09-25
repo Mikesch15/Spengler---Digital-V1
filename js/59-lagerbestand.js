@@ -50,6 +50,48 @@ function lagArtikelListe(){
  return roh.map((m,i)=>({id:ids[i]||null,edv_nr:m[0],name:m[1],dim:m[2],unit:m[3]}))
            .filter(a=>a.id!==null);
 }
+// ---- Eine neue Katalogposition anlegen (v3.179) ---------------------------
+// EINE Stelle, an der eine Position entsteht. Bis v3.178 stand das nur in der
+// Lagerverwaltung (js/68) und war an deren Formularfelder gebunden; der
+// Materialbestand konnte deshalb keine anlegen - ein neues Blech musste
+// zweimal erfasst werden: erst die Position im Katalog, dann hier das Format.
+//
+// Hier steht nur das Anlegen selbst. WELCHE Werte hineingehen und wie sie
+// geprueft werden, bleibt beim jeweiligen Formular - die Lagerverwaltung
+// prueft ihre EDV-Nr. weiterhin selbst, mit ihrer eigenen Meldung.
+//
+// Wichtig sind die PARALLELEN Listen: settings.materials ist seit je ein
+// Array aus Arrays, materialIds, materialWerkstoffe (v3.176) und
+// materialFormate (v3.177) laufen daneben und werden ueber denselben Index
+// angesprochen. Wer nur zwei davon nachzieht, bringt sie aus dem Tritt -
+// genau das war bis v3.178 der Fall.
+async function katalogPositionAnlegen(werte){
+ const w=werte||{};
+ const satz={
+  edv_nr:(w.edv_nr||"").trim(),
+  name:(w.name||"").trim(),
+  dim:(w.dim||"").trim(),
+  unit:(w.unit||"").trim()||"Stk.",
+  price:Number.isFinite(Number(w.price))?Number(w.price):0
+ };
+ if(w.werkstoff_id!==undefined)satz.werkstoff_id=w.werkstoff_id;
+ const {data,error}=await sb.from("materials").insert(satz).select("*");
+ if(error)return {id:null,fehler:error.message,rls:/permission|policy|row-level/i.test(error.message||"")};
+ // Ein von RLS blockiertes Schreiben meldet keinen Fehler, es betrifft still
+ // 0 Zeilen (CLAUDE.md 24.1) - 0 gilt deshalb NICHT als Erfolg.
+ if(!data||!data.length)return {id:null,fehler:"",rls:false};
+ const m=data[0];
+ if(typeof settings==="object"&&settings&&Array.isArray(settings.materials))
+  settings.materials.push([m.edv_nr,m.name,m.dim,m.unit,m.price]);
+ if(typeof materialIds!=="undefined"&&Array.isArray(materialIds))materialIds.push(m.id);
+ if(typeof materialWerkstoffe!=="undefined"&&Array.isArray(materialWerkstoffe))
+  materialWerkstoffe.push(m.werkstoff_id??null);
+ if(typeof materialFormate!=="undefined"&&Array.isArray(materialFormate))
+  materialFormate.push({staerke_mm:m.staerke_mm??null,ausfuehrung:m.ausfuehrung??null,
+    form:m.form??null,laenge_mm:m.laenge_mm??null,breite_mm:m.breite_mm??null});
+ return {id:m.id,fehler:null,rls:false};
+}
+
 function lagArtikel(id){
  const n=lagNummer(id);
  if(n===null)return null;
@@ -95,6 +137,9 @@ function lagMaterialName(id){
 // ---- Rolle oder Tafel (v3.33) ---------------------------------------------
 // Genau zwei Werte, dieselben wie in der Datenbank-Constraint. NULL heisst
 // "nicht angegeben" - dann verhaelt sich der Zuschnitt wie bis v3.32 (Rolle).
+// v3.179: Der Wert, mit dem die Artikel-Auswahl sagt "es gibt ihn noch nicht".
+// Derselbe Gedanke wie LAGER_NEUE_POSITION in js/68 - dort heisst er "__neu".
+const LAG_NEUE_POSITION="__neu";
 const LAG_FORMEN=Object.freeze([
  {wert:"rolle",text:"Rolle"},
  {wert:"tafel",text:"Tafel"}
@@ -306,7 +351,8 @@ function lagFormularHtml(l){
  const artListe=lagArtikelListe().filter(a=>
    String(a.id)===String(l.artikel_id||"")||artikelFormat(a.id)===null);
  const artOpt=`<option value="">– bitte wählen –</option>`+artListe.map(a=>
-   `<option value="${a.id}"${String(a.id)===String(l.artikel_id||"")?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("");
+   `<option value="${a.id}"${String(a.id)===String(l.artikel_id||"")?" selected":""}>${esc(lagArtikelText(a))}</option>`).join("")
+   +`<option value="${LAG_NEUE_POSITION}">＋ neue Katalogposition anlegen …</option>`;
  const artFest=lagNummer(l&&l.artikel_id)!==null;
  // v3.33: Form. Ein Altbestand ohne Form bekommt einen VORSCHLAG aus der
  // Notiz - die Firma hat dort improvisiert, solange das Feld fehlte. Es wird
@@ -327,6 +373,12 @@ function lagFormularHtml(l){
  <div data-lag-bez-aus-katalog="1"${lagArtikelName(l)?"":" hidden"}><label>Bezeichnung</label>
   <div class="ra-wert" id="lag_bezAusKatalog">${esc(lagArtikelName(l))}</div>
   <div class="small" style="color:var(--muted)">Kommt aus dem Katalog und wird dort geändert.</div></div>
+ <div data-lag-neu="1" hidden><label>EDV-Nr. der neuen Position</label>
+  <input id="lag_neuNr" type="text" placeholder="z. B. 102.04"></div>
+ <div data-lag-neu="1" hidden><label>Bezeichnung der neuen Position</label>
+  <input id="lag_neuName" type="text" placeholder="z. B. Kupferblech"></div>
+ <div data-lag-neu="1" hidden><label>Einheit</label>
+  <input id="lag_neuEinheit" type="text" value="m²" placeholder="m²"></div>
  <div><label>Stärke (mm)</label><input id="lag_staerke" type="number" step="0.05" min="0" value="${l.staerke_mm==null?"":l.staerke_mm}" placeholder="0.70"></div>
  <div><label>Oberfläche / Ausführung</label><input id="lag_ausfuehrung" type="text" value="${esc(l.ausfuehrung||"")}" placeholder="z. B. blank, vorbewittert"></div>
  <div><label>Form</label><select id="lag_form">${formOpt}</select></div>
@@ -366,7 +418,8 @@ function lagFormularOeffnen(l){
  // eigenes Eingabefeld gibt es nicht mehr - es war der Rueckfall fuer
  // Eintraege OHNE Artikel, und die gibt es nicht mehr.
  const bezZeigen=()=>{
-  const a=lagArtikel(sel?sel.value:"");
+  const neu=sel&&sel.value===LAG_NEUE_POSITION;
+  const a=neu?null:lagArtikel(sel?sel.value:"");
   const name=a?String(a.name||"").trim():"";
   const ausKatalog=box.querySelector("[data-lag-bez-aus-katalog]");
   if(ausKatalog){
@@ -374,10 +427,23 @@ function lagFormularOeffnen(l){
    const w=$("lag_bezAusKatalog");
    if(w)w.textContent=name;
   }
+  // v3.179: Die Felder der neuen Position stehen nur da, wenn sie gebraucht
+  // werden - sonst fragte das Formular nach einer EDV-Nr., die es schon gibt.
+  box.querySelectorAll("[data-lag-neu]").forEach(el=>{el.hidden=!neu});
  };
  bezZeigen();
  if(sel)sel.onchange=()=>{
   bezZeigen();
+  if(sel.value===LAG_NEUE_POSITION){
+   // Die EDV-Nr. schlaegt dieselbe Stelle vor wie in der Lagerverwaltung
+   // (js/68, v3.126) - es wird keine zweite Nummernlogik gebaut.
+   const nr=$("lag_neuNr"), nm=$("lag_neuName");
+   if(nr&&!nr.value&&nm&&nm.value&&typeof lagerNummernVorschlag==="function"){
+    const v=lagerNummernVorschlag(nm.value);
+    if(v&&v.nummer)nr.value=v.nummer;
+   }
+   return;
+  }
   const a=lagArtikel(sel.value);
   if(!a)return;
   const st=$("lag_staerke"), au=$("lag_ausfuehrung");
@@ -394,6 +460,16 @@ function lagFormularOeffnen(l){
   // herausloesen - sie wird deshalb NICHT geraten, sondern nur der Name
   // vorgeschlagen. Eintragen muss sie die Firma selbst.
   if(au&&!au.value)au.placeholder="aus \""+(a.name||"")+"\" eintragen";
+ };
+ // Der Name der neuen Position kommt oft erst nach der Auswahl - die
+ // EDV-Nr. wird deshalb auch dann noch vorgeschlagen, solange das Feld leer
+ // ist. Eine selbst eingetippte Nummer wird nie ueberschrieben.
+ const nn=$("lag_neuName");
+ if(nn)nn.onblur=()=>{
+  const nr=$("lag_neuNr");
+  if(!nr||nr.value||!nn.value||typeof lagerNummernVorschlag!=="function")return;
+  const v=lagerNummernVorschlag(nn.value);
+  if(v&&v.nummer)nr.value=v.nummer;
  };
  // Die Tafelmasse gehoeren nur zur Tafel. Bei einer Rolle blieben sie leer
  // stehen und wuerden fragen lassen, ob man sie ausfuellen muss.
@@ -463,8 +539,11 @@ function lagFormatMerken(artikelId,w){
 async function lagSpeichern(){
  const fehler=$("lagerFormFehler");
  const zeig=t=>{if(fehler){fehler.textContent=t;fehler.hidden=!t}};
- const artikelId=lagFormularArtikelId();
- if(artikelId===null){zeig("Bitte einen Artikel aus dem Katalog wählen – das Format gehört zu ihm.");return}
+ const wahl=($("lag_artikel")||{}).value;
+ const neueStelle=wahl===LAG_NEUE_POSITION;
+ let artikelId=lagFormularArtikelId();
+ if(artikelId===null&&!neueStelle){
+  zeig("Bitte einen Artikel aus dem Katalog wählen – das Format gehört zu ihm.");return}
  const w=lagFormularWerte();
  // Ohne Form ist es kein gefuehrtes Blech: der Eintrag waere nach dem
  // Speichern aus der Liste verschwunden, ohne dass jemand das wollte.
@@ -476,6 +555,39 @@ async function lagSpeichern(){
  if(w.form==="tafel"&&(w.laenge_mm<=0||w.breite_mm<=0)){
   zeig("Länge und Breite der Tafel müssen grösser als 0 sein.");return}
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Der Lagereintrag"))return;
+ // v3.179: Ein neues Blech in EINEM Zug. Bis v3.178 musste die Position
+ // zuerst im Katalog angelegt werden und danach hier das Format - zweimal
+ // erfassen fuer ein Blech. Jetzt entsteht beides hintereinander, im selben
+ // Dialog. Angelegt wird ueber katalogPositionAnlegen() (dieselbe Funktion
+ // wie in der Lagerverwaltung), damit es nur EINEN Weg gibt, wie eine
+ // Katalogposition entsteht.
+ //
+ // Reihenfolge mit Absicht: erst die Position, dann das Format. Schlaegt das
+ // Anlegen fehl, ist nichts halb passiert.
+ if(neueStelle){
+  const nr=(($("lag_neuNr")||{}).value||"").trim();
+  const name=(($("lag_neuName")||{}).value||"").trim();
+  const einheit=(($("lag_neuEinheit")||{}).value||"").trim()||"m²";
+  if(!nr){zeig("Bitte eine EDV-Nr. für die neue Katalogposition eingeben.");return}
+  if(!name){zeig("Bitte eine Bezeichnung für die neue Katalogposition eingeben.");return}
+  const schon=lagArtikelListe().find(a=>
+    String(a.edv_nr||"").trim().toLowerCase()===nr.toLowerCase());
+  if(schon){
+   zeig("Die EDV-Nr. "+nr+" gibt es bereits ("+lagArtikelText(schon)
+     +"). Bitte eine andere wählen – oder die Position oben direkt auswählen.");
+   return;
+  }
+  const raus=await katalogPositionAnlegen({edv_nr:nr,name,unit:einheit,
+    werkstoff_id:w.werkstoff_id});
+  if(raus.id===null){
+   zeig(raus.fehler
+     ?("Die Katalogposition konnte nicht angelegt werden: "+raus.fehler
+       +(raus.rls?" Dafür fehlt das Recht, den Material-Katalog zu ändern.":""))
+     :"Die Katalogposition wurde nicht angelegt. Fehlt die nötige Berechtigung?");
+   return;
+  }
+  artikelId=raus.id;
+ }
  const neuerEintrag=artikelFormat(artikelId)===null;
  const {data,error}=await sb.from("materials").update(w).eq("id",artikelId).select();
  if(error){zeig(error.message);return}

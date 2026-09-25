@@ -1145,25 +1145,26 @@ async function lagerNeuePositionAnlegen(fehler,produktName){
   fehler.hidden=false;
   return null;
  }
- const {data,error}=await sb.from("materials")
-  .insert({edv_nr:nr,name,dim,unit:einheit,price:preis}).select("*");
- if(error||!data||!data.length){
-  fehler.textContent=error
-   ?("Die Materialposition konnte nicht angelegt werden: "+error.message
-     +(/permission|policy|row-level/i.test(error.message||"")
-       ?"\n\nDaf\u00fcr fehlt das Recht, den Material-Katalog zu \u00e4ndern."
-       :""))
+ // v3.179: Angelegt wird ueber katalogPositionAnlegen() (js/59) - dieselbe
+ // Funktion, die jetzt auch der Materialbestand benutzt. Sie zieht ALLE
+ // parallelen Listen nach; bis v3.178 wurden hier nur settings.materials und
+ // materialIds gefuellt, materialWerkstoffe (v3.176) und materialFormate
+ // (v3.177) blieben zurueck und gerieten dadurch aus dem Tritt.
+ //
+ // Was hier bleibt: das Lesen der Formularfelder und die Pruefung der
+ // EDV-Nr. weiter oben - beides gehoert zu DIESEM Formular, mit seinen
+ // eigenen Meldungen.
+ const raus=await katalogPositionAnlegen({edv_nr:nr,name,dim,unit:einheit,price:preis});
+ if(raus.id===null){
+  fehler.textContent=raus.fehler
+   ?("Die Materialposition konnte nicht angelegt werden: "+raus.fehler
+     +(raus.rls?"\n\nDaf\u00fcr fehlt das Recht, den Material-Katalog zu \u00e4ndern.":""))
    :"Die Materialposition wurde nicht angelegt.";
   fehler.hidden=false;
   return null;
  }
- const m=data[0];
- if(typeof settings==="object"&&settings&&Array.isArray(settings.materials)){
-  settings.materials.push([m.edv_nr,m.name,m.dim,m.unit,m.price]);
- }
- if(typeof materialIds!=="undefined"&&Array.isArray(materialIds))materialIds.push(m.id);
  lagerNeuesProduktMaterialListeVoll=(typeof lagArtikelListe==="function"?lagArtikelListe():[])||[];
- return m.id;
+ return raus.id;
 }
 
 if($("lagerNeuesProduktSpeichern"))$("lagerNeuesProduktSpeichern").onclick=async()=>{
