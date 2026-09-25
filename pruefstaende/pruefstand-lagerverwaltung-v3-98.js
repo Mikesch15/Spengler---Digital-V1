@@ -1919,31 +1919,52 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(z.schreib.length===0&&z.noch===1,
    "Gegenprobe: wer die Nachfrage verneint, behaelt die Position - ohne Produkt",z);
 
- // Der Blech-Materialbestand zeigt mit artikel_id auf die Position, der
- // Fremdschluessel steht dort auf SET NULL: der Eintrag bleibt, verliert aber
- // seine Zuordnung. Das muss in der Warnung stehen, nicht erst auffallen.
+ // v3.178: Dieser Vertrag hat sich mit Stufe 4 (v3.177) GEAENDERT, nicht
+ // gelockert - er ist schaerfer geworden.
+ //
+ // Bis v3.176 zeigte eine eigene Tabelle (lagerbestand) mit artikel_id auf
+ // die Position; ihr Fremdschluessel steht auf SET NULL, der Eintrag blieb
+ // also bestehen und verlor nur die Zuordnung. Gewarnt wurde mit der ANZAHL
+ // solcher Zeilen.
+ //
+ // Seit v3.177 IST das Blech-Format die Position: es steht als Spalte auf
+ // genau der Zeile, die hier geloescht wird. Es bleibt nicht bestehen - es
+ // verschwindet. Die alte Warnung haette also ausgerechnet die endgueltige
+ // Folge verschwiegen und stattdessen eine Tabelle gezaehlt, die die App
+ // nicht mehr liest.
+ //
+ // Geprueft wird deshalb: traegt die Position ein Format, nennt die Warnung
+ // es im Klartext und sagt, dass es mit geloescht wird.
  z=await page.evaluate(async()=>{
-  // lagerbestand ist eine lexikalische Bindung in js/59 - window.lagerbestand
-  // waere eine zweite, davon unabhaengige Eigenschaft.
-  lagerbestand=[{id:1,artikel_id:3003,material_id:null},
-                {id:2,artikel_id:9999,material_id:null}];
+  const sichern=materialFormate.map(x=>Object.assign({},x));
+  const i=materialIds.findIndex(x=>Number(x)===3003);
+  materialFormate[i]={staerke_mm:0.7,ausfuehrung:"blank",form:"rolle",
+                      laenge_mm:null,breite_mm:null};
   let gefragt=""; const alt=window.confirm;
   window.confirm=t=>{gefragt=String(t);return false};
   await lagerPositionAufraeumenAnbieten(3003);
   window.confirm=alt;
+  // Dieselbe Position OHNE Format: dann darf kein Blech behauptet werden.
   let ohne=""; const alt2=window.confirm;
-  lagerbestand=[{id:2,artikel_id:9999,material_id:null}];
+  materialFormate[i]={staerke_mm:null,ausfuehrung:null,form:null,
+                      laenge_mm:null,breite_mm:null};
   window.confirm=t=>{ohne=String(t);return false};
   await lagerPositionAufraeumenAnbieten(3003);
   window.confirm=alt2;
+  materialFormate=sichern;
   return {gefragt,ohne};
  });
- p(/1 Eintrag/.test(z.gefragt)&&/Blech-Materialbestand/.test(z.gefragt),
-   "zeigt der Blech-Materialbestand auf die Position, nennt die Warnung die betroffene Anzahl",z.gefragt);
- p(/Restst/.test(z.gefragt),
-   "und die Reststuecke werden benannt - sie sind hier nicht geladen, also wird keine Zahl behauptet",z.gefragt);
- p(!/Blech-Materialbestand/.test(z.ohne),
-   "Gegenprobe: zeigt nichts darauf, steht die Zeile auch nicht da - gezaehlt wird wirklich, nicht pauschal gewarnt",z.ohne);
+ p(/als BLECH gef/.test(z.gefragt)&&/0,7 mm/.test(z.gefragt)&&/Rolle/.test(z.gefragt),
+   "traegt die Position ein Blech-Format, nennt die Warnung es im Klartext",z.gefragt);
+ p(/mit ihr gelöscht|mit ihr geloescht/.test(z.gefragt),
+   "und sagt, dass es mit der Position geloescht wird - seit v3.177 bleibt es "
+   +"NICHT bestehen",z.gefragt);
+ p(/Restst/.test(z.gefragt)&&/verlieren nur ihre Zuordnung/.test(z.gefragt),
+   "fuer die Reststuecke gilt weiterhin SET NULL: sie bleiben, und das steht "
+   +"getrennt davon da - sie sind nicht geladen, also wird keine Zahl behauptet",z.gefragt);
+ p(!/als BLECH gef/.test(z.ohne),
+   "Gegenprobe: ohne Format wird kein Blech behauptet - geprueft wird wirklich, "
+   +"nicht pauschal gewarnt",z.ohne);
 
  // Ohne das Recht am Material-Katalog kommt die Nachfrage gar nicht.
  z=await page.evaluate(async()=>{
