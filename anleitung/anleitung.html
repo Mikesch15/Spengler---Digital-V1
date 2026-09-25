@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.176";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.177";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.176<br>
+  Version 3.177<br>
   Stand 22. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -618,7 +618,7 @@ steht immer die <strong>Kontrolle</strong>. Als Beispiel dient hier Einlaufblech
 <figure><img src="bilder/07-eb-1-grunddaten.png"><figcaption>Material, Abwicklung und Montageseite.</figcaption></figure>
 
 <h3>Werkstoff, Artikel, Bestand</h3>
-<p>Drei Dinge, die bis Version 3.176 alle „Material“ hiessen und deshalb kaum
+<p>Drei Dinge, die bis Version 3.177 alle „Material“ hiessen und deshalb kaum
 auseinanderzuhalten waren:</p>
 <table>
 <tr><th>Begriff</th><th>Wo</th><th>Wofür</th></tr>
@@ -629,9 +629,9 @@ auseinanderzuhalten waren:</p>
     <td>Materialkatalog, Regierapport</td>
     <td>Preis und Einheit. Steuert die Verrechnung. Ein Werkstoff hat oft
         mehrere Artikel.</td></tr>
-<tr><td><strong>Bestand</strong><br>0,6 mm Rolle</td>
-    <td>Lager → Materialbestand</td>
-    <td>Stärke und Rolle/Tafel. Steuert den Zuschnitt.</td></tr>
+<tr><td><strong>Format</strong><br>0,6 mm · Blank · Rolle</td>
+    <td>Steht seit 3.177 <strong>am Artikel</strong><br>Lager → Materialbestand</td>
+    <td>Stärke, Ausführung, Rolle/Tafel. Steuert den Zuschnitt.</td></tr>
 </table>
 <p>Seit 3.176 heisst in der Massaufnahme <strong>Werkstoff</strong>, was ein
 Werkstoff ist. Zusammengelegt werden die drei bewusst nicht: ein Werkstoff
@@ -643,6 +643,39 @@ noch an einer Stelle: im Katalog. Die Lagerzeile zeigt ihn nur noch an.
 Vorher trug sie eine eigene Kopie – und die war bereits auseinandergelaufen.
 Im Materialkatalog trägt jede Position ausserdem ein Feld
 <strong>Werkstoff</strong>; nötig ist es nur bei Blech.</div>
+
+<h3>Ein Blech ist ein Eintrag (ab 3.177)</h3>
+<p>Bis Version 3.176 war ein Blech <strong>zweimal</strong> erfasst: der Artikel
+im Katalog trug den Namen, eine eigene Zeile im Materialbestand trug Stärke,
+Ausführung und Rolle/Tafel. Seit 3.177 steht beides am Artikel.</p>
+<p><strong>Woran die App ein Blech erkennt:</strong> an der Form. Ein
+Katalogartikel mit <strong>Rolle</strong> oder <strong>Tafel</strong> ist ein
+geführtes Blech. Schrauben und Dichtband haben keine Form und tauchen im
+Materialbestand gar nicht auf – von über 380 Katalogpositionen muss nur das
+Blech gepflegt werden.</p>
+<div class="hin"><strong>Warum das nötig war.</strong> Die Positionen 102.01,
+102.02 und 102.03 heissen alle drei „Kupferblech“. Der Unterschied – 0,6 gegen
+0,8 gegen 1,0 mm – stand in einer anderen Tabelle. Angezeigt wurde stattdessen
+die Spalte „Dim“, ein freies Textfeld: bei den Kupferblechen zufällig die
+Stärke, beim Cava-Band aber „250mm“ – und das ist die <strong>Breite</strong>.
+Wer sich darauf verliess, las dieses Blech als 250 mm dick.</div>
+<p>Jetzt steht das Format überall dabei, wo ein Artikel erscheint – in der
+Lagerverwaltung, beim Buchen, beim Ausbuchen aus einer Massaufnahme und in der
+Suche: <em>102.01 Kupferblech · 0,6 mm · Blank · Rolle</em>. Die Suchfelder
+finden damit auch nach Stärke und Form.</p>
+<p><strong>Der Materialbestand bearbeitet den Katalogartikel.</strong> Ein
+Eintrag braucht deshalb einen Artikel – ohne ihn hätte das Format keinen Ort.
+Beim Bearbeiten steht der Artikel fest; ihn zu wechseln wäre ein neuer Eintrag,
+kein geänderter.</p>
+<div class="hin"><strong>„Entfernen“ löscht nichts.</strong> Es nimmt dem
+Artikel nur sein Format, sodass der Zuschnitt nicht mehr mit ihm rechnet. Der
+Katalogartikel bleibt vollständig erhalten – mit EDV-Nr., Preis, Barcode und
+allen Buchungen.</div>
+<p><strong>Mehrdeutig bleibt mehrdeutig.</strong> Führt der Betrieb zwei Bleche
+desselben Werkstoffs mit derselben Stärke, aber unterschiedlicher Ausführung –
+bei uns Kupferblech blank 0,6 mm und Cava-Band Kupfer 0,6 mm –, wählt die App
+nicht aus. Sie sagt es und verwendet für diesen Fall kein Reststück
+automatisch. Raten wäre hier teurer als fragen.</p>
 
 <h3>Vorschläge bei der Auswahl</h3>
 <div class="hin"><strong>Aus eigener Gewohnheit</strong> (ab 3.173): Neben einer

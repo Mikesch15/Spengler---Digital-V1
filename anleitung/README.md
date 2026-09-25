@@ -1,7 +1,7 @@
 # Anleitung als PDF
 
 `Spengler-DIGITAL-Anleitung-v3.177.pdf` – Bedienungsanleitung der App,
-98 Seiten, mit Bildschirmfotos aus der App selbst.
+99 Seiten, mit Bildschirmfotos aus der App selbst.
 
 ## Wie sie entsteht
 
