@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.182";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.183";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.182<br>
+  Version 3.183<br>
   Stand 22. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -1843,6 +1843,44 @@ verschwindet nicht mit ihm. Wurde ein Mitarbeiter entfernt, steht dort
 „Unbekannter Benutzer“.</p>
 
 <h2 class="seite">19 · Einstellungen</h2>
+<h3>Der geführte Start (ab 3.183)</h3>
+<p>Ein Betrieb, der die App frisch bekommt, findet sie vollständig vor – aber
+leer. Kein Material im Katalog, keine Werkstoffe mit Dehnungswerten, keine
+Rollenbreiten, keine Rinne-Ansetztypen. Die Auswahlfelder sind da, sie haben
+nur nichts zur Auswahl.</p>
+<p>Deshalb steht zuoberst auf der Startseite eine Karte
+<strong>„Ihre Einrichtung“</strong>, solange eine Grundlage fehlt. Jeder Punkt
+nennt den Stand („0 Positionen“, „noch keine“) und sagt, <strong>warum</strong>
+er gebraucht wird:</p>
+<table class="eb-table">
+<tr><th>Punkt</th><th>Wozu</th></tr>
+<tr><td>Firmenangaben</td><td>stehen auf jedem Regierapport und jeder Offerte</td></tr>
+<tr><td>Mitarbeiter</td><td>Rapporte und Projekte werden ihnen zugeordnet</td></tr>
+<tr><td>Stundenansätze</td><td>ohne Ansatz bleibt der Betrag im Rapport leer</td></tr>
+<tr><td>Material-Katalog</td><td>Regierapport, Ausmass und Lager greifen alle darauf zu</td></tr>
+<tr><td>Werkstoffe</td><td>aus den Dehnungswerten rechnet die Massaufnahme die Dilatation</td></tr>
+<tr><td>Rollenbreiten</td><td>ohne sie kann kein Zuschnittplan entstehen</td></tr>
+<tr><td>Blech-Formate</td><td>erst damit weiss der Zuschnitt, woraus er schneidet</td></tr>
+</table>
+<p>Dazu kommen drei <em>freiwillige</em> Punkte – Rinne-Ansetztypen,
+Blitzschutz-Katalog und Firmenlogo. Sie sind nur nötig, wenn der Betrieb diese
+Bereiche wirklich braucht.</p>
+<div class="hin"><strong>Die Liste führt, sie ersetzt nichts.</strong> Ein
+Tippen auf „erledigen“ öffnet die <strong>bestehende</strong> Karte in den
+Einstellungen – dieselbe, die auch über <em>Einstellungen</em> erreichbar ist.
+Es gibt bewusst kein zweites Formular daneben: zwei Eingabemasken für dasselbe
+Feld laufen früher oder später auseinander.</div>
+<div class="hin"><strong>Der Haken ist nicht gemerkt, sondern gelesen.</strong>
+Es gibt keine gespeicherte Fortschrittsmarke. Jeder Punkt schaut in dieselben
+Daten, aus denen die App ohnehin arbeitet. Das hat eine sichtbare Folge: wird
+ein Katalog später wieder geleert, kommt der Punkt von selbst zurück. Eine
+gemerkte Marke würde in diesem Fall weiterhin „erledigt“ behaupten – und genau
+das soll nicht passieren.</div>
+<p>Ist alles Nötige erfasst, verschwindet die Karte. Über
+<strong>Mehr → Einrichtung prüfen</strong> lässt sie sich jederzeit wieder
+ansehen, dann samt der erledigten Punkte. Sichtbar ist sie nur für
+<strong>Administratoren</strong>; die Punkte führen alle in Bereiche, die
+ohnehin nur sie ändern dürfen.</p>
 <p>Zuoberst im Register <strong>Allgemein</strong> steht
 <span class="tasten">📖 Anleitung öffnen (PDF)</span> – dieses Dokument, jederzeit aus
 der App heraus erreichbar.</p>

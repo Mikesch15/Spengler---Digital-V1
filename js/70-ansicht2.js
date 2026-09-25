@@ -544,6 +544,13 @@ function a2SeiteHeute(){
  const auf=a2Aufgaben();
  let html=a2MarkeHtml("a2-marke");
 
+ // v3.183: Die Einrichtungs-Checkliste. Sie steht ganz oben, weil eine neue
+ // Firma ohne Katalog, Werkstoffe und Rollenbreiten an mehreren Stellen
+ // nicht rechnen kann - das ist dringender als jede Aufgabe darunter. Der
+ // Stand wird in js/73 aus den echten Daten ABGELEITET; ist alles erfasst,
+ // liefert einrKarteHtml() einen leeren String und hier steht nichts.
+ if(typeof einrKarteHtml==="function")html+=einrKarteHtml();
+
  // Der einmalige Hinweis nach der Umstellung. Er sagt, was sich geaendert
  // hat und wo der Weg zurueck steht - eine Ansicht, die sich ungefragt
  // aendert und nichts dazu sagt, ist eine Zumutung.
@@ -798,6 +805,11 @@ function a2SeiteMehr(){
   {id:"feedback",   zeichen:"💬", text:"Feedback geben",        unter:"Fehler melden, Wunsch äussern"},
   {id:"zaehlwerk",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"}
  ];
+ // v3.183: Nur fuer Administratoren - alle Punkte der Liste fuehren in
+ // Bereiche, die ohnehin nur sie aendern duerfen.
+ if(typeof einrZustaendig==="function"&&einrZustaendig())
+  eintraege.push({id:"einrichtung",zeichen:"🧭",text:"Einrichtung prüfen",
+   unter:"Was für den vollen Betrieb noch fehlt"});
  if(a2KnopfSichtbar("navAdminMeas"))
   eintraege.push({id:"adminmeas",zeichen:"📋",text:"Alle Massaufnahmen",unter:"Übersicht für die Firmenleitung"});
  if(a2KnopfSichtbar("navSystemAdmin"))
@@ -1059,6 +1071,9 @@ document.addEventListener("click",async e=>{
   if(was==="sysadmin"&&$("navSystemAdmin")){
    await a2BereichStarten("systemAdminModal","System-Administration","mehr",()=>$("navSystemAdmin").click());return}
   if(was==="abmelden"&&$("logout")){$("logout").click();return}
+  // v3.183: zurueck auf "Heute", wo die Liste steht - sie wird nicht ein
+  // zweites Mal gezeichnet, sondern nur erzwungen sichtbar gemacht.
+  if(was==="einrichtung"&&typeof einrAnzeigen==="function"){einrAnzeigen();return}
   // v3.157: bis v3.156 fuehrte dieser Eintrag ueber openSettingsTo() in die
   // EINSTELLUNGEN - genau dorthin, wo der Eintrag "Einstellungen" direkt
   // darueber auch schon hinfuehrte. Zwei Eintraege, ein Ziel. Jetzt oeffnet

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.182.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.183.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1307,6 +1307,13 @@ Rollenbreiten und die Anschlusstypen der Rinne.</li>
 „Feedback“.</li>
 </ul>
 <p>Bei jedem Abschnitt steht dabei, was davon gilt.</p>
+<p><b>Einrichtung prüfen</b> (ab 3.183): Solange einer Firma noch eine
+Grundlage fehlt – Katalog, Werkstoffe, Rollenbreiten, Stundenansätze –, steht
+zuoberst auf der Startseite eine Karte, die sagt was fehlt und warum, und die
+direkt an die richtige Stelle führt. Sie verschwindet von selbst, sobald alles
+steht, und ist über <b>Mehr → Einrichtung prüfen</b> wieder aufrufbar. Der
+Stand ist nicht gemerkt, sondern aus den Daten gelesen: wird etwas später
+wieder geleert, meldet sich der Punkt zurück.</p>
 <p><b>Speichern in den Katalogen</b> (ab 3.182): Die Felder in den Listen –
 Leistungen, Material, Profile, Blitzschutz-Material, Werkstoffe – haben keinen
 eigenen Speichern-Knopf. Geschrieben wird kurz nach der letzten Eingabe, und
