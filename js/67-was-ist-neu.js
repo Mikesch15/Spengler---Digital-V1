@@ -319,7 +319,10 @@ const WIN_CHANGELOG={
   "<b>Das Standardmass für die Falzbreite ist neu 5 mm</b> statt 6. Die Zuschnittbreite wird damit 358,38 statt 361,38 mm.",
   "Eine vor v3.196 gespeicherte Abwicklung mit Lappen öffnet unverändert – die Angabe wird beim Rechnen einfach übergangen, der Zuschnitt bleibt derselbe."],
  "3.197":["<b>Auch der Rohrdurchmesser steht jetzt nur noch einmal da.</b> Zusammen mit der Dachneigung aus v3.196 heisst das: die Masse, die bei Rohr und Tablett dieselben sind, werden einmal erfasst und gelten für beide.",
-  "<b>Nicht zusammengelegt ist b</b> – beim Rohr ist das die Schweifbord-Breite, beim Tablett das Mass von Mitte Rohr nach hinten. Derselbe Buchstabe, zwei völlig verschiedene Masse. Sie bleiben getrennt, und der Prüfstand hält das ausdrücklich fest."]
+  "<b>Nicht zusammengelegt ist b</b> – beim Rohr ist das die Schweifbord-Breite, beim Tablett das Mass von Mitte Rohr nach hinten. Derselbe Buchstabe, zwei völlig verschiedene Masse. Sie bleiben getrennt, und der Prüfstand hält das ausdrücklich fest."],
+ "3.198":["<b>Behoben: „permission denied for function mw_firma_ok“ beim Terminieren einer Aufgabe.</b> Die Prüffunktion hinter den Zugriffsregeln der Aufgaben-Termine hatte für angemeldete Nutzer nie ein Ausführungsrecht bekommen – ein Fehler von v3.185. Betroffen waren alle vier Wege (lesen, anlegen, ändern, löschen), das Terminieren hat also noch nie funktioniert. Behoben in der Datenbank; ohne App-Update wirksam.",
+  "<b>Werkstoffe ohne Dehnungswerte lassen sich jetzt als „ist so gewollt“ abhaken.</b> Bei einem Werkstoff, der gar nicht dilatiert wird – Blei zum Beispiel –, sind fehlende Dehnungswerte richtig. Bisher blieb so ein Eintrag dauerhaft als roter Fehler stehen, und eine Meldung, die sich nicht erledigen lässt, verdeckt nach einer Weile die, die es ernst meinen.",
+  "Abgehakt wird dabei der <b>einzelne Werkstoff</b>, nicht die Prüfung: ein später angelegter Werkstoff ohne Dehnungswerte meldet sich wieder."]
 };
 
 function winVersionVergleich(a,b){

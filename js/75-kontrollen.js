@@ -77,10 +77,18 @@ const KON_PRUEFUNGEN=[
   finden:()=>konBleche().filter(b=>b.werkstoff_id===null)
               .map(b=>({id:b.edv_nr,text:b.name+" · "+b.edv_nr+konMassText(b)})) },
 
+ // v3.198: abweisbar. Es gibt Werkstoffe, bei denen KEINE Dehnungswerte der
+ // richtige Zustand sind - Blei etwa liegt nicht in langen Bahnen, da ist
+ // nichts zu dilatieren. Bis v3.197 blieb so ein Werkstoff dauerhaft als
+ // roter Fehler stehen; eine Meldung, die sich nicht erledigen laesst,
+ // verdeckt nach einer Weile die, die es ernst meinen.
+ //
+ // Abgehakt wird der EINZELNE Werkstoff, nicht die Pruefung: ein spaeter
+ // angelegter Werkstoff ohne Dehnungswerte meldet sich wieder.
  {schluessel:"werkstoff-ohne-dila", gruppe:"Blech und Werkstoff",
-  schwere:"fehler", abweisbar:false, tab:"measurements", abschnitt:"material",
+  schwere:"fehler", abweisbar:true, tab:"measurements", abschnitt:"material",
   titel:"Werkstoff ohne Dehnungswerte",
-  warum:"Max. Abstand und Abstand ab Fixpunkt sind die beiden Zahlen, aus denen die Dilatation gerechnet wird. Steht dort 0, setzt die Aufnahme keine.",
+  warum:"Max. Abstand und Abstand ab Fixpunkt sind die beiden Zahlen, aus denen die Dilatation gerechnet wird. Steht dort 0, setzt die Aufnahme keine. Bei einem Werkstoff, der gar nicht dilatiert wird – Blei zum Beispiel –, ist das richtig so: dann lässt sich der Eintrag mit „ist so gewollt“ abhaken.",
   finden:()=>konListe(typeof measurementMaterials!=="undefined"?measurementMaterials:[])
               .filter(w=>!(konZahl(w.max_abstand_mm)>0)||!(konZahl(w.ab_fixpunkt_mm)>0))
               .map(w=>({id:String(w.id),

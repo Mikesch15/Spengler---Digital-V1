@@ -250,13 +250,70 @@ const offenVon=`s=>{const b=konBefunde().find(x=>x.schluessel===s);return b?b.of
   return {abweisbar:b.filter(x=>x.abweisbar).map(x=>x.schluessel),
           nichtAbweisbar:b.filter(x=>!x.abweisbar).map(x=>x.schluessel),
           knopfBeiBlech:h.indexOf('data-kon-abweisen="blech-ohne-werkstoff"')>=0,
-          knopfBeiPreis:h.indexOf('data-kon-abweisen="position-ohne-preis"')>=0};
+          knopfBeiPreis:h.indexOf('data-kon-abweisen="position-ohne-preis"')>=0,
+          knopfBeiDila:h.indexOf('data-kon-abweisen="werkstoff-ohne-dila"')>=0};
  });
  p(E3.nichtAbweisbar.indexOf("blech-ohne-werkstoff")>=0,"Blech ohne Werkstoff laesst sich NICHT abhaken",E3.nichtAbweisbar);
- p(E3.nichtAbweisbar.indexOf("werkstoff-ohne-dila")>=0,"fehlende Dehnungswerte auch nicht");
  p(E3.nichtAbweisbar.indexOf("blech-mehrdeutig")>=0,"zwei gleiche Bleche auch nicht");
+ // v3.198: Fehlende Dehnungswerte SIND abweisbar. Bis v3.197 stand hier das
+ // Gegenteil - die Erwartung ist umgedreht, nicht geloescht. Der Grund: es
+ // gibt Werkstoffe, bei denen keine Dehnungswerte richtig sind (Blei liegt
+ // nicht in langen Bahnen). Eine Meldung, die sich nie erledigen laesst,
+ // verdeckt nach einer Weile die, die es ernst meinen.
+ p(E3.abweisbar.indexOf("werkstoff-ohne-dila")>=0,
+   "fehlende Dehnungswerte lassen sich als gewollt abhaken",E3.abweisbar);
  p(E3.knopfBeiBlech===false,"und der Knopf steht dort gar nicht erst");
  p(E3.knopfBeiPreis===true,"beim Preis 0.00 dagegen schon");
+ p(E3.knopfBeiDila===true,"und beim Werkstoff ohne Dehnungswerte ebenfalls",E3.knopfBeiDila);
+
+ // ---- E4  Der Weg wird wirklich durchgespielt (v3.198) --------------------
+ console.log("\nE4 · Werkstoff ohne Dehnungswerte abhaken");
+ // Wie in Abschnitt E: was das Schreiben in konAbweisungen ablegt, wird hier
+ // direkt gesetzt. Geprueft wird die WIRKUNG; dass geschrieben wird und dass
+ // 0 betroffene Zeilen als Fehlschlag gelten, prueft Abschnitt G.
+ const E4=await page.evaluate(()=>{
+  window.__kaputt();
+  konAbweisungen={};
+  konAbgewieseneZeigen=false;
+  const vorher=konBefunde().find(x=>x.schluessel==="werkstoff-ohne-dila");
+  const fehlerVorher=konFehlerZahl();
+  const id=vorher.offen[0].id;
+  konAbweisungen[konSchluessel("werkstoff-ohne-dila",id)]={id:7,grund:"Blei wird nicht dilatiert"};
+  const nachher=konBefunde().find(x=>x.schluessel==="werkstoff-ohne-dila");
+  const zu=konListeHtml();
+  konAbgewieseneZeigen=true;
+  const auf=konListeHtml();
+  konAbgewieseneZeigen=false;
+  return {id, offenVorher:vorher.offen.length, offenNachher:nachher.offen.length,
+          abgewiesen:nachher.abgewiesen.length,
+          fehlerVorher, fehlerNachher:konFehlerZahl(),
+          abgewiesenZahl:konAbgewiesenZahl(),
+          zugeklappt:zu.indexOf('data-kon-zurueck="werkstoff-ohne-dila"')>=0,
+          aufgeklappt:auf.indexOf('data-kon-zurueck="werkstoff-ohne-dila"')>=0};
+ });
+ p(E4.offenVorher===1&&E4.offenNachher===0,
+   "der Werkstoff steht nicht mehr als offener Fehler da",[E4.offenVorher,E4.offenNachher]);
+ p(E4.abgewiesen===1&&E4.abgewiesenZahl>=1,"sondern als abgehakt",E4);
+ p(E4.fehlerNachher===E4.fehlerVorher-1,
+   "und der Fehlerzaehler geht um genau eins runter",[E4.fehlerVorher,E4.fehlerNachher]);
+ // Abgehakt heisst NICHT verschwunden - eingeklappt ist er weg, aufgeklappt
+ // steht er mit "wieder melden" da. Sonst waere es Verstecken statt Abhaken.
+ p(E4.zugeklappt===false&&E4.aufgeklappt===true,
+   "eingeklappt weg, aufgeklappt mit „wieder melden“ da",[E4.zugeklappt,E4.aufgeklappt]);
+
+ // GEGENPROBE: abgehakt ist GENAU dieser Werkstoff, nicht die Pruefung. Ein
+ // spaeter angelegter Werkstoff ohne Dehnungswerte muss sich wieder melden -
+ // sonst haette ein einziger Klick die Kontrolle dauerhaft stillgelegt.
+ const E5=await page.evaluate(()=>{
+  measurementMaterials=konListe(measurementMaterials).concat(
+    [{id:99,name:"Neuer Werkstoff",max_abstand_mm:0,ab_fixpunkt_mm:0}]);
+  const b=konBefunde().find(x=>x.schluessel==="werkstoff-ohne-dila");
+  return {offen:b.offen.map(t=>t.id), abgewiesen:b.abgewiesen.map(t=>t.id)};
+ });
+ p(E5.offen.length===1&&E5.offen[0]==="99",
+   "ein NEUER Werkstoff ohne Dehnungswerte meldet sich trotzdem",E5);
+ p(E5.abgewiesen.length===1&&E5.abgewiesen[0]!=="99",
+   "und der abgehakte bleibt abgehakt",E5);
 
  // ---- F  Ohne Zaehlwerk wird nicht geraten ---------------------------------
  console.log("\nF · Ohne Zaehlwerk faellt die Pruefung aus, statt alles zu melden");

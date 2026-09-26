@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.197.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.198.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1497,10 +1497,14 @@ Mindestmass und deshalb nie verwendet wird.</li>
 Befund beheben lässt. Es gibt hier <b>kein eigenes Formular</b> – korrigiert
 wird immer an der Stelle, an der das Feld ohnehin steht.</p>
 <div class="hin"><b>„Ist so gewollt“.</b> Manche Befunde sind Absicht: eine
-Position mit Preis 0.00 kann eine Beistellung des Kunden sein. Der Knopf
-hakt genau diese eine Position ab; sie zählt dann nicht mehr mit, bleibt
-aber unter <b>„x abgehakt – anzeigen“</b> sichtbar und lässt sich jederzeit
-wieder melden. Abhaken darf nur der Firmenadministrator.</div>
+Position mit Preis 0.00 kann eine Beistellung des Kunden sein, und ein
+<b>Werkstoff ohne Dehnungswerte</b> ist bei Blei genau richtig – Blei liegt
+nicht in langen Bahnen, da ist nichts zu dilatieren. Der Knopf hakt genau
+diesen einen Eintrag ab; er zählt dann nicht mehr mit, bleibt aber unter
+<b>„x abgehakt – anzeigen“</b> sichtbar und lässt sich jederzeit wieder
+melden. Abhaken darf nur der Firmenadministrator.<br>
+Abgehakt wird immer der <b>einzelne Eintrag</b>, nie die Prüfung: ein später
+angelegter Werkstoff ohne Dehnungswerte meldet sich wieder.</div>
 <div class="hin">Nichts wird hier von selbst geändert, und nichts wird
 gespeichert ausser dem Abhaken: Der Befund selbst wird <b>jedes Mal neu</b>
 aus den echten Daten gerechnet. Verschwindet die Ursache, verschwindet auch
