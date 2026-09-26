@@ -8,7 +8,8 @@
 //
 // DAS ABNAHMEMASS STEHT IM AUFTRAG SELBST (Abschnitt 9):
 //   Umfang neutrale Faser   343,38 mm
-//   Zuschnittbreite         361,38 mm   (343,38 + 6 + 12)
+//   Zuschnittbreite         361,38 mm   (343,38 + 6 + 12, also mit f = 6;
+//                                        Vorgabe ist seit v3.196 f = 5 -> 358,38)
 //   Hoehe max (an der Naht) 371,25 mm   -> seit v3.190 370,49
 //   Hoehe min               305,17 mm   -> seit v3.190 307,39
 //   Kragen-Zugabe           37,13 ... 40,10 mm -> seit v3.190 ueberall 39,34
@@ -53,7 +54,9 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  // Vergleich mit dem Fusion-360-Script damit unabhaengig von der Vorgabe
  // bestehen bleibt - und Abschnitt A2 prueft zusaetzlich, was die neue
  // Vorgabe liefert.
- const r=abwRechne({b:40});
+ // v3.196: auch die Falzbreite gehoert dazu - der Auftrag nannte 6, die
+ // Vorgabe des Betriebs ist 5. Die Zuschnittbreite haengt daran.
+ const r=abwRechne({b:40,f:6});
  p(r.ok===true,"die Masse des Auftrags rechnen durch",r.fehler);
  p(nah(r.L,343.38),"Umfang neutrale Faser 343,38",r.L);
  p(nah(r.breite,361.38),"Zuschnittbreite 361,38",r.breite);
@@ -87,8 +90,12 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  // Umfang, Zuschnittbreite und Biegewinkel haengen nicht von der Bordbreite
  // ab - sie muessen unveraendert bleiben. Wuerde die Umstellung sie
  // verschieben, waere irgendwo b eingeflossen, wo es nichts zu suchen hat.
- p(nah(v.L,343.38)&&nah(v.breite,361.38),
-   "Umfang und Zuschnittbreite bleiben 343,38 und 361,38 - sie haengen nicht an b",[v.L,v.breite]);
+ // Der Umfang haengt weder an b noch an f - er muss unveraendert bleiben.
+ // Die Zuschnittbreite haengt an der Falzbreite: 343,38 + 1x5 + 2x5 = 358,38.
+ p(nah(v.L,343.38),"der Umfang bleibt 343,38 - er haengt weder an b noch an f",v.L);
+ p(nah(v.breite,358.38),"die Zuschnittbreite ist 358,38 (Falz 5 statt 6)",v.breite);
+ p(ABW_STANDARD.f===5,"die Vorgabe fuer die Falzbreite ist 5 mm",ABW_STANDARD.f);
+ p(nah(v.breite-v.L,15,0.001),"also Umfang plus 1xf und 2xf mit f = 5",v.breite-v.L);
  p(nah(v.betaMinGrad,60,0.1)&&nah(v.betaMaxGrad,120,0.1),
    "und die Biegewinkel bleiben 60 bis 120 Grad",[v.betaMinGrad,v.betaMaxGrad]);
  // Von Hand: Z = (12 + 0,35) - 2 x 2,35 x tan45 + 2,35 x pi/2 = 11,34.
@@ -112,24 +119,34 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
    [r.hoeheMax-r.hoeheMin,v.hoeheMax-v.hoeheMin]);
  // Die Zuschnittbreite ist der Umfang plus die beiden Falzzugaben - der
  // Auftrag rechnet es ausdruecklich vor: 343,38 + 6 + 12.
- p(nah(r.breite-r.L,18,0.001),"die Zuschnittbreite ist der Umfang plus 1xf und 2xf",r.breite-r.L);
- // v3.189: Die Vorgabe ist 0 Lappen. Der Auftrag nannte 24; der Betrieb
- // schweift das Bord nachher auf der Maschine, Einschnitte sind bei ihm die
- // Ausnahme. Die alte Erwartung wird nicht geloescht, sondern umgedreht -
- // und darunter steht die Gegenprobe, dass Lappen weiterhin funktionieren.
- p(r.einschnitte.length===0,"Vorgabe: KEINE Lappen",r.einschnitte.length);
- p(ABW_STANDARD.lappen===0,"und das steht auch so in den Standardwerten",ABW_STANDARD.lappen);
- const mitLappen=abwRechne({lappen:24});
- p(mitLappen.einschnitte.length===24,"wer 24 eingibt, bekommt 24 Einschnitte",mitLappen.einschnitte.length);
- p(mitLappen.einschnitte[0].length===2,"jeder Einschnitt geht von der Unterkante zur Biegelinie");
+ p(nah(r.breite-r.L,18,0.001),"mit f = 6 ist die Zuschnittbreite der Umfang plus 1xf und 2xf",r.breite-r.L);
  p(r.monoton===true,"die Unterkante laeuft durchgehend",r.monoton);
- // Mit 0 Lappen und 67 % Streckung sagt die App das jetzt bei den
- // Standardmassen ausdruecklich - vorher (24 Lappen) war es still. Beides
- // ist richtig, aber es ist nicht dasselbe, und der Pruefstand haelt fest,
- // welches gilt.
- p(r.warnungen.length===1&&r.warnungen[0].indexOf("gestreckt")>=0,
-   "bei den Standardmassen genau ein Hinweis: der Rand wird gestreckt",r.warnungen);
- p(mitLappen.warnungen.length===0,"mit Lappen ist kein Hinweis noetig",mitLappen.warnungen);
+
+ // ---- A3  Die Lappen sind weg (v3.196) ------------------------------------
+ // Der Auftrag sah Einschnitte im Schweifbord vor, v3.189 stellte die Vorgabe
+ // auf 0, und seit v3.196 gibt es sie gar nicht mehr: "entspricht so nicht
+ // dem aktuellen Stand der Technik" (Ansage des Betriebs). Die alten
+ // Erwartungen werden nicht geloescht, sondern umgedreht - sie pruefen jetzt,
+ // dass die Moeglichkeit WEG ist und nicht still zurueckkommt.
+ console.log("\nA3 · Keine Lappeneinschnitte mehr");
+ p(ABW_STANDARD.lappen===undefined,"'lappen' steht nicht mehr in den Standardwerten",ABW_STANDARD.lappen);
+ p(r.einschnitte===undefined,"die Rechnung liefert keine Einschnitte mehr",r.einschnitte);
+ // Die schaerfste Probe: wer die alte Eingabe doch noch mitgibt, bekommt
+ // trotzdem keine Einschnitte - und vor allem keinen Absturz. Ein
+ // gespeicherter Datensatz von vor v3.196 traegt sie naemlich noch.
+ const altLappen=abwRechne({lappen:24});
+ p(altLappen.ok===true,"ein alter Datensatz mit lappen:24 rechnet weiterhin durch",altLappen.fehler);
+ p(altLappen.einschnitte===undefined&&altLappen.eingaben.lappen===undefined,
+   "und die Angabe wird stillschweigend ignoriert, nicht wieder aktiv",
+   [altLappen.einschnitte,altLappen.eingaben.lappen]);
+ // Verglichen wird mit der VORGABE, nicht mit den Massen des Auftrags -
+ // altLappen rechnet ja auch mit der Vorgabe.
+ p(Math.abs(altLappen.breite-abwRechne({}).breite)<1e-9,
+   "sie aendert am Zuschnitt nichts",[altLappen.breite,abwRechne({}).breite]);
+ // Und der Hinweis, der frueher bei 0 Lappen kam, kommt nicht mehr - die
+ // Vorgabemasse erzeugen jetzt GAR keine Warnung.
+ p(r.warnungen.length===0,
+   "bei den Massen des Auftrags kommt kein Hinweis mehr - der Lappen-Hinweis ist weg",r.warnungen);
 
  // ---- B  Die Rechnung ist DOM-frei ---------------------------------------
  console.log("\nB · Die Rechnung kennt kein DOM");
@@ -174,8 +191,8 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  p(ohneFalz.falzLinien.length===0,"und es gibt keine Falzlinien");
 
  const andereFaktoren=abwRechne({faktorA:2,faktorB:2});
- p(nah(andereFaktoren.breite-andereFaktoren.L,24,0.001),
-   "andere Falzfaktoren wirken (2+2 mal 6 = 24)",andereFaktoren.breite-andereFaktoren.L);
+ p(nah(andereFaktoren.breite-andereFaktoren.L,20,0.001),
+   "andere Falzfaktoren wirken (2+2 mal 5 = 20)",andereFaktoren.breite-andereFaktoren.L);
 
  // Naht an der KUERZESTEN Mantellinie: dieselben Kennzahlen, nur anders
  // herum aufgeschnitten.
@@ -199,17 +216,18 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  p(zuNiedrig.fehler.join(" ").indexOf("mm")>=0,"und die Meldung nennt das Mindestmass",zuNiedrig.fehler);
  const dick=abwRechne({t:60});
  p(dick.ok===false,"Blech dicker als der halbe Durchmesser wird abgewiesen",dick.fehler);
- // Streckung ueber 10 % OHNE Lappen: das laesst sich nicht aufziehen.
- const ohneLappen=abwRechne({lappen:0});
- p(ohneLappen.ok===true,"ohne Lappen wird trotzdem gerechnet");
- // v3.189: Die Warnung schreibt nichts mehr vor. Sie nannte "bitte Lappen
- // verwenden" - im Betrieb wird stattdessen geschweift, und eine Meldung,
- // die den eigenen Arbeitsweg nicht kennt, wird ueberlesen.
- const w=ohneLappen.warnungen.join(" ");
- p(w.indexOf("schweifen")>=0&&w.indexOf("Lappen")>=0,
-   "sie nennt beide Wege - schweifen oder Lappen",ohneLappen.warnungen);
- p(w.indexOf("bitte Lappen verwenden")<0,
-   "und schreibt keinen davon mehr vor",ohneLappen.warnungen);
+ // v3.196: Der Hinweis auf die Streckung ist weg. Er sagte "entweder
+ // schweifen oder Lappen einschneiden" - Lappen gibt es nicht mehr, und
+ // geschweift wird ohnehin immer. Damit kam er bei jeder Rechnung und sagte
+ // nichts, was der Betrieb nicht schon taete. Die Erwartung ist umgedreht:
+ // die ZAHL muss bleiben, die WARNUNG muss weg sein.
+ const stark=abwRechne({b:40});
+ p(stark.ok===true,"ein breites Bord wird trotzdem gerechnet");
+ p(stark.streckung>0.6,"die Streckung wird weiterhin gerechnet",stark.streckung);
+ p(stark.warnungen.join(" ").indexOf("gestreckt")<0,
+   "aber nicht mehr als Warnung serviert",stark.warnungen);
+ p(stark.warnungen.join(" ").indexOf("Lappen")<0,
+   "und von Lappen ist nirgends mehr die Rede",stark.warnungen);
  // Ein Kragen, der fuer die Kruemmung viel zu breit ist: die Unterkante
  // laeuft zurueck. Das ist kein Rechenfehler, sondern ein Bauteil, das so
  // nicht geht - und es darf nicht stillschweigend gezeichnet werden.
@@ -246,15 +264,20 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  await page.waitForTimeout(400);
  const E=await page.evaluate(()=>({
   offen:!$("abwicklungModal").hidden,
-  D:$("abw_D").value, lappen:$("abw_lappen").value,
+  D:$("abw_D").value, lappenFeld:!!$("abw_lappen"), alphaFeld:!!$("abw_alpha"),
+  tabAlphaFeld:!!$("abw_tab_alpha"),
   svg:$("abwVorschau").innerHTML.indexOf("<svg")>=0,
   tabelle:$("abwErgebnis").innerHTML,
   projekt:$("abw_projekt").innerHTML.indexOf("Musterstrasse 1")>=0
  }));
  p(E.offen===true,"der Bereich geht auf");
- p(E.D==="110"&&E.lappen==="0","die Standardmasse sind vorbelegt (seit v3.189 ohne Lappen)",[E.D,E.lappen]);
+ p(E.D==="110","die Standardmasse sind vorbelegt",E.D);
+ p(E.lappenFeld===false,"das Lappen-Feld gibt es nicht mehr im Formular");
+ // v3.196: EIN Winkelfeld fuer beide Bauteile.
+ p(E.alphaFeld===true&&E.tabAlphaFeld===false,
+   "den Dachwinkel gibt es genau einmal, nicht je Bauteil",[E.alphaFeld,E.tabAlphaFeld]);
  p(E.svg===true,"die Vorschau zeichnet ein SVG");
- p(E.tabelle.indexOf("361,38")>=0,"die Tabelle nennt die Zuschnittbreite 361,38",E.tabelle.slice(0,200));
+ p(E.tabelle.indexOf("358,38")>=0,"die Tabelle nennt die Zuschnittbreite 358,38",E.tabelle.slice(0,200));
  // v3.195: im Formular steht die VORGABE (b = 12), nicht die Eingabe des
  // Auftrags - die Tabelle nennt deshalb 342,49 statt 370,49.
  p(E.tabelle.indexOf("342,49")>=0,"und die Hoehe an der Naht 342,49",E.tabelle.slice(0,300));
@@ -287,13 +310,13 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  const F=await page.evaluate(()=>{
   const r=abwAktualisieren();
   const dxf=abwDxfText(r);
-  const dxfLappen=abwDxfText(abwRechne({lappen:24}));
+  const dxfAlt=abwDxfText(abwRechne({lappen:24}));   // alter Datensatz
   const svg=abwSvg(r,{mm:true});
   const seiten=abwSeiten(r);
   return {
    dxf, laenge:dxf.length,
    layer:["ZUSCHNITT","BIEGELINIE_SCHWEIFBORD","BIEGELINIE_FALZ","EINSCHNITT"].filter(l=>dxf.indexOf(l)>=0),
-   layerMitLappen:["ZUSCHNITT","BIEGELINIE_SCHWEIFBORD","BIEGELINIE_FALZ","EINSCHNITT"].filter(l=>dxfLappen.indexOf(l)>=0),
+   layerAlt:["ZUSCHNITT","BIEGELINIE_SCHWEIFBORD","BIEGELINIE_FALZ","EINSCHNITT"].filter(l=>dxfAlt.indexOf(l)>=0),
    altLayer:dxf.indexOf("BIEGELINIE_KRAGEN")>=0,
    einheit:dxf.indexOf("$INSUNITS")>=0,
    eof:dxf.trim().slice(-3),
@@ -306,12 +329,12 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
    druck:abwDruckHtml(r)
   };
  });
- // Ohne Lappen gibt es nichts einzuschneiden - dann steht der Layer
- // EINSCHNITT auch nicht im DXF. Ein leerer Layer waere eine Zeile, die
- // etwas ankuendigt, das nicht kommt.
+ // v3.196: Den Layer EINSCHNITT gibt es nicht mehr - auch nicht, wenn ein
+ // alter Datensatz die Angabe noch mitbringt.
  p(F.layer.length===3&&F.layer.indexOf("EINSCHNITT")<0,
-   "ohne Lappen hat das DXF drei Layer, keinen leeren EINSCHNITT",F.layer);
- p(F.layerMitLappen.length===4,"mit 24 Lappen sind es alle vier",F.layerMitLappen);
+   "das DXF hat drei Layer, keinen EINSCHNITT",F.layer);
+ p(F.layerAlt.length===3&&F.layerAlt.indexOf("EINSCHNITT")<0,
+   "und auch mit lappen:24 aus einem alten Datensatz nicht",F.layerAlt);
  p(F.altLayer===false,"und keiner heisst mehr KRAGEN");
  p(F.einheit===true,"und sagt, dass die Einheit Millimeter ist");
  p(F.eof==="EOF","und endet sauber mit EOF",F.eof);

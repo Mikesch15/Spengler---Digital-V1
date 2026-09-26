@@ -227,7 +227,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
              dxf:abwDxfText(abwLetztes), svg:abwSvg(abwLetztes),
              ergebnis:$("abwErgebnis").innerText,
              vorschau:$("abwVorschau").innerText,
-             felder:{D:$("abw_tab_D").value,alpha:$("abw_tab_alpha").value,
+             felder:{D:$("abw_tab_D").value,alpha:$("abw_alpha").value,
                      a:$("abw_tab_a").value,umschlag:$("abw_tab_umschlag").value,
                      luft:$("abw_tab_lochZugabe").value}};
   return {rohr,hab};
@@ -245,8 +245,9 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
   const alt=einfassungSettings;
   einfassungSettings=Object.assign({},EINFASSUNG_STANDARD,
     {mass_a:277,umschlag:15,loch_zugabe:4.5});
-  ["a","umschlag","lochZugabe","D","alpha","b","c","massSeitlich"]
-    .forEach(k=>{ $("abw_tab_"+k).value="" });
+  // v3.196: ueber abwTablettEl(), weil der Winkel ein GETEILTES Feld ist und
+  // nicht mehr "abw_tab_alpha" heisst.
+  ABW_TABLETT_FELDER.forEach(k=>{ const el=abwTablettEl(k); if(el)el.value="" });
   abwTablettFelderSetzen(null);
   const r={a:$("abw_tab_a").value,umschlag:$("abw_tab_umschlag").value,
            luft:$("abw_tab_lochZugabe").value};

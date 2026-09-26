@@ -313,7 +313,11 @@ const WIN_CHANGELOG={
   "<b>Das schmale Bord wird viel weniger gestreckt:</b> 21 % statt 68,5 %. Gestreckt wird es weiterhin, die App sagt es auch – aber der Unterschied ist erheblich.",
   "<b>Was sich dadurch ändert:</b> Zugabe 11,34 statt 39,34 mm, Höhe 342,49 bis 279,39 statt 370,49 bis 307,39 mm, Bord fertig 11,2 bis 14,2 statt 39,2 bis 42,2 mm. Umfang (343,38), Zuschnittbreite (361,38) und Biegewinkel (60…120°) bleiben unverändert – sie hängen nicht an der Bordbreite.",
   "<b>Die Zahlen in den Einträgen zu v3.190 gelten weiter für das damalige Standardmass von 40 mm.</b> Sie sind das Protokoll dessen, was damals geändert wurde, und werden deshalb nicht umgeschrieben.",
-  "Eine gespeicherte Abwicklung behält ihre eigene Bordbreite. Das Standardmass gilt nur für eine neue."]
+  "Eine gespeicherte Abwicklung behält ihre eigene Bordbreite. Das Standardmass gilt nur für eine neue."],
+ "3.196":["<b>Die Lappeneinschnitte sind weg.</b> Sie entsprechen nicht mehr dem Stand der Technik – geschweift wird auf der Maschine. Damit fällt auch der Hinweis weg, der früher bei 0 Lappen kam („entweder schweifen oder Lappen einschneiden“): er kam bei jeder Rechnung und sagte nichts, was der Betrieb nicht ohnehin tut. Die <b>Streckung</b> wird weiterhin gerechnet und steht in der Ergebnistabelle – nur eben als Zahl, nicht als Warnung.",
+  "<b>Der Dachwinkel steht nur noch einmal da.</b> Beim Rohr hiess er „Schnittwinkel“, beim Tablett „Dachwinkel“ – es ist dasselbe Mass, und man musste es zweimal eintippen. Jetzt gibt es <b>ein</b> Feld für beide Bauteile. Wer dasselbe Mass zweimal erfasst, hat früher oder später zwei verschiedene Winkel für dasselbe Dach.",
+  "<b>Das Standardmass für die Falzbreite ist neu 5 mm</b> statt 6. Die Zuschnittbreite wird damit 358,38 statt 361,38 mm.",
+  "Eine vor v3.196 gespeicherte Abwicklung mit Lappen öffnet unverändert – die Angabe wird beim Rechnen einfach übergangen, der Zuschnitt bleibt derselbe."]
 };
 
 function winVersionVergleich(a,b){

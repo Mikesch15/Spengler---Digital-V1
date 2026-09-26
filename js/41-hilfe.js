@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.195.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.196.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1352,13 +1352,18 @@ sind für beide dieselben.</p>
 angeschnitten ist – etwa eine Dachdurchführung –, mit angebogenem
 <b>Schweifbord</b> und liegendem <b>Längsfalz</b>.</p>
 <p>Die Vorschau ist massstäblich: durchgezogen der Zuschnitt, rot
-gestrichelt die Biegelinie des Schweifbords, blau gestrichelt der Falz, dünn
-die Einschnitte für die Lappen.</p>
+gestrichelt die Biegelinie des Schweifbords, blau gestrichelt der Falz.</p>
 <div class="hin"><b>Ein Schweifbord lässt sich nicht abwickeln.</b> Das Blech
-wird dabei gestreckt; die Tabelle nennt die Streckung am Rand. Über rund 10 %
-geht es von Hand nicht mehr – dann sagt die App das auch. Gelöst wird es
-entweder auf der Schweifmaschine oder mit <b>Lappen</b>; die Vorgabe ist
-<b>0 Lappen</b>, weil im Betrieb nachher geschweift wird.</div>
+wird dabei gestreckt; die Tabelle nennt die Streckung am Rand. Gelöst wird es
+auf der <b>Schweifmaschine</b>. <b>Lappeneinschnitte gibt es seit v3.196
+nicht mehr</b> – sie entsprechen nicht mehr dem Stand der Technik, und der
+Hinweis, der früher dazu kam, ist mit ihnen weggefallen. Die Zahl bleibt:
+sie steht als <b>Streckung Schweifbord-Rand</b> in der Ergebnistabelle.</div>
+<div class="hin"><b>Die Dachneigung α gilt für beide Bauteile.</b> Beim Rohr
+ist sie der Schnittwinkel, beim Tablett die Neigung der Dachfläche – dasselbe
+Mass, deshalb steht es nur einmal da. Bis v3.195 gab es zwei Felder, und wer
+eines nachträglich änderte, hatte zwei verschiedene Winkel für dasselbe
+Dach.</div>
 <div class="hin"><b>Die Zugabe ist über den ganzen Zuschnitt gleich</b>
 (seit v3.190). Gerechnet wird sie mit 90°: <i>Z = (b + t/2) − 2ρ·tan45° +
 ρ·π/2</i> mit ρ = r + t/2, bei den Standardmassen 11,34 mm. Ein Streifen,
@@ -1376,7 +1381,7 @@ den einfachen liegenden Falz: links eine Falzbreite Zugabe, rechts zwei. Sie
 bleiben änderbar. Im Bereich des Schweifbords wird der Falz nicht besonders
 ausgebildet – in der Praxis flachdrücken oder ausklinken.</div>
 <p><b>Ausgeben:</b> DXF (Layer ZUSCHNITT, BIEGELINIE_SCHWEIFBORD,
-BIEGELINIE_FALZ, EINSCHNITT), SVG im Massstab 1:1, oder als Schablone 1:1
+BIEGELINIE_FALZ), SVG im Massstab 1:1, oder als Schablone 1:1
 mit Überlappung und Passmarken.</p>
 <div class="hin"><b>Das Papierformat schlägt die App vor</b> (seit v3.193).
 Sie rechnet A4, A3, A2 und A1 in beiden Lagen durch und wählt das Format mit

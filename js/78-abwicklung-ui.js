@@ -20,10 +20,20 @@
 // andere Zahlen bekommen, nur weil eine spaetere Version anders rechnet.
 // ===========================================================================
 
-const ABW_FELDER=["D","t","H","alpha","b","r","nahtLang","f","faktorA","faktorB","zugabeOben","lappen"];
+// v3.196: "lappen" ist raus - eingeschnitten wird nicht mehr.
+const ABW_FELDER=["D","t","H","alpha","b","r","nahtLang","f","faktorA","faktorB","zugabeOben"];
 // v3.192: das zweite Bauteil. Eigene Feld-Vorsilbe "tab_", damit sich die
 // beiden Formulare nicht ins Gehege kommen; gerechnet wird es in js/77.
 const ABW_TABLETT_FELDER=["D","alpha","a","b","c","umschlag","massSeitlich","lochZugabe"];
+// v3.196: Der Dachwinkel ist bei BEIDEN Bauteilen dasselbe Mass - beim Rohr
+// hiess er "Schnittwinkel", beim Tablett "Dachwinkel", und man musste ihn
+// zweimal eintippen. Es gibt jetzt EIN Feld (abw_alpha) fuer beide. Wer
+// dasselbe Mass zweimal erfassen laesst, bekommt frueher oder spaeter zwei
+// verschiedene Winkel fuer dasselbe Dach.
+const ABW_GETEILT=["alpha"];
+function abwTablettEl(k){
+ return abwEl(ABW_GETEILT.indexOf(k)>=0 ? k : "tab_"+k);
+}
 let abwLetztes=null;        // das zuletzt gerechnete Ergebnis
 let abwGespeichert=[];      // die Liste aus der Datenbank
 let abwGeladenVon=null;     // id des geladenen Datensatzes (fuer den Vergleich)
@@ -69,13 +79,13 @@ function abwTablettStandard(){
 }
 function abwTablettFelderLesen(){
  const p={};
- ABW_TABLETT_FELDER.forEach(k=>{ const el=abwEl("tab_"+k); if(el)p[k]=el.value });
+ ABW_TABLETT_FELDER.forEach(k=>{ const el=abwTablettEl(k); if(el)p[k]=el.value });
  return p;
 }
 function abwTablettFelderSetzen(p){
  const e=Object.assign({},abwTablettStandard(),p||{});
  ABW_TABLETT_FELDER.forEach(k=>{
-  const el=abwEl("tab_"+k);
+  const el=abwTablettEl(k);
   if(el&&e[k]!==undefined&&e[k]!==null)el.value=String(e[k]);
  });
 }
@@ -122,7 +132,6 @@ const ABW_LINIENART={
  schnitt:     {farbe:"#17202a",dick:0.6,strich:"", layer:"ZUSCHNITT",               text:"Zuschnitt"},
  schweifbord: {farbe:"#c62828",dick:0.5,strich:"4,2",layer:"BIEGELINIE_SCHWEIFBORD",text:"Biegelinie Schweifbord"},
  falz:        {farbe:"#1565c0",dick:0.5,strich:"4,2",layer:"BIEGELINIE_FALZ",       text:"Falz"},
- einschnitt:  {farbe:"#7a8894",dick:0.3,strich:"", layer:"EINSCHNITT",              text:"Einschnitte"},
  biege:       {farbe:"#1565c0",dick:0.5,strich:"4,2",layer:"BIEGELINIE",            text:"Biegelinien"},
  loch:        {farbe:"#17202a",dick:0.6,strich:"", layer:"LOCHAUSSCHNITT",          text:"Lochausschnitt",zu:true}
 };
@@ -133,8 +142,7 @@ function abwZeichenTeile(r){
  const g=(r&&r.bauteil==="tablett")
   ? [{art:"biege",linien:r.biegeLinien},{art:"loch",linien:[r.loch]}]
   : [{art:"schweifbord",linien:[r.biegeSchweifbord]},
-     {art:"falz",linien:r.falzLinien},
-     {art:"einschnitt",linien:r.einschnitte}];
+     {art:"falz",linien:r.falzLinien}];
  return g.map(x=>({art:x.art,linien:(x.linien||[]).filter(l=>l&&l.length)}))
          .filter(x=>x.linien.length);
 }
@@ -648,10 +656,9 @@ async function abwAusMassaufnahme(v){
  // v3.192: erst das Bauteil umschalten, dann die Felder fuellen.
  const teil=abwBauteilAusDaten(v.bauteil);
  abwBauteilSetzen(teil);
- const vorsilbe=(teil==="tablett")?"tab_":"";
  const w=v.werte||{};
  Object.keys(w).forEach(k=>{
-  const el=abwEl(vorsilbe+k);
+  const el=(teil==="tablett")?abwTablettEl(k):abwEl(k);
   if(el&&w[k]!==undefined&&w[k]!==null&&w[k]!=="")el.value=String(w[k]);
  });
  if($("abw_bezeichnung")&&v.bezeichnung)$("abw_bezeichnung").value=v.bezeichnung;

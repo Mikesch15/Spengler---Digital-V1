@@ -24,9 +24,11 @@
 // AUFTRAGS, und dazu gehoert b = 40. Seit v3.195 ist die Vorgabe 12, deshalb
 // steht b hier ausdruecklich dabei - sonst vergleicht man zwei verschiedene
 // Bleche:
-//   mit b = 40:  Umfang 343,38 · Zuschnittbreite 361,38 · Biegewinkel 60...120°
-// Umfang, Zuschnittbreite und Biegewinkel haengen nicht von b ab und gelten
-// deshalb fuer jede Bordbreite.
+//   mit b = 40 und f = 6:  Umfang 343,38 · Zuschnittbreite 361,38
+//                          · Biegewinkel 60...120°
+// Der Umfang und die Biegewinkel haengen weder an b noch an f und gelten
+// deshalb immer. Die Zuschnittbreite ist Umfang + faktorA*f + faktorB*f und
+// haengt an der Falzbreite - mit der Vorgabe 5 sind es 358,38.
 //
 // DREI WERTE DES AUFTRAGS GELTEN SEIT v3.190 NICHT MEHR, und zwar auf
 // ausdruecklichen Entscheid des Anwenders (konstante Zugabe statt
@@ -37,8 +39,8 @@
 // Wer diese Datei einmal gegen das Fusion-360-Script haelt, findet dort
 // weiterhin die alten Zahlen. Das ist kein Fehler, sondern der Entscheid.
 //
-// MIT DER VORGABE SEIT v3.195 (b = 12) kommt heraus:
-//   Umfang 343,38 · Zuschnittbreite 361,38 · Biegewinkel 60...120°
+// MIT DEN VORGABEN SEIT v3.195/v3.196 (b = 12, f = 5) kommt heraus:
+//   Umfang 343,38 · Zuschnittbreite 358,38 · Biegewinkel 60...120°
 //   Zugabe 11,34 (ueberall) · Hoehe 342,49 bis 279,39
 //   Bord fertig 11,24...14,21 · Streckung 21,0 %
 // ===========================================================================
@@ -69,9 +71,13 @@ const ABW_STANDARD={
  // nannte 40 - das war die Zahl des Fusion-360-Scripts, nicht die des
  // Betriebs. Mit 12 faellt die Streckung am Bordrand von 68,5 auf 21 %.
  D:110, t:0.7, H:300, alpha:30, b:12, r:2,
- // v3.189: Vorgabe 0 Lappen. Der Betrieb schweift das Bord nachher auf der
- // Maschine - Einschnitte sind bei ihm die Ausnahme, nicht die Regel.
- nahtLang:true, f:6, faktorA:1, faktorB:2, zugabeOben:0, lappen:0
+ // v3.196: KEINE Lappen mehr. Der Auftrag sah Einschnitte im Schweifbord
+ // vor, v3.189 stellte die Vorgabe auf 0, und jetzt ist die Moeglichkeit
+ // ganz weg - eingeschnitten wird heute nicht mehr, geschweift wird auf der
+ // Maschine. Ein Feld, das niemand mehr benutzt, ist kein harmloser Rest:
+ // es steht in jedem Formular, in jeder Legende und in jedem DXF-Layer.
+ // v3.195: Falzbreite 5 mm (Ansage des Betriebs; der Auftrag nannte 6).
+ nahtLang:true, f:5, faktorA:1, faktorB:2, zugabeOben:0
 };
 const ABW_PUNKTE=360;      // Stuetzpunkte je Umlauf
 
@@ -112,7 +118,6 @@ function abwFehler(e){
  const mindest=R*Math.tan(e.alpha*Math.PI/180)+2*(e.r+e.t)+5;
  if(e.D>0&&e.alpha>=0&&e.alpha<75&&!(e.H>mindest))
   f.push("Die Höhe muss grösser als "+mindest.toFixed(1)+" mm sein (Schrägschnitt plus Biegung plus 5 mm).");
- if(!(e.lappen>=0)||Math.round(e.lappen)!==e.lappen)f.push("Die Anzahl Lappen muss eine ganze Zahl ab 0 sein.");
  if(!(e.f>=0))f.push("Die Falzbreite darf nicht negativ sein.");
  return f;
 }
@@ -196,11 +201,6 @@ function abwRechne(roh){
  const bottom=pts.map(p=>p.bottom);
  const streckung=abwLaenge(pts.map(p=>p.rand))/abwLaenge(bottom)-1;
 
- const schlitze=[];
- for(let j=0;j<e.lappen;j++){
-  const p=punkt((j+0.5)/e.lappen);
-  schlitze.push([p.bottom,p.fold]);
- }
  let monoton=true;
  for(let i=0;i<bottom.length-1;i++)if(!(bottom[i+1][0]>bottom[i][0])){monoton=false;break}
 
@@ -215,7 +215,6 @@ function abwRechne(roh){
  // selbst laeuft gerade durch, ueber die ganze Hoehe.
  const unten=bottom.map(p=>[p[0]+zugA,p[1]]);
  const biegeSchweifbord=fold.map(p=>[p[0]+zugA,p[1]]);
- const einschnitte=schlitze.map(s=>[[s[0][0]+zugA,s[0][1]],[s[1][0]+zugA,s[1][1]]]);
  const yb=unten.length?unten[0][1]:0;           // Unterkante an der Naht
 
  const kontur=[[0,yb]].concat(unten).concat([[breite,unten[unten.length-1][1]],
@@ -232,12 +231,17 @@ function abwRechne(roh){
 
  const warnungen=[];
  if(!monoton)warnungen.push("Die Unterkante läuft nicht mehr durchgehend nach rechts – die Schweifbord-Zugabe ist für diese Krümmung zu gross. Schweifbord schmaler wählen oder Biegeradius vergrössern.");
- if(streckung>0.10&&e.lappen===0)warnungen.push("Der Schweifbord-Rand wird um "+(streckung*100).toFixed(0)+" % gestreckt. Von Hand aufziehen geht so nicht – entweder schweifen oder Lappen einschneiden.");
+ // v3.196: Der Hinweis auf die Streckung ist WEG. Er sagte "entweder
+ // schweifen oder Lappen einschneiden" - Lappen gibt es nicht mehr, und
+ // geschweift wird ohnehin immer. Damit kam er bei jeder Rechnung und sagte
+ // nichts, was der Betrieb nicht schon taete. Die Zahl selbst bleibt: sie
+ // steht als "Streckung Schweifbord-Rand" in der Ergebnistabelle, wo man
+ // sie beurteilen kann, statt sie als Warnung serviert zu bekommen.
 
  return {
   ok:true, fehler:[], warnungen, eingaben:e, punkte,
   L, breite, oben, yb, zugA, zugB,
-  kontur, biegeSchweifbord, falzLinien, einschnitte,
+  kontur, biegeSchweifbord, falzLinien,
   unten, fold:biegeSchweifbord,
   hoeheMax, hoeheMin,
   zugMin:Math.min.apply(null,zug), zugMax:Math.max.apply(null,zug),

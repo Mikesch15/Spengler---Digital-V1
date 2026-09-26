@@ -202,7 +202,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.195</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.196</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -734,11 +734,18 @@
 <!-- v3.191: Steht hier nur, wenn die Abwicklung aus einer Massaufnahme
      heraus geoeffnet wurde (js/78, abwAusMassaufnahme). -->
 <div id="abwHerkunft"></div>
+<!-- v3.196: Der Dachwinkel gilt fuer BEIDE Bauteile und steht deshalb EINMAL,
+     ausserhalb der beiden Raster. Beim Rohr hiess er "Schnittwinkel", beim
+     Tablett "Dachwinkel" - es ist dasselbe Mass, und zweimal erfasst ergibt
+     es frueher oder spaeter zwei verschiedene Winkel fuer dasselbe Dach. -->
+<div class="grid">
+<div><label>Dachneigung α (Grad)</label><input id="abw_alpha" type="number" step="0.5" min="0" max="74.9"></div>
+</div>
+<div class="small" style="color:var(--muted);margin:0 0 8px">Gilt für beide Bauteile: beim Rohr ist es der Schnittwinkel, beim Tablett die Neigung der Dachfläche – dasselbe Mass.</div>
 <div class="grid" id="abwMasseRohr">
 <div><label>Aussendurchmesser D (mm)</label><input id="abw_D" type="number" step="0.1" min="1"></div>
 <div><label>Blechstärke t (mm)</label><input id="abw_t" type="number" step="0.05" min="0.05"></div>
 <div><label>Höhe H (mm)</label><input id="abw_H" type="number" step="1" min="1"></div>
-<div><label>Schnittwinkel α (Grad)</label><input id="abw_alpha" type="number" step="0.5" min="0" max="74.9"></div>
 <div><label>Schweifbord-Breite b (mm)</label><input id="abw_b" type="number" step="1" min="0.1"></div>
 <div><label>Innen-Biegeradius r (mm)</label><input id="abw_r" type="number" step="0.5" min="0"></div>
 <div><label>Naht</label><select id="abw_nahtLang"><option value="ja">an der längsten Mantellinie</option><option value="nein">an der kürzesten</option></select></div>
@@ -746,7 +753,6 @@
 <div><label>Falzfaktor Seite A</label><input id="abw_faktorA" type="number" step="0.5" min="0"></div>
 <div><label>Falzfaktor Seite B</label><input id="abw_faktorB" type="number" step="0.5" min="0"></div>
 <div><label>Zugabe oben (mm)</label><input id="abw_zugabeOben" type="number" step="1" min="0"></div>
-<div><label>Anzahl Lappen</label><input id="abw_lappen" type="number" step="1" min="0"></div>
 </div>
 
 <!-- Tablett: Umschlag, Mass seitlich und Luft am Lochausschnitt sind
@@ -755,7 +761,6 @@
      laesst, ohne die Firmenvorgabe zu verstellen. -->
 <div class="grid" id="abwMasseTablett" hidden>
 <div><label>Ø Standrohr D (mm)</label><input id="abw_tab_D" type="number" step="1" min="1"></div>
-<div><label>Dachwinkel α (Grad)</label><input id="abw_tab_alpha" type="number" step="0.5" min="0" max="74.9"></div>
 <div><label>a · vorne bis Mitte Rohr (mm)</label><input id="abw_tab_a" type="number" step="1" min="1"></div>
 <div><label>b · ab Mitte Rohr bis hinten (mm)</label><input id="abw_tab_b" type="number" step="1" min="1"></div>
 <div><label>c · Aufbug 90° (mm)</label><input id="abw_tab_c" type="number" step="1" min="0"></div>
@@ -2270,7 +2275,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.195.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 112 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.196.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 112 Seiten)</a></div>
 </div>
 </div>
 
@@ -2967,7 +2972,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.195.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.196.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
