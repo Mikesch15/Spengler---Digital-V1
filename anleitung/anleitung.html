@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.192";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.193";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.192<br>
+  Version 3.193<br>
   Stand 26. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2444,6 +2444,36 @@ Seite anpassen“. Auf jedem Blatt steht ein <strong>100-mm-Kontrollmass</strong
 einmal mit dem Meter nachmessen, bevor nach der Schablone geschnitten wird.
 Eine um wenige Prozent verkleinerte Schablone fällt sonst erst am Blech auf.</div>
 
+<h3>Papierformat (ab 3.193)</h3>
+<p>Bis 3.192 war die Schablone fest auf A4 aufgeteilt. Das Hablett brauchte
+damit <strong>sechs Blatt</strong>, und beim Rohr trug die dritte Spalte
+1,4 mm Zeichnung – ein ganzes Blatt für nichts.</p>
+<p>Die App rechnet jetzt alle Formate durch und wählt das mit den
+<strong>wenigsten Blättern</strong> vor. In der Auswahl steht bei jedem
+Format, wie viele Blätter es wären:</p>
+<table>
+<tr><th>Format</th><th>Hablett 350 × 543 mm</th><th>Rohr Ø 110 (Standardmasse)</th></tr>
+<tr><td>A4 hoch</td><td>6 Blatt</td><td>6 Blatt</td></tr>
+<tr><td>A3 quer</td><td>3 Blatt</td><td>2 Blatt</td></tr>
+<tr><td>A2 hoch</td><td>2 Blatt</td><td><strong>1 Blatt</strong></td></tr>
+<tr><td>A1 hoch</td><td><strong>1 Blatt</strong></td><td>1 Blatt</td></tr>
+</table>
+<div class="hin">Bei <strong>gleicher</strong> Blattzahl gewinnt das
+<strong>kleinere</strong> Papier – sonst ginge jeder kleine Zuschnitt zum
+Plotter. Ein kleines Blech landet deshalb auf A4, nicht auf A1.
+<strong>A0</strong> steht nicht zur Wahl, weil es im Betrieb nicht gedruckt
+werden kann.</div>
+<div class="hin">Die Schablone sagt dem Drucker die Blattgrösse in
+Millimetern mit, samt Lage. Ohne das hätte er eine A2-Schablone weiterhin auf
+A4 abgeschnitten. Im Druckdialog muss trotzdem dasselbe Format eingestellt
+sein – manche Treiber übergehen die Angabe.</div>
+<div class="hin"><strong>Warum der untere Rand früher wegrutschte:</strong>
+ein Blatt war 280,9 mm hoch, auf A4 mit 8 mm Rand sind 281,0 mm Platz. 0,1 mm
+Reserve. Stand der Drucker auf Standardrändern, kam der untere Teil auf eine
+zusätzliche, halbleere Seite. Kopf- und Fusszeile sind jetzt einzeilig, und
+für sie sind 24 statt 12 mm reserviert – damit bleiben auf jedem Format über
+15 mm Reserve.</div>
+
 <h3>Aus der Einfassung rund heraus (ab 3.191)</h3>
 <p>Die Massaufnahme <strong>Einfassung rund</strong> rechnet den Querschnitt
 (a, b, c) und lässt das Rohr selbst ausdrücklich offen. Genau dieses Rohr
@@ -2535,7 +2565,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.192</strong>, Stand 26. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.193</strong>, Stand 26. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

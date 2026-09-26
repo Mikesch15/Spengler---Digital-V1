@@ -251,6 +251,10 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
    eof:dxf.trim().slice(-3),
    svgMm:/width="[\d.]+mm"/.test(svg)&&/height="[\d.]+mm"/.test(svg),
    seiten:seiten.length, ersteSeite:seiten[0],
+   // v3.193: A4 ausdruecklich erzwungen - fuer den Vergleich unten.
+   seitenA4:abwSeiten(r,Object.assign({},abwPapierListe()[0],
+              abwPapierBedarf(r,abwPapierListe()[0]))).length,
+   vorschlag:abwPapierVorschlag(r),
    druck:abwDruckHtml(r)
   };
  });
@@ -265,7 +269,21 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  p(F.eof==="EOF","und endet sauber mit EOF",F.eof);
  p(F.laenge>20000,"die Kurven stehen als Polylinie mit vielen Stuetzpunkten drin",F.laenge);
  p(F.svgMm===true,"das SVG traegt seine Groesse in mm - sonst waere 1:1 nicht 1:1");
- p(F.seiten>=2,"die Schablone braucht mehrere A4-Blaetter",F.seiten);
+ // v3.193: Bis v3.192 war A4 fest verdrahtet, und dieser Zuschnitt brauchte
+ // deshalb immer mehrere Blaetter. Jetzt schlaegt die App das Format vor -
+ // fuers Rohr ist das A2 hoch, EIN Blatt. Die Pruefung ist umgestellt, nicht
+ // gestrichen: auf A4 muss weiterhin geteilt werden, und der Vorschlag muss
+ // mit weniger Blaettern auskommen als A4. Die dritte Zeile ist die
+ // Gegenprobe gegen das alte Verhalten - sie faellt durch, sobald wieder
+ // jemand A4 fest verdrahtet.
+ p(F.seitenA4>=2,"auf A4 wird die Schablone weiterhin auf mehrere Blaetter geteilt",F.seitenA4);
+ p(F.seiten<F.seitenA4,"der Vorschlag kommt mit weniger Blaettern aus als A4",
+   [F.seiten,F.seitenA4]);
+ p(F.vorschlag&&F.vorschlag.name==="A2 hoch"&&F.seiten===1,
+   "fuer dieses Rohr ist das A2 hoch und ein einziges Blatt",F.vorschlag);
+ p(/@page\{size:420mm 594mm;margin:10mm\}/.test(F.druck),
+   "und die Schablone sagt dem Drucker wirklich A2 - sonst schneidet er auf A4 ab",
+   (F.druck.match(/@page\{[^}]*\}/)||[""])[0]);
  p(F.druck.indexOf("Blatt 1 von "+F.seiten)>=0,"jedes Blatt ist nummeriert");
  p(F.druck.indexOf("abw-kontrollmass")>=0,"und traegt das 100-mm-Kontrollmass");
  p(F.druck.indexOf("100 %")>=0,"mit dem Hinweis, nicht an die Seite anzupassen");

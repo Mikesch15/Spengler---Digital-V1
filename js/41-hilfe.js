@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.192.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.193.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1377,11 +1377,22 @@ bleiben änderbar. Im Bereich des Schweifbords wird der Falz nicht besonders
 ausgebildet – in der Praxis flachdrücken oder ausklinken.</div>
 <p><b>Ausgeben:</b> DXF (Layer ZUSCHNITT, BIEGELINIE_SCHWEIFBORD,
 BIEGELINIE_FALZ, EINSCHNITT), SVG im Massstab 1:1, oder als Schablone 1:1
-auf A4-Blättern mit Überlappung und Passmarken.</p>
+mit Überlappung und Passmarken.</p>
+<div class="hin"><b>Das Papierformat schlägt die App vor</b> (seit v3.193).
+Sie rechnet A4, A3, A2 und A1 in beiden Lagen durch und wählt das Format mit
+den <b>wenigsten Blättern</b> vor. Bei jedem Format steht in der Auswahl, wie
+viele Blätter es wären – so ist sichtbar, was grösseres Papier spart: das
+Hablett braucht auf A4 sechs Blatt, auf A3 quer drei, auf A1 eines.
+Umstellen geht jederzeit.<br>
+Bei gleicher Blattzahl gewinnt das <b>kleinere</b> Papier – sonst ginge jeder
+kleine Zuschnitt zum Plotter. <b>A0</b> steht nicht zur Wahl, weil es im
+Betrieb nicht gedruckt werden kann.</div>
 <div class="warn"><b>Beim Drucken 100 % einstellen</b>, nicht „an Seite
 anpassen“. Auf jedem Blatt steht ein <b>100-mm-Kontrollmass</b>: einmal
 nachmessen, bevor nach der Schablone geschnitten wird. Eine um wenige
-Prozent verkleinerte Schablone fällt sonst erst am Blech auf.</div>
+Prozent verkleinerte Schablone fällt sonst erst am Blech auf.<br>
+Im Druckdialog muss das <b>gleiche Format</b> eingestellt sein, das die App
+nennt – sie sagt es dem Drucker zwar mit, aber manche Treiber übergehen das.</div>
 <p>Gespeichert werden die <b>Masse</b>, nicht die gezeichnete Kontur – die
 wird beim Laden neu gerechnet. Weicht das Ergebnis vom gespeicherten ab,
 sagt die App es ausdrücklich, statt stillschweigend andere Zahlen zu
