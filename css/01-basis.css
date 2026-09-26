@@ -1504,3 +1504,16 @@ html.dark .rmat-unsicher{color:#e0a35c}
  gap:2px;color:var(--muted)}
 #beispielKatalogModal .bk-zeile select{max-width:100%}
 #bkMeldung:empty{display:none}
+
+/* ---- Aufgaben terminieren (v3.185) --------------------------------------
+   Die Zeile ueber der Liste und das Datumsfeld in der Karte. Bewusst
+   zurueckhaltend: eine terminierte Aufgabe ist kein Alarm, sondern eine
+   bewusste Entscheidung des Anwenders. */
+.aufgaben-terminzeile{display:block;width:100%;text-align:left;
+ background:transparent;border:1px dashed var(--line);border-radius:10px;
+ padding:7px 10px;margin:0 0 8px;color:var(--muted);font-size:13px;cursor:pointer}
+.aufgaben-terminzeile:hover{border-color:var(--blue);color:var(--blue)}
+.aufgabe-termin{color:var(--muted);margin:2px 0 4px}
+.aufgabe-termin-form{margin:6px 0;display:flex;flex-direction:column;gap:6px}
+.aufgabe-termin-form label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
+.aufgabe-termin-form input[type=date]{max-width:220px}

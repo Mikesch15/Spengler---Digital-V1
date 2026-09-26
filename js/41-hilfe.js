@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.184.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.185.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1326,6 +1326,23 @@ eigenen Speichern-Knopf. Geschrieben wird kurz nach der letzten Eingabe, und
 unten erscheint dann <i>„✓ Gespeichert.“</i>. Geht es nicht durch, steht dort
 stattdessen der Grund. Bis 3.181 wurde bei diesen Feldern gar nichts
 geschrieben, ohne dass es auffiel.</p>`},
+
+"aufgaben-termin":{titel:"Aufgabe terminieren",text:`
+<p>Mit <b>🗓 Terminieren</b> verschwindet eine Aufgabe aus der Liste, bis das
+gewählte Datum da ist – für Ferien oder eine Montage, die erst später
+stattfindet.</p>
+<p>Über der Liste steht dann <b>„x terminiert – anzeigen“</b>. Nichts geht
+verloren, und mit <b>Termin aufheben</b> ist die Aufgabe sofort zurück.</p>
+<div class="hin">Der Termin gilt für <b>einen Schritt</b>, nicht die ganze
+Massaufnahme: wer das Rüsten verschiebt, verschiebt nicht auch das Montieren.
+Und er gilt nur für die <b>eigene</b> Liste – die Liste eines Kollegen bleibt
+unberührt.</div>
+<div class="hin">Am <b>Ablauf ändert sich nichts</b>. Im Projekt, in der
+Werkstatt und in der Übersicht der Firmenleitung bleibt die Massaufnahme
+sichtbar. Ein Termin räumt die eigene Startseite auf – er lässt keine Arbeit
+verschwinden.</div>
+<p>Ein Datum in der Vergangenheit oder auf heute wird abgewiesen: es würde
+nichts ändern.</p>`},
 
 "einst-rollen":{titel:"Rollenbreiten des Blechlagers",text:`
 <p>Welche Blechrollen die Firma an Lager führt. Gilt <b>firmenweit</b> und

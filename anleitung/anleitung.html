@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.184";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.185";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,8 +48,8 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.184<br>
-  Stand 22. September 2026<br><br>
+  Version 3.185<br>
+  Stand 26. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
  </div>
@@ -179,7 +179,8 @@ wurde und deshalb erneut freigegeben werden muss. Der Knopf führt ins Projekt.<
 <tr><td>Meine Aufgaben</td><td>Dieselbe Liste wie die Karte <strong>🔔 Meine
 offenen Aufgaben</strong> der klassischen Ansicht. Ein Tippen auf die Zeile
 öffnet die Massaufnahme; wo es einen eigenen Schritt gibt (rüsten, montieren,
-zuweisen), steht er als Knopf daneben.</td></tr>
+zuweisen), steht er als Knopf daneben. Auch das Terminieren auf ein späteres Datum
+(Abschnitt 10) gibt es hier – es ist dieselbe Liste, nicht eine zweite.</td></tr>
 <tr><td>Werkstatt heute</td><td>Drei Zahlen: wie viele Teile noch zu schneiden
 sind, wie viele Rüstlisten offen sind und wie viele Montagen vorbereitet
 daliegen. Es sind dieselben Zahlen wie in der Werkstatt selbst – dieselbe
@@ -1083,6 +1084,40 @@ jeder Mitarbeiter entscheidet für sich.</p>
 <tr><td>Zu montieren</td><td>du bist als Monteur eingeteilt</td></tr>
 <tr><td>Abschliessen</td><td>montiert – jetzt fehlt nur noch der Abschluss</td></tr>
 </table>
+
+<h3>Eine Aufgabe auf später terminieren</h3>
+<p>Nicht alles, was offen ist, ist auch heute dran. Wer zwei Wochen in den Ferien ist
+oder weiss, dass die Montage erst in einem Monat stattfindet, will die Aufgabe bis
+dahin nicht bei jedem Öffnen der App sehen. An jeder Aufgabe steht deshalb
+<span class="tasten">🗓 Terminieren</span>. Ein Datum gewählt und gespeichert – und
+die Aufgabe verschwindet aus der Liste, bis dieser Tag da ist.</p>
+<p>Über der Liste steht dann eine Zeile <strong>„2 terminiert – anzeigen“</strong>.
+Ein Tippen darauf blendet die terminierten Aufgaben wieder ein; jede zeigt ihr Datum
+und daneben <span class="tasten">Termin aufheben</span>. Ist nichts terminiert, steht
+dort auch keine Zeile.</p>
+<table>
+<tr><th>Frage</th><th>Antwort</th></tr>
+<tr><td>Wofür gilt der Termin?</td><td>Für <strong>einen Schritt</strong>, nicht für
+die ganze Massaufnahme. Wer das Rüsten auf nächste Woche legt, verschiebt damit nicht
+auch das Montieren – das sind zwei Arbeiten, oft von zwei verschiedenen Leuten.</td></tr>
+<tr><td>Sieht das ein Kollege?</td><td>Nein. Der Termin gilt nur für die
+<strong>eigene</strong> Liste. Ein Termin des Rüsters ändert nichts an der Liste des
+Monteurs.</td></tr>
+<tr><td>Was passiert am Stichtag?</td><td>Die Aufgabe ist von selbst wieder da. Es
+braucht kein Aufräumen und kein Zutun.</td></tr>
+<tr><td>Heute oder gestern eintragen?</td><td>Wird abgewiesen – das würde nichts
+ändern. Das Feld lässt frühestens morgen zu.</td></tr>
+</table>
+<div class="hin"><strong>Am Ablauf ändert sich dadurch nichts.</strong> Im Projekt, in
+der Werkstatt und in der Übersicht der Firmenleitung bleibt die Massaufnahme
+unverändert sichtbar, und ihr Status ist derselbe. Ein Termin ist kein Weg, Arbeit
+verschwinden zu lassen – er räumt nur die eigene Startseite auf. Auch der Zähler auf
+der zugeklappten Karte bleibt ehrlich: er zählt, was wirklich in der Liste steht,
+nicht die terminierten dazu.</div>
+<div class="warn">Nicht zu verwechseln mit <strong>Montage geplant am</strong>
+(nächster Abschnitt). Das ist die <em>Planung der Firma</em> – wann montiert wird –
+und steht für alle da. Der Termin hier ist die <em>persönliche Wiedervorlage</em>
+eines einzelnen Mitarbeiters auf seiner eigenen Startseite.</div>
 
 <h3>Montage geplant am</h3>
 <p>Sobald eine Massaufnahme freigegeben ist, steht im Arbeitsstatus das Feld
@@ -2246,7 +2281,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">26 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.153</strong>, Stand 22. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.185</strong>, Stand 26. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

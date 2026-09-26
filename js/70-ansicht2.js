@@ -370,7 +370,17 @@ function a2Datum(iso){
 // Die Aufgaben der App sind bereits gefiltert und sortiert (js/45). Hier wird
 // nur gelesen - nie neu abgeleitet, was als Naechstes dran ist.
 function a2Aufgaben(){
+ // v3.185: DIESELBE gefilterte Liste wie die klassische Ansicht - terminierte
+ // Aufgaben sind hier wie dort weg. Wuerde hier direkt aufgabenListe stehen,
+ // koennten beide Ansichten verschieden viele Aufgaben zeigen.
+ if(typeof aufgabenSichtbareListe==="function")return aufgabenSichtbareListe();
  return (typeof aufgabenListe!=="undefined"&&Array.isArray(aufgabenListe))?aufgabenListe:[];
+}
+// Die Zeile "N terminiert" fuer die Startseite. Sie kommt aus derselben
+// Quelle wie in der klassischen Ansicht (js/45).
+function a2TerminZeile(){
+ if(typeof aufgabenTerminZeileHtml!=="function")return "";
+ return aufgabenTerminZeileHtml();
 }
 function a2Projekte(){
  return (typeof allProjects!=="undefined"&&Array.isArray(allProjects))?allProjects:[];
@@ -623,9 +633,15 @@ function a2SeiteHeute(){
   html+=`<div class="a2-abschnitt">
    <div class="a2-abschnitt-kopf"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2>
     ${auf.length?`<span class="a2-marke a2-m-blau">${auf.length} offen</span>`:""}</div>`;
+  // v3.185: Die Zeile "N terminiert" kommt aus js/45 - dieselbe Quelle wie in
+  // der klassischen Ansicht. Sie steht UEBER der Liste, damit "nichts offen"
+  // nicht danebensteht, waehrend etwas wartet.
+  html+=a2TerminZeile();
   html+=auf.length
    ? auf.map(a2AufgabeHtml).join("")
-   : '<div class="a2-leer">Nichts offen. Alles, was dir zugeteilt ist, ist erledigt.</div>';
+   : (a2TerminZeile()
+      ? '<div class="a2-leer">Jetzt nichts offen – was wartet, steht oben.</div>'
+      : '<div class="a2-leer">Nichts offen. Alles, was dir zugeteilt ist, ist erledigt.</div>');
   html+="</div>";
  }
 
@@ -744,7 +760,16 @@ function a2AufgabeHtml(a){
    <span class="a2-zeile-pfeil">›</span></button>
   ${eigenerSchritt?`<button type="button" class="a2-knopf a2-knopf-klein a2-k-blau a2-zeile-tat"
     data-a2-aufgabe="${esc(a.art)}" data-a2-id="${esc(a.m.id)}">${esc(art.knopf)}</button>`:""}
+  ${a2TerminTeil(a)}
  </div>`;
+}
+// v3.185: Terminhinweis, Datumsfeld und Knopf kommen UNVERAENDERT aus js/45.
+// Hier wird nichts nachgebaut: die Knoepfe tragen dieselben data-aufgabe-
+// Marken, und der Zuhoerer in js/45 faengt sie am Dokument ab. Zwei eigene
+// Fassungen koennten sonst verschieden auf dasselbe Datum reagieren.
+function a2TerminTeil(a){
+ if(typeof aufgabeTerminHtml!=="function")return "";
+ return aufgabeTerminHtml(a)+aufgabeTerminKnopfHtml(a);
 }
 
 // ===========================================================================

@@ -55,6 +55,118 @@ function aufgabenArt(k){
 
 function aufgabenIch(){return currentProfile?currentProfile.id:null}
 
+// ===========================================================================
+// v3.185: Eine Aufgabe auf ein Datum terminieren
+// ---------------------------------------------------------------------------
+// "Meine aufgaben auf der startseite sollen die moeglichkeit erhalten auf ein
+//  bestimmtes datum terminiert zu werden, zb wenn man in den ferien ist oder
+//  das montieren erst 1 monat spaeter stattfinden soll."
+//
+// Die Aufgaben bleiben ABGELEITET. Es entsteht keine Aufgaben-Tabelle; in
+// aufgaben_termine steht ausschliesslich "diese eine Aufgabe interessiert
+// mich erst ab dem ...". Der Schluessel ist deshalb dreiteilig:
+//   profil_id      wessen persoenliche Liste (die Tabelle zeigt per RLS nur
+//                  die eigenen Zeilen)
+//   measurement_id welche Massaufnahme
+//   schritt        welcher Schritt daran. Ohne ihn wuerde ein Termin fuers
+//                  Ruesten auch das spaetere Montieren verschlucken - zwei
+//                  verschiedene Arbeiten, oft von zwei verschiedenen Leuten.
+//
+// TERMINIERT HEISST NUR: NICHT IN MEINER LISTE.
+// Am Workflow-Status aendert sich nichts. Im Projekt, in der Werkstatt und
+// in der Admin-Uebersicht bleibt die Massaufnahme unveraendert sichtbar -
+// sonst waere ein Termin ein Weg, Arbeit vor der Firmenleitung zu verbergen.
+// ===========================================================================
+
+let aufgabenTermine=Object.create(null);   // "id\u0000schritt" -> {id,faellig_am}
+
+function aufgabenTerminSchluessel(mId,schritt){
+ return String(mId)+"\u0000"+String(schritt||"");
+}
+// Heute als YYYY-MM-DD in ORTSZEIT. toISOString() waere UTC und wuerde am
+// Abend bereits den naechsten Tag melden - ein Termin auf heute waere dann
+// abends faelschlich schon abgelaufen.
+function aufgabenHeute(){
+ const d=new Date();
+ const z=n=>String(n).padStart(2,"0");
+ return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());
+}
+async function aufgabenTermineLaden(){
+ const ich=aufgabenIch();
+ if(!ich){aufgabenTermine=Object.create(null);return}
+ const {data,error}=await sb.from("aufgaben_termine")
+   .select("id,measurement_id,schritt,faellig_am");
+ if(error){console.error("Termine laden",error);return}   // alten Stand lassen
+ const neu=Object.create(null);
+ (data||[]).forEach(t=>{
+  neu[aufgabenTerminSchluessel(t.measurement_id,t.schritt)]=
+   {id:t.id,faellig_am:String(t.faellig_am||"")};
+ });
+ aufgabenTermine=neu;
+}
+// Der Termin einer Aufgabe, oder null.
+function aufgabenTerminVon(a){
+ if(!a||!a.m)return null;
+ return aufgabenTermine[aufgabenTerminSchluessel(a.m.id,a.art)]||null;
+}
+// Terminiert ist eine Aufgabe nur, solange das Datum in der ZUKUNFT liegt.
+// Ist es erreicht, taucht sie von selbst wieder auf - es braucht keinen
+// Aufraeumlauf, der einen abgelaufenen Termin loescht.
+function aufgabenIstTerminiert(a){
+ const t=aufgabenTerminVon(a);
+ return !!t && t.faellig_am > aufgabenHeute();
+}
+// EINE Quelle fuer beide Ansichten. Haette jede ihren eigenen Filter,
+// koennten klassische Ansicht und Ansicht 2.0 verschieden viele Aufgaben
+// zeigen.
+let aufgabenTerminierteZeigen=false;       // nur Anzeige, nicht gespeichert
+function aufgabenSichtbareListe(){
+ const alle=Array.isArray(aufgabenListe)?aufgabenListe:[];
+ if(aufgabenTerminierteZeigen)return alle;
+ return alle.filter(a=>!aufgabenIstTerminiert(a));
+}
+function aufgabenTerminierteListe(){
+ const alle=Array.isArray(aufgabenListe)?aufgabenListe:[];
+ return alle.filter(a=>aufgabenIstTerminiert(a));
+}
+function aufgabenDatumText(iso){
+ const s=String(iso||"");
+ const m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+ return m?(m[3]+"."+m[2]+"."+m[1]):s;
+}
+
+// Setzen und Entfernen. Beides schreibt und PRUEFT das Ergebnis: ein von RLS
+// geblockter Schreibvorgang meldet keinen Fehler, er betrifft still 0 Zeilen
+// (CLAUDE.md 24.1).
+async function aufgabenTerminSetzen(mId,schritt,datum){
+ const ich=aufgabenIch();
+ if(!ich)return {ok:false,meldung:"Nicht angemeldet."};
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(datum||"")))
+  return {ok:false,meldung:"Bitte ein Datum wählen."};
+ if(String(datum)<=aufgabenHeute())
+  return {ok:false,meldung:"Das Datum muss in der Zukunft liegen – sonst ändert sich nichts."};
+ const {data,error}=await sb.from("aufgaben_termine")
+   .upsert({profil_id:ich,measurement_id:mId,schritt:String(schritt||""),faellig_am:datum},
+           {onConflict:"profil_id,measurement_id,schritt"})
+   .select("id,faellig_am");
+ if(error)return {ok:false,meldung:error.message};
+ if(!data||!data.length)return {ok:false,meldung:"Nicht gespeichert – fehlt die nötige Berechtigung?"};
+ aufgabenTermine[aufgabenTerminSchluessel(mId,schritt)]=
+  {id:data[0].id,faellig_am:String(data[0].faellig_am||datum)};
+ return {ok:true};
+}
+async function aufgabenTerminWeg(mId,schritt){
+ const ich=aufgabenIch();
+ if(!ich)return {ok:false,meldung:"Nicht angemeldet."};
+ const {data,error}=await sb.from("aufgaben_termine").delete()
+   .eq("profil_id",ich).eq("measurement_id",mId).eq("schritt",String(schritt||""))
+   .select("id");
+ if(error)return {ok:false,meldung:error.message};
+ if(!data||!data.length)return {ok:false,meldung:"Nichts geändert – fehlt die nötige Berechtigung?"};
+ delete aufgabenTermine[aufgabenTerminSchluessel(mId,schritt)];
+ return {ok:true};
+}
+
 // Die Anzeige einer Aufgabe: Adresse (wie im Projekt-Cockpit) und die Art der
 // Massaufnahme. Die Projektlogik wird dafuer nicht dupliziert, sondern die
 // bestehende eintragAdresse()/MEAS_TYPE_LABELS verwendet.
@@ -118,8 +230,11 @@ async function aufgabenLaden(){
 // Die zugeklappte Zeile sagt genau so viel, wie sie muss: wie viele Aufgaben
 // offen sind und wie viele davon jetzt dran sind (rot).
 function aufgabenKopfText(){
- const n=aufgabenListe.length;
- const dringend=aufgabenListe.filter(a=>aufgabenArt(a.art).farbe==="rot").length;
+ // v3.185: gezaehlt wird, was WIRKLICH in der Liste steht. Eine terminierte
+ // Aufgabe mitzuzaehlen, waere eine Zahl ohne Entsprechung darunter.
+ const sicht=aufgabenSichtbareListe();
+ const n=sicht.length;
+ const dringend=sicht.filter(a=>aufgabenArt(a.art).farbe==="rot").length;
  const haupt=`🔔 ${n} offene ${n===1?"Aufgabe":"Aufgaben"}`;
  return dringend?`${haupt} <span class="aufgaben-dringend">· ${dringend} dringend</span>`:haupt;
 }
@@ -127,7 +242,12 @@ function aufgabenKopfText(){
 function renderAufgaben(){
  const karte=$("aufgabenKarte"), box=$("aufgabenListe");
  if(!karte||!box)return;
- if(!aufgabenAktiv()||!aufgabenListe||!aufgabenListe.length){
+ // v3.185: Die Karte bleibt stehen, solange etwas TERMINIERT ist - sonst
+ // verschwaende der Zaehler mit der letzten offenen Aufgabe, und niemand
+ // saehe mehr, dass noch etwas wartet.
+ const sichtbar=aufgabenSichtbareListe();
+ const terminiert=aufgabenTerminierteListe();
+ if(!aufgabenAktiv()||!aufgabenListe||(!sichtbar.length&&!terminiert.length)){
   karte.hidden=true;box.innerHTML="";
   const j=$("aufgabenJetzt"); if(j){j.hidden=true;j.innerHTML=""}
   return;
@@ -140,14 +260,14 @@ function renderAufgaben(){
   kopf.setAttribute("aria-expanded",aufgabenOffen?"true":"false");
   kopf.title=aufgabenOffen?"Aufgaben zuklappen":"Aufgaben anzeigen";
  }
- box.innerHTML=aufgabenListe.map(aufgabeKarteHtml).join("");
+ box.innerHTML=aufgabenTerminZeileHtml()+sichtbar.map(aufgabeKarteHtml).join("");
  // v3.10: Auch zugeklappt steht die eine Aufgabe da, die jetzt dran ist.
  // Zugeklappt sah man bis v3.09 nur eine Zahl - und damit nicht, was zu tun
  // ist. Offen faellt sie weg, dort steht sie ohnehin zuoberst in der Liste.
  const jetzt=$("aufgabenJetzt");
  if(jetzt){
   if(aufgabenOffen){jetzt.hidden=true;jetzt.innerHTML=""}
-  else{jetzt.hidden=false;jetzt.innerHTML=aufgabeJetztHtml(aufgabenListe[0])}
+  else{jetzt.hidden=false;jetzt.innerHTML=aufgabeJetztHtml(sichtbar[0])}
  }
 }
 
@@ -165,6 +285,21 @@ function aufgabeJetztHtml(a){
  </div>`;
 }
 
+// v3.185: Die Zeile ueber der Liste. Sie erscheint NUR, wenn wirklich etwas
+// terminiert ist - eine dauerhaft sichtbare "0 terminiert"-Zeile waere
+// Ballast.
+function aufgabenTerminZeileHtml(){
+ const n=aufgabenTerminierteListe().length;
+ if(!n)return "";
+ return `<button type="button" class="aufgaben-terminzeile" data-aufgabe="terminliste">
+  ${aufgabenTerminierteZeigen?"▾":"▸"} ${n} terminiert${aufgabenTerminierteZeigen?" – ausblenden":" – anzeigen"}
+ </button>`;
+}
+
+// Welche Aufgabe wird gerade terminiert? Reine Anzeige-Angabe dieses
+// Geraets, kein Datenzustand.
+let aufgabenTerminFormular="";
+
 // Eine Aufgabe als Karte. Eine Darstellung fuer beide Stellen.
 function aufgabeKarteHtml(a){
  if(!a)return "";
@@ -173,11 +308,45 @@ function aufgabeKarteHtml(a){
    <div class="aufgabe-kopf"><span class="aufgabe-marke aufgabe-marke-${art.farbe}"></span>${esc(art.titel)}</div>
    <div class="aufgabe-titel">${esc(b.adresse)}</div>
    ${b.zusatz?`<div class="aufgabe-zusatz">${esc(b.zusatz)}</div>`:""}
+   ${aufgabeTerminHtml(a)}
    <div class="aufgabe-knoepfe">
     <button type="button" class="blue aufgabe-haupt" data-aufgabe="${esc(a.art)}" data-aufgabe-id="${esc(a.m.id)}">${esc(art.knopf)}</button>
     ${(a.art==="freigeben"||a.art==="erneut_freigeben")?"":`<button type="button" class="gray" data-aufgabe="oeffnen" data-aufgabe-id="${esc(a.m.id)}">Massaufnahme öffnen</button>`}
+    ${aufgabeTerminKnopfHtml(a)}
    </div>
   </div>`;
+}
+
+// Der Terminhinweis bzw. das Datumsfeld. Bewusst INNERHALB der Karte und
+// ohne eigenen Dialog: ein Datum zu waehlen ist ein Handgriff, kein Vorgang.
+function aufgabeTerminHtml(a){
+ const schl=aufgabenTerminSchluessel(a.m.id,a.art);
+ const t=aufgabenTerminVon(a);
+ if(aufgabenTerminFormular===schl){
+  // min = morgen. Ein Termin auf heute oder frueher aendert nichts, und ein
+  // Feld, das eine wirkungslose Eingabe zulaesst, ist eine Falle.
+  const morgen=new Date(Date.now()+86400000);
+  const z=n=>String(n).padStart(2,"0");
+  const min=morgen.getFullYear()+"-"+z(morgen.getMonth()+1)+"-"+z(morgen.getDate());
+  return `<div class="aufgabe-termin-form">
+   <label class="small">Wieder anzeigen ab
+    <input type="date" data-termin-datum="${esc(schl)}" min="${min}" value="${esc(t?t.faellig_am:min)}">
+   </label>
+   <div class="aufgabe-knoepfe">
+    <button type="button" class="blue" data-aufgabe="termin-speichern" data-aufgabe-id="${esc(a.m.id)}" data-aufgabe-art="${esc(a.art)}">Speichern</button>
+    <button type="button" class="gray" data-aufgabe="termin-abbrechen">Abbrechen</button>
+   </div></div>`;
+ }
+ if(t&&aufgabenIstTerminiert(a))
+  return `<div class="aufgabe-termin small">🗓 Terminiert auf ${esc(aufgabenDatumText(t.faellig_am))}</div>`;
+ return "";
+}
+function aufgabeTerminKnopfHtml(a){
+ const schl=aufgabenTerminSchluessel(a.m.id,a.art);
+ if(aufgabenTerminFormular===schl)return "";
+ if(aufgabenIstTerminiert(a))
+  return `<button type="button" class="gray" data-aufgabe="termin-weg" data-aufgabe-id="${esc(a.m.id)}" data-aufgabe-art="${esc(a.art)}">Termin aufheben</button>`;
+ return `<button type="button" class="gray" data-aufgabe="termin-neu" data-aufgabe-id="${esc(a.m.id)}" data-aufgabe-art="${esc(a.art)}">🗓 Terminieren</button>`;
 }
 
 async function aufgabenNeuLaden(){
@@ -188,7 +357,9 @@ async function aufgabenNeuLaden(){
  // geladenen Stand stehen, statt faelschlich "nichts offen" zu behaupten.
  if(typeof offlineIstOffline==="function"&&offlineIstOffline())return;
  const lauf=++aufgabenLauf;
- const liste=await aufgabenLaden();
+ // v3.185: Termine zusammen mit den Aufgaben laden. Zwei getrennte Aufrufe
+ // koennten sonst verschiedene Staende zeigen.
+ const [liste]=await Promise.all([aufgabenLaden(),aufgabenTermineLaden()]);
  if(lauf!==aufgabenLauf)return;          // eine neuere Aktualisierung laeuft
  if(liste===null)return;                 // Fehler: alten Stand stehen lassen
  aufgabenListe=liste;
@@ -244,10 +415,51 @@ async function aufgabeAusfuehren(art,id){
  if(typeof werkstattNeuLaden==="function")werkstattNeuLaden();
 }
 
-document.addEventListener("click",e=>{
+document.addEventListener("click",async e=>{
  const k=e.target&&e.target.closest?e.target.closest("[data-aufgabe]"):null;
  if(!k)return;
- aufgabeAusfuehren(k.dataset.aufgabe,k.dataset.aufgabeId);
+ const was=k.dataset.aufgabe;
+
+ // ---- v3.185: Termine ----------------------------------------------------
+ // Bewusst VOR aufgabeAusfuehren(): das dort bestehende Verhalten bleibt
+ // damit unberuehrt, es kommt nur davor etwas dazu.
+ if(was==="terminliste"){
+  aufgabenTerminierteZeigen=!aufgabenTerminierteZeigen;
+  renderAufgaben();
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
+  return;
+ }
+ if(was==="termin-neu"){
+  aufgabenTerminFormular=aufgabenTerminSchluessel(k.dataset.aufgabeId,k.dataset.aufgabeArt);
+  renderAufgaben();
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
+  return;
+ }
+ if(was==="termin-abbrechen"){
+  aufgabenTerminFormular="";
+  renderAufgaben();
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
+  return;
+ }
+ if(was==="termin-speichern"){
+  const id=k.dataset.aufgabeId, art=k.dataset.aufgabeArt;
+  const feld=document.querySelector('[data-termin-datum="'+aufgabenTerminSchluessel(id,art)+'"]');
+  const r=await aufgabenTerminSetzen(id,art,feld?feld.value:"");
+  if(!r.ok){alert(r.meldung);return}
+  aufgabenTerminFormular="";
+  renderAufgaben();
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
+  return;
+ }
+ if(was==="termin-weg"){
+  const r=await aufgabenTerminWeg(k.dataset.aufgabeId,k.dataset.aufgabeArt);
+  if(!r.ok){alert(r.meldung);return}
+  renderAufgaben();
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
+  return;
+ }
+
+ aufgabeAusfuehren(was,k.dataset.aufgabeId);
 });
 
 // Auf- und Zuklappen. Der Kopf ist ein echter Knopf (Tastatur bedienbar), der
