@@ -26,7 +26,7 @@ Spengler-DIGITAL ist eine modulare Web-App.
 - Row Level Security (RLS)
 - Edge Functions
 
-`sw.js` enthält aktuell die JavaScript-App-Shell der Module `01` bis `72`.
+`sw.js` enthält aktuell die JavaScript-App-Shell der Module `01` bis `78`.
 
 ## ZENTRALER WORKFLOW
 
