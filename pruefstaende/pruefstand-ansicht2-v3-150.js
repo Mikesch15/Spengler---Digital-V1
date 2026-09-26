@@ -174,8 +174,9 @@ const anmelden=page=>page.evaluate(()=>{
 
  // Ein Projekt oeffnet seit v3.151 die eigene PROJEKTSEITE (sechs Register),
  // nicht mehr das klassische Cockpit. Bis v3.150 war es umgekehrt - der
- // Vertrag ist umgestellt, nicht abgeschwaecht: das Cockpit bleibt ueber
- // "Mehr" erreichbar, und dass es dort wirklich aufgeht, prueft C8.
+ // Vertrag ist umgestellt, nicht abgeschwaecht: das Cockpit bleibt aus der
+ // Projektseite heraus erreichbar, und dass es dort wirklich aufgeht,
+ // prueft C8.
  await page.click('[data-a2-projekt="2"]');
  await page.waitForFunction(()=>!a2ProjLaedt);
  let c6=await page.evaluate(()=>({
@@ -201,13 +202,30 @@ const anmelden=page=>page.evaluate(()=>{
  // Zurueck-Knopf fuehrt in die neue Ansicht statt in die klassische Liste.
  await page.click('[data-a2-projekt="2"]');
  await page.waitForFunction(()=>!a2ProjLaedt);
- await page.click('[data-a2-reg="mehr"]');
- await page.click('[data-a2-tu="cockpit"]');
+ // UMGESTELLT in v3.203: Das Register "Mehr" der Projektseite ist
+ // aufgeloest - es hiess genauso wie der Eintrag "Mehr" in der unteren
+ // Leiste und enthielt etwas anderes. Seine Inhalte stehen jetzt in
+ // eigenen Registern; der Weg ins vollstaendige Cockpit fuehrt ueber
+ // "Dateien", wo das steht, was nur die vollstaendige Ansicht kann
+ // (Hochladen, Fotowand, Verlauf). Die Zusicherung selbst ist unveraendert
+ // dieselbe: es MUSS von der Projektseite aus einen Weg dorthin geben.
+ const c8a=await page.evaluate(()=>({
+  mehr:!!document.querySelector('#a2Inhalt [data-a2-reg="mehr"]'),
+  dateien:!!document.querySelector('#a2Inhalt [data-a2-reg="dateien"]')
+ }));
+ p(!c8a.mehr,"C8a das Sammel-Register 'Mehr' der Projektseite ist weg",c8a);
+ p(c8a.dateien,"C8b an seiner Stelle steht das Register Dateien",c8a);
+ await page.click('#a2Inhalt [data-a2-reg="dateien"]');
+ await page.waitForTimeout(300);
+ const c8c=await page.evaluate(()=>
+  [...document.querySelectorAll('#a2Inhalt [data-a2-tu="cockpit"]')].length);
+ p(c8c>0,"C8c und es fuehrt in die vollstaendige Projektansicht",{wege:c8c});
+ await page.click('#a2Inhalt [data-a2-tu="cockpit"]');
  let c8=await page.evaluate(()=>({
   cockpit:!$("projectCockpitModal").hidden,
   titel:$("cockpitTitle").textContent
  }));
- p(c8.cockpit,"C8 das vollstaendige Cockpit ist ueber 'Mehr' erreichbar",c8);
+ p(c8.cockpit,"C8 das vollstaendige Cockpit geht dort wirklich auf",c8);
  await page.click("#cockpitBack");
  await page.waitForFunction(()=>!a2ProjLaedt);
  let c9=await page.evaluate(()=>({

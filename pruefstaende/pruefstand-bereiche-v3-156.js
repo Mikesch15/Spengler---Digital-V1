@@ -202,17 +202,53 @@ const tab=(page,k)=>page.evaluate(k=>{
  const reg=await page.evaluate(()=>[...document.querySelectorAll('#a2Inhalt [data-a2-reg]')]
    .map(x=>x.getAttribute("data-a2-reg")));
  p(reg.indexOf("rapport")>=0,"C1 der Regierapport ist ein eigenes Register",reg);
- p(reg.indexOf("rapport")<reg.indexOf("mehr"),
-   "C2 und steht VOR 'Mehr …', nicht darin",reg);
- await page.evaluate(()=>{const k=document.querySelector('[data-a2-reg="mehr"]');if(k)k.click()});
- await page.waitForTimeout(500);
- // Gesucht wird der Knopf, nicht das Wort: "Regierapport" steht auch in der
- // Registerleiste darueber, die zu #a2Inhalt gehoert. Das erste Mass war
- // deshalb falsch und meldete einen Fehler, der keiner war.
- const inMehr=await page.evaluate(()=>
-  !!document.querySelector('#a2Inhalt [data-a2-tu="neuerrapport"]')
-  ||!!document.querySelector('#a2Inhalt [data-a2-rep]'));
- p(!inMehr,"C3 unter 'Mehr …' steht weder seine Liste noch sein Anlegen-Knopf");
+ // UMGESTELLT in v3.203. Bis dahin lautete die Zusicherung: "steht VOR
+ // 'Mehr …', nicht darin". Den Sammelkuebel "Mehr …" gibt es auf der
+ // Projektseite nicht mehr - seine Inhalte haben eigene Register bekommen
+ // (Offerte, Dateien), weil zwei verschiedene Dinge gleich hiessen.
+ // Der Vertrag wird dadurch STRENGER statt schwaecher: der Rapport steht
+ // nicht mehr bloss vor dem Kuebel, es gibt gar keinen mehr, in dem er
+ // verschwinden koennte. Die alte Fassung waere heute auch nicht mehr
+ // aussagekraeftig - indexOf("mehr") ist -1, "rapport" steht davor, sie
+ // haette sich selbst gruen gemeldet, ohne etwas zu pruefen.
+ p(reg.indexOf("mehr")<0,
+   "C2 auf der Projektseite gibt es keinen Sammelkuebel 'Mehr …' mehr",reg);
+ const regNamen=await page.evaluate(()=>
+  [...document.querySelectorAll('#a2Inhalt [data-a2-reg]')]
+   .map(x=>String(x.textContent||"").trim().toLowerCase()));
+ p(!regNamen.some(n=>n.indexOf("mehr")>=0),
+   "C2b und auch keines, das so heisst - der Kuebel kommt nicht unter anderem Schluessel zurueck",regNamen);
+ // C3 prueft weiter dasselbe wie bisher, nur nicht mehr an einem einzigen
+ // Register: in KEINEM anderen Register darf die Rapportliste oder sein
+ // Anlegen-Knopf stehen, sonst haette man ihn zweimal. Gesucht wird der
+ // Knopf, nicht das Wort: "Regierapport" steht auch in der Registerleiste
+ // darueber, die zu #a2Inhalt gehoert.
+ const fremd=[];
+ for(const k of reg){
+  if(k==="rapport")continue;
+  await page.evaluate(x=>{
+   const b=document.querySelector('#a2Inhalt [data-a2-reg="'+x+'"]'); if(b)b.click();
+  },k);
+  await page.waitForTimeout(300);
+  const da=await page.evaluate(()=>
+   !!document.querySelector('#a2Inhalt [data-a2-tu="neuerrapport"]')
+   ||!!document.querySelector('#a2Inhalt [data-a2-rep]'));
+  if(da)fremd.push(k);
+ }
+ p(fremd.length===0,
+   "C3 in keinem anderen Register steht seine Liste oder sein Anlegen-Knopf",fremd);
+ // Gegenprobe: im Register "rapport" stehen beide sehr wohl - sonst wuerde
+ // C3 auch dann gruen, wenn es den Rapport ueberhaupt nicht mehr gaebe.
+ await page.evaluate(()=>{
+  const b=document.querySelector('#a2Inhalt [data-a2-reg="rapport"]'); if(b)b.click();
+ });
+ await page.waitForTimeout(300);
+ const imReg=await page.evaluate(()=>({
+  knopf:!!document.querySelector('#a2Inhalt [data-a2-tu="neuerrapport"]'),
+  liste:!!document.querySelector('#a2Inhalt [data-a2-rep]')
+ }));
+ p(imReg.knopf&&imReg.liste,
+   "C3b Gegenprobe: im Register Rapport stehen Liste und Anlegen-Knopf",imReg);
 
  // ---- D  Der Ausdruck ohne Anfasser --------------------------------------
  await aufraeumen();
