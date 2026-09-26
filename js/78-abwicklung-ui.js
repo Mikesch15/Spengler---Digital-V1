@@ -1,6 +1,14 @@
 "use strict";
 // ===========================================================================
-// Abwicklung: Oberflaeche, Ausgabe und Speichern (v3.188)
+// Abwicklung: Oberflaeche, Ausgabe und Speichern (v3.188, v3.192)
+//
+// ZWEI BAUTEILE seit v3.192: das Rundrohr (abwRechne, js/77) und das Hablett
+// der Einfassung rund mit Lochausschnitt (abwHablett, js/77). Sie teilen
+// sich Vorschau, Ergebnis, DXF, 1:1-Schablone, Speichern und die Liste.
+// Unterschieden wird an genau zwei Stellen: welche Felder gelesen werden
+// (abwBauteil) und welche Linien es gibt (abwZeichenTeile). Alles andere ist
+// gemeinsam - der Auftrag verlangte ausdruecklich einen erweiterbaren Aufbau
+// fuer spaetere Bauteile (Rohrbogen, Hosenrohr, Kegel).
 //
 // Die Rechnung steht in js/77 und wird hier NICHT wiederholt - diese Datei
 // liest Felder, zeichnet, exportiert und speichert. Jede Zahl, die hier
@@ -13,14 +21,64 @@
 // ===========================================================================
 
 const ABW_FELDER=["D","t","H","alpha","b","r","nahtLang","f","faktorA","faktorB","zugabeOben","lappen"];
+// v3.192: das zweite Bauteil. Eigene Feld-Vorsilbe "h_", damit sich die
+// beiden Formulare nicht ins Gehege kommen; gerechnet wird es in js/77.
+const ABW_HABLETT_FELDER=["D","alpha","a","b","c","umschlag","massSeitlich","lochZugabe"];
 let abwLetztes=null;        // das zuletzt gerechnete Ergebnis
 let abwGespeichert=[];      // die Liste aus der Datenbank
 let abwGeladenVon=null;     // id des geladenen Datensatzes (fuer den Vergleich)
 // v3.191: Woher die Masse kommen, wenn die Abwicklung aus einer Massaufnahme
 // heraus geoeffnet wurde. {measurementId, text, uebernommen:[...]}
 let abwHerkunft=null;
+// v3.192: Die Massaufnahmen, aus denen sich Masse holen lassen (Gegenrichtung
+// zum Knopf in der Aufnahme selbst). Wird erst beim Aufklappen geladen.
+let abwAufnahmen=null;
 
 function abwEl(k){ return (typeof $==="function")?$("abw_"+k):document.getElementById("abw_"+k) }
+
+// ---- Bauteil --------------------------------------------------------------
+// EINE Stelle sagt, welches Bauteil gerade gilt. Steht die Auswahl nicht im
+// HTML (aelterer Ausdruck, Pruefstand ohne Dialog), ist es das Rohr - das
+// war bis v3.191 das einzige Bauteil.
+function abwBauteil(){
+ const el=(typeof $==="function")?$("abw_bauteil"):document.getElementById("abw_bauteil");
+ return (el&&el.value==="hablett")?"hablett":"rohr";
+}
+function abwBauteilSetzen(b){
+ const el=(typeof $==="function")?$("abw_bauteil"):document.getElementById("abw_bauteil");
+ if(el)el.value=(b==="hablett")?"hablett":"rohr";
+ abwBauteilZeigen();
+}
+// Die Vorgabemasse des Habletts kommen aus der Einfassung rund (js/21) und
+// werden hier NICHT noch einmal hingeschrieben - sonst gaebe es zwei
+// Vorgaben fuer dasselbe Blech.
+function abwHablettStandard(){
+ const v=(typeof einfVorgabe==="function")?einfVorgabe():{};
+ const s=(typeof einfassungSettings==="object"&&einfassungSettings)||{};
+ return {D:v.durchmesser, alpha:v.winkel, a:v.a, b:v.b, c:v.c,
+         umschlag:s.umschlag, massSeitlich:s.mass_seitlich, lochZugabe:s.loch_zugabe};
+}
+function abwHablettFelderLesen(){
+ const p={};
+ ABW_HABLETT_FELDER.forEach(k=>{ const el=abwEl("h_"+k); if(el)p[k]=el.value });
+ return p;
+}
+function abwHablettFelderSetzen(p){
+ const e=Object.assign({},abwHablettStandard(),p||{});
+ ABW_HABLETT_FELDER.forEach(k=>{
+  const el=abwEl("h_"+k);
+  if(el&&e[k]!==undefined&&e[k]!==null)el.value=String(e[k]);
+ });
+}
+function abwBauteilZeigen(){
+ if(typeof $!=="function")return;
+ const hablett=abwBauteil()==="hablett";
+ if($("abwMasseRohr"))$("abwMasseRohr").hidden=hablett;
+ if($("abwMasseHablett"))$("abwMasseHablett").hidden=!hablett;
+ if($("abwBeschreibung"))$("abwBeschreibung").textContent=hablett
+  ? "Hablett der Einfassung rund: das flache Blech auf dem Dach. Das Loch ist eine Ellipse, weil das Rohr im Lot steht und das Blech in der Dachfläche liegt."
+  : "Rundrohr, unten schräg angeschnitten, mit Schweifbord und Längsfalz. Die Masse in mm und Grad.";
+}
 
 function abwFelderLesen(){
  const p={};
@@ -47,9 +105,42 @@ function abwPfad(punkte,zu){
 }
 function abwRund(x){ return Math.round(Number(x)*1000)/1000 }
 
+// v3.192: EINE Tabelle beschreibt jede Linienart - Farbe, Strichbild,
+// DXF-Layer und der Name in der Legende. Vorschau, Schablone, DXF und
+// Legende lesen daraus. Vorher stand jede Farbe dreimal im Code; mit einem
+// zweiten Bauteil waeren daraus sechs Stellen geworden.
+const ABW_LINIENART={
+ schnitt:     {farbe:"#17202a",dick:0.6,strich:"", layer:"ZUSCHNITT",               text:"Zuschnitt"},
+ schweifbord: {farbe:"#c62828",dick:0.5,strich:"4,2",layer:"BIEGELINIE_SCHWEIFBORD",text:"Biegelinie Schweifbord"},
+ falz:        {farbe:"#1565c0",dick:0.5,strich:"4,2",layer:"BIEGELINIE_FALZ",       text:"Falz"},
+ einschnitt:  {farbe:"#7a8894",dick:0.3,strich:"", layer:"EINSCHNITT",              text:"Einschnitte"},
+ biege:       {farbe:"#1565c0",dick:0.5,strich:"4,2",layer:"BIEGELINIE",            text:"Biegelinien"},
+ loch:        {farbe:"#17202a",dick:0.6,strich:"", layer:"LOCHAUSSCHNITT",          text:"Lochausschnitt",zu:true}
+};
+// Welche Linien hat DIESES Bauteil? Die einzige Stelle, die das weiss.
+// Leere Gruppen fallen raus: ein leerer DXF-Layer waere eine Zeile, die
+// etwas behauptet, was nicht da ist.
+function abwZeichenTeile(r){
+ const g=(r&&r.bauteil==="hablett")
+  ? [{art:"biege",linien:r.biegeLinien},{art:"loch",linien:[r.loch]}]
+  : [{art:"schweifbord",linien:[r.biegeSchweifbord]},
+     {art:"falz",linien:r.falzLinien},
+     {art:"einschnitt",linien:r.einschnitte}];
+ return g.map(x=>({art:x.art,linien:(x.linien||[]).filter(l=>l&&l.length)}))
+         .filter(x=>x.linien.length);
+}
+
 // Der Zuschnitt in Blechkoordinaten: x nach rechts, y nach oben. SVG rechnet
 // y nach unten, deshalb wird einmal zentral gespiegelt statt an jeder
 // einzelnen Stelle.
+function abwLinienSvg(r,flip,skala){
+ const f=skala||1;
+ return abwZeichenTeile(r).map(g=>{
+  const a=ABW_LINIENART[g.art];
+  return g.linien.map(l=>`<path d="${abwPfad(l.map(flip),!!a.zu)}" fill="none" stroke="${a.farbe}"`
+   +` stroke-width="${abwRund(a.dick*f)}"${a.strich?` stroke-dasharray="${a.strich}"`:""}/>`).join("");
+ }).join("");
+}
 function abwSvg(r,opt){
  opt=opt||{};
  const rand=opt.rand===undefined?8:opt.rand;
@@ -57,32 +148,40 @@ function abwSvg(r,opt){
  const yMin=Math.min.apply(null,alleY), yMax=Math.max.apply(null,alleY);
  const w=r.breite, h=yMax-yMin;
  const flip=p=>[p[0],yMax-p[1]];
- const k=r.kontur.map(flip), bk=r.biegeSchweifbord.map(flip);
- const fl=r.falzLinien.map(l=>l.map(flip));
- const ein=r.einschnitte.map(l=>l.map(flip));
  const mm=opt.mm?' width="'+abwRund(w+2*rand)+'mm" height="'+abwRund(h+2*rand)+'mm"':' width="100%"';
  return `<svg xmlns="http://www.w3.org/2000/svg"${mm}
  viewBox="${-rand} ${-rand} ${abwRund(w+2*rand)} ${abwRund(h+2*rand)}"
  preserveAspectRatio="xMidYMid meet" class="abw-svg">
- <path d="${abwPfad(k,true)}" fill="none" stroke="#17202a" stroke-width="0.6"/>
- <path d="${abwPfad(bk,false)}" fill="none" stroke="#c62828" stroke-width="0.5" stroke-dasharray="4,2"/>
- ${fl.map(l=>`<path d="${abwPfad(l,false)}" fill="none" stroke="#1565c0" stroke-width="0.5" stroke-dasharray="4,2"/>`).join("")}
- ${ein.map(l=>`<path d="${abwPfad(l,false)}" fill="none" stroke="#7a8894" stroke-width="0.3"/>`).join("")}
+ <path d="${abwPfad(r.kontur.map(flip),true)}" fill="none" stroke="${ABW_LINIENART.schnitt.farbe}" stroke-width="${ABW_LINIENART.schnitt.dick}"/>
+ ${abwLinienSvg(r,flip)}
 </svg>`;
+}
+// Die Legende kommt aus derselben Tabelle wie die Zeichnung. Eine von Hand
+// geschriebene Legende zeigt frueher oder spaeter eine Linie, die es im
+// Bild gar nicht mehr gibt.
+function abwLegendeHtml(r){
+ const eintrag=a=>`<span class="abw-l" style="border-top-color:${a.farbe};border-top-style:${a.strich?"dashed":"solid"};border-top-width:${a.dick>=0.5?2:1}px"></span> ${esc(a.text)}`;
+ return `<div class="small abw-legende">${
+  [ABW_LINIENART.schnitt].concat(abwZeichenTeile(r).map(g=>ABW_LINIENART[g.art]))
+   .map(eintrag).join("")}</div>`;
 }
 
 function abwVorschauZeichnen(r){
  const box=(typeof $==="function")?$("abwVorschau"):document.getElementById("abwVorschau");
  if(!box)return;
  if(!r||!r.ok){ box.innerHTML=`<p class="small">Keine Vorschau – die Masse sind noch nicht vollständig.</p>`; return }
- box.innerHTML=abwSvg(r)
-  +`<div class="small abw-legende">
-    <span class="abw-l abw-l-schnitt"></span> Zuschnitt
-    <span class="abw-l abw-l-schweifbord"></span> Biegelinie Schweifbord
-    <span class="abw-l abw-l-falz"></span> Falz
-    <span class="abw-l abw-l-lappen"></span> Einschnitte
-   </div>
-   <div class="small" style="color:var(--muted)">Zuschnittbreite ${abwMm(r.breite)} · Umfang ${abwMm(r.L)} · Höhe an der Naht ${abwMm(r.hoeheMax)}</div>`;
+ const fuss=(r.bauteil==="hablett")
+  ? `Zuschnitt ${abwMm(r.breite)} × ${abwMm(r.laenge)} · Loch ${abwMm(r.lochQuer)} quer × ${abwMm(r.lochLang)} in Gefällerichtung`
+  : `Zuschnittbreite ${abwMm(r.breite)} · Umfang ${abwMm(r.L)} · Höhe an der Naht ${abwMm(r.hoeheMax)}`;
+ // Beim Hablett treffen die seitlichen Umschlaege auf den vorderen und den
+ // oberen. Das gilt fuer jedes Hablett und ist deshalb ein fester Hinweis
+ // und keine Warnung (siehe js/77) - eine Warnung, die immer kommt, liest
+ // nach drei Tagen niemand mehr.
+ const ecken=(r.bauteil==="hablett"&&r.eingaben.umschlag>0)
+  ? `<div class="small" style="color:var(--muted)">Die vier Ecken sind doppelt belegt (seitlicher Umschlag trifft auf den vorderen bzw. oberen) und werden wie gewohnt ausgeklinkt.</div>`
+  : "";
+ box.innerHTML=abwSvg(r)+abwLegendeHtml(r)
+  +`<div class="small" style="color:var(--muted)">${fuss}</div>`+ecken;
 }
 
 function abwMm(x){ return Number(x).toFixed(2).replace(".",",")+" mm" }
@@ -92,6 +191,17 @@ function abwErgebnisZeichnen(r){
  const box=(typeof $==="function")?$("abwErgebnis"):document.getElementById("abwErgebnis");
  if(!box)return;
  if(!r||!r.ok){ box.innerHTML=""; return }
+ if(r.bauteil==="hablett"){
+  box.innerHTML=`<table class="abw-tabelle">
+  <tr><td>Zuschnittbreite</td><td>${abwMm(r.breite)}</td></tr>
+  <tr><td>Zuschnittlänge</td><td>${abwMm(r.laenge)}</td></tr>
+  <tr><td>Mitte Rohr ab Vorderkante</td><td>${abwMm(r.mitteY)}</td></tr>
+  <tr><td>Loch quer zum Gefälle</td><td>${abwMm(r.lochQuer)}</td></tr>
+  <tr><td>Loch in Gefällerichtung</td><td>${abwMm(r.lochLang)}</td></tr>
+  <tr><td>Luft am Lochausschnitt</td><td>${abwMm(r.eingaben.lochZugabe)}</td></tr>
+ </table>`;
+  return;
+ }
  box.innerHTML=`<table class="abw-tabelle">
   <tr><td>Zuschnittbreite</td><td>${abwMm(r.breite)}</td></tr>
   <tr><td>Umfang neutrale Faser</td><td>${abwMm(r.L)}</td></tr>
@@ -109,13 +219,18 @@ function abwErgebnisZeichnen(r){
 // welche Zahl er noch pruefen muss.
 function abwHerkunftHtml(){
  if(!abwHerkunft)return "";
- const alle=["Ø Standrohr","Winkel Dach/Rohr","Materialstärke","Rohrhöhe (Richtwert)","Schweifbord-Breite (Richtwert)"];
+ // v3.192: Welche Felder es je Bauteil gibt, weiss die Bruecke in js/38 -
+ // sie liefert "uebernommen" UND "fehlt". Bis v3.191 stand die Liste hier
+ // noch einmal; mit dem zweiten Bauteil waere sie damit falsch geworden.
  const da=abwHerkunft.uebernommen||[];
- const fehlt=alle.filter(x=>da.indexOf(x)<0);
+ const fehlt=abwHerkunft.fehlt||[];
+ const zeile=(da.length||fehlt.length)
+  ? `<div class="small">Übernommen: ${da.length?esc(da.join(", ")):"nichts"}${
+      fehlt.length?` · <b>nicht übernommen:</b> ${esc(fehlt.join(", "))} – bitte prüfen`:""}</div>`
+  : "";
  return `<div class="abw-herkunft">
   <b>Aus der Massaufnahme:</b> ${esc(abwHerkunft.text||"")}
-  <div class="small">Übernommen: ${da.length?esc(da.join(", ")):"nichts"}${
-   fehlt.length?` · <b>nicht übernommen:</b> ${esc(fehlt.join(", "))} – bitte prüfen`:""}</div>
+  ${zeile}
   <button type="button" class="kon-klein kon-k-grau" data-abw-herkunft-weg="1">Verbindung lösen</button>
  </div>`;
 }
@@ -136,7 +251,10 @@ function abwMeldungZeigen(r){
 
 // EINE Stelle, die rechnet und zeichnet. Jede Feldaenderung ruft sie.
 function abwAktualisieren(){
- const r=abwRechne(abwFelderLesen());
+ const hablett=abwBauteil()==="hablett";
+ const r=hablett?abwHablett(abwHablettFelderLesen()):abwRechne(abwFelderLesen());
+ // abwRechne() kennt kein Feld "bauteil" - es gab bis v3.191 nur eines.
+ if(!r.bauteil)r.bauteil="rohr";
  abwLetztes=r.ok?r:null;
  abwMeldungZeigen(r);
  abwVorschauZeichnen(r);
@@ -162,10 +280,11 @@ function abwDxfText(r){
       +abwDxfLinie(9,"$INSUNITS")+abwDxfLinie(70,4)      // 4 = Millimeter
       +abwDxfLinie(0,"ENDSEC")
       +abwDxfLinie(0,"SECTION")+abwDxfLinie(2,"ENTITIES");
- s+=abwDxfPolylinie(r.kontur,"ZUSCHNITT",true);
- s+=abwDxfPolylinie(r.biegeSchweifbord,"BIEGELINIE_SCHWEIFBORD",false);
- r.falzLinien.forEach(l=>{ s+=abwDxfPolylinie(l,"BIEGELINIE_FALZ",false) });
- r.einschnitte.forEach(l=>{ s+=abwDxfPolylinie(l,"EINSCHNITT",false) });
+ s+=abwDxfPolylinie(r.kontur,ABW_LINIENART.schnitt.layer,true);
+ abwZeichenTeile(r).forEach(g=>{
+  const a=ABW_LINIENART[g.art];
+  g.linien.forEach(l=>{ s+=abwDxfPolylinie(l,a.layer,!!a.zu) });
+ });
  return s+abwDxfLinie(0,"ENDSEC")+abwDxfLinie(0,"EOF");
 }
 
@@ -205,18 +324,21 @@ function abwSeiten(r){
  }
  return seiten;
 }
+// Die Schablone wird SCHWARZ gedruckt - Farbe hilft am Blech nicht, und ein
+// Graustufendrucker macht aus Rot und Blau dasselbe Grau. Unterschieden wird
+// nur ueber das Strichbild.
 function abwSeiteSvg(r,seite){
  const yMaxSeite=seite.y0+seite.hoehe;
  const flip=p=>[p[0]-seite.x0, yMaxSeite-p[1]];
- const k=r.kontur.map(flip), bk=r.biegeSchweifbord.map(flip);
- const fl=r.falzLinien.map(l=>l.map(flip));
- const ein=r.einschnitte.map(l=>l.map(flip));
+ const linien=abwZeichenTeile(r).map(g=>{
+  const a=ABW_LINIENART[g.art];
+  return g.linien.map(l=>`<path d="${abwPfad(l.map(flip),!!a.zu)}" fill="none" stroke="#000"`
+   +` stroke-width="${a.dick>=0.5?0.3:0.2}"${a.strich?` stroke-dasharray="${a.strich}"`:""}/>`).join("");
+ }).join("");
  return `<svg xmlns="http://www.w3.org/2000/svg" width="${seite.breite}mm" height="${seite.hoehe}mm"
  viewBox="0 0 ${seite.breite} ${seite.hoehe}">
- <path d="${abwPfad(k,true)}" fill="none" stroke="#000" stroke-width="0.35"/>
- <path d="${abwPfad(bk,false)}" fill="none" stroke="#000" stroke-width="0.3" stroke-dasharray="4,2"/>
- ${fl.map(l=>`<path d="${abwPfad(l,false)}" fill="none" stroke="#000" stroke-width="0.3" stroke-dasharray="2,2"/>`).join("")}
- ${ein.map(l=>`<path d="${abwPfad(l,false)}" fill="none" stroke="#000" stroke-width="0.2"/>`).join("")}
+ <path d="${abwPfad(r.kontur.map(flip),true)}" fill="none" stroke="#000" stroke-width="0.35"/>
+ ${linien}
  <path d="M0,0 L8,0 M0,0 L0,8" stroke="#000" stroke-width="0.3"/>
  <path d="M${seite.breite},${seite.hoehe} L${seite.breite-8},${seite.hoehe} M${seite.breite},${seite.hoehe} L${seite.breite},${seite.hoehe-8}" stroke="#000" stroke-width="0.3"/>
 </svg>`;
@@ -272,6 +394,10 @@ async function abwSpeichern(){
  const satz={
   bezeichnung:bez||"Abwicklung",
   project_id:projId,
+  // v3.192: Ohne das Bauteil laesst sich ein gespeicherter Datensatz nicht
+  // mehr rechnen - dieselben Zahlen bedeuten bei Rohr und Hablett etwas
+  // anderes. Die Spalte hat 'rohr' als Vorgabe; bis v3.191 gab es nur das.
+  bauteil:r.bauteil||"rohr",
   // v3.191: Kommt die Abwicklung aus einer Massaufnahme, gehoert sie zu
   // GENAU dieser - sonst weiss spaeter niemand mehr, zu welchem Rohr der
   // Zuschnitt war.
@@ -280,11 +406,14 @@ async function abwSpeichern(){
   // Nur die Kennzahlen, nicht die 360 Stuetzpunkte: die Kontur laesst sich
   // aus den Parametern jederzeit wieder rechnen, und eine Kopie davon waere
   // eine zweite Wahrheit.
-  ergebnis:{breite:r.breite,umfang:r.L,hoeheMax:r.hoeheMax,hoeheMin:r.hoeheMin,
-            zugMin:r.zugMin,zugMax:r.zugMax,
-            betaMinGrad:r.betaMinGrad,betaMaxGrad:r.betaMaxGrad,
-            bFertigMin:r.bFertigMin,bFertigMax:r.bFertigMax,
-            streckung:r.streckung},
+  ergebnis:(r.bauteil==="hablett")
+   ?{breite:r.breite,laenge:r.laenge,mitteY:r.mitteY,
+     lochQuer:r.lochQuer,lochLang:r.lochLang}
+   :{breite:r.breite,umfang:r.L,hoeheMax:r.hoeheMax,hoeheMin:r.hoeheMin,
+     zugMin:r.zugMin,zugMax:r.zugMax,
+     betaMinGrad:r.betaMinGrad,betaMaxGrad:r.betaMaxGrad,
+     bFertigMin:r.bFertigMin,bFertigMax:r.bFertigMax,
+     streckung:r.streckung},
   erstellt_von:(typeof currentProfile==="object"&&currentProfile)?currentProfile.id:null
  };
  const {data,error}=await sb.from("abwicklungen").insert(satz).select("*");
@@ -300,7 +429,7 @@ async function abwSpeichern(){
 async function abwListeLaden(){
  if(typeof sb==="undefined")return;
  const {data,error}=await sb.from("abwicklungen")
-  .select("id,bezeichnung,project_id,measurement_id,parameter,ergebnis,created_at")
+  .select("id,bezeichnung,bauteil,project_id,measurement_id,parameter,ergebnis,created_at")
   .order("created_at",{ascending:false}).limit(100);
  abwGespeichert=(!error&&Array.isArray(data))?data:[];
  abwListeZeichnen();
@@ -327,9 +456,14 @@ function abwListeZeichnen(){
  box.innerHTML=abwGespeichert.map(a=>{
   const proj=abwProjektName(a.project_id);
   const e=a.ergebnis||{};
+  // Ein Datensatz bis v3.191 hat keine Spalte "bauteil" - er ist ein Rohr.
+  const teil=(a.bauteil==="hablett")?"Hablett":"Rohr";
+  const mass=(a.bauteil==="hablett"&&e.breite&&e.laenge)
+   ? abwMm(e.breite)+" × "+abwMm(e.laenge)
+   : (e.breite?abwMm(e.breite):"–");
   return `<div class="abw-zeile">
    <div class="abw-zeile-text"><b>${esc(a.bezeichnung||"Abwicklung")}</b>
-    <div class="small">${proj?esc(proj)+" · ":""}${e.breite?abwMm(e.breite):"–"}</div></div>
+    <div class="small">${esc(teil)} · ${proj?esc(proj)+" · ":""}${mass}</div></div>
    <button type="button" class="kon-klein kon-k-blau" data-abw-laden="${esc(a.id)}">laden</button>
    <button type="button" class="kon-klein kon-k-grau" data-abw-doppeln="${esc(a.id)}">duplizieren</button>
    <button type="button" class="kon-klein kon-k-grau" data-abw-weg="${esc(a.id)}">löschen</button>
@@ -343,13 +477,17 @@ function abwListeZeichnen(){
 function abwLaden(id,alsKopie){
  const a=abwGespeichert.find(x=>String(x.id)===String(id));
  if(!a)return false;
- abwFelderSetzen(a.parameter||{});
+ // Zuerst das Bauteil, dann die Masse - sonst landen sie im falschen Formular.
+ const teil=(a.bauteil==="hablett")?"hablett":"rohr";
+ abwBauteilSetzen(teil);
+ if(teil==="hablett")abwHablettFelderSetzen(a.parameter||{});
+ else abwFelderSetzen(a.parameter||{});
  if(typeof $==="function"&&$("abw_bezeichnung"))
   $("abw_bezeichnung").value=(a.bezeichnung||"")+(alsKopie?" (Kopie)":"");
  if(typeof $==="function"&&$("abw_projekt"))$("abw_projekt").value=a.project_id?String(a.project_id):"";
  abwGeladenVon=alsKopie?null:a.id;
  abwHerkunft=a.measurement_id
-  ? {measurementId:a.measurement_id,text:"gespeicherte Massaufnahme",uebernommen:[]}
+  ? {measurementId:a.measurement_id,text:"gespeicherte Massaufnahme",uebernommen:[],fehlt:[]}
   : null;
  abwHerkunftZeichnen();
  const r=abwAktualisieren();
@@ -362,6 +500,10 @@ function abwLaden(id,alsKopie){
  // stillschweigend durchgehen.
  if(r.ok&&e.hoeheMax&&Math.abs(e.hoeheMax-r.hoeheMax)>0.05)
   abweichung.push("Höhe an der Naht "+abwMm(e.hoeheMax)+" → "+abwMm(r.hoeheMax));
+ if(r.ok&&e.laenge&&Math.abs(e.laenge-r.laenge)>0.05)
+  abweichung.push("Zuschnittlänge "+abwMm(e.laenge)+" → "+abwMm(r.laenge));
+ if(r.ok&&e.lochLang&&Math.abs(e.lochLang-r.lochLang)>0.05)
+  abweichung.push("Loch in Gefällerichtung "+abwMm(e.lochLang)+" → "+abwMm(r.lochLang));
  if(abweichung.length){
   const m=(typeof $==="function")?$("abwMeldung"):document.getElementById("abwMeldung");
   if(m)m.innerHTML+=`<div class="abw-warnung">Gespeichert war etwas anderes: ${esc(abweichung.join(" · "))}. Seit v3.190 ist die Zugabe über den ganzen Zuschnitt gleich. Bitte prüfen, bevor danach geschnitten wird.</div>`;
@@ -376,19 +518,93 @@ function abwLaden(id,alsKopie){
 async function abwAusMassaufnahme(v){
  if(!v||typeof $!=="function")return false;
  await abwOeffnen();
+ // v3.192: erst das Bauteil umschalten, dann die Felder fuellen.
+ const teil=(v.bauteil==="hablett")?"hablett":"rohr";
+ abwBauteilSetzen(teil);
+ const vorsilbe=(teil==="hablett")?"h_":"";
  const w=v.werte||{};
  Object.keys(w).forEach(k=>{
-  const el=abwEl(k);
+  const el=abwEl(vorsilbe+k);
   if(el&&w[k]!==undefined&&w[k]!==null&&w[k]!=="")el.value=String(w[k]);
  });
  if($("abw_bezeichnung")&&v.bezeichnung)$("abw_bezeichnung").value=v.bezeichnung;
  if($("abw_projekt")&&v.projectId)$("abw_projekt").value=String(v.projectId);
  abwHerkunft={measurementId:v.measurementId||null,
               text:v.herkunft||"",
-              uebernommen:Array.isArray(v.uebernommen)?v.uebernommen:[]};
+              uebernommen:Array.isArray(v.uebernommen)?v.uebernommen:[],
+              fehlt:Array.isArray(v.fehlt)?v.fehlt:[]};
  abwHerkunftZeichnen();
  abwAktualisieren();
  return true;
+}
+
+// ---- Die Gegenrichtung: aus dem Rechner in eine Massaufnahme greifen ------
+// (v3.192, ausdruecklicher Wunsch: "man soll aber auch in der abwicklung
+// eine massaufnahme laden können")
+//
+// Geladen werden ausschliesslich Massaufnahmen der Art "einfassung_rund" -
+// die einzige Art, aus der sich heute Masse ableiten lassen. Abgeleitet wird
+// mit DERSELBEN Funktion wie am Knopf in der Aufnahme (einfaAbwVorgabe,
+// js/38); eine zweite Ableitung waere eine zweite Wahrheit.
+async function abwAufnahmenLaden(){
+ if(typeof sb==="undefined")return [];
+ const {data,error}=await sb.from("measurements")
+  .select("id,title,date,project_id,staerke_mm,data")
+  .eq("type","einfassung_rund").order("date",{ascending:false}).limit(50);
+ abwAufnahmen=(!error&&Array.isArray(data))?data:[];
+ return abwAufnahmen;
+}
+// Die Einfassungen EINER Massaufnahme - inklusive der flachen Felder eines
+// Datensatzes bis v2.95, den es ohne "einfassungen"-Liste gibt.
+function abwAufnahmeEinfassungen(m){
+ const d=(m&&m.data)||{};
+ if(Array.isArray(d.einfassungen)&&d.einfassungen.length)return d.einfassungen;
+ if(d.durchmesser||d.a)return [{bez:"",durchmesser:d.durchmesser,winkel:d.winkel,
+                                a:d.a,b:d.b,c:d.c,anzahl:1}];
+ return [];
+}
+function abwAufnahmenZeichnen(){
+ const box=(typeof $==="function")?$("abwAufnahmen"):document.getElementById("abwAufnahmen");
+ if(!box)return;
+ if(abwAufnahmen===null){ box.innerHTML=""; return }
+ if(!abwAufnahmen.length){
+  box.innerHTML=`<p class="small">Keine gespeicherte Massaufnahme „Einfassung rund“ gefunden. Nur aus dieser Art lassen sich heute Masse übernehmen.</p>`;
+  return;
+ }
+ const teil=abwBauteil();
+ box.innerHTML=abwAufnahmen.map(m=>{
+  const liste=abwAufnahmeEinfassungen(m);
+  if(!liste.length)return "";
+  const proj=abwProjektName(m.project_id);
+  return `<div class="abw-zeile">
+   <div class="abw-zeile-text"><b>${esc(m.title||("Massaufnahme "+m.id))}</b>
+    <div class="small">${proj?esc(proj)+" · ":""}${esc(m.date||"")}</div>
+    <div class="bar" style="margin-top:4px">${liste.map((e,i)=>{
+     const n=(e&&e.bez||"").trim()||("Einfassung "+(i+1));
+     const oe=Number(e&&e.durchmesser)>0?(" Ø"+Math.round(Number(e.durchmesser))):"";
+     return `<button type="button" class="kon-klein kon-k-blau"
+       data-abw-aus-aufnahme="${esc(m.id)}" data-abw-nr="${i}">${esc(n+oe)}</button>`;
+    }).join("")}</div></div>
+  </div>`;
+ }).join("")
+ +`<p class="small" style="color:var(--muted)">Übernommen wird in das oben gewählte Bauteil (${teil==="hablett"?"Hablett":"Rohr"}).</p>`;
+}
+// Holt die Masse EINER Einfassung aus einer GESPEICHERTEN Aufnahme. Die
+// Materialstaerke kommt aus dem Datensatz selbst (measurements.staerke_mm),
+// nicht aus einem zufaellig offenen Formular.
+async function abwAusAufnahme(id,nr){
+ if(typeof einfaAbwVorgabe!=="function")return false;
+ const m=(abwAufnahmen||[]).find(x=>String(x.id)===String(id));
+ if(!m)return false;
+ const e=abwAufnahmeEinfassungen(m)[Number(nr)||0];
+ if(!e)return false;
+ const v=einfaAbwVorgabe(e,abwBauteil(),{
+  nr:(Number(nr)||0)+1, staerke:m.staerke_mm,
+  projectId:m.project_id||null, measurementId:m.id
+ });
+ if(!v)return false;
+ v.herkunft=(m.title?m.title+" · ":"")+v.herkunft;
+ return await abwAusMassaufnahme(v);
 }
 
 // ---- Oeffnen und Schliessen ----------------------------------------------
@@ -397,6 +613,9 @@ async function abwOeffnen(){
  const modal=$("abwicklungModal");
  if(!modal)return;
  if(!abwEl("D")||!abwEl("D").value)abwFelderSetzen(ABW_STANDARD);
+ // v3.192: Die Vorgaben des Habletts kommen aus der Einfassung rund (js/21).
+ if(!abwEl("h_D")||!abwEl("h_D").value)abwHablettFelderSetzen(null);
+ abwBauteilZeigen();
  abwProjektWahl();
  modal.hidden=false;
  abwHerkunftZeichnen();
@@ -411,7 +630,17 @@ document.addEventListener("input",e=>{
  abwAktualisieren();
 });
 document.addEventListener("change",e=>{
- if(e.target&&e.target.id==="abw_nahtLang")abwAktualisieren();
+ if(!e.target)return;
+ if(e.target.id==="abw_nahtLang"){ abwAktualisieren(); return }
+ // Das Bauteil wechselt zwei Formulare, nicht nur eine Zahl.
+ if(e.target.id==="abw_bauteil"){
+  abwBauteilZeigen();
+  // Die Herkunft galt fuer das andere Bauteil - sie stehen zu lassen waere
+  // eine Behauptung ueber Zahlen, die dort niemand uebernommen hat.
+  abwHerkunft=null; abwHerkunftZeichnen();
+  abwAufnahmenZeichnen();
+  abwAktualisieren();
+ }
 });
 
 document.addEventListener("click",async e=>{
@@ -419,11 +648,29 @@ document.addEventListener("click",async e=>{
  const zu=e.target.closest("#closeAbwicklung");
  if(zu){ const m=$("abwicklungModal"); if(m)m.hidden=true; return }
  if(e.target.closest("#abwZuruecksetzen")){
-  abwFelderSetzen(ABW_STANDARD);
+  if(abwBauteil()==="hablett")abwHablettFelderSetzen(null);
+  else abwFelderSetzen(ABW_STANDARD);
   // Mit den Standardmassen stimmt die Herkunft nicht mehr - sie stehen zu
   // lassen waere eine Behauptung ueber Zahlen, die niemand uebernommen hat.
   abwHerkunft=null; abwHerkunftZeichnen();
   abwAktualisieren(); return;
+ }
+ // v3.192: die Liste der Massaufnahmen auf- und wieder zuklappen.
+ if(e.target.closest("#abwAusAufnahme")){
+  if(abwAufnahmen!==null){ abwAufnahmen=null; abwAufnahmenZeichnen(); return }
+  const box=$("abwAufnahmen");
+  if(box)box.innerHTML=`<p class="small">Wird geladen …</p>`;
+  try{ await abwAufnahmenLaden() }catch(x){ abwAufnahmen=[] }
+  abwAufnahmenZeichnen();
+  return;
+ }
+ const ausAufn=e.target.closest("[data-abw-aus-aufnahme]");
+ if(ausAufn){
+  await abwAusAufnahme(ausAufn.getAttribute("data-abw-aus-aufnahme"),
+                       ausAufn.getAttribute("data-abw-nr"));
+  // Die Auswahl hat ihren Zweck erfuellt - sie bleibt nicht offen stehen.
+  abwAufnahmen=null; abwAufnahmenZeichnen();
+  return;
  }
  if(e.target.closest("[data-abw-herkunft-weg]")){ abwHerkunft=null; abwHerkunftZeichnen(); return }
  if(e.target.closest("#abwDxf")){

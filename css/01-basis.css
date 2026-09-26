@@ -1586,10 +1586,10 @@ html.dark .rmat-unsicher{color:#e0a35c}
  gap:4px 14px;align-items:center}
 .abw-l{display:inline-block;width:18px;height:0;border-top-width:2px;
  border-top-style:solid;margin-right:4px;vertical-align:middle}
-.abw-l-schnitt{border-top-color:#17202a}
-.abw-l-schweifbord{border-top-color:var(--red,#c62828);border-top-style:dashed}
-.abw-l-falz{border-top-color:var(--blue,#1565c0);border-top-style:dashed}
-.abw-l-lappen{border-top-color:var(--muted);border-top-width:1px}
+/* v3.192: Die Farbe und das Strichbild JE Linienart stehen nicht mehr hier,
+   sondern in ABW_LINIENART (js/78) - dort, wo auch gezeichnet wird. Sonst
+   muesste jede neue Linie an zwei Stellen gepflegt werden, und die Legende
+   zeigte frueher oder spaeter eine andere Farbe als das Bild. */
 .abw-tabelle{width:100%;border-collapse:collapse}
 .abw-tabelle td{padding:5px 0;border-top:1px solid var(--line)}
 .abw-tabelle tr:first-child td{border-top:0}

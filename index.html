@@ -202,7 +202,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.191</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.192</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -711,7 +711,22 @@
 <div class="modalbox">
 <div class="card">
 <h2>📐 Abwicklung <button type="button" class="hilfe-knopf no-print" data-hilfe="abwicklung">i</button></h2>
-<div class="small" style="color:var(--muted)">Rundrohr, unten schräg angeschnitten, mit Schweifbord und Längsfalz. Die Masse in mm und Grad.</div>
+<div class="small" style="color:var(--muted)" id="abwBeschreibung">Rundrohr, unten schräg angeschnitten, mit Schweifbord und Längsfalz. Die Masse in mm und Grad.</div>
+</div>
+
+<!-- v3.192: Der Rechner kennt zwei Bauteile. Sie teilen sich Vorschau,
+     Ergebnis, DXF, Schablone und die gespeicherte Liste - nur die Masse
+     und die Rechnung dahinter sind verschieden. -->
+<div class="card">
+<h3>Bauteil</h3>
+<div class="grid">
+<div class="wide"><label>Was wird abgewickelt?</label><select id="abw_bauteil">
+<option value="rohr">Rundrohr – schräg angeschnitten, mit Schweifbord und Falz</option>
+<option value="hablett">Hablett der Einfassung rund – mit Lochausschnitt</option>
+</select></div>
+</div>
+<div class="bar"><button type="button" id="abwAusAufnahme" class="gray">📥 Masse aus einer Massaufnahme holen</button></div>
+<div id="abwAufnahmen"></div>
 </div>
 
 <div class="card">
@@ -719,7 +734,7 @@
 <!-- v3.191: Steht hier nur, wenn die Abwicklung aus einer Massaufnahme
      heraus geoeffnet wurde (js/78, abwAusMassaufnahme). -->
 <div id="abwHerkunft"></div>
-<div class="grid">
+<div class="grid" id="abwMasseRohr">
 <div><label>Aussendurchmesser D (mm)</label><input id="abw_D" type="number" step="0.1" min="1"></div>
 <div><label>Blechstärke t (mm)</label><input id="abw_t" type="number" step="0.05" min="0.05"></div>
 <div><label>Höhe H (mm)</label><input id="abw_H" type="number" step="1" min="1"></div>
@@ -732,6 +747,21 @@
 <div><label>Falzfaktor Seite B</label><input id="abw_faktorB" type="number" step="0.5" min="0"></div>
 <div><label>Zugabe oben (mm)</label><input id="abw_zugabeOben" type="number" step="1" min="0"></div>
 <div><label>Anzahl Lappen</label><input id="abw_lappen" type="number" step="1" min="0"></div>
+</div>
+
+<!-- Hablett: Umschlag, Mass seitlich und Luft am Lochausschnitt sind
+     Richtwerte aus den Einstellungen der Einfassung rund. Sie stehen hier
+     trotzdem als Feld, damit sich ein einzelnes Blech abweichend rechnen
+     laesst, ohne die Firmenvorgabe zu verstellen. -->
+<div class="grid" id="abwMasseHablett" hidden>
+<div><label>Ø Standrohr D (mm)</label><input id="abw_h_D" type="number" step="1" min="1"></div>
+<div><label>Dachwinkel α (Grad)</label><input id="abw_h_alpha" type="number" step="0.5" min="0" max="74.9"></div>
+<div><label>a · vorne bis Mitte Rohr (mm)</label><input id="abw_h_a" type="number" step="1" min="1"></div>
+<div><label>b · ab Mitte Rohr bis hinten (mm)</label><input id="abw_h_b" type="number" step="1" min="1"></div>
+<div><label>c · Aufbug 90° (mm)</label><input id="abw_h_c" type="number" step="1" min="0"></div>
+<div><label>Umschlag (mm)</label><input id="abw_h_umschlag" type="number" step="1" min="0"></div>
+<div><label>Mass seitlich neben Rohr (mm)</label><input id="abw_h_massSeitlich" type="number" step="1" min="0"></div>
+<div><label>Luft am Lochausschnitt (mm)</label><input id="abw_h_lochZugabe" type="number" step="0.5" min="0"></div>
 </div>
 <div class="bar"><button type="button" id="abwZuruecksetzen" class="gray">↩️ Standardmasse</button></div>
 <div id="abwMeldung" class="small" style="margin-top:6px"></div>
@@ -2233,7 +2263,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.191.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 110 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.192.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 111 Seiten)</a></div>
 </div>
 </div>
 
@@ -2450,6 +2480,7 @@ Gehrung: gilt an jeder Ecke (Segment mit Winkel ≠ 0), zusätzlich zu Boden (an
      vom Dach - deshalb hier und nicht im Massaufnahme-Formular. -->
 <div><label>Rohrh&ouml;he H f&uuml;r die Abwicklung (mm)</label><input id="einfsRohrhoehe" type="number" step="1" min="0"></div>
 <div><label>Schweifbord-Breite b f&uuml;r die Abwicklung (mm)</label><input id="einfsSchweifbord" type="number" step="1" min="0"></div>
+<div><label>Luft am Lochausschnitt (mm)</label><input id="einfsLochZugabe" type="number" step="0.5" min="0"></div>
 </div>
 <div class="small" style="color:var(--muted);margin:-4px 0 10px">Die beiden letzten Werte fliessen in den Abwicklungsrechner, wenn Sie ihn aus einer Einfassung heraus &ouml;ffnen. <b>0 hei&szlig;t: nicht gesetzt</b> &ndash; dann bleibt in der Abwicklung der Wert stehen, der dort schon steht. &Oslash; und Dachwinkel kommen immer aus der Massaufnahme selbst.</div>
 <div class="bar" style="margin-bottom:14px">
@@ -2929,7 +2960,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.191.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.192.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

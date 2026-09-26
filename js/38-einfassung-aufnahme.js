@@ -116,7 +116,7 @@ function einfaAnzahl(e){
  return n>0?n:1;
 }
 
-// ---- Bruecke zum Abwicklungsrechner (js/77/78, v3.191) ---------------------
+// ---- Bruecke zum Abwicklungsrechner (js/77/78, v3.191/v3.192) --------------
 // Diese Aufnahme modelliert den QUERSCHNITT der Einfassung; das runde Rohr
 // um das Standrohr herum ist hier ausdruecklich NICHT abgewickelt (siehe
 // Kopfkommentar von js/21). Genau das rechnet der Abwicklungsrechner - und
@@ -133,34 +133,83 @@ function einfaAnzahl(e){
 // den Einstellungen der Einfassung rund (js/21, EINFASSUNG_STANDARD). Eine
 // 0 dort heisst "nicht gesetzt" - dann bleibt in der Abwicklung der Wert
 // stehen, der dort schon steht, und es wird nichts erfunden.
-function einfaAbwicklungVorgabe(i){
- const e=einfaListe()[i];
+//
+// v3.192: Dazu kommt das HABLETT - das flache Blech auf dem Dach, durch das
+// das Rohr steigt. Dessen Masse stehen vollstaendig hier (a, b, c, Oe,
+// Winkel); aus den Einstellungen kommen nur Umschlag, Mass seitlich und die
+// Luft am Lochausschnitt. Gerechnet wird es in js/77 (abwHablett), nicht
+// hier.
+// v3.192: Der KERN kennt weder Formular noch Datenbank. Er bekommt EINE
+// Einfassung und sagt, welche Felder des Abwicklungsrechners sich daraus
+// belegen lassen - und welche nicht. Zwei Wege brauchen das: der Knopf am
+// offenen Formular (unten) und der Griff in eine GESPEICHERTE Massaufnahme
+// aus dem Rechner heraus (js/78). Zwei Ableitungen waeren zwei Wahrheiten.
+//
+// bauteil = "rohr"    -> das runde Rohr ueber dem Hablett
+//           "hablett" -> das flache Blech auf dem Dach, mit Lochausschnitt
+// ctx     = {staerke, projectId, measurementId, nr}
+function einfaAbwVorgabe(e,bauteil,ctx){
  if(!e)return null;
+ const c=ctx||{};
+ const art=(bauteil==="hablett")?"hablett":"rohr";
  const s=(typeof einfassungSettings==="object"&&einfassungSettings)||{};
- const werte={}, uebernommen=[];
+ const werte={}, uebernommen=[], fehlt=[];
  const nimm=(feld,wert,text)=>{
-  if(!(einfaZahl(wert)>0))return;
-  werte[feld]=einfaZahl(wert); uebernommen.push(text);
+  if(einfaZahl(wert)>0){ werte[feld]=einfaZahl(wert); uebernommen.push(text) }
+  else fehlt.push(text);
  };
- nimm("D",e.durchmesser,"Ø Standrohr");
- // Der Winkel darf 0 sein (Flachdach) - deshalb nicht ueber nimm().
- if(!einfaLeerWert(e.winkel)){ werte.alpha=einfaZahl(e.winkel); uebernommen.push("Winkel Dach/Rohr"); }
- if(typeof measStaerkeGet==="function")nimm("t",measStaerkeGet(),"Materialstärke");
- nimm("H",s.rohrhoehe,"Rohrhöhe (Richtwert)");
- nimm("b",s.schweifbord,"Schweifbord-Breite (Richtwert)");
+ // Der Winkel darf 0 sein (Flachdach) - deshalb nicht ueber nimm(), das die
+ // 0 als "fehlt" zaehlen wuerde.
+ const nimmWinkel=()=>{
+  if(!einfaLeerWert(e.winkel)){ werte.alpha=einfaZahl(e.winkel); uebernommen.push("Winkel Dach/Rohr") }
+  else fehlt.push("Winkel Dach/Rohr");
+ };
 
- const name=(e.bez||"").trim()||("Einfassung "+(i+1));
+ if(art==="hablett"){
+  // Das Hablett ist der Querschnitt, den diese Aufnahme SELBST erfasst -
+  // hier fehlt nichts vom Dach. Es fehlt nur der Werkstattstandard Umschlag
+  // bzw. Mass seitlich, und der steht in den Einstellungen.
+  nimm("D",e.durchmesser,"Ø Standrohr");
+  nimmWinkel();
+  nimm("a",e.a,"Mass a");
+  nimm("b",e.b,"Mass b");
+  nimm("c",e.c,"Mass c (Aufbug)");
+  nimm("umschlag",s.umschlag,"Umschlag (Richtwert)");
+  nimm("massSeitlich",s.mass_seitlich,"Mass seitlich neben Rohr (Richtwert)");
+  // 0 heisst hier "Loch exakt auf Rohrmass" und ist ein gueltiger Wert -
+  // deshalb ebenfalls nicht ueber nimm().
+  werte.lochZugabe=Math.max(0,einfaZahl(s.loch_zugabe));
+  uebernommen.push("Luft am Lochausschnitt (Richtwert)");
+ }else{
+  nimm("D",e.durchmesser,"Ø Standrohr");
+  nimmWinkel();
+  nimm("t",c.staerke,"Materialstärke");
+  nimm("H",s.rohrhoehe,"Rohrhöhe (Richtwert)");
+  nimm("b",s.schweifbord,"Schweifbord-Breite (Richtwert)");
+ }
+
+ const name=(e.bez||"").trim()||("Einfassung "+(einfaZahl(c.nr)>0?einfaZahl(c.nr):1));
  const oe=einfaZahl(e.durchmesser)>0?(" Ø"+einfaMm(e.durchmesser)):"";
+ const teil=(art==="hablett")?"Hablett":"Rohr";
  return {
-  werte, uebernommen,
-  bezeichnung:name+oe,
-  // Projekt und Massaufnahme kommen aus dem offenen Formular (js/10). Ist
-  // die Aufnahme noch nicht gespeichert, gibt es keine Id - dann haengt die
-  // Abwicklung eben nur am Projekt. Eine erfundene Id waere schlimmer.
-  projectId:(typeof measSelectedProjectId!=="undefined")?(measSelectedProjectId||null):null,
-  measurementId:(typeof currentMeasurementId!=="undefined")?(currentMeasurementId||null):null,
+  bauteil:art, werte, uebernommen, fehlt,
+  bezeichnung:name+oe+" · "+teil,
+  // Projekt und Massaufnahme kommen von aussen. Gibt es keine Id, haengt die
+  // Abwicklung eben nur am Projekt - eine erfundene Id waere schlimmer.
+  projectId:c.projectId||null,
+  measurementId:c.measurementId||null,
   herkunft:"Einfassung rund · "+name+oe
  };
+}
+
+// Der Weg vom OFFENEN Formular: Kontext aus js/10/js/61, Rest wie oben.
+function einfaAbwicklungVorgabe(i,bauteil){
+ return einfaAbwVorgabe(einfaListe()[i],bauteil,{
+  nr:i+1,
+  staerke:(typeof measStaerkeGet==="function")?measStaerkeGet():null,
+  projectId:(typeof measSelectedProjectId!=="undefined")?(measSelectedProjectId||null):null,
+  measurementId:(typeof currentMeasurementId!=="undefined")?(currentMeasurementId||null):null
+ });
 }
 
 // ---- Zuschnitte -----------------------------------------------------------
@@ -474,7 +523,8 @@ ${einfaZahlFeld("Stückzahl","einfa_anzahl_"+i,e.anzahl)}
 </div>
 <div class="bar" style="margin-top:6px">
 <button type="button" class="gray" data-einfa-zeichnen="${i}">📐 Schnitt zeigen</button>
-<button type="button" class="gray" data-einfa-abwicklung="${i}">⭕ Abwicklung Rohr</button>
+<button type="button" class="gray" data-einfa-abwicklung="${i}" data-einfa-bauteil="rohr">⭕ Abwicklung Rohr</button>
+<button type="button" class="gray" data-einfa-abwicklung="${i}" data-einfa-bauteil="hablett">▭ Abwicklung Hablett</button>
 <button type="button" class="gray" data-einfa-weg="${i}">🗑 Löschen</button>
 </div></div>`;
  }).join("");
@@ -700,7 +750,8 @@ function einfaVerdrahten(){
   const abw=t.closest("[data-einfa-abwicklung]");
   if(abw){
    if(typeof abwAusMassaufnahme!=="function"){alert("Der Abwicklungsrechner ist auf diesem Gerät noch nicht geladen.");return}
-   const v=einfaAbwicklungVorgabe(Number(abw.dataset.einfaAbwicklung)||0);
+   const v=einfaAbwicklungVorgabe(Number(abw.dataset.einfaAbwicklung)||0,
+                                  abw.dataset.einfaBauteil||"rohr");
    if(v)abwAusMassaufnahme(v);
    return;
   }
