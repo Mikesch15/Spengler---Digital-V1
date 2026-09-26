@@ -52,9 +52,23 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  // Die Zuschnittbreite ist der Umfang plus die beiden Falzzugaben - der
  // Auftrag rechnet es ausdruecklich vor: 343,38 + 6 + 12.
  p(nah(r.breite-r.L,18,0.001),"die Zuschnittbreite ist der Umfang plus 1xf und 2xf",r.breite-r.L);
- p(r.einschnitte.length===24,"24 Lappen wie vorgegeben",r.einschnitte.length);
+ // v3.189: Die Vorgabe ist 0 Lappen. Der Auftrag nannte 24; der Betrieb
+ // schweift das Bord nachher auf der Maschine, Einschnitte sind bei ihm die
+ // Ausnahme. Die alte Erwartung wird nicht geloescht, sondern umgedreht -
+ // und darunter steht die Gegenprobe, dass Lappen weiterhin funktionieren.
+ p(r.einschnitte.length===0,"Vorgabe: KEINE Lappen",r.einschnitte.length);
+ p(ABW_STANDARD.lappen===0,"und das steht auch so in den Standardwerten",ABW_STANDARD.lappen);
+ const mitLappen=abwRechne({lappen:24});
+ p(mitLappen.einschnitte.length===24,"wer 24 eingibt, bekommt 24 Einschnitte",mitLappen.einschnitte.length);
+ p(mitLappen.einschnitte[0].length===2,"jeder Einschnitt geht von der Unterkante zur Biegelinie");
  p(r.monoton===true,"die Unterkante laeuft durchgehend",r.monoton);
- p(r.warnungen.length===0,"bei den Standardmassen keine Warnung",r.warnungen);
+ // Mit 0 Lappen und 67 % Streckung sagt die App das jetzt bei den
+ // Standardmassen ausdruecklich - vorher (24 Lappen) war es still. Beides
+ // ist richtig, aber es ist nicht dasselbe, und der Pruefstand haelt fest,
+ // welches gilt.
+ p(r.warnungen.length===1&&r.warnungen[0].indexOf("gestreckt")>=0,
+   "bei den Standardmassen genau ein Hinweis: der Rand wird gestreckt",r.warnungen);
+ p(mitLappen.warnungen.length===0,"mit Lappen ist kein Hinweis noetig",mitLappen.warnungen);
 
  // ---- B  Die Rechnung ist DOM-frei ---------------------------------------
  console.log("\nB · Die Rechnung kennt kein DOM");
@@ -114,8 +128,14 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  // Streckung ueber 10 % OHNE Lappen: das laesst sich nicht aufziehen.
  const ohneLappen=abwRechne({lappen:0});
  p(ohneLappen.ok===true,"ohne Lappen wird trotzdem gerechnet");
- p(ohneLappen.warnungen.join(" ").indexOf("Lappen")>=0,
-   "aber die App sagt, dass sich der Kragen so nicht aufziehen laesst",ohneLappen.warnungen);
+ // v3.189: Die Warnung schreibt nichts mehr vor. Sie nannte "bitte Lappen
+ // verwenden" - im Betrieb wird stattdessen geschweift, und eine Meldung,
+ // die den eigenen Arbeitsweg nicht kennt, wird ueberlesen.
+ const w=ohneLappen.warnungen.join(" ");
+ p(w.indexOf("schweifen")>=0&&w.indexOf("Lappen")>=0,
+   "sie nennt beide Wege - schweifen oder Lappen",ohneLappen.warnungen);
+ p(w.indexOf("bitte Lappen verwenden")<0,
+   "und schreibt keinen davon mehr vor",ohneLappen.warnungen);
  // Ein Kragen, der fuer die Kruemmung viel zu breit ist: die Unterkante
  // laeuft zurueck. Das ist kein Rechenfehler, sondern ein Bauteil, das so
  // nicht geht - und es darf nicht stillschweigend gezeichnet werden.
@@ -158,7 +178,7 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
   projekt:$("abw_projekt").innerHTML.indexOf("Musterstrasse 1")>=0
  }));
  p(E.offen===true,"der Bereich geht auf");
- p(E.D==="110"&&E.lappen==="24","die Standardmasse sind vorbelegt",[E.D,E.lappen]);
+ p(E.D==="110"&&E.lappen==="0","die Standardmasse sind vorbelegt (seit v3.189 ohne Lappen)",[E.D,E.lappen]);
  p(E.svg===true,"die Vorschau zeichnet ein SVG");
  p(E.tabelle.indexOf("361,38")>=0,"die Tabelle nennt die Zuschnittbreite 361,38",E.tabelle.slice(0,200));
  p(E.tabelle.indexOf("371,25")>=0,"und die Hoehe an der Naht 371,25");
@@ -187,11 +207,14 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  const F=await page.evaluate(()=>{
   const r=abwAktualisieren();
   const dxf=abwDxfText(r);
+  const dxfLappen=abwDxfText(abwRechne({lappen:24}));
   const svg=abwSvg(r,{mm:true});
   const seiten=abwSeiten(r);
   return {
    dxf, laenge:dxf.length,
-   layer:["ZUSCHNITT","BIEGELINIE_KRAGEN","BIEGELINIE_FALZ","EINSCHNITT"].filter(l=>dxf.indexOf(l)>=0),
+   layer:["ZUSCHNITT","BIEGELINIE_SCHWEIFBORD","BIEGELINIE_FALZ","EINSCHNITT"].filter(l=>dxf.indexOf(l)>=0),
+   layerMitLappen:["ZUSCHNITT","BIEGELINIE_SCHWEIFBORD","BIEGELINIE_FALZ","EINSCHNITT"].filter(l=>dxfLappen.indexOf(l)>=0),
+   altLayer:dxf.indexOf("BIEGELINIE_KRAGEN")>=0,
    einheit:dxf.indexOf("$INSUNITS")>=0,
    eof:dxf.trim().slice(-3),
    svgMm:/width="[\d.]+mm"/.test(svg)&&/height="[\d.]+mm"/.test(svg),
@@ -199,7 +222,13 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
    druck:abwDruckHtml(r)
   };
  });
- p(F.layer.length===4,"das DXF hat alle vier Layer",F.layer);
+ // Ohne Lappen gibt es nichts einzuschneiden - dann steht der Layer
+ // EINSCHNITT auch nicht im DXF. Ein leerer Layer waere eine Zeile, die
+ // etwas ankuendigt, das nicht kommt.
+ p(F.layer.length===3&&F.layer.indexOf("EINSCHNITT")<0,
+   "ohne Lappen hat das DXF drei Layer, keinen leeren EINSCHNITT",F.layer);
+ p(F.layerMitLappen.length===4,"mit 24 Lappen sind es alle vier",F.layerMitLappen);
+ p(F.altLayer===false,"und keiner heisst mehr KRAGEN");
  p(F.einheit===true,"und sagt, dass die Einheit Millimeter ist");
  p(F.eof==="EOF","und endet sauber mit EOF",F.eof);
  p(F.laenge>20000,"die Kurven stehen als Polylinie mit vielen Stuetzpunkten drin",F.laenge);
@@ -230,6 +259,24 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  const q78=nurCode(lies("js/78-abwicklung-ui.js"));
  p(!/Math\.PI/.test(q78),"js/78 rechnet keine Geometrie - das macht js/77");
  p(/abwRechne\(/.test(q78),"sondern ruft abwRechne()");
+
+ // v3.189: Das Bauteil heisst Schweifbord. Zwei Namen fuer dasselbe Teil
+ // sind genau die Art Fehlerquelle, die dieses Projekt anderswo schon
+ // einmal Geld gekostet hat (siehe die R/U-Verwechslung in js/41).
+ const woKragen=[];
+ // js/67 ist ausgenommen: der Eintrag zu v3.189 muss das alte Wort nennen,
+ // sonst versteht niemand, was umbenannt wurde. Geprueft wird dort dafuer,
+ // dass es NUR noch dort vorkommt.
+ ["js/77-abwicklung.js","js/78-abwicklung-ui.js","index.html","css/01-basis.css",
+  "js/41-hilfe.js","js/70-ansicht2.js","anleitung/anleitung.html"].forEach(f=>{
+  if(lies(f).indexOf("Kragen")>=0)woKragen.push(f);
+ });
+ p(woKragen.length===0,"nirgends steht mehr \"Kragen\"",woKragen);
+ const win=lies("js/67-was-ist-neu.js");
+ p(/"3\.189":\[[\s\S]{0,200}Schweifbord/.test(win),
+   "die Versionsliste erklaert die Umbenennung");
+ p(lies("index.html").indexOf("Schweifbord-Breite b (mm)")>=0,"das Eingabefeld heisst Schweifbord-Breite");
+ p(lies("js/78-abwicklung-ui.js").indexOf("Streckung Schweifbord-Rand")>=0,"und die Tabelle Streckung Schweifbord-Rand");
 
  // ---- H  Sauberkeit --------------------------------------------------------
  console.log("\nH · Sauberkeit");

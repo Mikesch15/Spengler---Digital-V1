@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.188.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.189.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1346,18 +1346,28 @@ geschrieben, ohne dass es auffiel.</p>`},
 "abwicklung":{titel:"Abwicklung: Rundrohr mit schrägem Anschnitt",text:`
 <p>Berechnet den Zuschnitt für ein rundes Blechrohr, das unten schräg
 angeschnitten ist – etwa eine Dachdurchführung –, mit angebogenem
-<b>Kragen</b> und liegendem <b>Längsfalz</b>.</p>
+<b>Schweifbord</b> und liegendem <b>Längsfalz</b>.</p>
 <p>Die Vorschau ist massstäblich: durchgezogen der Zuschnitt, rot
-gestrichelt die Biegelinie des Kragens, blau gestrichelt der Falz, dünn die
-Einschnitte für die Lappen.</p>
-<div class="hin"><b>Der Kragen lässt sich nicht abwickeln.</b> Das Blech wird
-dabei gestreckt; die Tabelle nennt die Streckung am Kragenrand. Über rund
-10 % geht es ohne <b>Lappen</b> nicht mehr – dann sagt die App das auch.</div>
+gestrichelt die Biegelinie des Schweifbords, blau gestrichelt der Falz, dünn
+die Einschnitte für die Lappen.</p>
+<div class="hin"><b>Ein Schweifbord lässt sich nicht abwickeln.</b> Das Blech
+wird dabei gestreckt; die Tabelle nennt die Streckung am Rand. Über rund 10 %
+geht es von Hand nicht mehr – dann sagt die App das auch. Gelöst wird es
+entweder auf der Schweifmaschine oder mit <b>Lappen</b>; die Vorgabe ist
+<b>0 Lappen</b>, weil im Betrieb nachher geschweift wird.</div>
+<div class="hin"><b>Warum die Zugabe nicht überall gleich breit ist.</b> Am
+Zuschnitt ist der Streifen unter der Biegelinie dort schmaler, wo schärfer
+gebogen wird: beim schrägen Anschnitt biegt das Bord auf der langen Seite
+nur um 60°, auf der kurzen um 120°. Eine schärfere Biegung frisst mehr
+Material im Radius, also braucht der flache Zuschnitt dort weniger. Der
+<b>fertige Schweifbord ist überall gleich breit</b> – nur der Zuschnitt ist
+es nicht. Der Unterschied hängt allein am Biegeradius (hier rund 3 mm) und
+nicht an der eingegebenen Breite.</div>
 <div class="hin">Die <b>Falzfaktoren 1 und 2</b> sind die Werkstattregel für
 den einfachen liegenden Falz: links eine Falzbreite Zugabe, rechts zwei. Sie
-bleiben änderbar. Im Kragenbereich wird der Falz nicht besonders
+bleiben änderbar. Im Bereich des Schweifbords wird der Falz nicht besonders
 ausgebildet – in der Praxis flachdrücken oder ausklinken.</div>
-<p><b>Ausgeben:</b> DXF (Layer ZUSCHNITT, BIEGELINIE_KRAGEN,
+<p><b>Ausgeben:</b> DXF (Layer ZUSCHNITT, BIEGELINIE_SCHWEIFBORD,
 BIEGELINIE_FALZ, EINSCHNITT), SVG im Massstab 1:1, oder als Schablone 1:1
 auf A4-Blättern mit Überlappung und Passmarken.</p>
 <div class="warn"><b>Beim Drucken 100 % einstellen</b>, nicht „an Seite

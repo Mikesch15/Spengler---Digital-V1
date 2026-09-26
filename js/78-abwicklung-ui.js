@@ -54,7 +54,7 @@ function abwSvg(r,opt){
  const yMin=Math.min.apply(null,alleY), yMax=Math.max.apply(null,alleY);
  const w=r.breite, h=yMax-yMin;
  const flip=p=>[p[0],yMax-p[1]];
- const k=r.kontur.map(flip), bk=r.biegeKragen.map(flip);
+ const k=r.kontur.map(flip), bk=r.biegeSchweifbord.map(flip);
  const fl=r.falzLinien.map(l=>l.map(flip));
  const ein=r.einschnitte.map(l=>l.map(flip));
  const mm=opt.mm?' width="'+abwRund(w+2*rand)+'mm" height="'+abwRund(h+2*rand)+'mm"':' width="100%"';
@@ -75,7 +75,7 @@ function abwVorschauZeichnen(r){
  box.innerHTML=abwSvg(r)
   +`<div class="small abw-legende">
     <span class="abw-l abw-l-schnitt"></span> Zuschnitt
-    <span class="abw-l abw-l-kragen"></span> Biegelinie Kragen
+    <span class="abw-l abw-l-schweifbord"></span> Biegelinie Schweifbord
     <span class="abw-l abw-l-falz"></span> Falz
     <span class="abw-l abw-l-lappen"></span> Einschnitte
    </div>
@@ -94,9 +94,9 @@ function abwErgebnisZeichnen(r){
   <tr><td>Umfang neutrale Faser</td><td>${abwMm(r.L)}</td></tr>
   <tr><td>Höhe max (an der Naht)</td><td>${abwMm(r.hoeheMax)}</td></tr>
   <tr><td>Höhe min</td><td>${abwMm(r.hoeheMin)}</td></tr>
-  <tr><td>Kragen-Zugabe</td><td>${abwMm(r.zugMin)} … ${abwMm(r.zugMax)}</td></tr>
-  <tr><td>Biegewinkel Kragen</td><td>${abwGrad(r.betaMinGrad)} … ${abwGrad(r.betaMaxGrad)}</td></tr>
-  <tr><td>Streckung Kragenrand</td><td>${(r.streckung*100).toFixed(1).replace(".",",")} %</td></tr>
+  <tr><td>Schweifbord-Zugabe</td><td>${abwMm(r.zugMin)} … ${abwMm(r.zugMax)}</td></tr>
+  <tr><td>Biegewinkel Schweifbord</td><td>${abwGrad(r.betaMinGrad)} … ${abwGrad(r.betaMaxGrad)}</td></tr>
+  <tr><td>Streckung Schweifbord-Rand</td><td>${(r.streckung*100).toFixed(1).replace(".",",")} %</td></tr>
  </table>`;
 }
 
@@ -139,7 +139,7 @@ function abwDxfText(r){
       +abwDxfLinie(0,"ENDSEC")
       +abwDxfLinie(0,"SECTION")+abwDxfLinie(2,"ENTITIES");
  s+=abwDxfPolylinie(r.kontur,"ZUSCHNITT",true);
- s+=abwDxfPolylinie(r.biegeKragen,"BIEGELINIE_KRAGEN",false);
+ s+=abwDxfPolylinie(r.biegeSchweifbord,"BIEGELINIE_SCHWEIFBORD",false);
  r.falzLinien.forEach(l=>{ s+=abwDxfPolylinie(l,"BIEGELINIE_FALZ",false) });
  r.einschnitte.forEach(l=>{ s+=abwDxfPolylinie(l,"EINSCHNITT",false) });
  return s+abwDxfLinie(0,"ENDSEC")+abwDxfLinie(0,"EOF");
@@ -184,7 +184,7 @@ function abwSeiten(r){
 function abwSeiteSvg(r,seite){
  const yMaxSeite=seite.y0+seite.hoehe;
  const flip=p=>[p[0]-seite.x0, yMaxSeite-p[1]];
- const k=r.kontur.map(flip), bk=r.biegeKragen.map(flip);
+ const k=r.kontur.map(flip), bk=r.biegeSchweifbord.map(flip);
  const fl=r.falzLinien.map(l=>l.map(flip));
  const ein=r.einschnitte.map(l=>l.map(flip));
  return `<svg xmlns="http://www.w3.org/2000/svg" width="${seite.breite}mm" height="${seite.hoehe}mm"

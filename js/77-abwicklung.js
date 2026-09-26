@@ -1,10 +1,10 @@
 "use strict";
 // ===========================================================================
-// Abwicklung: Rundrohr mit schraegem Anschnitt, Kragen und Falz (v3.188)
+// Abwicklung: Rundrohr mit schraegem Anschnitt, Schweifbord und Falz (v3.188)
 //
 // Der Betrieb hatte diese Rechnung bisher als Fusion-360-Script (Python)
 // ausserhalb der App. Sie ist hier 1:1 nach JavaScript portiert - nicht neu
-// erfunden: der Kragen ist geometrisch nicht abwickelbar, und jede eigene
+// erfunden: das Schweifbord ist geometrisch nicht abwickelbar, und jede eigene
 // Naeherung waere eine zweite Wahrheit neben der, nach der in der Werkstatt
 // bisher geschnitten wurde.
 //
@@ -16,13 +16,13 @@
 //
 // KOORDINATEN DER ABWICKLUNG
 // x laeuft um den Rohrumfang (0 ... L), y nach oben. Die Biegelinie des
-// Kragens liegt bei y = zf, die Unterkante darunter, die Oberkante bei
+// Schweifbords liegt bei y = zf, die Unterkante darunter, die Oberkante bei
 // H + Zugabe oben. Der Falz kommt als gerader Streifen links (Faktor A)
 // und rechts (Faktor B) dazu.
 //
 // GENAUIGKEITSMASS (Abschnitt 9 des Auftrags, Standardeingaben):
 //   Umfang 343,38 · Zuschnittbreite 361,38 · Hoehe max 371,25 ·
-//   Hoehe min 305,17 · Kragen-Zugabe 37,13...40,10 · Biegewinkel 60...120° ·
+//   Hoehe min 305,17 · Schweifbord-Zugabe 37,13...40,10 · Biegewinkel 60...120° ·
 //   Streckung ca. 67 %.   Auf 0,1 mm.
 // ===========================================================================
 
@@ -49,7 +49,9 @@ function abwLaenge(liste){
 // ---- Standardwerte (Abschnitt 3 des Auftrags) -----------------------------
 const ABW_STANDARD={
  D:110, t:0.7, H:300, alpha:30, b:40, r:2,
- nahtLang:true, f:6, faktorA:1, faktorB:2, zugabeOben:0, lappen:24
+ // v3.189: Vorgabe 0 Lappen. Der Betrieb schweift das Bord nachher auf der
+ // Maschine - Einschnitte sind bei ihm die Ausnahme, nicht die Regel.
+ nahtLang:true, f:6, faktorA:1, faktorB:2, zugabeOben:0, lappen:0
 };
 const ABW_PUNKTE=360;      // Stuetzpunkte je Umlauf
 
@@ -82,7 +84,7 @@ function abwFehler(e){
  const f=[];
  if(!(e.alpha>=0&&e.alpha<75))f.push("Der Schnittwinkel muss zwischen 0 und 75 Grad liegen.");
  if(!(e.t>0))f.push("Die Blechstärke muss grösser als 0 sein.");
- if(!(e.b>0))f.push("Die Kragenbreite muss grösser als 0 sein.");
+ if(!(e.b>0))f.push("Die Schweifbord-Breite muss grösser als 0 sein.");
  if(!(e.D>0))f.push("Der Durchmesser muss grösser als 0 sein.");
  if(e.D>0&&!(e.t<e.D/2))f.push("Die Blechstärke muss kleiner als der halbe Durchmesser sein.");
  if(!(e.r>=0))f.push("Der Biegeradius darf nicht negativ sein.");
@@ -122,7 +124,7 @@ function abwRechne(roh){
   const phi=phi0+2*Math.PI*s;
   const c=Math.cos(phi), sn=Math.sin(phi);
   const x=s*L;
-  const zf=(t/2-Rn*(nx*c+ny*sn))/nz;                   // Biegelinie Kragen
+  const zf=(t/2-Rn*(nx*c+ny*sn))/nz;                   // Biegelinie Schweifbord
   const slope=-(-nx*sn+ny*c)/nz;
   const u=[c,sn,0];
   const T=abwEinheit(abwKreuz(u,n));
@@ -131,7 +133,7 @@ function abwRechne(roh){
   let d=abwEinheit(abwKreuz(u,T));
   if(d[2]>0)d=[-d[0],-d[1],-d[2]];
   const be=Math.acos(Math.max(-1,Math.min(1,abwSkalar(d,w))));   // Biegewinkel
-  const Z=(e.b+t/2)-2*rho*Math.tan(be/2)+rho*be;                 // Kragen-Zugabe
+  const Z=(e.b+t/2)-2*rho*Math.tan(be/2)+rho*be;                 // Schweifbord-Zugabe
   const k=Math.sqrt(1+slope*slope);
   const z0=-(nx*R*c+ny*R*sn)/nz;
   return {
@@ -166,7 +168,7 @@ function abwRechne(roh){
  // Die Unterkante ruecken wir um die linke Falzzugabe nach rechts; der Falz
  // selbst laeuft gerade durch, ueber die ganze Hoehe.
  const unten=bottom.map(p=>[p[0]+zugA,p[1]]);
- const biegeKragen=fold.map(p=>[p[0]+zugA,p[1]]);
+ const biegeSchweifbord=fold.map(p=>[p[0]+zugA,p[1]]);
  const einschnitte=schlitze.map(s=>[[s[0][0]+zugA,s[0][1]],[s[1][0]+zugA,s[1][1]]]);
  const yb=unten.length?unten[0][1]:0;           // Unterkante an der Naht
 
@@ -183,14 +185,14 @@ function abwRechne(roh){
  const zug=pts.map(p=>p.Z), beta=pts.map(p=>p.beta);
 
  const warnungen=[];
- if(!monoton)warnungen.push("Die Unterkante läuft nicht mehr durchgehend nach rechts – die Kragen-Zugabe ist für diese Krümmung zu gross. Kragen schmaler wählen oder Biegeradius vergrössern.");
- if(streckung>0.10&&e.lappen===0)warnungen.push("Der Kragenrand wird um "+(streckung*100).toFixed(0)+" % gestreckt. So lässt sich der Kragen nicht aufziehen – bitte Lappen verwenden.");
+ if(!monoton)warnungen.push("Die Unterkante läuft nicht mehr durchgehend nach rechts – die Schweifbord-Zugabe ist für diese Krümmung zu gross. Schweifbord schmaler wählen oder Biegeradius vergrössern.");
+ if(streckung>0.10&&e.lappen===0)warnungen.push("Der Schweifbord-Rand wird um "+(streckung*100).toFixed(0)+" % gestreckt. Von Hand aufziehen geht so nicht – entweder schweifen oder Lappen einschneiden.");
 
  return {
   ok:true, fehler:[], warnungen, eingaben:e, punkte,
   L, breite, oben, yb, zugA, zugB,
-  kontur, biegeKragen, falzLinien, einschnitte,
-  unten, fold:biegeKragen,
+  kontur, biegeSchweifbord, falzLinien, einschnitte,
+  unten, fold:biegeSchweifbord,
   hoeheMax, hoeheMin,
   zugMin:Math.min.apply(null,zug), zugMax:Math.max.apply(null,zug),
   betaMinGrad:Math.min.apply(null,beta)*180/Math.PI,

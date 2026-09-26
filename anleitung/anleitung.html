@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.188";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.189";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.188<br>
+  Version 3.189<br>
   Stand 26. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2356,15 +2356,15 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">26 · Abwicklung: Rundrohr mit schrägem Anschnitt</h2>
-<p>Seit Version 3.188 rechnet die App den Zuschnitt für ein rundes Blechrohr,
+<p>Seit Version 3.189 rechnet die App den Zuschnitt für ein rundes Blechrohr,
 das unten schräg angeschnitten ist – etwa eine Dachdurchführung –, mit
-angebogenem <strong>Kragen</strong> und liegendem <strong>Längsfalz</strong>.
+angebogenem <strong>Schweifbord</strong> und liegendem <strong>Längsfalz</strong>.
 Sie steht auf dem Startbildschirm unter <span class="tasten">📐 Abwicklung</span>,
 in der neuen Ansicht unter <strong>Mehr → Abwicklung</strong>. Ein Projekt
 braucht es dafür nicht: die Abwicklung ist ein Werkzeug, kein Arbeitsschritt.</p>
 <div class="hin">Es ist <strong>dieselbe Rechnung</strong>, die der Betrieb
 bisher als Fusion-360-Script ausserhalb der App verwendet hat – Zeile für
-Zeile übertragen, nicht nachgebaut. Der Kragen ist geometrisch nicht
+Zeile übertragen, nicht nachgebaut. Ein Schweifbord ist geometrisch nicht
 abwickelbar; eine eigene Näherung wäre eine zweite Wahrheit neben der, nach
 der in der Werkstatt bisher geschnitten wurde.</div>
 
@@ -2375,32 +2375,54 @@ der in der Werkstatt bisher geschnitten wurde.</div>
 <tr><td>Blechstärke t</td><td>Gerechnet wird mit der neutralen Faser (D − t)</td><td>0,7 mm</td></tr>
 <tr><td>Höhe H</td><td>Ab Schnittmitte bis Oberkante</td><td>300 mm</td></tr>
 <tr><td>Schnittwinkel α</td><td>Die Dachneigung, 0 bis 75°</td><td>30°</td></tr>
-<tr><td>Kragenbreite b</td><td>Ab Rohraussenseite, in der Schnittebene</td><td>40 mm</td></tr>
-<tr><td>Innen-Biegeradius r</td><td>Für den Biegeausgleich am Kragen</td><td>2 mm</td></tr>
+<tr><td>Schweifbord-Breite b</td><td>Ab Rohraussenseite, in der Schnittebene</td><td>40 mm</td></tr>
+<tr><td>Innen-Biegeradius r</td><td>Für den Biegeausgleich am Schweifbord</td><td>2 mm</td></tr>
 <tr><td>Naht</td><td>An der längsten oder der kürzesten Mantellinie</td><td>längste</td></tr>
 <tr><td>Falzbreite f</td><td>0 heisst: kein Falz</td><td>6 mm</td></tr>
 <tr><td>Falzfaktoren A / B</td><td>Werkstattregel für den einfachen liegenden Falz</td><td>1 / 2</td></tr>
 <tr><td>Zugabe oben</td><td>Etwa für einen Wulst oder Umschlag</td><td>0 mm</td></tr>
-<tr><td>Anzahl Lappen</td><td>Einschnitte im Kragen, 0 = aufziehen</td><td>24</td></tr>
+<tr><td>Anzahl Lappen</td><td>Einschnitte im Schweifbord. 0 heisst: nachher schweifen</td><td>0</td></tr>
 </table>
 
 <h3>Die Vorschau</h3>
 <p>Sie ist massstäblich und zeichnet beim Tippen mit:
 <strong>durchgezogen</strong> der Zuschnitt, <strong>rot gestrichelt</strong>
-die Biegelinie des Kragens, <strong>blau gestrichelt</strong> der Falz,
+die Biegelinie des Schweifbords, <strong>blau gestrichelt</strong> der Falz,
 <strong>dünn</strong> die Einschnitte für die Lappen. Darunter steht die
-Ergebnistabelle mit Zuschnittbreite, Umfang, Höhe max und min, Kragen-Zugabe,
+Ergebnistabelle mit Zuschnittbreite, Umfang, Höhe max und min, Schweifbord-Zugabe,
 Biegewinkel und Streckung.</p>
 <p>Mit den Vorgaben oben sind das: Umfang <strong>343,38 mm</strong>,
 Zuschnittbreite <strong>361,38 mm</strong>, Höhe <strong>371,25</strong> bis
-<strong>305,17 mm</strong>, Kragen-Zugabe 37,13 bis 40,10 mm, Biegewinkel 60
+<strong>305,17 mm</strong>, Schweifbord-Zugabe 37,13 bis 40,10 mm, Biegewinkel 60
 bis 120°, Streckung rund 67 %.</p>
+
+<h3>Warum die Zugabe nicht überall gleich breit ist</h3>
+<p>Am Zuschnitt fällt auf, dass der Streifen zwischen Biegelinie und
+Unterkante nicht überall gleich breit ist – in der Mitte des Zuschnitts
+schmaler als an der Naht. Das ist der <strong>Biegeausgleich</strong> und
+kein Fehler.</p>
+<p>Beim schrägen Anschnitt biegt das Bord nicht überall gleich stark: auf der
+langen Seite des Rohrs nur um <strong>60°</strong>, auf der kurzen um
+<strong>120°</strong> (bei α = 30°, allgemein 90° ∓ α). Eine schärfere
+Biegung frisst mehr Material im Radius, also braucht der flache Zuschnitt
+dort <em>weniger</em>. Gerechnet wird mit der bekannten Formel
+<em>Z = (b + t/2) − 2ρ·tan(β/2) + ρ·β</em> mit ρ = r + t/2.</p>
+<table>
+<tr><th>Stelle</th><th>Biegewinkel β</th><th>Zugabe Z am Zuschnitt</th></tr>
+<tr><td>Naht, lange Mantellinie</td><td>60°</td><td>40,10 mm</td></tr>
+<tr><td>senkrechter Schnitt (α = 0)</td><td>90°</td><td>39,34 mm</td></tr>
+<tr><td>Mitte, kurze Mantellinie</td><td>120°</td><td>37,13 mm</td></tr>
+</table>
+<div class="hin"><strong>Der fertige Schweifbord ist überall gleich breit</strong>
+– nur der Zuschnitt ist es nicht. Der Unterschied beträgt hier rund 3 mm und
+hängt <em>allein am Biegeradius</em>, nicht an der eingegebenen Breite: bei
+einem schmalen Bord fällt derselbe Absolutwert relativ stärker auf.</div>
 
 <h3>Wovor die App warnt</h3>
 <table>
 <tr><th>Fall</th><th>Was die App tut</th></tr>
-<tr><td>Streckung über rund 10 % ohne Lappen</td><td>Sagt, dass sich der Kragen so nicht aufziehen lässt. Gerechnet wird trotzdem.</td></tr>
-<tr><td>Kragen für die Krümmung zu breit</td><td>Die Unterkante läuft zurück – das Bauteil geht so nicht. Wird gemeldet.</td></tr>
+<tr><td>Streckung über rund 10 % ohne Lappen</td><td>Sagt, dass sich das Bord von Hand so nicht aufziehen lässt – entweder schweifen oder Lappen einschneiden. Gerechnet wird trotzdem.</td></tr>
+<tr><td>Schweifbord für die Krümmung zu breit</td><td>Die Unterkante läuft zurück – das Bauteil geht so nicht. Wird gemeldet.</td></tr>
 <tr><td>Winkel ab 75°, Höhe zu klein, Blech zu dick</td><td>Wird abgewiesen, mit Begründung und dem Mindestmass. Es wird nichts gezeichnet, was es nicht gibt.</td></tr>
 </table>
 
@@ -2426,7 +2448,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.188</strong>, Stand 26. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.189</strong>, Stand 26. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
