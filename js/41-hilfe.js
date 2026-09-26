@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.187.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.188.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1342,6 +1342,32 @@ eigenen Speichern-Knopf. Geschrieben wird kurz nach der letzten Eingabe, und
 unten erscheint dann <i>„✓ Gespeichert.“</i>. Geht es nicht durch, steht dort
 stattdessen der Grund. Bis 3.181 wurde bei diesen Feldern gar nichts
 geschrieben, ohne dass es auffiel.</p>`},
+
+"abwicklung":{titel:"Abwicklung: Rundrohr mit schrägem Anschnitt",text:`
+<p>Berechnet den Zuschnitt für ein rundes Blechrohr, das unten schräg
+angeschnitten ist – etwa eine Dachdurchführung –, mit angebogenem
+<b>Kragen</b> und liegendem <b>Längsfalz</b>.</p>
+<p>Die Vorschau ist massstäblich: durchgezogen der Zuschnitt, rot
+gestrichelt die Biegelinie des Kragens, blau gestrichelt der Falz, dünn die
+Einschnitte für die Lappen.</p>
+<div class="hin"><b>Der Kragen lässt sich nicht abwickeln.</b> Das Blech wird
+dabei gestreckt; die Tabelle nennt die Streckung am Kragenrand. Über rund
+10 % geht es ohne <b>Lappen</b> nicht mehr – dann sagt die App das auch.</div>
+<div class="hin">Die <b>Falzfaktoren 1 und 2</b> sind die Werkstattregel für
+den einfachen liegenden Falz: links eine Falzbreite Zugabe, rechts zwei. Sie
+bleiben änderbar. Im Kragenbereich wird der Falz nicht besonders
+ausgebildet – in der Praxis flachdrücken oder ausklinken.</div>
+<p><b>Ausgeben:</b> DXF (Layer ZUSCHNITT, BIEGELINIE_KRAGEN,
+BIEGELINIE_FALZ, EINSCHNITT), SVG im Massstab 1:1, oder als Schablone 1:1
+auf A4-Blättern mit Überlappung und Passmarken.</p>
+<div class="warn"><b>Beim Drucken 100 % einstellen</b>, nicht „an Seite
+anpassen“. Auf jedem Blatt steht ein <b>100-mm-Kontrollmass</b>: einmal
+nachmessen, bevor nach der Schablone geschnitten wird. Eine um wenige
+Prozent verkleinerte Schablone fällt sonst erst am Blech auf.</div>
+<p>Gespeichert werden die <b>Masse</b>, nicht die gezeichnete Kontur – die
+wird beim Laden neu gerechnet. Weicht das Ergebnis vom gespeicherten ab,
+sagt die App es ausdrücklich, statt stillschweigend andere Zahlen zu
+zeigen.</p>`},
 
 "kontowechsel":{titel:"Konto wechseln",text:`
 <p>Wer zwei Konten hat – etwa das eigene und eines in einer Testfirma –,

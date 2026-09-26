@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.187";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.188";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.187<br>
+  Version 3.188<br>
   Stand 26. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -82,7 +82,8 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
 <li><span class="nr">23</span>Auf Handy und Tablet</li>
 <li><span class="nr">24</span>Ohne Internet</li>
 <li><span class="nr">25</span>Begriffe</li>
-<li><span class="nr">26</span>Zu diesem Dokument</li>
+<li><span class="nr">26</span>Abwicklung: Rundrohr mit schrägem Anschnitt</li>
+<li><span class="nr">27</span>Zu diesem Dokument</li>
 </ol></nav>
 
 <h2 class="seite">1 · Wofür die App gedacht ist</h2>
@@ -2354,8 +2355,78 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 <tr><td>Register</td><td>Ein Schritt der Erfassung, oben in der Leiste wählbar.</td></tr>
 </table>
 
-<h2 class="seite">26 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.187</strong>, Stand 26. September 2026.</p>
+<h2 class="seite">26 · Abwicklung: Rundrohr mit schrägem Anschnitt</h2>
+<p>Seit Version 3.188 rechnet die App den Zuschnitt für ein rundes Blechrohr,
+das unten schräg angeschnitten ist – etwa eine Dachdurchführung –, mit
+angebogenem <strong>Kragen</strong> und liegendem <strong>Längsfalz</strong>.
+Sie steht auf dem Startbildschirm unter <span class="tasten">📐 Abwicklung</span>,
+in der neuen Ansicht unter <strong>Mehr → Abwicklung</strong>. Ein Projekt
+braucht es dafür nicht: die Abwicklung ist ein Werkzeug, kein Arbeitsschritt.</p>
+<div class="hin">Es ist <strong>dieselbe Rechnung</strong>, die der Betrieb
+bisher als Fusion-360-Script ausserhalb der App verwendet hat – Zeile für
+Zeile übertragen, nicht nachgebaut. Der Kragen ist geometrisch nicht
+abwickelbar; eine eigene Näherung wäre eine zweite Wahrheit neben der, nach
+der in der Werkstatt bisher geschnitten wurde.</div>
+
+<h3>Die Eingaben</h3>
+<table>
+<tr><th>Feld</th><th>Bedeutung</th><th>Vorgabe</th></tr>
+<tr><td>Aussendurchmesser D</td><td>Aussen gemessen</td><td>110 mm</td></tr>
+<tr><td>Blechstärke t</td><td>Gerechnet wird mit der neutralen Faser (D − t)</td><td>0,7 mm</td></tr>
+<tr><td>Höhe H</td><td>Ab Schnittmitte bis Oberkante</td><td>300 mm</td></tr>
+<tr><td>Schnittwinkel α</td><td>Die Dachneigung, 0 bis 75°</td><td>30°</td></tr>
+<tr><td>Kragenbreite b</td><td>Ab Rohraussenseite, in der Schnittebene</td><td>40 mm</td></tr>
+<tr><td>Innen-Biegeradius r</td><td>Für den Biegeausgleich am Kragen</td><td>2 mm</td></tr>
+<tr><td>Naht</td><td>An der längsten oder der kürzesten Mantellinie</td><td>längste</td></tr>
+<tr><td>Falzbreite f</td><td>0 heisst: kein Falz</td><td>6 mm</td></tr>
+<tr><td>Falzfaktoren A / B</td><td>Werkstattregel für den einfachen liegenden Falz</td><td>1 / 2</td></tr>
+<tr><td>Zugabe oben</td><td>Etwa für einen Wulst oder Umschlag</td><td>0 mm</td></tr>
+<tr><td>Anzahl Lappen</td><td>Einschnitte im Kragen, 0 = aufziehen</td><td>24</td></tr>
+</table>
+
+<h3>Die Vorschau</h3>
+<p>Sie ist massstäblich und zeichnet beim Tippen mit:
+<strong>durchgezogen</strong> der Zuschnitt, <strong>rot gestrichelt</strong>
+die Biegelinie des Kragens, <strong>blau gestrichelt</strong> der Falz,
+<strong>dünn</strong> die Einschnitte für die Lappen. Darunter steht die
+Ergebnistabelle mit Zuschnittbreite, Umfang, Höhe max und min, Kragen-Zugabe,
+Biegewinkel und Streckung.</p>
+<p>Mit den Vorgaben oben sind das: Umfang <strong>343,38 mm</strong>,
+Zuschnittbreite <strong>361,38 mm</strong>, Höhe <strong>371,25</strong> bis
+<strong>305,17 mm</strong>, Kragen-Zugabe 37,13 bis 40,10 mm, Biegewinkel 60
+bis 120°, Streckung rund 67 %.</p>
+
+<h3>Wovor die App warnt</h3>
+<table>
+<tr><th>Fall</th><th>Was die App tut</th></tr>
+<tr><td>Streckung über rund 10 % ohne Lappen</td><td>Sagt, dass sich der Kragen so nicht aufziehen lässt. Gerechnet wird trotzdem.</td></tr>
+<tr><td>Kragen für die Krümmung zu breit</td><td>Die Unterkante läuft zurück – das Bauteil geht so nicht. Wird gemeldet.</td></tr>
+<tr><td>Winkel ab 75°, Höhe zu klein, Blech zu dick</td><td>Wird abgewiesen, mit Begründung und dem Mindestmass. Es wird nichts gezeichnet, was es nicht gibt.</td></tr>
+</table>
+
+<h3>Ausgeben</h3>
+<table>
+<tr><th>Weg</th><th>Was herauskommt</th></tr>
+<tr><td>DXF</td><td>ASCII, Einheit mm, mit den Layern ZUSCHNITT, BIEGELINIE_KRAGEN, BIEGELINIE_FALZ und EINSCHNITT. Die Kurven als Polylinie mit vielen Stützpunkten.</td></tr>
+<tr><td>SVG 1:1</td><td>Eine Datei, deren Breite und Höhe in Millimetern stehen – sie druckt und importiert massstäblich.</td></tr>
+<tr><td>Schablone 1:1</td><td>Aufgeteilt auf A4 mit Überlappung, Passmarken und Seitennummern.</td></tr>
+</table>
+<div class="warn"><strong>Beim Drucken 100 % einstellen</strong>, nicht „an
+Seite anpassen“. Auf jedem Blatt steht ein <strong>100-mm-Kontrollmass</strong>:
+einmal mit dem Meter nachmessen, bevor nach der Schablone geschnitten wird.
+Eine um wenige Prozent verkleinerte Schablone fällt sonst erst am Blech auf.</div>
+
+<h3>Speichern</h3>
+<p>Eine Abwicklung lässt sich mit Bezeichnung und – wenn gewünscht – einem
+Projekt speichern, später wieder laden, duplizieren oder löschen.</p>
+<div class="hin">Gespeichert werden die <strong>Masse</strong>, nicht die
+gezeichnete Kontur. Beim Laden wird neu gerechnet. Weicht das Ergebnis vom
+damals gespeicherten ab, sagt die App das ausdrücklich – ein Zuschnitt, nach
+dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
+bekommen.</div>
+
+<h2 class="seite">27 · Zu diesem Dokument</h2>
+<p>Diese Anleitung beschreibt <strong>Version 3.188</strong>, Stand 26. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

@@ -1574,3 +1574,43 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .kw-k-grau{color:var(--muted)}
 .kw-warnung{color:var(--muted);margin-top:10px}
 #kwMeldung:empty{display:none}
+
+/* ---- Abwicklung (v3.188) -------------------------------------------------
+   Vorschau, Ergebnistabelle und die 1:1-Schablone. Die Schablone ist der
+   heikle Teil: sie muss auf Papier EXAKT stimmen, deshalb stehen ihre Masse
+   in mm und nicht in px, und beim Drucken wird alles andere ausgeblendet. */
+.abw-vorschau{overflow-x:auto}
+.abw-svg{display:block;max-width:100%;height:auto;background:#fff;
+ border:1px solid var(--line);border-radius:8px}
+.abw-legende{margin:6px 0 2px;color:var(--muted);display:flex;flex-wrap:wrap;
+ gap:4px 14px;align-items:center}
+.abw-l{display:inline-block;width:18px;height:0;border-top-width:2px;
+ border-top-style:solid;margin-right:4px;vertical-align:middle}
+.abw-l-schnitt{border-top-color:#17202a}
+.abw-l-kragen{border-top-color:var(--red,#c62828);border-top-style:dashed}
+.abw-l-falz{border-top-color:var(--blue,#1565c0);border-top-style:dashed}
+.abw-l-lappen{border-top-color:var(--muted);border-top-width:1px}
+.abw-tabelle{width:100%;border-collapse:collapse}
+.abw-tabelle td{padding:5px 0;border-top:1px solid var(--line)}
+.abw-tabelle tr:first-child td{border-top:0}
+.abw-tabelle td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.abw-fehler{color:var(--red,#c62828);margin:3px 0}
+.abw-warnung{color:#b26a00;margin:3px 0}
+.abw-ok{color:var(--green,#2e7d32);margin:3px 0}
+.abw-zeile{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+ padding:8px 0;border-top:1px solid var(--line)}
+.abw-zeile:first-child{border-top:0}
+.abw-zeile-text{flex:1 1 180px;min-width:0}
+
+/* Die Schablone. Am Bildschirm unsichtbar, beim Drucken das Einzige. */
+.abw-druck{display:none}
+.abw-blatt-kopf,.abw-blatt-fuss{font:9pt system-ui;color:#000}
+.abw-kontrollmass{display:inline-block;width:100mm;height:0;
+ border-top:0.4mm solid #000;margin-right:4mm;vertical-align:middle}
+@media print{
+ body.abw-drucken>*{display:none !important}
+ body.abw-drucken .abw-druck{display:block !important}
+ .abw-blatt{page-break-after:always;break-after:page}
+ .abw-blatt:last-child{page-break-after:auto;break-after:auto}
+ .abw-blatt-bild{margin:3mm 0}
+}

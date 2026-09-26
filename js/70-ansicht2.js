@@ -126,7 +126,8 @@ const A2_BEREICHE={
  matZuModal:        {zu:"matZuZurueck"},
  projectCockpitModal:{zu:"cockpitBack"},
  projectsModal:     {zu:"closeProjects"},
- zaehlwerkModal:    {zu:"closeZaehlwerk"}
+ zaehlwerkModal:    {zu:"closeZaehlwerk"},
+ abwicklungModal:   {zu:"closeAbwicklung"}
 };
 
 // Oeffnet einen Bereich ueber den vorhandenen Weg der App und merkt sich,
@@ -836,7 +837,9 @@ function a2SeiteMehr(){
   // v3.187: Konto wechseln. Steht immer da - auch mit nur einem gemerkten
   // Konto, denn von hier aus wird das zweite ueberhaupt erst hinzugefuegt.
   {id:"konten",     zeichen:"🔄", text:"Konto wechseln",        unter:"Zwischen Firmen wechseln, ohne sich neu anzumelden"},
-  {id:"zaehlwerk",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"}
+  {id:"zaehlwerk",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"},
+  // v3.188: Die Abwicklung braucht kein Projekt - sie ist ein Werkzeug.
+  {id:"abwicklung", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Kragen und Falz"}
  ];
  // v3.183: Nur fuer Administratoren - alle Punkte der Liste fuehren in
  // Bereiche, die ohnehin nur sie aendern duerfen.
@@ -1113,6 +1116,10 @@ document.addEventListener("click",async e=>{
   if(was==="einrichtung"&&typeof einrAnzeigen==="function"){einrAnzeigen();return}
  if(was==="kontrollen"&&typeof konAnzeigen==="function"){konAnzeigen();return}
  if(was==="konten"&&typeof kwOeffnen==="function"){kwOeffnen();return}
+ if(was==="abwicklung"&&typeof abwOeffnen==="function"){
+  a2BereichStarten("abwicklungModal","Abwicklung","mehr",()=>abwOeffnen());
+  return;
+ }
   // v3.157: bis v3.156 fuehrte dieser Eintrag ueber openSettingsTo() in die
   // EINSTELLUNGEN - genau dorthin, wo der Eintrag "Einstellungen" direkt
   // darueber auch schon hinfuehrte. Zwei Eintraege, ein Ziel. Jetzt oeffnet
