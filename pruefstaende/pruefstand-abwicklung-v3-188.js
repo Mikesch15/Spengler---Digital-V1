@@ -46,8 +46,15 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  // document-Zugriff drin, schluege schon das Laden fehl.
  console.log("\nA · Die Abnahmewerte des Auftrags, auf 0,1 mm");
  vm.runInThisContext(lies("js/77-abwicklung.js"));
- const r=abwRechne({});
- p(r.ok===true,"die Standardmasse rechnen durch",r.fehler);
+ // v3.195: Die Abnahmewerte des Auftrags gelten fuer SEINE Eingaben, und dazu
+ // gehoerte b = 40. Die Vorgabe des Betriebs ist seit v3.195 12 mm. Die
+ // Erwartungen werden deshalb nicht abgeschwaecht, sondern praezisiert: b
+ // steht jetzt ausdruecklich dabei. Das ist SCHAERFER als vorher, weil der
+ // Vergleich mit dem Fusion-360-Script damit unabhaengig von der Vorgabe
+ // bestehen bleibt - und Abschnitt A2 prueft zusaetzlich, was die neue
+ // Vorgabe liefert.
+ const r=abwRechne({b:40});
+ p(r.ok===true,"die Masse des Auftrags rechnen durch",r.fehler);
  p(nah(r.L,343.38),"Umfang neutrale Faser 343,38",r.L);
  p(nah(r.breite,361.38),"Zuschnittbreite 361,38",r.breite);
  // v3.190: DREI Werte des Auftrags gelten nicht mehr - auf ausdruecklichen
@@ -72,6 +79,37 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  p(nah(r.betaMinGrad,60,0.1),"Biegewinkel min 60 Grad",r.betaMinGrad);
  p(nah(r.betaMaxGrad,120,0.1),"Biegewinkel max 120 Grad",r.betaMaxGrad);
  p(nah(r.streckung*100,68.49,0.2),"Streckung Schweifbord-Rand rund 68,5 % (war 67, die Unterkante liegt jetzt anders)",r.streckung*100);
+
+ // ---- A2  Was die VORGABE des Betriebs liefert (v3.195) -------------------
+ console.log("\nA2 · Die Vorgabe des Betriebs: Schweifbord 12 mm");
+ const v=abwRechne({});
+ p(ABW_STANDARD.b===12,"die Vorgabe ist 12 mm, nicht mehr 40",ABW_STANDARD.b);
+ // Umfang, Zuschnittbreite und Biegewinkel haengen nicht von der Bordbreite
+ // ab - sie muessen unveraendert bleiben. Wuerde die Umstellung sie
+ // verschieben, waere irgendwo b eingeflossen, wo es nichts zu suchen hat.
+ p(nah(v.L,343.38)&&nah(v.breite,361.38),
+   "Umfang und Zuschnittbreite bleiben 343,38 und 361,38 - sie haengen nicht an b",[v.L,v.breite]);
+ p(nah(v.betaMinGrad,60,0.1)&&nah(v.betaMaxGrad,120,0.1),
+   "und die Biegewinkel bleiben 60 bis 120 Grad",[v.betaMinGrad,v.betaMaxGrad]);
+ // Von Hand: Z = (12 + 0,35) - 2 x 2,35 x tan45 + 2,35 x pi/2 = 11,34.
+ p(nah(v.zugMin,11.34,0.005)&&nah(v.zugMax,11.34,0.005),
+   "die Zugabe ist 11,34 mm - ueberall dieselbe",[v.zugMin,v.zugMax]);
+ p(nah(v.hoeheMax,342.49)&&nah(v.hoeheMin,279.39),
+   "Hoehe 342,49 bis 279,39",[v.hoeheMax,v.hoeheMin]);
+ p(nah(v.bFertigMin,11.24,0.005)&&nah(v.bFertigMax,14.21,0.005),
+   "das fertige Bord misst 11,24 bis 14,21 statt ueberall 12",[v.bFertigMin,v.bFertigMax]);
+ // Der eigentliche Gewinn: das schmale Bord wird viel weniger gestreckt.
+ p(nah(v.streckung*100,21.0,0.2),
+   "die Streckung faellt von 68,5 auf 21,0 %",v.streckung*100);
+ // GEGENPROBE gegen einen Rueckfall auf 40: die alten Zahlen duerfen mit der
+ // Vorgabe NICHT mehr herauskommen.
+ p(!nah(v.zugMin,39.34)&&!nah(v.hoeheMax,370.49),
+   "die Zahlen der alten Vorgabe kommen nicht zurueck",[v.zugMin,v.hoeheMax]);
+ // Und die Differenz der beiden Hoehen ist dieselbe wie bei b = 40: die
+ // Bordbreite verschiebt den Zuschnitt, sie verformt ihn nicht.
+ p(nah(r.hoeheMax-r.hoeheMin,v.hoeheMax-v.hoeheMin,0.01),
+   "die Spanne zwischen hoechster und tiefster Stelle bleibt gleich",
+   [r.hoeheMax-r.hoeheMin,v.hoeheMax-v.hoeheMin]);
  // Die Zuschnittbreite ist der Umfang plus die beiden Falzzugaben - der
  // Auftrag rechnet es ausdruecklich vor: 343,38 + 6 + 12.
  p(nah(r.breite-r.L,18,0.001),"die Zuschnittbreite ist der Umfang plus 1xf und 2xf",r.breite-r.L);
@@ -104,7 +142,7 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
 
  // ---- C  Andere Masse: die Rechnung reagiert richtig ----------------------
  console.log("\nC · Andere Masse");
- const gerade=abwRechne({alpha:0});
+ const gerade=abwRechne({alpha:0,b:40});   // b wie im Auftrag, s. Abschnitt A
  p(gerade.ok===true,"senkrechter Schnitt rechnet durch");
  p(nah(gerade.hoeheMax,gerade.hoeheMin,0.001),
    "bei alpha=0 ist die Hoehe rundum gleich",[gerade.hoeheMax,gerade.hoeheMin]);
@@ -123,6 +161,13 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  p(nah(gerade.streckung,95/54.65-1,0.002),
    "beim senkrechten Schnitt ist die Streckung genau das Kreisverhaeltnis (R+b)/Rn",
    [gerade.streckung,95/54.65-1]);
+ // Dasselbe mit der Vorgabe 12: (R+b)/Rn - 1 = 67/54,65 - 1 = 22,60 %.
+ // Diese Probe ist die schaerfste im ganzen Pruefstand, weil sie EINE exakte
+ // Zahl verlangt und nicht nur eine Groessenordnung.
+ const gerade12=abwRechne({alpha:0});      // b aus der Vorgabe
+ p(nah(gerade12.streckung,67/54.65-1,0.002),
+   "mit der Vorgabe 12 ebenso: 67/54,65 - 1 = 22,60 %",
+   [gerade12.streckung,67/54.65-1]);
 
  const ohneFalz=abwRechne({f:0});
  p(nah(ohneFalz.breite,ohneFalz.L,0.001),"ohne Falz ist die Zuschnittbreite der Umfang",ohneFalz.breite);
@@ -134,13 +179,13 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
 
  // Naht an der KUERZESTEN Mantellinie: dieselben Kennzahlen, nur anders
  // herum aufgeschnitten.
- const kurz=abwRechne({nahtLang:false});
+ const kurz=abwRechne({nahtLang:false,b:40});
  p(nah(kurz.hoeheMax,r.hoeheMax)&&nah(kurz.hoeheMin,r.hoeheMin),
    "die Naht an der kuerzesten Mantellinie aendert die Hoehen nicht",[kurz.hoeheMax,kurz.hoeheMin]);
 
  // Feinheit der Stuetzpunkte: mehr Punkte duerfen das Ergebnis nicht
  // verschieben, sonst waere die Rechnung von der Aufloesung abhaengig.
- const fein=abwRechne({punkte:1440});
+ const fein=abwRechne({punkte:1440,b:40});
  p(nah(fein.hoeheMax,r.hoeheMax,0.01)&&nah(fein.zugMax,r.zugMax,0.01),
    "viermal so viele Stuetzpunkte aendern nichts",[fein.hoeheMax,fein.zugMax]);
 
@@ -210,9 +255,12 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  p(E.D==="110"&&E.lappen==="0","die Standardmasse sind vorbelegt (seit v3.189 ohne Lappen)",[E.D,E.lappen]);
  p(E.svg===true,"die Vorschau zeichnet ein SVG");
  p(E.tabelle.indexOf("361,38")>=0,"die Tabelle nennt die Zuschnittbreite 361,38",E.tabelle.slice(0,200));
- p(E.tabelle.indexOf("370,49")>=0,"und die Hoehe an der Naht 370,49");
- p(E.tabelle.indexOf("371,25")<0,"die alte Hoehe steht nicht mehr da",E.tabelle.slice(0,300));
- p(E.tabelle.indexOf("Bord fertig")>=0&&E.tabelle.indexOf("42,21")>=0,
+ // v3.195: im Formular steht die VORGABE (b = 12), nicht die Eingabe des
+ // Auftrags - die Tabelle nennt deshalb 342,49 statt 370,49.
+ p(E.tabelle.indexOf("342,49")>=0,"und die Hoehe an der Naht 342,49",E.tabelle.slice(0,300));
+ p(E.tabelle.indexOf("371,25")<0&&E.tabelle.indexOf("370,49")<0,
+   "weder die Hoehe vor v3.190 noch die vor v3.195 steht noch da",E.tabelle.slice(0,300));
+ p(E.tabelle.indexOf("Bord fertig")>=0&&E.tabelle.indexOf("14,21")>=0,
    "und die Tabelle weist aus, wie breit das Bord damit wirklich wird",E.tabelle.slice(0,400));
  p(E.projekt===true,"die Projektauswahl ist gefuellt");
 

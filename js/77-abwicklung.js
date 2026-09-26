@@ -20,18 +20,27 @@
 // H + Zugabe oben. Der Falz kommt als gerader Streifen links (Faktor A)
 // und rechts (Faktor B) dazu.
 //
-// GENAUIGKEITSMASS (Abschnitt 9 des Auftrags, Standardeingaben):
-//   Umfang 343,38 · Zuschnittbreite 361,38 · Biegewinkel 60...120°.
-// Diese drei gelten unveraendert.
+// GENAUIGKEITSMASS (Abschnitt 9 des Auftrags). Es gilt fuer die Eingaben des
+// AUFTRAGS, und dazu gehoert b = 40. Seit v3.195 ist die Vorgabe 12, deshalb
+// steht b hier ausdruecklich dabei - sonst vergleicht man zwei verschiedene
+// Bleche:
+//   mit b = 40:  Umfang 343,38 · Zuschnittbreite 361,38 · Biegewinkel 60...120°
+// Umfang, Zuschnittbreite und Biegewinkel haengen nicht von b ab und gelten
+// deshalb fuer jede Bordbreite.
 //
 // DREI WERTE DES AUFTRAGS GELTEN SEIT v3.190 NICHT MEHR, und zwar auf
 // ausdruecklichen Entscheid des Anwenders (konstante Zugabe statt
-// Biegeausgleich je Punkt, siehe unten):
+// Biegeausgleich je Punkt, siehe unten). Auch sie mit b = 40:
 //   Schweifbord-Zugabe  37,13...40,10  ->  39,34 (ueberall dieselbe)
 //   Hoehe max           371,25         ->  370,49
 //   Hoehe min           305,17         ->  307,38
 // Wer diese Datei einmal gegen das Fusion-360-Script haelt, findet dort
 // weiterhin die alten Zahlen. Das ist kein Fehler, sondern der Entscheid.
+//
+// MIT DER VORGABE SEIT v3.195 (b = 12) kommt heraus:
+//   Umfang 343,38 · Zuschnittbreite 361,38 · Biegewinkel 60...120°
+//   Zugabe 11,34 (ueberall) · Hoehe 342,49 bis 279,39
+//   Bord fertig 11,24...14,21 · Streckung 21,0 %
 // ===========================================================================
 
 // ---- Vektorhilfen (wie die Referenz) --------------------------------------
@@ -56,7 +65,10 @@ function abwLaenge(liste){
 
 // ---- Standardwerte (Abschnitt 3 des Auftrags) -----------------------------
 const ABW_STANDARD={
- D:110, t:0.7, H:300, alpha:30, b:40, r:2,
+ // v3.195: Schweifbord-Vorgabe 12 mm (Ansage des Betriebs). Der Auftrag
+ // nannte 40 - das war die Zahl des Fusion-360-Scripts, nicht die des
+ // Betriebs. Mit 12 faellt die Streckung am Bordrand von 68,5 auf 21 %.
+ D:110, t:0.7, H:300, alpha:30, b:12, r:2,
  // v3.189: Vorgabe 0 Lappen. Der Betrieb schweift das Bord nachher auf der
  // Maschine - Einschnitte sind bei ihm die Ausnahme, nicht die Regel.
  nahtLang:true, f:6, faktorA:1, faktorB:2, zugabeOben:0, lappen:0

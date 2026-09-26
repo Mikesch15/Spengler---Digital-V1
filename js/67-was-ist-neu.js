@@ -308,7 +308,12 @@ const WIN_CHANGELOG={
   "<b>Bei jedem Format steht, wie viele Blätter es wären.</b> „A4 hoch · 6 Blatt“, „A3 quer · 3 Blatt“, „A1 hoch · 1 Blatt“ – man sieht sofort, was grösseres Papier spart, und kann jederzeit umstellen. Bei gleicher Blattzahl gewinnt das kleinere Papier, sonst ginge jeder kleine Zuschnitt zum Plotter.",
   "<b>Der Drucker erfährt das Format jetzt auch.</b> Die Schablone sagt ihm die Blattgrösse in Millimetern mit, samt Lage – ohne das hätte er eine A2-Schablone weiterhin auf A4 abgeschnitten. <b>A0</b> steht nicht zur Wahl, weil es im Betrieb nicht gedruckt werden kann."],
  "3.194":["<b>Das flache Blech auf dem Dach heisst jetzt „Tablett“</b> – in v3.192 und v3.193 stand dort noch „Hablett“. Umbenannt ist es überall: Auswahl, Knopf in der Massaufnahme, Ergebnis, Hilfe, Anleitung und Datenbank.",
-  "<b>Eine vorher gespeicherte Abwicklung geht unverändert auf.</b> Datensätze aus v3.192 und v3.193 tragen intern noch den alten Namen; sie werden weiterhin als Tablett geöffnet und gerechnet. Sie als Rohr zu öffnen wäre das Schlimmste, was hier passieren könnte – die Zahlen bedeuten bei den beiden Bauteilen etwas völlig anderes."]
+  "<b>Eine vorher gespeicherte Abwicklung geht unverändert auf.</b> Datensätze aus v3.192 und v3.193 tragen intern noch den alten Namen; sie werden weiterhin als Tablett geöffnet und gerechnet. Sie als Rohr zu öffnen wäre das Schlimmste, was hier passieren könnte – die Zahlen bedeuten bei den beiden Bauteilen etwas völlig anderes."],
+ "3.195":["<b>Das Standardmass für das Schweifbord ist neu 12 mm</b> statt 40. Die 40 kam aus dem Fusion-360-Script, nicht aus dem Betrieb.",
+  "<b>Das schmale Bord wird viel weniger gestreckt:</b> 21 % statt 68,5 %. Gestreckt wird es weiterhin, die App sagt es auch – aber der Unterschied ist erheblich.",
+  "<b>Was sich dadurch ändert:</b> Zugabe 11,34 statt 39,34 mm, Höhe 342,49 bis 279,39 statt 370,49 bis 307,39 mm, Bord fertig 11,2 bis 14,2 statt 39,2 bis 42,2 mm. Umfang (343,38), Zuschnittbreite (361,38) und Biegewinkel (60…120°) bleiben unverändert – sie hängen nicht an der Bordbreite.",
+  "<b>Die Zahlen in den Einträgen zu v3.190 gelten weiter für das damalige Standardmass von 40 mm.</b> Sie sind das Protokoll dessen, was damals geändert wurde, und werden deshalb nicht umgeschrieben.",
+  "Eine gespeicherte Abwicklung behält ihre eigene Bordbreite. Das Standardmass gilt nur für eine neue."]
 };
 
 function winVersionVergleich(a,b){

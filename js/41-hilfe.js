@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.194.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.195.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1361,14 +1361,14 @@ entweder auf der Schweifmaschine oder mit <b>Lappen</b>; die Vorgabe ist
 <b>0 Lappen</b>, weil im Betrieb nachher geschweift wird.</div>
 <div class="hin"><b>Die Zugabe ist über den ganzen Zuschnitt gleich</b>
 (seit v3.190). Gerechnet wird sie mit 90°: <i>Z = (b + t/2) − 2ρ·tan45° +
-ρ·π/2</i> mit ρ = r + t/2, bei den Standardmassen 39,34 mm. Ein Streifen,
+ρ·π/2</i> mit ρ = r + t/2, bei den Standardmassen 11,34 mm. Ein Streifen,
 der über die Länge schwankt, lässt sich nicht anreissen – und geschweift
 wird nachher ohnehin, dabei wandert das Material.</div>
 <div class="hin"><b>Was das kostet, steht in der Tabelle.</b> Der
 Biegewinkel ist beim schrägen Anschnitt nicht überall gleich: auf der langen
 Mantellinie 60°, auf der kurzen 120° (allgemein 90° ∓ α). Mit einer
 konstanten Zugabe wird das fertige Bord deshalb nicht überall exakt so breit
-wie eingegeben – bei den Standardmassen 39,2 bis 42,2 mm statt 40. Die Zeile
+wie eingegeben – bei den Standardmassen 11,2 bis 14,2 mm statt 12. Die Zeile
 <b>Bord fertig (rechnerisch)</b> zeigt es an. Der Unterschied hängt allein
 am Biegeradius, nicht an der eingegebenen Breite.</div>
 <div class="hin">Die <b>Falzfaktoren 1 und 2</b> sind die Werkstattregel für
