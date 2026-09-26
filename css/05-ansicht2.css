@@ -1031,3 +1031,34 @@ button.a2-ablauf-st:focus-visible{outline:2px solid var(--blue);outline-offset:2
 button.a2-ablauf-st:hover .a2-ablauf-marke{border-color:var(--blue);color:var(--blue)}
 button.a2-ablauf-st:hover .a2-ablauf-text{color:var(--blue)}
 button.a2-ablauf-st:active{transform:translateY(1px)}
+
+/* ---- Der Zwecksatz (v3.204) --------------------------------------------
+   Ein Satz unter einer Überschrift, der sagt, wofür der Abschnitt da ist.
+   Gemeldet: "da ist unklar was wozu gehört und was für was dient". Eine
+   Überschrift allein beantwortet das nicht - "Material" konnte Material,
+   Zuschnitt oder beides heissen. Der Satz steht deshalb fest zur
+   Überschrift und nicht als Hinweiskasten: ein Kasten sähe aus wie eine
+   Meldung, die man wegklickt, und wäre beim zweiten Mal im Weg. */
+html.a2-an .a2-zweck{
+  margin:-4px 0 12px;padding:0 2px;
+  font-size:13px;line-height:1.45;color:var(--gray-600,#6b7280)}
+
+/* Die Unterüberschrift innerhalb eines Abschnitts (v3.204). Sie muss
+   kleiner sein als die Abschnittsüberschrift darüber, sonst stehen auf
+   der Herstellungsseite zwei gleich laute Titel übereinander und die
+   Gliederung ist wieder weg. */
+html.a2-an .a2-abschnitt-kopf.a2-unterkopf h3{
+  margin:0;font-size:13px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--gray-500,#6b7280)}
+
+/* Eine Zeile, die NUR anzeigt (v3.204). Die Dateiliste zeigt, was da ist;
+   geöffnet wird über den einen Knopf darunter. Bis v3.203 war jede Zeile
+   ein Knopf, der an denselben Ort führte wie drei weitere Zeilen - sechs
+   Wege, ein Ziel. Eine Zeile, die nach Knopf aussieht und keiner ist,
+   wäre genauso falsch: deshalb kein Pfeil, kein Zeigefinger, kein
+   Anfass-Verhalten. */
+html.a2-an .a2-zeile.a2-zeile-still{
+  cursor:default;background:var(--white,#fff)}
+html.a2-an .a2-zeile.a2-zeile-still:hover,
+html.a2-an .a2-zeile.a2-zeile-still:active{
+  background:var(--white,#fff);transform:none}

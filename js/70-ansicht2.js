@@ -138,11 +138,27 @@ const A2_BEREICHE={
 // Projektliste im Anlegen-Bereich. Sie wird beim Schliessen wieder entfernt,
 // damit die klassische Ansicht denselben Schirm unveraendert vorfindet.
 async function a2BereichStarten(id,name,tab,oeffner,marke){
+ // v3.204: Die Marke wird VOR dem Oeffnen gesetzt, nicht danach.
+ //
+ // Gemeldet: "Wenn ich auf Dateien hochladen klicke, kommt ganz kurz ein
+ // anderer Bildschirm als der erwartete." Das war kein Flackern, sondern
+ // die Reihenfolge hier: der Oeffner machte den Schirm sichtbar und LUD
+ // DANN seine Daten nach (openProjectCockpit wartet auf
+ // loadProjectCockpitData). Erst wenn das fertig war, kam die Marke, die
+ // ausblendet, was hier nichts zu suchen hat. Solange die Daten liefen,
+ // stand also das ganze alte Cockpit offen da - nicht einen Wimpernschlag
+ // lang, sondern eine Netzwerkrunde lang.
+ //
+ // Die Marke ist reines CSS und darf an einem noch verborgenen Schirm
+ // haengen; geht er wider Erwarten gar nicht auf, kommt sie unten wieder
+ // weg, damit die klassische Ansicht denselben Schirm unveraendert
+ // vorfindet.
+ const vor=$(id);
+ if(vor){ a2BereichMarkenWeg(vor); if(marke)vor.classList.add(marke) }
  await oeffner();
  const el=$(id);
- if(!el||el.hidden){ a2Zeichnen(); return false }
- a2BereichMarkenWeg(el);
- if(marke)el.classList.add(marke);
+ if(!el||el.hidden){ a2BereichMarkenWeg(el||vor); a2Zeichnen(); return false }
+ if(marke&&!el.classList.contains(marke)){ a2BereichMarkenWeg(el); el.classList.add(marke) }
  a2Zustand.bereich={id,name,tab,marke:marke||""};
  a2Zeichnen();
  window.scrollTo(0,0);
@@ -1237,17 +1253,18 @@ const A2_PROJ_REGISTER=[
  // Pruefstaenden und in gespeicherten Sitzungen. Umbenannt ist nur, was der
  // Anwender liest.
  {k:"aufmass",   name:"Massaufnahme"},
- // Produktion und Werkstatt gibt es nur, wenn die Firma die zugehoerigen
- // Untermodule eingeschaltet hat (js/47). Die Entscheidung faellt dort,
- // nicht hier - pmAktiv() ist die eine Quelle dafuer.
- // v3.203: "Material" statt "Produktion" - so heisst es im Betrieb und auf
- // der Seite, die dahinter aufgeht ("Material & Zuschnitt").
- {k:"produktion",name:"Material",          wenn:()=>a2Modul("material")},
- // v3.203: "Rüsten & Montage" statt "Werkstatt". Die Werkstatt der FIRMA
- // steht in der unteren Leiste; hier geht es um dieses eine Projekt. Zweimal
- // dasselbe Wort fuer zwei verschiedene Umfaenge war eine der gemeldeten
- // Verwechslungen.
- {k:"werkstatt", name:"Rüsten & Montage",  wenn:()=>a2Modul("werkstatt")},
+ // v3.204: EIN Register statt der zwei "Material" und "Rüsten & Montage".
+ // Beide zeigten dieselben Massaufnahmen, nur anders sortiert, und beide
+ // begannen mit einem grossen blauen Knopf aus dem Projekt hinaus - gemeldet
+ // als "unklar was wozu gehört und was für was dient". Jetzt ist es ein Weg
+ // in der Reihenfolge der Werkstatt; die Abschnitte darin heissen weiter so,
+ // wie im Betrieb gesprochen wird.
+ //
+ // Es gibt das Register nur, wenn die Firma mindestens eines der beiden
+ // Untermodule eingeschaltet hat (js/47). Die Entscheidung fällt dort,
+ // nicht hier - pmAktiv() ist die eine Quelle dafür.
+ {k:"herstellung",name:"Herstellung",
+  wenn:()=>a2Modul("material")||a2Modul("werkstatt")},
  {k:"ausmass",   name:"Ausmass"},
  {k:"rapport",   name:"Rapport"},
  // v3.203: Dateien, Fotos und Verlauf haben ein eigenes Register statt im
@@ -1261,7 +1278,7 @@ const A2_PROJ_REGISTER=[
 // dasselbe.
 const A2_STATION_REG={
  offerte:"offerte", massaufnahme:"aufmass", freigabe:"aufmass",
- ruesten:"werkstatt", montage:"werkstatt", ausmass:"ausmass"
+ ruesten:"herstellung", montage:"herstellung", ausmass:"ausmass"
 };
 function a2Modul(k){ return typeof pmAktiv==="function"&&pmAktiv(k) }
 function a2ProjRegister(){
@@ -1417,8 +1434,7 @@ function a2SeiteProjekt(){
  if(a2ProjLaedt)return html+'<div class="a2-leer">Lädt …</div>';
 
  if(a2Zustand.reg==="aufmass")   return html+a2RegAufmass(p);
- if(a2Zustand.reg==="produktion")return html+a2RegProduktion(p);
- if(a2Zustand.reg==="werkstatt") return html+a2RegWerkstatt(p);
+ if(a2Zustand.reg==="herstellung")return html+a2RegHerstellung(p);
  if(a2Zustand.reg==="ausmass")   return html+a2RegAusmass(p);
  if(a2Zustand.reg==="rapport")   return html+a2RegRapport(p);
  if(a2Zustand.reg==="offerte")   return html+a2RegOfferte(p);
@@ -1570,23 +1586,76 @@ function a2RegAufmass(p){
  }).join("")+"</div>";
 }
 
-// ---- Produktion -----------------------------------------------------------
-// "Ich moechte dieses Teil produzieren" statt "ich muss das Modul Zuschnitt
-// oeffnen". Deshalb steht hier die Massaufnahme mit ihrem Zuschnitt-
+// ---- Herstellung ----------------------------------------------------------
+// v3.204: EIN Register aus den beiden bisherigen "Material" und
+// "Rüsten & Montage".
+//
+// Gemeldet: "das ganze mit dem material und rüsten & montage passt mir noch
+// nicht ganz, da ist unklar was wozu gehört und was für was dient".
+// Zu Recht. Die zwei Register zeigten DIESELBEN Massaufnahmen, einmal nach
+// Zuschnitt-Fortschritt und einmal nach Arbeitsstand geordnet, und beide
+// begannen mit einem grossen blauen Knopf, der aus dem Projekt hinausführte.
+// Wer "Material" las, erwartete Material - bekam aber Zuschnitt-Balken; das
+// Material selbst lag hinter dem Knopf. Und "Rüsten & Montage" hiess fast
+// gleich wie "Werkstatt" in der unteren Leiste, meinte aber nur dieses eine
+// Projekt.
+//
+// Jetzt ist es ein Weg in der Reihenfolge der Werkstatt, und über jedem
+// Abschnitt steht ein Satz, der sagt, wofür er da ist:
+//   1. Material & Zuschnitt   - welches Blech, wie viele Teile, was ist geschnitten
+//   2. Rüsten & Montieren     - wo jedes Teil gerade steht
+//
+// Dazu eine Regel, die auf der ganzen Seite gilt und die Verwechslung
+// abstellt: ein BLAUER Knopf bleibt im Projekt, ein GRAUER führt hinaus.
+// Deshalb ist "Werkstatt aller Projekte" grau und steht zuunterst - er ist
+// der Ausgang, nicht der Anfang.
+//
+// Die Abschnitte hängen weiter an ihren eigenen Modulschaltern (js/47).
+// Ist nur einer eingeschaltet, steht nur er da - dann ohne Nummer, weil
+// eine "1." ohne "2." eine Reihenfolge behauptet, die es nicht gibt.
+function a2RegHerstellung(p){
+ const teile=[];
+ if(a2Modul("material"))teile.push({
+  titel:"Material & Zuschnitt",
+  zweck:"Welches Blech in welcher Stärke, wie viele Teile daraus werden und "
+       +"was davon schon zugeschnitten ist.",
+  inhalt:a2HerstMaterial(p)});
+ if(a2Modul("werkstatt"))teile.push({
+  titel:"Rüsten & Montieren",
+  zweck:"Wo jedes Teil dieses Projekts gerade steht – und wer es rüstet oder montiert.",
+  inhalt:a2HerstWerkstatt(p)});
+ // Kommt nur vor, wenn beide Schalter zwischen Zeichnen und Klick ausgehen -
+ // das Register selbst gibt es dann nicht mehr. Eine leere Seite wäre
+ // trotzdem eine schlechte Antwort.
+ if(!teile.length)return `<div class="a2-leer">Die Untermodule „Material“ und
+  „Rüsten und Montieren“ sind für diese Firma ausgeschaltet.</div>`;
+ const nummer=teile.length>1;
+ return teile.map((t,i)=>`<div class="a2-abschnitt-kopf">
+   <h2>${nummer?(i+1)+". ":""}${esc(t.titel)}</h2></div>
+  <p class="a2-zweck">${esc(t.zweck)}</p>
+  ${t.inhalt}`).join("");
+}
+
+// Abschnitt 1: Material und Zuschnitt.
+// "Ich möchte dieses Teil produzieren" statt "ich muss das Modul Zuschnitt
+// öffnen". Deshalb steht hier die Massaufnahme mit ihrem Zuschnitt-
 // Fortschritt, und der Zuschnitt ist der Knopf daran.
 //
 // Die Zahlen kommen aus zeStand()/pmatStuecke() (js/56, js/48) - denselben
 // Funktionen, die die Seite "Material & Zuschnitt" und die Werkstatt
-// verwenden. Hier wird kein Stueck ein zweites Mal gezaehlt.
-function a2RegProduktion(p){
+// verwenden. Hier wird kein Stück ein zweites Mal gezählt.
+function a2HerstMaterial(p){
  const liste=a2Mess();
+ // Blau: der Knopf bleibt im Projekt. Hinter ihm steht das Material selbst -
+ // Blech, Stärke, Verschnitt, Reststücke -, das auf dieser Seite bewusst
+ // nicht nachgebaut wird.
  let html=`<div class="a2-knopf-reihe" style="margin:0 0 12px">
   <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="matzu">
    🧱 Material &amp; Zuschnitt öffnen</button></div>`;
  if(!liste.length)return html+'<div class="a2-leer">Ohne Massaufnahme gibt es nichts zu produzieren.</div>';
  if(typeof zeStand!=="function"||!a2Modul("zuschnitt")){
   return html+`<div class="a2-leer">Das Untermodul „Zuschnitt und Abhaken“ ist
-   ausgeschaltet. Material und Zuschnitt stehen auf der Seite oben.</div>`;
+   ausgeschaltet. Material und Zuschnitt stehen hinter dem Knopf oben.</div>`;
  }
  const gesamt=(typeof zeStandListe==="function")?zeStandListe(liste):null;
  if(gesamt&&gesamt.gesamt){
@@ -1597,7 +1666,7 @@ function a2RegProduktion(p){
   return html+`<div class="a2-leer">Noch keine Massaufnahme dieses Projekts hat
    eine Zuschnittliste. Sie entsteht, sobald die Masse vollständig sind.</div>`;
  }
- html+=`<div class="a2-abschnitt-kopf"><h2>Teile je Massaufnahme</h2></div>`;
+ html+=`<div class="a2-abschnitt-kopf a2-unterkopf"><h3>Teile je Massaufnahme</h3></div>`;
  return html+mitPlan.map(m=>{
   const st=zeStand(m);
   return `<div class="a2-karte">
@@ -1623,11 +1692,11 @@ function a2FortschrittHtml(fertig,gesamt,text){
  </div>`;
 }
 
-// ---- Werkstatt ------------------------------------------------------------
-// Was in diesem Projekt zu ruesten und zu montieren ist. Die Werkstatt als
+// Abschnitt 2: Rüsten und Montieren.
+// Was in diesem Projekt zu rüsten und zu montieren ist. Die Werkstatt als
 // Ganzes (alle Projekte) bleibt der bestehende Arbeitsplatz - hier steht nur
-// der Ausschnitt dieses Projekts.
-function a2RegWerkstatt(p){
+// der Ausschnitt dieses Projekts, und der Weg dorthin steht zuunterst.
+function a2HerstWerkstatt(p){
  const liste=a2Mess();
  const gruppen=[
   {titel:"Zu rüsten",   status:["zu_ruesten"],  farbe:"rot"},
@@ -1635,26 +1704,31 @@ function a2RegWerkstatt(p){
   {titel:"Zu montieren",status:["zu_montieren"],farbe:"orange"},
   {titel:"Montiert",    status:["montiert"],    farbe:"gruen"}
  ];
- let html=`<div class="a2-knopf-reihe" style="margin:0 0 12px">
-  <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="werkstatt">
-   🔧 Ganze Werkstatt öffnen</button></div>`;
  const offen=gruppen.filter(g=>liste.some(m=>g.status.indexOf(m.workflow_status)>=0));
- if(!offen.length){
-  return html+`<div class="a2-leer">In diesem Projekt wartet nichts in der
-   Werkstatt. Massaufnahmen erscheinen hier, sobald sie freigegeben und
-   jemandem zugeteilt sind.</div>`;
- }
- return html+offen.map(g=>{
-  const drin=liste.filter(m=>g.status.indexOf(m.workflow_status)>=0);
-  return `<div class="a2-abschnitt">
-   <div class="a2-abschnitt-kopf"><h2>${esc(g.titel)}</h2>
-    <span class="a2-marke a2-m-${esc(g.farbe)}">${drin.length}</span></div>`
-   +drin.map(m=>`<button type="button" class="a2-zeile" data-a2-meas="${esc(m.id)}">
-     <span class="a2-zeile-text"><b>${esc(a2MessTitel(m))}</b>
-      <span>${esc(a2ZugeteiltText(m))}</span></span>
-     <span class="a2-zeile-pfeil">›</span></button>`).join("")
-   +"</div>";
- }).join("");
+ let html=offen.length
+  ? offen.map(g=>{
+     const drin=liste.filter(m=>g.status.indexOf(m.workflow_status)>=0);
+     return `<div class="a2-abschnitt">
+      <div class="a2-abschnitt-kopf a2-unterkopf"><h3>${esc(g.titel)}</h3>
+       <span class="a2-marke a2-m-${esc(g.farbe)}">${drin.length}</span></div>`
+      +drin.map(m=>`<button type="button" class="a2-zeile" data-a2-meas="${esc(m.id)}">
+        <span class="a2-zeile-text"><b>${esc(a2MessTitel(m))}</b>
+         <span>${esc(a2ZugeteiltText(m))}</span></span>
+        <span class="a2-zeile-pfeil">›</span></button>`).join("")
+      +"</div>";
+    }).join("")
+  : `<div class="a2-leer">In diesem Projekt wartet nichts in der Werkstatt.
+     Massaufnahmen erscheinen hier, sobald sie freigegeben und jemandem
+     zugeteilt sind.</div>`;
+ // Grau und zuunterst: dieser Knopf verlässt das Projekt. Bis v3.203 stand er
+ // gross und blau ganz oben - er sah damit aus wie der Einstieg in diese
+ // Seite, führte aber von ihr weg.
+ html+=`<div class="a2-knopf-reihe" style="margin:12px 0 0">
+   <button type="button" class="a2-knopf a2-k-grau a2-k-voll" data-a2-tu="werkstatt">
+    🔧 Werkstatt aller Projekte öffnen</button></div>
+  <p class="a2-zweck">Der gemeinsame Arbeitsplatz der Werkstatt – dort stehen
+   die Teile aller Projekte nebeneinander, nicht nur die dieses Projekts.</p>`;
+ return html;
 }
 function a2ZugeteiltText(m){
  const wer=id=>{
@@ -1754,36 +1828,33 @@ function a2RegDateien(p){
  const groesse=f=>(typeof formatFileSize==="function"&&f.size)?formatFileSize(f.size):"";
  let html=`<div class="a2-abschnitt">
   <div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(dat.length,"Datei","Dateien"))}</h2></div>`;
+ // v3.204: Die Dateien stehen hier als ANZEIGE, nicht als Knopf.
+ //
+ // Bis v3.203 war jede Zeile ein Knopf, und dazu kamen drei weitere Zeilen
+ // ("Alle Fotos", "Verlauf", "Datei hochladen oder loeschen"). Alle sechs
+ // fuehrten an denselben Ort. Das sah nach sechs Wegen aus und war einer -
+ // genau die Verwinkelung, die der Anwender gemeldet hat. Jetzt zeigt die
+ // Liste, WAS da ist, und darunter steht der EINE Knopf, der sagt, wohin er
+ // fuehrt und was man dort kann.
  html+=dat.length
   ? dat.map(f=>{
-     const zusatz=[a2Datum(f.created_at||f.uploaded_at),groesse(f)].filter(Boolean).join(" · ");
-     return `<button type="button" class="a2-zeile" data-a2-tu="cockpit">
-      <span class="a2-zeile-nr">📄</span>
+     const zusatz=[a2Datum(f.created_at||f.uploaded_at),groesse(f)].filter(Boolean).join(" \u00b7 ");
+     return `<div class="a2-zeile a2-zeile-still">
+      <span class="a2-zeile-nr">\ud83d\udcc4</span>
       <span class="a2-zeile-text"><b>${esc(f.name||"Ohne Namen")}</b>
-       <span>${esc(zusatz||"—")}</span></span>
-      <span class="a2-zeile-pfeil">›</span></button>`;
+       <span>${esc(zusatz||"\u2014")}</span></span></div>`;
     }).join("")
   : '<div class="a2-leer">Noch keine Datei zu diesem Projekt.</div>';
  html+="</div>";
- html+=`<div class="a2-abschnitt">
-  <div class="a2-abschnitt-kopf"><h2>Bilder und Verlauf</h2></div>
-  <button type="button" class="a2-zeile" data-a2-tu="cockpit">
-   <span class="a2-zeile-nr">📷</span>
-   <span class="a2-zeile-text"><b>Alle Fotos des Objekts</b>
-    <span>Aus Massaufnahmen, Ausmass, Rapporten und Dateien – mit Ausdruck</span></span>
-   <span class="a2-zeile-pfeil">›</span></button>
-  <button type="button" class="a2-zeile" data-a2-tu="cockpit">
-   <span class="a2-zeile-nr">🕓</span>
-   <span class="a2-zeile-text"><b>Verlauf</b>
-    <span>Wer wann was geändert hat</span></span>
-   <span class="a2-zeile-pfeil">›</span></button>
-  <button type="button" class="a2-zeile" data-a2-tu="cockpit">
-   <span class="a2-zeile-nr">⬆️</span>
-   <span class="a2-zeile-text"><b>Datei hochladen oder löschen</b>
-    <span>In der vollständigen Projektansicht</span></span>
-   <span class="a2-zeile-pfeil">›</span></button></div>`;
+ html+=`<div class="a2-knopf-reihe" style="margin:0 0 6px">
+   <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="cockpit">
+    \ud83d\udcc2 Dateien, Fotos und Verlauf \u00f6ffnen</button></div>
+  <p class="a2-zweck">Dort kann man Dateien hochladen und l\u00f6schen, sieht alle
+   Fotos des Objekts aus Massaufnahmen, Ausmass, Rapporten und Dateien \u2013 mit
+   Ausdruck \u2013 und den Verlauf, wer wann was ge\u00e4ndert hat.</p>`;
  return html;
 }
+
 // ---- Regierapport ---------------------------------------------------------
 // Seit v3.156 ein eigenes Register. Derselbe Block wie zuvor unter "Mehr",
 // nur an der Stelle, an der man ihn sucht. Der Knopf zum Anlegen steht gross
