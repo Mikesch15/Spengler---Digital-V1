@@ -153,9 +153,25 @@ const wand=page=>page.evaluate(()=>{
  const ruf=await page.evaluate(()=>window.__ruf.filter(r=>r.tabelle).map(r=>r.tabelle));
  // Genau die Tabellen, die die Abschnitte des Cockpits ohnehin lesen -
  // die Fotowand selbst fragt nichts ab.
+ // v3.200: "offerten" ist dazugekommen - die selbst erstellte Offerte fuer
+ // den Kunden ist ein eigener Cockpit-Abschnitt (js/79) und liest beim Laden
+ // des Projekts ihre eigene Tabelle. Gewollter Stand, kein Codefehler; die
+ // Liste wird nachgezogen, nicht der Code. Die Aussage dieses Abschnitts
+ // bleibt dieselbe: die FOTOWAND fragt nichts Eigenes ab.
  const erlaubt=["measurements","ausmass","reports","project_files","angebote",
-                "leistungen","audit_log"];
+                "offerten","leistungen","audit_log"];
  p(ruf.every(t=>erlaubt.indexOf(t)>=0),"nur die Abfragen der Abschnitte selbst",ruf);
+ // Gegenprobe zur nachgezogenen Liste, damit sie nicht zum Freibrief wird:
+ // jeder Abschnitt liest GENAU EINMAL. Eine Abfrage je Bild oder je Kachel
+ // waere genau das, was dieser Abschnitt verhindern soll.
+ const zaehl={}; ruf.forEach(t=>zaehl[t]=(zaehl[t]||0)+1);
+ p(Object.keys(zaehl).every(t=>zaehl[t]===1),
+   "und jede dieser Tabellen genau einmal, nicht einmal je Bild",zaehl);
+ // ... und die neue Offerte bringt kein Bild in die Wand: sie hat keine
+ // Fotos, die Wand muss bei denselben elf Kacheln bleiben.
+ p(zaehl.offerten===1&&w.kacheln.length===11,
+   "die selbst erstellte Offerte wird gelesen, liefert aber kein Bild",
+   [zaehl.offerten,w.kacheln.length]);
  const doppelt=erlaubt.filter(t=>ruf.filter(x=>x===t).length>1);
  p(doppelt.length===0,"keine Tabelle wird ein zweites Mal gelesen",{ruf,doppelt});
 
