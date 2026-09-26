@@ -833,6 +833,9 @@ function a2SeiteMehr(){
   {id:"einstell",   zeichen:"⚙️", text:"Einstellungen",         unter:"Firma, Katalog, Module"},
   {id:"anleitung",  zeichen:"📖", text:"Anleitung",             unter:"Das ganze Handbuch als PDF"},
   {id:"feedback",   zeichen:"💬", text:"Feedback geben",        unter:"Fehler melden, Wunsch äussern"},
+  // v3.187: Konto wechseln. Steht immer da - auch mit nur einem gemerkten
+  // Konto, denn von hier aus wird das zweite ueberhaupt erst hinzugefuegt.
+  {id:"konten",     zeichen:"🔄", text:"Konto wechseln",        unter:"Zwischen Firmen wechseln, ohne sich neu anzumelden"},
   {id:"zaehlwerk",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"}
  ];
  // v3.183: Nur fuer Administratoren - alle Punkte der Liste fuehren in
@@ -1109,6 +1112,7 @@ document.addEventListener("click",async e=>{
   // zweites Mal gezeichnet, sondern nur erzwungen sichtbar gemacht.
   if(was==="einrichtung"&&typeof einrAnzeigen==="function"){einrAnzeigen();return}
  if(was==="kontrollen"&&typeof konAnzeigen==="function"){konAnzeigen();return}
+ if(was==="konten"&&typeof kwOeffnen==="function"){kwOeffnen();return}
   // v3.157: bis v3.156 fuehrte dieser Eintrag ueber openSettingsTo() in die
   // EINSTELLUNGEN - genau dorthin, wo der Eintrag "Einstellungen" direkt
   // darueber auch schon hinfuehrte. Zwei Eintraege, ein Ziel. Jetzt oeffnet

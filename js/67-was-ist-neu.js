@@ -271,7 +271,12 @@ const WIN_CHANGELOG={
   "<b>Rot heisst: die App rechnet hier nicht.</b> Ein Blech ohne Werkstoff bekommt keine Dilatation, eine Tafel ohne Format keinen Zuschnittplan. Blau ist ein Hinweis – es funktioniert, sieht aber nach einem Versehen aus. Nur bei rot erscheint eine Karte auf der Startseite; Hinweise belegen sie nicht.",
   "<b>Manches ist Absicht.</b> Eine Position mit Preis 0.00 kann eine Beistellung sein. Der Knopf <i>„ist so gewollt“</i> hakt genau diese eine Position ab – sie zählt nicht mehr mit, bleibt aber unter <i>„x abgehakt – anzeigen“</i> sichtbar und lässt sich jederzeit wieder melden.",
   "<b>Nichts wird gespeichert ausser dem Abhaken.</b> Der Befund selbst wird jedes Mal neu aus den echten Daten gerechnet; verschwindet die Ursache, verschwindet die Meldung, ohne dass jemand etwas quittiert. Und jeder Punkt öffnet die <b>bestehende</b> Karte, in der sich das Feld ändern lässt – kein zweites Formular.",
-  "Zwei Dinge werden ausdrücklich <b>nicht</b> geprüft: Produkte ohne Barcode (das träfe fast jede Zeile und wäre Rauschen statt Kontrolle) und doppelte EDV-Nummern (die lässt die Datenbank gar nicht erst zu)."]
+  "Zwei Dinge werden ausdrücklich <b>nicht</b> geprüft: Produkte ohne Barcode (das träfe fast jede Zeile und wäre Rauschen statt Kontrolle) und doppelte EDV-Nummern (die lässt die Datenbank gar nicht erst zu)."],
+ "3.187":["<b>Zwischen zwei Konten wechseln, ohne sich neu anzumelden.</b> Oben rechts steht <b>🔄 Konto wechseln</b>, in der neuen Ansicht unter <b>Mehr → Konto wechseln</b>. Gemeint ist der Fall „eigene Firma und Testfirma“ – bisher hiess das jedes Mal abmelden, Benutzername, Passwort.",
+  "<b>Die Rechte bleiben, wie sie sind.</b> Es sind zwei getrennte Anmeldungen, beide auf diesem Gerät gespeichert; der Wechsel tauscht nur aus, welche gerade gilt. An der Datenbank ändert sich <b>nichts</b> – kein Feld, keine Regel. Für den Server ist ein Wechsel dasselbe wie eine neue Anmeldung.",
+  "<b>Die App lädt beim Wechsel neu.</b> Absicht: so bleibt garantiert nichts aus der einen Firma in der anderen stehen – keine Liste, keine Zahl, kein Zwischenspeicher.",
+  "<b>Zwei Fälle, in denen nicht gewechselt wird</b>, jeweils mit Begründung auf dem Bildschirm: ohne Verbindung (die andere Firma hätte keine Daten), und solange etwas auf die Übertragung wartet – das gehört zur jetzigen Firma und ginge verloren.",
+  "<b>Ein gemerktes Konto öffnet sich auf diesem Gerät ohne Passwort.</b> Auf einem persönlichen Arbeitsgerät ist das der Zweck; auf einem geteilten gehört es mit <b>entfernen</b> wieder weg. Das wirkt nur auf diesem Gerät – das Konto selbst bleibt unangetastet."]
 };
 
 function winVersionVergleich(a,b){

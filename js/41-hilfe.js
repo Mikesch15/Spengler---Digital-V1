@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.186.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.187.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1342,6 +1342,31 @@ eigenen Speichern-Knopf. Geschrieben wird kurz nach der letzten Eingabe, und
 unten erscheint dann <i>„✓ Gespeichert.“</i>. Geht es nicht durch, steht dort
 stattdessen der Grund. Bis 3.181 wurde bei diesen Feldern gar nichts
 geschrieben, ohne dass es auffiel.</p>`},
+
+"kontowechsel":{titel:"Konto wechseln",text:`
+<p>Wer zwei Konten hat – etwa das eigene und eines in einer Testfirma –,
+musste sich bisher jedes Mal ab- und wieder anmelden. Hier lässt sich
+zwischen Konten wechseln, die auf diesem Gerät <b>schon einmal angemeldet
+waren</b>, ohne das Passwort erneut einzugeben.</p>
+<p>Mit <b>＋ Weiteres Konto hinzufügen</b> kommt der Anmeldebildschirm; das
+bisherige Konto bleibt dabei gespeichert, und <b>↩ Zurück</b> führt ohne
+Abmelden wieder hinein.</p>
+<div class="hin"><b>Die App lädt beim Wechsel neu.</b> Das ist Absicht: so
+kann nichts aus der einen Firma in der anderen stehenbleiben – keine Liste,
+keine Zahl, kein Zwischenspeicher.</div>
+<div class="hin"><b>An den Rechten ändert sich nichts.</b> Es sind zwei
+getrennte Anmeldungen; für die Datenbank ist ein Wechsel dasselbe wie eine
+neue Anmeldung. Niemand sieht dadurch mehr, als ihm sein Konto zeigt.</div>
+<div class="warn">Ein gemerktes Konto lässt sich auf diesem Gerät
+<b>ohne Passwort</b> öffnen. Auf einem persönlichen Arbeitsgerät ist das der
+Zweck; auf einem geteilten Gerät gehört es mit <b>entfernen</b> wieder weg.
+„Entfernen“ wirkt nur auf diesem Gerät – das Konto selbst bleibt
+unangetastet.</div>
+<p>Zwei Fälle, in denen nicht gewechselt wird, mit Begründung auf dem
+Bildschirm: <b>ohne Verbindung</b> (die andere Firma hätte keine Daten) und
+solange <b>etwas auf die Übertragung wartet</b> (das gehört zur jetzigen
+Firma und ginge verloren). Gilt der gespeicherte Zugang nicht mehr – etwa
+nach einer Passwortänderung –, sagt die App das und entfernt ihn.</p>`},
 
 "einst-kontrollen":{titel:"Kontrolle der Stammdaten",text:`
 <p>Die Einrichtungs-Checkliste fragt, <b>ob</b> etwas da ist. Diese Liste

@@ -170,6 +170,17 @@ async function afterLogin(){
  // erst hier, wenn die Einstellungen geladen sind.
  if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
  if(typeof vorlageKnopfAktualisieren==="function")vorlageKnopfAktualisieren();
+ // v3.187: Dieses Konto samt frischer Sitzung auf dem Geraet merken, damit
+ // sich spaeter ohne Passwort dorthin zurueckwechseln laesst. Erst hier -
+ // companyName steht erst nach loadAllData() fest. Schlaegt es fehl
+ // (localStorage aus oder voll), gibt es eben keinen Wechsel; die
+ // Anmeldung selbst haengt nicht daran.
+ if(typeof kwMerken==="function"){ try{ await kwMerken() }catch(e){} }
+ if(typeof kwZeichnen==="function")kwZeichnen();
+ // Wurde hier ein ZWEITES Konto dazugelegt, ist der Rueckweg jetzt
+ // erledigt - Hinweis und Zurueck-Knopf gehen wieder weg.
+ if($("kwZurueck"))$("kwZurueck").hidden=true;
+ if($("kwLoginHinweis"))$("kwLoginHinweis").hidden=true;
  if(typeof wsSynchronisieren==="function"&&!offlineIstOffline()){
   wsSynchronisieren().then(b=>{
    if(b&&b.gesendet)renderProjectSelect();

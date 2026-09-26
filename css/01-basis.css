@@ -1559,3 +1559,18 @@ html.dark .rmat-unsicher{color:#e0a35c}
  background:transparent;border:1px dashed var(--line);border-radius:10px;
  padding:7px 10px;margin:0 0 10px;color:var(--muted);font-size:13px;cursor:pointer}
 .kon-zeile-schalter:hover{border-color:var(--blue);color:var(--blue)}
+
+/* ---- Konto wechseln (v3.187) --------------------------------------------
+   Eine Zeile je gemerktem Konto: Name, Firma, und die beiden Knoepfe.
+   Die Warnung darunter ist bewusst dauerhaft sichtbar - ein Konto, das
+   sich ohne Passwort oeffnen laesst, darf nicht in Vergessenheit geraten. */
+.kw-zeile{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+ padding:8px 0;border-top:1px solid var(--line)}
+.kw-zeile:first-child{border-top:0}
+.kw-text{flex:1 1 180px;min-width:0}
+.kw-klein{flex:0 0 auto;border:1px solid var(--line);border-radius:8px;
+ padding:4px 10px;font-size:12px;cursor:pointer;background:transparent}
+.kw-k-blau{border-color:var(--blue,#1565c0);color:var(--blue,#1565c0)}
+.kw-k-grau{color:var(--muted)}
+.kw-warnung{color:var(--muted);margin-top:10px}
+#kwMeldung:empty{display:none}
