@@ -703,7 +703,7 @@ const MATERIALS=[
   $("cockpitStandAngeboteZeile").hidden=false;
   projectOffertenCache=[{id:501,title:"Dachsanierung",offert_nr:"2026-014",date:"2026-09-26",
     positionen:[{quantity:2,preis:100}],rabatt_art:"prozent",rabatt_wert:0,mwst_satz:8.1}];
-  const html=a2RegMehr({id:7});
+  const html=a2RegOfferte({id:7});
   raus.hatBlock=html.indexOf("Offerte erstellen")>=0;
   raus.hatImport=html.indexOf("Offerte importieren")>=0;
   raus.hatZeile=html.indexOf('data-a2-off="501"')>=0;
@@ -716,7 +716,7 @@ const MATERIALS=[
   offerteZugriff=false;
   $("cockpitStandOffertenZeile").hidden=true;
   $("cockpitStandAngeboteZeile").hidden=true;
-  const ohne=a2RegMehr({id:7});
+  const ohne=a2RegOfferte({id:7});
   raus.ohneFreigabe=ohne.indexOf("Offerte")<0;
   return raus;
  });
