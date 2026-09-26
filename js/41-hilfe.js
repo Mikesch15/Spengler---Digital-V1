@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.185.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.186.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1342,6 +1342,35 @@ eigenen Speichern-Knopf. Geschrieben wird kurz nach der letzten Eingabe, und
 unten erscheint dann <i>„✓ Gespeichert.“</i>. Geht es nicht durch, steht dort
 stattdessen der Grund. Bis 3.181 wurde bei diesen Feldern gar nichts
 geschrieben, ohne dass es auffiel.</p>`},
+
+"einst-kontrollen":{titel:"Kontrolle der Stammdaten",text:`
+<p>Die Einrichtungs-Checkliste fragt, <b>ob</b> etwas da ist. Diese Liste
+fragt, ob das, was da ist, auch <b>stimmt</b>. Ein Katalog mit 381 Positionen
+kann vollständig aussehen und trotzdem vier Zeilen ohne Einheit enthalten –
+das sieht im Alltag niemand, weil niemand 381 Zeilen durchgeht.</p>
+<ul>
+<li><b>Rot</b> heisst: die App rechnet an dieser Stelle nicht oder falsch.
+Ein Blech ohne Werkstoff bekommt keine Dilatation, eine Tafel ohne Format
+keinen Zuschnittplan.</li>
+<li><b>Blau</b> ist ein Hinweis. Es funktioniert, sieht aber nach einem
+Versehen aus – etwa ein Reststück, das kleiner ist als das eigene
+Mindestmass und deshalb nie verwendet wird.</li>
+</ul>
+<p>Jeder Punkt hat den Knopf <b>öffnen</b>: er führt dorthin, wo sich der
+Befund beheben lässt. Es gibt hier <b>kein eigenes Formular</b> – korrigiert
+wird immer an der Stelle, an der das Feld ohnehin steht.</p>
+<div class="hin"><b>„Ist so gewollt“.</b> Manche Befunde sind Absicht: eine
+Position mit Preis 0.00 kann eine Beistellung des Kunden sein. Der Knopf
+hakt genau diese eine Position ab; sie zählt dann nicht mehr mit, bleibt
+aber unter <b>„x abgehakt – anzeigen“</b> sichtbar und lässt sich jederzeit
+wieder melden. Abhaken darf nur der Firmenadministrator.</div>
+<div class="hin">Nichts wird hier von selbst geändert, und nichts wird
+gespeichert ausser dem Abhaken: Der Befund selbst wird <b>jedes Mal neu</b>
+aus den echten Daten gerechnet. Verschwindet die Ursache, verschwindet auch
+die Meldung – ohne dass jemand etwas quittieren muss.</div>
+<p>Die Prüfung „Katalogposition, die nie vorkam“ braucht das Zählwerk. Ist es
+ausgeschaltet, fällt sie aus und sagt das – ohne Zählung wäre jede Position
+„nie benutzt“.</p>`},
 
 "einst-rollen":{titel:"Rollenbreiten des Blechlagers",text:`
 <p>Welche Blechrollen die Firma an Lager führt. Gilt <b>firmenweit</b> und

@@ -561,6 +561,11 @@ function a2SeiteHeute(){
  // liefert einrKarteHtml() einen leeren String und hier steht nichts.
  if(typeof einrKarteHtml==="function")html+=einrKarteHtml();
 
+ // v3.186: Gleich darunter die Kontrolle - aber nur, wenn sie einen
+ // echten Fehler gefunden hat. Blosse Hinweise gehoeren nicht jeden
+ // Morgen auf die Startseite; sie stehen in der Kontrolle selbst.
+ if(typeof konKarteHtml==="function")html+=konKarteHtml();
+
  // Der einmalige Hinweis nach der Umstellung. Er sagt, was sich geaendert
  // hat und wo der Weg zurueck steht - eine Ansicht, die sich ungefragt
  // aendert und nichts dazu sagt, ist eine Zumutung.
@@ -835,6 +840,10 @@ function a2SeiteMehr(){
  if(typeof einrZustaendig==="function"&&einrZustaendig())
   eintraege.push({id:"einrichtung",zeichen:"🧭",text:"Einrichtung prüfen",
    unter:"Was für den vollen Betrieb noch fehlt"});
+ // v3.186: Und die Kontrolle der Stammdaten - dieselbe Zustaendigkeit.
+ if(typeof konZustaendig==="function"&&konZustaendig())
+  eintraege.push({id:"kontrollen",zeichen:"🔎",text:"Stammdaten kontrollieren",
+   unter:"Was erfasst ist, aber nicht stimmt"});
  if(a2KnopfSichtbar("navAdminMeas"))
   eintraege.push({id:"adminmeas",zeichen:"📋",text:"Alle Massaufnahmen",unter:"Übersicht für die Firmenleitung"});
  if(a2KnopfSichtbar("navSystemAdmin"))
@@ -1099,6 +1108,7 @@ document.addEventListener("click",async e=>{
   // v3.183: zurueck auf "Heute", wo die Liste steht - sie wird nicht ein
   // zweites Mal gezeichnet, sondern nur erzwungen sichtbar gemacht.
   if(was==="einrichtung"&&typeof einrAnzeigen==="function"){einrAnzeigen();return}
+ if(was==="kontrollen"&&typeof konAnzeigen==="function"){konAnzeigen();return}
   // v3.157: bis v3.156 fuehrte dieser Eintrag ueber openSettingsTo() in die
   // EINSTELLUNGEN - genau dorthin, wo der Eintrag "Einstellungen" direkt
   // darueber auch schon hinfuehrte. Zwei Eintraege, ein Ziel. Jetzt oeffnet

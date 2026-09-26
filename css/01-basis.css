@@ -1517,3 +1517,45 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .aufgabe-termin-form{margin:6px 0;display:flex;flex-direction:column;gap:6px}
 .aufgabe-termin-form label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
 .aufgabe-termin-form input[type=date]{max-width:220px}
+
+/* ---- Kontrolle der Stammdaten (v3.186) ----------------------------------
+   Sie steht in den Einstellungen und - nur bei echten Fehlern - als Karte
+   auf der Startseite der neuen Ansicht. Die Gestaltung liegt deshalb hier
+   und nicht in css/05-ansicht2.css: dieselbe Liste wird in BEIDEN Ansichten
+   gezeigt, weil die Einstellungen beiden gehoeren.
+   Drei Stufen, klar unterscheidbar: rot hindert die App am Rechnen, blau ist
+   ein Hinweis, grau heisst "abgehakt, ist so gewollt". */
+.kon-box{display:block}
+.kon-kopfzeile{margin:0 0 10px}
+.kon-gruppe{margin:0 0 14px}
+.kon-gruppe-titel{font-weight:600;color:var(--muted);font-size:13px;
+ text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+.kon-pruefung{border:1px solid var(--line);border-radius:10px;
+ padding:9px 11px;margin:0 0 8px;background:var(--card,#fff)}
+.kon-pruefung.kon-fehler{border-color:var(--red,#c62828)}
+.kon-pruefung.kon-ok,.kon-pruefung.kon-aus{opacity:.72}
+.kon-kopf{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kon-kopf b{flex:1 1 auto;min-width:0}
+.kon-marke{flex:0 0 auto;width:20px;height:20px;border-radius:50%;
+ display:inline-flex;align-items:center;justify-content:center;
+ font-size:12px;font-weight:700;color:#fff;background:var(--muted)}
+.kon-m-fehler{background:var(--red,#c62828)}
+.kon-m-hinweis{background:var(--blue,#1565c0)}
+.kon-m-ok{background:var(--green,#2e7d32)}
+.kon-m-aus{background:var(--muted)}
+.kon-stand{color:var(--muted);flex:0 0 auto}
+.kon-warum{color:var(--muted);margin:4px 0 0}
+.kon-treffer-liste{margin:8px 0 0}
+.kon-treffer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+ padding:5px 0;border-top:1px solid var(--line)}
+.kon-treffer-text{flex:1 1 200px;min-width:0}
+.kon-treffer.kon-abgewiesen .kon-treffer-text{color:var(--muted);
+ text-decoration:line-through}
+.kon-klein{flex:0 0 auto;border:1px solid var(--line);border-radius:8px;
+ padding:3px 9px;font-size:12px;cursor:pointer;background:transparent}
+.kon-k-blau{border-color:var(--blue,#1565c0);color:var(--blue,#1565c0)}
+.kon-k-grau{color:var(--muted)}
+.kon-zeile-schalter{display:block;width:100%;text-align:left;
+ background:transparent;border:1px dashed var(--line);border-radius:10px;
+ padding:7px 10px;margin:0 0 10px;color:var(--muted);font-size:13px;cursor:pointer}
+.kon-zeile-schalter:hover{border-color:var(--blue);color:var(--blue)}

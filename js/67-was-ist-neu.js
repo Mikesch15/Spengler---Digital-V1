@@ -265,7 +265,13 @@ const WIN_CHANGELOG={
   "<b>Nichts verschwindet lautlos.</b> Über der Liste steht <i>„2 terminiert – anzeigen“</i>. Ein Tippen blendet sie wieder ein, mit dem Datum an jeder Karte und einem Knopf <b>Termin aufheben</b>. Ist nichts terminiert, steht dort auch keine Zeile.",
   "<b>Der Termin gilt für einen Schritt</b>, nicht für die ganze Massaufnahme. Wer das Rüsten auf nächste Woche legt, verschiebt damit nicht auch das Montieren – das sind zwei Arbeiten, oft von zwei verschiedenen Leuten. Und er gilt nur für <b>Ihre eigene</b> Liste: ein Termin des Rüsters ändert nichts an der Liste des Monteurs.",
   "<b>Am Ablauf ändert sich nichts.</b> Im Projekt, in der Werkstatt und in der Übersicht der Firmenleitung bleibt die Massaufnahme unverändert sichtbar. Ein Termin ist kein Weg, Arbeit verschwinden zu lassen – er räumt nur die eigene Startseite auf.",
-  "Ist der Tag erreicht, ist die Aufgabe von selbst wieder da. Ein Termin auf heute oder in der Vergangenheit wird abgewiesen – er würde nichts ändern."]
+  "Ist der Tag erreicht, ist die Aufgabe von selbst wieder da. Ein Termin auf heute oder in der Vergangenheit wird abgewiesen – er würde nichts ändern."],
+ "3.186":["<b>Die App kontrolliert jetzt die eigenen Stammdaten.</b> Unter <b>Einstellungen → Allgemein → Kontrolle der Stammdaten</b> steht, was erfasst ist, aber nicht stimmt. Die Einrichtungs-Checkliste fragt, <i>ob</i> etwas da ist – diese Liste fragt, ob es auch <i>stimmt</i>.",
+  "<b>Acht Prüfungen in vier Gruppen.</b> Blech ohne Werkstoff, Werkstoff ohne Dehnungswerte, Tafel ohne Länge oder Breite · Katalogposition ohne Einheit, Position mit Preis 0.00 · zwei Bleche mit denselben Merkmalen · und das Verwaiste: Reststück unter dem eigenen Mindestmass, Werkstoff ohne ein einziges Blech, Katalogposition, die nie vorkam.",
+  "<b>Rot heisst: die App rechnet hier nicht.</b> Ein Blech ohne Werkstoff bekommt keine Dilatation, eine Tafel ohne Format keinen Zuschnittplan. Blau ist ein Hinweis – es funktioniert, sieht aber nach einem Versehen aus. Nur bei rot erscheint eine Karte auf der Startseite; Hinweise belegen sie nicht.",
+  "<b>Manches ist Absicht.</b> Eine Position mit Preis 0.00 kann eine Beistellung sein. Der Knopf <i>„ist so gewollt“</i> hakt genau diese eine Position ab – sie zählt nicht mehr mit, bleibt aber unter <i>„x abgehakt – anzeigen“</i> sichtbar und lässt sich jederzeit wieder melden.",
+  "<b>Nichts wird gespeichert ausser dem Abhaken.</b> Der Befund selbst wird jedes Mal neu aus den echten Daten gerechnet; verschwindet die Ursache, verschwindet die Meldung, ohne dass jemand etwas quittiert. Und jeder Punkt öffnet die <b>bestehende</b> Karte, in der sich das Feld ändern lässt – kein zweites Formular.",
+  "Zwei Dinge werden ausdrücklich <b>nicht</b> geprüft: Produkte ohne Barcode (das träfe fast jede Zeile und wäre Rauschen statt Kontrolle) und doppelte EDV-Nummern (die lässt die Datenbank gar nicht erst zu)."]
 };
 
 function winVersionVergleich(a,b){

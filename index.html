@@ -191,7 +191,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.185</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.186</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -2151,7 +2151,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.185.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 103 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.186.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 105 Seiten)</a></div>
 </div>
 </div>
 
@@ -2190,6 +2190,17 @@ einer wirkt nicht auf die anderen.</div>
 <div id="pmListe" class="pm-liste" hidden></div>
 <div class="bar"><button id="savePmModule" class="green">💾 Speichern</button></div>
 <div class="small" id="pmHinweis" style="margin-top:4px" hidden></div>
+</div>
+</div>
+
+<!-- v3.186: Kontrolle der Stammdaten. Sie steht im Register "Allgemein",
+     weil sie ueber alle Register hinweg prueft - Katalog, Werkstoffe, Lager.
+     Gezeichnet wird erst beim Aufklappen (js/75): die Pruefungen sollen nicht
+     bei jedem Oeffnen der Einstellungen ueber den ganzen Katalog laufen. -->
+<div class="settings-section" data-section="kontrollen">
+<div class="settings-section-head" data-toggle-section="kontrollen"><h2>Kontrolle der Stammdaten <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-kontrollen">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div id="kontrollenBox" class="kon-box"><p class="small">Wird beim Aufklappen geprüft.</p></div>
 </div>
 </div>
 
@@ -2831,7 +2842,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.185.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.186.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -2929,6 +2940,7 @@ nicht neu installieren.</div>
 <script src="js/72-zaehlwerk-uebersicht.js"></script>
 <script src="js/73-einrichtung.js"></script>
 <script src="js/74-beispielkatalog.js"></script>
+<script src="js/75-kontrollen.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

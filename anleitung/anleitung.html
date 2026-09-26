@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.185";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.186";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.185<br>
+  Version 3.186<br>
   Stand 26. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2053,6 +2053,50 @@ erfasste Massaufnahmen.</p>
 <p>Dieses Register sehen nur Firmenadministratoren. Dort werden Firmenname, Adresse,
 Logo und MWST gepflegt, Mitarbeiter angelegt und Passwörter zurückgesetzt, Funktionen
 und Ansätze definiert und die Materialkataloge verwaltet.</p>
+<h3>Kontrolle der Stammdaten (ab 3.186)</h3>
+<p>Der geführte Start fragt, <strong>ob</strong> etwas da ist. Diese Liste
+fragt, ob das, was da ist, auch <strong>stimmt</strong>. Sie steht unter
+<strong>Einstellungen → Allgemein → Kontrolle der Stammdaten</strong> und in
+der neuen Ansicht zusätzlich unter <strong>Mehr → Stammdaten
+kontrollieren</strong>. Ein Katalog mit 381 Positionen kann vollständig
+aussehen und trotzdem vier Zeilen ohne Einheit enthalten – das sieht im
+Alltag niemand, weil niemand 381 Zeilen durchgeht.</p>
+<table class="eb-table">
+<tr><th>Geprüft wird</th><th>Was sonst passiert</th></tr>
+<tr><td><strong>Blech ohne Werkstoff</strong></td><td>Ohne Werkstoff gibt es keine Dehnungswerte – die Aufnahme rechnet die Dilatation mit dem Rückfallwert statt mit dem richtigen Material.</td></tr>
+<tr><td>Werkstoff ohne Dehnungswerte</td><td>Steht dort 0, setzt die Aufnahme gar keine Dilatation.</td></tr>
+<tr><td>Tafel ohne Länge oder Breite</td><td>Für dieses Blech kann kein Zuschnittplan entstehen.</td></tr>
+<tr><td>Katalogposition ohne Einheit</td><td>Im Rapport steht eine Menge ohne Bezug, und die Zeile rechnet keinen Betrag.</td></tr>
+<tr><td>Position mit Preis 0.00</td><td>Der Betrag der Zeile bleibt leer. Oft Absicht – dann abhaken.</td></tr>
+<tr><td>Zwei Bleche mit denselben Merkmalen</td><td>Für den Zuschnitt sind es zwei Namen für dasselbe Blech; welches im Plan landet, hängt an der Reihenfolge.</td></tr>
+<tr><td>Reststück unter dem eigenen Mindestmass</td><td>Es liegt im Lager, aber der Zuschnitt greift nie danach.</td></tr>
+<tr><td>Werkstoff, zu dem kein Blech geführt wird</td><td>Er steht in der Auswahl, aber es gibt kein Material dazu.</td></tr>
+<tr><td>Katalogposition, die nie vorkam</td><td>Meist eine Zeile aus einer Lieferantenliste, die der Betrieb gar nicht führt.</td></tr>
+</table>
+<p><strong>Rot</strong> heisst: die App rechnet an dieser Stelle nicht oder
+falsch. <strong>Blau</strong> ist ein Hinweis – es funktioniert, sieht aber
+nach einem Versehen aus. Nur bei Rot erscheint eine Karte auf der Startseite;
+Hinweise belegen sie nicht. Jeder Punkt hat den Knopf
+<span class="tasten">öffnen</span>, der dorthin führt, wo sich der Befund
+beheben lässt – es gibt <strong>kein eigenes Formular</strong>.</p>
+<div class="hin"><strong>„Ist so gewollt“.</strong> Manche Befunde sind
+Absicht: eine Position mit Preis 0.00 kann eine Beistellung des Kunden sein.
+Der Knopf hakt genau diese eine Position ab; sie zählt dann nicht mehr mit,
+bleibt aber unter <strong>„x abgehakt – anzeigen“</strong> sichtbar und lässt
+sich jederzeit wieder melden. Abhaken darf nur der Firmenadministrator.</div>
+<div class="hin">Gespeichert wird <strong>nur das Abhaken</strong>. Der Befund
+selbst wird jedes Mal neu aus den echten Daten gerechnet – verschwindet die
+Ursache, verschwindet die Meldung, ohne dass jemand etwas quittieren muss.
+Die Beispiel-Positionen einer neuen Firma werden dabei <strong>nicht</strong>
+beanstandet: sie sind mitgeliefert, nicht erfasst.</div>
+<div class="warn">Zwei Dinge prüft die App ausdrücklich <strong>nicht</strong>.
+<strong>Produkte ohne Barcode</strong> – das träfe fast jede Zeile und wäre
+Rauschen statt Kontrolle. Und <strong>doppelte EDV-Nummern</strong> – die
+lässt die Datenbank gar nicht erst zu, eine Prüfung darauf könnte nie
+anschlagen und täuschte Wachsamkeit vor. Die Prüfung „Position, die nie
+vorkam“ braucht das Zählwerk; ist es ausgeschaltet, fällt sie aus und sagt
+das.</div>
+
 <h3>Die Funktion eines Mitarbeiters</h3>
 <p>In der Mitarbeiterliste steht neben jeder Person ein Auswahlfeld <strong>Funktion</strong>
 mit den Funktionen aus <em>Funktionen/Stundenansätze</em> – zum Beispiel Polier oder
@@ -2281,7 +2325,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">26 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.185</strong>, Stand 26. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.186</strong>, Stand 26. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
