@@ -235,3 +235,143 @@ function abwRechne(roh){
   streckung, monoton
  };
 }
+
+// ===========================================================================
+// Abwicklung des Habletts der Einfassung rund, inkl. Lochausschnitt (v3.192)
+//
+// Das Hablett ist das flache Blech, das auf dem Dach liegt und durch das das
+// Rohr steigt. Seine Abwicklung ist - anders als die des Rohrs weiter oben -
+// keine schwierige Geometrie: sie ist ein Rechteck. Interessant ist nur das
+// Loch, und das ist es aus einem Grund, den man sich am Dach klarmachen muss:
+//
+//   Das Hablett liegt in der DACHFLAECHE, das Rohr steht im LOT. Ein
+//   senkrechter Zylinder, der eine geneigte Ebene schneidet, ergibt eine
+//   ELLIPSE - quer zum Gefaelle so breit wie das Rohr, in Gefaellerichtung
+//   um 1/cos(alpha) laenger. Ein rundes Loch waere schlicht falsch, und bei
+//   30 Grad fehlten in Gefaellerichtung rund 17 mm.
+//
+// LUFT (Zugabe): gerechnet wird der Schnitt eines GEDACHTEN Rohrs mit
+// Oe + 2 x Zugabe. Das ist nicht dasselbe wie "Ellipse plus Zugabe rundum" -
+// in Gefaellerichtung waechst die Luft mit 1/cos(alpha) mit, und genau so
+// steht nachher auch das Rohr im Loch. Die Vorgabe steht als Richtwert bei
+// der Einfassung rund (js/21, loch_zugabe).
+//
+// KEINE ZWEITE WAHRHEIT ZUR LAENGE: die Laenge des Zuschnitts ist
+//   Umschlag + Anreiss + a + b + c + Umschlag
+// und damit dieselbe Zahl, die einfBerechnen() in js/21 als
+// "Zuschnittbreite (Querschnitt)" ausgibt. Dort wird sie als Summe der
+// Profilstrecken gerechnet, hier direkt - der Pruefstand rechnet beide
+// gegeneinander. Ein Biegeausgleich wird BEWUSST nicht addiert, weil ihn
+// die Einfassung selbst auch nicht addiert; sonst gaebe es zwei Laengen
+// fuer dasselbe Blech.
+//
+// DIESE FUNKTION ERFINDET KEINE MASSE. Fehlt eines, kommt ein Fehler, keine
+// Vorgabe - die Vorgaben stehen bei der Einfassung rund, und von dort holt
+// sie die Oberflaeche (js/78).
+// ===========================================================================
+
+// Der Anreiss vorne ist ein festes Mass der Einfassung rund (js/21). Es wird
+// hier nicht kopiert, sondern bei jedem Aufruf von dort geholt; die 18 gelten
+// nur, wenn diese Datei ohne js/21 laeuft (Pruefstand).
+function abwHablettAnreiss(){
+ return (typeof EINF_ANREISS_LAENGE==="number"&&EINF_ANREISS_LAENGE>0)
+  ? EINF_ANREISS_LAENGE : 18;
+}
+
+function abwHablettEingaben(roh){
+ const g=(k,v)=>abwZahl(roh&&roh[k],v);
+ return {
+  D:g("D",0), alpha:g("alpha",0),
+  a:g("a",0), b:g("b",0), c:g("c",0),
+  umschlag:g("umschlag",0), massSeitlich:g("massSeitlich",0),
+  lochZugabe:g("lochZugabe",0), anreiss:g("anreiss",abwHablettAnreiss())
+ };
+}
+
+function abwHablettFehler(e){
+ const f=[];
+ if(!(e.D>0))f.push("Der Rohrdurchmesser muss grösser als 0 sein.");
+ if(!(e.alpha>=0&&e.alpha<75))f.push("Der Dachwinkel muss zwischen 0 und 75 Grad liegen.");
+ if(!(e.a>0))f.push("Mass a (Vorderkante bis Mitte Rohr) muss grösser als 0 sein.");
+ if(!(e.b>0))f.push("Mass b (Mitte Rohr bis hinten) muss grösser als 0 sein.");
+ if(!(e.c>=0))f.push("Mass c (Aufbug) darf nicht negativ sein.");
+ if(!(e.umschlag>=0))f.push("Der Umschlag darf nicht negativ sein.");
+ if(!(e.massSeitlich>=0))f.push("Das Mass seitlich neben dem Rohr darf nicht negativ sein.");
+ if(!(e.lochZugabe>=0))f.push("Die Luft am Lochausschnitt darf nicht negativ sein.");
+ if(!(e.anreiss>=0))f.push("Der Anreiss darf nicht negativ sein.");
+ return f;
+}
+
+function abwHablett(roh){
+ const e=abwHablettEingaben(roh);
+ const fehler=abwHablettFehler(e);
+ if(fehler.length)return {ok:false,bauteil:"hablett",fehler,warnungen:[],eingaben:e};
+
+ const punkte=Math.max(24,Math.round(abwZahl(roh&&roh.punkte,ABW_PUNKTE)));
+ const cosA=Math.cos(e.alpha*Math.PI/180);
+
+ // x laeuft quer zum Gefaelle (0 ... breite), y in Gefaellerichtung
+ // (0 = Vorderkante des vorderen Umschlags, laenge = Kopf des oberen).
+ const breite=e.D+2*e.umschlag+2*e.massSeitlich;
+ const laenge=e.umschlag+e.anreiss+e.a+e.b+e.c+e.umschlag;
+ const mitteX=breite/2;
+ const mitteY=e.umschlag+e.anreiss+e.a;          // Mitte Rohr
+
+ const halbQuer=e.D/2+e.lochZugabe;              // quer zum Gefaelle
+ const halbLang=halbQuer/cosA;                   // in Gefaellerichtung
+
+ const kontur=[[0,0],[breite,0],[breite,laenge],[0,laenge]];
+
+ // Biegelinien quer (ueber die ganze Breite), in der Reihenfolge des
+ // Profils aus js/21: vorderer 180er, Anreiss-Knick, Aufbug 90 Grad,
+ // Umschlag oben 135 Grad. Eine Linie mit Laenge 0 wird nicht gezeichnet.
+ const quer=[];
+ const querY=[];
+ if(e.umschlag>0)querY.push(e.umschlag);
+ if(e.anreiss>0)querY.push(e.umschlag+e.anreiss);
+ if(e.c>0){
+  querY.push(e.umschlag+e.anreiss+e.a+e.b);
+  if(e.umschlag>0)querY.push(e.umschlag+e.anreiss+e.a+e.b+e.c);
+ }else if(e.umschlag>0){
+  querY.push(e.umschlag+e.anreiss+e.a+e.b);
+ }
+ querY.forEach(y=>quer.push([[0,y],[breite,y]]));
+
+ // Biegelinien laengs: der seitliche Umschlag, derselbe, der in
+ // einfBerechnen() zweimal in der Gesamtbreite steckt.
+ const laengs=[];
+ if(e.umschlag>0){
+  laengs.push([[e.umschlag,0],[e.umschlag,laenge]]);
+  laengs.push([[breite-e.umschlag,0],[breite-e.umschlag,laenge]]);
+ }
+
+ const loch=[];
+ for(let i=0;i<punkte;i++){
+  const w=2*Math.PI*i/punkte;
+  loch.push([mitteX+halbQuer*Math.cos(w), mitteY+halbLang*Math.sin(w)]);
+ }
+
+ const warnungen=[];
+ if(halbLang>=e.a)
+  warnungen.push("Das Loch reicht bis in den Anreiss vorne (Mass a ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm). So lässt sich das Hablett nicht kanten.");
+ if(halbLang>=e.b)
+  warnungen.push("Das Loch reicht bis in den Aufbug hinten (Mass b ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm).");
+ if(halbQuer>=e.D/2+e.massSeitlich)
+  warnungen.push("Das Loch reicht bis an den seitlichen Umschlag – das Mass seitlich neben dem Rohr ist kleiner als die Luft am Lochausschnitt.");
+
+ // Die vier Ecken sind doppelt belegt (der seitliche Umschlag trifft auf den
+ // vorderen bzw. oberen) und werden wie gewohnt ausgeklinkt. Das ist KEINE
+ // Warnung: es trifft auf jedes Hablett mit Umschlag zu, und eine Warnung,
+ // die immer kommt, liest nach drei Tagen niemand mehr. Sie steht als fester
+ // Hinweis an der Vorschau (js/78).
+
+ return {
+  ok:true, bauteil:"hablett", fehler:[], warnungen, eingaben:e, punkte,
+  breite, laenge, mitteX, mitteY,
+  halbQuer, halbLang, lochQuer:2*halbQuer, lochLang:2*halbLang,
+  kontur, biegeLinien:quer.concat(laengs), loch,
+  // Damit die gemeinsamen Bausteine in js/78 (Vorschau, Schablone, DXF)
+  // beide Bauteile ohne Sonderfall zeichnen koennen.
+  oben:laenge, yb:0
+ };
+}

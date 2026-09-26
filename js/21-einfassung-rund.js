@@ -76,7 +76,13 @@ const EINFASSUNG_STANDARD = Object.freeze({
   // unbemerkt in einen echten Zuschnitt laeuft, waere schlimmer als gar
   // keine - dieselbe Ueberlegung wie bei den Preisen des Beispielkatalogs.
   rohrhoehe: 0,        // H · Rohr ab Schnittmitte bis Oberkante
-  schweifbord: 0       // b · Breite des Schweifbords in der Schnittebene
+  schweifbord: 0,      // b · Breite des Schweifbords in der Schnittebene
+  // v3.192: Luft am Lochausschnitt im Hablett. Gerechnet wird das Loch als
+  // Schnitt eines gedachten Rohrs mit Oe + 2 x Zugabe durch die Dachflaeche
+  // (js/77, abwHablett) - damit laesst sich das Rohr einsetzen, ohne zu
+  // feilen. Anders als Rohrhoehe und Schweifbord ist hier 0 ein sinnvoller
+  // Wert (Loch exakt auf Rohrmass), deshalb steht die Vorgabe auf 2.
+  loch_zugabe: 2
 });
 const EINF_EINSTELLUNGEN = "sd_einfassungRundSettings";
 
@@ -342,6 +348,7 @@ function applyEinfassungSettings() {
   setzen("einfsMassC", s.mass_c);
   setzen("einfsRohrhoehe", s.rohrhoehe);
   setzen("einfsSchweifbord", s.schweifbord);
+  setzen("einfsLochZugabe", s.loch_zugabe);
 }
 
 // ---- 7. Bedienung ----------------------------------------------------
@@ -384,11 +391,13 @@ function applyEinfassungSettings() {
       mass_b: zahl("einfsMassB") || 0,
       mass_c: zahl("einfsMassC") || 0,
       rohrhoehe: zahl("einfsRohrhoehe") || 0,
-      schweifbord: zahl("einfsSchweifbord") || 0
+      schweifbord: zahl("einfsSchweifbord") || 0,
+      // 0 ist hier erlaubt und heisst "Loch exakt auf Rohrmass".
+      loch_zugabe: Math.max(0, zahl("einfsLochZugabe") || 0)
     };
     if (!EINF_DECKUNGEN[w.deckung]) { alert("Bitte ein Deckmaterial wählen."); return; }
     const negativ = ["umschlag", "mass_seitlich", "lattenabstand", "mass_a", "mass_b", "mass_c",
-                     "rohrhoehe", "schweifbord"].some(k => w[k] < 0);
+                     "rohrhoehe", "schweifbord", "loch_zugabe"].some(k => w[k] < 0);
     if (negativ) { alert("Diese Werte dürfen nicht negativ sein."); return; }
     einfEinstellungenSichern(w);
     applyEinfassungSettings();
