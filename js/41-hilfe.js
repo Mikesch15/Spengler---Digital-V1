@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.200.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.201.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1212,7 +1212,15 @@ Katalog geht das über <b>„＋ Abschnitt“</b>, und jeder Abschnittstitel in 
 Liste lässt sich anklicken und umbenennen.</p>
 <p>Das Material wird wie im Regierapport <b>gesucht</b>. Was schon eine Menge
 hat, bleibt dabei oben stehen – eine Eingabe geht beim Weitersuchen nicht
-verloren.</p>`},
+verloren.</p>
+<p><b>Ohne Dialog geht es auch:</b> tippst du in der Positionsliste eine
+<b>EDV-Nr.</b> ins Feld „Pos.“, erscheinen die passenden Materialpositionen
+sofort darunter. Ein Klick übernimmt Nummer, Bezeichnung, Einheit und Preis;
+eine schon eingetragene Menge bleibt stehen.</p>
+<p>Der Vorschlag ist ein <b>Angebot, kein Zwang</b>. Tippst du eine Nummer,
+die es im Katalog nicht gibt, behältst du sie, und Bezeichnung, Einheit und
+Preis füllst du wie bisher von Hand aus. Ohne Klick wird nie etwas
+überschrieben.</p>`},
 
 "offerte-texte":{titel:"Vortext und Schlusstext",text:`
 <p>Der <b>Vortext</b> steht über den Positionen, der <b>Schlusstext</b> unter

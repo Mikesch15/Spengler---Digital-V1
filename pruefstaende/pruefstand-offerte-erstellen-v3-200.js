@@ -622,6 +622,119 @@ const MATERIALS=[
  p(gate.zu,"ohne Freischaltung ist die Karte weg",gate.zu);
  p(gate.geladen===0,"und es wird gar nichts geladen",gate.geladen);
 
+
+ // =========================================================================
+ console.log("\nK · Positionsnummer tippen zeigt die Materialpositionen (v3.201)");
+ await grund([]);
+ let k=await page.evaluate(()=>{
+  offPositionen=[{pos:"",description:"",quantity:2,unit:"",preis:0,abschnitt:""}];
+  renderOffPositionsTabelle();
+  const feld=$("offPositionsBody").querySelector('[data-off-pos="0"]');
+  const raus={feld:!!feld, box:!!$("offSug0"), leerVorher:$("offSug0").innerHTML===""};
+  feld.value="100";
+  feld.dispatchEvent(new Event("input",{bubbles:true}));
+  raus.treffer=[...$("offSug0").querySelectorAll("[data-off-pick-mat]")].map(d=>d.dataset.no);
+  raus.textErste=($("offSug0").querySelector("[data-off-pick-mat]")||{}).innerText||"";
+  return raus;
+ });
+ p(k.feld&&k.box,"das Positionsfeld hat eine Vorschlagsliste",k);
+ p(k.leerVorher,"leer, solange nichts getippt ist",k.leerVorher);
+ p(k.treffer.length===2&&k.treffer.indexOf("10001")>=0&&k.treffer.indexOf("10002")>=0,
+   "beim Tippen von „100“ erscheinen sofort die passenden Materialpositionen",k.treffer);
+ p(/10001/.test(k.textErste)&&/Titanzink Band/.test(k.textErste)&&/31\.45/.test(k.textErste),
+   "mit EDV-Nr., Bezeichnung und Preis",k.textErste);
+ // Uebernehmen
+ let u2=await page.evaluate(()=>{
+  $("offSug0").querySelector('[data-off-pick-mat][data-no="10001"]').click();
+  return {zeile:JSON.parse(JSON.stringify(offPositionen[0])),
+          boxLeer:$("offSug0").innerHTML==="",
+          summe:$("offSummen").textContent};
+ });
+ p(u2.zeile.pos==="10001"&&u2.zeile.description==="Titanzink Band · 0.7 mm × 670 mm"
+   &&u2.zeile.unit==="m"&&u2.zeile.preis===31.45,
+   "ein Klick uebernimmt Nummer, Bezeichnung, Einheit und Preis",u2.zeile);
+ p(u2.zeile.quantity===2,"die bereits eingetragene Menge bleibt stehen",u2.zeile.quantity);
+ p(u2.boxLeer,"die Liste schliesst sich danach",u2.boxLeer);
+ p(/62\.90/.test(u2.summe.replace(/’/g,"")),"und das Total rechnet sofort mit (2 × 31.45)",u2.summe);
+
+ // ---- der Kern der Ansage: es geht WEITERHIN auch von Hand --------------
+ let vonHand=await page.evaluate(()=>{
+  offPositionen=[{pos:"",description:"",quantity:0,unit:"",preis:0,abschnitt:""}];
+  renderOffPositionsTabelle();
+  const f=$("offPositionsBody").querySelector('[data-off-pos="0"]');
+  f.value="9999";                       // gibt es im Katalog nicht
+  f.dispatchEvent(new Event("input",{bubbles:true}));
+  const ohneTreffer=$("offSug0").innerHTML.trim()==="";
+  // alles Weitere von Hand eintragen, ohne den Katalog
+  const setz=(sel,wert)=>{const el=$("offPositionsBody").querySelector(sel);
+   el.value=wert; el.dispatchEvent(new Event("input",{bubbles:true}));};
+  setz('[data-off-desc="0"]',"Sonderanfertigung nach Skizze");
+  setz('[data-off-qty="0"]',"3");
+  setz('[data-off-unit="0"]',"Stk.");
+  setz('[data-off-preis="0"]',"250");
+  return {ohneTreffer, zeile:JSON.parse(JSON.stringify(offPositionen[0])),
+          summe:$("offSummen").textContent};
+ });
+ p(vonHand.ohneTreffer,"eine Nummer ohne Treffer zeigt keine Liste",vonHand.ohneTreffer);
+ p(vonHand.zeile.pos==="9999"&&vonHand.zeile.description==="Sonderanfertigung nach Skizze"
+   &&vonHand.zeile.quantity===3&&vonHand.zeile.unit==="Stk."&&vonHand.zeile.preis===250,
+   "eine Position laesst sich WEITERHIN vollstaendig von Hand erfassen",vonHand.zeile);
+ p(/750\.00/.test(vonHand.summe.replace(/’/g,"")),"und rechnet genauso mit",vonHand.summe);
+ // Gegenprobe: der Vorschlag darf nichts von sich aus ueberschreiben
+ let ohneKlick=await page.evaluate(()=>{
+  const f=$("offPositionsBody").querySelector('[data-off-pos="0"]');
+  f.value="10001";                      // Treffer, aber NICHT angeklickt
+  f.dispatchEvent(new Event("input",{bubbles:true}));
+  return JSON.parse(JSON.stringify(offPositionen[0]));
+ });
+ p(ohneKlick.description==="Sonderanfertigung nach Skizze"&&ohneKlick.preis===250,
+   "Gegenprobe: ohne Klick wird NICHTS ueberschrieben - der Vorschlag ist ein Angebot",
+   ohneKlick);
+
+ // =========================================================================
+ console.log("\nL · in der neuen Ansicht erreichbar (v3.201)");
+ let a2=await page.evaluate(()=>{
+  const raus={};
+  raus.cache=typeof a2Off==="function";
+  raus.oeffnen=typeof a2Oeffne==="function";
+  // Die Projektseite der neuen Ansicht bauen - mit Freischaltung.
+  offerteZugriff=true;
+  $("cockpitStandOffertenZeile").hidden=false;
+  $("cockpitStandAngeboteZeile").hidden=false;
+  projectOffertenCache=[{id:501,title:"Dachsanierung",offert_nr:"2026-014",date:"2026-09-26",
+    positionen:[{quantity:2,preis:100}],rabatt_art:"prozent",rabatt_wert:0,mwst_satz:8.1}];
+  const html=a2RegMehr({id:7});
+  raus.hatBlock=html.indexOf("Offerte erstellen")>=0;
+  raus.hatImport=html.indexOf("Offerte importieren")>=0;
+  raus.hatZeile=html.indexOf('data-a2-off="501"')>=0;
+  raus.hatNeu=html.indexOf('neueoff')>=0;
+  raus.zeigtTitel=html.indexOf("Dachsanierung")>=0;
+  // 2 × 100 = 200, + 8.1 % = 216.20
+  raus.zeigtSumme=html.indexOf("216.20")>=0;
+  raus.reihenfolge=html.indexOf("Offerte erstellen")<html.indexOf("Offerte importieren");
+  // ohne Freischaltung verschwinden beide
+  offerteZugriff=false;
+  $("cockpitStandOffertenZeile").hidden=true;
+  $("cockpitStandAngeboteZeile").hidden=true;
+  const ohne=a2RegMehr({id:7});
+  raus.ohneFreigabe=ohne.indexOf("Offerte")<0;
+  return raus;
+ });
+ p(a2.cache&&a2.oeffnen,"die neue Ansicht kennt die eigenen Offerten",a2);
+ p(a2.hatBlock,"die Projektseite zeigt den Block „Offerte erstellen“",a2);
+ p(a2.hatZeile&&a2.zeigtTitel,"mit einer Zeile je Offerte",a2);
+ p(a2.zeigtSumme,"und dem Total, mit derselben Rechnung wie ueberall",a2);
+ p(a2.hatNeu,"und dem Knopf zum Anlegen",a2);
+ p(a2.reihenfolge,"die eigene Offerte steht VOR dem Import - so laeuft der Betrieb",a2);
+ p(a2.hatImport,"der Import bleibt daneben erhalten",a2);
+ p(a2.ohneFreigabe,"ohne Freischaltung erscheint keiner der beiden Bloecke",a2.ohneFreigabe);
+ // Das Formular gehoert zu den bekannten Formularen der Ansicht - sonst
+ // bliebe es beim Wechsel auf die Startseite offen stehen.
+ let form=await page.evaluate(()=>({
+  bekannt:typeof A2_FORMULARE!=="undefined"&&A2_FORMULARE.indexOf("offerteEditModal")>=0
+ }));
+ p(form.bekannt,"das Offertformular ist der Ansicht als Formular bekannt",form);
+
  p(jsFehler.length===0,"keine JavaScript-Fehler",jsFehler);
 
  await b.close();

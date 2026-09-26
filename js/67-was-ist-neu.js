@@ -327,7 +327,10 @@ const WIN_CHANGELOG={
  "3.200":["<b>Neu: eine eigene Offerte für den Kunden schreiben.</b> Im Projekt gibt es dafür die Karte „🧾 Offerte erstellen“: Kunde, Positionen aus deinen Katalogen (Stundenansätze und Regiematerial), Rabatt, MwSt, Vor- und Schlusstext – und daraus ein <b>PDF zum Verschicken</b>, das sich gleich beim Projekt ablegen lässt.",
   "<b>Die bisherige Offertfunktion heisst jetzt „📥 Offerte importieren“</b> und bleibt unverändert. Sie ist für den umgekehrten Fall: eine bestehende, fremde Offerte einlesen und daraus die Massaufnahmen ableiten. Zwei verschiedene Vorgänge, zwei Karten – dieselbe Freigabe.",
   "Briefkopf, Adresse, Logo und MwSt-Satz kommen aus den Einstellungen; dort stehen neu auch <b>Vortext, Schlusstext und Gültigkeitsdauer</b> als Vorgabe für neue Offerten.",
-  "Was du in der Vorschau siehst, ist das PDF selbst – nicht eine nachgebaute Ansicht. Was dort steht, bekommt der Kunde."]
+  "Was du in der Vorschau siehst, ist das PDF selbst – nicht eine nachgebaute Ansicht. Was dort steht, bekommt der Kunde."],
+ "3.201":["<b>„Offerte erstellen“ ist jetzt auch in der neuen Ansicht da</b> – auf der Projektseite unter „Mehr“, zuoberst, noch vor dem Import. Vorher gab es sie nur im alten Cockpit.",
+  "<b>EDV-Nr. tippen genügt.</b> Wer in der Positionsliste eine Nummer ins Feld „Pos.“ tippt, sieht sofort die passenden Materialpositionen; ein Klick übernimmt Bezeichnung, Einheit und Preis.",
+  "Von Hand geht weiterhin alles: eine Nummer ohne Treffer bleibt stehen, und ohne Klick wird nie etwas überschrieben."]
 };
 
 function winVersionVergleich(a,b){

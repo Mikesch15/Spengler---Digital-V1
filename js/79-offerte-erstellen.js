@@ -449,7 +449,7 @@ function offAbschnittUmbenennen(alt,neu){
 // ---- Positionstabelle ------------------------------------------------------
 function offPositionZeileHtml(p,i,versteckt,titel){
  return `<tr${versteckt?' style="display:none"':""}${titel?` data-off-sek-row="${esc(titel)}"`:""}>
-<td><input data-off-pos="${i}" value="${esc(p.pos||"")}"></td>
+<td><div class="search"><input data-off-pos="${i}" value="${esc(p.pos||"")}" autocomplete="off" placeholder="EDV-Nr."><div class="suggest" id="offSug${i}"></div></div></td>
 <td><input data-off-desc="${i}" value="${esc(p.description||"")}"></td>
 <td><input data-off-qty="${i}" type="number" step=".01" value="${p.quantity||0}"></td>
 <td><input data-off-unit="${i}" value="${esc(p.unit||"")}"></td>
@@ -536,12 +536,55 @@ function offBetragAktualisieren(i){
  renderOffSummen();
 }
 
+/* v3.201: Wer eine Positionsnummer tippt, soll sofort die passenden
+ * Materialpositionen sehen - Ansage des Anwenders. Gesucht wird mit
+ * searchMaterials() aus js/06, genau wie im Regierapport und im
+ * Katalog-Dialog: eine zweite Suchlogik ueber denselben Katalog waere eine
+ * zweite Wahrheit darueber, was ein Treffer ist.
+ *
+ * Der Vorschlag ist ein ANGEBOT, kein Zwang: wer eine Nummer tippt, die es
+ * im Katalog nicht gibt, behaelt sie, und Bezeichnung, Einheit und Preis
+ * bleiben frei von Hand ausfuellbar ("Es soll aber immer noch möglich sein,
+ * die Positionen so zu erfassen wie es jetzt ist"). Uebernommen wird NUR,
+ * was angeklickt wird. */
+function offPosVorschlaege(i,text){
+ const box=$("offSug"+i);
+ if(!box)return;
+ const q=String(text||"").trim();
+ if(!q){ box.innerHTML=""; return }
+ const treffer=(typeof searchMaterials==="function")?searchMaterials(q):[];
+ box.innerHTML=treffer.map(x=>
+  `<div class="item" data-off-pick-mat="${i}" data-no="${esc(String(x[0]||""))}">`
+  +`<b>${esc(String(x[0]||""))} · ${esc(String(x[1]||""))}</b>`
+  +`<span>${esc([String(x[2]||""),String(x[3]||""),"CHF "+offFr(offZahl(x[4]))].filter(Boolean).join(" · "))}</span>`
+  +`</div>`).join("");
+ const feld=$("offPositionsBody")&&$("offPositionsBody").querySelector(`[data-off-pos="${i}"]`);
+ if(box.innerHTML&&feld&&typeof positionSuggest==="function")positionSuggest(feld,box);
+}
+// Einen Treffer uebernehmen: Nummer, Bezeichnung, Einheit und Preis in die
+// Zeile. Eine bereits eingetragene MENGE bleibt stehen - sie gehoert zur
+// Zeile, nicht zum Artikel.
+function offPosUebernehmen(i,nr){
+ const p=offPositionen[i];
+ if(!p)return false;
+ const x=offKatAlleMaterialien().find(m=>String(m[0])===String(nr));
+ if(!x)return false;
+ const dim=String(x[2]||"").trim();
+ p.pos=String(x[0]||"");
+ p.description=String(x[1]||"")+(dim?" · "+dim:"");
+ p.unit=String(x[3]||"");
+ p.preis=offZahl(x[4]);
+ return true;
+}
 if($("offPositionsBody")){
  $("offPositionsBody").addEventListener("input",e=>{
   const i=Number(e.target.dataset.offPos??e.target.dataset.offDesc??e.target.dataset.offQty??e.target.dataset.offUnit??e.target.dataset.offPreis);
   if(Number.isNaN(i)||!offPositionen[i])return;
   let geld=false;
-  if(e.target.dataset.offPos!==undefined)offPositionen[i].pos=e.target.value;
+  if(e.target.dataset.offPos!==undefined){
+   offPositionen[i].pos=e.target.value;
+   offPosVorschlaege(i,e.target.value);
+  }
   else if(e.target.dataset.offDesc!==undefined)offPositionen[i].description=e.target.value;
   else if(e.target.dataset.offUnit!==undefined)offPositionen[i].unit=e.target.value;
   else if(e.target.dataset.offQty!==undefined){offPositionen[i].quantity=offZahl(e.target.value);geld=true}
@@ -550,6 +593,18 @@ if($("offPositionsBody")){
   if(geld)offBetragAktualisieren(i);
  });
  $("offPositionsBody").addEventListener("click",e=>{
+  // Ein Treffer aus der Vorschlagsliste - vor allem anderen, sonst faenge
+  // ihn der Klapp-Zweig darunter ab.
+  const pick=e.target.closest("[data-off-pick-mat]");
+  if(pick){
+   const i=Number(pick.dataset.offPickMat);
+   if(offPosUebernehmen(i,pick.dataset.no)){
+    isDirty=true;
+    renderOffPositionsTabelle();
+   }
+   const box=$("offSug"+i); if(box)box.innerHTML="";
+   return;
+  }
   // Klick INS Titelfeld heisst umbenennen, nicht klappen.
   if(e.target.closest("[data-off-sek-name]"))return;
   const del=e.target.closest("[data-off-del]");

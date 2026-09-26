@@ -215,7 +215,7 @@ else a2BereichBeobachten();
 // Seit die Leiste auch ueber einem offenen Formular liegt, ist sie dort
 // bedienbar - ein Tipp auf "Heute" wechselt die Seite. Ohne diese Stelle
 // waeren damit die Eingaben weg, ohne dass jemand gefragt wurde.
-const A2_FORMULARE=["measurementEditModal","ausmassEditModal","angebotEditModal",
+const A2_FORMULARE=["measurementEditModal","ausmassEditModal","angebotEditModal","offerteEditModal",
  "leistungEditModal","reportScreen"];
 function a2FormularOffen(){
  return A2_FORMULARE.filter(id=>$(id)&&!$(id).hidden);
@@ -239,6 +239,7 @@ function a2FormularVerlassen(){
  if(typeof measEditReturnTo!=="undefined")measEditReturnTo="measurementsModal";
  if(typeof amEditReturnTo!=="undefined")amEditReturnTo="ausmassModal";
  if(typeof angEditReturnTo!=="undefined")angEditReturnTo="cockpitAngebote";
+ if(typeof offEditReturnTo!=="undefined")offEditReturnTo="cockpitOfferten";
  if(typeof leiEditReturnTo!=="undefined")leiEditReturnTo="cockpitLeistungen";
  if(typeof reportReturnTo!=="undefined")reportReturnTo="reportsModal";
  return true;
@@ -1036,6 +1037,8 @@ document.addEventListener("click",async e=>{
  if(am){ a2Oeffne("am",am.getAttribute("data-a2-am")); return }
  const ang=e.target.closest("[data-a2-ang]");
  if(ang){ a2Oeffne("ang",ang.getAttribute("data-a2-ang")); return }
+ const off=e.target.closest("[data-a2-off]");
+ if(off){ a2Oeffne("off",off.getAttribute("data-a2-off")); return }
  const lei=e.target.closest("[data-a2-lei]");
  if(lei){ a2Oeffne("lei",lei.getAttribute("data-a2-lei")); return }
  const rep=e.target.closest("[data-a2-rep]");
@@ -1136,6 +1139,7 @@ document.addEventListener("click",async e=>{
   if(was==="neuesam"){a2NeuerEintrag("am");return}
   if(was==="neuerrapport"){a2NeuerEintrag("rep");return}
   if(was==="neueang"){a2NeuerEintrag("ang");return}
+ if(was==="neueoff"){a2NeuerEintrag("off");return}
   if(was==="neuelei"){a2NeuerEintrag("lei");return}
   // Material & Zuschnitt und die Werkstatt sind eigene Arbeitsplaetze der
   // App - sie werden geoeffnet, nicht nachgebaut.
@@ -1632,14 +1636,32 @@ function a2RegAusmass(p){
 // Leistungen, Regierapporte, Dateien, Verlauf.
 function a2RegMehr(p){
  let html="";
+ // v3.201: die EIGENE Offerte steht zuoberst - sie ist der haeufigere Fall
+ // und im Ablauf des Betriebs der erste (PROJEKT -> OFFERTE -> ...). Der
+ // Import darunter ist der Sonderfall "es gibt schon eine".
+ if(a2KnopfSichtbar("cockpitStandOffertenZeile")){
+  const off=a2Off();
+  html+=a2MehrBlockHtml("🧾 Offerte erstellen",off.length,
+   off.map(o=>{
+    const summe=(typeof offRechnung==="function")
+     ?offRechnung(o.positionen,o.rabatt_art,o.rabatt_wert,o.mwst_satz).total:0;
+    const zusatz=[String(o.offert_nr||"").trim(),a2Datum(o.date),
+                  "CHF "+((typeof money==="function")?money(summe):summe)]
+                 .filter(Boolean).join(" · ");
+    return `<button type="button" class="a2-zeile" data-a2-off="${esc(o.id)}">
+     <span class="a2-zeile-text"><b>${esc(o.title||"Ohne Bezeichnung")}</b>
+      <span>${esc(zusatz)}</span></span>
+     <span class="a2-zeile-pfeil">›</span></button>`}).join(""),
+   "neueoff","＋ Neue Offerte für den Kunden","Noch keine eigene Offerte.");
+ }
  if(a2KnopfSichtbar("cockpitStandAngeboteZeile")){
   const ang=a2Ang();
-  html+=a2MehrBlockHtml("🧾 Offerten",ang.length,
+  html+=a2MehrBlockHtml("📥 Offerte importieren",ang.length,
    ang.map(a=>`<button type="button" class="a2-zeile" data-a2-ang="${esc(a.id)}">
      <span class="a2-zeile-text"><b>${esc(a.title||"Ohne Bezeichnung")}</b>
       <span>${esc(a2Datum(a.date)||"—")}</span></span>
      <span class="a2-zeile-pfeil">›</span></button>`).join(""),
-   "neueang","＋ Neue Offerte","Noch keine Offerte.");
+   "neueang","＋ Offerte importieren","Noch keine importierte Offerte.");
  }
  const lei=a2Lei();
  html+=a2MehrBlockHtml("🧩 Leistungen",lei.length,
@@ -1724,6 +1746,12 @@ function a2Oeffne(art,id){
   angEditReturnTo="a2Projekt";     // openAngebot setzt es selbst - danach gilt unseres
   return;
  }
+ if(art==="off"){
+  const o=finde(a2Off()); if(!o||typeof openOfferte!=="function")return;
+  openOfferte(o);
+  offEditReturnTo="a2Projekt";     // openOfferte setzt es selbst - danach gilt unseres
+  return;
+ }
  if(art==="lei"){
   const l=finde(a2Lei()); if(!l||typeof openLeistung!=="function")return;
   openLeistung(l);
@@ -1759,6 +1787,7 @@ function a2NeuerEintrag(was){
   return;
  }
  if(was==="ang"&&typeof newAngebot==="function"){newAngebot();angEditReturnTo="a2Projekt";return}
+ if(was==="off"&&typeof neueOfferte==="function"){neueOfferte();offEditReturnTo="a2Projekt";return}
  if(was==="lei"&&typeof newLeistung==="function"){newLeistung();leiEditReturnTo="a2Projekt";return}
 }
 (function a2TypWahlAnschluss(){
@@ -1842,6 +1871,17 @@ function a2NeuerEintrag(was){
   angEditZurueck=async function(){
    if(a2Aktiv()&&angEditReturnTo==="a2Projekt"){
     angEditReturnTo="cockpitAngebote";
+    await a2ProjektNeuLaden();
+    return;
+   }
+   return vorher.apply(this,arguments);
+  };
+ }
+ if(typeof offEditZurueck==="function"){
+  const vorher=offEditZurueck;
+  offEditZurueck=async function(){
+   if(a2Aktiv()&&offEditReturnTo==="a2Projekt"){
+    offEditReturnTo="cockpitOfferten";
     await a2ProjektNeuLaden();
     return;
    }
@@ -1978,6 +2018,11 @@ function a2Ang(){
 function a2Am(){
  return (typeof projectAusmassCache!=="undefined"&&Array.isArray(projectAusmassCache))
   ?projectAusmassCache:[];
+}
+// v3.201: die selbst erstellten Offerten (js/79) - dieselbe Lesart wie oben.
+function a2Off(){
+ return (typeof projectOffertenCache!=="undefined"&&Array.isArray(projectOffertenCache))
+  ?projectOffertenCache:[];
 }
 // Welche Stationen ueberhaupt gezeigt werden. Ist der Arbeitsablauf
 // firmenweit aus, gibt es die drei mittleren Stationen nicht - dann waere
