@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.202.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.203.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -39,7 +39,19 @@ Leiste mit Heute, Projekte, Werkstatt, Lager und Mehr, und als Startseite deine
 offenen Aufgaben. Es sind zwei Ansichten derselben App – dieselben Formulare,
 dieselben Daten, dieselben Rechte. Zurück geht es jederzeit unter
 <b>Mehr → Zurück zur klassischen Ansicht</b>; jedes Gerät merkt sich seine Wahl
-für sich.</p>`},
+für sich.</p>
+<p><b>Die Projektseite der neuen Ansicht (seit v3.203).</b> Oben stehen die
+Register des Projekts: Übersicht, Offerte, Massaufnahme, Material, Rüsten &amp;
+Montage, Ausmass, Rapport, Dateien. Jedes ist einen Griff entfernt – es gibt
+keinen Sammelpunkt „Mehr“ mehr, hinter dem sich etwas versteckt.</p>
+<p>Die <b>Ablaufkette</b> in der Übersicht (Offerte → Massaufnahme → Freigabe →
+Rüsten → Montage → Ausmass) zeigt nicht nur, wie weit das Projekt ist – sie ist
+<b>anklickbar</b>. Ein Tipp auf eine Station führt in ihr Register. Die Kette
+und die Register sind damit dieselbe Landkarte, nicht zwei verschiedene.</p>
+<p>Zwei Namen sind dabei genauer geworden: das Projekt-Register heisst
+<b>„Rüsten &amp; Montage“</b> (die <b>Werkstatt</b> unten in der Leiste ist die
+der ganzen Firma, nicht die dieses Projekts), und aus „Produktion“ wurde
+<b>„Material“</b> – so wie die Seite heisst, die dahinter aufgeht.</p>`},
 
 // ---- Arbeitsworkflow (v3.05) --------------------------------------------
 "aufgaben":{titel:"Meine offenen Aufgaben",text:`

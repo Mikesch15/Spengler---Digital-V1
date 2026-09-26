@@ -331,6 +331,10 @@ const WIN_CHANGELOG={
  "3.201":["<b>„Offerte erstellen“ ist jetzt auch in der neuen Ansicht da</b> – auf der Projektseite unter „Mehr“, zuoberst, noch vor dem Import. Vorher gab es sie nur im alten Cockpit.",
   "<b>EDV-Nr. tippen genügt.</b> Wer in der Positionsliste eine Nummer ins Feld „Pos.“ tippt, sieht sofort die passenden Materialpositionen; ein Klick übernimmt Bezeichnung, Einheit und Preis.",
   "Von Hand geht weiterhin alles: eine Nummer ohne Treffer bleibt stehen, und ohne Klick wird nie etwas überschrieben."],
+ "3.203":["<b>Die Navigation der neuen Ansicht ist aufgeräumt.</b> Im Projekt gibt es keinen Sammelpunkt „Mehr …“ mehr – Offerte und Dateien haben eigene Register, und jedes ist einen Griff entfernt.",
+  "<b>Die Ablaufkette ist jetzt anklickbar.</b> Ein Tipp auf „Offerte“, „Rüsten“ oder „Ausmass“ führt direkt ins zugehörige Register. Kette und Register sind dieselbe Landkarte statt zwei verschiedener.",
+  "<b>Zwei Namen sind genauer:</b> das Projekt-Register heisst „Rüsten & Montage“ (die „Werkstatt“ unten in der Leiste ist die der ganzen Firma), und aus „Produktion“ wurde „Material“.",
+  "Das Dateien-Register zeigt die Dateien jetzt mit Namen, Datum und Grösse, statt nur die alte Projektansicht zu öffnen. Und die Seite „Mehr“ ist in Arbeiten, Firma und Verwaltung gegliedert."],
  "3.202":["<b>Behoben: „Vortext und Schlusstext“ liessen sich in der neuen Offerte nicht öffnen.</b> Der Block war zugeklappt, und ein Klick auf die Überschrift tat nichts – der Text war da, aber unerreichbar. Ein Fehler von v3.200: den vier Blöcken des Formulars fehlte der Klapp-Handler ganz. Jetzt lässt sich jeder öffnen und schliessen, auch mit der Tastatur."]
 };
 
