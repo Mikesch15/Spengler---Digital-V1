@@ -64,7 +64,23 @@ Mitarbeiter siehst du hier nie.</p>
 Anzahl und – rot – wie viele davon jetzt dran sind. Ein Tipp darauf klappt die
 Liste auf. Ob sie beim Start offen oder zu ist, stellst du unter
 <b>Einstellungen → Allgemein → Anzeige</b> ein; das gilt nur für dieses Gerät.
-Sind keine Aufgaben offen, erscheint die Karte gar nicht.</p>`},
+Sind keine Aufgaben offen, erscheint die Karte gar nicht.</p>
+<p><b>🗓 Terminieren</b> (seit v3.185): Damit verschwindet eine Aufgabe aus
+der Liste, bis das gewählte Datum da ist – für Ferien oder eine Montage, die
+erst in einem Monat stattfindet. Über der Liste steht dann
+<b>„x terminiert – anzeigen“</b>; nichts geht verloren, und mit
+<b>Termin aufheben</b> ist die Aufgabe sofort zurück.</p>
+<div class="hin">Der Termin gilt für <b>einen Schritt</b>, nicht für die ganze
+Massaufnahme: wer das Rüsten verschiebt, verschiebt nicht auch das Montieren.
+Und er gilt nur für die <b>eigene</b> Liste – die Liste eines Kollegen bleibt
+unberührt.</div>
+<div class="hin">Am <b>Ablauf ändert sich nichts</b>. Im Projekt, in der
+Werkstatt und in der Übersicht der Firmenleitung bleibt die Massaufnahme
+sichtbar. Ein Termin räumt die eigene Startseite auf – er lässt keine Arbeit
+verschwinden. Der Zähler oben zählt deshalb die <b>sichtbaren</b> Aufgaben,
+nicht die terminierten dazu.</div>
+<p>Ein Datum in der Vergangenheit oder auf heute wird abgewiesen: es würde
+nichts ändern.</p>`},
 
 "cockpit-material":{titel:"Material des Projekts",text:`
 <p>Führt zusammen, was die einzelnen Massaufnahmen dieses Projekts ohnehin
@@ -1326,23 +1342,6 @@ eigenen Speichern-Knopf. Geschrieben wird kurz nach der letzten Eingabe, und
 unten erscheint dann <i>„✓ Gespeichert.“</i>. Geht es nicht durch, steht dort
 stattdessen der Grund. Bis 3.181 wurde bei diesen Feldern gar nichts
 geschrieben, ohne dass es auffiel.</p>`},
-
-"aufgaben-termin":{titel:"Aufgabe terminieren",text:`
-<p>Mit <b>🗓 Terminieren</b> verschwindet eine Aufgabe aus der Liste, bis das
-gewählte Datum da ist – für Ferien oder eine Montage, die erst später
-stattfindet.</p>
-<p>Über der Liste steht dann <b>„x terminiert – anzeigen“</b>. Nichts geht
-verloren, und mit <b>Termin aufheben</b> ist die Aufgabe sofort zurück.</p>
-<div class="hin">Der Termin gilt für <b>einen Schritt</b>, nicht die ganze
-Massaufnahme: wer das Rüsten verschiebt, verschiebt nicht auch das Montieren.
-Und er gilt nur für die <b>eigene</b> Liste – die Liste eines Kollegen bleibt
-unberührt.</div>
-<div class="hin">Am <b>Ablauf ändert sich nichts</b>. Im Projekt, in der
-Werkstatt und in der Übersicht der Firmenleitung bleibt die Massaufnahme
-sichtbar. Ein Termin räumt die eigene Startseite auf – er lässt keine Arbeit
-verschwinden.</div>
-<p>Ein Datum in der Vergangenheit oder auf heute wird abgewiesen: es würde
-nichts ändern.</p>`},
 
 "einst-rollen":{titel:"Rollenbreiten des Blechlagers",text:`
 <p>Welche Blechrollen die Firma an Lager führt. Gilt <b>firmenweit</b> und
