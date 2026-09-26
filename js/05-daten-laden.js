@@ -124,6 +124,9 @@ async function loadAllData(){
   companyAddress=geladen.appSettings.company_address||"";
   logoUrl=geladen.appSettings.logo_url||"";
   defaultVat=geladen.appSettings.default_vat||"8.1 %";
+  offerteVortext=geladen.appSettings.offerte_vortext||"";
+  offerteSchlusstext=geladen.appSettings.offerte_schlusstext||"";
+  offerteGueltigTage=Number(geladen.appSettings.offerte_gueltig_tage)||30;
   if(geladen.appSettings.rinne_dila_mass_mm!==null&&geladen.appSettings.rinne_dila_mass_mm!==undefined)rinneDilaMass=Number(geladen.appSettings.rinne_dila_mass_mm)||0;
   if(geladen.appSettings.rinne_dila_ausmass_mass_mm!==null&&geladen.appSettings.rinne_dila_ausmass_mass_mm!==undefined)rinneDilaAusmassMass=Number(geladen.appSettings.rinne_dila_ausmass_mass_mm)||0;
   rinneNormlaengen=(geladen.appSettings.rinne_normlaengen&&typeof geladen.appSettings.rinne_normlaengen==="object")?geladen.appSettings.rinne_normlaengen:{};
@@ -179,6 +182,14 @@ function applyCompanyName(){
  const input=$("companyNameInput");if(input&&document.activeElement!==input)input.value=companyName;
  const rcInput=$("recentCountInput");if(rcInput&&document.activeElement!==rcInput)rcInput.value=recentCount;
  const addrInput=$("companyAddressInput");if(addrInput&&document.activeElement!==addrInput)addrInput.value=companyAddress;
+ // v3.200: Offerten-Vorgaben. Wie oben nur setzen, wenn das Feld nicht
+ // gerade bearbeitet wird - sonst springt die Eingabe beim Nachladen zurueck.
+ [["offerteVortextInput",offerteVortext],
+  ["offerteSchlusstextInput",offerteSchlusstext],
+  ["offerteGueltigTageInput",String(offerteGueltigTage)]].forEach(([id,wert])=>{
+  const el=$(id);
+  if(el&&document.activeElement!==el)el.value=wert;
+ });
  const vatInput=$("defaultVatInput");if(vatInput&&document.activeElement!==vatInput)vatInput.value=defaultVat;
  const printAddr=$("printAddress");if(printAddr)printAddr.textContent=companyAddress;
  const logoEl=$("printLogo");

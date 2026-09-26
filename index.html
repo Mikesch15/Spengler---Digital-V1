@@ -477,7 +477,13 @@
      Massaufnahme (Zielkette: PROJEKT -> OFFERTE -> MASSAUFNAHME -> ...).
      hidden per Vorgabe - checkOfferteZugriff() (js/63) schaltet sie nur
      fuer freigeschaltete Benutzer sichtbar, siehe COCKPIT_BEREICHE.angebote. -->
-<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="angebote" id="cockpitStandAngeboteZeile" hidden><span class="arbeitsstand-marke" id="cockpitAngeboteMark">○</span><span class="arbeitsstand-name">🧾 Offerte</span><span class="arbeitsstand-wert" id="cockpitAngeboteStand">–</span></button>
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="angebote" id="cockpitStandAngeboteZeile" hidden><span class="arbeitsstand-marke" id="cockpitAngeboteMark">○</span><span class="arbeitsstand-name">📥 Offerte importiert</span><span class="arbeitsstand-wert" id="cockpitAngeboteStand">–</span></button>
+<!-- v3.200: eigene Zeile fuer die selbst erstellte Offerte. Sie MUSS da sein,
+     auch wenn die Karte ausgeblendet ist: cockpitStandLaedt() (js/24) laeuft
+     ueber alle COCKPIT_BEREICHE und schreibt in mark/stand jedes Bereichs -
+     ein fehlendes Element bricht dort das ganze Cockpit ab. Versteckt wird
+     die Zeile wie bei der Import-Offerte ueber checkOfferteZugriff(). -->
+<button type="button" class="arbeitsstand-zeile" data-cockpit-goto="offerten" id="cockpitStandOffertenZeile" hidden><span class="arbeitsstand-marke" id="cockpitOffertenMark">○</span><span class="arbeitsstand-name">🧾 Offerte erstellt</span><span class="arbeitsstand-wert" id="cockpitOffertenStand">–</span></button>
 <!-- v3.37: Leistungen (Auftrag "Leistungen + zentrale Ausmass-Vorbereitung").
      Kein Feature-Schalter noetig (anders als bei der Offerte) - immer
      sichtbar, sobald das Projekt geladen ist. -->
@@ -540,10 +546,24 @@
      (tenant_boundary_angebote UND feature_boundary_angebote), siehe
      js/63-angebote.js Kopfkommentar. -->
 <div class="card klapp" id="cockpitAngeboteCard" hidden>
-<h2 class="klapp-kopf" data-klapp="angebote" role="button" tabindex="0" aria-expanded="false">🧾 Offerte<span id="cockpitAngeboteCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-angebote">i</button><span class="klapp-chevron">›</span></h2>
+<h2 class="klapp-kopf" data-klapp="angebote" role="button" tabindex="0" aria-expanded="false">📥 Offerte importieren<span id="cockpitAngeboteCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-angebote">i</button><span class="klapp-chevron">›</span></h2>
 <div class="klapp-body">
 <div class="bar"><button class="blue" id="cockpitNeueOfferte">＋ Offerte importieren</button></div>
 <div id="cockpitAngeboteBody"></div>
+</div>
+</div>
+<!-- v3.200  Offerte erstellen - die EIGENE Offerte fuer den Kunden.
+     Bewusst eine zweite Karte neben "Offerte importieren" und kein Register
+     darin: das sind zwei verschiedene Vorgaenge. Importieren heisst, eine
+     fremde, bestehende Offerte aufzunehmen, um daraus Massaufnahmen
+     abzuleiten. Erstellen heisst, dem Kunden ein Angebot zu schreiben -
+     bevor ueberhaupt etwas gemacht wurde. Dieselbe Freischaltung
+     (feature_access 'angebote') steuert beide. -->
+<div class="card klapp" id="cockpitOffertenCard" hidden>
+<h2 class="klapp-kopf" data-klapp="offerten" role="button" tabindex="0" aria-expanded="false">🧾 Offerte erstellen<span id="cockpitOffertenCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-offerten">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<div class="bar"><button class="blue" id="cockpitNeueOfferteErstellen">＋ Neue Offerte</button></div>
+<div id="cockpitOffertenBody"></div>
 </div>
 </div>
 <!-- v3.37: Leistungen - eigene Ebene zwischen Offerte und Massaufnahme.
@@ -2142,44 +2162,139 @@ einer wirkt nicht auf die anderen.</div>
 </div>
 </div>
 
-<!-- v3.199  Offertpositionen aus den Katalogen ------------------------------
-     Zwei Kataloge, eine Offerte: settings.rates (Stundenansaetze) und
-     settings.materials (Regiematerial). Mit dem Regierapport hat das NICHTS
-     zu tun - die Offerte kommt, bevor gearbeitet wurde, der Rapport danach.
-     Gemeinsam sind ihnen nur diese beiden Listen.
-     Liegt wie der Massaufnahme-Dialog UEBER dem Offerten-Formular und braucht
-     deshalb dieselbe z-index-Anhebung in css/01-basis.css. -->
-<div id="angKatalogModal" class="modal" hidden>
+<!-- v3.200  OFFERTE ERSTELLEN ------------------------------------------------
+     Die eigene Offerte fuer den Kunden. Mit der Import-Offerte darunter hat
+     sie nichts zu tun: dort wird ein fremdes Dokument aufgenommen, hier
+     entsteht ein eigenes. Beide sind ".modal"; dieser Dialog steht im
+     Dokument VOR dem Import-Formular und braucht deshalb - wie der
+     Massaufnahme-Dialog - eine z-index-Anhebung in css/01-basis.css. -->
+<div id="offerteEditModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>📋 Positionen aus dem Katalog <button type="button" class="hilfe-knopf no-print" data-hilfe="ang-katalog">i</button></h2>
-<div class="info">Trage bei den gewünschten Zeilen eine <b>Menge</b> ein. Daraus entstehen Offertpositionen – <b>Stunden</b> im einen Abschnitt, <b>Material</b> im anderen. Die Preise kommen unverändert aus dem Katalog; ändern kannst du sie danach in der Offerte.</div>
-<datalist id="angKatAbschnitte"></datalist>
+<div class="bar no-print" style="justify-content:space-between">
+<h2 id="offTitelH2" style="margin:0">🧾 Neue Offerte</h2>
+<button type="button" class="gray" id="startFromOfferteEdit" title="Zur Startseite">🏠</button>
+</div>
+<div class="small" id="offMetaInfo" hidden></div>
+<div class="info">Hier entsteht eine <b>neue Offerte für den Kunden</b> – mit Preisen aus deinen Katalogen, Rabatt, MwSt und einem PDF zum Verschicken. Eine <b>bestehende</b> Offerte einlesen und daraus Massaufnahmen ableiten: das ist die Karte „📥 Offerte importieren“. <button type="button" class="hilfe-knopf no-print" data-hilfe="offerte-erstellen">i</button></div>
+
 <div class="grid" style="margin-bottom:8px">
-<div><label>Abschnitt für die Stunden</label><input id="angKatAbschnittArbeit" list="angKatAbschnitte" placeholder="Arbeit"></div>
-<div><label>Abschnitt für das Material</label><input id="angKatAbschnittMaterial" list="angKatAbschnitte" placeholder="Material"></div>
+<div><label>Offert-Nr.</label><input id="offNr" placeholder="z. B. 2026-014"></div>
+<div><label>Datum</label><input type="date" id="offDate"></div>
+<div><label>Gültig bis</label><input type="date" id="offGueltigBis"></div>
+<div class="wide"><label>Bezeichnung</label><input id="offTitle" data-pflicht="1" placeholder="z. B. Spenglerarbeiten Dachsanierung"></div>
+<div class="wide"><label>Projekt</label>
+<div class="search"><input id="offProjectSearch" data-pflicht="1" placeholder="Projekt suchen …" autocomplete="off"><div id="offProjectResults" class="suggest"></div></div>
+<div class="small" id="offProjectSelectedLabel">Kein Projekt ausgewählt</div>
+</div>
+</div>
+
+<div class="klapp open" id="offKundeKlapp">
+<h2 class="klapp-kopf" data-klapp="off-kunde" role="button" tabindex="0" aria-expanded="true" style="margin-top:4px">👤 Kunde <button type="button" class="hilfe-knopf no-print" data-hilfe="offerte-kunde">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<div class="grid">
+<div class="wide"><label>Name / Firma</label><input id="offKundeName" placeholder="z. B. Muster AG"></div>
+<div class="wide"><label>Zusatz (z. B. z. Hd.)</label><input id="offKundeZusatz" placeholder="z. B. Herr M. Muster"></div>
+<div class="wide"><label>Strasse / Nr.</label><input id="offKundeStrasse" placeholder="z. B. Bahnhofstrasse 12"></div>
+<div class="wide"><label>PLZ / Ort</label><input id="offKundePlzOrt" placeholder="z. B. 3400 Burgdorf"></div>
+</div>
+<div class="small" style="color:var(--muted)">Deine eigene Adresse und dein Logo kommen aus den Einstellungen – dieselben, die auch der Regierapport druckt.</div>
+</div>
+</div>
+
+<div class="klapp open" id="offPositionsKlapp">
+<h2 class="klapp-kopf" data-klapp="off-positionen" role="button" tabindex="0" aria-expanded="true" style="margin-top:4px">Positionen <button type="button" class="hilfe-knopf no-print" data-hilfe="offerte-katalog">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:12%"><col style="width:34%"><col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:14%"><col style="width:8%"></colgroup>
+<thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Preis</th><th>Betrag</th><th></th></tr></thead>
+<tbody id="offPositionsBody"></tbody>
+</table>
+</div>
+<div class="bar">
+<button type="button" class="green" id="offKatalogOeffnen">📋 Aus Katalog</button>
+<button type="button" class="gray" id="offAddPosition">＋ Position</button>
+<button type="button" class="gray" id="offAddAbschnitt">＋ Abschnitt</button>
+<button type="button" class="red" id="offDeleteAllPositions">🗑 Alle löschen</button>
+</div>
+<div class="small" id="offPositionsSummary"></div>
+</div>
+</div>
+
+<div class="grid" style="margin-top:8px">
+<div><label>Rabatt</label>
+<select id="offRabattArt"><option value="prozent">in %</option><option value="betrag">in CHF</option></select>
+</div>
+<div><label>Rabatt-Wert</label><input type="number" step=".01" min="0" id="offRabattWert" value="0"></div>
+<div><label>MwSt in %</label><input type="number" step=".1" min="0" id="offMwst"></div>
+</div>
+<div id="offSummen" class="off-summen"></div>
+
+<div class="klapp" id="offTexteKlapp">
+<h2 class="klapp-kopf" data-klapp="off-texte" role="button" tabindex="0" aria-expanded="false" style="margin-top:4px">✍️ Vortext und Schlusstext <button type="button" class="hilfe-knopf no-print" data-hilfe="offerte-texte">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<label>Vortext (steht über den Positionen)</label>
+<textarea id="offVortext" rows="3" placeholder="z. B. Für die Spenglerarbeiten offerieren wir Ihnen wie folgt:"></textarea>
+<label>Schlusstext (Konditionen, steht unter dem Total)</label>
+<textarea id="offSchlusstext" rows="4" placeholder="z. B. Zahlungskonditionen, Ausführungsfrist, Gültigkeit"></textarea>
+<div class="small" style="color:var(--muted)">Die Vorgaben dafür stehen in den Einstellungen; hier lassen sie sich für diese eine Offerte anpassen.</div>
+</div>
+</div>
+
+<div class="klapp open" id="offPdfKlapp">
+<h2 class="klapp-kopf" data-klapp="off-pdf" role="button" tabindex="0" aria-expanded="true" style="margin-top:4px">📄 PDF für den Kunden <button type="button" class="hilfe-knopf no-print" data-hilfe="offerte-pdf">i</button><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<div class="bar"><button type="button" class="blue" id="offPdfErzeugen">📄 PDF erzeugen</button></div>
+<div id="offPdfBereich"></div>
+<iframe id="offPdfRahmen" class="off-pdf-rahmen" title="Vorschau der Offerte" hidden></iframe>
+</div>
+</div>
+
+<div class="bar" style="margin-top:10px">
+<button type="button" id="saveOfferte" class="green">💾 Offerte speichern</button>
+<button type="button" id="cancelOfferte" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- v3.200  Positionen aus den Katalogen (bis v3.199 versehentlich am
+     Import-Formular). Zwei Kataloge, eine Offerte: settings.rates
+     (Stundenansaetze) und settings.materials (Regiematerial). Mit dem
+     Regierapport hat das nichts zu tun - die Offerte kommt, bevor
+     gearbeitet wurde, der Rapport danach. -->
+<div id="offKatalogModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📋 Positionen aus dem Katalog <button type="button" class="hilfe-knopf no-print" data-hilfe="offerte-katalog">i</button></h2>
+<div class="info">Trage bei den gewünschten Zeilen eine <b>Menge</b> ein. Daraus entstehen Offertpositionen – <b>Stunden</b> im einen Abschnitt, <b>Material</b> im anderen. Die Preise kommen unverändert aus dem Katalog; ändern kannst du sie danach in der Offerte.</div>
+<datalist id="offKatAbschnitte"></datalist>
+<div class="grid" style="margin-bottom:8px">
+<div><label>Abschnitt für die Stunden</label><input id="offKatAbschnittArbeit" list="offKatAbschnitte" placeholder="Arbeit"></div>
+<div><label>Abschnitt für das Material</label><input id="offKatAbschnittMaterial" list="offKatAbschnitte" placeholder="Material"></div>
 </div>
 <h2 style="margin-top:4px">Stundenansätze</h2>
 <div class="scroll">
 <table class="eb-table">
 <colgroup><col style="width:56%"><col style="width:24%"><col style="width:20%"></colgroup>
 <thead><tr><th>Funktion</th><th style="text-align:right">Ansatz</th><th>Stunden</th></tr></thead>
-<tbody id="angKatRatenBody"></tbody>
+<tbody id="offKatRatenBody"></tbody>
 </table>
 </div>
 <h2 style="margin-top:10px">Regiematerial</h2>
-<input id="angKatSuche" placeholder="Material suchen (EDV-Nr. oder Bezeichnung) …" autocomplete="off">
+<input id="offKatSuche" placeholder="Material suchen (EDV-Nr. oder Bezeichnung) …" autocomplete="off">
 <div class="scroll">
 <table class="eb-table">
 <colgroup><col style="width:16%"><col style="width:44%"><col style="width:22%"><col style="width:18%"></colgroup>
 <thead><tr><th>EDV-Nr.</th><th>Bezeichnung</th><th style="text-align:right">Preis</th><th>Menge</th></tr></thead>
-<tbody id="angKatMatBody"></tbody>
+<tbody id="offKatMatBody"></tbody>
 </table>
 </div>
-<div class="small" id="angKatHinweis" style="color:var(--muted);margin-top:6px"></div>
+<div class="small" id="offKatHinweis" style="color:var(--muted);margin-top:6px"></div>
 <div class="bar">
-<button type="button" id="angKatUebernehmen" class="green">✅ In die Offerte übernehmen</button>
-<button type="button" id="angKatAbbrechen" class="gray">Abbrechen</button>
+<button type="button" id="offKatUebernehmen" class="green">✅ In die Offerte übernehmen</button>
+<button type="button" id="offKatAbbrechen" class="gray">Abbrechen</button>
 </div>
 </div>
 </div>
@@ -2213,9 +2328,6 @@ einer wirkt nicht auf die anderen.</div>
 </div>
 <div class="bar">
 <button type="button" class="gray" id="angAddPosition">＋ Position hinzufügen</button>
-<!-- v3.199: aus den beiden Katalogen waehlen, getrennt nach Zeit und Material -->
-<button type="button" class="green" id="angKatalogOeffnen">📋 Aus Katalog</button>
-<button type="button" class="gray" id="angAddAbschnitt">＋ Abschnitt</button>
 <!-- v3.149: aus den Positionen die Massaufnahmen des Auftrags ableiten -->
 <button type="button" class="blue" id="angMassaufnahmenAbleiten">📐 Massaufnahmen ableiten</button>
 <button type="button" class="red" id="angDeleteAllPositions">🗑 Alle Positionen löschen</button>
@@ -2733,6 +2845,14 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 <div class="wide"><label>Firmenname</label><input id="companyNameInput" data-pflicht="1" placeholder="z. B. PETER KÜNZI AG"></div>
 <div class="wide"><label>Firmenadresse</label><textarea id="companyAddressInput" placeholder="Strasse, PLZ Ort, Telefon"></textarea></div>
 <div><label>Standard-MWST</label><input id="defaultVatInput" placeholder="z. B. 8.1 %"></div>
+<!-- v3.200: Vorgaben fuer eine NEU angelegte Offerte. Sie stehen bei den
+     Firmendaten, weil Briefkopf, MwSt und diese Texte zusammen das Bild
+     ergeben, das beim Kunden ankommt. Beim Anlegen werden sie in die
+     Offerte kopiert und sind dort einzeln aenderbar - eine spaetere
+     Aenderung hier formuliert keine bereits geschriebene Offerte um. -->
+<div><label>Offerte: Gültigkeit in Tagen</label><input type="number" min="0" step="1" id="offerteGueltigTageInput" placeholder="30"></div>
+<div class="wide"><label>Offerte: Vortext</label><textarea id="offerteVortextInput" rows="2" placeholder="z. B. Für die Spenglerarbeiten offerieren wir Ihnen wie folgt:"></textarea></div>
+<div class="wide"><label>Offerte: Schlusstext</label><textarea id="offerteSchlusstextInput" rows="3" placeholder="z. B. Zahlungskonditionen, Ausführungsfrist"></textarea></div>
 </div>
 <label>Firmenlogo</label>
 <input type="file" id="logoInput" accept="image/*">
@@ -3129,6 +3249,11 @@ nicht neu installieren.</div>
 <script src="js/76-kontowechsel.js"></script>
 <script src="js/77-abwicklung.js"></script>
 <script src="js/78-abwicklung-ui.js"></script>
+<!-- v3.200: jsPDF liegt fest im Projekt (vendor/), nicht auf einem CDN -
+     siehe vendor/README.md: Offline-Faehigkeit, keine fremde Abhaengigkeit
+     zur Laufzeit, und die Pruefstaende fangen cdn.jsdelivr.net ab. -->
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="js/79-offerte-erstellen.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

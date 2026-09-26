@@ -339,6 +339,14 @@ let companyName="PETER KÜNZI AG";
 let companyAddress="";
 let logoUrl="";
 let defaultVat="8.1 %";
+// v3.200: Vorgaben fuer eine NEU angelegte Offerte (js/79). Sie werden beim
+// Anlegen in die Offerte kopiert, nicht bei jedem Oeffnen nachgeladen - eine
+// spaetere Aenderung der Vorgabe darf eine bereits geschriebene Offerte nicht
+// rueckwirkend umformulieren. Der MwSt-Satz kommt aus defaultVat, es gibt
+// dafuer bewusst kein zweites Feld.
+let offerteVortext="";
+let offerteSchlusstext="";
+let offerteGueltigTage=30;
 let logoDataUrl=null;
 let recentCount=Number(localStorage.getItem("sd_recentCount"))||5;
 let isDirty=false;

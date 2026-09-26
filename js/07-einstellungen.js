@@ -221,12 +221,21 @@ $("saveCompanyName").onclick=async()=>{
    company_name:name,
    company_address:$("companyAddressInput").value,
    default_vat:$("defaultVatInput").value.trim()||"8.1 %",
-   logo_url:newLogoUrl
+   logo_url:newLogoUrl,
+   // v3.200: Vorgaben fuer neue Offerten - liegen bei den Firmendaten, weil
+   // Briefkopf, MwSt und diese Texte zusammen das Erscheinungsbild der Firma
+   // nach aussen ergeben.
+   offerte_vortext:$("offerteVortextInput")?$("offerteVortextInput").value:offerteVortext,
+   offerte_schlusstext:$("offerteSchlusstextInput")?$("offerteSchlusstextInput").value:offerteSchlusstext,
+   offerte_gueltig_tage:Math.max(0,Number($("offerteGueltigTageInput")?$("offerteGueltigTageInput").value:offerteGueltigTage)||30)
   });
   if(fehler)throw new Error(fehler);
   companyName=name;
   companyAddress=$("companyAddressInput").value;
   defaultVat=$("defaultVatInput").value.trim()||"8.1 %";
+  if($("offerteVortextInput"))offerteVortext=$("offerteVortextInput").value;
+  if($("offerteSchlusstextInput"))offerteSchlusstext=$("offerteSchlusstextInput").value;
+  if($("offerteGueltigTageInput"))offerteGueltigTage=Math.max(0,Number($("offerteGueltigTageInput").value)||30);
   logoUrl=newLogoUrl;
   logoDataUrl=null;
   applyCompanyName();
