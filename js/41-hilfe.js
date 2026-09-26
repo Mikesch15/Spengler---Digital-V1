@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.193.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.194.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1343,7 +1343,7 @@ unten erscheint dann <i>„✓ Gespeichert.“</i>. Geht es nicht durch, steht d
 stattdessen der Grund. Bis 3.181 wurde bei diesen Feldern gar nichts
 geschrieben, ohne dass es auffiel.</p>`},
 
-"abwicklung":{titel:"Abwicklung: Rundrohr und Hablett",text:`
+"abwicklung":{titel:"Abwicklung: Rundrohr und Tablett",text:`
 <p>Der Rechner kennt zwei <b>Bauteile</b>. Oben wird gewählt, welches gerade
 gerechnet wird; Vorschau, Ergebnis, DXF, Schablone und die gespeicherte Liste
 sind für beide dieselben.</p>
@@ -1382,7 +1382,7 @@ mit Überlappung und Passmarken.</p>
 Sie rechnet A4, A3, A2 und A1 in beiden Lagen durch und wählt das Format mit
 den <b>wenigsten Blättern</b> vor. Bei jedem Format steht in der Auswahl, wie
 viele Blätter es wären – so ist sichtbar, was grösseres Papier spart: das
-Hablett braucht auf A4 sechs Blatt, auf A3 quer drei, auf A1 eines.
+Tablett braucht auf A4 sechs Blatt, auf A3 quer drei, auf A1 eines.
 Umstellen geht jederzeit.<br>
 Bei gleicher Blattzahl gewinnt das <b>kleinere</b> Papier – sonst ginge jeder
 kleine Zuschnitt zum Plotter. <b>A0</b> steht nicht zur Wahl, weil es im
@@ -1413,11 +1413,11 @@ offen – genau das rechnet die Abwicklung. <b>Rohrhöhe</b> und
 unter <b>Einstellungen → Massaufnahmen → Einfassung Rund</b>. Eine
 <b>0</b> heisst dort „nicht gesetzt“, dann bleibt der Wert in der
 Abwicklung stehen – es wird nichts erfunden.</div>
-<h4>Hablett der Einfassung rund</h4>
-<p>Das <b>Hablett</b> ist das flache Blech, das auf dem Dach liegt und durch
+<h4>Tablett der Einfassung rund</h4>
+<p>Das <b>Tablett</b> ist das flache Blech, das auf dem Dach liegt und durch
 das das Rohr steigt. Sein Zuschnitt ist ein Rechteck; interessant ist das
 Loch.</p>
-<div class="hin"><b>Das Loch ist eine Ellipse, kein Kreis.</b> Das Hablett
+<div class="hin"><b>Das Loch ist eine Ellipse, kein Kreis.</b> Das Tablett
 liegt in der <b>Dachfläche</b>, das Rohr steht im <b>Lot</b>. Ein senkrechtes
 Rohr, das eine geneigte Ebene schneidet, ergibt eine Ellipse: quer zum
 Gefälle so breit wie das Rohr, in Gefällerichtung um <i>1/cos α</i> länger.
@@ -1436,12 +1436,12 @@ zwei Längen für dasselbe Blech wären eine zu viel.</div>
 <div class="hin">Die vier <b>Ecken</b> sind doppelt belegt: der seitliche
 Umschlag trifft auf den vorderen und den oberen. Sie werden wie gewohnt
 ausgeklinkt; die Abwicklung zeigt das Blech als Rechteck.</div>
-<p>DXF-Layer beim Hablett: <b>ZUSCHNITT</b>, <b>BIEGELINIE</b>,
+<p>DXF-Layer beim Tablett: <b>ZUSCHNITT</b>, <b>BIEGELINIE</b>,
 <b>LOCHAUSSCHNITT</b>.</p>
 <h4>Massaufnahme laden</h4>
 <div class="hin">Der Weg geht in <b>beide Richtungen</b> (seit v3.192). In der
 Massaufnahme stehen bei jeder Einfassung <b>⭕ Abwicklung Rohr</b> und
-<b>▭ Abwicklung Hablett</b>. Umgekehrt holt hier
+<b>▭ Abwicklung Tablett</b>. Umgekehrt holt hier
 <b>📥 Masse aus einer Massaufnahme holen</b> die Masse aus einer bereits
 <b>gespeicherten</b> Aufnahme „Einfassung rund“ – übernommen wird in das
 oben gewählte Bauteil. Die Materialstärke kommt dabei aus dem gespeicherten

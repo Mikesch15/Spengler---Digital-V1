@@ -2,8 +2,8 @@
 // ===========================================================================
 // Abwicklung: Oberflaeche, Ausgabe und Speichern (v3.188, v3.192)
 //
-// ZWEI BAUTEILE seit v3.192: das Rundrohr (abwRechne, js/77) und das Hablett
-// der Einfassung rund mit Lochausschnitt (abwHablett, js/77). Sie teilen
+// ZWEI BAUTEILE seit v3.192: das Rundrohr (abwRechne, js/77) und das Tablett
+// der Einfassung rund mit Lochausschnitt (abwTablett, js/77). Sie teilen
 // sich Vorschau, Ergebnis, DXF, 1:1-Schablone, Speichern und die Liste.
 // Unterschieden wird an genau zwei Stellen: welche Felder gelesen werden
 // (abwBauteil) und welche Linien es gibt (abwZeichenTeile). Alles andere ist
@@ -21,9 +21,9 @@
 // ===========================================================================
 
 const ABW_FELDER=["D","t","H","alpha","b","r","nahtLang","f","faktorA","faktorB","zugabeOben","lappen"];
-// v3.192: das zweite Bauteil. Eigene Feld-Vorsilbe "h_", damit sich die
+// v3.192: das zweite Bauteil. Eigene Feld-Vorsilbe "tab_", damit sich die
 // beiden Formulare nicht ins Gehege kommen; gerechnet wird es in js/77.
-const ABW_HABLETT_FELDER=["D","alpha","a","b","c","umschlag","massSeitlich","lochZugabe"];
+const ABW_TABLETT_FELDER=["D","alpha","a","b","c","umschlag","massSeitlich","lochZugabe"];
 let abwLetztes=null;        // das zuletzt gerechnete Ergebnis
 let abwGespeichert=[];      // die Liste aus der Datenbank
 let abwGeladenVon=null;     // id des geladenen Datensatzes (fuer den Vergleich)
@@ -36,47 +36,56 @@ let abwAufnahmen=null;
 
 function abwEl(k){ return (typeof $==="function")?$("abw_"+k):document.getElementById("abw_"+k) }
 
+// v3.194: Das Tablett hiess in v3.192 und v3.193 "Hablett" - der Betrieb
+// nennt es Tablett. Ein Datensatz aus diesen beiden Versionen traegt noch
+// den alten Namen und muss trotzdem als Tablett aufgehen; er als Rohr zu
+// oeffnen waere das Schlimmste, was hier passieren koennte. Deshalb liest
+// EINE Stelle den gespeicherten Namen, und die kennt beide.
+function abwBauteilAusDaten(x){
+ return (x==="tablett"||x==="hablett")?"tablett":"rohr";
+}
+
 // ---- Bauteil --------------------------------------------------------------
 // EINE Stelle sagt, welches Bauteil gerade gilt. Steht die Auswahl nicht im
 // HTML (aelterer Ausdruck, Pruefstand ohne Dialog), ist es das Rohr - das
 // war bis v3.191 das einzige Bauteil.
 function abwBauteil(){
  const el=(typeof $==="function")?$("abw_bauteil"):document.getElementById("abw_bauteil");
- return (el&&el.value==="hablett")?"hablett":"rohr";
+ return (el&&el.value==="tablett")?"tablett":"rohr";
 }
 function abwBauteilSetzen(b){
  const el=(typeof $==="function")?$("abw_bauteil"):document.getElementById("abw_bauteil");
- if(el)el.value=(b==="hablett")?"hablett":"rohr";
+ if(el)el.value=(b==="tablett")?"tablett":"rohr";
  abwBauteilZeigen();
 }
-// Die Vorgabemasse des Habletts kommen aus der Einfassung rund (js/21) und
+// Die Vorgabemasse des Tabletts kommen aus der Einfassung rund (js/21) und
 // werden hier NICHT noch einmal hingeschrieben - sonst gaebe es zwei
 // Vorgaben fuer dasselbe Blech.
-function abwHablettStandard(){
+function abwTablettStandard(){
  const v=(typeof einfVorgabe==="function")?einfVorgabe():{};
  const s=(typeof einfassungSettings==="object"&&einfassungSettings)||{};
  return {D:v.durchmesser, alpha:v.winkel, a:v.a, b:v.b, c:v.c,
          umschlag:s.umschlag, massSeitlich:s.mass_seitlich, lochZugabe:s.loch_zugabe};
 }
-function abwHablettFelderLesen(){
+function abwTablettFelderLesen(){
  const p={};
- ABW_HABLETT_FELDER.forEach(k=>{ const el=abwEl("h_"+k); if(el)p[k]=el.value });
+ ABW_TABLETT_FELDER.forEach(k=>{ const el=abwEl("tab_"+k); if(el)p[k]=el.value });
  return p;
 }
-function abwHablettFelderSetzen(p){
- const e=Object.assign({},abwHablettStandard(),p||{});
- ABW_HABLETT_FELDER.forEach(k=>{
-  const el=abwEl("h_"+k);
+function abwTablettFelderSetzen(p){
+ const e=Object.assign({},abwTablettStandard(),p||{});
+ ABW_TABLETT_FELDER.forEach(k=>{
+  const el=abwEl("tab_"+k);
   if(el&&e[k]!==undefined&&e[k]!==null)el.value=String(e[k]);
  });
 }
 function abwBauteilZeigen(){
  if(typeof $!=="function")return;
- const hablett=abwBauteil()==="hablett";
- if($("abwMasseRohr"))$("abwMasseRohr").hidden=hablett;
- if($("abwMasseHablett"))$("abwMasseHablett").hidden=!hablett;
- if($("abwBeschreibung"))$("abwBeschreibung").textContent=hablett
-  ? "Hablett der Einfassung rund: das flache Blech auf dem Dach. Das Loch ist eine Ellipse, weil das Rohr im Lot steht und das Blech in der Dachfläche liegt."
+ const tablett=abwBauteil()==="tablett";
+ if($("abwMasseRohr"))$("abwMasseRohr").hidden=tablett;
+ if($("abwMasseTablett"))$("abwMasseTablett").hidden=!tablett;
+ if($("abwBeschreibung"))$("abwBeschreibung").textContent=tablett
+  ? "Tablett der Einfassung rund: das flache Blech auf dem Dach. Das Loch ist eine Ellipse, weil das Rohr im Lot steht und das Blech in der Dachfläche liegt."
   : "Rundrohr, unten schräg angeschnitten, mit Schweifbord und Längsfalz. Die Masse in mm und Grad.";
 }
 
@@ -121,7 +130,7 @@ const ABW_LINIENART={
 // Leere Gruppen fallen raus: ein leerer DXF-Layer waere eine Zeile, die
 // etwas behauptet, was nicht da ist.
 function abwZeichenTeile(r){
- const g=(r&&r.bauteil==="hablett")
+ const g=(r&&r.bauteil==="tablett")
   ? [{art:"biege",linien:r.biegeLinien},{art:"loch",linien:[r.loch]}]
   : [{art:"schweifbord",linien:[r.biegeSchweifbord]},
      {art:"falz",linien:r.falzLinien},
@@ -170,14 +179,14 @@ function abwVorschauZeichnen(r){
  const box=(typeof $==="function")?$("abwVorschau"):document.getElementById("abwVorschau");
  if(!box)return;
  if(!r||!r.ok){ box.innerHTML=`<p class="small">Keine Vorschau – die Masse sind noch nicht vollständig.</p>`; return }
- const fuss=(r.bauteil==="hablett")
+ const fuss=(r.bauteil==="tablett")
   ? `Zuschnitt ${abwMm(r.breite)} × ${abwMm(r.laenge)} · Loch ${abwMm(r.lochQuer)} quer × ${abwMm(r.lochLang)} in Gefällerichtung`
   : `Zuschnittbreite ${abwMm(r.breite)} · Umfang ${abwMm(r.L)} · Höhe an der Naht ${abwMm(r.hoeheMax)}`;
- // Beim Hablett treffen die seitlichen Umschlaege auf den vorderen und den
- // oberen. Das gilt fuer jedes Hablett und ist deshalb ein fester Hinweis
+ // Beim Tablett treffen die seitlichen Umschlaege auf den vorderen und den
+ // oberen. Das gilt fuer jedes Tablett und ist deshalb ein fester Hinweis
  // und keine Warnung (siehe js/77) - eine Warnung, die immer kommt, liest
  // nach drei Tagen niemand mehr.
- const ecken=(r.bauteil==="hablett"&&r.eingaben.umschlag>0)
+ const ecken=(r.bauteil==="tablett"&&r.eingaben.umschlag>0)
   ? `<div class="small" style="color:var(--muted)">Die vier Ecken sind doppelt belegt (seitlicher Umschlag trifft auf den vorderen bzw. oberen) und werden wie gewohnt ausgeklinkt.</div>`
   : "";
  box.innerHTML=abwSvg(r)+abwLegendeHtml(r)
@@ -191,7 +200,7 @@ function abwErgebnisZeichnen(r){
  const box=(typeof $==="function")?$("abwErgebnis"):document.getElementById("abwErgebnis");
  if(!box)return;
  if(!r||!r.ok){ box.innerHTML=""; return }
- if(r.bauteil==="hablett"){
+ if(r.bauteil==="tablett"){
   box.innerHTML=`<table class="abw-tabelle">
   <tr><td>Zuschnittbreite</td><td>${abwMm(r.breite)}</td></tr>
   <tr><td>Zuschnittlänge</td><td>${abwMm(r.laenge)}</td></tr>
@@ -251,8 +260,8 @@ function abwMeldungZeigen(r){
 
 // EINE Stelle, die rechnet und zeichnet. Jede Feldaenderung ruft sie.
 function abwAktualisieren(){
- const hablett=abwBauteil()==="hablett";
- const r=hablett?abwHablett(abwHablettFelderLesen()):abwRechne(abwFelderLesen());
+ const tablett=abwBauteil()==="tablett";
+ const r=tablett?abwTablett(abwTablettFelderLesen()):abwRechne(abwFelderLesen());
  // abwRechne() kennt kein Feld "bauteil" - es gab bis v3.191 nur eines.
  if(!r.bauteil)r.bauteil="rohr";
  abwLetztes=r.ok?r:null;
@@ -312,7 +321,7 @@ function abwHerunterladen(text,name,typ){
 // und eine um 4 % verkleinerte Schablone faellt erst am Blech auf.
 //
 // v3.193: DAS FORMAT WIRD VORGESCHLAGEN, NICHT FESTGELEGT.
-// Bis v3.192 war A4 fest verdrahtet. Das Hablett (350 x 543 mm) brauchte
+// Bis v3.192 war A4 fest verdrahtet. Das Tablett (350 x 543 mm) brauchte
 // damit SECHS Blatt, und beim Rohr trug die dritte Spalte 1,4 mm Zeichnung -
 // ein ganzes Blatt fuer nichts. Die App rechnet jetzt jedes Format durch und
 // waehlt das mit den wenigsten Blaettern vor; jedes Format steht mit seiner
@@ -513,7 +522,7 @@ async function abwSpeichern(){
   bezeichnung:bez||"Abwicklung",
   project_id:projId,
   // v3.192: Ohne das Bauteil laesst sich ein gespeicherter Datensatz nicht
-  // mehr rechnen - dieselben Zahlen bedeuten bei Rohr und Hablett etwas
+  // mehr rechnen - dieselben Zahlen bedeuten bei Rohr und Tablett etwas
   // anderes. Die Spalte hat 'rohr' als Vorgabe; bis v3.191 gab es nur das.
   bauteil:r.bauteil||"rohr",
   // v3.191: Kommt die Abwicklung aus einer Massaufnahme, gehoert sie zu
@@ -524,7 +533,7 @@ async function abwSpeichern(){
   // Nur die Kennzahlen, nicht die 360 Stuetzpunkte: die Kontur laesst sich
   // aus den Parametern jederzeit wieder rechnen, und eine Kopie davon waere
   // eine zweite Wahrheit.
-  ergebnis:(r.bauteil==="hablett")
+  ergebnis:(r.bauteil==="tablett")
    ?{breite:r.breite,laenge:r.laenge,mitteY:r.mitteY,
      lochQuer:r.lochQuer,lochLang:r.lochLang}
    :{breite:r.breite,umfang:r.L,hoeheMax:r.hoeheMax,hoeheMin:r.hoeheMin,
@@ -575,8 +584,8 @@ function abwListeZeichnen(){
   const proj=abwProjektName(a.project_id);
   const e=a.ergebnis||{};
   // Ein Datensatz bis v3.191 hat keine Spalte "bauteil" - er ist ein Rohr.
-  const teil=(a.bauteil==="hablett")?"Hablett":"Rohr";
-  const mass=(a.bauteil==="hablett"&&e.breite&&e.laenge)
+  const teil=(abwBauteilAusDaten(a.bauteil)==="tablett")?"Tablett":"Rohr";
+  const mass=(abwBauteilAusDaten(a.bauteil)==="tablett"&&e.breite&&e.laenge)
    ? abwMm(e.breite)+" × "+abwMm(e.laenge)
    : (e.breite?abwMm(e.breite):"–");
   return `<div class="abw-zeile">
@@ -596,9 +605,9 @@ function abwLaden(id,alsKopie){
  const a=abwGespeichert.find(x=>String(x.id)===String(id));
  if(!a)return false;
  // Zuerst das Bauteil, dann die Masse - sonst landen sie im falschen Formular.
- const teil=(a.bauteil==="hablett")?"hablett":"rohr";
+ const teil=abwBauteilAusDaten(a.bauteil);
  abwBauteilSetzen(teil);
- if(teil==="hablett")abwHablettFelderSetzen(a.parameter||{});
+ if(teil==="tablett")abwTablettFelderSetzen(a.parameter||{});
  else abwFelderSetzen(a.parameter||{});
  if(typeof $==="function"&&$("abw_bezeichnung"))
   $("abw_bezeichnung").value=(a.bezeichnung||"")+(alsKopie?" (Kopie)":"");
@@ -637,9 +646,9 @@ async function abwAusMassaufnahme(v){
  if(!v||typeof $!=="function")return false;
  await abwOeffnen();
  // v3.192: erst das Bauteil umschalten, dann die Felder fuellen.
- const teil=(v.bauteil==="hablett")?"hablett":"rohr";
+ const teil=abwBauteilAusDaten(v.bauteil);
  abwBauteilSetzen(teil);
- const vorsilbe=(teil==="hablett")?"h_":"";
+ const vorsilbe=(teil==="tablett")?"tab_":"";
  const w=v.werte||{};
  Object.keys(w).forEach(k=>{
   const el=abwEl(vorsilbe+k);
@@ -705,7 +714,7 @@ function abwAufnahmenZeichnen(){
     }).join("")}</div></div>
   </div>`;
  }).join("")
- +`<p class="small" style="color:var(--muted)">Übernommen wird in das oben gewählte Bauteil (${teil==="hablett"?"Hablett":"Rohr"}).</p>`;
+ +`<p class="small" style="color:var(--muted)">Übernommen wird in das oben gewählte Bauteil (${teil==="tablett"?"Tablett":"Rohr"}).</p>`;
 }
 // Holt die Masse EINER Einfassung aus einer GESPEICHERTEN Aufnahme. Die
 // Materialstaerke kommt aus dem Datensatz selbst (measurements.staerke_mm),
@@ -731,8 +740,8 @@ async function abwOeffnen(){
  const modal=$("abwicklungModal");
  if(!modal)return;
  if(!abwEl("D")||!abwEl("D").value)abwFelderSetzen(ABW_STANDARD);
- // v3.192: Die Vorgaben des Habletts kommen aus der Einfassung rund (js/21).
- if(!abwEl("h_D")||!abwEl("h_D").value)abwHablettFelderSetzen(null);
+ // v3.192: Die Vorgaben des Tabletts kommen aus der Einfassung rund (js/21).
+ if(!abwEl("tab_D")||!abwEl("tab_D").value)abwTablettFelderSetzen(null);
  abwBauteilZeigen();
  abwProjektWahl();
  modal.hidden=false;
@@ -770,7 +779,7 @@ document.addEventListener("click",async e=>{
  const zu=e.target.closest("#closeAbwicklung");
  if(zu){ const m=$("abwicklungModal"); if(m)m.hidden=true; return }
  if(e.target.closest("#abwZuruecksetzen")){
-  if(abwBauteil()==="hablett")abwHablettFelderSetzen(null);
+  if(abwBauteil()==="tablett")abwTablettFelderSetzen(null);
   else abwFelderSetzen(ABW_STANDARD);
   // Mit den Standardmassen stimmt die Herkunft nicht mehr - sie stehen zu
   // lassen waere eine Behauptung ueber Zahlen, die niemand uebernommen hat.

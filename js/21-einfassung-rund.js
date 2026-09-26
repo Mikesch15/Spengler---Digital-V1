@@ -77,9 +77,9 @@ const EINFASSUNG_STANDARD = Object.freeze({
   // keine - dieselbe Ueberlegung wie bei den Preisen des Beispielkatalogs.
   rohrhoehe: 0,        // H · Rohr ab Schnittmitte bis Oberkante
   schweifbord: 0,      // b · Breite des Schweifbords in der Schnittebene
-  // v3.192: Luft am Lochausschnitt im Hablett. Gerechnet wird das Loch als
+  // v3.192: Luft am Lochausschnitt im Tablett. Gerechnet wird das Loch als
   // Schnitt eines gedachten Rohrs mit Oe + 2 x Zugabe durch die Dachflaeche
-  // (js/77, abwHablett) - damit laesst sich das Rohr einsetzen, ohne zu
+  // (js/77, abwTablett) - damit laesst sich das Rohr einsetzen, ohne zu
   // feilen. Anders als Rohrhoehe und Schweifbord ist hier 0 ein sinnvoller
   // Wert (Loch exakt auf Rohrmass), deshalb steht die Vorgabe auf 2.
   loch_zugabe: 2

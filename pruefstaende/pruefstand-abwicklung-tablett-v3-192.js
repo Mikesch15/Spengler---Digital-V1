@@ -1,16 +1,22 @@
-// Prueft v3.192: Das Hablett der Einfassung rund wird abgewickelt, inklusive
+// v3.194: Das Bauteil hiess in v3.192 und v3.193 "Hablett". Der Betrieb nennt
+// es TABLETT - umbenannt in Code, Oberflaeche, Hilfe, Anleitung und Datenbank.
+// Abschnitt K prueft, dass ein in der Zwischenzeit gespeicherter Datensatz
+// mit dem alten Namen trotzdem als Tablett aufgeht, und dass "Hablett"
+// nirgends mehr steht.
+//
+// Prueft v3.192: Das Tablett der Einfassung rund wird abgewickelt, inklusive
 // Lochausschnitt - und der Weg zwischen Massaufnahme und Abwicklungsrechner
 // geht in BEIDE Richtungen.
 //
 // GEWUENSCHT
 // "Man soll aus der massaufnahme eine abwicklung erstellen können, man soll
-//  aber auch in der abwicklung eine massaufnahme laden können ... das hablett
+//  aber auch in der abwicklung eine massaufnahme laden können ... das tablett
 //  der einfassung soll ebenfalls abgewickelt werden, inkl. Lochausschnitt"
 // Dazu zwei Entscheide des Anwenders: das Loch bekommt LUFT mit einstellbarer
-// Zugabe, und das Hablett sitzt IM Abwicklungsrechner als zweites Bauteil.
+// Zugabe, und das Tablett sitzt IM Abwicklungsrechner als zweites Bauteil.
 //
 // DIE ZENTRALE GEOMETRIE, die dieser Pruefstand absichert
-// Das Hablett liegt in der DACHFLAECHE, das Rohr steht im LOT. Ein
+// Das Tablett liegt in der DACHFLAECHE, das Rohr steht im LOT. Ein
 // senkrechter Zylinder durch eine geneigte Ebene ergibt eine ELLIPSE:
 // quer zum Gefaelle D, in Gefaellerichtung D/cos(alpha). Ein rundes Loch
 // waere bei Oe110 und 30 Grad in Gefaellerichtung 17 mm zu kurz - das ist
@@ -18,12 +24,12 @@
 // rechnet ihn von Hand nach.
 //
 // UND DIE ZWEITE WAHRHEIT, die es NICHT geben darf
-// Die Zuschnittlaenge des Habletts ist dieselbe Zahl, die die Massaufnahme
+// Die Zuschnittlaenge des Tabletts ist dieselbe Zahl, die die Massaufnahme
 // Einfassung rund als "Zuschnittbreite (Querschnitt)" ausgibt. Abschnitt B
-// rechnet abwHablett().laenge gegen einfBerechnen().abwicklung - zwei
+// rechnet abwTablett().laenge gegen einfBerechnen().abwicklung - zwei
 // Laengen fuer dasselbe Blech waere eine zu viel.
 //
-// Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-abwicklung-hablett-v3-192.js
+// Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-abwicklung-tablett-v3-192.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path=require("path"),fs=require("fs");
@@ -71,7 +77,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  // ---- A  Die Rechnung: das Loch ist eine Ellipse --------------------------
  console.log("\nA · Der Lochausschnitt");
  const A=await page.evaluate(()=>{
-  const g=(al,z)=>abwHablett({D:110,alpha:al,a:250,b:200,c:35,
+  const g=(al,z)=>abwTablett({D:110,alpha:al,a:250,b:200,c:35,
                               umschlag:20,massSeitlich:100,lochZugabe:z});
   return {a25z0:g(25,0), a25z2:g(25,2), a30z2:g(30,2), a0z2:g(0,2)};
  });
@@ -112,7 +118,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  // Der Mittelpunkt des Lochs liegt wirklich in der Mitte der Breite und bei
  // Mitte Rohr - eine Ellipse an der falschen Stelle nuetzt nichts.
  const A2=await page.evaluate(()=>{
-  const h=abwHablett({D:110,alpha:25,a:250,b:200,c:35,umschlag:20,massSeitlich:100,lochZugabe:2});
+  const h=abwTablett({D:110,alpha:25,a:250,b:200,c:35,umschlag:20,massSeitlich:100,lochZugabe:2});
   const xs=h.loch.map(q=>q[0]), ys=h.loch.map(q=>q[1]);
   return {xMin:Math.min.apply(null,xs),xMax:Math.max.apply(null,xs),
           yMin:Math.min.apply(null,ys),yMax:Math.max.apply(null,ys),
@@ -132,7 +138,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
                 [110,45,250,200,0],[125,12.5,222,198,33]];
   return faelle.map(f=>{
    const [D,al,a,bb,c]=f;
-   const h=abwHablett({D,alpha:al,a,b:bb,c,
+   const h=abwTablett({D,alpha:al,a,b:bb,c,
      umschlag:einfassungSettings.umschlag,massSeitlich:einfassungSettings.mass_seitlich,
      lochZugabe:einfassungSettings.loch_zugabe});
    const e=einfBerechnen({durchmesser:D,winkel:al,a,b:bb,c,lattenabstand:330});
@@ -141,7 +147,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
   });
  });
  p(B.every(x=>Math.round(x.laenge)===x.abwicklung),
-   "abwHablett().laenge = einfBerechnen().abwicklung in allen fuenf Faellen",B);
+   "abwTablett().laenge = einfBerechnen().abwicklung in allen fuenf Faellen",B);
  p(B.every(x=>Math.round(x.breite)===x.breiteGesamt),
    "und die Breite = breiteGesamt der Massaufnahme",B);
  // Von Hand nachgerechnet: 20 + 18 + 250 + 200 + 35 + 20 = 543.
@@ -149,8 +155,8 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
    "erster Fall von Hand: 350 × 543 mm",B[0]);
  // Der Anreiss wird NICHT kopiert, sondern aus js/21 geholt.
  const B2=await page.evaluate(()=>({
-  ausJs21:EINF_ANREISS_LAENGE, ausJs77:abwHablettAnreiss(),
-  ohneAnreiss:abwHablett({D:110,alpha:25,a:250,b:200,c:35,
+  ausJs21:EINF_ANREISS_LAENGE, ausJs77:abwTablettAnreiss(),
+  ohneAnreiss:abwTablett({D:110,alpha:25,a:250,b:200,c:35,
     umschlag:20,massSeitlich:100,lochZugabe:0,anreiss:0}).laenge}));
  p(B2.ausJs21===B2.ausJs77,"der Anreiss kommt aus js/21, er ist nicht kopiert",B2);
  p(nah(B2.ohneAnreiss,525),"ohne Anreiss werden es 18 mm weniger",B2.ohneAnreiss);
@@ -158,7 +164,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  // ---- C  Fehler und Warnungen ---------------------------------------------
  console.log("\nC · Was die Rechnung verweigert und wovor sie warnt");
  const C=await page.evaluate(()=>{
-  const g=o=>abwHablett(Object.assign({D:110,alpha:25,a:250,b:200,c:35,
+  const g=o=>abwTablett(Object.assign({D:110,alpha:25,a:250,b:200,c:35,
     umschlag:20,massSeitlich:100,lochZugabe:2},o));
   return {ohneD:g({D:0}), ohneA:g({a:0}), steil:g({alpha:80}),
           negativeLuft:g({lochZugabe:-1}),
@@ -184,9 +190,9 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  // ---- D  Kontur und Biegelinien -------------------------------------------
  console.log("\nD · Kontur und Biegelinien");
  const D=await page.evaluate(()=>{
-  const mit=abwHablett({D:110,alpha:25,a:250,b:200,c:35,umschlag:20,massSeitlich:100,lochZugabe:2});
-  const ohne=abwHablett({D:110,alpha:25,a:250,b:200,c:35,umschlag:0,massSeitlich:100,lochZugabe:2});
-  const ohneC=abwHablett({D:110,alpha:25,a:250,b:200,c:0,umschlag:20,massSeitlich:100,lochZugabe:2});
+  const mit=abwTablett({D:110,alpha:25,a:250,b:200,c:35,umschlag:20,massSeitlich:100,lochZugabe:2});
+  const ohne=abwTablett({D:110,alpha:25,a:250,b:200,c:35,umschlag:0,massSeitlich:100,lochZugabe:2});
+  const ohneC=abwTablett({D:110,alpha:25,a:250,b:200,c:0,umschlag:20,massSeitlich:100,lochZugabe:2});
   const y=r=>r.biegeLinien.filter(l=>l[0][1]===l[1][1]).map(l=>l[0][1]);
   const x=r=>r.biegeLinien.filter(l=>l[0][0]===l[1][0]).map(l=>l[0][0]);
   return {konturLen:mit.kontur.length, quer:y(mit), laengs:x(mit),
@@ -211,24 +217,24 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  const E=await page.evaluate(async()=>{
   await abwOeffnen();
   const rohr={bauteil:abwLetztes.bauteil, rohrSichtbar:!$("abwMasseRohr").hidden,
-              hablettSichtbar:!$("abwMasseHablett").hidden,
+              tablettSichtbar:!$("abwMasseTablett").hidden,
               dxf:abwDxfText(abwLetztes)};
-  $("abw_bauteil").value="hablett";
+  $("abw_bauteil").value="tablett";
   $("abw_bauteil").dispatchEvent(new Event("change",{bubbles:true}));
   await new Promise(r=>setTimeout(r,60));
   const hab={bauteil:abwLetztes.bauteil, rohrSichtbar:!$("abwMasseRohr").hidden,
-             hablettSichtbar:!$("abwMasseHablett").hidden,
+             tablettSichtbar:!$("abwMasseTablett").hidden,
              dxf:abwDxfText(abwLetztes), svg:abwSvg(abwLetztes),
              ergebnis:$("abwErgebnis").innerText,
              vorschau:$("abwVorschau").innerText,
-             felder:{D:$("abw_h_D").value,alpha:$("abw_h_alpha").value,
-                     a:$("abw_h_a").value,umschlag:$("abw_h_umschlag").value,
-                     luft:$("abw_h_lochZugabe").value}};
+             felder:{D:$("abw_tab_D").value,alpha:$("abw_tab_alpha").value,
+                     a:$("abw_tab_a").value,umschlag:$("abw_tab_umschlag").value,
+                     luft:$("abw_tab_lochZugabe").value}};
   return {rohr,hab};
  });
- p(E.rohr.bauteil==="rohr"&&E.rohr.rohrSichtbar&&!E.rohr.hablettSichtbar,
+ p(E.rohr.bauteil==="rohr"&&E.rohr.rohrSichtbar&&!E.rohr.tablettSichtbar,
    "der Rechner startet beim Rohr",E.rohr);
- p(E.hab.bauteil==="hablett"&&!E.hab.rohrSichtbar&&E.hab.hablettSichtbar,
+ p(E.hab.bauteil==="tablett"&&!E.hab.rohrSichtbar&&E.hab.tablettSichtbar,
    "der Umschalter tauscht die Masse-Felder",E.hab);
  p(E.hab.felder.a==="250"&&E.hab.felder.umschlag==="20"&&E.hab.felder.luft==="2",
    "die Vorgabemasse stehen im Formular",E.hab.felder);
@@ -240,12 +246,12 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
   einfassungSettings=Object.assign({},EINFASSUNG_STANDARD,
     {mass_a:277,umschlag:15,loch_zugabe:4.5});
   ["a","umschlag","lochZugabe","D","alpha","b","c","massSeitlich"]
-    .forEach(k=>{ $("abw_h_"+k).value="" });
-  abwHablettFelderSetzen(null);
-  const r={a:$("abw_h_a").value,umschlag:$("abw_h_umschlag").value,
-           luft:$("abw_h_lochZugabe").value};
+    .forEach(k=>{ $("abw_tab_"+k).value="" });
+  abwTablettFelderSetzen(null);
+  const r={a:$("abw_tab_a").value,umschlag:$("abw_tab_umschlag").value,
+           luft:$("abw_tab_lochZugabe").value};
   einfassungSettings=alt;
-  abwHablettFelderSetzen(null);
+  abwTablettFelderSetzen(null);
   return r;
  });
  p(E3.a==="277"&&E3.umschlag==="15"&&E3.luft==="4.5",
@@ -263,7 +269,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  console.log("\nE2 · DXF-Layer je Bauteil");
  const hatH=l=>E.hab.dxf.indexOf(l)>=0, hatR=l=>E.rohr.dxf.indexOf(l)>=0;
  p(hatH("ZUSCHNITT")&&hatH("BIEGELINIE")&&hatH("LOCHAUSSCHNITT"),
-   "das Hablett-DXF hat ZUSCHNITT, BIEGELINIE und LOCHAUSSCHNITT");
+   "das Tablett-DXF hat ZUSCHNITT, BIEGELINIE und LOCHAUSSCHNITT");
  p(!hatH("BIEGELINIE_SCHWEIFBORD")&&!hatH("EINSCHNITT"),
    "und keine Layer des Rohrs");
  // GEGENPROBE: das Rohr hat seine Layer unveraendert behalten. Der Umbau auf
@@ -276,12 +282,12 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  // geschlossen, ein blosses "irgendwo steht ein Z" bewiese also nichts.
  const zuSvg=t=>(t.match(/Z"/g)||[]).length;
  p(zuSvg(E.hab.svg)===2,
-   "im Hablett-SVG sind GENAU zwei Umrisse geschlossen: Zuschnitt und Loch",zuSvg(E.hab.svg));
+   "im Tablett-SVG sind GENAU zwei Umrisse geschlossen: Zuschnitt und Loch",zuSvg(E.hab.svg));
  const ESvg=await page.evaluate(()=>{
   $("abw_bauteil").value="rohr";
   $("abw_bauteil").dispatchEvent(new Event("change",{bubbles:true}));
   const r=abwSvg(abwLetztes);
-  $("abw_bauteil").value="hablett";
+  $("abw_bauteil").value="tablett";
   $("abw_bauteil").dispatchEvent(new Event("change",{bubbles:true}));
   return r;
  });
@@ -312,11 +318,11 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  p(F.knoepfe===2,"beide Einfassungen der Aufnahme stehen zur Wahl",F.knoepfe);
  p(F.liste.indexOf("Dunstrohr Nord")>=0&&F.liste.indexOf("Kaminrohr")>=0,
    "mit ihren Bezeichnungen",F.liste.slice(0,300));
- p(F.bauteil==="hablett","uebernommen wird in das gewaehlte Bauteil",F.bauteil);
+ p(F.bauteil==="tablett","uebernommen wird in das gewaehlte Bauteil",F.bauteil);
  p(F.ein.D===110&&F.ein.alpha===25&&F.ein.a===250&&F.ein.b===200&&F.ein.c===35,
    "alle fuenf Masse der Einfassung stehen im Formular",F.ein);
  p(F.projekt==="7","das Projekt der Massaufnahme ist gewaehlt",F.projekt);
- p(F.bez.indexOf("Dunstrohr Nord")>=0&&F.bez.indexOf("Hablett")>=0,
+ p(F.bez.indexOf("Dunstrohr Nord")>=0&&F.bez.indexOf("Tablett")>=0,
    "die Bezeichnung nennt Rohr UND Bauteil - sonst heissen beide gleich",F.bez);
  p(F.herkunft.indexOf("Dach Nord")>=0,"die Herkunft nennt die Massaufnahme",F.herkunft);
  p(F.zu==="","die Auswahl schliesst sich nach der Uebernahme",F.zu);
@@ -344,7 +350,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  // Der Bauteilwechsel loest die Herkunft - sie galt fuer das andere Blech.
  const F3=await page.evaluate(async()=>{
   const vorher=$("abwHerkunft").innerHTML;
-  $("abw_bauteil").value="hablett";
+  $("abw_bauteil").value="tablett";
   $("abw_bauteil").dispatchEvent(new Event("change",{bubbles:true}));
   await new Promise(r=>setTimeout(r,60));
   return {vorher,nachher:$("abwHerkunft").innerHTML};
@@ -356,24 +362,24 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  console.log("\nG · Speichern und Laden");
  const G=await page.evaluate(async()=>{
   await abwAusMassaufnahme(einfaAbwVorgabe(
-    {bez:"Testrohr",durchmesser:110,winkel:25,a:250,b:200,c:35},"hablett",
+    {bez:"Testrohr",durchmesser:110,winkel:25,a:250,b:200,c:35},"tablett",
     {nr:1,projectId:7,measurementId:99}));
   window.__insert=null;
   const r=await abwSpeichern();
   return {r,satz:window.__insert};
  });
  p(G.r&&G.r.ok===true,"gespeichert",G.r);
- p(G.satz&&G.satz.bauteil==="hablett","das Bauteil wird mitgeschrieben",G.satz&&G.satz.bauteil);
+ p(G.satz&&G.satz.bauteil==="tablett","das Bauteil wird mitgeschrieben",G.satz&&G.satz.bauteil);
  p(G.satz&&G.satz.measurement_id===99,"und die Massaufnahme",G.satz&&G.satz.measurement_id);
  p(G.satz&&nah(G.satz.ergebnis.laenge,543)&&nah(G.satz.ergebnis.lochLang,125.785,0.002),
-   "die Kennzahlen des Habletts stehen im Datensatz",G.satz&&G.satz.ergebnis);
+   "die Kennzahlen des Tabletts stehen im Datensatz",G.satz&&G.satz.ergebnis);
  p(G.satz&&G.satz.ergebnis.streckung===undefined,
    "und NICHT die des Rohrs",G.satz&&G.satz.ergebnis);
 
  const G2=await page.evaluate(async()=>{
-  // Ein gespeichertes Hablett und ein Datensatz BIS v3.191 ganz ohne Spalte.
+  // Ein gespeichertes Tablett und ein Datensatz BIS v3.191 ganz ohne Spalte.
   abwGespeichert=[
-   {id:5,bezeichnung:"Hablett Nord",bauteil:"hablett",project_id:7,measurement_id:99,
+   {id:5,bezeichnung:"Tablett Nord",bauteil:"tablett",project_id:7,measurement_id:99,
     parameter:{D:150,alpha:30,a:300,b:220,c:40,umschlag:20,massSeitlich:100,lochZugabe:3},
     ergebnis:{breite:390,laenge:618,lochQuer:156,lochLang:180.1}},
    {id:6,bezeichnung:"Altes Rohr",project_id:7,
@@ -383,18 +389,18 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
   abwListeZeichnen();
   const liste=$("abwListe").innerText;
   abwLaden(5,false);
-  const hab={bauteil:abwBauteil(), D:$("abw_h_D").value, luft:$("abw_h_lochZugabe").value,
+  const hab={bauteil:abwBauteil(), D:$("abw_tab_D").value, luft:$("abw_tab_lochZugabe").value,
              rechnet:abwLetztes&&abwLetztes.bauteil};
   abwLaden(6,false);
   const rohr={bauteil:abwBauteil(), D:$("abw_D").value, H:$("abw_H").value,
               rechnet:abwLetztes&&abwLetztes.bauteil};
   return {liste,hab,rohr};
  });
- p(G2.liste.indexOf("Hablett")>=0&&G2.liste.indexOf("Rohr")>=0,
+ p(G2.liste.indexOf("Tablett")>=0&&G2.liste.indexOf("Rohr")>=0,
    "die Liste sagt bei jedem Eintrag, welches Bauteil es ist",G2.liste);
- p(G2.hab.bauteil==="hablett"&&G2.hab.D==="150"&&G2.hab.luft==="3"
-   &&G2.hab.rechnet==="hablett",
-   "ein gespeichertes Hablett laedt als Hablett",G2.hab);
+ p(G2.hab.bauteil==="tablett"&&G2.hab.D==="150"&&G2.hab.luft==="3"
+   &&G2.hab.rechnet==="tablett",
+   "ein gespeichertes Tablett laedt als Tablett",G2.hab);
  // GEGENPROBE: ein Datensatz aus der Zeit VOR dem zweiten Bauteil hat keine
  // Spalte "bauteil". Er ist ein Rohr und muss unveraendert oeffnen.
  p(G2.rohr.bauteil==="rohr"&&G2.rohr.D==="110"&&G2.rohr.H==="300"
@@ -410,24 +416,24 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
   measSelectedProjectId=7; currentMeasurementId=4242;
   einfassungSettings=Object.assign({},EINFASSUNG_STANDARD,{rohrhoehe:0,schweifbord:0});
   return {rohr:einfaAbwicklungVorgabe(0,"rohr"),
-          hablett:einfaAbwicklungVorgabe(0,"hablett"),
+          tablett:einfaAbwicklungVorgabe(0,"tablett"),
           ohneArgument:einfaAbwicklungVorgabe(0)};
  });
- p(H.rohr.bauteil==="rohr"&&H.hablett.bauteil==="hablett","beide Bauteile lassen sich holen");
+ p(H.rohr.bauteil==="rohr"&&H.tablett.bauteil==="tablett","beide Bauteile lassen sich holen");
  p(H.ohneArgument.bauteil==="rohr",
    "ohne Angabe bleibt es das Rohr - so war es bis v3.191",H.ohneArgument.bauteil);
- p(H.hablett.werte.a===250&&H.hablett.werte.b===200&&H.hablett.werte.c===35
-   &&H.hablett.werte.umschlag===20&&H.hablett.werte.massSeitlich===100,
-   "das Hablett bekommt a, b, c und die beiden Richtwerte",H.hablett.werte);
- p(H.hablett.werte.t===undefined&&H.hablett.werte.H===undefined,
-   "und NICHT die Felder des Rohrs",H.hablett.werte);
+ p(H.tablett.werte.a===250&&H.tablett.werte.b===200&&H.tablett.werte.c===35
+   &&H.tablett.werte.umschlag===20&&H.tablett.werte.massSeitlich===100,
+   "das Tablett bekommt a, b, c und die beiden Richtwerte",H.tablett.werte);
+ p(H.tablett.werte.t===undefined&&H.tablett.werte.H===undefined,
+   "und NICHT die Felder des Rohrs",H.tablett.werte);
  p(H.rohr.werte.t===0.6&&H.rohr.werte.a===undefined,
    "das Rohr umgekehrt genauso",H.rohr.werte);
  // 0 Luft ist ein gueltiger Wert und darf nicht als "fehlt" durchfallen -
  // anders als bei Rohrhoehe und Schweifbord-Breite.
  const H2=await page.evaluate(()=>{
   einfassungSettings=Object.assign({},EINFASSUNG_STANDARD,{loch_zugabe:0});
-  const v=einfaAbwicklungVorgabe(0,"hablett");
+  const v=einfaAbwicklungVorgabe(0,"tablett");
   einfassungSettings=Object.assign({},EINFASSUNG_STANDARD);
   return v;
  });
@@ -442,7 +448,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  const q38=lies("js/38-einfassung-aufnahme.js");
  const q77=lies("js/77-abwicklung.js");
  const q78=lies("js/78-abwicklung-ui.js");
- p(q38.indexOf('data-einfa-bauteil="hablett"')>=0,"der Hablett-Knopf steht bei jeder Einfassung");
+ p(q38.indexOf('data-einfa-bauteil="tablett"')>=0,"der Tablett-Knopf steht bei jeder Einfassung");
  p(q38.indexOf('data-einfa-bauteil="rohr"')>=0,"der Rohr-Knopf ebenso");
  // Die Bruecke rechnet weiterhin KEINE Geometrie - das macht js/77.
  const n38=nurCode(q38);
@@ -452,13 +458,13 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  p(!/cos|Math\.PI/.test(nurCode(q78)),"die Oberflaeche rechnet die Ellipse nicht selbst");
  p(/Math\.cos/.test(nurCode(q77)),"gerechnet wird sie in js/77");
  p(lies("index.html").indexOf('id="abw_bauteil"')>=0,"der Umschalter steht im HTML");
- p(lies("index.html").indexOf('id="abw_h_lochZugabe"')>=0,"das Feld fuer die Luft auch");
+ p(lies("index.html").indexOf('id="abw_tab_lochZugabe"')>=0,"das Feld fuer die Luft auch");
  p(lies("index.html").indexOf('id="einfsLochZugabe"')>=0,
    "und der Richtwert in den Einstellungen der Einfassung rund");
  p(lies("index.html").indexOf('id="abwAusAufnahme"')>=0,"der Knopf fuer die Gegenrichtung");
  p(lies("js/21-einfassung-rund.js").indexOf("loch_zugabe")>=0,
    "loch_zugabe steht in EINFASSUNG_STANDARD");
- p(lies("js/41-hilfe.js").indexOf("Hablett")>=0,"die Hilfe erklaert das Hablett");
+ p(lies("js/41-hilfe.js").indexOf("Tablett")>=0,"die Hilfe erklaert das Tablett");
  p(lies("js/67-was-ist-neu.js").indexOf('"3.192"')>=0,'"Was ist neu" nennt v3.192');
  p(lies("sw.js").indexOf("js/77-abwicklung.js")>=0&&lies("sw.js").indexOf("js/78-abwicklung-ui.js")>=0,
    "beide Dateien stehen in der App-Shell des Service Workers");
@@ -479,6 +485,51 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  });
  p(I2.gesetzt===3.5,"3,5 mm gespeichert und wieder gelesen",I2);
  p(I2.null_===0,"und 0 bleibt 0 - es ist hier ein gueltiger Wert, kein 'leer'",I2);
+
+ // ---- K  Der alte Name (v3.194) -------------------------------------------
+ console.log("\nK · Aus Hablett wurde Tablett");
+ const K=await page.evaluate(()=>{
+  abwGespeichert=[
+   {id:9,bezeichnung:"Altes Hablett",bauteil:"hablett",project_id:null,
+    parameter:{D:110,alpha:25,a:250,b:200,c:35,umschlag:20,massSeitlich:100,lochZugabe:2},
+    ergebnis:{breite:350,laenge:543}},
+   {id:10,bezeichnung:"Neues Tablett",bauteil:"tablett",project_id:null,
+    parameter:{D:150,alpha:30,a:300,b:220,c:40,umschlag:20,massSeitlich:100,lochZugabe:2},
+    ergebnis:{breite:390,laenge:618}}];
+  abwListeZeichnen();
+  const liste=$("abwListe").innerText;
+  abwLaden(9,false);
+  const alt={bauteil:abwBauteil(), D:$("abw_tab_D").value, rechnet:abwLetztes&&abwLetztes.bauteil};
+  abwLaden(10,false);
+  const neu={bauteil:abwBauteil(), D:$("abw_tab_D").value, rechnet:abwLetztes&&abwLetztes.bauteil};
+  return {liste,alt,neu};
+ });
+ // Ein Datensatz aus v3.192/v3.193 traegt noch 'hablett'. Ihn als ROHR zu
+ // oeffnen waere das Schlimmste, was hier passieren koennte - die Zahlen
+ // bedeuten bei den beiden Bauteilen etwas voellig anderes.
+ p(K.alt.bauteil==="tablett"&&K.alt.D==="110"&&K.alt.rechnet==="tablett",
+   "ein Datensatz mit dem alten Namen 'hablett' oeffnet als Tablett",K.alt);
+ p(K.neu.bauteil==="tablett"&&K.neu.D==="150"&&K.neu.rechnet==="tablett",
+   "und einer mit dem neuen Namen genauso",K.neu);
+ p(K.liste.indexOf("Tablett · ")>=0&&K.liste.indexOf("Hablett · ")<0,
+   "in der Liste steht bei beiden 'Tablett'",K.liste);
+ // In Oberflaeche, Rechnung und Bruecke hat der alte Name nichts mehr zu
+ // suchen. "Was ist neu" und die Anleitung duerfen ihn nennen - sie ERKLAEREN
+ // die Umbenennung, das ist kein Rueckstand.
+ const ohne=["index.html","js/77-abwicklung.js","js/38-einfassung-aufnahme.js",
+             "js/21-einfassung-rund.js"];
+ const drin=ohne.filter(f=>/hablett/i.test(lies(f)));
+ p(drin.length===0,"in Oberfläche, Rechnung und Brücke steht er nirgends mehr",drin);
+ p(!/Abwicklung Hablett/.test(lies("js/38-einfassung-aufnahme.js"))
+   &&/Abwicklung Tablett/.test(lies("js/38-einfassung-aufnahme.js")),
+   "der Knopf in der Massaufnahme heisst „▭ Abwicklung Tablett“");
+ // Gelesen wird der alte Wert an GENAU EINER benannten Stelle. Verstreute
+ // Vergleiche waeren die Art Rueckstand, die man beim naechsten Umbau
+ // uebersieht.
+ const qUi=lies("js/78-abwicklung-ui.js");
+ p((qUi.match(/"hablett"/g)||[]).length===1&&/abwBauteilAusDaten/.test(nurCode(qUi)),
+   "der alte Wert steht genau einmal im Code, in abwBauteilAusDaten",
+   (qUi.match(/"hablett"/g)||[]).length);
 
  // ---- J  Sauberkeit --------------------------------------------------------
  console.log("\nJ · Sauberkeit");

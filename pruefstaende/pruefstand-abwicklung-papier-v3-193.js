@@ -6,7 +6,7 @@
 //  papierformat vorauswählen?"
 //
 // ZWEI SACHEN STECKTEN DAHINTER
-// 1. A4 war fest verdrahtet. Das Hablett (350 x 543 mm) brauchte sechs
+// 1. A4 war fest verdrahtet. Das Tablett (350 x 543 mm) brauchte sechs
 //    Blatt, und beim Rohr trug die dritte Spalte 1,4 mm Zeichnung.
 // 2. Das Blatt hatte KEINE Reserve. Gemessen 280,9 mm auf 281,0 mm
 //    Druckflaeche - 0,1 mm. Der @page-Rand stand auf 8 mm, gerechnet wurde
@@ -66,12 +66,12 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
  // ---- B  Die Blattzahl, von Hand nachgerechnet ----------------------------
  console.log("\nB · Wie viele Blätter welches Format braucht");
  // A4 hoch: nutzbar 210-20-10 = 180 breit, 297-20-10-24 = 243 hoch.
- // Hablett 350 x 543  ->  ceil(350/180)=2 Spalten, ceil(543/243)=3 Zeilen = 6
+ // Tablett 350 x 543  ->  ceil(350/180)=2 Spalten, ceil(543/243)=3 Zeilen = 6
  // A3 quer: 390 x 243 ->  1 Spalte,  3 Zeilen = 3
  // A2 hoch: 390 x 540 ->  1 Spalte,  2 Zeilen = 2   (543 passt um 3 mm nicht)
  // A1 hoch: 564 x 787 ->  1 Spalte,  1 Zeile  = 1
  const B=await page.evaluate(()=>{
-  $("abw_bauteil").value="hablett";
+  $("abw_bauteil").value="tablett";
   $("abw_bauteil").dispatchEvent(new Event("change",{bubbles:true}));
   const r=abwLetztes;
   const n=id=>{
@@ -83,7 +83,7 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
   return {breite:r.breite, hoehe:r.laenge,
           a4h:n("a4-hoch"), a3q:n("a3-quer"), a2h:n("a2-hoch"), a1h:n("a1-hoch")};
  });
- p(B.breite===350&&B.hoehe===543,"gerechnet wird mit dem Hablett 350 x 543 mm",B);
+ p(B.breite===350&&B.hoehe===543,"gerechnet wird mit dem Tablett 350 x 543 mm",B);
  p(B.a4h.nutzB===180&&B.a4h.nutzH===243,
    "A4 hoch laesst 180 x 243 mm Zeichnung je Blatt",B.a4h);
  p(B.a4h.spalten===2&&B.a4h.zeilen===3&&B.a4h.seiten===6,"A4 hoch: 2 x 3 = 6 Blatt",B.a4h);
@@ -100,13 +100,13 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
   const rohr=abwPapierVorschlag(abwLetztes);
   // Ein winziges Blech passt auf JEDES Format auf ein Blatt. Dann darf der
   // Vorschlag nicht das groesste Papier sein.
-  const klein=abwPapierVorschlag(abwHablett({D:40,alpha:20,a:60,b:60,c:20,
+  const klein=abwPapierVorschlag(abwTablett({D:40,alpha:20,a:60,b:60,c:20,
     umschlag:10,massSeitlich:20,lochZugabe:1}));
   return {hab:{name:hab.name,seiten:hab.seiten},
           rohr:{name:rohr.name,seiten:rohr.seiten},
           klein:{name:klein.name,seiten:klein.seiten}};
  });
- p(C.hab.name==="A1 hoch"&&C.hab.seiten===1,"fürs Hablett A1 hoch, ein Blatt",C.hab);
+ p(C.hab.name==="A1 hoch"&&C.hab.seiten===1,"fürs Tablett A1 hoch, ein Blatt",C.hab);
  p(C.rohr.name==="A2 hoch"&&C.rohr.seiten===1,"fürs Rohr A2 hoch, ein Blatt",C.rohr);
  // DIE GEGENPROBE: "am wenigsten Blaetter" allein reicht nicht als Regel -
  // A1 braucht fuer alles ein Blatt. Bei gleich vielen Blaettern muss das
@@ -179,7 +179,7 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
  // ---- F  Die Auswahl in der Oberfläche ------------------------------------
  console.log("\nF · Die Auswahl");
  const F=await page.evaluate(async()=>{
-  $("abw_bauteil").value="hablett";
+  $("abw_bauteil").value="tablett";
   $("abw_bauteil").dispatchEvent(new Event("change",{bubbles:true}));
   await new Promise(x=>setTimeout(x,60));
   const html=$("abw_papier").innerHTML;
@@ -189,8 +189,8 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
   $("abw_papier").value="a3-quer";
   abwPapierWahlZeichnen(abwLetztes);
   const hinweisA3=$("abwPapierHinweis").textContent;
-  $("abw_h_a").value="251";
-  $("abw_h_a").dispatchEvent(new Event("input",{bubbles:true}));
+  $("abw_tab_a").value="251";
+  $("abw_tab_a").dispatchEvent(new Event("input",{bubbles:true}));
   await new Promise(x=>setTimeout(x,60));
   return {html, nachTippen:$("abw_papier").value, hinweisAuto, hinweisA3,
           seitenNachTippen:abwSeiten(abwLetztes).length};

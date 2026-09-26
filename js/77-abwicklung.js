@@ -237,14 +237,14 @@ function abwRechne(roh){
 }
 
 // ===========================================================================
-// Abwicklung des Habletts der Einfassung rund, inkl. Lochausschnitt (v3.192)
+// Abwicklung des Tabletts der Einfassung rund, inkl. Lochausschnitt (v3.192)
 //
-// Das Hablett ist das flache Blech, das auf dem Dach liegt und durch das das
+// Das Tablett ist das flache Blech, das auf dem Dach liegt und durch das das
 // Rohr steigt. Seine Abwicklung ist - anders als die des Rohrs weiter oben -
 // keine schwierige Geometrie: sie ist ein Rechteck. Interessant ist nur das
 // Loch, und das ist es aus einem Grund, den man sich am Dach klarmachen muss:
 //
-//   Das Hablett liegt in der DACHFLAECHE, das Rohr steht im LOT. Ein
+//   Das Tablett liegt in der DACHFLAECHE, das Rohr steht im LOT. Ein
 //   senkrechter Zylinder, der eine geneigte Ebene schneidet, ergibt eine
 //   ELLIPSE - quer zum Gefaelle so breit wie das Rohr, in Gefaellerichtung
 //   um 1/cos(alpha) laenger. Ein rundes Loch waere schlicht falsch, und bei
@@ -273,22 +273,22 @@ function abwRechne(roh){
 // Der Anreiss vorne ist ein festes Mass der Einfassung rund (js/21). Es wird
 // hier nicht kopiert, sondern bei jedem Aufruf von dort geholt; die 18 gelten
 // nur, wenn diese Datei ohne js/21 laeuft (Pruefstand).
-function abwHablettAnreiss(){
+function abwTablettAnreiss(){
  return (typeof EINF_ANREISS_LAENGE==="number"&&EINF_ANREISS_LAENGE>0)
   ? EINF_ANREISS_LAENGE : 18;
 }
 
-function abwHablettEingaben(roh){
+function abwTablettEingaben(roh){
  const g=(k,v)=>abwZahl(roh&&roh[k],v);
  return {
   D:g("D",0), alpha:g("alpha",0),
   a:g("a",0), b:g("b",0), c:g("c",0),
   umschlag:g("umschlag",0), massSeitlich:g("massSeitlich",0),
-  lochZugabe:g("lochZugabe",0), anreiss:g("anreiss",abwHablettAnreiss())
+  lochZugabe:g("lochZugabe",0), anreiss:g("anreiss",abwTablettAnreiss())
  };
 }
 
-function abwHablettFehler(e){
+function abwTablettFehler(e){
  const f=[];
  if(!(e.D>0))f.push("Der Rohrdurchmesser muss grösser als 0 sein.");
  if(!(e.alpha>=0&&e.alpha<75))f.push("Der Dachwinkel muss zwischen 0 und 75 Grad liegen.");
@@ -302,10 +302,10 @@ function abwHablettFehler(e){
  return f;
 }
 
-function abwHablett(roh){
- const e=abwHablettEingaben(roh);
- const fehler=abwHablettFehler(e);
- if(fehler.length)return {ok:false,bauteil:"hablett",fehler,warnungen:[],eingaben:e};
+function abwTablett(roh){
+ const e=abwTablettEingaben(roh);
+ const fehler=abwTablettFehler(e);
+ if(fehler.length)return {ok:false,bauteil:"tablett",fehler,warnungen:[],eingaben:e};
 
  const punkte=Math.max(24,Math.round(abwZahl(roh&&roh.punkte,ABW_PUNKTE)));
  const cosA=Math.cos(e.alpha*Math.PI/180);
@@ -353,7 +353,7 @@ function abwHablett(roh){
 
  const warnungen=[];
  if(halbLang>=e.a)
-  warnungen.push("Das Loch reicht bis in den Anreiss vorne (Mass a ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm). So lässt sich das Hablett nicht kanten.");
+  warnungen.push("Das Loch reicht bis in den Anreiss vorne (Mass a ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm). So lässt sich das Tablett nicht kanten.");
  if(halbLang>=e.b)
   warnungen.push("Das Loch reicht bis in den Aufbug hinten (Mass b ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm).");
  if(halbQuer>=e.D/2+e.massSeitlich)
@@ -361,12 +361,12 @@ function abwHablett(roh){
 
  // Die vier Ecken sind doppelt belegt (der seitliche Umschlag trifft auf den
  // vorderen bzw. oberen) und werden wie gewohnt ausgeklinkt. Das ist KEINE
- // Warnung: es trifft auf jedes Hablett mit Umschlag zu, und eine Warnung,
+ // Warnung: es trifft auf jedes Tablett mit Umschlag zu, und eine Warnung,
  // die immer kommt, liest nach drei Tagen niemand mehr. Sie steht als fester
  // Hinweis an der Vorschau (js/78).
 
  return {
-  ok:true, bauteil:"hablett", fehler:[], warnungen, eingaben:e, punkte,
+  ok:true, bauteil:"tablett", fehler:[], warnungen, eingaben:e, punkte,
   breite, laenge, mitteX, mitteY,
   halbQuer, halbLang, lochQuer:2*halbQuer, lochLang:2*halbLang,
   kontur, biegeLinien:quer.concat(laengs), loch,

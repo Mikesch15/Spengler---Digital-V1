@@ -134,10 +134,10 @@ function einfaAnzahl(e){
 // 0 dort heisst "nicht gesetzt" - dann bleibt in der Abwicklung der Wert
 // stehen, der dort schon steht, und es wird nichts erfunden.
 //
-// v3.192: Dazu kommt das HABLETT - das flache Blech auf dem Dach, durch das
+// v3.192: Dazu kommt das TABLETT - das flache Blech auf dem Dach, durch das
 // das Rohr steigt. Dessen Masse stehen vollstaendig hier (a, b, c, Oe,
 // Winkel); aus den Einstellungen kommen nur Umschlag, Mass seitlich und die
-// Luft am Lochausschnitt. Gerechnet wird es in js/77 (abwHablett), nicht
+// Luft am Lochausschnitt. Gerechnet wird es in js/77 (abwTablett), nicht
 // hier.
 // v3.192: Der KERN kennt weder Formular noch Datenbank. Er bekommt EINE
 // Einfassung und sagt, welche Felder des Abwicklungsrechners sich daraus
@@ -145,13 +145,13 @@ function einfaAnzahl(e){
 // offenen Formular (unten) und der Griff in eine GESPEICHERTE Massaufnahme
 // aus dem Rechner heraus (js/78). Zwei Ableitungen waeren zwei Wahrheiten.
 //
-// bauteil = "rohr"    -> das runde Rohr ueber dem Hablett
-//           "hablett" -> das flache Blech auf dem Dach, mit Lochausschnitt
+// bauteil = "rohr"    -> das runde Rohr ueber dem Tablett
+//           "tablett" -> das flache Blech auf dem Dach, mit Lochausschnitt
 // ctx     = {staerke, projectId, measurementId, nr}
 function einfaAbwVorgabe(e,bauteil,ctx){
  if(!e)return null;
  const c=ctx||{};
- const art=(bauteil==="hablett")?"hablett":"rohr";
+ const art=(bauteil==="tablett")?"tablett":"rohr";
  const s=(typeof einfassungSettings==="object"&&einfassungSettings)||{};
  const werte={}, uebernommen=[], fehlt=[];
  const nimm=(feld,wert,text)=>{
@@ -165,8 +165,8 @@ function einfaAbwVorgabe(e,bauteil,ctx){
   else fehlt.push("Winkel Dach/Rohr");
  };
 
- if(art==="hablett"){
-  // Das Hablett ist der Querschnitt, den diese Aufnahme SELBST erfasst -
+ if(art==="tablett"){
+  // Das Tablett ist der Querschnitt, den diese Aufnahme SELBST erfasst -
   // hier fehlt nichts vom Dach. Es fehlt nur der Werkstattstandard Umschlag
   // bzw. Mass seitlich, und der steht in den Einstellungen.
   nimm("D",e.durchmesser,"Ø Standrohr");
@@ -190,7 +190,7 @@ function einfaAbwVorgabe(e,bauteil,ctx){
 
  const name=(e.bez||"").trim()||("Einfassung "+(einfaZahl(c.nr)>0?einfaZahl(c.nr):1));
  const oe=einfaZahl(e.durchmesser)>0?(" Ø"+einfaMm(e.durchmesser)):"";
- const teil=(art==="hablett")?"Hablett":"Rohr";
+ const teil=(art==="tablett")?"Tablett":"Rohr";
  return {
   bauteil:art, werte, uebernommen, fehlt,
   bezeichnung:name+oe+" · "+teil,
@@ -524,7 +524,7 @@ ${einfaZahlFeld("Stückzahl","einfa_anzahl_"+i,e.anzahl)}
 <div class="bar" style="margin-top:6px">
 <button type="button" class="gray" data-einfa-zeichnen="${i}">📐 Schnitt zeigen</button>
 <button type="button" class="gray" data-einfa-abwicklung="${i}" data-einfa-bauteil="rohr">⭕ Abwicklung Rohr</button>
-<button type="button" class="gray" data-einfa-abwicklung="${i}" data-einfa-bauteil="hablett">▭ Abwicklung Hablett</button>
+<button type="button" class="gray" data-einfa-abwicklung="${i}" data-einfa-bauteil="tablett">▭ Abwicklung Tablett</button>
 <button type="button" class="gray" data-einfa-weg="${i}">🗑 Löschen</button>
 </div></div>`;
  }).join("");
