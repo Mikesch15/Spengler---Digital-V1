@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.198";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.199";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.198<br>
+  Version 3.199<br>
   Stand 26. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -543,6 +543,42 @@ oder „Spenglerarbeiten Dach Nord“) werden dabei erkannt und nicht mehr als
 eigene, unbrauchbare Position ausgegeben – ihr Text wird stattdessen den
 darunterstehenden Positionen als Bezug vorangestellt, bis der nächste
 Zwischentitel folgt. Auch das ändert an der Bedienung selbst nichts.</p>
+<h3>Positionen aus den Katalogen (seit Version 3.199)</h3>
+<p>Eine Offerte entsteht, <strong>bevor</strong> gearbeitet wird. Trotzdem stehen
+in ihr meistens dieselben Zeilen, die der Betrieb ohnehin führt: die
+<strong>Stundenansätze</strong> und das <strong>Regiematerial</strong> aus den
+Einstellungen (Abschnitt 19). Bis hierher mussten sie in der Offerte von Hand
+abgetippt werden – mit Bezeichnung, Einheit und Preis, und damit mit jeder
+Gelegenheit, sich zu vertippen.</p>
+<p><span class="tasten">📋 Aus Katalog</span> unter der Positionsliste öffnet
+einen Dialog, in dem <strong>beide Kataloge</strong> untereinander stehen. Wo
+eine <strong>Menge</strong> eingetragen wird, entsteht daraus eine
+Offertposition: die <strong>Stunden</strong> im einen Abschnitt, das
+<strong>Material</strong> im anderen – getrennt nach Zeit und Material, wie es
+in eine Offerte gehört. Unten zählt der Dialog mit, wie viele Positionen es
+werden und was sie zum Katalogpreis ergeben.</p>
+<div class="hin">Die <strong>Preise kommen unverändert aus dem Katalog</strong>.
+Die App schlägt nichts auf und rundet nichts. Was an der Offerte anders sein
+soll, wird in der Offerte selbst geändert – dort steht jede übernommene Zeile
+ganz normal zum Bearbeiten, wie eine von Hand erfasste.</div>
+<p>Das Material wird wie im Regierapport <strong>gesucht</strong> – nach EDV-Nr.
+oder Bezeichnung. Was bereits eine Menge hat, bleibt dabei oben in der Liste
+stehen, auch wenn die Suche gerade etwas anderes zeigt: eine Eingabe geht beim
+Weitersuchen nicht verloren.</p>
+<p>Die beiden <strong>Abschnittsnamen</strong> oben im Dialog sind frei
+änderbar. Steht dort ein Abschnitt, den die Offerte bereits hat, kommen die
+neuen Zeilen zu ihm dazu (der Abschnitt erscheint also nie zweimal); steht dort
+ein neuer Name, entsteht ein neuer Abschnitt. So lassen sich auch mehr als zwei
+bauen – Gerüst, Regie, Entsorgung, was der Auftrag braucht.</p>
+<p>Ohne Katalog geht das ebenso: <span class="tasten">＋ Abschnitt</span> legt
+einen weiteren Abschnitt mit einer leeren Zeile an, und jeder
+<strong>Abschnittstitel in der Positionsliste lässt sich anklicken und
+umbenennen</strong> – alle Positionen des Abschnitts wandern dabei mit.</p>
+<div class="hin">Mit dem <strong>Regierapport</strong> hat das nichts zu tun.
+Der Rapport wird geschrieben, <strong>nachdem</strong> die Arbeit ausgeführt
+ist, und hält fest, was tatsächlich gebraucht wurde; die Offerte sagt vorher,
+was angeboten wird. Gemeinsam sind den beiden nur diese zwei Katalog-Listen.
+</div>
 <h3>Massaufnahmen aus der Offerte ableiten (seit Version 3.149)</h3>
 <p>Der Ablauf des Betriebs ist <strong>Projekt → Offerte → Massaufnahme</strong>.
 Bis hierher endete die Offerte bei sich selbst: was in ihr als Position stand,
@@ -2576,7 +2612,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.198</strong>, Stand 26. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.199</strong>, Stand 26. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

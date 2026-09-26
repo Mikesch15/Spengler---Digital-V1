@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.198.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.199.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1163,6 +1163,35 @@ Positionen.</p>
 <p>"🗑 Alle Positionen löschen" entfernt die ganze Liste auf einmal – nach
 Rückfrage, zum Beispiel um mit einer neuen Erkennung von vorne zu
 beginnen.</p>`},
+
+"ang-katalog":{titel:"Positionen aus dem Katalog",text:`
+<p>Eine Offerte entsteht, <b>bevor</b> gearbeitet wird. Trotzdem stehen in ihr
+meistens dieselben Zeilen, die der Betrieb ohnehin führt: die
+<b>Stundenansätze</b> und das <b>Regiematerial</b> aus den Einstellungen. Bis
+jetzt mussten sie in der Offerte von Hand abgetippt werden – mit Preis, und
+damit mit der Möglichkeit, sich zu vertippen.</p>
+<p>Hier stehen beide Kataloge nebeneinander. Wo eine <b>Menge</b> eingetragen
+wird, entsteht eine Offertposition: <b>Stunden</b> im einen Abschnitt,
+<b>Material</b> im anderen – getrennt, wie es in einer Offerte gehört.</p>
+<p>Die <b>Preise kommen unverändert aus dem Katalog</b>. Die App schlägt nichts
+auf und rechnet nichts weg. Was an der Offerte nachher anders sein soll, wird
+in der Offerte selbst geändert – dort steht jede Zeile ganz normal zum
+Bearbeiten.</p>
+<p>Die beiden <b>Abschnittsnamen</b> oben im Dialog sind frei. Steht dort ein
+Abschnitt, den die Offerte schon hat, kommen die neuen Zeilen zu ihm dazu;
+steht dort ein neuer Name, entsteht ein neuer Abschnitt. So lassen sich auch
+mehr als zwei bauen – Gerüst, Regie, Entsorgung, was der Auftrag braucht. Über
+<b>„＋ Abschnitt“</b> in der Positionsleiste geht das auch ohne Katalog, und
+jeder Abschnittstitel lässt sich direkt in der Liste anklicken und
+umbenennen.</p>
+<p>Das Material wird wie im Regierapport <b>gesucht</b> – nach EDV-Nr. oder
+Bezeichnung. Was schon eine Menge hat, bleibt dabei oben stehen, auch wenn die
+Suche gerade etwas anderes zeigt: eine Eingabe geht beim Weitersuchen nicht
+verloren.</p>
+<p>Mit dem <b>Regierapport hat das nichts zu tun.</b> Der Rapport wird
+geschrieben, <b>nachdem</b> die Arbeit ausgeführt ist, und hält fest, was
+tatsächlich gebraucht wurde. Gemeinsam sind den beiden nur diese zwei
+Katalog-Listen.</p>`},
 
 "ang-massaufnahmen":{titel:"Massaufnahmen aus der Offerte",text:`
 <p>Der Ablauf des Betriebs ist <b>Projekt → Offerte → Massaufnahme</b>. Was in

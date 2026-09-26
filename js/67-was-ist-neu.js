@@ -322,7 +322,10 @@ const WIN_CHANGELOG={
   "<b>Nicht zusammengelegt ist b</b> – beim Rohr ist das die Schweifbord-Breite, beim Tablett das Mass von Mitte Rohr nach hinten. Derselbe Buchstabe, zwei völlig verschiedene Masse. Sie bleiben getrennt, und der Prüfstand hält das ausdrücklich fest."],
  "3.198":["<b>Behoben: „permission denied for function mw_firma_ok“ beim Terminieren einer Aufgabe.</b> Die Prüffunktion hinter den Zugriffsregeln der Aufgaben-Termine hatte für angemeldete Nutzer nie ein Ausführungsrecht bekommen – ein Fehler von v3.185. Betroffen waren alle vier Wege (lesen, anlegen, ändern, löschen), das Terminieren hat also noch nie funktioniert. Behoben in der Datenbank; ohne App-Update wirksam.",
   "<b>Werkstoffe ohne Dehnungswerte lassen sich jetzt als „ist so gewollt“ abhaken.</b> Bei einem Werkstoff, der gar nicht dilatiert wird – Blei zum Beispiel –, sind fehlende Dehnungswerte richtig. Bisher blieb so ein Eintrag dauerhaft als roter Fehler stehen, und eine Meldung, die sich nicht erledigen lässt, verdeckt nach einer Weile die, die es ernst meinen.",
-  "Abgehakt wird dabei der <b>einzelne Werkstoff</b>, nicht die Prüfung: ein später angelegter Werkstoff ohne Dehnungswerte meldet sich wieder."]
+  "Abgehakt wird dabei der <b>einzelne Werkstoff</b>, nicht die Prüfung: ein später angelegter Werkstoff ohne Dehnungswerte meldet sich wieder."],
+ "3.199":["<b>Neu: Offertpositionen direkt aus den Katalogen.</b> In der Offerte gibt es den Knopf „📋 Aus Katalog“. Er zeigt die Stundenansätze und das Regiematerial aus den Einstellungen; wo eine Menge eingetragen wird, entsteht eine Offertposition – die Stunden im einen Abschnitt, das Material im anderen. Die Preise kommen unverändert aus dem Katalog.",
+  "<b>Abschnitte lassen sich anlegen und umbenennen.</b> Über „＋ Abschnitt“ entsteht ein weiterer Abschnitt (Gerüst, Regie, Entsorgung – was der Auftrag braucht), und jeder Abschnittstitel in der Positionsliste kann angeklickt und umbenannt werden.",
+  "Das hat mit dem Regierapport nichts zu tun: die Offerte kommt, <b>bevor</b> gearbeitet wird, der Rapport danach. Gemeinsam sind ihnen nur die beiden Katalog-Listen."]
 };
 
 function winVersionVergleich(a,b){
