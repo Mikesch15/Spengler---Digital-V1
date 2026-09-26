@@ -182,6 +182,19 @@ Weitere Regeln:
 - Committete Änderungen werden immer direkt auf `main` gepusht,
   ausser der Anwender nennt ausdrücklich einen anderen Branch oder
   verlangt einen Pull Request.
+- Veröffentlicht wird nach einer **Schnellprüfung**, nicht nach der
+  vollen Regression: der neue bzw. betroffene Prüfstand samt
+  Gegenproben, die Prüfstände der betroffenen Module, dazu
+  `hilfe` und `versionen` – zusammen rund eine Minute. Danach sofort
+  auf `main`. Die volle Regression läuft **hinterher** (hier und
+  automatisch in GitHub Actions). Ansage des Anwenders: 30 Minuten
+  warten, bis eine fertige Funktion benutzbar ist, ist ein schlechter
+  Tausch. Wird die Regression hinterher rot: sofort beheben und
+  nachschieben, oder – wenn das nicht in wenigen Minuten geht – `main`
+  auf den letzten grünen Stand zurücksetzen und es sagen.
+  Ausnahme: Änderungen am gemeinsamen Kern (js/01, js/05, js/16,
+  js/29, App-Shell in sw.js) hängen an zwanzig Modulen – dort wird die
+  Schnellprüfung entsprechend ausgeweitet.
 - Diese Anleitung (`CLAUDE.md`) so knapp wie möglich halten. Sie
   wird bei jeder Session automatisch in den Kontext geladen und
   kostet dadurch bei jeder Aufgabe Tokens – neue Versions-Details,
