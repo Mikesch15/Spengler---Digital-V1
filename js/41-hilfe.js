@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.203.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.204.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -41,17 +41,25 @@ dieselben Daten, dieselben Rechte. Zurück geht es jederzeit unter
 <b>Mehr → Zurück zur klassischen Ansicht</b>; jedes Gerät merkt sich seine Wahl
 für sich.</p>
 <p><b>Die Projektseite der neuen Ansicht (seit v3.203).</b> Oben stehen die
-Register des Projekts: Übersicht, Offerte, Massaufnahme, Material, Rüsten &amp;
-Montage, Ausmass, Rapport, Dateien. Jedes ist einen Griff entfernt – es gibt
-keinen Sammelpunkt „Mehr“ mehr, hinter dem sich etwas versteckt.</p>
+Register des Projekts: Übersicht, Offerte, Massaufnahme, Herstellung, Ausmass,
+Rapport, Dateien. Jedes ist einen Griff entfernt – es gibt keinen Sammelpunkt
+„Mehr“ mehr, hinter dem sich etwas versteckt.</p>
 <p>Die <b>Ablaufkette</b> in der Übersicht (Offerte → Massaufnahme → Freigabe →
 Rüsten → Montage → Ausmass) zeigt nicht nur, wie weit das Projekt ist – sie ist
 <b>anklickbar</b>. Ein Tipp auf eine Station führt in ihr Register. Die Kette
 und die Register sind damit dieselbe Landkarte, nicht zwei verschiedene.</p>
-<p>Zwei Namen sind dabei genauer geworden: das Projekt-Register heisst
-<b>„Rüsten &amp; Montage“</b> (die <b>Werkstatt</b> unten in der Leiste ist die
-der ganzen Firma, nicht die dieses Projekts), und aus „Produktion“ wurde
-<b>„Material“</b> – so wie die Seite heisst, die dahinter aufgeht.</p>`},
+<p><b>Herstellung (seit v3.204)</b> ist der ganze Weg von der Massaufnahme zum
+fertigen Teil, auf einer Seite und in der Reihenfolge der Werkstatt:
+<b>1. Material &amp; Zuschnitt</b> – welches Blech, wie viele Teile, was ist schon
+geschnitten – und <b>2. Rüsten &amp; Montieren</b> – wo jedes Teil steht und wer
+es rüstet oder montiert. Über jedem Abschnitt steht ein Satz, wofür er da ist.
+Vorher waren das zwei Register („Material“ und „Rüsten &amp; Montage“), die
+dieselben Massaufnahmen zeigten, nur anders geordnet.</p>
+<p><b>Blau bleibt, grau führt hinaus.</b> Ein blauer Knopf bleibt im Projekt –
+zum Beispiel „Material &amp; Zuschnitt öffnen“. Ein grauer verlässt es – zum
+Beispiel „Werkstatt aller Projekte öffnen“, der gemeinsame Arbeitsplatz, auf
+dem die Teile aller Projekte nebeneinander stehen. Deshalb steht er zuunterst
+und nicht oben.</p>`},
 
 // ---- Arbeitsworkflow (v3.05) --------------------------------------------
 "aufgaben":{titel:"Meine offenen Aufgaben",text:`

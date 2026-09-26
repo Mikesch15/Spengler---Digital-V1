@@ -335,7 +335,11 @@ const WIN_CHANGELOG={
   "<b>Die Ablaufkette ist jetzt anklickbar.</b> Ein Tipp auf „Offerte“, „Rüsten“ oder „Ausmass“ führt direkt ins zugehörige Register. Kette und Register sind dieselbe Landkarte statt zwei verschiedener.",
   "<b>Zwei Namen sind genauer:</b> das Projekt-Register heisst „Rüsten & Montage“ (die „Werkstatt“ unten in der Leiste ist die der ganzen Firma), und aus „Produktion“ wurde „Material“.",
   "Das Dateien-Register zeigt die Dateien jetzt mit Namen, Datum und Grösse, statt nur die alte Projektansicht zu öffnen. Und die Seite „Mehr“ ist in Arbeiten, Firma und Verwaltung gegliedert."],
- "3.202":["<b>Behoben: „Vortext und Schlusstext“ liessen sich in der neuen Offerte nicht öffnen.</b> Der Block war zugeklappt, und ein Klick auf die Überschrift tat nichts – der Text war da, aber unerreichbar. Ein Fehler von v3.200: den vier Blöcken des Formulars fehlte der Klapp-Handler ganz. Jetzt lässt sich jeder öffnen und schliessen, auch mit der Tastatur."]
+ "3.202":["<b>Behoben: „Vortext und Schlusstext“ liessen sich in der neuen Offerte nicht öffnen.</b> Der Block war zugeklappt, und ein Klick auf die Überschrift tat nichts – der Text war da, aber unerreichbar. Ein Fehler von v3.200: den vier Blöcken des Formulars fehlte der Klapp-Handler ganz. Jetzt lässt sich jeder öffnen und schliessen, auch mit der Tastatur."],
+ "3.204":["<b>„Material“ und „Rüsten &amp; Montage“ sind ein Register geworden: „Herstellung“.</b> Es zeigt den ganzen Weg von der Massaufnahme zum fertigen Teil auf einer Seite – erst Material &amp; Zuschnitt, dann Rüsten &amp; Montieren –, und über jedem Abschnitt steht ein Satz, wofür er da ist. Vorher zeigten beide Register dieselben Massaufnahmen, nur anders geordnet.",
+  "Neue Regel auf der Projektseite: ein <b>blauer</b> Knopf bleibt im Projekt, ein <b>grauer</b> führt hinaus. „Werkstatt aller Projekte öffnen“ ist deshalb grau und steht zuunterst.",
+  "Register „Dateien“: statt vier Zeilen, die alle am selben Ort endeten, steht jetzt die Dateiliste und darunter ein beschrifteter Knopf.",
+  "Fehler behoben: beim Öffnen von „Dateien, Fotos und Verlauf“ war kurz die ganze alte Projektansicht zu sehen, bevor sie sich auf das Gesuchte einschränkte."],
 };
 
 function winVersionVergleich(a,b){
