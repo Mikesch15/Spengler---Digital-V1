@@ -25,12 +25,18 @@ const ABW_FELDER=["D","t","H","alpha","b","r","nahtLang","f","faktorA","faktorB"
 // v3.192: das zweite Bauteil. Eigene Feld-Vorsilbe "tab_", damit sich die
 // beiden Formulare nicht ins Gehege kommen; gerechnet wird es in js/77.
 const ABW_TABLETT_FELDER=["D","alpha","a","b","c","umschlag","massSeitlich","lochZugabe"];
-// v3.196: Der Dachwinkel ist bei BEIDEN Bauteilen dasselbe Mass - beim Rohr
-// hiess er "Schnittwinkel", beim Tablett "Dachwinkel", und man musste ihn
-// zweimal eintippen. Es gibt jetzt EIN Feld (abw_alpha) fuer beide. Wer
-// dasselbe Mass zweimal erfassen laesst, bekommt frueher oder spaeter zwei
-// verschiedene Winkel fuer dasselbe Dach.
-const ABW_GETEILT=["alpha"];
+// GETEILTE MASSE: was bei beiden Bauteilen DASSELBE ist, steht nur einmal.
+// v3.196 der Dachwinkel (beim Rohr hiess er "Schnittwinkel", beim Tablett
+// "Dachwinkel"), v3.197 der Rohrdurchmesser. Wer dasselbe Mass zweimal
+// erfassen laesst, bekommt frueher oder spaeter zwei verschiedene Zahlen
+// fuer dasselbe Dach und dasselbe Rohr.
+//
+// ACHTUNG, HIER LIEGT EINE FALLE: die Liste geht nach dem FELDNAMEN, und
+// "b" heisst bei den beiden Bauteilen etwas voellig anderes - beim Rohr die
+// Schweifbord-Breite, beim Tablett das Mass von Mitte Rohr nach hinten.
+// Derselbe Buchstabe, zwei Masse. "b" darf deshalb NIE in diese Liste, und
+// der Pruefstand haelt fest, dass die beiden unabhaengig bleiben.
+const ABW_GETEILT=["alpha","D"];
 function abwTablettEl(k){
  return abwEl(ABW_GETEILT.indexOf(k)>=0 ? k : "tab_"+k);
 }
@@ -748,7 +754,10 @@ async function abwOeffnen(){
  if(!modal)return;
  if(!abwEl("D")||!abwEl("D").value)abwFelderSetzen(ABW_STANDARD);
  // v3.192: Die Vorgaben des Tabletts kommen aus der Einfassung rund (js/21).
- if(!abwEl("tab_D")||!abwEl("tab_D").value)abwTablettFelderSetzen(null);
+ // Geprueft wird an "a": "D" ist seit v3.197 geteilt und beim Oeffnen schon
+ // vom Rohr gesetzt - danach zu fragen hiesse, die Tablett-Masse bei jedem
+ // Oeffnen zu ueberschreiben.
+ if(!abwEl("tab_a")||!abwEl("tab_a").value)abwTablettFelderSetzen(null);
  abwBauteilZeigen();
  abwProjektWahl();
  modal.hidden=false;

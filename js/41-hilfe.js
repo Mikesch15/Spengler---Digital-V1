@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.196.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.197.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1359,11 +1359,14 @@ auf der <b>Schweifmaschine</b>. <b>Lappeneinschnitte gibt es seit v3.196
 nicht mehr</b> – sie entsprechen nicht mehr dem Stand der Technik, und der
 Hinweis, der früher dazu kam, ist mit ihnen weggefallen. Die Zahl bleibt:
 sie steht als <b>Streckung Schweifbord-Rand</b> in der Ergebnistabelle.</div>
-<div class="hin"><b>Die Dachneigung α gilt für beide Bauteile.</b> Beim Rohr
-ist sie der Schnittwinkel, beim Tablett die Neigung der Dachfläche – dasselbe
-Mass, deshalb steht es nur einmal da. Bis v3.195 gab es zwei Felder, und wer
-eines nachträglich änderte, hatte zwei verschiedene Winkel für dasselbe
-Dach.</div>
+<div class="hin"><b>Ø Standrohr und Dachneigung α gelten für beide
+Bauteile</b> und stehen deshalb nur <b>einmal</b> da, oben über den Massen.
+Es ist dasselbe Rohr und dasselbe Dach; bis v3.195 gab es dafür je zwei
+Felder, und wer eines nachträglich änderte, hatte zwei verschiedene Zahlen
+für dieselbe Sache.<br>
+<b>Nicht</b> zusammengelegt ist <b>b</b>: beim Rohr ist das die
+Schweifbord-Breite, beim Tablett das Mass von Mitte Rohr nach hinten.
+Derselbe Buchstabe, zwei völlig verschiedene Masse.</div>
 <div class="hin"><b>Die Zugabe ist über den ganzen Zuschnitt gleich</b>
 (seit v3.190). Gerechnet wird sie mit 90°: <i>Z = (b + t/2) − 2ρ·tan45° +
 ρ·π/2</i> mit ρ = r + t/2, bei den Standardmassen 11,34 mm. Ein Streifen,

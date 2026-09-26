@@ -227,7 +227,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
              dxf:abwDxfText(abwLetztes), svg:abwSvg(abwLetztes),
              ergebnis:$("abwErgebnis").innerText,
              vorschau:$("abwVorschau").innerText,
-             felder:{D:$("abw_tab_D").value,alpha:$("abw_alpha").value,
+             felder:{D:$("abw_D").value,alpha:$("abw_alpha").value,
                      a:$("abw_tab_a").value,umschlag:$("abw_tab_umschlag").value,
                      luft:$("abw_tab_lochZugabe").value}};
   return {rohr,hab};
@@ -390,7 +390,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
   abwListeZeichnen();
   const liste=$("abwListe").innerText;
   abwLaden(5,false);
-  const hab={bauteil:abwBauteil(), D:$("abw_tab_D").value, luft:$("abw_tab_lochZugabe").value,
+  const hab={bauteil:abwBauteil(), D:$("abw_D").value, luft:$("abw_tab_lochZugabe").value,
              rechnet:abwLetztes&&abwLetztes.bauteil};
   abwLaden(6,false);
   const rohr={bauteil:abwBauteil(), D:$("abw_D").value, H:$("abw_H").value,
@@ -500,9 +500,9 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
   abwListeZeichnen();
   const liste=$("abwListe").innerText;
   abwLaden(9,false);
-  const alt={bauteil:abwBauteil(), D:$("abw_tab_D").value, rechnet:abwLetztes&&abwLetztes.bauteil};
+  const alt={bauteil:abwBauteil(), D:$("abw_D").value, rechnet:abwLetztes&&abwLetztes.bauteil};
   abwLaden(10,false);
-  const neu={bauteil:abwBauteil(), D:$("abw_tab_D").value, rechnet:abwLetztes&&abwLetztes.bauteil};
+  const neu={bauteil:abwBauteil(), D:$("abw_D").value, rechnet:abwLetztes&&abwLetztes.bauteil};
   return {liste,alt,neu};
  });
  // Ein Datensatz aus v3.192/v3.193 traegt noch 'hablett'. Ihn als ROHR zu
@@ -531,6 +531,54 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  p((qUi.match(/"hablett"/g)||[]).length===1&&/abwBauteilAusDaten/.test(nurCode(qUi)),
    "der alte Wert steht genau einmal im Code, in abwBauteilAusDaten",
    (qUi.match(/"hablett"/g)||[]).length);
+
+ // ---- L  Geteilte Masse (v3.196/v3.197) -----------------------------------
+ console.log("\nL · Ein Mass, ein Feld");
+ const L=await page.evaluate(async()=>{
+  $("abw_bauteil").value="rohr";
+  $("abw_bauteil").dispatchEvent(new Event("change",{bubbles:true}));
+  await new Promise(x=>setTimeout(x,60));
+  abwFelderSetzen(ABW_STANDARD);
+  $("abw_D").value="150"; $("abw_alpha").value="22";
+  $("abw_b").value="18";                      // Schweifbord-Breite!
+  $("abw_D").dispatchEvent(new Event("input",{bubbles:true}));
+  await new Promise(x=>setTimeout(x,60));
+  const rohr={D:abwLetztes.eingaben.D, alpha:abwLetztes.eingaben.alpha,
+              b:abwLetztes.eingaben.b};
+  $("abw_bauteil").value="tablett";
+  $("abw_bauteil").dispatchEvent(new Event("change",{bubbles:true}));
+  await new Promise(x=>setTimeout(x,80));
+  const tab={D:abwLetztes.eingaben.D, alpha:abwLetztes.eingaben.alpha,
+             b:abwLetztes.eingaben.b, bFeld:$("abw_tab_b").value};
+  // Und zurueck: das Tablett-b darf das Rohr-b nicht angefasst haben.
+  $("abw_tab_b").value="333";
+  $("abw_tab_b").dispatchEvent(new Event("input",{bubbles:true}));
+  await new Promise(x=>setTimeout(x,60));
+  const tab333=abwLetztes.eingaben.b;
+  $("abw_bauteil").value="rohr";
+  $("abw_bauteil").dispatchEvent(new Event("change",{bubbles:true}));
+  await new Promise(x=>setTimeout(x,80));
+  return {rohr,tab,tab333,rohrDanach:{b:abwLetztes.eingaben.b,D:abwLetztes.eingaben.D},
+          geteilt:ABW_GETEILT.slice()};
+ });
+ p(L.rohr.D===150&&L.rohr.alpha===22,"beim Rohr eingegeben: Ø 150, Winkel 22",L.rohr);
+ p(L.tab.D===150&&L.tab.alpha===22,
+   "beim Tablett stehen dieselben Zahlen - EIN Mass, EIN Feld",L.tab);
+ // DIE ENTSCHEIDENDE GEGENPROBE: "b" heisst bei den beiden Bauteilen etwas
+ // voellig anderes - beim Rohr die Schweifbord-Breite, beim Tablett das Mass
+ // von Mitte Rohr nach hinten. Derselbe Buchstabe, zwei Masse. Wuerden sie
+ // zusammengelegt, waere der Zuschnitt beider Bauteile falsch, ohne dass es
+ // jemand sieht.
+ p(L.rohr.b===18,"beim Rohr ist b die Schweifbord-Breite: 18",L.rohr.b);
+ p(L.tab.b!==18&&L.tab.bFeld!=="18",
+   "beim Tablett ist b ein ANDERES Mass und bleibt unberuehrt",[L.tab.b,L.tab.bFeld]);
+ p(L.tab333===333,"es laesst sich unabhaengig aendern",L.tab333);
+ p(L.rohrDanach.b===18,"und das Rohr behaelt seine 18",L.rohrDanach.b);
+ p(L.rohrDanach.D===150,"waehrend der geteilte Durchmesser weiterhin geteilt ist",L.rohrDanach.D);
+ p(L.geteilt.indexOf("b")<0,
+   "\"b\" steht NICHT in der Liste der geteilten Masse",L.geteilt);
+ p(L.geteilt.length===2&&L.geteilt.indexOf("alpha")>=0&&L.geteilt.indexOf("D")>=0,
+   "geteilt sind genau zwei: Winkel und Durchmesser",L.geteilt);
 
  // ---- J  Sauberkeit --------------------------------------------------------
  console.log("\nJ · Sauberkeit");

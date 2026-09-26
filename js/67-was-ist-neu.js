@@ -317,7 +317,9 @@ const WIN_CHANGELOG={
  "3.196":["<b>Die Lappeneinschnitte sind weg.</b> Sie entsprechen nicht mehr dem Stand der Technik – geschweift wird auf der Maschine. Damit fällt auch der Hinweis weg, der früher bei 0 Lappen kam („entweder schweifen oder Lappen einschneiden“): er kam bei jeder Rechnung und sagte nichts, was der Betrieb nicht ohnehin tut. Die <b>Streckung</b> wird weiterhin gerechnet und steht in der Ergebnistabelle – nur eben als Zahl, nicht als Warnung.",
   "<b>Der Dachwinkel steht nur noch einmal da.</b> Beim Rohr hiess er „Schnittwinkel“, beim Tablett „Dachwinkel“ – es ist dasselbe Mass, und man musste es zweimal eintippen. Jetzt gibt es <b>ein</b> Feld für beide Bauteile. Wer dasselbe Mass zweimal erfasst, hat früher oder später zwei verschiedene Winkel für dasselbe Dach.",
   "<b>Das Standardmass für die Falzbreite ist neu 5 mm</b> statt 6. Die Zuschnittbreite wird damit 358,38 statt 361,38 mm.",
-  "Eine vor v3.196 gespeicherte Abwicklung mit Lappen öffnet unverändert – die Angabe wird beim Rechnen einfach übergangen, der Zuschnitt bleibt derselbe."]
+  "Eine vor v3.196 gespeicherte Abwicklung mit Lappen öffnet unverändert – die Angabe wird beim Rechnen einfach übergangen, der Zuschnitt bleibt derselbe."],
+ "3.197":["<b>Auch der Rohrdurchmesser steht jetzt nur noch einmal da.</b> Zusammen mit der Dachneigung aus v3.196 heisst das: die Masse, die bei Rohr und Tablett dieselben sind, werden einmal erfasst und gelten für beide.",
+  "<b>Nicht zusammengelegt ist b</b> – beim Rohr ist das die Schweifbord-Breite, beim Tablett das Mass von Mitte Rohr nach hinten. Derselbe Buchstabe, zwei völlig verschiedene Masse. Sie bleiben getrennt, und der Prüfstand hält das ausdrücklich fest."]
 };
 
 function winVersionVergleich(a,b){

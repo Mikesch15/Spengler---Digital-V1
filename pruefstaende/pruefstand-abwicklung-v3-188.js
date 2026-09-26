@@ -265,7 +265,7 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  const E=await page.evaluate(()=>({
   offen:!$("abwicklungModal").hidden,
   D:$("abw_D").value, lappenFeld:!!$("abw_lappen"), alphaFeld:!!$("abw_alpha"),
-  tabAlphaFeld:!!$("abw_tab_alpha"),
+  tabAlphaFeld:!!$("abw_tab_alpha"), tabDFeld:!!$("abw_tab_D"),
   svg:$("abwVorschau").innerHTML.indexOf("<svg")>=0,
   tabelle:$("abwErgebnis").innerHTML,
   projekt:$("abw_projekt").innerHTML.indexOf("Musterstrasse 1")>=0
@@ -273,9 +273,10 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  p(E.offen===true,"der Bereich geht auf");
  p(E.D==="110","die Standardmasse sind vorbelegt",E.D);
  p(E.lappenFeld===false,"das Lappen-Feld gibt es nicht mehr im Formular");
- // v3.196: EIN Winkelfeld fuer beide Bauteile.
+ // v3.196/v3.197: EIN Winkelfeld und EIN Durchmesserfeld fuer beide Bauteile.
  p(E.alphaFeld===true&&E.tabAlphaFeld===false,
    "den Dachwinkel gibt es genau einmal, nicht je Bauteil",[E.alphaFeld,E.tabAlphaFeld]);
+ p(E.tabDFeld===false,"und den Rohrdurchmesser ebenso",E.tabDFeld);
  p(E.svg===true,"die Vorschau zeichnet ein SVG");
  p(E.tabelle.indexOf("358,38")>=0,"die Tabelle nennt die Zuschnittbreite 358,38",E.tabelle.slice(0,200));
  // v3.195: im Formular steht die VORGABE (b = 12), nicht die Eingabe des
