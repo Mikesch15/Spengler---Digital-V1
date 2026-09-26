@@ -116,6 +116,53 @@ function einfaAnzahl(e){
  return n>0?n:1;
 }
 
+// ---- Bruecke zum Abwicklungsrechner (js/77/78, v3.191) ---------------------
+// Diese Aufnahme modelliert den QUERSCHNITT der Einfassung; das runde Rohr
+// um das Standrohr herum ist hier ausdruecklich NICHT abgewickelt (siehe
+// Kopfkommentar von js/21). Genau das rechnet der Abwicklungsrechner - und
+// zwei seiner Eingaben stehen bereits hier:
+//
+//   Durchmesser D   <- Oe Standrohr dieser Einfassung
+//   Schnittwinkel   <- die Dachneigung. e.winkel ist INTERN genau das
+//                      (angezeigt wird Dachneigung + 90, siehe oben) -
+//                      es wird deshalb nichts umgerechnet.
+//   Blechstaerke t  <- Materialstaerke der Massaufnahme (js/61)
+//
+// Rohrhoehe H und Schweifbord-Breite b gibt es in der Einfassung nicht. Es
+// sind Werkstattstandards und keine Masse vom Dach; sie stehen deshalb in
+// den Einstellungen der Einfassung rund (js/21, EINFASSUNG_STANDARD). Eine
+// 0 dort heisst "nicht gesetzt" - dann bleibt in der Abwicklung der Wert
+// stehen, der dort schon steht, und es wird nichts erfunden.
+function einfaAbwicklungVorgabe(i){
+ const e=einfaListe()[i];
+ if(!e)return null;
+ const s=(typeof einfassungSettings==="object"&&einfassungSettings)||{};
+ const werte={}, uebernommen=[];
+ const nimm=(feld,wert,text)=>{
+  if(!(einfaZahl(wert)>0))return;
+  werte[feld]=einfaZahl(wert); uebernommen.push(text);
+ };
+ nimm("D",e.durchmesser,"Ø Standrohr");
+ // Der Winkel darf 0 sein (Flachdach) - deshalb nicht ueber nimm().
+ if(!einfaLeerWert(e.winkel)){ werte.alpha=einfaZahl(e.winkel); uebernommen.push("Winkel Dach/Rohr"); }
+ if(typeof measStaerkeGet==="function")nimm("t",measStaerkeGet(),"Materialstärke");
+ nimm("H",s.rohrhoehe,"Rohrhöhe (Richtwert)");
+ nimm("b",s.schweifbord,"Schweifbord-Breite (Richtwert)");
+
+ const name=(e.bez||"").trim()||("Einfassung "+(i+1));
+ const oe=einfaZahl(e.durchmesser)>0?(" Ø"+einfaMm(e.durchmesser)):"";
+ return {
+  werte, uebernommen,
+  bezeichnung:name+oe,
+  // Projekt und Massaufnahme kommen aus dem offenen Formular (js/10). Ist
+  // die Aufnahme noch nicht gespeichert, gibt es keine Id - dann haengt die
+  // Abwicklung eben nur am Projekt. Eine erfundene Id waere schlimmer.
+  projectId:(typeof measSelectedProjectId!=="undefined")?(measSelectedProjectId||null):null,
+  measurementId:(typeof currentMeasurementId!=="undefined")?(currentMeasurementId||null):null,
+  herkunft:"Einfassung rund · "+name+oe
+ };
+}
+
 // ---- Zuschnitte -----------------------------------------------------------
 // Eine Einfassung ist EIN Zuschnitt: Laenge = Breite der gesamten Einfassung,
 // Breite = Abwicklung des Querschnitts (so steht es seit v2.84 auch im PDF).
@@ -427,6 +474,7 @@ ${einfaZahlFeld("Stückzahl","einfa_anzahl_"+i,e.anzahl)}
 </div>
 <div class="bar" style="margin-top:6px">
 <button type="button" class="gray" data-einfa-zeichnen="${i}">📐 Schnitt zeigen</button>
+<button type="button" class="gray" data-einfa-abwicklung="${i}">⭕ Abwicklung Rohr</button>
 <button type="button" class="gray" data-einfa-weg="${i}">🗑 Löschen</button>
 </div></div>`;
  }).join("");
@@ -649,6 +697,13 @@ function einfaVerdrahten(){
   if(reg){einfaSetzeSchritt(reg.dataset.einfaSchritt);return}
   const zeig=t.closest("[data-einfa-zeichnen]");
   if(zeig){einfA.aktiv=Number(zeig.dataset.einfaZeichnen)||0; renderEinfassungAufnahme(); return}
+  const abw=t.closest("[data-einfa-abwicklung]");
+  if(abw){
+   if(typeof abwAusMassaufnahme!=="function"){alert("Der Abwicklungsrechner ist auf diesem Gerät noch nicht geladen.");return}
+   const v=einfaAbwicklungVorgabe(Number(abw.dataset.einfaAbwicklung)||0);
+   if(v)abwAusMassaufnahme(v);
+   return;
+  }
   const weg=t.closest("[data-einfa-weg]");
   if(weg){
    const i=Number(weg.dataset.einfaWeg);

@@ -16,6 +16,9 @@ const ABW_FELDER=["D","t","H","alpha","b","r","nahtLang","f","faktorA","faktorB"
 let abwLetztes=null;        // das zuletzt gerechnete Ergebnis
 let abwGespeichert=[];      // die Liste aus der Datenbank
 let abwGeladenVon=null;     // id des geladenen Datensatzes (fuer den Vergleich)
+// v3.191: Woher die Masse kommen, wenn die Abwicklung aus einer Massaufnahme
+// heraus geoeffnet wurde. {measurementId, text, uebernommen:[...]}
+let abwHerkunft=null;
 
 function abwEl(k){ return (typeof $==="function")?$("abw_"+k):document.getElementById("abw_"+k) }
 
@@ -99,6 +102,26 @@ function abwErgebnisZeichnen(r){
   <tr><td>Bord fertig (rechnerisch)</td><td>${abwMm(r.bFertigMin)} … ${abwMm(r.bFertigMax)}</td></tr>
   <tr><td>Streckung Schweifbord-Rand</td><td>${(r.streckung*100).toFixed(1).replace(".",",")} %</td></tr>
  </table>`;
+}
+
+// v3.191: Was aus der Massaufnahme kam - und was NICHT. Eine Uebernahme,
+// die nicht sagt, welche Felder sie gesetzt hat, laesst den Anwender raten,
+// welche Zahl er noch pruefen muss.
+function abwHerkunftHtml(){
+ if(!abwHerkunft)return "";
+ const alle=["Ø Standrohr","Winkel Dach/Rohr","Materialstärke","Rohrhöhe (Richtwert)","Schweifbord-Breite (Richtwert)"];
+ const da=abwHerkunft.uebernommen||[];
+ const fehlt=alle.filter(x=>da.indexOf(x)<0);
+ return `<div class="abw-herkunft">
+  <b>Aus der Massaufnahme:</b> ${esc(abwHerkunft.text||"")}
+  <div class="small">Übernommen: ${da.length?esc(da.join(", ")):"nichts"}${
+   fehlt.length?` · <b>nicht übernommen:</b> ${esc(fehlt.join(", "))} – bitte prüfen`:""}</div>
+  <button type="button" class="kon-klein kon-k-grau" data-abw-herkunft-weg="1">Verbindung lösen</button>
+ </div>`;
+}
+function abwHerkunftZeichnen(){
+ const box=(typeof $==="function")?$("abwHerkunft"):document.getElementById("abwHerkunft");
+ if(box)box.innerHTML=abwHerkunftHtml();
 }
 
 function abwMeldungZeigen(r){
@@ -249,6 +272,10 @@ async function abwSpeichern(){
  const satz={
   bezeichnung:bez||"Abwicklung",
   project_id:projId,
+  // v3.191: Kommt die Abwicklung aus einer Massaufnahme, gehoert sie zu
+  // GENAU dieser - sonst weiss spaeter niemand mehr, zu welchem Rohr der
+  // Zuschnitt war.
+  measurement_id:abwHerkunft?abwHerkunft.measurementId:null,
   parameter:r.eingaben,
   // Nur die Kennzahlen, nicht die 360 Stuetzpunkte: die Kontur laesst sich
   // aus den Parametern jederzeit wieder rechnen, und eine Kopie davon waere
@@ -273,7 +300,7 @@ async function abwSpeichern(){
 async function abwListeLaden(){
  if(typeof sb==="undefined")return;
  const {data,error}=await sb.from("abwicklungen")
-  .select("id,bezeichnung,project_id,parameter,ergebnis,created_at")
+  .select("id,bezeichnung,project_id,measurement_id,parameter,ergebnis,created_at")
   .order("created_at",{ascending:false}).limit(100);
  abwGespeichert=(!error&&Array.isArray(data))?data:[];
  abwListeZeichnen();
@@ -321,6 +348,10 @@ function abwLaden(id,alsKopie){
   $("abw_bezeichnung").value=(a.bezeichnung||"")+(alsKopie?" (Kopie)":"");
  if(typeof $==="function"&&$("abw_projekt"))$("abw_projekt").value=a.project_id?String(a.project_id):"";
  abwGeladenVon=alsKopie?null:a.id;
+ abwHerkunft=a.measurement_id
+  ? {measurementId:a.measurement_id,text:"gespeicherte Massaufnahme",uebernommen:[]}
+  : null;
+ abwHerkunftZeichnen();
  const r=abwAktualisieren();
  const e=a.ergebnis||{};
  const abweichung=[];
@@ -338,6 +369,28 @@ function abwLaden(id,alsKopie){
  return true;
 }
 
+// ---- Einstieg aus einer Massaufnahme (v3.191) -----------------------------
+// Setzt NUR die Felder, zu denen es dort wirklich eine Zahl gibt. Alles
+// andere bleibt stehen, wie es war - es wird nichts geleert und nichts
+// erfunden.
+async function abwAusMassaufnahme(v){
+ if(!v||typeof $!=="function")return false;
+ await abwOeffnen();
+ const w=v.werte||{};
+ Object.keys(w).forEach(k=>{
+  const el=abwEl(k);
+  if(el&&w[k]!==undefined&&w[k]!==null&&w[k]!=="")el.value=String(w[k]);
+ });
+ if($("abw_bezeichnung")&&v.bezeichnung)$("abw_bezeichnung").value=v.bezeichnung;
+ if($("abw_projekt")&&v.projectId)$("abw_projekt").value=String(v.projectId);
+ abwHerkunft={measurementId:v.measurementId||null,
+              text:v.herkunft||"",
+              uebernommen:Array.isArray(v.uebernommen)?v.uebernommen:[]};
+ abwHerkunftZeichnen();
+ abwAktualisieren();
+ return true;
+}
+
 // ---- Oeffnen und Schliessen ----------------------------------------------
 async function abwOeffnen(){
  if(typeof $!=="function")return;
@@ -346,6 +399,7 @@ async function abwOeffnen(){
  if(!abwEl("D")||!abwEl("D").value)abwFelderSetzen(ABW_STANDARD);
  abwProjektWahl();
  modal.hidden=false;
+ abwHerkunftZeichnen();
  abwAktualisieren();
  try{ await abwListeLaden() }catch(e){}
 }
@@ -364,7 +418,14 @@ document.addEventListener("click",async e=>{
  if(e.target.closest("[data-abw-oeffnen]")){ await abwOeffnen(); return }
  const zu=e.target.closest("#closeAbwicklung");
  if(zu){ const m=$("abwicklungModal"); if(m)m.hidden=true; return }
- if(e.target.closest("#abwZuruecksetzen")){ abwFelderSetzen(ABW_STANDARD); abwAktualisieren(); return }
+ if(e.target.closest("#abwZuruecksetzen")){
+  abwFelderSetzen(ABW_STANDARD);
+  // Mit den Standardmassen stimmt die Herkunft nicht mehr - sie stehen zu
+  // lassen waere eine Behauptung ueber Zahlen, die niemand uebernommen hat.
+  abwHerkunft=null; abwHerkunftZeichnen();
+  abwAktualisieren(); return;
+ }
+ if(e.target.closest("[data-abw-herkunft-weg]")){ abwHerkunft=null; abwHerkunftZeichnen(); return }
  if(e.target.closest("#abwDxf")){
   const r=abwLetztes||abwAktualisieren();
   if(r&&r.ok)abwHerunterladen(abwDxfText(r),abwDateiname("dxf"),"application/dxf");

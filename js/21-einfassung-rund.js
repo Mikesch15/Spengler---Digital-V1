@@ -64,7 +64,19 @@ const EINFASSUNG_STANDARD = Object.freeze({
   // frei änderbar; ein gespeicherter Datensatz bleibt unverändert.
   mass_a: 250,         // a · Vorderkante auf Deckmaterial bis Mitte Rohr
   mass_b: 200,         // b · ab Mitte Rohr bis hinten, unter das Deckmaterial
-  mass_c: 35           // c · 90°-Aufbug hinten
+  mass_c: 35,          // c · 90°-Aufbug hinten
+  // v3.191: Fuer den Abwicklungsrechner (js/77). Die Einfassung modelliert
+  // das Rohr selbst bewusst NICHT (siehe Kopfkommentar) - der
+  // Abwicklungsrechner tut es, und diese beiden Masse fehlen ihm dort.
+  // Es sind Werkstattstandards, keine Masse vom Dach, deshalb stehen sie
+  // hier bei den uebrigen Richtwerten.
+  //
+  // 0 heisst AUSDRUECKLICH "nicht gesetzt": dann bleibt in der Abwicklung
+  // der Wert stehen, der dort schon steht. Eine erfundene Rohrhoehe, die
+  // unbemerkt in einen echten Zuschnitt laeuft, waere schlimmer als gar
+  // keine - dieselbe Ueberlegung wie bei den Preisen des Beispielkatalogs.
+  rohrhoehe: 0,        // H · Rohr ab Schnittmitte bis Oberkante
+  schweifbord: 0       // b · Breite des Schweifbords in der Schnittebene
 });
 const EINF_EINSTELLUNGEN = "sd_einfassungRundSettings";
 
@@ -328,6 +340,8 @@ function applyEinfassungSettings() {
   setzen("einfsMassA", s.mass_a);
   setzen("einfsMassB", s.mass_b);
   setzen("einfsMassC", s.mass_c);
+  setzen("einfsRohrhoehe", s.rohrhoehe);
+  setzen("einfsSchweifbord", s.schweifbord);
 }
 
 // ---- 7. Bedienung ----------------------------------------------------
@@ -368,10 +382,13 @@ function applyEinfassungSettings() {
       lattenabstand: zahl("einfsLattenabstand") || 0,
       mass_a: zahl("einfsMassA") || 0,
       mass_b: zahl("einfsMassB") || 0,
-      mass_c: zahl("einfsMassC") || 0
+      mass_c: zahl("einfsMassC") || 0,
+      rohrhoehe: zahl("einfsRohrhoehe") || 0,
+      schweifbord: zahl("einfsSchweifbord") || 0
     };
     if (!EINF_DECKUNGEN[w.deckung]) { alert("Bitte ein Deckmaterial wählen."); return; }
-    const negativ = ["umschlag", "mass_seitlich", "lattenabstand", "mass_a", "mass_b", "mass_c"].some(k => w[k] < 0);
+    const negativ = ["umschlag", "mass_seitlich", "lattenabstand", "mass_a", "mass_b", "mass_c",
+                     "rohrhoehe", "schweifbord"].some(k => w[k] < 0);
     if (negativ) { alert("Diese Werte dürfen nicht negativ sein."); return; }
     einfEinstellungenSichern(w);
     applyEinfassungSettings();

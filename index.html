@@ -35,7 +35,7 @@
 <div class="wide"><label>Benutzername oder E-Mail</label><input id="loginUser" data-pflicht="1" placeholder="max.muster" autocomplete="username"></div>
 <div class="wide"><label>Passwort</label><input id="loginPass" data-pflicht="1" type="password" autocomplete="current-password"></div>
 </div>
-<!-- v3.190: nur sichtbar, wenn hier ein ZWEITES Konto dazugelegt wird.
+<!-- v3.191: nur sichtbar, wenn hier ein ZWEITES Konto dazugelegt wird.
      Die laufende Sitzung ist dann noch gueltig - "Zurück" fuehrt ohne
      Abmelden wieder hinein. -->
 <div class="small" id="kwLoginHinweis" hidden style="margin-bottom:6px;color:var(--muted)">Das bisher angemeldete Konto bleibt auf diesem Gerät gespeichert. Nach dem Anmelden lässt sich zwischen beiden wechseln.</div>
@@ -130,7 +130,7 @@
 <!-- Warteschlange (v3.04): erscheint nur, wenn wirklich etwas wartet. -->
 <button type="button" class="ws-knopf no-print" id="wsKnopf" hidden></button>
 
-<!-- v3.190: Konto wechseln. Der Knopf erscheint nur, wenn auf diesem Geraet
+<!-- v3.191: Konto wechseln. Der Knopf erscheint nur, wenn auf diesem Geraet
      wirklich ein zweites Konto gemerkt ist (kwZeichnen in js/76) - sonst
      waere es ein Knopf, der nichts tut. -->
 <div class="small no-print" id="topUserBar">Angemeldet als <b id="currentUserLabel">–</b> <button type="button" id="kontoWechseln" class="gray" style="padding:3px 9px;font-size:11px;margin-left:8px" data-kw-oeffnen="1" hidden>🔄 Konto wechseln</button> <button id="logout" class="red" style="padding:3px 9px;font-size:11px;margin-left:8px">🔓 Abmelden</button></div>
@@ -178,7 +178,7 @@
 </div>
 <div class="bar" style="margin-top:14px;justify-content:center">
 <button id="openGlobalSearch" class="gray">🔍 Suche</button>
-<!-- v3.190: Die Abwicklung ist ein Werkzeug, kein Projektschritt - sie
+<!-- v3.191: Die Abwicklung ist ein Werkzeug, kein Projektschritt - sie
      braucht kein Projekt und steht deshalb frei auf dem Startbildschirm. -->
 <button type="button" class="gray" data-abw-oeffnen="1">📐 Abwicklung</button>
 <button id="settings" class="gray">⚙️ Einstellungen</button>
@@ -202,7 +202,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.190</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.191</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -704,7 +704,7 @@
 </div>
 </div>
 
-<!-- v3.190: Abwicklung "Rundrohr mit schraegem Anschnitt, Schweifbord und Falz".
+<!-- v3.191: Abwicklung "Rundrohr mit schraegem Anschnitt, Schweifbord und Falz".
      Die Rechnung selbst steht DOM-frei in js/77-abwicklung.js; hier stehen
      nur Eingabefelder, Vorschau und Ausgabe (js/78). -->
 <div id="abwicklungModal" class="modal" hidden>
@@ -716,6 +716,9 @@
 
 <div class="card">
 <h3>Masse</h3>
+<!-- v3.191: Steht hier nur, wenn die Abwicklung aus einer Massaufnahme
+     heraus geoeffnet wurde (js/78, abwAusMassaufnahme). -->
+<div id="abwHerkunft"></div>
 <div class="grid">
 <div><label>Aussendurchmesser D (mm)</label><input id="abw_D" type="number" step="0.1" min="1"></div>
 <div><label>Blechstärke t (mm)</label><input id="abw_t" type="number" step="0.05" min="0.05"></div>
@@ -768,7 +771,7 @@
 </div>
 </div>
 
-<!-- v3.190: Der Druckbereich fuer die 1:1-Schablone. Er steht ausserhalb des
+<!-- v3.191: Der Druckbereich fuer die 1:1-Schablone. Er steht ausserhalb des
      Dialogs, weil beim Drucken alles andere ausgeblendet wird. -->
 <div id="abwDruck" class="abw-druck" hidden></div>
 
@@ -2230,7 +2233,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.190.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 109 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.191.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 110 Seiten)</a></div>
 </div>
 </div>
 
@@ -2272,7 +2275,7 @@ einer wirkt nicht auf die anderen.</div>
 </div>
 </div>
 
-<!-- v3.190: Kontrolle der Stammdaten. Sie steht im Register "Allgemein",
+<!-- v3.191: Kontrolle der Stammdaten. Sie steht im Register "Allgemein",
      weil sie ueber alle Register hinweg prueft - Katalog, Werkstoffe, Lager.
      Gezeichnet wird erst beim Aufklappen (js/75): die Pruefungen sollen nicht
      bei jedem Oeffnen der Einstellungen ueber den ganzen Katalog laufen. -->
@@ -2443,7 +2446,12 @@ Gehrung: gilt an jeder Ecke (Segment mit Winkel ≠ 0), zusätzlich zu Boden (an
 <div><label>a &middot; vorne bis Mitte Rohr (mm)</label><input id="einfsMassA" type="number" step="1"></div>
 <div><label>b &middot; Mitte Rohr bis hinten (mm)</label><input id="einfsMassB" type="number" step="1"></div>
 <div><label>c &middot; 90&deg;-Aufbug hinten (mm)</label><input id="einfsMassC" type="number" step="1"></div>
+<!-- v3.191: Fuer den Abwicklungsrechner. Werkstattstandards, keine Masse
+     vom Dach - deshalb hier und nicht im Massaufnahme-Formular. -->
+<div><label>Rohrh&ouml;he H f&uuml;r die Abwicklung (mm)</label><input id="einfsRohrhoehe" type="number" step="1" min="0"></div>
+<div><label>Schweifbord-Breite b f&uuml;r die Abwicklung (mm)</label><input id="einfsSchweifbord" type="number" step="1" min="0"></div>
 </div>
+<div class="small" style="color:var(--muted);margin:-4px 0 10px">Die beiden letzten Werte fliessen in den Abwicklungsrechner, wenn Sie ihn aus einer Einfassung heraus &ouml;ffnen. <b>0 hei&szlig;t: nicht gesetzt</b> &ndash; dann bleibt in der Abwicklung der Wert stehen, der dort schon steht. &Oslash; und Dachwinkel kommen immer aus der Massaufnahme selbst.</div>
 <div class="bar" style="margin-bottom:14px">
 <button id="saveEinfassungSettings" class="green">💾 Werte speichern</button>
 <button id="resetEinfassungSettings" class="gray">Auf Standardwerte zur&uuml;cksetzen</button>
@@ -2921,13 +2929,13 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.190.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.191.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
 </div>
 
-<!-- v3.190: Die auf diesem Geraet gemerkten Konten. -->
+<!-- v3.191: Die auf diesem Geraet gemerkten Konten. -->
 <div id="kontenModal" class="modal no-print" hidden>
  <div class="modal-box">
   <h2>Konto wechseln <button type="button" class="hilfe-knopf no-print" data-hilfe="kontowechsel">i</button></h2>

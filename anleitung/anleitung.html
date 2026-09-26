@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.190";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.191";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.190<br>
+  Version 3.191<br>
   Stand 26. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2356,7 +2356,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">26 · Abwicklung: Rundrohr mit schrägem Anschnitt</h2>
-<p>Seit Version 3.190 rechnet die App den Zuschnitt für ein rundes Blechrohr,
+<p>Seit Version 3.191 rechnet die App den Zuschnitt für ein rundes Blechrohr,
 das unten schräg angeschnitten ist – etwa eine Dachdurchführung –, mit
 angebogenem <strong>Schweifbord</strong> und liegendem <strong>Längsfalz</strong>.
 Sie steht auf dem Startbildschirm unter <span class="tasten">📐 Abwicklung</span>,
@@ -2404,7 +2404,7 @@ Zuschnitt <strong>gleich breit</strong>. Gerechnet wird er mit 90°:
 Standardmassen 39,34 mm. Ein Streifen, der über die Länge schwankt, lässt
 sich nicht anreissen, und geschweift wird nachher ohnehin; dabei wandert das
 Material.</p>
-<div class="hin"><strong>Bis Version 3.190 war das anders.</strong> Da bekam
+<div class="hin"><strong>Bis Version 3.191 war das anders.</strong> Da bekam
 jeder Punkt seine eigene Zugabe, gerechnet mit dem dort wirklich
 auftretenden Biegewinkel – so rechnet auch das Fusion-360-Script. Für sich
 genommen ist das richtig, für die Werkstatt war es unbrauchbar.</div>
@@ -2444,6 +2444,31 @@ Seite anpassen“. Auf jedem Blatt steht ein <strong>100-mm-Kontrollmass</strong
 einmal mit dem Meter nachmessen, bevor nach der Schablone geschnitten wird.
 Eine um wenige Prozent verkleinerte Schablone fällt sonst erst am Blech auf.</div>
 
+<h3>Aus der Einfassung rund heraus (ab 3.191)</h3>
+<p>Die Massaufnahme <strong>Einfassung rund</strong> rechnet den Querschnitt
+(a, b, c) und lässt das Rohr selbst ausdrücklich offen. Genau dieses Rohr
+rechnet die Abwicklung – die beiden ergänzen sich. Bei jeder Einfassung steht
+deshalb der Knopf <span class="tasten">⭕ Abwicklung Rohr</span>.</p>
+<table>
+<tr><th>Fliesst herüber</th><th>Woher</th></tr>
+<tr><td>Aussendurchmesser D</td><td>Ø Standrohr dieser Einfassung</td></tr>
+<tr><td>Schnittwinkel α</td><td>Die Dachneigung. Angezeigt wird der Winkel Dach/Rohr (Dachneigung + 90°), gespeichert und weitergereicht die Dachneigung – es wird nichts doppelt umgerechnet.</td></tr>
+<tr><td>Blechstärke t</td><td>Materialstärke der Massaufnahme</td></tr>
+<tr><td>Rohrhöhe H · Schweifbord-Breite b</td><td>Richtwert aus <strong>Einstellungen → Massaufnahmen → Einfassung Rund</strong></td></tr>
+<tr><td>Projekt und Bezeichnung</td><td>aus der offenen Massaufnahme</td></tr>
+</table>
+<div class="hin"><strong>Rohrhöhe und Schweifbord-Breite gibt es in der
+Einfassung nicht</strong> – es sind Werkstattstandards, keine Masse, die man
+auf dem Dach abgreift. Deshalb stehen sie bei den übrigen Richtwerten in den
+Einstellungen. Eine <strong>0</strong> heisst dort „nicht gesetzt“: dann
+bleibt in der Abwicklung der Wert stehen, der dort schon steht.</div>
+<div class="hin">Oben in der Abwicklung steht, <strong>was übernommen wurde
+und was nicht</strong>. Die nicht übernommenen Felder sind genau die, die Sie
+noch prüfen müssen. Gespeichert gehört die Abwicklung danach zu genau dieser
+Massaufnahme, nicht nur zum Projekt. Mit
+<span class="tasten">Verbindung lösen</span> oder
+<span class="tasten">↩️ Standardmasse</span> ist der Bezug wieder weg.</div>
+
 <h3>Speichern</h3>
 <p>Eine Abwicklung lässt sich mit Bezeichnung und – wenn gewünscht – einem
 Projekt speichern, später wieder laden, duplizieren oder löschen.</p>
@@ -2454,7 +2479,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.190</strong>, Stand 26. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.191</strong>, Stand 26. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

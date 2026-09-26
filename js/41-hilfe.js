@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.190.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.191.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1381,7 +1381,23 @@ Prozent verkleinerte Schablone fällt sonst erst am Blech auf.</div>
 <p>Gespeichert werden die <b>Masse</b>, nicht die gezeichnete Kontur – die
 wird beim Laden neu gerechnet. Weicht das Ergebnis vom gespeicherten ab,
 sagt die App es ausdrücklich, statt stillschweigend andere Zahlen zu
-zeigen.</p>`},
+zeigen.</p>
+<div class="hin"><b>Aus der Einfassung rund heraus</b> (seit v3.191): Dort
+steht bei jeder Einfassung <b>⭕ Abwicklung Rohr</b>. Damit kommen
+<b>Ø Standrohr</b>, der <b>Winkel Dach/Rohr</b> und die <b>Materialstärke</b>
+der Massaufnahme herüber, dazu Projekt und ein Vorschlag für die
+Bezeichnung. Die Abwicklung gehört danach zu genau dieser Massaufnahme.<br>
+Oben steht, <b>was übernommen wurde und was nicht</b> – die nicht
+übernommenen Felder sind die, die Sie prüfen müssen. Mit
+<b>Verbindung lösen</b> oder <b>Standardmasse</b> ist der Bezug wieder
+weg.</div>
+<div class="hin">Das passt fachlich zusammen: die Einfassung rund rechnet
+den <b>Querschnitt</b> (a, b, c) und lässt das Rohr selbst ausdrücklich
+offen – genau das rechnet die Abwicklung. <b>Rohrhöhe</b> und
+<b>Schweifbord-Breite</b> gibt es dort nicht; sie stehen als Richtwert
+unter <b>Einstellungen → Massaufnahmen → Einfassung Rund</b>. Eine
+<b>0</b> heisst dort „nicht gesetzt“, dann bleibt der Wert in der
+Abwicklung stehen – es wird nichts erfunden.</div>`},
 
 "kontowechsel":{titel:"Konto wechseln",text:`
 <p>Wer zwei Konten hat – etwa das eigene und eines in einer Testfirma –,

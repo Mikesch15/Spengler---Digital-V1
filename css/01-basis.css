@@ -1614,3 +1614,14 @@ html.dark .rmat-unsicher{color:#e0a35c}
  .abw-blatt:last-child{page-break-after:auto;break-after:auto}
  .abw-blatt-bild{margin:3mm 0}
 }
+
+/* ---- Abwicklung aus einer Massaufnahme (v3.191) --------------------------
+   Der Hinweis nennt beides: was übernommen wurde UND was nicht. Eine
+   Übernahme, die nur ihre Treffer meldet, lässt den Anwender raten, welche
+   Zahl er noch prüfen muss. */
+.abw-herkunft{border:1px solid var(--blue,#1565c0);border-radius:10px;
+ padding:8px 10px;margin:0 0 10px;display:flex;flex-wrap:wrap;gap:6px 10px;
+ align-items:center}
+.abw-herkunft>b{flex:0 0 auto}
+.abw-herkunft>.small{flex:1 1 200px;min-width:0;color:var(--muted)}
+#abwHerkunft:empty{display:none}
