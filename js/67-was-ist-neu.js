@@ -330,7 +330,8 @@ const WIN_CHANGELOG={
   "Was du in der Vorschau siehst, ist das PDF selbst – nicht eine nachgebaute Ansicht. Was dort steht, bekommt der Kunde."],
  "3.201":["<b>„Offerte erstellen“ ist jetzt auch in der neuen Ansicht da</b> – auf der Projektseite unter „Mehr“, zuoberst, noch vor dem Import. Vorher gab es sie nur im alten Cockpit.",
   "<b>EDV-Nr. tippen genügt.</b> Wer in der Positionsliste eine Nummer ins Feld „Pos.“ tippt, sieht sofort die passenden Materialpositionen; ein Klick übernimmt Bezeichnung, Einheit und Preis.",
-  "Von Hand geht weiterhin alles: eine Nummer ohne Treffer bleibt stehen, und ohne Klick wird nie etwas überschrieben."]
+  "Von Hand geht weiterhin alles: eine Nummer ohne Treffer bleibt stehen, und ohne Klick wird nie etwas überschrieben."],
+ "3.202":["<b>Behoben: „Vortext und Schlusstext“ liessen sich in der neuen Offerte nicht öffnen.</b> Der Block war zugeklappt, und ein Klick auf die Überschrift tat nichts – der Text war da, aber unerreichbar. Ein Fehler von v3.200: den vier Blöcken des Formulars fehlte der Klapp-Handler ganz. Jetzt lässt sich jeder öffnen und schliessen, auch mit der Tastatur."]
 };
 
 function winVersionVergleich(a,b){

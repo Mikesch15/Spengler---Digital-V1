@@ -778,6 +778,42 @@ if($("offKatalogModal")){
  });
 }
 
+// ---- Die klappbaren Bloecke des Formulars ---------------------------------
+// GEMELDET (v3.201): "in der neuen offertfunktion komme ich nicht zum vor-
+// und schlusstext". Zu Recht - die vier Bloecke hatten ueberhaupt keinen
+// Klapp-Handler. Drei standen offen und liessen sich nicht schliessen, und
+// "Vortext und Schlusstext" stand zu und liess sich nicht oeffnen: der Text
+// war da, aber unerreichbar.
+//
+// Ursache: das Markup ist vom Import-Formular uebernommen, und dort haengt
+// der Handler an EINEM Block (#angPositionsKlapp, js/63) - er wurde beim
+// Uebernehmen nicht mitgedacht. Deshalb hier EIN Handler fuer alle Bloecke
+// des Formulars statt vier einzelne: ein fuenfter Block braucht dann nichts
+// weiter als sein Markup.
+if($("offerteEditModal")){
+ const klappUm=k=>{
+  const box=k.closest(".klapp");
+  if(!box)return;
+  const offen=!box.classList.contains("open");
+  box.classList.toggle("open",offen);
+  k.setAttribute("aria-expanded",offen?"true":"false");
+ };
+ $("offerteEditModal").addEventListener("click",e=>{
+  // Der Info-Knopf in der Ueberschrift ist eine eigene Sache - er darf den
+  // Block nicht auf- oder zuklappen.
+  if(e.target.closest(".hilfe-knopf"))return;
+  const k=e.target.closest('.klapp-kopf[data-klapp^="off-"]');
+  if(k)klappUm(k);
+ });
+ $("offerteEditModal").addEventListener("keydown",e=>{
+  if(e.key!=="Enter"&&e.key!==" "&&e.key!=="Spacebar")return;
+  const k=e.target.closest?e.target.closest('.klapp-kopf[data-klapp^="off-"]'):null;
+  if(!k)return;
+  e.preventDefault();
+  klappUm(k);
+ });
+}
+
 // ---- Projektauswahl (dieselben Bausteine wie ueberall) ---------------------
 function setOffProjectField(projId){
  offSelectedProjectId=projId||null;

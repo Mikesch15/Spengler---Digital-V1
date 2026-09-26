@@ -735,6 +735,74 @@ const MATERIALS=[
  }));
  p(form.bekannt,"das Offertformular ist der Ansicht als Formular bekannt",form);
 
+
+ // =========================================================================
+ console.log("\nM · jeder Block des Formulars laesst sich oeffnen und schliessen (v3.202)");
+ // GEMELDET: "in der neuen offertfunktion komme ich nicht zum vor- und
+ // schlusstext". Die Bloecke hatten keinen Klapp-Handler - drei standen
+ // offen und liessen sich nicht schliessen, "Vortext und Schlusstext" stand
+ // zu und liess sich nicht oeffnen. Der Inhalt war da, nur unerreichbar.
+ await grund([]);
+ let bl=await page.evaluate(()=>{
+  const koepfe=[...$("offerteEditModal").querySelectorAll('.klapp-kopf[data-klapp^="off-"]')];
+  const sicht=el=>!!(el&&el.getBoundingClientRect().height>0);
+  return {
+   anzahl:koepfe.length,
+   namen:koepfe.map(k=>k.dataset.klapp),
+   // Genau der gemeldete Block: steht er zu, und ist sein Inhalt wirklich weg?
+   texteZu:!$("offTexteKlapp").classList.contains("open"),
+   textfeldVersteckt:!sicht($("offVortext"))&&!sicht($("offSchlusstext"))
+  };
+ });
+ p(bl.anzahl===4,"das Formular hat vier klappbare Bloecke",bl.namen);
+ p(bl.texteZu&&bl.textfeldVersteckt,"„Vortext und Schlusstext“ startet zugeklappt",bl);
+ // Aufklappen - der eigentliche Fehler
+ let auf=await page.evaluate(()=>{
+  const sicht=el=>!!(el&&el.getBoundingClientRect().height>0);
+  const kopf=$("offerteEditModal").querySelector('.klapp-kopf[data-klapp="off-texte"]');
+  kopf.click();
+  return {offen:$("offTexteKlapp").classList.contains("open"),
+          vortext:sicht($("offVortext")), schluss:sicht($("offSchlusstext")),
+          aria:kopf.getAttribute("aria-expanded")};
+ });
+ p(auf.offen&&auf.vortext&&auf.schluss,
+   "ein Klick auf die Ueberschrift macht Vortext und Schlusstext erreichbar",auf);
+ p(auf.aria==="true","und meldet es auch der Vorlesehilfe",auf.aria);
+ // Wieder zu, und die anderen drei ebenso
+ let zu=await page.evaluate(()=>{
+  const kopf=k=>$("offerteEditModal").querySelector(`.klapp-kopf[data-klapp="${k}"]`);
+  kopf("off-texte").click();
+  const raus={texteWiederZu:!$("offTexteKlapp").classList.contains("open")};
+  ["off-kunde","off-positionen","off-pdf"].forEach(k=>kopf(k).click());
+  raus.andereZu=["offKundeKlapp","offPositionsKlapp","offPdfKlapp"]
+   .every(id=>!$(id).classList.contains("open"));
+  ["off-kunde","off-positionen","off-pdf"].forEach(k=>kopf(k).click());
+  raus.wiederAuf=["offKundeKlapp","offPositionsKlapp","offPdfKlapp"]
+   .every(id=>$(id).classList.contains("open"));
+  return raus;
+ });
+ p(zu.texteWiederZu,"und ein zweiter Klick schliesst ihn wieder",zu);
+ p(zu.andereZu&&zu.wiederAuf,
+   "auch die drei offenen Bloecke lassen sich schliessen und wieder oeffnen",zu);
+ // Tastatur
+ let tast=await page.evaluate(()=>{
+  const kopf=$("offerteEditModal").querySelector('.klapp-kopf[data-klapp="off-texte"]');
+  kopf.dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
+  return $("offTexteKlapp").classList.contains("open");
+ });
+ p(tast,"Enter auf der Ueberschrift tut dasselbe wie ein Klick",tast);
+ // Gegenprobe: der Info-Knopf IN der Ueberschrift darf nicht klappen
+ let info=await page.evaluate(()=>{
+  const vorher=$("offTexteKlapp").classList.contains("open");
+  const knopf=$("offerteEditModal")
+   .querySelector('.klapp-kopf[data-klapp="off-texte"] .hilfe-knopf');
+  if(!knopf)return {keinKnopf:true};
+  knopf.click();
+  return {vorher, nachher:$("offTexteKlapp").classList.contains("open")};
+ });
+ p(!info.keinKnopf&&info.vorher===info.nachher,
+   "Gegenprobe: der Info-Knopf in der Ueberschrift klappt nichts",info);
+
  p(jsFehler.length===0,"keine JavaScript-Fehler",jsFehler);
 
  await b.close();
