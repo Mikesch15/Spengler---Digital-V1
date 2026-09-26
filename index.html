@@ -202,7 +202,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.192</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.193</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -779,6 +779,13 @@
 
 <div class="card">
 <h3>Ausgeben</h3>
+<!-- v3.193: Das Papierformat der Schablone. Die App schlaegt das Format mit
+     den wenigsten Blaettern vor; bei jedem Format steht, wie viele es
+     waeren, damit sichtbar ist, was groesseres Papier spart. -->
+<div class="grid">
+<div class="wide"><label>Papierformat der Schablone</label><select id="abw_papier"><option value="auto">automatisch</option></select></div>
+</div>
+<div class="small" id="abwPapierHinweis" style="color:var(--muted);margin:2px 0 8px"></div>
 <div class="bar">
 <button type="button" id="abwDxf" class="gray">💾 DXF</button>
 <button type="button" id="abwSvg" class="gray">💾 SVG 1:1</button>
@@ -2263,7 +2270,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.192.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 111 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.193.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 112 Seiten)</a></div>
 </div>
 </div>
 
@@ -2960,7 +2967,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.192.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.193.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

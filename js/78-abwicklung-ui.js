@@ -259,6 +259,7 @@ function abwAktualisieren(){
  abwMeldungZeigen(r);
  abwVorschauZeichnen(r);
  abwErgebnisZeichnen(r);
+ abwPapierWahlZeichnen(r);
  return r;
 }
 
@@ -305,24 +306,129 @@ function abwHerunterladen(text,name,typ){
 }
 
 // ---- Schablone 1:1 --------------------------------------------------------
-// Aufteilung auf A4 mit Ueberlappung, Passmarken, Seitennummern und einem
-// 100-mm-Kontrollmass je Seite. Das Kontrollmass ist kein Schmuck: ohne
-// Nachmessen weiss niemand, ob der Drucker wirklich 1:1 gedruckt hat, und
-// eine um 4 % verkleinerte Schablone faellt erst am Blech auf.
-const ABW_A4={breite:210,hoehe:297,rand:10,ueberlappung:10};
-function abwSeiten(r){
- const nutzB=ABW_A4.breite-2*ABW_A4.rand-ABW_A4.ueberlappung;
- const nutzH=ABW_A4.hoehe-2*ABW_A4.rand-ABW_A4.ueberlappung-12;   // 12 mm Fuss
+// Aufteilung auf Papierblaetter mit Ueberlappung, Passmarken, Seitennummern
+// und einem 100-mm-Kontrollmass je Seite. Das Kontrollmass ist kein Schmuck:
+// ohne Nachmessen weiss niemand, ob der Drucker wirklich 1:1 gedruckt hat,
+// und eine um 4 % verkleinerte Schablone faellt erst am Blech auf.
+//
+// v3.193: DAS FORMAT WIRD VORGESCHLAGEN, NICHT FESTGELEGT.
+// Bis v3.192 war A4 fest verdrahtet. Das Hablett (350 x 543 mm) brauchte
+// damit SECHS Blatt, und beim Rohr trug die dritte Spalte 1,4 mm Zeichnung -
+// ein ganzes Blatt fuer nichts. Die App rechnet jetzt jedes Format durch und
+// waehlt das mit den wenigsten Blaettern vor; jedes Format steht mit seiner
+// Blattzahl in der Auswahl, damit sichtbar ist, was groesseres Papier spart.
+//
+// A0 ist bewusst NICHT dabei - der Betrieb druckt bis A1 (Ansage des
+// Anwenders). Ein Format, das niemand drucken kann, waere ein Vorschlag, der
+// in die Irre fuehrt.
+const ABW_PAPIER=[
+ {id:"a4",name:"A4",kurz:210,lang:297},
+ {id:"a3",name:"A3",kurz:297,lang:420},
+ {id:"a2",name:"A2",kurz:420,lang:594},
+ {id:"a1",name:"A1",kurz:594,lang:841}
+];
+// rand        = Druckrand, identisch mit dem @page-Rand der Schablone
+// ueberlappung= gemeinsamer Streifen zweier Blaetter zum Kleben
+// kopfFuss    = Platz fuer Kopfzeile, Fusszeile und die Abstaende dazwischen
+//
+// kopfFuss war bis v3.192 mit 12 mm angesetzt und der @page-Rand mit 8 mm,
+// obwohl hier mit 10 gerechnet wurde. Gemessen ergab das ein Blatt von
+// 280,9 mm auf 281,0 mm Druckflaeche: 0,1 mm Reserve. Sobald der Drucker auf
+// Standardrand stand, rutschte der untere Rand auf eine zusaetzliche,
+// halbleere Seite. Gebraucht werden gemessen rund 13,5 mm; 24 mm lassen
+// genug Luft, auch wenn ein Drucker mehr Rand erzwingt.
+const ABW_BLATT={rand:10, ueberlappung:10, kopfFuss:24};
+
+// Beide Lagen jedes Formats. Hochkant zuerst - bei gleicher Blattzahl und
+// gleicher Flaeche gewinnt damit die uebliche Lage.
+function abwPapierListe(){
+ const raus=[];
+ ABW_PAPIER.forEach(f=>{
+  raus.push({id:f.id+"-hoch",name:f.name+" hoch",breite:f.kurz,hoehe:f.lang});
+  raus.push({id:f.id+"-quer",name:f.name+" quer",breite:f.lang,hoehe:f.kurz});
+ });
+ return raus;
+}
+// Wie viele Blaetter braucht DIESER Zuschnitt auf DIESEM Format?
+function abwPapierBedarf(r,f){
+ if(!r||!r.ok||!f)return null;
+ const nutzB=f.breite-2*ABW_BLATT.rand-ABW_BLATT.ueberlappung;
+ const nutzH=f.hoehe-2*ABW_BLATT.rand-ABW_BLATT.ueberlappung-ABW_BLATT.kopfFuss;
+ if(!(nutzB>0&&nutzH>0))return null;
  const alleY=r.kontur.map(p=>p[1]);
- const yMin=Math.min.apply(null,alleY), yMax=Math.max.apply(null,alleY);
+ const hoehe=Math.max.apply(null,alleY)-Math.min.apply(null,alleY);
  const spalten=Math.max(1,Math.ceil(r.breite/nutzB));
- const zeilen=Math.max(1,Math.ceil((yMax-yMin)/nutzH));
+ const zeilen=Math.max(1,Math.ceil(hoehe/nutzH));
+ return {nutzB,nutzH,spalten,zeilen,seiten:spalten*zeilen};
+}
+// Der Vorschlag: am wenigsten Blaetter. Bei gleich vielen das KLEINERE
+// Papier - sonst schlaegt die App A1 vor, wo A4 dasselbe leistet.
+function abwPapierVorschlag(r){
+ let best=null;
+ abwPapierListe().forEach(f=>{
+  const b=abwPapierBedarf(r,f);
+  if(!b)return;
+  const k=Object.assign({},f,b);
+  if(!best
+     ||b.seiten<best.seiten
+     ||(b.seiten===best.seiten&&f.breite*f.hoehe<best.breite*best.hoehe))best=k;
+ });
+ return best;
+}
+// Was gerade gilt: die Wahl des Anwenders, sonst der Vorschlag.
+function abwPapierGewaehlt(r){
+ const el=(typeof $==="function")?$("abw_papier"):document.getElementById("abw_papier");
+ const wahl=el?el.value:"";
+ if(wahl&&wahl!=="auto"){
+  const f=abwPapierListe().find(x=>x.id===wahl);
+  const b=f?abwPapierBedarf(r,f):null;
+  if(b)return Object.assign({},f,b);
+ }
+ return abwPapierVorschlag(r);
+}
+
+function abwSeiten(r,papier){
+ const f=papier||abwPapierGewaehlt(r);
+ if(!f)return [];
+ const alleY=r.kontur.map(p=>p[1]);
+ const yMin=Math.min.apply(null,alleY);
  const seiten=[];
- for(let z=0;z<zeilen;z++)for(let sp=0;sp<spalten;sp++){
-  seiten.push({nr:seiten.length+1, spalte:sp+1, zeile:z+1, spalten, zeilen,
-   x0:sp*nutzB, y0:yMin+z*nutzH, breite:nutzB+ABW_A4.ueberlappung, hoehe:nutzH+ABW_A4.ueberlappung});
+ for(let z=0;z<f.zeilen;z++)for(let sp=0;sp<f.spalten;sp++){
+  seiten.push({nr:seiten.length+1, spalte:sp+1, zeile:z+1,
+   spalten:f.spalten, zeilen:f.zeilen, papier:f,
+   x0:sp*f.nutzB, y0:yMin+z*f.nutzH,
+   breite:f.nutzB+ABW_BLATT.ueberlappung, hoehe:f.nutzH+ABW_BLATT.ueberlappung});
  }
  return seiten;
+}
+
+// Die Auswahl. Jedes Format zeigt seine Blattzahl - daran sieht der Anwender
+// sofort, was das groessere Papier spart, statt es ausprobieren zu muessen.
+function abwPapierWahlZeichnen(r){
+ const el=(typeof $==="function")?$("abw_papier"):document.getElementById("abw_papier");
+ if(!el)return;
+ if(!r||!r.ok){ el.innerHTML=`<option value="auto">automatisch</option>`; return }
+ const v=abwPapierVorschlag(r);
+ const alt=el.value;
+ const blatt=n=>n===1?"1 Blatt":(n+" Blatt");
+ el.innerHTML=`<option value="auto">automatisch – ${esc(v?v.name:"")} · ${esc(v?blatt(v.seiten):"")}</option>`
+  +abwPapierListe().map(f=>{
+    const b=abwPapierBedarf(r,f);
+    if(!b)return "";
+    return `<option value="${esc(f.id)}">${esc(f.name)} · ${esc(blatt(b.seiten))}</option>`;
+   }).join("");
+ // Die Wahl des Anwenders ueberlebt das Neuzeichnen - sonst springt sie bei
+ // jedem Tastendruck im Massfeld auf "automatisch" zurueck.
+ if(alt&&el.querySelector(`option[value="${alt}"]`))el.value=alt;
+ const hinweis=(typeof $==="function")?$("abwPapierHinweis"):null;
+ if(hinweis){
+  const g=abwPapierGewaehlt(r);
+  const a4=abwPapierBedarf(r,abwPapierListe()[0]);
+  hinweis.textContent=g
+   ? ("Gedruckt wird auf "+g.name+": "+blatt(g.seiten)
+      +(a4&&g.seiten<a4.seiten?" statt "+blatt(a4.seiten)+" auf A4 hoch.":"."))
+   : "";
+ }
 }
 // Die Schablone wird SCHWARZ gedruckt - Farbe hilft am Blech nicht, und ein
 // Graustufendrucker macht aus Rot und Blau dasselbe Grau. Unterschieden wird
@@ -344,15 +450,27 @@ function abwSeiteSvg(r,seite){
 </svg>`;
 }
 function abwDruckHtml(r){
- const seiten=abwSeiten(r);
+ const f=abwPapierGewaehlt(r);
+ const seiten=abwSeiten(r,f);
  const name=(typeof $==="function"&&$("abw_bezeichnung")&&$("abw_bezeichnung").value.trim())||"Abwicklung";
- return seiten.map(s=>`<div class="abw-blatt">
+ // Das Blatt muss so gross sein, wie hier gerechnet wurde. Ohne diese Regel
+ // druckt der Browser weiter auf A4 (css/03-druck.css) und schneidet eine
+ // A2-Schablone ab. Die Masse stehen in mm, nicht als "A4 portrait", damit
+ // auch die Querlage eindeutig ist.
+ const seitenRegel=f
+  ? `<style>@page{size:${abwRund(f.breite)}mm ${abwRund(f.hoehe)}mm;margin:${ABW_BLATT.rand}mm}</style>`
+  : "";
+ // Der Hinweis auf 100 % steht im KOPF, nicht im Fuss. Im Fuss stand er
+ // neben dem 100-mm-Strich und brach dort auf drei Zeilen um - die schoben
+ // das Blatt ueber die Druckflaeche hinaus.
+ return seitenRegel+seiten.map(s=>`<div class="abw-blatt">
   <div class="abw-blatt-kopf">${esc(name)} · Blatt ${s.nr} von ${seiten.length}
-   (Spalte ${s.spalte}/${s.spalten}, Zeile ${s.zeile}/${s.zeilen})</div>
+   (Spalte ${s.spalte}/${s.spalten}, Zeile ${s.zeile}/${s.zeilen}) · ${esc(f?f.name:"")}
+   · Druck <b>100 %</b>, nicht „an Seite anpassen“</div>
   <div class="abw-blatt-bild">${abwSeiteSvg(r,s)}</div>
   <div class="abw-blatt-fuss">
    <span class="abw-kontrollmass"></span>
-   <span>Kontrollmass 100 mm – nachmessen. Druck auf <b>100 %</b>, nicht „an Seite anpassen“.</span>
+   <span>Kontrollmass 100 mm – nachmessen</span>
   </div>
  </div>`).join("");
 }
@@ -626,13 +744,17 @@ async function abwOeffnen(){
 // ---- Ereignisse -----------------------------------------------------------
 document.addEventListener("input",e=>{
  if(!e.target||!e.target.id||e.target.id.indexOf("abw_")!==0)return;
- if(e.target.id==="abw_bezeichnung"||e.target.id==="abw_projekt")return;
+ // Diese drei aendern die Rechnung nicht - das Papierformat betrifft nur die
+ // Schablone und wird im change-Zweig behandelt.
+ if(e.target.id==="abw_bezeichnung"||e.target.id==="abw_projekt"
+    ||e.target.id==="abw_papier")return;
  abwAktualisieren();
 });
 document.addEventListener("change",e=>{
  if(!e.target)return;
  if(e.target.id==="abw_nahtLang"){ abwAktualisieren(); return }
  // Das Bauteil wechselt zwei Formulare, nicht nur eine Zahl.
+ if(e.target.id==="abw_papier"){ abwPapierWahlZeichnen(abwLetztes); return }
  if(e.target.id==="abw_bauteil"){
   abwBauteilZeigen();
   // Die Herkunft galt fuer das andere Bauteil - sie stehen zu lassen waere
