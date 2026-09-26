@@ -102,8 +102,19 @@ const STUB=`window.supabase={createClient:()=>({
  p(beide.length===0,
    "kein Register heisst gleich wie ein Eintrag der unteren Leiste",
    {register:a.namen,leiste:a.leiste,doppelt:beide});
- p(a.namen.indexOf("Rüsten & Montage")>=0,
-   "die Werkstatt DES PROJEKTS heisst „Rüsten & Montage“",a.namen);
+ // UMGESTELLT in v3.204: Aus „Material“ und „Rüsten & Montage“ ist EIN
+ // Register „Herstellung“ geworden - die beiden zeigten dieselben
+ // Massaufnahmen, nur anders geordnet, und der Anwender meldete "unklar
+ // was wozu gehört". Die Zusicherung, um die es hier geht, bleibt
+ // dieselbe: die Werkstatt DES PROJEKTS darf nicht so heissen wie die
+ // Werkstatt der FIRMA in der unteren Leiste. Sie wird sogar strenger,
+ // weil jetzt auch kein zweites Register mehr daneben steht, das
+ // dasselbe zeigt.
+ p(a.namen.indexOf("Herstellung")>=0,
+   "die Werkstatt DES PROJEKTS heisst „Herstellung“",a.namen);
+ p(a.schluessel.indexOf("produktion")<0&&a.schluessel.indexOf("werkstatt")<0,
+   "die zwei alten Register „Material“ und „Rüsten & Montage“ sind zusammengelegt",
+   a.schluessel);
  p(JSON.stringify(a.gezeichnet)===JSON.stringify(a.namen),
    "die gezeichnete Registerleiste stimmt mit der Liste ueberein",a.gezeichnet);
 
@@ -121,7 +132,7 @@ const STUB=`window.supabase={createClient:()=>({
  p(bl.anzahl===6,"sechs Stationen",bl.texte);
  p(bl.knoepfe===6,"jede Station ist ein Knopf",bl);
  p(JSON.stringify(bl.ziele)===JSON.stringify(
-    ["offerte","aufmass","aufmass","werkstatt","werkstatt","ausmass"]),
+    ["offerte","aufmass","aufmass","herstellung","herstellung","ausmass"]),
    "und fuehrt auf das Register, das zu ihr gehoert",bl.ziele);
  // Der eigentliche Beweis: klicken und nachsehen, wo man landet
  const springe=async(i)=>page.evaluate(n=>{
@@ -136,8 +147,14 @@ const STUB=`window.supabase={createClient:()=>({
    "ein Klick auf „Offerte“ fuehrt ins Offerte-Register",s0);
  await page.evaluate(()=>{a2Zustand.reg="uebersicht";a2Zeichnen()});
  let s3=await springe(3);
- p(s3.reg==="werkstatt"&&s3.markiert[0]==="Rüsten & Montage",
-   "„Rüsten“ fuehrt auf Rüsten & Montage",s3);
+ p(s3.reg==="herstellung"&&s3.markiert[0]==="Herstellung",
+   "„Rüsten“ fuehrt auf das Register Herstellung",s3);
+ // Und „Montage“ fuehrt auf dasselbe Register - beide Stationen gehoeren
+ // zum selben Abschnitt darin. Ohne diese Zeile waere die Zusammenlegung
+ // nur an einer der beiden Stationen belegt.
+ await page.evaluate(()=>{a2Zustand.reg="uebersicht";a2Zeichnen()});
+ let s4=await springe(4);
+ p(s4.reg==="herstellung","„Montage“ fuehrt auf dasselbe Register",s4);
  // Gegenprobe: ohne das Modul gibt es kein Ziel - dann bleibt die Station Anzeige
  let ohne=await page.evaluate(()=>{
   projektModule={haupt:true,material:false,werkstatt:false};
@@ -148,7 +165,7 @@ const STUB=`window.supabase={createClient:()=>({
   projektModule={haupt:true,material:true,werkstatt:true}; a2Zeichnen();
   return raus;
  });
- p(ohne.ziele.indexOf("werkstatt")<0&&ohne.arten.indexOf("DIV")>=0,
+ p(ohne.ziele.indexOf("herstellung")<0&&ohne.arten.indexOf("DIV")>=0,
    "eine Station ohne Register ist kein Knopf, der nichts tut",ohne);
 
  // =========================================================================

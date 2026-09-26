@@ -251,10 +251,14 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
    "D2 und projektStammdatenOeffnen in den Stammdatenbereich des Cockpits",D);
 
  // ---- E  Was ausdruecklich beim Cockpit bleibt ----------------------------
- // "Mehr -> Dateien, Fotos und Verlauf" will GENAU diesen Schirm.
+ // Das Register "Dateien" will GENAU diesen Schirm.
+ // UMGESTELLT in v3.203/3.204: bis dahin stand der Eintrag unter "Mehr \u2026";
+ // dieses Sammel-Register gibt es nicht mehr. Der Vertrag ist derselbe
+ // geblieben - dieser eine Weg fuehrt ins Cockpit, und zwar mit der Marke,
+ // die alles ausser Dateien, Fotos und Verlauf ausblendet.
  const E=await page.evaluate(async()=>{
   a2Setzen(true);
-  a2Zustand.seite="projekt"; a2Zustand.projektId=1; a2Zustand.reg="mehr";
+  a2Zustand.seite="projekt"; a2Zustand.projektId=1; a2Zustand.reg="dateien";
   a2Zustand.bereich=null; a2Zeichnen();
   const knopf=document.querySelector('#a2Inhalt [data-a2-tu="cockpit"]');
   if(!knopf)return {knopf:false};
@@ -266,6 +270,43 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  });
  p(E.knopf&&E.bereich==="projectCockpitModal"&&E.marke==="a2-nur-dateien",
    "E1 'Dateien, Fotos und Verlauf' geht weiterhin ins Cockpit - mit seiner Marke",E);
+ // v3.204: Die Marke muss schon AM SCHIRM haengen, BEVOR er aufgeht.
+ // Gemeldet: "kommt ganz kurz ein anderer Bildschirm als der erwartete".
+ // Das war keine Kosmetik - openProjectCockpit macht den Schirm sichtbar
+ // und laedt DANN seine Daten nach; wurde die Marke erst hinterher
+ // gesetzt, stand das ganze alte Cockpit eine Netzwerkrunde lang offen.
+ // Geprueft wird deshalb nicht der Endzustand (das tut E1 schon), sondern
+ // der Zeitpunkt: waehrend der Oeffner laeuft, traegt der Schirm die Marke
+ // bereits.
+ const E2=await page.evaluate(async()=>{
+  a2Setzen(true);
+  if(typeof a2BereichSchliessen==="function")a2BereichSchliessen();
+  await new Promise(f=>setTimeout(f,250));   // der Bereich schliesst ueber seinen eigenen Knopf
+  document.getElementById("projectCockpitModal").hidden=true;
+  a2Zustand.seite="projekt"; a2Zustand.projektId=1; a2Zustand.reg="dateien";
+  a2Zustand.bereich=null; a2ProjLaedt=false; a2Zeichnen();
+  const schirm=document.getElementById("projectCockpitModal");
+  let waehrend=null, sichtbarOhneMarke=false;
+  const echt=window.openProjectCockpit;
+  window.openProjectCockpit=async id=>{
+   // In dem Augenblick, in dem der Oeffner gerufen wird: haengt die Marke schon?
+   waehrend=schirm.classList.contains("a2-nur-dateien");
+   schirm.hidden=false;                       // wie der echte Oeffner
+   await new Promise(f=>setTimeout(f,40));    // seine Ladezeit
+   sichtbarOhneMarke=!schirm.classList.contains("a2-nur-dateien");
+   return true;
+  };
+  const knopf=document.querySelector('#a2Inhalt [data-a2-tu="cockpit"]');
+  if(knopf)knopf.click();
+  await new Promise(f=>setTimeout(f,400));
+  window.openProjectCockpit=echt;
+  return {waehrend,sichtbarOhneMarke,knopfDa:!!knopf};
+ });
+ p(E2.knopfDa,"E1a der Knopf ins Cockpit steht im Register Dateien",E2);
+ p(E2.waehrend===true,
+   "E1b die Marke haengt schon am Schirm, wenn der Oeffner gerufen wird",E2);
+ p(E2.sichtbarOhneMarke===false,
+   "E1c und waehrend der Schirm sichtbar ist und laedt, bleibt sie dran",E2);
 
  // ---- F  Strukturpruefung -------------------------------------------------
  // Kein Weg, der "ein Projekt oeffnen" meint, darf wieder direkt ins

@@ -140,14 +140,33 @@ window.supabase={createClient:()=>({
  p(!b3.uebersicht,"B7 die Massaufnahme-Uebersicht wird nicht gezeigt",b3);
  p(b3.neuGeladen,"B8 die Listen wurden neu geholt",b3);
 
- // --- C: Werkstatt-Register ---
- await page.click('[data-a2-reg="werkstatt"]');
+ // --- C: Das Register Herstellung ---
+ // UMGESTELLT in v3.204: Bis v3.203 gab es hier ZWEI Register, "Material"
+ // und "Rüsten & Montage". Sie zeigten dieselben Massaufnahmen, einmal nach
+ // Zuschnitt und einmal nach Arbeitsstand - gemeldet als "unklar was wozu
+ // gehört". Jetzt ist es eines. Geprueft wird dasselbe wie vorher (die
+ // Gruppierung nach Arbeitsstand samt zugeteiltem Ruester) und zusaetzlich,
+ // dass beide Schritte wirklich auf EINER Seite stehen und dass man dem
+ // Knopf ansieht, ob er im Projekt bleibt (blau) oder hinausfuehrt (grau).
+ await page.click('[data-a2-reg="herstellung"]');
+ await page.waitForTimeout(200);
  let c=await page.evaluate(()=>({
   text:$("a2Inhalt").textContent.replace(/\s+/g," "),
-  zeilen:[...document.querySelectorAll("#a2Inhalt [data-a2-meas]")].length
+  zeilen:[...document.querySelectorAll("#a2Inhalt [data-a2-meas]")].length,
+  regs:[...document.querySelectorAll('#a2Inhalt [data-a2-reg]')].map(x=>x.getAttribute("data-a2-reg")),
+  raus:(()=>{const k=document.querySelector('#a2Inhalt [data-a2-tu="werkstatt"]');
+             return k?{da:true,blau:k.classList.contains("a2-k-blau")}:{da:false}})(),
+  rein:!!document.querySelector('#a2Inhalt [data-a2-tu="matzu"].a2-k-blau')
  }));
  p(c.text.includes("Zu rüsten")&&c.text.includes("Gerüstet"),"C1 nach Arbeitsstand gruppiert",c.text.slice(0,200));
  p(c.text.includes("Bruno Muster"),"C2 der zugeteilte Ruester steht dabei",c.text.slice(0,300));
+ p(c.text.includes("Material & Zuschnitt")&&c.text.includes("Rüsten & Montieren"),
+   "C1b beide Schritte stehen auf derselben Seite",c.text.slice(0,300));
+ p(c.regs.indexOf("produktion")<0&&c.regs.indexOf("werkstatt")<0,
+   "C1c die zwei alten Register gibt es nicht mehr",c.regs);
+ p(c.rein,"C1d der Weg INS Material ist blau - er bleibt im Projekt",c.rein);
+ p(c.raus.da&&!c.raus.blau,
+   "C1e der Weg in die Werkstatt ALLER Projekte ist grau - er fuehrt hinaus",c.raus);
 
  // --- D: Ausmass ---
  await page.click('[data-a2-reg="ausmass"]');
@@ -158,19 +177,24 @@ window.supabase={createClient:()=>({
  p(JSON.stringify(d.zeilen)===JSON.stringify(["21"]),"D1 das Ausmass steht da",d);
  p(d.text.includes("Blitzschutzausmass"),"D2 mit der richtigen Beschriftung",d.text.slice(0,200));
 
- // --- E: Mehr und Regierapport ---
- // Der Regierapport hat seit v3.156 ein EIGENES Register und steht nicht
- // mehr unter "Mehr". Geprueft wird deshalb beides: er ist dort weg UND
- // er ist an seinem neuen Platz vollstaendig da. Die zweite Haelfte ist
- // die Gegenprobe - ohne sie waere E1 auch gruen, wenn er ganz
- // verschwunden waere.
- await page.click('[data-a2-reg="mehr"]');
+ // --- E: Leistung und Regierapport ---
+ // Der Regierapport hat seit v3.156 ein EIGENES Register und steht nicht in
+ // einem Sammelkuebel. Geprueft wird deshalb beides: er ist anderswo weg UND
+ // er ist an seinem neuen Platz vollstaendig da. Die zweite Haelfte ist die
+ // Gegenprobe - ohne sie waere E1 auch gruen, wenn er ganz verschwunden waere.
+ //
+ // UMGESTELLT in v3.203: Das Register "Mehr \u2026" der Projektseite ist
+ // aufgeloest. Die Leistung steht seither im Register "Offerte" - eine
+ // Leistung ist das Bindeglied zwischen Offerte und Massaufnahme (js/65),
+ // wer die eine sucht, sucht oft die andere.
+ await page.click('[data-a2-reg="offerte"]');
+ await page.waitForTimeout(200);
  let e2=await page.evaluate(()=>({
   lei:[...document.querySelectorAll("#a2Inhalt [data-a2-lei]")].length,
   rep:[...document.querySelectorAll("#a2Inhalt [data-a2-rep]")].length,
   text:$("a2Inhalt").textContent.replace(/\s+/g," ")
  }));
- p(e2.lei===1&&e2.rep===0,"E1 unter 'Mehr' steht die Leistung, der Rapport nicht mehr",e2);
+ p(e2.lei===1&&e2.rep===0,"E1 im Register Offerte steht die Leistung, der Rapport nicht",e2);
  await page.click('[data-a2-reg="rapport"]');
  await page.waitForTimeout(200);
  const e1b=await page.evaluate(()=>({
@@ -178,7 +202,25 @@ window.supabase={createClient:()=>({
   neu:!!document.querySelector('#a2Inhalt [data-a2-tu="neuerrapport"]')
  }));
  p(e1b.rep===1&&e1b.neu,"E1b im eigenen Register steht er samt Anlegen-Knopf",e1b);
- await page.click('[data-a2-reg="mehr"]');
+ // Gegenprobe zur alten Fassung: Ein Register "mehr" gibt es nicht mehr, und
+ // die Leistung steckt auch nicht heimlich in einem anderen Register - sonst
+ // gaebe es sie zweimal.
+ const e1c=await page.evaluate(async()=>{
+  const regs=[...document.querySelectorAll('#a2Inhalt [data-a2-reg]')]
+   .map(x=>x.getAttribute("data-a2-reg"));
+  const mehrfach=[];
+  for(const k of regs){
+   if(k==="offerte")continue;
+   document.querySelector('#a2Inhalt [data-a2-reg="'+k+'"]').click();
+   await new Promise(f=>setTimeout(f,120));
+   if(document.querySelector("#a2Inhalt [data-a2-lei]"))mehrfach.push(k);
+  }
+  return {mehr:regs.indexOf("mehr")>=0,mehrfach};
+ });
+ p(!e1c.mehr,"E1c das Sammel-Register 'Mehr \u2026' gibt es nicht mehr",e1c);
+ p(e1c.mehrfach.length===0,
+   "E1d und die Leistung steht in keinem zweiten Register",e1c);
+ await page.click('[data-a2-reg="offerte"]');
  await page.waitForTimeout(200);
  p(e2.text.includes("Rinne montieren")&&e2.text.includes("Offerte-Pos. 1.1"),"E2 mit den richtigen Feldern",e2.text.slice(0,300));
 
