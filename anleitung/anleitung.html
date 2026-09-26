@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.191";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.192";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.191<br>
+  Version 3.192<br>
   Stand 26. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2469,9 +2469,65 @@ Massaufnahme, nicht nur zum Projekt. Mit
 <span class="tasten">Verbindung lösen</span> oder
 <span class="tasten">↩️ Standardmasse</span> ist der Bezug wieder weg.</div>
 
+<h3>Das Hablett der Einfassung rund (ab 3.192)</h3>
+<p>Der Rechner kennt seit 3.192 zwei <strong>Bauteile</strong>. Oben im
+Dialog wird gewählt, welches gerade gerechnet wird; Vorschau, Ergebnis, DXF,
+1:1-Schablone und die gespeicherte Liste sind für beide dieselben.</p>
+<p>Das <strong>Hablett</strong> ist das flache Blech, das auf dem Dach liegt
+und durch das das Rohr steigt. Sein Zuschnitt ist ein Rechteck – interessant
+ist das Loch.</p>
+<div class="hin"><strong>Das Loch ist eine Ellipse, kein Kreis.</strong> Das
+Hablett liegt in der <strong>Dachfläche</strong>, das Rohr steht im
+<strong>Lot</strong>. Ein senkrechtes Rohr, das eine geneigte Ebene
+schneidet, ergibt eine Ellipse: quer zum Gefälle so breit wie das Rohr, in
+Gefällerichtung um <em>1/cos α</em> länger. Bei Ø 110 und 30° Dachneigung
+sind das 110 × 127 mm – ein rundes Loch wäre in Gefällerichtung 17 mm zu
+kurz.</div>
+<table>
+<tr><th>Mass</th><th>Was es ist</th></tr>
+<tr><td>Ø Standrohr D · Dachwinkel α</td><td>wie in der Massaufnahme</td></tr>
+<tr><td>a · b · c</td><td>vorne bis Mitte Rohr, ab Mitte Rohr bis hinten, Aufbug – dieselben Masse wie im Querschnitt</td></tr>
+<tr><td>Umschlag</td><td>vorne (180°), oben (135°) und an beiden Seiten. Richtwert aus <strong>Einstellungen → Massaufnahmen → Einfassung Rund</strong></td></tr>
+<tr><td>Mass seitlich neben Rohr</td><td>ebenfalls Richtwert von dort</td></tr>
+<tr><td>Luft am Lochausschnitt</td><td>Richtwert von dort. <strong>0</strong> ist gültig und heisst „Loch exakt auf Rohrmass“</td></tr>
+</table>
+<div class="hin"><strong>Die Luft wächst mit der Neigung mit.</strong>
+Gerechnet wird der Schnitt eines gedachten Rohrs mit
+<strong>Ø + 2 × Zugabe</strong> durch die Dachfläche – also genau so, wie das
+Rohr nachher im Loch steht. Bei Ø 110, 25° und 2 mm Luft wird das Loch
+114 mm quer und 125,8 mm in Gefällerichtung.</div>
+<div class="hin"><strong>Die Zuschnittlänge ist dieselbe Zahl wie in der
+Massaufnahme:</strong> Umschlag + Anreiss + a + b + c + Umschlag. Genau das
+gibt die Einfassung rund als „Zuschnittbreite (Querschnitt)“ aus. Ein
+<strong>Biegeausgleich</strong> wird bewusst nicht dazugerechnet – die
+Einfassung rechnet auch keinen, und zwei Längen für dasselbe Blech wären eine
+zu viel.</div>
+<div class="hin">Die vier <strong>Ecken</strong> sind doppelt belegt: der
+seitliche Umschlag trifft auf den vorderen und den oberen. Sie werden wie
+gewohnt ausgeklinkt; die Abwicklung zeigt das Blech als Rechteck. Das steht
+als fester Hinweis unter der Vorschau und nicht als Warnung – es gilt für
+jedes Hablett, und eine Warnung, die immer kommt, liest nach drei Tagen
+niemand mehr.</div>
+<p>Die DXF-Layer heissen beim Hablett <strong>ZUSCHNITT</strong>,
+<strong>BIEGELINIE</strong> und <strong>LOCHAUSSCHNITT</strong>.</p>
+
+<h3>Massaufnahme im Rechner laden (ab 3.192)</h3>
+<p>Der Weg geht in <strong>beide Richtungen</strong>. In der Massaufnahme
+stehen bei jeder Einfassung <span class="tasten">⭕ Abwicklung Rohr</span> und
+<span class="tasten">▭ Abwicklung Hablett</span>. Umgekehrt holt im Rechner
+<span class="tasten">📥 Masse aus einer Massaufnahme holen</span> die Masse
+aus einer bereits <strong>gespeicherten</strong> Aufnahme „Einfassung rund“ –
+übernommen wird in das oben gewählte Bauteil.</p>
+<div class="hin">Die <strong>Materialstärke</strong> kommt dabei aus dem
+gespeicherten Datensatz, nicht aus einem zufällig offenen Formular. Und
+abgeleitet wird mit derselben Funktion wie am Knopf in der Massaufnahme –
+sonst könnten dieselben Masse auf zwei Wegen zwei verschiedene Zuschnitte
+ergeben.</div>
+
 <h3>Speichern</h3>
 <p>Eine Abwicklung lässt sich mit Bezeichnung und – wenn gewünscht – einem
-Projekt speichern, später wieder laden, duplizieren oder löschen.</p>
+Projekt speichern, später wieder laden, duplizieren oder löschen. Zu jedem
+Datensatz gehört das <strong>Bauteil</strong>; die Liste zeigt es an.</p>
 <div class="hin">Gespeichert werden die <strong>Masse</strong>, nicht die
 gezeichnete Kontur. Beim Laden wird neu gerechnet. Weicht das Ergebnis vom
 damals gespeicherten ab, sagt die App das ausdrücklich – ein Zuschnitt, nach
@@ -2479,7 +2535,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.191</strong>, Stand 26. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.192</strong>, Stand 26. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
