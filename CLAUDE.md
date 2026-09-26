@@ -195,6 +195,21 @@ Weitere Regeln:
   Ausnahme: Änderungen am gemeinsamen Kern (js/01, js/05, js/16,
   js/29, App-Shell in sw.js) hängen an zwanzig Modulen – dort wird die
   Schnellprüfung entsprechend ausgeweitet.
+- **Jede Antwort endet mit einem Statusblock**, immer gleich aufgebaut,
+  immer zuunterst – Ansage des Anwenders: "Ich weiss manchmal nicht wann
+  du fertig bist und wann nicht."
+
+  ```
+  ── Stand ──
+  ✅ Fertig: <was jetzt benutzbar/online ist – oder "nichts">
+  ⏳ Läuft: <was noch läuft, + ob ich mich melde – oder "nichts">
+  ❓ Von dir: <worauf ich warte – oder "nichts">
+  ```
+
+  Alle drei Zeilen kommen immer, auch wenn eine "nichts" lautet. Steht bei
+  "Läuft" und "Von dir" nichts, ist die Arbeit fertig und ich tue nichts
+  mehr, bis der Anwender schreibt. Keine Prosa im Block, keine Details –
+  die stehen darüber.
 - Diese Anleitung (`CLAUDE.md`) so knapp wie möglich halten. Sie
   wird bei jeder Session automatisch in den Kontext geladen und
   kostet dadurch bei jeder Aufgabe Tokens – neue Versions-Details,
