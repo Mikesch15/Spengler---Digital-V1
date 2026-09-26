@@ -133,6 +133,121 @@ async function loadProjectAngebote(projectId){
 // einer langen, unuebersichtlichen Liste.
 let angSektionOffen=new Set();
 
+// ===========================================================================
+// POSITIONEN AUS DEM KATALOG (v3.199)
+//
+// Gewuenscht: "ich will eine offerte aus den regiematerialpositionen und den
+// stundenansatzpositionen erstellen können, getrennt nach zeit und material"
+// - und dazu "dass man auch weitere abschnitte noch hinzufügen könnte".
+//
+// WICHTIG ZUR EINORDNUNG: das hat mit dem Regierapport NICHTS zu tun. Die
+// Offerte kommt, BEVOR etwas gemacht wurde, der Rapport danach. Gemeinsam
+// sind ihnen nur die beiden KATALOGE - settings.rates (Stundenansaetze) und
+// settings.materials (Regiematerial). Aus denen wird hier gewaehlt, nicht aus
+// irgendeinem Rapport.
+//
+// Getrennt nach Zeit und Material laeuft ueber das Feld "abschnitt", das es
+// seit v3.71 gibt (die fetten Zwischentitel der PDF-Erkennung). Es wird KEIN
+// zweites Gruppierungsfeld eingefuehrt - und weil der Titel frei ist, sind
+// auch drei, vier oder zehn Abschnitte moeglich.
+//
+// Preise kommen unveraendert aus dem Katalog (Ansage des Anwenders). Die App
+// rechnet keinen Zuschlag dazu - was an der Offerte nachher geaendert wird,
+// ist die Sache des Menschen.
+// ===========================================================================
+let angKatMengen={};        // "rate:<Funktion>" / "mat:<EDV-Nr>" -> Menge
+let angKatSuchtext="";
+
+function angKatRaten(){
+ return (typeof settings==="object"&&settings&&Array.isArray(settings.rates))?settings.rates:[];
+}
+function angKatAlleMaterialien(){
+ return (typeof settings==="object"&&settings&&Array.isArray(settings.materials))?settings.materials:[];
+}
+// Gesucht wird mit derselben Funktion wie im Regierapport (searchMaterials,
+// js/06) - eine zweite Suchlogik ueber denselben Katalog waere eine zweite
+// Wahrheit darueber, was ein Treffer ist.
+function angKatTrefferMaterial(){
+ if(typeof searchMaterials==="function")return searchMaterials(angKatSuchtext);
+ return angKatAlleMaterialien().slice(0,15);
+}
+function angKatSchluessel(art,id){ return art+":"+String(id) }
+function angKatZahl(x){
+ const n=Number(String(x==null?"":x).replace(",","."));
+ return Number.isFinite(n)?n:0;
+}
+
+// Welche Abschnitte gibt es in DIESER Offerte schon? Fuer die Vorschlagsliste
+// im Dialog - damit man in einen bestehenden hineinwaehlt, statt ihn durch
+// einen Tippfehler zu verdoppeln.
+function angAbschnitte(){
+ const raus=[];
+ angPositions.forEach(p=>{
+  const t=(p.abschnitt||"").trim();
+  if(t&&raus.indexOf(t)<0)raus.push(t);
+ });
+ return raus;
+}
+
+// Aus der Auswahl werden Offertpositionen. KENNT KEIN DOM - der Pruefstand
+// rechnet sie ohne Dialog nach.
+//
+// Ein LEERES Abschnittsfeld heisst hier die Vorgabe, nicht "kein Abschnitt":
+// getrennt nach Zeit und Material ist der Sinn der Sache, und eine Offerte,
+// in der beides unsortiert untereinander steht, waere das Gegenteil davon.
+function angKatZeilen(mengen,abschnittArbeit,abschnittMaterial){
+ const m=mengen||{};
+ const aA=String(abschnittArbeit||"").trim()||"Arbeit";
+ const aM=String(abschnittMaterial||"").trim()||"Material";
+ const raus=[];
+ angKatRaten().forEach(r=>{
+  const menge=angKatZahl(m[angKatSchluessel("rate",r[0])]);
+  if(!(menge>0))return;
+  raus.push({pos:"", description:String(r[0]||""), quantity:menge, unit:"h",
+             preis:angKatZahl(r[1]), abschnitt:aA});
+ });
+ // Ueber ALLE Materialien, nicht nur ueber die gerade gefilterten: wer sucht,
+ // eine Menge eintraegt und dann weitersucht, darf seine Eingabe nicht
+ // verlieren.
+ angKatAlleMaterialien().forEach(x=>{
+  const menge=angKatZahl(m[angKatSchluessel("mat",x[0])]);
+  if(!(menge>0))return;
+  const dim=String(x[2]||"").trim();
+  raus.push({pos:String(x[0]||""),
+             description:String(x[1]||"")+(dim?" · "+dim:""),
+             quantity:menge, unit:String(x[3]||""),
+             preis:angKatZahl(x[4]), abschnitt:aM});
+ });
+ return raus;
+}
+
+// Eine Position an die RICHTIGE Stelle setzen. Die Tabelle gruppiert
+// AUFEINANDERFOLGENDE Zeilen mit demselben Titel - wer stumpf ans Ende
+// anhaengt, bekommt denselben Abschnitt zweimal, sobald zwischendurch ein
+// anderer steht. Deshalb hinter die letzte Zeile des eigenen Abschnitts.
+function angPositionEinfuegen(p){
+ const titel=(p.abschnitt||"").trim();
+ if(!titel){ angPositions.push(p); return angPositions.length-1 }
+ let letzte=-1;
+ angPositions.forEach((x,i)=>{ if((x.abschnitt||"").trim()===titel)letzte=i });
+ if(letzte<0){ angPositions.push(p); return angPositions.length-1 }
+ angPositions.splice(letzte+1,0,p);
+ return letzte+1;
+}
+
+// Einen Abschnitt umbenennen - alle seine Positionen auf einmal.
+function angAbschnittUmbenennen(alt,neu){
+ const a=String(alt||"").trim(), n=String(neu||"").trim();
+ if(a===""||a===n)return 0;
+ let getroffen=0;
+ angPositions.forEach(p=>{ if((p.abschnitt||"").trim()===a){ p.abschnitt=n; getroffen++ } });
+ if(getroffen&&angSektionOffen.has(a)){
+  angSektionOffen.delete(a);
+  if(n)angSektionOffen.add(n);
+ }
+ return getroffen;
+}
+
 function angBetrag(p){
  return (Number(p.quantity)||0)*(Number(p.preis)||0);
 }
@@ -180,7 +295,12 @@ function renderAngPositionsTable(){
     let j=i;
     while(j<angPositions.length&&(angPositions[j].abschnitt||"").trim()===titel)j++;
     const offen=angSektionOffen.has(titel);
-    html+=`<tr><td colspan="7"><div class="klapp-kopf ang-sek-kopf${offen?" open":""}" data-ang-sek-toggle="${esc(titel)}" role="button" tabindex="0"><b>${esc(titel)}</b><span class="klapp-chevron">›</span></div></td></tr>`;
+    // v3.199: Der Titel ist ein Eingabefeld, kein fetter Text. Ein Abschnitt,
+    // den man anlegen, aber nicht umbenennen kann, ist eine Sackgasse - und
+    // aus der Erkennung kommen die Titel oft so, wie sie im fremden PDF
+    // standen. Der Klick INS FELD darf den Block nicht auf- und zuklappen,
+    // darum faengt der Klapp-Handler ihn ab.
+    html+=`<tr><td colspan="7"><div class="klapp-kopf ang-sek-kopf${offen?" open":""}" data-ang-sek-toggle="${esc(titel)}" role="button" tabindex="0"><input class="ang-sek-titel" data-ang-sek-name="${esc(titel)}" value="${esc(titel)}" title="Abschnitt umbenennen"><span class="klapp-chevron">›</span></div></td></tr>`;
     for(let k=i;k<j;k++)html+=angPositionZeileHtml(angPositions[k],k,!offen,titel);
     i=j;
    }else{
@@ -216,6 +336,10 @@ if($("angPositionsBody")){
   if(mengenAenderung)angAktualisiereBetrag(i);
  });
  $("angPositionsBody").addEventListener("click",e=>{
+  // v3.199: Der Abschnittstitel ist ein Eingabefeld MITTEN in der Klappleiste.
+  // Wer ihn anklickt, um ihn zu aendern, will nicht klappen - sonst schnappt
+  // der Block unter dem Cursor zu, waehrend man tippt.
+  if(e.target.closest("[data-ang-sek-name]"))return;
   const del=e.target.closest("[data-ang-del]");
   if(del){angPositions.splice(Number(del.dataset.angDel),1);renderAngPositionsTable();return}
   // v3.149: aus DIESER Position eine Massaufnahme - das gewohnte Formular,
@@ -234,7 +358,27 @@ if($("angPositionsBody")){
    });
   }
  });
+ // v3.199: Abschnitt umbenennen. Erst beim Verlassen des Feldes (change),
+ // nicht bei jedem Tastendruck - sonst wuerde die Tabelle je Buchstabe neu
+ // gezeichnet und der Fokus waere weg.
+ $("angPositionsBody").addEventListener("change",e=>{
+  const t=e.target.closest?e.target.closest("[data-ang-sek-name]"):null;
+  if(!t)return;
+  const alt=t.dataset.angSekName, neu=String(t.value||"").trim();
+  // Ein leerer Titel wuerde den Abschnitt stillschweigend aufloesen (Zeilen
+  // ohne Titel erscheinen ohne Kopfzeile). Das ist kein Umbenennen, also
+  // wird das Feld zurueckgesetzt statt der Abschnitt zerlegt.
+  if(!neu){ t.value=alt; return }
+  if(neu===alt)return;
+  angAbschnittUmbenennen(alt,neu);
+  renderAngPositionsTable();
+ });
  $("angPositionsBody").addEventListener("keydown",e=>{
+  // Enter IM Titelfeld heisst "fertig getippt", nicht "klappen".
+  if(e.target.closest&&e.target.closest("[data-ang-sek-name]")){
+   if(e.key==="Enter"){e.preventDefault();e.target.blur()}
+   return;
+  }
   if(e.key!=="Enter"&&e.key!==" "&&e.key!=="Spacebar")return;
   const k=e.target.closest?e.target.closest("[data-ang-sek-toggle]"):null;
   if(!k)return;
@@ -271,6 +415,136 @@ if($("angDeleteAllPositions")){
   angPositions=[];
   renderAngPositionsTable();
  };
+}
+
+// v3.199: einen weiteren Abschnitt anlegen. Er bekommt sofort eine leere
+// Position, weil ein Abschnitt ohne Zeile in dieser Tabelle nicht existieren
+// kann - die Kopfzeile entsteht aus den Positionen, es gibt keine zweite
+// Liste der Abschnitte (und soll auch keine geben).
+if($("angAddAbschnitt")){
+ $("angAddAbschnitt").onclick=()=>{
+  const name=prompt("Name des neuen Abschnitts?\n\n(z. B. Arbeit, Material, Gerüst, Regie)");
+  if(name===null)return;
+  const titel=String(name).trim();
+  if(!titel)return;
+  angSektionOffen.add(titel);
+  angPositionEinfuegen({pos:"",description:"",quantity:0,unit:"",preis:0,abschnitt:titel});
+  renderAngPositionsTable();
+ };
+}
+
+// ---- Der Katalog-Dialog (v3.199) ------------------------------------------
+// Zeigt die beiden Kataloge nebeneinander und traegt aus ihnen Positionen in
+// die Offerte ein. Gerechnet wird in angKatZeilen() (kennt kein DOM), hier
+// steht nur die Bedienung.
+function angKatMaterialAnzeige(){
+ // Schon gewaehltes steht oben und bleibt sichtbar, auch wenn die Suche
+ // gerade etwas anderes zeigt - sonst sucht man weiter und glaubt, die
+ // Eingabe sei verloren gegangen.
+ const gewaehlt=angKatAlleMaterialien().filter(x=>angKatZahl(angKatMengen[angKatSchluessel("mat",x[0])])>0);
+ const drin={}; gewaehlt.forEach(x=>drin[String(x[0])]=true);
+ return gewaehlt.concat(angKatTrefferMaterial().filter(x=>!drin[String(x[0])]));
+}
+function renderAngKatRaten(){
+ const body=$("angKatRatenBody");
+ if(!body)return;
+ const raten=angKatRaten();
+ if(!raten.length){
+  body.innerHTML='<tr><td colspan="3" class="small">Es sind noch keine Stundenansätze erfasst – Einstellungen → Stundenansätze.</td></tr>';
+  return;
+ }
+ body.innerHTML=raten.map(r=>{
+  const k=angKatSchluessel("rate",r[0]);
+  return `<tr><td>${esc(String(r[0]||""))}</td>
+<td class="small" style="text-align:right;white-space:nowrap">CHF ${money(angKatZahl(r[1]))}</td>
+<td><input type="number" step=".25" min="0" inputmode="decimal" data-ang-kat-menge="${esc(k)}" value="${esc(String(angKatMengen[k]||""))}" placeholder="0"></td></tr>`;
+ }).join("");
+}
+function renderAngKatMaterial(){
+ const body=$("angKatMatBody");
+ if(!body)return;
+ const liste=angKatMaterialAnzeige();
+ if(!liste.length){
+  body.innerHTML=`<tr><td colspan="4" class="small">${angKatAlleMaterialien().length
+   ?"Kein Treffer – anderes Stichwort oder EDV-Nr. versuchen."
+   :"Es ist noch kein Regiematerial erfasst – Einstellungen → Regiematerial."}</td></tr>`;
+  return;
+ }
+ body.innerHTML=liste.map(x=>{
+  const k=angKatSchluessel("mat",x[0]);
+  const dim=String(x[2]||"").trim();
+  return `<tr><td class="small">${esc(String(x[0]||""))}</td>
+<td>${esc(String(x[1]||""))}${dim?`<div class="small" style="color:var(--muted)">${esc(dim)}</div>`:""}</td>
+<td class="small" style="text-align:right;white-space:nowrap">CHF ${money(angKatZahl(x[4]))}<div class="small" style="color:var(--muted)">${esc(String(x[3]||""))}</div></td>
+<td><input type="number" step=".01" min="0" inputmode="decimal" data-ang-kat-menge="${esc(k)}" value="${esc(String(angKatMengen[k]||""))}" placeholder="0"></td></tr>`;
+ }).join("");
+}
+function renderAngKatHinweis(){
+ if(!$("angKatHinweis"))return;
+ const zeilen=angKatZeilen(angKatMengen,
+   $("angKatAbschnittArbeit")?$("angKatAbschnittArbeit").value:"",
+   $("angKatAbschnittMaterial")?$("angKatAbschnittMaterial").value:"");
+ const summe=zeilen.reduce((s,z)=>s+z.quantity*z.preis,0);
+ $("angKatHinweis").textContent=zeilen.length
+  ?`${zeilen.length} Position(en) · CHF ${money(summe)} zum Katalogpreis`
+  :"Noch nichts gewählt – bei den gewünschten Zeilen eine Menge eintragen.";
+ if($("angKatUebernehmen"))$("angKatUebernehmen").disabled=!zeilen.length;
+}
+function renderAngKatTabellen(){
+ renderAngKatRaten();
+ renderAngKatMaterial();
+ renderAngKatHinweis();
+}
+function angKatOeffnen(){
+ angKatMengen={}; angKatSuchtext="";
+ if($("angKatSuche"))$("angKatSuche").value="";
+ // Gibt es den Abschnitt in dieser Offerte schon (auch anders geschrieben),
+ // wird er getroffen statt daneben ein zweiter mit fast gleichem Namen
+ // angelegt.
+ const da=angAbschnitte();
+ const treffer=w=>da.find(t=>t.toLowerCase()===w.toLowerCase())||w;
+ if($("angKatAbschnittArbeit"))$("angKatAbschnittArbeit").value=treffer("Arbeit");
+ if($("angKatAbschnittMaterial"))$("angKatAbschnittMaterial").value=treffer("Material");
+ if($("angKatAbschnitte")){
+  $("angKatAbschnitte").innerHTML=da.map(t=>`<option value="${esc(t)}"></option>`).join("");
+ }
+ renderAngKatTabellen();
+ $("angKatalogModal").hidden=false;
+}
+function angKatUebernehmen(){
+ const zeilen=angKatZeilen(angKatMengen,
+   $("angKatAbschnittArbeit")?$("angKatAbschnittArbeit").value:"",
+   $("angKatAbschnittMaterial")?$("angKatAbschnittMaterial").value:"");
+ if(!zeilen.length)return 0;
+ zeilen.forEach(z=>{
+  angPositionEinfuegen(z);
+  // Frisch Eingetragenes zugeklappt zu zeigen waere die schlechteste aller
+  // Rueckmeldungen - man sieht dann gar nichts.
+  if(z.abschnitt)angSektionOffen.add(z.abschnitt);
+ });
+ renderAngPositionsTable();
+ if($("angKatalogModal"))$("angKatalogModal").hidden=true;
+ return zeilen.length;
+}
+if($("angKatalogOeffnen"))$("angKatalogOeffnen").onclick=()=>angKatOeffnen();
+if($("angKatAbbrechen"))$("angKatAbbrechen").onclick=()=>{$("angKatalogModal").hidden=true};
+if($("angKatUebernehmen"))$("angKatUebernehmen").onclick=()=>angKatUebernehmen();
+if($("angKatSuche")){
+ $("angKatSuche").addEventListener("input",e=>{
+  angKatSuchtext=e.target.value;
+  renderAngKatMaterial();   // nur die Trefferliste - das Suchfeld behaelt den Fokus
+ });
+}
+if($("angKatalogModal")){
+ $("angKatalogModal").addEventListener("input",e=>{
+  const f=e.target.closest?e.target.closest("[data-ang-kat-menge]"):null;
+  if(f){
+   angKatMengen[f.dataset.angKatMenge]=e.target.value;
+   renderAngKatHinweis();   // NICHT neu zeichnen: der Fokus bleibt im Feld
+   return;
+  }
+  if(e.target.id==="angKatAbschnittArbeit"||e.target.id==="angKatAbschnittMaterial")renderAngKatHinweis();
+ });
 }
 
 // ---- Fotos + Erkennung (recognizePhoto() unveraendert aus js/17) -

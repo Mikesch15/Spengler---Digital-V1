@@ -2142,6 +2142,49 @@ einer wirkt nicht auf die anderen.</div>
 </div>
 </div>
 
+<!-- v3.199  Offertpositionen aus den Katalogen ------------------------------
+     Zwei Kataloge, eine Offerte: settings.rates (Stundenansaetze) und
+     settings.materials (Regiematerial). Mit dem Regierapport hat das NICHTS
+     zu tun - die Offerte kommt, bevor gearbeitet wurde, der Rapport danach.
+     Gemeinsam sind ihnen nur diese beiden Listen.
+     Liegt wie der Massaufnahme-Dialog UEBER dem Offerten-Formular und braucht
+     deshalb dieselbe z-index-Anhebung in css/01-basis.css. -->
+<div id="angKatalogModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📋 Positionen aus dem Katalog <button type="button" class="hilfe-knopf no-print" data-hilfe="ang-katalog">i</button></h2>
+<div class="info">Trage bei den gewünschten Zeilen eine <b>Menge</b> ein. Daraus entstehen Offertpositionen – <b>Stunden</b> im einen Abschnitt, <b>Material</b> im anderen. Die Preise kommen unverändert aus dem Katalog; ändern kannst du sie danach in der Offerte.</div>
+<datalist id="angKatAbschnitte"></datalist>
+<div class="grid" style="margin-bottom:8px">
+<div><label>Abschnitt für die Stunden</label><input id="angKatAbschnittArbeit" list="angKatAbschnitte" placeholder="Arbeit"></div>
+<div><label>Abschnitt für das Material</label><input id="angKatAbschnittMaterial" list="angKatAbschnitte" placeholder="Material"></div>
+</div>
+<h2 style="margin-top:4px">Stundenansätze</h2>
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:56%"><col style="width:24%"><col style="width:20%"></colgroup>
+<thead><tr><th>Funktion</th><th style="text-align:right">Ansatz</th><th>Stunden</th></tr></thead>
+<tbody id="angKatRatenBody"></tbody>
+</table>
+</div>
+<h2 style="margin-top:10px">Regiematerial</h2>
+<input id="angKatSuche" placeholder="Material suchen (EDV-Nr. oder Bezeichnung) …" autocomplete="off">
+<div class="scroll">
+<table class="eb-table">
+<colgroup><col style="width:16%"><col style="width:44%"><col style="width:22%"><col style="width:18%"></colgroup>
+<thead><tr><th>EDV-Nr.</th><th>Bezeichnung</th><th style="text-align:right">Preis</th><th>Menge</th></tr></thead>
+<tbody id="angKatMatBody"></tbody>
+</table>
+</div>
+<div class="small" id="angKatHinweis" style="color:var(--muted);margin-top:6px"></div>
+<div class="bar">
+<button type="button" id="angKatUebernehmen" class="green">✅ In die Offerte übernehmen</button>
+<button type="button" id="angKatAbbrechen" class="gray">Abbrechen</button>
+</div>
+</div>
+</div>
+</div>
+
 <div id="angebotEditModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
@@ -2170,6 +2213,9 @@ einer wirkt nicht auf die anderen.</div>
 </div>
 <div class="bar">
 <button type="button" class="gray" id="angAddPosition">＋ Position hinzufügen</button>
+<!-- v3.199: aus den beiden Katalogen waehlen, getrennt nach Zeit und Material -->
+<button type="button" class="green" id="angKatalogOeffnen">📋 Aus Katalog</button>
+<button type="button" class="gray" id="angAddAbschnitt">＋ Abschnitt</button>
 <!-- v3.149: aus den Positionen die Massaufnahmen des Auftrags ableiten -->
 <button type="button" class="blue" id="angMassaufnahmenAbleiten">📐 Massaufnahmen ableiten</button>
 <button type="button" class="red" id="angDeleteAllPositions">🗑 Alle Positionen löschen</button>
