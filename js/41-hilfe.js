@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.199.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.200.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1164,34 +1164,79 @@ Positionen.</p>
 Rückfrage, zum Beispiel um mit einer neuen Erkennung von vorne zu
 beginnen.</p>`},
 
-"ang-katalog":{titel:"Positionen aus dem Katalog",text:`
-<p>Eine Offerte entsteht, <b>bevor</b> gearbeitet wird. Trotzdem stehen in ihr
-meistens dieselben Zeilen, die der Betrieb ohnehin führt: die
-<b>Stundenansätze</b> und das <b>Regiematerial</b> aus den Einstellungen. Bis
-jetzt mussten sie in der Offerte von Hand abgetippt werden – mit Preis, und
-damit mit der Möglichkeit, sich zu vertippen.</p>
-<p>Hier stehen beide Kataloge nebeneinander. Wo eine <b>Menge</b> eingetragen
-wird, entsteht eine Offertposition: <b>Stunden</b> im einen Abschnitt,
-<b>Material</b> im anderen – getrennt, wie es in einer Offerte gehört.</p>
-<p>Die <b>Preise kommen unverändert aus dem Katalog</b>. Die App schlägt nichts
-auf und rechnet nichts weg. Was an der Offerte nachher anders sein soll, wird
-in der Offerte selbst geändert – dort steht jede Zeile ganz normal zum
-Bearbeiten.</p>
-<p>Die beiden <b>Abschnittsnamen</b> oben im Dialog sind frei. Steht dort ein
-Abschnitt, den die Offerte schon hat, kommen die neuen Zeilen zu ihm dazu;
-steht dort ein neuer Name, entsteht ein neuer Abschnitt. So lassen sich auch
-mehr als zwei bauen – Gerüst, Regie, Entsorgung, was der Auftrag braucht. Über
-<b>„＋ Abschnitt“</b> in der Positionsleiste geht das auch ohne Katalog, und
-jeder Abschnittstitel lässt sich direkt in der Liste anklicken und
-umbenennen.</p>
-<p>Das Material wird wie im Regierapport <b>gesucht</b> – nach EDV-Nr. oder
-Bezeichnung. Was schon eine Menge hat, bleibt dabei oben stehen, auch wenn die
-Suche gerade etwas anderes zeigt: eine Eingabe geht beim Weitersuchen nicht
-verloren.</p>
-<p>Mit dem <b>Regierapport hat das nichts zu tun.</b> Der Rapport wird
-geschrieben, <b>nachdem</b> die Arbeit ausgeführt ist, und hält fest, was
-tatsächlich gebraucht wurde. Gemeinsam sind den beiden nur diese zwei
-Katalog-Listen.</p>`},
+"cockpit-offerten":{titel:"Offerte erstellen",text:`
+<p>Hier entsteht eine <b>eigene Offerte für den Kunden</b> – mit Preisen aus
+deinen Katalogen, Rabatt, MwSt und einem PDF zum Verschicken. Sie wird
+geschrieben, <b>bevor</b> gearbeitet wird.</p>
+<p>Nicht zu verwechseln mit der Karte <b>„📥 Offerte importieren“</b> darüber.
+Die ist für den umgekehrten Fall: eine <b>bestehende, fremde</b> Offerte kommt
+als Foto oder PDF in die App, die App erkennt die Positionen, und daraus lassen
+sich die Massaufnahmen ableiten. Dort wird aufgenommen, was es schon gibt –
+hier entsteht etwas Neues.</p>
+<p>Beide gehören zum selben Zugriff: wer Offerten sehen und bearbeiten darf,
+darf beide Arten (Einstellungen → Mitarbeiter → Offerten-Zugriff).</p>`},
+
+"offerte-erstellen":{titel:"Die eigene Offerte",text:`
+<p>Eine Offerte gehört <b>immer zu einem Projekt</b>, wie Massaufnahme,
+Regierapport und Ausmass auch. Ohne Projekt lässt sie sich nicht speichern.</p>
+<p><b>Offert-Nr.</b> trägst du selbst ein – die App vergibt keine. So passen
+die Nummern zu dem, was du in der Buchhaltung führst.</p>
+<p><b>Gültig bis</b> ist beim Anlegen schon ausgefüllt: Datum plus die
+Gültigkeit aus den Einstellungen. Es lässt sich für jede Offerte ändern.</p>
+<p>Dein <b>Briefkopf</b> – Firmenname, Adresse, Logo – kommt aus den
+Einstellungen. Dieselben Angaben, die auch der Regierapport druckt; du
+erfasst sie also nicht zweimal.</p>`},
+
+"offerte-kunde":{titel:"Der Kunde auf der Offerte",text:`
+<p>Diese vier Zeilen bilden das <b>Anschriftsfeld</b> oben rechts auf dem
+PDF – gesetzt für ein gewöhnliches Fenstercouvert. Leere Zeilen fallen weg,
+es entsteht also keine Lücke, wenn es keinen Zusatz gibt.</p>
+<p>Der Kunde wird <b>je Offerte</b> erfasst und nicht aus dem Projekt
+übernommen: am Projekt hängt das Objekt (wo gearbeitet wird), und das ist
+nicht zwingend die Adresse dessen, der die Offerte bekommt – bei einer
+Verwaltung oder einem Architekten ist es das fast nie.</p>`},
+
+"offerte-katalog":{titel:"Positionen aus dem Katalog",text:`
+<p>Die <b>Stundenansätze</b> und das <b>Regiematerial</b> aus den
+Einstellungen stehen hier nebeneinander. Wo du eine <b>Menge</b> einträgst,
+entsteht eine Offertposition: die Stunden im einen Abschnitt, das Material im
+anderen.</p>
+<p>Die <b>Preise kommen unverändert aus dem Katalog</b>. Die App schlägt
+nichts auf und rundet nichts. Was anders sein soll, änderst du danach in der
+Offerte – dort steht jede übernommene Zeile ganz normal zum Bearbeiten.</p>
+<p>Die beiden <b>Abschnittsnamen</b> im Dialog sind frei. Steht dort ein
+Abschnitt, den die Offerte schon hat, kommen die Zeilen zu ihm dazu (er
+erscheint also nie zweimal); ein neuer Name ergibt einen neuen Abschnitt. So
+lassen sich auch Gerüst, Regie oder Entsorgung getrennt ausweisen. Ohne
+Katalog geht das über <b>„＋ Abschnitt“</b>, und jeder Abschnittstitel in der
+Liste lässt sich anklicken und umbenennen.</p>
+<p>Das Material wird wie im Regierapport <b>gesucht</b>. Was schon eine Menge
+hat, bleibt dabei oben stehen – eine Eingabe geht beim Weitersuchen nicht
+verloren.</p>`},
+
+"offerte-texte":{titel:"Vortext und Schlusstext",text:`
+<p>Der <b>Vortext</b> steht über den Positionen, der <b>Schlusstext</b> unter
+dem Total – dort gehören Zahlungskonditionen, Ausführungsfrist und ähnliche
+Angaben hin.</p>
+<p>Beide sind bei einer neuen Offerte mit der <b>Vorgabe aus den
+Einstellungen</b> gefüllt und lassen sich hier für diese eine Offerte
+anpassen. Eine spätere Änderung der Vorgabe formuliert eine bereits
+geschriebene Offerte <b>nicht</b> um.</p>`},
+
+"offerte-pdf":{titel:"Das PDF für den Kunden",text:`
+<p><b>„📄 PDF erzeugen“</b> baut die Offerte als fertiges Dokument: Briefkopf,
+Anschrift, Positionen nach Abschnitten mit Zwischensummen, Rabatt, MwSt,
+Total und Schlusstext.</p>
+<p>Was du in der Vorschau siehst, <b>ist das PDF selbst</b> – keine
+nachgebaute Ansicht. Es gibt also keine zwei Fassungen, die auseinanderlaufen
+könnten: was hier steht, bekommt der Kunde.</p>
+<p><b>„Im Projekt ablegen“</b> speichert es beim Projekt, wie ein
+hochgeladenes Dokument. Von dort lässt es sich öffnen, weiterschicken und
+drucken. Die Offerte wird dabei <b>gleich mitgespeichert</b> – sonst läge eine
+Datei im Speicher, zu der es keinen Eintrag gibt.</p>
+<p>Änderst du danach etwas an den Positionen, ist das abgelegte PDF der
+<b>alte</b> Stand. Dann erzeugst du es neu und legst es noch einmal ab; das
+vorherige bleibt als Beleg dessen, was verschickt wurde.</p>`},
 
 "ang-massaufnahmen":{titel:"Massaufnahmen aus der Offerte",text:`
 <p>Der Ablauf des Betriebs ist <b>Projekt → Offerte → Massaufnahme</b>. Was in

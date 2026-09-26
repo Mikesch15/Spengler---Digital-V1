@@ -139,7 +139,15 @@ const abschnitt=(s,key)=>s.abschnitte.find(a=>a.key===key)||{};
  // (dasselbe Muster wie "lager" und "verlauf"). Gewollter Stand, kein
  // Codefehler; die Liste wird nachgezogen, nicht der Code. Die Gegenproben
  // unmittelbar darunter halten fest, was daran nicht beliebig ist.
- const SOLL=["stand","angebote","leistungen","meas","matzu","am","rep","lager",
+ // v3.200: "offerten" ist dazugekommen - die selbst erstellte Offerte fuer
+ // den Kunden, als eigener Bereich neben "angebote" (dem Import einer
+ // fremden Offerte). Der Anwender hat die beiden ausdruecklich getrennt
+ // haben wollen: "die neue offertfunktion soll dazu da sein, wirklich eine
+ // neue offerte für den kunden zu erstellen. Komplett getrennt von der
+ // anderen funktion." Gewollter Stand, kein Codefehler; die Liste wird
+ // nachgezogen, nicht der Code - die Gegenprobe darunter haelt fest, dass
+ // es wirklich ZWEI verschiedene Bereiche sind und nicht einer doppelt.
+ const SOLL=["stand","angebote","offerten","leistungen","meas","matzu","am","rep","lager",
              "files","fotos","verlauf"];
  p(SOLL.every(k=>s.abschnitte.some(a=>a.key===k))&&s.abschnitte.length===SOLL.length,
    "jeder Bereich ist ein klappbarer Abschnitt",s.abschnitte.map(a=>a.key));
@@ -149,6 +157,15 @@ const abschnitt=(s,key)=>s.abschnitte.find(a=>a.key===key)||{};
  p(s.abschnitte.map(a=>a.key).join().indexOf("files,fotos,verlauf")>=0,
    "„Alle Fotos“ steht zwischen „Dateien/Fotos“ und dem Verlauf",
    s.abschnitte.map(a=>a.key));
+ // Gegenprobe zu v3.200: zwei getrennte Offerten-Bereiche, direkt
+ // nebeneinander und mit unterscheidbaren Ueberschriften - nicht derselbe
+ // Bereich zweimal registriert.
+ p(s.abschnitte.map(a=>a.key).join().indexOf("angebote,offerten")>=0,
+   "die beiden Offerten-Bereiche stehen nebeneinander",s.abschnitte.map(a=>a.key));
+ const offTitel=s.abschnitte.filter(a=>a.key==="angebote"||a.key==="offerten").map(a=>a.kopfText||"");
+ p(offTitel.length===2&&offTitel[0]!==offTitel[1]
+   &&/importieren/i.test(offTitel[0])&&/erstellen/i.test(offTitel[1]),
+   "und heissen unterschiedlich: importieren gegen erstellen",offTitel);
  const zu=s.abschnitte.filter(a=>a.kartenSichtbar&&!a.offen).map(a=>a.key);
  // v3.142: "fotos" gehoert ausdruecklich dazu - die Fotowand holt ihre
  // Vorschauen erst beim Aufklappen (eine signierte URL je Bild), faenge sie

@@ -323,9 +323,11 @@ const WIN_CHANGELOG={
  "3.198":["<b>Behoben: „permission denied for function mw_firma_ok“ beim Terminieren einer Aufgabe.</b> Die Prüffunktion hinter den Zugriffsregeln der Aufgaben-Termine hatte für angemeldete Nutzer nie ein Ausführungsrecht bekommen – ein Fehler von v3.185. Betroffen waren alle vier Wege (lesen, anlegen, ändern, löschen), das Terminieren hat also noch nie funktioniert. Behoben in der Datenbank; ohne App-Update wirksam.",
   "<b>Werkstoffe ohne Dehnungswerte lassen sich jetzt als „ist so gewollt“ abhaken.</b> Bei einem Werkstoff, der gar nicht dilatiert wird – Blei zum Beispiel –, sind fehlende Dehnungswerte richtig. Bisher blieb so ein Eintrag dauerhaft als roter Fehler stehen, und eine Meldung, die sich nicht erledigen lässt, verdeckt nach einer Weile die, die es ernst meinen.",
   "Abgehakt wird dabei der <b>einzelne Werkstoff</b>, nicht die Prüfung: ein später angelegter Werkstoff ohne Dehnungswerte meldet sich wieder."],
- "3.199":["<b>Neu: Offertpositionen direkt aus den Katalogen.</b> In der Offerte gibt es den Knopf „📋 Aus Katalog“. Er zeigt die Stundenansätze und das Regiematerial aus den Einstellungen; wo eine Menge eingetragen wird, entsteht eine Offertposition – die Stunden im einen Abschnitt, das Material im anderen. Die Preise kommen unverändert aus dem Katalog.",
-  "<b>Abschnitte lassen sich anlegen und umbenennen.</b> Über „＋ Abschnitt“ entsteht ein weiterer Abschnitt (Gerüst, Regie, Entsorgung – was der Auftrag braucht), und jeder Abschnittstitel in der Positionsliste kann angeklickt und umbenannt werden.",
-  "Das hat mit dem Regierapport nichts zu tun: die Offerte kommt, <b>bevor</b> gearbeitet wird, der Rapport danach. Gemeinsam sind ihnen nur die beiden Katalog-Listen."]
+ "3.199":["<b>Offertpositionen aus den Katalogen.</b> Zuerst am Import-Formular gebaut – mit v3.200 dorthin gezogen, wo sie hingehören: in die neue Funktion „Offerte erstellen“."],
+ "3.200":["<b>Neu: eine eigene Offerte für den Kunden schreiben.</b> Im Projekt gibt es dafür die Karte „🧾 Offerte erstellen“: Kunde, Positionen aus deinen Katalogen (Stundenansätze und Regiematerial), Rabatt, MwSt, Vor- und Schlusstext – und daraus ein <b>PDF zum Verschicken</b>, das sich gleich beim Projekt ablegen lässt.",
+  "<b>Die bisherige Offertfunktion heisst jetzt „📥 Offerte importieren“</b> und bleibt unverändert. Sie ist für den umgekehrten Fall: eine bestehende, fremde Offerte einlesen und daraus die Massaufnahmen ableiten. Zwei verschiedene Vorgänge, zwei Karten – dieselbe Freigabe.",
+  "Briefkopf, Adresse, Logo und MwSt-Satz kommen aus den Einstellungen; dort stehen neu auch <b>Vortext, Schlusstext und Gültigkeitsdauer</b> als Vorgabe für neue Offerten.",
+  "Was du in der Vorschau siehst, ist das PDF selbst – nicht eine nachgebaute Ansicht. Was dort steht, bekommt der Kunde."]
 };
 
 function winVersionVergleich(a,b){
