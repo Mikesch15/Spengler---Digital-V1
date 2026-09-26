@@ -831,37 +831,48 @@ function a2ProjektZeileHtml(p){
 // ein Eintrag erscheint genau dann, wenn sein Knopf dort sichtbar ist.
 function a2SeiteMehr(){
  const eintraege=[
-  {id:"suche",      zeichen:"🔍", text:"Suche",                 unter:"Projekte, Massaufnahmen, Rapporte"},
-  {id:"einstell",   zeichen:"⚙️", text:"Einstellungen",         unter:"Firma, Katalog, Module"},
-  {id:"anleitung",  zeichen:"📖", text:"Anleitung",             unter:"Das ganze Handbuch als PDF"},
-  {id:"feedback",   zeichen:"💬", text:"Feedback geben",        unter:"Fehler melden, Wunsch äussern"},
+  {id:"suche",gruppe:"arbeiten",      zeichen:"🔍", text:"Suche",                 unter:"Projekte, Massaufnahmen, Rapporte"},
+  {id:"einstell",gruppe:"firma",   zeichen:"⚙️", text:"Einstellungen",         unter:"Firma, Katalog, Module"},
+  {id:"anleitung",gruppe:"arbeiten",  zeichen:"📖", text:"Anleitung",             unter:"Das ganze Handbuch als PDF"},
+  {id:"feedback",gruppe:"arbeiten",   zeichen:"💬", text:"Feedback geben",        unter:"Fehler melden, Wunsch äussern"},
   // v3.187: Konto wechseln. Steht immer da - auch mit nur einem gemerkten
   // Konto, denn von hier aus wird das zweite ueberhaupt erst hinzugefuegt.
-  {id:"konten",     zeichen:"🔄", text:"Konto wechseln",        unter:"Zwischen Firmen wechseln, ohne sich neu anzumelden"},
-  {id:"zaehlwerk",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"},
+  {id:"konten",gruppe:"verwaltung",     zeichen:"🔄", text:"Konto wechseln",        unter:"Zwischen Firmen wechseln, ohne sich neu anzumelden"},
+  {id:"zaehlwerk",gruppe:"firma",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"},
   // v3.188: Die Abwicklung braucht kein Projekt - sie ist ein Werkzeug.
-  {id:"abwicklung", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"}
+  {id:"abwicklung",gruppe:"arbeiten", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"}
  ];
  // v3.183: Nur fuer Administratoren - alle Punkte der Liste fuehren in
  // Bereiche, die ohnehin nur sie aendern duerfen.
  if(typeof einrZustaendig==="function"&&einrZustaendig())
-  eintraege.push({id:"einrichtung",zeichen:"🧭",text:"Einrichtung prüfen",
+  eintraege.push({id:"einrichtung",gruppe:"firma",zeichen:"🧭",text:"Einrichtung prüfen",
    unter:"Was für den vollen Betrieb noch fehlt"});
  // v3.186: Und die Kontrolle der Stammdaten - dieselbe Zustaendigkeit.
  if(typeof konZustaendig==="function"&&konZustaendig())
-  eintraege.push({id:"kontrollen",zeichen:"🔎",text:"Stammdaten kontrollieren",
+  eintraege.push({id:"kontrollen",gruppe:"firma",zeichen:"🔎",text:"Stammdaten kontrollieren",
    unter:"Was erfasst ist, aber nicht stimmt"});
  if(a2KnopfSichtbar("navAdminMeas"))
-  eintraege.push({id:"adminmeas",zeichen:"📋",text:"Alle Massaufnahmen",unter:"Übersicht für die Firmenleitung"});
+  eintraege.push({id:"adminmeas",gruppe:"verwaltung",zeichen:"📋",text:"Alle Massaufnahmen",unter:"Übersicht für die Firmenleitung"});
  if(a2KnopfSichtbar("navSystemAdmin"))
-  eintraege.push({id:"sysadmin",zeichen:"⚙️",text:"System-Administration",unter:"Betreiber-Einstellungen"});
+  eintraege.push({id:"sysadmin",gruppe:"verwaltung",zeichen:"⚙️",text:"System-Administration",unter:"Betreiber-Einstellungen"});
 
  const version=$("appVersion")?$("appVersion").textContent.trim():"";
- return eintraege.map(e=>`
+ // v3.203: gruppiert statt als eine Liste von elf Zeilen, in der die Suche
+ // neben der System-Administration stand. Die Gruppe steht am Eintrag, nicht
+ // in einer zweiten Liste - sonst muesste man sie an zwei Stellen pflegen.
+ const gruppen=[["Arbeiten","arbeiten"],["Firma","firma"],["Verwaltung","verwaltung"]];
+ const zeile=e=>`
   <button type="button" class="a2-zeile" data-a2-tu="${esc(e.id)}">
    <span class="a2-zeile-nr">${e.zeichen}</span>
    <span class="a2-zeile-text"><b>${esc(e.text)}</b><span>${esc(e.unter)}</span></span>
-   <span class="a2-zeile-pfeil">›</span></button>`).join("")
+   <span class="a2-zeile-pfeil">›</span></button>`;
+ return gruppen.map(([name,schl])=>{
+  const drin=eintraege.filter(e=>e.gruppe===schl);
+  if(!drin.length)return "";
+  return `<div class="a2-abschnitt">
+   <div class="a2-abschnitt-kopf"><h2>${esc(name)}</h2></div>
+   ${drin.map(zeile).join("")}</div>`;
+ }).join("")
  +`<div class="a2-abschnitt" style="margin-top:22px">
    <div class="a2-abschnitt-kopf"><h2>Ansicht</h2></div>
    <div class="a2-karte">
@@ -1021,6 +1032,16 @@ document.addEventListener("click",async e=>{
  }
 
  // Register innerhalb der Projektseite
+ const station=e.target.closest("[data-a2-station]");
+ if(station){
+  a2Zustand.reg=station.getAttribute("data-a2-station");
+  a2Zeichnen();
+  // Nach oben: die Registerleiste steht am Kopf, und man will sehen, wo man
+  // gelandet ist - nicht mitten im neuen Register anfangen.
+  if($("a2Inhalt"))$("a2Inhalt").scrollTop=0;
+  window.scrollTo(0,0);
+  return;
+ }
  const reg=e.target.closest("[data-a2-reg]");
  if(reg&&$("a2Screen")&&$("a2Screen").contains(reg)){
   a2Zustand.reg=reg.getAttribute("data-a2-reg");
@@ -1206,6 +1227,12 @@ if($("a2Ein"))$("a2Ein").onclick=()=>a2Setzen(true);
 // Leistungen, Dateien und Verlauf; ohne das waeren die nicht erreichbar.
 const A2_PROJ_REGISTER=[
  {k:"uebersicht",name:"Übersicht"},
+ // v3.203: Die Offerte hat ihr eigenes Register. Sie stand bis hierher unter
+ // "Mehr …" - einem Sammelkuebel, der genauso hiess wie der Eintrag "Mehr"
+ // in der unteren Leiste und etwas voellig anderes enthielt. Zwei Knoepfe
+ // mit demselben Namen und verschiedenem Inhalt sind der kuerzeste Weg zu
+ // "verwinkelt und unuebersichtlich" (Ansage des Anwenders).
+ {k:"offerte",   name:"Offerte"},
  // v3.157: Der Schluessel bleibt "aufmass" - er steht im Zustand, in den
  // Pruefstaenden und in gespeicherten Sitzungen. Umbenannt ist nur, was der
  // Anwender liest.
@@ -1213,12 +1240,29 @@ const A2_PROJ_REGISTER=[
  // Produktion und Werkstatt gibt es nur, wenn die Firma die zugehoerigen
  // Untermodule eingeschaltet hat (js/47). Die Entscheidung faellt dort,
  // nicht hier - pmAktiv() ist die eine Quelle dafuer.
- {k:"produktion",name:"Produktion",wenn:()=>a2Modul("material")},
- {k:"werkstatt", name:"Werkstatt", wenn:()=>a2Modul("werkstatt")},
+ // v3.203: "Material" statt "Produktion" - so heisst es im Betrieb und auf
+ // der Seite, die dahinter aufgeht ("Material & Zuschnitt").
+ {k:"produktion",name:"Material",          wenn:()=>a2Modul("material")},
+ // v3.203: "Rüsten & Montage" statt "Werkstatt". Die Werkstatt der FIRMA
+ // steht in der unteren Leiste; hier geht es um dieses eine Projekt. Zweimal
+ // dasselbe Wort fuer zwei verschiedene Umfaenge war eine der gemeldeten
+ // Verwechslungen.
+ {k:"werkstatt", name:"Rüsten & Montage",  wenn:()=>a2Modul("werkstatt")},
  {k:"ausmass",   name:"Ausmass"},
- {k:"rapport",   name:"Regierapport"},
- {k:"mehr",      name:"Mehr …"}
+ {k:"rapport",   name:"Rapport"},
+ // v3.203: Dateien, Fotos und Verlauf haben ein eigenes Register statt im
+ // Sammelkuebel zu stecken.
+ {k:"dateien",   name:"Dateien"}
 ];
+// Wohin eine Station der Ablaufleiste fuehrt. Damit ist die Leiste nicht
+// mehr blosse Anzeige, sondern die Navigation selbst: bis v3.202 gab es
+// ZWEI Landkarten desselben Gebiets - die Ablaufleiste (zeigte den Weg) und
+// die Registerleiste (ging ihn), beide anders geschnitten. Jetzt zeigen sie
+// dasselbe.
+const A2_STATION_REG={
+ offerte:"offerte", massaufnahme:"aufmass", freigabe:"aufmass",
+ ruesten:"werkstatt", montage:"werkstatt", ausmass:"ausmass"
+};
 function a2Modul(k){ return typeof pmAktiv==="function"&&pmAktiv(k) }
 function a2ProjRegister(){
  return A2_PROJ_REGISTER.filter(r=>!r.wenn||r.wenn());
@@ -1377,7 +1421,8 @@ function a2SeiteProjekt(){
  if(a2Zustand.reg==="werkstatt") return html+a2RegWerkstatt(p);
  if(a2Zustand.reg==="ausmass")   return html+a2RegAusmass(p);
  if(a2Zustand.reg==="rapport")   return html+a2RegRapport(p);
- if(a2Zustand.reg==="mehr")      return html+a2RegMehr(p);
+ if(a2Zustand.reg==="offerte")   return html+a2RegOfferte(p);
+ if(a2Zustand.reg==="dateien")   return html+a2RegDateien(p);
  return html+a2RegUebersicht(p);
 }
 
@@ -1386,11 +1431,21 @@ function a2RegUebersicht(p){
  const stand=a2AblaufStand();
  const stationen=a2StationenFuerFirma();
  const jetzt=stationen.findIndex(s=>!stand[s.k]);
+ // v3.203: jede Station ist ein Knopf und fuehrt auf ihr Register. Fuehrt
+ // eine Station auf ein Register, das es gerade nicht gibt (abgeschaltetes
+ // Modul), bleibt sie als reine Anzeige stehen - ein Knopf, der nichts tut,
+ // waere schlimmer als keiner.
+ const regDa=a2ProjRegister().map(r=>r.k);
  const ablauf='<div class="a2-ablauf">'+stationen.map((s,i)=>{
   const fertig=stand[s.k], dran=(i===jetzt);
-  return `<div class="a2-ablauf-st ${a2AblaufKlasse(fertig,dran,i,jetzt)}">
-   <div class="a2-ablauf-marke">${fertig?"✓":(dran?"●":"○")}</div>
-   <div class="a2-ablauf-text">${esc(s.name)}</div></div>`;
+  const ziel=A2_STATION_REG[s.k];
+  const klasse="a2-ablauf-st "+a2AblaufKlasse(fertig,dran,i,jetzt);
+  const innen=`<div class="a2-ablauf-marke">${fertig?"✓":(dran?"●":"○")}</div>
+   <div class="a2-ablauf-text">${esc(s.name)}</div>`;
+  return (ziel&&regDa.indexOf(ziel)>=0)
+   ? `<button type="button" class="${klasse} ist-klickbar" data-a2-station="${esc(ziel)}"
+       title="${esc(s.name.replace("\u00ad","")+" öffnen")}">${innen}</button>`
+   : `<div class="${klasse}">${innen}</div>`;
  }).join("")+"</div>";
 
  // Was als Naechstes ansteht, entscheidet mwNaechsterSchritt() in js/44 -
@@ -1631,10 +1686,11 @@ function a2RegAusmass(p){
  }).join("")+"</div>";
 }
 
-// ---- Mehr -----------------------------------------------------------------
-// Was zum Projekt gehoert, aber nicht im taeglichen Ablauf steht: Offerte,
-// Leistungen, Regierapporte, Dateien, Verlauf.
-function a2RegMehr(p){
+// ---- Offerte --------------------------------------------------------------
+// v3.203: eigenes Register statt Sammelkuebel "Mehr …". Zusammen mit den
+// Leistungen, weil eine Leistung genau das Bindeglied zwischen Offerte und
+// Massaufnahme ist (js/65) - wer die eine sucht, sucht oft die andere.
+function a2RegOfferte(p){
  let html="";
  // v3.201: die EIGENE Offerte steht zuoberst - sie ist der haeufigere Fall
  // und im Ablauf des Betriebs der erste (PROJEKT -> OFFERTE -> ...). Der
@@ -1674,14 +1730,57 @@ function a2RegMehr(p){
     <span class="a2-zeile-pfeil">›</span></button>`}).join(""),
   "neuelei","＋ Neue Leistung","Noch keine Leistung erfasst.");
 
- // Dateien und Verlauf bleiben im Cockpit: beides sind Listen mit eigenen
- // Hochlade- und Vorschauwegen, die hier nur nachgebaut waeren.
+ return html;
+}
+
+// ---- Dateien --------------------------------------------------------------
+// v3.203: eigenes Register. Bis v3.202 steckte das hinter "Mehr …" und war
+// nur eine Zeile, die die ALTE Projektansicht oeffnete - der einzige Punkt,
+// an dem die neue Ansicht aufgab.
+//
+// Die LISTE wird hier gezeigt: sie steht ohnehin schon im Zwischenspeicher,
+// den das Cockpit gefuellt hat (projectFilesCache). Hochladen, Loeschen und
+// die Fotowand bleiben in der vollstaendigen Projektansicht - das sind
+// eigene Wege mit Vorschau, Kamera und Druck, und die hier nachzubauen
+// hiesse, sie zweimal zu haben. Der Unterschied zu vorher: man SIEHT, was da
+// ist, ohne den Schirm zu wechseln, und der Wechsel ist beschriftet mit dem,
+// was er bringt.
+function a2Dateien(){
+ return (typeof projectFilesCache!=="undefined"&&Array.isArray(projectFilesCache))
+  ?projectFilesCache:[];
+}
+function a2RegDateien(p){
+ const dat=a2Dateien();
+ const groesse=f=>(typeof formatFileSize==="function"&&f.size)?formatFileSize(f.size):"";
+ let html=`<div class="a2-abschnitt">
+  <div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(dat.length,"Datei","Dateien"))}</h2></div>`;
+ html+=dat.length
+  ? dat.map(f=>{
+     const zusatz=[a2Datum(f.created_at||f.uploaded_at),groesse(f)].filter(Boolean).join(" · ");
+     return `<button type="button" class="a2-zeile" data-a2-tu="cockpit">
+      <span class="a2-zeile-nr">📄</span>
+      <span class="a2-zeile-text"><b>${esc(f.name||"Ohne Namen")}</b>
+       <span>${esc(zusatz||"—")}</span></span>
+      <span class="a2-zeile-pfeil">›</span></button>`;
+    }).join("")
+  : '<div class="a2-leer">Noch keine Datei zu diesem Projekt.</div>';
+ html+="</div>";
  html+=`<div class="a2-abschnitt">
-  <div class="a2-abschnitt-kopf"><h2>Weiteres</h2></div>
+  <div class="a2-abschnitt-kopf"><h2>Bilder und Verlauf</h2></div>
   <button type="button" class="a2-zeile" data-a2-tu="cockpit">
-   <span class="a2-zeile-nr">📎</span>
-   <span class="a2-zeile-text"><b>Dateien, Fotos und Verlauf</b>
-    <span>Öffnet die vollständige Projektansicht</span></span>
+   <span class="a2-zeile-nr">📷</span>
+   <span class="a2-zeile-text"><b>Alle Fotos des Objekts</b>
+    <span>Aus Massaufnahmen, Ausmass, Rapporten und Dateien – mit Ausdruck</span></span>
+   <span class="a2-zeile-pfeil">›</span></button>
+  <button type="button" class="a2-zeile" data-a2-tu="cockpit">
+   <span class="a2-zeile-nr">🕓</span>
+   <span class="a2-zeile-text"><b>Verlauf</b>
+    <span>Wer wann was geändert hat</span></span>
+   <span class="a2-zeile-pfeil">›</span></button>
+  <button type="button" class="a2-zeile" data-a2-tu="cockpit">
+   <span class="a2-zeile-nr">⬆️</span>
+   <span class="a2-zeile-text"><b>Datei hochladen oder löschen</b>
+    <span>In der vollständigen Projektansicht</span></span>
    <span class="a2-zeile-pfeil">›</span></button></div>`;
  return html;
 }

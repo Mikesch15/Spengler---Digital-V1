@@ -1015,3 +1015,19 @@ html.a2-an .a2-zeile.treffer{outline:2px solid var(--blue);outline-offset:1px}
  .a2-karte .einr-punkt{flex-wrap:wrap}
  .a2-karte .einr-punkt>button{margin-left:31px}
 }
+
+/* v3.203  Die Ablaufleiste ist jetzt die Navigation ------------------------
+   Jede Station, die auf ein Register fuehrt, ist ein <button>. Er muss
+   aussehen wie die <div>-Station daneben (nicht jede Station fuehrt
+   irgendwohin) - deshalb werden die Knopf-Vorgaben des Browsers
+   zurueckgenommen statt eine zweite Optik zu erfinden.
+   Bis v3.202 gab es ZWEI Landkarten desselben Gebiets: die Ablaufleiste
+   zeigte den Weg, die Registerleiste ging ihn, und beide waren anders
+   geschnitten. Gemeldet als "zu verwinkelt und unuebersichtlich". */
+button.a2-ablauf-st{appearance:none;-webkit-appearance:none;background:none;
+ border:0;margin:0;font:inherit;color:inherit;cursor:pointer}
+button.a2-ablauf-st:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:8px}
+/* Sichtbar, dass es ein Weg ist - ohne die Leiste bunt zu machen. */
+button.a2-ablauf-st:hover .a2-ablauf-marke{border-color:var(--blue);color:var(--blue)}
+button.a2-ablauf-st:hover .a2-ablauf-text{color:var(--blue)}
+button.a2-ablauf-st:active{transform:translateY(1px)}
