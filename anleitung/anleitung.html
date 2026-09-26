@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.189";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.190";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.189<br>
+  Version 3.190<br>
   Stand 26. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2356,7 +2356,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">26 · Abwicklung: Rundrohr mit schrägem Anschnitt</h2>
-<p>Seit Version 3.189 rechnet die App den Zuschnitt für ein rundes Blechrohr,
+<p>Seit Version 3.190 rechnet die App den Zuschnitt für ein rundes Blechrohr,
 das unten schräg angeschnitten ist – etwa eine Dachdurchführung –, mit
 angebogenem <strong>Schweifbord</strong> und liegendem <strong>Längsfalz</strong>.
 Sie steht auf dem Startbildschirm unter <span class="tasten">📐 Abwicklung</span>,
@@ -2392,31 +2392,37 @@ die Biegelinie des Schweifbords, <strong>blau gestrichelt</strong> der Falz,
 Ergebnistabelle mit Zuschnittbreite, Umfang, Höhe max und min, Schweifbord-Zugabe,
 Biegewinkel und Streckung.</p>
 <p>Mit den Vorgaben oben sind das: Umfang <strong>343,38 mm</strong>,
-Zuschnittbreite <strong>361,38 mm</strong>, Höhe <strong>371,25</strong> bis
-<strong>305,17 mm</strong>, Schweifbord-Zugabe 37,13 bis 40,10 mm, Biegewinkel 60
-bis 120°, Streckung rund 67 %.</p>
+Zuschnittbreite <strong>361,38 mm</strong>, Höhe <strong>370,49</strong> bis
+<strong>307,39 mm</strong>, Schweifbord-Zugabe <strong>39,34 mm</strong>
+(überall gleich), Biegewinkel 60 bis 120°, Bord fertig 39,2 bis 42,2 mm,
+Streckung rund 68 %.</p>
 
-<h3>Warum die Zugabe nicht überall gleich breit ist</h3>
-<p>Am Zuschnitt fällt auf, dass der Streifen zwischen Biegelinie und
-Unterkante nicht überall gleich breit ist – in der Mitte des Zuschnitts
-schmaler als an der Naht. Das ist der <strong>Biegeausgleich</strong> und
-kein Fehler.</p>
-<p>Beim schrägen Anschnitt biegt das Bord nicht überall gleich stark: auf der
-langen Seite des Rohrs nur um <strong>60°</strong>, auf der kurzen um
-<strong>120°</strong> (bei α = 30°, allgemein 90° ∓ α). Eine schärfere
-Biegung frisst mehr Material im Radius, also braucht der flache Zuschnitt
-dort <em>weniger</em>. Gerechnet wird mit der bekannten Formel
-<em>Z = (b + t/2) − 2ρ·tan(β/2) + ρ·β</em> mit ρ = r + t/2.</p>
+<h3>Die Zugabe am Schweifbord</h3>
+<p>Der Streifen zwischen Biegelinie und Unterkante ist über den ganzen
+Zuschnitt <strong>gleich breit</strong>. Gerechnet wird er mit 90°:
+<em>Z = (b + t/2) − 2ρ·tan45° + ρ·π/2</em> mit ρ = r + t/2 – bei den
+Standardmassen 39,34 mm. Ein Streifen, der über die Länge schwankt, lässt
+sich nicht anreissen, und geschweift wird nachher ohnehin; dabei wandert das
+Material.</p>
+<div class="hin"><strong>Bis Version 3.190 war das anders.</strong> Da bekam
+jeder Punkt seine eigene Zugabe, gerechnet mit dem dort wirklich
+auftretenden Biegewinkel – so rechnet auch das Fusion-360-Script. Für sich
+genommen ist das richtig, für die Werkstatt war es unbrauchbar.</div>
+<p>Der Biegewinkel selbst ist beim schrägen Anschnitt nach wie vor nicht
+überall gleich, und die Tabelle zeigt ihn: auf der langen Mantellinie 60°,
+auf der kurzen 120° (allgemein 90° ∓ α).</p>
 <table>
-<tr><th>Stelle</th><th>Biegewinkel β</th><th>Zugabe Z am Zuschnitt</th></tr>
-<tr><td>Naht, lange Mantellinie</td><td>60°</td><td>40,10 mm</td></tr>
-<tr><td>senkrechter Schnitt (α = 0)</td><td>90°</td><td>39,34 mm</td></tr>
-<tr><td>Mitte, kurze Mantellinie</td><td>120°</td><td>37,13 mm</td></tr>
+<tr><th>Stelle</th><th>Biegewinkel β</th><th>nötig wäre</th><th>Bord fertig</th></tr>
+<tr><td>Naht, lange Mantellinie</td><td>60°</td><td>40,10 mm</td><td>39,2 mm</td></tr>
+<tr><td>senkrechter Schnitt (α = 0)</td><td>90°</td><td>39,34 mm</td><td>40,0 mm</td></tr>
+<tr><td>Mitte, kurze Mantellinie</td><td>120°</td><td>37,13 mm</td><td>42,2 mm</td></tr>
 </table>
-<div class="hin"><strong>Der fertige Schweifbord ist überall gleich breit</strong>
-– nur der Zuschnitt ist es nicht. Der Unterschied beträgt hier rund 3 mm und
-hängt <em>allein am Biegeradius</em>, nicht an der eingegebenen Breite: bei
-einem schmalen Bord fällt derselbe Absolutwert relativ stärker auf.</div>
+<div class="warn"><strong>Das fertige Bord wird damit nicht überall exakt so
+breit wie eingegeben</strong> – bei den Standardmassen 39,2 bis 42,2 mm statt
+40. Die Zeile <strong>Bord fertig (rechnerisch)</strong> in der
+Ergebnistabelle zeigt es. Der Unterschied hängt allein am Biegeradius, nicht
+an der eingegebenen Breite: bei einem schmalen Bord fällt derselbe
+Absolutwert relativ stärker auf.</div>
 
 <h3>Wovor die App warnt</h3>
 <table>
@@ -2448,7 +2454,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.189</strong>, Stand 26. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.190</strong>, Stand 26. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

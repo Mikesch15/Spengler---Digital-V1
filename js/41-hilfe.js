@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.189.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.190.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1355,14 +1355,18 @@ wird dabei gestreckt; die Tabelle nennt die Streckung am Rand. Über rund 10 %
 geht es von Hand nicht mehr – dann sagt die App das auch. Gelöst wird es
 entweder auf der Schweifmaschine oder mit <b>Lappen</b>; die Vorgabe ist
 <b>0 Lappen</b>, weil im Betrieb nachher geschweift wird.</div>
-<div class="hin"><b>Warum die Zugabe nicht überall gleich breit ist.</b> Am
-Zuschnitt ist der Streifen unter der Biegelinie dort schmaler, wo schärfer
-gebogen wird: beim schrägen Anschnitt biegt das Bord auf der langen Seite
-nur um 60°, auf der kurzen um 120°. Eine schärfere Biegung frisst mehr
-Material im Radius, also braucht der flache Zuschnitt dort weniger. Der
-<b>fertige Schweifbord ist überall gleich breit</b> – nur der Zuschnitt ist
-es nicht. Der Unterschied hängt allein am Biegeradius (hier rund 3 mm) und
-nicht an der eingegebenen Breite.</div>
+<div class="hin"><b>Die Zugabe ist über den ganzen Zuschnitt gleich</b>
+(seit v3.190). Gerechnet wird sie mit 90°: <i>Z = (b + t/2) − 2ρ·tan45° +
+ρ·π/2</i> mit ρ = r + t/2, bei den Standardmassen 39,34 mm. Ein Streifen,
+der über die Länge schwankt, lässt sich nicht anreissen – und geschweift
+wird nachher ohnehin, dabei wandert das Material.</div>
+<div class="hin"><b>Was das kostet, steht in der Tabelle.</b> Der
+Biegewinkel ist beim schrägen Anschnitt nicht überall gleich: auf der langen
+Mantellinie 60°, auf der kurzen 120° (allgemein 90° ∓ α). Mit einer
+konstanten Zugabe wird das fertige Bord deshalb nicht überall exakt so breit
+wie eingegeben – bei den Standardmassen 39,2 bis 42,2 mm statt 40. Die Zeile
+<b>Bord fertig (rechnerisch)</b> zeigt es an. Der Unterschied hängt allein
+am Biegeradius, nicht an der eingegebenen Breite.</div>
 <div class="hin">Die <b>Falzfaktoren 1 und 2</b> sind die Werkstattregel für
 den einfachen liegenden Falz: links eine Falzbreite Zugabe, rechts zwei. Sie
 bleiben änderbar. Im Bereich des Schweifbords wird der Falz nicht besonders

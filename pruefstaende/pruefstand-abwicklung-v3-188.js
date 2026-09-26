@@ -9,9 +9,17 @@
 // DAS ABNAHMEMASS STEHT IM AUFTRAG SELBST (Abschnitt 9):
 //   Umfang neutrale Faser   343,38 mm
 //   Zuschnittbreite         361,38 mm   (343,38 + 6 + 12)
-//   Hoehe max (an der Naht) 371,25 mm
-//   Hoehe min               305,17 mm
-//   Kragen-Zugabe           37,13 ... 40,10 mm
+//   Hoehe max (an der Naht) 371,25 mm   -> seit v3.190 370,49
+//   Hoehe min               305,17 mm   -> seit v3.190 307,39
+//   Kragen-Zugabe           37,13 ... 40,10 mm -> seit v3.190 ueberall 39,34
+//
+// DREI DIESER WERTE GELTEN NICHT MEHR. Der Anwender hat nach dem ersten
+// Einsatz entschieden, dass die Zugabe ueber den ganzen Zuschnitt gleich
+// sein soll ("Das ist falsch..."): ein Streifen, der um 3 mm schwankt,
+// laesst sich nicht anreissen, und das Bord wird nachher geschweift. Die
+// betroffenen Pruefungen sind umgestellt und mit Gegenproben gesichert,
+// die das alte Verhalten ausdruecklich ausschliessen. Umfang,
+// Zuschnittbreite und Biegewinkel gelten unveraendert.
 //   Biegewinkel Kragen      60 ... 120 Grad
 //   Streckung Kragenrand    ca. 67 %
 //   "Die JS-Portierung muss diese Werte auf 0,1 mm genau treffen."
@@ -42,13 +50,28 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  p(r.ok===true,"die Standardmasse rechnen durch",r.fehler);
  p(nah(r.L,343.38),"Umfang neutrale Faser 343,38",r.L);
  p(nah(r.breite,361.38),"Zuschnittbreite 361,38",r.breite);
- p(nah(r.hoeheMax,371.25),"Hoehe max an der Naht 371,25",r.hoeheMax);
- p(nah(r.hoeheMin,305.17),"Hoehe min 305,17",r.hoeheMin);
- p(nah(r.zugMin,37.13),"Kragen-Zugabe min 37,13",r.zugMin);
- p(nah(r.zugMax,40.10),"Kragen-Zugabe max 40,10",r.zugMax);
+ // v3.190: DREI Werte des Auftrags gelten nicht mehr - auf ausdruecklichen
+ // Entscheid des Anwenders ("Das ist falsch"): die Zugabe ist jetzt ueber den
+ // ganzen Zuschnitt gleich, statt je Punkt mit dem dortigen Biegewinkel
+ // gerechnet. Die alten Erwartungen werden nicht geloescht, sondern auf die
+ // neuen umgestellt UND mit einer Gegenprobe gesichert, die das alte
+ // Verhalten ausdruecklich ausschliesst.
+ p(nah(r.hoeheMax,370.49),"Hoehe max an der Naht 370,49 (war 371,25)",r.hoeheMax);
+ p(nah(r.hoeheMin,307.39),"Hoehe min 307,39 (war 305,17)",r.hoeheMin);
+ p(nah(r.zugMin,39.34)&&nah(r.zugMax,39.34),
+   "Schweifbord-Zugabe 39,34 - UEBERALL DIESELBE",[r.zugMin,r.zugMax]);
+ p(Math.abs(r.zugMax-r.zugMin)<0.0001,
+   "der Zuschnittstreifen ist an keiner Stelle breiter oder schmaler",r.zugMax-r.zugMin);
+ // Gegenprobe gegen einen Rueckfall: die alten Werte duerfen NICHT mehr
+ // herauskommen.
+ p(!nah(r.zugMin,37.13)&&!nah(r.zugMax,40.10),
+   "die alte, je Punkt gerechnete Zugabe kommt nicht zurueck",[r.zugMin,r.zugMax]);
+ // Der Preis dafuer wird ausgewiesen, nicht verschwiegen.
+ p(nah(r.bFertigMin,39.24)&&nah(r.bFertigMax,42.21),
+   "das fertige Bord misst 39,24 bis 42,21 statt ueberall 40",[r.bFertigMin,r.bFertigMax]);
  p(nah(r.betaMinGrad,60,0.1),"Biegewinkel min 60 Grad",r.betaMinGrad);
  p(nah(r.betaMaxGrad,120,0.1),"Biegewinkel max 120 Grad",r.betaMaxGrad);
- p(nah(r.streckung*100,67,0.5),"Streckung Kragenrand rund 67 %",r.streckung*100);
+ p(nah(r.streckung*100,68.49,0.2),"Streckung Schweifbord-Rand rund 68,5 % (war 67, die Unterkante liegt jetzt anders)",r.streckung*100);
  // Die Zuschnittbreite ist der Umfang plus die beiden Falzzugaben - der
  // Auftrag rechnet es ausdruecklich vor: 343,38 + 6 + 12.
  p(nah(r.breite-r.L,18,0.001),"die Zuschnittbreite ist der Umfang plus 1xf und 2xf",r.breite-r.L);
@@ -91,6 +114,12 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  // groessere Kreis. Von Hand: (R+b)/Rn - 1 = 95/54,65 - 1 = 73,83 %. Diese
  // Erwartung war beim ersten Schreiben falsch ("keine Streckung"); die
  // Rechnung hatte recht.
+ // Bei alpha=0 ist beta ueberall 90 Grad - alte und neue Rechnung liefern
+ // hier dasselbe, und das Kreisverhaeltnis muss weiter exakt stimmen.
+ p(nah(gerade.zugMin,39.34)&&nah(gerade.zugMax,39.34),
+   "beim senkrechten Schnitt ist die Zugabe unveraendert 39,34",[gerade.zugMin,gerade.zugMax]);
+ p(nah(gerade.bFertigMin,40,0.001)&&nah(gerade.bFertigMax,40,0.001),
+   "und das fertige Bord wird dort exakt so breit wie eingegeben",[gerade.bFertigMin,gerade.bFertigMax]);
  p(nah(gerade.streckung,95/54.65-1,0.002),
    "beim senkrechten Schnitt ist die Streckung genau das Kreisverhaeltnis (R+b)/Rn",
    [gerade.streckung,95/54.65-1]);
@@ -181,7 +210,10 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  p(E.D==="110"&&E.lappen==="0","die Standardmasse sind vorbelegt (seit v3.189 ohne Lappen)",[E.D,E.lappen]);
  p(E.svg===true,"die Vorschau zeichnet ein SVG");
  p(E.tabelle.indexOf("361,38")>=0,"die Tabelle nennt die Zuschnittbreite 361,38",E.tabelle.slice(0,200));
- p(E.tabelle.indexOf("371,25")>=0,"und die Hoehe an der Naht 371,25");
+ p(E.tabelle.indexOf("370,49")>=0,"und die Hoehe an der Naht 370,49");
+ p(E.tabelle.indexOf("371,25")<0,"die alte Hoehe steht nicht mehr da",E.tabelle.slice(0,300));
+ p(E.tabelle.indexOf("Bord fertig")>=0&&E.tabelle.indexOf("42,21")>=0,
+   "und die Tabelle weist aus, wie breit das Bord damit wirklich wird",E.tabelle.slice(0,400));
  p(E.projekt===true,"die Projektauswahl ist gefuellt");
 
  // Eine Eingabe aendern - die Vorschau und die Tabelle ziehen mit.

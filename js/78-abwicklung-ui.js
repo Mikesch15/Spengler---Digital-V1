@@ -94,8 +94,9 @@ function abwErgebnisZeichnen(r){
   <tr><td>Umfang neutrale Faser</td><td>${abwMm(r.L)}</td></tr>
   <tr><td>Höhe max (an der Naht)</td><td>${abwMm(r.hoeheMax)}</td></tr>
   <tr><td>Höhe min</td><td>${abwMm(r.hoeheMin)}</td></tr>
-  <tr><td>Schweifbord-Zugabe</td><td>${abwMm(r.zugMin)} … ${abwMm(r.zugMax)}</td></tr>
+  <tr><td>Schweifbord-Zugabe</td><td>${abwMm(r.zugMin)}</td></tr>
   <tr><td>Biegewinkel Schweifbord</td><td>${abwGrad(r.betaMinGrad)} … ${abwGrad(r.betaMaxGrad)}</td></tr>
+  <tr><td>Bord fertig (rechnerisch)</td><td>${abwMm(r.bFertigMin)} … ${abwMm(r.bFertigMax)}</td></tr>
   <tr><td>Streckung Schweifbord-Rand</td><td>${(r.streckung*100).toFixed(1).replace(".",",")} %</td></tr>
  </table>`;
 }
@@ -255,6 +256,7 @@ async function abwSpeichern(){
   ergebnis:{breite:r.breite,umfang:r.L,hoeheMax:r.hoeheMax,hoeheMin:r.hoeheMin,
             zugMin:r.zugMin,zugMax:r.zugMax,
             betaMinGrad:r.betaMinGrad,betaMaxGrad:r.betaMaxGrad,
+            bFertigMin:r.bFertigMin,bFertigMax:r.bFertigMax,
             streckung:r.streckung},
   erstellt_von:(typeof currentProfile==="object"&&currentProfile)?currentProfile.id:null
  };
@@ -321,9 +323,17 @@ function abwLaden(id,alsKopie){
  abwGeladenVon=alsKopie?null:a.id;
  const r=abwAktualisieren();
  const e=a.ergebnis||{};
- if(r.ok&&e.breite&&Math.abs(e.breite-r.breite)>0.05){
+ const abweichung=[];
+ if(r.ok&&e.breite&&Math.abs(e.breite-r.breite)>0.05)
+  abweichung.push("Zuschnittbreite "+abwMm(e.breite)+" → "+abwMm(r.breite));
+ // v3.190: auch die Hoehe. Sie hat sich mit der konstanten Zugabe geaendert -
+ // ein vorher gespeicherter Plan traegt noch die alte, und das darf nicht
+ // stillschweigend durchgehen.
+ if(r.ok&&e.hoeheMax&&Math.abs(e.hoeheMax-r.hoeheMax)>0.05)
+  abweichung.push("Höhe an der Naht "+abwMm(e.hoeheMax)+" → "+abwMm(r.hoeheMax));
+ if(abweichung.length){
   const m=(typeof $==="function")?$("abwMeldung"):document.getElementById("abwMeldung");
-  if(m)m.innerHTML+=`<div class="abw-warnung">Gespeichert war eine Zuschnittbreite von ${abwMm(e.breite)}, jetzt gerechnet ${abwMm(r.breite)}. Bitte prüfen, bevor danach geschnitten wird.</div>`;
+  if(m)m.innerHTML+=`<div class="abw-warnung">Gespeichert war etwas anderes: ${esc(abweichung.join(" · "))}. Seit v3.190 ist die Zugabe über den ganzen Zuschnitt gleich. Bitte prüfen, bevor danach geschnitten wird.</div>`;
  }
  return true;
 }

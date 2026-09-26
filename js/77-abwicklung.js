@@ -21,9 +21,17 @@
 // und rechts (Faktor B) dazu.
 //
 // GENAUIGKEITSMASS (Abschnitt 9 des Auftrags, Standardeingaben):
-//   Umfang 343,38 · Zuschnittbreite 361,38 · Hoehe max 371,25 ·
-//   Hoehe min 305,17 · Schweifbord-Zugabe 37,13...40,10 · Biegewinkel 60...120° ·
-//   Streckung ca. 67 %.   Auf 0,1 mm.
+//   Umfang 343,38 · Zuschnittbreite 361,38 · Biegewinkel 60...120°.
+// Diese drei gelten unveraendert.
+//
+// DREI WERTE DES AUFTRAGS GELTEN SEIT v3.190 NICHT MEHR, und zwar auf
+// ausdruecklichen Entscheid des Anwenders (konstante Zugabe statt
+// Biegeausgleich je Punkt, siehe unten):
+//   Schweifbord-Zugabe  37,13...40,10  ->  39,34 (ueberall dieselbe)
+//   Hoehe max           371,25         ->  370,49
+//   Hoehe min           305,17         ->  307,38
+// Wer diese Datei einmal gegen das Fusion-360-Script haelt, findet dort
+// weiterhin die alten Zahlen. Das ist kein Fehler, sondern der Entscheid.
 // ===========================================================================
 
 // ---- Vektorhilfen (wie die Referenz) --------------------------------------
@@ -120,6 +128,27 @@ function abwRechne(roh){
  let phi0=Math.atan2(-ny,-nx);            // kuerzeste Mantellinie
  if(e.nahtLang)phi0+=Math.PI;             // Naht an laengster Mantellinie
 
+ // ---- Die Zugabe am Schweifbord: EINE Breite fuer den ganzen Zuschnitt ----
+ // v3.190, auf Entscheid des Anwenders.
+ //
+ // Bis v3.189 bekam jeder Punkt seine eigene Zugabe, gerechnet mit dem dort
+ // wirklich auftretenden Biegewinkel (60 Grad an der langen Mantellinie, 120
+ // an der kurzen). Das ist die Rechnung aus dem Fusion-360-Script, und sie
+ // ist fuer sich genommen richtig: eine schaerfere Biegung frisst mehr
+ // Material im Radius, also braucht der flache Zuschnitt dort weniger.
+ //
+ // Fuer die Werkstatt war es falsch. Ein Streifen, der ueber die Laenge um
+ // 3 mm schwankt, laesst sich nicht anreissen, und das Bord wird nachher
+ // ohnehin geschweift - dabei wandert das Material. Deshalb bekommt der
+ // ganze Zuschnitt jetzt EINE Zugabe, gerechnet mit 90 Grad.
+ //
+ // WAS DAS KOSTET, WIRD NICHT VERSCHWIEGEN: das fertige Bord ist damit nicht
+ // mehr ueberall exakt b breit. Wo nur 60 Grad gebogen wird, fehlen rund
+ // 0,8 mm, wo 120 Grad gebogen wird, sind rund 2,2 mm zu viel. Beides wird
+ // unten als bFertigMin/bFertigMax mitgegeben und in der Tabelle angezeigt -
+ // eine Zahl, die man nicht sieht, kann man nicht beurteilen.
+ const zugabe90=(e.b+t/2)-2*rho*Math.tan(Math.PI/4)+rho*(Math.PI/2);
+
  function punkt(s){
   const phi=phi0+2*Math.PI*s;
   const c=Math.cos(phi), sn=Math.sin(phi);
@@ -133,13 +162,18 @@ function abwRechne(roh){
   let d=abwEinheit(abwKreuz(u,T));
   if(d[2]>0)d=[-d[0],-d[1],-d[2]];
   const be=Math.acos(Math.max(-1,Math.min(1,abwSkalar(d,w))));   // Biegewinkel
-  const Z=(e.b+t/2)-2*rho*Math.tan(be/2)+rho*be;                 // Schweifbord-Zugabe
+  // Die Zugabe ist konstant (siehe oben). Was an DIESER Stelle noetig waere,
+  // wird trotzdem gerechnet - daraus ergibt sich, wie breit das Bord dort
+  // fertig wird.
+  const Z=zugabe90;
+  const zNoetig=(e.b+t/2)-2*rho*Math.tan(be/2)+rho*be;
+  const bFertig=e.b+(zugabe90-zNoetig);
   const k=Math.sqrt(1+slope*slope);
   const z0=-(nx*R*c+ny*R*sn)/nz;
   return {
    fold:[x,zf],
    bottom:[x+Z*slope/k, zf-Z/k],
-   Z, beta:be,
+   Z, zNoetig, bFertig, beta:be,
    rand:[R*c+e.b*w[0], R*sn+e.b*w[1], z0+e.b*w[2]],
    phi, w
   };
@@ -182,7 +216,7 @@ function abwRechne(roh){
  const yUnten=unten.map(p=>p[1]);
  const hoeheMax=oben-Math.min.apply(null,yUnten);
  const hoeheMin=oben-Math.max.apply(null,yUnten);
- const zug=pts.map(p=>p.Z), beta=pts.map(p=>p.beta);
+ const zug=pts.map(p=>p.Z), beta=pts.map(p=>p.beta), bFertig=pts.map(p=>p.bFertig);
 
  const warnungen=[];
  if(!monoton)warnungen.push("Die Unterkante läuft nicht mehr durchgehend nach rechts – die Schweifbord-Zugabe ist für diese Krümmung zu gross. Schweifbord schmaler wählen oder Biegeradius vergrössern.");
@@ -195,6 +229,7 @@ function abwRechne(roh){
   unten, fold:biegeSchweifbord,
   hoeheMax, hoeheMin,
   zugMin:Math.min.apply(null,zug), zugMax:Math.max.apply(null,zug),
+  bFertigMin:Math.min.apply(null,bFertig), bFertigMax:Math.max.apply(null,bFertig),
   betaMinGrad:Math.min.apply(null,beta)*180/Math.PI,
   betaMaxGrad:Math.max.apply(null,beta)*180/Math.PI,
   streckung, monoton
