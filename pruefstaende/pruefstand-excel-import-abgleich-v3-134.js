@@ -80,6 +80,9 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  async function dateiLaden(zeilen,eingabe){
   dialoge=[];
   await page.evaluate(async a=>{
+   // v3.205: xlsx haengt nicht mehr im Kopf von index.html, sondern wird
+   // bei Bedarf geholt (xlsxLaden in js/01) - hier genauso wie in der App.
+   await xlsxLaden();
    const wb=XLSX.utils.book_new();
    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a.zeilen),"T");
    const roh=XLSX.write(wb,{bookType:"xlsx",type:"array"});

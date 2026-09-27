@@ -207,6 +207,28 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  page.on("pageerror",e=>jsFehler.push(String(e)));
  page.on("dialog",d=>{(page.__dialoge=page.__dialoge||[]).push(d.message());d.accept()});
  await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
+ // v3.205: ZXing ausdruecklich stilllegen.
+ //
+ // Bis v3.204 lag die Scan-Bibliothek auf cdn.jsdelivr.net und war aus der
+ // Pruefumgebung schlicht nicht erreichbar. Darauf hat sich dieser
+ // Pruefstand VERLASSEN, ohne es je zu sagen: zxingLaden() scheiterte,
+ // barcodeScannen() brach ab, und die echte Kamera wurde nie gestartet.
+ // Das war keine Absicht, das war ein Zufall - derselbe, den
+ // stub-schutz.js fuer supabase-js beschreibt.
+ //
+ // Seit v3.205 liegt ZXing im Projekt und laedt damit IMMER. Ohne diese
+ // Zeile laeuft der Pruefstand in die echte decodeFromConstraints() und
+ // bleibt dort haengen (im Prueffeld gibt es keine Kamera, die antwortet) -
+ // genau das ist beim ersten Lauf passiert.
+ //
+ // Der leere Koerper stellt den frueheren Zustand deterministisch her:
+ // ZXing bleibt undefiniert, zxingLaden() weist ab, der Ablauf ist derselbe
+ // wie vorher - nur nicht mehr vom Netz abhaengig. Die Kamera-Logik selbst
+ // ist unveraendert; sie wird hier so wenig geprueft wie vorher.
+ await page.route(/\/vendor\/zxing\./,r=>r.fulfill({status:200,
+  contentType:"application/javascript",
+  body:"/* Prueffeld: ZXing wird bewusst nicht geladen - sonst startet der\n"
+      +"   Pruefstand eine echte Kamera, die hier niemand beantwortet. */"}));
 
  await page.goto("file://"+repo+"/index.html");
  await page.waitForFunction(()=>typeof checkLagerZugriff==="function"

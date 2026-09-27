@@ -103,8 +103,16 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  }else{
   console.log("\nC · Eine echte Datei einlesen, zuordnen, importieren");
   // Eine echte xlsx im Browser bauen und dem Eingabefeld unterschieben.
+  // UMGESTELLT in v3.205: Bis v3.204 hing xlsx im Kopf von index.html und war
+  // beim Laden der Seite einfach da. Es kostete 860 kB bei JEDEM Start, fuer
+  // eine Funktion, die man selten braucht - deshalb wird es jetzt erst bei
+  // Bedarf geholt (xlsxLaden in js/01). Der Pruefstand macht es hier genauso
+  // wie die App: er fordert es an. Das ist SCHAERFER als vorher, weil damit
+  // auch der Nachlader selbst mitgeprueft wird - vorher gab es ihn nicht.
+  const vorher=await page.evaluate(()=>typeof XLSX!=="undefined");
+  p(!vorher,"XLSX ist beim Laden der Seite NICHT da (es wird nachgeladen)",{XLSX:vorher});
   const geladen=await page.evaluate(async()=>{
-   if(typeof XLSX==="undefined")return {xlsx:false};
+   if(!await xlsxLaden())return {xlsx:false};
    const daten=[["Verkaufspreis","ME","Bezeichnung","Artikel-Nr."],
      ["42.50","m2","Titanzink Band","101.10"],
      ["18.00","m","Kupferrohr","202.20"],
@@ -120,7 +128,7 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
    inp.dispatchEvent(new Event("change"));
    return {xlsx:true};});
   await page.waitForTimeout(600);
-  p(geladen.xlsx,"SheetJS ist geladen");
+  p(geladen.xlsx,"SheetJS ist nach xlsxLaden() da");
   const vor=await page.evaluate(()=>({
     sichtbar:!$("materialExcelPreview").hidden,
     zahl:$("materialExcelCount").textContent,

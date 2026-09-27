@@ -17,6 +17,7 @@
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-ansicht2-v3-150.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
+const {stubSchuetzen}=require(__dirname+"/stub-schutz.js");
 const fs=require("fs");
 const path=require("path");
 const APP="file://"+path.join(process.cwd(),"index.html");
@@ -64,6 +65,16 @@ const anmelden=page=>page.evaluate(()=>{
   if(/ERR_TUNNEL_CONNECTION_FAILED|Failed to load resource/.test(m.text()))return;
   fehler.push("console: "+m.text());
  });
+ // v3.205: Der Stub muss ausdruecklich geschuetzt werden.
+ //
+ // Bis v3.204 lag supabase-js auf cdn.jsdelivr.net und war aus der
+ // Pruefumgebung nicht erreichbar - deshalb blieb der ueber addInitScript
+ // eingespielte Stub stehen, ohne dass es hier jemand absichern musste.
+ // Das war Zufall, kein Vertrag: auf dem GitHub-Runner mit Internet wurde
+ // der Stub schon vorher ueberschrieben (siehe stub-schutz.js). Seit v3.205
+ // liegt die Bibliothek im Projekt und laedt IMMER - der Zufall faellt weg,
+ // die Absicherung wird Pflicht.
+ await stubSchuetzen(page);
  await page.addInitScript(STUB);
  await page.goto(APP);
 

@@ -113,6 +113,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
     ["1.2","Sauber","7.90"],
     ["1.3","Echte Null","0.00"],
     ["1.4","Strich","-"]];
+  // v3.205: xlsx haengt nicht mehr im Kopf von index.html, sondern wird
+  // bei Bedarf geholt (xlsxLaden in js/01) - hier genauso wie in der App.
+  await xlsxLaden();
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(daten),"T");
   const roh=XLSX.write(wb,{bookType:"xlsx",type:"array"});
