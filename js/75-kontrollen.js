@@ -426,6 +426,12 @@ function konKarteNoetig(){
 // wiederholt, sondern hoechstens alle 30 Sekunden.
 function konKarteVorbereiten(){
  if(!konZustaendig()||konAbweisungenGeladen||konAbweisungenLaeuft)return;
+ // Gefragt wird nur, wenn die Antwort etwas aendern kann. Ohne gelesene
+ // Abweisungen ist konFehlerZahl() die groesstmoegliche Zahl - steht sie auf
+ // 0, gibt es nichts abzuhaken und nichts zu melden, und die Startseite
+ // schickt keine Abfrage los. Das ist der Normalfall einer Firma mit
+ // sauberen Stammdaten; die Startseite soll fuer nichts laden.
+ if(!(konFehlerZahl()>0))return;
  if(konAbweisungenVersuch&&Date.now()-konAbweisungenVersuch<30000)return;
  konAbweisungenLaeuft=true;
  Promise.resolve().then(konAbweisungenLaden).then(ok=>{

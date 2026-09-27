@@ -440,6 +440,25 @@ const offenVon=`s=>{const b=konBefunde().find(x=>x.schluessel===s);return b?b.of
  p(K1.fehler===0&&K1.karte==="",
    "und die Karte bleibt weg - genau das war die Meldung des Anwenders",K1);
 
+ // Und: ohne Befund wird gar nicht erst gefragt. Die Startseite soll fuer
+ // nichts laden - pruefstand-uebersicht-cockpit-v3-09 haelt genau das fest
+ // (bei ausgeschalteten Modulen faellt dort KEINE Abfrage an).
+ const K1b=await page.evaluate(async()=>{
+  window.__sauber();                     // nichts zu beanstanden
+  konAbweisungen=Object.create(null);
+  konAbweisungenGeladen=false; konAbweisungenLaeuft=false; konAbweisungenVersuch=0;
+  let gefragt=0;
+  sb.from=()=>{const q={};["select","eq","upsert","delete"].forEach(k=>q[k]=()=>q);
+    q.then=(f,g)=>{gefragt++;return Promise.resolve({data:[],error:null}).then(f,g)};
+    return q};
+  konKarteVorbereiten();
+  await new Promise(r=>setTimeout(r,120));
+  return {gefragt,fehler:konFehlerZahl(),karte:konKarteHtml()};
+ });
+ p(K1b.fehler===0&&K1b.gefragt===0,
+   "ohne einen einzigen Befund wird gar nicht erst nach Abweisungen gefragt",K1b);
+ p(K1b.karte==="","und es steht auch keine Karte da",K1b.karte);
+
  // GEGENPROBE 1: ist NICHTS abgehakt, kommt die Karte sehr wohl. Sonst
  // haette der Fix die Karte nur stillgelegt.
  const K2=await page.evaluate(async()=>{
