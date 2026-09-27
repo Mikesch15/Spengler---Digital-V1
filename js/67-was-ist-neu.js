@@ -346,6 +346,8 @@ const WIN_CHANGELOG={
   "Datenbank: fünf interne Funktionen waren ohne Anmeldung aufrufbar. Das ist zurückgenommen – sie waren zwar innen abgesichert, aber es gab keinen Grund, sie offen zu lassen."],
  "3.206":["<b>Datenbank: die Zugriffsregeln prüfen jetzt einmal je Abfrage statt einmal je Zeile.</b> Bei 25 Regeln wurde die Anmeldung für jede einzelne geprüfte Zeile neu nachgeschlagen. Am Inhalt der Regeln ändert sich nichts – nur daran, wie oft gerechnet wird.",
   "<b>Eine Lücke geschlossen:</b> beim Abwicklungsrechner war die Firmengrenze versehentlich als <i>zusätzliche Erlaubnis</i> statt als <i>Schranke</i> gesetzt – als einzige von 35. Wer das Recht „Material ansehen“ hatte, hätte damit an die Abwicklungen anderer Firmen gekommen. Die Tabelle war zu diesem Zeitpunkt leer, es ist also nichts abgeflossen."],
+ "3.207":["<b>Eine Aufgabe, deren Termin abgelaufen ist, lässt sich wieder terminieren.</b> Das Datumsfeld war mit dem alten, bereits verstrichenen Datum vorbelegt – wer nur auf Speichern tippte, bekam „Das Datum muss in der Zukunft liegen“ und nichts geschah. Jetzt steht dort ein Datum, das sich auch speichern lässt.",
+  "<b>Die Kontrolle der Stammdaten meldet auf der Startseite nichts mehr, was längst als „ist so gewollt“ abgehakt ist.</b> Die Karte wurde gezeichnet, bevor die Abhaken-Entscheidungen überhaupt gelesen waren, und zählte sie deshalb bei jedem App-Start wieder als Fehler."],
 };
 
 function winVersionVergleich(a,b){
