@@ -328,9 +328,18 @@ function aufgabeTerminHtml(a){
   const morgen=new Date(Date.now()+86400000);
   const z=n=>String(n).padStart(2,"0");
   const min=morgen.getFullYear()+"-"+z(morgen.getMonth()+1)+"-"+z(morgen.getDate());
+  // v3.207: Vorbelegt wird nur ein Datum, das sich auch speichern laesst.
+  // Ein ABGELAUFENER Termin steht weiter in aufgabenTermine - genau deshalb
+  // ist die Aufgabe ja wieder da (aufgabenIstTerminiert verlangt Zukunft, es
+  // gibt bewusst keinen Aufraeumlauf). Bis v3.206 wanderte dieses vergangene
+  // Datum unveraendert ins Feld: wer eine heute wieder aufgetauchte Aufgabe
+  // erneut terminieren wollte und auf Speichern tippte, bekam "Das Datum
+  // muss in der Zukunft liegen" - und nichts geschah. Das Feld bot damit
+  // eine Eingabe an, die das Speichern gleich wieder abweist.
+  const wert=(t&&String(t.faellig_am)>=min)?String(t.faellig_am):min;
   return `<div class="aufgabe-termin-form">
    <label class="small">Wieder anzeigen ab
-    <input type="date" data-termin-datum="${esc(schl)}" min="${min}" value="${esc(t?t.faellig_am:min)}">
+    <input type="date" data-termin-datum="${esc(schl)}" min="${min}" value="${esc(wert)}">
    </label>
    <div class="aufgabe-knoepfe">
     <button type="button" class="blue" data-aufgabe="termin-speichern" data-aufgabe-id="${esc(a.m.id)}" data-aufgabe-art="${esc(a.art)}">Speichern</button>

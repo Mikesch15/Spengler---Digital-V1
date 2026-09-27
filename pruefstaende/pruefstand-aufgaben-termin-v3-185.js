@@ -169,6 +169,55 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  p(G.weg.ok===false&&/Berechtigung/.test(G.weg.meldung),
    "dasselbe beim Aufheben",G.weg);
 
+ // ---- I  Ein abgelaufener Termin blockiert das neue Terminieren nicht -----
+ // v3.207, gemeldet vom Anwender: "Terminieren von heutigen aufgaben klappt
+ // nicht mehr" - beim Speichern kam "Das Datum muss in der Zukunft liegen".
+ // URSACHE: Ein Termin bleibt nach Ablauf stehen (Abschnitt B: genau so
+ // kommt die Aufgabe zurueck). Das Feld wurde mit diesem VERGANGENEN Datum
+ // vorbelegt; wer nur auf Speichern tippte, bekam die Abweisung aus
+ // Abschnitt F. Das Feld bot damit genau die Eingabe an, die das Speichern
+ // sofort wieder zurueckweist.
+ console.log("\nI · Das Datumsfeld bietet nur an, was sich auch speichern laesst");
+ const I=await page.evaluate(async()=>{
+  const heute=window.__tag(0), morgen=window.__tag(1);
+  const wertVon=h=>{const m=h.match(/data-termin-datum="[^"]*"[^>]*value="([^"]*)"/);return m?m[1]:null};
+  const minVon =h=>{const m=h.match(/data-termin-datum="[^"]*"[^>]*min="([^"]*)"/);return m?m[1]:null};
+  const feld=am=>{
+   window.__setze(am===null?[]:[{id:41,schritt:"ruesten",am}]);
+   aufgabenTerminFormular=aufgabenTerminSchluessel(41,"ruesten");
+   const a=aufgabenListe.find(x=>x.art==="ruesten");
+   const h=aufgabeTerminHtml(a);
+   return {wert:wertVon(h),min:minVon(h)};
+  };
+  const gestern=feld(window.__tag(-1));
+  const amHeute=feld(heute);
+  const zukunft=feld(window.__tag(30));
+  const ohne   =feld(null);
+  // Und der ganze Weg: was im Feld steht, muss durch aufgabenTerminSetzen
+  // durchgehen. Sonst ist es dieselbe Falle mit anderem Datum.
+  sb.from=()=>{const q={};["select","eq","upsert","delete"].forEach(k=>q[k]=()=>q);
+    q.then=(f,g)=>Promise.resolve({data:[{id:9,faellig_am:"2099-01-01"}],error:null}).then(f,g);
+    return q};
+  const gespeichert=await aufgabenTerminSetzen(41,"ruesten",amHeute.wert);
+  return {heute,morgen,gestern,amHeute,zukunft,ohne,gespeichert,
+          tag30:window.__tag(30)};
+ });
+ p(I.gestern.min===I.morgen&&I.amHeute.min===I.morgen,
+   "das Feld laesst fruehestens morgen zu",[I.gestern.min,I.amHeute.min,I.morgen]);
+ p(I.amHeute.wert===I.morgen,
+   "ein auf HEUTE abgelaufener Termin belegt das Feld mit morgen, nicht mit heute",I.amHeute);
+ p(I.gestern.wert===I.morgen,
+   "ein gestern abgelaufener ebenso",I.gestern);
+ p(I.ohne.wert===I.morgen,
+   "ohne Termin steht wie bisher morgen drin",I.ohne);
+ p(I.gespeichert.ok===true,
+   "und genau dieser Vorschlag laesst sich speichern - ohne 'muss in der Zukunft liegen'",I.gespeichert);
+ // GEGENPROBE: das Feld wird NICHT einfach immer auf morgen gestellt. Ein
+ // noch laufender Termin bleibt stehen, sonst waere jedes Verschieben ein
+ // Zuruecksetzen auf morgen.
+ p(I.zukunft.wert===I.tag30,
+   "ein noch laufender Termin bleibt im Feld stehen",[I.zukunft.wert,I.tag30]);
+
  // ---- H  Struktur ---------------------------------------------------------
  console.log("\nH · Struktur");
  const code=nurCode(lies("js/45-aufgaben.js"));
