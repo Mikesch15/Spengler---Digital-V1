@@ -344,6 +344,8 @@ const WIN_CHANGELOG={
   "Die App startet spürbar schneller: 860 kB Excel-Bibliothek werden nicht mehr bei jedem Start geladen, sondern erst, wenn man Excel wirklich braucht.",
   "Der Barcode-Scan funktioniert jetzt auch im Keller ohne Empfang – vorher hiess es dort „Internetverbindung prüfen“.",
   "Datenbank: fünf interne Funktionen waren ohne Anmeldung aufrufbar. Das ist zurückgenommen – sie waren zwar innen abgesichert, aber es gab keinen Grund, sie offen zu lassen."],
+ "3.206":["<b>Datenbank: die Zugriffsregeln prüfen jetzt einmal je Abfrage statt einmal je Zeile.</b> Bei 25 Regeln wurde die Anmeldung für jede einzelne geprüfte Zeile neu nachgeschlagen. Am Inhalt der Regeln ändert sich nichts – nur daran, wie oft gerechnet wird.",
+  "<b>Eine Lücke geschlossen:</b> beim Abwicklungsrechner war die Firmengrenze versehentlich als <i>zusätzliche Erlaubnis</i> statt als <i>Schranke</i> gesetzt – als einzige von 35. Wer das Recht „Material ansehen“ hatte, hätte damit an die Abwicklungen anderer Firmen gekommen. Die Tabelle war zu diesem Zeitpunkt leer, es ist also nichts abgeflossen."],
 };
 
 function winVersionVergleich(a,b){

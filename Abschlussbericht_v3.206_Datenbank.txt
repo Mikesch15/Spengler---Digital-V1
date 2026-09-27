@@ -1,0 +1,164 @@
+ABSCHLUSSBERICHT v3.206 – Datenbank: RLS-Leistung und eine geschlossene Lücke
+=============================================================================
+Stand: 27. September 2026
+Auftrag: "Ja mach doch das beides" – RLS-Performance (25 Policies) und
+Leaked Password Protection.
+
+
+1. auth.uid() einmal je Anweisung statt einmal je Zeile (25 Policies)
+---------------------------------------------------------------------
+Migration: v3206_rls_auth_uid_einmal_statt_je_zeile
+
+Befund des Supabase-Advisors (auth_rls_initplan): steht auth.uid() nackt in
+einer Policy, ruft PostgreSQL es für JEDE geprüfte Zeile erneut auf. In der
+Schreibweise ( SELECT auth.uid() ) wird daraus ein InitPlan – einmal
+berechnet, für die ganze Anweisung wiederverwendet.
+
+Warum das bedeutungsgleich ist (nicht behauptet, nachgesehen):
+  * auth.uid(), auth.jwt() und auth.role() sind als STABLE deklariert
+    (pg_proc.provolatile = 's'). Genau das ist die Zusage, dass der Wert
+    innerhalb einer Anweisung derselbe bleibt.
+  * In einem Wegwerf-Schema Zeile für Zeile verglichen: alte und neue
+    Schreibweise liefern dasselbe, auch der NULL-Fall bleibt NULL.
+
+Vorgehen:
+  * ALTER POLICY statt DROP + CREATE. Beim Löschen und Neuanlegen gäbe es
+    einen Augenblick ohne Policy – auf einer Produktivdatenbank mit
+    mehreren Firmen genau das, was man nicht will.
+  * Alles in EINER Transaktion.
+
+Nachweis nach der Umstellung:
+  * 9 Policies stichprobenweise zurückgerechnet (Klammerung entfernt) und
+    Zeichen für Zeichen mit dem vorherigen Ausdruck verglichen – identisch.
+    Darunter die schwierigen Fälle: eine RESTRICTIVE feature_boundary, die
+    Mandantengrenze auf profiles, eine reine INSERT-Policy (nur with_check)
+    und eine UPDATE-Policy, deren with_check KEIN auth.uid() enthält und
+    deshalb unberührt bleiben musste.
+  * 174 Policies vorher, 174 nachher – nichts gelöscht, nichts dazugekommen.
+  * Offene Stellen: 0.
+  * Advisor: auth_rls_initplan 25 -> 0 Befunde.
+
+Nicht angefasst, mit Absicht:
+  * profiles_update_permission stand schon richtig. (Mein erstes Suchmuster
+    war gross/klein-empfindlich und hätte sie doppelt verpackt – korrigiert,
+    bevor etwas lief.)
+  * has_permission(), permission_scope(), my_company_id(), is_admin():
+    laufen ebenfalls je Zeile, sind aber nicht der gemeldete Befund. Ein
+    zweiter Umbau in derselben Bewegung würde die Ursache einer etwaigen
+    Abweichung unauffindbar machen.
+  * mw_firma_ok(measurement_id): nimmt eine SPALTE als Argument, hängt also
+    an der Zeile. Ein InitPlan wäre hier schlicht falsch.
+
+RÜCKWEG: dieselben ALTER-POLICY-Anweisungen mit auth.uid() statt
+( SELECT auth.uid() ). Da der Ausdruck sonst zeichengleich ist, genügt:
+
+  do $$
+  declare r record;
+  begin
+    for r in
+      select tablename, policyname,
+             regexp_replace(qual,'\(\s*SELECT\s+auth\.(uid|jwt|role)\(\)(\s+AS\s+\w+)?\s*\)','auth.\1()','gi') as q,
+             regexp_replace(with_check,'\(\s*SELECT\s+auth\.(uid|jwt|role)\(\)(\s+AS\s+\w+)?\s*\)','auth.\1()','gi') as c
+      from pg_policies
+      where schemaname='public'
+        and (qual ~* '\(\s*select\s+auth\.' or with_check ~* '\(\s*select\s+auth\.')
+    loop
+      execute 'alter policy '||quote_ident(r.policyname)||' on public.'||quote_ident(r.tablename)
+              ||coalesce(' using ('||r.q||')','')||coalesce(' with check ('||r.c||')','');
+    end loop;
+  end $$;
+
+(Achtung: das setzt auch profiles_update_permission zurück, die schon vorher
+richtig stand. Für einen reinen Rückweg diese eine ausnehmen.)
+
+
+2. Eine Mandantengrenze, die keine war (abwicklungen)
+------------------------------------------------------
+Migration: v3206_tenant_boundary_abwicklungen_restrictive
+
+Beim Durchsehen der übrigen Advisor-Meldung (multiple_permissive_policies)
+gefunden. Es ist KEIN Performance-Thema, sondern ein Fehler in der
+Zugriffsregel:
+
+  PERMISSIVE  heisst ODER – eine zusätzliche Erlaubnis.
+  RESTRICTIVE heisst UND  – eine echte Schranke.
+
+Auf abwicklungen standen ALLE Policies auf PERMISSIVE. Die Regel für SELECT
+lautete damit:
+
+  (company_id = my_company_id())  ODER  has_permission('materials','view')
+
+Beide Hälften sind für sich allein hinreichend, und das ist nach beiden
+Seiten falsch:
+  * Die linke Hälfte hängt an der Firma, aber nicht am Recht: jeder
+    Angemeldete der Firma sah alle Abwicklungen, auch ohne das Recht
+    "Material ansehen".
+  * Die rechte Hälfte hängt am Recht, aber NICHT AN DER ZEILE –
+    has_permission() schaut die Zeile gar nicht an. Wer das Recht hatte,
+    kam damit an die Abwicklungen JEDER Firma. Ein Leck über die
+    Mandantengrenze hinweg.
+
+Belege:
+  * 34 von 35 tenant_boundary_*-Policies stehen auf RESTRICTIVE. Genau
+    diese eine nicht – ein Ausrutscher, kein Entwurf.
+  * Die Wirkung folgt aus der dokumentierten PostgreSQL-Regel (permissive
+    -> ODER, restrictive -> UND). EHRLICH GESAGT: live nachstellen liess
+    sie sich von hier aus NICHT. Der Wartungszugang läuft mit
+    rolbypassrls=true, umgeht RLS also vollständig, und SET ROLE ist
+    gesperrt. Der Schluss stützt sich auf die Policy-Texte plus die
+    dokumentierte Semantik, nicht auf einen durchgeführten Zugriffstest.
+  * Stand der Daten zum Zeitpunkt der Korrektur: die Tabelle war LEER
+    (0 Zeilen, 0 Firmen). Es ist nichts abgeflossen, und niemand verliert
+    durch die Korrektur etwas, das er heute sieht.
+
+Vorgehen: PERMISSIVE lässt sich nicht per ALTER POLICY umstellen – das
+Merkmal steht beim Anlegen fest. Also löschen und neu anlegen, beides in
+EINER Transaktion. qual und with_check Zeichen für Zeichen übernommen;
+geändert wurde ausschliesslich PERMISSIVE -> RESTRICTIVE.
+
+Wirkung ab jetzt: für Abwicklungen gilt dieselbe Regel wie für alles andere
+Material – wer "Material ansehen" bzw. "Material bearbeiten" hat, darf; und
+zwar nur innerhalb der eigenen Firma. Die App war darauf schon vorbereitet:
+js/78 prüft bei Speichern und Löschen ausdrücklich auf 0 betroffene Zeilen
+und meldet "Nicht gespeichert – fehlt die nötige Berechtigung?" statt still
+zu scheitern.
+
+RÜCKWEG (nur falls wirklich gewollt – es wäre die Lücke zurück):
+
+  drop policy tenant_boundary_abwicklungen on public.abwicklungen;
+  create policy tenant_boundary_abwicklungen on public.abwicklungen
+    as permissive for all to public
+    using (company_id = my_company_id())
+    with check ((company_id = my_company_id())
+      AND ((project_id IS NULL) OR (EXISTS ( SELECT 1 FROM projects p
+        WHERE ((p.id = abwicklungen.project_id) AND (p.company_id = my_company_id()))))));
+
+
+3. Leaked Password Protection – NICHT erledigt
+-----------------------------------------------
+Das ist eine Einstellung der Supabase-Authentifizierung, kein Code, und es
+gibt dafür kein Werkzeug in dieser Sitzung. Von Hand:
+
+  Supabase-Dashboard -> Authentication -> Providers -> Email
+  -> "Prevent use of leaked passwords" einschalten
+  (Direktweg: /dashboard/project/nfgryuzkpwjfmdlmevuy/auth/providers?provider=Email)
+
+Dahinter steckt die Pwned-Passwords-Liste von HaveIBeenPwned: ein Passwort,
+das schon einmal in einem Leck aufgetaucht ist, wird abgelehnt.
+
+ACHTUNG: laut Supabase-Doku ist diese Funktion erst ab dem Pro-Plan
+verfügbar. Steht das Projekt auf Free, ist der Schalter nicht da.
+
+
+4. Was NICHT gemacht wurde und warum
+-------------------------------------
+* multiple_permissive_policies (jetzt noch 35 Meldungen): die übrigen Paare
+  sind gewollt – zwei verschiedene Fragen an dieselbe Tabelle
+  (z. B. feature_access_admin_write + feature_access_select). Sie
+  zusammenzulegen hiesse, die Zugriffsregel neu zu schreiben, nicht sie
+  schneller zu machen. Der Leistungsgewinn wäre bei diesen Datenmengen nicht
+  messbar, das Risiko schon.
+* unindexed_foreign_keys (58) und unused_index (20), beide nur INFO: 58
+  Indexe anzulegen kostet bei jedem Schreibvorgang Zeit und bringt bei
+  diesen Datenmengen nichts. Gezielt anlegen, wenn eine Abfrage wirklich
+  langsam ist – nicht auf Vorrat.
