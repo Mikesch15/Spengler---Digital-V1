@@ -184,7 +184,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
 
  // CDN-Skripte (supabase-js UND xlsx) durch die Attrappe ersetzen - wie im
  // gesamten uebrigen Pruefstand-Bestand.
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
 
  // Die KI-Fotoerkennung geht NICHT ueber sb.functions.invoke(), sondern per
  // rohem fetch() direkt an die Edge Function extract-offer-positions

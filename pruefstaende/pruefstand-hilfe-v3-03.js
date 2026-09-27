@@ -36,7 +36,7 @@ const ARTEN=[
    args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:1100,height:900},locale:"de-CH"});
  const jsFehler=[]; page.on("pageerror",e=>jsFehler.push(String(e))); page.on("dialog",d=>d.accept());
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,
    contentType:"application/javascript",
    body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},from:()=>({select:function(){return this},eq:function(){return this},order:function(){return this},limit:function(){return this},then:f=>f({data:[],error:null})}),rpc:async()=>({data:null,error:null}),storage:{from:()=>({})}})};"}));
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(600);

@@ -45,7 +45,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
    rpc:()=>Promise.resolve({data:null,error:null}),
    functions:{invoke:()=>Promise.resolve({data:{ok:true},error:null})}};
  }};`;
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(500);
 
  await page.evaluate(()=>{

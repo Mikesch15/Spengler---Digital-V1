@@ -100,7 +100,7 @@ const segmente=async(page,liste)=>{await page.evaluate(l=>{
  const fehler=[];
  page.on("pageerror",e=>fehler.push(String(e)));
  page.on("dialog",d=>d.accept());
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,
    contentType:"application/javascript",
    body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}})};"}));
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(500);

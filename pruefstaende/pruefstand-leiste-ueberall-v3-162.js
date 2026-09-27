@@ -68,7 +68,7 @@ const rahmen=page=>page.evaluate(()=>{
  // accept() wie sonst.
  let dialogAntwort=true, dialogTexte=[];
  page.on("dialog",d=>{dialogTexte.push(d.message()); dialogAntwort?d.accept():d.dismiss()});
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"load"});
  await page.waitForTimeout(600);
  await page.evaluate(()=>{

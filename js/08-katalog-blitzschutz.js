@@ -100,6 +100,11 @@ function searchBlitzschutzMaterials(q){
 // viele geändert werden (mit alt → neu je Feld) und wie viele gleich
 // bleiben.
 async function excelZeilenLesen(file){
+ // v3.205: nachgeladen statt beim Start (xlsxLaden in js/01). Der Aufrufer
+ // faengt den Fehler ab und zeigt ihn an - eine leere Liste zurueckzugeben
+ // waere schlimmer: sie saehe aus wie "die Datei ist leer".
+ if(!await xlsxLaden())throw new Error(
+  "Die Excel-Funktion konnte nicht geladen werden. Bitte einmal mit bestehender Internetverbindung versuchen.");
  const buf=await file.arrayBuffer();
  const wb=XLSX.read(buf,{type:"array"});
  const blatt=wb.Sheets[wb.SheetNames[0]];

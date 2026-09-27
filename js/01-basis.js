@@ -1163,10 +1163,16 @@ async function edgeFunctionErrorMessage(error,fallback){
 // Lagerverwaltung (js/68, Artikel per Scan buchen) und vom Material-Katalog
 // in den Einstellungen (js/08, Barcode an einem Artikel hinterlegen).
 //
-// Die Bibliothek (ZXing, dieselbe cdn.jsdelivr.net-Quelle wie supabase-js
-// und xlsx) wird erst beim ERSTEN Scan nachgeladen, nicht bei jedem
-// App-Start - anders als die beiden anderen, wird sie nicht auf jedem
-// Bildschirm gebraucht.
+// Die Bibliothek (ZXing) wird erst beim ERSTEN Scan nachgeladen, nicht bei
+// jedem App-Start - sie wird nicht auf jedem Bildschirm gebraucht.
+//
+// v3.205: Sie kommt aus dem Projekt (vendor/), nicht mehr von einem fremden
+// Server. Gescannt wird im Lager, und ein Lager ist oft genau der Ort mit
+// dem schlechtesten Empfang im Haus. Bisher hiess es dort
+// "Scan-Bibliothek konnte nicht geladen werden - Internetverbindung
+// pruefen"; jetzt liegt sie nach dem ersten Scan im Zwischenspeicher des
+// Service Workers und ist auch ohne Verbindung da. An der Kamera-Logik
+// selbst aendert sich dabei NICHTS - nur, woher die Datei kommt.
 // ---------------------------------------------------------------------------
 let zxingLadenPromise=null;
 function zxingLaden(){
@@ -1174,9 +1180,9 @@ function zxingLaden(){
  if(zxingLadenPromise)return zxingLadenPromise;
  zxingLadenPromise=new Promise((resolve,reject)=>{
   const s=document.createElement("script");
-  s.src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js";
+  s.src="vendor/zxing.umd.min.js";
   s.onload=()=>{ if(typeof ZXing!=="undefined")resolve(); else reject(new Error("Scan-Bibliothek antwortet nicht.")) };
-  s.onerror=()=>{ zxingLadenPromise=null; reject(new Error("Scan-Bibliothek konnte nicht geladen werden - Internetverbindung prüfen.")) };
+  s.onerror=()=>{ zxingLadenPromise=null; reject(new Error("Scan-Bibliothek konnte nicht geladen werden. Bitte die App einmal mit Verbindung öffnen, danach geht der Scan auch ohne.")) };
   document.head.appendChild(s);
  });
  return zxingLadenPromise;
@@ -1496,4 +1502,38 @@ async function barcodeScannen(callback){
    :(err&&err.message)?err.message:"Kamera konnte nicht gestartet werden.";
   if(status){status.textContent=meldung;status.style.color="#ffb3b3"}
  }
+}
+
+// ---- Excel-Bibliothek erst bei Bedarf laden (v3.205) ----------------------
+// Bis v3.204 hing xlsx.full.min.js im Kopf von index.html: 880 kB, die BEI
+// JEDEM START heruntergeladen, geparst und ausgefuehrt wurden - vor dem
+// ersten sichtbaren Bild, denn ein <script> im Kopf blockiert das Zeichnen.
+// Gebraucht wird die Bibliothek an genau zwei Stellen: beim Feedback-Export
+// (js/02) und beim Katalog-Import (js/08). Beides macht man am Schreibtisch,
+// selten, und nie auf dem Dach.
+//
+// Sie liegt jetzt wie supabase-js und jsPDF im Projekt (vendor/) und wird
+// nachgeladen, wenn sie das erste Mal gebraucht wird. Danach ist sie da -
+// die Zusage wird nur einmal gebaut, jeder weitere Aufruf bekommt dieselbe.
+//
+// BEWUSST NICHT im App-Vorrat (sw.js): sonst kostete die Installation die
+// 880 kB wieder, nur eben vorher. Der Service Worker legt die Datei beim
+// ersten Gebrauch von selbst ab (sein fetch-Handler speichert jede Antwort
+// aus dem eigenen Haus) - ab dann geht der Export auch ohne Verbindung.
+// Vorher ging er ohne Verbindung ueberhaupt nie, weil die Datei von einem
+// fremden Server kam.
+let xlsxZusage=null;
+function xlsxLaden(){
+ if(typeof XLSX!=="undefined")return Promise.resolve(true);
+ if(xlsxZusage)return xlsxZusage;
+ xlsxZusage=new Promise(fertig=>{
+  const s=document.createElement("script");
+  s.src="vendor/xlsx.full.min.js";
+  s.onload=()=>fertig(typeof XLSX!=="undefined");
+  // Kein Rueckfall auf ein CDN: eine zweite Quelle waere eine zweite
+  // Wahrheit. Geht es nicht, sagen die Aufrufer das ehrlich.
+  s.onerror=()=>{xlsxZusage=null;fertig(false)};
+  document.head.appendChild(s);
+ });
+ return xlsxZusage;
 }

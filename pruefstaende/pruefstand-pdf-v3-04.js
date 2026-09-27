@@ -18,7 +18,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
 (async()=>{
  const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:390,height:1400}});
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",
    body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},storage:{from:()=>({createSignedUrl:async(pfad)=>({data:{signedUrl:'https://test.example/'+pfad},error:null})})},from:()=>{const q={};['select','eq','order','limit','update','insert','delete','maybeSingle','single'].forEach(k=>q[k]=()=>q);q.then=r=>Promise.resolve({data:[],error:null}).then(r);return q;}})};"}));
  const fehler=[];
  page.on("pageerror",e=>fehler.push(String(e)));

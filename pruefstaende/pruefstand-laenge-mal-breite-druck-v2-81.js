@@ -11,7 +11,7 @@ const LXB=/\d[\d'’.\s]*×\s*\d/;
 (async()=>{
  const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:900,height:1200}});
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",
    body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}})};"}));
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
  await page.goto("file://"+path.join(process.cwd(),"index.html"),{waitUntil:"load"});

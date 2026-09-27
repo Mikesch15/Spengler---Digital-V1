@@ -51,7 +51,7 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
    functions:{invoke:()=>Promise.resolve({data:{ok:true},error:null})}
   };
  }};`;
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(500);
 
  // ------------------------------------------------ Grundzustand + Attrappe

@@ -212,7 +212,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  page.on("pageerror",e=>jsFehler.push(String(e)));
  page.on("dialog",d=>{(page.__dialoge=page.__dialoge||[]).push(d.message());d.accept()});
 
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
 
  // Der Edge-Function-Endpunkt wird je Testfall neu belegt, mit exakt der
  // Antwort, die der ECHTE Server (v12) fuer den jeweiligen Fall liefern

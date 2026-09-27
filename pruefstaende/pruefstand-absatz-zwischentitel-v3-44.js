@@ -266,7 +266,7 @@ window.supabase = {
   page.on("pageerror", (err) => jsFehler.push(String(err)));
   page.on("console", (msg) => { if (msg.type() === "error" && !/favicon/i.test(msg.text())) { /* nur zur Diagnose, kein Abbruch */ } });
 
-  await page.route("**://cdn.jsdelivr.net/**", (route) => {
+  await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./, (route) => {
     route.fulfill({ status: 200, contentType: "application/javascript", body: ATTRAPPE });
   });
 

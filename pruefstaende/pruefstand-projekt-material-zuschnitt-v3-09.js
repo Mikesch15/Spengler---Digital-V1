@@ -131,7 +131,7 @@ const stand=page=>page.evaluate(()=>{
  const page=await browser.newPage({viewport:{width:1200,height:900}});
  const jsFehler=[];
  page.on("pageerror",e=>jsFehler.push(String(e).slice(0,160)));
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"networkidle"});
 
  console.log("\nA · bei AUS ist nichts sichtbar");

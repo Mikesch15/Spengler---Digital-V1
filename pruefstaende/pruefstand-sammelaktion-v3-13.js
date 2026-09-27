@@ -188,7 +188,7 @@ const klick=async(page,sel)=>{
  page.on("pageerror",e=>jsFehler.push(String(e).slice(0,160)));
  let jaSagen=true;
  page.on("dialog",d=>jaSagen?d.accept():d.dismiss());
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"networkidle"});
 
  // ---------------------------------------------------------------------------

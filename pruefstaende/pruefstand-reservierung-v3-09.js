@@ -176,7 +176,7 @@ const stand=page=>page.evaluate(()=>{
  const jsFehler=[];
  page.on("pageerror",e=>jsFehler.push(String(e).slice(0,160)));
  page.on("dialog",d=>d.accept());
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"networkidle"});
 
  console.log("\nA · bei AUS ist die Karte unsichtbar");

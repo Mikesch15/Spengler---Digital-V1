@@ -121,7 +121,7 @@ const typWaehlen=async(page,typ,register)=>{
  const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:412,height:900}});
  const jsfehler=[]; page.on("pageerror",e=>jsfehler.push(String(e)));
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP); await page.waitForTimeout(700);
  await anmelden(page);
 

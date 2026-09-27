@@ -62,7 +62,7 @@ window.supabase={createClient:()=>({
 (async()=>{
  const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:390,height:1400}});
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  const fehler=[];
  page.on("pageerror",e=>fehler.push(String(e)));
  page.on("dialog",d=>d.accept());

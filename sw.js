@@ -9,7 +9,7 @@
    Offline-Bestand zur ausgelieferten Fassung passt. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-3.204";
+const CACHE = "spengler-digital-3.205";
 
 const SHELL = [
   "./",
@@ -113,6 +113,18 @@ const SHELL = [
   "./js/79-offerte-erstellen.js",
   // v3.200: fest im Projekt statt vom CDN - sonst laesst sich eine Offerte
   // ohne Verbindung nicht erzeugen (siehe vendor/README.md).
+  // v3.205: supabase-js gehoert in den Vorrat, nicht auf einen fremden
+  // Server. Ohne diese Datei startet die App ueberhaupt nicht - und der
+  // fetch-Handler unten gibt fremde Adressen unveraendert ans Netz weiter,
+  // kann sie also gar nicht aufheben. Ob die App ohne Verbindung hochkam,
+  // hing damit allein am Browser-Zwischenspeicher.
+  //
+  // xlsx.full.min.js steht ABSICHTLICH NICHT hier: 880 kB, die sonst jede
+  // Installation bezahlen muesste, fuer zwei seltene Funktionen. Sie wird
+  // bei Bedarf nachgeladen (xlsxLaden in js/01) und landet dann von selbst
+  // im Zwischenspeicher - der fetch-Handler hebt jede Antwort aus dem
+  // eigenen Haus auf.
+  "./vendor/supabase.umd.min.js",
   "./vendor/jspdf.umd.min.js"
 ];
 

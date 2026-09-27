@@ -243,13 +243,15 @@ function feedbackSortHandler(e){
  renderFeedbackRows();
 }
 
-function feedbackExportXlsxHandler(){
+async function feedbackExportXlsxHandler(){
  if(!feedbackAuswahl.size){alert("Bitte mindestens ein Feedback auswählen.");return}
- // xlsx.full.min.js liegt bereits im Kopf von index.html (wird auch fuer
- // den Material-Import gebraucht). Fehlt es einmal, sagen wir das ehrlich,
- // statt eine kaputte Datei zu erzeugen.
- if(typeof XLSX==="undefined"){
-  alert("Die Excel-Funktion konnte nicht geladen werden. Bitte die Seite mit bestehender Internetverbindung neu laden – oder den Textdatei-Export verwenden.");
+ // v3.205: Die Excel-Bibliothek haengt nicht mehr im Kopf von index.html,
+ // sondern wird hier nachgeladen (xlsxLaden in js/01) - sie kostete 880 kB
+ // bei jedem Start der App, fuer eine Funktion, die man selten braucht.
+ // Klappt das nicht, sagen wir das ehrlich, statt eine kaputte Datei zu
+ // erzeugen.
+ if(!await xlsxLaden()){
+  alert("Die Excel-Funktion konnte nicht geladen werden. Bitte einmal mit bestehender Internetverbindung versuchen – oder den Textdatei-Export verwenden.");
   return;
  }
  const daten=[feedbackSpalten(),...feedbackExportZeilen()];

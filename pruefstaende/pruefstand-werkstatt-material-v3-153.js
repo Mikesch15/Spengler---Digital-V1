@@ -47,7 +47,7 @@ const ZEILEN=[
  const page=await b.newPage({viewport:{width:430,height:920}});
  const fehler=[];
  page.on("pageerror",e=>fehler.push(String(e)));
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"load"});
  await page.waitForTimeout(500);
  await page.evaluate(z=>{

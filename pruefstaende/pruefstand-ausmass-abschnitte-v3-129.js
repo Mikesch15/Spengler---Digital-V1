@@ -138,7 +138,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  const jsFehler=[];
  page.on("pageerror",e=>jsFehler.push(String(e)));
  page.on("dialog",d=>d.accept());
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
  await page.goto("file://"+repo+"/index.html");
  await page.waitForFunction(()=>typeof renderAmPositionsTable==="function"
   &&typeof amSektionenZuruecksetzen==="function",null,{timeout:15000});

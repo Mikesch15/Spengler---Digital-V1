@@ -95,7 +95,7 @@ const MATERIALS=[
  page.on("dialog",d=>{page.__dialoge.push({text:d.message(),typ:d.type()});
   if(d.type()==="prompt")d.accept(page.__promptAntwort===undefined?"":page.__promptAntwort);
   else d.accept()});
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"load"});
  await page.waitForTimeout(500);
 

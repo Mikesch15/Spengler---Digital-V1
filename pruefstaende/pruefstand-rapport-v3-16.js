@@ -106,7 +106,7 @@ const MESS=[
 (async()=>{
  const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:412,height:1800}});
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
  let letzteMeldung=""; page.on("dialog",d=>{letzteMeldung=d.message();d.accept()});
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(400);

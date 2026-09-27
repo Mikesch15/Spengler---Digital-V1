@@ -340,6 +340,10 @@ const WIN_CHANGELOG={
   "Neue Regel auf der Projektseite: ein <b>blauer</b> Knopf bleibt im Projekt, ein <b>grauer</b> führt hinaus. „Werkstatt aller Projekte öffnen“ ist deshalb grau und steht zuunterst.",
   "Register „Dateien“: statt vier Zeilen, die alle am selben Ort endeten, steht jetzt die Dateiliste und darunter ein beschrifteter Knopf.",
   "Fehler behoben: beim Öffnen von „Dateien, Fotos und Verlauf“ war kurz die ganze alte Projektansicht zu sehen, bevor sie sich auf das Gesuchte einschränkte."],
+ "3.205":["<b>Die App startet jetzt auch ohne Verbindung zuverlässig.</b> Drei Fremdbibliotheken kamen bisher bei jedem Start von einem fremden Server – darunter die, ohne die die App überhaupt nicht hochfährt. Der Offline-Vorrat konnte sie gar nicht aufheben; ob es ohne Netz ging, war Zufall. Jetzt liegen alle drei in der App selbst.",
+  "Die App startet spürbar schneller: 860 kB Excel-Bibliothek werden nicht mehr bei jedem Start geladen, sondern erst, wenn man Excel wirklich braucht.",
+  "Der Barcode-Scan funktioniert jetzt auch im Keller ohne Empfang – vorher hiess es dort „Internetverbindung prüfen“.",
+  "Datenbank: fünf interne Funktionen waren ohne Anmeldung aufrufbar. Das ist zurückgenommen – sie waren zwar innen abgesichert, aber es gab keinen Grund, sie offen zu lassen."],
 };
 
 function winVersionVergleich(a,b){

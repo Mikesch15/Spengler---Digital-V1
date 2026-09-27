@@ -164,7 +164,7 @@ const stand=page=>page.evaluate(()=>{
  const jsFehler=[];
  page.on("pageerror",e=>jsFehler.push(String(e).slice(0,160)));
  page.on("dialog",d=>d.accept());
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"networkidle"});
  // v3.151: Die neue Ansicht ist seit dieser Version die VORGABE. Dieser
  // Pruefstand prueft Ablaeufe, die von der KLASSISCHEN Startseite ausgehen

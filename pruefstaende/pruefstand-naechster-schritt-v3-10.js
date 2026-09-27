@@ -103,7 +103,7 @@ const karte=(page)=>page.evaluate(()=>{
 (async()=>{
  const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:412,height:2000}});
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
  let letzterDialog=""; page.on("dialog",d=>{letzterDialog=d.message();d.accept()});
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(400);
