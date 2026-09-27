@@ -253,12 +253,39 @@ function werkMaterialKarteHtml(g){
    </div>
   </div>
   ${zuschnitte}
-  <div class="werk-mat-quellen">${g.aufnahmen.map(m=>
-    `<button type="button" class="gray" data-werk-meas="${esc(m.id)}">${
-      esc((typeof pmatQuelleText==="function")?pmatQuelleText(m):(m.title||"Massaufnahme"))}</button>`).join("")}</div>
-  <div class="small" style="color:var(--muted);margin-top:8px">Abgehakt wird in
-   der Massaufnahme – dort stehen die Stücknummern. Ein Tipp auf eine der
-   Massaufnahmen oben führt hin.</div>
+  ${g.aufnahmen.map(werkMatAufnahmeHtml).join("")}
+  <div class="small" style="color:var(--muted);margin-top:8px">Ein Tipp auf eine
+   Massaufnahme zeigt ihr Rüstblatt: das vermasste Profil und die Zuschnittliste
+   zum Abhaken. Das ganze Formular braucht es dafür nicht.</div>
+ </div>`;
+}
+
+// v3.211: Eine Massaufnahme in der Materialsicht - zugeklappt eine Zeile,
+// aufgeklappt dasselbe Ruestblatt wie in der Projektsicht.
+// Bis v3.210 stand hier nur ein Sprungknopf, und der oeffnete das VOLLE
+// Formular: "Ich will eine ansicht, die nicht die komplette massaufnahme
+// oeffnet." Der Aufklappzustand ist derselbe wie drueben (werkOffenKarte) -
+// wer eine Karte in der einen Sicht oeffnet, findet sie in der anderen offen.
+function werkMatAufnahmeHtml(m){
+ const offen=werkOffenKarte.has(m.id);
+ const plan=werkZuschnittPlan(m);
+ const titel=(typeof pmatQuelleText==="function")?pmatQuelleText(m):(m.title||"Massaufnahme");
+ return `<div class="werk-karte${offen?" werk-karte-offen":""}${plan&&werkZuStand(m).fertig?" werk-zu-fertig":""}">
+  <div class="werk-karte-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-werk-karte="${esc(m.id)}">
+   <span class="werk-karte-pfeil">${offen?"▾":"▸"}</span>
+   <div class="werk-karte-info"><b>${esc(titel)}</b>
+    <div class="small" style="color:var(--muted)">${plan
+      ?'<span class="werk-zu-text" data-werk-zu-stand="'+esc(m.id)+'">'+werkStandText(m)+"</span>"
+      :"kein Zuschnitt gespeichert"}</div>
+   </div>
+  </div>
+  ${offen?`<div class="werk-karte-body">
+   ${(typeof rbBlattHtml==="function")?rbBlattHtml(m):""}
+   <div class="bar werk-karte-fuss">
+    ${(typeof rbGrossKnopfHtml==="function")?rbGrossKnopfHtml(m.id,"werkstatt"):""}
+    <button type="button" class="gray" data-werk-meas="${esc(m.id)}">✂️ Im Formular öffnen</button>
+   </div>
+  </div>`:""}
  </div>`;
 }
 
@@ -491,30 +518,23 @@ function werkAufnahmeHtml(a,jetztK){
   ${verfallen?'<div class="small werk-karte-warn">Diese Massaufnahme wurde nach der Freigabe geändert. Sie muss erneut freigegeben werden, bevor daran weitergearbeitet wird.</div>':""}
   ${offen?`<div class="werk-karte-body">
    ${wer?`<div class="small" style="color:var(--muted)">${wer}</div>`:""}
-   ${werkSkizzenHtml(a)}
-   ${plan?(typeof zuListeHtml==="function"?zuListeHtml(plan):""):'<div class="small" style="color:var(--muted)">Für diese Massaufnahme ist kein Zuschnitt gespeichert.</div>'}
+   ${(typeof rbBlattHtml==="function")?rbBlattHtml(a):""}
    ${werkFertigLeisteHtml(a,plan,stand,verfallen)}
    <div class="bar werk-karte-fuss">
     ${plan?`<button type="button" class="gray" data-werk-druck-mess="${a.id}">🖨️ Rüstliste</button>`:""}
+    ${(typeof rbGrossKnopfHtml==="function")?rbGrossKnopfHtml(a.id,"werkstatt"):""}
     <button type="button" class="gray" data-werk-mess="${a.id}"${plan?' data-werk-zu="1"':""}>${plan?"✂️ Im Formular öffnen":"Massaufnahme öffnen"}</button>
    </div>
   </div>`:""}
  </div>`;
 }
 
-// Die vermasste Profil-/Schnittskizze und der Grundriss - genau das, was
-// beim Ruesten gebraucht wird, und sonst nichts aus der Massaufnahme.
-// Zusammengestellt wird von rsSkizzen() in js/60, also von derselben Stelle
-// wie im Ausdruck. Hat eine Art keine Zeichnung (Kehle rechnet nur, Skizze /
-// Foto hat gar keine), steht das ausdruecklich da - statt einer leeren
-// Flaeche, bei der niemand weiss, ob etwas fehlt.
-function werkSkizzenHtml(a){
- if(typeof rsSkizzen!=="function")return "";
- const liste=rsSkizzen(a);
- if(!liste.length)return '<div class="small werk-skizze-leer">Für diese Art gibt es keine Skizze.</div>';
- return '<div class="werk-skizzen">'+liste.map(s=>
-   `<figure class="werk-skizze"><figcaption>${esc(s.titel)}</figcaption>${s.svg}</figure>`).join("")+"</div>";
-}
+// v3.211: Skizzen UND Zuschnittliste kommen jetzt aus rbBlattHtml()
+// (js/80-ruestblatt.js). Bis v3.210 stand der Zusammenbau hier - inzwischen
+// brauchen ihn vier Stellen (Werkstatt nach Projekt, Werkstatt nach Material,
+// Seite "Material & Zuschnitt", Projektseite), und ein zweiter Zusammenbau
+// laeuft frueher oder spaeter auseinander. Es ist derselbe Inhalt, nur an
+// einer Stelle: rsSkizzen() aus js/60 und zuListeHtml() aus js/33.
 
 // v3.23: Alles geschnitten - und der naechste Schritt ist genau dieser eine.
 // Bis v3.22 stand "Ruesten bestaetigen" klein oben in der Kopfzeile, zwischen
@@ -677,6 +697,27 @@ function werkGrundlageHtml(g){
  return h||'<div class="small" style="color:var(--muted)">Dafür sind die Materialübersicht oder die Reservierung nötig – beide sind ausgeschaltet.</div>';
 }
 
+// v3.211: "in allen werkstatt / ruestansichten sollen die einzelnen
+// massaufnahmen alle zuklappbar sein" - einzeln ging das in der Projektsicht
+// seit v3.30, in der Materialsicht gar nicht. Jetzt ueberall, und dazu EIN
+// Schalter fuer die ganze Liste. Welche Karten er meint, haengt an der
+// gewaehlten Sicht - er klappt nur, was gerade dasteht.
+function werkSichtbareKartenIds(){
+ const raus=[];
+ const nimm=liste=>((liste||[]).forEach(m=>{ if(m&&m.id!==undefined&&raus.indexOf(m.id)<0)raus.push(m.id) }));
+ if(werkSicht==="material")werkMaterialGruppen().forEach(g=>nimm(g.aufnahmen));
+ else werkGruppen().forEach(g=>nimm(g.aufnahmen));
+ return raus;
+}
+function werkAlleZuHtml(ids){
+ // Unter zwei Karten waere der Schalter nur ein weiterer Knopf.
+ if(!ids||ids.length<2)return "";
+ const offen=ids.filter(id=>werkOffenKarte.has(id)).length;
+ return `<div class="status-filter werk-allezu-reihe">
+  <button type="button" class="status-chip" data-werk-allezu="${offen?"zu":"auf"}">${
+   offen?"▾ Alle zuklappen ("+offen+" offen)":"▸ Alle aufklappen"}</button></div>`;
+}
+
 function renderWerkstatt(){
  const box=$("werkstattBody");
  if(!box)return 0;
@@ -713,6 +754,7 @@ function renderWerkstatt(){
     unter „Material“ und „Materialstärke“.</div>`;
    box.innerHTML=h; return 0;
   }
+  h+=werkAlleZuHtml(werkSichtbareKartenIds());
   h+=matGruppen.map(werkMaterialKarteHtml).join("");
   box.innerHTML=h;
   return werkZeilen.filter(werkPasst).length;
@@ -728,6 +770,7 @@ function renderWerkstatt(){
  }
  // Der roteste Faden ueberhaupt: was zuerst drankommt, steht oben.
  schritte.sort((a,b)=>(a.n.rang-b.n.rang)||a.g.titel.localeCompare(b.g.titel,"de"));
+ h+=werkAlleZuHtml(werkSichtbareKartenIds());
  h+=schritte.map(({g,n})=>{
   const offen=werkOffen===(g.projectId||0);
   const zahl=[g.zuRuesten?g.zuRuesten+" zu rüsten":"",g.zuMontieren?g.zuMontieren+" zu montieren":""]
@@ -820,6 +863,16 @@ document.addEventListener("click",async e=>{
  // v3.30: Der Kartenkopf klappt auf und zu. Ein Klick auf einen Knopf IM
  // Kopf (Rüsten bestätigen) darf das nicht ausloesen - der hat seinen
  // eigenen Weg ueber data-aufgabe.
+ // v3.211: alles auf einmal zu- oder aufklappen.
+ const allezu=e.target.closest("[data-werk-allezu]");
+ if(allezu){
+  const ids=werkSichtbareKartenIds();
+  if(allezu.dataset.werkAllezu==="zu")ids.forEach(id=>werkOffenKarte.delete(id));
+  else ids.forEach(id=>werkOffenKarte.add(id));
+  renderWerkstatt();
+  return;
+ }
+
  const karte=e.target.closest("[data-werk-karte]");
  if(karte&&!e.target.closest("button[data-aufgabe]")){
   const id=Number(karte.dataset.werkKarte);

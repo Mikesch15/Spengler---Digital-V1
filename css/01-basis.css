@@ -1171,6 +1171,14 @@ input:has(+ .winkel-knopf){min-width:70px}
 /* v3.25: Die Knopfzeile unter der Zuschnittliste. Die globale mz-knopf-Regel
    (volle Breite) gilt hier ausdruecklich nicht - es sind zwei Knoepfe
    nebeneinander, die auf schmalen Geraeten umbrechen duerfen. */
+/* v3.211: Die Karte klappt auf und zu. Der Kopf ist der Schalter - er
+   braucht dieselbe Fingerflaeche und denselben Fokusrahmen wie der
+   Kartenkopf in der Werkstatt. */
+.mz-karte-kopf{display:flex;gap:8px;align-items:flex-start;cursor:pointer;
+ min-height:44px;padding:2px 0}
+.mz-karte-kopf:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+.mz-karte-kopf-text{flex:1;min-width:0}
+.mz-karte-body{border-top:1px solid var(--line);margin-top:8px;padding-top:8px}
 .mz-karte-akt{margin-top:8px;gap:6px}
 .mz-karte-akt button{width:auto;flex:1 1 auto;min-width:0;min-height:40px;font-size:12px}
 .mz-rest{font-size:12px;margin:8px 0 4px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
@@ -1302,6 +1310,17 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .werk-karte-info{flex:1 1 190px;min-width:0;word-break:break-word}
 .werk-karte-warn{color:var(--red);padding:0 2px 4px}
 .werk-karte-body{border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
+/* v3.211: Das Ruestblatt - dieselben Abstaende, ob es in einer Liste
+   aufgeklappt ist oder gross auf seinem eigenen Schirm steht. */
+.rb-blatt{margin-top:2px}
+.rb-kopf{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;
+ padding-bottom:6px;border-bottom:1px solid var(--line)}
+.rb-kopf b{font-size:15px;word-break:break-word}
+.rb-kopf .small{color:var(--muted)}
+#ruestblattBody .werk-skizze svg{max-height:420px}
+/* Alle Karten auf einmal zu- oder aufklappen. Steht als Chip-Reihe ueber
+   der Liste, wie die Filter darueber. */
+.werk-allezu-reihe{margin:2px 0 6px}
 .werk-karte-fuss{margin-top:8px}
 .werk-karte-fuss button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
 /* Lagerverwaltung (v3.104): dieselbe Klapp-Karte wie die Werkstatt (oben) -

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.210.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.211.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -227,6 +227,21 @@ einer wirkt nicht auf die anderen. Alle starten im Arbeitsstatus
 Die Serie wird im gerade geöffneten Projekt angelegt; deshalb steht der
 Knopf im Projekt und nicht in der allgemeinen Übersicht.
 `},
+"ruestblatt":{titel:"Rüstblatt",text:`
+<p>Das <b>Wichtigste einer Massaufnahme auf einen Blick</b>: das vermasste
+Profil, der Grundriss (wenn die Art einen hat), Material und Stärke, und die
+Zuschnittliste mit den Stücknummern zum Abhaken. Sonst nichts.</p>
+<p>Es ist <b>kein Formular</b> – es gibt nichts zu tippen. Wer wirklich etwas
+ändern will, tippt auf <b>„Im Formular öffnen“</b> und kommt danach wieder
+hierher zurück.</p>
+<p>Dasselbe Blatt steht an vier Stellen: in der Werkstatt (nach Projekt und
+nach Material), auf der Seite „Material &amp; Zuschnitt“ und auf der
+Projektseite. In der Liste klappt es unter der Zeile auf; <b>„Gross
+ansehen“</b> zeigt es bildschirmfüllend – für die Abkantbank.</p>
+<p>Gezeichnet wird aus dem <b>gespeicherten</b> Stand der Massaufnahme, mit
+demselben Zeichner wie der Ausdruck. Hier wird nichts neu gerechnet: was auf
+dem Blatt steht, steht auch auf der Rüstliste.</p>`},
+
 "werkstatt":{titel:"Werkstatt und Rüsten",text:`
 Hier steht, was freigegeben und zum Rüsten oder Montieren eingeteilt ist.
 Es ist dieselbe Arbeitsliste wie auf der Startseite, nur aus Sicht der

@@ -120,12 +120,35 @@ window.supabase={createClient:()=>({
 
  // --- B: Aufmass ---
  await page.click('[data-a2-reg="aufmass"]');
+ // v3.211: Die Zeile traegt data-a2-rb - ein Tipp klappt das Ruestblatt auf,
+ // statt sofort das ganze Formular zu oeffnen ("Ich will eine ansicht, die
+ // nicht die komplette massaufnahme oeffnet"). Die Erwartung ist auf diesen
+ // Vertrag gesetzt, nicht aufgeweicht: es sind weiterhin genau zwei Zeilen,
+ // und der Weg ins Formular wird gleich darunter mitgeprueft.
  let bb=await page.evaluate(()=>({
-  zeilen:[...document.querySelectorAll("#a2Inhalt [data-a2-meas]")].map(x=>x.getAttribute("data-a2-meas")),
-  text:$("a2Inhalt").textContent.replace(/\s+/g," ")
+  zeilen:[...document.querySelectorAll("#a2Inhalt [data-a2-rb]")].map(x=>x.getAttribute("data-a2-rb")),
+  text:$("a2Inhalt").textContent.replace(/\s+/g," "),
+  // Zugeklappt gibt es KEINEN Weg ins Formular - sonst waere die alte
+  // Zeile nur umbenannt.
+  formularKnoepfe:document.querySelectorAll("#a2Inhalt [data-a2-meas]").length
  }));
  p(JSON.stringify(bb.zeilen)===JSON.stringify(["11","12"]),"B1 beide Massaufnahmen stehen da",bb.zeilen);
  p(bb.text.includes("Dachrinne")||bb.text.includes("Rinne"),"B2 die Fachart ist der Haupttitel",bb.text.slice(0,200));
+ p(bb.formularKnoepfe===0,"B2b zugeklappt fuehrt nichts ins Formular",bb.formularKnoepfe);
+
+ // Ein Tipp auf die Zeile: das Ruestblatt geht auf, das Formular NICHT.
+ await page.click('[data-a2-rb="11"]');
+ await page.waitForTimeout(120);
+ const bRb=await page.evaluate(()=>({
+  blatt:document.querySelectorAll("#a2Inhalt .a2-rb-blatt").length,
+  formular:!$("measurementEditModal").hidden,
+  imFormularKnopf:!!document.querySelector('#a2Inhalt [data-a2-meas="11"]'),
+  grossKnopf:!!document.querySelector('#a2Inhalt [data-rb-gross="11"]')
+ }));
+ p(bRb.blatt===1&&!bRb.formular,
+   "B2c ein Tipp zeigt das Ruestblatt - und oeffnet NICHT das Formular",bRb);
+ p(bRb.imFormularKnopf&&bRb.grossKnopf,
+   "B2d darin stehen der Weg ins Formular und 'Gross ansehen'",bRb);
 
  // Oeffnen -> das bestehende Formular, mit unserem Rueckziel
  await page.click('[data-a2-meas="11"]');
@@ -163,7 +186,7 @@ window.supabase={createClient:()=>({
  await page.waitForTimeout(200);
  let c=await page.evaluate(()=>({
   text:$("a2Inhalt").textContent.replace(/\s+/g," "),
-  zeilen:[...document.querySelectorAll("#a2Inhalt [data-a2-meas]")].length,
+  zeilen:[...document.querySelectorAll("#a2Inhalt [data-a2-rb]")].length,
   regs:[...document.querySelectorAll('#a2Inhalt [data-a2-reg]')].map(x=>x.getAttribute("data-a2-reg")),
   raus:(()=>{const k=document.querySelector('#a2Inhalt [data-a2-tu="werkstatt"]');
              return k?{da:true,blau:k.classList.contains("a2-k-blau")}:{da:false}})(),

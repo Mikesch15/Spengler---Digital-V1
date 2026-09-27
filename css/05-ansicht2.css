@@ -1062,3 +1062,12 @@ html.a2-an .a2-zeile.a2-zeile-still{
 html.a2-an .a2-zeile.a2-zeile-still:hover,
 html.a2-an .a2-zeile.a2-zeile-still:active{
   background:var(--white,#fff);transform:none}
+
+/* v3.211: Das Ruestblatt in der Liste der Projektseite. Die Zeile bleibt die
+   bekannte .a2-zeile; darunter klappt das Blatt auf. */
+.a2-rb{margin-bottom:6px}
+.a2-rb.ist-offen>.a2-zeile{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.a2-rb-blatt{border:1px solid var(--line);border-top:none;
+ border-radius:0 0 12px 12px;padding:10px 12px;background:var(--card)}
+.a2-rb-blatt .werk-skizze svg{max-height:260px}
+.a2-rb-blatt .a2-knopf-reihe{margin-top:8px}

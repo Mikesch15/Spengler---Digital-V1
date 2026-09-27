@@ -171,7 +171,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   $("globalSearchResults").querySelector("button").click();
   await new Promise(f=>setTimeout(f,700));
   window.openProjectCockpit=alt;
-  const zeile=$("a2Inhalt").querySelector('[data-a2-meas="11"]');
+  // v3.211: Die Zeile traegt data-a2-rb (sie klappt das Ruestblatt auf);
+  // A2_TREFFER zeigt seitdem auf dieses Kennzeichen.
+  const zeile=$("a2Inhalt").querySelector('[data-a2-rb="11"]');
   return {insCockpit, reg:a2Zustand.reg, seite:a2Zustand.seite,
           zeileDa:!!zeile, hervorgehoben:!!(zeile&&zeile.classList.contains("treffer")),
           cockpitOffen:!$("projectCockpitModal").hidden};

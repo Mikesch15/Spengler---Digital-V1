@@ -354,6 +354,9 @@ const WIN_CHANGELOG={
  "3.209":["<b>Die Dachfenstereinfassung hat jetzt auch ein Feld für die Materialstärke.</b> Sie kannte bisher nur den Werkstoff – das Stärkefeld, das alle anderen zwölf Arten seit v3.31 haben, wurde bei ihr nie angehängt. Bereits gespeicherte Dachfenster-Aufnahmen lassen sich einfach öffnen und ergänzen."],
  "3.210":["<b>Das Register in den Einstellungen heisst jetzt „Firma“</b> – für eine Zwischenversion hiess es „Betrieb“. Inhalt unverändert: Firmendaten, Mitarbeiter, Stundensätze, Materialkataloge, Datensicherung.",
   "Die <b>Testfirma</b> hat dieselben acht Werkstoffe hinterlegt wie der Hauptbetrieb – bisher stand dort nur Kupfer."],
+ "3.211":["<b>Das Rüstblatt.</b> Ein Tipp auf eine Massaufnahme zeigt jetzt nur noch das Wichtigste: das vermasste Profil, den Grundriss, Material und Stärke und die Zuschnittliste zum Abhaken – statt das ganze Formular zu öffnen. Wer doch etwas ändern will, tippt darin auf „Im Formular öffnen“.",
+  "Dasselbe Blatt steht an vier Stellen: Werkstatt nach Projekt, Werkstatt nach Material, Seite „Material &amp; Zuschnitt“ und Projektseite. <b>„Gross ansehen“</b> zeigt es bildschirmfüllend – für die Abkantbank.",
+  "<b>Alle Massaufnahmen lassen sich zuklappen</b>, einzeln oder mit einem Schalter über der Liste. In der Werkstatt nach Material und auf der Seite „Material &amp; Zuschnitt“ ging das bisher gar nicht."],
 };
 
 function winVersionVergleich(a,b){

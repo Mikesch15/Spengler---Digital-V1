@@ -186,8 +186,13 @@ const werkstattAuf=async page=>{
     "Schnittskizze UND Grundriss - beide beschriftet",b1.skizzen);
   p(b1.aria==="true"&&b1.pfeil==="▾","der Kopf meldet aufgeklappt",{aria:b1.aria,pfeil:b1.pfeil});
   p(b1.andereKoerper===1,"ein Tipp oeffnet genau EINE Karte",b1.andereKoerper);
-  p(b1.fuss.length===2&&b1.fuss.some(t=>/Rüstliste/.test(t))&&b1.fuss.some(t=>/Formular/.test(t)),
-    "im Fuss stehen Ruestliste und der Weg ins Formular",b1.fuss);
+  // v3.211: drei Knoepfe statt zwei - "Gross ansehen" zeigt dasselbe Blatt
+  // bildschirmfuellend. Die Erwartung ist auf den neuen Vertrag gesetzt und
+  // bleibt EXAKT: genau drei, und jeder einzelne wird benannt. Ein vierter,
+  // der sich einschleicht, faellt weiterhin auf.
+  p(b1.fuss.length===3&&b1.fuss.some(t=>/Rüstliste/.test(t))
+    &&b1.fuss.some(t=>/Gross ansehen/.test(t))&&b1.fuss.some(t=>/Formular/.test(t)),
+    "im Fuss stehen Ruestliste, Gross ansehen und der Weg ins Formular",b1.fuss);
  }
 
  console.log("\nC · Nur was zum Ruesten gebraucht wird - sonst nichts");

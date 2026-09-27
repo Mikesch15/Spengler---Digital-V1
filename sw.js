@@ -9,7 +9,7 @@
    Offline-Bestand zur ausgelieferten Fassung passt. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-3.210";
+const CACHE = "spengler-digital-3.211";
 
 const SHELL = [
   "./",
@@ -111,6 +111,7 @@ const SHELL = [
   "./js/77-abwicklung.js",
   "./js/78-abwicklung-ui.js",
   "./js/79-offerte-erstellen.js",
+  "./js/80-ruestblatt.js",
   // v3.200: fest im Projekt statt vom CDN - sonst laesst sich eine Offerte
   // ohne Verbindung nicht erzeugen (siehe vendor/README.md).
   // v3.205: supabase-js gehoert in den Vorrat, nicht auf einen fremden

@@ -987,6 +987,10 @@ function a2Zeichnen(){
  else if(a2Zustand.seite==="mehr")inhalt=a2SeiteMehr();
  else inhalt=a2SeiteHeute();
  $("a2Inhalt").innerHTML=inhalt;
+ // v3.211: Das Ruestblatt bringt SVG-Zeichnungen mit. Ihr Leerraum wird erst
+ // NACH dem Einfuegen weggeschnitten - vorher gibt getBBox nichts her
+ // (js/60, dort steht der Grund).
+ if(typeof rsZuschneiden==="function")rsZuschneiden($("a2Inhalt"));
 
  // Die Werkstattzahlen der Startseite kommen nach: die Seite steht sofort
  // da, die Zahlen erscheinen, sobald werkLaden() zurueck ist. Der Aufruf
@@ -1074,6 +1078,16 @@ document.addEventListener("click",async e=>{
  // Eine Massaufnahme, ein Ausmass, eine Offerte, eine Leistung, ein Rapport.
  // Jedes oeffnet das BESTEHENDE Formular mit der echten Zeile aus dem
  // Zwischenspeicher - hier wird nichts nachgebaut und nichts neu abgefragt.
+ // v3.211: Das Ruestblatt in der Liste auf- und zuklappen. Steht VOR
+ // data-a2-meas, weil im aufgeklappten Blatt beide Knoepfe vorkommen und
+ // der innere (Formular) seinen eigenen Weg hat.
+ const rbz=e.target.closest("[data-a2-rb]");
+ if(rbz){
+  const id=String(rbz.getAttribute("data-a2-rb"));
+  if(a2RbOffen.has(id))a2RbOffen.delete(id); else a2RbOffen.add(id);
+  a2Zeichnen();
+  return;
+ }
  const meas=e.target.closest("[data-a2-meas]");
  if(meas){ a2Oeffne("meas",meas.getAttribute("data-a2-meas")); return }
  const am=e.target.closest("[data-a2-am]");
@@ -1346,7 +1360,11 @@ async function a2StammdatenOeffnen(id){
 // Register gibt es immer - sie haengen an keinem Modulschalter, ein Treffer
 // kann also nicht in einem abgeschalteten Register landen.
 const A2_TREFFER={
- measurement:{reg:"aufmass", attr:"data-a2-meas"},
+ // v3.211: Die Zeile im Register Aufmass traegt jetzt data-a2-rb - sie
+ // klappt das Ruestblatt auf, statt sofort das Formular zu oeffnen.
+ // data-a2-meas steht nur noch IM aufgeklappten Blatt und waere zugeklappt
+ // gar nicht da; der Sprung aus der Suche liefe ins Leere.
+ measurement:{reg:"aufmass", attr:"data-a2-rb"},
  ausmass:    {reg:"ausmass", attr:"data-a2-am"},
  report:     {reg:"rapport", attr:"data-a2-rep"}
 };
@@ -1580,16 +1598,41 @@ function a2RegAufmass(p){
    ＋ Neue Massaufnahme</button></div>`;
  if(!liste.length)return html+'<div class="a2-leer">Noch keine Massaufnahme in diesem Projekt.</div>';
  html+=`<div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(liste.length,"Massaufnahme","Massaufnahmen"))}</h2></div>`;
+ // v3.211: Der Tipp zeigt das Ruestblatt statt des ganzen Formulars.
  return html+'<div class="a2-liste-zwei">'+liste.map(m=>{
   const badge=(typeof mwBadgeFuerListe==="function")?mwBadgeFuerListe(m):"";
-  const art=(typeof MEAS_TYPE_LABELS!=="undefined"&&MEAS_TYPE_LABELS[m.type])||m.type||"Massaufnahme";
-  const t=String(m.title||"").trim();
-  return `<button type="button" class="a2-zeile" data-a2-meas="${esc(m.id)}">
-   <span class="a2-zeile-text"><b>${esc(art)}</b>
-    <span>${esc([t,a2Datum(m.date)].filter(Boolean).join(" · ")||"—")}</span></span>
-   ${badge?`<span class="a2-badge">${badge}</span>`:""}
-   <span class="a2-zeile-pfeil">›</span></button>`;
+  return a2RbZeileHtml(m,a2Datum(m.date)||"—",badge);
  }).join("")+"</div>";
+}
+
+// ---- Das Ruestblatt in der Liste ------------------------------------------
+// v3.211, gewuenscht: "Ich will eine ansicht, die nicht die komplette
+// massaufnahme oeffnet. Ich will nur das wichtigste sehen wie das vermasste
+// profil mit den entsprechenden laengen."
+//
+// Bis v3.210 fuehrte auf dieser Seite JEDER Tipp auf eine Massaufnahme ins
+// volle Formular mit allen Registern. Jetzt klappt er das Ruestblatt auf -
+// dieselbe Sicht, die die Werkstatt zeigt, gebaut von rbBlattHtml() in
+// js/80. Der Weg ins Formular steht darin, einen Tipp weiter.
+const a2RbOffen=new Set();
+function a2RbZeileHtml(m,unten,badge){
+ const id=String(m.id);
+ const offen=a2RbOffen.has(id);
+ return `<div class="a2-rb${offen?" ist-offen":""}">
+  <button type="button" class="a2-zeile" data-a2-rb="${esc(id)}" aria-expanded="${offen?"true":"false"}">
+   <span class="a2-zeile-text"><b>${esc(a2MessTitel(m))}</b>
+    <span>${esc(unten||"")}</span></span>
+   ${badge?`<span class="a2-badge">${badge}</span>`:""}
+   <span class="a2-zeile-pfeil">${offen?"▾":"▸"}</span></button>
+  ${offen?`<div class="a2-rb-blatt">
+   ${(typeof rbBlattHtml==="function")?rbBlattHtml(m):""}
+   <div class="a2-knopf-reihe">
+    <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-meas="${esc(id)}">
+     ✂️ Im Formular öffnen</button>
+    <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-rb-gross="${esc(id)}" data-rb-zurueck="a2Projekt">
+     ⤢ Gross ansehen</button>
+   </div></div>`:""}
+ </div>`;
 }
 
 // ---- Herstellung ----------------------------------------------------------
@@ -1684,9 +1727,18 @@ function a2HerstMaterial(p){
    <div class="a2-knopf-reihe">
     <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="matzu">
      Zuschnitt öffnen</button>
-    <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-meas="${esc(m.id)}">
-     Massaufnahme</button>
-   </div></div>`;
+    <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-rb="${esc(m.id)}">
+     ${a2RbOffen.has(String(m.id))?"▾ Rüstblatt zu":"▸ Rüstblatt"}</button>
+   </div>
+   ${a2RbOffen.has(String(m.id))?`<div class="a2-rb-blatt">
+    ${(typeof rbBlattHtml==="function")?rbBlattHtml(m):""}
+    <div class="a2-knopf-reihe">
+     <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-meas="${esc(m.id)}">
+      ✂️ Im Formular öffnen</button>
+     <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-rb-gross="${esc(m.id)}" data-rb-zurueck="a2Projekt">
+      ⤢ Gross ansehen</button>
+    </div></div>`:""}
+   </div>`;
  }).join("");
 }
 function a2FortschrittHtml(fertig,gesamt,text){
@@ -1717,10 +1769,7 @@ function a2HerstWerkstatt(p){
      return `<div class="a2-abschnitt">
       <div class="a2-abschnitt-kopf a2-unterkopf"><h3>${esc(g.titel)}</h3>
        <span class="a2-marke a2-m-${esc(g.farbe)}">${drin.length}</span></div>`
-      +drin.map(m=>`<button type="button" class="a2-zeile" data-a2-meas="${esc(m.id)}">
-        <span class="a2-zeile-text"><b>${esc(a2MessTitel(m))}</b>
-         <span>${esc(a2ZugeteiltText(m))}</span></span>
-        <span class="a2-zeile-pfeil">›</span></button>`).join("")
+      +drin.map(m=>a2RbZeileHtml(m,a2ZugeteiltText(m),"")).join("")
       +"</div>";
     }).join("")
   : `<div class="a2-leer">In diesem Projekt wartet nichts in der Werkstatt.

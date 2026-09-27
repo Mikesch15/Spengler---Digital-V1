@@ -212,7 +212,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.210</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.211</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -1401,6 +1401,22 @@ Diese Aktion löscht unwiderruflich:
 </div>
 </div>
 
+<!-- v3.211 Das Rüstblatt gross. Derselbe Inhalt wie aufgeklappt in der
+     Liste, nur bildschirmfüllend - gebaut von rbBlattHtml() in
+     js/80-ruestblatt.js. Hier wird nichts nachgebaut und nichts gerechnet. -->
+<div id="ruestblattModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📐 Rüstblatt <button type="button" class="hilfe-knopf no-print" data-hilfe="ruestblatt">i</button></h2>
+<div id="ruestblattBody"></div>
+<div class="bar">
+<button type="button" id="ruestblattFormular" class="gray">✂️ Im Formular öffnen</button>
+<button type="button" id="closeRuestblatt" class="green">✓ Fertig</button>
+</div>
+</div>
+</div>
+</div>
+
 <!-- v3.09 Werkstatt- und Rüstansicht. Eine zusätzliche Sicht auf den
      bestehenden Arbeitsablauf - keine zweite Statuskette, siehe
      js/51-werkstatt.js. -->
@@ -2449,7 +2465,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.210.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 114 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.211.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 114 Seiten)</a></div>
 </div>
 </div>
 
@@ -3154,7 +3170,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.210.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.211.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3271,6 +3287,7 @@ nicht neu installieren.</div>
      zur Laufzeit, und die Pruefstaende fangen cdn.jsdelivr.net ab. -->
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="js/79-offerte-erstellen.js"></script>
+<script src="js/80-ruestblatt.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

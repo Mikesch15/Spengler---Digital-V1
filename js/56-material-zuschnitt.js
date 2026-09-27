@@ -341,6 +341,8 @@ async function zeNachziehen(){
   // den DOM). Nur die Zahlen, nicht die ganze Werkstatt - sonst spraenge die
   // Seite unter dem Finger weg.
   if(typeof werkZuschnittStandAuffrischen==="function")werkZuschnittStandAuffrischen();
+  // v3.211: dasselbe fuer das grosse Ruestblatt, wenn es gerade offen ist.
+  if(typeof rbStandAuffrischen==="function")rbStandAuffrischen();
  }finally{zeLaeuft=false}
 }
 if(typeof MutationObserver!=="undefined"){
@@ -454,6 +456,38 @@ function mzFreigegeben(m){
 // werkOffenKarte in der Werkstatt (v3.21) - und derselbe Grund: wer gerade
 // abhakt, behaelt seine Liste, auch wenn das letzte Stueck sie fertig macht.
 const mzOffenKarte=new Set();
+// v3.211: ... und welche hat er ausdruecklich ZUGEKLAPPT? Zwei Mengen statt
+// einer, weil es drei Zustaende gibt: von Hand offen, von Hand zu, und
+// "noch nichts gesagt" - dann gilt die Vorgabe von v3.25 (offen, solange
+// Arbeit ansteht; zu, wenn alles geschnitten oder noch nicht freigegeben
+// ist). Eine einzige Menge koennte "zu" nicht ausdruecken, und genau das
+// hat gefehlt: "die einzelnen massaufnahmen sollen alle zuklappbar sein".
+const mzZuKarte=new Set();
+function mzKarteOffen(m,s,frei){
+ const id=Number(m&&m.id);
+ if(mzZuKarte.has(id))return false;
+ if(mzOffenKarte.has(id))return true;
+ return !!(frei&&!s.fertig);
+}
+function mzKarteUmschalten(id){
+ const n=Number(id);
+ // Gelesen wird der JETZIGE Zustand - sonst haette ein Umschalten bei einer
+ // von der Vorgabe geoeffneten Karte keine Wirkung.
+ const m=mzListe().find(x=>x&&Number(x.id)===n);
+ if(!m)return;
+ const offen=mzKarteOffen(m,zeStand(m),mzFreigegeben(m));
+ if(offen){mzOffenKarte.delete(n);mzZuKarte.add(n)}
+ else{mzZuKarte.delete(n);mzOffenKarte.add(n)}
+}
+// Alle auf einmal - derselbe Schalter wie in der Werkstatt.
+function mzAlleZuHtml(){
+ const karten=mzZuschnittKarten();
+ if(karten.length<2)return "";
+ const offen=karten.filter(k=>mzKarteOffen(k.m,k.stand,mzFreigegeben(k.m))).length;
+ return `<div class="status-filter werk-allezu-reihe">
+  <button type="button" class="status-chip" data-mz-allezu="${offen?"zu":"auf"}">${
+   offen?"▾ Alle zuklappen ("+offen+" offen)":"▸ Alle aufklappen"}</button></div>`;
+}
 function mzZuschnittKarteHtml(k){
  const m=k.m, s=k.stand;
  const frei=mzFreigegeben(m);
@@ -475,23 +509,33 @@ function mzZuschnittKarteHtml(k){
  // alles geschnitten, oder noch nicht freigegeben. Wer sie trotzdem sehen
  // will, klappt sie auf - der Zustand haelt, bis die Seite geschlossen wird.
  const plan=(typeof pmatPlanFuer==="function")?pmatPlanFuer(m):null;
- const offen=mzOffenKarte.has(Number(m.id));
- const zeigen=plan&&(offen||(frei&&!s.fertig));
- const liste=!plan?""
-  :(zeigen?(typeof zuListeHtml==="function"?zuListeHtml(plan):"")
-   :`<button type="button" class="werk-zu-auf" data-mz-karte="${esc(m.id)}">▸ Zuschnittliste zeigen${s.fertig?" (alles geschnitten)":""}</button>`);
- return `<div class="mz-karte${s.fertig?" mz-karte-fertig":""}">
-  <div class="mz-karte-titel">${esc(mzArt(m))}</div>
-  <div class="mz-karte-zeile">${esc(mzMatName(m))} · <span class="mz-zahl">${s.gesamt}</span> Zuschnitt${s.gesamt===1?"":"e"}</div>
-  ${badge}
-  <div class="mz-karte-zeile mz-stand" data-mz-stand="${esc(m.id)}">${mzStandText(s)}</div>
-  <div data-mz-balken="${esc(m.id)}">${mzFortschrittHtml(s)}</div>
-  ${warn}${alt}${nochNicht}
-  ${liste}
-  <div class="bar mz-karte-akt">
-   <button type="button" class="gray" data-mz-zuschnitt="${esc(m.id)}">✂️ Im Formular</button>
-   ${plan?`<button type="button" class="gray" data-mz-druck="${esc(m.id)}" title="Rüstliste dieser Massaufnahme drucken">🖨️ Rüstliste</button>`:""}
+ // v3.211: Die ganze Karte klappt auf und zu, nicht mehr nur die Liste. Der
+ // Kopf ist der Schalter; was zugeklappt stehen bleibt, ist genau das, was
+ // man zum Auswaehlen braucht - Art, Material, Stueckzahl, Stand, Balken.
+ // Die Warnungen bleiben AUSSERHALB des Klappteils: eine verfallene Freigabe
+ // darf nie unbemerkt bleiben (CLAUDE.md 111).
+ const offen=mzKarteOffen(m,s,frei);
+ return `<div class="mz-karte${s.fertig?" mz-karte-fertig":""}${offen?" mz-karte-offen":""}">
+  <div class="mz-karte-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-mz-karte="${esc(m.id)}">
+   <span class="werk-karte-pfeil">${offen?"▾":"▸"}</span>
+   <div class="mz-karte-kopf-text">
+    <div class="mz-karte-titel">${esc(mzArt(m))}</div>
+    <div class="mz-karte-zeile">${esc(mzMatName(m))} · <span class="mz-zahl">${s.gesamt}</span> Zuschnitt${s.gesamt===1?"":"e"}</div>
+    ${badge}
+    <div class="mz-karte-zeile mz-stand" data-mz-stand="${esc(m.id)}">${mzStandText(s)}</div>
+    <div data-mz-balken="${esc(m.id)}">${mzFortschrittHtml(s)}</div>
+   </div>
   </div>
+  ${warn}${alt}${nochNicht}
+  ${offen?`<div class="mz-karte-body">
+   ${(typeof rbBlattHtml==="function")?rbBlattHtml(m)
+     :(plan&&typeof zuListeHtml==="function"?zuListeHtml(plan):"")}
+   <div class="bar mz-karte-akt">
+    ${(typeof rbGrossKnopfHtml==="function")?rbGrossKnopfHtml(m.id,"matZu"):""}
+    <button type="button" class="gray" data-mz-zuschnitt="${esc(m.id)}">✂️ Im Formular</button>
+    ${plan?`<button type="button" class="gray" data-mz-druck="${esc(m.id)}" title="Rüstliste dieser Massaufnahme drucken">🖨️ Rüstliste</button>`:""}
+   </div>
+  </div>`:""}
  </div>`;
 }
 // Der Stand als Text - EINE Stelle, damit das Zeichnen und das spaetere
@@ -594,6 +638,7 @@ function mzAuffrischen(){
   teile.push(`<h3 class="mz-titel">✂️ Zuschnitt nach Massaufnahme`
    +(karten.length?` <button type="button" class="gray mz-klein" data-mz-druck-projekt="1">🖨️ Rüstliste</button>`:"")
    +`</h3>`);
+  if(karten.length)teile.push(mzAlleZuHtml());
   teile.push(karten.length?karten.map(mzZuschnittKarteHtml).join("")
    :`<div class="small">Noch nichts zuzuschneiden – keine Massaufnahme dieses Projekts hat einen gespeicherten Zuschnitt.</div>`);
  }else if(ges.gesamt>0){
@@ -622,7 +667,7 @@ async function openMaterialZuschnitt(projectId){
  const id=projectId||(typeof cockpitProjectId!=="undefined"?cockpitProjectId:null);
  if(!id||!mzModulAn())return;
  mzProjectId=id;
- mzOffenKarte.clear();
+ mzOffenKarte.clear(); mzZuKarte.clear();
  const p=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))
   ?allProjects.find(x=>String(x.id)===String(id)):null;
  if($("matZuTitel"))$("matZuTitel").textContent=p
@@ -672,13 +717,24 @@ function cockpitMatZuStand(){
 if($("matZuModal")){
  $("matZuModal").addEventListener("click",async e=>{
   const t=e.target.closest
-   ?e.target.closest("[data-mz-zuschnitt],[data-mz-resv],[data-mz-karte],[data-mz-druck],[data-mz-druck-projekt]"):null;
+   ?e.target.closest("[data-mz-zuschnitt],[data-mz-resv],[data-mz-karte],[data-mz-allezu],[data-mz-druck],[data-mz-druck-projekt]"):null;
   if(!t)return;
   if(t.dataset.mzZuschnitt!==undefined){mzZuschnittOeffnen(Number(t.dataset.mzZuschnitt));return}
-  // v3.25: eine zugeklappte Liste aufklappen - sie bleibt offen, bis die
-  // Seite geschlossen wird.
+  // v3.211: alle Karten auf einmal.
+  if(t.dataset.mzAllezu!==undefined){
+   const zu=t.dataset.mzAllezu==="zu";
+   mzZuschnittKarten().forEach(k=>{
+    const n=Number(k.m.id);
+    if(zu){mzOffenKarte.delete(n);mzZuKarte.add(n)}
+    else{mzZuKarte.delete(n);mzOffenKarte.add(n)}
+   });
+   mzAuffrischen(); zeMarkierungAuffrischen();
+   return;
+  }
+  // v3.25: eine zugeklappte Liste aufklappen. v3.211: derselbe Kopf klappt
+  // sie auch wieder zu - vorher ging nur auf.
   if(t.dataset.mzKarte!==undefined){
-   mzOffenKarte.add(Number(t.dataset.mzKarte));
+   mzKarteUmschalten(t.dataset.mzKarte);
    mzAuffrischen(); zeMarkierungAuffrischen();
    return;
   }
