@@ -513,7 +513,11 @@ function mzZuschnittKarteHtml(k){
  // Kopf ist der Schalter; was zugeklappt stehen bleibt, ist genau das, was
  // man zum Auswaehlen braucht - Art, Material, Stueckzahl, Stand, Balken.
  // Die Warnungen bleiben AUSSERHALB des Klappteils: eine verfallene Freigabe
- // darf nie unbemerkt bleiben (CLAUDE.md 111).
+ // darf nie unbemerkt bleiben (CLAUDE.md 111). Dasselbe gilt fuer die
+ // Ruestliste: sie ist der Ausdruck, den der Ruester mitnimmt, und muss
+ // erreichbar sein, ohne die Karte erst aufzuklappen - sie steht deshalb im
+ // Kopf. Ein Klick darauf trifft den Knopf, nicht den Klappschalter (der
+ // Zuhoerer unten sucht den naechstgelegenen Treffer).
  const offen=mzKarteOffen(m,s,frei);
  return `<div class="mz-karte${s.fertig?" mz-karte-fertig":""}${offen?" mz-karte-offen":""}">
   <div class="mz-karte-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-mz-karte="${esc(m.id)}">
@@ -525,6 +529,7 @@ function mzZuschnittKarteHtml(k){
     <div class="mz-karte-zeile mz-stand" data-mz-stand="${esc(m.id)}">${mzStandText(s)}</div>
     <div data-mz-balken="${esc(m.id)}">${mzFortschrittHtml(s)}</div>
    </div>
+   ${plan?`<button type="button" class="gray mz-klein" data-mz-druck="${esc(m.id)}" title="Rüstliste dieser Massaufnahme drucken">🖨️</button>`:""}
   </div>
   ${warn}${alt}${nochNicht}
   ${offen?`<div class="mz-karte-body">
@@ -533,7 +538,6 @@ function mzZuschnittKarteHtml(k){
    <div class="bar mz-karte-akt">
     ${(typeof rbGrossKnopfHtml==="function")?rbGrossKnopfHtml(m.id,"matZu"):""}
     <button type="button" class="gray" data-mz-zuschnitt="${esc(m.id)}">✂️ Im Formular</button>
-    ${plan?`<button type="button" class="gray" data-mz-druck="${esc(m.id)}" title="Rüstliste dieser Massaufnahme drucken">🖨️ Rüstliste</button>`:""}
    </div>
   </div>`:""}
  </div>`;
