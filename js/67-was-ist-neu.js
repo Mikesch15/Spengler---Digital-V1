@@ -357,6 +357,8 @@ const WIN_CHANGELOG={
  "3.211":["<b>Das Rüstblatt.</b> Ein Tipp auf eine Massaufnahme zeigt jetzt nur noch das Wichtigste: das vermasste Profil, den Grundriss, Material und Stärke und die Zuschnittliste zum Abhaken – statt das ganze Formular zu öffnen. Wer doch etwas ändern will, tippt darin auf „Im Formular öffnen“.",
   "Dasselbe Blatt steht an vier Stellen: Werkstatt nach Projekt, Werkstatt nach Material, Seite „Material &amp; Zuschnitt“ und Projektseite. <b>„Gross ansehen“</b> zeigt es bildschirmfüllend – für die Abkantbank.",
   "<b>Alle Massaufnahmen lassen sich zuklappen</b>, einzeln oder mit einem Schalter über der Liste. In der Werkstatt nach Material und auf der Seite „Material &amp; Zuschnitt“ ging das bisher gar nicht."],
+ "3.212":["<b>Eine zugeklappte Massaufnahme in der Werkstatt ist jetzt gleich klein wie auf der Projektseite</b> – zwei Zeilen statt bis zu vier: oben Art und Bezeichnung, unten Status und Zuschnittstand, der Knopf zum Bestätigen schmal daneben. Auf einen Blick sieht man dadurch rund doppelt so viele Aufträge.",
+  "Material und Stärke stehen zugeklappt nicht mehr dabei – der Platz gehört der Bezeichnung, nach der ausgewählt wird. Aufgeklappt und im Rüstblatt stehen sie unverändert."],
 };
 
 function winVersionVergleich(a,b){

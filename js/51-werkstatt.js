@@ -273,8 +273,9 @@ function werkMatAufnahmeHtml(m){
  return `<div class="werk-karte${offen?" werk-karte-offen":""}${plan&&werkZuStand(m).fertig?" werk-zu-fertig":""}">
   <div class="werk-karte-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-werk-karte="${esc(m.id)}">
    <span class="werk-karte-pfeil">${offen?"▾":"▸"}</span>
-   <div class="werk-karte-info"><b>${esc(titel)}</b>
-    <div class="small" style="color:var(--muted)">${plan
+   <div class="werk-karte-info">
+    <div class="werk-karte-z1"><b>${esc(titel)}</b></div>
+    <div class="werk-karte-z2 small" style="color:var(--muted)">${plan
       ?'<span class="werk-zu-text" data-werk-zu-stand="'+esc(m.id)+'">'+werkStandText(m)+"</span>"
       :"kein Zuschnitt gespeichert"}</div>
    </div>
@@ -465,6 +466,16 @@ function werkTyp(t){
 // Freigabe, die nie unbemerkt bleiben darf (CLAUDE.md 111).
 // Die Skizzen kommen aus rsSkizzen() in js/60 - derselbe Zusammenbau, den
 // auch der Ausdruck verwendet. Es wird nichts zweitgezeichnet.
+// v3.212: Art und Bezeichnung in EINEM fetten Stueck - dieselbe Zeile, die
+// die Projektseite zeigt, und derselbe Zusammenbau (rbTitel, js/80). Bis
+// v3.211 stand die Bezeichnung als nackter Text neben dem fetten Art-Namen;
+// zugeklappt liess sich so kein sauberer Abschnitt setzen, weil ein nackter
+// Text kein eigenes Kaestchen hat, das man begrenzen koennte.
+// Faellt js/80 aus, bleibt wenigstens die Art stehen - nachgebaut wird der
+// Titel hier nicht, sonst gaebe es ihn zweimal.
+function werkKartenTitel(a){
+ return (typeof rbTitel==="function")?rbTitel(a):werkTyp(a.type);
+}
 function werkAufnahmeHtml(a,jetztK){
  const verfallen=!!a.freigabe_verfallen;
  const dran=werkZeileJetzt(a,jetztK||"");
@@ -509,9 +520,8 @@ function werkAufnahmeHtml(a,jetztK){
   <div class="werk-karte-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-werk-karte="${a.id}">
    <span class="werk-karte-pfeil">${offen?"▾":"▸"}</span>
    <div class="werk-karte-info">
-    <b>${esc(werkTyp(a.type))}</b>${a.title?" · "+esc(a.title):""}
-    ${plan&&plan.materialText?`<span class="small" style="color:var(--muted)"> · ${esc(plan.materialText)}</span>`:""}
-    <div class="small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${plan?' · <span class="werk-zu-text" data-werk-zu-stand="'+a.id+'">'+werkStandText(a)+"</span>":""}${fassung}</div>
+    <div class="werk-karte-z1"><b>${esc(werkKartenTitel(a))}</b>${plan&&plan.materialText?`<span class="small" style="color:var(--muted)"> · ${esc(plan.materialText)}</span>`:""}</div>
+    <div class="werk-karte-z2 small" style="color:var(--muted)">${(typeof mwBadge==="function")?mwBadge(a.workflow_status):esc(a.workflow_status)}${plan?' · <span class="werk-zu-text" data-werk-zu-stand="'+a.id+'">'+werkStandText(a)+"</span>":""}${fassung}</div>
    </div>
    ${aktion?`<div class="werk-karte-akt">${aktion}</div>`:""}
   </div>

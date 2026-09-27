@@ -212,6 +212,83 @@ const tipp=async(page,sel,was)=>{
  p(F.vorher,"der Schalter steht ueber der Liste",F);
  p(F.nachAuf===F.karten&&F.karten>=2,"ein Tipp klappt ALLE auf",F);
  p(F.nachZu===0,"der naechste klappt alle wieder zu",F);
+ // ---- H  Zugeklappt so klein wie auf der Projektseite ---------------------
+ // v3.212, Ansage des Anwenders: "jetzt sollte in der werkstatt die
+ // zugeklappten massaufnahmen auch noch so klein sein wie im projekt ->
+ // massaufnahme". Gemessen wird, nicht behauptet: die Vergleichszeile wird
+ // mit den ECHTEN Klassen der Projektseite (a2-rb > a2-zeile, js/70) in
+ // dieselbe Liste gestellt - gleiche Breite, gleiche Schrift, dasselbe
+ // Stylesheet. Eine feste Pixelzahl im Pruefstand waere eine zweite Wahrheit
+ // und stuende beim naechsten Feinschliff an .a2-zeile falsch da.
+ // Die Toleranz von 8 Pixeln ist kein Schlupfloch: eine zusaetzliche
+ // Textzeile waere rund 18 Pixel. Es bleibt also bei zwei Zeilen.
+ console.log("\nH · Zugeklappt so klein wie im Projekt");
+ const messen=async()=>await page.evaluate(()=>{
+  const karte=document.querySelector("#werkstattBody .werk-karte");
+  if(!karte)return {fehlt:true};
+  const v=document.createElement("div");
+  v.innerHTML='<div class="a2-rb"><button type="button" class="a2-zeile">'+
+   '<span class="a2-zeile-text"><b>Einlaufblech gerade</b>'+
+   '<span>01.09.2026 · zu rüsten</span></span>'+
+   '<span class="a2-zeile-pfeil">▸</span></button></div>';
+  const ref=v.firstChild;
+  karte.parentNode.appendChild(ref);
+  const platz=el=>{const c=getComputedStyle(el);
+   return Math.round(el.getBoundingClientRect().height
+     +parseFloat(c.marginTop)+parseFloat(c.marginBottom));};
+  const erg={zu:platz(karte),zeile:platz(ref.querySelector(".a2-zeile")),
+   knopf:!!karte.querySelector(".werk-karte-akt button"),
+   knopfImKopf:!!karte.querySelector(".werk-karte-kopf .werk-karte-akt button"),
+   titel:(karte.querySelector(".werk-karte-z1 b")||{}).textContent||"",
+   zeilen:karte.querySelectorAll(".werk-karte-z1,.werk-karte-z2").length,
+   schrift:Math.round(parseFloat(getComputedStyle(karte.querySelector(".werk-karte-info b")).fontSize)),
+   refSchrift:Math.round(parseFloat(getComputedStyle(ref.querySelector("b")).fontSize))};
+  ref.remove();
+  return erg;
+ });
+ await page.evaluate(()=>{werkSichtSetzen("projekt");werkOffenKarte.clear();renderWerkstatt()});
+ const H=await messen();
+ p(!H.fehlt,"eine Karte steht da zum Messen",H);
+ p(H.knopf,"und zwar eine MIT Aktionsknopf - der schwerste Fall",H);
+ p(H.zu<=H.zeile+8,"zugeklappt braucht sie nicht mehr Platz als die Zeile im Projekt",H);
+ p(H.schrift===H.refSchrift,"dieselbe Schriftgroesse im Kopf",H);
+ p(H.zeilen===2,"zwei Zeilen, nicht drei",H);
+ // Klein werden darf die Karte nur ueber die Gestaltung, nicht indem sie
+ // weglaesst, wonach der Ruester auswaehlt: Art UND Bezeichnung stehen
+ // vollstaendig im Text, auch wenn die Anzeige sie bei Platzmangel mit "…"
+ // abschneidet. Sonst waere die Zeile klein und nutzlos.
+ p(/Einlaufblech/.test(H.titel)&&/Dach Nord/.test(H.titel),
+   "Art UND Bezeichnung stehen in der Zeile",H.titel);
+ p(H.knopfImKopf,"der Knopf zum Bestaetigen bleibt in der zugeklappten Zeile",H);
+ // Gegenprobe 1: klein geworden ist nur der ZUGEKLAPPTE Zustand.
+ const H2=await page.evaluate(()=>{
+  const k=document.querySelector("#werkstattBody .werk-karte");
+  const vorher=Math.round(k.getBoundingClientRect().height);
+  k.querySelector("[data-werk-karte]").click();
+  const nachher=Math.round(document.querySelector("#werkstattBody .werk-karte").getBoundingClientRect().height);
+  werkOffenKarte.clear(); renderWerkstatt();
+  return {vorher,nachher};
+ });
+ p(H2.nachher>H2.vorher+100,"aufgeklappt steht weiterhin das ganze Blatt da",H2);
+ // Gegenprobe 2: dieselbe Groesse in der Materialsicht - eine Karte, ein Mass.
+ await page.evaluate(()=>{werkSichtSetzen("material");werkOffenKarte.clear();renderWerkstatt()});
+ await page.waitForTimeout(150);
+ const H3=await messen();
+ p(!H3.fehlt&&H3.zu<=H3.zeile+8,"nach Material ist sie genauso klein",H3);
+ // Gegenprobe 3: eine verfallene Freigabe bleibt sichtbar - sie darf dem
+ // Sparen an Hoehe nie zum Opfer fallen (CLAUDE.md 111).
+ const H4=await page.evaluate(()=>{
+  werkSichtSetzen("projekt");
+  werkZeilen=werkZeilen.map(z=>z.id===11?{...z,freigabe_verfallen:true}:z);
+  werkOffenKarte.clear(); renderWerkstatt();
+  const w=document.querySelector("#werkstattBody .werk-karte-warn");
+  const r=w&&w.getBoundingClientRect();
+  const da=!!(r&&r.height>0&&r.width>0);
+  werkZeilen=werkZeilen.map(z=>z.id===11?{...z,freigabe_verfallen:false}:z);
+  renderWerkstatt();
+  return {da,text:w?w.textContent.trim().slice(0,80):""};
+ });
+ p(H4.da&&/nach der Freigabe/.test(H4.text),"die verfallene Freigabe steht weiterhin da",H4);
 
  // ---- G  Verdrahtung -------------------------------------------------------
  console.log("\nG · Verdrahtung");

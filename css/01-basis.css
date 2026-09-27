@@ -1310,6 +1310,61 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .werk-karte-info{flex:1 1 190px;min-width:0;word-break:break-word}
 .werk-karte-warn{color:var(--red);padding:0 2px 4px}
 .werk-karte-body{border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
+/* v3.212: ZUGEKLAPPT ist die Karte so gross wie eine Massaufnahme-Zeile auf
+   der Projektseite - Ansage des Anwenders: "in der werkstatt sollten die
+   zugeklappten massaufnahmen auch noch so klein sein wie im projekt ->
+   massaufnahme". Die Masse sind dieselben wie bei .a2-zeile (css/05: 7/11
+   innen, 44 hoch, 6 Abstand, Radius 10). Sie stehen hier als eigene Regel und
+   nicht ueber der a2-Klasse: die Werkstatt-Karte ist ein div mit
+   role="button" und traegt aufgeklappt einen Rumpf, den es dort nicht gibt.
+   Der Kartenrahmen gibt dafuer seinen Innenabstand an den Kopf ab, damit die
+   Trefferflaeche die ganze Zeile bleibt. Aufgeklappt bleibt alles wie bisher. */
+.werk-karte-kopf .werk-karte-info b{font-size:14px}
+.werk-karte-kopf .werk-karte-info .small{margin-top:1px;font-size:12px}
+.werk-karte:not(.werk-karte-offen){padding:0;margin:0 0 6px;border-radius:10px}
+.werk-karte:not(.werk-karte-offen)>.werk-karte-kopf{margin-bottom:0;padding:7px 11px;
+ min-height:44px;align-items:center}
+.werk-karte:not(.werk-karte-offen)>.werk-karte-warn{padding:0 11px 7px}
+/* Zwei Zeilen, nicht mehr: Art und Bezeichnung oben, Stand unten - genau wie
+   in der Zeile auf der Projektseite. Der Aktionsknopf sitzt daneben wie bei
+   .a2-zeile-reihe, nicht darunter: eine dritte Zeile je Karte ist genau das,
+   was der Anwender bemaengelt hat. */
+.werk-karte:not(.werk-karte-offen)>.werk-karte-kopf>.werk-karte-info{flex:1 1 60px}
+.werk-karte:not(.werk-karte-offen)>.werk-karte-kopf>.werk-karte-akt{flex:0 0 auto}
+.werk-karte:not(.werk-karte-offen)>.werk-karte-kopf>.werk-karte-akt button{
+ min-height:32px;padding:5px 10px}
+/* Jede der beiden Zeilen ist zugeklappt eine eigene Reihe, und jedes Stueck
+   darin hat seine Grenze. Was nicht hinpasst, endet mit "…" INNERHALB der
+   Karte - vollstaendig steht es einen Tipp weiter im Ruestblatt.
+   Warum Reihe statt einfach "abschneiden": ein abgeschnittenes Stueck bleibt
+   sonst in voller Laenge stehen und zeigt ueber den Bildschirmrand hinaus -
+   unsichtbar, aber nicht sauber gebaut. Die Pruefung "nichts laeuft seitlich
+   hinaus" (pruefstand-werkstatt-liste-v3-30, J) misst genau das, und sie hat
+   recht. In einer Reihe wird jedes Stueck stattdessen schmaler gemacht.
+   Zuerst weicht das Material, dann der Name: der Ruester waehlt nach dem
+   Namen aus. */
+.werk-karte:not(.werk-karte-offen) .werk-karte-z1,
+.werk-karte:not(.werk-karte-offen) .werk-karte-z2{display:flex;align-items:baseline;min-width:0}
+.werk-karte:not(.werk-karte-offen) .werk-karte-z1>*,
+.werk-karte:not(.werk-karte-offen) .werk-karte-z2>*{
+ min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.werk-karte:not(.werk-karte-offen) .werk-karte-z2>.mw-badge{flex:0 0 auto}
+/* Der Aktionsknopf wird zugeklappt schmal und zweizeilig ("✓ Rüsten /
+   bestätigen") statt breit und einzeilig. Das ist kein Schoenheitsgrund:
+   einzeilig frisst er 137 der 307 Pixel, und vom Namen bleibt "Einlaufblech
+   gerad…" - ausgewaehlt wird aber nach dem Namen. Schmal bleiben Name und
+   Stand fast vollstaendig lesbar, und die Karte bleibt eine Zeile hoch. */
+.werk-karte:not(.werk-karte-offen)>.werk-karte-kopf>.werk-karte-akt button{
+ white-space:normal;max-width:92px;font-size:11px;line-height:1.2;text-align:center;
+ min-height:34px;padding:4px 8px}
+/* Material und Staerke treten zugeklappt zurueck: in der Sicht nach Material
+   stehen sie ohnehin ueber der Gruppe, und im Ruestblatt stehen sie einen
+   Tipp weiter. Der Platz gehoert dem Namen. */
+.werk-karte:not(.werk-karte-offen) .werk-karte-z1>.small{display:none}
+/* Der Status-Punkt traegt zugeklappt keinen eigenen Hoehenaufschlag - er
+   sitzt in der zweiten Zeile und wuerde sie sonst um sich selbst dicker
+   machen als die Zeile im Projekt. Farbe, Rand und Schrift bleiben. */
+.werk-karte:not(.werk-karte-offen)>.werk-karte-kopf .mw-badge{padding:0 7px;line-height:1.35}
 /* v3.211: Das Ruestblatt - dieselben Abstaende, ob es in einer Liste
    aufgeklappt ist oder gross auf seinem eigenen Schirm steht. */
 .rb-blatt{margin-top:2px}
