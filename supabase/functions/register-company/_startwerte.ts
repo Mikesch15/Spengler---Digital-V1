@@ -37,6 +37,16 @@ export const WERKSTOFFE = [
   { name: "CrNi-Stahl",         legacy_key: "crni_stahl",          max_abstand_mm: 6000, ab_fixpunkt_mm: 3000 },
   { name: "Chromstahl, verzinnt", legacy_key: "chromstahl_verzinnt", max_abstand_mm: 6000, ab_fixpunkt_mm: 3000 },
   { name: "Stahl",              legacy_key: "stahl_verzinkt",      max_abstand_mm: 8000, ab_fixpunkt_mm: 4000 },
+  // v3.208: Messing und Blei gehoeren in jeden Spenglerbetrieb - sie standen
+  // bisher nur bei den Firmen, die sie selbst angelegt haben. Ihre
+  // Dehnungswerte sind ABSICHTLICH 0/0: beide werden nicht in langen Bahnen
+  // verlegt, da ist nichts zu dilatieren (derselbe Grund, aus dem js/75 diese
+  // Meldung seit v3.198 abhakbar macht). Damit eine frische Firma deswegen
+  // nicht am ersten Tag vor zwei roten Meldungen steht, kommen beide mit der
+  // bereits getroffenen Entscheidung "ist so gewollt" mit - siehe
+  // startwerteSaeen(), Schritt 1b.
+  { name: "Messing",            legacy_key: "messing",             max_abstand_mm: 0,    ab_fixpunkt_mm: 0 },
+  { name: "Blei",               legacy_key: "blei",                max_abstand_mm: 0,    ab_fixpunkt_mm: 0 },
 ];
 
 // Ansetztypen der Rinne. mass_mm ist die Zugabe bzw. der Abzug an der

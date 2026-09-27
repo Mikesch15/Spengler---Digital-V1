@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.207.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.208.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -116,7 +116,7 @@ einzeln aufgeführt.</p>
 <p>Jede Position lässt sich zu ihrer Massaufnahme zurückverfolgen – der
 Knopf darunter öffnet sie.</p>
 <p>Das Material selbst kommt aus der bestehenden Materialverwaltung
-(Einstellungen → Geschützt → Massaufnahme-Materialien). Hier wird nichts
+(Einstellungen → Betrieb → Massaufnahme-Materialien). Hier wird nichts
 fest eingebaut.</p>
 `},
 "cockpit-zuschnitt":{titel:"Zuschnitt des ganzen Projekts",text:`
@@ -1344,7 +1344,7 @@ hier steht, wo genau gearbeitet wurde (z. B. "Dachfläche Nord").</p>`},
 
 "rapport-arbeit":{titel:"Ausführende Arbeiten",text:`
 <p>Je Zeile Datum, Beschreibung, Mitarbeiter, Funktion und Stunden.</p>
-<p>Der <b>Ansatz</b> kommt aus der Funktion (Einstellungen → Geschützt →
+<p>Der <b>Ansatz</b> kommt aus der Funktion (Einstellungen → Betrieb →
 Funktionen / Stundenansätze). Das Total rechnet die App.</p>
 <p><b>Vorschläge</b> (ab 3.171): Beim Tippen in die <b>Beschreibung</b>
 schlägt die App die Sätze vor, die <b>in diesem Rapport</b> schon stehen – in
@@ -1421,7 +1421,7 @@ Tablet hat also seine eigenen.</p>
 Massaufnahme-Arten.</li>
 <li><b>Firmenweit</b> – Firma, Mitarbeiter, Stundenansätze, Materialkataloge,
 Rollenbreiten und die Anschlusstypen der Rinne.</li>
-<li><b>Nur für Administratoren</b> – das Register „Geschützt“ und das Register
+<li><b>Nur für Administratoren</b> – das Register „Betrieb“ und das Register
 „Feedback“.</li>
 </ul>
 <p>Bei jedem Abschnitt steht dabei, was davon gilt.</p>
@@ -1992,7 +1992,13 @@ Dimension, Einheit und Preis. Gilt <b>firmenweit</b>.</p>
 kann dort ein oder mehrere einzeln buchbare Produkte haben (z. B.
 verschiedene Rohrbogen-Varianten unter der Position "Rohrbogen"). Barcode
 und Bezeichnung des Produkts stehen dafür in der Lagerverwaltung selbst,
-nicht hier im Regierapport-Katalog.</p>`},
+nicht hier im Regierapport-Katalog.</p>
+<p><b>Als Excel exportieren</b> (v3.208) gibt die ganze Liste als Datei
+heraus: EDV-Nr., Material, Dim., Einheit und Preis, dazu Werkstoff und
+Blechformat. Die ersten fünf Spalten sind genau die, die der Import wieder
+einliest – herunterladen, in Excel ändern, wieder importieren. Die EDV-Nr.
+ist dabei der Schlüssel: eine Position, die es schon gibt, wird
+<b>aktualisiert</b>, und gelöscht wird beim Import nie.</p>`},
 
 "einst-blitzschutz":{titel:"Blitzschutz-Katalog",text:`
 <p>Der Artikelkatalog für das Blitzschutzausmass. Lässt sich als Excel-Datei

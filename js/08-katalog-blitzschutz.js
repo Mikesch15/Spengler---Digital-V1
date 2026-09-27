@@ -497,6 +497,87 @@ initExcelImport({
  ],
  nachImport:async()=>{ await loadAllData(); renderSettings(); }
 });
+
+// ---- v3.208: Die Materialliste als Excel-Datei herausgeben ---------------
+// Gewuenscht: "dass der firmenadmin die materialliste als exceldatei
+// exportieren kann".
+//
+// Ausgegeben wird GENAU das, was die App ueber eine Katalogposition weiss -
+// aus den Listen, die ohnehin geladen sind (settings.materials und die
+// parallel gefuehrten materialWerkstoffe/materialFormate aus js/05). Es wird
+// nichts nachgeladen und nichts gerechnet.
+//
+// Die ersten fuenf Spalten sind ABSICHTLICH genau die des Imports. Wer die
+// Datei herunterlaedt, in Excel eine Spalte korrigiert und sie wieder
+// importiert, landet auf demselben Weg zurueck: die EDV-Nr. ist der
+// Schluessel, bestehende Positionen werden aktualisiert statt verdoppelt,
+// und geloescht wird beim Import nie. Die sechs Spalten danach (Werkstoff
+// und Blechformat) versteht der Import heute nicht - sie stehen zum Lesen
+// da, und die Zuordnung beim Import laesst sie einfach weg.
+//
+// Der Barcode fehlt hier bewusst: er haengt seit v3.106 am PRODUKT
+// (lager_varianten), nicht an der Katalogposition. Ihn hier auszugeben
+// hiesse, eine Zuordnung zu behaupten, die es nicht gibt.
+const MATERIAL_EXPORT_SPALTEN=["EDV-Nr.","Material","Dim.","Einheit","Preis",
+  "Werkstoff","Stärke (mm)","Ausführung","Form","Länge (mm)","Breite (mm)"];
+function materialExportZeilen(){
+ const zeilen=[MATERIAL_EXPORT_SPALTEN.slice()];
+ const mats=(typeof settings==="object"&&settings&&Array.isArray(settings.materials))
+  ?settings.materials:[];
+ mats.forEach((m,i)=>{
+  const f=((typeof materialFormate!=="undefined"&&materialFormate[i])||{});
+  const wId=(typeof materialWerkstoffe!=="undefined")?materialWerkstoffe[i]:null;
+  const w=(wId!==null&&wId!==undefined&&typeof measurementMaterials!=="undefined"
+           &&Array.isArray(measurementMaterials))
+   ?(measurementMaterials.find(x=>String(x.id)===String(wId))||null):null;
+  const zahl=v=>(v===null||v===undefined||v==="")?"":(Number(v)||0);
+  zeilen.push([
+   String(m[0]??""), String(m[1]??""), String(m[2]??""), String(m[3]??""),
+   Number(m[4])||0,
+   w?String(w.name||""):"",
+   zahl(f.staerke_mm), String(f.ausfuehrung??""), String(f.form??""),
+   zahl(f.laenge_mm), zahl(f.breite_mm)
+  ]);
+ });
+ return zeilen;
+}
+function materialExportDateiname(){
+ const d=new Date(), z=n=>String(n).padStart(2,"0");
+ const datum=d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());
+ const firma=String((typeof companyName!=="undefined"&&companyName)||"").trim()
+  .replace(/[\\/:*?"<>|]/g,"").replace(/\s+/g," ").trim();
+ return "Materialliste"+(firma?" "+firma:"")+" "+datum+".xlsx";
+}
+async function materialExcelExport(){
+ // Der Abschnitt steht ohnehin im Bereich, den nur Administratoren sehen -
+ // die Pruefung hier ist der Guertel zum Hosentraeger, nicht die einzige
+ // Schranke.
+ if(typeof isAdmin==="function"&&!isAdmin()){
+  alert("Die Materialliste herausgeben darf der Firmenadministrator.");return false;
+ }
+ const zeilen=materialExportZeilen();
+ if(zeilen.length<2){
+  alert("Im Materialkatalog steht noch keine Position – es gibt nichts zu exportieren.");
+  return false;
+ }
+ // Dieselbe nachgeladene Bibliothek wie beim Import (xlsxLaden, js/01). Sie
+ // liegt seit v3.205 im eigenen vendor-Ordner, es geht also auch ohne Empfang -
+ // aber nur, wenn die Datei im Cache liegt. Ein Fehlschlag wird gesagt, nicht
+ // verschluckt.
+ if(!await xlsxLaden()){
+  alert("Die Excel-Funktion konnte nicht geladen werden. Bitte einmal mit bestehender Internetverbindung versuchen.");
+  return false;
+ }
+ const blatt=XLSX.utils.aoa_to_sheet(zeilen);
+ blatt["!cols"]=[{wch:12},{wch:38},{wch:12},{wch:9},{wch:10},{wch:22},
+                 {wch:11},{wch:16},{wch:8},{wch:11},{wch:11}];
+ const mappe=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(mappe,blatt,"Material");
+ XLSX.writeFile(mappe,materialExportDateiname());
+ return true;
+}
+if($("materialExcelExport"))$("materialExcelExport").onclick=()=>materialExcelExport();
+
 initExcelImport({
  inputId:"bzMaterialExcelInput",buttonId:"bzMaterialExcelBtn",previewId:"bzMaterialExcelPreview",
  headerCheckId:"bzMaterialExcelHeader",countId:"bzMaterialExcelCount",tableId:"bzMaterialExcelTable",

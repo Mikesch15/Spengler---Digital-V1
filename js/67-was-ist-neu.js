@@ -348,6 +348,9 @@ const WIN_CHANGELOG={
   "<b>Eine Lücke geschlossen:</b> beim Abwicklungsrechner war die Firmengrenze versehentlich als <i>zusätzliche Erlaubnis</i> statt als <i>Schranke</i> gesetzt – als einzige von 35. Wer das Recht „Material ansehen“ hatte, hätte damit an die Abwicklungen anderer Firmen gekommen. Die Tabelle war zu diesem Zeitpunkt leer, es ist also nichts abgeflossen."],
  "3.207":["<b>Eine Aufgabe, deren Termin abgelaufen ist, lässt sich wieder terminieren.</b> Das Datumsfeld war mit dem alten, bereits verstrichenen Datum vorbelegt – wer nur auf Speichern tippte, bekam „Das Datum muss in der Zukunft liegen“ und nichts geschah. Jetzt steht dort ein Datum, das sich auch speichern lässt.",
   "<b>Die Kontrolle der Stammdaten meldet auf der Startseite nichts mehr, was längst als „ist so gewollt“ abgehakt ist.</b> Die Karte wurde gezeichnet, bevor die Abhaken-Entscheidungen überhaupt gelesen waren, und zählte sie deshalb bei jedem App-Start wieder als Fehler."],
+ "3.208":["<b>Die Materialliste lässt sich als Excel-Datei herausgeben.</b> Einstellungen → Betrieb → Material (Regierapport) → „Als Excel exportieren“. Die ersten fünf Spalten sind genau die, die der Import wieder einliest – herunterladen, in Excel ändern, wieder importieren.",
+  "<b>Messing und Blei gehören jetzt zu den Werkstoffen, die jede neue Firma mitbekommt.</b> Beide ohne Dehnungswerte – sie werden nicht dilatiert – und deshalb gleich als „ist so gewollt“ abgehakt, damit die Kontrolle der Stammdaten am ersten Tag nicht zwei Fehler meldet.",
+  "Das leere Register „Ausmass“ in den Einstellungen ist weg, und „Geschützt“ heisst jetzt <b>Betrieb</b> – drin stehen Firma, Mitarbeiter, Stundensätze, die Materialkataloge und die Datensicherung."],
 };
 
 function winVersionVergleich(a,b){

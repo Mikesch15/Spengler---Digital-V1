@@ -212,7 +212,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.207</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.208</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -2432,9 +2432,13 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-tabs">
 <button type="button" class="settings-tab active" data-settings-tab="general">Allgemein</button>
 <button type="button" class="settings-tab" data-settings-tab="measurements">Massaufnahmen</button>
-<button type="button" class="settings-tab" data-settings-tab="ausmass">Ausmass</button>
 <button type="button" class="settings-tab" data-settings-tab="lager">Lager</button>
-<button type="button" class="settings-tab" data-settings-tab="protected" id="protectedTabBtn" hidden>Geschützt</button>
+<!-- v3.208: hiess bis v3.207 "Geschützt". Das beschrieb die Zutrittsregel,
+     nicht den Inhalt - drin stehen Firma, Mitarbeiter, Stundenansätze, die
+     Materialkataloge und die Datensicherung. Der interne Schlüssel bleibt
+     "protected": daran hängen openSettingsTo()-Aufrufe aus einem Dutzend
+     Stellen, und ein neuer Schlüssel wäre eine Umbenennung ohne Gewinn. -->
+<button type="button" class="settings-tab" data-settings-tab="protected" id="protectedTabBtn" hidden>Betrieb</button>
 </div>
 
 <div class="settings-tab-panel" data-settings-panel="general">
@@ -2442,7 +2446,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.207.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 114 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.208.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 114 Seiten)</a></div>
 </div>
 </div>
 
@@ -2776,10 +2780,6 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 </div>
 </div>
 
-<div class="settings-tab-panel" data-settings-panel="ausmass" hidden>
-<div class="empty">Der Blitzschutzausmass-Materialkatalog findet sich jetzt im Register "Geschützt".</div>
-</div>
-
 <div class="settings-tab-panel" data-settings-panel="lager" hidden>
 
 <div class="settings-section" data-section="lagerbestand">
@@ -2936,6 +2936,10 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <div class="bar" style="margin-top:10px">
 <input type="file" id="materialExcelInput" accept=".xlsx,.xls,.csv" hidden>
 <button type="button" class="gray" id="materialExcelBtn">📥 Aus Excel importieren</button>
+<!-- v3.208: derselbe Weg in die andere Richtung. Die ersten fuenf Spalten der
+     Datei sind genau die des Imports - herunterladen, in Excel aendern,
+     wieder importieren. -->
+<button type="button" class="gray" id="materialExcelExport">📤 Als Excel exportieren</button>
 </div>
 <details class="mz-details import-aufbau"><summary>📄 Wie muss die Excel-Datei aufgebaut sein?</summary><div id="materialExcelAufbau"></div></details>
 <div id="materialExcelPreview" hidden style="margin-top:10px">
@@ -3147,7 +3151,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.207.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.208.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

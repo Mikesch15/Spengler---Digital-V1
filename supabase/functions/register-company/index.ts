@@ -206,7 +206,7 @@ function isUniqueViolation(text: string) {
 // service_role-Schluessel gibt es aber keinen angemeldeten Benutzer. Ohne die
 // ausdrueckliche Angabe liefe der Vorgabewert ins Leere.
 async function startwerteSaeen(companyId: string) {
-  const ergebnis = { werkstoffe: 0, rinne: 0, katalog: 0, einstellungen: false, fehler: [] as string[] };
+  const ergebnis = { werkstoffe: 0, abweisungen: 0, rinne: 0, katalog: 0, einstellungen: false, fehler: [] as string[] };
   try {
     // 0. Rollenbreiten und MwSt. Als UPDATE auf die bereits angelegte
     //    app_settings-Zeile, NICHT als Teil ihres Inserts: jener steht unter
@@ -229,6 +229,34 @@ async function startwerteSaeen(companyId: string) {
         if (z && z.legacy_key) nachSchluessel[String(z.legacy_key)] = Number(z.id);
       }
     } else ergebnis.fehler.push("Werkstoffe: " + wIns.text);
+
+    // 1b. v3.208: Die beiden Werkstoffe OHNE Dehnungswerte (Messing, Blei)
+    //     kommen mit der Entscheidung mit, die dazugehoert. Die Kontrolle der
+    //     Stammdaten (js/75) meldet "Werkstoff ohne Dehnungswerte" als
+    //     FEHLER - bei diesen beiden ist das aber der richtige Zustand, sie
+    //     werden nicht dilatiert. Ohne die Abweisung stuende jede neue Firma
+    //     am ersten Tag vor zwei roten Meldungen, die sie nicht verursacht
+    //     hat, und genau solche Meldungen verdecken nach einer Weile die, die
+    //     es ernst meinen.
+    //     Abgehakt wird der EINZELNE Werkstoff ueber seine Id, nicht die
+    //     Pruefung: legt die Firma spaeter selbst einen Werkstoff ohne
+    //     Dehnungswerte an, meldet er sich wie gehabt.
+    //     Scheitert Schritt 1, gibt es keine Ids - dann wird auch nichts
+    //     abgehakt, statt auf gut Glueck zu schreiben.
+    const abwZeilen = WERKSTOFFE
+      .filter((w) => !(w.max_abstand_mm > 0) || !(w.ab_fixpunkt_mm > 0))
+      .map((w) => ({
+        company_id: companyId,
+        pruefung: "werkstoff-ohne-dila",
+        gegenstand: String(nachSchluessel[w.legacy_key] ?? ""),
+        grund: "Wird nicht dilatiert – mit den Startwerten mitgeliefert.",
+      }))
+      .filter((z) => z.gegenstand);
+    if (abwZeilen.length) {
+      const aIns = await restInsert("kontroll_abweisungen", abwZeilen);
+      if (aIns.ok && Array.isArray(aIns.data)) ergebnis.abweisungen = aIns.data.length;
+      else ergebnis.fehler.push("Abweisungen: " + aIns.text);
+    }
 
     // 2. Rinne-Ansetztypen. Unabhaengig von 1.
     const rIns = await restInsert("rinne_fitting_types",
@@ -385,7 +413,7 @@ Deno.serve(async (req: Request) => {
     // es soll hier sichtbar stehen statt vom Innenleben einer anderen
     // Funktion abzuhaengen.
     let startwerte: Awaited<ReturnType<typeof startwerteSaeen>> = {
-      werkstoffe: 0, rinne: 0, katalog: 0, einstellungen: false,
+      werkstoffe: 0, abweisungen: 0, rinne: 0, katalog: 0, einstellungen: false,
       fehler: ["Startwerte nicht ausgefuehrt"],
     };
     try {

@@ -604,7 +604,8 @@ const MEAS_TYPE_SETTINGS_SECTION=Object.freeze({
  kehle:"kehle",                    // Stoss/Ueberlappung, seit v2.83
  rinne:"rinne-profil"               // Standardprofil & Ansetztypen
 });
-// Dasselbe fuer die beiden Ausmass-Arten (Register "Geschützt").
+// Dasselbe fuer die beiden Ausmass-Arten (Register "Betrieb", bis v3.207
+// "Geschützt").
 const AM_TYPE_SETTINGS_SECTION=Object.freeze({
  offerte_erfassen:"",               // keine eigenen Einstellungen
  blitzschutz_ausmass:"blitzschutz"
