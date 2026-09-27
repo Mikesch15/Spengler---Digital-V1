@@ -24,7 +24,7 @@
 // eingehaengte Feld ist deshalb nur die Anzeige.
 // ---------------------------------------------------------------------------
 
-// Die zwoelf SICHTBAREN Material-Auswahlfelder, eines je Art.
+// Die SICHTBAREN Material-Auswahlfelder, eines je Art.
 //
 // Ausdruecklich einzeln aufgezaehlt und NICHT ueber die Klasse
 // ".meas-material-select": die tragen zwar zehn Felder, aber sieben davon
@@ -48,7 +48,15 @@ const MEAS_MATERIAL_FELDER=[
  "#kea_material",    // Kehle                 (js/34)
  "#luka_material",   // Lukarne               (js/36)
  "#kam_material",    // Kamineinfassung       (js/37)
- "#einfa_material"   // Einfassung Rund       (js/38)
+ "#einfa_material",  // Einfassung Rund       (js/38)
+ // v3.209: Die Dachfenstereinfassung fehlte hier, seit es sie gibt. Sie ist
+ // die dreizehnte Art und kam nach v3.31 dazu; der Satz drueber ("kommt eine
+ // dreizehnte Art dazu, gehoert sie in diese Liste") wurde beim Einbau
+ // uebersehen. Folge, vom Anwender gemeldet: "Massaufnahme
+ // dachfenstereinfassung kennt nur material und keine materialdicke" - das
+ // Staerkefeld wurde schlicht nie angehaengt. Gespeichert und geladen wird
+ // die Staerke zentral (js/16, js/10), an dieser einen Zeile hing alles.
+ "#dfa_material"     // Dachfenstereinfassung (js/66)
 ];
 
 // Nicht jede Art schneidet aus Rolle oder Tafel:

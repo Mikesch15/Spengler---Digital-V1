@@ -76,9 +76,18 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
    &&typeof buildMeasurementFromForm==="function",null,{timeout:15000});
  await page.waitForTimeout(200);
 
- const ARTEN=["skizze_foto","einlaufblech_gerade","rinne_halbrund","einlaufblech_konisch",
-  "freies_profil","mauerabdeckung","lukarne","anschlussblech","einfassung_rund",
-  "kehle","rinne","kamineinfassung"];
+ // v3.209: Die Liste wird aus der APP geholt, nicht mehr hier gefuehrt.
+ // Bis v3.208 standen hier zwoelf Arten von Hand - die dreizehnte
+ // (Dachfenstereinfassung) kam spaeter dazu und fehlte hier wie in
+ // MEAS_MATERIAL_FELDER (js/61). Zwei Listen, die dasselbe meinen, laufen
+ // auseinander: genau deshalb hat dieser Pruefstand den fehlenden
+ // Staerke-Anhang nicht gesehen, obwohl er dafuer gebaut ist. Jetzt gibt
+ // MEAS_TYPE_LABELS (js/01) den Takt vor - eine vierzehnte Art ist damit
+ // automatisch mitgeprueft.
+ const ARTEN=await page.evaluate(()=>Object.keys(MEAS_TYPE_LABELS));
+ p(ARTEN.length>=13,"die Arten kommen aus MEAS_TYPE_LABELS, nicht aus einer zweiten Liste",ARTEN.length);
+ p(ARTEN.indexOf("dachfenstereinfassung")>=0,
+   "die Dachfenstereinfassung ist dabei - sie war der gemeldete Fall",ARTEN);
 
  await page.evaluate(arten=>{
   currentProfile={id:"u1",role:"admin",first_name:"M",last_name:"L",company_id:"f1"};
@@ -190,7 +199,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
  p(a3==="Titanzink · 0,7 mm · blank","die Zeile nennt keine Menge und keine Groesse mehr",a3);
 
  // =========================================================== B
- console.log("\nB · Ein Staerkefeld in allen zwoelf Arten");
+ console.log("\nB · Ein Staerkefeld in ALLEN Arten");
  const b1=await page.evaluate(async arten=>{
   const raus={};
   for(const t of arten){
@@ -206,7 +215,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
   return raus;
  },ARTEN);
  const fehlend=Object.keys(b1).filter(t=>b1[t].anzahl!==1);
- p(fehlend.length===0,"jede der zwoelf Arten hat genau EIN sichtbares Staerkefeld",
+ p(fehlend.length===0,"jede Art hat genau EIN sichtbares Staerkefeld",
    fehlend.length?fehlend.map(t=>t+":"+b1[t].anzahl):b1);
  const ohneInfo=Object.keys(b1).filter(t=>!b1[t].info);
  p(ohneInfo.length===0,"und an jedem haengt der Info-Knopf",ohneInfo);

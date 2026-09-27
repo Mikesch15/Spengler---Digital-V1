@@ -351,6 +351,7 @@ const WIN_CHANGELOG={
  "3.208":["<b>Die Materialliste lässt sich als Excel-Datei herausgeben.</b> Einstellungen → Betrieb → Material (Regierapport) → „Als Excel exportieren“. Die ersten fünf Spalten sind genau die, die der Import wieder einliest – herunterladen, in Excel ändern, wieder importieren.",
   "<b>Messing und Blei gehören jetzt zu den Werkstoffen, die jede neue Firma mitbekommt.</b> Beide ohne Dehnungswerte – sie werden nicht dilatiert – und deshalb gleich als „ist so gewollt“ abgehakt, damit die Kontrolle der Stammdaten am ersten Tag nicht zwei Fehler meldet.",
   "Das leere Register „Ausmass“ in den Einstellungen ist weg, und „Geschützt“ heisst jetzt <b>Betrieb</b> – drin stehen Firma, Mitarbeiter, Stundensätze, die Materialkataloge und die Datensicherung."],
+ "3.209":["<b>Die Dachfenstereinfassung hat jetzt auch ein Feld für die Materialstärke.</b> Sie kannte bisher nur den Werkstoff – das Stärkefeld, das alle anderen zwölf Arten seit v3.31 haben, wurde bei ihr nie angehängt. Bereits gespeicherte Dachfenster-Aufnahmen lassen sich einfach öffnen und ergänzen."],
 };
 
 function winVersionVergleich(a,b){
