@@ -344,6 +344,12 @@ const anmelden=page=>page.evaluate(()=>{
  const jsQ=fs.readFileSync("js/70-ansicht2.js","utf8");
  const schreib=jsQ.match(/\.(insert|update|delete|upsert|rpc)\(/g)||[];
  p(schreib.length===0,"F1 js/70 enthaelt keinen einzigen Schreibweg",schreib);
+ // v3.211 zusaetzlich, nicht ersatzweise: die Ansicht spricht ueberhaupt
+ // nicht mit der Datenbank - auch nicht lesend. Das ist die eigentliche
+ // Aussage hinter F1 und laesst sich nicht mit einem Set verwechseln.
+ p(!/\bsb\s*\./.test(jsQ)&&!/\.from\(/.test(jsQ),
+   "F1b und ruft die Datenbank gar nicht erst auf",
+   (jsQ.match(/\bsb\s*\.[a-z]+/g)||[]).slice(0,5));
  p(!/\bsb\.from\(/.test(jsQ),"F2 js/70 fragt die Datenbank nicht selbst ab",jsQ.match(/sb\.from\([^)]*\)/g));
 
  // Jede Stilregel muss am Schalter oder an einer a2-Klasse haengen. Sonst

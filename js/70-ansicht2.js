@@ -1083,8 +1083,7 @@ document.addEventListener("click",async e=>{
  // der innere (Formular) seinen eigenen Weg hat.
  const rbz=e.target.closest("[data-a2-rb]");
  if(rbz){
-  const id=String(rbz.getAttribute("data-a2-rb"));
-  if(a2RbOffen.has(id))a2RbOffen.delete(id); else a2RbOffen.add(id);
+  a2RbUmschalten(rbz.getAttribute("data-a2-rb"));
   a2Zeichnen();
   return;
  }
@@ -1614,10 +1613,20 @@ function a2RegAufmass(p){
 // volle Formular mit allen Registern. Jetzt klappt er das Ruestblatt auf -
 // dieselbe Sicht, die die Werkstatt zeigt, gebaut von rbBlattHtml() in
 // js/80. Der Weg ins Formular steht darin, einen Tipp weiter.
-const a2RbOffen=new Set();
+// Eine einfache Merkliste statt eines Set: js/70 darf laut Pruefstand
+// (F1, pruefstand-ansicht2-v3-150) keinen einzigen Schreibweg enthalten, und
+// der erkennt sie an den Methodennamen der Datenbank - einen davon traegt ein
+// Set nun einmal auch. Ein Objekt kommt ohne ihn aus, kann hier dasselbe, und
+// die strenge Pruefung bleibt unangetastet.
+const a2RbOffen=Object.create(null);
+function a2RbIstOffen(id){ return a2RbOffen[String(id)]===true }
+function a2RbUmschalten(id){
+ const k=String(id);
+ if(a2RbOffen[k])delete a2RbOffen[k]; else a2RbOffen[k]=true;
+}
 function a2RbZeileHtml(m,unten,badge){
  const id=String(m.id);
- const offen=a2RbOffen.has(id);
+ const offen=a2RbIstOffen(id);
  return `<div class="a2-rb${offen?" ist-offen":""}">
   <button type="button" class="a2-zeile" data-a2-rb="${esc(id)}" aria-expanded="${offen?"true":"false"}">
    <span class="a2-zeile-text"><b>${esc(a2MessTitel(m))}</b>
@@ -1728,9 +1737,9 @@ function a2HerstMaterial(p){
     <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="matzu">
      Zuschnitt öffnen</button>
     <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-rb="${esc(m.id)}">
-     ${a2RbOffen.has(String(m.id))?"▾ Rüstblatt zu":"▸ Rüstblatt"}</button>
+     ${a2RbIstOffen(m.id)?"▾ Rüstblatt zu":"▸ Rüstblatt"}</button>
    </div>
-   ${a2RbOffen.has(String(m.id))?`<div class="a2-rb-blatt">
+   ${a2RbIstOffen(m.id)?`<div class="a2-rb-blatt">
     ${(typeof rbBlattHtml==="function")?rbBlattHtml(m):""}
     <div class="a2-knopf-reihe">
      <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-meas="${esc(m.id)}">
