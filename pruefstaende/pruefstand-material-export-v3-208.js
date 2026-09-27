@@ -162,15 +162,15 @@ const DATEN=()=>{
   const k=document.querySelector('[data-settings-tab="protected"]');
   return {text:k?k.textContent.trim():"",schluessel:k?k.dataset.settingsTab:""};
  });
- p(G.text==="Betrieb","der Registerknopf heisst Betrieb",G);
+ p(G.text==="Firma","der Registerknopf heisst Firma",G);
  p(G.schluessel==="protected",
    "der interne Schluessel bleibt 'protected' - daran haengen die openSettingsTo-Aufrufe",G);
  // Kein sichtbarer Text sagt mehr "Geschützt". Kommentare zaehlen nicht.
  const sichtbar=t=>t.replace(/<!--[\s\S]*?-->/g,"").replace(/^\s*\/\/.*$/gm,"");
  p(sichtbar(html).indexOf("Geschützt")<0,"in index.html steht das Wort nirgends mehr");
  p(lies("js/41-hilfe.js").indexOf("Geschützt")<0,"und in der Hilfe auch nicht");
- p((lies("js/41-hilfe.js").match(/→ Betrieb/g)||[]).length>=2,
-   "die Hilfe nennt den neuen Namen",(lies("js/41-hilfe.js").match(/→ Betrieb/g)||[]).length);
+ p((lies("js/41-hilfe.js").match(/→ Firma/g)||[]).length>=2,
+   "die Hilfe nennt den neuen Namen",(lies("js/41-hilfe.js").match(/→ Firma/g)||[]).length);
 
  // ---- H  Die Werkstoffe jeder neuen Firma ----------------------------------
  console.log("\nH · Werkstoffe als Startwert jeder Firma");
