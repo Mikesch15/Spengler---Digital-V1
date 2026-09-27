@@ -85,7 +85,15 @@ const ZEILEN=[
  p(g07&&JSON.stringify(g07.zuschnitte.sort((x,y)=>y[0]-x[0]))===JSON.stringify([[2000,3],[1500,1]]),
    "A6 gleiche Laengen sind zusammengezaehlt: 3x2000, 1x1500",g07&&g07.zuschnitte);
  p(a.karten===2,"A7 zwei Karten gezeichnet",a);
- p(a.text.includes("Abgehakt wird in der Massaufnahme"),"A8 der Hinweis zum Abhaken steht da",a.text.slice(0,200));
+ // v3.211: Der Satz von v3.153 ("Abgehakt wird in der Massaufnahme - dort
+ // stehen die Stuecknummern") stimmt nicht mehr. Die Materialsicht traegt die
+ // Zuschnittliste jetzt selbst: ein Tipp klappt das Ruestblatt auf, und
+ // abgehakt wird genau dort. Die Erwartung ist deshalb auf den neuen Vertrag
+ // gesetzt - mit der Gegenprobe, dass die ueberholte Aussage WEG ist. Sonst
+ // stuende eine Anleitung da, die in die Irre fuehrt.
+ p(a.text.includes("zeigt ihr Rüstblatt"),"A8 die Karte sagt, was ein Tipp bringt",a.text.slice(0,240));
+ p(!a.text.includes("Abgehakt wird in der Massaufnahme"),
+   "A8b und schickt niemanden mehr woanders hin zum Abhaken",a.text.slice(0,240));
 
  // Gegenprobe: dieselbe Zahl wie die projektweite Materialuebersicht
  let b2=await page.evaluate(()=>{
