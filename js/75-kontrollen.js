@@ -53,6 +53,17 @@ let konAbweisungen=Object.create(null);
 // geladen - die Startseite soll deswegen nicht langsamer werden.
 let konLagerArtikel=null;          // Set oder null = noch nicht geladen
 let konAbgewieseneZeigen=false;    // reine Anzeige dieses Geraets
+// v3.207: Sind die Abweisungen wirklich GELESEN worden? Ein leeres
+// konAbweisungen heisst sonst zweierlei - "nichts abgehakt" und "noch nicht
+// nachgesehen" -, und die Karte auf der Startseite (konKarteHtml) hat bis
+// v3.206 den zweiten Fall als den ersten ausgegeben: sie zaehlte laengst
+// abgehakte Befunde als offene Fehler, weil sie gezeichnet wurde, bevor
+// irgendjemand die Kontrolle geoeffnet und damit die Entscheidungen geholt
+// hatte. Wer alles abgehakt hatte, sah nach jedem App-Start wieder "X
+// Angaben hindern die App am Rechnen".
+let konAbweisungenGeladen=false;
+let konAbweisungenLaeuft=false;    // ein Holen ist unterwegs
+let konAbweisungenVersuch=0;       // Zeitpunkt des letzten Versuchs (ms)
 
 function konSchluessel(pruefung,gegenstand){
  return String(pruefung)+"\u0000"+String(gegenstand);
@@ -235,20 +246,36 @@ function konMassText(b){
 }
 
 // ---- Laden ---------------------------------------------------------------
-// Die Abweisungen und die Lager-Zuordnung. Beides wird erst beim Oeffnen der
-// Kontrolle geholt, nicht beim Start der App: es wird nur hier gebraucht.
-async function konDatenLaden(){
- if(typeof sb==="undefined")return;
- const [abw,var_,lag]=await Promise.all([
-  sb.from("kontroll_abweisungen").select("id,pruefung,gegenstand,grund"),
-  sb.from("lager_varianten").select("material_id"),
-  sb.from("lagerbestand").select("artikel_id")
- ]);
+// Geholt wird erst beim Oeffnen der Kontrolle bzw. beim Zeichnen der
+// Startseite, nicht beim Start der App: gebraucht wird es nur hier.
+// Nur die Entscheidungen des Menschen. Eigene Funktion, weil die Karte auf
+// der Startseite genau sie braucht und sonst nichts - die beiden
+// Lager-Abfragen darunter gehoeren zur Pruefung "nie benutzt" und waeren
+// beim Zeichnen der Startseite unnoetige Last.
+//
+// Ein Lesefehler laesst den bisherigen Stand stehen und meldet false. Die
+// Abweisungen einfach zu leeren hiesse: jede abgehakte Sache steht wieder
+// als Fehler da, nur weil eine Abfrage schiefging.
+async function konAbweisungenLaden(){
+ if(typeof sb==="undefined")return false;
+ konAbweisungenVersuch=Date.now();
+ const abw=await sb.from("kontroll_abweisungen").select("id,pruefung,gegenstand,grund");
+ if(!abw||abw.error)return false;
  const karte=Object.create(null);
- konListe(abw&&abw.data).forEach(a=>{
+ konListe(abw.data).forEach(a=>{
   karte[konSchluessel(a.pruefung,a.gegenstand)]={id:a.id,grund:a.grund||""};
  });
  konAbweisungen=karte;
+ konAbweisungenGeladen=true;
+ return true;
+}
+async function konDatenLaden(){
+ if(typeof sb==="undefined")return;
+ const [,var_,lag]=await Promise.all([
+  konAbweisungenLaden(),
+  sb.from("lager_varianten").select("material_id"),
+  sb.from("lagerbestand").select("artikel_id")
+ ]);
  // Ein Fehler beim Lesen darf nicht als "kein Lagerprodukt" durchgehen -
  // dann bliebe konLagerArtikel null und die Pruefung "nie benutzt" meldet
  // nichts, statt alles.
@@ -387,7 +414,24 @@ function konListeHtml(){
 // echten Fehlern - Hinweise sind nicht dringend genug, um jeden Morgen die
 // Startseite zu belegen. Wer sie sehen will, ruft die Kontrolle auf.
 function konKarteNoetig(){
- return konZustaendig() && konFehlerZahl()>0;
+ // v3.207: ohne die gelesenen Abweisungen wird NICHTS behauptet. Lieber
+ // keine Karte als eine, die abgehakte Sachen als Fehler ausgibt.
+ return konZustaendig() && konAbweisungenGeladen && konFehlerZahl()>0;
+}
+// Wird von der Startseite VOR konKarteHtml() gerufen und holt die
+// Entscheidungen einmal nach. Danach zeichnet sie die Seite neu - das ist der
+// einzige Weg, auf dem die Karte ueberhaupt erscheint.
+//
+// Ein Fehlversuch (offline, keine Verbindung) wird nicht bei jedem Zeichnen
+// wiederholt, sondern hoechstens alle 30 Sekunden.
+function konKarteVorbereiten(){
+ if(!konZustaendig()||konAbweisungenGeladen||konAbweisungenLaeuft)return;
+ if(konAbweisungenVersuch&&Date.now()-konAbweisungenVersuch<30000)return;
+ konAbweisungenLaeuft=true;
+ Promise.resolve().then(konAbweisungenLaden).then(ok=>{
+  konAbweisungenLaeuft=false;
+  if(ok&&typeof a2Zeichnen==="function"&&typeof a2Aktiv==="function"&&a2Aktiv())a2Zeichnen();
+ }).catch(()=>{ konAbweisungenLaeuft=false });
 }
 function konKarteHtml(){
  if(!konKarteNoetig())return "";

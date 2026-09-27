@@ -61,6 +61,10 @@ const SAUBER=()=>{
  zwMaterialUebernehmen([{edv_nr:"101.01",anzahl:5,zuletzt:"2026-01-01"},
                         {edv_nr:"301.01",anzahl:2,zuletzt:"2026-01-01"}]);
  konAbweisungen=Object.create(null);
+ // v3.207: Der Datenstand setzt die Abweisungen direkt - damit sind sie
+ // GELESEN. Ohne diese Flagge behauptet die Karte bewusst nichts (siehe
+ // Abschnitt K), und die Abschnitte C/D pruefen ja gerade die Karte.
+ konAbweisungenGeladen=true;
  konLagerArtikel=new Set(["1","2"]);
  konAbgewieseneZeigen=false;
 };
@@ -108,6 +112,7 @@ const KAPUTT=()=>{
                         {edv_nr:"301.01",anzahl:2,zuletzt:"2026-01-01"},
                         {edv_nr:"501.01",anzahl:2,zuletzt:"2026-01-01"}]);
  konAbweisungen=Object.create(null);
+ konAbweisungenGeladen=true;          // wie in SAUBER: direkt gesetzt = gelesen
  konLagerArtikel=new Set(["1"]);      // 601.01 hat auch kein Lagerprodukt
  konAbgewieseneZeigen=false;
 };
@@ -388,6 +393,93 @@ const offenVon=`s=>{const b=konBefunde().find(x=>x.schluessel===s);return b?b.of
  });
  p(H2.inhalt>200,"der Abschnitt ist gezeichnet",H2.inhalt);
  p(H2.nenntBefund===true,"und nennt den Befund im Klartext");
+
+ // ---- K  Die Karte behauptet nichts, bevor die Abweisungen gelesen sind ----
+ // v3.207, gemeldet vom Anwender: "Kontrolle der stammdaten zeigt immernoch
+ // e fehler an obwohl ich alles als so gewollt abgehakt habe".
+ // URSACHE: konAbweisungen wurde erst beim OEFFNEN der Kontrolle geholt
+ // (konDatenLaden). Die Karte auf der Startseite wird aber lange davor
+ // gezeichnet - mit leerem konAbweisungen. Und leer hiess zweierlei:
+ // "nichts abgehakt" und "noch nicht nachgesehen". Die Karte gab den
+ // zweiten Fall als den ersten aus und zaehlte abgehakte Sachen als Fehler.
+ // Beim Oeffnen der Kontrolle war dann alles in Ordnung - beim naechsten
+ // App-Start stand die Karte wieder da.
+ console.log("\nK · Die Karte zaehlt erst, wenn die Abweisungen gelesen sind");
+ const K0=await page.evaluate(()=>{
+  window.__sauber();
+  settings.materials[1][3]="";          // 301.01 ohne Einheit = EIN Fehler
+  konAbweisungen=Object.create(null);
+  konAbweisungenGeladen=false;          // Stand direkt nach dem App-Start
+  konAbweisungenLaeuft=false; konAbweisungenVersuch=0;
+  return {fehler:konFehlerZahl(),noetig:konKarteNoetig(),karte:konKarteHtml()};
+ });
+ p(K0.fehler===1,"ein offener Fehler, solange nichts abgehakt bekannt ist",K0.fehler);
+ p(K0.noetig===false&&K0.karte==="",
+   "trotzdem KEINE Karte - ungelesene Entscheidungen sind keine Entscheidung",K0);
+
+ // Der ganze Weg, wie ihn die Startseite geht: vorbereiten, holen, neu
+ // zeichnen. Die Abweisung deckt genau diesen Befund ab.
+ const K1=await page.evaluate(async()=>{
+  let gefragt=0;
+  sb.from=t=>{const q={};["select","eq","upsert","delete"].forEach(k=>q[k]=()=>q);
+    q.then=(f,g)=>{
+     if(t==="kontroll_abweisungen"){gefragt++;
+      return Promise.resolve({data:[{id:1,pruefung:"position-ohne-einheit",
+                                     gegenstand:"301.01",grund:null}],error:null}).then(f,g)}
+     return Promise.resolve({data:[],error:null}).then(f,g)};
+    return q};
+  konKarteVorbereiten();
+  konKarteVorbereiten();                 // zweimal gezeichnet = trotzdem einmal holen
+  await new Promise(r=>setTimeout(r,120));
+  return {gefragt,geladen:konAbweisungenGeladen,
+          fehler:konFehlerZahl(),karte:konKarteHtml(),
+          abgehakt:konAbgewiesenZahl()};
+ });
+ p(K1.gefragt===1,"die Abweisungen werden genau einmal geholt, nicht bei jedem Zeichnen",K1.gefragt);
+ p(K1.geladen===true&&K1.abgehakt===1,"danach ist die Entscheidung des Menschen bekannt",K1);
+ p(K1.fehler===0&&K1.karte==="",
+   "und die Karte bleibt weg - genau das war die Meldung des Anwenders",K1);
+
+ // GEGENPROBE 1: ist NICHTS abgehakt, kommt die Karte sehr wohl. Sonst
+ // haette der Fix die Karte nur stillgelegt.
+ const K2=await page.evaluate(async()=>{
+  window.__sauber();
+  settings.materials[1][3]="";
+  konAbweisungen=Object.create(null);
+  konAbweisungenGeladen=false; konAbweisungenLaeuft=false; konAbweisungenVersuch=0;
+  sb.from=()=>{const q={};["select","eq","upsert","delete"].forEach(k=>q[k]=()=>q);
+    q.then=(f,g)=>Promise.resolve({data:[],error:null}).then(f,g);return q};
+  konKarteVorbereiten();
+  await new Promise(r=>setTimeout(r,120));
+  return {geladen:konAbweisungenGeladen,fehler:konFehlerZahl(),karte:konKarteHtml()};
+ });
+ p(K2.geladen===true&&K2.fehler===1,"ohne Abweisung bleibt der Fehler ein Fehler",K2);
+ p(K2.karte.indexOf("1 Angabe hindert")>=0,"und die Karte steht da",K2.karte.slice(0,160));
+
+ // GEGENPROBE 2: geht das Lesen schief, wird der bisherige Stand NICHT
+ // geleert. Sonst stuende nach einer misslungenen Abfrage jede abgehakte
+ // Sache wieder als Fehler da.
+ const K3=await page.evaluate(async()=>{
+  window.__sauber();
+  settings.materials[1][3]="";
+  konAbweisungen=Object.create(null);
+  konAbweisungen[konSchluessel("position-ohne-einheit","301.01")]={id:1,grund:""};
+  konAbweisungenGeladen=true; konAbweisungenLaeuft=false; konAbweisungenVersuch=0;
+  sb.from=()=>{const q={};["select","eq","upsert","delete"].forEach(k=>q[k]=()=>q);
+    q.then=(f,g)=>Promise.resolve({data:null,error:{message:"keine Verbindung"}}).then(f,g);
+    return q};
+  const ok=await konAbweisungenLaden();
+  return {ok,abgehakt:konAbgewiesenZahl(),fehler:konFehlerZahl()};
+ });
+ p(K3.ok===false,"ein Lesefehler meldet sich als Fehlschlag",K3);
+ p(K3.abgehakt===1&&K3.fehler===0,"und laesst die bekannten Entscheidungen stehen",K3);
+
+ // Verdrahtung: die Startseite bereitet VOR dem Zeichnen der Karte vor.
+ // Ohne Kommentare gelesen: im Kommentar daneben stehen beide Namen auch.
+ const a2Quelle=nurCode(lies("js/70-ansicht2.js"));
+ p(a2Quelle.indexOf("konKarteVorbereiten()")>=0
+   &&a2Quelle.indexOf("konKarteVorbereiten()")<a2Quelle.indexOf("konKarteHtml()"),
+   "js/70 holt die Entscheidungen, bevor es die Karte zeichnet");
 
  // ---- I  Sauberkeit --------------------------------------------------------
  console.log("\nI · Sauberkeit");

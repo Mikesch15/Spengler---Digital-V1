@@ -582,6 +582,12 @@ function a2SeiteHeute(){
  // v3.186: Gleich darunter die Kontrolle - aber nur, wenn sie einen
  // echten Fehler gefunden hat. Blosse Hinweise gehoeren nicht jeden
  // Morgen auf die Startseite; sie stehen in der Kontrolle selbst.
+ //
+ // v3.207: Vorher werden die Abweisungen ("ist so gewollt") einmal geholt.
+ // Ohne sie zaehlte die Karte laengst abgehakte Sachen als Fehler - sie
+ // wurden bis v3.206 erst beim Oeffnen der Kontrolle gelesen. konKarteHtml()
+ // bleibt bis dahin leer und die Seite wird danach neu gezeichnet.
+ if(typeof konKarteVorbereiten==="function")konKarteVorbereiten();
  if(typeof konKarteHtml==="function")html+=konKarteHtml();
 
  // Der einmalige Hinweis nach der Umstellung. Er sagt, was sich geaendert
