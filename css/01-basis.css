@@ -1012,6 +1012,25 @@ tr.resv-gewaehlt td:first-child{border-left:3px solid var(--blue)}
 .werk-kopf-titel b{font-size:15px}
 .werk-kopf-akt{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px}
 .werk-kopf-akt button{width:auto;min-height:38px;padding:6px 10px;font-size:12px}
+/* v3.213: Der Projektkopf ist der Schalter fuer das ganze Projekt - dieselbe
+   Bauart wie der Kartenkopf einer Massaufnahme (div mit role="button",
+   deshalb greifen die Knopf-Grundregeln hier nicht). Zugeklappt schrumpft
+   die Karte auf ihren Kopf: bei vielen Projekten ist genau das der Zweck. */
+.werk-kopf{cursor:pointer}
+.werk-kopf:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:8px}
+.werk-kopf-pfeil{flex:0 0 auto;color:var(--muted);font-size:13px;line-height:1.6;width:14px}
+.werk-projekt-zu{padding:10px 12px;margin:0 0 8px}
+.werk-projekt-zu .werk-kopf{margin-bottom:0;align-items:center}
+/* Zugeklappt stehen die beiden Knoepfe NEBEN dem Namen statt darunter: eine
+   eigene Knopfzeile je Projekt ist genau der Platz, den das Zuklappen
+   sparen soll. Dafuer duerfen sie hier kleiner sein und der Name schmaler. */
+.werk-projekt-zu .werk-kopf-titel{flex:1 1 90px}
+/* Der Name bleibt zugeklappt auf EINER Zeile; ein umgebrochenes Objekt
+   kostet sonst genau die Hoehe, die das Zuklappen spart. Abgeschnitten wird
+   als Block, damit nichts als Element ueber den Bildschirmrand zeigt
+   (siehe die Regeln der Massaufnahme-Zeile weiter oben). */
+.werk-projekt-zu .werk-kopf-titel b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.werk-projekt-zu .werk-kopf-akt button{min-height:32px;padding:4px 8px;font-size:11px}
 .werk-grundlage{margin-top:8px;border-top:2px solid var(--line);padding-top:8px}
 .werk-block{margin-bottom:10px}
 

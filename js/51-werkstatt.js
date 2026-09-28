@@ -61,6 +61,41 @@ let werkFilter=werkFilterGemerkt();
 // schlicht der Aufklappzustand. Er gilt fuer die Sitzung an der Abkantbank
 // und faengt bei jedem Oeffnen der Werkstatt wieder bei "alles zu" an.
 const werkOffenKarte=new Set();
+// v3.213: Welche Bloecke zugeklappt sind - in der Projektsicht ein ganzes
+// Projekt, in der Materialsicht eine Materialgruppe. Ansage des Anwenders:
+// "jetzt sollte in der werkstatt auch noch das ganze projekt zuklappbar sein,
+// das wird sonst bei vielen projekten unuebersichtlich."
+// Gemerkt wird ZUGEKLAPPT statt offen: offen ist der Normalfall, und ein
+// Projekt, das neu in die Werkstatt kommt, darf nicht stillschweigend
+// zugeklappt erscheinen, nur weil es noch nie jemand geoeffnet hat.
+// Wie beim Aufklappzustand der Karten gilt das fuer die Sitzung an der
+// Abkantbank und faengt bei jedem Oeffnen der Werkstatt neu an.
+const werkZuBlock=new Set();
+const werkBlockVorbelegt={projekt:false,material:false};
+// Ab so vielen Bloecken startet nur der oberste offen - also genau der, der
+// laut rotem Faden zuerst drankommt. Darunter bleibt alles offen: bei zwei
+// Projekten ist nichts unuebersichtlich, und Zuklappen waere Bevormundung.
+const WERK_VIELE_BLOECKE=4;
+function werkBlockSchluessel(g){
+ // Ein Projekt hat seine Id, eine Materialgruppe ihren Titel ("Titanzink ·
+ // 0,7 mm") - beides ist die Identitaet des Blocks in seiner Sicht.
+ return (werkSicht==="material")?("m:"+((g&&g.titel)||"")):("p:"+((g&&g.projectId)||0));
+}
+function werkBlockZu(g){return werkZuBlock.has(werkBlockSchluessel(g))}
+function werkBlockVorbelegen(sortiert){
+ if(werkBlockVorbelegt[werkSicht==="material"?"material":"projekt"])return;
+ werkBlockVorbelegt[werkSicht==="material"?"material":"projekt"]=true;
+ if(!sortiert||sortiert.length<WERK_VIELE_BLOECKE)return;
+ sortiert.slice(1).forEach(g=>werkZuBlock.add(werkBlockSchluessel(g)));
+}
+// Der Kopf eines Blocks ist der Schalter - dieselbe Bauart wie der
+// Kartenkopf einer Massaufnahme (role="button", Pfeil, Tastatur).
+function werkBlockKopf(g){
+ const zu=werkBlockZu(g);
+ return {zu,
+  attr:`role="button" tabindex="0" aria-expanded="${zu?"false":"true"}" data-werk-blockzu="${esc(werkBlockSchluessel(g))}"`,
+  pfeil:`<span class="werk-kopf-pfeil">${zu?"▸":"▾"}</span>`};
+}
 let werkLauf=0;
 let werkFehler=null;
 
@@ -242,8 +277,10 @@ function werkMaterialKarteHtml(g){
   : `<div class="small" style="color:var(--muted)">Zu diesem Material liegt
      noch keine Zuschnittliste vor. Sie entsteht, sobald die Masse der
      Massaufnahme vollständig sind.</div>`;
- return `<div class="card werk-projekt">
-  <div class="werk-kopf">
+ const k=werkBlockKopf(g);
+ return `<div class="card werk-projekt${k.zu?" werk-projekt-zu":""}">
+  <div class="werk-kopf" ${k.attr}>
+   ${k.pfeil}
    <div class="werk-kopf-titel"><b>${esc(g.titel)}</b>
     <div class="small" style="color:var(--muted)">${esc(
       [g.stueck?g.stueck+(g.stueck===1?" Stück":" Stücke"):"",
@@ -252,11 +289,11 @@ function werkMaterialKarteHtml(g){
       ].filter(Boolean).join(" · "))}</div>
    </div>
   </div>
-  ${zuschnitte}
+  ${k.zu?"":`${zuschnitte}
   ${g.aufnahmen.map(werkMatAufnahmeHtml).join("")}
   <div class="small" style="color:var(--muted);margin-top:8px">Ein Tipp auf eine
    Massaufnahme zeigt ihr Rüstblatt: das vermasste Profil und die Zuschnittliste
-   zum Abhaken. Das ganze Formular braucht es dafür nicht.</div>
+   zum Abhaken. Das ganze Formular braucht es dafür nicht.</div>`}
  </div>`;
 }
 
@@ -715,17 +752,34 @@ function werkGrundlageHtml(g){
 function werkSichtbareKartenIds(){
  const raus=[];
  const nimm=liste=>((liste||[]).forEach(m=>{ if(m&&m.id!==undefined&&raus.indexOf(m.id)<0)raus.push(m.id) }));
- if(werkSicht==="material")werkMaterialGruppen().forEach(g=>nimm(g.aufnahmen));
- else werkGruppen().forEach(g=>nimm(g.aufnahmen));
+ // v3.213: Was in einem zugeklappten Projekt (bzw. einer zugeklappten
+ // Materialgruppe) liegt, steht gerade nicht da - der Schalter meint nur,
+ // was zu sehen ist.
+ if(werkSicht==="material")werkMaterialGruppen().forEach(g=>{if(!werkBlockZu(g))nimm(g.aufnahmen)});
+ else werkGruppen().forEach(g=>{if(!werkBlockZu(g))nimm(g.aufnahmen)});
  return raus;
 }
-function werkAlleZuHtml(ids){
- // Unter zwei Karten waere der Schalter nur ein weiterer Knopf.
- if(!ids||ids.length<2)return "";
- const offen=ids.filter(id=>werkOffenKarte.has(id)).length;
- return `<div class="status-filter werk-allezu-reihe">
-  <button type="button" class="status-chip" data-werk-allezu="${offen?"zu":"auf"}">${
-   offen?"▾ Alle zuklappen ("+offen+" offen)":"▸ Alle aufklappen"}</button></div>`;
+// v3.213: Zwei Schalter, zwei Ebenen - erst die Bloecke (Projekte bzw.
+// Materialien), dann die Massaufnahmen darin. Vorher hiess der eine schlicht
+// "Alle zuklappen"; mit zwei Ebenen muss dastehen, WAS gemeint ist.
+function werkBlockWort(){return werkSicht==="material"?"Materialien":"Projekte"}
+function werkAlleZuHtml(ids,bloecke){
+ const chips=[];
+ // Unter zwei Bloecken bzw. zwei Karten waere ein Schalter nur ein
+ // weiterer Knopf.
+ if(bloecke&&bloecke.length>1){
+  const zu=bloecke.filter(werkBlockZu).length;
+  const alleZu=zu>=bloecke.length;
+  chips.push(`<button type="button" class="status-chip" data-werk-blockallezu="${alleZu?"auf":"zu"}">${
+   alleZu?"▸ Alle "+werkBlockWort()+" aufklappen"
+         :"▾ Alle "+werkBlockWort()+" zuklappen"+(zu?" ("+(bloecke.length-zu)+" offen)":"")}</button>`);
+ }
+ if(ids&&ids.length>=2){
+  const offen=ids.filter(id=>werkOffenKarte.has(id)).length;
+  chips.push(`<button type="button" class="status-chip" data-werk-allezu="${offen?"zu":"auf"}">${
+   offen?"▾ Massaufnahmen zuklappen ("+offen+" offen)":"▸ Massaufnahmen aufklappen"}</button>`);
+ }
+ return chips.length?`<div class="status-filter werk-allezu-reihe">${chips.join("")}</div>`:"";
 }
 
 function renderWerkstatt(){
@@ -764,7 +818,8 @@ function renderWerkstatt(){
     unter „Material“ und „Materialstärke“.</div>`;
    box.innerHTML=h; return 0;
   }
-  h+=werkAlleZuHtml(werkSichtbareKartenIds());
+  werkBlockVorbelegen(matGruppen);
+  h+=werkAlleZuHtml(werkSichtbareKartenIds(),matGruppen);
   h+=matGruppen.map(werkMaterialKarteHtml).join("");
   box.innerHTML=h;
   return werkZeilen.filter(werkPasst).length;
@@ -780,7 +835,10 @@ function renderWerkstatt(){
  }
  // Der roteste Faden ueberhaupt: was zuerst drankommt, steht oben.
  schritte.sort((a,b)=>(a.n.rang-b.n.rang)||a.g.titel.localeCompare(b.g.titel,"de"));
- h+=werkAlleZuHtml(werkSichtbareKartenIds());
+ // Die Vorbelegung braucht die FERTIGE Reihenfolge: offen bleibt der oberste
+ // Block, und das ist der, der laut rotem Faden zuerst drankommt.
+ werkBlockVorbelegen(schritte.map(x=>x.g));
+ h+=werkAlleZuHtml(werkSichtbareKartenIds(),gruppen);
  h+=schritte.map(({g,n})=>{
   const offen=werkOffen===(g.projectId||0);
   const zahl=[g.zuRuesten?g.zuRuesten+" zu rüsten":"",g.zuMontieren?g.zuMontieren+" zu montieren":""]
@@ -788,8 +846,14 @@ function renderWerkstatt(){
   // v3.21: Die Karten mit ihren abhakbaren Zuschnittlisten stehen SOFORT da.
   // Material und Reservierungen sind beim Ruesten die Nebensache und liegen
   // darunter in einem zugeklappten Bereich, der erst beim Oeffnen laedt.
-  return `<div class="card werk-projekt">
-   <div class="werk-kopf">
+  // v3.213: Der Projektkopf klappt das ganze Projekt zu. Zugeklappt bleibt
+  // stehen, wonach ausgewaehlt wird: Objekt, Projektname und wie viel hier
+  // ansteht - dazu die beiden Knoepfe, damit die Ruestliste eines
+  // zugeklappten Projekts kein Aufklappen kostet.
+  const bk=werkBlockKopf(g);
+  return `<div class="card werk-projekt${bk.zu?" werk-projekt-zu":""}">
+   <div class="werk-kopf" ${bk.attr}>
+    ${bk.pfeil}
     <div class="werk-kopf-titel"><b>${esc(g.titel)}</b>
      ${g.unter?`<div class="small" style="color:var(--muted)">${esc(g.unter)}</div>`:""}
      ${zahl?`<div class="small">${esc(zahl)}</div>`:""}</div>
@@ -798,7 +862,7 @@ function renderWerkstatt(){
      ${g.projectId?`<button type="button" class="gray" data-werk-projekt="${g.projectId}">📂 Projekt</button>`:""}
     </div>
    </div>
-   ${werkStreifenHtml(g)}
+   ${bk.zu?"":`${werkStreifenHtml(g)}
    ${werkLeisteHtml(g)}
    ${g.aufnahmen.slice().sort((x,y)=>(werkZeileJetzt(y,n.k)?1:0)-(werkZeileJetzt(x,n.k)?1:0))
       .map(a=>werkAufnahmeHtml(a,n.k)).join("")}
@@ -806,7 +870,7 @@ function renderWerkstatt(){
     <button type="button" class="werk-mehr-knopf" data-werk-auf="${g.projectId||0}" aria-expanded="${offen?"true":"false"}">
      <span class="werk-mehr-pfeil">${offen?"▾":"▸"}</span> Material und Reservierungen${offen?"":" ansehen"}</button>
     ${offen?`<div class="werk-grundlage">${werkGrundlageHtml(g)}</div>`:""}
-   </div>`:""}
+   </div>`:""}`}
   </div>`;
  }).join("");
  box.innerHTML=h;
@@ -837,6 +901,10 @@ async function werkstattOeffnen(){
  // Jede neue Sitzung an der Abkantbank faengt frisch an: fertige Karten sind
  // wieder zugeklappt, bis jemand sie ausdruecklich oeffnet.
  werkOffenKarte.clear();
+ // v3.213: dasselbe fuer die Projekte/Materialgruppen - jede Sitzung faengt
+ // mit dem an, was zuerst drankommt.
+ werkZuBlock.clear();
+ werkBlockVorbelegt.projekt=false; werkBlockVorbelegt.material=false;
  const box=$("werkstattBody");
  if(box)box.innerHTML='<div class="small">Wird geladen …</div>';
  await werkstattNeuLaden();
@@ -879,6 +947,25 @@ document.addEventListener("click",async e=>{
   const ids=werkSichtbareKartenIds();
   if(allezu.dataset.werkAllezu==="zu")ids.forEach(id=>werkOffenKarte.delete(id));
   else ids.forEach(id=>werkOffenKarte.add(id));
+  renderWerkstatt();
+  return;
+ }
+
+ // v3.213: ganze Projekte (bzw. Materialgruppen) auf einmal.
+ const blockAlle=e.target.closest("[data-werk-blockallezu]");
+ if(blockAlle){
+  const bloecke=(werkSicht==="material")?werkMaterialGruppen():werkGruppen();
+  if(blockAlle.dataset.werkBlockallezu==="zu")bloecke.forEach(g=>werkZuBlock.add(werkBlockSchluessel(g)));
+  else bloecke.forEach(g=>werkZuBlock.delete(werkBlockSchluessel(g)));
+  renderWerkstatt();
+  return;
+ }
+ // Der Projektkopf klappt das Projekt zu. Ein Klick auf einen Knopf darin
+ // (Rüstliste, Projekt) darf das nicht ausloesen - die haben ihren eigenen Weg.
+ const block=e.target.closest("[data-werk-blockzu]");
+ if(block&&!e.target.closest("button")){
+  const k=block.dataset.werkBlockzu;
+  if(werkZuBlock.has(k))werkZuBlock.delete(k); else werkZuBlock.add(k);
   renderWerkstatt();
   return;
  }
@@ -1006,7 +1093,7 @@ document.addEventListener("click",async e=>{
 document.addEventListener("keydown",e=>{
  if(e.key!=="Enter"&&e.key!==" ")return;
  if(!e.target||!e.target.closest)return;
- const k=e.target.closest("[data-werk-karte]");
+ const k=e.target.closest("[data-werk-karte],[data-werk-blockzu]");
  if(!k||e.target.closest("button"))return;
  e.preventDefault();
  k.click();

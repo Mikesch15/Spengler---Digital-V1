@@ -359,6 +359,8 @@ const WIN_CHANGELOG={
   "<b>Alle Massaufnahmen lassen sich zuklappen</b>, einzeln oder mit einem Schalter über der Liste. In der Werkstatt nach Material und auf der Seite „Material &amp; Zuschnitt“ ging das bisher gar nicht."],
  "3.212":["<b>Eine zugeklappte Massaufnahme in der Werkstatt ist jetzt gleich klein wie auf der Projektseite</b> – zwei Zeilen statt bis zu vier: oben Art und Bezeichnung, unten Status und Zuschnittstand, der Knopf zum Bestätigen schmal daneben. Auf einen Blick sieht man dadurch rund doppelt so viele Aufträge.",
   "Material und Stärke stehen zugeklappt nicht mehr dabei – der Platz gehört der Bezeichnung, nach der ausgewählt wird. Aufgeklappt und im Rüstblatt stehen sie unverändert."],
+ "3.213":["<b>In der Werkstatt lässt sich jetzt das ganze Projekt zuklappen.</b> Ein Tipp auf den Projektkopf, und übrig bleiben Objekt, Projekt und die Anzahl dessen, was dort ansteht – „Rüstliste“ und „Projekt“ bleiben erreichbar. Über der Liste stehen zwei Schalter: einer für alle Projekte, einer für alle Massaufnahmen.",
+  "<b>Ab vier Projekten startet nur das oberste offen</b> – also das, das laut rotem Faden zuerst drankommt. Bei drei oder weniger bleibt alles offen wie bisher. In der Sicht nach Material gilt dasselbe für die Materialgruppen."],
 };
 
 function winVersionVergleich(a,b){
