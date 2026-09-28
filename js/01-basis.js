@@ -1202,6 +1202,9 @@ function barcodeScanWunschKonstraint(){
 // Kamera stoppen und Overlay schliessen. Sicher mehrfach aufrufbar (z. B.
 // einmal beim erfolgreichen Scan, einmal beim Abbrechen-Klick danach).
 function barcodeScanSchliessen(){
+ // v3.221: auch der eingebaute Leser des Geraets muss aufhoeren - sonst
+ // laeuft sein Takt weiter, nachdem die Kamera schon freigegeben ist.
+ barcodeScanDetektorStoppen();
  try{ if(barcodeScanControls&&barcodeScanControls.stop)barcodeScanControls.stop(); }catch(e){}
  try{ if(barcodeScanCodeReader&&barcodeScanCodeReader.reset)barcodeScanCodeReader.reset(); }catch(e){}
  try{
@@ -1267,85 +1270,143 @@ function barcodeScanMitZeitlimit(promise,ms){
  });
 }
 
-// v3.113: NEUE ARCHITEKTUR nach zwei bestaetigten Fehlschlaegen. Die
-// gemeinsame Ursache beider bisherigen Versuche: zu einem Zeitpunkt waren
-// ZWEI Kamerazugriffe gleichzeitig aktiv - v3.108 forderte den neuen Stream
-// an, BEVOR der alte gestoppt war; v3.111 rief takePhoto() auf einem
-// Track auf, der gleichzeitig WEITER als Vorschau lief. Diese Version
-// stellt sicher, dass zu KEINEM Zeitpunkt mehr als ein Kamerazugriff aktiv
-// ist: die Vorschau wird ERST VOLLSTAENDIG GESTOPPT (Track gestoppt,
-// video.srcObject geloescht), dann - nach einer kurzen Wartezeit, damit die
-// Hardware die Kamera tatsaechlich freigibt - ein KOMPLETT NEUER Stream
-// AUSSCHLIESSLICH fuer die Fotoaufnahme angefordert, sofort nach dem Foto
-// wieder freigegeben, und erst DANACH (wieder als einziger aktiver Zugriff)
-// ein neuer Vorschau-Stream angefordert. Das aufgenommene Foto nutzt
-// denselben Einzelbild-Aufnahmepfad wie eine native Kamera-App (siehe
-// v3.109/v3.111) - der eigentliche Grund fuer den Versuch, da der
-// Dauerautofokus des Vorschau-Streams beim Anwender bei kurzer Distanz
-// nicht ausreicht.
+// ---- Fokus im laufenden Bild (v3.221) ------------------------------------
 //
-// Ehrliche Einschraenkung: aus dieser Sandbox ist kein Live-Test mit einer
-// echten Geraetekamera moeglich (wiederholt dokumentierte, bestehende
-// Grenze). Ob diese dritte, sorgfaeltiger getrennte Variante das schwarze
-// Bild tatsaechlich vermeidet, kann nur der Anwender am eigenen Geraet
-// bestaetigen.
-async function barcodeScanNeuFokussieren(){
- const video=$("barcodeScanVideo");
- const alterStream=video&&video.srcObject;
- if(!alterStream)return;
- if(typeof ImageCapture==="undefined"||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return;
-
- // 1) Vorschau VOLLSTAENDIG stoppen, bevor irgendein neuer Kamerazugriff
- //    angefordert wird - zu keinem Zeitpunkt sind zwei Zugriffe gleichzeitig
- //    aktiv.
- video.srcObject=null;
- try{ alterStream.getTracks().forEach(t=>t.stop()); }catch(e){}
- await new Promise(r=>setTimeout(r,200));
-
- // 2) Neuen Stream AUSSCHLIESSLICH fuer die Fotoaufnahme anfordern. Vor der
- //    eigentlichen Aufnahme eine Aufwaermzeit (v3.114): ein GERADE ERST
- //    geoeffneter Kamera-Stream braucht selbst Zeit fuer seine eigene
- //    Autofokus-Anlaufsuche - wurde in v3.113 zu kurz bemessen (praktisch
- //    keine Wartezeit), sodass das Foto vermutlich vor Abschluss dieser
- //    Anlaufsuche aufgenommen wurde und dadurch ebenfalls unscharf blieb.
- let text=null, fotoStream=null;
- try{
-  fotoStream=await navigator.mediaDevices.getUserMedia(barcodeScanWunschKonstraint());
-  const track=fotoStream.getVideoTracks()[0];
-  await new Promise(r=>setTimeout(r,1000));
-  const capture=new ImageCapture(track);
-  const blob=await capture.takePhoto();
-  if(barcodeScanCodeReader&&typeof barcodeScanCodeReader.decodeFromImageElement==="function"){
-   let bild=null;
-   try{
-    bild=await barcodeScanBildElement(blob);
-    const result=await barcodeScanMitZeitlimit(barcodeScanCodeReader.decodeFromImageElement(bild.img),6000);
-    text=result?result.getText():null;
-   }finally{
-    if(bild)try{URL.revokeObjectURL(bild.url)}catch(e){}
-   }
-  }
- }catch(e){/* Fotoaufnahme fehlgeschlagen - Vorschau wird unten trotzdem neu gestartet */}
- finally{
-  try{ if(fotoStream)fotoStream.getTracks().forEach(t=>t.stop()); }catch(e){}
- }
-
- if(text){
-  const cb=barcodeScanAktuellerCallback;
-  barcodeScanSchliessen();
-  if(cb)cb(text);
-  return;
- }
-
- // 3) Kein Code gefunden (oder Fotoaufnahme fehlgeschlagen): Vorschau fuer
- //    die Weitersuche neu anfordern - wieder als einziger aktiver Zugriff.
- try{
-  const neuerVorschauStream=await navigator.mediaDevices.getUserMedia(barcodeScanWunschKonstraint());
-  video.srcObject=neuerVorschauStream;
-  if(typeof video.play==="function")video.play().catch(()=>{});
- }catch(e){/* Vorschau-Neustart fehlgeschlagen - kein Fehler sichtbar */}
+// ECHTER FEHLER, vom Anwender gemeldet: "Bild im scanner wird beim
+// draufklicken wieder kurz schwarz und kommt dan wieder."
+//
+// Ursache war kein Kamerafehler, sondern was hier bis v3.220 beim Tippen
+// passierte. Der Tipp-Handler stammte aus v3.113/v3.114, als das laufende
+// Bild NICHT der Weg zum Scannen war, sondern nur eine Vorschau vor einer
+// Fotoaufnahme: er stoppte die Vorschau vollstaendig, wartete 200 ms,
+// forderte einen NEUEN Stream nur fuer ein Foto an, wartete dort 1000 ms
+// auf dessen Autofokus, nahm ein Einzelfoto auf, gab den Stream wieder
+// frei und forderte danach einen DRITTEN Stream fuer die Vorschau an.
+// Dazwischen hing am <video> kein Bild - das sind die rund anderthalb
+// Sekunden Schwarz. Seit v3.220 der Live-Scan der normale Weg ist, riss
+// dieses Tippen also genau das ab, was man gerade benutzt.
+//
+// Jetzt wird der Stream beim Tippen NIE MEHR angefasst. Es gibt keinen
+// Pfad mehr, der video.srcObject leert oder einen zweiten Stream
+// anfordert - deshalb kann das Bild beim Tippen auch nicht mehr schwarz
+// werden. Stattdessen wird dem laufenden Track ueber applyConstraints()
+// ein Fokus-Anstoss gegeben: einmal "single-shot" (scharfstellen auf das,
+// was jetzt im Bild ist), danach zurueck auf "continuous", damit er
+// weiter von selbst nachfuehrt. Beides nur, wenn das Geraet es in
+// getCapabilities() auch wirklich anbietet - sonst passiert nichts, was
+// ausdruecklich in Ordnung ist: der Dauerautofokus laeuft ja ohnehin.
+//
+// Ehrliche Einschraenkung, wie schon in v3.107-v3.116: aus der
+// Entwicklungsumgebung ist kein Zugriff auf eine echte Geraetekamera
+// moeglich. Dass das Bild beim Tippen nicht mehr schwarz wird, ist
+// strukturell sicher (der abreissende Pfad existiert nicht mehr, der
+// Pruefstand belegt das). Wie gut der Autofokus auf dem konkreten Geraet
+// nachfuehrt, kann nur der Anwender bestaetigen.
+function barcodeScanFokusModi(track){
+ let faehig=null;
+ try{ faehig=(track&&track.getCapabilities)?track.getCapabilities():null; }catch(e){}
+ return (faehig&&faehig.focusMode)||[];
 }
-if($("barcodeScanVideo"))$("barcodeScanVideo").addEventListener("click",barcodeScanNeuFokussieren);
+
+// Dauerautofokus anfordern - die Vorgabe aus getUserMedia wird von manchen
+// Browsern nur teilweise umgesetzt, ueber den laufenden Track aber
+// akzeptiert. Kein neuer Stream, kein zweiter Berechtigungsdialog.
+async function barcodeScanDauerfokus(track){
+ if(!track||!track.applyConstraints)return false;
+ if(barcodeScanFokusModi(track).indexOf("continuous")<0)return false;
+ try{ await track.applyConstraints({advanced:[{focusMode:"continuous"}]}); return true; }
+ catch(e){ return false; }
+}
+
+async function barcodeScanFokusAnstossen(){
+ const video=$("barcodeScanVideo");
+ const stream=video&&video.srcObject;
+ if(!stream||!stream.getVideoTracks)return;
+ const track=stream.getVideoTracks()[0];
+ if(!track||!track.applyConstraints)return;
+ const modi=barcodeScanFokusModi(track);
+ try{
+  if(modi.indexOf("single-shot")>=0){
+   await track.applyConstraints({advanced:[{focusMode:"single-shot"}]});
+   // Kurz scharfstellen lassen, dann wieder abgeben an den Dauerautofokus -
+   // sonst bliebe die Kamera auf dieser einen Entfernung stehen.
+   await new Promise(r=>setTimeout(r,700));
+  }
+ }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
+ await barcodeScanDauerfokus(track);
+}
+if($("barcodeScanVideo"))$("barcodeScanVideo").addEventListener("click",barcodeScanFokusAnstossen);
+
+// ---- Der eingebaute Scanner des Geraets (v3.221) --------------------------
+//
+// Frage des Anwenders: "gibt es nicht extra eine scanner funktion um so
+// etwas zu machen? Zb. Die Migros app hat so einen scanner eingebaut ...
+// dort laeuft immer das livebild und es fokussiert immer ohne etwas zu
+// tun."
+//
+// Die gibt es: BarcodeDetector, der Barcode-Leser, den der Browser selbst
+// mitbringt. Auf Android/Chrome ist das dieselbe eingebaute Erkennung, die
+// auch native Apps benutzen - sie laeuft ausserhalb von JavaScript, ist
+// deutlich schneller und liest unschaerfere und schraegere Codes als die
+// mitgelieferte Bibliothek. Sie ist aber nicht ueberall da (iOS/Safari
+// kennt sie nicht), deshalb ist sie ein PLUS, kein Ersatz:
+//
+// Beide lesen dasselbe laufende Bild. ZXing laeuft weiter wie bisher (es
+// besitzt den Stream und das <video>), der eingebaute Leser schaut
+// zusaetzlich alle 200 ms auf denselben <video>-Inhalt. Wer zuerst einen
+// Code sieht, gewinnt; barcodeScanTreffer() laesst nur den ersten durch.
+// Faellt der eingebaute Leser aus oder gibt es ihn nicht, aendert sich
+// gegenueber v3.220 nichts.
+let barcodeScanDetektorTimer=null;
+
+function barcodeScanDetektorStoppen(){
+ if(barcodeScanDetektorTimer){ clearInterval(barcodeScanDetektorTimer); barcodeScanDetektorTimer=null; }
+}
+
+// Genau EINMAL melden - egal, welcher Weg zuerst da ist (eingebauter Leser,
+// ZXing, Foto oder von Hand eingetippt). Der Merker dafuer ist der Callback
+// selbst: er wird hier entnommen und sofort geloescht, ein zweiter Treffer
+// findet also nichts mehr vor und schliesst nur noch (was ohne Wirkung ist,
+// wenn schon geschlossen). Ein eigenes Flag waere eine zweite Wahrheit, die
+// man beim Oeffnen zuruecksetzen muesste - und genau das vergisst man.
+function barcodeScanTreffer(text){
+ const cb=barcodeScanAktuellerCallback;
+ barcodeScanAktuellerCallback=null;
+ barcodeScanSchliessen();
+ if(cb)cb(text);
+}
+
+// Den eingebauten Leser bauen - oder null, wenn es ihn nicht gibt. Die
+// Abfrage der unterstuetzten Formate ist wichtig: auf manchen Geraeten
+// existiert BarcodeDetector, kann aber kein einziges Format.
+async function barcodeScanDetektorBauen(){
+ if(typeof BarcodeDetector==="undefined")return null;
+ try{
+  const formate=await BarcodeDetector.getSupportedFormats();
+  if(!formate||!formate.length)return null;
+  return new BarcodeDetector({formats:formate});
+ }catch(e){ return null; }
+}
+
+async function barcodeScanDetektorStarten(){
+ const video=$("barcodeScanVideo");
+ if(!video)return false;
+ const detektor=await barcodeScanDetektorBauen();
+ if(!detektor)return false;
+ let laeuft=false;   // detect() ist asynchron - kein zweiter Lauf daneben
+ barcodeScanDetektorStoppen();
+ barcodeScanDetektorTimer=setInterval(async()=>{
+  if(laeuft)return;
+  if(!video.srcObject||video.readyState<2)return;
+  laeuft=true;
+  try{
+   const codes=await detektor.detect(video);
+   if(codes&&codes.length&&codes[0].rawValue)barcodeScanTreffer(codes[0].rawValue);
+  }catch(e){/* einzelner Leseversuch fehlgeschlagen - beim naechsten weiter */}
+  laeuft=false;
+ },200);
+ return true;
+}
 
 // v3.114: manuelle Code-Eingabe als garantierter Rueckweg, unabhaengig von
 // jeder Kamera-Eigenheit - falls die Kamera einen Code partout nicht
@@ -1356,9 +1417,9 @@ function barcodeScanManuellUebernehmen(){
  if(!eingabe)return;
  const text=eingabe.value.trim();
  if(!text)return;
- const cb=barcodeScanAktuellerCallback;
- barcodeScanSchliessen();
- if(cb)cb(text);
+ // v3.221: ueber dieselbe Stelle wie die beiden Leser - so kann ein
+ // gleichzeitig erkannter Code nicht ein zweites Mal gemeldet werden.
+ barcodeScanTreffer(text);
 }
 if($("barcodeScanManuellUebernehmen"))$("barcodeScanManuellUebernehmen").onclick=barcodeScanManuellUebernehmen;
 if($("barcodeScanManuellInput"))$("barcodeScanManuellInput").addEventListener("keydown",e=>{
@@ -1391,9 +1452,7 @@ async function barcodeScanNativeFotoAusgewaehlt(e){
   const result=await barcodeScanMitZeitlimit(barcodeScanCodeReader.decodeFromImageElement(bild.img),6000);
   const text=result?result.getText():null;
   if(text){
-   const cb=barcodeScanAktuellerCallback;
-   barcodeScanSchliessen();
-   if(cb)cb(text);
+   barcodeScanTreffer(text);   // v3.221: eine Stelle fuer alle Wege
    return;
   }
   if(status){status.textContent="Kein Code im Foto gefunden - nochmal versuchen oder unten eintippen.";status.style.color="#ffb3b3"}
@@ -1457,11 +1516,9 @@ async function barcodeScannen(callback){
   barcodeScanCodeReader=new ZXing.BrowserMultiFormatReader();
   const aufTreffer=(result,err,controls)=>{
    barcodeScanControls=controls;
-   if(result){
-    const text=result.getText();
-    barcodeScanSchliessen();
-    callback(text);
-   }
+   // v3.221: ueber die gemeinsame Stelle - seit der eingebaute Leser des
+   // Geraets parallel mitliest, darf nur der erste Treffer durchkommen.
+   if(result)barcodeScanTreffer(result.getText());
   };
   // Kamera-Autofokus (v3.104, verstaerkt): decodeFromVideoDevice(undefined,...)
   // liess die Kamera-Wahl UND ihre Voreinstellungen komplett dem Browser -
@@ -1496,10 +1553,13 @@ async function barcodeScannen(callback){
   // auf dem laufenden Track. Zusaetzlicher, rein defensiver Versuch - ohne
   // Wirkung, wenn nicht unterstuetzt (kein Fehler, kein zweiter Dialog, es
   // wird ja kein neuer Stream angefordert).
-  try{
-   const track=video.srcObject&&video.srcObject.getVideoTracks&&video.srcObject.getVideoTracks()[0];
-   if(track&&track.applyConstraints)await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
-  }catch(e){/* Vorgabe nicht unterstuetzt - bewusst ignoriert */}
+  const track=video.srcObject&&video.srcObject.getVideoTracks&&video.srcObject.getVideoTracks()[0];
+  await barcodeScanDauerfokus(track);
+
+  // v3.221: zusaetzlich den eingebauten Barcode-Leser des Geraets mitlesen
+  // lassen (siehe Kommentar bei barcodeScanDetektorStarten). Gibt es ihn
+  // nicht, bleibt alles wie in v3.220.
+  await barcodeScanDetektorStarten();
   if(status)status.textContent="Code in den Rahmen halten …";
  }catch(err){
   const meldung=(err&&err.name==="NotAllowedError")

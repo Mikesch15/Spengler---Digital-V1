@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.220";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.221";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.220<br>
+  Version 3.221<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2326,8 +2326,18 @@ sucht das Produkt über seinen Barcode.</td></tr>
 </table>
 <p><strong>Gescannt wird im laufenden Bild</strong> (seit Version 3.220): Code in
 den Rahmen halten, er wird von selbst erkannt. Man muss also nicht mehr zuerst
-ein Foto aufnehmen und es dann auswerten lassen. Ist das Bild unscharf, kurz
-darauf tippen.</p>
+ein Foto aufnehmen und es dann auswerten lassen.</p>
+<p><i>Seit Version 3.221</i> liest dabei auch der <strong>eingebaute
+Barcode-Leser des Geräts</strong> mit, wo es ihn gibt (Android/Chrome) – dieselbe
+Erkennung, die native Scanner-Apps benutzen. Sie läuft ausserhalb der App, ist
+schneller und kommt mit unschärferen und schrägen Codes zurecht. Wer zuerst
+einen Code sieht, gewinnt; gemeldet wird er genau einmal. Auf Geräten ohne
+diesen Leser (z.&nbsp;B. iPhone) bleibt alles wie vorher.</p>
+<p>Die Kamera stellt dabei <strong>von selbst dauernd scharf</strong>. Ein Tippen
+auf das Bild stösst zusätzlich einmal scharf und gibt sofort wieder an den
+Dauerautofokus ab – <strong>ohne das Bild zu unterbrechen</strong>. Bis
+Version 3.220 wurde dabei die Kamera kurz ganz abgeschaltet und neu gestartet;
+das Bild wurde für rund anderthalb Sekunden schwarz. Das ist behoben.</p>
 <div class="hin">Klappt das Scannen auf einem Gerät nicht – schlechtes Licht, unruhige
 Hand, Kamera ohne Nahbereich –, gibt es zwei Rückwege, die beide bleiben:
 <span class="tasten">📷 Stattdessen Foto aufnehmen</span> nimmt die Kamera-App des
@@ -2730,7 +2740,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.220</strong>, Stand 28. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.221</strong>, Stand 28. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

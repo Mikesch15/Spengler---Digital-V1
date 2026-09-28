@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.220.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.221.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2216,7 +2216,12 @@ niemand mehr erklären kann.</p>
 <p>📥 <b>Einscannen</b> / 📤 <b>Ausscannen</b> öffnen die Kamera. <i>Seit
 3.220 wird im laufenden Bild gescannt:</i> Code in den Rahmen halten, er wird
 von selbst erkannt – man muss nicht mehr zuerst ein Foto aufnehmen und es
-dann auswerten lassen. Ist das Bild unscharf, kurz darauf tippen. Danach
+dann auswerten lassen. <i>Seit 3.221</i> liest dabei auch der <b>eingebaute
+Barcode-Leser des Geräts</b> mit, wo es ihn gibt (Android/Chrome) – dieselbe
+Erkennung, die native Scanner-Apps benutzen; sie ist schneller und kommt mit
+unschärferen und schrägen Codes zurecht. Die Kamera stellt von selbst
+dauernd scharf; ein Tippen aufs Bild stösst zusätzlich einmal scharf, ohne
+das Bild zu unterbrechen. Danach
 sucht die App den erkannten Barcode unter den Produkten und öffnet den
 Buchen-Dialog direkt mit der passenden Richtung – nur die Menge muss noch
 bestätigt werden. Will ein Code partout nicht erkannt werden, nimmt

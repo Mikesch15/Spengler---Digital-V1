@@ -719,100 +719,176 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    "wird das Formular aus einer Position heraus geoeffnet, steht sie ohne Suche fest",z);
  await page.evaluate(()=>{lagerNeuesProduktSchliessen()});
 
- // ---- 13 · Tippen-zum-Fokussieren (v3.113, komplett umgebaut) ------------
- console.log("\n13 · Tippen-zum-Fokussieren (Kamera-Nahfokus)");
- // Nach zwei bestaetigten Fehlschlaegen (v3.108: zweiter Stream VOR dem
- // Stoppen des ersten; v3.111: takePhoto() auf einem WEITERLAUFENDEN Track)
- // komplett neue Architektur in v3.113: die Vorschau wird ERST VOLLSTAENDIG
- // GESTOPPT, DANN ein neuer Stream NUR fuer die Fotoaufnahme angefordert,
- // sofort danach wieder freigegeben, und erst DANACH ein neuer
- // Vorschau-Stream angefordert - zu keinem Zeitpunkt zwei gleichzeitige
- // Kamerazugriffe. Kein echter Kamera-Zugriff in dieser Umgebung -
- // srcObject verlangt aber ein echtes MediaStream-Objekt; captureStream()
- // auf einem <canvas> liefert einen echten (aber kameralosen) MediaStream.
- // window.ImageCapture und navigator.mediaDevices.getUserMedia werden
- // gestubbt, um die REIHENFOLGE der Aufrufe zu pruefen - nicht die echte
- // Hardware-Ansteuerung.
+ // ---- 13 · Fokus im laufenden Bild (v3.221, Vertrag umgedreht) ----------
+ console.log("\n13 · Fokus im laufenden Bild (kein Abreissen des Kamerabilds)");
+ // GEAENDERTER VERTRAG. Bis v3.220 stand hier das Gegenteil: ein Tippen auf
+ // das Kamerabild MUSSTE den Stream stoppen, einen zweiten Stream nur fuer
+ // ein Foto anfordern und danach einen dritten fuer die Vorschau. Das war
+ // aus v3.113/v3.114, als das laufende Bild nur eine Vorschau vor einer
+ // Fotoaufnahme war.
+ //
+ // ECHTER FEHLER, vom Anwender an v3.220 gemeldet: "Bild im scanner wird
+ // beim draufklicken wieder kurz schwarz und kommt dan wieder." Genau die
+ // drei Stream-Wechsel oben sind dieses Schwarz - seit v3.220 im laufenden
+ // Bild gescannt wird, riss das Tippen ab, was man gerade benutzt.
+ //
+ // Der Abschnitt ist deshalb nicht geloescht, sondern umgedreht: er belegt
+ // jetzt, dass beim Tippen NICHTS am Stream passiert (Gegenprobe gegen das
+ // alte Verhalten) und stattdessen nur der Fokus ueber den LAUFENDEN Track
+ // angestossen wird.
  z=await page.evaluate(async()=>{
   const ereignisse=[];
-  const alterStream=document.createElement("canvas").captureStream();
-  const alterTrack=alterStream.getVideoTracks()[0];
-  alterTrack.stop=()=>{ereignisse.push("alten-Stream-gestoppt")};
-  $("barcodeScanVideo").srcObject=alterStream;
-
-  const fotoStream=document.createElement("canvas").captureStream();
-  const fotoTrack=fotoStream.getVideoTracks()[0];
-  fotoTrack.stop=()=>{ereignisse.push("foto-Stream-gestoppt")};
-  const vorschauStream=document.createElement("canvas").captureStream();
-
-  window.ImageCapture=class{
-   constructor(){ereignisse.push("ImageCapture-erzeugt")}
-   async takePhoto(){ereignisse.push("takePhoto");return new Blob(["x"],{type:"image/png"})}
-  };
-  let gumAufrufe=0;
-  navigator.mediaDevices.getUserMedia=async()=>{
-   gumAufrufe++;
-   ereignisse.push("getUserMedia-"+gumAufrufe);
-   return gumAufrufe===1?fotoStream:vorschauStream;
-  };
-
-  $("barcodeScanVideo").click();
-  // v3.114: vor der Aufnahme wartet die Funktion jetzt 1s, damit der frisch
-  // geoeffnete Foto-Stream selbst Zeit zum Fokussieren hat - die Wartezeit
-  // hier muss entsprechend laenger sein als die interne Wartezeit.
-  await new Promise(r=>setTimeout(r,1800));
-  return {ereignisse,gumAufrufe,srcObjectAmEnde:$("barcodeScanVideo").srcObject===vorschauStream};
- });
- p(z.ereignisse[0]==="alten-Stream-gestoppt","zuerst wird der alte Vorschau-Stream vollstaendig gestoppt",z);
- p(z.ereignisse.indexOf("getUserMedia-1")>z.ereignisse.indexOf("alten-Stream-gestoppt"),
-   "erst DANACH wird ein neuer Stream angefordert - nie zwei Kamerazugriffe gleichzeitig",z);
- p(z.ereignisse.includes("ImageCapture-erzeugt")&&z.ereignisse.includes("takePhoto"),
-   "mit diesem neuen Stream wird ein Einzelfoto aufgenommen",z);
- p(z.ereignisse.indexOf("foto-Stream-gestoppt")>z.ereignisse.indexOf("takePhoto"),
-   "der Foto-Stream wird direkt danach wieder freigegeben",z);
- p(z.gumAufrufe===2,"ohne gefundenen Code wird danach ein zweiter Stream fuer die Vorschau angefordert",z);
- p(z.srcObjectAmEnde===true,"das Kamerabild haengt am Ende an diesem neuen Vorschau-Stream",z);
-
- z=await page.evaluate(async()=>{
-  // Ohne ImageCapture-Unterstuetzung darf die Vorschau gar nicht erst
-  // angefasst werden - kein sinnloses Stoppen/Neustarten ohne Nutzen.
-  delete window.ImageCapture;
   const stream=document.createElement("canvas").captureStream();
   const track=stream.getVideoTracks()[0];
-  let gestoppt=false;
-  track.stop=()=>{gestoppt=true};
+  track.stop=()=>{ereignisse.push("stream-gestoppt")};
+  track.getCapabilities=()=>({focusMode:["continuous","single-shot","manual"]});
+  track.applyConstraints=async c=>{
+   ereignisse.push("applyConstraints:"+((c.advanced&&c.advanced[0]&&c.advanced[0].focusMode)||"?"));
+  };
+  $("barcodeScanVideo").srcObject=stream;
+
+  let gumAufrufe=0, imageCaptureErzeugt=false;
+  navigator.mediaDevices.getUserMedia=async()=>{gumAufrufe++;return document.createElement("canvas").captureStream()};
+  window.ImageCapture=class{constructor(){imageCaptureErzeugt=true}async takePhoto(){return new Blob(["x"])}};
+
+  $("barcodeScanVideo").click();
+  await new Promise(r=>setTimeout(r,1200));
+  return {ereignisse,gumAufrufe,imageCaptureErzeugt,
+   srcObjectUnveraendert:$("barcodeScanVideo").srcObject===stream};
+ });
+ p(z.ereignisse.indexOf("stream-gestoppt")<0,
+   "GEGENPROBE zum gemeldeten Fehler: beim Tippen wird der laufende Stream NICHT gestoppt",z);
+ p(z.gumAufrufe===0,
+   "und es wird KEIN zweiter Kamerastream angefordert - genau das machte das Bild schwarz",z);
+ p(z.imageCaptureErzeugt===false,"auch kein Einzelfoto (ImageCapture) mehr beim Tippen",z);
+ p(z.srcObjectUnveraendert===true,
+   "das Kamerabild haengt danach unveraendert am selben Stream - es kann gar nicht schwarz werden",z);
+ p(z.ereignisse[0]==="applyConstraints:single-shot",
+   "stattdessen wird auf dem LAUFENDEN Track einmal scharfgestellt (single-shot)",z);
+ p(z.ereignisse[z.ereignisse.length-1]==="applyConstraints:continuous",
+   "und danach wieder an den Dauerautofokus abgegeben (continuous)",z);
+
+ // Gegenprobe: ein Geraet, das gar keinen Fokusmodus anbietet, darf nichts
+ // versuchen - und erst recht nichts am Bild aendern.
+ z=await page.evaluate(async()=>{
+  const ereignisse=[];
+  const stream=document.createElement("canvas").captureStream();
+  const track=stream.getVideoTracks()[0];
+  track.stop=()=>{ereignisse.push("stream-gestoppt")};
+  track.getCapabilities=()=>({});
+  track.applyConstraints=async()=>{ereignisse.push("applyConstraints")};
   $("barcodeScanVideo").srcObject=stream;
   let gumAufrufe=0;
-  navigator.mediaDevices.getUserMedia=async()=>{gumAufrufe++;return document.createElement("canvas").captureStream()};
+  navigator.mediaDevices.getUserMedia=async()=>{gumAufrufe++;return stream};
   $("barcodeScanVideo").click();
-  await new Promise(r=>setTimeout(r,350));
-  return {gestoppt,gumAufrufe,srcObjectUnveraendert:$("barcodeScanVideo").srcObject===stream};
+  await new Promise(r=>setTimeout(r,900));
+  return {ereignisse,gumAufrufe,srcObjectUnveraendert:$("barcodeScanVideo").srcObject===stream};
  });
- p(z.gestoppt===false&&z.gumAufrufe===0&&z.srcObjectUnveraendert===true,
-   "ohne ImageCapture-Unterstuetzung wird die Vorschau gar nicht erst angefasst",z);
+ p(z.ereignisse.length===0&&z.gumAufrufe===0&&z.srcObjectUnveraendert===true,
+   "GEGENPROBE: bietet das Geraet keinen Fokusmodus an, passiert beim Tippen gar nichts - kein Versuch, kein Stream-Wechsel",z);
 
+ // Gegenprobe: nur Dauerautofokus, kein Einzel-Scharfstellen - dann darf
+ // auch nur der Dauerautofokus angefordert werden.
  z=await page.evaluate(async()=>{
-  // Schlaegt die Fotoanforderung fehl (z. B. Kamera kurzzeitig nicht
-  // verfuegbar), darf kein Fehler sichtbar werden - die Vorschau wird
-  // trotzdem danach neu angefordert, damit weitergesucht werden kann.
-  const alterStream=document.createElement("canvas").captureStream();
-  alterStream.getVideoTracks()[0].stop=()=>{};
-  $("barcodeScanVideo").srcObject=alterStream;
-  window.ImageCapture=class{ constructor(){} async takePhoto(){return new Blob(["x"],{type:"image/png"})} };
-  const vorschauStream=document.createElement("canvas").captureStream();
-  let gumAufrufe=0;
-  navigator.mediaDevices.getUserMedia=async()=>{
-   gumAufrufe++;
-   if(gumAufrufe===1)throw new Error("Kamera gerade nicht verfuegbar");
-   return vorschauStream;
+  const ereignisse=[];
+  const stream=document.createElement("canvas").captureStream();
+  const track=stream.getVideoTracks()[0];
+  track.getCapabilities=()=>({focusMode:["continuous"]});
+  track.applyConstraints=async c=>{
+   ereignisse.push((c.advanced&&c.advanced[0]&&c.advanced[0].focusMode)||"?");
   };
-  let fehler=null;
-  try{ $("barcodeScanVideo").click(); await new Promise(r=>setTimeout(r,600)); }catch(e){fehler=e}
-  return {fehler,gumAufrufe,srcObjectAmEnde:$("barcodeScanVideo").srcObject===vorschauStream};
+  $("barcodeScanVideo").srcObject=stream;
+  $("barcodeScanVideo").click();
+  await new Promise(r=>setTimeout(r,900));
+  return {ereignisse};
  });
- p(z.fehler===null,"ein fehlschlagender Fotoversuch wirft keinen sichtbaren Fehler",z);
- p(z.gumAufrufe===2&&z.srcObjectAmEnde===true,
-   "die Vorschau wird trotzdem danach neu angefordert, damit weitergesucht werden kann",z);
+ p(z.ereignisse.length===1&&z.ereignisse[0]==="continuous",
+   "GEGENPROBE: kennt das Geraet nur 'continuous', wird auch nur das angefordert",z);
+
+ // Ein fehlschlagendes applyConstraints darf keinen sichtbaren Fehler
+ // erzeugen und das Bild nicht anfassen.
+ z=await page.evaluate(async()=>{
+  const stream=document.createElement("canvas").captureStream();
+  const track=stream.getVideoTracks()[0];
+  track.getCapabilities=()=>({focusMode:["continuous","single-shot"]});
+  track.applyConstraints=async()=>{throw new Error("nicht unterstuetzt")};
+  $("barcodeScanVideo").srcObject=stream;
+  let fehler=null;
+  try{ $("barcodeScanVideo").click(); await new Promise(r=>setTimeout(r,900)); }catch(e){fehler=e}
+  return {fehler,srcObjectUnveraendert:$("barcodeScanVideo").srcObject===stream};
+ });
+ p(z.fehler===null&&z.srcObjectUnveraendert===true,
+   "schlaegt das Scharfstellen fehl, bleibt das Bild trotzdem stehen und es wird kein Fehler sichtbar",z);
+
+ // ---- 13a · Der eingebaute Barcode-Leser des Geraets (v3.221) -----------
+ console.log("\n13a · Eingebauter Barcode-Leser des Geraets (BarcodeDetector)");
+ // Frage des Anwenders: "gibt es nicht extra eine scanner funktion um so
+ // etwas zu machen? Zb. Die Migros app hat so einen scanner eingebaut."
+ // Die gibt es: BarcodeDetector. Er ist ein PLUS, kein Ersatz - auf
+ // Geraeten ohne ihn muss alles unveraendert weiterlaufen.
+ z=await page.evaluate(async()=>{
+  const gemerkt=window.BarcodeDetector;
+  delete window.BarcodeDetector;
+  const ohne=await barcodeScanDetektorBauen();
+  // Gegenprobe: vorhanden, aber ohne ein einziges lesbares Format - das
+  // gibt es wirklich; dann darf er NICHT benutzt werden.
+  window.BarcodeDetector=class{static async getSupportedFormats(){return []}};
+  const leer=await barcodeScanDetektorBauen();
+  window.BarcodeDetector=class{
+   static async getSupportedFormats(){return ["ean_13","code_128"]}
+   constructor(o){this.formate=o&&o.formats}
+   async detect(){return []}
+  };
+  const echt=await barcodeScanDetektorBauen();
+  if(gemerkt)window.BarcodeDetector=gemerkt; else delete window.BarcodeDetector;
+  return {ohne,leer,echtDa:!!echt,formate:echt?echt.formate:null};
+ });
+ p(z.ohne===null,"ohne eingebauten Leser gibt es keinen - die App faellt auf ZXing zurueck wie in v3.220",z);
+ p(z.leer===null,"GEGENPROBE: einen Leser ohne ein einziges lesbares Format benutzt die App nicht",z);
+ p(z.echtDa===true&&Array.isArray(z.formate)&&z.formate.indexOf("ean_13")>=0,
+   "gibt es ihn mit Formaten, wird er mit genau diesen Formaten gebaut",z);
+
+ // Der Takt liest das laufende Bild und meldet den Code - genau einmal.
+ z=await page.evaluate(async()=>{
+  const gemerkt=window.BarcodeDetector;
+  let leseversuche=0;
+  window.BarcodeDetector=class{
+   static async getSupportedFormats(){return ["ean_13"]}
+   async detect(){leseversuche++;return [{rawValue:"7612345678901"}]}
+  };
+  const video=$("barcodeScanVideo");
+  const stream=document.createElement("canvas").captureStream();
+  video.srcObject=stream;
+  try{ Object.defineProperty(video,"readyState",{value:4,configurable:true}); }catch(e){}
+  $("barcodeScanOverlay").hidden=false;
+  const gemeldet=[];
+  barcodeScanAktuellerCallback=t=>gemeldet.push(t);
+  const gestartet=await barcodeScanDetektorStarten();
+  await new Promise(r=>setTimeout(r,900));
+  const zustand={gestartet,gemeldet:gemeldet.slice(),leseversuche,
+   overlayZu:$("barcodeScanOverlay").hidden,
+   taktGestoppt:barcodeScanDetektorTimer===null};
+  barcodeScanSchliessen();
+  if(gemerkt)window.BarcodeDetector=gemerkt; else delete window.BarcodeDetector;
+  return zustand;
+ });
+ p(z.gestartet===true&&z.leseversuche>0,"der eingebaute Leser liest das laufende Bild von selbst - ohne Foto, ohne Tippen",z);
+ p(z.gemeldet.length===1&&z.gemeldet[0]==="7612345678901",
+   "GEGENPROBE gegen doppelte Meldung: der Code wird GENAU EINMAL gemeldet, obwohl der Leser ihn weiter sieht",z);
+ p(z.overlayZu===true&&z.taktGestoppt===true,
+   "danach schliesst das Overlay und der Takt hoert auf - er darf nicht ohne Kamera weiterlaufen",z);
+
+ // Gegenprobe: ohne eingebauten Leser darf kein Takt anlaufen.
+ z=await page.evaluate(async()=>{
+  const gemerkt=window.BarcodeDetector;
+  delete window.BarcodeDetector;
+  const gestartet=await barcodeScanDetektorStarten();
+  const zustand={gestartet,taktLaeuft:barcodeScanDetektorTimer!==null};
+  if(gemerkt)window.BarcodeDetector=gemerkt;
+  return zustand;
+ });
+ p(z.gestartet===false&&z.taktLaeuft===false,
+   "GEGENPROBE: ohne eingebauten Leser laeuft kein Takt - es bleibt bei ZXing allein",z);
 
  // v3.114: manuelle Code-Eingabe als garantierter Rueckweg, unabhaengig von
  // jeder Kamera-Eigenheit. barcodeScanAktuellerCallback ist in dieser
