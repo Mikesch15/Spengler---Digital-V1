@@ -218,6 +218,67 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  p(I.zukunft.wert===I.tag30,
    "ein noch laufender Termin bleibt im Feld stehen",[I.zukunft.wert,I.tag30]);
 
+ // v3.214: Ein erreichter Termin darf nicht aussehen wie gar kein Termin.
+ // URSACHE: Der Anwender hatte fuenf Aufgaben auf denselben Tag gesetzt; an
+ // diesem Tag standen sie wieder in der Liste - richtig so, aber von aussen
+ // nicht zu unterscheiden von "das Terminieren ist verloren gegangen".
+ // Gemeldet hat er es als "schon wieder nicht mehr terminiert".
+ console.log("\nJ · Ein erreichter Termin sagt, warum die Aufgabe wieder da ist");
+ const J=await page.evaluate(()=>{
+  const txt=am=>{
+   window.__setze(am===null?[]:[{id:41,schritt:"ruesten",am}]);
+   aufgabenTerminFormular=""; aufgabenTerminWahl="";
+   const a=aufgabenListe.find(x=>x.art==="ruesten");
+   const d=document.createElement("div"); d.innerHTML=aufgabeTerminHtml(a);
+   return d.textContent.replace(/\s+/g," ").trim();
+  };
+  return {heute:txt(window.__tag(0)),gestern:txt(window.__tag(-3)),
+          zukunft:txt(window.__tag(30)),ohne:txt(null)};
+ });
+ p(/heute terminiert/.test(J.heute),"auf heute faellig: die Aufgabe sagt es",J.heute);
+ p(/War auf/.test(J.gestern)&&/terminiert/.test(J.gestern),
+   "ein frueher faelliger Termin steht mit seinem Datum da",J.gestern);
+ // GEGENPROBE 1: eine noch laufende Aufgabe sagt weiterhin das Gegenteil.
+ p(/Terminiert auf/.test(J.zukunft)&&!/War auf/.test(J.zukunft),
+   "GEGENPROBE: ein laufender Termin heisst weiterhin 'Terminiert auf'",J.zukunft);
+ // GEGENPROBE 2: ohne Termin steht gar nichts - kein erfundener Hinweis.
+ p(J.ohne==="","GEGENPROBE: ohne Termin steht nichts da",J.ohne);
+
+ // v3.214: Die Schnellwahl. Das Feld oeffnet auf MORGEN; wer nur speichert,
+ // hat die Aufgabe am naechsten Tag wieder - genau das ist passiert. Der
+ // Wunsch von v3.185 waren aber "ferien" und "1 monat spaeter".
+ console.log("\nK · Schnellwahl: eine Woche, zwei Wochen, ein Monat");
+ const K=await page.evaluate(async()=>{
+  window.__setze([]);
+  aufgabenTerminFormular=aufgabenTerminSchluessel(41,"ruesten");
+  aufgabenTerminWahl="";
+  const a=()=>aufgabenListe.find(x=>x.art==="ruesten");
+  const wertVon=h=>{const m=h.match(/data-termin-datum="[^"]*"[^>]*value="([^"]*)"/);return m?m[1]:null};
+  const vorher=aufgabeTerminHtml(a());
+  const knoepfe=(vorher.match(/data-aufgabe="termin-plus"/g)||[]).length;
+  // Ein Tipp auf "In einem Monat" - ueber den echten Zuhoerer, nicht ueber
+  // einen nachgebauten Aufruf.
+  let geschrieben=0;
+  const echtesFrom=sb.from;
+  sb.from=(...x)=>{geschrieben++;return echtesFrom.apply(sb,x)};
+  const box=document.createElement("div"); box.innerHTML=vorher;
+  document.body.appendChild(box);
+  box.querySelector('[data-aufgabe="termin-plus"][data-aufgabe-tage="30"]').click();
+  await new Promise(r=>setTimeout(r,60));
+  const nachher=aufgabeTerminHtml(a());
+  box.remove(); sb.from=echtesFrom;
+  return {knoepfe,vorherWert:wertVon(vorher),nachherWert:wertVon(nachher),
+          morgen:window.__tag(1),tag30:window.__tag(30),geschrieben,
+          aktiv:(nachher.match(/status-chip aktiv/g)||[]).length};
+ });
+ p(K.knoepfe===3,"drei Abstaende stehen zur Wahl",K);
+ p(K.vorherWert===K.morgen,"das Feld oeffnet weiterhin auf morgen",K);
+ p(K.nachherWert===K.tag30,"ein Tipp auf „In einem Monat“ setzt das Feld auf heute + 30 Tage",K);
+ p(K.aktiv===1,"und der gewaehlte Abstand ist als gewaehlt zu sehen",K);
+ // GEGENPROBE: die Schnellwahl SCHREIBT nicht. Erst Speichern schreibt -
+ // sonst waere ein Fehlgriff sofort in der Datenbank.
+ p(K.geschrieben===0,"GEGENPROBE: die Schnellwahl allein ruft die Datenbank nicht auf",K);
+
  // ---- H  Struktur ---------------------------------------------------------
  console.log("\nH · Struktur");
  const code=nurCode(lies("js/45-aufgaben.js"));

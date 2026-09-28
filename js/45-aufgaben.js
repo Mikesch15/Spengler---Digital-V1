@@ -83,14 +83,21 @@ let aufgabenTermine=Object.create(null);   // "id\u0000schritt" -> {id,faellig_a
 function aufgabenTerminSchluessel(mId,schritt){
  return String(mId)+"\u0000"+String(schritt||"");
 }
-// Heute als YYYY-MM-DD in ORTSZEIT. toISOString() waere UTC und wuerde am
-// Abend bereits den naechsten Tag melden - ein Termin auf heute waere dann
-// abends faelschlich schon abgelaufen.
-function aufgabenHeute(){
+// Ein Datum als YYYY-MM-DD in ORTSZEIT, wahlweise um Tage verschoben.
+// toISOString() waere UTC und wuerde am Abend bereits den naechsten Tag
+// melden - ein Termin auf heute waere dann abends faelschlich abgelaufen.
+// v3.214: Gerechnet wird ueber setDate(), nicht ueber "jetzt + 86400000 ms".
+// An den beiden Tagen der Zeitumstellung hat ein Tag 23 bzw. 25 Stunden; ein
+// fester 24-Stunden-Sprung landet dann auf demselben oder dem uebernaechsten
+// Datum. "Morgen" waere an diesem einen Tag im Jahr "heute" - und ein Termin
+// auf heute wird beim Speichern abgewiesen.
+function aufgabenTagPlus(tage){
  const d=new Date();
+ d.setDate(d.getDate()+(Number(tage)||0));
  const z=n=>String(n).padStart(2,"0");
  return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());
 }
+function aufgabenHeute(){return aufgabenTagPlus(0)}
 async function aufgabenTermineLaden(){
  const ich=aufgabenIch();
  if(!ich){aufgabenTermine=Object.create(null);return}
@@ -299,6 +306,11 @@ function aufgabenTerminZeileHtml(){
 // Welche Aufgabe wird gerade terminiert? Reine Anzeige-Angabe dieses
 // Geraets, kein Datenzustand.
 let aufgabenTerminFormular="";
+// v3.214: Welches Datum die Schnellwahl zuletzt gesetzt hat. Auch reine
+// Anzeige dieses Geraets - es muss im Zustand stehen, weil die Karte nach
+// jedem Tipp neu gezeichnet wird und ein nur ins Feld geschriebener Wert
+// dabei verloren ginge.
+let aufgabenTerminWahl="";
 
 // Eine Aufgabe als Karte. Eine Darstellung fuer beide Stellen.
 function aufgabeKarteHtml(a){
@@ -325,9 +337,7 @@ function aufgabeTerminHtml(a){
  if(aufgabenTerminFormular===schl){
   // min = morgen. Ein Termin auf heute oder frueher aendert nichts, und ein
   // Feld, das eine wirkungslose Eingabe zulaesst, ist eine Falle.
-  const morgen=new Date(Date.now()+86400000);
-  const z=n=>String(n).padStart(2,"0");
-  const min=morgen.getFullYear()+"-"+z(morgen.getMonth()+1)+"-"+z(morgen.getDate());
+  const min=aufgabenTagPlus(1);
   // v3.207: Vorbelegt wird nur ein Datum, das sich auch speichern laesst.
   // Ein ABGELAUFENER Termin steht weiter in aufgabenTermine - genau deshalb
   // ist die Aufgabe ja wieder da (aufgabenIstTerminiert verlangt Zukunft, es
@@ -336,11 +346,23 @@ function aufgabeTerminHtml(a){
   // erneut terminieren wollte und auf Speichern tippte, bekam "Das Datum
   // muss in der Zukunft liegen" - und nichts geschah. Das Feld bot damit
   // eine Eingabe an, die das Speichern gleich wieder abweist.
-  const wert=(t&&String(t.faellig_am)>=min)?String(t.faellig_am):min;
+  const wert=(aufgabenTerminWahl&&aufgabenTerminWahl>=min)?aufgabenTerminWahl
+            :((t&&String(t.faellig_am)>=min)?String(t.faellig_am):min);
+  // v3.214: Die drei ueblichen Abstaende als Knopf. Das Feld oeffnet auf
+  // MORGEN, und wer nur auf Speichern tippt, hat die Aufgabe am naechsten
+  // Tag wieder - genau das ist dem Anwender fuenfmal passiert. Der Wunsch
+  // von v3.185 waren aber "ferien" und "1 monat spaeter". Die Knoepfe
+  // setzen nur das Feld; geschrieben wird erst mit Speichern, damit man
+  // sieht, welches Datum es wird.
+  const schnell=[[7,"In einer Woche"],[14,"In zwei Wochen"],[30,"In einem Monat"]]
+   .map(([tg,txt])=>`<button type="button" class="status-chip${
+     wert===aufgabenTagPlus(tg)?" aktiv":""
+    }" data-aufgabe="termin-plus" data-aufgabe-tage="${tg}">${txt}</button>`).join("");
   return `<div class="aufgabe-termin-form">
    <label class="small">Wieder anzeigen ab
     <input type="date" data-termin-datum="${esc(schl)}" min="${min}" value="${esc(wert)}">
    </label>
+   <div class="aufgabe-termin-schnell">${schnell}</div>
    <div class="aufgabe-knoepfe">
     <button type="button" class="blue" data-aufgabe="termin-speichern" data-aufgabe-id="${esc(a.m.id)}" data-aufgabe-art="${esc(a.art)}">Speichern</button>
     <button type="button" class="gray" data-aufgabe="termin-abbrechen">Abbrechen</button>
@@ -348,6 +370,18 @@ function aufgabeTerminHtml(a){
  }
  if(t&&aufgabenIstTerminiert(a))
   return `<div class="aufgabe-termin small">🗓 Terminiert auf ${esc(aufgabenDatumText(t.faellig_am))}</div>`;
+ // v3.214: Ein ERREICHTER Termin bleibt stehen und sagt es. Ansage des
+ // Anwenders: "Jetzt sind meine aufgaben schon wieder nicht mehr
+ // terminiert..." - er hatte fuenf Aufgaben auf denselben Tag gesetzt, und
+ // an diesem Tag standen sie wieder da. Genau so ist es gedacht, nur sah
+ // man der Aufgabe nicht mehr an, dass sie ueberhaupt terminiert WAR: sie
+ // sah aus wie eine, bei der das Terminieren verloren gegangen ist.
+ if(t)
+  return `<div class="aufgabe-termin small aufgabe-termin-faellig">🗓 ${
+   String(t.faellig_am)===aufgabenHeute()
+    ? "Auf heute terminiert – darum steht sie wieder da"
+    : "War auf "+esc(aufgabenDatumText(t.faellig_am))+" terminiert – seither wieder fällig"
+  }</div>`;
  return "";
 }
 function aufgabeTerminKnopfHtml(a){
@@ -440,12 +474,22 @@ document.addEventListener("click",async e=>{
  }
  if(was==="termin-neu"){
   aufgabenTerminFormular=aufgabenTerminSchluessel(k.dataset.aufgabeId,k.dataset.aufgabeArt);
+  aufgabenTerminWahl="";
+  renderAufgaben();
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
+  return;
+ }
+ // v3.214: Die Schnellwahl setzt nur das Datumsfeld - sie speichert nicht.
+ // Erst Speichern schreibt, und bis dahin steht das gewaehlte Datum sichtbar
+ // im Feld.
+ if(was==="termin-plus"){
+  aufgabenTerminWahl=aufgabenTagPlus(k.dataset.aufgabeTage);
   renderAufgaben();
   if(typeof a2Zeichnen==="function")a2Zeichnen();
   return;
  }
  if(was==="termin-abbrechen"){
-  aufgabenTerminFormular="";
+  aufgabenTerminFormular=""; aufgabenTerminWahl="";
   renderAufgaben();
   if(typeof a2Zeichnen==="function")a2Zeichnen();
   return;
@@ -455,7 +499,7 @@ document.addEventListener("click",async e=>{
   const feld=document.querySelector('[data-termin-datum="'+aufgabenTerminSchluessel(id,art)+'"]');
   const r=await aufgabenTerminSetzen(id,art,feld?feld.value:"");
   if(!r.ok){alert(r.meldung);return}
-  aufgabenTerminFormular="";
+  aufgabenTerminFormular=""; aufgabenTerminWahl="";
   renderAufgaben();
   if(typeof a2Zeichnen==="function")a2Zeichnen();
   return;

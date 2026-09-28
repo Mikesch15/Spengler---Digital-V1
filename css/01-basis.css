@@ -1621,6 +1621,13 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .aufgabe-termin-form{margin:6px 0;display:flex;flex-direction:column;gap:6px}
 .aufgabe-termin-form label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
 .aufgabe-termin-form input[type=date]{max-width:220px}
+/* v3.214: Die drei ueblichen Abstaende als Chip-Reihe unter dem Datumsfeld -
+   dieselben Chips wie ueberall (.status-chip), nur enger gesetzt. */
+.aufgabe-termin-schnell{display:flex;flex-wrap:wrap;gap:6px}
+.aufgabe-termin-schnell .status-chip{min-height:34px;padding:5px 10px;font-size:12px}
+/* Ein erreichter Termin: kein Fehler, aber auch keine stille Zeile - er sagt,
+   warum die Aufgabe wieder dasteht. */
+.aufgabe-termin-faellig{color:var(--muted)}
 
 /* ---- Kontrolle der Stammdaten (v3.186) ----------------------------------
    Sie steht in den Einstellungen und - nur bei echten Fehlern - als Karte
