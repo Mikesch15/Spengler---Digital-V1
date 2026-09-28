@@ -158,6 +158,16 @@ const stand=page=>page.evaluate(()=>{
  };
 });
 
+// v3.215/v3.216: Die Werkstatt oeffnet als Liste ZUGEKLAPPTER Projekte.
+// Geprueft wird hier, was IN einem Projekt steht - also einmal aufklappen,
+// mit genau dem Zustand, den der Tipp auf den Projektkopf setzt. Dass die
+// Liste zugeklappt startet, prueft pruefstand-werkstatt-projekt-zu-v3-213.
+async function bloeckeAuf(page){
+ await page.evaluate(()=>{
+  if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt()}
+ });
+ await page.waitForTimeout(200);
+}
 (async()=>{
  const browser=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await browser.newPage({viewport:{width:1200,height:900}});
@@ -184,6 +194,7 @@ const stand=page=>page.evaluate(()=>{
  let s=await stand(page);
  p(s.knopfHidden===true&&s.knopfHoehe===0,"Startknopf weg",{h:s.knopfHidden,y:s.knopfHoehe});
  await page.evaluate(()=>werkstattOeffnen());
+ await bloeckeAuf(page);
  await page.waitForTimeout(60);
  s=await stand(page);
  p(s.modalHidden===true,"und die Ansicht laesst sich nicht oeffnen",{m:s.modalHidden});
@@ -199,6 +210,7 @@ const stand=page=>page.evaluate(()=>{
  s=await stand(page);
  p(s.knopfHidden===false&&s.knopfHoehe>20,"Startknopf da",{h:s.knopfHidden,y:s.knopfHoehe});
  await klick(page,"#navWerkstatt","Werkstatt-Knopf");
+ await bloeckeAuf(page);
  await page.waitForTimeout(120);
  s=await stand(page);
  p(s.modalHidden===false,"Ansicht offen");
@@ -245,6 +257,7 @@ const stand=page=>page.evaluate(()=>{
  p(s.montieren.join(",")==="13","und die eigene Montage",s.montieren);
  await vorbereiten(page,ALLES,true);
  await page.evaluate(()=>werkstattOeffnen());
+ await bloeckeAuf(page);
  await page.waitForTimeout(120);
  let sa=await stand(page);
  p(sa.ruesten.slice().sort().join(",")==="11,16",
@@ -253,6 +266,7 @@ const stand=page=>page.evaluate(()=>{
  console.log("\nF · bestaetigen laeuft ueber den bestehenden Weg");
  await vorbereiten(page,ALLES);
  await page.evaluate(()=>werkstattOeffnen());
+ await bloeckeAuf(page);
  await page.waitForTimeout(120);
  await klick(page,'[data-aufgabe="ruesten"][data-aufgabe-id="11"]',"Ruesten bestaetigen");
  await page.waitForTimeout(120);
@@ -273,6 +287,7 @@ const stand=page=>page.evaluate(()=>{
  console.log("\nG · Ruestgrundlage");
  await vorbereiten(page,ALLES);
  await page.evaluate(()=>werkstattOeffnen());
+ await bloeckeAuf(page);
  await page.waitForTimeout(120);
  s=await stand(page);
  p(s.auf.length===2,"je Projekt ein Knopf",{n:s.auf.length});
@@ -327,6 +342,7 @@ const stand=page=>page.evaluate(()=>{
  console.log("\nH · nur aktivierte Untermodule");
  await vorbereiten(page,{haupt:true,werkstatt:true});
  await page.evaluate(()=>werkstattOeffnen());
+ await bloeckeAuf(page);
  await page.waitForTimeout(200);
  s=await stand(page);
  // v3.21: Sind Material UND Reservierung aus, gibt es unten nichts
@@ -337,6 +353,7 @@ const stand=page=>page.evaluate(()=>{
 
  await vorbereiten(page,{haupt:true,material:true,werkstatt:true});
  await page.evaluate(()=>werkstattOeffnen());
+ await bloeckeAuf(page);
  await page.waitForTimeout(120);
  await klick(page,'[data-werk-auf="7"]');
  await page.waitForTimeout(160);
@@ -346,6 +363,7 @@ const stand=page=>page.evaluate(()=>{
  console.log("\nI · Filter und Navigation");
  await vorbereiten(page,ALLES);
  await page.evaluate(()=>werkstattOeffnen());
+ await bloeckeAuf(page);
  await page.waitForTimeout(120);
  await klick(page,'[data-werk-filter="montieren"]');
  await page.waitForTimeout(60);
@@ -394,6 +412,7 @@ const stand=page=>page.evaluate(()=>{
  console.log("\nK · Breiten");
  await vorbereiten(page,ALLES);
  await page.evaluate(()=>werkstattOeffnen());
+ await bloeckeAuf(page);
  await page.waitForTimeout(120);
  await klick(page,'[data-werk-auf="7"]');
  await page.waitForTimeout(160);

@@ -117,6 +117,16 @@ const typWaehlen=async(page,typ,register)=>{
  }
 };
 
+// v3.215/v3.216: Die Werkstatt oeffnet als Liste ZUGEKLAPPTER Projekte.
+// Geprueft wird hier, was IN einem Projekt steht - also einmal aufklappen,
+// mit genau dem Zustand, den der Tipp auf den Projektkopf setzt. Dass die
+// Liste zugeklappt startet, prueft pruefstand-werkstatt-projekt-zu-v3-213.
+async function bloeckeAuf(page){
+ await page.evaluate(()=>{
+  if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt()}
+ });
+ await page.waitForTimeout(200);
+}
 (async()=>{
  const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:412,height:900}});
@@ -352,6 +362,7 @@ const typWaehlen=async(page,typ,register)=>{
    werkOffen=null; werkGrundlage=null; werkFilter="alle";
   },[MESS,res,ALLES]);
   await page.evaluate(()=>werkstattOeffnen());
+  await bloeckeAuf(page);
   await page.waitForTimeout(250);
  };
  const wstand=page=>page.evaluate(()=>{
@@ -437,7 +448,7 @@ const typWaehlen=async(page,typ,register)=>{
 
  console.log("\nG · nur echte Daten, nur eingeschaltete Module");
  await page.evaluate(()=>{pmUebernehmen({haupt:true,werkstatt:true});
-   werkOffen=null;werkGrundlage=null;renderWerkstatt()});
+   werkOffen=null;werkGrundlage=null;werkZuBlock.clear();renderWerkstatt()});
  await page.waitForTimeout(160);
  w=await wstand(page);
  p(w.projekte.length&&w.projekte[0].stationen.join("|").indexOf("RESERVIERT")<0
@@ -451,7 +462,7 @@ const typWaehlen=async(page,typ,register)=>{
 
  console.log("\nH · Breiten");
  await page.evaluate(()=>{pmUebernehmen({haupt:true,material:true,zuschnitt:true,
-   reservierung:true,werkstatt:true});renderWerkstatt()});
+   reservierung:true,werkstatt:true});werkZuBlock.clear();renderWerkstatt()});
  for(const br of [320,390,768,1200]){
   await page.setViewportSize({width:br,height:900});
   await page.waitForTimeout(120);

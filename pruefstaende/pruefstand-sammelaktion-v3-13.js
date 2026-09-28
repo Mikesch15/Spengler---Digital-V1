@@ -181,6 +181,10 @@ const klick=async(page,sel)=>{
  return da;
 };
 
+// v3.215/v3.216: Die Werkstatt oeffnet als Liste ZUGEKLAPPTER Projekte.
+// Geprueft wird hier, was IN einem Projekt steht - also einmal aufklappen,
+// mit genau dem Zustand, den der Tipp auf den Projektkopf setzt. Dass die
+// Liste zugeklappt startet, prueft pruefstand-werkstatt-projekt-zu-v3-213.
 (async()=>{
  const browser=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await browser.newPage({viewport:{width:1200,height:900}});
@@ -422,6 +426,7 @@ const klick=async(page,sel)=>{
   $("projectCockpitModal").hidden=true;
   $("werkstattModal").hidden=false;
   renderWerkstatt();
+  if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt()}
  });
  await page.waitForTimeout(120);
  let w=await page.evaluate(()=>{
