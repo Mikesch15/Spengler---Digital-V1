@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.216`
+- Aktueller Entwicklungsstand: `v3.217`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 
@@ -40,9 +40,45 @@ where schemaname='public'
 -- muss LEER sein
 ```
 
+**3. Wer ohne eigene Prüfung arbeitet, darf nicht über die API erreichbar sein.**
+Seit v3.217, ausgelöst vom Supabase-Advisor: 32 `SECURITY DEFINER`-Funktionen
+sind für Angemeldete aufrufbar – darunter `system_admin_delete_company_data`.
+Nachgesehen: **alle** prüfen intern selbst (`is_system_admin()`, `is_admin()`,
+`auth.uid()` …), es war kein Loch offen. Die Abfrage hält diesen Zustand fest.
+Dazu die zweite Hälfte: Trigger-Funktionen (Rückgabetyp `trigger`) gehören
+überhaupt nicht in die API – sie werden nur von ihrem Trigger gerufen. Bei
+zehn von ihnen stand das EXECUTE-Recht trotzdem bei `authenticated`/`anon`
+bzw. `PUBLIC`; es wurde entzogen (`service_role` behält es). Dass Trigger
+danach weiterhin feuern, ist nachgewiesen: eine Buchung mit fremder Firma
+wurde von `enforce_lager_bewegung_firma` abgewiesen wie zuvor (PostgreSQL
+prüft `EXECUTE` beim ANLEGEN des Triggers, nicht beim Auslösen). Nachsehen:
+
+```sql
+select 'REGEL 3a' as regel, p.oid::regprocedure::text as funktion
+from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+where n.nspname='public' and p.prosecdef and p.prokind='f'
+  and p.prorettype <> 'pg_catalog.trigger'::regtype
+  and not (p.prosrc ~* 'is_system_admin|is_admin|has_permission|my_company_id|mw_firma_ok|auth\.uid')
+  and has_function_privilege('authenticated', p.oid, 'EXECUTE')
+union all
+select 'REGEL 3b', p.oid::regprocedure::text
+from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+where n.nspname='public' and p.prorettype='pg_catalog.trigger'::regtype
+  and (has_function_privilege('authenticated', p.oid, 'EXECUTE')
+       or has_function_privilege('anon', p.oid, 'EXECUTE'));
+-- muss LEER sein
+```
+
+**Kein Fehler, sondern Absicht:** `password_reset_tokens` hat RLS an und
+**keine** Policy. Das ist richtig so – nur die Edge Function (service_role)
+schreibt und liest dort; über die API kommt niemand an die Tabelle. Der
+Supabase-Advisor meldet das als INFO („RLS Enabled No Policy"). Wer das
+„repariert", indem er eine Policy hinzufügt, macht die Tabelle erreichbar.
+
 **Offen, bewusst nicht erledigt:** „Leaked Password Protection" in Supabase
 (Authentication → Providers → Email) ist aus. Das ist eine Dashboard-
-Einstellung, kein Code – sie lässt sich von hier aus nicht umlegen.
+Einstellung, kein Code – sie lässt sich von hier aus nicht umlegen, und sie
+setzt den Pro-Plan voraus, den der Betrieb nicht hat (Stand 28.09.2026).
 
 ## ARCHITEKTUR
 

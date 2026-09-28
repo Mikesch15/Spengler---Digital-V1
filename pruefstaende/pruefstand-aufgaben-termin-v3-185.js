@@ -347,6 +347,23 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  p(/aufgaben_termine/.test(lies("js/45-aufgaben.js")),"js/45 spricht mit aufgaben_termine");
  p(!/workflow_status\s*:/.test(code.split("aufgabenTerminSetzen")[1]||""),
    "das Terminieren aendert KEINEN workflow_status - im Projekt bleibt alles sichtbar");
+ // v3.217, Regel gegen den Rueckfall: Was in einer Karte steht, die BEIDE
+ // Ansichten zeichnen, darf nicht ueber das ganze Dokument gesucht werden -
+ // sonst gewinnt wieder das erste, unsichtbare Feld (der Fehler von v3.216).
+ // Geprueft wird die Reihenfolge im Speichern-Zweig: zuerst die eigene Karte
+ // (closest), das Dokument hoechstens als Rueckfall danach.
+ // Der Speichern-Zweig aus dem ROHEN Quelltext geschnitten (nurCode loescht
+ // Zeichenketten, und der Zweig wird genau ueber eine erkannt), danach ohne
+ // Kommentare geprueft - sonst wuerde der Kommentar darueber mitzaehlen.
+ const roh45=lies("js/45-aufgaben.js");
+ const ab=roh45.indexOf('was==="termin-speichern"');
+ const bisEnde=nurCode(roh45.slice(ab,roh45.indexOf("if(was===",ab+40)));
+ p(/closest\(/.test(bisEnde),
+   "das Speichern holt das Datumsfeld aus der eigenen Karte (closest)",bisEnde.slice(0,200));
+ p(!/document\.querySelector/.test(bisEnde)
+   ||bisEnde.indexOf("closest(")<bisEnde.indexOf("document.querySelector"),
+   "und sucht das Dokument hoechstens danach ab, nie zuerst",bisEnde.slice(0,300));
+
  const a2=nurCode(lies("js/70-ansicht2.js"));
  p(/aufgabenSichtbareListe/.test(a2),"js/70 nutzt die gemeinsame gefilterte Liste");
  p(/aufgabeTerminHtml/.test(a2)&&/aufgabeTerminKnopfHtml/.test(a2),

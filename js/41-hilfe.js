@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.216.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.217.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -252,6 +252,13 @@ dem Abhaken. <b>Nach Material</b> beantwortet „was kommt von derselben
 Rolle“: alle Zuschnitte einer Materialstärke zusammengezählt, quer über
 Projekte hinweg. Das ist die Reihenfolge, in der tatsächlich gerichtet wird –
 einmal zur Rolle, alles davon schneiden, weglegen.</p>
+<p><b>Suchen statt scrollen (seit v3.217).</b> Über der Liste steht ein
+Suchfeld. Gesucht wird in dem, was auf der Karte steht: Objekt, Projektname,
+Auftrags-Nr., Kunde, Bezeichnung und Art der Massaufnahme. Mehrere Wörter
+suchen zusammen („kirch rinne“ findet die Rinne an der Kirchgasse). Eine
+reine Zahl muss als ganze Zahl vorkommen – „Musterstrasse 3“ findet nicht
+jede Adresse mit der Postleitzahl 3000. Das ✕ leert die Suche; beim nächsten
+Öffnen der Werkstatt ist sie ohnehin wieder leer.</p>
 <p>Die Materialsicht ist eine <b>Rüstliste</b>, kein zweiter Arbeitsplatz:
 abgehakt wird weiterhin an der Massaufnahme, denn dort stehen die
 Stücknummern. Ein Tipp auf eine der Massaufnahmen führt hin. Der Filter

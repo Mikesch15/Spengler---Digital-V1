@@ -260,6 +260,76 @@ const stand=page=>page.evaluate(()=>({
  });
  p(G3.zeilen>0&&G3.karten>0,"und darin stehen Zuschnittliste und Massaufnahmen",G3);
 
+ // ---- H  Suchen statt scrollen (v3.217) -----------------------------------
+ // Seit v3.215 startet die Werkstatt zugeklappt. Bei vielen Baustellen ist
+ // Tippen dann schneller als Scrollen - gesucht wird in dem, was auf der
+ // Karte steht.
+ console.log("\nH · Suchen");
+ await page.evaluate(()=>{werkSichtSetzen("projekt");werkZuBlock.clear();renderWerkstatt()});
+ await page.waitForTimeout(150);
+ const suchen=async b=>{
+  await page.evaluate(t=>{
+   const f=$("werkstattSuche"); f.value=t;
+   f.dispatchEvent(new Event("input",{bubbles:true}));
+  },b);
+  await page.waitForTimeout(200);
+  return await stand(page);
+ };
+ const H0=await stand(page);
+ const H1=await suchen("Musterstrasse 3");
+ p(H1.bloecke===1&&/Musterstrasse 3/.test(H1.ersterTitel),
+   "ein Objekt eingetippt: genau diese Baustelle bleibt stehen",H1);
+ // Mehrere Woerter heissen UND.
+ const H2=await suchen("bau 2");
+ p(H2.bloecke===1,"zwei Woerter suchen zusammen, nicht jedes fuer sich",H2);
+ // GEGENPROBE zur Zahl: sie darf nicht mitten in einer anderen Zahl treffen.
+ // Beim ersten Lauf fand "Musterstrasse 3" alle drei Baustellen - wegen der
+ // Postleitzahl 3000. Eine Suche, die alles findet, hilft niemandem.
+ const H2b=await suchen("3000");
+ p(H2b.bloecke===3,"die ganze Postleitzahl findet erwartungsgemaess alle drei",H2b);
+ const H2c=await suchen("Musterstrasse 30");
+ p(H2c.bloecke===0,"GEGENPROBE: „30“ trifft NICHT in „3000“",H2c);
+ const H3=await suchen("Dach Nord");
+ p(H3.bloecke===1,"auch die Bezeichnung einer Massaufnahme findet ihre Baustelle",H3);
+ const H4=await suchen("Einlaufblech");
+ p(H4.bloecke>=3,"und die Art findet alle, die sie haben",H4);
+ // GEGENPROBE: kein Treffer sagt es, statt "nichts anliegt" zu behaupten.
+ const H5=await page.evaluate(async()=>{
+  const f=$("werkstattSuche"); f.value="gibtesnicht";
+  f.dispatchEvent(new Event("input",{bubbles:true}));
+  await new Promise(r=>setTimeout(r,150));
+  return $("werkstattBody").textContent.replace(/\s+/g," ");
+ });
+ p(/Kein Treffer/.test(H5)&&!/liegt gerade nichts an/.test(H5),
+   "GEGENPROBE: kein Treffer sagt „kein Treffer“ - nicht „nichts anliegt“",H5.slice(0,160));
+ // Und zurueck: der Knopf leert, alles steht wieder da.
+ const H6=await page.evaluate(async()=>{
+  $("werkstattSucheWeg").click();
+  await new Promise(r=>setTimeout(r,200));
+  return {feld:$("werkstattSuche").value,
+          weg:$("werkstattSucheWeg").hidden,
+          bloecke:document.querySelectorAll("#werkstattBody .werk-projekt").length};
+ });
+ p(H6.feld===""&&H6.weg&&H6.bloecke===H0.bloecke,
+   "der Knopf leert die Suche, und alle Baustellen stehen wieder da",{H6,vorher:H0.bloecke});
+ // GEGENPROBE: das Suchfeld steht AUSSERHALB der Liste - sonst verloere es
+ // beim Tippen den Fokus, weil die Liste neu gezeichnet wird.
+ const H7=await page.evaluate(()=>({
+  drin:!!$("werkstattBody").querySelector("#werkstattSuche"),
+  da:!!$("werkstattSuche")
+ }));
+ p(H7.da&&!H7.drin,"das Suchfeld wird beim Zeichnen der Liste nicht mitgetauscht",H7);
+ const H8=await page.evaluate(async()=>{
+  const f=$("werkstattSuche"); f.focus(); f.value="Muster";
+  f.dispatchEvent(new Event("input",{bubbles:true}));
+  await new Promise(r=>setTimeout(r,200));
+  const behalten=document.activeElement===f;
+  $("werkstattSucheWeg").click();
+  await new Promise(r=>setTimeout(r,150));
+  return behalten;
+ });
+ p(H8,"und behaelt beim Tippen den Fokus",H8);
+
  p(fehler.length===0,"keine JavaScript-Fehler auf der Seite",fehler.slice(0,3));
  console.log("\n=== "+ok+" bestanden, "+fail+" fehlgeschlagen");
  await b.close();

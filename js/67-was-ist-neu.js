@@ -365,6 +365,7 @@ const WIN_CHANGELOG={
  "3.215":["<b>Die Werkstatt öffnet jetzt mit allen Projekten zugeklappt.</b> Sie ist damit zuerst eine Liste der Baustellen; aufgeklappt wird, woran gerade gearbeitet wird. „Jetzt dran“ steht weiterhin über der Liste, und jeder Projektkopf sagt, wie viel dort ansteht – es verschwindet nichts."],
  "3.216":["<b>Behoben: Beim Terminieren wurde das falsche Datum gespeichert.</b> Wer in der neuen Ansicht ein Datum wählte – etwa den 5.10. – bekam stattdessen den Vorschlag „morgen“ gespeichert und hatte die Aufgabe am nächsten Tag wieder vor sich. Ursache: dieselbe Aufgabe steht zweimal auf der Seite (alte Startseiten-Karte und neue Ansicht), und gespeichert wurde das erste Feld statt dem, in das getippt wurde. Jetzt gilt das Datum aus der Karte, die man vor sich hat.",
   "Der Hinweis aus v3.214 („war auf … terminiert“) ist wieder weg – er beantwortete eine Frage, die es gar nicht gab."],
+ "3.217":["<b>Suchen in der Werkstatt.</b> Über der Liste steht ein Suchfeld: Objekt, Projekt, Auftrags-Nr., Kunde, Bezeichnung und Art. Mehrere Wörter suchen zusammen; eine reine Zahl muss als ganze Zahl vorkommen, damit „Musterstrasse 3“ nicht jede Adresse mit Postleitzahl 3000 findet."],
 };
 
 function winVersionVergleich(a,b){

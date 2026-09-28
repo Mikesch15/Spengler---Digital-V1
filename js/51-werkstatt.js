@@ -180,7 +180,36 @@ async function werkGrundlageLaden(projectId){
 }
 
 // ---- Gruppieren -----------------------------------------------------------
+// v3.217: Suche ueber der Liste. Seit v3.215 startet die Werkstatt
+// zugeklappt - bei vielen Baustellen ist dann Tippen schneller als Scrollen.
+// Gesucht wird in dem, was auf der Karte steht: Objekt, Projektname,
+// Auftrags-Nr., Kunde, Bezeichnung und Art der Massaufnahme.
+// Der Begriff gilt fuer die Sitzung und wird NICHT gemerkt - eine gemerkte
+// Suche waere beim naechsten Oeffnen eine unsichtbare Einschraenkung.
+let werkSuche="";
+function werkSuchText(z){
+ const p=(z&&z.project_id&&typeof allProjects!=="undefined")
+   ?allProjects.find(x=>x.id===z.project_id):null;
+ const art=(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[z&&z.type])||(z&&z.type)||"";
+ return [p&&p.object,p&&p.name,p&&p.order_no,p&&p.customer,z&&z.title,art]
+   .filter(Boolean).join(" ").toLowerCase();
+}
+// Mehrere Woerter heissen UND: "kirch rinne" findet die Rinne an der
+// Kirchgasse, nicht jede Rinne und jede Kirchgasse.
+// EINE Ausnahme: eine reine Zahl muss als GANZE Zahl vorkommen. Sonst findet
+// "Musterstrasse 3" auch die Musterstrasse 1 - wegen der Postleitzahl 3000.
+// Genau das kam beim ersten Lauf des Pruefstands heraus.
+function werkPasstSuche(z){
+ const s=String(werkSuche||"").trim().toLowerCase();
+ if(!s)return true;
+ const text=werkSuchText(z);
+ return s.split(/\s+/).every(w=>{
+  if(/^\d+$/.test(w))return new RegExp("(^|[^0-9])"+w+"([^0-9]|$)").test(text);
+  return text.indexOf(w)>=0;
+ });
+}
 function werkPasst(z){
+ if(!werkPasstSuche(z))return false;
  if(werkFilter==="ruesten")return z.workflow_status==="zu_ruesten";
  if(werkFilter==="montieren")return z.workflow_status==="zu_montieren";
  if(werkFilter==="meine")return z.ruester_id===werkIch()||z.monteur_id===werkIch();
@@ -814,6 +843,11 @@ function renderWerkstatt(){
  // Faden noch die Stationen - beide gehoeren zum Projekt, nicht zur Rolle.
  if(werkSicht==="material"){
   const matGruppen=werkMaterialGruppen();
+  if(!matGruppen.length&&String(werkSuche||"").trim()){
+   h+=`<div class="small" style="color:var(--muted)">Kein Treffer für
+    „${esc(werkSuche)}“.</div>`;
+   box.innerHTML=h; return 0;
+  }
   if(!matGruppen.length){
    h+=`<div class="small" style="color:var(--muted)">Zu den angezeigten
     Massaufnahmen ist kein Material hinterlegt. Es steht in der Massaufnahme
@@ -828,6 +862,14 @@ function renderWerkstatt(){
  }
 
  if(!gruppen.length){
+  // v3.217: Eine leere Liste WEGEN der Suche sagt das auch - sonst sieht es
+  // aus, als laege nichts an.
+  if(String(werkSuche||"").trim()){
+   h+=`<div class="small" style="color:var(--muted)">Kein Treffer für
+    „${esc(werkSuche)}“. Gesucht wird in Objekt, Projekt, Auftrags-Nr., Kunde,
+    Bezeichnung und Art.</div>`;
+   box.innerHTML=h; return 0;
+  }
   h+=`<div class="small" style="color:var(--muted)">${werkFilter==="alle"
     ?"In der Werkstatt liegt gerade nichts an. Hier erscheint, was freigegeben und zum Rüsten oder Montieren eingeteilt ist."
     :(werkFilter==="meine"
@@ -907,6 +949,9 @@ async function werkstattOeffnen(){
  // mit dem an, was zuerst drankommt.
  werkZuBlock.clear();
  werkBlockVorbelegt.projekt=false; werkBlockVorbelegt.material=false;
+ // v3.217: und die Suche. Eine Werkstatt, die mit einem alten Suchbegriff
+ // aufgeht, zeigt zu wenig, und niemand sieht warum.
+ werkSuche=""; werkSucheFeldSetzen();
  const box=$("werkstattBody");
  if(box)box.innerHTML='<div class="small">Wird geladen …</div>';
  await werkstattNeuLaden();
@@ -1100,6 +1145,24 @@ document.addEventListener("keydown",e=>{
  e.preventDefault();
  k.click();
 });
+
+// v3.217: Das Suchfeld steht in index.html AUSSERHALB von #werkstattBody -
+// die Liste wird bei jedem Tastendruck neu gezeichnet, ein Feld darin
+// verloere dabei den Fokus (Lehre aus der Lagerverwaltung, v3.125).
+function werkSucheFeldSetzen(){
+ const f=$("werkstattSuche"); if(f&&f.value!==werkSuche)f.value=werkSuche;
+ const w=$("werkstattSucheWeg"); if(w)w.hidden=!String(werkSuche||"").trim();
+}
+if($("werkstattSuche"))$("werkstattSuche").addEventListener("input",()=>{
+ werkSuche=String($("werkstattSuche").value||"");
+ const w=$("werkstattSucheWeg"); if(w)w.hidden=!werkSuche.trim();
+ renderWerkstatt();
+});
+if($("werkstattSucheWeg"))$("werkstattSucheWeg").onclick=()=>{
+ werkSuche=""; werkSucheFeldSetzen();
+ renderWerkstatt();
+ const f=$("werkstattSuche"); if(f)f.focus();
+};
 
 if($("werkstattAktualisieren"))$("werkstattAktualisieren").onclick=()=>werkstattNeuLaden();
 if($("closeWerkstatt"))$("closeWerkstatt").onclick=()=>{$("werkstattModal").hidden=true;$("startScreen").hidden=false};

@@ -212,7 +212,7 @@
 </div>
 </div>
 <!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.216</div>
+<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.217</div>
 
 <!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
      Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
@@ -1425,6 +1425,13 @@ Diese Aktion löscht unwiderruflich:
 <div class="card">
 <h2>🔧 Werkstatt<span id="werkstattCount" class="cockpit-count">-</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="werkstatt">i</button></h2>
 <div class="small" style="color:var(--muted);margin-bottom:6px">Was freigegeben und zum Rüsten oder Montieren eingeteilt ist – je Massaufnahme mit ihrer Zuschnittliste zum Abhaken. Material und Reservierungen stehen unten.</div>
+<!-- v3.217 Suche. Sie steht bewusst AUSSERHALB von #werkstattBody: die Liste
+     wird bei jedem Tastendruck neu gezeichnet, und ein Feld darin verloere
+     dabei den Fokus (dieselbe Lehre wie beim Suchfeld der Lagerverwaltung). -->
+<div class="werk-suche">
+ <input type="search" id="werkstattSuche" placeholder="Suchen: Objekt, Projekt, Auftrags-Nr., Bezeichnung" autocomplete="off">
+ <button type="button" id="werkstattSucheWeg" class="gray" hidden>✕</button>
+</div>
 <div id="werkstattBody"></div>
 <div class="bar"><button id="werkstattAktualisieren" class="gray">↻ Aktualisieren</button><button id="closeWerkstatt" class="green">✓ Fertig</button><button id="startFromWerkstatt" class="gray">🏠 Start</button></div>
 </div>
@@ -2465,7 +2472,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.216.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 114 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.217.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 114 Seiten)</a></div>
 </div>
 </div>
 
@@ -3170,7 +3177,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.216.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.217.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

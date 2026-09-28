@@ -1005,6 +1005,11 @@ tr.resv-gewaehlt td:first-child{border-left:3px solid var(--blue)}
 .resv-bulk-knoepfe button[disabled]{opacity:.45;cursor:not-allowed}
 /* v3.09 Werkstatt. Vollstaendige Uebersicht am Schreibtisch, auf dem Tablet
    und Handy sinnvoll gestapelt - keine unbrauchbaren Mini-Tabellen. */
+/* v3.217: Die Suche ueber der Liste. Ein Feld, ein Knopf zum Leeren - mehr
+   braucht es nicht, und beides bleibt beim Tippen stehen. */
+.werk-suche{display:flex;gap:6px;align-items:center;margin:0 0 8px}
+.werk-suche input{flex:1 1 auto}
+.werk-suche button{width:auto;min-height:40px;padding:6px 12px;flex:0 0 auto}
 .werk-projekt{margin-bottom:10px}
 .werk-kopf{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;
  justify-content:space-between;margin-bottom:6px}
