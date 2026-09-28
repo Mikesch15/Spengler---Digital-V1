@@ -1432,16 +1432,19 @@ async function barcodeScannen(callback){
  if(!overlay||!video)return;
  overlay.hidden=false;
  barcodeScanAktuellerCallback=callback;
- // v3.119: die native Kamera-App sofort automatisch oeffnen, ohne dass der
- // Anwender extra auf "Andere Kamera-App verwenden" tippen muss - genau der
- // Weg, der sich als zuverlaessig scharf bestaetigt hat. Ein programmatischer
- // Klick auf das Datei-Feld wird von Browsern nur als "echter" Klick
- // akzeptiert, solange er noch innerhalb desselben Nutzer-Klicks passiert -
- // deshalb HIER, vor dem ersten "await", nicht erst nach dem Laden der
- // Bibliothek. Die Web-Kamera-Vorschau unten laeuft parallel im Hintergrund
- // weiter (unveraendert) - bricht der Anwender die native Kamera-App ohne
- // Foto ab, landet er auf dieser Vorschau statt auf einem leeren Bildschirm.
- if($("barcodeScanNativeInput"))$("barcodeScanNativeInput").click();
+ // v3.220: Gescannt wird im LAUFENDEN BILD. Ansage des Anwenders: "ich
+ // moechte das der barcodescanner als livebild scanner funktioniert und man
+ // nicht vorher erst ein foto machen muss und dieses dan ausgewertet wird."
+ //
+ // v3.119 hatte hier die native Kamera-App automatisch geoeffnet - damals
+ // der einzige Weg, der auf dem Geraet des Anwenders zuverlaessig scharf
+ // wurde. Diese Zeile faellt weg: die Live-Erkennung weiter unten
+ // (decodeFromConstraints) lief die ganze Zeit schon, sie war nur hinter der
+ // Foto-Aufnahme versteckt. Der Fokus-Grund ist seit v3.116 behoben.
+ //
+ // Der Weg ueber die Kamera-App bleibt als Knopf im Overlay - er ist der
+ // Rueckweg, wenn ein Code im Live-Bild partout nicht scharf wird. Aus einem
+ // automatischen Zwang wird damit ein Angebot.
  if(status){status.textContent="Bibliothek wird geladen …";status.style.color="#fff"}
  try{
   await zxingLaden();

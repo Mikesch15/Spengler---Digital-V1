@@ -924,20 +924,22 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(z.schnellerFehler==="echter Fehler","ein Versprechen, das vor dem Zeitlimit mit einem echten Fehler abbricht, wird nicht verschluckt",z);
  p(/Zeitueberschreitung/.test(z.zeitlimitFehler||""),"ein Versprechen, das NIE von selbst fertig wird (wie ZXings unbegrenzte interne Wiederholung), wird nach dem Zeitlimit trotzdem mit einer klaren Meldung abgebrochen statt die App haengen zu lassen",z);
 
- // v3.119: barcodeScannen() (der echte Einstieg, den Einscannen/Ausscannen
- // aufrufen - in Abschnitt 10 zugunsten der stillgelegten ZXing/Netzwerk-
- // Abhaengigkeit gestubbt, siehe dortiger Kommentar) soll die native
- // Kamera-App jetzt sofort automatisch oeffnen, ohne dass der Anwender
- // zuerst auf einen Knopf tippen muss. Ein programmatischer Klick auf das
- // Datei-Feld wird von Browsern nur akzeptiert, wenn er noch innerhalb des
- // urspruenglichen Nutzer-Klicks passiert - deshalb muss er VOR jedem
- // "await" in der Funktion passieren. Getestet wird das hier direkt an der
- // ECHTEN Funktion (window.__barcodeScannenEcht aus Abschnitt 10, siehe
- // dortiger Kommentar - window.barcodeScannen zeigt seit Abschnitt 10
- // dauerhaft auf den Stub), indem der Klick auf das Datei-Feld abgefangen
- // wird und sofort - ohne die Funktion abzuwarten - geprueft wird, ob er
- // bereits ausgeloest wurde.
- console.log("\n13b · Kamera-App oeffnet sich automatisch (v3.119)");
+ // v3.220: Gescannt wird im LAUFENDEN BILD. Ansage des Anwenders: "ich
+ // moechte das der barcodescanner als livebild scanner funktioniert und man
+ // nicht vorher erst ein foto machen muss und dieses dan ausgewertet wird."
+ //
+ // Bis v3.219 stand hier das Gegenteil: barcodeScannen() musste das
+ // versteckte Datei-Feld SOFORT klicken, damit sich die Kamera-App des
+ // Geraets von selbst oeffnet (v3.119). Das war damals der einzige Weg, der
+ // auf dem Geraet des Anwenders scharf wurde; der Fokus-Grund ist seit
+ // v3.116 behoben.
+ //
+ // Geprueft wird jetzt das Gegenteil - und zwar an derselben Stelle und mit
+ // demselben Mittel, damit die Probe scharf bleibt: das Feld darf NICHT von
+ // selbst geklickt werden, das Overlay geht trotzdem sofort auf, und der
+ // callback liegt bereit. Dazu die Gegenprobe, dass der Weg ueber die
+ // Kamera-App nicht verschwunden ist, sondern als Knopf dasteht.
+ console.log("\n13b . Live-Bild statt Foto (v3.220)");
  z=await page.evaluate(async()=>{
   const echteBarcodeScannen=window.__barcodeScannenEcht;
   const input=$("barcodeScanNativeInput");
@@ -951,13 +953,30 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    callbackGesetzt:typeof barcodeScanAktuellerCallback==="function"
   };
   await aufruf; // laesst den (im Testnetz zwangslaeufig scheiternden) ZXing-Ladeversuch sauber abschliessen
+  sofort.geklicktSpaeter=geklickt;   // auch danach nicht - gar nicht von selbst
   input.click=echterClick;
   barcodeScanSchliessen();
   return sofort;
  });
- p(z.geklicktSofort===true,"barcodeScannen() klickt das versteckte native Datei-Feld sofort, noch bevor irgendetwas anderes abgewartet wird",z);
- p(z.overlayOffen===true,"das Scan-Overlay ist zu diesem Zeitpunkt bereits geoeffnet",z);
- p(z.callbackGesetzt===true,"der callback ist zu diesem Zeitpunkt bereits hinterlegt, damit ein sehr schnell zurueckkommendes Foto nicht verloren gehen kann",z);
+ p(z.geklicktSofort===false&&z.geklicktSpaeter===false,
+   "barcodeScannen() oeffnet die Kamera-App NICHT von selbst - gescannt wird im laufenden Bild",z);
+ p(z.overlayOffen===true,"das Scan-Overlay ist trotzdem sofort geoeffnet",z);
+ p(z.callbackGesetzt===true,"der callback ist zu diesem Zeitpunkt bereits hinterlegt, damit ein sehr schnell erkannter Code nicht verloren gehen kann",z);
+ // Gegenprobe: der Weg ueber die Kamera-App ist nicht weg, sondern ein
+ // Angebot. Ohne diese Probe koennte die erste gruen werden, indem man die
+ // Foto-Aufnahme einfach ganz ausbaut - und damit den Rueckweg naehme, den
+ // v3.114/v3.115 aus gutem Grund eingezogen haben.
+ z=await page.evaluate(()=>{
+  const k=$("barcodeScanNativeKamera");
+  return {knopfDa:!!k,sichtbar:!!k&&!k.hidden,text:k?k.textContent.trim():"",
+          feldDa:!!$("barcodeScanNativeInput"),
+          handlerDa:typeof barcodeScanNativeFotoAusgewaehlt==="function",
+          tippweg:!!$("barcodeScanManuellInput")};
+ });
+ p(z.knopfDa&&z.sichtbar&&/Foto/i.test(z.text),
+   "der Weg ueber die Kamera-App steht weiterhin als Knopf da",z);
+ p(z.feldDa&&z.handlerDa,"und wertet ein aufgenommenes Foto unveraendert aus",z);
+ p(z.tippweg,"der Rueckweg 'Code von Hand eintippen' ist ebenfalls unveraendert da",z);
 
  // ---- 14 · Massaufnahme ab Lager ausbuchen (v3.120) ----------------------
  // Quelle sind die von Hand erfassten Materialzeilen der Massaufnahme
