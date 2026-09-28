@@ -193,7 +193,15 @@ const tab=(page,k)=>page.evaluate(k=>{
  // mehr hat - ohne die Marke steht beides da. Geoeffnet wird er ueber
  // denselben Weg wie in der Ansicht.
  await aufraeumen();
- await page.evaluate(()=>{$("startOpenProjects").click()});
+ // Die Marke des vorigen Schritts (a2-nur-liste aus B2) haengt noch am
+ // Schirm - aufraeumen() blendet nur aus. Bis v3.217 fiel das nicht auf,
+ // weil a2Setzen(false) die Marke ueber die Klasse a2-an wirkungslos
+ // machte; ohne zweite Ansicht muss sie wirklich weg. Das tut die App an
+ // dieser Stelle selbst (a2BereichMarkenWeg), also wird sie hier gerufen.
+ await page.evaluate(()=>{
+  if(typeof a2BereichMarkenWeg==="function")a2BereichMarkenWeg($("projectsModal"));
+  $("startOpenProjects").click();
+ });
  await page.waitForTimeout(800);
  const a3=await sicht("#projectCreateBox"), l3=await sicht("#projectList");
  p(a3&&l3,"B3 Gegenprobe: ohne Marke zeigt derselbe Schirm unveraendert beides",
