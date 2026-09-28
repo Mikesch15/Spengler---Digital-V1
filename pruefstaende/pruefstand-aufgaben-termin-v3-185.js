@@ -218,31 +218,93 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  p(I.zukunft.wert===I.tag30,
    "ein noch laufender Termin bleibt im Feld stehen",[I.zukunft.wert,I.tag30]);
 
- // v3.214: Ein erreichter Termin darf nicht aussehen wie gar kein Termin.
- // URSACHE: Der Anwender hatte fuenf Aufgaben auf denselben Tag gesetzt; an
- // diesem Tag standen sie wieder in der Liste - richtig so, aber von aussen
- // nicht zu unterscheiden von "das Terminieren ist verloren gegangen".
- // Gemeldet hat er es als "schon wieder nicht mehr terminiert".
- console.log("\nJ · Ein erreichter Termin sagt, warum die Aufgabe wieder da ist");
- const J=await page.evaluate(()=>{
+ // v3.216, ECHTER FEHLER: Gespeichert wurde nicht, was der Anwender waehlte.
+ // Dieselbe Aufgabe steht ZWEIMAL im Dokument - in der Karte der klassischen
+ // Startseite und in der neuen Ansicht. Beide Datumsfelder tragen denselben
+ // Schluessel, und das Speichern nahm mit document.querySelector das ERSTE
+ // im Dokument: die unsichtbare klassische Karte mit ihrem Vorschlag
+ // "morgen". Gemeldet hat es der Anwender so: "er war auf den 5.10
+ // terminiert und nicht auf heute".
+ console.log("\nJ · Gespeichert wird das Datum aus der Karte, in der getippt wurde");
+ const J=await page.evaluate(async()=>{
+  window.__setze([]);
+  aufgabenTerminFormular=aufgabenTerminSchluessel(41,"ruesten");
+  aufgabenTerminWahl="";
+  renderAufgaben();
+  if(typeof a2Setzen==="function")a2Setzen(true);
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
+  await new Promise(r=>setTimeout(r,200));
+  const felder=[...document.querySelectorAll('[data-termin-datum]')];
+  const gewaehlt=window.__tag(7);
+  // Der Anwender tippt in das Feld, das er SIEHT - das der neuen Ansicht.
+  if(felder.length)felder[felder.length-1].value=gewaehlt;
+  const vorschlag=felder.length?felder[0].value:null;
+  let gesendet=null;
+  const echt=sb.from;
+  sb.from=()=>{const q={};["select","eq","delete"].forEach(k=>q[k]=()=>q);
+   q.upsert=z=>{gesendet=z;return q};
+   q.then=(f,g)=>Promise.resolve({data:[{id:9,faellig_am:(gesendet||{}).faellig_am}],error:null}).then(f,g);
+   return q};
+  const knoepfe=[...document.querySelectorAll('[data-aufgabe="termin-speichern"]')];
+  if(knoepfe.length)knoepfe[knoepfe.length-1].click();
+  await new Promise(r=>setTimeout(r,300));
+  sb.from=echt;
+  return {felder:felder.length,gewaehlt,vorschlag,gesendet};
+ });
+ p(J.felder===2,"dieselbe Aufgabe steht zweimal im Dokument (klassisch UND neue Ansicht)",J);
+ p(J.vorschlag&&J.vorschlag!==J.gewaehlt,
+   "die beiden Felder stehen auf verschiedenen Daten - sonst waere nichts bewiesen",J);
+ p(!!J.gesendet&&J.gesendet.faellig_am===J.gewaehlt,
+   "gespeichert wird das gewaehlte Datum",J);
+ p(!(J.gesendet&&J.gesendet.faellig_am===J.vorschlag),
+   "GEGENPROBE: nicht der Vorschlag aus der unsichtbaren Karte (der Fehler bis v3.215)",J);
+ // GEGENPROBE 2: es gewinnt nicht einfach das LETZTE Feld. In der
+ // klassischen Ansicht zaehlt, was dort getippt wurde.
+ const J2=await page.evaluate(async()=>{
+  if(typeof a2Setzen==="function")a2Setzen(false);
+  window.__setze([]);
+  aufgabenTerminFormular=aufgabenTerminSchluessel(41,"ruesten");
+  aufgabenTerminWahl="";
+  renderAufgaben();
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
+  await new Promise(r=>setTimeout(r,200));
+  const felder=[...document.querySelectorAll('[data-termin-datum]')];
+  const gewaehlt=window.__tag(21);
+  if(felder.length)felder[0].value=gewaehlt;          // die klassische Karte
+  let gesendet=null;
+  const echt=sb.from;
+  sb.from=()=>{const q={};["select","eq","delete"].forEach(k=>q[k]=()=>q);
+   q.upsert=z=>{gesendet=z;return q};
+   q.then=(f,g)=>Promise.resolve({data:[{id:9,faellig_am:(gesendet||{}).faellig_am}],error:null}).then(f,g);
+   return q};
+  const knoepfe=[...document.querySelectorAll('[data-aufgabe="termin-speichern"]')];
+  if(knoepfe.length)knoepfe[0].click();
+  await new Promise(r=>setTimeout(r,300));
+  sb.from=echt;
+  return {gewaehlt,gesendet};
+ });
+ p(!!J2.gesendet&&J2.gesendet.faellig_am===J2.gewaehlt,
+   "GEGENPROBE: in der klassischen Ansicht gilt deren Feld",J2);
+
+ // v3.216: Der Hinweis aus v3.214 ("war auf ... terminiert") ist wieder weg.
+ // Ansage des Anwenders: "diese info brauchts nicht" - die Aufgaben kamen ja
+ // nicht zurueck, weil ihr Datum erreicht war, sondern weil das falsche Feld
+ // gespeichert wurde.
+ const J3=await page.evaluate(()=>{
   const txt=am=>{
    window.__setze(am===null?[]:[{id:41,schritt:"ruesten",am}]);
    aufgabenTerminFormular=""; aufgabenTerminWahl="";
    const a=aufgabenListe.find(x=>x.art==="ruesten");
-   const d=document.createElement("div"); d.innerHTML=aufgabeTerminHtml(a);
-   return d.textContent.replace(/\s+/g," ").trim();
+   return aufgabeTerminHtml(a);
   };
-  return {heute:txt(window.__tag(0)),gestern:txt(window.__tag(-3)),
-          zukunft:txt(window.__tag(30)),ohne:txt(null)};
+  return {abgelaufen:txt(window.__tag(-3)),heute:txt(window.__tag(0)),
+          laufend:txt(window.__tag(30)),ohne:txt(null)};
  });
- p(/heute terminiert/.test(J.heute),"auf heute faellig: die Aufgabe sagt es",J.heute);
- p(/War auf/.test(J.gestern)&&/terminiert/.test(J.gestern),
-   "ein frueher faelliger Termin steht mit seinem Datum da",J.gestern);
- // GEGENPROBE 1: eine noch laufende Aufgabe sagt weiterhin das Gegenteil.
- p(/Terminiert auf/.test(J.zukunft)&&!/War auf/.test(J.zukunft),
-   "GEGENPROBE: ein laufender Termin heisst weiterhin 'Terminiert auf'",J.zukunft);
- // GEGENPROBE 2: ohne Termin steht gar nichts - kein erfundener Hinweis.
- p(J.ohne==="","GEGENPROBE: ohne Termin steht nichts da",J.ohne);
+ p(J3.abgelaufen===""&&J3.heute==="",
+   "ein erreichter Termin fuegt der Karte nichts hinzu",J3);
+ p(/Terminiert auf/.test(J3.laufend),
+   "GEGENPROBE: ein LAUFENDER Termin steht weiterhin an der Aufgabe",J3.laufend);
+ p(J3.ohne==="","und ohne Termin steht wie immer nichts da",J3.ohne);
 
  // v3.214: Die Schnellwahl. Das Feld oeffnet auf MORGEN; wer nur speichert,
  // hat die Aufgabe am naechsten Tag wieder - genau das ist passiert. Der

@@ -370,18 +370,11 @@ function aufgabeTerminHtml(a){
  }
  if(t&&aufgabenIstTerminiert(a))
   return `<div class="aufgabe-termin small">🗓 Terminiert auf ${esc(aufgabenDatumText(t.faellig_am))}</div>`;
- // v3.214: Ein ERREICHTER Termin bleibt stehen und sagt es. Ansage des
- // Anwenders: "Jetzt sind meine aufgaben schon wieder nicht mehr
- // terminiert..." - er hatte fuenf Aufgaben auf denselben Tag gesetzt, und
- // an diesem Tag standen sie wieder da. Genau so ist es gedacht, nur sah
- // man der Aufgabe nicht mehr an, dass sie ueberhaupt terminiert WAR: sie
- // sah aus wie eine, bei der das Terminieren verloren gegangen ist.
- if(t)
-  return `<div class="aufgabe-termin small aufgabe-termin-faellig">🗓 ${
-   String(t.faellig_am)===aufgabenHeute()
-    ? "Auf heute terminiert – darum steht sie wieder da"
-    : "War auf "+esc(aufgabenDatumText(t.faellig_am))+" terminiert – seither wieder fällig"
-  }</div>`;
+ // v3.216: Der Hinweis aus v3.214 ("war auf ... terminiert") ist wieder
+ // weg. Er beantwortete eine Frage, die es gar nicht gab: die Aufgaben
+ // kamen nicht zurueck, weil ihr Datum erreicht war, sondern weil beim
+ // Speichern das falsche Feld gelesen wurde (siehe termin-speichern).
+ // Ansage des Anwenders: "diese info brauchts nicht."
  return "";
 }
 function aufgabeTerminKnopfHtml(a){
@@ -496,7 +489,18 @@ document.addEventListener("click",async e=>{
  }
  if(was==="termin-speichern"){
   const id=k.dataset.aufgabeId, art=k.dataset.aufgabeArt;
-  const feld=document.querySelector('[data-termin-datum="'+aufgabenTerminSchluessel(id,art)+'"]');
+  const schl=aufgabenTerminSchluessel(id,art);
+  // v3.216, ECHTER FEHLER: Dieselbe Aufgabe steht ZWEIMAL im Dokument - in
+  // der Karte der klassischen Startseite und in der neuen Ansicht. Beide
+  // Felder tragen denselben Schluessel. document.querySelector nimmt das
+  // ERSTE im Dokument, und das ist die unsichtbare klassische Karte mit
+  // ihrem Vorschlag "morgen". Wer in der neuen Ansicht den 5.10. waehlte,
+  // speicherte also den morgigen Tag - und hatte die Aufgabe am naechsten
+  // Tag wieder vor sich. Gemeldet als "schon wieder nicht mehr terminiert".
+  // Gelesen wird deshalb das Feld AUS DERSELBEN Karte wie der Knopf.
+  const block=k.closest?k.closest(".aufgabe-termin-form"):null;
+  const feld=(block&&block.querySelector('[data-termin-datum="'+schl+'"]'))
+           ||document.querySelector('[data-termin-datum="'+schl+'"]');
   const r=await aufgabenTerminSetzen(id,art,feld?feld.value:"");
   if(!r.ok){alert(r.meldung);return}
   aufgabenTerminFormular=""; aufgabenTerminWahl="";
