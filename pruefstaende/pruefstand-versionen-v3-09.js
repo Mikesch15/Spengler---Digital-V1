@@ -236,16 +236,37 @@ const VERFALLEN={...FREI,workflow_status:"in_bearbeitung",freigabe_verfallen:tru
  });
  await page.evaluate(()=>werkstattNeuLaden());
  await page.waitForTimeout(120);
+ // v3.215: Die Werkstatt oeffnet als Liste zugeklappter Projekte. Geprueft
+ // wird hier die ZEILE der Massaufnahme, also das Projekt einmal aufklappen -
+ // derselbe Zustand, den der Tipp auf den Projektkopf setzt.
+ await page.evaluate(()=>{
+  if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt()}
+ });
+ await page.waitForTimeout(120);
  let w=await page.evaluate(()=>$("werkstattBody").textContent.replace(/\s+/g," ").trim());
  p(/Fassung 2/.test(w),"die Fassung steht an der Zeile",{w:w.slice(0,240)});
  await page.evaluate(()=>{window.__db.messungen[0].freigabe_verfallen=true});
  await page.evaluate(()=>werkstattNeuLaden());
+ await page.waitForTimeout(120);
+ // v3.215: Die Werkstatt oeffnet als Liste zugeklappter Projekte. Geprueft
+ // wird hier die ZEILE der Massaufnahme, also das Projekt einmal aufklappen -
+ // derselbe Zustand, den der Tipp auf den Projektkopf setzt.
+ await page.evaluate(()=>{
+  if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt()}
+ });
  await page.waitForTimeout(120);
  w=await page.evaluate(()=>$("werkstattBody").textContent.replace(/\s+/g," ").trim());
  p(/Fassung 2 nicht mehr aktuell/.test(w),"bei Verfall wird gewarnt",{w:w.slice(0,300)});
  // ohne das Modul keine zusaetzliche Abfrage
  await page.evaluate(()=>{pmUebernehmen({haupt:true,werkstatt:true});window.__ruf=[]});
  await page.evaluate(()=>werkstattNeuLaden());
+ await page.waitForTimeout(120);
+ // v3.215: Die Werkstatt oeffnet als Liste zugeklappter Projekte. Geprueft
+ // wird hier die ZEILE der Massaufnahme, also das Projekt einmal aufklappen -
+ // derselbe Zustand, den der Tipp auf den Projektkopf setzt.
+ await page.evaluate(()=>{
+  if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt()}
+ });
  await page.waitForTimeout(120);
  let vruf=await page.evaluate(()=>window.__ruf.filter(r=>r.tabelle==="measurement_versionen").length);
  p(vruf===0,"Versionierung aus: die Werkstatt fragt nicht danach",{n:vruf});
