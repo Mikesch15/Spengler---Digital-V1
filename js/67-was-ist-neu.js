@@ -369,6 +369,9 @@ const WIN_CHANGELOG={
  "3.218":["<b>Die alte Ansicht ist weg.</b> Es gibt nur noch eine Oberfläche – die nach dem Arbeitsablauf gegliederte. Die alte Startseite („Was möchtest du tun?“ mit den grossen Knöpfen), die Aufgabenkarte darüber, die Zeile „Angemeldet als …“ und der Umschalter dazu sind entfallen.",
   "Alles davon ist weiterhin erreichbar: Projekte und Werkstatt über die Leiste unten, Suche, Einstellungen, Feedback, Abwicklung, Anleitung, Konto wechseln, „Was die App gelernt hat“, „Alle Massaufnahmen“ und die System-Administration über <b>Mehr</b>.",
   "Wer auf einem Gerät irgendwann „lieber die gewohnte Ansicht“ eingestellt hatte, startet jetzt trotzdem normal – der gemerkte Wunsch wird nicht mehr gelesen. Die Einstellung „Aufgaben auf dem Startbildschirm zugeklappt/geöffnet“ ist mit der Karte entfallen; in der Ansicht steht die Liste offen da."],
+ "3.219":["<b>Behoben: „Fehler (unerledigt): Cannot set properties of null“ beim Öffnen.</b> Nach der Umstellung auf 3.218 kam auf einem Gerät diese Meldung, und die Anmeldung ging nicht mehr. Der Fehler lag nicht in 3.218 selbst, sondern in einer <i>gemischten</i> App-Hülle: die neue Startseite zusammen mit einer alten Programmdatei aus dem Zwischenspeicher.",
+  "Ursache: Fehlte beim Aktualisieren eine einzelne Datei (wackliges Netz), suchte der Offline-Speicher sie in <i>allen</i> Fassungen – und lieferte sie aus der alten. Jetzt wird nur noch in der Fassung gesucht, die gerade läuft. Eine Datei, die dort fehlt, gilt als nicht verfügbar, statt aus einer anderen Version zu kommen.",
+  "Ausserdem: Eine fehlende Programmdatei bekam bisher die Startseite als HTML geliefert, die der Browser dann auszuführen versuchte. Das gilt jetzt nur noch für den Seitenaufruf selbst."],
 };
 
 function winVersionVergleich(a,b){

@@ -9,7 +9,7 @@
    Offline-Bestand zur ausgelieferten Fassung passt. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-3.218";
+const CACHE = "spengler-digital-3.219";
 
 const SHELL = [
   "./",
@@ -150,7 +150,32 @@ self.addEventListener("activate", event => {
 });
 
 /* Zuerst Netz, dann Cache. So sieht man Änderungen sofort und die App
-   funktioniert trotzdem, wenn das Handy gerade kein Netz hat. */
+   funktioniert trotzdem, wenn das Handy gerade kein Netz hat.
+
+   v3.219, ECHTER FEHLER - so ist er aufgetreten: Nach der Umstellung auf
+   v3.218 meldete die App beim Öffnen "Fehler (unerledigt): Cannot set
+   properties of null (setting 'textContent')" und liess niemanden mehr
+   hinein. Ursache war KEIN Fehler in v3.218, sondern eine GEMISCHTE
+   App-Hülle auf dem Gerät: das neue index.html zusammen mit dem alten
+   js/03-login.js aus dem Zwischenspeicher. Das alte Login setzte dort eine
+   Zeile ("Angemeldet als ..."), die es im neuen index.html nicht mehr gibt.
+
+   Möglich war das an zwei Stellen:
+
+   1. caches.match(req) ohne Cache-Namen durchsucht ALLE Zwischenspeicher,
+      auch den der Vorversion. Schlägt beim Aktualisieren eine einzige
+      Anfrage fehl (wackliges Netz auf der Baustelle), kam genau diese eine
+      Datei aus der alten Fassung - und passte nicht mehr zum Rest. Gesucht
+      wird deshalb nur noch im Zwischenspeicher DIESER Fassung.
+
+   2. Der Rückfall auf ./index.html galt für jede Anfrage. Eine fehlende
+      .js-Datei bekam damit HTML geliefert; der Browser versuchte, es als
+      Programm auszuführen. Das gilt jetzt nur noch für eine echte
+      Seitennavigation.
+
+   Eine Datei, die weder aus dem Netz noch aus dieser Fassung kommt, wird
+   jetzt als Fehler gemeldet statt falsch beantwortet. Lieber eine Datei,
+   die fehlt, als eine, die nicht zum Rest passt. */
 self.addEventListener("fetch", event => {
   const req = event.request;
   if (req.method !== "GET") return;
@@ -166,6 +191,13 @@ self.addEventListener("fetch", event => {
         caches.open(CACHE).then(cache => cache.put(req, kopie)).catch(() => {});
         return res;
       })
-      .catch(() => caches.match(req).then(treffer => treffer || caches.match("./index.html")))
+      .catch(() => caches.open(CACHE).then(cache =>
+        cache.match(req).then(treffer => {
+          if (treffer) return treffer;
+          // Nur eine echte Seitennavigation darf auf die Startseite ausweichen.
+          if (req.mode === "navigate") return cache.match("./index.html");
+          return Response.error();
+        })
+      ))
   );
 });
