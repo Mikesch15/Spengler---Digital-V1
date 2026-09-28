@@ -118,6 +118,12 @@ const vorbereiten=async(page,module,alsAdmin)=>{
   try{localStorage.setItem("sd_werkFilter","alle")}catch(e){}
   werkOffen=null; werkGrundlage=null; werkFilter="alle";
   werkstattKnopfAktualisieren();
+  // v3.218: Die Leiste unten ist der Einstieg in die Werkstatt - sie muss
+  // also gezeichnet sein. Bewusst auf der Seite "Mehr": die Seite "Heute"
+  // holt sich selbst die Werkstattzahlen, und dieser Pruefstand zaehlt die
+  // Abfragen mit. Die Leiste ist auf jeder Seite dieselbe.
+  if(typeof a2Zustand!=="undefined")a2Zustand.seite="mehr";
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
   window.__ruf=[];
  },[MESS,RES,RESTE,module,ICH,!!alsAdmin]);
 };
@@ -134,10 +140,19 @@ const klick=async(page,sel,was)=>{
 };
 
 const stand=page=>page.evaluate(()=>{
- const b=$("werkstattBody"), m=$("werkstattModal"), k=$("navWerkstatt");
+ const b=$("werkstattBody"), m=$("werkstattModal");
+ // v3.218: Den grossen Knopf auf dem klassischen Startbildschirm gibt es
+ // nicht mehr. Der Einstieg ist der Eintrag in der Leiste; ob er dasteht,
+ // entscheidet unveraendert dieselbe Quelle - js/51 setzt #navWerkstatt
+ // (den Anker in index.html), js/70 liest ihn fuer die Leiste.
+ // Bewusst OHNE a2Zeichnen(): die Ansicht neu zu zeichnen loest ihr eigenes
+ // Laden der Werkstattzahlen aus - das Messen wuerde dann die Zahl der
+ // Abfragen veraendern, die dieser Pruefstand selbst zaehlt.
+ const anker=$("navWerkstatt");
+ const k=document.querySelector('#a2Leiste [data-a2-tab="werkstatt"]');
  const kr=k?k.getBoundingClientRect():{width:0,height:0};
  return {
-  knopfHidden:k?k.hidden:null, knopfHoehe:Math.round(kr.height),
+  knopfHidden:anker?anker.hidden:null, knopfHoehe:Math.round(kr.height),
   modalHidden:m?m.hidden:null,
   zahl:($("werkstattCount").textContent||"").trim(),
   text:b.textContent.replace(/\s+/g," ").trim(),
@@ -185,14 +200,17 @@ async function bloeckeAuf(page){
  // unterstuetzter, jederzeit erreichbarer Zustand der App, und genau der
  // wird hier geprueft. Was die NEUE Ansicht tut, pruefen
  // pruefstand-ansicht2-v3-150.js und die beiden v3-151-Pruefstaende.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+  // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 wurde
+ // hier auf sie umgeschaltet, um ihre Knoepfe und Karten zu erreichen.
+ // Geprueft wird unveraendert dasselbe, nur an der einen Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
 
  const ALLES={haupt:true,material:true,zuschnitt:true,reservierung:true,werkstatt:true};
 
  console.log("\nA · bei AUS ist die Werkstatt unerreichbar");
  await vorbereiten(page,{});
  let s=await stand(page);
- p(s.knopfHidden===true&&s.knopfHoehe===0,"Startknopf weg",{h:s.knopfHidden,y:s.knopfHoehe});
+ p(s.knopfHidden===true&&s.knopfHoehe===0,"Einstieg in der Leiste weg",{h:s.knopfHidden,y:s.knopfHoehe});
  await page.evaluate(()=>werkstattOeffnen());
  await bloeckeAuf(page);
  await page.waitForTimeout(60);
@@ -208,8 +226,8 @@ async function bloeckeAuf(page){
  console.log("\nB · eingeschaltet");
  await vorbereiten(page,ALLES);
  s=await stand(page);
- p(s.knopfHidden===false&&s.knopfHoehe>20,"Startknopf da",{h:s.knopfHidden,y:s.knopfHoehe});
- await klick(page,"#navWerkstatt","Werkstatt-Knopf");
+ p(s.knopfHidden===false&&s.knopfHoehe>20,"Einstieg in der Leiste da",{h:s.knopfHidden,y:s.knopfHoehe});
+ await klick(page,'#a2Leiste [data-a2-tab="werkstatt"]',"Werkstatt-Knopf");
  await bloeckeAuf(page);
  await page.waitForTimeout(120);
  s=await stand(page);

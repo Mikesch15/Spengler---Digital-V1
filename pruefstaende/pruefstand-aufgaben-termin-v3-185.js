@@ -110,19 +110,26 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  p(/ausblenden/.test(C.zeileOffen),"und die Zeile bietet dann das Gegenteil an");
  p(C.ohneTermin==="","ohne Termin gibt es die Zeile gar nicht - kein '0 terminiert'",C.ohneTermin);
 
- // ---- D  Beide Ansichten zeigen dasselbe ----------------------------------
- console.log("\nD · Klassische Ansicht und Ansicht 2.0 zeigen dieselbe Liste");
+ // ---- D  Die Ansicht zeigt genau die Liste aus js/45 ----------------------
+ // v3.218: Bis v3.217 hiess das "beide Ansichten zeigen dasselbe". Es gibt
+ // nur noch eine; geprueft wird deshalb, dass sie wirklich die gefilterte
+ // Liste aus js/45 nimmt und keine eigene zusammenstellt.
+ console.log("\nD · Die Ansicht nimmt die Liste aus js/45");
  const D=await page.evaluate(()=>{
   window.__setze([{id:41,schritt:"ruesten",am:window.__tag(30)}]);
+  a2Zustand.seite="heute"; a2Zeichnen();
+  const kopf=[...document.querySelectorAll("#a2Inhalt .a2-abschnitt-kopf")]
+    .find(k=>/meine aufgaben/i.test(k.innerText||""));
+  const marke=kopf?kopf.querySelector(".a2-marke"):null;
   return {
-   klassisch:aufgabenSichtbareListe().map(a=>a.art+"#"+a.m.id),
+   quelle:aufgabenSichtbareListe().map(a=>a.art+"#"+a.m.id),
    neu:a2Aufgaben().map(a=>a.art+"#"+a.m.id),
-   kopf:aufgabenKopfText()
+   kopf:marke?(marke.innerText||"").trim():""
   };
  });
- p(D.klassisch.join()===D.neu.join(),
-   "a2Aufgaben() liefert genau die gefilterte Liste aus js/45",{k:D.klassisch,n:D.neu});
- p(/2 offene/.test(D.kopf),"der Kopftext zaehlt die SICHTBAREN, nicht alle",D.kopf);
+ p(D.quelle.join()===D.neu.join(),
+   "a2Aufgaben() liefert genau die gefilterte Liste aus js/45",{k:D.quelle,n:D.neu});
+ p(/^2 offen$/.test(D.kopf),"die Marke zaehlt die SICHTBAREN, nicht alle",D.kopf);
 
  // ---- E  Gegenprobe: ohne Filter waeren es drei ---------------------------
  console.log("\nE · Gegenprobe");
@@ -219,58 +226,33 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
    "ein noch laufender Termin bleibt im Feld stehen",[I.zukunft.wert,I.tag30]);
 
  // v3.216, ECHTER FEHLER: Gespeichert wurde nicht, was der Anwender waehlte.
- // Dieselbe Aufgabe steht ZWEIMAL im Dokument - in der Karte der klassischen
- // Startseite und in der neuen Ansicht. Beide Datumsfelder tragen denselben
+ // Dieselbe Aufgabe stand ZWEIMAL im Dokument - in der Karte der klassischen
+ // Startseite und in der neuen Ansicht. Beide Datumsfelder trugen denselben
  // Schluessel, und das Speichern nahm mit document.querySelector das ERSTE
  // im Dokument: die unsichtbare klassische Karte mit ihrem Vorschlag
  // "morgen". Gemeldet hat es der Anwender so: "er war auf den 5.10
  // terminiert und nicht auf heute".
- console.log("\nJ · Gespeichert wird das Datum aus der Karte, in der getippt wurde");
+ //
+ // v3.218: Die klassische Karte ist weg - die zweite Quelle, aus der dieser
+ // Fehler entstand, gibt es nicht mehr. Geprueft wird deshalb beides:
+ //   1. es gibt das Feld wirklich nur EINMAL (sonst waere die Falle zurueck),
+ //   2. gespeichert wird genau, was darin steht,
+ //   3. und der Bau aus v3.216 bleibt bestehen: das Speichern liest das Feld
+ //      aus DERSELBEN Karte (closest), nicht das erste im Dokument. Das
+ //      prueft Abschnitt H am Quelltext - diese Probe hier ergaenzt sie um
+ //      den Fall, dass doch wieder zwei Felder im Dokument stehen.
+ console.log("\nJ · Es gibt das Datumsfeld nur einmal, und gespeichert wird genau das");
  const J=await page.evaluate(async()=>{
   window.__setze([]);
   aufgabenTerminFormular=aufgabenTerminSchluessel(41,"ruesten");
   aufgabenTerminWahl="";
   renderAufgaben();
-  if(typeof a2Setzen==="function")a2Setzen(true);
   if(typeof a2Zeichnen==="function")a2Zeichnen();
   await new Promise(r=>setTimeout(r,200));
   const felder=[...document.querySelectorAll('[data-termin-datum]')];
   const gewaehlt=window.__tag(7);
-  // Der Anwender tippt in das Feld, das er SIEHT - das der neuen Ansicht.
-  if(felder.length)felder[felder.length-1].value=gewaehlt;
   const vorschlag=felder.length?felder[0].value:null;
-  let gesendet=null;
-  const echt=sb.from;
-  sb.from=()=>{const q={};["select","eq","delete"].forEach(k=>q[k]=()=>q);
-   q.upsert=z=>{gesendet=z;return q};
-   q.then=(f,g)=>Promise.resolve({data:[{id:9,faellig_am:(gesendet||{}).faellig_am}],error:null}).then(f,g);
-   return q};
-  const knoepfe=[...document.querySelectorAll('[data-aufgabe="termin-speichern"]')];
-  if(knoepfe.length)knoepfe[knoepfe.length-1].click();
-  await new Promise(r=>setTimeout(r,300));
-  sb.from=echt;
-  return {felder:felder.length,gewaehlt,vorschlag,gesendet};
- });
- p(J.felder===2,"dieselbe Aufgabe steht zweimal im Dokument (klassisch UND neue Ansicht)",J);
- p(J.vorschlag&&J.vorschlag!==J.gewaehlt,
-   "die beiden Felder stehen auf verschiedenen Daten - sonst waere nichts bewiesen",J);
- p(!!J.gesendet&&J.gesendet.faellig_am===J.gewaehlt,
-   "gespeichert wird das gewaehlte Datum",J);
- p(!(J.gesendet&&J.gesendet.faellig_am===J.vorschlag),
-   "GEGENPROBE: nicht der Vorschlag aus der unsichtbaren Karte (der Fehler bis v3.215)",J);
- // GEGENPROBE 2: es gewinnt nicht einfach das LETZTE Feld. In der
- // klassischen Ansicht zaehlt, was dort getippt wurde.
- const J2=await page.evaluate(async()=>{
-  if(typeof a2Setzen==="function")a2Setzen(false);
-  window.__setze([]);
-  aufgabenTerminFormular=aufgabenTerminSchluessel(41,"ruesten");
-  aufgabenTerminWahl="";
-  renderAufgaben();
-  if(typeof a2Zeichnen==="function")a2Zeichnen();
-  await new Promise(r=>setTimeout(r,200));
-  const felder=[...document.querySelectorAll('[data-termin-datum]')];
-  const gewaehlt=window.__tag(21);
-  if(felder.length)felder[0].value=gewaehlt;          // die klassische Karte
+  if(felder.length)felder[0].value=gewaehlt;
   let gesendet=null;
   const echt=sb.from;
   sb.from=()=>{const q={};["select","eq","delete"].forEach(k=>q[k]=()=>q);
@@ -281,10 +263,54 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
   if(knoepfe.length)knoepfe[0].click();
   await new Promise(r=>setTimeout(r,300));
   sb.from=echt;
-  return {gewaehlt,gesendet};
+  return {felder:felder.length,knoepfe:knoepfe.length,gewaehlt,vorschlag,gesendet};
+ });
+ p(J.felder===1&&J.knoepfe===1,
+   "die Aufgabe steht genau EINMAL im Dokument - die zweite Karte ist weg",J);
+ p(J.vorschlag&&J.vorschlag!==J.gewaehlt,
+   "das Feld stand vorher auf einem anderen Datum - sonst waere nichts bewiesen",J);
+ p(!!J.gesendet&&J.gesendet.faellig_am===J.gewaehlt,
+   "gespeichert wird das gewaehlte Datum",J);
+ p(!(J.gesendet&&J.gesendet.faellig_am===J.vorschlag),
+   "GEGENPROBE: nicht der Vorschlag, der vorher im Feld stand (der Fehler bis v3.215)",J);
+
+ // GEGENPROBE 2 zum Bau aus v3.216: Auch wenn NOCH EIN Feld mit demselben
+ // Schluessel im Dokument steht - etwa weil irgendwo wieder eine zweite
+ // Darstellung entsteht - muss das Speichern das Feld aus SEINER Karte
+ // nehmen. Dafuer wird hier eines kuenstlich davorgesetzt. Ohne closest()
+ // (js/45, termin-speichern) faellt diese Probe aus.
+ const J2=await page.evaluate(async()=>{
+  window.__setze([]);
+  aufgabenTerminFormular=aufgabenTerminSchluessel(41,"ruesten");
+  aufgabenTerminWahl="";
+  renderAufgaben();
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
+  await new Promise(r=>setTimeout(r,200));
+  const echtesFeld=document.querySelector("[data-termin-datum]");
+  if(!echtesFeld)return {fehlt:true};
+  const schl=echtesFeld.getAttribute("data-termin-datum");
+  const gewaehlt=window.__tag(21), falsch=window.__tag(1);
+  echtesFeld.value=gewaehlt;
+  // Ein zweites Feld mit demselben Schluessel, ganz vorne im Dokument.
+  const doppel=document.createElement("input");
+  doppel.type="date"; doppel.setAttribute("data-termin-datum",schl); doppel.value=falsch;
+  document.body.insertBefore(doppel,document.body.firstChild);
+  let gesendet=null;
+  const echt=sb.from;
+  sb.from=()=>{const q={};["select","eq","delete"].forEach(k=>q[k]=()=>q);
+   q.upsert=z=>{gesendet=z;return q};
+   q.then=(f,g)=>Promise.resolve({data:[{id:9,faellig_am:(gesendet||{}).faellig_am}],error:null}).then(f,g);
+   return q};
+  document.querySelector('[data-aufgabe="termin-speichern"]').click();
+  await new Promise(r=>setTimeout(r,300));
+  sb.from=echt;
+  doppel.remove();
+  return {gewaehlt,falsch,gesendet};
  });
  p(!!J2.gesendet&&J2.gesendet.faellig_am===J2.gewaehlt,
-   "GEGENPROBE: in der klassischen Ansicht gilt deren Feld",J2);
+   "GEGENPROBE: auch mit einem zweiten Feld davor gilt das Feld aus DERSELBEN Karte",J2);
+ p(!(J2.gesendet&&J2.gesendet.faellig_am===J2.falsch),
+   "und nicht das erste im Dokument",J2);
 
  // v3.216: Der Hinweis aus v3.214 ("war auf ... terminiert") ist wieder weg.
  // Ansage des Anwenders: "diese info brauchts nicht" - die Aufgaben kamen ja

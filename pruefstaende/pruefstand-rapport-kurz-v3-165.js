@@ -149,7 +149,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
 
  // ---- C  Die neue Ansicht zeigt WORTGLEICH dasselbe ----------------------
  const C=await page.evaluate(()=>{
-  a2Setzen(true);
+  /* v3.218: Den Umschalter auf die neue Ansicht gibt es nicht mehr - es gibt nur diese eine. Gezeichnet werden muss sie weiterhin. */ if(typeof a2Zeichnen==="function")a2Zeichnen();
   a2Zustand.seite="projekt"; a2Zustand.projektId=1; a2Zustand.reg="rapport";
   a2Zeichnen();
   const zeilen=[...document.querySelectorAll("#a2Inhalt [data-a2-rep]")];
@@ -167,7 +167,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
 
  // ---- D  Die Rapport-Uebersicht ------------------------------------------
  const D=await page.evaluate(async()=>{
-  a2Setzen(false);
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
   await renderReportsOverview();
   const zeilen=[...document.querySelectorAll("#recentReportsList .meas-row")];
   const raus={};

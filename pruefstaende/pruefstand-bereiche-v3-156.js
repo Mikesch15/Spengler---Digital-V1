@@ -93,7 +93,7 @@ const tab=(page,k)=>page.evaluate(k=>{
   // lagerverwaltungZugriff, js/68) - F1 saehe dann null Abschnitte und
   // waere gruen, ohne etwas geprueft zu haben.
   if($("lagerverwaltungSection"))$("lagerverwaltungSection").hidden=false;
-  a2Setzen(true);
+  /* v3.218: Den Umschalter auf die neue Ansicht gibt es nicht mehr - es gibt nur diese eine. Gezeichnet werden muss sie weiterhin. */ if(typeof a2Zeichnen==="function")a2Zeichnen();
  });
  await page.waitForTimeout(400);
  const aufraeumen=async()=>{
@@ -186,13 +186,21 @@ const tab=(page,k)=>page.evaluate(k=>{
  p(!a2&&l2,"B2 Gegenprobe Archiv: dort steht die Liste ohne das Anlegen-Formular",
    {anlegen:a2,liste:l2});
 
+ // v3.218: Bis v3.217 lief diese Gegenprobe ueber die klassische Ansicht
+ // ("dort zeigt derselbe Schirm unveraendert beides"). Die gibt es nicht
+ // mehr. Die Probe bleibt aber dieselbe Aussage: B1 und B2 duerfen nicht
+ // daran liegen, dass der Schirm das eine oder andere ueberhaupt nicht
+ // mehr hat - ohne die Marke steht beides da. Geoeffnet wird er ueber
+ // denselben Weg wie in der Ansicht.
  await aufraeumen();
- await page.evaluate(()=>{a2Setzen(false);$("startOpenProjects").click()});
+ await page.evaluate(()=>{$("startOpenProjects").click()});
  await page.waitForTimeout(800);
  const a3=await sicht("#projectCreateBox"), l3=await sicht("#projectList");
- p(a3&&l3,"B3 Gegenprobe klassisch: derselbe Schirm zeigt unveraendert beides",
+ p(a3&&l3,"B3 Gegenprobe: ohne Marke zeigt derselbe Schirm unveraendert beides",
    {anlegen:a3,liste:l3});
- await page.evaluate(()=>{a2Setzen(true)});
+ // Und: den Weg zurueck in die alte Ansicht gibt es nicht mehr.
+ const zurueck=await page.evaluate(()=>typeof a2Setzen==="function"||!!document.getElementById("a2Ein"));
+ p(zurueck===false,"B3b es gibt keinen Umschalter in eine klassische Ansicht mehr",zurueck);
  await aufraeumen();
 
  // ---- C  Regierapport ist ein eigenes Register ---------------------------

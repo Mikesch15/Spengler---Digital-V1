@@ -88,7 +88,7 @@ const FORMULARE=[
                   werkstatt:true,vorlagen:true,serien:true,versionierung:true});
   if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
   if($("navLagerverwaltung"))$("navLagerverwaltung").hidden=false;
-  a2Setzen(true);
+  /* v3.218: Den Umschalter auf die neue Ansicht gibt es nicht mehr - es gibt nur diese eine. Gezeichnet werden muss sie weiterhin. */ if(typeof a2Zeichnen==="function")a2Zeichnen();
  });
  await page.waitForTimeout(400);
 
@@ -142,15 +142,24 @@ const FORMULARE=[
    "C2 Gegenprobe: im Formular liegt die Leiste frei und traegt \"Heute\" - "
    +"nur deshalb darf der Knopf dort weg",leisteImFormular);
 
- // ---- B  Gegenprobe klassische Ansicht -----------------------------------
- await page.evaluate(()=>a2Setzen(false));
+ // ---- B  Gegenprobe: der Knopf ist nur ausgeblendet, nicht entfernt ------
+ // v3.218: Bis v3.217 lief diese Gegenprobe ueber die klassische Ansicht
+ // ("dort steht 'Start' unveraendert da"). Die gibt es nicht mehr. Die
+ // Aussage bleibt aber pruefbar und ist dieselbe: der Knopf wurde nicht aus
+ // dem HTML entfernt, sondern haengt an der Marke a2-an. Wird sie kurz
+ // abgenommen, steht er wieder da - das beweist zugleich, dass A ihn
+ // wirklich wegen der Ansicht nicht findet und nicht, weil es ihn gar nicht
+ // mehr gibt.
+ await page.evaluate(()=>document.documentElement.classList.remove("a2-an"));
  await page.waitForTimeout(300);
  for(const x of BEREICHE){
   const start=await messen(x.id,x.start);
-  p(start.da,"B Gegenprobe klassisch "+x.name+": \"Start\" ist unveraendert da",start);
+  p(start.da,"B ohne die Marke ist \"Start\" in "+x.name+" wieder da",start);
  }
- await page.evaluate(()=>a2Setzen(true));
+ await page.evaluate(()=>document.documentElement.classList.add("a2-an"));
  await page.waitForTimeout(300);
+ p(await page.evaluate(()=>document.documentElement.classList.contains("a2-an")),
+   "B die Marke steht danach wieder - es gibt keine zweite Ansicht");
 
  // ---- D  Der echte Weg ueber die Leiste ----------------------------------
  const ueberLeiste=async k=>{

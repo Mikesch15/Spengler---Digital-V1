@@ -78,11 +78,19 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
    "mit Name und Firma - sonst waere die Liste nicht lesbar",A.eintrag);
  p(A.eintrag&&A.eintrag.refresh_token==="A-erneuern","und mit der Sitzung, ohne die kein Wechsel ginge");
  p(A.andere===0&&A.mehrere===false,"das eigene Konto ist kein Wechselziel",A);
+ // v3.218: Den Knopf oben rechts gab es auf dem klassischen
+ // Startbildschirm; er erschien nur, wenn wirklich ein zweites Konto
+ // gemerkt war. Beides ist mit der alten Ansicht entfallen. Der Eintrag
+ // unter "Mehr" steht dagegen bewusst IMMER da (v3.187) - von dort aus wird
+ // das zweite Konto ja ueberhaupt erst hinzugefuegt. Geprueft wird deshalb
+ // das: ein Weg, immer erreichbar, und der alte Knopf ist wirklich weg.
  const A2=await page.evaluate(()=>{
-  const knopf=$("kontoWechseln"); kwZeichnen();
-  return {versteckt:knopf.hidden};
+  kwZeichnen();
+  return {alterKnopf:!!document.getElementById("kontoWechseln"),
+          ausMehr:(typeof a2SeiteMehr==="function")?/data-a2-tu="konten"/.test(a2SeiteMehr()):false};
  });
- p(A2.versteckt===true,"und der Knopf oben rechts bleibt weg, solange es nichts zu wechseln gibt");
+ p(A2.alterKnopf===false,"den Knopf oben rechts gibt es nicht mehr",A2);
+ p(A2.ausMehr===true,"der Eintrag unter Mehr steht da, auch mit nur einem Konto",A2);
 
  // Ein zweites Merken derselben Person verdoppelt den Eintrag nicht, sondern
  // frischt ihn auf - sonst sammelten sich alte, laengst ungueltige Sitzungen.
@@ -104,13 +112,15 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
   await kwMerken();
   kwZeichnen();
   return {anzahl:kwListe().length,andere:kwAndere().map(k=>k.firma),
-          mehrere:kwMehrereDa(),knopf:!$("kontoWechseln").hidden,
+          mehrere:kwMehrereDa(),
+          // v3.218: Nicht mehr der Knopf oben rechts - der Eintrag unter Mehr.
+          knopf:(typeof a2SeiteMehr==="function")?/data-a2-tu="konten"/.test(a2SeiteMehr()):false,
           html:$("kontenBox")?$("kontenBox").innerHTML:""};
  });
  p(B.anzahl===2,"beide Konten sind gemerkt",B.anzahl);
  p(JSON.stringify(B.andere)===JSON.stringify(["PETER KÜNZI AG"]),
    "als Wechselziel steht nur das ANDERE da, nicht das eigene",B.andere);
- p(B.knopf===true,"jetzt erscheint der Knopf oben rechts");
+ p(B.knopf===true,"der Eintrag unter Mehr fuehrt unveraendert hierher",B.knopf);
  p(B.html.indexOf('data-kw-zu="u1"')>=0,"die Zeile hat einen Wechsel-Knopf");
  p(B.html.indexOf('data-kw-weg="u1"')>=0,"und einen zum Entfernen");
  p(B.html.indexOf("ohne Passwort")>=0,"die Warnung steht dabei, nicht im Kleingedruckten");
@@ -197,11 +207,13 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
   const vorher=kwListe().length;
   kwEntfernen("u1");
   kwZeichnen();
-  return {vorher,nachher:kwListe().length,knopf:$("kontoWechseln").hidden,
+  return {vorher,nachher:kwListe().length,
+          // v3.218: siehe oben - es gibt keinen Knopf oben rechts mehr.
+          knopf:!document.getElementById("kontoWechseln"),
           text:$("kontenBox").innerHTML.indexOf("nur dieses eine Konto")>=0};
  });
  p(G.vorher===2&&G.nachher===1,"der Eintrag ist weg",G);
- p(G.knopf===true,"der Knopf oben rechts verschwindet wieder");
+ p(G.knopf===true,"und es gibt keinen zweiten Einstieg, der stehenbliebe",G.knopf);
  p(G.text===true,"und die Liste sagt, dass nur noch eines da ist");
  // Entfernt wird NUR der gemerkte Zugang - kein signOut, kein Loeschen.
  const quelle=lies("js/76-kontowechsel.js");
@@ -234,7 +246,10 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  p(lies("sw.js").indexOf("./js/76-kontowechsel.js")>=0,"js/76 steht in der App-Shell des Service Workers");
  const html=lies("index.html");
  p(html.indexOf('<script src="js/76-kontowechsel.js">')>=0,"js/76 ist eingebunden");
- p(html.indexOf('id="kontoWechseln"')>=0,"der Knopf steht oben rechts");
+ // v3.218: Der Knopf oben rechts ist mit dem klassischen Startbildschirm
+ // entfallen; der eine Weg ist der Eintrag unter "Mehr" (weiter unten
+ // geprueft). Gegenprobe, dass er nicht zurueckkommt:
+ p(html.indexOf('id="kontoWechseln"')<0,"es gibt keinen zweiten Knopf oben rechts mehr");
  p(html.indexOf('id="kontenModal"')>=0,"der Dialog ist da");
  p(html.indexOf('data-hilfe="kontowechsel"')>=0,"mit Info-Knopf");
  p(lies("js/41-hilfe.js").indexOf('"kontowechsel"')>=0,"der Hilfetext ist da");

@@ -141,17 +141,27 @@ const messenDruck=page=>page.evaluate(()=>{
  await page.waitForTimeout(600);
 
  const neu=await messen(page);
- // Dieselben Messungen in der klassischen Ansicht - sie sind der Massstab.
- // Seit v3.156 steht im Vertrag nicht mehr eine feste Zahl, sondern die
- // GLEICHHEIT mit der klassischen Ansicht: der Anwender hat die
- // Vergroesserung aus v3.152/v3.154 am fertigen Bildschirm beurteilt und
- // zurueckgewiesen. Eine feste Zahl waere beim naechsten Umbau des
- // Grundstils stillschweigend falsch geworden.
- await page.evaluate(()=>a2Setzen(false));
- await page.waitForTimeout(250);
- const klassisch=await messen(page);
- await page.evaluate(()=>a2Setzen(true));
- await page.waitForTimeout(250);
+ // Seit v3.156 steht im Vertrag nicht eine feste Zahl, sondern die
+ // GLEICHHEIT mit dem Grundstil: der Anwender hat die Vergroesserung aus
+ // v3.152/v3.154 am fertigen Bildschirm beurteilt und zurueckgewiesen. Eine
+ // feste Zahl waere beim naechsten Umbau des Grundstils stillschweigend
+ // falsch geworden.
+ // v3.218: Die klassische Ansicht gibt es nicht mehr. Der Massstab ist
+ // deshalb der blanke Grundstil: die Marke a2-an am <html>-Element wird kurz
+ // abgenommen, gemessen und sofort wieder gesetzt. An ihr haengt das ganze
+ // Aussehen der Ansicht (css/05) - ohne sie steht genau das da, was frueher
+ // die klassische Ansicht zeigte. Die Aussage der Pruefungen bleibt damit
+ // dieselbe: die Ansicht darf die GROESSEN nicht veraendern (v3.156), das
+ // Aussehen aber schon.
+ const ohneMarke=async(fn)=>{
+  await page.evaluate(()=>document.documentElement.classList.remove("a2-an"));
+  await page.waitForTimeout(250);
+  const m=await (fn||messen)(page);
+  await page.evaluate(()=>document.documentElement.classList.add("a2-an"));
+  await page.waitForTimeout(250);
+  return m;
+ };
+ const klassisch=await ohneMarke();
  const gleich=(a,b,k)=>!!a&&!!b&&k.every(x=>a[x]===b[x]);
 
  // ---- A  Regierapport ----------------------------------------------------
@@ -208,34 +218,38 @@ const messenDruck=page=>page.evaluate(()=>{
  p(neu.measLabel&&zahl(neu.measLabel.fontSize)<13,
    "C4 Eine echte Feldbeschriftung bleibt klein - die Ausnahme greift nicht zu weit",neu.measLabel);
 
- // ---- D  Gegenprobe klassische Ansicht -----------------------------------
- await page.evaluate(()=>a2Setzen(false));
- await page.waitForTimeout(300);
- const alt=await messen(page);
+ // ---- D  Gegenprobe Grundstil --------------------------------------------
+ // v3.218: Bis v3.217 wurde hier in die klassische Ansicht geschaltet. Es
+ // gibt sie nicht mehr; gemessen wird derselbe Grundstil ohne die Marke.
+ // Die Aussage bleibt: die Ansicht setzt ihr Aussehen wirklich selbst, und
+ // zwar OHNE die Groessen anzufassen.
+ const alt=await ohneMarke();
  p(alt.repKarte&&neu.repKarte&&alt.repKarte.borderRadius!==neu.repKarte.borderRadius,
-   "D1 klassisch: die Karten sehen anders aus als in der neuen Ansicht",
-   {klassisch:alt.repKarte,neu:neu.repKarte});
+   "D1 im Grundstil sehen die Karten anders aus - das Aussehen kommt von der Ansicht",
+   {grundstil:alt.repKarte,neu:neu.repKarte});
  p(alt.repTitel&&zahl(alt.repTitel.borderBottomWidth)>0&&zahl(alt.repTitel.fontSize)===13,
-   "D2 klassisch: der Abschnittstitel behaelt Unterstreichung und 13px",alt.repTitel);
+   "D2 im Grundstil behaelt der Abschnittstitel Unterstreichung und 13px",alt.repTitel);
  p(gleich(alt.amFeld,neu.amFeld,["minHeight","fontSize"])
    &&gleich(alt.angFeld,neu.angFeld,["minHeight","fontSize"])
    &&gleich(alt.leiFeld,neu.leiFeld,["minHeight","fontSize"]),
-   "D3 klassisch: Ausmass, Offerte und Leistung messen sich gleich",
+   "D3 Ausmass, Offerte und Leistung messen sich gleich - die Groessen sind unberuehrt",
    {am:alt.amFeld,ang:alt.angFeld,lei:alt.leiFeld});
  p(alt.repFoto&&alt.measFoto&&alt.repFoto.fontSize==="12px"&&alt.measFoto.fontSize==="12px",
-   "D4 klassisch: die Foto-Knoepfe stehen auf ihren 12px",
+   "D4 im Grundstil stehen die Foto-Knoepfe auf ihren 12px",
    {rep:alt.repFoto,meas:alt.measFoto});
  p(alt.repZeilenfeld&&neu.repZeilenfeld
    &&alt.repZeilenfeld.minHeight!==undefined,
-   "D5 klassisch: die Zeilenfelder sind ueberhaupt messbar",alt.repZeilenfeld);
+   "D5 die Zeilenfelder sind ueberhaupt messbar",alt.repZeilenfeld);
+ p(await page.evaluate(()=>document.documentElement.classList.contains("a2-an")),
+   "D6 die Marke a2-an steht danach wieder - es gibt keine zweite Ansicht");
 
  // ---- E  Der Ausdruck bleibt Zeichen fuer Zeichen ------------------------
  await page.emulateMedia({media:"print"});
  await page.waitForTimeout(200);
- const druckAlt=await messenDruck(page);      // klassische Ansicht, Druck
- await page.evaluate(()=>a2Setzen(true));
- await page.waitForTimeout(300);
- const druckNeu=await messenDruck(page);      // neue Ansicht, Druck
+ // v3.218: einmal ohne die Marke (Grundstil), einmal mit ihr. Der Ausdruck
+ // darf sich dadurch NICHT unterscheiden - das war und bleibt die Aussage.
+ const druckAlt=await ohneMarke(messenDruck);
+ const druckNeu=await messenDruck(page);
  const unterschiede=[];
  Object.keys(druckAlt).forEach(sel=>{
   const a=druckAlt[sel],n=druckNeu[sel];

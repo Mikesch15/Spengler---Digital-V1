@@ -73,7 +73,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
 
  // ---- A  Der gemeldete Weg: aus der Werkstatt ----------------------------
  const A=await page.evaluate(async()=>{
-  a2Setzen(true);
+  /* v3.218: Den Umschalter auf die neue Ansicht gibt es nicht mehr - es gibt nur diese eine. Gezeichnet werden muss sie weiterhin. */ if(typeof a2Zeichnen==="function")a2Zeichnen();
   a2Zustand.seite="heute"; a2Zustand.projektId=null; a2Zeichnen();
   // Die Werkstatt so oeffnen, wie die neue Ansicht es tut.
   await a2BereichStarten("werkstattModal","Werkstatt","werkstatt",()=>$("navWerkstatt").click());
@@ -134,7 +134,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
 
  // ---- C  Die Suche --------------------------------------------------------
  const C=await page.evaluate(async()=>{
-  a2Setzen(true);
+  /* v3.218: Den Umschalter auf die neue Ansicht gibt es nicht mehr - es gibt nur diese eine. Gezeichnet werden muss sie weiterhin. */ if(typeof a2Zeichnen==="function")a2Zeichnen();
   a2Zustand.seite="heute"; a2Zustand.projektId=null; a2Zustand.bereich=null; a2Zeichnen();
   $("projectCockpitModal").hidden=true;
   // Die Suche so oeffnen, wie die neue Ansicht es tut - als BEREICH. Nur
@@ -196,20 +196,25 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(C3d.raus===true&&C3d.seite==="projekt"&&C3d.hervorgehoben===false,
    "C3d ein Treffer, den es nicht mehr gibt: das Projekt geht auf, sonst passiert nichts",C3d);
 
- // Und in der KLASSISCHEN Ansicht bleibt der alte Weg unveraendert.
+ // v3.218: Bis v3.217 stand hier "und in der KLASSISCHEN Ansicht bleibt der
+ // alte Weg unveraendert". Die klassische Ansicht gibt es nicht mehr, und
+ // damit auch die Weiche in projektOeffnen() nicht. Geblieben ist der
+ // Notnagel darunter: waere js/70 nicht geladen, muss der Treffer trotzdem
+ // ankommen - im klassischen Cockpit, mitsamt seiner Angabe. Genau das wird
+ // hier geprueft, indem a2ProjektOeffnen kurz weggenommen wird.
  const C3e=await page.evaluate(async()=>{
-  a2Setzen(false);
   const gerufen=[];
   const alt=window.openProjectCockpit;
+  const altA2=window.a2ProjektOeffnen;
   window.openProjectCockpit=(id,treffer)=>{gerufen.push({id,treffer});return Promise.resolve()};
+  window.a2ProjektOeffnen=undefined;
   await projektOeffnen(1,{kind:"measurement",id:11});
-  window.openProjectCockpit=alt;
-  a2Setzen(true);
+  window.openProjectCockpit=alt; window.a2ProjektOeffnen=altA2;
   return gerufen;
  });
  p(C3e.length===1&&C3e[0].id===1&&C3e[0].treffer&&C3e[0].treffer.kind==="measurement"
    &&C3e[0].treffer.id===11,
-   "C3e ohne neue Ansicht geht der Treffer unveraendert ins Cockpit - mitsamt seiner Angabe",C3e);
+   "C3e ohne js/70 geht der Treffer in den Notnagel - mitsamt seiner Angabe",C3e);
 
  // Dieselbe Zuordnung fuer die beiden anderen Arten, die die Suche erzeugt.
  // Die Tabelle A2_TREFFER ist die riskante Stelle: ein vertauschtes
@@ -231,13 +236,16 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(C5.report.reg===C5.report.soll&&C5.report.hervorgehoben,
    "C6 ein Rapport-Treffer im Register 'Regierapport'",C5);
 
- // ---- D  Die klassische Ansicht bleibt unveraendert -----------------------
- // Die Weiche darf den alten Weg nicht kaputtmachen: ohne neue Ansicht
- // fuehrt derselbe Klick weiterhin ins Cockpit.
+ // ---- D  Der Notnagel bleibt unveraendert --------------------------------
+ // v3.218: Bis v3.217 hiess dieser Abschnitt "die klassische Ansicht bleibt
+ // unveraendert". Die gibt es nicht mehr; was bleibt, ist der Rueckfall in
+ // js/01 fuer den Fall, dass js/70 nicht geladen ist. Er darf nicht
+ // kaputtgehen - sonst fuehrte gar kein Weg mehr ins Projekt.
  const D=await page.evaluate(async()=>{
-  a2Setzen(false);
   const gerufen=[];
   const alt=window.openProjectCockpit;
+  const altA2=window.a2ProjektOeffnen, altA2S=window.a2StammdatenOeffnen;
+  window.a2ProjektOeffnen=undefined; window.a2StammdatenOeffnen=undefined;
   window.openProjectCockpit=(id,treffer)=>{gerufen.push({id,treffer});return Promise.resolve()};
   await projektOeffnen(2);
   const gerufenBearb=[];
@@ -245,10 +253,11 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   window.openProjectCockpitZumBearbeiten=(id)=>{gerufenBearb.push(id);return Promise.resolve()};
   await projektStammdatenOeffnen(3);
   window.openProjectCockpit=alt; window.openProjectCockpitZumBearbeiten=altB;
+  window.a2ProjektOeffnen=altA2; window.a2StammdatenOeffnen=altA2S;
   return {gerufen,gerufenBearb};
  });
  p(D.gerufen.length===1&&D.gerufen[0].id===2,
-   "D1 ohne neue Ansicht fuehrt projektOeffnen wie bisher ins Cockpit",D);
+   "D1 ohne js/70 fuehrt projektOeffnen wie bisher ins Cockpit",D);
  p(D.gerufenBearb.length===1&&D.gerufenBearb[0]===3,
    "D2 und projektStammdatenOeffnen in den Stammdatenbereich des Cockpits",D);
 
@@ -259,7 +268,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  // geblieben - dieser eine Weg fuehrt ins Cockpit, und zwar mit der Marke,
  // die alles ausser Dateien, Fotos und Verlauf ausblendet.
  const E=await page.evaluate(async()=>{
-  a2Setzen(true);
+  /* v3.218: Den Umschalter auf die neue Ansicht gibt es nicht mehr - es gibt nur diese eine. Gezeichnet werden muss sie weiterhin. */ if(typeof a2Zeichnen==="function")a2Zeichnen();
   a2Zustand.seite="projekt"; a2Zustand.projektId=1; a2Zustand.reg="dateien";
   a2Zustand.bereich=null; a2Zeichnen();
   const knopf=document.querySelector('#a2Inhalt [data-a2-tu="cockpit"]');
@@ -281,7 +290,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  // der Zeitpunkt: waehrend der Oeffner laeuft, traegt der Schirm die Marke
  // bereits.
  const E2=await page.evaluate(async()=>{
-  a2Setzen(true);
+  /* v3.218: Den Umschalter auf die neue Ansicht gibt es nicht mehr - es gibt nur diese eine. Gezeichnet werden muss sie weiterhin. */ if(typeof a2Zeichnen==="function")a2Zeichnen();
   if(typeof a2BereichSchliessen==="function")a2BereichSchliessen();
   await new Promise(f=>setTimeout(f,250));   // der Bereich schliesst ueber seinen eigenen Knopf
   document.getElementById("projectCockpitModal").hidden=true;

@@ -59,6 +59,14 @@ const vorbereiten=async page=>{
   werkOffen=null; werkGrundlage=null; werkFilter="alle"; werkOffenKarte.clear();
   werkSichtSetzen("projekt");
   werkstattKnopfAktualisieren();
+  // v3.218: Der Einstieg in die Werkstatt ist der Eintrag in der Leiste
+  // unten - der grosse Knopf auf dem klassischen Startbildschirm ist weg.
+  // Die Leiste muss also gezeichnet sein. Bewusst auf der Seite "Mehr":
+  // die Seite "Heute" holt sich selbst die Werkstattzahlen, und mehrere
+  // dieser Pruefstaende zaehlen die Abfragen mit. Die Leiste ist auf jeder
+  // Seite dieselbe.
+  if(typeof a2Zustand!=="undefined")a2Zustand.seite="mehr";
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
  },[MESS,MODULE,ICH]);
 };
 const tipp=async(page,sel,was)=>{
@@ -85,9 +93,12 @@ const tipp=async(page,sel,was)=>{
  // Die klassische Ansicht: in der neuen liegt der Werkstatt-Knopf in der
  // unteren Leiste, und darum geht es hier nicht. Genau so macht es auch
  // pruefstand-werkstatt-liste-v3-30.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+  // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 wurde
+ // hier auf sie umgeschaltet, um ihre Knoepfe und Karten zu erreichen.
+ // Geprueft wird unveraendert dasselbe, nur an der einen Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
  await vorbereiten(page);
- await tipp(page,"#navWerkstatt","Werkstatt-Knopf");
+ await tipp(page,'#a2Leiste [data-a2-tab="werkstatt"]',"Werkstatt-Knopf");
  await page.waitForTimeout(600);
  // v3.215: Die Werkstatt oeffnet als Liste zugeklappter Projekte. Hier geht
  // es um das Ruestblatt IN einer Massaufnahme - also erst das Projekt auf.

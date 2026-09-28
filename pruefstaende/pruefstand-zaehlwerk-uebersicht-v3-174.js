@@ -144,12 +144,17 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  const D=await page.evaluate(()=>{
   const mehr=(typeof a2SeiteMehr==="function")?a2SeiteMehr():"";
   return {ausMehr:/data-a2-tu="zaehlwerk"/.test(mehr),
+          // v3.218: Der klassische Knopf #navZaehlwerk ist mit dem alten
+          // Startbildschirm entfallen. Geprueft wird jetzt das Gegenteil: es
+          // gibt genau EINEN Weg hierher, naemlich den Eintrag unter "Mehr".
           knopfKlassisch:!!document.getElementById("navZaehlwerk"),
+          zweiterWeg:typeof a2Setzen==="function"||!!document.getElementById("a2Ein"),
           modal:!!document.getElementById("zaehlwerkModal"),
           hilfe:!!document.querySelector('#zaehlwerkModal [data-hilfe="zaehlwerk"]')};
  });
  p(D.ausMehr,"D1 in der neuen Ansicht steht der Eintrag unter Mehr",D);
- p(D.knopfKlassisch,"D2 in der klassischen Ansicht steht ein eigener Knopf",D);
+ p(!D.knopfKlassisch&&!D.zweiterWeg,
+   "D2 es gibt keinen zweiten Weg mehr - der alte Startknopf und die alte Ansicht sind weg",D);
  p(D.modal&&D.hilfe,"D3 das Fenster hat einen Info-Knopf",D);
 
  const quelle=fs.readFileSync(path.join(process.cwd(),"js/72-zaehlwerk-uebersicht.js"),"utf8");

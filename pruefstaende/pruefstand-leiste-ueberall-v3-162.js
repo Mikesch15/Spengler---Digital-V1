@@ -83,7 +83,7 @@ const rahmen=page=>page.evaluate(()=>{
   if(typeof pmUebernehmen==="function")
    pmUebernehmen({haupt:true,material:true,zuschnitt:true,reservierung:true,
                   werkstatt:true,vorlagen:true,serien:true,versionierung:true});
-  a2Setzen(true);
+  /* v3.218: Den Umschalter auf die neue Ansicht gibt es nicht mehr - es gibt nur diese eine. Gezeichnet werden muss sie weiterhin. */ if(typeof a2Zeichnen==="function")a2Zeichnen();
  });
  await page.waitForTimeout(400);
 
@@ -266,17 +266,24 @@ const rahmen=page=>page.evaluate(()=>{
  p(E&&E.hoehe>=44,"E2 aber nicht kleiner als ein Finger (44px)",E);
  p(E&&E.richtung==="row","E3 Symbol und Text stehen nebeneinander, nicht uebereinander",E);
 
+ // v3.218: Bis v3.217 wurde diese Gegenprobe in der klassischen Ansicht
+ // gemacht. Die gibt es nicht mehr. Gemessen wird stattdessen ohne die Marke
+ // a2-an am <html>-Element - an ihr haengt das ganze Aussehen (css/05).
+ // Die Aussage bleibt dieselbe: die flachen Knoepfe kommen wirklich von der
+ // Ansicht und sind nicht ohnehin der Grundstil.
  const E4=await page.evaluate(()=>{
-  a2Setzen(false);
+  document.documentElement.classList.remove("a2-an");
   const k=document.querySelector("#measTypeChooserModal .start-nav-btn");
   const r=k?k.getBoundingClientRect():null;
   const st=k?getComputedStyle(k):null;
   const raus={hoehe:r?Math.round(r.height):0, richtung:st?st.flexDirection:""};
-  a2Setzen(true);
+  document.documentElement.classList.add("a2-an");
   return raus;
  });
  p(E4.richtung==="column"&&E4.hoehe>72,
-   "E4 Gegenprobe: in der klassischen Ansicht sind die Kacheln unveraendert",E4);
+   "E4 Gegenprobe: ohne die Marke sind es wieder die hohen Kacheln",E4);
+ p(await page.evaluate(()=>document.documentElement.classList.contains("a2-an")),
+   "E5 die Marke steht danach wieder - es gibt keine zweite Ansicht");
 
  // ---- F  Der Ausdruck bleibt unberuehrt -----------------------------------
  await aufraeumen();

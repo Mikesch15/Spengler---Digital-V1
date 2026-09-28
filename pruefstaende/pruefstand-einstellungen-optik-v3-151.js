@@ -77,27 +77,40 @@ const messen=page=>page.evaluate(()=>{
  await page.evaluate(()=>openSettingsTo("general"));
  await page.waitForTimeout(120);
  const neu=await messen(page);
- // Der Massstab ist dieselbe Messung in der klassischen Ansicht. Seit
- // v3.156 aendert die neue Ansicht die GROESSE nicht mehr - v3.151 hatte
- // Felder und Knoepfe auf 48px/16px vergroessert, der Anwender hat das am
- // fertigen Bildschirm als unuebersichtlich zurueckgewiesen.
- await page.evaluate(()=>a2Setzen(false));
- await page.waitForTimeout(250);
- const klassisch=await messen(page);
- await page.evaluate(()=>a2Setzen(true));
+ // Der Massstab war bis v3.217 dieselbe Messung in der klassischen Ansicht.
+ // Die gibt es nicht mehr (v3.218). Was es weiterhin gibt, ist die Marke
+ // a2-an am <html>-Element: an ihr haengt das ganze Aussehen (css/05). Wird
+ // sie kurz abgenommen, steht der blanke Grundstil da - derselbe Massstab
+ // wie frueher die klassische Ansicht, und der Beweis, dass die gemessenen
+ // Werte wirklich aus den Regeln der Ansicht kommen und nicht zufaellig
+ // ohnehin gelten. Sie wird danach sofort wieder gesetzt.
+ //
+ // Der Inhalt der Messung bleibt unveraendert: seit v3.156 aendert die
+ // Ansicht die GROESSE nicht - v3.151 hatte Felder und Knoepfe auf
+ // 48px/16px vergroessert, der Anwender hat das am fertigen Bildschirm als
+ // unuebersichtlich zurueckgewiesen.
+ const ohneMarke=async()=>{
+  await page.evaluate(()=>document.documentElement.classList.remove("a2-an"));
+  await page.waitForTimeout(150);
+  const m=await messen(page);
+  await page.evaluate(()=>document.documentElement.classList.add("a2-an"));
+  await page.waitForTimeout(150);
+  return m;
+ };
+ const klassisch=await ohneMarke();
  await page.evaluate(()=>openSettingsTo("general"));
  await page.waitForTimeout(250);
  const gleich=(a,b,k)=>!!a&&!!b&&k.every(x=>a[x]===b[x]);
 
  p(neu.tab&&neu.tab.borderRadius.startsWith("999"),"A1 die Register sind Pillen wie in der neuen Ansicht",neu.tab);
  p(gleich(neu.feld,klassisch.feld,["minHeight","fontSize"])&&parseInt(neu.feld.minHeight)>0,
-   "A2 Eingabefelder haben dieselbe Groesse wie in der klassischen Ansicht",
-   {neu:neu.feld,klassisch:klassisch.feld});
+   "A2 Eingabefelder behalten die Groesse des Grundstils - die Ansicht vergroessert sie nicht",
+   {neu:neu.feld,ohneMarke:klassisch.feld});
  p(klassisch.tab&&neu.tab.borderRadius!==klassisch.tab.borderRadius,
-   "A3 Gegenprobe: am Aussehen aendert sich trotzdem etwas",
-   {neu:neu.tab,klassisch:klassisch.tab});
+   "A3 Gegenprobe: ohne die Marke a2-an sind die Register KEINE Pillen - die Form kommt wirklich von dort",
+   {neu:neu.tab,ohneMarke:klassisch.tab});
  p(gleich(neu.knopf,klassisch.knopf,["minHeight","fontSize"]),
-   "A4 Knoepfe in den Leisten ebenso",{neu:neu.knopf,klassisch:klassisch.knopf});
+   "A4 Knoepfe in den Leisten ebenso",{neu:neu.knopf,ohneMarke:klassisch.knopf});
  p(neu.info&&parseInt(neu.info.minHeight)<48,"A5 der runde Info-Knopf bleibt klein - er ist ein Zeichen",neu.info);
 
  // Auf- und Zuklappen muss unveraendert funktionieren
@@ -122,13 +135,20 @@ const messen=page=>page.evaluate(()=>{
  p(wechsel.aktiv==="measurements"&&JSON.stringify(wechsel.sichtbar)===JSON.stringify(["measurements"]),
    "A7 der Registerwechsel ist unberuehrt",wechsel);
 
- // --- Gegenprobe: klassische Ansicht unveraendert ---
- await page.evaluate(()=>{$("settingsModal").hidden=true;a2Setzen(false);openSettingsTo("general")});
+ // --- Gegenprobe: der Grundstil darunter ist unveraendert ---
+ // v3.218: Bis v3.217 wurde dafuer in die klassische Ansicht geschaltet.
+ // Gemessen wird jetzt derselbe Grundstil, indem die Marke a2-an kurz
+ // abgenommen wird. Wer die Regeln der Ansicht versehentlich in den
+ // Grundstil schreibt, faellt hier auf.
+ await page.evaluate(()=>{$("settingsModal").hidden=true;openSettingsTo("general")});
  await page.waitForTimeout(120);
- const alt=await messen(page);
- p(alt.tab&&!alt.tab.borderRadius.startsWith("999"),"B1 klassisch: die Register sind wie vorher",alt.tab);
- p(alt.feld&&parseInt(alt.feld.minHeight)<48,"B2 klassisch: die Feldhoehe ist unveraendert",alt.feld);
- p(alt.knopf&&parseInt(alt.knopf.minHeight)<48,"B3 klassisch: die Knopfhoehe ist unveraendert",alt.knopf);
+ const alt=await ohneMarke();
+ p(alt.tab&&!alt.tab.borderRadius.startsWith("999"),"B1 im Grundstil sind die Register keine Pillen",alt.tab);
+ p(alt.feld&&parseInt(alt.feld.minHeight)<48,"B2 im Grundstil ist die Feldhoehe unveraendert",alt.feld);
+ p(alt.knopf&&parseInt(alt.knopf.minHeight)<48,"B3 im Grundstil ist die Knopfhoehe unveraendert",alt.knopf);
+ // Und: die Marke ist danach wieder da - es gibt keinen Zustand ohne sie.
+ const markeDa=await page.evaluate(()=>document.documentElement.classList.contains("a2-an"));
+ p(markeDa,"B4 die Marke a2-an steht danach wieder - es gibt keine zweite Ansicht",markeDa);
 
  p(fehler.length===0,"C1 keine Javascript-Fehler",fehler.slice(0,3));
  console.log("\n  "+ok+" ok, "+fail+" fehlgeschlagen");

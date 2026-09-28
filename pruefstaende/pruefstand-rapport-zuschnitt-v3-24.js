@@ -185,7 +185,10 @@ async function dialogAuf(page){
  // unterstuetzter, jederzeit erreichbarer Zustand der App, und genau der
  // wird hier geprueft. Was die NEUE Ansicht tut, pruefen
  // pruefstand-ansicht2-v3-150.js und die beiden v3-151-Pruefstaende.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+  // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 wurde
+ // hier auf sie umgeschaltet, um ihre Knoepfe und Karten zu erreichen.
+ // Geprueft wird unveraendert dasselbe, nur an der einen Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
  await page.waitForTimeout(700);
  p(cdnWache.abgefangen>=1,
    "das echte supabase-js wurde abgefangen - der Stub ist die einzige Quelle",
@@ -392,30 +395,43 @@ async function dialogAuf(page){
  await page.setViewportSize({width:412,height:900});
 
  // ---------------------------------------------------------------- E
- console.log("\nE  Werkstatt: grosser Knopf, Vorgabe nur meine");
+ console.log("\nE  Werkstatt: eigener Einstieg, Vorgabe nur meine");
+ // v3.218: Bis v3.217 war das der grosse Knopf auf dem klassischen
+ // Startbildschirm. Den gibt es nicht mehr; der Einstieg ist der Eintrag in
+ // der Leiste unten. Die Aussage bleibt dieselbe und wird weiter geprueft:
+ // die Werkstatt ist ein eigener, gut treffbarer Einstieg, sie erscheint nur
+ // mit eingeschaltetem Modul, und es gibt sie genau EINMAL.
  await page.setViewportSize({width:412,height:900});
  const werk=await page.evaluate(()=>{
   $("rmatModal").hidden=true;
   $("reportScreen").hidden=true; $("startScreen").hidden=false;
-  const m=s=>{const e=document.querySelector(s); if(!e)return null;
+  const leiste=()=>{
+   if(typeof a2Zeichnen==="function")a2Zeichnen();
+   const alle=[...document.querySelectorAll('#a2Leiste [data-a2-tab="werkstatt"]')];
+   const e=alle[0];
+   if(!e)return {anzahl:0,h:0,b:0};
    const r=e.getBoundingClientRect();
-   return {b:Math.round(r.width),h:Math.round(r.height),d:getComputedStyle(e).display}};
+   return {anzahl:alle.length,b:Math.round(r.width),h:Math.round(r.height)};
+  };
   pmUebernehmen({}); werkstattKnopfAktualisieren();
-  const aus=m("#navWerkstatt");
+  const aus=leiste();
   pmUebernehmen({haupt:true,werkstatt:true}); werkstattKnopfAktualisieren();
-  const an=m("#navWerkstatt");
-  const proj=m("#startOpenProjects");
-  const k=document.querySelector("#navWerkstatt");
-  return {aus,an,proj,
-   imNav:!!(k&&k.closest("#startNav")),
-   gross:!!(k&&k.classList.contains("start-nav-btn")),
-   klein:document.querySelectorAll("#navWerkstatt.gray").length};
+  const an=leiste();
+  return {aus,an,
+   // Der Anker, an dem js/51 die Sichtbarkeit fuehrt (index.html, #appAnker).
+   ankerDa:!!document.getElementById("navWerkstatt"),
+   // Gegenprobe: die beiden alten Knoepfe (der grosse im Startraster und
+   // der kleine graue daneben) sind wirklich weg - es gibt den Einstieg
+   // nur noch einmal, in der Leiste. Der Verweis auf der Seite "Heute"
+   // ("Werkstatt öffnen ›") ist kein zweiter Einstieg, sondern eine
+   // Abkuerzung im Text; er traegt deshalb keine start-nav-Klasse.
+   alteKnoepfe:document.querySelectorAll("#startScreen .start-nav-btn, #navWerkstatt.gray").length};
  });
- p(werk.imNav&&werk.gross,"Die Werkstatt ist ein grosser Knopf im Startraster",werk);
- p(werk.klein===0,"Der kleine graue Werkstatt-Knopf ist weg - es gibt nur einen",werk.klein);
- p(werk.an&&werk.an.h>=90&&werk.an.b>=140,"Er ist so gross wie der Projekte-Knopf",{werk:werk.an,proj:werk.proj});
- p(werk.aus&&werk.aus.d==="none"&&werk.aus.h===0,
-   "Ohne das Modul ist er wirklich versteckt (display:flex schlaegt sonst [hidden])",werk.aus);
+ p(werk.an.anzahl===1,"Die Werkstatt steht genau einmal in der Leiste",werk);
+ p(werk.an.h>=40,"Der Eintrag ist gross genug zum Antippen",werk.an);
+ p(werk.aus.anzahl===0,"Ohne das Modul ist er wirklich weg",werk.aus);
+ p(werk.ankerDa,"und die Sichtbarkeit haengt weiter an der einen Quelle (#navWerkstatt)",werk);
+ p(werk.alteKnoepfe===0,"die alten Startknoepfe (gross und klein grau) sind weg",werk.alteKnoepfe);
 
  const filt=await page.evaluate(()=>{
   const vorher=localStorage.getItem("sd_werkFilter");

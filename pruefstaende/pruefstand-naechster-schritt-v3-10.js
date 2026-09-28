@@ -116,7 +116,10 @@ const karte=(page)=>page.evaluate(()=>{
  // unterstuetzter, jederzeit erreichbarer Zustand der App, und genau der
  // wird hier geprueft. Was die NEUE Ansicht tut, pruefen
  // pruefstand-ansicht2-v3-150.js und die beiden v3-151-Pruefstaende.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+  // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 wurde
+ // hier auf sie umgeschaltet, um ihre Knoepfe und Karten zu erreichen.
+ // Geprueft wird unveraendert dasselbe, nur an der einen Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
  await anmelden(page,A,"employee");
  p(fehler.length===0,"die App laedt ohne JavaScript-Fehler",fehler.slice(0,3));
  if(fehler.length){console.log("\n=== Abbruch ===");await b.close();process.exit(1)}
@@ -260,11 +263,20 @@ const karte=(page)=>page.evaluate(()=>{
   await page.evaluate(()=>{$("measurementEditModal").hidden=true;$("startScreen").hidden=false});
   await page.evaluate(z=>{window.__zeilen=z},zeilen);
   await page.evaluate(()=>aufgabenNeuLaden()); await page.waitForTimeout(250);
-  await page.evaluate(()=>{aufgabenOffen=true;renderAufgaben()});
-  return page.evaluate(()=>[...document.querySelectorAll("#aufgabenListe .aufgabe")].map(x=>({
-    kopf:(x.querySelector(".aufgabe-kopf").innerText||"").trim(),
-    knopf:(x.querySelector(".aufgabe-haupt").textContent||"").trim(),
-    art:x.querySelector(".aufgabe-haupt").dataset.aufgabe})));
+  // v3.218: Gelesen wird die Liste der Ansicht - die zuklappbare Karte des
+  // klassischen Startbildschirms gibt es nicht mehr. Titel, Knopftext und
+  // Art kommen unveraendert aus js/45.
+  await page.evaluate(()=>{a2Zustand.seite="heute";a2Zeichnen()});
+  await page.waitForTimeout(150);
+  return page.evaluate(()=>[...document.querySelectorAll("#a2Inhalt .a2-zeile-reihe")]
+   .filter(x=>x.querySelector("[data-a2-aufgabe]"))
+   .map(x=>{
+    const t=x.querySelector(".a2-zeile-text b");
+    const tat=x.querySelector(".a2-zeile-tat");
+    return {kopf:t?t.innerText.trim():"",
+            knopf:tat?(tat.textContent||"").trim():"",
+            art:tat?tat.dataset.a2Aufgabe:null};
+   }));
  };
  let l=await aufgaben(A,"employee",[M({id:11,workflow_status:"geruestet",freigegeben_von:A,
    freigegeben_am:"x",ruester_id:B,geruestet_von:B,geruestet_am:"y"})]);
@@ -284,32 +296,44 @@ const karte=(page)=>page.evaluate(()=>{
  await aufgaben(A,"employee",[M({id:12,workflow_status:"montiert",freigegeben_von:A,
    freigegeben_am:"x",monteur_id:C,montiert_von:C,montiert_am:"z"})]);
  await page.evaluate(()=>{window.__ruf=[]});
- await klick(page,'#aufgabenListe [data-aufgabe="abschliessen"]',"Abschliessen in der Aufgabe");
+ await klick(page,'#a2Inhalt [data-a2-aufgabe="abschliessen"]',"Abschliessen in der Aufgabe");
  ruf=await page.evaluate(()=>window.__ruf);
  p(ruf.length===1&&ruf[0].name==="measurement_abschliessen"&&ruf[0].args.p_id===12,
    "Abschliessen aus der Aufgabe ruft measurement_abschliessen",ruf);
 
- // ---- F · Zugeklappt steht die dringendste Aufgabe da --------------------
- console.log("\nF · Startseite zugeklappt");
+ // ---- F . Die dringendste Aufgabe steht zuoberst -------------------------
+ // v3.218: Bis v3.217 stand hier "zugeklappt steht die dringendste Aufgabe
+ // da" - die zuklappbare Karte des klassischen Startbildschirms gibt es
+ // nicht mehr, die Ansicht zeigt die ganze Liste. Die Aussage dahinter
+ // bleibt und wird weiter geprueft: was am dringendsten ist, steht oben,
+ // mit seinem Knopf, und rot geht vor orange.
+ console.log("\nF . Reihenfolge auf der Startseite");
  await aufgaben(A,"employee",[
    M({id:21,workflow_status:"montiert",freigegeben_von:A,freigegeben_am:"x",monteur_id:C,montiert_von:C,montiert_am:"z"}),
    M({id:22,workflow_status:"in_bearbeitung",title:"Dringend"})]);
- await page.evaluate(()=>{aufgabenOffen=false;renderAufgaben()});
  const jetzt=await page.evaluate(()=>{
-  const e=$("aufgabenJetzt"), st=getComputedStyle(e), r=e.getBoundingClientRect();
-  const kk=$("aufgabenKarte").getBoundingClientRect();
-  return {sichtbar:st.display!=="none"&&r.height>0,hoehe:Math.round(r.height),
-   karte:Math.round(kk.height),text:(e.innerText||"").replace(/\s+/g," ").trim(),
-   knopf:!!e.querySelector("[data-aufgabe]"),
-   listeSichtbar:getComputedStyle($("aufgabenListe")).display!=="none"};
+  const zeilen=[...document.querySelectorAll("#a2Inhalt .a2-zeile-reihe")]
+    .filter(x=>x.querySelector("[data-a2-aufgabe]"));
+  const erste=zeilen[0];
+  return {anzahl:zeilen.length,
+   sichtbar:!!erste&&erste.getBoundingClientRect().height>0,
+   text:erste?(erste.innerText||"").replace(/\s+/g," ").trim():"",
+   rot:!!(erste&&erste.querySelector(".a2-zeile-nr.ist-rot")),
+   // Die Freigabe hat bewusst keinen eigenen Knopf in der Zeile: sie
+   // geschieht in der Massaufnahme selbst (js/70). Die Zeile SELBST ist der
+   // Weg dorthin - geprueft wird also, dass man von hier aus weiterkommt.
+   knopf:!!(erste&&erste.querySelector('[data-a2-aufgabe="oeffnen"]')),
+   zweiteRot:!!(zeilen[1]&&zeilen[1].querySelector(".a2-zeile-nr.ist-rot"))};
  });
- p(jetzt.sichtbar&&!jetzt.listeSichtbar,"zugeklappt: eine Aufgabe steht da, die Liste nicht",jetzt);
- p(/Massaufnahme freigeben/.test(jetzt.text),"und zwar die dringendste (rot vor orange)",jetzt.text);
- p(jetzt.knopf,"mit ihrem Knopf",jetzt);
- p(jetzt.karte<=150,"die Karte bleibt schmal",jetzt.karte);
- await page.evaluate(()=>{aufgabenOffen=true;renderAufgaben()});
- const beimOeffnen=await page.evaluate(()=>getComputedStyle($("aufgabenJetzt")).display);
- p(beimOeffnen==="none","offen faellt die Zeile weg - sie steht dann in der Liste",beimOeffnen);
+ p(jetzt.sichtbar&&jetzt.anzahl===2,"beide Aufgaben stehen da",jetzt);
+ p(/Massaufnahme freigeben/.test(jetzt.text),"zuoberst die dringendste (rot vor orange)",jetzt.text);
+ p(jetzt.rot&&!jetzt.zweiteRot,"und sie ist auch als die dringende gekennzeichnet",jetzt);
+ p(jetzt.knopf,"und die Zeile fuehrt in die Massaufnahme, um die es geht",jetzt);
+ // Gegenprobe: es gibt keine zweite, zugeklappte Darstellung mehr, in der
+ // dieselbe Aufgabe noch einmal stuende.
+ const zweimal=await page.evaluate(()=>!!document.getElementById("aufgabenJetzt")
+   ||!!document.getElementById("aufgabenKarte"));
+ p(zweimal===false,"und keine zweite Darstellung derselben Aufgabe",zweimal);
 
  // ---- G · Cockpit-Liste nennt den Schritt --------------------------------
  console.log("\nG · Projektliste und Arbeitsstand");

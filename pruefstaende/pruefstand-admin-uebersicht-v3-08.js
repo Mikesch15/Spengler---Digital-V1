@@ -129,16 +129,10 @@ const liste=(page)=>page.evaluate(()=>{
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
  page.on("dialog",d=>d.accept());
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(400);
- // v3.151: Die neue Ansicht ist seit dieser Version die VORGABE. Dieser
- // Pruefstand prueft Ablaeufe, die von der KLASSISCHEN Startseite ausgehen
- // (ihre Knoepfe, ihre Karten) - sie wird deshalb ausdruecklich gewaehlt.
- // Ohne diese Zeile traegt jedes Element der klassischen Startseite
- // display:none, und jede Messung daran ergaebe 0.
- // Das ist keine Abschwaechung: die klassische Ansicht ist ein
- // unterstuetzter, jederzeit erreichbarer Zustand der App, und genau der
- // wird hier geprueft. Was die NEUE Ansicht tut, pruefen
- // pruefstand-ansicht2-v3-150.js und die beiden v3-151-Pruefstaende.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+ // v3.218: Bis v3.217 wurde hier auf die klassische Startseite
+ // umgeschaltet, weil dort der Knopf "Alle Massaufnahmen" stand. Die
+ // Startseite gibt es nicht mehr; der Einstieg steht unter "Mehr". Geprueft
+ // wird dasselbe: wer ihn sieht, wie gross er ist und was er ausloest.
 
  // --- A) Wer sieht den Einstieg ------------------------------------------
  console.log("\nA) Einstieg nur fuer Firmenadministratoren");
@@ -146,8 +140,26 @@ const liste=(page)=>page.evaluate(()=>{
  p(await page.evaluate(()=>$("navAdminMeas").hidden)===true,"Mitarbeiter sieht den Knopf nicht");
  await anmelden(page,"admin");
  p(await page.evaluate(()=>$("navAdminMeas").hidden)===false,"Administrator sieht den Knopf");
- const knopfH=await page.evaluate(()=>$("navAdminMeas").getBoundingClientRect().height);
- p(knopfH>=34,"Knopf ist gross genug ("+Math.round(knopfH)+" px)",knopfH);
+ // v3.218: Gemessen und angetippt wird der Eintrag unter "Mehr" - der Knopf
+ // #navAdminMeas ist seit v3.218 nur noch der Anker, an dem js/46 seinen
+ // Handler und die Sichtbarkeit fuehrt (siehe #appAnker in index.html).
+ const mehr=await page.evaluate(()=>{
+  a2Zustand.seite="mehr"; a2Zeichnen();
+  const e=document.querySelector('#a2Inhalt [data-a2-tu="adminmeas"]');
+  return e?{da:true,hoehe:e.getBoundingClientRect().height}:{da:false,hoehe:0};
+ });
+ p(mehr.da,"der Eintrag steht unter Mehr",mehr);
+ p(mehr.hoehe>=34,"Eintrag ist gross genug ("+Math.round(mehr.hoehe)+" px)",mehr.hoehe);
+ // Gegenprobe: fuer den Mitarbeiter ist er auch dort nicht da - die Ansicht
+ // liest dieselbe eine Quelle und faellt nicht auf eine zweite zurueck.
+ await anmelden(page,"employee");
+ const mehrMa=await page.evaluate(()=>{
+  a2Zustand.seite="mehr"; a2Zeichnen();
+  return !!document.querySelector('#a2Inhalt [data-a2-tu="adminmeas"]');
+ });
+ p(mehrMa===false,"Mitarbeiter sieht den Eintrag unter Mehr nicht",mehrMa);
+ await anmelden(page,"admin");
+ await page.evaluate(()=>{a2Zustand.seite="heute";a2Zeichnen()});
 
  // --- B) Laden ------------------------------------------------------------
  console.log("\nB) Laden");

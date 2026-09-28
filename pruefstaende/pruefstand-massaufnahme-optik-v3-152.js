@@ -61,17 +61,22 @@ const messen=page=>page.evaluate(()=>{
  });
  await page.waitForTimeout(500);
  const neu=await messen(page);
- // Gegenprobe zuerst: dieselben Messungen in der klassischen Ansicht.
- await page.evaluate(()=>{a2Setzen(false)});
+ // Gegenprobe zuerst: dieselben Messungen ohne die Marke a2-an.
+ // v3.218: Bis v3.217 wurde dafuer in die klassische Ansicht geschaltet -
+ // die gibt es nicht mehr. Was es gibt, ist die Marke am <html>-Element, an
+ // der das ganze Aussehen haengt (css/05). Ohne sie steht der blanke
+ // Grundstil da: derselbe Massstab wie frueher, und der Beweis, dass die
+ // Messung wirklich die Regeln der Ansicht sieht.
+ await page.evaluate(()=>document.documentElement.classList.remove("a2-an"));
  await page.waitForTimeout(200);
  const alt=await messen(page);
- await page.evaluate(()=>{a2Setzen(true)});
+ await page.evaluate(()=>document.documentElement.classList.add("a2-an"));
  await page.waitForTimeout(200);
 
  // A  GROESSE: in beiden Ansichten dieselbe.
  p(neu.feld&&alt.feld&&neu.feld.minHeight===alt.feld.minHeight
    &&neu.feld.fontSize===alt.feld.fontSize,
-   "A1 Feldhoehe und Schriftgroesse sind in beiden Ansichten gleich",{neu:neu.feld,alt:alt.feld});
+   "A1 Feldhoehe und Schriftgroesse bleiben die des Grundstils",{neu:neu.feld,alt:alt.feld});
  p(neu.register&&alt.register&&neu.register.minHeight===alt.register.minHeight,
    "A2 auch die Registerknoepfe behalten ihre Hoehe",{neu:neu.register,alt:alt.register});
  p(neu.tabellenfeld&&alt.tabellenfeld&&neu.tabellenfeld.minHeight===alt.tabellenfeld.minHeight,
@@ -84,7 +89,7 @@ const messen=page=>page.evaluate(()=>{
 
  // B  AUSSEHEN: geaendert ist die Form, nicht das Mass.
  p(neu.register&&alt.register&&neu.register.borderRadius!==alt.register.borderRadius,
-   "B1 die Registerknoepfe sind runder als in der klassischen Ansicht",
+   "B1 die Registerknoepfe sind runder als im Grundstil - die Form kommt von der Ansicht",
    {neu:neu.register,alt:alt.register});
  // Die Felder selbst haben schon in der klassischen Ansicht 9px Rundung -
  // an ihnen ist nichts mehr zu unterscheiden, und eine erfundene
@@ -97,6 +102,8 @@ const messen=page=>page.evaluate(()=>{
    &&neu.karte.boxShadow!=="none",
    "B2 die Karten tragen den Schatten der neuen Ansicht",{neu:neu.karte,alt:alt.karte});
 
+ p(await page.evaluate(()=>document.documentElement.classList.contains("a2-an")),
+   "B3 die Marke a2-an steht danach wieder - es gibt keine zweite Ansicht");
  p(fehler.length===0,"C1 keine Javascript-Fehler",fehler.slice(0,3));
  console.log("\n  "+ok+" ok, "+fail+" fehlgeschlagen");
  await b.close();

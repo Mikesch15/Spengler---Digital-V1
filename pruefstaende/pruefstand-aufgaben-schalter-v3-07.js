@@ -1,8 +1,15 @@
-// Prueft die Aufgabenzentrale auf dem Startbildschirm (v3.07):
-//   - sie ist zugeklappt und braucht dann eine Zeile,
-//   - sie laesst sich auf- und zuklappen,
-//   - der Startzustand kommt aus einer Einstellung je Geraet,
+// Prueft die Aufgabenzentrale auf der Startseite (v3.07, auf v3.218 umgestellt):
+//   - die offenen Aufgaben stehen da, mit Anzahl und Adresse,
+//   - die dringenden sind als solche zu erkennen,
 //   - der ganze Arbeitsablauf laesst sich firmenweit abschalten.
+//
+// v3.218: Bis v3.217 war das die zuklappbare Karte des klassischen
+// Startbildschirms - mit Kopfzeile, Zaehler, Chevron und einer Einstellung
+// "zugeklappt / geoeffnet" je Geraet. Beides gibt es nicht mehr: die
+// klassische Ansicht ist weg ("Klassische alte ansicht kann komplett weg"),
+// und die Ansicht zeigt die Liste offen. Geprueft wird deshalb dasselbe an
+// der Liste der Ansicht, plus Gegenproben, dass die alte Karte und ihre
+// Einstellung nicht zurueckkommen.
 //
 // WAS HIER GEPRUEFT WIRD: die Oberflaeche - gemessen, nicht behauptet
 // (getComputedStyle, echte Rechtecke, echte Klicks).
@@ -61,25 +68,32 @@ const anmelden=(page,wer,rolle)=>page.evaluate(([id,r,A,B])=>{
  $("measurementEditModal").hidden=true;$("settingsModal").hidden=true;$("startScreen").hidden=false;
 },[wer,rolle,A,B]);
 
-// Aufgaben laden und den Zustand der Karte messen.
+// Aufgaben laden und messen, was auf der Startseite wirklich dasteht.
+// v3.218: gemessen wird der Abschnitt "Meine Aufgaben" der Ansicht - es gibt
+// keine zweite Darstellung mehr, an der sich das noch pruefen liesse.
 const stand=async(page)=>page.evaluate(()=>{
- const k=$("aufgabenKarte"), b=$("aufgabenListe"), kopf=$("aufgabenKopf");
- const r=k.getBoundingClientRect();
- return {hidden:k.hidden, offen:k.classList.contains("offen"),
-  kartenDisplay:getComputedStyle(k).display,
-  bodyDisplay:getComputedStyle(b).display,
-  hoehe:Math.round(r.height),
-  titel:($("aufgabenTitel").innerText||"").trim(),
-  dringendRot:(()=>{const d=k.querySelector(".aufgaben-dringend");
-    if(!d)return null;const c=getComputedStyle(d).color;
-    const m=c.match(/\d+/g);return m?{text:d.innerText.trim(),r:+m[0],g:+m[1],b:+m[2]}:null})(),
-  ariaExpanded:kopf?kopf.getAttribute("aria-expanded"):null,
-  kopfTag:kopf?kopf.tagName:null,
-  // innerText liefert bei verstecktem Inhalt "" - deshalb zaehlen wir die
-  // Elemente und lesen den Text nur im offenen Zustand.
-  anzahlKarten:k.querySelectorAll("#aufgabenListe .aufgabe").length,
-  jetztSichtbar:!$("aufgabenJetzt").hidden&&$("aufgabenJetzt").getBoundingClientRect().height>0,
-  jetztText:($("aufgabenJetzt").innerText||"").replace(/\s+/g," ").trim()};
+ const inhalt=document.getElementById("a2Inhalt");
+ const kopf=[...inhalt.querySelectorAll(".a2-abschnitt-kopf")]
+   .find(k=>/meine aufgaben/i.test(k.innerText||""));
+ const abschnitt=kopf?kopf.parentElement:null;
+ const zeilen=abschnitt?[...abschnitt.querySelectorAll('[data-a2-aufgabe="oeffnen"]')]:[];
+ const marke=kopf?kopf.querySelector(".a2-marke"):null;
+ const rot=zeilen.filter(z=>z.querySelector(".a2-zeile-nr.ist-rot"));
+ const farbe=rot.length?getComputedStyle(rot[0].querySelector(".a2-zeile-nr")).color:null;
+ const m=farbe?farbe.match(/\d+/g):null;
+ return {
+  // "hidden" heisst hier: der Abschnitt ist gar nicht da.
+  hidden:!abschnitt,
+  hoehe:abschnitt?Math.round(abschnitt.getBoundingClientRect().height):0,
+  anzahlKarten:zeilen.length,
+  titel:marke?(marke.innerText||"").trim():"",
+  dringend:rot.length,
+  dringendFarbe:m?{r:+m[0],g:+m[1],b:+m[2]}:null,
+  ersterText:zeilen.length?(zeilen[0].innerText||"").replace(/\s+/g," ").trim():"",
+  texte:zeilen.map(z=>(z.innerText||"").replace(/\s+/g," ").trim()),
+  // Gegenprobe an Ort und Stelle: die alte Karte ist nicht zurueck.
+  alteKarte:!!document.getElementById("aufgabenKarte")||!!document.querySelector(".aufgaben-toggle"),
+  abgeschaltet:/arbeitsablauf ist/i.test(inhalt.innerText||"")};
 });
 
 const laden=async(page,wer,rolle)=>{
@@ -87,6 +101,11 @@ const laden=async(page,wer,rolle)=>{
  await page.evaluate(()=>{aufgabenListe=[];renderAufgaben()});
  await page.evaluate(()=>aufgabenNeuLaden());
  await page.waitForTimeout(200);
+ // v3.218: renderAufgaben() zeichnet nichts mehr selbst - es ist das Zeichen,
+ // an dem die Ansicht haengt. Hier wird sichergestellt, dass sie auch wirklich
+ // gezeichnet ist, bevor gemessen wird.
+ await page.evaluate(()=>{a2Zustand.seite="heute";a2Zeichnen()});
+ await page.waitForTimeout(150);
 };
 
 (async()=>{
@@ -105,7 +124,10 @@ const laden=async(page,wer,rolle)=>{
  // unterstuetzter, jederzeit erreichbarer Zustand der App, und genau der
  // wird hier geprueft. Was die NEUE Ansicht tut, pruefen
  // pruefstand-ansicht2-v3-150.js und die beiden v3-151-Pruefstaende.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+  // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 wurde
+ // hier auf sie umgeschaltet, um ihre Knoepfe und Karten zu erreichen.
+ // Geprueft wird unveraendert dasselbe, nur an der einen Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
  p(fehler.length===0,"die App laedt ohne JavaScript-Fehler",fehler.slice(0,3));
  if(fehler.length){console.log("\n=== Abbruch ===");await b.close();process.exit(1)}
 
@@ -118,103 +140,82 @@ const laden=async(page,wer,rolle)=>{
              M({id:13,title:"Drei",workflow_status:"freigegeben"})];
  await page.evaluate(z=>{window.__zeilen=z},DREI);
 
- // ---- A · zugeklappt und schmal -----------------------------------------
- console.log("\nA · Zugeklappt");
- await page.evaluate(()=>{aufgabenOffenStart=false;aufgabenOffen=false});
+ // ---- A . Die Aufgaben stehen da ----------------------------------------
+ console.log("\nA . Die offenen Aufgaben");
  await laden(page,A);
  let s=await stand(page);
- p(!s.hidden&&s.kartenDisplay!=="none","die Karte ist sichtbar",s);
+ p(!s.hidden&&s.hoehe>0,"der Abschnitt Meine Aufgaben steht da",s);
  p(s.anzahlKarten===3,"drei Aufgaben sind geladen",s);
- p(!s.offen&&s.bodyDisplay==="none","zugeklappt: die Liste ist nicht zu sehen",s);
- // v3.10: Zugeklappt steht jetzt auch die eine Aufgabe da, die dran ist -
- // eine kompakte Zeile, nicht die volle Karte. Gemessen: Kopfzeile plus
- // diese eine Zeile. Die volle Liste (drei Aufgaben) war 420 px hoch.
- p(s.hoehe>0&&s.hoehe<=140,"zugeklappt: Kopfzeile plus die eine Aufgabe, die dran ist",s);
- p(s.jetztSichtbar&&/Musterstrasse|Hauptstrasse/.test(s.jetztText),
-   "zugeklappt steht die dringendste Aufgabe mit Adresse da",s);
- p(/3 offene Aufgaben/.test(s.titel),"die Zeile nennt die Anzahl",s.titel);
- p(s.dringendRot&&/2 dringend/.test(s.dringendRot.text),"und wie viele davon jetzt dran sind",s.dringendRot);
- p(s.dringendRot&&s.dringendRot.r>s.dringendRot.g+40&&s.dringendRot.r>s.dringendRot.b+40,
-   "der dringende Teil ist rot",s.dringendRot);
- p(s.ariaExpanded==="false","aria-expanded meldet zugeklappt",s.ariaExpanded);
- p(s.kopfTag==="BUTTON","der Kopf ist ein echter Knopf (Tastatur bedienbar)",s.kopfTag);
- const zuHoehe=s.hoehe;
+ p(/3 offen/.test(s.titel),"die Marke nennt die Anzahl",s.titel);
+ // v3.218 Gegenprobe: die zuklappbare Karte von v3.07 ist wirklich weg -
+ // sonst stuenden die Aufgaben wieder zweimal da, und die Messung oben
+ // koennte an der falschen haengen.
+ p(s.alteKarte===false,"die alte, zuklappbare Aufgabenkarte gibt es nicht mehr",s.alteKarte);
+ // Die dringendste steht zuoberst, mit der Adresse - das war der Grund fuer
+ // v3.10 ("zugeklappt sah man nur eine Zahl"). Jetzt steht die ganze Liste
+ // da, und die dringendste bleibt trotzdem die erste Zeile.
+ p(/Musterstrasse|Hauptstrasse/.test(s.ersterText),
+   "die dringendste Aufgabe steht zuoberst, mit Adresse",s.ersterText);
+ p(s.dringend===2,"zwei der drei sind als dringend gekennzeichnet",s);
+ p(/dringend/.test(s.ersterText),"und sagen das auch im Text",s.ersterText);
+ p(s.dringendFarbe&&s.dringendFarbe.r>s.dringendFarbe.g+40&&s.dringendFarbe.r>s.dringendFarbe.b+40,
+   "die Kennzeichnung ist rot",s.dringendFarbe);
 
  // Einzahl
  await page.evaluate(()=>{window.__zeilen=[window.__zeilen[0]]});
  await laden(page,A);
  s=await stand(page);
- p(/1 offene Aufgabe\b/.test(s.titel)&&!/Aufgaben/.test(s.titel),"bei einer Aufgabe heisst es Einzahl",s.titel);
+ p(/^1 offen$/.test(s.titel),"bei einer Aufgabe heisst es 1 offen",s.titel);
  await page.evaluate(z=>{window.__zeilen=z},DREI);
 
- // ---- B · Auf- und Zuklappen ---------------------------------------------
- console.log("\nB · Auf- und Zuklappen");
+ // ---- B . Kein Zuklappen mehr, aber der Info-Knopf ist da ----------------
+ console.log("\nB . Info-Knopf");
  await laden(page,A);
- await page.click("#aufgabenKopf"); await page.waitForTimeout(200);
- s=await stand(page);
- p(s.offen&&s.bodyDisplay!=="none","ein Klick klappt die Liste auf",s);
- p(s.ariaExpanded==="true","aria-expanded meldet offen",s.ariaExpanded);
- p(s.hoehe>zuHoehe+80,"offen braucht die Karte deutlich mehr Platz als zugeklappt",{zu:zuHoehe,auf:s.hoehe});
- const lesbar=await page.evaluate(()=>[...document.querySelectorAll("#aufgabenListe .aufgabe")]
-   .map(k=>({art:(k.querySelector(".aufgabe-kopf").innerText||"").trim(),
-             titel:(k.querySelector(".aufgabe-titel").innerText||"").trim()})));
- p(lesbar.length===3&&lesbar.every(x=>x.art&&x.titel),"die Aufgaben sind offen wirklich lesbar",lesbar);
- p(lesbar[0].titel.indexOf("Musterstrasse 12")>=0,"mit der Projektadresse als Haupttitel",lesbar[0]);
-
- await page.click("#aufgabenKopf"); await page.waitForTimeout(200);
- s=await stand(page);
- p(!s.offen&&s.bodyDisplay==="none","noch ein Klick klappt sie wieder zu",s);
-
- // Der Info-Knopf steht NEBEN dem Kopf-Knopf und darf die Karte nicht mit
- // aufklappen (dieselbe Falle wie bei den Einstellungen, CLAUDE.md 107.4).
- // Geprueft wird das Verhalten, nicht die Verschachtelung: einen Knopf im
- // Knopf loest der HTML-Parser ohnehin auf, eine solche Pruefung koennte
- // also gar nie fehlschlagen.
- await page.click('.aufgaben-leiste .hilfe-knopf'); await page.waitForTimeout(250);
- const nachHilfe=await page.evaluate(()=>({offen:$("aufgabenKarte").classList.contains("offen"),
-   hilfe:!$("hilfeModal").hidden}));
- p(nachHilfe.hilfe&&!nachHilfe.offen,"der Info-Knopf oeffnet die Hilfe und klappt die Karte NICHT auf",nachHilfe);
+ // Der Info-Knopf steht NEBEN der Ueberschrift. Er darf nur die Hilfe
+ // oeffnen und sonst nichts am Abschnitt aendern (dieselbe Falle wie bei den
+ // Einstellungen, CLAUDE.md 107.4).
+ const vorher=await stand(page);
+ const hatKnopf=await page.evaluate(()=>{
+  const k=document.querySelector('#a2Inhalt [data-hilfe="aufgaben"]');
+  if(!k)return false; k.click(); return true;
+ });
+ await page.waitForTimeout(250);
+ const nachHilfe=await page.evaluate(()=>!$("hilfeModal").hidden);
+ const nachher=await stand(page);
+ p(hatKnopf,"neben der Ueberschrift steht ein Info-Knopf",hatKnopf);
+ p(nachHilfe,"er oeffnet die Hilfe",nachHilfe);
+ p(nachher.anzahlKarten===vorher.anzahlKarten&&!nachher.hidden,
+   "und laesst die Liste unveraendert stehen",{vorher:vorher.anzahlKarten,nachher:nachher.anzahlKarten});
  await page.evaluate(()=>{$("hilfeModal").hidden=true});
 
- // Tastatur
- await page.evaluate(()=>$("aufgabenKopf").focus());
- await page.keyboard.press("Enter"); await page.waitForTimeout(200);
- p((await stand(page)).offen,"mit der Tastatur (Enter) laesst sie sich ebenfalls oeffnen");
- await page.click("#aufgabenKopf"); await page.waitForTimeout(150);
-
- // ---- C · Startzustand aus der Einstellung -------------------------------
- console.log("\nC · Startzustand");
- await page.evaluate(()=>{aufgabenOffenStart=true;aufgabenOffen=true});
- await laden(page,A);
- p((await stand(page)).offen,"Einstellung 'geoeffnet': die Karte startet offen");
- await page.evaluate(()=>{aufgabenOffenStart=false;aufgabenOffen=false});
- await laden(page,A);
- p(!(await stand(page)).offen,"Einstellung 'zugeklappt': sie startet zu");
-
- const gespeichert=await page.evaluate(async()=>{
+ // ---- C . Die Einstellung "zugeklappt / geoeffnet" ist weg ---------------
+ console.log("\nC . Die alte Geraete-Einstellung");
+ // v3.218: Sie steuerte ausschliesslich die Karte des klassischen
+ // Startbildschirms. Ein Schalter, der nichts mehr tut, ist schlimmer als
+ // keiner - deshalb ist er entfallen. Geprueft wird, dass er wirklich weg
+ // ist UND dass die uebrigen Geraete-Einstellungen unveraendert speichern
+ // (sonst waere der Wegfall ein Schaden statt einer Aufraeumung).
+ const einst=await page.evaluate(async()=>{
   localStorage.removeItem("sd_aufgabenOffen");
   $("recentCountInput").value="5"; $("darkModeInput").value="nein";
-  $("photoQualityInput").value="schnell"; $("aufgabenOffenInput").value="auf";
+  $("photoQualityInput").value="schnell";
   await $("saveRecentCount").onclick();
-  return {gespeichert:localStorage.getItem("sd_aufgabenOffen"),start:aufgabenOffenStart,
-          jetzt:$("aufgabenKarte").classList.contains("offen")};
+  return {feld:!!document.getElementById("aufgabenOffenInput"),
+          gespeichert:localStorage.getItem("sd_aufgabenOffen"),
+          anzahl:localStorage.getItem("sd_recentCount"),
+          global:typeof window.aufgabenOffenStart};
  });
- p(gespeichert.gespeichert==="auf"&&gespeichert.start===true,
-   "die Einstellung wird je Geraet gespeichert",gespeichert);
- p(gespeichert.jetzt,"und wirkt sofort, ohne die Seite neu zu laden",gespeichert);
-
- const feld=await page.evaluate(()=>{aufgabenOffenStart=false;
-   if(typeof renderSettings==="function")renderSettings();
-   return $("aufgabenOffenInput").value});
- p(feld==="zu","das Auswahlfeld zeigt den aktuellen Stand",feld);
- await page.evaluate(()=>{localStorage.setItem("sd_aufgabenOffen","zu");aufgabenOffenStart=false;aufgabenOffen=false});
+ p(einst.feld===false,"das Auswahlfeld gibt es nicht mehr",einst);
+ p(einst.gespeichert===null,"und es wird auch nichts mehr dafuer gespeichert",einst);
+ p(einst.anzahl==="5","Gegenprobe: die uebrigen Geraete-Einstellungen speichern unveraendert",einst);
 
  // ---- D · Firmenweiter Schalter ------------------------------------------
  console.log("\nD · Arbeitsablauf ein/aus");
  await page.evaluate(()=>{workflowAktiv=false});
  await laden(page,A);
  s=await stand(page);
- p(s.hidden,"ausgeschaltet: die Aufgabenkarte erscheint gar nicht, obwohl Aufgaben da waeren",s);
+ p(s.hidden&&s.abgeschaltet,
+   "ausgeschaltet: die Aufgabenliste erscheint gar nicht, obwohl Aufgaben da waeren - und die Seite sagt warum",s);
 
  const wf=async()=>page.evaluate(()=>{
   $("measurementEditModal").hidden=false;
@@ -231,7 +232,7 @@ const laden=async(page,wer,rolle)=>{
 
  await page.evaluate(()=>{workflowAktiv=true});
  await laden(page,A);
- p(!(await stand(page)).hidden,"eingeschaltet: die Aufgabenkarte ist wieder da");
+ p(!(await stand(page)).hidden,"eingeschaltet: die Aufgabenliste ist wieder da");
  w=await wf();
  p(!w.hidden&&/Arbeitsstatus/i.test(w.text),"eingeschaltet: die Karte 'Arbeitsstatus' ebenfalls",w);
  // v3.10: In der Liste steht der naechste Schritt statt des Status.
@@ -244,13 +245,14 @@ const laden=async(page,wer,rolle)=>{
   await $("saveWorkflowAktiv").onclick();
   return {ruf:window.__ruf.filter(x=>x.name==="update:app_settings"),
           aktiv:workflowAktiv,
-          karte:$("aufgabenKarte").hidden,
+          karte:(await (async()=>{a2Zeichnen();await new Promise(f=>setTimeout(f,60));
+                  return !/meine aufgaben/i.test($("a2Inhalt").innerText||"")})()),
           hinweis:($("workflowAktivHinweis").innerText||"").trim(),
           hinweisAn:!$("workflowAktivHinweis").hidden};
  });
  p(sp.ruf.length===1&&sp.ruf[0].args.workflow_aktiv===false,
    "Speichern schreibt genau app_settings.workflow_aktiv",sp.ruf);
- p(sp.aktiv===false&&sp.karte===true,"und die Karte verschwindet sofort",sp);
+ p(sp.aktiv===false&&sp.karte===true,"und die Liste verschwindet sofort",sp);
  p(sp.hinweisAn&&/nichts gelöscht/i.test(sp.hinweis),
    "der Hinweis sagt ausdruecklich, dass nichts geloescht wird",sp.hinweis);
 
@@ -281,25 +283,26 @@ const laden=async(page,wer,rolle)=>{
  p(h.server,"und dass die Datenbank unabhaengig davon weiter prueft",h);
  p(h.aufgaben,"der Aufgaben-Text erklaert das Zuklappen",h);
 
- // ---- F · Breiten ---------------------------------------------------------
- console.log("\nF · Bildschirmbreiten");
+ // ---- F . Breiten ---------------------------------------------------------
+ console.log("\nF . Bildschirmbreiten");
+ // v3.218: Gemessen wird der Abschnitt der Ansicht. Den zweiten Durchgang
+ // "offen/zugeklappt" gibt es nicht mehr - es gibt nur noch einen Zustand.
  await page.evaluate(()=>{workflowAktiv=true});
  for(const breite of [320,360,412,768]){
   await page.setViewportSize({width:breite,height:1400});
   await laden(page,A);
-  for(const offen of [false,true]){
-   await page.evaluate(o=>{aufgabenOffen=o;renderAufgaben()},offen);
-   await page.waitForTimeout(120);
-   const m=await page.evaluate(()=>{
-    const k=$("aufgabenKarte");
-    let raus=null;
-    k.querySelectorAll("*").forEach(e=>{const r=e.getBoundingClientRect();
-      if(r.width&&r.right>document.documentElement.clientWidth+1&&!raus)raus=e.className||e.tagName});
-    return {raus,scroll:document.documentElement.scrollWidth>document.documentElement.clientWidth+1,
-            hoehe:Math.round(k.getBoundingClientRect().height)};
-   });
-   p(!m.raus&&!m.scroll,`${breite} px ${offen?"offen":"zugeklappt"}: nichts laeuft seitlich hinaus`,m);
-  }
+  const m=await page.evaluate(()=>{
+   const kopf=[...document.querySelectorAll("#a2Inhalt .a2-abschnitt-kopf")]
+     .find(k=>/meine aufgaben/i.test(k.innerText||""));
+   const k=kopf?kopf.parentElement:null;
+   if(!k)return {raus:"Abschnitt fehlt",scroll:true,hoehe:0};
+   let raus=null;
+   k.querySelectorAll("*").forEach(e=>{const r=e.getBoundingClientRect();
+     if(r.width&&r.right>document.documentElement.clientWidth+1&&!raus)raus=e.className||e.tagName});
+   return {raus,scroll:document.documentElement.scrollWidth>document.documentElement.clientWidth+1,
+           hoehe:Math.round(k.getBoundingClientRect().height)};
+  });
+  p(!m.raus&&!m.scroll,breite+" px: nichts laeuft seitlich hinaus",m);
  }
  await page.setViewportSize({width:412,height:1400});
 

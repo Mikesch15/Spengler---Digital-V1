@@ -58,7 +58,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
                   werkstatt:true,vorlagen:true,serien:true,versionierung:true});
   if($("navLagerverwaltung"))$("navLagerverwaltung").hidden=false;
   if($("lagerverwaltungSection"))$("lagerverwaltungSection").hidden=false;
-  a2Setzen(true);
+  // v3.218: Es gibt nur noch die eine Ansicht - bis v3.217 wurde sie hier
+  // ausdruecklich eingeschaltet. Gezeichnet werden muss sie aber weiterhin.
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
  });
  await page.waitForTimeout(400);
 
@@ -102,18 +104,25 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
    "A2 Gegenprobe: im Lager-Bereich ist sie da - sonst waere das Lager leer",ab);
  await page.evaluate(()=>{$("settingsModal").classList.remove("a2-nur-lager")});
 
- // Gegenprobe: in der klassischen Ansicht bleibt sie in den Einstellungen,
- // denn dort gibt es die Leiste und damit den eigenen Bereich nicht.
+ // v3.218: Bis v3.217 stand hier die Gegenprobe "in der klassischen Ansicht
+ // bleibt sie in den Einstellungen". Die klassische Ansicht gibt es nicht
+ // mehr, und damit auch diesen zweiten Weg nicht. Geprueft wird jetzt genau
+ // das: es fuehrt nur noch EIN Weg zur Lagerverwaltung.
+ // Die Gegenprobe dazu bleibt scharf - sie faellt aus, sobald die
+ // Lagerverwaltung ohne die Marke a2-nur-lager wieder irgendwo in den
+ // Einstellungen auftaucht, und ebenso, wenn es den Umschalter zurueck in
+ // die alte Ansicht wieder gibt.
  await page.evaluate(()=>{
-  a2Setzen(false);
   document.querySelectorAll(".modal").forEach(m=>{if(m.id!=="authScreen")m.hidden=true});
   openSettingsTo("lager");
  });
  await page.waitForTimeout(400);
  ab=await lagerAbschnitte();
- p(ab.indexOf("lagerverwaltung")>=0,
-   "A3 Gegenprobe klassisch: dort bleibt sie - es gibt keinen anderen Weg dorthin",ab);
- await page.evaluate(()=>{a2Setzen(true);$("settingsModal").hidden=true});
+ const zurueck=await page.evaluate(()=>typeof a2Setzen==="function"||!!document.getElementById("a2Ein"));
+ p(ab.indexOf("lagerverwaltung")<0&&!zurueck,
+   "A3 es gibt keinen zweiten Weg mehr: weder in den Einstellungen noch zurueck in die alte Ansicht",
+   {abschnitte:ab,umschalter:zurueck});
+ await page.evaluate(()=>{$("settingsModal").hidden=true});
 
  // ---- B  "Weiteres" zeigt Dateien, Fotos und Verlauf ----------------------
  const B=await page.evaluate(async()=>{

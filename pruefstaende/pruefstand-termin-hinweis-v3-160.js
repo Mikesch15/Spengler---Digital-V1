@@ -58,7 +58,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
    pmUebernehmen({haupt:true,material:true,zuschnitt:true,reservierung:true,
                   werkstatt:true,vorlagen:true,serien:true,versionierung:true});
   if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
-  a2Setzen(true);
+  /* v3.218: Den Umschalter auf die neue Ansicht gibt es nicht mehr - es gibt nur diese eine. Gezeichnet werden muss sie weiterhin. */ if(typeof a2Zeichnen==="function")a2Zeichnen();
  });
  await page.waitForTimeout(400);
 

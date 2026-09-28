@@ -50,7 +50,10 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"load"});
  await page.waitForTimeout(600);
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+  // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 wurde
+ // hier auf sie umgeschaltet, um ihre Knoepfe und Karten zu erreichen.
+ // Geprueft wird unveraendert dasselbe, nur an der einen Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
  await page.evaluate(()=>{
   currentProfile={id:"u1",role:"admin",company_id:"c1",first_name:"Mike",last_name:"L"};
   meineRechte={admin:true,kataloge:true,lager:true};

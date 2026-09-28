@@ -87,7 +87,10 @@ const box=(page)=>page.evaluate(()=>{
  // unterstuetzter, jederzeit erreichbarer Zustand der App, und genau der
  // wird hier geprueft. Was die NEUE Ansicht tut, pruefen
  // pruefstand-ansicht2-v3-150.js und die beiden v3-151-Pruefstaende.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+  // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 wurde
+ // hier auf sie umgeschaltet, um ihre Knoepfe und Karten zu erreichen.
+ // Geprueft wird unveraendert dasselbe, nur an der einen Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
  await anmelden(page,A,"employee");
  p(fehler.length===0,"die App laedt ohne JavaScript-Fehler",fehler.slice(0,3));
  if(fehler.length){console.log("\n=== Abbruch ===");await b.close();process.exit(1)}
@@ -271,39 +274,60 @@ const box=(page)=>page.evaluate(()=>{
     aufgabenListe=[];renderAufgaben()});
   await page.evaluate(()=>aufgabenNeuLaden());
   await page.waitForTimeout(250);
-  // v3.07: Die Karte startet zugeklappt. Fuer alles, was die einzelnen
-  // Aufgaben liest oder anklickt, muss sie offen sein.
-  await page.evaluate(()=>{if(!$("aufgabenKarte").hidden){aufgabenOffen=true;renderAufgaben()}});
-  return page.evaluate(()=>({
-   hidden:$("aufgabenKarte").hidden,
-   titel:($("aufgabenTitel").innerText||"").trim(),
-   karten:[...document.querySelectorAll("#aufgabenListe .aufgabe")].map(k=>({
-     art:(k.querySelector(".aufgabe-kopf").innerText||"").trim(),
-     titel:(k.querySelector(".aufgabe-titel").innerText||"").trim(),
-     zusatz:k.querySelector(".aufgabe-zusatz")?k.querySelector(".aufgabe-zusatz").innerText.trim():"",
-     rot:k.className.indexOf("aufgabe-rot")>=0,
-     knopf:k.querySelector(".aufgabe-haupt").textContent.trim(),
-     id:k.querySelector(".aufgabe-haupt").dataset.aufgabeId}))}));
+  // v3.218: Bis v3.217 stand die Liste in der zuklappbaren Karte des
+  // klassischen Startbildschirms und musste erst aufgeklappt werden. Die
+  // Karte ist weg; die Ansicht zeigt dieselbe Liste offen. Gelesen wird
+  // deshalb dort - dieselben Daten, dieselben Knopfbeschriftungen (beides
+  // kommt unveraendert aus js/45).
+  await page.evaluate(()=>{a2Zustand.seite="heute";a2Zeichnen()});
+  await page.waitForTimeout(150);
+  return page.evaluate(()=>{
+   const kopf=[...document.querySelectorAll("#a2Inhalt .a2-abschnitt-kopf")]
+     .find(k=>/meine aufgaben/i.test(k.innerText||""));
+   const abschnitt=kopf?kopf.parentElement:null;
+   const zeilen=abschnitt?[...abschnitt.querySelectorAll(".a2-zeile-reihe")]:[];
+   const marke=kopf?kopf.querySelector(".a2-marke"):null;
+   return {
+    hidden:!zeilen.length,
+    titel:marke?(marke.innerText||"").trim():"",
+    karten:zeilen.map(k=>{
+      const t=k.querySelector(".a2-zeile-text");
+      const tat=k.querySelector(".a2-zeile-tat");
+      const zeile=k.querySelector('[data-a2-aufgabe="oeffnen"]');
+      return {
+       art:t&&t.querySelector("b")?t.querySelector("b").innerText.trim():"",
+       titel:t&&t.querySelector("span")?t.querySelector("span").innerText.trim():"",
+       // Adresse und Art stehen in der Ansicht in EINER Zeile, durch " · "
+       // getrennt - dieselben zwei Angaben wie frueher in zwei Zeilen.
+       zusatz:t&&t.querySelector("span")?t.querySelector("span").innerText.trim():"",
+       rot:!!k.querySelector(".a2-zeile-nr.ist-rot"),
+       knopf:tat?tat.textContent.trim():"",
+       id:tat?tat.dataset.a2Id:(zeile?zeile.dataset.a2Id:null)};
+    })};
+  });
  };
 
  let av=await aufgaben(A);
  p(!av.hidden&&av.karten.length===2,"A sieht genau seine zwei eigenen Aufgaben",av.karten);
- const sichtbar=await page.evaluate(()=>{const e=$("aufgabenKarte");
-   return {display:getComputedStyle(e).display,hoehe:Math.round(e.getBoundingClientRect().height),
-           offen:e.classList.contains("offen")}});
- p(sichtbar.display!=="none"&&sichtbar.hoehe>60,"die Karte ist auf der Startseite wirklich zu sehen",sichtbar);
- // Seit v3.07 nennt die Zeile die Anzahl im Klartext statt in Klammern
- // (ueberholte Erwartung, kein Codefehler). Die Karte ist zugeklappt eine
- // Zeile hoch - das prueft pruefstand-aufgaben-schalter-v3-07.js.
- p(/\b2 offene Aufgaben\b/.test(av.titel),"die Anzahl steht in der Zeile",av.titel);
+ const sichtbar=await page.evaluate(()=>{
+   const kopf=[...document.querySelectorAll("#a2Inhalt .a2-abschnitt-kopf")]
+     .find(k=>/meine aufgaben/i.test(k.innerText||""));
+   const e=kopf?kopf.parentElement:null;
+   return e?{display:getComputedStyle(e).display,hoehe:Math.round(e.getBoundingClientRect().height)}
+           :{display:"none",hoehe:0};
+ });
+ p(sichtbar.display!=="none"&&sichtbar.hoehe>60,"die Liste ist auf der Startseite wirklich zu sehen",sichtbar);
+ // v3.218: Die Anzahl steht als Marke neben der Ueberschrift ("2 offen")
+ // statt in der Kopfzeile der alten Karte ("2 offene Aufgaben").
+ p(/\b2 offen\b/.test(av.titel),"die Anzahl steht neben der Ueberschrift",av.titel);
  p(av.karten.some(k=>/freigeben/i.test(k.art)&&k.id==="11"),"seine unfreigegebene Massaufnahme",av.karten);
  p(av.karten.some(k=>/zuweisen/i.test(k.art)&&k.id==="12"),"seine freigegebene ohne Zuweisung",av.karten);
  p(!av.karten.some(k=>k.id==="15"),"die fremde Massaufnahme erscheint NICHT",av.karten);
  p(!av.karten.some(k=>k.id==="16"),"eine Massaufnahme ohne Projekt erscheint nicht",av.karten);
  p(!av.karten.some(k=>k.id==="13"||k.id==="14"),"fremde Ruest-/Montageaufgaben erscheinen nicht",av.karten);
  const frei=av.karten.find(k=>k.id==="11");
- p(frei&&/Musterstrasse 12/.test(frei.titel),"die Projektadresse ist der Haupttitel",frei);
- p(frei&&/Kamineinfassung/.test(frei.zusatz),"die Art der Massaufnahme steht darunter",frei);
+ p(frei&&/Musterstrasse 12/.test(frei.titel),"die Projektadresse steht in der Zeile",frei);
+ p(frei&&/Kamineinfassung/.test(frei.zusatz),"und die Art der Massaufnahme daneben",frei);
 
  av=await aufgaben(B);
  p(av.karten.length===2,"B sieht seine Ruestaufgabe und seine eigene Massaufnahme",av.karten);
@@ -316,20 +340,20 @@ const box=(page)=>page.evaluate(()=>{
  p(!av.karten[0].rot&&av.karten[0].knopf==="Montiert","sie ist orange und traegt den Montiert-Knopf",av.karten[0]);
 
  av=await aufgaben(D,"admin");
- p(av.hidden&&av.karten.length===0,"wer nichts offen hat, sieht die Karte gar nicht",av);
+ p(av.hidden&&av.karten.length===0,"wer nichts offen hat, sieht keine Aufgabenzeile",av);
 
  // ---- H · Klick fuehrt zur richtigen Massaufnahme -------------------------
  console.log("\nH · Klick aus der Aufgabe");
  await aufgaben(B);
  await page.evaluate(()=>{window.__ruf=[];window.__geoeffnet=null;
    const alt=window.openMeasurement; window.openMeasurement=(m)=>{window.__geoeffnet=m.id;alt(m)}});
- await page.click('#aufgabenListe [data-aufgabe="oeffnen"]'); await page.waitForTimeout(250);
+ await page.click('#a2Inhalt [data-a2-aufgabe="oeffnen"]'); await page.waitForTimeout(250);
  const off=await page.evaluate(()=>({id:window.__geoeffnet,modal:!$("measurementEditModal").hidden,start:$("startScreen").hidden}));
  p(off.id===13&&off.modal,"oeffnet genau die Massaufnahme der Aufgabe",off);
 
  await aufgaben(B);
  await page.evaluate(()=>{window.__ruf=[];window.__rpcAntwort={measurement_geruestet:{data:{workflow_status:"geruestet"}}}});
- await page.click('#aufgabenListe [data-aufgabe="ruesten"]'); await page.waitForTimeout(250);
+ await page.click('#a2Inhalt [data-a2-aufgabe="ruesten"]'); await page.waitForTimeout(250);
  const rr=await page.evaluate(()=>window.__ruf);
  p(rr.some(x=>x.name==="measurement_geruestet"&&x.args.p_id===13),
    "der Knopf 'Geruestet' bestaetigt direkt aus der Startseite",rr);
@@ -473,7 +497,7 @@ const box=(page)=>page.evaluate(()=>{
   await page.setViewportSize({width:w,height:1400});
   await page.waitForTimeout(120);
   const m=await page.evaluate(()=>{
-   const k=document.querySelector("#aufgabenListe .aufgabe");
+   const k=document.querySelector("#a2Inhalt .a2-zeile-reihe");
    const r=k.getBoundingClientRect();
    return {rechts:Math.round(r.right),fenster:window.innerWidth,
            scroll:document.documentElement.scrollWidth>window.innerWidth+1}});
@@ -491,7 +515,7 @@ const box=(page)=>page.evaluate(()=>{
   await aufgaben(B);
   await page.waitForTimeout(120);
   const m=await page.evaluate(()=>{
-   const k=document.querySelector("#aufgabenListe .aufgabe");
+   const k=document.querySelector("#a2Inhalt .a2-zeile-reihe");
    const r=k.getBoundingClientRect();
    const kn=[...k.querySelectorAll("button")].map(b=>Math.round(b.getBoundingClientRect().height));
    return {rechts:Math.round(r.right),fenster:window.innerWidth,

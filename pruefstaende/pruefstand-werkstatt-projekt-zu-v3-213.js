@@ -74,6 +74,14 @@ const vorbereiten=async(page,projekte,mess)=>{
   werkOffen=null; werkGrundlage=null; werkFilter="alle";
   if(typeof werkSichtSetzen==="function")werkSichtSetzen("projekt");
   werkstattKnopfAktualisieren();
+  // v3.218: Der Einstieg in die Werkstatt ist der Eintrag in der Leiste
+  // unten - der grosse Knopf auf dem klassischen Startbildschirm ist weg.
+  // Die Leiste muss also gezeichnet sein. Bewusst auf der Seite "Mehr":
+  // die Seite "Heute" holt sich selbst die Werkstattzahlen, und mehrere
+  // dieser Pruefstaende zaehlen die Abfragen mit. Die Leiste ist auf jeder
+  // Seite dieselbe.
+  if(typeof a2Zustand!=="undefined")a2Zustand.seite="mehr";
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
  },[projekte,mess,MODULE,ICH]);
 };
 const tipp=async(page,sel,was)=>{
@@ -111,12 +119,15 @@ const stand=page=>page.evaluate(()=>({
  await page.waitForFunction(()=>typeof renderWerkstatt==="function",null,{timeout:15000});
  // Die klassische Ansicht: in der neuen liegt der Werkstatt-Knopf in der
  // unteren Leiste, und darum geht es hier nicht (wie in v3-30).
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+  // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 wurde
+ // hier auf sie umgeschaltet, um ihre Knoepfe und Karten zu erreichen.
+ // Geprueft wird unveraendert dasselbe, nur an der einen Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
 
  // ---- A  Alle Projekte starten zugeklappt ----------------------------------
  console.log("\nA · Die Werkstatt öffnet als Liste der Baustellen");
  await vorbereiten(page,PROJEKTE,MESS);
- await tipp(page,"#navWerkstatt","Werkstatt-Knopf");
+ await tipp(page,'#a2Leiste [data-a2-tab="werkstatt"]',"Werkstatt-Knopf");
  await page.waitForTimeout(500);
  const A=await stand(page);
  p(A.bloecke===5,"fuenf Projekte stehen in der Liste",A);
@@ -125,7 +136,7 @@ const stand=page=>page.evaluate(()=>({
  // GEGENPROBE 1: die Regel von v3.213 (ab vier Bloecken, oberster offen)
  // darf nicht zurueckkommen - bei DREI Projekten ist jetzt ebenfalls alles zu.
  await vorbereiten(page,PROJEKTE.slice(0,3),MESS.filter(m=>m.project_id<=9));
- await tipp(page,"#navWerkstatt","Werkstatt-Knopf");
+ await tipp(page,'#a2Leiste [data-a2-tab="werkstatt"]',"Werkstatt-Knopf");
  await page.waitForTimeout(500);
  const A2=await stand(page);
  p(A2.bloecke===3&&A2.zu===3&&A2.karten===0,

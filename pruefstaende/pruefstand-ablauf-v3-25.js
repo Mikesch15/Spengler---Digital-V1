@@ -125,6 +125,11 @@ const vorbereiten=async(page,mod)=>{
   try{localStorage.setItem("sd_werkFilter","alle")}catch(e){}
   if(typeof werkFilter!=="undefined")werkFilter="alle";
   if(typeof werkstattKnopfAktualisieren==="function")werkstattKnopfAktualisieren();
+  // v3.218: Die Startseite IST die Ansicht - sie muss also gezeichnet sein,
+  // sonst steht die Leiste nicht da, ueber die hier navigiert wird. Bis
+  // v3.217 wurde stattdessen auf die klassische Startseite umgeschaltet,
+  // deren Knoepfe fest im HTML standen.
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
   window.__ruf=[];
  },[MESS,RES,mod||MODULE,ICH]);
 };
@@ -161,26 +166,33 @@ const seite=page=>page.evaluate(()=>({
  const cdnWache=await stubSchuetzen(page);
  await page.addInitScript(STUB);
  await page.goto(APP,{waitUntil:"load"});
- // v3.151: Die neue Ansicht ist seit dieser Version die VORGABE. Dieser
- // Pruefstand prueft Ablaeufe, die von der KLASSISCHEN Startseite ausgehen
- // (ihre Knoepfe, ihre Karten) - sie wird deshalb ausdruecklich gewaehlt.
- // Ohne diese Zeile traegt jedes Element der klassischen Startseite
- // display:none, und jede Messung daran ergaebe 0.
- // Das ist keine Abschwaechung: die klassische Ansicht ist ein
- // unterstuetzter, jederzeit erreichbarer Zustand der App, und genau der
- // wird hier geprueft. Was die NEUE Ansicht tut, pruefen
- // pruefstand-ansicht2-v3-150.js und die beiden v3-151-Pruefstaende.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+ // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 stand
+ // hier a2Setzen(false), um ihre Knoepfe zu erreichen. Geprueft wird
+ // unveraendert derselbe Ablauf, nur ueber die Wege der einen Ansicht: die
+ // Leiste unten statt der grossen Knoepfe auf der Startseite.
  await page.waitForTimeout(500);
  p(cdnWache.abgefangen>=1,
    "das echte supabase-js wurde abgefangen - der Stub ist die einzige Quelle",
    cdnWache.abgefangen);
+ // v3.218 Gegenprobe: Es gibt keinen zweiten Startbildschirm mehr, auf den
+ // dieser Ablauf ausweichen koennte - weder den Umschalter noch die alten
+ // Karten. Ohne diese Probe koennte die klassische Startseite unbemerkt
+ // zurueckkommen, und die Pruefungen darueber liefen wieder an ihr statt an
+ // der Ansicht.
+ const weg=await page.evaluate(()=>({
+  umschalter:typeof a2Setzen==="function"||!!document.getElementById("a2Ein"),
+  aufgabenkarte:!!document.getElementById("aufgabenKarte"),
+  willkommen:/Willkommen/.test(document.getElementById("startScreen").innerText||""),
+  ansicht:!!document.getElementById("a2Screen")
+ }));
+ p(!weg.umschalter&&!weg.aufgabenkarte&&!weg.willkommen&&weg.ansicht,
+   "die klassische Startseite und ihr Umschalter sind weg, die Ansicht steht",weg);
 
  // ---- A · Der Weg vom Projekt zum ersten Stueck --------------------------
  console.log("\nA · Vom Projekt zum ersten Stueck");
  await vorbereiten(page);
  let klicks=0;
- if(await klick(page,"#startOpenProjects","Projekte"))klicks++;
+ if(await klick(page,'#a2Leiste [data-a2-tab="projekte"]',"Projekte"))klicks++;
  await page.waitForTimeout(300);
  await page.evaluate(()=>openProjectCockpit(7)); klicks++;
  await page.waitForTimeout(500);
@@ -229,7 +241,7 @@ const seite=page=>page.evaluate(()=>({
    "die Cockpit-Karte ebenso",woerter.cockpit.replace(/\s+/g," "));
  // Gegenprobe gegen das eigene Mass: die Werkstatt sagte es schon immer so.
  await page.evaluate(()=>{$("matZuModal").hidden=true});
- if(await klick(page,"#navWerkstatt","Werkstatt")){
+ if(await klick(page,'#a2Leiste [data-a2-tab="werkstatt"]',"Werkstatt")){
   await page.waitForTimeout(900);
   // v3.215: Die Werkstatt oeffnet als Liste zugeklappter Projekte. Geprueft
   // wird hier der Wortlaut IN den Karten, also einmal aufklappen - denselben

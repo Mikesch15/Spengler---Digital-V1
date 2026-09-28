@@ -78,53 +78,58 @@ const anmelden=page=>page.evaluate(()=>{
  await page.addInitScript(STUB);
  await page.goto(APP);
 
- // ===== A0  Die Vorgabe (seit v3.151) =====================================
- // Bis v3.150 war die klassische Ansicht die Vorgabe, seit v3.151 die neue.
- // Geprueft wird beides: dass die Vorgabe greift UND dass sie eine bereits
- // getroffene Wahl NICHT umstoesst.
+ // ===== A  Es gibt nur diese eine Ansicht (v3.218) =========================
+ // Bis v3.217 stand hier: die Vorgabe greift, eine ausdrueckliche Wahl
+ // schlaegt sie, und ueber den Knopf "Neue Ansicht testen" geht es hinein.
+ // Ansage des Anwenders: "Klassische alte ansicht kann komplett weg." Damit
+ // sind Vorgabe, Wahl und Umschalter entfallen - geprueft wird jetzt, dass
+ // wirklich nichts davon uebrig ist und die Ansicht trotzdem immer steht,
+ // auch mit einem alten "lieber klassisch" im Geraetespeicher.
  await page.waitForFunction(()=>typeof a2Aktiv==="function");
  let a0=await page.evaluate(()=>({
   gespeichert:localStorage.getItem("sd_ansicht2"),
-  vorgabe:a2Aktiv()
+  aktiv:a2Aktiv(),
+  umschalter:typeof a2Setzen==="function"||!!document.getElementById("a2Ein"),
+  klassisch:!!document.getElementById("startNav")||!!document.getElementById("topUserBar")
  }));
- p(a0.gespeichert===null&&a0.vorgabe===true,"A0 auf einem frischen Geraet gilt die neue Ansicht",a0);
- let a0b=await page.evaluate(()=>{
-  localStorage.setItem("sd_ansicht2","ja");   const ja=a2Aktiv();
-  localStorage.setItem("sd_ansicht2","nein"); const nein=a2Aktiv();
-  return {ja,nein};
- });
- p(a0b.ja===true&&a0b.nein===false,"A0b eine ausdrueckliche Wahl schlaegt die Vorgabe",a0b);
+ p(a0.gespeichert===null&&a0.aktiv===true,"A0 auf einem frischen Geraet steht die Ansicht",a0);
+ p(a0.umschalter===false,"A0b es gibt keinen Umschalter mehr",a0);
+ p(a0.klassisch===false,"A0c und keine klassische Startseite im Dokument",a0);
 
- // Fuer alles Weitere: die klassische Ansicht als Ausgangspunkt, damit der
- // Weg HINEIN in die neue Ansicht geprueft werden kann. "nein" steht seit
- // A0b bereits im Speicher.
+ // Ein alter Eintrag aus v3.150 darf niemanden aussperren.
+ await page.evaluate(()=>localStorage.setItem("sd_ansicht2","nein"));
  await page.reload();
  await page.waitForFunction(()=>typeof a2Aktiv==="function");
  await anmelden(page);
-
- // ===== A  Mit der Wahl "klassisch" ist sie unveraendert ==================
+ // v3.218: Gezeichnet wurde die Ansicht bis v3.217 durch den Klick auf den
+ // Umschalter. Den gibt es nicht mehr - im Betrieb zeichnet showStart() nach
+ // dem Anmelden; hier wird genau das ausgeloest.
+ await page.evaluate(()=>{if(typeof showStart==="function")showStart();else a2Zeichnen()});
+ await page.waitForTimeout(300);
  let a=await page.evaluate(()=>({
   aktiv:a2Aktiv(),
   klasse:document.documentElement.classList.contains("a2-an"),
   a2:$("a2Screen").getClientRects().length>0,
-  nav:$("startNav").getClientRects().length>0,
-  ein:$("a2Ein").getClientRects().length>0,
-  ablauf:$("a2Ablauf").hidden
+  inhalt:($("a2Inhalt").innerText||"").length,
+  // v3.218: Die Ablaufleiste gehoert ins Cockpit. Bis v3.217 war sie
+  // ausserdem per hidden aus, solange die klassische Ansicht lief. Das
+  // entfaellt; sichtbar sein darf sie trotzdem nicht, solange kein Projekt
+  // offen ist - gemessen wird deshalb die Sichtbarkeit, nicht das Attribut.
+  ablauf:$("a2Ablauf").getClientRects().length===0
  }));
- p(a.aktiv===false,"A1 die Wahl 'klassisch' ist wirksam",a);
- p(!a.klasse&&!a.a2,"A2 der neue Schirm ist unsichtbar",a);
- p(a.nav,"A3 die klassische Startnavigation ist da",a);
- p(a.ein,"A4 der Einstiegsknopf ist da",a);
- p(a.ablauf,"A5 die Ablaufleiste im Cockpit ist aus",a);
+ p(a.aktiv===true,"A1 ein altes 'lieber klassisch' wird nicht mehr gelesen",a);
+ p(a.klasse&&a.a2&&a.inhalt>0,"A2 die Ansicht steht und ist gefuellt",a);
+ p(a.ablauf,"A3 die Ablaufleiste ist nicht zu sehen, solange kein Projekt offen ist",a);
 
- // ===== B  Mit Schalter =====================================================
- await page.click("#a2Ein");
+ // ===== B  Was auf der Startseite steht ====================================
  let bb=await page.evaluate(()=>({
-  gemerkt:localStorage.getItem("sd_ansicht2"),
   a2:$("a2Screen").getClientRects().length>0,
-  nav:$("startNav").getClientRects().length>0,
-  version:$("appVersion").getClientRects().length>0,
-  oben:$("topUserBar").getClientRects().length>0,
+  // v3.218: Diese drei gibt es nicht mehr im Dokument - die Gegenprobe ist
+  // deshalb "gar nicht da" statt "unsichtbar".
+  nav:!!document.getElementById("startNav"),
+  versionSichtbar:$("appVersion").getClientRects().length>0,
+  versionText:($("appVersion").textContent||"").trim(),
+  oben:!!document.getElementById("topUserBar"),
   tabs:[...$("a2Leiste").querySelectorAll("button")].map(x=>x.getAttribute("data-a2-tab")),
   zahlen:[...document.querySelectorAll("#a2Inhalt .a2-zahl b")].map(x=>x.textContent),
   // v3.158: Aufgaben sind Zeilen, nicht mehr Karten. Die Zahl der offenen
@@ -137,8 +142,11 @@ const anmelden=page=>page.evaluate(()=>{
     .map(x=>x.textContent.replace(/\s+/g," ").trim().replace(/ i$/,"")),
   punkt:document.querySelector("#a2Leiste .a2-punkt")?document.querySelector("#a2Leiste .a2-punkt").textContent:""
  }));
- p(bb.gemerkt==="ja","B1 die Wahl wird pro Geraet gemerkt",bb);
- p(bb.a2&&!bb.nav&&!bb.version&&!bb.oben,"B2 neuer Schirm da, klassischer samt Kopfzeile aus",bb);
+ p(bb.a2&&!bb.nav&&!bb.oben,"B1 der Schirm steht, die klassische Startseite ist weg",bb);
+ // Die Versionsnummer bleibt als Traeger im Dokument (index.html, #appAnker),
+ // wird aber nicht mehr auf der Startseite gezeigt - sie steht unter "Mehr".
+ p(!bb.versionSichtbar&&/^Version \d+\.\d+$/.test(bb.versionText),
+   "B2 die Versionsnummer ist der eine Traeger, aber keine Anzeige mehr",bb);
  p(JSON.stringify(bb.tabs)===JSON.stringify(["heute","projekte","werkstatt","lager","mehr"]),"B3 fuenf Register",bb.tabs);
  // UMGESTELLT in v3.158. Bis dahin stand oben ein Band aus drei Zahlen
  // (offen / jetzt dran / Projekte) und darunter jede Aufgabe als Karte.
@@ -325,20 +333,25 @@ const anmelden=page=>page.evaluate(()=>{
 
  await page.evaluate(()=>{$("navWerkstatt").hidden=false;$("navLagerverwaltung").hidden=false;a2Zeichnen()});
  await page.click('[data-a2-tab="mehr"]');
- await page.click('[data-a2-tu="klassisch"]');
+ // v3.218: Bis v3.217 stand unter "Mehr" der Knopf "Zurueck zur klassischen
+ // Ansicht". Den gibt es nicht mehr; geprueft wird jetzt, dass unter "Mehr"
+ // wirklich kein Weg zurueck steht UND dass die Seite sonst unveraendert
+ // funktioniert - die Sichtbarkeitszustaende der Anker bleiben unberuehrt.
  let e=await page.evaluate(()=>({
+  zurueck:!!document.querySelector('[data-a2-tu="klassisch"]'),
   gemerkt:localStorage.getItem("sd_ansicht2"),
   a2:$("a2Screen").getClientRects().length>0,
-  nav:$("startNav").getClientRects().length>0,
-  oben:$("topUserBar").getClientRects().length>0,
-  version:$("appVersion").textContent.trim(),
+  nav:!!document.getElementById("startNav"),
+  oben:!!document.getElementById("topUserBar"),
+  eintraege:[...document.querySelectorAll('#a2Inhalt [data-a2-tu]')].map(x=>x.getAttribute("data-a2-tu")),
   werkstatt:$("navWerkstatt").hidden,
-  ablauf:$("a2Ablauf").hidden
+  ablauf:$("a2Ablauf").getClientRects().length===0
  }));
- p(e.gemerkt==="nein","E2 die Rueckkehr wird ebenfalls gemerkt",e);
- p(!e.a2&&e.nav&&e.oben,"E3 die klassische Ansicht ist vollstaendig zurueck",e);
- p(e.werkstatt===false,"E4 die hidden-Zustaende der klassischen Knoepfe sind unberuehrt",e);
- p(e.ablauf,"E5 die Ablaufleiste ist wieder aus",e);
+ p(e.zurueck===false,"E2 unter Mehr steht kein Weg zurueck in die alte Ansicht",e);
+ p(e.a2&&!e.nav&&!e.oben,"E3 die klassische Ansicht ist nicht wiederherstellbar - es gibt sie nicht",e);
+ p(e.werkstatt===false,"E4 die hidden-Zustaende der Anker sind unberuehrt",e);
+ p(e.ablauf,"E5 die Ablaufleiste ist nicht zu sehen",e);
+ p(e.eintraege.length>=5,"E6 die Seite Mehr steht sonst unveraendert da",e.eintraege);
 
  // ===== F  Gegenproben am Quelltext =========================================
  const jsQ=fs.readFileSync("js/70-ansicht2.js","utf8");

@@ -4,11 +4,13 @@
 // WAS HIER GEPRUEFT WIRD
 //   A  Auf einem frischen Geraet erscheint die neue Ansicht, mit einem
 //      einmaligen Hinweis, der den Weg zurueck nennt.
-//   B  Wer sich ausdruecklich fuer die klassische Ansicht entschieden hat,
-//      behaelt sie - eine geaenderte Vorgabe stoesst keine Wahl um.
+//   B  v3.218: Es gibt nur noch diese eine Ansicht. Ein alter, gemerkter
+//      Wunsch nach der klassischen Ansicht darf niemanden mehr in eine
+//      Oberflaeche sperren, die es nicht mehr gibt - genau das wird hier
+//      geprueft (frueher stand hier das Gegenteil: die Wahl bleibt).
 //   C  Das Firmenlogo erscheint in der Markenzeile, und zwar aus derselben
-//      Quelle wie auf der klassischen Startseite (keine zweite Aufloesung
-//      des privaten Speicherpfads). Ohne Logo bleibt kein leerer Kasten.
+//      Quelle wie bisher (#startLogo, keine zweite Aufloesung des privaten
+//      Speicherpfads). Ohne Logo bleibt kein leerer Kasten.
 //
 // WAS HIER NICHT GEPRUEFT WIRD
 //   Der Inhalt der neuen Ansicht selbst - der steht in
@@ -67,7 +69,8 @@ const anmelden=page=>page.evaluate(()=>{
   gespeichert:localStorage.getItem("sd_ansicht2"),
   aktiv:a2Aktiv(),
   a2:$("a2Screen").getClientRects().length>0,
-  nav:$("startNav").getClientRects().length>0,
+  // v3.218: #startNav gibt es nicht mehr - die klassische Startseite ist weg.
+  nav:!!document.getElementById("startNav"),
   hinweis:!!document.querySelector(".a2-karte-hinweis"),
   marke:$("a2Inhalt").querySelector(".a2-marke")?$("a2Inhalt").querySelector(".a2-marke").textContent.trim():""
  }));
@@ -88,7 +91,13 @@ const anmelden=page=>page.evaluate(()=>{
  p(a2.gespeichert===null&&a2.merker==="weg","A6 es wird nur der Hinweis gemerkt, keine Ansichtswahl",a2);
  await page.close();
 
- // --- B: wer sich fuer klassisch entschieden hat, behaelt sie ---
+ // --- B: ein alter, gemerkter Wunsch sperrt niemanden aus ---
+ // v3.218: Bis v3.217 hiess diese Probe "eine ausdrueckliche Wahl fuer
+ // klassisch bleibt bestehen". Die klassische Ansicht ist weg; wer den
+ // Schalter damals umgelegt hat, hat den Wert sd_ansicht2="nein" noch auf
+ // dem Geraet stehen. Wuerde er weiter gelesen, saesse dieses Geraet vor
+ // einer leeren Seite - ohne Weg zurueck, denn den Umschalter gibt es auch
+ // nicht mehr. Genau das wird hier geprueft.
  page=await neuePage();
  await page.goto(APP);
  await page.evaluate(()=>localStorage.setItem("sd_ansicht2","nein"));
@@ -99,10 +108,12 @@ const anmelden=page=>page.evaluate(()=>{
  let bb=await page.evaluate(()=>({
   aktiv:a2Aktiv(),
   a2:$("a2Screen").getClientRects().length>0,
-  nav:$("startNav").getClientRects().length>0,
-  logo:$("startLogo").hidden
+  inhalt:($("a2Inhalt").innerText||"").length,
+  umschalter:typeof a2Setzen==="function"||!!document.getElementById("a2Ein")
  }));
- p(!bb.aktiv&&!bb.a2&&bb.nav,"B1 eine ausdrueckliche Wahl fuer klassisch bleibt bestehen",bb);
+ p(bb.aktiv&&bb.a2&&bb.inhalt>0,
+   "B1 ein alter Eintrag 'lieber klassisch' aendert nichts mehr - die Ansicht steht",bb);
+ p(bb.umschalter===false,"B2 und es gibt keinen Umschalter, der zurueckfuehren koennte",bb);
  await page.close();
 
  // --- C: mit Logo ---

@@ -248,7 +248,10 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  // der KLASSISCHEN Startseite geprueft, deshalb wird sie ausdruecklich
  // gewaehlt. Den Weg ueber "Mehr" der neuen Ansicht prueft Abschnitt G
  // am Quelltext.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+  // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 wurde
+ // hier auf sie umgeschaltet, um ihre Knoepfe und Karten zu erreichen.
+ // Geprueft wird unveraendert dasselbe, nur an der einen Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
  await page.evaluate(()=>{
   currentProfile={id:"u1",role:"admin",company_id:"c1",first_name:"Mike",last_name:"L"};
   meineRechte={admin:true,kataloge:true,lager:true};
@@ -260,7 +263,11 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
                 insert:()=>({select:async()=>({data:[],error:null})}),
                 delete:()=>({eq:()=>({select:async()=>({data:[],error:null})})})});
  });
- await page.click('[data-abw-oeffnen]');
+ // v3.218: Der Knopf "Abwicklung" stand auf dem klassischen Startbildschirm,
+ // den es nicht mehr gibt. In der Ansicht fuehrt der Eintrag unter "Mehr"
+ // hierher - und der ruft genau diese Funktion auf (js/70), ohne Umweg ueber
+ // einen Knopf. Geoeffnet wird deshalb so, wie die Ansicht es tut.
+ await page.evaluate(()=>abwOeffnen());
  await page.waitForTimeout(400);
  const E=await page.evaluate(()=>({
   offen:!$("abwicklungModal").hidden,
@@ -371,7 +378,11 @@ const nah=(a,b,tol)=>Math.abs(Number(a)-Number(b))<=(tol===undefined?0.1:tol);
  const html=lies("index.html");
  p(html.indexOf('id="abwicklungModal"')>=0,"der Bereich steht im HTML");
  p(html.indexOf('data-hilfe="abwicklung"')>=0,"mit Info-Knopf");
- p(html.indexOf('data-abw-oeffnen')>=0,"und einem Einstieg auf dem Startbildschirm");
+ // v3.218: Der Einstieg steht nicht mehr als Knopf auf einem
+ // Startbildschirm, sondern als Eintrag unter "Mehr" (js/70) - und zwar als
+ // einziger. Gegenprobe, dass es nicht wieder zwei werden:
+ p(html.indexOf('data-abw-oeffnen')<0,"kein zweiter Einstieg im HTML");
+ p(lies("js/70-ansicht2.js").indexOf('id:"abwicklung"')>=0,"der Eintrag steht unter Mehr");
  p(lies("js/41-hilfe.js").indexOf('"abwicklung"')>=0,"der Hilfetext ist da");
  const a2=lies("js/70-ansicht2.js");
  p(a2.indexOf('abwicklungModal:   {zu:"closeAbwicklung"}')>=0,

@@ -125,6 +125,14 @@ const vorbereiten=async(page,module,ze)=>{
   $("projectCockpitModal").hidden=true;$("werkstattModal").hidden=true;
   werkOffen=null; werkGrundlage=null; werkFilter="alle";
   werkstattKnopfAktualisieren();
+  // v3.218: Der Einstieg in die Werkstatt ist der Eintrag in der Leiste
+  // unten - der grosse Knopf auf dem klassischen Startbildschirm ist weg.
+  // Die Leiste muss also gezeichnet sein. Bewusst auf der Seite "Mehr":
+  // die Seite "Heute" holt sich selbst die Werkstattzahlen, und mehrere
+  // dieser Pruefstaende zaehlen die Abfragen mit. Die Leiste ist auf jeder
+  // Seite dieselbe.
+  if(typeof a2Zustand!=="undefined")a2Zustand.seite="mehr";
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
   window.__ruf=[];
  },[MESS,RES,ze,module,ICH]);
 };
@@ -157,7 +165,7 @@ async function bloeckeAuf(page){
  await page.waitForTimeout(200);
 }
 async function werkstattAuf(page){
- if(!await klick(page,"#navWerkstatt","Werkstatt-Knopf"))return false;
+ if(!await klick(page,'#a2Leiste [data-a2-tab="werkstatt"]',"Werkstatt-Knopf"))return false;
  await page.waitForTimeout(600);
  await bloeckeAuf(page);
  await kartenAuf(page);
@@ -202,7 +210,10 @@ async function mehrAuf(page){
  // unterstuetzter, jederzeit erreichbarer Zustand der App, und genau der
  // wird hier geprueft. Was die NEUE Ansicht tut, pruefen
  // pruefstand-ansicht2-v3-150.js und die beiden v3-151-Pruefstaende.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+  // v3.218: Die klassische Startseite gibt es nicht mehr - bis v3.217 wurde
+ // hier auf sie umgeschaltet, um ihre Knoepfe und Karten zu erreichen.
+ // Geprueft wird unveraendert dasselbe, nur an der einen Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
  await page.waitForTimeout(500);
  p(cdnWache.abgefangen>=1,
    "das echte supabase-js wurde abgefangen - der Stub ist die einzige Quelle",
