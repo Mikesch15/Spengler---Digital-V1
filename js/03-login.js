@@ -114,7 +114,10 @@ async function afterLogin(){
  const {data:profile}=await sb.from("profiles").select("*").eq("id",session.user.id).maybeSingle();
  currentProfile=profile;
  isMike=!!(profile&&String(profile.first_name).trim().toLowerCase()==="mike"&&String(profile.last_name).trim().toLowerCase()==="ledermann");
- $("currentUserLabel").textContent=profile?`${profile.first_name} ${profile.last_name}`:session.user.email;
+ // v3.218: Die Zeile "Angemeldet als ..." stand auf dem klassischen
+ // Startbildschirm, den es nicht mehr gibt. Wer angemeldet ist, steht in
+ // der Ansicht unter "Mehr" - gezeichnet aus currentProfile, das hier
+ // eine Zeile darueber gesetzt wird. Kein zweiter Ort dafuer.
  // Vorgezogen (früher erst nach dem appRoot-Aufbau geprüft): wird gleich für
  // die Firmenstatus-Prüfung gebraucht, System-Admins sind davon ausgenommen.
  if(typeof checkSystemAdmin==="function")await checkSystemAdmin();

@@ -353,15 +353,12 @@ let isDirty=false;
 let darkMode=localStorage.getItem("sd_darkMode")==="ja";
 let defaultRate=localStorage.getItem("sd_defaultRate")||"";
 let photoQuality=localStorage.getItem("sd_photoQuality")||"schnell";
-// v3.07 Aufgabenzentrale auf dem Startbildschirm.
-// aufgabenOffenStart: je Geraet - startet die Karte zugeklappt oder offen.
-//   Der Klick auf die Karte gilt nur fuer jetzt, diese Einstellung fuer den
-//   Start. Zwei Quellen fuer denselben Wert waeren verwirrend.
+// v3.07 Aufgabenzentrale. v3.218: aufgabenOffenStart ist entfallen - es gibt
+// die zuklappbare Karte des klassischen Startbildschirms nicht mehr.
 // workflowAktiv: firmenweit aus app_settings.workflow_aktiv. REINE
 //   ANZEIGE-EINSTELLUNG - abgesichert ist der Ablauf ausschliesslich
 //   serverseitig (schuetze_measurement_workflow() und die sechs
 //   measurement_*-Funktionen), nicht hierdurch.
-let aufgabenOffenStart=localStorage.getItem("sd_aufgabenOffen")==="auf";
 let workflowAktiv=true;
 document.documentElement.classList.toggle("dark",darkMode);
 function photoQualitySettings(){
@@ -888,18 +885,22 @@ function auftragsNrKonfliktText(error){
 // Anwender gemeint hat. v3.167: beide Ansichten koennen ihn anspringen,
 // die neue ueber ihr Register, die klassische ueber ihren Klappbereich.
 async function projektOeffnen(id,treffer){
- if(typeof a2Aktiv==="function"&&a2Aktiv()&&typeof a2ProjektOeffnen==="function"){
+ // v3.218: Die Weiche "neue oder klassische Ansicht" ist entfallen - es gibt
+ // nur noch eine. Der Rueckfall auf das klassische Cockpit bleibt als
+ // Notnagel stehen: waere js/70 nicht geladen, gaebe es sonst ueberhaupt
+ // keinen Weg mehr ins Projekt.
+ if(typeof a2ProjektOeffnen==="function"){
   await a2ProjektOeffnen(id,treffer);
   return;
  }
  if(typeof openProjectCockpit==="function")await openProjectCockpit(id,treffer);
 }
 
-// Dasselbe fuer "Stammdaten bearbeiten". In der neuen Ansicht geht dort der
-// Cockpit-Stammdatenbereich mit seiner Marke auf (nur die Felder), sonst wie
-// bisher der ganze Bereich im klassischen Cockpit.
+// Dasselbe fuer "Stammdaten bearbeiten": es geht der Cockpit-Stammdaten-
+// bereich mit seiner Marke auf (nur die Felder). Der Rueckfall darunter ist
+// derselbe Notnagel wie oben.
 async function projektStammdatenOeffnen(id){
- if(typeof a2Aktiv==="function"&&a2Aktiv()&&typeof a2StammdatenOeffnen==="function"){
+ if(typeof a2StammdatenOeffnen==="function"){
   await a2StammdatenOeffnen(id);
   return;
  }

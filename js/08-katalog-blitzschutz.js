@@ -804,7 +804,6 @@ function renderSettings(){
  renderMeasMaterialSettings();
  $("darkModeInput").value=darkMode?"ja":"nein";
  $("photoQualityInput").value=photoQuality;
- if($("aufgabenOffenInput"))$("aufgabenOffenInput").value=aufgabenOffenStart?"auf":"zu";
  if($("workflowAktivInput"))$("workflowAktivInput").value=(typeof workflowAktiv==="undefined"||workflowAktiv!==false)?"ja":"nein";
  if(typeof renderProjektmodule==="function")renderProjektmodule();   // v3.09
  if(typeof vorlagenNeuLaden==="function")vorlagenNeuLaden();         // v3.09

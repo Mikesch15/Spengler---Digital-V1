@@ -366,6 +366,9 @@ const WIN_CHANGELOG={
  "3.216":["<b>Behoben: Beim Terminieren wurde das falsche Datum gespeichert.</b> Wer in der neuen Ansicht ein Datum wählte – etwa den 5.10. – bekam stattdessen den Vorschlag „morgen“ gespeichert und hatte die Aufgabe am nächsten Tag wieder vor sich. Ursache: dieselbe Aufgabe steht zweimal auf der Seite (alte Startseiten-Karte und neue Ansicht), und gespeichert wurde das erste Feld statt dem, in das getippt wurde. Jetzt gilt das Datum aus der Karte, die man vor sich hat.",
   "Der Hinweis aus v3.214 („war auf … terminiert“) ist wieder weg – er beantwortete eine Frage, die es gar nicht gab."],
  "3.217":["<b>Suchen in der Werkstatt.</b> Über der Liste steht ein Suchfeld: Objekt, Projekt, Auftrags-Nr., Kunde, Bezeichnung und Art. Mehrere Wörter suchen zusammen; eine reine Zahl muss als ganze Zahl vorkommen, damit „Musterstrasse 3“ nicht jede Adresse mit Postleitzahl 3000 findet."],
+ "3.218":["<b>Die alte Ansicht ist weg.</b> Es gibt nur noch eine Oberfläche – die nach dem Arbeitsablauf gegliederte. Die alte Startseite („Was möchtest du tun?“ mit den grossen Knöpfen), die Aufgabenkarte darüber, die Zeile „Angemeldet als …“ und der Umschalter dazu sind entfallen.",
+  "Alles davon ist weiterhin erreichbar: Projekte und Werkstatt über die Leiste unten, Suche, Einstellungen, Feedback, Abwicklung, Anleitung, Konto wechseln, „Was die App gelernt hat“, „Alle Massaufnahmen“ und die System-Administration über <b>Mehr</b>.",
+  "Wer auf einem Gerät irgendwann „lieber die gewohnte Ansicht“ eingestellt hatte, startet jetzt trotzdem normal – der gemerkte Wunsch wird nicht mehr gelesen. Die Einstellung „Aufgaben auf dem Startbildschirm zugeklappt/geöffnet“ ist mit der Karte entfallen; in der Ansicht steht die Liste offen da."],
 };
 
 function winVersionVergleich(a,b){

@@ -204,9 +204,10 @@ function openZaehlwerk(){
 document.addEventListener("click",e=>{
  if(!e.target)return;
  if(e.target.id==="closeZaehlwerk"){ $("zaehlwerkModal").hidden=true; return }
- // Der Weg aus der klassischen Ansicht. In der neuen Ansicht fuehrt der
- // Eintrag unter "Mehr" hierher (js/70) - beide rufen dieselbe Funktion.
- if(e.target.closest&&e.target.closest("#navZaehlwerk")){ openZaehlwerk(); return }
+ // v3.218: Der Knopf #navZaehlwerk stand auf dem klassischen
+ // Startbildschirm und ist mit ihm entfallen. Hierher fuehrt jetzt nur noch
+ // der Eintrag unter "Mehr" (js/70) - und der ruft openZaehlwerk() direkt
+ // auf, ohne Umweg ueber einen Knopf.
 });
 
 document.addEventListener("change",async e=>{

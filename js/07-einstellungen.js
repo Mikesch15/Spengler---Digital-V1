@@ -258,12 +258,10 @@ $("saveRecentCount").onclick=async()=>{
  localStorage.setItem("sd_defaultRate",defaultRate);
  photoQuality=$("photoQualityInput").value;
  localStorage.setItem("sd_photoQuality",photoQuality);
- // v3.07: Startzustand der Aufgabenkarte, ebenfalls nur fuer dieses Geraet.
- const auf=$("aufgabenOffenInput")&&$("aufgabenOffenInput").value==="auf";
- localStorage.setItem("sd_aufgabenOffen",auf?"auf":"zu");
- aufgabenOffenStart=auf;
- aufgabenOffen=auf;
- if(typeof renderAufgaben==="function")renderAufgaben();
+ // v3.218: Die Einstellung "Aufgaben auf dem Startbildschirm zugeklappt /
+ // geoeffnet" ist entfallen. Sie steuerte ausschliesslich die Karte des
+ // klassischen Startbildschirms; in der Ansicht steht die Liste offen da.
+ // Ein Schalter ohne Wirkung waere schlimmer als keiner.
  if(!$("measurementsModal").hidden)await renderMeasurementsOverview();
  if(!$("ausmassModal").hidden)await renderAusmassOverview();
  alert("Gespeichert (gilt nur für dieses Gerät).");

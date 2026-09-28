@@ -140,90 +140,58 @@
 <!-- Warteschlange (v3.04): erscheint nur, wenn wirklich etwas wartet. -->
 <button type="button" class="ws-knopf no-print" id="wsKnopf" hidden></button>
 
-<!-- v3.191: Konto wechseln. Der Knopf erscheint nur, wenn auf diesem Geraet
-     wirklich ein zweites Konto gemerkt ist (kwZeichnen in js/76) - sonst
-     waere es ein Knopf, der nichts tut. -->
-<div class="small no-print" id="topUserBar">Angemeldet als <b id="currentUserLabel">–</b> <button type="button" id="kontoWechseln" class="gray" style="padding:3px 9px;font-size:11px;margin-left:8px" data-kw-oeffnen="1" hidden>🔄 Konto wechseln</button> <button id="logout" class="red" style="padding:3px 9px;font-size:11px;margin-left:8px">🔓 Abmelden</button></div>
+<!-- ANKER DER APP (v3.218) -------------------------------------------------
+     Das hier ist KEINE Ansicht und wird nie gezeigt (hidden). Es sind die
+     Knoepfe, an denen die Fachmodule seit jeher ihren Handler anmelden
+     ($("settings").onclick in js/07, $("logout").onclick in js/03 ...), und
+     zwei Traeger fuer Daten, die von aussen kommen.
+     Bis v3.217 standen sie auf dem klassischen Startbildschirm. Der ist mit
+     v3.218 weg - Ansage des Anwenders: "Klassische alte ansicht kann
+     komplett weg." Die Knoepfe sind geblieben, statt neun Module umzubauen:
+     jeder von ihnen ist weiterhin die EINE Stelle, an der seine Handlung
+     haengt; die neue Ansicht loest sie aus (js/70). Wer einen davon
+     entfernt, muss den Handler mitnehmen - nicht nachbauen.
+     Vier von ihnen sagen ausserdem, ob die Handlung ueberhaupt erlaubt ist:
+     werkAktiv() (js/51), lagerverwaltungZugriff (js/68), isAdmin (js/46) und
+     isSystemAdmin (js/22) setzen ihr hidden. a2KnopfSichtbar() in js/70
+     liest genau das - eine Quelle, keine zweite Rechtepruefung. -->
+<div id="appAnker" hidden>
+<!-- Das Firmenlogo. js/05-daten-laden.js holt die signierte Adresse und
+     setzt sie hier; js/70 beobachtet dieses Element und zeigt das Logo in
+     der Kopfzeile der Ansicht. Ein zweiter Ladeweg waere ein zweiter
+     Stand. -->
+<img id="startLogo" hidden alt="">
+<button type="button" id="startOpenProjects"></button>
+<button type="button" id="navWerkstatt" hidden></button>
+<button type="button" id="navLagerverwaltung" hidden></button>
+<button type="button" id="openGlobalSearch"></button>
+<button type="button" id="settings"></button>
+<button type="button" id="openFeedback"></button>
+<button type="button" id="navAdminMeas" hidden></button>
+<button type="button" id="navSystemAdmin" hidden></button>
+<button type="button" id="logout"></button>
+<!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE)
+     gleich mitsetzen. Sie steht hier und nicht in der Ansicht, weil sie von
+     drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
+     sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
+     eine Quelle, an einem Ort. -->
+<div id="appVersion">Version 3.218</div>
+</div>
 
-<!-- STARTBILDSCHIRM -->
+<!-- STARTBILDSCHIRM
+     Nur noch der Rahmen: die ganze App blendet ihn an ueber hundert Stellen
+     mit $("startScreen").hidden aus und wieder ein. Drin steht seit v3.218
+     ausschliesslich die Ansicht (js/70-ansicht2.js). -->
 <div id="startScreen" hidden>
-<img id="startLogo" hidden style="max-height:70px;max-width:260px;display:block;margin:0 0 8px">
-<div class="brand" id="startBrandText">SPENGLER-DIGITAL</div>
-<h1>Willkommen</h1>
-<div class="small" id="startCompanyLine" style="margin:-8px 0 10px"></div>
-<!-- v3.05 Persoenliche Aufgaben. Entsteht ausschliesslich aus den echten
-     Massaufnahme-/Zuweisungsdaten (js/45-aufgaben.js), kein zweites
-     Aufgabensystem. Ist gar nicht da, solange nichts offen ist.
-     v3.07: Die Karte ist zugeklappt eine Zeile hoch; der Kopf ist ein echter
-     Knopf, der Info-Knopf steht daneben (kein Knopf im Knopf). Der ganze
-     Arbeitsablauf laesst sich in den Einstellungen firmenweit abschalten. -->
-<div class="card aufgaben-karte" id="aufgabenKarte" hidden>
-<div class="aufgaben-leiste">
-<button type="button" class="aufgaben-toggle" id="aufgabenKopf" aria-expanded="false" aria-controls="aufgabenListe"><span id="aufgabenTitel">🔔 Meine offenen Aufgaben</span><span class="aufgaben-chevron" aria-hidden="true">›</span></button>
-<button type="button" class="hilfe-knopf no-print" data-hilfe="aufgaben">i</button>
-</div>
-<!-- v3.10: Die eine Aufgabe, die jetzt dran ist, steht auch im zugeklappten
-     Zustand da - sonst sieht man auf der Startseite nur eine Zahl. -->
-<div id="aufgabenJetzt" class="aufgaben-jetzt" hidden></div>
-<div id="aufgabenListe" class="aufgaben-body"></div>
-</div>
-<div class="card">
-<h2>Was möchtest du tun? <button type="button" class="hilfe-knopf no-print" data-hilfe="start">i</button></h2>
-<!-- v2.44: Regierapport/Massaufnahme/Ausmass sind keine eigenen
-     Starteinstiege mehr. Diese Arbeiten gehoeren zu einem Projekt und
-     werden ueber Projekte -> Projekt oeffnen -> Cockpit gestartet.
-     Die Module selbst und ihre Uebersichts-Modals bleiben unveraendert. -->
-<div class="start-nav" id="startNav">
-<button type="button" class="start-nav-btn blue" id="startOpenProjects"><span class="start-nav-icon">📁</span><span>Projekte</span></button>
-<!-- v3.24: Die Werkstatt ist ein eigener Arbeitsplatz, kein Nebeneintrag.
-     Sie steht deshalb als grosser Knopf neben den Projekten - sichtbar nur,
-     wenn das Untermodul "Werkstatt" eingeschaltet ist (js/47). Der kleine
-     graue Knopf weiter unten ist damit entfallen. -->
-<button type="button" class="start-nav-btn blue" id="navWerkstatt" hidden><span class="start-nav-icon">🔧</span><span>Werkstatt</span></button>
-<!-- v3.101: direkter Einstieg fuer Mitarbeitende mit Lager-Zugriff (statt
-     ueber Einstellungen -> Lagerverwaltung suchen zu muessen). Sichtbarkeit
-     setzt checkLagerZugriff() in js/68-lagerverwaltung.js, wie bei den
-     anderen bedingt sichtbaren Knoepfen hier. -->
-<button type="button" class="start-nav-btn blue" id="navLagerverwaltung" hidden><span class="start-nav-icon">📦</span><span>Lagerverwaltung</span></button>
-</div>
-<div class="bar" style="margin-top:14px;justify-content:center">
-<button id="openGlobalSearch" class="gray">🔍 Suche</button>
-<!-- v3.191: Die Abwicklung ist ein Werkzeug, kein Projektschritt - sie
-     braucht kein Projekt und steht deshalb frei auf dem Startbildschirm. -->
-<button type="button" class="gray" data-abw-oeffnen="1">📐 Abwicklung</button>
-<button id="settings" class="gray">⚙️ Einstellungen</button>
-</div>
-<div class="bar" style="margin-top:6px;justify-content:center">
-<button id="openFeedback" class="gray">💬 Feedback geben</button>
-<!-- v3.150: Einstieg in die neue, nach dem Arbeitsablauf gegliederte
-     Ansicht (js/70-ansicht2.js). Der Weg zurueck steht dort unter "Mehr".
-     Es ist ein reiner Anzeige-Umschalter - er speichert nichts. -->
-<button id="a2Ein" class="gray">✨ Neue Ansicht testen</button>
-<!-- Nur für Benutzer in system_admins sichtbar, siehe js/22-system-admin.js.
-     Reine UI-Führung - abgesichert ist das ausschliesslich serverseitig
-     über is_system_admin() in RLS/den system_admin_*-Funktionen. -->
-<!-- v3.08: Nur fuer Firmenadministratoren (isAdmin). Reine UI-Fuehrung -
-     admin_alle_massaufnahmen() prueft serverseitig noch einmal. -->
-<!-- v3.09: nur wenn das Untermodul "Werkstatt" eingeschaltet ist
-     (js/47-projektmodule.js). Standard ist AUS. -->
-<button id="navAdminMeas" class="gray" hidden>📋 Alle Massaufnahmen</button>
-<button id="navSystemAdmin" class="gray" hidden>⚙️ System-Administration</button>
-<button id="navZaehlwerk" class="gray">📊 Was die App gelernt hat</button>
-</div>
-</div>
-<!-- Versionsnummer: bei jeder Änderung hochzählen und in sw.js (CACHE) gleich mitsetzen. -->
-<div class="small" id="appVersion" style="text-align:center;color:var(--muted);margin-top:4px">Version 3.217</div>
 
-<!-- ANSICHT 2.0 (v3.150) ------------------------------------------------
-     Der neue Schirm liegt INNERHALB von #startScreen. Das ist Absicht und
-     kein Zufall: die ganze App blendet die Startseite an ueber hundert
-     Stellen mit $("startScreen").hidden aus und wieder ein. Laege der neue
-     Schirm daneben, muesste jede einzelne dieser Stellen angefasst werden.
-     So gilt jede davon unveraendert fuer beide Ansichten.
-     Welche der beiden sichtbar ist, entscheidet allein die Klasse a2-an am
-     <html>-Element (css/05-ansicht2.css). Die klassischen Elemente darueber
-     werden dabei nur ausgeblendet, nicht veraendert - deshalb ist das
-     Zurueckschalten ein echtes Zurueck. -->
+<!-- DIE ANSICHT (v3.150, seit v3.218 die einzige) -----------------------
+     Der Schirm liegt INNERHALB von #startScreen. Das ist Absicht und kein
+     Zufall: die ganze App blendet die Startseite an ueber hundert Stellen
+     mit $("startScreen").hidden aus und wieder ein. Laege er daneben,
+     muesste jede einzelne dieser Stellen angefasst werden.
+     Gefuellt wird er ausschliesslich von js/70-ansicht2.js; das Aussehen
+     haengt an der Klasse a2-an am <html>-Element (css/05-ansicht2.css),
+     die seit v3.218 immer gesetzt ist. -->
 <div id="a2Screen">
  <div id="a2Kopf"></div>
  <div id="a2Inhalt"></div>
@@ -2472,7 +2440,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.217.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 114 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.218.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 114 Seiten)</a></div>
 </div>
 </div>
 
@@ -2484,7 +2452,8 @@ einer wirkt nicht auf die anderen.</div>
 <div><label>Dunkler Modus</label><select id="darkModeInput"><option value="nein">Aus</option><option value="ja">An</option></select></div>
 <div><label>Standard-Funktion (neue Arbeitsposition)</label><select id="defaultRateInput"></select></div>
 <div><label>Foto-Qualität</label><select id="photoQualityInput"><option value="schnell">Schnell (kleinere Dateien)</option><option value="hoch">Hoch (grössere Dateien)</option></select></div>
-<div><label>Aufgaben auf dem Startbildschirm</label><select id="aufgabenOffenInput"><option value="zu">Zugeklappt (nur die Zeile)</option><option value="auf">Geöffnet (Liste sichtbar)</option></select></div>
+<!-- v3.218: "Aufgaben auf dem Startbildschirm" ist entfallen - die Karte,
+     die dieser Schalter zu- und aufklappte, gibt es nicht mehr. -->
 </div>
 <div class="bar"><button id="saveRecentCount" class="green">💾 Speichern</button></div>
 </div>
@@ -3177,7 +3146,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.217.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.218.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

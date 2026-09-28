@@ -26,15 +26,17 @@
 // falsche LISTE zeigen - er kann keine falschen Daten schreiben.
 // Nachpruefbar: grep -nE "\.(insert|update|delete|upsert|rpc)\(" js/70-ansicht2.js
 //
-// DER WEG ZURUECK
-// Der Schalter setzt ausschliesslich die Klasse "a2-an" am <html>-Element
-// und merkt sich das pro Geraet. Die klassische Startseite wird dabei nicht
-// umgebaut, sondern nur per CSS ausgeblendet (css/05-ansicht2.css) - kein
-// Element wird entfernt, kein hidden-Attribut angefasst. Zurueckschalten
-// ist deshalb wirklich ein Zurueck und nicht ein Wiederaufbau.
+// SEIT v3.218 DIE EINZIGE ANSICHT
+// Ansage des Anwenders: "Klassische alte ansicht kann komplett weg." Der
+// klassische Startbildschirm ist damit aus index.html verschwunden, mit ihm
+// der Umschalter und der gemerkte Wert dazu. Geblieben ist die Klasse
+// "a2-an" am <html>-Element: an ihr haengt das ganze Aussehen
+// (css/05-ansicht2.css), und sie wird beim Start einmal gesetzt.
+// Geblieben sind ebenso die Knoepfe in #appAnker (index.html) - sie sind
+// keine Ansicht, sondern die Stellen, an denen die Fachmodule ihre Handler
+// anmelden; diese Datei loest sie aus.
 // ===========================================================================
 
-const A2_SPEICHER="sd_ansicht2";
 const A2_HINWEIS="sd_ansicht2Hinweis";
 
 // v3.151: Die neue Ansicht ist die VORGABE. Massgeblich ist deshalb nicht
@@ -44,30 +46,32 @@ const A2_HINWEIS="sd_ansicht2Hinweis";
 // waere das Gegenteil einer Einstellung.
 // Ohne Zugriff auf den Geraetespeicher (privates Fenster, gesperrte
 // Seitendaten) gilt ebenfalls die Vorgabe.
-function a2Aktiv(){
- try{ return localStorage.getItem(A2_SPEICHER)!=="nein" }catch(e){ return true }
-}
-// Der einmalige Hinweis beim ersten Start in der neuen Ansicht. Er erscheint
-// genau so lange, bis er weggeklickt wurde - wer die Ansicht selbst
-// eingeschaltet hat, braucht ihn nicht und bekommt ihn deshalb auch nicht.
+// v3.218: Es gibt nur noch EINE Ansicht. Ansage des Anwenders: "Klassische
+// alte ansicht kann komplett weg."
+// Der gemerkte Wert wird bewusst nicht mehr gelesen: Wer irgendwann einmal
+// auf die klassische Ansicht umgestellt hat, saesse sonst dauerhaft in einer
+// Oberflaeche, die es nicht mehr gibt - und haette keinen Weg zurueck, weil
+// der Umschalter dort weg ist. Die Funktion selbst bleibt: sie wird an
+// vielen Stellen gefragt, und dort soll kein zweiter Weg entstehen.
+function a2Aktiv(){ return true }
+// Der einmalige Hinweis beim ersten Start. Er erscheint genau so lange, bis
+// er weggeklickt wurde.
+// v3.218: Bis v3.217 stand hier zusaetzlich "nur, wer nie umgeschaltet hat" -
+// gemerkt im Schalter sd_ansicht2. Den Schalter gibt es nicht mehr; ohne
+// zweite Ansicht gibt es nichts umzuschalten.
 function a2HinweisNoetig(){
- try{
-  if(localStorage.getItem(A2_HINWEIS)==="weg")return false;
-  return localStorage.getItem(A2_SPEICHER)===null;
- }catch(e){ return false }
+ try{ return localStorage.getItem(A2_HINWEIS)!=="weg" }catch(e){ return false }
 }
 function a2HinweisWeg(){
  try{ localStorage.setItem(A2_HINWEIS,"weg") }catch(e){}
  a2Zeichnen();
 }
-function a2Setzen(an){
- try{ localStorage.setItem(A2_SPEICHER,an?"ja":"nein") }catch(e){}
- a2Anwenden();
- if(an)a2Zeichnen();
- window.scrollTo(0,0);
-}
 function a2Anwenden(){
- document.documentElement.classList.toggle("a2-an",a2Aktiv());
+ // v3.218: Die Marke ist immer gesetzt - es gibt nur diese eine Ansicht.
+ // Sie bleibt als Marke bestehen, weil das ganze Aussehen (css/05) daran
+ // haengt; sie an rund dreihundert Stellen aus dem CSS zu streichen waere
+ // eine Aenderung an jeder einzelnen Regel ohne jede Wirkung.
+ document.documentElement.classList.add("a2-an");
  // v3.162: Beim Umschalten muss auch die Marke mitgehen, die sagt, ob die
  // Leiste dasteht - der Beobachter feuert nur bei hidden-Aenderungen.
  // Die Funktion steht weiter unten; beim allerersten Aufruf waehrend des
@@ -600,11 +604,8 @@ function a2SeiteHeute(){
    gegliedert: unten die Leiste, hier deine offenen Aufgaben. Es sind
    dieselben Formulare, dieselben Daten, dieselben Rechte wie bisher –
    nur anders sortiert.</p>
-   <p class="a2-karte-unter" style="margin-top:6px">Die gewohnte Ansicht ist
-   unverändert da: <b>Mehr → Zurück zur klassischen Ansicht</b>.</p>
    <div class="a2-knopf-reihe">
     <button type="button" class="a2-knopf a2-k-blau" data-a2-tu="hinweisweg">Verstanden</button>
-    <button type="button" class="a2-knopf a2-k-grau" data-a2-tu="klassisch">Lieber die gewohnte</button>
    </div></div>`;
  }
 
@@ -898,16 +899,6 @@ function a2SeiteMehr(){
  +`<div class="a2-abschnitt" style="margin-top:22px">
    <div class="a2-abschnitt-kopf"><h2>Ansicht</h2></div>
    <div class="a2-karte">
-    <div class="a2-karte-titel">Neue Ansicht</div>
-    <p class="a2-karte-unter">Du arbeitest gerade mit der neuen, nach dem
-    Arbeitsablauf gegliederten Oberfläche. Die klassische Ansicht ist
-    unverändert da – alle Formulare, Listen und Auswertungen sind in beiden
-    dieselben.</p>
-    <div class="a2-knopf-reihe">
-     <button type="button" class="a2-knopf a2-k-grau a2-k-voll" data-a2-tu="klassisch">
-      ↩ Zurück zur klassischen Ansicht</button></div>
-   </div>
-   <div class="a2-karte">
     <div class="a2-karte-titel">${esc(a2Name(typeof currentProfile!=="undefined"?currentProfile:null))}</div>
     <p class="a2-karte-unter">${esc(version)}</p>
     <div class="a2-knopf-reihe">
@@ -1143,7 +1134,8 @@ document.addEventListener("click",async e=>{
  if(tu&&$("a2Screen")&&$("a2Screen").contains(tu)){
   const was=tu.getAttribute("data-a2-tu");
   if(was==="hinweisweg"){a2HinweisWeg();return}
-  if(was==="klassisch"){a2Setzen(false);return}
+  // v3.218: "klassisch" gibt es nicht mehr - der Weg zurueck ist weg, weil
+  // die Ansicht weg ist.
   // Alle folgenden oeffnen einen BEREICH: den vorhandenen Schirm der App,
   // aber im Rahmen der neuen Ansicht (v3.156). Kein Inhalt wird nachgebaut.
   // Zwei getrennte Wege statt eines Sammelknopfs (v3.156). Wer "Neues
@@ -1235,7 +1227,6 @@ document.addEventListener("input",e=>{
 });
 
 // Der Knopf auf der klassischen Startseite, der hierher fuehrt.
-if($("a2Ein"))$("a2Ein").onclick=()=>a2Setzen(true);
 
 
 // ===========================================================================

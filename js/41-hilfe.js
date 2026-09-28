@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.217.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.218.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -33,13 +33,12 @@ einem Projekt.</p>
 <li>Projekt anlegen oder auswählen</li>
 <li>Im <b>Cockpit</b> die Arbeit anlegen und wiederfinden</li></ul>
 <p>Nach jeder Arbeit landest du wieder im Cockpit desselben Projekts.</p>
-<p><b>Zwei Ansichten (seit v3.150).</b> Mit <b>✨ Neue Ansicht testen</b> wechselst
-du auf eine Oberfläche, die nach dem Arbeitsablauf gegliedert ist: unten eine
-Leiste mit Heute, Projekte, Werkstatt, Lager und Mehr, und als Startseite deine
-offenen Aufgaben. Es sind zwei Ansichten derselben App – dieselben Formulare,
-dieselben Daten, dieselben Rechte. Zurück geht es jederzeit unter
-<b>Mehr → Zurück zur klassischen Ansicht</b>; jedes Gerät merkt sich seine Wahl
-für sich.</p>
+<p><b>Die Oberfläche (seit v3.218 die einzige).</b> Die App ist nach dem
+Arbeitsablauf gegliedert: unten eine Leiste mit Heute, Projekte, Werkstatt,
+Lager und Mehr, und als Startseite deine offenen Aufgaben. Die alte,
+nach Modulen gegliederte Startseite und der Umschalter dazu sind weg –
+es gibt nur noch diese eine Ansicht. An den Formularen, den Daten und den
+Rechten ändert das nichts.</p>
 <p><b>Die Projektseite der neuen Ansicht (seit v3.203).</b> Oben stehen die
 Register des Projekts: Übersicht, Offerte, Massaufnahme, Herstellung, Ausmass,
 Rapport, Dateien. Jedes ist einen Griff entfernt – es gibt keinen Sammelpunkt
@@ -80,11 +79,12 @@ niemand eingeteilt.</li>
 <li><b>Zu montieren</b> – du bist als Monteur eingeteilt.</li></ul>
 <p>Ein Klick führt direkt zur richtigen Massaufnahme. Aufgaben anderer
 Mitarbeiter siehst du hier nie.</p>
-<p>Die Karte ist <b>zugeklappt</b> und braucht dann eine Zeile: sie nennt die
-Anzahl und – rot – wie viele davon jetzt dran sind. Ein Tipp darauf klappt die
-Liste auf. Ob sie beim Start offen oder zu ist, stellst du unter
-<b>Einstellungen → Allgemein → Anzeige</b> ein; das gilt nur für dieses Gerät.
-Sind keine Aufgaben offen, erscheint die Karte gar nicht.</p>
+<p>Die Liste steht auf der Seite <b>Heute</b> offen da. Neben der Überschrift
+steht, wie viele Aufgaben offen sind; die dringenden sind rot gekennzeichnet
+und stehen zuoberst. Ist nichts offen, steht das auch so da.</p>
+<p><i>Seit v3.218:</i> Die zuklappbare Karte des alten Startbildschirms und
+die Einstellung „zugeklappt / geöffnet“ dazu sind mit der alten Ansicht
+entfallen.</p>
 <p><b>🗓 Terminieren</b> (seit v3.185): Damit verschwindet eine Aufgabe aus
 der Liste, bis das gewählte Datum da ist – für Ferien oder eine Montage, die
 erst in einem Monat stattfindet. Über der Liste steht dann
@@ -1410,12 +1410,10 @@ Ausmasse (Bezeichnung) sowie die Projekte selbst (Adresse, Name, Auftrags-Nr.,
 Auftraggeber). Projekt-Treffer stehen zuoberst.</p>
 <p>Je Treffer zwei Wege: <b>📂 Projekt</b> öffnet das Projekt und springt dort
 an den Treffer; das Stiftsymbol öffnet den Eintrag direkt.</p>
-<div class="hin">Ab 3.167 gilt das in <b>beiden</b> Ansichten. In der neuen
-Ansicht schlägt die Projektseite dafür das passende Register auf –
-Massaufnahme, Ausmass oder Regierapport – und hebt die getroffene Zeile kurz
-hervor; in der klassischen öffnet das Cockpit wie bisher den zugehörigen
-Bereich. Gibt es den Eintrag nicht mehr, geht das Projekt trotzdem auf, nur
-eben ohne Hervorhebung.</div>`},
+<div class="hin">Ab 3.167 springt die Projektseite dafür ins passende
+Register – Massaufnahme, Ausmass oder Regierapport – und hebt die getroffene
+Zeile kurz hervor. Gibt es den Eintrag nicht mehr, geht das Projekt trotzdem
+auf, nur eben ohne Hervorhebung.</div>`},
 
 "feedback":{titel:"Feedback",text:`
 <p>Rückmeldungen gehen an den Firmenadministrator und an den Betreiber der

@@ -19,7 +19,6 @@ const AUFGABEN_LIMIT=25;   // Startseite, nicht Arbeitsliste
 let aufgabenListe=[];
 let aufgabenLauf=0;
 // Der Klick gilt fuer jetzt, die Einstellung fuer den Start (js/01-basis.js).
-let aufgabenOffen=(typeof aufgabenOffenStart!=="undefined")?!!aufgabenOffenStart:false;
 
 // Firmenweiter Schalter. Fehlt der Wert (noch nicht geladen), gilt "ein" -
 // die Vorgabe der Spalte.
@@ -234,67 +233,25 @@ async function aufgabenLaden(){
  return liste;
 }
 
-// Die zugeklappte Zeile sagt genau so viel, wie sie muss: wie viele Aufgaben
-// offen sind und wie viele davon jetzt dran sind (rot).
-function aufgabenKopfText(){
- // v3.185: gezaehlt wird, was WIRKLICH in der Liste steht. Eine terminierte
- // Aufgabe mitzuzaehlen, waere eine Zahl ohne Entsprechung darunter.
- const sicht=aufgabenSichtbareListe();
- const n=sicht.length;
- const dringend=sicht.filter(a=>aufgabenArt(a.art).farbe==="rot").length;
- const haupt=`🔔 ${n} offene ${n===1?"Aufgabe":"Aufgaben"}`;
- return dringend?`${haupt} <span class="aufgaben-dringend">· ${dringend} dringend</span>`:haupt;
-}
-
-function renderAufgaben(){
- const karte=$("aufgabenKarte"), box=$("aufgabenListe");
- if(!karte||!box)return;
- // v3.185: Die Karte bleibt stehen, solange etwas TERMINIERT ist - sonst
- // verschwaende der Zaehler mit der letzten offenen Aufgabe, und niemand
- // saehe mehr, dass noch etwas wartet.
- const sichtbar=aufgabenSichtbareListe();
- const terminiert=aufgabenTerminierteListe();
- if(!aufgabenAktiv()||!aufgabenListe||(!sichtbar.length&&!terminiert.length)){
-  karte.hidden=true;box.innerHTML="";
-  const j=$("aufgabenJetzt"); if(j){j.hidden=true;j.innerHTML=""}
-  return;
- }
- karte.hidden=false;
- const titel=$("aufgabenTitel"); if(titel)titel.innerHTML=aufgabenKopfText();
- karte.classList.toggle("offen",aufgabenOffen);
- const kopf=$("aufgabenKopf");
- if(kopf){
-  kopf.setAttribute("aria-expanded",aufgabenOffen?"true":"false");
-  kopf.title=aufgabenOffen?"Aufgaben zuklappen":"Aufgaben anzeigen";
- }
- box.innerHTML=aufgabenTerminZeileHtml()+sichtbar.map(aufgabeKarteHtml).join("");
- // v3.10: Auch zugeklappt steht die eine Aufgabe da, die jetzt dran ist.
- // Zugeklappt sah man bis v3.09 nur eine Zahl - und damit nicht, was zu tun
- // ist. Offen faellt sie weg, dort steht sie ohnehin zuoberst in der Liste.
- const jetzt=$("aufgabenJetzt");
- if(jetzt){
-  if(aufgabenOffen){jetzt.hidden=true;jetzt.innerHTML=""}
-  else{jetzt.hidden=false;jetzt.innerHTML=aufgabeJetztHtml(sichtbar[0])}
- }
-}
-
-// Die kompakte Fassung fuer den zugeklappten Zustand: eine Zeile mit dem
-// Schritt, der Adresse und dem Knopf. Bewusst nicht die volle Karte - die
-// Startseite soll dadurch nicht wieder einen halben Bildschirm brauchen
-// (das war der Grund fuer das Zuklappen in v3.07).
-function aufgabeJetztHtml(a){
- if(!a)return "";
- const art=aufgabenArt(a.art), b=aufgabenBeschriftung(a.m);
- return `<div class="aufgabe-jetzt-zeile aufgabe-${art.farbe}">
-  <span class="aufgabe-marke aufgabe-marke-${art.farbe}"></span>
-  <span class="aufgabe-jetzt-text"><b>${esc(art.titel)}</b><br>${esc(b.adresse)}</span>
-  <button type="button" class="blue aufgabe-jetzt-knopf" data-aufgabe="${esc(a.art)}" data-aufgabe-id="${esc(a.m.id)}">${esc(art.knopf)}</button>
- </div>`;
-}
+// v3.218: Die Aufgabenkarte auf dem klassischen Startbildschirm ist weg -
+// Ansage des Anwenders: "Klassische alte ansicht kann komplett weg." Mit ihr
+// sind aufgabenKopfText() (die zugeklappte Zeile "3 offene Aufgaben"),
+// aufgabeJetztHtml() (die eine Aufgabe, die zugeklappt dastand) und der
+// Zustand aufgabenOffen entfallen; die Ansicht (js/70) zeichnet die Liste
+// aus denselben Daten selbst, ohne Zuklappen.
+//
+// renderAufgaben() BLEIBT und behaelt seinen Namen. Die Funktion ist an acht
+// Stellen dieser Datei und in js/07 das Zeichen "die Aufgaben haben sich
+// geaendert" - js/70 haengt sich hinten an (a2Zeichnen) und zeichnet daraufhin
+// neu. Sie selbst zeichnet nichts mehr: es gibt nichts Klassisches mehr zu
+// zeichnen. Daraus eine zweite, eigene Zeichenfunktion zu machen hiesse, die
+// Aufrufe an acht Stellen anzufassen, ohne dass sich etwas aendert.
+function renderAufgaben(){}
 
 // v3.185: Die Zeile ueber der Liste. Sie erscheint NUR, wenn wirklich etwas
 // terminiert ist - eine dauerhaft sichtbare "0 terminiert"-Zeile waere
-// Ballast.
+// Ballast. Gezeichnet wird sie von der Ansicht (js/70, a2TerminZeile) - der
+// Text entsteht weiterhin nur hier.
 function aufgabenTerminZeileHtml(){
  const n=aufgabenTerminierteListe().length;
  if(!n)return "";
@@ -307,27 +264,17 @@ function aufgabenTerminZeileHtml(){
 // Geraets, kein Datenzustand.
 let aufgabenTerminFormular="";
 // v3.214: Welches Datum die Schnellwahl zuletzt gesetzt hat. Auch reine
-// Anzeige dieses Geraets - es muss im Zustand stehen, weil die Karte nach
+// Anzeige dieses Geraets - es muss im Zustand stehen, weil die Liste nach
 // jedem Tipp neu gezeichnet wird und ein nur ins Feld geschriebener Wert
 // dabei verloren ginge.
 let aufgabenTerminWahl="";
 
-// Eine Aufgabe als Karte. Eine Darstellung fuer beide Stellen.
-function aufgabeKarteHtml(a){
- if(!a)return "";
- const art=aufgabenArt(a.art), b=aufgabenBeschriftung(a.m);
- return `<div class="aufgabe aufgabe-${art.farbe}">
-   <div class="aufgabe-kopf"><span class="aufgabe-marke aufgabe-marke-${art.farbe}"></span>${esc(art.titel)}</div>
-   <div class="aufgabe-titel">${esc(b.adresse)}</div>
-   ${b.zusatz?`<div class="aufgabe-zusatz">${esc(b.zusatz)}</div>`:""}
-   ${aufgabeTerminHtml(a)}
-   <div class="aufgabe-knoepfe">
-    <button type="button" class="blue aufgabe-haupt" data-aufgabe="${esc(a.art)}" data-aufgabe-id="${esc(a.m.id)}">${esc(art.knopf)}</button>
-    ${(a.art==="freigeben"||a.art==="erneut_freigeben")?"":`<button type="button" class="gray" data-aufgabe="oeffnen" data-aufgabe-id="${esc(a.m.id)}">Massaufnahme öffnen</button>`}
-    ${aufgabeTerminKnopfHtml(a)}
-   </div>
-  </div>`;
-}
+// v3.218: aufgabeKarteHtml() ist mit der klassischen Karte entfallen. Die
+// Ansicht zeichnet eine Aufgabe mit a2AufgabeHtml() (js/70) - und ruft dafuer
+// dieselben Helfer auf, die hier darunter stehen (aufgabeTerminHtml,
+// aufgabeTerminKnopfHtml, aufgabenArt, aufgabenBeschriftung). Die Darstellung
+// bleibt damit an einer Stelle beschrieben, es gibt sie nur nicht mehr
+// zweimal.
 
 // Der Terminhinweis bzw. das Datumsfeld. Bewusst INNERHALB der Karte und
 // ohne eigenen Dialog: ein Datum zu waehlen ist ein Handgriff, kein Vorgang.
@@ -386,9 +333,11 @@ function aufgabeTerminKnopfHtml(a){
 }
 
 async function aufgabenNeuLaden(){
- const karte=$("aufgabenKarte");
- if(!karte)return;
- if(!currentProfile||!aufgabenAktiv()){karte.hidden=true;return}
+ // v3.218: Geladen wird unabhaengig von irgendeinem Element. Bis v3.217
+ // stand hier "ohne $(\"aufgabenKarte\") gar nicht laden" - mit dem Wegfall
+ // der klassischen Karte waere die Liste damit dauerhaft leer geblieben,
+ // und die Ansicht haette "nichts offen" behauptet.
+ if(!currentProfile||!aufgabenAktiv()){aufgabenListe=[];renderAufgaben();return}
  // Ohne Verbindung wird die Liste nicht geleert - sie bleibt auf dem zuletzt
  // geladenen Stand stehen, statt faelschlich "nichts offen" zu behaupten.
  if(typeof offlineIstOffline==="function"&&offlineIstOffline())return;
@@ -519,12 +468,6 @@ document.addEventListener("click",async e=>{
  aufgabeAusfuehren(was,k.dataset.aufgabeId);
 });
 
-// Auf- und Zuklappen. Der Kopf ist ein echter Knopf (Tastatur bedienbar), der
-// Info-Knopf steht daneben und nicht darin - ein Knopf im Knopf waere kein
-// gueltiges HTML.
-if($("aufgabenKopf")){
- $("aufgabenKopf").addEventListener("click",()=>{
-  aufgabenOffen=!aufgabenOffen;
-  renderAufgaben();
- });
-}
+// v3.218: Das Auf- und Zuklappen der klassischen Karte ist mit ihr entfallen.
+// In der Ansicht steht die Liste offen da - es gibt keinen Kopf mehr, der sie
+// zuklappt, und deshalb auch keinen Zustand dafuer.

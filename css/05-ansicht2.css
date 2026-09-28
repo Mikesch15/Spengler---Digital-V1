@@ -35,14 +35,12 @@ html.dark.a2-an{
  --a2-schatten:0 1px 2px #0006, 0 10px 24px -14px #0009;
 }
 
-/* ---- Der Schalter ------------------------------------------------------- */
-/* Die klassische Startseite bleibt vollstaendig im Dokument stehen - sie wird
-   nur ausgeblendet. Dadurch ist das Zurueckschalten wirklich ein Zurueck:
-   kein Element wurde entfernt, kein hidden-Attribut angefasst, kein Zustand
-   verloren. */
-html:not(.a2-an) #a2Screen{display:none!important}
-html.a2-an #startScreen > *:not(#a2Screen){display:none!important}
-html.a2-an #topUserBar{display:none!important}
+/* ---- Der Rahmen --------------------------------------------------------- */
+/* v3.218: Es gibt nur noch diese eine Ansicht. Die drei Regeln, die bis
+   v3.217 die klassische Startseite ausblendeten und den neuen Schirm
+   einblendeten, sind damit gegenstandslos - es gibt nichts mehr
+   auszublenden. Die Marke a2-an bleibt: an ihr haengt das ganze Aussehen
+   darunter, und js/70 setzt sie beim Start. */
 html.a2-an #appRoot{max-width:none;padding:0}
 
 /* ---- Rahmen ------------------------------------------------------------- */

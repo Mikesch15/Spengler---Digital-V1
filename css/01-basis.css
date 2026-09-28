@@ -295,10 +295,9 @@ label.feedback-pick span{flex:1 1 auto;min-width:0;word-break:break-word;text-tr
    Browsers schlagen - der Werkstatt-Knopf waere fuer jeden sichtbar.
    Fuenfter Fall derselben Falle (CLAUDE.md 59, 71.5, 115.9). Gemessen. */
 .start-nav-btn[hidden]{display:none!important}
-/* Der Startbildschirm hat je nach Firma einen oder zwei grosse Einstiege -
-   die Typ-Auswahlen darunter behalten ihre drei festen Spalten. */
-#startNav{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
-#topUserBar{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px}
+/* v3.218: #startNav (die grossen Einstiege) und #topUserBar ("Angemeldet
+   als ... Abmelden") sind mit dem klassischen Startbildschirm entfallen.
+   .start-nav bleibt - die Typ-Auswahlen benutzen dieselbe Raster-Klasse. */
 .report-topnav{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
 .report-topnav button{padding:7px 12px;font-size:12px}
 @media(max-width:600px){.start-nav{grid-template-columns:1fr}}
@@ -845,39 +844,17 @@ html.dark .mw-warnung{border-color:#f08b80;color:#f08b80}
  margin:8px 0 0;line-height:1.45;color:var(--green);word-break:break-word}
 .mw-hinweis[hidden]{display:none}
 
-/* ---- v3.05 Persoenliche Aufgaben auf der Startseite --------------------- */
-.aufgabe{border:1px solid var(--card-line);border-left:4px solid var(--muted);
- border-radius:10px;padding:9px 11px;margin-bottom:8px;background:var(--card-bg)}
-.aufgabe-rot{border-left-color:var(--red)}
-.aufgabe-orange{border-left-color:#d98014}
-.aufgabe-kopf{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;font-size:9px;
- font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;
- margin-bottom:3px;min-width:0;word-break:break-word}
-.aufgabe-marke{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto}
-.aufgabe-marke-rot{background:var(--red)}
-.aufgabe-marke-orange{background:#d98014}
-.aufgabe-titel{font-size:13px;font-weight:800;word-break:break-word;line-height:1.3}
-.aufgabe-zusatz{font-size:11px;color:var(--muted);word-break:break-word;margin-top:2px}
+/* ---- v3.05 Persoenliche Aufgaben ---------------------------------------
+   v3.218: Die Karte des klassischen Startbildschirms ist weg, und mit ihr
+   ihre Regeln (.aufgabe mit Rahmen und Farbstreifen, .aufgabe-kopf,
+   .aufgabe-marke, .aufgabe-titel, .aufgabe-zusatz, .aufgabe-haupt). Die
+   Ansicht zeichnet eine Aufgabe als Zeile (.a2-zeile, css/05).
+   Geblieben ist nur, was das Terminieren braucht - das steht unveraendert
+   in js/45 und wird von der Ansicht mitgezeichnet. */
 .aufgabe-knoepfe{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .aufgabe-knoepfe button{flex:1 1 auto;min-height:40px}
 .aufgabe-haupt{flex:1 1 100%}
 @media(min-width:520px){.aufgabe-haupt{flex:1 1 auto}}
-/* v3.07 Die Karte ist zugeklappt eine Zeile hoch. Der Kopf ist ein echter
-   Knopf (Tastatur), der Info-Knopf steht daneben - ein Knopf im Knopf waere
-   kein gueltiges HTML. */
-.aufgaben-karte{padding:0;overflow:hidden}
-.aufgaben-leiste{display:flex;align-items:center;gap:4px;padding-right:10px}
-.aufgaben-toggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:space-between;
- gap:8px;min-height:46px;padding:10px 4px 10px 14px;background:none;color:inherit;
- font-size:13px;font-weight:800;text-align:left;border-radius:16px 0 0 16px;
- text-transform:none;word-break:break-word}
-.aufgaben-toggle:hover{filter:none;background:var(--blue-light)}
-.aufgaben-dringend{color:var(--red)}
-.aufgaben-chevron{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--blue);transition:transform .15s}
-.aufgaben-karte.offen .aufgaben-chevron{transform:rotate(90deg)}
-.aufgaben-body{display:none;padding:0 14px 12px}
-.aufgaben-karte.offen .aufgaben-body{display:block}
-
 /* v3.08 Firmenadmin-Uebersicht ueber alle Massaufnahmen.
    Karten statt Tabelle - eine Tabelle waere auf dem Handy unbrauchbar, und
    die globale Regel table{min-width:1000px} wuerde sie ohnehin aus dem Bild
@@ -1118,20 +1095,9 @@ html.dark .mw-st-fertig .mw-st-marke{border-color:#4cc79a}
 /* In Listen: der naechste Schritt neben dem Status. */
 .mw-next{font-size:11px;font-weight:800}
 
-/* Startseite: die eine Aufgabe, die jetzt dran ist - auch zugeklappt.
-   Bewusst eine kompakte Zeile und nicht die volle Karte, damit die Startseite
-   nicht wieder einen halben Bildschirm braucht (Grund fuer v3.07). */
-.aufgaben-jetzt{padding:0 10px 8px}
-.aufgaben-jetzt[hidden]{display:none}
-.aufgabe-jetzt-zeile{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;
- border:1px solid var(--card-line);border-left:4px solid var(--muted);
- border-radius:8px;padding:7px 9px}
-.aufgabe-jetzt-zeile.aufgabe-rot{border-left-color:var(--red)}
-.aufgabe-jetzt-zeile.aufgabe-orange{border-left-color:#d98014}
-.aufgabe-jetzt-text{flex:1 1 150px;min-width:0;font-size:11px;line-height:1.35;
- color:var(--muted);word-break:break-word}
-.aufgabe-jetzt-text b{font-size:12px;color:var(--ink)}
-.aufgabe-jetzt-knopf{flex:0 0 auto;min-height:36px;font-size:11px}
+/* v3.218: Die Zeile "was jetzt dran ist" gehoerte zur zugeklappten Karte des
+   klassischen Startbildschirms. Ohne Karte gibt es kein Zuklappen - in der
+   Ansicht steht die ganze Liste da. */
 
 /* --- v3.12: Winkel im Meter -------------------------------------------- */
 /* Der Knopf steht in engen Tabellenzellen neben dem Eingabefeld. Die
