@@ -145,9 +145,21 @@ const klick=async(page,sel,was)=>{
 // danach unveraendert dieselben Eigenschaften - nur mit diesem einen Tipp
 // davor. Dass die Liste vorher NICHT da ist und mit genau EINEM Tipp
 // erscheint, prueft pruefstand-werkstatt-liste-v3-30.js.
+// v3.215: Die Werkstatt oeffnet als Liste ZUGEKLAPPTER Projekte ("in
+// werkstatt sollen alle projekte standardmaessig nicht geoeffnet sein").
+// Geprueft wird hier, was IN einem Projekt steht - also wird es aufgeklappt,
+// mit genau dem Zustand, den auch der Tipp auf den Projektkopf setzt. Dass
+// die Liste zugeklappt startet, prueft pruefstand-werkstatt-projekt-zu-v3-213.
+async function bloeckeAuf(page){
+ await page.evaluate(()=>{
+  if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt()}
+ });
+ await page.waitForTimeout(200);
+}
 async function werkstattAuf(page){
  if(!await klick(page,"#navWerkstatt","Werkstatt-Knopf"))return false;
  await page.waitForTimeout(600);
+ await bloeckeAuf(page);
  await kartenAuf(page);
  return true;
 }
@@ -456,6 +468,9 @@ async function mehrAuf(page){
      laenge_mm:[1200,700,2000][n-1],breite_mm:250}));
    window.__db.ze=alle; if(typeof zeCache!=="undefined"){zeCache.clear();zeGeladen.clear()}
    await werkstattOeffnen(); await new Promise(r=>setTimeout(r,600));
+   // v3.215: werkstattOeffnen() setzt die Liste auf zugeklappte Projekte
+   // zurueck. Geprueft wird die KARTE darin, also das Projekt einmal auf.
+   werkZuBlock.clear(); renderWerkstatt(); await new Promise(r=>setTimeout(r,200));
    const k=[...document.querySelectorAll(".werk-karte")].find(x=>/Einlaufblech/.test(x.innerText));
    const auf=k?k.querySelector("[data-werk-karte]"):null;
    const vor={zu:!!auf, knoepfe:k?k.querySelectorAll("[data-ze-nr]").length:-1,
@@ -477,7 +492,9 @@ async function mehrAuf(page){
                    {id:952,measurement_id:11,stueck_nr:2,erledigt:true,laenge_mm:700,breite_mm:250}];
    if(typeof zeCache!=="undefined"){zeCache.clear();zeGeladen.clear()}
    await werkstattOeffnen(); await new Promise(r=>setTimeout(r,600));
-   // v3.30: erst die Karte oeffnen - das ist der eine Tipp.
+   // v3.215: das Projekt aufklappen (sonst steht nur sein Kopf da),
+   // v3.30: dann die Karte oeffnen - das ist der eine Tipp.
+   werkZuBlock.clear(); renderWerkstatt(); await new Promise(r=>setTimeout(r,200));
    const kopf=document.querySelector('#werkstattBody [data-werk-karte="11"]');
    if(!kopf)return {fehlt:"Kartenkopf"};
    kopf.click(); await new Promise(r=>setTimeout(r,400));

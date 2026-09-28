@@ -89,6 +89,10 @@ const tipp=async(page,sel,was)=>{
  await vorbereiten(page);
  await tipp(page,"#navWerkstatt","Werkstatt-Knopf");
  await page.waitForTimeout(600);
+ // v3.215: Die Werkstatt oeffnet als Liste zugeklappter Projekte. Hier geht
+ // es um das Ruestblatt IN einer Massaufnahme - also erst das Projekt auf.
+ await page.evaluate(()=>{werkZuBlock.clear();renderWerkstatt()});
+ await page.waitForTimeout(200);
 
  // ---- A  Das Blatt selbst --------------------------------------------------
  console.log("\nA · Was auf dem Blatt steht");
@@ -174,6 +178,7 @@ const tipp=async(page,sel,was)=>{
  await page.evaluate(()=>{
   $("measurementEditModal").hidden=true; $("werkstattModal").hidden=false;
   werkOffenKarte.clear(); werkSichtSetzen("material");
+  werkZuBlock.clear(); renderWerkstatt();
  });
  await page.waitForTimeout(300);
  const E0=await page.evaluate(()=>({
@@ -200,7 +205,7 @@ const tipp=async(page,sel,was)=>{
   werkSichtSetzen("projekt");
   await new Promise(r=>setTimeout(r,60));
   const schalter=()=>document.querySelector("#werkstattBody [data-werk-allezu]");
-  werkOffenKarte.clear(); renderWerkstatt();
+  werkOffenKarte.clear(); werkZuBlock.clear(); renderWerkstatt();
   const vorher=!!schalter();
   if(!vorher)return {vorher,nachAuf:-1,nachZu:-1,karten:werkSichtbareKartenIds().length};
   schalter().click();
@@ -246,7 +251,7 @@ const tipp=async(page,sel,was)=>{
   ref.remove();
   return erg;
  });
- await page.evaluate(()=>{werkSichtSetzen("projekt");werkOffenKarte.clear();renderWerkstatt()});
+ await page.evaluate(()=>{werkSichtSetzen("projekt");werkOffenKarte.clear();werkZuBlock.clear();renderWerkstatt()});
  const H=await messen();
  p(!H.fehlt,"eine Karte steht da zum Messen",H);
  p(H.knopf,"und zwar eine MIT Aktionsknopf - der schwerste Fall",H);
@@ -271,7 +276,7 @@ const tipp=async(page,sel,was)=>{
  });
  p(H2.nachher>H2.vorher+100,"aufgeklappt steht weiterhin das ganze Blatt da",H2);
  // Gegenprobe 2: dieselbe Groesse in der Materialsicht - eine Karte, ein Mass.
- await page.evaluate(()=>{werkSichtSetzen("material");werkOffenKarte.clear();renderWerkstatt()});
+ await page.evaluate(()=>{werkSichtSetzen("material");werkOffenKarte.clear();werkZuBlock.clear();renderWerkstatt()});
  await page.waitForTimeout(150);
  const H3=await messen();
  p(!H3.fehlt&&H3.zu<=H3.zeile+8,"nach Material ist sie genauso klein",H3);
@@ -280,7 +285,7 @@ const tipp=async(page,sel,was)=>{
  const H4=await page.evaluate(()=>{
   werkSichtSetzen("projekt");
   werkZeilen=werkZeilen.map(z=>z.id===11?{...z,freigabe_verfallen:true}:z);
-  werkOffenKarte.clear(); renderWerkstatt();
+  werkOffenKarte.clear(); werkZuBlock.clear(); renderWerkstatt();
   const w=document.querySelector("#werkstattBody .werk-karte-warn");
   const r=w&&w.getBoundingClientRect();
   const da=!!(r&&r.height>0&&r.width>0);

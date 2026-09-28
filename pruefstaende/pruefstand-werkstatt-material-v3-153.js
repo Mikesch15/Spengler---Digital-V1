@@ -62,6 +62,9 @@ const ZEILEN=[
   werkZeilen=z; werkFilter="alle"; werkFehler=null;
   $("werkstattModal").hidden=false;
   werkSichtSetzen("material");
+  // v3.215: Bloecke starten zugeklappt. Hier geht es um den INHALT der
+  // Materialgruppen - also aufgeklappt, wie nach einem Tipp auf den Kopf.
+  if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt()}
  },ZEILEN);
  await page.waitForTimeout(200);
 
@@ -107,7 +110,7 @@ const ZEILEN=[
  // Gegenprobe: der Filter wirkt auch in der Materialsicht
  let c=await page.evaluate(()=>{
   werkZeilen=werkZeilen.map(z=>z.id===13?{...z,workflow_status:"zu_montieren"}:z);
-  werkFilter="ruesten"; renderWerkstatt();
+  werkFilter="ruesten"; renderWerkstatt(); werkZuBlock.clear(); renderWerkstatt();
   return {gruppen:werkMaterialGruppen().length,
           karten:document.querySelectorAll("#werkstattBody .werk-projekt").length};
  });
@@ -116,6 +119,7 @@ const ZEILEN=[
  // Gegenprobe: zurueck auf die Projektsicht - unveraendert
  let d=await page.evaluate(()=>{
   werkFilter="alle"; werkSichtSetzen("projekt");
+  werkZuBlock.clear(); renderWerkstatt();
   return {karten:document.querySelectorAll("#werkstattBody .werk-projekt").length,
    zeilen:document.querySelectorAll("#werkstattBody .werk-mat-zeile").length,
           gemerkt:localStorage.getItem("sd_werkstattSicht"),

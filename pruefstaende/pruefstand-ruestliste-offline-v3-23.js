@@ -151,9 +151,21 @@ const klick=async(page,sel,was)=>{
  try{await page.click(sel,{timeout:4000});return true}
  catch(e){p(false,(was||"Element")+" anklickbar ("+sel+")",String(e).slice(0,140));return false}
 };
+// v3.215: Die Werkstatt oeffnet als Liste ZUGEKLAPPTER Projekte ("in
+// werkstatt sollen alle projekte standardmaessig nicht geoeffnet sein").
+// Geprueft wird hier, was IN einem Projekt steht - also wird es aufgeklappt,
+// mit genau dem Zustand, den auch der Tipp auf den Projektkopf setzt. Dass
+// die Liste zugeklappt startet, prueft pruefstand-werkstatt-projekt-zu-v3-213.
+async function bloeckeAuf(page){
+ await page.evaluate(()=>{
+  if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt()}
+ });
+ await page.waitForTimeout(200);
+}
 async function werkstattAuf(page){
  if(!await klick(page,"#navWerkstatt","Werkstatt-Knopf"))return false;
  await page.waitForTimeout(600);
+ await bloeckeAuf(page);
  await kartenAuf(page);
  return true;
 }

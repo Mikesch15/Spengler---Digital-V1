@@ -5,9 +5,13 @@
 //  das wird sonst bei vielen projekten unuebersichtlich"
 //
 // WAS HIER GEPRUEFT WIRD
-//   A  Ab vier Projekten startet nur das oberste offen - und das ist das,
-//      das laut rotem Faden zuerst drankommt. GEGENPROBE: bei drei Projekten
-//      bleibt alles offen, sonst waere das Zuklappen Bevormundung.
+//   A  ALLE Projekte starten zugeklappt. v3.213 liess noch den obersten
+//      Block offen und griff erst ab vier Projekten - v3.215 hat der
+//      Anwender das ausdruecklich anders bestellt: "in werkstatt sollen
+//      alle projekte standardmaessig nicht geoeffnet sein". GEGENPROBEN:
+//      auch bei DREI Projekten ist alles zu (die alte Regel darf nicht
+//      zurueckkommen), und zugeklappt verschwindet nichts - jeder Kopf
+//      nennt Objekt und Anzahl, "Jetzt dran" steht ueber der Liste.
 //   B  Ein Tipp auf den Projektkopf klappt das Projekt zu und wieder auf.
 //      Zugeklappt bleibt stehen, wonach ausgewaehlt wird: Objekt, Projekt
 //      und wie viel hier ansteht.
@@ -109,31 +113,40 @@ const stand=page=>page.evaluate(()=>({
  // unteren Leiste, und darum geht es hier nicht (wie in v3-30).
  await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
 
- // ---- A  Viele Projekte ----------------------------------------------------
- console.log("\nA · Ab vier Projekten startet nur das oberste offen");
+ // ---- A  Alle Projekte starten zugeklappt ----------------------------------
+ console.log("\nA · Die Werkstatt öffnet als Liste der Baustellen");
  await vorbereiten(page,PROJEKTE,MESS);
  await tipp(page,"#navWerkstatt","Werkstatt-Knopf");
  await page.waitForTimeout(500);
  const A=await stand(page);
  p(A.bloecke===5,"fuenf Projekte stehen in der Liste",A);
- p(A.zu===4&&!A.ersterZu,"vier davon sind zugeklappt, das oberste ist offen",A);
- p(A.karten===2,"nur die Massaufnahmen des offenen Projekts stehen da",A);
- // Gegenprobe: mit drei Projekten wird nichts zugeklappt.
+ p(A.zu===5,"ALLE fuenf starten zugeklappt",A);
+ p(A.karten===0,"keine einzige Massaufnahme ist ausgebreitet",A);
+ // GEGENPROBE 1: die Regel von v3.213 (ab vier Bloecken, oberster offen)
+ // darf nicht zurueckkommen - bei DREI Projekten ist jetzt ebenfalls alles zu.
  await vorbereiten(page,PROJEKTE.slice(0,3),MESS.filter(m=>m.project_id<=9));
  await tipp(page,"#navWerkstatt","Werkstatt-Knopf");
  await page.waitForTimeout(500);
  const A2=await stand(page);
- p(A2.bloecke===3&&A2.zu===0,"GEGENPROBE: bei drei Projekten bleibt alles offen",A2);
+ p(A2.bloecke===3&&A2.zu===3&&A2.karten===0,
+   "GEGENPROBE: auch bei drei Projekten ist alles zu",A2);
+ // GEGENPROBE 2: zugeklappt heisst nicht verschwunden. Was zuerst drankommt,
+ // steht weiterhin ueber der Liste, und der Zaehler oben stimmt.
+ const A3=await page.evaluate(()=>({
+  jetzt:($("werkstattBody").querySelector(".werk-jetzt")||{}).textContent||"",
+  zahl:($("werkstattCount")||{}).textContent||""
+ }));
+ p(/rüsten/.test(A3.jetzt.replace(/\s+/g," ")),
+   "GEGENPROBE: „Jetzt dran“ sagt weiterhin, was ansteht",A3.jetzt.replace(/\s+/g," ").slice(0,90));
+ p(Number(A3.zahl)===4,"und der Zaehler oben nennt alle vier Massaufnahmen",A3);
 
  // ---- B  Zuklappen und wieder auf ------------------------------------------
  console.log("\nB · Ein Tipp auf den Projektkopf");
  // Der erste Treffer ist der oberste Block - ueber der Liste stehen noch
  // der rote Faden und die Filterreihen, deshalb kein :first-child.
  const kopf1='#werkstattBody [data-werk-blockzu]';
- await tipp(page,kopf1,"Projektkopf");
- const B=await stand(page);
- p(B.zu===1&&B.ersterZu,"das Projekt ist zugeklappt",B);
- p(B.karten===2,"seine Massaufnahmen sind weg (die der anderen bleiben)",B);
+ // Was zugeklappt dasteht - geprueft VOR dem ersten Tipp, denn so oeffnet
+ // die Werkstatt jetzt.
  const Btxt=await page.evaluate(()=>{
   const k=document.querySelector("#werkstattBody .werk-projekt-zu");
   return {text:k.textContent.replace(/\s+/g," ").trim().slice(0,120),
@@ -142,10 +155,14 @@ const stand=page=>page.evaluate(()=>({
  });
  p(/Musterstrasse/.test(Btxt.text)&&/rüsten/.test(Btxt.text),
    "zugeklappt stehen Objekt und Anzahl weiterhin da",Btxt.text);
- p(Btxt.knoepfe>=1,"und die Knoepfe des Kopfes bleiben erreichbar",Btxt);
+ p(Btxt.knoepfe>=1,"und die Knoepfe des Kopfes sind ohne Aufklappen erreichbar",Btxt);
+ await tipp(page,kopf1,"Projektkopf");
+ const B=await stand(page);
+ p(B.zu===2&&!B.ersterZu,"ein Tipp klappt dieses eine Projekt auf",B);
+ p(B.karten===2,"und zwar genau seine beiden Massaufnahmen",B);
  await tipp(page,kopf1,"Projektkopf erneut");
  const B2=await stand(page);
- p(B2.zu===0&&B2.karten===4,"ein zweiter Tipp klappt es wieder auf",B2);
+ p(B2.zu===3&&B2.karten===0,"ein zweiter Tipp klappt es wieder zu",B2);
 
  // ---- C  Gegenprobe: Knoepfe im Kopf klappen nicht mit ---------------------
  console.log("\nC · Die Knöpfe im Kopf klappen nicht mit");
@@ -162,22 +179,24 @@ const stand=page=>page.evaluate(()=>({
   return {knopf:!!knopf,vorher,nachher};
  });
  p(C.knopf,"im Kopf steht der Knopf „Projekt“",C);
- p(C.vorher===0&&C.nachher===0,"er klappt das Projekt NICHT zu",C);
+ p(C.vorher===C.nachher,"er klappt das Projekt weder auf noch zu",C);
 
  // ---- D  Alle Projekte auf einmal ------------------------------------------
  console.log("\nD · Alle Projekte auf einmal");
  const D0=await stand(page);
- p(D0.schalter.some(t=>/Projekte/.test(t)),"der Schalter fuer die Projekte steht da",D0.schalter);
+ p(D0.schalter.some(t=>/Alle Projekte aufklappen/.test(t)),
+   "bei zugeklappter Liste bietet der Schalter das Aufklappen an",D0.schalter);
  await tipp(page,'#werkstattBody [data-werk-blockallezu]',"Schalter Projekte");
  const D1=await stand(page);
- p(D1.zu===3&&D1.karten===0,"ein Tipp klappt ALLE Projekte zu",D1);
+ p(D1.zu===0&&D1.karten===4,"ein Tipp klappt ALLE Projekte auf",D1);
  await tipp(page,'#werkstattBody [data-werk-blockallezu]',"Schalter Projekte erneut");
  const D2=await stand(page);
- p(D2.zu===0&&D2.karten===4,"der naechste klappt alle wieder auf",D2);
+ p(D2.zu===3&&D2.karten===0,"der naechste klappt alle wieder zu",D2);
 
  // ---- E  Der Schalter der Massaufnahmen meint nur Sichtbares ---------------
  console.log("\nE · Zwei Ebenen, zwei Schalter");
  const E=await page.evaluate(()=>{
+  werkZuBlock.clear(); renderWerkstatt();     // von einem offenen Stand aus
   const alle=werkSichtbareKartenIds().length;
   const g=werkGruppen()[0];
   werkZuBlock.add(werkBlockSchluessel(g));
@@ -217,11 +236,12 @@ const stand=page=>page.evaluate(()=>({
  await page.waitForTimeout(350);
  const G0=await stand(page);
  p(G0.bloecke>=2,"die Materialsicht hat mehrere Bloecke",G0);
+ p(G0.zu===G0.bloecke&&G0.karten===0,
+   "auch hier startet jeder Block zugeklappt",G0);
  p(G0.schalter.some(t=>/Materialien/.test(t)),
    "der Schalter heisst hier „Alle Materialien …“",G0.schalter);
- await tipp(page,'#werkstattBody [data-werk-blockzu]',"Materialkopf");
- const G1=await stand(page);
- p(G1.zu===1,"eine Materialgruppe laesst sich genauso zuklappen",G1);
+ // Zugeklappt steht weder die Zuschnittliste noch eine Karte da - aber der
+ // Kopf nennt, was drinsteckt. Sonst waere es ein leerer Riegel.
  const G2=await page.evaluate(()=>({
   zeilen:document.querySelectorAll("#werkstattBody .werk-projekt-zu .werk-mat-zeile").length,
   karten:document.querySelectorAll("#werkstattBody .werk-projekt-zu .werk-karte").length,
@@ -230,6 +250,15 @@ const stand=page=>page.evaluate(()=>({
  p(G2.zeilen===0&&G2.karten===0,"zugeklappt steht weder Zuschnittliste noch Karte da",G2);
  p(/Massaufnahme/.test(G2.text.replace(/\s+/g," ")),
    "der Kopf nennt weiterhin, was drinsteckt",G2.text.replace(/\s+/g," ").slice(0,120));
+ await tipp(page,'#werkstattBody [data-werk-blockzu]',"Materialkopf");
+ const G1=await stand(page);
+ p(G1.zu===G0.bloecke-1,"ein Tipp klappt eine Materialgruppe auf",G1);
+ const G3=await page.evaluate(()=>{
+  const offen=document.querySelector("#werkstattBody .werk-projekt:not(.werk-projekt-zu)");
+  return {zeilen:offen?offen.querySelectorAll(".werk-mat-zeile").length:-1,
+          karten:offen?offen.querySelectorAll(".werk-karte").length:-1};
+ });
+ p(G3.zeilen>0&&G3.karten>0,"und darin stehen Zuschnittliste und Massaufnahmen",G3);
 
  p(fehler.length===0,"keine JavaScript-Fehler auf der Seite",fehler.slice(0,3));
  console.log("\n=== "+ok+" bestanden, "+fail+" fehlgeschlagen");

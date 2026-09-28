@@ -72,10 +72,13 @@ const werkOffenKarte=new Set();
 // Abkantbank und faengt bei jedem Oeffnen der Werkstatt neu an.
 const werkZuBlock=new Set();
 const werkBlockVorbelegt={projekt:false,material:false};
-// Ab so vielen Bloecken startet nur der oberste offen - also genau der, der
-// laut rotem Faden zuerst drankommt. Darunter bleibt alles offen: bei zwei
-// Projekten ist nichts unuebersichtlich, und Zuklappen waere Bevormundung.
-const WERK_VIELE_BLOECKE=4;
+// v3.215, Ansage des Anwenders: "in werkstatt sollen alle projekte
+// standardmaessig nicht geoeffnet sein". In v3.213 startete noch der oberste
+// Block offen und die Regel griff erst ab vier Projekten - gemeint war die
+// einfache: die Werkstatt ist zuerst eine Liste der Baustellen, aufgeklappt
+// wird, woran gearbeitet wird. Was jetzt zuerst drankommt, steht weiterhin
+// ueber der Liste ("Jetzt dran"), und jeder Kopf nennt zugeklappt, wie viel
+// dort ansteht - es verschwindet nichts, es ist nur nichts ausgebreitet.
 function werkBlockSchluessel(g){
  // Ein Projekt hat seine Id, eine Materialgruppe ihren Titel ("Titanzink ·
  // 0,7 mm") - beides ist die Identitaet des Blocks in seiner Sicht.
@@ -85,8 +88,7 @@ function werkBlockZu(g){return werkZuBlock.has(werkBlockSchluessel(g))}
 function werkBlockVorbelegen(sortiert){
  if(werkBlockVorbelegt[werkSicht==="material"?"material":"projekt"])return;
  werkBlockVorbelegt[werkSicht==="material"?"material":"projekt"]=true;
- if(!sortiert||sortiert.length<WERK_VIELE_BLOECKE)return;
- sortiert.slice(1).forEach(g=>werkZuBlock.add(werkBlockSchluessel(g)));
+ (sortiert||[]).forEach(g=>werkZuBlock.add(werkBlockSchluessel(g)));
 }
 // Der Kopf eines Blocks ist der Schalter - dieselbe Bauart wie der
 // Kartenkopf einer Massaufnahme (role="button", Pfeil, Tastatur).

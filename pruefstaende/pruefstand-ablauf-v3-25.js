@@ -231,6 +231,13 @@ const seite=page=>page.evaluate(()=>({
  await page.evaluate(()=>{$("matZuModal").hidden=true});
  if(await klick(page,"#navWerkstatt","Werkstatt")){
   await page.waitForTimeout(900);
+  // v3.215: Die Werkstatt oeffnet als Liste zugeklappter Projekte. Geprueft
+  // wird hier der Wortlaut IN den Karten, also einmal aufklappen - denselben
+  // Zustand setzt auch der Tipp auf den Projektkopf.
+  await page.evaluate(()=>{
+   if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt()}
+  });
+  await page.waitForTimeout(200);
   const w=await page.evaluate(()=>[...document.querySelectorAll("#werkstattBody .werk-zu-text")]
     .map(x=>x.textContent.trim()));
   p(w.length>0&&w.every(t=>/zugeschnitten|Stück/.test(t)),"und die Werkstatt unveraendert",w);

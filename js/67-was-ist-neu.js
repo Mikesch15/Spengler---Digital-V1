@@ -363,6 +363,7 @@ const WIN_CHANGELOG={
   "<b>Ab vier Projekten startet nur das oberste offen</b> – also das, das laut rotem Faden zuerst drankommt. Bei drei oder weniger bleibt alles offen wie bisher. In der Sicht nach Material gilt dasselbe für die Materialgruppen."],
  "3.214":["<b>Eine Aufgabe, deren Termin erreicht ist, sagt das jetzt auch.</b> Bisher stand sie einfach wieder in der Liste und sah aus wie eine, bei der das Terminieren verloren gegangen ist. Jetzt steht dabei: „Auf heute terminiert – darum steht sie wieder da“ bzw. „War auf 25.09. terminiert – seither wieder fällig“.",
   "<b>Drei Knöpfe unter dem Datumsfeld: In einer Woche, In zwei Wochen, In einem Monat.</b> Das Feld öffnet auf morgen – wer nur speichert, hat die Aufgabe am nächsten Tag wieder vor sich. Die Knöpfe setzen nur das Feld, gespeichert wird wie bisher erst mit „Speichern“."],
+ "3.215":["<b>Die Werkstatt öffnet jetzt mit allen Projekten zugeklappt.</b> Sie ist damit zuerst eine Liste der Baustellen; aufgeklappt wird, woran gerade gearbeitet wird. „Jetzt dran“ steht weiterhin über der Liste, und jeder Projektkopf sagt, wie viel dort ansteht – es verschwindet nichts."],
 };
 
 function winVersionVergleich(a,b){
