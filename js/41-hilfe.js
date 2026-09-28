@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.219.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.220.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2188,6 +2188,13 @@ kommt aus dem Katalog und wird dort geändert.</p>`},
 Katalogpositionen gleich – bei euch dreimal „Kupferblech“ –, steht ihr Format
 jetzt überall dabei: „102.01 Kupferblech · 0,6 mm · Blank · Rolle“. Die Suche
 findet damit auch nach Stärke und Form.</div>
+<div class="hin"><b>Die Seite auf einen Blick</b> (ab 3.220). Ganz oben steht
+der Stand des Lagers in einer Zeile: wie viele Positionen, wie viele Produkte
+und – rot, solange es welche gibt – wie viele <b>ohne Bestand</b> sind. Darunter
+das Suchfeld, dann die Knöpfe. In der Liste steht die EDV-Nr. als eigenes
+Nummernfeld vorn, die Bezeichnung daneben, Dimension und Format klein
+darunter, und der <b>Bestand rechts als Zahl mit Einheit</b> – bei 0 rot.
+Gerechnet und gebucht wird dabei genau wie vorher.</div>
 <p>Der aktuelle Bestand je Produkt aus dem Material-Katalog (Einstellungen
 → Material) – Schrauben, Dichtband, Rinnenhalter usw. Mit dem
 Blech-Materialbestand weiter oben in den Einstellungen hat das nichts zu
@@ -2206,14 +2213,17 @@ stehen; ein Fehler wird durch eine neue Korrektur-Buchung ausgeglichen,
 nie durch Ändern einer bestehenden Buchung. So lässt sich der Bestand
 jederzeit nachvollziehen, statt einer Zahl vertrauen zu müssen, die
 niemand mehr erklären kann.</p>
-<p>📥 <b>Einscannen</b> / 📤 <b>Ausscannen</b> öffnen direkt die Kamera-App des
-Geräts – ohne zusätzlichen Klick –, suchen den erkannten Barcode unter den
-Produkten und öffnen den Buchen-Dialog direkt mit der passenden Richtung –
-nur die Menge muss noch bestätigt werden. Bricht die Kamera-App ohne Foto
-ab oder ist ein zweiter Versuch nötig, holt der Knopf "📷 Foto (erneut)
-aufnehmen" sie erneut. Klappt auch das nicht, lässt sich der Code unten
-auch von Hand eintippen ("Code funktioniert nicht? Hier
-eintippen") – funktioniert unabhängig von der Kamera immer. Kennt die App
+<p>📥 <b>Einscannen</b> / 📤 <b>Ausscannen</b> öffnen die Kamera. <i>Seit
+3.220 wird im laufenden Bild gescannt:</i> Code in den Rahmen halten, er wird
+von selbst erkannt – man muss nicht mehr zuerst ein Foto aufnehmen und es
+dann auswerten lassen. Ist das Bild unscharf, kurz darauf tippen. Danach
+sucht die App den erkannten Barcode unter den Produkten und öffnet den
+Buchen-Dialog direkt mit der passenden Richtung – nur die Menge muss noch
+bestätigt werden. Will ein Code partout nicht erkannt werden, nimmt
+"📷 Stattdessen Foto aufnehmen" die Kamera-App des Geräts und wertet das
+Foto aus; und der Code lässt sich unten immer noch von Hand eintippen
+("Code funktioniert nicht? Hier eintippen") – das funktioniert unabhängig
+von der Kamera immer. Kennt die App
 den Barcode noch nicht, bietet <b>Einscannen</b> direkt an,
 daraus ein <b>🏷️ neues Produkt</b> anzulegen: Bezeichnung eingeben, eine
 Materialposition aus dem Katalog wählen (das Suchfeld darüber filtert bei

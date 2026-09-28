@@ -372,6 +372,9 @@ const WIN_CHANGELOG={
  "3.219":["<b>Behoben: „Fehler (unerledigt): Cannot set properties of null“ beim Öffnen.</b> Nach der Umstellung auf 3.218 kam auf einem Gerät diese Meldung, und die Anmeldung ging nicht mehr. Der Fehler lag nicht in 3.218 selbst, sondern in einer <i>gemischten</i> App-Hülle: die neue Startseite zusammen mit einer alten Programmdatei aus dem Zwischenspeicher.",
   "Ursache: Fehlte beim Aktualisieren eine einzelne Datei (wackliges Netz), suchte der Offline-Speicher sie in <i>allen</i> Fassungen – und lieferte sie aus der alten. Jetzt wird nur noch in der Fassung gesucht, die gerade läuft. Eine Datei, die dort fehlt, gilt als nicht verfügbar, statt aus einer anderen Version zu kommen.",
   "Ausserdem: Eine fehlende Programmdatei bekam bisher die Startseite als HTML geliefert, die der Browser dann auszuführen versuchte. Das gilt jetzt nur noch für den Seitenaufruf selbst."],
+ "3.220":["<b>Der Barcode wird im laufenden Bild erkannt.</b> Einscannen/Ausscannen öffnen die Kamera, der Code wird gelesen, sobald er im Rahmen ist – kein Foto mehr aufnehmen und auswerten lassen. Unscharf? Kurz aufs Bild tippen. Der Weg über die Kamera-App des Geräts bleibt als Knopf für den Fall, dass ein Code partout nicht scharf wird; von Hand eintippen geht unverändert.",
+  "<b>Die Lagerverwaltung sieht aus wie ein Lager, nicht wie eine Einstellungsseite.</b> Oben der Stand in einer Zeile (Positionen, Produkte und – rot – wie viele ohne Bestand), darunter das Suchfeld, dann die Knöpfe als Leiste statt als Wand. In der Liste steht die EDV-Nr. als Nummernfeld vorn und der Bestand rechts als Zahl mit Einheit, bei 0 rot.",
+  "Gerechnet, gebucht und gesucht wird dabei genau wie vorher – geändert ist nur die Darstellung."],
 };
 
 function winVersionVergleich(a,b){

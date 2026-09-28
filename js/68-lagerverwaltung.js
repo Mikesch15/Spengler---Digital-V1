@@ -205,6 +205,43 @@ function lagerProduktAktionen(v){
   ?`<button type="button" class="gray" data-lager-archivieren="${v.id}">\u{1F4E6} Archivieren</button>`
   :`<button type="button" class="red" data-lager-loeschen="${v.id}">\u{1F5D1} L\u00f6schen</button>`;
 }
+// ---- Wie eine Zeile aussieht (v3.220) ------------------------------------
+// Ansage des Anwenders: "darstellung professionalisieren, es sieht im moment
+// nach einer einstellungsseite aus".
+//
+// Geaendert ist NUR die Darstellung. Dieselben Daten, dieselben Knoepfe,
+// dieselben data-Marken (data-lager-karte, data-lager-buchen ...) - was die
+// App tut, ist unveraendert. Neu ist die Gliederung der Zeile: die EDV-Nr.
+// steht als eigenes, schmales Feld vorn (danach sucht man im Lager), die
+// Bezeichnung traegt die Zeile, Dimension und Format stehen klein darunter,
+// und der BESTAND steht rechts als Zahl - das ist die eine Angabe, wegen
+// der man diese Seite ueberhaupt oeffnet.
+//
+// Absichtlich NICHT groesser: der Anwender hat in v3.156 die Vergroesserung
+// aus v3.151 am fertigen Bildschirm zurueckgewiesen. Die Zeile wird
+// geordnet, nicht aufgeblasen.
+function lagerNrChip(a){
+ const nr=a&&a.edv_nr?String(a.edv_nr).trim():"";
+ return nr?`<span class="lager-nr">${esc(nr)}</span>`:"";
+}
+// Was unter der Bezeichnung steht: Dimension und - wenn erfasst - das
+// Blechformat. lagArtikelFormatText() ist dafuer seit v3.177 die eine
+// Quelle; ohne Format bleibt es bei der Dimension.
+function lagerUnterzeile(a){
+ const fmt=(typeof lagArtikelFormatText==="function")?lagArtikelFormatText(a):"";
+ const teile=[fmt||(a&&a.dim)||""].filter(Boolean);
+ return teile.length?`<span class="lager-zeile-unter">${esc(teile.join(" · "))}</span>`:"";
+}
+// Der Bestand als Zahl mit Einheit. Null ist keine Zahl wie jede andere -
+// sie heisst "nichts mehr da" und wird deshalb rot gezeigt. Eine Warnschwelle
+// darueber gibt es bewusst nicht: einen Mindestbestand fuehrt der Katalog
+// nicht, und eine erfundene Schwelle waere eine Behauptung.
+function lagerBestandBlock(bestand,einheit){
+ const leer=!(Number(bestand)>0);
+ return `<div class="lager-bestand${leer?" lager-bestand-leer":""}">
+  <b>${lagerZahlText(bestand)}</b><span>${esc(einheit||"")}</span>
+ </div>`;
+}
 function lagerPasstZurSuche(a,varianten){
  const q=String(lagerSuche||"").trim().toLowerCase();
  if(!q)return true;
@@ -222,14 +259,19 @@ function lagerVarianteZeile(v,gruppiert){
  const offen=lagerOffenArtikel.has(String(v.id));
  const letzte=lagerBewegungenVon(v.id).slice(0,5);
  const klasse=gruppiert?"lager-variante":"lager-karte";
+ // Die Einheit gehoert der Materialposition, nicht dem einzelnen Produkt.
+ const artikel=(typeof lagArtikelListe==="function")
+  ?(lagArtikelListe()||[]).find(x=>String(x.id)===String(v.material_id)):null;
  return `<div class="${klasse}${v.archiviert?" lager-archiviert":""}">
  <div class="${klasse}-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-lager-karte="${v.id}">
   <span class="lager-karte-pfeil">${offen?"▾":"▸"}</span>
   <div class="lager-karte-info">
-   <b>${esc(v.bezeichnung)}</b>${v.archiviert?' <span class="lager-archiviert-marke">(archiviert)</span>':""}
-   <span class="small" style="color:var(--muted);display:block">Bestand: <b>${lagerZahlText(bestand)}</b></span>
+   <div class="lager-zeile-titel"><b>${esc(v.bezeichnung)}</b>${v.archiviert?' <span class="lager-archiviert-marke">(archiviert)</span>':""}</div>
   </div>
-  ${v.archiviert?"":`<button type="button" class="blue" data-lager-buchen="${v.id}">📦 Buchen</button>`}
+  <div class="lager-karte-rechts">
+   ${lagerBestandBlock(bestand,artikel&&artikel.unit)}
+   ${v.archiviert?"":`<button type="button" class="blue" data-lager-buchen="${v.id}">📦 Buchen</button>`}
+  </div>
  </div>
  ${offen?`<div class="lager-karte-body">
   <span class="small" style="color:var(--muted)">${letzte.length?letzte.map(lagerBewegungZeile).join(""):"Noch keine Buchung."}</span>
@@ -245,6 +287,21 @@ function renderLagerverwaltung(){
  const suchtext=String(lagerSuche||"").trim();
  const liste=suchtext?alle.filter(a=>lagerPasstZurSuche(a,
    lagerArchivZeigen?lagerVariantenVonMaterialAlle(a.id):lagerVariantenVonMaterial(a.id))):alle;
+ // v3.220: Der Stand des Lagers in einer Zeile. ABGELEITET aus denselben
+ // Daten wie die Liste darunter - keine zweite Quelle, kein gespeicherter
+ // Zaehler, der veralten koennte. "Ohne Bestand" ist die Zahl, wegen der
+ // man morgens hier hereinschaut.
+ const kz=$("lagerKennzahlen");
+ if(kz){
+  const varianten=lagerArchivZeigen?lagerVarianten:lagerVarianten.filter(v=>!v.archiviert);
+  const leer=varianten.filter(v=>!(lagerBestandVon(v.id)>0)).length;
+  kz.innerHTML=alle.length
+   ?`<span class="lager-kz"><b>${alle.length}</b> Positionen</span>`
+    +`<span class="lager-kz"><b>${varianten.length}</b> Produkte</span>`
+    +`<span class="lager-kz${leer?" lager-kz-warnung":""}"><b>${leer}</b> ohne Bestand</span>`
+   :"";
+  kz.hidden=!alle.length;
+ }
  const stand=$("lagerSucheStand");
  if(stand){
   stand.textContent=suchtext?(liste.length+" von "+alle.length+" Positionen gefunden"):"";
@@ -285,7 +342,8 @@ function renderLagerverwaltung(){
     // Randfall: eine Position ganz ohne Standard-Variante (z. B. gerade
     // erst angelegt, bevor eine Migration/ein Trigger sie ergaenzen konnte).
     return `<div class="lager-karte"><div class="lager-karte-kopf"><div class="lager-karte-info">
- <b>${esc(lagArtikelText(a))}</b>
+ <div class="lager-zeile-titel">${lagerNrChip(a)}<b>${esc(a.name||"")}</b></div>
+ ${lagerUnterzeile(a)}
  <span class="small" style="color:var(--red)">Noch kein Produkt erfasst - "＋ Weiteres Produkt" unten anlegen.</span>
 </div></div>
 <div class="bar" style="margin-top:6px"><button type="button" class="gray" data-lager-neues-produkt="${a.id}">＋ Produkt zu dieser Position erfassen</button></div>
@@ -302,10 +360,13 @@ function renderLagerverwaltung(){
  <div class="lager-karte-kopf" role="button" tabindex="0" aria-expanded="${offen?"true":"false"}" data-lager-karte="${v.id}">
   <span class="lager-karte-pfeil">${offen?"▾":"▸"}</span>
   <div class="lager-karte-info">
-   <b>${esc(lagArtikelText(a))}</b>${v.archiviert?' <span class="lager-archiviert-marke">(archiviert)</span>':""}
-   <span class="small" style="color:var(--muted);display:block">Bestand: <b>${lagerZahlText(bestand)}</b></span>
+   <div class="lager-zeile-titel">${lagerNrChip(a)}<b>${esc(a.name||"")}</b>${v.archiviert?' <span class="lager-archiviert-marke">(archiviert)</span>':""}</div>
+   ${lagerUnterzeile(a)}
   </div>
-  ${v.archiviert?"":`<button type="button" class="blue" data-lager-buchen="${v.id}">📦 Buchen</button>`}
+  <div class="lager-karte-rechts">
+   ${lagerBestandBlock(bestand,a.unit)}
+   ${v.archiviert?"":`<button type="button" class="blue" data-lager-buchen="${v.id}">📦 Buchen</button>`}
+  </div>
  </div>
  ${offen?`<div class="lager-karte-body">
   <span class="small" style="color:var(--muted)">${letzte.length?letzte.map(lagerBewegungZeile).join(""):"Noch keine Buchung."}</span>
@@ -322,9 +383,11 @@ function renderLagerverwaltung(){
  <div class="lager-karte-kopf" role="button" tabindex="0" aria-expanded="${offenGruppe?"true":"false"}" data-lager-karte="${gruppenSchluessel}">
   <span class="lager-karte-pfeil">${offenGruppe?"▾":"▸"}</span>
   <div class="lager-karte-info">
-   <b>${esc(lagArtikelText(a))}</b>
-   <span class="small" style="color:var(--muted);display:block">${varianten.length} Produkte · Bestand gesamt: <b>${lagerZahlText(gesamtbestand)}</b></span>
+   <div class="lager-zeile-titel">${lagerNrChip(a)}<b>${esc(a.name||"")}</b></div>
+   ${lagerUnterzeile(a)}
+   <span class="lager-zeile-unter">${varianten.length} Produkte</span>
   </div>
+  <div class="lager-karte-rechts">${lagerBestandBlock(gesamtbestand,a.unit)}</div>
  </div>
  ${offenGruppe?`<div class="lager-karte-body">
   ${varianten.map(v=>lagerVarianteZeile(v,true)).join("")}

@@ -694,6 +694,18 @@ html.a2-an #settingsModal.a2-nur-lager .settings-tabs{display:none!important}
 html.a2-an #settingsModal.a2-nur-lager [data-section="lagerbestand"],
 html.a2-an #settingsModal.a2-nur-lager [data-section="reststuecke"]{display:none!important}
 
+/* v3.220: Im Bereich ist die Lagerverwaltung kein Einstellungs-Abschnitt
+   mehr, sondern die Seite selbst. Ein Abschnitt, der sich auf der Seite, die
+   er ausmacht, zuklappen laesst, ist eine Falle - danach stuende dort
+   nichts. Der Kopf bleibt als Ueberschrift stehen (mit seinen beiden
+   Info-Knoepfen, die weiterhin bedienbar sind), verliert aber den Pfeil und
+   das Zuklappen. Ausserhalb des Bereichs - also in den Einstellungen - ist
+   alles unveraendert. */
+html.a2-an #settingsModal.a2-nur-lager .lager-kopf{cursor:default;pointer-events:none}
+html.a2-an #settingsModal.a2-nur-lager .lager-kopf .hilfe-knopf{pointer-events:auto}
+html.a2-an #settingsModal.a2-nur-lager .lager-kopf .settings-section-chevron{display:none}
+html.a2-an #settingsModal.a2-nur-lager [data-section="lagerverwaltung"] .settings-section-body{display:block}
+
 /* Die Karte des Schirms traegt in diesen Bereichen noch ihren eigenen Titel
    ("⚙️ Einstellungen", "📁 Projekte"). Die Kopfzeile darueber sagt bereits,
    wo man ist - zweimal derselbe Titel untereinander ist kein Hinweis,

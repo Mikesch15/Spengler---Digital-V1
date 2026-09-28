@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.219";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.220";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.219<br>
+  Version 3.220<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -148,7 +148,7 @@ unangetastet.</div>
 <p>Die App ist <strong>nach dem Arbeitsablauf</strong> gegliedert, nicht nach
 Modulen. Es gibt genau <strong>eine</strong> Ansicht: unten eine Leiste mit bis zu
 fünf Einträgen, oben die Seite, die dazu gehört.</p>
-<div class="hin"><strong>Seit Version 3.219</strong> ist die alte, nach Modulen
+<div class="hin"><strong>Seit Version 3.218</strong> ist die alte, nach Modulen
 gegliederte Startseite („Was möchtest du tun?“ mit den grossen Knöpfen) weg – und
 mit ihr der Umschalter <span class="tasten">✨ Neue Ansicht testen</span> und der
 Weg zurück. Alles, was dort stand, ist weiterhin erreichbar: Projekte und
@@ -273,7 +273,7 @@ Jetzt sind sie dasselbe. Eine Station, die auf ein abgeschaltetes Modul führen
 würde, bleibt eine reine Anzeige – ein Knopf, der nichts tut, wäre schlimmer als
 keiner.</div>
 <div class="hin"><strong>Zu den Bildern in dieser Anleitung:</strong> Sie zeigen
-die Ansicht, mit der die App startet – seit Version 3.219 die einzige. Sie werden
+die Ansicht, mit der die App startet – seit Version 3.218 die einzige. Sie werden
 nicht von Hand gemacht, sondern aus der echten App erzeugt; was auf dem Bild steht,
 steht so auch auf dem Bildschirm.</div>
 <div class="hin"><strong>Der gedruckte Regierapport ändert sich dadurch nicht.</strong>
@@ -301,7 +301,7 @@ mittleren drei gilt: <strong>die schwächste Massaufnahme entscheidet</strong>. 
 von acht Massaufnahmen eine noch nicht gerüstet, steht das ganze Projekt auf
 «Rüsten». Ist der Arbeitsablauf für die Firma ausgeschaltet, zeigt die Leiste nur
 die drei Stationen, die es dann gibt.</p>
-<div class="hin"><strong>Seit Version 3.219 gibt es nur noch diese eine
+<div class="hin"><strong>Seit Version 3.218 gibt es nur noch diese eine
 Ansicht.</strong> Die zweite, nach Modulen gegliederte Startseite und der
 Umschalter dazu sind weg. Ein Gerät, auf dem früher einmal „lieber die gewohnte
 Ansicht“ eingestellt wurde, startet trotzdem normal – der gemerkte Wunsch wird
@@ -2301,9 +2301,17 @@ nicht importiert – wie viele das sind, steht über der Vorschau.</p>
 und nichts überschrieben – eine bereits vorhandene Nummer käme ein zweites Mal hinein.</div>
 
 <h3>Lagerverwaltung</h3>
-<p>Der Abschnitt <span class="tasten">🏭 Lagerverwaltung</span> führt den
+<p>Der Bereich <span class="tasten">🏭 Lagerverwaltung</span> führt den
 Lagerbestand. Er ist eine <strong>eigene Freigabe</strong>: wer sie nicht hat, sieht
-den Abschnitt gar nicht.</p>
+ihn gar nicht.</p>
+<p><i>Seit Version 3.220</i> ist er als Arbeitsplatz aufgebaut und nicht mehr
+als Einstellungsseite. Ganz oben steht der <strong>Stand des Lagers</strong> in
+einer Zeile: wie viele Positionen, wie viele Produkte und – rot, solange es
+welche gibt – wie viele <strong>ohne Bestand</strong> sind. Darunter das Suchfeld,
+dann die Knöpfe. In der Liste steht die <strong>EDV-Nr.</strong> als eigenes
+Nummernfeld vorn, die Bezeichnung daneben, Dimension und Format klein darunter,
+und der <strong>Bestand rechts als Zahl mit Einheit</strong> – bei 0 rot. Gerechnet
+und gebucht wird unverändert wie vorher.</p>
 <p>Aufgebaut ist er zweistufig. Oben die <strong>Materialposition</strong> aus dem
 Katalog – das ist die Nummer, unter der abgerechnet wird. Darunter die
 <strong>Lager-Produkte</strong>: die tatsächlich im Regal liegenden Artikel zu dieser
@@ -2316,9 +2324,15 @@ Lieferanten; jeder wird einzeln gebucht und trägt seinen eigenen Barcode.</p>
 <tr><td><span class="tasten">📷 Barcode scannen</span></td><td>Öffnet die Kamera und
 sucht das Produkt über seinen Barcode.</td></tr>
 </table>
+<p><strong>Gescannt wird im laufenden Bild</strong> (seit Version 3.220): Code in
+den Rahmen halten, er wird von selbst erkannt. Man muss also nicht mehr zuerst
+ein Foto aufnehmen und es dann auswerten lassen. Ist das Bild unscharf, kurz
+darauf tippen.</p>
 <div class="hin">Klappt das Scannen auf einem Gerät nicht – schlechtes Licht, unruhige
-Hand, Kamera ohne Nahbereich –, lässt sich der Code immer auch <strong>von Hand
-eintippen</strong>. Der Weg ist nie versperrt.</div>
+Hand, Kamera ohne Nahbereich –, gibt es zwei Rückwege, die beide bleiben:
+<span class="tasten">📷 Stattdessen Foto aufnehmen</span> nimmt die Kamera-App des
+Geräts und wertet das Foto aus, und der Code lässt sich unten immer auch
+<strong>von Hand eintippen</strong>. Der Weg ist nie versperrt.</div>
 <p>Ein neues Produkt legt <span class="tasten">＋ Neues Material / Produkt</span> an.
 Der Dialog macht beides in einem Zug: die <strong>Materialposition</strong> im Katalog
 und auf Wunsch gleich das <strong>Lager-Produkt</strong> dazu. Die Bezeichnung wird nur
@@ -2716,7 +2730,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.219</strong>, Stand 28. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.220</strong>, Stand 28. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

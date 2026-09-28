@@ -1378,7 +1378,7 @@ html.dark .rmat-unsicher{color:#e0a35c}
  cursor:pointer;min-height:40px;padding:2px}
 .lager-karte-kopf:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
 .lager-karte-pfeil{flex:0 0 auto;color:var(--muted);font-size:13px;line-height:1.5;width:14px}
-.lager-karte-info{flex:1 1 190px;min-width:0;word-break:break-word}
+.lager-karte-info{flex:1 1 120px;min-width:0;word-break:break-word}
 .lager-karte-kopf button{width:auto;min-height:38px;padding:6px 10px;font-size:12px;flex:0 0 auto}
 .lager-karte-body{border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
 /* v3.106: mehrere Produkte je Materialposition - dieselbe Klapp-Karte, nur
@@ -1390,6 +1390,55 @@ html.dark .rmat-unsicher{color:#e0a35c}
  cursor:pointer;min-height:38px;padding:2px}
 .lager-variante-kopf:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
 .lager-variante-kopf button{width:auto;min-height:36px;padding:6px 10px;font-size:12px;flex:0 0 auto}
+/* ---- Lagerverwaltung als Arbeitsplatz, nicht als Einstellungsseite ------
+   v3.220. Ansage des Anwenders: "es sieht im moment nach einer
+   einstellungsseite aus es soll nun professioneller aussehen".
+   Geaendert ist die GLIEDERUNG der Zeile, nicht ihre Groesse: die
+   Vergroesserung aus v3.151 hat der Anwender in v3.156 am fertigen
+   Bildschirm zurueckgewiesen. */
+/* Der Stand des Lagers in einer Zeile, direkt unter dem Titel. */
+.lager-kennzahlen{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.lager-kennzahlen[hidden]{display:none}
+.lager-kz{display:inline-flex;align-items:baseline;gap:4px;
+ border:1px solid var(--line);border-radius:999px;padding:3px 10px;
+ background:var(--card);font-size:11px;color:var(--muted);white-space:nowrap}
+.lager-kz b{font-size:13px;color:var(--ink)}
+/* "Ohne Bestand" ist die Zahl, wegen der man hier hereinschaut - sie faellt
+   auf, sobald sie nicht null ist. */
+.lager-kz-warnung{border-color:var(--red)}
+.lager-kz-warnung b{color:var(--red)}
+/* Die EDV-Nr. ist eine Nummer, keine Prosa: feste Zeichenbreite, damit
+   untereinander stehende Nummern wirklich untereinander stehen. */
+.lager-nr{display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace;
+ font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--line);
+ border-radius:4px;padding:0 5px;margin-right:6px;white-space:nowrap;
+ vertical-align:baseline}
+/* Bewusst KEIN flex: die Nummer steht als Zeichen vor der Bezeichnung, und
+   der Name fliesst dahinter weiter. Als Flex-Zeile sprang die Nummer bei
+   langen Namen auf eine eigene Zeile - bei kurzen nicht, und die Liste sah
+   von Zeile zu Zeile anders aus. */
+.lager-zeile-titel{min-width:0}
+.lager-zeile-titel b{font-size:13px;word-break:break-word}
+.lager-zeile-unter{display:block;font-size:11px;color:var(--muted);
+ word-break:break-word;line-height:1.35}
+/* Die Werkzeugleiste. In .bar wachsen Knoepfe auf schmalen Schirmen auf die
+   volle Breite (css/02) - vier Knoepfe untereinander sind aber keine Leiste,
+   sondern eine Wand. Hier behalten sie ihre eigene Breite und bilden eine
+   Zeile, die erst umbricht, wenn sie muss. */
+.lager-werkzeuge{margin-top:0;margin-bottom:8px}
+.lager-werkzeuge button{flex:0 0 auto;min-height:38px;padding:7px 11px;font-size:12px}
+/* Bestand und Buchen-Knopf gehoeren zusammen an den rechten Rand. Ohne die
+   Gruppe bricht der Knopf auf eine eigene Zeile um und die Zeile wird
+   doppelt so hoch. */
+.lager-karte-rechts{display:flex;align-items:center;gap:8px;flex:0 0 auto;margin-left:auto}
+/* Der Bestand ist die eine Angabe, wegen der die Seite geoeffnet wird -
+   deshalb rechts, als Zahl, ohne das Wort "Bestand:" davor. */
+.lager-bestand{flex:0 0 auto;text-align:right;line-height:1.15;min-width:44px}
+.lager-bestand b{display:block;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+.lager-bestand span{display:block;font-size:10px;color:var(--muted)}
+/* Null heisst "nichts mehr da". Keine erfundene Warnschwelle darueber -
+   einen Mindestbestand fuehrt der Katalog nicht. */
+.lager-bestand-leer b{color:var(--red)}
 /* v3.127: archiviertes Produkt. Es bleibt lesbar (der Bestand steht ja noch
    dran und die Buchungen sind Pflicht-Historie), tritt aber sichtbar zurueck
    und ist nicht mehr buchbar. Nicht ausblenden per opacity allein - der Text
