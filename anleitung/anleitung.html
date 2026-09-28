@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.217";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.218";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.217<br>
+  Version 3.218<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -144,38 +144,20 @@ wieder weg. Das wirkt nur auf diesem Gerät – das Konto selbst bleibt
 unangetastet.</div>
 
 <h2>3 · Der Startbildschirm</h2>
-<figure><img src="bilder/02-start.png"><figcaption>Der Startbildschirm der <em>klassischen</em> Ansicht, mit Firmenlogo und Firmenname. Die neue Ansicht zeigt dasselbe Logo auf der Seite „Heute“ (Abschnitt 3.1).</figcaption></figure>
-<table>
-<tr><th>Knopf</th><th>Wozu</th></tr>
-<tr><td>📁 Projekte</td><td>Der Haupteinstieg. Hier beginnt jede Arbeit.</td></tr>
-<tr><td>🔧 Werkstatt</td><td>Gleich gross daneben: der Arbeitsplatz zum Rüsten und
-Zuschneiden (Abschnitt 11). Nur da, wenn die Firma das Werkstattmodul eingeschaltet hat.
-Zeigt beim Öffnen, was einem selbst zugeteilt ist.</td></tr>
-<tr><td>🔍 Suche</td><td>Findet einen Eintrag über alle Projekte hinweg.</td></tr>
-<tr><td>⚙️ Einstellungen</td><td>Firma, Material, Masse, Mitarbeiter.</td></tr>
-<tr><td>💬 Feedback geben</td><td>Rückmeldung an die Firma bzw. den Betreiber.</td></tr>
-<tr><td>📋 Alle Massaufnahmen</td><td>Nur für Firmenadministratoren: der Überblick über jede Massaufnahme der Firma (Abschnitt 10).</td></tr>
-<tr><td>⚙️ System-Administration</td><td>Nur beim Betreiber sichtbar (Abschnitt 21).</td></tr>
-</table>
-<p>Über den Knöpfen erscheint die Karte <strong>🔔 Meine offenen Aufgaben</strong>,
-sobald für dich persönlich etwas ansteht – eine eigene Massaufnahme freigeben, einen
-Auftrag rüsten oder eine Montage bestätigen. Sie ist <strong>zugeklappt</strong> und
-bleibt schmal: sie nennt, wie viele Aufgaben offen sind, wie viele davon – rot – jetzt
-dran sind, und zeigt gleich <strong>die eine Aufgabe, die als Nächstes ansteht</strong>,
-mit Adresse und Knopf. Ein Tippen darauf klappt die ganze Liste auf. Hast du nichts
-offen, ist die Karte gar nicht da. Mehr dazu in Abschnitt 10.</p>
-<figure><img src="bilder/34-aufgaben-zu.png"><figcaption>Zugeklappt braucht die Aufgabenkarte eine Zeile. Ein Tippen öffnet die Liste. (Klassische Ansicht – in der neuen ist das die ganze Seite „Heute“.)</figcaption></figure>
-<p>Oben rechts steht, wer angemeldet ist, daneben <span class="tasten">🔓 Abmelden</span>.
-Unten steht die Programmversion – die ist wichtig, wenn du einen Fehler meldest.</p>
+<figure><img src="bilder/02-start.png"><figcaption>Der Startbildschirm: oben Firmenlogo und Firmenname, darunter das, was heute ansteht, und unten die Leiste.</figcaption></figure>
+<p>Die App ist <strong>nach dem Arbeitsablauf</strong> gegliedert, nicht nach
+Modulen. Es gibt genau <strong>eine</strong> Ansicht: unten eine Leiste mit bis zu
+fünf Einträgen, oben die Seite, die dazu gehört.</p>
+<div class="hin"><strong>Seit Version 3.218</strong> ist die alte, nach Modulen
+gegliederte Startseite („Was möchtest du tun?“ mit den grossen Knöpfen) weg – und
+mit ihr der Umschalter <span class="tasten">✨ Neue Ansicht testen</span> und der
+Weg zurück. Alles, was dort stand, ist weiterhin erreichbar: Projekte und
+Werkstatt über die Leiste, Suche, Einstellungen, Feedback, Abwicklung, Anleitung,
+Konto wechseln, „Was die App gelernt hat“, „Alle Massaufnahmen“ und die
+System-Administration über <strong>Mehr</strong>. An den Formularen, den Daten und
+den Rechten ändert sich nichts.</div>
 
-<h3>3.1 · Die neue Ansicht</h3>
-<p>Es gibt <strong>zwei Ansichten derselben App</strong>. Die klassische – die eben
-beschriebene – und eine neue, die nicht nach Modulen gegliedert ist, sondern
-<strong>nach dem Arbeitsablauf</strong>. Seit Version 3.151 ist die neue Ansicht die
-<strong>Vorgabe</strong>: sie erscheint, wenn du die App öffnest. Beim ersten Mal steht
-dort eine Karte, die das erklärt und den Weg zurück nennt.</p>
-<p>Bist du in der klassischen Ansicht, führt <span class="tasten">✨ Neue Ansicht
-testen</span> auf dem Startbildschirm wieder hinüber.</p>
+<h3>3.1 · Die Seiten und die Leiste</h3>
 <figure><img src="bilder/44-ansicht2-heute.png"><figcaption>Die Startseite „Heute“: zuoberst, was dringend ist, darunter die eigenen Aufgaben, die Werkstatt in drei Zahlen, die anstehenden Montagen und die offenen Projekte mit ihrem Produktionsstand.</figcaption></figure>
 <p>Unten steht eine Leiste mit bis zu fünf Einträgen:</p>
 <table>
@@ -188,8 +170,8 @@ Projektseite – siehe unten.</td></tr>
 Firma das Werkstattmodul eingeschaltet hat.</td></tr>
 <tr><td>Lager</td><td>Öffnet die Lagerverwaltung. Nur da, wenn du dafür
 freigeschaltet bist.</td></tr>
-<tr><td>Mehr</td><td>Suche, Einstellungen, Anleitung, Feedback, Abmelden – und der
-Weg zurück zur klassischen Ansicht. Seit Version 3.203 in drei Gruppen:
+<tr><td>Mehr</td><td>Suche, Einstellungen, Anleitung, Feedback, Abmelden und
+alles Übrige. Seit Version 3.203 in drei Gruppen:
 <strong>Arbeiten</strong>, <strong>Firma</strong> und <strong>Verwaltung</strong>.
 Nicht zu verwechseln mit dem früheren Register „Mehr …“ <em>im Projekt</em> –
 das gibt es nicht mehr, sein Inhalt hat eigene Register.</td></tr>
@@ -210,8 +192,8 @@ dran?</em> – nicht <em>welches Modul?</em>. Von oben nach unten:</p>
 <tr><th>Abschnitt</th><th>Was darin steht und woher es kommt</th></tr>
 <tr><td>Warnung (rot)</td><td>Eine Massaufnahme, die nach der Freigabe geändert
 wurde und deshalb erneut freigegeben werden muss. Der Knopf führt ins Projekt.</td></tr>
-<tr><td>Meine Aufgaben</td><td>Dieselbe Liste wie die Karte <strong>🔔 Meine
-offenen Aufgaben</strong> der klassischen Ansicht. Ein Tippen auf die Zeile
+<tr><td>Meine Aufgaben</td><td>Was du persönlich noch erledigen musst
+(Abschnitt 10). Ein Tippen auf die Zeile
 öffnet die Massaufnahme; wo es einen eigenen Schritt gibt (rüsten, montieren,
 zuweisen), steht er als Knopf daneben. Auch das Terminieren auf ein späteres Datum
 (Abschnitt 10) gibt es hier – es ist dieselbe Liste, nicht eine zweite.</td></tr>
@@ -291,16 +273,9 @@ Jetzt sind sie dasselbe. Eine Station, die auf ein abgeschaltetes Modul führen
 würde, bleibt eine reine Anzeige – ein Knopf, der nichts tut, wäre schlimmer als
 keiner.</div>
 <div class="hin"><strong>Zu den Bildern in dieser Anleitung:</strong> Sie zeigen
-seit Version 3.155 die <em>neue</em> Ansicht – also das, womit die App startet.
-Drei Bilder zeigen ausdrücklich die klassische: die Startseite (Bild in Abschnitt 2)
-und die beiden der Aufgabenkarte. Diese Elemente gibt es nur dort; in der neuen
-Ansicht ist die Aufgabenliste die ganze Seite <strong>Heute</strong>.
-<br><br>
-Für die Arbeit selbst macht das keinen Unterschied: die Formulare – Massaufnahme,
-Ausmass, Regierapport, Offerte, Leistung – sind in beiden Ansichten dieselben.
-Dieselben Felder, dieselben Namen, dieselbe Bedeutung, Wort für Wort. In der neuen
-sind sie nur grösser und runder. Wer die klassische Ansicht eingeschaltet lässt,
-findet auf jedem Bild dieselben Felder wieder, nur enger gesetzt.</div>
+die Ansicht, mit der die App startet – seit Version 3.218 die einzige. Sie werden
+nicht von Hand gemacht, sondern aus der echten App erzeugt; was auf dem Bild steht,
+steht so auch auf dem Bildschirm.</div>
 <div class="hin"><strong>Der gedruckte Regierapport ändert sich dadurch nicht.</strong>
 Seit Version 3.154 sehen auch Regierapport, Ausmass, Offerte und Leistung am
 Bildschirm nach der neuen Ansicht aus – grössere Felder, rundere Knöpfe. Das gilt
@@ -311,15 +286,14 @@ Kunden, ist Zeichen für Zeichen dasselbe Dokument wie vorher, in beiden Ansicht
 Dort stehen sechs bis sieben Felder nebeneinander; grössere Felder würden aus
 jeder Zeile zwei machen. Sie bleiben deshalb schmal.</div>
 <div class="hin">Das Projekt-Cockpit ist damit nicht verschwunden. Es steht im
-Register <strong>Dateien</strong> und zeigt dort dasselbe wie in der klassischen
-Ansicht. Sein Zurück-Knopf führt auf die Projektseite. Seit Version 3.203
+Register <strong>Dateien</strong>. Sein Zurück-Knopf führt auf die Projektseite. Seit Version 3.203
 sind die Dateien schon im Register selbst zu sehen – mit Name, Datum und Grösse;
 nur Hochladen, Löschen und die Fotowand liegen weiterhin in der vollständigen
 Ansicht, weil das eigene Wege mit Kamera, Vorschau und Ausdruck sind.
 Seit Version 3.204 führt dorthin <em>ein</em> beschrifteter Knopf statt vier
 Zeilen, die alle am selben Ort endeten.</div>
-<p>Im Projekt-Cockpit kommt in der neuen Ansicht über dem Arbeitsstand eine
-<strong>Ablaufleiste</strong> dazu. Sie beantwortet die Frage, die beim Öffnen eines
+<p>Im Projekt-Cockpit steht über dem Arbeitsstand eine
+<strong>Ablaufleiste</strong>. Sie beantwortet die Frage, die beim Öffnen eines
 Projekts zuerst kommt: <em>wo steht das hier?</em> Sechs Stationen – Offerte,
 Massaufnahme, Freigabe, Rüsten, Montage, Ausmass – mit einem grünen Haken für das,
 was fertig ist, und einem blauen Punkt auf dem, was gerade dran ist. Für die
@@ -327,12 +301,12 @@ mittleren drei gilt: <strong>die schwächste Massaufnahme entscheidet</strong>. 
 von acht Massaufnahmen eine noch nicht gerüstet, steht das ganze Projekt auf
 «Rüsten». Ist der Arbeitsablauf für die Firma ausgeschaltet, zeigt die Leiste nur
 die drei Stationen, die es dann gibt.</p>
-<div class="hin"><strong>Wichtig:</strong> Es sind <em>zwei Ansichten</em>, nicht
-zwei Programme. Beide arbeiten mit denselben Formularen, denselben Daten und
-denselben Rechten. Was du in der einen erfasst, steht sofort in der anderen. Der
-Weg zurück steht jederzeit unter <strong>Mehr → Zurück zur klassischen
-Ansicht</strong>, und die Wahl merkt sich jedes Gerät für sich – auf dem Handy die
-neue, im Büro die klassische, das geht.</div>
+<div class="hin"><strong>Seit Version 3.218 gibt es nur noch diese eine
+Ansicht.</strong> Die zweite, nach Modulen gegliederte Startseite und der
+Umschalter dazu sind weg. Ein Gerät, auf dem früher einmal „lieber die gewohnte
+Ansicht“ eingestellt wurde, startet trotzdem normal – der gemerkte Wunsch wird
+nicht mehr gelesen. An den Formularen, den Daten und den Rechten ändert das
+nichts.</div>
 
 <h2 class="seite">4 · Hilfe in der App</h2>
 <p>Fast jede Karte und jede Überschrift trägt einen kleinen runden
@@ -1239,7 +1213,7 @@ davon übernehmen. Einteilen darf der Aufnehmer oder ein Administrator.</p>
 <span class="tasten">🔧 Gerüstet</span>. Danach erscheint die Montage beim eingeteilten
 Monteur, der mit <span class="tasten">🏠 Montiert</span> bestätigt. Jeder darf nur seinen
 eigenen Schritt bestätigen.</p>
-<figure><img src="bilder/32-aufgaben.png"><figcaption>Meine offenen Aufgaben: rot heisst „jetzt dran“, orange „weniger dringend“. Ein Tippen führt direkt zur richtigen Massaufnahme. (Klassische Ansicht – in der neuen steht dieselbe Liste auf der Seite „Heute“.)</figcaption></figure>
+<figure><img src="bilder/32-aufgaben.png"><figcaption>Meine offenen Aufgaben auf der Seite „Heute“: rot heisst „jetzt dran“. Ein Tippen führt direkt zur richtigen Massaufnahme.</figcaption></figure>
 <p>Jede Aufgabe nennt die <strong>Adresse der Baustelle</strong> und die Art der
 Massaufnahme – dieselbe Bezeichnung wie überall sonst in der App.</p>
 <p>Die Karte ist zugeklappt und zeigt dann die Anzahl <strong>und die eine Aufgabe, die
@@ -2034,12 +2008,10 @@ Rapport direkt auf der Baustelle gegenzeichnen, statt ihn auszudrucken, untersch
 zu lassen und wieder einzuscannen.</p>
 
 <h2 class="seite">17 · Suche</h2>
-<div class="hin">Seit 3.167 springt ein Treffer in <strong>beiden Ansichten</strong>
-an die richtige Stelle: in der neuen Ansicht schlägt die Projektseite das
-passende Register auf – Massaufnahme, Ausmass oder Regierapport – und hebt die
-getroffene Zeile kurz hervor; in der klassischen öffnet das Cockpit wie bisher
-den zugehörigen Bereich. Gibt es den Eintrag nicht mehr, geht das Projekt
-trotzdem auf, nur ohne Hervorhebung.</div>
+<div class="hin">Seit 3.167 springt ein Treffer an die richtige Stelle: die
+Projektseite schlägt das passende Register auf – Massaufnahme, Ausmass oder
+Regierapport – und hebt die getroffene Zeile kurz hervor. Gibt es den Eintrag
+nicht mehr, geht das Projekt trotzdem auf, nur ohne Hervorhebung.</div>
 <figure><img src="bilder/21-suche.png"><figcaption>Die Suche über alle Projekte hinweg.</figcaption></figure>
 <p>Gesucht wird in Rapporten (Auftraggeber, Objekt, Auftrags-Nr.), in Massaufnahmen und
 Ausmassen (Bezeichnung) sowie in den Projekten selbst (Adresse, Name, Auftrags-Nr.,
@@ -2399,9 +2371,8 @@ der Mitarbeiterliste ein neues. Beim ersten Anmelden vergibt die Person ein eige
 <h2>20 · Was die App gelernt hat</h2>
 <p>Die App zählt seit Version 3.168 mit, was dieser Betrieb tatsächlich
 benutzt, misst und wählt – und stellt es an den passenden Stellen nach vorne.
-Unter <span class="tasten">Mehr → Was die App gelernt hat</span> (in der
-klassischen Ansicht: der Knopf auf dem Startbildschirm) steht alles davon auf
-einer Seite:</p>
+Unter <span class="tasten">Mehr → Was die App gelernt hat</span> steht alles
+davon auf einer Seite:</p>
 <ul>
 <li><strong>Material, das ihr benutzt</strong> – ordnet die EDV-Nr.-Suche.</li>
 <li><strong>Material je Art der Massaufnahme</strong> – was zu <em>dieser</em>
@@ -2745,7 +2716,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.217</strong>, Stand 28. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.218</strong>, Stand 28. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

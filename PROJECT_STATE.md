@@ -3,9 +3,39 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.217`
+- Aktueller Entwicklungsstand: `v3.218`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.218: es gibt nur noch EINE Ansicht
+
+Ansage des Anwenders: „Klassische alte ansicht kann komplett weg." Entfallen sind
+der klassische Startbildschirm in `index.html` (Willkommen, Firmenzeile,
+Aufgabenkarte, die Karte „Was möchtest du tun?", `#topUserBar`), der Umschalter
+(`a2Setzen`, `#a2Ein`, der gemerkte Wert `sd_ansicht2`), der Weg zurück unter
+„Mehr", die Geräte-Einstellung „Aufgaben zugeklappt/geöffnet" und die CSS-Regeln,
+die die eine Ansicht zugunsten der anderen ausblendeten.
+
+**Was bewusst geblieben ist – und warum:**
+
+- `#appAnker` in `index.html`: neun Knöpfe (`startOpenProjects`, `navWerkstatt`,
+  `navLagerverwaltung`, `openGlobalSearch`, `settings`, `openFeedback`,
+  `navAdminMeas`, `navSystemAdmin`, `logout`) plus `#startLogo` und
+  `#appVersion`, alle `hidden`. Das ist **keine Ansicht**: es sind die Stellen,
+  an denen die Fachmodule seit jeher ihren Handler anmelden (`$("settings")
+  .onclick` in js/07 usw.), und zwei Datenträger. Vier davon führen ausserdem
+  die Sichtbarkeit (`werkAktiv()`, `lagerverwaltungZugriff`, `isAdmin`,
+  `isSystemAdmin` setzen ihr `hidden`; `a2KnopfSichtbar()` in js/70 liest genau
+  das). Sie zu entfernen hiesse, neun Module umzubauen, ohne dass sich für den
+  Anwender etwas ändert.
+- Die Klasse `a2-an` am `<html>`-Element: an ihr hängen rund dreihundert
+  CSS-Regeln. Sie wird beim Start einmal gesetzt. Mehrere Prüfstände nehmen sie
+  kurz ab, um zu belegen, dass eine gemessene Form wirklich von dort kommt.
+- `a2Aktiv()` gibt `true` zurück und bleibt: die Funktion wird an vielen Stellen
+  gefragt, und dort soll kein zweiter Weg entstehen.
+- `renderAufgaben()` zeichnet nichts mehr, bleibt aber als Zeichen „die Aufgaben
+  haben sich geändert" (acht Aufrufe in js/45, einer in js/07; js/70 hängt sich
+  daran).
 
 ### Zwei Datenbank-Regeln, die seit v3.206 gelten (und geprüft gehören)
 

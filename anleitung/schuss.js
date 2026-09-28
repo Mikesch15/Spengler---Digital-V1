@@ -14,7 +14,12 @@ const liste=[];
  const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
  const page=await b.newPage({viewport:{width:1100,height:900},deviceScaleFactor:2,locale:"de-CH",timezoneId:"Europe/Zurich"});
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e))); page.on("dialog",d=>d.accept());
- await page.route("**://cdn.jsdelivr.net/**",r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ // v3.218: Seit v3.205 liegt supabase-js im Projekt (vendor/) statt auf
+ // cdn.jsdelivr.net. Dieses Skript fing bis dahin nur den CDN-Weg ab - der
+ // Stub kam deshalb gar nicht mehr zum Zug, und window.__demo fehlte. Beide
+ // Wege werden jetzt abgefangen, wie in den Pruefstaenden auch.
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,
+  r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(700);
 
  // Das Fenster wird vor jedem Bild auf die Hoehe des Elements gebracht -
@@ -143,8 +148,10 @@ const liste=[];
                      {id:5,name:"Rinnenboden",symbol:"BD",is_fixpunkt:false,angle_deg:0,zuschlag_mm:60}];
   rinneNormlaengen={"1|333":[6000,5000,4000]};
   $("appRoot").hidden=false; $("authScreen").hidden=true;
-  $("currentUserLabel").textContent="Andrea Beispiel";
-  $("startCompanyLine").textContent="Muster Spenglerei AG";
+  // v3.218: #currentUserLabel und #startCompanyLine standen auf dem
+  // klassischen Startbildschirm und sind mit ihm entfallen. Wer angemeldet
+  // ist und wie die Firma heisst, zeigt die Ansicht aus currentProfile und
+  // companyName - beides ist oben gesetzt.
   $("startScreen").hidden=false;
   if(typeof markierePflichtfelder==="function")markierePflichtfelder();
   // Die Beispielfirma arbeitet mit dem erweiterten Ablauf (Abschnitt 10) -
@@ -157,24 +164,18 @@ const liste=[];
  });
 
  // WELCHE ANSICHT AUF DEN BILDERN ZU SEHEN IST (seit v3.155)
- // Die neue Ansicht ist seit v3.151 die Vorgabe - der Bildersatz zeigt
- // deshalb sie. Bis v3.154 war es umgekehrt: die Bilder zeigten die
- // klassische, obwohl niemand mehr mit ihr startet.
- //
- // Drei Bilder bleiben ausdruecklich klassisch, und zwar nicht aus
- // Bequemlichkeit: 02-start, 32-aufgaben und 34-aufgaben-zu zeigen
- // Elemente, die es NUR auf der klassischen Startseite gibt. In der neuen
- // Ansicht tragen sie display:none - der Schuss waere ein leerer Streifen.
- // Genau das ist in v3.151 passiert und wurde erst am fertigen PDF
- // bemerkt. Sie werden deshalb einzeln umgeschaltet und danach sofort
- // wieder zurueck.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
+ // v3.218: Es gibt nur noch EINE Ansicht. Bis v3.217 wurden drei Bilder
+ // (02-start, 32-aufgaben, 34-aufgaben-zu) ausdruecklich in der klassischen
+ // Startseite geschossen, weil es die dort gezeigten Elemente nur dort gab.
+ // Die Startseite ist weg - 34-aufgaben-zu (die zugeklappte Karte) hat
+ // damit kein Motiv mehr und ist entfallen; die beiden anderen zeigen jetzt
+ // dasselbe in der Ansicht.
+ await page.evaluate(()=>{if(typeof a2Zeichnen==="function")a2Zeichnen()});
  await schuss("02-start","#startScreen");
 
  // ---------- Ansicht 2.0 (v3.150) ----------
  // Ganzseitig und in Handybreite: die untere Navigationsleiste ist
  // position:fixed und laege bei einem Element-Schuss ausserhalb.
- await page.evaluate(()=>{a2Setzen(true)});
  await schuss("44-ansicht2-heute",null,{breite:420,warte:500});
  await page.evaluate(()=>{a2Zustand.seite="projekte";a2Zeichnen()});
  await schuss("45-ansicht2-projekte",null,{breite:420,warte:400});
@@ -482,16 +483,19 @@ const liste=[];
   // freizugeben und ist bei der Rinne als Ruester eingeteilt.
   if(typeof aufgabenNeuLaden==="function")return aufgabenNeuLaden();
  });
- // v3.07: Die Karte ist zugeklappt - fuer das Bild einmal so und einmal offen.
- // Die Aufgabenkarte gibt es nur auf der KLASSISCHEN Startseite (in der
- // neuen Ansicht ist sie die ganze Seite "Heute", siehe 44). Fuer diese
- // beiden Bilder wird deshalb umgeschaltet - und gleich danach zurueck.
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(false)});
- await page.evaluate(()=>{if(typeof aufgabenOffen!=="undefined"){aufgabenOffen=false;renderAufgaben()}});
- await schuss("34-aufgaben-zu","#aufgabenKarte",{warte:500,breite:760});
- await page.evaluate(()=>{if(typeof aufgabenOffen!=="undefined"){aufgabenOffen=true;renderAufgaben()}});
- await schuss("32-aufgaben","#aufgabenKarte",{warte:700,breite:760});
- await page.evaluate(()=>{if(typeof a2Setzen==="function")a2Setzen(true)});
+ // v3.218: Die Aufgaben stehen als Abschnitt auf der Seite "Heute" - es gibt
+ // keine zuklappbare Karte mehr und damit auch kein zweites Bild davon. Der
+ // Abschnitt traegt keine eigene id; fuer den Schuss bekommt er kurz eine.
+ await page.evaluate(()=>{
+  a2Zustand.seite="heute"; a2Zeichnen();
+  const kopf=[...document.querySelectorAll("#a2Inhalt .a2-abschnitt-kopf")]
+    .find(k=>/meine aufgaben/i.test(k.innerText||""));
+  if(kopf&&kopf.parentElement)kopf.parentElement.id="schussAufgaben";
+ });
+ await schuss("32-aufgaben","#schussAufgaben",{warte:700,breite:760});
+ await page.evaluate(()=>{
+  const e=document.getElementById("schussAufgaben"); if(e)e.removeAttribute("id");
+ });
 
  // ---------- Verfallene Freigabe (v3.06) ----------
  await page.evaluate(()=>{
@@ -560,6 +564,12 @@ const liste=[];
  // oeffnet Skizze, Grundriss und die abhakbare Zuschnittliste. Fuer das Bild
  // wird die erste Zeile geoeffnet, die danach wirklich eine Liste zeigt.
  await page.evaluate(async()=>{
+  // v3.218: Seit v3.215 oeffnet die Werkstatt mit ZUGEKLAPPTEN Projekten -
+  // dann gibt es gar keine [data-werk-karte] im Dokument, und das Bild
+  // fehlte still. Fuer die Aufnahme werden die Bloecke einmal aufgeklappt,
+  // genau wie es ein Tipp auf den Projektkopf tut.
+  if(typeof werkZuBlock!=="undefined"){werkZuBlock.clear();renderWerkstatt();}
+  await new Promise(r=>setTimeout(r,300));
   for(const k of [...document.querySelectorAll("#werkstattBody [data-werk-karte]")]){
    k.click();
    await new Promise(r=>setTimeout(r,250));
